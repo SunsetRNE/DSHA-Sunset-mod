@@ -268,6 +268,42 @@
                 android:layout_height="wrap_content"
                 android:text="允许 agent 读取位置（能定位到你本人，默认关闭）" />
 
+            <!-- 所有文件访问权限：容器要读写手机存储任意文件（含 DSHA 目录外），
+                 得去系统设置页开 MANAGE_EXTERNAL_STORAGE，这里只做入口 + 状态。 -->
+            <LinearLayout
+                android:id="@+id/config_all_files"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minHeight="@dimen/touch_min"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/gap_tight"
+                android:paddingEnd="@dimen/gap_tight">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/DshaText.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="所有文件的访问权限 ▸" />
+
+                    <TextView
+                        android:id="@+id/config_all_files_status"
+                        style="@style/DshaText.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_muted" />
+                </LinearLayout>
+            </LinearLayout>
+
             <CheckBox
                 android:id="@+id/config_rc6"
                 style="@style/DshaText.Body"

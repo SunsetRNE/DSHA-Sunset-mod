@@ -1,5 +1,7 @@
 package com.deepseekharness.app;
 
+import com.deepseekharness.app.util.SensitiveData;
+
 import android.accessibilityservice.AccessibilityService;
 import android.content.Context;
 import android.provider.Settings;
@@ -282,6 +284,9 @@ public class DshaAccessibilityService extends AccessibilityService {
 
     /** 按坐标点按。坐标从 uiDump 的「中心=」里取。 */
     public static String uiTap(int x, int y) {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
+            return "手势点按需 Android 7+（当前系统过旧）";
+        }
         DshaAccessibilityService s = instance;
         if (s == null) return NOT_READY;
         return s.gesture(buildTap(x, y), "点按 (" + x + "," + y + ")");
@@ -434,6 +439,9 @@ public class DshaAccessibilityService extends AccessibilityService {
 
     /** 滑动：翻页、下拉刷新、侧滑都靠它。durationMs 太短系统会当成甩动。 */
     public static String uiSwipe(int x1, int y1, int x2, int y2, int durationMs) {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
+            return "手势滑动需 Android 7+（当前系统过旧）";
+        }
         DshaAccessibilityService s = instance;
         if (s == null) return NOT_READY;
         int dur = durationMs <= 0 ? 300 : Math.min(durationMs, 5000);

@@ -1,4 +1,12 @@
 package com.deepseekharness.app;
+import com.deepseekharness.app.util.Compat;
+
+import com.deepseekharness.app.util.Constants;
+import com.deepseekharness.app.util.Query;
+import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.runtime.TarGzipExtractor;
+import com.deepseekharness.app.ui.MainActivity;
+import com.deepseekharness.app.util.SensitiveData;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -152,7 +160,7 @@ public final class HttpShellService {
     private static String readTokenFromFile(java.io.File tf) {
         if (tf == null || !tf.isFile()) return null;
         try {
-            String s = new String(java.nio.file.Files.readAllBytes(tf.toPath()),
+            String s = new String(Compat.readAllBytes(tf),
                     java.nio.charset.StandardCharsets.UTF_8).trim();
             if (s.isEmpty() || s.length() > 128) return null;
             // 只允许可安全放入 URL/Header 的一半字符，拒绝换行等脏内容
@@ -179,11 +187,9 @@ public final class HttpShellService {
             if (tf != null) {
                 try {
                     if (tf.getParentFile() != null) tf.getParentFile().mkdirs();
-                    java.nio.file.Files.write(tf.toPath(), t.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    Compat.write(tf, t.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                     try {
-                        java.nio.file.attribute.PosixFilePermissions.fromString("rw-------");
-                        java.nio.file.Files.setPosixFilePermissions(tf.toPath(),
-                                java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
+                        Compat.chmod(tf, "rw-------");
                     } catch (Throwable e) {
             android.util.Log.w("DSHA", "token 文件写入失败，3090 桥将无法鉴权: " + safeError(e));
         }
@@ -223,8 +229,7 @@ public final class HttpShellService {
             if (tf == null || tf.getParentFile() == null) return;
             java.io.File f = new java.io.File(tf.getParentFile(), ".bridge_status");
             if (!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) return;
-            java.nio.file.Files.write(f.toPath(),
-                    (s + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Compat.write(f, (s + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
         } catch (Throwable ignored) {
         }
     }
@@ -1146,8 +1151,13 @@ public final class HttpShellService {
                 v = (android.os.Vibrator) ctx.getSystemService(Context.VIBRATOR_SERVICE);
             }
             if (v == null) return "NO_VIBRATOR";
-            v.vibrate(android.os.VibrationEffect.createOneShot(ms,
-                    android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+            if (Build.VERSION.SDK_INT >= 26) {
+                v.vibrate(android.os.VibrationEffect.createOneShot(ms,
+                        android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                // Android 6：VibrationEffect 是 API 26，退回旧式 vibrate(ms)
+                v.vibrate(ms);
+            }
             return "OK: 震动 " + ms + "ms";
         } catch (Throwable e) {
             return "ERROR: " + safeError(e);
@@ -1347,7 +1357,7 @@ public final class HttpShellService {
         try {
             NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
             // framework API 24+，比运行时权限检查更准（用户在设置里关掉通知也算）
-            return nm == null || nm.areNotificationsEnabled();
+            return nm == null || androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled();
         } catch (Throwable e) {
             return true; // 判断不了就别妄下结论
         }

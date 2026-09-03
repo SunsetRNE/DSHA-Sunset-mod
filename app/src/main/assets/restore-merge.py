@@ -778,6 +778,38 @@ def read_manifest(stage):
     return None
 
 
+def ensure_workspace_dirs(root):
+    """恢复后按 workspace.json 里的工作区路径补建目录，防止 dsh 剪会话。
+
+    dsh 对每个会话做 cwd 校验：cwd 对应的目录必须真实存在，否则该会话会被
+    从 workspace.json 注册表除名（文件还在，界面里对话消失）。备份只带 .dsh
+    （会话数据），不带工作区工作目录 —— 换机/重装恢复后目录缺失就会触发这个
+    剪枝。这里把注册表引用的路径补建出来，让校验通过、会话得以保留。
+    """
+    ws_path = os.path.join(root, ".dsh", "storages", "workspace.json")
+    try:
+        with open(ws_path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except Exception as e:
+        say("· 补建工作区目录跳过（无 workspace.json）：%s" % e)
+        return False
+    created = []
+    workspaces = (data.get("tables") or {}).get("workspaces") or {}
+    for _wid, rec in workspaces.items():
+        path = (rec or {}).get("path")
+        if not path or not path.startswith("/"):
+            continue
+        try:
+            os.makedirs(path, exist_ok=True)
+            created.append(path)
+        except OSError as e:
+            say("· 补建工作区目录失败 %s：%s" % (path, e))
+    if created:
+        say("· 已补建工作区目录（防 dsh 剪会话）：%s" % "、".join(sorted(set(created))))
+        return True
+    return False
+
+
 def main():
     global partial, retain_stage, restore_committed
     # 脚本通常每次只运行一次，但测试/嵌入调用可能复用解释器；状态不能跨恢复串线。
@@ -859,6 +891,11 @@ def main():
             # 候选校验/切换失败时，旧 .dsh 仍是用户唯一可启动的数据；任何后续
             # merge、插件修补或快照落位都可能改写它，所以这里必须全部跳过。
             say("· 因 .dsh 未安全落位，跳过 .env、插件和快照合并")
+    # 无论全量/部分恢复，只要 .dsh 落位了就补建工作区目录：dsh 启动时会按
+    # cwd 校验每个会话，工作目录缺失会把恢复的会话从注册表剪掉（文件还在但
+    # 界面里消失）。备份只带 .dsh、不带工作目录，这一步必须在 dsh 启动前做。
+    if os.path.isdir(os.path.join(root, ".dsh")):
+        ensure_workspace_dirs(root)
     if not retain_stage:
         try:
             shutil.rmtree(stage, ignore_errors=True)
