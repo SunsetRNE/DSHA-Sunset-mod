@@ -2,6 +2,8 @@ package com.deepseekharness.app;
 
 import java.lang.ref.WeakReference;
 
+import com.deepseekharness.app.runtime.ProotBootstrap;
+import com.deepseekharness.app.util.SensitiveData;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSessionClient;
 
@@ -25,7 +27,7 @@ import com.termux.terminal.TerminalSessionClient;
  * <p>这个类只管会话与回调转发，不碰任何 View —— UI 侧实现 {@link Listener} 即可，
  * 不必去实现 TerminalSessionClient 那 17 个方法。
  */
-final class PtySession implements TerminalSessionClient {
+public final class PtySession implements TerminalSessionClient {
 
     private static final String TAG = "DSHA-pty";
 
@@ -33,7 +35,7 @@ final class PtySession implements TerminalSessionClient {
     private static final int TRANSCRIPT_ROWS = 2000;
 
     /** UI 侧只关心这几件事。回调都在 PTY 读线程上来，实现方自己 post 到主线程。 */
-    interface Listener {
+    public interface Listener {
         /** 屏幕内容变了 → 该重绘。 */
         void onOutput();
 
@@ -59,11 +61,11 @@ final class PtySession implements TerminalSessionClient {
     private PtySession() {
     }
 
-    void attachListener(Listener l) {
+    public void attachListener(Listener l) {
         listener = new WeakReference<>(l);
     }
 
-    void detachListener(Listener l) {
+    public void detachListener(Listener l) {
         Listener current = listener.get();
         if (current == l) listener = new WeakReference<>(null);
     }
@@ -78,9 +80,10 @@ final class PtySession implements TerminalSessionClient {
      * @param cols 列数，@param rows 行数 —— 必须是按控件实测字宽算出来的，
      *             瞎给一个值会让 TUI 的边框错位。
      */
-    static PtySession start(ProotBootstrap proot, int cols, int rows, Listener l) {
+    public static PtySession start(ProotBootstrap proot, int cols, int rows, Listener l) {
         PtySession ps = new PtySession();
         ps.attachListener(l);
+        proot.ensureAndroidGroups(); // 登录 shell 的 $(groups) 依赖 /etc/group 里有 Android GID
         String[] argv = proot.ptyArgv();
         String[] env = proot.ptyEnv();
         // args 就是 argv（含 argv[0]）：查过 termux.c，Java 数组原样转成 argv 后
@@ -92,27 +95,27 @@ final class PtySession implements TerminalSessionClient {
         return ps;
     }
 
-    TerminalSession session() {
+    public TerminalSession session() {
         return session;
     }
 
-    void write(String s) {
+    public void write(String s) {
         TerminalSession t = session;
         if (t != null && s != null && !s.isEmpty()) t.write(s);
     }
 
-    void resize(int cols, int rows) {
+    public void resize(int cols, int rows) {
         TerminalSession t = session;
         if (t != null) t.updateSize(Math.max(4, cols), Math.max(2, rows));
     }
 
-    boolean isRunning() {
+    public boolean isRunning() {
         TerminalSession t = session;
         return t != null && t.isRunning();
     }
 
     /** 结束会话（切页面/退出时调，避免留一个孤儿 bash 在容器里跑）。 */
-    void finish() {
+    public void finish() {
         TerminalSession t = session;
         if (t != null) t.finishIfRunning();
     }

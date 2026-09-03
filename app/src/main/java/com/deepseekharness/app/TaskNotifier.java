@@ -1,5 +1,8 @@
 package com.deepseekharness.app;
 
+import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.ui.MainActivity;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;

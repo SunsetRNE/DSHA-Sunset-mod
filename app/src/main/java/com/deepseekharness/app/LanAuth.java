@@ -1,5 +1,7 @@
 package com.deepseekharness.app;
 
+import com.deepseekharness.app.util.Query;
+
 /**
  * Small, Android-free LAN credential and request-line helpers.
  *

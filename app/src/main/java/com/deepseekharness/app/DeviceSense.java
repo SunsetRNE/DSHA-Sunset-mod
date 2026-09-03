@@ -1,5 +1,7 @@
 package com.deepseekharness.app;
 
+import com.deepseekharness.app.util.SensitiveData;
+
 import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;

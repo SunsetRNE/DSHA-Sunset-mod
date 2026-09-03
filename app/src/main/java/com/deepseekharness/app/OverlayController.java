@@ -1,5 +1,7 @@
 package com.deepseekharness.app;
 
+import com.deepseekharness.app.util.SensitiveData;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -39,36 +41,36 @@ import java.util.Map;
  * <p><b>多实例</b>：dsh 可以同时跑多个会话，各自都在吐字。按 sessionKey 分桶，
  * 只渲染最后活跃的那一路，多路并发时加短标识前缀，否则两路输出会交织成乱码。
  */
-final class OverlayController {
+public final class OverlayController {
 
     // ---------- 配置项（都在「配置」页的「悬浮条外观」里，这里只给默认值） ----------
-    static final String K_ENABLED = "overlay_stream";
-    static final String K_LINES = "overlay_lines";              // 1..6 行
+    public static final String K_ENABLED = "overlay_stream";
+    public static final String K_LINES = "overlay_lines";              // 1..6 行
     /** 悬浮条字号（sp）。允许调得很小 —— 一行能塞多少字全看这个。 */
-    static final String K_TEXT_SP = "overlay_text_sp";
-    static final int DEF_TEXT_SP = 12;
-    static final String K_HOLD = "overlay_hold_sec";            // 2..60 秒
-    static final String K_ALPHA = "overlay_alpha";              // 20..100 %
-    static final String K_BG = "overlay_bg";                    // 预设底色索引
-    static final String K_REASONING = "overlay_show_reasoning";  // 显示思考过程
-    static final String K_COMMAND = "overlay_show_command";      // 工具调用带上命令原文
-    static final String K_CONFIRM = "overlay_confirm";           // 危险命令就地批准
+    public static final String K_TEXT_SP = "overlay_text_sp";
+    public static final int DEF_TEXT_SP = 12;
+    public static final String K_HOLD = "overlay_hold_sec";            // 2..60 秒
+    public static final String K_ALPHA = "overlay_alpha";              // 20..100 %
+    public static final String K_BG = "overlay_bg";                    // 预设底色索引
+    public static final String K_REASONING = "overlay_show_reasoning";  // 显示思考过程
+    public static final String K_COMMAND = "overlay_show_command";      // 工具调用带上命令原文
+    public static final String K_CONFIRM = "overlay_confirm";           // 危险命令就地批准
 
     // 默认 3 行：1 行永远只看得到最后半句，流式内容根本读不了 —— 这个功能的用处
     // 就是扫一眼 agent 在说什么，太窄等于没有。
-    static final int DEF_LINES = 3;
-    static final int DEF_HOLD = 6;
-    static final int DEF_ALPHA = 85;
+    public static final int DEF_LINES = 3;
+    public static final int DEF_HOLD = 6;
+    public static final int DEF_ALPHA = 85;
 
     /** 预设底色（不做取色器：悬浮条只需要「在任何壁纸上都读得清」，几个深色够用）。 */
-    static final int[] BG_PRESETS = {
+    public static final int[] BG_PRESETS = {
             0x11141A,   // 深灰蓝（默认）
             0x000000,   // 纯黑
             0x0D1B2A,   // 深海蓝
             0x102A17,   // 深墨绿
             0x1E1030,   // 深紫
     };
-    static final String[] BG_NAMES = {"深灰蓝", "纯黑", "深海蓝", "深墨绿", "深紫"};
+    public static final String[] BG_NAMES = {"深灰蓝", "纯黑", "深海蓝", "深墨绿", "深紫"};
 
     /** 每行按多少字符估算。宽度由系统折行决定，这里只用来决定「留多少尾部内容」。 */
     /** 每行的显示宽度见 {@link OverlayLines#DEFAULT_WIDTH}。下面两个是缓冲上限：
@@ -107,7 +109,7 @@ final class OverlayController {
     }
 
     /** 用户是否已授予悬浮窗权限。没权限时一切 push 直接丢弃，不弹系统弹窗骚扰。 */
-    static boolean permitted(Context ctx) {
+    public static boolean permitted(Context ctx) {
         try {
             return Settings.canDrawOverlays(ctx);
         } catch (Throwable e) {
@@ -116,7 +118,7 @@ final class OverlayController {
     }
 
     /** 总开关。默认关闭 —— 屏幕上实时显示 AI 输出，旁边的人也看得见。 */
-    static boolean enabled(Context ctx) {
+    public static boolean enabled(Context ctx) {
         try {
             return prefs(ctx).getBoolean(K_ENABLED, false);
         } catch (Throwable e) {
@@ -124,7 +126,7 @@ final class OverlayController {
         }
     }
 
-    static boolean showReasoning(Context ctx) {
+    public static boolean showReasoning(Context ctx) {
         try {
             return prefs(ctx).getBoolean(K_REASONING, false);
         } catch (Throwable e) {
@@ -132,7 +134,7 @@ final class OverlayController {
         }
     }
 
-    static boolean showCommand(Context ctx) {
+    public static boolean showCommand(Context ctx) {
         try {
             return prefs(ctx).getBoolean(K_COMMAND, true);
         } catch (Throwable e) {
@@ -140,7 +142,7 @@ final class OverlayController {
         }
     }
 
-    static boolean confirmOnOverlay(Context ctx) {
+    public static boolean confirmOnOverlay(Context ctx) {
         try {
             return prefs(ctx).getBoolean(K_CONFIRM, true);
         } catch (Throwable e) {
@@ -178,7 +180,7 @@ final class OverlayController {
      * @param kind {@code delta} 追加 · {@code text} 整行替换 · {@code tool} 工具状态
      *             · {@code reasoning} 思考过程 · {@code done} 本轮收尾 · {@code clear} 立刻收起
      */
-    static void push(Context ctx, String sessionKey, String kind, String text) {
+    public static void push(Context ctx, String sessionKey, String kind, String text) {
         if (ctx == null || !enabled(ctx) || !permitted(ctx)) return;
         // Overlay content is display-only. Keep any credentials in streamed
         // diagnostics out of both the transient buffer and the window.
@@ -460,7 +462,7 @@ final class OverlayController {
     }
 
     /** 配置改了之后立刻看到效果（底色/透明度/行数都能热应用）。 */
-    static void applyStyleNow(Context ctx) {
+    public static void applyStyleNow(Context ctx) {
         mainHandler().post(() -> {
             try {
                 if (root == null) return;

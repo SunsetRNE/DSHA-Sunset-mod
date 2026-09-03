@@ -3,6 +3,9 @@ package com.deepseekharness.app;
 import android.content.Context;
 import android.util.Log;
 
+import com.deepseekharness.app.util.Constants;
+import com.deepseekharness.app.util.SensitiveData;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -629,7 +632,12 @@ public final class LanProxyService {
             int end = result.lastIndexOf("\r\n\r\n");
             if (end >= 0) result.insert(end, "Cookie: " + dshCookie + "\r\n");
         }
-        return result.toString();
+        // 归一化结尾（与 rewriteResponse 相同）：split(-1) 会给请求头后多留一个 \r\n，
+        // 对 GET 无影响，但对 POST 会把正文顶错位（Content-Length 少算 2 字节）→ dsh 400。
+        // 恰好保留一个空行分隔，正文从正确偏移开始。
+        String out = result.toString();
+        while (out.endsWith("\r\n")) out = out.substring(0, out.length() - 2);
+        return out + "\r\n\r\n";
     }
 
     /** Drop backend cookies and rewrite redirects so dsh credentials stay internal. */
@@ -639,6 +647,9 @@ public final class LanProxyService {
 
     private static String rewriteResponse(String head, int responseBackendPort) {
         StringBuilder result = new StringBuilder();
+        // 注意：split 默认限位会把「头与正文之间的空行」这个末尾空串也删掉（少了 \r\n\r\n），
+        // 而 -1 又会多留一个空串（多了 \r\n）。两者都会让客户端解析失败 ——
+        // 这里用 -1 处理后统一归一化结尾：剥掉多余 CRLF，恰好保留一个空行分隔。
         for (String line : head.split("\\r?\\n", -1)) {
             if (line.isEmpty()) {
                 result.append("\r\n");
@@ -674,7 +685,10 @@ public final class LanProxyService {
                 result.append(line).append("\r\n");
             }
         }
-        return result.toString();
+        String out = result.toString();
+        // 归一化结尾：多余的 CRLF 会让 chunked 正文首行解析成空十六进制长度
+        while (out.endsWith("\r\n")) out = out.substring(0, out.length() - 2);
+        return out + "\r\n\r\n";
     }
 
     private static boolean shouldLogConn(String ip) {
@@ -776,6 +790,10 @@ public final class LanProxyService {
             if (size < 0 || size > maxChunk) return;
             out.write(line.toByteArray());
             if (size == 0) {
+                // 终结块是 0\r\n\r\n：补上第二个 \r\n，否则 chunked 流不完整，
+                // 客户端（浏览器/curl）会判「chunk hex-length 非法」而断开
+                out.write('\r');
+                out.write('\n');
                 out.flush();
                 return;
             }

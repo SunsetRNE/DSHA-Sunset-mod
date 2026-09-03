@@ -12,6 +12,7 @@ DSHA 设备 shell 工具（ADB 无线通道，免 Shizuku）。
 import sys
 import os
 import time
+import socket
 
 KEYDIR = '/root/.dsh/adbkeys'
 KEY = KEYDIR + '/adbkey'
@@ -119,22 +120,57 @@ class ConnectFail(Exception):
 
 
 def run_on_port(device_cls, signer_cls, cmd, port):
-    """在指定端口上连接并执行命令，返回输出。任何失败抛异常。"""
+    """在指定端口上连接并执行命令，返回输出。任何失败抛异常。
+    地址候选：127.0.0.1 → 本机 WiFi IP（部分 ROM 的 adbd 只监听接口 IP，
+    回环连不上 —— 与配对服务同一个坑）。"""
     signer = signer_cls(open(KEYPUB, 'rb').read().strip(), open(KEY, 'rb').read())
     priv_pem = open(KEY, 'rb').read()  # PKCS#8 PEM，作为 TLS 客户端私钥（0.5.0 库：传给 connect()）
-    dev = device_cls('127.0.0.1', port)
-    dev.connect(rsa_keys=[signer], auth_timeout_s=20, tls_priv_pem=priv_pem)
+    hosts = ['127.0.0.1']
+    for ip in local_ips():
+        if ip not in hosts:
+            hosts.append(ip)
+    last = None
+    for host in hosts:
+        try:
+            dev = device_cls(host, port)
+            dev.connect(rsa_keys=[signer], auth_timeout_s=20, tls_priv_pem=priv_pem)
+            try:
+                # 超时兜底：logcat（不带 -d）这类命令会一直挂住，旧实现无超时会永久卡死
+                try:
+                    out = dev.shell(cmd, read_timeout_s=30, timeout_s=180)
+                except TypeError:
+                    out = dev.shell(cmd)  # 老版本库没有超时参数
+                return out
+            finally:
+                try:
+                    dev.close()
+                except Exception:
+                    pass
+        except Exception as e:
+            last = e
+    raise last if last is not None else ConnectionError('no host tried')
+
+
+def local_ips():
+    """本机所有 IPv4 接口地址（proot 与 Android 共享网络栈，能拿到 WiFi IP）。"""
+    ips = []
     try:
-        # 超时兜底：logcat（不带 -d）这类命令会一直挂住，旧实现无超时会永久卡死
-        try:
-            return dev.shell(cmd, read_timeout_s=30, timeout_s=180)
-        except TypeError:
-            return dev.shell(cmd)  # 老版本库没有超时参数
-    finally:
-        try:
-            dev.close()
-        except Exception:
-            pass
+        import subprocess
+        out = subprocess.check_output(
+            "ip -4 addr show | grep -oP 'inet \\K[0-9.]+' | grep -v '^127\\.'",
+            shell=True, timeout=5, stderr=subprocess.DEVNULL).decode().split()
+        ips.extend(out)
+    except Exception:
+        pass
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ips.append(s.getsockname()[0])
+        s.close()
+    except Exception:
+        pass
+    seen = set()
+    return [ip for ip in ips if not (ip in seen or seen.add(ip))]
 
 
 def load_port_history():

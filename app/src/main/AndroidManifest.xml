@@ -3,63 +3,44 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- WifiLock 用：熄屏后 WiFi 会进省电模式，3081 局域网桥与联网安装都会断 -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- 流式悬浮条（把 agent 正在生成的内容显示在屏幕顶部）。
-         默认关闭、需要用户在系统设置里单独授予；不给也只是这一个功能不可用。
-         真正的「状态栏歌词」没有公开接口（只有 Flyme/exTHmUI 认 ticker flag，
-         其余机型要 Xposed），所以走自绘悬浮窗这条免 ROOT 的路。 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
-    <!-- 位置：让 agent 能回答「我在哪」「附近有什么」这类问题。
-         运行时权限，且 DSHA 侧还有一道开关（cap_location，**默认关**）——
-         位置是能定位到人的信息，不该因为装了 App 就默认开着。
-         标 required=false：没有 GPS 的设备（部分平板）照样能装。 -->
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-feature
-        android:name="android.hardware.location"
-        android:required="false" />
-    <uses-feature
-        android:name="android.hardware.sensor.light"
-        android:required="false" />
-    <uses-feature
-        android:name="android.hardware.camera.flash"
-        android:required="false" />
-    <!-- ADB 保活：系统休眠会冻结后台网络，加入电池优化白名单后连接才能长期在线。 -->
-    <!-- agent 通过 3090 桥查已装应用/启动应用（App 层能力，不需要 ADB 或 Shizuku）。
-         Android 11+ 不声明它 getInstalledPackages 只能看到极少数应用。 -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- thedjchi/Shizuku 式开机自启：授权后可在开机时自动开启无线调试（无需手动操作） -->
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- 所有文件访问权限（Android 11+）：容器/proot 进程要能读写手机存储任意文件
+         （含 DSHA 目录以外），WebUI 工作区才能建到 /sdcard 任意位置。 -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:targetApi="30" />
+    <!-- Android 6-9（API 23-28）：容器访问 /sdcard 走 WRITE_EXTERNAL_STORAGE 运行时权限；
+         Android 10+ 走作用域存储/MANAGE，这里用 maxSdkVersion 限定避免冗余。 -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+
+    <!-- terminal-view/terminal-emulator 0.118 声明 minSdk 24（Termux 2023 起），但组件主体
+         只需 API 21+；兼容 Android 6 时强制合并，终端在低版本设备上用兼容路径
+         （见 PtyTerminalFragment）。 -->
+    <uses-sdk tools:overrideLibrary="com.termux.view,com.termux.terminal" />
 
     <application
         android:name=".DshaApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.DeepseekHarness">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -68,32 +49,59 @@
             </intent-filter>
         </activity>
 
+        <!-- MT 管理器 / 系统「添加本地存储」通过 DocumentsProvider 发现 DSHA 私有目录。
+             Android 强制要求 DocumentsProvider 受 MANAGE_DOCUMENTS 保护（不设会崩溃）；
+             系统 DocumentsUI 与 SAF 授权路径可正常访问。 -->
+        <provider
+            android:name=".DshaDocumentsProvider"
+            android:authorities="${applicationId}.documents"
+            android:permission="android.permission.MANAGE_DOCUMENTS"
+            android:exported="true"
+            android:grantUriPermissions="true">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+
         <activity
-            android:name=".WelcomeActivity"
+            android:name=".ui.WelcomeActivity"
             android:exported="false"
             android:theme="@style/Theme.DeepseekHarness" />
 
         <activity
-            android:name=".ExtractActivity"
+            android:name=".ui.WebPreviewActivity"
             android:exported="false"
             android:theme="@style/Theme.DeepseekHarness" />
 
         <activity
-            android:name=".AdbPairActivity"
+            android:name=".ui.ExtractActivity"
             android:exported="false"
-            android:excludeFromRecents="true"
+            android:theme="@style/Theme.DeepseekHarness" />
+
+        <activity
+            android:name=".ui.AdbPairActivity"
+            android:exported="false"
             android:label="ADB 无线配对"
-            android:theme="@style/Theme.AppCompat.Dialog" />
+            android:theme="@style/Theme.DeepseekHarness" />
 
+        <service
+            android:name=".DeviceBridgeService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- 前台保活：dsh Web UI 后台常驻 + 看门狗自动重启 -->
         <service
             android:name=".HarnessService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- 无障碍服务：只用来读系统「无线调试」弹窗里的配对码（配对码 2 分钟失效，
-             手抄错一位就得重来）。可读范围由 accessibility_service_config.xml 里的
-             packageNames 限定为 com.android.settings —— 系统层面就不会把其他应用的
-             画面投给我们，用户在无障碍详情页也能看到这个限制。 -->
+        <service
+            android:name=".ShellService"
+            android:exported="false"
+            android:process=":shizuku"
+            android:permission="moe.shizuku.manager.permission.API_V23"
+            tools:ignore="Instantiatable" />
+
         <service
             android:name=".DshaAccessibilityService"
             android:exported="false"
@@ -107,30 +115,12 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- 关键修复：Shizuku UserService 必须注册，否则 bindUserService 永久失败。
-             lint 的 Instantiatable 检查在这里是误报：Shizuku 的 UserService 不继承
-             android.app.Service，而是实现 AIDL 接口（IShellService.Stub），由 Shizuku
-             在 :shizuku 进程里自己实例化。加了 debuggable false 后 debug 构建也会跑
-             release 级 lint，于是这条误报会直接中断打包，所以精准忽略它。 -->
-        <service
-            android:name=".ShellService"
-            android:exported="false"
-            android:process=":shizuku"
-            android:permission="moe.shizuku.manager.permission.API_V23"
-            tools:ignore="Instantiatable" />
-
-        <!-- 设备桥服务（普通后台服务）：3090 桥 + ADB 预热 + 配对弹窗监听 -->
-        <service
-            android:name=".DeviceBridgeService"
+        <receiver
+            android:name=".AdbKeepAliveReceiver"
             android:exported="false" />
 
         <receiver
             android:name=".ConfirmReceiver"
-            android:exported="false" />
-
-        <!-- ADB 保活的 Doze 兜底闹钟接收器 -->
-        <receiver
-            android:name=".AdbKeepAliveReceiver"
             android:exported="false" />
 
         <receiver
@@ -142,30 +132,6 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-
-        <!-- 通知卡片就地输入配对码（RemoteInput） -->
-        <receiver
-            android:name=".AdbPairReceiver"
-            android:exported="false" />
-
-        <provider
-            android:name="rikka.shizuku.ShizukuProvider"
-            android:authorities="${applicationId}.shizuku"
-            android:multiprocess="false"
-            android:enabled="true"
-            android:exported="true"
-            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
-
-        <provider
-            android:name=".DshaDocumentsProvider"
-            android:authorities="com.dsh.client.documents"
-            android:exported="true"
-            android:grantUriPermissions="true"
-            android:permission="android.permission.MANAGE_DOCUMENTS">
-            <intent-filter>
-                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
-            </intent-filter>
-        </provider>
     </application>
 
 </manifest>
