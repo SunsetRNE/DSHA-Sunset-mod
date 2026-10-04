@@ -1,5 +1,5 @@
 import { installResponseCompression } from './compress.js';
-import { deleteSession } from './delete-session.js';
+import { deleteSession, installSessionDeletionLifecycle } from './delete-session.js';
 /** Maximum accepted request body size (1 MiB — the delete body is one id). */
 const MAX_BODY_BYTES = 1_048_576;
 /** Sentinel: the request body grew past MAX_BODY_BYTES. */
@@ -68,15 +68,18 @@ function respond(res, status, body) {
  */
 export const name = 'dsh-web-mobile';
 export function apply(ctx) {
-    // Transparent gzip/brotli for large JSON responses (long-session history
-    // is megabytes on a phone). Patches http.ServerResponse.prototype; the
-    // disposer restores it on plugin unload/reload.
-    ctx.effect(() => installResponseCompression(), 'dsh-web-mobile: response compression');
-    // Session-delete route (port of fork wzxmt-zhc v2.7.0). Registers once the
-    // web route registry exists; the persistence / session / agent / workspace
-    // services are read per request so host shapes without them degrade to a
-    // structured 503 instead of a crash.
-    ctx.inject(['webServer', 'connection'], (webCtx) => {
+    // Only this public WebServer carrier's actual listening port is eligible;
+    // other HTTP servers in the process retain their response behavior.
+    ctx.inject(['webServer'], (webCtx) => {
+        webCtx.effect(() => installResponseCompression({
+            matches: (req) => Number.isInteger(webCtx.webServer.port)
+                && req?.socket?.localPort === webCtx.webServer.port,
+        }), 'dsh-web-mobile: response compression');
+    });
+    // Register the rc2 public lifecycle capture before the deletion route.
+    // Persistence / session / workspace services are read per request.
+    ctx.inject(['webServer', 'connection', 'agents'], (webCtx) => {
+        webCtx.effect(() => installSessionDeletionLifecycle(webCtx.agents), 'dsh-web-mobile: public session lifecycle');
         webCtx.effect(() => webCtx.webServer.register({
             kind: 'exact',
             path: '/api/mobile-nav.session.delete',
@@ -131,7 +134,7 @@ export function apply(ctx) {
                     workspaceRegistry: ctx.get('workspaceRegistry'),
                 }, sessionId);
                 if (result.ok) {
-                    respond(res, 200, { ok: true, deleted: result.deleted });
+                    respond(res, 200, { ok: true, deleted: result.deleted, ...(result.warnings ? { warnings: result.warnings } : {}) });
                     return;
                 }
                 ctx.logger.warn(`dsh-web-mobile: session-delete failed for '${sessionId}' (${result.error.code}): ${result.error.message}`);
