@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.2.1-rc.2 · build190 / F10（2026-10-21，当前私有维护分支）
+
+- 以build170为基座迁入后续全局授权、虚拟屏等功能，内置DSH0.2.1-rc.2；按本轮用户决定恢复默认proot，同时保留显式proroot选择。此项覆盖下方DSHA v1.1.6的历史默认，不是宣称proroot上游版本为v1.1.6；当前vendor锁v1.2.8。详见[运行引擎与迁移](docs/runtime-engines.md)。
+- 键盘动画减少逐帧整页重排，移动插件3.2.1固定main10e58ce；新增直接保存Download/DSHA的一键无密码备份，先安全停止DSH/任务，不自动重启，外置工作区内容另备。
+- 新增项目框架、设备权限、运行环境/数据/插件、引擎、端口、DNS、虚拟屏架构和ADR、官方资料与来源索引；当前配置、历史性能/默认及未运行范围分开。
+- 默认Web端口自动选择；备用只在本机记忆、不跨设备迁移。auto/ipv4对Node做特定lookup兼容，ipv4另加glibc no-aaaa，详见[端口](docs/ports-and-networking.md)与[DNS](docs/dns-configuration.md)。
+- 软件双版各785项零失败/错误（Standard3、Low76跳过）、两版Release Lint零错误且有警告，正式Standard APK七项实际核验通过。本轮未验手机；准确包与源码归属见[当前发布记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+
+
 ## 0.2.0-rc2 正式版 · build170（2026-10-09）
 
 - 由贡献者 [@SunsetRNE](https://github.com/SunsetRNE) 发布正式 Release / Latest；内置 DSH 0.2.0-rc.2、移动 UI 3.0.5，沿用包名和 E7E3 历史签名。对比上一正式版及下载见[发布说明](docs/releases/v0.2.0-rc2-notes.md)。
@@ -453,6 +462,8 @@ assets 脚本真编译），发布时证书指纹不匹配直接中止 —— �
 | 深色模式按钮浅蓝底浅字看不清 | Material3 把 `<Button>` 膨胀成 MaterialButton 并用 `colorPrimary` 填充，**忽略 `android:background`**，对比度只有约 1.3:1 |
 
 ### 🚀 v1.1.6 起：默认 proroot 运行时，启动快 5~6 倍
+
+> 历史归属：本节是DSHA v1.1.6当时的默认、旧基准和回退设计，不描述当前build190，也不是proroot上游版本号。当前默认proot、proroot显式可选；当前加载器、shim、缺失的--kill-on-exit及退出监督见[运行引擎专页](docs/runtime-engines.md)。下方原历史正文保留。
 
 传统 proot 基于 ptrace，**每个系统调用要两次上下文切换**；
 [proroot](https://github.com/coderredlab/proroot) 改用 LD_PRELOAD + 二进制补丁做

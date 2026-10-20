@@ -1,12 +1,14 @@
 # AGENTS.md
 
-> F9最终版本`0.2.1-rc.2-20261020.2330-dsh0.2.1-rc.2` /190、tag`v0.2.1-rc.2-20261020.2330`，补SDK29后同5任务152.31秒、两版110类/705项0失败/错误（Std3/Low76skip），Lint0error、247/162warning，实际APK7门禁通过。首轮各1依赖失败/220XML保留，非一次全绿。2330源码ZIP/私有上传待完成，2054/a9be已发布历史保留，不填新commit或ZIP自身SHA；继续禁止设备，只用现有repo，见[F9记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+> F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳定网页布局与合成位移；移动UI更新3.2.1（上游main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`）；新增直接保存Download/DSHA的一键备份。两版各 124 类/785 项 JUnit，0失败/错误（Standard 3、Low 76 跳过）；Release Lint 0错误，249/162 警告；实际APK七项门禁通过。首轮11个Standard旧系统测试受minSdk清单拦截，修正测试环境后重跑，原始失败保留。暂停设备/ADB/对话和长时验收。仅现有私有仓库，完整源码ZIP仍按项目路径直接展开固定构建输入；下载与最终远端状态以[关联Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)及本地独立发布回执为准。
 
 > build190 本轮用户决定（2026-10-19）：以已发布的 build170 / `v0.2.0-rc2`（8362bba747fcf84c19e436c3dbb594a0fc388a67）为源码基座，定向迁入 build187（ac7bf8eda8b46a22f6412b17ec3574bf895b1876）的全局授权、虚拟屏、任务通知等功能。保留生产旧数据、宿主 v5 备份和迁移链，不引入实验版 fresh-only 数据/备份架构。引擎恢复 `proot + proroot`，首次安装与未显式选择时默认稳定 `proot`，显式 `proroot` 可选；不迁入 bxroot。正式身份保持 `com.dsh.client` / E7E3 / 非调试，versionCode 190，基础版本及下载文件版本 `0.2.1-rc.2`，内置官方 DSH `0.2.1-rc.2`，Ubuntu base10 不变。危险的完整格式化生产入口与擦除后端仍退休，外置工作区不能清理或重放旧事务写删。标准版优先，历史 Low172 与既有正式交付原件保留。总资产、描述符、签名打包及交付由主代理统一完成；下面 build170 数量与版本按基座历史阅读。
 
 DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— 读它之前先读 [README.md](README.md)。
 
-**仓库事实速览**：2330/code190、Java17/:app、arm64、DSH0.2.1-rc.2/base10/mobile3.2.0和proot默认/proroot可选保持。canonicalNode/managed wrapper固定启动入口；StartupTrace的unowned指未归属具体插件的核心错误，WebProcSel另行保守识别PATH前缀pre-exec writer且不凭shell文本发signal。WebFullscreenUi跟帧resize、失焦清keyboard，含PiP/API29fallback。13Node、8后端import及普通Web/safe Linux Host证明分列，不是手机实测；1003文件=14新叶格式+989byteproof。最终705项与APK门禁本轮取得，不继承2054；ZIP仍按项目路径展开非嵌套。
+**仓库事实速览**：build170基座/code190，Java17/:app/arm64，DSH0.2.1-rc.2/base10，proot默认+proroot可选。固定包内启动入口及受管dsh包装继续保留。键盘动画期间不逐帧setPadding，原生有界帧通道用当前完整身份校验，网页只合成移动聚焦composer，末帧提交布局，失焦/分离/PiP清理。mobile3.2.1固定main10e58ce，保留安全服务端差异，不恢复上游撤回的#236。OneClickBackup复用NativeBackupJobs安全停止/v5/tar.gz/读回验证；Standard写Download/DSHA，Low旧系统首次选目录；不扫外置工作区、不默认导出原生密钥、不自动重启或重放。源码冻结、测试原始失败与补跑、精确APK资产及最终上传回执分开保存，不把浏览器机制回归写成手机FPS。完整源码ZIP直接展开固定输入；不能从F盘旧173构建。
+
+维护入口见[文档总索引](docs/documentation-index.md)、[项目总手册](docs/project-architecture-handbook.md)、[权限](docs/device-permissions-architecture.md)、[环境/数据/插件](docs/runtime-data-plugin-architecture.md)、[运行引擎](docs/runtime-engines.md)、[端口](docs/ports-and-networking.md)、[DNS](docs/dns-configuration.md)、[虚拟屏](docs/virtual-screen-architecture.md)、[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)及[来源依据](docs/references-and-provenance.md)。
 
 **build170基座历史策略**：移动 UI 3.0.5；第三方插件检查后自动提交/启用，允许依赖生命周期脚本和 pnpmfile；新导出为无密码 tar.gz，内部自动副本及旧加密原件读取保留。两版各45项关联检查和 Android13 非破坏性正式包验收范围见[历史发布说明](docs/releases/v0.2.0-rc2-notes.md)与[build170](docs/releases/v0.2.21-build170-20261009.md)。移动UI等当前值以上方本轮决定为准，下方目录数量为历史索引。
 
@@ -123,14 +125,14 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - `RuntimeTrial` 必须记录实际 `runtimeMode`。所选 proroot 在鉴权前明确退出且无插件故障时，可按 `WebRuntimeFallback` 仅重试一次 proot；**不能把 proot 成功报告成 proroot 原生成功**。静态检查先选 proot，慢启动不触发重试。
 - `RuntimeTrialRecords` 只轮换已确认关闭的现场：保留最近 3 条成功和 5 条失败；未关闭或标记异常的目录不得自动删除，也不能以累计次数设永久上限。
 - 就绪检查必须解析实际 `/bin/bash` 的 ELF 和加载器路径；可执行位用 lstat（受 Android W^X 影响的 canExecute 不可靠）。损坏系统不得反复执行配置安全启动，应进入环境修复。
-- 插件依赖用随包 pnpm 10.34.5 原生锁，冻结安装、禁用生命周期脚本与 pnpmfile 钩子；插件安装原件与目录切换由 `plugin-transactions.py` 记录，未提交日志不得被普通启动覆盖。第三方插件启用必须经静态审阅与内容复核，安装后先保持停用。
+- 当前插件策略允许未锁定依赖解析、生命周期脚本与 pnpmfile；链接/本地包/更新通过格式、路径、实际依赖与摘要及事务检查后自动提交启用。用户主动禁用与安全模式意图保持，不恢复旧原生审阅门槛。`plugin-transactions.py` 记录候选与原件，未提交日志继续进入维护门禁。
 - 系统插件与用户插件分层：系统插件源码不进用户备份，由当前 APK 按精确受管证明重建；`.disabled` 与旧实体冲突时禁用意图优先。
 - `NARB_DISABLE_NATIVE_CACHE=1` 让原生扩展直接从随包目录加载（默认缓存在 `--link2symlink` 下首次悬空）。
 
 ### Web / 桥 / 终端
 
-- dsh 启动契约：`exec dsh web --no-open --host 127.0.0.1 --port 3080`；env `DSH_HOME=/root/.dsh`、`DEEPSEEK_API_KEY`（非空才 export）、`DSH_PERMISSION_MODE`、`DSH_CONFIRM=1`、`BROWSER=true`、`cd /root`。pid 文件在 `exec` 之前写（`exec` 不换 pid）。proot 二进制从 `nativeLibraryDir/libproot.so` 执行（不能放 filesDir，Android 10+ W^X）。
-- Web 首选端口冲突时保留用户配置，先试本机成功备用端口，否则用锁定 dsh 的 `--port 0` 分配；动态鉴权只接收本轮官方启动行；保活、鉴权和 LAN 必须用实际端口，**不能按端口猜 PID 终止进程**。
+- 主Web从当前受管dsh包装和固定包内入口启动，加载共享RuntimeTools环境。默认自动端口`--port 0`，成功鉴权后记录实际端口；显式手动配置按当前选择策略处理。完整环境与入口见[运行机制](docs/runtime-data-plugin-architecture.md)，不复制旧固定3080命令。proot从nativeLibraryDir执行，不能移到filesDir绕过Android W^X。
+- `WebPortPolicy.choose`在启动前选择固定/本机备用/动态端口；备用记忆仅本机，不跨设备迁移。当前生产未接入`retryBindRace`，不得把helper及单测写成已实现的绑定竞态自动重试。鉴权、保活与LAN使用实际端口，不按端口猜PID终止，见[端口专页](docs/ports-and-networking.md)。
 - Web 启动等待鉴权不设强制终止时限（60 秒仅提示）；停止与维护必须共用 `WebProcessManager` 的 PID 身份 / 出生身份核验。
 - 3090 桥协议版本做特性检测（`/app/version`，`BRIDGE_PROTOCOL=2`）；插件判版本用 `>=` 而不是 `==`。命令查询串预算不得缩到低于 8192 字符需求。
 - LAN 正文由方法、状态码和明确传输边界决定；只有真正验证过的 101 WebSocket 握手可切隧道；不把 hop-by-hop 头移除后继续发送不匹配的编码体。
@@ -140,7 +142,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 - **独立应急 DSH**：`recovery/` 不经过正式环境的迁移、数据绑定及全局启动锁；归档由 `tools/recovery-runtime/lock.json` 单独锁定；应急 Profile 仅有五个受控修复工具。不能用「原生安全 Profile」替代独立运行根。`RecoveryRepairBroker` 的 HTTP 接口不能确认写入：原生确认绑定候选、源摘要及数据代次，再经停止屏障和宿主事务。
 - 应急资产去重：`recovery-asset-locations.json` 仅映射物理位置；仅当正式归档 SHA 与独立应急锁完全相同才共用包内字节，解压运行根仍独立，不读取正式 rootfs 作为救援依赖。
-- **虚拟屏**（Standard，API 30+）：App 持有认证连接和心跳；每次输入必须带最新 frameSeq（`util/VirtualScreenPolicy.fresh`）；动作失败**绝不换通道重放**。
+- **虚拟屏**（Standard，API30+）：App持有受管Core。raw坐标输入要求最新已观察帧；semantic节点/editor与anchored动作各有独立身份和目标复核，不强制像素静止、不静默互相fallback。UNKNOWN不重放，详见[架构](docs/virtual-screen-architecture.md)和[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)。
 - **麦克风**：清单同时声明 `RECORD_AUDIO` 与 `MODIFY_AUDIO_SETTINGS`；由 `BrowserMicrophone` 按网页请求申请，不能在普通启动时预授权；只放行当前本机页面的纯音频请求，摄像头 / 屏幕音频拒绝；旧回调不能批准新页。
 - **设备验收经验**：`uiautomator dump` 会抑制其他无障碍服务；截图授权绑定 DSH generation，停止 / 断连 / 撤销后失效；截图存应用私有 Pictures/DSHA，无需所有文件访问；PiP 可能盖住底部控件，自动化必须核对实际可见区域与屏幕方向；截图 / 读屏不可将敏感值写入公开取证文件。
 - Shizuku 必须注册 `rikka.shizuku.ShizukuProvider`；标准版 13.1.5 / 兼容版 12.2.0（不用 overrideLibrary 掩盖 minSdk 24）。回调严格核对管理器 UID、Binder 描述符、单次请求与超时。
@@ -173,7 +175,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ## 交付与验收
 
-- 2054完整源码和Standard APK已在现有私有 `SunsetRNE/DSHA-Sunset-mod-3090-Q`发布；F9沿用该repo，待新摘要、tag及实际检查后再发布。本地Standard仍为 `<local-workspace>`，不能将旧包或旧测试替代F9最终证明。
+- 2054及2330为现有私有仓库已发布历史；当前F10仍使用`SunsetRNE/DSHA-Sunset-mod-3090-Q`，最终远端状态以关联Release及独立发布回执为准。本地Standard仍为 `<local-workspace>`，不能将旧包或旧测试替代F9最终证明。
 - 所有设备操作已暂停，不安装、启动、关闭或对话；软件检查核对实际包名、code190、E7E3及`debuggable=false`，不以检查通过授权操作手机。
 - Git保留构建必需、有notice/锁的小型JNI/vendor/解释器预编译依赖及27个必要历史构建源码、唯一website夹具；不宣称所有vendor native可从源码重现。大生成归档不入Git；Release完整源码ZIP额外含ci-assets.py逐SHA核对的原始大构建输入，配置工具链后按recipe构建，不需独立bundle，不能从APK逆恢复全部输入。6个审计JSON原路径白名单见[CONTRIBUTING](CONTRIBUTING.md)。私钥、用户数据、设备图/日志和历史现场不上传；ZIP自身摘要只写Release正文，避免自引用。
 - 验收范围如实声明：不把本机验证扩写成 Android 6/7、16 KiB 或全部外部模型服务矩阵完成；Standard/Low 与虚拟屏能力按实际设备证据声明。

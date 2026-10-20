@@ -15,7 +15,7 @@ PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/ind
 
 def prepare(source, write):
     lock = json.loads(LOCK.read_text(encoding='utf8'))
-    if lock['schema'] != 1 or lock['version'] != '3.2.0' or lock['commit'] != '473a78bb7224ca5eaa9d54342f5b5c895df8418e':
+    if lock['schema'] != 1 or lock['version'] != '3.2.1' or lock['commit'] != '10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4':
         raise ValueError('MOBILE_UPSTREAM_LOCK')
     source = source.resolve(strict=True)
     contents = {}
@@ -34,7 +34,9 @@ def prepare(source, write):
     if package['version'] != lock['version'] or package['license'] != 'MIT':
         raise ValueError('MOBILE_UPSTREAM_METADATA')
     package['dshaUpstream'] = {key: lock[key] for key in ['version', 'source', 'commit', 'sourceDate']}
-    package['dshaUpstream'].update(ref=lock['tag'], clientSha256=lock['files']['lib/client.js']['sha256'],
+    # 最新 main 已撤回标签之后的视口试验；发布标签与实际取用提交分别记录。
+    package['dshaUpstream'].update(ref=lock.get('ref', lock['tag']), releaseTag=lock['tag'],
+                                  releaseCommit=lock['releaseCommit'], clientSha256=lock['files']['lib/client.js']['sha256'],
                                   lock='tools/mobile-plugin-upstream.lock.json', prebuilt=True)
     contents['package.json'] = (json.dumps(package, ensure_ascii=False, indent=2) + '\n').encode()
     for name, content in contents.items():

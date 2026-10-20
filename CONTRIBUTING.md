@@ -2,7 +2,7 @@
 
 先读 [README](README.md)、[AGENTS](AGENTS.md) 和[本轮预发布范围](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。历史审计资料的另一会话决策不能覆盖这里的用户要求。
 
-本轮F9以[追加记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)为准：2330/code190/tag已确定，软件补依赖重跑152.31秒、两版110类/705项0失败/错误（Std3、Low76skip），Lint0error、247/162warning，实际APK7门禁通过。首轮SDK29缺依赖失败原件保留，不称一次全绿；Host证明不当Android实测。StartupTrace核心错误插件归因与WebProcSel进程识别分开，IME跟帧resize/失焦清理不升级mobile3.2.0。保留2054/a9be历史，只向现有`SunsetRNE/DSHA-Sunset-mod-3090-Q`发布，源码ZIP直接展开非嵌套；上传待完成，继续不设备。
+F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳定网页布局与合成位移；移动UI更新3.2.1（上游main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`）；新增直接保存Download/DSHA的一键备份。两版各 124 类/785 项 JUnit，0失败/错误（Standard 3、Low 76 跳过）；Release Lint 0错误，249/162 警告；实际APK七项门禁通过。首轮11个Standard旧系统测试受minSdk清单拦截，修正测试环境后重跑，原始失败保留。暂停设备/ADB/对话和长时验收。仅现有私有仓库，完整源码ZIP仍按项目路径直接展开固定构建输入；下载与最终远端状态以[关联Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)及本地独立发布回执为准。 详细范围见[F10追加记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
 
 项目特有操作见[现行接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。退休工具与文档原件见 `tools/history` 和对应保存清单；它们不进入APK或自动测试执行。
 
@@ -98,3 +98,5 @@ python3 tools/run-host-tests.py --stage runtime
 分支默认 `codex/`。保持旧 SharedPreferences 键、数据格式读取、文档 ID、原件与未知进程停止屏障。明确记录更改的职责、持久化字段、协议和验证证据。
 
 修缺陷要用实际生产入口或隔离真实依赖重现；源码约束检查和设备运行证据分别记录。原始数据只读，历史记录标版本与时间；没有硬件证据的情况不写成已验证。所有审计项都有处置和残余，不能用一个白名单或未经校准的分数宣称债务已清。
+
+修改前按[文档总索引](docs/documentation-index.md)定位实现、平台依据和测试；涉及默认值/权限/网络时同步维护专页与迁移说明，不只更新代码注释。

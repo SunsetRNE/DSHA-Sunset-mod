@@ -47,7 +47,25 @@ public final class WebFullscreenUiImeTest {
     }
   }
 
-  public static final class Host extends Activity {
+  public static final class Host extends Activity implements WebFullscreenUi.Host {
+    final Object identity = new Object();
+    final List<org.json.JSONObject> frames = new ArrayList<>();
+    boolean autoAck = true, supported = true;
+
+    @Override
+    public Object imeBridgeIdentity() {
+      return identity;
+    }
+
+    @Override
+    public boolean sendImeFrame(Object expected, org.json.JSONObject frame) {
+      if (expected != identity) return false;
+      frames.add(frame);
+      if (autoAck && !"cancel".equals(frame.optString("phase")))
+        WebFullscreenUi.acknowledgeIme(this, identity, frame.optLong("frameId"), supported);
+      return true;
+    }
+
     boolean picture;
 
     @Override
@@ -139,7 +157,10 @@ public final class WebFullscreenUiImeTest {
     assertEquals(14, content.getPaddingBottom());
     for (int frame : new int[] {0, 60, 130, 220, 300}) {
       progress(animation, frame);
-      assertEquals(Math.max(14, frame), content.getPaddingBottom());
+      assertEquals(14, content.getPaddingBottom());
+      assertEquals(
+          800 - 32 - Math.max(14, frame),
+          host.get().frames.get(host.get().frames.size() - 1).optInt("height"));
     }
     callback.onEnd(animation);
     apply(300);
@@ -151,10 +172,13 @@ public final class WebFullscreenUiImeTest {
     apply(300);
     WindowInsetsAnimationCompat animation = prepare();
     apply(0);
-    assertEquals(300, content.getPaddingBottom());
+    assertEquals(14, content.getPaddingBottom());
     for (int frame : new int[] {300, 240, 150, 50, 0}) {
       progress(animation, frame);
-      assertEquals(Math.max(14, frame), content.getPaddingBottom());
+      assertEquals(14, content.getPaddingBottom());
+      assertEquals(
+          800 - 32 - Math.max(14, frame),
+          host.get().frames.get(host.get().frames.size() - 1).optInt("height"));
     }
   }
 
@@ -186,7 +210,8 @@ public final class WebFullscreenUiImeTest {
     apply(300);
     assertEquals(14, content.getPaddingBottom());
     content.dispatchWindowInsetsAnimationProgress(insets(75).toWindowInsets(), List.of(animation));
-    assertEquals(75, content.getPaddingBottom());
+    assertEquals(14, content.getPaddingBottom());
+    assertEquals(693, host.get().frames.get(host.get().frames.size() - 1).optInt("height"));
     assertEquals(0, childInsets[0]);
     assertEquals(0, childAnimation[0]);
     content.dispatchWindowInsetsAnimationEnd(animation);
@@ -260,9 +285,9 @@ public final class WebFullscreenUiImeTest {
     WindowInsetsAnimationCompat second = prepare();
     callback.onEnd(first);
     apply(0);
-    assertEquals(120, content.getPaddingBottom());
+    assertEquals(14, content.getPaddingBottom());
     progress(second, 80);
-    assertEquals(80, content.getPaddingBottom());
+    assertEquals(14, content.getPaddingBottom());
     callback.onEnd(second);
     apply(0);
     assertEquals(14, content.getPaddingBottom());
@@ -330,6 +355,9 @@ public final class WebFullscreenUiImeTest {
   @Test
   @Config(sdk = 29)
   public void api29SameViewCompatAdapterAnimatesDespiteConsumingChildInsets() {
+    // 先完成真实窗口的首次布局；避免手工 400px 夹具在动画中被系统改为实际窗口宽度，
+    // 被生产旋转撤销门正确识别成另一轮几何。
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
     ReflectionHelpers.callStaticMethod(
         android.animation.ValueAnimator.class,
         "setDurationScale",
@@ -348,15 +376,24 @@ public final class WebFullscreenUiImeTest {
     assertEquals(0, content.getPaddingBottom());
     content.getViewTreeObserver().dispatchOnPreDraw();
     Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idleFor(Duration.ofMillis(400));
-    assertTrue(
+    assertFalse(
         content.bottoms.toString(),
         content.bottoms.stream().anyMatch(value -> value > 0 && value < 300));
+    assertTrue(
+        host.get().frames.toString(),
+        host.get().frames.stream()
+                .filter(value -> "frame".equals(value.optString("phase")))
+                .map(value -> value.optInt("height"))
+                .distinct()
+                .count()
+            > 2);
     assertEquals(300, content.getPaddingBottom());
   }
 
   @Test
   @Config(sdk = 23)
   public void api23StaticFallbackKeepsSafeNavigationAndKeyboardBounds() {
+    host.get().supported = false;
     WindowInsetsCompat value =
         new WindowInsetsCompat.Builder()
             .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, 24, 0, 0))
@@ -368,5 +405,71 @@ public final class WebFullscreenUiImeTest {
     assertEquals(220, content.getPaddingBottom());
     focus(false);
     assertEquals(48, content.getPaddingBottom());
+  }
+
+  @Test
+  public void busyRendererKeepsOneInFlightAndOnlyTheLatestEndFrame() {
+    host.get().autoAck = false;
+    apply(0);
+    long first = host.get().frames.get(0).optLong("frameId");
+    WindowInsetsAnimationCompat animation = prepare();
+    apply(300);
+    for (int height = 20; height <= 300; height += 20) progress(animation, height);
+    callback.onEnd(animation);
+    assertEquals(1, host.get().frames.size());
+    WebFullscreenUi.acknowledgeIme(host.get(), host.get().identity, first, true);
+    assertEquals(2, host.get().frames.size());
+    var last = host.get().frames.get(1);
+    assertEquals("end", last.optString("phase"));
+    assertEquals(468, last.optInt("height"));
+    WebFullscreenUi.acknowledgeIme(host.get(), host.get().identity, first, true);
+    assertEquals(2, host.get().frames.size());
+    focus(false);
+    assertEquals("cancel", host.get().frames.get(2).optString("phase"));
+    WebFullscreenUi.acknowledgeIme(host.get(), host.get().identity, last.optLong("frameId"), true);
+    assertEquals(3, host.get().frames.size());
+  }
+
+  @Test
+  public void manyActualFramesDoNotChangeNativeSizeOrTransformTheWholePage() {
+    apply(0);
+    WindowInsetsAnimationCompat animation = prepare();
+    apply(300);
+    int count = content.bottoms.size();
+    for (int frame = 1; frame <= 300; frame++) progress(animation, frame);
+    assertEquals(count, content.bottoms.size());
+    assertEquals(0f, content.getTranslationY(), 0f);
+    assertEquals(1f, content.getScaleY(), 0f);
+    callback.onEnd(animation);
+    assertEquals(count + 1, content.bottoms.size());
+  }
+
+  @Test
+  public void widthChangeRevokesOldAnimationBeforeUsingTheNewGeometry() {
+    apply(0);
+    WindowInsetsAnimationCompat animation = prepare();
+    apply(300);
+    progress(animation, 100);
+    content.layout(0, 0, 500, 800);
+    progress(animation, 200);
+    assertEquals("cancel", host.get().frames.get(host.get().frames.size() - 1).optString("phase"));
+    assertEquals(14, content.getPaddingBottom());
+    apply(180);
+    assertEquals("end", host.get().frames.get(host.get().frames.size() - 1).optString("phase"));
+    assertEquals(492, host.get().frames.get(host.get().frames.size() - 1).optInt("width"));
+    assertEquals(180, content.getPaddingBottom());
+  }
+
+  @Test
+  public void missingComposerUsesOnlyStableBoundaryNativeResize() {
+    host.get().supported = false;
+    apply(0);
+    WindowInsetsAnimationCompat animation = prepare();
+    apply(300);
+    int count = content.bottoms.size();
+    for (int frame = 1; frame <= 300; frame++) progress(animation, frame);
+    assertEquals(count, content.bottoms.size());
+    callback.onEnd(animation);
+    assertEquals(300, content.getPaddingBottom());
   }
 }

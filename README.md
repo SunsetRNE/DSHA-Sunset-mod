@@ -21,7 +21,11 @@
 
 > 🤖 下一个 AI / 开发者请先读 **[AGENTS.md](AGENTS.md)**（项目结构、启动契约、踩过的坑），不要先全库扫描。
 
-> **2330软件重跑与7项实际APK门禁通过，私有上传待完成。** 版本`0.2.1-rc.2-20261020.2330-dsh0.2.1-rc.2` /190，补SDK29后152.31秒、两版各110类/705项零失败/错误（Std3、Low76跳过），Lint零错误、247/162警告；首轮依赖失败原件保留，非单次全绿。本轮固定启动入口，修IME跟帧resize/失焦清理，移动UI保持3.2.0；Linux Host启动证明不当作Android验收。2054/a9be历史保留，继续不设备、不建新repo。[F9记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+> **键盘性能、移动UI与一键备份更新。** F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳定网页布局与合成位移；移动UI更新3.2.1（上游main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`）；新增直接保存Download/DSHA的一键备份。两版各 124 类/785 项 JUnit，0失败/错误（Standard 3、Low 76 跳过）；Release Lint 0错误，249/162 警告；实际APK七项门禁通过。首轮11个Standard旧系统测试受minSdk清单拦截，修正测试环境后重跑，原始失败保留。暂停设备/ADB/对话和长时验收。仅现有私有仓库，完整源码ZIP仍按项目路径直接展开固定构建输入；下载与最终远端状态以[关联Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)及本地独立发布回执为准。 [F10记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+
+本仓库是由 [SunsetRNE](https://github.com/SunsetRNE) 维护的 DSHA 安卓适配与预发布分支，工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，内置 Harness 来自 [DeepSeek 上游项目](https://github.com/deepseek-ai/deepseek-harness)。版本锁、组件许可、构建身份与验证范围均可在来源文档中核查；本分支负责自身的构建、签名与发布。
+
+维护文档：[总索引](docs/documentation-index.md) · [项目总手册](docs/project-architecture-handbook.md) · [ADB / Root / Shizuku 权限](docs/device-permissions-architecture.md) · [环境、数据与插件](docs/runtime-data-plugin-architecture.md) · [运行引擎](docs/runtime-engines.md) · [端口](docs/ports-and-networking.md) · [DNS](docs/dns-configuration.md) · [虚拟屏架构](docs/virtual-screen-architecture.md) · [ADR](docs/adr/0003-virtual-screen-lifecycle-and-input.md) · [权威资料与来源](docs/references-and-provenance.md)。
 
 ## ❤️ 赞助商
 
@@ -58,14 +62,16 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 ## 私有预发布下载
 
-现有私有仓库[SunsetRNE/DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q)需访问权限。[2330预定Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2330)的新APK已通过实际门禁，源码ZIP与上传待完成；精确APK摘要见[F9记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。[2054已发布版本](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2054)及源commit`a9be499`保留历史归属，旧包结果不转记2330。
+访问私有仓库需已有权限。本轮版本 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` /190 的 [APK与完整源码ZIP](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)使用同一Release；准确附件摘要及发布状态以该页为准，软件与实际APK结果见[F10记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。2330 / `7fa70c5` 为已发布历史版本。
 
-| 内容 | 说明 | 当前状态 |
-|---|---|---|
-| Standard APK | Android11+ / arm64，系统WebView，`com.dsh.client`，E7E3历史签名、非调试 | 2330软件/实际APK门禁通过，待上传 |
-| 完整源码ZIP | 应用源码、资源、锁与脚本，另含逐SHA核对的原始大构建输入；配置工具链后用于构建 | 待2330完整源码打包并发布 |
+| 内容 | 说明 |
+|---|---|
+| Standard APK | Android11+ / arm64，系统WebView，`com.dsh.client` / E7E3 / 非调试 |
+| 完整源码ZIP | 源码、资源、锁、脚本及固定离线构建输入直接展开到项目路径，配置工具链后构建 |
 
-本轮暂停所有真机验收，软件通过不代表手机通过。原仓库、原Release、网站及旧Low交付保持；历史下载单独列在下方。
+一键备份位于“数据与备份”，无需密码，直接保存到 `Download/DSHA`。备份会安全停止DSH和运行任务，完成后手动启动；包含应用数据及当前应用内工作区，外置工作区内容请另备。恢复和更多选项保留。
+
+本轮暂停真机验收，软件通过不代表手机帧率或全设备通过。原仓库、网站与旧Low交付保留，历史公开下载另列下方。
 
 <details>
 <summary>历史公开下载与build170记录，不是本轮预发布</summary>
@@ -118,11 +124,11 @@ build170发布时为 **GitHub 正式版 / Latest**，不标记预发布；版本
 |  | 说明 |
 |---|---|
 | 🚫 **零命令行门槛** | 内置离线 Ubuntu rootfs，APK 装完就能用。不装 Termux、不配 pkg、不敲命令 |
-| 🐧 **完整 glibc 环境** | 不是裁剪版：`apt` / PTY / 原生模块 / Python / git 都在。上游插件不用改就能跑 |
-| ⚡ **proroot 零 ptrace 开销** | 传统 proot 每个系统调用两次上下文切换；proroot 走 LD_PRELOAD + 二进制补丁做进程内路径翻译。真机实测关键项合计 **+58%** |
+| 🐧 **完整 glibc 环境** | 不是裁剪版：`apt` / PTY / 原生模块 / Python / git 都在。插件仍需符合Linux arm64/glibc依赖及本机能力边界 |
+| ⚡ **proroot 零 ptrace 开销** | 传统 proot 每个系统调用两次上下文切换；proroot 走 LD_PRELOAD + 二进制补丁做进程内路径翻译。历史vivo/Android14旧构建曾记录关键项合计**+58%**，不代表本轮或当前默认proot性能 |
 | 🔌 **手机就是 agent 的手** | 无障碍 + ADB 免 Shizuku 直连 + 独立虚拟屏：读屏、点按、装应用、跑自动化，全部内置 |
 | 💾 **导出后迁移数据** | “数据与备份”导出无需密码的 `.tar.gz`；数据位置可在存储指南查看，本机副本不保证卸载后存续 |
-| 🩺 **坏了能自己说清哪坏了** | 组件级自检 + 按需修补 + 启动诊断 + 独立应急 DSH；Web 起不来时直接点名是哪个插件 |
+| 🩺 **坏了能自己说清哪坏了** | 组件级自检 + 按需修补 + 启动诊断 + 独立应急 DSH；展示启动阶段以及核心或插件诊断，不把所有核心错误归为插件 |
 
 ---
 
@@ -137,20 +143,22 @@ build170发布时为 **GitHub 正式版 / Latest**，不标记预发布；版本
 | 分步重装 / 更新 | rootfs、工具、Node、harness 相互独立，可单独重装，不重复下载 |
 | 双装机路径 | 预构建包与源码构建都支持，源码路径自动处理 node-pty 等原生模块编译 |
 | 离线工具链 | curl / git / Python / 证书随包锁定版本（`packages.lock.json`），不依赖用户先跑 `apt` |
-| 镜像与网络 | apt 源官方 / 中科大镜像自动回退；DNS 三模式（auto / 强制 IPv4 / 系统原生），AAAA 被拒时仅重试解析、不重放 HTTP 请求 |
+| 镜像与网络 | apt 源官方 / 中科大镜像自动回退；DNS 三模式（auto / ipv4 / native，作用层见专页），AAAA 被拒时仅重试解析、不重放 HTTP 请求 |
 | 基础环境版本化 | Ubuntu 基础环境独立编号；界面更新不重建环境，普通 dsh 更新不递增基础版本 |
+
+DNS 设置中，`auto` 与 `ipv4` 都对特定 Node lookup 错误做窄重试；`ipv4` 另写受管 glibc `no-aaaa`，不等于关闭 IPv6 或控制所有解析器。`native` 退出该 Node 兼容路径，详见[DNS 专页](docs/dns-configuration.md)。build190 回到 build170 基座时恢复默认 proot，显式 proroot 仍可选择，历史与兼容细节见[运行引擎](docs/runtime-engines.md)。
 
 ### ② 运行时
 
 | 能力 | 说明 |
 |---|---|
 | proroot / proot 双运行时 | 默认稳定的 proot；可在“配置”选择 proroot，实际兼容结果依机型 |
-| 实测提升 | vivo V2352A / Android 14：关键项合计 +58%，tar 打包 +94%（备份走这条），stat 密集 +82%（node 模块解析） |
+| 历史性能记录 | vivo V2352A / Android14 的旧构建曾记录特定基准提升；不代表当前默认引擎或本轮手机性能，见[运行引擎](docs/runtime-engines.md) |
 | 有限兼容回退 | proroot 在鉴权前明确退出且无插件故障时，确认 guest 退出后仅重试一次 proot；慢启动不触发回退 |
 | Node.js 24 + pnpm 10 | 与上游一致的运行环境，随包锁版本 |
 | 分包更新 | Ubuntu 与 dsh 运行时在 APK 内分包；冷安装两份都解压，局部更新只读 dsh 包 |
 | 受管更新试运行 | 新环境先在隔离区真实启动、验证端口 / 鉴权 / 会话读写 / 插件加载，全过后才切换提交，失败自动回切 |
-| 前台服务 + 看门狗 | 通知栏可见运行状态；Web 掉了自动拉起，不用手动重启 |
+| 前台服务与运行意图 | 通知栏显示状态，监督进程按当前运行意图协调；退出未知时保留屏障，不能承诺无条件自动重启 |
 | 慢启动保护 | 等待鉴权不设强杀时限（60 秒仅提示），看门狗不会把慢启动当故障误杀 |
 
 ### ③ 数据与备份
@@ -162,7 +170,7 @@ build170发布时为 **GitHub 正式版 / Latest**，不标记预发布；版本
 | 自动备份计划 | 默认开启：每天指定时间 / 每隔 1–168 小时 / 停止 DSH 后，三种模式；运行中自动延后不打断工作；保留最近 3 份已验证副本 |
 | 分范围备份 | 全量 / 只对话 / 只插件 / 只设置任选，恢复时只覆盖对应内容 |
 | 换机恢复 | 导出实际对话、附件、设置及用户插件，先校验摘要和范围再预检恢复，保留当前内容与冲突原件 |
-| 凭据不进备份 | 桥 token 整文件排除；`.credentials.yaml` 字段级剔除本机密钥、保留用户 API key |
+| 本机凭据与用户配置 | 桥 token 整文件排除；`.credentials.yaml` 字段级剔除本机密钥、保留用户 API key |
 | 兼容旧备份 | 先完整认证/摘要核验再预检；未知或依赖不完整时如实提示。系统插件由当前 APK 重建，用户原件继续保留 |
 | 会话损坏隔离 | 坏掉的会话文件挪到 `corrupt-backup` 可取回，不让一个坏文件卡住整个 Web |
 | 覆盖更新自动清理 | 升级后闲时清理可再生缓存与多余旧副本；保留至少两份健康前代，改过的原件不动 |
@@ -176,7 +184,7 @@ agent 通过本机 `127.0.0.1:3090` 桥调用以下能力（token 门控，`/app
 |---|---|
 | 屏幕操作 | **无障碍服务实现，不需要 ADB**：读屏结构化输出（带可点击区域坐标）、按文字 / 坐标点按、输入、按键、滑动、截屏存 PNG |
 | 独立虚拟屏（实验） | Standard / Android 11+，先授权 ADB、Shizuku 或 Root 任一通道，再到虚拟屏页面创建屏幕；仅开启无障碍不会创建虚拟屏，详见[开启说明](docs/virtual-screen-guide.md) |
-| ADB 无线直连 | 内置无线配对（TLS 1.3-PSK + SPAKE2）与保活，**不需要 Shizuku**，重启手机自动恢复 |
+| ADB 无线直连 | 内置无线配对与连接管理，独立于 Shizuku；系统无线调试及授权有效时尝试连接，重启后可能需用户重新开启调试，见[权限文档](docs/device-permissions-architecture.md) |
 | Shizuku / Root 通道 | 备用设备命令通道，与 ADB 同受命令白名单约束 |
 | 与用户交互 | 系统通知、App 内提示、震动（长任务叫醒用户）、弹窗三选项征询、分享 / 打开链接 |
 | 文件交换 | 读目录 / 文本文件、导出产物到 `Download/DSHA`；凭据区（`.dsh` / `.ssh` / `.android`）读写均被拒绝 |
@@ -199,14 +207,14 @@ agent 通过本机 `127.0.0.1:3090` 桥调用以下能力（token 门控，`/app
 | 能力 | 说明 |
 |---|---|
 | 双内核 | Standard 用系统 WebView；Low 内置 GeckoView 143，不受系统 WebView 版本拖累 |
-| 移动端适配 | 内置 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) **3.2.0**（MIT），保留手机快捷键和窄屏适配，修复焦点、弹窗及插件卡片 |
-| 画中画 | 对话窗口支持 PiP 小窗悬浮 |
-| 高刷与省电 | 按用户刷新率上限请求高刷（实测 120 Hz 零掉帧）；空闲自动交还系统省电 |
+| 移动端适配 | 内置 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) **3.2.1**（MIT），保留手机快捷键和窄屏适配，修复焦点、弹窗及插件卡片 |
+| 画中画 | 默认关闭，用户主动开启后使用 PiP 小窗；正常返回与后台恢复保留同代网页实例 |
+| 高刷与省电 | 按用户上限请求刷新率，空闲交还系统；实际帧率依设备和系统，不把请求成功当作性能证明 |
 | 深浅色与多语言 | 深色 / 浅色 / 跟随系统；简体中文 / English，默认跟随系统语言 |
 | 局域网访问 | 电脑 / 平板浏览器直接用手机上的 dsh。token 鉴权 fail-closed，命中后回设 `SameSite=Strict` Cookie，不让 token 随外链泄漏 |
 | 老浏览器兼容 | 自动注入 `AbortSignal.any/timeout` 与 `crypto.randomUUID` polyfill（局域网 HTTP 下必需） |
 | 流式悬浮条 | AI 输出像歌词一样贴在屏幕顶部，工具调用翻译成人话；底色 / 透明度 / 行数可调；危险命令可直接在悬浮条上批准 |
-| 端口可配 | Web 端口自定义，冲突自动回退并说明 |
+| Web 端口 | 默认自动分配，可显式手动指定；启动前选择可用端口，实际端口以鉴权启动信息为准。备用仅本机记忆、不随换机迁移；启动后绑定竞态不承诺自动重试，见[专页](docs/ports-and-networking.md) |
 
 ### ⑦ 插件生态
 
@@ -298,7 +306,7 @@ agent 通过本机 `127.0.0.1:3090` 桥调用以下能力（token 门控，`/app
 │ proot（默认）/ proroot（可选，依机型兼容）           │
 ├─────────────────────────────────────────────────────┤
 │ Ubuntu 24.04 arm64 · Node.js 24 · pnpm 10           │
-│  └ @deepseek-ai/dsh  →  Web UI :3080                │
+│  └ @deepseek-ai/dsh  →  Web UI :<动态端口>                │
 └─────────────────────────────────────────────────────┘
 ```
 

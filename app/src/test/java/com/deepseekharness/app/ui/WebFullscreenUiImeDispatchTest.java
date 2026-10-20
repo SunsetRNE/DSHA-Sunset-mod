@@ -68,6 +68,7 @@ public final class WebFullscreenUiImeDispatchTest {
 
   private static final class Content extends FrameLayout {
     boolean focused = true;
+    int paddingWrites;
 
     Content(Context context) {
       super(context);
@@ -76,6 +77,12 @@ public final class WebFullscreenUiImeDispatchTest {
     @Override
     public boolean hasWindowFocus() {
       return focused;
+    }
+
+    @Override
+    public void setPadding(int left, int top, int right, int bottom) {
+      super.setPadding(left, top, right, bottom);
+      paddingWrites++;
     }
   }
 
@@ -110,7 +117,7 @@ public final class WebFullscreenUiImeDispatchTest {
           "onApply is an end target, not an animation frame", 14, content.getPaddingBottom());
       content.dispatchWindowInsetsAnimationProgress(
           insets(80).toWindowInsets(), List.of(animation));
-      assertEquals(80, content.getPaddingBottom());
+      assertEquals(14, content.getPaddingBottom());
       content.dispatchWindowInsetsAnimationEnd(animation);
     } finally {
       controller.pause().stop().destroy();
@@ -135,6 +142,28 @@ public final class WebFullscreenUiImeDispatchTest {
           content.getPaddingBottom());
       ViewCompat.dispatchApplyWindowInsets(content, insets(280));
       assertEquals(14, content.getPaddingBottom());
+    } finally {
+      controller.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void platformProgressMustNotRelayoutTheBrowserEveryFrame() {
+    var controller = Robolectric.buildActivity(Host.class).setup().visible();
+    try {
+      Content content = install(controller.get());
+      ViewCompat.dispatchApplyWindowInsets(content, insets(0));
+      WindowInsetsAnimation animation =
+          new WindowInsetsAnimation(WindowInsets.Type.ime(), null, 250);
+      content.dispatchWindowInsetsAnimationPrepare(animation);
+      ViewCompat.dispatchApplyWindowInsets(content, insets(300));
+      int before = content.paddingWrites;
+      for (int height = 10; height <= 300; height += 10)
+        content.dispatchWindowInsetsAnimationProgress(
+            insets(height).toWindowInsets(), List.of(animation));
+      assertEquals("真实 progress 只更新几何桥，不逐帧修改原生 padding", before, content.paddingWrites);
+      content.dispatchWindowInsetsAnimationEnd(animation);
+      assertEquals(300, content.getPaddingBottom());
     } finally {
       controller.pause().stop().destroy();
     }
