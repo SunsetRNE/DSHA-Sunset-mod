@@ -14,6 +14,9 @@ if (window.top === window) {
     try { port.postMessage({type:'presentation',report:JSON.parse(event.detail)}); } catch (_) {}
   });
   port.onMessage.addListener(message => {
+    if (message?.type === 'ime-frame') {
+      window.__dshaNativePresentation?.ime(message.request); return;
+    }
     if (message?.type === 'presentation-init') {
       window.__dshaNativePresentation?.install(message.binding); return;
     }

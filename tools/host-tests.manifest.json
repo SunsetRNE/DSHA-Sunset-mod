@@ -2230,6 +2230,20 @@
         "linux_node"
       ],
       "environment": {}
+    },
+    {
+      "path": "tools/test-native-ime.mjs",
+      "stage": "runtime",
+      "reason": "Current managed mobile UI and both native page transports in a real browser fixture: compositor-only IME frames, reconciliation/layout bounds and lifecycle reset. Isolated Host only; no Android/device/model interaction.",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react"
+      ],
+      "environment": {}
     }
   ],
   "historicalExcluded": [

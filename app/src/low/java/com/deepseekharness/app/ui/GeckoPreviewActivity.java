@@ -37,6 +37,38 @@ import java.util.ArrayList;
 public final class GeckoPreviewActivity extends PictureInPictureActivity
     implements WebFullscreenUi.Host {
   private Runnable closeOriginRestorePreview;
+
+  @Override
+  public Object imeBridgeIdentity() {
+    return browserResumed
+            && !isFinishing()
+            && !isDestroyed()
+            && retained != null
+            && retained.ready
+            && pagePort != null
+            && retained.themeGate != null
+            && !conversationHidden()
+            && retained.themeGate.owns(pagePort)
+            && retained.page.isCurrent(controller.getReadyWebPageIdentity())
+            && WebPreviewPolicy.sameService(baseUrl, retained.documentUrl)
+        ? retained.themeGate
+        : null;
+  }
+
+  @Override
+  public boolean sendImeFrame(Object expected, org.json.JSONObject frame) {
+    if (expected == null || expected != imeBridgeIdentity()) return false;
+    try {
+      pagePort.postMessage(
+          new org.json.JSONObject()
+              .put("type", "ime-frame")
+              .put("request", WebPageScripts.imeFrame(retained.themeGate, frame)));
+      return true;
+    } catch (org.json.JSONException | RuntimeException unavailable) {
+      return false;
+    }
+  }
+
   private GeckoSession session;
   private GeckoView browser;
   private FrameLayout container;
@@ -532,6 +564,7 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
             @Override
             public void onPageStart(GeckoSession s, String url) {
               if (!pageCurrent(s, pageIdentity)) return;
+              WebFullscreenUi.cancelIme(GeckoPreviewActivity.this);
               if (pagePort != null) {
                 pagePort.setDelegate(null);
                 pagePort.disconnect();
@@ -1001,6 +1034,7 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
                       @Override
                       public void onDisconnect(WebExtension.Port source) {
                         if (pagePort == source) {
+                          WebFullscreenUi.cancelIme(GeckoPreviewActivity.this);
                           pagePort = null;
                           if (retained.port == source) retained.port = null;
                         }
@@ -1105,6 +1139,7 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
 
   @Override
   protected void onPause() {
+    WebFullscreenUi.cancelIme(this);
     browserResumed = false;
     com.deepseekharness.app.core.PluginRepository.get(this).invalidateInstalledState();
     super.onPause();
@@ -1212,6 +1247,7 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
           new org.json.JSONObject()
               .put("type", "presentation-init")
               .put("binding", WebPageScripts.presentationBinding(retained.themeGate)));
+      WebFullscreenUi.refreshIme(this);
       String token = getIntent().getStringExtra(BrowserConversationRoute.REQUEST);
       String id = getIntent().getStringExtra(BrowserConversationRoute.SESSION);
       if (token != null
@@ -1245,7 +1281,10 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
         value.optLong("sequence", -1),
         source.sender.isTopLevel(),
         retained.documentUrl)) return;
-    if ("theme-color".equals(value.optString("type"))) {
+    if ("ime-ack".equals(value.optString("type"))) {
+      WebFullscreenUi.acknowledgeIme(
+          this, retained.themeGate, value.optLong("frameId", -1), value.optBoolean("supported"));
+    } else if ("theme-color".equals(value.optString("type"))) {
       Integer color =
           com.deepseekharness.app.util.BrowserThemeColor.parse(
               value.optString("color"), getColor(R.color.surface));

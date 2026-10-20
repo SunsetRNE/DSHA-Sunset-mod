@@ -469,6 +469,36 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     return com.deepseekharness.app.core.HarnessController.get(this).getReadyWebPageIdentity();
   }
 
+  @Override
+  public Object imeBridgeIdentity() {
+    return browserResumed
+            && !isFinishing()
+            && !isDestroyed()
+            && retained != null
+            && retained.ready
+            && retained.themeGate != null
+            && webView != null
+            && isCurrentPage(webView)
+            && !conversationHidden()
+            && retained.themeGate.owns(webView)
+            && androidx.webkit.WebViewFeature.isFeatureSupported(
+                androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER)
+            && WebPreviewPolicy.sameService(baseUrl, webView.getUrl())
+        ? retained.themeGate
+        : null;
+  }
+
+  @Override
+  public boolean sendImeFrame(Object expected, org.json.JSONObject frame) {
+    if (expected == null || expected != imeBridgeIdentity()) return false;
+    webView.evaluateJavascript(
+        "window.__dshaNativePresentation?.ime("
+            + WebPageScripts.imeFrame(retained.themeGate, frame)
+            + ");",
+        null);
+    return true;
+  }
+
   private void cancelPendingAuthentication() {
     pendingIdentity = null;
     if (previewAuth != null) previewAuth.cancel();
@@ -476,6 +506,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
 
   @Override
   protected void cancelConversationRequests() {
+    WebFullscreenUi.cancelIme(this);
     cancelPendingAuthentication();
     if (retained != null) retained.routeRequestSent = null;
     if (webView != null && retained != null && isCurrentPage(webView))
@@ -857,6 +888,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     @Override
     public void onPageStarted(WebView view, String url, Bitmap favicon) {
       if (!isCurrentPage(view)) return;
+      WebFullscreenUi.cancelIme(WebPreviewActivity.this);
       retained.pageNavigation++;
       retained.themeGate =
           new com.deepseekharness.app.util.BrowserThemeGate(view, retained.pageSession.identity());
@@ -888,7 +920,10 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
         view.evaluateJavascript(
             WebPageScripts.presentation(WebPreviewActivity.this, theme),
             ignored -> {
-              if (isCurrentPage(view) && retained.themeGate == theme) dispatchConversationRoute();
+              if (isCurrentPage(view) && retained.themeGate == theme) {
+                dispatchConversationRoute();
+                WebFullscreenUi.refreshIme(WebPreviewActivity.this);
+              }
             });
       refreshPictureInPicture();
       resumePageStreams();
@@ -1200,6 +1235,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   }
 
   private void destroyWebView() {
+    WebFullscreenUi.cancelIme(this);
     WebFullscreenUi.applyThemeColor(this, getColor(R.color.surface));
     if (microphoneRequests != null) {
       microphoneRequests.cancel();
@@ -1254,6 +1290,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
 
   @Override
   protected void onPause() {
+    WebFullscreenUi.cancelIme(this);
     browserResumed = false;
     com.deepseekharness.app.core.PluginRepository.get(this).invalidateInstalledState();
     if (!pictureInPictureActiveOrTransitioning()) WebFrameRate.clear(this, webView);
@@ -1386,7 +1423,10 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
           value.optLong("sequence", -1),
           mainFrame,
           url)) return;
-      if ("theme-color".equals(value.optString("type"))) {
+      if ("ime-ack".equals(value.optString("type"))) {
+        WebFullscreenUi.acknowledgeIme(
+            this, retained.themeGate, value.optLong("frameId", -1), value.optBoolean("supported"));
+      } else if ("theme-color".equals(value.optString("type"))) {
         Integer color =
             com.deepseekharness.app.util.BrowserThemeColor.parse(
                 value.optString("color"), getColor(R.color.surface));
