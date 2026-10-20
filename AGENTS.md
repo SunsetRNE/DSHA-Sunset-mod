@@ -1,12 +1,12 @@
 # AGENTS.md
 
-> 2026-10-20最新决定覆盖此前交付流程：暂停全部真机、ADB和手机对话。F8最终版本`0.2.1-rc.2-20261020.2054-dsh0.2.1-rc.2` /190、tag`v0.2.1-rc.2-20261020.2054`，正式构建及7项实际APK门禁全部通过，私有上传与源码ZIP打包待完成；只向`SunsetRNE/DSHA-Sunset-mod-3090-Q`发布完整源码ZIP和Standard APK，不操作原仓库/网站。1933/a777及F7/2025是历史阶段，不是最终包。首启/原生接口页不再编辑模型/API Key，解压后Main/后台StartWeb；旧Key不可读保留并警告，允许Web配置。源码实际C工作树，勿构建F盘旧173；详见[本轮范围](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+> F9最终版本`0.2.1-rc.2-20261020.2330-dsh0.2.1-rc.2` /190、tag`v0.2.1-rc.2-20261020.2330`，补SDK29后同5任务152.31秒、两版110类/705项0失败/错误（Std3/Low76skip），Lint0error、247/162warning，实际APK7门禁通过。首轮各1依赖失败/220XML保留，非一次全绿。2330源码ZIP/私有上传待完成，2054/a9be已发布历史保留，不填新commit或ZIP自身SHA；继续禁止设备，只用现有repo，见[F9记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
 
 > build190 本轮用户决定（2026-10-19）：以已发布的 build170 / `v0.2.0-rc2`（8362bba747fcf84c19e436c3dbb594a0fc388a67）为源码基座，定向迁入 build187（ac7bf8eda8b46a22f6412b17ec3574bf895b1876）的全局授权、虚拟屏、任务通知等功能。保留生产旧数据、宿主 v5 备份和迁移链，不引入实验版 fresh-only 数据/备份架构。引擎恢复 `proot + proroot`，首次安装与未显式选择时默认稳定 `proot`，显式 `proroot` 可选；不迁入 bxroot。正式身份保持 `com.dsh.client` / E7E3 / 非调试，versionCode 190，基础版本及下载文件版本 `0.2.1-rc.2`，内置官方 DSH `0.2.1-rc.2`，Ubuntu base10 不变。危险的完整格式化生产入口与擦除后端仍退休，外置工作区不能清理或重放旧事务写删。标准版优先，历史 Low172 与既有正式交付原件保留。总资产、描述符、签名打包及交付由主代理统一完成；下面 build170 数量与版本按基座历史阅读。
 
 DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— 读它之前先读 [README.md](README.md)。
 
-**仓库事实速览**：单Gradle :app/Java17、standard/low、arm64，默认proot/可选proroot、Ubuntu10/DSH0.2.1-rc.2/mobile3.2.0保持。2054/code190单轮225.98秒，两版各107类/684项0失败/错误（Std3、Low76skip），Lint0Error/Fatal、247/162warning；实际APK7门禁通过。F7宿主失败保留，F8三文件修复有22正控通过、两个各1预期失败负控，不是手机复现。当前999为996精确未变+3重新formatter检查0needs；43独立style token等价/fixed point不替代功能测试。10exact/19binary/27history/6meta和输入packet边界保持，源码LF、最终包在全修复后重建；见[本轮范围](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+**仓库事实速览**：2330/code190、Java17/:app、arm64、DSH0.2.1-rc.2/base10/mobile3.2.0和proot默认/proroot可选保持。canonicalNode/managed wrapper固定启动入口；StartupTrace的unowned指未归属具体插件的核心错误，WebProcSel另行保守识别PATH前缀pre-exec writer且不凭shell文本发signal。WebFullscreenUi跟帧resize、失焦清keyboard，含PiP/API29fallback。13Node、8后端import及普通Web/safe Linux Host证明分列，不是手机实测；1003文件=14新叶格式+989byteproof。最终705项与APK门禁本轮取得，不继承2054；ZIP仍按项目路径展开非嵌套。
 
 **build170基座历史策略**：移动 UI 3.0.5；第三方插件检查后自动提交/启用，允许依赖生命周期脚本和 pnpmfile；新导出为无密码 tar.gz，内部自动副本及旧加密原件读取保留。两版各45项关联检查和 Android13 非破坏性正式包验收范围见[历史发布说明](docs/releases/v0.2.0-rc2-notes.md)与[build170](docs/releases/v0.2.21-build170-20261009.md)。移动UI等当前值以上方本轮决定为准，下方目录数量为历史索引。
 
@@ -173,7 +173,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ## 交付与验收
 
-- 本轮只交付Standard APK与完整源码至新私有 `SunsetRNE/DSHA-Sunset-mod-3090-Q`，当前尚未发布；本地正式包为 `<local-workspace>`。最终摘要、tag与发布状态必须核实后回填，不用历史包替代。
+- 2054完整源码和Standard APK已在现有私有 `SunsetRNE/DSHA-Sunset-mod-3090-Q`发布；F9沿用该repo，待新摘要、tag及实际检查后再发布。本地Standard仍为 `<local-workspace>`，不能将旧包或旧测试替代F9最终证明。
 - 所有设备操作已暂停，不安装、启动、关闭或对话；软件检查核对实际包名、code190、E7E3及`debuggable=false`，不以检查通过授权操作手机。
 - Git保留构建必需、有notice/锁的小型JNI/vendor/解释器预编译依赖及27个必要历史构建源码、唯一website夹具；不宣称所有vendor native可从源码重现。大生成归档不入Git；Release完整源码ZIP额外含ci-assets.py逐SHA核对的原始大构建输入，配置工具链后按recipe构建，不需独立bundle，不能从APK逆恢复全部输入。6个审计JSON原路径白名单见[CONTRIBUTING](CONTRIBUTING.md)。私钥、用户数据、设备图/日志和历史现场不上传；ZIP自身摘要只写Release正文，避免自引用。
 - 验收范围如实声明：不把本机验证扩写成 Android 6/7、16 KiB 或全部外部模型服务矩阵完成；Standard/Low 与虚拟屏能力按实际设备证据声明。

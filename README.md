@@ -21,7 +21,7 @@
 
 > 🤖 下一个 AI / 开发者请先读 **[AGENTS.md](AGENTS.md)**（项目结构、启动契约、踩过的坑），不要先全库扫描。
 
-> **2054私有预发布的软件与实际APK门禁全部通过，上传待完成。** 版本`0.2.1-rc.2-20261020.2054-dsh0.2.1-rc.2` /190，F8单轮225.98秒，两版各107类/684项零失败和错误（Standard3、Low76跳过），Lint零错误、247/162警告。源码999/adoption与43文件style证据、F7失败和F8宿主正负控分别记录。本轮不操作真机/ADB/手机对话；模型/API Key只在Web设置，解压后先到Main、后台启动Web。完整源码ZIP与Standard APK待发布到[新私有仓库](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q)，原仓库和网站不变。[本轮范围与编译指引](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+> **2330软件重跑与7项实际APK门禁通过，私有上传待完成。** 版本`0.2.1-rc.2-20261020.2330-dsh0.2.1-rc.2` /190，补SDK29后152.31秒、两版各110类/705项零失败/错误（Std3、Low76跳过），Lint零错误、247/162警告；首轮依赖失败原件保留，非单次全绿。本轮固定启动入口，修IME跟帧resize/失焦清理，移动UI保持3.2.0；Linux Host启动证明不当作Android验收。2054/a9be历史保留，继续不设备、不建新repo。[F9记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
 
 ## ❤️ 赞助商
 
@@ -58,12 +58,12 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 ## 私有预发布下载
 
-新私有仓库 [SunsetRNE/DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q)已创建，需有访问权限。[预定Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2054)的tag为`v0.2.1-rc.2-20261020.2054`，尚未宣布上传完成。2054最终APK已通过实际门禁，精确摘要见[报告](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)；完整源码ZIP稍后打包，摘要只在Release正文给出。
+现有私有仓库[SunsetRNE/DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q)需访问权限。[2330预定Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2330)的新APK已通过实际门禁，源码ZIP与上传待完成；精确APK摘要见[F9记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。[2054已发布版本](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2054)及源commit`a9be499`保留历史归属，旧包结果不转记2330。
 
 | 内容 | 说明 | 当前状态 |
 |---|---|---|
-| Standard APK | Android11+ / arm64，系统WebView，`com.dsh.client`，E7E3历史签名、非调试 | F8正式构建和实际门禁通过，待上传 |
-| 完整源码ZIP | 应用源码、资源、锁与脚本，另含逐SHA核对的原始大构建输入；配置工具链后用于构建 | 待最终打包并发布 |
+| Standard APK | Android11+ / arm64，系统WebView，`com.dsh.client`，E7E3历史签名、非调试 | 2330软件/实际APK门禁通过，待上传 |
+| 完整源码ZIP | 应用源码、资源、锁与脚本，另含逐SHA核对的原始大构建输入；配置工具链后用于构建 | 待2330完整源码打包并发布 |
 
 本轮暂停所有真机验收，软件通过不代表手机通过。原仓库、原Release、网站及旧Low交付保持；历史下载单独列在下方。
 
@@ -352,7 +352,7 @@ python3 tools/run-host-tests.py --stage fast
 
 Windows使用`gradlew.bat`。测试任务名中的Debug只表示测试变体，不要求生成或安装调试APK。正式包需既有E7E3签名凭据，并核对实际APK身份、资产、许可与摘要。Git检出不含大生成归档；完整打包使用Release源码ZIP内逐SHA核对的原始构建输入和现有recipe，无需另找独立bundle，也不能从APK逆还原全部输入。必要小型预编译依赖保留，但不承诺所有vendor native可从源码复现。私钥、用户数据、设备图或日志不进入交付。
 
-本轮按[预发布范围与编译指引](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)执行软件交付与新私有仓库发布；F8单轮225.98秒，两版各107类/684项及7项实际APK门禁通过，源码ZIP与上传待完成。源码写LF，10个精确受管/规范输入继续保留原字节。不进行真机步骤，不修改原仓库或网站。
+编译流程沿用[预发布范围与编译指引](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。F9补SDK29后同5任务152.31秒、两版110类/705项及7项实际APK门禁通过，首轮依赖失败保留。StartupTrace未归属具体插件的核心错误用通用标签，WebProcSel另行保守识别当前PATH前缀pre-exec writer，不凭shell文本发signal。IME跟帧resize/失焦清理不升级移动插件；ZIP输入仍按项目路径直接展开，不嵌套输入包。
 
 ---
 

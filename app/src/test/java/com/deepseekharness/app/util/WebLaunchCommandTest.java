@@ -11,10 +11,10 @@ public class WebLaunchCommandTest {
     assertTrue(result.startsWith("export PATH=\"/root/dsh-bin:/usr/local/sbin:/usr/local/bin:"));
     assertTrue(result.contains("${PATH:+:$PATH}\" && "));
     assertTrue(result.contains("export DSHA_WORKSPACE_DOCUMENTS=/root/Documents && "));
-    assertTrue(result.indexOf("DSHA_WORKSPACE_DOCUMENTS=") < result.indexOf("exec dsh"));
-    assertTrue(result.endsWith("exec dsh web --no-open --host 127.0.0.1 --port 0"));
+    assertTrue(result.indexOf("DSHA_WORKSPACE_DOCUMENTS=") < result.indexOf(DshEntrypoint.exec()));
+    assertTrue(result.endsWith(DshEntrypoint.exec() + " web --no-open --host 127.0.0.1 --port 0"));
     assertTrue(result.indexOf("echo $$ >") < result.indexOf("[ ! -e"));
-    assertTrue(result.indexOf("[ ! -e") < result.indexOf("exec dsh"));
+    assertTrue(result.indexOf("[ ! -e") < result.indexOf(DshEntrypoint.exec()));
     assertFalse(result.contains("API_KEY"));
     assertTrue(result.contains("${NODE_OPTIONS-}"));
   }

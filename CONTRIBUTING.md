@@ -2,7 +2,7 @@
 
 先读 [README](README.md)、[AGENTS](AGENTS.md) 和[本轮预发布范围](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。历史审计资料的另一会话决策不能覆盖这里的用户要求。
 
-本轮最新决定以[私有预发布范围](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)为准：全部设备/ADB/手机对话暂停。F8/2054/code190正式单轮225.98秒通过，实际两版各107类/684项0失败/错误（Std3、Low76skip），Lint0Error/Fatal、247/162警告；实际APK7门禁PASS。1933/a777及F7失败保留历史归属，F8 host22正控和2预期负控不是手机实测。源码ZIP与Standard APK待发布到新私有`SunsetRNE/DSHA-Sunset-mod-3090-Q`，预定tag`v0.2.1-rc.2-20261020.2054`，原仓库/网站不变。
+本轮F9以[追加记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)为准：2330/code190/tag已确定，软件补依赖重跑152.31秒、两版110类/705项0失败/错误（Std3、Low76skip），Lint0error、247/162warning，实际APK7门禁通过。首轮SDK29缺依赖失败原件保留，不称一次全绿；Host证明不当Android实测。StartupTrace核心错误插件归因与WebProcSel进程识别分开，IME跟帧resize/失焦清理不升级mobile3.2.0。保留2054/a9be历史，只向现有`SunsetRNE/DSHA-Sunset-mod-3090-Q`发布，源码ZIP直接展开非嵌套；上传待完成，继续不设备。
 
 项目特有操作见[现行接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。退休工具与文档原件见 `tools/history` 和对应保存清单；它们不进入APK或自动测试执行。
 

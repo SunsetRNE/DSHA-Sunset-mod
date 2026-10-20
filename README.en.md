@@ -22,7 +22,7 @@
 > 🤖 If you are an AI agent or a new contributor, read **[AGENTS.md](AGENTS.md)** first
 > (structure, startup contracts, traps we already fell into). Don't scan the whole repo.
 
-> **The 2054 private prerelease passed software and all actual-APK gates; upload is pending.** Version `0.2.1-rc.2-20261020.2054-dsh0.2.1-rc.2` / 190 passed one F8 formal run in 225.98 seconds, with 107 classes/684 cases per flavor and zero failures/errors (Standard 3, Low 76 skipped). Lint has zero errors and 247/162 warnings. Source-CI, 43 style-file proofs, the F7 failure and F8 host controls retain separate scopes. All device/ADB/phone-chat work is paused. Configure models/API keys only in Web; Main appears after extraction while Web starts in the background. Complete source ZIP and the Standard APK await publication to the [new private repository](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q); the original repository and website are unchanged. See the [round scope](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md).
+> **2330 passed its software rerun and all seven actual-APK gates; private upload is pending.** Version `0.2.1-rc.2-20261020.2330-dsh0.2.1-rc.2` /190 passed in 152.31 seconds after adding the exact SDK29 dependency: 110 classes/705 cases per flavor, zero failures/errors, Standard 3/Low 76 skipped, and zero Lint errors with 247/162 warnings. The first dependency failure is retained; this was not a single uninterrupted green run. Startup entry and IME frame-resize/focus cleanup are fixed, with mobile UI still 3.2.0. Linux Host evidence is not Android acceptance. Published 2054/source a9be results remain historical; device work stays paused. See the [F9 record](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md).
 
 ## ❤️ Sponsor
 
@@ -62,12 +62,12 @@ original author [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) and a
 
 ## Private prerelease downloads
 
-The private [SunsetRNE/DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q) repository has been created; access is required. The [planned Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2054) uses tag `v0.2.1-rc.2-20261020.2054`; upload is not yet confirmed. The final 2054 APK passed its actual gates; its exact hash is in the [round report](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md). The complete source ZIP will be packaged later, with its hash only in the Release body.
+The existing private [SunsetRNE/DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q) repository requires access. The APK for the [planned 2330 Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2330) passed its actual gates; source ZIP packaging and upload remain pending. Its exact APK hash is in the [F9 record](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md). The [published 2054 Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261020.2054) and source commit `a9be499` retain their historical scope.
 
 | Artifact | Contents | Status |
 |---|---|---|
-| Standard APK | Android11+ / arm64, system WebView, `com.dsh.client`, historical E7E3 signature, non-debuggable | Final F8 formal build and APK gates passed; upload pending |
-| Complete source ZIP | App source, resources, locks and scripts, plus individually hash-verified original large build inputs; build after configuring the toolchain | Final packaging and publication pending |
+| Standard APK | Android11+ / arm64, system WebView, `com.dsh.client`, historical E7E3 signature, non-debuggable | 2330 software and APK gates passed; upload pending |
+| Complete source ZIP | App source, resources, locks and scripts, plus individually hash-verified original large build inputs; build after configuring the toolchain | 2330 complete-source packaging and publication pending |
 
 All device acceptance is paused; software results do not establish phone results. The original repository, releases, website and old Low delivery remain unchanged. Historical downloads are separate below.
 
@@ -361,7 +361,7 @@ python3 tools/run-host-tests.py --stage fast
 
 On Windows, use `gradlew.bat`. Debug in a unit-test task name identifies a test variant; it does not require generating or installing a debug APK. Release packaging requires the existing E7E3 signing credentials and checks of actual APK identity, assets, licenses and hashes. Git excludes large generated archives; full packaging uses the hash-verified original inputs in the Release source ZIP and the existing recipes, without a separate bundle. The APK cannot reconstruct all original inputs. Required small prebuilt dependencies remain, but not all vendor native code is reproducible from source. Deliveries exclude private keys, user data, device images and logs.
 
-The [round scope and build guide](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md) governs this software-only delivery. The single F8 formal run took 225.98 seconds, with 107 classes/684 cases per flavor and all seven actual-APK gates passed; source ZIP packaging and upload remain pending. Distributable source uses LF while ten exact managed/canonical inputs retain their original bytes. No device steps or changes to the original repository or website are included.
+The [round scope and build guide](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md) still applies. F9 passed the same five-task rerun in 152.31 seconds, with 110 classes/705 cases per flavor and all seven actual-APK gates; the first SDK29 dependency failure is retained. StartupTrace labels core errors not attributed to a plugin generically. WebProcSel separately recognizes the current PATH-prefix pre-exec writer without signaling from shell text. IME frame-resize/focus cleanup leaves mobile UI unchanged; original inputs expand directly at project paths, without a nested packet.
 
 ---
 

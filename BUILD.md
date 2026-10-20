@@ -2,7 +2,7 @@
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[贡献流程](CONTRIBUTING.md) 与[接手指南](docs/接手指南.md)。应用版本以 `app/build.gradle` 为准，DSH 依赖以 `tools/dsh-runtime/package.json`/锁文件为准，完整交付和未验证范围以本轮报告为准。
 
-本轮暂停全部真机、ADB和手机对话。F8最终版本`0.2.1-rc.2-20261020.2054-dsh0.2.1-rc.2` /190，正式5tasks单轮exit0/225.98秒；实际每版107类/684项0失败/错误（Std3、Low76skip），Lint0Error/Fatal、247/162警告，实际APK7门禁全部PASS。新私有[SunsetRNE/DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q)预定tag`v0.2.1-rc.2-20261020.2054`，完整源码ZIP打包/上传尚待完成；原仓库和网站不变。1933/a777及F7仅属历史，JVM测试变体不授权assembleDebug或手机操作；精确摘要与证据见[本轮报告](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+F9最终版本`0.2.1-rc.2-20261020.2330-dsh0.2.1-rc.2` /190，tag`v0.2.1-rc.2-20261020.2330`；补齐SDK29 exact jar后同5任务exit0/152.31秒，每版110类/705项0失败/错误（Std3、Low76skip），Lint0error、247/162warning，实际APK7门禁全部通过。首轮每版1依赖失败/220XML保留，非单次全绿。13Node、8后端import及当前c6普通Web/safe Linux Host证明只属Host，非Android验收。新APK精确摘要见[F9记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)；只在现有`SunsetRNE/DSHA-Sunset-mod-3090-Q`打包/上传Standard与完整源码，继续不设备，不改ZIP结构。
 
 本机本轮源码在 `<local-workspace>`；`<local-workspace>`的旧173检出不是当前构建源。其他机器使用新私有仓库最终tag/完整commit或对应源码附件。
 
@@ -70,7 +70,7 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 
 本轮发布Standard APK，软件验证覆盖受影响的两版测试与Release Lint，并核对实际Standard APK/资产/ELF、签名、许可、插件/应急门禁及精确摘要。JUnit选择类、跳过、缓存复用与未跑范围分别记录，不冒称全库clean或完整冷网络构建。JNI静态审计使用对应Release APK，不推荐旧Debug产物；旧Low原件保持，不把Low软件检查写成新Low交付或设备验收。
 
-本地Standard正式产物为 `<local-workspace>`，对应摘要在本地核对并随发布记录。历史版本和旧Low字节保留，`app/build`中间包不冒充交付。新私有仓库Git不收大生成归档；Release只附正式APK与含固定构建输入的完整源码ZIP，SHA-256写在Release正文，源码ZIP自身README不写该ZIP摘要以免自引用。私钥、用户数据、设备截图/日志和历史取证材料不上传。必要6个审计元数据、27个历史构建源码与唯一website测试夹具按交付清单保留，不等于上传历史现场。最终源码、软件回执和发布tag绑定实际APK字节；当前未宣布Release上传完成。
+本地Standard正式产物为 `<local-workspace>`，对应摘要在本地核对并随发布记录。历史版本和旧Low字节保留，`app/build`中间包不冒充交付。现有私有仓库Git不收大生成归档；Release只附正式APK与含固定构建输入的完整源码ZIP，SHA-256写在Release正文，源码ZIP自身README不写该ZIP摘要以免自引用。私钥、用户数据、设备截图/日志和历史取证材料不上传。必要6个审计元数据、27个历史构建源码与唯一website测试夹具按交付清单保留，不等于上传历史现场。2054发布已核对，F9最终源码、软件回执和tag待绑定新APK，当前不称F9已发布。
 
 `ci-package` 的未签名完整包只用于软件验证，不用于手机安装或 release。配置文件不能证明受保护环境、签名线上运行和仓库保护已配置；实际部署与发布需要相应证据。
 
