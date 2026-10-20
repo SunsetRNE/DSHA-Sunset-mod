@@ -220,6 +220,10 @@ public final class RuntimePackageCommandsAndroidTest {
       Files.writeString(wrapper, OLD_PNPM);
       RuntimeTools.stage(context, root.toFile());
       assertTrue(Files.readString(wrapper).contains("package_import_method"));
+      Path dsh = root.resolve("root/dsh-bin/dsh");
+      Files.delete(dsh);
+      RuntimeTools.stage(context, root.toFile());
+      assertEquals(com.deepseekharness.app.util.DshEntrypoint.wrapper(), Files.readString(dsh));
     }
   }
 
@@ -227,7 +231,7 @@ public final class RuntimePackageCommandsAndroidTest {
   public void missingCommandsArePublishedBeforeTheWebHostCanSpawnChildren() throws Exception {
     RuntimeTools.preparePackageCommands(context, root.toFile(), true);
     JSONObject wrappers = new JSONObject();
-    for (String name : new String[] {"npm", "npx", "pnpm"}) {
+    for (String name : new String[] {"dsh", "npm", "npx", "pnpm"}) {
       String content = Files.readString(root.resolve("root/dsh-bin/" + name));
       assertTrue(content.startsWith("#!/bin/sh\n"));
       assertTrue(content.contains("\nexec /usr/local/bin/node "));
@@ -235,6 +239,7 @@ public final class RuntimePackageCommandsAndroidTest {
       wrappers.put(name, content);
     }
     assertTrue(wrappers.getString("pnpm").contains("/usr/local/lib/dsha-pnpm/bin/pnpm.cjs"));
+    assertEquals(com.deepseekharness.app.util.DshEntrypoint.wrapper(), wrappers.getString("dsh"));
     assertTrue(
         wrappers
             .getString("pnpm")
@@ -255,13 +260,16 @@ public final class RuntimePackageCommandsAndroidTest {
 
   @Test
   public void staleNonemptyWrappersAreRepairedWithoutTouchingUserGlobalTools() throws Exception {
-    for (String name : new String[] {"npm", "npx", "pnpm"})
+    for (String name : new String[] {"dsh", "npm", "npx", "pnpm"})
       put("root/dsh-bin/" + name, "stale entry\n");
     put("usr/local/bin/pnpm", "user-owned tool\n");
+    put("usr/local/bin/dsh", "copied legacy global entry\n");
     RuntimeTools.preparePackageCommands(context, root.toFile(), true);
-    for (String name : new String[] {"npm", "npx", "pnpm"})
+    for (String name : new String[] {"dsh", "npm", "npx", "pnpm"})
       assertFalse(Files.readString(root.resolve("root/dsh-bin/" + name)).contains("stale entry"));
     assertEquals("user-owned tool\n", Files.readString(root.resolve("usr/local/bin/pnpm")));
+    assertEquals(
+        "copied legacy global entry\n", Files.readString(root.resolve("usr/local/bin/dsh")));
   }
 
   @Test
@@ -275,7 +283,18 @@ public final class RuntimePackageCommandsAndroidTest {
   }
 
   @Test
+  public void dshWrapperDoesNotOverwriteASpecialTarget() throws Exception {
+    Path directory = Files.createDirectories(root.resolve("root/dsh-bin/dsh"));
+    Files.writeString(directory.resolve("user-file"), "keep");
+    assertThrows(
+        java.io.IOException.class,
+        () -> RuntimeTools.preparePackageCommands(context, root.toFile(), true));
+    assertEquals("keep", Files.readString(directory.resolve("user-file")));
+  }
+
+  @Test
   public void runtimeSwitchCarriesTheBundledManagerAndItsCommandTogether() {
+    assertTrue(ManagedRuntimeLayout.paths().contains("root/dsh-bin/dsh"));
     assertTrue(ManagedRuntimeLayout.paths().contains("usr/local/lib/dsha-pnpm"));
     assertTrue(ManagedRuntimeLayout.paths().contains("root/.dsha-pnpm-version"));
     assertTrue(ManagedRuntimeLayout.paths().contains("root/dsh-bin/pnpm"));

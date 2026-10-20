@@ -117,13 +117,19 @@ public final class WebProcSel {
   }
 
   private static boolean managedWebShell(String command) {
-    return command.startsWith("export DSH_HOME=/root/.dsh && ")
+    boolean prefix =
+        command.startsWith("export DSH_HOME=/root/.dsh && ")
+            || command.startsWith(
+                "export PATH=\"/root/dsh-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}\" && export DSH_HOME=/root/.dsh && ");
+    return prefix
         && command.contains("export DSHA_STARTUP_PROFILE=")
         && command.contains("export DSHA_WEB_GENERATION=")
         && command.contains("echo $$ > " + PID_WEB)
         && command.contains("[ ! -e " + STOP_SENTINEL + " ] || exit 0;")
         && (command.contains("exec dsh web --no-open --host 127.0.0.1 --port ")
-            || command.contains("exec dsh --profile 'dsha-recovery-"));
+            || command.contains("exec dsh --profile 'dsha-recovery-")
+            || command.contains(DshEntrypoint.exec() + " web --no-open --host 127.0.0.1 --port ")
+            || command.contains(DshEntrypoint.exec() + " --profile 'dsha-recovery-"));
   }
 
   private static boolean isProrootManagedWebShell(String[] argv) {

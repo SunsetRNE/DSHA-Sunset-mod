@@ -71,7 +71,7 @@ public class CommandEnvironmentShell {
     java = Path(os.environ.get("JAVA_HOME", "D:/develop/JDK")) / "bin"
     compile_result = command(out / "compile-shell.log", [str(java / "javac.exe"),
         "-encoding", "UTF-8", "-d", str(classes), *(str(source / (n + ".java"))
-        for n in ["WebLaunchCommand", "WebProcSel", "ShellQuote"]), str(helper)])
+        for n in ["DshEntrypoint", "WebLaunchCommand", "WebProcSel", "ShellQuote"]), str(helper)])
     assert compile_result.returncode == 0, compile_result.stderr
     settings = {
         "normal": ["ask", "zh", "web"],

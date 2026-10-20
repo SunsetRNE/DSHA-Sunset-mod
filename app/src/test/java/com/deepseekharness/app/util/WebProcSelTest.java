@@ -251,6 +251,27 @@ public class WebProcSelTest {
   }
 
   @Test
+  public void currentCanonicalLaunchShellIsRetainedWithoutSignallingTheShell() {
+    for (String profile : new String[] {"web", "dsha-recovery-example"}) {
+      String command = WebLaunchCommand.build("ask", true, "zh", profile, 0, 9);
+      String shell = "/bin/bash\0-c\0" + command + "\0";
+      assertTrue(WebProcSel.looksLikeWeb(shell));
+      assertFalse(WebProcSel.maySignalWeb(shell));
+      String oldEntry = command.replace(DshEntrypoint.exec(), "exec dsh");
+      assertTrue(WebProcSel.looksLikeWeb("/bin/bash\0-c\0" + oldEntry + "\0"));
+      assertFalse(WebProcSel.looksLikeWeb("/bin/bash\0-c\0echo " + command + "\0"));
+      assertFalse(
+          WebProcSel.looksLikeWeb(shell.replace("echo $$ > " + WebProcSel.PID_WEB, "echo sample")));
+      String bridge =
+          "libproroot-bridge.so\0/data/app/lib/libproroot-linker.so\0--argv0\0bash\0--preload\0/data/app/lib/libproroot-runtime.so\0/data/user/0/app/files/linux/ubuntu/usr/bin/bash\0-c\0"
+              + command
+              + "\0";
+      assertTrue(WebProcSel.looksLikeWeb(bridge));
+      assertFalse(WebProcSel.maySignalWeb(bridge));
+    }
+  }
+
+  @Test
   public void portHexIsFourDigitUpperHex() {
     assertEquals("0C08", WebProcSel.portHex(3080));
     assertEquals("0C12", WebProcSel.portHex(3090));

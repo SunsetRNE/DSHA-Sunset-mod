@@ -2217,6 +2217,19 @@
       "timeoutSeconds": 120,
       "reason": "Actual private Linux CAS file-link migration CLI, original/store/metadata preservation, bounded format3 batches, pending/no replay, explicit recovery, link/parent/hash/type/replacement/cancellation boundaries.",
       "environment": {}
+    },
+    {
+      "path": "tools/test-dsh-launcher-integrity.py",
+      "stage": "support",
+      "reason": "Explicit POSIX symlink fixtures with Linux Node24 and JDK17; also supports a separately supplied exact managed Host runtime for actual bundled module imports. Run in isolated WSL/Linux, never Android or production profiles.",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": [
+        "python39",
+        "jdk17",
+        "linux_node"
+      ],
+      "environment": {}
     }
   ],
   "historicalExcluded": [

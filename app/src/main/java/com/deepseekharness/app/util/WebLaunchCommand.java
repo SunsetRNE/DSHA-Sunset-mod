@@ -40,7 +40,9 @@ public final class WebLaunchCommand {
         + " 2>/dev/null; "
         + "[ ! -e "
         + WebProcSel.STOP_SENTINEL
-        + " ] || exit 0; exec dsh "
+        + " ] || exit 0; "
+        + DshEntrypoint.exec()
+        + " "
         + ("web".equals(profile) ? "web" : "--profile " + ShellQuote.arg(profile))
         + " --no-open --host 127.0.0.1 --port "
         + listenPort;

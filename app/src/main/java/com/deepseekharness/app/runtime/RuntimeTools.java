@@ -127,6 +127,13 @@ final class RuntimeTools {
               .getBytes(java.nio.charset.StandardCharsets.UTF_8),
           true);
     }
+    File dsh = new File(rootfs, "root/dsh-bin/dsh");
+    writeIfChanged(
+        context,
+        dsh,
+        com.deepseekharness.app.util.DshEntrypoint.wrapper()
+            .getBytes(java.nio.charset.StandardCharsets.UTF_8),
+        true);
   }
 
   static void invalidate() {
