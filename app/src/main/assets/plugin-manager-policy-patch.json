@@ -1,0 +1,18 @@
+{
+  "dshVersion": "0.2.1-rc.2",
+  "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
+  "patches": [
+    {
+      "before": "async function runProfilePnpm(context, args, options) {",
+      "after": "async function runProfilePnpm(context, args, options) {\n\t// DSHA_PLUGIN_UNLOCKED_PNPM_V2: the user's repair/install policy permits\n\t// dependency and Git prepare hooks. pnpm 10 otherwise refuses Git builds.\n\t// Keep registry/spec/lock choices; fetch retries repeat only read requests.\n\tif (process.env.DSHA_PLUGIN_UNLOCKED === \"1\") options = {\n\t\t...options,\n\t\targs: [...options.args ?? [],\n\t\t\t\"--config.dangerously-allow-all-builds=true\", \"--config.ignore-scripts=false\",\n\t\t\t\"--config.ignore-dep-scripts=false\", \"--config.update-notifier=false\",\n\t\t\t\"--config.fetch-retries=1\", \"--config.fetch-retry-mintimeout=1000\",\n\t\t\t\"--config.fetch-retry-maxtimeout=3000\", \"--config.fetch-timeout=60000\",\n\t\t\t\"--reporter=append-only\"]\n\t};"
+    },
+    {
+      "before": "\t\tconst environment = {\n\t\t\t...options.execution === \"cli\" ? process.env : scrubbedParentEnv(),\n\t\t\t...options.env\n\t\t};",
+      "after": "\t\tconst environment = {\n\t\t\t...options.execution === \"cli\" ? process.env : scrubbedParentEnv(),\n\t\t\t...options.env\n\t\t};\n\t\t// DSHA_PLUGIN_HTTPS_GITHUB_V1: pnpm's hosted-Git probe may choose SSH\n\t\t// after an intermittent HTTPS error. A browser-supplied HTTPS source\n\t\t// remains on GitHub HTTPS; this invocation never edits global Git config.\n\t\t// Existing explicit command-level Git configuration keeps precedence.\n\t\tif (process.env.DSHA_PLUGIN_UNLOCKED === \"1\"\n\t\t\t&& namedSpecs(args).some((spec) => /^https:\\/\\/github\\.com\\//i.test(spec))\n\t\t\t&& (!environment.GIT_CONFIG_COUNT || environment.GIT_CONFIG_COUNT === \"0\")) {\n\t\t\tenvironment.GIT_CONFIG_COUNT = \"3\";\n\t\t\tfor (const [index, prefix] of [\"git+ssh://git@github.com/\", \"ssh://git@github.com/\", \"git@github.com:\"].entries()) {\n\t\t\t\tenvironment[\"GIT_CONFIG_KEY_\" + index] = \"url.https://github.com/.insteadOf\";\n\t\t\t\tenvironment[\"GIT_CONFIG_VALUE_\" + index] = prefix;\n\t\t\t}\n\t\t}"
+    },
+    {
+      "before": "\t\t\t\t\t\tif (failedAt !== \"registry\" || index === plan.length - 1) break;",
+      "after": "\t\t\t\t\t\t// DSHA_PLUGIN_SINGLE_INSTALL_V1: hooks may already have run before a\n\t\t\t\t\t\t// registry error. Never replay the whole unlocked install automatically.\n\t\t\t\t\t\tif (process.env.DSHA_PLUGIN_UNLOCKED === \"1\" || failedAt !== \"registry\" || index === plan.length - 1) break;"
+    }
+  ]
+}
