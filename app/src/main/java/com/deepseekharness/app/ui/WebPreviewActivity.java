@@ -75,6 +75,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   private BrowserMicrophone microphone;
   private WebViewMicrophone microphoneRequests;
   private boolean browserResumed;
+  private boolean runtimeSuspended;
   private PreviewPageSession.Identity restoreIdentity;
   private PreviewPageSession.Identity obsoleteHostIdentity;
   private boolean emptyHostRetirementPending;
@@ -331,7 +332,14 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     if ((!emptyHostRetirementPending || initial == null) && retireEmptyHost(null, initial, false))
       return;
     if (retained.themeColor != null) WebFullscreenUi.applyThemeColor(this, retained.themeColor);
-    findViewById(R.id.web_retry).setOnClickListener(v -> loadSession());
+    findViewById(R.id.web_retry)
+        .setOnClickListener(
+            v -> {
+              if (runtimeSuspended) {
+                com.deepseekharness.app.core.HarnessController.get(this)
+                    .requestWebSessionRecheck(() -> synchronizeWebSession());
+              } else loadSession();
+            });
     findViewById(R.id.web_error_browser).setOnClickListener(v -> openExternal(authUrl));
     findViewById(R.id.web_error_logs)
         .setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
@@ -345,6 +353,29 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
                 navigateBack();
               }
             });
+    var creationController = com.deepseekharness.app.core.HarnessController.get(this);
+    if (currentWebIdentity() == null
+        && (creationController.needsWebSessionRestore()
+            || creationController.isRestoringWebSession()
+            || creationController.hasUnresolvedWebSession())) {
+      if (retained.view != null
+          && creationController.isWebSessionRetained(retained.pageSession.identity())) {
+        var displayIdentity = retained.pageSession.identity();
+        if (displayIdentity != null) {
+          authUrl = displayIdentity.authUrl();
+          baseUrl = WebPreviewPolicy.loopbackBaseUrl(authUrl);
+          startupIdentity = displayIdentity;
+          startupGeneration = displayIdentity.generation();
+        }
+        webView = retained.view;
+        ((android.content.MutableContextWrapper) webView.getContext()).setBaseContext(this);
+        attachClients(webView);
+        container.addView(webView, new FrameLayout.LayoutParams(-1, -1));
+      }
+      suspendRuntimePage(false);
+      creationController.restoreRunningWebSession(() -> synchronizeWebSession());
+      return;
+    }
     if (!BrowserConversationRoute.current(getIntent(), currentWebIdentity())) {
       rejectConversationRoute();
       return;
@@ -430,6 +461,10 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
       showError(
           com.deepseekharness.app.util.UiText.text("暂时无法进入对话"),
           com.deepseekharness.app.util.UiText.text("Web 尚未就绪，请返回启动页查看服务状态"));
+      return;
+    }
+    if (!BrowserConversationRoute.current(getIntent(), expected)) {
+      rejectConversationRoute();
       return;
     }
     if (previewAuth.busy() && expected.equals(pendingIdentity)) return;
@@ -536,11 +571,31 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     }
     if (obsolete == null) obsolete = obsoleteHostIdentity;
     if (obsolete == null && webView == null && retained.view == null) obsolete = restoreIdentity;
+    var controller = com.deepseekharness.app.core.HarnessController.get(this);
+    if (current == null && controller.isWebSessionRetained(obsolete)) {
+      suspendRuntimePage(controller.isWebSessionExited(obsolete));
+      return true;
+    }
+    if (runtimeSuspended
+        && current != null
+        && (retained.pageSession.identity() == null || retained.pageSession.isCurrent(current))) {
+      runtimeSuspended = false;
+      errorPanel.setVisibility(View.GONE);
+      findViewById(R.id.web_error_browser).setEnabled(true);
+      if (webView != null) webView.setEnabled(true);
+      resumePageStreams();
+    }
+    if (current == null
+        && runtimeSuspended
+        && (controller.needsWebSessionRestore()
+            || controller.isRestoringWebSession()
+            || controller.hasUnresolvedWebSession())) return true;
     if (emptyHostRetirementPending || obsolete != null && !obsolete.equals(current)) {
       obsoleteHostIdentity = obsolete;
       cancelPendingAuthentication();
       restoreState = null;
       restoreIdentity = null;
+      if (webView == null && retained.view != null) webView = retained.view;
       destroyWebView();
       retireEmptyHost(obsolete, current, explicitFullEntry);
       // A refused retirement must not fall through and create a page in this old task.
@@ -566,6 +621,42 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     if (current.equals(pendingIdentity)) return true;
     loadSession();
     return true;
+  }
+
+  /** 未知只保留页面显示，所有异步权限仍只认currentWebIdentity，不认保留身份。 */
+  private void suspendRuntimePage(boolean exited) {
+    if (!runtimeSuspended) {
+      runtimeSuspended = true;
+      cancelConversationRequests();
+      cancelFileSelection();
+      if (microphoneRequests != null) microphoneRequests.cancel();
+      retained.needsStreamResume = true;
+      retained.pageNavigation++;
+      retained.navigation.cancel();
+      retained.pendingHistory = null;
+      if (retained.blobDownload != null) {
+        retained.blobDownload.close();
+        retained.blobDownload = null;
+      }
+      downloads.model.cancel();
+    }
+    if (webView != null) webView.setEnabled(false);
+    progress.setVisibility(View.GONE);
+    findViewById(R.id.web_error_browser).setEnabled(false);
+    errorTitle.setText(
+        com.deepseekharness.app.util.UiText.choose(
+            exited ? "Web 服务已退出" : "正在验证 Web 状态",
+            exited ? "Web service exited" : "Verifying Web session"));
+    errorDetail.setText(
+        com.deepseekharness.app.util.UiText.choose(
+            exited
+                ? "本次服务进程已确认退出，对话记录已保留。请返回启动页查看日志并手动启动。"
+                : "暂时无法确认后台服务身份，当前页面已保留。验证通过后恢复，不会重新发送对话。可点重试验证，或返回启动页查看状态。",
+            exited
+                ? "The service process has exited. Conversation records are retained. Return to the start page to inspect logs and start it manually."
+                : "The background service identity is not yet confirmed. This page is retained and will resume after verification. Messages will not be resent. Retry verification or check the start page."));
+    errorPanel.setVisibility(View.VISIBLE);
+    refreshPictureInPicture();
   }
 
   /** An obsolete PiP task can retain its system surface scale after its page is gone. */
@@ -1348,6 +1439,16 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     boolean explicitFullEntry = "FULL".equals(intent.getStringExtra(BrowserConversationRoute.MODE));
     super.onNewIntent(intent);
     setIntent(intent);
+    var controller = com.deepseekharness.app.core.HarnessController.get(this);
+    var displayIdentity = retained == null ? null : retained.pageSession.identity();
+    if (currentWebIdentity() == null
+        && controller.isWebSessionRetained(displayIdentity)
+        && BrowserConversationRoute.current(intent, displayIdentity)) {
+      cancelConversationRequests();
+      receivePresentationIntent();
+      synchronizeWebSession(explicitFullEntry);
+      return;
+    }
     if (!BrowserConversationRoute.current(intent, currentWebIdentity())) {
       rejectConversationRoute();
       return;

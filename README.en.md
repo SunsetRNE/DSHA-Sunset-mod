@@ -22,7 +22,9 @@
 > 🤖 If you are an AI agent or a new contributor, read **[AGENTS.en.md](AGENTS.en.md)** first
 > (structure, startup contracts, traps we already fell into). Don't scan the whole repo.
 
-> **F12 `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` / code190.** Plugin-query blocking, restored LAN authentication and notice-persistence ordering are fixed. Both variants ran 148 classes/939 JUnit cases each, zero failures/errors (Standard 3/Low 76 skipped); Release Lint has zero errors and 249/162 warnings; eight exact-APK gates passed. Device/ADB, real-account/model and new endurance acceptance were not run. [APK and complete source](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413) · [English scope and evidence](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md). F11 remains an unpublished local checkpoint.
+> **F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190.** Directory-service composition, attachment-resolver disposal and recovery after transient background proof failure are fixed. Standard 150 selected classes/952 JUnit cases (3 skipped); Low 150 selected classes/952 cases (76 skipped). Both have zero failures/errors. Release Lint has zero errors and Standard/Low warnings 249/162; eight actual-APK gates passed. Original failures, corrections and negative controls remain separate; this is not one continuous green run. No device/ADB, real-account/model or new endurance acceptance. [Associated Release target](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) · [Scope and evidence](docs/en/releases/v0.2.1-rc.2-build190-fix13-20261021.md). Actual remote availability is established by the Release and independent receipt.
+
+Published F12 retains its original identity: [immutable English record](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
 
 This repository is the DSHA Android adaptation and prerelease branch maintained by [SunsetRNE](https://github.com/SunsetRNE), based on [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA). The bundled Harness comes from [DeepSeek’s upstream project](https://github.com/deepseek-ai/deepseek-harness). Source locks, component licenses, build identity and validation limits are indexed in the [provenance guide](docs/en/references-and-provenance.md); releases are built and signed by this maintenance branch.
 
@@ -66,7 +68,7 @@ original author [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) and a
 
 ## Private prerelease downloads
 
-Access to the private repository is required. The [associated Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413) contains the Standard APK and complete source ZIP for `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` /190. See the [English release record](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md) and [maintained English documentation](docs/en/index.md) for exact scope. F11 was not published.
+Private repository access is required. The [associated Release target](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) identifies this batch's Standard APK and complete source; actual availability requires the Release and independent receipt. [F13 scope](docs/en/releases/v0.2.1-rc.2-build190-fix13-20261021.md). Published F12 retains its original identity: [immutable English record](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
 
 | Artifact | Contents |
 |---|---|

@@ -90,6 +90,20 @@ public class HarnessController {
     web.refreshRecoveredWebSession();
   }
 
+  public void requestWebSessionRecheck(Runnable completed) {
+    web.requestWebSessionRecheck(completed);
+  }
+
+  public boolean isWebSessionRetained(
+      com.deepseekharness.app.util.PreviewPageSession.Identity expected) {
+    return web.isWebSessionRetained(expected);
+  }
+
+  public boolean isWebSessionExited(
+      com.deepseekharness.app.util.PreviewPageSession.Identity expected) {
+    return web.isWebSessionExited(expected);
+  }
+
   public boolean isWebStoppedForMaintenance() throws IOException {
     return web.isWebStoppedForMaintenance();
   }

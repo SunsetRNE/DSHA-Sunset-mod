@@ -1,7 +1,7 @@
 # 运行环境、数据与插件机制
 
 本文面向准备修改 DSHA 的开发者，说明环境从哪里来、数据归谁、插件如何进入真实启动链。
-核验日期：2026-10-21。当前说明以已发布F10 `087724c`为来源基线，按 build190 / F12工作树维护：Ubuntu base10、官方 DSH `0.2.1-rc.2`、Node 24、随包 pnpm `10.34.5`。F11为未上传的本地检查点，不能称新增已发布版本；最终身份与执行范围见[README](../README.md)和[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)，不从本页推导新设备或真实账号验收。
+核验日期：2026-10-21。当前说明以已发布F10 `087724c`为来源基线，按 build190 / F13工作树维护：Ubuntu base10、官方 DSH `0.2.1-rc.2`、Node 24、随包 pnpm `10.34.5`。F11为未上传的本地检查点，不能称新增已发布版本；最终身份与执行范围见[README](../README.md)；[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)保留已发布历史归属，不从本页推导新设备或真实账号验收。 本批最终软件与产物范围由[F13记录](releases/v0.2.1-rc.2-build190-fix13-20261021.md)统一填写；本文不预填最终版本或正式总数。
 默认引擎是 `proot`，用户可显式选择 `proroot`；当前生产方案不使用 bxroot。
 这里的流程和约束属于 DSHA 实现，不代表 Ubuntu、Node、pnpm 或 DSH 上游对 Android 的保证。
 本文是源码导航，不是一次新的构建、设备验收或所有旧数据兼容性证明。
@@ -140,6 +140,12 @@ flowchart TD
 ADB 开关、虚拟屏或 Activity 消失，不等同于 guest 已退出。
 主线程不能持生命周期监视器等待慢预检、线程 join 或远端 I/O。
 相关宿主响应性回归证明指定阻塞边界，不构成某台设备 ANR 唯一根因的证明。
+
+### 2.4 已保存运行记录与后台页面恢复
+
+正常新启动保存运行记录后也会进入周期身份复核，不能把这条链理解为仅宿主进程重建。F13用F12编译类负控复现单次失败使`restoreUnknown`永久残留的路径；当前[WebSessionRecheck](../app/src/main/java/com/deepseekharness/app/core/WebSessionRecheck.java)区分活态、未知与已退出，并丢弃不同record/代次/实例/URL/实际端口的迟到结果。
+
+UNKNOWN保留原DOM或Gecko会话与后台保护，撤屏幕epoch、旧任务票和LAN，不把展示身份授为当前ready；Standard/Low均显示原生等待状态。同一身份恢复内核→真实HTTP鉴权→二次内核核验后，创建新registration对象通知原页面继续，不复活旧对象/排队票或重发对话、启动和stop操作。确认guest退出则显示已退出并留记录，launcher停止仍须独立证明。页面保留不构成浏览器或后端RPC强沙箱，不暂停所有JS/Node工作；定向JVM/Robolectric及固定F12旧类负控已完成，Standard实际Activity/同DOM/Blob/Service保护仅在该宿主夹具验证；Low只有编译与源码审查，无完整Gecko Activity回归。它不替代最终双版Gradle/APK，也不是故障手机、ROM后台或真实模型验收完成。完整状态和入口见[启动与诊断](startup-and-diagnostics.md)。
 
 ## 三、安全启动、应急与维护恢复
 
@@ -297,6 +303,20 @@ proroot 中 Git 源码 prepare 调用原生 Go 工具时，可能遇到内核可
 插件和 shell 在应用 UID 可访问的范围内运行，包格式和事务检查不构成恶意代码强沙箱。
 官方模块的 dispose 也不能预设为纯内存清理；例如 Auto 的会话 preset 调整须按真实实现评估持久影响。
 未逐项比对持久会话时，不应保证“所有既有会话模式绝对未变”。
+
+### 5.6 工作区目录服务与父插件依赖
+
+`@deepseek-ai/dsh-api-workspace-controller`同时导出`WorkspaceController`与`DirectoryPickerController`。原默认Workspace控制器的构造尾部才注册目录控制器；其`workspaceRegistry`静态依赖可等待真实存储domain、历史session headers和canonical cwd初始化。F13已用真实Host禁用registry复现：目录浏览后端与UI活动、父控制器pending，但`directoryPicker/list`返回`gateway/service-unavailable` / `active Service directoryPickerController unavailable`。健康raw/managed空profile本来可用，手机registry未就绪的具体原因未定位；不能据此推断任意历史数据损坏或所有核心服务缺失。
+
+[独立目录服务补丁](../app/src/main/assets/directory-picker-service-patch.json)将默认导出改为组合，独立挂载真实目录控制器与原工作区控制器。前者仍inject实际`directoryPicker`；后者仍inject`remoteAccess/typert/workspaceRegistry`。原Config/name及named-class直调行为保留，私有Symbol只避免组合路径再次嵌套注册。它不伪造service、不放开Gateway认证或参数/路径检查；真实后端缺失仍拒绝。目录专项正控覆盖真实list/create/readback、路径/鉴权/缺后端拒绝、健康工作区保存及同profile两次正常退出重开与named类兼容；没有把损坏记录或HMR算作目录通过。
+
+修复改变服务组合，不删除或重建工作区/会话/附件，不自动清空全局配置、重放未知动作或把外置目录纳入擦除。浏览/选择失败与数据存储合同分别判断；[插件操作](plugins.md)说明用户可见错误与数据保留，[启动诊断](startup-and-diagnostics.md)说明恢复和UNKNOWN屏障。相关实际Host入口为[test-directory-picker-service-host.mjs](../tools/test-directory-picker-service-host.mjs)，不是手机、模型或Android文件系统矩阵证据。
+
+### 5.7 附件resolver的注册对象与退休
+
+原raw/F12的`FileUploads.registerAgentResolver`把函数直接保存在Service属性；Cordis tracing读取后包装为新Proxy，使disposer的函数`===`比对失败，旧slot残留。实际Cordis及原raw/managed模块已复现registry/`SessionController`停启后重复注册错误。这是独立于目录组合的已证路径，不能由健康启动或目录专项结果覆盖，也不能推广成所有插件故障或手机截图唯一原因。
+
+[窄生命周期补丁](../app/src/main/assets/file-upload-resolver-lifecycle-patch.json)只在锁定file-upload模块使用稳定`{ resolve }`对象持有该次注册，disposer按对象身份清理，调用时解出函数。保留live重复注册拒绝、旧disposer围栏、真实上传接收与session回执检查，不重播上传、不删旧附件或工作区内容。专项已完成原CLI（不含目录补丁）重复错误负控，以及只加载附件补丁的两轮workspace停启applied、raw/typed上传实际字节落盘读回、冷进程同Session上传/列表保留；鉴权、foreignOrigin、415/400及未知Session拒绝仍保留。真实Cordis/Commands/LocalAttachmentStore核对live重复、旧disposer、owner退休与同Session回执，入口为[test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。这不是目录+附件组合或最终共享运行时/APK通过；软件范围不扩大为所有附件端到端、账号/模型或真机矩阵，最终组合门禁由负责人另跑。
 
 ## 六、配置与凭据
 

@@ -1,6 +1,6 @@
 # 启动、恢复工作台与诊断导出
 
-> 核验日期：2026-10-21。按本工作树 build190/F12 的入口与数据流核验，F10 `087724c` 及 F11 保留参考历史归属。本页更新只核对源码，未运行构建、软件测试、设备、模型对话或长时验收；最终版本、正式执行数量和发布状态以 [README](../README.md) 与 [F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)为准。
+> 核验日期：2026-10-21。按本工作树 build190/F13 的入口与数据流核验，F10 `087724c` 及 F11 保留参考历史归属。本页更新只核对源码，未运行构建、软件测试、设备、模型对话或长时验收；最终版本、正式执行数量和发布状态以 [README](../README.md) 及其本批交付记录为准；[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)保留已发布历史归属。 本批最终软件与产物范围由[F13记录](releases/v0.2.1-rc.2-build190-fix13-20261021.md)统一填写；本文不预填最终版本或正式总数。
 
 先在 Main 判断失败发生在哪一层，再选择检查、恢复或导出。环境就绪、后端鉴权、网页就绪分别有自己的证据；某一层完成不能替代后一层。安装操作见[安装与维护](install-and-maintenance.md)，配置修复见[配置快照](config-snapshots.md)。
 
@@ -29,11 +29,34 @@
 
 Main环境门禁由[MainEntryGate](../app/src/main/java/com/deepseekharness/app/ui/MainEntryGate.java)在后台检查，pause/destroy/newIntent或新代次使旧交付票据失效；慢磁盘不取得UI导航权。进入当前Web的鉴权等待有15秒可见完成边界，旧结果不得导航新页面。该UI等待失败不是后端已退出证明，不能据此自动启动第二个后端。测试入口为[MainEntryGateTest](../app/src/test/java/com/deepseekharness/app/ui/MainEntryGateTest.java)。
 
+### 后台复核、UNKNOWN与原页面保留
+
+F13的软件负控使用F12实际编译类复现了两项行为：一次后台身份复核失败后，即使后续证据恢复也永久停留`restoreUnknown`，旧registration已撤销；正常新启动保存记录后同样进入周期复核，并不只发生于宿主重建。旧逻辑继而把空ready/auth结果解释为Web已关闭，影响服务保护与预览页。此为已证软件路径，不证明原手机后台事件或ROM限制的唯一原因。
+
+| 进程观察与当前身份 | 页面、权限与后续处理 |
+|---|---|
+| `LIVE`且当前身份持续有效 | 保留当前已验证运行与原页面，不重新启动后端 |
+| `UNKNOWN`或暂不可读/鉴权未证实 | 保留原DOM或Gecko会话及本轮后台保护，展示等待核验状态；撤销屏幕epoch、旧任务票和LAN，不把展示身份当ready授权 |
+| 已核实guest `EXITED` | 明确显示后端已退出，保留记录和诊断；launcher退出是另一项证明，停止屏障不能因此直接清除 |
+| 代次、实例、record、URL或端口已变化 | 旧异步结果过期，不更新新页面、复活旧许可或发布旧LAN |
+
+[WebSessionRecheck](../app/src/main/java/com/deepseekharness/app/core/WebSessionRecheck.java)与[生命周期控制器](../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java)对前后台请求合并异步复核，不在UI线程读proc或等待HTTP。UNKNOWN恢复必须仍为同一个record/generation/instance/实际port/auth URL，重新取得内核观察、真实HTTP鉴权及第二次内核观察；全部有效才创建新的`AgentTaskRegistration`对象并通知原页面继续。它使用该记录原有taskToken/nonce，旧registration永久revoke，旧row/queued票据不复活；不重新提交对话、stop票、后台启动或已派发业务。
+
+Standard的[WebPreviewActivity](../app/src/main/java/com/deepseekharness/app/ui/WebPreviewActivity.java)和Low的[GeckoPreviewActivity](../app/src/low/java/com/deepseekharness/app/ui/GeckoPreviewActivity.java)保留原页面/会话等待同身份核验，而不把null ready直接当实例结束。UNKNOWN有覆盖页面的原生状态面板，并停用WebView交互或Gecko active状态；文件、麦克风、IME等Native入口仍只接受严格ready identity。展示身份只用于保留页面，不是额外授权，也不承诺冻结全部JS、后端RPC或Node业务；既有合法后端工作不会为此被杀掉或重放。定向JVM/Robolectric正控与F12旧编译类负控已完成；Standard实际Activity的onCreate/GEN路由/newIntent、同DOM多次恢复、新Blob writer及Service WakeLock在Robo夹具内验证。Low只完成编译和源码审查，没有完整Gecko Activity回归。完整双版Gradle与最终APK由负责人另做；系统后台保活、故障手机、真实账号/模型及全设备效果仍需各自实测，本页不宣布故障手机已经恢复正常。
+
 后端鉴权与网页挂载仍分层。startup观察器晚注入、首次说明或空会话尚无composer时，只用锁定rc2实际布局的`shell-bottom`与`shell-overlay`组合确认挂载，任意非空root不够。首次说明只在官方Host配置的真实视图确认精确`welcomeNoticeVersion`已持久化后结束，不以按钮点击、mutate调用已返回或任意非空值代替确认。
 
 F12对应的两网页内核真实Host负控覆盖了失败响应先到、后台稍后保存而旧页面仍显示错误，以及revision冲突；这些是软件行为记录，不能据手机截图推断某个具体Host错误码。本页未重跑负控，原始对象与执行结果由[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)绑定。当前[WelcomeNoticeStore](../tools/welcome-notice/WelcomeNoticeStore.js)通过官方共享mirror的`ensure/load`触发Host describe核实，单次界面读等待最多8秒；等待结束不取消已经提交的Host写入。保存响应未知或出现异常时先有界读回，不自动重发写入；仍未保存就保留错误，不伪造已读。自动失败后继续订阅同一mirror，后台稍后出现精确持久确认可结束说明；用户明确返回说明、临时进入或页面销毁才使旧等待分离，临时进入仅对本会话有效。
 
 只有明确拒绝后的官方恢复读显示revision确实变化、当前仍ready且可写，才有限重试同一个确认字段，最多两次写尝试；传输未知不走此分支。Host先持久化并广播、原mutate回答尚未返回时可消费已确认镜像，晚到拒绝不擦除既成确认。其它字段的推送不能重置saving或制造成功。相关挂载源码为[startup.js](../app/src/main/assets/web-integration/startup.js)，回归入口为[test-welcome-notice.mjs](../tools/test-welcome-notice.mjs)。这些机制不表示手机、真实账号或模型验收已完成。
+
+## 工作区目录服务不可用的分层诊断
+
+`directoryPicker/list`返回`gateway/service-unavailable`、`active Service directoryPickerController unavailable`时，先判断真实Remote服务是否活动，不把页面已挂载、目录UI可见或Web端口可连当作该服务已就绪。F13真实Host负控确认：`workspaceRegistry`被禁用时，原`WorkspaceController`等待其静态依赖，构造尾部的目录控制器未注册，即使目录浏览后端与UI仍可活动。健康raw/managed空profile本来能用；手机上registry未就绪的原因尚未知，不能仅凭截图归因于历史数据损坏、自动端口或所有核心服务缺失。
+
+[目录服务补丁](../app/src/main/assets/directory-picker-service-patch.json)把真实`DirectoryPickerController`与原工作区控制器独立组合，保留后端依赖、Gateway鉴权、参数/路径检查及原named类行为。已完成的目录专项Host正控覆盖禁用registry时真实list/create/readback并保留夹具原文件、路径/鉴权/缺后端拒绝、健康工作区保存及同profile两次正常退出重开；损坏记录与HMR没有算作目录通过。这只属于隔离主机软件证据，不是实际手机选择器验收。详细契约与不删除工作区规则见[插件操作](plugins.md)和[数据与插件机制](runtime-data-plugin-architecture.md)。
+
+目录服务错误不触发清空Ubuntu、删除会话、重建外置工作区或自动重放未知写入。保留当前数据与脱敏错误，按正常启动/维护及退出屏障排查。Android系统文件选择器、原生备份SAF授权与本Web服务各自独立，不能互相当作已修复证明。
 
 ## 原生恢复工作台
 

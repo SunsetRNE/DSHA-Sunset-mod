@@ -172,13 +172,26 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(30, groups.size());
-    assertEquals(35, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(32, groups.size());
+    assertEquals(37, groups.values().stream().mapToInt(java.util.List::size).sum());
     var oauth = groups.get("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js");
     assertNotNull(oauth);
     assertEquals(1, oauth.size());
     assertEquals("deepseek-native-oauth-patch.json", oauth.get(0).id());
     assertEquals(java.util.List.of("DSHA_NATIVE_OAUTH_NAVIGATION_V1"), oauth.get(0).markers());
+    var directory = groups.get("@deepseek-ai/dsh-api-workspace-controller/lib/index.js");
+    assertNotNull(directory);
+    assertEquals(1, directory.size());
+    assertEquals("directory-picker-service-patch.json", directory.get(0).id());
+    assertEquals(
+        java.util.List.of("DSHA_DIRECTORY_PICKER_INDEPENDENT_LIFETIME_V1"),
+        directory.get(0).markers());
+    var upload = groups.get("@deepseek-ai/dsh-client-file-upload/lib/index.js");
+    assertNotNull(upload);
+    assertEquals(1, upload.size());
+    assertEquals("file-upload-resolver-lifecycle-patch.json", upload.get(0).id());
+    assertEquals(
+        java.util.List.of("DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"), upload.get(0).markers());
   }
 
   @Test
@@ -365,6 +378,12 @@ public final class RuntimeToolsRegistryAndroidTest {
         Files.readString(
                 modules.resolve("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js"))
             .contains("DSHA_NATIVE_OAUTH_NAVIGATION_V1"));
+    assertTrue(
+        Files.readString(modules.resolve("@deepseek-ai/dsh-api-workspace-controller/lib/index.js"))
+            .contains("DSHA_DIRECTORY_PICKER_INDEPENDENT_LIFETIME_V1"));
+    assertTrue(
+        Files.readString(modules.resolve("@deepseek-ai/dsh-client-file-upload/lib/index.js"))
+            .contains("DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"));
     assertTrue(
         Files.readString(modules.resolve(pdf.getString("module"))).contains("DSHA_PDF_COMPAT_V1"));
     assertTrue(

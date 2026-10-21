@@ -81,6 +81,13 @@ public final class AgentTaskRegistration {
       return port;
     }
 
+    /** 已捕获的旧Snapshot也必须在同一能力锁内完成事件/claim，撤销后不能继续派发。 */
+    public <T> T whileActive(java.util.function.Supplier<T> action, T unavailable) {
+      synchronized (lease) {
+        return lease.active ? action.get() : unavailable;
+      }
+    }
+
     /** Invalid shared-token callers cannot reserve or replace the legitimate reporter. */
     public boolean register(
         AgentTaskState state,

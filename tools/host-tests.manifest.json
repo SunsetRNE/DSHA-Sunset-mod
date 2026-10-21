@@ -2334,6 +2334,34 @@
       ],
       "environment": {},
       "cli": "No positional arguments; verified raw runtime, native Host and real browser React. Negative-control overrides are not enabled by default."
+    },
+    {
+      "path": "tools/test-directory-picker-service-host.mjs",
+      "stage": "runtime",
+      "reason": "Actual locked Host, explicitly disabled Workspace registry, directory browse/create and same-profile cold reopen and named-class compatibility; no Android/model/user data or corruption acceptance.",
+      "args": [],
+      "timeoutSeconds": 1200,
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; complete verified raw runtime and isolated profiles."
+    },
+    {
+      "path": "tools/test-file-upload-resolver-lifecycle.mjs",
+      "stage": "runtime",
+      "reason": "Actual Cordis and CLI FileUploads resolver lifecycle: original duplicate rejection, two workspace disable/enable cycles, upload byte and receipt readback, cold session restore and authority boundaries; no device/model/user data.",
+      "args": [],
+      "timeoutSeconds": 1200,
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; complete verified raw runtime and isolated profiles."
     }
   ],
   "historicalExcluded": [

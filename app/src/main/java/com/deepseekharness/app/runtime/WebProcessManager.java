@@ -627,6 +627,26 @@ public class WebProcessManager {
             saved, recoveryBoot(), android.os.Process.myUid(), web, launcher);
   }
 
+  public enum SessionObservation {
+    LIVE,
+    UNKNOWN,
+    EXITED
+  }
+
+  /** 拒读或标记不匹配只表示未知；只有原boot结束、原PID退出或出生变化才能确认原guest退出。 */
+  public SessionObservation observeSession(
+      com.deepseekharness.app.util.WebSessionProof.Saved saved) {
+    if (saved == null || records != null) return SessionObservation.UNKNOWN;
+    try {
+      if (!saved.boot().equals(recoveryBoot())) return SessionObservation.EXITED;
+      var web = recoveryProcess(saved.webPid());
+      if (!web.alive() || web.started() != saved.webStarted()) return SessionObservation.EXITED;
+      return verifySession(saved) ? SessionObservation.LIVE : SessionObservation.UNKNOWN;
+    } catch (IOException | RuntimeException unavailable) {
+      return SessionObservation.UNKNOWN;
+    }
+  }
+
   /** 未知继续阻挡；PID已复用只证明记录中的原启动器已退出。 */
   public boolean recoveredLauncherExited(com.deepseekharness.app.util.WebSessionProof.Saved saved)
       throws IOException {

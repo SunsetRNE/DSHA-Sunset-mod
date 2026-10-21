@@ -1,5 +1,15 @@
 # 更新记录
 
+## 0.2.1-rc.2 · build190 / F13（2026-10-21）
+
+- 真实目录控制器独立组合，保留后端/Gateway、Config/name与named类行为，不删除工作区、会话或附件。[操作与边界](docs/plugins.md)。
+- FileUploads以精确注册对象退休，避免比较Cordis包装后的回调；保留重复拒绝、旧disposer围栏、上传接收和Session回执。[运行机制](docs/runtime-data-plugin-architecture.md)。
+- 区分LIVE/UNKNOWN/EXITED；UNKNOWN保留同DOM/Gecko会话与原生状态面板，不授ready。仅同record/代次/实例/URL/端口通过kernel→HTTP→kernel后创建新registration，旧票不复活，不重发对话或后台启动。[启动与恢复](docs/startup-and-diagnostics.md)。
+
+- Standard选定150类/952项JUnit（3跳过），Low选定150类/952项（76跳过），两版零失败/错误；Release Lint零错误、Standard/Low警告249/162，八项实际APK检查通过。原始失败/纠正/预期负控分别保留，不称一次连续全绿；无设备/ADB、真实账号/模型和新长时验收。[F13记录](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md) · [English](docs/en/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。
+
+下方旧条目的“当前/本轮”按其原时点阅读；已发布F12原记录和URL不改，F11未上传。
+
 ## 0.2.1-rc.2 · build190 / F12（2026-10-21）
 
 - 修复插件全依赖同步扫描导致列表与DSH通道阻塞；改为真实bundle筛选、完整异步来源证明、短启停读回及独立刷新，保留事务与未知退出屏障。

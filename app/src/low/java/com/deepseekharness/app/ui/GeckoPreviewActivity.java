@@ -96,6 +96,7 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
   private BrowserMicrophone microphone;
   private GeckoMicrophoneDelegate microphoneDelegate;
   private boolean browserResumed;
+  private boolean runtimeSuspended;
   private final Runnable readyWebListener =
       () ->
           runOnUiThread(
@@ -269,6 +270,10 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
     findViewById(R.id.web_retry)
         .setOnClickListener(
             v -> {
+              if (runtimeSuspended) {
+                controller.requestWebSessionRecheck(() -> syncSession(false));
+                return;
+              }
               savedHistory = null;
               refreshSession();
             });
@@ -282,6 +287,14 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
               }
             });
     registerPicker(retained.chooser.pending());
+    if (controller.getReadyWebPageIdentity() == null
+        && (controller.needsWebSessionRestore()
+            || controller.isRestoringWebSession()
+            || controller.hasUnresolvedWebSession())) {
+      suspendRuntimePage(false);
+      controller.restoreRunningWebSession(() -> syncSession(false));
+      return;
+    }
     if (!BrowserConversationRoute.current(getIntent(), controller.getReadyWebPageIdentity())) {
       rejectConversationRoute();
       return;
@@ -310,6 +323,23 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
     PreviewPageSession.Identity previous = retained.page.identity();
     if (previous == null) previous = obsoleteHostIdentity;
     if (previous == null && session == null && retained.session == null) previous = savedIdentity;
+    if (current == null && controller.isWebSessionRetained(previous)) {
+      suspendRuntimePage(controller.isWebSessionExited(previous));
+      return;
+    }
+    if (runtimeSuspended
+        && current != null
+        && (retained.page.identity() == null || retained.page.isCurrent(current))) {
+      runtimeSuspended = false;
+      errorPanel.setVisibility(View.GONE);
+      findViewById(R.id.web_error_browser).setEnabled(true);
+      if (session != null) session.setActive(true);
+    }
+    if (current == null
+        && runtimeSuspended
+        && (controller.needsWebSessionRestore()
+            || controller.isRestoringWebSession()
+            || controller.hasUnresolvedWebSession())) return;
     if (previous != null && !previous.equals(current)) {
       obsoleteHostIdentity = previous;
       emptyHostRetirementPending = true;
@@ -383,6 +413,10 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
       return;
     }
     if (conversationHidden()) return;
+    if (!BrowserConversationRoute.current(getIntent(), current)) {
+      rejectConversationRoute();
+      return;
+    }
     if (!retry && retained.session != null && retained.page.isCurrent(current)) {
       authUrl = current.authUrl();
       baseUrl = WebPreviewPolicy.loopbackBaseUrl(authUrl);
@@ -440,6 +474,39 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
     } catch (IllegalArgumentException invalid) {
       return null;
     }
+  }
+
+  /** 保留Gecko会话但不恢复权限；页面/文件/麦克风门禁仍核对严格ready身份。 */
+  private void suspendRuntimePage(boolean exited) {
+    if (!runtimeSuspended) {
+      runtimeSuspended = true;
+      cancelConversationRequests();
+      cancelFilePrompt();
+      if (microphoneDelegate != null) microphoneDelegate.cancelPending();
+      retained.needsStreamResume = true;
+      backPending = false;
+      backSequence++;
+      downloads.model.cancel();
+    }
+    if (session != null) session.setActive(false);
+    progress.setVisibility(View.GONE);
+    findViewById(R.id.web_error_browser).setEnabled(false);
+    ((TextView) findViewById(R.id.web_error_title))
+        .setText(
+            com.deepseekharness.app.util.UiText.choose(
+                exited ? "Web 服务已退出" : "正在验证 Web 状态",
+                exited ? "Web service exited" : "Verifying Web session"));
+    ((TextView) findViewById(R.id.web_error_detail))
+        .setText(
+            com.deepseekharness.app.util.UiText.choose(
+                exited
+                    ? "本次服务进程已确认退出，对话记录已保留。请返回启动页查看日志并手动启动。"
+                    : "暂时无法确认后台服务身份，当前页面已保留。验证通过后恢复，不会重新发送对话。可点重试验证，或返回启动页查看状态。",
+                exited
+                    ? "The service process has exited. Conversation records are retained. Return to the start page to inspect logs and start it manually."
+                    : "The background service identity is not yet confirmed. This page is retained and will resume after verification. Messages will not be resent. Retry verification or check the start page."));
+    errorPanel.setVisibility(View.VISIBLE);
+    refreshPictureInPicture();
   }
 
   private boolean pageCurrent(GeckoSession source, PreviewPageSession.Identity identity) {
@@ -1196,6 +1263,15 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     setIntent(intent);
+    var displayIdentity = retained == null ? null : retained.page.identity();
+    if (controller.getReadyWebPageIdentity() == null
+        && controller.isWebSessionRetained(displayIdentity)
+        && BrowserConversationRoute.current(intent, displayIdentity)) {
+      cancelConversationRequests();
+      receivePresentationIntent();
+      syncSession(false);
+      return;
+    }
     if (!BrowserConversationRoute.current(intent, controller.getReadyWebPageIdentity())) {
       rejectConversationRoute();
       return;

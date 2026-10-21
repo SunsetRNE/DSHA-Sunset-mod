@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "archiveSha256": "01133012b211348c97ac890f034c7829a74a9349280f9d39e7cf5ddcf4d48952",
+  "archiveSha256": "2d0411b4ae4a560e85ef8becdac18cbab9bf709863b4ae170ce42500936fe673",
   "packages": {
     ".bin": "e538d5a987f49edfa9611b33e32cb9b64d290741fcff95837e09b3842dc9ef7c",
     "@agentclientprotocol/sdk": "2ad364c17a32f29dd05f7d28a052359a893f009ff5ad283e0acb5dd621deb765",
@@ -53,7 +53,7 @@
     "@deepseek-ai/dsh-api-session-controller": "ff6d72585d35ab8f23f2b653047e071b875017cea1b38a5f5dcec20f62442b0b",
     "@deepseek-ai/dsh-api-settings-controller": "8c0a453789c0380d442040803c8130e2f2bb279bc1da40a6a96164fe96c5bfcc",
     "@deepseek-ai/dsh-api-terminal-controller": "085dd8b701fdb1962373efe8bea24c88f8ac59fc653cd13128234128ac3e35ab",
-    "@deepseek-ai/dsh-api-workspace-controller": "b5402dd76af68b85cb37d9aeca2d1cad42292ced44e424005e4d2c6c527259ae",
+    "@deepseek-ai/dsh-api-workspace-controller": "a24feb75472edd571b1d9ed9213cf363ee34d7e664d46c49ed662365adfb4f96",
     "@deepseek-ai/dsh-api-workspace-files": "7236f0ee64d1bdad999766c2a5c72c0792bb620b76618eed8f1470e0cdc3a9cc",
     "@deepseek-ai/dsh-app-boot": "36ded30568b4d3fb52f561ba47b649fdaa7f220cf0ce97a3d34c218aa2644761",
     "@deepseek-ai/dsh-atomic-write": "6b9d7b46ff1675e048c0d95a10b1730f845d884b58a5b4e9ffdba56df0a67fbe",
@@ -67,7 +67,7 @@
     "@deepseek-ai/dsh-browser-use": "e3de97d17da967c035290a11c35fbccd18cb9c2349d1eaeba077f442e86f65fd",
     "@deepseek-ai/dsh-chunked-list": "667fad435bae8d9d16d961da661ff9c85271237afe937ee248df50f7659a97db",
     "@deepseek-ai/dsh-client-connection": "b16fcf549e91ec8896611e1bfdf1576d30435fdfa64460c7f90ad092e3542841",
-    "@deepseek-ai/dsh-client-file-upload": "97550e512857dbf306b914e52c38ea71fc62383a68b3eeca3bcf4fb3e06de398",
+    "@deepseek-ai/dsh-client-file-upload": "bc4fff986f8f8cef11835357b3c29de2068621612780142ef02dd0f5ee993373",
     "@deepseek-ai/dsh-client-hmr": "d1344c4b1b718c16a4cb50805a3e5d5cc51b0cf5661f779ecbc24c69e9e179b6",
     "@deepseek-ai/dsh-client-locale": "9697c3d213dc40f0c272ab1112340035d753c98fac9530d72fe098c110f40e47",
     "@deepseek-ai/dsh-client-modules": "eaad0512dfea6f0cfaea8d1dba73db94d75fddb1c31d216c3009e1f90cf5ba9e",

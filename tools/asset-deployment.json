@@ -105,7 +105,9 @@
     "web-integration/session-interaction.js",
     "recovery-native-consent.cjs",
     "lan-settings-upstream-contract.json",
-    "deepseek-native-oauth-patch.json"
+    "deepseek-native-oauth-patch.json",
+    "directory-picker-service-patch.json",
+    "file-upload-resolver-lifecycle-patch.json"
   ],
   "packagedTrees": [
     "app-integration",
