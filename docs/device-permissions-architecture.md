@@ -1,7 +1,7 @@
 # 设备权限与执行通道架构
 
-本文面向维护者，以F10为参考并按2026-10-21 build190/F11工作树维护，说明设备权限的分层、入口、存储、撤销和故障定位；最终软件与APK结果见[F11记录](releases/v0.2.1-rc.2-build190-fix11-20261021.md)。
-它不是Root教程，也不是对任何ROM能力的保证。本次编写只读核查源码和测试，并核对官方资料；没有构建、运行测试或操作设备。
+本文面向维护者，说明设备权限的分层、入口、存储、撤销和故障定位。初版以F10/F11为参考，历史软件与APK范围见[F11记录](releases/v0.2.1-rc.2-build190-fix11-20261021.md)；Root部分于2026-10-22按维护源码 `140c7ba277fc2a91a9b8fd8cb5a24bc35a5c41c5` 补核。
+它不是Root教程或ROM兼容保证。该次Root核查包含源码、固定上游文件和隔离宿主策略检查，未操作真实su管理器或读取手机短信；后续性能验收须使用绑定实际APK的新记录，不能沿用本页当作真机通过。
 
 全项目入口见[项目架构手册](project-architecture-handbook.md)，运行环境和数据事务见[运行时、数据与插件架构](runtime-data-plugin-architecture.md)。
 独立显示详见[虚拟屏架构](virtual-screen-architecture.md)及[ADR 0003](adr/0003-virtual-screen-lifecycle-and-input.md)。
@@ -64,7 +64,9 @@ Shizuku官方同时说明UID、Linux capabilities和SELinux都会影响可用操
 
 [RootShell.enabled/present/status](../app/src/main/java/com/deepseekharness/app/RootShell.java)分别表示本机开关、可验证su候选和最近执行状态。
 `present()`只检查[RootShellCandidates](../app/src/main/java/com/deepseekharness/app/util/RootShellCandidates.java)中的已知位置。
-候选须为root所有的普通可执行文件，且不能被group/other写入；发现阶段不执行su，不信任应用可控PATH。
+候选按 `Os.stat` 返回值核对root所有、普通文件类型、无group/other写权限，并检查可执行性；发现阶段不执行su，不信任应用可控PATH。
+`Os.stat`会跟随链接，返回值也可能来自内核su兼容钩子；这些是metadata检查，不是su二进制来源、管理器身份或完整父目录NOFOLLOW证明。
+九个固定候选是DSHA自己的发现策略，不是Magisk、KernelSU或APatch承诺的完整安装路径表；没有覆盖任意自定义su路径。
 所以“找到su”不是“管理器已授权”，“开关开启”也不是“命令一定能执行”。
 
 ### 3.2 执行入口
@@ -78,11 +80,20 @@ Shizuku官方同时说明UID、Linux capabilities和SELinux都会影响可用操
 
 ### 3.3 有界执行与失败
 
-外层Root收集当前上限65秒/400000字节；ShellService内部命令另有自己的期限和输出上限。
+`runPrivileged()`先同步 `ProcessBuilder.start()` 并向stdin写JSON，之后才进入 `BoundedProcessRunner.collect()`。65秒/400000字节是该结果收集器的当前限制，不覆盖前序进程创建和同步stdin写入，不能据此承诺整个Root请求最多65秒。ShellService内部命令另有自己的期限和输出上限。
 没有完整结果、超时、中断或通道异常时，RootShell保留`EXECUTION_UNKNOWN`，不会换Shizuku/ADB重发。
 销毁本次本地helper不证明远端动作没有发生，也不证明其所有后代都已退出。
 Root状态是最近通道结果，不应被缓存为永久能力许可。
 关闭Root开关会阻止后续选择，并撤销相应虚拟屏请求；不能据此承诺已派发动作回滚。
+
+### 3.4 上游su语义与兼容性证据
+
+DSHA是现有su的客户端，没有在APK内实现Magisk、KernelSU或APatch的提权内核。固定核查的提交与文件见[来源依据](references-and-provenance.md)第5.1节；这些上游负责调用者授权及实际执行身份，DSHA的命令、短信、媒体目录和虚拟屏守卫由本仓库负责。
+
+KernelSU的su兼容实现可按已允许UID重定向stat/access/exec；APatch依赖的KernelPatch也支持按授权与配置路径提供su兼容入口。因此，探测不到文件不一定等于设备未root，授权或兼容钩子配置会影响可见性；不能要求为通过探测而禁用守卫或信任任意PATH。
+管理器允许后仍须核对实际UID；KernelSU/APatch的profile可改变目标UID，capabilities、SELinux及mount namespace还会影响命令能力和APK路径可见性。当前RootShellMain要求UID 0，DSHA不会把非0身份解释为Root成功，也不主动覆盖管理器的这些设置。
+
+本页未提供三管理器、各版本、隐藏/兼容模式、自定义su路径或ROM的真机兼容矩阵。RootShellCandidatesTest注入的是候选判定，不执行真实su；已有干运行计划与隔离ADB回归也不能补足该矩阵。
 
 ## 4. Shizuku：Binder存在、应用授权、执行服务连接分别显示
 
@@ -197,7 +208,10 @@ flowchart TD
 `DeviceGrants.smsReadAllowed()`默认关闭；全局确认不代替该开关。
 原生计划只允许当前Android用户的受限`content://sms`查询，不授权发送、修改或删除。
 Shizuku UserService不持有应用授权记录，因此通用敏感读取拒绝；当前短信路径使用原生授权后的Root或ADB。
-Root读文件路径还重新检查短信provider路径及canonical路径，不能换成数据库文件读取绕开该域。
+Root读文件路径在[DeviceShellExecutor.validateRootReadPaths](../app/src/main/java/com/deepseekharness/app/DeviceShellExecutor.java)重新检查命令行路径及canonical路径；ADB侧的[validate_root_reads](../app/src/main/assets/device-shell-policy.py)执行对应检查，已识别的短信provider路径和递归祖先会被拒绝。
+
+**已知实现缺口（2026-10-22核查基准 `140c7ba`，尚未修复）**：递归READ派发后遇到的子链接目标没有逐项核验。上游Toybox的`grep -R`会跟随软链接，顶层路径通过检查不能证明其整个遍历范围安全。隔离检查确认生产Java策略接受该类READ，Python执行侧只核顶层路径后派发；未在手机上读取真实短信，也未证明某ROM可被实际利用。受管FILE适配器的NOFOLLOW实现不能替代这个READ缺口的修复。
+不能把“主调用链可对应源码”概括为“所有保护完整、问题均属文档层面”。修复需要限制相应读取选项或使用可验证的读取器，并增加执行侧反例回归；更新文档本身不算完成修复。
 即使计划获准，Android/provider仍可能拒绝；短信正文和验证码不能进入公开诊断材料。
 
 ## 7. 无障碍：系统绑定与DSHA屏幕许可是两道门

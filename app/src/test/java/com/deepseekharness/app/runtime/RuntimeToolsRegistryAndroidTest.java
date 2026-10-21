@@ -314,28 +314,99 @@ public final class RuntimeToolsRegistryAndroidTest {
   private static final String DSH = "usr/local/lib/node_modules/@deepseek-ai/dsh/";
   private static final String LAN = "@deepseek-ai/dsh-client-ui-settings/lib/client.js";
 
+  private static String sha256(Path file) throws Exception {
+    return java.util.HexFormat.of()
+        .formatHex(
+            java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
+  }
+
+  private static Map<String, String> strings(JSONObject object) throws Exception {
+    Map<String, String> values = new java.util.TreeMap<>();
+    var names = object.keys();
+    while (names.hasNext()) {
+      String name = names.next();
+      values.put(name, object.getString(name));
+    }
+    return values;
+  }
+
+  private record ManagedFixture(Path directory, JSONObject proof) {}
+
+  private ManagedFixture currentManagedRuntime() throws Exception {
+    JSONObject selected =
+        new JSONObject(Files.readString(root.resolve("app/build/test-runtimes/current.json")));
+    assertEquals(Constants.DSH_VERSION, selected.getString("dshVersion"));
+    assertTrue(
+        "Current runtime archive must match the fixture", selected.getBoolean("archiveCurrent"));
+    Path managed = Path.of(selected.getString("managed"));
+    assertTrue("Current managed fixture must exist", Files.isDirectory(managed));
+    JSONObject proof = new JSONObject(Files.readString(managed.resolve("dsha-test-runtime.json")));
+    assertEquals(2, proof.getInt("version"));
+    assertEquals("managed", proof.getString("kind"));
+    assertEquals(Constants.DSH_VERSION, proof.getString("dshVersion"));
+    assertTrue("Managed fixture cannot use a stale archive", proof.getBoolean("archiveCurrent"));
+    String lock = sha256(root.resolve("tools/dsh-runtime/package-lock.json"));
+    assertEquals(
+        "Fixture must use the current dependency lock", lock, proof.getString("lockSha256"));
+    assertEquals(lock, sha256(managed.resolve("package-lock.json")));
+    JSONObject archive = json("dsh-runtime.inputs.json");
+    assertEquals(archive.getString("archive_sha256"), proof.getString("archiveSha256"));
+    assertEquals(
+        "Fixture must use the complete current archive recipe",
+        strings(archive.getJSONObject("inputs")),
+        strings(proof.getJSONObject("archiveRecipeInputs")));
+    for (var input : strings(proof.getJSONObject("overlayInputs")).entrySet()) {
+      Path file = root.resolve(input.getKey()).normalize();
+      assertTrue("Fixture input must stay below source root", file.startsWith(root));
+      assertEquals("Stale managed recipe input: " + input.getKey(), input.getValue(), sha256(file));
+    }
+    return new ManagedFixture(managed, proof);
+  }
+
   private File actualManagedModuleClosure(Context context) throws Exception {
-    Path managed = root.resolve("app/build/runtime190-managed-host");
-    assertTrue("Verified same-lock managed fixture must exist", Files.isDirectory(managed));
-    var modules =
-        new java.util.LinkedHashSet<String>(
-            RuntimeTools.readPatchChains(
-                    context, RuntimeTools.readPatchRegistry(context), Constants.DSH_VERSION)
-                .keySet());
+    var chains =
+        RuntimeTools.readPatchChains(
+            context, RuntimeTools.readPatchRegistry(context), Constants.DSH_VERSION);
+    var modules = new java.util.LinkedHashSet<String>(chains.keySet());
     var pdf = json("pdf-compat-patch.json");
     modules.add(pdf.getString("module"));
     modules.add(pdf.getString("resourceModule"));
     modules.add("@deepseek-ai/dsh-client-modules/lib/index.js");
     modules.add("@deepseek-ai/dsh-web-frontend/dist/index.html");
     modules.add(LAN);
+    ManagedFixture fixtureProof = currentManagedRuntime();
+    Path managed = fixtureProof.directory();
+    JSONObject moduleHashes = fixtureProof.proof().getJSONObject("moduleHashes");
     Path guest = context.getFilesDir().toPath().resolve("linux/ubuntu");
     Path dsh = guest.resolve(DSH);
     Files.createDirectories(dsh);
-    Files.copy(managed.resolve("package.json"), dsh.resolve("package.json"));
+    Path packageFile = managed.resolve("node_modules/@deepseek-ai/dsh/package.json");
+    assertEquals(
+        moduleHashes.getString("node_modules/@deepseek-ai/dsh/package.json"), sha256(packageFile));
+    assertEquals(
+        "@deepseek-ai/dsh", new JSONObject(Files.readString(packageFile)).getString("name"));
+    Files.copy(packageFile, dsh.resolve("package.json"));
     for (String name : modules) {
+      Path fixture = managed.resolve("node_modules").resolve(name);
+      assertEquals(
+          "Changed managed module: " + name,
+          moduleHashes.getString("node_modules/" + name),
+          sha256(fixture));
+      if (chains.containsKey(name)) {
+        String prepared = Files.readString(fixture);
+        assertEquals(
+            "Managed fixture must already contain the complete current chain: " + name,
+            prepared,
+            com.deepseekharness.app.util.ManagedPatchChain.apply(
+                prepared,
+                chains.get(name),
+                () -> {
+                  throw new AssertionError("Stale managed fixture needs canonical repair: " + name);
+                }));
+      }
       Path target = dsh.resolve("node_modules").resolve(name);
       Files.createDirectories(target.getParent());
-      Files.copy(managed.resolve("node_modules").resolve(name), target);
+      Files.copy(fixture, target);
     }
     assertTrue(modules.size() >= 31);
     return guest.toFile();

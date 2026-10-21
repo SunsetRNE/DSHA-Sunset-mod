@@ -1,6 +1,8 @@
 # AGENTS.md
 
-> 当前发布身份：**`dsh.android.client`**；版本名、code190、E7E3及功能保持不变，覆盖下方历史包名规则。与旧 `com.dsh.client` 的数据独立，通过备份导出/恢复迁移。本轮授权同步 DSH-APP/DSHA 与既有私有维护仓库。[本次记录](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)。
+> **2026-10-22 性能维护**：`0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2` / code190 / `dsh.android.client` / E7E3非调试Standard。当前身份与默认proot/可选proroot覆盖旧规则。同台隔离完整初始化65.128→42.772秒，生产温启动proot三轮12.8/12.5/12.3秒、proroot6.8/5.2/5.4秒（有限顺序/缓存样本，不外推普遍百分比）。精确APK292,159,963字节、SHA `d77bf985a5f9ec49be0667625894bcd16c5f3a23df2210a837527af8a172a947`；两版选定JUnit各1,143项零失败/错误，为分段结果，skip3/76、Lint警告249/162保留。已做真实同签名停止覆盖、冷流程、双引擎Web、三次后台返回及独立应急正常启动/停止；无真实模型对话或新长时/功耗对照。升级trial的proroot126后回退proot不算proroot成功；Root递归READ子链接缺口未修复且已披露。公开DSHA上传/PR/发布仍暂停，仅私有维护交付；Low172不变。[本轮报告](docs/releases/v0.2.1-rc.2-build190-performance-20261022.md) · [调用链与回滚](docs/performance-startup-20261022.md)。
+
+> 当前发布身份：**`dsh.android.client`**；code190、E7E3及功能保留，诊断版本以顶部本轮记录为准，覆盖下方历史包名规则。与旧 `com.dsh.client` 的数据独立，通过备份导出/恢复迁移。当前授权：公开 DSH-APP/DSHA 的上传、PR 与发布继续暂停；本轮修复和验收完成后仅上传既有私有维护仓库。[本次记录](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)。
 
 
 > F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190：修复目录服务依赖组合、附件resolver退休及后台临时身份失败后的恢复。Standard选定150类/952项JUnit（3跳过），Low选定150类/952项（76跳过），两版零失败/错误；Release Lint零错误、Standard/Low警告249/162，八项实际APK检查通过。原始失败、纠正及负控分开保留，不称一次连续全绿；无设备/ADB、真实账号/模型或新长时验收。[关联Release入口](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。实际远端可得性由Release与独立回执核验。
@@ -51,8 +53,11 @@ app/src/main/java/com/deepseekharness/app/
 | `PtySession` | Termux terminal-emulator JNI 包装（真 PTY 终端） |
 | `ShizukuShell` / `RootShell` / `ShellService` / `AdbKeepAliveReceiver` / `BootReceiver` | 通道实现与开机 / 保活接收器 |
 | `DshaDocumentsProvider` | 文件管理器访问私有目录（MT 管理器等） |
-| `DangerShellGuard` / `BridgeAskDialog` / `ConfirmReceiver` | 危险命令确认（通知 / 弹窗 / 悬浮条三渠道）；agent 征询用户 |
+| `DeviceShellPolicy` / `DeviceShellExecutor` | 受管设备命令解析与执行前守卫；批准不覆盖显式拒绝，Root 也受此策略检查 |
+| `BridgeAskDialog` / `ConfirmReceiver` | 原生业务提问与安全确认通知回执；业务选择不由全局确认代答 |
 | `DshaApp` / `UpdateDownloadService` | Application 入口（系统语言锁存等）；应用内更新下载 |
+
+Root 维护以 [权限架构](docs/device-permissions-architecture.md) 与 [固定上游源码核查范围](docs/references-and-provenance.md) 为准：九个 su 候选及 metadata 检查不等于管理器识别或全版本兼容；65 秒只限制结果收集。2026-10-22 对照 `140c7ba` 的审查发现递归 READ 尚未核验子链接目标，短信保护存在实现覆盖缺口，不能写成“仅有文档问题”或“完整防绕过”；未修状态、回归与设备证据须分别记录。历史 `DangerShellGuard` 已不在生产调用链。
 
 ### 分层归属（改代码前先看这里）
 

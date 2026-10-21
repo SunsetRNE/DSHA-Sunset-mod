@@ -141,11 +141,27 @@ class NotificationClickable(unittest.TestCase):
         # 标记必须在它之前登记，否则参数带不进去。
         main = read('app/src/main/java/com/deepseekharness/app/ui/MainActivity.java')
         register = re.search(r'consumeOpenWeb\(\s*getIntent\(\s*\)\s*\)\s*;', main)
-        select = re.search(r'nav\.setSelectedItemId\(\s*getIntent\(\s*\)\.getBooleanExtra\(\s*"open_plugins"', main)
+        select = re.search(
+            r'nav\.setSelectedItemId\(\s*'
+            r'(?:!controller\.hasUnresolvedWebSession\(\s*\)\s*&&\s*)?'
+            r'getIntent\(\s*\)\.getBooleanExtra\(\s*"open_plugins"', main)
         self.assertIsNotNone(register, 'open_web 标记必须在 onCreate 登记')
         self.assertIsNotNone(select, '初始导航仍须按 open_plugins 选择')
         self.assertLess(register.start(), select.start(),
                         "consumeOpenWeb 必须在 setSelectedItemId 之前调用，否则 open_web 参数丢失")
+
+    def test_open_web_ordering_guard_rejects_late_registration(self):
+        from unittest.mock import patch
+        main = read('app/src/main/java/com/deepseekharness/app/ui/MainActivity.java')
+        registration = '    consumeOpenWeb(getIntent());\n'
+        selection_end = ': R.id.nav_launch);'
+        self.assertEqual(main.count(registration), 1)
+        self.assertEqual(main.count(selection_end), 1)
+        late = main.replace(registration, '', 1).replace(
+            selection_end, selection_end + '\n' + registration.rstrip(), 1)
+        with patch(__name__ + '.read', return_value=late):
+            with self.assertRaisesRegex(AssertionError, 'consumeOpenWeb 必须在 setSelectedItemId 之前'):
+                self.test_open_web_registered_before_nav_selection()
 
     def test_system_language_is_pinned_early(self):
         # 真机（vivo/Android 16）实测：Locale.setDefault 会污染 Resources.getSystem()，

@@ -21,7 +21,7 @@
 
 > 🤖 下一个 AI / 开发者请先读 **[AGENTS.md](AGENTS.md)**（项目结构、启动契约、踩过的坑），不要先全库扫描。
 
-> **0.2.1-rc.2 · build190**：标准版正式发布，包名 `dsh.android.client`，可与旧版 `com.dsh.client` 并排安装，应用数据独立。[下载](https://github.com/DSH-APP/DSHA/releases/tag/v0.2.1-rc.2) · [文档](docs/documentation-index.md) · [发布范围](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)。
+> **0.2.1-rc.2 · build190 维护分支**：当前源码包名 `dsh.android.client`，可与旧版并排安装、数据独立。公开DSHA发布继续暂停；新包完成验证后仅交付[私有维护仓库](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases)。[文档](docs/documentation-index.md) · [本轮性能调查与待验范围](docs/performance-startup-20261022.md)。
 
 ## ❤️ 赞助商
 
@@ -47,25 +47,22 @@ DeepSeek Harness（`@deepseek-ai/dsh`）是 DeepSeek 官方的 agent harness，�
 它是为 glibc Linux 写的，直接在安卓上跑会撞上一堆事：原生模块编译不过、`link(2)` 被
 SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
-**DSHA 把这些全部封在一个 APK 里。** 安装并解压离线环境后进入Main，Web在后台启动；
+**DSHA 把这些全部封在一个 APK 里。** 首次完成离线环境初始化与必要核验后进入Main，Web在后台启动；
 打开Web UI后再设置模型和API Key。不需要Termux、ROOT或命令行。里面是完整的Ubuntu环境：`apt`能用、
 交互式 PTY 能用、需要编译的原生模块能装，跟你在服务器上用是同一套东西。
 
-由贡献者 [@SunsetRNE](https://github.com/SunsetRNE) 维护并发布，感谢原作者
+由贡献者 [@SunsetRNE](https://github.com/SunsetRNE) 维护，感谢原作者
 [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) 和其他贡献者。
 
 ---
 
-## 下载
+## 下载与交付状态
 
-**0.2.1-rc.2 / build190**，按 GitHub 正式版发布。APK 版本名仍为 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2`，E7E3 签名、内置 DSH 0.2.1-rc.2、Ubuntu base10 不变。由贡献者 [@SunsetRNE](https://github.com/SunsetRNE) 维护并发布，感谢原作者及其他贡献者。
+当前构建候选为 **0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2 / build190** 维护源码，内置DSH 0.2.1-rc.2、Ubuntu base10，默认proot、可选proroot。公开仓库的本次PR和发布草稿已撤回；本地精确标准APK已完成本轮限定范围的软件与真机检查，完整矩阵边界见[性能交付记录](docs/releases/v0.2.1-rc.2-build190-performance-20261022.md)；实际私有附件和回执才证明上传完成。
 
-| 下载 | 内容 |
-|---|---|
-| [Standard 标准版 APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/dsha-0.2.1-rc.2.apk) | Android 11+ / arm64，系统 WebView，非调试正式签名 |
-| [完整源码 ZIP](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/DSHA-0.2.1-rc.2-build190-source.zip) | 源码、文档、锁与固定离线构建输入，按项目路径展开 |
+新APK和完整源码仅从[私有维护仓库的Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases)取得，需有仓库权限；可得性、完整日期时间versionName、APK/源码摘要以实际附件和最终交付回执为准。标准版面向Android11+/arm64、系统WebView、E7E3非调试签名。本轮不新增Low交付，旧正式版本见[历史Releases](https://github.com/DSH-APP/DSHA/releases)。
 
-包名为 **`dsh.android.client`**，可与旧版 `com.dsh.client` 并排安装；应用数据和系统权限独立。需要迁移时通过备份导出、恢复；本次不发布新的 Low APK，旧版仍可从 [Releases](https://github.com/DSH-APP/DSHA/releases) 获取。
+当前源码包名为 **`dsh.android.client`**，可与旧 `com.dsh.client` 并排安装；数据和系统权限独立。迁移请先备份导出再恢复，不从另一包名自动继承授权或数据。
 
 ### 相比上一正式版的变化
 
@@ -78,15 +75,15 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 |---|---|
 | [v1.1.10 及更早版本](https://github.com/DSH-APP/DSHA/releases/tag/v1.1.10) | 已转为双 APK、受管 Ubuntu/DSH 更新与宿主备份恢复；完整直接升级矩阵尚未重新验证，原版说明保留在历史标签。 |
 
-相对最新 build190 维护包，本次 APK 只改包名及关联身份；[验证范围与限制](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)。本次发布未新增真机或长时验收。
+此前[包名改版记录](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)保留原范围；本轮已验证部分启动、初始化和空闲任务开销修订，[性能记录](docs/performance-startup-20261022.md)将宿主结果、手机观察和未验项分别列出。
 
 ### 开始使用
 
-1. 安装对应正式APK，首次启动解压并校验内置离线环境。
-2. 解压完成立即进入Main，Web在后台启动；Main显示启动进度和结果，不再先经过原生模型配置向导。
+1. 安装对应签名APK，首次启动解压并校验内置离线环境。
+2. 环境初始化及必要核验完成后进入Main，Web在后台启动；Main显示进度和结果，不再先经过原生模型配置向导。
 3. Web就绪后进入Web UI，在网页设置中配置提供商、模型与API Key。首次启动页及原生接口配置页不提供这些编辑入口。
 
-首次解压和Web就绪是两个阶段；耗时取决于设备与环境，本轮没有新的手机测速。启动失败时在Main查看状态或诊断，不以界面跳转代替就绪证明。
+文件提取/提交、环境试运行、正式Web鉴权、网页壳与核心功能可用分别计时；文件提交不代表完整初始化结束。当前样本与未完成对照见[性能调查](docs/performance-startup-20261022.md)。失败时在Main查看诊断，不以界面跳转代替就绪证明。
 
 旧原生API Key临时不可读时保留记录并提示警告，仍可进入Web配置；不会把不可读等同为空值或静默替换。
 
@@ -98,7 +95,7 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 |---|---|
 | 🚫 **零命令行门槛** | 内置离线 Ubuntu rootfs，APK 装完就能用。不装 Termux、不配 pkg、不敲命令 |
 | 🐧 **完整 glibc 环境** | 不是裁剪版：`apt` / PTY / 原生模块 / Python / git 都在。插件仍需符合Linux arm64/glibc依赖及本机能力边界 |
-| ⚡ **proroot 零 ptrace 开销** | 传统 proot 每个系统调用两次上下文切换；proroot 走 LD_PRELOAD + 二进制补丁做进程内路径翻译。历史vivo/Android14旧构建曾记录关键项合计**+58%**，不代表本轮或当前默认proot性能 |
+| ⚙️ **双运行时选择** | 默认proot、可选proroot；实际性能取决于设备、I/O、缓存和插件，不以历史异条件样本给引擎排名 |
 | 🔌 **手机就是 agent 的手** | 无障碍 + ADB 免 Shizuku 直连 + 独立虚拟屏：读屏、点按、装应用、跑自动化，全部内置 |
 | 💾 **导出后迁移数据** | “数据与备份”导出无需密码的 `.tar.gz`；数据位置可在存储指南查看，本机副本不保证卸载后存续 |
 | 🩺 **坏了能自己说清哪坏了** | 组件级自检 + 按需修补 + 启动诊断 + 独立应急 DSH；展示启动阶段以及核心或插件诊断，不把所有核心错误归为插件 |
@@ -242,7 +239,7 @@ agent 通过本机 `127.0.0.1:3090` 桥调用以下能力（token 门控，`/app
 | 做法 | proot/proroot + 完整 glibc rootfs | 用 Termux 的包在 Android bionic 上裸跑 |
 | 装机 | 装 APK 就完事 | 装 Termux → 敲命令 → 装工具链 |
 | 环境 | 完整 Ubuntu，`apt` 与原生模块随便用 | 需要为 bionic 逐个打补丁 / 重编 |
-| 开销 | proroot 已无 ptrace 开销 | 无容器层，理论最快 |
+| 开销 | 依引擎、文件I/O、缓存和设备实测 | 无同一容器层；仍需按相同工作负载实测 |
 | 沙箱 | 两边都受限 | 两边都受限 |
 
 ---
@@ -333,7 +330,7 @@ python3 tools/run-host-tests.py --stage fast
 
 Windows使用`gradlew.bat`。测试任务名中的Debug只表示测试变体，不要求生成或安装调试APK。正式包需既有E7E3签名凭据，并核对实际APK身份、资产、许可与摘要。Git检出不含大生成归档；完整打包使用Release源码ZIP内逐SHA核对的原始构建输入和现有recipe，无需另找独立bundle，也不能从APK逆还原全部输入。必要小型预编译依赖保留，但不承诺所有vendor native可从源码复现。私钥、用户数据、设备图或日志不进入交付。
 
-当前范围见[F12构建与证据记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md)，各阶段命令见[BUILD](BUILD.md)。本轮源码分发清单为2206个成员、198篇Markdown；完整源码ZIP的固定输入直接展开到项目路径，不嵌套输入包。最终源码、测试结果、APK与ZIP摘要由统一交付回执绑定。F9/F10的选择集和原始失败继续保留在各自历史记录，不作为F12测试数。
+本轮修改与验证边界见[性能调查](docs/performance-startup-20261022.md)，各阶段命令见[BUILD](BUILD.md)。完整源码ZIP的固定输入直接展开到项目路径，不嵌套输入包；最终文件清单、选定测试执行数、APK与ZIP摘要由统一交付回执绑定。F12及更早选择集、原始失败和文件数量保留在原报告，不当作本轮执行结果。
 
 ---
 

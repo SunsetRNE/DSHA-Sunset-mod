@@ -22,7 +22,7 @@
 > 🤖 If you are an AI agent or a new contributor, read **[AGENTS.en.md](AGENTS.en.md)** first
 > (structure, startup contracts, traps we already fell into). Don't scan the whole repo.
 
-> **0.2.1-rc.2 · build190** — Standard release, package `dsh.android.client`. Installs alongside older `com.dsh.client` releases with separate app data. [Download](https://github.com/DSH-APP/DSHA/releases/tag/v0.2.1-rc.2) · [Documentation](docs/en/index.md) · [Release scope](docs/en/releases/v0.2.1-rc.2-build190-package-rename-20261021.md).
+> **0.2.1-rc.2 · build190 maintenance branch** — source package `dsh.android.client`, with separate data alongside older versions. Public DSHA publication remains paused. Deliver the new package only to the [private maintenance repository](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases) after verification. [Documentation](docs/en/index.md) · [Performance investigation and pending scope](docs/en/performance-startup-20261022.md).
 
 ## ❤️ Sponsor
 
@@ -49,27 +49,24 @@ It is written for glibc Linux, and running it on Android directly hits a wall of
 native modules that won't compile, `link(2)` blocked by SELinux, sandboxes that won't start,
 and a front end laid out for desktop screens.
 
-**DSHA wraps all of that into a single APK.** After offline extraction, Main appears while Web
+**DSHA wraps all of that into a single APK.** After first-time environment initialization and required verification, Main appears while Web
 starts in the background. Open the Web UI to configure models and API keys. No Termux, root or
 command line is needed. Inside is a complete Ubuntu environment: `apt` works,
 interactive PTYs work, native modules that need compiling install fine — the same stack you'd
 use on a server.
 
-Maintained and released by contributor [@SunsetRNE](https://github.com/SunsetRNE), with thanks to
+Maintained by contributor [@SunsetRNE](https://github.com/SunsetRNE), with thanks to
 original author [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) and all other contributors.
 
 ---
 
-## Download
+## Downloads and delivery status
 
-**0.2.1-rc.2 / build190**, published as a regular GitHub release. The APK version remains `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2`; E7E3 signing, bundled DSH 0.2.1-rc.2 and Ubuntu base10 are unchanged. Maintained and published by contributor [@SunsetRNE](https://github.com/SunsetRNE), with thanks to the original author and contributors.
+This is maintenance source for build candidate **0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2 / build190**, with DSH 0.2.1-rc.2, Ubuntu base10, default proot and optional proroot. This contribution's public PR and draft release were withdrawn. The local exact Standard APK passed this round's scoped software/device checks; see the [performance delivery record](docs/en/releases/v0.2.1-rc.2-build190-performance-20261022.md) for matrix limits. Actual private attachments and the receipt establish upload completion.
 
-| Download | Contents |
-|---|---|
-| [Standard APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/dsha-0.2.1-rc.2.apk) | Android 11+ / arm64, system WebView, non-debuggable |
-| [Complete source ZIP](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/DSHA-0.2.1-rc.2-build190-source.zip) | Source, documentation, locks and fixed offline build inputs at their project paths |
+New APKs and complete source are distributed only through [private maintenance Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases), requiring repository access. Actual attachments and the final receipt establish availability, the fully dated/time-stamped versionName and APK/source hashes. Standard targets Android11+/arm64 with system WebView and E7E3 non-debuggable signing. No new Low delivery this round; old public versions remain in [historical Releases](https://github.com/DSH-APP/DSHA/releases).
 
-The package is **`dsh.android.client`**. It installs alongside older `com.dsh.client` versions; app data and Android permissions are separate. Export and restore a backup to migrate data. This release contains no new Low APK; older releases remain available in [Releases](https://github.com/DSH-APP/DSHA/releases).
+The source package is **`dsh.android.client`**, installable alongside `com.dsh.client` with separate data and Android permissions. Export and restore a backup for migration; another package's data or grants are not automatically inherited.
 
 ### What's new since the previous release
 
@@ -82,15 +79,15 @@ The package is **`dsh.android.client`**. It installs alongside older `com.dsh.cl
 |---|---|
 | [v1.1.10 and earlier](https://github.com/DSH-APP/DSHA/releases/tag/v1.1.10) | Two APK editions, managed Ubuntu/DSH updates and host-side backup/restore replace the old architecture. The complete direct-upgrade matrix has not been revalidated; original documentation remains in historical tags. |
 
-The current APK changes only package identity and its associated references relative to the latest build190 maintenance APK. [Verification and limits](docs/en/releases/v0.2.1-rc.2-build190-package-rename-20261021.md); no new device or endurance acceptance in this publication.
+The earlier [package-rename record](docs/en/releases/v0.2.1-rc.2-build190-package-rename-20261021.md) retains its original scope. Startup, initialization and idle-task changes now have scoped verification; the [performance record](docs/en/performance-startup-20261022.md) separates host results, device observations and pending checks.
 
 ### Getting started
 
-1. Install the release APK. First launch extracts and verifies the bundled offline environment.
-2. Main appears immediately after extraction while Web starts in the background. Main shows progress and the result; there is no native first-run model wizard.
+1. Install the signed APK. First launch extracts and verifies the bundled offline environment.
+2. Main appears after environment initialization and required verification while Web starts in the background. Main shows progress and the result; there is no native first-run model wizard.
 3. Once Web is ready, open its settings to configure providers, models and API keys. These editors are absent from first launch and native API configuration.
 
-Extraction and Web readiness are separate stages. Timing depends on the device and environment; this round has no new phone benchmark. If startup fails, read Main's status or diagnostics; navigation alone does not prove readiness.
+File extraction/commit, environment trial, ordinary backend authentication, Web shell and core usability have separate clocks. File commit does not complete initialization. See the [performance investigation](docs/en/performance-startup-20261022.md) for samples and pending comparisons. On failure, read Main diagnostics; navigation does not prove readiness.
 
 If a legacy native API key is temporarily unreadable, its record is retained with a warning. Web remains available for configuration; an unreadable record is not cleared or silently replaced.
 
@@ -102,7 +99,7 @@ If a legacy native API key is temporarily unreadable, its record is retained wit
 |---|---|
 | 🚫 **Zero command-line barrier** | Offline Ubuntu rootfs bundled in the APK. No Termux, no pkg, nothing to type |
 | 🐧 **Full glibc environment** | `apt` / PTY / native modules / Python / git are included. Plugins must still match Linux arm64/glibc dependencies and the device's actual capabilities |
-| ⚡ **proroot, zero ptrace overhead** | Classic proot pays two context switches per syscall; proroot does in-process path translation via LD_PRELOAD + binary patching. Measured **+58% in a historical vivo/Android14 build; not current-default proot or F10 phone evidence** on key benchmarks on a real device |
+| ⚙️ **Two runtime options** | Proot by default, proroot selectable; actual performance depends on device, I/O, caches and plugins. Unmatched historical samples do not rank engines |
 | 🔌 **The phone is the agent's hands** | Accessibility + ADB without Shizuku + an independent virtual display: read screens, tap, install apps, run automations — all built in |
 | 💾 **Export for migration** | Data & backups exports password-free `.tar.gz` archives. Storage guidance shows the actual location; local copies are not guaranteed to survive uninstall |
 | 🩺 **Failures that explain themselves** | Component checks, targeted repair, startup diagnostics and an independent recovery DSH distinguish core and plugin failures |
@@ -246,7 +243,7 @@ Running dsh on Android has two paths, each with real costs — describing them b
 | How | proot/proroot + full glibc rootfs | Termux packages running bare on Android's bionic |
 | Setup | Install one APK | Install Termux → type commands → build a toolchain |
 | Environment | Full Ubuntu — `apt` and native modules work | Needs per-package patches / rebuilds for bionic |
-| Overhead | proroot has no ptrace overhead | No container layer; theoretically fastest |
+| Overhead | Measure engine, file I/O, caches and device | No equivalent container layer; still compare the same actual workload |
 | Sandboxing | Limited either way | Limited either way |
 
 ---
@@ -341,7 +338,7 @@ python3 tools/run-host-tests.py --stage fast
 
 On Windows, use `gradlew.bat`. Debug in a unit-test task name identifies a test variant; it does not require generating or installing a debug APK. Release packaging requires the existing E7E3 signing credentials and checks of actual APK identity, assets, licenses and hashes. Git excludes large generated archives; full packaging uses the hash-verified original inputs in the Release source ZIP and the existing recipes, without a separate bundle. The APK cannot reconstruct all original inputs. Required small prebuilt dependencies remain, but not all vendor native code is reproducible from source. Deliveries exclude private keys, user data, device images and logs.
 
-See the [English release introduction](docs/en/release-introduction.md), [build/release guide](docs/en/build-and-release.md) and [BUILD](BUILD.en.md) for phase-specific commands and final identity. Fixed inputs expand directly at project paths without a nested packet. The final receipt must bind source, selected tests, APK and ZIP hashes; earlier F9/F10/F11 selections, failures and candidate counts remain historical.
+See the [performance investigation](docs/en/performance-startup-20261022.md), [build/release guide](docs/en/build-and-release.md) and [BUILD](BUILD.en.md) for this round and phase-specific commands. Fixed inputs expand directly at project paths, without a nested packet. The final receipt binds inventory, executed selected tests and APK/ZIP hashes. F12 and earlier selections, failures and file counts retain their original scope and are not current results.
 
 ---
 

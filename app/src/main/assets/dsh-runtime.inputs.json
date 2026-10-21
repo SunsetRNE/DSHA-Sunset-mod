@@ -3,8 +3,8 @@
   "inputs": {
     "tools/build-dsh-runtime.py": "325e201c2c849eb0a58f86f508fbe1d6322c628db3cab37ce97ce202f48baab9",
     "tools/source_text.py": "fbe5428810615989be55f00b944c2cd98a03c087992630ecb9fff03e91edc23c",
-    "tools/dsh-runtime/package.json": "9389a3d2142a0805efb3d6069dba885bab7e5dabe5e4208b5c8b3446714e95cf",
-    "tools/dsh-runtime/package-lock.json": "4ee5a1f7055a6dcf0f4cb64fb59cca05c7732578c7db3f1f1f4e40dfed53de17",
+    "tools/dsh-runtime/package.json": "3ff20a6595cb3cda080315b766abeb1878ea6cedf5aa7059cd8483a6ef78981f",
+    "tools/dsh-runtime/package-lock.json": "c67d0d3b6423db35faae8d91d6054e7d0fa7cb9e197bede42438326f123ca8a7",
     "app/src/main/assets/destructive-policy/package.json": "217d0f036224d8faa766d166a1a38df1c03f7da2a8a7ad8a0454ae595372395c",
     "app/src/main/assets/destructive-policy/index.js": "108aa4a400c67fe0650ba2368831a1ddc0c3726377ff9f664c87e34698b6a4e5",
     "app/src/main/assets/destructive-policy/destructive.js": "a57dc469a7e7da32bd0b55ddd18cd68bb65f709b5389f2475093eafb098c8726",
@@ -50,7 +50,7 @@
     "app/src/main/assets/retire-guarded-preset-patch.json": "ea9680a00fcefc393673d18c60b80c714847e1e4c40e4162ac8fb618d8da45e6",
     "app/src/main/assets/retired-market-catalog-patch.json": "5716988a4e4c0a0ef2ae9d4f92525fdc9a5e9b54850dcc2cf6f21f4cca15c9de",
     "app/src/main/assets/retired-market-optional-patch.json": "d3c9da4f1dc2dc05c9bbcb3ba82f03ee4734527f07a38abf1ff6b48e492da97b",
-    "app/src/main/assets/runtime-patches.json": "eda4e87685903cc75034b492bd916fce84f2f291edac1386c384a8f766c9bc9a",
+    "app/src/main/assets/runtime-patches.json": "340b7b344585a50a371ed5a4883ff021b35d64f6c2e540bd91707b3207e08014",
     "app/src/main/assets/session-interaction-patch.json": "37f53270df43f737ec7c1d38d55cbf7e30e0cd8f21418ca8831b1582da590b37",
     "app/src/main/assets/sidebar-layout-recovery-patch.json": "ffdb95673eeeac37d4d7297b504d2624220397c18dfbae2d5a789b6c5ae57dad",
     "app/src/main/assets/startup-mcp-timing-patch.json": "f0223fd4cca4445e0fd342e6b0626bb8c840cb6b27dd333b26431fd80949c9fd",
@@ -69,5 +69,5 @@
     "tools/runtime_stable_patches.py": "cf215453637824ce0ba014c12805d1acfbf9aaf936371dc02d41b03bc0c0c0ca",
     "tools/runtime_input_contract.py": "5c0ae822c8b8049a5421cc6bfdad5cf834aa306941e573f357c725a8bc47a10c"
   },
-  "archive_sha256": "2d0411b4ae4a560e85ef8becdac18cbab9bf709863b4ae170ce42500936fe673"
+  "archive_sha256": "85b108dd8017dcfdc8bbfb7c87773ea78b00ada320fb64ae4105de959e6250b5"
 }
