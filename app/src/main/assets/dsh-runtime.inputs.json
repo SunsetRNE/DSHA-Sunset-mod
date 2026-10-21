@@ -29,6 +29,7 @@
     "app/src/main/assets/auto-review-native-disabled-patch.json": "39c637bbd3039891813648402cf8a24e8450c5992fa5b9cfc0843d90259aabb9",
     "app/src/main/assets/composer-enter-patch.json": "bc6fea7bf5a2c4619baf084fd9c271587a6a508fac3240823d81af956449e3b7",
     "app/src/main/assets/conversation-stream-cancel-patch.json": "48ad7f9fab9236bcd37524e79218d3328b097a2daf2fe527c18895aae3626cae",
+    "app/src/main/assets/deepseek-native-oauth-patch.json": "4947744628760ce75481c2c92edb83f160415f6c27b35e293f19a9af813c73f2",
     "app/src/main/assets/deepseek-stream-cancel-patch.json": "04edaf08929b88654489ab82e91c8ca972c12face1696d262ab62c85712f0bcc",
     "app/src/main/assets/dsha-layout-recovery.js": "9cda73a589ff19872e07af8e47c4707cf9a1e35391e1551620189441eb70bf13",
     "app/src/main/assets/frontend-static-cache-patch.json": "5cb15587e5968b2c547138a1b69d4049fc1b8c11e6790b2f4429022adf17650b",
@@ -41,13 +42,13 @@
     "app/src/main/assets/permission-full-access-patch.json": "e33d2d69d66ab1bda3921a38301b8c0c0c8b5448f5f63b5f8e87a84482733d7d",
     "app/src/main/assets/persona-compat-patch.json": "0c352dd972d30635a3d84dfba5409da621fc526aeddf4a82cca5e03d4cd97f37",
     "app/src/main/assets/plugin-manager-auto-enable-patch.json": "6135f19e1c04b472b348f532f0b169e13306ccf2bc4d2608b087cfdb8d9df32c",
-    "app/src/main/assets/plugin-manager-policy-patch.json": "307ce14500f580c18f741c39e1d896dbb743d21b228a943ad607479cae8cc3f4",
+    "app/src/main/assets/plugin-manager-policy-patch.json": "28ccfee8faa65168b5b594b35bf970314dcf8b38e04d46e33df7fd045a451031",
     "app/src/main/assets/queue-agent-patch.json": "4579ab509341efd39eca608ed21e67ce633eb8014a338797fafbbbd08482e8b0",
     "app/src/main/assets/queue-dock-patch.json": "48122c5321e665a684114e827b536b4508b67ac1a217f4e5b626c407d331e6b5",
     "app/src/main/assets/retire-guarded-preset-patch.json": "ea9680a00fcefc393673d18c60b80c714847e1e4c40e4162ac8fb618d8da45e6",
     "app/src/main/assets/retired-market-catalog-patch.json": "5716988a4e4c0a0ef2ae9d4f92525fdc9a5e9b54850dcc2cf6f21f4cca15c9de",
     "app/src/main/assets/retired-market-optional-patch.json": "d3c9da4f1dc2dc05c9bbcb3ba82f03ee4734527f07a38abf1ff6b48e492da97b",
-    "app/src/main/assets/runtime-patches.json": "7a29cb34d478d6af87982497ab3e1c6814443ab59c4adb70d288f2b513fb1560",
+    "app/src/main/assets/runtime-patches.json": "b1dbd64ccb144baa4a0ae447ebffe41deb9e8329dfdefcd559120f6b83c9f087",
     "app/src/main/assets/session-interaction-patch.json": "37f53270df43f737ec7c1d38d55cbf7e30e0cd8f21418ca8831b1582da590b37",
     "app/src/main/assets/sidebar-layout-recovery-patch.json": "ffdb95673eeeac37d4d7297b504d2624220397c18dfbae2d5a789b6c5ae57dad",
     "app/src/main/assets/startup-mcp-timing-patch.json": "f0223fd4cca4445e0fd342e6b0626bb8c840cb6b27dd333b26431fd80949c9fd",
@@ -62,9 +63,9 @@
     "app/src/main/assets/web-integration/language.js": "f3b611ef87fb97bcc96dba265f1ff8ed9992c2f46ab40768c7a35a68edaf841a",
     "app/src/main/assets/web-integration/permission-full-access.js": "af9961be02886c71d477a11d927a5c1e0ff4cb9839d146e75ac7fd0ad90b3d65",
     "app/src/main/assets/web-integration/session-interaction.js": "df67935e0ab81e23b494119cb7b4c97e2263cd6d01a6cf9069ca6004e6e3a790",
-    "app/src/main/assets/welcome-notice-patch.json": "de03bfcd64a00718c5576c25505b14e05af5a38b56ecee2d800dfe6e3c66bde0",
+    "app/src/main/assets/welcome-notice-patch.json": "d0f8065428a94e5ff201ea5f7da1d1313dad9e87763989a2ed4155c617342047",
     "tools/runtime_stable_patches.py": "cf215453637824ce0ba014c12805d1acfbf9aaf936371dc02d41b03bc0c0c0ca",
     "tools/runtime_input_contract.py": "5c0ae822c8b8049a5421cc6bfdad5cf834aa306941e573f357c725a8bc47a10c"
   },
-  "archive_sha256": "c6a01ac7dcdaf6456f682c25d3b0c9a5fe2454780652e3e97a82b9a1584dac5d"
+  "archive_sha256": "01133012b211348c97ac890f034c7829a74a9349280f9d39e7cf5ddcf4d48952"
 }

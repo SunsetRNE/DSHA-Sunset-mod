@@ -60,7 +60,7 @@ async function install() {
     const api = auditExports['@deepseek-ai/dsh-client-ui-settings-models'].audit;
     window.auditUnhandled = [];
     window.addEventListener('unhandledrejection', event => auditUnhandled.push(String(event.reason)));
-    window.setupWelcome = async ({keep = false, memory = false, language = 'en', initialInert = false} = {}) => {
+    window.setupWelcome = async ({keep = false, unavailable = false, unavailableOnce = false, delayedDescribe = false, writable = true, language = 'en', initialInert = false} = {}) => {
       window.testRoot?.unmount();
       window.controller?.dispose();
       if (window.form) await window.form.dispose();
@@ -69,23 +69,28 @@ async function install() {
       window.wire = [];
       window.completed = 0;
       window.describeReads = 0;
+      window.hostRevision = 0;
+      window.holdDescribe = false;
       const ns = 'ui-settings-general';
       const persisted = () => JSON.parse(localStorage.getItem('welcome-fixture-durable') || '{}');
-      const namespace = () => ({ns, value: persisted(), user: persisted(), base: {}, revision: 'fixture-' + wire.length});
+      const namespace = () => ({ns, value: persisted(), user: persisted(), base: {}, revision: 'fixture-' + hostRevision});
       const ctx = {remote: {settings: {
         describe: async () => {
           ++window.describeReads;
-          return {ok: true, value: {writable: true, namespaces: [namespace()]}};
+          if (delayedDescribe && describeReads === 1) await new Promise(resolve => { window.releaseDescribe = resolve; });
+          if (window.holdDescribe) await new Promise(resolve => { window.releaseCurrentDescribe = resolve; });
+          return {ok: true, value: {writable, namespaces: unavailable || unavailableOnce && describeReads === 1 ? [] : [namespace()]}};
         },
         mutate: (namespaceId, ops, revision) => new Promise((resolve, reject) => {
           wire.push({namespaceId, ops, revision, resolve, reject});
         })
       }}};
-      window.mirror = new SettingsDescribeMirror(ctx, memory ? 'memory' : 'host');
-      await mirror.load();
+      window.mirror = new SettingsDescribeMirror(ctx);
+      const initialRead = mirror.load();
+      if (!delayedDescribe) await initialRead;
       // 使用合法的已解码说明命名空间，写队列及失败恢复均运行生产实现。
-      window.form = new ConfigFormController(ctx, {namespace: ns, decode: value => value}, mirror, memory ? 'memory' : 'host', {});
-      window.controller = new api.WelcomeNoticeStore(form);
+      window.form = new ConfigFormController(ctx, {namespace: ns, decode: value => value}, mirror, {});
+      window.controller = new api.WelcomeNoticeStore(form, mirror);
       window.testRoot = createRoot(document.getElementById('root'));
       function Demo() {
         const [done, setDone] = React.useState(false);
@@ -103,10 +108,12 @@ async function install() {
         call.settled = true;
         if (result === 'reject') { call.reject(Error('controlled transport rejection')); return; }
         if (result === 'refuse') { call.resolve({ok: false, error: {message: 'controlled refusal'}}); return; }
+        if (result === 'conflict') { ++hostRevision; call.resolve({ok: false, error: {code: 'settings/conflict', message: 'controlled changed revision'}}); return; }
         if (result === 'empty-success') { call.resolve({ok: true, value: namespace()}); return; }
         const value = persisted();
         for (const op of call.ops) value[op.path[0]] = op.value;
         localStorage.setItem('welcome-fixture-durable', JSON.stringify(value));
+        ++hostRevision;
         call.resolve({ok: true, value: namespace()});
       };
       window.noticeState = () => controller.store.getSnapshot();
@@ -161,6 +168,47 @@ try {
   assert.equal((await state()).sessionOnly, false);
   ++cases;
 
+  // 真正 Host describe 推送已包含确认值，而原 mutate 回答仍未决：
+  // 保存完成以持久配置为准，不能被等待 RPC 的本地 saving 位挡住。
+  await setup(); await begin();
+  await page.evaluate(() => {
+    localStorage.setItem('welcome-fixture-durable', JSON.stringify({welcomeNoticeVersion:'2026-09-28.1'}));
+    return mirror.load();
+  });
+  await entered();
+  assert.equal((await state()).acknowledged, true);
+  assert.equal(await page.evaluate(() => wire[0].settled === undefined), true, 'mutate remains pending');
+  const hostConfirmed = await state();
+  await settled(0, 'reject');
+  await page.waitForFunction(() => controller.saving === false);
+  assert.deepEqual(await state(), hostConfirmed, 'late transport rejection cannot erase authoritative Host confirmation');
+  assert.equal(await page.evaluate(() => completed), 1, 'late RPC answer cannot enter twice');
+  ++cases;
+
+  // 未确认/无关字段推送不能将未决保存标成完成。
+  await setup(); await begin();
+  await page.evaluate(() => mirror.acceptView({ns:'ui-settings-general', value:{unrelated:true}, revision:1}));
+  assert.equal((await state()).status, 'saving');
+  assert.equal((await state()).acknowledged, false);
+  assert.equal(await page.evaluate(() => completed), 0);
+  await settled(0, 'success'); await entered();
+  ++cases;
+
+  // 已返回说明期间旧 Host 请求实际保存，重试读取已验证镜像即可；
+  // 不把同一确认排在旧未决 wire 后方再次等待。
+  await setup(); await begin();
+  await page.getByRole('button', {name: 'Return to notice', exact: true}).click();
+  await page.evaluate(() => {
+    localStorage.setItem('welcome-fixture-durable', JSON.stringify({welcomeNoticeVersion:'2026-09-28.1'}));
+    return mirror.load();
+  });
+  assert.equal((await state()).acknowledged, false, 'explicit return remains detached until retry');
+  await page.getByRole('button', {name: 'Retry save', exact: true}).click();
+  await entered();
+  assert.equal(await page.evaluate(() => wire.length), 1, 'authoritative confirmation needs no duplicate mutation');
+  await settled(0, 'success');
+  ++cases;
+
   // 真实表单队列直接抛错后允许重试，点击处理器无未处理的 Promise。
   await setup(); await begin(); await settled(0, 'reject');
   await page.getByRole('button', {name: 'Retry save', exact: true}).waitFor();
@@ -187,8 +235,73 @@ try {
   assert.equal((await state()).acknowledged, false);
   ++cases;
 
+  // 初次 describe 暂缺命名空间时，只刷新官方共享镜像，不提前写入或伪造已读。
+  await setup({unavailableOnce: true});
+  await page.getByRole('button', {name: 'Continue', exact: true}).waitFor();
+  assert.equal(await page.evaluate(() => describeReads), 2);
+  assert.equal(await page.evaluate(() => wire.length), 0);
+  assert.equal((await state()).acknowledged, false);
+  await begin(); await settled(0, 'success'); await entered();
+  ++cases;
+
+  // 明确拒绝后只有真实恢复读显示 revision 变化才有限重试同一确认；最多两次。
+  await setup(); await begin(); await settled(0, 'conflict');
+  await page.waitForFunction(() => wire.length === 2);
+  assert.equal((await state()).attempts, 2);
+  await settled(1, 'success'); await entered();
+  assert.equal(await page.evaluate(() => wire.length), 2);
+  ++cases;
+  await setup(); await begin(); await settled(0, 'conflict');
+  await page.waitForFunction(() => wire.length === 2);
+  await settled(1, 'conflict');
+  await page.getByRole('button', {name: 'Retry save', exact: true}).waitFor();
+  assert.equal((await state()).error, 'save-refused');
+  assert.equal(await page.evaluate(() => wire.length), 2, 'no unbounded conflict loop');
+  ++cases;
+
+  // Host 为只读时即使有旧 ready 视图，也不能发起写入。
+  await setup({writable: false});
+  await page.getByRole('button', {name: 'Continue', exact: true}).click();
+  await page.getByRole('button', {name: 'Retry save', exact: true}).waitFor();
+  assert.equal((await state()).error, 'settings-read-only');
+  assert.equal(await page.evaluate(() => wire.length), 0);
+  assert.equal((await state()).acknowledged, false);
+  ++cases;
+
   // 宿主一直未决时仍保留出口，不凭空宣称超时或取消。
   await page.clock.install();
+
+  // 首次 Host 读取没有回答时有界显示可重试说明；晚到真实就绪后仍无默认已读。
+  await setup({delayedDescribe: true, expectNotice: false});
+  await page.waitForFunction(() => controller.following && typeof releaseDescribe === 'function');
+  await page.clock.fastForward(9000);
+  await page.getByRole('alert').waitFor();
+  assert.equal((await state()).error, 'settings-not-ready');
+  assert.equal(await page.evaluate(() => wire.length), 0);
+  await page.evaluate(() => releaseDescribe());
+  await page.getByRole('button', {name: 'Continue', exact: true}).waitFor();
+  assert.equal((await state()).acknowledged, false);
+  await begin(); await settled(0, 'success'); await entered();
+  ++cases;
+
+  // 传输异常后的核实读也有界；读超时不重发写入，晚到真实确认才能关闭说明。
+  await setup(); await begin();
+  await page.evaluate(() => { window.holdDescribe = true; });
+  await settled(0, 'reject');
+  await page.waitForFunction(() => noticeState().phase === 'verify' && typeof releaseCurrentDescribe === 'function');
+  await page.clock.fastForward(9000);
+  await page.getByRole('alert').waitFor();
+  assert.equal((await state()).error, 'save-exception');
+  assert.equal((await state()).acknowledged, false);
+  assert.equal(await page.evaluate(() => wire.length), 1);
+  await page.evaluate(() => {
+    localStorage.setItem('welcome-fixture-durable', JSON.stringify({welcomeNoticeVersion:'2026-09-28.1'}));
+    window.holdDescribe = false; releaseCurrentDescribe();
+  });
+  await entered();
+  assert.equal(await page.evaluate(() => wire.length), 1, 'unknown result never replays the mutation');
+  ++cases;
+
   await setup(); await begin();
   await page.clock.fastForward(120000);
   await page.getByRole('status').waitFor();
@@ -227,10 +340,9 @@ try {
   assert.equal((await state()).acknowledged, false);
   assert.equal(await page.evaluate(() => completed), 0);
   await settled(1, 'reject');
-  await page.getByRole('button', {name: 'Retry save', exact: true}).waitFor();
-  const failedNew = await state();
-  await page.evaluate(() => mirror.acceptView({ns:'ui-settings-general', value:{welcomeNoticeVersion:'2026-09-28.1'}, revision:'late'}));
-  assert.deepEqual(await state(), failedNew, 'late scope notification cannot overwrite the later error');
+  await entered();
+  assert.equal((await state()).acknowledged, true, 'a recovery read proves the older identical acknowledgement really persisted');
+  assert.equal(await page.evaluate(() => wire.length), 2, 'unknown outcome is not automatically replayed');
   ++cases;
 
   // 重新进入读取宿主实际保存内容：允许先前真实成功的写入已经持久化。
@@ -276,8 +388,9 @@ try {
   assert.equal(await page.evaluate(() => document.getElementById('root').inert), false);
   ++cases;
 
-  // 内存模式明确提示仅本次进入，不生成假的持久确认。
-  await setup({memory: true});
+  // rc2 只有 Host 配置。真实命名空间缺失时仍允许用户显式仅本次进入，
+  // 不用旧版已删除的 memory 构造参数虚构一种可持久化模式。
+  await setup({unavailable: true});
   assert.equal(await page.getByRole('button', {name: 'Continue', exact: true}).count(), 0);
   await page.getByRole('button', {name: 'I have read this; enter this visit only (not saved)', exact: true}).click();
   await entered();

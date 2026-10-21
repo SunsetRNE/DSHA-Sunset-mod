@@ -1,6 +1,6 @@
 # 端口与网络维护
 
-本文对应 build190 / F10 的实际源码，供使用、排查和修改端口逻辑时查阅。
+本文对应 build190 的实际源码，供使用、排查和修改端口逻辑时查阅；F10 基线与 F12 新增行为分别标注。
 当前应用运行 DSH 0.2.1-rc.2；运行引擎另见[运行引擎](runtime-engines.md)。
 DNS 策略另见 [DNS 配置](dns-configuration.md)。
 端口、鉴权凭据、Web 运行代次是三个不同字段，不能用其中一个推断另外两个。
@@ -10,6 +10,7 @@ DNS 策略另见 [DNS 配置](dns-configuration.md)。
 | 用途 | 当前地址或来源 | 管理位置 |
 |---|---|---|
 | DSH Web 后端 | `127.0.0.1:<本次实际端口>` | 配置页的自动／手动 Web 端口 |
+| DeepSeek OAuth 回调 | 发起登录时页面 origin 的 `/oauth/callback`；由当前 DSH WebServer 临时注册路由，LAN 访问经代理转发 | 官方账号登录状态机 |
 | Android 能力桥 | `127.0.0.1:3090`，另尝试 `::1:3090` | `HttpShellService` |
 | LAN 网页代理 | `0.0.0.0:3081` | 配置页的局域网访问开关 |
 | 无线 ADB 配对 | Android 配对弹窗给出的临时端口 | 设备能力授权／ADB 配对页 |
@@ -22,6 +23,8 @@ DNS 策略另见 [DNS 配置](dns-configuration.md)。
 5037 的职责见 [Android 官方 ADB 架构说明](https://developer.android.com/tools/adb#howadbworks)。
 DSHA 的设备脚本使用 `adb_shell_wifi` TLS 客户端，不把 Web 端口交给 ADB。
 更改 Web 端口不会完成 ADB 配对，也不会把配对端口变成网页地址。
+
+OAuth 不另开一个独立的临时监听端口。锁定的 `@deepseek-ai/dsh-deepseek-account-platform` 使用当前 `webServer.register()` 注册回调，并把登录开始时的 origin 写入本次 `redirect_uri`。如果登录期间停止、重启或换了实际 origin，旧回调地址可能已经失效，应从当前页面重新发起登录；不能改写旧回调的端口、重放旧 code 或绕过 state/PKCE。实现依据为[依赖锁](../tools/dsh-runtime/package-lock.json)及[真实动态端口回调测试](../tools/test-deepseek-native-oauth.mjs)。插件列表阻塞与旧回调失效是不同判断条件，不能仅凭“连接超时”截图确定是哪一种。
 
 相关常量见 [Constants.java](../app/src/main/java/com/deepseekharness/app/util/Constants.java)。
 其中保留的 `DSH_WEB_PORT=3080` 是兼容旧配置的数值，不代表当前默认固定监听 3080。
@@ -106,6 +109,12 @@ DSHA 的设备脚本使用 `adb_shell_wifi` TLS 客户端，不把 Web 端口交
 不能因超时、未知退出结果或插件错误而重放启动，更不能重放已提交业务。
 不能按端口、进程名或裸 PID 强杀占用者。
 
+## F12插件卡顿调查与自动端口的边界
+
+原生插件助手执行guest命令，不使用Web HTTP或WebRPC的当前Connection；网页Plugin Manager则使用当前Connection。受控真实Host中，官方voice插件实际启用/禁用后仍为同一个HTTP对象与端口。已有证据定位到耗时同步内容hash阻塞Node主循环，不能据此把所有手机卡顿归因于同一个原因，也没有证据证明自动端口就是插件卡死根因。
+
+因此保留自动 `--port 0` 与仍可用的本机成功端口复用，不为这次现象取消自动模式。只有真实端口变化才形成新的网页origin；草稿/图片恢复、OAuth本次临时回调路由、LAN代理与当前generation各按自己的身份规则处理，不能因开关插件就假定它们已换端口或获得新许可。F12的异步内容证明和原生独立刷新边界见[插件运行与权限](plugin-runtime-and-permissions.md)，正式结果见[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)，不以主机测时替代手机性能验收。
+
 ## 本机记忆与备份边界
 
 `ConfigStore` 用 `web_fallback_for` + `web_fallback_port` 记住匹配策略的成功备用值。
@@ -130,7 +139,7 @@ LAN、能力桥与 ADB 授权必须按各自本机规则重新核验。
 LAN 有独立 token／cookie，不向远端客户端暴露 DSH 启动 token 或后端 BrowserAuth。
 代理用内存中的本轮 BrowserAuth 向后端鉴权，停止／换代次使旧快照失效。
 浏览器提供的 Host、Origin、Cookie 等字段按后端 loopback 语义重写。
-首次 token 链接经跳转清掉地址栏参数；仍应把完整 LAN 链接视为敏感信息。
+首次 token 链接经跳转只清掉LAN token，保留原路径和其他查询参数；仍应把完整 LAN 链接视为敏感信息。
 LAN 当前是 HTTP 代理，没有在此实现 TLS 终结；使用范围应符合所连网络的信任边界。
 
 HTTP 与 WebSocket 共同经过鉴权和当前代次检查。
@@ -138,6 +147,10 @@ HTTP 与 WebSocket 共同经过鉴权和当前代次检查。
 普通零长度正文、分块与 trailer、跳转、长流不能靠“读到连接关闭”为统一分界。
 连接登记、短请求、长流和反向 pump 有各自边界，停止须关闭本轮 socket。
 LAN 网页访问不是把 3090 Android 能力桥直接暴露给局域网。
+
+F11保持未知后端端口0为未就绪，不回退3080；同代次的新鉴权实际端口会替换旧代理目标。业务401/403仅影响该请求，不自动销毁整轮BrowserAuth。接口/地址变化会回收旧连接但保留本轮token和监听；相同接口/地址的快速网络替换不保证可观察。具体操作、地址候选和主机验证边界见[LAN专题](lan.md)。
+
+严格恢复接入同一个活跃Web时，F12在第二次内核身份核验与adopt后复用该次已验证cookie；发布再次绑定当前generation、精确URL和实际端口，不重新exchange或执行普通新启动的 `afterAuthenticated`。LAN关闭不监听，绑定失败不撤销本机已成功的接入。详见[LAN严格恢复](lan.md)。
 
 维护代码见 [LanProxyService.java](../app/src/main/java/com/deepseekharness/app/LanProxyService.java)、
 [LanAuth.java](../app/src/main/java/com/deepseekharness/app/LanAuth.java)、

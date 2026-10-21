@@ -1,6 +1,8 @@
 # DSHA security model
 
-This page describes current source policy. Historical documentation is preserved under tools/history. Formal terminals and third-party plugins are open under the current user policy; the independent recovery runtime retains five controlled tools and native write confirmation. The [threat-model ADR 0002](adr/0002-current-threat-model.md) records the assets, actors and scope of individual controls.
+> Maintained English entry: [Security model](en/security-model.md). See the [complete English index](en/index.md) and [current delivery scope](en/release-introduction.md). Historical examples below retain their original identity.
+
+This page describes current source policy. Historical documentation is preserved under tools/history. Formal terminals and third-party plugins are open under the current user policy; the independent recovery runtime retains five controlled tools and native write confirmation. The [threat-model ADR 0002](en/adr/0002-current-threat-model.md) records the assets, actors and scope of individual controls.
 
 ## Assets and actors
 

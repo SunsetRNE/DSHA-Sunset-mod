@@ -156,6 +156,13 @@
       "markers": [
         "DSHA_AUTO_REVIEW_NATIVE_DISABLED_V1"
       ]
+    },
+    {
+      "asset": "deepseek-native-oauth-patch.json",
+      "module": "@deepseek-ai/dsh-client-ui-settings-account/lib/client.js",
+      "markers": [
+        "DSHA_NATIVE_OAUTH_NAVIGATION_V1"
+      ]
     }
   ],
   "specialized": [

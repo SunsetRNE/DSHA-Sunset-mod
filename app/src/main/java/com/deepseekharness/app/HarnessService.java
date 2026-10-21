@@ -76,6 +76,13 @@ public class HarnessService extends Service {
   /** 仅在可见界面调用：已启动的 Web 恢复前台服务，不启动新请求或重启 Node。 */
   public static void ensureRuntimeForeground(Context context) {
     HarnessController controller = HarnessController.get(context);
+    if (controller.needsWebSessionRestore())
+      controller.restoreRunningWebSession(
+          () -> {
+            var activity = ForegroundActivity.current();
+            if (activity != null && ForegroundActivity.isResumed(activity))
+              ensureRuntimeForeground(activity);
+          });
     if (controller.isUserStopped()
         || controller.isStopping()
         || controller.isRestartBlocked()
@@ -103,6 +110,13 @@ public class HarnessService extends Service {
   public void onCreate() {
     super.onCreate();
     c = HarnessController.get(this);
+    c.restoreRunningWebSession(
+        () -> {
+          if (DshaApp.from(this).harnessService().current() == this && !c.isUserStopped()) {
+            if (!keepAliveHealthy()) startKeepAlive();
+            else refreshLocks();
+          }
+        });
     DshaApp.from(this).harnessService().attach(this);
     android.content.IntentFilter screen = new android.content.IntentFilter(Intent.ACTION_SCREEN_ON);
     screen.addAction(Intent.ACTION_SCREEN_OFF);
@@ -361,6 +375,7 @@ public class HarnessService extends Service {
                 }
                 refreshLocks();
                 ensureLanListening();
+                c.refreshRecoveredWebSession();
                 if (!c.canAutoRestart()) {
                   fail = 0;
                   continue;

@@ -39,6 +39,8 @@ public class LaunchFragment extends Fragment {
   /** 主线程单飞；成功打开后保持占用，直到页面重新可见。 */
   private boolean enteringWeb;
 
+  private boolean webEntryFailure;
+
   private boolean preparingStart;
   private final java.util.concurrent.atomic.AtomicLong startRequest =
       new java.util.concurrent.atomic.AtomicLong();
@@ -277,6 +279,18 @@ public class LaunchFragment extends Fragment {
     final long generation = webEntryGeneration();
     final long request = ++enterRequest;
     enteringWeb = true;
+    webEntryFailure = false;
+    ui.postDelayed(
+        () -> {
+          if (request != enterRequest || !enteringWeb || getView() != root || !isResumed()) return;
+          enterRequest++; // 可见超时结束后，旧cookie结果不能再触发导航。
+          finishWebEntry(
+              root,
+              com.deepseekharness.app.util.UiText.choose(
+                  "Web 鉴权尚未完成。请查看本轮日志，确认服务状态后重试进入。",
+                  "Web authentication did not complete. Check the current log and retry when ready."));
+        },
+        15_000);
     ((TextView) root.findViewById(R.id.launch_status))
         .setText(com.deepseekharness.app.util.UiText.text("正在验证 Web 访问权限…"));
     refreshRunState();
@@ -350,6 +364,7 @@ public class LaunchFragment extends Fragment {
 
   private void finishWebEntry(View root, String message) {
     enteringWeb = false;
+    webEntryFailure = true;
     ((TextView) root.findViewById(R.id.launch_status))
         .setText(com.deepseekharness.app.util.UiStateText.render(message));
     refreshRunState();
@@ -421,6 +436,8 @@ public class LaunchFragment extends Fragment {
               && (stopResult != null && !stopResult.stopped()
                   || !controller.lastStopError().isEmpty());
       boolean ready = !starting && !stopping && !webEntryUrl().isEmpty();
+      boolean restoring = controller.isRestoringWebSession();
+      boolean unresolved = controller.hasUnresolvedWebSession();
       com.deepseekharness.app.util.StartupTrace.Snapshot trace =
           controller.startupDiagnostics().snapshot();
       String localUrl = webEntryUrl();
@@ -438,22 +455,32 @@ public class LaunchFragment extends Fragment {
       runState.setText(
           enteringWeb
               ? com.deepseekharness.app.util.UiText.text("正在鉴权并打开 Web…")
-              : controller.isRestartBlocked()
-                  ? com.deepseekharness.app.util.UiText.text("自动重启已暂停")
-                  : stopping
-                      ? com.deepseekharness.app.util.UiText.text("DSH 停止中…")
-                      : starting
-                          ? com.deepseekharness.app.util.UiText.text("DSH 启动中…")
-                          : ready
-                              ? (trace.safe
-                                      ? com.deepseekharness.app.util.UiText.text("基础界面已就绪 · 安全模式")
-                                      : com.deepseekharness.app.util.UiText.text("DSH 已就绪，可进入"))
-                                  + (controller.isWebCompatibilityFallback()
-                                      ? com.deepseekharness.app.util.UiText.text(" · 已兼容切换 proot")
-                                      : "")
-                              : controller.isUserStopped()
-                                  ? getString(R.string.ui2_stopped)
-                                  : getString(R.string.ui2_stopped));
+              : restoring
+                  ? com.deepseekharness.app.util.UiText.choose(
+                      "正在核对原 Web 实例…", "Checking the existing Web instance…")
+                  : unresolved
+                      ? com.deepseekharness.app.util.UiText.choose(
+                          "原 Web 实例状态待确认，请查看诊断或正常停止后重试",
+                          "The previous Web instance is unconfirmed. Inspect diagnostics or stop it normally before retrying.")
+                      : controller.isRestartBlocked()
+                          ? com.deepseekharness.app.util.UiText.text("自动重启已暂停")
+                          : stopping
+                              ? com.deepseekharness.app.util.UiText.text("DSH 停止中…")
+                              : starting
+                                  ? com.deepseekharness.app.util.UiText.text("DSH 启动中…")
+                                  : ready
+                                      ? (trace.safe
+                                              ? com.deepseekharness.app.util.UiText.text(
+                                                  "基础界面已就绪 · 安全模式")
+                                              : com.deepseekharness.app.util.UiText.text(
+                                                  "DSH 已就绪，可进入"))
+                                          + (controller.isWebCompatibilityFallback()
+                                              ? com.deepseekharness.app.util.UiText.text(
+                                                  " · 已兼容切换 proot")
+                                              : "")
+                                      : controller.isUserStopped()
+                                          ? getString(R.string.ui2_stopped)
+                                          : getString(R.string.ui2_stopped));
       ((TextView) root.findViewById(R.id.launch_port))
           .setText(ready ? String.valueOf(controller.getWebPort()) : "—");
       ((TextView) root.findViewById(R.id.launch_environment))
@@ -469,7 +496,12 @@ public class LaunchFragment extends Fragment {
                   : getString(R.string.ui2_launch_hint));
       root.findViewById(R.id.launch_status)
           .setVisibility(
-              starting || stopping || unresolvedStop || !trace.issues.isEmpty()
+              enteringWeb
+                      || webEntryFailure
+                      || starting
+                      || stopping
+                      || unresolvedStop
+                      || !trace.issues.isEmpty()
                   ? View.VISIBLE
                   : View.GONE);
       if (starting)
@@ -503,7 +535,7 @@ public class LaunchFragment extends Fragment {
                 : ready
                     ? com.deepseekharness.app.util.UiText.choose("▶  进入工作台", "▶  Open workspace")
                     : getString(R.string.ui2_start));
-        start.setEnabled(!enteringWeb && !starting && !stopping);
+        start.setEnabled(!enteringWeb && !starting && !stopping && !restoring);
       }
       Button restart = root.findViewById(R.id.launch_open);
       if (restart != null) restart.setEnabled(!starting && !stopping);

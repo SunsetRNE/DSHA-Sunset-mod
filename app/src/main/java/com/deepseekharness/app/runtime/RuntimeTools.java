@@ -31,6 +31,7 @@ final class RuntimeTools {
   }
 
   private static void prepare(Context context, File rootfs, boolean requireNpm) throws IOException {
+    GuestScriptBudget.checkpoint();
     rootfs = RuntimeAssetFiles.root(context, rootfs);
     try (RuntimeHostPorts.Scope scope =
         RuntimeHostPorts.fromOwner(context.getApplicationContext()).open()) {
@@ -39,6 +40,7 @@ final class RuntimeTools {
       RuntimeHostPorts.Settings settings =
           RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings();
       synchronized (LOCK) {
+        GuestScriptBudget.checkpoint();
         // 预配置工具归档不运行旧 install-ubuntu-tools 的 mkdir /tmp；普通启动也修复缺失目录。
         RuntimeTemporaryDirectories.prepare(
             new com.deepseekharness.app.backup.AndroidBackupFileSystem(), rootfs);
@@ -786,6 +788,7 @@ final class RuntimeTools {
       byte[] buffer = new byte[8192];
       int count;
       while ((count = input.read(buffer)) != -1) {
+        GuestScriptBudget.checkpoint();
         if (out.size() + count > 2 * 1024 * 1024) throw new IOException("RUNTIME_TEXT_ASSET_LIMIT");
         out.write(buffer, 0, count);
       }
@@ -872,6 +875,7 @@ final class RuntimeTools {
       byte[] buffer = new byte[8192];
       int count;
       while ((count = input.read(buffer)) != -1) {
+        GuestScriptBudget.checkpoint();
         if (bytes.size() + count > 32 * 1024 * 1024) throw new IOException("RUNTIME_ASSET_LIMIT");
         bytes.write(buffer, 0, count);
       }
@@ -887,6 +891,7 @@ final class RuntimeTools {
 
   private static void writeIfChanged(Context context, File file, byte[] content, boolean executable)
       throws IOException {
+    GuestScriptBudget.checkpoint();
     preparedFiles.add(file);
     RuntimeAssetFiles.write(context, file, content, executable);
   }

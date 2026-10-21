@@ -2244,6 +2244,96 @@
         "browser_react"
       ],
       "environment": {}
+    },
+    {
+      "path": "tools/test-document-links.py",
+      "stage": "fast",
+      "reason": "隔离树验证现行文档、历史证据和实际分发路径的分类，不以历史例外掩盖现行断链。",
+      "args": [],
+      "timeoutSeconds": 60,
+      "requires": [
+        "python39"
+      ],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-lan-proxy.py",
+      "stage": "package",
+      "reason": "使用生产Java LAN代理和真实本机socket验证鉴权、HTTP边界、端口换代、连接资源与回调路径；需要已制备JDK17和Gradle测试依赖缓存。",
+      "args": [
+        "--jdk",
+        "{jdk}",
+        "--gradle-home",
+        "{gradleHome}",
+        "--output",
+        "app/build/host-tests/lan-proxy"
+      ],
+      "timeoutSeconds": 180,
+      "requires": [
+        "python39",
+        "jdk17",
+        "toolchains"
+      ],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-deepseek-native-oauth.mjs",
+      "stage": "runtime",
+      "reason": "锁定官方BrowserLogin及真实HTTP回调/PKCE/state，合成授权服务；双浏览器原生导航兼容，无实际账号或设备。",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react"
+      ],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-web-ready-host.mjs",
+      "stage": "runtime",
+      "reason": "独立空profile真实Host、BrowserAuth、配置持久广播与Web晚注入就绪；扣留保存RPC响应验证真实确认流，无设备或模型请求。",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": [
+        "node24",
+        "raw",
+        "native_host",
+        "browser",
+        "browser_react"
+      ],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-plugin-provenance-concurrency.mjs",
+      "stage": "runtime",
+      "reason": "Real locked PluginManager and Host: full async provenance, bounded file work, responsive independent HTTP, exact official enable/disable intent and destructive target revalidation; no device/model operations.",
+      "args": [],
+      "timeoutSeconds": 1200,
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; uses the verified raw runtime and isolated real Host. No network downloads or Android operations."
+    },
+    {
+      "path": "tools/test-welcome-notice-recovery-host.mjs",
+      "stage": "runtime",
+      "reason": "Real locked CLI/Host/BrowserAuth/ConfigForm and browser welcome UI: lost response before commit, refused delivery without persistence and revision conflict; no real account, model or Android operations.",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": [
+        "node24",
+        "raw",
+        "native_host",
+        "browser",
+        "browser_react"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; verified raw runtime, native Host and real browser React. Negative-control overrides are not enabled by default."
     }
   ],
   "historicalExcluded": [

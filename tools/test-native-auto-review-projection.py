@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run the production Native CLI against private alias/intent fixtures; no Web or device."""
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -14,6 +15,13 @@ import unittest
 ASSETS = Path(__file__).resolve().parents[1] / 'app/src/main/assets'
 ALIASES = ('dsh-auto-review', '@deepseek-ai/dsh-experimental-auto-review')
 CANONICAL = ALIASES[1]
+PROOF_ENV = 'DSHA_MANAGED_PACKAGE_PROOFS_SHA256'
+
+# Compute evidence for this test's synthetic bytes using the production encoder.
+# No digest or package identity is borrowed from the production proof table.
+_spec = importlib.util.spec_from_file_location('native_alias_fixture_proof', ASSETS / 'register-builtin-plugins.py')
+_proof = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_proof)
 
 
 class NativeAutoReviewProjectionTest(unittest.TestCase):
@@ -25,6 +33,10 @@ class NativeAutoReviewProjectionTest(unittest.TestCase):
         self.write_profile([])
         self.runtime = self.root / 'usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules' / CANONICAL
         self.package(self.runtime, CANONICAL, '0.2.1-rc.2')
+        self.proof_path = self.root / 'root/.dsh/managed-package-proofs.json'
+        self.proof_path.write_text(json.dumps({'version': 1, 'packages': {
+            CANONICAL: _proof.package_content_proof(self.runtime)}}), encoding='utf-8')
+        self.proof_sha = hashlib.sha256(self.proof_path.read_bytes()).hexdigest()
         self.package(self.root / 'root/dsha-auto-review', ALIASES[0], '0.1.0')
         self.settings = self.root / 'root/.dsh/settings.yaml'
         self.settings.write_text('permissionMode: ask\nfixture: preserve explicit choice\n', encoding='utf-8')
@@ -61,6 +73,11 @@ class NativeAutoReviewProjectionTest(unittest.TestCase):
     def cli(self, *args, success=True):
         env = dict(os.environ, DSHA_TEST_ROOT=str(self.root), DSH_HOME='/root/.dsh',
                    PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8')
+        # The test launcher binds the exact temporary proof bytes, just as the
+        # native launcher binds APK bytes. Never inherit ambient guest authority.
+        env.pop(PROOF_ENV, None)
+        if self.proof_sha is not None:
+            env[PROOF_ENV] = self.proof_sha
         process = subprocess.run([sys.executable, str(ASSETS / 'plugin-manager.py'), *args], env=env,
                                  capture_output=True, text=True, encoding='utf-8', timeout=15)
         self.assertEqual(0 if success else 1, process.returncode, process.stdout + process.stderr)
@@ -153,6 +170,35 @@ class NativeAutoReviewProjectionTest(unittest.TestCase):
         row = self.card(self.cli('refresh'))
         self.assertTrue(row['runtimeProvided']); self.assertEqual('0.2.1-rc.2', row['version'])
         self.assertEqual('9.9.9', json.loads((shadow / 'package.json').read_text(encoding='utf-8'))['version'])
+
+    def test_missing_or_unauthenticated_proof_cannot_classify_runtime_as_managed(self):
+        expected = self.proof_sha
+        self.proof_sha = None
+        row = self.card(self.cli('refresh'))
+        self.assertTrue(row['available']); self.assertTrue(row['runtimeLocated'])
+        self.assertFalse(row['runtimeProvided'])
+        self.proof_sha = expected
+        self.proof_path.unlink()
+        self.assertFalse(self.card(self.cli('refresh'))['runtimeProvided'])
+
+    def test_tampered_proof_bytes_cannot_classify_runtime_as_managed(self):
+        original = self.proof_path.read_bytes()
+        # Still-valid JSON, but no longer the bytes authenticated by the launcher.
+        self.proof_path.write_bytes(original + b'\n')
+        self.assertNotEqual(self.proof_sha, hashlib.sha256(self.proof_path.read_bytes()).hexdigest())
+        self.assertFalse(self.card(self.cli('refresh'))['runtimeProvided'])
+        self.assertEqual(self.original_runtime, self.snapshot(self.runtime))
+
+    def test_added_user_content_cannot_classify_same_runtime_name_as_managed(self):
+        self.assertTrue(self.card(self.cli('refresh'))['runtimeProvided'])
+        draft = self.runtime / 'user-private-draft.txt'
+        draft.write_text('preserve modified runtime package bytes\n', encoding='utf-8')
+        before = self.snapshot(self.runtime)
+        row = self.card(self.cli('refresh'))
+        self.assertTrue(row['available']); self.assertTrue(row['runtimeLocated'])
+        self.assertFalse(row['runtimeProvided'])
+        self.assertEqual(before, self.snapshot(self.runtime))
+        self.assertEqual('preserve modified runtime package bytes\n', draft.read_text(encoding='utf-8'))
 
     def test_missing_runtime_and_only_disabled_marker_still_show_protected_card(self):
         shutil.rmtree(self.runtime)

@@ -1,8 +1,8 @@
 # 构建、验证与提交
 
-先读 [README](README.md)、[AGENTS](AGENTS.md) 和[本轮预发布范围](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。历史审计资料的另一会话决策不能覆盖这里的用户要求。
+先读 [README](README.md)、[AGENTS](AGENTS.md) 和[本轮F12范围](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md)。历史审计资料的另一会话决策不能覆盖这里的用户要求。
 
-F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳定网页布局与合成位移；移动UI更新3.2.1（上游main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`）；新增直接保存Download/DSHA的一键备份。两版各 124 类/785 项 JUnit，0失败/错误（Standard 3、Low 76 跳过）；Release Lint 0错误，249/162 警告；实际APK七项门禁通过。首轮11个Standard旧系统测试受minSdk清单拦截，修正测试环境后重跑，原始失败保留。暂停设备/ADB/对话和长时验收。仅现有私有仓库，完整源码ZIP仍按项目路径直接展开固定构建输入；下载与最终远端状态以[关联Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)及本地独立发布回执为准。 详细范围见[F10追加记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+F12 `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` / code190：修复插件查询阻塞、后台恢复后的LAN鉴权及欢迎说明保存时序，补齐中文分发文件与完整现行英文维护文档。两版各148类/939项JUnit，零失败/错误（Standard 3、Low 76跳过）；Release Lint零错误、249/162警告，八项精确APK检查通过。本轮无设备/ADB、真实账号/模型对话或新的长时验收。[APK与完整源码](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [English](docs/en/index.md)。F11仅为未上传的本地检查点。
 
 项目特有操作见[现行接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。退休工具与文档原件见 `tools/history` 和对应保存清单；它们不进入APK或自动测试执行。
 
@@ -18,19 +18,21 @@ Java 17，单模块 `:app`。Standard 使用系统 WebView、最低 API 30；Low
 - 独立应急归档：`tools/recovery-runtime/lock.json`。正式环境更新不能擅自替换独立应急锁。
 - CI 工具与历史发布证书：`ci/toolchain.lock.json`、`ci/release-identity.json`。
 
-可规范化源码使用实际LF，19项必要小型二进制及历史原件保持原字节。`.gitattributes`列出的10项managed/canonical精确bytepin不做行尾转换；不要全库改写或通过忽略换行的哈希掩盖包内内容变化。生成的Java、描述符和证明由对应脚本生成，四处UUID调用补齐共享Ids依赖，保持历史UUID格式。
+可规范化源码使用实际LF，19项必要小型二进制及历史原件保持原字节。`.gitattributes`列出的12项managed/canonical精确bytepin不做行尾转换；不要全库改写或通过忽略换行的哈希掩盖包内内容变化。生成的Java、描述符和证明由对应脚本生成，四处UUID调用补齐共享Ids依赖，保持历史UUID格式。
 
 ## 准备输入
 
-大型rootfs、DSH和recovery生成归档不入Git，代码、recipe和锁保留。Git clone可运行源码-only检查；完整打包使用固定输入包`locked-current-build-inputs.zip`中经`tools/ci-assets.py --pack`逐SHA核对的原始输入文件；Release源码ZIP将这些文件按项目路径直接展开，不嵌套该输入包。当前738,099,607 bytes，包括原rootfs约304MB、DSH约148MB等，不是源码ZIP最终大小。前包738,099,619 bytes的12字节差异仅为`ubuntu-tools.inputs.json` CRLF转LF；JSON语义和归档二进制保持，不称整packet全部字节相同。配置工具链后按recipe构建，无需独立bundle，不用未知latest/任意旧缓存或删减内容绕过门禁。
+Release完整源码ZIP额外包含固定输入包`locked-current-build-inputs.zip`中的原始文件，按项目路径直接展开，不嵌套该ZIP。F12新制输入包为738,101,575 bytes，SHA-256 `f9bdac3d061b07204e69fe6c0d603c096d3d2081b79a866a5ca0a7d8adb87ad0`，由`tools/ci-assets.py --pack`逐SHA核对；该大小不是完整源码ZIP大小。旧738,099,607/738,099,619-byte输入包及12字节行尾差异属于F10及更早历史，不能代替本轮输入身份。配置工具链后按当前recipe构建，无需独立bundle；Git clone可做source-only检查，完整打包仍需固定原始输入。APK中的变换层不能逆还原全部原始rootfs，不提供从APK恢复所有输入的保证。
 
-F8当前999 Java证明为996项精确未变与3项重新formatter检查0needs，完整adoption999继续约束；之前38批读取、20变更实查/sourceSHA复用、43独立style文件token等价和1处重复注释fixed point均保留。F7正式构建发生宿主Core重绑定竞态并失败，原始日志/XML保留；三文件修复已有22项宿主正控通过，旧Core同socket seam/旧构造缺清理两负控各1项/1预期失败。仅作宿主证据，不称手机复现，不估算F8正式测试数；最终源码与APK在全部修复后对应重建。
+F12当前Java adoption范围为1026项：与F11完全相同的源码继承精确SHA证明，16个变更叶子及交叉复核后的3个小叶另有fresh格式/token检查；完整inventory无遗漏。源码分发为2206成员/198篇Markdown，包含补齐的中文分发文件与完整现行英文维护集。分发计数、formatter/token证明与JUnit执行数分别记录，最终清单以冻结回执为准。
+
+历史F8的999项Java证明、此前分批读取/style等价证明及F7宿主Core重绑定失败/修复正负控仍保留原记录；它们不是F12现行adoption范围或测试数。旧软件、APK与设备结论各属原源码/摘要，最终F12软件与精确APK结果由统一回执绑定。
 
 APK的约85MB offline-rootfs是经过打包变换的层，不能还原约304MB原始rootfs；本轮不提供“从APK恢复全部构建输入”的helper或承诺。完整源码ZIP的最终SHA-256写在Release正文，不放进该ZIP自身README形成自引用。
 
 完整源码保留构建必需、已有跟踪且具备notice/锁的小型JNI/vendor/解释器预编译依赖；来源未知或闭源限制照实披露，这不等于所有vendor native均可从源码复现。按实际材料说明来源、许可与构建路径，不为“纯源码”口号删除构建消费者依赖。保留清单还包括27个必需历史构建源码和唯一website测试夹具，不进行网站部署。
 
-不上传私钥、用户数据、设备截图/原日志或历史审计原材料。大生成归档不入Git，Release源码ZIP只收登记并核验的原始大构建输入。`docs/audits/`仅保留以下6个构建/CI实际消费的JSON，维持原路径；这不是开放整个历史审计目录的例外：
+不上传私钥、用户数据、设备截图/原日志或历史审计原材料。大生成归档不入Git，Release源码ZIP只收登记并核验的原始大构建输入。`docs/audits/`的JSON仅保留以下9项，维持原路径：前6项为构建/CI消费元数据，后3项为真实历史文档保存/来源元数据。它们不是设备原日志，也不是开放整个历史审计目录的例外：
 
 - `docs/audits/build154/retired-audit-sources.json`
 - `docs/audits/build154/engineering-retired-sources.json`
@@ -38,6 +40,11 @@ APK的约85MB offline-rootfs是经过打包变换的层，不能还原约304MB�
 - `docs/audits/build156/third-party-license-sources.json`
 - `docs/audits/build156/retired-asset-sources.json`
 - `docs/audits/build156/retired-environment-data-sources.json`
+- `docs/audits/build154/history-document-sources.json`
+- `docs/audits/build156/shellservice-source-provenance.json`
+- `docs/audits/build156/source-docs-retained.json`
+
+文档闭合另按[文档总索引](docs/documentation-index.md)中的精确清单纳入6篇真实历史说明、已追回并核对原摘要的Termux历史README及5份本轮新建导航副本。导航副本逐字节复制指定原文，不伪称追回的历史保存件；旧历史原件和上游许可证不改写。其余历史JSON台账、设备原始日志/截图与私有取证不因正文引用自动纳入。
 
 完整生成入口：
 

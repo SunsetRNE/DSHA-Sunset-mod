@@ -40,6 +40,7 @@ import time
 import re
 import uuid
 import hashlib
+import stat
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -364,7 +365,7 @@ def operation_lock(check_cancel=None, timeout=120):
 
 
 def runtime_bundle_dir(name):
-    """Match dsh's install anchor without treating its packages as user installs."""
+    """Match dsh's install anchor. Its location alone is not provenance."""
     if not valid_name(name):
         return None
     runtime = local('/usr/local/lib/node_modules/@deepseek-ai/dsh')
@@ -391,6 +392,113 @@ def runtime_bundle_dir(name):
     except (OSError, ValueError, TypeError, AttributeError):
         return None
     return candidate
+
+
+def managed_package_proofs(path=None):
+    """Read only the proof bytes authenticated by the APK-owning launcher.
+
+    A guest-written JSON or an installation package.json dependency is not an
+    authority. Missing/unreadable evidence keeps packages user/unverified.
+    """
+    expected = os.environ.get('DSHA_MANAGED_PACKAGE_PROOFS_SHA256', '')
+    if not re.fullmatch(r'[a-f0-9]{64}', expected):
+        return {}
+    try:
+        path = Path(path or local(os.path.join(DSH_HOME, 'managed-package-proofs.json')))
+        if path.is_symlink() or path.stat().st_size > 2 * 1024 * 1024:
+            return {}
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != expected:
+            return {}
+        value = json.loads(data)
+        packages = value.get('packages')
+        if value.get('version') != 1 or not isinstance(packages, dict):
+            return {}
+        return {name: digest for name, digest in packages.items()
+                if valid_name(name) and isinstance(digest, str) and re.fullmatch(r'[a-f0-9]{64}', digest)}
+    except (OSError, ValueError, TypeError, AttributeError):
+        return {}
+
+
+def package_content_proof(directory, check_cancel=None):
+    """Same FILE/mode/LINK encoding as ManagedPackageProof, without following links."""
+    rows = {}; total = 0
+    def walk(path, relative):
+        nonlocal total
+        if check_cancel:
+            check_cancel()
+        before = os.lstat(path)
+        if stat.S_ISDIR(before.st_mode):
+            members = sorted(os.listdir(path))
+            for entry in members:
+                walk(os.path.join(path, entry), relative + '/' + entry if relative else entry)
+            after = os.lstat(path)
+            if (after.st_dev, after.st_ino, after.st_mode, after.st_mtime_ns, after.st_ctime_ns) != (before.st_dev, before.st_ino, before.st_mode, before.st_mtime_ns, before.st_ctime_ns) or sorted(os.listdir(path)) != members:
+                raise ValueError('PACKAGE_PROOF_CHANGED')
+            return
+        if len(rows) >= 200000:
+            raise ValueError('PACKAGE_PROOF_LIMIT')
+        if stat.S_ISREG(before.st_mode):
+            total += before.st_size
+            if total > 8 * 1024 * 1024 * 1024:
+                raise ValueError('PACKAGE_PROOF_LIMIT')
+            digest = hashlib.sha256()
+            fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+            with os.fdopen(fd, 'rb') as stream:
+                opened = os.fstat(stream.fileno())
+                if (opened.st_dev, opened.st_ino, opened.st_mode, opened.st_size) != (before.st_dev, before.st_ino, before.st_mode, before.st_size):
+                    raise ValueError('PACKAGE_PROOF_CHANGED')
+                for block in iter(lambda: stream.read(1024 * 1024), b''):
+                    if check_cancel:
+                        check_cancel()
+                    digest.update(block)
+            line = relative + '\0FILE\0' + str(before.st_mode & 0o777) + '\0' + digest.hexdigest() + '\n'
+        elif stat.S_ISLNK(before.st_mode):
+            line = relative + '\0LINK\0' + os.readlink(path) + '\n'
+        else:
+            raise ValueError('PACKAGE_PROOF_TYPE')
+        after = os.lstat(path)
+        if (after.st_dev, after.st_ino, after.st_mode, after.st_size, after.st_mtime_ns, after.st_ctime_ns) != (before.st_dev, before.st_ino, before.st_mode, before.st_size, before.st_mtime_ns, before.st_ctime_ns):
+            raise ValueError('PACKAGE_PROOF_CHANGED')
+        rows[relative] = line
+    walk(os.path.realpath(directory), '')
+    return hashlib.sha256(''.join(rows[key] for key in sorted(rows, key=lambda key: key.encode('utf-16be'))).encode()).hexdigest()
+
+
+def managed_runtime_package(name, directory, proofs=None, check_cancel=None):
+    """Exact current package bytes, never an npm scope/name-prefix shortcut."""
+    expected = (managed_package_proofs() if proofs is None else proofs).get(name)
+    if not expected or not directory:
+        return False
+    try:
+        with open(os.path.join(directory, 'package.json'), encoding='utf-8') as stream:
+            if json.load(stream).get('name') != name:
+                return False
+        return package_content_proof(directory, check_cancel) == expected
+    except (OSError, ValueError, TypeError, AttributeError):
+        return False
+
+
+class ProvenancePass:
+    """One read-only query's authenticated proof and canonical package results.
+
+    Never persisted or shared across requests. Aliases of one directory are one
+    observation in this query; the next query and backup/commit hash again.
+    """
+    def __init__(self, check_cancel=None):
+        self.proofs = managed_package_proofs()
+        self._observed = {}
+        self.check_cancel = check_cancel
+
+    def managed(self, name, directory):
+        if self.check_cancel:
+            self.check_cancel()
+        if not directory:
+            return False
+        key = (name, os.path.realpath(directory))
+        if key not in self._observed:
+            self._observed[key] = managed_runtime_package(name, directory, self.proofs, self.check_cancel)
+        return self._observed[key]
 
 
 def entity_dir(name, discovered=None):
@@ -430,7 +538,7 @@ def entity_dir(name, discovered=None):
     return found["directory"] if found else None
 
 
-def discover_plugins(home_directory=None, include_global=True):
+def discover_plugins(home_directory=None, include_global=True, provenance=None):
     """只读枚举常用安装位置；仅识别带可读取 bundle patch 的插件，不把运行时依赖当插件。"""
     roots = [(NODE_MODULES, "Web 配置"), (os.path.join(DSH_HOME, "plugin-src"), "本地导入"),
              (os.path.join(DSH_HOME, "node_modules"), "共享插件"),
@@ -445,8 +553,13 @@ def discover_plugins(home_directory=None, include_global=True):
                 continue
             roots.append((os.path.join(DSH_HOME, "profiles", profile, "node_modules"), "配置 " + profile))
     runtime = os.path.realpath(local('/usr/local/lib/node_modules/@deepseek-ai/dsh'))
+    provenance = provenance if provenance is not None else ProvenancePass()
+    reserved = set(OFFICIAL_BUNDLES) | set(builtin_names())
+    observed = {}
     found = {}
     for root, location in roots:
+        if provenance.check_cancel:
+            provenance.check_cancel()
         path = local(root)
         if not os.path.isdir(path):
             continue
@@ -457,16 +570,17 @@ def discover_plugins(home_directory=None, include_global=True):
             else:
                 candidates.append(entry)
         for name in candidates:
-            if not valid_name(name) or name in OFFICIAL_BUNDLES or name in builtin_names():
+            if provenance.check_cancel:
+                provenance.check_cancel()
+            if not valid_name(name) or name in reserved:
                 continue
             directory = os.path.realpath(os.path.join(path, name))
-            # 由 ensure_runtime_modules 自动生成的共享依赖链接不属于用户安装。
-            try:
-                shared_runtime = os.path.commonpath([runtime, directory]) == runtime
-            except ValueError:
-                shared_runtime = False
-            if shared_runtime:
+            identity = (name, directory)
+            if identity in observed:
+                if observed[identity] and name in found and location not in found[name]['locations']:
+                    found[name]['locations'].append(location)
                 continue
+            observed[identity] = False
             manifest = os.path.join(directory, 'package.json')
             try:
                 if os.path.getsize(manifest) > 1024 * 1024:
@@ -484,6 +598,17 @@ def discover_plugins(home_directory=None, include_global=True):
                     continue
             except (OSError, ValueError, TypeError, AttributeError):
                 continue
+            # Ordinary runtime dependencies are not plugins. Only after the
+            # actual bundle and contained patch paths are validated do we read
+            # package bytes for provenance. Never hash an entire framework pool
+            # merely because its shared/global aliases are visible here.
+            try:
+                shared_runtime = os.path.commonpath([runtime, directory]) == runtime
+            except ValueError:
+                shared_runtime = False
+            if shared_runtime and provenance.managed(name, directory):
+                continue
+            observed[identity] = True
             if name not in found:
                 found[name] = dict(directory=directory, location=location, locations=[location])
             elif location not in found[name]['locations']:

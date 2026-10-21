@@ -33,6 +33,11 @@ def generate(module, lock_path=None):
         if source.count(before) != 1:
             raise ValueError('WELCOME_NOTICE_ANCHOR_CHANGED')
         patches.append(dict(before=before, after=after))
+    anchor = 'const welcomeController = new WelcomeNoticeStore(ctx.configForms.get(WELCOME_NOTICE_SETTINGS_NAMESPACE));'
+    if source.count(anchor) != 1:
+        raise ValueError('WELCOME_NOTICE_SHARED_MIRROR_ANCHOR_CHANGED')
+    patches.append(dict(before=anchor, after=anchor.replace('WELCOME_NOTICE_SETTINGS_NAMESPACE));',
+                                                         'WELCOME_NOTICE_SETTINGS_NAMESPACE), ctx.configForms.describe());')))
     copy = {
         'en': {
             'welcomeWaiting': 'Saving is still pending. You can keep waiting, return to the notice, or enter for this visit only. Leaving the wait does not cancel the save request; it may still complete later.',

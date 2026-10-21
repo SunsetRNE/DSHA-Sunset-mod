@@ -172,8 +172,13 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(29, groups.size());
-    assertEquals(34, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(30, groups.size());
+    assertEquals(35, groups.values().stream().mapToInt(java.util.List::size).sum());
+    var oauth = groups.get("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js");
+    assertNotNull(oauth);
+    assertEquals(1, oauth.size());
+    assertEquals("deepseek-native-oauth-patch.json", oauth.get(0).id());
+    assertEquals(java.util.List.of("DSHA_NATIVE_OAUTH_NAVIGATION_V1"), oauth.get(0).markers());
   }
 
   @Test
@@ -356,6 +361,10 @@ public final class RuntimeToolsRegistryAndroidTest {
     byte[] lan = Files.readAllBytes(modules.resolve(LAN));
     productionChain(context, guest);
     var pdf = json("pdf-compat-patch.json");
+    assertTrue(
+        Files.readString(
+                modules.resolve("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js"))
+            .contains("DSHA_NATIVE_OAUTH_NAVIGATION_V1"));
     assertTrue(
         Files.readString(modules.resolve(pdf.getString("module"))).contains("DSHA_PDF_COMPAT_V1"));
     assertTrue(

@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import com.deepseekharness.app.util.HttpProtocol;
 import com.deepseekharness.app.util.SocketDispatch;
+import com.deepseekharness.app.util.LanNetworkState;
 
 /**
  * Optional LAN bridge for the dsh Web UI.
@@ -78,6 +79,7 @@ public final class LanProxyService {
     final long generation;
     final int backendPort;
     final SocketDispatch dispatch = new SocketDispatch("dsha-lan", 32, 8, 16, 8);
+    final LanNetworkState network = new LanNetworkState();
     volatile boolean active = true;
 
     /** Set only after the ServerSocket bind has completed successfully. */
@@ -202,12 +204,6 @@ public final class LanProxyService {
         && hasDshAuth(snapshot.state, run.generation);
   }
 
-  private static synchronized void invalidateDshAuth(ProxyRun run, AuthSnapshot snapshot) {
-    if (snapshot != null && isActiveRunLocked(run) && dshAuth == snapshot.state) {
-      dshAuth = NO_DSH_AUTH;
-    }
-  }
-
   private static boolean isValidDshCookie(String cookie) {
     if (cookie == null) return false;
     int semi = cookie.indexOf(';');
@@ -267,10 +263,17 @@ public final class LanProxyService {
       stopLanListener();
       return;
     }
-    if (isActiveRunLocked(activeRun)) return;
     if (!hasDshAuth(generation)) return;
-    int resolvedBackend =
-        backend > 0 && backend <= 65535 && backend != LAN_PORT ? backend : DEFAULT_BACKEND_PORT;
+    // The explicit overload receives the authenticated actual port. An unknown
+    // value cannot authorize forwarding to an unrelated service on port 3080.
+    if (backend <= 0 || backend > 65535 || backend == LAN_PORT) return;
+    int resolvedBackend = backend;
+    ProxyRun previous = activeRun;
+    if (isActiveRunLocked(previous)) {
+      if (previous.generation == generation && previous.backendPort == resolvedBackend) return;
+      deactivateRunLocked(previous);
+      closeRunSockets(previous);
+    }
     getLanToken(ctx);
     if (!isValidLanToken(LAN_TOKEN.current())) return;
     logPath = rootfsDir == null ? "" : rootfsDir + "/root/dsh-lan.log";
@@ -289,21 +292,32 @@ public final class LanProxyService {
     ServerSocket ss = null;
     try {
       ss = new ServerSocket();
-      ss.setReuseAddress(true);
-      ss.bind(new InetSocketAddress("0.0.0.0", LAN_PORT));
       synchronized (LanProxyService.class) {
         if (!isActiveRunLocked(run)) {
           closeQuietly(ss);
           return;
         }
+        // A retired, not-yet-bound accept thread cannot race a replacement
+        // listener for the same port after start/stop changed the active run.
+        ss.setReuseAddress(true);
+        ss.bind(new InetSocketAddress("0.0.0.0", LAN_PORT));
+        ss.setSoTimeout(1000);
         run.server = ss;
         run.bound = true;
       }
       log(
           com.deepseekharness.app.util.UiText.format(
               "LAN 代理已启动：0.0.0.0:%s -> 127.0.0.1:%s", LAN_PORT, run.backendPort));
+      run.network.poll();
+      long nextNetworkCheck = System.nanoTime() + 1_000_000_000L;
       while (isActiveRun(run)) {
         try {
+          if (System.nanoTime() >= nextNetworkCheck) {
+            nextNetworkCheck = System.nanoTime() + 1_000_000_000L;
+            // The wildcard listener remains usable after a Wi-Fi/address change.
+            // Reclaim old streams so unreachable peers cannot exhaust its lanes.
+            if (run.network.poll()) run.dispatch.closeConnections();
+          }
           Socket client = ss.accept();
           client.setSoTimeout(HttpProtocol.LAN.timeoutMs);
           if (!isActiveRun(run)) {
@@ -317,6 +331,9 @@ public final class LanProxyService {
           } catch (Throwable rejected) {
             ticket.close();
           }
+        } catch (java.net.SocketTimeoutException idle) {
+          // Periodically inspect interface identity without restarting the run,
+          // revoking credentials, or relying on an open Activity.
         } catch (IOException e) {
           if (isActiveRun(run))
             log(
@@ -455,7 +472,7 @@ public final class LanProxyService {
           first
               ? owner.acceptedAt + HttpProtocol.LAN.timeoutMs * 1000000L
               : HttpProtocol.deadline(HttpProtocol.LAN.timeoutMs);
-      if (!run.dispatch.request(owner, () -> read(until))) owner.close();
+      if (!run.dispatch.read(owner, () -> read(until, first))) owner.close();
     }
 
     void fail(int status) {
@@ -471,7 +488,7 @@ public final class LanProxyService {
       }
     }
 
-    void read(long until) {
+    void read(long until, boolean first) {
       try {
         if (!isActiveRun(run)) {
           owner.close();
@@ -497,7 +514,7 @@ public final class LanProxyService {
         }
         if (authorized == LanAuth.AUTH_OK_SET_COOKIE) {
           try {
-            writeLanRedirect(out, token);
+            writeLanRedirect(out, token, request.target);
           } finally {
             owner.close();
           }
@@ -516,9 +533,12 @@ public final class LanProxyService {
                 || request.value("Accept").toLowerCase(Locale.ROOT).contains("text/event-stream");
         if (stream) {
           if (!run.dispatch.stream(owner, () -> exchange.serve(true))) fail(503);
-        } else exchange.serve(false);
+        } else if (!run.dispatch.request(owner, () -> exchange.serve(false))) fail(503);
       } catch (java.net.SocketTimeoutException timeout) {
-        fail(408);
+        // A keep-alive idle timeout is not a request and must not leave an
+        // unsolicited 408 for a browser racing to reuse this connection.
+        if (first) fail(408);
+        else owner.close();
       } catch (HttpProtocol.Failure invalid) {
         fail(invalid.status);
       } catch (IOException error) {
@@ -586,7 +606,9 @@ public final class LanProxyService {
           client.out.flush();
         }
         HttpProtocol.Body body = response.responseBody(request);
-        if (response.status == 401 || response.status == 403) invalidateDshAuth(client.run, auth);
+        // A route-level denial is not proof that BrowserAuth itself expired.
+        // Keep the backend's denial intact; every subsequent request still has
+        // to pass the current run and backend's own authentication checks.
         boolean persistent =
             !request.close()
                 && body.kind != HttpProtocol.Kind.CLOSE
@@ -692,7 +714,8 @@ public final class LanProxyService {
     }
   }
 
-  private static void writeLanRedirect(OutputStream out, String token) throws IOException {
+  private static void writeLanRedirect(OutputStream out, String token, String target)
+      throws IOException {
     if (!isValidLanToken(token)) {
       com.deepseekharness.app.util.LanFailureResponse.write(
           out,
@@ -703,7 +726,9 @@ public final class LanProxyService {
     }
     String response =
         "HTTP/1.1 303 See Other\r\n"
-            + "Location: /\r\nCache-Control: no-store\r\n"
+            + "Location: "
+            + LanAuth.cleanRedirectTarget(target)
+            + "\r\nCache-Control: no-store\r\n"
             + "Referrer-Policy: no-referrer\r\n"
             + "Set-Cookie: "
             + LanAuth.COOKIE_NAME

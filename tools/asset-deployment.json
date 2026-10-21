@@ -104,7 +104,8 @@
     "web-integration/permission-full-access.js",
     "web-integration/session-interaction.js",
     "recovery-native-consent.cjs",
-    "lan-settings-upstream-contract.json"
+    "lan-settings-upstream-contract.json",
+    "deepseek-native-oauth-patch.json"
   ],
   "packagedTrees": [
     "app-integration",

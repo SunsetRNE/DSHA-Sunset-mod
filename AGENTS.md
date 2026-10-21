@@ -1,10 +1,12 @@
 # AGENTS.md
 
-> F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳定网页布局与合成位移；移动UI更新3.2.1（上游main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`）；新增直接保存Download/DSHA的一键备份。两版各 124 类/785 项 JUnit，0失败/错误（Standard 3、Low 76 跳过）；Release Lint 0错误，249/162 警告；实际APK七项门禁通过。首轮11个Standard旧系统测试受minSdk清单拦截，修正测试环境后重跑，原始失败保留。暂停设备/ADB/对话和长时验收。仅现有私有仓库，完整源码ZIP仍按项目路径直接展开固定构建输入；下载与最终远端状态以[关联Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)及本地独立发布回执为准。
+> F12 `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` / code190：修复插件查询阻塞、后台恢复后的LAN鉴权及欢迎说明保存时序，补齐中文分发文件与完整现行英文维护文档。两版各148类/939项JUnit，零失败/错误（Standard 3、Low 76跳过）；Release Lint零错误、249/162警告，八项精确APK检查通过。本轮无设备/ADB、真实账号/模型对话或新的长时验收。[APK与完整源码](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [English](docs/en/index.md)。F11仅为未上传的本地检查点。
 
 > build190 本轮用户决定（2026-10-19）：以已发布的 build170 / `v0.2.0-rc2`（8362bba747fcf84c19e436c3dbb594a0fc388a67）为源码基座，定向迁入 build187（ac7bf8eda8b46a22f6412b17ec3574bf895b1876）的全局授权、虚拟屏、任务通知等功能。保留生产旧数据、宿主 v5 备份和迁移链，不引入实验版 fresh-only 数据/备份架构。引擎恢复 `proot + proroot`，首次安装与未显式选择时默认稳定 `proot`，显式 `proroot` 可选；不迁入 bxroot。正式身份保持 `com.dsh.client` / E7E3 / 非调试，versionCode 190，基础版本及下载文件版本 `0.2.1-rc.2`，内置官方 DSH `0.2.1-rc.2`，Ubuntu base10 不变。危险的完整格式化生产入口与擦除后端仍退休，外置工作区不能清理或重放旧事务写删。标准版优先，历史 Low172 与既有正式交付原件保留。总资产、描述符、签名打包及交付由主代理统一完成；下面 build170 数量与版本按基座历史阅读。
 
 DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— 读它之前先读 [README.md](README.md)。
+
+**F12当前入口**：20261021.1413/code190；源码分发2206成员/198MD、Java adoption1026。测试及实际APK结果见F12记录；源码commit、ZIP摘要与远端状态由关联Release及独立外部回执绑定。宿主恢复只认领同一活跃Web，UNKNOWN保留独立launcher停止屏障；即使原launcher仍活，恢复proof失效也会拒绝当前页、旧DOM与后台任务恢复；旧函数负控及新函数正控分别保留。
 
 **仓库事实速览**：build170基座/code190，Java17/:app/arm64，DSH0.2.1-rc.2/base10，proot默认+proroot可选。固定包内启动入口及受管dsh包装继续保留。键盘动画期间不逐帧setPadding，原生有界帧通道用当前完整身份校验，网页只合成移动聚焦composer，末帧提交布局，失焦/分离/PiP清理。mobile3.2.1固定main10e58ce，保留安全服务端差异，不恢复上游撤回的#236。OneClickBackup复用NativeBackupJobs安全停止/v5/tar.gz/读回验证；Standard写Download/DSHA，Low旧系统首次选目录；不扫外置工作区、不默认导出原生密钥、不自动重启或重放。源码冻结、测试原始失败与补跑、精确APK资产及最终上传回执分开保存，不把浏览器机制回归写成手机FPS。完整源码ZIP直接展开固定输入；不能从F盘旧173构建。
 
@@ -14,7 +16,7 @@ DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— �
 
 ---
 
-## 目录地图（按包，先看这里）
+## 目录地图（build170历史数量；当前职责导航）
 
 ```
 app/src/main/java/com/deepseekharness/app/
@@ -66,7 +68,9 @@ app/src/main/java/com/deepseekharness/app/
 
 ---
 
-## 测试布局
+## 测试布局（build170历史快照）
+
+下列数量仅描述基座历史分布；F12实际选择类/XML、失败/错误/跳过与最终软件结果以[F12记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md)及统一回执为准，不从静态文件数推导执行数。
 
 `app/src/test/java/com/deepseekharness/app/` 共 172 个测试类，分布：`util/` 112、`backup/` 45、`core/` 6、`runtime/` 6、`vscreen/` 1、`ui/` 1、根包 1（`LanAuthTest`）。
 
@@ -113,10 +117,10 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 ### 数据与备份
 
 - **自动备份默认开启**（2026-09-17 要求，覆盖更早的禁用规则）：`AutomaticBackups` 支持每日指定时间、1–168 小时间隔、停止后三种模式（`util/AutomaticBackupPolicy` 有单测）；到期仍在运行则延后，不强停 Web / 终端；保留最近 3 份已验证自动副本，手动与未知记录不自动删除。
-- 宿主归档 v5 使用 `DSHA-data-v5-<UUID>.dshbak`，密码默认必需、原生 API Key 默认排除；先完整 AEAD 认证再预检，只写私有编号槽位。本机状态不能从用户归档生效；受管脚本、可执行配置和未知插件先隔离。
+- 用户导出 v5 使用无需密码的 `DSHA-data-v5-<UUID>.tar.gz`，封装 DSHADATA 完整性载荷；内部自动副本仍加密，旧加密原件读取仍需原密码并完整认证。原生 API Key 默认排除；先完整性/认证核验再预检，只写私有编号槽位。本机授权状态不能从用户归档生效；受管脚本、可执行配置和未知插件先隔离。
 - 数据格式不能由 APK 或 dsh 版本号推导：`DataFormatEvidence` 对未经完整检查的数据保留 unknown；发件人声称的已验证格式不能成为删除原件的依据。
 - 覆盖更新闲时清理可再生缓存及多余副本：保留至少两份健康且字节符合计划的副本，修改过或含额外文件的原件不删除；新重建通过核验后建立 `retired-proof.json` 再清理 `previous-linux`。
-- 完整格式化对会话、插件、配置、API Key、运行时等核心私有根保持严格删除与复核；仅 WebView 缓存等可重建目录可把持续 `ENOTEMPTY` 降级为明确警告。
+- 完整格式化的生产入口与擦除后端已退休，不恢复旧清理流程。外置工作区维护只断开私有引用，不遍历、覆盖或删除其内容；合法缓存清理仍须受控私有目标与 NOFOLLOW 核验。
 - 覆盖安装用原包名、同签名、非调试正式包，做非破坏性检查；不在正式数据上运行强杀、删 Bash、坏插件等故障注入。
 
 ### 运行时与更新
@@ -146,7 +150,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - **麦克风**：清单同时声明 `RECORD_AUDIO` 与 `MODIFY_AUDIO_SETTINGS`；由 `BrowserMicrophone` 按网页请求申请，不能在普通启动时预授权；只放行当前本机页面的纯音频请求，摄像头 / 屏幕音频拒绝；旧回调不能批准新页。
 - **设备验收经验**：`uiautomator dump` 会抑制其他无障碍服务；截图授权绑定 DSH generation，停止 / 断连 / 撤销后失效；截图存应用私有 Pictures/DSHA，无需所有文件访问；PiP 可能盖住底部控件，自动化必须核对实际可见区域与屏幕方向；截图 / 读屏不可将敏感值写入公开取证文件。
 - Shizuku 必须注册 `rikka.shizuku.ShizukuProvider`；标准版 13.1.5 / 兼容版 12.2.0（不用 overrideLibrary 掩盖 minSdk 24）。回调严格核对管理器 UID、Binder 描述符、单次请求与超时。
-- 内置移动插件 `dsh-web-mobile` 标 3.0.3，源码固定到 `a094288883b343e848d7f9cf302d73ad8ed4794b`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的整批改动；上游已接管的 rc1 导航补丁不要重新套回。
+- 内置移动插件 `dsh-web-mobile` 为 3.2.1，固定上游 main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
 
 ---
 
@@ -175,7 +179,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ## 交付与验收
 
-- 2054及2330为现有私有仓库已发布历史；当前F10仍使用`SunsetRNE/DSHA-Sunset-mod-3090-Q`，最终远端状态以关联Release及独立发布回执为准。本地Standard仍为 `<local-workspace>`，不能将旧包或旧测试替代F9最终证明。
+- 2054、2330/F9及0140/F10为现有私有仓库已发布历史；当前F12/1413仍使用`SunsetRNE/DSHA-Sunset-mod-3090-Q`，最终软件和精确APK结果见F12记录，附件及远端状态由关联Release及独立外部回执核验。本地Standard目标仍为 `<local-workspace>`，不能将其中旧包或旧测试替代F12最终证明。
 - 所有设备操作已暂停，不安装、启动、关闭或对话；软件检查核对实际包名、code190、E7E3及`debuggable=false`，不以检查通过授权操作手机。
 - Git保留构建必需、有notice/锁的小型JNI/vendor/解释器预编译依赖及27个必要历史构建源码、唯一website夹具；不宣称所有vendor native可从源码重现。大生成归档不入Git；Release完整源码ZIP额外含ci-assets.py逐SHA核对的原始大构建输入，配置工具链后按recipe构建，不需独立bundle，不能从APK逆恢复全部输入。6个审计JSON原路径白名单见[CONTRIBUTING](CONTRIBUTING.md)。私钥、用户数据、设备图/日志和历史现场不上传；ZIP自身摘要只写Release正文，避免自引用。
 - 验收范围如实声明：不把本机验证扩写成 Android 6/7、16 KiB 或全部外部模型服务矩阵完成；Standard/Low 与虚拟屏能力按实际设备证据声明。
@@ -206,9 +210,9 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 | [CHANGELOG.md](CHANGELOG.md) | 完整更新记录 |
 
 
-## build190 fix1 补充（2026-10-19起，所列有限验收已完成）
+## build190 fix1 历史补充（2026-10-19，所列有限验收仅属当时APK）
 
-当前本地日期版versionName **`0.2.1-rc.2-20261019.2352-dsh0.2.1-rc.2`**，versionCode190、`com.dsh.client`和下载文件名 `dsha-0.2.1-rc.2.apk` 不变。正式APK SHA-256 `5b1d8f5d6f71c7527f48d336013c74c6a2bf9e4f8811df6d416337deaac1ac38`，314,189,001 bytes；`fix1-dated-version-final` 91.39秒通过，两版各511项零失败/错误（Standard508pass/3skip、Low481pass/30skip），Lint0error、253/165warning，runtimeId仍为 `fa4759062b5cc65fea8bdff170fc4554083555f598d42596f57ad023d0442da8`。15:53:39 UTC正常停止后精确同签名覆盖并原名早交付，安装APK摘要匹配、UID/首次安装时间保持，f744入history。
+fix1当时本地日期版versionName **`0.2.1-rc.2-20261019.2352-dsh0.2.1-rc.2`**，versionCode190、`com.dsh.client`和下载文件名 `dsha-0.2.1-rc.2.apk` 不变。正式APK SHA-256 `5b1d8f5d6f71c7527f48d336013c74c6a2bf9e4f8811df6d416337deaac1ac38`，314,189,001 bytes；`fix1-dated-version-final` 91.39秒通过，两版各511项零失败/错误（Standard508pass/3skip、Low481pass/30skip），Lint0error、253/165warning，runtimeId仍为 `fa4759062b5cc65fea8bdff170fc4554083555f598d42596f57ad023d0442da8`。15:53:39 UTC正常停止后精确同签名覆盖并原名早交付，安装APK摘要匹配、UID/首次安装时间保持，f744入history。
 
 本包15:55:04 UTC实际DSH就绪/proroot/0.2.1-rc.2/环境READY，日志 **7.7秒后端鉴权就绪、无fallback**；15:55:29 UTC同一既有验收会话可读。
 

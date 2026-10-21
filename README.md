@@ -21,7 +21,7 @@
 
 > 🤖 下一个 AI / 开发者请先读 **[AGENTS.md](AGENTS.md)**（项目结构、启动契约、踩过的坑），不要先全库扫描。
 
-> **键盘性能、移动UI与一键备份更新。** F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳定网页布局与合成位移；移动UI更新3.2.1（上游main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`）；新增直接保存Download/DSHA的一键备份。两版各 124 类/785 项 JUnit，0失败/错误（Standard 3、Low 76 跳过）；Release Lint 0错误，249/162 警告；实际APK七项门禁通过。首轮11个Standard旧系统测试受minSdk清单拦截，修正测试环境后重跑，原始失败保留。暂停设备/ADB/对话和长时验收。仅现有私有仓库，完整源码ZIP仍按项目路径直接展开固定构建输入；下载与最终远端状态以[关联Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)及本地独立发布回执为准。 [F10记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+> F12 `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` / code190：修复插件查询阻塞、后台恢复后的LAN鉴权及欢迎说明保存时序，补齐中文分发文件与完整现行英文维护文档。两版各148类/939项JUnit，零失败/错误（Standard 3、Low 76跳过）；Release Lint零错误、249/162警告，八项精确APK检查通过。本轮无设备/ADB、真实账号/模型对话或新的长时验收。[APK与完整源码](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [English](docs/en/index.md)。F11仅为未上传的本地检查点。
 
 本仓库是由 [SunsetRNE](https://github.com/SunsetRNE) 维护的 DSHA 安卓适配与预发布分支，工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，内置 Harness 来自 [DeepSeek 上游项目](https://github.com/deepseek-ai/deepseek-harness)。版本锁、组件许可、构建身份与验证范围均可在来源文档中核查；本分支负责自身的构建、签名与发布。
 
@@ -62,7 +62,7 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 ## 私有预发布下载
 
-访问私有仓库需已有权限。本轮版本 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` /190 的 [APK与完整源码ZIP](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)使用同一Release；准确附件摘要及发布状态以该页为准，软件与实际APK结果见[F10记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。2330 / `7fa70c5` 为已发布历史版本。
+访问私有仓库需已有权限。本轮F12 `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` /190 的[标准版APK与完整源码ZIP](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413)使用同一Release；[中文记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md)与[完整英文记录](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md)说明软件结果及未验范围。F10为已发布历史基线，F11未上传。
 
 | 内容 | 说明 |
 |---|---|
@@ -71,7 +71,7 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 一键备份位于“数据与备份”，无需密码，直接保存到 `Download/DSHA`。备份会安全停止DSH和运行任务，完成后手动启动；包含应用数据及当前应用内工作区，外置工作区内容请另备。恢复和更多选项保留。
 
-本轮暂停真机验收，软件通过不代表手机帧率或全设备通过。原仓库、网站与旧Low交付保留，历史公开下载另列下方。
+本轮暂停真机验收；最终软件结果也不能代表手机帧率、真实账号登录、Wi-Fi切换或全设备通过。原仓库、网站与旧Low交付保留，历史公开下载另列下方。
 
 <details>
 <summary>历史公开下载与build170记录，不是本轮预发布</summary>
@@ -139,7 +139,7 @@ build170发布时为 **GitHub 正式版 / Latest**，不标记预发布；版本
 | 能力 | 说明 |
 |---|---|
 | 内置离线 rootfs | Ubuntu 24.04 (noble) arm64 打进 APK，无网也能完成环境部署 |
-| 六步安装流水线 | 解压 → 基础工具 → Node.js → pnpm → dsh → 补丁，每步先探测再执行、装完即校验；只修失败项，不从头重来 |
+| 六步组件检查 | Linux 环境 → 基础工具 → Node.js → pnpm → dsh → 运行补丁；先检查，按需修复允许修补的失败项并复验。已有环境、Node 和 dsh 的替换须走保数据维护，详见[安装与维护](docs/install-and-maintenance.md) |
 | 分步重装 / 更新 | rootfs、工具、Node、harness 相互独立，可单独重装，不重复下载 |
 | 双装机路径 | 预构建包与源码构建都支持，源码路径自动处理 node-pty 等原生模块编译 |
 | 离线工具链 | curl / git / Python / 证书随包锁定版本（`packages.lock.json`），不依赖用户先跑 `apt` |
@@ -360,11 +360,13 @@ python3 tools/run-host-tests.py --stage fast
 
 Windows使用`gradlew.bat`。测试任务名中的Debug只表示测试变体，不要求生成或安装调试APK。正式包需既有E7E3签名凭据，并核对实际APK身份、资产、许可与摘要。Git检出不含大生成归档；完整打包使用Release源码ZIP内逐SHA核对的原始构建输入和现有recipe，无需另找独立bundle，也不能从APK逆还原全部输入。必要小型预编译依赖保留，但不承诺所有vendor native可从源码复现。私钥、用户数据、设备图或日志不进入交付。
 
-编译流程沿用[预发布范围与编译指引](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。F9补SDK29后同5任务152.31秒、两版110类/705项及7项实际APK门禁通过，首轮依赖失败保留。StartupTrace未归属具体插件的核心错误用通用标签，WebProcSel另行保守识别当前PATH前缀pre-exec writer，不凭shell文本发signal。IME跟帧resize/失焦清理不升级移动插件；ZIP输入仍按项目路径直接展开，不嵌套输入包。
+当前范围见[F12构建与证据记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md)，各阶段命令见[BUILD](BUILD.md)。本轮源码分发清单为2206个成员、198篇Markdown；完整源码ZIP的固定输入直接展开到项目路径，不嵌套输入包。最终源码、测试结果、APK与ZIP摘要由统一交付回执绑定。F9/F10的选择集和原始失败继续保留在各自历史记录，不作为F12测试数。
 
 ---
 
 ## 文档索引
+
+完整导航见[文档总索引](docs/documentation-index.md)与[31主题缺口核对矩阵](docs/documentation-gap-matrix.md)。新增备份恢复、安装维护、更新、桥/文件、应急、诊断、插件权限、终端、PiP、语言及通知等专题；当前指南、历史说明和未分发本机证据分开标明。
 
 | 文档 | 内容 |
 |---|---|
@@ -400,6 +402,8 @@ QQ 群 **975836806** —— 测试版、问题反馈、插件交流。
 
 ## Star History
 
+本轮原仓库Star快照为1827（2026-10-21）；这是原仓库历史统计，不是当前私有仓库的Star数。
+
 <a href="https://github.com/DSH-APP/DSHA/stargazers">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/star-history-dark.svg" />
@@ -408,4 +412,4 @@ QQ 群 **975836806** —— 测试版、问题反馈、插件交流。
   </picture>
 </a>
 
-<sub>由 [`tools/gen-star-history.py`](tools/gen-star-history.py) 按周读取 GitHub 星标时间并更新（[workflow](.github/workflows/star-history.yml)）。浅色、深色 SVG 保存在本仓库；曲线按当前仍保留的星标汇总。</sub>
+<sub>本源码包含 2026-10-21 核对的上游公开仓库静态快照及[聚合数据](docs/star-history.json)，只保存日期与数量。通过 [`tools/gen-star-history.py`](tools/gen-star-history.py) 设置 `STAR_REPO=DSH-APP/DSHA` 可手动重新生成；本私有预发布分支不声明已配置定时更新。</sub>

@@ -2,7 +2,7 @@
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[贡献流程](CONTRIBUTING.md) 与[接手指南](docs/接手指南.md)。应用版本以 `app/build.gradle` 为准，DSH 依赖以 `tools/dsh-runtime/package.json`/锁文件为准，完整交付和未验证范围以本轮报告为准。
 
-F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳定网页布局与合成位移；移动UI更新3.2.1（上游main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`）；新增直接保存Download/DSHA的一键备份。两版各 124 类/785 项 JUnit，0失败/错误（Standard 3、Low 76 跳过）；Release Lint 0错误，249/162 警告；实际APK七项门禁通过。首轮11个Standard旧系统测试受minSdk清单拦截，修正测试环境后重跑，原始失败保留。暂停设备/ADB/对话和长时验收。仅现有私有仓库，完整源码ZIP仍按项目路径直接展开固定构建输入；下载与最终远端状态以[关联Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.0140)及本地独立发布回执为准。 详细范围见[F10追加记录](docs/releases/v0.2.1-rc.2-build190-prerelease-20261020.md)。
+F12 `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` / code190：修复插件查询阻塞、后台恢复后的LAN鉴权及欢迎说明保存时序，补齐中文分发文件与完整现行英文维护文档。两版各148类/939项JUnit，零失败/错误（Standard 3、Low 76跳过）；Release Lint零错误、249/162警告，八项精确APK检查通过。本轮无设备/ADB、真实账号/模型对话或新的长时验收。[APK与完整源码](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [English](docs/en/index.md)。F11仅为未上传的本地检查点。
 
 本机本轮源码在 `<local-workspace>`；`<local-workspace>`的旧173检出不是当前构建源。其他机器使用新私有仓库最终tag/完整commit或对应源码附件。
 
@@ -24,13 +24,15 @@ F10 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2` / code190：键盘动画改为稳�
 
 ## 输入准备与证明
 
-Git保留完整应用、资源、锁定生成/校验脚本，以及构建必需且有notice/锁的小型JNI/vendor/解释器预编译依赖；大型rootfs、DSH和recovery生成归档不入Git。来源未知或闭源的vendor限制按实际材料保留，不能宣称所有vendor native均可从源码复现。精确边界与6个必需审计JSON白名单见[CONTRIBUTING](CONTRIBUTING.md)。
+Git保留完整应用、资源、锁定生成/校验脚本，以及构建必需且有notice/锁的小型JNI/vendor/解释器预编译依赖；大型rootfs、DSH和recovery生成归档不入Git。来源未知或闭源的vendor限制按实际材料保留，不能宣称所有vendor native均可从源码复现。精确边界与9个显式审计JSON白名单见[CONTRIBUTING](CONTRIBUTING.md)：原6项构建输入元数据加3项历史文档/来源元数据，不开放整个audit目录。
 
-Release完整源码ZIP在上述源码之外，额外包含由`tools/ci-assets.py --pack`逐SHA核对的`locked-current-build-inputs.zip`中的原始输入文件；这些文件按项目路径直接展开，不嵌套该ZIP。当前输入包738,099,607 bytes，包括约304MB原rootfs、约148MB DSH输入等；不是完整源码ZIP大小。前包738,099,619 bytes与其仅差`ubuntu-tools.inputs.json`行尾12字节，归档二进制不变、JSON语义一致，不称两个packet全部原字节相同。配置工具链后按现recipe构建，无需独立bundle。Git clone可做源码-only检查，完整打包需ZIP固定输入；APK约85MB offline-rootfs不能逆还原约304MB原rootfs，不提供APK恢复所有输入的helper。
+Release完整源码ZIP额外包含固定输入包`locked-current-build-inputs.zip`中的原始文件，按项目路径直接展开，不嵌套该ZIP。F12新制输入包为738,101,575 bytes，SHA-256 `f9bdac3d061b07204e69fe6c0d603c096d3d2081b79a866a5ca0a7d8adb87ad0`，由`tools/ci-assets.py --pack`逐SHA核对；该大小不是完整源码ZIP大小。旧738,099,607/738,099,619-byte输入包及12字节行尾差异属于F10及更早历史，不能代替本轮输入身份。配置工具链后按当前recipe构建，无需独立bundle；Git clone可做source-only检查，完整打包仍需固定原始输入。APK中的变换层不能逆还原全部原始rootfs，不提供从APK恢复所有输入的保证。
 
-可分发源码写LF原字节；`.gitattributes`中的10项managed/canonical bytepin及历史原件保留精确原字节，不能全库规范化已签名输入。小型二进制输入19项按清单保留，不以文本行尾规则改写。共享UUID校验由Ids提供，补齐四处调用依赖并保持历史格式。
+可分发源码写LF原字节；`.gitattributes`中的12项managed/canonical bytepin及历史原件保留精确原字节，不能全库规范化已签名输入。小型二进制输入19项按清单保留，不以文本行尾规则改写。共享UUID校验由Ids提供，补齐四处调用依赖并保持历史格式。
 
-F8当前999 Java为996文件精确未变、3个重新formatter检查0needs，完整adoption999约束继续；此前38批读取、20变更实查/sourceSHA复用及43独立style文件token全等/fixed point记录保留，不当作JUnit数量。F7正式构建曾因真实宿主Core重绑定竞态失败；F8三文件最小修复有22项宿主正控通过、两个各1项/1预期失败负控，正式XML/Lint与7项实际APK门禁另按本轮结果记录。宿主不代表手机复现。原失败日志保留，最终包在所有源码与元数据修复后重建。
+F12当前Java adoption范围为1026项：与F11完全相同的源码继承精确SHA证明，16个变更叶子及交叉复核后的3个小叶另有fresh格式/token检查；完整inventory无遗漏。源码分发为2206成员/198篇Markdown，包含补齐的中文分发文件与完整现行英文维护集。分发计数、formatter/token证明与JUnit执行数分别记录，最终清单以冻结回执为准。
+
+历史F8的999项Java证明、此前分批读取/style等价证明及F7宿主Core重绑定失败/修复正负控仍保留原记录；它们不是F12现行adoption范围或测试数。旧软件、APK与设备结论各属原源码/摘要，最终F12软件与精确APK结果由统一回执绑定。
 
 Ubuntu基础环境身份独立于DSH与UI版本。`offline-rootfs.bin` / `dsh-runtime.bin`为split-runtime-v1，独立应急pinned输入由`tools/recovery-runtime/lock.json`约束，不能用正式环境作为救援依赖。没有大归档的源码检出不能直接当成完整APK，也不能跳过完整性门禁。
 
@@ -70,7 +72,7 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 
 本轮发布Standard APK，软件验证覆盖受影响的两版测试与Release Lint，并核对实际Standard APK/资产/ELF、签名、许可、插件/应急门禁及精确摘要。JUnit选择类、跳过、缓存复用与未跑范围分别记录，不冒称全库clean或完整冷网络构建。JNI静态审计使用对应Release APK，不推荐旧Debug产物；旧Low原件保持，不把Low软件检查写成新Low交付或设备验收。
 
-本地Standard正式产物为 `<local-workspace>`，对应摘要在本地核对并随发布记录。历史版本和旧Low字节保留，`app/build`中间包不冒充交付。现有私有仓库Git不收大生成归档；Release只附正式APK与含固定构建输入的完整源码ZIP，SHA-256写在Release正文，源码ZIP自身README不写该ZIP摘要以免自引用。私钥、用户数据、设备截图/日志和历史取证材料不上传。必要6个审计元数据、27个历史构建源码与唯一website测试夹具按交付清单保留，不等于上传历史现场。2054与2330/F9为已发布历史，本页F10的软件与APK核验已完成；当前源码、两附件和远端状态以README关联Release及独立发布回执为准。
+本地Standard正式产物为 `<local-workspace>`，对应摘要在本地核对并随发布记录。历史版本和旧Low字节保留，`app/build`中间包不冒充交付。现有私有仓库Git不收大生成归档；Release只附正式APK与含固定构建输入的完整源码ZIP，SHA-256写在Release正文，源码ZIP自身README不写该ZIP摘要以免自引用。私钥、用户数据、设备截图/日志和历史取证材料不上传。必要9个显式审计元数据、27个历史构建源码与唯一website测试夹具按交付清单保留，不等于上传历史现场。2054、2330/F9与0140/F10为已发布历史；本页当前为20261021.1413/F12；最终软件及精确APK结果见F12记录，源码commit、两附件及远端状态由关联Release与独立外部回执绑定，旧APK和历史报告不能替代本轮证明。
 
 `ci-package` 的未签名完整包只用于软件验证，不用于手机安装或 release。配置文件不能证明受保护环境、签名线上运行和仓库保护已配置；实际部署与发布需要相应证据。
 

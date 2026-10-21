@@ -364,6 +364,11 @@ def make_backup(root, output, scope, app_version="unknown", app_code=0,
                 except OSError:
                     pass
         for path, previous, excluded in checks:
+            if excluded == 'DSHA_MANAGED_PACKAGE_PROOF':
+                current = plugin_support('register-builtin-plugins.py').package_content_proof(path)
+                if current != previous:
+                    raise ValueError('备份期间受管插件内容变化，请停止 Web 后重试：' + str(path))
+                continue
             if excluded is None:
                 now = path.stat()
                 current = (now.st_size, now.st_mtime_ns)

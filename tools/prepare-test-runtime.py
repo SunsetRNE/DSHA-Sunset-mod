@@ -70,15 +70,15 @@ def prepare(args):
         builder.STORAGE_JSON_MODULE, builder.WORKSPACE_DIRECTORY_MODULE,
         builder.SESSION_PERSISTENCE_JSONL_MODULE,
         '@deepseek-ai/dsh-session-format-v2-to-v3/lib/index.js'}
-    for target in sorted(targets):
-        source=io_path(raw/'node_modules'/target)
-        physical=io_path(modules/target)
+    for module_target in sorted(targets):
+        source=io_path(raw/'node_modules'/module_target)
+        physical=io_path(modules/module_target)
         if not source.is_file() or not physical.is_file():
-            if target in chains:raise ValueError('OVERLAY_MODULE_MISSING:'+target)
+            if module_target in chains:raise ValueError('OVERLAY_MODULE_MISSING:'+module_target)
             continue
         canonical=source.read_bytes()
-        prepared=builder.patched_content(Path(target), canonical)
-        if target in chains:prepared=builder.apply_stable_patches(prepared, chains[target])
+        prepared=builder.patched_content(Path(module_target), canonical)
+        if module_target in chains:prepared=builder.apply_stable_patches(prepared, chains[module_target])
         physical.write_bytes(prepared)
     for folder,name in [('runtime-fs','dsha-runtime-fs'),('session-compat','dsha-session-compat'),('client-combo-cache','dsha-client-combo-cache')]:
         shutil.copytree(io_path(ASSETS/folder),io_path(modules/name),dirs_exist_ok=True)

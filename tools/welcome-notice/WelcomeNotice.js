@@ -47,10 +47,12 @@ function WelcomeNotice(props) {
     status: state.status,
     persistence: state.mode,
     request: state.request,
+    phase: state.phase,
+    attempts: state.attempts,
     elapsedSeconds: saving ? Math.max(0, Math.floor((now - state.startedAt) / 1000)) : null,
     result: state.error,
     // 这里只描述界面等待状态，不能据此宣称宿主请求已经取消。
-    hostRequestMayStillComplete: saving || state.detached === true
+    hostRequestMayStillComplete: saving || state.detached === true || state.error === "save-exception"
   }, null, 2);
   return (0, react_jsx_runtime.jsxs)(OnboardingModal, {
     title: t("welcomeTitle"),

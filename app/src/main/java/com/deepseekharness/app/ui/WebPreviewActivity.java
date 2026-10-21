@@ -881,7 +881,9 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
       if (!request.isForMainFrame()) return false;
       String url = request.getUrl().toString();
       if (WebPreviewPolicy.pageDownload(baseUrl, url)) return false;
-      if (request.hasGesture()) openExternal(url);
+      if (request.hasGesture()
+          || com.deepseekharness.app.util.DeepSeekOAuthNavigation.allowed(
+              baseUrl, view.getUrl(), url)) openExternal(url);
       return true;
     }
 
