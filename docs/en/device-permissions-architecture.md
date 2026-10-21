@@ -1,6 +1,6 @@
 # Device permissions and execution-channel architecture
 
-This maintainer guide uses F10 as a reference and follows the build190/F11 working tree as of 2026-10-21. It explains permission layers, entry points, storage, revocation and troubleshooting. Consult the [F11 record (original-language evidence)](../releases/v0.2.1-rc.2-build190-fix11-20261021.md) for its recorded software/APK scope and results. This is not a Root tutorial or a guarantee of any ROM capability. The documentation work reviewed source, tests and official references without building, running tests or operating a device.
+This maintainer guide explains permission layers, entry points, storage, revocation and troubleshooting. Its original F10/F11 reference and historical software/APK scope are recorded in the [F11 report (original-language evidence)](../releases/v0.2.1-rc.2-build190-fix11-20261021.md). The Root sections were rechecked on 2026-10-22 against maintenance source `140c7ba277fc2a91a9b8fd8cb5a24bc35a5c41c5`. This is not a Root tutorial or ROM-compatibility guarantee. That Root review covered source, pinned upstream files and isolated host-policy checks; it did not operate a real su manager or read phone SMS. Later performance acceptance requires new records bound to the actual APK, not this page as evidence of device success.
 
 For the project entry point, see the [architecture handbook](project-architecture-handbook.md); for runtime and data transactions, see [runtime, data and plugin architecture](runtime-data-plugin-architecture.md). Separate displays are covered in [virtual-screen architecture](virtual-screen-architecture.md) and [ADR 0003](adr/0003-virtual-screen-lifecycle-and-input.md). Same-UID and approval boundaries are covered in the [security model](security-model.md), [ADR 0001](adr/0001-build154-boundaries.md) and [ADR 0002](adr/0002-current-threat-model.md). See [references and provenance](references-and-provenance.md) for sources and project-evidence categories.
 
@@ -48,7 +48,7 @@ The API37 gate comes from current source. It does not imply identical behavior a
 
 ### 3.1 Discovery does not request Root
 
-[RootShell.enabled/present/status](../../app/src/main/java/com/deepseekharness/app/RootShell.java) represent the local switch, verifiable su candidates and the latest execution status respectively. `present()` only checks known locations from [RootShellCandidates](../../app/src/main/java/com/deepseekharness/app/util/RootShellCandidates.java). A candidate must be a root-owned regular executable and must not be writable by group/other. Discovery does not execute su or trust an application-controlled PATH. Finding su therefore does not mean the manager has granted permission, and enabling the switch does not guarantee that a command can execute.
+[RootShell.enabled/present/status](../../app/src/main/java/com/deepseekharness/app/RootShell.java) represent the local switch, verifiable su candidates and the latest execution status respectively. `present()` only checks known locations from [RootShellCandidates](../../app/src/main/java/com/deepseekharness/app/util/RootShellCandidates.java). Candidates are checked using the owner, regular-file type and group/other write bits returned by `Os.stat`, plus executable access. Discovery does not execute su or trust an application-controlled PATH. `Os.stat` follows links, and a kernel su-compatibility hook can mediate its result. These are metadata checks, not binary provenance, manager identification or a complete parent-chain NOFOLLOW guarantee. The nine fixed candidates are DSHA discovery policy, not an exhaustive installation-path contract from Magisk, KernelSU or APatch; arbitrary custom su paths are not covered. Finding su therefore does not mean the manager has granted permission, and enabling the switch does not guarantee execution.
 
 ### 3.2 Execution entry
 
@@ -56,7 +56,17 @@ The API37 gate comes from current source. It does not imply identical behavior a
 
 ### 3.3 Bounded execution and failure
 
-The outer Root collector currently limits work to 65 seconds/400000 bytes; commands inside ShellService have their own deadline and output bound. An incomplete result, timeout, interruption or channel error remains `EXECUTION_UNKNOWN`; RootShell does not resend through Shizuku/ADB. Destroying this local helper proves neither that the remote action never happened nor that all its descendants exited. Root status records the latest channel outcome, not permanent capability permission. Turning Root off prevents subsequent selection and revokes corresponding virtual-screen requests; it does not promise rollback of an already dispatched action.
+`runPrivileged()` synchronously calls `ProcessBuilder.start()` and writes JSON to stdin before entering `BoundedProcessRunner.collect()`. Its 65-second/400000-byte budget limits result collection, not preceding process creation or synchronous stdin writes, so it is not a 65-second deadline for the entire Root request. Commands inside ShellService have their own deadline and output bound. An incomplete result, timeout, interruption or channel error remains `EXECUTION_UNKNOWN`; RootShell does not resend through Shizuku/ADB. Destroying this local helper proves neither that the remote action never happened nor that all its descendants exited. Root status records the latest channel outcome, not permanent capability permission. Turning Root off prevents subsequent selection and revokes corresponding virtual-screen requests; it does not promise rollback of an already dispatched action.
+
+### 3.4 Upstream su semantics and compatibility evidence
+
+DSHA consumes an existing su; its APK does not implement the Magisk, KernelSU or APatch privilege-escalation kernel. Section 5.1 of [references and provenance](references-and-provenance.md) records the pinned commits and reviewed files. Those upstreams authorize callers and establish execution identities; DSHA owns its command, SMS, media-path and virtual-screen guards.
+
+KernelSU can redirect stat/access/exec for allowed UIDs. KernelPatch, used by APatch, also provides compatibility entry points based on caller authorization and configured su paths. Failure to discover a file therefore does not always mean the device is unrooted: authorization and hook configuration affect visibility. Do not disable guards or trust arbitrary PATH entries to make discovery pass.
+
+After manager approval, the actual UID still matters. KernelSU/APatch profiles can select another UID, while capabilities, SELinux and mount namespaces affect available operations and APK-path visibility. RootShellMain requires UID 0; DSHA does not treat a nonzero identity as Root success or override those manager settings.
+
+This page provides no real-device matrix for all three managers, versions, hidden/compatibility modes, custom paths or ROMs. RootShellCandidatesTest uses injected candidate predicates and never executes real su. Dry plans and isolated ADB regressions do not complete that matrix.
 
 ## 4. Shizuku: Binder, permission and execution-service connection are separate
 
@@ -130,7 +140,11 @@ File operations use explicit paths and dedicated implementations; Root is not pe
 
 ### 6.2 SMS is a separate sensitive-read domain
 
-`DeviceGrants.smsReadAllowed()` is off by default; global confirmation does not replace it. Native plans permit only restricted `content://sms` queries for the current Android user, not sending, modification or deletion. Shizuku UserService does not possess application authorization records, so general sensitive reads are rejected; the current SMS path uses Root or ADB after native authorization. Root file-reading paths also recheck SMS-provider and canonical paths, preventing database-file access from bypassing this domain. Android/the provider may refuse even an allowed plan. SMS text and verification codes must not enter public diagnostics.
+`DeviceGrants.smsReadAllowed()` is off by default; global confirmation does not replace it. Native plans permit only restricted `content://sms` queries for the current Android user, not sending, modification or deletion. Shizuku UserService does not possess application authorization records, so general sensitive reads are rejected; the current SMS path uses Root or ADB after native authorization. Root file-reading paths recheck command-line and canonical paths in [DeviceShellExecutor.validateRootReadPaths](../../app/src/main/java/com/deepseekharness/app/DeviceShellExecutor.java); ADB applies corresponding checks in [validate_root_reads](../../app/src/main/assets/device-shell-policy.py). Recognized SMS-provider paths and recursive ancestors are rejected.
+
+**Known implementation gap (2026-10-22 review baseline `140c7ba`; unresolved)**: nested symlink targets encountered after dispatch of a recursive READ are not validated individually. Upstream Toybox `grep -R` follows symlinks; accepting a top-level path does not prove its whole traversal safe. An isolated check confirmed that production Java policy accepts this READ form and the Python executor dispatches after top-level checks. No real phone SMS was read and no ROM-specific exploit was demonstrated. NOFOLLOW in the managed FILE adapter does not repair this separate READ gap.
+
+A traceable main call chain does not establish complete protection or documentation-only problems. Repair requires restricting affected read options or using a verifiable reader, plus execution-side negative regressions; changing this text is not a code fix. Android/the provider may refuse even an allowed plan. SMS text and verification codes must not enter public diagnostics.
 
 ## 7. Accessibility: system binding and DSHA screen permission are separate gates
 

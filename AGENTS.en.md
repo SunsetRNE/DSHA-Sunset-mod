@@ -1,6 +1,8 @@
 # AGENTS.md — English contributor and agent guide
 
-> Current publication identity: **`dsh.android.client`**, retaining version/code190, E7E3 and all features. This supersedes historical package rules below. Old `com.dsh.client` data are separate; use backup export/restore to migrate. This publication is authorized for DSH-APP/DSHA and the existing private maintenance repository. [Current record](docs/en/releases/v0.2.1-rc.2-build190-package-rename-20261021.md).
+> **2026-10-22 performance maintenance:** `0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2` / code190 / `dsh.android.client` / E7E3 non-debug Standard. This identity and default proot/optional proroot supersede older rules. Same-phone complete isolated initialization65.128→42.772 seconds; production warm authentication proot12.8/12.5/12.3, proroot6.8/5.2/5.4 seconds (limited sequential/cache samples, no general percentage guarantee). Exact APK292,159,963 bytes, SHA `d77bf985a5f9ec49be0667625894bcd16c5f3a23df2210a837527af8a172a947`. Selected JUnit1,143 cases per flavor have zero failures/errors in segmented results; skips3/76 and Lint warnings249/162 remain. Actual stopped upgrade, cold workflow, both production engines/Web, three background returns and independent emergency start/normal stop were checked; no real model conversation, new endurance or controlled power comparison. Upgrade-trial proroot126 followed by proot fallback is not proroot success. The recursive READ child-symlink gap remains unfixed and documented. Public DSHA uploads/PR/publication remain paused; private maintenance delivery only, Low172 unchanged. [Report](docs/en/releases/v0.2.1-rc.2-build190-performance-20261022.md) · [Call chain and rollback](docs/en/performance-startup-20261022.md).
+
+> Current publication identity: **`dsh.android.client`**, retaining code190, E7E3 and features; the diagnostic version is established above. This supersedes historical package rules below. Old `com.dsh.client` data are separate; use backup export/restore to migrate. Current authorization keeps uploads, PRs and publication to public DSH-APP/DSHA paused; upload this round only to the existing private maintenance repository after fixes and acceptance. [Current record](docs/en/releases/v0.2.1-rc.2-build190-package-rename-20261021.md).
 
 
 Current F13 frozen inventory: 2215 source members / 200 Markdown documents; 1029 adopted Java files. Distribution/format proofs and JUnit execution counts are separate. The fixed packet is 738,101,893 bytes, SHA-256 `da3a87e9782469136f08d37143582fec845af1a69406b9a534f8cb7f68249ed8`. Originals expand directly at project paths, not as a nested packet. These are not the complete source ZIP's size or digest.
@@ -57,8 +59,11 @@ app/src/main/java/com/deepseekharness/app/
 | `PtySession` | Termux terminal-emulator JNI wrapper for a real PTY |
 | `ShizukuShell` / `RootShell` / `ShellService` / `AdbKeepAliveReceiver` / `BootReceiver` | Channel implementations and boot/keepalive receivers |
 | `DshaDocumentsProvider` | File-manager access to private directories, including MT Manager |
-| `DangerShellGuard` / `BridgeAskDialog` / `ConfirmReceiver` | Command confirmation through notification/dialog/overlay and agent questions |
+| `DeviceShellPolicy` / `DeviceShellExecutor` | Parse and guard managed device commands before execution; approval does not override explicit rejection, including through Root |
+| `BridgeAskDialog` / `ConfirmReceiver` | Native business questions and security-notification replies; global confirmation does not answer business choices |
 | `DshaApp` / `UpdateDownloadService` | Application entry, including early system-language capture; in-app update downloads |
+
+For Root maintenance, use [permission architecture](docs/en/device-permissions-architecture.md) and the [pinned upstream review scope](docs/en/references-and-provenance.md): nine su candidates and metadata checks do not identify a manager or prove compatibility with every version. The 65-second budget covers result collection only. Review of `140c7ba` on 2026-10-22 found that recursive READ does not validate nested symlink targets, leaving an SMS-protection implementation gap. Do not describe this as documentation-only or complete bypass prevention. Record the unresolved state, regressions and device evidence separately. Historical `DangerShellGuard` is absent from the production call chain.
 
 ### Layer ownership — read before changing code
 

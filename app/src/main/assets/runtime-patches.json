@@ -19,7 +19,7 @@
       "asset": "welcome-notice-patch.json",
       "markers": [
         "DSHA_WELCOME_NOTICE_RC2_V1",
-        "DSHA_WELCOME_STORE_RC2_V1"
+        "DSHA_WELCOME_STORE_RC2_V3"
       ]
     },
     {

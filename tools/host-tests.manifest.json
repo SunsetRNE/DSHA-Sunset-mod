@@ -1759,6 +1759,22 @@
       "cli": "no positional arguments; explicit current fixture requirements"
     },
     {
+      "path": "tools/test-welcome-notice-patch-upgrade.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "raw",
+        "jdk17"
+      ],
+      "timeoutSeconds": 120,
+      "args": [
+        "--jdk",
+        "{jdk}"
+      ],
+      "environment": {},
+      "reason": "Locked historical F10 V1 recipe versus current V3; real production Java canonical repair and archive-path stale-marker negative controls; no device or archive generation"
+    },
+    {
       "path": "tools/test-welcome-notice.mjs",
       "stage": "runtime",
       "requires": [

@@ -47,8 +47,6 @@ public class LaunchFragment extends Fragment {
   private static final java.util.concurrent.Executor START_IO =
       java.util.concurrent.Executors.newSingleThreadExecutor();
 
-  private long enterRequest;
-
   /** 本次启动开始时刻（显示耗时用）。 */
   private long startAtMs;
 
@@ -277,85 +275,40 @@ public class LaunchFragment extends Fragment {
       return;
     }
     final long generation = webEntryGeneration();
-    final long request = ++enterRequest;
     enteringWeb = true;
     webEntryFailure = false;
-    ui.postDelayed(
-        () -> {
-          if (request != enterRequest || !enteringWeb || getView() != root || !isResumed()) return;
-          enterRequest++; // 可见超时结束后，旧cookie结果不能再触发导航。
-          finishWebEntry(
-              root,
-              com.deepseekharness.app.util.UiText.choose(
-                  "Web 鉴权尚未完成。请查看本轮日志，确认服务状态后重试进入。",
-                  "Web authentication did not complete. Check the current log and retry when ready."));
-        },
-        15_000);
     ((TextView) root.findViewById(R.id.launch_status))
-        .setText(com.deepseekharness.app.util.UiText.text("正在验证 Web 访问权限…"));
+        .setText(com.deepseekharness.app.util.UiText.choose("正在打开 Web…", "Opening Web…"));
     refreshRunState();
     try {
-      new Thread(
-              () -> {
-                String cookie = null;
-                String failure = null;
-                try {
-                  cookie = exchangeWebEntryCookie();
-                  if (cookie == null || cookie.isEmpty()) failure = controller.getWebAuthFailure();
-                } catch (Exception error) {
-                  failure =
-                      com.deepseekharness.app.util.UiText.format(
-                          "Web 鉴权失败，请点「进入」重试（%s）", error.getClass().getSimpleName());
-                }
-                final String authCookie = cookie;
-                final String authFailure = failure;
-                ui.post(
-                    () -> {
-                      if (request != enterRequest
-                          || getView() != root
-                          || !isResumed()
-                          || activity.isFinishing()
-                          || activity.isDestroyed()) return;
-                      if (generation != webEntryGeneration() || !url.equals(webEntryUrl())) {
-                        finishWebEntry(
-                            root, com.deepseekharness.app.util.UiText.text("Web 状态已变化，请等待就绪后重新进入"));
-                        return;
-                      }
-                      if (authFailure != null) {
-                        finishWebEntry(root, authFailure);
-                        return;
-                      }
-                      try {
-                        openWebEntry(activity, url, authCookie);
-                        ((TextView) root.findViewById(R.id.launch_status))
-                            .setText(com.deepseekharness.app.util.UiText.text("鉴权成功，正在打开 Web…"));
-                        refreshLanAddr();
-                      } catch (RuntimeException error) {
-                        finishWebEntry(
-                            root,
-                            com.deepseekharness.app.util.UiText.format(
-                                "无法打开 Web 页面，请重试（%s）", error.getClass().getSimpleName()));
-                      }
-                    });
-              },
-              "dsh-cookie")
-          .start();
+      if (getView() != root || !isResumed() || activity.isFinishing() || activity.isDestroyed()) {
+        invalidateWebEntry();
+        return;
+      }
+      if (generation != webEntryGeneration() || !url.equals(webEntryUrl())) {
+        finishWebEntry(root, com.deepseekharness.app.util.UiText.text("Web 状态已变化，请等待就绪后重新进入"));
+        return;
+      }
+      // The browser owns the token -> cookie -> HTTP 200 verification. Doing it here
+      // too created two serial exchanges before the first page; no unverified cookie
+      // is handed off and neither navigation nor progress reports browser readiness.
+      openWebEntry(activity, url, null);
+      refreshLanAddr();
     } catch (RuntimeException error) {
-      finishWebEntry(root, com.deepseekharness.app.util.UiText.text("无法开始 Web 鉴权，请重试"));
+      finishWebEntry(
+          root,
+          com.deepseekharness.app.util.UiText.format(
+              "无法打开 Web 页面，请重试（%s）", error.getClass().getSimpleName()));
     }
   }
 
-  // 同包调试自测可替换鉴权和 Activity 出口，验证连点/异常/销毁，不实际启动 Web。
+  // Same-package host tests can replace only the Activity destination.
   String webEntryUrl() {
     return controller.getWebAuthUrl();
   }
 
   long webEntryGeneration() {
     return controller.getWebGeneration();
-  }
-
-  String exchangeWebEntryCookie() {
-    return controller.exchangeDshAuthCookie();
   }
 
   void openWebEntry(Activity activity, String url, String cookie) {
@@ -371,7 +324,6 @@ public class LaunchFragment extends Fragment {
   }
 
   private void invalidateWebEntry() {
-    enterRequest++;
     enteringWeb = false;
   }
 
@@ -454,7 +406,7 @@ public class LaunchFragment extends Fragment {
       }
       runState.setText(
           enteringWeb
-              ? com.deepseekharness.app.util.UiText.text("正在鉴权并打开 Web…")
+              ? com.deepseekharness.app.util.UiText.choose("正在打开 Web…", "Opening Web…")
               : restoring
                   ? com.deepseekharness.app.util.UiText.choose(
                       "正在核对原 Web 实例…", "Checking the existing Web instance…")

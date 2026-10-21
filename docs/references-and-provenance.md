@@ -1,8 +1,8 @@
 # 资料依据、上游来源与可验证范围
 
-本文是 build190 / F10 的事实索引，资料核对日期为 2026-10-21。
+本文是 build190 的事实索引，初版以F10为参考；Root源码与边界的补充核对日期为2026-10-22，范围见第5.1节，其余上游资料仍按2026-10-21的核对范围阅读。
 用途是让维护者找到原始资料、版本锁和校验入口，不是官方背书或安全认证。
-本页编写仅阅读源码、锁文件和上游资料，未重跑构建、测试、设备或发布流程。
+初版编写只阅读源码、锁文件和上游资料；第5.1节另记后续已执行的隔离宿主检查。文档更正本身不重跑构建、不操作su设备或发布流程。
 
 ## 1. 项目与上游之间的关系
 
@@ -30,7 +30,7 @@
 阅读时应先确定主张属于哪一类，再选择相应依据。
 例如：官方支持 VirtualDisplay，不意味着普通应用可任意注入输入；
 JUnit 检查了拒绝分支，也不意味着某台手机上的原生触摸已成功。
-本轮F11继续暂停设备验收，不应把历史包或软件结果转记为F11手机验收；最终软件与产物身份见[F11记录](releases/v0.2.1-rc.2-build190-fix11-20261021.md)及其统一回执。
+F11当时暂停设备验收，不应把历史包或软件结果转记为F11手机验收；当时软件与产物身份见[F11记录](releases/v0.2.1-rc.2-build190-fix11-20261021.md)及其统一回执。本轮已获新的性能真机验收授权，实际执行结果必须另按最终APK记录，不能从旧文档推导通过。
 本文没有第三方独立安全审计、Google Play 审核或任何机构认证的证据。
 
 ## 3. 当前版本与固定输入索引
@@ -102,7 +102,7 @@ CHANGELOG 中 DSHA `v1.1.6` 是壳工程的历史版本，不能当作 proroot �
 对来源未知项应保留 unknown 和待核材料，不应补写猜测的许可证或提交号。
 闭源组件的使用与分发需依据其实际许可条款；本页不提供法律授权结论。
 
-## 5. Android 与 Shizuku 官方资料映射
+## 5. Android、Shizuku与Root上游资料映射
 
 下面的直接链接由相应平台或项目维护；每行只支持所列接口主张。
 Android 文档会随版本更新，实际行为还取决于设备 API、targetSdk、权限与系统实现。
@@ -133,6 +133,22 @@ Android 文档会随版本更新，实际行为还取决于设备 API、targetSd
 [项目总手册](project-architecture-handbook.md) 和 [运行时/数据/插件架构](runtime-data-plugin-architecture.md)。
 例如最新帧、Core UUID、节点一次使用与 UNKNOWN 不重放，是 DSHA 的额外约束，不能冒称 Android 官方协议。
 系统接受一次事件或节点 action，也不等于应用业务结果已验证。
+
+### 5.1 Root管理器源码：固定核查范围
+
+2026-10-22对维护源码 `140c7ba277fc2a91a9b8fd8cb5a24bc35a5c41c5` 的补充核查读取了下列固定上游文件。提交号固定阅读对象，不表示它是用户手机所装版本或经过DSHA真机认证；这不是对上游整个项目的安全审计。
+
+| 上游与固定提交 | 本次读取的主要文件和机制 | 对DSHA的含义与未证范围 |
+|---|---|---|
+| Magisk [`af8c2566b07cfa0c2d4b145b88316a07f7d2bb6b`](https://github.com/topjohnwu/Magisk/tree/af8c2566b07cfa0c2d4b145b88316a07f7d2bb6b) | [`native/src/core/su/daemon.rs`](https://github.com/topjohnwu/Magisk/blob/af8c2566b07cfa0c2d4b145b88316a07f7d2bb6b/native/src/core/su/daemon.rs)、同目录`su.cpp`、`connect.rs`、`mod.rs`：调用者策略、su参数、身份、shell执行与mount namespace | su路径可见不等于授权；实际命令能力还受身份、capabilities、SELinux与namespace影响，未做该提交的设备矩阵 |
+| KernelSU [`6d31a61370838380177dc5c46fb838f6ba7d639a`](https://github.com/tiann/KernelSU/tree/6d31a61370838380177dc5c46fb838f6ba7d639a) | [`kernel/feature/sucompat.c`](https://github.com/tiann/KernelSU/blob/6d31a61370838380177dc5c46fb838f6ba7d639a/kernel/feature/sucompat.c)、`kernel/policy/allowlist.c`、`app_profile.c`、`kernel/supercall/perm.c`、`userspace/ksud/src/su.rs`与`defs.rs`：授权UID、stat/access/exec重定向、profile与su处理 | su可由内核兼容层提供，profile可选择非0 UID；九个路径字符串和metadata单测不能证明兼容 |
+| APatch [`e8e4651c16fb5075882a25813c8732285fdb3505`](https://github.com/bmax121/APatch/tree/e8e4651c16fb5075882a25813c8732285fdb3505) | [`apd/src/supercall.rs`](https://github.com/bmax121/APatch/blob/e8e4651c16fb5075882a25813c8732285fdb3505/apd/src/supercall.rs)、`apd.rs`、`cli.rs`、`package.rs`、`app/src/main/cpp/supercall.h`：授权列表、目标身份、su参数与配置路径 | `/data/adb/ap/su_path`可配置；DSHA未实现任意自定义路径发现，未核用户所装管理器/内核组合 |
+| KernelPatch [`052c73f93dbb84861218086e60a9962c48ff3f7f`](https://github.com/bmax121/KernelPatch/tree/052c73f93dbb84861218086e60a9962c48ff3f7f) | [`kernel/patch/common/sucompat.c`](https://github.com/bmax121/KernelPatch/blob/052c73f93dbb84861218086e60a9962c48ff3f7f/kernel/patch/common/sucompat.c)、同目录`supercall.c`和`kernel/patch/include/sucompat.h`：授权UID、配置/旧su路径拦截 | 独立选取的上游源码样本；未证明该提交就是上述APatch APK或用户设备包含的KernelPatch版本 |
+| Toybox [`6a0c0ef5eeb2c43e4feef9781398c1718b8bddcb`](https://github.com/landley/toybox/blob/6a0c0ef5eeb2c43e4feef9781398c1718b8bddcb/toys/posix/grep.c) | `toys/posix/grep.c`：`-R`递归跟随软链接 | 用于核对递归READ子链接缺口的命令语义，未识别用户ROM中Toybox的实际字节或版本 |
+
+DSHA通过[RootShell](../app/src/main/java/com/deepseekharness/app/RootShell.java)、[RootShellMain](../app/src/main/java/com/deepseekharness/app/RootShellMain.java)、[DeviceShellPolicy](../app/src/main/java/com/deepseekharness/app/util/DeviceShellPolicy.java)及[DeviceShellExecutor](../app/src/main/java/com/deepseekharness/app/DeviceShellExecutor.java)消费su并施加自身受管入口约束。上游授权的是调用身份或profile，不替DSHA实现短信、媒体路径或虚拟屏守卫；这些守卫仍须对照本仓库代码和执行侧回归。
+
+历史文档没有足够的固定提交、文件及结论映射来证明此前已完成三管理器的可追溯源码核查；本节记录此次有限补查，不追认历史实测。已确认主调用链不能推出所有保护完整：[权限架构](device-permissions-architecture.md)第6.2节记载的递归READ子链接覆盖缺口在本节核查基准中仍未修复，尚无真实短信读取或ROM利用证明。已有候选单测、16个Java干运行计划、27项设备策略模拟与29项隔离ADB流程只证明各自层面，不证明真实su授权、UID转换、APK可见性或三管理器兼容。
 
 ## 6. 运行时与工具链 primary 资料
 
