@@ -163,6 +163,20 @@
       "markers": [
         "DSHA_NATIVE_OAUTH_NAVIGATION_V1"
       ]
+    },
+    {
+      "asset": "directory-picker-service-patch.json",
+      "module": "@deepseek-ai/dsh-api-workspace-controller/lib/index.js",
+      "markers": [
+        "DSHA_DIRECTORY_PICKER_INDEPENDENT_LIFETIME_V1"
+      ]
+    },
+    {
+      "asset": "file-upload-resolver-lifecycle-patch.json",
+      "module": "@deepseek-ai/dsh-client-file-upload/lib/index.js",
+      "markers": [
+        "DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"
+      ]
     }
   ],
   "specialized": [

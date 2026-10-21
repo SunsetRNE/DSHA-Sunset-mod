@@ -94,6 +94,7 @@ final class LanAuthBridge {
           && state.lifecycle.isCurrent(snapshot.generation())
           && run != null
           && run == state.currentRun
+          && !run.authorityRevocationPending
           && (run.recovered == null || run.recoveredLive)
           && snapshot.authUrl().equals(run.authUrl)
           && snapshot.port() == run.port;

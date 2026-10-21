@@ -111,4 +111,55 @@ public final class WebSessionKernelEvidenceTest {
     kernel.uid = 10002;
     assertTrue(kernel.confirmNoUntrackedWebLaunchers());
   }
+
+  @Test
+  public void guestObservationNeverTurnsProcDenialOrIdentityMismatchIntoExit() {
+    String boot = "12345678-1234-1234-1234-123456789abc";
+    var saved =
+        new com.deepseekharness.app.util.WebSessionProof.Saved(
+            boot, 7, INSTANCE, "ab".repeat(32), 42, 123, "web", 41, 122, "launcher");
+    class ObservationKernel extends WebProcessManager {
+      boolean denied, live = true, verified = true;
+      long birth = 123;
+      String actualBoot = boot;
+
+      ObservationKernel() {
+        super(null);
+      }
+
+      @Override
+      String recoveryBoot() throws IOException {
+        if (denied) throw new IOException("PROC_DENIED");
+        return actualBoot;
+      }
+
+      @Override
+      com.deepseekharness.app.util.WebSessionProof.Process recoveryProcess(int pid) {
+        return new com.deepseekharness.app.util.WebSessionProof.Process(
+            pid, birth, 10001, "web", "7", INSTANCE, "ab".repeat(32), live);
+      }
+
+      @Override
+      public boolean verifySession(com.deepseekharness.app.util.WebSessionProof.Saved proof) {
+        return verified;
+      }
+    }
+    var kernel = new ObservationKernel();
+    assertEquals(WebProcessManager.SessionObservation.LIVE, kernel.observeSession(saved));
+    kernel.denied = true;
+    assertEquals(WebProcessManager.SessionObservation.UNKNOWN, kernel.observeSession(saved));
+    kernel.denied = false;
+    kernel.verified = false;
+    assertEquals(WebProcessManager.SessionObservation.UNKNOWN, kernel.observeSession(saved));
+    kernel.verified = true;
+    assertEquals(WebProcessManager.SessionObservation.LIVE, kernel.observeSession(saved));
+    kernel.live = false;
+    assertEquals(WebProcessManager.SessionObservation.EXITED, kernel.observeSession(saved));
+    kernel.live = true;
+    kernel.birth++;
+    assertEquals(WebProcessManager.SessionObservation.EXITED, kernel.observeSession(saved));
+    kernel.birth = 123;
+    kernel.actualBoot = "other-boot";
+    assertEquals(WebProcessManager.SessionObservation.EXITED, kernel.observeSession(saved));
+  }
 }

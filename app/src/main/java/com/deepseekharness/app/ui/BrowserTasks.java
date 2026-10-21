@@ -111,6 +111,18 @@ final class BrowserTasks {
       return false;
     }
     var controller = com.deepseekharness.app.core.HarnessController.get(context);
+    if (controller.getReadyWebPageIdentity() == null
+        && controller.isWebSessionRetained(pending.identity())
+        && !controller.isWebSessionExited(pending.identity())) {
+      controller.requestWebSessionRecheck(
+          () -> {
+            if (background == pending
+                && pending.identity().equals(controller.getReadyWebPageIdentity()))
+              resumeBackground(context, false);
+          });
+      trace("WAIT_VERIFICATION");
+      return false;
+    }
     if (!BrowserTaskPolicy.resumeBackground(
         pending.identity(),
         controller.getReadyWebPageIdentity(),

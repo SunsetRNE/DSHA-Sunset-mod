@@ -83,10 +83,13 @@ public class HarnessService extends Service {
             if (activity != null && ForegroundActivity.isResumed(activity))
               ensureRuntimeForeground(activity);
           });
+    else controller.requestWebSessionRecheck(null);
     if (controller.isUserStopped()
         || controller.isStopping()
         || controller.isRestartBlocked()
-        || (!controller.isStarting() && controller.getWebAuthUrl().isEmpty())) return;
+        || (!controller.isStarting()
+            && controller.getWebAuthUrl().isEmpty()
+            && !controller.hasUnresolvedWebSession())) return;
     HarnessService service = DshaApp.from(context).harnessService().current();
     try {
       if (service != null && service.keepAliveHealthy()) {
@@ -167,7 +170,7 @@ public class HarnessService extends Service {
         && (c.isUserStopped()
             || c.isStopping()
             || c.isRestartBlocked()
-            || (!c.isStarting() && c.getWebAuthUrl().isEmpty()))) {
+            || (!c.isStarting() && c.getWebAuthUrl().isEmpty() && !c.hasUnresolvedWebSession()))) {
       // A queued START cannot remove the protection for an unfinished/unknown stop.
       var stopped = c.lastStopResult();
       if (c.isStopping()
@@ -268,7 +271,9 @@ public class HarnessService extends Service {
         starting
             || (!c.isUserStopped()
                 && !c.isRestartBlocked()
-                && (c.canAutoRestart() || !c.getWebAuthUrl().isEmpty()));
+                && (c.hasUnresolvedWebSession()
+                    || c.canAutoRestart()
+                    || !c.getWebAuthUrl().isEmpty()));
     boolean lan = c.config().isLanMode(), work = com.deepseekharness.app.core.RuntimeTasks.isBusy();
     android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
     // LAN 需要随时接收远端请求；不读取页面空闲文件决定是否允许休眠。
@@ -286,15 +291,19 @@ public class HarnessService extends Service {
     if (keep) acquireLocks(!eco || lan || work || !idle);
     else releaseLocks();
     String state =
-        c.isRestartBlocked()
-            ? com.deepseekharness.app.util.UiText.text("连续失败，自动重启已暂停；点此查看恢复选项")
-            : !active
-                ? com.deepseekharness.app.util.UiText.text("Web 已停止")
-                : !eco
-                    ? com.deepseekharness.app.util.UiText.text("持续运行 · 后台保活已开启")
-                    : keep
-                        ? com.deepseekharness.app.util.UiText.text("省电模式 · 有任务或状态待确认，继续保活")
-                        : com.deepseekharness.app.util.UiText.text("省电模式 · 已空闲，允许系统休眠");
+        c.hasUnresolvedWebSession() && !c.isUserStopped() && !c.isStopping()
+            ? com.deepseekharness.app.util.UiText.choose(
+                "正在验证原 Web 状态 · 保留后台保护",
+                "Verifying the existing Web session · background protection retained")
+            : c.isRestartBlocked()
+                ? com.deepseekharness.app.util.UiText.text("连续失败，自动重启已暂停；点此查看恢复选项")
+                : !active
+                    ? com.deepseekharness.app.util.UiText.text("Web 已停止")
+                    : !eco
+                        ? com.deepseekharness.app.util.UiText.text("持续运行 · 后台保活已开启")
+                        : keep
+                            ? com.deepseekharness.app.util.UiText.text("省电模式 · 有任务或状态待确认，继续保活")
+                            : com.deepseekharness.app.util.UiText.text("省电模式 · 已空闲，允许系统休眠");
     if (!state.equals(notificationState)) {
       notificationState = state;
       NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
