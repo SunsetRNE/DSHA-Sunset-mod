@@ -51,4 +51,4 @@ Stopping depends on birth identity, session, and exit evidence. Killing by port,
 
 ## Delivery and evidence limits
 
-Release packages retain `com.dsh.client`, the historical E7E3 certificate, and v1/v2/v3 signatures. Build tooling does not supply a default release password or substitute a different certificate. The current user instruction pauses phone operations. Software tests, APK/ELF/signature checks, and a physical overwrite installation are separate evidence categories. Current results come from the audit and delivery reports linked by [README](../../README.en.md); earlier reports do not establish the current verification scope.
+Release packages retain `dsh.android.client`, the historical E7E3 certificate, and v1/v2/v3 signatures. Build tooling does not supply a default release password or substitute a different certificate. The current user instruction pauses phone operations. Software tests, APK/ELF/signature checks, and a physical overwrite installation are separate evidence categories. Current results come from the audit and delivery reports linked by [README](../../README.en.md); earlier reports do not establish the current verification scope.

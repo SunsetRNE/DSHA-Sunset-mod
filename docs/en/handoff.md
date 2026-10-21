@@ -8,7 +8,7 @@ The old handoff guide's exact bytes are preserved in the [historical original](.
 
 ## Runtime structure
 
-The APK extracts a complete Ubuntu base into the application's private directory and runs Node 24, locked pnpm, and `@deepseek-ai/dsh` **0.2.1-rc.2** inside proot/proroot. The native application uses Java 17, Material3, and a single `:app` module, without Kotlin. Both variants are arm64-only and share `com.dsh.client`: Standard requires API 30 and uses system WebView; Low requires API 23 and additionally supplies Gecko 143.
+The APK extracts a complete Ubuntu base into the application's private directory and runs Node 24, locked pnpm, and `@deepseek-ai/dsh` **0.2.1-rc.2** inside proot/proroot. The native application uses Java 17, Material3, and a single `:app` module, without Kotlin. Both variants are arm64-only and share `dsh.android.client`: Standard requires API 30 and uses system WebView; Low requires API 23 and additionally supplies Gecko 143.
 
 Web uses an automatically allocated port by default (`--port 0`); startup may reuse an actual local port that is still available. Only an explicit manual setting requests a fixed port. Backup port memory does not migrate to another device, and the actual port is confirmed by the current authenticated startup output. The 3090 host bridge and default 3081 LAN entry have different roles; see [ports](ports-and-networking.md) and [DNS](dns-configuration.md). Never infer a PID from a port.
 

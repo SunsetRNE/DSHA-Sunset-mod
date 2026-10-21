@@ -19,7 +19,7 @@ function current() {
     connection: crypto.createHash('sha256').update(instance + ':' + generation + ':' + token).digest('hex') };
 }
 function readConnection() {
-  return Object.freeze({ applicationId: 'com.dsh.client', generation: current().connection });
+  return Object.freeze({ applicationId: 'dsh.android.client', generation: current().connection });
 }
 function bridgeFetch(route, init = {}) {
   if (route !== '/device/consent' || Object.keys(init).some(key => !['signal', 'expectedConnectionGeneration'].includes(key)))

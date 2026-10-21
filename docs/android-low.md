@@ -10,7 +10,7 @@
 V1/V2/V3 签名验证通过，证书与旧正式包一致。
 
 兼容版版本名为 1.2.0-rc1.2low，versionCode 111，minSdk 23；与标准版共享
-applicationId com.dsh.client、配置路径、发布证书及离线环境版本 9。
+applicationId dsh.android.client、配置路径、发布证书及离线环境版本 9。
 只提供 arm64-v8a；32 位 ARM 手机无法安装。没有设置 maxSdk，Android 13+ 建议使用标准版。
 
 ## 功能与差异

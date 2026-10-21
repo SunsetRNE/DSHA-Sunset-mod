@@ -5,7 +5,7 @@ public final class AppIdentity {
   private AppIdentity() {}
 
   public static String applicationId() {
-    return "com.dsh.client";
+    return "dsh.android.client";
   }
 
   public static String displayName() {

@@ -48,7 +48,7 @@ JUnit 检查了拒绝分支，也不意味着某台手机上的原生触摸已�
 | 默认 / 可选引擎 | proot / proroot；后者本地声明 v1.2.8 | [AGENTS](../AGENTS.md)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
 | Shizuku API/provider | Standard `13.1.5`；Low `12.2.0` | [app/build.gradle](../app/build.gradle) |
 | Low GeckoView | `143.0.20251003115653`，arm64-v8a | [app/build.gradle](../app/build.gradle) |
-| Android 身份 | `com.dsh.client`，versionCode `190`；具体 dated versionName 看构建配置 | [app/build.gradle](../app/build.gradle) |
+| Android 身份 | `dsh.android.client`，versionCode `190`；具体 dated versionName 看构建配置 | [app/build.gradle](../app/build.gradle) |
 | 独立应急环境 | DSH `0.2.1-rc.2` / base `10`，独立归档摘要 | [recovery-runtime/lock.json](../tools/recovery-runtime/lock.json) |
 
 ### DSH 包来源

@@ -28,7 +28,7 @@ Read the [npm manifest](../../tools/dsh-runtime/package.json) and [complete lock
 | Production choice in the source | Maintenance implication |
 |---|---|
 | Java 17, Material3, single `:app` module | Native UI/platform bridges use Java; no new Kotlin bypass |
-| `com.dsh.client`, historical E7E3 certificate, non-debuggable release | Actual package/certificate checks establish upgrade compatibility; changing signatures is not an upgrade |
+| `dsh.android.client`, historical E7E3 certificate, non-debuggable release | Actual package/certificate checks establish upgrade compatibility; changing signatures is not an upgrade |
 | Standard: minSdk 30, system WebView, arm64 | APK delivery described by the source record; system WebView still depends on the device |
 | Low: minSdk 23, Gecko compatibility path, arm64 | Source/software checks retained; the source record did not deliver a new Low APK or device result |
 | Ubuntu base10, DSH 0.2.1-rc.2 | Base environment, DSH, APK, and data format have separate identities |
