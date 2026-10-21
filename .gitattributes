@@ -46,3 +46,5 @@ app/src/main/assets/startup-mcp-timing-patch.json -text -eol
 app/src/main/assets/ubuntu-tools.layout -text -eol
 app/src/main/assets/ubuntu-tools.manifest.json -text -eol
 tools/mobile-server/index.js -text -eol
+app/src/main/assets/plugin-manager-policy-patch.json -text -eol
+app/src/main/assets/plugin-manager.py -text -eol

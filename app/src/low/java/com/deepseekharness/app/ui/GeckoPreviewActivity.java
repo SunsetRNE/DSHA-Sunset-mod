@@ -539,7 +539,9 @@ public final class GeckoPreviewActivity extends PictureInPictureActivity
               if (!pageCurrent(s, pageIdentity)) return GeckoResult.fromValue(AllowOrDeny.DENY);
               if (WebPreviewPolicy.pageDownload(baseUrl, request.uri))
                 return GeckoResult.fromValue(AllowOrDeny.ALLOW);
-              if (request.hasUserGesture) external(request.uri);
+              if (request.hasUserGesture
+                  || com.deepseekharness.app.util.DeepSeekOAuthNavigation.allowed(
+                      baseUrl, retained.documentUrl, request.uri)) external(request.uri);
               return GeckoResult.fromValue(AllowOrDeny.DENY);
             }
 

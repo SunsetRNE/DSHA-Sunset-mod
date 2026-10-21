@@ -83,6 +83,7 @@
   });
   window.addEventListener('unhandledrejection', function (event) { report('issue', '', detail(event.reason)); });
   function inspect() {
+    if (ready) return;
     wrap(window.__ModuleLoader__);
     var boot = document.querySelector('[data-dsh-boot]');
     if (boot) {
@@ -93,7 +94,11 @@
       }
     }
     var root = document.getElementById('root');
-    if (document.querySelector('[data-composer-input]') || (seenBoot && !boot && root && root.children.length)) {
+    // rc2 首次说明、模型引导和空会话同样属于已经挂载的客户端。
+    // 旧 WebView 的完成时注入可能错过整个 boot，不能以“曾看过 boot”为前提；
+    // 使用真实布局的 shell 槽位，避免把任意非空 root 或 HTTP/插件就绪当作页面就绪。
+    var mountedShell = root && root.querySelector('[data-shell-overlay]') && root.querySelector('[data-shell-bottom]');
+    if (!boot && (document.querySelector('[data-composer-input]') || mountedShell || (seenBoot && root && root.children.length))) {
       ready = true; report('ready', '', uiText('网页已就绪', 'Web page ready')); observer.disconnect();
     }
   }

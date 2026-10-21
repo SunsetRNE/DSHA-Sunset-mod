@@ -1,6 +1,6 @@
 # 文档总索引与维护规则
 
-本索引对应build190/F10当前维护分支。先看当前专页，历史发布和验收说明按各自日期、源码与APK摘要阅读。资料依据分为官方平台/上游说明、当前代码/版本锁、实际执行记录三层；三者不能互相替代。
+核验日期：2026-10-21。当前维护入口为build190/F12，参考基线为已发布F10 `087724c`；F11是未上传的本地软件检查点，1157候选及准备过的Release链接不表示已经上架。本批行为与最终证据入口见[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)，当前诊断版本为`0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` /190，正式软件及APK结果已冻结，源码ZIP摘要与实际远端状态由关联Release和独立回执绑定，不沿用旧候选计数。[完整英文入口](en/index.md)及[英文F12记录](en/releases/v0.2.1-rc.2-build190-fix12-20261021.md)供英文读者使用。本索引先列当前专页，历史发布和验收说明按各自日期、源码与APK摘要阅读。资料依据分为官方平台/上游说明、当前代码/版本锁、实际执行记录三层；三者不能互相替代。[缺口核对矩阵](documentation-gap-matrix.md)逐项映射旧报告31主题及24/21差异，不将旧审计计数迁作当前结论。
 
 ## 当前功能与架构
 
@@ -22,6 +22,21 @@
 - [Standard](android-standard.md)、[Low](android-low.md)、[插件](plugins.md)、[虚拟屏开启](virtual-screen-guide.md)、[网页文件交互](web-file-sharing.md)、[v5备份格式](backup-format-v5.md)、[配置恢复](configuration-recovery-host.md)。
 - [工程规范](engineering-standard.md)、[模块地图](module-map.md)、[安全模型](security-model.md)、[源码来源](source-provenance.md)、[下载校验](download-verification.md)。
 
+## 当前操作与专题
+
+| 场景 | 文档 |
+|---|---|
+| 首次安装、组件探测、按需修复、维护与中断恢复 | [安装与维护](install-and-maintenance.md)、[启动与诊断](startup-and-diagnostics.md)、[应用及受管更新](update.md) |
+| 引擎/静态加载器/seccomp、DNS、端口排查 | [运行与网络选择](runtime-and-network.md)、[引擎](runtime-engines.md)、[DNS](dns-configuration.md)、[端口](ports-and-networking.md) |
+| 设备通道、3090协议、LAN、文件与系统文档入口 | [设备通道](device-channels.md)、[桥与文件](bridge-and-files.md)、[LAN](lan.md)、[Web文件](web-file-sharing.md) |
+| 一键/手动/自动备份、恢复、快照与独立应急 | [备份与恢复](backup-and-restore.md)、[配置快照](config-snapshots.md)、[独立应急](emergency-recovery.md)、[v5格式](backup-format-v5.md) |
+| 插件安装、系统/用户分层、协议、权限与重启 | [插件操作](plugins.md)、[插件运行与权限](plugin-runtime-and-permissions.md) |
+| PTY/简易终端、WebView/Gecko、桌面UA、PiP | [终端](terminal.md)、[浏览器内核](browser-engines.md)、[画中画](picture-in-picture.md) |
+| 语言锁存、悬浮条、审批和任务通知 | [语言](i18n.md)、[悬浮与通知](overlay-and-notifications.md) |
+| 源码/固定输入/签名/发布与测试证据 | [构建与发布](build-and-release.md)、[领域边界](agents/domain.md)、[议题流程](agents/issue-tracker.md)、[分诊用语](agents/triage-labels.md) |
+
+每篇新专题注明核验日期、参考基线、真实生效时机及失败/验证边界。三篇Agent流程是F11新写维护说明，不伪称恢复旧原件，也不证明远端标签、权限或工作流配置。GLOSSARY按实际术语需求创建。
+
 当前默认与术语：proot默认、proroot显式可选；默认Web端口为自动，备用只在本机保存；DNS auto并非全局IPv4优先。原生模型配置生产入口已移除，模型设置在Web；画中画默认关闭；一键备份先安全停止DSH/任务并保存无密码归档，外置工作区内容另备。精确定义以对应专页和当前代码为准。
 
 ## 历史材料如何阅读
@@ -33,6 +48,31 @@ CHANGELOG保留旧版本的默认值和性能记录，同时追加build190迁移
 历史报告原文保持；发布可见性检查区分当前指南链接、可用历史说明和未分发的本机证据。找到旧报告的真实原件会核对摘要后纳入，不凭空重建遗失回执。下表用于定位报告本身，不声称其所有原始现场附件都在源码包内。
 
 ## 文档更新与可复核性
+
+F11以实际分发stage检查引用，而非用开发机全树存在替代交付闭合。以下历史材料按真实原件纳入精确白名单；它们仅证明原时点，不恢复旧格式化、审批、版本或验收要求。
+
+| 真实历史文件 | 分发用途 |
+|---|---|
+| [build154 POLICY](audits/build154/POLICY.md) | 旧审计正文的当时约束说明；当前约束仍看AGENTS/现行专题 |
+| [rc2全局审计总结](audits/2026-09-27-rc2-full-architecture/final-assessment.md) | build147当时的架构/交付范围；不是本轮设备回执 |
+| [build155架构](audits/build155/architecture-assessment.md)、[剩余项](releases/build155-remaining-work-20261003.md) | 对应历史发布说明及build156评估的递归文档依赖 |
+| [build156架构](audits/build156/architecture-assessment.md)、[剩余项](releases/build156-remaining-work-20261003.md) | 对应历史原件与当时未验范围 |
+| [历史文档保存清单](audits/build154/history-document-sources.json)、[ShellService来源记录](audits/build156/shellservice-source-provenance.json)、[BUILD原件记录](audits/build156/source-docs-retained.json) | 3项新增显式JSON元数据；连同原6项共9项，不开放其他audit JSON |
+| [Termux历史README](../tools/history/documents/tools/termux-jni/README.md) | F盘找到的3547字节原件，SHA `c29a880a9d7014d58b125bd57e6f7a52a4bae4bda64e76dd22a2819382f521ca`精确符合保存清单 |
+
+保存清单记录的全部历史对象不因此全部随本包分发。特别是历史执行台账、原始设备图/日志等仍按各自保密与分发范围处理；来源JSON中的未知授权也不会因文件可下载而变成已证实授权。
+
+为使原字节历史发布页的真实相对链接在GitHub/源码ZIP中可点击，F11新增以下5份**导航副本**。每份与所列源文件原字节相同；这是本轮导航复制，不是声称新追回了五份旧保存原件。既有历史发布原件不改写，也不按新位置重新解释其链接。第5份发布页是导航副本内继续引用的必要递归目标。
+
+| 本轮导航副本 | 原字节复制来源 |
+|---|---|
+| [build156架构副本](../tools/history/documents/docs/audits/build156/architecture-assessment.md) | [原文](audits/build156/architecture-assessment.md) |
+| [build156剩余项副本](../tools/history/documents/docs/releases/build156-remaining-work-20261003.md) | [原文](releases/build156-remaining-work-20261003.md) |
+| [build155剩余项副本](../tools/history/documents/docs/releases/build155-remaining-work-20261003.md) | [原文](releases/build155-remaining-work-20261003.md) |
+| [build155架构副本](../tools/history/documents/docs/audits/build155/architecture-assessment.md) | [原文](audits/build155/architecture-assessment.md) |
+| [build155发布页副本](../tools/history/documents/docs/releases/v0.2.6-build155-20261003.md) | [原文](releases/v0.2.6-build155-20261003.md) |
+
+两份固定上游原文另有8条**上游相对引用**，不代表这些目标存在于APK本地：mobile README（SHA `852f84c7a58695bfca8730e003155c2a061d58e31f648e88d10e0528499b63ab`）的4图及AGENTS映射到上游固定commit `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`；Termux原许可证（SHA `a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304`）的2目录及共享许可证映射到commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`。门禁输出精确上游URL并标`upstream-source-relative`警告；`--strict-history`仍失败。源路径、源摘要或目标任一变化都不能沿用例外，其他缺失目标继续失败。没有改动这两份上游原文或APK资产。
 
 1. 改默认值、设置项、环境变量、授权或端口时，先核ConfigStore/配置入口与实际调用链，补用户可见作用层、下次生效时机及迁移规则。
 2. 同步专页、总手册、README和CHANGELOG；历史条目保留时间归属，不用新状态重写旧结果。

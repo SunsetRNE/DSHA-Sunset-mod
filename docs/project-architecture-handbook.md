@@ -1,10 +1,10 @@
 # DSHA 项目架构与功能维护总手册
 
-本文面向需要理解、修改和验证 DSHA 的维护者，按当前 F10 / build190 源码整理。
-当前诊断版本为 `0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2`，versionCode 为 190。
+核验日期：2026-10-21。本文面向需要理解、修改和验证 DSHA 的维护者，以已发布F10 `087724c`为参考，按当前 F12 / build190 工作树维护。
+F11是未上传的本地检查点，不是新增已发布版本；最终诊断身份、软件、APK和附件范围见[README](../README.md)与[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)，本页不预填最终版本或测试总数。
 版本最终以 [app/build.gradle](../app/build.gradle) 和对应产物回执为准。
 本文是功能与代码地图，不是新的验收报告，也不改变运行权限、数据格式或 APK。
-F10 暂停设备、ADB、模型对话和长时验收；宿主测试通过不等于手机性能通过。
+设备、ADB、真实账号/模型对话和长时验收仍按交付记录的暂停边界；宿主测试通过不等于手机性能通过。
 
 ## 1. 阅读顺序、项目来源与当前边界
 
@@ -277,6 +277,12 @@ GitHub 源码准备、npm 发布包和作者已构建 Release 是不同路径，
 移动 UI 更新应先核上游是否已吸收或撤回差异，不把历史补丁重新整批叠回。
 用户技能入口见 [SkillsActivity](../app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java)。
 安装使用说明见 [插件指南](plugins.md)，其中历史版本标题不覆盖当前锁。
+
+当前发现先筛选小manifest和真实patch bundle，单命令/请求认证一次proof表并按canonical目录去重，不用跨请求stat缓存代替完整FILE/mode/LINK、目录成员与竞态证明。Node真实Host的bundle/full-content proof异步运行，全局最多2个内容扫描并发、每次读取最多64 KiB并让出事件循环；删除先在writer/HMR锁外预检，提交内针对实际目标再次完整内容核验。只读list不占profile writer锁，不能把优化理解为跳过内容证明或放宽删除目标。
+
+原生enable/disable严格检查`intentVerified:true`、包名和Boolean状态的实际读回，先呈现启停意图，再独立合并refresh；开关成功不是组件ready或活loader热替换，须重启Web后生效。list/refresh可取消，遇并发配置改写或writer锁明确报错并保留缓存。查询及短意图命令的30秒是含排队、准备边界与执行的协作总预算；单次系统I/O、monitor/Binder等待不可抢占，未知退出仍保留原屏障，不承诺严格墙钟终止。
+
+已有桌面真实Host双list约0.65秒，独立Worker HTTP ping约14毫秒且扫描仍pending；这只是该夹具响应性记录，不是手机实测、最终APK性能或全插件规模保证。完整实现与失败边界见[插件运行与权限](plugin-runtime-and-permissions.md)，本页不重跑测试或增加正式总数。
 
 ## 8. 原生能力、ADB / Root / Shizuku 与授权
 

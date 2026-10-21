@@ -3,6 +3,7 @@
 import contextlib
 import importlib.util
 import io
+import hashlib
 import json
 import os
 import shutil
@@ -11,6 +12,7 @@ from pathlib import Path
 import tempfile
 import tarfile
 import types
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -53,6 +55,152 @@ class DiscoveryTest(unittest.TestCase):
         with patch.object(self.manager, 'result') as result:
             self.assertEqual(0, self.manager.cmd_list())
             return {item['name']: item for item in result.call_args.kwargs['items']}
+
+    def authenticate_runtime(self, name, directory):
+        proof = self.put('root/.dsh/managed-package-proofs.json',
+                         {'version': 1, 'packages': {name: self.builtin.package_content_proof(directory)}})
+        os.environ['DSHA_MANAGED_PACKAGE_PROOFS_SHA256'] = hashlib.sha256(proof.read_bytes()).hexdigest()
+
+    def runtime_alias_fixture(self, library_count=120):
+        packages = {}
+        for index in range(library_count + 2):
+            name = '@fixture/' + ('bundle-' + str(index) if index < 2 else 'library-' + str(index))
+            directory = self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name, bundle=index < 2)
+            (directory / 'payload.bin').write_bytes(b'original-package-bytes\n' * 400)
+            packages[name] = directory
+        proof = self.put('root/.dsh/managed-package-proofs.json',
+                         {'version': 1, 'packages': {name: self.builtin.package_content_proof(directory)
+                                                    for name, directory in packages.items()}})
+        os.environ['DSHA_MANAGED_PACKAGE_PROOFS_SHA256'] = hashlib.sha256(proof.read_bytes()).hexdigest()
+        aliases = []
+        for base in ('root/.dsh/node_modules', 'usr/local/lib/node_modules'):
+            for name, directory in packages.items():
+                alias = self.root / base / name
+                alias.parent.mkdir(parents=True, exist_ok=True)
+                aliases.append([str(directory), str(alias)])
+        if os.name == 'nt':
+            # Directory junctions are real aliases and do not need Windows'
+            # optional symbolic-link privilege. Input travels through stdin.
+            run = subprocess.run(['node', '-e',
+                'for(const [target,alias] of JSON.parse(require("fs").readFileSync(0,"utf8")))require("fs").symlinkSync(target,alias,"junction")'],
+                input=json.dumps(aliases), text=True, capture_output=True)
+            self.assertEqual(0, run.returncode, run.stderr)
+        else:
+            for directory, alias in aliases:
+                os.symlink(directory, alias, target_is_directory=True)
+        doc = json.loads(self.manifest.read_text())
+        selected = [name for name in packages if name.startswith('@fixture/bundle-')]
+        doc['dependencies'] = {name: '1.0.0' for name in selected}
+        doc['dsh']['profile']['bundles'] += selected
+        self.manifest.write_text(json.dumps(doc))
+        return packages, selected
+
+    def test_only_real_bundles_are_hashed_once_per_command_despite_duplicate_runtime_aliases(self):
+        packages, selected = self.runtime_alias_fixture()
+        with patch.object(self.builtin, 'managed_package_proofs', wraps=self.builtin.managed_package_proofs) as proofs, \
+                patch.object(self.builtin, 'package_content_proof', wraps=self.builtin.package_content_proof) as hashes:
+            rows = self.items()
+            self.assertEqual(1, proofs.call_count, 'authenticate the table once for this query')
+            self.assertEqual(2, hashes.call_count, 'two actual bundles, not 122 packages x two aliases')
+            self.assertEqual({str(packages[name]) for name in selected}, {str(call.args[0]) for call in hashes.call_args_list})
+        for name in selected:
+            self.assertTrue(rows[name]['runtimeProvided'])
+        for name in set(packages) - set(selected):
+            self.assertNotIn(name, rows)
+        # The next query must rehash, even when only a deep file changed.
+        (packages[selected[0]] / 'payload.bin').write_bytes(b'user override after the first query')
+        with patch.object(self.builtin, 'package_content_proof', wraps=self.builtin.package_content_proof) as hashes:
+            rows = self.items()
+            self.assertEqual(2, hashes.call_count)
+            self.assertFalse(rows[selected[0]]['runtimeProvided'])
+            self.assertTrue(rows[selected[1]]['runtimeProvided'])
+
+    def test_refresh_does_not_take_profile_writer_lock_and_rejects_concurrent_intent_changes(self):
+        name = '@deepseek-ai/dsh-experimental-voice-input-bundle'
+        self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name)
+        started, release = threading.Event(), threading.Event()
+        original = self.builtin.discover_plugins
+        failures = []
+        def paused(*args, **kwargs):
+            started.set()
+            self.assertTrue(release.wait(5), 'query test release was not signalled')
+            return original(*args, **kwargs)
+        def read():
+            try:
+                self.manager.cmd_list()
+            except Exception as error:
+                failures.append(error)
+        with patch.object(self.builtin, 'discover_plugins', side_effect=paused), \
+                patch.object(self.manager, 'result') as result:
+            thread = threading.Thread(target=read)
+            thread.start()
+            try:
+                self.assertTrue(started.wait(5))
+                # This actual writer completes while the slow query is paused.
+                state = self.manager.set_plugin_state(name, True)
+                self.assertIs(state['enabled'], True)
+                self.assertIs(state['intentVerified'], True)
+            finally:
+                release.set(); thread.join(5)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual(1, len(failures))
+            self.assertIn('列表读取期间变化', str(failures[0]))
+            result.assert_not_called()
+        with self.builtin.operation_lock():
+            lock = Path(self.builtin.local(self.builtin.MANIFEST) + '.lock')
+            before = lock.read_bytes()
+            with patch.object(self.manager, 'result') as result:
+                with self.assertRaisesRegex(ValueError, '配置正在修改'):
+                    self.manager.cmd_list()
+                self.assertEqual(before, lock.read_bytes(), 'read query must leave the existing writer lock alone')
+                result.assert_not_called()
+
+    def test_short_state_commands_read_back_intent_without_scan_or_content_proof(self):
+        name = '@deepseek-ai/dsh-experimental-voice-input-bundle'
+        self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name)
+        with patch.object(self.manager, 'cmd_list', side_effect=AssertionError('mutation must not query')), \
+                patch.object(self.builtin, 'discover_plugins', side_effect=AssertionError('mutation must not discover')), \
+                patch.object(self.builtin, 'package_content_proof', side_effect=AssertionError('defer content to actual load')):
+            for command, enabled in [('enable-state', True), ('disable-state', False)]:
+                with patch('sys.argv', ['plugin-manager.py', command, name]), \
+                        patch.object(self.manager, 'result') as result, contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(0, self.manager.main())
+                    self.assertEqual('ok', result.call_args.args[0])
+                    self.assertEqual(name, result.call_args.kwargs['name'])
+                    self.assertIs(enabled, result.call_args.kwargs['enabled'])
+                    self.assertIs(True, result.call_args.kwargs['intentVerified'])
+                    self.assertNotIn('items', result.call_args.kwargs)
+                saved = json.loads(self.manifest.read_text())['dsh']['profile']['bundles']
+                self.assertEqual(enabled, name in saved)
+                self.assertEqual(not enabled, Path(self.builtin.marker_path(name)).is_file())
+        with patch.object(self.builtin, 'enable_plugin', return_value=0), \
+                patch('sys.argv', ['plugin-manager.py', 'enable-state', name]), \
+                patch.object(self.manager, 'result') as result:
+            self.assertEqual(1, self.manager.main(), 'a no-op backend cannot claim an enable acknowledgement')
+            self.assertEqual('error', result.call_args.args[0])
+            self.assertNotIn('intentVerified', result.call_args.kwargs)
+
+    def test_read_query_cancellation_reaches_content_scan_and_does_not_mutate_intent(self):
+        name = '@fixture/cancellable-bundle'
+        directory = self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name)
+        self.authenticate_runtime(name, directory)
+        doc = json.loads(self.manifest.read_text()); doc['dsh']['profile']['bundles'].append(name)
+        self.manifest.write_text(json.dumps(doc)); before = self.manifest.read_bytes()
+        key = 'b' * 32
+        cancel = self.root / ('root/.dsha-plugin-task-' + key + '.cancel')
+        original = self.builtin.package_content_proof
+        def cancelled(*args, **kwargs):
+            cancel.touch()
+            return original(*args, **kwargs)
+        with patch.dict(os.environ, {'DSHA_PLUGIN_TASK': key}), \
+                patch.object(self.builtin, 'package_content_proof', side_effect=cancelled), \
+                patch('sys.argv', ['plugin-manager.py', 'refresh']), \
+                patch.object(self.manager, 'result') as result:
+            self.assertEqual(1, self.manager.main())
+            self.assertEqual('cancelled', result.call_args.args[0])
+            progress = json.loads((self.root / ('root/.dsha-plugin-task-' + key + '.json')).read_text(encoding='utf-8'))
+            self.assertIs(True, progress['cancellable'])
+        self.assertEqual(before, self.manifest.read_bytes())
 
     def test_finds_every_supported_location_and_filters_plain_dependencies(self):
         locations = ['root/.dsh/profiles/web/node_modules', 'root/.dsh/node_modules',
@@ -111,6 +259,7 @@ class DiscoveryTest(unittest.TestCase):
         name = '@deepseek-ai/dsh-experimental-fixture-bundle'
         runtime = self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name,
                               version='0.2.0-rc.2')
+        self.authenticate_runtime(name, runtime)
         doc = json.loads(self.manifest.read_text())
         doc['dsh']['profile']['bundles'].append(name)
         self.manifest.write_text(json.dumps(doc))
@@ -158,6 +307,7 @@ class DiscoveryTest(unittest.TestCase):
     def test_install_anchor_runtime_bundle_wins_over_same_name_user_copy(self):
         name = '@deepseek-ai/dsh-experimental-shadow-fixture'
         runtime = self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name, '0.2.0-rc.2')
+        self.authenticate_runtime(name, runtime)
         user = self.plugin('root/.dsh/profiles/web/node_modules', name, '9.0.0-user-edit')
         original = self.put(str(user.relative_to(self.root)) + '/user-edit.js', 'preserve my shadowed edit')
         doc = json.loads(self.manifest.read_text())
@@ -167,7 +317,8 @@ class DiscoveryTest(unittest.TestCase):
         item = self.items()[name]
         self.assertEqual(runtime.resolve(), Path(self.manager.resolve_plugin_dir(name)).resolve())
         self.assertEqual(runtime.resolve(), Path(self.builtin.entity_dir(name)).resolve())
-        self.assertTrue(item['runtimeProvided']); self.assertTrue(item['builtin'])
+        self.assertTrue(item['runtimeProvided']); self.assertFalse(item['builtin'])
+        self.assertEqual('dsh-managed', item['origin'])
         self.assertEqual('0.2.0-rc.2', item['version']); self.assertFalse(item['deletable'])
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(0, self.builtin.disable_plugin(name))
@@ -175,6 +326,63 @@ class DiscoveryTest(unittest.TestCase):
         self.assertEqual('preserve my shadowed edit', original.read_text())
         self.assertEqual('9.0.0-user-edit', json.loads((user / 'package.json').read_text())['version'])
         self.assertEqual('9.0.0-user-edit', json.loads(self.manifest.read_text())['dependencies'][name])
+
+    def test_scope_and_prefix_do_not_make_ai_installed_plugins_system_owned(self):
+        for name in ('@deepseek-ai/dsh-user-created', 'dsh-user-created', '@author/dsh-custom'):
+            with self.subTest(name=name):
+                directory = self.plugin('root/.dsh/profiles/web/node_modules', name)
+                self.assertEqual(name, self.manager.plugin_package(str(directory))['name'])
+                doc = json.loads(self.manifest.read_text())
+                doc['dependencies'][name] = '1.0.0'
+                doc['dsh']['profile']['bundles'].append(name)
+                self.manifest.write_text(json.dumps(doc))
+                item = self.items()[name]
+                self.assertFalse(item['builtin']); self.assertFalse(item['runtimeProvided'])
+                self.assertEqual('user', item['origin']); self.assertTrue(item['deletable'])
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(0, self.builtin.disable_plugin(name))
+                    self.assertEqual(0, self.builtin.enable_plugin(name))
+                    self.assertEqual(0, self.manager.cmd_delete(name))
+                self.assertFalse(directory.exists())
+
+    def test_runtime_location_mutable_dependencies_and_claims_are_not_apk_proof(self):
+        name = '@deepseek-ai/dsh-user-added-in-runtime'
+        directory = self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name)
+        self.put('usr/local/lib/node_modules/@deepseek-ai/dsh/package.json',
+                 {'name': '@deepseek-ai/dsh', 'dependencies': {name: '1.0.0'}})
+        doc = json.loads(self.manifest.read_text()); doc['dsh']['profile']['bundles'].append(name)
+        self.manifest.write_text(json.dumps(doc))
+        item = self.items()[name]
+        self.assertTrue(item['runtimeLocated']); self.assertFalse(item['runtimeProvided'])
+        self.assertFalse(item['builtin']); self.assertEqual('user', item['origin'])
+        self.assertIn('未验证', item['location'])
+        self.authenticate_runtime(name, directory)
+        self.assertTrue(self.items()[name]['runtimeProvided'])
+        (directory / 'ai-edit.js').write_text('preserve this user override')
+        self.assertFalse(self.items()[name]['runtimeProvided'])
+        self.assertEqual('user', self.items()[name]['origin'])
+        # A rewritten guest JSON cannot grant the current launcher's APK proof.
+        self.put('root/.dsh/managed-package-proofs.json',
+                 {'version': 1, 'packages': {name: self.builtin.package_content_proof(directory)}})
+        self.assertFalse(self.items()[name]['runtimeProvided'])
+        self.assertTrue((directory / 'ai-edit.js').is_file())
+
+    def test_package_proof_rejects_directory_members_added_during_enumeration(self):
+        name = '@deepseek-ai/dsh-ai-created'
+        directory = self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name)
+        self.authenticate_runtime(name, directory)
+        original = self.builtin.os.listdir
+        injected = False
+        def inject(path):
+            nonlocal injected
+            members = original(path)
+            if Path(path) == directory and not injected:
+                injected = True
+                (directory / 'user-private-draft.txt').write_text('must remain user data')
+            return members
+        with patch.object(self.builtin.os, 'listdir', side_effect=inject):
+            self.assertFalse(self.builtin.managed_runtime_package(name, directory))
+        self.assertTrue((directory / 'user-private-draft.txt').is_file())
 
     def test_enable_switch_does_not_hash_entire_dependency_graph(self):
         self.plugin('root/.dsh/profiles/web/node_modules')

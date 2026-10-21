@@ -1,7 +1,7 @@
 # 运行环境、数据与插件机制
 
 本文面向准备修改 DSHA 的开发者，说明环境从哪里来、数据归谁、插件如何进入真实启动链。
-当前说明基于 build190 / F10 的源码：Ubuntu base10、官方 DSH `0.2.1-rc.2`、Node 24、随包 pnpm `10.34.5`。
+核验日期：2026-10-21。当前说明以已发布F10 `087724c`为来源基线，按 build190 / F12工作树维护：Ubuntu base10、官方 DSH `0.2.1-rc.2`、Node 24、随包 pnpm `10.34.5`。F11为未上传的本地检查点，不能称新增已发布版本；最终身份与执行范围见[README](../README.md)和[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)，不从本页推导新设备或真实账号验收。
 默认引擎是 `proot`，用户可显式选择 `proroot`；当前生产方案不使用 bxroot。
 这里的流程和约束属于 DSHA 实现，不代表 Ubuntu、Node、pnpm 或 DSH 上游对 Android 的保证。
 本文是源码导航，不是一次新的构建、设备验收或所有旧数据兼容性证明。
@@ -226,6 +226,10 @@ proroot 的 `--link2symlink` 会改变部分文件链接语义，Node 可能将�
 系统插件字节从当前 APK 的受管证明重建；用户备份保存其启停意图，不复制系统实体充当用户源码。
 用户插件归档包含实际源码、依赖、包装和来源关系，不能恢复时重新解析依赖后仍声称是原件。
 
+F11进一步以APK受管包proof及完整FILE/mode/LINK内容核对来源，不按npm scope、`dsh-`前缀、目录位置或可写`installation.dependencies`排除用户包。原生备份读取APK proof，扫描无alias的实际运行时bundle，并在备份前复核变化。未证明且位于安装树的包显示用户/未验证；可查看、开关和导出，原生不自动在该位置更新/删除。普通profile用户插件按原管理流程处理，详细边界见[插件运行与权限](plugin-runtime-and-permissions.md)。
+
+发现先筛选小manifest与真实patch bundle，单次命令/请求只认证一次proof表并按canonical目录去重；完整内容、mode、LINK、目录成员和竞态证明仍保留，不用跨请求stat缓存代替当前内容。Node真实Host用异步文件API完成bundle/full-content proof，全局内容扫描最多2并发、每块读取最多64 KiB且让出事件循环。Node删除在writer/HMR锁外预检，提交内对实际目标再做完整核验；原生Python删除保持独立NOFOLLOW对象事务，不从“列表刚看过”推导安全删除。
+
 内置可选组件包括设备 shell 指南、任务通知、状态浮层、移动界面、Android computer-use、Auto 审阅和虚拟屏工具。
 `dsh-app-integration` 等内部集成也在清单中，但不因此成为普通第三方卸载对象。
 具体能力和授权见[权限架构](device-permissions-architecture.md)。
@@ -250,6 +254,12 @@ Auto 的 `dsh-auto-review` 与官方实验包名合并为一个逻辑选择，�
 `PluginRepository` 驱动原生 UI；`PluginActivationHooks` 与启动观察器处理实际启动加载诊断。
 加载失败应保留插件名与脱敏原因，不能把“已安装”提升成“运行正常”。
 
+原生`enable-state`/`disable-state`只提交并读回启停意图，调用方严格核对包名、Boolean状态及`intentVerified:true`；先发布意图回执，再独立合并refresh。开关成功不是组件ready、活loader加载/卸载或热更新，须正常重启Web后生效。只读list/refresh不占profile writer锁且可取消，配置并发变化或已有writer锁明确报错，旧列表可保留但不是新核验结果。
+
+查询和短意图命令共用30秒协作总预算，覆盖排队、准备边界与执行，实际runner使用剩余时间。`GuestScriptBudget`会在步骤和流读取前后检查；单次系统I/O、monitor或Binder等待不可被这套协作机制抢占，不能承诺所有平台调用严格30秒终止。取消/超时不把未知退出改为已退出，原任务和维护屏障继续保留，不自动重放写操作。
+
+已有桌面真实Host夹具记录双list约0.65秒，独立Worker的HTTP ping约14毫秒且当时扫描仍pending；这只说明该Node/桌面输入下的响应性，不是手机、最终APK、所有插件规模或端到端性能保证。本次文档同步不重跑夹具、不新增正式测试总数。
+
 ### 5.3 npm、GitHub 与本地导入
 
 原生安装入口由 `PluginRepository.install/importArchive` 等方法进入 guest 管理器。
@@ -257,7 +267,7 @@ Auto 的 `dsh-auto-review` 与官方实验包名合并为一个逻辑选择，�
 Web 插件管理使用 DSH 实际 PluginManager，通过受管 pnpm 与策略补丁进入安装链。
 两条路径的下载、prepare 和加载顺序可能不同，应按实际日志定位，不能互相冒充验证。
 
-候选要核对合法包名/版本、bundle patch 声明、实际补丁文件、入口、路径和依赖。
+候选要核对合法包名/版本、bundle patch 声明和实际补丁文件、路径与依赖；`main/cordis.entry`只有声明时才要求对应入口文件存在。
 普通 npm 库或缺少发布产物的 Git 源码包，不会因为包名包含 DSH 就成为可加载插件。
 依赖策略允许未锁定重解析、生命周期脚本和 pnpmfile，记录本次实际锁与目录摘要。
 下载阶段 `--ignore-scripts` 不代表后面的依赖安装和 Git prepare 都不执行脚本。
@@ -268,7 +278,7 @@ Web 插件管理使用 DSH 实际 PluginManager，通过受管 pnpm 与策略补
 
 [plugin-transactions.py](../app/src/main/assets/plugin-transactions.py)记录固定目标、候选、前后摘要与历史原件。
 Java 的 `PluginInstallJournals` 将 pending 纳入宿主维护与启动检查。
-已提交旧日志不能回滚后来用户数据，未知日志不能被普通启动覆盖。
+已提交旧日志不能回滚后来用户数据，未知日志不能被普通启动覆盖。普通临时准备目录在成功或明确失败后可清理；包管理退出未知时保留候选及专用marker，不能以临时收尾清理该现场。
 正常安装和执行保持严格依赖检查；删除坏插件使用专用 NOFOLLOW 对象摘要。
 `DSHA_DELETE_OBJECT_NOFOLLOW_V1` 只证明所选树对象及链接文本，移入保留区时不跟随旧 store 链接。
 它不会删除共享 store、其他插件或外部导入源；旧 format3 日志无算法字段时仍按旧严格分支读取。
@@ -373,7 +383,7 @@ FD 所有权用自动关闭流明确转移，不能只关闭 Java 包装却泄�
 `AutomaticBackupPruner`只轮换符合规则的正常自动副本，通常保留三份。
 手动副本、未知记录、部分结果和用户公共导出不自动删除。
 本机密码和私有副本不承诺卸载存续，应引导导出无需密码的公共副本。
-`VerifiedBackupCopy` 重导出已有私有加密副本时保留原密码和原结果等级，不提升完整性。
+`VerifiedBackupCopy`先核已有私有来源及其原结果等级，适用时用原密码认证读取；公共重导出生成新的无密码文件，原加密副本不改写、不提升完整性。完整当前契约见[v5归档](backup-format-v5.md)。
 
 ## 八、恢复、retained 与外置数据
 

@@ -371,6 +371,11 @@
       "asset": "plugin-acorn.LICENSE",
       "target": "root/.dsh/plugin-acorn.LICENSE",
       "executable": false
+    },
+    {
+      "asset": "managed-package-proofs.json",
+      "target": "root/.dsh/managed-package-proofs.json",
+      "executable": false
     }
   ],
   "assetFiles": [
@@ -435,7 +440,8 @@
     "web-integration/language.js",
     "web-integration/permission-full-access.js",
     "web-integration/session-interaction.js",
-    "lan-settings-upstream-contract.json"
+    "lan-settings-upstream-contract.json",
+    "deepseek-native-oauth-patch.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -618,7 +624,15 @@
     "util/VirtualScreenStroke.java",
     "util/VirtualScreenWindowPolicy.java",
     "core/InstallationIdentity.java",
-    "core/NioInstallationIdentity.java"
+    "core/NioInstallationIdentity.java",
+    "core/WebSessionRecovery.java",
+    "util/WebSessionProof.java",
+    "data/KeyVault.java",
+    "LanProxyService.java",
+    "LanAuth.java",
+    "util/SocketDispatch.java",
+    "util/LanNetworkState.java",
+    "util/DeepSeekOAuthNavigation.java"
   ],
   "generatorSources": [
     "tools/mobile-server/compress.js",
@@ -640,6 +654,9 @@
     "tools/proroot-compat/stack-sysconf.c",
     "tools/proroot-compat/build.py",
     "tools/proroot-compat/abi.lock.json",
-    "tools/proroot-compat/linker-entry.c"
+    "tools/proroot-compat/linker-entry.c",
+    "tools/prepare-welcome-notice-patch.py",
+    "tools/welcome-notice/WelcomeNotice.js",
+    "tools/welcome-notice/WelcomeNoticeStore.js"
   ]
 }

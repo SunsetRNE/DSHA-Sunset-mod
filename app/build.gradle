@@ -53,7 +53,7 @@ android {
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
         versionCode 190
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.2-20261021.0140-dsh0.2.1-rc.2"
+        versionName "0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -273,6 +273,8 @@ def verifyRuntimeDescriptorInputs = tasks.register("verifyRuntimeDescriptorInput
 }
 prepareRuntimeDescriptor.configure { dependsOn(verifyRuntimeDescriptorInputs) }
 prepareStandardAssets.configure { dependsOn(prepareRuntimeDescriptor) }
+// 包来源证明也是运行时身份输入，显式保证检查顺序，避免并行任务读取未检查的证明。
+prepareRuntimeDescriptor.configure { dependsOn(prepareBackupAssets) }
 
 // 应急运行时拥有独立锁；正式 DSH 更新不会把它隐式替换。
 def prepareRecoveryAssets = tasks.register("prepareRecoveryAssets", Exec) {

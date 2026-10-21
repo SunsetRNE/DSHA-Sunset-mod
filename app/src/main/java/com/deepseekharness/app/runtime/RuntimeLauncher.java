@@ -86,6 +86,27 @@ final class RuntimeLauncher {
       com.deepseekharness.app.util.ColdInstallPlan.applyEnvironment(
           builder.environment(), spec.coldMode);
     builder.environment().putAll(spec.environment);
+    // Classification evidence comes from this APK, never a guest-writable JSON
+    // or caller-supplied environment. Native backup independently reads the APK.
+    builder.environment().remove("DSHA_MANAGED_PACKAGE_PROOFS_SHA256");
+    if (context != null)
+      builder
+          .environment()
+          .put("DSHA_MANAGED_PACKAGE_PROOFS_SHA256", managedPackageProofAssetSha256(context));
+  }
+
+  static String managedPackageProofAssetSha256(Context context) throws IOException {
+    java.security.MessageDigest digest = com.deepseekharness.app.backup.BackupArchive.sha();
+    try (java.io.InputStream input = context.getAssets().open("managed-package-proofs.json")) {
+      byte[] buffer = new byte[8192];
+      int count, total = 0;
+      while ((count = input.read(buffer)) != -1) {
+        total += count;
+        if (total > 2 * 1024 * 1024) throw new IOException("PACKAGE_PROOFS_LIMIT");
+        digest.update(buffer, 0, count);
+      }
+    }
+    return com.deepseekharness.app.backup.BackupArchive.hex(digest.digest());
   }
 
   Process start(String command, LaunchSpec spec) throws IOException {

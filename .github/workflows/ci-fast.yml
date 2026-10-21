@@ -39,6 +39,7 @@ jobs:
           python3 tools/run-host-tests.py --check-manifest
           python3 tools/check-source-hygiene.py
           python3 tools/check-ui-i18n.py
+          python3 tools/check-document-links.py
       - name: Isolated source and protocol regressions
         run: python3 tools/run-host-tests.py --stage fast
       - name: Android Java and both flavor unit tests without offline package generation

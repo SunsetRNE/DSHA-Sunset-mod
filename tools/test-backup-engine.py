@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """独立目录中的往返与故障测试，Linux 上额外验证真实软链接和提交回滚。"""
 import importlib.util
+import hashlib
 import io
 import json
 import os
@@ -288,6 +289,53 @@ class BackupTest(unittest.TestCase):
         self.assertFalse(list(stage.rglob('lib/client.js')))
         self.assertEqual([{'profile': 'web', 'name': 'dsh-web-mobile', 'enabled': True, 'disabled': False}],
                          [row for row in manifest['systemPluginState'] if row['name'] == 'dsh-web-mobile'])
+
+    def test_user_scoped_and_dsh_prefixed_plugins_and_dependencies_are_not_omitted(self):
+        name = '@deepseek-ai/dsh-ai-created'
+        dependency = '@deepseek-ai/dsh-ai-helper'
+        base = '.dsh/profiles/web/node_modules/' + name
+        self.put(base + '/package.json', json.dumps({'name': name, 'version': '1.0.0',
+                 'dsh': {'bundle': {'patch': 'cordis.patch.yml'}}, 'dependencies': {dependency: '1.0.0'}}))
+        self.put(base + '/cordis.patch.yml', '[]\n')
+        self.put(base + '/private.js', 'retain AI plugin bytes')
+        self.put(base + '/node_modules/' + dependency + '/package.json', json.dumps({'name': dependency, 'version': '1.0.0'}))
+        self.put(base + '/node_modules/' + dependency + '/value.js', 'retain actual dependency bytes')
+        self.put('.dsh/profiles/web/package.json', json.dumps({'dependencies': {name: '1.0.0'},
+                 'dsh': {'profile': {'bundles': [name]}}}))
+        engine.make_backup(self.root, self.archive, 'plugins')
+        with tarfile.open(self.archive) as archive:
+            manifest = json.loads(archive.extractfile(engine.MANIFEST).read())
+            names = {row['name'] for row in manifest['pluginDependencyGraph'].values()}
+            self.assertEqual({name, dependency}, names)
+            values = [archive.extractfile(member).read() for member in archive.getmembers() if member.isfile()]
+            self.assertIn(b'retain AI plugin bytes', values)
+            self.assertIn(b'retain actual dependency bytes', values)
+
+    def test_unavailable_user_package_in_official_scope_is_reported(self):
+        name = '@deepseek-ai/user-missing-plugin'
+        self.put('.dsh/profiles/web/package.json', json.dumps({'dependencies': {name: '1.0.0'},
+                 'dsh': {'profile': {'bundles': [name]}}}))
+        with self.assertRaisesRegex(ValueError, '插件源码缺失'):
+            engine.make_backup(self.root, self.archive, 'plugins')
+
+    def test_managed_package_modified_after_classification_blocks_backup_publication(self):
+        name = '@deepseek-ai/dsh-ai-fixture'
+        base = '.dsh/profiles/web/node_modules/' + name
+        self.put(base + '/package.json', json.dumps({'name': name, 'version': '1.0.0', 'dsh': {'bundle': {'patch': 'cordis.patch.yml'}}}))
+        self.put(base + '/cordis.patch.yml', '[]\n')
+        self.put('.dsh/profiles/web/package.json', json.dumps({'dependencies': {name: '1.0.0'}, 'dsh': {'profile': {'bundles': [name]}}}))
+        provenance = engine.plugin_support('register-builtin-plugins.py')
+        proof = self.put('.dsh/managed-package-proofs.json', json.dumps({'version': 1, 'packages': {name: provenance.package_content_proof(self.root / base)}}))
+        original = engine.inline_plugins
+        def changed(*args, **kwargs):
+            records = original(*args, **kwargs)
+            self.put(base + '/user-private-draft.js', 'must never silently disappear')
+            return records
+        self.archive.write_bytes(b'previous-output-preserved')
+        with patch.dict(os.environ, {'DSHA_MANAGED_PACKAGE_PROOFS_SHA256': hashlib.sha256(proof.read_bytes()).hexdigest()}), patch.object(engine, 'inline_plugins', side_effect=changed):
+            with self.assertRaisesRegex(ValueError, '受管插件内容变化'):
+                engine.make_backup(self.root, self.archive, 'plugins')
+        self.assertEqual(b'previous-output-preserved', self.archive.read_bytes())
 
     def test_disabled_builtin_intent_survives_without_archiving_spoofed_source(self):
         self.put('.dsh/profiles/web/package.json', json.dumps({'dependencies': {'dsh-web-mobile': 'link:/old/system'},

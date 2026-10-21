@@ -39,8 +39,10 @@ final class RootfsInstaller {
 
   /** 标准版统一用 glibc Python；不再把另一套 Termux Python 重复写入 rootfs。 */
   static void python(Context ctx, File requested) throws IOException {
+    GuestScriptBudget.checkpoint();
     File stage = RuntimeAssetFiles.root(ctx, requested);
     synchronized (PYTHON_LOCK) {
+      GuestScriptBudget.checkpoint();
       File py = new File(stage, "usr/bin/python3.12");
       File enc = new File(stage, "usr/lib/python3.12/encodings/__init__.py");
       if (!py.isFile() || py.length() == 0 || !enc.isFile()) {
@@ -50,6 +52,7 @@ final class RootfsInstaller {
       }
       if (!py.isFile() || !enc.isFile())
         throw new IOException(com.deepseekharness.app.util.UiText.text("Ubuntu Python 运行环境不完整"));
+      GuestScriptBudget.checkpoint();
       // 标准库的 C 扩展还依赖 SQLite/readline；仅有 Python 主程序并不代表它们可用。
       File sqlite = new File(stage, "usr/lib/aarch64-linux-gnu/libsqlite3.so.0");
       File readline = new File(stage, "usr/lib/aarch64-linux-gnu/libreadline.so.8");
@@ -63,6 +66,7 @@ final class RootfsInstaller {
       }
       if (!sqlite.isFile() || !readline.isFile())
         throw new IOException(com.deepseekharness.app.util.UiText.text("Python 动态库不完整"));
+      GuestScriptBudget.checkpoint();
       py.setExecutable(true, false);
       File command = new File(stage, "usr/bin/python3");
       if (!command.getCanonicalFile().equals(py.getCanonicalFile())) {
@@ -85,8 +89,10 @@ final class RootfsInstaller {
 
   /** 放在独立目录，不覆盖用户通过 npm 安装或升级的全局包管理器。 */
   static void pnpm(Context ctx, File requested) throws IOException {
+    GuestScriptBudget.checkpoint();
     File stage = RuntimeAssetFiles.root(ctx, requested);
     synchronized (PNPM_LOCK) {
+      GuestScriptBudget.checkpoint();
       var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
       fs.parents(stage, "usr/local/lib/dsha-pnpm/bin/pnpm.cjs");
       fs.parents(stage, "usr/local/lib/dsha-pnpm/dist/pnpm.cjs");
