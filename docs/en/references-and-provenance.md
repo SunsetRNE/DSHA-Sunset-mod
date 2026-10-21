@@ -36,7 +36,7 @@ The following values come from current files. Update the lock before this page w
 | Default/optional engine | proot/proroot; the latter locally declared v1.2.8 | [AGENTS](../../AGENTS.en.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
 | Shizuku API/provider | Standard `13.1.5`; Low `12.2.0` | [app/build.gradle](../../app/build.gradle) |
 | Low GeckoView | `143.0.20251003115653`, arm64-v8a | [app/build.gradle](../../app/build.gradle) |
-| Android identity | `com.dsh.client`, versionCode `190`; see build configuration for the dated versionName | [app/build.gradle](../../app/build.gradle) |
+| Android identity | `dsh.android.client`, versionCode `190`; see build configuration for the dated versionName | [app/build.gradle](../../app/build.gradle) |
 | Independent recovery environment | DSH `0.2.1-rc.2` / base `10`, separate archive digests | [recovery-runtime/lock.json](../../tools/recovery-runtime/lock.json) |
 
 ### DSH package provenance

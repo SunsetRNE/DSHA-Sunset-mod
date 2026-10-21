@@ -8,7 +8,7 @@ Current F13 frozen inventory: 2215 source members / 200 Markdown documents; 1029
 
 Published F12 retains its original identity: [immutable English record](releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
 
-The Android application retains version code **190**, package `com.dsh.client`, Java 17, the historical E7E3 release identity, bundled DSH **0.2.1-rc.2**, and Ubuntu base **10**, unless the final owner explicitly records a later identity. proot is default; proroot is explicitly selectable. The [README](../../README.en.md) will carry the finalized download identity. [Build and release](build-and-release.md), [BUILD](../../BUILD.en.md), and [CONTRIBUTING](../../CONTRIBUTING.en.md) explain verification and distribution steps.
+The Android application retains version code **190**, package `dsh.android.client`, Java 17, the historical E7E3 release identity, bundled DSH **0.2.1-rc.2**, and Ubuntu base **10**, unless the final owner explicitly records a later identity. proot is default; proroot is explicitly selectable. The [README](../../README.en.md) will carry the finalized download identity. [Build and release](build-and-release.md), [BUILD](../../BUILD.en.md), and [CONTRIBUTING](../../CONTRIBUTING.en.md) explain verification and distribution steps.
 
 ## Confirmed behavior described by the current guides
 

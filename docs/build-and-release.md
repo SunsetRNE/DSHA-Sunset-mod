@@ -11,7 +11,7 @@
 | Ubuntu基础身份 | 分包recipe、固定输入与受管descriptor | UI变更不自动递增base；普通DSH更新不等于重建Ubuntu |
 | runtimeId/契约 | [prepare-runtime-descriptor.py](../tools/prepare-runtime-descriptor.py)生成的实际内容证明 | 内容摘要与启动器/桥/数据契约分开；不可手改成期望字符串 |
 | 发布tag/源码commit | 实际Git提交和Release | commit不是APK SHA；先冻结源码再生成附件与外部回执 |
-| 包名/历史证书 | [ci/release-identity.json](../ci/release-identity.json) | `com.dsh.client`，E7E3完整SHA-256，v1/v2/v3；不换debug/A3签名 |
+| 包名/历史证书 | [ci/release-identity.json](../ci/release-identity.json) | `dsh.android.client`，E7E3完整SHA-256，v1/v2/v3；不换debug/A3签名 |
 
 不是所有版本字段都应改成同一个数字。变更哪一层就核哪一层的调用方、锁和生成器，最后将源码、输入、APK和Release绑定。源码ZIP自身SHA写在外部Release/回执，不写入ZIP内文件形成自引用。
 

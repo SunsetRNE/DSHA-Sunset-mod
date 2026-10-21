@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT"></a>
-  <a href="https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases"><img src="https://img.shields.io/badge/release-private_prerelease-blue" alt="private prerelease"></a>
+  <a href="https://github.com/DSH-APP/DSHA/releases/latest"><img src="https://img.shields.io/github/v/release/DSH-APP/DSHA?sort=date&color=blue" alt="release"></a>
   <a href="https://github.com/DSH-APP/DSHA/stargazers"><img src="https://img.shields.io/github/stars/DSH-APP/DSHA?style=flat" alt="stars"></a>
   <img src="https://img.shields.io/badge/Android-6%2B%20%2F%2011%2B-3DDC84?logo=android&logoColor=white" alt="android">
   <img src="https://img.shields.io/badge/arch-arm64--v8a-lightgrey" alt="arch">
@@ -22,13 +22,7 @@
 > 🤖 If you are an AI agent or a new contributor, read **[AGENTS.en.md](AGENTS.en.md)** first
 > (structure, startup contracts, traps we already fell into). Don't scan the whole repo.
 
-> **F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190.** Directory-service composition, attachment-resolver disposal and recovery after transient background proof failure are fixed. Standard 150 selected classes/952 JUnit cases (3 skipped); Low 150 selected classes/952 cases (76 skipped). Both have zero failures/errors. Release Lint has zero errors and Standard/Low warnings 249/162; eight actual-APK gates passed. Original failures, corrections and negative controls remain separate; this is not one continuous green run. No device/ADB, real-account/model or new endurance acceptance. [Associated Release target](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) · [Scope and evidence](docs/en/releases/v0.2.1-rc.2-build190-fix13-20261021.md). Actual remote availability is established by the Release and independent receipt.
-
-Published F12 retains its original identity: [immutable English record](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
-
-This repository is the DSHA Android adaptation and prerelease branch maintained by [SunsetRNE](https://github.com/SunsetRNE), based on [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA). The bundled Harness comes from [DeepSeek’s upstream project](https://github.com/deepseek-ai/deepseek-harness). Source locks, component licenses, build identity and validation limits are indexed in the [provenance guide](docs/en/references-and-provenance.md); releases are built and signed by this maintenance branch.
-
-Documentation: [index](docs/en/index.md) · [project handbook](docs/en/project-architecture-handbook.md) · [ADB / Root / Shizuku](docs/en/device-permissions-architecture.md) · [runtime and data](docs/en/runtime-data-plugin-architecture.md) · [engines](docs/en/runtime-engines.md) · [ports](docs/en/ports-and-networking.md) · [DNS](docs/en/dns-configuration.md) · [virtual screen](docs/en/virtual-screen-architecture.md) · [ADR](docs/en/adr/0003-virtual-screen-lifecycle-and-input.md) · [primary sources and provenance](docs/en/references-and-provenance.md).
+> **0.2.1-rc.2 · build190** — Standard release, package `dsh.android.client`. Installs alongside older `com.dsh.client` releases with separate app data. [Download](https://github.com/DSH-APP/DSHA/releases/tag/v0.2.1-rc.2) · [Documentation](docs/en/index.md) · [Release scope](docs/en/releases/v0.2.1-rc.2-build190-package-rename-20261021.md).
 
 ## ❤️ Sponsor
 
@@ -66,53 +60,29 @@ original author [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) and a
 
 ---
 
-## Private prerelease downloads
+## Download
 
-Private repository access is required. The [associated Release target](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) identifies this batch's Standard APK and complete source; actual availability requires the Release and independent receipt. [F13 scope](docs/en/releases/v0.2.1-rc.2-build190-fix13-20261021.md). Published F12 retains its original identity: [immutable English record](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
+**0.2.1-rc.2 / build190**, published as a regular GitHub release. The APK version remains `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2`; E7E3 signing, bundled DSH 0.2.1-rc.2 and Ubuntu base10 are unchanged. Maintained and published by contributor [@SunsetRNE](https://github.com/SunsetRNE), with thanks to the original author and contributors.
 
-| Artifact | Contents |
+| Download | Contents |
 |---|---|
-| Standard APK | Android11+ / arm64, system WebView, `com.dsh.client` / E7E3 / non-debuggable |
-| Complete source ZIP | Source, resources, locks, scripts and fixed offline inputs directly at project paths; configure the toolchain to build |
+| [Standard APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/dsha-0.2.1-rc.2.apk) | Android 11+ / arm64, system WebView, non-debuggable |
+| [Complete source ZIP](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/DSHA-0.2.1-rc.2-build190-source.zip) | Source, documentation, locks and fixed offline build inputs at their project paths |
 
-One-click backup is under Data & backup. It writes a password-free archive to `Download/DSHA`, safely stopping DSH and running tasks first; restart manually afterward. It includes app data and the current private workspace. Back up external workspace contents separately. Restore and advanced options remain available.
+The package is **`dsh.android.client`**. It installs alongside older `com.dsh.client` versions; app data and Android permissions are separate. Export and restore a backup to migrate data. This release contains no new Low APK; older releases remain available in [Releases](https://github.com/DSH-APP/DSHA/releases).
 
-Device acceptance is paused. Software results do not establish phone frame rates, real-account login, Wi-Fi switching or all-device support. The original repository, website and old Low delivery remain unchanged; historical public downloads are separate below.
+### What's new since the previous release
 
-<details>
-<summary>Historical public build170 downloads, not this prerelease</summary>
+- **Virtual screen**: experimental independent display, observation and input in Standard; see [architecture and prerequisites](docs/en/virtual-screen-architecture.md).
+- **Global authorization**: manual confirmation, per-app rules or allow-all. This controls DSHA prompts; Android, ADB, Root and Shizuku capabilities still require authorization.
+- **Runtime and mobile UI**: DSH 0.2.1-rc.2, mobile UI 3.2.1, proot by default with proroot selectable. Model configuration is handled in Web UI.
+- **Maintenance and backup**: one-click password-free backup, external-workspace protection, and fixes for plugin installation, directory picking, LAN authentication and background Web recovery. Picture-in-picture remains opt-in.
 
-Historical release: **v0.2.0-rc2 · build170** ([release notes](https://github.com/DSH-APP/DSHA/releases/tag/v0.2.0-rc2) ·
-[full changelog](CHANGELOG.md)). Both builds share the `com.dsh.client` package and app data —
-**they cannot be installed side by side**:
-
-| Build | Devices | Web engine | Download | Size |
-|---|---|---|---|---:|
-| **Standard** | Android 11+ / arm64 | System WebView; experimental virtual display | [APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2.apk) · [SHA-256](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2.apk.sha256) | 273.10 MiB |
-| **Low** | Android 6+ / arm64 | Bundled GeckoView 143; no virtual display yet | [APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2low.apk) · [SHA-256](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2low.apk.sha256) | 345.27 MiB |
-
-- **Upgrading**: overwrite-install with a same-signature APK (certificate fingerprint `e7e3a3…a53f5`; verification steps in the [security model](docs/en/security-model.md)). Same Ubuntu base version only updates managed components, without rebuilding the environment.
-- **Historical downloads**: use the original repository's APK and matching SHA-256 links above; see [verification](docs/en/download-verification.md). The old in-app updater reads the website manifest; this round does not change the website or that manifest.
-- **Older versions**: [Releases](https://github.com/DSH-APP/DSHA/releases).
-
-At publication, build170 was a **regular GitHub release / Latest**, not a prerelease. Version code **170**, Ubuntu base **10**. [Historical matching source](https://github.com/DSH-APP/DSHA/tree/v0.2.0-rc2).
-
-### Historical build170 changes and previous releases
-
-- Bundled DSH is now **0.2.0-rc.2**, with mobile UI **3.0.5** and fixes for phone focus, dialogs and plugin cards.
-- Files open the system document picker directly, with multiple selection. Image draft saving/restoration, first-time offline ADB preparation and chat shell `/tmp` failures are fixed.
-- Web files can use native sharing and saving. Virtual-display setup and LAN failure messages are clearer; exports, storage guidance and skills are grouped under Data & backups.
-- Plugins enable after package checks and support dependency install scripts. New exports are password-free `.tar.gz` files; older encrypted backups remain readable.
-
-| Earlier release | Main additions in this release |
+| Historical versions | Preserved record |
 |---|---|
-| [v0.1.7-rc2 / 147, previous official release](https://github.com/DSH-APP/DSHA/releases/tag/v0.1.7-rc2) | DSH 0.1.7 → 0.2.0 rc2, mobile UI 3.0.3 → 3.0.5, plus the file, draft, ADB, shell, plugin and backup changes above. |
-| [v0.1.5-rc2 / 129](https://github.com/DSH-APP/DSHA/releases/tag/v0.1.5-rc2) | Also includes automatic backups, independent recovery, requested microphone access, PiP, the experimental Standard virtual display and managed-update improvements. |
 | [v1.1.10 and earlier](https://github.com/DSH-APP/DSHA/releases/tag/v1.1.10) | Two APK editions, managed Ubuntu/DSH updates and host-side backup/restore replace the old architecture. The complete direct-upgrade matrix has not been revalidated; original documentation remains in historical tags. |
 
-Both editions passed **45 targeted unit checks and Release Lint**. Android 13 checks cover signed overlay installs, attachment/image-draft behavior in both web engines, 15 offline ADB dependencies and final startup. Full wireless pairing, the reported vivo Android 16 device, Android 6/7, 16 KiB devices and final native SAF saving were not checked in this round. [Release notes](docs/releases/v0.2.0-rc2-notes.md) · [build170 acceptance](docs/releases/v0.2.21-build170-20261009.md).
-
-</details>
+The current APK changes only package identity and its associated references relative to the latest build190 maintenance APK. [Verification and limits](docs/en/releases/v0.2.1-rc.2-build190-package-rename-20261021.md); no new device or endurance acceptance in this publication.
 
 ### Getting started
 
@@ -413,7 +383,7 @@ QQ group **975836806** — pre-release builds, feedback, plugin talk.
 
 ## Star History
 
-The original repository's snapshot is 1827 stars on 2026-10-21; this is not the private repository's star count.
+The original repository's snapshot is 1885 stars on 2026-10-21; this is not the private repository's star count.
 
 <a href="https://github.com/DSH-APP/DSHA/stargazers">
   <picture>
@@ -423,4 +393,4 @@ The original repository's snapshot is 1827 stars on 2026-10-21; this is not the 
   </picture>
 </a>
 
-<sub>This source includes the public upstream repository snapshot checked on 2026-10-21 and its [date/count aggregates](docs/star-history.json). Regenerate manually with [`tools/gen-star-history.py`](tools/gen-star-history.py) and `STAR_REPO=DSH-APP/DSHA`; this private prerelease branch does not claim a scheduled refresh.</sub>
+<sub>This source includes the public upstream repository snapshot checked on 2026-10-21 and its [date/count aggregates](docs/star-history.json). Regenerate manually with [`tools/gen-star-history.py`](tools/gen-star-history.py) and `STAR_REPO=DSH-APP/DSHA`; the existing workflow handles future updates; actual runs are reported by Actions.</sub>

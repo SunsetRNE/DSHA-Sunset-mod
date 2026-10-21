@@ -21,7 +21,7 @@ def baseline_from_receipt(path, root=ROOT):
         raise ValueError('ACCEPTANCE_BASELINE_NOT_DELIVERED')
     apks=receipt.get('apks',[])
     if len(apks)!=2 or {a.get('flavor') for a in apks}!={'standard','low'} \
-            or any(a.get('certificateSha256')!=CERT or a.get('package')!='com.dsh.client' for a in apks):
+            or any(a.get('certificateSha256')!=CERT or a.get('package')!='dsh.android.client' for a in apks):
         raise ValueError('ACCEPTANCE_BASELINE_IDENTITY')
     source=receipt.get('sourceSnapshot',{})
     snapshot=source_snapshot_path(source.get('path',''), source.get('sha256'), root)

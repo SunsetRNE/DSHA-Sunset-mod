@@ -35,7 +35,7 @@ Allowed sources are dsha.cc download paths and GitHub Release APK paths under DS
 - versionName matches the current Standard/Low variant.
 - The candidate's complete current signer set exactly matches the installed application, not just a subset.
 
-Release delivery retains `com.dsh.client` and E7E3. The implementation compares the actual installed signer set; a shortened fingerprint in documentation does not authorize installation. A digest establishes byte equality, and a matching signature establishes continuity of installation identity. Neither proves plugin code harmless. See [download verification](download-verification.md) for manual APK checks.
+Release delivery retains `dsh.android.client` and E7E3. The implementation compares the actual installed signer set; a shortened fingerprint in documentation does not authorize installation. A digest establishes byte equality, and a matching signature establishes continuity of installation identity. Neither proves plugin code harmless. See [download verification](download-verification.md) for manual APK checks.
 
 On Android 8+, if this application lacks unknown-source installation permission, the page opens system authorization settings first and verifies after the user returns. On Android 13+, download first requests notification permission and continues requesting the download after the callback; notification permission is not installation permission. The system installer still requires user confirmation; installation is not silent.
 

@@ -53,4 +53,4 @@ Stopping requires birth identity, session and exit evidence; bare PID, port or n
 
 ## Delivery and evidence limits
 
-Formal packages retain com.dsh.client, the historical E7E3 certificate and v1/v2/v3 signatures. Release passwords are explicit and another certificate is never substituted. This round performs no phone actions as requested. Software tests, APK/ELF/signature checks and physical overwrite installation are separate evidence. Current results come from the audit and delivery report linked by README; previous reports do not establish the current verification scope.
+Formal packages retain dsh.android.client, the historical E7E3 certificate and v1/v2/v3 signatures. Release passwords are explicit and another certificate is never substituted. This round performs no phone actions as requested. Software tests, APK/ELF/signature checks and physical overwrite installation are separate evidence. Current results come from the audit and delivery report linked by README; previous reports do not establish the current verification scope.

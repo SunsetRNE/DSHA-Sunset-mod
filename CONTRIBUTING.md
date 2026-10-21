@@ -1,5 +1,8 @@
 # 构建、验证与提交
 
+> 当前发布身份：**`dsh.android.client`**；版本名、code190、E7E3及功能保持不变，覆盖下方历史包名规则。与旧 `com.dsh.client` 的数据独立，通过备份导出/恢复迁移。本轮授权同步 DSH-APP/DSHA 与既有私有维护仓库。[本次记录](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)。
+
+
 先读 [README](README.md)、[AGENTS](AGENTS.md) 和[本轮F13范围](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。历史审计资料的另一会话决策不能覆盖这里的用户要求。
 
 > F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190：修复目录服务依赖组合、附件resolver退休及后台临时身份失败后的恢复。Standard选定150类/952项JUnit（3跳过），Low选定150类/952项（76跳过），两版零失败/错误；Release Lint零错误、Standard/Low警告249/162，八项实际APK检查通过。原始失败、纠正及负控分开保留，不称一次连续全绿；无设备/ADB、真实账号/模型或新长时验收。[关联Release入口](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。实际远端可得性由Release与独立回执核验。

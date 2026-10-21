@@ -39,7 +39,7 @@ DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维
 | 当前生产选择 | 维护含义 |
 |---|---|
 | Java 17、Material3、单 `:app` 模块 | 原生页面与平台桥使用 Java，不新增 Kotlin 旁路 |
-| `com.dsh.client`、历史 E7E3、非调试正式包 | 覆盖兼容性由实际包和证书确认，不能换签名代替升级 |
+| `dsh.android.client`、历史 E7E3、非调试正式包 | 覆盖兼容性由实际包和证书确认，不能换签名代替升级 |
 | Standard：minSdk 30、系统 WebView、arm64 | 本轮交付的 APK；系统 WebView 版本仍受设备影响 |
 | Low：minSdk 23、Gecko 兼容路径、arm64 | 保留源码与软件检查；本轮没有新的 Low APK/设备交付 |
 | Ubuntu base10、DSH 0.2.1-rc.2 | 基础环境、DSH、APK 与数据格式是不同身份 |

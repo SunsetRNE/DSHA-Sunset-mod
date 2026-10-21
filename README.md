@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT"></a>
-  <a href="https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases"><img src="https://img.shields.io/badge/release-private_prerelease-blue" alt="private prerelease"></a>
+  <a href="https://github.com/DSH-APP/DSHA/releases/latest"><img src="https://img.shields.io/github/v/release/DSH-APP/DSHA?sort=date&color=blue" alt="release"></a>
   <a href="https://github.com/DSH-APP/DSHA/stargazers"><img src="https://img.shields.io/github/stars/DSH-APP/DSHA?style=flat" alt="stars"></a>
   <img src="https://img.shields.io/badge/Android-6%2B%20%2F%2011%2B-3DDC84?logo=android&logoColor=white" alt="android">
   <img src="https://img.shields.io/badge/arch-arm64--v8a-lightgrey" alt="arch">
@@ -21,13 +21,7 @@
 
 > 🤖 下一个 AI / 开发者请先读 **[AGENTS.md](AGENTS.md)**（项目结构、启动契约、踩过的坑），不要先全库扫描。
 
-> F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190：修复目录服务依赖组合、附件resolver退休及后台临时身份失败后的恢复。Standard选定150类/952项JUnit（3跳过），Low选定150类/952项（76跳过），两版零失败/错误；Release Lint零错误、Standard/Low警告249/162，八项实际APK检查通过。原始失败、纠正及负控分开保留，不称一次连续全绿；无设备/ADB、真实账号/模型或新长时验收。[关联Release入口](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。实际远端可得性由Release与独立回执核验。
-
-已发布F12保留原身份：[原记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [原Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413)；F11仍为未上传本地检查点。
-
-本仓库是由 [SunsetRNE](https://github.com/SunsetRNE) 维护的 DSHA 安卓适配与预发布分支，工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，内置 Harness 来自 [DeepSeek 上游项目](https://github.com/deepseek-ai/deepseek-harness)。版本锁、组件许可、构建身份与验证范围均可在来源文档中核查；本分支负责自身的构建、签名与发布。
-
-维护文档：[总索引](docs/documentation-index.md) · [项目总手册](docs/project-architecture-handbook.md) · [ADB / Root / Shizuku 权限](docs/device-permissions-architecture.md) · [环境、数据与插件](docs/runtime-data-plugin-architecture.md) · [运行引擎](docs/runtime-engines.md) · [端口](docs/ports-and-networking.md) · [DNS](docs/dns-configuration.md) · [虚拟屏架构](docs/virtual-screen-architecture.md) · [ADR](docs/adr/0003-virtual-screen-lifecycle-and-input.md) · [权威资料与来源](docs/references-and-provenance.md)。
+> **0.2.1-rc.2 · build190**：标准版正式发布，包名 `dsh.android.client`，可与旧版 `com.dsh.client` 并排安装，应用数据独立。[下载](https://github.com/DSH-APP/DSHA/releases/tag/v0.2.1-rc.2) · [文档](docs/documentation-index.md) · [发布范围](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)。
 
 ## ❤️ 赞助商
 
@@ -62,52 +56,29 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 ---
 
-## 私有预发布下载
+## 下载
 
-访问私有仓库需已有权限。本轮F12 `0.2.1-rc.2-20261021.1413-dsh0.2.1-rc.2` /190 的[标准版APK与完整源码ZIP](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413)使用同一Release；[中文记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md)与[完整英文记录](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md)说明软件结果及未验范围。F10为已发布历史基线，F11未上传。
+**0.2.1-rc.2 / build190**，按 GitHub 正式版发布。APK 版本名仍为 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2`，E7E3 签名、内置 DSH 0.2.1-rc.2、Ubuntu base10 不变。由贡献者 [@SunsetRNE](https://github.com/SunsetRNE) 维护并发布，感谢原作者及其他贡献者。
 
-| 内容 | 说明 |
+| 下载 | 内容 |
 |---|---|
-| Standard APK | Android11+ / arm64，系统WebView，`com.dsh.client` / E7E3 / 非调试 |
-| 完整源码ZIP | 源码、资源、锁、脚本及固定离线构建输入直接展开到项目路径，配置工具链后构建 |
+| [Standard 标准版 APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/dsha-0.2.1-rc.2.apk) | Android 11+ / arm64，系统 WebView，非调试正式签名 |
+| [完整源码 ZIP](https://github.com/DSH-APP/DSHA/releases/download/v0.2.1-rc.2/DSHA-0.2.1-rc.2-build190-source.zip) | 源码、文档、锁与固定离线构建输入，按项目路径展开 |
 
-一键备份位于“数据与备份”，无需密码，直接保存到 `Download/DSHA`。备份会安全停止DSH和运行任务，完成后手动启动；包含应用数据及当前应用内工作区，外置工作区内容请另备。恢复和更多选项保留。
+包名为 **`dsh.android.client`**，可与旧版 `com.dsh.client` 并排安装；应用数据和系统权限独立。需要迁移时通过备份导出、恢复；本次不发布新的 Low APK，旧版仍可从 [Releases](https://github.com/DSH-APP/DSHA/releases) 获取。
 
-本轮暂停真机验收；最终软件结果也不能代表手机帧率、真实账号登录、Wi-Fi切换或全设备通过。原仓库、网站与旧Low交付保留，历史公开下载另列下方。
+### 相比上一正式版的变化
 
-<details>
-<summary>历史公开下载与build170记录，不是本轮预发布</summary>
+- **虚拟屏**：Standard 支持实验性的独立显示、读屏与输入；能力前提见[虚拟屏说明](docs/virtual-screen-architecture.md)。
+- **全局权限**：支持全部手动、按应用自定义、全部允许；该选项控制 DSHA 内的确认，Android / ADB / Root / Shizuku 的系统能力仍需单独授权。
+- **运行与界面**：内置 DSH 0.2.1-rc.2、移动 UI 3.2.1，默认 proot、可选 proroot，模型在 Web UI 中配置。
+- **维护与备份**：一键无密码备份、外置工作区保护；修复插件安装、目录选择、局域网鉴权与后台 Web 恢复，画中画由用户主动开启。
 
-历史正式版 **v0.2.0-rc2 · build170**（[发布说明](https://github.com/DSH-APP/DSHA/releases/tag/v0.2.0-rc2) ·
-[完整更新记录](CHANGELOG.md)），两个版本共享 `com.dsh.client` 包名与数据，**不能并排安装**：
-
-| 版本 | 适用设备 | 内核 | 下载 | 大小 |
-|---|---|---|---|---:|
-| **Standard 标准版** | Android 11+ / arm64 | 系统 WebView；支持实验性虚拟屏 | [APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2.apk) · [SHA-256](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2.apk.sha256) | 273.10 MiB |
-| **Low 兼容版** | Android 6+ / arm64 | 内置 GeckoView 143；暂不支持虚拟屏 | [APK](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2low.apk) · [SHA-256](https://github.com/DSH-APP/DSHA/releases/download/v0.2.0-rc2/dsha-0.2.0-rc2low.apk.sha256) | 345.27 MiB |
-
-- **升级**：用同签名 APK 覆盖安装即可（证书指纹 `e7e3a3…a53f5`，验装方法见[安全模型](docs/security-model.md)）。相同 Ubuntu 基础版本只更新受管组件，不重建整个环境。
-- **历史下载**：APK 与对应 SHA-256 以上表原仓库Release为准；[校验方法](docs/download-verification.md)。旧应用内更新另读取官网清单，本轮不修改网站或其发布清单。
-- **历史版本**：[Releases](https://github.com/DSH-APP/DSHA/releases)。
-
-build170发布时为 **GitHub 正式版 / Latest**，不标记预发布；版本码 **170**，Ubuntu基础环境编号 **10**。[历史对应源码](https://github.com/DSH-APP/DSHA/tree/v0.2.0-rc2)。
-
-### build170历史更新与旧版对比
-
-- DSH 升级至 **0.2.0-rc.2**，移动 UI 更新至 **3.0.5**，修复手机焦点、弹窗与插件卡片交互。
-- 文件直接进入系统文档选择器，支持多选；修复图片草稿保存与恢复、ADB 首次离线依赖准备和聊天 shell 的 `/tmp` 问题。
-- 网页增加原生分享与保存，补充虚拟屏开启说明、LAN 失效链接指引；作品导出、存储指南和技能统一放入“数据与备份”。
-- 插件检查后自动启用，允许依赖安装脚本；新用户导出统一为无需密码的 `.tar.gz`，历史加密备份仍可读取。
-
-| 以前发布的版本 | 本版主要增加 |
+| 历史版本 | 保留记录 |
 |---|---|
-| [v0.1.7-rc2 / 147，上一正式版](https://github.com/DSH-APP/DSHA/releases/tag/v0.1.7-rc2) | DSH 0.1.7 → 0.2.0 rc2、移动 UI 3.0.3 → 3.0.5，以及上面的文件、草稿、ADB、shell、插件和备份改进。 |
-| [v0.1.5-rc2 / 129](https://github.com/DSH-APP/DSHA/releases/tag/v0.1.5-rc2) | 还累积加入自动备份、独立应急、按需录音、PiP、Standard 实验性虚拟屏及受管更新改进。 |
 | [v1.1.10 及更早版本](https://github.com/DSH-APP/DSHA/releases/tag/v1.1.10) | 已转为双 APK、受管 Ubuntu/DSH 更新与宿主备份恢复；完整直接升级矩阵尚未重新验证，原版说明保留在历史标签。 |
 
-两版各 **45 项关联单测与 Release Lint** 通过；Android13 真机验证正式包覆盖、两种网页内核附件/图片草稿、15 个离线 ADB 依赖准备及最终启动。完整无线配对、原 vivo Android16、Android6/7、16KiB 真机和原生 SAF 最终保存未在本轮覆盖。[正式版完整说明](docs/releases/v0.2.0-rc2-notes.md) · [build170 验收](docs/releases/v0.2.21-build170-20261009.md)。
-
-</details>
+相对最新 build190 维护包，本次 APK 只改包名及关联身份；[验证范围与限制](docs/releases/v0.2.1-rc.2-build190-package-rename-20261021.md)。本次发布未新增真机或长时验收。
 
 ### 开始使用
 
@@ -414,4 +385,4 @@ QQ 群 **975836806** —— 测试版、问题反馈、插件交流。
   </picture>
 </a>
 
-<sub>本源码包含 2026-10-21 核对的上游公开仓库静态快照及[聚合数据](docs/star-history.json)，只保存日期与数量。通过 [`tools/gen-star-history.py`](tools/gen-star-history.py) 设置 `STAR_REPO=DSH-APP/DSHA` 可手动重新生成；本私有预发布分支不声明已配置定时更新。</sub>
+<sub>本源码包含 2026-10-21 核对的上游公开仓库静态快照及[聚合数据](docs/star-history.json)，只保存日期与数量。通过 [`tools/gen-star-history.py`](tools/gen-star-history.py) 设置 `STAR_REPO=DSH-APP/DSHA` 可手动重新生成；仓库现有工作流负责后续更新，实际执行状态以 Actions 为准。</sub>
