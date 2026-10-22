@@ -49,6 +49,12 @@ GitHub 已从 2026-09-23 起移除 Node 20，JavaScript action 统一运行在 N
 - workflow 只有 `contents: read`，不请求写权限，不创建 Release/tag。
 - 不使用 `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION` 之类的回退开关。
 
+### 1.5 Linux 依赖校验与本地构建边界
+
+- `gradle/verification-metadata.xml` 必须同时包含 aapt2 的 Windows 与 Linux classifier 校验；只保留 Windows 条目会让 Linux runner 在 `compileStandard...NavigationResources` 处以 `Dependency verification failed` 失败。2026-10-22 已补 `aapt2-9.1.1-14792394-linux.jar` 的 SHA-256。
+- 没有固定输入包时可以做源码/单测编译，但不能产出可运行 APK。工作区里从已安装 APK 提取的 `offline-rootfs.bin`、`dsh-runtime.bin` 是已应用补丁的运行产物，不能反向当作源输入；`prepare-standard-assets.py` 会以 dsh 补丁/依赖锁不一致拒绝。
+- aarch64 主机上 Google 的 build-tools/aapt2 是 x86_64；`build.sh` 只内置 AIDL shim，未内置 aapt2 仿真。arm64 本地完整打包需要额外的 qemu/aapt2 适配，这不属于 CI 契约；CI 的 x86_64 runner 直接使用 Google aapt2。
+
 ## 2. 测试包身份
 
 | 项 | 值 |
