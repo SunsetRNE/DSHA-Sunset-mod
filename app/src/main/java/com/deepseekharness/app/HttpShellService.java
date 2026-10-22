@@ -507,8 +507,7 @@ public final class HttpShellService {
       java.io.File file =
           new java.io.File(
               tf.getParentFile(), com.deepseekharness.app.util.CredentialPaths.BRIDGE_PORT);
-      if ((file.isFile() || file.isSymbolicLink()) && !file.delete())
-        android.util.Log.w("DSHA", "BRIDGE_PORT_DELETE_FAILED");
+      if (!file.delete() && file.exists()) android.util.Log.w("DSHA", "BRIDGE_PORT_DELETE_FAILED");
     } catch (Throwable error) {
       android.util.Log.w("DSHA", "BRIDGE_PORT_DELETE_FAILED: " + safeError(error));
     }

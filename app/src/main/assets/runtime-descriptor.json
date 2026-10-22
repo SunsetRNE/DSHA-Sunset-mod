@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "16fadda084c08df35ec34b7c03af0eb0f081c4c1d650cef9626e8eca9f317908",
+  "runtimeId": "d9af1314774fe25057afe1e1fadf4405679637218a7801b7849e6b7cafbc7b3c",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.2",
   "launcherContract": "DSHA_ARM64_V2",
@@ -11,7 +11,7 @@
     "DshaAccessibilityService.java": "fe988d4d4bba5559b534a68894cadefabd6197758bc45be4f044fb0a1caa6b40",
     "DshaApp.java": "fbb7d83defc65e3c7fee84e6a5086e29ecd6b525c03cc0b3994e9c7b2165ff9c",
     "HarnessService.java": "2ec7abdad742524db2f3be14f47676272f4abec41c73558d4cb27551572a60cf",
-    "HttpShellService.java": "81db5f095f72c2e7daf4a94eda351974a399f712f4955009bc52861e8987d4b1",
+    "HttpShellService.java": "b0a214a938ce253a0ba0e3831f3dafdbc883445145e2c2698bddfc57c4525aa7",
     "LanAuth.java": "1fd3c69940a21d65c0b65ce171a8e60533e70512d0cf419f200dd8431267f1f6",
     "LanProxyService.java": "b441ce3fd689ae245524ea1e18221d14af95c63f212ff5ccf6e51b01e306c40a",
     "PtySession.java": "21d934dc6827f32f68f9f605cd83e28ea07ce505c1d2bd5599dea788fa11d712",
