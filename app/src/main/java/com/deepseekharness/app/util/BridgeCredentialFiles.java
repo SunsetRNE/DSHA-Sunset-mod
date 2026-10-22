@@ -60,8 +60,9 @@ public final class BridgeCredentialFiles {
   public static int readPort(BackupFileSystem fs, File file) {
     try {
       var node = fs.stat(file);
-      if (!node.type.equals("FILE")) return -1;
-      String raw = new String(fs.small(file, 8), StandardCharsets.US_ASCII).trim();
+      if (!node.type.equals("FILE") || node.size < 1 || node.size > 5 || (node.mode & 0077) != 0)
+        return -1;
+      String raw = new String(fs.small(file, 5), StandardCharsets.US_ASCII);
       if (!raw.matches("[0-9]{1,5}")) return -1;
       int port = Integer.parseInt(raw);
       return port >= 1 && port <= 65535 ? port : -1;

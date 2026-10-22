@@ -2,6 +2,30 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-bridge-port.mjs",
+      "stage": "fast",
+      "reason": "多实例端口严格解析及真实插件消费者隔离回归；不读取设备凭据或连接设备桥",
+      "args": [],
+      "requires": [
+        "node24"
+      ],
+      "timeoutSeconds": 120,
+      "environment": {
+        "NODE_OPTIONS": "--experimental-vm-modules"
+      }
+    },
+    {
+      "path": "tools/test-bridge-port.py",
+      "stage": "fast",
+      "reason": "Python设备shell端口解析的ASCII、NOFOLLOW和文件身份变更回归；不执行设备命令",
+      "args": [],
+      "requires": [
+        "python39"
+      ],
+      "timeoutSeconds": 60,
+      "environment": {}
+    },
+    {
       "path": "tools/test-proroot-compat.py",
       "stage": "fast",
       "reason": "Independent GNU ARM64 proxy identity and exact native dependency boundary; original five vendor ELFs unchanged",

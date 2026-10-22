@@ -1,5 +1,10 @@
 package com.deepseekharness.app.util;
 
+import java.io.IOException;
+import java.net.BindException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+
 /** Device bridge port candidates: prefer the historical 3090, then a bounded fallback range. */
 public final class BridgePortPolicy {
   public static final int PRIMARY_PORT = 3090;
@@ -17,6 +22,43 @@ public final class BridgePortPolicy {
   /** A bridge port must be a normal TCP port and must not steal the Web/LAN reserved ports. */
   public static boolean valid(int port) {
     return port >= 1 && port <= 65535 && port != 3080 && port != 3081;
+  }
+
+  /** 仅全组候选均占用时抛出；权限和其它网络错误保留原异常。 */
+  public static final class Exhausted extends BindException {
+    Exhausted(BindException cause) {
+      super("BRIDGE_PORTS_EXHAUSTED");
+      initCause(cause);
+    }
+  }
+
+  /** 不做先探测后绑定；成功返回的 socket 始终由调用者持有。 */
+  public static ServerSocket bind(int[] ports) throws IOException {
+    if (ports.length == 0) throw new IllegalArgumentException("BRIDGE_PORT_CANDIDATES");
+    BindException busy = null;
+    for (int port : ports) {
+      if (!valid(port)) throw new IllegalArgumentException("BRIDGE_PORT_RANGE");
+      ServerSocket socket = new ServerSocket();
+      try {
+        socket.setReuseAddress(true);
+        socket.bind(new InetSocketAddress("127.0.0.1", port));
+        return socket;
+      } catch (IOException | RuntimeException error) {
+        try {
+          socket.close();
+        } catch (IOException closing) {
+          error.addSuppressed(closing);
+        }
+        if (!(error instanceof BindException binding) || !addressInUse(binding)) throw error;
+        busy = binding;
+      }
+    }
+    throw new Exhausted(busy);
+  }
+
+  static boolean addressInUse(BindException error) {
+    String message = String.valueOf(error.getMessage());
+    return message.contains("EADDRINUSE") || message.contains("Address already in use");
   }
 
   public static String rangeLabel() {

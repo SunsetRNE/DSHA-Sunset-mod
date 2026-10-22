@@ -1,8 +1,9 @@
 'use strict';
 // Production build170's fixed authenticated bridge; no experimental SDK is needed.
 const fs=require('node:fs'),http=require('node:http');
+const bridgePort=require('./bridge-port.cjs');
 const TOKEN_FILE='/root/.dsh/.bridge_token',RESPONSE_LIMIT=24*1024*1024;
-function bridgePort(){try{const file='/root/.dsh/.bridge_port',info=fs.lstatSync(file);if(!info.isFile()||info.isSymbolicLink()||info.size<1||info.size>5||(info.mode&0o077)!==0)throw 0;const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);try{const raw=fs.readFileSync(fd,'ascii').trim();if(!/^[0-9]{1,5}$/.test(raw))throw 0;const port=Number(raw);if(port>=1&&port<=65535)return port;}finally{fs.closeSync(fd);}}catch{}const fromEnvironment=Number(typeof process!=='undefined'&&process.env?process.env.DSHA_BRIDGE_PORT:undefined);return Number.isInteger(fromEnvironment)&&fromEnvironment>=1&&fromEnvironment<=65535?fromEnvironment:3090;}
+
 function bridgeFailure(code,unknown){const error=Error(code);error.executionUnknown=unknown;return error;}
 function bridgeCredential(){
  for(const path of ['/root','/root/.dsh']){const value=fs.lstatSync(path);if(!value.isDirectory()||value.isSymbolicLink())throw bridgeFailure('BRIDGE_TOKEN_PARENT',false);}

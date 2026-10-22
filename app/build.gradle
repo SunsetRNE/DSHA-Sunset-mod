@@ -40,6 +40,10 @@ def verifyBundledDshVersion = tasks.register('verifyBundledDshVersion') {
 def unsignedPackage = project.findProperty('dsha.unsignedPackage') == 'true'
 // 个人测试分支：显式开关才改包名/版本名，默认构建与基线完全一致。
 def sunsetTest = project.findProperty('dsha.sunsetTest') == 'true' || System.getenv('DSHA_SUNSET_TEST') == '1'
+// 只有源码 CI 可显式允许缺少真实测试夹具；完整测试默认要求固定输入齐备。
+def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
+if (!(sourceOnlyTests in ['true', 'false']))
+    throw new GradleException('dsha.sourceOnlyTests 只接受 true 或 false')
 
 android {
     namespace 'com.deepseekharness.app'
@@ -218,6 +222,9 @@ def verifyProrootCompat = tasks.register('verifyProrootCompat', Exec) {
 tasks.named('preBuild').configure { dependsOn(verifyBundledIdentities, verifyBuiltinRegistry, verifyCredentialRegistry, verifyBundledDshVersion, verifyProrootCompat) }
 tasks.withType(Test).configureEach {
     systemProperty 'dsha.assetsDir', file('src/main/assets').absolutePath
+    systemProperty 'dsha.sourceOnlyTests', sourceOnlyTests
+    // 切换到完整测试时不得复用 source-only 的跳过结果。
+    inputs.property 'dsha.sourceOnlyTests', sourceOnlyTests
 }
 tasks.configureEach {
     if (name in ['verifyBundledIdentities', 'verifyBuiltinRegistry', 'prepareStandardAssets',

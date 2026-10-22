@@ -49,8 +49,8 @@ public final class HttpShellService {
 
   public static final int PORT = 3090;
 
-  /** Selected listener port; starts at the legacy 3090 and changes only on bind fallback. */
-  private volatile int bridgePort = PORT;
+  /** 已发布的 IPv4 监听端口；未就绪时为 0。 */
+  private volatile int bridgePort;
 
   private static final String CONFIRM_CHANNEL = "dsh_confirm_channel";
   private static final int CONFIRM_NOTIF_ID = Constants.NOTIF_SHELL_CONFIRM;
@@ -472,7 +472,6 @@ public final class HttpShellService {
 
   private void noteBindOk(int port) {
     bindError = "";
-    writeBridgePort(port);
     writeBridgeStatus("ok port=" + port);
   }
 
@@ -486,17 +485,18 @@ public final class HttpShellService {
   }
 
   /** Guest-side discovery: a 0600 machine-state file, not a credential. */
-  private void writeBridgePort(int port) {
+  private void writeBridgePort(int port) throws IOException {
     try {
       java.io.File tf = tokenFileIfPossible();
-      if (tf == null || tf.getParentFile() == null) return;
+      if (tf == null || tf.getParentFile() == null)
+        throw new IOException("BRIDGE_DATA_ROOT_UNAVAILABLE");
       java.io.File file =
           new java.io.File(
               tf.getParentFile(), com.deepseekharness.app.util.CredentialPaths.BRIDGE_PORT);
       com.deepseekharness.app.util.BridgeCredentialFiles.publishPort(
           new com.deepseekharness.app.backup.AndroidBackupFileSystem(), file, port);
-    } catch (Throwable error) {
-      android.util.Log.w("DSHA", "BRIDGE_PORT_FILE_FAILED: " + safeError(error));
+    } catch (IOException | RuntimeException error) {
+      throw new IOException("BRIDGE_PORT_FILE_FAILED", error);
     }
   }
 
@@ -507,7 +507,11 @@ public final class HttpShellService {
       java.io.File file =
           new java.io.File(
               tf.getParentFile(), com.deepseekharness.app.util.CredentialPaths.BRIDGE_PORT);
-      if (!file.delete() && file.exists()) android.util.Log.w("DSHA", "BRIDGE_PORT_DELETE_FAILED");
+      var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+      if (fs.stat(file).type.equals("MISSING")) return;
+      if (!fs.stat(file).type.equals("FILE")) throw new IOException("BRIDGE_PORT_FILE_TYPE");
+      fs.delete(file);
+      fs.syncDirectory(file.getParentFile());
     } catch (Throwable error) {
       android.util.Log.w("DSHA", "BRIDGE_PORT_DELETE_FAILED: " + safeError(error));
     }
@@ -561,34 +565,16 @@ public final class HttpShellService {
     try {
       synchronized (LIFECYCLE) {
         if (!LIFECYCLE.isCurrent(run.generation) || activeRun != run) return;
-        ensureToken();
-      }
-      // IPv4 是主通道；3090 空闲时保持旧行为，EADDRINUSE 才按固定顺序回退。
-      java.net.BindException busy = null;
-      int bound = -1;
-      for (int candidate : com.deepseekharness.app.util.BridgePortPolicy.candidates()) {
-        ServerSocket socket = new ServerSocket();
-        try {
-          socket.setReuseAddress(true);
-          socket.bind(
-              new java.net.InetSocketAddress(
-                  java.net.InetAddress.getByName("127.0.0.1"), candidate));
-          run.server = socket;
-          bound = candidate;
-          break;
-        } catch (java.net.BindException error) {
-          closeSocket(socket);
-          if (!addressInUse(error)) throw error;
-          busy = error;
-        } catch (IOException | RuntimeException error) {
-          closeSocket(socket);
-          throw error;
-        }
-      }
-      if (bound < 0) throw busy == null ? new java.net.BindException("NO_BRIDGE_PORT") : busy;
-      bridgePort = bound;
-      synchronized (LIFECYCLE) {
-        if (activeRun != run || !LIFECYCLE.publish(run.generation)) return;
+        if (ensureToken().isEmpty()) throw new IOException("BRIDGE_TOKEN_UNAVAILABLE");
+        // 绑定、状态发布与停止共用锁：旧启动线程不能在停止清理后补出一个孤立监听。
+        run.server =
+            com.deepseekharness.app.util.BridgePortPolicy.bind(
+                com.deepseekharness.app.util.BridgePortPolicy.candidates());
+        int bound = run.server.getLocalPort();
+        // 端口文件写入与读回失败时关闭本轮监听；guest 不可发现的桥不能报 ready。
+        writeBridgePort(bound);
+        if (!LIFECYCLE.publish(run.generation)) return;
+        bridgePort = bound;
         running = true;
         instance = this;
         noteBindOk(bound);
@@ -597,7 +583,7 @@ public final class HttpShellService {
         t6.start();
       }
       acceptLoop(run, run.server);
-    } catch (java.net.BindException error) {
+    } catch (com.deepseekharness.app.util.BridgePortPolicy.Exhausted error) {
       failure =
           com.deepseekharness.app.util.UiText.format(
               "设备桥端口 %s 均被占用，设备工具暂不可用；Web 可独立启动。关闭占用端口的其他实例后重试：%s",
@@ -609,21 +595,15 @@ public final class HttpShellService {
     }
   }
 
-  /** Android's BindException text is localized inconsistently; only EADDRINUSE justifies a fallback. */
-  private static boolean addressInUse(java.net.BindException error) {
-    String message = String.valueOf(error.getMessage());
-    return message.contains("EADDRINUSE") || message.contains("Address already in use");
-  }
-
   private void serveIpv6(BridgeRun run) {
     try {
       synchronized (LIFECYCLE) {
         if (!running || activeRun != run || !LIFECYCLE.isCurrent(run.generation)) return;
         run.server6 = new ServerSocket();
+        run.server6.setReuseAddress(true);
+        run.server6.bind(
+            new java.net.InetSocketAddress(java.net.InetAddress.getByName("::1"), bridgePort));
       }
-      run.server6.setReuseAddress(true);
-      run.server6.bind(
-          new java.net.InetSocketAddress(java.net.InetAddress.getByName("::1"), bridgePort));
       acceptLoop(run, run.server6);
     } catch (IOException | RuntimeException error) {
       if (activeRun == run && running)
@@ -701,6 +681,7 @@ public final class HttpShellService {
       // 旧 accept 线程的 finally 可以迟到，但不能清空新实例的就绪状态。
       if (activeRun != run || !LIFECYCLE.isCurrent(run.generation)) return;
       running = false;
+      bridgePort = 0;
       try {
         revokeScreenGrant(ctx);
       } catch (RuntimeException error) {
@@ -1786,8 +1767,12 @@ public final class HttpShellService {
    */
   private String appVersion() {
     return com.deepseekharness.app.util.UiText.format(
-        "BRIDGE_PROTOCOL=%s\nBRIDGE_PORT=%s\nBRIDGE_AUTH=header-x-token\nAPP_VERSION=%s\nAPP_CODE=%s\nHINT=端点清单见 /app/help；判版本请用 >= 而不是 ==\n",
-        BRIDGE_PROTOCOL, bridgePort, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
+        "BRIDGE_PROTOCOL=%s\nBRIDGE_PORT=%s\nAPPLICATION_ID=%s\nBRIDGE_AUTH=header-x-token\nAPP_VERSION=%s\nAPP_CODE=%s\nHINT=端点清单见 /app/help；判版本请用 >= 而不是 ==\n",
+        BRIDGE_PROTOCOL,
+        bridgePort,
+        ctx.getPackageName(),
+        BuildConfig.VERSION_NAME,
+        BuildConfig.VERSION_CODE);
   }
 
   /** /app/help lists bridge endpoint parameters for authenticated clients. */
