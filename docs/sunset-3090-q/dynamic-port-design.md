@@ -179,14 +179,13 @@ IPv4 成功后再尝试 `[::1]:port`。IPv6 失败只记日志（`BRIDGE_IPV6_UN
 - `backup_rules.xml` / `data_extraction_rules.xml` 增加 `.bridge_port` 排除项。
 - `/app/export`、`/app/readfile` 的凭据护栏已经覆盖 `.dsh` 路径；端口文件不需要额外拒绝，但不能被备份/导出。
 
-### 6.5 consent payload 增加实例字段
+### 6.5 实例身份字段（本轮不新增）
 
-`NativeConsentProjection.payload` 增加 `applicationId`（`BuildConfig.APPLICATION_ID`）：
+本轮用"每安装独立端口 + 每安装 token"区分实例，**不**在 consent payload 里新增 `applicationId` 字段：
 
-- schema 仍是 1；
-- 字段是加法，旧 guest 忽略；
-- 新 guest 如果看到该字段且与 `readConnection().applicationId` 不一致，报 `NATIVE_CONSENT_INSTANCE_MISMATCH`；
-- 旧原生不返回该字段 → 按 legacy 接受，不误拒。
+- 端口由本安装 rootfs 的 `.bridge_port` 提供，token 由本安装 rootfs 的 `.bridge_token` 提供；guest 只读自己的文件，天然隔离。
+- 请求打到别的实例时，token 必然不匹配，SDK 映射为 `NATIVE_CONSENT_UNAUTHORIZED`。
+- 不在 payload 里加字段，避免旧/新 schema 组合、测试夹具和描述符的额外变更；后续如需更强的"实例自报身份"，再单独评审加法字段。
 
 ## 7. guest 侧发现
 
@@ -251,24 +250,24 @@ Python 侧用 `os.lstat` + `os.open(..., os.O_NOFOLLOW)`，同样校验 0600 和
 { "applicationId": "dsh.android.client", "generation": "<sha256(token)>", "port": 3091 }
 ```
 
-`bridgeFetch(route, init)` 允许的 init 增加 `expectedConnectionPort`；请求前重新读端口，若与期望不符，拒绝并报 `NATIVE_CONSENT_PORT_CHANGED`。
+`applicationId` 是 SDK 自报的诊断字段（可用 `DSHA_BRIDGE_APPLICATION_ID` 覆盖），本轮不作为 native 侧校验依据；真正的实例区分是端口 + token。`bridgeFetch(route, init)` 允许的 init 增加 `expectedConnectionPort`；请求前重新读端口，若与期望不符，拒绝并报 `NATIVE_CONSENT_PORT_CHANGED`。
 
 ### 8.2 回复校验（native-consent.cjs）
 
 在现有 schema 校验基础上：
 
-1. 如果 `value.applicationId` 存在且不等于 `connection.applicationId` → `NATIVE_CONSENT_INSTANCE_MISMATCH`。
-2. 如果回复是字符串 `[UNAUTHORIZED]`（旧桥 200 业务回复）→ `NATIVE_CONSENT_UNAUTHORIZED`，不再走 `JSON.parse` 失败路径。
-3. HTTP 非 2xx → `HTTP_ERROR`（保留状态码）。
-4. 连接拒绝/超时 → `NATIVE_CONSENT_UNAVAILABLE` / `TIMEOUT`。
+1. 如果回复是字符串 `[UNAUTHORIZED]`（旧桥 200 业务回复）→ `NATIVE_CONSENT_UNAUTHORIZED`，不再走 `JSON.parse` 失败路径。
+2. HTTP 非 2xx → `HTTP_ERROR`（保留状态码）。
+3. 连接拒绝/超时 → `NATIVE_CONSENT_UNAVAILABLE` / `TIMEOUT`。
+4. 端口在读取/请求期间变化 → `NATIVE_CONSENT_PORT_CHANGED`。
 5. 其他 schema 失败仍为 `INVALID_REPLY`。
 
 ### 8.3 destructive-policy
 
 - `globalConsent` 传给 `bridgeFetch` 的期望端口来自 `connection.port`；
-- 事后核对 `applicationId`、`generation`、`port` 三项；
+- 事后核对 SDK 捕获的 `applicationId`、`generation`、`port` 是否与本次读取一致（自洽校验，不做 native 字段比对）；
 - 其它 fail-closed 语义不变；
-- 错误文案区分"未授权/实例不匹配/端口变化/桥不可用"，便于用户和开发组定位。
+- 错误文案区分"未授权/端口变化/桥不可用"，便于用户和开发组定位。
 
 ### 8.4 为什么不直接把未授权改成 401
 
@@ -288,12 +287,12 @@ Python 侧用 `os.lstat` + `os.open(..., os.O_NOFOLLOW)`，同样校验 0600 和
 
 | 威胁 | 影响 | 缓解 |
 |---|---|---|
-| 同 UID 插件伪造 `.bridge_port` 指向别的端口 | 请求打到错误服务 | token 仍在请求头；对方无 token 会 401；applicationId 校验；同 UID 本就可读 rootfs，不新增权限 |
+| 同 UID 插件伪造 `.bridge_port` 指向别的端口 | 请求打到错误服务 | token 仍在请求头；对方无 token 会 401；端口变化检查；同 UID 本就可读 rootfs，不新增权限 |
 | 端口文件符号链接 | 读到攻击者文件 | 原生原子写、0600；guest `lstat` + `O_NOFOLLOW` + 普通文件校验 |
 | 其他 App 读端口/token | 接管桥 | Android app sandbox 隔离 dataDir；token 0600；端口不是凭据 |
 | 端口扫描/未授权请求 | 信息泄露/DoS | 只监听 loopback；token 门控；有界队列；未授权不执行命令 |
 | 占用 3091-3099 阻止绑定 | 桥不可用 | 有界范围 + 明确失败状态；不静默降级；用户可看到冲突 |
-| 复制另一安装 token | 跨安装冒充 | 明确禁止；applicationId 字段帮助识别；token 每安装独立 |
+| 复制另一安装 token | 跨安装冒充 | 明确禁止；token 每安装独立；端口与 token 不匹配会被拒绝 |
 | 环境变量注入 `DSHA_BRIDGE_PORT` | 重定向 | 文件优先；env 同样校验范围；token 仍是主校验 |
 | 旧 guest 回退 3090 | 连错实例 | 旧/新资产随 App 打包，不混用；跨版本手工混用不在支持范围 |
 
@@ -306,7 +305,7 @@ Python 侧用 `os.lstat` + `os.open(..., os.O_NOFOLLOW)`，同样校验 0600 和
 | 单实例，3090 空闲 | 与基线完全一致；`/app/version` 只多一行 `BRIDGE_PORT` |
 | 单实例，3090 被非 DSHA 程序占用 | 回退 3091；guest 通过文件发现；旧脚本若硬编码 3090 会失败（文档提示用 `/app/version`） |
 | 旧 App + 新 App（当前场景） | 旧 3090；新 3091；各自独立；不再串扰 |
-| 旧 native + 新 guest | 没有 `.bridge_port` → 回退 3090；旧桥可用；consent 无 applicationId → legacy 接受 |
+| 旧 native + 新 guest | 没有 `.bridge_port` → 回退 3090；旧桥可用；consent 按既有 schema 接受 |
 | 新 native + 旧 guest | 旧 guest 只认 3090；若新桥回退到 3091 会失败；不支持跨版本混用资产 |
 | 备份/恢复 | `.bridge_port` 排除；不会把 A 的端口带到 B |
 | recovery 运行时 | 使用独立的 `DSHA_RECOVERY_BROKER_PORT` 环境变量和 `/v1/consent`，不读主桥端口；不受本设计影响 |
@@ -321,7 +320,7 @@ Python 侧用 `os.lstat` + `os.open(..., os.O_NOFOLLOW)`，同样校验 0600 和
 | 3090-3099 全被占 | `fail 端口 3090-3099 均被占用` | 失败 `NATIVE_CONSENT_UNAVAILABLE` | "设备桥不可用，请关闭占用实例" |
 | 端口文件缺失 | 正常桥 | 回退 3090；若不对则不可用 | 诊断提示检查 `.bridge_status` |
 | 端口文件损坏/符号链接 | 正常桥 | 忽略并回退 | 同上；日志有 `BRIDGE_PORT_FILE_INVALID` |
-| 另一个实例的桥应答 | 正常 | `NATIVE_CONSENT_UNAUTHORIZED` / `INSTANCE_MISMATCH` | "桥不属于当前安装" |
+| 另一个实例的桥应答 | 正常 | `NATIVE_CONSENT_UNAUTHORIZED` | "桥拒绝了当前安装的 token" |
 | 桥重启换端口 | 覆盖文件 | 下次调用重新读取 | 无感或一次重试 |
 | 桥崩溃 | 文件可能残留 | 连接拒绝 → `NATIVE_CONSENT_UNAVAILABLE` | "设备桥未运行" |
 | Web 端口与回退端口冲突 | 桥仍在 | Web 启动失败/换端口 | 按现有 Web 端口提示处理 |

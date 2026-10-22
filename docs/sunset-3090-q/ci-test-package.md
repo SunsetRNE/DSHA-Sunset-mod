@@ -133,7 +133,27 @@ python3 tools/check-ui-i18n.py
 python3 tools/check-document-links.py
 ```
 
-5. 宿主快速回归：`python3 tools/run-host-tests.py --stage fast`
+5. 分支宿主回归：只跑与设备桥/consent/shell 直接相关、且不依赖离线输入包或上游夹具的用例：
+
+   ```bash
+   python3 tools/run-host-tests.py --stage fast --jdk "$JAVA_HOME" \
+     --only test-native-consent-transport.mjs \
+     --only test-bridge-token-compat.mjs \
+     --only test-bridge-token-transport.py \
+     --only test-destructive-guard.mjs \
+     --only test-destructive-full-access.mjs \
+     --only test-vscreen-anchored.mjs \
+     --only test-device-shell-policy.py \
+     --only test-credential-paths.py \
+     --only test-runtime-descriptor-inputs.py \
+     --only test-runtime-descriptor-source.py \
+     --only test-plugin-capabilities.py \
+     --only test-architecture-boundaries.py
+   ```
+
+   完整 `--stage fast` 里的 `test-asset-deployment`、`test-mobile-server-patches` 需要
+   离线输入包/上游夹具，`test-dns-compat` 依赖宿主 DNS；这些由 `ci-fast`/package 流程或
+   固定输入包覆盖，不在本分支的推送门禁里伪造通过。
 6. Android 单测（不生成离线包）：
 
 ```bash

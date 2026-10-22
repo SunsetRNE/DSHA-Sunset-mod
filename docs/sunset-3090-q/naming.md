@@ -76,7 +76,7 @@
 | 环境变量 | `DSHA_BRIDGE_PORT`（可选覆盖/诊断；文件优先） |
 | 状态文件 | `/root/.dsh/.bridge_status`，成功为 `ok port=<port>`，失败为 `fail <原因>` |
 | 版本端点 | `/app/version` 增加 `BRIDGE_PORT=<port>`；保留 `BRIDGE_PROTOCOL=3` |
-| 新错误码 | `DSHA_NATIVE_CONSENT_UNAUTHORIZED`、`DSHA_NATIVE_CONSENT_INSTANCE_MISMATCH`、`DSHA_NATIVE_CONSENT_PORT_CHANGED` |
+| 新错误码 | `DSHA_NATIVE_CONSENT_UNAUTHORIZED`、`DSHA_NATIVE_CONSENT_PORT_CHANGED` |
 | 兼容回退 | 读不到端口文件/环境变量时，guest 回退 `3090`（旧 App、旧夹具、恢复环境） |
 
 端口文件不是凭据，但也属于机器状态：不得导出、不得进入用户备份、不得随 v5 备份恢复。

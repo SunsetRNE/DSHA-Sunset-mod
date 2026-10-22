@@ -10,7 +10,7 @@
 |---|---|
 | 分支 | `Sunset-3090-Q` |
 | 基线 | `e057379256161f42a28a2adcccef4ea4f5e7dcf1`（0.2.1-rc.2-20261022.0243） |
-| 当前阶段 | **文档先行**：命名、根因、动态端口设计、回归/风险、CI 契约已落盘；随后按文档实现代码、测试和 CI |
+| 当前阶段 | 文档、代码、测试与 CI 已在本分支落盘；待推送后由 GitHub Actions 做最终 source/APK 验证 |
 | 唯一命名口径 | [naming.md](naming.md) |
 | 归属 | SunsetRNE（个人测试分支），不是团队发布分支 |
 
@@ -52,7 +52,7 @@
 
 1. **单实例不回归**：只有正式包运行时，桥仍绑定 `3090`，`/app/version` 报 `BRIDGE_PORT=3090`，既有工具/审计/单测通过。
 2. **双实例可共存**：先起 A（3090），再起 B（自动 3091），两者 `.bridge_status` 都是 `ok port=...`；各自 guest 只访问自己的端口；A/B 的工具互不串扰。
-3. **错误可解释**：故意让 B 的 token 访问 A 的端口，返回明确的 unauthorized/instance mismatch，不再落到 `INVALID_REPLY`。
+3. **错误可解释**：故意让 B 的 token 访问 A 的端口，返回明确的 `NATIVE_CONSENT_UNAUTHORIZED`，不再落到 `INVALID_REPLY`。
 4. **回退兼容**：临时删除 `.bridge_port` 后，guest 回退 `3090`（旧行为）；恢复文件后无需重启 Web 即可继续。
 5. **状态文件安全**：`.bridge_port` 为 `0600` 普通文件、不可符号链接、内容仅 1-5 位数字；不进入备份/导出。
 6. **CI 可复现**：测试包 `applicationId=dsh.android.client.SunsetRNE`、`debuggable=false`、签名证书 ≠ E7E3，artifact 含 APK、SHA256SUMS、证书和 build-info。
@@ -70,3 +70,5 @@
 | 日期 | 变更 |
 |---|---|
 | 2026-10-22 | 建立分支；先落文档：命名、根因、动态端口设计、回归/风险、CI 契约 |
+| 2026-10-22 | 实现原生 3090-3099 端口回退、`.bridge_port` 发布、guest 发现、consent 错误映射与凭据/备份排除；补纯逻辑/文件/宿主测试 |
+| 2026-10-22 | 添加 `Sunset-3090-Q` CI、`dsh.android.client.SunsetRNE` 测试身份、测试签名与非压缩 APK artifact；现有 workflow 升级到 Node 24 Actions |

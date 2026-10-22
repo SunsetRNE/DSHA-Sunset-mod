@@ -53,8 +53,7 @@ python3 tools/run-host-tests.py --stage fast
   - 文件损坏 → env 或 3090；
   - 读连接返回 `port`；
   - `[UNAUTHORIZED]` → `DSHA_NATIVE_CONSENT_UNAUTHORIZED`，不再 `INVALID_REPLY`；
-  - `applicationId` 不匹配 → `INSTANCE_MISMATCH`；
-  - `expectedConnectionPort` 与当前不符 → `PORT_CHANGED`。
+  - `expectedConnectionPort` 与当前不符 → `DSHA_NATIVE_CONSENT_PORT_CHANGED`。
 - `destructive-policy`：consent 不可用仍拒绝；port 事实变化使排队请求失效；不得因端口存在而放行。
 - `recovery-native-consent`：不受主桥端口影响，仍用 `DSHA_RECOVERY_BROKER_PORT`。
 
@@ -66,8 +65,10 @@ python3 tools/run-host-tests.py --stage fast
 
 要求：
 
-- `NativeConsentProjectionTest` 覆盖新增 `applicationId` 字段（存在/缺失/不匹配）。
+- `BridgePortPolicyTest` 覆盖候选顺序/范围/保留端口。
+- `BridgeCredentialFilesTest` 覆盖端口文件发布、读回、非法值/目录/权限状态。
 - `CredentialPathsTest`、`DataRootPolicyTest` 覆盖 `.bridge_port` 的机器状态/排除语义。
+- 本版不新增 native consent 的 `applicationId` 字段，因此不要求对应的 projection 测试。
 - 描述符相关测试在固定输入包恢复后跑 `prepare-runtime-descriptor.py --check`。
 
 ## 4. 设备验收清单
@@ -146,7 +147,7 @@ python3 tools/run-host-tests.py --stage fast
 | R1 | 3090-3099 被其他程序占用 | 低 | 桥不可用 | 有界扫描 + 明确状态；文档提示 | 需要用户释放端口 |
 | R2 | 用户把 Web 端口配到回退区间 | 低 | Web 启动失败/换端口 | WebPortPolicy 现有冲突处理；文档提示 | 未自动避让 3091-3099 |
 | R3 | guest 读到过期 `.bridge_port` | 中 | 一次连接失败 | 原生停止/失败时删除；guest 每次重读；错误可解释 | 强杀时可能残留到下次启动 |
-| R4 | 同 UID 插件伪造端口文件 | 低 | 请求打到错误端口 | token + applicationId；同 UID 本就可信 | 无法防恶意同 UID 代码 |
+| R4 | 同 UID 插件伪造端口文件 | 低 | 请求打到错误端口 | token + 端口变化检查；同 UID 本就可信 | 无法防恶意同 UID 代码 |
 | R5 | 旧 guest 硬编码 3090 | 中（跨版本混用） | 新桥回退到 3091 时旧 guest 失败 | 资产随 App 打包；文档禁止混用 | 手工替换资产时仍可能 |
 | R6 | 错 token 返回 200 被误判 | 中 | 错误码不直观 | SDK 映射 `[UNAUTHORIZED]`；后续评估 401 | 旧桥仍返回 200 |
 | R7 | 测试签名每次不同 | 中 | 跨 run 不能覆盖安装 | 配置 `SUNSET_TEST_KEYSTORE_B64` 或保留 artifact keystore | 未配置时需卸载重装 |
