@@ -1,13 +1,32 @@
 /** DSHA 设备能力引导：使用 dsh 0.1.5 的消息工厂与已提交事件判重。 */
+import { closeSync, constants as fsConstants, lstatSync, openSync, readFileSync } from 'node:fs';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
 export const name = 'dsh-device-shell-guide';
+
+function bridgePort() {
+  try {
+    const file = '/root/.dsh/.bridge_port';
+    const info = lstatSync(file);
+    if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > 5 || (info.mode & 0o077) !== 0) throw 0;
+    const fd = openSync(file, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+    try {
+      const raw = readFileSync(fd, 'ascii').trim();
+      if (!/^[0-9]{1,5}$/.test(raw)) throw 0;
+      const port = Number(raw);
+      if (port >= 1 && port <= 65535) return port;
+    } finally { closeSync(fd); }
+  } catch {}
+  const fromEnvironment = Number(typeof process !== 'undefined' && process.env ? process.env.DSHA_BRIDGE_PORT : undefined);
+  return Number.isInteger(fromEnvironment) && fromEnvironment >= 1 && fromEnvironment <= 65535 ? fromEnvironment : 3090;
+}
+const BRIDGE_PORT = bridgePort();
 
 const PROMPT = [
   '【设备操作能力 · DSHA】你正运行在用户 Android 手机的容器里，可以干预这台实体手机。',
 
   '■ 三条通道，按这个顺序选：',
   '  1) Ubuntu 工作区内的开发与文件操作使用普通工具；Android 设备文件写入必须走受保护的设备 shell。',
-  '  2) App 层接口 /app/*（走 127.0.0.1:3090，零配置，不需要 ADB，也不需要 Shizuku）',
+  '  2) App 层接口 /app/*（走 127.0.0.1:' + BRIDGE_PORT + '，零配置，不需要 ADB，也不需要 Shizuku）',
   '  3) 设备 shell（adb-shell 命令自动选择已授权的 root、Shizuku 或 ADB）—— 查询设备日志、普通设备文件操作和结束用户应用。',
   '  例：查设备状态用 /app/device 而不是 dumpsys battery；启动应用用 /app/launch 而不是 am start。',
 
@@ -22,7 +41,7 @@ const PROMPT = [
 
   '■ 完整端点清单（读屏 / 点按 / 输入 / 截屏 / 通知 / 剪贴板 / 传感器 / 导出文件 …）：',
   '  # Credentials are sent by header file; do not place them in URLs or argv.',
-  '  curl -s -H @/root/.dsh/.bridge_headers "http://127.0.0.1:3090/app/help"',
+  '  curl -s -H @/root/.dsh/.bridge_headers "http://127.0.0.1:' + BRIDGE_PORT + '/app/help"',
   '  → 要用设备能力时查这一次，里面有每个端点的参数和写法。',
   '    清单刻意没写在这里 —— 它有十几 KB，写进提示词就是每一轮都替你付一次上下文。',
   '  ⚠ /app/help 与 /app/version 只有较新的 App 才有（老版本会把未知路径当 shell 命令处理，',

@@ -25,11 +25,27 @@
  * 5) **一个异常都不能冒出去**。这是个「顺带好看」的功能，绝不能影响 agent 干活 ——
  *    所有 IO 与解析都包在 try/catch 里，失败就静默降级。
  */
-import { readFileSync } from 'node:fs'
+import { closeSync, constants as fsConstants, lstatSync, openSync, readFileSync } from 'node:fs'
 export const name = 'dsh-status-overlay'
 
-/** 桥地址（App 侧只监听回环，容器与宿主共享网络命名空间，所以直接连得上）。 */
-const BRIDGE = 'http://127.0.0.1:3090/app/overlay'
+/** 桥端口由本安装原生写入 .bridge_port；读不到才回退 3090。 */
+function bridgePort() {
+  try {
+    const file = '/root/.dsh/.bridge_port'
+    const info = lstatSync(file)
+    if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > 5 || (info.mode & 0o077) !== 0) throw 0
+    const fd = openSync(file, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW)
+    try {
+      const raw = readFileSync(fd, 'ascii').trim()
+      if (!/^[0-9]{1,5}$/.test(raw)) throw 0
+      const port = Number(raw)
+      if (port >= 1 && port <= 65535) return port
+    } finally { closeSync(fd) }
+  } catch {}
+  const fromEnvironment = Number(typeof process !== 'undefined' && process.env ? process.env.DSHA_BRIDGE_PORT : undefined)
+  return Number.isInteger(fromEnvironment) && fromEnvironment >= 1 && fromEnvironment <= 65535 ? fromEnvironment : 3090
+}
+function bridgeBase() { return 'http://127.0.0.1:' + bridgePort() }
 const TOKEN_PATH = '/root/.dsh/.bridge_token'
 /** 合并窗口：120ms 一次，肉眼看起来仍是连续流动的。 */
 const FLUSH_MS = 120
@@ -166,7 +182,7 @@ async function send(key, kind, text) {
   const tok = bridgeToken()
   if (!tok) return
   if (Date.now() < cooldownUntil) return
-  const url = `${BRIDGE}?kind=${encodeURIComponent(kind)}`
+  const url = `${bridgeBase()}/app/overlay?kind=${encodeURIComponent(kind)}`
     + `&session=${encodeURIComponent(key)}`
     + `&text=${encodeURIComponent(text || '')}`
   try {
@@ -387,7 +403,7 @@ export function reportPluginStates(ctx, io = {}) {
       const st = collectPluginStates(ctx)
       const snapshot = JSON.stringify(st)
       if (snapshot === previous) return
-      const url = 'http://127.0.0.1:3090/app/plugins'
+      const url = bridgeBase() + '/app/plugins'
         + '?loaded=' + encodeURIComponent(st.loaded.join(','))
         + '&failed=' + encodeURIComponent(st.failed.join(','))
         + '&pending=' + encodeURIComponent(st.pending.join(','))

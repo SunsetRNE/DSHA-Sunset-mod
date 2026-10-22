@@ -1,12 +1,57 @@
 'use strict';
-// APK-owned launcher query for production build170's authenticated 3090 bridge.
-// It accepts no address, path, token, headers or request body from callers.
+// APK-owned launcher query for the authenticated device bridge.
+//
+// The native bridge prefers the historical port 3090 and may fall back to
+// 3091-3099 when another DSHA installation owns 3090. The selected port is
+// published in this installation's rootfs at /root/.dsh/.bridge_port; guests
+// must use it instead of hard-coding 3090. The token remains the real gate.
 const fs = require('node:fs');
 const http = require('node:http');
 const crypto = require('node:crypto');
 const TOKEN = '/root/.dsh/.bridge_token';
+const PORT_FILE = '/root/.dsh/.bridge_port';
+const DEFAULT_PORT = 3090;
 const LIMIT = 8192;
-function invalid(code) { const error = Error(code); error.code = code; return error; }
+
+function invalid(code) {
+  const error = Error(code);
+  error.code = code;
+  return error;
+}
+
+function validPort(value) {
+  return Number.isInteger(value) && value >= 1 && value <= 65535;
+}
+
+function bridgePort() {
+  try {
+    const before = fs.lstatSync(PORT_FILE);
+    if (!before.isFile() || before.isSymbolicLink() || before.size < 1 || before.size > 5
+        || (before.mode & 0o077) !== 0) throw invalid('NATIVE_CONSENT_PORT_FILE');
+    const fd = fs.openSync(PORT_FILE, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    try {
+      const opened = fs.fstatSync(fd);
+      if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino
+          || opened.size !== before.size || (opened.mode & 0o077) !== 0)
+        throw invalid('NATIVE_CONSENT_PORT_FILE_CHANGED');
+      const bytes = Buffer.alloc(6), length = fs.readSync(fd, bytes, 0, bytes.length, 0);
+      const raw = bytes.subarray(0, length).toString('ascii').trim();
+      if (length !== opened.size || !/^[0-9]{1,5}$/.test(raw))
+        throw invalid('NATIVE_CONSENT_PORT_INVALID');
+      const port = Number(raw);
+      if (validPort(port)) return port;
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch (ignored) {
+    // Missing/invalid state falls back to the legacy port; the token still gates.
+  }
+  const fromEnvironment =
+      Number(typeof process !== 'undefined' && process.env ? process.env.DSHA_BRIDGE_PORT : undefined);
+  if (validPort(fromEnvironment)) return fromEnvironment;
+  return DEFAULT_PORT;
+}
+
 function credential() {
   for (const parent of ['/root', '/root/.dsh']) {
     const info = fs.lstatSync(parent);
@@ -30,44 +75,79 @@ function credential() {
         || after.size !== opened.size || (after.mode & 0o077) !== 0)
       throw invalid('NATIVE_CONSENT_TOKEN_CHANGED');
     return { token, generation: crypto.createHash('sha256').update(token).digest('hex') };
-  } finally { fs.closeSync(fd); }
+  } finally {
+    fs.closeSync(fd);
+  }
 }
+
 function readConnection() {
-  return Object.freeze({ applicationId: 'dsh.android.client', generation: credential().generation });
+  return Object.freeze({
+    applicationId:
+        (typeof process !== 'undefined' && process.env && process.env.DSHA_BRIDGE_APPLICATION_ID)
+        || 'dsh.android.client',
+    generation: credential().generation,
+    port: bridgePort(),
+  });
 }
+
 function bridgeFetch(route, init = {}) {
   if (!['/device/consent', '/app/native-policy'].includes(route)
-      || Object.keys(init).some(key => !['signal', 'expectedConnectionGeneration'].includes(key)))
+      || Object.keys(init).some(
+          key => !['signal', 'expectedConnectionGeneration', 'expectedConnectionPort'].includes(key)))
     return Promise.reject(invalid('NATIVE_CONSENT_QUERY_ONLY'));
   if (init.signal?.aborted) return Promise.reject(init.signal.reason || invalid('NATIVE_CONSENT_CANCELLED'));
-  let current;
+  let current, port;
   try {
     current = credential();
+    port = bridgePort();
     if (current.generation !== init.expectedConnectionGeneration)
       throw invalid('NATIVE_CONSENT_TOKEN_CHANGED');
-  } catch (error) { return Promise.reject(error); }
+    if (init.expectedConnectionPort !== undefined && init.expectedConnectionPort !== port)
+      throw invalid('NATIVE_CONSENT_PORT_CHANGED');
+  } catch (error) {
+    return Promise.reject(error);
+  }
   return new Promise((resolve, reject) => {
-    const request = http.request({ protocol: 'http:', hostname: '127.0.0.1', port: 3090,
-      path: '/app/native-policy', method: 'GET', headers: { 'X-Token': current.token },
-      signal: init.signal, agent: false }, response => {
-      const chunks = []; let size = 0;
+    const request = http.request({
+      protocol: 'http:',
+      hostname: '127.0.0.1',
+      port,
+      path: '/app/native-policy',
+      method: 'GET',
+      headers: { 'X-Token': current.token },
+      signal: init.signal,
+      agent: false,
+    }, response => {
+      const chunks = [];
+      let size = 0;
       response.on('data', part => {
         size += part.length;
-        if (size > LIMIT) { response.destroy(invalid('NATIVE_CONSENT_REPLY_LIMIT')); return; }
+        if (size > LIMIT) {
+          response.destroy(invalid('NATIVE_CONSENT_REPLY_LIMIT'));
+          return;
+        }
         chunks.push(part);
       });
       response.on('error', reject);
       response.on('end', () => {
         try {
-          if (credential().generation !== current.generation) throw invalid('NATIVE_CONSENT_TOKEN_CHANGED');
+          if (credential().generation !== current.generation)
+            throw invalid('NATIVE_CONSENT_TOKEN_CHANGED');
+          if (bridgePort() !== port) throw invalid('NATIVE_CONSENT_PORT_CHANGED');
           const body = Buffer.concat(chunks, size).toString('utf8'), status = response.statusCode;
-          resolve({ ok: status >= 200 && status < 300, status,
-            json: async () => JSON.parse(body) });
-        } catch (error) { reject(error); }
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            json: async () => JSON.parse(body),
+          });
+        } catch (error) {
+          reject(error);
+        }
       });
     });
     request.on('error', reject);
     request.end();
   });
 }
+
 module.exports = Object.freeze({ readConnection, bridgeFetch });

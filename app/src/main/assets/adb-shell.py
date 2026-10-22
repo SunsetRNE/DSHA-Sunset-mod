@@ -13,6 +13,7 @@ import os
 import re
 import shlex
 import socket
+import stat
 import sys
 import threading
 import time
@@ -26,9 +27,37 @@ _policy_spec.loader.exec_module(policy)
 KEYDIR = '/root/.dsh/adbkeys'
 KEY = KEYDIR + '/adbkey'
 KEYPUB = KEY + '.pub'
+BRIDGE_TOKEN_FILE = '/root/.dsh/.bridge_token'
+BRIDGE_PORT_FILE = '/root/.dsh/.bridge_port'
+DEFAULT_BRIDGE_PORT = 3090
 TRANSPORT_TIMEOUT = 4.0
 CONNECT_TIMEOUT = 25.0
 COMMAND_TIMEOUT = 90.0
+
+
+def bridge_port():
+    """Read this installation's bridge port; fall back to the legacy 3090."""
+    try:
+        info = os.lstat(BRIDGE_PORT_FILE)
+        if not stat.S_ISREG(info.st_mode) or info.st_size < 1 or info.st_size > 5 \
+                or (info.st_mode & 0o077) != 0:
+            raise OSError('invalid port file')
+        descriptor = os.open(BRIDGE_PORT_FILE, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            raw = os.read(descriptor, 6).decode('ascii').strip()
+        finally:
+            os.close(descriptor)
+        if not re.fullmatch(r'[0-9]{1,5}', raw):
+            raise OSError('invalid port')
+        value = int(raw)
+        if 1 <= value <= 65535:
+            return value
+    except OSError:
+        pass
+    from_environment = os.environ.get('DSHA_BRIDGE_PORT', '')
+    if from_environment.isdigit() and 1 <= int(from_environment) <= 65535:
+        return int(from_environment)
+    return DEFAULT_BRIDGE_PORT
 
 class ConnectFail(Exception):
     """命令尚未发送，允许重新发现地址。"""
@@ -183,7 +212,7 @@ def bridge_request(route, parameters, timeout):
     if not token:
         raise ValueError('CREDENTIAL_UNAVAILABLE')
     request = urllib.request.Request(
-        'http://127.0.0.1:3090' + route + '?' + urllib.parse.urlencode(parameters),
+        'http://127.0.0.1:%d' % bridge_port() + route + '?' + urllib.parse.urlencode(parameters),
         headers={'X-Token': token})
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     return opener.open(request, timeout=timeout)
@@ -331,7 +360,7 @@ def request_device_plan(cmd, use_su=False):
         if not token:
             raise ValueError('missing token')
         query = urllib.parse.urlencode({'cmd': cmd, 'su': '1' if use_su else '0'})
-        request = urllib.request.Request('http://127.0.0.1:3090/device/plan?' + query, headers={'X-Token': token})
+        request = urllib.request.Request('http://127.0.0.1:%d/device/plan?' % bridge_port() + query, headers={'X-Token': token})
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         with opener.open(request, timeout=75) as response:
             value = json.loads(response.read(1024 * 1024)).get('result')
@@ -432,7 +461,7 @@ def request_native_execution(cmd, use_su=False, force_adb=False):
     except (OSError, ValueError) as error:
         raise policy.Blocked('设备桥未准备好，请打开 DSHA 后重试') from error
     query = urllib.parse.urlencode({'cmd': cmd, 'su': '1' if use_su else '0', 'adb': '1' if force_adb else '0'})
-    request = urllib.request.Request('http://127.0.0.1:3090/device/execute?' + query, headers={'X-Token': token})
+    request = urllib.request.Request('http://127.0.0.1:%d/device/execute?' % bridge_port() + query, headers={'X-Token': token})
     try:
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         with opener.open(request, timeout=155) as response:

@@ -1,7 +1,24 @@
 /** Real Agent turn facts and one-shot cancellation through the authenticated native bridge. */
 import { randomBytes } from 'node:crypto'
+import { closeSync, constants as fsConstants, lstatSync, openSync, readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 export const inject = ['agents', 'sessionProjections', 'webServer']
+function bridgePort() {
+  try {
+    const file = '/root/.dsh/.bridge_port'
+    const info = lstatSync(file)
+    if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > 5 || (info.mode & 0o077) !== 0) throw 0
+    const fd = openSync(file, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW)
+    try {
+      const raw = readFileSync(fd, 'ascii').trim()
+      if (!/^[0-9]{1,5}$/.test(raw)) throw 0
+      const port = Number(raw)
+      if (port >= 1 && port <= 65535) return port
+    } finally { closeSync(fd) }
+  } catch {}
+  const fromEnvironment = Number(typeof process !== 'undefined' && process.env ? process.env.DSHA_BRIDGE_PORT : undefined)
+  return Number.isInteger(fromEnvironment) && fromEnvironment >= 1 && fromEnvironment <= 65535 ? fromEnvironment : 3090
+}
 export const name = 'dsh-task-notifier'
 export function completionNotice(reason) {
   if (reason === 'completed') return ['DSHA · 任务完成', 'Agent 已完成一轮对话，点击查看结果']
@@ -12,7 +29,7 @@ export function completionNotice(reason) {
 async function bridge(operation, value) {
   const token = (await readFile('/root/.dsh/.bridge_token', 'utf8')).trim()
   if (!token) throw Error('bridge unavailable')
-  const response = await fetch('http://127.0.0.1:3090/app/tasks/' + operation
+  const response = await fetch('http://127.0.0.1:' + bridgePort() + '/app/tasks/' + operation
     + '?payload=' + encodeURIComponent(JSON.stringify(value)), {
     headers: { 'X-Token': token }, signal: AbortSignal.timeout(2000)
   })

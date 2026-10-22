@@ -26,12 +26,15 @@ async function globalConsent(signal) {
     timeout = AbortSignal.timeout(1500);
     const response = await sdk.bridgeFetch('/device/consent', {
       expectedConnectionGeneration: connection.generation,
+      expectedConnectionPort: connection.port,
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     });
     if (!response.ok) return unavailable('HTTP_ERROR', undefined, response.status);
     stage = 'INVALID_REPLY';
     const envelope = await response.json();
     if (typeof envelope.result !== 'string' || Buffer.byteLength(envelope.result) > 4096) return unavailable('INVALID_REPLY');
+    // Legacy bridges answer a wrong token with HTTP 200 and this exact text.
+    if (envelope.result === '[UNAUTHORIZED]') return unavailable('UNAUTHORIZED');
     const value = JSON.parse(envelope.result);
     const uuid = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/;
     if (value?.schema === 1 && value.available === false) return unavailable('NOT_AVAILABLE');
@@ -44,16 +47,17 @@ async function globalConsent(signal) {
         || value.runtimeInstanceId !== value.runtimeInstanceId.split(':')[0] + ':' + value.webGeneration) return unavailable('INVALID_REPLY');
     stage = 'DESCRIPTOR_UNAVAILABLE';
     const current = sdk.readConnection();
-    if (['applicationId','generation'].some(key => current[key] !== connection[key])) return unavailable('DESCRIPTOR_CHANGED');
+    if (['applicationId','generation','port'].some(key => current[key] !== connection[key])) return unavailable('DESCRIPTOR_CHANGED');
     return { kind: 'available', facts: { applicationId: connection.applicationId, installationId: value.installationId,
-      bridgeRunId: value.bridgeRunId, bridgeGeneration: connection.generation,
+      bridgeRunId: value.bridgeRunId, bridgeGeneration: connection.generation, bridgePort: connection.port,
       webGeneration: value.webGeneration, runtimeInstanceId: value.runtimeInstanceId,
       revision: value.revision, globalAllow: value.globalAllow } };
   } catch (cause) {
     // Keep the original failure available to diagnostics, without copying its
     // message, reply body, descriptor path or credentials into the guard text.
     const reason = signal?.aborted || cause?.name === 'AbortError' ? 'CANCELLED'
-      : timeout?.aborted || cause?.name === 'TimeoutError' ? 'TIMEOUT' : stage;
+      : timeout?.aborted || cause?.name === 'TimeoutError' ? 'TIMEOUT'
+      : cause?.code === 'NATIVE_CONSENT_PORT_CHANGED' ? 'PORT_CHANGED' : stage;
     return unavailable(reason, cause);
   }
 }
@@ -65,6 +69,12 @@ function consentFailure(code, detail, cause) {
 function availableConsent(reading) {
   if (reading.kind === 'unavailable') {
     const status = Number.isInteger(reading.httpStatus) ? ' HTTP ' + reading.httpStatus : '';
+    if (reading.reason === 'UNAUTHORIZED')
+      consentFailure('DSHA_NATIVE_CONSENT_UNAUTHORIZED',
+        'The bridge rejected this installation token; it may belong to another DSHA instance.', reading.cause);
+    if (reading.reason === 'PORT_CHANGED')
+      consentFailure('DSHA_NATIVE_CONSENT_PORT_CHANGED',
+        'The bridge port changed while native consent was being verified.', reading.cause);
     consentFailure('DSHA_NATIVE_CONSENT_UNAVAILABLE', reading.reason + status + '; current native consent could not be verified.', reading.cause);
   }
   return reading.facts;
