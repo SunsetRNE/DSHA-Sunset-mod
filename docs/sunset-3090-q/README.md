@@ -10,7 +10,7 @@
 |---|---|
 | 分支 | `Sunset-3090-Q` |
 | 基线 | `e057379256161f42a28a2adcccef4ea4f5e7dcf1`（0.2.1-rc.2-20261022.0243） |
-| 当前阶段 | 文档、代码、测试与 CI 已在本分支落盘；待推送后由 GitHub Actions 做最终 source/APK 验证 |
+| 当前阶段 | 文档、代码、测试与 CI 已落盘并推送到 `origin/Sunset-3090-Q`（79e7a30）；GitHub Actions 已触发，私有仓库本机无 token，run 结果待用户在 Actions 核验 |
 | 唯一命名口径 | [naming.md](naming.md) |
 | 归属 | SunsetRNE（个人测试分支），不是团队发布分支 |
 
@@ -72,3 +72,4 @@
 | 2026-10-22 | 建立分支；先落文档：命名、根因、动态端口设计、回归/风险、CI 契约 |
 | 2026-10-22 | 实现原生 3090-3099 端口回退、`.bridge_port` 发布、guest 发现、consent 错误映射与凭据/备份排除；补纯逻辑/文件/宿主测试 |
 | 2026-10-22 | 添加 `Sunset-3090-Q` CI、`dsh.android.client.SunsetRNE` 测试身份、测试签名与非压缩 APK artifact；现有 workflow 升级到 Node 24 Actions |
+| 2026-10-22 | 推送 `origin/Sunset-3090-Q`（79e7a30）；本地 12 项分支宿主回归、描述符/凭据/文档检查通过；ARM64 容器无法运行 x86_64 AIDL，完整 APK 由 GitHub x86 runner 或固定输入包验证 |
