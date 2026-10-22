@@ -189,12 +189,15 @@ sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
 
 ### 4.2 `apk` job
 
-只有在能取得固定输入包时才执行；否则输出明确 notice 并跳过，不伪造 APK。
+源码门禁通过后必须执行；固定输入获取或校验失败时任务失败，不再静默跳过 APK。
 
 输入包来源优先级：
 
 1. `workflow_dispatch` 的 `asset_bundle_url` + `asset_bundle_sha256`；
 2. 仓库变量 `SUNSET_ASSET_BUNDLE_URL` + `SUNSET_ASSET_BUNDLE_SHA256`。
+3. 两者均未配置时，使用 [固定输入锁](../../ci/sunset-inputs.lock.json) 指定的既有私有完整源码附件。URL 固定到 Release asset ID，整个 ZIP 的 SHA-256 固定；仅提取 11 个白名单输入，每个二进制仍按当前源码 pin 验证，不覆盖或执行归档中的源码。
+
+URL/SHA 必须在同一来源成对提供，半对配置立即失败，不单独回退。自定义归档默认为严格的 `bundle`；完整源码归档需显式选择 `asset_archive_format=source-archive`，仓库变量对应 `SUNSET_ASSET_ARCHIVE_FORMAT`。私有 GitHub Release API 下载只在该步骤使用 `GITHUB_TOKEN`，重定向后不携带认证头。
 
 步骤：
 
@@ -205,7 +208,7 @@ sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
 python3 tools/ci-assets.py --url "$URL" --sha256 "$SHA"
 ```
 
-该脚本只允许固定文件名、拒绝路径穿越、逐文件核对 SHA；失败即终止。
+该脚本先校验整个 ZIP 的固定 SHA，再暂存白名单输入并核对全部源码 pin，成功后才写入目标；普通 bundle 必须恰好 11 个成员，显式 source-archive 只选择其中白名单成员。缺失、重复、链接、路径歧义或摘要不符均失败。
 
 3. 安装 Android SDK/NDK：
 
@@ -281,10 +284,10 @@ apksigner verify --print-certs app-signed.apk
 `offline-rootfs.bin`、`dsh-runtime.bin`、`ubuntu-tools.bin` 等固定输入合计约 738 MB，不在 Git 中（GitHub 单文件 100 MB 限制，且仓库明确不提交大生成归档）。没有输入包时：
 
 - `source` job 运行源码检查、宿主回归及明确标注跳过数的源码模式单测；
-- `apk` job 跳过并给出 `APK_SKIPPED_NO_ASSET_BUNDLE` 的 summary；
+- `apk` job 使用源码锁中的现有私有输入归档；下载失败或输入不符则明确失败；
 - 不生成假的/残缺 APK。
 
-配置方式（二选一）：
+覆盖固定默认输入（可选，必须同时提供 URL 和 SHA）：
 
 - 仓库 Settings → Variables：`SUNSET_ASSET_BUNDLE_URL`、`SUNSET_ASSET_BUNDLE_SHA256`；
 - 手动 `workflow_dispatch` 时填两个输入。
@@ -322,7 +325,7 @@ apksigner verify --print-certs *.apk
 - 输入包 URL 必须是 HTTPS 且带固定 SHA-256；不使用可变分支 URL。
 - 不在日志打印 token/API key/用户数据；APK 中不包含测试 keystore。
 - 测试 keystore 14 天过期，证书主题明确测试用途；不得用于任何正式分发。
-- 不把本 workflow 的成功当成正式发布证明；它只证明测试包可构建、可签名、可安装。
+- 工作流成功和附件读回可证明测试包完成构建、签名、内容校验与上传；不代表真机安装运行或正式发布。
 
 ## 8. 本地等价命令（无 CI 时）
 

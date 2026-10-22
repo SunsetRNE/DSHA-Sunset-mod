@@ -16,24 +16,42 @@ on:
         description: Fixed SHA-256 for that input bundle
         required: false
         type: string
+      asset_archive_format:
+        description: Archive layout for an explicit URL and SHA pair
+        required: false
+        type: choice
+        default: bundle
+        options: [bundle, source-archive]
 permissions:
   contents: read
 concurrency:
   group: sunset-3090-q-${{ github.ref }}
   cancel-in-progress: true
 env:
-  ASSET_URL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.asset_bundle_url || vars.SUNSET_ASSET_BUNDLE_URL }}
-  ASSET_SHA: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.asset_bundle_sha256 || vars.SUNSET_ASSET_BUNDLE_SHA256 }}
   SUNSET_TEST_STORE_PASSWORD: sunset-test-only
 jobs:
   source:
     name: Source-only checks and regressions
     runs-on: ubuntu-24.04
     timeout-minutes: 50
+    outputs:
+      asset_url: ${{ steps.inputs.outputs.url }}
+      asset_sha: ${{ steps.inputs.outputs.sha256 }}
+      asset_format: ${{ steps.inputs.outputs.format }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Resolve a complete fixed input pair
+        id: inputs
+        env:
+          SUNSET_DISPATCH_URL: ${{ github.event.inputs.asset_bundle_url }}
+          SUNSET_DISPATCH_SHA: ${{ github.event.inputs.asset_bundle_sha256 }}
+          SUNSET_DISPATCH_FORMAT: ${{ github.event.inputs.asset_archive_format }}
+          SUNSET_REPOSITORY_URL: ${{ vars.SUNSET_ASSET_BUNDLE_URL }}
+          SUNSET_REPOSITORY_SHA: ${{ vars.SUNSET_ASSET_BUNDLE_SHA256 }}
+          SUNSET_REPOSITORY_FORMAT: ${{ vars.SUNSET_ASSET_ARCHIVE_FORMAT }}
+        run: python3 tools/sunset-ci-inputs.py --github-output
       - name: Verify toolchain against source configuration
         id: toolchain
         run: python3 tools/ci-toolchain.py --github-output
@@ -74,7 +92,12 @@ jobs:
             --only test-runtime-descriptor-inputs.py \
             --only test-runtime-descriptor-source.py \
             --only test-plugin-capabilities.py \
-            --only test-architecture-boundaries.py
+            --only test-architecture-boundaries.py \
+            --only test-bridge-port.mjs \
+            --only test-bridge-port.py \
+            --only test-ci-assets.py \
+            --only test-ci-package.py \
+            --only test-sunset-ci-inputs.py
       - name: Source-only unit tests for both flavors (up to five external-fixture skips each)
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
@@ -121,11 +144,13 @@ jobs:
   apk:
     name: Signed SunsetRNE test APK
     needs: source
-    if: ${{ vars.SUNSET_ASSET_BUNDLE_URL != '' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
       SUNSET_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
+      ASSET_URL: ${{ needs.source.outputs.asset_url }}
+      ASSET_SHA: ${{ needs.source.outputs.asset_sha }}
+      ASSET_FORMAT: ${{ needs.source.outputs.asset_format }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -144,7 +169,11 @@ jobs:
         env:
           INPUT_URL: ${{ env.ASSET_URL }}
           INPUT_SHA: ${{ env.ASSET_SHA }}
-        run: python3 tools/ci-assets.py --url "$INPUT_URL" --sha256 "$INPUT_SHA"
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
+          if [ "$ASSET_FORMAT" = source-archive ]; then args+=(--source-archive); fi
+          python3 tools/ci-assets.py "${args[@]}"
       - name: Install Android SDK and NDK
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
@@ -240,8 +269,9 @@ jobs:
         id: sign
         run: |
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
-          apksigner="$ANDROID_HOME/build-tools/$buildtools/apksigner"
-          aapt2="$ANDROID_HOME/build-tools/$buildtools/aapt2"
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          apksigner="$sdk_root/build-tools/$buildtools/apksigner"
+          aapt2="$sdk_root/build-tools/$buildtools/aapt2"
           unsigned=$(find app/build/outputs/apk/standard/release -name '*-unsigned.apk' | head -1)
           test -n "$unsigned"
           version=$(python3 -c "import json;print(json.load(open('app/build/outputs/apk/standard/release/output-metadata.json'))['elements'][0]['versionName'])")
@@ -257,6 +287,8 @@ jobs:
           cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
           test -n "$cert"
           test "$cert" != "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
+          python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
+          python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
           (cd out && sha256sum *.apk sunset-test-cert.pem > SHA256SUMS)
           python3 - <<PY
           import json, os
@@ -265,6 +297,9 @@ jobs:
             "kind": "sunset-3090-q-test-apk",
             "commit": os.environ["GITHUB_SHA"],
             "runNumber": os.environ["GITHUB_RUN_NUMBER"],
+            "runId": os.environ["GITHUB_RUN_ID"],
+            "runAttempt": os.environ["GITHUB_RUN_ATTEMPT"],
+            "inputArchiveFormat": os.environ["ASSET_FORMAT"],
             "packageName": "dsh.android.client.SunsetRNE",
             "versionName": "$version",
             "certificateSha256": "$cert",
@@ -298,6 +333,8 @@ jobs:
             out/sunset-test-cert.pem
             out/build-info.json
             out/apk-signature.txt
+            out/apk-runtime-verification.txt
+            out/apk-recovery-verification.txt
             out/full-unit-tests.json
       - name: Upload full unit test reports
         if: always()
