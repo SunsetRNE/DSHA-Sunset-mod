@@ -292,6 +292,12 @@ apksigner verify --print-certs app-signed.apk
 - 仓库 Settings → Variables：`SUNSET_ASSET_BUNDLE_URL`、`SUNSET_ASSET_BUNDLE_SHA256`；
 - 手动 `workflow_dispatch` 时填两个输入。
 
+### 4.4 真实 CI 暴露的队列测试竞态
+
+运行 `39753314515` 的源码单测实际执行 2046 项、1 失败、7 跳过；失败为 `ScreenOwnershipTest.queueCapacityRejectsBeforePlatformWork`，预期 `SCREEN_QUEUE_FULL` 而实际 `SCREEN_QUEUE_TIMEOUT`。旧测试的 `current` 回调会在容量检查和执行前各调用一次，却两次都递减入队计数，可能在只有 15 个名额被占用时就检查溢出。
+
+修复将每个请求停在取得容量后的首轮检查，主线程确认 16 个独立请求均持有容量后再验证第 17 个被拒绝，最后显式释放屏障。生产队列不变。JDK17 整类 14 项、容量用例连续 100 轮通过；隔离负控将容量误改成 17 时测试确实失败。原失败记录保留，后续全量结果以新提交的实际 CI 为准。
+
 ## 5. 产物契约
 
 | 文件 | 说明 |
