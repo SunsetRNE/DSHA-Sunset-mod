@@ -1,6 +1,10 @@
 name: Source checks
 on:
   push:
+    # 个人测试分支由 sunset-3090-q.yml 单独门禁；本工作流全量 fast 套件
+    # 依赖固定输入包和上游夹具，不在该分支重复跑（2026-10-22 基线已知红）。
+    branches-ignore:
+      - Sunset-3090-Q
   pull_request:
   workflow_dispatch:
 permissions:

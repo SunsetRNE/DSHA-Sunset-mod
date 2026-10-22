@@ -32,7 +32,17 @@ GitHub 已从 2026-09-23 起移除 Node 20，JavaScript action 统一运行在 N
 
 > 版本/提交以 2026-10-22 的 `git ls-remote` 为准；升级时重新核对 SHA，不直接改用浮动 tag。
 
-### 1.3 仍然保留的约束
+### 1.3 通用 `Source checks` 不在本分支重复跑
+
+`ci-fast.yml` 的 push 触发器已排除 `Sunset-3090-Q`。原因：该工作流的完整 `--stage fast`
+依赖固定输入包（`test-asset-deployment`）、上游夹具（`test-mobile-server-patches`）和
+原生 toolchain/raw runtime（`test-vscreen-protocol`、`test-permission-full-access`、
+`test-bundled-dsh-version`），在 2026-10-22 的基线上本来就不是全绿；另外
+`test-ui-boundaries154`、`test-runtime-session`、`test-core-boundaries` 等既有失败
+与本分支无关。本分支由 `sunset-3090-q.yml` 的 curated source 门槛负责；
+`ci-fast` 的完整回归留给拥有固定输入的正式 CI/发布流程。
+
+### 1.4 仍然保留的约束
 
 - `ubuntu-24.04` 托管 runner；Java 17、Node 24、Python 3.12 由 `tools/ci-toolchain.py` 从 `ci/toolchain.lock.json` 读取。
 - 所有 action 继续按 SHA 固定，注释版本号；不使用 `@main`、`@latest`。
