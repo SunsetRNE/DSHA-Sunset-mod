@@ -42,6 +42,18 @@ public final class WebBackgroundPageLifecycleTest {
     static HarnessController value;
     static PreviewPageSession.Identity ready;
     static boolean exited;
+    static com.deepseekharness.app.util.WebStartProtection protection;
+
+    @Implementation
+    protected com.deepseekharness.app.util.WebStartProtection webStartProtection() {
+      return protection;
+    }
+
+    @Implementation
+    protected boolean requiresRuntimeProtection() {
+      return !exited;
+    }
+
     static final List<Runnable> callbacks = new ArrayList<>();
 
     @Implementation
@@ -211,6 +223,10 @@ public final class WebBackgroundPageLifecycleTest {
     Controller.value = Shadow.newInstanceOf(HarnessController.class);
     Controller.ready = ORIGINAL;
     Controller.exited = false;
+    Controller.protection =
+        new com.deepseekharness.app.util.WebStartProtection(
+            new com.deepseekharness.app.util.WebLifecycle(),
+            android.os.SystemClock::elapsedRealtime);
     Controller.callbacks.clear();
     BrowserTasks.nativeNavigation();
     Intent intent =

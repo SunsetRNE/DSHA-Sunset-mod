@@ -172,8 +172,85 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(32, groups.size());
-    assertEquals(37, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(38, groups.size());
+    assertEquals(48, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-config-editor/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("config-editor-lock-order-patch.json")
+                        && recipe.markers().contains("DSHA_CONFIG_EDITOR_LOCK_ORDER_V1")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("plugin-manager-pending-patch.json")
+                        && recipe.markers().contains("DSHA_PLUGIN_PENDING_V2")
+                        && recipe.markers().contains("DSHA_PLUGIN_PENDING_VIEW_V2")
+                        && recipe.markers().contains("DSHA_PLUGIN_REFRESH_REUSE_V1")
+                        && recipe.markers().contains("DSHA_PLUGIN_REFRESH_BARRIER_V1")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("agent-preset-pending-patch.json")
+                        && recipe.markers().contains("DSHA_PRESET_PENDING_V2")
+                        && recipe.markers().contains("DSHA_PRESET_POST_WRITE_READ_V1")
+                        && recipe.markers().contains("DSHA_PRESET_PENDING_VIEW_V2")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-workspace/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("session-interaction-patch.json")
+                        && recipe.markers().contains("DSHA_SESSION_SINGLE_ACTIVATE_V4")));
+    var inventory = groups.get("@deepseek-ai/dsh-host-plugin-inventory/lib/index.js");
+    assertNotNull(inventory);
+    assertEquals(2, inventory.size());
+    assertEquals("plugin-inventory-entries-patch.json", inventory.get(0).id());
+    assertEquals(
+        java.util.List.of("DSHA_PLUGIN_ENTRIES_PROJECTION_V1"), inventory.get(0).markers());
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-plugin-manager/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("plugin-manager-entries-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_PLUGIN_LIST_ENTRIES_ONLY_V1"))));
+    assertEquals("plugin-inventory-management-patch.json", inventory.get(1).id());
+    assertEquals(
+        java.util.List.of("DSHA_PLUGIN_MANAGEMENT_PROJECTION_V1"), inventory.get(1).markers());
+    var hostCodec = groups.get("@deepseek-ai/dsh-host-plugin-inventory/lib/typert.host.js");
+    assertNotNull(hostCodec);
+    assertEquals(1, hostCodec.size());
+    assertEquals("plugin-inventory-management-host-codec-patch.json", hostCodec.get(0).id());
+    assertEquals(
+        java.util.List.of("DSHA_PLUGIN_MANAGEMENT_HOST_CODEC_V1"), hostCodec.get(0).markers());
+    var remoteCodec =
+        groups.get("@deepseek-ai/dsh-host-plugin-inventory/lib/typert.remote-client.js");
+    assertNotNull(remoteCodec);
+    assertEquals(1, remoteCodec.size());
+    assertEquals("plugin-inventory-management-remote-codec-patch.json", remoteCodec.get(0).id());
+    assertEquals(
+        java.util.List.of("DSHA_PLUGIN_MANAGEMENT_REMOTE_CODEC_V1"), remoteCodec.get(0).markers());
+    var apiCodec = groups.get("@deepseek-ai/dsh-api-remotes/lib/client.js");
+    assertNotNull(apiCodec);
+    assertEquals(1, apiCodec.size());
+    assertEquals("plugin-inventory-management-api-codec-patch.json", apiCodec.get(0).id());
+    assertEquals(
+        java.util.List.of("DSHA_PLUGIN_MANAGEMENT_API_CODEC_V1"), apiCodec.get(0).markers());
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("plugin-manager-management-probe-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_PLUGIN_MANAGEMENT_PROBE_V1"))));
+    var manager = groups.get("@deepseek-ai/dsh-plugin-manager/lib/index.js");
+    var workers = manager.get(manager.size() - 1);
+    assertEquals("plugin-bundle-proof-workers-patch.json", workers.id());
+    assertEquals(java.util.List.of("DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"), workers.markers());
     var oauth = groups.get("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js");
     assertNotNull(oauth);
     assertEquals(1, oauth.size());

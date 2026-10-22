@@ -9,6 +9,9 @@ import java.util.concurrent.ScheduledExecutorService;
 /** Application-owned Web lifetime. Legacy facades share this exact queue and generation. */
 public final class HarnessSessionState {
   final WebLifecycle lifecycle = new WebLifecycle();
+  final com.deepseekharness.app.util.WebStartProtection startProtection =
+      new com.deepseekharness.app.util.WebStartProtection(
+          lifecycle, android.os.SystemClock::elapsedRealtime);
   final ScheduledExecutorService io =
       Executors.newSingleThreadScheduledExecutor(
           r -> {

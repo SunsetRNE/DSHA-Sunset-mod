@@ -12,11 +12,15 @@ byte_pinned = {'app/src/main/assets/ubuntu-tools.manifest.json', 'app/src/main/a
 byte_pinned.add("tools/mobile-server/index.js")
 byte_pinned.add("app/src/main/assets/plugin-manager-policy-patch.json")
 byte_pinned.add("app/src/main/assets/plugin-manager.py")
+history_fixture_pins = {
+    "tools/fixtures/session-interaction-v3/session-interaction-patch.json": "37f53270df43f737ec7c1d38d55cbf7e30e0cd8f21418ca8831b1582da590b37",
+    "tools/fixtures/session-interaction-v3/web-integration/session-interaction.js": "df67935e0ab81e23b494119cb7b4c97e2263cd6d01a6cf9069ca6004e6e3a790",
+}
 descriptor = json.loads((ROOT / "app/src/main/assets/runtime-descriptor.json").read_text(encoding="utf-8"))
 binary = {".so", ".bin", ".jar", ".aar", ".gz", ".tgz", ".zip", ".png", ".jpg", ".webp", ".pdf", ".keystore"}
 for name in names:
     path = ROOT / name
-    if not path.is_file() or path.suffix in binary or name.startswith('tools/history/') or name in byte_pinned:
+    if not path.is_file() or path.suffix in binary or name.startswith('tools/history/') or name in byte_pinned or name in history_fixture_pins:
         continue
     value = path.read_bytes()
     if b"\0" not in value and b"\r\n" in value:
@@ -33,6 +37,11 @@ for path in (ROOT / "app/src/main/java").rglob("*.java"):
 history_paths = ["tools/history/_byte-policy." + ext for ext in ("py", "java", "md", "txt", "sh", "xml", "json", "cjs")]
 history_paths.append("tools/history/LICENSE")
 history_paths.extend(sorted(byte_pinned))
+history_paths.extend(sorted(history_fixture_pins))
+for name, expected in history_fixture_pins.items():
+    path = ROOT / name
+    if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        errors.append("HISTORICAL_FIXTURE_BYTES: " + name)
 attributes = subprocess.check_output(
     ["git", "check-attr", "-z", "text", "eol", "--", *history_paths], cwd=ROOT
 ).rstrip(b"\0").split(b"\0")

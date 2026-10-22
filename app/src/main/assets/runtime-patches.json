@@ -42,7 +42,8 @@
       "asset": "session-interaction-patch.json",
       "module": "@deepseek-ai/dsh-client-ui-workspace/lib/client.js",
       "markers": [
-        "DSHA_SESSION_INTERACTION_V2",
+        "DSHA_SESSION_INTERACTION_V4",
+        "DSHA_SESSION_SINGLE_ACTIVATE_V4",
         "dsha-session-open"
       ]
     },
@@ -176,6 +177,77 @@
       "module": "@deepseek-ai/dsh-client-file-upload/lib/index.js",
       "markers": [
         "DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"
+      ]
+    },
+    {
+      "asset": "config-editor-lock-order-patch.json",
+      "markers": [
+        "DSHA_CONFIG_EDITOR_LOCK_ORDER_V1"
+      ]
+    },
+    {
+      "asset": "plugin-manager-pending-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_PENDING_V2",
+        "DSHA_PLUGIN_PENDING_VIEW_V2",
+        "DSHA_PLUGIN_REFRESH_REUSE_V1",
+        "DSHA_PLUGIN_REFRESH_BARRIER_V1"
+      ]
+    },
+    {
+      "asset": "agent-preset-pending-patch.json",
+      "markers": [
+        "DSHA_PRESET_PENDING_V2",
+        "DSHA_PRESET_POST_WRITE_READ_V1",
+        "DSHA_PRESET_PENDING_VIEW_V2"
+      ]
+    },
+    {
+      "asset": "plugin-inventory-entries-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_ENTRIES_PROJECTION_V1"
+      ]
+    },
+    {
+      "asset": "plugin-manager-entries-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_LIST_ENTRIES_ONLY_V1"
+      ]
+    },
+    {
+      "asset": "plugin-inventory-management-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_MANAGEMENT_PROJECTION_V1"
+      ]
+    },
+    {
+      "asset": "plugin-inventory-management-host-codec-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_MANAGEMENT_HOST_CODEC_V1"
+      ]
+    },
+    {
+      "asset": "plugin-inventory-management-remote-codec-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_MANAGEMENT_REMOTE_CODEC_V1"
+      ]
+    },
+    {
+      "asset": "plugin-inventory-management-api-codec-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_MANAGEMENT_API_CODEC_V1"
+      ]
+    },
+    {
+      "asset": "plugin-manager-management-probe-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_MANAGEMENT_PROBE_V1"
+      ]
+    },
+    {
+      "asset": "plugin-bundle-proof-workers-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"
       ]
     }
   ],
