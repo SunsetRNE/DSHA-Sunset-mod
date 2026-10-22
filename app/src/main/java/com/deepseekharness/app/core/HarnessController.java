@@ -166,6 +166,23 @@ public class HarnessController {
     return web.startWebIfUnchanged(expectedGeneration, manual, status);
   }
 
+  public com.deepseekharness.app.util.WebStartProtection webStartProtection() {
+    return web.startProtection();
+  }
+
+  public boolean startProtectedWeb(
+      com.deepseekharness.app.util.WebStartProtection.Ticket ticket,
+      boolean safe,
+      boolean recover,
+      Consumer<String> status) {
+    return web.startProtectedWeb(ticket, safe, recover, status);
+  }
+
+  /** Pure intent/session state only; it never probes or signals a process. */
+  public boolean requiresRuntimeProtection() {
+    return web.requiresRuntimeProtection();
+  }
+
   public boolean restartWebAutomatically(long expectedGeneration, Consumer<String> status) {
     return web.restartWebAutomatically(expectedGeneration, status);
   }
@@ -184,6 +201,10 @@ public class HarnessController {
 
   public void stopWeb(Consumer<String> status) {
     web.stopWeb(status);
+  }
+
+  public void stopWebIfUnchanged(long generation) {
+    web.stopWebIfUnchanged(generation);
   }
 
   /** Candidate held by one native confirmation; it cannot be reused after any new Web intent. */

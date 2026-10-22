@@ -364,8 +364,7 @@ public class MainActivity extends AppCompatActivity {
     findViewById(android.R.id.content)
         .post(
             () -> {
-              if (!isFinishing() && !isDestroyed())
-                FirstRunWebStart.schedule(getApplicationContext(), getIntent());
+              if (!isFinishing() && !isDestroyed()) FirstRunWebStart.schedule(this, getIntent());
             });
   }
 
@@ -413,6 +412,8 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onPostResume() {
     super.onPostResume();
+    if (mainReady && getIntent().getBooleanExtra(FirstRunWebStart.EXTRA, false))
+      scheduleFirstRunWeb();
     showStartupUpdate();
   }
 

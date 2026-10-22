@@ -686,6 +686,43 @@ final class WebLifecycleController {
     return requestStart(onStatus, !manual, expectedGeneration, false, expectedGeneration);
   }
 
+  public com.deepseekharness.app.util.WebStartProtection startProtection() {
+    return state.startProtection;
+  }
+
+  public boolean requiresRuntimeProtection() {
+    synchronized (lifecycle) {
+      boolean stopped =
+          lifecycle.isUserStopped()
+              && !lifecycle.isStopping()
+              && state.lastStopResult != null
+              && state.lastStopResult.stopped()
+              && state.lastStopError.isEmpty();
+      return state.restoreChecking
+          || lifecycle.isStarting()
+          || lifecycle.isStopping()
+          || hasUnresolvedWebSession()
+          || state.currentRun != null && !stopped;
+    }
+  }
+
+  public boolean startProtectedWeb(
+      com.deepseekharness.app.util.WebStartProtection.Ticket ticket,
+      boolean safe,
+      boolean recover,
+      Consumer<String> onStatus) {
+    synchronized (lifecycle) {
+      if (!state.startProtection.canAdmit(ticket)) return false;
+    }
+    if (recover) {
+      // The exact ticket is rechecked by enqueueStop. Never hold lifecycle while
+      // screen revocation obtains the independent HTTP/screen authority lock.
+      recoverWeb(safe, null, onStatus, ticket);
+      return true;
+    }
+    return requestStart(onStatus, false, 0, safe, ticket.generation(), ticket);
+  }
+
   /** 看门狗不能撤销用户停止意图；检查与入队在同一把锁内完成。 */
   public boolean restartWebAutomatically(long expectedGeneration, Consumer<String> onStatus) {
     if (!canAutoRestart()) return false;
@@ -710,8 +747,21 @@ final class WebLifecycleController {
       long expectedGeneration,
       boolean safeMode,
       long admissionGeneration) {
+    return requestStart(
+        onStatus, automatic, expectedGeneration, safeMode, admissionGeneration, null);
+  }
+
+  private boolean requestStart(
+      Consumer<String> onStatus,
+      boolean automatic,
+      long expectedGeneration,
+      boolean safeMode,
+      long admissionGeneration,
+      com.deepseekharness.app.util.WebStartProtection.Ticket protection) {
     synchronized (lifecycle) {
       if (lifecycle.generation() != admissionGeneration) return false;
+      if (protection != null && !state.startProtection.canAdmit(protection)) return false;
+      if (automatic && state.startProtection.hasPreparing()) return false;
       if (state.restoreChecking) {
         if (onStatus != null)
           onStatus.accept(
@@ -760,6 +810,8 @@ final class WebLifecycleController {
     synchronized (lifecycle) {
       // Slow preflight does not reserve authority. A Stop/new intent during it wins.
       if (lifecycle.generation() != admissionGeneration) return false;
+      if (protection != null && !state.startProtection.canAdmit(protection)) return false;
+      if (automatic && state.startProtection.hasPreparing()) return false;
       if (com.deepseekharness.app.core.MaintenanceCoordinator.isEnvironmentTaskBusy()) {
         if (onStatus != null)
           onStatus.accept(com.deepseekharness.app.util.UiText.text("正在执行环境任务，完成后再启动 Web"));
@@ -780,7 +832,11 @@ final class WebLifecycleController {
       long startedGeneration = -1;
       boolean transferred = false;
       try {
-        final long generation = lifecycle.beginStart(automatic, stopSentinelPresent);
+        if (protection == null) state.startProtection.cancelAll();
+        final long generation =
+            protection == null
+                ? lifecycle.beginStart(automatic, stopSentinelPresent)
+                : state.startProtection.beginStart(protection, stopSentinelPresent);
         if (generation < 0) return false;
         startedGeneration = generation;
         boolean priorCompatible = state.currentRun != null && state.currentRun.compatible;
@@ -807,6 +863,9 @@ final class WebLifecycleController {
               try (startup) {
                 startup.run(
                     () -> {
+                      if (protection != null
+                          && !state.startProtection.claimQueuedStart(protection, generation))
+                        throw new IOException("WEB_FOREGROUND_SERVICE_LOST_BEFORE_DISPATCH");
                       startWeb(
                           generation, onStatus, safeMode, !automatic, automatic && priorCompatible);
                       return null;
@@ -1238,6 +1297,11 @@ final class WebLifecycleController {
     enqueueStop(onStatus);
   }
 
+  /** A destroyed foreground owner may stop only the generation it actually protected. */
+  public void stopWebIfUnchanged(long generation) {
+    if (generation > 0) enqueueStop(null, null, null, generation);
+  }
+
   static boolean forceStopAllowed(
       WebLifecycle lifecycle, WebStopCoordinator.Result lastResult, long expectedGeneration) {
     synchronized (lifecycle) {
@@ -1323,12 +1387,37 @@ final class WebLifecycleController {
 
   private Future<?> enqueueStop(
       Consumer<String> onStatus, WebProcessManager.ForceCandidate forcedCandidate) {
-    screenLifetime.revoke();
+    return enqueueStop(onStatus, forcedCandidate, null);
+  }
+
+  private Future<?> enqueueStop(
+      Consumer<String> onStatus,
+      WebProcessManager.ForceCandidate forcedCandidate,
+      com.deepseekharness.app.util.WebStartProtection.Ticket protection) {
+    return enqueueStop(onStatus, forcedCandidate, protection, -1);
+  }
+
+  private Future<?> enqueueStop(
+      Consumer<String> onStatus,
+      WebProcessManager.ForceCandidate forcedCandidate,
+      com.deepseekharness.app.util.WebStartProtection.Ticket protection,
+      long expectedGeneration) {
+    // Every external Stop revokes pending starts, including a repeated Stop whose
+    // generation does not advance. Only the exact recovery capability may cross its own Stop.
+    java.util.concurrent.CountDownLatch revoked = new java.util.concurrent.CountDownLatch(1);
+    Future<?> submitted;
     synchronized (lifecycle) {
+      if (expectedGeneration >= 0 && !lifecycle.isCurrent(expectedGeneration)) return null;
+      if (protection == null) state.startProtection.cancelAll();
+      if (protection != null && !state.startProtection.canAdmit(protection)) return null;
       if (lifecycle.isStopping()) return state.stopTask;
       long previous = lifecycle.generation();
+      long generation =
+          protection == null
+              ? lifecycle.beginStop()
+              : state.startProtection.beginInternalStop(protection);
+      if (generation < 0) return null;
       state.diagnostics.completed(previous, "stopped", "");
-      long generation = lifecycle.beginStop();
       state.lastStopError = "";
       state.lastStopResult =
           new WebStopCoordinator.Result(
@@ -1346,94 +1435,121 @@ final class WebLifecycleController {
       } catch (Exception e) {
         Log.w("DSHA", com.deepseekharness.app.util.UiText.text("写停止标记失败，将由停止脚本重试"), e);
       }
-      state.stopTask =
-          io.submit(
-              () -> {
-                String stopError = "";
-                WebStopCoordinator.Result retirementProof = null;
-                try {
-                  processes.loadStopEvidence();
-                  // Core HTTP/ADB close and exit probes must never run in an Activity/Service
-                  // callback. The epoch/permit revocation above has already fenced input.
-                  screenLifetime.stop();
-                  WebStopCoordinator.Result result =
-                      WebStopCoordinator.stop(
-                          new WebStopCoordinator.Ports() {
-                            public String stopGuest() throws IOException {
-                              return WebStopText.renderAll(stopGuestFacts());
-                            }
-
-                            public java.util.List<com.deepseekharness.app.util.WebStopDiagnostic>
-                                stopGuestFacts() throws IOException {
-                              return (forcedCandidate == null
-                                      ? webProc.stopResult()
-                                      : webProc.forceStopResult(forcedCandidate))
-                                  .diagnostics();
-                            }
-
-                            public String stopOwnedLaunchers() {
-                              return processes.stopOwnedLaunchers();
-                            }
-
-                            public java.util.List<com.deepseekharness.app.util.WebStopDiagnostic>
-                                stopOwnedLauncherFacts() {
-                              return processes.stopOwnedLauncherFacts();
-                            }
-
-                            public boolean confirm() throws IOException {
-                              return processes.confirmStopped();
-                            }
-                          });
-                  state.lastStopResult = result;
-                  stopError = result.stopped() ? "" : result.detail();
-                  if (stopError.isEmpty()) processes.releaseBridge(previous);
-                  if (stopError.isEmpty()) {
+      try {
+        state.stopTask =
+            io.submit(
+                () -> {
+                  String stopError = "";
+                  WebStopCoordinator.Result retirementProof = null;
+                  try {
                     try {
-                      storedSession.clear();
-                    } catch (IOException unavailable) {
-                      DiagnosticLog.record(
-                          ctx, "WEB_SESSION_RETIRE", unavailable.getClass().getSimpleName());
+                      revoked.await();
+                    } catch (InterruptedException interrupted) {
+                      Thread.currentThread().interrupt();
+                      throw new IllegalStateException(
+                          "WEB_STOP_REVOCATION_INTERRUPTED", interrupted);
                     }
-                    state.retainedWebStopProof = null;
-                    state.unreadableWebStopProof = false;
+                    processes.loadStopEvidence();
+                    // Core HTTP/ADB close and exit probes must never run in an Activity/Service
+                    // callback. The epoch/permit revocation above has already fenced input.
+                    screenLifetime.stop();
+                    WebStopCoordinator.Result result =
+                        WebStopCoordinator.stop(
+                            new WebStopCoordinator.Ports() {
+                              public String stopGuest() throws IOException {
+                                return WebStopText.renderAll(stopGuestFacts());
+                              }
+
+                              public java.util.List<com.deepseekharness.app.util.WebStopDiagnostic>
+                                  stopGuestFacts() throws IOException {
+                                return (forcedCandidate == null
+                                        ? webProc.stopResult()
+                                        : webProc.forceStopResult(forcedCandidate))
+                                    .diagnostics();
+                              }
+
+                              public String stopOwnedLaunchers() {
+                                return processes.stopOwnedLaunchers();
+                              }
+
+                              public java.util.List<com.deepseekharness.app.util.WebStopDiagnostic>
+                                  stopOwnedLauncherFacts() {
+                                return processes.stopOwnedLauncherFacts();
+                              }
+
+                              public boolean confirm() throws IOException {
+                                return processes.confirmStopped();
+                              }
+                            });
+                    state.lastStopResult = result;
+                    stopError = result.stopped() ? "" : result.detail();
+                    if (stopError.isEmpty()) processes.releaseBridge(previous);
+                    if (stopError.isEmpty()) {
+                      try {
+                        storedSession.clear();
+                      } catch (IOException unavailable) {
+                        DiagnosticLog.record(
+                            ctx, "WEB_SESSION_RETIRE", unavailable.getClass().getSimpleName());
+                      }
+                      state.retainedWebStopProof = null;
+                      state.unreadableWebStopProof = false;
+                    }
+                    if (stopError.isEmpty()
+                        && !com.deepseekharness.app.core.MaintenanceCoordinator
+                            .isEnvironmentTaskBusy()) {
+                      com.deepseekharness.app.backup.AutomaticBackups.stopped(ctx);
+                      com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(ctx);
+                    } // Guest and owned-launcher proof remain separate.
+                    com.deepseekharness.app.LanProxyService.stop(previous);
+                    if (stopError.isEmpty()) retirementProof = result;
+                  } catch (RuntimeException | Error failure) {
+                    retirementProof = null;
+                    stopError = recordStopFailure(state, failure).detail();
+                    if (failure instanceof Error) throw (Error) failure;
+                  } finally {
+                    synchronized (lifecycle) {
+                      state.lastStopError = stopError == null ? "" : stopError;
+                      lifecycle.finishStop(generation);
+                      if (retirementProof != null && retirementProof.stopped())
+                        new android.os.Handler(android.os.Looper.getMainLooper())
+                            .post(
+                                foregroundRetirement(
+                                    lifecycle,
+                                    generation,
+                                    retirementProof,
+                                    () ->
+                                        com.deepseekharness.app.HarnessService.retireStoppedRuntime(
+                                            ctx, generation)));
+                      reportStatus(
+                          generation,
+                          onStatus,
+                          stopError.isEmpty()
+                              ? com.deepseekharness.app.util.UiText.text("停止操作已完成")
+                              : stopError);
+                    }
                   }
-                  if (stopError.isEmpty()
-                      && !com.deepseekharness.app.core.MaintenanceCoordinator
-                          .isEnvironmentTaskBusy()) {
-                    com.deepseekharness.app.backup.AutomaticBackups.stopped(ctx);
-                    com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(ctx);
-                  } // Guest and owned-launcher proof remain separate.
-                  com.deepseekharness.app.LanProxyService.stop(previous);
-                  if (stopError.isEmpty()) retirementProof = result;
-                } catch (RuntimeException | Error failure) {
-                  retirementProof = null;
-                  stopError = recordStopFailure(state, failure).detail();
-                  if (failure instanceof Error) throw (Error) failure;
-                } finally {
-                  synchronized (lifecycle) {
-                    state.lastStopError = stopError == null ? "" : stopError;
-                    lifecycle.finishStop(generation);
-                    if (retirementProof != null && retirementProof.stopped())
-                      new android.os.Handler(android.os.Looper.getMainLooper())
-                          .post(
-                              foregroundRetirement(
-                                  lifecycle,
-                                  generation,
-                                  retirementProof,
-                                  () ->
-                                      com.deepseekharness.app.HarnessService.retireStoppedRuntime(
-                                          ctx, generation)));
-                    reportStatus(
-                        generation,
-                        onStatus,
-                        stopError.isEmpty()
-                            ? com.deepseekharness.app.util.UiText.text("停止操作已完成")
-                            : stopError);
-                  }
-                }
-              });
-      return state.stopTask;
+                });
+      } catch (RuntimeException rejected) {
+        recordStopFailure(state, rejected);
+        lifecycle.finishStop(generation);
+        java.util.concurrent.FutureTask<Void> failed =
+            new java.util.concurrent.FutureTask<>(
+                () -> {
+                  throw rejected;
+                });
+        failed.run();
+        state.stopTask = failed;
+      }
+      submitted = state.stopTask;
     }
+    // The lifecycle fence is already set, so no new runtime can enter while permission
+    // revocation takes its independent HTTP lock. The worker cannot finish before this.
+    try {
+      screenLifetime.revoke();
+    } finally {
+      revoked.countDown();
+    }
+    return submitted;
   }
 
   private File stopSentinel() {
@@ -1507,6 +1623,14 @@ final class WebLifecycleController {
   }
 
   public void recoverWeb(boolean safe, String disabledPlugin, Consumer<String> onStatus) {
+    recoverWeb(safe, disabledPlugin, onStatus, null);
+  }
+
+  private void recoverWeb(
+      boolean safe,
+      String disabledPlugin,
+      Consumer<String> onStatus,
+      com.deepseekharness.app.util.WebStartProtection.Ticket protection) {
     if (disabledPlugin != null
         && (!state.diagnostics.snapshot().issues.containsKey(disabledPlugin)
             || com.deepseekharness.app.util.BuiltinPlugins.internal(disabledPlugin))) return;
@@ -1514,57 +1638,67 @@ final class WebLifecycleController {
     // 旧实现随后马上检查 isStopping()，因此恢复入口总是在停止任务尚未完成时直接返回，
     // 既没有第二次启动，也没有给主界面留下可解释的错误。必须等待这一次 Future 完成，
     // 再在相同 generation 上排入启动；不复用旧进程，也不改变用户数据。
-    Future<?> stop = enqueueStop(null);
+    Future<?> stop = enqueueStop(null, null, protection);
     final long stopped = lifecycle.generation();
     io.execute(
         () -> {
           try {
-            if (stop != null) stop.get();
-          } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            reportStatus(
-                stopped, onStatus, com.deepseekharness.app.util.UiText.text("等待停止被中断，请重试"));
-            return;
-          } catch (Exception error) {
-            reportStatus(
-                stopped,
-                onStatus,
-                com.deepseekharness.app.util.UiText.format(
-                    "停止旧 Web 失败：%s",
-                    com.deepseekharness.app.util.SensitiveData.redact(
-                        String.valueOf(error.getMessage()))));
-            return;
-          }
-          if (!lifecycle.isCurrent(stopped) || lifecycle.isStopping()) return;
-          if (disabledPlugin != null) {
-            com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease =
-                com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire(
-                    com.deepseekharness.app.util.UiText.text("停用故障插件"));
-            if (lease == null) {
+            try {
+              if (stop != null) stop.get();
+            } catch (InterruptedException interrupted) {
+              Thread.currentThread().interrupt();
               reportStatus(
-                  stopped,
-                  onStatus,
-                  com.deepseekharness.app.util.UiText.text("正在进行环境任务，完成后再停用插件。"));
+                  stopped, onStatus, com.deepseekharness.app.util.UiText.text("等待停止被中断，请重试"));
               return;
-            }
-            try (lease) {
-              String result = lease.run(() -> proot.setPluginEnabled(disabledPlugin, false));
-              if (!result.contains("BUILTIN_REGISTER_OK")) {
-                reportStatus(
-                    stopped,
-                    onStatus,
-                    com.deepseekharness.app.util.UiText.format("停用插件失败：%s", result));
-                return;
-              }
             } catch (Exception error) {
               reportStatus(
                   stopped,
                   onStatus,
-                  com.deepseekharness.app.util.UiText.format("停用插件失败：%s", error.getMessage()));
+                  com.deepseekharness.app.util.UiText.format(
+                      "停止旧 Web 失败：%s",
+                      com.deepseekharness.app.util.SensitiveData.redact(
+                          String.valueOf(error.getMessage()))));
               return;
             }
+            if (!lifecycle.isCurrent(stopped) || lifecycle.isStopping()) return;
+            if (protection != null
+                && (state.lastStopResult == null
+                    || !state.lastStopResult.stopped()
+                    || !state.lastStopError.isEmpty())) return;
+            if (protection != null && !state.startProtection.resumeAfterStop(protection)) return;
+            if (disabledPlugin != null) {
+              com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease =
+                  com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire(
+                      com.deepseekharness.app.util.UiText.text("停用故障插件"));
+              if (lease == null) {
+                reportStatus(
+                    stopped,
+                    onStatus,
+                    com.deepseekharness.app.util.UiText.text("正在进行环境任务，完成后再停用插件。"));
+                return;
+              }
+              try (lease) {
+                String result = lease.run(() -> proot.setPluginEnabled(disabledPlugin, false));
+                if (!result.contains("BUILTIN_REGISTER_OK")) {
+                  reportStatus(
+                      stopped,
+                      onStatus,
+                      com.deepseekharness.app.util.UiText.format("停用插件失败：%s", result));
+                  return;
+                }
+              } catch (Exception error) {
+                reportStatus(
+                    stopped,
+                    onStatus,
+                    com.deepseekharness.app.util.UiText.format("停用插件失败：%s", error.getMessage()));
+                return;
+              }
+            }
+            requestStart(onStatus, false, 0, safe, stopped, protection);
+          } finally {
+            if (protection != null)
+              com.deepseekharness.app.HarnessService.finishVisibleStart(ctx, protection);
           }
-          requestStart(onStatus, false, 0, safe, stopped);
         });
   }
 

@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
 import { testRuntime } from './test-runtime-fixture.mjs';
+import { preparePrivatePluginInventory } from './private-plugin-inventory-fixture.mjs';
 
 // Import the complete current recipe chain beside the verified, untouched raw
 // runtime. No stale managed fixture or hand-reimplemented Host decision is used.
@@ -30,7 +31,9 @@ for (const row of JSON.parse(fs.readFileSync(path.join(source, 'app/src/main/ass
 }
 fs.symlinkSync(path.join(raw, 'node_modules'), path.join(directory, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
 const moduleFile = path.join(directory, 'plugin-manager.mjs');
-fs.writeFileSync(moduleFile, host);
+const inventoryDependency = preparePrivatePluginInventory({source,raw,directory,managerSource:host});
+assert.equal(inventoryDependency.evidence.importAdaptation.count, 1);
+fs.writeFileSync(moduleFile, inventoryDependency.source);
 const { PluginManager } = await import(pathToFileURL(moduleFile));
 const home = path.join(directory, 'home'), profile = path.join(home, 'profiles/web'), sdk = path.join(directory, 'sdk');
 fs.mkdirSync(profile, { recursive: true });
@@ -129,7 +132,7 @@ const server = http.createServer(async (req, res) => {
   catch (error) { res.writeHead(500).end(JSON.stringify({ error: String(error) })); }
   finally { listsActive--; }
 });
-const report = { node: process.version, policySha256: sha(fs.readFileSync(path.join(source, 'app/src/main/assets/plugin-manager-policy-patch.json'))), patchedHostSha256: sha(host), installationDependencies: Object.keys(installation.dependencies).length };
+const report = { node: process.version, policySha256: sha(fs.readFileSync(path.join(source, 'app/src/main/assets/plugin-manager-policy-patch.json'))), patchedHostSha256: sha(host), inventoryDependency: inventoryDependency.evidence, installationDependencies: Object.keys(installation.dependencies).length };
 try {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   measured = true; reset();
