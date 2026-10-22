@@ -57,14 +57,19 @@
 | workflow 显示名 | `Sunset-3090-Q test package` |
 | job：源码与回归 | `source` |
 | job：测试包 | `apk` |
-| artifact 名 | `DSHA-Sunset-3090-Q-<run_number>-<short_sha>` |
-| APK 文件名 | `dsha-0.2.1-rc.2-sunset3090q-standard-<versionName>-<short_sha>-signed.apk` |
+| APK 文件名及 artifact 名 | `dsha-sunset-<short_sha>.apk`，short_sha 为提交前 8 位，共 24 字符 |
+| 验证附件 artifact | `sunset-evidence` |
+| 完整测试报告 artifact | `sunset-tests` |
+| 源码测试报告 artifact | `sunset-source` |
+| 名称限制 | 最多 32 个 ASCII 字符；只使用小写字母、数字、点和短横线 |
 | 随附文件 | `SHA256SUMS`、`sunset-test-cert.pem`、`build-info.json` |
 | 触发 | 推送到 `Sunset-3090-Q`；`workflow_dispatch` 可手动提供固定输入包 URL/SHA |
 | 保留期 | 14 天（测试产物，不长期归档） |
 | 权限 | `contents: read`；不请求 `contents: write`、不创建 Release、不打 tag |
 
-说明：完整 APK 需要 `offline-rootfs.bin` 等固定输入包（约 738 MB），不在 Git 中。推送触发的 CI 默认跑源码检查、宿主回归和单元测试；`apk` job 只有在提供 `SUNSET_ASSET_BUNDLE_URL` / `SUNSET_ASSET_BUNDLE_SHA256`（仓库变量或 dispatch 输入）时才构建 APK，原因与操作见 [CI 测试包文档](ci-test-package.md)。
+完整版本、完整提交 SHA、运行编号和证书信息保存在 `build-info.json`，不重复拼入下载名称。artifact 在每个 workflow run 内独立，因此验证附件和报告可以使用固定短名。APK 使用 `archive:false`，其 artifact 名来自实际文件名；只改 upload 的 `name` 不能缩短 APK 名。任务摘要提供 APK 和校验附件的直接下载链接。
+
+完整构建输入默认使用 [固定输入锁](../../ci/sunset-inputs.lock.json) 指定的私有源码归档；URL/SHA 可成对覆盖，源码门禁通过后必须执行 APK 构建，详见 [CI 测试包文档](ci-test-package.md)。
 
 ## 5. 运行时命名
 

@@ -262,7 +262,7 @@ apksigner verify --print-certs app-signed.apk
     path: ${{ steps.sign.outputs.apk }}
 - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
   with:
-    name: DSHA-Sunset-3090-Q-evidence-RUN_NUMBER-SHA
+    name: sunset-evidence
     archive: true
     retention-days: 14
     path: |
@@ -302,14 +302,14 @@ apksigner verify --print-certs app-signed.apk
 
 | 文件 | 说明 |
 |---|---|
-| `dsha-0.2.1-rc.2-sunset3090q-standard-VERSION-SHORT_SHA-signed.apk` | 测试 APK |
+| `dsha-sunset-SHORT_SHA.apk` | 测试 APK |
 | `SHA256SUMS` | 对 APK/证书的 SHA-256 |
 | `sunset-test-cert.pem` | 测试证书（公开材料） |
 | `build-info.json` | commit、run、包名、versionName、证书 SHA-256、输入包 SHA-256、构建时间 |
 | `sunset-test.jks` | 未配置 secret 时上传缓存或新生成的测试私钥，14 天，禁止用于生产 |
 | `full-unit-tests.json` | 两版完整测试实际计数及 5 项真实夹具逐项执行证明 |
 
-APK artifact 名使用实际 APK 文件名；验证附件名为 `DSHA-Sunset-3090-Q-evidence-RUN_NUMBER-SHA`。
+APK artifact 名使用实际短文件名 `dsha-sunset-<8位提交号>.apk`；验证附件名为 `sunset-evidence`，完整与源码测试报告分别为 `sunset-tests`、`sunset-source`。名称最多 32 个 ASCII 字符，CI 在构建前检查。完整版本、完整 SHA 和运行身份保存在 `build-info.json`，其中 `apkFile` 记录实际文件名；任务摘要提供直接下载链接。
 
 ## 6. 验证命令（下载 artifact 后）
 
