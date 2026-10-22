@@ -120,6 +120,7 @@ jobs:
             --only test-bridge-port.py \
             --only test-ci-assets.py \
             --only test-ci-package.py \
+            --only test-dsh-runtime-packaging.py \
             --only test-sunset-ci-inputs.py
       - name: Source-only unit tests for both flavors (up to five external-fixture skips each)
         run: |
@@ -219,6 +220,15 @@ jobs:
           python3 tools/verify-runtime-descriptor-source.py
       - name: Prepare current verified runtime fixture
         run: python3 tools/prepare-test-runtime.py
+      - name: Verify runtime patch upgrades and managed recovery consent
+        # 使用已验证 raw/managed，覆盖真实 Java 补丁升级与应急 ToolRuntime 授权。
+        run: |
+          python3 tools/run-host-tests.py --stage runtime --jdk "$JAVA_HOME" \
+            --output app/build/host-tests/sunset-patch-chains \
+            --only test-plugin-management-patch-chain.py \
+            --only test-session-interaction-patch-upgrade.py \
+            --only test-preset-pending-patch-upgrade.py \
+            --only test-recovery-native-consent.mjs
       - name: Complete unit tests for both flavors with fixed inputs
         run: |
           chmod +x gradlew
@@ -374,12 +384,14 @@ jobs:
               summary.write(f"### 下载\n\n[下载 APK：{os.environ['APK_NAME']}]({os.environ['APK_URL']})\n\n")
               summary.write(f"[校验与构建记录]({os.environ['EVIDENCE_URL']})\n")
           PY
-      - name: Upload full unit test reports
+      - name: Upload full unit and host test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ needs.source.outputs.tests_name }}
-          path: app/build/test-results
+          path: |
+            app/build/test-results
+            app/build/host-tests/sunset-patch-chains
           if-no-files-found: warn
           retention-days: 14
       - name: Upload cached or generated test-only keystore used in this run

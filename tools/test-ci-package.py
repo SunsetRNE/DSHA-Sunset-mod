@@ -1,6 +1,8 @@
+import argparse
 import copy
 import importlib.util
 import json
+import shlex
 from pathlib import Path
 import tempfile
 import unittest
@@ -100,5 +102,66 @@ class PackageBinding(unittest.TestCase):
         for key,value in [('head_sha','other'),('conclusion','failure'),('path','.github/workflows/other.yml'),('event','pull_request')]:
             other=copy.deepcopy(run);other[key]=value
             with self.subTest(key=key),self.assertRaises(ValueError):gate.validate_run(other,'DSH-APP/DSHA','abc')
+
+class SunsetPatchRegressions(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).resolve().parents[1]
+        workflow = (self.root / '.github/workflows/sunset-3090-q.yml').read_text(encoding='utf-8')
+        self.job = workflow.split('\n  apk:\n', 1)[1]
+
+    def step(self, name):
+        marker = '      - name: ' + name + '\n'
+        self.assertEqual(self.job.count(marker), 1)
+        return marker + self.job.split(marker, 1)[1].split('\n      - ', 1)[0]
+
+    def test_runtime_regressions_run_after_fixture_before_full_unit_tests(self):
+        step = self.step('Verify runtime patch upgrades and managed recovery consent')
+        start = self.job.index(step)
+        self.assertLess(self.job.index('run: python3 tools/prepare-test-runtime.py'), start)
+        self.assertLess(start, self.job.index('Complete unit tests for both flavors with fixed inputs'))
+        self.assertIn('actions/setup-java@', self.job[:start])
+        self.assertIn('actions/setup-node@', self.job[:start])
+        self.assertNotRegex(step, r'\n        (?:if|continue-on-error):')
+        command = shlex.split(step.split('        run: |\n', 1)[1].replace('\\\n', ''))
+        self.assertEqual(command[:2], ['python3', 'tools/run-host-tests.py'])
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--stage', required=True)
+        parser.add_argument('--jdk', required=True)
+        parser.add_argument('--output', required=True)
+        parser.add_argument('--only', action='append', required=True)
+        selected = parser.parse_args(command[2:])
+        self.assertEqual(selected.stage, 'runtime')
+        self.assertEqual(selected.jdk, '$JAVA_HOME')
+        self.assertEqual(selected.output, 'app/build/host-tests/sunset-patch-chains')
+        expected = {
+            'test-plugin-management-patch-chain.py': {'raw', 'jdk17'},
+            'test-session-interaction-patch-upgrade.py': {'raw', 'jdk17'},
+            'test-preset-pending-patch-upgrade.py': {'raw', 'jdk17'},
+            'test-recovery-native-consent.mjs': {'node24', 'managed'},
+        }
+        self.assertEqual(set(selected.only), set(expected))
+        self.assertEqual(len(selected.only), len(expected))
+        manifest = json.loads((self.root / 'tools/host-tests.manifest.json').read_text(encoding='utf-8'))
+        entries = {row['path']: row for row in manifest['tests']}
+        for name in selected.only:
+            with self.subTest(test=name):
+                row = entries['tools/' + name]
+                self.assertEqual(row['stage'], selected.stage)
+                self.assertTrue(expected[name] <= set(row['requires']))
+                # 现有 job 只准备这些依赖；新增浏览器等要求必须另行配置。
+                self.assertTrue(set(row['requires']) <= {'python39', 'node24', 'raw', 'managed', 'jdk17'})
+                if name == 'test-recovery-native-consent.mjs':
+                    # 该入口依赖此变量执行真实 ToolRuntime，不能只跑 SDK 传输分支。
+                    self.assertEqual(row['environment'].get('DSHA_TEST_RUNTIME'), '{managed}')
+
+    def test_patch_chain_logs_are_retained_even_when_the_gate_fails(self):
+        step = self.step('Upload full unit and host test reports')
+        self.assertIn('\n        if: always()\n', step)
+        self.assertIn('actions/upload-artifact@', step)
+        self.assertIn('name: ${{ needs.source.outputs.tests_name }}', step)
+        paths = step.split('          path: |\n', 1)[1].splitlines()
+        self.assertEqual({path.strip() for path in paths if path.startswith('            ')},
+                         {'app/build/test-results', 'app/build/host-tests/sunset-patch-chains'})
+
 
 if __name__=='__main__':unittest.main()

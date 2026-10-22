@@ -61,7 +61,7 @@ GitHub 已从 2026-09-23 起移除 Node 20，JavaScript action 统一运行在 N
 |---|---|
 | applicationId | `dsh.android.client.SunsetRNE` |
 | versionCode | `190` |
-| versionName | `0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2-SunsetTest`（Standard） |
+| versionName | `0.2.1-rc.2-20261022.2100-dsh0.2.1-rc.2-SunsetTest`（Standard） |
 | 可调试 | `false` |
 | 签名 | 测试 keystore，证书 SHA-256 ≠ E7E3 |
 | 安装 | 只覆盖同包名、同测试签名的旧测试包；不覆盖正式包 |

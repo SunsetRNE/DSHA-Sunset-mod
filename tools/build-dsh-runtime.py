@@ -615,6 +615,13 @@ def omitted(relative, foreign=()):
     return ''
 
 
+def archive_path_key(path, source):
+    # 沿用已发布归档的 Windows 路径组件排序；不依赖构建机的 Path 比较规则。
+    # 逐组件比较与整条字符串不同；原始组件作为仅大小写相同时的确定性次序。
+    parts = path.relative_to(source).parts
+    return tuple(part.lower() for part in parts), parts
+
+
 def build(source, output, version):
     stable_chains, _ = load_chains(HOOKS.parent, version)
     seen_stable = set()
@@ -644,7 +651,7 @@ def build(source, output, version):
     try:
         with temporary.open('wb') as raw, gzip.GzipFile(fileobj=raw, mode='wb', filename='', mtime=0, compresslevel=9) as compressed:
             with tarfile.open(fileobj=compressed, mode='w|', format=tarfile.PAX_FORMAT) as archive:
-                for path in sorted(source.rglob('*')):
+                for path in sorted(source.rglob('*'), key=lambda item: archive_path_key(item, source)):
                     relative = path.relative_to(source)
                     reason = omitted(relative, foreign)
                     if reason:

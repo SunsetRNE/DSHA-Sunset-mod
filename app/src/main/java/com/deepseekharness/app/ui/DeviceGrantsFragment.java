@@ -725,14 +725,28 @@ public final class DeviceGrantsFragment extends Fragment {
   }
 
   private void openBatteryOpt(Context ctx) {
+    openBatterySettings(
+        ctx,
+        this::startActivity,
+        () -> toast(com.deepseekharness.app.util.UiText.text("无法打开电池优化设置")));
+  }
+
+  /** 只在用户点击后导航到系统设置；不申请或自动修改电池优化白名单。 */
+  static void openBatterySettings(
+      Context context, java.util.function.Consumer<Intent> open, Runnable failed) {
     try {
-      Intent i =
+      open.accept(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+      return;
+    } catch (RuntimeException unavailable) {
+      // OEM may omit or restrict the general battery settings Activity.
+    }
+    try {
+      open.accept(
           new Intent(
-              Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-              Uri.parse("package:" + ctx.getPackageName()));
-      startActivity(i);
-    } catch (Exception e) {
-      toast(com.deepseekharness.app.util.UiText.text("无法打开电池优化设置"));
+              Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+              Uri.parse("package:" + context.getPackageName())));
+    } catch (RuntimeException unavailable) {
+      failed.run();
     }
   }
 

@@ -624,6 +624,13 @@ exports.BASE_CSS = `
   }
 }
 
+/* DSHA_BACKDROP_PRESS_V1: a dimming surface must not become a bright pressed button. */
+@media (max-width: 1023px) and (pointer: coarse) and (hover: none) {
+  [data-mobile-nav="backdrop"]:active {
+    box-shadow: none;
+  }
+}
+
 /* Floating fallback button (hero / blank phases without a session header).
    Top aligns with the session header's toggle row (that row sits 12px below
    the frame's safe-area padding); when the client has set viewport-fit=cover
@@ -10075,10 +10082,10 @@ function installOverlayInteractions(ctx) {
                 return false;
             return target.closest(exports.TAP_CLOSE_NAV_SELECTOR) !== null;
         };
-        // DSHA_SESSION_INTERACTION_V1：宿主把「单击=选中、双击=打开」拆成了两步
-        // （data-dsha-session-select 标记 + dsha-session-open 事件）。上游的
-        // 「点行即关抽屉」会在第一次单击就把抽屉收掉，双击永远到不了。
-        // 这些行改由 dsha-session-open 事件关闭（见下方 document 监听）。
+        // DSHA_SESSION_INTERACTION_V4：有效的 touch/pen/mouse 单击由宿主打开会话。
+        // data-dsha-session-select 标记的行等待真实 dsha-session-open 事件关闭抽屉。
+        // 不在 pointerup 提前收起，避免吞掉浏览器随后派发的原始 click。
+        // 关闭依据是宿主已经打开会话的事实（见下方 document 监听）。
         // 非 DSHA 宿主没有这个标记，这一条天然不命中。
         // 豁免只属于点行关抽屉的两个调用方（click / pointerup），不得回流进
         // 长按武装门，否则 DSHA 行长按开不了 ⋯ 菜单（#82）。
@@ -10094,10 +10101,10 @@ function installOverlayInteractions(ctx) {
         let navSignatureAtArm = '';
         let navObserver = null;
         let navTimer = null;
-        /** Swallow the host's title double-click rename: on touch a double *tap*
-         *  means "open the session" (DSHA's own two-tap detection sits on the row's
-         *  click handler), and letting the browser's `dblclick` reach the title would
-         *  open the host's rename dialog on that same gesture. Capture phase on
+        /** Swallow the host's title double-click rename: repeated touch taps already
+         *  use the host's normal session-open path. Letting the browser's `dblclick`
+         *  reach the title would also open the rename dialog on that gesture.
+         *  Keep the original click handling unchanged. Capture phase on
          *  `document`, so the event never reaches React's root container. Only real
          *  (trusted) events are swallowed — nothing here dispatches a synthetic
          *  dblclick since the long-press rename was dropped (2026-10-07). Armed only
@@ -10245,7 +10252,7 @@ function installOverlayInteractions(ctx) {
                     toggleSidebar();
                 return;
             }
-            // DSHA_SESSION_INPUT_V3：保留原始点击，实际打开仍由 dsha-session-open 关闭抽屉。
+            // DSHA_SESSION_INPUT_V4：保留原始点击，实际打开仍由 dsha-session-open 关闭抽屉。
             // A touch row-tap owns the close (pointerup or the navigation observer);
             // let the row's click reach React without toggling the drawer twice.
             if (performance.now() - lastTouchNavAt < 500)
@@ -10318,8 +10325,8 @@ function installOverlayInteractions(ctx) {
             // closing here would retract the drawer before the browser dispatches
             // the tap's click, and the target's onClick would never run.
         };
-        // DSHA 宿主在「真正打开会话」时才派发 dsha-session-open（单击只选中），
-        // 所以抽屉的关闭挂在这个事实上，而不是挂在点击上。
+        // DSHA V4 有效单击打开会话后派发 dsha-session-open；
+        // 抽屉只在打开事实到达时关闭，保留原始 click 与行标记豁免。
         const onDshaSessionOpen = () => {
             if (drawerOpen())
                 toggleSidebar();
