@@ -246,7 +246,7 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
       status(readable("RECOVERY_PENDING"));
       return;
     }
-    controller.recoverWeb(safe, null, message -> {});
+    if (!FirstRunWebStart.enqueueVisible(this, safe, true, this::status)) return;
     startActivity(
         new Intent(this, MainActivity.class)
             .putExtra("open_launch", true)

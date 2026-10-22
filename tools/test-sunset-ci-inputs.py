@@ -14,8 +14,8 @@ class SunsetInputsTests(unittest.TestCase):
         result = inputs.resolve({})
         self.assertEqual(result["source"], "source-lock")
         self.assertEqual(result["format"], "source-archive")
-        self.assertEqual(result["url"], "https://api.github.com/repos/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/assets/663673858")
-        self.assertEqual(len(result["sha256"]), 64)
+        self.assertEqual(result["url"], "https://api.github.com/repos/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/assets/666168314")
+        self.assertEqual(result["sha256"], "507a131b16330b8ea7ce4868e0a52d443c20eedc51dded65ade588a91de07ae8")
 
     def test_dispatch_pair_wins_as_one_unit(self):
         result = inputs.resolve({"SUNSET_DISPATCH_URL": "https://example.invalid/new.zip",

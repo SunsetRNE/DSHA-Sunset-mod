@@ -23,6 +23,8 @@
 
 > **0.2.1-rc.2 · build190 维护分支**：当前源码包名 `dsh.android.client`，可与旧版并排安装、数据独立。公开DSHA发布继续暂停；新包完成验证后仅交付[私有维护仓库](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases)。[文档](docs/documentation-index.md) · [本轮性能调查与待验范围](docs/performance-startup-20261022.md)。
 
+[本轮UI维护](docs/ui-performance-20261022.md)：2100标准包已打包，完成所选软件门禁、覆盖恢复及双引擎息屏启动/旧会话检查；插件开关有效样本约3.1–3.4秒，仍非瞬时，页面测速有波动。新增management小查询与完整证明双worker，修正升级补丁链；PiP默认关闭，1817局部3帧异常保留待查。
+
 ## ❤️ 赞助商
 
 <table>
@@ -58,7 +60,7 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 ## 下载与交付状态
 
-当前构建候选为 **0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2 / build190** 维护源码，内置DSH 0.2.1-rc.2、Ubuntu base10，默认proot、可选proroot。公开仓库的本次PR和发布草稿已撤回；本地精确标准APK已完成本轮限定范围的软件与真机检查，完整矩阵边界见[性能交付记录](docs/releases/v0.2.1-rc.2-build190-performance-20261022.md)；实际私有附件和回执才证明上传完成。
+当前已打包为 **0.2.1-rc.2-20261022.1817-dsh0.2.1-rc.2 / build190**，内置DSH 0.2.1-rc.2、Ubuntu base10，默认proot、可选proroot。公开仓库的本次PR和发布草稿已撤回；本地精确标准APK已通过所选软件与部分真机路径，继续验收的范围见[UI修订记录](docs/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md)；实际私有附件和回执才证明上传完成。
 
 新APK和完整源码仅从[私有维护仓库的Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases)取得，需有仓库权限；可得性、完整日期时间versionName、APK/源码摘要以实际附件和最终交付回执为准。标准版面向Android11+/arm64、系统WebView、E7E3非调试签名。本轮不新增Low交付，旧正式版本见[历史Releases](https://github.com/DSH-APP/DSHA/releases)。
 

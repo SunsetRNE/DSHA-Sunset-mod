@@ -48,3 +48,5 @@ app/src/main/assets/ubuntu-tools.manifest.json -text -eol
 tools/mobile-server/index.js -text -eol
 app/src/main/assets/plugin-manager-policy-patch.json -text -eol
 app/src/main/assets/plugin-manager.py -text -eol
+/tools/fixtures/session-interaction-v3/session-interaction-patch.json -text -eol
+/tools/fixtures/session-interaction-v3/web-integration/session-interaction.js -text -eol

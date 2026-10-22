@@ -24,6 +24,8 @@
 
 > **0.2.1-rc.2 · build190 maintenance branch** — source package `dsh.android.client`, with separate data alongside older versions. Public DSHA publication remains paused. Deliver the new package only to the [private maintenance repository](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases) after verification. [Documentation](docs/en/index.md) · [Performance investigation and pending scope](docs/en/performance-startup-20261022.md).
 
+[UI maintenance](docs/en/ui-performance-20261022.md): the 2100 Standard APK passed selected software, overwrite/recovery and both-engine screen-off startup/retained-conversation checks. Valid toggle samples remain around 3.1–3.4s; page timing varies. A lightweight management probe and full-proof dual workers include an upgrade-chain correction. PiP stays default OFF, with the limited 1817 three-frame anomaly still open.
+
 ## ❤️ Sponsor
 
 <table>
@@ -62,7 +64,7 @@ original author [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) and a
 
 ## Downloads and delivery status
 
-This is maintenance source for build candidate **0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2 / build190**, with DSH 0.2.1-rc.2, Ubuntu base10, default proot and optional proroot. This contribution's public PR and draft release were withdrawn. The local exact Standard APK passed this round's scoped software/device checks; see the [performance delivery record](docs/en/releases/v0.2.1-rc.2-build190-performance-20261022.md) for matrix limits. Actual private attachments and the receipt establish upload completion.
+Current packaged version is **0.2.1-rc.2-20261022.1817-dsh0.2.1-rc.2 / build190**, with DSH 0.2.1-rc.2, Ubuntu base10, default proot and optional proroot. This contribution's public PR and draft release were withdrawn. The local exact Standard APK passed selected software and some phone paths; see the [UI maintenance record](docs/en/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md) for ongoing acceptance limits. Actual private attachments and the receipt establish upload completion.
 
 New APKs and complete source are distributed only through [private maintenance Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases), requiring repository access. Actual attachments and the final receipt establish availability, the fully dated/time-stamped versionName and APK/source hashes. Standard targets Android11+/arm64 with system WebView and E7E3 non-debuggable signing. No new Low delivery this round; old public versions remain in [historical Releases](https://github.com/DSH-APP/DSHA/releases).
 

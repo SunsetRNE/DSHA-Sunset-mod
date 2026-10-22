@@ -2411,6 +2411,140 @@
       ],
       "environment": {},
       "cli": "No positional arguments; complete verified raw runtime and isolated profiles."
+    },
+    {
+      "path": "tools/test-config-editor-lock-order.mjs",
+      "stage": "runtime",
+      "reason": "Real pinned Cordis/FileLock/HMR/PluginManager/ConfigEditor lifecycle: ABBA negative control, lock ordering, nested rejection, rollback, timeout, no replay and real activation boundaries. No Android, live model or personal data operations.",
+      "args": [],
+      "timeoutSeconds": 1200,
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; uses exact pinned fixtures and isolated host/browser state."
+    },
+    {
+      "path": "tools/test-ui-operation-pending.mjs",
+      "stage": "runtime",
+      "reason": "Real pinned React/client browser UI: truthful pending, confirmed mutation state, changed-event freshness, default preset same-session boundary and single-touch conversation activation. No Android, live model or personal data operations.",
+      "args": [],
+      "timeoutSeconds": 1200,
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; uses exact pinned fixtures and isolated host/browser state."
+    },
+    {
+      "path": "tools/test-mobile-backdrop-press.mjs",
+      "stage": "runtime",
+      "reason": "Trusted Chromium touch on exact mobile CSS/rc2 tokens: backdrop press flash negative control and ordinary-button feedback/drag/cancellation lifecycle. No Android, live model or personal data operations.",
+      "args": [],
+      "timeoutSeconds": 1200,
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; uses exact pinned fixtures and isolated host/browser state."
+    },
+    {
+      "path": "tools/test-session-interaction-patch-upgrade.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "node24",
+        "raw",
+        "jdk17"
+      ],
+      "args": [],
+      "timeoutSeconds": 1200,
+      "reason": "Real historical V3 pinned recipe/helper and production ManagedPatchChain/ExactTextPatch: canonical upgrade to V4, idempotence, old-marker negative control and no partial writes; synthetic V2 marker is explicitly not historical V2 acceptance.",
+      "environment": {},
+      "cli": "No arguments; Java17 via JAVA_HOME/PATH, optional --jdk path. No Android, model or personal data."
+    },
+    {
+      "path": "tools/test-plugin-inventory-entries.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "args": [],
+      "timeoutSeconds": 1200,
+      "environment": {},
+      "reason": "Real Host and unchanged synchronous Loader entry projection: full inventory equivalence and waiting retained, unused preset audit 1 to 0, real pending/failed/disabled and ON/OFF without fake ready or cache.",
+      "cli": "No arguments; private current complete manager/inventory patch chains beside byte-proven raw runtime; no device or model."
+    },
+    {
+      "path": "tools/test-preset-pending-patch-upgrade.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "raw",
+        "jdk17"
+      ],
+      "args": [
+        "--jdk",
+        "{jdk}"
+      ],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Real ManagedPatchChain old VIEW_V1 to VIEW_V2 upgrade/canonical restore, fresh/idempotent/archive and short-anchor negative coverage.",
+      "cli": "--jdk PATH; proven raw fixture and exact historical recipe; no device or model."
+    },
+    {
+      "path": "tools/test-plugin-management-probe.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "native_host",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 1200,
+      "environment": {},
+      "reason": "Real browser proxy, aggregate API contract and HTTP Host Gateway codecs for independent zero-argument management capability; original full list zero-argument contract retained, transport failure and actual controller loading verified.",
+      "cli": "No arguments; complete byte-proven raw fixture, private isolated services and HTTP; no phone/model/user data."
+    },
+    {
+      "path": "tools/test-plugin-bundle-proof-workers.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "args": [],
+      "timeoutSeconds": 1200,
+      "environment": {},
+      "reason": "Complete provenance proof with two bounded workers: identical bytes/order, shared active ceiling, tamper/race/cancellation/targeted removal regressions; overload boundary remains explicitly reported.",
+      "cli": "No arguments; complete byte-proven raw fixture, private isolated services and HTTP; no phone/model/user data."
+    },
+    {
+      "path": "tools/test-plugin-management-patch-chain.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "jdk17",
+        "raw"
+      ],
+      "args": [
+        "--jdk",
+        "{jdk}"
+      ],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Actual production Java ManagedPatchChain/ExactTextPatch full chains: fresh, prepared-repeat, canonical fallback, exact 1817 upgrade and broken V1 rejection/recovery. Independent APK archive admission also available.",
+      "cli": "--jdk PATH; optional --apk PATH for exact built APK; pinned upstream and historical worker source, no device data."
     }
   ],
   "historicalExcluded": [

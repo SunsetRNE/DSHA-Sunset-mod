@@ -473,7 +473,18 @@
     "lan-settings-upstream-contract.json",
     "deepseek-native-oauth-patch.json",
     "directory-picker-service-patch.json",
-    "file-upload-resolver-lifecycle-patch.json"
+    "file-upload-resolver-lifecycle-patch.json",
+    "config-editor-lock-order-patch.json",
+    "plugin-manager-pending-patch.json",
+    "agent-preset-pending-patch.json",
+    "plugin-inventory-entries-patch.json",
+    "plugin-manager-entries-patch.json",
+    "plugin-inventory-management-patch.json",
+    "plugin-inventory-management-host-codec-patch.json",
+    "plugin-inventory-management-remote-codec-patch.json",
+    "plugin-inventory-management-api-codec-patch.json",
+    "plugin-manager-management-probe-patch.json",
+    "plugin-bundle-proof-workers-patch.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -498,6 +509,7 @@
     "backup/RuntimeTrialRecords.java",
     "util/WebProcSel.java",
     "util/WebPidIdentity.java",
+    "util/WebStartProtection.java",
     "util/ManagedRuntimeLayout.java",
     "util/ManagedAssetVersion.java",
     "util/ManagedInstallPath.java",

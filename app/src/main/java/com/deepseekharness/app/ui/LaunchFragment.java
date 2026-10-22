@@ -195,11 +195,10 @@ public class LaunchFragment extends Fragment {
   private void doStart(Activity activity, TextView status, Button start, boolean safeMode) {
     if (preparingStart || !safeMode && (controller.isStarting() || controller.isStopping())) return;
     final View root = getView();
-    if (root == null || activity.isFinishing() || activity.isDestroyed()) return;
+    if (root == null || !isResumed() || activity.isFinishing() || activity.isDestroyed()) return;
     FirstRunWebStart.cancel(requireContext());
     preparingStart = true;
     long request = startRequest.incrementAndGet();
-    long expectedGeneration = controller.getWebGeneration();
     invalidateWebEntry();
     startAtMs = System.currentTimeMillis();
     String time =
@@ -220,30 +219,23 @@ public class LaunchFragment extends Fragment {
               });
         };
     refreshRunState();
-    START_IO.execute(
-        () -> {
-          if (startRequest.get() != request) return;
-          try {
-            boolean accepted =
-                safeMode
-                    ? controller.recoverWebIfUnchanged(expectedGeneration, true, null, startStatus)
-                    : controller.startWebIfUnchanged(expectedGeneration, true, startStatus);
-            if (accepted) FirstRunWebStart.protectVisibleRuntime();
-          } catch (RuntimeException failure) {
-            com.deepseekharness.app.core.DiagnosticLog.record(
-                activity.getApplicationContext(),
-                "UI_START_REQUEST",
-                failure.getClass().getSimpleName());
-          } finally {
-            ui.post(
-                () -> {
-                  if (startRequest.get() != request || getView() != root) return;
-                  preparingStart = false;
-                  refreshRunState();
-                  refreshLanAddr();
-                });
-          }
-        });
+    boolean queued =
+        FirstRunWebStart.enqueueVisible(
+            requireActivity(),
+            START_IO,
+            safeMode,
+            safeMode,
+            startStatus,
+            () -> {
+              if (startRequest.get() != request || getView() != root) return;
+              preparingStart = false;
+              refreshRunState();
+              refreshLanAddr();
+            });
+    if (!queued) {
+      preparingStart = false;
+      refreshRunState();
+    }
   }
 
   /**
