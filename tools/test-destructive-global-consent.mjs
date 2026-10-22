@@ -198,6 +198,22 @@ try {
     });
     assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
   }));
+  await test('legacy unauthorized reply is a distinct token/instance failure', () => using({ approval: 'never' }, async f => {
+    await f.prepare();
+    f.fetch = async () => ({ ok: true, status: 200, json: async () => ({ result: '[UNAUTHORIZED]' }) });
+    await assert.rejects(f.dispatch, error =>
+      error.code === 'DSHA_NATIVE_CONSENT_UNAUTHORIZED'
+      && error.message.includes('rejected this installation token'));
+    assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
+  }));
+  await test('port change during native read is its own rejection', () => using({}, async f => {
+    await f.prepare();
+    const cause = Error('controlled port changed'); cause.code = 'NATIVE_CONSENT_PORT_CHANGED';
+    f.fetch = async () => { throw cause; };
+    await assert.rejects(f.dispatch, error =>
+      error.code === 'DSHA_NATIVE_CONSENT_PORT_CHANGED' && error.cause === cause);
+    assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
+  }));
   await test('actual bounded native-read timeout preserves its cause and dispatches nothing', () => using({}, async f => {
     await f.prepare(); let cause;
     f.fetch = async (_read, init) => new Promise((_resolve, reject) => {

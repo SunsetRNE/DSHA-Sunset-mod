@@ -544,6 +544,7 @@
     "util/ContainerFileTransfers.java",
     "util/BridgeCredentialAuth.java",
     "util/BridgeCredentialFiles.java",
+    "util/BridgePortPolicy.java",
     "util/SelfPackageIdentity.java",
     "util/DeviceAppPolicy.java",
     "util/DeviceShellPolicy.java",

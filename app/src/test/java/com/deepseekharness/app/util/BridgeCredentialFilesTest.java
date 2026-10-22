@@ -48,6 +48,22 @@ public class BridgeCredentialFilesTest {
   }
 
   @Test
+  public void bridgePortIsMachineStateAndInvalidValuesNeverBecomeDiscoveryData() throws Exception {
+    File root = temporary.newFolder(), port = new File(root, CredentialPaths.BRIDGE_PORT);
+    BridgeCredentialFiles.publishPort(fs, port, 3091);
+    assertEquals(3091, BridgeCredentialFiles.readPort(fs, port));
+    assertEquals("3091", Files.readString(port.toPath()));
+    assertTrue(CredentialPaths.machine(port.getName()));
+    assertThrows(IOException.class, () -> BridgeCredentialFiles.publishPort(fs, port, 0));
+    Files.writeString(port.toPath(), "abc");
+    assertEquals(-1, BridgeCredentialFiles.readPort(fs, port));
+    File directory = new File(temporary.newFolder(), CredentialPaths.BRIDGE_PORT);
+    fs.directory(directory);
+    assertEquals(-1, BridgeCredentialFiles.readPort(fs, directory));
+    assertThrows(IOException.class, () -> BridgeCredentialFiles.publishPort(fs, directory, 3092));
+  }
+
+  @Test
   public void selectedStableDirectoryIsUsedWithoutChangingLegacyBytes() throws Exception {
     File files = temporary.newFolder(),
         legacy = new File(files, UserDataLayout.LEGACY),

@@ -8,18 +8,32 @@ import { EventEmitter } from 'node:events';
 const source = fs.readFileSync(new URL('../app/src/main/assets/native-consent.cjs', import.meta.url), 'utf8');
 const results = [];
 function fixture() {
-  const f = { token: 'a'.repeat(43), mode: 0o100600, ino: 1, requests: [], closes: 0,
-    body: '{"result":"native-payload"}', status: 200 };
+  const f = { token: 'a'.repeat(43), mode: 0o100600, ino: 1, port: undefined, portMode: 0o100600,
+    portIno: 2, requests: [], closes: 0, body: '{"result":"native-payload"}', status: 200 };
   const info = directory => ({ dev: 1, ino: f.ino, size: f.token.length, mode: f.mode,
     isDirectory: () => directory && !f.parentLink, isFile: () => !directory && !f.fileLink,
     isSymbolicLink: () => directory ? !!f.parentLink : !!f.fileLink });
+  const portInfo = () => ({ dev: 2, ino: f.portIno, size: String(f.port).length, mode: f.portMode,
+    isDirectory: () => false, isFile: () => !f.portLink, isSymbolicLink: () => !!f.portLink });
+  const missing = () => Object.assign(Error('ENOENT'), { code: 'ENOENT' });
   const platformFs = {
     constants: { O_RDONLY: 0, O_NOFOLLOW: 0x20000 },
-    lstatSync(path) { assert(['/root', '/root/.dsh', '/root/.dsh/.bridge_token'].includes(path)); return info(path !== '/root/.dsh/.bridge_token'); },
-    openSync(path, flags) { assert.equal(path, '/root/.dsh/.bridge_token'); assert.equal(flags, 0x20000); if (f.onOpen) f.onOpen(); return 7; },
-    fstatSync(fd) { assert.equal(fd, 7); return info(false); },
-    readSync(fd, bytes) { assert.equal(fd, 7); return bytes.write(f.token); },
-    closeSync(fd) { assert.equal(fd, 7); f.closes++; },
+    lstatSync(path) {
+      assert(['/root', '/root/.dsh', '/root/.dsh/.bridge_token', '/root/.dsh/.bridge_port'].includes(path));
+      if (path === '/root/.dsh/.bridge_port') {
+        if (f.port === undefined) throw missing();
+        return portInfo();
+      }
+      return info(path !== '/root/.dsh/.bridge_token');
+    },
+    openSync(path, flags) {
+      assert.equal(flags, 0x20000);
+      if (path === '/root/.dsh/.bridge_port') { assert.notEqual(f.port, undefined); return 8; }
+      assert.equal(path, '/root/.dsh/.bridge_token'); if (f.onOpen) f.onOpen(); return 7;
+    },
+    fstatSync(fd) { if (fd === 8) return portInfo(); assert.equal(fd, 7); return info(false); },
+    readSync(fd, bytes) { if (fd === 8) return bytes.write(String(f.port)); assert.equal(fd, 7); return bytes.write(f.token); },
+    closeSync(fd) { assert([7, 8].includes(fd)); f.closes++; },
   };
   const http = { request(options, accept) {
     f.requests.push(options);
@@ -36,16 +50,41 @@ function fixture() {
   const require = name => ({ 'node:fs': platformFs, 'node:http': http, 'node:crypto': crypto })[name];
   vm.runInNewContext('(function(require,module,Buffer){' + source + '\n})', {})(require, module, Buffer);
   f.sdk = module.exports;
-  f.query = signal => f.sdk.bridgeFetch('/device/consent', { expectedConnectionGeneration: f.sdk.readConnection().generation, signal });
+  f.query = signal => {
+    const connection = f.sdk.readConnection();
+    return f.sdk.bridgeFetch('/device/consent', {
+      expectedConnectionGeneration: connection.generation,
+      expectedConnectionPort: connection.port,
+      signal,
+    });
+  };
   return f;
 }
 async function test(name, body) { try { await body(); results.push({ name, status: 'PASS' }); } catch (error) { results.push({ name, status: 'FAIL', message: error.message, stack: error.stack }); } }
 await test('fixed authenticated endpoint returns only native data and a credential generation', async () => {
   const f = fixture(), descriptor = f.sdk.readConnection();
-  assert.equal(descriptor.applicationId, 'dsh.android.client'); assert.deepEqual(Object.keys(descriptor).sort(), ['applicationId', 'generation']);
+  assert.equal(descriptor.applicationId, 'dsh.android.client'); assert.deepEqual(Object.keys(descriptor).sort(), ['applicationId', 'generation', 'port']);
+  assert.equal(descriptor.port, 3090);
   const response = await f.query(); assert.equal(response.ok, true); assert.equal((await response.json()).result, 'native-payload');
   const wire = f.requests[0]; assert.equal(wire.hostname, '127.0.0.1'); assert.equal(wire.port, 3090); assert.equal(wire.path, '/app/native-policy');
   assert.equal(wire.method, 'GET'); assert.equal(wire.headers['X-Token'], f.token); assert.equal(wire.agent, false); assert(f.closes >= 4);
+});
+await test('published fallback port is used and must stay stable', async () => {
+  const f = fixture(); f.port = 3091;
+  const descriptor = f.sdk.readConnection();
+  assert.equal(descriptor.port, 3091);
+  const response = await f.query(); assert.equal(response.ok, true);
+  assert.equal(f.requests[0].port, 3091);
+  await assert.rejects(
+    f.sdk.bridgeFetch('/device/consent', {
+      expectedConnectionGeneration: descriptor.generation,
+      expectedConnectionPort: 3090,
+    }), /PORT_CHANGED/);
+  assert.equal(f.requests.length, 1);
+});
+await test('invalid port file falls back to the legacy port', async () => {
+  const f = fixture(); f.port = 3091; f.portMode = 0o100644;
+  assert.equal(f.sdk.readConnection().port, 3090);
 });
 for (const [name, arrange] of [
   ['parent symlink', f => { f.parentLink = true; }], ['token symlink', f => { f.fileLink = true; }],
