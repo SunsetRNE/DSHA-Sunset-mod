@@ -38,6 +38,8 @@ def verifyBundledDshVersion = tasks.register('verifyBundledDshVersion') {
 // END DSHA_BUNDLED_DSH_VERSION_GATE
 // CI 只生成未签名完整包；该产物不得进入 release 或覆盖安装。
 def unsignedPackage = project.findProperty('dsha.unsignedPackage') == 'true'
+// 个人测试分支：显式开关才改包名/版本名，默认构建与基线完全一致。
+def sunsetTest = project.findProperty('dsha.sunsetTest') == 'true' || System.getenv('DSHA_SUNSET_TEST') == '1'
 
 android {
     namespace 'com.deepseekharness.app'
@@ -66,12 +68,17 @@ android {
             dimension 'androidSupport'
             minSdk 30
             buildConfigField 'boolean', 'LOW_ANDROID', 'false'
+            if (sunsetTest) {
+                applicationIdSuffix '.SunsetRNE'
+                versionNameSuffix '-SunsetTest'
+            }
         }
         low {
             dimension 'androidSupport'
             minSdk 23
-            versionNameSuffix 'low'
+            versionNameSuffix sunsetTest ? 'low-SunsetTest' : 'low'
             buildConfigField 'boolean', 'LOW_ANDROID', 'true'
+            if (sunsetTest) applicationIdSuffix '.SunsetRNE'
         }
     }
 

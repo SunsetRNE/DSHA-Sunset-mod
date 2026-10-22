@@ -1,0 +1,202 @@
+name: Sunset-3090-Q test package
+
+# 个人测试分支：只构建测试包，不打 tag、不发布 Release。
+# 2026-02-26 GitHub Actions 非压缩 artifact：APK 用 archive:false 原样上传。
+# Node 20 已退出：所有 action 使用 Node 24 兼容版本并按 SHA 固定。
+on:
+  push:
+    branches: [Sunset-3090-Q]
+  workflow_dispatch:
+    inputs:
+      asset_bundle_url:
+        description: Immutable HTTPS fixed input bundle from tools/ci-assets.py
+        required: false
+        type: string
+      asset_bundle_sha256:
+        description: Fixed SHA-256 for that input bundle
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: sunset-3090-q-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  ASSET_URL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.asset_bundle_url || vars.SUNSET_ASSET_BUNDLE_URL }}
+  ASSET_SHA: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.asset_bundle_sha256 || vars.SUNSET_ASSET_BUNDLE_SHA256 }}
+  SUNSET_TEST_STORE_PASSWORD: sunset-test-only
+jobs:
+  source:
+    name: Source checks and regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify toolchain against source configuration
+        id: toolchain
+        run: python3 tools/ci-toolchain.py --github-output
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ steps.toolchain.outputs.java }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.toolchain.outputs.node }}
+      - name: Verify checked-in contracts
+        run: |
+          python3 tools/prepare-runtime-tools.py --check
+          python3 tools/verify-runtime-descriptor-source.py
+          python3 tools/generate-third-party-notices.py --check
+          python3 tools/check-third-party-notices.py
+          python3 tools/generate-builtin-plugins.py --verify
+          python3 tools/generate-credential-paths.py --check
+          python3 tools/prepare-semver-reference.py
+          python3 tools/format-java-tree.py --check
+          python3 tools/run-host-tests.py --check-manifest
+          python3 tools/check-source-hygiene.py
+          python3 tools/check-ui-i18n.py
+          python3 tools/check-document-links.py
+      - name: Branch regression without fixed-input dependencies
+        # 完整 fast 套件里的 asset-deployment/mobile-upstream 需要离线输入包或
+        # 上游夹具；本分支只门禁与设备桥/consent/shell 直接相关的宿主回归。
+        run: |
+          python3 tools/run-host-tests.py --stage fast --jdk "$JAVA_HOME" \
+            --only test-native-consent-transport.mjs \
+            --only test-bridge-token-compat.mjs \
+            --only test-bridge-token-transport.py \
+            --only test-destructive-guard.mjs \
+            --only test-destructive-full-access.mjs \
+            --only test-vscreen-anchored.mjs \
+            --only test-device-shell-policy.py \
+            --only test-credential-paths.py \
+            --only test-runtime-descriptor-inputs.py \
+            --only test-runtime-descriptor-source.py \
+            --only test-plugin-capabilities.py \
+            --only test-architecture-boundaries.py
+      - name: Android Java and unit tests without offline package generation
+        run: |
+          platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
+          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
+          sdkmanager "platforms;$platform" "build-tools;$buildtools"
+          chmod +x gradlew
+          ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: sunset-3090-q-source-regressions
+          path: |
+            app/build/host-tests
+            app/build/test-results
+          if-no-files-found: error
+          retention-days: 14
+  apk:
+    name: Signed SunsetRNE test APK
+    needs: source
+    if: ${{ vars.SUNSET_ASSET_BUNDLE_URL != '' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      SUNSET_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify toolchain against source configuration
+        id: toolchain
+        run: python3 tools/ci-toolchain.py --github-output
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ steps.toolchain.outputs.java }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.toolchain.outputs.node }}
+      - name: Restore exact fixed build inputs
+        env:
+          INPUT_URL: ${{ env.ASSET_URL }}
+          INPUT_SHA: ${{ env.ASSET_SHA }}
+        run: python3 tools/ci-assets.py --url "$INPUT_URL" --sha256 "$INPUT_SHA"
+      - name: Install Android SDK and NDK
+        run: |
+          platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
+          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
+          ndk=$(python3 tools/ci-toolchain.py --field ndk)
+          sdkmanager "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
+      - name: Build unsigned Sunset test package
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleStandardRelease -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true --no-daemon
+      - name: Prepare test-only signing key
+        run: |
+          mkdir -p out
+          if [ -n "$SUNSET_TEST_KEYSTORE_B64" ]; then
+            printf '%s' "$SUNSET_TEST_KEYSTORE_B64" | base64 -d > sunset-test.jks
+          fi
+          if [ ! -f sunset-test.jks ]; then
+            keytool -genkeypair -keystore sunset-test.jks -storetype PKCS12 -alias sunset-test \
+              -keyalg RSA -keysize 3072 -validity 3650 \
+              -dname "CN=DSHA Sunset Test (NOT FOR RELEASE), OU=Sunset-3090-Q, O=SunsetRNE, C=CN" \
+              -storepass "$SUNSET_TEST_STORE_PASSWORD" -keypass "$SUNSET_TEST_STORE_PASSWORD"
+          fi
+          keytool -exportcert -rfc -keystore sunset-test.jks -alias sunset-test \
+            -storepass "$SUNSET_TEST_STORE_PASSWORD" > out/sunset-test-cert.pem
+      - name: Sign with test key and verify identity
+        run: |
+          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
+          apksigner="$ANDROID_HOME/build-tools/$buildtools/apksigner"
+          aapt2="$ANDROID_HOME/build-tools/$buildtools/aapt2"
+          unsigned=$(find app/build/outputs/apk/standard/release -name '*-unsigned.apk' | head -1)
+          test -n "$unsigned"
+          version=$(python3 -c "import json;print(json.load(open('app/build/outputs/apk/standard/release/output-metadata.json'))['elements'][0]['versionName'])")
+          apk="out/dsha-0.2.1-rc.2-sunset3090q-standard-${version}-${GITHUB_SHA::8}-signed.apk"
+          "$apksigner" sign --ks sunset-test.jks --ks-key-alias sunset-test \
+            --ks-pass "pass:$SUNSET_TEST_STORE_PASSWORD" \
+            --key-pass "pass:$SUNSET_TEST_STORE_PASSWORD" --out "$apk" "$unsigned"
+          package=$("$aapt2" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          test "$package" = "dsh.android.client.SunsetRNE"
+          "$aapt2" dump badging "$apk" | grep -q "versionName='.*-SunsetTest'"
+          if "$aapt2" dump badging "$apk" | grep -q 'application-debuggable'; then exit 1; fi
+          "$apksigner" verify --print-certs "$apk" > out/apk-signature.txt
+          cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
+          test -n "$cert"
+          test "$cert" != "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
+          (cd out && sha256sum *.apk sunset-test-cert.pem > SHA256SUMS)
+          python3 - <<PY
+          import json, os
+          value = {
+            "schema": 1,
+            "kind": "sunset-3090-q-test-apk",
+            "commit": os.environ["GITHUB_SHA"],
+            "runNumber": os.environ["GITHUB_RUN_NUMBER"],
+            "packageName": "dsh.android.client.SunsetRNE",
+            "versionName": "$version",
+            "certificateSha256": "$cert",
+            "assetBundleSha256": os.environ["ASSET_SHA"],
+            "note": "TEST ONLY - NOT FOR RELEASE",
+          }
+          open("out/build-info.json", "w", encoding="utf-8").write(json.dumps(value, ensure_ascii=False, indent=2) + "\\n")
+          PY
+          cat out/build-info.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: DSHA-Sunset-3090-Q-${{ github.run_number }}-${{ github.sha }}
+          archive: false
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            out/*.apk
+            out/SHA256SUMS
+            out/sunset-test-cert.pem
+            out/build-info.json
+            out/apk-signature.txt
+      - name: Upload test-only keystore when generated in this run
+        if: env.SUNSET_TEST_KEYSTORE_B64 == ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: TEST-ONLY-sunset-test-keystore-${{ github.run_number }}
+          archive: false
+          retention-days: 14
+          if-no-files-found: warn
+          path: sunset-test.jks
