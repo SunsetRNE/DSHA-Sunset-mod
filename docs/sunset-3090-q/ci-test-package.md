@@ -28,6 +28,7 @@ GitHub 已从 2026-09-23 起移除 Node 20，JavaScript action 统一运行在 N
 | `actions/setup-java` | `b843ebf9b913146b38da2eaa7aeddf76074ae1ad` | v6.1.0 |
 | `actions/setup-node` | `949feb2413d6458794dcd2491c4babbbce0c15c1` | v7.1.0 |
 | `actions/upload-artifact` | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` | v7.0.2 |
+| `actions/cache` | `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` | v6.1.0 |
 
 > 版本/提交以 2026-10-22 的 `git ls-remote` 为准；升级时重新核对 SHA，不直接改用浮动 tag。
 

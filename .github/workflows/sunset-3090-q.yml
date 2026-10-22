@@ -128,6 +128,12 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleStandardRelease -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true --no-daemon
+      - name: Restore cached test-only signing key
+        if: env.SUNSET_TEST_KEYSTORE_B64 == ''
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: sunset-test.jks
+          key: sunset-test-keystore-v1
       - name: Prepare test-only signing key
         run: |
           mkdir -p out
