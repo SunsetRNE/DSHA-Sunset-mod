@@ -36,27 +36,40 @@ COMMAND_TIMEOUT = 90.0
 
 
 def bridge_port():
-    """Read this installation's bridge port; fall back to the legacy 3090."""
+    """每次重读本安装端口；只接受 ASCII 十进制，失效时再读环境及旧默认值。"""
+    def regular(info):
+        return (stat.S_ISREG(info.st_mode) and 1 <= info.st_size <= 5
+                and (info.st_mode & 0o077) == 0)
+
+    def same(left, right):
+        return regular(right) and all(getattr(left, key) == getattr(right, key)
+            for key in ('st_dev', 'st_ino', 'st_mode', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+
     try:
-        info = os.lstat(BRIDGE_PORT_FILE)
-        if not stat.S_ISREG(info.st_mode) or info.st_size < 1 or info.st_size > 5 \
-                or (info.st_mode & 0o077) != 0:
+        before = os.lstat(BRIDGE_PORT_FILE)
+        if not regular(before):
             raise OSError('invalid port file')
-        descriptor = os.open(BRIDGE_PORT_FILE, os.O_RDONLY | os.O_NOFOLLOW)
+        # NONBLOCK 防止 lstat 后被换成 FIFO 时阻塞；fstat 只接受同一普通文件。
+        descriptor = os.open(BRIDGE_PORT_FILE, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
         try:
-            raw = os.read(descriptor, 6).decode('ascii').strip()
+            opened = os.fstat(descriptor)
+            if not same(before, opened):
+                raise OSError('port file changed')
+            raw = os.read(descriptor, 6)
+            if (len(raw) != opened.st_size or not re.fullmatch(rb'[0-9]{1,5}', raw)
+                    or not same(opened, os.fstat(descriptor))
+                    or not same(opened, os.lstat(BRIDGE_PORT_FILE))):
+                raise OSError('invalid port file')
+            value = int(raw)
+            if 1 <= value <= 65535:
+                return value
         finally:
             os.close(descriptor)
-        if not re.fullmatch(r'[0-9]{1,5}', raw):
-            raise OSError('invalid port')
-        value = int(raw)
-        if 1 <= value <= 65535:
-            return value
     except OSError:
         pass
-    from_environment = os.environ.get('DSHA_BRIDGE_PORT', '')
-    if from_environment.isdigit() and 1 <= int(from_environment) <= 65535:
-        return int(from_environment)
+    raw = os.environ.get('DSHA_BRIDGE_PORT', '')
+    if re.fullmatch(r'[0-9]{1,5}', raw) and 1 <= int(raw) <= 65535:
+        return int(raw)
     return DEFAULT_BRIDGE_PORT
 
 class ConnectFail(Exception):

@@ -26,7 +26,12 @@ const transport = { request(options, accept) {
   assert.equal(options.hostname, '127.0.0.1'); assert.equal(options.port, 3090);
   return http.request({ ...options, port: server.address().port }, accept);
 } };
-const module = { exports: {} }, require = name => ({ 'node:fs': platformFs, 'node:http': transport })[name];
+const portModule = { exports: {} };
+const portSource = fs.readFileSync(new URL('../../app/src/main/assets/builtin-plugins/dsh-tool-vscreen/lib/bridge-port.cjs', import.meta.url), 'utf8');
+vm.runInNewContext('(function(require,module,Buffer){' + portSource + '\n})', {})(name => {
+  assert.equal(name, 'node:fs'); return platformFs;
+}, portModule, Buffer);
+const module = { exports: {} }, require = name => ({ 'node:fs': platformFs, 'node:http': transport, './bridge-port.cjs': portModule.exports })[name];
 vm.runInNewContext('(function(require,module,Buffer,URL,URLSearchParams){' + source + '\n})', {})(require, module, Buffer, URL, URLSearchParams);
 const adapter = module.exports, args = { coreInstance: '11111111-2222-3333-4444-555555555555', generation: 'run-1', frameSeq: 1, text: '中文\nhello' };
 async function test(name, body) { active = { token, mode: 'success' }; const before = requests.length;

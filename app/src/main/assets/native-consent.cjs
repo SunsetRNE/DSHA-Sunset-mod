@@ -9,47 +9,13 @@ const fs = require('node:fs');
 const http = require('node:http');
 const crypto = require('node:crypto');
 const TOKEN = '/root/.dsh/.bridge_token';
-const PORT_FILE = '/root/.dsh/.bridge_port';
-const DEFAULT_PORT = 3090;
+const bridgePort = require('./bridge-port.cjs');
 const LIMIT = 8192;
 
 function invalid(code) {
   const error = Error(code);
   error.code = code;
   return error;
-}
-
-function validPort(value) {
-  return Number.isInteger(value) && value >= 1 && value <= 65535;
-}
-
-function bridgePort() {
-  try {
-    const before = fs.lstatSync(PORT_FILE);
-    if (!before.isFile() || before.isSymbolicLink() || before.size < 1 || before.size > 5
-        || (before.mode & 0o077) !== 0) throw invalid('NATIVE_CONSENT_PORT_FILE');
-    const fd = fs.openSync(PORT_FILE, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
-    try {
-      const opened = fs.fstatSync(fd);
-      if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino
-          || opened.size !== before.size || (opened.mode & 0o077) !== 0)
-        throw invalid('NATIVE_CONSENT_PORT_FILE_CHANGED');
-      const bytes = Buffer.alloc(6), length = fs.readSync(fd, bytes, 0, bytes.length, 0);
-      const raw = bytes.subarray(0, length).toString('ascii').trim();
-      if (length !== opened.size || !/^[0-9]{1,5}$/.test(raw))
-        throw invalid('NATIVE_CONSENT_PORT_INVALID');
-      const port = Number(raw);
-      if (validPort(port)) return port;
-    } finally {
-      fs.closeSync(fd);
-    }
-  } catch (ignored) {
-    // Missing/invalid state falls back to the legacy port; the token still gates.
-  }
-  const fromEnvironment =
-      Number(typeof process !== 'undefined' && process.env ? process.env.DSHA_BRIDGE_PORT : undefined);
-  if (validPort(fromEnvironment)) return fromEnvironment;
-  return DEFAULT_PORT;
 }
 
 function credential() {

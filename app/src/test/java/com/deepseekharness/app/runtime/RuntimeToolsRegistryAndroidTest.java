@@ -333,8 +333,10 @@ public final class RuntimeToolsRegistryAndroidTest {
   private record ManagedFixture(Path directory, JSONObject proof) {}
 
   private ManagedFixture currentManagedRuntime() throws Exception {
-    JSONObject selected =
-        new JSONObject(Files.readString(root.resolve("app/build/test-runtimes/current.json")));
+    Path pointer = root.resolve("app/build/test-runtimes/current.json");
+    // 仅下方四项真实运行时链路测试经过此入口；其余注册表负控始终执行。
+    SourceOnlyTestInputs.requireRegularFile(pointer, "请先运行 tools/prepare-test-runtime.py");
+    JSONObject selected = new JSONObject(Files.readString(pointer));
     assertEquals(Constants.DSH_VERSION, selected.getString("dshVersion"));
     assertTrue(
         "Current runtime archive must match the fixture", selected.getBoolean("archiveCurrent"));

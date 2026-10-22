@@ -1,9 +1,9 @@
 'use strict';
 // MCP 只桥接已存在的 Android 设备接口；不暴露 shell、凭据读取或任意文件访问。
 const fs=require('node:fs/promises');
-const fsSync=require('node:fs');
+const bridgePort=require('./bridge-port.cjs');
 const MAX_SCREENSHOT_BYTES=16*1024*1024;
-function bridgePort(){try{const file='/root/.dsh/.bridge_port',info=fsSync.lstatSync(file);if(!info.isFile()||info.isSymbolicLink()||info.size<1||info.size>5||(info.mode&0o077)!==0)throw 0;const fd=fsSync.openSync(file,fsSync.constants.O_RDONLY|fsSync.constants.O_NOFOLLOW);try{const raw=fsSync.readFileSync(fd,'ascii').trim();if(!/^[0-9]{1,5}$/.test(raw))throw 0;const port=Number(raw);if(port>=1&&port<=65535)return port;}finally{fsSync.closeSync(fd);}}catch{}const fromEnvironment=Number(typeof process!=='undefined'&&process.env?process.env.DSHA_BRIDGE_PORT:undefined);return Number.isInteger(fromEnvironment)&&fromEnvironment>=1&&fromEnvironment<=65535?fromEnvironment:3090;}
+
 const observationId={type:'string',minLength:1,maxLength:64};
 const point={observationId,x:{type:'integer',minimum:0},y:{type:'integer',minimum:0}};
 const definitions=[

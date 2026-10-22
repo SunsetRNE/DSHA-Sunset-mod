@@ -10,7 +10,7 @@
 |---|---|
 | 分支 | `Sunset-3090-Q` |
 | 基线 | `e057379256161f42a28a2adcccef4ea4f5e7dcf1`（0.2.1-rc.2-20261022.0243） |
-| 当前阶段 | 文档、代码、测试与 CI 已落盘并推送到 `origin/Sunset-3090-Q`（79e7a30）；GitHub Actions 已触发，私有仓库本机无 token，run 结果待用户在 Actions 核验 |
+| 当前阶段 | 已修复 `6ece562` 的 6 项 CI 失败与后续 artifact 上传错误，补齐动态端口解析和部署；本地 Standard/Low 各 40 项关联测试通过。完整范围见 [CI 修复记录](ci-fix-20261022.md)；远端全量 Actions 与真实双实例设备验收单独记录 |
 | 唯一命名口径 | [naming.md](naming.md) |
 | 归属 | SunsetRNE（个人测试分支），不是团队发布分支 |
 
@@ -60,10 +60,10 @@
 
 ## 已知限制
 
-- 完整 APK 需要固定离线输入包（`offline-rootfs.bin` 等，约 738 MB），不在 Git 中。CI 的 APK job 需要 `SUNSET_ASSET_BUNDLE_URL` / `SUNSET_ASSET_BUNDLE_SHA256`（见 [ci-test-package.md](ci-test-package.md)）；没有输入包时只跑源码检查、宿主回归和单元测试。
+- 完整 APK 需要当前固定离线输入包（`offline-rootfs.bin` 等），不在 Git 中。APK job 需要 `SUNSET_ASSET_BUNDLE_URL` / `SUNSET_ASSET_BUNDLE_SHA256`（见 [ci-test-package.md](ci-test-package.md)）；没有输入包时只跑源码检查、宿主回归及显式源码模式单测，最多 5 项外部夹具用例因缺失输入跳过。完整测试默认不允许这些跳过。
 - 动态端口只解决"同机多安装"的端口冲突，不解决同 UID 插件的信任问题；token 与 destructive-policy 仍是主防线。
 - 端口的首选/回退范围（3090-3099）低于临时端口段，但仍可能与用户手工配置的 Web 端口冲突；这是残余风险，测试矩阵会覆盖，长期方案见设计文档的 Unix socket 备选。
-- 测试签名每次 CI 生成可能不同，跨 run 覆盖安装不保证；需要长期覆盖请配置 `SUNSET_TEST_KEYSTORE_B64` 或保留 artifact 中的测试 keystore。
+- 测试签名优先使用 `SUNSET_TEST_KEYSTORE_B64`，其次复用 cache，缺失才生成；cache 失效后仍可能换证书，跨 run 覆盖安装不能只依赖缓存。
 
 ## 变更记录
 

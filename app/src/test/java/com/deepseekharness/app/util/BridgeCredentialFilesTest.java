@@ -55,7 +55,11 @@ public class BridgeCredentialFilesTest {
     assertEquals("3091", Files.readString(port.toPath()));
     assertTrue(CredentialPaths.machine(port.getName()));
     assertThrows(IOException.class, () -> BridgeCredentialFiles.publishPort(fs, port, 0));
-    Files.writeString(port.toPath(), "abc");
+    for (String invalid : new String[] {"abc", "3091\n", " 3091", "0xC13", "65536", "0"}) {
+      Files.writeString(port.toPath(), invalid);
+      assertEquals(invalid, -1, BridgeCredentialFiles.readPort(fs, port));
+    }
+    Files.write(port.toPath(), new byte[] {(byte) 0xB3, (byte) 0xB0, (byte) 0xB9, (byte) 0xB1});
     assertEquals(-1, BridgeCredentialFiles.readPort(fs, port));
     File directory = new File(temporary.newFolder(), CredentialPaths.BRIDGE_PORT);
     fs.directory(directory);

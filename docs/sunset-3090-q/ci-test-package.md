@@ -14,7 +14,7 @@ GitHub 于 2026-02-26 支持上传/下载**非 zip** artifact（changelog 关键
 
 - APK 本身已是压缩包，再 zip 一次既浪费时间又让下载后多一步解压；
 - 测试同学需要直接拿到 `.apk` 安装，不能拿到 `artifact.zip` 里再套一个 `apk`；
-- 因此 APK artifact 使用 `archive: false`，并同时上传 `SHA256SUMS`、测试证书、`build-info.json`（同样非压缩）。
+- 因此 APK 使用 `archive: false` 单文件上传；`SHA256SUMS`、测试证书、`build-info.json`、签名结果及完整测试摘要另用 `archive: true` 归档上传。固定版本 action 的非压缩模式仅接受一个文件，且使用实际文件名作为 artifact 名。
 
 ### 1.2 Node 20 退出（2026-09-23）
 
@@ -171,18 +171,21 @@ python3 tools/check-document-links.py
    完整 `--stage fast` 里的 `test-asset-deployment`、`test-mobile-server-patches` 需要
    离线输入包/上游夹具，`test-dns-compat` 依赖宿主 DNS；这些由 `ci-fast`/package 流程或
    固定输入包覆盖，不在本分支的推送门禁里伪造通过。
-6. Android 单测（不生成离线包）：
+6. Android 源码模式单测（不生成离线包）：
 
 ```bash
 sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
 ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest \
+  -Pdsha.sourceOnlyTests=true \
   -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets \
   --no-daemon --max-workers=2
 ```
 
-7. 上传测试结果（默认 zip 即可）。
+该模式仅允许真实 wheel 归档的 1 项、managed runtime 夹具的 4 项在输入不存在时跳过；存在但损坏、摘要或版本不匹配仍然失败。默认 `dsha.sourceOnlyTests=false`，缺失输入直接失败。报告同时列出 tests/failures/errors/skipped，不称完整资产测试通过。
 
-超时：35 分钟。
+7. 上传原始测试结果（默认 zip）及任务摘要。
+
+超时：50 分钟。
 
 ### 4.2 `apk` job
 
@@ -210,7 +213,19 @@ python3 tools/ci-assets.py --url "$URL" --sha256 "$SHA"
 sdkmanager "platforms;android-37.0" "build-tools;36.0.0" "ndk;26.3.11579264"
 ```
 
-4. 构建 unsigned 测试包：
+4. 原始输入通过 pin 核验后，从当前 npm lock 重建 DSH 归档，并刷新实际运行时描述符，再准备夹具。这样本分支的授权补丁更新不会继续使用旧归档 recipe 元数据；旧输入包和新生成运行时的 SHA 在 build-info 中分别记录。执行两版完整单测（无测试筛选、无资产任务排除），并逐项确认上述 5 项两版均执行且无跳过：
+
+```bash
+python3 tools/prepare-dsh-runtime.py
+python3 tools/prepare-backup-assets.py --write
+python3 tools/prepare-runtime-descriptor.py --write
+python3 tools/verify-runtime-descriptor-source.py
+python3 tools/prepare-test-runtime.py
+./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest \
+  -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
+```
+
+完整测试通过后构建 unsigned 测试包：
 
 ```bash
 ./gradlew :app:assembleStandardRelease \
@@ -234,24 +249,30 @@ apksigner verify --print-certs app-signed.apk
 ```
 
 7. 生成 `SHA256SUMS`、`build-info.json`（commit、run id、versionName、证书 SHA-256、端口设计版本）。
-8. 上传 artifact（**非压缩**）：
+8. 分别上传 APK 原文件和验证附件：
 
 ```yaml
 - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
   with:
-    name: DSHA-Sunset-3090-Q-RUN_NUMBER-SHORT_SHA
     archive: false
     retention-days: 14
+    path: ${{ steps.sign.outputs.apk }}
+- uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+  with:
+    name: DSHA-Sunset-3090-Q-evidence-RUN_NUMBER-SHA
+    archive: true
+    retention-days: 14
     path: |
-      out/*.apk
       out/SHA256SUMS
       out/sunset-test-cert.pem
       out/build-info.json
+      out/apk-signature.txt
+      out/full-unit-tests.json
 ```
 
 说明：`archive: false` 是 2026-02-26 的非压缩 artifact 能力；下载得到的就是 `.apk`，不是 `.zip`。
 
-9. 可选：上传测试 keystore（仅当本次生成；14 天；文件名带 `TEST-ONLY` 前缀）。
+9. 未配置 secret 时上传本轮实际使用的缓存或新生成测试 keystore（单文件，14 天；仅供测试包复用）。
 
 超时：120 分钟。
 
@@ -259,7 +280,7 @@ apksigner verify --print-certs app-signed.apk
 
 `offline-rootfs.bin`、`dsh-runtime.bin`、`ubuntu-tools.bin` 等固定输入合计约 738 MB，不在 Git 中（GitHub 单文件 100 MB 限制，且仓库明确不提交大生成归档）。没有输入包时：
 
-- `source` job 仍完整运行（源码/单测/宿主回归）；
+- `source` job 运行源码检查、宿主回归及明确标注跳过数的源码模式单测；
 - `apk` job 跳过并给出 `APK_SKIPPED_NO_ASSET_BUNDLE` 的 summary；
 - 不生成假的/残缺 APK。
 
@@ -276,9 +297,10 @@ apksigner verify --print-certs app-signed.apk
 | `SHA256SUMS` | 对 APK/证书的 SHA-256 |
 | `sunset-test-cert.pem` | 测试证书（公开材料） |
 | `build-info.json` | commit、run、包名、versionName、证书 SHA-256、输入包 SHA-256、构建时间 |
-| `TEST-ONLY-sunset-test.jks` | 可选；仅当本次生成，14 天，禁止用于生产 |
+| `sunset-test.jks` | 未配置 secret 时上传缓存或新生成的测试私钥，14 天，禁止用于生产 |
+| `full-unit-tests.json` | 两版完整测试实际计数及 5 项真实夹具逐项执行证明 |
 
-artifact 名：`DSHA-Sunset-3090-Q-RUN_NUMBER-SHORT_SHA`。
+APK artifact 名使用实际 APK 文件名；验证附件名为 `DSHA-Sunset-3090-Q-evidence-RUN_NUMBER-SHA`。
 
 ## 6. 验证命令（下载 artifact 后）
 
@@ -299,7 +321,7 @@ apksigner verify --print-certs *.apk
 - 不创建 tag/Release；workflow 不请求 `contents: write`。
 - 输入包 URL 必须是 HTTPS 且带固定 SHA-256；不使用可变分支 URL。
 - 不在日志打印 token/API key/用户数据；APK 中不包含测试 keystore。
-- 测试 keystore 即使上传，也标注 `TEST-ONLY`、14 天过期；不得用于任何正式分发。
+- 测试 keystore 14 天过期，证书主题明确测试用途；不得用于任何正式分发。
 - 不把本 workflow 的成功当成正式发布证明；它只证明测试包可构建、可签名、可安装。
 
 ## 8. 本地等价命令（无 CI 时）

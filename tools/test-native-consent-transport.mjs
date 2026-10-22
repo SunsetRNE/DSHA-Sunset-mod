@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import crypto from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import { fixture as portFixture, loadCjs } from './test-bridge-port.mjs';
 const source = fs.readFileSync(new URL('../app/src/main/assets/native-consent.cjs', import.meta.url), 'utf8');
 const results = [];
 function fixture() {
@@ -47,7 +48,12 @@ function fixture() {
     return request;
   } };
   const module = { exports: {} };
-  const require = name => ({ 'node:fs': platformFs, 'node:http': http, 'node:crypto': crypto })[name];
+  const portModule = { exports: {} };
+  const portSource = fs.readFileSync(new URL('../app/src/main/assets/bridge-port.cjs', import.meta.url), 'utf8');
+  vm.runInNewContext('(function(require,module,Buffer){' + portSource + '\n})', {})(name => {
+    assert.equal(name, 'node:fs'); return platformFs;
+  }, portModule, Buffer);
+  const require = name => ({ 'node:fs': platformFs, 'node:http': http, 'node:crypto': crypto, './bridge-port.cjs': portModule.exports })[name];
   vm.runInNewContext('(function(require,module,Buffer){' + source + '\n})', {})(require, module, Buffer);
   f.sdk = module.exports;
   f.query = signal => {
@@ -116,6 +122,36 @@ await test('old credential generation cannot send', async () => {
   const f = fixture(), previous = f.sdk.readConnection(); f.token = 'b'.repeat(43);
   await assert.rejects(f.sdk.bridgeFetch('/device/consent', { expectedConnectionGeneration: previous.generation }), /TOKEN_CHANGED/);
   assert.equal(f.requests.length, 0);
+});
+await test('launcher and plugins load the same deployable parser', () => {
+  assert(source.includes("const bridgePort = require('./bridge-port.cjs');"));
+  assert.equal(fs.readFileSync(new URL('../app/src/main/assets/bridge-port.cjs', import.meta.url), 'utf8'),
+    fs.readFileSync(new URL('../app/src/main/assets/builtin-plugins/dsh-device-shell-guide/lib/bridge-port.cjs', import.meta.url), 'utf8'));
+});
+await test('launcher rereads strict file/environment ports without caching the fallback', async () => {
+  const f = portFixture(), sdk = loadCjs('native-consent.cjs', f);
+  for (const port of ['3091', '3092']) {
+    f.setPort(port); const connection = sdk.readConnection(); assert.equal(connection.port, Number(port));
+    await sdk.bridgeFetch('/device/consent', { expectedConnectionGeneration: connection.generation, expectedConnectionPort: connection.port });
+    assert.equal(f.requests.at(-1).port, Number(port));
+  }
+  f.missing = true;
+  for (const [raw, expected] of [['3097', 3097], ['0xc13', 3090], ['3e3', 3090], ['3091\n', 3090], ['³', 3090], ['9'.repeat(100000), 3090]]) {
+    f.env.DSHA_BRIDGE_PORT = raw; assert.equal(sdk.readConnection().port, expected);
+  }
+});
+await test('port rotation during response rejects without replay or accepting authority', async () => {
+  const f = portFixture(), sdk = loadCjs('native-consent.cjs', f), connection = sdk.readConnection();
+  f.onResponse = () => f.setPort('3092');
+  await assert.rejects(sdk.bridgeFetch('/device/consent', { expectedConnectionGeneration: connection.generation, expectedConnectionPort: connection.port }), /PORT_CHANGED/);
+  assert.equal(f.requests.length, 1);
+});
+for (const status of [401, 200]) await test('transport preserves ' + (status === 401 ? '401' : 'legacy unauthorized') + ' for fail-closed policy', async () => {
+  const f = portFixture(), sdk = loadCjs('native-consent.cjs', f), connection = sdk.readConnection();
+  f.status = status; f.body = '{"result":"[UNAUTHORIZED]"}';
+  const reply = await sdk.bridgeFetch('/device/consent', { expectedConnectionGeneration: connection.generation, expectedConnectionPort: connection.port });
+  assert.equal(reply.status, status); assert.equal(reply.ok, status === 200); assert.equal((await reply.json()).result, '[UNAUTHORIZED]');
+  assert.equal(f.requests.length, 1); assert.equal(f.requests[0].path, '/app/native-policy');
 });
 console.log(JSON.stringify({ scope: 'ACTUAL_LAUNCHER_QUERY_CONTROLLED_PLATFORM_IO', networkRequested: false,
   deviceCredentialRead: false, sourceSha256: crypto.createHash('sha256').update(source).digest('hex'),

@@ -29,7 +29,7 @@ async function globalConsent(signal) {
       expectedConnectionPort: connection.port,
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     });
-    if (!response.ok) return unavailable('HTTP_ERROR', undefined, response.status);
+    if (!response.ok) return unavailable(response.status === 401 ? 'UNAUTHORIZED' : 'HTTP_ERROR', undefined, response.status);
     stage = 'INVALID_REPLY';
     const envelope = await response.json();
     if (typeof envelope.result !== 'string' || Buffer.byteLength(envelope.result) > 4096) return unavailable('INVALID_REPLY');

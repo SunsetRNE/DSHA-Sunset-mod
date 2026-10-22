@@ -27,7 +27,7 @@ env:
   SUNSET_TEST_STORE_PASSWORD: sunset-test-only
 jobs:
   source:
-    name: Source checks and regressions
+    name: Source-only checks and regressions
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     steps:
@@ -75,7 +75,7 @@ jobs:
             --only test-runtime-descriptor-source.py \
             --only test-plugin-capabilities.py \
             --only test-architecture-boundaries.py
-      - name: Android Java and unit tests without offline package generation
+      - name: Source-only unit tests for both flavors (up to five external-fixture skips each)
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
@@ -87,7 +87,28 @@ jobs:
           test -x "$sdkmanager_bin"
           "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools"
           chmod +x gradlew
-          ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
+          ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
+      - name: Report source-only test scope
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          lines = ["### Source-only unit tests",
+                   "This job is not a complete fixed-input test run. Only the five external-fixture tests per flavor may skip for missing inputs; existing inputs remain validated."]
+          for flavor in ("Standard", "Low"):
+              reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
+              if not reports:
+                  lines.append(f"- {flavor}: no JUnit reports; execution not established.")
+                  continue
+              suites = [ET.parse(report).getroot() for report in reports]
+              counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
+                        for key in ("tests", "failures", "errors", "skipped")}
+              lines.append(f"- {flavor}: " + ", ".join(f"{key}={value}" for key, value in counts.items()))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+          PY
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -136,6 +157,61 @@ jobs:
           fi
           test -x "$sdkmanager_bin"
           "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
+      # 输入 bundle 的字节先按源码 pin 核验；再从当前 npm lock 重建 DSH，避免旧 recipe 元数据阻塞本分支补丁。
+      - name: Rebuild current managed DSH runtime from the dependency lock
+        run: |
+          python3 tools/prepare-dsh-runtime.py
+          python3 tools/prepare-backup-assets.py --write
+          python3 tools/prepare-runtime-descriptor.py --write
+          python3 tools/verify-runtime-descriptor-source.py
+      - name: Prepare current verified runtime fixture
+        run: python3 tools/prepare-test-runtime.py
+      - name: Complete unit tests for both flavors with fixed inputs
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
+      - name: Verify all five external-fixture tests executed in each flavor
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          required = {
+              "AdbWheelBundleTest": ["realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel"],
+              "RuntimeToolsRegistryAndroidTest": [
+                  "completeProductionChainAppliesAllSpecializedStagesAndIsRepeatable",
+                  "lanRetirementRejectsModuleDriftAndPreservesOriginalBytes",
+                  "lanRetirementRejectsUnknownVersionAndContractDrift",
+                  "oldLanExactReplacementAndIdempotenceRemainStrict",
+              ],
+          }
+          result = {"mode": "full", "flavors": {}}
+          for flavor in ("Standard", "Low"):
+              reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
+              if not reports:
+                  raise SystemExit(f"Missing JUnit reports: {flavor}")
+              suites = [ET.parse(report).getroot() for report in reports]
+              counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
+                        for key in ("tests", "failures", "errors", "skipped")}
+              if not counts["tests"] or counts["failures"] or counts["errors"]:
+                  raise SystemExit(f"Full unit tests failed: {flavor} {counts}")
+              for owner, methods in required.items():
+                  for method in methods:
+                      cases = [case for suite in suites for case in suite.findall("testcase")
+                               if case.get("classname") == "com.deepseekharness.app.runtime." + owner
+                               and case.get("name") == method]
+                      if len(cases) != 1 or any(cases[0].find(tag) is not None
+                                                for tag in ("skipped", "failure", "error")):
+                          raise SystemExit(f"Required fixture test did not pass: {flavor} {owner}.{method}")
+              counts["requiredFixtureTestsPassed"] = sum(map(len, required.values()))
+              result["flavors"][flavor] = counts
+          Path("out").mkdir(exist_ok=True)
+          Path("out/full-unit-tests.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("### Full unit tests with fixed inputs\n")
+              for flavor, counts in result["flavors"].items():
+                  summary.write(f"- {flavor}: " + ", ".join(f"{key}={value}" for key, value in counts.items()) + "\n")
+          PY
       - name: Build unsigned Sunset test package
         run: |
           chmod +x gradlew
@@ -161,6 +237,7 @@ jobs:
           keytool -exportcert -rfc -keystore sunset-test.jks -alias sunset-test \
             -storepass "$SUNSET_TEST_STORE_PASSWORD" > out/sunset-test-cert.pem
       - name: Sign with test key and verify identity
+        id: sign
         run: |
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
           apksigner="$ANDROID_HOME/build-tools/$buildtools/apksigner"
@@ -192,28 +269,48 @@ jobs:
             "versionName": "$version",
             "certificateSha256": "$cert",
             "assetBundleSha256": os.environ["ASSET_SHA"],
+            "runtimeId": json.load(open("app/src/main/assets/runtime-descriptor.json", encoding="utf-8"))["runtimeId"],
+            "rebuiltRuntimeSha256": json.load(open("app/src/main/assets/dsh-runtime.inputs.json", encoding="utf-8"))["archive_sha256"],
+            "unitTests": json.load(open("out/full-unit-tests.json", encoding="utf-8")),
             "note": "TEST ONLY - NOT FOR RELEASE",
           }
           open("out/build-info.json", "w", encoding="utf-8").write(json.dumps(value, ensure_ascii=False, indent=2) + "\\n")
           PY
           cat out/build-info.json
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+          printf 'apk=%s\n' "$apk" >> "$GITHUB_OUTPUT"
+      # archive:false 只接受单文件，且 artifact 名使用实际文件名而忽略 name 参数。
+      - name: Upload signed APK without archiving
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: DSHA-Sunset-3090-Q-${{ github.run_number }}-${{ github.sha }}
           archive: false
           retention-days: 14
           if-no-files-found: error
+          path: ${{ steps.sign.outputs.apk }}
+      - name: Upload APK verification evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: DSHA-Sunset-3090-Q-evidence-${{ github.run_number }}-${{ github.sha }}
+          archive: true
+          retention-days: 14
+          if-no-files-found: error
           path: |
-            out/*.apk
             out/SHA256SUMS
             out/sunset-test-cert.pem
             out/build-info.json
             out/apk-signature.txt
-      - name: Upload test-only keystore when generated in this run
+            out/full-unit-tests.json
+      - name: Upload full unit test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sunset-3090-q-full-unit-tests
+          path: app/build/test-results
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload cached or generated test-only keystore used in this run
         if: env.SUNSET_TEST_KEYSTORE_B64 == ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: TEST-ONLY-sunset-test-keystore-${{ github.run_number }}
           archive: false
           retention-days: 14
           if-no-files-found: warn
