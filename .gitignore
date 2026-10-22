@@ -25,6 +25,10 @@ app/src/main/assets/dsh-runtime.bin
 app/src/main/assets/dsh-runtime.inputs.json
 app/src/main/assets/ubuntu-tools.bin
 app/src/main/assets/ubuntu-tools.inputs.json
+app/src/main/assets/glibc-python.tar.gz
+app/src/main/assets/adb-wheels.tar.gz
+app/src/main/assets/pnpm-runtime.bin
+app/src/main/assets/python-support.bin
 
 # 发布 APK：走 GitHub Release 资产，不进 git
 release/*.apk
