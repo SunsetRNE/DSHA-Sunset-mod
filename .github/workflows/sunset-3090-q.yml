@@ -29,7 +29,7 @@ jobs:
   source:
     name: Source checks and regressions
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -79,7 +79,13 @@ jobs:
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
-          sdkmanager "platforms;$platform" "build-tools;$buildtools"
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager_bin" ]; then
+            sdkmanager_bin=$(find "$sdk_root" -path '*/cmdline-tools/*/bin/sdkmanager' | head -1)
+          fi
+          test -x "$sdkmanager_bin"
+          "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools"
           chmod +x gradlew
           ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -123,7 +129,13 @@ jobs:
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
           ndk=$(python3 tools/ci-toolchain.py --field ndk)
-          sdkmanager "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager_bin" ]; then
+            sdkmanager_bin=$(find "$sdk_root" -path '*/cmdline-tools/*/bin/sdkmanager' | head -1)
+          fi
+          test -x "$sdkmanager_bin"
+          "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
       - name: Build unsigned Sunset test package
         run: |
           chmod +x gradlew
