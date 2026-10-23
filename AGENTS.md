@@ -1,5 +1,8 @@
 # AGENTS.md
 
+<!-- current-rc3-identity -->
+> 2026-10-24 当前rc.3正式身份更正：`0.2.1-rc.3-20261024.0120-dsh0.2.1-rc.3` /code193 /Standard /dsh.android.client /E7E3 /非调试。当前APK和目录必须为release/0.2.1-rc.3/dsha-0.2.1-rc.3.apk；正式和独立应急DSH都是rc3。6处DSH peers已统一rc3，DSH归档d77261bf及Java/原生字节不变；本次Standard assemble/Release Lint0错/致命/255警告、6精确APK门禁。旧217JUnit/13host及实际192链仅按逐字节相同输入引用，不称本次重跑；手机未验。旧rc2命名193作为历史保留，不能再作为当前下载名。私有目标 https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.3-20261024.0120 ，最终外部回执artifacts/deliveries/build193-rc3-version-align-20261024.0120.json；不构建Low、不写公开DSHA/网站，实际源仍<local-workspace>)。
+
 <!-- build193-rc3-software -->
 > 2026-10-24 build193软件检查：`0.2.1-rc.2-20261023.2047-dsh0.2.1-rc.3` /193 /非调试Standard /dsh.android.client /E7E3 /常规dsha-0.2.1-rc.2.apk；APK SHA `e85159a8b57b65584969d3eeb61f8ee140d94d3a369837c62ac6f451fa496f13`。正式DSH精确rc3，独立应急也固定rc3/d77261bf，包内同字节去重；Ubuntu10、引擎与包名不改。无障碍调度/epoch/截图回调、pnpm V3及旧日志/optional bundle观察器修复。仅Standard 37类217项JUnit、13host、Release Lint0错/致命/255警告及8精确APK门禁；初次夹具选择失败与修正补跑均保留。未做193手机验收、原vivo16或新5GB/重启续传/全矩阵，不声明旧exit1已证因。新APK/完整源码仅私有预发布目标，最终发布commit/服务器SHA/ZIP回执见artifacts/deliveries/build193-issue183-plugin-env-20261023.json。实际源码仍<local-workspace>)。
 

@@ -1,5 +1,8 @@
 # DSHA
 
+<!-- current-rc3-identity -->
+> **Current: 0.2.1-rc.3 / build193** — `0.2.1-rc.3-20261024.0120-dsh0.2.1-rc.3`; nondebug Standard / E7E3. APK: `release/0.2.1-rc.3/dsha-0.2.1-rc.3.apk`. The application and both DSH environments use rc.3. Earlier rc.2-named entries below are historical. [Report](docs/en/releases/v0.2.1-rc.3-build193-version-align-20261024.md).
+
 <!-- build193-rc3:begin -->
 > **2026-10-24 build193 / DSH rc.3**: `0.2.1-rc.2-20261023.2047-dsh0.2.1-rc.3` / nondebug Standard / dsh.android.client / E7E3; conventional filename retained. 217 selected JUnit tests, 13 host entries, Release Lint0 error/fatal (255 warnings) and 8 exact APK gates passed. No current device acceptance; private delivery only, no Low tasks. [Report](docs/en/releases/v0.2.1-rc.2-build193-issue183-plugin-env-20261023.md).
 <!-- build193-rc3:end -->

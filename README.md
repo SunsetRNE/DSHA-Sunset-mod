@@ -1,5 +1,8 @@
 # DSHA
 
+<!-- current-rc3-identity -->
+> **Current / 当前：0.2.1-rc.3 · build193** — `0.2.1-rc.3-20261024.0120-dsh0.2.1-rc.3`；Standard / E7E3 / 非调试，文件为 `release/0.2.1-rc.3/dsha-0.2.1-rc.3.apk`，应用与正式/独立应急DSH均为rc.3。下方rc.2命名条目按历史阅读。[本轮报告](docs/releases/v0.2.1-rc.3-build193-version-align-20261024.md)。
+
 <!-- build193-rc3:begin -->
 > **2026-10-24 build193 / DSH rc.3**：`0.2.1-rc.2-20261023.2047-dsh0.2.1-rc.3` / Standard / dsh.android.client / E7E3非调试；常规文件名不变。217项所选JUnit、13host、Release Lint零错误/致命（255警告）、8项精确APK门禁通过。设备未验，旧反馈边界保留；仅私有交付、不跑Low。[本轮报告](docs/releases/v0.2.1-rc.2-build193-issue183-plugin-env-20261023.md)。
 <!-- build193-rc3:end -->
