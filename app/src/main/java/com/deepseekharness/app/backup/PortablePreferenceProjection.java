@@ -34,8 +34,7 @@ public final class PortablePreferenceProjection {
       Object value = values.get(key);
       if (value instanceof String
           && ((String) value).length() <= 2048
-          && ((String) value).indexOf('\0') < 0)
-        result.put(key, value);
+          && ((String) value).indexOf('\0') < 0) result.put(key, value);
     }
     for (String key : FLAGS) {
       Object value = values.get(key);

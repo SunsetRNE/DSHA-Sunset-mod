@@ -1410,8 +1410,8 @@
     },
     {
       "path": "tools/test-low-preview-capability.mjs",
-      "stage": "fast",
-      "reason": "Current Java-embedded WebView capability probe and Low selection source check; no device",
+      "stage": "history",
+      "reason": "2026-10-24 Sunset-3090-Q 用户取消全部 Low 测试；保留历史用例，不进入任何当前宿主或 CI 阶段",
       "requires": [
         "node24"
       ],

@@ -1,6 +1,6 @@
 name: Sunset-3090-Q test package
 
-# 个人测试分支：只构建测试包，不打 tag、不发布 Release。
+# 个人测试分支：只测试和构建 Standard 测试包，不运行 Low、不打 tag、不发布 Release。
 # 2026-02-26 GitHub Actions 非压缩 artifact：APK 用 archive:false 原样上传。
 # Node 20 已退出：所有 action 使用 Node 24 兼容版本并按 SHA 固定。
 on:
@@ -120,9 +120,11 @@ jobs:
             --only test-bridge-port.py \
             --only test-ci-assets.py \
             --only test-ci-package.py \
+            --only test-host-test-runner.py \
+            --only test-release-evidence.py \
             --only test-dsh-runtime-packaging.py \
             --only test-sunset-ci-inputs.py
-      - name: Source-only unit tests for both flavors (up to five external-fixture skips each)
+      - name: Source-only Standard unit tests (up to five external-fixture skips)
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
@@ -134,7 +136,7 @@ jobs:
           test -x "$sdkmanager_bin"
           "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools"
           chmod +x gradlew
-          ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
+          ./gradlew :app:testStandardDebugUnitTest -Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
       - name: Report source-only test scope
         if: always()
         run: |
@@ -143,8 +145,8 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
           lines = ["### Source-only unit tests",
-                   "This job is not a complete fixed-input test run. Only the five external-fixture tests per flavor may skip for missing inputs; existing inputs remain validated."]
-          for flavor in ("Standard", "Low"):
+                   "This job is not a complete fixed-input test run. Only the five Standard external-fixture tests may skip for missing inputs; existing inputs remain validated."]
+          for flavor in ("Standard",):
               reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
               if not reports:
                   lines.append(f"- {flavor}: no JUnit reports; execution not established.")
@@ -229,11 +231,11 @@ jobs:
             --only test-session-interaction-patch-upgrade.py \
             --only test-preset-pending-patch-upgrade.py \
             --only test-recovery-native-consent.mjs
-      - name: Complete unit tests for both flavors with fixed inputs
+      - name: Complete Standard unit tests with fixed inputs
         run: |
           chmod +x gradlew
-          ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
-      - name: Verify all five external-fixture tests executed in each flavor
+          ./gradlew :app:testStandardDebugUnitTest -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
+      - name: Verify all five Standard external-fixture tests executed
         run: |
           python3 - <<'PY'
           import json, os
@@ -249,7 +251,7 @@ jobs:
               ],
           }
           result = {"mode": "full", "flavors": {}}
-          for flavor in ("Standard", "Low"):
+          for flavor in ("Standard",):
               reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
               if not reports:
                   raise SystemExit(f"Missing JUnit reports: {flavor}")
@@ -275,6 +277,8 @@ jobs:
               for flavor, counts in result["flavors"].items():
                   summary.write(f"- {flavor}: " + ", ".join(f"{key}={value}" for key, value in counts.items()) + "\n")
           PY
+      - name: Lint Standard release
+        run: ./gradlew :app:lintStandardRelease -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true --no-daemon --max-workers=2
       - name: Build unsigned Sunset test package
         run: |
           chmod +x gradlew
@@ -317,7 +321,8 @@ jobs:
           test "$package" = "dsh.android.client.SunsetRNE"
           "$aapt2" dump badging "$apk" | grep -q "versionName='.*-SunsetTest'"
           if "$aapt2" dump badging "$apk" | grep -q 'application-debuggable'; then exit 1; fi
-          "$apksigner" verify --print-certs "$apk" > out/apk-signature.txt
+          "$apksigner" verify --verbose --print-certs "$apk" > out/apk-signature.txt
+          "$aapt2" dump badging "$apk" > out/apk-badging.txt
           cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
           test -n "$cert"
           test "$cert" != "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
@@ -329,6 +334,7 @@ jobs:
           value = {
             "schema": 1,
             "kind": "sunset-3090-q-test-apk",
+            "flavors": ["standard"],
             "commit": os.environ["GITHUB_SHA"],
             "runNumber": os.environ["GITHUB_RUN_NUMBER"],
             "runId": os.environ["GITHUB_RUN_ID"],
@@ -370,6 +376,7 @@ jobs:
             out/sunset-test-cert.pem
             out/build-info.json
             out/apk-signature.txt
+            out/apk-badging.txt
             out/apk-runtime-verification.txt
             out/apk-recovery-verification.txt
             out/full-unit-tests.json
@@ -392,13 +399,6 @@ jobs:
           path: |
             app/build/test-results
             app/build/host-tests/sunset-patch-chains
+            app/build/reports/lint-results-standardRelease.*
           if-no-files-found: warn
           retention-days: 14
-      - name: Upload cached or generated test-only keystore used in this run
-        if: env.SUNSET_TEST_KEYSTORE_B64 == ''
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          archive: false
-          retention-days: 14
-          if-no-files-found: warn
-          path: sunset-test.jks

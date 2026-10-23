@@ -65,6 +65,14 @@ class HostRunnerTest(unittest.TestCase):
             code = runner.main()
         return code, json.loads((self.output / 'manifest.json').read_text())
 
+    def test_low_scope_is_rejected_before_any_child_starts(self):
+        self.add('test-pass.py', 'raise AssertionError("must not run")')
+        self.extra_args = ['--flavor', 'low']
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+            self.invoke()
+        self.assertEqual(raised.exception.code, 2)
+        self.assertFalse(self.output.exists())
+
     def test_real_failed_child_does_not_hide_later_pass_and_fixture_is_removed(self):
         self.add('test-failure.py', 'raise SystemExit(7)')
         self.add('test-pass.py', 'print("later child actually ran")')

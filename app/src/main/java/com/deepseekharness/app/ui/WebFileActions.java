@@ -46,7 +46,10 @@ final class WebFileActions {
             BrowserThemeGate page = binding.get();
             JSONObject identity = request.getJSONObject("binding");
             if (!matchesBinding(
-                page, source, identity.getString("nonce"), identity.getLong("generation"),
+                page,
+                source,
+                identity.getString("nonce"),
+                identity.getLong("generation"),
                 identity.getString("instance")))
               throw new IllegalArgumentException("FILE_REQUEST_DOCUMENT");
             final String requestId = id;
@@ -164,10 +167,18 @@ final class WebFileActions {
   /** Querying progress never exposes private stages, credential material or destination grants. */
   private static JSONObject publicStatus(JSONObject source) throws org.json.JSONException {
     JSONObject result = new JSONObject();
-    for (String key : new String[] {
-        "id", "destination", "status", "downloaded", "total", "speedBytesPerSecond",
-        "displayName", "mime", "createdAt"
-    }) {
+    for (String key :
+        new String[] {
+          "id",
+          "destination",
+          "status",
+          "downloaded",
+          "total",
+          "speedBytesPerSecond",
+          "displayName",
+          "mime",
+          "createdAt"
+        }) {
       if (source.has(key)) result.put(key, source.get(key));
     }
     return result;

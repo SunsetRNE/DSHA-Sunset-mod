@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **2026-10-24 Sunset-3090-Q 分支 CI 范围**：用户取消本分支全部 Low 测试。当前所有工作流仅运行 Standard 的源码/完整输入 JUnit、Lint 与打包；宿主执行器也拒绝 Low，专用 Low 预览用例保留历史。Sunset 构建使用 rc.3 固定源码输入、`dsh.android.client.SunsetRNE` 测试签名身份，不与 E7E3 正式包混同。历史双版本回执只用于兼容读取，不视为本轮 Low 测试。
+
 <!-- current-rc3-identity -->
 > 2026-10-24 当前rc.3正式身份更正：`0.2.1-rc.3-20261024.0120-dsh0.2.1-rc.3` /code193 /Standard /dsh.android.client /E7E3 /非调试。当前APK和目录必须为release/0.2.1-rc.3/dsha-0.2.1-rc.3.apk；正式和独立应急DSH都是rc3。6处DSH peers已统一rc3，DSH归档d77261bf及Java/原生字节不变；本次Standard assemble/Release Lint0错/致命/255警告、6精确APK门禁。旧217JUnit/13host及实际192链仅按逐字节相同输入引用，不称本次重跑；手机未验。旧rc2命名193作为历史保留，不能再作为当前下载名。私有目标 https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.3-20261024.0120 ，最终外部回执artifacts/deliveries/build193-rc3-version-align-20261024.0120.json；不构建Low、不写公开DSHA/网站，实际源仍<local-workspace>)。
 

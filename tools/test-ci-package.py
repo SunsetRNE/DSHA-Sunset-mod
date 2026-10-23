@@ -3,6 +3,8 @@ import copy
 import importlib.util
 import json
 import shlex
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -53,8 +55,21 @@ class PackageBinding(unittest.TestCase):
                           junit={flavor:dict(tests=2,skipped=0,failures=0,errors=0)
                                  for flavor in ('Standard','Low')})
     def validate(self):return gate.validate_receipt(self.receipt,self.root,'abc',self.source,
-                                                  {'app/build.gradle'},set())
+                                                  {'app/build.gradle'},set(), expected_flavors=('standard','low'))
     def test_exact_pair_is_selected(self):self.assertEqual(2,len(self.validate()))
+    def test_standard_scope_keeps_gates_and_rejects_missing_expected_flavor(self):
+        self.receipt['apks'] = [row for row in self.receipt['apks'] if row['flavor'] == 'standard']
+        self.receipt['commands'] = [row for row in self.commands if row['name'] != 'low-elf']
+        self.receipt['junit'].pop('Low')
+        selected = gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
+                                         {'app/build.gradle'}, set())
+        self.assertEqual([self.root / 'app-standard-release-unsigned.apk'], selected)
+        with self.assertRaisesRegex(ValueError, 'PACKAGE_FLAVORS'):
+            self.validate()
+        self.receipt['commands'] = [row for row in self.receipt['commands'] if row['name'] != 'standard-elf']
+        with self.assertRaisesRegex(ValueError, 'PACKAGE_CHECK_INCOMPLETE'):
+            gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
+                                  {'app/build.gradle'}, set())
     def test_actual_uuid_report_layout_is_selected_and_duplicate_receipts_rejected(self):
         manifest=self.reports/'manifest.json';manifest.write_text(json.dumps(self.receipt))
         self.assertEqual(manifest,gate.select_manifest(self.root))
@@ -118,7 +133,7 @@ class SunsetPatchRegressions(unittest.TestCase):
         step = self.step('Verify runtime patch upgrades and managed recovery consent')
         start = self.job.index(step)
         self.assertLess(self.job.index('run: python3 tools/prepare-test-runtime.py'), start)
-        self.assertLess(start, self.job.index('Complete unit tests for both flavors with fixed inputs'))
+        self.assertLess(start, self.job.index('Complete Standard unit tests with fixed inputs'))
         self.assertIn('actions/setup-java@', self.job[:start])
         self.assertIn('actions/setup-node@', self.job[:start])
         self.assertNotRegex(step, r'\n        (?:if|continue-on-error):')
@@ -154,6 +169,26 @@ class SunsetPatchRegressions(unittest.TestCase):
                     # 该入口依赖此变量执行真实 ToolRuntime，不能只跑 SDK 传输分支。
                     self.assertEqual(row['environment'].get('DSHA_TEST_RUNTIME'), '{managed}')
 
+    def test_every_ci_entry_uses_standard_scope(self):
+        for name in ('sunset-3090-q.yml', 'ci-fast.yml'):
+            workflow = (self.root / '.github/workflows' / name).read_text(encoding='utf-8')
+            self.assertIn(':app:testStandardDebugUnitTest', workflow)
+            self.assertNotRegex(workflow, r':app:(?:test|lint|assemble)Low')
+            self.assertNotIn('("Standard", "Low")', workflow)
+        package = (self.root / '.github/workflows/ci-package.yml').read_text(encoding='utf-8')
+        self.assertIn('--stage package --flavors standard', package)
+        self.assertNotIn('app/build/outputs/apk/*/', package)
+        manifest = json.loads((self.root / 'tools/host-tests.manifest.json').read_text())
+        low = next(row for row in manifest['tests'] if row['path'] == 'tools/test-low-preview-capability.mjs')
+        self.assertEqual(low['stage'], 'history')
+
+    def test_branch_stability_runner_refuses_low_scope_before_execution(self):
+        result = subprocess.run([sys.executable, str(self.root / 'tools/verify-stability.py'),
+                                 '--stage', 'software', '--flavors', 'both'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('invalid choice', result.stderr)
+
     def test_patch_chain_logs_are_retained_even_when_the_gate_fails(self):
         step = self.step('Upload full unit and host test reports')
         self.assertIn('\n        if: always()\n', step)
@@ -161,7 +196,8 @@ class SunsetPatchRegressions(unittest.TestCase):
         self.assertIn('name: ${{ needs.source.outputs.tests_name }}', step)
         paths = step.split('          path: |\n', 1)[1].splitlines()
         self.assertEqual({path.strip() for path in paths if path.startswith('            ')},
-                         {'app/build/test-results', 'app/build/host-tests/sunset-patch-chains'})
+                         {'app/build/test-results', 'app/build/host-tests/sunset-patch-chains',
+                           'app/build/reports/lint-results-standardRelease.*'})
 
 
 if __name__=='__main__':unittest.main()

@@ -67,8 +67,8 @@ public class StartupPipelineTest {
       return "ok";
     }
 
-    public BoundedProcessRunner.Result materializeCasLinks(java.util.function.Consumer<String> timing)
-        throws Exception {
+    public BoundedProcessRunner.Result materializeCasLinks(
+        java.util.function.Consumer<String> timing) throws Exception {
       step("cas-copy");
       timing.accept("CAS_HOST_TIMING: phase=process-collect durationMs=10 elapsedMs=14");
       return casOutcome == null ? BoundedProcessRunner.localCompletion(casReceipt) : casOutcome;
@@ -213,10 +213,9 @@ public class StartupPipelineTest {
   public void casTimingIsBoundedAndCannotAuthorizeWithoutACompletedReceipt() throws Exception {
     Fixture f = new Fixture();
     f.casReceipt =
-        "CAS_TIMING: {\"phase\":\"scan\",\"durationMs\":12}\n"
-            + "ordinary script output\n";
-    IOException failure = assertThrows(
-        IOException.class, () -> new StartupPipeline(f, f).prepare(31, false, f));
+        "CAS_TIMING: {\"phase\":\"scan\",\"durationMs\":12}\n" + "ordinary script output\n";
+    IOException failure =
+        assertThrows(IOException.class, () -> new StartupPipeline(f, f).prepare(31, false, f));
     assertEquals("PLUGIN_CAS_COPY_RESULT_MISSING", failure.getMessage());
     assertTrue(f.messages.stream().anyMatch(line -> line.startsWith("31:CAS_HOST_TIMING:")));
     assertTrue(f.messages.stream().anyMatch(line -> line.startsWith("31:CAS_TIMING:")));
@@ -225,13 +224,19 @@ public class StartupPipelineTest {
     assertFalse(f.calls.contains("unlock"));
 
     Fixture large = new Fixture();
-    large.casReceipt = "CAS_TIMING: " + "0".repeat(5000) + "\n"
-        + "CAS_TIMING: {\"phase\":\"scan\",\"durationMs\":12}\n".repeat(100)
-        + receipt(false, 0, "");
+    large.casReceipt =
+        "CAS_TIMING: "
+            + "0".repeat(5000)
+            + "\n"
+            + "CAS_TIMING: {\"phase\":\"scan\",\"durationMs\":12}\n".repeat(100)
+            + receipt(false, 0, "");
     assertEquals("web", new StartupPipeline(large, large).prepare(32, false, large));
-    assertEquals(24, large.messages.stream().filter(line -> line.startsWith("32:CAS_TIMING:")).count());
-    assertTrue(large.messages.stream().filter(line -> line.startsWith("32:CAS_TIMING:"))
-        .allMatch(line -> line.length() <= 4099));
+    assertEquals(
+        24, large.messages.stream().filter(line -> line.startsWith("32:CAS_TIMING:")).count());
+    assertTrue(
+        large.messages.stream()
+            .filter(line -> line.startsWith("32:CAS_TIMING:"))
+            .allMatch(line -> line.length() <= 4099));
   }
 
   @Test

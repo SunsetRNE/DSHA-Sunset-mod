@@ -642,13 +642,11 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertSame(owner.runtimeHostPorts(), RuntimeHostPorts.fromOwner(owner));
     owner.diagnostics.clear();
     IllegalStateException missingOwner =
-        assertThrows(
-            IllegalStateException.class, () -> RuntimeHostPorts.fromOwner(new Object()));
+        assertThrows(IllegalStateException.class, () -> RuntimeHostPorts.fromOwner(new Object()));
     assertEquals("RUNTIME_HOST_OWNER_UNAVAILABLE", missingOwner.getMessage());
     var original = digestTree(guest);
     productionChain(context, guest);
-    assertEquals(
-        java.util.List.of("PATCH_RUNTIME_VERSION_MISMATCH:0.2.1-rc.2"), owner.diagnostics);
+    assertEquals(java.util.List.of("PATCH_RUNTIME_VERSION_MISMATCH:0.2.1-rc.2"), owner.diagnostics);
     assertEquals(
         "A new signed runtime tree must be staged for the generation upgrade",
         original,

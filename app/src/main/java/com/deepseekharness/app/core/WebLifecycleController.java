@@ -669,11 +669,7 @@ final class WebLifecycleController {
 
   private String runCoreCommand(String profile, int listenPort, long generation) {
     return com.deepseekharness.app.util.WebLaunchCommand.build(
-        config.isConfirmShell(),
-        config.getUiLanguage(),
-        profile,
-        listenPort,
-        generation);
+        config.isConfirmShell(), config.getUiLanguage(), profile, listenPort, generation);
   }
 
   /**
