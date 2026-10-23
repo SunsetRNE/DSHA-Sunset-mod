@@ -1,13 +1,20 @@
 /** DSHA 设备能力引导：使用 dsh 0.1.5 的消息工厂与已提交事件判重。 */
+import bridgePort from './bridge-port.cjs';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
 export const name = 'dsh-device-shell-guide';
 
-const PROMPT = [
+/**
+ * 端口必须在每次组装提示时重读：Web 可能先于设备桥启动，桥重启也可能换端口。
+ * 在模块加载时缓存会把双实例场景永久写成另一个安装的 3090。
+ */
+function promptText() {
+  const port = bridgePort();
+  return [
   '【设备操作能力 · DSHA】你正运行在用户 Android 手机的容器里，可以干预这台实体手机。',
 
   '■ 三条通道，按这个顺序选：',
   '  1) Ubuntu 工作区内的开发与文件操作使用普通工具；Android 设备文件写入必须走受保护的设备 shell。',
-  '  2) App 层接口 /app/*（走 127.0.0.1:3090，零配置，不需要 ADB，也不需要 Shizuku）',
+  '  2) App 层接口 /app/*（走 127.0.0.1:' + port + '，零配置，不需要 ADB，也不需要 Shizuku）',
   '  3) 设备 shell（adb-shell 命令自动选择已授权的 root、Shizuku 或 ADB）—— 查询设备日志、普通设备文件操作和结束用户应用。',
   '  例：查设备状态用 /app/device 而不是 dumpsys battery；启动应用用 /app/launch 而不是 am start。',
 
@@ -22,7 +29,7 @@ const PROMPT = [
 
   '■ 完整端点清单（读屏 / 点按 / 输入 / 截屏 / 通知 / 剪贴板 / 传感器 / 导出文件 …）：',
   '  # Credentials are sent by header file; do not place them in URLs or argv.',
-  '  curl -s -H @/root/.dsh/.bridge_headers "http://127.0.0.1:3090/app/help"',
+  '  curl -s -H @/root/.dsh/.bridge_headers "http://127.0.0.1:' + port + '/app/help"',
   '  → 要用设备能力时查这一次，里面有每个端点的参数和写法。',
   '    清单刻意没写在这里 —— 它有十几 KB，写进提示词就是每一轮都替你付一次上下文。',
   '  ⚠ /app/help 与 /app/version 只有较新的 App 才有（老版本会把未知路径当 shell 命令处理，',
@@ -56,7 +63,8 @@ const PROMPT = [
   '  - [EXECUTION_UNKNOWN] 表示命令可能已执行。先检查实际状态，不得切换通道或自动重放；',
   '  - 不要用 /root/dsh-bin/adb 或裸 adb 命令 —— 那是守卫包装脚本，会失败；',
   '  - 与用户交流一律使用中文。',
-].join('\n')
+  ].join('\n');
+}
 
 export function apply(ctx) {
   let systemActive = false;
@@ -66,7 +74,7 @@ export function apply(ctx) {
     && event.data?.source?.kind === 'plugin' && event.data.source.plugin === name;
   // 作用域注入不会阻塞极简配置的启动；标准配置只走系统提示，避免双份引导。
   ctx.inject(['systemPrompt'], promptCtx => {
-    promptCtx.systemPrompt.section({ name: 'dsh:device-shell-guide', order: 150, text: PROMPT });
+    promptCtx.systemPrompt.section({ name: 'dsh:device-shell-guide', order: 150, text: promptText });
     promptCtx.effect(() => { systemActive = true; return () => { systemActive = false; }; });
   });
   ctx.on('session/event', (session, event) => { if (isGuide(event)) guided.add(session); });
@@ -81,9 +89,10 @@ export function apply(ctx) {
       if (session.snapshotEvents?.().some(isGuide)) guided.add(session);
     }
     if (guided.has(session)) return decision;
+    const text = promptText();
     const guide = createUserMessage({
-      content: [{ type: 'text', text: PROMPT }],
-      source: { kind: 'plugin', plugin: name, form: 'snapshot', sections: [{ name, text: PROMPT }] },
+      content: [{ type: 'text', text }],
+      source: { kind: 'plugin', plugin: name, form: 'snapshot', sections: [{ name, text }] },
     });
     // 后续插件仍可能拒绝步骤，因此仅在 session/event 确认写入后标记已注入。
     return { ...decision, messages: [guide, ...decision.messages] };

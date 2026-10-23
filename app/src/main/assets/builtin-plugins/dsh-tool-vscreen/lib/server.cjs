@@ -1,7 +1,9 @@
 'use strict';
 // Production build170's fixed authenticated bridge; no experimental SDK is needed.
 const fs=require('node:fs'),http=require('node:http');
+const bridgePort=require('./bridge-port.cjs');
 const TOKEN_FILE='/root/.dsh/.bridge_token',RESPONSE_LIMIT=24*1024*1024;
+
 function bridgeFailure(code,unknown){const error=Error(code);error.executionUnknown=unknown;return error;}
 function bridgeCredential(){
  for(const path of ['/root','/root/.dsh']){const value=fs.lstatSync(path);if(!value.isDirectory()||value.isSymbolicLink())throw bridgeFailure('BRIDGE_TOKEN_PARENT',false);}
@@ -17,23 +19,25 @@ function bridgeCredential(){
  }finally{fs.closeSync(fd);}
 }
 async function bridgeFetch(route,init={}){
- let token;
+ let token,port;
  try{
   if(init.signal?.aborted)throw bridgeFailure('BRIDGE_CANCELLED_BEFORE_SEND',false);
-  const target=new URL(route,'http://127.0.0.1:3090');
-  if(target.origin!=='http://127.0.0.1:3090'||!target.pathname.startsWith('/app/vscreen/')||!['GET','POST'].includes(init.method))throw bridgeFailure('BRIDGE_ROUTE_INVALID',false);
+  port=bridgePort();
+  const origin='http://127.0.0.1:'+port;
+  const target=new URL(route,origin);
+  if(target.origin!==origin||!target.pathname.startsWith('/app/vscreen/')||!['GET','POST'].includes(init.method))throw bridgeFailure('BRIDGE_ROUTE_INVALID',false);
   if(Buffer.byteLength(init.body||'','utf8')>128*1024)throw bridgeFailure('BRIDGE_BODY_LIMIT',false);
   token=bridgeCredential();
  }catch(error){error.executionUnknown=false;throw error;}
  return new Promise((resolve,reject)=>{
   let sent=false;
   const failed=error=>reject(bridgeFailure(error?.code==='ABORT_ERR'?'BRIDGE_CANCELLED':'BRIDGE_TRANSPORT_UNAVAILABLE',sent));
-  const request=http.request({protocol:'http:',hostname:'127.0.0.1',port:3090,path:route,method:init.method,
+  const request=http.request({protocol:'http:',hostname:'127.0.0.1',port,path:route,method:init.method,
    headers:{...init.headers,'X-Token':token},signal:init.signal,agent:false},response=>{
    const parts=[];let size=0;
    response.on('data',part=>{size+=part.length;if(size>RESPONSE_LIMIT){response.destroy(bridgeFailure('BRIDGE_RESPONSE_TOO_LARGE',true));return;}parts.push(part);});
    response.on('error',failed);
-   response.on('end',()=>{try{if(bridgeCredential()!==token)throw bridgeFailure('BRIDGE_TOKEN_CHANGED',true);
+   response.on('end',()=>{try{if(bridgeCredential()!==token)throw bridgeFailure('BRIDGE_TOKEN_CHANGED',true);if(bridgePort()!==port)throw bridgeFailure('BRIDGE_PORT_CHANGED',true);
     const body=Buffer.concat(parts,size).toString('utf8');resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode,text:async()=>body});
    }catch(error){reject(bridgeFailure(error.message,true));}});
   });

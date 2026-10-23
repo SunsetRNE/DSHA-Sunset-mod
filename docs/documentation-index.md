@@ -1,6 +1,8 @@
 # 文档总索引与维护规则
 
-当前入口（2026-10-23）：[build191启动修订](releases/v0.2.1-rc.2-build191-startup-20261023.md)，`0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` /191，**本地软件与精确Standard APK已验证，仅私有交付**。两版34类各182项JUnit零失败/错误/skip、Release Lint零error/fatal、APK9项及host12项通过；未验新APK设备。CAS/账号/诊断及运行权限档位退休范围见报告。实际远端及完整源码ZIP自身SHA以[本轮私有Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1500)和独立外部回执核验；下方2100、0243与F13均保留历史归属。
+当前入口（2026-10-23）：[build191 Sunset合并](releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md)，`0.2.1-rc.2-20261023.1640-dsh0.2.1-rc.2` /191不变，**本地软件与精确Standard APK已验证，仅私有交付**。新增16提交及上一191修订完整保留；两版44类各242项JUnit零失败/错误/skip、5外部夹具每版实跑、18host、Lint与APK9项通过。新APK设备未验、不新增Low包。原失败及固定输入/归档边界见报告；实际远端/源码ZIP自身SHA由[1640私有Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1640)和独立外部回执核验。下方1500与更早记录保持历史归属。
+
+上一1500入口（2026-10-23）：[build191启动修订](releases/v0.2.1-rc.2-build191-startup-20261023.md)，`0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` /191，**本地软件与精确Standard APK已验证，仅私有交付**。两版34类各182项JUnit零失败/错误/skip、Release Lint零error/fatal、APK9项及host12项通过；未验新APK设备。CAS/账号/诊断及运行权限档位退休范围见报告。实际远端及完整源码ZIP自身SHA以[本轮私有Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1500)和独立外部回执核验；下方2100、0243与F13均保留历史归属。
 
 核验日期：2026-10-22。当前性能维护版本 **`0.2.1-rc.2-20261022.0243-dsh0.2.1-rc.2` / code190**；[本轮范围与产物](releases/v0.2.1-rc.2-build190-performance-20261022.md)、[启动/初始化完整调查](performance-startup-20261022.md)、[脱敏证据](evidence/performance-20261022.json)。下段F13数量/固定包是历史基准，不是当前清单。公开发布继续暂停，仅私有维护交付。
 

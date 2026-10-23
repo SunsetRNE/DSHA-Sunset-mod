@@ -3,6 +3,36 @@
   "purpose": "Signed host-managed runtime inputs; the installer, descriptor and Gradle consume this same contract. User data and recovery runtime are outside this contract.",
   "installs": [
     {
+      "asset": "bridge-port.cjs",
+      "target": "root/.dsh/bridge-port.cjs",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-device-shell-guide/lib/bridge-port.cjs",
+      "target": "root/dsha-device-shell-guide/lib/bridge-port.cjs",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-computer-use-android/lib/bridge-port.cjs",
+      "target": "root/dsha-computer-use-android/lib/bridge-port.cjs",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-tool-vscreen/lib/bridge-port.cjs",
+      "target": "root/dsha-tool-vscreen/lib/bridge-port.cjs",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-status-overlay/lib/bridge-port.cjs",
+      "target": "root/dsha-status-overlay/lib/bridge-port.cjs",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-task-notifier/lib/bridge-port.cjs",
+      "target": "root/dsha-task-notifier/lib/bridge-port.cjs",
+      "executable": false
+    },
+    {
       "asset": "ca-certificates.crt",
       "target": "usr/local/share/dsha/ca-certificates.crt",
       "executable": false
@@ -486,6 +516,7 @@
     "backup/RuntimeTrialRecords.java",
     "util/WebProcSel.java",
     "util/WebPidIdentity.java",
+    "util/WebStartProtection.java",
     "util/ManagedRuntimeLayout.java",
     "util/ManagedAssetVersion.java",
     "util/ManagedInstallPath.java",
@@ -562,6 +593,7 @@
     "util/ContainerFileTransfers.java",
     "util/BridgeCredentialAuth.java",
     "util/BridgeCredentialFiles.java",
+    "util/BridgePortPolicy.java",
     "util/SelfPackageIdentity.java",
     "util/DeviceAppPolicy.java",
     "util/DeviceShellPolicy.java",

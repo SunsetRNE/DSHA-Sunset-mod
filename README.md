@@ -21,7 +21,7 @@
 
 > 🤖 下一个 AI / 开发者请先读 **[AGENTS.md](AGENTS.md)**（项目结构、启动契约、踩过的坑），不要先全库扫描。
 
-> **0.2.1-rc.2 · build191 启动修订（本地已验证，仅私有交付）**：`0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` / code191；包名 `dsh.android.client`、E7E3非调试签名和文件名 `dsha-0.2.1-rc.2.apk` 保持，支持同包同签名覆盖升级。新APK及含固定输入的完整源码仅交付[本轮私有Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1500)，远端可得性与源码ZIP自身摘要以实际附件和独立外部回执为准。[修复、检查与未验范围](docs/releases/v0.2.1-rc.2-build191-startup-20261023.md) · [文档](docs/documentation-index.md)。
+> **0.2.1-rc.2 · build191 Sunset合并（本地已验证，仅私有交付）**：`0.2.1-rc.2-20261023.1640-dsh0.2.1-rc.2` / code191不变，保留上一191/1500并合入新增16提交。正式 `dsh.android.client`/E7E3非调试Standard/`dsha-0.2.1-rc.2.apk`保持。两版44类各242项JUnit零失败/错误/skip、5完整外部夹具每版实跑、18host、Release Lint和APK9项通过；新APK设备未验，不启用SunsetRNE、不新增Low交付。新包及完整源码仅交[本轮私有Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1640)，实际远端与源码ZIP自身SHA由该Release/外部回执核验。[修订、检查与未验范围](docs/releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md) · [上一191/1500](docs/releases/v0.2.1-rc.2-build191-startup-20261023.md)。
 
 [此前build190 UI维护](docs/ui-performance-20261022.md)：2100标准包完成所选软件门禁及有限设备路径；其插件开关约3.1–3.4秒和页面样本仅属该包，不是build191实测。PiP默认关闭，1817局部3帧异常保留待查。
 
@@ -60,7 +60,7 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 ## 下载与交付状态
 
-本轮 **build191 本地软件与精确Standard APK已验证**：两版所选34类各182项JUnit零失败/错误/skip，Release Lint零error/fatal（警告248/161），正式Standard打包、精确APK9项及选定host12项通过。APK为292,204,984字节，SHA-256 `cbbce4efd2103ef4323a04788385dbe13ff02d94c7880537aa2bb0c7ee28a58f`。内置DSH 0.2.1-rc.2、Ubuntu base10、默认proot/可选proroot保持；CAS检查、账号请求及诊断已修订，截图中的DSH权限策略三选项已删除。**未做新APK设备验收**，不声称Android16或19.4秒样本已解决；[当前报告](docs/releases/v0.2.1-rc.2-build191-startup-20261023.md)保留检查、原失败与未验范围。此前2100证据留在[历史UI记录](docs/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md)。
+本轮 **build191/1640本地软件与精确Standard APK已验证**：292,218,461字节，SHA-256 `ba5fd1e19c5043fe000f02a3ffb56f125939a11b87bad0988d1677c73334cb26`；两版所选44类各242项JUnit零失败/错误/skip，5个完整外部夹具每版实际执行通过，18host全PASS；Release Lint零error/fatal、warning248/161，正式Standard打包、APK9项及实际APK两个账号模块Java链通过。动态设备桥/发现/围栏、应急授权、归档排序与CI已整合，DSH归档与1500字节一致，不重复认领旧缩包。**未做新APK设备验收**，不移用Sunset旧手机结果。[当前报告](docs/releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md)保留原失败与边界；[1500原记录](docs/releases/v0.2.1-rc.2-build191-startup-20261023.md)保持历史归属。
 
 新APK和完整源码仅从[私有维护仓库的Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases)取得，需有仓库权限；可得性、完整日期时间versionName、APK/源码摘要以实际附件和最终交付回执为准。标准版面向Android11+/arm64、系统WebView、E7E3非调试签名。本轮不新增Low交付，旧正式版本见[历史Releases](https://github.com/DSH-APP/DSHA/releases)。
 
@@ -150,7 +150,7 @@ DNS 设置中，`auto` 与 `ipv4` 都对特定 Node lookup 错误做窄重试；
 
 ### ④ 设备能力（让 agent 真正操作这台手机）
 
-agent 通过本机 `127.0.0.1:3090` 桥调用以下能力（token 门控，`/app/help` 有完整端点清单）：
+agent 通过本机设备桥调用以下能力：优先 `127.0.0.1:3090`，占用时选择3091–3099，由本安装guest发现实际端口（token门控，`/app/help`有完整端点清单；[本轮验证范围](docs/releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md)）：
 
 | 能力 | 说明 |
 |---|---|
@@ -271,7 +271,7 @@ agent 通过本机 `127.0.0.1:3090` 桥调用以下能力（token 门控，`/app
 │  ├ 启动 / 安装修复 / 配置 / 工作区 / 插件 / 终端     │
 │  ├ 网页内核：系统 WebView（Standard）/ Gecko（Low）  │
 │  ├ 前台服务 + 看门狗 + 通知 + 画中画                 │
-│  ├ App 桥 :3090（无障碍 / 虚拟屏 / 交互 / 文件）     │
+│  ├ App 桥 :3090..3099（无障碍 / 虚拟屏 / 文件）      │
 │  ├ LAN 代理 :3081 · ADB / Shizuku / Root 设备通道    │
 │  └ 悬浮条（TYPE_APPLICATION_OVERLAY）                │
 ├─────────────────────────────────────────────────────┤

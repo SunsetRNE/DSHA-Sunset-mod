@@ -11,6 +11,7 @@
     "auto-review-native-disabled-patch.json",
     "backup-engine.py",
     "backup-plugin-graph.py",
+    "bridge-port.cjs",
     "bridge-token-compat.cjs",
     "builtin-plugins.json",
     "ca-certificates.crt",

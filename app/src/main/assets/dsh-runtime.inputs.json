@@ -1,12 +1,12 @@
 {
   "version": "0.2.1-rc.2",
   "inputs": {
-    "tools/build-dsh-runtime.py": "325e201c2c849eb0a58f86f508fbe1d6322c628db3cab37ce97ce202f48baab9",
+    "tools/build-dsh-runtime.py": "ccaeb45ea1bb396235f376bceb4d3f38f1183aa73dbfcd980494bbdddd406169",
     "tools/source_text.py": "fbe5428810615989be55f00b944c2cd98a03c087992630ecb9fff03e91edc23c",
     "tools/dsh-runtime/package.json": "3ff20a6595cb3cda080315b766abeb1878ea6cedf5aa7059cd8483a6ef78981f",
     "tools/dsh-runtime/package-lock.json": "c67d0d3b6423db35faae8d91d6054e7d0fa7cb9e197bede42438326f123ca8a7",
     "app/src/main/assets/destructive-policy/package.json": "217d0f036224d8faa766d166a1a38df1c03f7da2a8a7ad8a0454ae595372395c",
-    "app/src/main/assets/destructive-policy/index.js": "108aa4a400c67fe0650ba2368831a1ddc0c3726377ff9f664c87e34698b6a4e5",
+    "app/src/main/assets/destructive-policy/index.js": "b02fa82339b24f0b107a59670b2042eeb2356cee7af1a05739b02259cd98f241",
     "app/src/main/assets/destructive-policy/destructive.js": "a57dc469a7e7da32bd0b55ddd18cd68bb65f709b5389f2475093eafb098c8726",
     "app/src/main/assets/destructive-policy/workdir.js": "a401d96b87f2b1cc566ebb1b55b8a827f67f08c2418d1e739e870fa775b55861",
     "app/src/main/assets/managed-runtime-inputs.json": "189c8cd6292a642b46917ef062d0396cc2674e8dacaa2a763a4d7c6c7aba3834",

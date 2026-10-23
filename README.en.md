@@ -22,7 +22,7 @@
 > 🤖 If you are an AI agent or a new contributor, read **[AGENTS.en.md](AGENTS.en.md)** first
 > (structure, startup contracts, traps we already fell into). Don't scan the whole repo.
 
-> **0.2.1-rc.2 · build191 startup revision (locally verified; private delivery only)** — `0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` / code191. Keep package `dsh.android.client`, E7E3 non-debuggable signing and filename `dsha-0.2.1-rc.2.apk` for same-package, same-certificate overwrite updates. Deliver the APK and complete source with fixed inputs only through the [current private Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1500); actual assets and the independent external receipt establish availability and the source ZIP's own hash. [Changes, checks and remaining scope](docs/en/releases/v0.2.1-rc.2-build191-startup-20261023.md) · [Documentation](docs/en/index.md).
+> **0.2.1-rc.2 · build191 Sunset merge (locally verified; private delivery only)** — `0.2.1-rc.2-20261023.1640-dsh0.2.1-rc.2`, unchanged code191, preserving previous191/1500 and16 incoming commits. Production remains `dsh.android.client`/E7E3 non-debuggable Standard/`dsha-0.2.1-rc.2.apk`. Both flavors pass44 classes/242 tests each with zero failures/errors/skips, five real external fixtures each,18 hosts, Release Lint and9 APK gates. No new-APK device acceptance, SunsetRNE identity or new Low delivery. APK/complete source go only to the [current private Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1640); actual remote availability and source ZIP hash come from the Release/external receipt. [Changes/checks/limits](docs/en/releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md) · [Previous191/1500](docs/en/releases/v0.2.1-rc.2-build191-startup-20261023.md).
 
 [Previous build190 UI maintenance](docs/en/ui-performance-20261022.md): selected software and limited device checks belong to the 2100 APK. Its approximately 3.1–3.4s toggle samples and page timings are not build191 measurements. PiP stays default OFF; the limited 1817 three-frame anomaly remains open.
 
@@ -64,7 +64,7 @@ original author [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) and a
 
 ## Downloads and delivery status
 
-**Build191 local software and the exact Standard APK are verified.** Selected JUnit runs34 classes/182 tests per flavor with zero failures/errors/skips; Release Lint has zero errors/fatal findings and248/161 warnings. Signed Standard assembly,9 exact-APK gates and12 selected host entries pass. APK:292,204,984 bytes, SHA-256 `cbbce4efd2103ef4323a04788385dbe13ff02d94c7880537aa2bb0c7ee28a58f`. DSH0.2.1-rc.2, Ubuntu base10 and default proot/optional proroot remain. CAS checks, account reads and diagnostics are revised; the pictured three-choice DSH permission selector is removed. **No new-APK device acceptance was performed**; Android16 resolution or a reduction of the report's19.4-second sample is not claimed. The [current report](docs/en/releases/v0.2.1-rc.2-build191-startup-20261023.md) retains checks, original failures and remaining scope. The2100 APK keeps its [historical UI record](docs/en/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md).
+**Build191/1640 local software and exact Standard APK are verified.** APK:292,218,461 bytes, SHA-256 `ba5fd1e19c5043fe000f02a3ffb56f125939a11b87bad0988d1677c73334cb26`. Selected both-flavor JUnit44 classes/242 tests each has zero failures/errors/skips; all five external fixtures per flavor actually run. All18 hosts pass. Release Lint: zero errors/fatal findings, warnings248/161. Signed Standard assembly,9 APK gates and both actual-APK account modules’ Java chains pass. Dynamic bridge/discovery/fences, recovery consent, archive ordering and CI are integrated. DSH archive bytes match1500, without claiming old size savings again. **No new-APK device acceptance** or transfer of old Sunset phone evidence. The [current report](docs/en/releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md) preserves failures/limits; [1500 records](docs/en/releases/v0.2.1-rc.2-build191-startup-20261023.md) retain history.
 
 New APKs and complete source are distributed only through [private maintenance Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases), requiring repository access. Actual attachments and the final receipt establish availability, the fully dated/time-stamped versionName and APK/source hashes. Standard targets Android11+/arm64 with system WebView and E7E3 non-debuggable signing. No new Low delivery this round; old public versions remain in [historical Releases](https://github.com/DSH-APP/DSHA/releases).
 
@@ -154,7 +154,7 @@ DNS settings: `auto` and `ipv4` both apply a narrow retry to specific Node looku
 
 ### ④ Device capabilities (the agent's hands on this phone)
 
-The agent calls these through the local `127.0.0.1:3090` bridge (token-gated; `/app/help` lists every endpoint):
+The agent calls these through the local device bridge: prefer `127.0.0.1:3090`, then3091–3099 when occupied, with current-port discovery by this installation's guest. Token authorization remains required; `/app/help` lists endpoints. See [this round's validation scope](docs/en/releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md).
 
 | Capability | Details |
 |---|---|
@@ -276,7 +276,7 @@ Listed honestly, so you don't discover them after installing:
 │  │   plugins / terminal                             │
 │  ├ Web engine: system WebView (Std) / Gecko (Low)   │
 │  ├ Foreground service + watchdog + notifications+PiP│
-│  ├ App bridge :3090 (accessibility / vscreen /      │
+│  ├ App bridge :3090..3099 (accessibility / vscreen /│
 │  │   interaction / files)                           │
 │  ├ LAN proxy :3081 · ADB / Shizuku / Root channels  │
 │  └ Overlay (TYPE_APPLICATION_OVERLAY)               │

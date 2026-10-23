@@ -38,6 +38,12 @@ def verifyBundledDshVersion = tasks.register('verifyBundledDshVersion') {
 // END DSHA_BUNDLED_DSH_VERSION_GATE
 // CI 只生成未签名完整包；该产物不得进入 release 或覆盖安装。
 def unsignedPackage = project.findProperty('dsha.unsignedPackage') == 'true'
+// 个人测试分支：显式开关才改包名/版本名，默认构建与基线完全一致。
+def sunsetTest = project.findProperty('dsha.sunsetTest') == 'true' || System.getenv('DSHA_SUNSET_TEST') == '1'
+// 只有源码 CI 可显式允许缺少真实测试夹具；完整测试默认要求固定输入齐备。
+def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
+if (!(sourceOnlyTests in ['true', 'false']))
+    throw new GradleException('dsha.sourceOnlyTests 只接受 true 或 false')
 
 android {
     namespace 'com.deepseekharness.app'
@@ -53,7 +59,7 @@ android {
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
         versionCode 191
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2"
+        versionName "0.2.1-rc.2-20261023.1640-dsh0.2.1-rc.2"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -66,12 +72,17 @@ android {
             dimension 'androidSupport'
             minSdk 30
             buildConfigField 'boolean', 'LOW_ANDROID', 'false'
+            if (sunsetTest) {
+                applicationIdSuffix '.SunsetRNE'
+                versionNameSuffix '-SunsetTest'
+            }
         }
         low {
             dimension 'androidSupport'
             minSdk 23
-            versionNameSuffix 'low'
+            versionNameSuffix sunsetTest ? 'low-SunsetTest' : 'low'
             buildConfigField 'boolean', 'LOW_ANDROID', 'true'
+            if (sunsetTest) applicationIdSuffix '.SunsetRNE'
         }
     }
 
@@ -211,6 +222,9 @@ def verifyProrootCompat = tasks.register('verifyProrootCompat', Exec) {
 tasks.named('preBuild').configure { dependsOn(verifyBundledIdentities, verifyBuiltinRegistry, verifyCredentialRegistry, verifyBundledDshVersion, verifyProrootCompat) }
 tasks.withType(Test).configureEach {
     systemProperty 'dsha.assetsDir', file('src/main/assets').absolutePath
+    systemProperty 'dsha.sourceOnlyTests', sourceOnlyTests
+    // 切换到完整测试时不得复用 source-only 的跳过结果。
+    inputs.property 'dsha.sourceOnlyTests', sourceOnlyTests
 }
 tasks.configureEach {
     if (name in ['verifyBundledIdentities', 'verifyBuiltinRegistry', 'prepareStandardAssets',
