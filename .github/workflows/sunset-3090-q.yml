@@ -98,6 +98,7 @@ jobs:
           python3 tools/run-host-tests.py --check-manifest
           python3 tools/check-source-hygiene.py
           python3 tools/check-ui-i18n.py
+          python3 tools/generate-changelog.py --check
           python3 tools/check-document-links.py
       - name: Branch regression without fixed-input dependencies
         # 完整 fast 套件里的 asset-deployment/mobile-upstream 需要离线输入包或
@@ -123,7 +124,8 @@ jobs:
             --only test-host-test-runner.py \
             --only test-release-evidence.py \
             --only test-dsh-runtime-packaging.py \
-            --only test-sunset-ci-inputs.py
+            --only test-sunset-ci-inputs.py \
+            --only test-generate-changelog.py
       - name: Source-only Standard unit tests (up to five external-fixture skips)
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
@@ -230,7 +232,8 @@ jobs:
             --only test-plugin-management-patch-chain.py \
             --only test-session-interaction-patch-upgrade.py \
             --only test-preset-pending-patch-upgrade.py \
-            --only test-recovery-native-consent.mjs
+            --only test-recovery-native-consent.mjs \
+            --only test-mobile-server-compression-carrier.mjs
       - name: Complete Standard unit tests with fixed inputs
         run: |
           chmod +x gradlew

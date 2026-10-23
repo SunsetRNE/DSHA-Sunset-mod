@@ -1,5 +1,9 @@
 # DSHA
 
+<!-- build194-current -->
+> **当前：0.2.1-rc.3 / build194** — `0.2.1-rc.3-20261024.0345-dsh0.2.1-rc.3`，Standard /dsh.android.client /E7E3非调试。修复下载压缩空响应、Android证书解析为空、旧版本说明与通道空结果；原反馈Android16未复验。旧193/rc2条目按历史阅读。[本轮报告](docs/releases/v0.2.1-rc.3-build194-update-download-20261024.md)。
+
+
 <!-- current-rc3-identity -->
 > **Current / 当前：0.2.1-rc.3 · build193** — `0.2.1-rc.3-20261024.0120-dsh0.2.1-rc.3`；Standard / E7E3 / 非调试，文件为 `release/0.2.1-rc.3/dsha-0.2.1-rc.3.apk`，应用与正式/独立应急DSH均为rc.3。下方rc.2命名条目按历史阅读。[本轮报告](docs/releases/v0.2.1-rc.3-build193-version-align-20261024.md)。
 
