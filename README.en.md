@@ -1,5 +1,9 @@
 # DSHA
 
+<!-- build194-current -->
+> **Current: 0.2.1-rc.3 / build194** — `0.2.1-rc.3-20261024.0345-dsh0.2.1-rc.3`, nondebug Standard/dsh.android.client/E7E3. Fixes download compression, Android empty-CA parsing, localized notes and normal empty update checks. Original Android16 remains unverified. Earlier entries are historical. [Report](docs/en/releases/v0.2.1-rc.3-build194-update-download-20261024.md).
+
+
 <!-- current-rc3-identity -->
 > **Current: 0.2.1-rc.3 / build193** — `0.2.1-rc.3-20261024.0120-dsh0.2.1-rc.3`; nondebug Standard / E7E3. APK: `release/0.2.1-rc.3/dsha-0.2.1-rc.3.apk`. The application and both DSH environments use rc.3. Earlier rc.2-named entries below are historical. [Report](docs/en/releases/v0.2.1-rc.3-build193-version-align-20261024.md).
 
