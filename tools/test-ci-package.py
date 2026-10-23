@@ -153,6 +153,7 @@ class SunsetPatchRegressions(unittest.TestCase):
             'test-session-interaction-patch-upgrade.py': {'raw', 'jdk17'},
             'test-preset-pending-patch-upgrade.py': {'raw', 'jdk17'},
             'test-recovery-native-consent.mjs': {'node24', 'managed'},
+            'test-mobile-server-compression-carrier.mjs': {'node24', 'raw'},
         }
         self.assertEqual(set(selected.only), set(expected))
         self.assertEqual(len(selected.only), len(expected))
