@@ -3,7 +3,6 @@ package com.deepseekharness.app.screen;
 import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
 import com.deepseekharness.app.util.AccessibilityDumpBounds;
-import com.deepseekharness.app.util.AccessibilityTreeBudget;
 import com.deepseekharness.app.util.ScreenNodeLeaseStore;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -21,7 +20,7 @@ public final class ScreenSnapshotReader {
       JSONArray nodes = new JSONArray();
       StringBuilder text =
           new StringBuilder("窗口应用: ").append(resolved.target.packageName).append('\n');
-      AccessibilityTreeBudget budget = new AccessibilityTreeBudget();
+      ScreenReadBudget budget = new ScreenReadBudget(context::nowMillis, context::current);
       walk(resolved.root, nodes, text, 0, budget, leases);
       context.validateCurrentTarget();
       JSONObject result =
@@ -35,6 +34,7 @@ public final class ScreenSnapshotReader {
               .put("coordinateAuthorization", "SCREENSHOT_OBSERVATION_REQUIRED")
               .put("target", target(resolved.target));
       if (budget.exhausted()) result.put("truncated", true);
+      if (budget.timedOut()) result.put("truncationReason", "EXPANSION_TIME_BUDGET");
       return result;
     } catch (Exception rejected) {
       leases.clear();
@@ -54,7 +54,7 @@ public final class ScreenSnapshotReader {
       JSONArray nodes,
       StringBuilder text,
       int depth,
-      AccessibilityTreeBudget budget,
+      ScreenReadBudget budget,
       ScreenNodeLeaseStore<ScreenSemanticNode> leases)
       throws Exception {
     if (node == null || !budget.enter(depth, nodes.length()) || text.length() > 12000) return;
@@ -130,7 +130,12 @@ public final class ScreenSnapshotReader {
   /** 历史只读虚拟屏输出门面，仍有完整遍历预算且不登记像素观察。 */
   public static String legacyText(AccessibilityNodeInfo root) {
     StringBuilder result = new StringBuilder();
-    legacyWalk(root, result, 0, new AccessibilityTreeBudget(), new int[] {0});
+    legacyWalk(
+        root,
+        result,
+        0,
+        new ScreenReadBudget(android.os.SystemClock::elapsedRealtime, () -> true),
+        new int[] {0});
     return result.toString();
   }
 
@@ -138,7 +143,7 @@ public final class ScreenSnapshotReader {
       AccessibilityNodeInfo node,
       StringBuilder text,
       int depth,
-      AccessibilityTreeBudget budget,
+      ScreenReadBudget budget,
       int[] count) {
     if (node == null || !budget.enter(depth, count[0]) || text.length() > 12000) return;
     String label = node.isPassword() ? "[PASSWORD]" : value(node.getText());

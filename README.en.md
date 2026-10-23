@@ -1,5 +1,9 @@
 # DSHA
 
+<!-- build193-rc3:begin -->
+> **2026-10-24 build193 / DSH rc.3**: `0.2.1-rc.2-20261023.2047-dsh0.2.1-rc.3` / nondebug Standard / dsh.android.client / E7E3; conventional filename retained. 217 selected JUnit tests, 13 host entries, Release Lint0 error/fatal (255 warnings) and 8 exact APK gates passed. No current device acceptance; private delivery only, no Low tasks. [Report](docs/en/releases/v0.2.1-rc.2-build193-issue183-plugin-env-20261023.md).
+<!-- build193-rc3:end -->
+
 <!-- build192-files:begin -->
 > **2026-10-23 build192 file transfers (locally verified; private delivery scope only)**: `0.2.1-rc.2-20261023.1836-dsh0.2.1-rc.2` / code192 / `dsh.android.client` / E7E3 / nondebug Standard; conventional filename retained. 292,301,320 bytes, SHA `f1b332bc087e999bf9bd8954a70c9c7ad869d0a04193933d446854f0e31fbf3c`. Decimal 5,000,000,000-byte per-file limit, native Downloads/resume, minimum keyboard avoidance and redacted search preflight. Standard: 20 selected classes/102 tests, failures/errors/skips 0/0/0; 16 host entries, lint0 error/fatal and 254 warnings, 7 APK gates; limited Android13 operations only, see the actual report. Host 5 GB does not establish phone acceptance. Phone5 GB/reboot resume/Android16/realme and forwarding-search recovery remain unverified. R1 rejection/corrections are retained. Final commit/ZIP hash/private release status are externally verified. No public DSHA/website or Low tasks. [Current report](docs/en/releases/v0.2.1-rc.2-build192-files-20261023.md).
 <!-- build192-files:end -->

@@ -57,7 +57,9 @@ try {
   const bundles = doc.dsh?.profile?.bundles;
   if (!Array.isArray(bundles)) throw new Error('dsh.profile.bundles 必须是插件名称数组');
   for (const name of bundles.slice(0, 500)) {
-    if (!validName(name)) { emit('issue', '', '插件清单含无效名称'); continue; }
+    // Upstream skips an unresolvable optional bundle. This metadata observer must not
+    // turn that warning into a fatal result before the actual loader can decide.
+    if (!validName(name)) { emit('issue', '', '插件清单含无效名称', { fatal: false }); continue; }
     try {
       const root = locate(name);
       const pkg = readJson(path.join(root, 'package.json'));
@@ -83,7 +85,7 @@ try {
           emit('catalog', name, '', { ids: ids.slice(0, 100), path: root });
         }
       }
-    } catch (error) { emit('issue', name, error.message); }
+    } catch (error) { emit('issue', name, error.message, { fatal: false }); }
   }
   emit('stage', '', '加载 DSH 和已启用插件');
 } catch (error) { emit('issue', '', '启动配置检查失败：' + error.message); }
@@ -97,7 +99,8 @@ function errorDetail(error) {
 }
 // 使用已锁定 Cordis 的实际加载边界；同一模块缓存只加载一次，不拦截每一次 Node 依赖解析。
 try {
-  const { Entry } = require(path.join(installation, 'node_modules/@deepseek-ai/cordis-plugin-loader/lib/index.js'));
+  const loaderModule = Module.createRequire(path.join(installation, 'package.json')).resolve('@deepseek-ai/cordis-plugin-loader');
+  const { Entry } = require(loaderModule);
   const original = Entry.prototype.init;
   Entry.prototype.init = function () {
     const name = entryOwner(this), id = this.options?.name || this.options?.id || '';
@@ -105,7 +108,7 @@ try {
       || ['web-startup', 'webserver', 'modules'].includes(this.options?.id);
     if (show) emit('loading', name, '正在加载插件：' + (name || id));
     // alpha.1 允许可选插件失败；只有上游声明的关键入口可提前触发原生恢复。
-    const required = new Set(['agent-loop','webserver','modules','connection','headless-runner','acp','sdk-jsonrpc-server']);
+    const required = new Set(['agent-loop','webserver','web-runtime','modules','connection','headless-runner','acp','sdk-jsonrpc-server']);
     const failed = error => { emit('issue', name || owner(errorDetail(error)), id + '\n' + errorDetail(error),
       { fatal: required.has(this.options?.id) }); throw error; };
     try {

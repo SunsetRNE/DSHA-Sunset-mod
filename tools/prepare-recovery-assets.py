@@ -10,7 +10,8 @@ import shutil
 import tarfile
 from pathlib import Path
 from generated_asset_directory import prune as prune_generated
-from recovery_runtime_overlay import build as build_browser_overlay, TARGETS as BROWSER_TARGETS, INPUT_ASSETS, CAPSULE_DEPENDENCIES
+from recovery_runtime_overlay import build as build_browser_overlay, TARGETS as BROWSER_TARGETS, input_assets, CAPSULE_DEPENDENCIES
+from recovery_descriptor_limits import validate as validate_descriptor_budget
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME = ROOT / 'tools/recovery-runtime'
@@ -164,14 +165,16 @@ def prepare(output, shared_assets):
     launchers['low']['libandroidshmem.so'] = launchers['standard']['libandroidshmem.so']
     profiles = {name: digest(ROOT / 'app/src/main/assets' / name)
                 for name in ['recovery-profile-package.json', 'recovery-profile.patch.yml']}
-    overlay_inputs = {name: digest(ROOT / 'app/src/main/assets' / name) for name in INPUT_ASSETS}
+    overlay_inputs = {name: digest(ROOT / 'app/src/main/assets' / name) for name in input_assets(lock['dshVersion'])}
     contract = dict(schema=1, dshVersion=lock['dshVersion'], baseVersion=lock['baseVersion'],
                     archives=[dict(asset=row['asset'], sha256=row['sha256']) for row in lock['archives']],
                     expandedBytes=sum(row['bytes'] for row in files), files=files, links=links,
                     overlays=overlays, overlayInputs=overlay_inputs, capsuleDependencies=dependencies,
                     agentSha256=digest(agent), profileHashes=profiles, launcherHashes=launchers)
     identity = hashlib.sha256(json.dumps(contract, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-    write_source_text(output / 'recovery-runtime.json',json.dumps(dict(id=identity, **contract), ensure_ascii=False, separators=(',', ':')) + '\n',encoding='utf8')
+    descriptor_text = json.dumps(dict(id=identity, **contract), ensure_ascii=False, separators=(',', ':')) + '\n'
+    validate_descriptor_budget(descriptor_text.encode('utf8'))
+    write_source_text(output / 'recovery-runtime.json', descriptor_text, encoding='utf8')
     # 物理位置不进入运行时内容身份；相同字节复用不会使已有应急舱失效。
     write_source_text(output / 'recovery-asset-locations.json',json.dumps(
         dict(schema=1, runtimeId=identity, archives=locations), separators=(',', ':')) + '\n',encoding='utf8')

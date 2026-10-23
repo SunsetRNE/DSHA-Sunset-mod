@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.2",
+  "dshVersion": "0.2.1-rc.3",
   "module": "@deepseek-ai/dsh-client-ui-sidebar-right/lib/client.js",
   "patches": [
     {
@@ -16,5 +16,7 @@
       "after": "\t\tfunction RightbarSeat(props) {\n\t\t\treturn react.createElement(DshaLayoutBoundary, {sessionId:props.sessionId, actions:props.actions}, react.createElement(DshaRightbarSeatBody, props));\n\t\t}\n\t\tfunction DshaRightbarSeatBody({ sessionId, width, viewportWidth, canShow, useStore, actions, t, renderSlot, syncPresentation, measureRoom, reportAutoFullscreen, openTab, closeTab, useTabTypes, useTabNavigation, occurrence, retainTab, active, useShortcuts, splitPane, toggleFullscreen }) {",
       "prependAsset": "dsha-layout-recovery.js"
     }
-  ]
+  ],
+  "sourceSha256": "9dec9cf5c17e0bde9ea7a00b2438aa2551ba38c735cb65f48d28078b8e76bb3e",
+  "packageIntegrity": "sha512-BmBbGjHwP/q+DoNc0suvVTFlqcU0Bv0QGZJ67pfKNNkUjMtQtt77+r43vJHsSfDQIO+EzxoXUSfTdnTWxE42Bg=="
 }

@@ -95,7 +95,7 @@ def main():
         raise RuntimeError('TEST_ASSERTIONS_REQUIRE_UNOPTIMIZED_PYTHON')
     assets = ROOT / 'app/src/main/assets'
     recipe = json.loads((assets / ASSET).read_text(encoding='utf8'))
-    chains, _ = runtime_stable_patches.load_chains(assets, '0.2.1-rc.2')
+    chains, _ = runtime_stable_patches.load_chains(assets, json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))['dependencies']['@deepseek-ai/dsh'])
     chain = chains.get(MODULE, [])
     assert any(name == ASSET for name, _, _ in chain), 'WEB_SEARCH_RECIPE_MUST_BE_REGISTERED'
     pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))

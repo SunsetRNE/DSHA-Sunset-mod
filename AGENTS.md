@@ -1,5 +1,8 @@
 # AGENTS.md
 
+<!-- build193-rc3-software -->
+> 2026-10-24 build193软件检查：`0.2.1-rc.2-20261023.2047-dsh0.2.1-rc.3` /193 /非调试Standard /dsh.android.client /E7E3 /常规dsha-0.2.1-rc.2.apk；APK SHA `e85159a8b57b65584969d3eeb61f8ee140d94d3a369837c62ac6f451fa496f13`。正式DSH精确rc3，独立应急也固定rc3/d77261bf，包内同字节去重；Ubuntu10、引擎与包名不改。无障碍调度/epoch/截图回调、pnpm V3及旧日志/optional bundle观察器修复。仅Standard 37类217项JUnit、13host、Release Lint0错/致命/255警告及8精确APK门禁；初次夹具选择失败与修正补跑均保留。未做193手机验收、原vivo16或新5GB/重启续传/全矩阵，不声明旧exit1已证因。新APK/完整源码仅私有预发布目标，最终发布commit/服务器SHA/ZIP回执见artifacts/deliveries/build193-issue183-plugin-env-20261023.json。实际源码仍<local-workspace>)。
+
 <!-- build192-files:begin -->
 > **2026-10-23 build192 文件传输修订（本地已验证，仅私有交付范围）**：`0.2.1-rc.2-20261023.1836-dsh0.2.1-rc.2` / code192 / `dsh.android.client` / E7E3 / 非调试Standard，常规文件名不变；292,301,320字节，SHA `f1b332bc087e999bf9bd8954a70c9c7ad869d0a04193933d446854f0e31fbf3c`。单文件十进制5,000,000,000字节、原生下载记录/续传、键盘最小避让与搜索脱敏前置诊断。Standard所选20类102项JUnit，失败/错误/skip 0/0/0；16host，Lint错误/致命0、警告254，精确APK7门禁；仅Android13有限设备操作，范围见本轮报告实际记录。5GB宿主往返不算手机验收；手机5GB/重启续传/Android16/realme与转发搜索恢复未验。R1拒绝和后续修正保留，不称一路全绿。仅私有仓库交APK/完整源码；最终commit/ZIP自身SHA/发布状态由外部回执核验，不公开DSHA/网站、不跑Low。本条覆盖下方旧当前版本说明。[本轮报告](docs/releases/v0.2.1-rc.2-build192-files-20261023.md)。
 <!-- build192-files:end -->

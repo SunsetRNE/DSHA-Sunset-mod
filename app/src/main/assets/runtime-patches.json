@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "dshVersion": "0.2.1-rc.2",
+  "dshVersion": "0.2.1-rc.3",
   "active": [
     {
       "asset": "permission-full-access-patch.json"
@@ -61,6 +61,12 @@
     },
     {
       "asset": "plugin-manager-policy-patch.json"
+    },
+    {
+      "asset": "plugin-pnpm-argv-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_PNPM_ARGV_V3"
+      ]
     },
     {
       "asset": "plugin-manager-auto-enable-patch.json"

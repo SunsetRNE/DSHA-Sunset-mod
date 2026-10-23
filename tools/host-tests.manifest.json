@@ -2579,7 +2579,7 @@
     },
     {
       "path": "tools/test-account-request-patch-chain.py",
-      "stage": "runtime",
+      "stage": "history",
       "requires": [
         "python39",
         "jdk17",
@@ -2588,7 +2588,7 @@
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "Production Java account recipe chains: fresh/repeat, pinned prior2100 module upgrade, canonical recovery and drift rejection; optional exact APK admission."
+      "reason": "Exact historical rc2 2100-to191 account-chain regression with original SHA pins. Current rc3 account modules and the actual published192 generation boundary are covered by test-build193-patch-chain.py; do not synthesize old account modules from changed rc3 official source."
     },
     {
       "path": "tools/test-native-ime-hero.mjs",
@@ -2697,7 +2697,7 @@
     },
     {
       "path": "tools/test-build192-patch-chain.py",
-      "stage": "runtime",
+      "stage": "history",
       "requires": [
         "python39",
         "raw",
@@ -2709,7 +2709,7 @@
       ],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "Production Java complete six-module chain: exact pinned build191 upgrade, fresh/repeat, canonical repair and fail-closed rejection. Optional actual previous APK/archive and final exact APK admission."
+      "reason": "Exact historical rc2 build191-to192 chain regression with original SHA pins; current rc3 generation uses test-build193-patch-chain.py against actual published192 bytes across all current active modules."
     },
     {
       "path": "tools/file-transfer/test-large-download.mjs",
@@ -2723,6 +2723,75 @@
       "environment": {},
       "reason": "Explicit opt-in real 5GB download/resume fixture reuses a caller-supplied uploaded source. Required paths and SHA are supplied directly, never generated or run by the default stage.",
       "cli": "node tools/file-transfer/test-large-download.mjs --source=PATH --output-dir=PATH --sha256=HEX; writes and rereads a separate 5GB file, no Android device claim."
+    },
+    {
+      "path": "tools/test-build193-patch-chain.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "raw",
+        "jdk17",
+        "previous_runtime_apk"
+      ],
+      "args": [
+        "--jdk",
+        "{jdk}",
+        "--old-apk",
+        "{previousRuntimeApk}"
+      ],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "All current production Java active-module chains: fresh/repeat, exact published192 boundary, staged signed current canonical recovery and fail-closed rejection. Old generation markers never prove a DSH upgrade.",
+      "cli": "Host runner requires explicit --previous-runtime-apk pointing to the exact published192 Standard APK. It passes --old-apk directly; no DSHA environment passthrough. Standalone gate also accepts --old-apk/--old-archive. Optional --apk validates every current module in the final exact APK."
+    },
+    {
+      "path": "tools/test-plugin-pnpm-argv.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "python39",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Locked current DSH plugin-manager command path with bundled pnpm10.34.5: flags-before-view negative, argv-prefix preservation, isolated registry metadata/tarball and actual lifecycle/Git prepare fixtures.",
+      "cli": "No arguments. Requires git and npm beside the selected Node executable; writes fresh private Host profiles with local registry fixtures, never a device or production profile."
+    },
+    {
+      "path": "tools/test-recovery-descriptor-limits.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Shared Java/Python recovery descriptor serialized byte, file/link entry, path and constant-source boundaries; no archive generation or device access."
+    },
+    {
+      "path": "tools/test-dsh-data-cross-runtime.mjs",
+      "stage": "support",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 900,
+      "environment": {},
+      "reason": "Explicit historical/current runtimes in separate processes: JSON storage, V4 none/zstd sessions, attachment streams, credentials and profile reads; finite host evidence without runtime rollback authorization.",
+      "cli": "node tools/test-dsh-data-cross-runtime.mjs --old OLD_RUNTIME --new NEW_RUNTIME --report REPORT.json; all paths required, writes only a fresh private fixture tree."
+    },
+    {
+      "path": "tools/test-startup-invalid-bundles.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual locked boot plus startup observer: missing/invalid optional bundles and optional entries remain nonfatal; required web entries and uncaught core failures remain fatal; siblings execute once and profile manifest bytes stay unchanged."
     }
   ],
   "historicalExcluded": [

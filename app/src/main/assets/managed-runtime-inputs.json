@@ -502,7 +502,8 @@
     "file-upload-binary-client-patch.json",
     "conversation-large-image-file-patch.json",
     "file-deliverables-patch.json",
-    "file-image-actions-patch.json"
+    "file-image-actions-patch.json",
+    "plugin-pnpm-argv-patch.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -695,7 +696,9 @@
     "LanAuth.java",
     "util/SocketDispatch.java",
     "util/LanNetworkState.java",
-    "util/DeepSeekOAuthNavigation.java"
+    "util/DeepSeekOAuthNavigation.java",
+    "util/RecoveryDescriptorLimits.java",
+    "util/DiagnosticOperationSummary.java"
   ],
   "generatorSources": [
     "tools/mobile-server/compress.js",
@@ -727,6 +730,8 @@
     "tools/file-transfer/file-transfer.js",
     "tools/file-transfer/client-mobile.mjs",
     "tools/file-transfer/client-controls.js",
-    "tools/prepare-mobile-plugin.py"
+    "tools/prepare-mobile-plugin.py",
+    "tools/prepare-plugin-pnpm-argv-patch.py",
+    "tools/recovery_descriptor_limits.py"
   ]
 }

@@ -11,12 +11,12 @@ import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 
 const root=path.resolve(import.meta.dirname,'..');
-const output=path.resolve(process.env.DSHA_FILE_UPLOAD_OUTPUT||'<local-workspace>');
+const output=path.resolve(process.env.DSHA_FILE_UPLOAD_OUTPUT||path.join(root,'app/build/current-file-upload-lifecycle'));
 fs.mkdirSync(output,{recursive:true});
 const base=fs.mkdtempSync(path.join(root,'app/build/file-upload-resolver-'));
 const pointerFile=path.join(root,'app/build/test-runtimes/current.json');
 const pointerBytes=fs.readFileSync(pointerFile);
-const runtime=path.resolve(process.env.DSHA_FILE_UPLOAD_TEST_RUNTIME||JSON.parse(pointerBytes).raw);
+const runtime=path.resolve(process.env.DSHA_FILE_UPLOAD_TEST_RUNTIME||process.env.DSHA_TEST_RUNTIME||JSON.parse(pointerBytes).raw);
 const markerFile=path.join(runtime,'dsha-test-runtime.json'),markerBytes=fs.readFileSync(markerFile),proof=JSON.parse(markerBytes);
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const recipeFile=path.join(root,'app/src/main/assets/file-upload-resolver-lifecycle-patch.json');

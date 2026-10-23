@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the narrow, hash-locked rc2 web-search header/preflight recipe."""
+"""Generate the narrow, hash-locked rc3 web-search header/preflight recipe."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 from source_text import matches_text, write_text
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.2.1-rc.2'
+VERSION = '0.2.1-rc.3'
 MODULE = '@deepseek-ai/dsh-web-search-deepseek/lib/index.js'
 SOURCE_SHA = 'fc13dd4eaba3c9298af41a4d0559a1b8bb61614462fe18ba6e76d8c598c332bd'
 ASSET = 'deepseek-web-search-headers-patch.json'

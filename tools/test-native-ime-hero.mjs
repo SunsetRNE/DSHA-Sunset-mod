@@ -1,4 +1,4 @@
-// Real pinned rc2 HeroShell + ConversationRoot CSS and current mobile CSS.
+// Real pinned rc3 HeroShell + ConversationRoot CSS and current mobile CSS.
 // Browser viewport resize stands in for native end resize; no Android device claims.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -203,5 +203,5 @@ try {
     results.push({transport,baseline,unowned,afterResize,multiline,narrow,scrollReach,hidden,dock,boundaries,rotated,chatBottom:chat.bottom,frameStyleWrites:frames.styleWrites});
   }
   assert.deepEqual(fixture.errors,[]);
-  console.log(JSON.stringify({engine:process.env.DSHA_BROWSER||'chromium',status:'PASS',scope:'pinned rc2 HeroShell + host/mobile CSS; native transport and resize fixtures; no Android device',results},null,2));
+  console.log(JSON.stringify({engine:process.env.DSHA_BROWSER||'chromium',status:'PASS',scope:'pinned rc3 HeroShell + host/mobile CSS; native transport and resize fixtures; no Android device',results},null,2));
 } finally {await fixture.close();}

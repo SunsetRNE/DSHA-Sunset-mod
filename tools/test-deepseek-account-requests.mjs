@@ -1,4 +1,4 @@
-// Real hash-locked rc2 PlatformAccount/Authorization/Cordis and browser client.
+// Real hash-locked rc3 PlatformAccount/Authorization/Cordis and browser client.
 // Only the credential adapter and localhost Platform replies are synthetic.
 // No production fixture bytes, actual accounts, or public network are used.
 import assert from 'node:assert/strict';
@@ -80,13 +80,13 @@ async function backend(Provider=Fixed,options={}){
 }
 
 try{
-  await test('archive stable engine applies from old canonical rc2, repeats identically, and rejects drift',async()=>{
+  await test('archive stable engine applies from official canonical rc3, repeats identically, and rejects drift',async()=>{
     const python=spawnSync(process.env.DSHA_PYTHON||'python',['-B','-c',[
-      'import json,sys;from pathlib import Path;sys.path.insert(0,"tools");from runtime_stable_patches import apply',
+      'import json,sys,os;from pathlib import Path;sys.path.insert(0,"tools");from runtime_stable_patches import apply',
       'for name in sys.argv[1:]:',
       ' p=json.loads(Path("app/src/main/assets",name).read_text(encoding="utf8"))',
       ' pointer=json.loads(Path("app/build/test-runtimes/current.json").read_text())',
-      ' raw=Path(pointer["raw"],"node_modules",p["module"]).read_bytes()',
+      ' raw=Path(os.environ.get("DSHA_TEST_RUNTIME") or pointer["raw"],"node_modules",p["module"]).read_bytes()',
       ' chain=[(name,[(x["before"],x["after"]) for x in p["patches"]],[])]',
       ' changed=apply(raw,chain);assert changed!=raw;assert apply(changed,chain)==changed',
       ' try: apply(raw.replace(p["patches"][0]["before"].encode(),b"DRIFT",1),chain)',

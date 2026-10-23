@@ -59,7 +59,8 @@ def main():
              'ScreenNodeLeaseStore', 'ScreenTarget', 'ScreenCaptureDelivery',
              'ScreenPixelFingerprint', 'ScreenWindowRegion', 'MainScreenWindowPolicy',
              'VirtualScreenWindowPolicy', 'AccessibilityTreeBudget', 'AccessibilityEnableList',
-             'AccessibilityDumpBounds', 'AccessibilityRepairState']
+             'AccessibilityDumpBounds', 'AccessibilityRepairState',
+             'AccessibilityServiceLifecycleEvents']
     sources += [main / ('util/' + name + '.java') for name in names]
     sources.append(ROOT / 'tools/fixtures/physical-screen/com/deepseekharness/app/screen/PhysicalScreenFlowTest.java')
     before = {str(path.relative_to(ROOT)): digest(path) for path in sources}

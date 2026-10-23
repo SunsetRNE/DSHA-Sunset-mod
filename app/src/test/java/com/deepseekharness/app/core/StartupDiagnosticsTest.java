@@ -202,4 +202,32 @@ public class StartupDiagnosticsTest {
       assertTrue(fixture.events.isEmpty());
     }
   }
+
+  @Test
+  public void invalidOptionalBundleWarningAllowsReadinessWhileActualFatalStillBlocks()
+      throws Exception {
+    try (Fixture fixture = new Fixture()) {
+      String warning =
+          "[DSHA_STARTUP] {\"type\":\"issue\",\"plugin\":\"\",\"message\":\"插件清单含无效名称\",\"fatal\":false}\n";
+      fixture.diagnostics.output(1, warning);
+      assertFalse(fixture.diagnostics.hasExplicitStartupFailure(1));
+      assertTrue(fixture.diagnostics.snapshot().log.contains("插件清单含无效名称"));
+      fixture.diagnostics.backendReady(1);
+      fixture.diagnostics.browserReady(1);
+      assertTrue(fixture.diagnostics.snapshot().backendReady);
+      assertTrue(fixture.diagnostics.snapshot().browserReady);
+      fixture.diagnostics.begin(2, false);
+      fixture.diagnostics.output(2, warning);
+      fixture.diagnostics.output(
+          2,
+          "[DSHA_STARTUP] {\"type\":\"issue\",\"plugin\":\"\",\"message\":\"webserver actual failure\",\"fatal\":true}\n");
+      assertTrue(fixture.diagnostics.hasExplicitStartupFailure(2));
+      assertFalse(fixture.diagnostics.snapshot().browserReady);
+      fixture.diagnostics.begin(3, false);
+      fixture.diagnostics.output(
+          3,
+          "[DSHA_STARTUP] {\"type\":\"issue\",\"plugin\":\"\",\"message\":\"actual uncaught failure\"}\n");
+      assertTrue(fixture.diagnostics.hasExplicitStartupFailure(3));
+    }
+  }
 }

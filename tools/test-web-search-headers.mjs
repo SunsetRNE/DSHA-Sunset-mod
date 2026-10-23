@@ -1,4 +1,4 @@
-// Real locked rc2 provider, credential provider, launch snapshot and native Request.
+// Real locked rc3 provider, credential provider, launch snapshot and native Request.
 // All credentials/responses are synthetic; fetch is intercepted before any socket.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -89,11 +89,11 @@ async function integration({stored,processKey,projectKey,userKey,literal,token,a
 }
 
 try{
-  await test('hash-locked recipe archive fresh/repeat/drift, source generation and account191 recipes retained',async()=>{
+  await test('hash-locked recipe archive fresh/repeat/drift, source generation and account diagnostics recipes retained',async()=>{
     const python=spawnSync(process.env.DSHA_PYTHON||'python',['-B','-c',[
-      'import hashlib,json,sys;from pathlib import Path;sys.path.insert(0,"tools");from runtime_stable_patches import apply',
+      'import hashlib,json,sys,os;from pathlib import Path;sys.path.insert(0,"tools");from runtime_stable_patches import apply',
       'p=json.loads(Path("app/src/main/assets/deepseek-web-search-headers-patch.json").read_text(encoding="utf8"))',
-      'pointer=json.loads(Path("app/build/test-runtimes/current.json").read_text());raw=Path(pointer["raw"],"node_modules",p["module"]).read_bytes()',
+      'pointer=json.loads(Path("app/build/test-runtimes/current.json").read_text());raw=Path(os.environ.get("DSHA_TEST_RUNTIME") or pointer["raw"],"node_modules",p["module"]).read_bytes()',
       'chain=[("web-search",[(e["before"],e["after"])for e in p["patches"]],[])]',
       'fixed=apply(raw,chain);assert hashlib.sha256(fixed).hexdigest()==p["patchedSha256"];assert apply(fixed,chain)==fixed',
       'try: apply(raw.replace(p["patches"][0]["before"].encode(),b"DRIFT",1),chain)',
@@ -102,9 +102,9 @@ try{
       'print("PASS_ARCHIVE_FRESH_REPEAT_DRIFT")'
     ].join('\n')],{cwd:root,encoding:'utf8',windowsHide:true,timeout:30000});
     assert.equal(python.status,0,python.stderr);assert.match(python.stdout,/PASS_ARCHIVE_FRESH_REPEAT_DRIFT/);
-    const check=spawnSync(process.env.DSHA_PYTHON||'python',['-B','tools/prepare-web-search-headers-patch.py','--check'],{cwd:root,encoding:'utf8',windowsHide:true,timeout:30000});
+    const check=spawnSync(process.env.DSHA_PYTHON||'python',['-B','tools/prepare-web-search-headers-patch.py','--modules',path.join(runtime,'node_modules'),'--check'],{cwd:root,encoding:'utf8',windowsHide:true,timeout:30000});
     assert.equal(check.status,0,check.stderr);
-    const retained=spawnSync(process.env.DSHA_PYTHON||'python',['-B','tools/prepare-account-requests-patch.py','--check'],{cwd:root,encoding:'utf8',windowsHide:true,timeout:30000});
+    const retained=spawnSync(process.env.DSHA_PYTHON||'python',['-B','tools/prepare-account-requests-patch.py','--modules',path.join(runtime,'node_modules'),'--check'],{cwd:root,encoding:'utf8',windowsHide:true,timeout:30000});
     assert.equal(retained.status,0,retained.stderr);
   });
   for(const target of ['apiKey','accountToken','apiVersion'])await test('official negative control ByteString U+115F '+target,async()=>{

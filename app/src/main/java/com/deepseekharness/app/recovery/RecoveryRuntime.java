@@ -11,6 +11,7 @@ import com.deepseekharness.app.util.ProcessTermination;
 import com.deepseekharness.app.util.ProcessIdentity;
 import com.deepseekharness.app.util.RuntimeInstanceRegistry;
 import com.deepseekharness.app.util.RecoveryArchiveSource;
+import com.deepseekharness.app.util.RecoveryDescriptorLimits;
 import com.deepseekharness.app.util.ShellQuote;
 import com.deepseekharness.app.util.WebPidIdentity;
 import com.deepseekharness.app.util.UiText;
@@ -91,10 +92,15 @@ public final class RecoveryRuntime {
     try {
       descriptor =
           new JSONObject(
-              new String(asset("recovery-runtime.json", 8 * 1024 * 1024), StandardCharsets.UTF_8));
+              new String(
+                  asset("recovery-runtime.json", RecoveryDescriptorLimits.MAX_BYTES),
+                  StandardCharsets.UTF_8));
       runtimeId = descriptor.getString("id");
       if (descriptor.getInt("schema") != 1 || !runtimeId.matches("[a-f0-9]{64}"))
         throw new IOException("RECOVERY_DESCRIPTOR_INVALID");
+      RecoveryDescriptorLimits.counts(
+          descriptor.getJSONArray("files").length(),
+          descriptor.has("links") ? descriptor.getJSONArray("links").length() : 0);
     } catch (JSONException error) {
       throw new IOException("RECOVERY_DESCRIPTOR_INVALID", error);
     }
@@ -268,8 +274,8 @@ public final class RecoveryRuntime {
     if (!root.isDirectory()) throw new IOException("RECOVERY_ROOT_MISSING");
     try {
       JSONArray proof = descriptor.getJSONArray("files");
-      if (proof.length() < 6 || proof.length() > 100_000)
-        throw new IOException("RECOVERY_FILE_PROOF_MISSING");
+      RecoveryDescriptorLimits.counts(
+          proof.length(), descriptor.has("links") ? descriptor.getJSONArray("links").length() : 0);
       for (int i = 0; i < proof.length(); i++) {
         check();
         JSONObject row = proof.getJSONObject(i);
@@ -450,7 +456,7 @@ public final class RecoveryRuntime {
     try {
       verifyDigest(new ByteArrayInputStream(source), descriptor.getString("agentSha256"));
       write(new File(agent, "recovery-agent.js"), source);
-      // rc2 的 dsh_plugin_packages 在每轮模型请求前读取活动插件的 name/version；
+      // 独立锁定运行时的 dsh_plugin_packages 在每轮模型请求前读取活动插件的 name/version；
       // 缺少 version 会在 HTTP 前抛 REQUEST_EXTENSION，令空白应急对话无法工作。
       write(
           new File(agent, "package.json"),
@@ -905,15 +911,7 @@ public final class RecoveryRuntime {
   }
 
   private static String safeRelative(String path) throws IOException {
-    if (path == null
-        || path.isEmpty()
-        || path.startsWith("/")
-        || path.contains("\\")
-        || path.contains("\0")) throw new IOException("RECOVERY_PATH_INVALID");
-    for (String component : path.split("/", -1))
-      if (component.isEmpty() || component.equals(".") || component.equals(".."))
-        throw new IOException("RECOVERY_PATH_INVALID");
-    return path;
+    return RecoveryDescriptorLimits.path(path);
   }
 
   private static File inside(File root, String path) throws IOException {

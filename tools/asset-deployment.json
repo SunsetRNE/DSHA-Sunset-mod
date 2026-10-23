@@ -85,6 +85,7 @@
     "plugin-manager-policy-patch.json",
     "plugin-manager.py",
     "plugin-network.py",
+    "plugin-pnpm-argv-patch.json",
     "plugin-semver.cjs",
     "plugin-transactions.py",
     "pnpm-runtime.bin",
@@ -99,6 +100,10 @@
     "recovery-native-consent.cjs",
     "recovery-profile-package.json",
     "recovery-profile.patch.yml",
+    "recovery-recipes/0.2.1-rc.2/language-patch.json",
+    "recovery-recipes/0.2.1-rc.2/pdf-compat-patch.json",
+    "recovery-recipes/0.2.1-rc.3/language-patch.json",
+    "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json",
     "register-builtin-plugins.py",
     "retire-guarded-preset-patch.json",
     "retired-market-catalog-patch.json",
@@ -232,7 +237,11 @@
         "recovery-profile.patch.yml",
         "recovery-profile-package.json",
         "recovery-runtime.json",
-        "recovery-asset-locations.json"
+        "recovery-asset-locations.json",
+        "recovery-recipes/0.2.1-rc.2/language-patch.json",
+        "recovery-recipes/0.2.1-rc.2/pdf-compat-patch.json",
+        "recovery-recipes/0.2.1-rc.3/language-patch.json",
+        "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json"
       ]
     },
     {

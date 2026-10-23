@@ -1,4 +1,4 @@
-// Locked rc2 React + genuine sidebar store + hook-safe error boundary.
+// Locked rc3 React + genuine sidebar store + hook-safe error boundary.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {browserFixture} from './rc1-browser-fixture.mjs';

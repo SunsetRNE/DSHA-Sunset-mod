@@ -33,7 +33,7 @@ import com.deepseekharness.app.backup.*;
 @Config(
     sdk = 34,
     manifest = Config.NONE,
-    application = android.app.Application.class,
+    application = RuntimeToolsRegistryAndroidTest.OwnedApplication.class,
     instrumentedPackages = {"com.deepseekharness.app.backup"},
     shadows = {RuntimeToolsRegistryAndroidTest.HostFileSystem.class})
 public final class RuntimeToolsRegistryAndroidTest {
@@ -41,6 +41,41 @@ public final class RuntimeToolsRegistryAndroidTest {
   private Path source;
   private Path temporary;
   private final java.util.List<AssetManager> opened = new java.util.ArrayList<>();
+
+  /** Exercise the real application-owned host port, including the mismatch diagnostic branch. */
+  public static final class OwnedApplication extends android.app.Application
+      implements RuntimeHostPorts.Owner {
+    private final RuntimeHostPorts ports = new RuntimeHostPorts();
+    private final java.util.List<String> diagnostics = new java.util.ArrayList<>();
+
+    @Override
+    public void onCreate() {
+      super.onCreate();
+      ports.install(
+          new RuntimeHostPorts.Provider() {
+            public RuntimeHostPorts.Settings snapshot() {
+              return new RuntimeHostPorts.Settings("auto", false, true, false);
+            }
+
+            public void stage(String value) {
+              throw new AssertionError("Unexpected runtime stage: " + value);
+            }
+
+            public void record(String kind, String detail) {
+              diagnostics.add(kind + ":" + detail);
+            }
+
+            public void failure(Throwable error) {
+              throw new AssertionError("Unexpected runtime failure", error);
+            }
+          });
+    }
+
+    @Override
+    public RuntimeHostPorts runtimeHostPorts() {
+      return ports;
+    }
+  }
 
   @Before
   public void setUp() throws Exception {
@@ -145,7 +180,7 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     String version = registry.getString("dshVersion");
-    assertEquals("0.2.1-rc.2", version);
+    assertEquals("0.2.1-rc.3", version);
     assertEquals(version, Constants.DSH_VERSION);
     assertEquals("dsh-v" + version, Constants.DSH_RUNTIME_ID);
     try (var stream = context.getAssets().open("runtime-descriptor.json")) {
@@ -173,7 +208,7 @@ public final class RuntimeToolsRegistryAndroidTest {
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
     assertEquals(43, groups.size());
-    assertEquals(56, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(57, groups.values().stream().mapToInt(java.util.List::size).sum());
     assertTrue(
         groups.get("@deepseek-ai/dsh-deepseek-account-platform/lib/index.js").stream()
             .anyMatch(
@@ -261,6 +296,10 @@ public final class RuntimeToolsRegistryAndroidTest {
                             .markers()
                             .equals(java.util.List.of("DSHA_PLUGIN_MANAGEMENT_PROBE_V1"))));
     var manager = groups.get("@deepseek-ai/dsh-plugin-manager/lib/index.js");
+    assertEquals(6, manager.size());
+    assertEquals("plugin-manager-policy-patch.json", manager.get(0).id());
+    assertEquals("plugin-pnpm-argv-patch.json", manager.get(1).id());
+    assertEquals(java.util.List.of("DSHA_PLUGIN_PNPM_ARGV_V3"), manager.get(1).markers());
     var workers = manager.get(manager.size() - 1);
     assertEquals("plugin-bundle-proof-workers-patch.json", workers.id());
     assertEquals(java.util.List.of("DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"), workers.markers());
@@ -304,7 +343,7 @@ public final class RuntimeToolsRegistryAndroidTest {
             () ->
                 RuntimeTools.readPatchRegistry(
                     apkAssets(Map.of("runtime-patches.json", registry))));
-    assertEquals("PATCH_REGISTRY_VERSION: APK=0.2.1-rc.2 registry=0.2.0-rc.2", error.getMessage());
+    assertEquals("PATCH_REGISTRY_VERSION: APK=0.2.1-rc.3 registry=0.2.0-rc.2", error.getMessage());
   }
 
   @Test
@@ -332,7 +371,7 @@ public final class RuntimeToolsRegistryAndroidTest {
                 RuntimeTools.readPatchChains(
                     context, RuntimeTools.readPatchRegistry(context), Constants.DSH_VERSION));
     assertEquals(
-        "PATCH_REGISTRY_VERSION: recipe=" + first + " expected=0.2.1-rc.2 actual=0.2.0-rc.2",
+        "PATCH_REGISTRY_VERSION: recipe=" + first + " expected=0.2.1-rc.3 actual=0.2.0-rc.2",
         error.getMessage());
   }
 
@@ -571,6 +610,9 @@ public final class RuntimeToolsRegistryAndroidTest {
           "Production preparation must retain " + addition.getValue(),
           Files.readString(modules.resolve(addition.getKey())).contains(addition.getValue()));
     assertTrue(
+        Files.readString(modules.resolve("@deepseek-ai/dsh-plugin-manager/lib/index.js"))
+            .contains("DSHA_PLUGIN_PNPM_ARGV_V3"));
+    assertTrue(
         Files.readString(modules.resolve(pdf.getString("module"))).contains("DSHA_PDF_COMPAT_V1"));
     assertTrue(
         Files.readString(modules.resolve(pdf.getString("resourceModule")))
@@ -587,6 +629,30 @@ public final class RuntimeToolsRegistryAndroidTest {
     productionChain(context, guest);
     assertEquals(first, digestTree(guest));
     assertArrayEquals(lan, Files.readAllBytes(modules.resolve(LAN)));
+  }
+
+  @Test
+  public void previousRuntimeGenerationCannotReceiveCurrentOverlayInPlace() throws Exception {
+    Context context = apkAssets(Map.of());
+    File guest = actualManagedModuleClosure(context);
+    Path pkg = guest.toPath().resolve(DSH + "package.json");
+    Files.writeString(
+        pkg, new JSONObject(Files.readString(pkg)).put("version", "0.2.1-rc.2").toString());
+    OwnedApplication owner = (OwnedApplication) context.getApplicationContext();
+    assertSame(owner.runtimeHostPorts(), RuntimeHostPorts.fromOwner(owner));
+    owner.diagnostics.clear();
+    IllegalStateException missingOwner =
+        assertThrows(
+            IllegalStateException.class, () -> RuntimeHostPorts.fromOwner(new Object()));
+    assertEquals("RUNTIME_HOST_OWNER_UNAVAILABLE", missingOwner.getMessage());
+    var original = digestTree(guest);
+    productionChain(context, guest);
+    assertEquals(
+        java.util.List.of("PATCH_RUNTIME_VERSION_MISMATCH:0.2.1-rc.2"), owner.diagnostics);
+    assertEquals(
+        "A new signed runtime tree must be staged for the generation upgrade",
+        original,
+        digestTree(guest));
   }
 
   @Test
