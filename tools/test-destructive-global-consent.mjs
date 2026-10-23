@@ -31,9 +31,10 @@ Module._load = function(request, ...args) {
 const policy = await import('../app/src/main/assets/destructive-policy/index.js');
 const results = [];
 const availabilityDelta = process.argv.includes('--mandatory-availability-only');
+const portOnly = process.argv.includes('--bridge-port-only');
 const nativeFixtureAt = process.argv.indexOf('--native-wire-fixture');
 const nativeWireOnly = nativeFixtureAt !== -1;
-assert(!(availabilityDelta && nativeWireOnly), 'select one related group');
+assert([availabilityDelta, nativeWireOnly, portOnly].filter(Boolean).length <= 1, 'select one related group');
 // The Java-wire group crosses the actual APK launcher query as well as the
 // actual policy. Only Android filesystem/socket adapters are controlled here.
 const actualTransport = (() => {
@@ -58,7 +59,12 @@ const actualTransport = (() => {
     });
     return request;
   } };
-  const module = { exports: {} }, require = name => ({ 'node:fs': platformFs, 'node:http': http, 'node:crypto': crypto })[name];
+  const portModule = { exports: {} };
+  const portSource = fs.readFileSync(new URL('../app/src/main/assets/bridge-port.cjs', import.meta.url), 'utf8');
+  vm.runInNewContext('(function(require,module,Buffer){' + portSource + '\n})', {})(name => {
+    assert.equal(name, 'node:fs'); return platformFs;
+  }, portModule, Buffer);
+  const module = { exports: {} }, require = name => ({ 'node:fs': platformFs, 'node:http': http, 'node:crypto': crypto, './bridge-port.cjs': portModule.exports })[name];
   const source = fs.readFileSync(new URL('../app/src/main/assets/native-consent.cjs', import.meta.url), 'utf8');
   vm.runInNewContext('(function(require,module,Buffer){' + source + '\n})', {})(require, module, Buffer);
   return module.exports;
@@ -105,7 +111,7 @@ function fixture({ global = true, preset = GUARDED, approval = 'ask' } = {}) {
   return f;
 }
 async function using(options, body) { const f = fixture(options); try { await body(f); } finally { f.dispose(); } }
-async function test(name, body, related = false, wire = false) { if (availabilityDelta && !related || nativeWireOnly && !wire) return; try { await body(); results.push({ name, status: 'PASS' }); } catch (error) { results.push({ name, status: 'FAIL', message: error.message, stack: error.stack }); } }
+async function test(name, body, related = false, wire = false, port = false) { if (availabilityDelta && !related || nativeWireOnly && !wire || portOnly && !port) return; try { await body(); results.push({ name, status: 'PASS' }); } catch (error) { results.push({ name, status: 'FAIL', message: error.message, stack: error.stack }); } }
 const blocked = /DSHA_DESTRUCTIVE_BLOCKED/;
 let nativeFixture;
 try {
@@ -198,6 +204,31 @@ try {
     });
     assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
   }));
+  for (const [label, response] of [
+    ['legacy unauthorized', { ok: true, status: 200, json: async () => ({ result: '[UNAUTHORIZED]' }) }],
+    ['HTTP 401', { ok: false, status: 401, json: async () => { throw Error('401 must not be decoded'); } }],
+  ]) for (const phase of ['prepare', 'dispatch']) await test(label + ' during ' + phase + ' is a distinct token/instance failure', () => using({ approval: 'never' }, async f => {
+    if (phase === 'dispatch') await f.prepare();
+    const before = f.reads;
+    f.fetch = async () => response;
+    await assert.rejects(phase === 'dispatch' ? f.dispatch : f.prepare, error =>
+      error.code === 'DSHA_NATIVE_CONSENT_UNAUTHORIZED'
+      && error.message.includes('rejected this installation token'));
+    assert.equal(f.reads, before + 1); assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
+  }), false, false, true);
+  await test('port change during native read is its own rejection', () => using({}, async f => {
+    await f.prepare();
+    const cause = Error('controlled port changed'); cause.code = 'NATIVE_CONSENT_PORT_CHANGED';
+    f.fetch = async () => { throw cause; };
+    await assert.rejects(f.dispatch, error =>
+      error.code === 'DSHA_NATIVE_CONSENT_PORT_CHANGED' && error.cause === cause);
+    assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
+  }), false, false, true);
+  await test('port changes between prepared and fresh native facts block dispatch', () => using({}, async f => {
+    f.descriptor.port = 3091; await f.prepare(); f.descriptor.port = 3092;
+    await assert.rejects(f.dispatch, error => error.code === 'DSHA_NATIVE_CONSENT_FACTS_CHANGED');
+    assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
+  }), false, false, true);
   await test('actual bounded native-read timeout preserves its cause and dispatches nothing', () => using({}, async f => {
     await f.prepare(); let cause;
     f.fetch = async (_read, init) => new Promise((_resolve, reject) => {
@@ -285,7 +316,7 @@ try {
     f.sdkThrows = true; await assert.rejects(f.prepare, error => error.code === 'DSHA_NATIVE_CONSENT_UNAVAILABLE');
     assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
   }), true);
-  const raw = process.argv[2]; assert(raw, 'explicit locked official raw runtime is required');
+  const raw = process.argv[2]; if (!portOnly) assert(raw, 'explicit locked official raw runtime is required');
   for (const [asset, module] of [['guard-tools-patch.json', '@deepseek-ai/dsh-tools/lib/index.js'], ['guard-bash-patch.json', '@deepseek-ai/dsh-tool-bash/lib/index.js']]) {
     await test(asset + ' exact raw application and ESM parse without evaluation', async () => {
       const recipe = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/' + asset, import.meta.url), 'utf8'));
@@ -298,5 +329,5 @@ try {
     });
   }
 } finally { Module._load = load; }
-console.log(JSON.stringify({ scope: 'SOURCE_UNIT_REAL_POLICY_CONTROLLED_SIGNED_SDK_PATH_AND_MEMORY_EFFECT', selection: nativeWireOnly ? 'ACTUAL_NATIVE_MAPPER_WIRE_DELTA' : availabilityDelta ? 'MANDATORY_AVAILABILITY_DELTA' : 'ALL', nativeFixture, sdkLoaded: nativeWireOnly, deviceCredentialRead: false, networkRequested: false, commandBodyExecuted: false, nativeEndpointTested: false, cases: results.length, passed: results.filter(row => row.status === 'PASS').length, results }, null, 2));
+console.log(JSON.stringify({ scope: 'SOURCE_UNIT_REAL_POLICY_CONTROLLED_SIGNED_SDK_PATH_AND_MEMORY_EFFECT', selection: portOnly ? 'BRIDGE_PORT_AUTH_DELTA' : nativeWireOnly ? 'ACTUAL_NATIVE_MAPPER_WIRE_DELTA' : availabilityDelta ? 'MANDATORY_AVAILABILITY_DELTA' : 'ALL', nativeFixture, sdkLoaded: nativeWireOnly, deviceCredentialRead: false, networkRequested: false, commandBodyExecuted: false, nativeEndpointTested: false, cases: results.length, passed: results.filter(row => row.status === 'PASS').length, results }, null, 2));
 if (results.some(row => row.status !== 'PASS')) process.exitCode = 1;

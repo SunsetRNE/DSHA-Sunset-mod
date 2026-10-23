@@ -1,7 +1,9 @@
 /** Real Agent turn facts and one-shot cancellation through the authenticated native bridge. */
 import { randomBytes } from 'node:crypto'
+import bridgePort from './bridge-port.cjs'
 import { readFile } from 'node:fs/promises'
 export const inject = ['agents', 'sessionProjections', 'webServer']
+
 export const name = 'dsh-task-notifier'
 export function completionNotice(reason) {
   if (reason === 'completed') return ['DSHA · 任务完成', 'Agent 已完成一轮对话，点击查看结果']
@@ -12,7 +14,7 @@ export function completionNotice(reason) {
 async function bridge(operation, value) {
   const token = (await readFile('/root/.dsh/.bridge_token', 'utf8')).trim()
   if (!token) throw Error('bridge unavailable')
-  const response = await fetch('http://127.0.0.1:3090/app/tasks/' + operation
+  const response = await fetch('http://127.0.0.1:' + bridgePort() + '/app/tasks/' + operation
     + '?payload=' + encodeURIComponent(JSON.stringify(value)), {
     headers: { 'X-Token': token }, signal: AbortSignal.timeout(2000)
   })

@@ -1,7 +1,9 @@
 'use strict';
 // MCP 只桥接已存在的 Android 设备接口；不暴露 shell、凭据读取或任意文件访问。
 const fs=require('node:fs/promises');
+const bridgePort=require('./bridge-port.cjs');
 const MAX_SCREENSHOT_BYTES=16*1024*1024;
+
 const observationId={type:'string',minLength:1,maxLength:64};
 const point={observationId,x:{type:'integer',minimum:0},y:{type:'integer',minimum:0}};
 const definitions=[
@@ -41,7 +43,7 @@ function screenshotContent(result){let shot;try{shot=JSON.parse(result);}catch{t
 }
 async function call(name,args,signal,dependencies={fs,fetch:globalThis.fetch}){const def=definitions.find(t=>t[0]===name);if(!def)throw Error('UNKNOWN_TOOL');validate(def,args);
   const token=(await dependencies.fs.readFile('/root/.dsh/.bridge_token','utf8')).trim();if(!token)throw Error('BRIDGE_NOT_READY');
-  const url=new URL('http://127.0.0.1:3090'+def[2]);for(const [k,v]of Object.entries(args))url.searchParams.set(k,String(v));
+  const url=new URL('http://127.0.0.1:'+bridgePort()+def[2]);for(const [k,v]of Object.entries(args))url.searchParams.set(k,String(v));
   if(name==='android_screenshot')url.searchParams.set('format','mcp');
   if(name==='android_double_click')url.searchParams.set('gesture','double_tap');
   if(name==='android_long_press')url.searchParams.set('gesture','long_press');

@@ -172,8 +172,21 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(38, groups.size());
-    assertEquals(48, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(39, groups.size());
+    assertEquals(50, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-deepseek-account-platform/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("deepseek-account-requests-patch.json")
+                        && recipe.markers().contains("DSHA_ACCOUNT_REQUEST_DIAGNOSTICS_V1")
+                        && recipe.markers().contains("DSHA_ACCOUNT_PROFILE_SINGLE_FLIGHT_V1")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("deepseek-account-client-diagnostic-patch.json")
+                        && recipe.markers().contains("DSHA_ACCOUNT_CLIENT_DIAGNOSTIC_V1")));
     assertTrue(
         groups.get("@deepseek-ai/dsh-config-editor/lib/index.js").stream()
             .anyMatch(
@@ -253,9 +266,11 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertEquals(java.util.List.of("DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"), workers.markers());
     var oauth = groups.get("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js");
     assertNotNull(oauth);
-    assertEquals(1, oauth.size());
+    assertEquals(2, oauth.size());
     assertEquals("deepseek-native-oauth-patch.json", oauth.get(0).id());
     assertEquals(java.util.List.of("DSHA_NATIVE_OAUTH_NAVIGATION_V1"), oauth.get(0).markers());
+    assertEquals("deepseek-account-client-diagnostic-patch.json", oauth.get(1).id());
+    assertEquals(java.util.List.of("DSHA_ACCOUNT_CLIENT_DIAGNOSTIC_V1"), oauth.get(1).markers());
     var directory = groups.get("@deepseek-ai/dsh-api-workspace-controller/lib/index.js");
     assertNotNull(directory);
     assertEquals(1, directory.size());
@@ -410,8 +425,10 @@ public final class RuntimeToolsRegistryAndroidTest {
   private record ManagedFixture(Path directory, JSONObject proof) {}
 
   private ManagedFixture currentManagedRuntime() throws Exception {
-    JSONObject selected =
-        new JSONObject(Files.readString(root.resolve("app/build/test-runtimes/current.json")));
+    Path pointer = root.resolve("app/build/test-runtimes/current.json");
+    // 仅下方四项真实运行时链路测试经过此入口；其余注册表负控始终执行。
+    SourceOnlyTestInputs.requireRegularFile(pointer, "请先运行 tools/prepare-test-runtime.py");
+    JSONObject selected = new JSONObject(Files.readString(pointer));
     assertEquals(Constants.DSH_VERSION, selected.getString("dshVersion"));
     assertTrue(
         "Current runtime archive must match the fixture", selected.getBoolean("archiveCurrent"));
