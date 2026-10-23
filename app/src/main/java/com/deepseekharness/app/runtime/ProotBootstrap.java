@@ -312,6 +312,12 @@ public class ProotBootstrap {
     return execution.collect(command, timeoutMs, true);
   }
 
+  /** 旧 CAS 迁移仍使用固定 proot，诊断只记录本次宿主阶段。 */
+  public BoundedProcessRunner.Result materializeCasLinksResult(
+      java.util.function.Consumer<String> timing) throws IOException, InterruptedException {
+    return execution.collectCasLinks(timing);
+  }
+
   public void prepareDataMaintenance() throws IOException {
     recovery.prepareData();
   }

@@ -18,7 +18,7 @@
 | ADB | 系统adbd、配对密钥、当前鉴权连接 | 本机无线设备shell通道 | Root、无障碍已连接、当前操作已批准 |
 | 无障碍 | 用户的系统设置及系统实际绑定 | 节点、手势、部分截图/屏幕操作 | 任意shell、独立显示创建权限 |
 | DSHA本机确认策略 | DeviceGrants、CapabilityBroker、当前运行 | 判断助手请求应询问、允许或拒绝 | 系统权限或设备连接 |
-| DSH会话权限模式 | Web/运行选项与工具策略 | read-only、workspace-write等工具约束 | Android UID隔离或强系统沙箱 |
+| DSH运行权限模式 | 正式Web启动固定danger-full-access；build191移除原生三档选择 | 既有会话/插件自身工具策略及独立应急只读策略继续独立 | Android UID隔离、强系统沙箱或额外Android能力授权 |
 
 Android官方把普通权限、运行时权限和特殊权限分别处理；Manifest中的声明本身不是所有能力已获准的证明。[Android权限概览](https://developer.android.com/guide/topics/permissions/overview)
 上表后三层的具体判据是DSHA源码策略，不是Android或Shizuku为DSHA提供的安全背书。

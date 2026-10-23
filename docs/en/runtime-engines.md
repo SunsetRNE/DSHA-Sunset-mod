@@ -1,5 +1,7 @@
 # Ubuntu, proot and proroot on Android
 
+> Build191 entry-point review (2026-10-23): legacy plugin CAS-link compatibility runs `python3 -u /root/.dsh/materialize-cas-links.py` under fixed proot, independently of the main Web's proroot preference. The lightweight entry, FD scan and timing do not change transaction execution domains or exit barriers. See [current scope and pending checks](releases/v0.2.1-rc.2-build191-startup-20261023.md). Interpret link2symlink per entry: main Web uses actual hard-link probing; the CAS install path does not run that same probe and its default LaunchSpec may still select link2symlink.
+
 English documentation review: 2026-10-21. This page translates the current maintenance guide, whose source inspection used the F10/build190 worktree at `<local-workspace>`. Bundled DSH is `0.2.1-rc.2` and the Ubuntu base identity is `10`. The old build173/bxroot checkout at `<local-workspace>` is not the current build source. Final revision identity and verification results belong to the [release introduction](release-introduction.md) and [English README](../../README.en.md).
 
 See the [architecture handbook](project-architecture-handbook.md), [runtime, data and plugins](runtime-data-plugin-architecture.md), and [sources and provenance](references-and-provenance.md) for the surrounding contracts. This is a mechanism guide, not a new device acceptance report. The original [F10 record](../releases/v0.2.1-rc.2-build190-prerelease-20261020.md) is historical evidence for its own artifact.
@@ -67,7 +69,7 @@ The supervisor represents the session boundary around its command. **Ordinary We
 
 ## 4. Actual proot invocation and native provenance
 
-The current proot uses Termux's ptrace path translation. `baseArgv()` passes `-L --kill-on-exit -0 --rootfs=<private-root> --cwd=/root` and binds. `--link2symlink` is added only when the actual hard-link probe finds links unsupported, with `.l2s` and `PROOT_L2S_DIR`. Enabling it unconditionally for “compatibility” can break atomic publication semantics.
+The current proot uses Termux's ptrace path translation. `baseArgv()` passes `-L --kill-on-exit -0 --rootfs=<private-root> --cwd=/root` and binds. Each entry's LaunchSpec controls `--link2symlink`, with `.l2s` and `PROOT_L2S_DIR`. Main Web uses its actual hard-link probe; CAS/install defaults and probe paths must be checked separately. Not every proot invocation first performs the same hard-link probe.
 
 `applyEnv()` sets `PROOT_LOADER`, optional `PROOT_LOADER_32`, `PROOT_TMP_DIR` and library search paths. `PROOT_NO_SECCOMP=1` reflects an explicit acceleration opt-out; it does not remove Android's app boundary. [RuntimeNativeFiles.prepare()](../../app/src/main/java/com/deepseekharness/app/runtime/RuntimeNativeFiles.java) prepares `libtalloc.so.2` and `libandroid-shmem.so` aliases from bundled native libraries. Missing dependencies are not readiness.
 

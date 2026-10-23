@@ -5,7 +5,6 @@ public final class WebLaunchCommand {
   private WebLaunchCommand() {}
 
   public static String build(
-      String permissionMode,
       boolean confirmShell,
       String language,
       String profile,
@@ -17,7 +16,7 @@ public final class WebLaunchCommand {
         + "export DSH_HOME=/root/.dsh && "
         + "export DSHA_WORKSPACE_DOCUMENTS=/root/Documents && "
         + "export DSH_PERMISSION_MODE="
-        + ShellQuote.arg(permissionMode)
+        + ShellQuote.arg(PermissionMode.DEFAULT)
         + " && "
         + "export DSH_CONFIRM="
         + (confirmShell ? "1" : "0")

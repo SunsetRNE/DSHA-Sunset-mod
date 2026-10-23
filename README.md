@@ -21,9 +21,9 @@
 
 > 🤖 下一个 AI / 开发者请先读 **[AGENTS.md](AGENTS.md)**（项目结构、启动契约、踩过的坑），不要先全库扫描。
 
-> **0.2.1-rc.2 · build190 维护分支**：当前源码包名 `dsh.android.client`，可与旧版并排安装、数据独立。公开DSHA发布继续暂停；新包完成验证后仅交付[私有维护仓库](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases)。[文档](docs/documentation-index.md) · [本轮性能调查与待验范围](docs/performance-startup-20261022.md)。
+> **0.2.1-rc.2 · build191 启动修订（本地已验证，仅私有交付）**：`0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` / code191；包名 `dsh.android.client`、E7E3非调试签名和文件名 `dsha-0.2.1-rc.2.apk` 保持，支持同包同签名覆盖升级。新APK及含固定输入的完整源码仅交付[本轮私有Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1500)，远端可得性与源码ZIP自身摘要以实际附件和独立外部回执为准。[修复、检查与未验范围](docs/releases/v0.2.1-rc.2-build191-startup-20261023.md) · [文档](docs/documentation-index.md)。
 
-[本轮UI维护](docs/ui-performance-20261022.md)：2100标准包已打包，完成所选软件门禁、覆盖恢复及双引擎息屏启动/旧会话检查；插件开关有效样本约3.1–3.4秒，仍非瞬时，页面测速有波动。新增management小查询与完整证明双worker，修正升级补丁链；PiP默认关闭，1817局部3帧异常保留待查。
+[此前build190 UI维护](docs/ui-performance-20261022.md)：2100标准包完成所选软件门禁及有限设备路径；其插件开关约3.1–3.4秒和页面样本仅属该包，不是build191实测。PiP默认关闭，1817局部3帧异常保留待查。
 
 ## ❤️ 赞助商
 
@@ -60,7 +60,7 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 ## 下载与交付状态
 
-当前已打包为 **0.2.1-rc.2-20261022.1817-dsh0.2.1-rc.2 / build190**，内置DSH 0.2.1-rc.2、Ubuntu base10，默认proot、可选proroot。公开仓库的本次PR和发布草稿已撤回；本地精确标准APK已通过所选软件与部分真机路径，继续验收的范围见[UI修订记录](docs/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md)；实际私有附件和回执才证明上传完成。
+本轮 **build191 本地软件与精确Standard APK已验证**：两版所选34类各182项JUnit零失败/错误/skip，Release Lint零error/fatal（警告248/161），正式Standard打包、精确APK9项及选定host12项通过。APK为292,204,984字节，SHA-256 `cbbce4efd2103ef4323a04788385dbe13ff02d94c7880537aa2bb0c7ee28a58f`。内置DSH 0.2.1-rc.2、Ubuntu base10、默认proot/可选proroot保持；CAS检查、账号请求及诊断已修订，截图中的DSH权限策略三选项已删除。**未做新APK设备验收**，不声称Android16或19.4秒样本已解决；[当前报告](docs/releases/v0.2.1-rc.2-build191-startup-20261023.md)保留检查、原失败与未验范围。此前2100证据留在[历史UI记录](docs/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md)。
 
 新APK和完整源码仅从[私有维护仓库的Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases)取得，需有仓库权限；可得性、完整日期时间versionName、APK/源码摘要以实际附件和最终交付回执为准。标准版面向Android11+/arm64、系统WebView、E7E3非调试签名。本轮不新增Low交付，旧正式版本见[历史Releases](https://github.com/DSH-APP/DSHA/releases)。
 
@@ -256,7 +256,7 @@ agent 通过本机 `127.0.0.1:3090` 桥调用以下能力（token 门控，`/app
 | 系统 | ✅ Standard 11+ / Low 6+ | 老系统部分能力受系统限制（无线配对需 11+ 等，见 [android-low](docs/android-low.md)） |
 | 包体 | ⚠️ 273.10 / 345.27 MiB | 内置完整 Ubuntu 环境的代价，换来的是免下载、免命令行 |
 | bash 工具 | ✅ 可用 | 完整 Ubuntu 的 bash，agent 跑 shell 命令没有限制 |
-| bash 的**沙箱隔离** | ⚠️ 不可用 | bubblewrap 要 unprivileged user namespace，Android sepolicy 不给 —— 容器派和 Termux 派都一样绕不过。约束靠 dsh 的权限档位：默认 `danger-full-access`，可在配置页改成 `workspace-write` 或 `read-only`。请自行判断风险 |
+| bash 的**沙箱隔离** | ⚠️ 不可用 | bubblewrap 需要 Android 未开放的 unprivileged user namespace。运行配置中的DSH权限档位选择已移除，普通DSH按 `danger-full-access` 运行；这不授予额外Android权限，也不构成对终端或第三方插件的强沙箱。屏幕操作确认与系统能力授权仍各自生效 |
 | 卓易通 / 鸿蒙 anco | ❓ 未验证 | 理论可行，尚无真机回归 |
 | 悬浮条 | ⚠️ 需要授权 | 用 `TYPE_APPLICATION_OVERLAY` 自绘；免 ROOT 拿不到真正的「状态栏歌词」接口 |
 | 数据位置 | ⚠️ 需要文件权限 | 「所有文件访问」被拒时数据留在私有目录，卸载即丢（自检会明确告知当前状态） |

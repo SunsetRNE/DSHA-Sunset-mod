@@ -22,9 +22,9 @@
 > 🤖 If you are an AI agent or a new contributor, read **[AGENTS.en.md](AGENTS.en.md)** first
 > (structure, startup contracts, traps we already fell into). Don't scan the whole repo.
 
-> **0.2.1-rc.2 · build190 maintenance branch** — source package `dsh.android.client`, with separate data alongside older versions. Public DSHA publication remains paused. Deliver the new package only to the [private maintenance repository](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases) after verification. [Documentation](docs/en/index.md) · [Performance investigation and pending scope](docs/en/performance-startup-20261022.md).
+> **0.2.1-rc.2 · build191 startup revision (locally verified; private delivery only)** — `0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` / code191. Keep package `dsh.android.client`, E7E3 non-debuggable signing and filename `dsha-0.2.1-rc.2.apk` for same-package, same-certificate overwrite updates. Deliver the APK and complete source with fixed inputs only through the [current private Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261023.1500); actual assets and the independent external receipt establish availability and the source ZIP's own hash. [Changes, checks and remaining scope](docs/en/releases/v0.2.1-rc.2-build191-startup-20261023.md) · [Documentation](docs/en/index.md).
 
-[UI maintenance](docs/en/ui-performance-20261022.md): the 2100 Standard APK passed selected software, overwrite/recovery and both-engine screen-off startup/retained-conversation checks. Valid toggle samples remain around 3.1–3.4s; page timing varies. A lightweight management probe and full-proof dual workers include an upgrade-chain correction. PiP stays default OFF, with the limited 1817 three-frame anomaly still open.
+[Previous build190 UI maintenance](docs/en/ui-performance-20261022.md): selected software and limited device checks belong to the 2100 APK. Its approximately 3.1–3.4s toggle samples and page timings are not build191 measurements. PiP stays default OFF; the limited 1817 three-frame anomaly remains open.
 
 ## ❤️ Sponsor
 
@@ -64,7 +64,7 @@ original author [@qiannianhuanxiang](https://github.com/qiannianhuanxiang) and a
 
 ## Downloads and delivery status
 
-Current packaged version is **0.2.1-rc.2-20261022.1817-dsh0.2.1-rc.2 / build190**, with DSH 0.2.1-rc.2, Ubuntu base10, default proot and optional proroot. This contribution's public PR and draft release were withdrawn. The local exact Standard APK passed selected software and some phone paths; see the [UI maintenance record](docs/en/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md) for ongoing acceptance limits. Actual private attachments and the receipt establish upload completion.
+**Build191 local software and the exact Standard APK are verified.** Selected JUnit runs34 classes/182 tests per flavor with zero failures/errors/skips; Release Lint has zero errors/fatal findings and248/161 warnings. Signed Standard assembly,9 exact-APK gates and12 selected host entries pass. APK:292,204,984 bytes, SHA-256 `cbbce4efd2103ef4323a04788385dbe13ff02d94c7880537aa2bb0c7ee28a58f`. DSH0.2.1-rc.2, Ubuntu base10 and default proot/optional proroot remain. CAS checks, account reads and diagnostics are revised; the pictured three-choice DSH permission selector is removed. **No new-APK device acceptance was performed**; Android16 resolution or a reduction of the report's19.4-second sample is not claimed. The [current report](docs/en/releases/v0.2.1-rc.2-build191-startup-20261023.md) retains checks, original failures and remaining scope. The2100 APK keeps its [historical UI record](docs/en/releases/v0.2.1-rc.2-build190-ui-performance-20261022.md).
 
 New APKs and complete source are distributed only through [private maintenance Releases](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases), requiring repository access. Actual attachments and the final receipt establish availability, the fully dated/time-stamped versionName and APK/source hashes. Standard targets Android11+/arm64 with system WebView and E7E3 non-debuggable signing. No new Low delivery this round; old public versions remain in [historical Releases](https://github.com/DSH-APP/DSHA/releases).
 
@@ -260,7 +260,7 @@ Listed honestly, so you don't discover them after installing:
 | OS version | ✅ Standard 11+ / Low 6+ | Older systems lose some capabilities (wireless pairing needs 11+, see [android-low](docs/android-low.md)) |
 | Size | Artifact-specific | The 273.10 / 345.27 MiB figures above belong to historical build170. Use the final delivery receipt for current APK bytes |
 | bash tool | ✅ Works | Full Ubuntu bash; the agent runs shell commands without restriction |
-| bash **sandbox isolation** | ⚠️ Unavailable | bubblewrap needs unprivileged user namespaces, and Android sepolicy refuses — neither the container path nor Termux can work around it. Constraints rely on dsh's permission modes: `danger-full-access` by default, switchable to `workspace-write` or `read-only` in Configure. Judge the risk yourself |
+| bash **sandbox isolation** | ⚠️ Unavailable | bubblewrap requires unprivileged user namespaces that Android does not expose. The DSH permission-mode selector has been removed; ordinary DSH runs with `danger-full-access`. This grants no extra Android permission and does not strongly sandbox terminals or third-party plugins. Screen confirmations and system-capability grants retain their separate rules |
 | Sundigital / HarmonyOS anco | ❓ Unverified | Plausible in theory; no real-device regression yet |
 | Overlay | ⚠️ Needs permission | Self-drawn via `TYPE_APPLICATION_OVERLAY`; rootless devices can't get the real "status-bar lyrics" API |
 | Data location | ⚠️ Needs file access | If "All files access" is denied, data stays in the private directory and is lost on uninstall (the self-check tells you which state you're in) |

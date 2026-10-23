@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "archiveSha256": "0bf8830eef95e317ffd25d9bce4547871694063d94facbf78104ebe2c197097a",
+  "archiveSha256": "63da76fb8d34c14e6f5d1bf102509df6aeca0cfebb6f48c82d1cad8eb6c76f7b",
   "packages": {
     ".bin": "e538d5a987f49edfa9611b33e32cb9b64d290741fcff95837e09b3842dc9ef7c",
     "@agentclientprotocol/sdk": "2ad364c17a32f29dd05f7d28a052359a893f009ff5ad283e0acb5dd621deb765",
@@ -105,7 +105,7 @@
     "@deepseek-ai/dsh-client-ui-secret-mask": "111f38ce58cdcd3c501772dcc810d1d4512d67a230836b464effa3602c9752f7",
     "@deepseek-ai/dsh-client-ui-session": "8a936277be9ebab6e09ae6ee702e46274f8fef742bf1a4ffe58bc9d486863812",
     "@deepseek-ai/dsh-client-ui-settings": "7f70c1d04b774d4e31e4c3cba01bfe26f7e3f565c8759244ff378e38978f0751",
-    "@deepseek-ai/dsh-client-ui-settings-account": "a05cb239028d10007a4ee737a9a5e8b6cf43bf50e0bcaa001e532aedd466b50f",
+    "@deepseek-ai/dsh-client-ui-settings-account": "6339970cbcce0f7beec7509931ae2c51e83c2a5a7c18240952a993e31a630871",
     "@deepseek-ai/dsh-client-ui-settings-agent-loop": "2ce5eff4299d352193e342b393ec4ba5af4f9aec48105d092682019fc07ea7f1",
     "@deepseek-ai/dsh-client-ui-settings-general": "b19f542fa53d5cef56031433817d9d290c7d409ba3a57f68d8b6536149b87960",
     "@deepseek-ai/dsh-client-ui-settings-models": "aa99486a3ff24d168c4390cabd2928869d2a75a232db76561c0391349d985c6a",
@@ -147,7 +147,7 @@
     "@deepseek-ai/dsh-credentials": "7a0a32e12fd3675b74cd97cd3cfeb1059bc6c6f01f259b0942cc3897dd34aa58",
     "@deepseek-ai/dsh-credentials-local": "3faa11e29d85eac5f55b1a9bf4ffd4b0ccbcca7c87a390a25ffee7b530b6f38e",
     "@deepseek-ai/dsh-deepseek-account": "667db6a731585cccc2af220026e57cc75f0672c286d43b23f7428a32cf96b593",
-    "@deepseek-ai/dsh-deepseek-account-platform": "c63c03646040a7699537f30d98c6b0c4aebf77a5900a56b207a743a1992cb113",
+    "@deepseek-ai/dsh-deepseek-account-platform": "6d1109a04d53b682e798b5d95b18ca2dd1de8883064a05e8f5b35978b5cc4a40",
     "@deepseek-ai/dsh-deepseek-llm-api-extensions": "9f9f0eb9a2bea12b99c5c4394865d45b3b2d3bc31aa710f32b7cd5d182bb6d0c",
     "@deepseek-ai/dsh-deque": "9456ceb4db5ea4279f4fc6d5d0e135eace1a5a08604187afd33bee0731d099f8",
     "@deepseek-ai/dsh-experimental-agent-team": "8b21d5a3c8a8f126f9f3baeee30d9e533393e7e1ee3d962f56b74799805153c5",

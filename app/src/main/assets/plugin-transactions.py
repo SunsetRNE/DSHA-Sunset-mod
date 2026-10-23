@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import stat
+import time
 import uuid
 
 DELETE_FINGERPRINT = 'DSHA_DELETE_OBJECT_NOFOLLOW_V1'
@@ -426,11 +427,23 @@ class Transactions:
         return os.path.join(self.g['local'](self.g['builtin'].NODE_MODULES), *relative.split('/'))
 
     def cas_links(self):
-        """Only inspect this profile's modules; directory links are never entered."""
+        """Inspect every real profile directory without following directory links.
+
+        POSIX traversal is anchored to held NOFOLLOW directory descriptors. Each
+        directory edge is checked while visiting its children and its caller
+        checks the containing edge on entry/return. This avoids re-statting the
+        full ancestor chain for every ordinary file. Detaching an ancestor
+        cannot redirect descriptor-relative reads. Directory stable/member and
+        outer path identity checks still reject persistent replacements before
+        a result is returned; publishing separately rechecks each selected path.
+        Windows has path-based reads, so it retains the full ancestor checks.
+        """
         root = self.g['local'](self.g['builtin'].NODE_MODULES)
         store = self.g['local']('/root/.local/share/pnpm/store/v10/files')
         reader = DeleteObjects(self.home, self.g['check_cancel'])
         found, budget = [], [0]
+        started = time.monotonic()
+        counts = {'entries': 0, 'directories': 0, 'maxDepth': 0, 'candidates': 0}
         def walk(parent, name, verify, prefix, depth):
             self.g['check_cancel'](); verify()
             before = reader.stat(parent, name)
@@ -442,13 +455,18 @@ class Transactions:
                 if not reader.stable(before, os.fstat(descriptor) if reader.relative else os.lstat(directory)):
                     raise ValueError('旧 pnpm 模块目录在打开期间变化，全部现场保留')
                 def nested_verify():
-                    verify()
-                    if reader.identity(reader.stat(parent, name)) != reader.identity(before):
+                    if not reader.relative:
+                        verify()
+                    if not reader.stable(before, reader.stat(parent, name)):
                         raise ValueError('旧 pnpm 模块父目录在核验期间变化，全部现场保留')
+                counts['directories'] += 1
+                counts['maxDepth'] = max(counts['maxDepth'], depth)
                 names = sorted(os.listdir(directory))
                 for child in names:
                     self.g['check_cancel'](); nested_verify()
                     budget[0] += 1
+                    counts['entries'] = budget[0]
+                    counts['maxDepth'] = max(counts['maxDepth'], depth + 1)
                     if budget[0] > 100000:
                         raise ValueError('旧 pnpm 模块条目超过核验上限，全部现场保留')
                     info = reader.stat(directory, child)
@@ -470,26 +488,37 @@ class Transactions:
                             raise ValueError('旧 pnpm CAS 链接名称无效，原件已保留')
                         found.append({'path': relative, 'before': old, 'beforeStat': [info.st_mtime_ns, info.st_ctime_ns], 'cas': cas_relative,
                                       'sha512': match[1] + match[2], 'mode': 0o755 if match[3] else 0o644})
+                        counts['candidates'] = len(found)
                     elif stat.S_ISDIR(info.st_mode) and not reader.reparse(info):
                         walk(directory, child, nested_verify, relative + '/', depth + 1)
                     elif not stat.S_ISREG(info.st_mode) or reader.reparse(info):
                         raise ValueError('旧 pnpm 模块含特殊文件，全部现场保留')
                 if names != sorted(os.listdir(directory)) or not reader.stable(before, os.fstat(descriptor) if reader.relative else os.lstat(directory)):
                     raise ValueError('旧 pnpm 模块目录在核验期间变化，全部现场保留')
+                nested_verify()
+                verify()
             finally:
                 if descriptor is not None:
                     os.close(descriptor)
-        with reader.parent(root) as handle:
-            if handle is None:
-                return []
-            try:
-                root_info = reader.stat(handle[0], handle[1])
-            except FileNotFoundError:
-                return []
-            if not stat.S_ISDIR(root_info.st_mode):
-                raise ValueError('旧 pnpm 模块根不是私有目录，原件已保留')
-            walk(*handle, '', 0)
-        return found
+        try:
+            with reader.parent(root) as handle:
+                if handle is None:
+                    return []
+                try:
+                    root_info = reader.stat(handle[0], handle[1])
+                except FileNotFoundError:
+                    return []
+                if not stat.S_ISDIR(root_info.st_mode):
+                    raise ValueError('旧 pnpm 模块根不是私有目录，原件已保留')
+                walk(*handle, '', 0)
+            return found
+        finally:
+            self.cas_timing('scan', started, **counts)
+
+    def cas_timing(self, phase, started, **counts):
+        report = self.g.get('cas_timing')
+        if report is not None:
+            report(phase, time.monotonic() - started, **counts)
 
     def copy_cas_file(self, entry, candidate, total):
         store = self.g['local']('/root/.local/share/pnpm/store/v10/files')
@@ -544,10 +573,12 @@ class Transactions:
 
     def materialize_cas_links(self):
         # Caller holds the normal data -> profile writer lock, before Web spawn.
+        started = time.monotonic()
         os.makedirs(self.directory, exist_ok=True)
         self.archive_terminal()
         if self.pending():
             raise ValueError('存在中断的插件事务，请先恢复；不会自动重放旧 pnpm 修复')
+        self.cas_timing('transaction-check', started)
         entries = self.cas_links()
         if not entries:
             return {'changed': False, 'migratedFiles': 0, 'operationId': ''}
@@ -556,10 +587,13 @@ class Transactions:
         # Earlier batches are byte-equivalent committed copies; any interrupted
         # batch blocks the next start and is never automatically replayed.
         total, migrated, operation = [0], 0, ''
+        started = time.monotonic()
         for offset in range(0, len(entries), CAS_BATCH_FILES):
             copied = self.materialize_cas_batch(entries[offset:offset + CAS_BATCH_FILES], total)
             migrated += copied['migratedFiles']
             operation = copied['operationId']
+        self.cas_timing('copy-commit', started, bytes=total[0], migratedFiles=migrated,
+                        batches=(len(entries) + CAS_BATCH_FILES - 1) // CAS_BATCH_FILES)
         return {'changed': True, 'migratedFiles': migrated, 'operationId': operation}
 
     def materialize_cas_batch(self, entries, total):

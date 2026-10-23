@@ -2512,6 +2512,48 @@
       "environment": {},
       "reason": "Actual production Java ManagedPatchChain/ExactTextPatch full chains: fresh, prepared-repeat, canonical fallback, exact 1817 upgrade and broken V1 rejection/recovery. Independent APK archive admission also available.",
       "cli": "--jdk PATH; optional --apk PATH for exact built APK; pinned upstream and historical worker source, no device data."
+    },
+    {
+      "path": "tools/test-plugin-cas-scan-review.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "platform": [
+        "linux"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Independent real Linux FD/NOFOLLOW negative controls for ancestor swaps during CAS scan and before transaction publication."
+    },
+    {
+      "path": "tools/test-deepseek-account-requests.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "python39",
+        "jdk17"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Real locked account modules with localhost responses: equivalent in-flight reads, credential lifetime/headers, 403 diagnostics, retention, and exact patch chain."
+    },
+    {
+      "path": "tools/test-account-request-patch-chain.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "jdk17",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Production Java account recipe chains: fresh/repeat, pinned prior2100 module upgrade, canonical recovery and drift rejection; optional exact APK admission."
     }
   ],
   "historicalExcluded": [

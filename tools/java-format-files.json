@@ -728,6 +728,7 @@
     "app/src/test/java/com/deepseekharness/app/core/LanAuthBridgeTest.java",
     "app/src/test/java/com/deepseekharness/app/core/LegacyNativeCredentialFallbackTest.java",
     "app/src/test/java/com/deepseekharness/app/core/NativeConsentProjectionTest.java",
+    "app/src/test/java/com/deepseekharness/app/core/PermissionPolicyRetirementTest.java",
     "app/src/test/java/com/deepseekharness/app/core/PluginRepositoryDiscardTest.java",
     "app/src/test/java/com/deepseekharness/app/core/PluginRepositoryQueryLifecycleTest.java",
     "app/src/test/java/com/deepseekharness/app/core/RecoveredLanAuthTest.java",

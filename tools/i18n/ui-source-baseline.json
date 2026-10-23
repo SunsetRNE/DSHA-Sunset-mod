@@ -37,7 +37,7 @@
       "file": "app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java",
       "signature": "+UiText.choose(\"旧原生 API Key 无法读取，原记录已保留。本次不注入兼容凭据；可继续在网页配置模型和凭据。\",\"The legacy native API key is unavailable and its saved record was retained. No compatibility key will be injected; configure the model and credentials in Web.\")",
       "line": 283,
-      "sourceSha256": "8dd52f256130e54a384e6da00c245dfd74d5d7339ad4b881bb697915785f59c7",
+      "sourceSha256": "cd2fabb0652ce239a82e22479fa29d45bb94c9875525860f91b7c16f26fdd445",
       "occurrences": 1,
       "classification": "independent_complete_paragraph_join",
       "reason": "The prefix consists only of the literal diagnostic namespace and CredentialRead state/reason enum names followed by a colon. The UiText.choose arguments are independent complete translated sentences; no translated label or sentence fragment is assembled and no credential value is concatenated.",

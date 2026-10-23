@@ -50,7 +50,8 @@ final class StartupPipeline {
 
     String legacyPlugins() throws Exception;
 
-    com.deepseekharness.app.util.BoundedProcessRunner.Result materializeCasLinks() throws Exception;
+    com.deepseekharness.app.util.BoundedProcessRunner.Result materializeCasLinks(
+        java.util.function.Consumer<String> timing) throws Exception;
   }
 
   interface Diagnostics {
@@ -121,10 +122,10 @@ final class StartupPipeline {
                 "PLUGIN_LEGACY_ACTIVATION");
           }
 
-          public com.deepseekharness.app.util.BoundedProcessRunner.Result materializeCasLinks()
+          public com.deepseekharness.app.util.BoundedProcessRunner.Result materializeCasLinks(
+              java.util.function.Consumer<String> timing)
               throws Exception {
-            return boot.execAndReadWithProotResult(
-                "python3 /root/.dsh/plugin-manager.py materialize-cas-links", 120_000);
+            return boot.materializeCasLinksResult(timing);
           }
         },
         new Diagnostics() {
@@ -201,10 +202,12 @@ final class StartupPipeline {
       actions.stage(
           com.deepseekharness.app.util.UiText.choose(
               "检查旧插件文件链接", "Checking legacy plugin file links"));
+      var outcome = runtime.materializeCasLinks(line -> diagnostics.message(generation, line));
+      relayCasTiming(outcome.output, generation);
       long copied =
           requireCasCopyReceipt(
               com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
-                  runtime.materializeCasLinks(), "PLUGIN_CAS_COPY"));
+                  outcome, "PLUGIN_CAS_COPY"));
       if (copied > 0)
         diagnostics.message(
             generation,
@@ -283,6 +286,20 @@ final class StartupPipeline {
         + com.deepseekharness.app.util.UiText.choose(
             "旧原生 API Key 无法读取，原记录已保留。本次不注入兼容凭据；可继续在网页配置模型和凭据。",
             "The legacy native API key is unavailable and its saved record was retained. No compatibility key will be injected; configure the model and credentials in Web.");
+  }
+
+  /** 只转送有界阶段诊断；阶段行不能代替完成回执和真实进程退出。 */
+  private void relayCasTiming(String output, long generation) {
+    int count = 0;
+    if (output == null) return;
+    for (String line : output.split("\\r?\\n")) {
+      if (!line.startsWith("CAS_TIMING: ")) continue;
+      if (++count > 24) break;
+      diagnostics.message(
+          generation,
+          com.deepseekharness.app.util.SensitiveData.redact(
+              line.substring(0, Math.min(line.length(), 4096))));
+    }
   }
 
   /** One completed repair receipt authorizes proceeding; errors and pending work never do. */

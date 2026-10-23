@@ -1,5 +1,7 @@
 # Android 上的 Ubuntu、proot 与 proroot
 
+> build191入口核对（2026-10-23）：旧插件CAS链接兼容检查使用固定proot运行 `python3 -u /root/.dsh/materialize-cas-links.py`，不跟随主Web的proroot选项；轻入口/FD扫描和分段时序不改变事务执行域或退出屏障。[本轮范围与待验项](releases/v0.2.1-rc.2-build191-startup-20261023.md)。本页下方link2symlink概述须按入口理解：主Web使用实际硬链接探测结果；CAS所走install路径不执行同一探测，默认LaunchSpec仍可选择link2symlink，不能把主Web的探测结论移用于该入口。
+
 本文对照 **2026-10-21 F10 / build190** 的实际源码工作树 `<local-workspace>`。当前应用内置 DSH **0.2.1-rc.2**，Ubuntu 基础环境身份 **10**。旧 `<local-workspace>` 的 build173/bxroot 实现不代表当前构建。
 
 整体入口见[项目架构手册](project-architecture-handbook.md)，数据、插件与命令环境见[运行时数据和插件架构](runtime-data-plugin-architecture.md)，外部项目、许可证与证据层次见[来源与权威参考](references-and-provenance.md)。本页讲运行机制，不新增设备验收结论；F10 的实际验证范围以[发布记录](releases/v0.2.1-rc.2-build190-prerelease-20261020.md)为准。
@@ -67,7 +69,7 @@ flowchart TD
 
 ## 4. proot 实际调用与原生来源
 
-当前 proot 使用 Termux 分支的 ptrace 路径翻译。`baseArgv()` 传入 `-L --kill-on-exit -0 --rootfs=<私有根> --cwd=/root` 及 bind。`--link2symlink` 仅在实际硬链接探测不支持时启用，另设置 `.l2s` 目录及 `PROOT_L2S_DIR`；不能为追求“兼容”无条件开启并破坏原子文件发布语义。
+当前 proot 使用 Termux 分支的 ptrace 路径翻译。`baseArgv()` 传入 `-L --kill-on-exit -0 --rootfs=<私有根> --cwd=/root` 及 bind。`--link2symlink` 取决于该入口的LaunchSpec，并设置 `.l2s` 目录及 `PROOT_L2S_DIR`；主Web用实际硬链接探测选择，CAS/install等入口的默认值和探测路径须分别核对，不能宣称每个proot命令都先完成同一硬链接探测。
 
 `applyEnv()` 设置 `PROOT_LOADER`、存在时的 `PROOT_LOADER_32`、`PROOT_TMP_DIR`、依赖搜索路径。`PROOT_NO_SECCOMP=1` 对应显式关闭加速；这不会取消应用本身的安全边界。[RuntimeNativeFiles.prepare()](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeNativeFiles.java) 从随包原生库准备 `libtalloc.so.2` 与 `libandroid-shmem.so` 别名，不把缺失依赖当成环境已就绪。
 
