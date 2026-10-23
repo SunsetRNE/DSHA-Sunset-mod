@@ -16,6 +16,7 @@ public class ManagedPatchRegistryIntegrationTest {
           "conversation-large-image-file-patch.json",
           "file-deliverables-patch.json",
           "file-image-actions-patch.json");
+  private static final Set<String> BUILD193_RECIPES = Set.of("plugin-pnpm-argv-patch.json");
 
   private static String text(Path file) throws Exception {
     return Files.readString(file).replace("\r\n", "\n");
@@ -108,23 +109,42 @@ public class ManagedPatchRegistryIntegrationTest {
     for (var group : groups.entrySet()) {
       String canonical = text(raw.resolve(group.getKey()));
       String patched = ManagedPatchChain.apply(canonical, group.getValue(), () -> canonical);
+      if (group.getValue().stream().anyMatch(recipe -> BUILD193_RECIPES.contains(recipe.id()))) {
+        var prefixWithoutArgv =
+            group.getValue().stream()
+                .filter(recipe -> !BUILD193_RECIPES.contains(recipe.id()))
+                .toList();
+        String currentSourceWithoutArgv =
+            ManagedPatchChain.apply(canonical, prefixWithoutArgv, () -> canonical);
+        assertEquals(
+            "Current official source with the pre-argv overlay must upgrade: " + group.getKey(),
+            patched,
+            ManagedPatchChain.apply(
+                currentSourceWithoutArgv,
+                group.getValue(),
+                () -> {
+                  throw new AssertionError("Supported current source prefix must upgrade in place");
+                }));
+      }
       var previous =
           group.getValue().stream()
               .filter(recipe -> !BUILD192_RECIPES.contains(recipe.id()))
               .toList();
       if (previous.size() != group.getValue().size()) {
-        // The six additions are appended to the existing signed build191 chain.
-        // Apply that exact prefix first, then exercise production Java upgrade
-        // without substituting the canonical module for the installed source.
-        String installed191 = ManagedPatchChain.apply(canonical, previous, () -> canonical);
+        // Exercise a synthetic prefix on the current official source only.
+        // This is not an extraction of a historical build191 module. Exact
+        // published192 bytes and the generation boundary are covered by
+        // tools/test-build193-patch-chain.py.
+        String currentSourceWithoutTransfers =
+            ManagedPatchChain.apply(canonical, previous, () -> canonical);
         assertEquals(
-            "Existing build191 recipe prefix must upgrade: " + group.getKey(),
+            "Current official source with the pre-transfer overlay must upgrade: " + group.getKey(),
             patched,
             ManagedPatchChain.apply(
-                installed191,
+                currentSourceWithoutTransfers,
                 group.getValue(),
                 () -> {
-                  throw new AssertionError("Supported build191 source must upgrade in place");
+                  throw new AssertionError("Supported current source prefix must upgrade in place");
                 }));
       }
       assertEquals(
@@ -156,5 +176,6 @@ public class ManagedPatchRegistryIntegrationTest {
     assertFalse(active.contains("agent-preset-patch.json"));
     assertFalse(active.contains("models-navigation-patch.json"));
     assertTrue(active.containsAll(BUILD192_RECIPES));
+    assertTrue(active.containsAll(BUILD193_RECIPES));
   }
 }

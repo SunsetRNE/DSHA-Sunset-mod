@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.1-rc.2",
+  "dshVersion": "0.2.1-rc.3",
   "module": "@deepseek-ai/dsh-client-locale/lib/client.js",
   "patches": [
     {
@@ -15,5 +15,7 @@
       "before": "this.preference = match.id;\n\t\t\t\tif (this.snapshot.active !== match.id)",
       "after": "this.preference = match.id;\n                if (typeof window !== \"undefined\" && window.__DSHA_LANGUAGE__ && window.__DSHA_LANGUAGE__ !== match.id) { window.__DSHA_LANGUAGE__ = match.id; window.dispatchEvent(new CustomEvent(\"dsha-language-selected\", { detail: match.id })); }\n\t\t\t\tif (this.snapshot.active !== match.id)"
     }
-  ]
+  ],
+  "sourceSha256": "bad8fe9bfb07af2a60c80933be65ceafdaab5386f404fb264401c7e540a36e16",
+  "packageIntegrity": "sha512-/WpBT8gEivbD/yndgefYM09SysDcLcd8/Ov5zmC+A1EPNv6UoQ+4avPT6tkwT46XaG4XoJXmVglDOmfg/vUFGg=="
 }

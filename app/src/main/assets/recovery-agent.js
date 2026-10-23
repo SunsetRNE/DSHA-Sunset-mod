@@ -9,7 +9,7 @@ export const inject = ['tools', 'systemPrompt', 'agentPresets', 'workspaceRegist
 export const toolNames = Object.freeze(['dsha_diagnostics', 'dsha_targets', 'dsha_read', 'dsha_propose', 'dsha_result']);
 const allowed = new Set(toolNames);
 
-/** 用锁定 rc2 的正式 Registry API 建立本次应急 HOME 下的默认工作区。 */
+/** 用独立锁定版本的正式 Registry API 建立本次应急 HOME 下的默认工作区。 */
 export async function ensureRecoveryWorkspace(registry, ownHome = homedir()) {
   const directory = join(ownHome, 'workspace');
   const workspace = await registry.initializeDefault(async () => directory);

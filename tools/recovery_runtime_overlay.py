@@ -1,4 +1,4 @@
-"""Build fixed recovery browser overlays from the pinned rc2 archive.
+"""Build fixed recovery browser overlays from the independently pinned archive.
 
 The signed APK carries final bytes separately from the pinned archive. Android
 checks both digests before replacing a candidate file, so a changed upstream
@@ -20,8 +20,19 @@ TARGETS = {
 }
 MAX_SOURCE_BYTES = {'index.html': 1024 * 1024, 'client.pdf.js': 12 * 1024 * 1024,
                     'client-resources.js': 1024 * 1024, 'client-locale.js': 1024 * 1024}
-INPUT_ASSETS = ('web-integration/es-compat.js', 'web-integration/startup.js',
-                'pdf-compat-patch.json', 'language-patch.json', 'web-integration/language.js')
+INPUT_ASSETS = ('web-integration/es-compat.js', 'web-integration/startup.js', 'web-integration/language.js')
+
+
+def recipe_path(dsh_version, name):
+    # A formal DSH upgrade must never silently select a recipe for the pinned rescue ABI.
+    if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?', dsh_version):
+        raise ValueError('RECOVERY_RECIPE_VERSION')
+    return 'recovery-recipes/' + dsh_version + '/' + name
+
+
+def input_assets(dsh_version):
+    return INPUT_ASSETS + tuple(recipe_path(dsh_version, name)
+                                for name in ('pdf-compat-patch.json', 'language-patch.json'))
 CAPSULE_DEPENDENCIES = {
     **{'destructive-policy/' + name:
        PREFIX + 'dsha-destructive-policy/' + name
@@ -77,7 +88,7 @@ def source_files(archive: Path):
 
 def build(archive: Path, assets: Path, dsh_version: str):
     raw = source_files(archive)
-    spec = json.loads((assets / 'pdf-compat-patch.json').read_text(encoding='utf8'))
+    spec = json.loads((assets / recipe_path(dsh_version, 'pdf-compat-patch.json')).read_text(encoding='utf8'))
     if spec.get('dshVersion') != dsh_version \
             or spec.get('module') != TARGETS['client.pdf.js'].removeprefix(PREFIX) \
             or spec.get('resourceModule') != TARGETS['client-resources.js'].removeprefix(PREFIX) \
@@ -96,7 +107,7 @@ def build(archive: Path, assets: Path, dsh_version: str):
     pdf = exact(pdf, spec['workerBefore'], 'new Blob([' + json.dumps(compatibility + '\n', ensure_ascii=False)
                 + ', _dsh_pdf_worker_default,')
     resources = exact(raw['client-resources.js'].decode('utf8'), spec['resourceBefore'], spec['resourceAfter'])
-    language = json.loads((assets / 'language-patch.json').read_text(encoding='utf8'))
+    language = json.loads((assets / recipe_path(dsh_version, 'language-patch.json')).read_text(encoding='utf8'))
     if language.get('dshVersion') != dsh_version \
             or language.get('module') != TARGETS['client-locale.js'].removeprefix(PREFIX) \
             or not isinstance(language.get('patches'), list) or len(language['patches']) != 3 \

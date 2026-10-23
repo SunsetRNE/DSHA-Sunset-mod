@@ -57,9 +57,9 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
-        versionCode 192
+        versionCode 193
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.2-20261023.1836-dsh0.2.1-rc.2"
+        versionName "0.2.1-rc.2-20261023.2047-dsh0.2.1-rc.3"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -240,6 +240,7 @@ def prepareStandardAssets = tasks.register("prepareStandardAssets", Exec) {
     inputs.file(rootProject.file("tools/prepare-web-compat.mjs"))
     inputs.files(rootProject.files("tools/web-compat/entry.cjs", "tools/web-compat/package.json", "tools/web-compat/package-lock.json"))
     inputs.file(rootProject.file("tools/build-dsh-runtime.py"))
+    inputs.files(rootProject.files("tools/runtime_stable_patches.py", "tools/runtime_input_contract.py"))
     inputs.dir(rootProject.file("tools/dsh-runtime"))
     inputs.file(rootProject.file("tools/prepare-ubuntu-tools.py"))
     inputs.dir(rootProject.file("tools/ubuntu-tools"))
@@ -295,9 +296,12 @@ def prepareRecoveryAssets = tasks.register("prepareRecoveryAssets", Exec) {
     dependsOn(prepareStandardAssets)
     inputs.file(rootProject.file("tools/prepare-recovery-assets.py"))
     inputs.file(rootProject.file("tools/recovery_runtime_overlay.py"))
+    inputs.file(rootProject.file("tools/recovery_descriptor_limits.py"))
+    inputs.file(file("src/main/java/com/deepseekharness/app/util/RecoveryDescriptorLimits.java"))
     inputs.file(rootProject.file("tools/generated_asset_directory.py"))
     inputs.files(rootProject.files("tools/asset-deployment.json", "tools/asset_deployment.py"))
     inputs.file(rootProject.file("tools/recovery-runtime/lock.json"))
+    inputs.files(fileTree("src/main/assets/recovery-recipes"))
     // 正式归档变化必须重算物理位置；固定副本可以首次缺失后由同摘要种子建立。
     inputs.files(layout.buildDirectory.file("generated/standardAssets/offline-rootfs.bin"),
             layout.buildDirectory.file("generated/standardAssets/dsh-runtime.bin"))

@@ -1,4 +1,4 @@
-// Real pinned rc2 browser Controllers, snapshot stores, React and controls.
+// Real pinned rc3 browser Controllers, snapshot stores, React and controls.
 // Only the asynchronous remote transport is controlled. No APK or device data.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

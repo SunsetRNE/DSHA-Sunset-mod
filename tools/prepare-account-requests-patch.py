@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate narrow account request patches from hash-locked official rc2 modules."""
+"""Generate narrow account request patches from hash-locked official rc3 modules."""
 import argparse
 import hashlib
 import json
@@ -8,12 +8,12 @@ from source_text import write_text, matches_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
-VERSION = '0.2.1-rc.2'
+VERSION = '0.2.1-rc.3'
 SERVER = '@deepseek-ai/dsh-deepseek-account-platform/lib/index.js'
 CLIENT = '@deepseek-ai/dsh-client-ui-settings-account/lib/client.js'
 HASHES = {
     SERVER: '3b82b41e3e94566e43105a2552c0a4804983be39e1e16ad8b0d0646c76ec0057',
-    CLIENT: 'ec4ca325a530d68c7e69df5465b4ef82a257e2be179f32801bd4b17b13e89c8a',
+    CLIENT: '3968e491fafd298d836b3ccb9b68fa64d0384e488bfe251267aba949d6cdd67a',
 }
 
 

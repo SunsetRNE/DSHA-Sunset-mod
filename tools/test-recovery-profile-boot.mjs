@@ -9,9 +9,9 @@ import path from 'node:path';
 import { zstdDecompressSync } from 'node:zlib';
 
 const root=path.resolve(import.meta.dirname,'..');
-const expectedDsh=JSON.parse(await readFile(path.join(root,'tools/dsh-runtime/package.json'),'utf8')).dependencies['@deepseek-ai/dsh'];
+const expectedDsh=JSON.parse(await readFile(path.join(root,'tools/recovery-runtime/lock.json'),'utf8')).dshVersion;
 const fixture=JSON.parse(await readFile(path.join(root,'app/build/test-runtimes/current.json'),'utf8'));
-const runtime=path.resolve(process.env.DSHA_TEST_RUNTIME||fixture.raw);
+const runtime=path.resolve(process.env.DSHA_TEST_RECOVERY_RUNTIME||process.env.DSHA_TEST_RUNTIME||fixture.raw);
 const actual=JSON.parse(await readFile(path.join(runtime,'node_modules/@deepseek-ai/dsh/package.json'),'utf8'));
 assert.equal(actual.version,expectedDsh);
 const tempParent=path.join(root,'app/build/tmp');await mkdir(tempParent,{recursive:true});
@@ -54,7 +54,7 @@ try{
   child.stdout.on('data',chunk=>{output+=chunk;});child.stderr.on('data',chunk=>{output+=chunk;});child.once('exit',()=>{exited=true;});
   const deadline=Date.now()+60000;
   while(!exited&&!output.includes(`DSHA_RECOVERY_AGENT_READY:${instance}`)&&!output.includes('DSHA_RECOVERY_AGENT_FAILED')&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
-  assert.match(output,new RegExp(`DSHA_RECOVERY_AGENT_READY:${instance}`),'complete rc2 profile must publish checked readiness');
+  assert.match(output,new RegExp(`DSHA_RECOVERY_AGENT_READY:${instance}`),'complete pinned profile must publish checked readiness');
   assert.equal(calls,1);
   assert.equal(exited,false);
   // 等 Web 绑定并实际取回 HTML；不把工具初始化完成替代 HTTP 就绪。
@@ -115,7 +115,7 @@ try{
     assert.equal(observed.header.agentPreset,'dsha-emergency');
     assert.deepEqual(observed.tools,['dsha_diagnostics','dsha_propose','dsha_read','dsha_result','dsha_targets']);
     assert.ok(observed.extensionPackages?.some(row=>row.name==='dsha-recovery-agent'&&row.version==='0.1.0'),
-      'real rc2 DeepSeek request extension must accept the recovery agent manifest');
+      'real pinned DeepSeek request extension must accept the recovery agent manifest');
     assert.ok(Number.isInteger(observed.extensionPrepareMs)&&observed.extensionPrepareMs<5000,
       `host fixture request-extension preparation was slow: ${observed.extensionPrepareMs}ms`);
     assert.equal(observed.workspaces.length,1);assert.equal(path.resolve(observed.workspaces[0].path),path.resolve(home,'workspace'));
@@ -124,7 +124,7 @@ try{
     assert.deepEqual(clientWarnings.filter(message=>/did not activate|waiting for service|failed to (?:load|activate)|missing service/i.test(message)),[],'required client services must activate');
     const reports=path.join(root,'app/build/reports/recovery-browser');await mkdir(reports,{recursive:true});
     await page.screenshot({path:path.join(reports,'workbench.png'),fullPage:true});
-    await writeFile(path.join(reports,'result.json'),JSON.stringify({dshVersion:actual.version,browser:browser.version(),viewport:{width:393,height:852},workspaceSelected:true,sessionCwdInEmergencyHome:true,agentPreset:observed.header.agentPreset,scopedTools:observed.tools,composerVisible:true,composerEditable:true,sendEnabled:true,pageErrors,clientWarnings},null,2)+'\n');
+    await writeFile(path.join(reports,'result.json'),JSON.stringify({dshVersion:actual.version,browser:browser.version(),viewport:{width:393,height:852},workspaceSelected:true,sessionCwdInEmergencyHome:true,agentPreset:observed.header.agentPreset,scopedTools:observed.tools,extensionPackages:observed.extensionPackages,extensionPrepareMs:observed.extensionPrepareMs,requestExtensionPrepared:true,brokerDiagnosticsCalls:calls,composerVisible:true,composerEditable:true,sendEnabled:true,pageErrors,clientWarnings},null,2)+'\n');
     if(temporaryKey){
       browserStorageEvidence=await page.evaluate(async needle=>{
         const matches=[];let storageValues=0,indexedDbValues=0;
@@ -152,6 +152,9 @@ try{
   const stopped=once(child,'exit');await writeFile(path.join(home,'.recovery-stop'),instance+'\n');
   const exit=await Promise.race([stopped,new Promise((_,reject)=>setTimeout(()=>reject(Error('RECOVERY_NORMAL_STOP_TIMEOUT')),10000))]);
   assert.equal(exit[0],0,'normal emergency shutdown must exit successfully');
+  const reportPath=path.join(root,'app/build/reports/recovery-browser/result.json');
+  const report=JSON.parse(await readFile(reportPath,'utf8'));
+  await writeFile(reportPath,JSON.stringify({...report,normalExitCode:exit[0],modelRequestsSent:0},null,2)+'\n');
   if(temporaryKey){
     assert.equal(output.includes(temporaryKey),false,'temporary API key must not enter startup or shutdown logs');
     const needle=Buffer.from(temporaryKey),matches=[];let filesScanned=0,compressedFilesScanned=0;
@@ -167,7 +170,7 @@ try{
     await writeFile(path.join(reports,'temporary-key.json'),JSON.stringify({dshVersion:actual.version,syntheticKeyOnly:true,modelRequestsSent:0,normalExitCode:exit[0],filesScanned,compressedFilesScanned,browserStorageEvidence,filesystemMatches:matches,processOutputContainsKey:false},null,2)+'\n');
     console.log(`PASS: synthetic temporary API key stayed out of ${filesScanned} fixture files, decompressed sessions, browser storage/cookies and process logs after normal shutdown; no model request`);
   }
-  console.log('PASS: isolated empty rc2 profile, checked repair roster, native auth cookie, real Chromium workbench/composer edit+focus and zero page errors');
+  console.log(`PASS: isolated empty ${actual.version} profile, checked repair roster, native auth cookie, real Chromium workbench/composer edit+focus and zero page errors`);
 }catch(error){
   console.error((temporaryKey?output.replaceAll(temporaryKey,'[synthetic-key]'):output).replaceAll(token,'[broker-token]').replace(/([?&](?:token|auth|key)=)[^\s&]+/g,'$1[redacted]').slice(-14000));throw error;
 }finally{
