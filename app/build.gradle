@@ -57,9 +57,9 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
-        versionCode 193
+        versionCode 194
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261024.0120-dsh0.2.1-rc.3"
+        versionName "0.2.1-rc.3-20261024.0345-dsh0.2.1-rc.3"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -219,7 +219,17 @@ def verifyProrootCompat = tasks.register('verifyProrootCompat', Exec) {
     commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
             rootProject.file('tools/test-proroot-compat.py').absolutePath)
 }
-tasks.named('preBuild').configure { dependsOn(verifyBundledIdentities, verifyBuiltinRegistry, verifyCredentialRegistry, verifyBundledDshVersion, verifyProrootCompat) }
+def verifyCurrentChangelog = tasks.register('verifyCurrentChangelog', Exec) {
+    inputs.file(file('build.gradle'))
+    inputs.files(rootProject.files('tools/generate-changelog.py', 'tools/source_text.py',
+            "docs/releases/build${android.defaultConfig.versionCode}-changes.zh.md",
+            "docs/releases/build${android.defaultConfig.versionCode}-changes.en.md"))
+    inputs.files(files('src/main/res/raw/changelog.md', 'src/main/res/raw-en/changelog.md'))
+    commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
+            rootProject.file('tools/generate-changelog.py').absolutePath, '--check')
+}
+
+tasks.named('preBuild').configure { dependsOn(verifyBundledIdentities, verifyBuiltinRegistry, verifyCredentialRegistry, verifyBundledDshVersion, verifyProrootCompat, verifyCurrentChangelog) }
 tasks.withType(Test).configureEach {
     systemProperty 'dsha.assetsDir', file('src/main/assets').absolutePath
     systemProperty 'dsha.sourceOnlyTests', sourceOnlyTests

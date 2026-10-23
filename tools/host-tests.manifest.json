@@ -2,6 +2,33 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-generate-changelog.py",
+      "stage": "fast",
+      "requires": ["python39"],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Current localized release notes bind the exact application version and build; reject stale raw resources and missing current sources without relabelling historical notes."
+    },
+    {
+      "path": "tools/test-mobile-server-compression-carrier.mjs",
+      "stage": "runtime",
+      "requires": ["node24", "raw"],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual locked rc3 WebServer with official gzip enabled and disabled: complete JSON/error/HEAD responses and untouched streaming, range and binary transfer boundaries."
+    },
+    {
+      "path": "tools/file-transfer/test-host-browser.mjs",
+      "stage": "runtime",
+      "requires": ["node24", "raw", "browser", "native_host"],
+      "args": [],
+      "timeoutSeconds": 240,
+      "environment": {},
+      "reason": "Authenticated complete rc3 CLI with official gzip, signed mobile/app-integration and actual file controls: real prepare/resolve/content for image, Unicode and empty files; only native publication is mocked."
+    },
+    {
       "path": "tools/test-sunset-ci-inputs.py",
       "stage": "fast",
       "reason": "Sunset CI成对输入选择、固定私有源码默认值与输出注入拒绝；不访问网络",
