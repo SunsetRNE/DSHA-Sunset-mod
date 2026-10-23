@@ -113,8 +113,19 @@ public final class ScreenScreenshotCapture {
                   if (hardware == null) throw new IllegalStateException("SCREENSHOT_DECODE_FAILED");
                   if ((long) hardware.getWidth() * hardware.getHeight() > 16 * 1024 * 1024)
                     throw new IllegalStateException("SCREENSHOT_TOO_LARGE");
-                  software = hardware.copy(Bitmap.Config.ARGB_8888, false);
+                  software = hardware.copy(Bitmap.Config.ARGB_8888, true);
                   if (software == null) throw new IllegalStateException("SCREENSHOT_DECODE_FAILED");
+                  // Only a measured self-owned compact control is redacted. Its exact bounds and
+                  // epoch travel in the observation and its pixels never authorize a touch path.
+                  if (region != null && !region.exclusions().isEmpty()) {
+                    android.graphics.Canvas canvas = new android.graphics.Canvas(software);
+                    android.graphics.Paint paint = new android.graphics.Paint();
+                    paint.setColor(android.graphics.Color.BLACK);
+                    for (var exclusion : region.exclusions()) {
+                      var b = exclusion.bounds();
+                      canvas.drawRect(b.left(), b.top(), b.right(), b.bottom(), paint);
+                    }
+                  }
                   shot = new Shot(software, rotation, region);
                   software = null;
                   pending.complete(shot);

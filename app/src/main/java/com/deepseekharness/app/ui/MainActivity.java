@@ -85,7 +85,18 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
+    boolean chooseWorkspace =
+        com.deepseekharness.app.remote.ui.WorkspaceEntry.routeToChooser(getIntent());
+    // Do not restore local terminal/plugin Fragments before choosing a remote workspace.
+    super.onCreate(chooseWorkspace ? null : savedInstanceState);
+
+    // A computer workspace needs no local Ubuntu runtime, including on first launch.
+    if (chooseWorkspace) {
+      discardedLauncherEntry = true;
+      startActivity(new Intent(this, com.deepseekharness.app.remote.ui.WorkspaceActivity.class));
+      finish();
+      return;
+    }
 
     BrowserTasks.entry("CREATE", getIntent());
     if (resumeBackground(getIntent())) {
@@ -163,6 +174,11 @@ public class MainActivity extends AppCompatActivity {
     diagnostics.setText(com.deepseekharness.app.util.UiText.choose("查看诊断", "View diagnostics"));
     diagnostics.setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
     layout.addView(diagnostics);
+    android.widget.Button workspaces = new android.widget.Button(this);
+    workspaces.setText(R.string.remote_workspaces);
+    workspaces.setOnClickListener(
+        v -> startActivity(new Intent(this, com.deepseekharness.app.remote.ui.WorkspaceActivity.class)));
+    layout.addView(workspaces);
     entryOverlay = layout;
     addContentView(layout, new android.view.ViewGroup.LayoutParams(-1, -1));
   }
@@ -222,6 +238,21 @@ public class MainActivity extends AppCompatActivity {
       parent.removeView(entryOverlay);
     entryOverlay = null;
     android.view.ViewGroup appBar = findViewById(R.id.app_bar);
+    var workspaceButton = new androidx.appcompat.widget.AppCompatImageButton(this);
+    workspaceButton.setImageResource(R.drawable.ic_terminal);
+    workspaceButton.setImageTintList(getColorStateList(R.color.text_secondary));
+    workspaceButton.setContentDescription(getString(R.string.remote_workspaces));
+    android.util.TypedValue workspaceBackground = new android.util.TypedValue();
+    getTheme().resolveAttribute(
+        android.R.attr.selectableItemBackgroundBorderless, workspaceBackground, true);
+    workspaceButton.setBackgroundResource(workspaceBackground.resourceId);
+    int workspaceSize = Math.round(44 * getResources().getDisplayMetrics().density);
+    int workspacePadding = Math.round(11 * getResources().getDisplayMetrics().density);
+    workspaceButton.setPadding(workspacePadding, workspacePadding, workspacePadding, workspacePadding);
+    workspaceButton.setOnClickListener(
+        v -> startActivity(new Intent(this, com.deepseekharness.app.remote.ui.WorkspaceActivity.class)));
+    appBar.addView(workspaceButton, appBar.indexOfChild(findViewById(R.id.btn_tasks)),
+        new android.widget.LinearLayout.LayoutParams(workspaceSize, workspaceSize));
     var downloads = new androidx.appcompat.widget.AppCompatImageButton(this);
     downloads.setImageResource(R.drawable.ic_ui_downloads);
     downloads.setImageTintList(getColorStateList(R.color.text_secondary));
@@ -458,6 +489,10 @@ public class MainActivity extends AppCompatActivity {
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     setIntent(intent);
+    if (com.deepseekharness.app.remote.ui.WorkspaceEntry.routeToChooser(intent)) {
+      startActivity(new Intent(this, com.deepseekharness.app.remote.ui.WorkspaceActivity.class));
+      return;
+    }
     BrowserTasks.entry("NEW_INTENT", intent);
     if (resumeBackground(intent)) return;
     if (!mainReady) {
@@ -478,6 +513,11 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private boolean resumeBackground(Intent intent) {
+    if (intent != null && intent.getBooleanExtra(
+        com.deepseekharness.app.remote.ui.WorkspaceEntry.LOCAL, false)) {
+      BrowserTasks.nativeNavigation();
+      return false;
+    }
     if (BrowserTasks.nativeDestination(intent)) {
       BrowserTasks.nativeNavigation();
       return false;

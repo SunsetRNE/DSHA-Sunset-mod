@@ -261,7 +261,10 @@ public final class MainScreenActions {
         return ScreenReply.refused("CAPABILITY_NOT_AUTHORIZED");
       if (operation.equals("dump") || operation.equals("tree")) return reader.read(context, nodes);
       if (operation.equals("screenshot"))
-        return screenshot(context, args.optString("format", "path"));
+        return screenshot(
+            context,
+            args.optString("format", "path"),
+            args.optInt("maxImageBytes", 16 * 1024 * 1024));
       return actions.execute(context, operation, args);
     } finally {
       if (mutating) {
@@ -271,7 +274,8 @@ public final class MainScreenActions {
     }
   }
 
-  private JSONObject screenshot(ScreenRequestContext context, String format) throws Exception {
+  private JSONObject screenshot(ScreenRequestContext context, String format, int maxImageBytes)
+      throws Exception {
     if (!format.equals("mcp") && !format.equals("path"))
       return ScreenReply.refused("SCREENSHOT_FORMAT_INVALID");
     try (var shot = captures.capture(context)) {
@@ -290,6 +294,14 @@ public final class MainScreenActions {
       if (coordinatesAvailable) {
         result.put("observationRegion", region(shot.region.content()));
         result.put("windowBounds", region(shot.region.window()));
+        var exclusions = new org.json.JSONArray();
+        for (var exclusion : shot.region.exclusions())
+          exclusions.put(
+              new JSONObject()
+                  .put("windowId", exclusion.windowId())
+                  .put("epoch", exclusion.epoch())
+                  .put("bounds", region(exclusion.bounds())));
+        result.put("excludedRegions", exclusions);
       } else {
         result.put(
             "reason",
@@ -300,7 +312,7 @@ public final class MainScreenActions {
         ByteArrayOutputStream encoded = new ByteArrayOutputStream();
         if (!shot.bitmap.compress(Bitmap.CompressFormat.PNG, 90, encoded))
           throw new IllegalStateException("SCREENSHOT_ENCODE_FAILED");
-        if (encoded.size() > 16 * 1024 * 1024)
+        if (maxImageBytes <= 0 || encoded.size() > Math.min(maxImageBytes, 16 * 1024 * 1024))
           throw new IllegalStateException("SCREENSHOT_TOO_LARGE");
         result.put(
             "data",

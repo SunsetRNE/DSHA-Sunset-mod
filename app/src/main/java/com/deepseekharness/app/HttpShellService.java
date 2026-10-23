@@ -1196,6 +1196,17 @@ public final class HttpShellService {
       new com.deepseekharness.app.util.ScreenSessionGrant();
 
   public static void revokeScreenGrant(Context context) {
+    var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(context);
+    var task = coordinator.snapshot().binding();
+    if (task != null
+        && task.owner()
+            == com.deepseekharness.app.control.ControlTaskAuthority.Owner.REMOTE_DEVICE) {
+      // A local DSH stop cannot turn into authority over an independent native device connection.
+      uiGrant.revoke();
+      cancelScreenConfirmation();
+      return;
+    }
+    coordinator.stopLocal("LOCAL_DSH_STOPPED");
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
         com.deepseekharness.app.util.AccessibilityRepairState.CancelCause.SCREEN_AUTHORITY_REVOKED);
     revokeDisconnectedScreenGrant(context);
@@ -1203,6 +1214,8 @@ public final class HttpShellService {
 
   /** Revokes every old screen request without treating a planned platform unbind as user consent. */
   public static void revokeDisconnectedScreenGrant(Context context) {
+    com.deepseekharness.app.control.PhoneControlCoordinator.get(context)
+        .stop("ACCESSIBILITY_DISCONNECTED");
     DshaApp.from(context).capabilityBroker().revoke("screen");
     DshaAccessibilityService.revokeRequests();
     uiGrant.revoke();
@@ -1211,6 +1224,8 @@ public final class HttpShellService {
   }
 
   public static void screenPolicyChanged(Context context) {
+    com.deepseekharness.app.control.PhoneControlCoordinator.get(context)
+        .pause("SCREEN_POLICY_CHANGED");
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
         com.deepseekharness.app.util.AccessibilityRepairState.CancelCause.POLICY_CHANGED);
     DshaApp.from(context).capabilityBroker().revoke("screen");
@@ -1222,6 +1237,8 @@ public final class HttpShellService {
 
   /** A global consent change invalidates all domains before the new local mode is published. */
   public static void globalConsentChanged(Context context) {
+    com.deepseekharness.app.control.PhoneControlCoordinator.get(context)
+        .pause("CONSENT_POLICY_CHANGED");
     com.deepseekharness.app.ui.DshaDialogBuilder.invalidateSafetyConfirmations();
     DshaApp.from(context).capabilityBroker().revokeAll();
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
@@ -1246,6 +1263,9 @@ public final class HttpShellService {
   }
 
   public static void setScreenPaused(Context context, boolean paused) {
+    var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(context);
+    if (paused) coordinator.pause("LOCAL_USER_PAUSE");
+    else coordinator.resume();
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
         com.deepseekharness.app.util.AccessibilityRepairState.CancelCause.PAUSE_CHANGED);
     DshaApp.from(context).capabilityBroker().revoke("screen");
@@ -1435,10 +1455,6 @@ public final class HttpShellService {
 
   /** Main-screen adapter receives an explicit request and the caller's observation evidence. */
   private String appUi(String path, RequestScope scope) {
-    var observed =
-        DshaAccessibilityService.observeTargetForRequest(() -> screenBridgeCurrent(scope));
-    if (observed.target == null) return observed.failure().toString();
-    var target = observed.target;
     String route = path.split("\\?", 2)[0];
     String operation = route.substring("/app/ui/".length());
     if (operation.equals("shot")) operation = "screenshot";
@@ -1459,7 +1475,27 @@ public final class HttpShellService {
           return "[ERR] AMBIGUOUS_SCREEN_ACTION";
         operation = "tapText";
       }
+      var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
+      var runtime = com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx);
+      var binding =
+          new com.deepseekharness.app.control.ControlTaskAuthority.Binding(
+              com.deepseekharness.app.control.ControlTaskAuthority.Owner.LOCAL_DSH,
+              scope.run.runId + ":" + runtime.instanceId,
+              arguments.optString("taskSessionId", runtime.instanceId),
+              arguments.optString("turnId", "local-session"));
+      var taskLease = coordinator.begin(binding);
+      boolean observing = java.util.Set.of("dump", "tree", "screenshot").contains(operation);
+      if (!observing && !coordinator.actionAllowed(taskLease))
+        return com.deepseekharness.app.screen.ScreenReply.refused(
+                "FRESH_SCREEN_OBSERVATION_REQUIRED")
+            .toString();
+      var observed =
+          DshaAccessibilityService.observeTargetForRequest(
+              () -> screenBridgeCurrent(scope) && coordinator.current(taskLease));
+      if (observed.target == null) return observed.failure().toString();
+      var target = observed.target;
       var capability = screenRequest(scope, operation, target);
+      coordinator.bindRequest(capability, taskLease);
       ScreenAuthorization authorization =
           screenAuthorization(scope, operation, target.packageName, target, capability);
       if (authorization != ScreenAuthorization.ALLOWED)
@@ -1473,14 +1509,20 @@ public final class HttpShellService {
       java.util.function.BooleanSupplier live =
           () ->
               screenBridgeCurrent(scope)
+                  && coordinator.current(taskLease)
+                  && !com.deepseekharness.app.control.OwnedScreenOverlay.expanded()
                   && capability.runtime.equals(
                       com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx))
                   && controller.isWebRunning()
                   && !controller.isStarting()
                   && !controller.isStopping()
                   && !controller.isUserStopped();
-      return DshaAccessibilityService.execute(
-          DshaApp.from(ctx).capabilityBroker(), capability, live, operation, arguments);
+      String reply =
+          DshaAccessibilityService.execute(
+              DshaApp.from(ctx).capabilityBroker(), capability, live, operation, arguments);
+      if (observing && new org.json.JSONObject(reply).optString("state").equals("COMPLETED"))
+        coordinator.observed(taskLease);
+      return reply;
     } catch (Exception error) {
       return "[ERR] " + safeError(error);
     }

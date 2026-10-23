@@ -14,6 +14,15 @@ public class DshaApp extends Application
         com.deepseekharness.app.data.PortableSettings.Owner,
         com.deepseekharness.app.backup.MaintenanceUiPorts {
 
+  private boolean remoteWebProcess;
+
+  @Override
+  protected void attachBaseContext(android.content.Context base) {
+    super.attachBaseContext(base);
+    remoteWebProcess =
+        com.deepseekharness.app.remote.gateway.RemoteWebProfile.initializeProcess(this);
+  }
+
   private final com.deepseekharness.app.capabilities.CapabilityBroker screenCapabilityBroker =
       new com.deepseekharness.app.capabilities.CapabilityBroker(
           android.os.SystemClock::elapsedRealtime);
@@ -142,6 +151,8 @@ public class DshaApp extends Application
   @Override
   public void onCreate() {
     super.onCreate();
+    // Remote WebView owns a separate profile and must not initialize the local guest runtime.
+    if (remoteWebProcess) return;
     // 必须早于界面 Locale.setDefault；保留系统原始语言供「跟随系统」使用。
     com.deepseekharness.app.util.SystemLanguage.initialize(this);
     com.deepseekharness.app.data.PortableSettings.initialize(this);

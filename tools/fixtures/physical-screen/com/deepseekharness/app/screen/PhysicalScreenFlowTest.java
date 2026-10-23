@@ -130,10 +130,67 @@ public final class PhysicalScreenFlowTest {
 
   @After
   public void tearDown() {
+    com.deepseekharness.app.control.OwnedScreenOverlay.clear("physical-fixture");
     Platform.captureRelease.countDown();
     Platform.gestureRelease.countDown();
     Platform.windowsRelease.countDown();
     if (main != null) main.revoke();
+  }
+
+  @Test
+  public void exactOwnedCompactOverlayIsMaskedWhileForeignOverlayStillRefusesCoordinates() throws Exception {
+    var overlay = window(77,20,AccessibilityWindowInfo.TYPE_SYSTEM,false,new Rect(5,3,7,5));
+    var ownRoot = AccessibilityNodeInfo.obtain();
+    ownRoot.setPackageName(service.getPackageName());
+    ((ShadowAccessibilityWindowInfo)Shadow.extract(overlay)).setRoot(ownRoot);
+    com.deepseekharness.app.control.OwnedScreenOverlay.publish("physical-fixture",77,
+        new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(5,3,7,5),false);
+    windows = new ArrayList<>(windows); windows.add(overlay); register(service);
+    JSONObject shot = shot();
+    assertTrue(shot.getBoolean("coordinatesAvailable"));
+    assertEquals(1,shot.getJSONArray("excludedRegions").length());
+    byte[] png = android.util.Base64.decode(shot.getString("data"),android.util.Base64.NO_WRAP);
+    Bitmap returned = android.graphics.BitmapFactory.decodeByteArray(png,0,png.length);
+    try { assertEquals(android.graphics.Color.BLACK,returned.getPixel(5,3)); }
+    finally { returned.recycle(); }
+    assertEquals("GESTURE_OUTSIDE_OBSERVED_REGION",call("swipe",new JSONObject()
+        .put("observationId",shot.getString("observationId")).put("x1",3).put("y1",4)
+        .put("x2",6).put("y2",4),2000).getString("code"));
+    assertEquals(0,Platform.sends.get());
+    assertEquals("COMPLETED",call("tap",new JSONObject().put("observationId",shot().getString("observationId"))
+        .put("x",3).put("y",8),2000).getString("state"));
+    windows.add(window(78,21,AccessibilityWindowInfo.TYPE_SYSTEM,false,new Rect(2,3,4,5)));
+    register(service);
+    assertFalse(shot().getBoolean("coordinatesAvailable"));
+  }
+
+  @Test
+  public void pauseFencesBoundNativeRequestAndFreshResumeCannotReuseItsFrame() throws Exception {
+    var authority = new com.deepseekharness.app.control.ControlTaskAuthority();
+    var binding = new com.deepseekharness.app.control.ControlTaskAuthority.Binding(
+        com.deepseekharness.app.control.ControlTaskAuthority.Owner.REMOTE_DEVICE,
+        "authenticated-native-connection","full-task-session","full-turn");
+    var lease = authority.begin(binding);
+    CapabilityRequest shotRequest = request("screenshot",2000);
+    com.deepseekharness.app.control.ScreenAuthorityBindings.bind(shotRequest,
+        binding.identity()+"\0"+lease.revision(),()->authority.current(lease));
+    assertTrue(broker.authorize(shotRequest));
+    JSONObject observed = new JSONObject(executeOffMain(shotRequest,"screenshot",new JSONObject().put("format","mcp")));
+    String id = observed.getString("observationId");
+    CapabilityRequest stale = request("tap",2000);
+    com.deepseekharness.app.control.ScreenAuthorityBindings.bind(stale,
+        binding.identity()+"\0"+lease.revision(),()->authority.current(lease));
+    assertTrue(broker.authorize(stale));
+    authority.pause("LOCAL_USER_PAUSE");
+    assertEquals("NOT_SENT",new JSONObject(executeOffMain(stale,"tap",point(id))).getString("state"));
+    authority.resume();
+    var resumed = authority.lease(binding);
+    CapabilityRequest next = request("tap",2000);
+    com.deepseekharness.app.control.ScreenAuthorityBindings.bind(next,
+        binding.identity()+"\0"+resumed.revision(),()->authority.current(resumed));
+    assertTrue(broker.authorize(next));
+    assertEquals("FRAME_NOT_OBSERVED",new JSONObject(executeOffMain(next,"tap",point(id))).getString("code"));
+    assertEquals(0,Platform.sends.get());
   }
 
   @Test

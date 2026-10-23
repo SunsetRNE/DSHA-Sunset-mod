@@ -54,6 +54,11 @@ def render():
     android = '\n'.join('- `' + coordinate + '`' for coordinate in gradle_coordinates())
     native = '\n'.join(f'| `{path}` | {NATIVE_NOTICES.get(Path(path).name, ("unknown", "new binary without reviewed source"))[0]} | {NATIVE_NOTICES.get(Path(path).name, ("unknown", "new binary without reviewed source"))[1]} |'
                        for path in native_members())
+    remote_pin = json.loads((ROOT / 'tools/remote/connect-core/android-runtime.lock.json').read_text(encoding='utf-8'))
+    native += '\n| `app/libs/dsha-connect.aar / libgojni.so` | Go and bundled module licenses | ' \
+        + 'Pinned arm64 build: `' + remote_pin['aarSha256'] + '`; sources and toolchain in ' \
+        + '`tools/remote/connect-core/android-runtime.lock.json`; complete module licenses in ' \
+        + '`assets/licenses/dsha-connect-THIRD_PARTY_NOTICES.txt`, SBOM in `tools/remote/connect-core/go-sbom.cdx.json`. |'
     hashes = '\n'.join(f'- `{name}`：`{hashlib.sha256((ASSETS / "builtin-plugins/dsh-web-mobile/lib" / name).read_bytes()).hexdigest()}`'
                        for name in ('client.js', 'index.js', 'compress.js', 'delete-session.js'))
     return f'''# 第三方组件声明

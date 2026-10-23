@@ -53,6 +53,7 @@
 - `com.android.tools:desugar_jdk_libs:2.0.4`
 - `com.google.android.material:material:1.11.0`
 - `com.google.code.gson:gson:2.13.1`
+- `com.google.zxing:core:3.5.3`
 - `com.termux.termux-app:terminal-view:0.118.0`
 - `dev.rikka.shizuku:api:12.2.0`
 - `dev.rikka.shizuku:api:13.1.5`
@@ -82,6 +83,7 @@
 | `app/src/main/jniLibs/arm64-v8a/libproroot.so` | upstream proprietary | proroot v1.2.8 original binary; source reproducibility not asserted |
 | `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL family; exact binary revision unverified | Samba talloc; build-low-proot.py locks talloc 2.4.3 headers, not the origin of this binary |
 | `app/src/main/jniLibs/arm64-v8a/libtermux.so` | Apache-2.0 exception | tools/termux-jni, v0.118.0 source plus local handshake changes |
+| `app/libs/dsha-connect.aar / libgojni.so` | Go and bundled module licenses | Pinned arm64 build: `5ba19a2d675c9bbd6f7700901ad1f529a1baf0adaaba43413792a4fd26c88c48`; sources and toolchain in `tools/remote/connect-core/android-runtime.lock.json`; complete module licenses in `assets/licenses/dsha-connect-THIRD_PARTY_NOTICES.txt`, SBOM in `tools/remote/connect-core/go-sbom.cdx.json`. |
 
 ## npm 锁中需另核对的许可声明
 
