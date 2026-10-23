@@ -123,8 +123,7 @@ final class StartupPipeline {
           }
 
           public com.deepseekharness.app.util.BoundedProcessRunner.Result materializeCasLinks(
-              java.util.function.Consumer<String> timing)
-              throws Exception {
+              java.util.function.Consumer<String> timing) throws Exception {
             return boot.materializeCasLinksResult(timing);
           }
         },
