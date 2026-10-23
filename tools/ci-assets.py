@@ -48,6 +48,7 @@ def digest(path):
 
 def allowed():
     names = {"app/src/main/assets/" + name for name in NAMES}
+    names.add('app/libs/dsha-connect.aar')
     lock = json.loads((ROOT / "tools/recovery-runtime/lock.json").read_text(encoding="utf-8"))
     names.update("tools/recovery-runtime/archives/" + row["asset"] for row in lock["archives"])
     return names
@@ -84,6 +85,15 @@ def separate_input_pins():
 
 
 def verify_sources(inputs_root=None):
+    native = required_lock('tools/remote/connect-core/android-runtime.lock.json', 'CI_REMOTE_NATIVE_LOCK_MISSING')
+    if native.get('schema') != 1 or native.get('aarPath') != 'app/libs/dsha-connect.aar' \
+            or not re.fullmatch(r'[a-f0-9]{64}', native.get('aarSha256', '')) \
+            or type(native.get('aarBytes')) is not int or not 0 < native['aarBytes'] < 256 * 1024 ** 2:
+        raise ValueError('CI_REMOTE_NATIVE_LOCK_INVALID')
+    native_path = bounded('app/libs/dsha-connect.aar', inputs_root)
+    if not native_path.is_file() or native_path.is_symlink() or native_path.stat().st_size != native['aarBytes'] \
+            or digest(native_path) != native['aarSha256']:
+        raise ValueError('CI_REMOTE_NATIVE_SOURCE_MISMATCH')
     descriptor = json.loads((ROOT / "app/src/main/assets/runtime-descriptor.json").read_text(encoding="utf-8"))
     separate = separate_input_pins()
     for name in NAMES:

@@ -26,6 +26,8 @@ def main():
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--android-jar', type=Path, help='Current compile SDK android.jar, before cached runtime Android stubs')
     parser.add_argument('--resource-jar', type=Path, help='Current flavor R.jar; otherwise inferred beside production classes')
+    parser.add_argument('--compile-timeout', type=int, default=120, help='Compiler deadline on the shared Windows host')
+    parser.add_argument('--junit-timeout', type=int, default=120, help='Physical fixture deadline on the shared Windows host')
     args = parser.parse_args()
     reference = json.loads(args.dependency_reference.read_text(encoding='utf-8'))
     # Restrict inherited inputs to installed dependency caches. Never inherit a
@@ -54,6 +56,10 @@ def main():
     main = ROOT / 'app/src/main/java/com/deepseekharness/app'
     sources = list((main / 'screen').glob('*.java'))
     sources += list((main / 'capabilities').glob('*.java'))
+    sources += [path for path in (main / 'control').glob('*.java') if path.name != 'RemoteControlDispatcher.java']
+    sources += [main / ('remote/' + name + '.java') for name in
+                ['RemoteSessionIdentity', 'RemoteHost']]
+    sources += [main / 'core/ScreenRuntimeIdentity.java']
     sources += [main / 'DshaAccessibilityService.java', main / 'HttpShellService.java', main / 'core/RuntimeSnapshot.java']
     names = ['ScreenRequestExecutor', 'ScreenConnectionEpoch', 'ScreenObservationLedger',
              'ScreenNodeLeaseStore', 'ScreenTarget', 'ScreenCaptureDelivery',
@@ -72,17 +78,23 @@ def main():
                     '-d', str(classes), *map(str, sources)]
     argfile = output / 'javac.args'
     argfile.write_text('\n'.join('"' + value.replace('\\', '/') + '"' for value in compile_args), encoding='utf-8')
-    commands = [('compile', [str(jdk / ('javac' + ext)), '-J-Dfile.encoding=UTF-8', '@' + str(argfile)], 30),
+    commands = [('compile', [str(jdk / ('javac' + ext)), '-J-Dfile.encoding=UTF-8', '@' + str(argfile)], args.compile_timeout),
                 ('junit', [str(jdk / ('java' + ext)), '-Xmx768m', '-Dfile.encoding=UTF-8',
                            '-Djava.awt.headless=true', '-Dphysical.classes=' + str(classes),
                            '-Dphysical.evidence=' + str(output),
                            *['-D' + key + '=' + value for key, value in props.items()],
                            '-cp', str(classes) + os.pathsep + cp, 'org.junit.runner.JUnitCore',
-                           'com.deepseekharness.app.screen.PhysicalScreenFlowTest'], 45)]
+                           'com.deepseekharness.app.screen.PhysicalScreenFlowTest'], args.junit_timeout)]
     stages = []
     try:
         for stage, command, timeout in commands:
-            result = subprocess.run(command, cwd=ROOT, capture_output=True, timeout=timeout)
+            try:
+                result = subprocess.run(command, cwd=ROOT, capture_output=True, timeout=timeout)
+            except subprocess.TimeoutExpired as failure:
+                (output / (stage + '.stdout.bin')).write_bytes(failure.stdout or b'')
+                (output / (stage + '.stderr.bin')).write_bytes(failure.stderr or b'')
+                stages.append({'stage': stage, 'exitCode': None, 'timeoutSeconds': timeout})
+                return 124
             stdout, stderr = output / (stage + '.stdout.bin'), output / (stage + '.stderr.bin')
             stdout.write_bytes(result.stdout)
             stderr.write_bytes(result.stderr)

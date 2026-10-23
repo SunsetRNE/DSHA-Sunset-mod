@@ -30,6 +30,13 @@ class CiAssetsTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='dsha-ci-assets-test-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        (self.root / 'app/libs').mkdir(parents=True)
+        (self.root / 'tools/remote/connect-core').mkdir(parents=True)
+        remote_bytes = b'pinned remote native library fixture'
+        (self.root / 'app/libs/dsha-connect.aar').write_bytes(remote_bytes)
+        (self.root / 'tools/remote/connect-core/android-runtime.lock.json').write_text(json.dumps({
+            'schema': 1, 'aarPath': 'app/libs/dsha-connect.aar', 'aarSha256': sha(remote_bytes),
+            'aarBytes': len(remote_bytes)}), encoding='utf-8')
         self.assets = self.root / 'app/src/main/assets'
         self.assets.mkdir(parents=True)
         self.recovery = self.root / 'tools/recovery-runtime'
@@ -279,7 +286,7 @@ class CiAssetsTests(unittest.TestCase):
                 with patch.object(zipfile.ZipFile, 'open', track_open):
                     self.restore(package, source=True)
                 self.assertEqual(set(opened), {prefix + name for name in originals})
-                self.assertEqual(len(opened), 11)
+                self.assertEqual(len(opened), 12)
                 self.assertEqual(source.read_bytes(), b'checkout source stays')
                 self.assertFalse((self.root / 'source-release').exists())
                 for name, data in originals.items():

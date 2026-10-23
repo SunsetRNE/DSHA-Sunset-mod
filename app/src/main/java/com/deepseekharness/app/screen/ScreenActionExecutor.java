@@ -102,6 +102,14 @@ public final class ScreenActionExecutor {
             }
           }
         }
+        var region = context.currentRegionIfKnown();
+        android.graphics.Rect nodeBounds = new android.graphics.Rect();
+        target.getBoundsInScreen(nodeBounds);
+        if (region != null
+            && region.overlapsExclusion(
+                new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(
+                    nodeBounds.left, nodeBounds.top, nodeBounds.right, nodeBounds.bottom)))
+          return ScreenReply.refused("NODE_COVERED_BY_ASSISTANT");
         if (!context.claimDispatch()) return ScreenReply.refused("SCREEN_RUN_CHANGED");
         return semanticOutcome(context, target.performAction(action, bundle), action);
       } finally {
