@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.2",
+  "module": "@deepseek-ai/dsh-client-ui-conversation/lib/client.js",
+  "sourceSha256": "8554738cbeeb5218ad1bfa4773ef094363b066d052a1893d7a96797c5bc33a63",
+  "packageIntegrity": "sha512-ER7x0so7Owcfgs5ok8WTv3PYcuHUbwUbv9IV2kP6PbxwB+SxCAXtSRRCKlnkTt3WFd+KbwbluVfWBByLJEl9hQ==",
+  "purpose": "Enforce 5,000,000,000 bytes per file, count streamed bytes before storage, retain image budgets and use bounded binary browser transport.",
+  "patches": [
+    {
+      "before": "\t\t\t\t\tif (isImageMediaType(file.type)) {",
+      "after": "\t\t\t\t\t// DSHA_LARGE_IMAGE_FILE_V1: retain the model's 20MiB/200MiB and pixel limits.\n\t\t\t\t\t// Larger images travel as their original file, without FileReader/base64 or image decode.\n\t\t\t\t\tif (isImageMediaType(file.type) && file.size <= 20 * 1024 * 1024) {"
+    }
+  ]
+}

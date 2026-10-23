@@ -172,8 +172,8 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(39, groups.size());
-    assertEquals(50, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(43, groups.size());
+    assertEquals(56, groups.values().stream().mapToInt(java.util.List::size).sum());
     assertTrue(
         groups.get("@deepseek-ai/dsh-deepseek-account-platform/lib/index.js").stream()
             .anyMatch(
@@ -280,10 +280,19 @@ public final class RuntimeToolsRegistryAndroidTest {
         directory.get(0).markers());
     var upload = groups.get("@deepseek-ai/dsh-client-file-upload/lib/index.js");
     assertNotNull(upload);
-    assertEquals(1, upload.size());
+    assertEquals(2, upload.size());
     assertEquals("file-upload-resolver-lifecycle-patch.json", upload.get(0).id());
     assertEquals(
         java.util.List.of("DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"), upload.get(0).markers());
+    assertEquals("file-upload-capacity-patch.json", upload.get(1).id());
+    assertEquals(java.util.List.of("DSHA_UPLOAD_FILE_LIMIT_V1"), upload.get(1).markers());
+    for (var addition : BUILD192_MODULES.entrySet()) {
+      var chain = groups.get(addition.getKey());
+      assertNotNull(addition.getKey(), chain);
+      assertTrue(
+          addition.getKey(),
+          chain.stream().anyMatch(recipe -> recipe.markers().contains(addition.getValue())));
+    }
   }
 
   @Test
@@ -404,6 +413,14 @@ public final class RuntimeToolsRegistryAndroidTest {
   }
 
   private static final String DSH = "usr/local/lib/node_modules/@deepseek-ai/dsh/";
+  private static final Map<String, String> BUILD192_MODULES =
+      Map.of(
+          "@deepseek-ai/dsh-web-search-deepseek/lib/index.js", "DSHA_WEB_SEARCH_HEADERS_V1",
+          "@deepseek-ai/dsh-client-file-upload/lib/index.js", "DSHA_UPLOAD_FILE_LIMIT_V1",
+          "@deepseek-ai/dsh-client-file-upload/lib/client.js", "DSHA_UPLOAD_BINARY_ONLY_V1",
+          "@deepseek-ai/dsh-client-ui-conversation/lib/client.js", "DSHA_LARGE_IMAGE_FILE_V1",
+          "@deepseek-ai/dsh-client-ui-deliverables/lib/client.js", "DSHA_FILE_DELIVERABLES_RC2_V1",
+          "@deepseek-ai/dsh-client-ui-attachment/lib/client.js", "DSHA_IMAGE_ACTIONS_RC2_V1");
   private static final String LAN = "@deepseek-ai/dsh-client-ui-settings/lib/client.js";
 
   private static String sha256(Path file) throws Exception {
@@ -549,6 +566,10 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertTrue(
         Files.readString(modules.resolve("@deepseek-ai/dsh-client-file-upload/lib/index.js"))
             .contains("DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"));
+    for (var addition : BUILD192_MODULES.entrySet())
+      assertTrue(
+          "Production preparation must retain " + addition.getValue(),
+          Files.readString(modules.resolve(addition.getKey())).contains(addition.getValue()));
     assertTrue(
         Files.readString(modules.resolve(pdf.getString("module"))).contains("DSHA_PDF_COMPAT_V1"));
     assertTrue(

@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { applyFileTransferClient } from './file-transfer/client-mobile.mjs';
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(readFileSync(path.join(project, 'tools/mobile-plugin-upstream.lock.json'), 'utf8'));
 export const upstreamCommit = lock.commit;
@@ -105,7 +106,7 @@ export function applyMobileClientPatches(bytes) {
 `;
   replace('  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------',
     css + '  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------');
-  return source;
+  return applyFileTransferClient(source);
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [input, action = '--check'] = process.argv.slice(2);
@@ -120,6 +121,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       else if (!readFileSync(output).equals(patched) || readFileSync(output + '.map', 'utf8') !== map)
         throw new Error('移动服务产物/映射与锁定补丁不符: ' + name);
     }
+    // New DSHA-only module has no upstream member: copy only the reviewed
+    // canonical source, and retain the same exact-byte check as other modules.
+    const transfer = readFileSync(path.join(project, 'tools/file-transfer/file-transfer.js'));
+    const transferOutput = path.join(project, 'app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/file-transfer.js');
+    const transferMap = JSON.parse(mobileServerSourceMap('file-transfer.js', transfer));
+    transferMap.sources = ['dsha://tools/file-transfer/file-transfer.js'];
+    const transferMapText = JSON.stringify(transferMap) + '\n';
+    if (serverAction === '--write') { writeFileSync(transferOutput, transfer); writeFileSync(transferOutput + '.map', transferMapText); }
+    else if (!readFileSync(transferOutput).equals(transfer) || readFileSync(transferOutput + '.map', 'utf8') !== transferMapText)
+      throw new Error('文件传输服务产物/映射与canonical不符');
     console.log('移动服务补丁与上游指纹核验通过: ' + upstreamCommit);
     process.exit(0);
   }

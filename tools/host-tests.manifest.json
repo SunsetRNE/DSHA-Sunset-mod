@@ -7,7 +7,9 @@
       "reason": "Sunset CI成对输入选择、固定私有源码默认值与输出注入拒绝；不访问网络",
       "args": [],
       "timeoutSeconds": 60,
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "environment": {}
     },
     {
@@ -1739,7 +1741,7 @@
     {
       "path": "tools/test-dsh-runtime-packaging.py",
       "stage": "fast",
-      "reason": "Real base gzip packaging plus exact signed policy overlay deployment; prevents duplicate recovery payload without losing policy",
+      "reason": "Real base gzip packaging, exact signed policy overlay deployment, build-input edit race rejection before archive replacement, retained archive/receipt protection and start-snapshot receipt binding.",
       "args": [],
       "timeoutSeconds": 600,
       "requires": [
@@ -2587,6 +2589,140 @@
       "timeoutSeconds": 120,
       "environment": {},
       "reason": "Production Java account recipe chains: fresh/repeat, pinned prior2100 module upgrade, canonical recovery and drift rejection; optional exact APK admission."
+    },
+    {
+      "path": "tools/test-native-ime-hero.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Pinned rc2 HeroShell/ConversationRoot and managed mobile CSS in a real browser; keyboard viewport/layout transport fixture only, no Android device."
+    },
+    {
+      "path": "tools/test-web-search-headers.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "python39",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Locked DeepSeek web-search provider: header preflight categories, credential precedence, redacted diagnostics, HTTP dispatch classification and no fallback/replay."
+    },
+    {
+      "path": "tools/test-web-search-patch-chain.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "raw",
+        "jdk17"
+      ],
+      "args": [
+        "--jdk",
+        "{jdk}"
+      ],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Production Java search recipe chain: fresh/repeat, exact previous191 source, canonical recovery and failure guards; optional exact APK admission."
+    },
+    {
+      "path": "tools/file-transfer/test-file-transfer.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Actual locked LocalFileSystem and isolated HTTP transfer service: authenticated prepare, bounded ranges, manifest restart, stale source and limits; no device or model network."
+    },
+    {
+      "path": "tools/test-file-upload-capacity.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Locked upload/composer/client modules with authenticated isolated CLI: bounded binary intake, decimal 5GB synthetic edges and temporary cleanup. Default excludes explicit full-size writes.",
+      "cli": "Default bounded host cases. Explicit --full-5gb performs a real 5,000,000,000-byte upload/readback; --full-overflow additionally streams 5GB+1. These disk-intensive modes are never implicit."
+    },
+    {
+      "path": "tools/test-artifact-file-actions.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Shipped file bridge in a real browser with native replies mocked: metadata queueing, task status and stale-document fencing; no Android SAF or MediaStore claim."
+    },
+    {
+      "path": "tools/file-transfer/test-client-browser.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Real locked React attachment component and managed mobile file actions: artifact metadata, exact 5GB boundary, gallery original image and navigation; synthetic file metadata and mocked native destination."
+    },
+    {
+      "path": "tools/file-transfer/test-client-recipes.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Regenerate exact file/image action recipes, reject raw-source drift, preserve browser fallback and verify repeated application."
+    },
+    {
+      "path": "tools/test-build192-patch-chain.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "raw",
+        "jdk17"
+      ],
+      "args": [
+        "--jdk",
+        "{jdk}"
+      ],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Production Java complete six-module chain: exact pinned build191 upgrade, fresh/repeat, canonical repair and fail-closed rejection. Optional actual previous APK/archive and final exact APK admission."
+    },
+    {
+      "path": "tools/file-transfer/test-large-download.mjs",
+      "stage": "support",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 1200,
+      "environment": {},
+      "reason": "Explicit opt-in real 5GB download/resume fixture reuses a caller-supplied uploaded source. Required paths and SHA are supplied directly, never generated or run by the default stage.",
+      "cli": "node tools/file-transfer/test-large-download.mjs --source=PATH --output-dir=PATH --sha256=HEX; writes and rereads a separate 5GB file, no Android device claim."
     }
   ],
   "historicalExcluded": [

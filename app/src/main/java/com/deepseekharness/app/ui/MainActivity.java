@@ -221,6 +221,26 @@ public class MainActivity extends AppCompatActivity {
     if (entryOverlay != null && entryOverlay.getParent() instanceof android.view.ViewGroup parent)
       parent.removeView(entryOverlay);
     entryOverlay = null;
+    android.view.ViewGroup appBar = findViewById(R.id.app_bar);
+    var downloads = new androidx.appcompat.widget.AppCompatImageButton(this);
+    downloads.setImageResource(R.drawable.ic_ui_downloads);
+    downloads.setImageTintList(getColorStateList(R.color.text_secondary));
+    downloads.setContentDescription(
+        com.deepseekharness.app.util.UiText.choose("下载记录", "Downloads"));
+    android.util.TypedValue downloadsBackground = new android.util.TypedValue();
+    getTheme()
+        .resolveAttribute(
+            android.R.attr.selectableItemBackgroundBorderless, downloadsBackground, true);
+    downloads.setBackgroundResource(downloadsBackground.resourceId);
+    int downloadButtonSize = Math.round(44 * getResources().getDisplayMetrics().density);
+    int downloadButtonPadding = Math.round(11 * getResources().getDisplayMetrics().density);
+    downloads.setPadding(
+        downloadButtonPadding, downloadButtonPadding, downloadButtonPadding, downloadButtonPadding);
+    downloads.setOnClickListener(v -> FileTransfersActivity.open(this));
+    appBar.addView(
+        downloads,
+        appBar.indexOfChild(findViewById(R.id.btn_tasks)),
+        new android.widget.LinearLayout.LayoutParams(downloadButtonSize, downloadButtonSize));
     findViewById(R.id.btn_tasks)
         .setContentDescription(
             com.deepseekharness.app.util.UiText.choose("后台任务", "Background tasks"));

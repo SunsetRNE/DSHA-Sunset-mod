@@ -86,6 +86,8 @@
         <receiver android:name=".AgentTaskStopReceiver" android:exported="false" />
         <activity android:name=".ui.NativeDataActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.WorkspaceFilesActivity" android:exported="false" />
+        <activity android:name=".ui.FileTransfersActivity" android:exported="false" />
+        <service android:name=".transfer.DownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
           <activity android:name=".ui.StorageHelpActivity" android:exported="false" />
           <activity android:name=".ui.ColdSetupSpeedActivity" android:exported="false" />
         <activity android:name=".ui.SkillsActivity" android:exported="false" />

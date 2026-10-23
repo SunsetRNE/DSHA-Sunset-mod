@@ -623,6 +623,7 @@ def archive_path_key(path, source):
 
 
 def build(source, output, version):
+    initial_inputs = recipe_inputs()
     stable_chains, _ = load_chains(HOOKS.parent, version)
     seen_stable = set()
     source = source.resolve(strict=True)
@@ -755,6 +756,10 @@ def build(source, output, version):
                 item = tarfile.TarInfo('usr/local/share/dsha/dsh-runtime.version')
                 item.size, item.mode = len(identity), 0o644
                 archive.addfile(item, io.BytesIO(identity))
+        # Recipes/helpers can be edited while a large gzip is being written.
+        # Never publish those earlier module bytes with a later recipe receipt.
+        if recipe_inputs() != initial_inputs:
+            raise ValueError('DSH_BUILD_INPUTS_CHANGED_DURING_BUILD')
         temporary.replace(output)
     finally:
         temporary.unlink(missing_ok=True)
@@ -762,7 +767,7 @@ def build(source, output, version):
     with output.open('rb') as stream:
         for block in iter(lambda: stream.read(1048576), b''): archive_hash.update(block)
     archive_sha = archive_hash.hexdigest()
-    inputs = {'version': version, 'inputs': recipe_inputs(), 'archive_sha256': archive_sha}
+    inputs = {'version': version, 'inputs': initial_inputs, 'archive_sha256': archive_sha}
     write_source_text(output.with_suffix('.inputs.json'),json.dumps(inputs, indent=2) + '\n',encoding='utf-8')
     return {'version': version, 'files': count, 'unpacked_bytes': size,
             'archive_bytes': output.stat().st_size, 'sha256': archive_sha,

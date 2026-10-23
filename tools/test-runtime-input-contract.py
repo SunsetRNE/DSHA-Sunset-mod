@@ -70,6 +70,16 @@ class RuntimeInputContractTest(unittest.TestCase):
         for name in ('util/ColdInstallPlan.java', 'util/ColdInstallPackages.java'):
             self.assertIn(name, selected, 'Cold compatibility and package policy must invalidate old runtime proofs')
             self.assertEqual(selected[name], ROOT / JAVA / name)
+    def test_all_production_active_recipes_and_helpers_are_identified(self):
+        from runtime_stable_patches import load_chains
+        production = load(ROOT)
+        assets = ROOT / ASSETS
+        version = json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text())['dependencies']['@deepseek-ai/dsh']
+        _, recipes = load_chains(assets, version)
+        identified = set(asset_paths(ROOT, production))
+        for name in recipes:
+            self.assertIn(assets / name, identified,
+                          'Every executable signed recipe/helper must change runtime identity: ' + name)
     def test_invalid_recipe_rejected_before_install(self):
         for bad in ('../outside', '/absolute', 'root//duplicate', 'C:/windows', 'a\\b', 'a/./b'):
             with self.subTest(path=bad):

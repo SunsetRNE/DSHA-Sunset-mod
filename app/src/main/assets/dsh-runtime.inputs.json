@@ -1,7 +1,7 @@
 {
   "version": "0.2.1-rc.2",
   "inputs": {
-    "tools/build-dsh-runtime.py": "ccaeb45ea1bb396235f376bceb4d3f38f1183aa73dbfcd980494bbdddd406169",
+    "tools/build-dsh-runtime.py": "856fb2f98f03b0548b5637d192fa08fdf78dc318fa32f883509d377fd6d59a22",
     "tools/source_text.py": "fbe5428810615989be55f00b944c2cd98a03c087992630ecb9fff03e91edc23c",
     "tools/dsh-runtime/package.json": "3ff20a6595cb3cda080315b766abeb1878ea6cedf5aa7059cd8483a6ef78981f",
     "tools/dsh-runtime/package-lock.json": "c67d0d3b6423db35faae8d91d6054e7d0fa7cb9e197bede42438326f123ca8a7",
@@ -30,13 +30,19 @@
     "app/src/main/assets/auto-review-native-disabled-patch.json": "39c637bbd3039891813648402cf8a24e8450c5992fa5b9cfc0843d90259aabb9",
     "app/src/main/assets/composer-enter-patch.json": "bc6fea7bf5a2c4619baf084fd9c271587a6a508fac3240823d81af956449e3b7",
     "app/src/main/assets/config-editor-lock-order-patch.json": "a4cd6e96a207c7e283319e24b7ec9752be1a7b18829b6ee68332621a1e7b146c",
+    "app/src/main/assets/conversation-large-image-file-patch.json": "978f875ea18bacae0dc21e3300d2727ce09782bd45f9a923a09fa3a4a0e53f1a",
     "app/src/main/assets/conversation-stream-cancel-patch.json": "48ad7f9fab9236bcd37524e79218d3328b097a2daf2fe527c18895aae3626cae",
     "app/src/main/assets/deepseek-account-client-diagnostic-patch.json": "401eb5fc92dbcfd9045c4226eeb9ba548719353a3a5775c058dde2c667513dfc",
     "app/src/main/assets/deepseek-account-requests-patch.json": "27c2bc5415089483b525bda0a1a5165140be08b261ee710c7ff8661a928657a5",
     "app/src/main/assets/deepseek-native-oauth-patch.json": "4947744628760ce75481c2c92edb83f160415f6c27b35e293f19a9af813c73f2",
     "app/src/main/assets/deepseek-stream-cancel-patch.json": "04edaf08929b88654489ab82e91c8ca972c12face1696d262ab62c85712f0bcc",
+    "app/src/main/assets/deepseek-web-search-headers-patch.json": "160a5e605a0967ece69babae8a85868ef11b9ea65780998209372d0b57c14a55",
     "app/src/main/assets/directory-picker-service-patch.json": "a029e5fd14c2c190f73517415c25e7f15cb1f3c44999551da2a72524e227ffd6",
     "app/src/main/assets/dsha-layout-recovery.js": "9cda73a589ff19872e07af8e47c4707cf9a1e35391e1551620189441eb70bf13",
+    "app/src/main/assets/file-deliverables-patch.json": "6cd40b6df5224f27acbd05ea1006131a544442ac9ed9fb54530f68600b6dbe64",
+    "app/src/main/assets/file-image-actions-patch.json": "a33c4d0b764a5aade4b15c2917353b3ba31a31a6dca51011ef7e65b15c3dc017",
+    "app/src/main/assets/file-upload-binary-client-patch.json": "2311b31e472cfa013b0b1c57e201214087c58d54a577983698436b29a5d8ce87",
+    "app/src/main/assets/file-upload-capacity-patch.json": "ee8332b0bfff84523f4c9a77f56b5ca221906db1f805dbc7ce8954fb10097c12",
     "app/src/main/assets/file-upload-resolver-lifecycle-patch.json": "7874670fcfaec6c10034718aed43b5cbbdb8182d2f15c8f18fcade15d0212f5d",
     "app/src/main/assets/frontend-static-cache-patch.json": "5cb15587e5968b2c547138a1b69d4049fc1b8c11e6790b2f4429022adf17650b",
     "app/src/main/assets/guard-bash-patch.json": "54dac67cfec6d44986f3b3c485123f6d3b15d78b450b2772d473ffbe15a3b45a",
@@ -63,7 +69,7 @@
     "app/src/main/assets/retire-guarded-preset-patch.json": "ea9680a00fcefc393673d18c60b80c714847e1e4c40e4162ac8fb618d8da45e6",
     "app/src/main/assets/retired-market-catalog-patch.json": "5716988a4e4c0a0ef2ae9d4f92525fdc9a5e9b54850dcc2cf6f21f4cca15c9de",
     "app/src/main/assets/retired-market-optional-patch.json": "d3c9da4f1dc2dc05c9bbcb3ba82f03ee4734527f07a38abf1ff6b48e492da97b",
-    "app/src/main/assets/runtime-patches.json": "21c920bb3b0d6de1ca8b4070fc6cd0be096097cd995f6e163f72bb29276aef35",
+    "app/src/main/assets/runtime-patches.json": "c2941c6a42229d0805be953c268fe35f2a8fa7ced35e13ce6e31708617478283",
     "app/src/main/assets/session-interaction-patch.json": "aec5dc64da6e63fdea0ab8d7501b2aa048f9e61438ae715e8d81a050130d3e53",
     "app/src/main/assets/sidebar-layout-recovery-patch.json": "ffdb95673eeeac37d4d7297b504d2624220397c18dfbae2d5a789b6c5ae57dad",
     "app/src/main/assets/startup-mcp-timing-patch.json": "f0223fd4cca4445e0fd342e6b0626bb8c840cb6b27dd333b26431fd80949c9fd",
@@ -82,5 +88,5 @@
     "tools/runtime_stable_patches.py": "cf215453637824ce0ba014c12805d1acfbf9aaf936371dc02d41b03bc0c0c0ca",
     "tools/runtime_input_contract.py": "5c0ae822c8b8049a5421cc6bfdad5cf834aa306941e573f357c725a8bc47a10c"
   },
-  "archive_sha256": "63da76fb8d34c14e6f5d1bf102509df6aeca0cfebb6f48c82d1cad8eb6c76f7b"
+  "archive_sha256": "4d3a8da40af164725f01a6cd4d56559e13239dd706441ac1f1a53c3acd3af827"
 }

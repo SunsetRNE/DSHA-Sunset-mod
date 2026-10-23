@@ -885,7 +885,8 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
             retained.blobDownload = new WebBlobDownload(view, downloads.model);
           return retained.blobDownload;
         },
-        () -> retained.pageNavigation);
+        () -> retained.pageNavigation,
+        () -> retained.themeGate);
     updateDocumentLanguage(view);
     if (androidx.webkit.WebViewFeature.isFeatureSupported(
         androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER)) {
@@ -1024,11 +1025,16 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
       // 又把数十 KB 的 polyfill 注入一次。旧内核没有 DOCUMENT_START_SCRIPT 时仍保留
       // 原来的页面完成注入路径。
       String compatibility =
-          retained != null && retained.compatibilityScript != null
-              ? CAPABILITY_CHECK
+          (retained != null && retained.compatibilityScript != null
+              ? ""
               : WebPageScripts.compatibility(WebPreviewActivity.this, retained.pageEvents)
-                  + "\n"
-                  + CAPABILITY_CHECK;
+                  + "\n")
+              + (theme == null
+                  ? ""
+                  : "window.__dshaFilesBind?.("
+                      + WebPageScripts.presentationBinding(theme)
+                      + ");\n")
+              + CAPABILITY_CHECK;
       view.evaluateJavascript(
           compatibility,
           result -> {
