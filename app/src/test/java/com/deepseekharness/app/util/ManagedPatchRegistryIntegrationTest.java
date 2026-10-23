@@ -8,6 +8,15 @@ import static org.junit.Assert.*;
 
 /** Exercise current locked module bytes with the production Java chain engine. */
 public class ManagedPatchRegistryIntegrationTest {
+  private static final Set<String> BUILD192_RECIPES =
+      Set.of(
+          "deepseek-web-search-headers-patch.json",
+          "file-upload-capacity-patch.json",
+          "file-upload-binary-client-patch.json",
+          "conversation-large-image-file-patch.json",
+          "file-deliverables-patch.json",
+          "file-image-actions-patch.json");
+
   private static String text(Path file) throws Exception {
     return Files.readString(file).replace("\r\n", "\n");
   }
@@ -99,6 +108,25 @@ public class ManagedPatchRegistryIntegrationTest {
     for (var group : groups.entrySet()) {
       String canonical = text(raw.resolve(group.getKey()));
       String patched = ManagedPatchChain.apply(canonical, group.getValue(), () -> canonical);
+      var previous =
+          group.getValue().stream()
+              .filter(recipe -> !BUILD192_RECIPES.contains(recipe.id()))
+              .toList();
+      if (previous.size() != group.getValue().size()) {
+        // The six additions are appended to the existing signed build191 chain.
+        // Apply that exact prefix first, then exercise production Java upgrade
+        // without substituting the canonical module for the installed source.
+        String installed191 = ManagedPatchChain.apply(canonical, previous, () -> canonical);
+        assertEquals(
+            "Existing build191 recipe prefix must upgrade: " + group.getKey(),
+            patched,
+            ManagedPatchChain.apply(
+                installed191,
+                group.getValue(),
+                () -> {
+                  throw new AssertionError("Supported build191 source must upgrade in place");
+                }));
+      }
       assertEquals(
           group.getKey(),
           patched,
@@ -127,5 +155,6 @@ public class ManagedPatchRegistryIntegrationTest {
     assertTrue(groups.get("@deepseek-ai/dsh-client-ui-conversation/lib/client.js").size() > 1);
     assertFalse(active.contains("agent-preset-patch.json"));
     assertFalse(active.contains("models-navigation-patch.json"));
+    assertTrue(active.containsAll(BUILD192_RECIPES));
   }
 }

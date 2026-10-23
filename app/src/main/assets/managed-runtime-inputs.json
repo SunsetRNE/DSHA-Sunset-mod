@@ -411,6 +411,11 @@
       "asset": "managed-package-proofs.json",
       "target": "root/.dsh/managed-package-proofs.json",
       "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-web-mobile/lib/file-transfer.js",
+      "target": "root/dsha-web-mobile/lib/file-transfer.js",
+      "executable": false
     }
   ],
   "assetFiles": [
@@ -491,7 +496,13 @@
     "plugin-inventory-management-remote-codec-patch.json",
     "plugin-inventory-management-api-codec-patch.json",
     "plugin-manager-management-probe-patch.json",
-    "plugin-bundle-proof-workers-patch.json"
+    "plugin-bundle-proof-workers-patch.json",
+    "deepseek-web-search-headers-patch.json",
+    "file-upload-capacity-patch.json",
+    "file-upload-binary-client-patch.json",
+    "conversation-large-image-file-patch.json",
+    "file-deliverables-patch.json",
+    "file-image-actions-patch.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -709,6 +720,13 @@
     "tools/proroot-compat/linker-entry.c",
     "tools/prepare-welcome-notice-patch.py",
     "tools/welcome-notice/WelcomeNotice.js",
-    "tools/welcome-notice/WelcomeNoticeStore.js"
+    "tools/welcome-notice/WelcomeNoticeStore.js",
+    "tools/prepare-web-search-headers-patch.py",
+    "tools/prepare-file-upload-capacity-patch.py",
+    "tools/file-transfer/prepare-client-patches.py",
+    "tools/file-transfer/file-transfer.js",
+    "tools/file-transfer/client-mobile.mjs",
+    "tools/file-transfer/client-controls.js",
+    "tools/prepare-mobile-plugin.py"
   ]
 }

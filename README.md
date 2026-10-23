@@ -1,5 +1,9 @@
 # DSHA
 
+<!-- build192-files:begin -->
+> **2026-10-23 build192 文件传输修订（本地已验证，仅私有交付范围）**：`0.2.1-rc.2-20261023.1836-dsh0.2.1-rc.2` / code192 / `dsh.android.client` / E7E3 / 非调试Standard，常规文件名不变；292,301,320字节，SHA `f1b332bc087e999bf9bd8954a70c9c7ad869d0a04193933d446854f0e31fbf3c`。单文件十进制5,000,000,000字节、原生下载记录/续传、键盘最小避让与搜索脱敏前置诊断。Standard所选20类102项JUnit，失败/错误/skip 0/0/0；16host，Lint错误/致命0、警告254，精确APK7门禁；仅Android13有限设备操作，范围见本轮报告实际记录。5GB宿主往返不算手机验收；手机5GB/重启续传/Android16/realme与转发搜索恢复未验。R1拒绝和后续修正保留，不称一路全绿。仅私有仓库交APK/完整源码；最终commit/ZIP自身SHA/发布状态由外部回执核验，不公开DSHA/网站、不跑Low。本条覆盖下方旧当前版本说明。[本轮报告](docs/releases/v0.2.1-rc.2-build192-files-20261023.md)。
+<!-- build192-files:end -->
+
 <p align="center">
   <b>DeepSeek Harness 安卓启动器</b><br>
   在手机上跑完整的 <a href="https://github.com/deepseek-ai/deepseek-harness">deepseek-harness</a> —— 免 ROOT，免 Termux，装完即用

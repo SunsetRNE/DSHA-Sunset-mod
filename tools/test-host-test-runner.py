@@ -45,6 +45,19 @@ class HostRunnerTest(unittest.TestCase):
     def save(self):
         self.manifest.write_text(json.dumps(dict(schema=1, tests=self.rows)), encoding='utf-8')
 
+    def test_owned_file_transfer_directory_requires_manifest_coverage(self):
+        nested = self.tools / 'file-transfer'
+        nested.mkdir()
+        (nested / 'test-owned.py').write_text('print("owned isolated fixture")')
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'TEST_MANIFEST_COVERAGE'):
+            runner.load_manifest()
+        self.rows.append(dict(path='tools/file-transfer/test-owned.py', stage='runtime',
+                              reason='Current nested transfer fixture', requires=['python39'],
+                              args=[], environment={}, timeoutSeconds=10))
+        self.save()
+        self.assertEqual(2, len(runner.load_manifest()['tests']))
+
     def invoke(self):
         self.save()
         argv = ['run-host-tests.py', '--stage', 'fast', '--output', str(self.output), *self.extra_args]

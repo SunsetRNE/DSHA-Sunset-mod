@@ -262,6 +262,42 @@
       "markers": [
         "DSHA_ACCOUNT_CLIENT_DIAGNOSTIC_V1"
       ]
+    },
+    {
+      "asset": "deepseek-web-search-headers-patch.json",
+      "markers": [
+        "DSHA_WEB_SEARCH_HEADERS_V1"
+      ]
+    },
+    {
+      "asset": "file-upload-capacity-patch.json",
+      "markers": [
+        "DSHA_UPLOAD_FILE_LIMIT_V1"
+      ]
+    },
+    {
+      "asset": "file-upload-binary-client-patch.json",
+      "markers": [
+        "DSHA_UPLOAD_BINARY_ONLY_V1"
+      ]
+    },
+    {
+      "asset": "conversation-large-image-file-patch.json",
+      "markers": [
+        "DSHA_LARGE_IMAGE_FILE_V1"
+      ]
+    },
+    {
+      "asset": "file-deliverables-patch.json",
+      "markers": [
+        "DSHA_FILE_DELIVERABLES_RC2_V1"
+      ]
+    },
+    {
+      "asset": "file-image-actions-patch.json",
+      "markers": [
+        "DSHA_IMAGE_ACTIONS_RC2_V1"
+      ]
     }
   ],
   "specialized": [

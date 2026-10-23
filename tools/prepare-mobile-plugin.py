@@ -12,6 +12,7 @@ LOCK = ROOT / 'tools/mobile-plugin-upstream.lock.json'
 DESTINATION = ROOT / 'app/src/main/assets/builtin-plugins/dsh-web-mobile'
 PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/index.js',
            'lib/compress.js.map', 'lib/delete-session.js.map', 'lib/index.js.map'}
+ADDITIONAL = {'lib/file-transfer.js', 'lib/file-transfer.js.map'}
 
 def prepare(source, write):
     lock = json.loads(LOCK.read_text(encoding='utf8'))
@@ -75,8 +76,9 @@ def prepare(source, write):
         else:
             raise ValueError('MOBILE_RETIRED_PRESENT: ' + name)
     actual = {p.relative_to(DESTINATION).as_posix() for p in DESTINATION.rglob('*') if p.is_file()}
-    if actual != set(contents):
-        raise ValueError('MOBILE_DEPLOYED_MEMBERS: ' + str(sorted(actual.symmetric_difference(contents))))
+    expected_members = set(contents) | ADDITIONAL
+    if actual != expected_members:
+        raise ValueError('MOBILE_DEPLOYED_MEMBERS: ' + str(sorted(actual.symmetric_difference(expected_members))))
     print('PASS mobile fixed prebuilt assets:', lock['commit'], 'files:', len(contents))
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 """Exercise actual gzip construction and signed policy-overlay completeness."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -105,6 +106,60 @@ class DshRuntimePackaging(unittest.TestCase):
             paths = [base / name for name in relative]
             ordered = sorted(paths, key=lambda item: builder.archive_path_key(item, base))
             self.assertEqual([item.relative_to(base).as_posix() for item in ordered], expected)
+
+    def small_modules(self):
+        modules = self.root / 'small-node-modules'
+        version = json.loads((builder.LOCK_ROOT / 'package.json').read_text(encoding='utf-8'))['dependencies'][builder.PACKAGE]
+        for name in (builder.PACKAGE, '@deepseek-ai/dsh-llm-deepseek'):
+            package = modules / name
+            package.mkdir(parents=True)
+            (package / 'package.json').write_text(json.dumps(dict(name=name, version=version)), encoding='utf-8')
+        entry = modules / builder.PACKAGE / 'lib/bin.js'
+        entry.parent.mkdir()
+        entry.write_bytes(b'console.log("before");\n')
+        chain = [('fixture-chain', [('"before"', '"after"')], [])]
+        return modules, version, {builder.PACKAGE + '/lib/bin.js': chain}
+
+    def test_recipe_edit_during_real_gzip_keeps_previous_archive_and_receipt(self):
+        modules, version, chains = self.small_modules()
+        recipe = self.root / 'changing-recipe.json'
+        recipe.write_bytes(b'before')
+        archive = self.root / 'retained.bin'
+        receipt = archive.with_suffix('.inputs.json')
+        archive.write_bytes(b'previous archive bytes')
+        receipt.write_bytes(b'previous receipt bytes')
+        real_apply = builder.apply_stable_patches
+
+        def fingerprint():
+            return {'changing-recipe.json': hashlib.sha256(recipe.read_bytes()).hexdigest()}
+
+        def edit_while_preparing(data, chain):
+            prepared = real_apply(data, chain)
+            recipe.write_bytes(b'after')
+            return prepared
+
+        with patch.object(builder, 'load_chains', return_value=(chains, [])), \
+                patch.object(builder, 'recipe_inputs', side_effect=fingerprint), \
+                patch.object(builder, 'apply_stable_patches', side_effect=edit_while_preparing):
+            with self.assertRaisesRegex(ValueError, 'DSH_BUILD_INPUTS_CHANGED_DURING_BUILD'):
+                builder.build(modules, archive, version)
+        self.assertEqual(b'previous archive bytes', archive.read_bytes())
+        self.assertEqual(b'previous receipt bytes', receipt.read_bytes())
+        self.assertFalse(archive.with_suffix('.bin.tmp').exists())
+
+    def test_receipt_uses_start_snapshot_without_a_post_publication_input_read(self):
+        modules, version, chains = self.small_modules()
+        initial = {'fixture-recipe.json': 'start snapshot'}
+        archive = self.root / 'stable.bin'
+        with patch.object(builder, 'load_chains', return_value=(chains, [])), \
+                patch.object(builder, 'recipe_inputs', side_effect=[initial.copy(), initial.copy(), {'later': 'must not be certified'}]) as inputs:
+            report = builder.build(modules, archive, version)
+        self.assertEqual(2, inputs.call_count)
+        receipt = json.loads(archive.with_suffix('.inputs.json').read_text(encoding='utf-8'))
+        self.assertEqual(initial, receipt['inputs'])
+        self.assertEqual(report['sha256'], receipt['archive_sha256'])
+        with tarfile.open(archive, 'r:gz') as built:
+            self.assertEqual(b'console.log("after");\n', built.extractfile(builder.PREFIX + '/lib/bin.js').read())
 
     def test_removed_redirected_executable_or_shadowed_policy_install_stops_build(self):
         assets, original = self.fixture_assets()

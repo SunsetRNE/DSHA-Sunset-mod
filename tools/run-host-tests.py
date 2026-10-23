@@ -25,6 +25,7 @@ def load_manifest():
         raise ValueError("TEST_MANIFEST_SCHEMA")
     paths = [row["path"] for row in data["tests"]]
     present = {p.relative_to(ROOT).as_posix() for p in (ROOT / "tools").glob("test-*") if p.suffix in (".py", ".mjs", ".cjs", ".ps1")}
+    present.update(p.relative_to(ROOT).as_posix() for p in (ROOT / "tools/file-transfer").glob("test-*") if p.suffix in (".py", ".mjs", ".cjs", ".ps1"))
     present.add("tools/overlay-bridge-test.mjs")
     if len(set(paths)) != len(paths) or set(paths) != present:
         raise ValueError("TEST_MANIFEST_COVERAGE: " + str(sorted(set(paths) ^ present)))

@@ -10,10 +10,18 @@ public final class NotificationIds {
       SHELL_CONFIRM = 3003,
       DEVICE_BRIDGE = 3005,
       DATA_PROTECTION = 9031,
-      RECOVERY = 9060;
+      RECOVERY = 9060,
+      FILE_DOWNLOAD = 9062;
 
   public static java.util.Set<Integer> all() {
     return java.util.Set.of(
-        HARNESS, UPDATE, AGENT, SHELL_CONFIRM, DEVICE_BRIDGE, DATA_PROTECTION, RECOVERY);
+        HARNESS,
+        UPDATE,
+        AGENT,
+        SHELL_CONFIRM,
+        DEVICE_BRIDGE,
+        DATA_PROTECTION,
+        RECOVERY,
+        FILE_DOWNLOAD);
   }
 }

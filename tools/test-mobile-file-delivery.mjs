@@ -11,6 +11,7 @@ try {
     window.__ModuleLoader__={load:({factory})=>factory(()=>({}))};
   });
   await page.addScriptTag({content:fs.readFileSync('app/src/main/assets/web-integration/files.js','utf8')});
+  await page.evaluate(() => __dshaFilesBind({nonce:'fixture-document', generation:1, instance:'fixture-runtime'}));
   const header='__modules["components/file-share-controls.js"] = function (require, module, exports) {';
   const bundle=fs.readFileSync('app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js','utf8')
     .replace('var __cache = {};','window.mobileRequire=__localRequire; var __cache = {};')

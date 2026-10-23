@@ -99,7 +99,9 @@ public final class WebDownloads {
                         Toast.LENGTH_LONG)
                     .show();
               }
-            } else if (state.phase().equals("done") || state.phase().equals("error")) {
+            } else if (state.phase().equals("done")
+                || state.phase().equals("error")
+                || state.phase().equals("queued")) {
               if (state.phase().equals("error") && model.canRetrySave()) {
                 dialog =
                     new com.deepseekharness.app.ui.DshaDialogBuilder(activity)

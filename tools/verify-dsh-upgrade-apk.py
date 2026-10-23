@@ -21,8 +21,34 @@ CONVERSATION_SPECIAL_INPUTS = ('lexical-claim-patch.json', 'conversation-materia
 REVIEWED_OFFICIAL_CHAINS = {
     SIDEBAR_RIGHT: (SIDEBAR_RECIPE,),
     FRONTEND_ENTRY: ('tooltip-interaction-patch.json',),
-    CONVERSATION: ('composer-enter-patch.json', 'queue-dock-patch.json'),
+    CONVERSATION: ('composer-enter-patch.json', 'queue-dock-patch.json',
+                   'conversation-large-image-file-patch.json'),
+    '@deepseek-ai/dsh-web-search-deepseek/lib/index.js': ('deepseek-web-search-headers-patch.json',),
+    '@deepseek-ai/dsh-client-file-upload/lib/index.js': (
+        'file-upload-resolver-lifecycle-patch.json', 'file-upload-capacity-patch.json'),
+    '@deepseek-ai/dsh-client-file-upload/lib/client.js': ('file-upload-binary-client-patch.json',),
+    '@deepseek-ai/dsh-client-ui-deliverables/lib/client.js': ('file-deliverables-patch.json',),
+    '@deepseek-ai/dsh-client-ui-attachment/lib/client.js': ('file-image-actions-patch.json',),
 }
+BUILD192_RECIPE_MODULES = {
+    'deepseek-web-search-headers-patch.json': '@deepseek-ai/dsh-web-search-deepseek/lib/index.js',
+    'file-upload-capacity-patch.json': '@deepseek-ai/dsh-client-file-upload/lib/index.js',
+    'file-upload-binary-client-patch.json': '@deepseek-ai/dsh-client-file-upload/lib/client.js',
+    'conversation-large-image-file-patch.json': CONVERSATION,
+    'file-deliverables-patch.json': '@deepseek-ai/dsh-client-ui-deliverables/lib/client.js',
+    'file-image-actions-patch.json': '@deepseek-ai/dsh-client-ui-attachment/lib/client.js',
+}
+
+
+def verify_build192_recipe_coverage(assets, version):
+    chains, _ = load_chains(assets, version)
+    selected = {name: module for module, chain in chains.items()
+                for name, _, _ in chain if name in BUILD192_RECIPE_MODULES}
+    require(selected == BUILD192_RECIPE_MODULES and len(set(selected.values())) == 6,
+            'BUILD192_SIX_RECIPE_MODULE_COVERAGE_CHANGED')
+    for recipe, module in selected.items():
+        require(recipe in REVIEWED_OFFICIAL_CHAINS.get(module, ()),
+                'BUILD192_MODULE_MUST_USE_COMPLETE_CHAIN_DIGEST:' + module)
 
 
 def official_conversation_content(raw, assets, version):
@@ -142,6 +168,7 @@ def verify(path):
     root = Path(__file__).resolve().parent.parent
     dsh_version = json.loads((root / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8'))['dependencies']['@deepseek-ai/dsh']
     expected_runtime_sha256 = hashlib.sha256((root / 'app/src/main/assets/dsh-runtime.bin').read_bytes()).hexdigest()
+    verify_build192_recipe_coverage(root / 'app/src/main/assets', dsh_version)
     with zipfile.ZipFile(path) as apk:
         version = apk.read('assets/offline-rootfs.version').decode().strip()
         require((version == '10'), '环境版本错误')
@@ -179,7 +206,7 @@ def verify(path):
         # Unpatched features keep exact locked raw bytes. The explicitly
         # reviewed active chains run before archive construction; compare their
         # complete bytes, retaining raw protection for every other module.
-        untouched = {}
+        feature_digests = {}
         runtime = verified_runtime('raw',os.environ.get('DSHA_TEST_RUNTIME')) / 'node_modules'
         frontend = runtime / '@deepseek-ai/dsh-web-frontend/dist'
         entry_match = re.search(r'src="\./(assets/index-[^"?]+\.js)',
@@ -188,6 +215,10 @@ def verify(path):
         frontend_entry = entry_match.group(1)
         for name, entry in [('dsh-client-ui-sidebar-documentpreview', 'lib/client.js'),
                             ('dsh-client-ui-deliverables', 'lib/client.js'),
+                            ('dsh-client-ui-attachment', 'lib/client.js'),
+                            ('dsh-client-file-upload', 'lib/client.js'),
+                            ('dsh-client-file-upload', 'lib/index.js'),
+                            ('dsh-web-search-deepseek', 'lib/index.js'),
                             ('dsh-command-feedback', 'lib/index.js'),
                             ('dsh-client-ui-sidebar-right', 'lib/client.js'),
                             ('dsh-client-ui-sidebar-files', 'lib/client.js'),
@@ -196,9 +227,12 @@ def verify(path):
                             ('dsh-web-frontend', 'dist/' + frontend_entry)]:
             source = runtime / '@deepseek-ai' / name / entry
             module = '@deepseek-ai/' + name + '/' + entry
-            untouched[PREFIX + '/node_modules/' + module] = official_feature_digest(
+            feature_digests[PREFIX + '/node_modules/' + module] = official_feature_digest(
                 apk, root / 'app/src/main/assets', dsh_version, module, source.read_bytes())
-        preserved_features = list(untouched)
+        preserved_features = list(feature_digests)
+        require(set(BUILD192_RECIPE_MODULES.values()) <= {
+            name.removeprefix(PREFIX + '/node_modules/') for name in feature_digests
+        }, 'BUILD192_SIX_MODULE_ARCHIVE_DIGEST_COVERAGE_CHANGED')
         aliases, expanded = 0, 0
         legacy_workflow_aliases = {
             PREFIX + '/node_modules/@deepseek-ai/dsh-workflow-worker-thread': 'dsh-workflow-ptc',
@@ -227,8 +261,14 @@ def verify(path):
                         content = archive.extractfile(item).read()
                         for marker in expected if isinstance(expected, tuple) else (expected,):
                             require((marker in content), name + ': ' + marker.decode(errors='replace'))
-                    if name in untouched:
-                        require((hashlib.sha256(archive.extractfile(item).read()).hexdigest() == untouched.pop(name)), name)
+                    if name in feature_digests:
+                        expected_digest = feature_digests.pop(name)
+                        actual_digest = hashlib.sha256(archive.extractfile(item).read()).hexdigest()
+                        module = name.removeprefix(PREFIX + '/node_modules/')
+                        classification = 'COMPLETE_CHAIN' if module in REVIEWED_OFFICIAL_CHAINS else 'RAW'
+                        require(actual_digest == expected_digest,
+                                'OFFICIAL_FEATURE_' + classification + '_DIGEST_MISMATCH:' + name
+                                + ':expected=' + expected_digest + ':actual=' + actual_digest)
                     if name in legacy_workflow_aliases:
                         require((item.issym()), '旧工作流包名必须是只读兼容链接：' + name)
                         require((item.linkname == legacy_workflow_aliases.pop(name)), name)
@@ -238,7 +278,7 @@ def verify(path):
                     require((not name.startswith(('root/dsha-device-shell-guide/', 'root/dsha-task-notifier/',
                                                 'root/dsha-status-overlay/', 'root/dsha-web-mobile/'))), '混入旧版内置插件')
         require((not wanted), str(wanted))
-        require((not untouched), '新版功能模块缺失：' + str(untouched))
+        require((not feature_digests), '新版功能模块缺失：' + str(feature_digests))
         require((not legacy_workflow_aliases), '缺少旧工作流包名兼容链接：' + str(legacy_workflow_aliases))
         require((aliases > 100), '缺少共享依赖别名')
         require((expanded == int(apk.read('assets/offline-rootfs.bytes'))), 'VERIFICATION_FAILED')
