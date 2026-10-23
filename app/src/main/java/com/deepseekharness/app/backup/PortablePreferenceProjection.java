@@ -11,7 +11,6 @@ public final class PortablePreferenceProjection {
       Set.of(
           Constants.KEY_PORT,
           Constants.KEY_WORKDIR,
-          Constants.KEY_PERMISSION_MODE,
           "ui_theme",
           "ui_language",
           "plugin_sort_order",
@@ -36,11 +35,7 @@ public final class PortablePreferenceProjection {
       if (value instanceof String
           && ((String) value).length() <= 2048
           && ((String) value).indexOf('\0') < 0)
-        result.put(
-            key,
-            key.equals(Constants.KEY_PERMISSION_MODE)
-                ? com.deepseekharness.app.util.PermissionMode.normalize((String) value)
-                : value);
+        result.put(key, value);
     }
     for (String key : FLAGS) {
       Object value = values.get(key);

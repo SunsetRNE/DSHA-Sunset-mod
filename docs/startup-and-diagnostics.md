@@ -1,5 +1,7 @@
 # 启动、恢复工作台与诊断导出
 
+> 2026-10-23 build191修订：CAS改专用轻入口与FD安全扫描，仍固定proot并完整扫描；分段计时只作诊断，不替代唯一回执和退出证明。`backendReadyMs`记录实际官方鉴权接受，`browserReadyMs`记录首次有效网页ready；`elapsedMs`在ready/失败/停止后冻结，`runElapsedMs`另记运行代次时长。ready后的真实错误保留为运行期记录，不复制关键词推测的`RELATED_PLUGIN_LOG`或触发已就绪代次的启动失败。准入/排队另有观察，trace仍从`diagnostics.begin`开始；接入旧Web的0ms不是新启动测速。[本轮实现、模块检查与最终待验范围](releases/v0.2.1-rc.2-build191-startup-20261023.md)优先于下方F13说明。
+
 > 核验日期：2026-10-21。按本工作树 build190/F13 的入口与数据流核验，F10 `087724c` 及 F11 保留参考历史归属。本页更新只核对源码，未运行构建、软件测试、设备、模型对话或长时验收；最终版本、正式执行数量和发布状态以 [README](../README.md) 及其本批交付记录为准；[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)保留已发布历史归属。 本批最终软件与产物范围由[F13记录](releases/v0.2.1-rc.2-build190-fix13-20261021.md)统一填写；本文不预填最终版本或正式总数。
 
 先在 Main 判断失败发生在哪一层，再选择检查、恢复或导出。环境就绪、后端鉴权、网页就绪分别有自己的证据；某一层完成不能替代后一层。安装操作见[安装与维护](install-and-maintenance.md)，配置修复见[配置快照](config-snapshots.md)。

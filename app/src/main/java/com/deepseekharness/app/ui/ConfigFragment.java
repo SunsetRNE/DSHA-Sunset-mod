@@ -53,21 +53,6 @@ public class ConfigFragment extends Fragment {
       @Nullable Bundle savedInstanceState) {
     View v = inflater.inflate(R.layout.fragment_config, container, false);
     ConfigStore c = new ConfigStore(requireContext());
-    String[] permissionModes = {"danger-full-access", "workspace-write", "read-only"};
-    java.util.concurrent.atomic.AtomicReference<String> permissionMode =
-        new java.util.concurrent.atomic.AtomicReference<>(c.getPermissionMode());
-    int selectedPermission = java.util.Arrays.asList(permissionModes).indexOf(permissionMode.get());
-    bindChoice(
-        v,
-        R.id.config_permission_choice,
-        getString(R.string.permission_mode_title),
-        new String[] {
-          getString(R.string.permission_mode_full),
-          getString(R.string.permission_mode_workspace),
-          getString(R.string.permission_mode_readonly)
-        },
-        selectedPermission,
-        index -> permissionMode.set(permissionModes[index]));
     Context ctx = requireContext();
     android.widget.RadioGroup dns = v.findViewById(R.id.config_dns_mode);
     dns.check(
@@ -223,7 +208,6 @@ public class ConfigFragment extends Fragment {
             saving.run(
                 () -> {
                   c.setWebPort(automaticPort.isChecked() ? "auto" : "fixed", chosenPort);
-                  c.setPermissionMode(permissionMode.get());
                   c.setCheckUpdate(checkUpdate.isChecked());
                   c.setDesktopMode(desktop.isChecked());
                   if (com.deepseekharness.app.BuildConfig.LOW_ANDROID)

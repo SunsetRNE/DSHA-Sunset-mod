@@ -190,9 +190,15 @@ final class RuntimeExecution {
   }
 
   Process install(String command, boolean pipedInput) throws IOException {
+    return install(command, pipedInput, null);
+  }
+
+  private Process install(String command, boolean pipedInput, RuntimeCommandTiming timing)
+      throws IOException {
     try (RuntimeHostPorts.Scope ignored = ports.open()) {
       nativeFiles();
-      return start(command, launch(proot()).pipedInput(pipedInput).build());
+      if (timing != null) timing.mark("native-files");
+      return launcher.start(command, launch(proot()).pipedInput(pipedInput).build(), timing);
     }
   }
 
@@ -239,14 +245,38 @@ final class RuntimeExecution {
   BoundedProcessRunner.Result collect(
       String command, long timeoutMs, boolean proot, ContainerRuntime selected)
       throws IOException, InterruptedException {
+    return collect(command, timeoutMs, proot, selected, null);
+  }
+
+  BoundedProcessRunner.Result collectCasLinks(java.util.function.Consumer<String> timing)
+      throws IOException, InterruptedException {
+    return collect(
+        "python3 -u /root/.dsh/materialize-cas-links.py",
+        120_000,
+        true,
+        null,
+        new RuntimeCommandTiming(timing));
+  }
+
+  private BoundedProcessRunner.Result collect(
+      String command,
+      long timeoutMs,
+      boolean proot,
+      ContainerRuntime selected,
+      RuntimeCommandTiming timing)
+      throws IOException, InterruptedException {
     RuntimeWorkPort.Work work = RuntimeWorkPort.begin("容器命令");
     Process process = null;
     Throwable original = null;
     try {
-      process = proot ? install(command, false) : bounded(command, selected);
-      return BoundedProcessRunner.collect(process, timeoutMs, 256 * 1024, Compat::destroy);
+      process = proot ? install(command, false, timing) : bounded(command, selected);
+      BoundedProcessRunner.Result result =
+          BoundedProcessRunner.collect(process, timeoutMs, 256 * 1024, Compat::destroy);
+      if (timing != null) timing.mark("process-collect");
+      return result;
     } catch (IOException | InterruptedException | RuntimeException | Error failure) {
       original = failure;
+      if (timing != null) timing.mark("command-failed");
       throw failure;
     } finally {
       Process ending = process;
@@ -258,7 +288,11 @@ final class RuntimeExecution {
           ending instanceof IsolatedInstallProcess
               ? ((IsolatedInstallProcess) ending)::markRecordUncertain
               : null;
-      BoundedGuestLifetime.finish(ending, close, uncertain, work, original);
+      try {
+        BoundedGuestLifetime.finish(ending, close, uncertain, work, original);
+      } finally {
+        if (timing != null) timing.mark("exit-finalize");
+      }
     }
   }
 

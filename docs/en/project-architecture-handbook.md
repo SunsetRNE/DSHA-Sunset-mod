@@ -72,7 +72,7 @@ Main's bottom navigation has Launch, Terminal, Plugins, and Settings. A separate
 | Setting | Without explicit selection | Change/restore boundary |
 |---|---|---|
 | Shell confirmation | On | Distinguish app confirmation, DSH approval, and native terminal execution |
-| DSH tool permission mode | `danger-full-access` | workspace-write/read-only are options, not Android UID isolation |
+| DSH runtime permission mode | Fixed `danger-full-access` | Build191 removes the native three-mode selector and legacy-value effects; existing session/plugin policies and independent read-only recovery remain separate, without Android UID isolation |
 | Root Shell | Off | Enabling neither creates su nor proves actual UID0 |
 | App update check | On | Controls checking intent, not completed download/installation |
 | Desktop Web mode | Off | Browser presentation choice, not an engine change |

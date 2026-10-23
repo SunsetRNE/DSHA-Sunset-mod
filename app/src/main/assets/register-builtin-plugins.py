@@ -235,13 +235,14 @@ def repair_runtime_modules():
 
 
 @contextmanager
-def profile_writer_lock(check_cancel=None, timeout=120):
+def profile_writer_lock(check_cancel=None, timeout=120, timing=None):
     """Match dsh-atomic-write's package.json.lock; always after the data lock.
 
     Web PluginManager.change holds this same lock around manifest and marker
     updates. Incomplete/unknown/live records stay untouched; dead POSIX holders
     use the same takeover claim as Node, so no contender can remove a new lock.
     """
+    started = time.monotonic()
     os.makedirs(local(PROFILE), exist_ok=True)
     lock_path = local(MANIFEST) + '.lock'
     record = str(os.getpid()) + '\n'
@@ -329,14 +330,17 @@ def profile_writer_lock(check_cancel=None, timeout=120):
         time.sleep(delay)
         delay = min(delay * 2, 0.2)
     try:
+        if timing:
+            timing('profile-lock-wait', time.monotonic() - started)
         yield
     finally:
         os.unlink(lock_path)
 
 
 @contextmanager
-def operation_lock(check_cancel=None, timeout=120):
+def operation_lock(check_cancel=None, timeout=120, timing=None):
     """所有 DSHA 插件清单写入共用锁；进程退出由系统释放。"""
+    started = time.monotonic()
     os.makedirs(local(DSH_HOME), exist_ok=True)
     # 锁放在 .dsh 外，恢复整个 .dsh 时不会换掉正在使用的锁 inode。
     data_root = os.path.dirname(local(DSH_HOME))
@@ -355,9 +359,11 @@ def operation_lock(check_cancel=None, timeout=120):
                         raise TimeoutError('PLUGIN_LOCK_TIMEOUT；未更改插件或终止其他进程')
                     time.sleep(0.1)
         try:
+            if timing:
+                timing('data-lock-wait', time.monotonic() - started)
             if os.path.isfile(os.path.join(data_root, ".dsha-restore-journal.json")):
                 raise RuntimeError("恢复事务尚未完成，请先启动 DSHA 完成恢复后再操作插件")
-            with profile_writer_lock(check_cancel, timeout):
+            with profile_writer_lock(check_cancel, timeout, timing):
                 yield
         finally:
             if os.name != "nt":

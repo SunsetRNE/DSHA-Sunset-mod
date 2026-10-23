@@ -43,6 +43,11 @@
       "executable": false
     },
     {
+      "asset": "materialize-cas-links.py",
+      "target": "root/.dsh/materialize-cas-links.py",
+      "executable": false
+    },
+    {
       "asset": "backup-plugin-graph.py",
       "target": "root/.dsh/backup-plugin-graph.py",
       "executable": false
@@ -441,6 +446,8 @@
     "web-integration/permission-full-access.js",
     "web-integration/session-interaction.js",
     "lan-settings-upstream-contract.json",
+    "deepseek-account-client-diagnostic-patch.json",
+    "deepseek-account-requests-patch.json",
     "deepseek-native-oauth-patch.json",
     "directory-picker-service-patch.json",
     "file-upload-resolver-lifecycle-patch.json",

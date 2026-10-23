@@ -57,7 +57,7 @@ class DshLauncherIntegrity(unittest.TestCase):
         if version.returncode or 'version "17.' not in version.stdout + version.stderr:
             raise RuntimeError("JDK17_REQUIRED: " + version.stdout + version.stderr)
         source = ROOT / "app/src/main/java/com/deepseekharness/app/util"
-        files = [source / (name + ".java") for name in ("DshEntrypoint", "WebLaunchCommand", "WebProcSel", "ShellQuote")]
+        files = [source / (name + ".java") for name in ("DshEntrypoint", "WebLaunchCommand", "WebProcSel", "ShellQuote", "PermissionMode")]
         before = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
         helper = java_root / "EntryDump.java"
         put(helper, '''import com.deepseekharness.app.util.*;
@@ -67,8 +67,8 @@ public class EntryDump {
   public static void main(String[] args) {
     for (String value : new String[] { DshEntrypoint.NODE, DshEntrypoint.SCRIPT,
       DshEntrypoint.exec(), DshEntrypoint.wrapper(),
-      WebLaunchCommand.build("ask", true, "en", "web", 0, 42),
-      WebLaunchCommand.build("ask", true, "en", "dsha-startup-safe-fixture", 0, 43) })
+      WebLaunchCommand.build(true, "en", "web", 0, 42),
+      WebLaunchCommand.build(true, "en", "dsha-startup-safe-fixture", 0, 43) })
       System.out.println(Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8)));
   }
 }

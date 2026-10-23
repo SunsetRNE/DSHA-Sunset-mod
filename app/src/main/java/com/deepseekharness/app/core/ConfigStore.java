@@ -23,6 +23,9 @@ public class ConfigStore {
     // 启动计数备份已移除；覆盖安装与旧备份恢复均不能重新启用。
     if (prefs.contains(Constants.KEY_AUTO_BACKUP) || prefs.contains("backup_launch_count"))
       prefs.edit().remove(Constants.KEY_AUTO_BACKUP).remove("backup_launch_count").apply();
+    // 原生 DSH 权限档位已退休；覆盖安装后的历史选择不能继续影响正式 Web。
+    if (prefs.contains(Constants.KEY_PERMISSION_MODE))
+      prefs.edit().remove(Constants.KEY_PERMISSION_MODE).apply();
   }
 
   public boolean isWelcomed() {
@@ -430,19 +433,6 @@ public class ConfigStore {
 
   // ================= 其他 =================
 
-  public String getPermissionMode() {
-    return com.deepseekharness.app.util.PermissionMode.normalize(
-        text(Constants.KEY_PERMISSION_MODE, "danger-full-access"));
-  }
-
-  public void setPermissionMode(String v) {
-    prefs
-        .edit()
-        .putString(
-            Constants.KEY_PERMISSION_MODE, com.deepseekharness.app.util.PermissionMode.normalize(v))
-        .apply();
-  }
-
   public String getWorkdir() {
     return text(Constants.KEY_WORKDIR, Constants.DEFAULT_WORKDIR);
   }
@@ -561,7 +551,6 @@ public class ConfigStore {
         .put("port", getPort())
         .put("portMode", getWebPortMode())
         .put("workdir", getWorkdir())
-        .put("permissionMode", getPermissionMode())
         .put("confirmShell", isConfirmShell())
         .put("desktopMode", isDesktopMode())
         .put("checkUpdate", isCheckUpdate())
@@ -582,7 +571,6 @@ public class ConfigStore {
         .put("port", getPort())
         .put("portMode", getWebPortMode())
         .put("workdir", getWorkdir())
-        .put("permissionMode", getPermissionMode())
         .put("confirmShell", isConfirmShell())
         .put("desktopMode", isDesktopMode())
         .put("checkUpdate", isCheckUpdate())
@@ -604,17 +592,12 @@ public class ConfigStore {
   }
 
   public void importBackupSettings(org.json.JSONObject data) throws java.io.IOException {
-    SharedPreferences.Editor edit = prefs.edit();
+    SharedPreferences.Editor edit = prefs.edit().remove(Constants.KEY_PERMISSION_MODE);
     if (data.has("port"))
       edit.putString(Constants.KEY_PORT, String.valueOf(importedPort(data)))
           .putString(Constants.KEY_WEB_PORT_MODE, importedPortMode(data));
     if (data.has("workdir"))
       edit.putString(Constants.KEY_WORKDIR, data.optString("workdir", Constants.DEFAULT_WORKDIR));
-    if (data.has("permissionMode"))
-      edit.putString(
-          Constants.KEY_PERMISSION_MODE,
-          com.deepseekharness.app.util.PermissionMode.normalize(
-              data.optString("permissionMode", "danger-full-access")));
     if (data.has("confirmShell"))
       edit.putBoolean(Constants.KEY_CONFIRM_SHELL, data.optBoolean("confirmShell", true));
     if (data.has("desktopMode"))
@@ -652,7 +635,6 @@ public class ConfigStore {
     Constants.KEY_PORT,
     Constants.KEY_WEB_PORT_MODE,
     Constants.KEY_WORKDIR,
-    Constants.KEY_PERMISSION_MODE,
     Constants.KEY_CONFIRM_SHELL,
     Constants.KEY_DESKTOP_MODE,
     Constants.KEY_CHECK_UPDATE,
@@ -684,11 +666,6 @@ public class ConfigStore {
         throw new java.io.IOException("SETTINGS_PATH");
       next.put(Constants.KEY_WORKDIR, path);
     }
-    if (data.has("permissionMode"))
-      next.put(
-          Constants.KEY_PERMISSION_MODE,
-          com.deepseekharness.app.util.PermissionMode.normalize(
-              data.optString("permissionMode", "danger-full-access")));
     for (String[] pair :
         new String[][] {
           {"confirmShell", Constants.KEY_CONFIRM_SHELL},
@@ -723,8 +700,10 @@ public class ConfigStore {
   public void applyHostSettings(java.util.Map<String, Object> values) throws java.io.IOException {
     java.util.Set<String> allowed =
         new java.util.HashSet<>(java.util.Arrays.asList(BACKUP_SETTING_KEYS));
+    // 旧中断事务可能带这个退休字段；接受原日志格式，但不再恢复其值。
+    allowed.add(Constants.KEY_PERMISSION_MODE);
     if (!allowed.containsAll(values.keySet())) throw new java.io.IOException("SETTINGS_KEYS");
-    SharedPreferences.Editor edit = prefs.edit();
+    SharedPreferences.Editor edit = prefs.edit().remove(Constants.KEY_PERMISSION_MODE);
     for (String key : BACKUP_SETTING_KEYS) {
       Object value = values.get(key);
       if (value == null) edit.remove(key);
@@ -749,7 +728,7 @@ public class ConfigStore {
   public void finishRestoreSettings(boolean rollback) throws Exception {
     String saved = text("backup_restore_previous_settings", "");
     if (saved.isEmpty()) return;
-    SharedPreferences.Editor edit = prefs.edit();
+    SharedPreferences.Editor edit = prefs.edit().remove(Constants.KEY_PERMISSION_MODE);
     if (rollback) {
       org.json.JSONObject before = new org.json.JSONObject(saved);
       for (String key : BACKUP_SETTING_KEYS) {

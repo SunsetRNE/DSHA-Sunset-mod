@@ -253,7 +253,7 @@ public final class RuntimePackageCommandsAndroidTest {
           Path.of(output),
           new JSONObject()
               .put("wrappers", wrappers)
-              .put("webCommand", WebLaunchCommand.build("ask", true, "zh", "web", 0, 42))
+              .put("webCommand", WebLaunchCommand.build(true, "zh", "web", 0, 42))
               .put("pnpmVersion", BuildConfig.BUNDLED_PNPM_VERSION)
               .toString(2));
   }

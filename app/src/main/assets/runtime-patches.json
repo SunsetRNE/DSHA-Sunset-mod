@@ -249,6 +249,19 @@
       "markers": [
         "DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"
       ]
+    },
+    {
+      "asset": "deepseek-account-requests-patch.json",
+      "markers": [
+        "DSHA_ACCOUNT_REQUEST_DIAGNOSTICS_V1",
+        "DSHA_ACCOUNT_PROFILE_SINGLE_FLIGHT_V1"
+      ]
+    },
+    {
+      "asset": "deepseek-account-client-diagnostic-patch.json",
+      "markers": [
+        "DSHA_ACCOUNT_CLIENT_DIAGNOSTIC_V1"
+      ]
     }
   ],
   "specialized": [

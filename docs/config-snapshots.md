@@ -53,7 +53,7 @@ DSHA 有三类不同的配置保护：启动六文件快照保护 DSH 启动配�
 
 ## 宿主设置导入和合并
 
-v5 手动备份通过 [ConfigStore.exportPortableSettings/prepareHostSettings](../app/src/main/java/com/deepseekharness/app/core/ConfigStore.java) 投影端口模式/端口、工作目录、工具权限模式、shell 确认、桌面 UA、更新检查、节能、PiP 布局/开关、主题及语言。只有归档中存在的白名单字段才合并到当前设置，未出现字段保留；非法端口和过长/NUL 路径被拒绝。原生 API Key 默认排除，用户明确包含/恢复时先经本机 Keystore 加密并读回验证，凭据不可用不能折叠为空串。
+v5 手动备份通过 [ConfigStore.exportPortableSettings/prepareHostSettings](../app/src/main/java/com/deepseekharness/app/core/ConfigStore.java) 投影端口模式/端口、工作目录、shell 确认、桌面 UA、更新检查、节能、PiP 布局/开关、主题及语言。build191退休的 `permission_mode` 不再导出或导入；旧中断恢复事务允许读取该历史字段但忽略其值，不影响其余设置恢复。只有归档中存在的白名单字段才合并到当前设置，未出现字段保留；非法端口和过长/NUL 路径被拒绝。原生 API Key 默认排除，用户明确包含/恢复时先经本机 Keystore 加密并读回验证，凭据不可用不能折叠为空串。
 
 恢复设置不导入 ADB/Root/Shizuku 授权、屏幕许可、运行 PID、会话 token 或自动备份密码。端口、工作目录等运行参数在下一次启动使用；语言、主题和网页显示设置还受各自界面重建/网页加载链约束，导入完成不代表已经改变当前运行中的网页。模型和提供商的生产编辑入口在 Web，不由旧原生配置页重新接管。
 

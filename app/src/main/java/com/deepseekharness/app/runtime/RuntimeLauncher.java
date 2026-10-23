@@ -118,10 +118,17 @@ final class RuntimeLauncher {
   }
 
   Process start(String command, LaunchSpec spec) throws IOException {
+    return start(command, spec, null);
+  }
+
+  Process start(String command, LaunchSpec spec, RuntimeCommandTiming timing) throws IOException {
     ProcessBuilder builder = builder(command, spec);
-    return spec.isolated
+    if (timing != null) timing.mark("launcher-prepare");
+    Process process = spec.isolated
         ? IsolatedInstallProcess.start(builder, tmp, context, spec.record)
         : builder.start();
+    if (timing != null) timing.mark("process-create");
+    return process;
   }
 
   void bindPreloads(List<String> argv) throws IOException {

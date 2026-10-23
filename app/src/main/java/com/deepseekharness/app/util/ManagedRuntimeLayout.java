@@ -31,6 +31,7 @@ public final class ManagedRuntimeLayout {
           "plugin-lifecycle.py",
           "plugin-dependencies.py",
           "plugin-transactions.py",
+          "materialize-cas-links.py",
           "backup-plugin-graph.py",
           "rc1-migration.py",
           "rc1-settings-migration.cjs",

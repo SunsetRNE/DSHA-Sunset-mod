@@ -14,7 +14,7 @@ For the project entry point, see the [architecture handbook](project-architectur
 | ADB | System adbd, pairing keys and current authenticated connection | Local wireless device-shell channel | Root, a connected accessibility service or approval of this action |
 | Accessibility | User's system settings and actual system binding | Nodes, gestures and some screenshot/screen operations | Arbitrary shell execution or permission to create a separate display |
 | DSHA local confirmation policy | DeviceGrants, CapabilityBroker and the current runtime | Decides whether an assistant request asks, allows or rejects | System permission or a device connection |
-| DSH session permission mode | Web/runtime options and tool policy | Tool constraints such as read-only and workspace-write | Android UID isolation or a strong system sandbox |
+| DSH runtime permission mode | Production Web fixes danger-full-access; build191 removes the native three-mode selector | Existing session/plugin tool policies and independent read-only recovery remain separate | Android UID isolation, a strong sandbox or extra Android capability grants |
 
 Android treats normal permissions, runtime permissions and special permissions separately. A Manifest declaration alone does not establish that every capability has been granted. [Android permissions overview](https://developer.android.com/guide/topics/permissions/overview). The checks in the last three rows are DSHA source policies, not security endorsements supplied by Android or Shizuku.
 

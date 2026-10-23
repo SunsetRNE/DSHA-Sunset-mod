@@ -226,6 +226,10 @@ final class WebLifecycleController {
                         webRuns.put(run.generation, run);
                         state.recovery.begin(run.generation, false);
                         state.diagnostics.begin(run.generation, false);
+                        state.diagnostics.backendReady(run.generation);
+                        state.diagnostics.message(
+                            run.generation,
+                            "SESSION_REATTACHED: existing authenticated guest; elapsed is observation time");
                         state.diagnostics.stage(
                             run.generation,
                             com.deepseekharness.app.util.UiText.choose(
@@ -380,6 +384,10 @@ final class WebLifecycleController {
               run.generation, run.instanceId);
         });
     if (outcome.result() == WebSessionRecheck.Result.RESTORED) {
+      state.diagnostics.backendReady(run.generation);
+      state.diagnostics.message(
+          run.generation,
+          "SESSION_REATTACHED: existing authenticated guest; elapsed is observation time");
       publishRecoveredLan(
           WebSessionRecovery.Result.RESTORED,
           state,
@@ -661,7 +669,6 @@ final class WebLifecycleController {
 
   private String runCoreCommand(String profile, int listenPort, long generation) {
     return com.deepseekharness.app.util.WebLaunchCommand.build(
-        config.getPermissionMode(),
         config.isConfirmShell(),
         config.getUiLanguage(),
         profile,
@@ -758,6 +765,7 @@ final class WebLifecycleController {
       boolean safeMode,
       long admissionGeneration,
       com.deepseekharness.app.util.WebStartProtection.Ticket protection) {
+    final long admissionStarted = System.nanoTime();
     synchronized (lifecycle) {
       if (lifecycle.generation() != admissionGeneration) return false;
       if (protection != null && !state.startProtection.canAdmit(protection)) return false;
@@ -852,15 +860,24 @@ final class WebLifecycleController {
         state.diagnostics.begin(generation, safeMode);
         state.diagnostics.message(
             generation,
+            "START_ADMISSION_MS="
+                + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - admissionStarted));
+        state.diagnostics.message(
+            generation,
             com.deepseekharness.app.util.UiText.format(
                 "运行方式：%s",
                 config.isProroot() && android.os.Build.VERSION.SDK_INT >= 26
                     ? "proroot"
                     : "proot"));
         new File(proot.getRootfsDir(), "root/.dsha-web-activity.json").delete();
+        final long queuedAt = System.nanoTime();
         io.execute(
             () -> {
               try (startup) {
+                state.diagnostics.message(
+                    generation,
+                    "START_QUEUE_MS="
+                        + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - queuedAt));
                 startup.run(
                     () -> {
                       if (protection != null
@@ -1067,6 +1084,7 @@ final class WebLifecycleController {
                   if (!current() || authenticated()) return;
                   if (!state.recovery.failed(generation)) {
                     if (!publishAuthenticatedRun(lifecycle, run, url)) return;
+                    state.diagnostics.backendReady(generation);
                     if (ports.preferred == 0 || ports.fallback()) {
                       config.rememberFallbackWebPort(ports.preferred, run.port);
                       reportStatus(
