@@ -10,6 +10,7 @@ import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.*;
 import com.deepseekharness.app.util.PreviewPageSession;
+import com.deepseekharness.app.util.UiText;
 import java.lang.reflect.*;
 import java.util.*;
 import org.junit.*;
@@ -198,6 +199,7 @@ public final class WebBackgroundPageLifecycleTest {
   private View panel;
   private org.robolectric.android.controller.ActivityController<Browser> lifecycle;
   private boolean created;
+  private String previousLanguage;
 
   private static void set(Object target, String name, Object value) throws Exception {
     Field field =
@@ -220,6 +222,8 @@ public final class WebBackgroundPageLifecycleTest {
 
   @Before
   public void prepare() throws Exception {
+    previousLanguage = UiText.language();
+    UiText.setLanguage("zh");
     Controller.value = Shadow.newInstanceOf(HarnessController.class);
     Controller.ready = ORIGINAL;
     Controller.exited = false;
@@ -261,9 +265,13 @@ public final class WebBackgroundPageLifecycleTest {
 
   @After
   public void finish() {
-    if (created) lifecycle.pause().stop().destroy();
-    else page.destroy();
-    ((org.robolectric.shadows.ShadowLooper) Shadow.extract(Looper.getMainLooper())).idle();
+    try {
+      if (created) lifecycle.pause().stop().destroy();
+      else page.destroy();
+      ((org.robolectric.shadows.ShadowLooper) Shadow.extract(Looper.getMainLooper())).idle();
+    } finally {
+      UiText.setLanguage(previousLanguage);
+    }
   }
 
   @Test
