@@ -125,7 +125,7 @@ public final class UpdateVersionPageTest {
       assertTrue(
           shown.contains(
               "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
-      assertTrue(shown.contains("更新检查"));
+      assertTrue(shown.contains("启动直接进入主页"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -141,7 +141,7 @@ public final class UpdateVersionPageTest {
       Dialog dialog = ShadowDialog.getLatestDialog();
       String shown = text(dialog.getWindow().getDecorView());
       assertTrue(shown.contains("DSHA " + BuildConfig.VERSION_NAME));
-      assertTrue(shown.contains("Update checks"));
+      assertTrue(shown.contains("Launch directly into Home"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
