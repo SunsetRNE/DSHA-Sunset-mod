@@ -17,7 +17,8 @@ public final class WebFileActionsBindingTest {
     BrowserThemeGate page = new BrowserThemeGate(source, identity);
     assertTrue(WebFileActions.matchesBinding(page, source, page.nonce(), 192, "runtime-192"));
     assertFalse(WebFileActions.matchesBinding(null, source, page.nonce(), 192, "runtime-192"));
-    assertFalse(WebFileActions.matchesBinding(page, new Object(), page.nonce(), 192, "runtime-192"));
+    assertFalse(
+        WebFileActions.matchesBinding(page, new Object(), page.nonce(), 192, "runtime-192"));
     assertFalse(WebFileActions.matchesBinding(page, source, "old-document", 192, "runtime-192"));
     assertFalse(WebFileActions.matchesBinding(page, source, page.nonce(), 191, "runtime-192"));
     assertFalse(WebFileActions.matchesBinding(page, source, page.nonce(), 192, "old-runtime"));
@@ -27,11 +28,29 @@ public final class WebFileActionsBindingTest {
   public void oldDocumentCannotEnqueueAfterSameOriginNavigationOrReplacement() {
     BrowserThemeGate first = new BrowserThemeGate(source, identity);
     BrowserThemeGate nextDocument = new BrowserThemeGate(source, identity);
-    assertFalse(WebFileActions.matchesBinding(nextDocument, source, first.nonce(), 192, "runtime-192"));
+    assertFalse(
+        WebFileActions.matchesBinding(nextDocument, source, first.nonce(), 192, "runtime-192"));
     PreviewPageSession.Identity replacement =
         new PreviewPageSession.Identity(193, "runtime-193", identity.authUrl());
     BrowserThemeGate nextRuntime = new BrowserThemeGate(source, replacement);
-    assertFalse(WebFileActions.matchesBinding(nextRuntime, source, first.nonce(), 192, "runtime-192"));
-    assertTrue(WebFileActions.matchesBinding(nextRuntime, source, nextRuntime.nonce(), 193, "runtime-193"));
+    assertFalse(
+        WebFileActions.matchesBinding(nextRuntime, source, first.nonce(), 192, "runtime-192"));
+    assertTrue(
+        WebFileActions.matchesBinding(
+            nextRuntime, source, nextRuntime.nonce(), 193, "runtime-193"));
+  }
+
+  @Test
+  public void destinationGuardIsLocalToTheExplicitLiveDocumentAndRetiresOnce() {
+    java.util.concurrent.atomic.AtomicBoolean current =
+        new java.util.concurrent.atomic.AtomicBoolean(true);
+    String token = WebFileActions.destinationToken(current::get);
+    assertTrue(WebFileActions.destinationCurrent(token));
+    assertFalse(WebFileActions.destinationCurrent("unrelated-or-lost-process-token"));
+    current.set(false);
+    assertFalse(WebFileActions.destinationCurrent(token));
+    WebFileActions.retireDestination(token);
+    current.set(true);
+    assertFalse(WebFileActions.destinationCurrent(token));
   }
 }

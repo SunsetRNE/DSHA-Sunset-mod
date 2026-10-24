@@ -23,9 +23,32 @@ public final class OwnedScreenOverlayTest {
     assertNull(OwnedScreenOverlay.match(8, compact, true));
     assertNull(OwnedScreenOverlay.match(7, compact, false));
     assertNull(OwnedScreenOverlay.match(7, new ScreenWindowRegion.Bounds(71, 80, 96, 120), true));
+    var decor = new ScreenWindowRegion.Bounds(68, 78, 97, 122);
+    assertEquals(decor, OwnedScreenOverlay.match(7, decor, true).bounds());
     OwnedScreenOverlay.publish("test", 7, compact, true);
     assertNull(OwnedScreenOverlay.match(7, compact, true));
     assertTrue(OwnedScreenOverlay.expanded());
+  }
+
+  @Test
+  public void paddedWindowIsEntirelyMaskedAndNoPackageWideExemptionExists() {
+    OwnedScreenOverlay.publish("test", 7, compact, false);
+    var decor = new ScreenWindowRegion.Bounds(68, 78, 97, 122);
+    var own = OwnedScreenOverlay.match(7, decor, true);
+    assertNotNull(own);
+    assertNull(OwnedScreenOverlay.match(8, decor, true));
+    assertNull(OwnedScreenOverlay.match(7, decor, false));
+    var region = new ScreenWindowRegion(full, full, false, List.of(own));
+    assertFalse(region.containsTrajectory(68, 80, 68, 80, 0));
+    assertTrue(region.hasUnexcludedArea(full));
+    assertFalse(region.hasUnexcludedArea(compact));
+    assertFalse(region.hasUnexcludedArea(decor));
+    var covered =
+        new ScreenWindowRegion(
+            full, full, false, List.of(new ScreenWindowRegion.Exclusion(7, own.epoch(), full)));
+    assertFalse(covered.hasUnexcludedArea(full));
+    OwnedScreenOverlay.clear("test");
+    assertNull(OwnedScreenOverlay.match(7, decor, true));
   }
 
   @Test
@@ -58,5 +81,27 @@ public final class OwnedScreenOverlayTest {
     OwnedScreenOverlay.clear("test");
     OwnedScreenOverlay.publish("test", 7, compact, false);
     assertNotEquals(first, OwnedScreenOverlay.match(7, compact, true));
+  }
+
+  @Test
+  public void semanticScrollVisibilitySubtractsUnionOfOwnedInputAreas() {
+    var left = new ScreenWindowRegion.Exclusion(7, 1, new ScreenWindowRegion.Bounds(0, 0, 50, 200));
+    var right =
+        new ScreenWindowRegion.Exclusion(8, 2, new ScreenWindowRegion.Bounds(50, 0, 100, 200));
+    var covered = new ScreenWindowRegion(full, full, false, List.of(left, right));
+    assertFalse(covered.hasUnexcludedArea(full));
+    var gap =
+        new ScreenWindowRegion(
+            full,
+            full,
+            false,
+            List.of(
+                left,
+                new ScreenWindowRegion.Exclusion(
+                    8, 2, new ScreenWindowRegion.Bounds(51, 0, 100, 200))));
+    assertTrue(gap.hasUnexcludedArea(full));
+    assertFalse(gap.hasUnexcludedArea(new ScreenWindowRegion.Bounds(0, 0, 40, 200)));
+    assertFalse(gap.hasUnexcludedArea(new ScreenWindowRegion.Bounds(-20, 0, 0, 200)));
+    assertFalse(new ScreenWindowRegion(full, full, true).hasUnexcludedArea(full));
   }
 }

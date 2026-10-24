@@ -548,7 +548,9 @@ public class WebProcessManager {
     if (uid == null || state.identity == null || state.kind == Kind.DENIED)
       throw new IOException("WEB_SESSION_PROCESS_UNREADABLE");
     java.util.Map<String, String> env = new java.util.HashMap<>();
-    for (String value : readProcessFile(pid, "environ").split("\u0000")) {
+    String environment =
+        sessionEvidence("WEB_SESSION_ENV_UNREADABLE", () -> readProcessFile(pid, "environ"));
+    for (String value : environment.split("\u0000")) {
       int equals = value.indexOf('=');
       if (equals < 1) continue;
       String key = value.substring(0, equals);
@@ -575,12 +577,18 @@ public class WebProcessManager {
 
   String recoveryBoot() throws IOException {
     String boot;
-    try (var input = new FileInputStream("/proc/sys/kernel/random/boot_id")) {
-      byte[] bytes = new byte[81];
-      int count = input.read(bytes);
-      if (count < 1 || count == bytes.length) throw new IOException("WEB_SESSION_BOOT_LIMIT");
-      boot = new String(bytes, 0, count, StandardCharsets.US_ASCII).trim();
-    }
+    boot =
+        sessionEvidence(
+            "WEB_SESSION_BOOT_UNREADABLE",
+            () -> {
+              try (var input = new FileInputStream("/proc/sys/kernel/random/boot_id")) {
+                byte[] bytes = new byte[81];
+                int count = input.read(bytes);
+                if (count < 1 || count == bytes.length)
+                  throw new IOException("WEB_SESSION_BOOT_LIMIT");
+                return new String(bytes, 0, count, StandardCharsets.US_ASCII).trim();
+              }
+            });
     if (!boot.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN))
       throw new IOException("WEB_SESSION_BOOT_UNREADABLE");
     return boot;
@@ -589,13 +597,16 @@ public class WebProcessManager {
   public com.deepseekharness.app.util.WebSessionProof.Saved captureSession(
       long generation, String instance, String nonce, Process launcher) throws IOException {
     if (records != null || launcher == null) throw new IOException("WEB_SESSION_LAUNCHER_MISSING");
-    String record = pidRecord();
+    String record = sessionEvidence("WEB_SESSION_PID_RECORD", this::pidRecord);
     int pid = WebProcSel.parsePid(record);
-    var web = recoveryProcess(pid);
+    if (pid <= 1) throw new IOException("WEB_SESSION_PID_RECORD_INVALID");
+    var web = sessionEvidence("WEB_SESSION_GUEST_PROCESS", () -> recoveryProcess(pid));
     int launcherPid =
         com.deepseekharness.app.util.ProcessIdentity.androidPid(
             launcher.getClass().getName(), launcher.toString());
-    var parent = recoveryProcess(launcherPid);
+    if (launcherPid <= 1) throw new IOException("WEB_SESSION_LAUNCHER_PID_INVALID");
+    var parent =
+        sessionEvidence("WEB_SESSION_LAUNCHER_PROCESS", () -> recoveryProcess(launcherPid));
     var saved =
         new com.deepseekharness.app.util.WebSessionProof.Saved(
             recoveryBoot(),
@@ -608,9 +619,25 @@ public class WebProcessManager {
             launcherPid,
             parent.started(),
             parent.command());
-    if (!record.equals(pidRecord()) || !web.alive() || !parent.alive() || !verifySession(saved))
+    if (!record.equals(pidRecord())
+        || !web.alive()
+        || !parent.alive()
+        || !sessionEvidence("WEB_SESSION_CAPTURE_VERIFY", () -> verifySession(saved)))
       throw new IOException("WEB_SESSION_CAPTURE_UNCONFIRMED");
     return saved;
+  }
+
+  @FunctionalInterface
+  private interface SessionEvidence<T> {
+    T read() throws IOException;
+  }
+
+  private static <T> T sessionEvidence(String code, SessionEvidence<T> read) throws IOException {
+    try {
+      return read.read();
+    } catch (IOException unavailable) {
+      throw new IOException(code, unavailable);
+    }
   }
 
   public boolean verifySession(com.deepseekharness.app.util.WebSessionProof.Saved saved)

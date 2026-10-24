@@ -6,7 +6,7 @@
     "tools/dsh-runtime/package.json": "687196d3306c3c98e769d684d3033ad80430975f2eabf1f6386f327cc9010d80",
     "tools/dsh-runtime/package-lock.json": "5d37cba4af2ec8b1afe1e72512acbcf2107be0d12f14c4180b8a058879e38b81",
     "app/src/main/assets/destructive-policy/package.json": "217d0f036224d8faa766d166a1a38df1c03f7da2a8a7ad8a0454ae595372395c",
-    "app/src/main/assets/destructive-policy/index.js": "b02fa82339b24f0b107a59670b2042eeb2356cee7af1a05739b02259cd98f241",
+    "app/src/main/assets/destructive-policy/index.js": "c94f390cb21491a348909133e51b76b3eabed3942fc82a069f73ad566b56ac93",
     "app/src/main/assets/destructive-policy/destructive.js": "a57dc469a7e7da32bd0b55ddd18cd68bb65f709b5389f2475093eafb098c8726",
     "app/src/main/assets/destructive-policy/workdir.js": "a401d96b87f2b1cc566ebb1b55b8a827f67f08c2418d1e739e870fa775b55861",
     "app/src/main/assets/managed-runtime-inputs.json": "189c8cd6292a642b46917ef062d0396cc2674e8dacaa2a763a4d7c6c7aba3834",
@@ -87,7 +87,7 @@
     "app/src/main/assets/web-integration/session-interaction.js": "6dac58b61d0523376aa514d17019344f56e25da62e7b2530c40b45b02b50a280",
     "app/src/main/assets/welcome-notice-patch.json": "e9f5a7644903c94a295cc79cb00a226b2fb22ed4b748622573de776c9a9ba28e",
     "tools/runtime_stable_patches.py": "cf215453637824ce0ba014c12805d1acfbf9aaf936371dc02d41b03bc0c0c0ca",
-    "tools/runtime_input_contract.py": "5c0ae822c8b8049a5421cc6bfdad5cf834aa306941e573f357c725a8bc47a10c"
+    "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
   "archive_sha256": "d77261bf677a83c2440aab7a60cacf9c95876b59777b74f9de4fa6be9c2ba514"
 }

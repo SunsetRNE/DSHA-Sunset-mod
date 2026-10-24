@@ -13,7 +13,7 @@ public final class PhoneControlCoordinator {
   private final ControlTaskAuthority authority = new ControlTaskAuthority();
   private final CopyOnWriteArrayList<Runnable> listeners = new CopyOnWriteArrayList<>();
   private volatile ScreenControlConfirmation confirmation;
-  private volatile Runnable turnCancellation;
+  private volatile java.util.function.Consumer<ControlTaskAuthority.Binding> turnCancellation;
 
   private PhoneControlCoordinator(Context context) {
     this.context = context.getApplicationContext();
@@ -58,19 +58,24 @@ public final class PhoneControlCoordinator {
     return result;
   }
 
+  /** Completion fences work but must not invoke the selected assistant's cancel callback. */
+  public void completeLocal(ControlTaskAuthority.Binding binding) {
+    if (authority.completeLocal(binding)) fence(false, null);
+  }
+
   public void pause(String reason) {
-    authority.pause(reason);
-    fence(true);
+    var previous = authority.pause(reason);
+    fence(true, previous);
   }
 
   public void resume() {
     authority.resume();
-    fence(false);
+    fence(false, null);
   }
 
   public void stop(String reason) {
-    authority.stop(reason);
-    fence(true);
+    var previous = authority.stop(reason);
+    fence(true, previous);
   }
 
   public void disconnectRemote(com.deepseekharness.app.remote.RemoteSessionIdentity identity) {
@@ -99,7 +104,8 @@ public final class PhoneControlCoordinator {
     return confirmation;
   }
 
-  public void setTurnCancellation(Runnable callback) {
+  public void setTurnCancellation(
+      java.util.function.Consumer<ControlTaskAuthority.Binding> callback) {
     turnCancellation = callback;
   }
 
@@ -111,14 +117,14 @@ public final class PhoneControlCoordinator {
     listeners.remove(listener);
   }
 
-  private void fence(boolean cancelTurn) {
+  private void fence(boolean cancelTurn, ControlTaskAuthority.Binding previous) {
     DshaApp.from(context).capabilityBroker().revoke("screen");
     DshaAccessibilityService.revokeRequests();
-    if (cancelTurn) {
-      Runnable callback = turnCancellation;
+    if (cancelTurn && previous != null) {
+      var callback = turnCancellation;
       if (callback != null)
         try {
-          callback.run();
+          callback.accept(previous);
         } catch (RuntimeException ignored) {
         }
     }

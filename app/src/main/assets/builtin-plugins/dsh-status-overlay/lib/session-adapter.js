@@ -14,14 +14,26 @@ function textOf(event) {
   return (message?.content || []).filter(part => part.type === 'text')
     .map(part => String(part.text || '')).join('\n')
 }
+function visibleConversationMessage(event) {
+  if (event?.type === 'assistant/message') return true
+  // Runtime/time/plugin context also uses user/message in the model history.
+  // Only human provenance belongs in the chat transcript. Never inspect text.
+  return event?.type === 'user/message' && event?.data?.source?.kind === 'user'
+}
 /** Trusted values are rebuilt for each actual shell execution, never last-active-session globals. */
 export function phoneTaskEnvironment(execution) {
   const session = execution?.agent?.session
-  const turn = session?.snapshotEvents().findLast(event => event.type === 'turn/start')
-  return session?.id && turn ? { DSH_PHONE_SESSION_ID: session.id, DSH_PHONE_TURN_ID: String(turn.data.turn) } : {}
+  const events = session?.snapshotEvents()
+  const turn = events?.findLast(event => event.type === 'turn/start')
+  const ended = turn && events.some(event => event.type === 'turn/end' && event.seq > turn.seq && event.data.turn === turn.data.turn)
+  if (!session?.id || !turn || ended) return {}
+  const completed = events.findLast(event => event.type === 'turn/end' && event.seq < turn.seq
+    && Number.isSafeInteger(event.data?.turn) && event.data.turn > 0 && event.data.turn < turn.data.turn)
+  return { DSH_PHONE_SESSION_ID: session.id, DSH_PHONE_TURN_ID: String(turn.data.turn),
+    ...(completed ? { DSH_PHONE_COMPLETED_TURN_ID: String(completed.data.turn) } : {}) }
 }
 /** Uses the exact locked rc3 public business API. No private registry mutation. */
-export function sessionAdapter(ctx, instance = hostInstanceId, liveText = () => '') {
+export function sessionAdapter(ctx, instance = hostInstanceId, liveText = () => '', sessionError = () => false) {
   return async function call(method, args = {}, signal = AbortSignal.timeout(10000)) {
     if (args.hostInstanceId !== undefined && args.hostInstanceId !== instance)
       throw new Error('HOST_INSTANCE_CHANGED')
@@ -29,7 +41,12 @@ export function sessionAdapter(ctx, instance = hostInstanceId, liveText = () => 
     if (!controller) throw new Error('SESSION_CONTROLLER_UNAVAILABLE')
     if (method === 'sessions.list') {
       const result = await controller.list({}, signal)
-      return { ...result, hostInstanceId: instance }
+      return { ...result, items: result.items.map(item => {
+        const agent = ctx.agents?.get(item.sessionId)
+        const title = item.projections?.values?.title
+        return { ...item, ...(typeof title === 'string' && title.trim() ? { title } : {}),
+          running: item.running || (agent?.inbox?.nextTurn?.length || 0) + (agent?.inbox?.nextStep?.length || 0) > 0 }
+      }), hostInstanceId: instance }
     }
     if (!args.hostInstanceId) throw new Error('HOST_INSTANCE_REQUIRED')
     if (method === 'sessions.create') {
@@ -44,10 +61,14 @@ export function sessionAdapter(ctx, instance = hostInstanceId, liveText = () => 
       const turn = events.findLast(event => event.type === 'turn/start')
       const agent = ctx.agents?.get(sessionId)
       const queued = (agent?.inbox?.nextTurn?.length || 0) + (agent?.inbox?.nextStep?.length || 0)
-      const messages = events.filter(event => ['user/message', 'assistant/message'].includes(event.type)).slice(-8)
-      const stream = liveText(sessionId)
+      const messages = events.filter(visibleConversationMessage).slice(-8)
+      const running = agent?.status === 'running' || queued > 0
+      const stream = running ? liveText(sessionId) : ''
       return { sessionId, hostInstanceId: instance, running: agent?.status === 'running' || queued > 0,
         turnId: turn ? String(turn.data.turn) : '', taskId: sessionId,
+        messages: messages.map(event => ({ role: event.type === 'user/message' ? 'user' : 'assistant', text: textOf(event).slice(-3000) })),
+        streamText: String(stream).slice(-4000),
+        failed: !running && sessionError(sessionId),
         text: (messages.map(textOf).filter(Boolean).join('\n\n') + (stream ? '\n\n' + stream : '')).slice(-24000) }
     }
     if (method === 'sessions.send') {
@@ -79,26 +100,45 @@ export function sessionAdapter(ctx, instance = hostInstanceId, liveText = () => 
     throw new Error('SESSION_METHOD_UNSUPPORTED')
   }
 }
-export function installSessionAdapter(ctx, liveText) {
+export function installSessionAdapter(ctx, liveText, retireTask = () => {}) {
+  const failed = new Set()
+  ctx.on('agent/error', ({ agent }) => { if (agent?.id) failed.add(agent.id) })
+  ctx.on('session/event', (session, event) => {
+    if (event.type === 'turn/start') failed.delete(session.id)
+    if (event.type === 'turn/end' && Number.isSafeInteger(event.data?.turn) && event.data.turn > 0) {
+      // Event identity, not the latest-turn snapshot: delivery may race the next turn.
+      try { Promise.resolve(retireTask({ sessionId: session.id, turnId: String(event.data.turn) })).catch(() => {}) }
+      catch { /* Lifecycle reporting cannot interrupt the real Agent. */ }
+    }
+  })
+  ctx.on('session/disposed', session => failed.delete(session.id))
+  ctx.on('dispose', () => failed.clear())
   ctx.inject(['shellEnv'], scope => scope.effect(() => scope.shellEnv.register({
     name: 'dsha-phone-task', variables: {
       DSH_PHONE_SESSION_ID: { description: 'Exact local phone-control conversation ID for this tool execution.' },
       DSH_PHONE_TURN_ID: { description: 'Exact local phone-control turn ID for this tool execution.' },
+      DSH_PHONE_COMPLETED_TURN_ID: { description: 'Latest actually ended earlier turn in this exact conversation, if any.' },
     }, resolve: phoneTaskEnvironment,
   }), 'dsha exact per-execution phone task environment'))
   ctx.inject(['systemPrompt'], scope => scope.systemPrompt.section({ name: 'dsha:phone-task-binding', order: 155,
     text: 'For physical-phone /app/ui/* calls, use the current tool environment identity: append '
       + '--data-urlencode "taskSessionId=$DSH_PHONE_SESSION_ID" --data-urlencode "turnId=$DSH_PHONE_TURN_ID" '
-      + 'to curl -G. These values identify this exact full conversation and turn; never copy another session or a shortened suffix. '
+      + 'to curl -G. If DSH_PHONE_COMPLETED_TURN_ID is nonempty, also append --data-urlencode "completedTurnId=$DSH_PHONE_COMPLETED_TURN_ID". '
+      + 'These values identify this exact full conversation and turn; never copy another session or a shortened suffix. '
       + 'Pause/stop/expanded chat invalidates phone actions immediately. After user continuation, obtain a fresh screen observation; never replay UNKNOWN actions.',
   }))
   ctx.inject(['webServer', 'connection', 'sessionController', 'agents'], web => {
-    const call = sessionAdapter(web, hostInstanceId, liveText)
+    const call = sessionAdapter(web, hostInstanceId, liveText, key => failed.has(key))
     web.effect(() => web.webServer.register({ kind: 'exact', path: '/api/dsha-assistant',
-      handler: async (req, res) => {
+      handler: assistantRequestHandler(call, web.connection) }), 'dsha assistant exact local Host session API')
+  })
+}
+/** Same handler is exercised over real HTTP by the pinned-runtime integration fixture. */
+export function assistantRequestHandler(call, connection) {
+  return async (req, res) => {
         const reply = (status, value) => { const bytes = Buffer.from(JSON.stringify(value));
           res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': bytes.length }); res.end(bytes) }
-        const denied = web.connection.requestRejection(req)
+        const denied = connection.requestRejection(req)
         if (denied !== undefined) { reply(denied, { ok: false, code: 'AUTH_REQUIRED' }); return }
         if (req.method !== 'POST') { reply(405, { ok: false, code: 'POST_REQUIRED' }); return }
         if (req.headers.origin) {
@@ -106,6 +146,7 @@ export function installSessionAdapter(ctx, liveText) {
           catch { reply(403, { ok: false, code: 'ORIGIN_REJECTED' }); return }
         }
         const deadline = AbortSignal.timeout(10000)
+        let method
         try {
           req.setTimeout?.(10000, () => req.destroy(new Error('REQUEST_TIMEOUT')))
           let size = 0, blocks = []
@@ -115,9 +156,19 @@ export function installSessionAdapter(ctx, liveText) {
             blocks.push(block)
           }
           const body = JSON.parse(Buffer.concat(blocks).toString('utf8'))
+          if (!body || typeof body !== 'object' || typeof body.method !== 'string'
+              || !body.args || typeof body.args !== 'object' || Array.isArray(body.args))
+            throw new Error('SESSION_REQUEST_INVALID')
+          method = body.method
           const value = await call(body.method, body.args, deadline)
           reply(200, { ok: true, value })
-        } catch (error) { reply(409, { ok: false, code: String(error?.code || error?.message || 'SESSION_REQUEST_FAILED').slice(0, 160) }) }
-      } }), 'dsha assistant exact local Host session API')
-  })
+        } catch (error) {
+          const raw = String(error?.code || error?.message || '')
+          // Error messages may contain credentials or arbitrary provider text.
+          const code = /^[a-zA-Z][a-zA-Z0-9_/-]{0,100}$/.test(raw) ? raw : 'SESSION_REQUEST_FAILED'
+          const rejected = method === 'sessions.send' && ['session/model-unavailable', 'PROMPT_INVALID',
+            'HOST_INSTANCE_CHANGED', 'HOST_INSTANCE_REQUIRED', 'SESSION_ID_INVALID'].includes(code)
+          reply(409, { ok: false, code, ...(rejected ? { rejected: true } : {}) })
+        }
+  }
 }

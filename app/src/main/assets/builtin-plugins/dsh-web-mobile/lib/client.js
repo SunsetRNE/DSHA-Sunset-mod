@@ -14240,6 +14240,15 @@ function canShareFiles(deps) {
  * @returns the outcome.
  */
 async function deliverFile(file, deps) {
+    if (deps.nativeShare) {
+        try {
+            await deps.share({ files: [file], title: file.name });
+            return { kind: 'shared' }; // chooser opened; no recipient-delivery claim
+        } catch (error) {
+            if (isAbortError(error)) return { kind: 'cancelled' };
+            throw error;
+        }
+    }
     if (file.size > (deps.shareMax ?? exports.SHARE_MAX_BYTES)) {
         deps.download(file);
         return { kind: 'downloaded', reason: 'too-large' };
@@ -14447,11 +14456,16 @@ function platformDeps() {
     const nav = navigator;
     const bridge = window.DSHA;
     return {
+        nativeShare: typeof bridge?.shareFile === 'function',
         canShare: typeof bridge?.canShareFile === 'function'
             ? data => data.files.length === 1 && bridge.canShareFile(data.files[0])
             : typeof nav.canShare === 'function' ? data => nav.canShare(data) : undefined,
         share: typeof bridge?.shareFile === 'function'
-            ? data => bridge.shareFile(data.files[0])
+            ? async data => {
+                if (data.files[0].size > 32 * 1024 * 1024) throw new Error(fileCopy().shareLimit);
+                const result = await bridge.shareFile(data.files[0]);
+                if (result?.status !== 'chooser-opened') throw new Error('The system share picker did not open');
+            }
             : typeof nav.share === 'function' ? data => nav.share(data) : undefined,
         download: downloadFile,
     };
@@ -14534,11 +14548,17 @@ function fileCopy() {
         download: '下载', more: '更多文件操作', saveas: '另存为…', share: '分享',
         gallery: '保存到相册', records: '下载记录', close: '取消',
         queued: '已加入下载任务，可在下载记录中查看', preparing: '正在准备文件…',
+        sharing: '正在准备分享，完成后将打开系统分享选择器',
+        saving: '正在准备另存为，完成后请选择保存位置',
+        shareLimit: '系统分享上限为 32 MiB；较大文件请使用下载或另存为',
         failed: '文件操作失败：',
     } : {
         download: 'Download', more: 'More file actions', saveas: 'Save as…', share: 'Share',
         gallery: 'Save to gallery', records: 'Downloads', close: 'Cancel',
         queued: 'Added to downloads. View progress in Downloads.', preparing: 'Preparing file…',
+        sharing: 'Preparing to share. The system share picker will open when ready.',
+        saving: 'Preparing Save as. Choose a destination when ready.',
+        shareLimit: 'System sharing is limited to 32 MiB. Use Download or Save as for larger files.',
         failed: 'File action failed: ',
     };
 }
@@ -14559,6 +14579,12 @@ async function prepareNativeFile(sessionId, path, destination, signal) {
     if (!response.ok) throw new Error('Unable to prepare file (' + response.status + ')');
     const artifact = checkedArtifact(await response.json());
     if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (destination === 'share' && artifact.bytes > 32 * 1024 * 1024) {
+        // No native admission was attempted. Retire only this unused descriptor.
+        fetch('/api/dsha/files/release', { method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: artifact.id }) }).catch(() => {});
+        throw new Error(fileCopy().shareLimit);
+    }
     const result = await window.DSHA.downloadArtifact(artifact, destination);
     if (result?.status !== 'queued' || typeof result.taskId !== 'string' || !result.taskId)
         throw new Error('The download task was not accepted');
@@ -14617,7 +14643,8 @@ function useNativeTransfer(sessionId) {
         if (!identity || identity.sessionId !== sessionId || flight.current) return;
         const controller = new AbortController(); flight.current = controller; setBusy(true);
         prepareNativeFile(sessionId, path, destination, controller.signal).then(() => {
-            if (!controller.signal.aborted && lifetime.current === identity) showFallbackNotice(fileCopy().queued);
+            if (!controller.signal.aborted && lifetime.current === identity) showFallbackNotice(
+                destination === 'share' ? fileCopy().sharing : destination === 'saveas' ? fileCopy().saving : fileCopy().queued);
         }).catch(error => {
             if (!controller.signal.aborted && lifetime.current === identity && error.name !== 'AbortError') showFallbackNotice(fileCopy().failed + error.message);
         }).finally(() => {

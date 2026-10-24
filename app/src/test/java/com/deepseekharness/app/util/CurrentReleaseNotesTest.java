@@ -44,7 +44,8 @@ public final class CurrentReleaseNotesTest {
     for (String suffix : new String[] {"low", "-SunsetTest", "low-SunsetTest"}) {
       String installed = VERSION + suffix;
       assertTrue(CurrentReleaseNotes.matches(installed, 194, NOTES));
-      assertTrue(CurrentReleaseNotes.render(installed, 194, NOTES, true).startsWith("DSHA " + installed));
+      assertTrue(
+          CurrentReleaseNotes.render(installed, 194, NOTES, true).startsWith("DSHA " + installed));
     }
   }
 }

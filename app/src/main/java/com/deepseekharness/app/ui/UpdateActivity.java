@@ -217,8 +217,7 @@ public final class UpdateActivity extends AppCompatActivity {
       ((TextView) findViewById(R.id.update_status))
           .setText(
               com.deepseekharness.app.util.UiText.format(
-                  "%s\n%s",
-                  UpdateUi.status(state.message), UpdateUi.status(install.error)));
+                  "%s\n%s", UpdateUi.status(state.message), UpdateUi.status(install.error)));
     }
   }
 

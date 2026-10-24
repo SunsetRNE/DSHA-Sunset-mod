@@ -53,7 +53,7 @@ public final class ScreenAuthorityBindingsTest {
     var lease =
         authority.begin(
             new ControlTaskAuthority.Binding(
-                ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", "turn"));
+                ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", "1"));
     authority.stop("DONE");
     assertThrows(
         IllegalStateException.class,

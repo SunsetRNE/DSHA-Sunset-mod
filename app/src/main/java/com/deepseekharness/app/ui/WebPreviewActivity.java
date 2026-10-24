@@ -1026,9 +1026,9 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
       // 原来的页面完成注入路径。
       String compatibility =
           (retained != null && retained.compatibilityScript != null
-              ? ""
-              : WebPageScripts.compatibility(WebPreviewActivity.this, retained.pageEvents)
-                  + "\n")
+                  ? ""
+                  : WebPageScripts.compatibility(WebPreviewActivity.this, retained.pageEvents)
+                      + "\n")
               + (theme == null
                   ? ""
                   : "window.__dshaFilesBind?.("

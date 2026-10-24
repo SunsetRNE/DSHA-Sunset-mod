@@ -32,7 +32,10 @@ import org.robolectric.shadows.ShadowDialog;
 
 /** Actual version page, bundled resource and opened notes; transport never runs in this fixture. */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 34, qualifiers = "zh", application = UpdateVersionPageTest.App.class,
+@Config(
+    sdk = 34,
+    qualifiers = "zh",
+    application = UpdateVersionPageTest.App.class,
     shadows = UpdateVersionPageTest.Engine.class)
 @LooperMode(LooperMode.Mode.PAUSED)
 public final class UpdateVersionPageTest {
@@ -111,13 +114,17 @@ public final class UpdateVersionPageTest {
     try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
       UpdateActivity activity = controller.get();
       assertEquals(
-          CurrentReleaseNotes.versionLabel(BuildConfig.VERSION_NAME) + " · build" + BuildConfig.VERSION_CODE,
+          CurrentReleaseNotes.versionLabel(BuildConfig.VERSION_NAME)
+              + " · build"
+              + BuildConfig.VERSION_CODE,
           ((TextView) activity.findViewById(R.id.update_changelog_summary)).getText().toString());
       activity.findViewById(R.id.update_changelog).performClick();
       Dialog dialog = ShadowDialog.getLatestDialog();
       assertNotNull(dialog);
       String shown = text(dialog.getWindow().getDecorView());
-      assertTrue(shown.contains("DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
+      assertTrue(
+          shown.contains(
+              "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
       assertTrue(shown.contains("更新检查"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
@@ -144,7 +151,8 @@ public final class UpdateVersionPageTest {
   public void emptyResultIsNormalAndStillAllowsRecheckAndBrowser() {
     try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
       UpdateActivity activity = controller.get();
-      assertEquals("暂无可用更新", ((TextView) activity.findViewById(R.id.update_status)).getText().toString());
+      assertEquals(
+          "暂无可用更新", ((TextView) activity.findViewById(R.id.update_status)).getText().toString());
       assertEquals(View.GONE, activity.findViewById(R.id.update_release_panel).getVisibility());
       assertEquals(View.GONE, activity.findViewById(R.id.update_download).getVisibility());
       assertEquals(View.GONE, activity.findViewById(R.id.update_install).getVisibility());
@@ -152,8 +160,8 @@ public final class UpdateVersionPageTest {
       activity.findViewById(R.id.update_check).performClick();
       assertEquals(1, Engine.checks);
       assertTrue(activity.findViewById(R.id.update_browser).performClick());
-      Intent browser = Shadow.<org.robolectric.shadows.ShadowActivity>extract(activity)
-          .getNextStartedActivity();
+      Intent browser =
+          Shadow.<org.robolectric.shadows.ShadowActivity>extract(activity).getNextStartedActivity();
       assertEquals(Intent.ACTION_VIEW, browser.getAction());
       assertTrue(browser.getDataString().endsWith("/releases"));
     }

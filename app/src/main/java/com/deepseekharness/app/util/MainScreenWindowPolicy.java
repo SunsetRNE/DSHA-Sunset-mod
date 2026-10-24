@@ -73,11 +73,13 @@ public final class MainScreenWindowPolicy {
     var content = original;
     boolean obscured = false;
     var exclusions = new java.util.ArrayList<ScreenWindowRegion.Exclusion>();
+    var occluders = new java.util.ArrayList<ScreenWindowRegion.Occluder>();
     for (Window other : windows) {
       if (other.display != 0 || other.id == target.id || other.layer <= target.layer) continue;
       var cover = other.bounds;
       if (cover == null || !cover.valid()) {
         obscured = true;
+        occluders.add(new ScreenWindowRegion.Occluder(other.id, other.kind.name(), cover));
         continue;
       }
       if (!content.intersects(cover)) continue;
@@ -120,8 +122,11 @@ public final class MainScreenWindowPolicy {
         content =
             new ScreenWindowRegion.Bounds(
                 content.left(), content.top(), cover.left(), content.bottom());
-      else obscured = true;
+      else {
+        obscured = true;
+        occluders.add(new ScreenWindowRegion.Occluder(other.id, other.kind.name(), cover));
+      }
     }
-    return new ScreenWindowRegion(original, content, obscured, exclusions);
+    return new ScreenWindowRegion(original, content, obscured, exclusions, occluders);
   }
 }

@@ -142,12 +142,7 @@ public final class WebDownloadModel extends AndroidViewModel {
     queuedTaskId = null;
     completion = complete;
     name = WebTransferPolicy.fileName(filename);
-    state.setValue(
-        new State(
-            "downloading",
-            downloadMessage(supplied != null),
-            0,
-            expected));
+    state.setValue(new State("downloading", downloadMessage(supplied != null), 0, expected));
     new Thread(
             () -> {
               File file = null;
@@ -213,10 +208,7 @@ public final class WebDownloadModel extends AndroidViewModel {
                       last = android.os.SystemClock.elapsedRealtime();
                       state.postValue(
                           new State(
-                              "downloading",
-                              downloadMessage(supplied != null),
-                              bytes,
-                              total));
+                              "downloading", downloadMessage(supplied != null), bytes, total));
                     }
                   }
                   out.getFD().sync();
@@ -236,7 +228,8 @@ public final class WebDownloadModel extends AndroidViewModel {
                       new State(
                           "queued",
                           com.deepseekharness.app.util.UiText.choose(
-                              "已加入下载任务，完成后保存至相册", "Queued; the image will be saved to Gallery when complete"),
+                              "已加入下载任务，完成后保存至相册",
+                              "Queued; the image will be saved to Gallery when complete"),
                           bytes,
                           bytes);
                 } else {

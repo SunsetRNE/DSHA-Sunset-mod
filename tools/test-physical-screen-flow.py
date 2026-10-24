@@ -66,10 +66,13 @@ def main():
              'ScreenPixelFingerprint', 'ScreenWindowRegion', 'MainScreenWindowPolicy',
              'VirtualScreenWindowPolicy', 'AccessibilityTreeBudget', 'AccessibilityEnableList',
              'AccessibilityDumpBounds', 'AccessibilityRepairState',
-             'AccessibilityServiceLifecycleEvents']
+             'AccessibilityServiceLifecycleEvents', 'BridgePortPolicy', 'BridgeCredentialFiles',
+             'CredentialPaths', 'LanPortPolicy']
     sources += [main / ('util/' + name + '.java') for name in names]
     sources.append(ROOT / 'tools/fixtures/physical-screen/com/deepseekharness/app/screen/PhysicalScreenFlowTest.java')
-    before = {str(path.relative_to(ROOT)): digest(path) for path in sources}
+    inputs = sources + [ROOT / ('app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/' + name)
+                        for name in ['server.cjs', 'bridge-port.cjs']]
+    before = {str(path.relative_to(ROOT)): digest(path) for path in inputs}
     cp = os.pathsep.join(map(str, [*([args.android_jar] if args.android_jar else []), resource, args.production_classes, *dependencies]))
     jdk = Path(os.environ['JAVA_HOME']) / 'bin'
     ext = '.exe' if os.name == 'nt' else ''
@@ -106,7 +109,7 @@ def main():
                 return result.returncode
         return 0
     finally:
-        after = {str(path.relative_to(ROOT)): digest(path) for path in sources}
+        after = {str(path.relative_to(ROOT)): digest(path) for path in inputs}
         (output / 'receipt.json').write_text(json.dumps({
             'scope': 'Current production screen owners with controlled cached Android facts; no phone, service lifecycle, native producer, socket, network or APK acceptance',
             'sourceBefore': before, 'sourceAfter': after, 'sourceUnchanged': before == after,

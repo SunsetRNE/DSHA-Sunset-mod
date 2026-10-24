@@ -14,7 +14,7 @@ public final class ControlTaskAuthorityTest {
     var authority = new ControlTaskAuthority();
     var local =
         authority.begin(
-            binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:17", "local-session", "turn-1"));
+            binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:17", "local-session", "1"));
     assertFalse(authority.actionAllowed(local));
     assertTrue(authority.observed(local));
     assertTrue(authority.actionAllowed(local));
@@ -40,7 +40,7 @@ public final class ControlTaskAuthorityTest {
         binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:1", "session-full", "turn-full");
     var old = authority.begin(binding);
     authority.observed(old);
-    authority.pause("LOCAL_USER_PAUSE");
+    assertEquals(binding, authority.pause("LOCAL_USER_PAUSE"));
     assertFalse(authority.current(old));
     assertFalse(authority.actionAllowed(old));
     assertThrows(IllegalStateException.class, () -> authority.begin(binding));
@@ -114,9 +114,47 @@ public final class ControlTaskAuthorityTest {
     var binding = binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:1", "session", "turn");
     var first = authority.begin(binding);
     authority.observed(first);
-    authority.stop("DONE");
+    assertEquals(binding, authority.stop("DONE"));
     var next = authority.begin(binding);
     assertFalse(authority.current(first));
     assertFalse(authority.actionAllowed(next));
+  }
+
+  @Test
+  public void consecutiveActualLocalTurnsRetireExactlyAndRequireNewObservation() {
+    var authority = new ControlTaskAuthority();
+    var a1 = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "prefix-A-same1234", "1");
+    var b1 = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "prefix-B-same1234", "1");
+    var a2 = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "prefix-A-same1234", "2");
+    var first = authority.begin(a1);
+    authority.observed(first);
+    assertThrows(IllegalStateException.class, () -> authority.begin(b1));
+    assertFalse(authority.completeLocal(b1));
+    assertTrue(authority.current(first));
+    assertTrue(authority.completeLocal(a1));
+    assertFalse(authority.current(first));
+    assertThrows(IllegalStateException.class, () -> authority.begin(a1));
+    var second = authority.begin(a2);
+    assertFalse(authority.actionAllowed(second));
+    assertFalse(authority.completeLocal(a1));
+    assertTrue(authority.current(second));
+    assertTrue(authority.observed(second));
+    assertTrue(authority.actionAllowed(second));
+  }
+
+  @Test
+  public void completedLocalTurnCannotClearPauseOrRetireRemoteOwner() {
+    var authority = new ControlTaskAuthority();
+    var local = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", "1");
+    authority.begin(local);
+    authority.pause("USER_PAUSE");
+    assertTrue(authority.completeLocal(local));
+    assertTrue(authority.snapshot().paused());
+    assertEquals("USER_PAUSE", authority.snapshot().reason());
+    authority.resume();
+    var remote =
+        authority.begin(binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "peer", "session", "1"));
+    assertFalse(authority.completeLocal(local));
+    assertTrue(authority.current(remote));
   }
 }

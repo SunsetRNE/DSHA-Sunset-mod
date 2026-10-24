@@ -227,7 +227,16 @@ function schedule(key, kind, getter) {
 
 /** @param {import('@deepseek-ai/cordis').Context} ctx */
 export function apply(ctx) {
-  installSessionAdapter(ctx, key => state.get(key)?.line || '')
+  installSessionAdapter(ctx, key => state.get(key)?.line || '', async ({ sessionId, turnId }) => {
+    const tok = bridgeToken()
+    if (!tok) return
+    const url = new URL(bridgeBase() + '/app/ui/task-end')
+    url.searchParams.set('taskSessionId', sessionId)
+    url.searchParams.set('turnId', turnId)
+    // Completion is exact and never cancellation. The next MCP call also carries
+    // this session's actual completed turn, so notification latency cannot block it.
+    await fetch(url, { headers: { 'X-Token': tok }, signal: AbortSignal.timeout(TIMEOUT_MS) })
+  })
   // 顺带把插件真实加载状态报给 App（见 reportPluginStates 的注释）
   reportPluginStates(ctx)
   const onEvent = (session, event) => {

@@ -61,7 +61,8 @@ public final class UiMessages { public static final java.util.Map<String,String>
         target.write_bytes(Path(args.baseline_proxy).read_bytes())
     suffix = '.exe' if os.name == 'nt' else ''
     jdk = Path(args.jdk) / 'bin'
-    tests = ['LanAuthTest', 'util.SocketDispatchTest', 'util.HttpProtocolTest', 'util.LanNetworkStateTest', 'util.LanAddressPolicyTest']
+    tests = ['LanAuthTest', 'util.SocketDispatchTest', 'util.HttpProtocolTest', 'util.LanNetworkStateTest', 'util.LanAddressPolicyTest',
+             'util.BridgePortPolicyTest', 'util.LanPortPolicyTest', 'util.WebPortPolicyTest', 'util.WebPortSettingsTest', 'util.ConfigInputTest']
     test_sources = [ROOT / 'app/src/test/java/com/deepseekharness/app' / (name.replace('.', '/') + '.java') for name in tests]
     command = [str(jdk / ('javac' + suffix)), '-encoding', 'UTF-8', '--release', '17', '-cp', cp,
                '-d', str(classes), '-sourcepath', os.pathsep.join(map(str, [stubs, overrides, ROOT / 'app/src/main/java', ROOT / 'app/src/test/java'])),

@@ -18,17 +18,31 @@ import org.robolectric.annotation.Resetter;
 public final class PosixAtomicFileShadow {
   @RealObject private AtomicFile actual;
   private static final AtomicBoolean failNext = new AtomicBoolean();
-  static void failNextCommit() { failNext.set(true); }
-  @Resetter public static void reset() { failNext.set(false); }
 
-  @Implementation protected void finishWrite(FileOutputStream stream) {
+  static void failNextCommit() {
+    failNext.set(true);
+  }
+
+  @Resetter
+  public static void reset() {
+    failNext.set(false);
+  }
+
+  @Implementation
+  protected void finishWrite(FileOutputStream stream) {
     if (stream == null) return;
     try {
-      stream.getFD().sync(); stream.close();
+      stream.getFD().sync();
+      stream.close();
       if (failNext.getAndSet(false)) return; // Real AtomicFile's silent failed-rename behavior.
       File base = actual.getBaseFile();
-      Files.move(new File(base + ".new").toPath(), base.toPath(),
-          StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-    } catch (IOException failure) { throw new IllegalStateException("ATOMIC_FILE_FIXTURE_FAILURE", failure); }
+      Files.move(
+          new File(base + ".new").toPath(),
+          base.toPath(),
+          StandardCopyOption.ATOMIC_MOVE,
+          StandardCopyOption.REPLACE_EXISTING);
+    } catch (IOException failure) {
+      throw new IllegalStateException("ATOMIC_FILE_FIXTURE_FAILURE", failure);
+    }
   }
 }

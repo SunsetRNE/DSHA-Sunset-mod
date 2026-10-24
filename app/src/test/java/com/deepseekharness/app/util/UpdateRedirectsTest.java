@@ -60,15 +60,21 @@ public class UpdateRedirectsTest {
       feed.disconnect();
       String artifact = "https://dsha.cc/downloads/a.apk";
       Response apk = new Response(artifact, code, null, new byte[0]);
-      UpdateFailures.HttpFailure failure = assertThrows(UpdateFailures.HttpFailure.class,
-          () -> UpdateRedirects.open(artifact, 0, "test", u -> apk, () -> {}));
+      UpdateFailures.HttpFailure failure =
+          assertThrows(
+              UpdateFailures.HttpFailure.class,
+              () -> UpdateRedirects.open(artifact, 0, "test", u -> apk, () -> {}));
       assertEquals(code, failure.status);
       assertTrue(apk.closed);
     }
     for (int code : new int[] {401, 403, 429, 500, 503}) {
       Response unavailable = new Response(UpdateLocations.FEED, code, null, new byte[0]);
-      UpdateFailures.HttpFailure failure = assertThrows(UpdateFailures.HttpFailure.class,
-          () -> UpdateRedirects.open(UpdateLocations.FEED, 0, "test", u -> unavailable, () -> {}));
+      UpdateFailures.HttpFailure failure =
+          assertThrows(
+              UpdateFailures.HttpFailure.class,
+              () ->
+                  UpdateRedirects.open(
+                      UpdateLocations.FEED, 0, "test", u -> unavailable, () -> {}));
       assertEquals(code, failure.status);
       assertTrue(unavailable.closed);
     }

@@ -61,7 +61,15 @@ public final class WebBlobDownload implements AutoCloseable {
       Pipe pipe = new Pipe();
       active = pipe;
       if (!model.download(
-          base, url, null, name, size, pipe.input, destination.equals("share"), mime, completion,
+          base,
+          url,
+          null,
+          name,
+          size,
+          pipe.input,
+          destination.equals("share"),
+          mime,
+          completion,
           destination.equals("gallery"))) {
         pipe.fail(com.deepseekharness.app.util.UiText.text("下载未启动"));
         return;

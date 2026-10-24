@@ -3,7 +3,9 @@ package com.deepseekharness.app.remote.gateway;
 /** Only remote file bytes cross this bridge. No local runtime API or native credential is exposed. */
 public final class RemoteFileScript {
   private RemoteFileScript() {}
-  public static final String SCRIPT = """
+
+  public static final String SCRIPT =
+      """
       (() => {
         if (window !== window.top || !window.DshaRemoteFiles || window.__dshaRemoteFilesInstalled) return;
         window.__dshaRemoteFilesInstalled = true;

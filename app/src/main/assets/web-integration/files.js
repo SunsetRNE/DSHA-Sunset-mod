@@ -89,6 +89,8 @@
         || typeof artifact.version !== 'string' || !artifact.version || artifact.version.length > 256
         || /[\x00-\x1f\x7f]/.test(artifact.version))
       return Promise.reject(new TypeError('Expected an opaque artifact manifest, not a path or URL'));
+    if (destination === 'share' && artifact.bytes > 32 * 1024 * 1024)
+      return Promise.reject(new Error('System sharing is limited to 32 MiB. Use Download or Save as for larger files.'));
     const manifest = {};
     for (const key of keys) manifest[key] = artifact[key];
     return send('artifact', {artifact: manifest, destination});

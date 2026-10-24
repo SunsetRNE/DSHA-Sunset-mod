@@ -22,50 +22,99 @@ public final class RemoteConnectionClient implements AutoCloseable {
   private final CountDownLatch ready = new CountDownLatch(1);
   private volatile IBinder binder;
   private boolean bound;
-  private final ServiceConnection connection = new ServiceConnection() {
-    public void onServiceConnected(ComponentName name, IBinder service) { binder = service; ready.countDown(); }
-    public void onServiceDisconnected(ComponentName name) { binder = null; ready.countDown(); }
-    public void onNullBinding(ComponentName name) { ready.countDown(); }
-  };
-  public RemoteConnectionClient(Context context) { this.context = context.getApplicationContext(); }
+  private final ServiceConnection connection =
+      new ServiceConnection() {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+          binder = service;
+          ready.countDown();
+        }
+
+        public void onServiceDisconnected(ComponentName name) {
+          binder = null;
+          ready.countDown();
+        }
+
+        public void onNullBinding(ComponentName name) {
+          ready.countDown();
+        }
+      };
+
+  public RemoteConnectionClient(Context context) {
+    this.context = context.getApplicationContext();
+  }
+
   public void connect() throws IOException {
-    if (Looper.myLooper() == Looper.getMainLooper()) throw new IOException("REMOTE_BIND_WORKER_REQUIRED");
+    if (Looper.myLooper() == Looper.getMainLooper())
+      throw new IOException("REMOTE_BIND_WORKER_REQUIRED");
     synchronized (this) {
-      if (!bound) bound = context.bindService(new Intent(context, RemoteConnectionService.class), connection, Context.BIND_AUTO_CREATE);
+      if (!bound)
+        bound =
+            context.bindService(
+                new Intent(context, RemoteConnectionService.class),
+                connection,
+                Context.BIND_AUTO_CREATE);
       if (!bound) throw new IOException("REMOTE_BIND_UNAVAILABLE");
     }
-    try { if (!ready.await(5, TimeUnit.SECONDS) || binder == null) throw new IOException("REMOTE_BIND_UNAVAILABLE"); }
-    catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IOException("REMOTE_BIND_INTERRUPTED"); }
+    try {
+      if (!ready.await(5, TimeUnit.SECONDS) || binder == null)
+        throw new IOException("REMOTE_BIND_UNAVAILABLE");
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      throw new IOException("REMOTE_BIND_INTERRUPTED");
+    }
   }
+
   public RemoteSessionIdentity current() throws IOException {
     Parcel request = Parcel.obtain(), response = Parcel.obtain();
     try {
-      request.writeInterfaceToken(DESCRIPTOR); transact(TRANSACTION_CURRENT, request, response);
-      String json = response.readString(); return json == null ? null : RemoteSessionIdentity.fromJsonString(json);
-    } catch (RuntimeException invalid) { throw new IOException("REMOTE_BIND_FAILED"); }
-    finally { request.recycle(); response.recycle(); }
+      request.writeInterfaceToken(DESCRIPTOR);
+      transact(TRANSACTION_CURRENT, request, response);
+      String json = response.readString();
+      return json == null ? null : RemoteSessionIdentity.fromJsonString(json);
+    } catch (RuntimeException invalid) {
+      throw new IOException("REMOTE_BIND_FAILED");
+    } finally {
+      request.recycle();
+      response.recycle();
+    }
   }
+
   public ParcelFileDescriptor openHttp(RemoteSessionIdentity expected) throws IOException {
     if (expected == null) throw new IOException("REMOTE_SESSION_STALE");
     Parcel request = Parcel.obtain(), response = Parcel.obtain();
     try {
-      request.writeInterfaceToken(DESCRIPTOR); request.writeString(expected.toJsonString());
+      request.writeInterfaceToken(DESCRIPTOR);
+      request.writeString(expected.toJsonString());
       transact(TRANSACTION_OPEN_HTTP, request, response);
       ParcelFileDescriptor result = response.readTypedObject(ParcelFileDescriptor.CREATOR);
       if (result == null) throw new IOException("REMOTE_STREAM_UNAVAILABLE");
       return result;
-    } catch (RuntimeException invalid) { throw new IOException("REMOTE_BIND_FAILED"); }
-    finally { request.recycle(); response.recycle(); }
+    } catch (RuntimeException invalid) {
+      throw new IOException("REMOTE_BIND_FAILED");
+    } finally {
+      request.recycle();
+      response.recycle();
+    }
   }
+
   private void transact(int code, Parcel request, Parcel response) throws IOException {
     IBinder active = binder;
     if (active == null) throw new IOException("REMOTE_BIND_DISCONNECTED");
     try {
-      if (!active.transact(code, request, response, 0)) throw new IOException("REMOTE_BIND_UNSUPPORTED");
+      if (!active.transact(code, request, response, 0))
+        throw new IOException("REMOTE_BIND_UNSUPPORTED");
       response.readException();
-    } catch (RemoteException failure) { throw new IOException("REMOTE_BIND_DISCONNECTED"); }
+    } catch (RemoteException failure) {
+      throw new IOException("REMOTE_BIND_DISCONNECTED");
+    }
   }
-  @Override public synchronized void close() {
-    binder = null; if (bound) { bound = false; context.unbindService(connection); }
+
+  @Override
+  public synchronized void close() {
+    binder = null;
+    if (bound) {
+      bound = false;
+      context.unbindService(connection);
+    }
   }
 }

@@ -124,9 +124,10 @@ final class RuntimeLauncher {
   Process start(String command, LaunchSpec spec, RuntimeCommandTiming timing) throws IOException {
     ProcessBuilder builder = builder(command, spec);
     if (timing != null) timing.mark("launcher-prepare");
-    Process process = spec.isolated
-        ? IsolatedInstallProcess.start(builder, tmp, context, spec.record)
-        : builder.start();
+    Process process =
+        spec.isolated
+            ? IsolatedInstallProcess.start(builder, tmp, context, spec.record)
+            : builder.start();
     if (timing != null) timing.mark("process-create");
     return process;
   }

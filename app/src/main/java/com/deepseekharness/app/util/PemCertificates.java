@@ -55,8 +55,11 @@ public final class PemCertificates {
           throw new CertificateException("CA_BUNDLE_LIMIT");
         // Conscrypt generateCertificates() may silently return no certificates when a PEM file
         // starts with Mozilla comments. Give generateCertificate() exactly one complete block.
-        certificates.add((X509Certificate) factory.generateCertificate(
-            new ByteArrayInputStream(block.toString().getBytes(StandardCharsets.US_ASCII))));
+        certificates.add(
+            (X509Certificate)
+                factory.generateCertificate(
+                    new ByteArrayInputStream(
+                        block.toString().getBytes(StandardCharsets.US_ASCII))));
         block = null;
       } else {
         if (line.isEmpty() || !line.matches("[A-Za-z0-9+/=]+"))

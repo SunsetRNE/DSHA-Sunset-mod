@@ -29,32 +29,93 @@ final class AssistantConfirmationWindow implements AutoCloseable {
   private Consumer<Boolean> completion;
   private long sequence;
   private volatile boolean closed;
-  AssistantConfirmationWindow(Context context) { this.context = context; manager = context.getSystemService(WindowManager.class); }
+
+  AssistantConfirmationWindow(Context context) {
+    this.context = context;
+    manager = context.getSystemService(WindowManager.class);
+  }
+
   void show(CapabilityRequest request, ScreenTarget target, Consumer<Boolean> answer) {
-    main.post(() -> {
-      finish(false);
-      if (closed || !Settings.canDrawOverlays(context) || request.deadlineElapsedRealtimeMillis <= SystemClock.elapsedRealtime()) { answer.accept(false); return; }
-      completion = answer; long stamp = ++sequence;
-      view = new LinearLayout(context); view.setOrientation(LinearLayout.VERTICAL); view.setPadding(22,18,22,18); view.setBackgroundColor(0xFF192435);
-      TextView text = new TextView(context); text.setTextColor(Color.WHITE); text.setMaxLines(8);
-      text.setText(String.format(UiText.choose("允许本次手机操作？\n%s\n%s", "Allow this phone action?\n%s\n%s"), target.packageName, com.deepseekharness.app.util.SensitiveData.redact(request.action))); view.addView(text);
-      Button allow = new Button(context); allow.setText(UiText.choose("允许本次", "Allow once")); view.addView(allow); allow.setOnClickListener(v -> finish(true));
-      Button deny = new Button(context); deny.setText(UiText.choose("拒绝", "Deny")); view.addView(deny); deny.setOnClickListener(v -> finish(false));
-      WindowManager.LayoutParams params = new WindowManager.LayoutParams(-1,-2,
-          Build.VERSION.SDK_INT >= 26 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE,
-          WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, PixelFormat.TRANSLUCENT);
-      params.gravity = Gravity.TOP; params.y = 90;
-      view.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> AssistantWindow.publish(view,"assistant-confirm",false));
-      try { manager.addView(view,params); view.post(() -> AssistantWindow.publish(view,"assistant-confirm",false)); }
-      catch (RuntimeException denied) { finish(false); return; }
-      main.postDelayed(() -> { if (sequence == stamp) finish(false); }, Math.min(60000, request.deadlineElapsedRealtimeMillis - SystemClock.elapsedRealtime()));
-    });
+    main.post(
+        () -> {
+          finish(false);
+          if (closed
+              || !Settings.canDrawOverlays(context)
+              || request.deadlineElapsedRealtimeMillis <= SystemClock.elapsedRealtime()) {
+            answer.accept(false);
+            return;
+          }
+          completion = answer;
+          long stamp = ++sequence;
+          view = new LinearLayout(context);
+          view.setOrientation(LinearLayout.VERTICAL);
+          view.setPadding(22, 18, 22, 18);
+          view.setBackgroundColor(0xFF192435);
+          TextView text = new TextView(context);
+          text.setTextColor(Color.WHITE);
+          text.setMaxLines(8);
+          text.setText(
+              String.format(
+                  UiText.choose("允许本次手机操作？\n%s\n%s", "Allow this phone action?\n%s\n%s"),
+                  target.packageName,
+                  com.deepseekharness.app.util.SensitiveData.redact(request.action)));
+          view.addView(text);
+          Button allow = new Button(context);
+          allow.setText(UiText.choose("允许本次", "Allow once"));
+          view.addView(allow);
+          allow.setOnClickListener(v -> finish(true));
+          Button deny = new Button(context);
+          deny.setText(UiText.choose("拒绝", "Deny"));
+          view.addView(deny);
+          deny.setOnClickListener(v -> finish(false));
+          WindowManager.LayoutParams params =
+              new WindowManager.LayoutParams(
+                  -1,
+                  -2,
+                  Build.VERSION.SDK_INT >= 26
+                      ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                      : WindowManager.LayoutParams.TYPE_PHONE,
+                  WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                      | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                  PixelFormat.TRANSLUCENT);
+          params.gravity = Gravity.TOP;
+          params.y = 90;
+          view.addOnLayoutChangeListener(
+              (v, l, t, r, b, ol, ot, or, ob) ->
+                  AssistantWindow.publish(view, "assistant-confirm", false));
+          try {
+            manager.addView(view, params);
+            view.post(() -> AssistantWindow.publish(view, "assistant-confirm", false));
+          } catch (RuntimeException denied) {
+            finish(false);
+            return;
+          }
+          main.postDelayed(
+              () -> {
+                if (sequence == stamp) finish(false);
+              },
+              Math.min(
+                  60000, request.deadlineElapsedRealtimeMillis - SystemClock.elapsedRealtime()));
+        });
   }
+
   private void finish(boolean approved) {
-    ++sequence; Consumer<Boolean> callback = completion; completion = null;
+    ++sequence;
+    Consumer<Boolean> callback = completion;
+    completion = null;
     OwnedScreenOverlay.clear("assistant-confirm");
-    if (view != null) try { manager.removeViewImmediate(view); } catch (RuntimeException ignored) { }
-    view = null; if (callback != null) callback.accept(approved);
+    if (view != null)
+      try {
+        manager.removeViewImmediate(view);
+      } catch (RuntimeException ignored) {
+      }
+    view = null;
+    if (callback != null) callback.accept(approved);
   }
-  @Override public void close() { closed = true; main.post(() -> finish(false)); }
+
+  @Override
+  public void close() {
+    closed = true;
+    main.post(() -> finish(false));
+  }
 }

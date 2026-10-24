@@ -761,13 +761,17 @@ public final class OverlayController {
     int padH = dp(app, 12), padV = dp(app, 6);
     box.setPadding(padH, padV, padH, padV);
     box.setVisibility(View.GONE);
-    box.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> publishGeometry(v));
-    box.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-      public void onViewAttachedToWindow(View view) { publishGeometry(view); }
-      public void onViewDetachedFromWindow(View view) {
-        com.deepseekharness.app.control.OwnedScreenOverlay.clear("status-overlay");
-      }
-    });
+    box.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> publishGeometry(v));
+    box.addOnAttachStateChangeListener(
+        new View.OnAttachStateChangeListener() {
+          public void onViewAttachedToWindow(View view) {
+            publishGeometry(view);
+          }
+
+          public void onViewDetachedFromWindow(View view) {
+            com.deepseekharness.app.control.OwnedScreenOverlay.clear("status-overlay");
+          }
+        });
 
     TextView tv = new TextView(app);
     tv.setTextColor(Color.WHITE);
@@ -890,15 +894,22 @@ public final class OverlayController {
 
   private static void publishGeometry(View view) {
     if (view == null || !view.isAttachedToWindow() || view.getVisibility() != View.VISIBLE) {
-      com.deepseekharness.app.control.OwnedScreenOverlay.clear("status-overlay"); return;
+      com.deepseekharness.app.control.OwnedScreenOverlay.clear("status-overlay");
+      return;
     }
-    int[] origin = new int[2]; view.getLocationOnScreen(origin);
+    int[] origin = new int[2];
+    view.getLocationOnScreen(origin);
     var node = view.createAccessibilityNodeInfo();
     try {
-      com.deepseekharness.app.control.OwnedScreenOverlay.publish("status-overlay", node.getWindowId(),
-          new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(origin[0], origin[1],
-              origin[0] + view.getWidth(), origin[1] + view.getHeight()), false);
-    } finally { node.recycle(); }
+      com.deepseekharness.app.control.OwnedScreenOverlay.publish(
+          "status-overlay",
+          node.getWindowId(),
+          new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(
+              origin[0], origin[1], origin[0] + view.getWidth(), origin[1] + view.getHeight()),
+          false);
+    } finally {
+      node.recycle();
+    }
   }
 
   private static TextView actionButton(Context ctx, int id, String text, int color) {

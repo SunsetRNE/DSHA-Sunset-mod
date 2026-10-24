@@ -5,11 +5,7 @@ public final class WebLaunchCommand {
   private WebLaunchCommand() {}
 
   public static String build(
-      boolean confirmShell,
-      String language,
-      String profile,
-      int listenPort,
-      long generation) {
+      boolean confirmShell, String language, String profile, int listenPort, long generation) {
     if (listenPort < 0 || listenPort > 65535 || generation < 0)
       throw new IllegalArgumentException("WEB_LAUNCH_IDENTITY");
     return "export PATH=\"/root/dsh-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}\" && "

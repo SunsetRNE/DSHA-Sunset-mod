@@ -29,6 +29,9 @@ public class LaunchFragment extends Fragment {
   /** 通知点击进入时带上的参数：Web 就绪后自动打开会话。 */
   public static final String ARG_OPEN_WEB = "open_web";
 
+  /** Main can offer computer pairing before the user installs the phone runtime. */
+  public static final String ARG_PREPARE_LOCAL = "prepare_local";
+
   private HarnessController controller;
   private TextView lanAddrText;
   private TextView launchLog;
@@ -82,6 +85,44 @@ public class LaunchFragment extends Fragment {
       @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
     View v = inflater.inflate(R.layout.fragment_launch, container, false);
+
+    ((TextView) v.findViewById(R.id.launch_workspaces))
+        .setText(com.deepseekharness.app.util.UiText.choose("电脑工作区", "Computer workspaces"));
+    ((TextView) v.findViewById(R.id.launch_workspaces_detail))
+        .setText(
+            com.deepseekharness.app.util.UiText.choose(
+                "配对电脑，使用电脑上的 DSH；无需安装手机环境。",
+                "Pair a computer and use its DSH. Phone runtime setup is optional."));
+    v.findViewById(R.id.launch_workspaces)
+        .setOnClickListener(
+            x -> com.deepseekharness.app.remote.ui.WorkspaceActivity.open(requireContext()));
+    if (getArguments() != null && getArguments().getBoolean(ARG_PREPARE_LOCAL, false)) {
+      ((TextView) v.findViewById(R.id.launch_run_state))
+          .setText(
+              com.deepseekharness.app.util.UiText.choose("手机环境尚未准备", "Phone runtime not set up"));
+      ((TextView) v.findViewById(R.id.launch_subtitle))
+          .setText(
+              com.deepseekharness.app.util.UiText.choose(
+                  "在手机运行 DSH 时再准备环境，也可直接连接电脑。",
+                  "Set up DSH to run on this phone, or connect a computer below."));
+      ((Button) v.findViewById(R.id.launch_start))
+          .setText(com.deepseekharness.app.util.UiText.choose("准备手机环境", "Set up phone runtime"));
+      v.findViewById(R.id.launch_start)
+          .setOnClickListener(
+              x ->
+                  startActivity(
+                      com.deepseekharness.app.remote.ui.WorkspaceEntry.local(requireContext())));
+      for (int id :
+          new int[] {
+            R.id.launch_status,
+            R.id.launch_controls,
+            R.id.launch_metrics,
+            R.id.launch_shortcuts_title,
+            R.id.launch_shortcuts,
+            R.id.launch_log_panel
+          }) v.findViewById(id).setVisibility(View.GONE);
+      return v;
+    }
 
     controller = HarnessController.get(requireContext());
     final Activity activity = requireActivity();
@@ -244,6 +285,7 @@ public class LaunchFragment extends Fragment {
    * <p>页面不可见时由 {@code onPause} 清掉，避免用户回来时被意外带走。
    */
   void requestAutoEnterWeb() {
+    if (controller == null) return;
     pendingAutoEnter = true;
     if (getView() != null) ui.post(refreshState);
   }
@@ -332,6 +374,7 @@ public class LaunchFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
+    if (controller == null) return;
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
     ui.post(refreshState);
@@ -612,11 +655,12 @@ public class LaunchFragment extends Fragment {
       lanAddrText.setVisibility(View.GONE);
       return;
     }
-    boolean bound = LanProxyService.isBound();
+    int lanPort = LanProxyService.port(controller.getWebGeneration());
+    boolean bound = lanPort > 0;
     if (bound) {
       String ip = HarnessController.getLanAddress();
       if (ip != null && !ip.isEmpty()) {
-        final String service = "http://" + ip + ":" + LanProxyService.LAN_PORT + "/";
+        final String service = "http://" + ip + ":" + lanPort + "/";
         lanAddrText.setText(
             com.deepseekharness.app.util.UiText.format(
                 "局域网地址：%s\n点按查看或复制连接链接；流量未加密，请只在可信网络使用。", service));
@@ -636,6 +680,10 @@ public class LaunchFragment extends Fragment {
   private void showLanAddress(String service) {
     if (!isAdded() || !LanProxyService.isBound()) return;
     final long generation = controller.getWebGeneration();
+    final int port = LanProxyService.port(generation);
+    if (port <= 0
+        || !service.equals("http://" + HarnessController.getLanAddress() + ":" + port + "/"))
+      return;
     final String token = LanProxyService.getLanToken(requireContext());
     final String address = service + "?token=" + token;
     new DshaDialogBuilder(requireContext())
@@ -649,8 +697,10 @@ public class LaunchFragment extends Fragment {
             com.deepseekharness.app.util.UiText.text("复制连接链接"),
             (dialog, which) -> {
               String ip = HarnessController.getLanAddress();
-              String currentService = "http://" + ip + ":" + LanProxyService.LAN_PORT + "/";
+              int currentPort = LanProxyService.port(generation);
+              String currentService = "http://" + ip + ":" + currentPort + "/";
               if (!isAdded()
+                  || currentPort <= 0
                   || !LanProxyService.isBound()
                   || generation != controller.getWebGeneration()
                   || !service.equals(currentService)

@@ -22,8 +22,16 @@ public final class PairingTicket {
   public final long expiresAt;
   public final boolean refresh;
 
-  private PairingTicket(String peer, String label, String instance, String key,
-      List<String> addresses, List<String> relays, long expiry, String discoveryURL, String discoveryToken,
+  private PairingTicket(
+      String peer,
+      String label,
+      String instance,
+      String key,
+      List<String> addresses,
+      List<String> relays,
+      long expiry,
+      String discoveryURL,
+      String discoveryToken,
       boolean refresh) {
     this.peerId = peer;
     this.label = label.isEmpty() ? "PC · " + peer.substring(Math.max(0, peer.length() - 8)) : label;
@@ -46,10 +54,12 @@ public final class PairingTicket {
         URI uri = new URI(encoded);
         if (!"dsha-connect".equals(uri.getScheme())
             || !("pair".equals(uri.getHost()) || "refresh".equals(uri.getHost()))
-            || uri.getPort() != -1 || uri.getRawUserInfo() != null || uri.getFragment() != null
+            || uri.getPort() != -1
+            || uri.getRawUserInfo() != null
+            || uri.getFragment() != null
             || !(uri.getPath().isEmpty() || "/".equals(uri.getPath()))
-            || uri.getRawQuery() == null || !uri.getRawQuery().startsWith("ticket="))
-          throw new IllegalArgumentException();
+            || uri.getRawQuery() == null
+            || !uri.getRawQuery().startsWith("ticket=")) throw new IllegalArgumentException();
         encoded = uri.getRawQuery().substring(7);
         route = uri.getHost();
       }
@@ -57,9 +67,13 @@ public final class PairingTicket {
         throw new IllegalArgumentException();
       byte[] raw = Base64.getUrlDecoder().decode(encoded);
       if (raw.length > 16000) throw new IllegalArgumentException();
-      String json = StandardCharsets.UTF_8.newDecoder()
-          .onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
-          .decode(ByteBuffer.wrap(raw)).toString();
+      String json =
+          StandardCharsets.UTF_8
+              .newDecoder()
+              .onMalformedInput(CodingErrorAction.REPORT)
+              .onUnmappableCharacter(CodingErrorAction.REPORT)
+              .decode(ByteBuffer.wrap(raw))
+              .toString();
       String peer = "", label = "", role = "", instance = "", key = "", mode = "";
       String discoveryURL = "", discoveryToken = "";
       List<String> addresses = List.of(), relays = List.of();
@@ -72,45 +86,87 @@ public final class PairingTicket {
           String name = reader.nextName();
           if (!seen.add(name)) throw new IllegalArgumentException();
           switch (name) {
-            case "v": version = number(reader); break;
-            case "role": role = string(reader); break;
-            case "mode": mode = string(reader); break;
-            case "peerId": peer = string(reader); break;
-            case "label": label = string(reader); break;
-            case "hostInstanceId": instance = string(reader); break;
-            case "pairingKey": key = string(reader); break;
-            case "expiresAt": expires = number(reader); break;
-            case "addresses": addresses = strings(reader, 16); break;
-            case "relayAddresses": relays = strings(reader, 4); break;
-            case "discoveryURL": discoveryURL = string(reader); break;
-            case "discoveryToken": discoveryToken = string(reader); break;
-            default: throw new IllegalArgumentException();
+            case "v":
+              version = number(reader);
+              break;
+            case "role":
+              role = string(reader);
+              break;
+            case "mode":
+              mode = string(reader);
+              break;
+            case "peerId":
+              peer = string(reader);
+              break;
+            case "label":
+              label = string(reader);
+              break;
+            case "hostInstanceId":
+              instance = string(reader);
+              break;
+            case "pairingKey":
+              key = string(reader);
+              break;
+            case "expiresAt":
+              expires = number(reader);
+              break;
+            case "addresses":
+              addresses = strings(reader, 16);
+              break;
+            case "relayAddresses":
+              relays = strings(reader, 4);
+              break;
+            case "discoveryURL":
+              discoveryURL = string(reader);
+              break;
+            case "discoveryToken":
+              discoveryToken = string(reader);
+              break;
+            default:
+              throw new IllegalArgumentException();
           }
         }
         reader.endObject();
         if (reader.peek() != JsonToken.END_DOCUMENT) throw new IllegalArgumentException();
       }
       boolean refresh = "refresh".equals(mode);
-      if ((!mode.isEmpty() && !refresh) || (refresh && seen.contains("pairingKey"))
+      if ((!mode.isEmpty() && !refresh)
+          || (refresh && seen.contains("pairingKey"))
           || (!refresh && !key.matches("[a-fA-F0-9]{64}"))
           || (!route.isEmpty() && !route.equals(refresh ? "refresh" : "pair")))
         throw new IllegalArgumentException();
-      if (version != 1 || !"pc".equals(role) || !peer.matches("[A-Za-z0-9]{16,128}")
+      if (version != 1
+          || !"pc".equals(role)
+          || !peer.matches("[A-Za-z0-9]{16,128}")
           || !instance.matches("[a-fA-F0-9]{32}")
-          || label.length() > 80 || label.matches("(?s).*\\p{Cntrl}.*")
-          || expires <= now || expires - now > 600000 || addresses.isEmpty())
-        throw new IllegalArgumentException();
+          || label.length() > 80
+          || label.matches("(?s).*\\p{Cntrl}.*")
+          || expires <= now
+          || expires - now > 600000
+          || addresses.isEmpty()) throw new IllegalArgumentException();
       for (String address : addresses)
         if (!address.endsWith("/p2p/" + peer)) throw new IllegalArgumentException();
       if (!discoveryURL.isEmpty() || !discoveryToken.isEmpty()) {
         URI discovery = new URI(discoveryURL);
-        if (!"https".equals(discovery.getScheme()) || discovery.getHost() == null
-            || discovery.getRawUserInfo() != null || discovery.getFragment() != null
-            || discovery.getRawQuery() != null || discoveryURL.length() > 2048
+        if (!"https".equals(discovery.getScheme())
+            || discovery.getHost() == null
+            || discovery.getRawUserInfo() != null
+            || discovery.getFragment() != null
+            || discovery.getRawQuery() != null
+            || discoveryURL.length() > 2048
             || !discoveryToken.matches("[a-fA-F0-9]{64}")) throw new IllegalArgumentException();
       }
-      return new PairingTicket(peer, label, instance, key, addresses, relays, expires,
-          discoveryURL, discoveryToken, refresh);
+      return new PairingTicket(
+          peer,
+          label,
+          instance,
+          key,
+          addresses,
+          relays,
+          expires,
+          discoveryURL,
+          discoveryToken,
+          refresh);
     } catch (Exception invalid) {
       throw new IllegalArgumentException("REMOTE_PAIRING_TICKET_INVALID");
     }
@@ -133,14 +189,19 @@ public final class PairingTicket {
     reader.beginArray();
     while (reader.hasNext()) {
       String value = string(reader);
-      if (out.size() >= limit || value.length() > 2048 || !value.startsWith("/")
-          || value.matches("(?s).*[\\p{Cntrl}\\s?#].*") || out.contains(value))
-        throw new IllegalArgumentException();
+      if (out.size() >= limit
+          || value.length() > 2048
+          || !value.startsWith("/")
+          || value.matches("(?s).*[\\p{Cntrl}\\s?#].*")
+          || out.contains(value)) throw new IllegalArgumentException();
       out.add(value);
     }
     reader.endArray();
     return out;
   }
 
-  @Override public String toString() { return "PairingTicket[redacted]"; }
+  @Override
+  public String toString() {
+    return "PairingTicket[redacted]";
+  }
 }

@@ -8,6 +8,25 @@ export function applyFileTransferClient(source) {
     source = source.replace(before, after);
   };
   const controls = readFileSync(new URL('./client-controls.js', import.meta.url), 'utf8');
+  // A native Share is an explicit destination. Cancellation, size rejection or
+  // an unavailable chooser must never silently become an anchor/SAF download.
+  replace('async function deliverFile(file, deps) {', `async function deliverFile(file, deps) {
+    if (deps.nativeShare) {
+        try {
+            await deps.share({ files: [file], title: file.name });
+            return { kind: 'shared' }; // chooser opened; no recipient-delivery claim
+        } catch (error) {
+            if (isAbortError(error)) return { kind: 'cancelled' };
+            throw error;
+        }
+    }`);
+  replace('    return {\n        canShare: typeof bridge?.canShareFile',
+    '    return {\n        nativeShare: typeof bridge?.shareFile === \'function\',\n        canShare: typeof bridge?.canShareFile');
+  replace('? data => bridge.shareFile(data.files[0])', `? async data => {
+                if (data.files[0].size > 32 * 1024 * 1024) throw new Error(fileCopy().shareLimit);
+                const result = await bridge.shareFile(data.files[0]);
+                if (result?.status !== 'chooser-opened') throw new Error('The system share picker did not open');
+            }`);
   replace('children: (0, jsx_runtime_1.jsx)(icon_compat_ts_1.IconFolderOpen, { size: 16 }) })] }));',
     `children: (0, jsx_runtime_1.jsx)(icon_compat_ts_1.IconFolderOpen, { size: 16 }) }), typeof window.DSHA?.openDownloads === 'function' && (0, jsx_runtime_1.jsx)('button', {
         type: 'button', 'data-mobile-nav': 'files', 'data-dsha-downloads': true,
