@@ -80,15 +80,21 @@ public final class WebDownloads {
             } else if (state.phase().equals("share-ready")) {
               android.net.Uri uri = model.takeShareUri();
               if (uri == null) return;
+              if (!activity
+                      .getLifecycle()
+                      .getCurrentState()
+                      .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+                  || activity.isDestroyed()) {
+                model.shareOpened(false);
+                return;
+              }
               try {
-                Intent send =
-                    new Intent(Intent.ACTION_SEND)
-                        .setType(model.shareMime())
-                        .putExtra(Intent.EXTRA_STREAM, uri)
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                send.setClipData(android.content.ClipData.newRawUri(model.fileName(), uri));
                 activity.startActivity(
-                    Intent.createChooser(send, com.deepseekharness.app.util.UiText.text("分享")));
+                    NativeFileShare.chooser(
+                        uri,
+                        model.fileName(),
+                        model.shareMime(),
+                        com.deepseekharness.app.util.UiText.text("分享")));
                 model.shareOpened(true);
               } catch (RuntimeException error) {
                 model.shareOpened(false);

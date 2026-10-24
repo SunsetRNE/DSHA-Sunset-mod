@@ -177,6 +177,14 @@ final class WebLifecycleController {
                       return lifecycle.generation() == 0 && !lifecycle.isUserStopped();
                     }
 
+                    public void unavailable(String stage, Exception failure) {
+                      DiagnosticLog.record(
+                          ctx,
+                          "WEB_SESSION_RESTORE_FAILURE",
+                          com.deepseekharness.app.util.WebSessionDiagnostics.failure(
+                              stage, failure));
+                    }
+
                     public boolean compatible(
                         com.deepseekharness.app.runtime.StoredWebSession.Record r)
                         throws Exception {
@@ -511,27 +519,32 @@ final class WebLifecycleController {
 
   private void saveRunningSession(WebRun run) {
     if (!lifecycle.isCurrent(run.generation) || run.registration == null) return;
+    String stage = "CAPTURE";
     try {
       String token = run.registration.launchEnvironment().get("DSH_TASK_TOKEN");
       var proof = webProc.captureSession(run.generation, run.instanceId, token, run.launcher);
+      stage = "APP_IDENTITY";
+      String app = storedSession.appIdentity();
+      stage = "ROOT_IDENTITY";
+      String root = proot.getRootfsDir().getCanonicalPath();
+      stage = "RUNTIME_DESCRIPTOR";
+      String descriptor = proot.expectedRuntimeDescriptor().id();
       var record =
           new com.deepseekharness.app.runtime.StoredWebSession.Record(
-              proof,
-              run.authUrl,
-              storedSession.appIdentity(),
-              proot.getRootfsDir().getCanonicalPath(),
-              proot.expectedRuntimeDescriptor().id(),
-              run.compatible,
-              token);
+              proof, run.authUrl, app, root, descriptor, run.compatible, token);
       // 保存与停止完成后的清退共用IO队列，后来的停止意图优先。
       if (lifecycle.isCurrent(run.generation)) {
+        stage = "STORE_WRITE";
         storedSession.write(record);
         state.retainedWebStopProof = proof;
         run.recovered = record;
         run.recoveredLive = true;
       }
     } catch (Exception unavailable) {
-      DiagnosticLog.record(ctx, "WEB_SESSION_SAVE", unavailable.getClass().getSimpleName());
+      DiagnosticLog.record(
+          ctx,
+          "WEB_SESSION_SAVE",
+          com.deepseekharness.app.util.WebSessionDiagnostics.failure(stage, unavailable));
     }
   }
 
@@ -669,11 +682,7 @@ final class WebLifecycleController {
 
   private String runCoreCommand(String profile, int listenPort, long generation) {
     return com.deepseekharness.app.util.WebLaunchCommand.build(
-        config.isConfirmShell(),
-        config.getUiLanguage(),
-        profile,
-        listenPort,
-        generation);
+        config.isConfirmShell(), config.getUiLanguage(), profile, listenPort, generation);
   }
 
   /**

@@ -45,11 +45,22 @@ public final class OwnedScreenOverlay {
 
   public static synchronized ScreenWindowRegion.Exclusion match(
       int windowId, ScreenWindowRegion.Bounds actual, boolean ownPackage) {
-    if (!ownPackage) return null;
+    if (!ownPackage || actual == null || !actual.valid()) return null;
     for (Entry entry : entries.values())
-      if (!entry.expanded && entry.id == windowId && entry.bounds.equals(actual))
-        return new ScreenWindowRegion.Exclusion(windowId, entry.epoch, entry.bounds);
+      if (!entry.expanded && entry.id == windowId && contains(actual, entry.bounds))
+        // Android's window may include decor/insets beyond the measured native View. Exclude
+        // that entire current window, including its input area; never expose the padding as
+        // usable pixels. The exact registered ID, package and publication revision still bind it.
+        return new ScreenWindowRegion.Exclusion(windowId, entry.epoch, actual);
     return null;
+  }
+
+  private static boolean contains(
+      ScreenWindowRegion.Bounds outer, ScreenWindowRegion.Bounds inner) {
+    return inner.left() >= outer.left()
+        && inner.top() >= outer.top()
+        && inner.right() <= outer.right()
+        && inner.bottom() <= outer.bottom();
   }
 
   public static synchronized boolean expanded() {

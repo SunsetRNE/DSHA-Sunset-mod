@@ -17,6 +17,29 @@ import org.json.JSONObject;
 final class WebFileActions {
   private WebFileActions() {}
 
+  private static final java.util.Map<String, BooleanSupplier> destinations =
+      new java.util.HashMap<>();
+
+  static boolean destinationCurrent(String token) {
+    BooleanSupplier owner = destinations.get(token);
+    try {
+      return owner != null && owner.getAsBoolean();
+    } catch (RuntimeException retired) {
+      return false;
+    }
+  }
+
+  static void retireDestination(String token) {
+    destinations.remove(token);
+  }
+
+  static String destinationToken(BooleanSupplier current) {
+    if (destinations.size() >= 16) throw new IllegalStateException("FILE_DESTINATION_BUSY");
+    String token = java.util.UUID.randomUUID().toString();
+    destinations.put(token, current);
+    return token;
+  }
+
   static void attach(
       WebView view,
       String base,
@@ -46,7 +69,10 @@ final class WebFileActions {
             BrowserThemeGate page = binding.get();
             JSONObject identity = request.getJSONObject("binding");
             if (!matchesBinding(
-                page, source, identity.getString("nonce"), identity.getLong("generation"),
+                page,
+                source,
+                identity.getString("nonce"),
+                identity.getLong("generation"),
                 identity.getString("instance")))
               throw new IllegalArgumentException("FILE_REQUEST_DOCUMENT");
             final String requestId = id;
@@ -55,11 +81,37 @@ final class WebFileActions {
             if (action.equals("artifact")) {
               // Only the opaque manifest crosses this bridge. The engine resolves
               // current service identity and credentials itself, never from JS.
+              TransferArtifact artifact =
+                  TransferArtifact.fromJson(request.getJSONObject("artifact"));
+              String destination = request.getString("destination");
+              if (destination.equals("share") && artifact.bytes > 32L * 1024 * 1024)
+                throw new IllegalArgumentException("FILE_SHARE_LIMIT_32MIB");
+              if ((destination.equals("share") || destination.equals("saveas"))
+                  && !source.hasWindowFocus())
+                throw new IllegalStateException("FILE_DESTINATION_NOT_FOREGROUND");
+              if ((destination.equals("share") || destination.equals("saveas"))
+                  && destinations.size() >= 16)
+                throw new IllegalStateException("FILE_DESTINATION_BUSY");
               String taskId =
-                  DownloadEngine.get(source.getContext())
-                      .enqueue(
-                          TransferArtifact.fromJson(request.getJSONObject("artifact")),
-                          request.getString("destination"));
+                  DownloadEngine.get(source.getContext()).enqueue(artifact, destination);
+              if (destination.equals("share") || destination.equals("saveas")) {
+                String token =
+                    destinationToken(
+                        () ->
+                            current.getAsBoolean()
+                                && navigation.getAsLong() == document
+                                && binding.get() == page);
+                try {
+                  source
+                      .getContext()
+                      .startActivity(
+                          FileTransfersActivity.destinationIntent(
+                              source.getContext(), taskId, destination, token));
+                } catch (RuntimeException unavailable) {
+                  retireDestination(token);
+                  throw new IllegalStateException("FILE_DESTINATION_UNAVAILABLE");
+                }
+              }
               reply.postMessage(
                   new JSONObject()
                       .put("id", id)
@@ -164,10 +216,18 @@ final class WebFileActions {
   /** Querying progress never exposes private stages, credential material or destination grants. */
   private static JSONObject publicStatus(JSONObject source) throws org.json.JSONException {
     JSONObject result = new JSONObject();
-    for (String key : new String[] {
-        "id", "destination", "status", "downloaded", "total", "speedBytesPerSecond",
-        "displayName", "mime", "createdAt"
-    }) {
+    for (String key :
+        new String[] {
+          "id",
+          "destination",
+          "status",
+          "downloaded",
+          "total",
+          "speedBytesPerSecond",
+          "displayName",
+          "mime",
+          "createdAt"
+        }) {
       if (source.has(key)) result.put(key, source.get(key));
     }
     return result;

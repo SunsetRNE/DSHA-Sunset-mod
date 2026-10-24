@@ -63,9 +63,13 @@ public final class ScreenSnapshotReader {
     if (label.isEmpty()) label = description;
     Rect bounds = new Rect();
     node.getBoundsInScreen(bounds);
+    JSONArray supportedActions = ScreenNodeActions.names(node);
     if (AccessibilityDumpBounds.reportable(
         !label.isEmpty(),
-        node.isClickable() || node.isEditable() || node.isScrollable(),
+        node.isClickable()
+            || node.isEditable()
+            || node.isScrollable()
+            || supportedActions.length() > 0,
         bounds.left,
         bounds.top,
         bounds.right,
@@ -79,6 +83,7 @@ public final class ScreenSnapshotReader {
               .put("clickable", node.isClickable())
               .put("editable", node.isEditable())
               .put("scrollable", node.isScrollable())
+              .put("supportedActions", supportedActions)
               .put("enabled", node.isEnabled())
               .put("checked", node.isChecked())
               .put("boundsHaveArea", bounds.width() > 0 && bounds.height() > 0)
@@ -92,6 +97,10 @@ public final class ScreenSnapshotReader {
           .append('"');
       if (node.isClickable()) text.append(" 可点击");
       if (node.isEditable()) text.append(" 可输入");
+      if (ScreenNodeActions.supported(node, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD))
+        text.append(" 可向前滚动(scroll_forward)");
+      if (ScreenNodeActions.supported(node, AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD))
+        text.append(" 可向后滚动(scroll_backward)");
       if (!node.isEnabled()) text.append(" 不可用");
       if (bounds.width() > 0 && bounds.height() > 0)
         text.append(" 中心=(")

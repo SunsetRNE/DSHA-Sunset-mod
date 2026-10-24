@@ -47,10 +47,15 @@ public final class QrScannerActivity extends AppCompatActivity {
   private long lastDecode;
   private int autofocusMode = CaptureRequest.CONTROL_AF_MODE_OFF;
   private final androidx.activity.result.ActivityResultLauncher<String> permission =
-      registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
-          granted -> { if (granted) openCamera(); else unavailable(); });
+      registerForActivityResult(
+          new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+          granted -> {
+            if (granted) openCamera();
+            else unavailable();
+          });
 
-  @Override protected void onCreate(Bundle saved) {
+  @Override
+  protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
     setContentView(R.layout.build195_remote_scanner);
@@ -58,15 +63,31 @@ public final class QrScannerActivity extends AppCompatActivity {
     status = findViewById(R.id.remote_scanner_status);
     preview = findViewById(R.id.remote_camera_preview);
     findViewById(R.id.remote_scan_manual).setOnClickListener(v -> finish());
-    preview.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-      @Override public void onSurfaceTextureAvailable(@NonNull SurfaceTexture texture, int width, int height) { openCamera(); }
-      @Override public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture texture, int width, int height) {}
-      @Override public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture texture) { closeCamera(); return true; }
-      @Override public void onSurfaceTextureUpdated(@NonNull SurfaceTexture texture) {}
-    });
+    preview.setSurfaceTextureListener(
+        new TextureView.SurfaceTextureListener() {
+          @Override
+          public void onSurfaceTextureAvailable(
+              @NonNull SurfaceTexture texture, int width, int height) {
+            openCamera();
+          }
+
+          @Override
+          public void onSurfaceTextureSizeChanged(
+              @NonNull SurfaceTexture texture, int width, int height) {}
+
+          @Override
+          public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture texture) {
+            closeCamera();
+            return true;
+          }
+
+          @Override
+          public void onSurfaceTextureUpdated(@NonNull SurfaceTexture texture) {}
+        });
   }
 
-  @Override protected void onStart() {
+  @Override
+  protected void onStart() {
     super.onStart();
     active = true;
     cameraThread = new HandlerThread("remote-qr-camera");
@@ -79,7 +100,10 @@ public final class QrScannerActivity extends AppCompatActivity {
 
   @SuppressLint("MissingPermission") // Runtime permission is checked before every open.
   private void openCamera() {
-    if (!active || delivered || !preview.isAvailable() || cameraHandler == null
+    if (!active
+        || delivered
+        || !preview.isAvailable()
+        || cameraHandler == null
         || androidx.core.content.ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED) return;
     final int epoch;
@@ -93,28 +117,39 @@ public final class QrScannerActivity extends AppCompatActivity {
       if (cameras == null) throw new IllegalStateException();
       String selected = null;
       for (String id : cameras.getCameraIdList()) {
-        Integer facing = cameras.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING);
+        Integer facing =
+            cameras.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING);
         if (selected == null) selected = id;
-        if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) { selected = id; break; }
+        if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
+          selected = id;
+          break;
+        }
       }
       if (selected == null) throw new IllegalStateException();
       CameraCharacteristics characteristics = cameras.getCameraCharacteristics(selected);
       int[] focusModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
       autofocusMode = CaptureRequest.CONTROL_AF_MODE_OFF;
-      if (focusModes != null) for (int mode : focusModes)
-        if (mode == CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE) autofocusMode = mode;
+      if (focusModes != null)
+        for (int mode : focusModes)
+          if (mode == CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE) autofocusMode = mode;
       var map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
       if (map == null) throw new IllegalStateException();
       Size[] sizes = map.getOutputSizes(ImageFormat.YUV_420_888);
       if (sizes == null || sizes.length == 0) throw new IllegalStateException();
-      Size size = Arrays.stream(sizes)
-          .filter(s -> s.getWidth() <= 1280 && s.getHeight() <= 1280)
-          .filter(s -> Arrays.asList(map.getOutputSizes(SurfaceTexture.class)).contains(s))
-          .max(Comparator.comparingLong(s -> (long) s.getWidth() * s.getHeight()))
-          .orElseThrow(IllegalStateException::new);
-      ImageReader reader = ImageReader.newInstance(size.getWidth(), size.getHeight(), ImageFormat.YUV_420_888, 2);
+      Size size =
+          Arrays.stream(sizes)
+              .filter(s -> s.getWidth() <= 1280 && s.getHeight() <= 1280)
+              .filter(s -> Arrays.asList(map.getOutputSizes(SurfaceTexture.class)).contains(s))
+              .max(Comparator.comparingLong(s -> (long) s.getWidth() * s.getHeight()))
+              .orElseThrow(IllegalStateException::new);
+      ImageReader reader =
+          ImageReader.newInstance(size.getWidth(), size.getHeight(), ImageFormat.YUV_420_888, 2);
       synchronized (cameraLock) {
-        if (!active || epoch != cameraEpoch) { reader.close(); opening = false; return; }
+        if (!active || epoch != cameraEpoch) {
+          reader.close();
+          opening = false;
+          return;
+        }
         images = reader;
       }
       reader.setOnImageAvailableListener(frame -> decode(frame, epoch), cameraHandler);
@@ -122,18 +157,35 @@ public final class QrScannerActivity extends AppCompatActivity {
       if (texture == null) throw new IllegalStateException();
       texture.setDefaultBufferSize(size.getWidth(), size.getHeight());
       previewSurface = new Surface(texture);
-      cameras.openCamera(selected, new CameraDevice.StateCallback() {
-        @Override public void onOpened(@NonNull CameraDevice device) {
-          synchronized (cameraLock) {
-            opening = false;
-            if (!active || epoch != cameraEpoch) { device.close(); return; }
-            camera = device;
-            startCapture(device, epoch);
-          }
-        }
-        @Override public void onDisconnected(@NonNull CameraDevice device) { device.close(); failCamera(epoch); }
-        @Override public void onError(@NonNull CameraDevice device, int error) { device.close(); failCamera(epoch); }
-      }, cameraHandler);
+      cameras.openCamera(
+          selected,
+          new CameraDevice.StateCallback() {
+            @Override
+            public void onOpened(@NonNull CameraDevice device) {
+              synchronized (cameraLock) {
+                opening = false;
+                if (!active || epoch != cameraEpoch) {
+                  device.close();
+                  return;
+                }
+                camera = device;
+                startCapture(device, epoch);
+              }
+            }
+
+            @Override
+            public void onDisconnected(@NonNull CameraDevice device) {
+              device.close();
+              failCamera(epoch);
+            }
+
+            @Override
+            public void onError(@NonNull CameraDevice device, int error) {
+              device.close();
+              failCamera(epoch);
+            }
+          },
+          cameraHandler);
     } catch (Exception unavailable) {
       closeCamera();
       unavailable();
@@ -145,22 +197,41 @@ public final class QrScannerActivity extends AppCompatActivity {
     try {
       if (images == null || previewSurface == null) return;
       List<Surface> targets = List.of(previewSurface, images.getSurface());
-      device.createCaptureSession(targets, new CameraCaptureSession.StateCallback() {
-        @Override public void onConfigured(@NonNull CameraCaptureSession session) {
-          synchronized (cameraLock) {
-            if (!active || epoch != cameraEpoch || camera != device) { session.close(); return; }
-            capture = session;
-            try {
-              CaptureRequest.Builder request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-              for (Surface target : targets) request.addTarget(target);
-              request.set(CaptureRequest.CONTROL_AF_MODE, autofocusMode);
-              session.setRepeatingRequest(request.build(), null, cameraHandler);
-            } catch (Exception failed) { closeCamera(); unavailable(); }
-          }
-        }
-        @Override public void onConfigureFailed(@NonNull CameraCaptureSession session) { session.close(); failCamera(epoch); }
-      }, cameraHandler);
-    } catch (Exception failed) { closeCamera(); unavailable(); }
+      device.createCaptureSession(
+          targets,
+          new CameraCaptureSession.StateCallback() {
+            @Override
+            public void onConfigured(@NonNull CameraCaptureSession session) {
+              synchronized (cameraLock) {
+                if (!active || epoch != cameraEpoch || camera != device) {
+                  session.close();
+                  return;
+                }
+                capture = session;
+                try {
+                  CaptureRequest.Builder request =
+                      device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                  for (Surface target : targets) request.addTarget(target);
+                  request.set(CaptureRequest.CONTROL_AF_MODE, autofocusMode);
+                  session.setRepeatingRequest(request.build(), null, cameraHandler);
+                } catch (Exception failed) {
+                  closeCamera();
+                  unavailable();
+                }
+              }
+            }
+
+            @Override
+            public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+              session.close();
+              failCamera(epoch);
+            }
+          },
+          cameraHandler);
+    } catch (Exception failed) {
+      closeCamera();
+      unavailable();
+    }
   }
 
   private void decode(ImageReader reader, int epoch) {
@@ -176,30 +247,38 @@ public final class QrScannerActivity extends AppCompatActivity {
       int row = plane.getRowStride(), pixel = plane.getPixelStride();
       int base = buffer.position();
       for (int y = 0; y < height; y++)
-        for (int x = 0; x < width; x++) luminance[y * width + x] = buffer.get(base + y * row + x * pixel);
+        for (int x = 0; x < width; x++)
+          luminance[y * width + x] = buffer.get(base + y * row + x * pixel);
       String text = QrFrameDecoder.decode(luminance, width, height);
       PairingTicket.parse(text, System.currentTimeMillis());
       final String result = text;
       delivered = true;
-      runOnUiThread(() -> {
-        if (!active || epoch != cameraEpoch || isFinishing() || isDestroyed()) {
-          delivered = false;
-          return;
-        }
-        setResult(RESULT_OK, new Intent().putExtra(RESULT, result));
-        finish();
-      });
+      runOnUiThread(
+          () -> {
+            if (!active || epoch != cameraEpoch || isFinishing() || isDestroyed()) {
+              delivered = false;
+              return;
+            }
+            setResult(RESULT_OK, new Intent().putExtra(RESULT, result));
+            finish();
+          });
     } catch (com.google.zxing.NotFoundException ignored) {
       // No QR in this frame. Continue without logging camera data.
     } catch (IllegalArgumentException invalid) {
-      runOnUiThread(() -> { if (active) status.setText(R.string.remote_code_invalid); });
+      runOnUiThread(
+          () -> {
+            if (active) status.setText(R.string.remote_code_invalid);
+          });
     } catch (RuntimeException unavailable) {
       // A stopped ImageReader can finish its final callback after onStop.
     }
   }
 
   private void unavailable() {
-    runOnUiThread(() -> { if (active && status != null) status.setText(R.string.remote_camera_unavailable); });
+    runOnUiThread(
+        () -> {
+          if (active && status != null) status.setText(R.string.remote_camera_unavailable);
+        });
   }
 
   private void failCamera(int epoch) {
@@ -214,17 +293,33 @@ public final class QrScannerActivity extends AppCompatActivity {
     synchronized (cameraLock) {
       cameraEpoch++;
       opening = false;
-      if (capture != null) { capture.close(); capture = null; }
-      if (camera != null) { camera.close(); camera = null; }
-      if (images != null) { images.close(); images = null; }
-      if (previewSurface != null) { previewSurface.release(); previewSurface = null; }
+      if (capture != null) {
+        capture.close();
+        capture = null;
+      }
+      if (camera != null) {
+        camera.close();
+        camera = null;
+      }
+      if (images != null) {
+        images.close();
+        images = null;
+      }
+      if (previewSurface != null) {
+        previewSurface.release();
+        previewSurface = null;
+      }
     }
   }
 
-  @Override protected void onStop() {
+  @Override
+  protected void onStop() {
     active = false;
     closeCamera();
-    if (cameraThread != null) { cameraThread.quitSafely(); cameraThread = null; }
+    if (cameraThread != null) {
+      cameraThread.quitSafely();
+      cameraThread = null;
+    }
     cameraHandler = null;
     super.onStop();
   }

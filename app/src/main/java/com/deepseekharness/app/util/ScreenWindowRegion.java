@@ -2,15 +2,28 @@ package com.deepseekharness.app.util;
 
 /** Immutable screen coordinates observed with one window; never inferred from a later image. */
 public record ScreenWindowRegion(
-    Bounds window, Bounds content, boolean obscured, java.util.List<Exclusion> exclusions) {
+    Bounds window,
+    Bounds content,
+    boolean obscured,
+    java.util.List<Exclusion> exclusions,
+    java.util.List<Occluder> occluders) {
   public record Exclusion(int windowId, long epoch, Bounds bounds) {}
 
+  /** Geometry only; no package, label, node text or screenshot content. */
+  public record Occluder(int windowId, String kind, Bounds bounds) {}
+
   public ScreenWindowRegion(Bounds window, Bounds content, boolean obscured) {
-    this(window, content, obscured, java.util.List.of());
+    this(window, content, obscured, java.util.List.of(), java.util.List.of());
+  }
+
+  public ScreenWindowRegion(
+      Bounds window, Bounds content, boolean obscured, java.util.List<Exclusion> exclusions) {
+    this(window, content, obscured, exclusions, java.util.List.of());
   }
 
   public ScreenWindowRegion {
     exclusions = java.util.List.copyOf(exclusions);
+    occluders = java.util.List.copyOf(occluders);
   }
 
   public record Bounds(int left, int top, int right, int bottom) {
@@ -68,6 +81,37 @@ public record ScreenWindowRegion(
   public boolean overlapsExclusion(Bounds bounds) {
     for (Exclusion exclusion : exclusions) if (exclusion.bounds.intersects(bounds)) return true;
     return false;
+  }
+
+  /** Semantic scrolling has no touch point. Require visible target area outside owned controls. */
+  public boolean hasUnexcludedArea(Bounds bounds) {
+    if (obscured || bounds == null || !bounds.valid() || !content.intersects(bounds)) return false;
+    var remaining = new java.util.ArrayList<Bounds>();
+    remaining.add(
+        new Bounds(
+            Math.max(content.left, bounds.left),
+            Math.max(content.top, bounds.top),
+            Math.min(content.right, bounds.right),
+            Math.min(content.bottom, bounds.bottom)));
+    for (Exclusion exclusion : exclusions) {
+      var next = new java.util.ArrayList<Bounds>();
+      for (Bounds part : remaining) {
+        Bounds cover = exclusion.bounds;
+        if (!part.intersects(cover)) {
+          next.add(part);
+          continue;
+        }
+        if (part.top < cover.top) next.add(new Bounds(part.left, part.top, part.right, cover.top));
+        if (part.bottom > cover.bottom)
+          next.add(new Bounds(part.left, cover.bottom, part.right, part.bottom));
+        int top = Math.max(part.top, cover.top), bottom = Math.min(part.bottom, cover.bottom);
+        if (part.left < cover.left) next.add(new Bounds(part.left, top, cover.left, bottom));
+        if (part.right > cover.right) next.add(new Bounds(cover.right, top, part.right, bottom));
+      }
+      remaining = next;
+      if (remaining.isEmpty()) return false;
+    }
+    return !remaining.isEmpty();
   }
 
   /** Liang-Barsky clipping against the closed exclusion plus the touch boundary reserve. */

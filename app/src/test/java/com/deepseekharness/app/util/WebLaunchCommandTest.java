@@ -25,13 +25,10 @@ public class WebLaunchCommandTest {
     assertTrue(result.contains("export DSH_CONFIRM=1"));
     assertTrue(result.contains("--profile " + ShellQuote.arg("recovery'; echo injected")));
     assertThrows(
-        IllegalArgumentException.class,
-        () -> WebLaunchCommand.build(true, "en", "web", -1, 1));
+        IllegalArgumentException.class, () -> WebLaunchCommand.build(true, "en", "web", -1, 1));
     assertThrows(
-        IllegalArgumentException.class,
-        () -> WebLaunchCommand.build(true, "en", "web", 65536, 1));
+        IllegalArgumentException.class, () -> WebLaunchCommand.build(true, "en", "web", 65536, 1));
     assertThrows(
-        IllegalArgumentException.class,
-        () -> WebLaunchCommand.build(true, "en", "web", 1, -1));
+        IllegalArgumentException.class, () -> WebLaunchCommand.build(true, "en", "web", 1, -1));
   }
 }

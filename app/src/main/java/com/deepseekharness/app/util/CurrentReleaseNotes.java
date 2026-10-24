@@ -26,8 +26,7 @@ public final class CurrentReleaseNotes {
     return heading.equals("# DSHA " + bundledVersion(versionName) + " / build" + versionCode);
   }
 
-  public static String render(
-      String versionName, int versionCode, String notes, boolean english) {
+  public static String render(String versionName, int versionCode, String notes, boolean english) {
     String title = "DSHA " + versionName + " / build" + versionCode;
     if (!matches(versionName, versionCode, notes))
       return title

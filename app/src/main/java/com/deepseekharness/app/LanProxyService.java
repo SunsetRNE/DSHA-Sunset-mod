@@ -36,7 +36,9 @@ public final class LanProxyService {
   private static final String LAN_COOKIE_MAX_AGE = "43200";
   private static final SecureRandom RANDOM = new SecureRandom();
 
-  public static final int LAN_PORT = 3081;
+  /** Historical preference only; published links must use port(generation). */
+  public static final int LAN_PORT = com.deepseekharness.app.util.LanPortPolicy.LEGACY_PORT;
+
   public static final int DEFAULT_BACKEND_PORT = 3080;
 
   private static final com.deepseekharness.app.util.LanTokenState LAN_TOKEN =
@@ -266,7 +268,9 @@ public final class LanProxyService {
     if (!hasDshAuth(generation)) return;
     // The explicit overload receives the authenticated actual port. An unknown
     // value cannot authorize forwarding to an unrelated service on port 3080.
-    if (backend <= 0 || backend > 65535 || backend == LAN_PORT) return;
+    if (backend <= 0
+        || backend > 65535
+        || com.deepseekharness.app.util.WebPortPolicy.reserved(backend)) return;
     int resolvedBackend = backend;
     ProxyRun previous = activeRun;
     if (isActiveRunLocked(previous)) {
@@ -291,7 +295,6 @@ public final class LanProxyService {
   private static void acceptLoop(ProxyRun run) {
     ServerSocket ss = null;
     try {
-      ss = new ServerSocket();
       synchronized (LanProxyService.class) {
         if (!isActiveRunLocked(run)) {
           closeQuietly(ss);
@@ -299,15 +302,17 @@ public final class LanProxyService {
         }
         // A retired, not-yet-bound accept thread cannot race a replacement
         // listener for the same port after start/stop changed the active run.
-        ss.setReuseAddress(true);
-        ss.bind(new InetSocketAddress("0.0.0.0", LAN_PORT));
+        ss =
+            com.deepseekharness.app.util.LanPortPolicy.bind(
+                com.deepseekharness.app.util.LanPortPolicy.preferred(
+                    com.deepseekharness.app.util.AppIdentity.applicationId()));
         ss.setSoTimeout(1000);
         run.server = ss;
         run.bound = true;
       }
       log(
           com.deepseekharness.app.util.UiText.format(
-              "LAN 代理已启动：0.0.0.0:%s -> 127.0.0.1:%s", LAN_PORT, run.backendPort));
+              "LAN 代理已启动：0.0.0.0:%s -> 127.0.0.1:%s", ss.getLocalPort(), run.backendPort));
       run.network.poll();
       long nextNetworkCheck = System.nanoTime() + 1_000_000_000L;
       while (isActiveRun(run)) {
@@ -423,6 +428,24 @@ public final class LanProxyService {
   /** Explicit name for callers that need to distinguish bind success from startup in flight. */
   public static boolean isBound() {
     return isRunning();
+  }
+
+  /** The port belongs to this exact authenticated Web generation, or is unavailable. */
+  public static synchronized int port(long generation) {
+    ProxyRun run = activeRun;
+    return isActiveRunLocked(run)
+            && run.generation == generation
+            && hasDshAuth(generation)
+            && run.bound
+            && run.server != null
+            && run.server.isBound()
+            && !run.server.isClosed()
+        ? run.server.getLocalPort()
+        : 0;
+  }
+
+  public static synchronized int port() {
+    return activeRun == null ? 0 : port(activeRun.generation);
   }
 
   private static boolean isActiveRun(ProxyRun run) {

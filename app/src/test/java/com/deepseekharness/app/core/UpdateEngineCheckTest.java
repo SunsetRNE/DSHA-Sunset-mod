@@ -39,7 +39,8 @@ public final class UpdateEngineCheckTest {
       super(type);
     }
 
-    @Override protected java.util.Properties getBuildSystemApiProperties() {
+    @Override
+    protected java.util.Properties getBuildSystemApiProperties() {
       return new java.util.Properties();
     }
   }
@@ -47,13 +48,19 @@ public final class UpdateEngineCheckTest {
   private Application app;
   private String signer;
 
-  @Before public void prepareIdentity() throws Exception {
+  @Before
+  public void prepareIdentity() throws Exception {
     app = RuntimeEnvironment.getApplication();
-    app.getSharedPreferences("dsha-updates", 0).edit().clear().putString("channel", "preview").commit();
+    app.getSharedPreferences("dsha-updates", 0)
+        .edit()
+        .clear()
+        .putString("channel", "preview")
+        .commit();
     Signature signature = new Signature("01020304");
     PackageInfo installed = app.getPackageManager().getPackageInfo(app.getPackageName(), 0);
     installed.signingInfo = Shadow.newInstanceOf(SigningInfo.class);
-    Shadow.<ShadowSigningInfo>extract(installed.signingInfo).setSignatures(new Signature[] {signature});
+    Shadow.<ShadowSigningInfo>extract(installed.signingInfo)
+        .setSignatures(new Signature[] {signature});
     Shadow.<org.robolectric.shadows.ShadowPackageManager>extract(app.getPackageManager())
         .installPackage(installed);
     StringBuilder hex = new StringBuilder();
@@ -63,18 +70,28 @@ public final class UpdateEngineCheckTest {
     UiText.setLanguage("zh");
   }
 
-  @After public void resetLanguage() { UiText.setLanguage("zh"); }
+  @After
+  public void resetLanguage() {
+    UiText.setLanguage("zh");
+  }
 
   private String feed(String releases) {
-    return "{\"schemaVersion\":1,\"packageName\":\"" + app.getPackageName()
-        + "\",\"certificateSha256\":\"" + signer + "\",\"releases\":" + releases + "}";
+    return "{\"schemaVersion\":1,\"packageName\":\""
+        + app.getPackageName()
+        + "\",\"certificateSha256\":\""
+        + signer
+        + "\",\"releases\":"
+        + releases
+        + "}";
   }
 
   private String release() {
-    return "{\"versionCode\":" + (BuildConfig.VERSION_CODE + 1)
+    return "{\"versionCode\":"
+        + (BuildConfig.VERSION_CODE + 1)
         + ",\"version\":\"0.2.2-preview\",\"channel\":\"preview\",\"artifacts\":[{"
         + "\"flavor\":\"standard\",\"minSdk\":30,\"abi\":\"arm64-v8a\","
-        + "\"url\":\"https://dsha.cc/downloads/next.apk\",\"sha256\":\"" + "a".repeat(64)
+        + "\"url\":\"https://dsha.cc/downloads/next.apk\",\"sha256\":\""
+        + "a".repeat(64)
         + "\",\"bytes\":100}]}";
   }
 
@@ -92,7 +109,8 @@ public final class UpdateEngineCheckTest {
     return done;
   }
 
-  @Test public void absentFeedAndNoPublishedReleaseHaveNormalEmptyStates() throws Exception {
+  @Test
+  public void absentFeedAndNoPublishedReleaseHaveNormalEmptyStates() throws Exception {
     for (int status : new int[] {404, 410, 200}) {
       Response source = new Response(status, feed("[]"));
       UpdateRepository.State state = check(new UpdateEngine(app, source));
@@ -103,20 +121,26 @@ public final class UpdateEngineCheckTest {
     }
   }
 
-  @Test public void legacyApplicationAndMissingAssetNeverBecomeInstallCandidates() throws Exception {
-    for (String body : new String[] {feed("[" + release() + "]").replace(app.getPackageName(), "com.dsh.client"),
-        feed("[{\"versionCode\":9999,\"artifacts\":[]}]"),
-        feed("[" + release().replace("arm64-v8a", "x86_64") + "]")}) {
+  @Test
+  public void legacyApplicationAndMissingAssetNeverBecomeInstallCandidates() throws Exception {
+    for (String body :
+        new String[] {
+          feed("[" + release() + "]").replace(app.getPackageName(), "com.dsh.client"),
+          feed("[{\"versionCode\":9999,\"artifacts\":[]}]"),
+          feed("[" + release().replace("arm64-v8a", "x86_64") + "]")
+        }) {
       UpdateRepository.State state = check(new UpdateEngine(app, new Response(200, body)));
       assertEquals("暂无可用更新", state.message);
       assertNull(state.release);
     }
   }
 
-  @Test public void certificateFailureIsUnknownThenARetryCanConfirmNoUpdate() throws Exception {
+  @Test
+  public void certificateFailureIsUnknownThenARetryCanConfirmNoUpdate() throws Exception {
     Response source = new Response(200, feed("[]"));
     source.failure = new SSLHandshakeException("CertPathValidatorException: Trust anchor");
-    source.failure.initCause(new CertPathValidatorException("Trust anchor for certification path not found"));
+    source.failure.initCause(
+        new CertPathValidatorException("Trust anchor for certification path not found"));
     UpdateEngine engine = new UpdateEngine(app, source);
     UpdateRepository.State failed = check(engine);
     assertTrue(failed.message.startsWith("暂时无法确认更新"));
@@ -127,7 +151,8 @@ public final class UpdateEngineCheckTest {
     assertEquals("暂无可用更新", check(engine).message);
   }
 
-  @Test public void serverFailureKeepsTheLastVerifiedChannelCandidate() throws Exception {
+  @Test
+  public void serverFailureKeepsTheLastVerifiedChannelCandidate() throws Exception {
     Response source = new Response(200, feed("[" + release() + "]"));
     UpdateEngine engine = new UpdateEngine(app, source);
     UpdateRepository.State available = check(engine);
@@ -147,21 +172,40 @@ public final class UpdateEngineCheckTest {
     Exception failure;
     boolean disconnected, bodyOpened;
 
-    Response(int status, String body) { this.status = status; this.body = body; }
+    Response(int status, String body) {
+      this.status = status;
+      this.body = body;
+    }
 
-    @Override public HttpURLConnection open(String target, long offset) throws Exception {
+    @Override
+    public HttpURLConnection open(String target, long offset) throws Exception {
       assertEquals(UpdateEngine.FEED, target);
       assertEquals(0, offset);
       if (failure != null) throw failure;
       return new HttpURLConnection(new URL(target)) {
-        @Override public int getResponseCode() { return status; }
-        @Override public InputStream getInputStream() {
+        @Override
+        public int getResponseCode() {
+          return status;
+        }
+
+        @Override
+        public InputStream getInputStream() {
           bodyOpened = true;
           return new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
         }
-        @Override public void disconnect() { disconnected = true; }
-        @Override public boolean usingProxy() { return false; }
-        @Override public void connect() {}
+
+        @Override
+        public void disconnect() {
+          disconnected = true;
+        }
+
+        @Override
+        public boolean usingProxy() {
+          return false;
+        }
+
+        @Override
+        public void connect() {}
       };
     }
   }

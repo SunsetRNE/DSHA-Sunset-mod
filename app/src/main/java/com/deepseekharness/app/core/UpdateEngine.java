@@ -250,8 +250,7 @@ public final class UpdateEngine {
                 int n;
                 while ((n = input.read(buffer)) != -1) {
                   ensureActive();
-                  if (bytes.size() + n > 1024 * 1024)
-                    throw new UpdateFailures.InvalidManifest();
+                  if (bytes.size() + n > 1024 * 1024) throw new UpdateFailures.InvalidManifest();
                   bytes.write(buffer, 0, n);
                 }
                 raw = bytes.toByteArray();
@@ -409,8 +408,7 @@ public final class UpdateEngine {
                 cancelled
                     ? stopReason
                     : com.deepseekharness.app.util.UiText.format(
-                        "下载暂停：%s；可继续下载",
-                        UpdateFailures.message(error));
+                        "下载暂停：%s；可继续下载", UpdateFailures.message(error));
             completedPhase =
                 cancelled
                     ? (com.deepseekharness.app.util.UiText.text("已取消下载，进度已保留").equals(stopReason)
@@ -663,9 +661,12 @@ public final class UpdateEngine {
   }
 
   private java.util.List<String> installedSignerHashes() throws Exception {
-    int flags = Build.VERSION.SDK_INT >= 28
-        ? PackageManager.GET_SIGNING_CERTIFICATES : PackageManager.GET_SIGNATURES;
-    PackageInfo installed = context.getPackageManager().getPackageInfo(context.getPackageName(), flags);
+    int flags =
+        Build.VERSION.SDK_INT >= 28
+            ? PackageManager.GET_SIGNING_CERTIFICATES
+            : PackageManager.GET_SIGNATURES;
+    PackageInfo installed =
+        context.getPackageManager().getPackageInfo(context.getPackageName(), flags);
     ArrayList<String> hashes = new ArrayList<>();
     for (Signature signature : signatures(installed))
       hashes.add(hex(MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())));

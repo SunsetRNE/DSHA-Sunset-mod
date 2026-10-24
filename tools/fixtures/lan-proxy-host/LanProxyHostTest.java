@@ -87,9 +87,13 @@ public class LanProxyHostTest {
   }
 
   static byte[] request(String target, String token, boolean queryCredential) throws Exception {
-    try (Socket socket = new Socket("127.0.0.1", LanProxyService.LAN_PORT)) {
+    return requestAt(LanProxyService.port(), target, token, queryCredential);
+  }
+
+  static byte[] requestAt(int port, String target, String token, boolean queryCredential) throws Exception {
+    try (Socket socket = new Socket("127.0.0.1", port)) {
       socket.setSoTimeout(4000);
-      String header = "GET " + target + " HTTP/1.1\r\nHost: 127.0.0.1:3081\r\nConnection: close\r\n"
+      String header = "GET " + target + " HTTP/1.1\r\nHost: 127.0.0.1:" + port + "\r\nConnection: close\r\n"
           + (queryCredential ? "" : "Cookie: dsha_lan=" + token + "\r\n") + "\r\n";
       socket.getOutputStream().write(header.getBytes(StandardCharsets.US_ASCII));
       return socket.getInputStream().readAllBytes();
@@ -145,19 +149,19 @@ public class LanProxyHostTest {
       start(backend, 15);
       String token = LanProxyService.getLanToken(null);
       for (int i = 0; i < 8; i++) {
-        Socket socket = new Socket("127.0.0.1", LanProxyService.LAN_PORT);
+        Socket socket = new Socket("127.0.0.1", LanProxyService.port());
         idle.add(socket);
         socket.setSoTimeout(2500);
-        String header = "GET / HTTP/1.1\r\nHost: 127.0.0.1:3081\r\nCookie: dsha_lan=" + token + "\r\n\r\n";
+        String header = "GET / HTTP/1.1\r\nHost: 127.0.0.1:" + LanProxyService.port() + "\r\nCookie: dsha_lan=" + token + "\r\n\r\n";
         socket.getOutputStream().write(header.getBytes(StandardCharsets.US_ASCII));
         var input = socket.getInputStream();
         var head = HttpProtocol.readHead(input, socket, HttpProtocol.LAN, HttpProtocol.deadline(2500), false);
         assertEquals(200, head.status);
         HttpProtocol.copyBody(head.responseBody(HttpProtocol.parse(header, true)), input, new ByteArrayOutputStream());
       }
-      try (Socket current = new Socket("127.0.0.1", LanProxyService.LAN_PORT)) {
+      try (Socket current = new Socket("127.0.0.1", LanProxyService.port())) {
         current.setSoTimeout(2000);
-        current.getOutputStream().write(("GET / HTTP/1.1\r\nHost: 127.0.0.1:3081\r\nCookie: dsha_lan=" + token + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+        current.getOutputStream().write(("GET / HTTP/1.1\r\nHost: 127.0.0.1:" + LanProxyService.port() + "\r\nCookie: dsha_lan=" + token + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
         assertTrue("idle keep-alive sockets must not exhaust request workers", new String(current.getInputStream().readAllBytes(), StandardCharsets.US_ASCII).startsWith("HTTP/1.1 200"));
       }
     } finally { for (Socket socket : idle) socket.close(); }
@@ -177,14 +181,14 @@ public class LanProxyHostTest {
     try (Backend backend = new Backend("websocket")) {
       start(backend, 17);
       String token = LanProxyService.getLanToken(null);
-      String credential = " HTTP/1.1\r\nHost: 127.0.0.1:3081\r\nCookie: dsha_lan=" + token
+      String credential = " HTTP/1.1\r\nHost: 127.0.0.1:" + LanProxyService.port() + "\r\nCookie: dsha_lan=" + token
           + "\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: AAAAAAAAAAAAAAAAAAAAAA==\r\n\r\n";
-      try (Socket socket = new Socket("127.0.0.1", LanProxyService.LAN_PORT)) {
+      try (Socket socket = new Socket("127.0.0.1", LanProxyService.port())) {
         socket.setSoTimeout(3000);
         socket.getOutputStream().write(("GET /invalid-upgrade" + credential).getBytes(StandardCharsets.US_ASCII));
         assertTrue(new String(socket.getInputStream().readAllBytes(), StandardCharsets.US_ASCII).startsWith("HTTP/1.1 502"));
       }
-      try (Socket socket = new Socket("127.0.0.1", LanProxyService.LAN_PORT)) {
+      try (Socket socket = new Socket("127.0.0.1", LanProxyService.port())) {
         socket.setSoTimeout(3000);
         socket.getOutputStream().write(("GET /upgrade" + credential).getBytes(StandardCharsets.US_ASCII));
         var head = HttpProtocol.readHead(socket.getInputStream(), socket, HttpProtocol.LAN, HttpProtocol.deadline(3000), false);
@@ -203,16 +207,58 @@ public class LanProxyHostTest {
   @Test public void oldGenerationCannotStopOrAuthorizeTheNewGeneration() throws Exception {
     try (Backend backend = new Backend("generation")) {
       start(backend, 18);
+      assertTrue(LanProxyService.port(18) > 0);
+      assertEquals(0, LanProxyService.port(17));
       String old = LanProxyService.getLanToken(null);
       var snapshot = LanProxyService.snapshotDshAuth(18);
       assertTrue(LanProxyService.isCurrentDshAuth(snapshot));
       LanProxyService.stop(18);
+      assertEquals(0, LanProxyService.port(18));
       start(backend, 19);
+      assertEquals(0, LanProxyService.port(18));
+      assertTrue(LanProxyService.port(19) > 0);
       assertFalse(LanProxyService.isCurrentDshAuth(snapshot));
       assertTrue(response("/", old).startsWith("HTTP/1.1 401"));
       LanProxyService.stop(18);
       assertTrue(LanProxyService.isBound());
       assertTrue(response("/", LanProxyService.getLanToken(null)).startsWith("HTTP/1.1 200"));
+    }
+  }
+
+  @Test public void independentApplicationsHoldSeparateLanPortsAndRejectEachOthersTokens() throws Exception {
+    // Isolate static app state just as two Android processes do. Both execute
+    // the same compiled production proxy; Android permission/context are stubs.
+    URL location = LanProxyService.class.getProtectionDomain().getCodeSource().getLocation();
+    try (java.net.URLClassLoader other = new java.net.URLClassLoader(
+            new URL[] {location}, ClassLoader.getPlatformClassLoader());
+         Backend first = new Backend("first-app"); Backend second = new Backend("second-app")) {
+      Class<?> proxy = other.loadClass("com.deepseekharness.app.LanProxyService");
+      Class<?> context = other.loadClass("android.content.Context");
+      java.lang.reflect.Method otherStop = proxy.getMethod("stop");
+      try {
+        start(first, 21);
+        int firstPort = LanProxyService.port(21);
+        String firstToken = LanProxyService.getLanToken(null);
+        assertEquals(true, proxy.getMethod("setDshAuthCookie", String.class, long.class).invoke(null, COOKIE, 22L));
+        proxy.getMethod("start", String.class, context, int.class, long.class)
+            .invoke(null, null, null, second.server.getLocalPort(), 22L);
+        java.lang.reflect.Method otherPort = proxy.getMethod("port", long.class);
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        int secondPort;
+        while ((secondPort = (Integer) otherPort.invoke(null, 22L)) == 0 && System.nanoTime() < until) Thread.sleep(10);
+        assertTrue(secondPort > 0);
+        assertNotEquals(firstPort, secondPort);
+        String secondToken = (String) proxy.getMethod("getLanToken", context).invoke(null, new Object[] {null});
+        assertNotEquals(firstToken, secondToken);
+        assertTrue(new String(requestAt(firstPort, "/", firstToken, false), StandardCharsets.UTF_8).endsWith("first-app"));
+        assertTrue(new String(requestAt(secondPort, "/", secondToken, false), StandardCharsets.UTF_8).endsWith("second-app"));
+        assertTrue(new String(requestAt(firstPort, "/", secondToken, false), StandardCharsets.UTF_8).startsWith("HTTP/1.1 401"));
+        assertTrue(new String(requestAt(secondPort, "/", firstToken, false), StandardCharsets.UTF_8).startsWith("HTTP/1.1 401"));
+        LanProxyService.stop(21);
+        assertEquals(0, LanProxyService.port(21));
+        assertEquals(secondPort, otherPort.invoke(null, 22L));
+        assertTrue(new String(requestAt(secondPort, "/", secondToken, false), StandardCharsets.UTF_8).endsWith("second-app"));
+      } finally { otherStop.invoke(null); }
     }
   }
 }

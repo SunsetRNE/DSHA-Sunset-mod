@@ -29,7 +29,9 @@ public final class UpdateManifest {
       JsonObject feed = root.getAsJsonObject();
       if (integer(feed, "schemaVersion") != 1) throw new UpdateFailures.InvalidManifest();
       if (!UpdatePolicy.feedIdentityMatches(
-          installedPackage, installedSigners, string(feed, "packageName"),
+          installedPackage,
+          installedSigners,
+          string(feed, "packageName"),
           string(feed, "certificateSha256"))) return Collections.emptyList();
       JsonElement releases = feed.get("releases");
       if (releases == null || releases.isJsonNull()) return Collections.emptyList();
@@ -44,14 +46,23 @@ public final class UpdateManifest {
           if (!artifact.isJsonObject()) continue;
           JsonObject apk = artifact.getAsJsonObject();
           try {
-            UpdatePolicy.Release option = new UpdatePolicy.Release(
-                integer(release, "versionCode"), string(release, "version"),
-                string(release, "channel"), string(apk, "flavor"), integer(apk, "minSdk"),
-                string(apk, "abi"), string(apk, "url"), string(apk, "sha256"),
-                number(apk, "bytes"), string(release, "notes"), string(release, "pageUrl"));
+            UpdatePolicy.Release option =
+                new UpdatePolicy.Release(
+                    integer(release, "versionCode"),
+                    string(release, "version"),
+                    string(release, "channel"),
+                    string(apk, "flavor"),
+                    integer(apk, "minSdk"),
+                    string(apk, "abi"),
+                    string(apk, "url"),
+                    string(apk, "sha256"),
+                    number(apk, "bytes"),
+                    string(release, "notes"),
+                    string(release, "pageUrl"));
             if (option.valid()) options.add(option);
           } catch (IllegalArgumentException ignored) {
-            // Incomplete/non-applicable artifacts do not turn an otherwise valid feed into an error.
+            // Incomplete/non-applicable artifacts do not turn an otherwise valid feed into an
+            // error.
           }
         }
       }
@@ -66,12 +77,15 @@ public final class UpdateManifest {
   private static String string(JsonObject object, String key) {
     JsonElement value = object.get(key);
     return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
-        ? value.getAsString() : null;
+        ? value.getAsString()
+        : null;
   }
 
   private static long number(JsonObject object, String key) {
     JsonElement value = object.get(key);
-    if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()
+    if (value == null
+        || !value.isJsonPrimitive()
+        || !value.getAsJsonPrimitive().isNumber()
         || !value.getAsString().matches("-?[0-9]{1,19}"))
       throw new IllegalArgumentException("UPDATE_MANIFEST_NUMBER");
     return Long.parseLong(value.getAsString());
