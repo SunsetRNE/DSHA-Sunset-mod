@@ -76,6 +76,8 @@ export function loadCjs(name, f) {
 async function loadPlugin(name, f) {
   const module = new vm.SourceTextModule(read('builtin-plugins/' + name + '/lib/index.js'), { context: f.context });
   await module.link(async dependency => {
+    if (dependency === './session-adapter.js')
+      return new vm.SourceTextModule(read('builtin-plugins/' + name + '/lib/session-adapter.js'), { context: f.context });
     const value = dependency === './bridge-port.cjs' ? { default: loadCjs('builtin-plugins/' + name + '/lib/bridge-port.cjs', f) }
       : dependency === 'node:fs' ? f.fs : dependency === 'node:fs/promises' ? f.asyncFs
       : dependency === 'node:crypto' ? crypto
@@ -88,6 +90,10 @@ async function loadPlugin(name, f) {
 function context() {
   const events = new Map();
   return { events, on(name, fn) { const rows = events.get(name) ?? []; rows.push(fn); events.set(name, rows); },
+    // No optional Host services exist in this bridge-consumer fixture, so
+    // Cordis inject callbacks remain pending. Load the real adapter module;
+    // its own pinned-runtime behavior is covered by test-local-session-adapter.
+    inject(names, callback) { assert(Array.isArray(names)); assert.equal(typeof callback, 'function'); },
     emit(name, ...args) { return (events.get(name) ?? []).map(fn => fn(...args)); } };
 }
 async function run() {
@@ -150,11 +156,12 @@ async function run() {
   });
   await test('Android consumer rereads on each call and never repeats 401/legacy/UNKNOWN', async () => {
     const f = fixture(), sdk = loadCjs('builtin-plugins/dsh-computer-use-android/lib/server.cjs', f), signal = new AbortController().signal;
-    for (const port of ['3091', '3092']) { f.setPort(port); await sdk.call('android_get_state', {}, signal); assert.equal(f.requests.at(-1).port, Number(port)); }
+    const task={sessionId:'fixture-full-session',turnId:'1'};
+    for (const port of ['3091', '3092']) { f.setPort(port); await sdk.call('android_get_state', {}, signal, undefined, task); assert.equal(f.requests.at(-1).port, Number(port)); }
     for (const mode of ['401', 'legacy', 'UNKNOWN', 'network']) {
       f.status = mode === '401' ? 401 : 200; f.networkError = mode === 'network';
       f.body = JSON.stringify({ result: mode === 'legacy' ? '[UNAUTHORIZED]' : JSON.stringify({ ok: false, state: 'UNKNOWN', error: 'SCREEN_RUN_CHANGED', code: 'SCREEN_RUN_CHANGED', executionUnknown: true }) });
-      const before = f.requests.length, request = sdk.call('android_type', { text: 'fixture' }, signal);
+      const before = f.requests.length, request = sdk.call('android_type', { text: 'fixture' }, signal, undefined, task);
       if (mode === '401' || mode === 'network') await assert.rejects(request); else assert.equal((await request).isError, true);
       assert.equal(f.requests.length, before + 1);
     }

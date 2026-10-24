@@ -81,6 +81,7 @@ function availableConsent(reading) {
 }
 async function checkConsent(record, exec) {
   check(record, exec);
+  if (record.requiresConsent === false) return;
   const reading = await globalConsent(exec.signal);
   check(record, exec);
   const current = availableConsent(reading);
@@ -151,13 +152,15 @@ export async function prepareOperation(runtime, exec) {
   const owner = runtimes.get(serviceIdentity(runtime));
   if (!owner) fail('Mandatory host policy is missing.');
   const record = executions.get(exec); check(record,exec);
-  record.consentRead = await globalConsent(exec.signal);
-  check(record,exec);
-  record.nativeConsent = availableConsent(record.consentRead);
-  record.consentFacts = encoded(record.nativeConsent);
-  check(record,exec);
-  record.fullAccess = record.nativeConsent?.globalAllow ? undefined : fullAccessProof(record);
-  if (exec.name !== 'bash') return;
+  // Native consent supplies an exemption for potentially destructive operations.
+  // Read tools and transport tools keep their own permission gates; an unrelated
+  // unavailable native bridge must not prevent reading or asking the user.
+  if (exec.name !== 'bash') {
+    if (['write','edit','str_replace_editor'].includes(exec.name)) await captureConsent(record, exec);
+    else record.requiresConsent = false;
+    return;
+  }
+  const initialFullAccess = fullAccessProof(record);
   // DSH 0.2.1 resolves Bash from the live projection, not the immutable header
   // or the sandbox's workspaceRoot. Settle that authority before asking once.
   if (record.agent) {
@@ -165,7 +168,7 @@ export async function prepareOperation(runtime, exec) {
     const cwd = await directory.ensure(record.agent, exec.signal);
     if (typeof cwd !== 'string' || !posix.isAbsolute(cwd)) fail('The effective Bash directory is unavailable.');
     record.cwd = cwd;
-    await checkConsent(record,exec);
+    check(record,exec);
   }
   record.bashServices = Object.fromEntries(['shell','shellEnv','sandboxPolicy'].map(name=>[name,serviceIdentity(record.ctx.get(name))]));
   const collected = record.ctx.get('shellEnv')?.collect(exec) || {};
@@ -179,7 +182,25 @@ export async function prepareOperation(runtime, exec) {
   record.analysis = analysis;
   const facts = encoded([record.name, exec.arguments, record.workdir, record.actualWorkdir, envFacts(record.environment)]);
   record.facts = facts;
+  // Use the existing conservative classifier against the exact collected Bash
+  // environment and directory. Opaque commands still require native proof and
+  // approval; safe classification does not grant any device-control capability.
+  if (!analysis.requiresApproval) { record.requiresConsent = false; return; }
+  // A revoked full-access preset cannot silently turn an in-flight call into
+  // a new approval request while its working directory is being resolved.
+  record.fullAccess = initialFullAccess;
+  check(record, exec);
+  await captureConsent(record, exec);
   if (analysis.requiresApproval && !exempt(record)) await approve(record, exec, 'DSHA ' + analysis.classification + ': ' + (analysis.opaqueReason || analysis.findings.map(row=>row.kind).join(', ')) + '; workdir=' + record.workdir.dir + '; targets=' + (analysis.unknownTargets ? 'unknown; count unknown' : analysis.targets.join(', ')) + '. Verify the original command; allow this call once.', facts);
+}
+async function captureConsent(record, exec) {
+  record.requiresConsent = true;
+  record.consentRead = await globalConsent(exec.signal);
+  check(record,exec);
+  record.nativeConsent = availableConsent(record.consentRead);
+  record.consentFacts = encoded(record.nativeConsent);
+  check(record,exec);
+  record.fullAccess = record.nativeConsent?.globalAllow ? undefined : fullAccessProof(record);
 }
 /** Awaited by signed tool recipes immediately before resolving/dispatching a body or spawning Bash. */
 export async function verifyGlobalConsent(exec) { await checkConsent(executions.get(exec), exec); }

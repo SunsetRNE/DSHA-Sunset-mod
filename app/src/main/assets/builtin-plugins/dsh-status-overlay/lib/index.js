@@ -27,6 +27,7 @@
  */
 import { readFileSync } from 'node:fs'
 import bridgePort from './bridge-port.cjs'
+import { installSessionAdapter } from './session-adapter.js'
 export const name = 'dsh-status-overlay'
 
 /** 桥端口由本安装原生写入 .bridge_port；读不到才回退 3090。 */
@@ -120,7 +121,7 @@ function sessionKey(session) {
   try {
     const raw = session?.id ?? session?.sessionId ?? session?.key ?? ''
     const s = String(raw)
-    return s ? s.slice(-8) : '-'
+    return s || '-'
   } catch {
     return '-'
   }
@@ -226,6 +227,16 @@ function schedule(key, kind, getter) {
 
 /** @param {import('@deepseek-ai/cordis').Context} ctx */
 export function apply(ctx) {
+  installSessionAdapter(ctx, key => state.get(key)?.line || '', async ({ sessionId, turnId }) => {
+    const tok = bridgeToken()
+    if (!tok) return
+    const url = new URL(bridgeBase() + '/app/ui/task-end')
+    url.searchParams.set('taskSessionId', sessionId)
+    url.searchParams.set('turnId', turnId)
+    // Completion is exact and never cancellation. The next MCP call also carries
+    // this session's actual completed turn, so notification latency cannot block it.
+    await fetch(url, { headers: { 'X-Token': tok }, signal: AbortSignal.timeout(TIMEOUT_MS) })
+  })
   // 顺带把插件真实加载状态报给 App（见 reportPluginStates 的注释）
   reportPluginStates(ctx)
   const onEvent = (session, event) => {

@@ -39,4 +39,18 @@ public final class WebFileActionsBindingTest {
         WebFileActions.matchesBinding(
             nextRuntime, source, nextRuntime.nonce(), 193, "runtime-193"));
   }
+
+  @Test
+  public void destinationGuardIsLocalToTheExplicitLiveDocumentAndRetiresOnce() {
+    java.util.concurrent.atomic.AtomicBoolean current =
+        new java.util.concurrent.atomic.AtomicBoolean(true);
+    String token = WebFileActions.destinationToken(current::get);
+    assertTrue(WebFileActions.destinationCurrent(token));
+    assertFalse(WebFileActions.destinationCurrent("unrelated-or-lost-process-token"));
+    current.set(false);
+    assertFalse(WebFileActions.destinationCurrent(token));
+    WebFileActions.retireDestination(token);
+    current.set(true);
+    assertFalse(WebFileActions.destinationCurrent(token));
+  }
 }

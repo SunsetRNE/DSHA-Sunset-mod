@@ -198,6 +198,11 @@
       "executable": false
     },
     {
+      "asset": "builtin-plugins/dsh-status-overlay/lib/session-adapter.js",
+      "target": "root/dsha-status-overlay/lib/session-adapter.js",
+      "executable": false
+    },
+    {
       "asset": "builtin-plugins/dsh-web-mobile/package.json",
       "target": "root/dsha-web-mobile/package.json",
       "executable": false
@@ -245,6 +250,11 @@
     {
       "asset": "builtin-plugins/dsh-computer-use-android/lib/index.js",
       "target": "root/dsha-computer-use-android/lib/index.js",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-computer-use-android/lib/task-binding.js",
+      "target": "root/dsha-computer-use-android/lib/task-binding.js",
       "executable": false
     },
     {
@@ -698,7 +708,11 @@
     "util/LanNetworkState.java",
     "util/DeepSeekOAuthNavigation.java",
     "util/RecoveryDescriptorLimits.java",
-    "util/DiagnosticOperationSummary.java"
+    "util/DiagnosticOperationSummary.java",
+    "util/LanPortPolicy.java",
+    "core/StartupPreparationTiming.java",
+    "util/WebSessionStorage.java",
+    "util/WebSessionDiagnostics.java"
   ],
   "generatorSources": [
     "tools/mobile-server/compress.js",

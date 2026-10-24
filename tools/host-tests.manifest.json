@@ -4,7 +4,9 @@
     {
       "path": "tools/test-generate-changelog.py",
       "stage": "fast",
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "args": [],
       "timeoutSeconds": 60,
       "environment": {},
@@ -13,7 +15,10 @@
     {
       "path": "tools/test-mobile-server-compression-carrier.mjs",
       "stage": "runtime",
-      "requires": ["node24", "raw"],
+      "requires": [
+        "node24",
+        "raw"
+      ],
       "args": [],
       "timeoutSeconds": 300,
       "environment": {},
@@ -22,7 +27,12 @@
     {
       "path": "tools/file-transfer/test-host-browser.mjs",
       "stage": "runtime",
-      "requires": ["node24", "raw", "browser", "native_host"],
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "native_host"
+      ],
       "args": [],
       "timeoutSeconds": 240,
       "environment": {},
@@ -2819,6 +2829,30 @@
       "timeoutSeconds": 300,
       "environment": {},
       "reason": "Actual locked boot plus startup observer: missing/invalid optional bundles and optional entries remain nonfatal; required web entries and uncaught core failures remain fatal; siblings execute once and profile manifest bytes stay unchanged."
+    },
+    {
+      "path": "tools/test-consent-tool-pipeline.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 600,
+      "environment": {},
+      "reason": "Actual pinned rc3 ToolRuntime and Bash/FS/glob with native consent SDK: safe reads avoid destructive-consent coupling; malformed/wrong-token proof prevents mutation bodies."
+    },
+    {
+      "path": "tools/test-builtin-runtime-deployment.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Actual signed guest install recipe imports all builtin entrypoints; negative controls reproduce omitted helper MODULE_NOT_FOUND."
     }
   ],
   "historicalExcluded": [

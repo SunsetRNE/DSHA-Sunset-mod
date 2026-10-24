@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Chromium 枚举/选择录音设备同时要求此普通权限；录音本身仍须按需获得用户授权。 -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
@@ -37,6 +40,7 @@
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <queries>
+        <intent><action android:name="android.speech.RecognitionService" /></intent>
         <package android:name="moe.shizuku.privileged.api" />
         <intent><action android:name="rikka.shizuku.intent.action.REQUEST_BINDER" /></intent>
         <intent><action android:name="android.intent.action.OPEN_DOCUMENT" /><data android:mimeType="*/*" /></intent>
@@ -56,6 +60,24 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.DeepseekHarness">
+
+        <activity android:name=".remote.ui.WorkspaceActivity" android:exported="false" />
+        <activity android:name=".remote.ui.PairComputerActivity" android:exported="false" />
+        <activity android:name=".remote.ui.QrScannerActivity" android:exported="false" />
+        <activity android:name=".remote.gateway.RemoteWebActivity" android:exported="false"
+            android:process=":remote_web" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".assistant.AssistantActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".assistant.AssistantVoiceActivity" android:exported="false" />
+        <service android:name=".remote.gateway.RemoteWebProcessService" android:exported="false"
+            android:process=":remote_web" />
+        <service android:name=".remote.RemoteConnectionService" android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+        <service android:name=".assistant.AssistantService" android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started visible AI phone-control assistant with local pause and stop actions." />
+        </service>
 
         <activity android:name=".ui.BrowserOriginRestoreActivity" android:exported="false" />
         <activity android:name=".ui.CommunityActivity" android:exported="false" />

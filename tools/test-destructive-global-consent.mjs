@@ -146,7 +146,7 @@ try {
     }), false, true);
   }
   for (const approval of ['ask', 'never']) await test('authenticated global ON overrides DSHA guard under ' + approval, () => using({ approval }, async f => {
-    await f.prepare(); await f.dispatch(); assert.equal(f.effects, 1); assert.equal(f.approvals, 0); assert(f.reads >= 4);
+    await f.prepare(); await f.dispatch(); assert.equal(f.effects, 1); assert.equal(f.approvals, 0); assert.equal(f.reads, 3);
   }), approval === 'ask');
   await test('global OFF retains guarded one-time approval', () => using({ global: false }, async f => {
     await f.prepare(); await f.dispatch(); assert.equal(f.approvals, 1); assert.equal(f.effects, 1);
@@ -282,9 +282,29 @@ try {
     f.answer = async () => { f.consent.revision++; return 'allowed-once'; };
     await assert.rejects(f.prepare, blocked); assert.equal(f.effects, 0);
   }));
-  await test('OFF while settling the live cwd cancels ON exemption', () => using({}, async f => {
+  await test('consent captures the current OFF state after settling the live cwd', () => using({}, async f => {
     f.services.workingDirectory.ensure = async () => { f.consent.globalAllow = false; f.consent.revision++; return CWD; };
-    await assert.rejects(f.prepare, blocked); assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
+    await f.prepare(); await f.dispatch(); assert.equal(f.effects, 1); assert.equal(f.approvals, 1);
+  }));
+  for (const name of ['read','glob','grep','run_code']) await test(name + ' does not use destructive consent as an unrelated readiness gate', () => using({}, async f => {
+    f.moduleError = Error('unavailable native SDK'); f.capture(name);
+    await f.prepare(); await f.dispatch();
+    assert.equal(f.effects, 1); assert.equal(f.approvals, 0); assert.equal(f.reads, 0);
+  }));
+  for (const name of ['read','bash','write']) await test(name + ' cannot dispatch before successful operation preparation', () => using({}, async f => {
+    f.capture(name);
+    await assert.rejects(f.dispatch, blocked); assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
+  }));
+  for (const command of ['echo ready','pwd','cat /tmp/log','ls /tmp','curl https://example.com']) await test('safe Bash works without native consent: ' + command, () => using({}, async f => {
+    f.fetch = async () => { throw Error('native read must not run'); };
+    f.exec.arguments = { command }; f.capture('bash');
+    await f.prepare(); await f.dispatch();
+    assert.equal(f.effects, 1); assert.equal(f.approvals, 0); assert.equal(f.reads, 0);
+  }));
+  for (const command of ['rm /tmp/existing','python -c "opaque()"','echo changed > /tmp/existing','curl -X POST https://example.com']) await test('unsafe or opaque Bash still fails closed without native consent: ' + command, () => using({}, async f => {
+    f.moduleError = Error('unavailable native SDK'); f.exec.arguments = { command }; f.capture('bash');
+    await assert.rejects(f.prepare, error => error.code === 'DSHA_NATIVE_CONSENT_UNAVAILABLE');
+    assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
   }));
   await test('tool replacement during awaited authority check does not dispatch old body', () => using({}, async f => {
     await f.prepare();

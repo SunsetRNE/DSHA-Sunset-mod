@@ -114,6 +114,69 @@ final class GuestPluginScripts {
     this.runner = java.util.Objects.requireNonNull(runner);
   }
 
+  /** One preparation for the two ordered startup helpers, without caching mutable root proof. */
+  Startup startup() throws IOException, InterruptedException {
+    GuestScriptQueue.Lease lease = SCRIPT_QUEUE.enter();
+    try {
+      preparePlugins(null);
+      return new Startup(lease);
+    } catch (IOException | InterruptedException | RuntimeException | Error failure) {
+      lease.close();
+      throw failure;
+    }
+  }
+
+  final class Startup implements AutoCloseable {
+    private final GuestScriptQueue.Lease lease;
+    private final Thread owner = Thread.currentThread();
+    private boolean registerAttempted, registered, migrated, closed;
+
+    private Startup(GuestScriptQueue.Lease lease) {
+      this.lease = lease;
+    }
+
+    private void requireOwner() throws IOException, InterruptedException {
+      if (closed || Thread.currentThread() != owner)
+        throw new IOException("STARTUP_PLUGIN_PREPARATION_OWNER");
+      if (Thread.currentThread().isInterrupted())
+        throw new InterruptedException("STARTUP_PLUGIN_PREPARATION_INTERRUPTED");
+    }
+
+    BoundedProcessRunner.Result register() throws IOException, InterruptedException {
+      requireOwner();
+      if (registerAttempted || migrated)
+        throw new IOException("STARTUP_PLUGIN_REGISTER_ALREADY_ATTEMPTED");
+      // Mark before dispatch: UNKNOWN or failed commands never gain an implicit retry here.
+      registerAttempted = true;
+      BoundedProcessRunner.Result result =
+          runner.run("python3 -u /root/.dsh/" + BUILTIN_REGISTER_SCRIPT + " 2>&1", 90_000);
+      String output =
+          com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
+              result, "BUILTIN_REGISTER");
+      if (!output.contains("BUILTIN_REGISTER_OK"))
+        throw new IOException("BUILTIN_REGISTER_RECEIPT_MISSING");
+      registered = true;
+      return result;
+    }
+
+    BoundedProcessRunner.Result legacy() throws IOException, InterruptedException {
+      requireOwner();
+      if (!registered || migrated) throw new IOException("STARTUP_PLUGIN_MIGRATION_ORDER");
+      migrated = true;
+      return runner.run(
+          "DSHA_PLUGIN_DOWNLOAD_SOURCE=auto python3 /root/.dsh/"
+              + PLUGIN_MANAGER_SCRIPT
+              + " migrate-review-markers 2>&1",
+          MANAGER_TIMEOUT_MS);
+    }
+
+    public void close() {
+      if (closed) return;
+      lease.close();
+      closed = true;
+    }
+  }
+
   BoundedProcessRunner.Result builtin(String extraArgs) throws IOException, InterruptedException {
     try (GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter()) {
       preparePlugins();

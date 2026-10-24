@@ -29,6 +29,7 @@ try {
     nativeReply(queryRequest, {tasks:[{id:'task-1',state:'DOWNLOADING',bytes:1048576,total:5000000000}]});
     nativeReply(queueRequest, {status:'queued',taskId:'task-1'});
     const queueResult = await queued, status = await query;
+    const oversizedShare = await DSHA.downloadArtifact(artifact, 'share').then(() => false, error => /32 MiB/.test(error.message));
     const opened = DSHA.openDownloads(), openRequest = requests.shift();
     nativeReply(openRequest, {status:'opened'});
     const openResult = await opened;
@@ -62,11 +63,12 @@ try {
     nativeReply(stale, {status:'queued',taskId:'late-old-task'});
     nativeReply(currentRequest, {tasks:[{id:'late-old-task',state:'WAITING_DESTINATION'}]});
     const currentStatus = await current;
-    return {unbound, queueResult, status, openResult, invalid, galleryResult, interrupted, temporaryInterrupted,
+    return {unbound, queueResult, status, openResult, invalid, galleryResult, interrupted, temporaryInterrupted, oversizedShare,
       firstBinding:queueRequest.binding,secondBinding:currentRequest.binding,currentStatus,
       blobs,remaining:requests.length};
   });
   assert.equal(result.unbound, true);
+  assert.equal(result.oversizedShare, true);
   assert.deepEqual(result.queueResult, {status:'queued',taskId:'task-1'});
   assert.equal(result.status.tasks[0].bytes, 1048576);
   assert.deepEqual(result.openResult, {status:'opened'});

@@ -20,7 +20,19 @@ public final class MainScreenWindowPolicy {
       Kind kind,
       boolean focused,
       boolean active,
-      ScreenWindowRegion.Bounds bounds) {}
+      ScreenWindowRegion.Bounds bounds,
+      ScreenWindowRegion.Exclusion ownedExclusion) {
+    public Window(
+        int display,
+        int id,
+        int layer,
+        Kind kind,
+        boolean focused,
+        boolean active,
+        ScreenWindowRegion.Bounds bounds) {
+      this(display, id, layer, kind, focused, active, bounds, null);
+    }
+  }
 
   public record Selection(int index, String diagnostic) {}
 
@@ -34,8 +46,11 @@ public final class MainScreenWindowPolicy {
     boolean ambiguous = false;
     for (int i = 0; i < windows.size(); i++) {
       Window w = windows.get(i);
-      if (w.display != 0 || w.id < 0 || !w.focused && !w.active || w.kind == Kind.INPUT_METHOD)
-        continue;
+      if (w.display != 0
+          || w.id < 0
+          || !w.focused && !w.active
+          || w.kind == Kind.INPUT_METHOD
+          || w.ownedExclusion != null) continue;
       if (selected < 0 || w.layer > layer) {
         selected = i;
         layer = w.layer;
@@ -57,14 +72,21 @@ public final class MainScreenWindowPolicy {
     if (original == null || !original.valid()) return null;
     var content = original;
     boolean obscured = false;
+    var exclusions = new java.util.ArrayList<ScreenWindowRegion.Exclusion>();
+    var occluders = new java.util.ArrayList<ScreenWindowRegion.Occluder>();
     for (Window other : windows) {
       if (other.display != 0 || other.id == target.id || other.layer <= target.layer) continue;
       var cover = other.bounds;
       if (cover == null || !cover.valid()) {
         obscured = true;
+        occluders.add(new ScreenWindowRegion.Occluder(other.id, other.kind.name(), cover));
         continue;
       }
       if (!content.intersects(cover)) continue;
+      if (other.ownedExclusion != null && cover.equals(other.ownedExclusion.bounds())) {
+        exclusions.add(other.ownedExclusion);
+        continue;
+      }
       boolean edgeChrome =
           other.kind == Kind.INPUT_METHOD
               || other.kind == Kind.SYSTEM && !other.focused && !other.active;
@@ -100,8 +122,11 @@ public final class MainScreenWindowPolicy {
         content =
             new ScreenWindowRegion.Bounds(
                 content.left(), content.top(), cover.left(), content.bottom());
-      else obscured = true;
+      else {
+        obscured = true;
+        occluders.add(new ScreenWindowRegion.Occluder(other.id, other.kind.name(), cover));
+      }
     }
-    return new ScreenWindowRegion(original, content, obscured);
+    return new ScreenWindowRegion(original, content, obscured, exclusions, occluders);
   }
 }

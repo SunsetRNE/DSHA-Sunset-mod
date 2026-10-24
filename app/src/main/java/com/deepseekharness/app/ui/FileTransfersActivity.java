@@ -21,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.transfer.DownloadEngine;
 import com.deepseekharness.app.transfer.DownloadTask;
+import com.deepseekharness.app.transfer.PendingFileAction;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.UiText;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -30,13 +31,33 @@ import java.util.List;
 /** User-controlled transfer history. Removing a row never deletes its completed destination. */
 public final class FileTransfersActivity extends AppCompatActivity {
   private static final String PENDING_SAVE = "transfer_save_task";
+  private static final String AUTO_TASK = "transfer_explicit_task",
+      AUTO_ACTION = "transfer_explicit_action";
+  private static final String AUTO_OWNER = "transfer_explicit_document";
+  private static final String STATUS_TASK = "transfer_status_task";
+  private static final String STATUS_DESTINATION = "transfer_status_destination";
   private DownloadEngine engine;
   private TransferAdapter adapter;
   private TextView summary, notice;
   private String pendingSaveId;
+  private PendingFileAction pendingAction;
+  private String actionOwner;
+  private String statusTaskId;
+  private String statusDestination;
+  private DownloadTask.Status displayedTaskStatus;
+  private boolean resumed;
 
   public static Intent intent(Context context) {
     return new Intent(context, FileTransfersActivity.class);
+  }
+
+  /** Called only after an admitted, current top-level page explicitly chose this destination. */
+  static Intent destinationIntent(
+      Context context, String taskId, String destination, String owner) {
+    return intent(context)
+        .putExtra(AUTO_TASK, taskId)
+        .putExtra(AUTO_ACTION, destination)
+        .putExtra(AUTO_OWNER, owner);
   }
 
   public static void open(Context context) {
@@ -60,8 +81,8 @@ public final class FileTransfersActivity extends AppCompatActivity {
             if (uri == null) {
               showNotice(
                   t(
-                      "未选择保存位置，已校验文件仍保留在下载记录中，可稍后继续保存。",
-                      "No destination was selected. The verified file remains in history to save later."));
+                      "已取消另存为，已校验文件仍保留在下载记录中，可稍后继续保存。",
+                      "Save as was cancelled. The verified file remains in history to save later."));
               return;
             }
             DownloadTask current = id == null ? null : find(id);
@@ -94,19 +115,39 @@ public final class FileTransfersActivity extends AppCompatActivity {
                 // A transient grant still permits the foreground save; the engine reports failures.
               }
             }
-            perform(() -> engine.provideSaveTarget(id, uri));
+            perform(
+                () -> {
+                  engine.provideSaveTarget(id, uri);
+                  showNotice(t("正在保存文件…", "Saving file…"));
+                });
           });
 
   @Override
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     if (saved != null) pendingSaveId = saved.getString(PENDING_SAVE);
+    pendingAction =
+        new PendingFileAction(
+            saved == null ? getIntent().getStringExtra(AUTO_TASK) : saved.getString(AUTO_TASK),
+            saved == null ? getIntent().getStringExtra(AUTO_ACTION) : saved.getString(AUTO_ACTION));
+    actionOwner =
+        saved == null ? getIntent().getStringExtra(AUTO_OWNER) : saved.getString(AUTO_OWNER);
+    statusTaskId =
+        saved == null ? getIntent().getStringExtra(AUTO_TASK) : saved.getString(STATUS_TASK);
+    statusDestination =
+        saved == null ? pendingAction.action() : saved.getString(STATUS_DESTINATION);
     engine = DownloadEngine.get(this);
     LinearLayout root = new LinearLayout(this);
     root.setOrientation(LinearLayout.VERTICAL);
     root.setBackgroundColor(getColor(R.color.surface));
     setContentView(root);
-    UiNavigation.addHeader(this, root, t("下载记录", "Downloads"), this::finish);
+    String title =
+        pendingAction.action().equals("share")
+            ? t("分享文件", "Share file")
+            : pendingAction.action().equals("saveas")
+                ? t("另存为", "Save as")
+                : t("下载记录", "Downloads");
+    UiNavigation.addHeader(this, root, title, this::finish);
     summary = text("", 13, R.color.text_secondary);
     summary.setPadding(dp(18), dp(6), dp(18), dp(8));
     root.addView(summary);
@@ -131,13 +172,57 @@ public final class FileTransfersActivity extends AppCompatActivity {
             R.color.text_secondary);
     explanation.setPadding(dp(18), dp(8), dp(18), dp(12));
     root.addView(explanation);
+    if (!pendingAction.id().isEmpty() && pendingAction.action().equals("share"))
+      showNotice(
+          t(
+              "正在准备分享，校验完成后将打开系统分享选择器。",
+              "Preparing to share. The system share picker will open after verification."));
+    else if (!pendingAction.id().isEmpty() && pendingAction.action().equals("saveas"))
+      showNotice(t("正在准备另存为，完成后请选择保存位置。", "Preparing Save as. Choose a destination when ready."));
     engine.state().observe(this, this::render);
+  }
+
+  @Override
+  protected void onPostResume() {
+    super.onPostResume();
+    resumed = true;
+    launchExplicitDestination(engine.state().getValue());
+  }
+
+  @Override
+  protected void onPause() {
+    // A backgrounded request cannot surprise the user with a later picker.
+    if (resumed && !isChangingConfigurations()) retireExplicitDestination();
+    resumed = false;
+    super.onPause();
+  }
+
+  @Override
+  protected void onDestroy() {
+    if (!isChangingConfigurations()) retireExplicitDestination();
+    super.onDestroy();
+  }
+
+  private void retireExplicitDestination() {
+    boolean pending = pendingAction != null && !pendingAction.id().isEmpty();
+    if (pendingAction != null) pendingAction.retire();
+    WebFileActions.retireDestination(actionOwner);
+    if (pending && notice != null && !isFinishing())
+      showNotice(
+          t(
+              "自动打开已取消，文件仍保留在记录中，可手动继续分享或保存。",
+              "Automatic opening was cancelled. The file remains in history to share or save manually."));
   }
 
   @Override
   protected void onSaveInstanceState(Bundle state) {
     super.onSaveInstanceState(state);
     if (pendingSaveId != null) state.putString(PENDING_SAVE, pendingSaveId);
+    state.putString(AUTO_TASK, pendingAction.id());
+    state.putString(AUTO_ACTION, pendingAction.action());
+    state.putString(AUTO_OWNER, actionOwner);
+    state.putString(STATUS_TASK, statusTaskId);
+    state.putString(STATUS_DESTINATION, statusDestination);
   }
 
   private void render(DownloadEngine.State state) {
@@ -151,6 +236,76 @@ public final class FileTransfersActivity extends AppCompatActivity {
             : state.tasks.size()
                 + t(" 条记录", " records")
                 + (state.busy ? t(" · 正在传输", " · Transfer in progress") : ""));
+    for (DownloadTask task : state.tasks) {
+      if (statusTaskId == null
+          || !statusTaskId.equals(task.id)
+          || !task.destination.equals(statusDestination)) continue;
+      if (task.status != displayedTaskStatus) {
+        displayedTaskStatus = task.status;
+        String message =
+            requestStatusNotice(
+                statusTaskId,
+                statusDestination,
+                task.id,
+                task.destination,
+                task.status,
+                displayName(task));
+        if (!message.isEmpty()) showNotice(message);
+      }
+      break;
+    }
+    launchExplicitDestination(state);
+  }
+
+  /** A consumed picker-launch ticket does not retire its exact request's status text. */
+  static String requestStatusNotice(
+      String requestId,
+      String destination,
+      String taskId,
+      String taskDestination,
+      DownloadTask.Status status,
+      String displayName) {
+    if (requestId == null
+        || requestId.isEmpty()
+        || !requestId.equals(taskId)
+        || !("saveas".equals(destination) || "share".equals(destination))
+        || !destination.equals(taskDestination)
+        || status == null) return "";
+    return switch (status) {
+      case COMPLETE ->
+          destination.equals("saveas")
+              ? UiText.format("已保存文件：%s", displayName)
+              : t(
+                  "分享文件已就绪；打开分享选择器不代表对方已收到。",
+                  "The file is ready to share. Opening the share picker does not confirm delivery.");
+      case CANCELLED -> t("文件操作已取消。", "File operation cancelled.");
+      case FAILED ->
+          t(
+              "文件操作失败，请在当前记录中查看原因并重试。",
+              "File operation failed. Check this record for the reason and retry.");
+      case PAUSED -> t("文件操作已暂停，可在当前记录中继续。", "File operation paused. Resume it from this record.");
+      default -> "";
+    };
+  }
+
+  private void launchExplicitDestination(DownloadEngine.State state) {
+    if (state == null || pendingAction == null || isFinishing()) return;
+    if (!WebFileActions.destinationCurrent(actionOwner)) {
+      retireExplicitDestination();
+      return;
+    }
+    for (DownloadTask task : state.tasks) {
+      boolean pending = !pendingAction.id().isEmpty();
+      String action = pendingAction.consume(task.id, task.destination, task.status, resumed);
+      if (pendingAction.id().isEmpty()) WebFileActions.retireDestination(actionOwner);
+      if (action.equals("share")) share(task);
+      else if (action.equals("saveas")) chooseDestination(task);
+      else if (pending && pendingAction.id().isEmpty())
+        showNotice(
+            t(
+                "文件准备已停止，请在记录中查看原因并手动继续。",
+                "File preparation stopped. Check the record and continue manually."));
+    }
   }
 
   private DownloadTask find(String id) {
@@ -183,6 +338,9 @@ public final class FileTransfersActivity extends AppCompatActivity {
       return;
     }
     pendingSaveId = task.id;
+    statusTaskId = task.id;
+    statusDestination = task.destination;
+    displayedTaskStatus = null;
     Intent picker =
         new Intent(Intent.ACTION_CREATE_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
@@ -194,6 +352,7 @@ public final class FileTransfersActivity extends AppCompatActivity {
                     | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
     try {
       savePicker.launch(picker);
+      showNotice(t("请选择保存位置。", "Choose a save destination."));
     } catch (RuntimeException unavailable) {
       pendingSaveId = null;
       showNotice(
@@ -248,17 +407,8 @@ public final class FileTransfersActivity extends AppCompatActivity {
         () -> {
           Uri uri = completedUri(task);
           String actualMime = mime(task, uri);
-          Intent send =
-              new Intent(Intent.ACTION_SEND)
-                  .setType(actualMime)
-                  .putExtra(Intent.EXTRA_STREAM, uri)
-                  .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          send.setClipData(
-              new ClipData(displayName(task), new String[] {actualMime}, new ClipData.Item(uri)));
-          Intent chooser = Intent.createChooser(send, t("分享文件", "Share file"));
-          chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          chooser.setClipData(send.getClipData());
-          startActivity(chooser);
+          startActivity(
+              NativeFileShare.chooser(uri, displayName(task), actualMime, t("分享文件", "Share file")));
           showNotice(
               t(
                   "已打开分享选择器，请在接收应用中完成分享。",

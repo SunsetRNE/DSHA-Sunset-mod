@@ -76,6 +76,24 @@ public final class WebSessionRecoveryTest {
   }
 
   @Test
+  public void failedKernelReadReportsOnlyItsStageAndCannotBeUpgradedByDiagnosticFailure() {
+    var stages = new ArrayList<String>();
+    Fixture f =
+        new Fixture() {
+          @Override
+          public void unavailable(String stage, Exception failure) {
+            stages.add(stage);
+            throw new IllegalStateException("diagnostic sink unavailable");
+          }
+        };
+    f.deny = true;
+    assertEquals(WebSessionRecovery.Result.UNKNOWN, WebSessionRecovery.recover(f));
+    assertEquals(List.of("KERNEL_VERIFY"), stages);
+    assertFalse(f.calls.contains("http"));
+    assertFalse(f.calls.contains("adopt"));
+  }
+
+  @Test
   public void packageUpgradeOrFailedAuthenticationRemainsUnknown() {
     Fixture f = new Fixture();
     f.compatible = false;

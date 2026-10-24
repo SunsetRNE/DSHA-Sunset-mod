@@ -11,7 +11,9 @@ public final class NotificationIds {
       DEVICE_BRIDGE = 3005,
       DATA_PROTECTION = 9031,
       RECOVERY = 9060,
-      FILE_DOWNLOAD = 9062;
+      FILE_DOWNLOAD = 9062,
+      REMOTE_CONNECTION = 9063,
+      FLOATING_ASSISTANT = 9064;
 
   public static java.util.Set<Integer> all() {
     return java.util.Set.of(
@@ -22,6 +24,8 @@ public final class NotificationIds {
         DEVICE_BRIDGE,
         DATA_PROTECTION,
         RECOVERY,
-        FILE_DOWNLOAD);
+        FILE_DOWNLOAD,
+        REMOTE_CONNECTION,
+        FLOATING_ASSISTANT);
   }
 }

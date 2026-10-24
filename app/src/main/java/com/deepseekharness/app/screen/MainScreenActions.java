@@ -201,7 +201,18 @@ public final class MainScreenActions {
     } else {
       recordFailure(context, FailureStage.MAIN, code, failure, "screenshot".equals(operation));
     }
-    return ScreenReply.failure(context, code);
+    JSONObject result = ScreenReply.failure(context, code);
+    if (!context.submitted()
+        && java.util.Set.of("SCREEN_WINDOW_GEOMETRY_CHANGED", "SCREEN_GEOMETRY_CHANGED")
+            .contains(code))
+      try {
+        result
+            .put("nextAction", "OBSERVE_A_NEW_SCREENSHOT_AFTER_LAYOUT_SETTLES")
+            .put("automaticRetry", false);
+      } catch (org.json.JSONException impossible) {
+        throw new IllegalStateException(impossible);
+      }
+    return result;
   }
 
   /** Diagnostics own no authority and cannot change the original result if their sink fails. */
@@ -261,7 +272,10 @@ public final class MainScreenActions {
         return ScreenReply.refused("CAPABILITY_NOT_AUTHORIZED");
       if (operation.equals("dump") || operation.equals("tree")) return reader.read(context, nodes);
       if (operation.equals("screenshot"))
-        return screenshot(context, args.optString("format", "path"));
+        return screenshot(
+            context,
+            args.optString("format", "path"),
+            args.optInt("maxImageBytes", 16 * 1024 * 1024));
       return actions.execute(context, operation, args);
     } finally {
       if (mutating) {
@@ -271,11 +285,13 @@ public final class MainScreenActions {
     }
   }
 
-  private JSONObject screenshot(ScreenRequestContext context, String format) throws Exception {
+  private JSONObject screenshot(ScreenRequestContext context, String format, int maxImageBytes)
+      throws Exception {
     if (!format.equals("mcp") && !format.equals("path"))
       return ScreenReply.refused("SCREENSHOT_FORMAT_INVALID");
     try (var shot = captures.capture(context)) {
-      boolean coordinatesAvailable = shot.region != null && !shot.region.obscured();
+      boolean coordinatesAvailable =
+          shot.region != null && shot.region.hasUnexcludedArea(shot.region.content());
       JSONObject result =
           ScreenReply.completed()
               .put("kind", "dsha-screenshot-v1")
@@ -286,21 +302,34 @@ public final class MainScreenActions {
               .put("coordinatesAvailable", coordinatesAvailable)
               .put("coordinateBoundaryReservePixels", 1)
               .put("serviceEpoch", context.serviceEpoch())
+              .put("geometry", ScreenGeometry.describe(shot.region))
               .put("target", ScreenSnapshotReader.target(context.target()));
       if (coordinatesAvailable) {
         result.put("observationRegion", region(shot.region.content()));
         result.put("windowBounds", region(shot.region.window()));
+        var exclusions = new org.json.JSONArray();
+        for (var exclusion : shot.region.exclusions())
+          exclusions.put(
+              new JSONObject()
+                  .put("windowId", exclusion.windowId())
+                  .put("epoch", exclusion.epoch())
+                  .put("bounds", region(exclusion.bounds())));
+        result.put("excludedRegions", exclusions);
       } else {
         result.put(
             "reason",
-            shot.region == null ? "TARGET_WINDOW_GEOMETRY_UNAVAILABLE" : "TARGET_WINDOW_OCCLUDED");
-        result.put("nextAction", "USE_FRESH_TREE_NODE");
+            shot.region == null
+                ? "TARGET_WINDOW_GEOMETRY_UNAVAILABLE"
+                : shot.region.obscured()
+                    ? "TARGET_WINDOW_OCCLUDED"
+                    : "OWNED_CONTROL_COVERS_TARGET");
+        result.put("nextAction", "CLEAR_OCCLUSION_OR_USE_FRESH_TREE_NODE");
       }
       if (format.equals("mcp")) {
         ByteArrayOutputStream encoded = new ByteArrayOutputStream();
         if (!shot.bitmap.compress(Bitmap.CompressFormat.PNG, 90, encoded))
           throw new IllegalStateException("SCREENSHOT_ENCODE_FAILED");
-        if (encoded.size() > 16 * 1024 * 1024)
+        if (maxImageBytes <= 0 || encoded.size() > Math.min(maxImageBytes, 16 * 1024 * 1024))
           throw new IllegalStateException("SCREENSHOT_TOO_LARGE");
         result.put(
             "data",
