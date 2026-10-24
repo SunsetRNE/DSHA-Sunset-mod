@@ -108,6 +108,23 @@ public final class ScreenTargetResolver {
     for (var window : windows) {
       android.graphics.Rect bounds = new android.graphics.Rect();
       window.getBoundsInScreen(bounds);
+      var measured =
+          new ScreenWindowRegion.Bounds(bounds.left, bounds.top, bounds.right, bounds.bottom);
+      boolean ownPackage = false;
+      AccessibilityNodeInfo overlayRoot = window.getRoot();
+      if (overlayRoot != null)
+        try {
+          ownPackage =
+              service
+                  .getPackageName()
+                  .contentEquals(
+                      overlayRoot.getPackageName() == null ? "" : overlayRoot.getPackageName());
+        } finally {
+          overlayRoot.recycle();
+        }
+      var exclusion =
+          com.deepseekharness.app.control.OwnedScreenOverlay.match(
+              window.getId(), measured, ownPackage);
       var kind =
           switch (window.getType()) {
             case AccessibilityWindowInfo.TYPE_APPLICATION ->
@@ -125,7 +142,13 @@ public final class ScreenTargetResolver {
               kind,
               window.isFocused(),
               window.isActive(),
-              new ScreenWindowRegion.Bounds(bounds.left, bounds.top, bounds.right, bounds.bottom)));
+              measured,
+              exclusion));
+      if (window.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
+        var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(service);
+        if (coordinator.snapshot().binding() != null && !coordinator.snapshot().paused())
+          coordinator.pause("INPUT_METHOD_VISIBLE");
+      }
     }
     var selection = MainScreenWindowPolicy.selection(candidates);
     int selected = selection.index();

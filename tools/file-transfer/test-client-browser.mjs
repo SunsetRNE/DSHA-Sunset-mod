@@ -1,4 +1,4 @@
-// Real locked rc2 React + mobile bundle + owned attachment component.
+// Real locked rc3 React + mobile bundle + owned attachment component.
 // Synthetic file metadata/image bytes only; no account, device, or source file writes.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,14 +15,17 @@ try {
   await page.evaluate(() => {
     document.documentElement.lang = 'zh-CN';
     window.calls = []; window.tasks = []; window.prepares = []; window.savedImages = []; window.defer = false;
+    window.shareBytes = 32 * 1024 * 1024; window.released = [];
     window.DSHA = {
       downloadArtifact: async (artifact, destination) => { tasks.push({artifact,destination}); return {status:'queued',taskId:'task-'+tasks.length}; },
       openDownloads: async () => { window.recordsOpened=(window.recordsOpened||0)+1; return {status:'opened'}; },
       saveImage: async file => { savedImages.push({name:file.name,type:file.type,bytes:Array.from(new Uint8Array(await file.arrayBuffer()))}); return {status:'queued',taskId:'image'}; },
     };
     const actualFetch = window.fetch;
-    const metadata = body => ({id:'a'.repeat(48),name:body.path.split('/').at(-1),mime:'application/octet-stream',bytes:4_000_000_000,sha256:'b'.repeat(64),version:'v1'});
+    const metadata = body => ({id:'a'.repeat(48),name:body.path.split('/').at(-1),mime:'application/octet-stream',
+      bytes:body.path.endsWith('card.bin') ? shareBytes : 4_000_000_000,sha256:'b'.repeat(64),version:'v1'});
     window.fetch = async (url, options) => {
+      if (url === '/api/dsha/files/release') { released.push(JSON.parse(options.body)); return new Response('{}'); }
       if (url !== '/api/dsha/files/prepare') return actualFetch(url, options);
       const body = JSON.parse(options.body); calls.push({url,body});
       const response = () => {
@@ -67,10 +70,21 @@ try {
   await page.getByRole('button',{name:'另存为…',exact:true}).click();
   await page.waitForFunction(()=>tasks.length===2);
   assert.equal(await page.evaluate(()=>tasks[1].destination),'saveas');
+  assert.match(await page.locator('[data-mobile-nav="file-share-toast"]').textContent(), /另存为/);
   await page.locator('[data-test-card] button[aria-label="更多文件操作"]').click();
   await page.getByRole('button',{name:'分享',exact:true}).click();
   await page.waitForFunction(()=>tasks.length===3);
   assert.deepEqual(await page.evaluate(()=>({path:calls[2].body.path,destination:tasks[2].destination})),{path:'/work/card.bin',destination:'share'});
+  const shareCopy = await page.locator('[data-mobile-nav="file-share-toast"]').textContent();
+  assert.match(shareCopy, /正在准备分享/); assert.doesNotMatch(shareCopy, /已加入下载|已分享|发送成功/);
+  await page.evaluate(()=>{window.shareBytes=32*1024*1024+1;});
+  await page.locator('[data-test-card] button[aria-label="更多文件操作"]').click();
+  await page.getByRole('button',{name:'分享',exact:true}).click();
+  await page.waitForFunction(()=>released.length===1);
+  await page.waitForFunction(()=>!document.querySelector('[data-test-card] button').disabled);
+  assert.equal(await page.evaluate(()=>tasks.length),3,'Oversized share never becomes a download');
+  assert.match(await page.locator('[data-mobile-nav="file-share-toast"]').textContent(), /32 MiB.*下载或另存为/);
+  await page.evaluate(()=>{window.shareBytes=32*1024*1024;});
   await page.locator('[data-dsha-preview-actions]').getByRole('button',{name:'保存到相册',exact:true}).click();
   await page.waitForFunction(()=>tasks.length===4);
   assert.equal(await page.evaluate(()=>tasks[3].destination),'gallery');

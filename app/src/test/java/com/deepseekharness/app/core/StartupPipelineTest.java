@@ -16,6 +16,7 @@ public class StartupPipelineTest {
     String staleAt = "", stopError = "";
     String casReceipt = receipt(false, 0, "");
     BoundedProcessRunner.Result casOutcome;
+    boolean pluginScopeClosed;
 
     void step(String name) throws IOException {
       calls.add(name);
@@ -65,6 +66,22 @@ public class StartupPipelineTest {
     public String legacyPlugins() throws Exception {
       step("legacy");
       return "ok";
+    }
+
+    public StartupPipeline.Plugins startupPlugins() {
+      return new StartupPipeline.Plugins() {
+        public String register() throws Exception {
+          return Fixture.this.register();
+        }
+
+        public String legacy() throws Exception {
+          return Fixture.this.legacyPlugins();
+        }
+
+        public void close() {
+          pluginScopeClosed = true;
+        }
+      };
     }
 
     public BoundedProcessRunner.Result materializeCasLinks(
@@ -146,6 +163,36 @@ public class StartupPipelineTest {
             "unlock",
             "checkpoint"),
         f.calls);
+    assertTrue(f.pluginScopeClosed);
+  }
+
+  @Test
+  public void builtinOrLegacyFailureClosesPreparationAndCannotUnlockOrActivate() throws Exception {
+    for (String phase : List.of("register", "legacy")) {
+      Fixture f = new Fixture();
+      f.failure = phase;
+      assertThrows(IOException.class, () -> new StartupPipeline(f, f).prepare(47, false, f));
+      assertTrue(f.pluginScopeClosed);
+      assertFalse(f.calls.contains("activate"));
+      assertFalse(f.calls.contains("unlock"));
+      assertTrue(
+          f.messages.stream()
+              .anyMatch(
+                  line ->
+                      line.contains(
+                              "phase="
+                                  + (phase.equals("register")
+                                      ? "register-builtins"
+                                      : "legacy-plugin-reviews"))
+                          && line.endsWith("outcome=threw")));
+      if (phase.equals("register")) assertFalse(f.calls.contains("legacy"));
+    }
+    Fixture stale = new Fixture();
+    stale.staleAt = "register";
+    assertNull(new StartupPipeline(stale, stale).prepare(48, false, stale));
+    assertTrue(stale.pluginScopeClosed);
+    assertFalse(stale.calls.contains("legacy"));
+    assertFalse(stale.calls.contains("unlock"));
   }
 
   @Test

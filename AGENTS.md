@@ -2,6 +2,13 @@
 
 > **2026-10-24 Sunset-3090-Q 分支 CI 范围**：用户取消本分支全部 Low 测试。当前所有工作流仅运行 Standard 的源码/完整输入 JUnit、Lint 与打包；宿主执行器也拒绝 Low，专用 Low 预览用例保留历史。Sunset 构建使用 rc.3 固定源码输入、`dsh.android.client.SunsetRNE` 测试签名身份，不与 E7E3 正式包混同。历史双版本回执只用于兼容读取，不视为本轮 Low 测试。
 
+<!-- build196-current -->
+> **2026-10-24 build196**：`0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3` /196 /Standard /`dsh.android.client` /E7E3非调试，常规APK名；最终R7候选302430394字节，SHA `f3e053866dbf410edfc02587d64c9589ce9ac3c702f5bdef751b1f501c708d57`。正式与独立应急仍rc3、Ubuntu10；启动准备共用检查，保留事务/退出证明。修复助手真实会话/跨轮任务绑定、IME和固定输入区、物理屏android_node与自有悬浮窗识别、分享/另存为前台分流、双安装端口；首页移除后台任务入口，电脑连接从首页进入。最终45类279项Standard JUnit零失败/错误/skip、Release Lint0错/0致命/303警告、17条所选命令（其中9条APK检查）通过。R1真机发现两helper部署遗漏、R2发现编辑焦点、R4发现长记录输入及MCP缺语义工具，R6完成真实模型/语义控制/文件流程；R7仅完整标签模板修正，另验覆盖启动/原测试会话/分享/正常停止，最终1157份格式覆盖为1137+17+2+1。各SHA设备证据分开保留；不称首轮全绿。Android16同签名正常停止覆盖、真实已配置模型与文件/控制的有限范围见 docs/releases/v0.2.1-rc.3-build196-20261024.md，最终装机与交付以 artifacts/deliveries/build196-startup-usability-20261024.json 为准。只私有 DSHA-Sunset-mod-3090-Q，不构建或验收Low，不写公开DSHA/网站；实际源码仍 <local-workspace>
+
+<!-- build195-current -->
+> **2026-10-24 build195 当前软件交付**：`0.2.1-rc.3-20261024.0645-dsh0.2.1-rc.3` /code195 /Standard /`dsh.android.client` /E7E3非调试；常规APK名不变，302375411字节，SHA `acd8056283e95006b6dbc89f4b5d6f2a90d97fd3f20a1d90cd8160e87145556a`。新增独立电脑工作区/配对/连接网关、物理屏任务归属与悬浮助手；正式与独立应急DSH均rc3，共用归档字节，运行根独立，Ubuntu10不变。23类129项所选JUnit零失败/错误/skip、Release Lint0错/0致命/303警告及精确APK9门禁通过；宿主真实5GB上传/下载及强制中继分别留证。源与包仅交付私有DSHA-Sunset-mod-3090-Q，发布成功及commit/ZIP摘要以外部回执`artifacts/deliveries/build195-remote-assistant-20261024.json`为准。官方中继未部署，缺SSH登录信息，不填虚构端点。用户明确本轮不做真机验收：未安装195，无194→195设备覆盖、手机完整远程/控制/语音/SAF/异网结论。不运行Low、不改其原件、不写公开DSHA/网站。实际源仍<local-workspace>
+
+
 <!-- build194-current -->
 > 当前build194：`0.2.1-rc.3-20261024.0345-dsh0.2.1-rc.3` /Standard /dsh.android.client /E7E3 /非调试，rc3常规文件名。修复下载gzip重复处理导致prepare空响应，以及Android随包CA批量解析0张导致证书验证失败（逐PEM恢复原121根，原CA字节不变）。新runtimeId沿既有自动维护事务落地，禁止运行中热覆写。版本说明绑定code/version及双语raw；无匹配/404/410正常无更新，真实TLS/网络仍为未确认，不以无新版掩盖。17类98项StandardJUnit、9host、ReleaseLint0错/致命/256警告、9精确APK门禁；设备范围见报告。仅私有目标https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.3-20261024.0345，外部回执artifacts/deliveries/build194-update-download-20261024.json；Low及公开DSHA/网站不动。实际源仍<local-workspace>)。
 

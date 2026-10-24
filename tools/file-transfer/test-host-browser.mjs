@@ -9,6 +9,7 @@ import { createRequire } from 'node:module';
 import { randomUUID, createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { testRuntime, requireNativeHost } from '../test-runtime-fixture.mjs';
+import { exerciseRemoteFileUI } from '../remote/companion/test-frontend.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const inputFiles = ['tools/file-transfer/test-host-browser.mjs', 'tools/file-transfer/client-controls.js', 'tools/file-transfer/file-transfer.js',
@@ -103,7 +104,13 @@ try {
     document.documentElement.lang = 'zh-CN';
     const React = __downloadRequire('react'), ReactDOM = __downloadRequire('react-dom');
     const controls = __downloadRequire('./components/file-share-controls.js');
+    // This isolated control root owns its actual shipped sheet/style effect,
+    // independently of which first-run host screen is currently mounted.
+    window.__stopDownloadActions = controls.installNativeFileActions();
     const host = document.createElement('div'); host.id = 'download-browser-fixture'; host.style.cssText = 'position:fixed;inset:0;z-index:100000;background:white'; document.body.appendChild(host);
+    // The fixture root covers unrelated first-run host modals. Keep the actual
+    // owned file sheet above this fixture-only layer so real pointer clicks work.
+    const layer = document.createElement('style'); layer.textContent = '[data-dsha-file-sheet]{z-index:100001!important}'; document.head.appendChild(layer);
     window.__downloadRoot = ReactDOM.createRoot(host);
     window.__renderDownload = absolutePath => __downloadRoot.render(React.createElement(controls.FileDeliveryActions, { sessionId, absolutePath }));
     window.__sourceBlobCalls = 0; const create = URL.createObjectURL.bind(URL); URL.createObjectURL = file => { __sourceBlobCalls++; return create(file); };
@@ -124,6 +131,21 @@ try {
     assert.deepEqual(Buffer.from(await content.arrayBuffer()), fixture.bytes);
     checks.push({ name: fixture.path, bytes: fixture.bytes.length, sha256: sha(fixture.bytes), prepared: true, nativeQueued: true, contentExact: true });
   }
+  const destinationActions = [];
+  for (const [offset, destination, label, copy] of [
+    [0, 'share', '分享', /正在准备分享/], [1, 'saveas', '另存为…', /正在准备另存为/],
+  ]) {
+    await page.evaluate(file => __renderDownload(file), path.join(workspace, fixtures[1].path));
+    await page.locator('#download-browser-fixture button[aria-label="更多文件操作"]').click();
+    await page.getByRole('dialog').getByRole('button', { name: label, exact: true }).click();
+    await page.waitForFunction(count => __downloadRequests.filter(row => row.action === 'artifact').length === count, fixtures.length + offset + 1);
+    const request = await page.evaluate(() => __downloadRequests.filter(row => row.action === 'artifact').at(-1));
+    assert.equal(request.destination, destination); assert.equal(request.artifact.sha256, sha(fixtures[1].bytes));
+    const notice = await page.locator('[data-mobile-nav="file-share-toast"]').textContent();
+    assert.match(notice, copy); assert.doesNotMatch(notice, /已加入下载任务|发送成功|已分享/);
+    destinationActions.push({ destination, requestExact: true, distinctProgressCopy: true });
+    await page.waitForFunction(() => !document.querySelector('#download-browser-fixture button').disabled);
+  }
   assert.equal(await page.evaluate(() => __sourceBlobCalls), 0);
   for (const [headers, expected] of [[{ Origin: origin }, 401], [{ Cookie: cookie, Origin: 'http://foreign.invalid' }, 403]]) {
     const denied = await fetch(origin + '/api/dsha/files/prepare', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
@@ -131,9 +153,10 @@ try {
     assert.equal(denied.status, expected, 'authentication and same-origin checks still precede preparation');
     assert.equal((await denied.json()).error.code, 'access-denied');
   }
-  assert.equal(observed.length, fixtures.length); assert(observed.every(row => row.status === 200));
+  assert.equal(observed.length, fixtures.length + destinationActions.length); assert(observed.every(row => row.status === 200));
   assert.deepEqual(failures, []); assert.deepEqual(errors, []);
-  result = { status: 'PASS', version, engine, checks, prepareStatuses: observed.map(row => row.status), noPersistentSourceBlob: true, inputSha256,
+  await exerciseRemoteFileUI({ root, auth, home: workspace, output: base, version });
+  result = { status: 'PASS', version, engine, checks, destinationActions, remoteShareUI: 'PASS (native replies mocked)', prepareStatuses: observed.map(row => row.status), noPersistentSourceBlob: true, inputSha256,
     realCli: true, realBrowserAuth: true, actualMobileAndIntegration: true, unauthorizedAndForeignOriginRejected: true, deviceValidation: false, failures, errors };
   console.log(JSON.stringify(result));
 } finally {

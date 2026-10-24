@@ -5,23 +5,33 @@ import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 
-/** Device bridge port candidates: prefer the historical 3090, then a bounded fallback range. */
+/** Bounded device bridge allocation; leave the legacy installation's only port free first. */
 public final class BridgePortPolicy {
   public static final int PRIMARY_PORT = 3090;
   public static final int ATTEMPTS = 10;
 
   private BridgePortPolicy() {}
 
-  /** Fixed order makes multi-instance diagnosis deterministic: 3090, 3091, ... 3099. */
+  /** Production order leaves 3090 available to an unmodified com.dsh.client installation. */
   public static int[] candidates() {
+    return candidates("dsh.android.client");
+  }
+
+  public static int[] candidates(String applicationId) {
     int[] ports = new int[ATTEMPTS];
-    for (int index = 0; index < ATTEMPTS; index++) ports[index] = PRIMARY_PORT + index;
+    boolean legacy = "com.dsh.client".equals(applicationId);
+    for (int index = 0; index < ATTEMPTS; index++)
+      ports[index] = PRIMARY_PORT + (legacy ? index : (index + 1) % ATTEMPTS);
     return ports;
+  }
+
+  public static boolean reserved(int port) {
+    return port >= PRIMARY_PORT && port < PRIMARY_PORT + ATTEMPTS;
   }
 
   /** A bridge port must be a normal TCP port and must not steal the Web/LAN reserved ports. */
   public static boolean valid(int port) {
-    return port >= 1 && port <= 65535 && port != 3080 && port != 3081;
+    return port >= 1 && port <= 65535 && port != 3080 && !LanPortPolicy.reserved(port);
   }
 
   /** 仅全组候选均占用时抛出；权限和其它网络错误保留原异常。 */

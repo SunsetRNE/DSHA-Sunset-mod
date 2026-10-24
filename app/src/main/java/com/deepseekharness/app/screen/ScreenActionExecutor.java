@@ -67,7 +67,7 @@ public final class ScreenActionExecutor {
           target = leased.node;
           if (!leased.refreshMatches(root.root.getWindowId()))
             return ScreenReply.refused("STALE_NODE");
-          action = nodeAction(args.optString("action"));
+          action = ScreenNodeActions.action(args.optString("action"));
           if (action < 0) return ScreenReply.refused("INVALID_NODE_ACTION");
           if (action == AccessibilityNodeInfo.ACTION_SET_TEXT) bundle = text(args);
         } else if (operation.equals("tapText")) {
@@ -88,6 +88,10 @@ public final class ScreenActionExecutor {
             : !target.refresh() || target.getWindowId() != root.root.getWindowId())
           return ScreenReply.refused("STALE_NODE");
         context.validateCurrentTarget();
+        if (ScreenNodeActions.scroll(action) && !ScreenNodeActions.supported(target, action))
+          return ScreenReply.refused("NODE_SCROLL_ACTION_UNAVAILABLE")
+              .put("nextAction", "OBSERVE_A_FRESH_TREE_AND_USE_SUPPORTED_ACTION")
+              .put("automaticRetry", false);
         if (operation.equals("input")) {
           try (var latest =
               ScreenTargetResolver.resolve(context.service(), context.target().displayId)) {
@@ -102,6 +106,22 @@ public final class ScreenActionExecutor {
             }
           }
         }
+        var region = context.currentRegionIfKnown();
+        android.graphics.Rect nodeBounds = new android.graphics.Rect();
+        target.getBoundsInScreen(nodeBounds);
+        var area =
+            new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(
+                nodeBounds.left, nodeBounds.top, nodeBounds.right, nodeBounds.bottom);
+        if (ScreenNodeActions.scroll(action)) {
+          // A semantic scroll dispatches to this exact leased node, with no synthetic touch into
+          // an assistant window. A compact owned control may cover part of a large scroll view.
+          if (region == null || !region.hasUnexcludedArea(area))
+            return ScreenReply.refused("NODE_SCROLL_REGION_UNAVAILABLE")
+                .put("geometry", ScreenGeometry.describe(region))
+                .put("nextAction", "CLEAR_OCCLUSION_AND_OBSERVE_A_FRESH_TREE")
+                .put("automaticRetry", false);
+        } else if (region != null && region.overlapsExclusion(area))
+          return ScreenReply.refused("NODE_COVERED_BY_ASSISTANT");
         if (!context.claimDispatch()) return ScreenReply.refused("SCREEN_RUN_CHANGED");
         return semanticOutcome(context, target.performAction(action, bundle), action);
       } finally {
@@ -145,8 +165,7 @@ public final class ScreenActionExecutor {
           "GESTURE_OUTSIDE_OBSERVED_REGION", "PATH_OR_BOUNDARY_RESERVE_OUTSIDE_TARGET");
     // 只比较已返回给调用方的画面。此处截图不发布observationId，不能替代用户已观察。
     try (var current = captures.capture(context)) {
-      if (!seen.region.equals(current.region))
-        return frameRefusal("STALE_FRAME", "TARGET_WINDOW_GEOMETRY_OR_OCCLUSION_CHANGED");
+      if (!seen.region.equals(current.region)) return geometryRefusal(seen.region, current.region);
       if (!seen.matches(
           current.bitmap.getWidth(),
           current.bitmap.getHeight(),
@@ -180,8 +199,8 @@ public final class ScreenActionExecutor {
       if (kind.equals("double_tap"))
         builder.addStroke(new GestureDescription.StrokeDescription(path, 150, 50));
       GestureDescription gesture = builder.build();
-      if (!seen.region.equals(context.currentRegion()))
-        return frameRefusal("STALE_FRAME", "TARGET_WINDOW_GEOMETRY_OR_OCCLUSION_CHANGED");
+      var currentRegion = context.currentRegion();
+      if (!seen.region.equals(currentRegion)) return geometryRefusal(seen.region, currentRegion);
       if (!context.claimDispatch()) return ScreenReply.refused("SCREEN_RUN_CHANGED");
       CountDownLatch done = new CountDownLatch(1);
       AtomicInteger state = new AtomicInteger();
@@ -266,6 +285,17 @@ public final class ScreenActionExecutor {
         .put("automaticRetry", false);
   }
 
+  private static JSONObject geometryRefusal(
+      com.deepseekharness.app.util.ScreenWindowRegion observed,
+      com.deepseekharness.app.util.ScreenWindowRegion current)
+      throws org.json.JSONException {
+    return frameRefusal("STALE_FRAME", "TARGET_WINDOW_GEOMETRY_OR_OCCLUSION_CHANGED")
+        .put("observedGeometry", ScreenGeometry.describe(observed))
+        .put("currentGeometry", ScreenGeometry.describe(current))
+        .put("observationConsumed", true)
+        .put("nextAction", "OBSERVE_A_NEW_SCREENSHOT_AFTER_LAYOUT_SETTLES_OR_USE_FRESH_TREE_NODE");
+  }
+
   private static Bundle text(JSONObject args) {
     if (!args.has("text") || !(args.opt("text") instanceof String))
       throw new IllegalArgumentException("INVALID_TEXT");
@@ -274,18 +304,6 @@ public final class ScreenActionExecutor {
     Bundle bundle = new Bundle();
     bundle.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
     return bundle;
-  }
-
-  private static int nodeAction(String action) {
-    return switch (action) {
-      case "click" -> AccessibilityNodeInfo.ACTION_CLICK;
-      case "long_click" -> AccessibilityNodeInfo.ACTION_LONG_CLICK;
-      case "scroll_forward" -> AccessibilityNodeInfo.ACTION_SCROLL_FORWARD;
-      case "scroll_backward" -> AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
-      case "focus" -> AccessibilityNodeInfo.ACTION_FOCUS;
-      case "set_text" -> AccessibilityNodeInfo.ACTION_SET_TEXT;
-      default -> -1;
-    };
   }
 
   private static int key(String name) {

@@ -16,4 +16,15 @@ public final class ScreenRuntimeIdentity {
         generation,
         generation > 0 ? PROCESS + ":" + generation : "");
   }
+
+  /** A native authenticated device connection has its own generation; never manufacture Web state. */
+  public static RuntimeSnapshot.Epoch remoteDevice(
+      Context context, long generation, String connectionEpoch) {
+    if (generation <= 0 || connectionEpoch == null || connectionEpoch.isBlank())
+      throw new IllegalArgumentException("REMOTE_SCREEN_IDENTITY_INVALID");
+    return new RuntimeSnapshot.Epoch(
+        DshaApp.from(context).installationId(),
+        generation,
+        PROCESS + ":REMOTE_DEVICE:" + connectionEpoch);
+  }
 }

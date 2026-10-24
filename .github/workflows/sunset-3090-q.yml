@@ -126,6 +126,17 @@ jobs:
             --only test-dsh-runtime-packaging.py \
             --only test-sunset-ci-inputs.py \
             --only test-generate-changelog.py
+      # build195 起 Java 编译依赖固定 dsha-connect.aar；源码模式仍不准备 managed runtime 测试夹具。
+      - name: Restore pinned compilation inputs
+        env:
+          INPUT_URL: ${{ steps.inputs.outputs.url }}
+          INPUT_SHA: ${{ steps.inputs.outputs.sha256 }}
+          INPUT_FORMAT: ${{ steps.inputs.outputs.format }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
+          if [ "$INPUT_FORMAT" = source-archive ]; then args+=(--source-archive); fi
+          python3 tools/ci-assets.py "${args[@]}"
       - name: Source-only Standard unit tests (up to five external-fixture skips)
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)

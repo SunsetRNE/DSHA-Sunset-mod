@@ -87,6 +87,34 @@ class RuntimeInputContractTest(unittest.TestCase):
                 self.write(MANIFEST, json.dumps(self.spec))
                 with self.assertRaises(ValueError):
                     load(self.root)
+    def builtin(self):
+        self.write(ASSETS + '/builtin-plugins.json', json.dumps({'plugins': [{
+            'name': 'dsh-fixture', 'guestDirectory': '/root/dsha-fixture', 'entrypoint': 'lib/index.js'}]}))
+        self.write(ASSETS + '/builtin-plugins/dsh-fixture/lib/index.js', "import './helper.js'\n")
+        self.write(ASSETS + '/builtin-plugins/dsh-fixture/lib/helper.js', 'export {}\n')
+        self.spec['installs'] += [{'asset': 'builtin-plugins/dsh-fixture/lib/' + name,
+            'target': 'root/dsha-fixture/lib/' + name, 'executable': False} for name in ('index.js', 'helper.js')]
+        self.write(MANIFEST, json.dumps(self.spec))
+    def test_packaged_builtin_helper_without_install_row_is_rejected(self):
+        self.builtin()
+        load(self.root)
+        self.spec['installs'].pop()
+        self.write(MANIFEST, json.dumps(self.spec))
+        with self.assertRaisesRegex(ValueError, 'BUILTIN_RUNTIME_FILE_UNINSTALLED:.*helper.js'):
+            load(self.root)
+    def test_builtin_helper_wrong_destination_is_rejected(self):
+        self.builtin()
+        self.spec['installs'][-1]['target'] = 'root/dsha-other/lib/helper.js'
+        self.write(MANIFEST, json.dumps(self.spec))
+        with self.assertRaisesRegex(ValueError, 'BUILTIN_RUNTIME_TARGET_MISMATCH:.*helper.js'):
+            load(self.root)
+    def test_all_production_builtin_runtime_files_are_installed_to_exact_entities(self):
+        production = load(ROOT)
+        rows = {row['asset']: row['target'] for row in production['installs']}
+        for plugin, helper in [('dsh-status-overlay', 'session-adapter.js'),
+                               ('dsh-computer-use-android', 'task-binding.js')]:
+            self.assertEqual('root/dsha-' + plugin[4:] + '/lib/' + helper,
+                rows['builtin-plugins/' + plugin + '/lib/' + helper])
 
 if __name__ == '__main__':
     unittest.main()

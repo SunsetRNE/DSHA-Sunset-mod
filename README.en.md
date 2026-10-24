@@ -1,5 +1,12 @@
 # DSHA
 
+<!-- build196-current -->
+> **Current: 0.2.1-rc.3 / build196** — `0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3`, Standard / `dsh.android.client` / E7E3 / non-debuggable, conventional APK filename. Fixes the assistant composer and task bindings, physical semantic node tools, sharing/saving dispatch, and ports for side-by-side installations. Computer connections start from Home; its background-task button is removed. 279 selected Standard tests and Release Lint passed, with scoped Android16 acceptance. See the [report](docs/releases/v0.2.1-rc.3-build196-20261024.md) for candidate-specific evidence, timing samples and limits. Private prerelease delivery only; no Low tasks. Earlier entries below are historical.
+
+<!-- build195-current -->
+> **Current: 0.2.1-rc.3 / build195** — `0.2.1-rc.3-20261024.0645-dsh0.2.1-rc.3`, Standard /dsh.android.client /E7E3/non-debuggable. Adds paired computer workspaces, encrypted QR connections, floating text/system-voice assistant and separately authorized phone tools. Remote mode does not require local Ubuntu. LAN and self-hosted relay are available; the official relay is not deployed. 129 selected JVM tests and Release Lint passed. No Android device or Low tasks this round. [Report](docs/releases/v0.2.1-rc.3-build195-20261024.md); [plugin draft](docs/plugin-contract-v0.1.md). Earlier current-version entries below are historical.
+
+
 <!-- build194-current -->
 > **Current: 0.2.1-rc.3 / build194** — `0.2.1-rc.3-20261024.0345-dsh0.2.1-rc.3`, nondebug Standard/dsh.android.client/E7E3. Fixes download compression, Android empty-CA parsing, localized notes and normal empty update checks. Original Android16 remains unverified. Earlier entries are historical. [Report](docs/en/releases/v0.2.1-rc.3-build194-update-download-20261024.md).
 

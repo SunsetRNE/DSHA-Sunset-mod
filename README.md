@@ -1,5 +1,12 @@
 # DSHA
 
+<!-- build196-current -->
+> **当前：0.2.1-rc.3 / build196** — `0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3`，Standard / `dsh.android.client` / E7E3非调试，常规文件名不变。修复悬浮助手输入与任务绑定、物理屏语义节点接口、分享与保存分流、双安装端口共存；删除首页后台任务按钮，电脑连接从首页进入。279项所选Standard单测与Release Lint通过，Android16完成有限实际验收；具体候选、启动样本与未验范围见[本轮报告](docs/releases/v0.2.1-rc.3-build196-20261024.md)。只交付私有预发布仓库，不运行Low；下方195及更早记录按历史阅读。
+
+<!-- build195-current -->
+> **当前：0.2.1-rc.3 / build195** — `0.2.1-rc.3-20261024.0645-dsh0.2.1-rc.3`，Standard /dsh.android.client /E7E3非调试。新增电脑工作区、扫码配对、端到端加密连接、可展开文字/系统语音的悬浮助手及手机控制工具。无需先安装本机Ubuntu即可进入远程工作区；官方中继尚未部署，可用局域网或自托管。129项所选单测及Release Lint通过；本轮未操作手机、不跑Low。[本轮报告](docs/releases/v0.2.1-rc.3-build195-20261024.md)；[插件参考v0.1](docs/plugin-contract-v0.1.md)。下方194及更早版本按历史阅读。
+
+
 <!-- build194-current -->
 > **当前：0.2.1-rc.3 / build194** — `0.2.1-rc.3-20261024.0345-dsh0.2.1-rc.3`，Standard /dsh.android.client /E7E3非调试。修复下载压缩空响应、Android证书解析为空、旧版本说明与通道空结果；原反馈Android16未复验。旧193/rc2条目按历史阅读。[本轮报告](docs/releases/v0.2.1-rc.3-build194-update-download-20261024.md)。
 

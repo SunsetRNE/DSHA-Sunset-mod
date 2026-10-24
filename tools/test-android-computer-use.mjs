@@ -3,8 +3,13 @@ import {createRequire} from 'node:module';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const server=fileURLToPath(new URL('../app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/server.cjs',import.meta.url));
-const {validate,definitions,tools,bridgeFailed,screenshotContent,call,readBridgeResponse}=createRequire(import.meta.url)(server);
-assert.equal(tools.length,8);
+const {validate,definitions,tools,bridgeFailed,screenshotContent,call:nativeCall,readBridgeResponse}=createRequire(import.meta.url)(server);
+const task={sessionId:'fixture-full-conversation',turnId:'2',completedTurnId:'1'};
+const call=(name,args,signal,dependencies)=>nativeCall(name,args,signal,dependencies,task);
+await assert.rejects(nativeCall('android_get_state',{},new AbortController().signal,{
+  fs:{readFile(){throw Error('must not read token');}},fetch(){throw Error('must not dispatch');},
+}),/SCREEN_TASK_IDENTITY_REQUIRED/);
+assert.equal(tools.length,9);
 assert.equal(bridgeFailed('[ERR] Permission unavailable'),true);
 assert.equal(bridgeFailed('[POLICY_BLOCKED] command denied'),true);
 assert.equal(bridgeFailed('[UNAUTHORIZED]'),true);
@@ -25,6 +30,14 @@ assert.throws(()=>validate(byName('android_long_press'),{observationId:'id',x:1,
 assert.throws(()=>validate(byName('android_type'),{text:'a'.repeat(2001)}));
 assert.throws(()=>validate(byName('android_key'),{name:'factory-reset'}));
 assert.doesNotThrow(()=>validate(byName('android_get_state'),{}));
+assert.equal(byName('android_node')[2],'/app/ui/node');
+for(const action of ['click','long_click','scroll_forward','scroll_backward','focus'])
+  assert.doesNotThrow(()=>validate(byName('android_node'),{treeId:'tree',nodeId:'node',action}));
+for(const args of [{treeId:'',nodeId:'node',action:'scroll_forward'},
+  {treeId:'tree',action:'scroll_forward'},{treeId:'tree',nodeId:'node',action:'swipe'},
+  {treeId:'tree',nodeId:'node',action:'scroll_forward',x:1},
+  {treeId:'tree',nodeId:'node',action:'scroll_forward',taskSessionId:'model-spoof'}])
+  assert.throws(()=>validate(byName('android_node'),args));
 // Exercise the actual tool call with a native image response from a secondary
 // Android user's directory. No guest filesystem access to that directory exists.
 const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jCXYAAAAASUVORK5CYII=';
@@ -32,7 +45,7 @@ const shot={kind:'dsha-screenshot-v1',mimeType:'image/png',path:'/storage/emulat
 let fsReads=0,requestsSent=0;
 const signal=new AbortController().signal;
 const fakeNative={fs:{async readFile(file,encoding){fsReads++;assert.equal(file,'/root/.dsh/.bridge_token');assert.equal(encoding,'utf8');return 'fixture-token';}},
-  async fetch(url,options){requestsSent++;assert.equal(url.pathname,'/app/ui/screenshot');assert.equal(url.searchParams.get('format'),'mcp');assert.equal(url.searchParams.has('token'),false);assert.equal(options.headers['X-Token'],'fixture-token');assert.equal(options.signal,signal);return new Response(JSON.stringify({result:JSON.stringify(shot)}));}};
+  async fetch(url,options){requestsSent++;assert.equal(url.pathname,'/app/ui/screenshot');assert.equal(url.searchParams.get('format'),'mcp');assert.equal(url.searchParams.get('taskSessionId'),task.sessionId);assert.equal(url.searchParams.get('turnId'),task.turnId);assert.equal(url.searchParams.get('completedTurnId'),task.completedTurnId);assert.equal(url.searchParams.has('token'),false);assert.equal(options.headers['X-Token'],'fixture-token');assert.equal(options.signal,signal);return new Response(JSON.stringify({result:JSON.stringify(shot)}));}};
 const imageResult=await call('android_screenshot',{},signal,fakeNative);
 assert.equal(imageResult.isError,false);assert.equal(imageResult.content[1].type,'image');
 assert.equal(imageResult.content[1].data,png);assert.match(imageResult.content[0].text,/emulated\/10/);
@@ -42,10 +55,10 @@ const denied=await call('android_screenshot',{},signal,{...fakeNative,async fetc
 assert.equal(denied.isError,true);assert.equal(denied.content.length,1);
 // Real ScreenReply failures must reach the MCP adapter before screenshot decoding.
 // Each call performs exactly one request, retaining UNKNOWN instead of replaying it.
-for(const name of ['android_screenshot','android_get_state','android_click','android_double_click','android_long_press','android_swipe']){
+for(const name of ['android_screenshot','android_get_state','android_click','android_double_click','android_long_press','android_swipe','android_node']){
   let attempts=0;
   const failure=JSON.stringify({ok:false,state:'UNKNOWN',code:'SCREEN_RUN_CHANGED',error:'SCREEN_RUN_CHANGED',executionUnknown:true,automaticRetry:false});
-  const args=name==='android_swipe'?{observationId:'native-shot',x1:1,y1:1,x2:2,y2:2,ms:300}:['android_click','android_double_click','android_long_press'].includes(name)?{observationId:'native-shot',x:1,y:1,...(name==='android_long_press'?{ms:600}:{})}:{};
+  const args=name==='android_node'?{treeId:'native-tree',nodeId:'native-node',action:'scroll_forward'}:name==='android_swipe'?{observationId:'native-shot',x1:1,y1:1,x2:2,y2:2,ms:300}:['android_click','android_double_click','android_long_press'].includes(name)?{observationId:'native-shot',x:1,y:1,...(name==='android_long_press'?{ms:600}:{})}:{};
   const reply=await call(name,args,signal,{...fakeNative,async fetch(){attempts++;return new Response(JSON.stringify({result:failure}));}});
   assert.equal(reply.isError,true,name);assert.deepEqual(reply.content,[{type:'text',text:failure}]);assert.equal(attempts,1);
 }
@@ -75,11 +88,13 @@ try{
     ['android_click',{observationId:wireMetadata.observationId,x:4,y:6},null],
     ['android_double_click',{observationId:wireMetadata.observationId,x:4,y:6},'double_tap'],
     ['android_long_press',{observationId:wireMetadata.observationId,x:4,y:6,ms:600},'long_press'],
-    ['android_swipe',{observationId:wireMetadata.observationId,x1:4,y1:4,x2:4,y2:8,ms:300},null]]){
+    ['android_swipe',{observationId:wireMetadata.observationId,x1:4,y1:4,x2:4,y2:8,ms:300},null],
+    ['android_node',{treeId:'native-tree',nodeId:'native-node',action:'scroll_forward'},null],
+    ['android_node',{treeId:'native-tree-back',nodeId:'native-node-back',action:'scroll_backward'},null]]){
     const before=seenRequests.length;
     const result=await call(name,args,signal,{...fakeNative,fetch(url,options){assert.equal(url.hostname,'127.0.0.1');assert.equal(url.port,'3090');return fetch('http://127.0.0.1:'+http.address().port+url.pathname+url.search,options);}});
     assert.equal(result.isError,false);assert.equal(seenRequests.length,before+1);
-    const delivered=seenRequests.at(-1);assert.equal(delivered.token,'fixture-token');assert.equal(delivered.url.searchParams.get('observationId'),wireMetadata.observationId);assert.equal(delivered.url.searchParams.get('gesture'),gesture);
+    const delivered=seenRequests.at(-1);assert.equal(delivered.token,'fixture-token');if(name==='android_node'){assert.equal(delivered.url.pathname,'/app/ui/node');assert.equal(delivered.url.searchParams.get('treeId'),args.treeId);assert.equal(delivered.url.searchParams.get('nodeId'),args.nodeId);assert.equal(delivered.url.searchParams.get('action'),args.action);assert.equal(delivered.url.searchParams.has('observationId'),false);}else assert.equal(delivered.url.searchParams.get('observationId'),wireMetadata.observationId);assert.equal(delivered.url.searchParams.get('gesture'),gesture);
   }
 }finally{await new Promise(resolve=>http.close(resolve));}
 const unavailable=screenshotContent(JSON.stringify({...shot,coordinatesAvailable:false,observationId:undefined,reason:'TARGET_WINDOW_OCCLUDED'}));
@@ -94,7 +109,10 @@ await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('
 child.stdin.end();await new Promise(resolve=>child.on('close',resolve));
 const replies=output.trim().split('\n').map(JSON.parse);
 assert.equal(replies.find(r=>r.id===1).result.serverInfo.name,'DSHA Android Computer Use');
-assert.equal(replies.find(r=>r.id===2).result.tools.length,8);
+assert.equal(replies.find(r=>r.id===2).result.tools.length,9);
+assert.match(replies.find(r=>r.id===1).result.instructions,/android_node/);
+assert.match(replies.find(r=>r.id===1).result.instructions,/scroll_forward/);
+assert.equal(replies.find(r=>r.id===2).result.tools.find(t=>t.name==='android_node').inputSchema.additionalProperties,false);
 assert.equal(replies.find(r=>r.id===3).error.code,-32800);
 assert.equal(stderr,'');
-console.log('Android Computer Use: 8 tools; screenshot metadata/credential, real local HTTP for tap/double/long/swipe, six UNKNOWN no-replay paths, response bounds, rejection, discovery and cancellation passed; no device command was sent.');
+console.log('Android Computer Use: 9 tools; screenshot metadata/credential, real local HTTP for tap/double/long/swipe/node scroll, seven UNKNOWN no-replay paths, response bounds, rejection, discovery and cancellation passed; no device command was sent.');

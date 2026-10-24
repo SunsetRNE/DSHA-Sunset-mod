@@ -57,9 +57,9 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
-        versionCode 194
+        versionCode 196
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261024.0345-dsh0.2.1-rc.3"
+        versionName "0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -130,7 +130,8 @@ android {
         jniLibs {
             useLegacyPackaging = true
             // 应急启动器按签名 APK 中的完整字节校验，禁止打包阶段再改写这两份 ELF。
-            keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so']
+            // Keep the pinned gomobile artifact byte-identical to the reviewed AAR.
+            keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so', '**/libgojni.so']
             // 使用 app 自带的同版本 16 KB JNI，覆盖 terminal-emulator AAR 中的旧库。
             pickFirsts += ['**/libtermux.so']
             excludes += ['**/x86/**', '**/x86_64/**', '**/armeabi/**', '**/armeabi-v7a/**']
@@ -230,6 +231,15 @@ def verifyCurrentChangelog = tasks.register('verifyCurrentChangelog', Exec) {
 }
 
 tasks.named('preBuild').configure { dependsOn(verifyBundledIdentities, verifyBuiltinRegistry, verifyCredentialRegistry, verifyBundledDshVersion, verifyProrootCompat, verifyCurrentChangelog) }
+
+def verifyRemoteTransport = tasks.register('verifyRemoteTransport', Exec) {
+    inputs.files(rootProject.file('tools/remote/connect-core/android-runtime.lock.json'),
+            rootProject.file('tools/remote/verify-android-runtime.py'), file('libs/dsha-connect.aar'))
+    inputs.files(rootProject.fileTree('tools/remote/connect-core') { include '**/*.go', 'go.mod', 'go.sum' })
+    workingDir rootProject.projectDir
+    commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', 'tools/remote/verify-android-runtime.py')
+}
+tasks.named('preBuild').configure { dependsOn(verifyRemoteTransport) }
 tasks.withType(Test).configureEach {
     systemProperty 'dsha.assetsDir', file('src/main/assets').absolutePath
     systemProperty 'dsha.sourceOnlyTests', sourceOnlyTests
@@ -413,6 +423,8 @@ dependencies {
     implementation 'com.termux.termux-app:terminal-view:0.118.0'
     // 宿主备份：流式 JSON 清单与跨 API 23 的 PBKDF2-SHA256 / AES-GCM 实现，版本锁定。
     implementation 'com.google.code.gson:gson:2.13.1'
+    implementation 'com.google.zxing:core:3.5.3'
+    implementation files('libs/dsha-connect.aar')
     implementation 'org.bouncycastle:bcprov-jdk15to18:1.85.2'
     // 宿主凭据 YAML 仅使用 data-only SafeConstructor；来源、JAR 和许可由备份锁核验。
     implementation 'org.yaml:snakeyaml:2.4'
