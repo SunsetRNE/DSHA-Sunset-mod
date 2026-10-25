@@ -197,7 +197,7 @@ public final class UpdateActivity extends AppCompatActivity {
         BuildConfig.VERSION_NAME,
         BuildConfig.VERSION_CODE,
         notes,
-        "en".equals(com.deepseekharness.app.util.UiText.language()));
+        com.deepseekharness.app.util.UiText.language());
   }
 
   private void renderState(UpdateRepository.State state) {

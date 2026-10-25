@@ -199,7 +199,7 @@ export function createAttachmentSource(ctx: ClientContext): AttachmentSource {
  * @param ctx - client root context.
  */
 export function installAttachmentMention(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(ATTACHMENT_NS, { zh: ATTACHMENT_ZH, en: ATTACHMENT_EN }), 'dsh-web-mobile: attachment mention dictionaries')
+  ctx.effect(() => ctx.locale.register(ATTACHMENT_NS, attachmentLocales), 'dsh-web-mobile: attachment mention dictionaries')
   ctx.inject(['inputTriggers'], (scope: ClientContext) => {
     installMobileEffect(scope, 'dsh-web-mobile: attachment mention source', () => {
       const registry = scope.get('inputTriggers') as unknown as InputTriggersLike | undefined
@@ -208,3 +208,79 @@ export function installAttachmentMention(ctx: ClientContext): void {
     })
   })
 }
+
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+export const attachmentLocales: Record<string, Record<AttachmentMentionKey, string>> = { zh: ATTACHMENT_ZH, en: ATTACHMENT_EN, ...{
+  "zh-Hant": {
+    "section": "本次附件",
+    "kind.file": "檔案",
+    "kind.image": "圖片",
+    "status.uploading": "上傳中",
+    "status.failed": "上傳失敗",
+    "unnamed": "附件 {n}",
+    "mention": "附件"
+  },
+  "ru": {
+    "section": "Вложения в этом сообщении",
+    "kind.file": "Файл",
+    "kind.image": "Изображение",
+    "status.uploading": "Загрузка",
+    "status.failed": "Не удалось загрузить",
+    "unnamed": "Вложение {n}",
+    "mention": "вложение"
+  },
+  "ja": {
+    "section": "このメッセージの添付ファイル",
+    "kind.file": "ファイル",
+    "kind.image": "画像",
+    "status.uploading": "アップロード中",
+    "status.failed": "アップロード失敗",
+    "unnamed": "添付ファイル {n}",
+    "mention": "添付ファイル"
+  },
+  "ko": {
+    "section": "이 메시지의 첨부 파일",
+    "kind.file": "파일",
+    "kind.image": "이미지",
+    "status.uploading": "업로드 중",
+    "status.failed": "업로드 실패",
+    "unnamed": "첨부 파일 {n}",
+    "mention": "첨부 파일"
+  },
+  "ar": {
+    "section": "مرفقات هذه الرسالة",
+    "kind.file": "ملف",
+    "kind.image": "صورة",
+    "status.uploading": "جارٍ الرفع",
+    "status.failed": "فشل الرفع",
+    "unnamed": "مرفق {n}",
+    "mention": "مرفق"
+  },
+  "pt": {
+    "section": "Anexos desta mensagem",
+    "kind.file": "Arquivo",
+    "kind.image": "Imagem",
+    "status.uploading": "Enviando",
+    "status.failed": "Falha no envio",
+    "unnamed": "Anexo {n}",
+    "mention": "anexo"
+  },
+  "la": {
+    "section": "Adnexa huius nuntii",
+    "kind.file": "Fasciculus",
+    "kind.image": "Imago",
+    "status.uploading": "Mittitur",
+    "status.failed": "Missio defecit",
+    "unnamed": "Adnexum {n}",
+    "mention": "adnexum"
+  },
+  "fr": {
+    "section": "Pièces jointes de ce message",
+    "kind.file": "Fichier",
+    "kind.image": "Image",
+    "status.uploading": "Importation",
+    "status.failed": "Échec de l’importation",
+    "unnamed": "Pièce jointe {n}",
+    "mention": "pièce jointe"
+  }
+} }

@@ -59,13 +59,15 @@ export function sessionAdapter(ctx, instance = hostInstanceId, liveText = () => 
       if (inspected.meta.id !== sessionId) throw new Error('SESSION_ID_CHANGED')
       const events = inspected.events
       const turn = events.findLast(event => event.type === 'turn/start')
+      const turnActive = !!turn && !events.some(event => event.type === 'turn/end'
+        && event.seq > turn.seq && event.data?.turn === turn.data?.turn)
       const agent = ctx.agents?.get(sessionId)
       const queued = (agent?.inbox?.nextTurn?.length || 0) + (agent?.inbox?.nextStep?.length || 0)
       const messages = events.filter(visibleConversationMessage).slice(-8)
       const running = agent?.status === 'running' || queued > 0
       const stream = running ? liveText(sessionId) : ''
       return { sessionId, hostInstanceId: instance, running: agent?.status === 'running' || queued > 0,
-        turnId: turn ? String(turn.data.turn) : '', taskId: sessionId,
+        turnId: turn ? String(turn.data.turn) : '', turnActive, taskId: sessionId,
         messages: messages.map(event => ({ role: event.type === 'user/message' ? 'user' : 'assistant', text: textOf(event).slice(-3000) })),
         streamText: String(stream).slice(-4000),
         failed: !running && sessionError(sessionId),

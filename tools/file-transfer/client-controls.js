@@ -4,23 +4,20 @@ function nativeFiles() {
     return typeof window.DSHA?.downloadArtifact === 'function';
 }
 function fileCopy() {
-    return document.documentElement.lang?.startsWith('zh') ? {
-        download: '下载', more: '更多文件操作', saveas: '另存为…', share: '分享',
-        gallery: '保存到相册', records: '下载记录', close: '取消',
-        queued: '已加入下载任务，可在下载记录中查看', preparing: '正在准备文件…',
-        sharing: '正在准备分享，完成后将打开系统分享选择器',
-        saving: '正在准备另存为，完成后请选择保存位置',
-        shareLimit: '系统分享上限为 32 MiB；较大文件请使用下载或另存为',
-        failed: '文件操作失败：',
-    } : {
-        download: 'Download', more: 'More file actions', saveas: 'Save as…', share: 'Share',
-        gallery: 'Save to gallery', records: 'Downloads', close: 'Cancel',
-        queued: 'Added to downloads. View progress in Downloads.', preparing: 'Preparing file…',
-        sharing: 'Preparing to share. The system share picker will open when ready.',
-        saving: 'Preparing Save as. Choose a destination when ready.',
-        shareLimit: 'System sharing is limited to 32 MiB. Use Download or Save as for larger files.',
-        failed: 'File action failed: ',
-    };
+    return require('./components/file-share-locale.js').nativeFileCopy();
+}
+// Native controls do not receive every host locale prop. Track the effective
+// document language so mounted previews and decorated file rows relabel in place.
+function useFileCopy() {
+    const [language, setLanguage] = (0, react_1.useState)(() => document.documentElement.lang);
+    (0, react_1.useEffect)(() => {
+        const changed = () => setLanguage(document.documentElement.lang);
+        const observer = new MutationObserver(changed);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+        changed();
+        return () => observer.disconnect();
+    }, []);
+    return require('./components/file-share-locale.js').nativeFileCopy(language);
 }
 function imagePath(path) { return /\.(?:avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|webp)$/i.test(path); }
 function checkedArtifact(value) {
@@ -123,7 +120,7 @@ function nativeMenu(path, transfer, image = imagePath(path)) {
     ]);
 }
 function NativeFileButtons({ path, transfer, busy }) {
-    const copy = fileCopy();
+    const copy = useFileCopy();
     return (0, jsx_runtime_1.jsxs)('span', { 'data-dsha-file-actions': true, children: [
         (0, jsx_runtime_1.jsx)('button', { type: 'button', disabled: busy, 'aria-busy': busy,
             'aria-label': copy.download, title: copy.download + ' · Download/DSHA',
@@ -144,6 +141,7 @@ function FilePreviewShareButton(props) {
     return (0, jsx_runtime_1.jsx)(nativeFiles() ? NativePreviewActions : LegacyFilePreviewShareButton, props);
 }
 function NativePreviewActions({ absolutePath, sessionId }) {
+    const copy = useFileCopy();
     const { busy, transfer } = useNativeTransfer(sessionId);
     const anchor = (0, react_1.useRef)(null), latest = (0, react_1.useRef)(null);
     latest.current = { transfer, busy, path: absolutePath };
@@ -162,13 +160,14 @@ function NativePreviewActions({ absolutePath, sessionId }) {
     return (0, jsx_runtime_1.jsxs)('span', { ref: anchor, 'data-dsha-preview-actions': true, children: [
         (0, jsx_runtime_1.jsx)(NativeFileButtons, { path: absolutePath, transfer, busy }),
         imagePath(absolutePath) && (0, jsx_runtime_1.jsx)('button', { type: 'button', disabled: busy,
-            onClick: () => transfer(absolutePath, 'gallery'), children: fileCopy().gallery }),
+            onClick: () => transfer(absolutePath, 'gallery'), children: copy.gallery }),
     ] });
 }
 function FilesRowShare(props) {
     return (0, jsx_runtime_1.jsx)(nativeFiles() ? NativeFilesRows : LegacyFilesRowShare, props);
 }
 function NativeFilesRows({ sessionId }) {
+    const copy = useFileCopy();
     const anchor = (0, react_1.useRef)(null);
     const { busy, transfer } = useNativeTransfer(sessionId);
     const latest = (0, react_1.useRef)(null); latest.current = { busy, transfer };
@@ -214,9 +213,9 @@ function NativeFilesRows({ sessionId }) {
         return () => { observer.disconnect(); if (raf) cancelAnimationFrame(raf); body.removeEventListener('click', click);
             for (const controls of body.querySelectorAll('[data-dsha-row-actions]')) controls.remove(); decorateRef.current = null; activeFileSheet?.(); };
     }, [sessionId]);
-    (0, react_1.useEffect)(() => { decorateRef.current?.(); }, [busy]);
+    (0, react_1.useEffect)(() => { decorateRef.current?.(); }, [busy, copy]);
     return (0, jsx_runtime_1.jsx)('button', { ref: anchor, type: 'button', 'data-dsha-downloads': true,
-        onClick: () => window.DSHA.openDownloads().catch(error => showFallbackNotice(fileCopy().failed + error.message)), children: fileCopy().records });
+        onClick: () => window.DSHA.openDownloads().catch(error => showFallbackNotice(fileCopy().failed + error.message)), children: copy.records });
 }
 function installNativeFileActions() {
     if (!nativeFiles()) return () => {};

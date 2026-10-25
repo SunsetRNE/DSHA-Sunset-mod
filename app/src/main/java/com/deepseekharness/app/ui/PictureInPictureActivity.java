@@ -134,6 +134,7 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
   @Override
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
+    BrowserTasks.reconcileRecents(this, -1);
     restoredPresentation = saved != null;
     presentation.restore(saved == null ? "FULL" : saved.getString("browser-presentation", "FULL"));
     userHidden = saved != null && saved.getBoolean("browser-user-hidden", false);

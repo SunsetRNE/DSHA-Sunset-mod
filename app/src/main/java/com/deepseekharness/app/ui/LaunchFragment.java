@@ -19,7 +19,9 @@ import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.LanProxyService;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.HarnessController;
-import com.deepseekharness.app.util.Constants;
+import com.deepseekharness.app.util.LanAccessPresentation;
+import com.deepseekharness.app.util.LanAddressPolicy;
+import com.deepseekharness.app.util.UiText;
 
 /**
  * 启动页：启动 / 进入 / 停止 dsh Web，显示运行状态、鉴权链接与局域网访问地址。
@@ -35,6 +37,7 @@ public class LaunchFragment extends Fragment {
   private HarnessController controller;
   private TextView lanAddrText;
   private TextView launchLog;
+  private androidx.appcompat.app.AlertDialog accessDialog;
 
   /** 启动按钮当前是否处于「进入」态（鉴权链接已就绪）。 */
   private boolean webReady;
@@ -137,28 +140,7 @@ public class LaunchFragment extends Fragment {
     v.findViewById(R.id.launch_download_logs)
         .setOnClickListener(x -> startActivity(DiagnosticActivity.downloadLogs(requireContext())));
 
-    v.findViewById(R.id.launch_address)
-        .setOnClickListener(
-            x -> {
-              String local = controller.getWebAuthUrl();
-              String addresses =
-                  local.isEmpty()
-                      ? com.deepseekharness.app.util.UiText.choose(
-                          "启动后可查看访问地址。", "Start DSH to view access addresses.")
-                      : local;
-              if (lanAddrText != null && lanAddrText.getVisibility() == View.VISIBLE)
-                addresses += "\n\n" + lanAddrText.getText();
-              var dialog =
-                  new DshaDialogBuilder(requireContext())
-                      .setTitle(R.string.ui2_address)
-                      .setMessage(addresses)
-                      .setNegativeButton(android.R.string.cancel, null);
-              if (!local.isEmpty())
-                dialog.setPositiveButton(
-                    com.deepseekharness.app.util.UiText.choose("复制本机地址", "Copy local URL"),
-                    (d, w) -> copyAddr("DSH", local));
-              dialog.show();
-            });
+    v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
     restart.setText(R.string.ui2_restart);
     v.findViewById(R.id.launch_recovery).setOnClickListener(x -> showRecovery());
     v.findViewById(R.id.launch_safe)
@@ -401,6 +383,8 @@ public class LaunchFragment extends Fragment {
     preparingStart = false;
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
+    if (accessDialog != null) accessDialog.dismiss();
+    accessDialog = null;
     lanAddrText = null;
     launchLog = null;
     super.onDestroyView();
@@ -644,78 +628,232 @@ public class LaunchFragment extends Fragment {
         .start();
   }
 
-  /** LAN 地址默认只展示服务地址；用户点按后查看并复制本轮连接凭据。 */
+  /** Snapshot settings, actual listener generation and current interfaces independently of the view. */
+  LanAccessPresentation lanAccess() {
+    boolean enabled = controller.config().isLanMode();
+    boolean permission =
+        com.deepseekharness.app.bridge.LocalNetworkAccess.granted(requireContext());
+    long generation = controller.getWebGeneration();
+    boolean authenticated = LanProxyService.hasDshAuth(generation);
+    int port = LanProxyService.port(generation);
+    LanAddressPolicy.Discovery discovery =
+        enabled && permission && authenticated && port > 0
+            ? LanAddressPolicy.currentDiscovery()
+            : null;
+    return LanAccessPresentation.capture(
+        enabled, permission, generation, authenticated, port, discovery);
+  }
+
+  /** LAN status remains visible when disabled; opening this view never enables a listener. */
   private void refreshLanAddr() {
-    if (lanAddrText == null || !isAdded()) return;
-    boolean lan =
-        requireContext()
-            .getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE)
-            .getBoolean(Constants.KEY_LAN_MODE, false);
-    if (!lan) {
-      lanAddrText.setVisibility(View.GONE);
-      return;
-    }
-    int lanPort = LanProxyService.port(controller.getWebGeneration());
-    boolean bound = lanPort > 0;
-    if (bound) {
-      String ip = HarnessController.getLanAddress();
-      if (ip != null && !ip.isEmpty()) {
-        final String service = "http://" + ip + ":" + lanPort + "/";
-        lanAddrText.setText(
-            com.deepseekharness.app.util.UiText.format(
-                "局域网地址：%s\n点按查看或复制连接链接；流量未加密，请只在可信网络使用。", service));
-        lanAddrText.setOnClickListener(v -> showLanAddress(service));
-      } else {
-        lanAddrText.setText(
-            com.deepseekharness.app.util.UiText.text("局域网已开启，但还没拿到 WiFi 地址（连上 WiFi 再看）"));
-        lanAddrText.setOnClickListener(null);
-      }
-    } else {
-      lanAddrText.setText(com.deepseekharness.app.util.UiText.text("局域网代理正在等待本轮认证"));
-      lanAddrText.setOnClickListener(null);
-    }
+    if (lanAddrText == null || !isAdded() || controller == null) return;
+    LanAccessPresentation access = lanAccess();
+    lanAddrText.setText(lanStatus(access));
+    lanAddrText.setOnClickListener(v -> showAccessAddresses());
     lanAddrText.setVisibility(View.VISIBLE);
+    renderAccessAddresses(access);
+  }
+
+  void showAccessAddresses() {
+    if (!isAdded() || controller == null) return;
+    if (accessDialog != null) accessDialog.dismiss();
+    var dialog =
+        new DshaDialogBuilder(requireContext())
+            .setTitle(R.string.ui2_address)
+            .setMessage("")
+            .setNegativeButton(UiText.choose("关闭", "Close"), null)
+            .setPositiveButton(UiText.choose("复制本机地址", "Copy local URL"), null)
+            .setNeutralButton(UiText.choose("局域网访问", "LAN access"), null)
+            .create();
+    accessDialog = dialog;
+    dialog.setOnDismissListener(
+        ignored -> {
+          if (accessDialog == dialog) accessDialog = null;
+        });
+    dialog.show();
+    renderAccessAddresses(lanAccess());
+  }
+
+  private void renderAccessAddresses(LanAccessPresentation access) {
+    var dialog = accessDialog;
+    if (dialog == null || !dialog.isShowing() || !isAdded()) return;
+    String local = webEntryUrl();
+    long generation = controller.getWebGeneration();
+    dialog.setMessage(
+        UiText.format(
+            UiText.choose("本机访问\n%s\n\n%s", "On this phone\n%s\n\n%s"),
+            local.isEmpty()
+                ? UiText.choose("启动 DSH 并等待就绪后显示本机地址。", "Start DSH and wait for its local URL.")
+                : local,
+            lanStatus(access)));
+    Button localButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
+    localButton.setEnabled(!local.isEmpty());
+    localButton.setOnClickListener(
+        ignored -> {
+          if (isAdded()
+              && generation == controller.getWebGeneration()
+              && !local.isEmpty()
+              && local.equals(webEntryUrl())) copyAddr("DSH", local);
+          else connectionChanged();
+        });
+    Button lanButton = dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL);
+    lanButton.setText(lanActionLabel(access.state));
+    lanButton.setOnClickListener(ignored -> onLanAction(lanAccess()));
+  }
+
+  static String lanStatus(LanAccessPresentation access) {
+    return switch (access.state) {
+      case DISABLED ->
+          UiText.choose(
+              "局域网访问：未开启。可在此手动开启，供同一可信网络的设备连接。",
+              "LAN access: off. Enable it here to connect devices on the same trusted network.");
+      case PERMISSION_REQUIRED ->
+          UiText.choose(
+              "局域网访问已开启，但未获得系统本地网络权限；本机访问仍可使用。",
+              "LAN access is enabled, but the system local network permission is missing. Local access is still available.");
+      case WAITING_AUTH ->
+          UiText.choose(
+              "局域网访问已开启，正在等待本轮 DSH 就绪并完成认证。",
+              "LAN access is enabled. Waiting for this DSH run to be ready and authenticated.");
+      case LISTENER_UNAVAILABLE ->
+          UiText.choose(
+              "局域网访问已开启，但本轮代理尚未成功监听。可重试局域网连接；仍失败时查看启动诊断。",
+              "LAN access is enabled, but its listener is not ready. Retry LAN access or check startup diagnostics if it still fails.");
+      case DISCOVERY_DENIED ->
+          UiText.choose(
+              "局域网代理已监听，但系统拒绝读取网络地址。请检查应用的网络权限后刷新。",
+              "The LAN listener is ready, but the system denied access to network addresses. Check app network permissions and refresh.");
+      case DISCOVERY_FAILED ->
+          UiText.choose(
+              "局域网代理已监听，但暂时无法读取网络接口。请检查 Wi-Fi 或以太网连接后刷新。",
+              "The LAN listener is ready, but network interfaces could not be read. Check Wi-Fi or Ethernet and refresh.");
+      case IPV6_ONLY ->
+          UiText.choose(
+              "局域网代理已监听，检测到 IPv6，但没有可分享的私有 IPv4 地址；此代理使用 IPv4。请连接提供私有 IPv4 地址的 Wi-Fi 或以太网。",
+              "The LAN listener is ready. IPv6 was detected, but no shareable private IPv4 address is available. This proxy uses IPv4. Connect to Wi-Fi or Ethernet that provides private IPv4.");
+      case NO_ADDRESS ->
+          UiText.choose(
+              "局域网代理已监听，但没有可分享的 Wi-Fi 或以太网私有 IPv4 地址。请连接局域网后刷新；VPN 或移动数据地址不会作为局域网链接。",
+              "The LAN listener is ready, but no shareable Wi-Fi or Ethernet private IPv4 address is available. Connect to a LAN and refresh. VPN and cellular addresses are excluded.");
+      case READY ->
+          UiText.format(
+              UiText.choose(
+                  "局域网访问地址：\n%s\n使用“局域网连接链接”查看或复制带凭据的链接。同网设备能否连接还取决于网络隔离、防火墙和路由；HTTP 流量未加密，仅在可信网络使用。",
+                  "LAN access addresses:\n%s\nUse LAN connection links to view or copy an authenticated link. Connectivity also depends on network isolation, firewalls and routing. HTTP traffic is unencrypted; use only trusted networks."),
+              String.join("\n", access.services));
+    };
+  }
+
+  private static String lanActionLabel(LanAccessPresentation.State state) {
+    return switch (state) {
+      case DISABLED -> UiText.choose("开启局域网访问", "Enable LAN access");
+      case PERMISSION_REQUIRED -> UiText.choose("允许本地网络", "Allow local network");
+      case LISTENER_UNAVAILABLE -> UiText.choose("重试局域网连接", "Retry LAN access");
+      case READY -> UiText.choose("局域网连接链接", "LAN connection links");
+      default -> UiText.choose("刷新地址", "Refresh addresses");
+    };
+  }
+
+  private void onLanAction(LanAccessPresentation access) {
+    if (!isAdded()) return;
+    if (access.state == LanAccessPresentation.State.DISABLED) {
+      new DshaDialogBuilder(requireContext())
+          .setTitle(UiText.choose("开启局域网访问？", "Enable LAN access?"))
+          .setMessage(
+              UiText.choose(
+                  "开启后，同一网络中的设备可凭连接链接访问本轮 DSH。链接包含访问凭据，HTTP 流量未加密；请只在可信网络开启。可在“配置”中随时关闭并撤销链接。",
+                  "Devices on the same network can access this DSH run using its connection link. The link contains a credential and HTTP traffic is unencrypted. Enable only on a trusted network. Turn it off in Configuration to revoke links."))
+          .setNegativeButton(android.R.string.cancel, null)
+          .setPositiveButton(
+              UiText.choose("开启", "Enable"),
+              (dialog, which) -> {
+                if (!isAdded() || getView() == null || !isResumed()) return;
+                controller.config().setLanMode(true);
+                requestLanAccess();
+                refreshLanAddr();
+              })
+          .show();
+    } else if (access.state == LanAccessPresentation.State.PERMISSION_REQUIRED
+        || access.state == LanAccessPresentation.State.LISTENER_UNAVAILABLE) {
+      requestLanAccess();
+      refreshLanAddr();
+    } else if (access.state == LanAccessPresentation.State.READY) {
+      if (access.services.size() == 1) showLanAddress(access.services.get(0));
+      else
+        new DshaDialogBuilder(requireContext())
+            .setTitle(UiText.choose("选择局域网地址", "Choose a LAN address"))
+            .setItems(
+                access.services.toArray(new String[0]),
+                (dialog, which) -> showLanAddress(access.services.get(which)))
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    } else refreshLanAddr();
+  }
+
+  private void requestLanAccess() {
+    if (!isAdded() || !controller.config().isLanMode()) return;
+    try {
+      com.deepseekharness.app.HarnessService.ensureLanForeground(requireContext());
+      if (getActivity() instanceof MainActivity)
+        ((MainActivity) getActivity()).requestLocalNetwork();
+      else
+        com.deepseekharness.app.bridge.LocalNetworkAccess.applyConfiguredFeatures(requireContext());
+    } catch (RuntimeException failure) {
+      Toast.makeText(
+              requireContext(),
+              UiText.choose(
+                  "无法开启局域网连接，请检查系统权限和启动诊断后重试。",
+                  "LAN access could not start. Check system permissions and startup diagnostics, then retry."),
+              Toast.LENGTH_LONG)
+          .show();
+    }
   }
 
   private void showLanAddress(String service) {
-    if (!isAdded() || !LanProxyService.isBound()) return;
+    if (!isAdded()) return;
     final long generation = controller.getWebGeneration();
-    final int port = LanProxyService.port(generation);
-    if (port <= 0
-        || !service.equals("http://" + HarnessController.getLanAddress() + ":" + port + "/"))
+    if (!lanAccess().stillOffers(generation, service)) {
+      connectionChanged();
       return;
-    final String token = LanProxyService.getLanToken(requireContext());
+    }
+    final String token = LanProxyService.boundLanToken(generation);
+    if (token.isEmpty()) {
+      connectionChanged();
+      return;
+    }
     final String address = service + "?token=" + token;
     new DshaDialogBuilder(requireContext())
-        .setTitle(com.deepseekharness.app.util.UiText.text("局域网连接链接"))
+        .setTitle(UiText.choose("局域网连接链接", "LAN connection link"))
         .setMessage(
-            com.deepseekharness.app.util.UiText.format(
-                "此链接包含访问凭据。局域网使用 HTTP，流量未加密，请只在可信网络使用并只分享给可信设备。DSH 重启或关闭局域网访问后，旧链接会失效，请重新复制。\n\n%s",
+            UiText.format(
+                UiText.choose(
+                    "此链接包含访问凭据。局域网使用 HTTP，流量未加密，请只在可信网络使用并只分享给可信设备。DSH 重启或关闭局域网访问后，旧链接会失效，请重新复制。\n\n%s",
+                    "This link contains an access credential. LAN traffic uses unencrypted HTTP. Use a trusted network and share only with trusted devices. Restarting DSH or disabling LAN access revokes this link; copy a new one afterward.\n\n%s"),
                 address))
         .setNegativeButton(android.R.string.cancel, null)
         .setPositiveButton(
-            com.deepseekharness.app.util.UiText.text("复制连接链接"),
+            UiText.choose("复制连接链接", "Copy connection link"),
             (dialog, which) -> {
-              String ip = HarnessController.getLanAddress();
-              int currentPort = LanProxyService.port(generation);
-              String currentService = "http://" + ip + ":" + currentPort + "/";
               if (!isAdded()
-                  || currentPort <= 0
-                  || !LanProxyService.isBound()
                   || generation != controller.getWebGeneration()
-                  || !service.equals(currentService)
-                  || !token.equals(LanProxyService.getLanToken(requireContext()))) {
-                if (isAdded())
-                  Toast.makeText(
-                          requireContext(),
-                          com.deepseekharness.app.util.UiText.text("连接已变化，请重新查看链接。"),
-                          Toast.LENGTH_LONG)
-                      .show();
+                  || !lanAccess().stillOffers(generation, service)
+                  || !token.equals(LanProxyService.boundLanToken(generation))) {
+                connectionChanged();
                 return;
               }
-              copyAddr(com.deepseekharness.app.util.UiText.text("局域网地址"), address);
+              copyAddr(UiText.choose("局域网地址", "LAN address"), address);
             })
         .show();
+  }
+
+  private void connectionChanged() {
+    if (isAdded())
+      Toast.makeText(
+              requireContext(),
+              UiText.choose(
+                  "连接已变化，请重新查看链接。", "The connection changed. View its current link again."),
+              Toast.LENGTH_LONG)
+          .show();
   }
 
   private void copyAddr(String label, String addr) {

@@ -78,10 +78,7 @@ public final class BackgroundTasksActivity extends AppCompatActivity {
   }
 
   private void main(String extra) {
-    startActivity(
-        new Intent(this, MainActivity.class)
-            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-            .putExtra(extra, true));
+    startActivity(MainActivity.navigationIntent(this).putExtra(extra, true));
     finish();
   }
 

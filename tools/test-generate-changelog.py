@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from ui_language_catalog import LANGUAGES, RESOURCE_FOLDERS
 
 spec = importlib.util.spec_from_file_location(
     'generate_changelog', Path(__file__).with_name('generate-changelog.py'))
@@ -18,7 +19,7 @@ class ChangelogGenerationTest(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
         self.write('app/build.gradle', f'versionCode 194\nversionName "{self.version}"\n')
-        for locale in ('zh', 'en'):
+        for locale in LANGUAGES:
             self.write(f'docs/releases/build194-changes.{locale}.md', self.notes(locale))
 
     def notes(self, body='Current changes'):
@@ -29,10 +30,11 @@ class ChangelogGenerationTest(unittest.TestCase):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(text.encode('utf-8'))
 
-    def test_both_locales_are_bundled_and_checked_exactly(self):
+    def test_all_ten_locales_are_bundled_and_checked_exactly(self):
         self.assertEqual(gate.update(self.root), (194, self.version))
         self.assertEqual(gate.update(self.root, check=True), (194, self.version))
-        for locale, folder in [('zh', 'raw'), ('en', 'raw-en')]:
+        for locale in LANGUAGES:
+            folder = RESOURCE_FOLDERS[locale].replace('values', 'raw', 1)
             self.assertEqual(
                 (self.root / f'app/src/main/res/{folder}/changelog.md').read_bytes(),
                 self.notes(locale).encode('utf-8'))
@@ -55,6 +57,11 @@ class ChangelogGenerationTest(unittest.TestCase):
     def test_missing_english_source_fails(self):
         (self.root / 'docs/releases/build194-changes.en.md').unlink()
         with self.assertRaisesRegex(ValueError, 'SOURCE_MISSING:en'):
+            gate.update(self.root)
+
+    def test_missing_any_supported_language_cannot_fall_back_to_other_notes(self):
+        (self.root / 'docs/releases/build194-changes.ar.md').unlink()
+        with self.assertRaisesRegex(ValueError, 'SOURCE_MISSING:ar'):
             gate.update(self.root)
 
     def test_changed_raw_bytes_fail_the_build_gate(self):

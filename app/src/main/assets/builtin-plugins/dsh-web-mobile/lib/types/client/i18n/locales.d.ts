@@ -39,3 +39,5 @@ export declare const en: Record<MobileNavKey, string>;
 /** Key domain of the {@link NS} namespace (zh is the source of truth). */
 export type MobileNavKey = keyof typeof zh;
 //# sourceMappingURL=locales.d.ts.map
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+export declare const mobileNavLocales: Record<string, Record<MobileNavKey, string>>;

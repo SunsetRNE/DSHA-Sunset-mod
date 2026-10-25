@@ -40,6 +40,10 @@ public final class PhoneControlCoordinator {
     return lease;
   }
 
+  public void checkBegin(ControlTaskAuthority.Binding binding) {
+    authority.checkBegin(binding);
+  }
+
   public ControlTaskAuthority.Lease lease(ControlTaskAuthority.Binding binding) {
     return authority.lease(binding);
   }
@@ -58,14 +62,30 @@ public final class PhoneControlCoordinator {
     return result;
   }
 
+  public void requireObservation(ControlTaskAuthority.Binding binding) {
+    authority.requireObservation(binding);
+    fence(false, null);
+  }
+
   /** Completion fences work but must not invoke the selected assistant's cancel callback. */
   public void completeLocal(ControlTaskAuthority.Binding binding) {
     if (authority.completeLocal(binding)) fence(false, null);
   }
 
+  public void finishTask(ControlTaskAuthority.Binding binding) {
+    if (authority.finish(binding)) fence(false, null);
+  }
+
   public void pause(String reason) {
     var previous = authority.pause(reason);
     fence(true, previous);
+  }
+
+  public boolean pauseCurrent(ControlTaskAuthority.Lease lease, String reason) {
+    var previous = authority.pauseCurrent(lease, reason);
+    if (previous == null) return false;
+    fence(true, previous);
+    return true;
   }
 
   public void resume() {

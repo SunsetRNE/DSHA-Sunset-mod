@@ -28,3 +28,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     }
 }
 //# sourceMappingURL=file-share-locale.d.ts.map
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+export declare const fileShareLocales: Record<string, Record<FileShareKey, string>>;
+export declare const nativeFileActionLocales: Record<string, Record<string, string>>;
+export declare function nativeFileCopy(language?: string): Record<string, string>;

@@ -321,7 +321,11 @@ public final class RecoveryRuntime {
         throw new IOException("RECOVERY_OVERLAY_INPUT_COUNT");
       for (String name : OVERLAY_INPUTS)
         verifyDigest(
-            new ByteArrayInputStream(asset(name, 1024 * 1024)), inputHashes.getString(name));
+            new ByteArrayInputStream(
+                asset(
+                    name,
+                    name.equals("web-integration/language.js") ? 8 * 1024 * 1024 : 1024 * 1024)),
+            inputHashes.getString(name));
       JSONArray rows = descriptor.getJSONArray("overlays");
       if (rows.length() != OVERLAY_PATHS.length) throw new IOException("RECOVERY_OVERLAY_COUNT");
       for (int i = 0; i < OVERLAY_PATHS.length; i++) {
@@ -554,6 +558,7 @@ public final class RecoveryRuntime {
     env.put("PATH", "/usr/local/bin:/usr/bin:/bin");
     env.put("HOME", "/root");
     env.put("DSH_HOME", "/root/.dsh");
+    env.put("DSHA_UI_LANGUAGE", UiText.language());
     env.put("LANG", "C.UTF-8");
     env.put("TMPDIR", "/tmp");
     env.put("BROWSER", "true");

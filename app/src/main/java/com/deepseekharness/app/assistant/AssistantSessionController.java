@@ -49,20 +49,40 @@ public final class AssistantSessionController implements AutoCloseable {
   private volatile String text = "", draft = "";
   private volatile long draftRevision;
   private volatile String cancelAttempt = null;
+  private long pollRevision;
+
+  private record PollObservation(long revision, String turnId, String taskId, JSONObject args) {}
+
   private final java.util.function.Consumer<
           com.deepseekharness.app.control.ControlTaskAuthority.Binding>
       cancelled = this::cancelTurn;
 
   public AssistantSessionController(
       Context context, AssistantBinding binding, AssistantBackend backend) {
+    this(context, binding, backend, null);
+  }
+
+  AssistantSessionController(
+      Context context, AssistantBinding binding, AssistantBackend backend, String verifiedTurn) {
     this.binding = binding;
     this.backend = backend;
+    if (verifiedTurn != null) state.observed(true, verifiedTurn, binding.sessionId());
     fence = PhoneControlCoordinator.get(context);
     AssistantSessionController previous = active;
     if (previous != null) previous.close();
     active = this;
     fence.setTurnCancellation(cancelled);
     worker.scheduleWithFixedDelay(this::poll, 0, 900, TimeUnit.MILLISECONDS);
+  }
+
+  /** Only the tool attachment path calls this after an exact live Host status receipt. */
+  synchronized boolean followVerifiedTask(String turnId) {
+    if (closed || expanded || state.paused()) return false;
+    if (!turnId.equals(state.turnId()) || !binding.sessionId().equals(state.taskId()))
+      pollRevision++;
+    state.observed(true, turnId, binding.sessionId());
+    changed();
+    return true;
   }
 
   public synchronized Snapshot snapshot() {
@@ -156,6 +176,10 @@ public final class AssistantSessionController implements AutoCloseable {
         && binding.sessionId().equals(control.taskSessionId());
   }
 
+  synchronized boolean ownsTask(com.deepseekharness.app.control.ControlTaskAuthority.Binding task) {
+    return !closed && owns(task) && task.turnId().equals(state.turnId());
+  }
+
   private void cancelTurn(com.deepseekharness.app.control.ControlTaskAuthority.Binding previous) {
     // The native fence has already invalidated every queued screen operation.
     if (closed || suppressCancellation || !owns(previous)) return;
@@ -205,7 +229,7 @@ public final class AssistantSessionController implements AutoCloseable {
     return sendInternal(message, false);
   }
 
-  private boolean sendInternal(String message, boolean continuation) {
+  private synchronized boolean sendInternal(String message, boolean continuation) {
     if (message == null || message.isBlank() || message.length() > 32768 || closed) return false;
     if (!state.terminalKnown() || cancelling.get()) {
       changed();
@@ -223,6 +247,7 @@ public final class AssistantSessionController implements AutoCloseable {
     try {
       if (continuation) state.resume();
       else state.newTask();
+      pollRevision++;
       // Retire only the old selected conversation's screen ownership, after real idle.
       suppressCancellation = true;
       try {
@@ -287,23 +312,32 @@ public final class AssistantSessionController implements AutoCloseable {
   }
 
   private void poll() {
-    if (closed) return;
-    if (state.phase() == AssistantSessionState.Phase.DISCONNECTED) return;
-    if (!backend.current()) {
-      state.disconnected();
-      fence.pause("ASSISTANT_DISCONNECTED");
-      changed();
-      return;
+    final PollObservation observed;
+    synchronized (this) {
+      if (closed || active != this || state.phase() == AssistantSessionState.Phase.DISCONNECTED)
+        return;
+      try {
+        observed = new PollObservation(pollRevision, state.turnId(), state.taskId(), args());
+      } catch (org.json.JSONException invalid) {
+        return;
+      }
     }
     try {
-      JSONObject value = backend.call("sessions.status", args());
+      // Host I/O never holds the controller monitor. A close or verified next turn can finish
+      // while this request is blocked; its response then has no authority over that successor.
+      if (!backend.current()) {
+        pollFailed(observed, true);
+        return;
+      }
+      JSONObject value = backend.call("sessions.status", observed.args());
       if (!binding.sessionId().equals(value.optString("sessionId")) || !value.has("running"))
         throw new java.io.IOException("STATUS_IDENTITY_OR_STATE_MISSING");
       String host = value.optString("hostInstanceId", binding.hostInstanceId());
       if (!binding.hostInstanceId().equals(host))
         throw new java.io.IOException("HOST_INSTANCE_CHANGED");
       var transcript = value.optJSONArray("messages");
-      if (transcript == null) text = SensitiveData.redact(value.optString("text"));
+      final String nextText;
+      if (transcript == null) nextText = SensitiveData.redact(value.optString("text"));
       else {
         StringBuilder rendered = new StringBuilder();
         for (int index = Math.max(0, transcript.length() - 8);
@@ -326,20 +360,59 @@ public final class AssistantSessionController implements AutoCloseable {
           rendered
               .append(UiText.choose("\n\nDSH（生成中）：\n", "\n\nDSH (generating):\n"))
               .append(stream);
-        text = SensitiveData.redact(rendered.toString());
+        nextText = SensitiveData.redact(rendered.toString());
       }
-      state.observed(
-          value.getBoolean("running"), value.optString("turnId"), value.optString("taskId"));
-      if (value.optBoolean("failed"))
-        state.failed(
-            UiText.choose(
-                "本轮执行失败。请打开完整 DSH 会话查看错误，并检查模型、密钥或网络设置。",
-                "This turn failed. Open the full DSH conversation to review the error and check your model, key, or network settings."));
+      boolean running = value.getBoolean("running");
+      String turn = value.optString("turnId"), task = value.optString("taskId");
+      synchronized (this) {
+        if (!pollCurrent(observed)) return;
+        text = nextText;
+        if (!turn.equals(state.turnId()) || !task.equals(state.taskId())) pollRevision++;
+        state.observed(running, turn, task);
+        if (value.optBoolean("failed"))
+          state.failed(
+              UiText.choose(
+                  "本轮执行失败。请打开完整 DSH 会话查看错误，并检查模型、密钥或网络设置。",
+                  "This turn failed. Open the full DSH conversation to review the error and check your model, key, or network settings."));
+        changed();
+      }
     } catch (Exception failure) {
-      state.unknown(UiText.choose("状态暂不可确认；手机操作已暂停", "Status unavailable; phone actions paused"));
-      fence.pause("ASSISTANT_STATUS_UNKNOWN");
+      pollFailed(observed, false);
     }
-    changed();
+  }
+
+  /** Called only under this monitor, also shared with followVerifiedTask/send/close. */
+  private boolean pollCurrent(PollObservation observed) {
+    return !closed
+        && active == this
+        && pollRevision == observed.revision()
+        && state.turnId().equals(observed.turnId())
+        && state.taskId().equals(observed.taskId());
+  }
+
+  private void pollFailed(PollObservation observed, boolean disconnected) {
+    // Backend ownership checks remain outside the monitor as well. An idle/unrelated view has
+    // no authority to pause a task merely because its own status could not be fetched.
+    com.deepseekharness.app.control.ControlTaskAuthority.Lease owned = null;
+    try {
+      var screen = fence.snapshot();
+      var task = screen.binding();
+      if (task != null && task.turnId().equals(observed.turnId()) && owns(task))
+        owned =
+            new com.deepseekharness.app.control.ControlTaskAuthority.Lease(task, screen.revision());
+    } catch (RuntimeException unavailable) {
+      // Missing ownership evidence never becomes a global pause over another task.
+    }
+    synchronized (this) {
+      if (!pollCurrent(observed)) return;
+      if (disconnected) state.disconnected();
+      else
+        state.unknown(UiText.choose("状态暂不可确认；手机操作已暂停", "Status unavailable; phone actions paused"));
+      if (owned != null)
+        fence.pauseCurrent(
+            owned, disconnected ? "ASSISTANT_DISCONNECTED" : "ASSISTANT_STATUS_UNKNOWN");
+      changed();
+    }
   }
 
   public void returnConversation() {
@@ -368,16 +441,29 @@ public final class AssistantSessionController implements AutoCloseable {
 
   @Override
   public void close() {
+    close(true);
+  }
+
+  /** A real task-end/explicit finish retires the view without cancelling later model work. */
+  void detachFinishedTask() {
+    close(false);
+  }
+
+  private synchronized void close(boolean cancelModel) {
     if (closed) return;
+    pollRevision++;
+    var previous = fence.snapshot().binding();
+    boolean hadTask = !state.terminalKnown();
     // Invalidate screen work before stopping the subscription. Never stop the whole DSH.
     state.stop();
     suppressCancellation = true;
     try {
-      fence.stop("ASSISTANT_CLOSED");
+      // Retiring an idle view must not stop another conversation's phone task.
+      if (previous != null && owns(previous)) fence.stop("ASSISTANT_CLOSED");
     } finally {
       suppressCancellation = false;
     }
-    requestCancellation(state.turnId());
+    if (cancelModel && hadTask) requestCancellation(state.turnId());
     closed = true;
     worker.shutdown();
     listeners.clear();
