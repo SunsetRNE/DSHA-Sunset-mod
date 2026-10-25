@@ -33,7 +33,9 @@ test('动态插件摘要只含公开身份，不保存源码或授权细节',()=
   assert.equal(rows[0].sessionId,'test-session');
   assert.equal(JSON.stringify(rows).includes('sensitive-code'),false);
   assert.equal(JSON.stringify(rows).includes('not-exported'),false);
-  assert.deepEqual(runtimePlugins([],undefined),[]);
+  assert.equal(runtimePlugins([],undefined),null);
+  assert.equal(runtimePlugins([{id:'session'}],{listPlugins(){throw new Error('unavailable');}}),null);
+  assert.deepEqual(runtimePlugins([{id:'session'}],{listPlugins:()=>[]}),[]);
 });
 test('心跳绑定启动 instance，并同时输出动态与持久插件摘要', async () => {
   const writes = [], moves = [], cleanups = [];
