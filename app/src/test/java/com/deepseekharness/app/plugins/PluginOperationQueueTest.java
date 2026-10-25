@@ -55,31 +55,97 @@ public final class PluginOperationQueueTest {
   }
 
   @Test
-  public void sameTargetToggleIsSupersededAndNewRequestMovesToTail() {
+  public void differentSourceTogglesKeepTheirOriginalQueueOrder() {
     Queue<String> queue = new Queue<>();
     PluginSourceIdentity oldSource = source(1);
     PluginSourceIdentity newSource = source(2);
     Entry<String> old = queue.enqueue(Type.SET_ENABLED, "a", true, "1", oldSource, "old work");
     Entry<String> other = enqueue(queue, Type.INSTALL, "b");
-    Entry<String> latest = queue.enqueue(Type.SET_ENABLED, "a", false, "2", newSource, "new work");
+    Entry<String> latest = queue.enqueue(Type.SET_ENABLED, "a", false, "1", newSource, "new work");
 
+    assertNotEquals(old.operationId, latest.operationId);
+    assertTrue(oldSource.sameDataSource(newSource));
+    assertNotEquals(oldSource, newSource);
+    assertEquals(Phase.QUEUED, old.operation().phase);
+    assertSame(old.request, old.operation());
+    assertTrue(old.operation().pending());
+    assertEquals(Boolean.TRUE, old.request.desired);
+    assertEquals("1", old.request.expectedVersion);
+    assertSame(oldSource, old.request.source);
+    assertEquals("old work", old.work);
+    assertEquals(Boolean.FALSE, latest.request.desired);
+    assertEquals("1", latest.request.expectedVersion);
+    assertSame(newSource, latest.request.source);
+    assertEquals("new work", latest.work);
+    assertEquals(Arrays.asList(old.operationId, other.operationId, latest.operationId), ids(queue));
+    assertSame(old, queue.poll());
+    assertTrue(queue.complete(old.operationId, Phase.SUCCEEDED, "done"));
+    assertSame(other, queue.poll());
+    assertTrue(queue.complete(other.operationId, Phase.SUCCEEDED, "done"));
+    assertSame(latest, queue.poll());
+  }
+
+  @Test
+  public void sameIdentityToggleIsSupersededAndNewRequestMovesToTail() {
+    Queue<String> queue = new Queue<>();
+    Entry<String> old = toggle(queue, "a", true);
+    Entry<String> other = enqueue(queue, Type.INSTALL, "b");
+    Entry<String> latest = toggle(queue, "a", false);
+    assertNotSame(old.request.source, latest.request.source);
+    assertEquals(old.request.source, latest.request.source);
     assertNotEquals(old.operationId, latest.operationId);
     assertEquals(Phase.SUPERSEDED, old.operation().phase);
     assertSame(old.operation(), queue.get(old.operationId));
     assertFalse(old.operation().pending());
     assertEquals(Phase.QUEUED, old.request.phase);
     assertEquals(Boolean.TRUE, old.request.desired);
-    assertEquals("1", old.request.expectedVersion);
-    assertSame(oldSource, old.request.source);
-    assertEquals("old work", old.work);
     assertEquals(Boolean.FALSE, latest.request.desired);
-    assertEquals("2", latest.request.expectedVersion);
-    assertSame(newSource, latest.request.source);
-    assertEquals("new work", latest.work);
     assertEquals(Arrays.asList(other.operationId, latest.operationId, old.operationId), ids(queue));
     assertSame(other, queue.poll());
     assertTrue(queue.complete(other.operationId, Phase.SUCCEEDED, "done"));
     assertSame(latest, queue.poll());
+  }
+
+  @Test
+  public void differentVersionsNeverMergeOrSkipTheLastSameTargetRequest() {
+    for (String[] versions : new String[][] {{"1", "2"}, {null, "1"}, {"1", null}}) {
+      Queue<String> queue = new Queue<>();
+      Entry<String> old = queue.enqueue(Type.SET_ENABLED, "a", true, versions[0], source(1), "old");
+      Entry<String> changed =
+          queue.enqueue(Type.SET_ENABLED, "a", false, versions[1], source(1), "changed");
+      Entry<String> latest =
+          queue.enqueue(Type.SET_ENABLED, "a", false, versions[0], source(1), "latest");
+      assertEquals(
+          Arrays.asList(old.operationId, changed.operationId, latest.operationId), ids(queue));
+      for (Operation operation : queue.snapshot()) assertEquals(Phase.QUEUED, operation.phase);
+    }
+  }
+
+  @Test
+  public void unknownSourceOnEitherRequestPreventsMerging() {
+    for (PluginSourceIdentity[] sources :
+        new PluginSourceIdentity[][] {{null, null}, {null, source(1)}, {source(1), null}}) {
+      Queue<String> queue = new Queue<>();
+      Entry<String> old = queue.enqueue(Type.SET_ENABLED, "a", true, "1", sources[0], "old");
+      Entry<String> latest = queue.enqueue(Type.SET_ENABLED, "a", false, "1", sources[1], "new");
+      assertEquals(Arrays.asList(old.operationId, latest.operationId), ids(queue));
+      assertEquals(Phase.QUEUED, old.operation().phase);
+      assertEquals(Phase.QUEUED, latest.operation().phase);
+    }
+  }
+
+  @Test
+  public void fullQueueRejectsSourceOrVersionMismatchWithoutSuperseding() {
+    Queue<String> queue = new Queue<>(1, 2);
+    Entry<String> old = toggle(queue, "a", true);
+    Entry<String> differentSource =
+        queue.enqueue(Type.SET_ENABLED, "a", false, "1", source(2), "source changed");
+    Entry<String> differentVersion =
+        queue.enqueue(Type.SET_ENABLED, "a", false, "2", source(1), "version changed");
+    assertEquals(Phase.QUEUED, old.operation().phase);
+    assertEquals(Phase.REJECTED, differentSource.operation().phase);
+    assertEquals(Phase.REJECTED, differentVersion.operation().phase);
+    assertSame(old, queue.poll());
   }
 
   @Test
@@ -273,6 +339,117 @@ public final class PluginOperationQueueTest {
     assertTrue(Modifier.isFinal(Operation.class.getModifiers()));
     for (Field field : Operation.class.getFields())
       assertTrue(Modifier.isFinal(field.getModifiers()));
+  }
+
+  @Test
+  public void bindingUnknownExecutionSourcePreservesRequestAndRecordsHistorySource() {
+    Queue<String> queue = new Queue<>();
+    Entry<String> entry = queue.enqueue(Type.INSTALL, "a", null, "1", null, "install");
+    Operation request = entry.request;
+    assertSame(entry, queue.poll());
+    assertTrue(queue.progress(entry.operationId, Phase.RUNNING, "ready", 20, "tx", "backend"));
+    Operation before = entry.operation();
+    PluginSourceIdentity actual = source(2);
+    assertTrue(queue.bindExecutionSource(entry.operationId, actual));
+    Operation bound = entry.operation();
+    assertNotSame(before, bound);
+    assertSame(actual, bound.source);
+    assertSame(bound, queue.get(entry.operationId));
+    assertSame(bound, queue.current());
+    assertSame(bound, queue.snapshot().get(0));
+    assertSame(request, entry.request);
+    assertNull(request.source);
+    assertNull(before.source);
+    assertEquals(before.operationId, bound.operationId);
+    assertEquals(before.type, bound.type);
+    assertEquals(before.targetKey, bound.targetKey);
+    assertEquals(before.desired, bound.desired);
+    assertEquals(before.expectedVersion, bound.expectedVersion);
+    assertEquals(before.phase, bound.phase);
+    assertEquals(before.message, bound.message);
+    assertEquals(before.percent, bound.percent);
+    assertEquals(before.transactionId, bound.transactionId);
+    assertEquals(before.backendTaskId, bound.backendTaskId);
+    assertEquals("install", entry.work);
+    assertTrue(queue.complete(entry.operationId, Phase.SUCCEEDED, "done"));
+    assertSame(actual, queue.get(entry.operationId).source);
+    assertNull(entry.request.source);
+  }
+
+  @Test
+  public void bindingRefreshesSameDataSourceGenerationWithoutRewritingInitialIdentity() {
+    Queue<String> queue = new Queue<>();
+    PluginSourceIdentity original = source(1);
+    PluginSourceIdentity actual = source(2);
+    Entry<String> entry = queue.enqueue(Type.UPDATE, "a", null, "1", original, "update");
+    assertSame(entry, queue.poll());
+    Operation before = entry.operation();
+    assertNotEquals(original, actual);
+    assertTrue(original.sameDataSource(actual));
+    assertTrue(queue.bindExecutionSource(entry.operationId, actual));
+    assertSame(actual, entry.operation().source);
+    assertSame(original, entry.request.source);
+    assertSame(original, before.source);
+    assertTrue(queue.progress(entry.operationId, Phase.COMMITTING, "commit", 90, null));
+    assertSame(actual, entry.operation().source);
+    assertTrue(queue.complete(entry.operationId, Phase.SUCCEEDED, "done"));
+    assertSame(actual, queue.get(entry.operationId).source);
+  }
+
+  @Test
+  public void bindingRequiresAnExactRunningIdAndRejectsNullOrChangedDataSource() {
+    Queue<String> queue = new Queue<>();
+    Entry<String> entry = toggle(queue, "a", true);
+    Entry<String> waiting = enqueue(queue, Type.INSTALL, "b");
+    assertFalse(queue.bindExecutionSource(entry.operationId, source(2)));
+    assertSame(entry.request, entry.operation());
+    assertSame(entry, queue.poll());
+    Operation before = entry.operation();
+    for (String wrongId : Arrays.asList(null, "missing", waiting.operationId))
+      assertFalse(queue.bindExecutionSource(wrongId, source(2)));
+    assertFalse(queue.bindExecutionSource(entry.operationId, null));
+    PluginSourceIdentity changedRoot =
+        new PluginSourceIdentity(
+            new File("/fixture/other-data"),
+            "data",
+            1,
+            new File("/fixture/root"),
+            "root",
+            2,
+            "sha",
+            2);
+    assertFalse(before.source.sameDataSource(changedRoot));
+    assertFalse(queue.bindExecutionSource(entry.operationId, changedRoot));
+    assertSame(before, entry.operation());
+    assertSame(entry, queue.active());
+    assertEquals(Phase.QUEUED, waiting.operation().phase);
+  }
+
+  @Test
+  public void bindingCannotChangeCommittingOrTerminalEntriesOrTheirSuccessor() {
+    for (Phase terminal : Phase.values()) {
+      if (terminal == Phase.QUEUED || terminal == Phase.RUNNING || terminal == Phase.COMMITTING)
+        continue;
+      Queue<String> queue = new Queue<>();
+      Entry<String> entry = enqueue(queue, Type.INSTALL, "a");
+      Entry<String> next = enqueue(queue, Type.INSTALL, "b");
+      assertSame(entry, queue.poll());
+      assertTrue(queue.bindExecutionSource(entry.operationId, source(1)));
+      assertTrue(queue.progress(entry.operationId, Phase.COMMITTING, "commit", 90, null));
+      Operation committing = entry.operation();
+      assertFalse(queue.bindExecutionSource(entry.operationId, source(2)));
+      assertSame(committing, entry.operation());
+      assertTrue(queue.complete(entry.operationId, terminal, "done"));
+      Operation result = entry.operation();
+      assertFalse(queue.bindExecutionSource(entry.operationId, source(2)));
+      assertSame(next, queue.poll());
+      Operation nextRunning = next.operation();
+      assertFalse(queue.bindExecutionSource(entry.operationId, source(2)));
+      assertSame(result, entry.operation());
+      assertSame(result, queue.get(entry.operationId));
+      assertSame(nextRunning, next.operation());
+      assertSame(next, queue.active());
+    }
   }
 
   @Test
@@ -474,7 +651,7 @@ public final class PluginOperationQueueTest {
   }
 
   private static Entry<String> toggle(Queue<String> queue, String key, boolean enabled) {
-    return queue.enqueue(Type.SET_ENABLED, key, enabled, "1", null, "work:" + enabled);
+    return queue.enqueue(Type.SET_ENABLED, key, enabled, "1", source(1), "work:" + enabled);
   }
 
   private static List<String> ids(Queue<?> queue) {
