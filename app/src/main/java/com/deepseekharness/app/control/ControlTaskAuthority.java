@@ -41,8 +41,12 @@ public final class ControlTaskAuthority {
   // Local Agent turn numbers are monotonic within a full conversation. Keep
   // completion watermarks so a delayed old request cannot reacquire the screen.
   private final Map<String, Long> completedLocalTurns = new HashMap<>();
+  private final java.util.Set<String> completedRemoteTasks = new java.util.HashSet<>();
 
-  public synchronized Lease begin(Binding requested) {
+  public synchronized void checkBegin(Binding requested) {
+    if (requested.owner() == Owner.REMOTE_DEVICE
+        && completedRemoteTasks.contains(requested.identity()))
+      throw new IllegalStateException("SCREEN_TURN_ENDED");
     if (requested.owner() == Owner.LOCAL_DSH) {
       long turn = localTurn(requested.turnId());
       String key = localKey(requested);
@@ -50,13 +54,19 @@ public final class ControlTaskAuthority {
         throw new IllegalStateException("SCREEN_TURN_ENDED");
       if (!completedLocalTurns.containsKey(key) && completedLocalTurns.size() >= 4096)
         throw new IllegalStateException("CONTROL_SESSION_LIMIT");
-      // Reserve the completion entry before accepting work, so unrelated ended
-      // conversations cannot fill the bound and prevent this turn's retirement.
-      completedLocalTurns.putIfAbsent(key, 0L);
     }
     if (paused) throw new IllegalStateException("SCREEN_CONTROL_PAUSED");
     if (binding != null && !binding.equals(requested))
       throw new IllegalStateException("PHYSICAL_SCREEN_BUSY");
+  }
+
+  public synchronized Lease begin(Binding requested) {
+    checkBegin(requested);
+    if (requested.owner() == Owner.LOCAL_DSH) {
+      // Reserve before accepting work, so unrelated ended conversations cannot
+      // fill the bound and prevent this turn's retirement.
+      completedLocalTurns.putIfAbsent(localKey(requested), 0L);
+    }
     if (binding == null) {
       binding = requested;
       revision++;
@@ -101,6 +111,20 @@ public final class ControlTaskAuthority {
     return true;
   }
 
+  /** Explicit completion fences this task without sending an Agent cancellation. */
+  public synchronized boolean finish(Binding ended) {
+    if (ended.owner() == Owner.LOCAL_DSH) return completeLocal(ended);
+    if (!ended.equals(binding)) return false;
+    if (completedRemoteTasks.size() >= 4096)
+      throw new IllegalStateException("CONTROL_SESSION_LIMIT");
+    completedRemoteTasks.add(ended.identity());
+    binding = null;
+    needsObservation = true;
+    revision++;
+    if (!paused) reason = "REMOTE_TASK_ENDED";
+    return true;
+  }
+
   public synchronized Lease lease(Binding requested) {
     if (binding == null || !binding.equals(requested) || paused)
       throw new IllegalStateException("SCREEN_TASK_CHANGED");
@@ -126,6 +150,16 @@ public final class ControlTaskAuthority {
     return true;
   }
 
+  /** Changing an owned window invalidates pixels/nodes without cancelling or resuming the task. */
+  public synchronized void requireObservation(Binding requested) {
+    if (paused) throw new IllegalStateException("SCREEN_CONTROL_PAUSED");
+    if (binding != null && !binding.equals(requested))
+      throw new IllegalStateException("SCREEN_TASK_CHANGED");
+    needsObservation = true;
+    revision++;
+    reason = "OBSERVE_REQUIRED";
+  }
+
   public synchronized Binding pause(String why) {
     Binding previous = binding;
     paused = true;
@@ -133,6 +167,12 @@ public final class ControlTaskAuthority {
     revision++;
     reason = why;
     return previous;
+  }
+
+  /** An asynchronous observer can pause only the exact lease it actually checked. */
+  public synchronized Binding pauseCurrent(Lease lease, String why) {
+    if (!current(lease)) return null;
+    return pause(why);
   }
 
   public synchronized void resume() {

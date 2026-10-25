@@ -78,6 +78,23 @@ public class LanProxyHostTest {
 
   @After public void stop() { LanProxyService.stop(); }
 
+  @Test public void readingConnectionCredentialRequiresTheCurrentBoundGenerationAndCannotReviveIt()
+      throws Exception {
+    LanProxyService.stop();
+    assertEquals("", LanProxyService.boundLanToken(29));
+    try (Backend backend = new Backend("credential-read")) {
+      start(backend, 29);
+      String current = LanProxyService.boundLanToken(29);
+      assertFalse(current.isEmpty());
+      assertEquals("", LanProxyService.boundLanToken(28));
+      LanProxyService.stopLanListener();
+      assertEquals("", LanProxyService.boundLanToken(29));
+      assertEquals("", LanProxyService.boundLanToken(29));
+      assertFalse(LanProxyService.isBound());
+      assertTrue("disabling LAN retains local backend authentication", LanProxyService.hasDshAuth(29));
+    }
+  }
+
   static void start(Backend backend, long generation) throws Exception {
     assertTrue(LanProxyService.setDshAuthCookie(COOKIE, generation));
     LanProxyService.start(null, null, backend.server.getLocalPort(), generation);

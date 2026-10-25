@@ -120,7 +120,7 @@ func (c *companion) dshCall(ctx context.Context, id, method string, args json.Ra
 	if e = json.Unmarshal(projections, &p); e != nil {
 		return nil, e
 	}
-	result := map[string]any{"sessionId": request.SessionID, "taskId": request.SessionID, "turnId": "", "running": running, "text": "", "hostInstanceId": c.instance, "projections": projections}
+	result := map[string]any{"sessionId": request.SessionID, "taskId": request.SessionID, "turnId": "", "turnActive": false, "running": running, "text": "", "hostInstanceId": c.instance, "projections": projections}
 	if p.Kind != "sequenced" {
 		return result, nil
 	}
@@ -149,6 +149,12 @@ func (c *companion) dshCall(ctx context.Context, id, method string, args json.Ra
 		if event.Type == "turn/start" {
 			if turn, ok := data["turn"].(float64); ok {
 				result["turnId"] = fmt.Sprintf("%s:%.0f", request.SessionID, turn)
+				result["turnActive"] = true
+			}
+		}
+		if event.Type == "turn/end" {
+			if turn, ok := data["turn"].(float64); ok && result["turnId"] == fmt.Sprintf("%s:%.0f", request.SessionID, turn) {
+				result["turnActive"] = false
 			}
 		}
 		if event.Type == "user/message" || event.Type == "assistant/message" {

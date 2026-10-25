@@ -40,6 +40,25 @@ public final class CurrentReleaseNotesTest {
   }
 
   @Test
+  public void everySupportedLanguageUsesTheRequestedFallbackWithoutChangingInstalledIdentity() {
+    for (String language : UiLanguagePreference.LANGUAGES) {
+      String fallback =
+          UiText.choose(
+              language,
+              "本安装包未附当前版本的更新说明。",
+              "This installation does not include release notes for the current build.");
+      assertEquals(
+          "DSHA " + VERSION + " / build194\n\n" + fallback,
+          CurrentReleaseNotes.render(VERSION, 194, null, language));
+      assertTrue(
+          CurrentReleaseNotes.render(VERSION, 194, NOTES, language).endsWith("Current fixes"));
+    }
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> CurrentReleaseNotes.render(VERSION, 194, null, "system"));
+  }
+
+  @Test
   public void editionSuffixesShareNotesButKeepTheirActualInstalledTitle() {
     for (String suffix : new String[] {"low", "-SunsetTest", "low-SunsetTest"}) {
       String installed = VERSION + suffix;

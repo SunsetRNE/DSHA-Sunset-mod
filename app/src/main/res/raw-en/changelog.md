@@ -1,11 +1,8 @@
-# DSHA 0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3 / build196
+# DSHA 0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3 / build197
 
-- Launch directly into Home; pair and connect computers from Home. Remove the Home background-tasks button.
-- Recheck local readiness and show conversation titles, messages and task status in the floating assistant, with exact conversation/turn ownership.
-- Open the system share chooser after preparation and the destination picker for Save as. Share failures no longer silently become downloads.
-- Reserve legacy bridge/LAN defaults for the older app and display actual bound ports for coexistence.
-- Safe reads and commands no longer depend on destructive-operation consent queries. Writes and opaque commands retain consent checks.
-- Reuse synchronous tool preparation within one startup and record individual preparation times and session restore failure stages.
-- Advertise supported semantic scroll actions, match owned overlays precisely and explain when a fresh observation is required.
-
-Package identity, historical release certificate, conventional filename, formal/recovery DSH rc.3 and Ubuntu10 remain. Refer to this release's delivery report for actual acceptance scope and results.
+- Recents shows one DSHA home card. Back from home returns to the launcher and reuses existing pages and browser instances.
+- Access addresses always includes LAN status, manual activation, permission guidance and valid current connection links.
+- Phone control works in the current conversation. Explicit requests use built-in tools and show task status. The app hides its own floating window before observing the screen to avoid covering the target. System permission and current-screen identity checks remain in place.
+- Adds Traditional Chinese, Russian, Japanese, Korean, Arabic, Portuguese, Latin and French alongside Simplified Chinese and English, with system-language matching and right-to-left Arabic layout.
+- Built-in instructions adapt replies to the selected language while preserving custom instructions and existing conversations.
+- Standard edition, original package and signing identity support an in-place update. The build197 report shipped with the source records the software checks, actual device acceptance and unverified scope.

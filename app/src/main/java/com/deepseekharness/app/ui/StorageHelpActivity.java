@@ -135,10 +135,7 @@ public final class StorageHelpActivity extends AppCompatActivity {
   }
 
   private void environment() {
-    startActivity(
-        new Intent(this, MainActivity.class)
-            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-            .putExtra("open_install", true));
+    startActivity(MainActivity.navigationIntent(this).putExtra("open_install", true));
     finish();
   }
 }

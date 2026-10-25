@@ -29,7 +29,7 @@ export function fixture() {
       return info();
     },
     openSync(path, flags) {
-      if (path === tokenPath) { assert.equal(flags, 0x20000); return 7; }
+      if (path === tokenPath) { assert([0x20000, 0x20800].includes(flags)); return 7; }
       assert.equal(path, portPath); assert.equal(flags, 0x20800); f.opens++; f.onOpen?.(); return 8;
     },
     fstatSync(fd) { assert([7, 8].includes(fd)); return fd === 7 ? tokenInfo() : info(); },
@@ -150,9 +150,10 @@ async function run() {
     const handler = ctx.events.get('agent/pre-step')[0]; assert.equal(await handler(input, async () => decision), decision);
     dispose(); f.setPort('3093'); const fallback = await handler(input, async () => decision);
     assert(fallback.messages[0].content[0].text.includes('127.0.0.1:3093/app/help'));
-    ctx.emit('session/event', input.agent.session, { type: 'user/message', data: { source: { kind: 'plugin', plugin: plugin.name } } });
+    ctx.emit('session/event', input.agent.session, { type: 'user/message', data: fallback.messages[0] });
     assert.equal(await handler(input, async () => decision), decision);
-    assert.equal(f.requests.length, 0);
+    assert(f.requests.length >= 1);
+    assert(f.requests.every(request => request.path === '/app/version'), 'only the read-only language metadata may be queried');
   });
   await test('Android consumer rereads on each call and never repeats 401/legacy/UNKNOWN', async () => {
     const f = fixture(), sdk = loadCjs('builtin-plugins/dsh-computer-use-android/lib/server.cjs', f), signal = new AbortController().signal;

@@ -164,6 +164,9 @@ class SunsetPatchRegressions(unittest.TestCase):
         self.assertEqual(selected.output, 'app/build/host-tests/sunset-patch-chains')
         expected = {
             'test-plugin-management-patch-chain.py': {'raw', 'jdk17'},
+            'test-language-patch-chain.py': {'raw', 'jdk17', 'current_archive'},
+            'test-ui-language.mjs': {'node24', 'raw'},
+            'test-prompt-language.mjs': {'node24', 'raw'},
             'test-app-activity.mjs': {'node24'},
             'test-plugin-runtime-evidence.mjs': {'node24', 'raw'},
             'test-plugin-discovery.py': {'python39', 'node24'},
@@ -184,7 +187,7 @@ class SunsetPatchRegressions(unittest.TestCase):
                 self.assertEqual(row['stage'], selected.stage)
                 self.assertTrue(expected[name] <= set(row['requires']))
                 # 现有 job 只准备这些依赖；新增浏览器等要求必须另行配置。
-                self.assertTrue(set(row['requires']) <= {'python39', 'node24', 'raw', 'managed', 'jdk17', 'native_host', 'browser'})
+                self.assertTrue(set(row['requires']) <= {'python39', 'node24', 'raw', 'managed', 'jdk17', 'native_host', 'browser', 'current_archive'})
                 if name == 'test-recovery-native-consent.mjs':
                     # 该入口依赖此变量执行真实 ToolRuntime，不能只跑 SDK 传输分支。
                     self.assertEqual(row['environment'].get('DSHA_TEST_RUNTIME'), '{managed}')

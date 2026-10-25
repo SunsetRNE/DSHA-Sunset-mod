@@ -113,9 +113,6 @@ public final class PluginInstallActivity extends AppCompatActivity {
   }
 
   private void openMain(boolean plugins) {
-    startActivity(
-        new Intent(this, MainActivity.class)
-            .putExtra("open_plugins", plugins)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+    startActivity(MainActivity.navigationIntent(this).putExtra("open_plugins", plugins));
   }
 }

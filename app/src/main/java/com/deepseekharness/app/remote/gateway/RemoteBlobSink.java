@@ -159,10 +159,16 @@ final class RemoteBlobSink implements AutoCloseable {
             () -> {
               if (closed || !document.equals(nonce)) return;
               new android.app.AlertDialog.Builder(activity)
-                  .setTitle("Save remote image to gallery?")
-                  .setMessage(transfer.name + " · " + transfer.expected + " bytes")
+                  .setTitle(
+                      com.deepseekharness.app.util.UiText.choose(
+                          "将远程图片保存到相册？", "Save remote image to gallery?"))
+                  .setMessage(
+                      transfer.name
+                          + " · "
+                          + android.text.format.Formatter.formatFileSize(
+                              activity, transfer.expected))
                   .setPositiveButton(
-                      "Save",
+                      com.deepseekharness.app.util.UiText.choose("保存", "Save"),
                       (dialog, which) ->
                           enqueue(
                               () -> {
@@ -210,7 +216,7 @@ final class RemoteBlobSink implements AutoCloseable {
                                 }
                               }))
                   .setNegativeButton(
-                      "Cancel",
+                      com.deepseekharness.app.util.UiText.choose("取消", "Cancel"),
                       (dialog, which) ->
                           enqueue(
                               () -> {

@@ -7,12 +7,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import com.deepseekharness.app.util.BrowserTaskPolicy;
 import com.deepseekharness.app.util.PreviewPageSession;
+import com.deepseekharness.app.util.TaskNavigationPolicy;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
 /** Explicit native navigation, including tasks retained from versions with shared affinities. */
 final class BrowserTasks {
+  static final String NATIVE_HOME = "dsha-native-home";
   private static WeakReference<Activity> nativeMain = new WeakReference<>(null);
 
   private record Background(
@@ -36,7 +38,8 @@ final class BrowserTasks {
     // Only an actual destination request overrides the pending browser return here;
     // Back/Home already cancels it synchronously in openMain/hideConversation.
     return intent != null
-        && (intent.getBooleanExtra("open_plugins", false)
+        && (intent.getBooleanExtra(NATIVE_HOME, false)
+            || intent.getBooleanExtra("open_plugins", false)
             || intent.getBooleanExtra("open_terminal", false)
             || intent.getBooleanExtra("open_install", false)
             || intent.getBooleanExtra("open_web", false));
@@ -182,11 +185,9 @@ final class BrowserTasks {
   }
 
   static void rememberMain(Activity activity) {
-    if (!activity.isFinishing()
-        && !activity.isDestroyed()
-        && activity.isTaskRoot()
-        && activity.getTaskId() != BrowserConversationRoute.taskId())
+    if (!activity.isFinishing() && !activity.isDestroyed() && activity.isTaskRoot())
       nativeMain = new WeakReference<>(activity);
+    reconcileRecents(activity, activity.getTaskId());
   }
 
   static boolean duplicateLauncher(Activity activity, Bundle restored) {
@@ -200,9 +201,78 @@ final class BrowserTasks {
   }
 
   static Intent homeIntent(Context context) {
+    return navigationIntent(context).putExtra("open_launch", true);
+  }
+
+  static Intent navigationIntent(Context context) {
     return new Intent(context, MainActivity.class)
         .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        .putExtra("open_launch", true);
+        .putExtra(NATIVE_HOME, true);
+  }
+
+  /** Main Back exits the UI, including a legacy task with a hidden browser below Main. */
+  static void exitMain(Activity activity) {
+    nativeNavigation();
+    reconcileRecents(activity, activity.getTaskId());
+    // A retained hidden browser may be the task immediately behind Main. Bring
+    // the launcher forward first, or moving Main back could resume that browser,
+    // whose hidden-mode callback would immediately reopen Main.
+    try {
+      activity.startActivity(
+          new Intent(Intent.ACTION_MAIN)
+              .addCategory(Intent.CATEGORY_HOME)
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    } catch (android.content.ActivityNotFoundException unavailable) {
+      android.util.Log.w("DSHA", "HOME_TASK_UNAVAILABLE");
+    }
+    // finish() would expose the retained browser in a shared legacy stack. Moving
+    // the complete task preserves its page and mirrors current Android launcher Back.
+    activity.moveTaskToBack(true);
+  }
+
+  /** One Main card represents the app; browser/PiP hosts and old Main shells stay retained. */
+  static void reconcileRecents(Context context, int preferredMainTask) {
+    try {
+      ActivityManager manager =
+          (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+      if (manager == null) return;
+      List<ActivityManager.AppTask> appTasks = manager.getAppTasks();
+      List<BrowserTaskPolicy.Task> choices = new ArrayList<>();
+      for (ActivityManager.AppTask task : appTasks) {
+        var info = task.getTaskInfo();
+        choices.add(new BrowserTaskPolicy.Task(info.id, mainRoot(context, info.baseActivity)));
+      }
+      int selected =
+          BrowserTaskPolicy.nativeTask(
+              choices, BrowserConversationRoute.taskId(), preferredMainTask);
+      for (ActivityManager.AppTask task : appTasks) {
+        var info = task.getTaskInfo();
+        var visibility =
+            TaskNavigationPolicy.recents(
+                info.id,
+                mainRoot(context, info.baseActivity),
+                browserRoot(context, info.baseActivity),
+                selected);
+        if (visibility != TaskNavigationPolicy.Recents.KEEP)
+          task.setExcludeFromRecents(visibility == TaskNavigationPolicy.Recents.HIDE);
+      }
+    } catch (RuntimeException unavailable) {
+      android.util.Log.w("DSHA", "TASK_RECENTS_ROUTE: " + unavailable.getClass().getSimpleName());
+    }
+  }
+
+  private static boolean ownRoot(Context context, android.content.ComponentName root) {
+    return root != null && context.getPackageName().equals(root.getPackageName());
+  }
+
+  private static boolean mainRoot(Context context, android.content.ComponentName root) {
+    return ownRoot(context, root) && MainActivity.class.getName().equals(root.getClassName());
+  }
+
+  private static boolean browserRoot(Context context, android.content.ComponentName root) {
+    return ownRoot(context, root)
+        && (WebPreviewActivity.class.getName().equals(root.getClassName())
+            || "com.deepseekharness.app.ui.GeckoPreviewActivity".equals(root.getClassName()));
   }
 
   static void openMain(Context context) {
@@ -223,27 +293,21 @@ final class BrowserTasks {
       List<BrowserTaskPolicy.Task> choices = new ArrayList<>();
       for (ActivityManager.AppTask task : appTasks) {
         var info = task.getTaskInfo();
-        choices.add(
-            new BrowserTaskPolicy.Task(
-                info.id,
-                info.baseActivity != null
-                    && context.getPackageName().equals(info.baseActivity.getPackageName())
-                    && MainActivity.class.getName().equals(info.baseActivity.getClassName())));
+        choices.add(new BrowserTaskPolicy.Task(info.id, mainRoot(context, info.baseActivity)));
       }
       int selected = BrowserTaskPolicy.nativeTask(choices, browserTask, preferredTask);
       for (ActivityManager.AppTask task : appTasks)
         if (selected >= 0 && task.getTaskInfo().id == selected) {
           task.startActivity(context, homeIntent(context), null);
+          reconcileRecents(context, selected);
           return;
         }
     } catch (RuntimeException unavailable) {
       android.util.Log.w("DSHA", "NATIVE_TASK_ROUTE: " + unavailable.getClass().getSimpleName());
     }
-    // No independent native root exists, including a legacy Web/Main/Web mixed task.
-    // Create only the native shell; the live browser task and its ViewModel stay intact.
-    context.startActivity(
-        homeIntent(context)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK));
+    // Let Android reuse the app's native affinity even if task enumeration is denied.
+    // MULTIPLE_TASK used to create a fresh Main on every Back when task lookup failed.
+    context.startActivity(homeIntent(context).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
   }
 
   static boolean finishEmptyHost(Activity activity) {

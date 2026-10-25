@@ -88,7 +88,7 @@ public final class StorageActivity extends AppCompatActivity {
                         page.kv(
                             rows,
                             com.deepseekharness.app.util.StorageCategoryLabels.label(
-                                entry.getKey(), "en".equals(UiText.language())),
+                                entry.getKey()),
                             com.deepseekharness.app.util.Fmt.bytes(entry.getValue().bytes)
                                 + (entry.getValue().unreadable > 0
                                     ? t(" + 部分不可读", " + unreadable entries")

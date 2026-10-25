@@ -159,7 +159,8 @@ jobs:
             --only test-dsh-runtime-packaging.py \
             --only test-sunset-ci-inputs.py \
             --only test-sunset-plugin-release.py \
-            --only test-generate-changelog.py
+            --only test-generate-changelog.py \
+            --only test-ui-language-catalog.py
       # build195 起 Java 编译依赖固定 dsha-connect.aar；源码模式仍不准备 managed runtime 测试夹具。
       - name: Restore pinned compilation inputs
         env:
@@ -298,6 +299,9 @@ jobs:
             --browsers-path "$RUNNER_TEMP/dsha-plugin-browsers" \
             --output app/build/host-tests/sunset-patch-chains \
             --only test-plugin-management-patch-chain.py \
+            --only test-language-patch-chain.py \
+            --only test-ui-language.mjs \
+            --only test-prompt-language.mjs \
             --only test-app-activity.mjs \
             --only test-plugin-runtime-evidence.mjs \
             --only test-plugin-discovery.py \

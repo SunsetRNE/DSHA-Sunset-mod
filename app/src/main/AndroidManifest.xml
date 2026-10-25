@@ -87,6 +87,8 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
+            android:documentLaunchMode="never"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -169,6 +171,8 @@
             android:name=".ui.WebPreviewActivity"
             android:exported="false"
             android:launchMode="singleTask"
+            android:documentLaunchMode="never"
+            android:excludeFromRecents="true"
             android:taskAffinity="${applicationId}.browser.webview"
             android:supportsPictureInPicture="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
@@ -183,7 +187,7 @@
         <activity
             android:name=".ui.AdbPairActivity"
             android:exported="false"
-            android:label="ADB 无线配对"
+            android:label="@string/adb_pairing_service_label"
             android:theme="@style/Theme.DeepseekHarness" />
 
         <service
@@ -212,7 +216,7 @@
         <service
             android:name=".DshaAccessibilityService"
             android:exported="false"
-            android:label="DSHA 配对助手"
+            android:label="@string/accessibility_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
