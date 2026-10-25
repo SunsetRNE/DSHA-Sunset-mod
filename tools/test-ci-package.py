@@ -2,10 +2,15 @@ import argparse
 import copy
 import importlib.util
 import json
+import os
 import shlex
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
+import textwrap
 import unittest
+import xml.etree.ElementTree as ET
 
 spec=importlib.util.spec_from_file_location('ci_package',Path(__file__).with_name('verify-ci-package.py'))
 gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(gate)
@@ -53,8 +58,21 @@ class PackageBinding(unittest.TestCase):
                           junit={flavor:dict(tests=2,skipped=0,failures=0,errors=0)
                                  for flavor in ('Standard','Low')})
     def validate(self):return gate.validate_receipt(self.receipt,self.root,'abc',self.source,
-                                                  {'app/build.gradle'},set())
+                                                  {'app/build.gradle'},set(), expected_flavors=('standard','low'))
     def test_exact_pair_is_selected(self):self.assertEqual(2,len(self.validate()))
+    def test_standard_scope_keeps_gates_and_rejects_missing_expected_flavor(self):
+        self.receipt['apks'] = [row for row in self.receipt['apks'] if row['flavor'] == 'standard']
+        self.receipt['commands'] = [row for row in self.commands if row['name'] != 'low-elf']
+        self.receipt['junit'].pop('Low')
+        selected = gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
+                                         {'app/build.gradle'}, set())
+        self.assertEqual([self.root / 'app-standard-release-unsigned.apk'], selected)
+        with self.assertRaisesRegex(ValueError, 'PACKAGE_FLAVORS'):
+            self.validate()
+        self.receipt['commands'] = [row for row in self.receipt['commands'] if row['name'] != 'standard-elf']
+        with self.assertRaisesRegex(ValueError, 'PACKAGE_CHECK_INCOMPLETE'):
+            gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
+                                  {'app/build.gradle'}, set())
     def test_actual_uuid_report_layout_is_selected_and_duplicate_receipts_rejected(self):
         manifest=self.reports/'manifest.json';manifest.write_text(json.dumps(self.receipt))
         self.assertEqual(manifest,gate.select_manifest(self.root))
@@ -118,7 +136,7 @@ class SunsetPatchRegressions(unittest.TestCase):
         step = self.step('Verify runtime patch upgrades and managed recovery consent')
         start = self.job.index(step)
         self.assertLess(self.job.index('run: python3 tools/prepare-test-runtime.py'), start)
-        self.assertLess(start, self.job.index('Complete unit tests for both flavors with fixed inputs'))
+        self.assertLess(start, self.job.index('Complete Standard unit tests with fixed inputs'))
         self.assertIn('actions/setup-java@', self.job[:start])
         self.assertIn('actions/setup-node@', self.job[:start])
         self.assertNotRegex(step, r'\n        (?:if|continue-on-error):')
@@ -127,17 +145,34 @@ class SunsetPatchRegressions(unittest.TestCase):
         parser = argparse.ArgumentParser()
         parser.add_argument('--stage', required=True)
         parser.add_argument('--jdk', required=True)
+        parser.add_argument('--playwright', required=True)
+        parser.add_argument('--browsers-path', required=True)
         parser.add_argument('--output', required=True)
         parser.add_argument('--only', action='append', required=True)
         selected = parser.parse_args(command[2:])
         self.assertEqual(selected.stage, 'runtime')
         self.assertEqual(selected.jdk, '$JAVA_HOME')
+        self.assertEqual(selected.playwright, '$GITHUB_WORKSPACE/tools/ci-browser/node_modules/playwright')
+        self.assertEqual(selected.browsers_path, '$RUNNER_TEMP/dsha-plugin-browsers')
+        self.assertIn('npm ci --prefix tools/ci-browser --ignore-scripts', self.job[:start])
+        self.assertIn('node tools/ci-browser/node_modules/playwright/cli.js install --with-deps chromium', self.job[:start])
+        browser = json.loads((self.root / 'tools/ci-browser/package.json').read_text())
+        browser_lock = json.loads((self.root / 'tools/ci-browser/package-lock.json').read_text())
+        self.assertEqual(browser['dependencies']['playwright'], '1.64.1')
+        self.assertEqual(browser_lock['packages']['node_modules/playwright']['version'], browser['dependencies']['playwright'])
+        self.assertRegex(browser_lock['packages']['node_modules/playwright']['integrity'], r'^sha512-')
         self.assertEqual(selected.output, 'app/build/host-tests/sunset-patch-chains')
         expected = {
             'test-plugin-management-patch-chain.py': {'raw', 'jdk17'},
+            'test-app-activity.mjs': {'node24'},
+            'test-plugin-runtime-evidence.mjs': {'node24', 'raw'},
+            'test-plugin-discovery.py': {'python39', 'node24'},
+            'test-plugin-review.py': {'python39'},
+            'test-plugin-management-probe.mjs': {'node24', 'raw'},
             'test-session-interaction-patch-upgrade.py': {'raw', 'jdk17'},
             'test-preset-pending-patch-upgrade.py': {'raw', 'jdk17'},
             'test-recovery-native-consent.mjs': {'node24', 'managed'},
+            'test-mobile-server-compression-carrier.mjs': {'node24', 'raw'},
         }
         self.assertEqual(set(selected.only), set(expected))
         self.assertEqual(len(selected.only), len(expected))
@@ -149,10 +184,86 @@ class SunsetPatchRegressions(unittest.TestCase):
                 self.assertEqual(row['stage'], selected.stage)
                 self.assertTrue(expected[name] <= set(row['requires']))
                 # 现有 job 只准备这些依赖；新增浏览器等要求必须另行配置。
-                self.assertTrue(set(row['requires']) <= {'python39', 'node24', 'raw', 'managed', 'jdk17'})
+                self.assertTrue(set(row['requires']) <= {'python39', 'node24', 'raw', 'managed', 'jdk17', 'native_host', 'browser'})
                 if name == 'test-recovery-native-consent.mjs':
                     # 该入口依赖此变量执行真实 ToolRuntime，不能只跑 SDK 传输分支。
                     self.assertEqual(row['environment'].get('DSHA_TEST_RUNTIME'), '{managed}')
+
+    def test_full_input_gate_rejects_missing_or_skipped_external_cases(self):
+        step = self.step('Verify all seven Standard external-fixture tests executed')
+        script = textwrap.dedent(step.split("          python3 - <<'PY'\n", 1)[1].rsplit('          PY', 1)[0])
+        prefix = 'com.deepseekharness.app.'
+        required = [
+            (prefix + 'runtime.AdbWheelBundleTest', 'realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel'),
+            *[(prefix + 'runtime.RuntimeToolsRegistryAndroidTest', name) for name in (
+                'completeProductionChainAppliesAllSpecializedStagesAndIsRepeatable',
+                'lanRetirementRejectsModuleDriftAndPreservesOriginalBytes',
+                'lanRetirementRejectsUnknownVersionAndContractDrift',
+                'oldLanExactReplacementAndIdempotenceRemainStrict',
+                'previousRuntimeGenerationCannotReceiveCurrentOverlayInPlace')],
+            (prefix + 'util.ManagedPatchRegistryIntegrationTest', 'everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns'),
+        ]
+        low = (prefix + 'vscreen.VirtualScreenLowBoundaryTest', 'lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion')
+        def execute(rows):
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                reports = root / 'app/build/test-results/testStandardDebugUnitTest'
+                reports.mkdir(parents=True)
+                suite = ET.Element('testsuite', tests=str(len(rows)), failures='0', errors='0',
+                                   skipped=str(sum(status == 'skipped' for _, _, status in rows)))
+                for owner, method, status in rows:
+                    case = ET.SubElement(suite, 'testcase', classname=owner, name=method)
+                    if status:
+                        ET.SubElement(case, status)
+                ET.ElementTree(suite).write(reports / 'TEST-fixture.xml')
+                run = subprocess.run([sys.executable, '-c', script], cwd=root,
+                                     env={**os.environ, 'GITHUB_STEP_SUMMARY': str(root / 'summary.md')},
+                                     capture_output=True, text=True)
+                output = root / 'out/full-unit-tests.json'
+                return run, json.loads(output.read_text()) if output.exists() else None
+        passing = [(owner, name, '') for owner, name in required] + [(*low, 'skipped')]
+        run, report = execute(passing)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(report['flavors']['Standard']['requiredFixtureTestsPassed'], 7)
+        self.assertEqual(report['flavors']['Standard']['skipped'], 1)
+        for target in required:
+            for status in ('missing', 'skipped'):
+                with self.subTest(target=target, status=status):
+                    rows = [row for row in passing if row[:2] != target]
+                    if status == 'skipped':
+                        rows.append((*target, 'skipped'))
+                    run, report = execute(rows)
+                    self.assertNotEqual(run.returncode, 0)
+                    self.assertIsNone(report)
+        run, report = execute(passing + [(prefix + 'plugins.PluginRegistryTest', 'unexpected', 'skipped')])
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn('Unexpected full-input skips', run.stderr)
+        self.assertIsNone(report)
+        run, report = execute(passing + [(*required[-1], '')])
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIsNone(report)
+
+    def test_every_ci_entry_uses_standard_scope(self):
+        for name in ('sunset-3090-q.yml', 'ci-fast.yml'):
+            workflow = (self.root / '.github/workflows' / name).read_text(encoding='utf-8')
+            self.assertIn(':app:testStandardDebugUnitTest', workflow)
+            self.assertNotRegex(workflow, r':app:(?:test|lint|assemble)Low')
+            self.assertNotIn('("Standard", "Low")', workflow)
+            self.assertNotIn('tools/remote', workflow)
+            self.assertNotIn('dsha-connect', workflow)
+        package = (self.root / '.github/workflows/ci-package.yml').read_text(encoding='utf-8')
+        self.assertIn('--stage package --flavors standard', package)
+        self.assertNotIn('app/build/outputs/apk/*/', package)
+        manifest = json.loads((self.root / 'tools/host-tests.manifest.json').read_text(encoding='utf-8'))
+        low = next(row for row in manifest['tests'] if row['path'] == 'tools/test-low-preview-capability.mjs')
+        self.assertEqual(low['stage'], 'history')
+
+    def test_branch_stability_runner_refuses_low_scope_before_execution(self):
+        result = subprocess.run([sys.executable, str(self.root / 'tools/verify-stability.py'),
+                                 '--stage', 'software', '--flavors', 'both'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('invalid choice', result.stderr)
 
     def test_patch_chain_logs_are_retained_even_when_the_gate_fails(self):
         step = self.step('Upload full unit and host test reports')
@@ -161,7 +272,8 @@ class SunsetPatchRegressions(unittest.TestCase):
         self.assertIn('name: ${{ needs.source.outputs.tests_name }}', step)
         paths = step.split('          path: |\n', 1)[1].splitlines()
         self.assertEqual({path.strip() for path in paths if path.startswith('            ')},
-                         {'app/build/test-results', 'app/build/host-tests/sunset-patch-chains'})
+                         {'app/build/test-results', 'app/build/host-tests/sunset-patch-chains',
+                           'app/build/reports/lint-results-standardRelease.*'})
 
 
 if __name__=='__main__':unittest.main()

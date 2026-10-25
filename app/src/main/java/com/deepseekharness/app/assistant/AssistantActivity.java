@@ -12,7 +12,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-import com.deepseekharness.app.remote.RemoteSessionManager;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.ui.MainActivity;
 import java.util.concurrent.ExecutorService;
@@ -20,7 +19,7 @@ import java.util.concurrent.Executors;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Native full conversation and explicit local/PC picker. No hidden local runtime bootstrap. */
+/** Native view of an existing local DSH conversation, without hidden runtime bootstrap. */
 public final class AssistantActivity extends AppCompatActivity {
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private LinearLayout content;
@@ -28,7 +27,6 @@ public final class AssistantActivity extends AppCompatActivity {
   private ScrollView pageScroll;
   private TextView status;
   private AssistantBackend backend;
-  private AssistantBinding.Target target;
   private String hostInstanceId;
   private long loadRevision;
   private AssistantSessionController bound;
@@ -42,8 +40,7 @@ public final class AssistantActivity extends AppCompatActivity {
   private long editorRevision;
   private final Runnable localReady =
       () -> {
-        if (resumed && bound == null && target == AssistantBinding.Target.LOCAL && !loading)
-          selectTarget(AssistantBinding.Target.LOCAL);
+        if (resumed && bound == null && !controlPermissionMode && !loading) selectLocal();
       };
   private long draftRevision = -1;
   private final Runnable changed = this::renderBound;
@@ -74,19 +71,7 @@ public final class AssistantActivity extends AppCompatActivity {
       showBound();
       return;
     }
-    button(UiText.choose("本机 DSH", "Local DSH"), () -> selectTarget(AssistantBinding.Target.LOCAL));
-    button(UiText.choose("电脑 DSH", "PC DSH"), () -> selectTarget(AssistantBinding.Target.REMOTE));
-    if (!Settings.canDrawOverlays(this))
-      button(
-          UiText.choose("允许悬浮窗", "Allow floating window"),
-          () ->
-              startActivity(
-                  new Intent(
-                      Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                      Uri.parse("package:" + getPackageName()))));
-    String requested = getIntent().getStringExtra("target");
-    if ("LOCAL".equals(requested)) selectTarget(AssistantBinding.Target.LOCAL);
-    if ("REMOTE".equals(requested)) selectTarget(AssistantBinding.Target.REMOTE);
+    selectLocal();
   }
 
   @Override
@@ -99,16 +84,12 @@ public final class AssistantActivity extends AppCompatActivity {
     }
     controlPermissionMode = false;
     if (intent.getBooleanExtra("bound", false)) showBound();
-    else if ("REMOTE".equals(intent.getStringExtra("target")))
-      selectTarget(AssistantBinding.Target.REMOTE);
-    else if ("LOCAL".equals(intent.getStringExtra("target")))
-      selectTarget(AssistantBinding.Target.LOCAL);
+    else selectLocal();
   }
 
   private void showControlPermission() {
     controlPermissionMode = true;
     notificationPermissionMode = getIntent().getBooleanExtra("notification_permission", false);
-    target = null;
     loadRevision++;
     loading = false;
     if (bound != null) bound.removeListener(changed);
@@ -145,7 +126,7 @@ public final class AssistantActivity extends AppCompatActivity {
     button(UiText.choose("返回原对话继续", "Return to the original conversation"), this::finish);
   }
 
-  private void selectTarget(AssistantBinding.Target value) {
+  private void selectLocal() {
     if (bound != null) {
       bound.removeListener(changed);
       bound = null;
@@ -164,55 +145,34 @@ public final class AssistantActivity extends AppCompatActivity {
       setContentView(pageScroll);
       buttonContainer = null;
     }
-    target = value;
     long revision = ++loadRevision;
     backend = null;
     hostInstanceId = null;
     loading = true;
     creating = false;
     while (content.getChildCount() > 1) content.removeViewAt(1);
-    button(
-        UiText.choose("切换目标", "Change target"),
-        () -> {
-          finish();
-          startActivity(new Intent(this, AssistantActivity.class));
-        });
     status.setText(UiText.choose("正在读取真实会话…", "Reading conversations\u2026"));
-    if (value == AssistantBinding.Target.LOCAL) {
-      // A notification/assistant can be the first Activity after process recreation.
-      // Re-adopt the verified running instance before asking for its auth identity.
-      // This is read-only recovery: no guest start and no business request replay.
-      HarnessController.get(this)
-          .restoreRunningWebSession(() -> runOnUiThread(() -> loadTarget(value, revision)));
-    } else loadTarget(value, revision);
+    // A notification/assistant can be the first Activity after process recreation.
+    // Re-adopt the verified running instance before asking for its auth identity.
+    // This is read-only recovery: no guest start and no business request replay.
+    HarnessController.get(this)
+        .restoreRunningWebSession(() -> runOnUiThread(() -> loadLocal(revision)));
   }
 
-  private void loadTarget(AssistantBinding.Target value, long revision) {
+  private void loadLocal(long revision) {
     if (revision != loadRevision || isDestroyed()) return;
     worker.execute(
         () -> {
           try {
-            AssistantBackend candidate;
-            if (value == AssistantBinding.Target.LOCAL) candidate = new LocalAssistantBackend(this);
-            else {
-              var identity = RemoteSessionManager.get(this).current();
-              if (identity == null)
-                throw new java.io.IOException(
-                    UiText.choose("请先连接并信任电脑端", "Connect and trust a PC first"));
-              candidate = new RemoteAssistantBackend(this, identity);
-            }
+            AssistantBackend candidate = new LocalAssistantBackend(this);
             JSONObject result = candidate.call("sessions.list", new JSONObject());
-            String host =
-                candidate instanceof RemoteAssistantBackend remote
-                    ? remote.identity.hostInstanceId
-                    : result.getString("hostInstanceId");
+            String host = result.getString("hostInstanceId");
             runOnUiThread(
                 () -> {
-                  if (isFinishing() || isDestroyed() || target != value || revision != loadRevision)
-                    return;
+                  if (isFinishing() || isDestroyed() || revision != loadRevision) return;
                   if (!candidate.current()) {
                     loading = false;
-                    showUnavailable(value, new java.io.IOException("CONNECTION_CHANGED"));
+                    showUnavailable(new java.io.IOException("CONNECTION_CHANGED"));
                     return;
                   }
                   loading = false;
@@ -225,7 +185,7 @@ public final class AssistantActivity extends AppCompatActivity {
                 () -> {
                   if (revision == loadRevision && !isDestroyed()) {
                     loading = false;
-                    showUnavailable(value, failure);
+                    showUnavailable(failure);
                   }
                 });
           }
@@ -247,66 +207,43 @@ public final class AssistantActivity extends AppCompatActivity {
                       Uri.parse("package:" + getPackageName()))));
   }
 
-  private void showUnavailable(AssistantBinding.Target value, Exception failure) {
+  private void showUnavailable(Exception failure) {
     while (content.getChildCount() > 1) content.removeViewAt(1);
-    if (value == AssistantBinding.Target.LOCAL) {
-      var local = HarnessController.get(this);
-      String code = failure.getMessage();
-      if (local.isRestoringWebSession() || local.isStarting())
-        status.setText(
-            UiText.choose(
-                "本机 DSH 正在启动，准备好后会自动显示会话。",
-                "Local DSH is starting. Conversations will appear when it is ready."));
-      else if (local.hasUnresolvedWebSession())
-        status.setText(
-            UiText.choose(
-                "本机运行状态待核对。请在本机工作台查看诊断后继续。",
-                "Local runtime status needs checking. Open the local workspace to review diagnostics."));
-      else if (local.getReadyWebPageIdentity() == null)
-        status.setText(
-            UiText.choose(
-                "本机 DSH 尚未运行。先在本机工作台启动，再返回这里选择会话。",
-                "Local DSH is stopped. Start it in the local workspace, then return to choose a conversation."));
-      else if ("LOCAL_ASSISTANT_API_UNAVAILABLE".equals(code))
-        status.setText(
-            UiText.choose(
-                "DSH 已运行，但悬浮助手接口尚未加载。请正常停止并重新启动本机 DSH，再刷新。",
-                "DSH is running, but its assistant interface is unavailable. Stop and restart local DSH normally, then refresh."));
-      else
-        status.setText(
-            UiText.choose(
-                "暂时无法连接本机 DSH 会话。请刷新，或打开本机工作台检查运行状态。",
-                "Unable to reach local conversations. Refresh or open the local workspace to check its status."));
-      button(UiText.choose("打开本机工作台", "Open local workspace"), this::localWorkspace);
-    } else {
+    var local = HarnessController.get(this);
+    String code = failure.getMessage();
+    if (local.isRestoringWebSession() || local.isStarting())
       status.setText(
           UiText.choose(
-              "电脑会话暂不可用。请在电脑工作区确认连接，再刷新。",
-              "PC conversations are unavailable. Check the connection in PC workspaces, then refresh."));
-      button(UiText.choose("返回首页连接电脑", "Return home to connect a PC"), this::localWorkspace);
-    }
-    button(UiText.choose("刷新会话", "Refresh conversations"), () -> selectTarget(value));
-    button(
-        UiText.choose("切换目标", "Change target"),
-        () -> {
-          finish();
-          startActivity(new Intent(this, AssistantActivity.class));
-        });
+              "本机 DSH 正在启动，准备好后会自动显示会话。",
+              "Local DSH is starting. Conversations will appear when it is ready."));
+    else if (local.hasUnresolvedWebSession())
+      status.setText(
+          UiText.choose(
+              "本机运行状态待核对。请在本机工作台查看诊断后继续。",
+              "Local runtime status needs checking. Open the local workspace to review diagnostics."));
+    else if (local.getReadyWebPageIdentity() == null)
+      status.setText(
+          UiText.choose(
+              "本机 DSH 尚未运行。先在本机工作台启动，再返回这里选择会话。",
+              "Local DSH is stopped. Start it in the local workspace, then return to choose a conversation."));
+    else if ("LOCAL_ASSISTANT_API_UNAVAILABLE".equals(code))
+      status.setText(
+          UiText.choose(
+              "DSH 已运行，但悬浮助手接口尚未加载。请正常停止并重新启动本机 DSH，再刷新。",
+              "DSH is running, but its assistant interface is unavailable. Stop and restart local DSH normally, then refresh."));
+    else
+      status.setText(
+          UiText.choose(
+              "暂时无法连接本机 DSH 会话。请刷新，或打开本机工作台检查运行状态。",
+              "Unable to reach local conversations. Refresh or open the local workspace to check its status."));
+    button(UiText.choose("打开本机工作台", "Open local workspace"), this::localWorkspace);
+    button(UiText.choose("刷新会话", "Refresh conversations"), this::selectLocal);
     overlayPermission();
   }
 
   private void showSessions(JSONArray sessions) {
     while (content.getChildCount() > 1) content.removeViewAt(1);
-    status.setText(
-        target == AssistantBinding.Target.LOCAL
-            ? UiText.choose("本机 DSH 会话", "Local DSH conversations")
-            : UiText.choose("电脑 DSH 会话", "PC DSH conversations"));
-    button(
-        UiText.choose("切换目标", "Change target"),
-        () -> {
-          finish();
-          startActivity(new Intent(this, AssistantActivity.class));
-        });
+    status.setText(UiText.choose("本机 DSH 会话", "Local DSH conversations"));
     overlayPermission();
     button(
         UiText.choose("新建会话", "New conversation"),
@@ -347,7 +284,7 @@ public final class AssistantActivity extends AppCompatActivity {
           UiText.choose(
               "目标未提供有效会话列表，请刷新或打开完整 DSH。",
               "The target did not provide a valid conversation list. Refresh or open the full DSH interface."));
-      button(UiText.choose("刷新会话", "Refresh conversations"), () -> selectTarget(target));
+      button(UiText.choose("刷新会话", "Refresh conversations"), this::selectLocal);
       return;
     }
     if (sessions.length() == 0) {
@@ -377,34 +314,20 @@ public final class AssistantActivity extends AppCompatActivity {
         bind(sessionId);
       }
     }
-    button(UiText.choose("刷新会话", "Refresh conversations"), () -> selectTarget(target));
+    button(UiText.choose("刷新会话", "Refresh conversations"), this::selectLocal);
   }
 
   private void bind(String sessionId) {
     try {
       if (backend == null || !backend.current())
         throw new IllegalStateException("ASSISTANT_TARGET_CHANGED");
-      AssistantBinding binding;
-      if (backend instanceof RemoteAssistantBackend remote)
-        binding =
-            new AssistantBinding(
-                target,
-                hostInstanceId,
-                sessionId,
-                remote.identity.connectionEpoch,
-                remote.identity.generation,
-                remote.identity);
-      else {
-        var local = (LocalAssistantBackend) backend;
-        binding =
-            new AssistantBinding(
-                target,
-                hostInstanceId,
-                sessionId,
-                "local-" + local.generation + "-" + hostInstanceId,
-                local.generation,
-                null);
-      }
+      var local = (LocalAssistantBackend) backend;
+      AssistantBinding binding =
+          new AssistantBinding(
+              hostInstanceId,
+              sessionId,
+              "local-" + local.generation + "-" + hostInstanceId,
+              local.generation);
       status.setText(
           String.format(
               UiText.choose(
@@ -432,6 +355,9 @@ public final class AssistantActivity extends AppCompatActivity {
   }
 
   private void showBound() {
+    loadRevision++;
+    loading = false;
+    creating = false;
     editorRevision++;
     if (bound != null) bound.removeListener(changed);
     bound = AssistantSessionController.active();
@@ -516,9 +442,7 @@ public final class AssistantActivity extends AppCompatActivity {
     button(
         UiText.choose("打开完整 DSH 会话 / 模型设置", "Open full DSH conversation / model settings"),
         bound::returnConversation);
-    button(
-        UiText.choose("选择其他会话", "Choose another conversation"),
-        () -> selectTarget(bound.snapshot().binding().target()));
+    button(UiText.choose("选择其他会话", "Choose another conversation"), this::selectLocal);
     button(
         UiText.choose("收起并返回其他应用", "Collapse and return to other apps"),
         () -> {
@@ -569,11 +493,7 @@ public final class AssistantActivity extends AppCompatActivity {
     if (bound == null || messages == null || isDestroyed()) return;
     var state = bound.snapshot();
     status.setText(
-        (state.binding().target() == AssistantBinding.Target.LOCAL
-                ? UiText.choose("本机", "Local")
-                : UiText.choose("电脑", "PC"))
-            + " · "
-            + AssistantWindow.label(state.phase())
+        UiText.format("%s · %s", UiText.choose("本机", "Local"), AssistantWindow.label(state.phase()))
             + "\n"
             + state.binding().sessionId());
     String transcript =
@@ -639,7 +559,7 @@ public final class AssistantActivity extends AppCompatActivity {
       AssistantService.nativeEditorVisible(true);
       if (pendingInput && input != null) input.post(this::focusComposer);
     }
-    if (target == AssistantBinding.Target.LOCAL && bound == null && !loading) selectTarget(target);
+    if (bound == null && !loading) selectLocal();
   }
 
   @Override

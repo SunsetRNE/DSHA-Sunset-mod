@@ -641,7 +641,7 @@ exports.BASE_CSS = `
    the safe-area inset moves it below the notch too. */
 [data-mobile-nav="fab"] {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px);
   left: 10px;
   z-index: 21;
   display: inline-flex;
@@ -799,7 +799,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     box-sizing: border-box !important;
     position: relative !important;
     grid-template-columns: minmax(0, 1fr) 0 0 !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
     /* Bottom safe area, symmetric with the top inset above. It MUST stay in
        this rule: box-sizing: border-box is the pair that makes the padding eat
        into the one-viewport height instead of adding scrollable overflow
@@ -812,7 +812,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        in the system-bar band (issue #193). In the <=768px band that sheet's
        declaration and this one are the same property with the same value, so
        they do not stack. */
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-bottom: var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* The sidebar column (first grid child) becomes a left drawer. The drawer
@@ -868,7 +868,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        frame's padding box, so the frame's own safe-area padding does NOT
        reach it). The drawer background paints the status-bar strip, which
        the client's theme-color meta matches, so the strip reads seamless. */
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
     /* Kill the official sidebarCol right border: with the backdrop the edge
        reads cleanly, and the settings dialog (width:100% of this box) stays
        pixel-flush with the drawer. */
@@ -1043,7 +1043,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
      instead of silently double-padding. The rule lives in the mobile branch,
      so desktop keeps the host layout. */
   [data-sidebar-right-panel="fullscreen"] {
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
   }
 
   /* Phone chrome keeps only the collapse control. Split visibility must not
@@ -2984,7 +2984,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     position: fixed !important;
     left: 8px !important;
     right: 8px !important;
-    top: calc(env(safe-area-inset-top, 0px) + 80px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 80px) !important;
     bottom: auto !important;
     width: auto !important;
     max-width: none !important;
@@ -3003,7 +3003,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     position: fixed !important;
     left: 8px !important;
     right: 8px !important;
-    top: calc(env(safe-area-inset-top, 0px) + 80px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 80px) !important;
     bottom: auto !important;
     width: auto !important;
     max-width: none !important;
@@ -3407,7 +3407,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        panel overflowing the max-content drawer shifts the fixed overlay's
        coordinate frame, dragging the whole sidebar content off-screen. The
        safe-area inset keeps the sheet below the status bar / notch. */
-    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) !important;
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
     /* Height follows the content (no dead space under a short page); it
@@ -3420,8 +3420,8 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        「又闪一下」. The variable never moves for the keyboard, so the sheet
        keeps its size and the keyboard covers its lower half instead. */
     height: auto;
-    max-height: min(800px, calc(100vh - 24px - env(safe-area-inset-top, 0px)));
-    max-height: min(800px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - env(safe-area-inset-top, 0px)));
+    max-height: min(800px, calc(100vh - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px))));
+    max-height: min(800px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px))));
     /* Only a real viewport change (rotation / window resize) reaches this now,
        so the short transition reads as a slide instead of a jump. */
     transition: max-height .2s var(--ds-ease-out, ease-in-out);
@@ -3826,12 +3826,12 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
   [aria-modal="true"][data-shortcut-modal="shortcuts"] {
     position: absolute !important;
     left: 8px !important;
-    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) !important;
     width: calc(100vw - 16px) !important;
     max-width: calc(100vw - 16px) !important;
     /* 同上：键盘不进这层的高度。这一层下面就是键盘，卡片缩一次就一定被看见，
        所以用「不含键盘的视口高度」定高 → 点搜索框时卡片纹丝不动，键盘盖住下半截。 */
-    max-height: min(760px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - env(safe-area-inset-top, 0px))) !important;
+    max-height: min(760px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)))) !important;
     transition: max-height .2s var(--ds-ease-out, ease-in-out);
     transform: none !important;
     border-radius: 14px !important;
@@ -3897,8 +3897,8 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
   /* DSHA 可见区域边界：原生已消费 IME/systemBars，只读浏览器实际视口。 */
   [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]),
   [aria-modal="true"][data-shortcut-modal="shortcuts"] {
-    top: calc(env(safe-area-inset-top, 0px) + 12px + var(--dsha-mobile-viewport-top, 0px)) !important;
-    max-height: max(1px, calc(var(--dsha-mobile-visible-vh, 100vh) - 24px - env(safe-area-inset-top, 0px))) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px + var(--dsha-mobile-viewport-top, 0px)) !important;
+    max-height: max(1px, calc(var(--dsha-mobile-visible-vh, 100vh) - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)))) !important;
     min-height: 0 !important;
     box-sizing: border-box;
     overflow-y: auto;
@@ -4531,7 +4531,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
     height: 100dvh !important;
     max-height: none !important;
     box-sizing: border-box !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     z-index: 57 !important;
@@ -4540,7 +4540,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   /* Fullscreen: the column fills the viewport, so the button follows the
      titlebar row down below the notch. */
   [data-mobile-nav="frame"][data-mobile-preview-full] [data-aionui-preview-col] [data-mobile-nav="preview-full-toggle"] {
-    top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 8px) !important;
   }
   @media (prefers-reduced-motion: reduce) {
     [data-aionui-preview-col],
@@ -5432,7 +5432,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   [data-mobile-nav="frame"][data-file-viewer-open] .dsfv-statusbar {
     flex-wrap: wrap !important;
     gap: 4px 10px !important;
-    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 4px 8px calc(4px + var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
     font-size: 12px !important;
   }
   /* Content scrollers must own horizontal scrolling; the flex columns and the
@@ -5538,7 +5538,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   [data-mobile-nav="file-share-toast"] {
     position: fixed;
     left: 50%;
-    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(24px + var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     z-index: 1500;
     max-width: min(90vw, 420px);
     padding: 8px 14px;
@@ -15306,7 +15306,7 @@ function installNativeFileActions() {
 [data-dsha-file-sheet]>div>div{padding:8px 12px;overflow-wrap:anywhere;font-weight:600}
 [data-dsha-file-sheet] button{display:block;text-align:start;width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:8px;padding:12px;min-height:44px}
 [data-dsha-file-sheet] button:hover{background:var(--dsw-alias-interactive-bg-hover,#8882)}
-[data-dsha-image-save]{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:1510;border:0;border-radius:20px;padding:10px 20px;background:#fff;color:#222;font:inherit}
+[data-dsha-image-save]{position:fixed;bottom:calc(18px + var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom,0px)));left:50%;transform:translateX(-50%);z-index:1510;border:0;border-radius:20px;padding:10px 20px;background:#fff;color:#222;font:inherit}
 `;
     document.head.appendChild(style);
     let hold = null, consumed = null, imageFlight = false;

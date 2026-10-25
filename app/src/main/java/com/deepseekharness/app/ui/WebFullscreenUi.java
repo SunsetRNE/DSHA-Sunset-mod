@@ -68,6 +68,8 @@ public final class WebFullscreenUi {
     WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false);
     View content = activity.findViewById(android.R.id.content);
     activity.getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+    if (android.os.Build.VERSION.SDK_INT >= 29)
+      activity.getWindow().setStatusBarContrastEnforced(false);
     new ContentInsets(activity, content);
     applySystemBars(activity);
     ViewCompat.requestApplyInsets(content);

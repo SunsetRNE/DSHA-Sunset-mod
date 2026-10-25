@@ -33,7 +33,6 @@ public class MainActivity extends AppCompatActivity {
   private boolean discardedLauncherEntry;
   private boolean leavingUi;
   private boolean mainReady;
-  private boolean localSetupRequired;
   private Bundle pendingMainState;
   private android.view.View entryOverlay;
   private final java.util.List<Fragment> gatedPages = new java.util.ArrayList<>();
@@ -88,11 +87,8 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     ConfigStore config = new ConfigStore(this);
-    boolean firstLaunchHome =
-        !config.isWelcomed()
-            && !com.deepseekharness.app.remote.ui.WorkspaceEntry.requiresLocal(getIntent());
-    // A fresh home does not restore local terminal/plugin pages or initialize Ubuntu.
-    super.onCreate(firstLaunchHome ? null : savedInstanceState);
+    // 首次设置完成前不恢复旧终端或插件页，也不初始化 Ubuntu。
+    super.onCreate(config.isWelcomed() ? savedInstanceState : null);
     getOnBackPressedDispatcher()
         .addCallback(
             this,
@@ -131,14 +127,8 @@ public class MainActivity extends AppCompatActivity {
 
     if (savedInstanceState != null)
       openedRecovery = savedInstanceState.getString("opened_startup_recovery", "");
-    // Main is the launcher destination. Local setup starts only after a phone action.
+    // 所有入口共用本机设置门禁；旧电脑工作区 Intent 不能绕过它。
     if (!config.isWelcomed()) {
-      if (firstLaunchHome) {
-        localSetupRequired = true;
-        setContentView(R.layout.activity_main);
-        showMain(null, config, null);
-        return;
-      }
       startActivity(new Intent(this, WelcomeActivity.class));
       finish();
       return;
@@ -237,16 +227,12 @@ public class MainActivity extends AppCompatActivity {
           }
           boolean unresolved = controller.hasUnresolvedWebSession();
           boolean restoring = controller.isRestoringWebSession();
-          boolean local =
-              com.deepseekharness.app.remote.ui.WorkspaceEntry.requiresLocal(admittedIntent);
           android.util.Log.i(
               "DSHA",
               "MAIN_ENTRY_GATE maintenance="
                   + maintenance
                   + " failed="
                   + failed
-                  + " local="
-                  + local
                   + " unresolved="
                   + unresolved
                   + " restoring="
@@ -254,13 +240,8 @@ public class MainActivity extends AppCompatActivity {
                   + " restored="
                   + (saved != null));
           if (!failed && maintenance && !unresolved && !restoring) {
-            if (local) {
-              startActivity(new Intent(this, ExtractActivity.class));
-              finish();
-            } else {
-              localSetupRequired = true;
-              showMain(saved, config, controller);
-            }
+            startActivity(new Intent(this, ExtractActivity.class));
+            finish();
           } else {
             // 原实例证据未知时留在Main提供诊断，不触发解压或静默更新原环境。
             showMain(saved, config, controller);
@@ -298,10 +279,6 @@ public class MainActivity extends AppCompatActivity {
     TextView recovery = findViewById(R.id.environment_recovery_banner);
     recovery.setOnClickListener(
         v -> {
-          if (localSetupRequired) {
-            startActivity(com.deepseekharness.app.remote.ui.WorkspaceEntry.local(this));
-            return;
-          }
           if (com.deepseekharness.app.core.BackupTask.get(this).maintenanceBusy()
               || BackgroundTasksActivity.busy(this)) BackgroundTasksActivity.open(this);
           else if (controller.config().isStartupRecoveryRequested()
@@ -312,7 +289,6 @@ public class MainActivity extends AppCompatActivity {
     String pendingLink =
         getSharedPreferences("dsha-install-link", MODE_PRIVATE).getString("pending", "");
     if (!pendingLink.isEmpty()
-        && !localSetupRequired
         && controller != null
         && !controller.hasUnresolvedWebSession()
         && !com.deepseekharness.app.core.EnvironmentAccess.needsRecovery(controller)) {
@@ -350,10 +326,6 @@ public class MainActivity extends AppCompatActivity {
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     nav.setOnItemSelectedListener(
         item -> {
-          if (localSetupRequired && item.getItemId() != R.id.nav_launch) {
-            startActivity(com.deepseekharness.app.remote.ui.WorkspaceEntry.local(this));
-            return false;
-          }
           // 当前根页面再次点选时保留输入和滚动；从子页返回或外部打开插件仍执行导航。
           if (nav.getSelectedItemId() == item.getItemId()
               && getSupportFragmentManager().getBackStackEntryCount() == 0
@@ -362,8 +334,6 @@ public class MainActivity extends AppCompatActivity {
                   getSupportFragmentManager().findFragmentById(R.id.fragment_container))
               && !(getSupportFragmentManager().findFragmentById(R.id.fragment_container)
                   instanceof EnvironmentRecoveryFragment)
-              && launchSetupMatches(
-                  getSupportFragmentManager().findFragmentById(R.id.fragment_container))
               && !getIntent().getBooleanExtra("open_plugins", false)) return true;
           if (!getSupportFragmentManager().isStateSaved())
             getSupportFragmentManager()
@@ -373,9 +343,8 @@ public class MainActivity extends AppCompatActivity {
           int id = item.getItemId();
           if (id == R.id.nav_launch) {
             f = new LaunchFragment();
-            if (localSetupRequired || pendingOpenWeb) {
+            if (pendingOpenWeb) {
               Bundle args = new Bundle();
-              args.putBoolean(LaunchFragment.ARG_PREPARE_LOCAL, localSetupRequired);
               args.putBoolean(LaunchFragment.ARG_OPEN_WEB, pendingOpenWeb);
               pendingOpenWeb = false;
               f.setArguments(args);
@@ -416,35 +385,22 @@ public class MainActivity extends AppCompatActivity {
     // 触发监听器创建 LaunchFragment，那时再置标记已经晚了（参数带不进去）。
     consumeOpenWeb(getIntent());
     boolean unresolved = controller != null && controller.hasUnresolvedWebSession();
-    boolean restoredLaunchMismatch =
-        !launchSetupMatches(getSupportFragmentManager().findFragmentById(R.id.fragment_container));
-    if (savedInstanceState == null || unresolved || localSetupRequired || restoredLaunchMismatch) {
+    if (savedInstanceState == null || unresolved) {
       nav.setSelectedItemId(
-          !localSetupRequired && !unresolved && getIntent().getBooleanExtra("open_plugins", false)
+          !unresolved && getIntent().getBooleanExtra("open_plugins", false)
               ? R.id.nav_plugins
               : R.id.nav_launch);
     }
-    releaseGatedPages(!unresolved && !localSetupRequired);
+    releaseGatedPages(!unresolved);
     consumeTaskTarget(getIntent());
     // 只订阅后台检查；提示不切换导航，也不自动打开更新页或 Web。
     startupUpdates = com.deepseekharness.app.core.UpdateEngine.get(this);
     startupUpdates.state().observe(this, state -> showStartupUpdate());
     startupUpdates.checkOnStartup(config.isCheckUpdate());
     scheduleFirstRunWeb();
-    if (!localSetupRequired) {
-      recoveryHandler.removeCallbacks(refreshRecovery);
-      recoveryHandler.post(refreshRecovery);
-      maybePromptExternalRestore();
-    }
-  }
-
-  /** A restored setup-only page cannot outlive the current entry gate's result. */
-  private boolean launchSetupMatches(Fragment page) {
-    if (!(page instanceof LaunchFragment)) return true;
-    Bundle args = page.getArguments();
-    boolean preparationPage =
-        args != null && args.getBoolean(LaunchFragment.ARG_PREPARE_LOCAL, false);
-    return preparationPage == localSetupRequired;
+    recoveryHandler.removeCallbacks(refreshRecovery);
+    recoveryHandler.post(refreshRecovery);
+    maybePromptExternalRestore();
   }
 
   private void releaseGatedPages(boolean allowed) {
@@ -459,7 +415,6 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void scheduleFirstRunWeb() {
-    if (localSetupRequired) return;
     findViewById(android.R.id.content)
         .post(
             () -> {
@@ -538,11 +493,6 @@ public class MainActivity extends AppCompatActivity {
     super.onNewIntent(intent);
     leavingUi = false;
     setIntent(intent);
-    if (localSetupRequired
-        && com.deepseekharness.app.remote.ui.WorkspaceEntry.requiresLocal(intent)) {
-      recreate(); // Re-enter the existing welcome/restore/maintenance gate for this phone action.
-      return;
-    }
     BrowserTasks.entry("NEW_INTENT", intent);
     if (resumeBackground(intent)) return;
     if (!mainReady) {
@@ -563,11 +513,6 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private boolean resumeBackground(Intent intent) {
-    if (intent != null
-        && intent.getBooleanExtra(com.deepseekharness.app.remote.ui.WorkspaceEntry.LOCAL, false)) {
-      BrowserTasks.nativeNavigation();
-      return false;
-    }
     if (BrowserTasks.nativeDestination(intent)) {
       intent.removeExtra(BrowserTasks.NATIVE_HOME);
       BrowserTasks.nativeNavigation();
@@ -664,8 +609,8 @@ public class MainActivity extends AppCompatActivity {
     // 直接把意图交给当前这个 LaunchFragment；没有就等下次创建。
     getSupportFragmentManager().executePendingTransactions();
     Fragment shown = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-    // showMain rebuilds an outdated setup page with pendingOpenWeb still attached.
-    if (shown instanceof LaunchFragment && launchSetupMatches(shown)) {
+    // 已恢复的启动页也消费同一次明确请求。
+    if (shown instanceof LaunchFragment) {
       pendingOpenWeb = false;
       ((LaunchFragment) shown).requestAutoEnterWeb();
     }
@@ -713,7 +658,6 @@ public class MainActivity extends AppCompatActivity {
     if (!new ConfigStore(this)
         .getUiLanguage()
         .equals(com.deepseekharness.app.util.UiText.language())) LanguageController.apply(this);
-    if (localSetupRequired) return;
     recoveryHandler.removeCallbacks(refreshRecovery);
     recoveryHandler.post(refreshRecovery);
     updateToolbar();
@@ -740,7 +684,7 @@ public class MainActivity extends AppCompatActivity {
    * 当成「没有备份」，而是提供 SAF 手动选择（issue #22）。
    */
   private void maybePromptExternalRestore() {
-    if (localSetupRequired || restoreProbeStarted || isFinishing() || isDestroyed()) return;
+    if (restoreProbeStarted || isFinishing() || isDestroyed()) return;
     HarnessController controller = HarnessController.get(this);
     restoreProbeStarted = true;
     new Thread(
@@ -891,7 +835,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
           TextView banner = findViewById(R.id.environment_recovery_banner);
-          if (localSetupRequired || banner == null || isFinishing()) return;
+          if (banner == null || isFinishing()) return;
           HarnessController controller = HarnessController.get(MainActivity.this);
           boolean startupRecovery =
               controller.config().isStartupRecoveryRequested()

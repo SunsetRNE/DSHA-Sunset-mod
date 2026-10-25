@@ -141,15 +141,6 @@
     ]
   },
   {
-    "id": "x1970020",
-    "zh": "电脑 DSH",
-    "en": "PC DSH",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java",
-      "app/src/main/java/com/deepseekharness/app/assistant/AssistantWindow.java"
-    ]
-  },
-  {
     "id": "x1970021",
     "zh": "允许悬浮窗",
     "en": "Allow floating window",
@@ -193,14 +184,6 @@
     "id": "x1970026",
     "zh": "正在读取真实会话…",
     "en": "Reading conversations…",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java"
-    ]
-  },
-  {
-    "id": "x1970027",
-    "zh": "请先连接并信任电脑端",
-    "en": "Connect and trust a PC first",
     "files": [
       "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java"
     ]
@@ -262,22 +245,6 @@
     ]
   },
   {
-    "id": "x1970035",
-    "zh": "电脑会话暂不可用。请在电脑工作区确认连接，再刷新。",
-    "en": "PC conversations are unavailable. Check the connection in PC workspaces, then refresh.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java"
-    ]
-  },
-  {
-    "id": "x1970036",
-    "zh": "返回首页连接电脑",
-    "en": "Return home to connect a PC",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java"
-    ]
-  },
-  {
     "id": "x1970037",
     "zh": "刷新会话",
     "en": "Refresh conversations",
@@ -289,14 +256,6 @@
     "id": "x1970038",
     "zh": "本机 DSH 会话",
     "en": "Local DSH conversations",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java"
-    ]
-  },
-  {
-    "id": "x1970039",
-    "zh": "电脑 DSH 会话",
-    "en": "PC DSH conversations",
     "files": [
       "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java"
     ]
@@ -461,14 +420,6 @@
     ]
   },
   {
-    "id": "x1970059",
-    "zh": "电脑",
-    "en": "PC",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/assistant/AssistantActivity.java"
-    ]
-  },
-  {
     "id": "x1970060",
     "zh": "在下方输入消息开始对话。模型和 API Key 请先在完整 DSH 会话中设置。",
     "en": "Type below to begin. Configure your model and API key in the full DSH conversation first.",
@@ -571,7 +522,7 @@
     "en": "Floating assistant",
     "files": [
       "app/src/main/java/com/deepseekharness/app/assistant/AssistantService.java",
-      "app/src/main/res/values/build195_remote.xml"
+      "app/src/main/res/values/phone_assistant.xml"
     ]
   },
   {
@@ -1631,46 +1582,6 @@
     ]
   },
   {
-    "id": "x1970204",
-    "zh": "电脑连接",
-    "en": "Computer connection",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/RemoteConnectionService.java"
-    ]
-  },
-  {
-    "id": "x1970205",
-    "zh": "DSHA 电脑连接",
-    "en": "DSHA computer connection",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/RemoteConnectionService.java"
-    ]
-  },
-  {
-    "id": "x1970206",
-    "zh": "已连接电脑，可在通知中停止",
-    "en": "Computer connected. Stop here at any time.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/RemoteConnectionService.java"
-    ]
-  },
-  {
-    "id": "x1970207",
-    "zh": "正在恢复电脑连接，操作已暂停",
-    "en": "Restoring the connection. Actions are paused.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/RemoteConnectionService.java"
-    ]
-  },
-  {
-    "id": "x1970208",
-    "zh": "正在连接电脑…",
-    "en": "Connecting to computer…",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/RemoteConnectionService.java"
-    ]
-  },
-  {
     "id": "x1970209",
     "zh": "断开连接",
     "en": "Disconnect",
@@ -2558,47 +2469,6 @@
     "en": "Needs checking",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
-    ]
-  },
-  {
-    "id": "x1970320",
-    "zh": "电脑工作区",
-    "en": "Computer workspaces",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java",
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970321",
-    "zh": "配对电脑，使用电脑上的 DSH；无需安装手机环境。",
-    "en": "Pair a computer and use its DSH. Phone runtime setup is optional.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
-    ]
-  },
-  {
-    "id": "x1970322",
-    "zh": "手机环境尚未准备",
-    "en": "Phone runtime not set up",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
-    ]
-  },
-  {
-    "id": "x1970323",
-    "zh": "在手机运行 DSH 时再准备环境，也可直接连接电脑。",
-    "en": "Set up DSH to run on this phone, or connect a computer below.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
-    ]
-  },
-  {
-    "id": "x1970324",
-    "zh": "准备手机环境",
-    "en": "Set up phone runtime",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
   },
   {
@@ -3935,384 +3805,11 @@
   },
   {
     "id": "x1970494",
-    "zh": "选择本机或已连接电脑的真实 DSH 会话，悬浮聊天与暂停控制。",
-    "en": "Choose a real DSH session on this phone or a connected computer for floating chat and pause controls.",
+    "zh": "选择这部手机上的真实 DSH 会话，悬浮聊天与暂停控制。",
+    "en": "Choose a real DSH session on this phone for floating chat and pause controls.",
     "files": [
-      "app/src/main/res/values/build195_remote.xml"
+      "app/src/main/res/values/phone_assistant.xml"
     ]
-  },
-  {
-    "id": "x1970495",
-    "zh": "手机与电脑各自保留对话、文件和设置。选择电脑不需要安装手机 Ubuntu 环境。",
-    "en": "Your phone and computer keep separate conversations, files, and settings. A computer workspace needs no Ubuntu environment on this phone.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970496",
-    "zh": "这部手机",
-    "en": "This phone",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970497",
-    "zh": "在手机本地运行 DSH，使用本机对话与文件。",
-    "en": "Run DSH on this phone with local conversations and files.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970498",
-    "zh": "进入手机工作区",
-    "en": "Open phone workspace",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970499",
-    "zh": "配对电脑",
-    "en": "Pair computer",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970500",
-    "zh": "尚未配对电脑。首次配对后会记住这台电脑，可随时撤销。",
-    "en": "No paired computers yet. Pair once to remember your computer. You can revoke trust any time.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970501",
-    "zh": "在电脑 DSH 中启用 DSHA Connect，显示配对二维码。扫描二维码，或粘贴电脑显示的完整配对码。配对码短时有效，请勿转发。已配对电脑换网或地址变化时，扫描电脑的“更新连接地址”二维码。",
-    "en": "Enable DSHA Connect in DSH on your computer and display its pairing QR code. Scan it, or paste the complete pairing code shown there. The code expires shortly; keep it private. If an already paired computer changes network or addresses, scan its Refresh connection addresses QR code.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970502",
-    "zh": "粘贴完整配对码（dsha-connect://pair?ticket=…）",
-    "en": "Paste complete pairing code (dsha-connect://pair?ticket=…)",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970503",
-    "zh": "扫描电脑二维码",
-    "en": "Scan computer QR code",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970504",
-    "zh": "核对并配对",
-    "en": "Review and pair",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970505",
-    "zh": "正在核对本机电脑信任记录…",
-    "en": "Checking computer trust on this phone…",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970506",
-    "zh": "尚未信任此电脑。请在电脑显示首次配对二维码。",
-    "en": "This computer is not trusted yet. Display its first pairing QR code.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970507",
-    "zh": "此电脑已配对。请在电脑显示“更新连接地址”二维码，已有信任保持不变。",
-    "en": "This computer is already paired. Display its Refresh connection addresses QR code. Existing trust is kept.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970508",
-    "zh": "更新电脑连接地址",
-    "en": "Refresh computer addresses",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970509",
-    "zh": "电脑：%1$s\\n身份：%2$s\\n新连接地址：%3$d 个\\n\\n仅在电脑身份、已有连接密钥与本次进程核验通过后更新地址。已有授权保留，核验失败不改旧记录。",
-    "en": "Computer: %1$s\\nIdentity: %2$s\\nNew connection addresses: %3$d\\n\\nUpdate addresses only after verifying the pinned computer identity, existing connection key, and current process. Keep existing grants. Verification failure leaves the old record unchanged.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ],
-    "androidFormat": true
-  },
-  {
-    "id": "x1970510",
-    "zh": "核验地址并连接",
-    "en": "Verify addresses and connect",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970511",
-    "zh": "正在验证电脑与新地址；成功后才会更新连接记录。",
-    "en": "Verifying computer and new addresses. Connection records update only after success.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970512",
-    "zh": "改用手动配对码",
-    "en": "Use a pairing code instead",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970513",
-    "zh": "对准电脑 DSH 显示的配对二维码。相机画面仅在本机用于识别。",
-    "en": "Scan the pairing QR shown in DSH on your computer. Camera frames are decoded on this phone.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970514",
-    "zh": "无法使用相机。可返回并粘贴配对码。",
-    "en": "Camera unavailable. Go back and paste a pairing code.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970515",
-    "zh": "配对码无效或已过期，请在电脑刷新后重试。",
-    "en": "Invalid or expired pairing code. Refresh it on your computer and try again.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970516",
-    "zh": "信任这台电脑？",
-    "en": "Trust this computer?",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970517",
-    "zh": "电脑：%1$s\\n身份：%2$s\\n\\n配对后记住此电脑，允许连接它的 DSH 对话与文件，并使用已授权的手机助手能力。手机的系统权限仍需单独授予。可在工作区随时撤销。\\n\\n仅在你自己的电脑上生成配对码后继续。",
-    "en": "Computer: %1$s\\nIdentity: %2$s\\n\\nRemember this computer, connect to its DSH conversations and files, and allow phone assistant capabilities you have authorized. Android system permissions still need separate approval. You can revoke trust in Workspaces.\\n\\nContinue only if you generated this code on your own computer.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ],
-    "androidFormat": true
-  },
-  {
-    "id": "x1970518",
-    "zh": "信任并配对",
-    "en": "Trust and pair",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970519",
-    "zh": "返回工作区",
-    "en": "Back to workspaces",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970520",
-    "zh": "连接电脑",
-    "en": "Connect computer",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970521",
-    "zh": "打开电脑对话",
-    "en": "Open computer conversations",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970522",
-    "zh": "断开远程连接",
-    "en": "Disconnect remote session",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970523",
-    "zh": "撤销此电脑",
-    "en": "Revoke this computer",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970524",
-    "zh": "撤销电脑信任？",
-    "en": "Revoke computer trust?",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970525",
-    "zh": "撤销 %1$s 后，当前连接与许可失效。再次连接需要重新配对。电脑文件和对话保留。",
-    "en": "Revoking %1$s ends its current connection and grants. Pair again to reconnect. Computer files and conversations are kept.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ],
-    "androidFormat": true
-  },
-  {
-    "id": "x1970526",
-    "zh": "操作未完成，请重试。没有自动重复业务操作。",
-    "en": "Operation did not complete. Please retry. Business operations are never automatically repeated.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970527",
-    "zh": "无法读取电脑信任记录；已有记录未清除。",
-    "en": "Computer trust records could not be read. Existing records have been kept.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970528",
-    "zh": "远程连接已停止",
-    "en": "Remote connection stopped",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970529",
-    "zh": "正在连接与验证电脑身份…",
-    "en": "Connecting and verifying computer identity…",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970530",
-    "zh": "连接中断，正在限时重新验证连接。原业务操作不会重发。",
-    "en": "Connection interrupted. Reconnecting and verifying within a limited window. Business operations will not be resent.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970531",
-    "zh": "电脑已鉴权连接",
-    "en": "Computer connection authenticated",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970532",
-    "zh": "连接已中断，可重新连接；业务操作不会自动重发。",
-    "en": "Connection interrupted. Reconnect when ready; business operations will not be resent.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970533",
-    "zh": "连接未完成，请检查电脑 DSH 与网络后重试。",
-    "en": "Connection incomplete. Check computer DSH and network, then retry.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970534",
-    "zh": "正在验证配对；成功后才会保存电脑信任。",
-    "en": "Verifying pairing. Computer trust is saved only after success.",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970535",
-    "zh": "路径：直连",
-    "en": "Path: direct",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970536",
-    "zh": "路径：加密中继",
-    "en": "Path: encrypted relay",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970537",
-    "zh": "路径：等待实测",
-    "en": "Path: awaiting measurement",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970538",
-    "zh": "往返延迟：%1$d ms",
-    "en": "Round-trip latency: %1$d ms",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ],
-    "androidFormat": true
-  },
-  {
-    "id": "x1970539",
-    "zh": "往返延迟：尚未测得",
-    "en": "Round-trip latency: not measured yet",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ]
-  },
-  {
-    "id": "x1970540",
-    "zh": "已记住 %1$d 个连接地址",
-    "en": "%1$d connection addresses remembered",
-    "files": [
-      "app/src/main/res/values/build195_remote.xml"
-    ],
-    "androidFormat": true
   },
   {
     "id": "x1970541",
@@ -7947,89 +7444,9 @@
     "uiFormat": true
   },
   {
-    "id": "x1970992",
-    "zh": "将远程图片保存到相册？",
-    "en": "Save remote image to gallery?",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteBlobSink.java"
-    ]
-  },
-  {
-    "id": "x1970993",
-    "zh": "远程 · 电脑工作区",
-    "en": "REMOTE · PC workspace",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
     "id": "x1970994",
     "zh": "重新加载",
     "en": "Reload",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1970995",
-    "zh": "正在连接所选电脑…",
-    "en": "Connecting to the selected PC…",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1970996",
-    "zh": "远程浏览器隔离不可用",
-    "en": "Remote browser isolation unavailable",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1970997",
-    "zh": "请重新选择电脑以打开其独立浏览器。",
-    "en": "Select the PC again to open its isolated browser.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1970998",
-    "zh": "电脑连接不可用，请从工作区列表重新连接。",
-    "en": "PC connection unavailable. Reconnect from the workspace list.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1970999",
-    "zh": "远程 · 电脑网页 · 此处不提供本机 Android 工具",
-    "en": "REMOTE · PC frontend · local Android tools are unavailable here",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971000",
-    "zh": "远程网页不可用，请检查电脑连接。",
-    "en": "Remote page unavailable. Check the PC connection.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971001",
-    "zh": "远程浏览器已关闭，请从工作区列表重新打开。",
-    "en": "Remote browser closed. Reopen it from the workspace list.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971002",
-    "zh": "保存远程文件需要更新 Android WebView。",
-    "en": "Remote file saving requires an updated Android WebView.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
     ]
@@ -8043,30 +7460,6 @@
     ]
   },
   {
-    "id": "x1971004",
-    "zh": "正在下载远程文件；若中断，可在下载记录中保留已接收部分。",
-    "en": "Downloading remote file. Partial bytes are kept in Downloads if interrupted.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971005",
-    "zh": "无法创建远程下载，请从电脑网页重试。",
-    "en": "Unable to create remote download. Retry from the PC page.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971006",
-    "zh": "远程下载已完成，请从下载记录中保存。",
-    "en": "Remote download complete. Save it from Downloads.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
     "id": "x1971007",
     "zh": "下载已暂停或来源已变更，请打开下载记录查看、续传或明确重新开始。",
     "en": "Download paused or source changed. Open Downloads to review, resume or explicitly restart.",
@@ -8075,41 +7468,9 @@
     ]
   },
   {
-    "id": "x1971008",
-    "zh": "远程下载已保存",
-    "en": "Remote download saved",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
     "id": "x1971009",
     "zh": "已保留完整的应用私有副本；请在下载记录中选择保存，重新指定目标位置。",
     "en": "Completed private copy retained. Choose Save from Downloads to select a destination again.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971010",
-    "zh": "远程 HTTP 下载 · 当前电脑",
-    "en": "Remote HTTP downloads · this PC",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971011",
-    "zh": "远程下载记录不可用",
-    "en": "Remote download records unavailable",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971012",
-    "zh": "仅当电脑可核验文件未变更时才能续传。重新开始会创建新副本并保留这份部分文件。网页内部生成的文件在网页关闭后无法续传。",
-    "en": "Resume is available only when the PC can verify the same unchanged file. Restart begins a new copy and keeps this partial. Files generated inside a webpage cannot resume after that page closes.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
     ]
@@ -8158,22 +7519,6 @@
     "id": "x1971018",
     "zh": "尚未开始",
     "en": "Not started",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971019",
-    "zh": "远程连接已恢复，请在下载记录中手动继续 HTTP 文件下载。",
-    "en": "Remote connection restored. Resume HTTP files explicitly in Downloads.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
-    ]
-  },
-  {
-    "id": "x1971020",
-    "zh": "电脑已断开，请重新连接同一工作区后再重新加载。",
-    "en": "PC is disconnected. Reconnect the same workspace, then Reload.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/remote/gateway/RemoteWebActivity.java"
     ]

@@ -6,7 +6,7 @@ import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.capabilities.CapabilityRequest;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/** Process-wide native authority; remote tasks do not borrow a local Web generation. */
+/** Process-wide native authority for the current local DSH conversation and turn. */
 public final class PhoneControlCoordinator {
   private static PhoneControlCoordinator instance;
   private final Context context;
@@ -20,8 +20,7 @@ public final class PhoneControlCoordinator {
     OwnedScreenOverlay.setExpansionListener(
         () -> {
           var state = snapshot();
-          if (!state.paused() || "REMOTE_PAUSE".equals(state.reason()))
-            pause("ASSISTANT_PANEL_EXPANDED");
+          if (!state.paused()) pause("ASSISTANT_PANEL_EXPANDED");
         });
   }
 
@@ -72,10 +71,6 @@ public final class PhoneControlCoordinator {
     if (authority.completeLocal(binding)) fence(false, null);
   }
 
-  public void finishTask(ControlTaskAuthority.Binding binding) {
-    if (authority.finish(binding)) fence(false, null);
-  }
-
   public void pause(String reason) {
     var previous = authority.pause(reason);
     fence(true, previous);
@@ -98,16 +93,9 @@ public final class PhoneControlCoordinator {
     fence(true, previous);
   }
 
-  public void disconnectRemote(com.deepseekharness.app.remote.RemoteSessionIdentity identity) {
-    var value = snapshot().binding();
-    if (value != null
-        && value.owner() == ControlTaskAuthority.Owner.REMOTE_DEVICE
-        && value.connection().equals(identity.connectionEpoch)) pause("REMOTE_DISCONNECTED");
-  }
-
   public void stopLocal(String reason) {
     var binding = snapshot().binding();
-    if (binding != null && binding.owner() == ControlTaskAuthority.Owner.LOCAL_DSH) stop(reason);
+    if (binding != null) stop(reason);
   }
 
   public void bindRequest(CapabilityRequest request, ControlTaskAuthority.Lease lease) {

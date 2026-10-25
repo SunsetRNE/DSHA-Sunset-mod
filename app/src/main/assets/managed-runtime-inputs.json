@@ -530,7 +530,8 @@
     "app/src/main/java/com/deepseekharness/app/screen",
     "app/src/main/java/com/deepseekharness/app/vscreen",
     "app/src/main/java/com/deepseekharness/app/device",
-    "app/src/main/java/com/deepseekharness/app/diagnostics"
+    "app/src/main/java/com/deepseekharness/app/diagnostics",
+    "app/src/main/java/com/deepseekharness/app/plugins"
   ],
   "launcherSources": [
     "util/IsolatedCommand.java",
@@ -547,6 +548,9 @@
     "util/GuestCommandOutcome.java",
     "backup/HostMaintenancePending.java",
     "core/RuntimeTasks.java",
+    "core/PluginRepository.java",
+    "core/PluginTask.java",
+    "core/PluginActivationHooks.java",
     "core/MaintenanceCoordinator.java",
     "core/ConfigStore.java",
     "core/HarnessController.java",
@@ -719,6 +723,7 @@
     "tools/mobile-server/delete-session.js",
     "tools/mobile-server/index.js",
     "tools/apply-mobile-client-patches.mjs",
+    "tools/mobile-safe-area.mjs",
     "tools/mobile-locales.mjs",
     "tools/mobile-locales.json",
     "tools/mobile-plugin-upstream.lock.json",

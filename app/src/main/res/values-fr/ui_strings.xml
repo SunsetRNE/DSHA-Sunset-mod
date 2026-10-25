@@ -16,6 +16,8 @@
     <string name="dns_auto" formatted="false">"Compatibilité automatique (recommandé)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilité DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Résolution native double pile"</string>
+    <string name="phone_assistant" formatted="false">"Assistant flottant"</string>
+    <string name="phone_assistant_detail" formatted="false">"Choisissez une vraie session DSH sur ce téléphone pour la conversation flottante et les commandes de pause."</string>
     <string name="picture_in_picture_allowed" formatted="false">"Autorisé par le système ; la conversation reste dans une petite fenêtre lorsque vous revenez à l’accueil ou changez d’application."</string>
     <string name="picture_in_picture_disabled" formatted="false">"Désactivé par le système ; aucune petite fenêtre n’apparaît en arrière-plan. Appuyez pour modifier."</string>
     <string name="picture_in_picture_enable" formatted="false">"Activer la conversation en incrustation"</string>
@@ -30,57 +32,6 @@
     <string name="plugin_sort_title" formatted="false">"Trier les plugins"</string>
     <string name="plugin_sort_updates" formatted="false">"Mises à jour en premier"</string>
     <string name="plugin_sort_za" formatted="false">"Nom de Z à A"</string>
-    <string name="remote_assistant" formatted="false">"Assistant flottant"</string>
-    <string name="remote_assistant_detail" formatted="false">"Choisissez une vraie session DSH sur ce téléphone ou un ordinateur connecté pour la conversation flottante et les commandes de pause."</string>
-    <string name="remote_back" formatted="false">"Retour aux espaces de travail"</string>
-    <string name="remote_camera_unavailable" formatted="false">"Caméra indisponible. Revenez en arrière et collez un code d’association."</string>
-    <string name="remote_cancel" formatted="false">"Annuler"</string>
-    <string name="remote_checking_trust" formatted="false">"Vérification de la confiance de l’ordinateur sur ce téléphone…"</string>
-    <string name="remote_code_hint" formatted="false">"Coller le code d’association complet (dsha-connect://pair?ticket=…)"</string>
-    <string name="remote_code_invalid" formatted="false">"Code d’association invalide ou expiré. Actualisez-le sur votre ordinateur et réessayez."</string>
-    <string name="remote_computers" formatted="false">"Espaces de travail PC"</string>
-    <string name="remote_connect" formatted="false">"Connecter l’ordinateur"</string>
-    <string name="remote_disconnect" formatted="false">"Déconnecter la session distante"</string>
-    <string name="remote_endpoint_count" formatted="false">"%1$d adresses de connexion mémorisées"</string>
-    <string name="remote_error" formatted="false">"L’opération est incomplète. Réessayez. Les opérations métier ne sont jamais répétées automatiquement."</string>
-    <string name="remote_grant" formatted="false">"Faire confiance et associer"</string>
-    <string name="remote_grant_body" formatted="false">"Ordinateur : %1$s\nIdentité : %2$s\n\nMémoriser cet ordinateur, accéder à ses conversations et fichiers DSH et permettre les fonctions d’assistant du téléphone que vous avez autorisées. Les autorisations système Android nécessitent toujours une approbation distincte. Vous pouvez révoquer la confiance dans Espaces de travail.\n\nContinuez uniquement si vous avez généré ce code sur votre propre ordinateur."</string>
-    <string name="remote_grant_title" formatted="false">"Faire confiance à cet ordinateur ?"</string>
-    <string name="remote_latency" formatted="false">"Latence aller-retour : %1$d ms"</string>
-    <string name="remote_latency_unknown" formatted="false">"Latence aller-retour : pas encore mesurée"</string>
-    <string name="remote_local_detail" formatted="false">"Exécutez DSH sur ce téléphone avec des conversations et fichiers locaux."</string>
-    <string name="remote_local_phone" formatted="false">"Ce téléphone"</string>
-    <string name="remote_manual_instead" formatted="false">"Utiliser plutôt un code d’association"</string>
-    <string name="remote_no_computers" formatted="false">"Aucun ordinateur associé pour le moment. Une association suffit pour mémoriser votre ordinateur. Vous pouvez révoquer la confiance à tout moment."</string>
-    <string name="remote_open_local" formatted="false">"Ouvrir l'espace de travail du téléphone"</string>
-    <string name="remote_open_pc" formatted="false">"Ouvrir les conversations de l’ordinateur"</string>
-    <string name="remote_pair_computer" formatted="false">"Associer un ordinateur"</string>
-    <string name="remote_pair_instructions" formatted="false">"Activez DSHA Connect dans DSH sur votre ordinateur et affichez son QR code d’association. Scannez-le ou collez le code d’association complet affiché. Ce code expire rapidement ; gardez-le privé. Si un ordinateur déjà associé change de réseau ou d’adresses, scannez son QR code Actualiser les adresses de connexion."</string>
-    <string name="remote_pair_started" formatted="false">"Vérification de l’association. La confiance de l’ordinateur est enregistrée uniquement après réussite."</string>
-    <string name="remote_path_direct" formatted="false">"Chemin : direct"</string>
-    <string name="remote_path_relay" formatted="false">"Chemin : relais chiffré"</string>
-    <string name="remote_path_unknown" formatted="false">"Chemin : en attente de mesure"</string>
-    <string name="remote_refresh_body" formatted="false">"Ordinateur : %1$s\nIdentité : %2$s\nNouvelles adresses de connexion : %3$d\n\nMettre à jour les adresses uniquement après vérification de l’identité épinglée de l’ordinateur, de la clé de connexion existante et du processus actuel. Conserver les autorisations existantes. Un échec de vérification laisse l’ancien enregistrement inchangé."</string>
-    <string name="remote_refresh_connect" formatted="false">"Vérifier les adresses et connecter"</string>
-    <string name="remote_refresh_required" formatted="false">"Cet ordinateur est déjà associé. Affichez son QR code Actualiser les adresses de connexion. La confiance existante est conservée."</string>
-    <string name="remote_refresh_started" formatted="false">"Vérification de l’ordinateur et des nouvelles adresses. Les enregistrements de connexion sont mis à jour uniquement après réussite."</string>
-    <string name="remote_refresh_title" formatted="false">"Actualiser les adresses de l’ordinateur"</string>
-    <string name="remote_refresh_unknown" formatted="false">"Cet ordinateur n’est pas encore approuvé. Affichez son premier QR code d’association."</string>
-    <string name="remote_review_pair" formatted="false">"Vérifier et associer"</string>
-    <string name="remote_revocation_body" formatted="false">"Révoquer %1$s met fin à sa connexion et à ses autorisations actuelles. Recommencez l’association pour reconnecter. Les fichiers et conversations de l’ordinateur sont conservés."</string>
-    <string name="remote_revocation_title" formatted="false">"Révoquer la confiance de l’ordinateur ?"</string>
-    <string name="remote_revoke" formatted="false">"Révoquer cet ordinateur"</string>
-    <string name="remote_scan_instructions" formatted="false">"Scannez le QR code d’association affiché dans DSH sur votre ordinateur. Les images de la caméra sont décodées sur ce téléphone."</string>
-    <string name="remote_scan_qr" formatted="false">"Scanner le QR code de l’ordinateur"</string>
-    <string name="remote_state_connected" formatted="false">"Connexion à l’ordinateur authentifiée"</string>
-    <string name="remote_state_connecting" formatted="false">"Connexion et vérification de l’identité de l’ordinateur…"</string>
-    <string name="remote_state_disconnected" formatted="false">"Connexion interrompue. Reconnectez lorsque vous êtes prêt ; les opérations métier ne seront pas renvoyées."</string>
-    <string name="remote_state_failed" formatted="false">"Connexion incomplète. Vérifiez DSH sur l’ordinateur et le réseau, puis réessayez."</string>
-    <string name="remote_state_reconnecting" formatted="false">"Connexion interrompue. Reconnexion et vérification dans un délai limité. Les opérations métier ne seront pas renvoyées."</string>
-    <string name="remote_state_stopped" formatted="false">"Connexion distante arrêtée"</string>
-    <string name="remote_trust_unavailable" formatted="false">"Les enregistrements de confiance des ordinateurs n’ont pas pu être lus. Les enregistrements existants sont conservés."</string>
-    <string name="remote_workspace_intro" formatted="false">"Votre téléphone et votre ordinateur conservent des conversations, fichiers et paramètres distincts. Un espace de travail sur ordinateur ne nécessite aucun environnement Ubuntu sur ce téléphone."</string>
-    <string name="remote_workspaces" formatted="false">"Espace de travail"</string>
     <string name="ui134_adb_hint" formatted="false">"Android 11+ : associez le débogage sans fil sur le même Wi-Fi. Root non requis. Vérifiez ou recommencez l’association après un changement de réseau."</string>
     <string name="ui134_candidate" formatted="false">"Voir la version candidate"</string>
     <string name="ui134_candidate_sub" formatted="false">"Notes de version, taille et installation"</string>

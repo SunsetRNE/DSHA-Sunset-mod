@@ -226,7 +226,7 @@ window.__ModuleLoader__.load({id:'dsh-app-integration', factory: () => {
     if (recoveryBanner || typeof document === 'undefined' || !document.body?.appendChild) return;
     const banner = document.createElement('aside'), text = document.createElement('span'), button = document.createElement('button');
     banner.setAttribute('data-dsha-draft-recovery',''); banner.setAttribute('role','status');
-    banner.style.cssText = 'position:fixed;z-index:10000;top:env(safe-area-inset-top,0px);left:12px;right:12px;display:flex;align-items:center;gap:12px;max-width:640px;margin:8px auto;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,GrayText);border-radius:10px;background:var(--dsw-alias-bg-module-platform,Canvas);color:var(--dsw-alias-label-primary,CanvasText);font:inherit;box-shadow:0 2px 8px #0002;';
+    banner.style.cssText = 'position:fixed;z-index:10000;top:var(--dsha-safe-area-inset-top,env(safe-area-inset-top,0px));left:12px;right:12px;display:flex;align-items:center;gap:12px;max-width:640px;margin:8px auto;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2,GrayText);border-radius:10px;background:var(--dsw-alias-bg-module-platform,Canvas);color:var(--dsw-alias-label-primary,CanvasText);font:inherit;box-shadow:0 2px 8px #0002;';
     text.textContent = draftText('图片草稿暂存需要恢复。','Image draft saving needs recovery.'); text.style.flex = '1';
     button.type = 'button'; button.textContent = draftText('恢复草稿暂存','Recover draft saving');
     button.style.cssText = 'flex:none;max-width:50%;padding:7px 10px;border:1px solid currentColor;border-radius:7px;background:transparent;color:inherit;font:inherit;cursor:pointer;';

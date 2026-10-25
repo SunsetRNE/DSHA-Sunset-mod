@@ -56,9 +56,7 @@ def main():
     main = ROOT / 'app/src/main/java/com/deepseekharness/app'
     sources = list((main / 'screen').glob('*.java'))
     sources += list((main / 'capabilities').glob('*.java'))
-    sources += [path for path in (main / 'control').glob('*.java') if path.name != 'RemoteControlDispatcher.java']
-    sources += [main / ('remote/' + name + '.java') for name in
-                ['RemoteSessionIdentity', 'RemoteHost']]
+    sources += list((main / 'control').glob('*.java'))
     sources += [main / 'core/ScreenRuntimeIdentity.java']
     sources += [main / 'DshaAccessibilityService.java', main / 'HttpShellService.java', main / 'core/RuntimeSnapshot.java']
     names = ['ScreenRequestExecutor', 'ScreenConnectionEpoch', 'ScreenObservationLedger',

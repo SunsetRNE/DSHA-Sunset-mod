@@ -35,6 +35,13 @@ class ReleaseEvidenceTest(unittest.TestCase):
     def test_current_two_flavor_evidence_is_accepted(self):
         gate.validate_device_evidence(self.proof,self.apks)
 
+    def test_standard_evidence_is_bound_to_the_selected_apk(self):
+        proof=copy.deepcopy(self.proof)
+        proof['flavors'].pop('low')
+        gate.validate_device_evidence(proof,self.apks[:1])
+        proof['flavors']['standard']['sha256']='c'*64
+        with self.assertRaises(ValueError):gate.validate_device_evidence(proof,self.apks[:1])
+
     def test_mismatched_or_missing_apk_is_rejected(self):
         for flavor in ('standard','low'):
             changed=copy.deepcopy(self.proof)

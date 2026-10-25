@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { applyFileTransferClient } from './file-transfer/client-mobile.mjs';
+import { applyMobileSafeArea } from './mobile-safe-area.mjs';
 import { applyMobileLocaleBundlePatch, applyMobileLocaleSourcePatch, mobileLocaleSourceFiles } from './mobile-locales.mjs';
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(readFileSync(path.join(project, 'tools/mobile-plugin-upstream.lock.json'), 'utf8'));
@@ -107,7 +108,7 @@ export function applyMobileClientPatches(bytes) {
 `;
   replace('  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------',
     css + '  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------');
-  return applyFileTransferClient(applyMobileLocaleBundlePatch(source));
+  return applyMobileSafeArea(applyFileTransferClient(applyMobileLocaleBundlePatch(source)));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [input, action = '--check'] = process.argv.slice(2);

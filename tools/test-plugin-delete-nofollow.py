@@ -86,6 +86,48 @@ class DeleteNoFollowTest(unittest.TestCase):
         self.transaction.recover_all(); self.transaction.recover_all()
         self.assertFalse(self.package.exists())
 
+    def test_delete_receipt_confirms_target_without_full_list(self):
+        execution = self.cli('delete', 'test-plugin')
+        self.assertEqual(0, execution.returncode, execution.stdout + execution.stderr)
+        rows = [json.loads(line.split('PLUGIN_RESULT: ', 1)[1])
+                for line in execution.stdout.splitlines() if line.startswith('PLUGIN_RESULT: ')]
+        self.assertEqual(1, len(rows))
+        self.assertEqual('test-plugin', rows[0]['name'])
+        self.assertIs(True, rows[0]['removed'])
+        self.assertIs(True, rows[0]['deletionVerified'])
+        self.assertNotIn('items', rows[0])
+        self.assertNotIn('test-plugin', json.loads((self.profile / 'package.json').read_text())['dependencies'])
+
+    def test_delete_expected_version_mismatch_preserves_package_and_profile(self):
+        package_before = {
+            path.relative_to(self.package): (path.read_bytes(), path.stat().st_ino)
+            for path in self.package.rglob('*') if path.is_file()
+        }
+        manifest = self.profile / 'package.json'
+        profile_before = manifest.read_bytes(), manifest.stat().st_ino
+        execution = self.cli('delete', 'test-plugin', '2.0.0')
+        self.assertNotEqual(0, execution.returncode, execution.stdout + execution.stderr)
+        self.assertIn('PLUGIN_TARGET_VERSION_CHANGED', execution.stdout + execution.stderr)
+        rows = [json.loads(line.split('PLUGIN_RESULT: ', 1)[1])
+                for line in execution.stdout.splitlines() if line.startswith('PLUGIN_RESULT: ')]
+        self.assertEqual(1, len(rows))
+        self.assertEqual('error', rows[0]['status'])
+        self.assertIn('PLUGIN_TARGET_VERSION_CHANGED', rows[0]['message'])
+        self.assertTrue(self.package.is_dir())
+        self.assertEqual(package_before, {
+            path.relative_to(self.package): (path.read_bytes(), path.stat().st_ino)
+            for path in self.package.rglob('*') if path.is_file()
+        })
+        self.assertEqual(profile_before, (manifest.read_bytes(), manifest.stat().st_ino))
+        self.assertFalse((self.home / 'plugin-install-operations').exists())
+
+    def test_delete_readback_rejects_unconfirmed_load_entry(self):
+        with patch.object(self.transaction, 'apply_delete', return_value=None):
+            with self.assertRaisesRegex(ValueError, '删除结果未确认'):
+                self.manager.cmd_delete('test-plugin')
+        self.assertTrue(self.package.is_dir())
+        self.assertIn('test-plugin', json.loads((self.profile / 'package.json').read_text())['dependencies'])
+
     def test_legacy_unmarked_delete_journal_recovers_with_original_algorithm(self):
         work, plan = self.prepare(legacy=True)
         os.replace(self.package, work / 'delete-link')

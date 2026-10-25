@@ -3,8 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Chromium 枚举/选择录音设备同时要求此普通权限；录音本身仍须按需获得用户授权。 -->
@@ -61,18 +59,9 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.DeepseekHarness">
 
-        <activity android:name=".remote.ui.WorkspaceActivity" android:exported="false" />
-        <activity android:name=".remote.ui.PairComputerActivity" android:exported="false" />
-        <activity android:name=".remote.ui.QrScannerActivity" android:exported="false" />
-        <activity android:name=".remote.gateway.RemoteWebActivity" android:exported="false"
-            android:process=":remote_web" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".assistant.AssistantActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".assistant.AssistantVoiceActivity" android:exported="false" />
-        <service android:name=".remote.gateway.RemoteWebProcessService" android:exported="false"
-            android:process=":remote_web" />
-        <service android:name=".remote.RemoteConnectionService" android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
         <service android:name=".assistant.AssistantService" android:exported="false"
             android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

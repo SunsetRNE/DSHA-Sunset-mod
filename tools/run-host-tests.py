@@ -26,6 +26,7 @@ def load_manifest():
     paths = [row["path"] for row in data["tests"]]
     present = {p.relative_to(ROOT).as_posix() for p in (ROOT / "tools").glob("test-*") if p.suffix in (".py", ".mjs", ".cjs", ".ps1")}
     present.update(p.relative_to(ROOT).as_posix() for p in (ROOT / "tools/file-transfer").glob("test-*") if p.suffix in (".py", ".mjs", ".cjs", ".ps1"))
+    present.update(p.relative_to(ROOT).as_posix() for p in (ROOT / "tools/phone-control").rglob("test-*") if p.suffix in (".py", ".mjs", ".cjs", ".ps1"))
     present.add("tools/overlay-bridge-test.mjs")
     if len(set(paths)) != len(paths) or set(paths) != present:
         raise ValueError("TEST_MANIFEST_COVERAGE: " + str(sorted(set(paths) ^ present)))
@@ -319,7 +320,7 @@ def main():
     parser.add_argument("--node",default=shutil.which("node") or "node");parser.add_argument("--powershell",default=shutil.which("pwsh") or "pwsh")
     parser.add_argument("--raw");parser.add_argument("--managed");parser.add_argument("--pnpm-cli");parser.add_argument("--toolchain-root",default=os.environ.get("DSHA_TOOLCHAINS"));parser.add_argument("--jdk")
     parser.add_argument("--playwright");parser.add_argument("--browsers-path");parser.add_argument("--browser");parser.add_argument("--mobile-upstream",default=str(ROOT/"tools/mobile-plugin-upstream/lib"))
-    parser.add_argument("--linux-host");parser.add_argument("--wsl-distro",default="docker-desktop");parser.add_argument("--linux-tempdir",help="Explicit writable Linux fixture directory; no WSL repair or remount");parser.add_argument("--flavor",choices=("standard","low"),default="standard")
+    parser.add_argument("--linux-host");parser.add_argument("--wsl-distro",default="docker-desktop");parser.add_argument("--linux-tempdir",help="Explicit writable Linux fixture directory; no WSL repair or remount");parser.add_argument("--flavor",choices=("standard",),default="standard")
     parser.add_argument("--linux-native-inputs",default=str(ROOT/"app/build/audit-build156/linux-native"),help="Prepared NDK/Ubuntu sysroot receipt for the explicit WSL native handshake fixture")
     parser.add_argument("--previous-runtime-apk",help="Exact published build192 Standard APK; required only by historical-upgrade fixtures")
     parser.add_argument("--apks",nargs=2);parser.add_argument("--output",type=Path,default=ROOT/"app/build/host-tests")

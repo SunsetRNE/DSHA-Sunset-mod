@@ -1,5 +1,9 @@
 # DSHA
 
+<!-- build198-software-candidate -->
+> **Current source: build198 software candidate** — `0.2.1-rc.3-20261025.2100-dsh0.2.1-rc.3` /Standard /dsh.android.client /E7E3 nondebug. True Sunset merge, consent pause fix, complete PC feature removal, single safe-area ownership and decoupled activity sampling. Selected Standard:806 tests,0fail/error,7 Windows symlink skips separately covered by44 real POSIX cases; Release Lint0fatal/error,279warnings. Phone acceptance is paused at the user’s request; the device still runs197. This is not installation or publication proof. [Scope and retained failures](docs/releases/v0.2.1-rc.3-build198-20261025.md). Actual source:`<local-workspace>`. Older current-version blocks below are historical.
+
+
 <!-- build197-current -->
 > **Current: 0.2.1-rc.3 / build197** — `0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3`, non-debuggable Standard / `dsh.android.client` / E7E3. One recents card and Home Back, explicit LAN status, phone tools in the current conversation, and ten interface/prompt languages. Fixes IME cancellation, stale polling and a restored blank Home page. 505 selected Standard tests, Release Lint and exact APK checks passed. Scoped Android13 coverage includes signed upgrades, real model/native confirmation, task reuse and normal shutdown; empty WebView semantic nodes, consent timeouts and candidate-specific limits remain documented in the [report](docs/releases/v0.2.1-rc.3-build197-20261025.md). Private delivery only; no Low tasks. Earlier current entries are historical.
 

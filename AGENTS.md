@@ -1,5 +1,9 @@
 # AGENTS.md
 
+<!-- build198-software-candidate -->
+> **当前源码：build198软件候选** — `0.2.1-rc.3-20261025.2100-dsh0.2.1-rc.3` /Standard /dsh.android.client /E7E3非调试。真实合入Sunset19提交，修复授权切换隐藏暂停，撤下整套电脑连接，统一顶部安全区并解耦活动服务等待。91类806项Standard测试零失败/错误，7项Windows软链权限skip已由真实POSIX44项补验覆盖；Release Lint0错误/致命279警告。用户暂停手机验收，手机仍197；本条不证明198装机或发布。[范围与失败记录](docs/releases/v0.2.1-rc.3-build198-20261025.md)。实际源 `<local-workspace>`，不构建旧F173/S197。下方旧当前条目按历史阅读。
+
+
 <!-- build197-current -->
 > **2026-10-25 build197**：`0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3` /197 /Standard /dsh.android.client /E7E3非调试；常规APK307703892字节，SHA `5cd635ab68ea61e74822e5d25a0b7ddc66ce21d03ea4412faa045c070a90f244`。单最近任务/主页返回、LAN状态、当前对话手机工具、十语及动态主提示，修复IME观察取消、旧poll和gated恢复空白。76类505项Standard零失败错误skip，Lint0错/致命337警告，17命令含9APK门禁，1168份当前格式证据。最终Android13同签名覆盖/实算SHA、当前会话手机任务确认→COMPLETED（空WebView语义节点边界保留）→finishOK、三次Main返回重进同task1680、一张recents、正常停止及原权限恢复；此前候选Settings树/阿语RTL/十语/法语证据独立标注，确认超时不删。正式/独立应急仍rc3共用36c3归档字节而运行根独立，Ubuntu10不变。仅固定私有SunsetRNE/DSHA-Sunset-mod-3090-Q，实际发布与完整源码/六资产commit/SHA见外部artifacts/deliveries/build197-navigation-language-20261025.json；不跑Low、不写公开DSHA/网站。实际源仍<local-workspace>
 
@@ -277,3 +281,8 @@ fix1当时本地日期版versionName **`0.2.1-rc.2-20261019.2352-dsh0.2.1-rc.2`*
 - f316修NioInstallationIdentity的FileStore拒绝，保留NOFOLLOW/CREATE_NEW/Unix0600与原身份；11项定向通过。实际第五轮已越journal，却ADB_CONNECT_FAILED→START_UNKNOWN、cleanupRequired=true、无core身份；旧屏障保留。后续原生ADB连接验证不能补成前次未执行证明；约21:20本地用户并行配对freeform→全屏片段不作单一因果归因。
 - f744四类NOT_SENT修复仅承认helper实际退出、输出完整及精确有效未commit票的原子撤销；commit/撤销同锁，已commit/丢回执/失配/过期/截断/异常仍UNKNOWN。manager仍核对epoch、状态与journal提交，不清f316旧UNKNOWN、不自动重放。代理定向131项（1skip）零失败/错误及Python8/29项通过，后两项当次输出OK但未保存原始日志；独立四类复核21/21，设备效果待验。
 - 旧UNKNOWN无core身份时，主负责人先正常停止DSH并确认无自有guest，取得用户**仅本次明确重启许可**后约15:03 UTC真实重启且确认boot变化，再覆盖f744。不能将其变成自动重启或清旧屏障的通用授权。f744最新有限Main/授权/ADB记录不代表MCP完整功能通过；当前日期版已有有限导航/停止换代、OFF跨进程及最终停止证明，未新增最后诊断导出；692局部结果和9ee115.042秒默认proot冷测各属旧SHA。Low190未验设备，未新增长时、全模型或全部ROM通过结论。本地交付以 artifacts/deliveries/build190-fix1.json 的实际生成及摘要核验为准；不发布GitHub。
+
+
+<!-- merged-sunset-ci-history -->
+> **2026-10-24 Sunset-3090-Q 分支 CI 范围**：用户取消本分支全部 Low 测试。当前所有工作流仅运行 Standard 的源码/完整输入 JUnit、Lint 与打包；宿主执行器也拒绝 Low，专用 Low 预览用例保留历史。Sunset 构建使用 rc.3 固定源码输入、`dsh.android.client.SunsetRNE` 测试签名身份，不与 E7E3 正式包混同。历史双版本回执只用于兼容读取，不视为本轮 Low 测试。
+> 本段只描述分支历史；本轮正式 E7E3 Standard 构建不启用 SunsetRNE 或额外测试 APK。

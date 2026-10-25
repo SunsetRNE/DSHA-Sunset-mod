@@ -386,8 +386,8 @@ public final class PhysicalScreenFlowTest {
   public void pauseFencesBoundNativeRequestAndFreshResumeCannotReuseItsFrame() throws Exception {
     var authority = new com.deepseekharness.app.control.ControlTaskAuthority();
     var binding = new com.deepseekharness.app.control.ControlTaskAuthority.Binding(
-        com.deepseekharness.app.control.ControlTaskAuthority.Owner.REMOTE_DEVICE,
-        "authenticated-native-connection","full-task-session","full-turn");
+        com.deepseekharness.app.control.ControlTaskAuthority.Owner.LOCAL_DSH,
+        "authenticated-native-connection","full-task-session","17");
     var lease = authority.begin(binding);
     CapabilityRequest shotRequest = request("screenshot",2000);
     com.deepseekharness.app.control.ScreenAuthorityBindings.bind(shotRequest,
