@@ -311,7 +311,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionPanel.setVisibility(View.VISIBLE);
     sessionPanel.setElevation(0f);
     sessionPanel.setTranslationX(0f);
-    sessionPanel.setAccessibilityViewIsModal(false);
+    setDrawerAccessibility(false);
     sessionClose.setVisibility(View.GONE);
     drawerHost.setVisibility(View.GONE);
   }
@@ -329,7 +329,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionPanel.setVisibility(View.VISIBLE);
     sessionClose.setVisibility(View.VISIBLE);
     sessionPanel.setElevation(dp(8));
-    sessionPanel.setAccessibilityViewIsModal(true);
+    setDrawerAccessibility(true);
     ViewCompat.setAccessibilityPaneTitle(sessionPanel, UiText.text("会话侧栏"));
     if (ball != null) ball.setSessionsExpanded(true);
     updateDrawerWidth();
@@ -350,6 +350,16 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     }
   }
 
+  /** Android 没有 iOS 的 accessibilityViewIsModal；抽屉打开时隐藏背景的可访问性。 */
+  private void setDrawerAccessibility(boolean open) {
+    column.setImportantForAccessibility(
+        open
+            ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+    ball.setImportantForAccessibility(
+        open ? View.IMPORTANT_FOR_ACCESSIBILITY_NO : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+  }
+
   private void hideDrawer() {
     if (sessionPanel.getParent() instanceof ViewGroup parent && parent != drawerHost)
       parent.removeView(sessionPanel);
@@ -358,7 +368,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionPanel.setVisibility(View.GONE);
     sessionPanel.setTranslationX(0f);
     sessionPanel.setElevation(0f);
-    sessionPanel.setAccessibilityViewIsModal(false);
+    setDrawerAccessibility(false);
     if (sessionScrim != null) {
       sessionScrim.animate().cancel();
       sessionScrim.setAlpha(1f);
