@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "32ca4bec5a664918dfb620fdc334e5d8ce550020470b9bf0e7076590d02f0fdb",
+  "runtimeId": "517d8e4438b51a7bd9225c5bb156e2d7fca1231259547bcce243554ede990e2e",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.3",
   "launcherContract": "DSHA_ARM64_V2",
@@ -587,7 +587,7 @@
     "session-interaction-patch.json": "98e052a68951c18e8166a11aa4af80162b83e6dc5995cd8e5206df50e6eb79ea",
     "sidebar-layout-recovery-patch.json": "16c31f8fd3f1a003ad86b9ce687764cfebfaa129700e05996c14c5208005a454",
     "startup-mcp-timing-patch.json": "6702f94a211617909ba5507fd91977705a41fa63205266806c6f27bd492f914b",
-    "startup-observer.cjs": "f9f6da0fa2ef986778b9bf8cb64cd04c850e56056941ecb55188bbe6e8781d1c",
+    "startup-observer.cjs": "892a1badeb7c66205e60d69d529443dfde27633cb11fd17bbcb2f36345ec05a0",
     "subagent-navigation-patch.json": "a4dc355061cc68d677d7d64bc9649a3f50c5536c302936cee3a9cb41e57f56ad",
     "tool-block-identity-patch.json": "4ca0d33808d6e5716f1acc135de847253a667595263a733d1d141227ca607472",
     "tool-dispatch-validation-patch.json": "f05362bcb029fc3c230b4e83e352c5088ee6de2eacbb3bb81a33199fb985010c",

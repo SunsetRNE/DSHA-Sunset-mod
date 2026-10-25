@@ -98,8 +98,13 @@ function peerPackage(name, version) {
   put(path.join(dir, 'index.js'), 'export function apply() {}\n');
 }
 peerPackage('@fixture/peer-target', '2.5.0');
+// 只有 Auto review 别名对共用可见卡片，运行证据报告锁定官方版本。
+const aliasTarget = '@deepseek-ai/dsh-experimental-auto-review';
+const aliasTargetVersion =
+    JSON.parse(fs.readFileSync(path.join(runtime, 'node_modules', aliasTarget, 'package.json'), 'utf8')).version;
+wrapper('dsh-auto-review', aliasTarget, '1.0.0', aliasTargetVersion);
+// 其它包装在原生列表里仍以包装版本出现，不能借用被包装模块的版本。
 wrapper('fixture-wrapper', '@fixture/peer-target', '1.0.0', '2.5.0');
-wrapper('fixture-wrapper-drift', '@fixture/peer-target', '1.0.0', '9.9.9');
 put(path.join(profile, 'package.json'), { dsh: { profile: { bundles: [...official, ...local, 'fixture-unresolvable'] } } });
 process.env.DSH_HOME = home;
 process.env.DSHA_OBSERVER_INSTALL = path.join(runtime, 'node_modules/@deepseek-ai/dsh');
@@ -123,10 +128,12 @@ test('官方 bundle 只拥有插入入口，禁用基础入口不是自身加载
     assert.equal(item.version, JSON.parse(fs.readFileSync(path.join(runtime, 'node_modules', name, 'package.json'))).version);
   });
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-override-only').entries.length, 0);
-  // 包装版本只是包装自己的修订；运行证据必须报告补丁实际插入的锁定官方版本。
-  assert.equal(evidence.bundles.find(row => row.name === 'fixture-wrapper').version, '2.5.0');
-  // 锁定版本与实际安装不一致时不能借用官方版本，保留包装版本交给原生侧判未确认。
-  assert.equal(evidence.bundles.find(row => row.name === 'fixture-wrapper-drift').version, '1.0.0');
+  // Auto review 别名对共用一张可见卡片：运行证据必须报告补丁实际插入的锁定官方版本。
+  assert.equal(
+      evidence.bundles.find(row => row.name === 'dsh-auto-review').version,
+      aliasTargetVersion);
+  // 其它包装不是同一可见卡片，仍报告包装自己的版本。
+  assert.equal(evidence.bundles.find(row => row.name === 'fixture-wrapper').version, '1.0.0');
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-ambiguous').ambiguous, true);
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-config-replaced-group').ambiguous, true);
   assert(Object.isFrozen(evidence) && Object.isFrozen(evidence.bundles[0].entries[0]));
@@ -146,7 +153,7 @@ test('锁定 Loader 的实际 fiber、吞掉的导入失败与状态变化驱动
   put(config, '[]\n');
   await ctx.plugin(Loader);
   const selected = local.filter(name => !['fixture-ambiguous', 'fixture-missing-entry', 'fixture-duplicate-a',
-    'fixture-config-replaced-group', 'fixture-wrapper-drift'].includes(name));
+    'fixture-config-replaced-group', 'dsh-auto-review'].includes(name));
   const patches = selected.flatMap(name => loadOverlayPatches('fixture', path.join(profile, 'node_modules', name, 'cordis.patch.yml')));
   const sample = installedPluginSampler(ctx, identity);
   const state = name => sample().find(item => item.name === name)?.state;

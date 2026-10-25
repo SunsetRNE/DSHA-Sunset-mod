@@ -95,26 +95,26 @@ function locate(name) {
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 /**
- * 包装 bundle 自身没有运行逻辑，只把锁定的官方模块补进补丁。运行证据必须报告实际加载的
- * 官方版本：原生插件页展示的是官方包版本，若这里回包装版本，两边永远对不上。
- * 只在补丁确实插入 peerDependencies 锁定、且实际安装版本等于锁定时替换；解析不到或版本
- * 不一致就保留包装自己的版本，宁可未确认也不能把别的版本报成已加载。
+ * 与原生 PluginIdentity、插件管理器的 DSHA_AUTO_REVIEW_ALIAS_V2 一致：只有这组历史别名共用
+ * 一张可见卡片。原生列表展示的是官方包版本，运行证据必须报告补丁实际加载的官方版本；其它
+ * 包装（如 dsh-computer-use-android）在列表里仍以包装自己的版本出现，不能替换。
+ * 只在补丁插入锁定模块、且实际安装版本等于 peerDependencies 锁定时替换；解析不到或版本不
+ * 一致就保留包装版本，宁可未确认也不把别的版本报成已加载。
  */
-function effectiveVersion(pkg, inserted, fallback) {
+const ALIASED_EVIDENCE = new Map([
+  ['dsh-auto-review', '@deepseek-ai/dsh-experimental-auto-review'],
+]);
+
+function effectiveVersion(bundle, pkg, inserted, fallback) {
+  const canonical = ALIASED_EVIDENCE.get(bundle);
+  if (!canonical || !Array.isArray(inserted) || !inserted.includes(canonical)) return fallback;
   const peers = pkg && typeof pkg.peerDependencies === 'object' && pkg.peerDependencies ? pkg.peerDependencies : null;
-  if (!peers || !Array.isArray(inserted) || !inserted.length) return fallback;
-  const versions = new Set();
-  for (const name of inserted) {
-    const pin = peers[name];
-    if (typeof pin !== 'string' || !EXACT_VERSION.test(pin)) continue;
-    let version = '';
-    try {
-      const root = fs.realpathSync(locate(name));
-      version = readJson(path.join(root, 'package.json')).version;
-    } catch { continue; }
-    if (version === pin) versions.add(version);
-  }
-  return versions.size === 1 ? [...versions][0] : fallback;
+  const pin = peers ? peers[canonical] : undefined;
+  if (typeof pin !== 'string' || !EXACT_VERSION.test(pin)) return fallback;
+  try {
+    const root = fs.realpathSync(locate(canonical));
+    return readJson(path.join(root, 'package.json')).version === pin ? pin : fallback;
+  } catch { return fallback; }
 }
 function owner(text) {
   text = text.replaceAll('\\', '/');
@@ -162,7 +162,7 @@ try {
           emit('catalog', name, '', { ids: ids.slice(0, 100), path: root });
         } else evidence.ambiguous = true;
       }
-      evidence.version = effectiveVersion(pkg, inserted, evidence.version);
+      evidence.version = effectiveVersion(name, pkg, inserted, evidence.version);
       emit('plugin', name, '配置检查：' + name + ' @ ' + (evidence.version || uiText('未知版本')), { path: root });
     } catch (error) { evidence.ambiguous = true; emit('issue', name, error.message, { fatal: false }); }
   }
