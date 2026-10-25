@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL, fileURLToPath } = require('node:url');
 const Module = require('node:module');
+const { createHash } = require('node:crypto');
 const uiPhrases = {"检查启动配置和插件清单": "Checking startup configuration and plugin list", "加载 DSH 和已启用插件": "Loading DSH and enabled plugins", "配置文件超过 1 MiB": "Configuration file exceeds 1 MiB", "dsh.profile.bundles 必须是插件名称数组": "dsh.profile.bundles must be an array of plugin names", "插件清单含无效名称": "The plugin list contains an invalid name", "缺少 dsh.bundle.patch 声明或补丁文件": "Missing dsh.bundle.patch declaration or patch file", "未知版本": "Unknown version", "读取启动恢复记录": "Read startup recovery records", "启动配置快照": "Startup configuration snapshot", "配置检查：": "Configuration check: ", "正在加载插件：": "Loading plugin: ", "插件加载完成：": "Plugin loaded: ", "插件等待服务：": "Plugin waiting for services: ", "启动配置检查失败：": "Startup configuration check failed: ", "加载器观察不可用，保留原始异常输出：": "Loader monitoring unavailable; original errors retained: ", "找不到插件目录，请到插件管理检查安装：": "Plugin directory not found; check its installation: "};
 function uiText(message) {
   if (process.env.DSHA_UI_LANGUAGE !== "en") return message;
@@ -30,6 +31,52 @@ const directory = path.join(home, 'profiles', profile);
 const installation = process.env.DSHA_OBSERVER_INSTALL || '/usr/local/lib/node_modules/@deepseek-ai/dsh';
 const plugins = [];
 const moduleOwners = new Map();
+const installedBundles = [];
+const initAttempts = new WeakMap();
+const changedGroups = new Set();
+const moduleHash = name => createHash('sha256').update(name).digest('hex');
+let yaml;
+function bundleEntries(patches, patchFile, output) {
+  // 只解析普通数据；!!js 保留为不透明标记，绝不执行表达式或插件。
+  if (!yaml) {
+    const anchor = Module.createRequire(path.join(installation, 'package.json'));
+    const boot = anchor.resolve('@deepseek-ai/dsh-app-boot');
+    yaml = Module.createRequire(boot)('js-yaml');
+  }
+  const schema = yaml.JSON_SCHEMA.extend(new yaml.Type('tag:yaml.org,2002:js', {
+    kind: 'scalar', construct: () => Object.freeze({ expression: true }),
+  }));
+  const parsed = yaml.load(patches, { schema });
+  if (!Array.isArray(parsed)) throw new Error('插件补丁不是数组');
+  const visit = (rows, parentId = '', depth = 0) => {
+    if (!Array.isArray(rows) || depth > 32) throw new Error('插件入口结构无法确认');
+    for (const row of rows) {
+      if (!row || typeof row !== 'object' || Array.isArray(row) || output.entries.length >= 2048)
+        throw new Error('插件入口结构无法确认');
+      if (typeof row.id !== 'string' || !row.id || row.id.length > 256
+          || typeof row.name !== 'string' || !row.name || row.name.length > 4096) {
+        output.ambiguous = true; continue;
+      }
+      const name = path.isAbsolute(row.name) || row.name.startsWith('./') || row.name.startsWith('../')
+        ? pathToFileURL(path.resolve(path.dirname(patchFile), row.name)).href : row.name;
+      const group = row.group === true || name === 'cordis:group' || name === '@deepseek-ai/cordis-plugin-group';
+      output.entries.push({ id: row.id, moduleHash: moduleHash(name), parentId, group });
+      // include 的子树不能由该入口 active 推定；未知 group/config 也不做乐观归属。
+      if (name === 'cordis:include' || name === '@deepseek-ai/cordis-plugin-include'
+          || (row.group != null && typeof row.group !== 'boolean')) output.ambiguous = true;
+      if (group) visit(row.config, row.id, depth + 1);
+    }
+  };
+  for (const patch of parsed) {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('插件补丁结构无法确认');
+    if (patch.insert != null) {
+      if (patch.id != null && (typeof patch.id !== 'string' || !patch.id)) output.ambiguous = true;
+      else visit(patch.insert, patch.id || '');
+    } else if (typeof patch.id === 'string' && ('config' in patch || 'group' in patch)) {
+      changedGroups.add(patch.id);
+    }
+  }
+}
 function readJson(file) {
   if (fs.statSync(file).size > 1024 * 1024) throw new Error('配置文件超过 1 MiB');
   return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -40,7 +87,7 @@ function locate(name) {
   for (const anchor of [path.join(installation, 'package.json'), path.join(directory, 'package.json')]) {
     for (const root of Module.createRequire(anchor).resolve.paths(name) || []) {
       const candidate = path.join(root, name);
-      if (fs.existsSync(path.join(candidate, 'package.json'))) return fs.realpathSync(candidate);
+      if (fs.existsSync(path.join(candidate, 'package.json'))) return candidate;
     }
   }
   throw new Error('找不到插件目录，请到插件管理检查安装：' + name);
@@ -60,9 +107,12 @@ try {
     // Upstream skips an unresolvable optional bundle. This metadata observer must not
     // turn that warning into a fatal result before the actual loader can decide.
     if (!validName(name)) { emit('issue', '', '插件清单含无效名称', { fatal: false }); continue; }
+    const evidence = { name, version: '', profile, entries: [], ambiguous: false };
+    installedBundles.push(evidence);
     try {
-      const root = locate(name);
+      const resolved = locate(name), root = fs.realpathSync(resolved);
       const pkg = readJson(path.join(root, 'package.json'));
+      evidence.version = typeof pkg.version === 'string' && pkg.version.length <= 128 ? pkg.version : '';
       const info = { name, directory: root, url: pathToFileURL(root).href };
       plugins.push(info);
       const patch = pkg.dsh?.bundle?.patch;
@@ -80,15 +130,34 @@ try {
         const patchFile = path.resolve(root, patch);
         if (fs.existsSync(patchFile) && fs.statSync(patchFile).size <= 1024 * 1024) {
           const source = fs.readFileSync(patchFile, 'utf8');
+          try { bundleEntries(source, path.resolve(resolved, patch), evidence); }
+          catch (_) { evidence.ambiguous = true; }
           const ids = [...source.matchAll(/^\s*(?:-\s*)?(?:id|name|module):\s*["']?([@A-Za-z0-9_./:-]+)["']?\s*$/gm)].map(m => m[1]);
           for (const id of ids) moduleOwners.set(id, moduleOwners.has(id) && moduleOwners.get(id) !== name ? '' : name);
           emit('catalog', name, '', { ids: ids.slice(0, 100), path: root });
-        }
+        } else evidence.ambiguous = true;
       }
-    } catch (error) { emit('issue', name, error.message, { fatal: false }); }
+    } catch (error) { evidence.ambiguous = true; emit('issue', name, error.message, { fatal: false }); }
   }
   emit('stage', '', '加载 DSH 和已启用插件');
 } catch (error) { emit('issue', '', '启动配置检查失败：' + error.message); }
+
+// 心跳仅消费这些当前进程元数据；路径、源码、配置和错误正文均不导出。
+// 版本固定在启动时，磁盘升级不能把仍运行的旧 fiber 冒认为新部署版本。
+for (const bundle of installedBundles) {
+  if (bundle.entries.some(entry => entry.group && changedGroups.has(entry.id))) bundle.ambiguous = true;
+  bundle.entries.forEach(Object.freeze);
+  Object.freeze(bundle.entries); Object.freeze(bundle);
+}
+Object.defineProperty(globalThis, Symbol.for('dsha.installed-plugin-evidence'), { value: Object.freeze({
+  generation: process.env.DSHA_WEB_GENERATION || '', instance: process.env.DSH_TASK_INSTANCE || '',
+  profile, bundles: Object.freeze(installedBundles),
+  initState(entry) {
+    const attempt = initAttempts.get(entry);
+    return attempt && attempt.options === entry.options && attempt.name === entry.options?.name
+      && attempt.disabled === entry.options?.disabled ? attempt.state : '';
+  },
+}) });
 
 function entryOwner(entry) { return moduleOwners.get(entry?.options?.name) || moduleOwners.get(entry?.options?.id)
   || plugins.find(p => p.name === entry?.options?.name)?.name || ''; }
@@ -103,16 +172,20 @@ try {
   const { Entry } = require(loaderModule);
   const original = Entry.prototype.init;
   Entry.prototype.init = function () {
+    const attempt = { options: this.options, name: this.options?.name, disabled: this.options?.disabled,
+      fiber: this.fiber, state: 'loading' };
+    initAttempts.set(this, attempt);
     const name = entryOwner(this), id = this.options?.name || this.options?.id || '';
     const show = name && !['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'].includes(name)
       || ['web-startup', 'webserver', 'modules'].includes(this.options?.id);
     if (show) emit('loading', name, '正在加载插件：' + (name || id));
     // alpha.1 允许可选插件失败；只有上游声明的关键入口可提前触发原生恢复。
     const required = new Set(['agent-loop','webserver','web-runtime','modules','connection','headless-runner','acp','sdk-jsonrpc-server']);
-    const failed = error => { emit('issue', name || owner(errorDetail(error)), id + '\n' + errorDetail(error),
+    const failed = error => { attempt.state = 'failed'; emit('issue', name || owner(errorDetail(error)), id + '\n' + errorDetail(error),
       { fatal: required.has(this.options?.id) }); throw error; };
     try {
       return original.apply(this, arguments).then(value => {
+        attempt.state = !this.fiber || (this.fiber === attempt.fiber && this.fiber.state === 4) ? 'failed' : 'settled';
         if (show) {
           const fiber = this.fiber;
           const waiting = fiber?.state === 0 ? Object.keys(fiber.inject || {}).filter(key => !fiber._store?.[key]) : [];

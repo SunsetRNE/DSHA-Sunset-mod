@@ -75,7 +75,7 @@ public final class PluginManagementEngine implements AutoCloseable {
 
               @Override
               public void bind(PluginBackendAdapter.ResolvedSource value) {
-                repository.registry().updateSource(value.identity);
+                if (repository.registry().updateSource(value.identity)) publishSourceChange();
                 detector.bind(value.observedPaths, value.identity);
               }
 
@@ -159,7 +159,22 @@ public final class PluginManagementEngine implements AutoCloseable {
   }
 
   private void readyChanged() {
-    dispatch(() -> coordinator.reconcile());
+    dispatch(
+        () -> {
+          if (signalController != null
+              && repository.registry().updateWebGeneration(signalController.getWebGeneration()))
+            publishSourceChange();
+          coordinator.reconcile();
+        });
+  }
+
+  private void publishSourceChange() {
+    // 在途任务可能正在组装回执；此时只发布 Registry，不采纳或覆盖它的临时 items。
+    if (repository.isBusy()) repository.publishCatalogState();
+    else {
+      PluginRepository.State shown = repository.state().getValue();
+      repository.publishCatalog(shown == null ? "" : shown.message);
+    }
   }
 
   private void runtimeChanged() {
@@ -205,8 +220,8 @@ public final class PluginManagementEngine implements AutoCloseable {
       signalsAttached = true;
       signalController.addReadyWebPageListener(readyChanged);
       backupChanges.observeForever(backupChanged);
-      // 订阅之前可能已发生切换；核对来源即可，不把重放当作目录失效。
-      coordinator.reconcile();
+      // 订阅之前可能已发生切换；先撤销旧代证据，再只读核对来源。
+      readyChanged();
       return;
     }
     signalsLoading = true;
@@ -452,15 +467,17 @@ public final class PluginManagementEngine implements AutoCloseable {
 
   /** 纯调度协议：入口和完成通知在主线程，probe/投影在独立后台单调度器。 */
   static final class Coordinator<S> {
+    // 活动摘要最多有效 10 秒；到期只重读投影，不自行重排或查询目录。
+    private static final long RUNTIME_EXPIRY_MS = 10_001;
     private final Backend<S> backend;
     private final Clock clock;
     private final Scheduler worker;
     private final Executor main;
     private final PluginChangeCoalescer changes = new PluginChangeCoalescer();
-    private Cancellation scanTask, periodicTask, runtimeTask;
+    private Cancellation scanTask, periodicTask, runtimeTask, runtimeExpiryTask;
     private boolean foreground, demand, closed, probing, awaitingProbe, queryIssued;
-    private boolean cancellingPrefetch;
-    private long lifecycle;
+    private boolean cancellingPrefetch, reconcilePending, sourceUnavailable;
+    private long lifecycle, runtimeRevision;
     private long failedAt = -1;
     private Object failedSource;
     private long freshStamp = Long.MIN_VALUE, freshObservedAt, freshFor;
@@ -502,10 +519,12 @@ public final class PluginManagementEngine implements AutoCloseable {
         scheduleScan();
         schedulePeriodic();
       } else {
+        reconcilePending = false;
         cancelScan();
         if (periodicTask != null) periodicTask.cancel();
         if (runtimeTask != null) runtimeTask.cancel();
-        periodicTask = runtimeTask = null;
+        if (runtimeExpiryTask != null) runtimeExpiryTask.cancel();
+        periodicTask = runtimeTask = runtimeExpiryTask = null;
         if (queryIssued && !demand && !cancellingPrefetch) {
           cancellingPrefetch = true;
           backend.cancelQuery();
@@ -526,7 +545,14 @@ public final class PluginManagementEngine implements AutoCloseable {
     }
 
     void reconcile() {
-      if (closed || !foreground || changes.isScanning()) return;
+      if (closed || !foreground) return;
+      reconcilePending = true;
+      reconcileIfIdle();
+    }
+
+    private void reconcileIfIdle() {
+      if (!reconcilePending || closed || !foreground || probing || changes.isScanning()) return;
+      reconcilePending = false;
       probe();
     }
 
@@ -547,8 +573,10 @@ public final class PluginManagementEngine implements AutoCloseable {
       boolean cancelledPrefetch = cancellingPrefetch;
       boolean resumeCancelled = cancelledPrefetch && (foreground || demand) && !fresh(cache);
       cancellingPrefetch = false;
+      sourceUnavailable = false;
       demand = demand && (changes.hasPending() || resumeCancelled);
-      if (!cache.error.isEmpty() && !cancelledPrefetch) {
+      // 在途期间新到的 READY 是一次独立核对机会；普通失败不会自行再查。
+      if (!cache.error.isEmpty() && !cancelledPrefetch && !reconcilePending) {
         failedAt = clock.now();
         failedSource = cache.source;
       } else {
@@ -559,11 +587,28 @@ public final class PluginManagementEngine implements AutoCloseable {
       // 取消期间发生的前台/页面需求允许一次新读取；普通成功或失败仍不会自行失效。
       if (resumeCancelled) changes.requestNow(clock.now());
       scheduleScan();
+      if (!cancelledPrefetch && cache.known && cache.error.isEmpty()) runtimeDirty();
+      reconcileIfIdle();
     }
 
     void runtimeDirty() {
-      if (closed || !foreground || runtimeTask != null) return;
-      long epoch = lifecycle;
+      if (closed || !foreground) return;
+      long epoch = lifecycle, revision = ++runtimeRevision;
+      if (runtimeExpiryTask != null) runtimeExpiryTask.cancel();
+      runtimeExpiryTask =
+          worker.schedule(
+              () ->
+                  main.execute(
+                      () -> {
+                        if (closed
+                            || !foreground
+                            || lifecycle != epoch
+                            || runtimeRevision != revision) return;
+                        runtimeExpiryTask = null;
+                        worker.execute(backend::projection);
+                      }),
+              RUNTIME_EXPIRY_MS);
+      if (runtimeTask != null) return;
       runtimeTask =
           worker.schedule(
               () ->
@@ -614,6 +659,14 @@ public final class PluginManagementEngine implements AutoCloseable {
     private void probed(long epoch, Cache before, S source, Exception error) {
       probing = false;
       if (closed) return;
+      try {
+        acceptProbe(epoch, before, source, error);
+      } finally {
+        reconcileIfIdle();
+      }
+    }
+
+    private void acceptProbe(long epoch, Cache before, S source, Exception error) {
       if (epoch != lifecycle) {
         if (awaitingProbe && !queryIssued) {
           awaitingProbe = false;
@@ -637,6 +690,7 @@ public final class PluginManagementEngine implements AutoCloseable {
       }
       if (source == null) {
         backend.unavailable(error);
+        sourceUnavailable = true;
         failedAt = clock.now();
         failedSource = backend.cache().source;
         if (awaitingProbe) {
@@ -646,6 +700,11 @@ public final class PluginManagementEngine implements AutoCloseable {
           scheduleScan();
         }
         return;
+      }
+      if (sourceUnavailable) {
+        // 相同来源恢复可读也构成恢复边界；列表自身失败仍沿原冷却处理。
+        sourceUnavailable = false;
+        failedAt = -1;
       }
       backend.bind(source);
       if (awaitingProbe) {
@@ -723,6 +782,7 @@ public final class PluginManagementEngine implements AutoCloseable {
       cancelScan();
       if (periodicTask != null) periodicTask.cancel();
       if (runtimeTask != null) runtimeTask.cancel();
+      if (runtimeExpiryTask != null) runtimeExpiryTask.cancel();
       worker.close();
     }
   }

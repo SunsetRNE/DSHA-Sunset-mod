@@ -933,6 +933,53 @@ public class PluginFragment extends Fragment {
     if (isAdded()) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
   }
 
+  static String runtimeText(PluginRepository.Item item) {
+    String state =
+        switch (item.runtimeState) {
+          case "loaded", "running", "active" ->
+              com.deepseekharness.app.util.UiText.choose("已加载", "loaded");
+          case "failed" -> com.deepseekharness.app.util.UiText.choose("加载失败", "load failed");
+          case "pending", "waiting" ->
+              com.deepseekharness.app.util.UiText.choose("等待服务", "waiting for services");
+          case "loading" -> com.deepseekharness.app.util.UiText.choose("正在加载", "loading");
+          case "stopped", "unloaded", "disabled", "inactive" ->
+              com.deepseekharness.app.util.UiText.choose("未加载", "not loaded");
+          default -> "";
+        };
+    if (state.isEmpty()) {
+      String unknown =
+          com.deepseekharness.app.util.UiText.choose(
+              "当前 Web：加载状态未确认", "Current Web: load unconfirmed");
+      String history =
+          switch (item.loadState) {
+            case "loaded" -> com.deepseekharness.app.util.UiText.choose("已加载", "loaded");
+            case "failed" -> com.deepseekharness.app.util.UiText.choose("加载失败", "load failed");
+            case "queued" -> com.deepseekharness.app.util.UiText.choose("等待生效", "queued");
+            case "attempted" ->
+                com.deepseekharness.app.util.UiText.choose("已尝试加载", "load attempted");
+            default -> "";
+          };
+      return history.isEmpty()
+          ? unknown
+          : String.format(
+              java.util.Locale.ROOT,
+              com.deepseekharness.app.util.UiText.choose(
+                  "%s\n上次激活记录：%s", "%s\nLast activation record: %s"),
+              unknown,
+              history);
+    }
+    if (item.runtimeStale)
+      return String.format(
+          java.util.Locale.ROOT,
+          com.deepseekharness.app.util.UiText.choose(
+              "当前 Web：待核验；上次状态：%s", "Current Web: awaiting verification; last state: %s"),
+          state);
+    return String.format(
+        java.util.Locale.ROOT,
+        com.deepseekharness.app.util.UiText.choose("当前 Web：%s", "Current Web: %s"),
+        state);
+  }
+
   private class Adapter extends RecyclerView.Adapter<Adapter.Holder> {
     private List<PluginListPresenter.Row<PluginRepository.Item>> rows =
         java.util.Collections.emptyList();
@@ -1189,19 +1236,7 @@ public class PluginFragment extends Fragment {
                           ? com.deepseekharness.app.util.UiText.text("已检测，可开启以加入 Web")
                           : com.deepseekharness.app.util.UiText.choose(
                               "配置：已禁用", "Configuration: disabled");
-      String runtime =
-          switch (item.runtimeState) {
-            case "loaded", "running", "active" ->
-                com.deepseekharness.app.util.UiText.choose("当前 Web：已加载", "Current Web: loaded");
-            case "failed" ->
-                com.deepseekharness.app.util.UiText.choose(
-                    "当前 Web：加载失败", "Current Web: load failed");
-            case "stopped", "unloaded", "disabled" ->
-                com.deepseekharness.app.util.UiText.choose("当前 Web：未加载", "Current Web: not loaded");
-            default ->
-                com.deepseekharness.app.util.UiText.choose(
-                    "当前 Web：加载状态未确认", "Current Web: load unconfirmed");
-          };
+      String runtime = runtimeText(item);
       String text =
           configured + (item.version.isEmpty() ? "" : " · " + item.version) + "\n" + runtime;
       if (item.restartRequired)

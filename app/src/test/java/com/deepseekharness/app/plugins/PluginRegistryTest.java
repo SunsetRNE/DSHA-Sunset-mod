@@ -274,6 +274,173 @@ public final class PluginRegistryTest {
   }
 
   @Test
+  public void runtimeReplacementRetainsOnlyStaleDisplayRowsAndRejectsOldEvidence()
+      throws Exception {
+    PluginSourceIdentity original = source(7);
+    for (PluginSourceIdentity replacement :
+        List.of(
+            new PluginSourceIdentity(
+                original.dataRoot,
+                original.dataRootKey,
+                original.dataRootDevice,
+                original.rootfs,
+                original.rootfsKey,
+                original.rootfsDevice,
+                "new-marker",
+                7),
+            new PluginSourceIdentity(
+                original.dataRoot,
+                original.dataRootKey,
+                original.dataRootDevice,
+                original.rootfs,
+                "1:202",
+                original.rootfsDevice,
+                original.runtimeMarkerSha256,
+                7),
+            new PluginSourceIdentity(
+                original.dataRoot,
+                original.dataRootKey,
+                original.dataRootDevice,
+                new File("/private/next-rootfs"),
+                original.rootfsKey,
+                2,
+                original.runtimeMarkerSha256,
+                8))) {
+      Item installed = item("persistent", true).withRuntime("active", 7);
+      assertTrue(
+          registry.completeQuery(
+              registry.beginQuery(original),
+              List.of(installed, dynamic("temporary").withRuntime("active", 7)),
+              List.of(pending()),
+              true,
+              321));
+      PluginRegistry.Snapshot previous = registry.snapshot();
+      PluginRegistry.Query oldQuery = registry.beginQuery(original);
+
+      assertTrue(original.sameUserDataRoot(replacement));
+      assertFalse(original.sameDataSource(replacement));
+      assertFalse(original.equals(replacement));
+      assertTrue(registry.updateSource(replacement));
+      PluginRegistry.Snapshot retained = registry.snapshot();
+      assertEquals(replacement, retained.source);
+      assertTrue(retained.known);
+      assertTrue(retained.stale);
+      assertFalse(retained.loading);
+      assertEquals(321, retained.verifiedAtMillis);
+      assertEquals(1, retained.items.size());
+      assertEquals(installed.stableKey, retained.items.get(0).stableKey);
+      assertTrue(retained.items.get(0).enabled);
+      assertEquals("unknown", retained.items.get(0).runtimeState);
+      assertEquals(-1, retained.items.get(0).runtimeGeneration);
+      assertSame(previous.pendingReviews, retained.pendingReviews);
+      assertTrue(retained.safeMode);
+      assertEquals("active", previous.items.get(0).runtimeState);
+      assertEquals(2, previous.items.size());
+      assertFalse(registry.completeQuery(oldQuery, previous.items, List.of(), false));
+      assertFalse(registry.failQuery(oldQuery, "late failure"));
+      assertFalse(registry.updateRuntimeItems(original, previous.items));
+      assertFalse(registry.recordConfirmedItems(original, List.of()));
+      assertFalse(registry.updateConfirmedTarget(original, installed.stableKey, installed));
+      registry.failSource("new runtime unavailable");
+      assertSame(retained.items, registry.snapshot().items);
+      assertTrue(registry.updateSource(original));
+      assertFalse(registry.completeQuery(oldQuery, previous.items, List.of(), false));
+    }
+  }
+
+  @Test
+  public void displayRetentionRequiresUserDataRootPathInodeAndDevice() throws Exception {
+    PluginSourceIdentity original = source(7);
+    assertFalse(original.sameUserDataRoot(null));
+    for (PluginSourceIdentity replacement :
+        List.of(
+            new PluginSourceIdentity(
+                new File("/private/other-data"),
+                original.dataRootKey,
+                original.dataRootDevice,
+                original.rootfs,
+                original.rootfsKey,
+                original.rootfsDevice,
+                original.runtimeMarkerSha256,
+                7),
+            new PluginSourceIdentity(
+                original.dataRoot,
+                "1:201",
+                original.dataRootDevice,
+                original.rootfs,
+                original.rootfsKey,
+                original.rootfsDevice,
+                original.runtimeMarkerSha256,
+                7),
+            new PluginSourceIdentity(
+                original.dataRoot,
+                original.dataRootKey,
+                2,
+                original.rootfs,
+                original.rootfsKey,
+                original.rootfsDevice,
+                original.runtimeMarkerSha256,
+                7))) {
+      assertTrue(
+          registry.completeQuery(
+              registry.beginQuery(original),
+              List.of(item("private", true)),
+              List.of(pending()),
+              true,
+              321));
+      assertFalse(original.sameUserDataRoot(replacement));
+      assertFalse(original.sameDataSource(replacement));
+      assertTrue(registry.updateSource(replacement));
+      PluginRegistry.Snapshot empty = registry.snapshot();
+      assertFalse(empty.known);
+      assertTrue(empty.stale);
+      assertFalse(empty.loading);
+      assertTrue(empty.items.isEmpty());
+      assertTrue(empty.pendingReviews.isEmpty());
+      assertFalse(empty.safeMode);
+      assertEquals(0, empty.verifiedAtMillis);
+    }
+  }
+
+  @Test
+  public void knownWebGenerationRevokesOldEvidenceBeforeUnavailableSourceProbe() throws Exception {
+    PluginSourceIdentity original = source(7);
+    Item installed = item("persistent", true).withRuntime("active", 7);
+    seed(original, List.of(installed, dynamic("temporary").withRuntime("active", 7)));
+    PluginRegistry.Query oldQuery = registry.beginQuery(original);
+    assertTrue(registry.updateWebGeneration(8));
+    PluginRegistry.Snapshot revoked = registry.snapshot();
+    assertEquals(source(8), revoked.source);
+    assertTrue(original.sameDataSource(revoked.source));
+    assertTrue(revoked.known);
+    assertTrue(revoked.stale);
+    assertFalse(revoked.loading);
+    assertEquals(1, revoked.items.size());
+    assertEquals("unknown", revoked.items.get(0).runtimeState);
+    assertEquals(-1, revoked.items.get(0).runtimeGeneration);
+    registry.failSource("Web 正在切换运行状态");
+    assertSame(revoked.items, registry.snapshot().items);
+    assertFalse(registry.completeQuery(oldQuery, List.of(installed), List.of(), false));
+    assertFalse(registry.updateRuntimeItems(original, List.of(installed)));
+    assertFalse(registry.failQuery(oldQuery, "late old-generation failure"));
+    PluginRegistry.Snapshot unavailable = registry.snapshot();
+    assertFalse(registry.updateWebGeneration(8));
+    assertSame(unavailable, registry.snapshot());
+  }
+
+  @Test
+  public void webGenerationCannotInventSourceOrKnownCatalog() {
+    PluginRegistry.Snapshot initial = registry.snapshot();
+    assertFalse(registry.updateWebGeneration(7));
+    assertSame(initial, registry.snapshot());
+    registry.updateSource(source(7));
+    assertTrue(registry.updateWebGeneration(8));
+    assertFalse(registry.snapshot().known);
+    assertEquals(0, registry.snapshot().verifiedAtMillis);
+    assertTrue(registry.snapshot().items.isEmpty());
+  }
+
+  @Test
   public void runtimeProjectionPreservesScanTicketDirtySequenceAndVerificationTime()
       throws Exception {
     PluginSourceIdentity source = source(7);
@@ -343,6 +510,88 @@ public final class PluginRegistryTest {
     assertFalse(
         registry.updateRuntimeItems(source, List.of(dynamic("old").withRuntime("active", 6))));
     assertSame(projected, registry.snapshot());
+  }
+
+  @Test
+  public void runtimeProjectionPublishesStalenessWithoutDiscardingSameGenerationState()
+      throws Exception {
+    PluginSourceIdentity source = source(7);
+    Item installed = item("persistent", true).withRuntime("loaded", 7, false);
+    Item temporary = dynamic("temporary").withRuntime("active", 7, false);
+    seed(source, List.of(installed, temporary));
+    PluginRegistry.Snapshot before = registry.snapshot();
+    List<Item> stale =
+        List.of(installed.withRuntime("loaded", 7, true), temporary.withRuntime("active", 7, true));
+    assertTrue(registry.updateRuntimeItems(source, stale));
+    PluginRegistry.Snapshot retained = registry.snapshot();
+    assertEquals("loaded", retained.items.get(0).runtimeState);
+    assertTrue(retained.items.get(0).runtimeStale);
+    assertEquals("active", retained.items.get(1).runtimeState);
+    assertTrue(retained.items.get(1).runtimeStale);
+    assertEquals(before.verifiedAtMillis, retained.verifiedAtMillis);
+    assertEquals(before.invalidationSeq, retained.invalidationSeq);
+    assertFalse(retained.stale);
+    assertFalse(registry.updateRuntimeItems(source, stale));
+    assertSame(retained, registry.snapshot());
+    assertTrue(registry.updateRuntimeItems(source, List.of(installed, temporary)));
+    assertFalse(registry.snapshot().items.get(0).runtimeStale);
+    assertFalse(registry.snapshot().items.get(1).runtimeStale);
+  }
+
+  @Test
+  public void onlyFreshMatchingLoadEvidenceClearsPendingRestart() throws Exception {
+    PluginSourceIdentity source = source(7);
+    for (String state : List.of("loaded", "unloaded", "disabled")) {
+      boolean enabled = "loaded".equals(state);
+      Item installed = item("persistent", enabled).withIntent(enabled);
+      seed(source, List.of(installed));
+      assertTrue(
+          registry.updateRuntimeItems(
+              source, List.of(installed.withRuntime(state, 7, true).withRestartRequired(false))));
+      assertTrue(registry.snapshot().items.get(0).restartRequired);
+      assertTrue(
+          registry.updateRuntimeItems(
+              source, List.of(installed.withRuntime(state, 7, false).withRestartRequired(false))));
+      assertFalse(registry.snapshot().items.get(0).restartRequired);
+      assertTrue(
+          registry.updateRuntimeItems(
+              source,
+              List.of(installed.withRuntime("unknown", 7, true).withRestartRequired(true))));
+      assertTrue(registry.snapshot().items.get(0).restartRequired);
+    }
+  }
+
+  @Test
+  public void oldVersionOrOriginRuntimeProjectionCannotClaimCurrentInstallation() throws Exception {
+    PluginSourceIdentity source = source(7);
+    Item installed = item("persistent", true).withIntent(true);
+    seed(source, List.of(installed));
+    PluginRegistry.Snapshot before = registry.snapshot();
+    for (JSONObject value :
+        List.of(
+            new JSONObject().put("name", "persistent").put("version", "0.9.0"),
+            new JSONObject()
+                .put("name", "persistent")
+                .put("version", "1.0.0")
+                .put("runtimeProvided", true))) {
+      Item late = new Item(value.put("enabled", true)).withRuntime("loaded", 7, false);
+      assertTrue(!installed.version.equals(late.version) || !installed.origin.equals(late.origin));
+      assertFalse(registry.updateRuntimeItems(source, List.of(late)));
+      assertSame(before, registry.snapshot());
+      assertTrue(registry.snapshot().items.get(0).restartRequired);
+    }
+  }
+
+  @Test
+  public void newWebGenerationRetiresOldRestartHintWithoutClearingDesiredIntent() throws Exception {
+    Item installed = item("persistent", false).withIntent(true).withRuntime("loaded", 7, false);
+    seed(source(7), List.of(installed));
+    assertTrue(registry.updateWebGeneration(8));
+    Item retained = registry.snapshot().items.get(0);
+    assertTrue(retained.enabled);
+    assertTrue(retained.runtimeStale);
+    assertEquals("unknown", retained.runtimeState);
+    assertFalse(retained.restartRequired);
   }
 
   @Test

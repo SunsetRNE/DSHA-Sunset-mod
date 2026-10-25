@@ -172,6 +172,52 @@ public final class PluginFragmentRenderingTest {
   }
 
   @Test
+  public void runtimeEvidenceRefreshKeepsRowsAndDistinguishesHistoryFromCurrent() throws Exception {
+    var alpha = item("alpha").withRuntime("loaded", 1);
+    mount(state(catalog(List.of(alpha, item("beta"))), List.of(), false, "", -1));
+    assertTrue(text(rowAt(1).findViewById(R.id.pluginStatus)).contains("Current Web: loaded"));
+    publish(
+        state(
+            catalog(List.of(alpha.withRuntime("loaded", 1, true), item("beta"))),
+            List.of(),
+            false,
+            "",
+            -1));
+    String stale = text(rowAt(1).findViewById(R.id.pluginStatus));
+    assertTrue(stale.contains("awaiting verification; last state: loaded"));
+    assertFalse(stale.contains("Current Web: loaded"));
+    for (String runtime : List.of("pending", "failed", "loaded")) {
+      publish(
+          state(
+              catalog(List.of(alpha.withRuntime(runtime, 1), item("beta"))),
+              List.of(),
+              false,
+              "",
+              -1));
+      assertTrue(
+          text(rowAt(1).findViewById(R.id.pluginStatus))
+              .contains(
+                  runtime.equals("pending")
+                      ? "waiting for services"
+                      : runtime.equals("failed") ? "load failed" : "Current Web: loaded"));
+      assertEquals(List.of("alpha", "beta"), renderedNames());
+    }
+    var historical =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "alpha")
+                .put("available", true)
+                .put("enabled", true)
+                .put("version", "1.0")
+                .put("loadState", "loaded"));
+    publish(state(catalog(List.of(historical)), List.of(), false, "", -1));
+    String history = text(rowAt(1).findViewById(R.id.pluginStatus));
+    assertTrue(history.contains("Current Web: load unconfirmed"));
+    assertTrue(history.contains("Last activation record: loaded"));
+    assertFalse(history.contains("Current Web: loaded"));
+  }
+
+  @Test
   public void headerOnlyStateChangesRenderWithoutAnyAdapterNotification() throws Exception {
     PluginRegistry.Snapshot catalog = catalog(List.of(item("alpha"), item("beta")));
     mount(state(catalog, List.of(), false, "", -1));

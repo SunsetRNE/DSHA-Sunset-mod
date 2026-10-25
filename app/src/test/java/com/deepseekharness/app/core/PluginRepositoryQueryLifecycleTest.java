@@ -102,6 +102,14 @@ public final class PluginRepositoryQueryLifecycleTest {
     }
 
     @Implementation
+    protected com.deepseekharness.app.util.PreviewPageSession.Identity getReadyWebPageIdentity() {
+      return auth.isEmpty() || starting
+          ? null
+          : new com.deepseekharness.app.util.PreviewPageSession.Identity(
+              Boot.generation, "fixture-instance", auth);
+    }
+
+    @Implementation
     protected StartupDiagnostics startupDiagnostics() {
       return diagnostics;
     }
@@ -337,7 +345,6 @@ public final class PluginRepositoryQueryLifecycleTest {
         .put("available", true)
         .put("exportable", true)
         .put("deletable", true)
-        .put("runtimeState", "inactive")
         .put("version", "1.0.0");
   }
 
@@ -719,7 +726,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     runWorker();
     assertTrue(repository.state().getValue().items.get(0).enabled);
     assertTrue(repository.state().getValue().items.get(0).restartRequired);
-    assertEquals("inactive", repository.state().getValue().items.get(0).runtimeState);
+    assertEquals("unknown", repository.state().getValue().items.get(0).runtimeState);
     assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
     String confirmedMessage = repository.operation(id).message;
     assertEquals(1, queue.size());
@@ -730,6 +737,105 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertTrue(repository.state().getValue().items.get(0).enabled);
     assertTrue(repository.state().getValue().catalog.stale);
     assertEquals(List.of("enable-state '" + ALPHA + "'", "refresh"), Boot.calls);
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void confirmedIntentSurvivesSourceReadFailureAfterReceipt() throws Exception {
+    seed();
+    AtomicBoolean replied = new AtomicBoolean();
+    Boot.guest =
+        (command, task) -> {
+          replied.set(true);
+          return result(intent(ALPHA, true));
+        };
+    SourceResolver.beforeReturn =
+        identity -> {
+          if (replied.get()) throw new IOException("post-receipt source unavailable");
+        };
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
+    assertTrue(repository.state().getValue().items.get(0).enabled);
+    assertTrue(repository.state().getValue().catalog.stale);
+    assertTrue(repository.state().getValue().catalog.error.contains("post-receipt"));
+    assertEquals(List.of("enable-state '" + ALPHA + "'"), Boot.calls);
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void confirmedDeletionSurvivesSourceReadFailureAfterReceipt() throws Exception {
+    seed();
+    AtomicBoolean replied = new AtomicBoolean();
+    Boot.guest =
+        (command, task) -> {
+          replied.set(true);
+          return result(
+              new JSONObject()
+                  .put("status", "ok")
+                  .put("message", "removed")
+                  .put("name", ALPHA)
+                  .put("removed", true)
+                  .put("deletionVerified", true)
+                  .toString());
+        };
+    SourceResolver.beforeReturn =
+        identity -> {
+          if (replied.get()) throw new IOException("post-receipt source unavailable");
+        };
+    String id = repository.delete(repository.state().getValue().items.get(0));
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
+    assertEquals(1, repository.state().getValue().items.size());
+    assertEquals(BETA, repository.state().getValue().items.get(0).name);
+    assertTrue(repository.state().getValue().catalog.stale);
+    assertEquals(1, Boot.calls.size());
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void confirmedIntentAcrossOnlyWebGenerationKeepsConfigurationButRetiresRuntime()
+      throws Exception {
+    seed();
+    long previous = Boot.generation;
+    var catalog = repository.registry().snapshot();
+    repository
+        .registry()
+        .updateRuntimeItems(
+            catalog.source,
+            List.of(catalog.items.get(0).withRuntime("loaded", previous), catalog.items.get(1)));
+    repository.publishCatalog("");
+    Boot.guest =
+        (command, task) -> {
+          Boot.generation++;
+          return result(intent(ALPHA, true));
+        };
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
+    assertTrue(repository.state().getValue().items.get(0).enabled);
+    assertEquals("unknown", repository.state().getValue().items.get(0).runtimeState);
+    assertEquals(previous + 1, repository.state().getValue().catalog.source.webGeneration);
+    assertEquals(1, Boot.calls.size());
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void confirmedIntentCannotContaminateReplacementUserDataRoot() throws Exception {
+    seed();
+    Boot.guest =
+        (command, task) -> {
+          Boot.root = root("replacement-after-receipt");
+          repository.registry().updateSource(SourceResolver.identity());
+          return result(intent(ALPHA, true));
+        };
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
+    assertTrue(repository.state().getValue().items.isEmpty());
+    assertFalse(repository.state().getValue().catalog.known);
+    assertTrue(repository.state().getValue().catalog.stale);
+    assertEquals(1, Boot.calls.size());
     assertTrue(queue.isEmpty());
   }
 
@@ -942,6 +1048,45 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertFalse(repository.state().getValue().catalog.stale);
     assertTrue(repository.state().getValue().items.get(1).enabled);
     assertEquals(List.of("refresh", "refresh"), Boot.calls);
+  }
+
+  @Test
+  public void busyReadOnlyTasksCoalesceRuntimeProjectionAndReplayOnlyTheRead() throws Exception {
+    seed();
+    var catalog = repository.registry().snapshot();
+    repository
+        .registry()
+        .updateRuntimeItems(
+            catalog.source,
+            List.of(
+                catalog.items.get(0).withRuntime("loaded", Boot.generation), catalog.items.get(1)));
+    repository.publishCatalog("");
+    CountDownLatch entered =
+        blockGuest(
+            (command, task) ->
+                result(
+                    "{\"status\":\"ok\",\"message\":\"capabilities read\",\"capabilities\":{}}"));
+    repository.inspectCapabilities(repository.state().getValue().items.get(0), ignored -> {});
+    Worker first = startWorker();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+    // 合并投影与到期投影都在长任务内到达，不能继续显示为当前已确认。
+    repository.refreshRuntimeProjection();
+    repository.refreshRuntimeProjection();
+    main.idle();
+    assertTrue(repository.state().getValue().items.get(0).runtimeStale);
+    repository.inspectCapabilities(repository.state().getValue().items.get(1), ignored -> {});
+    unblock();
+    finish(first);
+    assertEquals(1, queue.size());
+    runWorker(); // 后继任务再次 busy，保留同一个待投影请求。
+    assertEquals(1, queue.size());
+    int reads = SourceResolver.resolutions.get();
+    runWorker();
+    assertEquals(reads + 2, SourceResolver.resolutions.get());
+    assertEquals(
+        List.of("capabilities '" + ALPHA + "'", "capabilities '" + BETA + "'"), Boot.calls);
+    assertTrue(repository.state().getValue().items.get(0).runtimeStale);
+    assertTrue(queue.isEmpty());
   }
 
   @Test
