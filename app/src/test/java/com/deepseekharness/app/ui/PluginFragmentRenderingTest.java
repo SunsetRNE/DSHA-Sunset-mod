@@ -1,10 +1,8 @@
 package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
-import static org.robolectric.Shadows.shadowOf;
 
 import android.os.Bundle;
-import android.os.Looper;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -129,14 +127,17 @@ public final class PluginFragmentRenderingTest {
     activity.packageName = RuntimeEnvironment.getApplication().getPackageName();
     activity.applicationInfo = RuntimeEnvironment.getApplication().getApplicationInfo();
     activity.theme = R.style.Theme_DeepseekHarness;
-    shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).addOrUpdateActivity(activity);
+    org.robolectric.shadows.ShadowPackageManager packageManager =
+        org.robolectric.shadow.api.Shadow.extract(
+            RuntimeEnvironment.getApplication().getPackageManager());
+    packageManager.addOrUpdateActivity(activity);
     host = Robolectric.buildActivity(FixtureHost.class).setup().visible();
   }
 
   @After
   public void tearDown() {
     if (host != null) host.pause().stop().destroy();
-    shadowOf(Looper.getMainLooper()).idle();
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
     UiText.setLanguage(previousLanguage);
   }
 
@@ -317,7 +318,7 @@ public final class PluginFragmentRenderingTest {
         .beginTransaction()
         .replace(R.id.fragment_container, new OtherFragment())
         .commitNow();
-    shadowOf(Looper.getMainLooper()).idle();
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
     assertNull(original.getView());
 
     // 同一动态身份改变展示名称，并在其前面插入一行；恢复不能按旧名称或旧 position 猜测。
@@ -359,7 +360,7 @@ public final class PluginFragmentRenderingTest {
     Bundle saved = new Bundle();
     host.pause().saveInstanceState(saved).stop().destroy();
     host = null;
-    shadowOf(Looper.getMainLooper()).idle();
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
 
     host = Robolectric.buildActivity(FixtureHost.class).create(saved);
     assertNotSame(oldFixture, fixture());
@@ -518,11 +519,11 @@ public final class PluginFragmentRenderingTest {
 
   private void layout() {
     // PAUSED 主线程只处理已到期任务，避免 EditText 光标/动画的无限定时回调。
-    shadowOf(Looper.getMainLooper()).idle();
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
     View decor = host.get().getWindow().getDecorView();
     measureAndLayout(decor);
     measureAndLayout(list());
-    shadowOf(Looper.getMainLooper()).idle();
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
     measureAndLayout(list());
     assertFalse("布局必须消费真实 Adapter 更新", list().hasPendingAdapterUpdates());
   }
@@ -540,7 +541,7 @@ public final class PluginFragmentRenderingTest {
     layout();
     RecyclerView.ViewHolder holder = list().findViewHolderForAdapterPosition(position);
     assertNotNull("插件行必须通过 RecyclerView 真实创建和绑定", holder);
-    assertEquals(position, holder.getBindingAdapterPosition());
+    assertEquals(position, holder.getAdapterPosition());
     assertNotNull(holder.itemView.findViewById(R.id.pluginName));
     return holder.itemView;
   }
@@ -560,7 +561,7 @@ public final class PluginFragmentRenderingTest {
 
   private void chooseSort(PluginSort.Mode mode) {
     assertTrue(page.find(R.id.btnSort).performClick());
-    shadowOf(Looper.getMainLooper()).idle();
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
     AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
     assertNotNull(dialog);
     assertTrue(dialog.isShowing());

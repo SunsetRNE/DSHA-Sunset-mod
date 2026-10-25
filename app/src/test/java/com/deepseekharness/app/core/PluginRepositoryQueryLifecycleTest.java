@@ -667,9 +667,9 @@ public final class PluginRepositoryQueryLifecycleTest {
             (command, task) -> {
               assertTrue(
                   new File(Boot.root, "root/.dsha-plugin-task-" + task + ".cancel").isFile());
-              throw new IOException("PLUGIN_INTENT_EXECUTION_UNKNOWN");
+              throw new IOException("PLUGIN_DELETE_EXECUTION_UNKNOWN");
             });
-    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    String id = repository.delete(repository.state().getValue().items.get(0));
     Worker worker = startWorker();
     assertTrue(entered.await(2, TimeUnit.SECONDS));
     assertEquals(Phase.RUNNING, repository.operation(id).phase);
@@ -679,10 +679,32 @@ public final class PluginRepositoryQueryLifecycleTest {
     finish(worker);
     assertEquals(Phase.UNCONFIRMED, repository.operation(id).phase);
     assertTrue(repository.operation(id).message.contains("EXECUTION_UNKNOWN"));
+    assertEquals(2, repository.state().getValue().items.size());
+    assertEquals(ALPHA, repository.state().getValue().items.get(0).name);
     assertFalse(repository.state().getValue().items.get(0).enabled);
-    assertEquals(List.of("enable-state '" + ALPHA + "'"), Boot.calls);
+    assertEquals(List.of("delete '" + ALPHA + "' '1.0.0'"), Boot.calls);
     assertEquals(List.of(id.replace("-", "")), Boot.taskIds);
     assertFalse(repository.cancelOperation(id));
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void runningToggleRejectsCancellationAndStillPublishesVerifiedIntent() throws Exception {
+    seed();
+    CountDownLatch entered = blockGuest((command, task) -> result(intent(ALPHA, true)));
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    Worker worker = startWorker();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+    assertEquals(Phase.RUNNING, repository.operation(id).phase);
+    assertFalse(repository.cancelOperation(id));
+    assertFalse(
+        new File(Boot.root, "root/.dsha-plugin-task-" + id.replace("-", "") + ".cancel").exists());
+    unblock();
+    finish(worker);
+    assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
+    assertTrue(repository.state().getValue().items.get(0).enabled);
+    assertEquals(1, SignalAudit.cancelled.getCount());
+    assertEquals(List.of("enable-state '" + ALPHA + "'"), Boot.calls);
     assertTrue(queue.isEmpty());
   }
 
@@ -881,7 +903,18 @@ public final class PluginRepositoryQueryLifecycleTest {
     Boot.generation++;
     unblock();
     finish(worker);
-    assertUnknown();
+    assertTrue(repository.hasKnownItems());
+    assertTrue(repository.state().getValue().catalog.known);
+    assertTrue(repository.state().getValue().catalog.stale);
+    assertFalse(repository.isBusy());
+    assertEquals(2, repository.state().getValue().items.size());
+    assertEquals(ALPHA, repository.state().getValue().items.get(0).name);
+    assertEquals(BETA, repository.state().getValue().items.get(1).name);
+    for (PluginRepository.Item item : repository.state().getValue().items) {
+      assertFalse("旧查询返回的启用状态不能覆盖已确认目录", item.enabled);
+      assertEquals("unknown", item.runtimeState);
+      assertEquals(-1, item.runtimeGeneration);
+    }
     assertEquals(SourceResolver.identity(), repository.state().getValue().catalog.source);
     assertEquals(List.of("refresh"), Boot.calls);
     assertTrue(queue.isEmpty());
