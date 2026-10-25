@@ -68,6 +68,9 @@ def input_receipt(output, environment):
 
 
 def validate_badging(text, gradle):
+    # aapt2 不同版本对最低 API 的打印键名不一致（sdkVersion / minSdkVersion）；
+    # 两者都只接受精确 30，且必须同时有精确 targetSdkVersion 37，不降低约束。
+    text = text.replace("\r\n", "\n")
     source = {}
     for field, expression in (("packageName", r'applicationId\s+"([^"]+)"'),
                               ("versionName", r'versionName\s+"([^"]+)"'),
@@ -85,11 +88,14 @@ def validate_badging(text, gradle):
         raise ValueError("TERMINAL_APK_DEBUGGABLE")
     if re.findall(r"^native-code:\s*(.+)$", text, re.M) != ["'arm64-v8a'"]:
         raise ValueError("TERMINAL_APK_ABI")
-    if re.findall(r"^sdkVersion:'([^']+)'$", text, re.M) != ["30"] \
-            or re.findall(r"^targetSdkVersion:'([^']+)'$", text, re.M) != ["37"]:
-        raise ValueError("TERMINAL_APK_SDK")
+    minimum = re.findall(r"^(?:minSdkVersion|sdkVersion):'([^']*)'$", text, re.M)
+    target = re.findall(r"^targetSdkVersion:'([^']*)'$", text, re.M)
+    if minimum != ["30"] or target != ["37"]:
+        observed = [line for line in text.splitlines() if "dkVersion" in line][:8]
+        raise ValueError("TERMINAL_APK_SDK: " + " | ".join(observed))
     return {**expected, "versionCode": int(expected["versionCode"]), "debuggable": False,
-            "abis": ["arm64-v8a"], "minSdk": 30, "targetSdk": 37}
+            "abis": ["arm64-v8a"], "minSdk": 30, "targetSdk": 37,
+            "badgingMinSdkKey": "minSdkVersion" if "minSdkVersion:'30'" in text else "sdkVersion"}
 
 
 def validate_certificate(signature, pem):
