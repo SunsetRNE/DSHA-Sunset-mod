@@ -127,6 +127,8 @@
 | [40201270323](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40201270323) / a1 | `6666aaa0` | source job 全通过；apk job 在生产源码编译通过后，**测试源码**编译失败（新测试的 Robolectric 通用 `shadowOf()` 触发 Android37 已移除的 `FingerprintManager` 类型）。未执行 JUnit、未签包。 |
 | [40203536948](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40203536948) / a1 | `2a0af1a` | source job 全通过；完整 Standard 单测 2514 项执行、1 项失败：虚拟屏 `VirtualScreenObservedPixelsTest` 在自身 25MB 位图分配处 `OutOfMemoryError`，与终端改动的断言无关。 |
 | 40203536948 / a2（同提交重跑失败作业） | `2a0af1a` | 单测、七项真实夹具、13 类终端门禁、Release Lint、未签名 Standard 打包均实际通过；签名步骤的回执核验把 aapt2 badging 最低 API 键名写死为 `sdkVersion`，报 `TERMINAL_APK_SDK`，APK 未上传。 |
+| [40207701003](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40207701003) / a1 | `ff4dbb0` | **两必要作业成功、无跳过步骤**；2514 项单测 0 失败/0 错误/1 允许跳过，七夹具与 13 类终端门禁、Lint、assemble、签名、精确 APK 校验与上传均执行。APK 已下载并独立核验（307,823,326 字节，SHA-256 `df3a96d5…56f58`，临时测试证书，未安装）。 |
 
-三项修订均不放宽门禁：测试改用 `Shadow.extract` 精确类型端口；测试 JVM 上限提高到 2048m 以消除与断言无关的位图 OOM；回执同时接受 `sdkVersion`/`minSdkVersion` 并仍精确要求 30/37，且在 build-info 记录实际键名。后续运行单独记账，不能把上表合并成一次通过。
+三项修订均不放宽门禁：测试改用 `Shadow.extract` 精确类型端口；测试 JVM 上限提高到 2048m 以消除与断言无关的位图 OOM；回执同时接受 `sdkVersion`/`minSdkVersion` 并仍精确要求 30/37，且在 build-info 记录实际键名（本次为 `minSdkVersion`）。后续运行单独记账，不能把上表合并成一次通过。
+
 

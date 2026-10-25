@@ -37,8 +37,18 @@
 | run 40201270323 / attempt1 | `6666aaa0` | 测试源码编译失败：新测试使用 Robolectric 通用 `Shadows.shadowOf()` 时触发 Android37 已移除的 `FingerprintManager` 类型；未执行 JUnit、未产包 | 失败日志与 run JSON 已保存 |
 | run 40203536948 / attempt1 | `2a0af1a` | 完整 Standard 单测 2514 项执行，1 项失败：`VirtualScreenObservedPixelsTest.oversizedSingleImageDoesNotAllocateObservationOrChangeObserved` 在自身 3072×2049 位图分配处 `OutOfMemoryError`（虚拟屏用例，非终端相关）；终端新增用例未失败 | 失败日志已保存 |
 | run 40203536948 / attempt2（同一提交重跑失败作业） | `2a0af1a` | 单测、七项真实夹具、13 个终端类门禁、Release Lint、未签名 Standard 打包全部通过；签名核验仅因打包回执把 badging 最低 API 键名写死为 `sdkVersion` 而报 `TERMINAL_APK_SDK`，APK 未上传 | 失败日志已保存 |
+| [run 40207701003 / attempt1](<https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40207701003>) | `ff4dbb0` | **两个必要作业均成功、无跳过步骤**；单测 2514/0失败/0错误/1项允许的平台不适用跳过；七项真实夹具与13类终端门禁通过；Lint、assemble、签名、精确 APK 校验、上传均实际执行 | 已下载 APK 与公开证据并独立核验 |
 
 对应修订（均不降低断言、不跳过用例）：测试改用 `Shadow.extract` 精确类型端口；新增独立终端通知的身份断言从 10 项更新为 11 项并锁定 9065；测试进程内存上限提高到 2048m 以消除与断言无关的 25MB 位图 OOM；打包回执同时接受 `sdkVersion`/`minSdkVersion` 两种 aapt2 拼写但仍精确要求 30/37，并在回执中记录实际使用的键名。后续 CI 结果单独归属新 SHA。
+
+### 本次测试包（下载后已核验，未安装）
+
+- CI 附件：[dsha-terminal-ff4dbb07.apk](<https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40207701003/artifacts>)（需该私有仓库权限）；证据附件 `terminal-evidence`。
+- 307,823,326 字节，SHA-256 `df3a96d5241ef1a4de87e3d8aa38d60a1f78080c252613c5226ff5614e456f58`；API artifact digest、`SHA256SUMS` 与实际下载字节一致。
+- 包名 `dsh.android.client.SunsetRNE`，versionCode 197，versionName `0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3-SunsetTest`，minSdk 30 / targetSdk 37 / arm64-v8a、非调试；v3 签名证书 SHA-256 `734533591482541dbe06e1322a0dd220b313d0cf33b84a76be11a38df575806f`（本次 runner 临时生成，非正式 E7E3，也**不保证覆盖**旧 Sunset 测试包）。
+- 清单核对：`.ui.TerminalActivity` `exported=false`、`singleTop`；`.TerminalRuntimeService` `exported=false`、`stopWithTask=false`、`foregroundServiceType=specialUse` 且带专用 subtype 说明；APK 内无私钥类成员。
+- runtimeId 为 `f1df01ed6431cce6a56a2b339e4a412fac443f872520ac474480a0f315f80073`（终端启动保护合同变化后重新生成）；Ubuntu 基础版本 10 与 DSH `0.2.1-rc.3` 归档字节未改。
+
 
 ## 本地设备回归清单（本轮尚未执行）
 
