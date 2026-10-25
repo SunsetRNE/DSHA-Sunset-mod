@@ -68,6 +68,7 @@ public final class PluginChangeDetector implements AutoCloseable {
 
   // Linux 的失效/目录标记没有全部暴露为 FileObserver 常量。
   static final int UNMOUNT = 0x2000, OVERFLOW = 0x4000, IGNORED = 0x8000, IS_DIRECTORY = 0x40000000;
+  private static final int IN_ONLYDIR = 0x01000000, IN_DONT_FOLLOW = 0x02000000;
   static final int CHANGE_MASK =
       FileObserver.MODIFY
           | FileObserver.ATTRIB
@@ -667,10 +668,13 @@ public final class PluginChangeDetector implements AutoCloseable {
   }
 
   @SuppressWarnings("deprecation")
+  @android.annotation.SuppressLint("WrongConstant")
   private static Watch nativeWatch(File directory, EventSink events) {
-    // IN_ONLYDIR | IN_DONT_FOLLOW：路径在注册瞬间被替换为 symlink 时也不追随目标。
+    // AOSP FileObserver 的 Java/JNI 原样转交 mask 给 inotify_add_watch；公开 IntDef 只列事件位。
+    // IN_ONLYDIR | IN_DONT_FOLLOW 是注册保护位：路径在注册瞬间被替换为 symlink 时也不追随目标。
+    // 此处局部声明该差异，不能删掉保护位或放宽全工程 Lint。
     FileObserver observer =
-        new FileObserver(directory.getAbsolutePath(), CHANGE_MASK | 0x01000000 | 0x02000000) {
+        new FileObserver(directory.getAbsolutePath(), CHANGE_MASK | IN_ONLYDIR | IN_DONT_FOLLOW) {
           @Override
           public void onEvent(int event, String path) {
             events.event(event, path);
