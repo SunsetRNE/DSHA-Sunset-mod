@@ -448,6 +448,12 @@ public final class LanProxyService {
     return activeRun == null ? 0 : port(activeRun.generation);
   }
 
+  /** UI may reveal the existing credential only for a currently held authenticated listener. */
+  public static synchronized String boundLanToken(long generation) {
+    String token = LAN_TOKEN.current();
+    return port(generation) > 0 && isValidLanToken(token) ? token : "";
+  }
+
   private static boolean isActiveRun(ProxyRun run) {
     return run != null && run.active && activeRun == run;
   }

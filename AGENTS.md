@@ -1,5 +1,8 @@
 # AGENTS.md
 
+<!-- build197-current -->
+> **2026-10-25 build197**：`0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3` /197 /Standard /dsh.android.client /E7E3非调试；常规APK307703892字节，SHA `5cd635ab68ea61e74822e5d25a0b7ddc66ce21d03ea4412faa045c070a90f244`。单最近任务/主页返回、LAN状态、当前对话手机工具、十语及动态主提示，修复IME观察取消、旧poll和gated恢复空白。76类505项Standard零失败错误skip，Lint0错/致命337警告，17命令含9APK门禁，1168份当前格式证据。最终Android13同签名覆盖/实算SHA、当前会话手机任务确认→COMPLETED（空WebView语义节点边界保留）→finishOK、三次Main返回重进同task1680、一张recents、正常停止及原权限恢复；此前候选Settings树/阿语RTL/十语/法语证据独立标注，确认超时不删。正式/独立应急仍rc3共用36c3归档字节而运行根独立，Ubuntu10不变。仅固定私有SunsetRNE/DSHA-Sunset-mod-3090-Q，实际发布与完整源码/六资产commit/SHA见外部artifacts/deliveries/build197-navigation-language-20261025.json；不跑Low、不写公开DSHA/网站。实际源仍<local-workspace>
+
 <!-- build196-current -->
 > **2026-10-24 build196**：`0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3` /196 /Standard /`dsh.android.client` /E7E3非调试，常规APK名；最终R7候选302430394字节，SHA `f3e053866dbf410edfc02587d64c9589ce9ac3c702f5bdef751b1f501c708d57`。正式与独立应急仍rc3、Ubuntu10；启动准备共用检查，保留事务/退出证明。修复助手真实会话/跨轮任务绑定、IME和固定输入区、物理屏android_node与自有悬浮窗识别、分享/另存为前台分流、双安装端口；首页移除后台任务入口，电脑连接从首页进入。最终45类279项Standard JUnit零失败/错误/skip、Release Lint0错/0致命/303警告、17条所选命令（其中9条APK检查）通过。R1真机发现两helper部署遗漏、R2发现编辑焦点、R4发现长记录输入及MCP缺语义工具，R6完成真实模型/语义控制/文件流程；R7仅完整标签模板修正，另验覆盖启动/原测试会话/分享/正常停止，最终1157份格式覆盖为1137+17+2+1。各SHA设备证据分开保留；不称首轮全绿。Android16同签名正常停止覆盖、真实已配置模型与文件/控制的有限范围见 docs/releases/v0.2.1-rc.3-build196-20261024.md，最终装机与交付以 artifacts/deliveries/build196-startup-usability-20261024.json 为准。只私有 DSHA-Sunset-mod-3090-Q，不构建或验收Low，不写公开DSHA/网站；实际源码仍 <local-workspace>
 

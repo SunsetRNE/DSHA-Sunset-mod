@@ -120,22 +120,20 @@ public class SettingsFragment extends Fragment {
     boolean followSystem =
         com.deepseekharness.app.util.UiLanguagePreference.followsSystem(preference);
     String effective = config.getUiLanguage();
-    String[] optionValues = {
-      com.deepseekharness.app.util.UiLanguagePreference.SYSTEM,
-      com.deepseekharness.app.util.UiLanguagePreference.ZH,
-      com.deepseekharness.app.util.UiLanguagePreference.EN
-    };
-    String[] optionLabels = {
-      com.deepseekharness.app.util.UiText.choose("跟随系统", "Follow system"),
-      com.deepseekharness.app.util.UiText.choose("简体中文", "Simplified Chinese"),
-      "English"
-    };
-    int checked = followSystem ? 0 : ("en".equals(preference) ? 2 : 1);
+    java.util.List<String> languages = com.deepseekharness.app.util.UiLanguagePreference.LANGUAGES;
+    String[] optionValues = new String[languages.size() + 1];
+    String[] optionLabels = new String[optionValues.length];
+    optionValues[0] = com.deepseekharness.app.util.UiLanguagePreference.SYSTEM;
+    optionLabels[0] = com.deepseekharness.app.util.UiText.choose("跟随系统", "Follow system");
+    for (int i = 0; i < languages.size(); i++) {
+      optionValues[i + 1] = languages.get(i);
+      // Native labels (including English) stay recognizable in an unfamiliar locale.
+      optionLabels[i + 1] =
+          com.deepseekharness.app.util.UiLanguagePreference.nativeName(languages.get(i));
+    }
+    int checked = followSystem ? 0 : languages.indexOf(preference) + 1;
     // 摘要始终显示当前**生效**语言的名字：跟随系统时补上来由，用户一眼能看出实际结果。
-    String currentLabel =
-        "en".equals(effective)
-            ? com.deepseekharness.app.util.UiText.choose("English", "English")
-            : com.deepseekharness.app.util.UiText.choose("简体中文", "Simplified Chinese");
+    String currentLabel = com.deepseekharness.app.util.UiLanguagePreference.nativeName(effective);
     String summary =
         followSystem
             ? com.deepseekharness.app.util.UiText.format("跟随系统 · %s", currentLabel)

@@ -3,6 +3,7 @@ import argparse
 import re
 from pathlib import Path
 from source_text import matches_text, write_text
+from ui_language_catalog import LANGUAGES, RESOURCE_FOLDERS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,7 +20,8 @@ def build_identity(root):
 def update(root, check=False):
     code, version = build_identity(root)
     heading = f'# DSHA {version} / build{code}'
-    for locale, folder in [('zh', 'raw'), ('en', 'raw-en')]:
+    for locale in LANGUAGES:
+        folder = RESOURCE_FOLDERS[locale].replace('values', 'raw', 1)
         source = root / f'docs/releases/build{code}-changes.{locale}.md'
         target = root / f'app/src/main/res/{folder}/changelog.md'
         if not source.is_file():

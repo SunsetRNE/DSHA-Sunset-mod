@@ -110,12 +110,16 @@ public final class RemoteControlDispatcher {
             message != null && message.matches("[A-Z][A-Z0-9_]{0,80}")
                 ? message
                 : "CONTROL_REQUEST_FAILED";
+        JSONObject error = new JSONObject().put("code", code).put("automaticRetry", false);
+        if (code.startsWith("ASSISTANT_") || code.equals("PHYSICAL_SCREEN_BUSY"))
+          error.put(
+              "guidance", com.deepseekharness.app.assistant.AssistantService.taskGuidance(code));
         reply =
             new JSONObject()
                 .put("v", 1)
                 .put("requestId", requestId)
                 .put("ok", false)
-                .put("error", new JSONObject().put("code", code).put("automaticRetry", false));
+                .put("error", error);
       } catch (org.json.JSONException impossible) {
         throw new java.io.IOException(impossible);
       }
@@ -177,9 +181,10 @@ public final class RemoteControlDispatcher {
       if (existing != null && !existing.equals(binding))
         throw new IllegalStateException("PHYSICAL_SCREEN_BUSY");
       if (coordinator.snapshot().paused()) throw new IllegalStateException("LOCAL_RESUME_REQUIRED");
-      if (!com.deepseekharness.app.assistant.AssistantService.ensureRemoteTask(
-          context, identity, binding.taskSessionId(), binding.turnId()))
-        throw new IllegalStateException("ASSISTANT_UI_REQUIRED");
+      var taskUi =
+          com.deepseekharness.app.assistant.AssistantService.ensureRemoteTask(
+              context, identity, binding.taskSessionId(), binding.turnId());
+      if (!taskUi.ready()) throw new IllegalStateException(taskUi.code());
       if (!sessions.isCurrent(identity)) throw new IllegalStateException("REMOTE_SESSION_CHANGED");
       coordinator.begin(binding);
       return status(coordinator);
@@ -198,6 +203,12 @@ public final class RemoteControlDispatcher {
     }
     if (method.equals("task.stop")) {
       coordinator.stop("REMOTE_STOP");
+      com.deepseekharness.app.assistant.AssistantService.finishLocalTask(context, binding);
+      return status(coordinator);
+    }
+    if (method.equals("task.finish")) {
+      coordinator.finishTask(binding);
+      com.deepseekharness.app.assistant.AssistantService.finishLocalTask(context, binding);
       return status(coordinator);
     }
     if (!method.startsWith("screen.")) throw new IllegalArgumentException("CONTROL_ROUTE_INVALID");
@@ -205,14 +216,19 @@ public final class RemoteControlDispatcher {
     if (operation.equals("press")) operation = "key";
     if (!OPERATIONS.contains(operation))
       throw new IllegalArgumentException("CONTROL_ROUTE_INVALID");
-    var lease = coordinator.lease(binding);
     boolean observe =
         operation.equals("tree") || operation.equals("dump") || operation.equals("screenshot");
+    var screenUi =
+        com.deepseekharness.app.assistant.AssistantService.prepareScreenOperation(
+            context, binding, observe);
+    if (!screenUi.ready()) throw new IllegalStateException(screenUi.code());
+    var lease = coordinator.lease(binding);
     if (!observe && !coordinator.actionAllowed(lease))
       throw new IllegalStateException("FRESH_SCREEN_OBSERVATION_REQUIRED");
     BooleanSupplier live =
         () ->
-            coordinator.current(lease)
+            com.deepseekharness.app.assistant.AssistantService.stopChannelCurrent(context, binding)
+                && coordinator.current(lease)
                 && sessions.isCurrent(identity)
                 && !OwnedScreenOverlay.expanded();
     var preflight = DshaAccessibilityService.observeTargetForRequest(live);

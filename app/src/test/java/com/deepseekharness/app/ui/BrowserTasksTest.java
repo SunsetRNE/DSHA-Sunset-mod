@@ -60,6 +60,7 @@ public final class BrowserTasksTest {
   }
 
   public static final class Host extends Activity {
+    final List<Intent> starts = new ArrayList<>();
     int id = 7;
     boolean root = true;
     boolean finished, removed;
@@ -92,6 +93,11 @@ public final class BrowserTasksTest {
     @Override
     public Object getSystemService(String name) {
       return RuntimeEnvironment.getApplication().getSystemService(name);
+    }
+
+    @Override
+    public void startActivity(Intent intent) {
+      starts.add(intent);
     }
   }
 
@@ -222,13 +228,13 @@ public final class BrowserTasksTest {
   }
 
   @Test
-  public void legacyBrowserRootWithNativePagesCreatesIndependentNativeShell() {
+  public void missingNativeRootFallsBackToAffinityWithoutForcingAnotherTask() {
     var mixed = task(7, WebPreviewActivity.class, 4);
     Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(mixed));
     BrowserTasks.openMain(context);
     Intent intent = opened();
     assertTrue((intent.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
-    assertTrue((intent.getFlags() & Intent.FLAG_ACTIVITY_MULTIPLE_TASK) != 0);
+    assertEquals(0, intent.getFlags() & Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
     assertFalse(Shadow.<ShadowAppTask>extract(mixed).isFinishedAndRemoved());
   }
 
@@ -242,7 +248,8 @@ public final class BrowserTasksTest {
     assertFalse(browser.finished);
     assertEquals(1, browser.cancelled);
     assertEquals(MainActivity.class.getName(), browser.starts.get(0).getComponent().getClassName());
-    assertTrue((browser.starts.get(0).getFlags() & Intent.FLAG_ACTIVITY_MULTIPLE_TASK) != 0);
+    assertEquals(0, browser.starts.get(0).getFlags() & Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+    assertEquals(0, browser.starts.get(0).getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK);
     assertFalse(Shadow.<ShadowActivity>extract(browser).isTaskMovedToBack());
     browser.hideConversation();
     assertFalse(browser.finished);
@@ -276,7 +283,92 @@ public final class BrowserTasksTest {
     Shadow.<ShadowActivityManager>extract(manager)
         .setAppTasks(List.of(task(-1, MainActivity.class, 0)));
     BrowserTasks.openMain(context);
-    assertTrue((opened().getFlags() & Intent.FLAG_ACTIVITY_MULTIPLE_TASK) != 0);
+    assertEquals(0, opened().getFlags() & Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+  }
+
+  @Test
+  public void repeatedHomeFromALegacySharedTaskKeepsReorderingTheSameMain() {
+    var mixed = task(7, MainActivity.class, 4);
+    Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(mixed));
+    var browser = new Browser();
+    browser.hideConversation();
+    browser.hideConversation();
+    assertEquals(2, browser.starts.size());
+    for (Intent intent : browser.starts) {
+      assertEquals(MainActivity.class.getName(), intent.getComponent().getClassName());
+      assertEquals(
+          Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP,
+          intent.getFlags());
+    }
+    assertFalse(browser.finished);
+    assertFalse(Shadow.<ShadowAppTask>extract(mixed).isFinishedAndRemoved());
+  }
+
+  @Test
+  public void oneMainCardHidesDuplicateNativeAndBrowserTasksWithoutFinishingTheirPages() {
+    var oldMain = task(3, MainActivity.class, 4);
+    var currentMain = task(8, MainActivity.class, 1);
+    var browser = task(7, WebPreviewActivity.class, 1);
+    var otherPage = task(9, DiagnosticActivity.class, 1);
+    Shadow.<ShadowActivityManager>extract(manager)
+        .setAppTasks(List.of(oldMain, currentMain, browser, otherPage));
+    BrowserTasks.reconcileRecents(context, 8);
+    assertTrue(Shadow.<ShadowAppTask>extract(oldMain).isExcludedFromRecents());
+    assertFalse(Shadow.<ShadowAppTask>extract(currentMain).isExcludedFromRecents());
+    assertTrue(Shadow.<ShadowAppTask>extract(browser).isExcludedFromRecents());
+    assertFalse(Shadow.<ShadowAppTask>extract(otherPage).isExcludedFromRecents());
+    for (var task : List.of(oldMain, currentMain, browser, otherPage))
+      assertFalse(Shadow.<ShadowAppTask>extract(task).isFinishedAndRemoved());
+  }
+
+  @Test
+  public void mainBackOpensDesktopAndBackgroundsTheTaskWithoutCreatingAnotherMain() {
+    var host = new Host();
+    var main = task(7, MainActivity.class, 4);
+    Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(main));
+    BrowserTasks.exitMain(host);
+    assertTrue(Shadow.<ShadowActivity>extract(host).isTaskMovedToBack());
+    assertFalse(host.finished);
+    assertFalse(Shadow.<ShadowAppTask>extract(main).isFinishedAndRemoved());
+    assertEquals(1, host.starts.size());
+    assertEquals(Intent.ACTION_MAIN, host.starts.get(0).getAction());
+    assertTrue(host.starts.get(0).hasCategory(Intent.CATEGORY_HOME));
+    assertNull(host.starts.get(0).getComponent());
+    assertTrue(context.starts.isEmpty());
+  }
+
+  @Test
+  public void notificationHomeHasAnExplicitNativeDestinationWithoutClearingTheBrowser() {
+    Intent intent = MainActivity.homeIntent(context);
+    assertTrue(BrowserTasks.nativeDestination(intent));
+    assertTrue((intent.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
+    assertTrue((intent.getFlags() & Intent.FLAG_ACTIVITY_REORDER_TO_FRONT) != 0);
+    assertEquals(
+        0,
+        intent.getFlags()
+            & (Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TASK
+                | Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+                | Intent.FLAG_ACTIVITY_NEW_DOCUMENT));
+    intent.removeExtra(BrowserTasks.NATIVE_HOME);
+    assertFalse(
+        "stale open_launch must not hijack a later browser Home return",
+        BrowserTasks.nativeDestination(intent));
+  }
+
+  @Test
+  public void specificNativeDestinationDoesNotAlsoRequestTheLaunchTab() {
+    Intent intent = MainActivity.navigationIntent(context).putExtra("open_plugins", true);
+    assertTrue(BrowserTasks.nativeDestination(intent));
+    assertTrue(intent.getBooleanExtra("open_plugins", false));
+    assertFalse(intent.getBooleanExtra("open_launch", false));
+    assertEquals(
+        0,
+        intent.getFlags()
+            & (Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TASK
+                | Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+                | Intent.FLAG_ACTIVITY_NEW_DOCUMENT));
   }
 
   @Test

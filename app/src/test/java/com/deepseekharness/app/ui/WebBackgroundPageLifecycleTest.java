@@ -10,6 +10,7 @@ import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.*;
 import com.deepseekharness.app.util.PreviewPageSession;
+import com.deepseekharness.app.util.UiText;
 import java.lang.reflect.*;
 import java.util.*;
 import org.junit.*;
@@ -198,6 +199,7 @@ public final class WebBackgroundPageLifecycleTest {
   private View panel;
   private org.robolectric.android.controller.ActivityController<Browser> lifecycle;
   private boolean created;
+  private String previousLanguage;
 
   private static void set(Object target, String name, Object value) throws Exception {
     Field field =
@@ -220,6 +222,10 @@ public final class WebBackgroundPageLifecycleTest {
 
   @Before
   public void prepare() throws Exception {
+    previousLanguage = UiText.language();
+    // Exercise the actual non-Chinese rendering path without depending on a
+    // previous test's process-global language or matching Chinese substrings.
+    UiText.setLanguage("en");
     Controller.value = Shadow.newInstanceOf(HarnessController.class);
     Controller.ready = ORIGINAL;
     Controller.exited = false;
@@ -261,9 +267,13 @@ public final class WebBackgroundPageLifecycleTest {
 
   @After
   public void finish() {
-    if (created) lifecycle.pause().stop().destroy();
-    else page.destroy();
-    ((org.robolectric.shadows.ShadowLooper) Shadow.extract(Looper.getMainLooper())).idle();
+    try {
+      if (created) lifecycle.pause().stop().destroy();
+      else page.destroy();
+      ((org.robolectric.shadows.ShadowLooper) Shadow.extract(Looper.getMainLooper())).idle();
+    } finally {
+      UiText.setLanguage(previousLanguage);
+    }
   }
 
   @Test
@@ -276,7 +286,7 @@ public final class WebBackgroundPageLifecycleTest {
       assertEquals(0, page.destroyed);
       assertFalse(page.isEnabled());
       assertEquals(View.VISIBLE, panel.getVisibility());
-      assertTrue(title.getText().toString().contains("验证"));
+      assertEquals("Verifying Web session", title.getText().toString());
       assertFalse((Boolean) invoke("isCurrentPage", new Class<?>[] {WebView.class}, page));
       assertFalse(browser.getIntent().hasExtra(BrowserConversationRoute.REQUEST));
       Controller.ready = ORIGINAL;
@@ -297,7 +307,7 @@ public final class WebBackgroundPageLifecycleTest {
     Controller.ready = null;
     Controller.exited = true;
     invoke("synchronizeWebSession", new Class<?>[0]);
-    assertTrue(title.getText().toString().contains("已退出"));
+    assertEquals("Web service exited", title.getText().toString());
     assertSame(page, retained.view);
     assertFalse(page.isEnabled());
     assertEquals(0, page.destroyed);
@@ -327,11 +337,9 @@ public final class WebBackgroundPageLifecycleTest {
     assertEquals(0, page.destroyed);
     assertFalse(page.isEnabled());
     assertFalse(browser.getIntent().hasExtra(BrowserConversationRoute.REQUEST));
-    assertTrue(
-        ((TextView) browser.findViewById(R.id.web_error_title))
-            .getText()
-            .toString()
-            .contains("验证"));
+    assertEquals(
+        "Verifying Web session",
+        ((TextView) browser.findViewById(R.id.web_error_title)).getText().toString());
     browser.onNewIntent(
         new Intent(RuntimeEnvironment.getApplication(), Browser.class)
             .putExtra(BrowserConversationRoute.MODE, "FULL")
@@ -394,19 +402,21 @@ public final class WebBackgroundPageLifecycleTest {
     refresh.setAccessible(true);
     Controller.ready = null;
     refresh.invoke(service);
-    assertTrue(message.get(service).toString().contains("验证"));
+    assertEquals(
+        "Verifying the existing Web session · background protection retained",
+        message.get(service).toString());
     Field cpu = service.getClass().getDeclaredField("wakeLock");
     cpu.setAccessible(true);
     assertNotNull(cpu.get(service));
     assertTrue(((android.os.PowerManager.WakeLock) cpu.get(service)).isHeld());
     Controller.ready = ORIGINAL;
     refresh.invoke(service);
-    assertFalse(message.get(service).toString().contains("已停止"));
+    assertNotEquals("Web stopped", message.get(service).toString());
     assertTrue(((android.os.PowerManager.WakeLock) cpu.get(service)).isHeld());
     Controller.ready = null;
     Controller.exited = true;
     refresh.invoke(service);
-    assertTrue(message.get(service).toString().contains("已停止"));
+    assertEquals("Web stopped", message.get(service).toString());
     assertNull(cpu.get(service));
   }
 }

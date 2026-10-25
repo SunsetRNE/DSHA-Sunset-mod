@@ -35,7 +35,7 @@ public final class BrowserTaskPolicyTest {
   }
 
   @Test
-  public void nativeHomeNeverSelectsTheLiveBrowserEvenWithALegacyMainRoot() {
+  public void nativeHomePrefersIndependentMainButReusesALegacySharedRootAsFallback() {
     assertEquals(
         4,
         BrowserTaskPolicy.nativeTask(
@@ -43,7 +43,7 @@ public final class BrowserTaskPolicyTest {
             9,
             9));
     assertEquals(
-        -1, BrowserTaskPolicy.nativeTask(List.of(new BrowserTaskPolicy.Task(9, true)), 9, -1));
+        9, BrowserTaskPolicy.nativeTask(List.of(new BrowserTaskPolicy.Task(9, true)), 9, -1));
   }
 
   @Test

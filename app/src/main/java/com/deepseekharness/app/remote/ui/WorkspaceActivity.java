@@ -181,15 +181,6 @@ public final class WorkspaceActivity extends AppCompatActivity {
         getString(R.string.remote_pair_computer),
         true,
         v -> startActivity(new Intent(this, PairComputerActivity.class)));
-    WorkspacePage.button(
-        this,
-        actions,
-        getString(R.string.remote_assistant),
-        false,
-        v ->
-            startActivity(
-                new Intent(this, com.deepseekharness.app.assistant.AssistantActivity.class)));
-    WorkspacePage.text(this, actions, getString(R.string.remote_assistant_detail), false);
     if (snapshot.state == RemoteSessionManager.State.CONNECTED
         || snapshot.state == RemoteSessionManager.State.CONNECTING
         || snapshot.state == RemoteSessionManager.State.RECONNECTING)

@@ -30,7 +30,7 @@ export function applyFileTransferClient(source) {
   replace('children: (0, jsx_runtime_1.jsx)(icon_compat_ts_1.IconFolderOpen, { size: 16 }) })] }));',
     `children: (0, jsx_runtime_1.jsx)(icon_compat_ts_1.IconFolderOpen, { size: 16 }) }), typeof window.DSHA?.openDownloads === 'function' && (0, jsx_runtime_1.jsx)('button', {
         type: 'button', 'data-mobile-nav': 'files', 'data-dsha-downloads': true,
-        'aria-label': document.documentElement.lang?.startsWith('zh') ? '下载记录' : 'Downloads',
+        'aria-label': require('./components/file-share-locale.js').nativeFileCopy().records,
         onClick: () => window.DSHA.openDownloads().catch(error => alert(error.message)), children: '↓'
     })] }));`);
   replace('function FilePreviewShareButton({ absolutePath, sessionId, readFileRange, t }) {',

@@ -43,6 +43,23 @@ public class UiStateTextTest {
   }
 
   @Test
+  public void cachedRegisteredStatusTranslatesAcrossEveryLanguageWithoutChangingPayload() {
+    String source = "正在启用 %s", payload = "用户外掛 العربية /root/原件 100%";
+    for (String cachedLanguage : UiLanguagePreference.LANGUAGES) {
+      String cached =
+          String.format(
+              java.util.Locale.ROOT, UiMessages.forLanguage(cachedLanguage).get(source), payload);
+      for (String target : UiLanguagePreference.LANGUAGES) {
+        UiText.setLanguage(target);
+        String expected =
+            String.format(
+                java.util.Locale.ROOT, UiMessages.forLanguage(target).get(source), payload);
+        assertEquals(cachedLanguage + " -> " + target, expected, UiStateText.render(cached));
+      }
+    }
+  }
+
+  @Test
   public void dynamicStateKeepsPluginNamesPathsAndErrorsVerbatim() {
     UiText.setLanguage("en");
     assertEquals("Enabling 中文-plugin", UiStateText.render("正在启用 中文-plugin"));

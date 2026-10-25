@@ -135,10 +135,7 @@ public final class DiagnosticActivity extends AppCompatActivity {
     findViewById(R.id.diagnostic_repair).setOnClickListener(v -> repository.repairNetworkTools());
     findViewById(R.id.diagnostic_plugins)
         .setOnClickListener(
-            v ->
-                startActivity(
-                    new android.content.Intent(this, MainActivity.class)
-                        .putExtra("open_plugins", true)));
+            v -> startActivity(MainActivity.navigationIntent(this).putExtra("open_plugins", true)));
     findViewById(R.id.diagnostic_copy)
         .setOnClickListener(
             v -> {

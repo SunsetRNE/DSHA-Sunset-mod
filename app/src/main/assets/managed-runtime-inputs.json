@@ -719,6 +719,9 @@
     "tools/mobile-server/delete-session.js",
     "tools/mobile-server/index.js",
     "tools/apply-mobile-client-patches.mjs",
+    "tools/mobile-locales.mjs",
+    "tools/mobile-locales.json",
+    "tools/mobile-plugin-upstream.lock.json",
     "tools/generate-builtin-plugins.py",
     "tools/generate-credential-paths.py",
     "tools/prepare-runtime-tools.py",
@@ -746,6 +749,19 @@
     "tools/file-transfer/client-controls.js",
     "tools/prepare-mobile-plugin.py",
     "tools/prepare-plugin-pnpm-argv-patch.py",
-    "tools/recovery_descriptor_limits.py"
+    "tools/recovery_descriptor_limits.py",
+    "tools/prepare-web-languages.py",
+    "tools/web_language_catalog.py",
+    "tools/i18n/web-language-bridge.js",
+    "tools/i18n/web-messages.json",
+    "tools/fixtures/language-v1-patch.json",
+    "tools/i18n/web-translations/ar.json",
+    "tools/i18n/web-translations/fr.json",
+    "tools/i18n/web-translations/ja.json",
+    "tools/i18n/web-translations/ko.json",
+    "tools/i18n/web-translations/la.json",
+    "tools/i18n/web-translations/pt.json",
+    "tools/i18n/web-translations/ru.json",
+    "tools/i18n/web-translations/zh-Hant.json"
   ]
 }

@@ -34,9 +34,12 @@ test('极简模式必须等消息提交后才判重，失败准入不会吞掉�
   f.handlers.get('session/event')(f.session,{type:'user/message',data:first.messages[0]});
   assert.equal(await f.step(),f.original);
 });
-test('恢复会话、拒绝准入、取消步骤和非首步均不重复注入', async()=>{
+test('恢复会话仅刷新旧引导，当前引导、拒绝准入、取消步骤和非首步不重复注入', async()=>{
   const restored=fixture(false,[{type:'user/message',data:{source:{kind:'plugin',plugin:guide.name}}}]);
-  assert.equal(await restored.step(),restored.original);
+  assert.equal((await restored.step()).messages.length,2,'old Chinese-only built-in snapshots need a current language default');
+  const current=(await fixture().step()).messages[0];
+  const restoredCurrent=fixture(false,[{type:'user/message',data:current}]);
+  assert.equal(await restoredCurrent.step(),restoredCurrent.original);
   const f=fixture(), decision={kind:'reject'};
   assert.equal(await f.step(decision),decision);
   assert.equal(await f.step(f.original,{signal:{aborted:true}}),f.original);
@@ -149,11 +152,16 @@ test('all eight signed wrappers activate with real 0.2.1 services; actual MCP an
     const passthrough=await ctx.waterfall(null,'tools/pre-execute',{name:'fixture',signal:new AbortController().signal},async()=>{next++;return {kind:'allow'};});
     assert.equal(passthrough.kind,'allow');assert.equal(next,1);assert.equal(llmRequests,0);
     const schemas=ctx.tools.schemas().map(tool=>tool.name);
-    assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-android__')).length,8);
+    assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-android__')).length,10);
+    assert(schemas.includes('mcp__dsha-android__android_node'),'physical-screen semantic actions must be exposed to ordinary conversations');
+    assert(schemas.includes('mcp__dsha-android__android_control'),'ordinary conversations need explicit task begin/finish without changing chats');
     assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-vscreen__')).length,15);
     assert.equal(ctx.computerUse.providerName,'dsha-android');
     const assembly=await ctx.systemPrompt.assemble();
     assert.ok(assembly.sections.some(section=>section.name==='dsh:device-shell-guide'));
+    const phoneInstructions=assembly.sections.find(section=>section.name==='dsha:android-mcp')?.text;
+    assert(phoneInstructions?.includes('Call android_control with action begin'),'actual MCP initialization must explain task begin');
+    assert(phoneInstructions?.includes('call android_control with action finish'),'actual MCP initialization must explain task cleanup');
     assert.ok(routes.some(route=>route.path==='/api/mobile-nav.session.delete'));
     const restore=routes.find(route=>route.path==='/__dsha/browser-origin-restore');assert.ok(restore);
     let denied;

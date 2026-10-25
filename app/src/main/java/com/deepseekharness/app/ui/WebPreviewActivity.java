@@ -898,13 +898,13 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
           (source, message, origin, mainFrame, reply) -> {
             if (!isCurrentPage(source)
                 || !mainFrame
+                || !WebPreviewPolicy.sameService(baseUrl, origin.toString())
                 || !WebPreviewPolicy.sameService(baseUrl, source.getUrl())) return;
             try {
               String language = message.getData();
-              // 网页只有「中文 / English」两个显式选项，不接受 system：
+              // 网页只接受十种规范语言的显式选项，不接受 system：
               // 把网页当成用户显式选择，避免页面误传偏好值后行为含糊。
-              if (com.deepseekharness.app.util.UiLanguagePreference.EN.equals(language)
-                  || com.deepseekharness.app.util.UiLanguagePreference.ZH.equals(language))
+              if (com.deepseekharness.app.util.UiLanguagePreference.isSupportedLanguage(language))
                 LanguageController.select(this, language);
             } catch (IllegalStateException ignored) {
             }

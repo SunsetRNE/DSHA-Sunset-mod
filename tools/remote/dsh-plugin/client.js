@@ -36,9 +36,15 @@ export function createClient({ ipcPath, fetcher = fetch } = {}) {
       const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       if (status) return value;
       if (value.v !== 1 || value.requestId !== requestId) throw Error('响应身份不匹配');
-      if (!value.ok) throw Error(value.error?.message || '远程请求被拒绝');
+      if (!value.ok) {
+        const error = Error([value.error?.code, value.error?.guidance || value.error?.message]
+          .filter(part => typeof part === 'string' && part).join(' · ') || '远程请求被拒绝');
+        error.nativeRefusal = true;
+        throw error;
+      }
       return value.result;
     } catch (error) {
+      if (error.nativeRefusal) throw error;
       // Never infer NOT_SENT from a broken network response. Native ScreenReply
       // is authoritative when returned; unknown dispatch results are not retried.
       throw Error(`远程操作结果未知；不要自动重放。${error.message}`, { cause: error });

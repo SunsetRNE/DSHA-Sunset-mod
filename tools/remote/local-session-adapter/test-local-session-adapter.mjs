@@ -97,8 +97,8 @@ test('real locked rc3 Session inspection retains complete IDs sharing the same s
     source: { provider: 'owned-test', model: 'no-network' }, content: [{ type: 'text', text: 'Committed assistant reply survives stream removal' }],
   }), stream: [] }, { surfaceOp: 'append' })
   const first = await call('sessions.status', args(a.id)), second = await call('sessions.status', args(b.id))
-  assert.equal(first.sessionId, a.id); assert.equal(first.turnId, '17')
-  assert.equal(second.sessionId, b.id); assert.equal(second.turnId, '29'); assert.notEqual(first.taskId, second.taskId)
+  assert.equal(first.sessionId, a.id); assert.equal(first.turnId, '17'); assert.equal(first.turnActive, true)
+  assert.equal(second.sessionId, b.id); assert.equal(second.turnId, '29'); assert.equal(second.turnActive, true); assert.notEqual(first.taskId, second.taskId)
   assert.match(first.text, /Committed assistant reply survives stream removal/)
   assert.deepEqual(phoneTaskEnvironment({ agent: a }), { DSH_PHONE_SESSION_ID: a.id, DSH_PHONE_TURN_ID: '17' })
   assert.deepEqual(phoneTaskEnvironment({ agent: b }), { DSH_PHONE_SESSION_ID: b.id, DSH_PHONE_TURN_ID: '29' })
@@ -111,6 +111,22 @@ test('host change rejects before prompt admission; actual public prompt creates 
   assert.equal(agent.inbox.nextTurn[0].source.rpcId, 'request-full-id')
   assert.equal(agent.inbox.nextTurn[0].content[0].text, 'retained text')
   const status = await call('sessions.status', args(agent.id)); assert.equal(status.running, true, 'queued input is not idle')
+  assert.equal(status.turnActive, false, 'queued input cannot authorize attachment to a phone turn which has not started')
+}))
+test('ended real turn cannot authorize a phone overlay while a later human message is queued', () => fixture(async (ctx, call, [agent]) => {
+  agent.session.append('turn/start', { turn: 3 })
+  agent.session.append('turn/end', { turn: 3, reason: { kind: 'completed' } })
+  await call('sessions.send', { ...args(agent.id), text: 'quoted android_get_state and phone-control discussion', requestId: 'quoted-control-only' })
+  const queued = await call('sessions.status', args(agent.id))
+  assert.equal(queued.running, true)
+  assert.equal(queued.turnId, '3')
+  assert.equal(queued.turnActive, false)
+  agent.session.append('turn/start', { turn: 4 })
+  const started = await call('sessions.status', args(agent.id))
+  assert.equal(started.turnId, '4'); assert.equal(started.turnActive, true)
+  // A late end from the previous turn cannot retire the actual new one.
+  agent.session.append('turn/end', { turn: 3, reason: { kind: 'completed' } })
+  assert.equal((await call('sessions.status', args(agent.id))).turnActive, true)
 }))
 test('pause cancels actual Agent maintenance and pending Inbox, waits for quiescence, leaves conversation attached', () => fixture(async (ctx, call, [agent]) => {
   let cancelled = false, settled = false
