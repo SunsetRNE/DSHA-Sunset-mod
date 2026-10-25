@@ -299,6 +299,7 @@ jobs:
             --output app/build/host-tests/sunset-patch-chains \
             --only test-plugin-management-patch-chain.py \
             --only test-app-activity.mjs \
+            --only test-plugin-runtime-evidence.mjs \
             --only test-plugin-discovery.py \
             --only test-plugin-review.py \
             --only test-plugin-management-probe.mjs \

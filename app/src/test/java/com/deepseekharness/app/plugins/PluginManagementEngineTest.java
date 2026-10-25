@@ -246,6 +246,81 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
+  public void runtimeEvidenceExpiryProjectsOnceWithoutFullQueryOrSelfRearming() {
+    World w = new World();
+    w.known("A");
+    w.engine.foreground(true);
+    w.advance(200);
+    assertEquals(1, w.backend.projections);
+    w.advance(10_000);
+    assertEquals(1, w.backend.projections);
+    w.advance(10_001);
+    assertEquals(2, w.backend.projections);
+    w.advance(50_000);
+    assertEquals(2, w.backend.projections);
+    assertEquals(0, w.backend.queries);
+    assertEquals(1, w.liveJobs()); // 只有原有低频来源核对。
+  }
+
+  @Test
+  public void newRuntimeEventRetiresEvenAlreadyQueuedExpiry() {
+    World w = new World();
+    w.known("A");
+    w.engine.foreground(true);
+    w.advance(200);
+    w.now = 10_001;
+    assertTrue(w.workerStep()); // 旧到期任务已投主队列，cancel 无法撤回。
+    w.engine.runtimeDirty();
+    w.pump();
+    assertEquals(1, w.backend.projections);
+    w.advance(10_201);
+    assertEquals(2, w.backend.projections);
+    w.advance(20_001);
+    assertEquals(2, w.backend.projections);
+    w.advance(20_002);
+    assertEquals(3, w.backend.projections);
+    w.advance(50_000);
+    assertEquals(3, w.backend.projections);
+    assertEquals(0, w.backend.queries);
+  }
+
+  @Test
+  public void backgroundRetiresQueuedRuntimeExpiryAndCloseDropsAllJobs() {
+    World w = new World();
+    w.known("A");
+    w.engine.foreground(true);
+    w.advance(200);
+    w.now = 10_001;
+    assertTrue(w.workerStep());
+    w.engine.foreground(false);
+    w.pump();
+    w.advance(50_000);
+    assertEquals(1, w.backend.projections);
+    assertEquals(0, w.liveJobs());
+    w.engine.foreground(true);
+    w.pump();
+    w.engine.close();
+    w.advance(100_000);
+    assertEquals(1, w.backend.projections);
+    assertEquals(0, w.liveJobs());
+  }
+
+  @Test
+  public void successfulInitialQueryArmsOneRuntimeEvidenceExpiry() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    w.finish(true);
+    w.advance(200);
+    assertEquals(1, w.backend.projections);
+    w.advance(10_001);
+    assertEquals(2, w.backend.projections);
+    w.advance(50_000);
+    assertEquals(2, w.backend.projections);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
   public void wallClockRollbackCannotKeepSnapshotFreshForever() {
     World w = new World();
     w.known("A");
@@ -255,6 +330,149 @@ public final class PluginManagementEngineTest {
     w.engine.ensureLoaded();
     w.pump();
     assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void readyDuringProbeReconcilesLatestSourceOnce() {
+    World w = new World();
+    w.known("A");
+    w.engine.foreground(true);
+    assertTrue(w.workerStep()); // 旧 A 结果已产生但尚未被主线程接收。
+    w.backend.source = "B";
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.pump();
+    assertEquals(2, w.backend.probes);
+    assertEquals(List.of("A", "B"), w.backend.bindings);
+    assertEquals("B", w.backend.cache.source);
+    assertEquals(1, w.backend.queries);
+    w.finish(true);
+    w.advance(10_000);
+    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void readyDuringScanReconcilesChangedSourceAfterCompletion() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    w.backend.source = "B";
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.advance(1000);
+    assertEquals(1, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+    w.finish(true);
+    assertEquals("B", w.backend.cache.source);
+    assertEquals(2, w.backend.probes);
+    assertEquals(2, w.backend.queries);
+    w.finish(true);
+    w.advance(10_000);
+    assertEquals(2, w.backend.probes);
+    assertEquals(2, w.backend.queries);
+  }
+
+  @Test
+  public void sameSourceReadyDuringSuccessfulScanOnlyProjectsAfterOneRecheck() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.finish(true);
+    w.advance(1000);
+    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+    assertEquals(1, w.backend.projections);
+    w.advance(10_000);
+    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void readyDuringFailedScanAllowsOneFollowupWithoutFailureLoop() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.finish(false);
+    assertEquals(1, w.backend.queries);
+    w.advance(750);
+    assertEquals(2, w.backend.queries);
+    w.finish(false);
+    int probes = w.backend.probes;
+    w.advance(10_000);
+    assertEquals(probes, w.backend.probes);
+    assertEquals(2, w.backend.queries);
+  }
+
+  @Test
+  public void readyDuringUnavailableProbeRecoversSameSourceWithoutTtlDelay() {
+    World w = new World();
+    w.known("A");
+    w.backend.source = null;
+    w.engine.foreground(true);
+    assertTrue(w.workerStep());
+    w.backend.source = "A";
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.pump();
+    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+    w.finish(true);
+    w.advance(10_000);
+    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void readyAfterUnavailableSourceRecoversSameIdentityBeforeCooldownExpires() {
+    World w = new World();
+    w.known("A");
+    w.backend.source = null;
+    w.engine.foreground(true);
+    w.pump();
+    assertEquals(0, w.backend.queries);
+    w.backend.source = "A";
+    w.engine.reconcile();
+    w.pump();
+    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void readyDuringScanProbeSurvivesTemporaryFailureAndMinimumScanInterval() {
+    World w = new World();
+    w.known("A");
+    w.engine.foreground(true);
+    w.pump();
+    w.backend.source = null;
+    w.engine.refresh();
+    assertTrue(w.workerStep()); // beginScan 定时器进入主队列。
+    w.mainStep();
+    assertTrue(w.workerStep()); // null 探测结果等待主线程。
+    w.backend.source = "A";
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.pump();
+    assertEquals(0, w.backend.queries);
+    w.advance(749);
+    assertEquals(0, w.backend.queries);
+    w.advance(750);
+    assertEquals(1, w.backend.queries);
+    w.finish(true);
+    w.advance(10_000);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void unavailableFollowupConsumesOneSignalBatchWithoutSelfRetry() {
+    World w = new World();
+    w.backend.source = null;
+    w.engine.foreground(true);
+    assertTrue(w.workerStep());
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.pump();
+    assertEquals(2, w.backend.probes);
+    w.advance(59_999);
+    assertEquals(2, w.backend.probes);
+    assertEquals(0, w.backend.queries);
   }
 
   @Test

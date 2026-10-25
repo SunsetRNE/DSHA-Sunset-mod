@@ -77,16 +77,17 @@ public final class PluginRegistry {
     return current;
   }
 
-  /** 数据来源换代清目录；仅 Web 换代保留持久目录，但不能保留旧进程的运行证据。 */
+  /** 同一用户数据根保留陈旧展示；运行根或 Web 换代仍撤销旧运行证据和查询票据。 */
   public synchronized boolean updateSource(PluginSourceIdentity source) {
     Objects.requireNonNull(source);
     Snapshot old = current;
     if (source.equals(old.source)) return false;
-    boolean sameData = source.sameDataSource(old.source);
+    boolean sameData = source.sameUserDataRoot(old.source);
     List<Item> retained = Collections.emptyList();
     if (sameData) {
       List<Item> next = new ArrayList<>();
-      for (Item item : old.items) if (!item.dynamic) next.add(withRuntime(item, "unknown", -1));
+      for (Item item : old.items)
+        if (!item.dynamic) next.add(withRuntime(item, "unknown", -1, true, false));
       retained = Collections.unmodifiableList(next);
     }
     sourceEpoch++;
@@ -105,6 +106,22 @@ public final class PluginRegistry {
             sameData ? old.pendingReviews : Collections.emptyList(),
             sameData && old.safeMode);
     return true;
+  }
+
+  /** 生命周期已确认换代时立即撤销旧运行证据；不把已有根身份当作重新探测成功。 */
+  public synchronized boolean updateWebGeneration(long generation) {
+    PluginSourceIdentity source = current.source;
+    if (source == null || source.webGeneration == generation) return false;
+    return updateSource(
+        new PluginSourceIdentity(
+            source.dataRoot,
+            source.dataRootKey,
+            source.dataRootDevice,
+            source.rootfs,
+            source.rootfsKey,
+            source.rootfsDevice,
+            source.runtimeMarkerSha256,
+            generation));
   }
 
   public synchronized long invalidate() {
@@ -275,7 +292,27 @@ public final class PluginRegistry {
       if (runtime != null) {
         if (runtime.runtimeGeneration != -1 && runtime.runtimeGeneration != source.webGeneration)
           return false;
-        next.add(withRuntime(item, runtime.runtimeState, runtime.runtimeGeneration));
+        if (!item.version.equals(runtime.version) || !item.origin.equals(runtime.origin)) {
+          next.add(item);
+          continue;
+        }
+        boolean restartRequired = item.restartRequired;
+        if (item.enabled == runtime.enabled) {
+          if (runtime.restartRequired) restartRequired = true;
+          else if (!runtime.runtimeStale
+              && runtime.runtimeGeneration == source.webGeneration
+              && (item.enabled && "loaded".equals(runtime.runtimeState)
+                  || !item.enabled
+                      && ("unloaded".equals(runtime.runtimeState)
+                          || "disabled".equals(runtime.runtimeState)))) restartRequired = false;
+        }
+        next.add(
+            withRuntime(
+                item,
+                runtime.runtimeState,
+                runtime.runtimeGeneration,
+                runtime.runtimeStale,
+                restartRequired));
       } else next.add(item);
     }
     // 心跳不能凭空发现新的持久安装；仍须完整目录查询确认。
@@ -298,10 +335,14 @@ public final class PluginRegistry {
     return true;
   }
 
-  private static Item withRuntime(Item item, String state, long generation) {
-    if (state.equals(item.runtimeState) && generation == item.runtimeGeneration) return item;
+  private static Item withRuntime(
+      Item item, String state, long generation, boolean stale, boolean restartRequired) {
+    if (state.equals(item.runtimeState)
+        && generation == item.runtimeGeneration
+        && stale == item.runtimeStale
+        && restartRequired == item.restartRequired) return item;
     try {
-      return item.withRuntime(state, generation);
+      return item.withRuntime(state, generation, stale).withRestartRequired(restartRequired);
     } catch (Exception invalid) {
       throw new IllegalStateException("PLUGIN_RUNTIME_PROJECTION", invalid);
     }

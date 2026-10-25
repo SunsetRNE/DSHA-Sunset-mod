@@ -36,6 +36,14 @@ public final class PluginSourceIdentity {
     return sameDataSource(value) && webGeneration == value.webGeneration;
   }
 
+  /** 仅用于保留同一用户目录的陈旧展示；不能用于执行凭据、查询票据或运行证据。 */
+  public boolean sameUserDataRoot(PluginSourceIdentity value) {
+    return value != null
+        && dataRoot.equals(value.dataRoot)
+        && dataRootKey.equals(value.dataRootKey)
+        && dataRootDevice == value.dataRootDevice;
+  }
+
   /** 持久操作可在重新核验后跨自身 Web 重启；查询和动态投影仍必须用 equals。 */
   public boolean sameDataSource(PluginSourceIdentity value) {
     return value != null

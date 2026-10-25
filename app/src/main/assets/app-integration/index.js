@@ -1,6 +1,6 @@
 import { writeFileSync, renameSync, unlinkSync, readFileSync } from 'node:fs';
 import { confirmedIdle } from './activity.js';
-import { runtimePlugins } from './runtime-plugins.js';
+import { runtimePlugins, installedPluginSampler } from './runtime-plugins.js';
 export const inject = ['agents', 'sessions', 'sessionProjections'];
 export function apply(ctx) {
   ctx.inject(['webServer','connection'], scoped => {
@@ -16,6 +16,9 @@ export function apply(ctx) {
   });
   const generation = process.env.DSHA_WEB_GENERATION;
   if (!generation) return;
+  const instance = process.env.DSH_TASK_INSTANCE || '';
+  const installedPlugins = installedPluginSampler(ctx, { generation, instance,
+    profile: process.env.DSHA_STARTUP_PROFILE || 'web' });
   const file = '/root/.dsha-web-activity.json';
   const temp = file + '.' + process.pid + '.tmp';
   let dynamicRunner;
@@ -33,8 +36,8 @@ export function apply(ctx) {
       try {
         const idle = await confirmedIdle(ctx);
         if (!alive) return;
-        writeFileSync(temp, JSON.stringify({ generation, at: Date.now(), idle,
-          plugins: runtimePlugins(ctx.agents.list(), dynamicRunner) }), { mode: 0o600 });
+        writeFileSync(temp, JSON.stringify({ generation, instance, at: Date.now(), idle,
+          installedPlugins: installedPlugins(), plugins: runtimePlugins(ctx.agents.list(), dynamicRunner) }), { mode: 0o600 });
         renameSync(temp, file);
       } catch { /* 原生侧将过期状态视为未知，继续保活。 */ }
       finally { sampling = false; }

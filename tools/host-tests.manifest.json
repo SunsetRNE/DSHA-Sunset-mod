@@ -213,6 +213,19 @@
       "cli": "no positional arguments; see explicit environment/requirements"
     },
     {
+      "path": "tools/test-plugin-runtime-evidence.mjs",
+      "stage": "runtime",
+      "reason": "用锁定 Cordis Loader 和官方 bundle 补丁验证当前实例的持久插件状态，不重复执行插件或读取设备数据",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; verified raw runtime and isolated Loader fixtures, with required Node internals enabled by the script."
+    },
+    {
       "path": "tools/test-architecture-boundaries.py",
       "stage": "fast",
       "reason": "隔离宿主或纯源码/协议回归，无发布密钥、设备和真实用户数据",
