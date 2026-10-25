@@ -812,7 +812,7 @@ def cmd_export(names, out):
     return 0
 
 
-def cmd_delete(name):
+def cmd_delete(name, expected_version=None):
     """只移除指定第三方插件；不追随链接去删除用户工作区或共享 pnpm 仓库。"""
     if not builtin.valid_name(name):
         raise ValueError("无效的插件名称")
@@ -823,6 +823,10 @@ def cmd_delete(name):
     if runtime and directory and os.path.realpath(runtime) == os.path.realpath(directory):
         raise ValueError("随 DSH 安装提供的插件请使用禁用开关，不能删除")
     with builtin.operation_lock(check_cancel), committing('正在删除插件：' + name):
+        if expected_version:
+            current_directory = resolve_plugin_dir(name)
+            if not current_directory or plugin_package(current_directory).get('version') != expected_version:
+                raise ValueError('PLUGIN_TARGET_VERSION_CHANGED')
         doc = builtin.read_manifest()
         if doc is None:
             raise ValueError("插件配置不存在")
@@ -850,7 +854,13 @@ def cmd_delete(name):
                     # 固定原件和日志留在事务目录，下一次仅在维护屏障内恢复。
                     raise
                 raise
-    result("ok", "已移除 " + name + " 的加载入口；原件保留在数据页的保留区。重启 Web 后生效，对话和其他插件保留。")
+    # 删除事务已完成；独立读回加载入口，回执不依赖后续全量目录扫描。
+    confirmed = builtin.read_manifest()
+    if confirmed is None or name in confirmed.get('dependencies', {}) \
+            or name in confirmed.get('dsh', {}).get('profile', {}).get('bundles', []):
+        raise ValueError('插件删除结果未确认；保留事务记录，请核对实际状态')
+    result("ok", "已移除 " + name + " 的加载入口；原件保留在数据页的保留区。重启 Web 后生效，对话和其他插件保留。",
+           name=name, removed=True, deletionVerified=True)
     return 0
 
 
@@ -1259,8 +1269,8 @@ def main():
         if args[0] == "export" and len(args) == 3:
             with builtin.operation_lock(check_cancel):
                 return cmd_export(args[1], args[2])
-        if args[0] == "delete" and len(args) == 2:
-            return cmd_delete(args[1])
+        if args[0] == "delete" and len(args) in (2, 3):
+            return cmd_delete(args[1], args[2] if len(args) == 3 else None)
         if args[0] == "download" and len(args) == 2:
             return lifecycle().inspect({"command": " ".join(__import__("shlex").quote(arg) for arg in args)})
         if args[0] == "npm" and len(args) == 2:

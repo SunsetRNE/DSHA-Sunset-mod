@@ -94,6 +94,21 @@ public final class PluginOperationQueue {
       return phase == Phase.QUEUED || phase == Phase.RUNNING || phase == Phase.COMMITTING;
     }
 
+    private Operation withSource(PluginSourceIdentity source) {
+      return new Operation(
+          operationId,
+          type,
+          targetKey,
+          desired,
+          expectedVersion,
+          source,
+          phase,
+          message,
+          percent,
+          transactionId,
+          backendTaskId);
+    }
+
     private Operation withState(
         Phase phase, String message, int percent, String transactionId, String backendTaskId) {
       return new Operation(
@@ -150,7 +165,9 @@ public final class PluginOperationQueue {
       this.historyCapacity = historyCapacity;
     }
 
-    /** 每次请求都有独立身份。满队列返回 REJECTED 条目并写入历史；不会抛弃请求结果。 同目标最后一个等待请求为启停时，才允许用新启停替换它，并将新请求排到队尾。 */
+    /**
+     * 每次请求都有独立身份。满队列返回 REJECTED 条目并写入历史；不会抛弃请求结果。 同目标最后一个等待请求为启停，且双方来源已知且相等、预期版本相等时，才允许替换并将新请求排到队尾。
+     */
     public synchronized Entry<W> enqueue(
         Type type,
         String targetKey,
@@ -164,7 +181,8 @@ public final class PluginOperationQueue {
       if (type == Type.SET_ENABLED && desired == null)
         throw new IllegalArgumentException("PLUGIN_ENABLE_DESIRED_REQUIRED");
 
-      Entry<W> superseded = type == Type.SET_ENABLED ? lastQueuedToggle(targetKey) : null;
+      Entry<W> superseded =
+          type == Type.SET_ENABLED ? lastQueuedToggle(targetKey, expectedVersion, source) : null;
       boolean rejected = waiting.size() >= waitingCapacity && superseded == null;
       Operation operation =
           new Operation(
@@ -192,12 +210,19 @@ public final class PluginOperationQueue {
       return entry;
     }
 
-    private Entry<W> lastQueuedToggle(String targetKey) {
+    private Entry<W> lastQueuedToggle(
+        String targetKey, String expectedVersion, PluginSourceIdentity source) {
+      if (source == null) return null;
       Iterator<Entry<W>> reverse = waiting.descendingIterator();
       while (reverse.hasNext()) {
         Entry<W> entry = reverse.next();
-        if (entry.request.targetKey.equals(targetKey))
-          return entry.request.type == Type.SET_ENABLED ? entry : null;
+        Operation request = entry.request;
+        if (request.targetKey.equals(targetKey))
+          return request.type == Type.SET_ENABLED
+                  && source.equals(request.source)
+                  && Objects.equals(expectedVersion, request.expectedVersion)
+              ? entry
+              : null;
       }
       return null;
     }
@@ -217,6 +242,17 @@ public final class PluginOperationQueue {
               before.backendTaskId);
       active = entry;
       return entry;
+    }
+
+    /** 仅将精确 RUNNING 请求绑定到执行器已核验的同一数据来源；原请求输入始终不变。 */
+    public synchronized boolean bindExecutionSource(
+        String operationId, PluginSourceIdentity source) {
+      if (source == null || !isActive(operationId) || active.operation.phase != Phase.RUNNING)
+        return false;
+      Operation before = active.operation;
+      if (before.source != null && !before.source.sameDataSource(source)) return false;
+      active.operation = before.withSource(source);
+      return true;
     }
 
     public synchronized boolean progress(
