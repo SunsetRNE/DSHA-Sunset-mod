@@ -9,9 +9,13 @@ import { spawnSync } from 'node:child_process';
 import { testRuntime } from './test-runtime-fixture.mjs';
 import { installedPluginSampler } from '../app/src/main/assets/app-integration/runtime-plugins.js';
 
+const runtime = testRuntime('raw');
 // 与现有真实启动测试一致，避免锁定 native helper 在其他 Node ABI 上被加载。
 if (!process.execArgv.includes('--expose-internals')) {
-  const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+  const env = { ...process.env, DSHA_TEST_RUNTIME: runtime }; delete env.NODE_TEST_CONTEXT;
+  // runner 的证明绑定直接子进程；新进程不借用它，testRuntime 会重新逐字节核验。
+  delete env.DSHA_TEST_RUN_RECEIPT;
+  delete env.DSHA_TEST_RUN_SECRET;
   const child = spawnSync(process.execPath, ['--expose-internals', fileURLToPath(import.meta.url)], {
     env, stdio: 'inherit', timeout: 120000, windowsHide: true,
   });
@@ -20,7 +24,6 @@ if (!process.execArgv.includes('--expose-internals')) {
 }
 
 const root = path.resolve(import.meta.dirname, '..');
-const runtime = testRuntime('raw');
 const runtimeRequire = createRequire(path.join(runtime, 'package.json'));
 const { Context } = await import(pathToFileURL(runtimeRequire.resolve('@deepseek-ai/cordis')));
 const { default: Loader } = await import(pathToFileURL(runtimeRequire.resolve('@deepseek-ai/cordis-plugin-loader')));
