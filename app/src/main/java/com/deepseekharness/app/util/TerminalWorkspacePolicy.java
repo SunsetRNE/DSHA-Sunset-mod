@@ -27,6 +27,12 @@ public final class TerminalWorkspacePolicy {
     return workbench && widthDp >= 840;
   }
 
+  /** 抽屉宽度：保留至少 marginPx 的遮罩/手势区；窗口尚未测量时用最大宽度。 */
+  public static int drawerWidth(int availablePx, int maxPx, int marginPx) {
+    int width = Math.min(maxPx, Math.max(0, availablePx - Math.max(0, marginPx)));
+    return width > 0 ? width : maxPx;
+  }
+
   public static float fraction(float value) {
     return Float.isFinite(value) ? Math.max(0f, Math.min(1f, value)) : .6f;
   }

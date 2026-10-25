@@ -1,5 +1,12 @@
 # 更新记录
 
+<!-- build198-current -->
+## 0.2.1-rc.3 · build198（2026-10-26，个人测试分支）
+
+- 版本码更新为 198；Sunset 独立测试包 applicationId 改为 `dsh.android.client.SunsetRNE2`，正式包 `dsh.android.client` 不变，可与正式版及旧 SunsetRNE 测试版共存。
+- 终端悬浮球和工作台“菜单”改为打开会话侧栏：极简/窄工作台用抽屉，≥840dp 工作台内联常驻；侧栏集中新建、切换、重命名、结束核验、返回、显示设置、键盘、粘贴、输入焦点和说明。
+- 尚未执行 Android 构建、单测、Lint、APK 打包或手机安装验收。
+
 <!-- build197-current -->
 ## 0.2.1-rc.3 · build197（2026-10-25）
 

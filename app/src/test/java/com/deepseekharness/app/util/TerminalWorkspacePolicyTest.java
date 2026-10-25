@@ -25,6 +25,15 @@ public final class TerminalWorkspacePolicyTest {
   }
 
   @Test
+  public void drawerWidthKeepsScrimMarginAndFallsBackBeforeMeasurement() {
+    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(1000, 280, 32));
+    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(320, 280, 32));
+    assertEquals(208, TerminalWorkspacePolicy.drawerWidth(240, 280, 32));
+    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(0, 280, 32));
+    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(16, 280, 32));
+  }
+
+  @Test
   public void processEpochPreventsOldIdReclaimingNewSession() {
     assertFalse(TerminalWorkspacePolicy.restoreSelection("old", "new", 1, true));
     assertFalse(TerminalWorkspacePolicy.restoreSelection(null, "new", 1, true));

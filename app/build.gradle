@@ -57,9 +57,9 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
-        versionCode 197
+        versionCode 198
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3"
+        versionName "0.2.1-rc.3-20261026.0644-dsh0.2.1-rc.3"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -73,7 +73,7 @@ android {
             minSdk 30
             buildConfigField 'boolean', 'LOW_ANDROID', 'false'
             if (sunsetTest) {
-                applicationIdSuffix '.SunsetRNE'
+                applicationIdSuffix '.SunsetRNE2'
                 versionNameSuffix '-SunsetTest'
             }
         }
@@ -82,7 +82,7 @@ android {
             minSdk 23
             versionNameSuffix sunsetTest ? 'low-SunsetTest' : 'low'
             buildConfigField 'boolean', 'LOW_ANDROID', 'true'
-            if (sunsetTest) applicationIdSuffix '.SunsetRNE'
+            if (sunsetTest) applicationIdSuffix '.SunsetRNE2'
         }
     }
 

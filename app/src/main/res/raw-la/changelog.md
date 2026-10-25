@@ -1,8 +1,5 @@
-# DSHA 0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3 / build197
+# DSHA 0.2.1-rc.3-20261026.0644-dsh0.2.1-rc.3 / build198
 
-- Recentia unam tabellam principalem DSHA ostendunt. Reditus e pagina principali ad initiatorem systematis redit et paginis atque instantiis navigatri iam exstantibus iterum utitur.
-- Inscriptiones accessus statum LAN, activationem manualem, ductum facultatum et nexus connexionis praesentis validos semper includunt.
-- Regimen telephoni in colloquio praesenti operatur. Petitiones explicitae instrumentis inclusis utuntur et statum operis ostendunt. Applicatio fenestram suam fluitantem ante velum observandum celat, ne metam tegat. Facultas systematis et examina identitatis veli praesentis retinentur.
-- Praeter linguas Sinicam simplicem et Anglicam adduntur Sinica traditionalis, Russica, Iaponica, Coreana, Arabica, Lusitana, Latina et Gallica, cum congruentia linguae systematis et dispositione Arabica a dextra ad sinistram.
-- Instructiones inclusae responsa linguae electae accommodant, instructionibus propriis et colloquiis exstantibus servatis.
-- Editio Ordinaria, fasciculus pristinus et identitas signaturae renovationem in loco sustinent. Relatio build197 cum fonte tradita examina programmaturae, probationem acceptationis in apparatu re vera factam et ambitum nondum verificatum describit.
+- Numerus versionis ad 198 auctus est. Sphaera fluitans terminalis et index officinae nunc laterale sessionum latus aperiunt: modus minimus et officinae angustae scrinium adhibent, officinae autem latitudine 840dp vel maiore latus semper ostendunt. Latus creationem, commutationem, renominationem, finem verificatum, domum, ostensionem, clavem, glutinationem, focum initus et auxilium colligit.
+- Constructio probatoria Sunset sui iuris nunc nomine dsh.android.client.SunsetRNE2 utitur atque cum editione officiali dsh.android.client et priore constructione probatoria SunsetRNE simul esse potest.
+- Haec constructio nondum fabricata est pro Android, neque probata unitatibus vel Lint, neque in APK disposita, neque in apparatu installata et probata.

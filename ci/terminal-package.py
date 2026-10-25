@@ -79,7 +79,14 @@ def validate_badging(text, gradle):
         if len(matches) != 1:
             raise ValueError("TERMINAL_SOURCE_VERSION")
         source[field] = matches[0]
-    expected = {**source, "packageName": source["packageName"] + ".SunsetRNE",
+    # 测试包后缀必须从当前 Gradle 身份读取：正式包名保持不变，Sunset 构建靠唯一后缀独立共存。
+    suffixes = set(re.findall(r"applicationIdSuffix\s+'([^']+)'", gradle))
+    if len(suffixes) != 1:
+        raise ValueError("TERMINAL_SOURCE_PACKAGE_SUFFIX")
+    suffix = suffixes.pop()
+    if not re.fullmatch(r"\.[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)*", suffix):
+        raise ValueError("TERMINAL_SOURCE_PACKAGE_SUFFIX")
+    expected = {**source, "packageName": source["packageName"] + suffix,
                 "versionName": source["versionName"] + "-SunsetTest"}
     package = re.findall(r"^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", text, re.M)
     if len(package) != 1 or package[0] != (expected["packageName"], expected["versionCode"], expected["versionName"]):

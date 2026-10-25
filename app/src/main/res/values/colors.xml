@@ -22,6 +22,7 @@
     <color name="terminal_surface">#000000</color>
     <color name="terminal_foreground">#E4E8F0</color>
     <color name="terminal_outline">#263041</color>
+    <color name="terminal_scrim">#99000000</color>
     <color name="logo_top">#E9F0FF</color>
 
     <!-- 按压涟漪：主色低透明度，浅色底上淡淡一层 -->

@@ -1,9 +1,11 @@
 package com.deepseekharness.app.ui;
 
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -29,14 +31,15 @@ import com.deepseekharness.app.util.UiText;
 /** 同 task 的终端工作台。页面只持有视图，结束进程必须明确指定会话并核验。 */
 public class TerminalActivity extends AppCompatActivity implements TerminalPane.Host {
   private static final String WORKBENCH = "terminal_workbench";
+  private static final String SESSIONS_OPEN = "sessions_open";
   private final TerminalSessionOwner owner = TerminalSessionOwner.shared();
-  private FrameLayout root, content;
-  private LinearLayout column, toolbar, body, sidebar;
-  private TextView title, status;
+  private FrameLayout root, content, drawerHost;
+  private LinearLayout column, toolbar, body, sessionPanel, sessionList;
+  private View sessionScrim;
+  private TextView title, status, menuButton, sessionClose, sessionSummary;
   private TerminalFloatingMenu ball;
   private AlertDialog panel;
-  private LinearLayout directoryPanel;
-  private boolean workbench, imeVisible, previousProcess, changingMode;
+  private boolean workbench, imeVisible, previousProcess, changingMode, expanded, drawerOpen;
   private final Runnable protectionChanged = () -> runOnUiThread(this::onTerminalPaneChanged);
 
   @Override
@@ -51,7 +54,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       return;
     }
     workbench = getSharedPreferences("deepseekharness", MODE_PRIVATE).getBoolean(WORKBENCH, false);
+    drawerOpen = saved != null && !previousProcess && saved.getBoolean(SESSIONS_OPEN, false);
     buildWorkspace();
+    if (drawerOpen) renderSessions();
     if (saved != null)
       ball.restore(saved.getBoolean("ball_right", true), saved.getFloat("ball_fraction", .6f));
     getOnBackPressedDispatcher()
@@ -62,6 +67,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
               public void handleOnBackPressed() {
                 if (panel != null && panel.isShowing()) {
                   panel.dismiss();
+                  return;
+                }
+                if (drawerOpen) {
+                  closeDrawer();
                   return;
                 }
                 TerminalPane pane = pane();
@@ -100,7 +109,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     title = label("");
     title.setMaxLines(2);
     toolbar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-    toolbar.addView(button(UiText.choose("菜单", "Menu"), this::showMenu));
+    menuButton = button(UiText.choose("菜单", "Menu"), this::toggleSessions);
+    menuButton.setId(R.id.terminal_workspace_menu);
+    menuButton.setContentDescription(UiText.choose("打开会话侧栏", "Open sessions sidebar"));
+    toolbar.addView(menuButton);
     column.addView(toolbar, new LinearLayout.LayoutParams(-1, -2));
     status = label("");
     status.setId(R.id.terminal_workspace_status);
@@ -110,18 +122,26 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     body = new LinearLayout(this);
     body.setOrientation(LinearLayout.HORIZONTAL);
     column.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
-    sidebar = new LinearLayout(this);
-    sidebar.setId(R.id.terminal_sessions_panel);
-    sidebar.setOrientation(LinearLayout.VERTICAL);
-    sidebar.setBackgroundColor(getColor(R.color.surface));
-    body.addView(sidebar, new LinearLayout.LayoutParams(dp(260), -1));
     content = new FrameLayout(this);
     content.setId(R.id.terminal_content);
     content.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
     body.addView(content, new LinearLayout.LayoutParams(0, -1, 1));
+    sessionPanel = buildSessionsPanel();
     ball = new TerminalFloatingMenu(this);
-    ball.setOnClickListener(v -> showMenu());
+    ball.setOnClickListener(v -> toggleSessions());
+    drawerHost = new FrameLayout(this);
+    drawerHost.setId(R.id.terminal_sessions_host);
+    drawerHost.setVisibility(View.GONE);
+    sessionScrim = new View(this);
+    sessionScrim.setId(R.id.terminal_sessions_scrim);
+    sessionScrim.setBackgroundColor(getColor(R.color.terminal_scrim));
+    sessionScrim.setClickable(true);
+    sessionScrim.setOnClickListener(v -> closeDrawer());
+    sessionScrim.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    drawerHost.addView(sessionScrim, new FrameLayout.LayoutParams(-1, -1));
+    drawerHost.addView(sessionPanel, new FrameLayout.LayoutParams(dp(280), -1, Gravity.START));
     root.addView(ball);
+    root.addView(drawerHost, new FrameLayout.LayoutParams(-1, -1));
     setContentView(root);
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
@@ -153,25 +173,251 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     applyPresentation();
   }
 
+  /** 侧栏内容只由宿主渲染；抽屉与宽屏内联复用同一份视图。 */
+  private LinearLayout buildSessionsPanel() {
+    LinearLayout panel = new LinearLayout(this);
+    panel.setId(R.id.terminal_sessions_panel);
+    panel.setOrientation(LinearLayout.VERTICAL);
+    panel.setBackgroundColor(getColor(R.color.raised));
+    panel.setFocusable(true);
+    panel.setVisibility(View.GONE);
+    LinearLayout header = new LinearLayout(this);
+    header.setGravity(Gravity.CENTER_VERTICAL);
+    header.setPadding(dp(16), dp(12), dp(8), dp(6));
+    LinearLayout headings = new LinearLayout(this);
+    headings.setOrientation(LinearLayout.VERTICAL);
+    TextView heading = new TextView(this);
+    heading.setText(UiText.text("会话"));
+    heading.setTextColor(getColor(R.color.text));
+    heading.setTextSize(18);
+    heading.setTypeface(Typeface.DEFAULT_BOLD);
+    TextView subtitle = new TextView(this);
+    subtitle.setText(
+        UiText.choose("独立会话 · 返回不结束进程", "Independent sessions · back keeps processes"));
+    subtitle.setTextColor(getColor(R.color.text_secondary));
+    subtitle.setTextSize(11);
+    subtitle.setPadding(0, dp(2), 0, 0);
+    headings.addView(heading);
+    headings.addView(subtitle);
+    header.addView(headings, new LinearLayout.LayoutParams(0, -2, 1));
+    sessionClose = button("×", this::closeDrawer);
+    sessionClose.setId(R.id.terminal_sessions_close);
+    sessionClose.setTextSize(22);
+    sessionClose.setContentDescription(UiText.choose("收起会话侧栏", "Close sessions sidebar"));
+    header.addView(sessionClose, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    panel.addView(header, new LinearLayout.LayoutParams(-1, -2));
+    panel.addView(divider(), new LinearLayout.LayoutParams(-1, Math.max(1, dp(1))));
+    ScrollView sessionScroll = new ScrollView(this);
+    sessionList = new LinearLayout(this);
+    sessionList.setOrientation(LinearLayout.VERTICAL);
+    sessionList.setPadding(dp(8), dp(4), dp(8), dp(12));
+    sessionScroll.addView(sessionList, new FrameLayout.LayoutParams(-1, -2));
+    panel.addView(sessionScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout footer = new LinearLayout(this);
+    footer.setOrientation(LinearLayout.VERTICAL);
+    footer.setPadding(dp(8), dp(6), dp(8), dp(10));
+    sessionSummary = new TextView(this);
+    sessionSummary.setId(R.id.terminal_sessions_summary);
+    sessionSummary.setTextColor(getColor(R.color.text_secondary));
+    sessionSummary.setTextSize(11);
+    sessionSummary.setPadding(dp(8), 0, dp(8), dp(4));
+    footer.addView(sessionSummary, new LinearLayout.LayoutParams(-1, -2));
+    addFooterRow(
+        footer,
+        UiText.choose("返回主界面", "Home"),
+        () -> {
+          closeDrawer();
+          leavePage();
+        },
+        UiText.choose("显示设置", "Display"),
+        this::showDisplaySettings);
+    addFooterRow(
+        footer,
+        UiText.choose("显示键盘", "Keyboard"),
+        () -> {
+          closeDrawer();
+          if (pane() != null) pane().showKeyboard();
+        },
+        UiText.choose("粘贴文本", "Paste"),
+        () -> {
+          closeDrawer();
+          if (pane() != null) pane().paste();
+        });
+    addFooterRow(
+        footer,
+        UiText.choose("回到输入", "Focus input"),
+        () -> {
+          closeDrawer();
+          if (pane() != null) pane().restoreInputFocus();
+        },
+        UiText.choose("说明", "Help"),
+        this::showSessionHelp);
+    panel.addView(footer, new LinearLayout.LayoutParams(-1, -2));
+    return panel;
+  }
+
+  private void addFooterRow(
+      LinearLayout footer,
+      String leftText,
+      Runnable leftAction,
+      String rightText,
+      Runnable rightAction) {
+    LinearLayout row = new LinearLayout(this);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.addView(button(leftText, leftAction), new LinearLayout.LayoutParams(0, -2, 1));
+    row.addView(button(rightText, rightAction), new LinearLayout.LayoutParams(0, -2, 1));
+    footer.addView(row, new LinearLayout.LayoutParams(-1, -2));
+  }
+
+  private View divider() {
+    View divider = new View(this);
+    divider.setBackgroundColor(getColor(R.color.line));
+    return divider;
+  }
+
   private TerminalPane pane() {
     Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.terminal_content);
     return fragment instanceof TerminalPane ? (TerminalPane) fragment : null;
   }
 
   private void applyPresentation() {
-    if (root == null) return;
+    if (root == null || sessionPanel == null || menuButton == null) return;
     int width =
         Math.round(
             (root.getWidth() - root.getPaddingLeft() - root.getPaddingRight())
                 / getResources().getDisplayMetrics().density);
-    boolean expanded = TerminalWorkspacePolicy.sidebar(workbench, width);
+    boolean nextExpanded = TerminalWorkspacePolicy.sidebar(workbench, width);
+    expanded = nextExpanded;
     toolbar.setVisibility(workbench ? View.VISIBLE : View.GONE);
     ball.setVisibility(workbench ? View.GONE : View.VISIBLE);
-    int visibility = expanded ? View.VISIBLE : View.GONE;
-    if (sidebar.getVisibility() != visibility) {
-      sidebar.setVisibility(visibility);
-      if (expanded) renderDirectory(sidebar);
+    menuButton.setVisibility(nextExpanded ? View.GONE : View.VISIBLE);
+    if (expanded) {
+      drawerOpen = false;
+      showInlinePanel();
+    } else if (drawerOpen) {
+      showDrawer(false);
+    } else {
+      hideDrawer();
     }
+    ball.setSessionsExpanded(drawerOpen && !expanded);
+  }
+
+  private void showInlinePanel() {
+    if (sessionPanel.getParent() != body) {
+      removeSessionPanel();
+      body.addView(sessionPanel, 0, new LinearLayout.LayoutParams(dp(260), -1));
+      renderSessions();
+    }
+    sessionPanel.setVisibility(View.VISIBLE);
+    sessionPanel.setElevation(0f);
+    sessionPanel.setTranslationX(0f);
+    sessionPanel.setAccessibilityViewIsModal(false);
+    sessionClose.setVisibility(View.GONE);
+    drawerHost.setVisibility(View.GONE);
+  }
+
+  private void showDrawer(boolean animate) {
+    if (expanded) return;
+    if (sessionPanel.getParent() != drawerHost) {
+      removeSessionPanel();
+      drawerHost.addView(
+          sessionPanel, new FrameLayout.LayoutParams(drawerWidth(), -1, Gravity.START));
+      renderSessions();
+    }
+    drawerHost.setVisibility(View.VISIBLE);
+    sessionScrim.setVisibility(View.VISIBLE);
+    sessionPanel.setVisibility(View.VISIBLE);
+    sessionClose.setVisibility(View.VISIBLE);
+    sessionPanel.setElevation(dp(8));
+    sessionPanel.setAccessibilityViewIsModal(true);
+    ViewCompat.setAccessibilityPaneTitle(sessionPanel, UiText.text("会话侧栏"));
+    if (ball != null) ball.setSessionsExpanded(true);
+    updateDrawerWidth();
+    if (animate) {
+      sessionPanel.setTranslationX(drawerHiddenTranslation());
+      sessionScrim.setAlpha(0f);
+      drawerHost.post(
+          () -> {
+            if (!drawerOpen || expanded) return;
+            sessionPanel.animate().translationX(0f).setDuration(180).start();
+            sessionScrim.animate().alpha(1f).setDuration(180).start();
+          });
+    } else {
+      sessionPanel.animate().cancel();
+      sessionScrim.animate().cancel();
+      sessionPanel.setTranslationX(0f);
+      sessionScrim.setAlpha(1f);
+    }
+  }
+
+  private void hideDrawer() {
+    if (sessionPanel.getParent() instanceof ViewGroup parent && parent != drawerHost)
+      parent.removeView(sessionPanel);
+    if (drawerHost != null) drawerHost.setVisibility(View.GONE);
+    sessionPanel.animate().cancel();
+    sessionPanel.setVisibility(View.GONE);
+    sessionPanel.setTranslationX(0f);
+    sessionPanel.setElevation(0f);
+    sessionPanel.setAccessibilityViewIsModal(false);
+    if (sessionScrim != null) {
+      sessionScrim.animate().cancel();
+      sessionScrim.setAlpha(1f);
+      sessionScrim.setVisibility(View.VISIBLE);
+    }
+    if (ball != null) ball.setSessionsExpanded(false);
+  }
+
+  private void removeSessionPanel() {
+    if (sessionPanel.getParent() instanceof ViewGroup parent) parent.removeView(sessionPanel);
+  }
+
+  private void updateDrawerWidth() {
+    if (sessionPanel.getParent() != drawerHost) return;
+    ViewGroup.LayoutParams params = sessionPanel.getLayoutParams();
+    if (params == null) return;
+    int width = drawerWidth();
+    if (params.width != width) {
+      params.width = width;
+      sessionPanel.setLayoutParams(params);
+    }
+  }
+
+  private int drawerWidth() {
+    int available =
+        root == null ? 0 : root.getWidth() - root.getPaddingLeft() - root.getPaddingRight();
+    return TerminalWorkspacePolicy.drawerWidth(available, dp(280), dp(32));
+  }
+
+  private int drawerHiddenTranslation() {
+    return getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
+        ? drawerWidth()
+        : -drawerWidth();
+  }
+
+  private void toggleSessions() {
+    if (expanded) return;
+    if (drawerOpen) closeDrawer();
+    else openDrawer();
+  }
+
+  private void openDrawer() {
+    if (expanded || drawerOpen) return;
+    drawerOpen = true;
+    renderSessions();
+    showDrawer(true);
+    if (sessionClose.getVisibility() == View.VISIBLE) sessionClose.requestFocus();
+  }
+
+  private void closeDrawer() {
+    if (!drawerOpen || expanded) return;
+    drawerOpen = false;
+    hideDrawer();
+    restoreSurfaceFocus();
+  }
+
+  private void restoreSurfaceFocus() {
+    if (ball.getVisibility() == View.VISIBLE) ball.requestFocus();
+    else if (menuButton.getVisibility() == View.VISIBLE) menuButton.requestFocus();
   }
 
   @Override
@@ -201,9 +447,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
               "Background protection was lost. Sessions were not automatically ended; inspect their status.");
     status.setText(warning);
     status.setVisibility(warning.isEmpty() ? View.GONE : View.VISIBLE);
-    if (sidebar.getVisibility() == View.VISIBLE) renderDirectory(sidebar);
-    if (directoryPanel != null && panel != null && panel.isShowing())
-      renderDirectory(directoryPanel);
+    if (sessionPanel != null && sessionPanel.getVisibility() == View.VISIBLE) renderSessions();
   }
 
   private String sessionLabel(boolean pty, TerminalTabs.Tab<?> tab) {
@@ -235,50 +479,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     };
   }
 
-  private void showMenu() {
-    if (getSupportFragmentManager().isStateSaved()) return;
-    String[] items = {
-      UiText.choose("会话目录", "Sessions"), UiText.choose("新建 PTY", "New PTY"),
-      UiText.choose("新建简易终端", "New simple terminal"), UiText.choose("显示键盘", "Show keyboard"),
-      UiText.choose("粘贴文本…", "Paste text…"), UiText.choose("显示设置", "Display settings"),
-      UiText.choose("回到终端输入", "Focus terminal input"),
-          UiText.choose("返回原页面（会话继续）", "Return to previous page (keep sessions)")
-    };
-    panel =
-        new DshaDialogBuilder(this)
-            .setTitle(UiText.choose("终端菜单", "Terminal menu"))
-            .setItems(
-                items,
-                (dialog, index) ->
-                    root.post(
-                        () -> {
-                          // 等菜单真正dismiss后再恢复输入焦点，不能被OnDismiss抢回菜单球。
-                          switch (index) {
-                            case 0 -> showDirectory();
-                            case 1 -> createInMode(true);
-                            case 2 -> createInMode(false);
-                            case 3 -> {
-                              if (pane() != null) pane().showKeyboard();
-                            }
-                            case 4 -> {
-                              if (pane() != null) pane().paste();
-                            }
-                            case 5 -> showDisplaySettings();
-                            case 6 -> {
-                              if (pane() != null) pane().restoreInputFocus();
-                            }
-                            case 7 -> leavePage();
-                            default -> {}
-                          }
-                        }))
-            .create();
-    panel.setOnDismissListener(
-        d -> {
-          if (ball.getVisibility() == View.VISIBLE) ball.requestFocus();
-        });
-    panel.show();
-  }
-
   private void showDisplaySettings() {
     String[] choices = {
       UiText.choose("字号减小", "Smaller text"),
@@ -308,62 +508,71 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             .show();
   }
 
-  private void showDirectory() {
-    dismissPanel();
-    LinearLayout list = new LinearLayout(this);
-    directoryPanel = list;
-    list.setOrientation(LinearLayout.VERTICAL);
-    renderDirectory(list);
+  private void showSessionHelp() {
     panel =
         new DshaDialogBuilder(this)
-            .setTitle(UiText.choose("会话目录", "Sessions"))
-            .setView(list)
-            .setNegativeButton(UiText.choose("返回终端", "Back to terminal"), null)
-            .create();
-    panel.setOnDismissListener(
-        dialog -> {
-          if (directoryPanel == list) directoryPanel = null;
-          if (ball.getVisibility() == View.VISIBLE) ball.requestFocus();
-        });
-    panel.show();
+            .setTitle(UiText.choose("会话侧栏", "Sessions sidebar"))
+            .setMessage(
+                UiText.choose(
+                    "点击悬浮球或顶栏“菜单”打开会话侧栏；在这里新建、切换、重命名或结束会话。返回只关闭页面，结束进程必须在会话行明确确认并核验。",
+                    "Tap the floating ball or the top menu to open the sessions sidebar. Create, switch, rename or end sessions here. Back only closes the page; ending a process requires an explicit confirmed and verified action on its row."))
+            .setPositiveButton(UiText.choose("知道了", "Got it"), null)
+            .show();
   }
 
-  private void renderDirectory(LinearLayout target) {
-    target.removeAllViews();
-    ScrollView scroll = new ScrollView(this);
-    LinearLayout rows = new LinearLayout(this);
-    rows.setOrientation(LinearLayout.VERTICAL);
-    scroll.addView(rows);
-    boolean any = false;
-    for (var tab : owner.ptyTabs().snapshot()) {
-      addSessionRow(rows, true, tab);
-      any = true;
-    }
-    for (var tab : owner.simpleTabs().snapshot()) {
-      addSessionRow(rows, false, tab);
-      any = true;
-    }
-    if (!any)
-      rows.addView(
+  private void renderSessions() {
+    if (sessionList == null) return;
+    sessionList.removeAllViews();
+    var ptyTabs = owner.ptyTabs().snapshot();
+    var simpleTabs = owner.simpleTabs().snapshot();
+    sessionList.addView(
+        button(UiText.choose("新建 PTY", "New PTY"), () -> createInMode(true)),
+        new LinearLayout.LayoutParams(-1, -2));
+    sessionList.addView(
+        button(UiText.choose("新建简易终端", "New simple terminal"), () -> createInMode(false)),
+        new LinearLayout.LayoutParams(-1, -2));
+    addGroupHeader(UiText.choose("PTY · 交互会话", "PTY · interactive sessions"), ptyTabs.size());
+    for (var tab : ptyTabs) addSessionRow(true, tab);
+    addGroupHeader(UiText.choose("简易 · 按行命令", "Simple · line commands"), simpleTabs.size());
+    for (var tab : simpleTabs) addSessionRow(false, tab);
+    if (ptyTabs.isEmpty() && simpleTabs.isEmpty())
+      sessionList.addView(
           label(
               UiText.choose(
                   "暂无会话；新建后才会启动进程。", "No sessions. A process starts only when you create one.")));
-    rows.addView(button(UiText.choose("新建 PTY", "New PTY"), () -> createInMode(true)));
-    rows.addView(button(UiText.choose("新建简易终端", "New simple terminal"), () -> createInMode(false)));
-    target.addView(
-        scroll,
-        new LinearLayout.LayoutParams(
-            -1,
-            target == sidebar
-                ? -1
-                : Math.min(dp(480), Math.max(dp(160), root.getHeight() - dp(160)))));
+    if (sessionSummary != null)
+      sessionSummary.setText(
+          UiText.format(
+              UiText.choose("%d 个会话 · PTY %d / 简易 %d", "%d sessions · PTY %d / simple %d"),
+              ptyTabs.size() + simpleTabs.size(),
+              ptyTabs.size(),
+              simpleTabs.size()));
   }
 
-  private void addSessionRow(LinearLayout rows, boolean pty, TerminalTabs.Tab<?> tab) {
+  private void addGroupHeader(String text, int count) {
+    LinearLayout row = new LinearLayout(this);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(dp(8), dp(10), dp(8), dp(4));
+    TextView heading = label(text);
+    heading.setTextSize(12);
+    heading.setTextColor(getColor(R.color.text_secondary));
+    heading.setTypeface(Typeface.DEFAULT_BOLD);
+    heading.setPadding(0, 0, 0, 0);
+    TextView number = label(String.valueOf(count));
+    number.setTextSize(12);
+    number.setTextColor(getColor(R.color.text_secondary));
+    number.setPadding(0, 0, 0, 0);
+    row.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+    row.addView(number);
+    sessionList.addView(row, new LinearLayout.LayoutParams(-1, -2));
+  }
+
+  private void addSessionRow(boolean pty, TerminalTabs.Tab<?> tab) {
     TextView select =
         button(
             sessionLabel(pty, tab) + "\n" + sessionState(pty, tab),
             () -> {
+              closeDrawer();
               dismissPanel();
               if (pty) owner.selectPty(tab.id);
               else owner.selectSimple(tab.id);
@@ -373,8 +582,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                     if (pane() != null) pane().restoreInputFocus();
                   });
             });
-    rows.addView(select, new LinearLayout.LayoutParams(-1, -2));
+    sessionList.addView(select, new LinearLayout.LayoutParams(-1, -2));
     LinearLayout actions = new LinearLayout(this);
+    actions.setOrientation(LinearLayout.HORIZONTAL);
     TextView rename = button(UiText.choose("重命名", "Rename"), () -> rename(pty, tab.id));
     TextView close =
         button(
@@ -386,8 +596,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     close.setEnabled(!tab.isClosing());
     actions.addView(rename, new LinearLayout.LayoutParams(0, -2, 1));
     actions.addView(close, new LinearLayout.LayoutParams(0, -2, 1));
-    rows.addView(actions);
-    if (!tab.closeError().isEmpty()) rows.addView(label(SensitiveData.redact(tab.closeError())));
+    sessionList.addView(actions, new LinearLayout.LayoutParams(-1, -2));
+    if (!tab.closeError().isEmpty())
+      sessionList.addView(label(SensitiveData.redact(tab.closeError())));
   }
 
   private void rename(boolean pty, long id) {
@@ -452,6 +663,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
         || getSupportFragmentManager().isStateSaved()
         || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
       return;
+    closeDrawer();
     dismissPanel();
     previousProcess = false;
     // 禁止模式首次自动创建与菜单新建叠加：显式新建的目标Fragment跳过默认创建。
@@ -528,6 +740,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   @Override
   protected void onSaveInstanceState(Bundle out) {
     out.putString("terminal_owner", owner.ownerEpoch());
+    out.putBoolean(SESSIONS_OPEN, drawerOpen && !expanded);
     if (ball != null) {
       out.putBoolean("ball_right", ball.dockRight());
       out.putFloat("ball_fraction", ball.dockFraction());

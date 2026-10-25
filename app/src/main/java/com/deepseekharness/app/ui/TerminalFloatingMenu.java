@@ -27,12 +27,14 @@ final class TerminalFloatingMenu extends AppCompatTextView {
     super(context);
     slop = ViewConfiguration.get(context).getScaledTouchSlop();
     setId(R.id.terminal_menu_ball);
-    setText("☰");
-    setTextSize(22);
+    setText(">_");
+    setTextSize(20);
+    setTypeface(android.graphics.Typeface.MONOSPACE);
     setGravity(android.view.Gravity.CENTER);
     setTextColor(context.getColor(R.color.terminal_foreground));
     setBackgroundResource(R.drawable.bg_terminal_menu);
-    setContentDescription(UiText.choose("终端菜单", "Terminal menu"));
+    setContentDescription(UiText.choose("打开会话侧栏", "Open sessions sidebar"));
+    setSessionsExpanded(false);
     setFocusable(true);
     setClickable(true);
     setElevation(dp(6));
@@ -42,6 +44,14 @@ final class TerminalFloatingMenu extends AppCompatTextView {
           if (focus) wake();
           else scheduleDim();
         });
+  }
+
+  void setSessionsExpanded(boolean expanded) {
+    androidx.core.view.ViewCompat.setStateDescription(
+        this,
+        expanded
+            ? UiText.choose("会话侧栏已展开", "Sessions sidebar expanded")
+            : UiText.choose("打开会话侧栏", "Open sessions sidebar"));
   }
 
   boolean dockRight() {
