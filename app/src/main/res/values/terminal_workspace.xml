@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="terminal_workspace" type="id" />
+    <item name="terminal_content" type="id" />
+    <item name="terminal_menu_ball" type="id" />
+    <item name="terminal_reset_ball" type="id" />
+    <item name="terminal_sessions_panel" type="id" />
+    <item name="terminal_workspace_toolbar" type="id" />
+    <item name="terminal_workspace_status" type="id" />
+</resources>

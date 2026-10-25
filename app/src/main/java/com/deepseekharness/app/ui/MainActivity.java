@@ -49,6 +49,12 @@ public class MainActivity extends AppCompatActivity {
    */
   private boolean pendingOpenWeb;
 
+  private boolean terminalPageInFlight;
+  private final androidx.activity.result.ActivityResultLauncher<Intent> terminalPage =
+      registerForActivityResult(
+          new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+          result -> terminalPageInFlight = false);
+
   private String openedRecovery = "";
   private final androidx.activity.result.ActivityResultLauncher<String> localNetworkPermission =
       registerForActivityResult(
@@ -129,8 +135,10 @@ public class MainActivity extends AppCompatActivity {
     }
     BrowserTasks.rememberMain(this);
 
-    if (savedInstanceState != null)
+    if (savedInstanceState != null) {
       openedRecovery = savedInstanceState.getString("opened_startup_recovery", "");
+      terminalPageInFlight = savedInstanceState.getBoolean("terminal_page_in_flight", false);
+    }
     // Main is the launcher destination. Local setup starts only after a phone action.
     if (!config.isWelcomed()) {
       if (firstLaunchHome) {
@@ -350,6 +358,10 @@ public class MainActivity extends AppCompatActivity {
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     nav.setOnItemSelectedListener(
         item -> {
+          if (item.getItemId() == R.id.nav_terminal) {
+            openTerminal();
+            return false; // 终端是导航动作，保留来源根页/子页及未保存草稿。
+          }
           if (localSetupRequired && item.getItemId() != R.id.nav_launch) {
             startActivity(com.deepseekharness.app.remote.ui.WorkspaceEntry.local(this));
             return false;
@@ -397,14 +409,7 @@ public class MainActivity extends AppCompatActivity {
             f = new SettingsFragment();
             title.setText(R.string.app_name);
           } else {
-            // 终端：默认挂真 PTY 页（vim/htop/tmux 能跑），可在 PTY 页切回简易版
-            f =
-                com.deepseekharness.app.core.EnvironmentAccess.needsRecovery(controller)
-                    ? new EnvironmentRecoveryFragment()
-                    : PtyTerminalFragment.preferred(this)
-                        ? new PtyTerminalFragment()
-                        : new TerminalFragment();
-            title.setText(R.string.app_name);
+            return false;
           }
           UiMotion.page(this, getSupportFragmentManager().beginTransaction())
               .replace(R.id.fragment_container, f)
@@ -423,6 +428,16 @@ public class MainActivity extends AppCompatActivity {
           !localSetupRequired && !unresolved && getIntent().getBooleanExtra("open_plugins", false)
               ? R.id.nav_plugins
               : R.id.nav_launch);
+    }
+    // 兼容旧版本把终端Fragment保存在Main的状态：先解绑旧view，再打开唯一新宿主。
+    Fragment restoredTerminal =
+        getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    if (restoredTerminal instanceof PtyTerminalFragment
+        || restoredTerminal instanceof TerminalFragment) {
+      gatedPages.remove(restoredTerminal);
+      getSupportFragmentManager().beginTransaction().remove(restoredTerminal).commitNow();
+      nav.setSelectedItemId(R.id.nav_launch);
+      getIntent().putExtra("open_terminal", true);
     }
     releaseGatedPages(!unresolved && !localSetupRequired);
     consumeTaskTarget(getIntent());
@@ -622,12 +637,47 @@ public class MainActivity extends AppCompatActivity {
         .show();
   }
 
+  /** 所有本机终端入口共用门禁；不替换Main页面，也不把导航当新建命令。 */
+  public void openTerminal() {
+    if (!mainReady
+        || terminalPageInFlight
+        || isFinishing()
+        || isDestroyed()
+        || getSupportFragmentManager().isStateSaved()) return;
+    if (localSetupRequired) {
+      startActivity(com.deepseekharness.app.remote.ui.WorkspaceEntry.local(this));
+      return;
+    }
+    HarnessController controller = HarnessController.get(this);
+    if (com.deepseekharness.app.core.EnvironmentAccess.needsRecovery(controller)) {
+      startActivity(new Intent(this, StartupRecoveryActivity.class));
+      return;
+    }
+    String blocked = TerminalFragment.terminalBlockMessage(controller.proot());
+    if (!blocked.isEmpty()) {
+      android.widget.Toast.makeText(this, blocked, android.widget.Toast.LENGTH_LONG).show();
+      return;
+    }
+    terminalPageInFlight = true;
+    try {
+      terminalPage.launch(new Intent(this, TerminalActivity.class));
+    } catch (RuntimeException error) {
+      terminalPageInFlight = false;
+      android.widget.Toast.makeText(
+              this,
+              com.deepseekharness.app.util.UiText.choose(
+                  "无法打开终端页面，会话未改变", "Could not open the terminal page; sessions were not changed"),
+              android.widget.Toast.LENGTH_LONG)
+          .show();
+    }
+  }
+
   private void consumeTaskTarget(Intent intent) {
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     if (nav == null) return;
     if (intent.getBooleanExtra("open_terminal", false)) {
       intent.removeExtra("open_terminal");
-      nav.setSelectedItemId(R.id.nav_terminal);
+      openTerminal();
     }
     if (intent.getBooleanExtra("open_install", false)) {
       intent.removeExtra("open_install");
@@ -950,23 +1000,15 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onSaveInstanceState(Bundle state) {
     state.putString("opened_startup_recovery", openedRecovery);
+    state.putBoolean("terminal_page_in_flight", terminalPageInFlight);
     super.onSaveInstanceState(state);
   }
 
   @Override
   protected void onDestroy() {
     entryGate.cancel();
-    // 主题切换/旋转只重建界面，不能把正在运行的终端一起关闭。
-    if (!discardedLauncherEntry && !isChangingConfigurations()) {
-      try {
-        PtyTerminalFragment.shutdown();
-      } catch (Throwable ignored) {
-      }
-      try {
-        TerminalFragment.shutdownShell();
-      } catch (Throwable ignored) {
-      }
-    }
+    // Main销毁只解绑页面。终端由进程级owner和独立FGS持有，
+    // 只能通过明确会话结束/环境维护核验退出，不能把Activity销毁当停止请求。
     super.onDestroy();
   }
 
