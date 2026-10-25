@@ -101,7 +101,7 @@ export function installedPluginSampler(ctx, { generation, instance, profile }, e
 
 /** 只取上游公开的无源码摘要；会话临时插件不能冒充 npm 持久安装。 */
 export function runtimePlugins(agents, runner) {
-  if (!runner || typeof runner.listPlugins !== 'function') return [];
+  if (!runner || typeof runner.listPlugins !== 'function') return null;
   const items = [];
   try {
     for (const agent of agents) {
@@ -114,6 +114,6 @@ export function runtimePlugins(agents, runner) {
           version: String(row.currentPackageId || row.nextPackageId || '').slice(0, 128) });
       }
     }
-  } catch { return []; }
+  } catch { return null; }
   return items;
 }
