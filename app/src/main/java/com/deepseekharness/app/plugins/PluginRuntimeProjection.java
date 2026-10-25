@@ -14,7 +14,12 @@ import org.json.JSONObject;
 
 /** 当前 Web 的只读运行证据；不把磁盘配置、历史激活记录或快照缺席当作加载结论。 */
 public final class PluginRuntimeProjection {
-  public static final long MAX_AGE_MILLIS = 10_000;
+  /**
+   * Web 心跳每 2 秒写一次；允许事件循环被长任务占住时连续错过若干次心跳。代次与实例已由调用方
+   * 核对，年龄只用于排除写方已停止的残留快照，不能把一次卡顿当成新的加载结论。
+   */
+  public static final long MAX_AGE_MILLIS = 30_000;
+
   private static final int MAX_INSTALLED = 512, MAX_DYNAMIC = 256;
 
   private PluginRuntimeProjection() {}
@@ -30,7 +35,7 @@ public final class PluginRuntimeProjection {
       for (int i = 0; i < rows.length(); i++) {
         JSONObject row = rows.optJSONObject(i);
         if (row == null || row.optString("name").isEmpty()) continue;
-        String key = identity(row.optString("profile", "web"), row.optString("name"));
+        String key = PluginIdentity.key(row.optString("profile", "web"), row.optString("name"));
         if (installed.put(key, row) != null) ambiguous.add(key);
       }
     }
@@ -46,7 +51,7 @@ public final class PluginRuntimeProjection {
         continue;
       }
       Item next = stale(item, generation);
-      String key = identity(item.profile, item.name);
+      String key = PluginIdentity.key(item.profile, item.name);
       JSONObject observed = ambiguous.contains(key) ? null : installed.get(key);
       if (observed != null && "application".equals(item.scope)) {
         String version = observed.optString("version"), state = observed.optString("state");
@@ -114,13 +119,24 @@ public final class PluginRuntimeProjection {
   }
 
   private static boolean valid(JSONObject activity, long generation, String instance, long now) {
-    if (activity == null || instance == null || instance.isEmpty() || generation < 1) return false;
+    return rejection(activity, generation, instance, now).isEmpty();
+  }
+
+  /**
+   * 返回拒绝原因码（空串表示可用）。调用方用它记录本轮为什么没有采纳运行证据；没有原因码时
+   * 界面只能显示“未确认”，无法区分读失败、代次变化和心跳过期。
+   */
+  public static String rejection(JSONObject activity, long generation, String instance, long now) {
+    if (activity == null) return "NO_ACTIVITY";
+    if (instance == null || instance.isEmpty()) return "NO_INSTANCE";
+    if (generation < 1) return "NO_GENERATION";
     long at = activity.optLong("at", -1);
-    return at > 0
-        && now >= at
-        && now - at <= MAX_AGE_MILLIS
-        && Long.toString(generation).equals(activity.optString("generation"))
-        && instance.equals(activity.optString("instance"));
+    if (at <= 0) return "NO_TIME";
+    if (now < at) return "FUTURE_TIME";
+    if (now - at > MAX_AGE_MILLIS) return "EXPIRED";
+    if (!Long.toString(generation).equals(activity.optString("generation"))) return "GENERATION";
+    if (!instance.equals(activity.optString("instance"))) return "INSTANCE";
+    return "";
   }
 
   private static boolean confirmedState(String value) {
@@ -128,11 +144,5 @@ public final class PluginRuntimeProjection {
       case "loaded", "failed", "loading", "pending", "waiting", "unloaded", "disabled" -> true;
       default -> false;
     };
-  }
-
-  private static String identity(String profile, String name) {
-    String canonical =
-        "dsh-auto-review".equals(name) ? "@deepseek-ai/dsh-experimental-auto-review" : name;
-    return profile.length() + ":" + profile + ":" + canonical;
   }
 }

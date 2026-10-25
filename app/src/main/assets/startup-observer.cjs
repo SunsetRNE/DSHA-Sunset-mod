@@ -92,6 +92,30 @@ function locate(name) {
   }
   throw new Error('找不到插件目录，请到插件管理检查安装：' + name);
 }
+const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
+/**
+ * 包装 bundle 自身没有运行逻辑，只把锁定的官方模块补进补丁。运行证据必须报告实际加载的
+ * 官方版本：原生插件页展示的是官方包版本，若这里回包装版本，两边永远对不上。
+ * 只在补丁确实插入 peerDependencies 锁定、且实际安装版本等于锁定时替换；解析不到或版本
+ * 不一致就保留包装自己的版本，宁可未确认也不能把别的版本报成已加载。
+ */
+function effectiveVersion(pkg, inserted, fallback) {
+  const peers = pkg && typeof pkg.peerDependencies === 'object' && pkg.peerDependencies ? pkg.peerDependencies : null;
+  if (!peers || !Array.isArray(inserted) || !inserted.length) return fallback;
+  const versions = new Set();
+  for (const name of inserted) {
+    const pin = peers[name];
+    if (typeof pin !== 'string' || !EXACT_VERSION.test(pin)) continue;
+    let version = '';
+    try {
+      const root = fs.realpathSync(locate(name));
+      version = readJson(path.join(root, 'package.json')).version;
+    } catch { continue; }
+    if (version === pin) versions.add(version);
+  }
+  return versions.size === 1 ? [...versions][0] : fallback;
+}
 function owner(text) {
   text = text.replaceAll('\\', '/');
   const matches = plugins.filter(p => text.includes(p.url + '/') || text.includes(p.directory.replaceAll('\\', '/') + '/')
@@ -124,7 +148,7 @@ try {
         return !target.startsWith(root + path.sep) || !fs.existsSync(target)
           || !fs.realpathSync(target).startsWith(root + path.sep) || !fs.statSync(target).isFile();
       })) throw new Error('缺少 dsh.bundle.patch 声明或补丁文件');
-      emit('plugin', name, '配置检查：' + name + ' @ ' + (pkg.version || uiText('未知版本')), { path: root });
+      const inserted = [];
       for (const patch of patches) {
         // 只读取 id/module 的普通标量，不执行 YAML 的 !!js 用户表达式。
         const patchFile = path.resolve(root, patch);
@@ -133,10 +157,13 @@ try {
           try { bundleEntries(source, path.resolve(resolved, patch), evidence); }
           catch (_) { evidence.ambiguous = true; }
           const ids = [...source.matchAll(/^\s*(?:-\s*)?(?:id|name|module):\s*["']?([@A-Za-z0-9_./:-]+)["']?\s*$/gm)].map(m => m[1]);
+          inserted.push(...ids);
           for (const id of ids) moduleOwners.set(id, moduleOwners.has(id) && moduleOwners.get(id) !== name ? '' : name);
           emit('catalog', name, '', { ids: ids.slice(0, 100), path: root });
         } else evidence.ambiguous = true;
       }
+      evidence.version = effectiveVersion(pkg, inserted, evidence.version);
+      emit('plugin', name, '配置检查：' + name + ' @ ' + (evidence.version || uiText('未知版本')), { path: root });
     } catch (error) { evidence.ambiguous = true; emit('issue', name, error.message, { fatal: false }); }
   }
   emit('stage', '', '加载 DSH 和已启用插件');
