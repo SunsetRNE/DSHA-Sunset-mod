@@ -290,10 +290,21 @@ final class RuntimeTools {
         var values = entry.optJSONArray("markers");
         if (values != null)
           for (int at = 0; at < values.length(); at++) markers.add(values.getString(at));
+        var previous =
+            new java.util.ArrayList<com.deepseekharness.app.util.ManagedPatchChain.Patch>();
+        var predecessors = spec.optJSONArray("previousPatches");
+        if (predecessors != null)
+          for (int at = 0; at < predecessors.length(); at++) {
+            var patch = predecessors.getJSONObject(at);
+            previous.add(
+                new com.deepseekharness.app.util.ManagedPatchChain.Patch(
+                    patch.getString("before"), patch.getString("after")));
+          }
         groups
             .computeIfAbsent(module, key -> new java.util.ArrayList<>())
             .add(
-                new com.deepseekharness.app.util.ManagedPatchChain.Recipe(asset, patches, markers));
+                new com.deepseekharness.app.util.ManagedPatchChain.Recipe(
+                    asset, patches, markers, previous));
       }
       var retired = registry.getJSONArray("retired");
       for (int i = 0; i < retired.length(); i++)
@@ -783,13 +794,14 @@ final class RuntimeTools {
   }
 
   private static String assetText(Context context, String name) throws IOException {
+    int limit = name.equals("web-integration/language.js") ? 8 * 1024 * 1024 : 2 * 1024 * 1024;
     try (InputStream input = context.getAssets().open(name);
         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
       byte[] buffer = new byte[8192];
       int count;
       while ((count = input.read(buffer)) != -1) {
         GuestScriptBudget.checkpoint();
-        if (out.size() + count > 2 * 1024 * 1024) throw new IOException("RUNTIME_TEXT_ASSET_LIMIT");
+        if (out.size() + count > limit) throw new IOException("RUNTIME_TEXT_ASSET_LIMIT");
         out.write(buffer, 0, count);
       }
       return out.toString("UTF-8").replace("\r\n", "\n");

@@ -19,7 +19,7 @@ TARGETS = {
     'client-locale.js': PREFIX + '@deepseek-ai/dsh-client-locale/lib/client.js',
 }
 MAX_SOURCE_BYTES = {'index.html': 1024 * 1024, 'client.pdf.js': 12 * 1024 * 1024,
-                    'client-resources.js': 1024 * 1024, 'client-locale.js': 1024 * 1024}
+                    'client-resources.js': 1024 * 1024, 'client-locale.js': 8 * 1024 * 1024}
 INPUT_ASSETS = ('web-integration/es-compat.js', 'web-integration/startup.js', 'web-integration/language.js')
 
 
@@ -86,6 +86,31 @@ def source_files(archive: Path):
     return found
 
 
+def language_overlay(locale, language, assets):
+    """Replace only a complete signed predecessor, and reject stacked helpers."""
+    previous = language.get('previousPatches', [])
+    if previous and '/* DSHA_UI_LANGUAGES_V2:' not in locale:
+        if len(previous) != 3 or any(not isinstance(row.get('before'), str)
+                                     or not isinstance(row.get('after'), str) for row in previous):
+            raise ValueError('RECOVERY_LANGUAGE_PREVIOUS_RECIPE')
+        if all(locale.count(row['after']) == 1 for row in previous):
+            for row in reversed(previous):
+                locale = locale.replace(row['after'], row['before'], 1)
+        elif 'function installDshaLanguageBridge' in locale:
+            raise ValueError('RECOVERY_LANGUAGE_PARTIAL_PREVIOUS_RECIPE')
+    for patch in language['patches']:
+        before, after = patch.get('before'), patch.get('after')
+        if not isinstance(before, str) or not isinstance(after, str):
+            raise ValueError('RECOVERY_LANGUAGE_RECIPE_ANCHOR')
+        if 'prependAsset' in patch:
+            after = (assets / patch['prependAsset']).read_text(encoding='utf8') + '\n' + after
+        locale = exact(locale, before, after)
+    if previous and (locale.count('function installDshaLanguageBridge') != 1
+                     or locale.count('/* DSHA_UI_LANGUAGES_V2:') != 1):
+        raise ValueError('RECOVERY_LANGUAGE_DUPLICATE_HELPER')
+    return locale
+
+
 def build(archive: Path, assets: Path, dsh_version: str):
     raw = source_files(archive)
     spec = json.loads((assets / recipe_path(dsh_version, 'pdf-compat-patch.json')).read_text(encoding='utf8'))
@@ -114,13 +139,9 @@ def build(archive: Path, assets: Path, dsh_version: str):
             or language['patches'][0].get('prependAsset') != 'web-integration/language.js' \
             or any('prependAsset' in patch for patch in language['patches'][1:]):
         raise ValueError('RECOVERY_LANGUAGE_RECIPE_PATH')
-    locale = raw['client-locale.js'].decode('utf8')
-    for patch in language['patches']:
-        before, after = patch.get('before'), patch.get('after')
-        if not isinstance(before, str) or not isinstance(after, str):
-            raise ValueError('RECOVERY_LANGUAGE_RECIPE_ANCHOR')
-        if 'prependAsset' in patch:
-            after = (assets / patch['prependAsset']).read_text(encoding='utf8') + '\n' + after
-        locale = exact(locale, before, after)
+    # The independently pinned recovery archive can carry the old signed two-
+    # language overlay. Restore that complete known form before installing its
+    # successor. Never stack two helpers/effects or borrow the formal runtime.
+    locale = language_overlay(raw['client-locale.js'].decode('utf8'), language, assets)
     return raw, {'index.html': html.encode('utf8'), 'client.pdf.js': pdf.encode('utf8'),
                  'client-resources.js': resources.encode('utf8'), 'client-locale.js': locale.encode('utf8')}

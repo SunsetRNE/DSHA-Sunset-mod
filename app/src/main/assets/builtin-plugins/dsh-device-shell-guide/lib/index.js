@@ -1,16 +1,76 @@
 /** DSHA 设备能力引导：使用 dsh 0.1.5 的消息工厂与已提交事件判重。 */
 import bridgePort from './bridge-port.cjs';
+import * as fs from 'node:fs';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
 export const name = 'dsh-device-shell-guide';
+const sectionName = 'dsh:device-shell-guide';
+const guideVersion = '2';
+const languages = Object.freeze({ zh: 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese', en: 'English',
+  ru: 'Russian', ja: 'Japanese', ko: 'Korean', ar: 'Arabic', pt: 'Portuguese', la: 'Latin', fr: 'French' });
+const supported = value => typeof value === 'string' && Object.hasOwn(languages, value);
+const fallbackLanguage = () => supported(process.env.DSHA_UI_LANGUAGE) ? process.env.DSHA_UI_LANGUAGE : undefined;
+
+/** Current native preference, queried anew for each assembly; no installation/profile/user files are rewritten. */
+export async function selectedLanguage(signal) {
+  let fd;
+  try {
+    if (signal?.aborted) return fallbackLanguage();
+    fd = fs.openSync('/root/.dsh/.bridge_token', fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
+    const info = fs.fstatSync(fd);
+    if (!info.isFile() || info.size < 1 || info.size > 129 || (info.mode & 0o077) !== 0) throw Error('LANGUAGE_TOKEN_FILE');
+    const bytes = Buffer.alloc(130), size = fs.readSync(fd, bytes, 0, bytes.length, 0);
+    const token = bytes.subarray(0, size).toString('latin1').trim();
+    if (size !== info.size || !/^[A-Za-z0-9_-]{1,128}$/.test(token)) throw Error('LANGUAGE_TOKEN_INVALID');
+    fs.closeSync(fd); fd = undefined;
+    const port = bridgePort();
+    const timeout = AbortSignal.timeout(1500);
+    const response = await fetch(`http://127.0.0.1:${port}/app/version`, {
+      headers: { 'X-Token': token }, redirect: 'error',
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+    });
+    if (!response.ok || bridgePort() !== port) throw Error('LANGUAGE_BRIDGE_UNAVAILABLE');
+    const reader = response.body?.getReader();
+    if (!reader) throw Error('LANGUAGE_BRIDGE_RESPONSE');
+    const parts = []; let length = 0;
+    try {
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        length += part.value.byteLength;
+        if (length > 8192) throw Error('LANGUAGE_BRIDGE_LIMIT');
+        parts.push(Buffer.from(part.value));
+      }
+    } finally { await reader.cancel().catch(() => {}); }
+    const reply = JSON.parse(Buffer.concat(parts, length).toString('utf8'));
+    const value = typeof reply.result === 'string' ? /^UI_LANGUAGE=([^\r\n]+)$/m.exec(reply.result)?.[1] : undefined;
+    if (supported(value)) return value;
+  } catch { /* Old/offline bridges retain the captured launch preference; user instructions still take priority. */ }
+  finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {} }
+  return fallbackLanguage();
+}
+
+export function languageInstruction(language) {
+  return (supported(language)
+    ? `DSHA current response language: ${language} (${languages[language]}). Use this language for replies and explanations by default.`
+    : 'Use the language requested by the user, otherwise follow the language of the current conversation.')
+    + ' An explicit user request, custom prompt or user-owned AGENTS.md language instruction takes priority. '
+    + 'This current DSHA default supersedes earlier DSHA built-in language defaults, including old Chinese-only guide snapshots; '
+    + 'it does not replace user instructions. Keep quoted text, code, paths and tool identifiers in their original form.';
+}
 
 /**
  * 端口必须在每次组装提示时重读：Web 可能先于设备桥启动，桥重启也可能换端口。
  * 在模块加载时缓存会把双实例场景永久写成另一个安装的 3090。
  */
-function promptText() {
+export function promptText(language = fallbackLanguage()) {
   const port = bridgePort();
   return [
   '【设备操作能力 · DSHA】你正运行在用户 Android 手机的容器里，可以干预这台实体手机。',
+  languageInstruction(language),
+  '用户在当前普通对话中明确要求操控这台实体手机时，先调用 mcp__dsha-android__android_control({action:"begin"})，再使用已内置的 android_get_state、android_screenshot、android_node 或 /app/launch 等能力执行；即使只启动应用也先 begin。真实会话和轮次由工具传输层自动绑定，不由模型猜测或传入，不新建聊天。不要只回复操作教程，也不要要求用户去工作区打开助手。普通讨论、引用、翻译或未明确要求执行时不要调用手机控制；不能靠关键词自动决定用户意图。',
+  'begin 后原生显示当前对话的任务状态；首次实际读屏前会隐藏该任务窗口，保持隐藏到任务结束或用户暂停，避免遮挡目标界面。需要观察时先 android_get_state 或 android_screenshot；如果输入前窗口可见状态改变，取新观察后再明确决定下一步，不暗重试。已成功 begin 的手机任务完成或放弃时，在收尾中调用一次 android_control({action:"finish"})，关闭本轮执行界面和控制权，不取消模型对话；finish 后本轮不再重新 begin。UNKNOWN/PARTIAL 不自动重放，先核对实际状态，收尾不代表未知动作已成功或已退出。',
+  '系统权限、悬浮显示或无障碍未授权时，按工具返回的原因引导用户完成必要授权；当前对话、原生执行状态、确认策略和系统授权各自生效，不伪造授权或自动批准。',
+  '只有 curl 可用时，明确手机操作先 /app/ui/task-begin，完成时 /app/ui/task-end；两者和所有 /app/ui/* 请求都从实际工具环境传 taskSessionId=$DSH_PHONE_SESSION_ID、turnId=$DSH_PHONE_TURN_ID，不由模型提供身份。begin 只建立当前对话任务，不能替代权限或观察；end 完成停窗，不取消模型。',
 
   '■ 三条通道，按这个顺序选：',
   '  1) Ubuntu 工作区内的开发与文件操作使用普通工具；Android 设备文件写入必须走受保护的设备 shell。',
@@ -62,22 +122,39 @@ function promptText() {
   '    --su 只在明确需要 root 时使用，仍须原生授权，不能绕过任何设备保护；',
   '  - [EXECUTION_UNKNOWN] 表示命令可能已执行。先检查实际状态，不得切换通道或自动重放；',
   '  - 不要用 /root/dsh-bin/adb 或裸 adb 命令 —— 那是守卫包装脚本，会失败；',
-  '  - 与用户交流一律使用中文。',
   ].join('\n');
 }
 
 export function apply(ctx) {
   let systemActive = false;
-  const guided = new WeakSet();
+  const guided = new WeakMap();
   const inspected = new WeakSet();
+  const renderedGuides = new WeakMap();
   const isGuide = event => event?.type === 'user/message'
     && event.data?.source?.kind === 'plugin' && event.data.source.plugin === name;
   // 作用域注入不会阻塞极简配置的启动；标准配置只走系统提示，避免双份引导。
   ctx.inject(['systemPrompt'], promptCtx => {
-    promptCtx.systemPrompt.section({ name: 'dsh:device-shell-guide', order: 150, text: promptText });
+    promptCtx.systemPrompt.section({ name: sectionName, order: 150, text: context => {
+      const text = promptText();
+      if (context && typeof context === 'object') renderedGuides.set(context, text);
+      return text;
+    } });
     promptCtx.effect(() => { systemActive = true; return () => { systemActive = false; }; });
   });
-  ctx.on('session/event', (session, event) => { if (isGuide(event)) guided.add(session); });
+  // The rc3 section text callback is synchronous. Its official assembly waterfall is async,
+  // so only this owned section is refreshed there; complete/custom prompts remain authoritative.
+  ctx.on('system-prompt/assemble', async (assembly, context, next) => {
+    const ownedText = context && typeof context === 'object' ? renderedGuides.get(context) : undefined;
+    if (context && typeof context === 'object') renderedGuides.delete(context);
+    const value = await next();
+    if (ownedText === undefined || !value.sections?.some(section => section.name === sectionName && section.text === ownedText)) return value;
+    const language = await selectedLanguage(context?.signal);
+    return { ...value, sections: value.sections.map(section => section.name === sectionName && section.text === ownedText
+      ? { ...section, text: promptText(language) } : section) };
+  });
+  const eventKey = event => isGuide(event) ? event.data.source.sections?.find(section =>
+    section.name?.startsWith(`${name}:v${guideVersion}:`))?.name : undefined;
+  ctx.on('session/event', (session, event) => { const key = eventKey(event); if (key) guided.set(session, key); });
   ctx.on('agent/pre-step', async ({ agent, step, signal }, next) => {
     const decision = await next();
     if (systemActive || decision.kind !== 'enter' || signal?.aborted || step !== 1) return decision;
@@ -86,13 +163,18 @@ export function apply(ctx) {
     if (!inspected.has(session)) {
       inspected.add(session);
       // 恢复/分叉的历史也参与判重；不修改已有 V3 事件或消息身份。
-      if (session.snapshotEvents?.().some(isGuide)) guided.add(session);
+      for (const event of session.snapshotEvents?.() ?? []) {
+        const key = eventKey(event); if (key) guided.set(session, key);
+      }
     }
-    if (guided.has(session)) return decision;
-    const text = promptText();
+    const language = await selectedLanguage(signal);
+    if (signal?.aborted) return decision;
+    const key = `${name}:v${guideVersion}:${language ?? 'conversation'}`;
+    if (guided.get(session) === key) return decision;
+    const text = promptText(language);
     const guide = createUserMessage({
       content: [{ type: 'text', text }],
-      source: { kind: 'plugin', plugin: name, form: 'snapshot', sections: [{ name, text }] },
+      source: { kind: 'plugin', plugin: name, form: 'snapshot', sections: [{ name: key, text }] },
     });
     // 后续插件仍可能拒绝步骤，因此仅在 session/event 确认写入后标记已注入。
     return { ...decision, messages: [guide, ...decision.messages] };

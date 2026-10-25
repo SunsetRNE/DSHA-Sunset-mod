@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
   private boolean requestingLocalNetwork;
   private boolean restoreProbeStarted;
   private boolean discardedLauncherEntry;
+  private boolean leavingUi;
   private boolean mainReady;
   private boolean localSetupRequired;
   private Bundle pendingMainState;
@@ -92,6 +93,26 @@ public class MainActivity extends AppCompatActivity {
             && !com.deepseekharness.app.remote.ui.WorkspaceEntry.requiresLocal(getIntent());
     // A fresh home does not restore local terminal/plugin pages or initialize Ubuntu.
     super.onCreate(firstLaunchHome ? null : savedInstanceState);
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new androidx.activity.OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                var fragments = getSupportFragmentManager();
+                if (com.deepseekharness.app.util.TaskNavigationPolicy.back(
+                        fragments.getBackStackEntryCount(), fragments.isStateSaved())
+                    == com.deepseekharness.app.util.TaskNavigationPolicy.Back.POP_PAGE) {
+                  fragments.popBackStackImmediate();
+                } else {
+                  // Back from Main leaves the UI. A retained browser and the user's
+                  // running environment remain in place; neither becomes another home.
+                  leavingUi = true;
+                  entryGate.cancel();
+                  BrowserTasks.exitMain(MainActivity.this);
+                }
+              }
+            });
 
     BrowserTasks.entry("CREATE", getIntent());
     if (resumeBackground(getIntent())) {
@@ -106,6 +127,7 @@ public class MainActivity extends AppCompatActivity {
       BrowserTasks.openMain(this);
       return;
     }
+    BrowserTasks.rememberMain(this);
 
     if (savedInstanceState != null)
       openedRecovery = savedInstanceState.getString("opened_startup_recovery", "");
@@ -140,6 +162,7 @@ public class MainActivity extends AppCompatActivity {
     controller.restoreRunningWebSession(
         () -> {
           if (!mainReady
+              && !leavingUi
               && !isFinishing()
               && !isDestroyed()
               && getLifecycle()
@@ -197,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
         },
         () ->
             !isFinishing()
+                && !leavingUi
                 && !isDestroyed()
                 && admittedIntent == getIntent()
                 && getLifecycle()
@@ -211,11 +235,26 @@ public class MainActivity extends AppCompatActivity {
             checkEntry(saved, config, controller, skipExtract);
             return;
           }
-          if (!failed
-              && maintenance
-              && !controller.hasUnresolvedWebSession()
-              && !controller.isRestoringWebSession()) {
-            if (com.deepseekharness.app.remote.ui.WorkspaceEntry.requiresLocal(admittedIntent)) {
+          boolean unresolved = controller.hasUnresolvedWebSession();
+          boolean restoring = controller.isRestoringWebSession();
+          boolean local =
+              com.deepseekharness.app.remote.ui.WorkspaceEntry.requiresLocal(admittedIntent);
+          android.util.Log.i(
+              "DSHA",
+              "MAIN_ENTRY_GATE maintenance="
+                  + maintenance
+                  + " failed="
+                  + failed
+                  + " local="
+                  + local
+                  + " unresolved="
+                  + unresolved
+                  + " restoring="
+                  + restoring
+                  + " restored="
+                  + (saved != null));
+          if (!failed && maintenance && !unresolved && !restoring) {
+            if (local) {
               startActivity(new Intent(this, ExtractActivity.class));
               finish();
             } else {
@@ -319,8 +358,12 @@ public class MainActivity extends AppCompatActivity {
           if (nav.getSelectedItemId() == item.getItemId()
               && getSupportFragmentManager().getBackStackEntryCount() == 0
               && getSupportFragmentManager().findFragmentById(R.id.fragment_container) != null
+              && !gatedPages.contains(
+                  getSupportFragmentManager().findFragmentById(R.id.fragment_container))
               && !(getSupportFragmentManager().findFragmentById(R.id.fragment_container)
                   instanceof EnvironmentRecoveryFragment)
+              && launchSetupMatches(
+                  getSupportFragmentManager().findFragmentById(R.id.fragment_container))
               && !getIntent().getBooleanExtra("open_plugins", false)) return true;
           if (!getSupportFragmentManager().isStateSaved())
             getSupportFragmentManager()
@@ -373,7 +416,9 @@ public class MainActivity extends AppCompatActivity {
     // 触发监听器创建 LaunchFragment，那时再置标记已经晚了（参数带不进去）。
     consumeOpenWeb(getIntent());
     boolean unresolved = controller != null && controller.hasUnresolvedWebSession();
-    if (savedInstanceState == null || unresolved || localSetupRequired) {
+    boolean restoredLaunchMismatch =
+        !launchSetupMatches(getSupportFragmentManager().findFragmentById(R.id.fragment_container));
+    if (savedInstanceState == null || unresolved || localSetupRequired || restoredLaunchMismatch) {
       nav.setSelectedItemId(
           !localSetupRequired && !unresolved && getIntent().getBooleanExtra("open_plugins", false)
               ? R.id.nav_plugins
@@ -391,6 +436,15 @@ public class MainActivity extends AppCompatActivity {
       recoveryHandler.post(refreshRecovery);
       maybePromptExternalRestore();
     }
+  }
+
+  /** A restored setup-only page cannot outlive the current entry gate's result. */
+  private boolean launchSetupMatches(Fragment page) {
+    if (!(page instanceof LaunchFragment)) return true;
+    Bundle args = page.getArguments();
+    boolean preparationPage =
+        args != null && args.getBoolean(LaunchFragment.ARG_PREPARE_LOCAL, false);
+    return preparationPage == localSetupRequired;
   }
 
   private void releaseGatedPages(boolean allowed) {
@@ -482,6 +536,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
+    leavingUi = false;
     setIntent(intent);
     if (localSetupRequired
         && com.deepseekharness.app.remote.ui.WorkspaceEntry.requiresLocal(intent)) {
@@ -514,6 +569,7 @@ public class MainActivity extends AppCompatActivity {
       return false;
     }
     if (BrowserTasks.nativeDestination(intent)) {
+      intent.removeExtra(BrowserTasks.NATIVE_HOME);
       BrowserTasks.nativeNavigation();
       return false;
     }
@@ -608,7 +664,8 @@ public class MainActivity extends AppCompatActivity {
     // 直接把意图交给当前这个 LaunchFragment；没有就等下次创建。
     getSupportFragmentManager().executePendingTransactions();
     Fragment shown = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-    if (shown instanceof LaunchFragment) {
+    // showMain rebuilds an outdated setup page with pendingOpenWeb still attached.
+    if (shown instanceof LaunchFragment && launchSetupMatches(shown)) {
       pendingOpenWeb = false;
       ((LaunchFragment) shown).requestAutoEnterWeb();
     }
@@ -644,6 +701,7 @@ public class MainActivity extends AppCompatActivity {
   protected void onResume() {
     super.onResume();
     if (discardedLauncherEntry) return;
+    leavingUi = false;
     BrowserTasks.entry("RESUME", getIntent());
     // 已核验的同代网页先恢复，避免入口检查完成后遗漏唯一一次 onResume。
     if (BrowserTasks.resumeBackground(this)) return;
@@ -914,5 +972,15 @@ public class MainActivity extends AppCompatActivity {
 
   public static void start(Context ctx) {
     BrowserTasks.openMain(ctx);
+  }
+
+  /** Stable notification/native-home entry; keeps the existing browser and native pages. */
+  public static Intent homeIntent(Context ctx) {
+    return BrowserTasks.homeIntent(ctx).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+  }
+
+  /** A specific native destination supplies its own open_* extra after this shared route. */
+  public static Intent navigationIntent(Context ctx) {
+    return BrowserTasks.navigationIntent(ctx).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
   }
 }

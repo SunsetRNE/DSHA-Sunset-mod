@@ -41,7 +41,9 @@ public final class AuthorityHost {
                 new ControlTaskAuthority.Binding(binding.owner(), binding.connection(),
                     binding.taskSessionId(), args.get("completedTurnId")));
             var lease = authority.begin(binding);
-            if (operation.equals("dump")) {
+            if (operation.equals("task-begin")) {
+              result = "{\"ok\":true,\"state\":\"COMPLETED\",\"needsObservation\":true}";
+            } else if (operation.equals("dump")) {
               authority.observed(lease);
               result = "{\"ok\":true,\"state\":\"COMPLETED\",\"sessionId\":"
                   + quote(binding.taskSessionId()) + ",\"turnId\":" + quote(binding.turnId()) + "}";

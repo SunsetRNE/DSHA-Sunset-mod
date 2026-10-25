@@ -18,11 +18,41 @@ history_fixture_pins = {
     "tools/fixtures/rc2-upgrade-source/dsh-client-ui-workspace.js": "52765aacb6c7f96327da5d8709d8cbb30dd2957d4744a42da04c18e07fe264e5",
     "tools/fixtures/rc2-upgrade-source/dsh-client-ui-agent-preset.js": "6ecdf173de66fce620e588f10ed1e3b624725febab059fb867beefef9ae4ddb8",
 }
+# These frozen language sources retain their reviewed bytes. Runtime generators
+# use the signed descriptor; native catalogues and notes have explicit CI pins.
+language_generator_pins = {
+    "tools/fixtures/language-v1-patch.json",
+    "tools/i18n/web-translations/ar.json",
+    "tools/i18n/web-translations/fr.json",
+    "tools/i18n/web-translations/ja.json",
+    "tools/i18n/web-translations/ko.json",
+    "tools/i18n/web-translations/la.json",
+    "tools/i18n/web-translations/pt.json",
+    "tools/i18n/web-translations/ru.json",
+    "tools/i18n/web-translations/zh-Hant.json",
+}
+language_source_pins = {
+    "docs/releases/build197-changes.ar.md": "a96ff6d4f58886938ada1197aa758da75a19ef378c2347830128ca71eda00030",
+    "docs/releases/build197-changes.la.md": "24a72be4658c4874920e25f430bbbfdd912ce7d6deb74b428dd9cd32daabcaaa",
+    "docs/releases/build197-changes.pt.md": "9c84cad387a0496aa7a0affa9c8a2ee6617ff5d747236e1ebcce84723cbf8500",
+    "tools/i18n/translations-extra/ar.json": "a6e06086ba3aedbf61282ed736946b6b4318eea0268cdfd0fea0fa57f5b59a95",
+    "tools/i18n/translations-extra/fr.json": "a437005dc95cbd96ff223aec86c177a4d66462247e641c5a120a52f9f96acc70",
+    "tools/i18n/translations-extra/ja.json": "11c0b1290f0c2af6010dbc5b991ca814b5a1ae2dcc99f6c11b671f53d9ef1897",
+    "tools/i18n/translations-extra/ko.json": "1da721f4db53c0881b3e52c8f9eaafdba86887abb66ba402fb57efe825d5911d",
+    "tools/i18n/translations-extra/pt.json": "ff562db5cba261b6fd0a4f330ceff5016da88d05e9fc6b23fcc16215e867177e",
+    "tools/i18n/translations-extra/ru.json": "63a69f15994c2679e1ffc21734bed4cb9288384e456e44f4e71e39eff140d077",
+    "tools/i18n/translations/ar.json": "a446080d2b55ecb07ab6df197e4db4aee5f8ad1f46f4c2033fd865729581f27c",
+    "tools/i18n/translations/fr.json": "1b2349094a7bddb0cd1bc3d9d34cc1667c850a4b87bd9c008e21b6fa37d14d9e",
+    "tools/i18n/translations/ja.json": "2537d0501eab0e67069a746c54883aaee9ba1e7fc46ef075c8b4abd2b3007346",
+    "tools/i18n/translations/ko.json": "9ffbd753ee86869255411fa5138f141e64d5287992ea842cde173d1c3fc73c67",
+    "tools/i18n/translations/pt.json": "4112972c1d6364a1647b17ab60db866a59489b9e51e5966e81c7d91947d02bd5",
+    "tools/i18n/translations/ru.json": "21144819f6611c9decd255cddc7436b9092688d59a9beeef8129488f992444dc",
+}
 descriptor = json.loads((ROOT / "app/src/main/assets/runtime-descriptor.json").read_text(encoding="utf-8"))
 binary = {".so", ".bin", ".jar", ".aar", ".gz", ".tgz", ".zip", ".png", ".jpg", ".webp", ".pdf", ".keystore"}
 for name in names:
     path = ROOT / name
-    if not path.is_file() or path.suffix in binary or name.startswith('tools/history/') or name in byte_pinned or name in history_fixture_pins:
+    if not path.is_file() or path.suffix in binary or name.startswith('tools/history/') or name in byte_pinned or name in history_fixture_pins or name in language_generator_pins or name in language_source_pins:
         continue
     value = path.read_bytes()
     if b"\0" not in value and b"\r\n" in value:
@@ -40,6 +70,8 @@ history_paths = ["tools/history/_byte-policy." + ext for ext in ("py", "java", "
 history_paths.append("tools/history/LICENSE")
 history_paths.extend(sorted(byte_pinned))
 history_paths.extend(sorted(history_fixture_pins))
+history_paths.extend(sorted(language_generator_pins))
+history_paths.extend(sorted(language_source_pins))
 for name, expected in history_fixture_pins.items():
     path = ROOT / name
     if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
@@ -55,6 +87,13 @@ for name in sorted(byte_pinned):
                 else descriptor["inputs"].get(name.removeprefix("app/src/main/assets/")))
     if not re.fullmatch("[a-f0-9]{64}", expected or "") or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
         errors.append("PINNED_BYTE_DIGEST: " + name)
+language_pins = dict(language_source_pins)
+for name in language_generator_pins:
+    language_pins[name] = descriptor["launcherInputs"].get("generator:" + name)
+for name, expected in sorted(language_pins.items()):
+    path = ROOT / name
+    if not re.fullmatch("[a-f0-9]{64}", expected or "") or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        errors.append("PINNED_LANGUAGE_BYTES: " + name)
 toolchain = json.loads((ROOT / "ci/toolchain.lock.json").read_text(encoding="utf-8"))
 wrapper = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
 if "gradle-" + toolchain["gradle"] + "-" not in wrapper or "distributionSha256Sum=" not in wrapper:

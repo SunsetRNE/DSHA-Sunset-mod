@@ -1,5 +1,8 @@
 # DSHA
 
+<!-- build197-current -->
+> **当前：0.2.1-rc.3 / build197** — `0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3`，Standard / `dsh.android.client` / E7E3非调试。统一最近任务及主页返回，补齐LAN状态与地址，普通对话直接调用手机能力，新增十语及自适应主提示。修复IME自动取消、旧poll和恢复空白页。505项所选Standard测试、Release Lint及精确APK检查通过；Android13有限验收含覆盖、实际模型/原生确认、返回复用及正常停止。WebView空语义节点、确认超时与候选范围见[本轮报告](docs/releases/v0.2.1-rc.3-build197-20261025.md)。仅私有交付，不运行Low；下方旧当前条目按历史阅读。
+
 <!-- build196-current -->
 > **当前：0.2.1-rc.3 / build196** — `0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3`，Standard / `dsh.android.client` / E7E3非调试，常规文件名不变。修复悬浮助手输入与任务绑定、物理屏语义节点接口、分享与保存分流、双安装端口共存；删除首页后台任务按钮，电脑连接从首页进入。279项所选Standard单测与Release Lint通过，Android16完成有限实际验收；具体候选、启动样本与未验范围见[本轮报告](docs/releases/v0.2.1-rc.3-build196-20261024.md)。只交付私有预发布仓库，不运行Low；下方195及更早记录按历史阅读。
 

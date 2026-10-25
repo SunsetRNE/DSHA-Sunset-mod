@@ -60,12 +60,7 @@ public class DshaApp extends Application
 
   @Override
   public android.content.Intent runtimePage() {
-    return new android.content.Intent(this, com.deepseekharness.app.ui.MainActivity.class)
-        .addFlags(
-            android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
-                | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        .putExtra("open_launch", true);
+    return com.deepseekharness.app.ui.MainActivity.homeIntent(this);
   }
 
   private final com.deepseekharness.app.util.ApplicationServiceSlot<HarnessService> harnessService =
@@ -164,8 +159,12 @@ public class DshaApp extends Application
   @Override
   public void onCreate() {
     super.onCreate();
-    // Remote WebView owns a separate profile and must not initialize the local guest runtime.
-    if (remoteWebProcess) return;
+    // The remote WebView process applies native text/RTL without initializing the local guest.
+    if (remoteWebProcess) {
+      com.deepseekharness.app.util.SystemLanguage.initialize(this);
+      com.deepseekharness.app.ui.LanguageController.initializeRemote(this);
+      return;
+    }
     // 必须早于界面 Locale.setDefault；保留系统原始语言供「跟随系统」使用。
     com.deepseekharness.app.util.SystemLanguage.initialize(this);
     com.deepseekharness.app.data.PortableSettings.initialize(this);

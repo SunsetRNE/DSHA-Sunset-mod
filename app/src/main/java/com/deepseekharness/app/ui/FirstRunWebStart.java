@@ -22,7 +22,7 @@ final class FirstRunWebStart {
   private FirstRunWebStart() {}
 
   static Intent mainIntent(Context context, boolean firstSetup) {
-    Intent intent = new Intent(context, MainActivity.class).putExtra("open_launch", true);
+    Intent intent = MainActivity.homeIntent(context);
     if (firstSetup) {
       synchronized (FirstRunWebStart.class) {
         var prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);

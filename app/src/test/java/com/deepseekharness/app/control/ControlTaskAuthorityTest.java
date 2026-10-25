@@ -4,6 +4,67 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 public final class ControlTaskAuthorityTest {
+  @Test
+  public void asynchronousPauseRequiresTheExactCurrentLeaseWithoutPausingItsSuccessor() {
+    var authority = new ControlTaskAuthority();
+    var first = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "same-session", "17");
+    var old = authority.begin(first);
+    authority.completeLocal(first);
+    var next =
+        authority.begin(binding(first.owner(), first.connection(), first.taskSessionId(), "18"));
+    assertNull(authority.pauseCurrent(old, "OLD_STATUS_FAILURE"));
+    assertFalse(authority.snapshot().paused());
+    assertTrue(authority.current(next));
+    assertEquals(next.binding(), authority.pauseCurrent(next, "CURRENT_STATUS_FAILURE"));
+    assertTrue(authority.snapshot().paused());
+    assertFalse(authority.current(next));
+    authority.resume();
+    var resumed = authority.lease(next.binding());
+    assertNull(authority.pauseCurrent(next, "STALE_REVISION"));
+    assertTrue(authority.current(resumed));
+  }
+
+  @Test
+  public void remoteFinishFencesExactTaskWithoutPausingAnotherOrRevivingTheSameTurn() {
+    var authority = new ControlTaskAuthority();
+    var task =
+        binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "connection", "full-session", "turn-7");
+    var old = authority.begin(task);
+    assertFalse(
+        authority.finish(binding(task.owner(), task.connection(), "another-session", "turn-7")));
+    assertTrue(authority.current(old));
+    assertTrue(authority.finish(task));
+    assertFalse(authority.current(old));
+    assertNull(authority.snapshot().binding());
+    assertFalse(authority.snapshot().paused());
+    assertThrows(IllegalStateException.class, () -> authority.begin(task));
+    assertTrue(
+        authority.current(
+            authority.begin(
+                binding(task.owner(), task.connection(), task.taskSessionId(), "turn-8"))));
+  }
+
+  @Test
+  public void removingOwnedUiRequiresNewObservationWithoutGrantingResume() {
+    var authority = new ControlTaskAuthority();
+    var task = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "full-session", "7");
+    var old = authority.begin(task);
+    assertTrue(authority.observed(old));
+    authority.requireObservation(task);
+    assertFalse(authority.current(old));
+    var current = authority.lease(task);
+    assertFalse(authority.actionAllowed(current));
+    assertThrows(
+        IllegalStateException.class,
+        () ->
+            authority.requireObservation(
+                binding(task.owner(), task.connection(), "another-session", "7")));
+    assertTrue(authority.current(current));
+    authority.pause("USER_PAUSED");
+    assertThrows(IllegalStateException.class, () -> authority.requireObservation(task));
+    assertTrue(authority.snapshot().paused());
+  }
+
   private static ControlTaskAuthority.Binding binding(
       ControlTaskAuthority.Owner owner, String connection, String task, String turn) {
     return new ControlTaskAuthority.Binding(owner, connection, task, turn);

@@ -247,10 +247,7 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
       return;
     }
     if (!FirstRunWebStart.enqueueVisible(this, safe, true, this::status)) return;
-    startActivity(
-        new Intent(this, MainActivity.class)
-            .putExtra("open_launch", true)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+    startActivity(MainActivity.homeIntent(this));
     finish();
   }
 

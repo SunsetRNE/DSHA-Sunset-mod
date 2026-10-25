@@ -27,13 +27,20 @@ public final class CurrentReleaseNotes {
   }
 
   public static String render(String versionName, int versionCode, String notes, boolean english) {
+    return render(versionName, versionCode, notes, english ? "en" : "zh");
+  }
+
+  public static String render(String versionName, int versionCode, String notes, String language) {
+    if (!UiLanguagePreference.isSupportedLanguage(language))
+      throw new IllegalArgumentException("UI_LANGUAGE");
     String title = "DSHA " + versionName + " / build" + versionCode;
     if (!matches(versionName, versionCode, notes))
       return title
           + "\n\n"
-          + (english
-              ? "This installation does not include release notes for the current build."
-              : "本安装包未附当前版本的更新说明。");
+          + UiText.choose(
+              language,
+              "本安装包未附当前版本的更新说明。",
+              "This installation does not include release notes for the current build.");
     int end = notes.indexOf('\n');
     String body = end < 0 ? "" : notes.substring(end + 1).trim();
     return title + (body.isEmpty() ? "" : "\n\n" + body);

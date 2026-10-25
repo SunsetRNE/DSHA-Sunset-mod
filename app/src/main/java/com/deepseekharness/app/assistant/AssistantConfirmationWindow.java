@@ -17,7 +17,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.deepseekharness.app.capabilities.CapabilityRequest;
 import com.deepseekharness.app.control.OwnedScreenOverlay;
+import com.deepseekharness.app.control.ScreenControlConfirmation;
 import com.deepseekharness.app.util.ScreenTarget;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /** Separate permission prompt; closing it precedes the broker's exact target revalidation. */
@@ -26,7 +29,7 @@ final class AssistantConfirmationWindow implements AutoCloseable {
   private final WindowManager manager;
   private final Handler main = new Handler(Looper.getMainLooper());
   private LinearLayout view;
-  private Consumer<Boolean> completion;
+  private Pending active;
   private long sequence;
   private volatile boolean closed;
 
@@ -35,17 +38,70 @@ final class AssistantConfirmationWindow implements AutoCloseable {
     manager = context.getSystemService(WindowManager.class);
   }
 
-  void show(CapabilityRequest request, ScreenTarget target, Consumer<Boolean> answer) {
+  private final class Pending implements ScreenControlConfirmation.Prompt {
+    final CapabilityRequest request;
+    final BooleanSupplier current;
+    final AtomicBoolean canceled = new AtomicBoolean();
+    Consumer<ScreenControlConfirmation.Decision> answer;
+
+    Pending(
+        CapabilityRequest request,
+        BooleanSupplier current,
+        Consumer<ScreenControlConfirmation.Decision> answer) {
+      this.request = request;
+      this.current = current;
+      this.answer = answer;
+    }
+
+    boolean valid() {
+      try {
+        return !closed
+            && !canceled.get()
+            && Settings.canDrawOverlays(context)
+            && request.deadlineElapsedRealtimeMillis > SystemClock.elapsedRealtime()
+            && current.getAsBoolean();
+      } catch (RuntimeException unavailable) {
+        return false;
+      }
+    }
+
+    void answer(Boolean approved, int windowId) {
+      var callback = answer;
+      answer = null;
+      if (callback != null)
+        callback.accept(new ScreenControlConfirmation.Decision(approved, windowId));
+    }
+
+    @Override
+    public void close() {
+      canceled.set(true);
+      main.post(
+          () -> {
+            if (active == this) finish(null);
+            else answer(null, -1);
+          });
+    }
+  }
+
+  ScreenControlConfirmation.Prompt show(
+      CapabilityRequest request,
+      ScreenTarget target,
+      BooleanSupplier current,
+      Consumer<ScreenControlConfirmation.Decision> answer) {
+    Pending pending = new Pending(request, current, answer);
     main.post(
         () -> {
-          finish(false);
-          if (closed
-              || !Settings.canDrawOverlays(context)
-              || request.deadlineElapsedRealtimeMillis <= SystemClock.elapsedRealtime()) {
-            answer.accept(false);
+          // A canceled queued request must not retire a newer visible prompt.
+          if (!pending.valid()) {
+            pending.answer(null, -1);
             return;
           }
-          completion = answer;
+          finish(null);
+          if (!pending.valid()) {
+            pending.answer(null, -1);
+            return;
+          }
+          active = pending;
           long stamp = ++sequence;
           view = new LinearLayout(context);
           view.setOrientation(LinearLayout.VERTICAL);
@@ -57,17 +113,23 @@ final class AssistantConfirmationWindow implements AutoCloseable {
           text.setText(
               String.format(
                   UiText.choose("允许本次手机操作？\n%s\n%s", "Allow this phone action?\n%s\n%s"),
-                  target.packageName,
+                  target == null ? "" : target.packageName,
                   com.deepseekharness.app.util.SensitiveData.redact(request.action)));
           view.addView(text);
           Button allow = new Button(context);
           allow.setText(UiText.choose("允许本次", "Allow once"));
           view.addView(allow);
-          allow.setOnClickListener(v -> finish(true));
+          allow.setOnClickListener(
+              v -> {
+                if (active == pending && sequence == stamp) finish(true);
+              });
           Button deny = new Button(context);
           deny.setText(UiText.choose("拒绝", "Deny"));
           view.addView(deny);
-          deny.setOnClickListener(v -> finish(false));
+          deny.setOnClickListener(
+              v -> {
+                if (active == pending && sequence == stamp) finish(false);
+              });
           WindowManager.LayoutParams params =
               new WindowManager.LayoutParams(
                   -1,
@@ -87,22 +149,42 @@ final class AssistantConfirmationWindow implements AutoCloseable {
             manager.addView(view, params);
             view.post(() -> AssistantWindow.publish(view, "assistant-confirm", false));
           } catch (RuntimeException denied) {
-            finish(false);
+            finish(null);
             return;
           }
-          main.postDelayed(
-              () -> {
-                if (sequence == stamp) finish(false);
-              },
-              Math.min(
-                  60000, request.deadlineElapsedRealtimeMillis - SystemClock.elapsedRealtime()));
+          watch(pending, stamp, SystemClock.elapsedRealtime() + 60000);
         });
+    return pending;
   }
 
-  private void finish(boolean approved) {
+  private void watch(Pending pending, long stamp, long deadline) {
+    main.postDelayed(
+        () -> {
+          if (active != pending || sequence != stamp) return;
+          if (!pending.valid() || SystemClock.elapsedRealtime() >= deadline) finish(null);
+          else watch(pending, stamp, deadline);
+        },
+        Math.min(100, Math.max(1, deadline - SystemClock.elapsedRealtime())));
+  }
+
+  private int windowId() {
+    android.view.accessibility.AccessibilityNodeInfo node = null;
+    try {
+      node = view == null ? null : view.createAccessibilityNodeInfo();
+      return node == null ? -1 : node.getWindowId();
+    } catch (RuntimeException unavailable) {
+      return -1;
+    } finally {
+      if (node != null) node.recycle();
+    }
+  }
+
+  private void finish(Boolean approved) {
     ++sequence;
-    Consumer<Boolean> callback = completion;
-    completion = null;
+    Pending pending = active;
+    active = null;
+    int promptWindow = windowId();
+    Boolean allowed = pending != null && pending.valid() ? approved : null;
     OwnedScreenOverlay.clear("assistant-confirm");
     if (view != null)
       try {
@@ -110,12 +192,12 @@ final class AssistantConfirmationWindow implements AutoCloseable {
       } catch (RuntimeException ignored) {
       }
     view = null;
-    if (callback != null) callback.accept(approved);
+    if (pending != null) pending.answer(allowed, promptWindow);
   }
 
   @Override
   public void close() {
     closed = true;
-    main.post(() -> finish(false));
+    main.post(() -> finish(null));
   }
 }
