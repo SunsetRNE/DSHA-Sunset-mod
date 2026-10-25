@@ -158,6 +158,10 @@ android {
 
     testOptions {
         unitTests.includeAndroidResources = true
+        // 完整 Standard 套件在同一测试 JVM 内运行 2500+ 项，并包含 25MB 位图边界和
+        // 多组 Robolectric 界面沙箱；默认堆上限会在与断言无关的位图分配处 OOM。
+        // 这里只提高测试进程内存上限，不放宽或跳过任何用例。
+        unitTests.all { it.maxHeapSize = '2048m' }
     }
 
     sourceSets {

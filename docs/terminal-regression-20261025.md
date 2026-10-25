@@ -30,11 +30,15 @@
 - 本地 `build.sh` Android 测试因缺 android-37 SDK 退出，完整 Android 编译/Standard 单测/Lint/打包交 GitHub Actions。
 - 部分本地 ripgrep/Git 子进程遇到 proroot 目录遍历异常或 SIGSEGV；实际独立测试退出码与 Git 检查失败分开记录，不把它掩盖为产品测试通过。
 
-### CI 第一次运行（失败原件保留）
+### CI 运行记录（失败原件全部保留，不合并成一次全绿）
 
-提交 `6666aaa02804ae1bafb833bff55f06de2ac2af5f`，run [40201270323](<https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40201270323>) / attempt1。源码合同、原始固定输入、SDK/NDK、运行时重建与四项真实补丁链通过；Standard Debug **生产源码编译通过**，测试源码在 `TerminalNavigationTest` 使用 Robolectric 通用 `Shadows.shadowOf()` 时因 Android37 已不提供 `FingerprintManager` 类型编译失败，未开始执行该轮 JUnit，未到 Lint/签名/产包。
+| 运行 | 提交 | 结果 | 证据 |
+|---|---|---|---|
+| run 40201270323 / attempt1 | `6666aaa0` | 测试源码编译失败：新测试使用 Robolectric 通用 `Shadows.shadowOf()` 时触发 Android37 已移除的 `FingerprintManager` 类型；未执行 JUnit、未产包 | 失败日志与 run JSON 已保存 |
+| run 40203536948 / attempt1 | `2a0af1a` | 完整 Standard 单测 2514 项执行，1 项失败：`VirtualScreenObservedPixelsTest.oversizedSingleImageDoesNotAllocateObservationOrChangeObserved` 在自身 3072×2049 位图分配处 `OutOfMemoryError`（虚拟屏用例，非终端相关）；终端新增用例未失败 | 失败日志已保存 |
+| run 40203536948 / attempt2（同一提交重跑失败作业） | `2a0af1a` | 单测、七项真实夹具、13 个终端类门禁、Release Lint、未签名 Standard 打包全部通过；签名核验仅因打包回执把 badging 最低 API 键名写死为 `sdkVersion` 而报 `TERMINAL_APK_SDK`，APK 未上传 | 失败日志已保存 |
 
-修订将新测试改用项目现有 `Shadow.extract` 精确类型端口，避免重载集加载无关旧 Android 类型，不降低 SDK 或跳过测试。另将新增独立终端通知对应的稳定 ID 数量断言由10改为11，并锁定9065；本地格式化后的输入/工作台/通知合同合计25项通过。后续 CI 结果单独归属新 SHA。
+对应修订（均不降低断言、不跳过用例）：测试改用 `Shadow.extract` 精确类型端口；新增独立终端通知的身份断言从 10 项更新为 11 项并锁定 9065；测试进程内存上限提高到 2048m 以消除与断言无关的 25MB 位图 OOM；打包回执同时接受 `sdkVersion`/`minSdkVersion` 两种 aapt2 拼写但仍精确要求 30/37，并在回执中记录实际使用的键名。后续 CI 结果单独归属新 SHA。
 
 ## 本地设备回归清单（本轮尚未执行）
 

@@ -265,10 +265,18 @@ class TerminalPackageIdentity(unittest.TestCase):
         badging = ("package: name='dsh.android.client.SunsetRNE' versionCode='197' versionName='current-SunsetTest'\n"
                    "sdkVersion:'30'\ntargetSdkVersion:'37'\nnative-code: 'arm64-v8a'\n")
         self.assertEqual(self.gate.validate_badging(badging, gradle)['versionCode'], 197)
+        # aapt2 版本间最低 API 的键名不同；两种拼写都必须精确绑定 30，target 仍精确 37。
+        for spelling in ("sdkVersion:'30'", "minSdkVersion:'30'"):
+            parsed = self.gate.validate_badging(
+                badging.replace("sdkVersion:'30'", spelling), gradle)
+            self.assertEqual((parsed['minSdk'], parsed['targetSdk']), (30, 37))
         for wrong in (badging.replace("versionCode='197'", "versionCode='196'"),
                       badging.replace('current-SunsetTest', 'current'),
                       badging.replace('arm64-v8a', 'x86_64'),
                       badging.replace("sdkVersion:'30'", "sdkVersion:'23'"),
+                      badging.replace("sdkVersion:'30'", "minSdkVersion:'23'"),
+                      badging.replace("targetSdkVersion:'37'", "targetSdkVersion:'36'"),
+                      badging.replace("sdkVersion:'30'\n", ""),
                       badging + 'application-debuggable\n'):
             with self.subTest(badging=wrong), self.assertRaises(ValueError):
                 self.gate.validate_badging(wrong, gradle)

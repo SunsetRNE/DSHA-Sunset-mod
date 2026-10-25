@@ -119,3 +119,14 @@
 - 首次语法解析尝试发现本机缺 PyYAML、Node缺 yaml/js-yaml，均以非零退出保留。Lead随后提供 PyYAML 后实际 YAML解析、19个bash步骤语法和3个inline Python脚本语法通过；不把前次失败改记为一次连续通过。
 - 工作中10条source合同检查8通过；descriptor因并行编辑的 `PtySession.java` 摘要过期失败，i18n因终端界面8项新拼接失败，已交Lead收尾，不放宽门禁。此处不称工作区冻结全绿。
 - 此准备任务未在本机执行 Android全量、Lint、assemble或签名，也未运行新远端工作流、下载新APK、安装。上述预计门禁不替代其真实结果。
+
+## 实际运行记录（Lead 执行，逐 SHA/attempt 归属）
+
+| 运行 | 提交 | 结果 |
+|---|---|---|
+| [40201270323](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40201270323) / a1 | `6666aaa0` | source job 全通过；apk job 在生产源码编译通过后，**测试源码**编译失败（新测试的 Robolectric 通用 `shadowOf()` 触发 Android37 已移除的 `FingerprintManager` 类型）。未执行 JUnit、未签包。 |
+| [40203536948](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40203536948) / a1 | `2a0af1a` | source job 全通过；完整 Standard 单测 2514 项执行、1 项失败：虚拟屏 `VirtualScreenObservedPixelsTest` 在自身 25MB 位图分配处 `OutOfMemoryError`，与终端改动的断言无关。 |
+| 40203536948 / a2（同提交重跑失败作业） | `2a0af1a` | 单测、七项真实夹具、13 类终端门禁、Release Lint、未签名 Standard 打包均实际通过；签名步骤的回执核验把 aapt2 badging 最低 API 键名写死为 `sdkVersion`，报 `TERMINAL_APK_SDK`，APK 未上传。 |
+
+三项修订均不放宽门禁：测试改用 `Shadow.extract` 精确类型端口；测试 JVM 上限提高到 2048m 以消除与断言无关的位图 OOM；回执同时接受 `sdkVersion`/`minSdkVersion` 并仍精确要求 30/37，且在 build-info 记录实际键名。后续运行单独记账，不能把上表合并成一次通过。
+
