@@ -1,10 +1,14 @@
 # 终端：PTY、简易模式与会话关闭
 
-核验日期：2026-10-21。参考基线：已发布 F10 `087724c`，并对照本轮工作树源码。本文说明当前合同，不是本轮设备或命令执行报告；旧审计 APK 不作为操作入口。
+源码更新：2026-10-25。终端工作台基于 build197 `02f80ab` 落地；本页说明源码合同，不是设备验收报告。构建、测试与交付状态见[终端回归说明](<terminal-regression-20261025.md>)和[CI 合同](<terminal-ci-20261025.md>)，旧审计 APK 不作为操作入口。
 
 ## 入口与选择
 
-Main 的“终端”提供 PTY 与简易终端切换。选择保存在本机 `term_pty`；切换页面保留另一种模式的既有会话，并非把同一 shell 转换成另一种协议。两组标签由应用级 [TerminalSessionOwner](../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java) 持有，Fragment 只附着观察者；切页、旋转或语言重建不会主动重启终端。应用进程被系统结束后不承诺恢复原 shell 进程。
+Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java>) 的动作，不替换原根页或子页；通知可复用该终端宿主。默认极简黑底，页面内菜单球可拖动吸边；无需系统悬浮窗权限。菜单提供按需会话目录、新建、键盘、粘贴及显示设置。可选工作台模式在当前窗口达到 840dp 时展示侧栏，手机仍按需展开。
+
+选择保存在本机 `term_pty`；切换模式保留另一种模式的既有会话，并非把同一 shell 转换成另一种协议。两组标签由进程级 [TerminalSessionOwner](<../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java>) 持有，Fragment 只附着观察者；切页、旋转、语言重建和 Main 普通销毁均不会请求结束终端。应用进程被系统结束后不承诺恢复原 shell；旧 Bundle 的 ownerEpoch 不能认领新进程中的同号标签，不重放输入。
+
+首次进入每种模式最多发起一次默认创建；取消、失败或所有标签已结束后再次进入保持空态，需用户明确新建。菜单返回仅关闭页面，与“结束进程”分开。
 
 | 模式 | 适合的操作 | 实际行为与限制 |
 |---|---|---|
@@ -25,7 +29,13 @@ Main 的“终端”提供 PTY 与简易终端切换。选择保存在本机 `te
 
 ## 关闭、维护与失败
 
-关闭标签先标记 closing，再在工作线程等待退出。只有 [TerminalSessionOwner](../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java) 确认成功才移除标签；失败解除 closing 并保留原会话，允许重试关闭。环境维护会同时处理 PTY 与简易模式，也覆盖已 fork 但尚未发布标签的 PTY。
+“结束进程”先明确确认目标类型与 ID，标记 `CLOSING`，再在工作线程等待退出。只有 [TerminalSessionOwner](<../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java>) 核验成功才移除标签；失败持久保存 `UNCONFIRMED`、脱敏错误及原 ID，停止接受新输入，不自动重复结束请求。用户可显式选择“核验并结束”。PTY 自然退出后经真实清理核验可释放保护但保留历史；仅启动器退出仍展示清理待核验，不能画成成功。环境维护仍先关闭 PTY（含未发布 pending）及简易会话，再停止 Web 并取得维护屏障；遇错即止。
+
+### 独立后台保护
+
+[TerminalRuntimeService](<../app/src/main/java/com/deepseekharness/app/TerminalRuntimeService.java>) 与 Web 前台服务独立。可见页面请求新建，只有真实 `startForeground` 成功、精确 `(ownerEpoch, kind, ticket)` 被一次性消费后才允许创建。准备、fork、运行及未确认清理均持有逻辑票；视图离开不释放。服务丢失展示 `LOST`、拒绝新输入，不暗中重新提升、不重放 shell；显式结束仍可核验。通知不是退出证明，也不保证 ROM 永不回收。
+
+PTY 在底层核验 guest 为空后释放保护。简易标签的 `STOPPED/FAILED` 不能证明整个生命周期已清理，保守保留至用户显式结束核验成功；该状态与“页面已返回”不同。原有 RuntimeTasks 维护与 CPU 锁策略保留，本次没有新增整段 CPU 锁或宣称功耗改善。停止 Web 不改变终端服务原因。
 
 [TerminalProcessCloser](../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.java) 使用保存的进程身份与会话关系检查退出。不能把 `/proc` 暂时不可读、超时或启动器退出等同于整个 guest 已退出；核验失败继续保留环境占用，不按裸 PID、端口或名称强杀。现用环境不能在该屏障未解除时移动或重建。
 

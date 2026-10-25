@@ -8253,5 +8253,508 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/assistant/AssistantService.java"
     ]
+  },
+  {
+    "id": "term1970001",
+    "zh": "菜单",
+    "en": "Menu",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970002",
+    "zh": "应用进程已重建；旧会话不能恢复，请手动新建。",
+    "en": "The app process restarted. Old sessions cannot be restored; create a new session explicitly.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970003",
+    "zh": "退出待核验；会话和环境保护仍保留。",
+    "en": "Exit unconfirmed; the session and runtime protection are retained.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970004",
+    "zh": "正在结束进程并核验退出…",
+    "en": "Ending the process and verifying exit…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970005",
+    "zh": "后台运行保护已丢失；会话未被自动结束，请查看会话状态。",
+    "en": "Background protection was lost. Sessions were not automatically ended; inspect their status.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970006",
+    "zh": "正在结束并核验",
+    "en": "Ending and verifying",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970007",
+    "zh": "退出待核验",
+    "en": "Exit unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970008",
+    "zh": "运行中",
+    "en": "Running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970009",
+    "zh": "进程已退出 · 清理待核验",
+    "en": "Process exited · cleanup unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970010",
+    "zh": "启动中",
+    "en": "Starting",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970011",
+    "zh": "停止中",
+    "en": "Stopping",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970012",
+    "zh": "失败 · 请检查",
+    "en": "Failed · inspect session",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970013",
+    "zh": "未运行",
+    "en": "Not running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970014",
+    "zh": "会话目录",
+    "en": "Sessions",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970015",
+    "zh": "新建 PTY",
+    "en": "New PTY",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970016",
+    "zh": "新建简易终端",
+    "en": "New simple terminal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970017",
+    "zh": "显示键盘",
+    "en": "Show keyboard",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970018",
+    "zh": "粘贴文本…",
+    "en": "Paste text…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970019",
+    "zh": "显示设置",
+    "en": "Display settings",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970020",
+    "zh": "回到终端输入",
+    "en": "Focus terminal input",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970021",
+    "zh": "返回原页面（会话继续）",
+    "en": "Return to previous page (keep sessions)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970022",
+    "zh": "终端菜单",
+    "en": "Terminal menu",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFloatingMenu.java"
+    ]
+  },
+  {
+    "id": "term1970023",
+    "zh": "字号减小",
+    "en": "Smaller text",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970024",
+    "zh": "字号增大",
+    "en": "Larger text",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970025",
+    "zh": "切换极简模式",
+    "en": "Use minimal mode",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970026",
+    "zh": "切换工作台模式",
+    "en": "Use workbench mode",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970027",
+    "zh": "重置菜单位置",
+    "en": "Reset menu position",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFloatingMenu.java"
+    ]
+  },
+  {
+    "id": "term1970028",
+    "zh": "返回终端",
+    "en": "Back to terminal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970029",
+    "zh": "暂无会话；新建后才会启动进程。",
+    "en": "No sessions. A process starts only when you create one.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970030",
+    "zh": "重命名",
+    "en": "Rename",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970031",
+    "zh": "核验并结束",
+    "en": "Verify and end",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970032",
+    "zh": "结束进程",
+    "en": "End process",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970033",
+    "zh": "重命名会话",
+    "en": "Rename session",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970034",
+    "zh": "结束此会话的进程？",
+    "en": "End this session's process?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970035",
+    "zh": "%s\n%s",
+    "en": "%s\n%s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "term1970036",
+    "zh": "这不是返回页面。只结束此会话，核验退出成功后才移除；其他会话和 Web 不受影响。",
+    "en": "This is not page navigation. Only this session is ended and removed after verified exit; other sessions and Web are unaffected.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970037",
+    "zh": "结束并核验",
+    "en": "End and verify",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "term1970038",
+    "zh": "菜单位置已重置",
+    "en": "Menu position reset",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFloatingMenu.java"
+    ]
+  },
+  {
+    "id": "term1970039",
+    "zh": "正在准备终端保护…",
+    "en": "Preparing terminal protection…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970040",
+    "zh": "关闭未确认，输入已停用：%s",
+    "en": "Close unconfirmed; input disabled: %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "term1970041",
+    "zh": "终端后台保护已丢失，输入已停用；请从菜单关闭并核验会话。",
+    "en": "Terminal background protection was lost; input is disabled. Close and verify the session from the menu.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970042",
+    "zh": "Ctrl，一次性修饰键，已启用",
+    "en": "Ctrl, one-shot modifier, enabled",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970043",
+    "zh": "Ctrl，一次性修饰键，未启用",
+    "en": "Ctrl, one-shot modifier, disabled",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970044",
+    "zh": "Alt，一次性修饰键，已启用",
+    "en": "Alt, one-shot modifier, enabled",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970045",
+    "zh": "Alt，一次性修饰键，未启用",
+    "en": "Alt, one-shot modifier, disabled",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970046",
+    "zh": "剪贴板",
+    "en": "Clipboard",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970047",
+    "zh": "无法读取剪贴板",
+    "en": "Cannot read clipboard",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970048",
+    "zh": "没有可粘贴的文本，或超过 16K 字符",
+    "en": "Nothing to paste, or text exceeds 16K characters",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970049",
+    "zh": "来源：%s\n不会附加回车；末尾换行与危险控制字符会移除。",
+    "en": "Source: %s\nNo Enter is appended; trailing newlines and unsafe control characters are removed.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "term1970050",
+    "zh": "包含多行。若程序未启用括号粘贴，内部换行可能立即执行前面的命令。仅在信任内容时粘贴。",
+    "en": "Contains multiple lines. Without bracketed paste, internal newlines may execute earlier commands immediately. Paste only trusted text.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970051",
+    "zh": "确认粘贴",
+    "en": "Confirm paste",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970052",
+    "zh": "%s\n\n%s",
+    "en": "%s\n\n%s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "term1970053",
+    "zh": "粘贴文本",
+    "en": "Paste text",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970054",
+    "zh": "输入法",
+    "en": "Input method",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970055",
+    "zh": "这会结束当前简易 shell 并启动新 shell，工作目录和变量会丢失；不是向当前命令发送 Ctrl+C。",
+    "en": "This stops the simple shell and starts a new one. Working directory and variables are lost; this is not Ctrl+C to the current command.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970056",
+    "zh": "来源：剪贴板。仅填入命令草稿，不会执行；末尾换行与危险控制字符会移除。",
+    "en": "Source: Clipboard. Inserts into the command draft only; does not execute. Trailing newlines and unsafe control characters are removed.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java"
+    ]
+  },
+  {
+    "id": "term1970057",
+    "zh": "终端后台保护",
+    "en": "Terminal background protection",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/TerminalRuntimeService.java"
+    ]
+  },
+  {
+    "id": "term1970058",
+    "zh": "保护用户开启的终端及尚待核验的清理",
+    "en": "Protects user-started terminals and cleanup awaiting verification",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/TerminalRuntimeService.java"
+    ]
+  },
+  {
+    "id": "term1970059",
+    "zh": "终端正在运行或等待清理",
+    "en": "Terminal running or awaiting cleanup",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/TerminalRuntimeService.java"
+    ]
+  },
+  {
+    "id": "term1970060",
+    "zh": "返回页面不会结束会话；点按管理终端",
+    "en": "Leaving the page does not close sessions. Tap to manage terminals.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/TerminalRuntimeService.java"
+    ]
+  },
+  {
+    "id": "term1970061",
+    "zh": "已核验退出 · 历史保留",
+    "en": "Exit verified · history retained",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
   }
 ]
