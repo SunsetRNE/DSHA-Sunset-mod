@@ -67,7 +67,8 @@ public class ManagedPatchRegistryIntegrationTest {
     if (root.getFileName().toString().equals("app")) root = root.getParent();
     Path assets = root.resolve("app/src/main/assets"),
         pointer = root.resolve("app/build/test-runtimes/current.json");
-    org.junit.Assume.assumeTrue("current raw host runtime required", Files.isRegularFile(pointer));
+    com.deepseekharness.app.runtime.SourceOnlyTestInputs.requireRegularFile(
+        pointer, "请先运行 tools/prepare-test-runtime.py");
     JsonObject selected = json(pointer), registry = json(assets.resolve("runtime-patches.json"));
     Path raw = Path.of(selected.get("raw").getAsString()).resolve("node_modules");
     assertEquals(

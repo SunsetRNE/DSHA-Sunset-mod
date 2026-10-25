@@ -8,12 +8,12 @@ import java.nio.file.Path;
 import org.junit.Assume;
 
 /** 仅显式源码模式可跳过缺失的外部夹具；已有输入仍由调用方完整校验。 */
-final class SourceOnlyTestInputs {
+public final class SourceOnlyTestInputs {
   static final String PROPERTY = "dsha.sourceOnlyTests";
 
   private SourceOnlyTestInputs() {}
 
-  static void requireRegularFile(Path input, String preparation) {
+  public static void requireRegularFile(Path input, String preparation) {
     if ("true".equals(System.getProperty(PROPERTY))
         && Files.notExists(input, LinkOption.NOFOLLOW_LINKS)) {
       Assume.assumeTrue("source-only: 缺少真实输入 " + input + "；" + preparation, false);

@@ -171,7 +171,7 @@ jobs:
           args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
           if [ "$INPUT_FORMAT" = source-archive ]; then args+=(--source-archive); fi
           python3 tools/ci-assets.py "${args[@]}"
-      - name: Source-only Standard unit tests (up to five external-fixture skips)
+      - name: Source-only Standard unit tests (missing fixtures reported separately)
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
@@ -194,7 +194,7 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
           lines = ["### Source-only unit tests",
-                   "This job is not a complete fixed-input test run. Only the five Standard external-fixture tests may skip for missing inputs; existing inputs remain validated."]
+                   "This source-only job is not a complete fixed-input run. Explicitly missing external fixtures may skip; existing inputs remain validated. Standard-inapplicable tests are reported separately."]
           for flavor in ("Standard",):
               reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
               if not reports:
@@ -204,6 +204,12 @@ jobs:
               counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
                         for key in ("tests", "failures", "errors", "skipped")}
               lines.append(f"- {flavor}: " + ", ".join(f"{key}={value}" for key, value in counts.items()))
+              for suite in suites:
+                  for case in suite.findall("testcase"):
+                      skipped = case.find("skipped")
+                      if skipped is not None:
+                          reason = skipped.get("message") or (skipped.text or "declared test assumption").splitlines()[0]
+                          lines.append(f"  - skipped: {case.get('classname')}.{case.get('name')}: {reason}")
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
               summary.write("\n".join(lines) + "\n")
           PY
@@ -304,20 +310,28 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:testStandardDebugUnitTest -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
-      - name: Verify all five Standard external-fixture tests executed
+      - name: Verify all seven Standard external-fixture tests executed
         run: |
           python3 - <<'PY'
           import json, os
           from pathlib import Path
           import xml.etree.ElementTree as ET
           required = {
-              "AdbWheelBundleTest": ["realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel"],
-              "RuntimeToolsRegistryAndroidTest": [
+              "com.deepseekharness.app.runtime.AdbWheelBundleTest": ["realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel"],
+              "com.deepseekharness.app.runtime.RuntimeToolsRegistryAndroidTest": [
                   "completeProductionChainAppliesAllSpecializedStagesAndIsRepeatable",
                   "lanRetirementRejectsModuleDriftAndPreservesOriginalBytes",
                   "lanRetirementRejectsUnknownVersionAndContractDrift",
                   "oldLanExactReplacementAndIdempotenceRemainStrict",
+                  "previousRuntimeGenerationCannotReceiveCurrentOverlayInPlace",
               ],
+              "com.deepseekharness.app.util.ManagedPatchRegistryIntegrationTest": [
+                  "everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns",
+              ],
+          }
+          allowed_skips = {
+              ("com.deepseekharness.app.vscreen.VirtualScreenLowBoundaryTest",
+               "lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion"),
           }
           result = {"mode": "full", "flavors": {}}
           for flavor in ("Standard",):
@@ -329,10 +343,17 @@ jobs:
                         for key in ("tests", "failures", "errors", "skipped")}
               if not counts["tests"] or counts["failures"] or counts["errors"]:
                   raise SystemExit(f"Full unit tests failed: {flavor} {counts}")
+              cases_all = [case for suite in suites for case in suite.findall("testcase")]
+              skipped = [(case.get("classname"), case.get("name")) for case in cases_all
+                         if case.find("skipped") is not None]
+              if counts["tests"] != len(cases_all) or counts["skipped"] != len(skipped):
+                  raise SystemExit(f"JUnit report counts disagree: {flavor}")
+              if set(skipped) - allowed_skips:
+                  raise SystemExit(f"Unexpected full-input skips: {flavor} {skipped}")
               for owner, methods in required.items():
                   for method in methods:
-                      cases = [case for suite in suites for case in suite.findall("testcase")
-                               if case.get("classname") == "com.deepseekharness.app.runtime." + owner
+                      cases = [case for case in cases_all
+                               if case.get("classname") == owner
                                and case.get("name") == method]
                       if len(cases) != 1 or any(cases[0].find(tag) is not None
                                                 for tag in ("skipped", "failure", "error")):
