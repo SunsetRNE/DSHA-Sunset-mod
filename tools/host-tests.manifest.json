@@ -2,6 +2,15 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-sunset-plugin-release.py",
+      "stage": "fast",
+      "reason": "Sunset历史发布完整提交/run/attempt及显式基线绑定、合并历史顺序、已有tag与未知输出保护；纯临时Git/模拟GitHub，无网络或设备访问",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
       "path": "tools/test-generate-changelog.py",
       "stage": "fast",
       "requires": [

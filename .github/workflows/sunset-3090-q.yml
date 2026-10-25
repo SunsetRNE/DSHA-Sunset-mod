@@ -1,6 +1,7 @@
 name: Sunset-3090-Q test package
 
-# 个人测试分支：只测试和构建 Standard 测试包，不运行 Low、不打 tag、不发布 Release。
+# 个人测试分支：push 只测试和构建 Standard；显式 dispatch 才在完整成功后发布历史。
+# 不运行 Low，不使用正式 E7E3 身份；历史预发布不代表设备验收。
 # 2026-02-26 GitHub Actions 非压缩 artifact：APK 用 archive:false 原样上传。
 # Node 20 已退出：所有 action 使用 Node 24 兼容版本并按 SHA 固定。
 on:
@@ -22,11 +23,25 @@ on:
         type: choice
         default: bundle
         options: [bundle, source-archive]
+      publish_history:
+        description: Publish plugin history after all Standard checks pass (test identity only)
+        required: false
+        type: boolean
+        default: false
+      history_base:
+        description: Existing baseline tag or full commit SHA (required when publishing; excluded from history)
+        required: false
+        type: string
+      history_base_sha:
+        description: Full 40-character commit SHA of history_base (required when publishing)
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: sunset-3090-q-${{ github.ref }}
-  cancel-in-progress: true
+  # 发布运行独立排队；后续 push 不得在创建 tag 后取消该运行。
+  group: sunset-3090-q-${{ github.event_name == 'workflow_dispatch' && inputs.publish_history && github.run_id || github.ref }}
+  cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_history) }}
 env:
   SUNSET_TEST_STORE_PASSWORD: sunset-test-only
 jobs:
@@ -41,9 +56,15 @@ jobs:
       apk_name: ${{ steps.artifacts.outputs.apk }}
       evidence_name: ${{ steps.artifacts.outputs.evidence }}
       tests_name: ${{ steps.artifacts.outputs.tests }}
+      commit: ${{ steps.artifacts.outputs.commit }}
+      run_id: ${{ steps.artifacts.outputs.run_id }}
+      run_attempt: ${{ steps.artifacts.outputs.run_attempt }}
+      history_base_sha: ${{ steps.history.outputs.history_base_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Set and validate short artifact names
         id: artifacts
@@ -64,7 +85,18 @@ jobs:
                   raise SystemExit("Artifact names must use at most 32 ASCII characters")
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write("".join(f"{key}={name}\n" for key, name in names.items()))
+              output.write(f"commit={sha}\nrun_id={os.environ['GITHUB_RUN_ID']}\nrun_attempt={os.environ['GITHUB_RUN_ATTEMPT']}\n")
           PY
+      - name: Validate explicit history baseline and current commit
+        id: history
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_history
+        env:
+          SUNSET_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+          HISTORY_BASE: ${{ inputs.history_base }}
+          HISTORY_BASE_SHA: ${{ inputs.history_base_sha }}
+        run: |
+          python3 tools/sunset-plugin-release.py preflight \
+            --base "$HISTORY_BASE" --base-sha "$HISTORY_BASE_SHA" --github-output
       - name: Resolve a complete fixed input pair
         id: inputs
         env:
@@ -116,6 +148,9 @@ jobs:
             --only test-runtime-descriptor-inputs.py \
             --only test-runtime-descriptor-source.py \
             --only test-plugin-capabilities.py \
+            --only test-plugin-transactions.py \
+            --only test-plugin-delete-nofollow.py \
+            --only test-app-activity.mjs \
             --only test-architecture-boundaries.py \
             --only test-bridge-port.mjs \
             --only test-bridge-port.py \
@@ -125,6 +160,7 @@ jobs:
             --only test-release-evidence.py \
             --only test-dsh-runtime-packaging.py \
             --only test-sunset-ci-inputs.py \
+            --only test-sunset-plugin-release.py \
             --only test-generate-changelog.py
       # build195 起 Java 编译依赖固定 dsha-connect.aar；源码模式仍不准备 managed runtime 测试夹具。
       - name: Restore pinned compilation inputs
@@ -185,6 +221,12 @@ jobs:
     needs: source
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    outputs:
+      commit: ${{ steps.sign.outputs.commit }}
+      run_id: ${{ steps.sign.outputs.run_id }}
+      run_attempt: ${{ steps.sign.outputs.run_attempt }}
+      apk_artifact_id: ${{ steps.upload_apk.outputs.artifact-id }}
+      evidence_artifact_id: ${{ steps.upload_evidence.outputs.artifact-id }}
     env:
       SUNSET_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
       ASSET_URL: ${{ needs.source.outputs.asset_url }}
@@ -194,6 +236,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Verify toolchain against source configuration
         id: toolchain
@@ -241,6 +284,9 @@ jobs:
           python3 tools/run-host-tests.py --stage runtime --jdk "$JAVA_HOME" \
             --output app/build/host-tests/sunset-patch-chains \
             --only test-plugin-management-patch-chain.py \
+            --only test-plugin-discovery.py \
+            --only test-plugin-review.py \
+            --only test-plugin-management-probe.mjs \
             --only test-session-interaction-patch-upgrade.py \
             --only test-preset-pending-patch-upgrade.py \
             --only test-recovery-native-consent.mjs \
@@ -368,6 +414,7 @@ jobs:
           PY
           cat out/build-info.json
           printf 'apk=%s\n' "$apk" >> "$GITHUB_OUTPUT"
+          printf 'commit=%s\nrun_id=%s\nrun_attempt=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
       # archive:false 只接受单文件，且 artifact 名使用实际文件名而忽略 name 参数。
       - name: Upload signed APK without archiving
         id: upload_apk
@@ -415,4 +462,44 @@ jobs:
             app/build/host-tests/sunset-patch-chains
             app/build/reports/lint-results-standardRelease.*
           if-no-files-found: warn
+          retention-days: 14
+  publish:
+    name: Publish commit-bound plugin history
+    needs: [source, apk]
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.publish_history &&
+      github.repository == 'SunsetRNE/DSHA-Sunset-mod-3090-Q' && github.event.repository.private &&
+      github.ref == 'refs/heads/Sunset-3090-Q' &&
+      needs.source.result == 'success' && needs.apk.result == 'success'
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      # 只接受本次 run/attempt 的 source + apk 成功回执，不查询 latest green。
+      # 若单独重跑失败 job 导致 attempt 不一致，应 Re-run all jobs，不能复用旧回执。
+      - name: Create unique tag and history prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SUNSET_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+          SUNSET_NEEDS: ${{ toJSON(needs) }}
+          HISTORY_BASE: ${{ inputs.history_base }}
+          HISTORY_BASE_SHA: ${{ inputs.history_base_sha }}
+        run: |
+          python3 tools/sunset-plugin-release.py publish \
+            --base "$HISTORY_BASE" --base-sha "$HISTORY_BASE_SHA" \
+            --output "$RUNNER_TEMP/sunset-plugin-history-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+      # 即使远端写入结果未知，也保留完整本次历史；不自动覆盖 tag/Release。
+      - name: Retain generated history and publication input
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sunset-plugin-history
+          path: ${{ runner.temp }}/sunset-plugin-history-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
           retention-days: 14
