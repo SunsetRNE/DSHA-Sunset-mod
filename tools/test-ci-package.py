@@ -165,6 +165,7 @@ class SunsetPatchRegressions(unittest.TestCase):
         expected = {
             'test-plugin-management-patch-chain.py': {'raw', 'jdk17'},
             'test-app-activity.mjs': {'node24'},
+            'test-plugin-runtime-evidence.mjs': {'node24', 'raw'},
             'test-plugin-discovery.py': {'python39', 'node24'},
             'test-plugin-review.py': {'python39'},
             'test-plugin-management-probe.mjs': {'node24', 'raw'},
