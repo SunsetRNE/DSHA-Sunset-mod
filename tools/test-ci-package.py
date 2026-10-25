@@ -2,12 +2,15 @@ import argparse
 import copy
 import importlib.util
 import json
+import os
 import shlex
 import subprocess
 import sys
 from pathlib import Path
 import tempfile
+import textwrap
 import unittest
+import xml.etree.ElementTree as ET
 
 spec=importlib.util.spec_from_file_location('ci_package',Path(__file__).with_name('verify-ci-package.py'))
 gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(gate)
@@ -184,6 +187,60 @@ class SunsetPatchRegressions(unittest.TestCase):
                 if name == 'test-recovery-native-consent.mjs':
                     # 该入口依赖此变量执行真实 ToolRuntime，不能只跑 SDK 传输分支。
                     self.assertEqual(row['environment'].get('DSHA_TEST_RUNTIME'), '{managed}')
+
+    def test_full_input_gate_rejects_missing_or_skipped_external_cases(self):
+        step = self.step('Verify all seven Standard external-fixture tests executed')
+        script = textwrap.dedent(step.split("          python3 - <<'PY'\n", 1)[1].rsplit('          PY', 1)[0])
+        prefix = 'com.deepseekharness.app.'
+        required = [
+            (prefix + 'runtime.AdbWheelBundleTest', 'realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel'),
+            *[(prefix + 'runtime.RuntimeToolsRegistryAndroidTest', name) for name in (
+                'completeProductionChainAppliesAllSpecializedStagesAndIsRepeatable',
+                'lanRetirementRejectsModuleDriftAndPreservesOriginalBytes',
+                'lanRetirementRejectsUnknownVersionAndContractDrift',
+                'oldLanExactReplacementAndIdempotenceRemainStrict',
+                'previousRuntimeGenerationCannotReceiveCurrentOverlayInPlace')],
+            (prefix + 'util.ManagedPatchRegistryIntegrationTest', 'everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns'),
+        ]
+        low = (prefix + 'vscreen.VirtualScreenLowBoundaryTest', 'lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion')
+        def execute(rows):
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                reports = root / 'app/build/test-results/testStandardDebugUnitTest'
+                reports.mkdir(parents=True)
+                suite = ET.Element('testsuite', tests=str(len(rows)), failures='0', errors='0',
+                                   skipped=str(sum(status == 'skipped' for _, _, status in rows)))
+                for owner, method, status in rows:
+                    case = ET.SubElement(suite, 'testcase', classname=owner, name=method)
+                    if status:
+                        ET.SubElement(case, status)
+                ET.ElementTree(suite).write(reports / 'TEST-fixture.xml')
+                run = subprocess.run([sys.executable, '-c', script], cwd=root,
+                                     env={**os.environ, 'GITHUB_STEP_SUMMARY': str(root / 'summary.md')},
+                                     capture_output=True, text=True)
+                output = root / 'out/full-unit-tests.json'
+                return run, json.loads(output.read_text()) if output.exists() else None
+        passing = [(owner, name, '') for owner, name in required] + [(*low, 'skipped')]
+        run, report = execute(passing)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(report['flavors']['Standard']['requiredFixtureTestsPassed'], 7)
+        self.assertEqual(report['flavors']['Standard']['skipped'], 1)
+        for target in required:
+            for status in ('missing', 'skipped'):
+                with self.subTest(target=target, status=status):
+                    rows = [row for row in passing if row[:2] != target]
+                    if status == 'skipped':
+                        rows.append((*target, 'skipped'))
+                    run, report = execute(rows)
+                    self.assertNotEqual(run.returncode, 0)
+                    self.assertIsNone(report)
+        run, report = execute(passing + [(prefix + 'plugins.PluginRegistryTest', 'unexpected', 'skipped')])
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn('Unexpected full-input skips', run.stderr)
+        self.assertIsNone(report)
+        run, report = execute(passing + [(*required[-1], '')])
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIsNone(report)
 
     def test_every_ci_entry_uses_standard_scope(self):
         for name in ('sunset-3090-q.yml', 'ci-fast.yml'):

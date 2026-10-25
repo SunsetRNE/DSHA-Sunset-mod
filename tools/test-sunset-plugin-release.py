@@ -353,7 +353,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_existing_standard_full_input_and_signing_gates_remain_required(self):
         self.assertIn("-Pdsha.sourceOnlyTests=true", self.source)
-        for gate in ("-Pdsha.sourceOnlyTests=false", "Verify all five Standard external-fixture tests executed",
+        for gate in ("-Pdsha.sourceOnlyTests=false", "Verify all seven Standard external-fixture tests executed",
                      ":app:lintStandardRelease", ":app:assembleStandardRelease", "Sign with test key and verify identity",
                      "test \"$package\" = \"dsh.android.client.SunsetRNE\"",
                      "test \"$cert\" != \"e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5\"",
