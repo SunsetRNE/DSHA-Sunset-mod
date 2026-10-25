@@ -126,7 +126,6 @@ jobs:
           python3 tools/generate-builtin-plugins.py --verify
           python3 tools/generate-credential-paths.py --check
           python3 tools/prepare-semver-reference.py
-          python3 tools/format-java-tree.py --check
           python3 tools/run-host-tests.py --check-manifest
           python3 tools/check-source-hygiene.py
           python3 tools/check-ui-i18n.py
@@ -150,7 +149,6 @@ jobs:
             --only test-plugin-capabilities.py \
             --only test-plugin-transactions.py \
             --only test-plugin-delete-nofollow.py \
-            --only test-app-activity.mjs \
             --only test-architecture-boundaries.py \
             --only test-bridge-port.mjs \
             --only test-bridge-port.py \
@@ -186,6 +184,8 @@ jobs:
           "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools"
           chmod +x gradlew
           ./gradlew :app:testStandardDebugUnitTest -Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
+      - name: Verify complete Java formatting gate
+        run: python3 tools/format-java-tree.py --check
       - name: Report source-only test scope
         if: always()
         run: |
@@ -278,12 +278,21 @@ jobs:
           python3 tools/verify-runtime-descriptor-source.py
       - name: Prepare current verified runtime fixture
         run: python3 tools/prepare-test-runtime.py
+      - name: Prepare pinned plugin browser fixture
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/dsha-plugin-browsers
+        run: |
+          npm ci --prefix tools/ci-browser --ignore-scripts --no-audit --no-fund
+          node tools/ci-browser/node_modules/playwright/cli.js install --with-deps chromium
       - name: Verify runtime patch upgrades and managed recovery consent
         # 使用已验证 raw/managed，覆盖真实 Java 补丁升级与应急 ToolRuntime 授权。
         run: |
           python3 tools/run-host-tests.py --stage runtime --jdk "$JAVA_HOME" \
+            --playwright "$GITHUB_WORKSPACE/tools/ci-browser/node_modules/playwright" \
+            --browsers-path "$RUNNER_TEMP/dsha-plugin-browsers" \
             --output app/build/host-tests/sunset-patch-chains \
             --only test-plugin-management-patch-chain.py \
+            --only test-app-activity.mjs \
             --only test-plugin-discovery.py \
             --only test-plugin-review.py \
             --only test-plugin-management-probe.mjs \

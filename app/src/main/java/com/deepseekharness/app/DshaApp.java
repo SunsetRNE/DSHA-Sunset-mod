@@ -317,7 +317,7 @@ public class DshaApp extends Application
     @Override
     public void onActivityStopped(android.app.Activity activity) {
       resumed.remove(activity);
-      started.remove(activity);
+      boolean wasStarted = started.remove(activity);
       if (!started.isEmpty()) return;
       if (pendingIdle != null) {
         android.os.Looper.myQueue().removeIdleHandler(pendingIdle);
@@ -325,7 +325,10 @@ public class DshaApp extends Application
       }
       // 不为关闭观察而创建服务；旋转后仍复用同一个应用级 Engine 和目录快照。
       var engine = initializedPluginEngine;
-      if (engine != null) engine.onBackground();
+      if (engine != null) {
+        engine.onBackground();
+        if (wasStarted && !activity.isChangingConfigurations()) engine.invalidateInstalledState();
+      }
     }
 
     @Override

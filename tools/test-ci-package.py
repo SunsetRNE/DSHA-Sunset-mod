@@ -142,14 +142,29 @@ class SunsetPatchRegressions(unittest.TestCase):
         parser = argparse.ArgumentParser()
         parser.add_argument('--stage', required=True)
         parser.add_argument('--jdk', required=True)
+        parser.add_argument('--playwright', required=True)
+        parser.add_argument('--browsers-path', required=True)
         parser.add_argument('--output', required=True)
         parser.add_argument('--only', action='append', required=True)
         selected = parser.parse_args(command[2:])
         self.assertEqual(selected.stage, 'runtime')
         self.assertEqual(selected.jdk, '$JAVA_HOME')
+        self.assertEqual(selected.playwright, '$GITHUB_WORKSPACE/tools/ci-browser/node_modules/playwright')
+        self.assertEqual(selected.browsers_path, '$RUNNER_TEMP/dsha-plugin-browsers')
+        self.assertIn('npm ci --prefix tools/ci-browser --ignore-scripts', self.job[:start])
+        self.assertIn('node tools/ci-browser/node_modules/playwright/cli.js install --with-deps chromium', self.job[:start])
+        browser = json.loads((self.root / 'tools/ci-browser/package.json').read_text())
+        browser_lock = json.loads((self.root / 'tools/ci-browser/package-lock.json').read_text())
+        self.assertEqual(browser['dependencies']['playwright'], '1.64.1')
+        self.assertEqual(browser_lock['packages']['node_modules/playwright']['version'], browser['dependencies']['playwright'])
+        self.assertRegex(browser_lock['packages']['node_modules/playwright']['integrity'], r'^sha512-')
         self.assertEqual(selected.output, 'app/build/host-tests/sunset-patch-chains')
         expected = {
             'test-plugin-management-patch-chain.py': {'raw', 'jdk17'},
+            'test-app-activity.mjs': {'node24'},
+            'test-plugin-discovery.py': {'python39', 'node24'},
+            'test-plugin-review.py': {'python39'},
+            'test-plugin-management-probe.mjs': {'node24', 'raw'},
             'test-session-interaction-patch-upgrade.py': {'raw', 'jdk17'},
             'test-preset-pending-patch-upgrade.py': {'raw', 'jdk17'},
             'test-recovery-native-consent.mjs': {'node24', 'managed'},
@@ -165,7 +180,7 @@ class SunsetPatchRegressions(unittest.TestCase):
                 self.assertEqual(row['stage'], selected.stage)
                 self.assertTrue(expected[name] <= set(row['requires']))
                 # 现有 job 只准备这些依赖；新增浏览器等要求必须另行配置。
-                self.assertTrue(set(row['requires']) <= {'python39', 'node24', 'raw', 'managed', 'jdk17'})
+                self.assertTrue(set(row['requires']) <= {'python39', 'node24', 'raw', 'managed', 'jdk17', 'native_host', 'browser'})
                 if name == 'test-recovery-native-consent.mjs':
                     # 该入口依赖此变量执行真实 ToolRuntime，不能只跑 SDK 传输分支。
                     self.assertEqual(row['environment'].get('DSHA_TEST_RUNTIME'), '{managed}')
