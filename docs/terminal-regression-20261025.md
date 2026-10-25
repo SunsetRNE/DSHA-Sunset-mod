@@ -30,6 +30,12 @@
 - 本地 `build.sh` Android 测试因缺 android-37 SDK 退出，完整 Android 编译/Standard 单测/Lint/打包交 GitHub Actions。
 - 部分本地 ripgrep/Git 子进程遇到 proroot 目录遍历异常或 SIGSEGV；实际独立测试退出码与 Git 检查失败分开记录，不把它掩盖为产品测试通过。
 
+### CI 第一次运行（失败原件保留）
+
+提交 `6666aaa02804ae1bafb833bff55f06de2ac2af5f`，run [40201270323](<https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40201270323>) / attempt1。源码合同、原始固定输入、SDK/NDK、运行时重建与四项真实补丁链通过；Standard Debug **生产源码编译通过**，测试源码在 `TerminalNavigationTest` 使用 Robolectric 通用 `Shadows.shadowOf()` 时因 Android37 已不提供 `FingerprintManager` 类型编译失败，未开始执行该轮 JUnit，未到 Lint/签名/产包。
+
+修订将新测试改用项目现有 `Shadow.extract` 精确类型端口，避免重载集加载无关旧 Android 类型，不降低 SDK 或跳过测试。另将新增独立终端通知对应的稳定 ID 数量断言由10改为11，并锁定9065；本地格式化后的输入/工作台/通知合同合计25项通过。后续 CI 结果单独归属新 SHA。
+
 ## 本地设备回归清单（本轮尚未执行）
 
 安装前核对 APK SHA、独立包名 `dsh.android.client.SunsetRNE`、证书。测试证书非正式 E7E3；若本次使用临时测试密钥，不保证覆盖已有同包名测试安装。不要为安装测试包删除正式版数据；先备份自己的测试数据，再决定测试安装策略。

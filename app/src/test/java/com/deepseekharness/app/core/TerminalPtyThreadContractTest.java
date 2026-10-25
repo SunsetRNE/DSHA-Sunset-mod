@@ -85,7 +85,9 @@ public class TerminalPtyThreadContractTest {
     worker.interrupt();
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
     while (worker.isAlive() && System.nanoTime() < deadline) {
-      Shadows.shadowOf(Looper.getMainLooper()).idle();
+      org.robolectric.shadows.ShadowLooper main =
+          org.robolectric.shadow.api.Shadow.extract(Looper.getMainLooper());
+      main.idle();
       worker.join(10);
     }
     assertFalse("worker must receive the exact initialization result", worker.isAlive());

@@ -118,7 +118,7 @@ public class TerminalNavigationTest {
     var view = page.requireView();
     main.openTerminal();
     main.openTerminal();
-    var shadow = org.robolectric.Shadows.shadowOf(main);
+    var shadow = activityShadow(main);
     Intent terminal = shadow.getNextStartedActivity();
     assertNotNull(terminal);
     assertEquals(TerminalActivity.class.getName(), terminal.getComponent().getClassName());
@@ -147,8 +147,8 @@ public class TerminalNavigationTest {
     consume.invoke(main, intent);
     consume.invoke(main, intent);
     assertFalse(intent.hasExtra("open_terminal"));
-    assertNotNull(org.robolectric.Shadows.shadowOf(main).getNextStartedActivity());
-    assertNull(org.robolectric.Shadows.shadowOf(main).getNextStartedActivity());
+    assertNotNull(activityShadow(main).getNextStartedActivity());
+    assertNull(activityShadow(main).getNextStartedActivity());
     host.pause().stop().destroy();
   }
 
@@ -159,7 +159,7 @@ public class TerminalNavigationTest {
     ready(main);
     Environment.recovery = true;
     main.openTerminal();
-    Intent destination = org.robolectric.Shadows.shadowOf(main).getNextStartedActivity();
+    Intent destination = activityShadow(main).getNextStartedActivity();
     assertEquals(
         StartupRecoveryActivity.class.getName(), destination.getComponent().getClassName());
     assertFalse(field("terminalPageInFlight").getBoolean(main));
@@ -173,6 +173,10 @@ public class TerminalNavigationTest {
     host.pause().stop().destroy();
     assertEquals(0, TerminalGate.shutdown);
     assertEquals(0, PtyShutdown.shutdown);
+  }
+
+  private static org.robolectric.shadows.ShadowActivity activityShadow(MainActivity main) {
+    return org.robolectric.shadow.api.Shadow.extract(main);
   }
 
   private static java.lang.reflect.Field field(String name) throws Exception {
