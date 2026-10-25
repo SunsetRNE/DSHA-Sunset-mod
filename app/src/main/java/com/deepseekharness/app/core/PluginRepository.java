@@ -1350,9 +1350,13 @@ public final class PluginRepository extends AndroidViewModel {
   private String receivePreview(JSONObject output) throws Exception {
     if (!"ok".equals(output.optString("status")))
       throw new IOException(output.optString("message"));
-    if (activeTask != null && activeTask.requested()) {
+    if ((activeWork != null && activeWork.cancelled.get())
+        || (activeTask != null && activeTask.requested())) {
       Preview candidate = new Preview(output.getJSONObject("preview"), registry.snapshot().source);
       try {
+        if (candidate.source == null
+            || !candidate.source.sameDataSource(backend.resolveSource().identity))
+          throw new IOException("插件候选来源已变化，未清理其他数据根的候选");
         discardPreviewConfirmed(HarnessController.get(getApplication()).proot(), candidate.id);
       } catch (Exception failure) {
         preview.postValue(candidate);
