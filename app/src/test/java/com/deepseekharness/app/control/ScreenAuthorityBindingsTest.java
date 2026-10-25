@@ -11,9 +11,9 @@ public final class ScreenAuthorityBindingsTest {
     return CapabilityRequest.create(
         "screen",
         "tree",
-        new RuntimeSnapshot.Epoch("installation", 1, "native-connection"),
+        new RuntimeSnapshot.Epoch("installation", 1, "local-web-instance"),
         "installation",
-        "native-connection",
+        "local-web-instance",
         new ScreenTargetEvidence(0, 3, "example.target"),
         0,
         0,
@@ -26,10 +26,7 @@ public final class ScreenAuthorityBindingsTest {
     var lease =
         authority.begin(
             new ControlTaskAuthority.Binding(
-                ControlTaskAuthority.Owner.REMOTE_DEVICE,
-                "connection",
-                "session-full",
-                "turn-full"));
+                ControlTaskAuthority.Owner.LOCAL_DSH, "bridge-generation-1", "session-full", "7"));
     var request = request();
     ScreenAuthorityBindings.bind(
         request,
@@ -40,7 +37,7 @@ public final class ScreenAuthorityBindingsTest {
     worker.start();
     worker.join(1000);
     assertTrue(result.get());
-    assertTrue(ScreenAuthorityBindings.identity(request).contains("session-full\0turn-full"));
+    assertTrue(ScreenAuthorityBindings.identity(request).contains("session-full" + '\0' + "7"));
     authority.pause("LOCAL_USER_PAUSE");
     assertFalse(ScreenAuthorityBindings.current(request));
     authority.resume();

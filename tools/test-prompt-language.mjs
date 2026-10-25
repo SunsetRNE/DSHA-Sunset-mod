@@ -24,11 +24,6 @@ const guide = await import(`data:text/javascript;base64,${Buffer.from(source).to
 const recoverySource = fs.readFileSync(path.join(root, 'app/src/main/assets/recovery-agent.js'), 'utf8')
   .replace("'@deepseek-ai/dsh-tools'", JSON.stringify(pathToFileURL(requireRuntime.resolve('@deepseek-ai/dsh-tools')).href));
 const recovery = await import(`data:text/javascript;base64,${Buffer.from(recoverySource).toString('base64')}`);
-const remoteSource = fs.readFileSync(path.join(root, 'tools/remote/dsh-plugin/index.js'), 'utf8')
-  .replace("'@deepseek-ai/dsh-tools'", JSON.stringify(pathToFileURL(requireRuntime.resolve('@deepseek-ai/dsh-tools')).href))
-  .replace("'./client.js'", JSON.stringify(pathToFileURL(path.join(root, 'tools/remote/dsh-plugin/client.js')).href))
-  .replace("'./session-control.js'", JSON.stringify(pathToFileURL(path.join(root, 'tools/remote/dsh-plugin/session-control.js')).href));
-const remote = await import(`data:text/javascript;base64,${Buffer.from(remoteSource).toString('base64')}`);
 
 const original = Object.fromEntries(['openSync', 'fstatSync', 'readSync', 'closeSync', 'lstatSync'].map(key => [key, fs[key]]));
 const previousEnv = { ...process.env };
@@ -146,25 +141,7 @@ try {
     assert(assembly.sections.find(row => row.name === 'dsha-recovery-language').text.includes(`language: ${selected} (`));
     assert.equal(assembly.sections.find(row => row.name === 'dsha-recovery').text, initial.sections.find(row => row.name === 'dsha-recovery').text);
   }
-  const remoteTools = [], remoteCalls = [];
-  remote.registerTools({ tools: { register(tool) { remoteTools.push(tool); } } }, async (method, args) => {
-    remoteCalls.push({ method, args }); return { ok: true };
-  });
-  const remoteTask = remoteTools.find(tool => tool.name === 'dsha_remote_task');
-  const execution = { agent: { session: { header: { id: 'actual-computer-conversation' },
-    snapshotEvents: () => [{ type: 'turn/start', data: { turn: 11 } }] } } };
-  await remoteTask.execute({ action: 'finish' }, execution);
-  assert.deepEqual(remoteCalls, [{ method: 'task.finish', args: {
-    taskSessionId: 'actual-computer-conversation', turnId: 'actual-computer-conversation:11',
-  } }]);
-  await remoteTask.execute({ action: 'finish', taskSessionId: 'invented', turnId: 'invented:1' }, execution);
-  assert.deepEqual(remoteCalls[1], remoteCalls[0], 'extra model fields cannot override actual execution identity');
-  const remotePrompts = [];
-  remote.apply({ inject() {}, tools: { register() {} }, systemPrompt: { section(value) { remotePrompts.push(value); } } });
-  assert(remotePrompts[0].text.includes('dsha_remote_task({action:"finish"})'));
-  assert(remotePrompts[0].text.includes('不能用stop冒充正常完成'));
-  assert(remotePrompts[0].text.includes('普通讨论、引用或翻译不构成执行意图'));
-  console.log('PASS locked rc3 dynamic prompt assembly, 10 current languages, user complete/custom prompt preservation, historical snapshot refresh, cancellation/401/bounds, independent recovery language and remote task finish identity');
+  console.log('PASS locked rc3 dynamic prompt assembly, 10 current languages, user complete/custom prompt preservation, historical snapshot refresh, cancellation/401/bounds and independent recovery language');
 } finally {
   recoveryDispose?.();
   for (const ctx of contexts.reverse()) await ctx.fiber.dispose();

@@ -14,6 +14,14 @@ public final class WebStartProtection {
   private final LongSupplier clock;
   private Ticket pending;
   private Ticket queued;
+  private long cancellationRevision;
+
+  /** 重复停止也撤销旧的维护恢复意图；不授予启动权限。 */
+  public long cancellationRevision() {
+    synchronized (lifecycle) {
+      return cancellationRevision;
+    }
+  }
 
   public WebStartProtection(WebLifecycle lifecycle, LongSupplier clock) {
     this.lifecycle = lifecycle;
@@ -176,6 +184,7 @@ public final class WebStartProtection {
 
   public void cancelAll() {
     synchronized (lifecycle) {
+      cancellationRevision++;
       if (pending != null) reject(pending, "WEB_START_CANCELLED_BY_NEW_INTENT");
       if (queued != null) {
         queued.closed = true;

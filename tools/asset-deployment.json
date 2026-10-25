@@ -260,6 +260,7 @@
       "contract": "Exact page compatibility/locale/back integration; ES5 token shim also enters generated Gecko content.",
       "assets": [
         "web-integration/es-compat.js",
+        "web-integration/safe-area.js",
         "web-integration/compat.js",
         "bridge-token-compat.cjs",
         "web-integration/startup.js",

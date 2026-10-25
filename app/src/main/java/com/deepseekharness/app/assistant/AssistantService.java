@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
 
-/** Remote mode runs without starting or retaining the local guest/Web/bridge service. */
+/** Keeps local conversation status, native confirmations, and Stop available during phone tools. */
 public final class AssistantService extends Service {
   private record Pending(
       AssistantBinding binding,
@@ -91,47 +91,14 @@ public final class AssistantService extends Service {
       String host = backend.call("sessions.list", new JSONObject()).getString("hostInstanceId");
       AssistantBinding binding =
           new AssistantBinding(
-              AssistantBinding.Target.LOCAL,
               host,
               task.taskSessionId(),
               "local-" + backend.generation + "-" + host,
-              backend.generation,
-              null);
+              backend.generation);
       return ensureTask(context, binding, task.turnId(), backend, task);
     } catch (Exception unavailable) {
       return refused("ASSISTANT_TASK_UNAVAILABLE");
     }
-  }
-
-  /** Called on the remote dispatcher worker before publishing a new phone task lease. */
-  public static TaskUiResult ensureRemoteTask(
-      Context context,
-      com.deepseekharness.app.remote.RemoteSessionIdentity identity,
-      String taskSessionId,
-      String turnId) {
-    AssistantBinding binding =
-        new AssistantBinding(
-            AssistantBinding.Target.REMOTE,
-            identity.hostInstanceId,
-            taskSessionId,
-            identity.connectionEpoch,
-            identity.generation,
-            identity);
-    var nativeTask =
-        new ControlTaskAuthority.Binding(
-            ControlTaskAuthority.Owner.REMOTE_DEVICE,
-            identity.connectionEpoch,
-            taskSessionId,
-            turnId);
-    if (!stopPrerequisites(context, nativeTask))
-      return refused("ASSISTANT_STOP_NOTIFICATION_REQUIRED");
-    try {
-      PhoneControlCoordinator.get(context).checkBegin(nativeTask);
-    } catch (IllegalStateException refused) {
-      return refused(refused.getMessage());
-    }
-    return ensureTask(
-        context, binding, turnId, new RemoteAssistantBackend(context, identity), nativeTask);
   }
 
   static TaskUiResult ensureTask(
@@ -505,17 +472,9 @@ public final class AssistantService extends Service {
     }
   }
 
-  public static void startRemote(Context context) {
-    context.startActivity(
-        new Intent(context, AssistantActivity.class)
-            .putExtra("target", "REMOTE")
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-  }
-
   public static void startLocal(Context context, String sessionId) {
     context.startActivity(
         new Intent(context, AssistantActivity.class)
-            .putExtra("target", "LOCAL")
             .putExtra("sessionId", sessionId)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
   }

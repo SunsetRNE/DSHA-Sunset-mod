@@ -50,14 +50,14 @@ jobs:
           python3 tools/native-session/build.py --ndk "$ANDROID_HOME/ndk/$ndk" --check
       - name: Current verified host runtime fixture
         run: python3 tools/prepare-test-runtime.py
-      - name: Complete unit, lint, assets and package checks without signing secrets
-        run: python3 tools/verify-stability.py --stage package --java-home "$JAVA_HOME" --sdk "$ANDROID_HOME"
+      - name: Complete Standard unit, lint, assets and package checks without signing secrets
+        run: python3 tools/verify-stability.py --stage package --flavors standard --java-home "$JAVA_HOME" --sdk "$ANDROID_HOME"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: UNSIGNED-NOT-FOR-INSTALLATION
           path: |
-            app/build/outputs/apk/*/release/*-unsigned.apk
+            app/build/outputs/apk/standard/release/*-unsigned.apk
             app/build/stability-acceptance
           if-no-files-found: error
           retention-days: 14

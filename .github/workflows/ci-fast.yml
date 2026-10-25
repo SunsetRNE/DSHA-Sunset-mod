@@ -43,16 +43,17 @@ jobs:
           python3 tools/run-host-tests.py --check-manifest
           python3 tools/check-source-hygiene.py
           python3 tools/check-ui-i18n.py
+          python3 tools/generate-changelog.py --check
           python3 tools/check-document-links.py
       - name: Isolated source and protocol regressions
         run: python3 tools/run-host-tests.py --stage fast
-      - name: Source-only unit tests for both flavors (up to five external-fixture skips each)
+      - name: Source-only Standard unit tests (up to five external-fixture skips)
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
           sdkmanager "platforms;$platform" "build-tools;$buildtools"
           chmod +x gradlew
-          ./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest -Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
+          ./gradlew :app:testStandardDebugUnitTest -Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
       - name: Report source-only test scope
         if: always()
         run: |
@@ -61,8 +62,8 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
           lines = ["### Source-only unit tests",
-                   "This job is not a complete fixed-input test run. Only the five external-fixture tests per flavor may skip for missing inputs; existing inputs remain validated."]
-          for flavor in ("Standard", "Low"):
+                   "This job is not a complete fixed-input test run. Only the five Standard external-fixture tests may skip for missing inputs; existing inputs remain validated."]
+          for flavor in ("Standard",):
               reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
               if not reports:
                   lines.append(f"- {flavor}: no JUnit reports; execution not established.")

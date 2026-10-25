@@ -200,15 +200,15 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   @Test
-  public void readyGateReplacesRestoredPreparationPageWithoutAnotherTabClick() throws Exception {
+  public void readyGateIgnoresRetiredPreparationArgumentAndRestoresLocalControls()
+      throws Exception {
     var restored = restoreLaunch(true);
     try {
-      showMain(restored, false);
+      showMain(restored);
       Fragment current =
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container);
       assertTrue(current instanceof LaunchFragment);
-      assertNotSame(restored.page, current);
-      assertFalse(preparationPage(current));
+      assertSame(restored.page, current);
       assertEquals(
           View.VISIBLE, current.requireView().findViewById(R.id.launch_controls).getVisibility());
       assertNull(nextActivity(restored.main));
@@ -218,27 +218,10 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   @Test
-  public void setupGateReplacesRestoredRuntimePageBeforeItCanResume() throws Exception {
-    var restored = restoreLaunch(false);
-    try {
-      showMain(restored, true);
-      Fragment current =
-          restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-      assertNotSame(restored.page, current);
-      assertTrue(preparationPage(current));
-      assertEquals(
-          View.GONE, current.requireView().findViewById(R.id.launch_controls).getVisibility());
-      assertNull("Preparing the landing page must not start Extract", nextActivity(restored.main));
-    } finally {
-      restored.host.pause().stop().destroy();
-    }
-  }
-
-  @Test
   public void unchangedGateKeepsRestoredLaunchInstanceAndItsView() throws Exception {
     var restored = restoreLaunch(false);
     try {
-      showMain(restored, false);
+      showMain(restored);
       assertSame(
           restored.page,
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container));
@@ -266,7 +249,7 @@ public final class MainEntryLayoutLifecycleTest {
     var restored = restoreLaunch(false);
     try {
       Controller.unresolved = true;
-      showMain(restored, false);
+      showMain(restored);
       Fragment current =
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container);
       assertTrue(current instanceof LaunchFragment);
@@ -297,37 +280,13 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   @Test
-  public void requiredSetupReplacesMatchingRestoredPreparationPageWithAVisibleLandingPage()
-      throws Exception {
-    var restored = restoreLaunch(true);
-    try {
-      showMain(restored, true);
-      Fragment current =
-          restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-      assertNotSame(restored.page, current);
-      assertTrue(preparationPage(current));
-      assertNotNull(current.getView());
-      assertSame(
-          restored.main.findViewById(R.id.fragment_container), current.requireView().getParent());
-      assertEquals(
-          View.GONE, current.requireView().findViewById(R.id.launch_controls).getVisibility());
-      assertEquals(
-          View.VISIBLE, current.requireView().findViewById(R.id.launch_workspaces).getVisibility());
-      assertEquals(0, Controller.startRequests);
-      assertNull("Landing page does not automatically extract", nextActivity(restored.main));
-    } finally {
-      restored.host.pause().stop().destroy();
-    }
-  }
-
-  @Test
   public void unknownSessionDoesNotRecreateTheRestoredBusinessPageWhileShowingLaunch()
       throws Exception {
     var restored = restorePage(new SavedPage());
     try {
       Controller.unresolved = true;
       SavedPage.viewsCreated = 0;
-      showMain(restored, false);
+      showMain(restored);
       Fragment current =
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container);
       assertTrue(current instanceof LaunchFragment);
@@ -351,11 +310,12 @@ public final class MainEntryLayoutLifecycleTest {
     var restored = restoreLaunch(true);
     try {
       Controller.unresolved = true;
-      showMain(restored, false);
+      showMain(restored);
       Fragment current =
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container);
       assertNotSame(restored.page, current);
-      assertFalse(preparationPage(current));
+      assertEquals(
+          View.VISIBLE, current.requireView().findViewById(R.id.launch_controls).getVisibility());
       assertNull("Unknown session must remain on Main", nextActivity(restored.main));
     } finally {
       restored.host.pause().stop().destroy();
@@ -363,18 +323,17 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   @Test
-  public void openWebIntentSurvivesReplacementOfStalePreparationPage() throws Exception {
+  public void openWebIntentSurvivesRetiredPreparationArgumentOnRestoredPage() throws Exception {
     var restored = restoreLaunch(true);
     try {
       restored.main.getIntent().putExtra("open_web", true);
-      showMain(restored, false);
+      showMain(restored);
       Fragment current =
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-      assertNotSame(restored.page, current);
-      assertFalse(preparationPage(current));
+      assertSame(restored.page, current);
       var pending = LaunchFragment.class.getDeclaredField("pendingAutoEnter");
       pending.setAccessible(true);
-      assertTrue("The replacement must keep the explicit request", pending.getBoolean(current));
+      assertTrue("The restored page must keep the explicit request", pending.getBoolean(current));
       assertFalse(restored.main.getIntent().hasExtra("open_web"));
       assertNull("No runtime is ready, so no Web page may open", nextActivity(restored.main));
     } finally {
@@ -385,7 +344,8 @@ public final class MainEntryLayoutLifecycleTest {
   private static RestoredLaunch restoreLaunch(boolean preparation) {
     LaunchFragment first = new LaunchFragment();
     Bundle args = new Bundle();
-    args.putBoolean(LaunchFragment.ARG_PREPARE_LOCAL, preparation);
+    // 升级前 Activity 保存的旧参数没有生产入口，但也不能隐藏本机控件。
+    args.putBoolean("prepare_local", preparation);
     first.setArguments(args);
     var restored = restorePage(first);
     assertTrue(restored.page instanceof LaunchFragment);
@@ -422,8 +382,7 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   private static boolean preparationPage(Fragment page) {
-    return page.getArguments() != null
-        && page.getArguments().getBoolean(LaunchFragment.ARG_PREPARE_LOCAL, false);
+    return page.getArguments() != null && page.getArguments().getBoolean("prepare_local", false);
   }
 
   private static Intent nextActivity(MainActivity main) {
@@ -431,10 +390,7 @@ public final class MainEntryLayoutLifecycleTest {
     return shadow.getNextStartedActivity();
   }
 
-  private static void showMain(RestoredLaunch restored, boolean preparation) throws Exception {
-    var setup = MainActivity.class.getDeclaredField("localSetupRequired");
-    setup.setAccessible(true);
-    setup.setBoolean(restored.main, preparation);
+  private static void showMain(RestoredLaunch restored) throws Exception {
     var probe = MainActivity.class.getDeclaredField("restoreProbeStarted");
     probe.setAccessible(true);
     probe.setBoolean(restored.main, true);

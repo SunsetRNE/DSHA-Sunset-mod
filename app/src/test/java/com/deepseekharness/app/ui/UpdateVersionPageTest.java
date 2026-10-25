@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -15,8 +16,12 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.UpdateEngine;
 import com.deepseekharness.app.core.UpdateRepository;
 import com.deepseekharness.app.util.CurrentReleaseNotes;
+import com.deepseekharness.app.util.UiLanguagePreference;
 import com.deepseekharness.app.util.UiText;
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -110,7 +115,7 @@ public final class UpdateVersionPageTest {
   }
 
   @Test
-  public void currentRowAndActuallyOpenedNotesUseTheInstalledIdentity() {
+  public void currentRowAndActuallyOpenedNotesUseTheInstalledIdentity() throws IOException {
     try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
       UpdateActivity activity = controller.get();
       assertEquals(
@@ -122,10 +127,9 @@ public final class UpdateVersionPageTest {
       Dialog dialog = ShadowDialog.getLatestDialog();
       assertNotNull(dialog);
       String shown = text(dialog.getWindow().getDecorView());
-      assertTrue(
-          shown.contains(
-              "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
-      assertTrue(shown.contains("更新检查"));
+      assertCurrentNotesShown(activity, shown);
+      for (String language : UiLanguagePreference.LANGUAGES)
+        bundledNotes(inLanguage(activity, language));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -134,14 +138,18 @@ public final class UpdateVersionPageTest {
 
   @Test
   @Config(qualifiers = "en")
-  public void englishNotesOpenTheEnglishCurrentResource() {
+  public void englishNotesOpenTheEnglishCurrentResource() throws IOException {
     UiText.setLanguage("en");
     try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
       controller.get().findViewById(R.id.update_changelog).performClick();
       Dialog dialog = ShadowDialog.getLatestDialog();
+      assertNotNull(dialog);
       String shown = text(dialog.getWindow().getDecorView());
-      assertTrue(shown.contains("DSHA " + BuildConfig.VERSION_NAME));
-      assertTrue(shown.contains("Update checks"));
+      String englishBody = assertCurrentNotesShown(controller.get(), shown);
+      assertNotEquals(
+          "English notes must resolve a localized body rather than the default Chinese resource",
+          body(bundledNotes(inLanguage(controller.get(), "zh"))),
+          englishBody);
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
@@ -182,6 +190,40 @@ public final class UpdateVersionPageTest {
       assertTrue(activity.findViewById(R.id.update_check).isEnabled());
       assertTrue(activity.findViewById(R.id.update_browser).isEnabled());
     }
+  }
+
+  private static String assertCurrentNotesShown(Context context, String shown) throws IOException {
+    String currentBody = body(bundledNotes(context));
+    assertFalse(
+        "The current bundled notes must contain an actual release body", currentBody.isEmpty());
+    assertTrue(
+        shown.contains("DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
+    assertTrue(
+        "The opened sheet must show the complete current bundled body",
+        shown.contains(currentBody));
+    return currentBody;
+  }
+
+  private static String bundledNotes(Context context) throws IOException {
+    try (var input = context.getResources().openRawResource(R.raw.changelog)) {
+      String notes = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+      assertTrue(
+          "The localized bundled header must identify the installed build",
+          CurrentReleaseNotes.matches(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, notes));
+      return notes;
+    }
+  }
+
+  private static Context inLanguage(Context context, String language) {
+    Configuration configuration = new Configuration(context.getResources().getConfiguration());
+    configuration.setLocale(Locale.forLanguageTag(language));
+    return context.createConfigurationContext(configuration);
+  }
+
+  private static String body(String notes) {
+    int end = notes.indexOf('\n');
+    assertTrue("The current notes must contain a header followed by a release body", end >= 0);
+    return notes.substring(end + 1).trim();
   }
 
   private static String text(View view) {

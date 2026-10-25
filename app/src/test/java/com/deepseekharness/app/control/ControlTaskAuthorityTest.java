@@ -25,26 +25,6 @@ public final class ControlTaskAuthorityTest {
   }
 
   @Test
-  public void remoteFinishFencesExactTaskWithoutPausingAnotherOrRevivingTheSameTurn() {
-    var authority = new ControlTaskAuthority();
-    var task =
-        binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "connection", "full-session", "turn-7");
-    var old = authority.begin(task);
-    assertFalse(
-        authority.finish(binding(task.owner(), task.connection(), "another-session", "turn-7")));
-    assertTrue(authority.current(old));
-    assertTrue(authority.finish(task));
-    assertFalse(authority.current(old));
-    assertNull(authority.snapshot().binding());
-    assertFalse(authority.snapshot().paused());
-    assertThrows(IllegalStateException.class, () -> authority.begin(task));
-    assertTrue(
-        authority.current(
-            authority.begin(
-                binding(task.owner(), task.connection(), task.taskSessionId(), "turn-8"))));
-  }
-
-  @Test
   public void removingOwnedUiRequiresNewObservationWithoutGrantingResume() {
     var authority = new ControlTaskAuthority();
     var task = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "full-session", "7");
@@ -71,7 +51,7 @@ public final class ControlTaskAuthorityTest {
   }
 
   @Test
-  public void onePhysicalScreenAcrossIndependentLocalAndRemoteOwners() {
+  public void onePhysicalScreenAcrossIndependentLocalConversations() {
     var authority = new ControlTaskAuthority();
     var local =
         authority.begin(
@@ -84,21 +64,20 @@ public final class ControlTaskAuthorityTest {
         () ->
             authority.begin(
                 binding(
-                    ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:1", "pc-session", "turn-1")));
+                    ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:17", "another-session", "1")));
     authority.stop("LOCAL_DONE");
     assertFalse(authority.current(local));
-    var remote =
+    var another =
         authority.begin(
-            binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:1", "pc-session", "turn-1"));
-    assertTrue(authority.current(remote));
-    assertFalse(authority.actionAllowed(remote));
+            binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:17", "another-session", "1"));
+    assertTrue(authority.current(another));
+    assertFalse(authority.actionAllowed(another));
   }
 
   @Test
   public void pauseFencesImmediatelyAndResumeCannotReuseObservation() {
     var authority = new ControlTaskAuthority();
-    var binding =
-        binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:1", "session-full", "turn-full");
+    var binding = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:1", "session-full", "7");
     var old = authority.begin(binding);
     authority.observed(old);
     assertEquals(binding, authority.pause("LOCAL_USER_PAUSE"));
@@ -116,52 +95,46 @@ public final class ControlTaskAuthorityTest {
   @Test
   public void taskStopAndNewConnectionCannotClearLocalPause() {
     var authority = new ControlTaskAuthority();
-    authority.begin(
-        binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:1", "session", "turn"));
+    authority.begin(binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:1", "session", "7"));
     authority.pause("LOCAL_USER_PAUSE");
-    authority.stop("REMOTE_STOP");
+    authority.stop("LOCAL_STOP");
     assertTrue(authority.snapshot().paused());
     assertEquals("LOCAL_USER_PAUSE", authority.snapshot().reason());
     assertThrows(
         IllegalStateException.class,
         () ->
             authority.begin(
-                binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:2", "session", "turn")));
+                binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:2", "session", "7")));
     assertNull(authority.snapshot().binding());
   }
 
   @Test
-  public void fullConnectionTaskTurnAndOwnerAreDistinctEvenWithSameSuffix() {
+  public void fullConnectionConversationAndTurnAreDistinctEvenWithSameSuffix() {
     var authority = new ControlTaskAuthority();
     var full =
         binding(
-            ControlTaskAuthority.Owner.REMOTE_DEVICE,
-            "connection-A",
+            ControlTaskAuthority.Owner.LOCAL_DSH,
+            "bridge-generation-A",
             "session-abc0001",
-            "turn-abc0001");
+            "10001");
     var active = authority.begin(full);
     for (var wrong :
         new ControlTaskAuthority.Binding[] {
           binding(
               ControlTaskAuthority.Owner.LOCAL_DSH,
-              "connection-A",
+              "bridge-generation-B",
               "session-abc0001",
-              "turn-abc0001"),
+              "10001"),
           binding(
-              ControlTaskAuthority.Owner.REMOTE_DEVICE,
-              "connection-B",
-              "session-abc0001",
-              "turn-abc0001"),
-          binding(
-              ControlTaskAuthority.Owner.REMOTE_DEVICE,
-              "connection-A",
+              ControlTaskAuthority.Owner.LOCAL_DSH,
+              "bridge-generation-A",
               "session-xyz0001",
-              "turn-abc0001"),
+              "10001"),
           binding(
-              ControlTaskAuthority.Owner.REMOTE_DEVICE,
-              "connection-A",
+              ControlTaskAuthority.Owner.LOCAL_DSH,
+              "bridge-generation-A",
               "session-abc0001",
-              "turn-xyz0001")
+              "20001")
         }) {
       assertThrows(IllegalStateException.class, () -> authority.lease(wrong));
       assertNotEquals(full.identity(), wrong.identity());
@@ -170,9 +143,9 @@ public final class ControlTaskAuthorityTest {
   }
 
   @Test
-  public void oldTurnCannotBeRevivedBySameIdentifiersAfterCompletion() {
+  public void stoppedLeaseCannotReuseObservationWhenSameTurnIsExplicitlyReadmitted() {
     var authority = new ControlTaskAuthority();
-    var binding = binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "native:1", "session", "turn");
+    var binding = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge:1", "session", "7");
     var first = authority.begin(binding);
     authority.observed(first);
     assertEquals(binding, authority.stop("DONE"));
@@ -204,7 +177,7 @@ public final class ControlTaskAuthorityTest {
   }
 
   @Test
-  public void completedLocalTurnCannotClearPauseOrRetireRemoteOwner() {
+  public void completedLocalTurnCannotClearPauseOrRetireAnotherWebGeneration() {
     var authority = new ControlTaskAuthority();
     var local = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", "1");
     authority.begin(local);
@@ -213,9 +186,26 @@ public final class ControlTaskAuthorityTest {
     assertTrue(authority.snapshot().paused());
     assertEquals("USER_PAUSE", authority.snapshot().reason());
     authority.resume();
-    var remote =
-        authority.begin(binding(ControlTaskAuthority.Owner.REMOTE_DEVICE, "peer", "session", "1"));
+    var another =
+        authority.begin(
+            binding(ControlTaskAuthority.Owner.LOCAL_DSH, "next-bridge", "session", "1"));
     assertFalse(authority.completeLocal(local));
-    assertTrue(authority.current(remote));
+    assertTrue(authority.current(another));
+  }
+
+  @Test
+  public void onlyActualPositiveSafeIntegerTurnsCanAcquireOrCompletePhoneControl() {
+    var authority = new ControlTaskAuthority();
+    for (String turn : new String[] {"0", "-1", "01", "1.0", "1e2", "turn-7", "9007199254740992"}) {
+      var invalid = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", turn);
+      assertThrows(IllegalArgumentException.class, () -> authority.begin(invalid));
+      assertThrows(IllegalArgumentException.class, () -> authority.completeLocal(invalid));
+    }
+    var maximum =
+        binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", "9007199254740991");
+    var lease = authority.begin(maximum);
+    assertTrue(authority.current(lease));
+    assertTrue(authority.completeLocal(maximum));
+    assertThrows(IllegalStateException.class, () -> authority.begin(maximum));
   }
 }

@@ -2,6 +2,24 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-app-integration-lifecycle.mjs",
+      "stage": "runtime",
+      "requires": ["node24", "raw"],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Actual locked rc3 Cordis service scopes attach and withdraw optional integration services repeatedly; route-independent sampler lifetime and timer retirement use isolated filesystem and clock IO, without model or Android actions."
+    },
+    {
+      "path": "tools/test-native-safe-area.mjs",
+      "stage": "runtime",
+      "requires": ["node24", "browser"],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Actual canonical mobile CSS with nonzero browser safe-area values and shared native document-start contract prevents duplicate top/bottom insets across rotation and keyboard-sized viewports; parser/top-frame and Gecko manifest checks, no Android device pixels."
+    },
+    {
       "path": "tools/test-language-patch-chain.py",
       "stage": "runtime",
       "requires": [
@@ -42,6 +60,44 @@
       "timeoutSeconds": 60,
       "environment": {},
       "reason": "Locked rc3 real prompt assembly and authenticated loopback metadata refresh ten current native languages without restarting profiles or rewriting user complete/custom prompts and historical messages; recovery stays on its independent broker."
+    },
+    {
+      "path": "tools/phone-control/control-task-binding/test-control-request.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Phone begin/finish transport binds the actual conversation and numeric turn; rejects absent caller metadata and invented model identity before native dispatch."
+    },
+    {
+      "path": "tools/phone-control/control-task-binding/test-control-task-binding.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "jdk17"
+      ],
+      "args": [
+        "{fixture}"
+      ],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Actual locked rc3 Agent, tools, MCP stdio and production Java local phone authority preserve full session IDs, exclusive ownership, fresh observations and completed-turn fences without contacting Android."
+    },
+    {
+      "path": "tools/phone-control/local-session-adapter/test-local-session-adapter.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Actual locked rc3 SessionController and local assistant adapter preserve full session and active-turn identities, authenticated loopback requests, cancellation and runtime-owned attachment without model or device actions."
     },
     {
       "path": "tools/test-generate-changelog.py",
@@ -1489,8 +1545,8 @@
     },
     {
       "path": "tools/test-low-preview-capability.mjs",
-      "stage": "fast",
-      "reason": "Current Java-embedded WebView capability probe and Low selection source check; no device",
+      "stage": "history",
+      "reason": "2026-10-24 Sunset-3090-Q 用户取消全部 Low 测试；保留历史用例，不进入任何当前宿主或 CI 阶段",
       "requires": [
         "node24"
       ],
@@ -2920,13 +2976,30 @@
       "timeoutSeconds": 180,
       "environment": {},
       "reason": "Actual signed guest install recipe imports all builtin entrypoints; negative controls reproduce omitted helper MODULE_NOT_FOUND."
-    }
-  ],
-  "historicalExcluded": [
+    },
     {
-      "originalPath": "tools/test-tooltips.mjs",
-      "retainedPath": "tools/history/root-build156/tools/test-tooltips.mjs",
-      "reason": "Exact old 0.1.5 Tooltip fixture; current rc2 behavior has an independent browser test"
+      "path": "tools/test-sunset-plugin-release.py",
+      "stage": "fast",
+      "reason": "Sunset历史发布完整提交/run/attempt及显式基线绑定、合并历史顺序、已有tag与未知输出保护；纯临时Git/模拟GitHub，无网络或设备访问",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": [
+        "python39"
+      ],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-plugin-runtime-evidence.mjs",
+      "stage": "runtime",
+      "reason": "用锁定 Cordis Loader 和官方 bundle 补丁验证当前实例的持久插件状态，不重复执行插件或读取设备数据",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; verified raw runtime and isolated Loader fixtures, with required Node internals enabled by the script."
     }
   ]
 }

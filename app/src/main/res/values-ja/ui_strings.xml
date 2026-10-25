@@ -16,6 +16,8 @@
     <string name="dns_auto" formatted="false">"自動互換モード（推奨）"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 互換モード"</string>
     <string name="dns_native" formatted="false">"ネイティブのデュアルスタック名前解決"</string>
+    <string name="phone_assistant" formatted="false">"フローティングアシスタント"</string>
+    <string name="phone_assistant_detail" formatted="false">"この端末の実際の DSH セッションを選び、フローティングチャットや一時停止の操作に使用します。"</string>
     <string name="picture_in_picture_allowed" formatted="false">"システムで許可されています。ホームに戻ったりアプリを切り替えたりしても、小さなウィンドウでチャットを表示します。"</string>
     <string name="picture_in_picture_disabled" formatted="false">"システムで無効になっています。バックグラウンドでは小さなウィンドウを表示しません。タップして変更できます。"</string>
     <string name="picture_in_picture_enable" formatted="false">"チャットのピクチャー イン ピクチャーを有効化"</string>
@@ -30,57 +32,6 @@
     <string name="plugin_sort_title" formatted="false">"プラグインの並べ替え"</string>
     <string name="plugin_sort_updates" formatted="false">"更新可能なものを優先"</string>
     <string name="plugin_sort_za" formatted="false">"名前 Z–A"</string>
-    <string name="remote_assistant" formatted="false">"フローティングアシスタント"</string>
-    <string name="remote_assistant_detail" formatted="false">"この端末または接続済みのパソコンで実際の DSH セッションを選び、フローティングチャットや一時停止の操作に使用します。"</string>
-    <string name="remote_back" formatted="false">"ワークスペースに戻る"</string>
-    <string name="remote_camera_unavailable" formatted="false">"カメラを利用できません。戻ってペアリングコードを貼り付けてください。"</string>
-    <string name="remote_cancel" formatted="false">"キャンセル"</string>
-    <string name="remote_checking_trust" formatted="false">"この端末に保存されたパソコンの信頼情報を確認しています…"</string>
-    <string name="remote_code_hint" formatted="false">"完全なペアリングコードを貼り付け（dsha-connect://pair?ticket=…）"</string>
-    <string name="remote_code_invalid" formatted="false">"ペアリングコードが無効か、期限切れです。パソコンで更新してから、もう一度お試しください。"</string>
-    <string name="remote_computers" formatted="false">"パソコンのワークスペース"</string>
-    <string name="remote_connect" formatted="false">"パソコンに接続"</string>
-    <string name="remote_disconnect" formatted="false">"リモートセッションを切断"</string>
-    <string name="remote_endpoint_count" formatted="false">"%1$d 件の接続アドレスを記憶済み"</string>
-    <string name="remote_error" formatted="false">"操作が完了しませんでした。もう一度お試しください。操作内容を自動で繰り返すことはありません。"</string>
-    <string name="remote_grant" formatted="false">"信頼してペアリング"</string>
-    <string name="remote_grant_body" formatted="false">"パソコン：%1$s\n識別情報：%2$s\n\nこのパソコンを記憶し、DSH の会話やファイルへの接続と、許可済みの端末アシスタント機能の使用を許可します。Android のシステム権限には別途承認が必要です。信頼は「ワークスペース」で取り消せます。\n\n自分のパソコンでこのコードを生成した場合にのみ続行してください。"</string>
-    <string name="remote_grant_title" formatted="false">"このパソコンを信頼しますか？"</string>
-    <string name="remote_latency" formatted="false">"往復遅延：%1$d ms"</string>
-    <string name="remote_latency_unknown" formatted="false">"往復遅延：未測定"</string>
-    <string name="remote_local_detail" formatted="false">"この端末で DSH を実行し、ローカルの会話とファイルを使用します。"</string>
-    <string name="remote_local_phone" formatted="false">"この端末"</string>
-    <string name="remote_manual_instead" formatted="false">"ペアリングコードを使用"</string>
-    <string name="remote_no_computers" formatted="false">"ペアリング済みのパソコンはまだありません。一度ペアリングするとパソコンが記憶されます。信頼はいつでも取り消せます。"</string>
-    <string name="remote_open_local" formatted="false">"端末のワークスペースを開く"</string>
-    <string name="remote_open_pc" formatted="false">"パソコンの会話を開く"</string>
-    <string name="remote_pair_computer" formatted="false">"パソコンをペアリング"</string>
-    <string name="remote_pair_instructions" formatted="false">"パソコンの DSH で DSHA Connect を有効にし、ペアリング用 QR コードを表示してください。QR コードをスキャンするか、表示された完全なペアリングコードを貼り付けます。コードは短時間で期限切れになるため、他人と共有しないでください。ペアリング済みのパソコンでネットワークやアドレスが変わった場合は、「接続アドレスを更新」の QR コードをスキャンしてください。"</string>
-    <string name="remote_pair_started" formatted="false">"ペアリングを検証しています。成功した場合にのみパソコンの信頼情報を保存します。"</string>
-    <string name="remote_path_direct" formatted="false">"経路：直接接続"</string>
-    <string name="remote_path_relay" formatted="false">"経路：暗号化リレー"</string>
-    <string name="remote_path_unknown" formatted="false">"経路：測定待ち"</string>
-    <string name="remote_refresh_body" formatted="false">"パソコン：%1$s\n識別情報：%2$s\n新しい接続アドレス：%3$d 件\n\n固定済みのパソコン識別情報、既存の接続キー、現在のプロセスを検証した場合にのみ、アドレスを更新します。既存の許可は保持されます。検証に失敗した場合、古い記録は変更されません。"</string>
-    <string name="remote_refresh_connect" formatted="false">"アドレスを検証して接続"</string>
-    <string name="remote_refresh_required" formatted="false">"このパソコンは既にペアリング済みです。パソコンで「接続アドレスを更新」の QR コードを表示してください。既存の信頼は維持されます。"</string>
-    <string name="remote_refresh_started" formatted="false">"パソコンと新しいアドレスを検証しています。成功した場合にのみ接続記録を更新します。"</string>
-    <string name="remote_refresh_title" formatted="false">"パソコンの接続アドレスを更新"</string>
-    <string name="remote_refresh_unknown" formatted="false">"このパソコンはまだ信頼されていません。パソコンで初回ペアリング用の QR コードを表示してください。"</string>
-    <string name="remote_review_pair" formatted="false">"確認してペアリング"</string>
-    <string name="remote_revocation_body" formatted="false">"%1$s の信頼を取り消すと、現在の接続と許可が無効になります。再接続には再ペアリングが必要です。パソコンのファイルと会話は保持されます。"</string>
-    <string name="remote_revocation_title" formatted="false">"パソコンの信頼を取り消しますか？"</string>
-    <string name="remote_revoke" formatted="false">"このパソコンの信頼を取り消す"</string>
-    <string name="remote_scan_instructions" formatted="false">"パソコンの DSH に表示されたペアリング用 QR コードをスキャンしてください。カメラの映像はこの端末上で解析されます。"</string>
-    <string name="remote_scan_qr" formatted="false">"パソコンの QR コードをスキャン"</string>
-    <string name="remote_state_connected" formatted="false">"パソコンの接続認証が完了しました"</string>
-    <string name="remote_state_connecting" formatted="false">"接続してパソコンの識別情報を検証しています…"</string>
-    <string name="remote_state_disconnected" formatted="false">"接続が中断されました。準備ができたら再接続してください。元の操作は再送信されません。"</string>
-    <string name="remote_state_failed" formatted="false">"接続が完了していません。パソコンの DSH とネットワークを確認してから再試行してください。"</string>
-    <string name="remote_state_reconnecting" formatted="false">"接続が中断されました。制限時間内で再接続と検証を行っています。元の操作は再送信されません。"</string>
-    <string name="remote_state_stopped" formatted="false">"リモート接続が停止しました"</string>
-    <string name="remote_trust_unavailable" formatted="false">"パソコンの信頼記録を読み取れませんでした。既存の記録は保持されています。"</string>
-    <string name="remote_workspace_intro" formatted="false">"端末とパソコンは、それぞれの会話、ファイル、設定を保持します。パソコンのワークスペースを使う場合、この端末に Ubuntu 環境は不要です。"</string>
-    <string name="remote_workspaces" formatted="false">"ワークスペース"</string>
     <string name="ui134_adb_hint" formatted="false">"Android 11 以降：同じ Wi-Fi に接続してワイヤレスデバッグをペアリングします。root は不要です。ネットワークが変わったら検証または再ペアリングしてください。"</string>
     <string name="ui134_candidate" formatted="false">"候補リリースを表示"</string>
     <string name="ui134_candidate_sub" formatted="false">"リリースノート、サイズ、インストール"</string>

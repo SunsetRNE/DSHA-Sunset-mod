@@ -43,22 +43,6 @@ public final class LanguageController {
         });
   }
 
-  /** Initial remote process preferences are read once; this path never writes app locales. */
-  public static void initializeRemote(Context context) {
-    UiText.setLanguage(new ConfigStore(context).getUiLanguage());
-    applyRemote(context, null);
-  }
-
-  /** Read current platform/owner state, then update only this process; old launch Intents are unused. */
-  public static String applyRemote(Context context, String currentOwnerLanguage) {
-    String platform = Build.VERSION.SDK_INT >= 33 ? Api33.applicationLanguage(context) : null;
-    String language =
-        com.deepseekharness.app.util.RemoteLocalePolicy.resolve(
-            currentOwnerLanguage, platform, UiText.language());
-    applyResources(context, language);
-    return language;
-  }
-
   private static void applyResources(Context context, String language) {
     if (!UiLanguagePreference.isSupportedLanguage(language))
       throw new IllegalArgumentException("UI_LANGUAGE");
@@ -71,8 +55,7 @@ public final class LanguageController {
     configuration.setLayoutDirection(locale);
     // 通知、悬浮界面和后台任务使用 Application 资源；Activity 由 AppCompat 更新。
     app.getResources().updateConfiguration(configuration, app.getResources().getDisplayMetrics());
-    // Remote pages are ComponentActivity instances in another process, without an AppCompat
-    // delegate.
+    // 当前页面与后台资源同时更新；Activity 的后续重建仍由 AppCompat 管理。
     if (context.getResources() != app.getResources()) {
       Configuration activityConfiguration =
           new Configuration(context.getResources().getConfiguration());
@@ -86,14 +69,6 @@ public final class LanguageController {
 
   /** Loaded only on API 33+, where Application can write the locale before any AppCompat Activity exists. */
   private static final class Api33 {
-    static String applicationLanguage(Context context) {
-      if (Build.VERSION.SDK_INT < 33) throw new IllegalStateException("LOCALE_MANAGER_API");
-      android.app.LocaleManager manager = context.getSystemService(android.app.LocaleManager.class);
-      if (manager == null) return null;
-      android.os.LocaleList locales = manager.getApplicationLocales();
-      return locales.isEmpty() ? null : locales.get(0).toLanguageTag();
-    }
-
     static void setApplicationLocales(Context context, String language) {
       if (Build.VERSION.SDK_INT < 33) throw new IllegalStateException("LOCALE_MANAGER_API");
       android.app.LocaleManager manager = context.getSystemService(android.app.LocaleManager.class);

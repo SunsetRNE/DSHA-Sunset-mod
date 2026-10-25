@@ -16,6 +16,8 @@
     <string name="dns_auto" formatted="false">"Автоматическая совместимость (рекомендуется)"</string>
     <string name="dns_ipv4" formatted="false">"Совместимость с IPv4 DNS"</string>
     <string name="dns_native" formatted="false">"Системное разрешение двух стеков"</string>
+    <string name="phone_assistant" formatted="false">"Плавающий помощник"</string>
+    <string name="phone_assistant_detail" formatted="false">"Выберите настоящий сеанс DSH на этом телефоне для плавающего чата и приостановки задач."</string>
     <string name="picture_in_picture_allowed" formatted="false">"Разрешено системой; чат остаётся в небольшом окне при переходе на главный экран или в другое приложение."</string>
     <string name="picture_in_picture_disabled" formatted="false">"Отключено системой; в фоне небольшое окно не отображается. Нажмите, чтобы изменить."</string>
     <string name="picture_in_picture_enable" formatted="false">"Включить «Картинка в картинке» для чата"</string>
@@ -30,57 +32,6 @@
     <string name="plugin_sort_title" formatted="false">"Сортировка плагинов"</string>
     <string name="plugin_sort_updates" formatted="false">"Сначала обновления"</string>
     <string name="plugin_sort_za" formatted="false">"Имя Z–A"</string>
-    <string name="remote_assistant" formatted="false">"Плавающий помощник"</string>
-    <string name="remote_assistant_detail" formatted="false">"Выберите настоящий сеанс DSH на этом телефоне или подключённом компьютере для плавающего чата и приостановки задач."</string>
-    <string name="remote_back" formatted="false">"Вернуться к рабочим пространствам"</string>
-    <string name="remote_camera_unavailable" formatted="false">"Камера недоступна. Вернитесь и вставьте код сопряжения."</string>
-    <string name="remote_cancel" formatted="false">"Отмена"</string>
-    <string name="remote_checking_trust" formatted="false">"Проверка записи доверия к компьютеру на этом телефоне…"</string>
-    <string name="remote_code_hint" formatted="false">"Вставьте полный код сопряжения (dsha-connect://pair?ticket=…)"</string>
-    <string name="remote_code_invalid" formatted="false">"Код сопряжения недействителен или истёк. Обновите его на компьютере и повторите попытку."</string>
-    <string name="remote_computers" formatted="false">"Рабочие пространства компьютеров"</string>
-    <string name="remote_connect" formatted="false">"Подключить компьютер"</string>
-    <string name="remote_disconnect" formatted="false">"Отключить удалённый сеанс"</string>
-    <string name="remote_endpoint_count" formatted="false">"Сохранено адресов подключения: %1$d"</string>
-    <string name="remote_error" formatted="false">"Операция не завершена. Повторите попытку. Рабочие операции никогда не повторяются автоматически."</string>
-    <string name="remote_grant" formatted="false">"Доверять и выполнить сопряжение"</string>
-    <string name="remote_grant_body" formatted="false">"Компьютер: %1$s\nИдентификатор: %2$s\n\nЗапомнить этот компьютер, подключаться к его диалогам и файлам DSH и разрешить использование уже одобренных возможностей помощника на телефоне. Системные разрешения Android предоставляются отдельно. Доверие можно отозвать в разделе рабочих пространств.\n\nПродолжайте, только если вы создали этот код на собственном компьютере."</string>
-    <string name="remote_grant_title" formatted="false">"Доверять этому компьютеру?"</string>
-    <string name="remote_latency" formatted="false">"Задержка туда и обратно: %1$d мс"</string>
-    <string name="remote_latency_unknown" formatted="false">"Задержка туда и обратно: ещё не измерена"</string>
-    <string name="remote_local_detail" formatted="false">"Запускайте DSH на этом телефоне с локальными диалогами и файлами."</string>
-    <string name="remote_local_phone" formatted="false">"Этот телефон"</string>
-    <string name="remote_manual_instead" formatted="false">"Использовать код сопряжения"</string>
-    <string name="remote_no_computers" formatted="false">"Сопряжённых компьютеров пока нет. Выполните сопряжение один раз, чтобы запомнить компьютер. Доверие можно отозвать в любой момент."</string>
-    <string name="remote_open_local" formatted="false">"Открыть рабочее пространство телефона"</string>
-    <string name="remote_open_pc" formatted="false">"Открыть диалоги на компьютере"</string>
-    <string name="remote_pair_computer" formatted="false">"Выполнить сопряжение с компьютером"</string>
-    <string name="remote_pair_instructions" formatted="false">"Включите DSHA Connect в DSH на компьютере и покажите QR-код сопряжения. Отсканируйте его или вставьте показанный полный код сопряжения. Код действует недолго; не передавайте его другим. Если уже сопряжённый компьютер сменил сеть или адреса, отсканируйте его QR-код «Обновить адреса подключения»."</string>
-    <string name="remote_pair_started" formatted="false">"Проверка сопряжения. Доверие к компьютеру сохраняется только после успеха."</string>
-    <string name="remote_path_direct" formatted="false">"Маршрут: напрямую"</string>
-    <string name="remote_path_relay" formatted="false">"Маршрут: зашифрованный ретранслятор"</string>
-    <string name="remote_path_unknown" formatted="false">"Маршрут: ожидается измерение"</string>
-    <string name="remote_refresh_body" formatted="false">"Компьютер: %1$s\nИдентификатор: %2$s\nНовых адресов подключения: %3$d\n\nОбновляйте адреса только после проверки закреплённого идентификатора компьютера, имеющегося ключа подключения и текущего процесса. Сохраните имеющиеся разрешения. При ошибке проверки старая запись не изменяется."</string>
-    <string name="remote_refresh_connect" formatted="false">"Проверить адреса и подключиться"</string>
-    <string name="remote_refresh_required" formatted="false">"Этот компьютер уже сопряжён. Покажите на нём QR-код «Обновить адреса подключения». Имеющееся доверие сохраняется."</string>
-    <string name="remote_refresh_started" formatted="false">"Проверка компьютера и новых адресов. Записи подключения обновятся только после успеха."</string>
-    <string name="remote_refresh_title" formatted="false">"Обновить адреса компьютера"</string>
-    <string name="remote_refresh_unknown" formatted="false">"Этот компьютер ещё не является доверенным. Покажите на нём первый QR-код сопряжения."</string>
-    <string name="remote_review_pair" formatted="false">"Проверить и выполнить сопряжение"</string>
-    <string name="remote_revocation_body" formatted="false">"Отзыв доверия к %1$s завершит текущее подключение и отзовёт разрешения. Для подключения потребуется новое сопряжение. Файлы и диалоги на компьютере сохраняются."</string>
-    <string name="remote_revocation_title" formatted="false">"Отозвать доверие к компьютеру?"</string>
-    <string name="remote_revoke" formatted="false">"Отозвать доверие к компьютеру"</string>
-    <string name="remote_scan_instructions" formatted="false">"Отсканируйте QR-код сопряжения, показанный в DSH на компьютере. Кадры камеры обрабатываются на этом телефоне."</string>
-    <string name="remote_scan_qr" formatted="false">"Сканировать QR-код компьютера"</string>
-    <string name="remote_state_connected" formatted="false">"Подключение к компьютеру прошло аутентификацию"</string>
-    <string name="remote_state_connecting" formatted="false">"Подключение и проверка идентификатора компьютера…"</string>
-    <string name="remote_state_disconnected" formatted="false">"Соединение прервано. Подключитесь снова, когда будете готовы; рабочие операции повторно не отправляются."</string>
-    <string name="remote_state_failed" formatted="false">"Подключение не завершено. Проверьте DSH на компьютере и сеть, затем повторите попытку."</string>
-    <string name="remote_state_reconnecting" formatted="false">"Соединение прервано. Выполняется повторное подключение и проверка в течение ограниченного времени. Рабочие операции не будут отправлены повторно."</string>
-    <string name="remote_state_stopped" formatted="false">"Удалённое соединение остановлено"</string>
-    <string name="remote_trust_unavailable" formatted="false">"Не удалось прочитать записи доверия к компьютерам. Имеющиеся записи сохранены."</string>
-    <string name="remote_workspace_intro" formatted="false">"Телефон и компьютер хранят диалоги, файлы и настройки отдельно. Для рабочего пространства на компьютере среда Ubuntu на телефоне не нужна."</string>
-    <string name="remote_workspaces" formatted="false">"Рабочая область"</string>
     <string name="ui134_adb_hint" formatted="false">"Android 11+: выполните сопряжение беспроводной отладки в той же сети Wi-Fi. Root не нужен. После смены сети проверьте подключение или повторите сопряжение."</string>
     <string name="ui134_candidate" formatted="false">"Просмотреть версию-кандидат"</string>
     <string name="ui134_candidate_sub" formatted="false">"История изменений, размер и установка"</string>

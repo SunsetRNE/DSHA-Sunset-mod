@@ -1221,15 +1221,6 @@ public final class HttpShellService {
 
   public static void revokeScreenGrant(Context context) {
     var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(context);
-    var task = coordinator.snapshot().binding();
-    if (task != null
-        && task.owner()
-            == com.deepseekharness.app.control.ControlTaskAuthority.Owner.REMOTE_DEVICE) {
-      // A local DSH stop cannot turn into authority over an independent native device connection.
-      uiGrant.revoke();
-      cancelScreenConfirmation();
-      return;
-    }
     coordinator.stopLocal("LOCAL_DSH_STOPPED");
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
         com.deepseekharness.app.util.AccessibilityRepairState.CancelCause.SCREEN_AUTHORITY_REVOKED);
@@ -1248,8 +1239,10 @@ public final class HttpShellService {
   }
 
   public static void screenPolicyChanged(Context context) {
+    // Reconfiguration retires old work; only an explicit user pause blocks new tasks.
+    // stop preserves an existing user pause instead of replacing or clearing it.
     com.deepseekharness.app.control.PhoneControlCoordinator.get(context)
-        .pause("SCREEN_POLICY_CHANGED");
+        .stop("SCREEN_POLICY_CHANGED");
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
         com.deepseekharness.app.util.AccessibilityRepairState.CancelCause.POLICY_CHANGED);
     DshaApp.from(context).capabilityBroker().revoke("screen");
@@ -1262,7 +1255,7 @@ public final class HttpShellService {
   /** A global consent change invalidates all domains before the new local mode is published. */
   public static void globalConsentChanged(Context context) {
     com.deepseekharness.app.control.PhoneControlCoordinator.get(context)
-        .pause("CONSENT_POLICY_CHANGED");
+        .stop("CONSENT_POLICY_CHANGED");
     com.deepseekharness.app.ui.DshaDialogBuilder.invalidateSafetyConfirmations();
     DshaApp.from(context).capabilityBroker().revokeAll();
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
