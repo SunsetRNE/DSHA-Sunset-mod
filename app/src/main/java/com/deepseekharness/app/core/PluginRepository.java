@@ -66,7 +66,7 @@ public final class PluginRepository extends AndroidViewModel {
   public static final class PendingReview {
     public final String id, label;
 
-    PendingReview(JSONObject value) throws Exception {
+    public PendingReview(JSONObject value) throws Exception {
       id = value.getString("previewId");
       if (!id.matches("[a-f0-9]{32}")) throw new IOException("插件预览标识无效");
       JSONArray names = value.getJSONArray("names");
@@ -79,6 +79,9 @@ public final class PluginRepository extends AndroidViewModel {
   public static final class Item {
     private final JSONObject snapshot;
     public final String name, description, version, source;
+    public final String stableKey, contentKey, profile, scope, sessionId, pluginId;
+    public final long runtimeGeneration;
+    public final boolean restartRequired;
     public final String location, origin;
     public final boolean detected;
     public final boolean dynamic;
@@ -87,7 +90,7 @@ public final class PluginRepository extends AndroidViewModel {
         updateMessage,
         rollbackVersion,
         compatibility;
-    public final String loadState;
+    public final String loadState, runtimeState;
     public final boolean updateAvailable, updatable;
     public final boolean enabled,
         builtin,
@@ -98,8 +101,12 @@ public final class PluginRepository extends AndroidViewModel {
         runtimeProvided,
         runtimeLocated;
 
-    Item(JSONObject json) {
-      snapshot = json;
+    public Item(JSONObject json) {
+      try {
+        snapshot = new JSONObject(json.toString());
+      } catch (org.json.JSONException malformed) {
+        throw new IllegalArgumentException("PLUGIN_ITEM_INVALID", malformed);
+      }
       name = json.optString("name");
       description = json.optString("description");
       version = json.optString("version");
@@ -131,13 +138,39 @@ public final class PluginRepository extends AndroidViewModel {
       updateAvailable = json.optBoolean("updateAvailable");
       updatable = json.optBoolean("updatable");
       loadState = json.optString("loadState");
+      runtimeState = json.optString("runtimeState", "unknown");
+      runtimeGeneration = json.optLong("runtimeGeneration", -1);
+      restartRequired = json.optBoolean("restartRequired");
+      profile = json.optString("profile", "web");
+      scope = json.optString("scope", "application");
+      sessionId = json.optString("sessionId");
+      pluginId = json.optString("pluginId");
+      // 仅归并已有官方历史别名；显示来源、版本和位置均不作为条目身份。
+      String canonical =
+          "dsh-auto-review".equals(name) ? "@deepseek-ai/dsh-experimental-auto-review" : name;
+      stableKey =
+          dynamic
+              ? key("dynamic", Long.toString(runtimeGeneration), sessionId, pluginId)
+              : key("installed", profile, scope, canonical);
+      contentKey = snapshot.toString();
     }
 
-    Item withIntent(boolean enabled) throws Exception {
+    private static String key(String... parts) {
+      StringBuilder key = new StringBuilder();
+      for (String part : parts) key.append(part.length()).append(':').append(part);
+      return key.toString();
+    }
+
+    public Item withIntent(boolean enabled) throws Exception {
+      return new Item(
+          new JSONObject(snapshot.toString()).put("enabled", enabled).put("restartRequired", true));
+    }
+
+    public Item withRuntime(String runtimeState, long generation) throws Exception {
       return new Item(
           new JSONObject(snapshot.toString())
-              .put("enabled", enabled)
-              .put("loadState", enabled ? "queued" : "disabled"));
+              .put("runtimeState", runtimeState)
+              .put("runtimeGeneration", generation));
     }
   }
 

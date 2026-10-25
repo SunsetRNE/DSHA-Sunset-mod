@@ -237,7 +237,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     repository.refresh();
     runWorker();
     assertTrue(repository.state().getValue().items.get(0).enabled);
-    assertEquals("queued", repository.state().getValue().items.get(0).loadState);
+    assertTrue(repository.state().getValue().items.get(0).restartRequired);
     assertEquals(List.of("enable-state '" + item.name + "'"), Boot.calls);
     assertEquals(1, queue.size());
     Boot.output = list(true);
