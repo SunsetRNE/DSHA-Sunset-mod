@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "bd5711c91e92f343c49be4b9d5c3a7a2d47b341725c7a696e3f4a6e00abf26ab",
+  "runtimeId": "2adb6c4493a33a8aaa5026b60ca99a08797ed8d6254d5a7f6e82db76ce563788",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.3",
   "launcherContract": "DSHA_ARM64_V2",
@@ -196,7 +196,7 @@
     "generator:tools/welcome-notice/WelcomeNoticeStore.js": "7d81c788ad5f95ffffd16f4a07e6f88975cf440574e90aad8745cbf137ef8235",
     "plugins/PluginBackendAdapter.java": "4dbcf92d5c412d1bb809d486d006fd855f759037758ff58c71eff3d3aa956583",
     "plugins/PluginChangeCoalescer.java": "86f02eee057bdfb83e35817ab437269a9106bd99a1df862fa52f79a0b710f29c",
-    "plugins/PluginChangeDetector.java": "c526ac4b4152586d50e09be66463391fc210477f6a7a3a6771fac354fc27e3e3",
+    "plugins/PluginChangeDetector.java": "5e72fdedc35953f873901bb55584e809ef4c8625edad115b235b55a2e64f7cd7",
     "plugins/PluginManagementEngine.java": "08b5c75cc45d5e4ad918fc712428ae6b1dd3e5219b9b1706ee01ade2ab16e285",
     "plugins/PluginOperationQueue.java": "278639b44f5623b62900b98a3434b32d9446bc2395199cd9b8ce6194ae592065",
     "plugins/PluginRegistry.java": "b6cb4cd07ed9d4c67a67d4a197789a06eb567cef0935cfbb2adc82431a41d65f",
