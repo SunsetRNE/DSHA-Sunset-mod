@@ -257,6 +257,7 @@
     "app/src/main/java/com/deepseekharness/app/plugins/PluginBackendAdapter.java",
     "app/src/main/java/com/deepseekharness/app/plugins/PluginChangeCoalescer.java",
     "app/src/main/java/com/deepseekharness/app/plugins/PluginChangeDetector.java",
+    "app/src/main/java/com/deepseekharness/app/plugins/PluginIdentity.java",
     "app/src/main/java/com/deepseekharness/app/plugins/PluginManagementEngine.java",
     "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationQueue.java",
     "app/src/main/java/com/deepseekharness/app/plugins/PluginRegistry.java",

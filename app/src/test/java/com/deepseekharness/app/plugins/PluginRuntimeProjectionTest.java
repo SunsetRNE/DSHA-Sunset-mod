@@ -102,7 +102,8 @@ public final class PluginRuntimeProjectionTest {
             snapshot(row("sample", "loaded")).put("generation", "6"),
             snapshot(row("sample", "loaded")).put("instance", "other-web-instance"),
             snapshot(row("sample", "loaded")).put("at", NOW + 1),
-            snapshot(row("sample", "loaded")).put("at", NOW - 10_001),
+            snapshot(row("sample", "loaded"))
+                .put("at", NOW - PluginRuntimeProjection.MAX_AGE_MILLIS - 1),
             snapshot(row("sample", "loaded")).put("instance", ""))) {
       Item value = project(List.of(installed("sample")), bad).get(0);
       assertEquals("unknown", value.runtimeState);
@@ -113,11 +114,19 @@ public final class PluginRuntimeProjectionTest {
   @Test
   public void expiryRetainsLastStateAsHistoryAndFreshBoundaryStillConfirms() throws Exception {
     Item loaded = installed("sample").withRuntime("loaded", GENERATION);
-    Item expired = project(List.of(loaded), snapshot().put("at", NOW - 10_001)).get(0);
+    Item expired =
+        project(
+                List.of(loaded),
+                snapshot().put("at", NOW - PluginRuntimeProjection.MAX_AGE_MILLIS - 1))
+            .get(0);
     assertEquals("loaded", expired.runtimeState);
     assertTrue(expired.runtimeStale);
     Item boundary =
-        project(List.of(loaded), snapshot(row("sample", "loaded")).put("at", NOW - 10_000)).get(0);
+        project(
+                List.of(loaded),
+                snapshot(row("sample", "loaded"))
+                    .put("at", NOW - PluginRuntimeProjection.MAX_AGE_MILLIS))
+            .get(0);
     assertFalse(boundary.runtimeStale);
   }
 
@@ -230,6 +239,29 @@ public final class PluginRuntimeProjectionTest {
     assertEquals(
         1,
         PluginRuntimeProjection.apply(running, null, GENERATION + 1, "new-instance", NOW).size());
+  }
+
+  @Test
+  public void rejectionCodesSeparateMissingStaleAndForeignEvidence() throws Exception {
+    JSONObject valid = snapshot(row("sample", "loaded"));
+    assertEquals("", PluginRuntimeProjection.rejection(valid, GENERATION, INSTANCE, NOW));
+    assertEquals("NO_ACTIVITY", PluginRuntimeProjection.rejection(null, GENERATION, INSTANCE, NOW));
+    assertEquals("NO_INSTANCE", PluginRuntimeProjection.rejection(valid, GENERATION, "", NOW));
+    assertEquals("NO_GENERATION", PluginRuntimeProjection.rejection(valid, 0, INSTANCE, NOW));
+    assertEquals(
+        "FUTURE_TIME", PluginRuntimeProjection.rejection(valid, GENERATION, INSTANCE, NOW - 1));
+    assertEquals(
+        "EXPIRED",
+        PluginRuntimeProjection.rejection(
+            valid, GENERATION, INSTANCE, NOW + PluginRuntimeProjection.MAX_AGE_MILLIS + 1));
+    assertEquals(
+        "GENERATION", PluginRuntimeProjection.rejection(valid, GENERATION + 1, INSTANCE, NOW));
+    assertEquals(
+        "INSTANCE", PluginRuntimeProjection.rejection(valid, GENERATION, "other-instance", NOW));
+    assertEquals(
+        "NO_TIME",
+        PluginRuntimeProjection.rejection(
+            snapshot(row("sample", "loaded")).put("at", 0), GENERATION, INSTANCE, NOW));
   }
 
   @Test

@@ -1,11 +1,10 @@
-# DSHA 0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3 / build196
+# DSHA 0.2.1-rc.3-20261026.0735-dsh0.2.1-rc.3 / build198
 
-- Launch directly into Home; pair and connect computers from Home. Remove the Home background-tasks button.
-- Recheck local readiness and show conversation titles, messages and task status in the floating assistant, with exact conversation/turn ownership.
-- Open the system share chooser after preparation and the destination picker for Save as. Share failures no longer silently become downloads.
-- Reserve legacy bridge/LAN defaults for the older app and display actual bound ports for coexistence.
-- Safe reads and commands no longer depend on destructive-operation consent queries. Writes and opaque commands retain consent checks.
-- Reuse synchronous tool preparation within one startup and record individual preparation times and session restore failure stages.
-- Advertise supported semantic scroll actions, match owned overlays precisely and explain when a fresh observation is required.
+- Wrapper-style built-in plugins (`dsh-auto-review`) now report the official version actually loaded by their patch: the value is replaced only when the module pinned by `peerDependencies` really resolves and the installed version equals the pin. Unresolved or mismatched pins keep the wrapper version so the native side still reports unconfirmed. This fixes the Auto review card staying at “load unconfirmed” forever.
+- Native plugin identity normalization is centralized in `PluginIdentity`; item `stableKey` and runtime projection share one alias rule instead of maintaining it twice.
+- Web activity snapshot reads add `BackupFileSystem.currentSnapshot`: only the bytes behind the opened descriptor are checked, tolerating the writer publishing a new snapshot by rename every 2 seconds. The Android implementation keeps NOFOLLOW and the size bound but no longer requires the path inode to stay unchanged during the read.
+- The runtime evidence freshness window grows from 10 seconds to 30 seconds (the writer heartbeats every 2 seconds and generation/instance are checked separately), so a long task occupying the event loop no longer turns a healthy heartbeat into “unconfirmed”.
+- `PluginRuntimeProjection.rejection` returns reason codes; `PluginRepository` records a `PLUGIN_RUNTIME` line only when the conclusion changes (missing identity, generation mismatch, read failure, expired snapshot, or remaining unconfirmed plugins), instead of failing silently.
+- New regressions: JVM snapshot reads under atomic replacement and the byte bound; projection rejection codes; wrapper bundles reporting the pinned official version, including the negative branch where the pin and the installed version differ.
 
-Package identity, historical release certificate, conventional filename, formal/recovery DSH rc.3 and Ubuntu10 remain. Refer to this release's delivery report for actual acceptance scope and results.
+Version code moves to 198; package name, historical signature, regular file name and the bundled DSH rc.3 are unchanged. This branch runs Standard only; this round is verified by CI compilation and unit tests, with no device acceptance.
