@@ -2,7 +2,7 @@
 
 ## 边界与已核实身份
 
-- 当前基座：`Sunset-zhongdua-G`，`02f80abeee37f3b107544714c8544ada5a1c40b9`，build197；最终产物须绑定 Lead 实际提交的新 SHA，不能拿该基座或参考分支的绿灯替代。
+- 当前基座：`Sunset-zhongdua-G`，`02f80abeee37f3b107544714c8544ada5a1c40b9`，build197；2026-10-26 build198 将 versionCode 提升到 198、Sunset 测试包包名后缀改为 `.SunsetRNE2`，并补上悬浮球/菜单的会话侧栏；固定输入仍以 build197 为来源，终端内核与运行保护未改。最终产物须绑定 Lead 实际提交的新 SHA，不能拿该基座或参考分支的绿灯替代。
 - 仓库：私有 `SunsetRNE/DSHA-Sunset-mod-3090-Q`，默认分支 `codex/prerelease-190`。Git `ls-remote` 和 GitHub API 分别核对；本轮现有 API 账号为 `SunsetRNE`。首次核对时目标终端分支尚未发布，由 Lead 统一提交、push、等待并下载验收。
 - 参考 `origin/Sunset-3090-Q` 精确为 `a36112c39d3345535ff2e55dfe1c368228990104`。其 [run 40178009756 / attempt 1](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40178009756) 的 source、APK、完整 Standard 单测、七夹具检查、Lint、签名、APK 校验、上传步骤确实成功；历史发布 job skipped。只迁入这类可验证经验，不 merge，不用 build196 的产品文件覆盖当前 build197。
 - 本轮没有触发/重跑远端 CI，没有 tag、Release、公开上传、手机操作或安装权限。新工作流只请求 `contents: read`。
@@ -77,7 +77,7 @@
 
 ## 测试签名与 artifact
 
-保持现有显式 `sunsetTest` 开关：applicationId 为 `dsh.android.client.SunsetRNE`，versionCode 与当前 Gradle 版本一致（基座197），versionName 为当前完整版本加 `-SunsetTest`，非调试、arm64-v8a、minSDK30、targetSDK37。生产 E7E3 证书禁止用于本测试包。
+保持现有显式 `sunsetTest` 开关：applicationId 为 `dsh.android.client.SunsetRNE2`（当前 Gradle `.SunsetRNE2` 后缀，与旧 `.SunsetRNE` 测试包独立共存），versionCode 与当前 Gradle 版本一致（build198），versionName 为当前完整版本加 `-SunsetTest`，非调试、arm64-v8a、minSDK30、targetSDK37。生产 E7E3 证书禁止用于本测试包。
 
 仅签名步骤可读已有 `SUNSET_TEST_KEYSTORE_B64` secret；可选 `SUNSET_TEST_STORE_PASSWORD`，未配置时兼容历史测试口令。没有 secret 则本次 runner 临时生成 RSA3072 测试证书与随机口令。私钥只写明确的 `RUNNER_TEMP` 文件，以 `umask 077` 保护，不进入 Git、cache 或任何 artifact，`always()` 收尾核目标后删除。仅公有证书可上传。
 

@@ -261,8 +261,10 @@ class TerminalPackageIdentity(unittest.TestCase):
                 self.gate.identity({**env, key: value})
 
     def test_package_version_abi_sdk_and_non_debuggable_match_current_source(self):
-        gradle = 'applicationId "dsh.android.client"\nversionCode 197\nversionName "current"\n'
-        badging = ("package: name='dsh.android.client.SunsetRNE' versionCode='197' versionName='current-SunsetTest'\n"
+        gradle = ('applicationId "dsh.android.client"\n'
+                  "applicationIdSuffix '.SunsetRNE2'\n"
+                  'versionCode 197\nversionName "current"\n')
+        badging = ("package: name='dsh.android.client.SunsetRNE2' versionCode='197' versionName='current-SunsetTest'\n"
                    "sdkVersion:'30'\ntargetSdkVersion:'37'\nnative-code: 'arm64-v8a'\n")
         self.assertEqual(self.gate.validate_badging(badging, gradle)['versionCode'], 197)
         # aapt2 版本间最低 API 的键名不同；两种拼写都必须精确绑定 30，target 仍精确 37。
@@ -271,6 +273,7 @@ class TerminalPackageIdentity(unittest.TestCase):
                 badging.replace("sdkVersion:'30'", spelling), gradle)
             self.assertEqual((parsed['minSdk'], parsed['targetSdk']), (30, 37))
         for wrong in (badging.replace("versionCode='197'", "versionCode='196'"),
+                      badging.replace(".SunsetRNE2", ".SunsetRNE"),
                       badging.replace('current-SunsetTest', 'current'),
                       badging.replace('arm64-v8a', 'x86_64'),
                       badging.replace("sdkVersion:'30'", "sdkVersion:'23'"),
@@ -280,6 +283,13 @@ class TerminalPackageIdentity(unittest.TestCase):
                       badging + 'application-debuggable\n'):
             with self.subTest(badging=wrong), self.assertRaises(ValueError):
                 self.gate.validate_badging(wrong, gradle)
+        # 后缀缺失、重复或非法时不得猜测测试包身份。
+        for bad_gradle in (gradle.replace("applicationIdSuffix '.SunsetRNE2'\n", ''),
+                           gradle + "applicationIdSuffix '.OtherRNE'\n",
+                           gradle.replace('.SunsetRNE2', '.2'),
+                           gradle.replace('.SunsetRNE2', '.Bad-Suffix')):
+            with self.subTest(gradle=bad_gradle), self.assertRaises(ValueError):
+                self.gate.validate_badging(badging, bad_gradle)
 
     def test_public_certificate_matches_apk_and_production_signature_is_rejected(self):
         der = b'public certificate fixture'
@@ -308,7 +318,10 @@ class TerminalPackageReceipt(unittest.TestCase):
             out = root / 'out'
             out.mkdir()
             (root / 'app/src/main/assets').mkdir(parents=True)
-            (root / 'app/build.gradle').write_text('applicationId "dsh.android.client"\nversionCode 197\nversionName "current"\n')
+            (root / 'app/build.gradle').write_text(
+                'applicationId "dsh.android.client"\n'
+                "applicationIdSuffix '.SunsetRNE2'\n"
+                'versionCode 197\nversionName "current"\n')
             (root / 'app/src/main/assets/runtime-descriptor.json').write_text(json.dumps({'runtimeId': 'b' * 64}))
             (root / 'app/src/main/assets/dsh-runtime.inputs.json').write_text(json.dumps({'archive_sha256': 'c' * 64}))
             reports = root / 'app/build/test-results/testStandardDebugUnitTest'
@@ -325,7 +338,7 @@ class TerminalPackageReceipt(unittest.TestCase):
                        GITHUB_RUN_ATTEMPT='2', GITHUB_RUN_NUMBER='8', SIGNING_KEY_SOURCE='ephemeral')
             inputs = dict(**helper.identity(env), archiveSha256='d' * 64, archiveFormat='source-archive')
             (out / 'fixed-inputs.json').write_text(json.dumps(inputs))
-            (out / 'apk-badging.txt').write_text("package: name='dsh.android.client.SunsetRNE' versionCode='197' versionName='current-SunsetTest'\nsdkVersion:'30'\ntargetSdkVersion:'37'\nnative-code: 'arm64-v8a'\n")
+            (out / 'apk-badging.txt').write_text("package: name='dsh.android.client.SunsetRNE2' versionCode='197' versionName='current-SunsetTest'\nsdkVersion:'30'\ntargetSdkVersion:'37'\nnative-code: 'arm64-v8a'\n")
             der = b'public certificate fixture'
             cert = hashlib.sha256(der).hexdigest()
             (out / 'apk-signature.txt').write_text('Signer #1 certificate SHA-256 digest: ' + cert + '\n')

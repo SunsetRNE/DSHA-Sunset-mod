@@ -1,5 +1,8 @@
 # AGENTS.md
 
+<!-- build198-current -->
+> **2026-10-26 build198（个人测试分支，未构建验收）**：`0.2.1-rc.3-20261026.0644-dsh0.2.1-rc.3` /198；正式包身份仍 `dsh.android.client`，Sunset 独立测试包改为 `dsh.android.client.SunsetRNE2`（原 `.SunsetRNE`，可独立共存）。本版更新 versionCode、Sunset 测试包包名，并把终端悬浮球/工作台“菜单”改为会话侧栏（极简与窄窗口抽屉、≥840dp 内联）；终端运行保护沿用 build197。尚未执行 Android 构建、单测、Lint、APK 或设备验收；下方 build197 身份为历史。
+
 <!-- build197-current -->
 > **2026-10-25 build197**：`0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3` /197 /Standard /dsh.android.client /E7E3非调试；常规APK307703892字节，SHA `5cd635ab68ea61e74822e5d25a0b7ddc66ce21d03ea4412faa045c070a90f244`。单最近任务/主页返回、LAN状态、当前对话手机工具、十语及动态主提示，修复IME观察取消、旧poll和gated恢复空白。76类505项Standard零失败错误skip，Lint0错/致命337警告，17命令含9APK门禁，1168份当前格式证据。最终Android13同签名覆盖/实算SHA、当前会话手机任务确认→COMPLETED（空WebView语义节点边界保留）→finishOK、三次Main返回重进同task1680、一张recents、正常停止及原权限恢复；此前候选Settings树/阿语RTL/十语/法语证据独立标注，确认超时不删。正式/独立应急仍rc3共用36c3归档字节而运行根独立，Ubuntu10不变。仅固定私有SunsetRNE/DSHA-Sunset-mod-3090-Q，实际发布与完整源码/六资产commit/SHA见外部artifacts/deliveries/build197-navigation-language-20261025.json；不跑Low、不写公开DSHA/网站。实际源仍<local-workspace>
 

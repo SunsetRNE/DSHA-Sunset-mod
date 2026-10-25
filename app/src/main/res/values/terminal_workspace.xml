@@ -7,4 +7,9 @@
     <item name="terminal_sessions_panel" type="id" />
     <item name="terminal_workspace_toolbar" type="id" />
     <item name="terminal_workspace_status" type="id" />
+    <item name="terminal_sessions_host" type="id" />
+    <item name="terminal_sessions_scrim" type="id" />
+    <item name="terminal_sessions_close" type="id" />
+    <item name="terminal_sessions_summary" type="id" />
+    <item name="terminal_workspace_menu" type="id" />
 </resources>

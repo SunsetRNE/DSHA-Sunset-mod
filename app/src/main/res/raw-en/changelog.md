@@ -1,8 +1,5 @@
-# DSHA 0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3 / build197
+# DSHA 0.2.1-rc.3-20261026.0644-dsh0.2.1-rc.3 / build198
 
-- Recents shows one DSHA home card. Back from home returns to the launcher and reuses existing pages and browser instances.
-- Access addresses always includes LAN status, manual activation, permission guidance and valid current connection links.
-- Phone control works in the current conversation. Explicit requests use built-in tools and show task status. The app hides its own floating window before observing the screen to avoid covering the target. System permission and current-screen identity checks remain in place.
-- Adds Traditional Chinese, Russian, Japanese, Korean, Arabic, Portuguese, Latin and French alongside Simplified Chinese and English, with system-language matching and right-to-left Arabic layout.
-- Built-in instructions adapt replies to the selected language while preserving custom instructions and existing conversations.
-- Standard edition, original package and signing identity support an in-place update. The build197 report shipped with the source records the software checks, actual device acceptance and unverified scope.
+- Version code is now 198. The terminal floating ball and the workbench menu now open the sessions sidebar: minimal mode and narrow workbenches use a drawer, while workbenches at 840dp or wider keep the sidebar inline. The sidebar groups session creation, switching, rename, verified ending, home, display, keyboard, paste, input focus and help.
+- The standalone Sunset test build now uses dsh.android.client.SunsetRNE2, so it can coexist with production dsh.android.client and the previous SunsetRNE test build.
+- This build has not been Android-built, unit-tested, Linted, packaged as an APK or installed and validated on a device.
