@@ -614,7 +614,7 @@ class DiscoveryTest(unittest.TestCase):
         self.assertFalse(any(Path(self.builtin.marker_path(alias)).exists() for alias in aliases))
         self.assertEqual(original, (runtime/'package.json').read_bytes())
 
-    def test_symlinked_shared_runtime_is_not_a_user_plugin(self):
+    def test_symlinked_shared_runtime_requires_current_content_proof_before_hiding(self):
         runtime = self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules')
         link = self.root / 'root/.dsh/node_modules/test-plugin'
         link.parent.mkdir(parents=True)
@@ -622,7 +622,25 @@ class DiscoveryTest(unittest.TestCase):
             link.symlink_to(runtime, target_is_directory=True)
         except OSError as error:
             self.skipTest('此宿主无创建符号链接权限：' + str(error))
+        original = (runtime / 'package.json').read_bytes()
+        # 运行时位置和软链不能证明系统所有权；未验证的真实 bundle 仍须可见。
+        row = self.items()['test-plugin']
+        self.assertTrue(row['runtimeLocated'])
+        self.assertFalse(row['runtimeProvided'])
+        self.assertEqual('user', row['origin'])
+        self.authenticate_runtime('test-plugin', runtime)
         self.assertNotIn('test-plugin', self.items())
+        # 下次查询必须重新证明内容；同一软链下的用户修改不能被旧证明隐藏。
+        user_file = runtime / 'user-edit.js'
+        user_file.write_text('preserve user override', encoding='utf-8')
+        row = self.items()['test-plugin']
+        self.assertTrue(row['runtimeLocated'])
+        self.assertFalse(row['runtimeProvided'])
+        self.assertEqual('user', row['origin'])
+        self.assertFalse(row['deletable'])
+        self.assertEqual(original, (runtime / 'package.json').read_bytes())
+        self.assertEqual('preserve user override', user_file.read_text(encoding='utf-8'))
+        self.assertEqual(runtime.resolve(), link.resolve())
 
     def test_detected_profile_plugin_can_be_enabled_without_deleting_original(self):
         probe = self.root / 'link-permission-probe'
