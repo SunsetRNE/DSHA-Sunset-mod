@@ -111,12 +111,16 @@ public class TerminalActivityLifecycleTest {
         View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
     assertEquals(
         View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_scrim).getVisibility());
-    assertTrue(host.get().findViewById(R.id.terminal_sessions_panel).isAccessibilityViewIsModal());
+    assertEquals(
+        View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,
+        host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
     assertFalse(host.get().isFinishing());
     host.get().findViewById(R.id.terminal_sessions_close).performClick();
     assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
     assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
-    assertFalse(host.get().findViewById(R.id.terminal_sessions_panel).isAccessibilityViewIsModal());
+    assertEquals(
+        View.IMPORTANT_FOR_ACCESSIBILITY_AUTO,
+        host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
     host.get().findViewById(R.id.terminal_menu_ball).performClick();
     assertEquals(
         View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
