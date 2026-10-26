@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.fragment.app.Fragment;
-import com.deepseekharness.app.R;
 
 /** 环境未完成时仍可进入主界面，明确列出可用的原生恢复入口。 */
 public final class EnvironmentRecoveryFragment extends Fragment {
