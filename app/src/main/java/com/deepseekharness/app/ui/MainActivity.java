@@ -36,6 +36,10 @@ public class MainActivity extends AppCompatActivity {
   private boolean localSetupRequired;
   private Bundle pendingMainState;
   private android.view.View entryOverlay;
+
+  /** 平板左栏；手机布局没有这个视图，所有使用点都按可空处理。 */
+  private ShellRail shellRail;
+
   private final java.util.List<Fragment> gatedPages = new java.util.ArrayList<>();
   private final MainEntryGate entryGate = new MainEntryGate();
   private static final java.util.concurrent.Executor ENTRY_IO =
@@ -356,16 +360,27 @@ public class MainActivity extends AppCompatActivity {
     quickEntries.setOnClickListener(v -> AboutDialog.show(this));
 
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
+    shellRail = findViewById(R.id.shell_rail);
+    if (shellRail != null)
+      shellRail.setOnItemSelectedListener(
+          id -> {
+            // 左栏只转发点击，路由/门禁/终端动作仍由 bottom_nav 的唯一监听器执行。
+            nav.setSelectedItemId(id);
+            syncShellRail(nav.getSelectedItemId());
+          });
     nav.setOnItemSelectedListener(
         item -> {
           if (item.getItemId() == R.id.nav_terminal) {
+            // 终端是导航动作：不切根页，也不把左栏/语境切到终端。
             openTerminal();
-            return false; // 终端是导航动作，保留来源根页/子页及未保存草稿。
+            return false; // 保留来源根页/子页及未保存草稿。
           }
           if (localSetupRequired && item.getItemId() != R.id.nav_launch) {
             startActivity(com.deepseekharness.app.remote.ui.WorkspaceEntry.local(this));
             return false;
           }
+          // 根页真正切换后再同步：终端动作和本地准备重定向仍停在原根页。
+          syncShellRail(item.getItemId());
           // 当前根页面再次点选时保留输入和滚动；从子页返回或外部打开插件仍执行导航。
           if (nav.getSelectedItemId() == item.getItemId()
               && getSupportFragmentManager().getBackStackEntryCount() == 0
@@ -439,6 +454,8 @@ public class MainActivity extends AppCompatActivity {
       nav.setSelectedItemId(R.id.nav_launch);
       getIntent().putExtra("open_terminal", true);
     }
+    // 保存态恢复或上方重定向都可能绕过监听器，这里再对齐一次左栏与语境。
+    syncShellRail(nav.getSelectedItemId());
     releaseGatedPages(!unresolved && !localSetupRequired);
     consumeTaskTarget(getIntent());
     // 只订阅后台检查；提示不切换导航，也不自动打开更新页或 Web。
@@ -500,10 +517,13 @@ public class MainActivity extends AppCompatActivity {
                     com.deepseekharness.app.core.UpdateEngine.channelName(
                         startupUpdates.channel())),
                 com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
-            .setAnchorView(R.id.bottom_nav)
             .setAction(
                 com.deepseekharness.app.util.UiText.text("查看更新"),
                 view -> startActivity(new Intent(this, UpdateActivity.class)));
+    // 平板形态的底栏是隐藏的：锚到隐藏视图会把提示顶出可视区，隐藏时交给内容区默认定位。
+    android.view.View navAnchor = findViewById(R.id.bottom_nav);
+    if (navAnchor != null && navAnchor.getVisibility() == android.view.View.VISIBLE)
+      updateNotice.setAnchorView(R.id.bottom_nav);
     updateNotice.addCallback(
         new com.google.android.material.snackbar.Snackbar.Callback() {
           @Override
@@ -745,6 +765,46 @@ public class MainActivity extends AppCompatActivity {
     else if (shown instanceof TerminalFragment || shown instanceof PtyTerminalFragment)
       title.setText(R.string.app_name);
     else title.setText(R.string.app_name);
+    renderPageContext(shown);
+  }
+
+  /**
+   * 顶栏页面语境与平板左栏选中态：由 BottomNavigationView 的唯一选中事件统一驱动。
+   *
+   * <p>没有左栏（手机）时只更新语境；{@code app_context} 缺失时静默跳过。
+   */
+  private void syncShellRail(int selectedId) {
+    if (shellRail != null) shellRail.setSelectedItemId(selectedId);
+    TextView context = findViewById(R.id.app_context);
+    if (context == null) return;
+    if (selectedId == R.id.nav_plugins)
+      context.setText(
+          com.deepseekharness.app.util.UiText.choose("扩展你的工作方式", "Extend how you work"));
+    else if (selectedId == R.id.nav_settings)
+      context.setText(
+          com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management"));
+    else if (selectedId == R.id.nav_terminal)
+      context.setText(com.deepseekharness.app.util.UiText.choose("本机终端", "Local terminal"));
+    else context.setText(com.deepseekharness.app.util.UiText.choose("本机环境", "Local environment"));
+  }
+
+  /**
+   * 语境跟随实际页面：保存态恢复或外部入口可能让底栏选中项与当前根页短暂不一致，
+   * 这里以当前根页为准，避免顶栏语境残留上一个页面。
+   */
+  private void renderPageContext(@Nullable Fragment shown) {
+    TextView context = findViewById(R.id.app_context);
+    if (context == null) return;
+    if (shown instanceof PluginFragment || shown instanceof EnvironmentRecoveryFragment)
+      context.setText(
+          com.deepseekharness.app.util.UiText.choose("扩展你的工作方式", "Extend how you work"));
+    else if (shown instanceof PtyTerminalFragment || shown instanceof TerminalFragment)
+      context.setText(com.deepseekharness.app.util.UiText.choose("本机终端", "Local terminal"));
+    else if (shown instanceof LaunchFragment || shown == null)
+      context.setText(com.deepseekharness.app.util.UiText.choose("本机环境", "Local environment"));
+    else
+      context.setText(
+          com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management"));
   }
 
   @Override

@@ -725,8 +725,6 @@
     "tools/mobile-server/delete-session.js",
     "tools/mobile-server/index.js",
     "tools/apply-mobile-client-patches.mjs",
-    "tools/mobile-locales.mjs",
-    "tools/mobile-locales.json",
     "tools/mobile-plugin-upstream.lock.json",
     "tools/generate-builtin-plugins.py",
     "tools/generate-credential-paths.py",

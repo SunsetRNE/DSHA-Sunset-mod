@@ -31,7 +31,7 @@ import { installAttachmentMention } from './effects/attachment-mention.ts'
 import { installFileShare } from './effects/file-share.ts'
 import { createPanelExit, installPanelRowExit } from './effects/panel-exit.ts'
 import { installDebugBadge } from './debug.ts'
-import { NS, mobileNavLocales } from './i18n/locales.ts'
+import { NS, en, zh } from './i18n/locales.ts'
 import type { MobileNavKey } from './i18n/locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -94,7 +94,7 @@ function restoreConversationScroll(): void {
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, mobileNavLocales), 'dsh-web-mobile: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-web-mobile: dictionaries')
 
   ctx.effect(() => {
     // 先清掉可能残留的同 id 样式表。
