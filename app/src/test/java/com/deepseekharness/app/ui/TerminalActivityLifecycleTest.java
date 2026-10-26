@@ -35,7 +35,7 @@ public class TerminalActivityLifecycleTest {
   }
 
   public static class FakePane extends Fragment implements TerminalPane {
-    static int creates, closes, input;
+    static int creates, closes, input, focuses;
     boolean selection;
 
     public FakePane() {
@@ -62,7 +62,9 @@ public class TerminalActivityLifecycleTest {
       input++;
     }
 
-    public void restoreInputFocus() {}
+    public void restoreInputFocus() {
+      focuses++;
+    }
 
     public boolean selectionBack() {
       boolean before = selection;
@@ -83,7 +85,7 @@ public class TerminalActivityLifecycleTest {
         .edit()
         .putBoolean("terminal_workbench", false)
         .apply();
-    FakePane.creates = FakePane.closes = FakePane.input = 0;
+    FakePane.creates = FakePane.closes = FakePane.input = FakePane.focuses = 0;
   }
 
   @Test
@@ -381,6 +383,34 @@ public class TerminalActivityLifecycleTest {
         View.GONE, host.get().findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
     assertEquals(
         View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_actions).getVisibility());
+    host.pause().stop().destroy();
+  }
+
+  @Test
+  public void focusActionClosesSidebarAndRestoresInputOnFirstClick() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 400, 900);
+    host.get().findViewById(R.id.terminal_menu_ball).performClick();
+    View focus = host.get().findViewById(R.id.terminal_sessions_action_focus);
+    assertNotNull(focus);
+    assertFalse(focus.isFocusableInTouchMode());
+    focus.performClick();
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
+    org.robolectric.shadows.ShadowLooper.idleMainLooper();
+    assertEquals(1, FakePane.focuses);
+    host.pause().stop().destroy();
+  }
+
+  @Test
+  public void sessionMenuControlsClickOnFirstTouchWithoutFocusDetour() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 400, 900);
+    host.get().findViewById(R.id.terminal_menu_ball).performClick();
+    View create = host.get().findViewById(R.id.terminal_sessions_create);
+    assertNotNull(create);
+    // 触摸模式下首击只聚焦、不点击：新建会话与结束会话的控件都不能带这个焦点。
+    assertFalse(create.isFocusableInTouchMode());
+    assertFalse(host.get().findViewById(R.id.terminal_sessions_close).isFocusableInTouchMode());
     host.pause().stop().destroy();
   }
 

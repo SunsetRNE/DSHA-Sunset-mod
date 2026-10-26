@@ -69,7 +69,8 @@ final class ExtraKeysDialog {
               UiText.choose("快捷按键", "Extra keys"),
               UiText.choose(
                   "应用于 PTY 会话；手机与平板布局分别保存。长按或点按按键可操作。",
-                  "Applies to PTY sessions; phone and tablet layouts are saved separately. Tap or long-press a key to change it."));
+                  "Applies to PTY sessions; phone and tablet layouts are saved separately. Tap or long-press a key to change it."),
+              true);
       dialog = CardSheet.create(context, page);
       LinearLayout layoutCard = page.card();
       layoutCard.addView(page.text(UiText.choose("布局", "Layout"), 11, R.color.text_muted));

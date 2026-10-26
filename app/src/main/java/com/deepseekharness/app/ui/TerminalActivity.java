@@ -34,7 +34,6 @@ import com.deepseekharness.app.util.TerminalSession;
 import com.deepseekharness.app.util.TerminalTabs;
 import com.deepseekharness.app.util.TerminalWorkspacePolicy;
 import com.deepseekharness.app.util.UiText;
-import com.deepseekharness.app.util.UiThemePreference;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** 同 task 的终端工作台。页面只持有视图，结束进程必须明确指定会话并核验。 */
@@ -50,13 +49,12 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       sessionList,
       sessionHeader,
       sessionFooter;
-  private LinearLayout footerActionsWide, footerActionsDense, themeTrack;
-  private LinearLayout.LayoutParams themeLayoutParams;
+  private LinearLayout footerActionsWide, footerActionsDense;
   private ScrollView sessionScroll;
   private View sessionScrim, inlineDivider, toolbarDivider, statusBarScrim;
   private View menuButton, settingsButton, helpButton, newSessionButton, sessionClose;
   private TextView title, status, sessionSummary, sessionSubtitle, createLabel, createHint;
-  private TextView panelSecondary, panelNotice, closeAllButton, themeSystem, themeLight, themeDark;
+  private TextView panelSecondary, panelNotice, closeAllButton;
   private TerminalFloatingMenu ball;
   private AlertDialog panel;
   private boolean workbench, imeVisible, previousProcess, changingMode, expanded, sessionsRequested;
@@ -351,39 +349,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     panelNotice.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
     panelNotice.setVisibility(View.GONE);
     sessionFooter.addView(panelNotice, new LinearLayout.LayoutParams(-1, -2));
-    themeTrack = new LinearLayout(this);
-    themeTrack.setId(R.id.terminal_sessions_theme);
-    themeTrack.setOrientation(LinearLayout.HORIZONTAL);
-    themeTrack.setBackgroundResource(R.drawable.bg_terminal_theme_track);
-    themeTrack.setPadding(dp(4), dp(4), dp(4), dp(4));
-    themeSystem =
-        themeSegment(
-            R.id.terminal_theme_system,
-            UiText.choose("系统", "System"),
-            UiText.choose("跟随系统外观", "Follow system appearance"),
-            R.drawable.ic_ui2_auto,
-            UiThemePreference.SYSTEM);
-    themeLight =
-        themeSegment(
-            R.id.terminal_theme_light,
-            UiText.choose("白天", "Light"),
-            UiText.choose("白天模式", "Light mode"),
-            R.drawable.ic_ui2_sun,
-            UiThemePreference.LIGHT);
-    themeDark =
-        themeSegment(
-            R.id.terminal_theme_dark,
-            UiText.choose("黑夜", "Dark"),
-            UiText.choose("黑夜模式", "Dark mode"),
-            R.drawable.ic_ui2_moon,
-            UiThemePreference.DARK);
-    themeTrack.addView(themeSystem, segmentParams());
-    themeTrack.addView(themeLight, segmentParams());
-    themeTrack.addView(themeDark, segmentParams());
-    syncThemeSegments();
-    themeLayoutParams = new LinearLayout.LayoutParams(-1, -2);
-    themeLayoutParams.setMargins(0, dp(8), 0, dp(8));
-    sessionFooter.addView(themeTrack, themeLayoutParams);
     footerActionsWide = new LinearLayout(this);
     footerActionsWide.setOrientation(LinearLayout.VERTICAL);
     footerActionsWide.setId(R.id.terminal_sessions_actions);
@@ -423,10 +388,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_accent,
             12,
             false,
-            () -> {
-              closeSessions();
-              if (pane() != null) pane().showKeyboard();
-            }),
+            () ->
+                closeSessionsThen(
+                    () -> {
+                      if (pane() != null) pane().showKeyboard();
+                    })),
         footerAction(
             R.id.terminal_sessions_action_help,
             UiText.choose("说明", "Help"),
@@ -448,10 +414,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_accent,
             12,
             false,
-            () -> {
-              closeSessions();
-              if (pane() != null) pane().paste();
-            }),
+            () ->
+                closeSessionsThen(
+                    () -> {
+                      if (pane() != null) pane().paste();
+                    })),
         footerAction(
             R.id.terminal_sessions_action_focus,
             UiText.choose("回到输入", "Focus input"),
@@ -461,10 +428,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_accent,
             12,
             false,
-            () -> {
-              closeSessions();
-              if (pane() != null) pane().restoreInputFocus();
-            }));
+            () ->
+                closeSessionsThen(
+                    () -> {
+                      if (pane() != null) pane().restoreInputFocus();
+                    })));
     sessionFooter.addView(footerActionsWide, new LinearLayout.LayoutParams(-1, -2));
     footerActionsDense = new LinearLayout(this);
     footerActionsDense.setOrientation(LinearLayout.VERTICAL);
@@ -503,10 +471,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_accent,
             11,
             false,
-            () -> {
-              closeSessions();
-              if (pane() != null) pane().showKeyboard();
-            }));
+            () ->
+                closeSessionsThen(
+                    () -> {
+                      if (pane() != null) pane().showKeyboard();
+                    })));
     addFooterGridRow(
         footerActionsDense,
         footerAction(
@@ -518,10 +487,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_accent,
             11,
             false,
-            () -> {
-              closeSessions();
-              if (pane() != null) pane().paste();
-            }),
+            () ->
+                closeSessionsThen(
+                    () -> {
+                      if (pane() != null) pane().paste();
+                    })),
         footerAction(
             R.id.terminal_sessions_action_focus_dense,
             UiText.choose("回到输入", "Focus input"),
@@ -531,10 +501,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_accent,
             11,
             false,
-            () -> {
-              closeSessions();
-              if (pane() != null) pane().restoreInputFocus();
-            }),
+            () ->
+                closeSessionsThen(
+                    () -> {
+                      if (pane() != null) pane().restoreInputFocus();
+                    })),
         footerAction(
             R.id.terminal_sessions_action_help_dense,
             UiText.choose("说明", "Help"),
@@ -610,7 +581,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     value.setBackgroundResource(backgroundRes);
     setCompoundIcon(value, iconRes, iconTintRes, 17);
     value.setFocusable(true);
-    value.setFocusableInTouchMode(true);
     value.setClickable(true);
     value.setOnClickListener(v -> action.run());
     return value;
@@ -625,7 +595,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     row.setPadding(dp(12), dp(6), dp(12), dp(6));
     row.setBackgroundResource(R.drawable.bg_btn_primary);
     row.setFocusable(true);
-    row.setFocusableInTouchMode(true);
     row.setClickable(true);
     ColorStateList primaryText = getColorStateList(R.color.button_primary_text);
     AppCompatImageView icon = new AppCompatImageView(this);
@@ -647,56 +616,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     row.addView(createHint, new LinearLayout.LayoutParams(-2, -2));
     row.setOnClickListener(v -> showCreateChooser());
     return row;
-  }
-
-  private LinearLayout.LayoutParams segmentParams() {
-    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
-    params.setMargins(dp(2), 0, dp(2), 0);
-    return params;
-  }
-
-  private TextView themeSegment(
-      int id, String label, String description, int iconRes, String mode) {
-    ColorStateList state = getColorStateList(R.color.terminal_theme_text);
-    TextView value = panelText(label, 11, 0, false);
-    value.setId(id);
-    value.setTextColor(state);
-    value.setGravity(Gravity.CENTER);
-    value.setMinHeight(dp(48));
-    value.setPadding(dp(4), 0, dp(4), 0);
-    value.setBackgroundResource(R.drawable.bg_terminal_theme_segment);
-    value.setContentDescription(description);
-    setCompoundIcon(value, iconRes, state, 15);
-    value.setFocusable(true);
-    value.setFocusableInTouchMode(true);
-    value.setClickable(true);
-    value.setOnClickListener(v -> selectTheme(mode));
-    return value;
-  }
-
-  private void syncThemeSegments() {
-    String preference = ThemeController.preference(this);
-    markThemeSegment(themeSystem, UiThemePreference.SYSTEM.equals(preference));
-    markThemeSegment(themeLight, UiThemePreference.LIGHT.equals(preference));
-    markThemeSegment(themeDark, UiThemePreference.DARK.equals(preference));
-  }
-
-  private void markThemeSegment(TextView segment, boolean selected) {
-    if (segment == null) return;
-    segment.setSelected(selected);
-    ViewCompat.setStateDescription(
-        segment,
-        selected ? UiText.choose("已选中", "Selected") : UiText.choose("未选中", "Not selected"));
-  }
-
-  private void selectTheme(String mode) {
-    if (closeAllRunning) {
-      themeTrack.announceForAccessibility(
-          UiText.choose("正在结束会话，完成后再切换外观", "Sessions are ending; change appearance after"));
-      return;
-    }
-    if (mode.equals(ThemeController.preference(this))) return;
-    ThemeController.select(this, mode);
   }
 
   private void applySystemBars() {
@@ -738,7 +657,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     value.setMinimumWidth(dp(48));
     value.setMinimumHeight(dp(48));
     value.setFocusable(true);
-    value.setFocusableInTouchMode(true);
     value.setClickable(true);
     value.setOnClickListener(v -> action.run());
     return value;
@@ -817,17 +735,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionSummary.setTextSize(landscapeCompact ? 11 : 12);
     closeAllButton.setTextSize(landscapeCompact ? 11 : 12);
     closeAllButton.setMinHeight(dp(landscapeCompact ? 44 : 48));
-    themeTrack.setPadding(
-        dp(landscapeCompact ? 3 : 4),
-        dp(landscapeCompact ? 3 : 4),
-        dp(landscapeCompact ? 3 : 4),
-        dp(landscapeCompact ? 3 : 4));
-    for (TextView segment : new TextView[] {themeSystem, themeLight, themeDark}) {
-      segment.setTextSize(landscapeCompact ? 10 : 11);
-      segment.setMinHeight(dp(landscapeCompact ? 44 : 48));
-    }
-    themeLayoutParams.setMargins(0, dp(landscapeCompact ? 4 : 8), 0, dp(landscapeCompact ? 4 : 8));
-    themeTrack.setLayoutParams(themeLayoutParams);
     boolean compactActions = denseFooter || landscapeCompact;
     footerActionsWide.setVisibility(compactActions ? View.GONE : View.VISIBLE);
     footerActionsDense.setVisibility(compactActions ? View.VISIBLE : View.GONE);
@@ -1079,11 +986,34 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void closeSessions() {
+    closeSessions(true);
+  }
+
+  /**
+   * 关闭会话侧栏。
+   *
+   * <p>{@code restoreSurfaceFocus} 会在侧栏关闭后把焦点交给悬浮球/菜单；「回到输入」「显示键盘」
+   * 这类动作必须传 false，否则输入框焦点会被抢走，表现为第一次点按没有回到输入。
+   */
+  private void closeSessions(boolean restoreSurfaceFocus) {
     if (workbench && expanded) return;
     if (!sessionsRequested && !expanded) return;
     sessionsRequested = false;
     applyPresentation();
-    restoreSurfaceFocus();
+    if (restoreSurfaceFocus) restoreSurfaceFocus();
+  }
+
+  /** 先收起侧栏，再在下一帧恢复终端输入；避免焦点在抽屉隐藏过程中被再次改写。 */
+  private void closeSessionsThen(Runnable action) {
+    closeSessions(false);
+    if (root == null) {
+      action.run();
+      return;
+    }
+    root.post(
+        () -> {
+          if (!isFinishing() && !isDestroyed()) action.run();
+        });
   }
 
   private boolean sessionsDismissible() {
@@ -1349,7 +1279,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     body.setGravity(Gravity.CENTER_VERTICAL);
     body.setPadding(dp(8), dp(6), dp(4), dp(6));
     body.setFocusable(true);
-    body.setFocusableInTouchMode(true);
     body.setClickable(true);
     body.setBackgroundResource(R.drawable.bg_terminal_touch);
     AppCompatImageView glyph =
@@ -1673,12 +1602,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (newSessionButton != null) {
       newSessionButton.setEnabled(!closeAllRunning);
       newSessionButton.setAlpha(closeAllRunning ? .55f : 1f);
-    }
-    if (themeSystem != null && themeLight != null && themeDark != null) {
-      themeSystem.setEnabled(!closeAllRunning);
-      themeLight.setEnabled(!closeAllRunning);
-      themeDark.setEnabled(!closeAllRunning);
-      themeTrack.setAlpha(closeAllRunning ? .55f : 1f);
     }
   }
 

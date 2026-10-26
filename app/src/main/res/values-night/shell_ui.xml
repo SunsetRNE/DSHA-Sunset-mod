@@ -24,6 +24,10 @@
     <color name="shell_good">#93CCAF</color>
     <color name="shell_warn">#E4BE83</color>
     <color name="shell_bad">#EEA3A6</color>
+    <!-- 状态软底：夜间同样只作浅色背景，不与正文文字混用。 -->
+    <color name="shell_good_soft">#1493CCAF</color>
+    <color name="shell_warn_soft">#14E4BE83</color>
+    <color name="shell_bad_soft">#14EEA3A6</color>
 
     <!-- 玻璃层 -->
     <color name="shell_glass">#DB192230</color>
