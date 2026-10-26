@@ -4,6 +4,8 @@
 
 > 2026-10-26 build198 将 versionCode 升到 198、Sunset 测试包后缀改为 `.SunsetRNE2`，并补上悬浮球/工作台“菜单”的会话侧栏（极简与窄窗口抽屉、≥840dp 内联）。最终 commit `7eaf914` 的 [CI run 40248037705](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40248037705) 成功产出 Standard 测试 APK（2519 项测试，0 失败/0 错误/1 允许跳过）；未安装、未操作手机、未做设备验收。本文 build197 的包名、版本、交互和交付回执按历史记录阅读；build198 详见[本轮报告](<releases/v0.2.1-rc.3-build198-terminal-sidebar-20261026.md>)。
 
+> 2026-10-26 build198 后续源修订：commit `f8117b6` 在 [run 40262205574](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40262205574) 成功产出同 versionCode 的 Standard 测试 APK（2526 tests / 0 fail / 0 error / 1 allowed skip，Lint 0 error/346 warnings）。新增平板内联/抽屉重判定、深色侧栏、短窗密集底栏和“结束全部”逐项核验。未安装、未操作手机；签名仍为临时测试证书。详见[平板 follow-up 报告](<releases/v0.2.1-rc.3-build198-terminal-tablet-20261026.md>)。
+
 > 本文记录实现范围与回归方法，不将 HTML 模拟、宿主 JUnit 或 CI 构建冒称为手机验收。目标是独立测试包；不发布 Release、不覆盖正式版、不自动安装或操控手机。最终提交、CI run/attempt、附件与 SHA 以实际交付回执为准。
 
 ## 已落实的设计
