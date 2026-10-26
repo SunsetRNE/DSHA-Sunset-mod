@@ -51,15 +51,20 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       sessionHeader,
       sessionFooter;
   private LinearLayout footerActionsWide, footerActionsDense, themeTrack;
+  private LinearLayout.LayoutParams themeLayoutParams;
   private ScrollView sessionScroll;
   private View sessionScrim, inlineDivider, toolbarDivider, statusBarScrim;
   private View menuButton, settingsButton, helpButton, newSessionButton, sessionClose;
-  private TextView title, status, sessionSummary, sessionSubtitle;
+  private TextView title, status, sessionSummary, sessionSubtitle, createLabel, createHint;
   private TextView panelSecondary, panelNotice, closeAllButton, themeSystem, themeLight, themeDark;
   private TerminalFloatingMenu ball;
   private AlertDialog panel;
   private boolean workbench, imeVisible, previousProcess, changingMode, expanded, sessionsRequested;
-  private boolean compactHeight, denseFooter, sessionsRendered, presentationScheduled;
+  private boolean compactHeight,
+      denseFooter,
+      landscapeCompact,
+      sessionsRendered,
+      presentationScheduled;
   private volatile boolean closeAllRunning, closeAllDispatching;
   private final AtomicInteger closeAllPending = new AtomicInteger();
   private volatile String closeAllEpoch = "";
@@ -320,7 +325,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     summaryRow.addView(summaryDot, new LinearLayout.LayoutParams(dp(6), dp(6)));
     sessionSummary = panelText("", 12, getColor(R.color.terminal_panel_text), false);
     sessionSummary.setId(R.id.terminal_sessions_summary);
-    sessionSummary.setMaxLines(2);
+    sessionSummary.setMaxLines(1);
     sessionSummary.setEllipsize(TextUtils.TruncateAt.END);
     LinearLayout.LayoutParams summaryParams = new LinearLayout.LayoutParams(0, -2, 1);
     summaryParams.setMarginStart(dp(7));
@@ -376,9 +381,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     themeTrack.addView(themeLight, segmentParams());
     themeTrack.addView(themeDark, segmentParams());
     syncThemeSegments();
-    LinearLayout.LayoutParams themeParams = new LinearLayout.LayoutParams(-1, -2);
-    themeParams.setMargins(0, dp(8), 0, dp(8));
-    sessionFooter.addView(themeTrack, themeParams);
+    themeLayoutParams = new LinearLayout.LayoutParams(-1, -2);
+    themeLayoutParams.setMargins(0, dp(8), 0, dp(8));
+    sessionFooter.addView(themeTrack, themeLayoutParams);
     footerActionsWide = new LinearLayout(this);
     footerActionsWide.setOrientation(LinearLayout.VERTICAL);
     footerActionsWide.setId(R.id.terminal_sessions_actions);
@@ -594,6 +599,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       float sizeSp,
       Runnable action) {
     TextView value = panelText(text, sizeSp, textColor, false);
+    value.setContentDescription(text);
     value.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
     value.setMinHeight(dp(48));
     value.setMinWidth(dp(48));
@@ -627,18 +633,18 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     icon.setImageTintList(primaryText);
     icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     row.addView(icon, new LinearLayout.LayoutParams(dp(20), dp(20)));
-    TextView label = panelText(UiText.choose("新建会话", "New session"), 14, 0, true);
-    label.setTextColor(primaryText);
+    createLabel = panelText(UiText.choose("新建会话", "New session"), 14, 0, true);
+    createLabel.setTextColor(primaryText);
     LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(-2, -2);
     labelParams.setMarginStart(dp(8));
-    row.addView(label, labelParams);
+    row.addView(createLabel, labelParams);
     row.addView(new View(this), new LinearLayout.LayoutParams(0, 0, 1));
-    TextView hint = panelText(UiText.text("PTY / 简易"), 11, 0, false);
-    hint.setTextColor(primaryText);
-    hint.setAlpha(.82f);
-    hint.setGravity(Gravity.END);
-    hint.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    row.addView(hint, new LinearLayout.LayoutParams(-2, -2));
+    createHint = panelText(UiText.text("PTY / 简易"), 11, 0, false);
+    createHint.setTextColor(primaryText);
+    createHint.setAlpha(.82f);
+    createHint.setGravity(Gravity.END);
+    createHint.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    row.addView(createHint, new LinearLayout.LayoutParams(-2, -2));
     row.setOnClickListener(v -> showCreateChooser());
     return row;
   }
@@ -758,6 +764,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     expanded = canInline && (workbench || sessionsRequested);
     compactHeight = TerminalWorkspacePolicy.compactHeight(heightDp);
     denseFooter = TerminalWorkspacePolicy.denseFooter(heightDp);
+    landscapeCompact = TerminalWorkspacePolicy.shortLandscape(widthDp, heightDp);
     toolbar.setVisibility(workbench ? View.VISIBLE : View.GONE);
     toolbarDivider.setVisibility(workbench ? View.VISIBLE : View.GONE);
     // 极简内联时面板本身带关闭按钮；隐藏球，避免 RTL/左吸边时叠在侧栏上。
@@ -789,14 +796,80 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void applyCompactChrome() {
-    sessionSubtitle.setVisibility(compactHeight ? View.GONE : View.VISIBLE);
-    panelSecondary.setVisibility(compactHeight ? View.GONE : View.VISIBLE);
+    boolean tight = compactHeight || landscapeCompact;
+    sessionSubtitle.setVisibility(tight ? View.GONE : View.VISIBLE);
+    panelSecondary.setVisibility(tight ? View.GONE : View.VISIBLE);
     sessionHeader.setPaddingRelative(
-        dp(14), dp(compactHeight ? 8 : 12), dp(6), dp(compactHeight ? 4 : 8));
-    sessionFooter.setPadding(dp(8), dp(compactHeight ? 4 : 6), dp(8), dp(compactHeight ? 6 : 10));
+        dp(14),
+        dp(landscapeCompact ? 8 : compactHeight ? 8 : 12),
+        dp(6),
+        dp(landscapeCompact ? 4 : compactHeight ? 4 : 8));
+    sessionFooter.setPadding(
+        dp(landscapeCompact ? 6 : 8),
+        dp(landscapeCompact ? 3 : compactHeight ? 4 : 6),
+        dp(landscapeCompact ? 6 : 8),
+        dp(landscapeCompact ? 5 : compactHeight ? 6 : 10));
     sessionList.setPadding(dp(6), dp(compactHeight ? 0 : 4), dp(6), dp(compactHeight ? 6 : 12));
-    footerActionsWide.setVisibility(denseFooter ? View.GONE : View.VISIBLE);
-    footerActionsDense.setVisibility(denseFooter ? View.VISIBLE : View.GONE);
+    newSessionButton.setMinimumHeight(dp(landscapeCompact ? 44 : 48));
+    createLabel.setTextSize(landscapeCompact ? 13 : 14);
+    createHint.setVisibility(landscapeCompact ? View.GONE : View.VISIBLE);
+    createHint.setTextSize(landscapeCompact ? 10 : 11);
+    sessionSummary.setTextSize(landscapeCompact ? 11 : 12);
+    closeAllButton.setTextSize(landscapeCompact ? 11 : 12);
+    closeAllButton.setMinHeight(dp(landscapeCompact ? 44 : 48));
+    themeTrack.setPadding(
+        dp(landscapeCompact ? 3 : 4),
+        dp(landscapeCompact ? 3 : 4),
+        dp(landscapeCompact ? 3 : 4),
+        dp(landscapeCompact ? 3 : 4));
+    for (TextView segment : new TextView[] {themeSystem, themeLight, themeDark}) {
+      segment.setTextSize(landscapeCompact ? 10 : 11);
+      segment.setMinHeight(dp(landscapeCompact ? 44 : 48));
+    }
+    themeLayoutParams.setMargins(0, dp(landscapeCompact ? 4 : 8), 0, dp(landscapeCompact ? 4 : 8));
+    themeTrack.setLayoutParams(themeLayoutParams);
+    boolean compactActions = denseFooter || landscapeCompact;
+    footerActionsWide.setVisibility(compactActions ? View.GONE : View.VISIBLE);
+    footerActionsDense.setVisibility(compactActions ? View.VISIBLE : View.GONE);
+    if (compactActions) compactDenseActions();
+  }
+
+  /** 横屏/短窗的动作区统一压到可读但更矮的一行，仍保留 44dp 触摸高度。 */
+  private void compactDenseActions() {
+    for (int rowIndex = 0; rowIndex < footerActionsDense.getChildCount(); rowIndex++) {
+      View row = footerActionsDense.getChildAt(rowIndex);
+      if (!(row instanceof ViewGroup group)) continue;
+      for (int index = 0; index < group.getChildCount(); index++) {
+        if (!(group.getChildAt(index) instanceof TextView button)) continue;
+        CharSequence full = button.getContentDescription();
+        if (full == null || full.length() == 0) full = button.getText();
+        button.setContentDescription(full);
+        button.setText(landscapeCompact ? denseActionLabel(button.getId()) : full);
+        button.setSingleLine(true);
+        button.setMaxLines(1);
+        button.setEllipsize(TextUtils.TruncateAt.END);
+        button.setTextSize(10.5f);
+        button.setMinHeight(dp(44));
+        button.setPadding(dp(8), 0, dp(5), 0);
+        button.setCompoundDrawablePadding(dp(5));
+        Drawable icon = button.getCompoundDrawablesRelative()[0];
+        if (icon != null) {
+          icon.setBounds(0, 0, dp(15), dp(15));
+          button.setCompoundDrawablesRelative(icon, null, null, null);
+        }
+      }
+    }
+  }
+
+  /** 横屏三列只有约 80dp/格，短标签仍配完整无障碍名称。 */
+  private CharSequence denseActionLabel(int id) {
+    if (id == R.id.terminal_sessions_action_home_dense) return UiText.choose("主界面", "Home");
+    if (id == R.id.terminal_sessions_action_display_dense) return UiText.choose("显示", "Display");
+    if (id == R.id.terminal_sessions_action_keyboard_dense) return UiText.choose("键盘", "Keyboard");
+    if (id == R.id.terminal_sessions_action_paste_dense) return UiText.choose("粘贴", "Paste");
+    if (id == R.id.terminal_sessions_action_focus_dense) return UiText.choose("输入", "Input");
+    if (id == R.id.terminal_sessions_action_help_dense) return UiText.choose("说明", "Help");
+    return "";
   }
 
   private void showInlinePanel() {

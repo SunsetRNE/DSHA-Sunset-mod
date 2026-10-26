@@ -46,6 +46,10 @@ public final class TerminalWorkspacePolicyTest {
     assertFalse(TerminalWorkspacePolicy.compactHeight(560));
     assertTrue(TerminalWorkspacePolicy.denseFooter(479));
     assertFalse(TerminalWorkspacePolicy.denseFooter(480));
+    assertTrue(TerminalWorkspacePolicy.shortLandscape(1422, 889));
+    assertTrue(TerminalWorkspacePolicy.shortLandscape(800, 400));
+    assertFalse(TerminalWorkspacePolicy.shortLandscape(800, 889));
+    assertFalse(TerminalWorkspacePolicy.shortLandscape(1600, 1200));
   }
 
   @Test

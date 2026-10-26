@@ -6,6 +6,7 @@ public final class TerminalWorkspacePolicy {
   private static final int TERMINAL_MIN_WIDTH_DP = 480;
   private static final int COMPACT_HEIGHT_DP = 560;
   private static final int DENSE_FOOTER_HEIGHT_DP = 480;
+  private static final int LANDSCAPE_COMPACT_HEIGHT_DP = 1000;
   private static final int DRAWER_MAX_WIDTH_DP = 336;
   private static final int INLINE_MIN_WIDTH = 240;
   private static final int INLINE_MAX_WIDTH = 296;
@@ -63,6 +64,13 @@ public final class TerminalWorkspacePolicy {
   /** 更短的窗口把底部动作改为三列两行，避免固定三行挤掉会话列表。 */
   public static boolean denseFooter(int heightDp) {
     return heightDp < DENSE_FOOTER_HEIGHT_DP;
+  }
+
+  /**
+   * 横屏/低高度工作台：侧栏横向空间换高度，底部改成三列两行并压缩间距。 1000dp 是体验阈值，不是屏幕类型判断；竖屏和超大窗口仍用两列三行。
+   */
+  public static boolean shortLandscape(int widthDp, int heightDp) {
+    return widthDp > heightDp && heightDp < LANDSCAPE_COMPACT_HEIGHT_DP;
   }
 
   public static float fraction(float value) {
