@@ -921,6 +921,7 @@
     "app/src/test/java/com/deepseekharness/app/ui/TerminalFloatingMenuTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/TerminalInputContractTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/TerminalNavigationTest.java",
+    "app/src/test/java/com/deepseekharness/app/ui/TerminalThemeTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/UpdateVersionPageTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/VisibleWebStartProtectionTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/WebBackgroundPageLifecycleTest.java",
