@@ -204,4 +204,5 @@ checks: 151
 - Lint `lintStandardRelease` **0 error / 0 fatal / 350 warning**，与上一批 warning 数一致。
 - APK `dsha-terminal-8d7e4b62.apk`，307,898,702 bytes，SHA-256 `af91812eae766d889b134d60d0525d701884f55c3406153dc7675dd3d68485a2`；v3 签名证书 SHA-256 `5c58107033ce4ccb4edcfb04389b3a593b9ab48520244726f2d68147771ecc7a`（临时测试证书）。
 - 收件后独立解压 445 个 XML，重新计数 2551/0/0/1；`TerminalThemeTest` 为 `tests=6 failures=0 errors=0`。
-- **仍未安装到平板、未重新截图**；横屏实际 dp、字体缩放、旋转重建、横竖屏来回切换与 TalkBack 未验收。详见[横屏压缩报告](../../releases/v0.2.1-rc.3-build198-terminal-landscape-20261026.md)。
+- 用户随后反馈已覆盖更新并提供新截图（LENOVO TB321FU / Android 16，横屏 2560×1600、竖屏 1600×2560）。横屏截图中副标题/脚注已隐藏、摘要单行、动作区为三列两行短标签，底栏约从侧栏高度 1/2 降到 1/3；竖屏仍保留完整标签和脚注。设备上只有正式包 `dsh.android.client`，测试包 `SunsetRNE2` 未安装，因此这只是用户正式包的截图复核。
+- **测试 APK 仍未由我方安装，也未在设备上重新截图**；横屏点击、字体缩放、旋转重建、横竖屏来回切换与 TalkBack 未验收。详见[横屏压缩报告](../../releases/v0.2.1-rc.3-build198-terminal-landscape-20261026.md)。
