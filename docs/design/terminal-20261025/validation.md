@@ -195,3 +195,13 @@ checks: 151
 - 未安装、未操作手机；真机实际配色、AppCompat 重建、系统栏、IME、TalkBack、RTL、1.3 倍字体与 OEM ROM 未验收。
 - 仅 Robolectric 视图合同 + CI Lint + APK 资源抽查，不等于 Android 真机 UI 验收。
 - `LayoutAuditInstrumentation` 的终端 scene 扩展、十语种补全、对话框内重复主题开关、差量渲染与图标缓存仍未做。
+
+### 10.4 横屏压缩后续（commit 8d7e4b6）
+
+用户平板截图确认横屏底栏过高后，本批新增 `shortLandscape` 策略、横屏三列两行动作、44dp/10.5sp 紧凑按钮、短标签+完整无障碍名、单行摘要，并隐藏横屏副标题/脚注。CI [run 40306054023](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40306054023) 成功：
+
+- Standard 全量 **2551 项 / 0 失败 / 0 错误 / 1 允许跳过**；`TerminalThemeTest` 6 项（新增横屏用例）、`TerminalWorkspacePolicyTest` 7 项通过。
+- Lint `lintStandardRelease` **0 error / 0 fatal / 350 warning**，与上一批 warning 数一致。
+- APK `dsha-terminal-8d7e4b62.apk`，307,898,702 bytes，SHA-256 `af91812eae766d889b134d60d0525d701884f55c3406153dc7675dd3d68485a2`；v3 签名证书 SHA-256 `5c58107033ce4ccb4edcfb04389b3a593b9ab48520244726f2d68147771ecc7a`（临时测试证书）。
+- 收件后独立解压 445 个 XML，重新计数 2551/0/0/1；`TerminalThemeTest` 为 `tests=6 failures=0 errors=0`。
+- **仍未安装到平板、未重新截图**；横屏实际 dp、字体缩放、旋转重建、横竖屏来回切换与 TalkBack 未验收。详见[横屏压缩报告](../../releases/v0.2.1-rc.3-build198-terminal-landscape-20261026.md)。

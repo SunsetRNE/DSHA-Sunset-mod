@@ -125,6 +125,10 @@
 - `LayoutAuditInstrumentation` 终端 scene 扩展、十语种补全、对话框内重复主题开关、差量渲染与图标缓存未在本批实现。
 - 详见[本批发布报告](../../releases/v0.2.1-rc.3-build198-native-terminal-theme-20261026.md)、[验证记录](<validation.md>)第 10 节与[原生化方案](<native-terminal-theme-plan.md>)。
 
+### 横屏压缩后续（同日）
+
+用户提供平板竖屏/横屏截图后确认：横屏内联侧栏的底栏约占高度一半，摘要被挤成两行。后续 commit `8d7e4b6` 新增 `shortLandscape(widthDp,heightDp)`（宽度 > 高度且高度 < 1000dp），横屏底栏改三列两行、44dp/10.5sp、短标签+完整无障碍名、单行摘要，隐藏副标题/脚注并收紧主题与头部；竖屏和超高窗口恢复两列三行。CI [run 40306054023](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40306054023) 成功：2551 项单测 / 0 失败 / 0 错误 / 1 允许跳过，Lint 0 error / 350 warning；新增横屏 Robolectric 用例。仍未安装到平板再次截图。详见[横屏压缩报告](../../releases/v0.2.1-rc.3-build198-terminal-landscape-20261026.md)与[验证记录](<validation.md>)10.4。
+
 ## 0. 结论先行（第一轮架构评估）
 
 1. **可行，而且不需要更换终端内核。** 当前真 PTY 页面已经使用 Termux 的 `terminal-view:0.118.0` 和 `TerminalView`。最合理的“完全换 UI”是替换周边工具条、标签布局、背景与页面导航，保留终端视图、终端模拟器、PTY/JNI、运行环境及退出核验链。

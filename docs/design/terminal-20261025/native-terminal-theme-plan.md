@@ -1,6 +1,6 @@
 # 原生终端侧栏三向态与图标化落地方案
 
-**状态：2026-10-26 已原生落地并产出 CI 测试包。** 实现 commit `1be3f6ab91f25e50ae844cf1a1ca01e775d20df3`，格式清单修订 `fb95eeafd18cbbb2ade15887fc796295970309eb`；[CI run 40294484304](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40294484304) 两个 job 成功，2550 项单测 / 0 失败 / 0 错误 / 1 允许跳过，Lint 0 error / 350 warning。落地范围、与设计的差异和未验证项见[本批报告](../../releases/v0.2.1-rc.3-build198-native-terminal-theme-20261026.md)。本文其余部分保留为实施前审计记录；第 8 节的设备验收清单仍未执行，不能把本文件或 APK 当作真机验收。
+**状态：2026-10-26 已原生落地并产出 CI 测试包。** 实现 commit `1be3f6ab91f25e50ae844cf1a1ca01e775d20df3`，格式清单修订 `fb95eeafd18cbbb2ade15887fc796295970309eb`；[CI run 40294484304](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40294484304) 两个 job 成功，2550 项单测 / 0 失败 / 0 错误 / 1 允许跳过，Lint 0 error / 350 warning。落地范围、与设计的差异和未验证项见[本批报告](../../releases/v0.2.1-rc.3-build198-native-terminal-theme-20261026.md)。随后根据平板截图完成横屏压缩：commit `8d7e4b6`、[run 40306054023](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40306054023)、2551 项单测全绿，见[横屏压缩报告](../../releases/v0.2.1-rc.3-build198-terminal-landscape-20261026.md)。本文其余部分保留为实施前审计记录；第 8 节的设备验收清单仍未执行，不能把本文件或 APK 当作真机验收。
 
 **下文是落地前的审计与方案原文。** 审计基线：`Sunset-zhongdua-G`，文档提交 `711eb1c`，终端源码末次修订 `f8117b6`（build198 平板侧栏）。视觉合同来自本轮 [HTML 交互预览](<preview.html>) 的三向态修订：浅色 = 浅蓝 + 白，深色 = 浅蓝 + 黑，终端输出区在两套外观下都保持黑底；预览底部的 2×2 动作网格、三向态开关和图标表也以该文件为准。
 
