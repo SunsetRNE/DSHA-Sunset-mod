@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/primary_ripple">
+<!-- 终端悬浮球：面板色圆球 + 强描边 + 主题涟漪，跟随明暗主题（浅色白球 / 夜间近黑球）。 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/terminal_ripple">
     <item><shape android:shape="oval">
-        <solid android:color="@color/terminal_outline" />
-        <stroke android:width="1dp" android:color="@color/terminal_foreground" />
+        <solid android:color="@color/terminal_panel" />
+        <stroke android:width="@dimen/stroke" android:color="@color/terminal_line_strong" />
     </shape></item>
 </ripple>

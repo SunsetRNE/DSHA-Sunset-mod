@@ -31,7 +31,7 @@ final class TerminalFloatingMenu extends AppCompatTextView {
     setTextSize(20);
     setTypeface(android.graphics.Typeface.MONOSPACE);
     setGravity(android.view.Gravity.CENTER);
-    setTextColor(context.getColor(R.color.terminal_foreground));
+    setTextColor(context.getColor(R.color.terminal_panel_text));
     setBackgroundResource(R.drawable.bg_terminal_menu);
     setContentDescription(UiText.choose("打开会话侧栏", "Open sessions sidebar"));
     setSessionsExpanded(false);
