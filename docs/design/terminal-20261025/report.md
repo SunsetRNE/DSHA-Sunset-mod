@@ -99,6 +99,32 @@
 - 新增白天/黑夜抽屉、白天工作台、平板内联侧栏明暗截图；详见[验证记录](<validation.md>)第 9 节。
 - 仍是离线 HTML 验证，不是 Android 主题、对比度或真机验收。
 
+## 2026-10-26 第四轮更新：三向态侧栏已原生落地
+
+第三轮 HTML 稿已按用户要求落到原生，不是继续改原型。实现 commit `1be3f6a`，格式清单修订 `fb95eea`；[CI run 40294484304](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40294484304) 成功：2550 项单测 / 0 失败 / 0 错误 / 1 允许跳过，Lint 0 error / 350 warning，已产出并下载核验测试 APK。
+
+### 实际落地
+
+- **颜色 token**：`values/colors.xml` + `values-night/colors.xml` 新增/重定义 20 个 `terminal_*` 外壳 token；浅色白/浅蓝、夜间近黑/浅蓝；`terminal_surface` 与 `terminal_foreground` 仍固定用于黑底输出区，终端内核、PTY/JNI、运行资产未改。
+- **图标化**：11 个新矢量 + 复用图标；工具栏返回/设置/说明/菜单、侧栏关闭、会话重命名/结束、主题三段和六个底栏动作都有图标；纯图标按钮均有无障碍描述、48dp 触摸；不复制 Termux GPL 资源。
+- **侧栏结构**：身份块 + 副标题 + 关闭；新建按钮带 `+` 与 `PTY / 简易`；分组类型图标 + 计数胶囊；空态虚线框；会话行改为单行（3dp 强调条 + 30dp 类型块 + 名称 + 短状态胶囊 + 重命名/结束），完整状态留在无障碍描述。
+- **底栏**：三向态分段开关 + 2×2 主操作 + 粘贴/回到输入一行；短窗 3 列×2 行，六个动作全保留；结束全部为软危险底色，进行中禁用主题段。
+- **系统栏/悬浮球**：极简黑底浅色图标、工作台浅色深色图标、工作台夜间浅色图标；导航栏始终黑底；悬浮球改为面板色 + 强描边 + 主题涟漪 + 外壳文字色。
+- **回归**：新增 [TerminalThemeTest.java](<../../../app/src/test/java/com/deepseekharness/app/ui/TerminalThemeTest.java>) 5 项，覆盖日夜 token、黑底输出、宽/短窗六动作、主题段选中/禁用、图标描述与矢量；`TerminalActivityLifecycleTest` 14 项、`TerminalFloatingMenuTest` 4 项、`TerminalInputContractTest` 9 项均通过。
+
+### 与设计稿的有意差异
+
+- 原生保留六个底部动作；HTML 只画四个是原型没有真实剪贴板/焦点能力。
+- 原生仍叫「显示设置」而非「显示模式」，因为该入口还管理字号、极简/工作台、球位置和附加键布局。
+- 摘要使用真实会话数；没有采用「仅本页内存、刷新即丢失」的模拟文案。状态胶囊用短词，完整状态保留在无障碍描述与确认框。
+- 抽屉宽度仍按既有 336dp 上限策略，不照搬 HTML 的 344px。
+
+### 边界
+
+- 未安装、未操作手机；真机配色、切主题重建、状态栏、IME、TalkBack、RTL、1.3 倍字体与 OEM ROM 仍未验收。
+- `LayoutAuditInstrumentation` 终端 scene 扩展、十语种补全、对话框内重复主题开关、差量渲染与图标缓存未在本批实现。
+- 详见[本批发布报告](../../releases/v0.2.1-rc.3-build198-native-terminal-theme-20261026.md)、[验证记录](<validation.md>)第 10 节与[原生化方案](<native-terminal-theme-plan.md>)。
+
 ## 0. 结论先行（第一轮架构评估）
 
 1. **可行，而且不需要更换终端内核。** 当前真 PTY 页面已经使用 Termux 的 `terminal-view:0.118.0` 和 `TerminalView`。最合理的“完全换 UI”是替换周边工具条、标签布局、背景与页面导航，保留终端视图、终端模拟器、PTY/JNI、运行环境及退出核验链。

@@ -164,3 +164,34 @@ checks: 151
 - 主 Tab 脚本已重跑：**133 条通过**，`validation-main-tabs.json` 更新；其截图在默认浅色下重新生成，覆盖旧的 `*-v2.png`。
 - 悬浮球、触摸、IME 仍是页面内模拟；系统主题切换由浏览器媒体查询驱动，不代表 AppCompat 重建行为。
 - 主流程截图固定模拟系统深色；主 Tab 截图（`phone-launch-v2.png` 等）为默认浅色。两者都是同一原型的浏览器渲染，不是手机截图。
+
+## 10. 2026-10-26 原生实现与 CI 验证
+
+第四轮把三向态、图标化与 2×2 底栏落到 Android 原生，不再只是 HTML。实现 commit `1be3f6ab91f25e50ae844cf1a1ca01e775d20df3`，格式清单修订 `fb95eeafd18cbbb2ade15887fc796295970309eb`；[CI run 40294484304](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40294484304) 两个 job 均成功。
+
+### 10.1 自动化结果（CI）
+
+| 检查 | 结果 |
+|---|---|
+| Standard 全量单测 | **2550 项 / 0 失败 / 0 错误 / 1 允许跳过** |
+| 新增 `TerminalThemeTest` | **5 项通过**：日夜 token 与黑底、宽/短窗六动作、主题段选中与结束中禁用、图标描述与矢量 |
+| 终端回归类 | `TerminalActivityLifecycleTest` 14、`TerminalFloatingMenuTest` 4、`TerminalInputContractTest` 9、`TerminalNavigationTest` 4 等 13 类通过 |
+| 完整夹具 | 7 项实际通过 |
+| Lint `lintStandardRelease` | **0 error / 0 fatal / 350 warning**；4 条新 warning 已在发布报告列明，不称零警告 |
+| source contracts | 全量格式清单、源码 hygiene、UI i18n、文档链接与 CI 输入回归通过 |
+
+`TerminalThemeTest` 的 XML 结果为 `tests=5 failures=0 errors=0`；收件后独立解压 445 个 XML 重新计数 2550/0/0/1，与 `full-unit-tests.json` 一致。第一次运行 [40294086317](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40294086317) 因新测试未加入 `tools/java-format-files.json` 在 source job 失败；`fb95eea` 补清单后通过，失败原件保留。
+
+### 10.2 收件独立核验
+
+- APK `dsha-terminal-fb95eeaf.apk`，307,898,702 bytes，SHA-256 `8815e6517c52297039156be21c66290a90629e238b6dda07213d55a6ca976d24`，与 Actions artifact digest 一致。
+- `apksigner` 本地复验 v3 通过；证书 SHA-256 `8bd5e1e985a5fa443f047c20f9de1fee11f229505dbb2187202233e4a91d4124`（CI 临时测试证书，非 E7E3）。
+- `apkanalyzer`/`aapt2` 复核 `dsh.android.client.SunsetRNE2` / 198 / minSdk 30 / targetSdk 37 / arm64-v8a / `debuggable=false`。
+- APK 内确认 11 个新 `ic_terminal_*` 图标、10 个新 `bg_terminal_*` 背景（含 active 态）与颜色 token；`terminal_panel` 白天 `#FFFFFF`、夜间 `#0B0F16`，`terminal_panel_text` 白天 `#152033`、夜间 `#E4E8F0`。
+- 证据与回执：[delivery.json](<<workspace>/deliveries/native-terminal-theme-20261026/delivery.json>)、[本地签核](<<workspace>/deliveries/native-terminal-theme-20261026/local-apksigner.txt>)、[颜色抽查](<<workspace>/deliveries/native-terminal-theme-20261026/local-color-values.txt>)。
+
+### 10.3 没有验证的部分
+
+- 未安装、未操作手机；真机实际配色、AppCompat 重建、系统栏、IME、TalkBack、RTL、1.3 倍字体与 OEM ROM 未验收。
+- 仅 Robolectric 视图合同 + CI Lint + APK 资源抽查，不等于 Android 真机 UI 验收。
+- `LayoutAuditInstrumentation` 的终端 scene 扩展、十语种补全、对话框内重复主题开关、差量渲染与图标缓存仍未做。
