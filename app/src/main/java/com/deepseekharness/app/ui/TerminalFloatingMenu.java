@@ -36,6 +36,7 @@ final class TerminalFloatingMenu extends AppCompatTextView {
     setContentDescription(UiText.choose("打开会话侧栏", "Open sessions sidebar"));
     setSessionsExpanded(false);
     setFocusable(true);
+    setFocusableInTouchMode(true);
     setClickable(true);
     setElevation(dp(6));
     setLayoutParams(new FrameLayout.LayoutParams(dp(52), dp(52)));

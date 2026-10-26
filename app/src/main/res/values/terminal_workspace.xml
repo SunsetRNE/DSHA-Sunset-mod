@@ -11,5 +11,15 @@
     <item name="terminal_sessions_scrim" type="id" />
     <item name="terminal_sessions_close" type="id" />
     <item name="terminal_sessions_summary" type="id" />
+    <item name="terminal_sessions_scroll" type="id" />
+    <item name="terminal_sessions_subtitle" type="id" />
+    <item name="terminal_sessions_secondary" type="id" />
+    <item name="terminal_sessions_actions" type="id" />
+    <item name="terminal_sessions_actions_dense" type="id" />
+    <item name="terminal_sessions_create" type="id" />
+    <item name="terminal_sessions_close_all" type="id" />
+    <item name="terminal_sessions_notice" type="id" />
     <item name="terminal_workspace_menu" type="id" />
+    <item name="terminal_workspace_settings" type="id" />
+    <item name="terminal_workspace_help" type="id" />
 </resources>

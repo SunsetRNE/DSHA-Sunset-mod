@@ -23,6 +23,16 @@
     <color name="terminal_foreground">#E4E8F0</color>
     <color name="terminal_outline">#263041</color>
     <color name="terminal_scrim">#99000000</color>
+    <!-- 终端外壳沿用设计稿的深色语义色；只在终端工作台内使用，不改变应用浅色主题。 -->
+    <color name="terminal_panel">#0C100E</color>
+    <color name="terminal_line">#28332C</color>
+    <color name="terminal_muted">#99A99D</color>
+    <color name="terminal_accent">#B2DCB9</color>
+    <color name="terminal_accent_bg">#17271C</color>
+    <color name="terminal_on_accent">#101A13</color>
+    <color name="terminal_warning">#DFC58D</color>
+    <color name="terminal_danger">#EDAAA6</color>
+    <color name="terminal_ripple">#33B2DCB9</color>
     <color name="logo_top">#E9F0FF</color>
 
     <!-- 按压涟漪：主色低透明度，浅色底上淡淡一层 -->

@@ -3,6 +3,7 @@ package com.deepseekharness.app.ui;
 import static org.junit.Assert.*;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
@@ -103,6 +104,7 @@ public class TerminalActivityLifecycleTest {
   @Test
   public void floatingBallOpensSessionsDrawerAndBackClosesItFirst() {
     var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 400, 900);
     assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
     host.get().findViewById(R.id.terminal_menu_ball).performClick();
     assertEquals(
@@ -114,6 +116,9 @@ public class TerminalActivityLifecycleTest {
     assertEquals(
         View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,
         host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
+    assertEquals(
+        ViewGroup.FOCUS_BLOCK_DESCENDANTS,
+        host.get().findViewById(R.id.terminal_content).getDescendantFocusability());
     assertFalse(host.get().isFinishing());
     host.get().findViewById(R.id.terminal_sessions_close).performClick();
     assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
@@ -121,6 +126,9 @@ public class TerminalActivityLifecycleTest {
     assertEquals(
         View.IMPORTANT_FOR_ACCESSIBILITY_AUTO,
         host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
+    assertEquals(
+        ViewGroup.FOCUS_BEFORE_DESCENDANTS,
+        host.get().findViewById(R.id.terminal_content).getDescendantFocusability());
     host.get().findViewById(R.id.terminal_menu_ball).performClick();
     assertEquals(
         View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
@@ -236,6 +244,150 @@ public class TerminalActivityLifecycleTest {
   }
 
   @Test
+  public void minimalTabletWideOpensInlineSidebarAndKeepsTerminalAccessible() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var workspace = host.get().findViewById(R.id.terminal_workspace);
+    measure(host.get(), workspace, 900, 700);
+    host.get().findViewById(R.id.terminal_menu_ball).performClick();
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_close).getVisibility());
+    assertEquals(
+        View.IMPORTANT_FOR_ACCESSIBILITY_AUTO,
+        host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
+    assertFalse(host.get().isFinishing());
+    host.get().getOnBackPressedDispatcher().onBackPressed();
+    assertFalse(host.get().isFinishing());
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+    host.get().findViewById(R.id.terminal_menu_ball).performClick();
+    host.get().findViewById(R.id.terminal_sessions_close).performClick();
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+    host.pause().stop().destroy();
+  }
+
+  @Test
+  @Config(
+      sdk = 34,
+      application = TerminalNavigationTest.App.class,
+      qualifiers = "w900dp-h700dp-ldrtl")
+  public void minimalRtlInlineHidesBallInsteadOfOverlappingPanel() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var workspace = host.get().findViewById(R.id.terminal_workspace);
+    measure(host.get(), workspace, 900, 700);
+    host.get().findViewById(R.id.terminal_menu_ball).performClick();
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_menu_ball).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_close).getVisibility());
+    host.get().findViewById(R.id.terminal_sessions_close).performClick();
+    assertEquals(View.VISIBLE, host.get().findViewById(R.id.terminal_menu_ball).getVisibility());
+    host.pause().stop().destroy();
+  }
+
+  @Test
+  public void minimalTabletPortraitUsesModalDrawer() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var workspace = host.get().findViewById(R.id.terminal_workspace);
+    measure(host.get(), workspace, 640, 900);
+    host.get().findViewById(R.id.terminal_menu_ball).performClick();
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+    assertEquals(
+        View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,
+        host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
+    assertEquals(
+        View.GONE, host.get().findViewById(R.id.terminal_sessions_close_all).getVisibility());
+    host.get().findViewById(R.id.terminal_sessions_close).performClick();
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
+    host.pause().stop().destroy();
+  }
+
+  @Test
+  public void restoredSidebarSwitchesBetweenDrawerAndInlineWithoutCreatingSessions() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var workspace = host.get().findViewById(R.id.terminal_workspace);
+    measure(host.get(), workspace, 640, 900);
+    host.get().findViewById(R.id.terminal_menu_ball).performClick();
+    Bundle saved = new Bundle();
+    host.pause().saveInstanceState(saved).stop().destroy();
+    var next = Robolectric.buildActivity(Host.class).create(saved).start().resume();
+    var nextWorkspace = next.get().findViewById(R.id.terminal_workspace);
+    measure(next.get(), nextWorkspace, 900, 700);
+    assertEquals(
+        View.VISIBLE, next.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+    assertEquals(View.GONE, next.get().findViewById(R.id.terminal_sessions_host).getVisibility());
+    assertEquals(
+        View.IMPORTANT_FOR_ACCESSIBILITY_AUTO,
+        next.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
+    measure(next.get(), nextWorkspace, 640, 900);
+    assertEquals(
+        View.VISIBLE, next.get().findViewById(R.id.terminal_sessions_host).getVisibility());
+    assertEquals(
+        View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,
+        next.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
+    assertEquals(0, FakePane.creates);
+    assertEquals(0, FakePane.closes);
+    assertEquals(0, FakePane.input);
+    next.pause().stop().destroy();
+  }
+
+  @Test
+  public void workbenchExpandedAddsSettingsAndHelpToTheTopbar() {
+    RuntimeEnvironment.getApplication()
+        .getSharedPreferences("deepseekharness", 0)
+        .edit()
+        .putBoolean("terminal_workbench", true)
+        .apply();
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var workspace = host.get().findViewById(R.id.terminal_workspace);
+    measure(host.get(), workspace, 900, 700);
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_workspace_settings).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_workspace_help).getVisibility());
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_workspace_menu).getVisibility());
+    measure(host.get(), workspace, 400, 700);
+    assertEquals(
+        View.GONE, host.get().findViewById(R.id.terminal_workspace_settings).getVisibility());
+    assertEquals(View.GONE, host.get().findViewById(R.id.terminal_workspace_help).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_workspace_menu).getVisibility());
+    host.pause().stop().destroy();
+  }
+
+  @Test
+  public void shortWindowsHideSecondaryChromeAndUseDenseFooterActions() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var workspace = host.get().findViewById(R.id.terminal_workspace);
+    measure(host.get(), workspace, 400, 470);
+    assertEquals(
+        View.GONE, host.get().findViewById(R.id.terminal_sessions_subtitle).getVisibility());
+    assertEquals(
+        View.GONE, host.get().findViewById(R.id.terminal_sessions_secondary).getVisibility());
+    assertEquals(
+        View.VISIBLE,
+        host.get().findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
+    assertEquals(
+        View.GONE, host.get().findViewById(R.id.terminal_sessions_actions).getVisibility());
+    measure(host.get(), workspace, 400, 700);
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_subtitle).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_secondary).getVisibility());
+    assertEquals(
+        View.GONE, host.get().findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_actions).getVisibility());
+    host.pause().stop().destroy();
+  }
+
+  @Test
   public void staleProcessBundleDoesNotRecoverOldIdentityOrAutocreate() {
     Bundle saved = new Bundle();
     saved.putString("terminal_owner", "old-process");
@@ -247,5 +399,15 @@ public class TerminalActivityLifecycleTest {
     assertEquals(0, FakePane.creates);
     assertEquals(0, FakePane.input);
     host.pause().stop().destroy();
+  }
+
+  private static void measure(
+      android.app.Activity activity, View workspace, int widthDp, int heightDp) {
+    float density = activity.getResources().getDisplayMetrics().density;
+    int width = Math.round(widthDp * density), height = Math.round(heightDp * density);
+    workspace.measure(
+        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+    workspace.layout(0, 0, width, height);
   }
 }
