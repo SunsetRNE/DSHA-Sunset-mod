@@ -1003,17 +1003,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (restoreSurfaceFocus) restoreSurfaceFocus();
   }
 
-  /** 先收起侧栏，再在下一帧恢复终端输入；避免焦点在抽屉隐藏过程中被再次改写。 */
+  /** 收起侧栏后立即执行输入动作；不再把焦点交还悬浮球，避免第一次点按只收起侧栏。 */
   private void closeSessionsThen(Runnable action) {
     closeSessions(false);
-    if (root == null) {
-      action.run();
-      return;
-    }
-    root.post(
-        () -> {
-          if (!isFinishing() && !isDestroyed()) action.run();
-        });
+    if (!isFinishing() && !isDestroyed()) action.run();
   }
 
   private boolean sessionsDismissible() {
