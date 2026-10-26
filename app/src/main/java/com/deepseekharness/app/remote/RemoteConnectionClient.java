@@ -18,6 +18,7 @@ public final class RemoteConnectionClient implements AutoCloseable {
   public static final String DESCRIPTOR = "com.deepseekharness.app.remote.IRemoteConnectionService";
   public static final int TRANSACTION_CURRENT = IBinder.FIRST_CALL_TRANSACTION;
   public static final int TRANSACTION_OPEN_HTTP = IBinder.FIRST_CALL_TRANSACTION + 1;
+  public static final int TRANSACTION_UI_LANGUAGE = IBinder.FIRST_CALL_TRANSACTION + 2;
   private final Context context;
   private final CountDownLatch ready = new CountDownLatch(1);
   private volatile IBinder binder;
@@ -71,6 +72,24 @@ public final class RemoteConnectionClient implements AutoCloseable {
       transact(TRANSACTION_CURRENT, request, response);
       String json = response.readString();
       return json == null ? null : RemoteSessionIdentity.fromJsonString(json);
+    } catch (RuntimeException invalid) {
+      throw new IOException("REMOTE_BIND_FAILED");
+    } finally {
+      request.recycle();
+      response.recycle();
+    }
+  }
+
+  /** The owner process resolves preferences; never trust another process's cached preferences. */
+  public String uiLanguage() throws IOException {
+    Parcel request = Parcel.obtain(), response = Parcel.obtain();
+    try {
+      request.writeInterfaceToken(DESCRIPTOR);
+      transact(TRANSACTION_UI_LANGUAGE, request, response);
+      String language = response.readString();
+      if (!com.deepseekharness.app.util.UiLanguagePreference.isSupportedLanguage(language)
+          || response.dataAvail() != 0) throw new IOException("REMOTE_UI_LANGUAGE_INVALID");
+      return language;
     } catch (RuntimeException invalid) {
       throw new IOException("REMOTE_BIND_FAILED");
     } finally {

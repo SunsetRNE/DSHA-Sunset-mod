@@ -209,6 +209,20 @@ public final class RuntimeToolsRegistryAndroidTest {
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
     assertEquals(43, groups.size());
     assertEquals(57, groups.values().stream().mapToInt(java.util.List::size).sum());
+    var locale = groups.get("@deepseek-ai/dsh-client-locale/lib/client.js");
+    assertEquals(1, locale.size());
+    assertEquals("language-patch.json", locale.get(0).id());
+    assertEquals(3, locale.get(0).previousPatches().size());
+    assertEquals(
+        "ctx.provide(\"locale\", locale);", locale.get(0).previousPatches().get(0).before());
+    assertTrue(
+        locale
+            .get(0)
+            .previousPatches()
+            .get(0)
+            .after()
+            .contains("function installDshaLanguageBridge"));
+    assertTrue(locale.get(0).patches().get(0).after().contains("DSHA_UI_LANGUAGES_V2"));
     assertTrue(
         groups.get("@deepseek-ai/dsh-deepseek-account-platform/lib/index.js").stream()
             .anyMatch(

@@ -121,22 +121,29 @@ public final class HttpShellService {
     final com.deepseekharness.app.util.BridgeConfirmations.Request request;
     final boolean screen;
     final com.deepseekharness.app.util.ScreenTarget target;
+    final RequestScope scope;
+    final com.deepseekharness.app.control.ControlTaskAuthority.Lease taskLease;
+    com.deepseekharness.app.control.ScreenControlConfirmation.Prompt taskPrompt;
     volatile PendingIntent allow, deny;
     androidx.appcompat.app.AlertDialog dialog;
     boolean resolving, targetChanged;
     int promptWindow = -1;
 
     PendingConfirmation(com.deepseekharness.app.util.BridgeConfirmations.Request request) {
-      this(request, false, null);
+      this(request, false, null, null, null);
     }
 
     PendingConfirmation(
         com.deepseekharness.app.util.BridgeConfirmations.Request request,
         boolean screen,
-        com.deepseekharness.app.util.ScreenTarget target) {
+        com.deepseekharness.app.util.ScreenTarget target,
+        RequestScope scope,
+        com.deepseekharness.app.control.ControlTaskAuthority.Lease taskLease) {
       this.request = request;
       this.screen = screen;
       this.target = target;
+      this.scope = scope;
+      this.taskLease = taskLease;
     }
   }
 
@@ -1187,17 +1194,12 @@ public final class HttpShellService {
    * {@link com.deepseekharness.app.ui.MainActivity} 收到后切到启动页并尝试进入 Web
    * （Web 未就绪时只切页，不报错）。
    *
-   * <p>用 {@code SINGLE_TOP + CLEAR_TOP} 复用已有任务，不新开一层；requestCode 与
+   * <p>用共享原生导航复用已有任务，保留浏览器页面；requestCode 与
    * 其它通知区分，避免 {@code FLAG_UPDATE_CURRENT} 让后建的通知覆盖前一个的 PendingIntent。
    */
   private PendingIntent agentNotificationIntent() {
     Intent intent =
-        new Intent(ctx, com.deepseekharness.app.ui.MainActivity.class)
-            .addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK
-                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    | Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra("open_web", true);
+        com.deepseekharness.app.ui.MainActivity.navigationIntent(ctx).putExtra("open_web", true);
     return PendingIntent.getActivity(
         ctx,
         AGENT_NOTIF_REQUEST,
@@ -1481,7 +1483,16 @@ public final class HttpShellService {
     String operation = route.substring("/app/ui/".length());
     if (operation.equals("shot")) operation = "screenshot";
     if (!java.util.Set.of(
-            "dump", "screenshot", "tap", "input", "key", "swipe", "tree", "node", "task-end")
+            "dump",
+            "screenshot",
+            "tap",
+            "input",
+            "key",
+            "swipe",
+            "tree",
+            "node",
+            "task-begin",
+            "task-end")
         .contains(operation)) return "[ERR] UNKNOWN_ROUTE";
     String query = queryOf(path);
     try {
@@ -1517,6 +1528,7 @@ public final class HttpShellService {
       if (operation.equals("task-end")) {
         if (!screenBridgeCurrent(scope)) return "[ERR] BRIDGE_RUN_CHANGED";
         coordinator.completeLocal(binding);
+        com.deepseekharness.app.assistant.AssistantService.finishLocalTask(ctx, binding);
         return "OK";
       }
       // A turn/end HTTP notification can race the next turn. Its completion
@@ -1531,15 +1543,36 @@ public final class HttpShellService {
             new com.deepseekharness.app.control.ControlTaskAuthority.Binding(
                 binding.owner(), binding.connection(), taskSessionId, completed));
       }
-      var taskLease = coordinator.begin(binding);
+      var taskUi = com.deepseekharness.app.assistant.AssistantService.ensureLocalTask(ctx, binding);
+      if (!taskUi.ready()) return taskUi.failureReply();
+      if (!screenBridgeCurrent(scope)) return "[ERR] BRIDGE_RUN_CHANGED";
+      if (operation.equals("task-begin")) {
+        if (!com.deepseekharness.app.assistant.AssistantService.stopChannelCurrent(ctx, binding))
+          return new com.deepseekharness.app.assistant.AssistantService.TaskUiResult(
+                  false, "ASSISTANT_STOP_NOTIFICATION_REQUIRED")
+              .failureReply();
+        coordinator.begin(binding);
+        return com.deepseekharness.app.screen.ScreenReply.completed()
+            .put("needsObservation", true)
+            .toString();
+      }
       boolean observing = java.util.Set.of("dump", "tree", "screenshot").contains(operation);
+      var screenUi =
+          com.deepseekharness.app.assistant.AssistantService.prepareScreenOperation(
+              ctx, binding, observing);
+      if (!screenUi.ready()) return screenUi.failureReply();
+      var taskLease = coordinator.begin(binding);
       if (!observing && !coordinator.actionAllowed(taskLease))
         return com.deepseekharness.app.screen.ScreenReply.refused(
                 "FRESH_SCREEN_OBSERVATION_REQUIRED")
             .toString();
       var observed =
           DshaAccessibilityService.observeTargetForRequest(
-              () -> screenBridgeCurrent(scope) && coordinator.current(taskLease));
+              () ->
+                  com.deepseekharness.app.assistant.AssistantService.stopChannelCurrent(
+                          ctx, binding)
+                      && screenBridgeCurrent(scope)
+                      && coordinator.current(taskLease));
       if (observed.target == null) return observed.failure().toString();
       var target = observed.target;
       var capability = screenRequest(scope, operation, target);
@@ -1556,7 +1589,8 @@ public final class HttpShellService {
       var controller = HarnessController.get(ctx);
       java.util.function.BooleanSupplier live =
           () ->
-              screenBridgeCurrent(scope)
+              com.deepseekharness.app.assistant.AssistantService.stopChannelCurrent(ctx, binding)
+                  && screenBridgeCurrent(scope)
                   && coordinator.current(taskLease)
                   && !com.deepseekharness.app.control.OwnedScreenOverlay.expanded()
                   && capability.runtime.equals(
@@ -1856,21 +1890,30 @@ public final class HttpShellService {
    * 而 dsh 与 DSHA 是各自升级的 —— 用户完全可能拿新插件配旧 App。
    */
   private String appVersion() {
-    return com.deepseekharness.app.util.UiText.format(
-        "BRIDGE_PROTOCOL=%s\nBRIDGE_PORT=%s\nAPPLICATION_ID=%s\nBRIDGE_AUTH=header-x-token\nAPP_VERSION=%s\nAPP_CODE=%s\nHINT=端点清单见 /app/help；判版本请用 >= 而不是 ==\n",
+    // Fixed protocol keys must not be translated. Read the current locale on every request,
+    // rather than the Web process's language captured before an in-place language change.
+    return String.format(
+        java.util.Locale.ROOT,
+        "BRIDGE_PROTOCOL=%s\nBRIDGE_PORT=%s\nAPPLICATION_ID=%s\nBRIDGE_AUTH=header-x-token\nAPP_VERSION=%s\nAPP_CODE=%s\nUI_LANGUAGE=%s\nHINT=See /app/help; compare protocol with >=\n",
         BRIDGE_PROTOCOL,
         bridgePort,
         ctx.getPackageName(),
         BuildConfig.VERSION_NAME,
-        BuildConfig.VERSION_CODE);
+        BuildConfig.VERSION_CODE,
+        com.deepseekharness.app.util.UiText.language());
   }
 
   /** /app/help lists bridge endpoint parameters for authenticated clients. */
   private String appHelp() {
+    String taskHelp =
+        com.deepseekharness.app.util.UiText.choose(
+            "\n== 当前对话手机任务 ==\n用户明确要求手机操作时，先 /app/ui/task-begin；包括只启动应用的任务。每次请求携带真实工具环境的 taskSessionId=$DSH_PHONE_SESSION_ID 与 turnId=$DSH_PHONE_TURN_ID；不猜测或复制其它会话身份。begin 只显示当前对话状态和建立任务围栏，不授予系统权限、不自动批准动作。需要读屏再 dump/tree/screenshot；任务窗口会先隐藏，窗口可见状态变化后必须重新观察。成功 begin 后，任务完成或放弃时在 finally 收尾中调用一次 /app/ui/task-end，完成围栏并关闭该任务窗口，不取消模型对话；本轮结束后不再重新 begin。完成收尾不证明 UNKNOWN 动作已成功或已退出，不自动重放。普通讨论、引用或翻译不开始手机任务。\n",
+            "\n== Phone task in the current conversation ==\nWhen the user explicitly requests phone actions, call /app/ui/task-begin first, including app-launch-only tasks. Every request carries the real tool environment taskSessionId=$DSH_PHONE_SESSION_ID and turnId=$DSH_PHONE_TURN_ID; never invent or copy another conversation identity. Begin displays this conversation state and establishes the task boundary; it grants no system permission or automatic approval. Read dump/tree/screenshot when observation is needed; the task window is hidden first, and any visibility change requires a fresh observation. After successful begin, call /app/ui/task-end once in final cleanup when the task is completed or abandoned. End finishes this task and closes its window without cancelling the model conversation; do not begin again in the same finished turn. Cleanup does not prove an UNKNOWN action succeeded or exited; never replay automatically. Discussion, quotations and translations do not start phone tasks.\n");
     return com.deepseekharness.app.util.UiText.format(
-            "DSHA 3090 桥端点清单（BRIDGE_PROTOCOL=%s）\n凭据由宿主写入 /root/.dsh/.bridge_headers；使用 curl -H @/root/.dsh/.bridge_headers，不把 token 写进 URL 或命令参数。\n带中文/空格的参数一律用 -G --data-urlencode，别手写 URL 编码。\n\n== 屏幕操作（无障碍服务，不需要 ADB/Shizuku）==\n坐标触控仅限物理display 0：先 /app/ui/screenshot，返回 coordinatesAvailable:true 且含 observationId 才可用；dump/tree不签发像素凭据。ID限最新截图、30秒、一次手势；画面/窗口/遮挡/代次变化即拒绝。\n文字/节点动作返回 SCREEN_ACTION_SUBMITTED、actionAccepted:true、effectVerified:false 只代表Android接受动作，不证明WebView DOM已变；须重新观察，后续坐标操作须显式取新截图，禁止隐式回退或重放UNKNOWN。\n读屏  curl -s -H @/root/.dsh/.bridge_headers \"127.0.0.1:3090/app/ui/dump\"\n      → 每行语义节点附bounds；boundsHaveArea:false没有可触摸面积，不能取中心点触控\n点按  curl -s -G 127.0.0.1:3090/app/ui/tap --data-urlencode \"text=设置\" -H @/root/.dsh/.bridge_headers\n      → 优先按文字点：控件位置随滚动/动画变，文字不变。坐标触控须先截图取得 observationId（dump不签发），再用 ?observationId=截图返回的ID&x=&y=\n语义滚动 先 /app/ui/tree 或 dump 取 treeId、nodeId 和 supportedActions；/app/ui/node?treeId=返回的树ID&nodeId=返回的节点ID&action=scroll_forward（或 scroll_backward）。只调用节点列出的动作，一次请求后取新树；无障碍接受不代表实际已滚动，不自动改用滑动或重放未知结果。\n输入  curl -s -G 127.0.0.1:3090/app/ui/input --data-urlencode \"text=内容\" -H @/root/.dsh/.bridge_headers\n      → 填到当前焦点框；没有焦点先 tap 一下输入框\n按键  /app/ui/key?name=back  （back/home/recents/notifications/quicksettings/lock）\n长按  /app/ui/tap?observationId=截图返回的ID&x=540&y=1200&gesture=long_press&ms=600\n双击  /app/ui/tap?observationId=截图返回的ID&x=540&y=1200&gesture=double_tap（同一Gesture/一次许可）\n当前只支持单指触控；多指/缩放不支持。\n滑动  /app/ui/swipe?observationId=截图返回的ID&x1=500&y1=1500&x2=500&y2=500&ms=300\n截屏  /app/ui/screenshot   → 存 PNG 到应用截图目录并返回路径（不回 base64）\n节奏：每次点按/输入后先 dump 再决定下一步，别凭记忆连点。\n\n== 独立虚拟屏（Android 11+；每次输入必须带最新 frameSeq）==\n/app/vscreen/create?orientation=portrait|landscape  创建虚拟屏\n/app/vscreen/status  查询 displayId、尺寸和 frameSeq\n/app/vscreen/launch?package=com.example.app  启动已安装应用\n/app/vscreen/see  获取最新预览；tap/swipe/type/key 必须携带该 frameSeq\n/app/vscreen/close  关闭并回收虚拟屏\n\n== 设备与应用 ==\n/app/device                     机型/系统/电量/网络/屏幕/存储/内存\n/app/apps                       全部已装应用，分用户应用与系统应用；可加 q/limit/user=1 筛选显示\n/app/launch?pkg=com.tencent.mm  启动应用\n/app/clip                       读剪贴板（需 App 在前台，系统限制）\n/app/clip + text=…              写剪贴板\n/app/readfile?path=/…          读取绝对路径的目录或文本，仍受 Android 权限限制；凭据区（.dsh/.ssh/.android）不可读\n设备文件写入请走下方受保护的设备 shell；普通 Download 文件可操作，DCIM/Pictures/Android/data/obb 只读。\n\n== 与用户交互 ==\n/app/ask?options=继续|取消 + q=…  弹窗阻塞等回答（最多三个选项）\n/app/notify?title=… + text=…      通知栏\n/app/toast + text=…               App 内提示\n/app/vibrate?ms=300               震动（长任务跑完叫醒用户）\n/app/share（text= 或 path=）      分享到其它应用\n/app/open?url=https://…           打开链接\n/app/export?path=/root/report.md  把产物交给用户 → 落 Download/DSHA；凭据区不可导出\n建议：需要用户拍板用 /app/ask 而不是干等；长任务结束用 notify 或 vibrate 叫人；\n产出报告用 /app/export，别只留在容器里。\n\n== 传感器与位置（默认关闭，需用户在配置页勾选）==\n/app/location（加 fresh=1 强制重新定位，可能等数秒）\n/app/sensors 列表 · /app/sensor?name=light 读值\n（light 环境光 lux / accel / gyro / magnet / pressure / proximity /\n gravity / rotation 姿态四元数 / steps 开机后步数）\n/app/torch?on=1 手电\n这三类返回 DISABLED（用户没开该能力）或 NO_PERMISSION（没授系统权限）时，\n照原话告诉用户去哪开，不要重试 —— 重试不会让开关自己变。\n\n== 元信息 ==\n/app/version                          桥协议版本 + App 版本（特性检测用）\n/app/help                             本清单\n\n== 插件状态 ==\n/app/plugins                          读回上次上报的加载状态\n/app/plugins?loaded=a,b&failed=c      上报（插件侧用）\n\n== 设备 shell（自动选择 root / Shizuku / ADB）==\n/root/dsh-bin/adb-shell \"命令\"        用 id 核验实际身份\n包装命令不存在时：python3 /root/.dsh/adb-shell.py \"命令\"\n短信只允许当前 Android 用户的 content query --uri content://sms，默认关闭；设置 → 设备能力授权可开启或撤销。\n短信预授权可能返回正文及验证码；不允许发送、修改或删除，Android 仍可拒绝访问。Shizuku 不执行此敏感查询。\n仅执行已识别的单条命令；允许读取各目录和明确路径的普通文件操作。禁止脚本、管道、重定向、未知命令。\n根目录及系统目录只读；禁止块设备/分区、SELinux、系统设置写入、挂载和刷机操作。\n结束进程前自动刷新全量用户/系统应用清单；普通用户应用直接结束，系统应用与关键进程拦截。\n按完整包名调用 am force-stop / killall / pkill -x；kill 正数 PID 会核对 UID 后按包名停止。\n策略拦截返回 [POLICY_BLOCKED]/126；root 和旧确认开关不能放行。不可用其它解释器或 UI 绕过。\n报连不上/未配对：先看上面的 App 层接口能不能办成；确实必须 shell 才请用户到\n设置 → 设备能力授权中连接可用通道，别反复试同一条命令。\n不要用 /root/dsh-bin/adb 或裸 adb —— 那是守卫包装脚本，会失败。\n\n== root（--su）==\n已启用并经 root 管理器授权的 su 可直接执行，无需 ADB 配对；其次使用 Shizuku，再使用 ADB。\n--su 仅在明确需要 root 时使用，须先在设备能力授权页允许；同一设备保护策略始终生效。\n[EXECUTION_UNKNOWN] 表示命令可能已执行，先核对实际状态，不能切换通道或自动重放。\n",
-            BRIDGE_PROTOCOL)
-        .replace("3090", Integer.toString(bridgePort));
+                "DSHA 3090 桥端点清单（BRIDGE_PROTOCOL=%s）\n凭据由宿主写入 /root/.dsh/.bridge_headers；使用 curl -H @/root/.dsh/.bridge_headers，不把 token 写进 URL 或命令参数。\n带中文/空格的参数一律用 -G --data-urlencode，别手写 URL 编码。\n\n== 屏幕操作（无障碍服务，不需要 ADB/Shizuku）==\n坐标触控仅限物理display 0：先 /app/ui/screenshot，返回 coordinatesAvailable:true 且含 observationId 才可用；dump/tree不签发像素凭据。ID限最新截图、30秒、一次手势；画面/窗口/遮挡/代次变化即拒绝。\n文字/节点动作返回 SCREEN_ACTION_SUBMITTED、actionAccepted:true、effectVerified:false 只代表Android接受动作，不证明WebView DOM已变；须重新观察，后续坐标操作须显式取新截图，禁止隐式回退或重放UNKNOWN。\n读屏  curl -s -H @/root/.dsh/.bridge_headers \"127.0.0.1:3090/app/ui/dump\"\n      → 每行语义节点附bounds；boundsHaveArea:false没有可触摸面积，不能取中心点触控\n点按  curl -s -G 127.0.0.1:3090/app/ui/tap --data-urlencode \"text=设置\" -H @/root/.dsh/.bridge_headers\n      → 优先按文字点：控件位置随滚动/动画变，文字不变。坐标触控须先截图取得 observationId（dump不签发），再用 ?observationId=截图返回的ID&x=&y=\n语义滚动 先 /app/ui/tree 或 dump 取 treeId、nodeId 和 supportedActions；/app/ui/node?treeId=返回的树ID&nodeId=返回的节点ID&action=scroll_forward（或 scroll_backward）。只调用节点列出的动作，一次请求后取新树；无障碍接受不代表实际已滚动，不自动改用滑动或重放未知结果。\n输入  curl -s -G 127.0.0.1:3090/app/ui/input --data-urlencode \"text=内容\" -H @/root/.dsh/.bridge_headers\n      → 填到当前焦点框；没有焦点先 tap 一下输入框\n按键  /app/ui/key?name=back  （back/home/recents/notifications/quicksettings/lock）\n长按  /app/ui/tap?observationId=截图返回的ID&x=540&y=1200&gesture=long_press&ms=600\n双击  /app/ui/tap?observationId=截图返回的ID&x=540&y=1200&gesture=double_tap（同一Gesture/一次许可）\n当前只支持单指触控；多指/缩放不支持。\n滑动  /app/ui/swipe?observationId=截图返回的ID&x1=500&y1=1500&x2=500&y2=500&ms=300\n截屏  /app/ui/screenshot   → 存 PNG 到应用截图目录并返回路径（不回 base64）\n节奏：每次点按/输入后先 dump 再决定下一步，别凭记忆连点。\n\n== 独立虚拟屏（Android 11+；每次输入必须带最新 frameSeq）==\n/app/vscreen/create?orientation=portrait|landscape  创建虚拟屏\n/app/vscreen/status  查询 displayId、尺寸和 frameSeq\n/app/vscreen/launch?package=com.example.app  启动已安装应用\n/app/vscreen/see  获取最新预览；tap/swipe/type/key 必须携带该 frameSeq\n/app/vscreen/close  关闭并回收虚拟屏\n\n== 设备与应用 ==\n/app/device                     机型/系统/电量/网络/屏幕/存储/内存\n/app/apps                       全部已装应用，分用户应用与系统应用；可加 q/limit/user=1 筛选显示\n/app/launch?pkg=com.tencent.mm  启动应用\n/app/clip                       读剪贴板（需 App 在前台，系统限制）\n/app/clip + text=…              写剪贴板\n/app/readfile?path=/…          读取绝对路径的目录或文本，仍受 Android 权限限制；凭据区（.dsh/.ssh/.android）不可读\n设备文件写入请走下方受保护的设备 shell；普通 Download 文件可操作，DCIM/Pictures/Android/data/obb 只读。\n\n== 与用户交互 ==\n/app/ask?options=继续|取消 + q=…  弹窗阻塞等回答（最多三个选项）\n/app/notify?title=… + text=…      通知栏\n/app/toast + text=…               App 内提示\n/app/vibrate?ms=300               震动（长任务跑完叫醒用户）\n/app/share（text= 或 path=）      分享到其它应用\n/app/open?url=https://…           打开链接\n/app/export?path=/root/report.md  把产物交给用户 → 落 Download/DSHA；凭据区不可导出\n建议：需要用户拍板用 /app/ask 而不是干等；长任务结束用 notify 或 vibrate 叫人；\n产出报告用 /app/export，别只留在容器里。\n\n== 传感器与位置（默认关闭，需用户在配置页勾选）==\n/app/location（加 fresh=1 强制重新定位，可能等数秒）\n/app/sensors 列表 · /app/sensor?name=light 读值\n（light 环境光 lux / accel / gyro / magnet / pressure / proximity /\n gravity / rotation 姿态四元数 / steps 开机后步数）\n/app/torch?on=1 手电\n这三类返回 DISABLED（用户没开该能力）或 NO_PERMISSION（没授系统权限）时，\n照原话告诉用户去哪开，不要重试 —— 重试不会让开关自己变。\n\n== 元信息 ==\n/app/version                          桥协议版本 + App 版本（特性检测用）\n/app/help                             本清单\n\n== 插件状态 ==\n/app/plugins                          读回上次上报的加载状态\n/app/plugins?loaded=a,b&failed=c      上报（插件侧用）\n\n== 设备 shell（自动选择 root / Shizuku / ADB）==\n/root/dsh-bin/adb-shell \"命令\"        用 id 核验实际身份\n包装命令不存在时：python3 /root/.dsh/adb-shell.py \"命令\"\n短信只允许当前 Android 用户的 content query --uri content://sms，默认关闭；设置 → 设备能力授权可开启或撤销。\n短信预授权可能返回正文及验证码；不允许发送、修改或删除，Android 仍可拒绝访问。Shizuku 不执行此敏感查询。\n仅执行已识别的单条命令；允许读取各目录和明确路径的普通文件操作。禁止脚本、管道、重定向、未知命令。\n根目录及系统目录只读；禁止块设备/分区、SELinux、系统设置写入、挂载和刷机操作。\n结束进程前自动刷新全量用户/系统应用清单；普通用户应用直接结束，系统应用与关键进程拦截。\n按完整包名调用 am force-stop / killall / pkill -x；kill 正数 PID 会核对 UID 后按包名停止。\n策略拦截返回 [POLICY_BLOCKED]/126；root 和旧确认开关不能放行。不可用其它解释器或 UI 绕过。\n报连不上/未配对：先看上面的 App 层接口能不能办成；确实必须 shell 才请用户到\n设置 → 设备能力授权中连接可用通道，别反复试同一条命令。\n不要用 /root/dsh-bin/adb 或裸 adb —— 那是守卫包装脚本，会失败。\n\n== root（--su）==\n已启用并经 root 管理器授权的 su 可直接执行，无需 ADB 配对；其次使用 Shizuku，再使用 ADB。\n--su 仅在明确需要 root 时使用，须先在设备能力授权页允许；同一设备保护策略始终生效。\n[EXECUTION_UNKNOWN] 表示命令可能已执行，先核对实际状态，不能切换通道或自动重放。\n",
+                BRIDGE_PROTOCOL)
+            .replace("3090", Integer.toString(bridgePort))
+        + taskHelp;
   }
 
   /** /app/plugins records actual startup loading observations; registration alone is not readiness. */
@@ -2579,6 +2622,7 @@ public final class HttpShellService {
       boolean screen,
       com.deepseekharness.app.util.ScreenTarget target) {
     final PendingConfirmation pending;
+    final com.deepseekharness.app.control.ScreenControlConfirmation taskHandler;
     synchronized (LIFECYCLE) {
       BridgeRun run = activeRun;
       if (!running
@@ -2586,59 +2630,112 @@ public final class HttpShellService {
           || !LIFECYCLE.isCurrent(run.generation)
           || scope.run != run
           || !screenBridgeCurrent(scope)) return ConfirmationOutcome.UNAVAILABLE;
+      com.deepseekharness.app.control.ControlTaskAuthority.Lease taskLease = null;
+      var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
+      String taskIdentity =
+          com.deepseekharness.app.control.ScreenAuthorityBindings.identity(capability);
+      if (screen && !taskIdentity.isEmpty()) {
+        var state = coordinator.snapshot();
+        var binding = state.binding();
+        // A bound request cannot fall back to another confirmation channel after losing its task.
+        // Unbound commands never borrow whichever conversation happens to be active.
+        if (binding == null
+            || binding.owner()
+                != com.deepseekharness.app.control.ControlTaskAuthority.Owner.LOCAL_DSH
+            || state.paused()
+            || !binding.connection().equals(run.runId + ":" + capability.runtime.instanceId)
+            || !taskIdentity.equals(binding.identity() + "\0" + state.revision())
+            || !com.deepseekharness.app.control.ScreenAuthorityBindings.current(capability)
+            || !capability.runtime.equals(
+                com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx))
+            || !capability.bridgeRunId.equals(run.runId)) return ConfirmationOutcome.UNAVAILABLE;
+        taskLease =
+            new com.deepseekharness.app.control.ControlTaskAuthority.Lease(
+                binding, state.revision());
+        taskHandler = coordinator.confirmationHandler();
+        if (taskHandler == null) return ConfirmationOutcome.UNAVAILABLE;
+      } else taskHandler = null;
       var request =
           confirmations.begin(DshaApp.from(ctx).capabilityBroker(), capability, run.generation);
       if (request == null) return ConfirmationOutcome.UNAVAILABLE;
-      pending = new PendingConfirmation(request, screen, target);
+      pending = new PendingConfirmation(request, screen, target, scope, taskLease);
       pendingConfirm = pending;
     }
     try {
-      synchronized (LIFECYCLE) {
-        if (!currentConfirmation(pending)) return ConfirmationOutcome.UNAVAILABLE;
-        showConfirmNotification(cmd, pending);
-        OverlayController.askConfirm(
-            ctx,
-            pending,
-            safeDisplay(cmd),
-            () -> resolveConfirm(true, pending.request.identity),
-            () -> resolveConfirm(false, pending.request.identity));
-      }
-      final androidx.fragment.app.FragmentActivity act = ForegroundActivity.current();
-      if (act != null) {
-        final String prompt =
-            com.deepseekharness.app.util.UiText.format(
-                "模型试图在设备上执行：\n%s\n\n是否允许？", safeDisplay(cmd));
-        act.runOnUiThread(
-            () -> {
-              synchronized (LIFECYCLE) {
-                try {
-                  if (!ForegroundActivity.isResumed(act) || !currentConfirmation(pending)) return;
-                  pending.dialog =
-                      new com.deepseekharness.app.ui.DshaDialogBuilder(act)
-                          .setTitle(com.deepseekharness.app.util.UiText.text("DSHA 安全确认"))
-                          .setMessage(prompt)
-                          .setCancelable(false)
-                          .setPositiveButton(
-                              com.deepseekharness.app.util.UiText.text("允许"),
-                              (d, w) -> resolveConfirm(true, pending.request.identity))
-                          .setNegativeButton(
-                              com.deepseekharness.app.util.UiText.text("拒绝"),
-                              (d, w) -> resolveConfirm(false, pending.request.identity))
-                          .show();
-                  pending.promptWindow = confirmationWindowId(pending.dialog);
-                } catch (Throwable t) {
-                  android.util.Log.w(
-                      "DSHA",
-                      com.deepseekharness.app.util.UiText.format(
-                          "确认弹窗弹出失败，仍可从通知确认：%s", safeError(t)));
+      if (taskHandler != null) {
+        var prompt =
+            taskHandler.confirm(
+                capability,
+                target,
+                () -> {
+                  synchronized (LIFECYCLE) {
+                    return currentConfirmation(pending);
+                  }
+                },
+                decision -> {
+                  synchronized (LIFECYCLE) {
+                    if (!currentConfirmation(pending) || decision.allowed() == null) {
+                      // Expiry can make the broker non-current before its blocking waiter wakes.
+                      // Retire only this request, including its exact prompt, without a late grant.
+                      if (pendingConfirm == pending) finishConfirmation(pending);
+                      return;
+                    }
+                    pending.promptWindow = decision.windowId();
+                  }
+                  resolveConfirm(Boolean.TRUE.equals(decision.allowed()), pending.request.identity);
+                });
+        synchronized (LIFECYCLE) {
+          if (currentConfirmation(pending)) pending.taskPrompt = prompt;
+          else prompt.close();
+        }
+      } else {
+        synchronized (LIFECYCLE) {
+          if (!currentConfirmation(pending)) return ConfirmationOutcome.UNAVAILABLE;
+          showConfirmNotification(cmd, pending);
+          OverlayController.askConfirm(
+              ctx,
+              pending,
+              safeDisplay(cmd),
+              () -> resolveConfirm(true, pending.request.identity),
+              () -> resolveConfirm(false, pending.request.identity));
+        }
+        final androidx.fragment.app.FragmentActivity act = ForegroundActivity.current();
+        if (act != null) {
+          final String prompt =
+              com.deepseekharness.app.util.UiText.format(
+                  "模型试图在设备上执行：\n%s\n\n是否允许？", safeDisplay(cmd));
+          act.runOnUiThread(
+              () -> {
+                synchronized (LIFECYCLE) {
+                  try {
+                    if (!ForegroundActivity.isResumed(act) || !currentConfirmation(pending)) return;
+                    pending.dialog =
+                        new com.deepseekharness.app.ui.DshaDialogBuilder(act)
+                            .setTitle(com.deepseekharness.app.util.UiText.text("DSHA 安全确认"))
+                            .setMessage(prompt)
+                            .setCancelable(false)
+                            .setPositiveButton(
+                                com.deepseekharness.app.util.UiText.text("允许"),
+                                (d, w) -> resolveConfirm(true, pending.request.identity))
+                            .setNegativeButton(
+                                com.deepseekharness.app.util.UiText.text("拒绝"),
+                                (d, w) -> resolveConfirm(false, pending.request.identity))
+                            .show();
+                    pending.promptWindow = confirmationWindowId(pending.dialog);
+                  } catch (Throwable t) {
+                    android.util.Log.w(
+                        "DSHA",
+                        com.deepseekharness.app.util.UiText.format(
+                            "确认弹窗弹出失败，仍可从通知确认：%s", safeError(t)));
+                  }
                 }
-              }
-            });
-      } else if (!notificationsEnabled()) {
-        android.util.Log.w(
-            "DSHA",
-            com.deepseekharness.app.util.UiText.format(
-                "无前台界面且通知权限被拒，确认必然超时拒绝：%s", safeDisplay(cmd)));
+              });
+        } else if (!notificationsEnabled()) {
+          android.util.Log.w(
+              "DSHA",
+              com.deepseekharness.app.util.UiText.format(
+                  "无前台界面且通知权限被拒，确认必然超时拒绝：%s", safeDisplay(cmd)));
+        }
       }
       boolean allowed = pending.request.await(CONFIRM_TIMEOUT_S, TimeUnit.SECONDS);
       synchronized (LIFECYCLE) {
@@ -2672,6 +2769,14 @@ public final class HttpShellService {
         && pendingConfirm == pending
         && run.generation == pending.request.generation
         && LIFECYCLE.isCurrent(run.generation)
+        && (pending.taskLease == null
+            || screenBridgeCurrent(pending.scope)
+                && com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx)
+                    .current(pending.taskLease)
+                && com.deepseekharness.app.control.ScreenAuthorityBindings.current(
+                    pending.request.context)
+                && com.deepseekharness.app.assistant.AssistantService.stopChannelCurrent(
+                    ctx, pending.taskLease.binding()))
         && confirmations.pending(pending.request);
   }
 
@@ -2795,6 +2900,11 @@ public final class HttpShellService {
 
   private void clearConfirmationUi(PendingConfirmation pending) {
     if (pendingConfirm != pending) return;
+    var taskPrompt = pending.taskPrompt;
+    pending.taskPrompt = null;
+    if (taskPrompt != null) taskPrompt.close();
+    // The task prompt is the only approval UI for a bound task, including its cleanup.
+    if (pending.taskLease != null) return;
     if (pending.allow != null) {
       try {
         pending.allow.cancel();

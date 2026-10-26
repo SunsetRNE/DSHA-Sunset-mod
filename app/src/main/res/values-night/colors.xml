@@ -25,4 +25,26 @@
     <color name="error_on">#1A0F0F</color>
     <color name="disabled">#1B2130</color>
     <color name="err_bg">#1AE08A8A</color>
+
+    <!-- 终端外壳夜间：浅蓝 + 近黑；输出区固定 token（surface/foreground/outline）不在此覆盖。 -->
+    <color name="terminal_panel">#0B0F16</color>
+    <color name="terminal_panel_text">#E4E8F0</color>
+    <color name="terminal_panel_text_strong">#F2F5FA</color>
+    <color name="terminal_muted">#9DA8BB</color>
+    <color name="terminal_faint">#7C8AA0</color>
+    <color name="terminal_line">#1E2735</color>
+    <color name="terminal_line_strong">#2E3B4F</color>
+    <color name="terminal_accent">#8AB4FF</color>
+    <color name="terminal_accent_bg">#13233C</color>
+    <color name="terminal_accent_soft_2">#1B3050</color>
+    <color name="terminal_accent_line">#2C4C7C</color>
+    <color name="terminal_on_accent">#081428</color>
+    <color name="terminal_raised">#151C27</color>
+    <color name="terminal_warning">#E5C07B</color>
+    <color name="terminal_warning_soft">#2A2417</color>
+    <color name="terminal_danger">#E08A8A</color>
+    <color name="terminal_danger_soft">#2C1A1C</color>
+    <color name="terminal_ripple">#338AB4FF</color>
+    <color name="terminal_scrim">#B3000000</color>
+    <color name="terminal_panel_card">#10151E</color>
 </resources>

@@ -21,9 +21,6 @@ public final class WorkspaceEntry {
   }
 
   public static Intent local(Context context) {
-    return new Intent(context, MainActivity.class)
-        .putExtra(LOCAL, true)
-        .putExtra("open_launch", true)
-        .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    return MainActivity.homeIntent(context).putExtra(LOCAL, true);
   }
 }

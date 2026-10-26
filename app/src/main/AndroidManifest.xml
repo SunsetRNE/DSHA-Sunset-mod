@@ -87,12 +87,24 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
+            android:documentLaunchMode="never"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 同 task 终端视图；离开页面只解绑，运行会话由独立服务保护。 -->
+        <activity android:name=".ui.TerminalActivity" android:exported="false"
+            android:launchMode="singleTop" android:documentLaunchMode="never"
+            android:windowSoftInputMode="adjustResize" />
+        <service android:name=".TerminalRuntimeService" android:exported="false"
+            android:stopWithTask="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started interactive terminal sessions and pending verified process cleanup" />
+        </service>
 
         <activity android:name=".ui.UpdateActivity" android:exported="false" />
         <activity android:name=".ui.DiagnosticActivity" android:exported="false" />
@@ -169,6 +181,8 @@
             android:name=".ui.WebPreviewActivity"
             android:exported="false"
             android:launchMode="singleTask"
+            android:documentLaunchMode="never"
+            android:excludeFromRecents="true"
             android:taskAffinity="${applicationId}.browser.webview"
             android:supportsPictureInPicture="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
@@ -183,7 +197,7 @@
         <activity
             android:name=".ui.AdbPairActivity"
             android:exported="false"
-            android:label="ADB 无线配对"
+            android:label="@string/adb_pairing_service_label"
             android:theme="@style/Theme.DeepseekHarness" />
 
         <service
@@ -212,7 +226,7 @@
         <service
             android:name=".DshaAccessibilityService"
             android:exported="false"
-            android:label="DSHA 配对助手"
+            android:label="@string/accessibility_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />

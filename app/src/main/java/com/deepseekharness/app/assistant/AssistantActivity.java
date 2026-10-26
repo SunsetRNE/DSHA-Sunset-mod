@@ -37,6 +37,8 @@ public final class AssistantActivity extends AppCompatActivity {
   private Button sendButton, resumeButton;
   private boolean resumed, loading, creating;
   private boolean pendingInput;
+  private boolean controlPermissionMode;
+  private boolean notificationPermissionMode;
   private long editorRevision;
   private final Runnable localReady =
       () -> {
@@ -63,6 +65,10 @@ public final class AssistantActivity extends AppCompatActivity {
     status.setTextSize(20);
     status.setText(UiText.choose("DSHA 悬浮助手", "DSHA floating assistant"));
     content.addView(status);
+    if (AssistantService.CONTROL_PERMISSION.equals(getIntent().getAction())) {
+      showControlPermission();
+      return;
+    }
     if (getIntent().getBooleanExtra("bound", false)
         && AssistantSessionController.active() != null) {
       showBound();
@@ -87,11 +93,56 @@ public final class AssistantActivity extends AppCompatActivity {
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     setIntent(intent);
+    if (AssistantService.CONTROL_PERMISSION.equals(intent.getAction())) {
+      showControlPermission();
+      return;
+    }
+    controlPermissionMode = false;
     if (intent.getBooleanExtra("bound", false)) showBound();
     else if ("REMOTE".equals(intent.getStringExtra("target")))
       selectTarget(AssistantBinding.Target.REMOTE);
     else if ("LOCAL".equals(intent.getStringExtra("target")))
       selectTarget(AssistantBinding.Target.LOCAL);
+  }
+
+  private void showControlPermission() {
+    controlPermissionMode = true;
+    notificationPermissionMode = getIntent().getBooleanExtra("notification_permission", false);
+    target = null;
+    loadRevision++;
+    loading = false;
+    if (bound != null) bound.removeListener(changed);
+    bound = null;
+    input = null;
+    pendingInput = false;
+    editorRevision++;
+    content.removeAllViews();
+    content.addView(status);
+    status.setText(
+        notificationPermissionMode
+            ? UiText.choose("手机任务状态", "Phone task status")
+            : UiText.choose("手机任务状态与悬浮窗权限", "Phone task status and overlay permission"));
+    TextView detail = new TextView(this);
+    detail.setText(
+        AssistantService.taskGuidance(
+            notificationPermissionMode
+                ? "ASSISTANT_STOP_NOTIFICATION_REQUIRED"
+                : "ASSISTANT_OVERLAY_PERMISSION_REQUIRED"));
+    content.addView(detail);
+    buttonContainer = null;
+    if (notificationPermissionMode)
+      button(
+          UiText.choose("打开系统通知设置", "Open Android notification settings"),
+          () -> startActivity(AssistantService.notificationSettingsIntent(this)));
+    else
+      button(
+          UiText.choose("打开系统悬浮窗权限", "Open Android overlay permission"),
+          () ->
+              startActivity(
+                  new Intent(
+                      Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                      Uri.parse("package:" + getPackageName()))));
+    button(UiText.choose("返回原对话继续", "Return to the original conversation"), this::finish);
   }
 
   private void selectTarget(AssistantBinding.Target value) {
@@ -182,10 +233,7 @@ public final class AssistantActivity extends AppCompatActivity {
   }
 
   private void localWorkspace() {
-    startActivity(
-        new Intent(this, MainActivity.class)
-            .putExtra("open_launch", true)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+    startActivity(MainActivity.homeIntent(this));
   }
 
   private void overlayPermission() {
@@ -559,7 +607,7 @@ public final class AssistantActivity extends AppCompatActivity {
   @Override
   protected void onStart() {
     super.onStart();
-    HarnessController.get(this).addReadyWebPageListener(localReady);
+    if (!controlPermissionMode) HarnessController.get(this).addReadyWebPageListener(localReady);
   }
 
   @Override
@@ -567,6 +615,22 @@ public final class AssistantActivity extends AppCompatActivity {
     super.onResume();
     resumed = true;
     content.setDescendantFocusability(android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS);
+    if (controlPermissionMode) {
+      if (notificationPermissionMode) {
+        status.setText(
+            AssistantService.stopNotificationAvailable(this)
+                ? UiText.choose("返回原对话继续", "Return to the original conversation")
+                : UiText.choose("手机任务状态", "Phone task status"));
+        return;
+      }
+      status.setText(
+          Settings.canDrawOverlays(this)
+              ? UiText.choose(
+                  "已允许悬浮窗。请返回原对话明确继续；不会自动执行。",
+                  "Overlay permission allowed. Return to the original conversation and explicitly continue; execution is not automatic.")
+              : UiText.choose("手机任务需要悬浮窗权限", "Phone tasks require overlay permission"));
+      return;
+    }
     if (input != null) {
       input.setFocusableInTouchMode(true);
       input.setShowSoftInputOnFocus(true);
@@ -604,7 +668,7 @@ public final class AssistantActivity extends AppCompatActivity {
 
   @Override
   protected void onStop() {
-    HarnessController.get(this).removeReadyWebPageListener(localReady);
+    if (!controlPermissionMode) HarnessController.get(this).removeReadyWebPageListener(localReady);
     super.onStop();
   }
 

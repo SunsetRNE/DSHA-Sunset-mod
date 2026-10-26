@@ -18,6 +18,23 @@ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 
 
 class RecoveryAssetTests(unittest.TestCase):
+    def test_language_overlay_replaces_the_complete_pinned_predecessor_and_rejects_partial_forms(self):
+        assets = module.ROOT / 'app/src/main/assets'
+        recipe = json.loads((assets / 'recovery-recipes/0.2.1-rc.3/language-patch.json').read_text(encoding='utf8'))
+        previous = recipe['previousPatches']
+        canonical = '\n'.join(row['before'] for row in previous)
+        old = canonical
+        for row in previous:
+            old = browser_overlay.exact(old, row['before'], row['after'])
+        expected = browser_overlay.language_overlay(canonical, recipe, assets)
+        self.assertEqual(expected, browser_overlay.language_overlay(old, recipe, assets))
+        self.assertEqual(expected, browser_overlay.language_overlay(expected, recipe, assets))
+        partial = old.replace(previous[1]['after'], previous[1]['before'])
+        with self.assertRaisesRegex(ValueError, 'RECOVERY_LANGUAGE_PARTIAL_PREVIOUS_RECIPE'):
+            browser_overlay.language_overlay(partial, recipe, assets)
+        with self.assertRaisesRegex(ValueError, 'RECOVERY_OVERLAY_ANCHOR|RECOVERY_LANGUAGE_DUPLICATE_HELPER'):
+            browser_overlay.language_overlay(old + '\n' + expected, recipe, assets)
+
     def test_signed_capsule_dependencies_are_complete_and_bound_to_files(self):
         assets = module.ROOT / 'app/src/main/assets'
         proof = {}

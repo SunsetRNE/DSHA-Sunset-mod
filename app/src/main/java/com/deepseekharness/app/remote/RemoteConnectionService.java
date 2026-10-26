@@ -554,6 +554,15 @@ public final class RemoteConnectionService extends Service {
           }
           if (Binder.getCallingUid() != android.os.Process.myUid())
             throw new SecurityException("REMOTE_BIND_UID");
+          if (code == RemoteConnectionClient.TRANSACTION_UI_LANGUAGE) {
+            data.enforceInterface(RemoteConnectionClient.DESCRIPTOR);
+            if (data.dataAvail() != 0) throw new SecurityException("REMOTE_BIND_TRAILING_DATA");
+            reply.writeNoException();
+            reply.writeString(
+                new com.deepseekharness.app.core.ConfigStore(RemoteConnectionService.this)
+                    .getUiLanguage());
+            return true;
+          }
           if (code == RemoteConnectionClient.TRANSACTION_CURRENT) {
             data.enforceInterface(RemoteConnectionClient.DESCRIPTOR);
             if (data.dataAvail() != 0) throw new SecurityException("REMOTE_BIND_TRAILING_DATA");

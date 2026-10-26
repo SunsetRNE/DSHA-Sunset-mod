@@ -1,5 +1,8 @@
 # DSHA
 
+<!-- build197-current -->
+> **Current: 0.2.1-rc.3 / build197** — `0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3`, non-debuggable Standard / `dsh.android.client` / E7E3. One recents card and Home Back, explicit LAN status, phone tools in the current conversation, and ten interface/prompt languages. Fixes IME cancellation, stale polling and a restored blank Home page. 505 selected Standard tests, Release Lint and exact APK checks passed. Scoped Android13 coverage includes signed upgrades, real model/native confirmation, task reuse and normal shutdown; empty WebView semantic nodes, consent timeouts and candidate-specific limits remain documented in the [report](docs/releases/v0.2.1-rc.3-build197-20261025.md). Private delivery only; no Low tasks. Earlier current entries are historical.
+
 <!-- build196-current -->
 > **Current: 0.2.1-rc.3 / build196** — `0.2.1-rc.3-20261024.1835-dsh0.2.1-rc.3`, Standard / `dsh.android.client` / E7E3 / non-debuggable, conventional APK filename. Fixes the assistant composer and task bindings, physical semantic node tools, sharing/saving dispatch, and ports for side-by-side installations. Computer connections start from Home; its background-task button is removed. 279 selected Standard tests and Release Lint passed, with scoped Android16 acceptance. See the [report](docs/releases/v0.2.1-rc.3-build196-20261024.md) for candidate-specific evidence, timing samples and limits. Private prerelease delivery only; no Low tasks. Earlier entries below are historical.
 

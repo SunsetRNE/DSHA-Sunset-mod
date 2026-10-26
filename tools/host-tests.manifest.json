@@ -11,6 +11,48 @@
       "environment": {}
     },
     {
+      "path": "tools/test-language-patch-chain.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "jdk17",
+        "raw",
+        "current_archive"
+      ],
+      "args": [
+        "--archive",
+        "{runtimeArchive}",
+        "--jdk",
+        "{jdk}"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Real production Java and Python signed patch chains upgrade the exact shared d772 rc3 archive from complete v1 language helper to all ten locales without rebuilding the archive; canonical repair, partial/duplicate predecessors and idempotence remain fail-closed."
+    },
+    {
+      "path": "tools/test-ui-language-catalog.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Ten-language Java/resource generation and locked static Web dictionary extraction reject missing IDs and placeholder drift; complete generated Web assets and recovery predecessor recipe remain deterministic."
+    },
+    {
+      "path": "tools/test-prompt-language.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Locked rc3 real prompt assembly and authenticated loopback metadata refresh ten current native languages without restarting profiles or rewriting user complete/custom prompts and historical messages; recovery stays on its independent broker."
+    },
+    {
       "path": "tools/test-generate-changelog.py",
       "stage": "fast",
       "requires": [
@@ -1324,7 +1366,7 @@
     {
       "path": "tools/test-ui-language.mjs",
       "stage": "runtime",
-      "reason": "Current source/verified runtime host fixture; explicit dependencies and sandbox HOME; no Android device operations",
+      "reason": "Real locked rc3 LocaleRuntime registers all ten languages and resolves every namespaced fixed UI key; native/web selections, invalid tags, stale Host preferences, Arabic RTL clearing and listener disposal preserve user text.",
       "args": [],
       "timeoutSeconds": 900,
       "requires": [
@@ -1960,6 +2002,31 @@
       "reason": "Current build172 isolated source/runtime fixture; no Android device, live model request or user data operations",
       "environment": {},
       "cli": "no positional arguments; explicit current fixture requirements"
+    },
+    {
+      "path": "tools/test-mobile-locales.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Ten-language mobile nav/share/attachment registrations execute from the shipped bundle; preserve upstream zh/en, interpolation, regional lookup and deterministic published TypeScript sources."
+    },
+    {
+      "path": "tools/test-mobile-locales-browser.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Locked rc3 React renders shipped native file controls and switches all ten languages while mounted; file rows, preview labels, downloads and action sheets relabel in place without device operations."
     },
     {
       "path": "tools/test-mobile-file-delivery.mjs",

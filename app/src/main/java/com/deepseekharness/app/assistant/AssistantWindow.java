@@ -25,19 +25,55 @@ final class AssistantWindow implements AutoCloseable {
   private final Context context;
   private final AssistantSessionController controller;
   private final WindowManager manager;
-  private LinearLayout root, panel;
+  private LinearLayout root, panel, actions;
   private TextView status, messages;
   private Button input;
   private Button sendButton, resumeButton;
+  private Button notificationSettingsButton;
   private WindowManager.LayoutParams params;
   private volatile boolean added;
   private boolean renderedExpanded;
   private long draftRevision = -1;
   private boolean editorVisible;
+  private boolean hiddenForScreen;
+  private boolean stopControlsRequired;
   private final Runnable changed = this::render;
 
   boolean visible() {
     return added;
+  }
+
+  boolean taskUiAvailable() {
+    return added || hiddenForScreen;
+  }
+
+  /** Remove the actual input window before observing pixels; polling never recreates it. */
+  boolean hideForScreen() {
+    if (controller.snapshot().expanded() || editorVisible)
+      throw new IllegalStateException("ASSISTANT_LOCAL_RESUME_REQUIRED");
+    if (hiddenForScreen) return false;
+    if (!added) throw new IllegalStateException("ASSISTANT_UI_UNAVAILABLE");
+    manager.removeViewImmediate(root);
+    added = false;
+    hiddenForScreen = true;
+    stopControlsRequired = false;
+    OwnedScreenOverlay.clear("assistant");
+    return true;
+  }
+
+  /** Losing the stop notification restores explicit native controls while all input stays paused. */
+  void restoreStopControls() {
+    stopControlsRequired = true;
+    if (!added && hiddenForScreen && !editorVisible && Settings.canDrawOverlays(context)) {
+      try {
+        manager.addView(root, params);
+        added = true;
+        hiddenForScreen = false;
+      } catch (RuntimeException unavailable) {
+        return;
+      }
+    }
+    render();
   }
 
   AssistantWindow(Context context, AssistantSessionController controller) {
@@ -52,6 +88,7 @@ final class AssistantWindow implements AutoCloseable {
 
   void show() {
     if (!Settings.canDrawOverlays(context)) return;
+    hiddenForScreen = false;
     root = new LinearLayout(context);
     root.setOrientation(LinearLayout.VERTICAL);
     root.setPadding(dp(10), dp(6), dp(10), dp(6));
@@ -108,12 +145,18 @@ final class AssistantWindow implements AutoCloseable {
                   .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         });
     button(row, UiText.choose("收起", "Collapse"), controller::collapse);
-    LinearLayout actions = new LinearLayout(context);
+    actions = new LinearLayout(context);
     root.addView(actions);
     button(actions, UiText.choose("暂停", "Pause"), () -> controller.pause("USER_PAUSED"));
     resumeButton = button(actions, UiText.choose("继续", "Continue"), controller::resume);
     button(actions, UiText.choose("停止", "Stop"), controller::stop);
     button(actions, UiText.choose("会话", "Chat"), controller::returnConversation);
+    notificationSettingsButton = new Button(context);
+    notificationSettingsButton.setText(
+        UiText.choose("打开系统通知设置", "Open Android notification settings"));
+    notificationSettingsButton.setOnClickListener(
+        v -> context.startActivity(AssistantService.notificationSettingsIntent(context)));
+    root.addView(notificationSettingsButton);
     params = new WindowManager.LayoutParams();
     params.type =
         Build.VERSION.SDK_INT >= 26
@@ -123,10 +166,11 @@ final class AssistantWindow implements AutoCloseable {
     params.flags =
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
             | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
-    params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-    params.y = dp(38);
+    params.gravity = Gravity.BOTTOM | Gravity.END;
+    params.y = dp(24);
+    params.x = dp(12);
     params.width =
-        Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(440));
+        Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(210));
     params.height = -2;
     params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
     root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> publish());
@@ -180,6 +224,8 @@ final class AssistantWindow implements AutoCloseable {
             && state.paused()
             && state.phase() != AssistantSessionState.Phase.STOPPED);
     panel.setVisibility(state.expanded() ? View.VISIBLE : View.GONE);
+    actions.setVisibility(state.expanded() || stopControlsRequired ? View.VISIBLE : View.GONE);
+    notificationSettingsButton.setVisibility(stopControlsRequired ? View.VISIBLE : View.GONE);
     if (draftRevision != state.draftRevision()) {
       draftRevision = state.draftRevision();
       input.setText(
@@ -187,8 +233,12 @@ final class AssistantWindow implements AutoCloseable {
               ? UiText.choose("点此输入文字", "Tap to type a message")
               : String.format(UiText.choose("编辑草稿：%s", "Edit draft: %s"), state.draft()));
     }
-    if (renderedExpanded != state.expanded()) {
+    if (renderedExpanded != state.expanded() || stopControlsRequired) {
       renderedExpanded = state.expanded();
+      params.width =
+          state.expanded() || stopControlsRequired
+              ? Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(440))
+              : Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(210));
       // This window has buttons and a transcript, never an IME target.
       params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
       try {
@@ -245,6 +295,8 @@ final class AssistantWindow implements AutoCloseable {
           UiText.choose(
               "聊天已展开，手机操作已暂停。核对停止状态后可发送新消息；收起后点继续恢复任务。",
               "Phone actions are paused while chatting. Once cancellation is confirmed, send a message or collapse and continue the task.");
+      case "ASSISTANT_STOP_NOTIFICATION_REQUIRED" ->
+          AssistantService.taskGuidance("ASSISTANT_STOP_NOTIFICATION_REQUIRED");
       case "USER_PAUSED" ->
           UiText.choose(
               "任务已暂停。确认停止后，点继续会先重新观察屏幕。",
@@ -316,5 +368,6 @@ final class AssistantWindow implements AutoCloseable {
       } catch (RuntimeException ignored) {
       }
     added = false;
+    hiddenForScreen = false;
   }
 }

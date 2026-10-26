@@ -74,13 +74,16 @@ fetch(url,options){return fetch(${JSON.stringify(base)}+url.pathname+url.search,
   let releaseA,startedA
   const aReady=new Promise(resolveReady=>startedA=resolveReady), aHold=new Promise(release=>releaseA=release)
   const first=run(a,async signal=>{
+    const begin=await call(a,'android_control',{action:'begin'},signal)
+    assert.equal(begin.isError,false);assert.match(begin.text,/needsObservation/)
+    isError(await call(a,'android_key',{name:'back'},signal),'FRESH_SCREEN_OBSERVATION_REQUIRED')
     const observed=await call(a,'android_get_state',{},signal);assert.equal(observed.isError,false)
     assert.match(observed.text,/prefix-A-same1234/);assert.match(observed.text,/"turnId":"1"/)
     startedA();await aHold
     assert.equal((await call(a,'android_key',{name:'back'},signal)).isError,false)
   })
   await aReady
-  await run(b,async signal=>isError(await call(b,'android_get_state',{},signal),'PHYSICAL_SCREEN_BUSY'))
+  await run(b,async signal=>isError(await call(b,'android_control',{action:'begin'},signal),'PHYSICAL_SCREEN_BUSY'))
   releaseA();await first
   results.push('two concurrent real conversations preserve full IDs and exclusive ownership')
   // No lifecycle notification yet: next execution's actual completedTurnId must
@@ -104,10 +107,14 @@ fetch(url,options){return fetch(${JSON.stringify(base)}+url.pathname+url.search,
   assert.match(await native('dump',a.id,'1'),/SCREEN_TURN_ENDED/)
   assert.match(await native('dump',a.id,'2'),/SCREEN_TURN_ENDED/)
   await run(b,async signal=>{
+    assert.equal((await call(b,'android_control',{action:'begin'},signal)).isError,false)
     isError(await call(b,'android_key',{name:'home'},signal),'FRESH_SCREEN_OBSERVATION_REQUIRED')
     assert.equal((await call(b,'android_get_state',{},signal)).isError,false)
+    assert.equal((await call(b,'android_control',{action:'finish'},signal)).isError,false)
+    isError(await call(b,'android_get_state',{},signal),'SCREEN_TURN_ENDED')
   })
   results.push('completed turns stay fenced; independent next conversation can acquire after exact completion')
+  results.push('explicit begin uses the actual Agent conversation without granting an observation; finish retires the exact turn without model identity arguments')
   const unbound=await context.tools.execute({callId:'missing-agent',name:'mcp__dsha-android__android_get_state',
     arguments:{},signal:new AbortController().signal})
   assert.equal(unbound.isError,true);assert.match(unbound.content[0].text,/SCREEN_TASK_IDENTITY_REQUIRED/)

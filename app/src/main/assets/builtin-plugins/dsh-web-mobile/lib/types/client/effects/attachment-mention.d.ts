@@ -94,3 +94,5 @@ export declare function createAttachmentSource(ctx: ClientContext): AttachmentSo
 export declare function installAttachmentMention(ctx: ClientContext): void;
 export {};
 //# sourceMappingURL=attachment-mention.d.ts.map
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+export declare const attachmentLocales: Record<string, Record<AttachmentMentionKey, string>>;

@@ -49,9 +49,9 @@ public class ConfigStore {
   }
 
   /**
-   * 语言偏好：{@code system}（默认）/ {@code zh} / {@code en}。
+   * 语言偏好：{@code system}（默认）或 UiLanguagePreference 中的十种规范语言标签。
    *
-   * <p>从未设置过的用户走 {@code system}，由系统语言决定中文还是英文；
+   * <p>从未设置过的用户走 {@code system}，由系统首选语言及中文脚本/地区决定生效语言；
    * 老版本写过 {@code zh}/{@code en} 的用户保持原选择，升级不改变语言。
    */
   public String getUiLanguagePreference() {
@@ -63,7 +63,7 @@ public class ConfigStore {
     return com.deepseekharness.app.util.UiLanguagePreference.supported(text("ui_language", null));
   }
 
-  /** 实际生效语言（zh/en）：显式选择优先，否则解析系统语言。 */
+  /** 实际生效的规范 BCP-47 语言：显式选择优先，否则解析系统语言。 */
   public String getUiLanguage() {
     return com.deepseekharness.app.util.UiLanguagePreference.resolve(
         getUiLanguagePreference(), com.deepseekharness.app.util.SystemLanguage.tag());
