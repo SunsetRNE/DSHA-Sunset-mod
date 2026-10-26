@@ -170,9 +170,14 @@ public class TerminalInputContractTest {
           "gone", ((Element) includes.item(0).getParentNode()).getAttributeNS(ns, "visibility"));
     }
     String pty = source("PtyTerminalFragment");
-    assertTrue(pty.contains("row.setMinimumWidth(dp(48 * labels.length))"));
+    // 附加键已改为可配置模型：默认布局在 TerminalExtraKeys，视图只负责等宽单行渲染。
+    assertTrue(pty.contains("row.setMinimumWidth(dp(44 * actions.size()))"));
     assertTrue(pty.contains("dp(48)"));
-    assertTrue(pty.replace(" ", "").contains("{{\"ESC\",\"TAB\",\"CTRL\",\"ALT\""));
+    assertTrue(pty.contains("button.setSingleLine(true)"));
+    assertTrue(pty.contains("setAutoSizeTextTypeUniformWithConfiguration"));
+    assertTrue(pty.contains("TerminalExtraKeys.decode("));
+    assertTrue(pty.contains("TerminalExtraKeys.label(action)"));
+    assertFalse(pty.contains("String[][] rows = {"));
   }
 
   @Test
