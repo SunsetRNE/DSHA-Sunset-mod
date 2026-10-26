@@ -122,6 +122,27 @@ public class TerminalThemeTest {
   }
 
   @Test
+  @Config(qualifiers = "notnight")
+  public void tabletLandscapeCompactsFooterAndUsesThreeColumns() {
+    setTheme("light");
+    var controller = buildHost();
+    TerminalActivity host = controller.get();
+    measure(host, 900, 700);
+    openDrawer(host);
+
+    assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_actions).getVisibility());
+    assertEquals(
+        View.VISIBLE, host.findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
+    assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_subtitle).getVisibility());
+    assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_secondary).getVisibility());
+    assertFooterActions(host, true);
+    TextView home = host.findViewById(R.id.terminal_sessions_action_home_dense);
+    assertEquals(Math.round(44 * density(host)), home.getMinHeight());
+    assertEquals(1, home.getMaxLines());
+    controller.pause().stop().destroy();
+  }
+
+  @Test
   @Config(qualifiers = "night")
   public void themeSwitchReflectsPreferenceAndLocksWhileEndingAll() throws Exception {
     setTheme("dark");
