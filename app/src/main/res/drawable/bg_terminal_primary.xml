@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 终端侧栏主按钮：浅绿实心 + 深色文字，只在深色终端外壳内使用。 -->
+<!-- 已废弃（deprecated）：终端外壳去绿后“新建会话”改用 bg_btn_primary / bg_terminal_action_soft；
+     本文件仅为兼容 TerminalActivity 的旧引用暂时保留，等 Java 改完后随本文件一起删除。 -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/terminal_ripple">
     <item android:id="@android:id/mask">
