@@ -1815,11 +1815,15 @@ public final class PluginRepository extends AndroidViewModel {
         var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
         // 写方每 2 秒用同目录 rename 发布新快照；读取只要求打开描述符内字节一致，
         // 不把路径在读取期间换 inode 当成失败，否则会和正常心跳长期竞争。
+        // 运行根先规范化：Android 的 /data/user/0 是 /data/data 的系统别名，NOFOLLOW
+        // 逐段检查会把合法别名判成 PARENT_LINK；最终快照文件仍由读取器 NOFOLLOW 打开。
         snapshot =
             new JSONObject(
                 new String(
                     fs.currentSnapshot(
-                        new File(proot.getRootfsDir(), "root/.dsha-web-activity.json"), 256 * 1024),
+                        com.deepseekharness.app.plugins.PluginRuntimeProjection.snapshotPath(
+                            proot.getRootfsDir()),
+                        256 * 1024),
                     java.nio.charset.StandardCharsets.UTF_8));
         rejection =
             com.deepseekharness.app.plugins.PluginRuntimeProjection.rejection(

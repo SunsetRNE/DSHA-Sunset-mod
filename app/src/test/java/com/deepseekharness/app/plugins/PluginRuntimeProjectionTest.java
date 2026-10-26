@@ -3,10 +3,15 @@ package com.deepseekharness.app.plugins;
 import static org.junit.Assert.*;
 
 import com.deepseekharness.app.core.PluginRepository.Item;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
@@ -16,6 +21,8 @@ import org.robolectric.annotation.Config;
 public final class PluginRuntimeProjectionTest {
   private static final long NOW = 100_000, GENERATION = 7;
   private static final String INSTANCE = "owned-web-instance";
+
+  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
 
   private Item installed(String name) throws Exception {
     return new Item(
@@ -271,5 +278,22 @@ public final class PluginRuntimeProjectionTest {
     rows.put(row("sample", "loaded"));
     for (int i = 0; i < 512; i++) rows.put(row("other-" + i, "loaded"));
     assertEquals("unknown", project(List.of(installed("sample")), evidence).get(0).runtimeState);
+  }
+
+  @Test
+  public void snapshotPathCanonicalizesAliasedRuntimeRootBeforeNofollowRead() throws Exception {
+    File real = temporary.newFolder("files", "linux", "ubuntu");
+    File alias = new File(temporary.getRoot(), "alias-root");
+    Files.createSymbolicLink(alias.toPath(), real.toPath());
+    File snapshot = PluginRuntimeProjection.snapshotPath(alias);
+    assertEquals(
+        new File(real.getCanonicalFile(), "root/.dsha-web-activity.json").getPath(),
+        snapshot.getPath());
+    assertFalse(snapshot.getPath().contains("alias-root"));
+  }
+
+  @Test
+  public void snapshotPathRejectsMissingRuntimeRoot() {
+    assertThrows(IOException.class, () -> PluginRuntimeProjection.snapshotPath(null));
   }
 }

@@ -1,10 +1,8 @@
-# DSHA 0.2.1-rc.3-20261026.0735-dsh0.2.1-rc.3 / build198
+# DSHA 0.2.1-rc.3-20261026.1356-dsh0.2.1-rc.3 / build199
 
-- The `dsh-auto-review` alias pair that shares one card with the native plugins page now reports the official version actually loaded by its patch: the value is replaced only when the module pinned by `peerDependencies` really resolves and the installed version equals the pin. Unresolved or mismatched pins keep the wrapper version so the native side still reports unconfirmed. Other wrappers such as `dsh-computer-use-android` keep their own version in the list and are not substituted. This fixes the Auto review card staying at “load unconfirmed” forever.
-- Native plugin identity normalization is centralized in `PluginIdentity`; item `stableKey` and runtime projection share one alias rule instead of maintaining it twice.
-- Web activity snapshot reads add `BackupFileSystem.currentSnapshot`: only the bytes behind the opened descriptor are checked, tolerating the writer publishing a new snapshot by rename every 2 seconds. The Android implementation keeps NOFOLLOW and the size bound but no longer requires the path inode to stay unchanged during the read.
-- The runtime evidence freshness window grows from 10 seconds to 30 seconds (the writer heartbeats every 2 seconds and generation/instance are checked separately), so a long task occupying the event loop no longer turns a healthy heartbeat into “unconfirmed”.
-- `PluginRuntimeProjection.rejection` returns reason codes; `PluginRepository` records a `PLUGIN_RUNTIME` line only when the conclusion changes (missing identity, generation mismatch, read failure, expired snapshot, or remaining unconfirmed plugins), instead of failing silently.
-- New regressions: JVM snapshot reads under atomic replacement and the byte bound; projection rejection codes; wrapper bundles reporting the pinned official version, including the negative branch where the pin and the installed version differ.
+- Fixes `READ=PARENT_LINK` when the native plugins page reads the Web runtime evidence snapshot. Android's `/data/user/0` is a system alias of `/data/data`; the per-component NOFOLLOW walk in `currentSnapshot` rejected that alias as a parent link. The runtime root is canonicalized before the reader applies its NOFOLLOW and size checks to the final file; unreadable snapshots still remain unverified rather than being reported as loaded.
+- Keeps the build198 identity normalization, Auto review version evidence, 30-second freshness window, and reason-code logging; this build only changes snapshot path resolution.
+- Adds regression coverage for a symlinked runtime root and a missing root; the current version-note assertions follow build199.
+- Boundary: the native WebView crash observed when DSHA is launched into its own secondary virtual display is out of scope for this build. This round is verified by CI compilation and unit tests, with no device installation acceptance.
 
-Version code moves to 198; package name, historical signature, regular file name and the bundled DSH rc.3 are unchanged. This branch runs Standard only; this round is verified by CI compilation and unit tests, with no device acceptance.
+Version code moves to 199; package name, historical signature, regular file name, and the bundled DSH rc.3 are unchanged. This branch runs Standard only.

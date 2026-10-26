@@ -125,7 +125,7 @@ public final class UpdateVersionPageTest {
       assertTrue(
           shown.contains(
               "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
-      assertTrue(shown.contains("与原生插件页共用同一张卡片"));
+      assertTrue(shown.contains("读取前把运行根规范化为真实路径"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -141,7 +141,7 @@ public final class UpdateVersionPageTest {
       Dialog dialog = ShadowDialog.getLatestDialog();
       String shown = text(dialog.getWindow().getDecorView());
       assertTrue(shown.contains("DSHA " + BuildConfig.VERSION_NAME));
-      assertTrue(shown.contains("shares one card with the native plugins page"));
+      assertTrue(shown.contains("runtime root is canonicalized before"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
