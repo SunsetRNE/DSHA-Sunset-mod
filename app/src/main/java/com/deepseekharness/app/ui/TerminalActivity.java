@@ -585,7 +585,12 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (sessionPanel == null) return;
     sessionPanel.animate().cancel();
     removeInlineDivider();
-    removeSessionPanel();
+    // 保持面板挂在抽屉宿主里（GONE），这样恢复/查询视图与状态时不需要重新构造。
+    if (sessionPanel.getParent() != drawerHost) {
+      removeSessionPanel();
+      drawerHost.addView(
+          sessionPanel, new FrameLayout.LayoutParams(drawerWidthPx(), -1, Gravity.START));
+    }
     if (drawerHost != null) drawerHost.setVisibility(View.GONE);
     sessionPanel.setVisibility(View.GONE);
     sessionPanel.setTranslationX(0f);
@@ -664,15 +669,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     renderSessions();
     applyPresentation();
     if (!expanded) showDrawer(true);
-    if (sessionClose.getVisibility() == View.VISIBLE)
-      sessionClose.post(
-          () -> {
-            if (sessionsRequested && sessionClose.getVisibility() == View.VISIBLE) {
-              sessionClose.requestFocus();
-              sessionClose.performAccessibilityAction(
-                  AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
-            }
-          });
+    if (sessionClose.getVisibility() == View.VISIBLE) {
+      sessionClose.requestFocus();
+      sessionClose.performAccessibilityAction(
+          AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
+    }
   }
 
   private void closeSessions() {
@@ -692,7 +693,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
         ball.getVisibility() == View.VISIBLE
             ? ball
             : menuButton.getVisibility() == View.VISIBLE ? menuButton : null;
-    if (target != null) target.post(target::requestFocus);
+    if (target != null) target.requestFocus();
   }
 
   @Override

@@ -268,13 +268,10 @@ public class TerminalActivityLifecycleTest {
   }
 
   @Test
-  @Config(
-      sdk = 34,
-      application = TerminalNavigationTest.App.class,
-      qualifiers = "w900dp-h700dp-ldrtl")
   public void minimalRtlInlineHidesBallInsteadOfOverlappingPanel() {
     var host = Robolectric.buildActivity(Host.class).create().start().resume();
     var workspace = host.get().findViewById(R.id.terminal_workspace);
+    workspace.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
     measure(host.get(), workspace, 900, 700);
     host.get().findViewById(R.id.terminal_menu_ball).performClick();
     assertEquals(
