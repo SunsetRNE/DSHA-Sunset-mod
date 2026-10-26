@@ -1,6 +1,7 @@
-# DSHA 0.2.1-rc.3-20261026.2115-dsh0.2.1-rc.3 / build202
+# DSHA 0.2.1-rc.3-20261027.0700-dsh0.2.1-rc.3 / build203
 
-- Interface trial: the v5 interaction prototype's shell is implemented natively — header brand and page context, a floating pill navigation on phones, a left navigation rail on tablets, a restructured launch home with an activity strip, and log copy/follow/export. Plugins and settings keep their existing real functions; the prototype's simulated data is not connected.
-- Terminal: the fullscreen terminal host and session protection from Sunset-zhongdua-G are merged in. Tapping "Terminal" opens the standalone fullscreen TerminalActivity; returning only closes the page and does not end sessions. The themed sidebar, 7+7 phone / 8+8 tablet extra keys, and landscape three-column compaction ship with this build.
-- The bundled dsh-web-mobile stays at 3.2.2 and the bundled DSH stays at rc.3; versionCode is now 202. The test identity is dsh.android.client.SunsetRNE with a local test certificate, not the E7E3 production package.
-- Boundary: this is an interface and terminal integration trial. No device installation, TalkBack, font-scale, or full rotation acceptance was performed. Plugin/settings sub-pages and some prototype pages (files, backups, diagnostics) still use the existing implementation.
+- Interface: the v5 interaction prototype's page styling now covers settings, plugins, runtime config, install and environment, device grants, data and backups, updates, diagnostics, welcome/onboarding, about and environment recovery; titles, section labels, cards, inputs and buttons share one 26sp scale and one light/night palette.
+- Terminal: "New session", "End session" and "Focus input" respond on the first tap; the sidebar System/Light/Dark theme switch is removed and the terminal follows the app theme without recreating sessions or replaying commands.
+- Cleanup: the ADB pairing page no longer shows a duplicate title, the link-install confirmation uses the 26sp page scale, and the environment maintenance (extract) page now uses v5 cards and buttons.
+- The bundled dsh-web-mobile stays at 3.2.2 and the bundled DSH at rc.3; versionCode is now 203. Test identity is dsh.android.client.SunsetRNE with a local test certificate, not the E7E3 production package.
+- Boundary: this build is still a test package. TalkBack, font-scale and full rotation acceptance were not performed; the file browser, remote pairing/workspaces and web preview keep the existing implementation.
