@@ -439,6 +439,8 @@
     "app/src/main/java/com/deepseekharness/app/ui/RuntimeBrowserProbe.java",
     "app/src/main/java/com/deepseekharness/app/ui/RuntimeRecoveryUi.java",
     "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java",
+    "app/src/main/java/com/deepseekharness/app/ui/ShellActivityTrack.java",
+    "app/src/main/java/com/deepseekharness/app/ui/ShellRail.java",
     "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java",
     "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java",
     "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryLayout.java",
