@@ -62,7 +62,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private volatile boolean closeAllRunning, closeAllDispatching;
   private final AtomicInteger closeAllPending = new AtomicInteger();
   private volatile String closeAllEpoch = "";
-  private int closeAllTotal, closeAllRun;
+  private int closeAllTotal;
+  private volatile int closeAllRun;
   private final java.util.Set<Long> closeAllPtyIds = new java.util.HashSet<>();
   private final java.util.Set<Long> closeAllSimpleIds = new java.util.HashSet<>();
   private String closeAllNotice = "";
