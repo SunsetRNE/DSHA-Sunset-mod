@@ -118,7 +118,7 @@ public class TerminalActivityLifecycleTest {
         host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
     assertEquals(
         ViewGroup.FOCUS_BLOCK_DESCENDANTS,
-        host.get().findViewById(R.id.terminal_content).getDescendantFocusability());
+        ((ViewGroup) host.get().findViewById(R.id.terminal_content)).getDescendantFocusability());
     assertFalse(host.get().isFinishing());
     host.get().findViewById(R.id.terminal_sessions_close).performClick();
     assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
@@ -128,7 +128,7 @@ public class TerminalActivityLifecycleTest {
         host.get().findViewById(R.id.terminal_content).getImportantForAccessibility());
     assertEquals(
         ViewGroup.FOCUS_BEFORE_DESCENDANTS,
-        host.get().findViewById(R.id.terminal_content).getDescendantFocusability());
+        ((ViewGroup) host.get().findViewById(R.id.terminal_content)).getDescendantFocusability());
     host.get().findViewById(R.id.terminal_menu_ball).performClick();
     assertEquals(
         View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
