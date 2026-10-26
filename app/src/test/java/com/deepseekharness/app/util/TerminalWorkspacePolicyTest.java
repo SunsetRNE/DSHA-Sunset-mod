@@ -18,19 +18,34 @@ public final class TerminalWorkspacePolicyTest {
   }
 
   @Test
-  public void minimalModeKeepsAllWindowWidthsForTerminal() {
-    assertFalse(TerminalWorkspacePolicy.sidebar(false, 1200));
-    assertFalse(TerminalWorkspacePolicy.sidebar(true, 839));
-    assertTrue(TerminalWorkspacePolicy.sidebar(true, 840));
+  public void inlineNeedsWideWindowAndKeepsTerminalWidth() {
+    assertFalse(TerminalWorkspacePolicy.canInline(839));
+    assertTrue(TerminalWorkspacePolicy.canInline(840));
+    assertTrue(TerminalWorkspacePolicy.canInline(1024));
+    assertEquals(240, TerminalWorkspacePolicy.inlineWidth(840));
+    assertEquals(256, TerminalWorkspacePolicy.inlineWidth(1024));
+    assertEquals(296, TerminalWorkspacePolicy.inlineWidth(1280));
+    assertEquals(296, TerminalWorkspacePolicy.inlineWidth(1600));
+    assertTrue(840 - TerminalWorkspacePolicy.inlineWidth(840) >= 480);
   }
 
   @Test
-  public void drawerWidthKeepsScrimMarginAndFallsBackBeforeMeasurement() {
-    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(1000, 280, 32));
-    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(320, 280, 32));
-    assertEquals(208, TerminalWorkspacePolicy.drawerWidth(240, 280, 32));
-    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(0, 280, 32));
-    assertEquals(280, TerminalWorkspacePolicy.drawerWidth(16, 280, 32));
+  public void drawerWidthUsesTabletMaxAndScrimMargin() {
+    assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth());
+    assertEquals(336, TerminalWorkspacePolicy.drawerWidth(1000, 336, 32));
+    assertEquals(336, TerminalWorkspacePolicy.drawerWidth(368, 336, 32));
+    assertEquals(288, TerminalWorkspacePolicy.drawerWidth(320, 336, 32));
+    assertEquals(208, TerminalWorkspacePolicy.drawerWidth(240, 336, 32));
+    assertEquals(336, TerminalWorkspacePolicy.drawerWidth(0, 336, 32));
+    assertEquals(336, TerminalWorkspacePolicy.drawerWidth(16, 336, 32));
+  }
+
+  @Test
+  public void shortWindowsSwitchToCompactAndDenseChrome() {
+    assertTrue(TerminalWorkspacePolicy.compactHeight(559));
+    assertFalse(TerminalWorkspacePolicy.compactHeight(560));
+    assertTrue(TerminalWorkspacePolicy.denseFooter(479));
+    assertFalse(TerminalWorkspacePolicy.denseFooter(480));
   }
 
   @Test
