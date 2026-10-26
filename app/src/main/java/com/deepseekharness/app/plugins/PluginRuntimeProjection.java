@@ -1,6 +1,7 @@
 package com.deepseekharness.app.plugins;
 
 import com.deepseekharness.app.core.PluginRepository.Item;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +24,16 @@ public final class PluginRuntimeProjection {
   private static final int MAX_INSTALLED = 512, MAX_DYNAMIC = 256;
 
   private PluginRuntimeProjection() {}
+
+  /**
+   * 运行证据快照的固定路径。Android 的 /data/user/0 是 /data/data 的系统别名，读取器逐段
+   * NOFOLLOW 检查会把合法别名判成 PARENT_LINK；先规范化可信运行根，最终文件仍由读取器
+   * NOFOLLOW 打开，不在这里解析最终文件。
+   */
+  public static File snapshotPath(File rootfs) throws IOException {
+    if (rootfs == null) throw new IOException("RUNTIME_ROOT_MISSING");
+    return new File(rootfs.getCanonicalFile(), "root/.dsha-web-activity.json");
+  }
 
   public static List<Item> apply(
       List<Item> items, JSONObject activity, long generation, String instance, long now)
