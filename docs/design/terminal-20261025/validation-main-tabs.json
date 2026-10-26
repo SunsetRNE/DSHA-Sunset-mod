@@ -1,8 +1,8 @@
 {
-  "startedAt": "2026-10-25T12:24:01.564Z",
+  "startedAt": "2026-10-26T05:59:16.133Z",
   "scope": "offline source-mapped HTML only, not Android",
   "loadMethod": "page.setContent exact HTML; no server",
-  "previewSha256": "b0d23d2d2657835a8e27f72029b48cf54ef7ec58cc48fadf02895cea16e471bb",
+  "previewSha256": "36f3bb360b257e403b3b202e2797b6481afb2252d033c5c6675f18021d4b23d7",
   "checks": [
     {
       "name": "320×568 launch有实质内容",
@@ -684,6 +684,6 @@
   ],
   "browser": "141.0.7390.37",
   "passed": true,
-  "finishedAt": "2026-10-25T12:24:58.927Z",
+  "finishedAt": "2026-10-26T06:00:13.885Z",
   "checkCount": 133
 }

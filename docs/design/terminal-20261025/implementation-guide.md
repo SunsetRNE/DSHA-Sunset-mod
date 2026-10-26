@@ -277,3 +277,44 @@ bash build.sh :app:lintStandardRelease
 > 手机抽屉、平板侧栏按当前窗口宽度响应，保留原生输入及安全边界。先写和跑导航/状态/租约测试，再迁移外壳，稳定后才删旧渲染布局。不运行 Low、不改运行资产、不清数据、不提交/发布/操作设备，除非用户另行明确要求。产出变更清单、真实测试结果、未验范围和回滚办法。
 
 验收交付不能只附截图；必须同时有导航与关闭语义测试、实际构建记录以及经授权的设备行为证据。
+
+## 9. 2026-10-26 增量：三向态与快捷按键
+
+### 9.1 三向态侧栏（HTML 已定稿，原生待确认）
+
+- 颜色合同与 token 见 [native-terminal-theme-plan.md](<native-terminal-theme-plan.md>)；浅色 `terminal_panel` 用白/浅蓝灰，深色用近黑，`terminal_surface` 与 `terminal_foreground` 保持固定黑底。
+- 必须先拆出 `terminal_panel_text`，不能把 `terminal_foreground` 直接改成浅色；否则工具栏/会话行白底白字。
+- 底部动作**保留现有 6 个**（返回、键盘、显示设置、粘贴、回到输入、说明），不因 HTML 预览的 2×2 删除粘贴/回到输入；短窗按 `denseFooter` 退回三列。
+- 主题切换在终端内需禁用/保护 `closeAllRunning` 的瞬态 UI；Activity 重建后再刷新视图颜色。
+
+### 9.2 快捷按键（已实现）
+
+文件：
+
+| 文件 | 职责 |
+|---|---|
+| [TerminalExtraKeys.java](<../../../app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java>) | 纯 JVM：手机/平板 profile、默认 7+7/8+8、27 个动作、编解码/上限/去重、中英文 label/description |
+| [ExtraKeysDialog.java](<../../../app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java>) | CardSheet 编辑面板：双 profile、两行 Chip、增删替换排序、恢复默认、保存/取消 |
+| [PtyTerminalFragment.java](<../../../app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java>) | 单行等宽网格、自动缩字、48dp 行高、横向滚动、动作映射、保存后刷新、长按入口 |
+| [bg_terminal_key.xml](<../../../app/src/main/res/drawable/bg_terminal_key.xml>) | 按键底色/描边/涟漪/修饰键选中态 |
+| [TerminalActivity.java](<../../../app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java>) | 显示设置第五项“快捷按键布局” |
+| [TerminalPane.java](<../../../app/src/main/java/com/deepseekharness/app/ui/TerminalPane.java>) | `refreshExtraKeys()` 默认空实现，PTY 覆盖 |
+
+合同：
+
+- 设备分类用 `smallestScreenWidthDp >= 600`，手机/平板分别保存，不按机型名判断。
+- 持久化沿用 `deepseekharness`：`term_extra_keys_phone`、`term_extra_keys_tablet`；格式 `ACTION,ACTION|ACTION,...`，只接受 catalog 内动作；损坏/空值回默认。
+- 渲染固定 48dp 行高、单行、8–13sp 自动缩字；每行键数超过可用宽度时横向滚动；不折行、不裁字。
+- 保存只刷新 PTY 附加键，不重建/切换会话；编辑面板本身不拥有会话或进程。
+- 简易模式没有附加键；`refreshExtraKeys()` 默认 no-op。
+
+### 9.3 必须补的验证
+
+| 范围 | 断言 |
+|---|---|
+| 纯模型 | 19 项 JUnit（已本地通过）：边界、默认、往返、非法回退、上限/去重、catalog 文案 |
+| 编译/资源 | CI `format-java-tree --check`、assemble、Lint、资源 link、Robolectric 全量 |
+| 布局 | 320/360/390/600/840dp；1.3×/2× 字体；不折行、不横溢出、每键 ≥44dp、可点 |
+| 交互 | 长按/点按打开面板；双 profile 草稿不串；增删替换排序；每行满 10；两个 profile 各至少 1 键；保存即时刷新 |
+| 进程 | 保存只刷新视图，不新建/切换/结束会话；无输入注入 |
+| 设备 | 手机/平板横竖屏、分屏、IME、RTL、TalkBack、浅/深色；未验前不得写成设备通过 |

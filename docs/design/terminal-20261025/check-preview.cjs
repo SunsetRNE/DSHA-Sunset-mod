@@ -75,6 +75,7 @@ async function dimensions(page) {
     check('内嵌脚本语法', scripts.length === 1);
     check('禁止网络的 CSP', sourceText.includes("connect-src 'none'"));
     check('无执行/网络/用户持久化 API', !/\b(?:eval|fetch|XMLHttpRequest|WebSocket|localStorage|sessionStorage|indexedDB)\s*\(/.test(sourceText));
+    check('侧栏不再使用旧绿色主题 token', !/(?:#b2dcb9|#17271c|#44604c|#b2dcb9)/i.test(sourceText));
     const makePage = async (width, height) => {
       const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
       page.on('pageerror', e => result.pageErrors.push(String(e)));
@@ -85,6 +86,8 @@ async function dimensions(page) {
       });
       // 容器内 Chromium 导航加载曾超时；直接将文件原文交给浏览器解析。
       // 不改HTML字节、不启动服务器；该方法不证明用户环境的file://打开路径。
+      // 主流程截图固定模拟系统深色（与用户手机一致）；浅色在专门的三向态检查中验证。
+      await page.emulateMedia({ colorScheme: 'dark' });
       await page.setContent(sourceText, {waitUntil:'domcontentloaded'});
       await page.waitForSelector('.session-item', {state:'attached'});
       return page;
@@ -284,6 +287,85 @@ async function dimensions(page) {
     const freshPage = await makePage(390,844);
     check('重新载入文档重置仅页面内存状态', await freshPage.locator('[data-session-id="pty-1"]').count() === 1 && await freshPage.locator('.session-item').count() === 1);
     await freshPage.close();
+    // 三向态外观与图标化侧栏：只验证本页 HTML/CSS/JS，不代表 Android 主题或真机验收。
+    const themePage = await makePage(390, 844);
+    await themePage.emulateMedia({ colorScheme: 'light' });
+    await themePage.locator('#nav-terminal').click();
+    await themePage.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+    check('默认外观选择跟随系统', await themePage.locator('html').getAttribute('data-theme-choice') === 'system');
+    check('系统浅色解析为白天', await themePage.locator('html').getAttribute('data-theme') === 'light');
+    await themePage.locator('#minimal-menu').click();
+    check('侧栏提供三向态选择', await themePage.locator('#session-sidebar [data-theme-choice]').count() === 3);
+    const actionShape = await themePage.evaluate(() => {
+      const buttons = [...document.querySelectorAll('.sidebar-actions button')];
+      const rects = buttons.map(b => b.getBoundingClientRect());
+      return {
+        count: buttons.length,
+        icons: buttons.filter(b => b.querySelector('svg.icon')).length,
+        fills: buttons.filter(b => getComputedStyle(b).backgroundColor !== 'rgba(0, 0, 0, 0)').length,
+        rows: rects.slice(1).map((r) => Math.abs(r.top - rects[0].top) < 2 ? 'first' : Math.abs(r.top - rects[2].top) < 2 ? 'second' : 'other'),
+        widths: rects.map(r => Math.round(r.width))
+      };
+    });
+    check('底部四个动作按钮都有底色与图标', actionShape.count === 4 && actionShape.icons === 4 && actionShape.fills === 4, JSON.stringify(actionShape));
+    check('底部动作按 2×2 排列', actionShape.rows[0] === 'first' && actionShape.rows[1] === 'second' && actionShape.rows[2] === 'second' && Math.abs(actionShape.widths[0] - actionShape.widths[1]) <= 2, JSON.stringify(actionShape));
+    check('侧栏分组与会话行有图标', await themePage.locator('.group-icon svg').count() === 2 && await themePage.locator('.session-glyph svg').count() >= 1);
+    await themePage.locator('#session-sidebar [data-theme-choice="dark"]').click();
+    await themePage.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+    const darkPalette = await themePage.evaluate(() => {
+      const rgb = (value) => { const text = value.trim(); if (text.startsWith('#')) { const hex = text.slice(1).length === 3 ? text.slice(1).split('').map(c => c + c).join('') : text.slice(1); return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16)); } return (text.match(/[\d.]+/g) || []).slice(0, 3).map(Number); };
+      const sidebar = getComputedStyle(document.querySelector('#session-sidebar'));
+      return { sidebar: rgb(sidebar.backgroundColor), accent: rgb(sidebar.getPropertyValue('--accent')), terminal: rgb(getComputedStyle(document.querySelector('#terminal-pane')).backgroundColor), pressed: document.querySelector('#session-sidebar [data-theme-choice="dark"]').getAttribute('aria-pressed') };
+    });
+    check('黑夜侧栏为黑底且强调色为蓝', darkPalette.sidebar.every(v => v < 40) && darkPalette.accent[2] > darkPalette.accent[0] && darkPalette.accent[2] > darkPalette.accent[1], JSON.stringify(darkPalette));
+    check('黑夜终端输出区保持黑底', darkPalette.terminal.every(v => v === 0), JSON.stringify(darkPalette));
+    check('黑夜按钮选中态同步', darkPalette.pressed === 'true');
+    await themePage.locator('.sidebar-heading h2').click();
+    check('普通点击不重置外观选择', await themePage.locator('html').getAttribute('data-theme-choice') === 'dark');
+    await screenshot(themePage, 'phone-sidebar-dark.png');
+    await themePage.locator('#session-sidebar [data-theme-choice="light"]').click();
+    await themePage.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+    const lightPalette = await themePage.evaluate(() => {
+      const rgb = (value) => { const text = value.trim(); if (text.startsWith('#')) { const hex = text.slice(1).length === 3 ? text.slice(1).split('').map(c => c + c).join('') : text.slice(1); return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16)); } return (text.match(/[\d.]+/g) || []).slice(0, 3).map(Number); };
+      const sidebar = getComputedStyle(document.querySelector('#session-sidebar'));
+      return { sidebar: rgb(sidebar.backgroundColor), accent: rgb(sidebar.getPropertyValue('--accent')), terminal: rgb(getComputedStyle(document.querySelector('#terminal-pane')).backgroundColor) };
+    });
+    check('白天侧栏为白底浅蓝强调', lightPalette.sidebar.every(v => v > 240) && lightPalette.accent[2] > lightPalette.accent[0], JSON.stringify(lightPalette));
+    check('白天终端输出区仍保持黑底', lightPalette.terminal.every(v => v === 0), JSON.stringify(lightPalette));
+    await screenshot(themePage, 'phone-sidebar-light.png');
+    await themePage.locator('#session-sidebar [data-theme-choice="system"]').click();
+    await themePage.emulateMedia({ colorScheme: 'dark' });
+    await themePage.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+    check('跟随系统响应系统深浅变化', await themePage.locator('html').getAttribute('data-theme-choice') === 'system');
+    await themePage.locator('#close-drawer').click();
+    await themePage.locator('#minimal-menu').click();
+    await themePage.locator('#session-sidebar [data-open-dialog="settings-dialog"]').click();
+    check('显示设置复用同一份三向态选择', await themePage.locator('#settings-dialog [data-theme-choice][aria-pressed="true"]').getAttribute('data-theme-choice') === 'system');
+    await themePage.locator('#settings-dialog [data-theme-choice="light"]').click();
+    await themePage.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+    check('设置面板切白天后侧栏同步', await themePage.locator('#session-sidebar [data-theme-choice="light"]').getAttribute('aria-pressed') === 'true');
+    await themePage.locator('#minimal-mode').uncheck();
+    await themePage.locator('#settings-dialog .dialog-actions button').click();
+    if (await themePage.locator('#session-drawer').evaluate(el => el.open)) await themePage.locator('#close-drawer').click();
+    await screenshot(themePage, 'phone-workbench-light.png');
+    check('外观切换不新建或更换会话', await themePage.locator('.session-item').count() === 1 && await themePage.locator('#terminal-screen').getAttribute('data-active-session') === 'pty-1');
+    await themePage.close();
+    const tabletTheme = await makePage(1024, 768);
+    await tabletTheme.emulateMedia({ colorScheme: 'light' });
+    await tabletTheme.locator('#nav-terminal').click();
+    await tabletTheme.locator('#minimal-menu').click();
+    await tabletTheme.locator('#session-sidebar [data-open-dialog="settings-dialog"]').click();
+    await tabletTheme.locator('#minimal-mode').uncheck();
+    await tabletTheme.locator('#settings-dialog .dialog-actions button').click();
+    await tabletTheme.waitForFunction(() => document.querySelector('#terminal-screen').dataset.layout === 'sidebar');
+    await tabletTheme.locator('#session-sidebar [data-theme-choice="light"]').click();
+    await screenshot(tabletTheme, 'tablet-sidebar-light.png');
+    await tabletTheme.locator('#session-sidebar [data-theme-choice="dark"]').click();
+    await screenshot(tabletTheme, 'tablet-sidebar-dark.png');
+    await tabletTheme.close();
+    const resetTheme = await makePage(390, 844);
+    check('重新载入不保留外观选择', await resetTheme.locator('html').getAttribute('data-theme-choice') === 'system');
+    await resetTheme.close();
     check('无浏览器脚本异常', result.pageErrors.length === 0, JSON.stringify(result.pageErrors));
     check('无外部网络请求', result.externalRequests.length === 0, JSON.stringify(result.externalRequests));
     await page.close();
