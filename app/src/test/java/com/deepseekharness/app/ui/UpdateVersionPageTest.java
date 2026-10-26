@@ -125,7 +125,7 @@ public final class UpdateVersionPageTest {
       assertTrue(
           shown.contains(
               "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
-      assertTrue(shown.contains("条件禁用的可选子项不参与整组结论"));
+      assertTrue(shown.contains("升级到 3.2.2"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -141,7 +141,7 @@ public final class UpdateVersionPageTest {
       Dialog dialog = ShadowDialog.getLatestDialog();
       String shown = text(dialog.getWindow().getDecorView());
       assertTrue(shown.contains("DSHA " + BuildConfig.VERSION_NAME));
-      assertTrue(shown.contains("Conditionally disabled optional children no longer decide"));
+      assertTrue(shown.contains("moves to 3.2.2"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }

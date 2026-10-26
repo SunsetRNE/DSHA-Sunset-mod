@@ -42,13 +42,13 @@ F11当时暂停设备验收，不应把历史包或软件结果转记为F11手�
 | 组件 | 当前本地选择 | 原始锁或配置 |
 |---|---|---|
 | DSH 主包 | `@deepseek-ai/dsh` `0.2.1-rc.2` | [package.json](../tools/dsh-runtime/package.json)、[package-lock.json](../tools/dsh-runtime/package-lock.json) |
-| 移动插件 | `3.2.1`；实际引入 main 提交见下文 | [mobile-plugin-upstream.lock.json](../tools/mobile-plugin-upstream.lock.json) |
+| 移动插件 | `3.2.2`；实际引入 main 提交见下文 | [mobile-plugin-upstream.lock.json](../tools/mobile-plugin-upstream.lock.json) |
 | 受管环境 | Ubuntu 24.04 arm64；DSHA `baseVersion=10` | [runtime-descriptor.json](../app/src/main/assets/runtime-descriptor.json)、[Ubuntu 包锁](../tools/ubuntu-tools/packages.lock.json) |
 | 运行时工具 | pnpm `10.34.5`，certifi `2026.7.22` | [runtime-tools.lock.json](../tools/runtime-tools.lock.json) |
 | 默认 / 可选引擎 | proot / proroot；后者本地声明 v1.2.8 | [AGENTS](../AGENTS.md)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
 | Shizuku API/provider | Standard `13.1.5`；Low `12.2.0` | [app/build.gradle](../app/build.gradle) |
 | Low GeckoView | `143.0.20251003115653`，arm64-v8a | [app/build.gradle](../app/build.gradle) |
-| Android 身份 | `dsh.android.client`，versionCode `190`；具体 dated versionName 看构建配置 | [app/build.gradle](../app/build.gradle) |
+| Android 身份 | `dsh.android.client`，versionCode `201`；具体 dated versionName 看构建配置 | [app/build.gradle](../app/build.gradle) |
 | 独立应急环境 | DSH `0.2.1-rc.2` / base `10`，独立归档摘要 | [recovery-runtime/lock.json](../tools/recovery-runtime/lock.json) |
 
 ### DSH 包来源
@@ -69,12 +69,12 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 
 当前锁区分发布标签和后续 main 输入：
 
-- 发布标签记录为 `v3.2.1`，releaseCommit 为 `1844bf21db47a9b942275b8118988e3f6718cf4b`。
-- 实际引入提交为 [`10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4)。
-- 锁内上游源码归档 SHA-256 为 `9629e585127dd8dd2149bb9f188cef957e5d0f5d4ae57d07f6f881748940e1e5`。
+- 发布标签记录为 `v3.2.2`，releaseCommit 为 `4c798ecc554009e401dc1f166b73c314cdf5273f`。
+- 实际引入提交为 [`4c798ecc554009e401dc1f166b73c314cdf5273f`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/4c798ecc554009e401dc1f166b73c314cdf5273f)；本版发布提交与 main 引入提交相同。
+- 锁内上游源码归档 SHA-256 为 `bc367e6412296c7db38abf7ca146890d793c139f02f9fe84aa2308ed9959d369`。
 - 上游 client 与本地最终 client 分开记载；最终成员摘要见当前 THIRD_PARTY_NOTICES 与 descriptor。
 
-不要把“包内版本 3.2.1”解释为“只包含该标签原件”。
+不要把“包内版本 3.2.2”解释为“只包含该标签原件”。
 本地差异由 [apply-mobile-client-patches.mjs](../tools/apply-mobile-client-patches.mjs) 及 [mobile-server](../tools/mobile-server) 管理。
 上游升级是否吸收本地补丁，需要逐项核对，不能整批叠加旧补丁。
 

@@ -1,8 +1,7 @@
-# DSHA 0.2.1-rc.3-20261026.1555-dsh0.2.1-rc.3 / build200
+# DSHA 0.2.1-rc.3-20261026.1710-dsh0.2.1-rc.3 / build201
 
-- 修复原生插件页把 `@deepseek-ai/dsh-experimental-terminal-bundle` 显示为“加载状态未确认”：该 bundle 的组内可选子项（pwsh）用 `!!js` 条件禁用，在 Android/Linux 上不进入 init，采样器此前把它当成 unknown 并拖累整组。现在条件禁用的可选子项不参与整组结论，采样也不重新执行 `!!js` 表达式；terminal-bundle 应显示为已加载，列表达到 20/20。
-- 保留 build199 的 `/data/user/0` → `/data/data` 快照路径规范化修复；build199 已在设备上确认从 20/20 未确认降到 19/20，本轮补齐最后一项。
-- 新增真实 Cordis Loader 回归：组内 `!!js` 条件禁用子项不把整组拖成 unknown/unloaded，且采样期间表达式计数不增加。
-- 边界：DSHA 自启动到独立虚拟屏的 WebView 原生崩溃仍不在本包范围；本轮由 CI 编译、JS 证据回归与单测验证，设备安装验收在构建完成后执行。
-
-版本码提升到 200；包名、历史签名、常规文件名及内置 DSH rc.3 保持。本分支只跑 Standard。
+- 内置移动插件 `dsh-web-mobile` 从 3.2.1（main `10e58ce`）升级到 3.2.2（main/发布提交 `4c798ec`）：上游本批修复输入中横屏旋转时输入框被顶栏盖住（#245）、提问卡长问题撑满卡片与键盘弹起后回答框不可见、提问卡正文被横向滚动带走、提问卡图标 44px 命中区、侧栏「更多」菜单浮出抽屉、下载记录与会话日志导出合并为同一入口，以及头部页签恢复单行。
+- 重新审阅并重放 DSHA 本地差异：保留会话输入 V4（保留原始 click，由 `dsha-session-open` 关闭抽屉）、弹层可见视口边界、侧栏遮罩按压底色抑制与文件分享原生入口；上游 3.2.2 已把「下载记录」并入抽屉品牌行菜单（`window.DSHA.openDownloads`），因此移除顶栏重复的下载入口，不再重复套用。补丁锚点逐项匹配新上游字节，服务端压缩、会话删除与生命周期三处 DSHA 实现仍与上游原件分离。
+- 锁定成员 203→218、实际部署 205→220：新增 `composer-clearance`、`question-fullscreen`、`drawer-quick-settings` 等源码与类型声明；上游归档 SHA-256 `bc367e64…`，218 个成员的摘要逐项写入 `tools/mobile-plugin-upstream.lock.json`，`package.json` 的 `dshaUpstream` 记录新版本、提交与 client 摘要。
+- 重生成受管运行描述，runtimeId 更新为 `4175c9cf…`；同步移动插件来源页、第三方声明、文档索引与文档链接门禁的固定上游映射。
+- 版本码提升到 201；包名、历史签名、常规文件名及内置 DSH rc.3 保持。本分支只跑 Standard。边界：本轮以源码门禁、宿主回归与 CI 构建验证，未装机验收真机横屏与提问卡观感。
