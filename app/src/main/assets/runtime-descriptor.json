@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "feee0b81877cbac19e76b7fdaac7dd036e334bdd7aac2dd3cfb340990336d4d5",
+  "runtimeId": "b5593d8326adf135fdfd2bb73724982509d690519fe51f8bc6bb59436d24e642",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.3",
   "launcherContract": "DSHA_ARM64_V2",
@@ -448,7 +448,7 @@
     "app-integration/cordis.patch.yml": "9ebf20f8521b2bf357dc568b8998d0d505be0dd7c0e941d74941ae9690300f09",
     "app-integration/index.js": "bc495cf058594bfe6a4ae27a5e728d339567fbd254569c4e08406856f6c579b9",
     "app-integration/package.json": "9b958725f4029e8b830c39b6dd88b071f5c3ac2477b90ceb4ee038122fc36a00",
-    "app-integration/runtime-plugins.js": "ca523c2fbfd2b817b0133551c78a5849aadf089f7330651db4c9d6ba19646425",
+    "app-integration/runtime-plugins.js": "012ebf23f34ac75198ca8e3dcf6bf62c03acbfb8a96848676bbca56bc5bf84e5",
     "auto-review-native-disabled-patch.json": "a9a2e34da4cb512173f5dc56a475b6c7dd555dad7c86b41e8e32c1292493a3c1",
     "backup-plugin-graph.py": "41cd86cf14ca8f62a1760df26df3265d17582c18f3403180f990f32eb1ba247c",
     "bridge-port.cjs": "44c96786a68379ba17c049f35e78afc33955a79ab5189eaca0a0a3fd62b95caf",

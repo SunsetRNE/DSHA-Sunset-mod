@@ -14,6 +14,18 @@ function literalDisabled(entry) {
   return entry ? undefined : false;
 }
 
+/**
+ * 依赖 !!js 条件禁用的入口不会进入 init，因此既没有 fiber 也没有 init attempt。
+ * 采样不执行表达式，只按这个结构判定“配置上未启用”：可选子项不能把整组拖成
+ * unknown，也不能让整组变成 unloaded。会在首次加载前短暂没有 fiber 的入口有
+ * init attempt（loading），不会被误判。
+ */
+function disabledWithoutInit(entry, evidence) {
+  if (entry.options?.disabled == null) return false;
+  if (entry.fiber && entry.fiber.state !== 4 && entry.fiber.state !== 5) return false;
+  return !evidence.initState?.(entry);
+}
+
 function entryState(entry, evidence) {
   const attempt = evidence.initState?.(entry);
   if (entry._initTask || attempt === 'loading') return 'loading';
@@ -89,9 +101,14 @@ export function installedPluginSampler(ctx, { generation, instance, profile }, e
               return !declaration || ids.get(child.id) !== 1 || declaration.parentId !== expected.id
                 || typeof child.name !== 'string' || moduleHash(child.name) !== declaration.moduleHash;
             }))) return 'unknown';
+            // 组内条件禁用的可选子项没有运行证据，不参与整组结论；否则整组会被拖成
+            // unknown（没有 fiber）或 unloaded（优先级高于 loaded），都不是真实运行状态。
+            if (expected.parentId && disabledWithoutInit(entry, evidence)) return null;
             return entryState(entry, evidence);
-          });
-          state = ['unknown', 'failed', 'unloaded', 'pending', 'loading', 'loaded'].find(value => states.includes(value));
+          }).filter(value => value !== null);
+          state = states.length
+            ? ['unknown', 'failed', 'unloaded', 'pending', 'loading', 'loaded'].find(value => states.includes(value))
+            : 'unloaded';
         }
       } catch { /* 单个不兼容 entry 不影响同批其他 bundle。 */ }
       return { name: bundle.name, version: bundle.version, profile: bundle.profile, state };
