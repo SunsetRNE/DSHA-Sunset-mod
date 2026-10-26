@@ -75,7 +75,7 @@ public final class PtyTerminalFragment extends Fragment
   }
 
   private static SharedPreferences prefs(Context ctx) {
-    return ctx.getSharedPreferences("deepseekharness", Context.MODE_PRIVATE);
+    return ctx.getSharedPreferences(TerminalExtraKeys.PREFS, Context.MODE_PRIVATE);
   }
 
   /** 仅兼容显式关闭调用；页面解绑不得调用。 */
@@ -390,14 +390,7 @@ public final class PtyTerminalFragment extends Fragment
 
   @Override
   public void refreshExtraKeys() {
-    if (extraKeysBox != null) buildExtraKeys(extraKeysBox);
-  }
-
-  @Override
-  public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
-    super.onConfigurationChanged(newConfig);
-    // 多窗口/外接屏改变设备宽度类别时，手机与平板两套布局各自生效。
-    if (extraKeysBox != null) buildExtraKeys(extraKeysBox);
+    if (extraKeysBox != null && isAdded()) buildExtraKeys(extraKeysBox);
   }
 
   private void extraKey(String action) {
