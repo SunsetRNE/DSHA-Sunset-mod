@@ -125,8 +125,8 @@ public final class UpdateVersionPageTest {
       assertTrue(
           shown.contains(
               "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
-      // build202 的本轮说明应包含 v5 试点与仍随包 3.2.2 的移动插件；旧 3.2.1 升级句已换成本轮范围。
-      assertTrue(shown.contains("v5 交互原型"));
+      // build203 的本轮说明应包含终端首击修复与仍随包 3.2.2 的移动插件。
+      assertTrue(shown.contains("第一次点按"));
       assertTrue(shown.contains("3.2.2"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
@@ -143,7 +143,7 @@ public final class UpdateVersionPageTest {
       Dialog dialog = ShadowDialog.getLatestDialog();
       String shown = text(dialog.getWindow().getDecorView());
       assertTrue(shown.contains("DSHA " + BuildConfig.VERSION_NAME));
-      assertTrue(shown.contains("v5 interaction prototype"));
+      assertTrue(shown.contains("first tap"));
       assertTrue(shown.contains("3.2.2"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();

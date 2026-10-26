@@ -92,3 +92,22 @@
 4. **文件页能力差距最大**：原型可编辑/预览/收藏，原生 `WorkspaceFilesActivity` 是只读浏览器（注释原文 “Read-only work-file browser”）；build202 也明说文件页沿用现有实现。文档不能写成“文件页已按原型落地”。
 5. **指南/虚拟屏没有原生页**：虚拟屏只有 `util/VirtualScreen*` 策略与桥，`vscreen/` 是独立虚拟屏实现，不是设置里的“虚拟屏”页面；不要为了凑 16 个主视图新增空壳页。
 6. **构建身份别混**：build202 测试包是 `dsh.android.client.SunsetRNE`，build198 历史测试包是 `dsh.android.client.SunsetRNE2`；两者不是同一个包名。详见 [terminal-preservation.md](terminal-preservation.md)。
+
+## 8. build203 替换二批（2026-10-27）实际状态
+
+本节回填 2026-10-27 的替换二批，读前面「沿用」行时以本节为准。
+
+| 页面/落点 | 二批处理 | 现状 |
+|---|---|---|
+| 设置、插件、启动主页 | 已替换 | 使用 `shell_page.xml` 组件样式（`ShellPageTitle` 等） |
+| 运行配置、安装与环境、设备能力授权、数据与备份、更新、自检与诊断、欢迎/首启、关于、环境恢复、CardPage 内页 | 已替换外观 | 标题、分组、卡片按 26sp / 13sp / 12sp 与 v5 卡片**手写对齐**；没有使用 `ShellPageTitle` / `ShellCard` 等样式，下次改字阶仍要逐页同步 |
+| ADB 配对 | 二批收口 | 删掉顶栏重复标题；页面标题/说明改用 `ShellPageTitle` / `ShellPageDescription` |
+| 插件安装确认 | 二批收口 | 标题 22sp → `ShellPageTitle`；按钮换 `ShellPrimaryButton` / `ShellTextButton` |
+| 运行环境维护（解包，`ExtractActivity`） | 二批收口 | 去掉 18sp 应用名行与 27sp 标题，改 `ShellPageTitle` + `ShellCard` + v5 按钮；按钮改在 XML 声明 |
+| 文件浏览器、远程配对/扫码/工作区、Web 预览、首启装饰页 | 未替换 | 仍是旧结构；远程配对/工作区只有手写 26sp 标题 |
+| 终端 | 已合入 | 新建会话/结束会话/回到输入首击修复，侧栏主题分段删除；仍是独立 `TerminalActivity` |
+
+仍未接入组件层的布局（截至 build203）：`fragment_config`、`fragment_device_grants`、`fragment_install`、`fragment_workspace`、`activity_update`、`activity_diagnostics`、`build195_remote_pair`、`build195_remote_workspaces`、`welcome_page2`、`welcome_page3`。下一步统一改用 `ShellPageTitle` / `ShellCard` / `ShellSectionLabel`，否则「统一页面组件」只是视觉近似。
+
+状态补充：第 6 节统计的是 build202 试点口径；替换二批新增 13 个页面/落点（设置、插件、运行配置、安装、授权、数据、更新、诊断、欢迎、关于、环境恢复、启动主页与 CardPage 内页），其中多数为手写对齐而非样式复用。
+

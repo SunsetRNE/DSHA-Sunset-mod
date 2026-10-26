@@ -36,6 +36,9 @@ release/*.sha256
 release/_data_backup/
 release/history/
 
+# build195 起 Java 编译依赖的固定输入：由 tools/ci-assets.py 按锁定 URL/SHA 还原，不入库
+app/libs/
+
 # 本地临时/中间产物
 tmp_*/
 tmp-*/
