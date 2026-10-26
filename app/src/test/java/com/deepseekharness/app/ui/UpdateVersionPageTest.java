@@ -125,7 +125,7 @@ public final class UpdateVersionPageTest {
       assertTrue(
           shown.contains(
               "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
-      assertTrue(shown.contains("最近任务只显示一个 DSHA 主页卡片"));
+      assertTrue(shown.contains("终端悬浮球和工作台“菜单”改为打开会话侧栏"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -141,7 +141,9 @@ public final class UpdateVersionPageTest {
       Dialog dialog = ShadowDialog.getLatestDialog();
       String shown = text(dialog.getWindow().getDecorView());
       assertTrue(shown.contains("DSHA " + BuildConfig.VERSION_NAME));
-      assertTrue(shown.contains("Recents shows one DSHA home card"));
+      assertTrue(
+          shown.contains(
+              "The terminal floating ball and the workbench menu now open the sessions sidebar"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
