@@ -313,7 +313,7 @@ bash build.sh :app:lintStandardRelease
 | 范围 | 断言 |
 |---|---|
 | 纯模型 | 19 项 JUnit（已本地通过）：边界、默认、往返、非法回退、上限/去重、catalog 文案 |
-| 编译/资源 | CI `format-java-tree --check`、assemble、Lint、资源 link、Robolectric 全量 |
+| 编译/资源 | **已通过**：CI run 40282161255 的 source contracts、Lint、assemble、全量 2545 项与 APK 校验；本机无 Android SDK，未本地重编 |
 | 布局 | 320/360/390/600/840dp；1.3×/2× 字体；不折行、不横溢出、每键 ≥44dp、可点 |
 | 交互 | 长按/点按打开面板；双 profile 草稿不串；增删替换排序；每行满 10；两个 profile 各至少 1 键；保存即时刷新 |
 | 进程 | 保存只刷新视图，不新建/切换/结束会话；无输入注入 |
