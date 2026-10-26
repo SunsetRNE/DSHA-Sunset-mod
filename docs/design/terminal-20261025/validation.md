@@ -187,7 +187,7 @@ checks: 151
 - APK `dsha-terminal-fb95eeaf.apk`，307,898,702 bytes，SHA-256 `8815e6517c52297039156be21c66290a90629e238b6dda07213d55a6ca976d24`，与 Actions artifact digest 一致。
 - `apksigner` 本地复验 v3 通过；证书 SHA-256 `8bd5e1e985a5fa443f047c20f9de1fee11f229505dbb2187202233e4a91d4124`（CI 临时测试证书，非 E7E3）。
 - `apkanalyzer`/`aapt2` 复核 `dsh.android.client.SunsetRNE2` / 198 / minSdk 30 / targetSdk 37 / arm64-v8a / `debuggable=false`。
-- APK 内确认 11 个新 `ic_terminal_*` 图标、10 个新 `bg_terminal_*` 背景（含 active 态）与颜色 token；`terminal_panel` 白天 `#FFFFFF`、夜间 `#0B0F16`，`terminal_panel_text` 白天 `#152033`、夜间 `#E4E8F0`。
+- APK 内确认 11 个新 `ic_terminal_*` 图标、12 个新 `bg_terminal_*` 背景（含 active 态）与颜色 token；`terminal_panel` 白天 `#FFFFFF`、夜间 `#0B0F16`，`terminal_panel_text` 白天 `#152033`、夜间 `#E4E8F0`。
 - 证据与回执：[delivery.json](<<workspace>/deliveries/native-terminal-theme-20261026/delivery.json>)、[本地签核](<<workspace>/deliveries/native-terminal-theme-20261026/local-apksigner.txt>)、[颜色抽查](<<workspace>/deliveries/native-terminal-theme-20261026/local-color-values.txt>)。
 
 ### 10.3 没有验证的部分
