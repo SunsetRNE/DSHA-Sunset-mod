@@ -178,7 +178,7 @@
     .back-label { display: none; }
     .terminal-heading { min-width: 0; padding-inline: 8px; }
     .terminal-heading h2 { font-size: 1rem; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .terminal-heading .eyebrow { font-size: .625rem; letter-spacing: .04em; color: var(--accent); }
+    .terminal-heading .eyebrow { font-size: .6875rem; letter-spacing: .04em; color: var(--accent); }
     #terminal-workspace { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; min-width: 0; overflow: hidden; }
     #session-sidebar {
       display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0;
@@ -214,7 +214,7 @@
     .session-name { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .session-name .dot { width: 6px; height: 6px; flex-basis: 6px; background: transparent; border: 1px solid var(--faint); }
     .session-item[data-running="true"] .dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-    .session-state { flex: 0 0 auto; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--raised); color: var(--muted); font-size: .625rem; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .session-state { flex: 0 0 auto; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--raised); color: var(--muted); font-size: .6875rem; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .session-item.is-active .session-state { background: var(--accent-soft-2); border-color: var(--accent-line); color: var(--accent); }
     .session-item[data-running="true"] .session-state { color: var(--accent); border-color: var(--accent-line); }
     .session-close { align-self: center; width: 40px; min-width: 40px; min-height: 40px; padding: 8px; color: var(--muted); border-radius: 8px; }
@@ -236,7 +236,7 @@
     .sidebar-actions button .icon { width: 17px; height: 17px; color: var(--accent); }
     .sidebar-actions button:hover { background: var(--raised); }
     .sidebar-actions button.is-primary { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); font-weight: 600; }
-    .sidebar-footnote { margin-top: 8px; text-align: center; color: var(--faint); font-size: .625rem; }
+    .sidebar-footnote { margin-top: 8px; text-align: center; color: var(--faint); font-size: .6875rem; }
     .settings-theme { flex: 1 1 240px; min-width: 210px; margin: 0; }
     .settings-theme button { min-height: 44px; }
     #terminal-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--term-bg); }
@@ -277,7 +277,7 @@
     .keyboard-label span { min-width: 0; }
     .preset-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
     .preset-keys button { min-width: 48px; border: 1px solid var(--term-key-line); background: var(--term-key); color: var(--term-text); font-size: .75rem; }
-    .keyboard-foot { text-align: center; color: var(--term-muted); font-size: .625rem; margin-top: 8px; }
+    .keyboard-foot { text-align: center; color: var(--term-muted); font-size: .6875rem; margin-top: 8px; }
     .empty-inner { color: var(--term-text); }
     .empty-inner > .entry-glyph { color: var(--term-accent); }
     .empty-inner p { color: var(--term-muted); }
@@ -390,7 +390,7 @@
     #minimal-menu.is-dragging { cursor: grabbing; opacity: 1; border-color: var(--accent); }
     #minimal-menu:focus-visible { opacity: 1; outline-offset: 3px; }
     #minimal-menu span { pointer-events: none; }
-    #prototype-stamp { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); top: max(3px, env(safe-area-inset-top, 0px)); z-index: 11; font-size: .625rem; color: var(--term-muted); pointer-events: none; }
+    #prototype-stamp { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); top: max(3px, env(safe-area-inset-top, 0px)); z-index: 11; font-size: .6875rem; color: var(--term-muted); pointer-events: none; }
     #terminal-screen:not(.minimal) #prototype-stamp { display: none; }
     #terminal-screen.minimal { grid-template-rows: minmax(0, 1fr); }
     .minimal .terminal-topbar, .minimal .session-info, .minimal .task-strip { display: none; }

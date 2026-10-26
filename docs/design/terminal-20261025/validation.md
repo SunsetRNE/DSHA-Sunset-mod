@@ -126,7 +126,7 @@ PLAYWRIGHT_HOME=/path/to/tooling/node_modules \
 
 ```text
 finishedAt: 2026-10-26T05:43:48.491Z
-previewSha256: 803b55a72e049a40781bf66e63250af0ec1dcc13d2e605a4065e9123792b5024
+previewSha256: 842ffdbb042e026fcddcc56d6f0b2f5504cb8cd1cfe6b139ec2b86fbd6ebc6db
 checks: 151
 ```
 

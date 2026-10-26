@@ -85,12 +85,12 @@
 - 原生底部动作**不删能力**：保留现有 6 个入口；HTML 只展示其中 4 个，是因为原型没有真实剪贴板/输入焦点能力。
 - 底部“快捷”按键的自定义是独立原生改造，见同轮实现记录（手机/平板两套布局、可增删替换排序、保存后即时刷新）。
 
-### 底部附加键（原生实现，待 CI）
+### 底部附加键（原生实现，CI 已通过）
 
 - 手机默认 7+7（Termux 风格：Esc / 斜杠 / 连字符 / Home / 上 / End / PgUp；Tab / Ctrl / Alt / 左 / 下 / 右 / PgDn），平板沿用 8+8；两套布局分别保存在 `term_extra_keys_phone` / `term_extra_keys_tablet`。
 - 显示设置新增“快捷按键布局”，或长按附加键区域进入编辑面板；支持增删、替换、左移/右移、恢复默认；每行最多 10 个，空行隐藏，两个布局各自至少保留一个键。
 - 按键改为单行 + 8–13sp 自动缩字 + 固定 48dp 行高；窄屏/大字体不再折行，超出宽度时横向滚动。`CTRL/ALT` 仍为一次性修饰键，选中态有背景和描边。
-- 保存只重建当前 PTY 视图，不新建/切换会话；简易模式无附加键。模型单测 19 项本地通过，Android 编译、Lint、Robolectric 与真机渲染由 CI/设备验收。
+- 保存只重建当前 PTY 视图，不新建/切换会话；简易模式无附加键。模型单测 19 项本地通过；[CI run 40282161255](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40282161255) 已通过（2545 项、0 失败/0 错误/1 允许跳过，Lint 成功）。真机渲染、触摸、IME 与 TalkBack 未验。
 - 相关文件：[TerminalExtraKeys.java](<../../../app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java>) · [ExtraKeysDialog.java](<../../../app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java>) · [PtyTerminalFragment.java](<../../../app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java>) · [bg_terminal_key.xml](<../../../app/src/main/res/drawable/bg_terminal_key.xml>)
 
 ### 验证

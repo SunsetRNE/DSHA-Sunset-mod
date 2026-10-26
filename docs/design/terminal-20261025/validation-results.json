@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-10-26T06:00:14.160Z",
+  "startedAt": "2026-10-26T07:01:16.146Z",
   "scope": "offline HTML prototype only; not Android validation",
   "checks": [
     {
@@ -777,8 +777,8 @@
   "externalRequests": [],
   "browser": "141.0.7390.37",
   "loadMethod": "page.setContent of exact file text (navigation timed out in this container)",
-  "previewSha256": "36f3bb360b257e403b3b202e2797b6481afb2252d033c5c6675f18021d4b23d7",
+  "previewSha256": "842ffdbb042e026fcddcc56d6f0b2f5504cb8cd1cfe6b139ec2b86fbd6ebc6db",
   "passed": true,
-  "finishedAt": "2026-10-26T06:01:24.343Z",
+  "finishedAt": "2026-10-26T07:02:26.282Z",
   "checkCount": 151
 }
