@@ -82,13 +82,10 @@ public final class StartupText {
   }
 
   public static String choose(String language, String zh, String en) {
-    return "en".equals(language) ? en : zh;
+    return UiText.choose(language, zh, en);
   }
 
   private static String exact(String value, String language) {
-    if ("en".equals(language)) return UiMessages.EN.getOrDefault(value, value);
-    for (Map.Entry<String, String> entry : UiMessages.EN.entrySet())
-      if (entry.getValue().equals(value)) return entry.getKey();
-    return value;
+    return UiStateText.exact(value, language);
   }
 }

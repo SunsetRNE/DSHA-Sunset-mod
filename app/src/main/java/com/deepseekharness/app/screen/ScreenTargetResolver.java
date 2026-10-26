@@ -144,11 +144,6 @@ public final class ScreenTargetResolver {
               window.isActive(),
               measured,
               exclusion));
-      if (window.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
-        var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(service);
-        if (coordinator.snapshot().binding() != null && !coordinator.snapshot().paused())
-          coordinator.pause("INPUT_METHOD_VISIBLE");
-      }
     }
     var selection = MainScreenWindowPolicy.selection(candidates);
     int selected = selection.index();

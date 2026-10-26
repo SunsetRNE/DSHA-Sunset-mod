@@ -46,7 +46,7 @@ public final class WebPageScripts {
     return "window.__DSHA_LANGUAGE__='"
         + id
         + "';window.dispatchEvent(new CustomEvent('dsha-language'));"
-        + "if(!window.__dshaLanguageSelectionBound){window.__dshaLanguageSelectionBound=true;window.addEventListener('dsha-language-selected',e=>{if(e.detail==='en'||e.detail==='zh')window.DshaLanguage?.postMessage(e.detail);});}";
+        + "if(!window.__dshaLanguageSelectionBound){window.__dshaLanguageSelectionBound=true;window.addEventListener('dsha-language-selected',e=>{if(['zh','zh-Hant','en','ru','ja','ko','ar','pt','la','fr'].includes(e.detail))window.DshaLanguage?.postMessage(e.detail);});}";
   }
 
   private static String read(Context context, String path) {

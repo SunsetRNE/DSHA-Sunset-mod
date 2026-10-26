@@ -186,6 +186,8 @@ public final class RecoveryRepairBroker implements AutoCloseable {
         instanceId,
         "generation",
         generation,
+        "uiLanguage",
+        com.deepseekharness.app.util.UiText.language(),
         "pendingMaintenance",
         com.deepseekharness.app.core.MaintenanceCoordinator.pending(files),
         "currentEnvironmentReady",

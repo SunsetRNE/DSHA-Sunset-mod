@@ -30,12 +30,19 @@ public final class BrowserTaskPolicy {
 
   public static int nativeTask(List<Task> tasks, int browserTask, int preferredTask) {
     int newest = -1;
+    int shared = -1;
     for (Task task : tasks) {
-      if (!task.nativeRoot() || task.id() < 0 || task.id() == browserTask) continue;
+      if (!task.nativeRoot() || task.id() < 0) continue;
+      if (task.id() == browserTask) {
+        shared = task.id();
+        continue;
+      }
       if (task.id() == preferredTask) return task.id();
       newest = Math.max(newest, task.id());
     }
-    return newest;
+    // A legacy Main/Web shared task still contains the original Main. Reorder it
+    // instead of creating another native task or clearing its retained browser.
+    return newest >= 0 ? newest : shared;
   }
 
   /** Removing a whole task is safe only when its sole activity is the empty browser host. */

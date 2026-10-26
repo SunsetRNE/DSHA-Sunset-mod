@@ -688,13 +688,7 @@ public class HarnessService extends Service {
     // 正文点击必须是一个真正的 Activity PendingIntent。显式复用已有任务并带上
     // open_launch，避免用户已经停在设置/终端页时点击通知看起来「没有反应」。
     // 停止按钮继续使用独立的 Service PendingIntent，不能与正文共用 requestCode。
-    Intent intent =
-        new Intent(this, com.deepseekharness.app.ui.MainActivity.class)
-            .addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK
-                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    | Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra("open_launch", true);
+    Intent intent = com.deepseekharness.app.ui.MainActivity.homeIntent(this);
     PendingIntent pi =
         PendingIntent.getActivity(
             this,

@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity;
 import androidx.activity.OnBackPressedCallback;
 import com.deepseekharness.app.remote.RemoteConnectionClient;
 import com.deepseekharness.app.remote.RemoteSessionIdentity;
+import com.deepseekharness.app.util.UiText;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -40,6 +41,7 @@ public final class RemoteWebActivity extends ComponentActivity {
   @Override
   protected void onCreate(Bundle state) {
     super.onCreate(state);
+    com.deepseekharness.app.ui.LanguageController.applyRemote(this, null);
     getOnBackPressedDispatcher()
         .addCallback(
             this,
@@ -70,29 +72,29 @@ public final class RemoteWebActivity extends ComponentActivity {
     LinearLayout bar = new LinearLayout(this);
     bar.setGravity(android.view.Gravity.CENTER_VERTICAL);
     Button back = new Button(this);
-    back.setText("Back");
+    back.setText(UiText.choose("返回", "Back"));
     back.setOnClickListener(v -> finish());
     bar.addView(back);
     TextView label = new TextView(this);
-    label.setText("REMOTE · PC workspace");
+    label.setText(UiText.choose("远程 · 电脑工作区", "REMOTE · PC workspace"));
     label.setTextSize(18);
     bar.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
     Button reload = new Button(this);
-    reload.setText("Reload");
+    reload.setText(UiText.choose("重新加载", "Reload"));
     reload.setOnClickListener(v -> reloadSession(root));
     bar.addView(reload);
     Button records = new Button(this);
-    records.setText("Downloads");
+    records.setText(UiText.choose("下载记录", "Downloads"));
     records.setOnClickListener(v -> showDownloads());
     bar.addView(records);
     root.addView(bar);
     status = new TextView(this);
     status.setPadding(16, 8, 16, 8);
-    status.setText("Connecting to the selected PC…");
+    status.setText(UiText.choose("正在连接所选电脑…", "Connecting to the selected PC…"));
     root.addView(status);
     setContentView(root);
     if (!RemoteWebProfile.isRemoteProcess()) {
-      status.setText("Remote browser isolation unavailable");
+      status.setText(UiText.choose("远程浏览器隔离不可用", "Remote browser isolation unavailable"));
       return;
     }
     final RemoteSessionIdentity session;
@@ -103,7 +105,8 @@ public final class RemoteWebActivity extends ComponentActivity {
       sessionIdentity = session;
       sessionGeneration = session.generation;
     } catch (Exception invalid) {
-      status.setText("Select the PC again to open its isolated browser.");
+      status.setText(
+          UiText.choose("请重新选择电脑以打开其独立浏览器。", "Select the PC again to open its isolated browser."));
       return;
     }
     io.execute(
@@ -112,6 +115,7 @@ public final class RemoteWebActivity extends ComponentActivity {
             RemoteConnectionClient connection = new RemoteConnectionClient(getApplicationContext());
             client = connection;
             connection.connect();
+            String ownerLanguage = connection.uiLanguage();
             downloads =
                 new RemoteHttpDownloads(
                     new File(getNoBackupFilesDir(), "remote-downloads").toPath());
@@ -126,13 +130,25 @@ public final class RemoteWebActivity extends ComponentActivity {
             gateway = server;
             runOnUiThread(
                 () -> {
-                  if (!destroyed) createBrowser(root, server);
+                  if (destroyed) return;
+                  String previousLanguage = UiText.language();
+                  String currentLanguage =
+                      com.deepseekharness.app.ui.LanguageController.applyRemote(
+                          this, ownerLanguage);
+                  if (!previousLanguage.equals(currentLanguage)) {
+                    recreate();
+                    return;
+                  }
+                  createBrowser(root, server);
                 });
           } catch (Exception unavailable) {
             runOnUiThread(
                 () -> {
                   if (!destroyed)
-                    status.setText("PC connection unavailable. Reconnect from the workspace list.");
+                    status.setText(
+                        UiText.choose(
+                            "电脑连接不可用，请从工作区列表重新连接。",
+                            "PC connection unavailable. Reconnect from the workspace list."));
                 });
           }
         });
@@ -225,7 +241,10 @@ public final class RemoteWebActivity extends ComponentActivity {
           @Override
           public void onPageFinished(WebView view, String url) {
             if (blobSink != null) blobSink.bindDocument();
-            status.setText("REMOTE · PC frontend · local Android tools are unavailable here");
+            status.setText(
+                UiText.choose(
+                    "远程 · 电脑网页 · 此处不提供本机 Android 工具",
+                    "REMOTE · PC frontend · local Android tools are unavailable here"));
           }
 
           @Override
@@ -237,7 +256,9 @@ public final class RemoteWebActivity extends ComponentActivity {
           public void onReceivedError(
               WebView view, WebResourceRequest request, WebResourceError error) {
             if (request.isForMainFrame())
-              status.setText("Remote page unavailable. Check the PC connection.");
+              status.setText(
+                  UiText.choose(
+                      "远程网页不可用，请检查电脑连接。", "Remote page unavailable. Check the PC connection."));
           }
 
           @Override
@@ -249,7 +270,10 @@ public final class RemoteWebActivity extends ComponentActivity {
             root.removeView(view);
             view.destroy();
             browser = null;
-            status.setText("Remote browser closed. Reopen it from the workspace list.");
+            status.setText(
+                UiText.choose(
+                    "远程浏览器已关闭，请从工作区列表重新打开。",
+                    "Remote browser closed. Reopen it from the workspace list."));
             return true;
           }
         });
@@ -301,7 +325,10 @@ public final class RemoteWebActivity extends ComponentActivity {
               }
             });
     if (!blobSink.attach())
-      status.setText("Remote file saving requires an updated Android WebView.");
+      status.setText(
+          UiText.choose(
+              "保存远程文件需要更新 Android WebView。",
+              "Remote file saving requires an updated Android WebView."));
     browser.setDownloadListener(
         (url, userAgent, disposition, mimeType, contentLength) -> {
           if (!server.permits(url)
@@ -324,7 +351,7 @@ public final class RemoteWebActivity extends ComponentActivity {
           } catch (RuntimeException unavailable) {
             pendingDownload = null;
             downloadBusy.set(false);
-            status.setText("Document picker unavailable");
+            status.setText(UiText.choose("文件选择器不可用", "Document picker unavailable"));
           }
         });
     root.addView(browser, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -394,7 +421,9 @@ public final class RemoteWebActivity extends ComponentActivity {
         return;
       }
       status.setText(
-          "Downloading remote file. Partial bytes are kept in Downloads if interrupted.");
+          UiText.choose(
+              "正在下载远程文件；若中断，可在下载记录中保留已接收部分。",
+              "Downloading remote file. Partial bytes are kept in Downloads if interrupted."));
       io.execute(
           () -> {
             try {
@@ -415,7 +444,10 @@ public final class RemoteWebActivity extends ComponentActivity {
               runOnUiThread(
                   () -> {
                     if (!destroyed)
-                      status.setText("Unable to create remote download. Retry from the PC page.");
+                      status.setText(
+                          UiText.choose(
+                              "无法创建远程下载，请从电脑网页重试。",
+                              "Unable to create remote download. Retry from the PC page."));
                   });
             }
           });
@@ -473,14 +505,19 @@ public final class RemoteWebActivity extends ComponentActivity {
       else
         runOnUiThread(
             () -> {
-              if (!destroyed) status.setText("Remote download complete. Save it from Downloads.");
+              if (!destroyed)
+                status.setText(
+                    UiText.choose(
+                        "远程下载已完成，请从下载记录中保存。", "Remote download complete. Save it from Downloads."));
             });
     } catch (Exception failure) {
       runOnUiThread(
           () -> {
             if (!destroyed)
               status.setText(
-                  "Download paused or source changed. Open Downloads to review, resume or explicitly restart.");
+                  UiText.choose(
+                      "下载已暂停或来源已变更，请打开下载记录查看、续传或明确重新开始。",
+                      "Download paused or source changed. Open Downloads to review, resume or explicitly restart."));
           });
     } finally {
       downloadBusy.set(false);
@@ -496,14 +533,16 @@ public final class RemoteWebActivity extends ComponentActivity {
       }
       runOnUiThread(
           () -> {
-            if (!destroyed) status.setText("Remote download saved");
+            if (!destroyed) status.setText(UiText.choose("远程下载已保存", "Remote download saved"));
           });
     } catch (Exception failure) {
       runOnUiThread(
           () -> {
             if (!destroyed)
               status.setText(
-                  "Completed private copy retained. Choose Save from Downloads to select a destination again.");
+                  UiText.choose(
+                      "已保留完整的应用私有副本；请在下载记录中选择保存，重新指定目标位置。",
+                      "Completed private copy retained. Choose Save from Downloads to select a destination again."));
           });
     } finally {
       downloadBusy.set(false);
@@ -530,15 +569,18 @@ public final class RemoteWebActivity extends ComponentActivity {
                 () -> {
                   if (!destroyed)
                     new android.app.AlertDialog.Builder(this)
-                        .setTitle("Remote HTTP downloads · this PC")
+                        .setTitle(
+                            UiText.choose("远程 HTTP 下载 · 当前电脑", "Remote HTTP downloads · this PC"))
                         .setItems(labels, (dialog, index) -> reviewDownload(jobs.get(index)))
-                        .setNegativeButton("Close", null)
+                        .setNegativeButton(UiText.choose("关闭", "Close"), null)
                         .show();
                 });
           } catch (IOException unavailable) {
             runOnUiThread(
                 () -> {
-                  if (!destroyed) status.setText("Remote download records unavailable");
+                  if (!destroyed)
+                    status.setText(
+                        UiText.choose("远程下载记录不可用", "Remote download records unavailable"));
                 });
           }
         });
@@ -565,10 +607,12 @@ public final class RemoteWebActivity extends ComponentActivity {
         new android.app.AlertDialog.Builder(this)
             .setTitle(job.name)
             .setMessage(
-                "Resume is available only when the PC can verify the same unchanged file. Restart begins a new copy and keeps this partial. Files generated inside a webpage cannot resume after that page closes.")
-            .setNegativeButton("Cancel", null)
+                UiText.choose(
+                    "仅当电脑可核验文件未变更时才能续传。重新开始会创建新副本并保留这份部分文件。网页内部生成的文件在网页关闭后无法续传。",
+                    "Resume is available only when the PC can verify the same unchanged file. Restart begins a new copy and keeps this partial. Files generated inside a webpage cannot resume after that page closes."))
+            .setNegativeButton(UiText.choose("取消", "Cancel"), null)
             .setNeutralButton(
-                "Restart as new",
+                UiText.choose("重新创建下载", "Restart as new"),
                 (dialog, which) -> {
                   if (!downloadBusy.compareAndSet(false, true)) return;
                   io.execute(
@@ -582,7 +626,7 @@ public final class RemoteWebActivity extends ComponentActivity {
                 });
     if (job.canResume() && job.hostInstance.equals(sessionIdentity.hostInstanceId))
       review.setPositiveButton(
-          "Resume",
+          UiText.choose("继续下载", "Resume"),
           (dialog, which) -> {
             if (downloadBusy.compareAndSet(false, true)) io.execute(() -> download(job));
           });
@@ -592,17 +636,17 @@ public final class RemoteWebActivity extends ComponentActivity {
   private static String downloadState(RemoteHttpDownloads.State state) {
     switch (state) {
       case COMPLETE:
-        return "Downloaded";
+        return UiText.choose("已下载", "Downloaded");
       case PAUSED:
-        return "Paused";
+        return UiText.choose("已暂停", "Paused");
       case SOURCE_CHANGED:
-        return "Source changed · restart needed";
+        return UiText.choose("来源已变更 · 需要重新开始", "Source changed · restart needed");
       case UNKNOWN_PARTIAL:
-        return "Partial needs review";
+        return UiText.choose("部分文件需要检查", "Partial needs review");
       case NO_RESUME:
-        return "Safe resume unavailable · restart needed";
+        return UiText.choose("无法安全续传 · 需要重新开始", "Safe resume unavailable · restart needed");
       default:
-        return "Not started";
+        return UiText.choose("尚未开始", "Not started");
     }
   }
 
@@ -640,14 +684,18 @@ public final class RemoteWebActivity extends ComponentActivity {
                   sessionGeneration = fresh.generation;
                   createBrowser(root, replacement);
                   status.setText(
-                      "Remote connection restored. Resume HTTP files explicitly in Downloads.");
+                      UiText.choose(
+                          "远程连接已恢复，请在下载记录中手动继续 HTTP 文件下载。",
+                          "Remote connection restored. Resume HTTP files explicitly in Downloads."));
                 });
           } catch (Exception unavailable) {
             runOnUiThread(
                 () -> {
                   if (!destroyed)
                     status.setText(
-                        "PC is disconnected. Reconnect the same workspace, then Reload.");
+                        UiText.choose(
+                            "电脑已断开，请重新连接同一工作区后再重新加载。",
+                            "PC is disconnected. Reconnect the same workspace, then Reload."));
                 });
           } finally {
             reloading.set(false);
