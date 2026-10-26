@@ -30,6 +30,7 @@ import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.core.TerminalSessionOwner;
 import com.deepseekharness.app.core.TerminalRuntimeProtection;
 import com.deepseekharness.app.util.SensitiveData;
+import com.deepseekharness.app.util.TerminalExtraKeys;
 import com.deepseekharness.app.util.TerminalInput;
 import com.deepseekharness.app.util.UiText;
 import com.termux.terminal.KeyHandler;
@@ -58,6 +59,7 @@ public final class PtyTerminalFragment extends Fragment
   private TerminalView view;
   private InputFrame inputFrame;
   private TextView title, ctrlBtn, altBtn;
+  private LinearLayout extraKeysBox;
   private PtySession attachedSession;
   private PtySession.Listener sessionListener;
   private TerminalRuntimeProtection.Ticket creating;
@@ -323,61 +325,102 @@ public final class PtyTerminalFragment extends Fragment
   }
 
   private void buildExtraKeys(LinearLayout box) {
+    if (box == null) return;
+    extraKeysBox = box;
     box.removeAllViews();
-    String[][] rows = {
-      {"ESC", "TAB", "CTRL", "ALT", "←", "↓", "↑", "→"},
-      {"^C", "^D", "^Z", "HOME", "END", "|", "/", "-"}
-    };
-    for (String[] labels : rows) {
-      HorizontalScrollView scroll = new HorizontalScrollView(requireContext());
+    ctrlBtn = null;
+    altBtn = null;
+    var context = requireContext();
+    TerminalExtraKeys.Profile profile =
+        TerminalExtraKeys.profileFor(getResources().getConfiguration().smallestScreenWidthDp);
+    var rows =
+        TerminalExtraKeys.decode(
+            prefs(context).getString(TerminalExtraKeys.prefKey(profile), ""), profile);
+    for (var actions : rows) {
+      if (actions.isEmpty()) continue;
+      HorizontalScrollView scroll = new HorizontalScrollView(context);
       scroll.setHorizontalScrollBarEnabled(false);
       scroll.setFillViewport(true);
-      LinearLayout row = new LinearLayout(requireContext());
+      LinearLayout row = new LinearLayout(context);
       row.setOrientation(LinearLayout.HORIZONTAL);
-      row.setMinimumWidth(dp(48 * labels.length));
+      row.setMinimumWidth(dp(44 * actions.size()));
       row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-      for (String label : labels) {
-        TextView button = new TextView(requireContext());
-        button.setText(label);
+      row.setPadding(dp(2), 0, dp(2), 0);
+      for (String action : actions) {
+        TextView button = new TextView(context);
+        button.setText(TerminalExtraKeys.label(action));
         button.setGravity(Gravity.CENTER);
-        button.setMinWidth(dp(48));
+        button.setMinWidth(dp(44));
         button.setMinHeight(dp(48));
-        button.setPadding(dp(5), 0, dp(5), 0);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        button.setTextColor(requireContext().getColor(R.color.terminal_foreground));
+        button.setSingleLine(true);
+        button.setMaxLines(1);
+        button.setIncludeFontPadding(false);
+        button.setPadding(dp(2), 0, dp(2), 0);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        // 大字体/窄屏时自动缩字，标签不会折行或把行高撑破。
+        button.setAutoSizeTextTypeUniformWithConfiguration(8, 13, 1, TypedValue.COMPLEX_UNIT_SP);
+        button.setTextColor(context.getColor(R.color.terminal_foreground));
         button.setTypeface(android.graphics.Typeface.MONOSPACE);
-        button.setBackgroundResource(android.R.drawable.list_selector_background);
+        button.setBackgroundResource(R.drawable.bg_terminal_key);
         button.setFocusable(false); // 触摸附加键不抢走 IME 组合焦点。
-        if ("CTRL".equals(label)) ctrlBtn = button;
-        if ("ALT".equals(label)) altBtn = button;
-        button.setOnClickListener(v -> extraKey(label));
+        button.setContentDescription(TerminalExtraKeys.description(action));
+        if ("CTRL".equals(action)) ctrlBtn = button;
+        if ("ALT".equals(action)) altBtn = button;
+        button.setOnClickListener(v -> extraKey(action));
+        // 单键也支持长按进入自定义；短按仍只发送按键，不改变输入语义。
+        button.setOnLongClickListener(
+            v -> {
+              ExtraKeysDialog.show(requireContext(), this::refreshExtraKeys);
+              return true;
+            });
         row.addView(button, new LinearLayout.LayoutParams(0, dp(48), 1f));
       }
       scroll.addView(row, new HorizontalScrollView.LayoutParams(-1, dp(48)));
       box.addView(scroll, new LinearLayout.LayoutParams(-1, dp(48)));
     }
+    box.setContentDescription(
+        UiText.choose("终端快捷按键，长按可自定义", "Terminal extra keys, long-press to customize"));
+    box.setOnLongClickListener(
+        v -> {
+          ExtraKeysDialog.show(requireContext(), this::refreshExtraKeys);
+          return true;
+        });
     paintModifiers();
   }
 
-  private void extraKey(String label) {
+  @Override
+  public void refreshExtraKeys() {
+    if (extraKeysBox != null) buildExtraKeys(extraKeysBox);
+  }
+
+  @Override
+  public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    // 多窗口/外接屏改变设备宽度类别时，手机与平板两套布局各自生效。
+    if (extraKeysBox != null) buildExtraKeys(extraKeysBox);
+  }
+
+  private void extraKey(String action) {
     if (!inputAllowed()) return;
-    if ("CTRL".equals(label) || "ALT".equals(label)) {
-      if ("CTRL".equals(label)) modifiers.toggleControl();
+    if (TerminalExtraKeys.isModifier(action)) {
+      if ("CTRL".equals(action)) modifiers.toggleControl();
       else modifiers.toggleAlt();
       paintModifiers();
       showKeyboard();
       return;
     }
     int code =
-        switch (label) {
+        switch (action) {
           case "ESC" -> KeyEvent.KEYCODE_ESCAPE;
           case "TAB" -> KeyEvent.KEYCODE_TAB;
-          case "←" -> KeyEvent.KEYCODE_DPAD_LEFT;
-          case "→" -> KeyEvent.KEYCODE_DPAD_RIGHT;
-          case "↑" -> KeyEvent.KEYCODE_DPAD_UP;
-          case "↓" -> KeyEvent.KEYCODE_DPAD_DOWN;
+          case "LEFT" -> KeyEvent.KEYCODE_DPAD_LEFT;
+          case "RIGHT" -> KeyEvent.KEYCODE_DPAD_RIGHT;
+          case "UP" -> KeyEvent.KEYCODE_DPAD_UP;
+          case "DOWN" -> KeyEvent.KEYCODE_DPAD_DOWN;
           case "HOME" -> KeyEvent.KEYCODE_MOVE_HOME;
           case "END" -> KeyEvent.KEYCODE_MOVE_END;
+          case "PGUP" -> KeyEvent.KEYCODE_PAGE_UP;
+          case "PGDN" -> KeyEvent.KEYCODE_PAGE_DOWN;
           default -> 0;
         };
     restoreInputFocus();
@@ -395,9 +438,10 @@ public final class PtyTerminalFragment extends Fragment
         clearModifiers();
       }
     } else {
-      int cp =
-          label.startsWith("^") ? Character.toLowerCase(label.charAt(1)) : label.codePointAt(0);
-      view.inputCodePoint(cp, label.startsWith("^"), false);
+      String label = TerminalExtraKeys.label(action);
+      boolean control = TerminalExtraKeys.isControl(action);
+      int cp = control ? Character.toLowerCase(label.charAt(1)) : label.codePointAt(0);
+      view.inputCodePoint(cp, control, false);
     }
     restoreInputFocus();
   }
