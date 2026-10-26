@@ -74,6 +74,12 @@ bundle('fixture-multi', '- insert:\n    - id: multi-active\n      name: ./active
   'active.js': 'export function apply() {}', 'pending.js': 'export const inject = ["evidenceMissing"]; export function apply() {}',
 });
 bundle('fixture-group', '- insert:\n    - id: nested-group\n      name: cordis:group\n      group: true\n      config:\n        - id: nested-child\n          name: ./child.js\n', { 'child.js': 'export function apply() {}' });
+// 组内可选子项用 !!js 条件禁用（对应真实 terminal-bundle 的 pwsh 行）：禁用的子项不进 init，
+// 采样不能把它当 unknown 拖累整组，也不能为了判定状态重新求值表达式。
+bundle('fixture-group-optional', '- insert:\n    - id: optional-group\n      name: cordis:group\n      group: true\n      config:\n        - id: optional-child\n          name: ./child.js\n        - id: optional-expression\n          name: ./never.js\n          disabled: !!js "(globalThis.evidenceExpressions++, true)"\n', {
+  'child.js': 'export function apply() {}',
+  'never.js': 'throw new Error("expression-disabled child must not execute");',
+});
 bundle('fixture-override-only', '- id: good\n  disabled: false\n');
 bundle('fixture-ambiguous', '- insert:\n    - id: opaque\n      name: cordis:include\n      config: { path: ./private.yml }\n');
 bundle('fixture-duplicate-a', '- insert:\n    - id: duplicate\n      name: ./index.js\n', { 'index.js': 'export function apply() {}' });
@@ -172,6 +178,7 @@ test('锁定 Loader 的实际 fiber、吞掉的导入失败与状态变化驱动
     assert.equal(state('fixture-expression'), 'unknown', '采样不重新求值 !!js');
     assert.equal(state('fixture-multi'), 'pending', '同 bundle 的一个 active 不能覆盖另一个 pending');
     assert.equal(state('fixture-group'), 'loaded');
+    assert.equal(state('fixture-group-optional'), 'loaded', '条件禁用的可选子项不能拖累整组');
     for (const name of ['fixture-unresolvable', 'fixture-missing-entry', 'fixture-ambiguous',
       'fixture-override-only', 'fixture-duplicate-a', 'fixture-duplicate-b']) assert.equal(state(name), 'unknown', name);
     assert.equal(sample().length, official.length + local.length + 1);
