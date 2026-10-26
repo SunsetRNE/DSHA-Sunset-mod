@@ -17,6 +17,9 @@ public interface TerminalPane {
 
   void restoreInputFocus();
 
+  /** 附加键布局保存后刷新当前 PTY 视图；简易终端无附加键，默认不做事。 */
+  default void refreshExtraKeys() {}
+
   boolean selectionBack();
 
   boolean isPty();

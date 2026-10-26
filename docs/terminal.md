@@ -25,8 +25,16 @@ Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/
 
 | 模式 | 适合的操作 | 实际行为与限制 |
 |---|---|---|
-| PTY | vim、htop、tmux、交互提示、逐键输入 | [PtySession](../app/src/main/java/com/deepseekharness/app/PtySession.java) 接 Termux terminal-emulator/JNI；扩展键提供 Ctrl、Alt、Esc、Tab、方向键，支持字号调整与缩放 |
+| PTY | vim、htop、tmux、交互提示、逐键输入 | [PtySession](../app/src/main/java/com/deepseekharness/app/PtySession.java) 接 Termux terminal-emulator/JNI；附加键提供 Ctrl、Alt、Esc、Tab、方向键、翻页与控制字符，支持字号调整与缩放 |
 | 简易 | 按行提交命令、查看文字结果 | 管道 shell，命令排队并串行发送；不模拟完整终端，需交互输入/TUI 时切 PTY |
+
+### 附加键（PTY）
+
+底部附加键按设备宽度选择一套布局：`smallestScreenWidthDp < 600` 为手机，`>= 600` 为平板；两套布局分别保存在 `deepseekharness` 偏好的 `term_extra_keys_phone` / `term_extra_keys_tablet`。首次使用手机默认是 Termux 风格的 7+7（Esc / 斜杠 / 连字符 / Home / 上 / End / PgUp；Tab / Ctrl / Alt / 左 / 下 / 右 / PgDn），平板保留 8+8 的既有组合。
+
+显示设置里的“快捷按键布局”打开编辑面板，也可以长按附加键区域进入。编辑器按手机/平板分别保存，支持从动作目录增删、替换、左移/右移；每行最多 10 个，空行在终端里隐藏，两个布局各自至少保留一个按键。动作目录包括 Esc、Tab、Ctrl、Alt、方向键、Home/End、PgUp/PgDn、`^C/^D/^Z/^L` 和常用符号；`Ctrl/Alt` 仍是一次性修饰键，选中后下一次按键生效并清除。
+
+按键文本在窄屏或大字体下自动缩字、单行不折行；单行宽度超过可用区域时横向滚动，行高固定 48dp。保存后只重建当前 PTY 视图，不新建、不切换会话，也不改变进程；简易模式没有附加键，编辑结果只作用于 PTY。设备宽度类别变化（旋转、分屏、外接屏）会按新形态重选布局。模型与单测见 [TerminalExtraKeys](../app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java)、[TerminalExtraKeysTest](../app/src/test/java/com/deepseekharness/app/util/TerminalExtraKeysTest.java)；编辑面板的触摸、RTL、TalkBack 与 IME 避让仍需真机验收。
 
 入口实现为 [PtyTerminalFragment](../app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java) 与 [TerminalFragment](../app/src/main/java/com/deepseekharness/app/ui/TerminalFragment.java)。新标签使用当前环境准备与运行方式；已有标签继续持有出生时的进程身份。运行方式的选择与兼容边界见[运行引擎](runtime-engines.md)。
 
@@ -56,4 +64,4 @@ PTY 在底层核验 guest 为空后释放保护。简易标签的 `STOPPED/FAILE
 
 ## 核验入口
 
-修改后至少选择与变更相关的 [TerminalTabsTest](../app/src/test/java/com/deepseekharness/app/util/TerminalTabsTest.java)、[TerminalSessionTest](../app/src/test/java/com/deepseekharness/app/util/TerminalSessionTest.java)、[TerminalSessionOwnerTest](../app/src/test/java/com/deepseekharness/app/core/TerminalSessionOwnerTest.java)、[TerminalRuntimeTest](../app/src/test/java/com/deepseekharness/app/runtime/TerminalRuntimeTest.java)。它们分别覆盖编号/关闭、队列与未知结果、所有权和启动输入；测试源码存在不表示本轮已重新执行。真实 PTY、IME、ROM `/proc` 行为仍须精确正式 APK 的设备记录。
+修改后至少选择与变更相关的 [TerminalTabsTest](../app/src/test/java/com/deepseekharness/app/util/TerminalTabsTest.java)、[TerminalSessionTest](../app/src/test/java/com/deepseekharness/app/util/TerminalSessionTest.java)、[TerminalSessionOwnerTest](../app/src/test/java/com/deepseekharness/app/core/TerminalSessionOwnerTest.java)、[TerminalRuntimeTest](../app/src/test/java/com/deepseekharness/app/runtime/TerminalRuntimeTest.java)、[TerminalExtraKeysTest](../app/src/test/java/com/deepseekharness/app/util/TerminalExtraKeysTest.java)。它们分别覆盖编号/关闭、队列与未知结果、所有权和启动输入；测试源码存在不表示本轮已重新执行。真实 PTY、IME、ROM `/proc` 行为仍须精确正式 APK 的设备记录。

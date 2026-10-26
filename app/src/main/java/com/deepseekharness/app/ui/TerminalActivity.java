@@ -770,7 +770,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       workbench
           ? UiText.choose("切换极简模式", "Use minimal mode")
           : UiText.choose("切换工作台模式", "Use workbench mode"),
-      UiText.choose("重置菜单位置", "Reset menu position")
+      UiText.choose("重置菜单位置", "Reset menu position"),
+      UiText.choose("快捷按键布局", "Extra keys layout")
     };
     panel =
         new DshaDialogBuilder(this)
@@ -788,6 +789,13 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                     applyPresentation();
                   }
                   if (index == 3) ball.resetPosition();
+                  if (index == 4)
+                    ExtraKeysDialog.show(
+                        TerminalActivity.this,
+                        () -> {
+                          var current = pane();
+                          if (current != null) current.refreshExtraKeys();
+                        });
                 })
             .show();
   }
