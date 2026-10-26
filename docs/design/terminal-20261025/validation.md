@@ -119,3 +119,48 @@ PLAYWRIGHT_HOME=/path/to/tooling/node_modules \
 ```
 
 两脚本只读取本地 HTML 原文，在浏览器中交互并生成截图/JSON，不操作手机或真实终端。会覆盖各自结果与截图；若需保留历史证据，先另存。运行结束均关闭浏览器实例。
+
+## 9. 2026-10-26 三向态与图标化侧栏复验
+
+第三轮只改 HTML 原型与验证脚本，未改 Android 业务代码。终端回归脚本 [check-preview.cjs](<check-preview.cjs>) 在原有 133 条基础上新增 18 条三向态/图标化断言，最终 **151 条通过，0 页面脚本异常、0 外部网络请求**。
+
+```text
+finishedAt: 2026-10-26T05:43:48.491Z
+previewSha256: 803b55a72e049a40781bf66e63250af0ec1dcc13d2e605a4065e9123792b5024
+checks: 151
+```
+
+### 9.1 新增断言
+
+| 范围 | 实际检查 |
+|---|---|
+| 三向态 | 默认 `system`；系统浅色/深色分别解析；侧栏 3 个选项与选中态同步；设置面板与侧栏共用同一选择 |
+| 颜色合同 | 白天侧栏为白底、强调色蓝通道最高；黑夜侧栏为黑底、强调色蓝通道最高；两套外观下终端输出区都保持 `rgb(0,0,0)` |
+| 回归 | 普通点击不会把外观重置为 `system`；重新载入不保留选择；切换外观不新建或更换会话 |
+| 侧栏图标化 | 两个分组各有图标；会话行类型图标；底部 4 个动作都有非透明底色与 `svg.icon`；2×2 几何排列 |
+| 源码 | 旧绿色 token `#b2dcb9 / #17271c / #44604c` 不再出现 |
+
+主流程截图仍固定模拟系统深色（贴近用户手机），另显式截取白天/黑夜的抽屉、工作台和平板内联侧栏：
+
+| 场景 | 截图 |
+|---|---|
+| 手机抽屉·白天 | [phone-sidebar-light.png](<phone-sidebar-light.png>) |
+| 手机抽屉·黑夜 | [phone-sidebar-dark.png](<phone-sidebar-dark.png>) |
+| 手机工作台·白天 | [phone-workbench-light.png](<phone-workbench-light.png>) |
+| 平板内联侧栏·白天 | [tablet-sidebar-light.png](<tablet-sidebar-light.png>) |
+| 平板内联侧栏·黑夜 | [tablet-sidebar-dark.png](<tablet-sidebar-dark.png>) |
+| 主流程（深色） | [phone-minimal-preview.png](<phone-minimal-preview.png>) · [phone-preview.png](<phone-preview.png>) · [tablet-preview.png](<tablet-preview.png>) |
+
+### 9.2 本轮界面变化
+
+- 侧栏头部增加 `>_` 身份块、独立副标题与图标关闭；会话行改为**单行**：类型图标 + `PTY 1` + 状态胶囊（空闲/运行中 N/已暂停 N），不再同时显示 `pty-1` 造成重复；会话 ID 保留在无障碍名称与长按提示中。
+- 分组标题增加 PTY/simple 图标和计数胶囊；空态改为虚线框。
+- 底部动作改为 2×2 有底色、有图标的按钮；第一个为软主色，其余为表面色；新增三向态分段开关、状态摘要和“返回只关页面”脚注。
+- 终端工作台顶栏、对话框、主壳跟随三向态；终端输出区固定黑底。抽屉宽度调整为 344px，宽屏内联侧栏 272–320px。
+
+### 9.3 边界
+
+- 仍是离线 HTML、`page.setContent` 加载原文、浏览器模拟 `prefers-color-scheme`；不是 Android 主题实现、真机对比度或 TalkBack 验收。
+- 主 Tab 脚本已重跑：**133 条通过**，`validation-main-tabs.json` 更新；其截图在默认浅色下重新生成，覆盖旧的 `*-v2.png`。
+- 悬浮球、触摸、IME 仍是页面内模拟；系统主题切换由浏览器媒体查询驱动，不代表 AppCompat 重建行为。
+- 主流程截图固定模拟系统深色；主 Tab 截图（`phone-launch-v2.png` 等）为默认浅色。两者都是同一原型的浏览器渲染，不是手机截图。

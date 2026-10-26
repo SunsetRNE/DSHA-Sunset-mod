@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-10-25T12:27:37.663Z",
+  "startedAt": "2026-10-26T06:00:14.160Z",
   "scope": "offline HTML prototype only; not Android validation",
   "checks": [
     {
@@ -14,6 +14,11 @@
     },
     {
       "name": "无执行/网络/用户持久化 API",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "侧栏不再使用旧绿色主题 token",
       "passed": true,
       "detail": ""
     },
@@ -658,6 +663,91 @@
       "detail": ""
     },
     {
+      "name": "默认外观选择跟随系统",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "系统浅色解析为白天",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "侧栏提供三向态选择",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "底部四个动作按钮都有底色与图标",
+      "passed": true,
+      "detail": "{\"count\":4,\"icons\":4,\"fills\":4,\"rows\":[\"first\",\"second\",\"second\"],\"widths\":[157,157,157,157]}"
+    },
+    {
+      "name": "底部动作按 2×2 排列",
+      "passed": true,
+      "detail": "{\"count\":4,\"icons\":4,\"fills\":4,\"rows\":[\"first\",\"second\",\"second\"],\"widths\":[157,157,157,157]}"
+    },
+    {
+      "name": "侧栏分组与会话行有图标",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "黑夜侧栏为黑底且强调色为蓝",
+      "passed": true,
+      "detail": "{\"sidebar\":[11,15,22],\"accent\":[138,180,255],\"terminal\":[0,0,0],\"pressed\":\"true\"}"
+    },
+    {
+      "name": "黑夜终端输出区保持黑底",
+      "passed": true,
+      "detail": "{\"sidebar\":[11,15,22],\"accent\":[138,180,255],\"terminal\":[0,0,0],\"pressed\":\"true\"}"
+    },
+    {
+      "name": "黑夜按钮选中态同步",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "普通点击不重置外观选择",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "白天侧栏为白底浅蓝强调",
+      "passed": true,
+      "detail": "{\"sidebar\":[255,255,255],\"accent\":[30,80,208],\"terminal\":[0,0,0]}"
+    },
+    {
+      "name": "白天终端输出区仍保持黑底",
+      "passed": true,
+      "detail": "{\"sidebar\":[255,255,255],\"accent\":[30,80,208],\"terminal\":[0,0,0]}"
+    },
+    {
+      "name": "跟随系统响应系统深浅变化",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "显示设置复用同一份三向态选择",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "设置面板切白天后侧栏同步",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "外观切换不新建或更换会话",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "重新载入不保留外观选择",
+      "passed": true,
+      "detail": ""
+    },
+    {
       "name": "无浏览器脚本异常",
       "passed": true,
       "detail": "[]"
@@ -676,14 +766,19 @@
     "tablet-preview.png",
     "phone-floating-ball.png",
     "phone-floating-menu.png",
-    "home-preview.png"
+    "home-preview.png",
+    "phone-sidebar-dark.png",
+    "phone-sidebar-light.png",
+    "phone-workbench-light.png",
+    "tablet-sidebar-light.png",
+    "tablet-sidebar-dark.png"
   ],
   "pageErrors": [],
   "externalRequests": [],
   "browser": "141.0.7390.37",
   "loadMethod": "page.setContent of exact file text (navigation timed out in this container)",
-  "previewSha256": "b0d23d2d2657835a8e27f72029b48cf54ef7ec58cc48fadf02895cea16e471bb",
+  "previewSha256": "36f3bb360b257e403b3b202e2797b6481afb2252d033c5c6675f18021d4b23d7",
   "passed": true,
-  "finishedAt": "2026-10-25T12:28:27.295Z",
-  "checkCount": 133
+  "finishedAt": "2026-10-26T06:01:24.343Z",
+  "checkCount": 151
 }

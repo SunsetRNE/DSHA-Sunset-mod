@@ -56,6 +56,49 @@
 
 ---
 
+## 2026-10-26 第三轮更新：三向态侧栏、图标化与单行会话
+
+### 为什么改
+
+用户提供的原生终端截图里，侧栏是固定的深绿色，与应用现有“系统 / 白天 / 黑夜”三向态和浅蓝主色脱节；会话行同时显示 `PTY 1` 与 `pty-1 · 空闲`，信息重复；底部文字按钮没有图标和底色。本轮先在 HTML 原型上大改，供确认后再原生化，避免直接改 Java 后反复返工。
+
+### 颜色合同
+
+- **浅色 = 浅蓝 + 白**：页面底 `#EEF2F8`、面板白 `#FFFFFF`、主色 `#1E50D0`、选中底 `#E8EFFF`。
+- **深色 = 浅蓝 + 黑**：页面底 `#05070B`、面板 `#0B0F16`、主色 `#8AB4FF`、选中底 `#13233C`。
+- **终端输出区在两套外观下都固定黑底**（`#000`），与原生 `terminal_surface` 的既有合同一致；侧栏、顶栏、对话框、菜单和主壳随外观切换。
+- 所有颜色集中在 `:root` 与 `:root[data-theme="dark"]` 的 CSS 变量；不再在组件里硬编码绿色。旧绿色 token `#b2dcb9 / #17271c / #44604c` 已从原型移除。
+
+### 侧栏信息结构
+
+| 区域 | 新结构 |
+|---|---|
+| 头部 | `>_` 身份块 + “会话” + “独立上下文 · 返回不结束进程” + 图标关闭 |
+| 新建 | 主色填充按钮，`+` 图标，右侧 `PTY / 简易` 提示 |
+| 分组 | PTY / simple 各带类型图标、标题、计数胶囊；空态为虚线框 |
+| 会话行 | **单行**：类型图标 + `PTY 1` + 状态胶囊（空闲 / 运行中 N / 已暂停 N）；ID 只保留在无障碍名与长按提示，不再重复显示 |
+| 底部 | 会话摘要 + “系统 / 白天 / 黑夜”分段开关 + 2×2 填充动作（返回主界面 / 显示模式 / 模拟键盘 / 说明）+ 边界脚注 |
+
+### 原生落地
+
+- 颜色 token、三向态机制、图标清单、2×2 与现有 6 个动作的取舍、Robolectric/Lint/真机验收清单见 [native-terminal-theme-plan.md](<native-terminal-theme-plan.md>)。
+- 原生底部动作**不删能力**：保留现有 6 个入口；HTML 只展示其中 4 个，是因为原型没有真实剪贴板/输入焦点能力。
+- 底部“快捷”按键的自定义是独立原生改造，见同轮实现记录（手机/平板两套布局、可增删替换排序、保存后即时刷新）。
+
+### 底部附加键（原生实现，待 CI）
+
+- 手机默认 7+7（Termux 风格：Esc / 斜杠 / 连字符 / Home / 上 / End / PgUp；Tab / Ctrl / Alt / 左 / 下 / 右 / PgDn），平板沿用 8+8；两套布局分别保存在 `term_extra_keys_phone` / `term_extra_keys_tablet`。
+- 显示设置新增“快捷按键布局”，或长按附加键区域进入编辑面板；支持增删、替换、左移/右移、恢复默认；每行最多 10 个，空行隐藏，两个布局各自至少保留一个键。
+- 按键改为单行 + 8–13sp 自动缩字 + 固定 48dp 行高；窄屏/大字体不再折行，超出宽度时横向滚动。`CTRL/ALT` 仍为一次性修饰键，选中态有背景和描边。
+- 保存只重建当前 PTY 视图，不新建/切换会话；简易模式无附加键。模型单测 19 项本地通过，Android 编译、Lint、Robolectric 与真机渲染由 CI/设备验收。
+- 相关文件：[TerminalExtraKeys.java](<../../../app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java>) · [ExtraKeysDialog.java](<../../../app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java>) · [PtyTerminalFragment.java](<../../../app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java>) · [bg_terminal_key.xml](<../../../app/src/main/res/drawable/bg_terminal_key.xml>)
+
+### 验证
+
+- [check-preview.cjs](<check-preview.cjs>) 在原有 133 条上新增 18 条三向态/图标化断言，最终 **151 条通过**；原型 SHA-256 `803b55a72e049a40781bf66e63250af0ec1dcc13d2e605a4065e9123792b5024`。
+- 新增白天/黑夜抽屉、白天工作台、平板内联侧栏明暗截图；详见[验证记录](<validation.md>)第 9 节。
+- 仍是离线 HTML 验证，不是 Android 主题、对比度或真机验收。
+
 ## 0. 结论先行（第一轮架构评估）
 
 1. **可行，而且不需要更换终端内核。** 当前真 PTY 页面已经使用 Termux 的 `terminal-view:0.118.0` 和 `TerminalView`。最合理的“完全换 UI”是替换周边工具条、标签布局、背景与页面导航，保留终端视图、终端模拟器、PTY/JNI、运行环境及退出核验链。
