@@ -25,6 +25,10 @@
     <color name="shell_good">#287453</color>
     <color name="shell_warn">#8C600D</color>
     <color name="shell_bad">#AF404B</color>
+    <!-- 状态软底：只用于状态条/危险按钮的浅色背景，不用于正文。 -->
+    <color name="shell_good_soft">#14287453</color>
+    <color name="shell_warn_soft">#148C600D</color>
+    <color name="shell_bad_soft">#14AF404B</color>
 
     <!-- 玻璃层：胶囊导航底比页面底亮一档，仍保留一点透感 -->
     <color name="shell_glass">#E0FAFCFF</color>

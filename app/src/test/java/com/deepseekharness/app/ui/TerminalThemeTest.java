@@ -110,7 +110,8 @@ public class TerminalThemeTest {
         View.GONE, host.findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
     assertFooterActions(host, false);
     assertNotNull(host.findViewById(R.id.terminal_sessions_close_all));
-    assertEquals(View.VISIBLE, host.findViewById(R.id.terminal_sessions_theme).getVisibility());
+    // 主题切换从终端侧栏移出：侧栏只保留会话与输入相关动作。
+    assertNull(host.findViewById(R.id.terminal_sessions_theme));
 
     measure(host, 400, 470);
     assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_actions).getVisibility());
@@ -144,34 +145,17 @@ public class TerminalThemeTest {
 
   @Test
   @Config(qualifiers = "night")
-  public void themeSwitchReflectsPreferenceAndLocksWhileEndingAll() throws Exception {
+  public void sidebarNoLongerExposesThemeControls() {
     setTheme("dark");
     var controller = buildHost();
     TerminalActivity host = controller.get();
     measure(host, 400, 900);
     openDrawer(host);
-
-    TextView system = host.findViewById(R.id.terminal_theme_system);
-    TextView light = host.findViewById(R.id.terminal_theme_light);
-    TextView dark = host.findViewById(R.id.terminal_theme_dark);
-    assertFalse(system.isSelected());
-    assertFalse(light.isSelected());
-    assertTrue(dark.isSelected());
-    assertNotNull(system.getContentDescription());
-    assertNotNull(light.getContentDescription());
-    assertNotNull(dark.getContentDescription());
-
-    var running = TerminalActivity.class.getDeclaredField("closeAllRunning");
-    running.setAccessible(true);
-    running.setBoolean(host, true);
-    var refresh = TerminalActivity.class.getDeclaredMethod("refreshCloseAllNotice");
-    refresh.setAccessible(true);
-    refresh.invoke(host);
-    assertFalse(light.isEnabled());
-    light.performClick();
+    assertNull(host.findViewById(R.id.terminal_sessions_theme));
+    assertNull(host.findViewById(R.id.terminal_theme_system));
+    assertNull(host.findViewById(R.id.terminal_theme_light));
+    assertNull(host.findViewById(R.id.terminal_theme_dark));
     assertEquals("dark", new ConfigStore(host).getUiTheme());
-    assertTrue(dark.isSelected());
-    running.setBoolean(host, false);
     controller.pause().stop().destroy();
   }
 
@@ -192,9 +176,6 @@ public class TerminalThemeTest {
           R.id.terminal_workspace_help,
           R.id.terminal_workspace_menu,
           R.id.terminal_sessions_close,
-          R.id.terminal_theme_system,
-          R.id.terminal_theme_light,
-          R.id.terminal_theme_dark,
           R.id.terminal_sessions_close_all
         }) {
       View view = host.findViewById(id);
