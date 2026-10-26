@@ -49,7 +49,7 @@
     "app/src/main/assets/guard-editor-patch.json": "9775fa07415d80be07aa7bc0044de7976379d9b16df35ecd1e6a49881ab73419",
     "app/src/main/assets/guard-fs-patch.json": "50778a5720091ddb1e8a1e857238bce1d9ab72673a68a915ad4e5152a5eae996",
     "app/src/main/assets/guard-tools-patch.json": "7dfbeecbd02253c56daea0ce8b6d45183edf8d4b040b2d16fe880203b6cb94b0",
-    "app/src/main/assets/language-patch.json": "bb15b89c8c8fb11f8ef917c14f351ac5be0d3be3e7057071635dfd0c6a6513c4",
+    "app/src/main/assets/language-patch.json": "1f5f7ff669999b28e377e121ab6160d5e267f292af92878944710928c0508561",
     "app/src/main/assets/office-fonts-patch.json": "e83ae334e4bc8e2c55394e22fe2585412ade7485309864adab7457f55ccdf860",
     "app/src/main/assets/permission-full-access-patch.json": "7647ae03c1da3e585825a54a33f705621498b38f1c703b68be08ef13e3b419ce",
     "app/src/main/assets/persona-compat-patch.json": "42343c457c620206d7e5190a0efff3134bc935d4b3f5bcc21678c55cf081063a",
@@ -82,12 +82,12 @@
     "app/src/main/assets/tool-stream-identity-patch.json": "6faf00b23c50c010f9062fd13b2eb492c0f39e187155e13291d583dd80553b8b",
     "app/src/main/assets/tooltip-entry-patch.json": "556741e8efe68462a09463ae3c02eaca31368804aeae728ac1db61c3de8888be",
     "app/src/main/assets/tooltip-interaction-patch.json": "96424bc0ae6d66c8d8bccbed47e5f5ac096fb2e4e351d2b5a11da86f554c0887",
-    "app/src/main/assets/web-integration/language.js": "04cc151c9c9ff08eb1de05710e03ecc767adc5115b1858bcbf16f0b11e027bd6",
+    "app/src/main/assets/web-integration/language.js": "f3b611ef87fb97bcc96dba265f1ff8ed9992c2f46ab40768c7a35a68edaf841a",
     "app/src/main/assets/web-integration/permission-full-access.js": "af9961be02886c71d477a11d927a5c1e0ff4cb9839d146e75ac7fd0ad90b3d65",
     "app/src/main/assets/web-integration/session-interaction.js": "6dac58b61d0523376aa514d17019344f56e25da62e7b2530c40b45b02b50a280",
     "app/src/main/assets/welcome-notice-patch.json": "e9f5a7644903c94a295cc79cb00a226b2fb22ed4b748622573de776c9a9ba28e",
-    "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
+    "tools/runtime_stable_patches.py": "cf215453637824ce0ba014c12805d1acfbf9aaf936371dc02d41b03bc0c0c0ca",
     "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
-  "archive_sha256": "36c3c40e14a665f30531f31678f1b384ee6ed152d5114b7509998af03089baeb"
+  "archive_sha256": "d77261bf677a83c2440aab7a60cacf9c95876b59777b74f9de4fa6be9c2ba514"
 }
