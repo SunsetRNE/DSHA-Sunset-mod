@@ -16,7 +16,7 @@ ADDITIONAL = {'lib/file-transfer.js', 'lib/file-transfer.js.map'}
 
 def prepare(source, write):
     lock = json.loads(LOCK.read_text(encoding='utf8'))
-    if lock['schema'] != 1 or lock['version'] != '3.2.1' or lock['commit'] != '10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4':
+    if lock['schema'] != 1 or lock['version'] != '3.2.2' or lock['commit'] != '4c798ecc554009e401dc1f166b73c314cdf5273f':
         raise ValueError('MOBILE_UPSTREAM_LOCK')
     source = source.resolve(strict=True)
     contents = {}

@@ -48,7 +48,7 @@ DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— �
 
 **F13当前入口**：`0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` /code190。F13冻结源码2215成员/200篇Markdown，Java adoption 1029项。分发/格式证明与JUnit执行计数分开。固定输入包738,101,893 bytes，SHA-256 `da3a87e9782469136f08d37143582fec845af1a69406b9a534f8cb7f68249ed8`，原始输入直接展开到项目路径；不是完整源码ZIP的大小或摘要。本批软件与APK见[F13记录](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。UNKNOWN保留原DOM等待同身份核验，不授ready；旧票不复活、业务不重发；guest与launcher停止仍分证。
 
-**仓库事实速览**：build170基座/code190，Java17/:app/arm64，DSH0.2.1-rc.2/base10，proot默认+proroot可选。固定包内启动入口及受管dsh包装继续保留。键盘动画期间不逐帧setPadding，原生有界帧通道用当前完整身份校验，网页只合成移动聚焦composer，末帧提交布局，失焦/分离/PiP清理。mobile3.2.1固定main10e58ce，保留安全服务端差异，不恢复上游撤回的#236。OneClickBackup复用NativeBackupJobs安全停止/v5/tar.gz/读回验证；Standard写Download/DSHA，Low旧系统首次选目录；不扫外置工作区、不默认导出原生密钥、不自动重启或重放。源码冻结、测试原始失败与补跑、精确APK资产及最终上传回执分开保存，不把浏览器机制回归写成手机FPS。完整源码ZIP直接展开固定输入；不能从F盘旧173构建。
+**仓库事实速览**：build170基座/code190，Java17/:app/arm64，DSH0.2.1-rc.2/base10，proot默认+proroot可选。固定包内启动入口及受管dsh包装继续保留。键盘动画期间不逐帧setPadding，原生有界帧通道用当前完整身份校验，网页只合成移动聚焦composer，末帧提交布局，失焦/分离/PiP清理。mobile3.2.2固定main4c798ec，保留安全服务端差异，不恢复上游撤回的#236。OneClickBackup复用NativeBackupJobs安全停止/v5/tar.gz/读回验证；Standard写Download/DSHA，Low旧系统首次选目录；不扫外置工作区、不默认导出原生密钥、不自动重启或重放。源码冻结、测试原始失败与补跑、精确APK资产及最终上传回执分开保存，不把浏览器机制回归写成手机FPS。完整源码ZIP直接展开固定输入；不能从F盘旧173构建。
 
 维护入口见[文档总索引](docs/documentation-index.md)、[项目总手册](docs/project-architecture-handbook.md)、[权限](docs/device-permissions-architecture.md)、[环境/数据/插件](docs/runtime-data-plugin-architecture.md)、[运行引擎](docs/runtime-engines.md)、[端口](docs/ports-and-networking.md)、[DNS](docs/dns-configuration.md)、[虚拟屏](docs/virtual-screen-architecture.md)、[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)及[来源依据](docs/references-and-provenance.md)。
 
@@ -193,7 +193,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - **麦克风**：清单同时声明 `RECORD_AUDIO` 与 `MODIFY_AUDIO_SETTINGS`；由 `BrowserMicrophone` 按网页请求申请，不能在普通启动时预授权；只放行当前本机页面的纯音频请求，摄像头 / 屏幕音频拒绝；旧回调不能批准新页。
 - **设备验收经验**：`uiautomator dump` 会抑制其他无障碍服务；截图授权绑定 DSH generation，停止 / 断连 / 撤销后失效；截图存应用私有 Pictures/DSHA，无需所有文件访问；PiP 可能盖住底部控件，自动化必须核对实际可见区域与屏幕方向；截图 / 读屏不可将敏感值写入公开取证文件。
 - Shizuku 必须注册 `rikka.shizuku.ShizukuProvider`；标准版 13.1.5 / 兼容版 12.2.0（不用 overrideLibrary 掩盖 minSdk 24）。回调严格核对管理器 UID、Binder 描述符、单次请求与超时。
-- 内置移动插件 `dsh-web-mobile` 为 3.2.1，固定上游 main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
+- 内置移动插件 `dsh-web-mobile` 为 3.2.2，固定上游 main `4c798ecc554009e401dc1f166b73c314cdf5273f`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
 
 ---
 

@@ -30,13 +30,13 @@ The following values come from current files. Update the lock before this page w
 | Component | Current local selection | Original lock/configuration |
 |---|---|---|
 | Main DSH package | `@deepseek-ai/dsh` `0.2.1-rc.2` | [package.json](../../tools/dsh-runtime/package.json), [package-lock.json](../../tools/dsh-runtime/package-lock.json) |
-| Mobile plugin | `3.2.1`; actual main input commit below | [mobile-plugin-upstream.lock.json](../../tools/mobile-plugin-upstream.lock.json) |
+| Mobile plugin | `3.2.2`; actual main input commit below | [mobile-plugin-upstream.lock.json](../../tools/mobile-plugin-upstream.lock.json) |
 | Managed environment | Ubuntu 24.04 arm64; DSHA `baseVersion=10` | [runtime-descriptor.json](../../app/src/main/assets/runtime-descriptor.json), [Ubuntu package lock](../../tools/ubuntu-tools/packages.lock.json) |
 | Runtime tools | pnpm `10.34.5`, certifi `2026.7.22` | [runtime-tools.lock.json](../../tools/runtime-tools.lock.json) |
 | Default/optional engine | proot/proroot; the latter locally declared v1.2.8 | [AGENTS](../../AGENTS.en.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
 | Shizuku API/provider | Standard `13.1.5`; Low `12.2.0` | [app/build.gradle](../../app/build.gradle) |
 | Low GeckoView | `143.0.20251003115653`, arm64-v8a | [app/build.gradle](../../app/build.gradle) |
-| Android identity | `dsh.android.client`, versionCode `190`; see build configuration for the dated versionName | [app/build.gradle](../../app/build.gradle) |
+| Android identity | `dsh.android.client`, versionCode `201`; see build configuration for the dated versionName | [app/build.gradle](../../app/build.gradle) |
 | Independent recovery environment | DSH `0.2.1-rc.2` / base `10`, separate archive digests | [recovery-runtime/lock.json](../../tools/recovery-runtime/lock.json) |
 
 ### DSH package provenance
@@ -53,12 +53,12 @@ The lock also retains resolved URLs, integrity and declared licenses throughout 
 
 The current lock distinguishes the release tag from later main inputs:
 
-- The recorded release tag is `v3.2.1`, with releaseCommit `1844bf21db47a9b942275b8118988e3f6718cf4b`.
-- The imported commit is [`10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4).
-- The upstream source-archive SHA-256 in the lock is `9629e585127dd8dd2149bb9f188cef957e5d0f5d4ae57d07f6f881748940e1e5`.
+- The recorded release tag is `v3.2.2`, with releaseCommit `4c798ecc554009e401dc1f166b73c314cdf5273f`.
+- The imported commit is [`4c798ecc554009e401dc1f166b73c314cdf5273f`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/4c798ecc554009e401dc1f166b73c314cdf5273f); this release commit and the main input commit are the same.
+- The upstream source-archive SHA-256 in the lock is `bc367e6412296c7db38abf7ca146890d793c139f02f9fe84aa2308ed9959d369`.
 - Upstream client and final local client are recorded separately; final member digests are in the current THIRD_PARTY_NOTICES and descriptor.
 
-An internal package version of 3.2.1 does not mean it contains only that tag's original bytes. [apply-mobile-client-patches.mjs](../../tools/apply-mobile-client-patches.mjs) and [mobile-server](../../tools/mobile-server) manage local differences. Check individually whether an upstream upgrade absorbed local patches; do not apply the entire old patch set again.
+An internal package version of 3.2.2 does not mean it contains only that tag's original bytes. [apply-mobile-client-patches.mjs](../../tools/apply-mobile-client-patches.mjs) and [mobile-server](../../tools/mobile-server) manage local differences. Check individually whether an upstream upgrade absorbed local patches; do not apply the entire old patch set again.
 
 ## 4. Licenses and unresolved provenance boundaries
 
