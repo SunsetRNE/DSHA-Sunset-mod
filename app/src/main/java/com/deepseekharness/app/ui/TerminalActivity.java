@@ -352,10 +352,14 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
 
   /** Android 没有 iOS 的 accessibilityViewIsModal；抽屉打开时隐藏背景的可访问性。 */
   private void setDrawerAccessibility(boolean open) {
-    column.setImportantForAccessibility(
+    int mode =
         open
             ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-            : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+            : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
+    content.setImportantForAccessibility(mode);
+    toolbar.setImportantForAccessibility(mode);
+    status.setImportantForAccessibility(
+        open ? View.IMPORTANT_FOR_ACCESSIBILITY_NO : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
     ball.setImportantForAccessibility(
         open ? View.IMPORTANT_FOR_ACCESSIBILITY_NO : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
   }
