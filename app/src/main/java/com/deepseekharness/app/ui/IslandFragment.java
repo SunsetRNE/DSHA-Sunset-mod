@@ -89,8 +89,7 @@ public class IslandFragment extends Fragment {
     enabled.setChecked(config.isTaskIslandEnabled());
     enabled.setText(UiText.text("任务状态上岛"));
     enabled.setContentDescription(UiText.text("任务状态上岛"));
-    enabled.setOnCheckedChangeListener(
-        (button, checked) -> config.setTaskIslandEnabled(checked));
+    enabled.setOnCheckedChangeListener((button, checked) -> config.setTaskIslandEnabled(checked));
     behaviors.addView(enabled);
 
     behaviors.addView(hint(UiText.text("多任务并行时只把优先级最高的一个放上岛，避免胶囊文字来回跳动。")));
@@ -104,10 +103,7 @@ public class IslandFragment extends Fragment {
     behaviors.addView(chronometer);
 
     behaviors.addView(
-        hint(
-            UiText.text(
-                "开启后胶囊里的秒数由系统自己走，不再每秒重绘通知，更省电；"
-                    + "代价是胶囊只显示计时，不显示「执行中」「等你确认」这类阶段文字。")));
+        hint(UiText.text("开启后胶囊里的秒数由系统自己走，不再每秒重绘通知，更省电；" + "代价是胶囊只显示计时，不显示「执行中」「等你确认」这类阶段文字。")));
     root.addView(behaviors);
 
     // ---- 说明 ----
@@ -118,15 +114,9 @@ public class IslandFragment extends Fragment {
             UiText.text(
                 "支持的设备：Android 16 及以上的原生系统、小米澎湃 OS 3.0.300+/4、"
                     + "ColorOS 16、OriginOS 6，以及后续跟进同一接口的厂商。")));
+    notes.addView(body(UiText.text("更老的系统、以及鸿蒙系统不会显示岛，只会显示普通通知 —— 这是系统能力差异，不是开关失效。")));
     notes.addView(
-        body(
-            UiText.text(
-                "更老的系统、以及鸿蒙系统不会显示岛，只会显示普通通知 —— 这是系统能力差异，不是开关失效。")));
-    notes.addView(
-        body(
-            UiText.text(
-                "小米的官方超级岛大岛样式需要向小米申请白名单；本应用不依赖它，"
-                    + "自带的能力在未申请时也会自动使用系统生成的胶囊。")));
+        body(UiText.text("小米的官方超级岛大岛样式需要向小米申请白名单；本应用不依赖它，" + "自带的能力在未申请时也会自动使用系统生成的胶囊。")));
     root.addView(notes);
 
     return scroll;
@@ -136,8 +126,7 @@ public class IslandFragment extends Fragment {
     int state = IslandSupport.state(requireContext());
     String api = "API " + Build.VERSION.SDK_INT;
     return switch (state) {
-      case IslandSupport.STATE_ALLOWED ->
-          UiText.format("已允许：任务运行时会显示在状态栏胶囊上。（%s）", api);
+      case IslandSupport.STATE_ALLOWED -> UiText.format("已允许：任务运行时会显示在状态栏胶囊上。（%s）", api);
       case IslandSupport.STATE_DENIED ->
           UiText.format("系统支持，但本应用当前未被允许。请用上面的按钮在系统设置里打开「实时活动」。（%s）", api);
       case IslandSupport.STATE_UNSUPPORTED ->

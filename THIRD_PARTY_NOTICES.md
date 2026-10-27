@@ -54,7 +54,6 @@
 - `com.android.tools:desugar_jdk_libs:2.0.4`
 - `com.google.android.material:material:1.11.0`
 - `com.google.code.gson:gson:2.13.1`
-- `com.termux.termux-app:terminal-view:0.118.0`
 - `dev.rikka.shizuku:api:12.2.0`
 - `dev.rikka.shizuku:api:13.1.5`
 - `dev.rikka.shizuku:provider:12.2.0`

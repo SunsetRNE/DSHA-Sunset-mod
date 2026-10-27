@@ -29,7 +29,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --pattern '*source.zip' --dir /tmp/inputs
           sha256sum /tmp/inputs/*source.zip
-          unzip -q /tmp/inputs/*source.zip -d .
+          unzip -q -o /tmp/inputs/*source.zip -d .
           # 归档里也含发布时源码；恢复本分支的受跟踪文件，只保留未被跟踪的固定输入。
           git checkout -f -- .
           test -s app/src/main/assets/offline-rootfs.bin
