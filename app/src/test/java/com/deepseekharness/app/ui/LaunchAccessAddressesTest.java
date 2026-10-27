@@ -146,6 +146,11 @@ public final class LaunchAccessAddressesTest {
     Controller.value = Shadow.newInstanceOf(HarnessController.class);
     Controller.config = new ConfigStore(RuntimeEnvironment.getApplication());
     Controller.config.setLanMode(false);
+    RuntimeEnvironment.getApplication()
+        .getSharedPreferences(com.deepseekharness.app.util.Constants.PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putString(com.deepseekharness.app.util.LanPassword.PREF_KEY, "synthetic-verifier")
+        .commit();
     Controller.generation = 7;
     Controller.local = LOCAL;
     Proxy.starts = 0;
@@ -215,7 +220,7 @@ public final class LaunchAccessAddressesTest {
   }
 
   @Test
-  public void currentDynamicLanUrlsAreListedAndSelectedLinkCopiesItsCredential() {
+  public void currentDynamicLanUrlsAreListedAndCopyContainsNoCredential() {
     entry.snapshot = snapshot(true, true, List.of("192.168.1.2", "10.2.0.2"));
     AlertDialog dialog = open();
     assertTrue(message(dialog).contains("http://192.168.1.2:49231/"));
@@ -225,11 +230,11 @@ public final class LaunchAccessAddressesTest {
     AlertDialog choice = (AlertDialog) ShadowDialog.getLatestDialog();
     choice.getListView().performItemClick(null, 1, 1);
     AlertDialog credential = (AlertDialog) ShadowDialog.getLatestDialog();
-    assertTrue(message(credential).contains("http://10.2.0.2:49231/?token=" + LAN_TOKEN));
+    assertTrue(message(credential).contains("http://10.2.0.2:49231/"));
+    assertFalse(message(credential).contains(LAN_TOKEN));
     clickDialogButton(credential, DialogInterface.BUTTON_POSITIVE);
     assertEquals(
-        "http://10.2.0.2:49231/?token=" + LAN_TOKEN,
-        clipboard().getPrimaryClip().getItemAt(0).getText().toString());
+        "http://10.2.0.2:49231/", clipboard().getPrimaryClip().getItemAt(0).getText().toString());
     assertEquals(0, Proxy.starts);
   }
 
@@ -247,8 +252,8 @@ public final class LaunchAccessAddressesTest {
   }
 
   @Test
-  public void generationAddressAndTokenChangesBlockStaleCredentialCopies() {
-    for (int change = 0; change < 3; change++) {
+  public void generationAndAddressChangesBlockStaleCopies() {
+    for (int change = 0; change < 2; change++) {
       Controller.generation = 7;
       Proxy.token = LAN_TOKEN;
       entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
@@ -256,11 +261,24 @@ public final class LaunchAccessAddressesTest {
       clickDialogButton(dialog, DialogInterface.BUTTON_NEUTRAL);
       AlertDialog credential = (AlertDialog) ShadowDialog.getLatestDialog();
       if (change == 0) Controller.generation = 8;
-      else if (change == 1) entry.snapshot = snapshot(true, true, List.of("192.168.2.2"));
-      else Proxy.token = "y".repeat(43);
+      else entry.snapshot = snapshot(true, true, List.of("192.168.2.2"));
       clickDialogButton(credential, DialogInterface.BUTTON_POSITIVE);
       assertFalse("changed connection must not be copied", clipboard().hasPrimaryClip());
     }
+  }
+
+  @Test
+  public void missingPasswordIsShownAndDoesNotExposeAnAddress() {
+    RuntimeEnvironment.getApplication()
+        .getSharedPreferences(com.deepseekharness.app.util.Constants.PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .remove(com.deepseekharness.app.util.LanPassword.PREF_KEY)
+        .commit();
+    entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
+    AlertDialog dialog = open();
+    assertTrue(message(dialog).contains("No LAN password"));
+    assertFalse(message(dialog).contains("http://192.168.1.2"));
+    assertEquals("Set LAN password", dialog.getButton(DialogInterface.BUTTON_NEUTRAL).getText());
   }
 
   @Test

@@ -23,11 +23,21 @@ def main():
         'android/content/Context.java': '''package android.content;
 public class Context {
  public static final int MODE_PRIVATE = 0;
+ private final java.util.Map<String,String> values = new java.util.concurrent.ConcurrentHashMap<>();
+ public Context() {}
+ public Context(String verifier) { values.put("lan_password_verifier_v1", verifier); }
  public Context getApplicationContext() { return this; }
- public SharedPreferences getSharedPreferences(String name, int mode) { return null; }
+ public SharedPreferences getSharedPreferences(String name, int mode) { return new SharedPreferences() {
+  public String getString(String key, String fallback) { return values.getOrDefault(key, fallback); }
+  public Editor edit() { return new Editor() {
+   public Editor putString(String key, String value) { values.put(key, value); return this; }
+   public void apply() {}
+  }; }
+ }; }
 }''',
         'android/content/SharedPreferences.java': '''package android.content;
 public interface SharedPreferences {
+ String getString(String key, String fallback);
  Editor edit();
  interface Editor { Editor putString(String key, String value); void apply(); }
 }''',

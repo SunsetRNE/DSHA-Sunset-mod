@@ -80,8 +80,10 @@ public final class LanProxyService {
     final long epoch;
     final long generation;
     final int backendPort;
+    final String passwordVerifier;
     final SocketDispatch dispatch = new SocketDispatch("dsha-lan", 32, 8, 16, 8);
     final LanNetworkState network = new LanNetworkState();
+    final LanLoginThrottle loginThrottle = new LanLoginThrottle();
     volatile boolean active = true;
 
     /** Set only after the ServerSocket bind has completed successfully. */
@@ -90,10 +92,11 @@ public final class LanProxyService {
     volatile ServerSocket server;
     volatile Thread acceptThread;
 
-    ProxyRun(long epoch, long generation, int backendPort) {
+    ProxyRun(long epoch, long generation, int backendPort, String passwordVerifier) {
       this.epoch = epoch;
       this.generation = generation;
       this.backendPort = backendPort;
+      this.passwordVerifier = passwordVerifier;
     }
   }
 
@@ -278,10 +281,16 @@ public final class LanProxyService {
       deactivateRunLocked(previous);
       closeRunSockets(previous);
     }
+    if (ctx == null) return;
+    String passwordVerifier =
+        ctx.getApplicationContext()
+            .getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE)
+            .getString(com.deepseekharness.app.util.LanPassword.PREF_KEY, "");
+    if (passwordVerifier == null || passwordVerifier.isEmpty()) return;
     getLanToken(ctx);
     if (!isValidLanToken(LAN_TOKEN.current())) return;
     logPath = rootfsDir == null ? "" : rootfsDir + "/root/dsh-lan.log";
-    ProxyRun run = new ProxyRun(++nextRunEpoch, generation, resolvedBackend);
+    ProxyRun run = new ProxyRun(++nextRunEpoch, generation, resolvedBackend, passwordVerifier);
     // Keep the old compatibility field for rewriteResponse(String), but request
     // handling always uses the immutable port captured by ProxyRun.
     backendPort = resolvedBackend;
@@ -351,6 +360,11 @@ public final class LanProxyService {
         log(
             com.deepseekharness.app.util.UiText.format(
                 "LAN 代理绑定失败：%s", e.getClass().getSimpleName()));
+    } catch (RuntimeException e) {
+      // A denied bind or an OEM networking failure must retire this run instead
+      // of escaping the accept thread and terminating the application process.
+      // Report only the exception type; network exceptions can contain addresses.
+      if (isActiveRun(run)) log("LAN 代理运行失败：" + e.getClass().getSimpleName());
     } finally {
       synchronized (LanProxyService.class) {
         closeQuietly(ss);
@@ -530,20 +544,39 @@ public final class LanProxyService {
           return;
         }
         headOnly = request.method.equals("HEAD");
+        boolean websocket = request.websocketRequest();
+        if (!LanRequestOrigin.allowed(
+            request.values("Host"),
+            request.values("Origin"),
+            request.values("Sec-Fetch-Site"),
+            owner.socket.getLocalAddress().getHostAddress(),
+            owner.socket.getLocalPort(),
+            websocket)) {
+          fail(403);
+          return;
+        }
         String ip =
             owner.socket.getInetAddress() == null
                 ? ""
                 : owner.socket.getInetAddress().getHostAddress();
         if (shouldLogConn(ip)) log(com.deepseekharness.app.util.UiText.format("连接来自 %s", ip));
         String token = LAN_TOKEN.current();
-        int authorized = LanAuth.tokenOk(request.raw(), token);
-        if (authorized == LanAuth.AUTH_DENY) {
-          fail(401, LanAuth.denialReason(request.raw(), token));
-          return;
-        }
-        if (authorized == LanAuth.AUTH_OK_SET_COOKIE) {
+        if (!LanAuth.sessionOk(request.raw(), token)) {
+          // Bound expensive password checks as well as online guessing per peer.
+          if (!request.value("Authorization").isEmpty() && !run.loginThrottle.acquire(ip)) {
+            fail(429, com.deepseekharness.app.util.LanFailureResponse.Reason.LOGIN_RATE_LIMIT);
+            return;
+          }
+          if (!LanAuth.passwordOk(request.raw(), run.passwordVerifier)) {
+            fail(401, com.deepseekharness.app.util.LanFailureResponse.Reason.TOKEN_INVALID);
+            return;
+          }
+          run.loginThrottle.success(ip);
           try {
-            writeLanRedirect(out, token, request.target);
+            synchronized (LanProxyService.class) {
+              if (isActiveRunLocked(run) && token.equals(LAN_TOKEN.current()))
+                writeLanRedirect(out, token, request.target);
+            }
           } finally {
             owner.close();
           }
@@ -554,7 +587,6 @@ public final class LanProxyService {
           fail(503, com.deepseekharness.app.util.LanFailureResponse.Reason.BACKEND_AUTH_NOT_READY);
           return;
         }
-        boolean websocket = request.websocketRequest();
         Exchange exchange = new Exchange(this, request, auth, websocket);
         boolean stream =
             request.requestBody().streaming()

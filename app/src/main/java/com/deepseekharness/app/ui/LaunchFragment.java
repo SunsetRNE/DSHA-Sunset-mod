@@ -643,8 +643,6 @@ public class LaunchFragment extends Fragment {
       else if (!startStatusMessage.isEmpty() && !stopping && !enteringWeb)
         ((TextView) root.findViewById(R.id.launch_status))
             .setText(com.deepseekharness.app.util.UiStateText.render(startStatusMessage));
-      root.findViewById(R.id.launch_busy)
-          .setVisibility(starting || stopping ? View.VISIBLE : View.GONE);
       Button recovery = root.findViewById(R.id.launch_recovery);
       int failures = controller.config().getWebFailures();
       recovery.setVisibility(View.VISIBLE);
@@ -896,7 +894,7 @@ public class LaunchFragment extends Fragment {
   private void refreshLanAddr() {
     if (lanAddrText == null || !isAdded() || controller == null) return;
     LanAccessPresentation access = lanAccess();
-    lanAddrText.setText(lanStatus(access));
+    lanAddrText.setText(lanStatusForDisplay(access));
     lanAddrText.setOnClickListener(v -> showAccessAddresses());
     lanAddrText.setVisibility(View.VISIBLE);
     renderAccessAddresses(access);
@@ -933,7 +931,7 @@ public class LaunchFragment extends Fragment {
             local.isEmpty()
                 ? UiText.choose("启动 DSH 并等待就绪后显示本机地址。", "Start DSH and wait for its local URL.")
                 : local,
-            lanStatus(access)));
+            lanStatusForDisplay(access)));
     Button localButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
     localButton.setEnabled(!local.isEmpty());
     localButton.setOnClickListener(
@@ -945,8 +943,23 @@ public class LaunchFragment extends Fragment {
           else connectionChanged();
         });
     Button lanButton = dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL);
-    lanButton.setText(lanActionLabel(access.state));
+    lanButton.setText(
+        needsLanPassword(access)
+            ? getString(R.string.lan_password_open)
+            : lanActionLabel(access.state));
     lanButton.setOnClickListener(ignored -> onLanAction(lanAccess()));
+  }
+
+  private boolean needsLanPassword(LanAccessPresentation access) {
+    return access.state != LanAccessPresentation.State.DISABLED
+        && !controller.config().hasLanPassword();
+  }
+
+  private String lanStatusForDisplay(LanAccessPresentation access) {
+    if (needsLanPassword(access)) return getString(R.string.lan_password_required_launch);
+    if (access.state == LanAccessPresentation.State.READY)
+      return getString(R.string.lan_address_overview, String.join("\n", access.services));
+    return lanStatus(access);
   }
 
   static String lanStatus(LanAccessPresentation access) {
@@ -983,12 +996,7 @@ public class LaunchFragment extends Fragment {
           UiText.choose(
               "局域网代理已监听，但没有可分享的 Wi-Fi 或以太网私有 IPv4 地址。请连接局域网后刷新；VPN 或移动数据地址不会作为局域网链接。",
               "The LAN listener is ready, but no shareable Wi-Fi or Ethernet private IPv4 address is available. Connect to a LAN and refresh. VPN and cellular addresses are excluded.");
-      case READY ->
-          UiText.format(
-              UiText.choose(
-                  "局域网访问地址：\n%s\n使用“局域网连接链接”查看或复制带凭据的链接。同网设备能否连接还取决于网络隔离、防火墙和路由；HTTP 流量未加密，仅在可信网络使用。",
-                  "LAN access addresses:\n%s\nUse LAN connection links to view or copy an authenticated link. Connectivity also depends on network isolation, firewalls and routing. HTTP traffic is unencrypted; use only trusted networks."),
-              String.join("\n", access.services));
+      case READY -> String.join("\n", access.services);
     };
   }
 
@@ -1004,13 +1012,16 @@ public class LaunchFragment extends Fragment {
 
   private void onLanAction(LanAccessPresentation access) {
     if (!isAdded()) return;
-    if (access.state == LanAccessPresentation.State.DISABLED) {
+    if (needsLanPassword(access)) {
+      if (accessDialog != null) accessDialog.dismiss();
+      UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
+          .addToBackStack(null)
+          .replace(R.id.fragment_container, new ConfigFragment())
+          .commit();
+    } else if (access.state == LanAccessPresentation.State.DISABLED) {
       new DshaDialogBuilder(requireContext())
           .setTitle(UiText.choose("开启局域网访问？", "Enable LAN access?"))
-          .setMessage(
-              UiText.choose(
-                  "开启后，同一网络中的设备可凭连接链接访问本轮 DSH。链接包含访问凭据，HTTP 流量未加密；请只在可信网络开启。可在“配置”中随时关闭并撤销链接。",
-                  "Devices on the same network can access this DSH run using its connection link. The link contains a credential and HTTP traffic is unencrypted. Enable only on a trusted network. Turn it off in Configuration to revoke links."))
+          .setMessage(R.string.lan_enable_password_notice)
           .setNegativeButton(android.R.string.cancel, null)
           .setPositiveButton(
               UiText.choose("开启", "Enable"),
@@ -1064,32 +1075,21 @@ public class LaunchFragment extends Fragment {
       connectionChanged();
       return;
     }
-    final String token = LanProxyService.boundLanToken(generation);
-    if (token.isEmpty()) {
-      connectionChanged();
-      return;
-    }
-    final String address = service + "?token=" + token;
     new DshaDialogBuilder(requireContext())
-        .setTitle(UiText.choose("局域网连接链接", "LAN connection link"))
-        .setMessage(
-            UiText.format(
-                UiText.choose(
-                    "此链接包含访问凭据。局域网使用 HTTP，流量未加密，请只在可信网络使用并只分享给可信设备。DSH 重启或关闭局域网访问后，旧链接会失效，请重新复制。\n\n%s",
-                    "This link contains an access credential. LAN traffic uses unencrypted HTTP. Use a trusted network and share only with trusted devices. Restarting DSH or disabling LAN access revokes this link; copy a new one afterward.\n\n%s"),
-                address))
+        .setTitle(UiText.choose("局域网地址", "LAN address"))
+        .setMessage(getString(R.string.lan_address_detail, service))
         .setNegativeButton(android.R.string.cancel, null)
         .setPositiveButton(
-            UiText.choose("复制连接链接", "Copy connection link"),
+            UiText.choose("复制地址", "Copy address"),
             (dialog, which) -> {
               if (!isAdded()
                   || generation != controller.getWebGeneration()
-                  || !lanAccess().stillOffers(generation, service)
-                  || !token.equals(LanProxyService.boundLanToken(generation))) {
+                  || !controller.config().hasLanPassword()
+                  || !lanAccess().stillOffers(generation, service)) {
                 connectionChanged();
                 return;
               }
-              copyAddr(UiText.choose("局域网地址", "LAN address"), address);
+              copyAddr(UiText.choose("局域网地址", "LAN address"), service);
             })
         .show();
   }

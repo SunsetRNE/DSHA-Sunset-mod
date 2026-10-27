@@ -26,8 +26,6 @@
 
         <TextView android:id="@+id/launch_status" style="@style/ShellLaunchMeta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:accessibilityLiveRegion="polite" android:text="" android:visibility="gone" />
 
-        <ProgressBar android:id="@+id/launch_busy" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="@dimen/shell_launch_activity_height" android:layout_marginTop="10dp" android:indeterminate="true" android:indeterminateTint="@color/shell_accent" android:visibility="gone" />
-
         <androidx.appcompat.widget.AppCompatButton android:id="@+id/launch_start" style="@style/ShellLaunchPrimary" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="@string/ui2_start" />
 
         <LinearLayout android:id="@+id/launch_controls" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_control_gap" android:gravity="center_vertical" android:orientation="horizontal">
