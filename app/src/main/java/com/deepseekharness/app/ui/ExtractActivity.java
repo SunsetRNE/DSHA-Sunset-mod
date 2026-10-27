@@ -7,7 +7,6 @@ import android.os.Looper;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
@@ -55,32 +54,15 @@ public class ExtractActivity extends AppCompatActivity {
     progress = findViewById(R.id.extract_progress);
     ((TextView) findViewById(R.id.extract_title))
         .setText(com.deepseekharness.app.util.UiText.text("运行环境维护"));
-    LinearLayout content = findViewById(R.id.extract_actions);
-    retry = new androidx.appcompat.widget.AppCompatButton(this);
-    enter = new androidx.appcompat.widget.AppCompatButton(this);
-    retry.setBackgroundResource(R.drawable.bg_btn_primary);
-    retry.setTextColor(getColorStateList(R.color.button_primary_text));
-    retry.setTextSize(14);
-    retry.setAllCaps(false);
-    enter.setBackgroundResource(R.drawable.bg_action_plain);
-    enter.setTextColor(getColor(R.color.primary));
-    enter.setTextSize(13);
-    enter.setAllCaps(false);
-    content.addView(retry, new LinearLayout.LayoutParams(-1, -2));
-    content.addView(enter, new LinearLayout.LayoutParams(-1, -2));
-    Button emergency = new androidx.appcompat.widget.AppCompatButton(this);
+    retry = findViewById(R.id.extract_retry);
+    enter = findViewById(R.id.extract_enter);
+    Button emergency = findViewById(R.id.extract_emergency);
+    Button logs = findViewById(R.id.extract_logs);
     emergency.setText(
         com.deepseekharness.app.util.UiText.choose("启动应急 DSH", "Start emergency DSH"));
-    emergency.setBackgroundResource(R.drawable.bg_btn);
-    emergency.setTextColor(getColorStateList(R.color.button_text));
-    emergency.setTextSize(15);
-    emergency.setAllCaps(false);
     emergency.setOnClickListener(v -> startActivity(new Intent(this, RecoveryActivity.class)));
-    content.addView(emergency, new LinearLayout.LayoutParams(-1, -2));
-    Button logs = new androidx.appcompat.widget.AppCompatButton(this);
     logs.setText(com.deepseekharness.app.util.UiText.choose("查看本次维护记录", "View maintenance record"));
     logs.setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
-    content.addView(logs, new LinearLayout.LayoutParams(-1, -2));
     retry.setOnClickListener(
         v -> {
           boolean recovery = task.pendingMaintenance();

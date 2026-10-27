@@ -20,7 +20,7 @@ public final class ModernAndroidUi implements Application.ActivityLifecycleCallb
   }
 
   private void applyInsets(Activity activity) {
-    if (activity instanceof WebFullscreenUi.Host) return;
+    if (activity instanceof WebFullscreenUi.Host || activity instanceof TerminalActivity) return;
     View content = activity.findViewById(android.R.id.content);
     if (content == null) return;
     if (android.os.Build.VERSION.SDK_INT >= 29) content.setForceDarkAllowed(false);

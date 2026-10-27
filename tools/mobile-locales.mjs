@@ -56,6 +56,48 @@ function appendModule(source, name, code) {
   if (source.split(marker).length !== 2 || end < 0) throw new Error('MOBILE_LOCALE_MODULE: ' + name);
   return source.slice(0, end) + '\n' + code + source.slice(end);
 }
+function patchModule(source, name, transform) {
+  const marker = `__modules["${name}"] = function (require, module, exports) {`;
+  const start = source.indexOf(marker);
+  const end = source.indexOf('\n};\n__modules[', start + marker.length);
+  if (source.split(marker).length !== 2 || end < 0) throw new Error('MOBILE_LOCALE_MODULE: ' + name);
+  return source.slice(0, start) + transform(source.slice(start, end)) + source.slice(end);
+}
+// The 3.2.2 drawer nodes are owned by reconciler tasks rather than React.
+// Keep their live labels in sync with the host locale and retire subscriptions
+// alongside the owning task; never reopen a menu or replay an action.
+function liveLocalePatches(name, typed) {
+  const indent = typed ? '      ' : '                ';
+  const end = typed ? '' : ';';
+  const declaration = typed ? '  let unsubscribeLocale: (() => void) | null = null\n' : '    let unsubscribeLocale = null;\n';
+  if (name === 'drawer-session-log') {
+    const anchor = typed ? '  let unsubscribe: (() => void) | null = null\n' : '    let unsubscribe = null;\n';
+    const subscribe = typed
+      ? '        unsubscribe = ctx.sessions.list.subscribe(() => { syncDisabled() })'
+      : '                unsubscribe = ctx.sessions.list.subscribe(() => { syncDisabled(); });';
+    const callback = `\n${indent}  // DSHA_MOBILE_LIVE_LOCALE_V1\n${indent}  unsubscribeLocale = ctx.locale.subscribe?.(() => {\n${indent}    const label = t('downloadMenu')${end}\n${indent}    if (button !== null) { button.setAttribute('aria-label', label); button.title = label; }\n${indent}    if (menu !== null) {\n${indent}      menu.setAttribute('aria-label', label)${end}\n${indent}      const exportLabel = menu.querySelector('[data-mobile-nav="session-log-export"] span')${end}\n${indent}      const downloadLabel = menu.querySelector('[data-mobile-nav="session-log-downloads"] span')${end}\n${indent}      if (exportLabel !== null) exportLabel.textContent = t('sessionLog')${end}\n${indent}      if (downloadLabel !== null) downloadLabel.textContent = t('downloads')${end}\n${indent}    }\n${indent}  }) ?? null${end}`;
+    const dispose = typed ? '      unsubscribe?.()\n      unsubscribe = null' : '            unsubscribe?.();\n            unsubscribe = null;';
+    return [[anchor, anchor + declaration], [subscribe, subscribe + callback],
+      [dispose, dispose + (typed ? '\n      unsubscribeLocale?.()\n      unsubscribeLocale = null' : '\n            unsubscribeLocale?.();\n            unsubscribeLocale = null;')]];
+  }
+  if (name === 'drawer-quick-settings') {
+    const anchor = typed ? '  let pending: number | null = null\n' : '    let pending = null;\n';
+    const build = typed ? '      if (button === null || wrap === null) build()' : '            if (button === null || wrap === null)\n                build();';
+    const replacement = typed
+      ? `      if (button === null || wrap === null) {\n        build()\n        unsubscribeLocale?.()\n        // DSHA_MOBILE_LIVE_LOCALE_V1\n        unsubscribeLocale = ctx.locale.subscribe?.(() => {\n          if (button === null) return\n          const label = t('quickSettings')\n          button.setAttribute('aria-label', label)\n          button.title = label\n        }) ?? null\n      }`
+      : `            if (button === null || wrap === null) {\n                build();\n                unsubscribeLocale?.();\n                // DSHA_MOBILE_LIVE_LOCALE_V1\n                unsubscribeLocale = ctx.locale.subscribe?.(() => {\n                    if (button === null) return;\n                    const label = t('quickSettings');\n                    button.setAttribute('aria-label', label);\n                    button.title = label;\n                }) ?? null;\n            }`;
+    const dispose = typed ? '    dispose: () => {\n      clearPending()' : '        dispose: () => {\n            clearPending();';
+    return [[anchor, anchor + declaration], [build, replacement],
+      [dispose, dispose + (typed ? '\n      unsubscribeLocale?.()\n      unsubscribeLocale = null' : '\n            unsubscribeLocale?.();\n            unsubscribeLocale = null;')]];
+  }
+  throw new Error('MOBILE_LOCALE_LIVE_SOURCE: ' + name);
+}
+function applyLiveLocalePatch(name, source, typed, reverse = false) {
+  const patches = liveLocalePatches(name, typed);
+  for (const [before, after] of reverse ? patches.reverse() : patches)
+    source = replaceOnce(source, reverse ? after : before, reverse ? before : after);
+  return source;
+}
 export function applyMobileLocaleBundlePatch(source) {
   source = appendModule(source, 'i18n/locales.js', catalogCode('nav', 'mobileNavLocales', 'zh', 'en'));
   source = appendModule(source, 'components/file-share-locale.js', catalogCode('fileShare', 'fileShareLocales', 'fileShareZh', 'fileShareEn') + fileActionCode());
@@ -64,8 +106,11 @@ export function applyMobileLocaleBundlePatch(source) {
     'ctx.locale.register(locales_ts_1.NS, locales_ts_1.mobileNavLocales)');
   source = replaceOnce(source, 'scope.locale.register(file_share_locale_ts_1.FILE_SHARE_NS, { zh: file_share_locale_ts_1.fileShareZh, en: file_share_locale_ts_1.fileShareEn })',
     'scope.locale.register(file_share_locale_ts_1.FILE_SHARE_NS, file_share_locale_ts_1.fileShareLocales)');
-  return replaceOnce(source, 'ctx.locale.register(exports.ATTACHMENT_NS, { zh: exports.ATTACHMENT_ZH, en: exports.ATTACHMENT_EN })',
+  source = replaceOnce(source, 'ctx.locale.register(exports.ATTACHMENT_NS, { zh: exports.ATTACHMENT_ZH, en: exports.ATTACHMENT_EN })',
     'ctx.locale.register(exports.ATTACHMENT_NS, exports.attachmentLocales)');
+  for (const name of ['drawer-session-log', 'drawer-quick-settings'])
+    source = patchModule(source, `effects/${name}.js`, module => applyLiveLocalePatch(name, module, false));
+  return source;
 }
 export const mobileLocaleSourceFiles = [
   'src/client/i18n/locales.ts',
@@ -73,6 +118,8 @@ export const mobileLocaleSourceFiles = [
   'src/client/effects/attachment-mention.ts',
   'src/client/index.tsx',
   'src/client/effects/file-share.ts',
+  'src/client/effects/drawer-session-log.ts',
+  'src/client/effects/drawer-quick-settings.ts',
   'lib/types/client/i18n/locales.d.ts',
   'lib/types/client/components/file-share-locale.d.ts',
   'lib/types/client/effects/attachment-mention.d.ts',
@@ -92,6 +139,10 @@ export function applyMobileLocaleSourcePatch(name, source) {
     case 'src/client/effects/file-share.ts':
       return replaceOnce(replaceOnce(source, 'import { FILE_SHARE_NS, fileShareEn, fileShareZh }', 'import { FILE_SHARE_NS, fileShareLocales }'),
         'scope.locale.register(FILE_SHARE_NS, { zh: fileShareZh, en: fileShareEn })', 'scope.locale.register(FILE_SHARE_NS, fileShareLocales)');
+    case 'src/client/effects/drawer-session-log.ts':
+      return applyLiveLocalePatch('drawer-session-log', source, true);
+    case 'src/client/effects/drawer-quick-settings.ts':
+      return applyLiveLocalePatch('drawer-quick-settings', source, true);
     case 'lib/types/client/i18n/locales.d.ts':
       return source + '\n' + note + 'export declare const mobileNavLocales: Record<string, Record<MobileNavKey, string>>;\n';
     case 'lib/types/client/components/file-share-locale.d.ts':
@@ -103,4 +154,9 @@ export function applyMobileLocaleSourcePatch(name, source) {
     default:
       throw new Error('MOBILE_LOCALE_SOURCE: ' + name);
   }
+}
+export function restoreMobileLiveLocaleSource(name, source) {
+  if (!name.startsWith('src/client/effects/drawer-') || !name.endsWith('.ts'))
+    throw new Error('MOBILE_LOCALE_LIVE_SOURCE: ' + name);
+  return applyLiveLocalePatch(name.slice('src/client/effects/'.length, -3), source, true, true);
 }

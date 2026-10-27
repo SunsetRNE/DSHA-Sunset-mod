@@ -27,12 +27,8 @@ export function applyFileTransferClient(source) {
                 const result = await bridge.shareFile(data.files[0]);
                 if (result?.status !== 'chooser-opened') throw new Error('The system share picker did not open');
             }`);
-  replace('children: (0, jsx_runtime_1.jsx)(icon_compat_ts_1.IconFolderOpen, { size: 16 }) })] }));',
-    `children: (0, jsx_runtime_1.jsx)(icon_compat_ts_1.IconFolderOpen, { size: 16 }) }), typeof window.DSHA?.openDownloads === 'function' && (0, jsx_runtime_1.jsx)('button', {
-        type: 'button', 'data-mobile-nav': 'files', 'data-dsha-downloads': true,
-        'aria-label': require('./components/file-share-locale.js').nativeFileCopy().records,
-        onClick: () => window.DSHA.openDownloads().catch(error => alert(error.message)), children: '↓'
-    })] }));`);
+  // 3.2.2 上游已把「下载记录」并入抽屉品牌行菜单（window.DSHA.openDownloads 存在时才显示），
+  // 不再在手机顶栏追加第二个下载入口；原生分享/另存为等其他本地差异保持。
   replace('function FilePreviewShareButton({ absolutePath, sessionId, readFileRange, t }) {',
     'function LegacyFilePreviewShareButton({ absolutePath, sessionId, readFileRange, t }) {');
   replace('function FilesRowShare({ sessionId, readFileRange, t }) {',

@@ -13,7 +13,8 @@ public final class NotificationIds {
       RECOVERY = 9060,
       FILE_DOWNLOAD = 9062,
       REMOTE_CONNECTION = 9063,
-      FLOATING_ASSISTANT = 9064;
+      FLOATING_ASSISTANT = 9064,
+      TERMINAL_RUNTIME = 9065;
 
   public static java.util.Set<Integer> all() {
     return java.util.Set.of(
@@ -26,6 +27,7 @@ public final class NotificationIds {
         RECOVERY,
         FILE_DOWNLOAD,
         REMOTE_CONNECTION,
-        FLOATING_ASSISTANT);
+        FLOATING_ASSISTANT,
+        TERMINAL_RUNTIME);
   }
 }

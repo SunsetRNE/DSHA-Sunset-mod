@@ -93,6 +93,7 @@ public final class PluginRepository extends AndroidViewModel {
 
   private volatile Listener listener;
   private volatile String lastEnvironmentNotice = "";
+  private volatile String lastRuntimeNotice = "";
   private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
   private Preview installedPreview;
   private volatile Preview preparedPreview;
@@ -216,12 +217,14 @@ public final class PluginRepository extends AndroidViewModel {
       sessionId = json.optString("sessionId");
       pluginId = json.optString("pluginId");
       // 仅归并已有官方历史别名；显示来源、版本和位置均不作为条目身份。
-      String canonical =
-          "dsh-auto-review".equals(name) ? "@deepseek-ai/dsh-experimental-auto-review" : name;
       stableKey =
           dynamic
               ? key("dynamic", Long.toString(runtimeGeneration), sessionId, pluginId)
-              : key("installed", profile, scope, canonical);
+              : key(
+                  "installed",
+                  profile,
+                  scope,
+                  com.deepseekharness.app.plugins.PluginIdentity.canonical(name));
       contentKey =
           key(
               name,
@@ -1800,31 +1803,67 @@ public final class PluginRepository extends AndroidViewModel {
     HarnessController controller = HarnessController.get(getApplication());
     long generation = controller.getWebGeneration();
     var identity = controller.getReadyWebPageIdentity();
+    long now = System.currentTimeMillis();
+    String rejection = "";
     JSONObject snapshot = null;
-    if (identity != null && identity.generation() == generation) {
+    if (identity == null) {
+      rejection = "IDENTITY_MISSING";
+    } else if (identity.generation() != generation) {
+      rejection = "IDENTITY_GENERATION";
+    } else {
       try {
         var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+        // 写方每 2 秒用同目录 rename 发布新快照；读取只要求打开描述符内字节一致，
+        // 不把路径在读取期间换 inode 当成失败，否则会和正常心跳长期竞争。
+        // 运行根先规范化：Android 的 /data/user/0 是 /data/data 的系统别名，NOFOLLOW
+        // 逐段检查会把合法别名判成 PARENT_LINK；最终快照文件仍由读取器 NOFOLLOW 打开。
         snapshot =
             new JSONObject(
                 new String(
-                    fs.small(
-                        new File(proot.getRootfsDir(), "root/.dsha-web-activity.json"), 256 * 1024),
+                    fs.currentSnapshot(
+                        com.deepseekharness.app.plugins.PluginRuntimeProjection.snapshotPath(
+                            proot.getRootfsDir()),
+                        256 * 1024),
                     java.nio.charset.StandardCharsets.UTF_8));
-      } catch (Exception ignored) {
+        rejection =
+            com.deepseekharness.app.plugins.PluginRuntimeProjection.rejection(
+                snapshot, generation, identity.instanceId(), now);
+      } catch (Exception error) {
         // 同代暂不可读时保留上次证据并标待核验，不把未知替换成空目录。
+        rejection =
+            "READ="
+                + com.deepseekharness.app.util.SensitiveData.redact(
+                    String.valueOf(error.getMessage()));
       }
     }
     List<Item> projected =
         com.deepseekharness.app.plugins.PluginRuntimeProjection.apply(
-            persistent,
-            snapshot,
-            generation,
-            identity == null ? "" : identity.instanceId(),
-            System.currentTimeMillis());
+            persistent, snapshot, generation, identity == null ? "" : identity.instanceId(), now);
     if (generation != controller.getWebGeneration()
         || !java.util.Objects.equals(identity, controller.getReadyWebPageIdentity()))
       throw new IOException("PLUGIN_RUNTIME_CHANGED");
+    noticeRuntime(projected, rejection);
     return projected;
+  }
+
+  /** 只在结论变化时写活动日志；每轮查询重复同一原因不会刷屏。 */
+  private void noticeRuntime(List<Item> projected, String rejection) {
+    int total = 0, unconfirmed = 0;
+    for (Item item : projected)
+      if (!item.dynamic) {
+        total++;
+        if ("unknown".equals(item.runtimeState)) unconfirmed++;
+      }
+    String notice =
+        rejection.isEmpty()
+            ? (unconfirmed == 0 ? "" : "快照已采纳，仍有 " + unconfirmed + "/" + total + " 个未确认")
+            : "快照未采纳："
+                + rejection
+                + (unconfirmed == 0 ? "" : "（" + unconfirmed + "/" + total + " 未确认）");
+    if (notice.equals(lastRuntimeNotice)) return;
+    lastRuntimeNotice = notice;
+    DiagnosticLog.record(
+        getApplication(), "PLUGIN_RUNTIME", notice.isEmpty() ? "当前 Web 加载证据已全部确认" : notice);
   }
 
   /** READY 探测只有只读原生检查，不运行任何插件脚本。 */

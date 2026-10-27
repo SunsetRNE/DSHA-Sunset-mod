@@ -47,7 +47,7 @@ export function applyMobileClientPatches(bytes) {
       throw new Error('补丁模块范围缺失或不唯一: ' + startAnchor);
     source = source.slice(0, start) + after + source.slice(end);
   };
-  // 3.2.1 沿用已吸收的可见视口变量、写入去重与销毁清理；最新 main 已撤回
+  // 3.2.2 沿用已吸收的可见视口变量、写入去重与销毁清理；上游 main 未恢复
   // 后续按帧合并试验。保留原 viewport-meta 与 interactive-widget=resizes-content。
   // 按实际鼠标/touch/pen事件分流；不能把用户点击伪造成键盘 detail=0。
   replaceRange('            // DSHA detail=0 follows the host\'s keyboard/programmatic open path.',

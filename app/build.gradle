@@ -57,9 +57,9 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
-        versionCode 198
+        versionCode 204
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261025.2100-dsh0.2.1-rc.3"
+        versionName "0.2.1-rc.3-20261027.1149-dsh0.2.1-rc.3"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -130,8 +130,7 @@ android {
         jniLibs {
             useLegacyPackaging = true
             // 应急启动器按签名 APK 中的完整字节校验，禁止打包阶段再改写这两份 ELF。
-            // Keep the pinned gomobile artifact byte-identical to the reviewed AAR.
-            keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so', '**/libgojni.so']
+            keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so']
             // 使用 app 自带的同版本 16 KB JNI，覆盖 terminal-emulator AAR 中的旧库。
             pickFirsts += ['**/libtermux.so']
             excludes += ['**/x86/**', '**/x86_64/**', '**/armeabi/**', '**/armeabi-v7a/**']
@@ -158,6 +157,10 @@ android {
 
     testOptions {
         unitTests.includeAndroidResources = true
+        // 完整 Standard 套件在同一测试 JVM 内运行 2500+ 项，并包含 25MB 位图边界和
+        // 多组 Robolectric 界面沙箱；默认堆上限会在与断言无关的位图分配处 OOM。
+        // 这里只提高测试进程内存上限，不放宽或跳过任何用例。
+        unitTests.all { it.maxHeapSize = '2048m' }
     }
 
     sourceSets {
@@ -188,7 +191,7 @@ tasks.configureEach {
     if (!unsignedPackage && name.matches("(package|validateSigning|assemble)(Standard|Low)Release")) dependsOn(verifyPublishCertificate)
 }
 tasks.register('signPublishRelease') {
-    if (!unsignedPackage) dependsOn(verifyPublishCertificate, 'assembleStandardRelease', 'assembleLowRelease')
+    if (!unsignedPackage) dependsOn(verifyPublishCertificate, 'assembleStandardRelease')
     doFirst {
         if (unsignedPackage) throw new GradleException('未签名 CI 模式不能执行正式发布任务')
     }

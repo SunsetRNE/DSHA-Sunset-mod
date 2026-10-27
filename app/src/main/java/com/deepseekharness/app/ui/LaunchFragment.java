@@ -34,7 +34,12 @@ public class LaunchFragment extends Fragment {
   private HarnessController controller;
   private TextView lanAddrText;
   private TextView launchLog;
+  private ShellActivityTrack activityTrack;
+  private TextView latestLogsButton;
   private androidx.appcompat.app.AlertDialog accessDialog;
+
+  /** 日志跟随：默认跟随末尾；用户上翻或主动暂停后保留阅读位置。 */
+  private boolean followLogs = true;
 
   /** 启动按钮当前是否处于「进入」态（鉴权链接已就绪）。 */
   private boolean webReady;
@@ -86,6 +91,18 @@ public class LaunchFragment extends Fragment {
       @Nullable Bundle savedInstanceState) {
     View v = inflater.inflate(R.layout.fragment_launch, container, false);
 
+    // v5 主页新增的语境、活动条与日志工具；原有 id 与业务 id 全部保留。
+    followLogs = true;
+    activityTrack = v.findViewById(R.id.launch_activity);
+    latestLogsButton = v.findViewById(R.id.launch_latest_button);
+    ((TextView) v.findViewById(R.id.launch_terminal_row))
+        .setText(UiText.choose("打开本机终端", "Open local terminal"));
+    v.findViewById(R.id.launch_terminal_row)
+        .setContentDescription(
+            UiText.choose("打开本机终端，直接处理文件与命令", "Open the local terminal for files and commands"));
+    ((TextView) v.findViewById(R.id.launch_environment_row))
+        .setText(UiText.choose("运行环境 · 检查与维护", "Runtime environment · inspect and repair"));
+
     controller = HarnessController.get(requireContext());
     final Activity activity = requireActivity();
     TextView status = v.findViewById(R.id.launch_status);
@@ -98,6 +115,24 @@ public class LaunchFragment extends Fragment {
     logUrl = "";
     v.findViewById(R.id.launch_download_logs)
         .setOnClickListener(x -> startActivity(DiagnosticActivity.downloadLogs(requireContext())));
+
+    // v5 快捷行与日志工具：终端走 MainActivity 的既有门禁，环境行复用恢复入口。
+    v.findViewById(R.id.launch_terminal_row).setOnClickListener(x -> openLocalTerminal());
+    v.findViewById(R.id.launch_environment_row).setOnClickListener(x -> openEnvironment());
+    v.findViewById(R.id.launch_copy_logs).setOnClickListener(x -> copyLogs());
+    v.findViewById(R.id.launch_follow_logs).setOnClickListener(x -> toggleLogFollow());
+    if (latestLogsButton != null) latestLogsButton.setOnClickListener(x -> resumeLogFollow());
+    ((TextView) v.findViewById(R.id.launch_copy_logs)).setText(UiText.choose("复制日志", "Copy log"));
+    v.findViewById(R.id.launch_copy_logs)
+        .setContentDescription(UiText.choose("复制启动日志", "Copy the startup log"));
+    LogScrollView launchLogScroll = v.findViewById(R.id.launch_log_scroll);
+    // 用户滚回末尾时恢复跟随；离开末尾时暂停，避免下一秒刷新把阅读位置拉走。
+    launchLogScroll.setOnScrollChangeListener(
+        (view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+          boolean atEnd = launchLogScroll.shouldFollowEnd();
+          if (atEnd != followLogs) setLogFollow(atEnd);
+        });
+    renderLogControls(v);
 
     v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
     restart.setText(R.string.ui2_restart);
@@ -302,14 +337,137 @@ public class LaunchFragment extends Fragment {
     enteringWeb = false;
   }
 
-  /** 仅在用户仍位于底部时跟随；滚动日志本身，不请求焦点或移动操作区。 */
+  /** 仅在用户仍位于底部且跟随开启时滚动；滚动日志本身，不请求焦点或移动操作区。 */
   private void updateLog(String text) {
     View root = getView();
     if (root == null || launchLog == null) return;
     LogScrollView scroll = root.findViewById(R.id.launch_log_scroll);
-    boolean follow = scroll.shouldFollowEnd();
+    boolean follow = followLogs && scroll.shouldFollowEnd();
     launchLog.setText(text);
     if (follow) scroll.followEndAfterLayout();
+    else renderLogControls(root);
+  }
+
+  /** 复制当前日志框的完整文本；日志可能含本机鉴权地址，按敏感剪贴板写入。 */
+  private void copyLogs() {
+    if (launchLog == null) return;
+    CharSequence logs = launchLog.getText();
+    if (logs == null || logs.length() == 0) {
+      Toast.makeText(
+              requireContext(),
+              UiText.choose("还没有可复制的日志", "There is no log to copy yet"),
+              Toast.LENGTH_SHORT)
+          .show();
+      return;
+    }
+    try {
+      android.content.ClipboardManager clipboard =
+          (android.content.ClipboardManager)
+              requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+      if (clipboard == null) {
+        Toast.makeText(
+                requireContext(),
+                UiText.choose("复制失败：剪贴板不可用", "Copy failed: clipboard unavailable"),
+                Toast.LENGTH_SHORT)
+            .show();
+        return;
+      }
+      clipboard.setPrimaryClip(
+          com.deepseekharness.app.bridge.SensitiveClipboard.text(
+              UiText.choose("DSH 启动日志", "DSH startup log"), logs));
+      Toast.makeText(
+              requireContext(),
+              UiText.choose(
+                  "已复制启动日志；其中可能包含本机访问地址，请只分享给可信对象",
+                  "Startup log copied. It may contain local access addresses; share only with trusted devices"),
+              Toast.LENGTH_LONG)
+          .show();
+    } catch (Throwable failure) {
+      Toast.makeText(
+              requireContext(),
+              UiText.format("复制失败：%s", failure.getClass().getSimpleName()),
+              Toast.LENGTH_SHORT)
+          .show();
+    }
+  }
+
+  /** 打开本机终端：终端门禁仍由 MainActivity.openTerminal() 统一判断。 */
+  private void openLocalTerminal() {
+    Activity host = getActivity();
+    if (host instanceof MainActivity) {
+      ((MainActivity) host).openTerminal();
+      return;
+    }
+    Toast.makeText(
+            requireContext(),
+            UiText.choose("请在主界面打开本机终端", "Open the local terminal from the main screen"),
+            Toast.LENGTH_SHORT)
+        .show();
+  }
+
+  /** 运行环境行复用现有恢复入口：需要恢复时进入环境维护，否则打开启动恢复页。 */
+  private void openEnvironment() {
+    if (!isAdded()) return;
+    if (EnvironmentUiStatus.get(requireContext()).recovery) {
+      startActivity(
+          new Intent(requireContext(), ExtractActivity.class).putExtra("review_only", true));
+      return;
+    }
+    showRecovery();
+  }
+
+  /** 跟随开关只改展示，不触发任务状态变化；打开时再显式滚到末尾。 */
+  private void setLogFollow(boolean follow) {
+    if (followLogs == follow) {
+      renderLogControls(getView());
+      return;
+    }
+    followLogs = follow;
+    renderLogControls(getView());
+  }
+
+  private void toggleLogFollow() {
+    if (followLogs) {
+      setLogFollow(false);
+      return;
+    }
+    resumeLogFollow();
+  }
+
+  /** 恢复跟随并滚到最新；由「跟随最新」和「查看最新」共用。 */
+  private void resumeLogFollow() {
+    setLogFollow(true);
+    View root = getView();
+    if (root == null) return;
+    LogScrollView scroll = root.findViewById(R.id.launch_log_scroll);
+    if (scroll == null) return;
+    scroll.fullScroll(View.FOCUS_DOWN);
+    scroll.followEndAfterLayout();
+  }
+
+  /** 同步跟随按钮文案与「查看最新」可见性；暂停时保留当前阅读位置。 */
+  private void renderLogControls(View root) {
+    if (root == null) return;
+    TextView follow = root.findViewById(R.id.launch_follow_logs);
+    if (follow != null) {
+      follow.setText(
+          followLogs
+              ? UiText.choose("暂停跟随", "Pause following")
+              : UiText.choose("跟随最新", "Follow latest"));
+      follow.setContentDescription(
+          followLogs
+              ? UiText.choose("日志跟随中，点按暂停跟随", "Log following is on. Tap to pause.")
+              : UiText.choose("日志已暂停跟随，点按恢复", "Log following is paused. Tap to resume."));
+      follow.setTextColor(
+          requireContext()
+              .getColor(followLogs ? R.color.shell_text_secondary : R.color.shell_accent));
+    }
+    if (latestLogsButton != null) {
+      latestLogsButton.setText(UiText.choose("查看最新", "View latest"));
+      latestLogsButton.setContentDescription(
+          UiText.choose("跳到启动日志最新一行", "Jump to the latest startup log line"));
+      latestLogsButton.setVisibility(followLogs ? View.GONE : View.VISIBLE);
+    }
   }
 
   @Override
@@ -346,6 +504,8 @@ public class LaunchFragment extends Fragment {
     accessDialog = null;
     lanAddrText = null;
     launchLog = null;
+    activityTrack = null;
+    latestLogsButton = null;
     super.onDestroyView();
   }
 
@@ -413,8 +573,10 @@ public class LaunchFragment extends Fragment {
                                           : getString(R.string.ui2_stopped));
       ((TextView) root.findViewById(R.id.launch_port))
           .setText(ready ? String.valueOf(controller.getWebPort()) : "—");
+      EnvironmentUiStatus.Snapshot environment = EnvironmentUiStatus.get(requireContext());
+      boolean needsRecovery = environment.recovery;
       ((TextView) root.findViewById(R.id.launch_environment))
-          .setText(EnvironmentUiStatus.get(requireContext()).ready ? "READY" : "—");
+          .setText(environment.ready ? "READY" : "—");
       ((TextView) root.findViewById(R.id.launch_subtitle))
           .setText(
               ready
@@ -424,6 +586,17 @@ public class LaunchFragment extends Fragment {
                       + " · dsh "
                       + com.deepseekharness.app.util.Constants.DSH_VERSION
                   : getString(R.string.ui2_launch_hint));
+      // 语境小字 / 活动条 / 工作台状态只取真实状态；不根据等待时长推算阶段。
+      renderStatusChrome(
+          root,
+          starting,
+          stopping,
+          ready,
+          enteringWeb,
+          restoring,
+          unresolved,
+          controller.isRestartBlocked(),
+          needsRecovery);
       root.findViewById(R.id.launch_status)
           .setVisibility(
               enteringWeb
@@ -471,7 +644,7 @@ public class LaunchFragment extends Fragment {
       if (restart != null) restart.setEnabled(!starting && !stopping);
       Button stop = root.findViewById(R.id.launch_stop);
       if (stop != null) stop.setEnabled(!stopping);
-      if (EnvironmentUiStatus.get(requireContext()).recovery) {
+      if (needsRecovery) {
         runState.setText(com.deepseekharness.app.util.UiText.text("环境需要恢复"));
         if (start != null) start.setEnabled(false);
         if (restart != null) restart.setEnabled(false);
@@ -505,6 +678,97 @@ public class LaunchFragment extends Fragment {
 
   private void showRecovery() {
     startActivity(new Intent(requireContext(), StartupRecoveryActivity.class));
+  }
+
+  /**
+   * 把真实运行状态映射为语境小字、活动条与工作台状态。
+   *
+   * <p>只使用 controller / 环境检查已给出的结果；等待本身不产生新状态，也不显示阶段进度。
+   */
+  private void renderStatusChrome(
+      View root,
+      boolean starting,
+      boolean stopping,
+      boolean ready,
+      boolean entering,
+      boolean restoring,
+      boolean unresolved,
+      boolean restartBlocked,
+      boolean needsRecovery) {
+    int tone;
+    String context;
+    if (needsRecovery) {
+      context = UiText.choose("运行环境 · 需要恢复", "Runtime environment · needs recovery");
+      tone = R.color.shell_bad;
+    } else if (unresolved) {
+      context = UiText.choose("Web 实例 · 待确认", "Web instance · unconfirmed");
+      tone = R.color.shell_bad;
+    } else if (restartBlocked) {
+      context = UiText.choose("自动重启 · 已暂停", "Automatic restart · paused");
+      tone = R.color.shell_warn;
+    } else if (entering) {
+      context = UiText.choose("本机工作台 · 正在进入", "Local workspace · opening");
+      tone = R.color.shell_accent;
+    } else if (restoring) {
+      context = UiText.choose("Web 实例 · 正在核对", "Web instance · verifying");
+      tone = R.color.shell_accent;
+    } else if (stopping) {
+      context = UiText.choose("本机工作台 · 正在停止", "Local workspace · stopping");
+      tone = R.color.shell_accent;
+    } else if (starting) {
+      context = UiText.choose("本机工作台 · 正在启动", "Local workspace · starting");
+      tone = R.color.shell_accent;
+    } else if (ready) {
+      context = UiText.choose("本机工作台 · 已就绪", "Local workspace · ready");
+      tone = R.color.shell_good;
+    } else {
+      context = UiText.choose("本机工作台 · 未运行", "Local workspace · not running");
+      tone = R.color.shell_text_secondary;
+    }
+    TextView eyebrow = root.findViewById(R.id.launch_eyebrow);
+    if (eyebrow != null) eyebrow.setText(context);
+    TextView dot = root.findViewById(R.id.launch_run_dot);
+    if (dot != null) dot.setTextColor(requireContext().getColor(tone));
+    if (activityTrack != null) {
+      int track;
+      if (needsRecovery || unresolved || restartBlocked) track = ShellActivityTrack.ERROR;
+      else if (starting || stopping || entering || restoring) track = ShellActivityTrack.RUNNING;
+      else if (ready) track = ShellActivityTrack.SETTLED;
+      else track = ShellActivityTrack.IDLE;
+      activityTrack.setState(track);
+    }
+    TextView workbench = root.findViewById(R.id.launch_workbench);
+    if (workbench != null) {
+      String value;
+      int valueTone;
+      if (needsRecovery) {
+        value = UiText.choose("需恢复", "Repair");
+        valueTone = R.color.shell_bad;
+      } else if (unresolved) {
+        value = UiText.choose("待确认", "Pending");
+        valueTone = R.color.shell_bad;
+      } else if (entering) {
+        value = UiText.choose("进入中", "Opening");
+        valueTone = R.color.shell_good;
+      } else if (restoring) {
+        value = UiText.choose("核对中", "Check");
+        valueTone = R.color.shell_accent;
+      } else if (stopping) {
+        value = UiText.choose("停止中", "Stop");
+        valueTone = R.color.shell_accent;
+      } else if (starting) {
+        value = UiText.choose("启动中", "Start");
+        valueTone = R.color.shell_accent;
+      } else if (ready) {
+        value = UiText.choose("可进入", "Ready");
+        valueTone = R.color.shell_good;
+      } else {
+        value = UiText.choose("未运行", "Stopped");
+        valueTone = R.color.shell_text;
+      }
+      workbench.setText(value);
+      workbench.setTextColor(requireContext().getColor(valueTone));
+    }
   }
 
   private void offerForceStop(Activity activity, View root, TextView status, long generation) {

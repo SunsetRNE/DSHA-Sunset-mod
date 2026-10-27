@@ -103,7 +103,7 @@ The source package is **`dsh.android.client`**, installable alongside `com.dsh.c
 
 - **Virtual screen**: experimental independent display, observation and input in Standard; see [architecture and prerequisites](docs/en/virtual-screen-architecture.md).
 - **Global authorization**: manual confirmation, per-app rules or allow-all. This controls DSHA prompts; Android, ADB, Root and Shizuku capabilities still require authorization.
-- **Runtime and mobile UI**: DSH 0.2.1-rc.2, mobile UI 3.2.1, proot by default with proroot selectable. Model configuration is handled in Web UI.
+- **Runtime and mobile UI**: DSH 0.2.1-rc.2, mobile UI 3.2.2, proot by default with proroot selectable. Model configuration is handled in Web UI.
 - **Maintenance and backup**: one-click password-free backup, external-workspace protection, and fixes for plugin installation, directory picking, LAN authentication and background Web recovery. Picture-in-picture remains opt-in.
 
 | Historical versions | Preserved record |
@@ -212,7 +212,7 @@ The agent calls these through the local device bridge: prefer `127.0.0.1:3090`, 
 | Capability | Details |
 |---|---|
 | Dual engines | Standard uses the system WebView; Low bundles GeckoView 143, immune to whatever WebView the system ships |
-| Mobile adaptation | Bundles [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) **3.2.1** (MIT), retaining phone shortcuts and narrow-screen layout while fixing focus, dialogs and plugin cards |
+| Mobile adaptation | Bundles [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) **3.2.2** (MIT), retaining phone shortcuts and narrow-screen layout while fixing focus, dialogs and plugin cards |
 | Picture-in-Picture | Off by default; users explicitly enable it. Normal return and background restoration retain the same-generation page |
 | High refresh & power | Requests the user-selected refresh limit and returns control when idle; a successful request does not establish measured frame rate |
 | Themes & languages | Dark / light / follow system; Simplified Chinese / English, following the system language by default |

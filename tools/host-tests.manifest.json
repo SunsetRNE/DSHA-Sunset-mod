@@ -2,6 +2,24 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-vscreen-help.py",
+      "stage": "fast",
+      "requires": ["python39", "jdk17", "toolchains"],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {"JAVA_HOME": "{jdk}", "GRADLE_USER_HOME": "{gradleHome}"},
+      "reason": "Compile the production virtual-screen bridge parser and generated ten-language help; verify launch, observation and input examples against the actual parameter contract."
+    },
+    {
+      "path": "tools/test-terminal-home-i18n.py",
+      "stage": "fast",
+      "requires": ["python39", "jdk17"],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Compile the generated ten-language dictionary and check terminal and launch-page text, indexed arguments and resource coverage."
+    },
+    {
       "path": "tools/test-app-integration-lifecycle.mjs",
       "stage": "runtime",
       "requires": ["node24", "raw"],
@@ -36,7 +54,7 @@
       ],
       "timeoutSeconds": 300,
       "environment": {},
-      "reason": "Real production Java and Python signed patch chains upgrade the exact shared d772 rc3 archive from complete v1 language helper to all ten locales without rebuilding the archive; canonical repair, partial/duplicate predecessors and idempotence remain fail-closed."
+      "reason": "Real production Java and Python signed patch chains verify the current rc3 archive and its language predecessor, repair, partial and duplicate cases, and idempotence without device operations."
     },
     {
       "path": "tools/test-ui-language-catalog.py",

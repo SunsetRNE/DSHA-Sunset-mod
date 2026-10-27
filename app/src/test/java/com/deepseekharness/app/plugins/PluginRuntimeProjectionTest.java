@@ -3,10 +3,15 @@ package com.deepseekharness.app.plugins;
 import static org.junit.Assert.*;
 
 import com.deepseekharness.app.core.PluginRepository.Item;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
@@ -16,6 +21,8 @@ import org.robolectric.annotation.Config;
 public final class PluginRuntimeProjectionTest {
   private static final long NOW = 100_000, GENERATION = 7;
   private static final String INSTANCE = "owned-web-instance";
+
+  @Rule public final TemporaryFolder temporary = new TemporaryFolder();
 
   private Item installed(String name) throws Exception {
     return new Item(
@@ -102,7 +109,8 @@ public final class PluginRuntimeProjectionTest {
             snapshot(row("sample", "loaded")).put("generation", "6"),
             snapshot(row("sample", "loaded")).put("instance", "other-web-instance"),
             snapshot(row("sample", "loaded")).put("at", NOW + 1),
-            snapshot(row("sample", "loaded")).put("at", NOW - 10_001),
+            snapshot(row("sample", "loaded"))
+                .put("at", NOW - PluginRuntimeProjection.MAX_AGE_MILLIS - 1),
             snapshot(row("sample", "loaded")).put("instance", ""))) {
       Item value = project(List.of(installed("sample")), bad).get(0);
       assertEquals("unknown", value.runtimeState);
@@ -113,11 +121,19 @@ public final class PluginRuntimeProjectionTest {
   @Test
   public void expiryRetainsLastStateAsHistoryAndFreshBoundaryStillConfirms() throws Exception {
     Item loaded = installed("sample").withRuntime("loaded", GENERATION);
-    Item expired = project(List.of(loaded), snapshot().put("at", NOW - 10_001)).get(0);
+    Item expired =
+        project(
+                List.of(loaded),
+                snapshot().put("at", NOW - PluginRuntimeProjection.MAX_AGE_MILLIS - 1))
+            .get(0);
     assertEquals("loaded", expired.runtimeState);
     assertTrue(expired.runtimeStale);
     Item boundary =
-        project(List.of(loaded), snapshot(row("sample", "loaded")).put("at", NOW - 10_000)).get(0);
+        project(
+                List.of(loaded),
+                snapshot(row("sample", "loaded"))
+                    .put("at", NOW - PluginRuntimeProjection.MAX_AGE_MILLIS))
+            .get(0);
     assertFalse(boundary.runtimeStale);
   }
 
@@ -233,11 +249,51 @@ public final class PluginRuntimeProjectionTest {
   }
 
   @Test
+  public void rejectionCodesSeparateMissingStaleAndForeignEvidence() throws Exception {
+    JSONObject valid = snapshot(row("sample", "loaded"));
+    assertEquals("", PluginRuntimeProjection.rejection(valid, GENERATION, INSTANCE, NOW));
+    assertEquals("NO_ACTIVITY", PluginRuntimeProjection.rejection(null, GENERATION, INSTANCE, NOW));
+    assertEquals("NO_INSTANCE", PluginRuntimeProjection.rejection(valid, GENERATION, "", NOW));
+    assertEquals("NO_GENERATION", PluginRuntimeProjection.rejection(valid, 0, INSTANCE, NOW));
+    assertEquals(
+        "FUTURE_TIME", PluginRuntimeProjection.rejection(valid, GENERATION, INSTANCE, NOW - 1));
+    assertEquals(
+        "EXPIRED",
+        PluginRuntimeProjection.rejection(
+            valid, GENERATION, INSTANCE, NOW + PluginRuntimeProjection.MAX_AGE_MILLIS + 1));
+    assertEquals(
+        "GENERATION", PluginRuntimeProjection.rejection(valid, GENERATION + 1, INSTANCE, NOW));
+    assertEquals(
+        "INSTANCE", PluginRuntimeProjection.rejection(valid, GENERATION, "other-instance", NOW));
+    assertEquals(
+        "NO_TIME",
+        PluginRuntimeProjection.rejection(
+            snapshot(row("sample", "loaded")).put("at", 0), GENERATION, INSTANCE, NOW));
+  }
+
+  @Test
   public void oversizedInstalledEvidenceIsRejectedAsAWhole() throws Exception {
     JSONObject evidence = snapshot();
     JSONArray rows = evidence.getJSONArray("installedPlugins");
     rows.put(row("sample", "loaded"));
     for (int i = 0; i < 512; i++) rows.put(row("other-" + i, "loaded"));
     assertEquals("unknown", project(List.of(installed("sample")), evidence).get(0).runtimeState);
+  }
+
+  @Test
+  public void snapshotPathCanonicalizesAliasedRuntimeRootBeforeNofollowRead() throws Exception {
+    File real = temporary.newFolder("files", "linux", "ubuntu");
+    File alias = new File(temporary.getRoot(), "alias-root");
+    Files.createSymbolicLink(alias.toPath(), real.toPath());
+    File snapshot = PluginRuntimeProjection.snapshotPath(alias);
+    assertEquals(
+        new File(real.getCanonicalFile(), "root/.dsha-web-activity.json").getPath(),
+        snapshot.getPath());
+    assertFalse(snapshot.getPath().contains("alias-root"));
+  }
+
+  @Test
+  public void snapshotPathRejectsMissingRuntimeRoot() {
+    assertThrows(IOException.class, () -> PluginRuntimeProjection.snapshotPath(null));
   }
 }
