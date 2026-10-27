@@ -93,6 +93,7 @@ public final class PluginRepository extends AndroidViewModel {
 
   private volatile Listener listener;
   private volatile String lastEnvironmentNotice = "";
+  private volatile String lastRuntimeNotice = "";
   private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
   private Preview installedPreview;
   private volatile Preview preparedPreview;
@@ -216,12 +217,14 @@ public final class PluginRepository extends AndroidViewModel {
       sessionId = json.optString("sessionId");
       pluginId = json.optString("pluginId");
       // 仅归并已有官方历史别名；显示来源、版本和位置均不作为条目身份。
-      String canonical =
-          "dsh-auto-review".equals(name) ? "@deepseek-ai/dsh-experimental-auto-review" : name;
       stableKey =
           dynamic
               ? key("dynamic", Long.toString(runtimeGeneration), sessionId, pluginId)
-              : key("installed", profile, scope, canonical);
+              : key(
+                  "installed",
+                  profile,
+                  scope,
+                  com.deepseekharness.app.plugins.PluginIdentity.canonical(name));
       contentKey =
           key(
               name,
@@ -818,6 +821,16 @@ public final class PluginRepository extends AndroidViewModel {
   /** 只登记内存意图；队首在后台才取得环境凭据。 */
   private String submit(
       String progress, Work work, Runnable onSuccess, boolean cancellable, Runnable onAccepted) {
+    return submit(progress, work, onSuccess, cancellable, onAccepted, false);
+  }
+
+  private String submit(
+      String progress,
+      Work work,
+      Runnable onSuccess,
+      boolean cancellable,
+      Runnable onAccepted,
+      boolean automatic) {
     return submit(
         com.deepseekharness.app.plugins.PluginOperationQueue.Type.INSPECT,
         null,
@@ -826,7 +839,10 @@ public final class PluginRepository extends AndroidViewModel {
         work,
         onSuccess,
         cancellable,
-        onAccepted);
+        onAccepted,
+        "scope:web:INSPECT",
+        "",
+        automatic);
   }
 
   private static final class PendingWork {
@@ -835,6 +851,7 @@ public final class PluginRepository extends AndroidViewModel {
     final String progress;
     final boolean cancellable;
     final Item target;
+    final boolean automatic;
     final AtomicBoolean cancelled = new AtomicBoolean();
     final com.deepseekharness.app.plugins.PluginSourceIdentity source;
     final com.deepseekharness.app.runtime.GuestScriptBudget queryBudget;
@@ -855,12 +872,14 @@ public final class PluginRepository extends AndroidViewModel {
         boolean cancellable,
         Item target,
         com.deepseekharness.app.plugins.PluginSourceIdentity source,
-        long queryMillis) {
+        long queryMillis,
+        boolean automatic) {
       this.work = work;
       this.success = success;
       this.progress = progress;
       this.cancellable = cancellable;
       this.target = target;
+      this.automatic = automatic;
       this.source = source;
       queryBudget =
           work.query()
@@ -889,7 +908,8 @@ public final class PluginRepository extends AndroidViewModel {
         cancellable,
         onAccepted,
         "scope:web:" + type.name(),
-        "");
+        "",
+        false);
   }
 
   private String submit(
@@ -903,6 +923,32 @@ public final class PluginRepository extends AndroidViewModel {
       Runnable onAccepted,
       String inputIdentity,
       String expectedVersion) {
+    return submit(
+        type,
+        target,
+        desired,
+        progress,
+        work,
+        onSuccess,
+        cancellable,
+        onAccepted,
+        inputIdentity,
+        expectedVersion,
+        false);
+  }
+
+  private String submit(
+      Type type,
+      Item target,
+      Boolean desired,
+      String progress,
+      Work work,
+      Runnable onSuccess,
+      boolean cancellable,
+      Runnable onAccepted,
+      String inputIdentity,
+      String expectedVersion,
+      boolean automatic) {
     PendingWork request =
         new PendingWork(
             work,
@@ -911,7 +957,8 @@ public final class PluginRepository extends AndroidViewModel {
             cancellable,
             target,
             registry.snapshot().source,
-            queryMillis);
+            queryMillis,
+            automatic);
     if (work.query()) {
       synchronized (this) {
         if (pendingQuery != null || queryRunning) return "";
@@ -1043,8 +1090,14 @@ public final class PluginRepository extends AndroidViewModel {
       HarnessController controller = HarnessController.get(getApplication());
       lastEnvironmentNotice = environmentBlockOnWorker(controller);
       if (!lastEnvironmentNotice.isEmpty()) throw new IOException(lastEnvironmentNotice);
-      lease = com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire("插件操作");
-      if (lease == null) throw new IOException("已有环境任务启动，本次任务未执行，请重试");
+      boolean queryRequest = request.work.query();
+      lease =
+          queryRequest
+              ? com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared("插件查询")
+              : com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire("插件操作");
+      if (lease == null)
+        throw new IOException(
+            queryRequest ? "已有环境维护或插件修改任务，本次列表读取未执行，请稍后刷新" : "已有环境任务启动，本次任务未执行，请重试");
       runtimeWork = RuntimeTasks.beginDetached("插件管理");
       request.runtimeWork = runtimeWork;
       runtimeWork.describe(request.progress);
@@ -1333,6 +1386,39 @@ public final class PluginRepository extends AndroidViewModel {
 
   public void refresh() {
     submit("正在检测 Web、终端和本地安装的插件…", withItems("refresh", true), null, true);
+  }
+
+  /** 前台/空闲补偿触发的低优先级查询；用户动作可以让路取消。 */
+  public void refreshAutomatic() {
+    submit("正在后台检测已安装插件…", withItems("refresh", true), null, true, null, true);
+  }
+
+  public boolean isQueryRunning() {
+    return queryRunning;
+  }
+
+  public boolean hasPendingAutomaticQuery() {
+    synchronized (this) {
+      return pendingQuery != null && pendingQuery.automatic;
+    }
+  }
+
+  /** 取消尚未执行的自动查询；不触碰用户显式刷新或正在提交的插件修改。 */
+  public boolean cancelAutomaticQueryForUserAction() {
+    boolean cancelled = false;
+    synchronized (this) {
+      PendingWork queued = pendingQuery;
+      if (queued != null && queued.automatic) {
+        queued.cancelled.set(true);
+        cancelled = true;
+      }
+    }
+    PendingWork active = activeWork;
+    if (active != null && active.automatic && active.work.query()) {
+      cancelRequest(active);
+      cancelled = true;
+    }
+    return cancelled;
   }
 
   public String install(PluginSource source) {
@@ -1800,31 +1886,67 @@ public final class PluginRepository extends AndroidViewModel {
     HarnessController controller = HarnessController.get(getApplication());
     long generation = controller.getWebGeneration();
     var identity = controller.getReadyWebPageIdentity();
+    long now = System.currentTimeMillis();
+    String rejection = "";
     JSONObject snapshot = null;
-    if (identity != null && identity.generation() == generation) {
+    if (identity == null) {
+      rejection = "IDENTITY_MISSING";
+    } else if (identity.generation() != generation) {
+      rejection = "IDENTITY_GENERATION";
+    } else {
       try {
         var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+        // 写方每 2 秒用同目录 rename 发布新快照；读取只要求打开描述符内字节一致，
+        // 不把路径在读取期间换 inode 当成失败，否则会和正常心跳长期竞争。
+        // 运行根先规范化：Android 的 /data/user/0 是 /data/data 的系统别名，NOFOLLOW
+        // 逐段检查会把合法别名判成 PARENT_LINK；最终快照文件仍由读取器 NOFOLLOW 打开。
         snapshot =
             new JSONObject(
                 new String(
-                    fs.small(
-                        new File(proot.getRootfsDir(), "root/.dsha-web-activity.json"), 256 * 1024),
+                    fs.currentSnapshot(
+                        com.deepseekharness.app.plugins.PluginRuntimeProjection.snapshotPath(
+                            proot.getRootfsDir()),
+                        256 * 1024),
                     java.nio.charset.StandardCharsets.UTF_8));
-      } catch (Exception ignored) {
+        rejection =
+            com.deepseekharness.app.plugins.PluginRuntimeProjection.rejection(
+                snapshot, generation, identity.instanceId(), now);
+      } catch (Exception error) {
         // 同代暂不可读时保留上次证据并标待核验，不把未知替换成空目录。
+        rejection =
+            "READ="
+                + com.deepseekharness.app.util.SensitiveData.redact(
+                    String.valueOf(error.getMessage()));
       }
     }
     List<Item> projected =
         com.deepseekharness.app.plugins.PluginRuntimeProjection.apply(
-            persistent,
-            snapshot,
-            generation,
-            identity == null ? "" : identity.instanceId(),
-            System.currentTimeMillis());
+            persistent, snapshot, generation, identity == null ? "" : identity.instanceId(), now);
     if (generation != controller.getWebGeneration()
         || !java.util.Objects.equals(identity, controller.getReadyWebPageIdentity()))
       throw new IOException("PLUGIN_RUNTIME_CHANGED");
+    noticeRuntime(projected, rejection);
     return projected;
+  }
+
+  /** 只在结论变化时写活动日志；每轮查询重复同一原因不会刷屏。 */
+  private void noticeRuntime(List<Item> projected, String rejection) {
+    int total = 0, unconfirmed = 0;
+    for (Item item : projected)
+      if (!item.dynamic) {
+        total++;
+        if ("unknown".equals(item.runtimeState)) unconfirmed++;
+      }
+    String notice =
+        rejection.isEmpty()
+            ? (unconfirmed == 0 ? "" : "快照已采纳，仍有 " + unconfirmed + "/" + total + " 个未确认")
+            : "快照未采纳："
+                + rejection
+                + (unconfirmed == 0 ? "" : "（" + unconfirmed + "/" + total + " 未确认）");
+    if (notice.equals(lastRuntimeNotice)) return;
+    lastRuntimeNotice = notice;
+    DiagnosticLog.record(
+        getApplication(), "PLUGIN_RUNTIME", notice.isEmpty() ? "当前 Web 加载证据已全部确认" : notice);
   }
 
   /** READY 探测只有只读原生检查，不运行任何插件脚本。 */
@@ -1834,7 +1956,12 @@ public final class PluginRepository extends AndroidViewModel {
     String blocked = environmentBlockOnWorker(controller);
     lastEnvironmentNotice = blocked;
     if (!blocked.isEmpty() || !controller.proot().isEnvironmentReady()) return null;
-    return backend.resolveSource();
+    com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease =
+        com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared("插件来源核对");
+    if (lease == null) return null;
+    try (lease) {
+      return backend.resolveSource();
+    }
   }
 
   /** 活动心跳只投影已有运行摘要，不触发完整列表或 guest 启动。 */
@@ -1854,7 +1981,8 @@ public final class PluginRepository extends AndroidViewModel {
               markRuntimeUnverified();
               return;
             }
-            var lease = com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire("插件运行状态读取");
+            var lease =
+                com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared("插件运行状态读取");
             if (lease == null) {
               markRuntimeUnverified();
               return;
@@ -1941,6 +2069,8 @@ public final class PluginRepository extends AndroidViewModel {
     if ("PLUGIN_QUERY_TIMEOUT".equals(detail)) return "插件列表读取已超时，保留上次结果；请刷新重试";
     if ("PLUGIN_INTENT_TIMEOUT".equals(detail) || "PLUGIN_INTENT_CANCELLED".equals(detail))
       return "插件启停结果未确认；未自动重试，请刷新核对实际状态";
+    if ("PREPARATION_REQUIRED".equals(detail) || "ENV_PREPARATION_REQUIRED".equals(detail))
+      return "运行工具或资产不完整，请先到「安装与修复」完成环境准备；上次插件列表已保留";
     return "操作失败：" + SensitiveData.redact(detail);
   }
 

@@ -174,7 +174,7 @@ public class InstallFragment extends Fragment {
                 com.deepseekharness.app.util.MaintenanceErrorText.render(state.details[step - 1]))
             .setNeutralButton(com.deepseekharness.app.util.UiText.text("关闭"), null);
     if (!state.busy()
-        && !MaintenanceCoordinator.isEnvironmentTaskBusy()
+        && !MaintenanceCoordinator.isExclusiveWorkBlocked()
         && !BackupTask.get(requireContext()).pendingMaintenance()) {
       dialog
           .setPositiveButton(
@@ -189,7 +189,7 @@ public class InstallFragment extends Fragment {
     View view = getView();
     if (view == null || repository == null) return;
     InstallTask.Snapshot state = repository.snapshot();
-    boolean environmentBusy = MaintenanceCoordinator.isEnvironmentTaskBusy();
+    boolean environmentBusy = MaintenanceCoordinator.isExclusiveWorkBlocked();
     BackupTask maintenanceTask = BackupTask.get(requireContext());
     boolean pending = maintenanceTask.pendingMaintenanceForUi();
     String renderKey =
@@ -213,7 +213,7 @@ public class InstallFragment extends Fragment {
             state.busy()
                 ? state.phase
                 : environmentBusy
-                    ? "环境任务进行中：" + EnvironmentTaskGate.activeKind()
+                    ? "环境任务进行中：" + MaintenanceCoordinator.activeEnvironmentDescription()
                     : pending
                         ? com.deepseekharness.app.util.UiText.text("上次环境维护尚未完成，请先恢复原环境")
                         : state.outcome == InstallTask.Outcome.IDLE

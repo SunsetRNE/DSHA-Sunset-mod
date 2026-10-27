@@ -11,7 +11,7 @@
 | Visible | `dsh-device-shell-guide` 0.1.19 | Device-channel and bridge guide, `lib/index.js` |
 | Visible | `dsh-task-notifier` 0.2.0 | `/app/tasks/*` task state and notifications |
 | Visible | `dsh-status-overlay` 0.1.4 | `/app/overlay` streaming status |
-| Visible | `dsh-web-mobile` 3.2.1 | Mobile Web interface; upstream lock and local differences are recorded separately |
+| Visible | `dsh-web-mobile` 3.2.2 | Mobile Web interface; upstream lock and local differences are recorded separately |
 | Visible | `dsh-computer-use-android` 0.1.1 | MCP stdio `dsha-android`, 180-second call budget |
 | Visible | `dsh-tool-vscreen` 0.1.1 | MCP stdio `dsha-vscreen`, 60-second call budget |
 | Visible compatibility wrapper | `dsh-auto-review` 0.1.0 | Wrapper/alias; functionality comes from the locked official experimental Auto package, not the empty wrapper alone |

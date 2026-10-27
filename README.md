@@ -95,7 +95,7 @@ SELinux 挡住、沙箱起不来、前端按桌面布局排版。
 
 - **虚拟屏**：Standard 支持实验性的独立显示、读屏与输入；能力前提见[虚拟屏说明](docs/virtual-screen-architecture.md)。
 - **全局权限**：支持全部手动、按应用自定义、全部允许；该选项控制 DSHA 内的确认，Android / ADB / Root / Shizuku 的系统能力仍需单独授权。
-- **运行与界面**：内置 DSH 0.2.1-rc.2、移动 UI 3.2.1，默认 proot、可选 proroot，模型在 Web UI 中配置。
+- **运行与界面**：内置 DSH 0.2.1-rc.2、移动 UI 3.2.2，默认 proot、可选 proroot，模型在 Web UI 中配置。
 - **维护与备份**：一键无密码备份、外置工作区保护；修复插件安装、目录选择、局域网鉴权与后台 Web 恢复，画中画由用户主动开启。
 
 | 历史版本 | 保留记录 |
@@ -204,7 +204,7 @@ agent 通过本机设备桥调用以下能力：优先 `127.0.0.1:3090`，占用
 | 能力 | 说明 |
 |---|---|
 | 双内核 | Standard 用系统 WebView；Low 内置 GeckoView 143，不受系统 WebView 版本拖累 |
-| 移动端适配 | 内置 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) **3.2.1**（MIT），保留手机快捷键和窄屏适配，修复焦点、弹窗及插件卡片 |
+| 移动端适配 | 内置 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) **3.2.2**（MIT），保留手机快捷键和窄屏适配，修复焦点、弹窗及插件卡片 |
 | 画中画 | 默认关闭，用户主动开启后使用 PiP 小窗；正常返回与后台恢复保留同代网页实例 |
 | 高刷与省电 | 按用户上限请求刷新率，空闲交还系统；实际帧率依设备和系统，不把请求成功当作性能证明 |
 | 深浅色与多语言 | 深色 / 浅色 / 跟随系统；简体中文 / English，默认跟随系统语言 |

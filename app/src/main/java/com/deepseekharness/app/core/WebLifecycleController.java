@@ -839,7 +839,7 @@ final class WebLifecycleController {
               || expectedGeneration != lifecycle.generation()
               || Thread.currentThread().isInterrupted())) return false;
       com.deepseekharness.app.util.EnvironmentTaskGate.Lease startup =
-          com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire(
+          com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared(
               com.deepseekharness.app.util.UiText.text("启动 Web"));
       if (startup == null) {
         if (onStatus != null)
@@ -1248,7 +1248,7 @@ final class WebLifecycleController {
       if (!lifecycle.isCurrent(generation) || !lifecycle.isStarting()) return;
     }
     com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease =
-        com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire(
+        com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared(
             com.deepseekharness.app.util.UiText.text("proroot 退出后的兼容重试"));
     if (lease == null) {
       lifecycle.finishStart(generation);
