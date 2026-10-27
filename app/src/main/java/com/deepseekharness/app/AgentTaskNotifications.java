@@ -13,6 +13,7 @@ import android.os.SystemClock;
 import androidx.core.app.NotificationCompat;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.AgentTaskState;
+import com.deepseekharness.app.util.IslandText;
 import com.deepseekharness.app.util.PreviewPageSession;
 import com.deepseekharness.app.util.UiText;
 import com.deepseekharness.app.ui.AgentTasksActivity;
