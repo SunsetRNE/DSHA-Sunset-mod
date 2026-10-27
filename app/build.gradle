@@ -61,6 +61,8 @@ android {
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
         // 供界面区分「正式版 / 独立上岛版」；包名与数据目录由 applicationIdSuffix 隔离。
         buildConfigField 'boolean', 'ISLAND_EDITION', islandEdition ? 'true' : 'false'
+        // 上岛版用独立显示名，避免桌面上与正式 DSHA 同名、误以为是同一个应用。
+        resValue 'string', 'app_name', islandEdition ? 'DSHA 上岛版' : 'DSHA'
         versionCode 205
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
         versionName "0.2.1-rc.3-20261027.1312-dsh0.2.1-rc.3"
