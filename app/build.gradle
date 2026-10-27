@@ -40,6 +40,10 @@ def verifyBundledDshVersion = tasks.register('verifyBundledDshVersion') {
 def unsignedPackage = project.findProperty('dsha.unsignedPackage') == 'true'
 // 个人测试分支：显式开关才改包名/版本名，默认构建与基线完全一致。
 def sunsetTest = project.findProperty('dsha.sunsetTest') == 'true' || System.getenv('DSHA_SUNSET_TEST') == '1'
+// 独立上岛版：显式开关才换包名，与正式 DSHA 共存且数据完全隔离；默认构建不变。
+def islandEdition = project.findProperty('dsha.islandEdition') == 'true' || System.getenv('DSHA_ISLAND_EDITION') == '1'
+if (sunsetTest && islandEdition)
+    throw new GradleException('Sunset 测试版和独立上岛版不能同时启用')
 // 只有源码 CI 可显式允许缺少真实测试夹具；完整测试默认要求固定输入齐备。
 def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
 if (!(sourceOnlyTests in ['true', 'false']))
@@ -57,9 +61,13 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
-        versionCode 205
+        // 供界面区分「正式版 / 独立上岛版」；包名与数据目录由 applicationIdSuffix 隔离。
+        buildConfigField 'boolean', 'ISLAND_EDITION', islandEdition ? 'true' : 'false'
+        // 上岛版用独立显示名，避免桌面上与正式 DSHA 同名、误以为是同一个应用。
+        resValue 'string', 'app_name', islandEdition ? 'DSHA 上岛版' : 'DSHA'
+        versionCode 206
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261027.1312-dsh0.2.1-rc.3"
+        versionName "0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -75,6 +83,9 @@ android {
             if (sunsetTest) {
                 applicationIdSuffix '.SunsetRNE'
                 versionNameSuffix '-SunsetTest'
+            } else if (islandEdition) {
+                applicationIdSuffix '.island'
+                versionNameSuffix '-island'
             }
         }
         low {
@@ -82,7 +93,11 @@ android {
             minSdk 23
             versionNameSuffix sunsetTest ? 'low-SunsetTest' : 'low'
             buildConfigField 'boolean', 'LOW_ANDROID', 'true'
-            if (sunsetTest) applicationIdSuffix '.SunsetRNE'
+            if (sunsetTest) {
+                applicationIdSuffix '.SunsetRNE'
+            } else if (islandEdition) {
+                applicationIdSuffix '.island'
+            }
         }
     }
 
@@ -164,6 +179,11 @@ android {
     }
 
     sourceSets {
+        // The promoted notification permission belongs only to the isolated island package.
+        if (islandEdition) {
+            standard.manifest.srcFile 'src/islandEdition/AndroidManifest.xml'
+            low.manifest.srcFile 'src/islandEdition/AndroidManifest.xml'
+        }
         main.assets.setSrcDirs([layout.buildDirectory.dir("generated/standardAssets").get().asFile,
                 layout.buildDirectory.dir("generated/recoveryAssets").get().asFile])
         main.java.srcDir(layout.buildDirectory.dir("generated/uiLanguage").get().asFile)

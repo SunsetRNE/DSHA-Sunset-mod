@@ -639,8 +639,15 @@ public class TerminalActivityLifecycleTest {
 
   @Test
   public void veryShortSidebarScrollsSessionsAndFooterTogetherAndRestoresFocus() {
-    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    // The close button deliberately does not focus in touch mode so the first tap clicks it.
+    // Exercise focus restoration using the keyboard/DPAD mode in which it can own focus.
+    var instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation();
+    instrumentation.setInTouchMode(false);
+    org.robolectric.android.controller.ActivityController<Host> host = null;
     try {
+      // Attach a real window: an unattached Robolectric view always reports the resource-default
+      // touch mode and has no ViewRoot to carry keyboard focus.
+      host = Robolectric.buildActivity(Host.class).create().start().resume().visible();
       var workspace = host.get().findViewById(R.id.terminal_workspace);
       measure(host.get(), workspace, 320, 900);
       host.get().openSessions();
@@ -649,7 +656,20 @@ public class TerminalActivityLifecycleTest {
       View create = host.get().findViewById(R.id.terminal_sessions_create);
       assertFalse(isDescendant(scroll, create));
       View close = host.get().findViewById(R.id.terminal_sessions_close);
+      // Robolectric's Instrumentation updates its window-manager state but does not deliver the
+      // corresponding change to this attached ViewRoot. Apply Android's local transition too.
+      Object viewRoot =
+          org.robolectric.util.ReflectionHelpers.callInstanceMethod(close, "getViewRootImpl");
+      assertNotNull(viewRoot);
+      org.robolectric.util.ReflectionHelpers.callInstanceMethod(
+          viewRoot,
+          "ensureTouchModeLocally",
+          org.robolectric.util.ReflectionHelpers.ClassParameter.from(boolean.class, false));
+      assertFalse(close.isInTouchMode());
+      assertTrue(close.isFocusable());
+      assertFalse(close.isFocusableInTouchMode());
       assertTrue(close.requestFocus());
+      assertTrue(close.hasFocus());
       settleLayout(host.get(), workspace, 320, 180);
       assertTrue(isDescendant(scroll, create));
       assertTrue(
@@ -668,7 +688,11 @@ public class TerminalActivityLifecycleTest {
           View.GONE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
       assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
     } finally {
-      host.pause().stop().destroy();
+      try {
+        if (host != null) host.pause().stop().destroy();
+      } finally {
+        instrumentation.setInTouchMode(true);
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 # DNS configuration and resolver boundaries
 
-Verified: 2026-10-21 against the build190 source underlying the F10 documentation baseline. This page explains Configuration's DNS resolution policy. See [ports and networking](ports-and-networking.md) for Web, the capability bridge, LAN, and ADB endpoints, and [runtime engines](runtime-engines.md) for execution.
+This page explains Configuration's DNS resolution policy. See [ports and networking](ports-and-networking.md) for Web, the capability bridge, LAN, and ADB endpoints, and [runtime engines](runtime-engines.md) for execution.
 
 DNS settings address name-resolution compatibility. They are not system VPN, proxy, network-permission, or HTTP-retry switches.
 
@@ -16,6 +16,8 @@ DNS settings address name-resolution compatibility. They are not system VPN, pro
 
 “Native” means the current Ubuntu/process resolver behavior; it does not redirect every query to Android Private DNS. All modes still use the same guest `resolv.conf` reconciliation. They do not automatically change the phone's global DNS, VPN, or Android system settings.
 
+Automatic and IPv4 modes also install a marked IPv4-preferred glibc address precedence table in guest `/etc/gai.conf` when it contains no active user configuration. This can shorten sequential connection attempts, including Python `urllib`, when IPv6 destinations time out; IPv6 addresses remain available as fallback. glibc applies other address-selection rules too, so the table is not a guarantee that every IPv4 address precedes every IPv6 address. It is not Happy Eyeballs and cannot fix a blackholed IPv4 route. Native mode removes the exact unmodified DSHA section. Any active user directive, edited DSHA section, symbolic link, or special file is preserved. Existing processes may cache configuration and should be restarted normally. Non-glibc resolvers, application sorting and proxy resolution may not use this table.
+
 ## Automatic mode retries only specific Node lookups
 
 [dns-compat.cjs](../../app/src/main/assets/dns-compat.cjs) is installed through Node preloading. It wraps `dns.lookup`, `dns.promises.lookup`, and `util.promisify(dns.lookup)`, synchronizes built-in ESM exports, and uses a Symbol marker to prevent nested wrapping on repeated loading in one process.
@@ -29,7 +31,7 @@ A lookup proceeds as follows:
 
 Explicit family `4` / `6`, and string IPv4 / IPv6 family selections, do not receive another downgrade. `ENOTFOUND`, argument errors, and other errors do not enter this branch. Options such as `all`, `hints`, and `order` survive adding family `4`; the caller's object is not mutated. Successful normal IPv6 lookup causes no additional IPv4 request.
 
-The patch does not call `setDefaultResultOrder('ipv4first')`: automatic mode neither sorts all results IPv4-first nor disables IPv6. It does not replace `dns.resolve*()`, independent Resolver instances, or application DoH clients. Investigate a plugin's actual calls if it uses a custom lookup, clears its environment, or creates another resolver stack.
+The Node patch does not call `setDefaultResultOrder('ipv4first')` or disable IPv6; the separate guest glibc precedence table can affect system lookup ordering. The patch does not replace `dns.resolve*()`, independent Resolver instances, or application DoH clients. Investigate a plugin's actual calls if it uses a custom lookup, clears its environment, or creates another resolver stack.
 
 Node documents that lookup uses system `getaddrinfo`, while resolve functions use the DNS protocol directly; their configuration and behavior differ. See the [Node 24 DNS documentation](https://nodejs.org/download/release/v24.19.0/docs/api/dns.html#implementation-considerations).
 
@@ -102,7 +104,7 @@ A portable policy name does not make the old device's DNS addresses appropriate 
 
 | Symptom / need | First assessment |
 |---|---|
-| Normal dual-stack network | Keep automatic; successful IPv6 is not downgraded |
+| Normal dual-stack network | Automatic prefers IPv4 through the guest glibc table; select native to restore the system's ordering |
 | Node `EAI_AGAIN` / `EAI_FAIL` | Check actual mode, preload, system resolution, and the one IPv4 retry |
 | A demonstrated AAAA compatibility issue in glibc queries | Explicitly choose IPv4, then stop and restart normally to verify |
 | Observe behavior without the Node wrapper | Choose native and compare while preserving user resolver settings |

@@ -122,7 +122,7 @@ public class ExtractActivity extends AppCompatActivity {
           getSharedPreferences("dsha_environment_upgrade", MODE_PRIVATE);
       String attemptKey = "";
       try {
-        attemptKey = "runtime:" + controller.proot().expectedRuntimeDescriptor().id();
+        attemptKey = com.deepseekharness.app.core.EnvironmentAccess.candidateAttemptKey(controller);
       } catch (java.io.IOException invalid) {
       }
       if (!force
@@ -131,7 +131,10 @@ public class ExtractActivity extends AppCompatActivity {
               task.busy(),
               task.pendingMaintenance(),
               attemptKey,
-              attempts.getString("attempted_identity", ""))) {
+              attempts.getString("attempted_identity", ""),
+              task.snapshot().status,
+              controller.isEnvironmentReady(),
+              controller.hasUnresolvedWebSession())) {
         // 先记一次尝试再启动应用级任务；旋转、失败和进程重建都不会重复覆盖旧环境。
         if (attempts.edit().putString("attempted_identity", attemptKey).commit()) {
           if (task.updateEnvironment()) {
@@ -144,7 +147,8 @@ public class ExtractActivity extends AppCompatActivity {
     // 从受限主界面重新查看时也展示上次失败；自动重试判定已完成，不能因此阻止修复包升级。
     BackupTaskState.Snapshot previous = task.snapshot();
     if (taskId == 0
-        && !controller.isEnvironmentReady()
+        && (!controller.isEnvironmentReady()
+            || !com.deepseekharness.app.core.EnvironmentAccess.runtimeLatest(controller))
         && (previous.status == BackupTaskState.Status.FAILED
             || previous.status == BackupTaskState.Status.INTERRUPTED)) taskId = previous.id;
     render();
@@ -278,7 +282,11 @@ public class ExtractActivity extends AppCompatActivity {
   private void proceed() {
     boolean limited =
         task.maintenanceBusy() || task.pendingMaintenance() || !controller.isEnvironmentReady();
-    if (limited) controller.config().allowLimitedEntry(controller.proot().environmentIdentity());
+    if (limited)
+      controller
+          .config()
+          .allowLimitedEntry(
+              com.deepseekharness.app.core.EnvironmentAccess.limitedEntryKey(controller));
     Intent intent =
         FirstRunWebStart.mainIntent(
             this, getIntent().getBooleanExtra("first_setup", false) && !limited);

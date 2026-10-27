@@ -50,6 +50,7 @@
     "app/src/main/assets/guard-fs-patch.json": "50778a5720091ddb1e8a1e857238bce1d9ab72673a68a915ad4e5152a5eae996",
     "app/src/main/assets/guard-tools-patch.json": "7dfbeecbd02253c56daea0ce8b6d45183edf8d4b040b2d16fe880203b6cb94b0",
     "app/src/main/assets/language-patch.json": "bb15b89c8c8fb11f8ef917c14f351ac5be0d3be3e7057071635dfd0c6a6513c4",
+    "app/src/main/assets/mcp-image-base64-patch.json": "e6fcc054c1bc69feb8ba2f26eef8664c02f2463350f8aff138ca2d5f8b14b9f2",
     "app/src/main/assets/office-fonts-patch.json": "e83ae334e4bc8e2c55394e22fe2585412ade7485309864adab7457f55ccdf860",
     "app/src/main/assets/permission-full-access-patch.json": "7647ae03c1da3e585825a54a33f705621498b38f1c703b68be08ef13e3b419ce",
     "app/src/main/assets/persona-compat-patch.json": "42343c457c620206d7e5190a0efff3134bc935d4b3f5bcc21678c55cf081063a",
@@ -70,7 +71,7 @@
     "app/src/main/assets/retire-guarded-preset-patch.json": "3bf9d7ea93451f6759136a15ad4cb9873ecaa72973043d776f5751598f7ecb7b",
     "app/src/main/assets/retired-market-catalog-patch.json": "93c80fdfa8d35a936cd5719f4ef48fa023126b1cf4c71fc49a35d598a9aa721d",
     "app/src/main/assets/retired-market-optional-patch.json": "da51a822ab8de50b027ffbb32a0780bfbfd1f6b55acba68e5feaba5b4f19f118",
-    "app/src/main/assets/runtime-patches.json": "9ff6d4aaeab671c26616cb7e101c27853e2e6757754e70ef1381d35672f78255",
+    "app/src/main/assets/runtime-patches.json": "6b63ada5d12f993b84add85af92cb12735c985690e3cab61dc9867534aef9fec",
     "app/src/main/assets/session-interaction-patch.json": "98e052a68951c18e8166a11aa4af80162b83e6dc5995cd8e5206df50e6eb79ea",
     "app/src/main/assets/sidebar-layout-recovery-patch.json": "16c31f8fd3f1a003ad86b9ce687764cfebfaa129700e05996c14c5208005a454",
     "app/src/main/assets/startup-mcp-timing-patch.json": "6702f94a211617909ba5507fd91977705a41fa63205266806c6f27bd492f914b",
@@ -82,6 +83,8 @@
     "app/src/main/assets/tool-stream-identity-patch.json": "6faf00b23c50c010f9062fd13b2eb492c0f39e187155e13291d583dd80553b8b",
     "app/src/main/assets/tooltip-entry-patch.json": "556741e8efe68462a09463ae3c02eaca31368804aeae728ac1db61c3de8888be",
     "app/src/main/assets/tooltip-interaction-patch.json": "96424bc0ae6d66c8d8bccbed47e5f5ac096fb2e4e351d2b5a11da86f554c0887",
+    "app/src/main/assets/web-fetch-http-surrogate-patch.json": "c546f94018e8ff4f4a621a9556250e5656257343039d954bf7012de4f5b493ee",
+    "app/src/main/assets/web-fetch-output-surrogate-patch.json": "6833b128c55d376b6a8371a4a7bc0afceb7e1e0dc4ccba43ef03a51960fe062d",
     "app/src/main/assets/web-integration/language.js": "04cc151c9c9ff08eb1de05710e03ecc767adc5115b1858bcbf16f0b11e027bd6",
     "app/src/main/assets/web-integration/permission-full-access.js": "af9961be02886c71d477a11d927a5c1e0ff4cb9839d146e75ac7fd0ad90b3d65",
     "app/src/main/assets/web-integration/session-interaction.js": "6dac58b61d0523376aa514d17019344f56e25da62e7b2530c40b45b02b50a280",
@@ -89,5 +92,5 @@
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
     "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
-  "archive_sha256": "36c3c40e14a665f30531f31678f1b384ee6ed152d5114b7509998af03089baeb"
+  "archive_sha256": "a02cc5a42727238491ee36d4b0b46461d035dd6f8fca22580eb19d8456fbefc3"
 }

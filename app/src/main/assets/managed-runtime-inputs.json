@@ -429,6 +429,9 @@
     }
   ],
   "assetFiles": [
+    "mcp-image-base64-patch.json",
+    "web-fetch-http-surrogate-patch.json",
+    "web-fetch-output-surrogate-patch.json",
     "client-combo-patch.json",
     "composer-enter-patch.json",
     "conversation-materialized-patch.json",

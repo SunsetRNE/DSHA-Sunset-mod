@@ -1,8 +1,9 @@
 'use strict';
-// MCP 只桥接已存在的 Android 设备接口；不暴露 shell、凭据读取或任意文件访问。
+// MCP bridges Android screen actions and the native bridge's restricted image reader.
 const fs=require('node:fs/promises');
 const bridgePort=require('./bridge-port.cjs');
 const MAX_SCREENSHOT_BYTES=16*1024*1024;
+const MAX_FILE_IMAGE_BYTES=8*1024*1024;
 
 const observationId={type:'string',minLength:1,maxLength:64};
 const point={observationId,x:{type:'integer',minimum:0},y:{type:'integer',minimum:0}};
@@ -11,6 +12,7 @@ const definitions=[
   ['android_get_state','读取实体主屏（display 0）当前语义结构，返回treeId、nodeId和supportedActions；用android_node对新鲜节点执行语义动作，包括scroll_forward/scroll_backward。此树不签发坐标触控凭据，零面积bounds不能当触点。操作后再次验证；虚拟屏用 android_vscreen_*。','/app/ui/dump',{}],
   ['android_node','对实体主屏（display 0）最近android_get_state返回的treeId/nodeId执行supportedActions中的语义动作；scroll_forward/scroll_backward调用真实无障碍节点滚动，不需要截图坐标。节点凭据限当前任务/窗口/代次、30秒、一次使用。动作后重新读屏验证，Android接受不代表界面已改变；失败或UNKNOWN不得自动转坐标手势或重放。','/app/ui/node',{treeId:{type:'string',minLength:1,maxLength:64},nodeId:{type:'string',minLength:1,maxLength:64},action:{type:'string',enum:['click','long_click','scroll_forward','scroll_backward','focus']}}],
   ['android_screenshot','截取实体主屏（display 0），返回图片和JSON观察metadata。仅coordinatesAvailable:true且含observationId才可显式坐标触控；凭据限最新帧、30秒内、一次使用。需要系统截屏能力和DSHA授权。','/app/ui/screenshot',{}],
+  ['android_read_image','读取现有的容器或当前用户共享存储静态 PNG、JPEG 或 WebP 图片，返回图片本身，文件上限 8 MiB。动图和 GIF 不支持；遵循桥路径、凭据和系统权限限制；不产生截图观察凭据，也不能授权坐标触控。','/app/readfile',{path:{type:'string',minLength:1,maxLength:4096}}],
   ['android_click','真实触控点击实体主屏（display 0）。observationId与坐标必须来自最近一次android_screenshot，不能用dump/tree替代；完成后观察验证效果。','/app/ui/tap',point],
   ['android_double_click','真实触控双击实体主屏同一位置（一次原子手势，不是失败重试）。使用最新截图observationId；完成后观察验证效果。','/app/ui/tap',point],
   ['android_long_press','真实触控长按实体主屏。使用最新截图observationId，ms限定500至5000；完成后观察验证效果。','/app/ui/tap',{...point,ms:{type:'integer',minimum:500,maximum:5000}}],
@@ -43,6 +45,20 @@ function screenshotContent(result){let shot;try{shot=JSON.parse(result);}catch{t
   const {data,...metadata}=shot;
   return [{type:'text',text:JSON.stringify(metadata)},{type:'image',mimeType:'image/png',data:shot.data}];
 }
+function fileImageContent(result){let value;try{value=JSON.parse(result);}catch{throw Error('IMAGE_RESPONSE_INVALID');}
+  if(value?.kind!=='dsha-file-image-v1'||typeof value.data!=='string'
+    ||!['image/png','image/jpeg','image/webp'].includes(value.mimeType)
+    ||value.data.length>Math.ceil(MAX_FILE_IMAGE_BYTES/3)*4)throw Error('IMAGE_RESPONSE_INVALID');
+  const bytes=Buffer.from(value.data,'base64');
+  if(bytes.length>MAX_FILE_IMAGE_BYTES||bytes.toString('base64')!==value.data)throw Error('IMAGE_RESPONSE_INVALID');
+  const png=bytes.length>=8&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+  const jpeg=bytes.length>=3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;
+  const webp=bytes.length>=12&&bytes.subarray(0,4).toString('latin1')==='RIFF'&&bytes.subarray(8,12).toString('latin1')==='WEBP';
+  if(!({'image/png':png,'image/jpeg':jpeg,'image/webp':webp})[value.mimeType])throw Error('IMAGE_RESPONSE_INVALID');
+  // A stored image is not a fresh physical-screen observation and carries no observation ID.
+  return [{type:'text',text:JSON.stringify({kind:'dsha-file-image-v1',mimeType:value.mimeType})},
+    {type:'image',mimeType:value.mimeType,data:value.data}];
+}
 function validateTask(task){
   if(!task||typeof task!=='object'||Array.isArray(task)
     ||typeof task.sessionId!=='string'||!task.sessionId.trim()||task.sessionId.length>256||task.sessionId.includes('\0')
@@ -53,19 +69,20 @@ function validateTask(task){
     ||Number(task.completedTurnId)>=Number(task.turnId)))throw Error('SCREEN_TURN_INVALID');
   return task;
 }
-async function call(name,args,signal,dependencies={fs,fetch:globalThis.fetch},task){const def=definitions.find(t=>t[0]===name);if(!def)throw Error('UNKNOWN_TOOL');validate(def,args);validateTask(task);
+async function call(name,args,signal,dependencies={fs,fetch:globalThis.fetch},task){const def=definitions.find(t=>t[0]===name);if(!def)throw Error('UNKNOWN_TOOL');validate(def,args);const fileImage=name==='android_read_image';if(fileImage&&args.path.includes('\0'))throw Error('INVALID_path');if(!fileImage)validateTask(task);
   const token=(await dependencies.fs.readFile('/root/.dsh/.bridge_token','utf8')).trim();if(!token)throw Error('BRIDGE_NOT_READY');
   const route=name==='android_control'&&args.action==='finish'?'/app/ui/task-end':def[2];
   const url=new URL('http://127.0.0.1:'+bridgePort()+route);for(const [k,v]of Object.entries(args)){if(name==='android_control'&&k==='action')continue;url.searchParams.set(k,String(v));}
-  url.searchParams.set('taskSessionId',task.sessionId);url.searchParams.set('turnId',task.turnId);
-  if(task.completedTurnId!==undefined)url.searchParams.set('completedTurnId',task.completedTurnId);
+  if(!fileImage){url.searchParams.set('taskSessionId',task.sessionId);url.searchParams.set('turnId',task.turnId);
+  if(task.completedTurnId!==undefined)url.searchParams.set('completedTurnId',task.completedTurnId);}
   if(name==='android_screenshot')url.searchParams.set('format','mcp');
+  if(fileImage)url.searchParams.set('format','image');
   if(name==='android_double_click')url.searchParams.set('gesture','double_tap');
   if(name==='android_long_press')url.searchParams.set('gesture','long_press');
   const response=await dependencies.fetch(url,{signal,headers:{'X-Token':token}});if(!response.ok)throw Error('BRIDGE_HTTP_'+response.status);
-  const raw=await readBridgeResponse(response,name==='android_screenshot'?24*1024*1024:2*1024*1024);let result=raw;try{const parsed=JSON.parse(raw);result=typeof parsed.result==='string'?parsed.result:raw;}catch{}
-  const failed=bridgeFailed(result);
-  const content=name==='android_screenshot'&&!failed?screenshotContent(result):[{type:'text',text:result}];
+  const raw=await readBridgeResponse(response,name==='android_screenshot'?24*1024*1024:fileImage?12*1024*1024:2*1024*1024);let result=raw;try{const parsed=JSON.parse(raw);result=typeof parsed.result==='string'?parsed.result:raw;}catch{}
+  const failed=bridgeFailed(result)||(fileImage&&/^(?:FORBIDDEN|NOT_FOUND_OR_NO_PERMISSION|NOT_IMAGE|INVALID_IMAGE|ANIMATED_OR_INVALID_IMAGE|IMAGE_TOO_LARGE|IMAGE_BUSY|BAD_FORMAT|ERROR):?\b/.test(result));
+  const content=name==='android_screenshot'&&!failed?screenshotContent(result):fileImage&&!failed?fileImageContent(result):[{type:'text',text:result}];
   return {content,isError:failed};
 }
 async function readBridgeResponse(response,limit){
@@ -95,4 +112,4 @@ process.stdin.on('end',()=>{ended=true;for(const controller of active.values())c
 process.stdout.on('error',error=>{if(error.code==='EPIPE')process.exit(0);});
 }
 if(require.main===module)startServer();
-module.exports={validate,validateTask,definitions,tools,bridgeFailed,screenshotContent,readBridgeResponse,call,startServer};
+module.exports={validate,validateTask,definitions,tools,bridgeFailed,screenshotContent,fileImageContent,readBridgeResponse,call,startServer};

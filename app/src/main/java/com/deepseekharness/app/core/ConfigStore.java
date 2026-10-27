@@ -37,7 +37,9 @@ public class ConfigStore {
   }
 
   public boolean allowsLimitedEntry(String identity) {
-    return identity.equals(text("limited_entry_identity", ""));
+    return identity != null
+        && !identity.isEmpty()
+        && identity.equals(text("limited_entry_identity", ""));
   }
 
   public void allowLimitedEntry(String identity) {
@@ -262,6 +264,24 @@ public class ConfigStore {
 
   public void setDesktopMode(boolean v) {
     prefs.edit().putBoolean(Constants.KEY_DESKTOP_MODE, v).apply();
+  }
+
+  /** 任务状态上岛默认开启：它只是给已有通知补充短文本与提升请求，失败会静默降级。 */
+  public boolean isTaskIslandEnabled() {
+    return flag(Constants.KEY_TASK_ISLAND, true);
+  }
+
+  public void setTaskIslandEnabled(boolean v) {
+    prefs.edit().putBoolean(Constants.KEY_TASK_ISLAND, v).apply();
+  }
+
+  /** 岛上用系统计时器显示耗时；开启后状态不变就不再按秒重绘通知。 */
+  public boolean isTaskIslandChronometer() {
+    return flag(Constants.KEY_TASK_ISLAND_CHRONOMETER, false);
+  }
+
+  public void setTaskIslandChronometer(boolean v) {
+    prefs.edit().putBoolean(Constants.KEY_TASK_ISLAND_CHRONOMETER, v).apply();
   }
 
   public boolean isPictureInPictureEnabled() {

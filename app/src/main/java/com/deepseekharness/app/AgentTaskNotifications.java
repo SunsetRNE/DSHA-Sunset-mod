@@ -13,6 +13,7 @@ import android.os.SystemClock;
 import androidx.core.app.NotificationCompat;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.AgentTaskState;
+import com.deepseekharness.app.util.IslandText;
 import com.deepseekharness.app.util.PreviewPageSession;
 import com.deepseekharness.app.util.UiText;
 import com.deepseekharness.app.ui.AgentTasksActivity;
@@ -222,6 +223,25 @@ public final class AgentTaskNotifications {
     };
   }
 
+  /**
+   * 胶囊短文本：中文 ≤7 字、英文 ≤9 字符（超长会被系统截断或退化成纯图标）。
+   * 只挑最关键的一个状态，秒数交给 contentText 与展开态。
+   */
+  public static String islandShortText(AgentTaskState.View row) {
+    boolean zh = UiText.language().startsWith("zh");
+    String text =
+        switch (row.phase()) {
+          case "waiting" -> UiText.choose("等你确认", "Needs you");
+          case "stop-requested" -> UiText.choose("正在停止", "Stopping");
+          case "tool" -> UiText.choose("执行中", "Working");
+          case "reply" -> UiText.choose("思考中", "Thinking");
+          default -> UiText.choose("运行中", "Running");
+        };
+    if (row.stopping() && !"stop-requested".equals(row.phase()))
+      text = UiText.choose("正在停止", "Stopping");
+    return IslandText.clip(text, zh);
+  }
+
   private synchronized void render() {
     sync();
     var manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -233,8 +253,14 @@ public final class AgentTaskNotifications {
               UiText.choose("任务进度", "Task progress"),
               NotificationManager.IMPORTANCE_DEFAULT));
     boolean foreground = ForegroundActivity.current() != null;
+    // 岛位选举：系统按包名只显示一个胶囊，多个活跃任务同时提升会互相顶掉。
+    var rows = state.snapshot(SystemClock.elapsedRealtime());
+    String islandTag = IslandText.tagOf(IslandText.pick(rows));
+    var config = HarnessController.get(context).config();
+    boolean islandEnabled = BuildConfig.ISLAND_EDITION && config.isTaskIslandEnabled();
+    boolean islandChronometer = islandEnabled && config.isTaskIslandChronometer();
     Set<String> keep = new HashSet<>();
-    for (var row : state.snapshot(SystemClock.elapsedRealtime())) {
+    for (var row : rows) {
       String tag = "dsha-task:" + row.key();
       keep.add(tag);
       if (foreground || row.dismissed() || !row.active() && terminalShown.contains(tag)) {
@@ -264,13 +290,15 @@ public final class AgentTaskNotifications {
               .setContentTitle(UiText.choose("DSHA 任务", "DSHA task"))
               .setContentText(
                   phase(row)
-                      + " · "
-                      + Math.max(
-                          0,
-                          ((row.active() ? SystemClock.elapsedRealtime() : row.seen())
-                                  - row.started())
-                              / 1000)
-                      + "s")
+                      + (islandChronometer && row.active()
+                          ? ""
+                          : " · "
+                              + Math.max(
+                                  0,
+                                  ((row.active() ? SystemClock.elapsedRealtime() : row.seen())
+                                          - row.started())
+                                      / 1000)
+                              + "s"))
               .setContentIntent(detailPi)
               .setOnlyAlertOnce(true)
               .setOngoing(row.active())
@@ -278,6 +306,10 @@ public final class AgentTaskNotifications {
               .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
               .setPublicVersion(publicNotice);
       if (row.active() && !row.phase().equals("unknown")) notice.setProgress(0, 0, true);
+      if (islandChronometer && row.active()) {
+        long elapsed = Math.max(0, SystemClock.elapsedRealtime() - row.started());
+        notice.setUsesChronometer(true).setWhen(System.currentTimeMillis() - elapsed);
+      }
       Intent dismissal =
           extras(
               new Intent(context, AgentTaskStopReceiver.class)
@@ -317,8 +349,13 @@ public final class AgentTaskNotifications {
               0,
               conversation,
               PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+      android.app.Notification built = notice.build();
+      if (islandEnabled && row.active() && tag.equals(islandTag) && !islandChronometer) {
+        // 短文本与计时器互斥：短文本优先级更高，所以计时器模式不写短文本。
+        built = IslandSupport.enhance(context, built, islandShortText(row));
+      }
       try {
-        manager.notify(tag, ID, notice.build());
+        manager.notify(tag, ID, built);
         posted.add(tag);
         if (!row.active()) terminalShown.add(tag);
       } catch (SecurityException denied) {

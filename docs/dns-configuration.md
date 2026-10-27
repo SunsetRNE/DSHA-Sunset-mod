@@ -1,6 +1,6 @@
 # DNS 配置与解析边界
 
-本文按 build190 / F10 实际源码解释“配置 → DNS 解析策略”。
+本文解释“配置 → DNS 解析策略”。
 Web、能力桥、LAN 与 ADB 的端口另见[端口与网络](ports-and-networking.md)。
 运行引擎另见[运行引擎](runtime-engines.md)。
 DNS 设置处理名称解析兼容，不是系统 VPN、代理、网络权限或 HTTP 重试开关。
@@ -20,6 +20,8 @@ DNS 设置处理名称解析兼容，不是系统 VPN、代理、网络权限或
 “原生”指当前 Ubuntu／进程原有的解析行为，不是把所有查询转交 Android 私有 DNS。
 三个模式仍经过相同的 guest `resolv.conf` 协调逻辑。
 它们也不会自动修改手机全局 DNS、VPN 或 Android 系统设置。
+
+自动及 IPv4 模式还会在 guest `/etc/gai.conf` 没有用户启用的配置时，添加带标记的 glibc IPv4 优先地址排序表。对于 Python `urllib` 等逐个尝试地址的程序，这可以减少 IPv6 黑洞造成的等待；IPv6 地址仍可回退。glibc 还会使用其他地址选择规则，因此不能保证所有 IPv4 一定排在所有 IPv6 之前。这不是 Happy Eyeballs，也不能修复 IPv4 路由黑洞。原生模式会移除完全未修改的 DSHA 自有段；用户启用的任意配置、被修改的自有段、软链接和特殊文件均保留。现有进程可能缓存配置，需要正常重启。非 glibc 解析器、应用自行排序或代理端解析不一定受此表影响。
 
 ## auto 只重试特定的 Node 名称解析
 
@@ -41,7 +43,7 @@ Symbol 标记防止同一进程重复加载时层层包装。
 正常 IPv6 解析成功时没有额外 IPv4 请求。
 
 该补丁没有调用 `setDefaultResultOrder('ipv4first')`。
-所以不能把 auto 描述成“IPv4 优先排序”或“关闭 IPv6”。
+该 Node 补丁本身不关闭 IPv6；独立的 guest glibc 排序表可能影响系统 lookup 的地址顺序。
 它也没有替换 `dns.resolve*()`、独立 Resolver 或应用自带的 DoH 客户端。
 使用自定义 lookup、清理环境或另建解析栈的插件须按其实际调用另查。
 
@@ -163,7 +165,7 @@ Web 的启动观察器还会追加独立 `--import`；不要修 DNS 时删除观
 
 | 现象／需要 | 建议先做的判断 |
 |---|---|
-| 正常双栈网络 | 保持 auto，正常 IPv6 结果不会被补丁降级 |
+| 正常双栈网络 | auto 使用 guest glibc 的 IPv4 优先表；选择原生模式可恢复系统排序 |
 | Node 报 EAI_AGAIN／EAI_FAIL | 核实际模式、预加载与系统解析，再看一次 IPv4 重试结果 |
 | 系统 glibc 查询在 AAAA 环节确有兼容问题 | 可明确选择 IPv4，正常停止后重启验证 |
 | 要观察未经 Node 兼容替换的行为 | 选择 native，保留用户 resolver 配置后比较 |

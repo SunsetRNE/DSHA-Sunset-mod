@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.HarnessController;
 
@@ -29,6 +30,7 @@ public class SettingsFragment extends Fragment {
     new TabOption("数据与备份", "备份恢复 · 文件共享", WorkspaceFragment::new, R.drawable.ic_ui2_folder),
     new TabOption(
         "设备能力授权", "Root · Shizuku · ADB · 权限", DeviceGrantsFragment::new, R.drawable.ic_ui_shield),
+    new TabOption("任务状态上岛", "状态栏胶囊 · 灵动岛 · 实时活动", IslandFragment::new, R.drawable.ic_ui2_box),
   };
 
   @Nullable
@@ -40,7 +42,8 @@ public class SettingsFragment extends Fragment {
     View v = inflater.inflate(R.layout.fragment_settings, container, false);
 
     LinearLayout tabs = v.findViewById(R.id.settings_tabs);
-    for (int i = 0; i < TAB_OPTIONS.length; i++) {
+    int optionCount = BuildConfig.ISLAND_EDITION ? TAB_OPTIONS.length : TAB_OPTIONS.length - 1;
+    for (int i = 0; i < optionCount; i++) {
       if (i > 0) {
         View line = divider();
         LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(-1, dp(1));

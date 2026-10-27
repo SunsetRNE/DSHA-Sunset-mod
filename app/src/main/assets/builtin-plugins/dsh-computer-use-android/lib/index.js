@@ -16,8 +16,11 @@ export async function apply(ctx) {
   const { StdioClientTransport } = await import(pathToFileURL(ownedRequire.resolve('@modelcontextprotocol/client/stdio')));
   const { scrubbedParentEnv } = await import(pathToFileURL(ownedRequire.resolve('@deepseek-ai/dsh-subprocess')));
   const client = new Client({name:'dsha-android-task-client',version:'0.1.1'},{capabilities:{}});
+  // The SDK default is 10 MiB, smaller than base64-encoded native screenshot
+  // responses (16 MiB maximum).
   const transport = new StdioClientTransport({command:process.execPath,
-    args:[fileURLToPath(new URL('./server.cjs',import.meta.url))],env:scrubbedParentEnv()});
+    args:[fileURLToPath(new URL('./server.cjs',import.meta.url))],env:scrubbedParentEnv(),
+    maxBufferSize:24*1024*1024});
   const disposers=[],active=new Set();let closing=false;
   ctx.effect(function* () {
     yield ctx.computerUse.register(ComputerUseProviderName('dsha-android'));
