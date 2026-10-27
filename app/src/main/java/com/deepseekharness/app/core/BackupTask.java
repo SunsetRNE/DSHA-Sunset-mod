@@ -122,7 +122,7 @@ public final class BackupTask {
   }
 
   public boolean busy() {
-    return state.busy() || MaintenanceCoordinator.isEnvironmentTaskBusy();
+    return state.busy() || MaintenanceCoordinator.isExclusiveWorkBlocked();
   }
 
   /** 顶部维护提示只反映数据任务；启动、终端和插件查询也使用执行锁，不能冒充维护。 */

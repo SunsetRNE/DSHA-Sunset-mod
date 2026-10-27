@@ -821,6 +821,16 @@ public final class PluginRepository extends AndroidViewModel {
   /** 只登记内存意图；队首在后台才取得环境凭据。 */
   private String submit(
       String progress, Work work, Runnable onSuccess, boolean cancellable, Runnable onAccepted) {
+    return submit(progress, work, onSuccess, cancellable, onAccepted, false);
+  }
+
+  private String submit(
+      String progress,
+      Work work,
+      Runnable onSuccess,
+      boolean cancellable,
+      Runnable onAccepted,
+      boolean automatic) {
     return submit(
         com.deepseekharness.app.plugins.PluginOperationQueue.Type.INSPECT,
         null,
@@ -829,7 +839,10 @@ public final class PluginRepository extends AndroidViewModel {
         work,
         onSuccess,
         cancellable,
-        onAccepted);
+        onAccepted,
+        "scope:web:INSPECT",
+        "",
+        automatic);
   }
 
   private static final class PendingWork {
@@ -838,6 +851,7 @@ public final class PluginRepository extends AndroidViewModel {
     final String progress;
     final boolean cancellable;
     final Item target;
+    final boolean automatic;
     final AtomicBoolean cancelled = new AtomicBoolean();
     final com.deepseekharness.app.plugins.PluginSourceIdentity source;
     final com.deepseekharness.app.runtime.GuestScriptBudget queryBudget;
@@ -858,12 +872,14 @@ public final class PluginRepository extends AndroidViewModel {
         boolean cancellable,
         Item target,
         com.deepseekharness.app.plugins.PluginSourceIdentity source,
-        long queryMillis) {
+        long queryMillis,
+        boolean automatic) {
       this.work = work;
       this.success = success;
       this.progress = progress;
       this.cancellable = cancellable;
       this.target = target;
+      this.automatic = automatic;
       this.source = source;
       queryBudget =
           work.query()
@@ -892,7 +908,8 @@ public final class PluginRepository extends AndroidViewModel {
         cancellable,
         onAccepted,
         "scope:web:" + type.name(),
-        "");
+        "",
+        false);
   }
 
   private String submit(
@@ -906,6 +923,32 @@ public final class PluginRepository extends AndroidViewModel {
       Runnable onAccepted,
       String inputIdentity,
       String expectedVersion) {
+    return submit(
+        type,
+        target,
+        desired,
+        progress,
+        work,
+        onSuccess,
+        cancellable,
+        onAccepted,
+        inputIdentity,
+        expectedVersion,
+        false);
+  }
+
+  private String submit(
+      Type type,
+      Item target,
+      Boolean desired,
+      String progress,
+      Work work,
+      Runnable onSuccess,
+      boolean cancellable,
+      Runnable onAccepted,
+      String inputIdentity,
+      String expectedVersion,
+      boolean automatic) {
     PendingWork request =
         new PendingWork(
             work,
@@ -914,7 +957,8 @@ public final class PluginRepository extends AndroidViewModel {
             cancellable,
             target,
             registry.snapshot().source,
-            queryMillis);
+            queryMillis,
+            automatic);
     if (work.query()) {
       synchronized (this) {
         if (pendingQuery != null || queryRunning) return "";
@@ -1046,8 +1090,14 @@ public final class PluginRepository extends AndroidViewModel {
       HarnessController controller = HarnessController.get(getApplication());
       lastEnvironmentNotice = environmentBlockOnWorker(controller);
       if (!lastEnvironmentNotice.isEmpty()) throw new IOException(lastEnvironmentNotice);
-      lease = com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire("插件操作");
-      if (lease == null) throw new IOException("已有环境任务启动，本次任务未执行，请重试");
+      boolean queryRequest = request.work.query();
+      lease =
+          queryRequest
+              ? com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared("插件查询")
+              : com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire("插件操作");
+      if (lease == null)
+        throw new IOException(
+            queryRequest ? "已有环境维护或插件修改任务，本次列表读取未执行，请稍后刷新" : "已有环境任务启动，本次任务未执行，请重试");
       runtimeWork = RuntimeTasks.beginDetached("插件管理");
       request.runtimeWork = runtimeWork;
       runtimeWork.describe(request.progress);
@@ -1336,6 +1386,39 @@ public final class PluginRepository extends AndroidViewModel {
 
   public void refresh() {
     submit("正在检测 Web、终端和本地安装的插件…", withItems("refresh", true), null, true);
+  }
+
+  /** 前台/空闲补偿触发的低优先级查询；用户动作可以让路取消。 */
+  public void refreshAutomatic() {
+    submit("正在后台检测已安装插件…", withItems("refresh", true), null, true, null, true);
+  }
+
+  public boolean isQueryRunning() {
+    return queryRunning;
+  }
+
+  public boolean hasPendingAutomaticQuery() {
+    synchronized (this) {
+      return pendingQuery != null && pendingQuery.automatic;
+    }
+  }
+
+  /** 取消尚未执行的自动查询；不触碰用户显式刷新或正在提交的插件修改。 */
+  public boolean cancelAutomaticQueryForUserAction() {
+    boolean cancelled = false;
+    synchronized (this) {
+      PendingWork queued = pendingQuery;
+      if (queued != null && queued.automatic) {
+        queued.cancelled.set(true);
+        cancelled = true;
+      }
+    }
+    PendingWork active = activeWork;
+    if (active != null && active.automatic && active.work.query()) {
+      cancelRequest(active);
+      cancelled = true;
+    }
+    return cancelled;
   }
 
   public String install(PluginSource source) {
@@ -1873,7 +1956,12 @@ public final class PluginRepository extends AndroidViewModel {
     String blocked = environmentBlockOnWorker(controller);
     lastEnvironmentNotice = blocked;
     if (!blocked.isEmpty() || !controller.proot().isEnvironmentReady()) return null;
-    return backend.resolveSource();
+    com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease =
+        com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared("插件来源核对");
+    if (lease == null) return null;
+    try (lease) {
+      return backend.resolveSource();
+    }
   }
 
   /** 活动心跳只投影已有运行摘要，不触发完整列表或 guest 启动。 */
@@ -1893,7 +1981,8 @@ public final class PluginRepository extends AndroidViewModel {
               markRuntimeUnverified();
               return;
             }
-            var lease = com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire("插件运行状态读取");
+            var lease =
+                com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared("插件运行状态读取");
             if (lease == null) {
               markRuntimeUnverified();
               return;
@@ -1980,6 +2069,8 @@ public final class PluginRepository extends AndroidViewModel {
     if ("PLUGIN_QUERY_TIMEOUT".equals(detail)) return "插件列表读取已超时，保留上次结果；请刷新重试";
     if ("PLUGIN_INTENT_TIMEOUT".equals(detail) || "PLUGIN_INTENT_CANCELLED".equals(detail))
       return "插件启停结果未确认；未自动重试，请刷新核对实际状态";
+    if ("PREPARATION_REQUIRED".equals(detail) || "ENV_PREPARATION_REQUIRED".equals(detail))
+      return "运行工具或资产不完整，请先到「安装与修复」完成环境准备；上次插件列表已保留";
     return "操作失败：" + SensitiveData.redact(detail);
   }
 

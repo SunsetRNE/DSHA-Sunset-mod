@@ -673,11 +673,7 @@ public class MainActivity extends AppCompatActivity {
       startActivity(new Intent(this, StartupRecoveryActivity.class));
       return;
     }
-    String blocked = TerminalFragment.terminalBlockMessage(controller.proot());
-    if (!blocked.isEmpty()) {
-      android.widget.Toast.makeText(this, blocked, android.widget.Toast.LENGTH_LONG).show();
-      return;
-    }
+    // 打开页面、查看和切换已有会话不依赖插件列表；新建会话在页面内单独做维护/环境准入。
     terminalPageInFlight = true;
     try {
       terminalPage.launch(new Intent(this, TerminalActivity.class));

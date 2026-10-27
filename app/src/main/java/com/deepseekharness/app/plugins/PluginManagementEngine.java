@@ -38,6 +38,7 @@ public final class PluginManagementEngine implements AutoCloseable {
   private boolean foreground, closed, signalsLoading, signalsAttached;
   private HarnessController signalController;
   private LiveData<NativeBackupJobs.State> backupChanges;
+  private volatile long autoQuerySuspendedUntil;
 
   /** 构造只建立内存协作者，不探测环境、不读目录、不启动 Web。 */
   public PluginManagementEngine(Application application, PluginRepository repository) {
@@ -80,8 +81,14 @@ public final class PluginManagementEngine implements AutoCloseable {
               }
 
               @Override
-              public void query() {
-                repository.refresh();
+              public void query(boolean automatic) {
+                if (automatic) repository.refreshAutomatic();
+                else repository.refresh();
+              }
+
+              @Override
+              public boolean autoQueryAllowed() {
+                return autoQueriesAllowed();
               }
 
               @Override
@@ -188,6 +195,28 @@ public final class PluginManagementEngine implements AutoCloseable {
 
   public void ensureLoaded() {
     dispatch(() -> coordinator.ensureLoaded());
+  }
+
+  /**
+   * 用户启动/重启等优先动作调用；取消自动查询并给启动留出有界收尾窗口。
+   * 必须在后台线程调用，不能阻塞主线程。
+   */
+  public void yieldToUserAction() {
+    autoQuerySuspendedUntil = android.os.SystemClock.elapsedRealtime() + 120_000;
+    repository.cancelAutomaticQueryForUserAction();
+    long deadline = android.os.SystemClock.elapsedRealtime() + 3_000;
+    try {
+      while (android.os.SystemClock.elapsedRealtime() < deadline
+          && (repository.isQueryRunning() || repository.hasPendingAutomaticQuery())) {
+        Thread.sleep(20);
+      }
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private boolean autoQueriesAllowed() {
+    return android.os.SystemClock.elapsedRealtime() >= autoQuerySuspendedUntil;
   }
 
   public void refresh() {
@@ -454,7 +483,11 @@ public final class PluginManagementEngine implements AutoCloseable {
 
     void bind(S source);
 
-    void query();
+    void query(boolean automatic);
+
+    default boolean autoQueryAllowed() {
+      return true;
+    }
 
     default void cancelQuery() {}
 
@@ -709,22 +742,28 @@ public final class PluginManagementEngine implements AutoCloseable {
       backend.bind(source);
       if (awaitingProbe) {
         awaitingProbe = false;
-        issueQuery();
+        issueQuery(!demand);
       } else if (foreground) {
         Cache cache = backend.cache();
         if (!fresh(cache) && mayRetry(cache)) {
           changes.requestNow(clock.now());
           cancelScan();
-          if (changes.beginScan(clock.now())) issueQuery();
+          if (changes.beginScan(clock.now())) issueQuery(!demand);
           else scheduleScan();
         } else runtimeDirty();
       }
     }
 
-    private void issueQuery() {
+    private void issueQuery(boolean automatic) {
+      if (automatic && !backend.autoQueryAllowed()) {
+        // 用户动作期间只保留已有快照；下次页面需求或补偿窗口再核对。
+        awaitingProbe = false;
+        changes.scanFinished(clock.now());
+        return;
+      }
       queryIssued = true;
       try {
-        backend.query();
+        backend.query(automatic);
       } catch (RuntimeException rejected) {
         backend.unavailable(rejected);
         queryFinished();
