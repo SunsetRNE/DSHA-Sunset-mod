@@ -46,10 +46,16 @@ public class IslandTextTest {
 
   @Test
   public void waitingOutranksRunningAndStoppingOutranksTool() {
-    assertTrue(IslandText.rank(row("a", "waiting", true, 1, false)) > IslandText.rank(row("a", "tool", true, 1, false)));
-    assertTrue(IslandText.rank(row("a", "tool", true, 1, false)) > IslandText.rank(row("a", "reply", true, 1, false)));
+    assertTrue(
+        IslandText.rank(row("a", "waiting", true, 1, false))
+            > IslandText.rank(row("a", "tool", true, 1, false)));
+    assertTrue(
+        IslandText.rank(row("a", "tool", true, 1, false))
+            > IslandText.rank(row("a", "reply", true, 1, false)));
     // 已经点过停止的任务比普通执行更值得显示。
-    assertTrue(IslandText.rank(row("a", "tool", true, 1, true)) > IslandText.rank(row("a", "tool", true, 1, false)));
+    assertTrue(
+        IslandText.rank(row("a", "tool", true, 1, true))
+            > IslandText.rank(row("a", "tool", true, 1, false)));
     assertEquals(
         IslandText.rank(row("a", "stop-requested", true, 1, false)),
         IslandText.rank(row("a", "tool", true, 1, true)));
