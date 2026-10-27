@@ -50,24 +50,65 @@ public final class TerminalWorkspacePolicy {
     return DRAWER_MAX_WIDTH_DP;
   }
 
-  /** 抽屉宽度：保留至少 marginPx 的遮罩/手势区；窗口尚未测量时用最大宽度。 */
+  /** 抽屉保留遮罩区；极窄窗口最多让出四分之一宽度，不能回退到溢出窗口的最大宽度。 */
   public static int drawerWidth(int availablePx, int maxPx, int marginPx) {
-    int width = Math.min(maxPx, Math.max(0, availablePx - Math.max(0, marginPx)));
-    return width > 0 ? width : maxPx;
+    if (availablePx <= 0) return maxPx;
+    int margin = Math.min(Math.max(0, marginPx), availablePx / 4);
+    return Math.min(maxPx, Math.max(1, availablePx - margin));
   }
 
   /** 短窗口隐藏说明文字并收紧内边距，优先保证会话与底部动作可达。 */
   public static boolean compactHeight(int heightDp) {
-    return heightDp < COMPACT_HEIGHT_DP;
+    return compactHeight(heightDp, 1f);
   }
 
-  /** 更短的窗口把底部动作改为三列两行，避免固定三行挤掉会话列表。 */
+  public static boolean compactHeight(int heightDp, float fontScale) {
+    return heightDp < COMPACT_HEIGHT_DP * readableScale(fontScale);
+  }
+
+  /** 短窗优先减少动作行数；实际列数仍须满足侧栏宽度和字体大小。 */
   public static boolean denseFooter(int heightDp) {
-    return heightDp < DENSE_FOOTER_HEIGHT_DP;
+    return denseFooter(heightDp, 1f);
+  }
+
+  public static boolean denseFooter(int heightDp, float fontScale) {
+    return heightDp < DENSE_FOOTER_HEIGHT_DP * readableScale(fontScale);
+  }
+
+  /** 按侧栏自身宽度分列，不能用横屏窗口宽度代替每个按钮的实际空间。 */
+  public static int footerColumns(int panelWidthDp, float fontScale, boolean compact) {
+    int available = Math.max(0, panelWidthDp - 16);
+    int minimum = (int) Math.ceil(96 * readableScale(fontScale)) + 6;
+    return Math.max(1, Math.min(compact ? 3 : 2, available / minimum));
+  }
+
+  /** 窄栏或大字时把状态放到名称下方，给名称保留可读宽度。 */
+  public static boolean stackSessionDetails(int panelWidthDp, float fontScale) {
+    return panelWidthDp < 320 * readableScale(fontScale);
   }
 
   /**
-   * 横屏/低高度工作台：侧栏横向空间换高度，底部改成三列两行并压缩间距。 1000dp 是体验阈值，不是屏幕类型判断；竖屏和超大窗口仍用两列三行。
+   * 头部、新建和底部动作必须先按真实宽度测量；剩余高度不足两行会话时整栏滚动。
+   * 传入值使用同一单位，不依赖设备屏幕或 IME 出现前的旧高度。
+   */
+  public static boolean scrollWholeSidebar(
+      int availableHeight, int measuredChromeHeight, int minimumSessionHeight) {
+    return availableHeight > 0
+        && (long) availableHeight - Math.max(0, measuredChromeHeight)
+            < Math.max(1, minimumSessionHeight);
+  }
+
+  public static int minimumSessionHeight(float fontScale) {
+    return (int) Math.ceil(112 * readableScale(fontScale));
+  }
+
+  private static float readableScale(float fontScale) {
+    return Float.isFinite(fontScale) && fontScale > 1f ? fontScale : 1f;
+  }
+
+  /**
+   * 横屏/低高度工作台优先收紧说明和动作布局，列数仍按侧栏宽度与字体决定。
+   * 1000dp 是体验阈值，不是屏幕类型判断。
    */
   public static boolean shortLandscape(int widthDp, int heightDp) {
     return widthDp > heightDp && heightDp < LANDSCAPE_COMPACT_HEIGHT_DP;

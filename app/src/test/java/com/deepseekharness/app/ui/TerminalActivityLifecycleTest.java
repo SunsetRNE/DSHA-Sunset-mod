@@ -637,6 +637,140 @@ public class TerminalActivityLifecycleTest {
     host.pause().stop().destroy();
   }
 
+  @Test
+  public void veryShortSidebarScrollsSessionsAndFooterTogetherAndRestoresFocus() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    try {
+      var workspace = host.get().findViewById(R.id.terminal_workspace);
+      measure(host.get(), workspace, 320, 900);
+      host.get().openSessions();
+      settleLayout(host.get(), workspace, 320, 900);
+      android.widget.ScrollView scroll = host.get().findViewById(R.id.terminal_sessions_scroll);
+      View create = host.get().findViewById(R.id.terminal_sessions_create);
+      assertFalse(isDescendant(scroll, create));
+      View close = host.get().findViewById(R.id.terminal_sessions_close);
+      assertTrue(close.requestFocus());
+      settleLayout(host.get(), workspace, 320, 180);
+      assertTrue(isDescendant(scroll, create));
+      assertTrue(
+          isDescendant(scroll, host.get().findViewById(R.id.terminal_sessions_actions_dense)));
+      assertTrue(scroll.getHeight() >= Math.round(179 * density(host.get())));
+      assertTrue(close.hasFocus());
+      assertTrue(scroll.canScrollVertically(1));
+      assertTrue(
+          containsText(scroll, com.deepseekharness.app.util.UiText.choose("暂无会话", "No sessions")));
+      scroll.scrollTo(0, scroll.getChildAt(0).getHeight());
+      assertTrue(scroll.getScrollY() > 0);
+      View focus = host.get().findViewById(R.id.terminal_sessions_action_focus_dense);
+      focus.performClick();
+      assertEquals(1, FakePane.focuses);
+      assertEquals(
+          View.GONE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+      assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
+    } finally {
+      host.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void largeFontsUseOneColumnAndKeepFooterInsideTheShortViewportScroll() {
+    RuntimeEnvironment.setFontScale(2f);
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    try {
+      var workspace = host.get().findViewById(R.id.terminal_workspace);
+      measure(host.get(), workspace, 320, 600);
+      host.get().openSessions();
+      settleLayout(host.get(), workspace, 320, 600);
+      android.widget.ScrollView scroll = host.get().findViewById(R.id.terminal_sessions_scroll);
+      ViewGroup actions = host.get().findViewById(R.id.terminal_sessions_actions_dense);
+      assertTrue(isDescendant(scroll, actions));
+      assertEquals(6, actions.getChildCount());
+      for (int i = 0; i < actions.getChildCount(); i++) {
+        ViewGroup row = (ViewGroup) actions.getChildAt(i);
+        assertEquals(1, row.getChildCount());
+        android.widget.TextView action = (android.widget.TextView) row.getChildAt(0);
+        assertTrue(action.getHeight() >= Math.round(48 * density(host.get())));
+        assertTrue(action.getMaxLines() >= 2);
+        assertNotNull(action.getContentDescription());
+      }
+      assertTrue(scroll.getHeight() > 0);
+      assertTrue(scroll.canScrollVertically(1));
+    } finally {
+      host.pause().stop().destroy();
+      RuntimeEnvironment.setFontScale(1f);
+    }
+  }
+
+  @Test
+  public void imePaddingAndRtlKeepTheSidebarReachableAndReturnToPinnedLayout() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    try {
+      var workspace = host.get().findViewById(R.id.terminal_workspace);
+      workspace.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+      measure(host.get(), workspace, 400, 900);
+      host.get().openSessions();
+      settleLayout(host.get(), workspace, 400, 900);
+      android.widget.ScrollView scroll = host.get().findViewById(R.id.terminal_sessions_scroll);
+      View create = host.get().findViewById(R.id.terminal_sessions_create);
+      assertFalse(isDescendant(scroll, create));
+      workspace.setPadding(0, 0, 0, Math.round(720 * density(host.get())));
+      settleLayout(host.get(), workspace, 400, 900);
+      assertTrue(isDescendant(scroll, create));
+      View sidebar = host.get().findViewById(R.id.terminal_sessions_panel);
+      assertEquals(View.LAYOUT_DIRECTION_RTL, sidebar.getLayoutDirection());
+      assertEquals(workspace.getWidth(), sidebar.getRight());
+      assertTrue(scroll.getHeight() > 0);
+      assertTrue(scroll.getHeight() <= Math.round(180 * density(host.get())));
+      workspace.setPadding(0, 0, 0, 0);
+      settleLayout(host.get(), workspace, 400, 900);
+      assertFalse(isDescendant(scroll, create));
+      host.get().findViewById(R.id.terminal_sessions_close).performClick();
+      assertTrue(host.get().findViewById(R.id.terminal_menu_ball).hasFocus());
+      assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
+    } finally {
+      host.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void packageMenuBridgesOpenSessionsAndDisplaySettings() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    try {
+      host.get().openSessions();
+      assertEquals(
+          View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_panel).getVisibility());
+      host.get().showDisplaySettings();
+      var dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog();
+      assertNotNull(dialog);
+      assertTrue(dialog.isShowing());
+      assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
+    } finally {
+      host.pause().stop().destroy();
+    }
+  }
+
+  private static float density(android.app.Activity activity) {
+    return activity.getResources().getDisplayMetrics().density;
+  }
+
+  private static boolean isDescendant(ViewGroup ancestor, View child) {
+    for (android.view.ViewParent parent = child.getParent();
+        parent != null;
+        parent = parent.getParent()) {
+      if (parent == ancestor) return true;
+    }
+    return false;
+  }
+
+  private static void settleLayout(
+      android.app.Activity activity, View workspace, int widthDp, int heightDp) {
+    // 第一遍窗口回调更新抽屉/内联形态，后两遍验证实际子树测量结果已稳定。
+    for (int pass = 0; pass < 3; pass++) {
+      workspace.forceLayout();
+      measure(activity, workspace, widthDp, heightDp);
+    }
+  }
+
   private static void measure(
       android.app.Activity activity, View workspace, int widthDp, int heightDp) {
     float density = activity.getResources().getDisplayMetrics().density;

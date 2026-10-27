@@ -44,6 +44,22 @@ public class TerminalFloatingMenuTest {
   }
 
   @Test
+  public void compactAppearanceKeepsTheWholeTouchTargetClickable() {
+    var f = fixture();
+    float density = f.ball.getResources().getDisplayMetrics().density;
+    assertEquals(Math.round(48 * density), f.ball.getWidth());
+    assertEquals(Math.round(48 * density), f.ball.getHeight());
+    assertTrue(f.ball.getBackground() instanceof android.graphics.drawable.InsetDrawable);
+    f.ball.getBackground().setBounds(0, 0, f.ball.getWidth(), f.ball.getHeight());
+    var visible = ((android.graphics.drawable.InsetDrawable) f.ball.getBackground()).getDrawable();
+    assertEquals(Math.round(40 * density), visible.getBounds().width());
+    assertEquals(Math.round(40 * density), visible.getBounds().height());
+    touch(f.ball, MotionEvent.ACTION_DOWN, 1, 1);
+    touch(f.ball, MotionEvent.ACTION_UP, 1, 1);
+    assertEquals(1, f.clicks.get());
+  }
+
+  @Test
   public void tapOpensOnceAndDragDoesNotClick() {
     var f = fixture();
     touch(f.ball, MotionEvent.ACTION_DOWN, 20, 20);

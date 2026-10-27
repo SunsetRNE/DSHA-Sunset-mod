@@ -124,7 +124,7 @@ public class TerminalThemeTest {
 
   @Test
   @Config(qualifiers = "notnight")
-  public void tabletLandscapeCompactsFooterAndUsesThreeColumns() {
+  public void tabletLandscapeUsesColumnsThatFitItsSidebarWidth() {
     setTheme("light");
     var controller = buildHost();
     TerminalActivity host = controller.get();
@@ -138,8 +138,11 @@ public class TerminalThemeTest {
     assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_secondary).getVisibility());
     assertFooterActions(host, true);
     TextView home = host.findViewById(R.id.terminal_sessions_action_home_dense);
-    assertEquals(Math.round(44 * density(host)), home.getMinHeight());
-    assertEquals(1, home.getMaxLines());
+    assertEquals(Math.round(48 * density(host)), home.getMinHeight());
+    assertEquals(2, home.getMaxLines());
+    android.view.ViewGroup actions = host.findViewById(R.id.terminal_sessions_actions_dense);
+    assertEquals(3, actions.getChildCount());
+    assertEquals(2, ((android.view.ViewGroup) actions.getChildAt(0)).getChildCount());
     controller.pause().stop().destroy();
   }
 

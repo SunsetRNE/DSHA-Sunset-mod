@@ -9258,5 +9258,653 @@
     "files": [
       "app/src/main/res/values/terminal_selection_strings.xml"
     ]
+  },
+  {
+    "id": "termhome0075",
+    "zh": "+ 添加按键",
+    "en": "+ Add key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0076",
+    "zh": "右移",
+    "en": "Move right",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0077",
+    "zh": "左移",
+    "en": "Move left",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0078",
+    "zh": "已保存",
+    "en": "Saved",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0079",
+    "zh": "已是最右",
+    "en": "Already rightmost",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0080",
+    "zh": "已是最左",
+    "en": "Already leftmost",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0081",
+    "zh": "布局",
+    "en": "Layout",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0082",
+    "zh": "平板布局至少保留一个按键",
+    "en": "Keep at least one key in the tablet layout",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0083",
+    "zh": "应用于 PTY 会话；手机与平板布局分别保存。长按或点按按键可操作。",
+    "en": "Applies to PTY sessions; phone and tablet layouts are saved separately. Tap or long-press a key to change it.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0084",
+    "zh": "快捷按键",
+    "en": "Extra keys",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0085",
+    "zh": "恢复当前布局默认",
+    "en": "Reset current layout",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0086",
+    "zh": "手机布局至少保留一个按键",
+    "en": "Keep at least one key in the phone layout",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0087",
+    "zh": "替换",
+    "en": "Replace",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0088",
+    "zh": "此行暂无按键，保存后该行在终端中隐藏。",
+    "en": "No keys in this row yet; it stays hidden in the terminal after saving.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0089",
+    "zh": "每行已满，请先移除其他按键",
+    "en": "This row is full; remove a key first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0090",
+    "zh": "没有可替换的按键",
+    "en": "No other keys available",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0091",
+    "zh": "没有更多可添加的按键",
+    "en": "No more keys available",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0092",
+    "zh": "第一行",
+    "en": "Row 1",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0093",
+    "zh": "第二行",
+    "en": "Row 2",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0094",
+    "zh": "选择按键",
+    "en": "Choose key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0095",
+    "zh": "修饰键：下一次按键转为 Alt 组合",
+    "en": "Modifier: the next key becomes Alt+key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0096",
+    "zh": "修饰键：下一次按键转为 Ctrl 组合",
+    "en": "Modifier: the next key becomes Ctrl+key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0097",
+    "zh": "发送 Esc 键",
+    "en": "Send the Esc key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0098",
+    "zh": "发送 Tab 键，用于补全或缩进",
+    "en": "Send Tab for completion or indentation",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0099",
+    "zh": "向上翻页",
+    "en": "Scroll up one page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0100",
+    "zh": "向下翻页",
+    "en": "Scroll down one page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0101",
+    "zh": "控制字符 ^C：中断当前命令",
+    "en": "Control character ^C: interrupt the current command",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0102",
+    "zh": "控制字符 ^D：结束输入或退出会话",
+    "en": "Control character ^D: end input or exit the session",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0103",
+    "zh": "控制字符 ^L：清屏",
+    "en": "Control character ^L: clear the screen",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0104",
+    "zh": "控制字符 ^Z：挂起当前命令",
+    "en": "Control character ^Z: suspend the current command",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0105",
+    "zh": "方向键：上移历史或光标行",
+    "en": "Arrow key: move up through history or lines",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0106",
+    "zh": "方向键：下移历史或光标行",
+    "en": "Arrow key: move down through history or lines",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0107",
+    "zh": "方向键：光标右移",
+    "en": "Arrow key: move the cursor right",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0108",
+    "zh": "方向键：光标左移",
+    "en": "Arrow key: move the cursor left",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0109",
+    "zh": "终端按键",
+    "en": "Terminal key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0110",
+    "zh": "跳到行尾",
+    "en": "Jump to the end of the line",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0111",
+    "zh": "跳到行首",
+    "en": "Jump to the start of the line",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0112",
+    "zh": "输入与号 &，让命令在后台运行",
+    "en": "Type the ampersand & to run a command in the background",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0113",
+    "zh": "输入冒号 :，用于路径与参数分隔",
+    "en": "Type the colon : used between paths and arguments",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0114",
+    "zh": "输入分号 ;，用于分隔命令",
+    "en": "Type the semicolon ; used to separate commands",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0115",
+    "zh": "输入加号 +，用于权限与增量",
+    "en": "Type the plus sign + for permissions and increments",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0116",
+    "zh": "输入斜杠 /，用于路径分隔",
+    "en": "Type the slash / used in paths",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0117",
+    "zh": "输入星号 *，用于通配符",
+    "en": "Type the asterisk * for wildcards",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0118",
+    "zh": "输入波浪号 ~，表示主目录",
+    "en": "Type the tilde ~ for the home directory",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0119",
+    "zh": "输入等号 =，用于变量赋值",
+    "en": "Type the equals sign = for variable assignment",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0120",
+    "zh": "输入管道符号 |",
+    "en": "Type the pipe symbol |",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0121",
+    "zh": "输入连字符 -，用于命令选项",
+    "en": "Type the dash - used for command options",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0122",
+    "zh": "输入问号 ?，用于单字符通配",
+    "en": "Type the question mark ? for single-character wildcards",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java"
+    ]
+  },
+  {
+    "id": "termhome0123",
+    "zh": "先前输入仍在发送或终端已关闭，尚未恢复输入。",
+    "en": "Earlier input is still being sent or the terminal is closed. Input remains paused.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0124",
+    "zh": "终端快捷按键，长按可自定义",
+    "en": "Terminal extra keys, long-press to customize",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0125",
+    "zh": "终端输入中断",
+    "en": "Terminal input interrupted",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0126",
+    "zh": "终端输入未发送或可能未完整送达。请检查终端状态；不会自动重试。",
+    "en": "Terminal input was not sent or may be incomplete. Check the terminal state; it will not be retried automatically.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0127",
+    "zh": "终端输入队列已满，部分输入未发送。后续输入已暂停。先检查终端和命令状态；不会自动重试。此前排队的输入仍可能送达。",
+    "en": "The terminal input queue filled and some input was not sent. Further input is paused. Check the terminal and command state; nothing will be retried automatically. Previously queued input may still arrive.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0128",
+    "zh": "继续输入",
+    "en": "Resume input",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0129",
+    "zh": "会话侧栏已展开",
+    "en": "Sessions sidebar expanded",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalFloatingMenu.java"
+    ]
+  },
+  {
+    "id": "termhome0130",
+    "zh": "环境维护或独占任务正在进行，请稍后再打开终端",
+    "en": "Environment maintenance or an exclusive task is in progress. Wait before opening the terminal.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/core/SimpleTerminalBackend.java"
+    ]
+  },
+  {
+    "id": "termhome0131",
+    "zh": "手机布局",
+    "en": "Phone layout",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0132",
+    "zh": "平板布局",
+    "en": "Tablet layout",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtraKeysDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0133",
+    "zh": "关闭提示",
+    "en": "Close notice",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0134",
+    "zh": "恢复输入",
+    "en": "Resume input",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0135",
+    "zh": "留空恢复默认名称，最多 80 个字符",
+    "en": "Leave blank to restore the default name. Maximum 80 characters.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
+    "id": "termhome0136",
+    "zh": "粘贴预览",
+    "en": "Paste preview",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0137",
+    "zh": "终端操作",
+    "en": "Terminal actions",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActionsDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0138",
+    "zh": "查看终端输出…",
+    "en": "View terminal output…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActionsDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0139",
+    "zh": "显示设置…",
+    "en": "Display settings…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActionsDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0140",
+    "zh": "快捷按键…",
+    "en": "Extra keys…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActionsDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0141",
+    "zh": "会话管理",
+    "en": "Manage sessions",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActionsDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0142",
+    "zh": "终端输出已保存",
+    "en": "Terminal output saved",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0143",
+    "zh": "无法保存终端输出",
+    "en": "Unable to save terminal output",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0144",
+    "zh": "终端输出",
+    "en": "Terminal output",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0145",
+    "zh": "预览已失效，请重新打开。",
+    "en": "This preview expired. Open it again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0146",
+    "zh": "当前可见屏幕",
+    "en": "Visible screen",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0147",
+    "zh": "已保留的历史输出",
+    "en": "Retained output history",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0148",
+    "zh": "保存文本…",
+    "en": "Save text…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0149",
+    "zh": "暂无终端输出",
+    "en": "No terminal output yet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0150",
+    "zh": "内容已固定为打开预览时的快照。",
+    "en": "Content is a snapshot taken when this preview opened.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0151",
+    "zh": "输出较长，仅保留最近的部分（最多 64K 字符）。",
+    "en": "Long output: only the most recent portion is retained (up to 64K characters).",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0152",
+    "zh": "无法复制终端输出",
+    "en": "Unable to copy terminal output",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0153",
+    "zh": "分享终端输出",
+    "en": "Share terminal output",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0154",
+    "zh": "环境维护或独占任务正在进行，终端未启动",
+    "en": "Environment maintenance or an exclusive task is in progress. The terminal was not started.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/PtySession.java"
+    ]
+  },
+  {
+    "id": "termhome0155",
+    "zh": "单行输出过长，无法显示预览。",
+    "en": "A single output line is too long to preview.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
   }
 ]

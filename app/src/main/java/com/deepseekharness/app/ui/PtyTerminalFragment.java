@@ -32,6 +32,7 @@ import com.deepseekharness.app.core.TerminalRuntimeProtection;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.TerminalExtraKeys;
 import com.deepseekharness.app.util.TerminalInput;
+import com.deepseekharness.app.util.TerminalOutputSnapshot;
 import com.deepseekharness.app.util.UiText;
 import com.termux.terminal.KeyHandler;
 import com.termux.terminal.TerminalSession;
@@ -67,6 +68,7 @@ public final class PtyTerminalFragment extends Fragment
   private long viewGeneration, operationGeneration;
   private AlertDialog pasteDialog;
   private AlertDialog inputProblemDialog;
+  private AlertDialog actionsDialog;
   private String startError = "";
   private final java.util.concurrent.atomic.AtomicBoolean redrawPending =
       new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -231,6 +233,7 @@ public final class PtyTerminalFragment extends Fragment
     if (selected != attachedSession) {
       saveScroll();
       if (attachedSession != null) attachedSession.detachListener(sessionListener);
+      dismissActions();
       dismissPaste();
       if (inputProblemDialog != null) inputProblemDialog.dismiss();
       clearModifiers();
@@ -589,7 +592,7 @@ public final class PtyTerminalFragment extends Fragment
     pasteDialog =
         new DshaDialogBuilder(requireContext())
             .setTitle(UiText.choose("确认粘贴", "Confirm paste"))
-            .setMessage(UiText.format("%s\n\n%s", warning, SensitiveData.redact(prepared.text)))
+            .setView(pasteContent(warning, SensitiveData.redact(prepared.text)))
             .setNegativeButton(UiText.text("取消"), null)
             .setPositiveButton(
                 UiText.choose("粘贴文本", "Paste text"),
@@ -615,6 +618,104 @@ public final class PtyTerminalFragment extends Fragment
           restoreInputFocus();
         });
     pasteDialog.show();
+  }
+
+  private View pasteContent(String warning, String text) {
+    android.widget.ScrollView scroll =
+        new android.widget.ScrollView(requireContext()) {
+          @Override
+          protected void onMeasure(int widthSpec, int heightSpec) {
+            int limit = dp(Math.max(80, getResources().getConfiguration().screenHeightDp / 2));
+            if (View.MeasureSpec.getMode(heightSpec) != View.MeasureSpec.UNSPECIFIED)
+              limit = Math.min(limit, View.MeasureSpec.getSize(heightSpec));
+            super.onMeasure(
+                widthSpec, View.MeasureSpec.makeMeasureSpec(limit, View.MeasureSpec.AT_MOST));
+          }
+        };
+    LinearLayout content = new LinearLayout(requireContext());
+    content.setOrientation(LinearLayout.VERTICAL);
+    content.setPadding(dp(24), dp(8), dp(24), dp(16));
+    TextView explanation = new TextView(requireContext());
+    explanation.setText(warning);
+    explanation.setTextSize(13);
+    explanation.setTextColor(requireContext().getColor(R.color.text_secondary));
+    content.addView(explanation, new LinearLayout.LayoutParams(-1, -2));
+    TextView heading = new TextView(requireContext());
+    heading.setText(UiText.choose("粘贴预览", "Paste preview"));
+    heading.setTextColor(requireContext().getColor(R.color.shell_text));
+    heading.setTextSize(14);
+    heading.setTypeface(null, android.graphics.Typeface.BOLD);
+    heading.setPadding(0, dp(16), 0, dp(8));
+    content.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+    TextView preview = new TextView(requireContext());
+    preview.setText(text);
+    preview.setTextColor(requireContext().getColor(R.color.shell_text));
+    preview.setTextSize(12);
+    preview.setTypeface(android.graphics.Typeface.MONOSPACE);
+    preview.setTextDirection(View.TEXT_DIRECTION_LTR);
+    preview.setTextIsSelectable(true);
+    content.addView(preview, new LinearLayout.LayoutParams(-1, -2));
+    scroll.addView(content);
+    return scroll;
+  }
+
+  private void showTerminalActions(TerminalView target) {
+    var tab = OWNER.currentPty();
+    if (!isResumed()
+        || view != target
+        || tab == null
+        || attachedSession != tab.value
+        || actionsDialog != null
+        || !(getActivity() instanceof TerminalActivity host)) return;
+    final long id = tab.id, generation = viewGeneration;
+    final String epoch = OWNER.ownerEpoch();
+    final PtySession session = tab.value;
+    final String name = tab.customTitle().isEmpty() ? "PTY " + tab.number : tab.customTitle();
+    java.util.function.BooleanSupplier current =
+        () -> {
+          var selected = OWNER.currentPty();
+          return TerminalInput.sameTarget(
+              epoch,
+              id,
+              generation,
+              OWNER.ownerEpoch(),
+              selected == null ? 0 : selected.id,
+              viewGeneration,
+              isResumed() && view == target && attachedSession == session);
+        };
+    clearModifiers();
+    actionsDialog =
+        TerminalActionsDialog.create(
+            requireContext(),
+            name,
+            () -> {
+              if (current.getAsBoolean()) paste();
+            },
+            () -> {
+              if (!current.getAsBoolean() || target.mEmulator == null) return;
+              TerminalOutputDialog.show(
+                  getParentFragmentManager(),
+                  TerminalOutputSnapshot.capture(name, target.mEmulator, target.getTopRow()));
+            },
+            () -> {
+              if (current.getAsBoolean()) host.showDisplaySettings();
+            },
+            () -> {
+              if (current.getAsBoolean())
+                ExtraKeysDialog.show(requireContext(), this::refreshExtraKeys);
+            },
+            () -> {
+              if (current.getAsBoolean()) host.openSessions();
+            });
+    actionsDialog.setOnDismissListener(dialog -> actionsDialog = null);
+    CardSheet.show(actionsDialog, requireContext());
+  }
+
+  private void dismissActions() {
+    if (actionsDialog == null) return;
+    AlertDialog dialog = actionsDialog;
+    actionsDialog = null;
+    dialog.dismiss();
   }
 
   private void dismissPaste() {
@@ -654,6 +755,7 @@ public final class PtyTerminalFragment extends Fragment
   public void onPause() {
     saveScroll();
     clearModifiers();
+    dismissActions();
     dismissPaste();
     if (inputProblemDialog != null) inputProblemDialog.dismiss();
     if (nativeClient != null) nativeClient.active = false;
@@ -672,6 +774,7 @@ public final class PtyTerminalFragment extends Fragment
     saveScroll();
     OWNER.detachPty(tabsObserver);
     if (attachedSession != null) attachedSession.detachListener(sessionListener);
+    dismissActions();
     dismissPaste();
     clearModifiers();
     viewGeneration++;
@@ -779,45 +882,61 @@ public final class PtyTerminalFragment extends Fragment
     final PtySession source = attachedSession;
     main.post(
         () -> {
-          if (!isAdded() || !isResumed() || source == null || attachedSession != source
+          if (!isAdded()
+              || !isResumed()
+              || source == null
+              || attachedSession != source
               || inputProblemDialog != null) return;
           final int pending = source.inputProblem();
           if (pending == 0) return;
           boolean overflow = pending == TerminalSession.INPUT_QUEUE_FULL;
-          String message = overflow
-              ? UiText.choose(
-                  "终端输入队列已满，部分输入未发送。后续输入已暂停。先检查终端和命令状态；不会自动重试。此前排队的输入仍可能送达。",
-                  "The terminal input queue filled and some input was not sent. Further input is paused. Check the terminal and command state; nothing will be retried automatically. Previously queued input may still arrive.")
-              : UiText.choose(
-                  "终端输入未发送或可能未完整送达。请检查终端状态；不会自动重试。",
-                  "Terminal input was not sent or may be incomplete. Check the terminal state; it will not be retried automatically.");
+          String message =
+              overflow
+                  ? UiText.choose(
+                      "终端输入队列已满，部分输入未发送。后续输入已暂停。先检查终端和命令状态；不会自动重试。此前排队的输入仍可能送达。",
+                      "The terminal input queue filled and some input was not sent. Further input is paused. Check the terminal and command state; nothing will be retried automatically. Previously queued input may still arrive.")
+                  : UiText.choose(
+                      "终端输入未发送或可能未完整送达。请检查终端状态；不会自动重试。",
+                      "Terminal input was not sent or may be incomplete. Check the terminal state; it will not be retried automatically.");
           DshaDialogBuilder builder = new DshaDialogBuilder(requireContext());
-          builder.setTitle(UiText.choose("终端输入中断", "Terminal input interrupted"))
+          builder
+              .setTitle(UiText.choose("终端输入中断", "Terminal input interrupted"))
               .setMessage(message)
-              .setNegativeButton(UiText.choose("关闭", "Close"),
+              .setNegativeButton(
+                  UiText.choose("关闭提示", "Close notice"),
                   (dialog, which) -> {
                     // Overflow remains latched; another input attempt presents the choice again.
                     if (!overflow) source.acknowledgeInputProblem(pending);
                   });
-          if (overflow) builder.setPositiveButton(UiText.choose("继续输入", "Resume input"),
-              (dialog, which) -> {
-                TerminalSession terminal = source.session();
-                if (attachedSession != source || terminal == null || !inputAllowed()
-                    || !terminal.resumeInputAfterOverflow()) {
-                  Toast.makeText(requireContext(), UiText.choose(
-                      "先前输入仍在发送或终端已关闭，尚未恢复输入。",
-                      "Earlier input is still being sent or the terminal is closed. Input remains paused."),
-                      Toast.LENGTH_LONG).show();
-                } else source.acknowledgeInputProblem(pending);
-              });
+          if (overflow)
+            builder.setPositiveButton(
+                UiText.choose("恢复输入", "Resume input"),
+                (dialog, which) -> {
+                  TerminalSession terminal = source.session();
+                  if (attachedSession != source
+                      || terminal == null
+                      || !inputAllowed()
+                      || !terminal.resumeInputAfterOverflow()) {
+                    Toast.makeText(
+                            requireContext(),
+                            UiText.choose(
+                                "先前输入仍在发送或终端已关闭，尚未恢复输入。",
+                                "Earlier input is still being sent or the terminal is closed. Input remains paused."),
+                            Toast.LENGTH_LONG)
+                        .show();
+                  } else source.acknowledgeInputProblem(pending);
+                });
           inputProblemDialog = builder.create();
-          inputProblemDialog.setOnDismissListener(dialog -> {
-            inputProblemDialog = null;
-            PtySession current = attachedSession;
-            if (isResumed() && current != null && current.inputProblem() != 0
-                && (current != source || current.inputProblem() != pending))
-              main.post(() -> onInputProblem(current.inputProblem()));
-          });
+          inputProblemDialog.setOnDismissListener(
+              dialog -> {
+                inputProblemDialog = null;
+                PtySession current = attachedSession;
+                if (isResumed()
+                    && current != null
+                    && current.inputProblem() != 0
+                    && (current != source || current.inputProblem() != pending))
+                  main.post(() -> onInputProblem(current.inputProblem()));
+              });
           inputProblemDialog.show();
         });
   }
@@ -996,6 +1115,11 @@ public final class PtyTerminalFragment extends Fragment
   private void configureNativeView(TerminalView target) {
     nativeClient = new NativeClient(target);
     target.setTerminalViewClient(nativeClient);
+    final NativeClient client = nativeClient;
+    target.setOnCreateContextMenuListener(
+        (menu, source, info) -> {
+          if (client.active && view == target) showTerminalActions(target);
+        });
     target.setFocusable(true);
     target.setFocusableInTouchMode(true);
     target.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
