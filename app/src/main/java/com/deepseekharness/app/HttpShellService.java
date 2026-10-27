@@ -1559,6 +1559,9 @@ public final class HttpShellService {
         return com.deepseekharness.app.screen.ScreenReply.refused(
                 "FRESH_SCREEN_OBSERVATION_REQUIRED")
             .toString();
+      long observationSequence = observing ? coordinator.beginObservation(taskLease) : 0;
+      if (observing && observationSequence < 0)
+        return com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_RUN_CHANGED").toString();
       var observed =
           DshaAccessibilityService.observeTargetForRequest(
               () ->
@@ -1568,6 +1571,9 @@ public final class HttpShellService {
                       && coordinator.current(taskLease));
       if (observed.target == null) return observed.failure().toString();
       var target = observed.target;
+      if (!observing && !coordinator.checkActionTarget(taskLease, target))
+        return com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_TARGET_CHANGED")
+            .toString();
       var capability = screenRequest(scope, operation, target);
       coordinator.bindRequest(capability, taskLease);
       ScreenAuthorization authorization =
@@ -1585,6 +1591,7 @@ public final class HttpShellService {
               com.deepseekharness.app.assistant.AssistantService.stopChannelCurrent(ctx, binding)
                   && screenBridgeCurrent(scope)
                   && coordinator.current(taskLease)
+                  && (observing || coordinator.actionAllowed(taskLease, target))
                   && !com.deepseekharness.app.control.OwnedScreenOverlay.expanded()
                   && capability.runtime.equals(
                       com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx))
@@ -1595,8 +1602,10 @@ public final class HttpShellService {
       String reply =
           DshaAccessibilityService.execute(
               DshaApp.from(ctx).capabilityBroker(), capability, live, operation, arguments);
-      if (observing && new org.json.JSONObject(reply).optString("state").equals("COMPLETED"))
-        coordinator.observed(taskLease);
+      if (observing && new org.json.JSONObject(reply).optString("state").equals("COMPLETED")
+          && !coordinator.observed(taskLease, observationSequence, target))
+        return com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_OBSERVATION_SUPERSEDED")
+            .toString();
       return reply;
     } catch (Exception error) {
       return "[ERR] " + safeError(error);

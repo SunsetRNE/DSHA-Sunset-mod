@@ -130,10 +130,13 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("第一次点按"));
+      assertTrue(shown.contains("终端粘贴按顺序进入有界输入队列"));
+      assertTrue(shown.contains("队列满时暂停后续输入"));
+      assertTrue(shown.contains("未知结果围栏"));
+      assertTrue(shown.contains("最新成功读屏的目标"));
+      assertTrue(shown.contains("字节完全匹配的旧版默认 DNS"));
+      assertTrue(shown.contains("回归夹具"));
       assertTrue(shown.contains("3.2.2"));
-      assertTrue(shown.contains("撤下电脑工作区"));
-      assertTrue(shown.contains("状态预检"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -154,10 +157,13 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("first tap"));
+      assertTrue(shown.contains("Terminal paste uses a bounded FIFO input queue"));
+      assertTrue(shown.contains("later input pauses for confirmation"));
+      assertTrue(shown.contains("unknown-outcome fence"));
+      assertTrue(shown.contains("latest successful screen observation"));
+      assertTrue(shown.contains("byte-for-byte legacy default DNS configuration"));
+      assertTrue(shown.contains("regression fixtures"));
       assertTrue(shown.contains("3.2.2"));
-      assertTrue(shown.contains("Remove PC workspaces"));
-      assertTrue(shown.contains("status precheck"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }

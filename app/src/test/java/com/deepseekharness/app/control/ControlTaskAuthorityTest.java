@@ -5,6 +5,54 @@ import org.junit.Test;
 
 public final class ControlTaskAuthorityTest {
   @Test
+  public void actionsRequireTheSameWindowAsTheLatestSuccessfulObservation() {
+    var authority = new ControlTaskAuthority();
+    var binding = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", "1");
+    var lease = authority.begin(binding);
+    var github = new com.deepseekharness.app.util.ScreenTarget(0, 12, "com.github.android");
+    var dsha = new com.deepseekharness.app.util.ScreenTarget(0, 13, "dsh.android.client");
+    assertFalse(authority.actionAllowed(lease, github));
+    assertTrue(authority.observed(lease, authority.beginObservation(lease), github));
+    assertTrue(authority.actionAllowed(lease, github));
+    assertFalse(authority.actionAllowed(lease, dsha));
+    assertFalse(
+        authority.actionAllowed(
+            lease, new com.deepseekharness.app.util.ScreenTarget(0, 13, "com.github.android")));
+    assertFalse(
+        authority.actionAllowed(
+            lease, new com.deepseekharness.app.util.ScreenTarget(1, 12, "com.github.android")));
+    assertTrue(authority.observed(lease, authority.beginObservation(lease), dsha));
+    assertFalse(authority.actionAllowed(lease, github));
+    assertTrue(authority.actionAllowed(lease, dsha));
+    assertFalse(authority.checkActionTarget(lease, github));
+    assertFalse(authority.actionAllowed(lease, dsha));
+    assertTrue(authority.observed(lease, authority.beginObservation(lease), dsha));
+    authority.requireObservation(binding);
+    var next = authority.lease(binding);
+    assertFalse(authority.actionAllowed(next, dsha));
+    assertFalse(authority.observed(lease, authority.beginObservation(lease), github));
+    assertFalse(authority.actionAllowed(next, github));
+  }
+
+  @Test
+  public void olderObservationCannotOverwriteNewerOrRestoreEvidenceAfterFailure() {
+    var authority = new ControlTaskAuthority();
+    var lease =
+        authority.begin(binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "s", "1"));
+    var github = new com.deepseekharness.app.util.ScreenTarget(0, 12, "com.github.android");
+    var dsha = new com.deepseekharness.app.util.ScreenTarget(0, 13, "dsh.android.client");
+    long old = authority.beginObservation(lease);
+    long newer = authority.beginObservation(lease);
+    assertTrue(authority.observed(lease, newer, dsha));
+    assertFalse(authority.observed(lease, old, github));
+    assertTrue(authority.actionAllowed(lease, dsha));
+    long beforeFailure = authority.beginObservation(lease);
+    authority.beginObservation(lease);
+    assertFalse(authority.observed(lease, beforeFailure, github));
+    assertFalse(authority.actionAllowed(lease, dsha));
+  }
+
+  @Test
   public void asynchronousPauseRequiresTheExactCurrentLeaseWithoutPausingItsSuccessor() {
     var authority = new ControlTaskAuthority();
     var first = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "same-session", "17");

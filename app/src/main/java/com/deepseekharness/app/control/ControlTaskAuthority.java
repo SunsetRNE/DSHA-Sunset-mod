@@ -36,6 +36,8 @@ public final class ControlTaskAuthority {
   private Binding binding;
   private long revision;
   private boolean paused, needsObservation = true;
+  private com.deepseekharness.app.util.ScreenTarget observedTarget;
+  private long observationSequence;
   private String reason = "IDLE";
   // Local Agent turn numbers are monotonic within a full conversation. Keep
   // completion watermarks so a delayed old request cannot reacquire the screen.
@@ -119,9 +121,51 @@ public final class ControlTaskAuthority {
 
   public synchronized boolean observed(Lease lease) {
     if (!current(lease)) return false;
+    observedTarget = null;
     needsObservation = false;
     reason = "ACTIVE";
     return true;
+  }
+
+  /** Invalidate prior evidence before a new observation starts, including on failure. */
+  public synchronized long beginObservation(Lease lease) {
+    if (!current(lease)) return -1;
+    needsObservation = true;
+    observedTarget = null;
+    reason = "OBSERVE_REQUIRED";
+    return ++observationSequence;
+  }
+
+  /** Only the most recently requested observation can establish an action target. */
+  public synchronized boolean observed(
+      Lease lease, long sequence, com.deepseekharness.app.util.ScreenTarget target) {
+    if (!current(lease)
+        || sequence != observationSequence
+        || target == null
+        || target.displayId != 0
+        || target.windowId < 0
+        || target.packageName.isEmpty()) return false;
+    observedTarget = target;
+    needsObservation = false;
+    reason = "ACTIVE";
+    return true;
+  }
+
+  public synchronized boolean actionAllowed(
+      Lease lease, com.deepseekharness.app.util.ScreenTarget target) {
+    return actionAllowed(lease) && observedTarget != null && observedTarget.matches(target);
+  }
+
+  /** A changed target consumes prior evidence; returning to it still requires a fresh read. */
+  public synchronized boolean checkActionTarget(
+      Lease lease, com.deepseekharness.app.util.ScreenTarget target) {
+    if (actionAllowed(lease, target)) return true;
+    if (current(lease)) {
+      needsObservation = true;
+      observedTarget = null;
+      reason = "OBSERVE_REQUIRED";
+    }
+    return false;
   }
 
   /** Changing an owned window invalidates pixels/nodes without cancelling or resuming the task. */
