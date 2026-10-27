@@ -173,6 +173,8 @@ public final class LocalTaskConfirmationAndroidTest {
   @Before
   public void before() throws Exception {
     app = (App) RuntimeEnvironment.getApplication();
+    new com.deepseekharness.app.core.DeviceGrantsTest()
+        .isolateProcessStateForIndependentPreferenceFixtures();
     WindowMetadata.windows = java.util.List.of();
     // Robolectric has no installed APK native directory. The real controller constructor still
     // records that directory even though this fixture never starts a guest or loads a library.
@@ -209,17 +211,7 @@ public final class LocalTaskConfirmationAndroidTest {
     field(HttpShellService.class, "running").set(bridge, true);
     var grant = (ScreenSessionGrant) field(HttpShellService.class, "uiGrant").get(null);
     grant.setPaused(false);
-    var scopeType = Class.forName(HttpShellService.class.getName() + "$RequestScope");
-    var scopeConstructor =
-        scopeType.getDeclaredConstructor(runType, long.class, String.class, long.class, long.class);
-    scopeConstructor.setAccessible(true);
-    scope =
-        scopeConstructor.newInstance(
-            run,
-            grant.revision(),
-            "actual-request",
-            new DeviceGrants(app).consentPolicy().revision(),
-            4L);
+    freshScope();
     target = new ScreenTarget(0, 42, "com.android.settings");
     Targets.current = target;
     Targets.promptStillAttached = false;
@@ -266,6 +258,23 @@ public final class LocalTaskConfirmationAndroidTest {
     var request = (CapabilityRequest) call(bridge, "screenRequest", scope, operation, target);
     if (bound) PhoneControlCoordinator.get(app).bindRequest(request, lease);
     return request;
+  }
+
+  /** A policy change fences the old HTTP scope; the next actual request captures new revisions. */
+  private void freshScope() throws Exception {
+    var runType = Class.forName(HttpShellService.class.getName() + "$BridgeRun");
+    var scopeType = Class.forName(HttpShellService.class.getName() + "$RequestScope");
+    var constructor =
+        scopeType.getDeclaredConstructor(runType, long.class, String.class, long.class, long.class);
+    constructor.setAccessible(true);
+    var grant = (ScreenSessionGrant) field(HttpShellService.class, "uiGrant").get(null);
+    scope =
+        constructor.newInstance(
+            run,
+            grant.revision(),
+            "actual-request-" + java.util.UUID.randomUUID(),
+            new DeviceGrants(app).consentPolicy().revision(),
+            4L);
   }
 
   private Future<String> authorize(CapabilityRequest request) {
@@ -324,6 +333,112 @@ public final class LocalTaskConfirmationAndroidTest {
     Shadow.<ShadowAccessibilityNodeInfo>extract(root).setAccessibilityWindowInfo(window);
     metadata.setRoot(root);
     return window;
+  }
+
+  @Test
+  public void globalAllowWhileIdleAdmitsFreshBoundScreenReadWithoutNativePrompt() throws Exception {
+    var coordinator = PhoneControlCoordinator.get(app);
+    coordinator.stop("IDLE");
+    assertTrue(new DeviceGrants(app).setGlobalAllowed(true));
+    freshScope();
+    lease = coordinator.begin(binding);
+    for (String operation : new String[] {"dump", "screenshot"}) {
+      var request = capability(operation, true);
+      assertEquals("ALLOWED", await(authorize(request)));
+      assertNull(get(window, "view"));
+      assertNull(get(bridge, "pendingConfirm"));
+      assertNotNull(app.capabilityBroker().claimDispatch(request));
+      assertNull(app.capabilityBroker().claimDispatch(request));
+    }
+  }
+
+  @Test
+  public void globalAllowChangeFencesOldTaskButFreshRequestWorksAndOffRestoresManualConfirmation()
+      throws Exception {
+    var coordinator = PhoneControlCoordinator.get(app);
+    var oldRequest = capability("dump", true);
+    assertTrue(app.capabilityBroker().authorize(oldRequest));
+    var oldPermit = app.capabilityBroker().claimDispatch(oldRequest);
+    assertNotNull(oldPermit);
+    var oldLease = lease;
+    assertTrue(new DeviceGrants(app).setGlobalAllowed(true));
+    assertFalse(oldPermit.isCurrent());
+    assertFalse(coordinator.current(oldLease));
+    assertEquals("UNAVAILABLE", await(authorize(oldRequest)));
+    freshScope();
+    lease = coordinator.begin(binding);
+    var allowed = capability("dump", true);
+    assertEquals("ALLOWED", await(authorize(allowed)));
+    assertNull(get(window, "view"));
+    var allowedPermit = app.capabilityBroker().claimDispatch(allowed);
+    assertNotNull(allowedPermit);
+
+    assertTrue(new DeviceGrants(app).setGlobalAllowed(false));
+    assertFalse(allowedPermit.isCurrent());
+    freshScope();
+    lease = coordinator.begin(binding);
+    var manual = capability("dump", true);
+    var result = authorize(manual);
+    var prompt = awaitPrompt(result);
+    assertFalse(app.capabilityBroker().authorized(manual));
+    prompt.getChildAt(1).performClick();
+    assertEquals("ALLOWED", await(result));
+    assertNotNull(app.capabilityBroker().claimDispatch(manual));
+  }
+
+  @Test
+  public void globalConsentChangePreservesExplicitUserPause() throws Exception {
+    var coordinator = PhoneControlCoordinator.get(app);
+    HttpShellService.setScreenPaused(app, true);
+    assertTrue(new DeviceGrants(app).setGlobalAllowed(true));
+    freshScope();
+    assertTrue(coordinator.snapshot().paused());
+    assertEquals("LOCAL_USER_PAUSE", coordinator.snapshot().reason());
+    assertTrue(HttpShellService.screenPaused());
+    var request = capability("dump", false);
+    assertEquals("UNAVAILABLE", await(authorize(request)));
+    var failure = assertThrows(IllegalStateException.class, () -> coordinator.begin(binding));
+    assertEquals("SCREEN_CONTROL_PAUSED", failure.getMessage());
+    assertNull(app.capabilityBroker().claimDispatch(request));
+  }
+
+  @Test
+  public void screenPolicyChangeWhileIdleAdmitsFreshBoundReadWithoutNativePrompt()
+      throws Exception {
+    var coordinator = PhoneControlCoordinator.get(app);
+    coordinator.stop("IDLE");
+    assertTrue(
+        new DeviceGrants(app)
+            .setScreenPolicy(
+                com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode.ALLOW_ALL,
+                java.util.Map.of()));
+    freshScope();
+    lease = coordinator.begin(binding);
+    var request = capability("dump", true);
+    assertEquals("ALLOWED", await(authorize(request)));
+    assertNull(get(window, "view"));
+    assertNotNull(app.capabilityBroker().claimDispatch(request));
+    assertNull(app.capabilityBroker().claimDispatch(request));
+  }
+
+  @Test
+  public void screenPolicyChangePreservesExplicitUserPause() throws Exception {
+    var coordinator = PhoneControlCoordinator.get(app);
+    HttpShellService.setScreenPaused(app, true);
+    assertTrue(
+        new DeviceGrants(app)
+            .setScreenPolicy(
+                com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode.ALLOW_ALL,
+                java.util.Map.of()));
+    freshScope();
+    assertTrue(coordinator.snapshot().paused());
+    assertEquals("LOCAL_USER_PAUSE", coordinator.snapshot().reason());
+    assertTrue(HttpShellService.screenPaused());
+    var request = capability("dump", false);
+    assertEquals("UNAVAILABLE", await(authorize(request)));
+    var failure = assertThrows(IllegalStateException.class, () -> coordinator.begin(binding));
+    assertEquals("SCREEN_CONTROL_PAUSED", failure.getMessage());
+    assertNull(app.capabilityBroker().claimDispatch(request));
   }
 
   @Test

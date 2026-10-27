@@ -257,10 +257,12 @@ class SunsetPatchRegressions(unittest.TestCase):
             self.assertIn(':app:testStandardDebugUnitTest', workflow)
             self.assertNotRegex(workflow, r':app:(?:test|lint|assemble)Low')
             self.assertNotIn('("Standard", "Low")', workflow)
+            self.assertNotIn('tools/remote', workflow)
+            self.assertNotIn('dsha-connect', workflow)
         package = (self.root / '.github/workflows/ci-package.yml').read_text(encoding='utf-8')
         self.assertIn('--stage package --flavors standard', package)
         self.assertNotIn('app/build/outputs/apk/*/', package)
-        manifest = json.loads((self.root / 'tools/host-tests.manifest.json').read_text())
+        manifest = json.loads((self.root / 'tools/host-tests.manifest.json').read_text(encoding='utf-8'))
         low = next(row for row in manifest['tests'] if row['path'] == 'tools/test-low-preview-capability.mjs')
         self.assertEqual(low['stage'], 'history')
 

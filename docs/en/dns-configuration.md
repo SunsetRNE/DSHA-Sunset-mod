@@ -52,6 +52,8 @@ Use IPv4 mode carefully on AAAA-only sites, IPv6-dependent networks, and DNS64 e
 
 [ResolverConfig.java](../../app/src/main/java/com/deepseekharness/app/util/ResolverConfig.java) owns reconciliation; [RuntimeTools.java](../../app/src/main/java/com/deepseekharness/app/runtime/RuntimeTools.java) performs file operations. Android reads DNS addresses from the active network's `LinkProperties.getDnsServers()`. Only validated numeric IPv4/IPv6 addresses are accepted and deduplicated; this operation performs no hostname lookup. It does not run Android's `dnsresolver` shell command to modify system services.
 
+The legacy bundled rootfs contains exactly two lines, `8.8.8.8` followed by `223.5.5.5`. After removing DSHA-owned sections, only a byte-for-byte match to that default is migrated to device DNS, and only when a valid device server is available. Otherwise it is retained. Any other content, including a comment, different line endings, or reordered servers, remains a user configuration. To deliberately keep those two servers, add a comment to distinguish the file from the original default. Using device DNS addresses does not reproduce Android Private DNS's encrypted resolver behavior.
+
 Existing guest content is processed in this order:
 
 1. Remove DSHA's previous IPv4 compatibility section.

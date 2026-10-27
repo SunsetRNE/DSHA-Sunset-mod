@@ -19,7 +19,7 @@
 - 上游 client 摘要 `17e95442d6f8c170d6b42a0281538af7ddba4cbeb05975d405236de6ee470dd6`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
 - 许可全文：`app/src/main/assets/builtin-plugins/dsh-web-mobile/LICENSE`。当前产物摘要：
 
-- `client.js`：`437d7a5a5848632475f4622937d039a35c3da5b8345b6672d7857ae16c258f9d`
+- `client.js`：`665699341525871da011ee98b18891bb35c69e7173235be7bdaa0e29e9c50194`
 - `index.js`：`dcddbce73ec1052b7c02e961bac1389d227f72f1ef49f62a2f16f692e8f930ab`
 - `compress.js`：`a7f4f7f89cc99490978ed4cbfd16ab86f71e1f7fbf2241c00c2811e7cde9aeab`
 - `delete-session.js`：`cb119ff9703716fe1111ee5a2f211d14886ab1d2310601c5787efc8d91219d51`
@@ -40,6 +40,7 @@
 
 - Shizuku API/provider：Standard 13.1.5、Low 12.2.0（MIT），公开来源 RikkaApps/Shizuku-API；许可全文随 `assets/licenses/Shizuku-MIT.txt` 保存，原始 Git blob 及 SHA 记录在 build154 审计。
 - Termux terminal-view / terminal-emulator 0.118.0 的 Apache-2.0 例外及全文随 `assets/licenses/Termux-terminal-Apache-2.0.txt` 保存；不将其声明扩展到整个上游工程。
+- terminal-emulator Java 源码固定于 Termux v0.118.0 提交 `6e2689f55295fa444be8ac8592c527c2c5ef3253` 并内置；DSHA 对 `TerminalSession.java`、`TerminalEmulator.java`、`TerminalSessionClient.java` 的修改及自有队列说明见 `app/src/main/java/com/termux/terminal/NOTICE.dsha.md`。terminal-view 保持 0.118.0 上游依赖，JNI 使用项目内已有构建。
 - Gson 2.13.1：Apache-2.0；Bouncy Castle bcprov-jdk15to18 1.85.2：上游许可全文随 `assets/licenses` 保存。版本与 JAR 摘要见 `tools/backup-dependencies.lock.json`，构建执行 `verifyBackupDependencies`。
 - SnakeYAML 2.4（Apache-2.0）：固定官方 Maven Central JAR/POM 与 `snakeyaml-2.4` 源码标签，使用宿主 data-only SafeConstructor 投影凭据中的本机连接字段。许可原文为 `assets/licenses/snakeyaml-LICENSE.txt`，Java 8 类文件及 Android FIELD 路径见 `docs/audits/build156/snakeyaml-official-artifacts.json`；不由静态兼容声明推导旧设备验收完成。
 - Low 的 GeckoView 143.0.20251003115653 为 MPL-2.0，来自 Mozilla Maven；保留相应声明。兼容版最低 API 23，不表示所有旧设备已经验收。
@@ -53,7 +54,6 @@
 - `com.android.tools:desugar_jdk_libs:2.0.4`
 - `com.google.android.material:material:1.11.0`
 - `com.google.code.gson:gson:2.13.1`
-- `com.google.zxing:core:3.5.3`
 - `com.termux.termux-app:terminal-view:0.118.0`
 - `dev.rikka.shizuku:api:12.2.0`
 - `dev.rikka.shizuku:api:13.1.5`
@@ -83,7 +83,6 @@
 | `app/src/main/jniLibs/arm64-v8a/libproroot.so` | upstream proprietary | proroot v1.2.8 original binary; source reproducibility not asserted |
 | `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL family; exact binary revision unverified | Samba talloc; build-low-proot.py locks talloc 2.4.3 headers, not the origin of this binary |
 | `app/src/main/jniLibs/arm64-v8a/libtermux.so` | Apache-2.0 exception | tools/termux-jni, v0.118.0 source plus local handshake changes |
-| `app/libs/dsha-connect.aar / libgojni.so` | Go and bundled module licenses | Pinned arm64 build: `5ba19a2d675c9bbd6f7700901ad1f529a1baf0adaaba43413792a4fd26c88c48`; sources and toolchain in `tools/remote/connect-core/android-runtime.lock.json`; complete module licenses in `assets/licenses/dsha-connect-THIRD_PARTY_NOTICES.txt`, SBOM in `tools/remote/connect-core/go-sbom.cdx.json`. |
 
 ## npm 锁中需另核对的许可声明
 

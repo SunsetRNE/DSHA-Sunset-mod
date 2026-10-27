@@ -5,7 +5,7 @@ import { request } from 'node:http';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
-import { gunzipSync } from 'node:zlib';
+import { brotliDecompressSync, gunzipSync } from 'node:zlib';
 import { testRuntime } from './test-runtime-fixture.mjs';
 import { installResponseCompression } from './mobile-server/compress.js';
 
@@ -16,6 +16,7 @@ const { default: WebServer } = await import(pathToFileURL(require.resolve('@deep
 const small = JSON.stringify({ id: 'a'.repeat(48), name: 'image-sample.png', mime: 'image/png', bytes: 2600000,
     sha256: 'b'.repeat(64), version: 'stat-version' });
 const large = JSON.stringify({ text: '中文-carrier-'.repeat(12000) });
+const methodNotAllowed = JSON.stringify({ ok: false, error: 'method-not-allowed' });
 const binary = Buffer.alloc(2_600_000, 0xa5);
 
 function call(port, pathname, method = 'GET', headers = {}) {
@@ -31,7 +32,11 @@ function call(port, pathname, method = 'GET', headers = {}) {
         req.once('error', reject); req.end();
     });
 }
-function decoded(result) { return result.headers['content-encoding'] === 'gzip' ? gunzipSync(result.body) : result.body; }
+function decoded(result) {
+    if (result.headers['content-encoding'] === 'gzip') return gunzipSync(result.body);
+    if (result.headers['content-encoding'] === 'br') return brotliDecompressSync(result.body);
+    return result.body;
+}
 
 for (const compression of ['none', 'gzip']) test(`DSHA and actual rc3 WebServer ${compression} preserve complete responses and streams`, async () => {
     const ctx = new Context(), errors = [];
@@ -43,6 +48,7 @@ for (const compression of ['none', 'gzip']) test(`DSHA and actual rc3 WebServer 
     const routes = {
         '/prepare': [200, small], '/empty': [200, '{}'],
         '/error': [403, JSON.stringify({ error: { code: 'FS_PERMISSION_DENIED', message: 'download source could not be read' } })],
+        '/method-not-allowed': [405, methodNotAllowed],
         '/large': [200, large],
     };
     for (const [url, [status, body]] of Object.entries(routes)) ctx.webServer.register({ kind: 'exact', path: url,
@@ -80,6 +86,18 @@ for (const compression of ['none', 'gzip']) test(`DSHA and actual rc3 WebServer 
             assert.equal(head.status, status); assert.equal(head.body.length, 0);
             assert.equal(Number(head.headers['content-length']), Buffer.byteLength(body));
             assert.equal(head.headers['content-encoding'], undefined);
+        }
+        // PR 200: the small 405 capability probe must survive both browser
+        // negotiation paths when the host's gzip middleware owns the response.
+        for (const encoding of ['gzip', 'br']) {
+            const probe = await call(ctx.webServer.port, '/method-not-allowed', 'GET', { 'Accept-Encoding': encoding });
+            assert.equal(probe.status, 405);
+            assert.equal(probe.headers['content-encoding'], undefined);
+            assert.deepEqual(probe.body, Buffer.from(methodNotAllowed));
+            const compressed = await call(ctx.webServer.port, '/large', 'GET', { 'Accept-Encoding': encoding });
+            assert.equal(compressed.status, 200);
+            assert.deepEqual(decoded(compressed), Buffer.from(large));
+            assert.equal(compressed.headers['content-encoding'], encoding === 'gzip' ? 'gzip' : compression === 'none' ? 'br' : undefined);
         }
         const stream = await call(ctx.webServer.port, '/stream');
         assert.equal(decoded(stream).toString(), '{"stream":"bytes"}');

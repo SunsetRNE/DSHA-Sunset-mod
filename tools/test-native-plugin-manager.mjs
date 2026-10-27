@@ -3,8 +3,9 @@ import { testRuntime } from './test-runtime-fixture.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import { pathToFileURL } from 'node:url';
-import {createHash} from 'node:crypto';
+import {createHash, randomUUID} from 'node:crypto';
 
 // The rc2.1 overlay must remove the old review denial from both Host and UI.
 const managed = testRuntime('managed');
@@ -14,18 +15,24 @@ const uiPath = 'node_modules/@deepseek-ai/dsh-client-ui-plugin-manager/lib/clien
 const policy = JSON.parse(fs.readFileSync('app/src/main/assets/plugin-manager-policy-patch.json', 'utf8'));
 const upstreamHost = fs.readFileSync(path.join(raw, hostPath), 'utf8').replaceAll('\r\n', '\n');
 const currentHost = fs.readFileSync(path.join(managed, hostPath), 'utf8').replaceAll('\r\n', '\n');
-let expectedHost = upstreamHost;
 assert.equal(policy.patches.length, 15);
 const active = JSON.parse(fs.readFileSync('app/src/main/assets/runtime-patches.json','utf8')).active;
-for (const row of active) {
-  const recipe = JSON.parse(fs.readFileSync(path.join('app/src/main/assets',row.asset),'utf8'));
-  if ((row.module ?? recipe.module) !== policy.module) continue;
-  for (const patch of recipe.patches) {
-    assert.equal(expectedHost.split(patch.before).length - 1, 1,row.asset);
-    const after = patch.prependAsset === undefined ? patch.after : fs.readFileSync(path.join('app/src/main/assets',patch.prependAsset),'utf8')+'\n'+patch.after;
-    expectedHost = expectedHost.replace(patch.before, after);
+function moduleChain(source, module) {
+  const recipes = [];
+  for (const row of active) {
+    const recipe = JSON.parse(fs.readFileSync(path.join('app/src/main/assets',row.asset),'utf8'));
+    if ((row.module ?? recipe.module) !== module) continue;
+    recipes.push(row.asset);
+    for (const patch of recipe.patches) {
+      assert.equal(source.split(patch.before).length - 1, 1,row.asset);
+      const after = patch.prependAsset === undefined ? patch.after : fs.readFileSync(path.join('app/src/main/assets',patch.prependAsset),'utf8')+'\n'+patch.after;
+      source = source.replace(patch.before, after);
+    }
   }
+  assert.ok(recipes.length > 0, 'The tested module must have an active pinned patch chain');
+  return { source, recipes };
 }
+const expectedHost = moduleChain(upstreamHost, policy.module).source;
 assert.ok(currentHost === expectedHost, 'Host overlay differs from the complete pinned source chain');
 assert.doesNotMatch(currentHost, /["']--ignore-scripts(?:["']|=true)/);
 assert.doesNotMatch(currentHost, /--ignore-pnpmfile/);
@@ -35,12 +42,56 @@ assert.match(currentHost, /--config\.ignore-dep-scripts=false/);
 assert.match(currentHost, /DSHA_PLUGIN_SINGLE_INSTALL_V1/);
 assert.match(currentHost, /DSHA_PLUGIN_HTTPS_GITHUB_V1/);
 assert.doesNotMatch(currentHost, /DSHA_NATIVE_REVIEW_REQUIRED|DSHA_NATIVE_PLUGIN_POLICY_V1/);
-const uiPatch = JSON.parse(fs.readFileSync('app/src/main/assets/plugin-manager-auto-enable-patch.json', 'utf8')).patches[0];
 const upstreamUi = fs.readFileSync(path.join(raw, uiPath), 'utf8').replaceAll('\r\n', '\n');
 const currentUi = fs.readFileSync(path.join(managed, uiPath), 'utf8').replaceAll('\r\n', '\n');
-assert.equal(upstreamUi.split(uiPatch.before).length - 1, 1);
-assert.ok(currentUi === upstreamUi.replace(uiPatch.before, uiPatch.after),
-  'Web plugin installation must enable the installed bundle by default');
+const expectedUi = moduleChain(upstreamUi, uiPath.slice('node_modules/'.length));
+assert.ok(expectedUi.recipes.includes('plugin-manager-auto-enable-patch.json'));
+assert.equal(currentUi, expectedUi.source, 'Web overlay differs from the complete pinned source chain');
+
+// Execute the actual managed Controller method with only its transport and
+// publication seams controlled. Do not infer default selection from a marker
+// or the whole module having only one patch: later active recipes share it.
+function controller(source) {
+  const start = 'var PluginManagerController = class {';
+  const end = '\n\t\t};\n\t\t//#endregion';
+  assert.equal(source.split(start).length, 2, 'one real PluginManagerController');
+  const from = source.indexOf(start), to = source.indexOf(end, from);
+  assert.ok(to > from, 'the complete real Controller class must be selected');
+  return vm.runInNewContext(source.slice(from, to + '\n\t\t};'.length) + '\nPluginManagerController;', { randomUUID });
+}
+async function installSelection(Controller, subject, approvedBuilds) {
+  const calls = [], published = [], settled = [];
+  const value = { application: 'applied', changed: true };
+  const client = Object.create(Controller.prototype);
+  client.ctx = { remote: { pluginManager: { async installBundle(spec, options) {
+    calls.push({ spec, options }); return { ok: true, value };
+  } } } };
+  client.patchInstall = update => published.push(update);
+  client.settleInstall = result => settled.push(result);
+  await client.startInstall(subject, approvedBuilds);
+  assert.equal(calls.length, 1, 'one explicit install must issue exactly one Host mutation');
+  assert.equal(published.length, 1);
+  assert.equal(published[0].phase, 'starting');
+  assert.equal(settled.length, 1);
+  assert.equal(settled[0], value, 'only the actual Host response settles the install');
+  assert.equal(calls[0].spec, subject.spec);
+  assert.match(calls[0].options.requestId, /^[a-f0-9-]{36}$/);
+  assert.equal(calls[0].options.requestId, published[0].requestId);
+  assert.equal(calls[0].options.registry, subject.registry);
+  return calls[0].options;
+}
+const ManagedController = controller(currentUi), UpstreamController = controller(upstreamUi);
+const input = { spec: 'community-plugin@1.0.0', registry: 'https://registry.npmjs.org' };
+assert.equal((await installSelection(UpstreamController, input)).enabled, false,
+  'negative control: the exact raw Controller still has the old disabled default');
+for (const selection of [undefined, null, true, false]) {
+  const options = await installSelection(ManagedController, { ...input, selection, saveExact: true }, ['fixture-build']);
+  assert.equal(options.enabled, selection ?? true,
+    'managed install enables an unspecified selection and preserves an explicit false');
+  assert.equal(options.saveExact, true);
+  assert.deepEqual(Array.from(options.approvedBuilds), ['fixture-build']);
+}
+console.log('PASS: complete pinned Web patch chain; real managed Controller installs default enabled=true, preserves explicit false and dispatches once; raw negative control remains disabled.');
 
 const { PluginManager } = await import(pathToFileURL(path.join(managed, hostPath)));
 const manager = Object.create(PluginManager.prototype);

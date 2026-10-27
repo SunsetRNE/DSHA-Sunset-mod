@@ -30,13 +30,6 @@ class CiAssetsTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='dsha-ci-assets-test-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        (self.root / 'app/libs').mkdir(parents=True)
-        (self.root / 'tools/remote/connect-core').mkdir(parents=True)
-        remote_bytes = b'pinned remote native library fixture'
-        (self.root / 'app/libs/dsha-connect.aar').write_bytes(remote_bytes)
-        (self.root / 'tools/remote/connect-core/android-runtime.lock.json').write_text(json.dumps({
-            'schema': 1, 'aarPath': 'app/libs/dsha-connect.aar', 'aarSha256': sha(remote_bytes),
-            'aarBytes': len(remote_bytes)}), encoding='utf-8')
         self.assets = self.root / 'app/src/main/assets'
         self.assets.mkdir(parents=True)
         self.recovery = self.root / 'tools/recovery-runtime'
@@ -159,6 +152,29 @@ class CiAssetsTests(unittest.TestCase):
         self.save_locks()
         with self.assertRaisesRegex(ValueError, 'CI_ASSET_SOURCE_MISMATCH: python-support.bin'):
             assets.verify_sources()
+
+    def test_retired_pc_binary_is_not_packed_or_restored_from_historical_source(self):
+        retired = 'app/libs/dsha-connect.aar'
+        self.assertNotIn(retired, assets.allowed())
+        self.assertFalse((self.root / 'tools/remote').exists())
+        assets.verify_sources()
+        package = self.zip_inputs(extra=[(retired, b'historical PC binary')])
+        with self.assertRaisesRegex(ValueError, 'CI_ASSET_MEMBER_SET'):
+            self.restore(package)
+        opened = []
+        original_open = zipfile.ZipFile.open
+
+        def track_open(archive, name, *args, **kwargs):
+            opened.append(name.filename if isinstance(name, zipfile.ZipInfo) else name)
+            return original_open(archive, name, *args, **kwargs)
+
+        with patch.object(zipfile.ZipFile, 'open', track_open):
+            self.restore(package, source=True)
+        self.assertNotIn(retired, opened)
+        self.assertFalse((self.root / retired).exists())
+        packed, _ = self.pack()
+        with zipfile.ZipFile(packed) as archive:
+            self.assertNotIn(retired, archive.namelist())
 
     def test_bad_adb_cannot_use_modified_descriptor_as_fallback(self):
         changed = b'changed wheels'
@@ -286,7 +302,7 @@ class CiAssetsTests(unittest.TestCase):
                 with patch.object(zipfile.ZipFile, 'open', track_open):
                     self.restore(package, source=True)
                 self.assertEqual(set(opened), {prefix + name for name in originals})
-                self.assertEqual(len(opened), 12)
+                self.assertEqual(len(opened), 11)
                 self.assertEqual(source.read_bytes(), b'checkout source stays')
                 self.assertFalse((self.root / 'source-release').exists())
                 for name, data in originals.items():

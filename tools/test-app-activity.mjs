@@ -41,7 +41,7 @@ test('心跳绑定启动 instance，并同时输出动态与持久插件摘要',
   const writes = [], moves = [], cleanups = [];
   let tick;
   const persistent = [{ name: 'installed', version: '1.0.0', profile: 'web', state: 'pending' }];
-  const ctx = {
+  const samplingContext = {
     agents: { list: () => [{ id: 'session' }] },
     inject(services, callback) {
       if (services[0] === 'dynamicCordisRunner') callback({
@@ -51,14 +51,21 @@ test('心跳绑定启动 instance，并同时输出动态与持久插件摘要',
     },
     effect(fn) { cleanups.push(fn()); },
   };
+  const ctx = {
+    inject(services, callback) {
+      if (services[0] === 'agents') callback(samplingContext);
+    },
+  };
   const environment = { DSHA_WEB_GENERATION: 'web-generation', DSH_TASK_INSTANCE: 'launch-instance', DSHA_STARTUP_PROFILE: 'web' };
   const source = readFileSync(new URL('../app/src/main/assets/app-integration/index.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export const inject', 'const inject').replace('export function apply', 'function apply')
     .replaceAll('import.meta.url', JSON.stringify(import.meta.url));
   vm.runInNewContext(source + '\napply(ctx);', {
-    ctx, process: { env: environment, pid: 123 }, confirmedIdle: async () => true, runtimePlugins,
+    ctx, process: { env: environment, pid: 123 }, confirmedIdle: async context => {
+      assert.equal(context,samplingContext); return true;
+    }, runtimePlugins,
     installedPluginSampler(context, identity) {
-      assert.equal(context, ctx);
+      assert.equal(context, samplingContext);
       assert.deepEqual(JSON.parse(JSON.stringify(identity)), { generation: 'web-generation', instance: 'launch-instance', profile: 'web' });
       return () => persistent;
     },

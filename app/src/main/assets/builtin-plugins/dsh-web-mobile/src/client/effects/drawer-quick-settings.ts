@@ -75,6 +75,7 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
   let wrap: HTMLSpanElement | null = null
   let button: HTMLButtonElement | null = null
   let pending: number | null = null
+  let unsubscribeLocale: (() => void) | null = null
 
   const row = (): HTMLElement | null => {
     const frame = getFrame()
@@ -196,12 +197,24 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
     ensure: () => {
       const target = row()
       if (target === null) return
-      if (button === null || wrap === null) build()
+      if (button === null || wrap === null) {
+        build()
+        unsubscribeLocale?.()
+        // DSHA_MOBILE_LIVE_LOCALE_V1
+        unsubscribeLocale = ctx.locale.subscribe?.(() => {
+          if (button === null) return
+          const label = t('quickSettings')
+          button.setAttribute('aria-label', label)
+          button.title = label
+        }) ?? null
+      }
       if (wrap !== null && wrap.parentElement !== target) target.appendChild(wrap)
       syncMenuEntry(target)
     },
     dispose: () => {
       clearPending()
+      unsubscribeLocale?.()
+      unsubscribeLocale = null
       document.documentElement.removeAttribute('data-mobile-nav-quick')
       clearMenuEntry()
       wrap?.remove()

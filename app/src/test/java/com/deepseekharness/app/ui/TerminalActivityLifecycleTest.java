@@ -402,6 +402,215 @@ public class TerminalActivityLifecycleTest {
   }
 
   @Test
+  public void backgroundSimpleStateRefreshesSidebarWhilePtyPaneIsVisible() throws Exception {
+    var owner = TerminalSessionOwner.shared();
+    var opened = new java.util.concurrent.CountDownLatch(1);
+    var finish = new java.util.concurrent.CountDownLatch(1);
+    var tab = startFakeSimple(owner, opened, finish);
+    assertTrue(opened.await(2, java.util.concurrent.TimeUnit.SECONDS));
+    RuntimeEnvironment.getApplication()
+        .getSharedPreferences("deepseekharness", 0)
+        .edit()
+        .putBoolean(PtyTerminalFragment.KEY_PTY, true)
+        .apply();
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var failed = new java.util.concurrent.CountDownLatch(1);
+    Runnable observeFailure =
+        () -> {
+          if (tab.value.session.state()
+              == com.deepseekharness.app.util.TerminalSession.State.FAILED) failed.countDown();
+        };
+    owner.addSimpleStateObserver(observeFailure);
+    try {
+      Fragment pane =
+          host.get().getSupportFragmentManager().findFragmentById(R.id.terminal_content);
+      assertTrue(((FakePane) pane).isPty());
+      measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 400, 900);
+      host.get().findViewById(R.id.terminal_menu_ball).performClick();
+      View sessions = host.get().findViewById(R.id.terminal_sessions_panel);
+      assertTrue(
+          containsText(sessions, com.deepseekharness.app.util.UiText.choose("启动中", "Starting")));
+      finish.countDown();
+      assertTrue(failed.await(2, java.util.concurrent.TimeUnit.SECONDS));
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      assertTrue(
+          containsText(sessions, com.deepseekharness.app.util.UiText.choose("失败", "Failed")));
+    } finally {
+      finish.countDown();
+      owner.removeSimpleStateObserver(observeFailure);
+      host.pause().stop().destroy();
+      owner.closeSimple(tab.id, 2000);
+    }
+  }
+
+  @Test
+  public void endAllWaitsForCreationAndRechecksTheConfirmedSessionList() throws Exception {
+    var owner = TerminalSessionOwner.shared();
+    var opened = new java.util.concurrent.CountDownLatch(1);
+    var tab = startFakeSimple(owner, opened, new java.util.concurrent.CountDownLatch(0));
+    assertTrue(opened.await(2, java.util.concurrent.TimeUnit.SECONDS));
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket pending = null;
+    com.deepseekharness.app.util.TerminalTabs.Tab<TerminalSessionOwner.SimpleTab> later = null;
+    try {
+      measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 400, 900);
+      host.get().findViewById(R.id.terminal_menu_ball).performClick();
+      View button = host.get().findViewById(R.id.terminal_sessions_close_all);
+      assertTrue(button.isEnabled());
+
+      pending = prepareUnstartedPty(owner);
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      assertFalse(button.isEnabled());
+      assertTrue(
+          containsText(
+              host.get().findViewById(R.id.terminal_sessions_panel),
+              com.deepseekharness.app.util.UiText.choose(
+                  "终端会话正在创建，请稍后再结束全部。",
+                  "A terminal session is being created. Wait before ending all sessions.")));
+      enterUnpublishedPtyCreation(owner, pending);
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      assertEquals(1, owner.protectionSnapshot().creating);
+      assertFalse(button.isEnabled());
+      finishUnpublishedPtyCreation(owner, pending);
+      pending = null;
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      assertTrue(button.isEnabled());
+
+      button.performClick();
+      var dialog =
+          (androidx.appcompat.app.AlertDialog)
+              org.robolectric.shadows.ShadowDialog.getLatestDialog();
+      assertTrue(dialog.isShowing());
+      // A request accepted while the confirmation was open must not be left out.
+      pending = prepareUnstartedPty(owner);
+      enterUnpublishedPtyCreation(owner, pending);
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      assertNotNull(owner.simpleTabs().find(tab.id));
+      assertFalse(tab.isClosing());
+      assertEquals(1, owner.protectionSnapshot().creating);
+      finishUnpublishedPtyCreation(owner, pending);
+      pending = null;
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+
+      button.performClick();
+      dialog =
+          (androidx.appcompat.app.AlertDialog)
+              org.robolectric.shadows.ShadowDialog.getLatestDialog();
+      assertTrue(dialog.isShowing());
+      var laterOpened = new java.util.concurrent.CountDownLatch(1);
+      later = startFakeSimple(owner, laterOpened, new java.util.concurrent.CountDownLatch(0));
+      assertTrue(laterOpened.await(2, java.util.concurrent.TimeUnit.SECONDS));
+      dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      assertNotNull(owner.simpleTabs().find(tab.id));
+      assertNotNull(owner.simpleTabs().find(later.id));
+      assertFalse(tab.isClosing());
+      assertFalse(later.isClosing());
+      assertEquals(
+          com.deepseekharness.app.util.UiText.choose(
+              "会话列表已改变，请重新确认结束全部。",
+              "The session list changed. Confirm again before ending all sessions."),
+          org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+    } finally {
+      if (pending != null && !pending.cancel()) finishUnpublishedPtyCreation(owner, pending);
+      host.pause().stop().destroy();
+      owner.closeSimple(tab.id, 2000);
+      if (later != null) owner.closeSimple(later.id, 2000);
+    }
+  }
+
+  private static com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket prepareUnstartedPty(
+      TerminalSessionOwner owner) {
+    return owner
+        .protection()
+        .prepare(
+            owner.epoch(),
+            com.deepseekharness.app.core.TerminalRuntimeProtection.Kind.PTY,
+            new com.deepseekharness.app.core.TerminalRuntimeProtection.Admission() {
+              @Override
+              public void onReady(
+                  com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket ticket) {}
+
+              @Override
+              public void onRejected(
+                  com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket ticket,
+                  String reason) {}
+            });
+  }
+
+  private static void enterUnpublishedPtyCreation(
+      TerminalSessionOwner owner,
+      com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket ticket)
+      throws Exception {
+    assertTrue(owner.protection().promoted(ticket.id(), new Object(), () -> true));
+    owner
+        .protection()
+        .beginCreate(
+            ticket, owner.epoch(), com.deepseekharness.app.core.TerminalRuntimeProtection.Kind.PTY);
+  }
+
+  private static void finishUnpublishedPtyCreation(
+      TerminalSessionOwner owner,
+      com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket ticket)
+      throws Exception {
+    var finish =
+        com.deepseekharness.app.core.TerminalRuntimeProtection.class.getDeclaredMethod(
+            "finishCreate", com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket.class);
+    finish.setAccessible(true);
+    finish.invoke(owner.protection(), ticket);
+  }
+
+  private static com.deepseekharness.app.util.TerminalTabs.Tab<TerminalSessionOwner.SimpleTab>
+      startFakeSimple(
+          TerminalSessionOwner owner,
+          java.util.concurrent.CountDownLatch opened,
+          java.util.concurrent.CountDownLatch finish)
+          throws Exception {
+    var protection = owner.protection();
+    var ticket =
+        protection.prepare(
+            owner.epoch(),
+            com.deepseekharness.app.core.TerminalRuntimeProtection.Kind.SIMPLE,
+            new com.deepseekharness.app.core.TerminalRuntimeProtection.Admission() {
+              @Override
+              public void onReady(
+                  com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket t) {}
+
+              @Override
+              public void onRejected(
+                  com.deepseekharness.app.core.TerminalRuntimeProtection.Ticket t, String reason) {}
+            });
+    assertTrue(protection.promoted(ticket.id(), new Object(), () -> true));
+    return owner.createSimple(
+        ticket,
+        new com.deepseekharness.app.util.TerminalSession.Backend() {
+          @Override
+          public Process open() throws Exception {
+            opened.countDown();
+            if (!finish.await(5, java.util.concurrent.TimeUnit.SECONDS))
+              throw new java.io.IOException("fixture timed out");
+            throw new java.io.IOException("fixture did not start a process");
+          }
+
+          @Override
+          public void terminate(Process process, long group) {}
+        });
+  }
+
+  private static boolean containsText(View root, String expected) {
+    if (root instanceof android.widget.TextView
+        && expected.contentEquals(((android.widget.TextView) root).getText())) return true;
+    if (root instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) root;
+      for (int i = 0; i < group.getChildCount(); i++)
+        if (containsText(group.getChildAt(i), expected)) return true;
+    }
+    return false;
+  }
+
+  @Test
   public void sessionMenuControlsClickOnFirstTouchWithoutFocusDetour() {
     var host = Robolectric.buildActivity(Host.class).create().start().resume();
     measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 400, 900);

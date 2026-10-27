@@ -9,7 +9,6 @@ import { createRequire } from 'node:module';
 import { randomUUID, createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { testRuntime, requireNativeHost } from '../test-runtime-fixture.mjs';
-import { exerciseRemoteFileUI } from '../remote/companion/test-frontend.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const inputFiles = ['tools/file-transfer/test-host-browser.mjs', 'tools/file-transfer/client-controls.js', 'tools/file-transfer/file-transfer.js',
@@ -155,8 +154,7 @@ try {
   }
   assert.equal(observed.length, fixtures.length + destinationActions.length); assert(observed.every(row => row.status === 200));
   assert.deepEqual(failures, []); assert.deepEqual(errors, []);
-  await exerciseRemoteFileUI({ root, auth, home: workspace, output: base, version });
-  result = { status: 'PASS', version, engine, checks, destinationActions, remoteShareUI: 'PASS (native replies mocked)', prepareStatuses: observed.map(row => row.status), noPersistentSourceBlob: true, inputSha256,
+  result = { status: 'PASS', version, engine, checks, destinationActions, prepareStatuses: observed.map(row => row.status), noPersistentSourceBlob: true, inputSha256,
     realCli: true, realBrowserAuth: true, actualMobileAndIntegration: true, unauthorizedAndForeignOriginRejected: true, deviceValidation: false, failures, errors };
   console.log(JSON.stringify(result));
 } finally {

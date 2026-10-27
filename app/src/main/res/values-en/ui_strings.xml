@@ -3,6 +3,9 @@
     <string name="accessibility_desc" formatted="false">"Two purposes: (1) Read the pairing code from Android's Wireless debugging dialog, so you do not have to copy a code that expires after two minutes. (2) Let the AI assistant read the screen, tap, type, press keys and take screenshots (Android 11+), enabling device control without ADB or Shizuku.\n\nDSHA does not record your screen in the background. Screen contents are read only when the assistant explicitly requests them, returned to the current conversation. Ordinary requested screenshots are saved in the app screenshot folder; MCP screenshots are encoded in memory. DSHA does not upload screenshots independently; configured models and plugins may process returned results. Pairing codes are read only during the two minutes after you tap Auto-read pairing code."</string>
     <string name="accessibility_service_label" formatted="false">"DSHA Pairing Assistant"</string>
     <string name="adb_pairing_service_label" formatted="false">"Wireless ADB pairing"</string>
+    <string name="copy_text" formatted="false">"Copy"</string>
+    <string name="paste_text" formatted="false">"Paste"</string>
+    <string name="text_selection_more" formatted="false">"More…"</string>
     <string name="ui_m0001" formatted="false">"Download update"</string>
     <string name="ui_m0002" formatted="false">"Save settings"</string>
     <string name="ui_m0003" formatted="false">"Cancel check"</string>

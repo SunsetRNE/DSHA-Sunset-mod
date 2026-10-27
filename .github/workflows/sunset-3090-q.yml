@@ -161,7 +161,7 @@ jobs:
             --only test-sunset-plugin-release.py \
             --only test-generate-changelog.py \
             --only test-ui-language-catalog.py
-      # build195 起 Java 编译依赖固定 dsha-connect.aar；源码模式仍不准备 managed runtime 测试夹具。
+      # 固定输入仅用于后续完整 Standard 检查；源码模式不准备 managed runtime 测试夹具。
       - name: Restore pinned compilation inputs
         env:
           INPUT_URL: ${{ steps.inputs.outputs.url }}

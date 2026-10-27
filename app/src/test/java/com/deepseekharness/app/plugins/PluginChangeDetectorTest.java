@@ -16,9 +16,37 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.Implementation;
 
 /** 真实宿主临时目录与 inode；只替换 native 观察口和时钟，不需要手机或应用生命周期。 */
+@RunWith(RobolectricTestRunner.class)
+@Config(
+    sdk = 34,
+    manifest = Config.NONE,
+    application = android.app.Application.class,
+    instrumentedPackages = {"com.deepseekharness.app.plugins"},
+    shadows = {PluginChangeDetectorTest.HostStamp.class})
 public final class PluginChangeDetectorTest {
+  /** Adapt only the OS attribute call; all production traversal and observer logic still executes. */
+  @Implements(value = PluginChangeDetector.class, isInAndroidSdk = false, looseSignatures = true)
+  public static final class HostStamp {
+    @Implementation
+    protected static Object stamp(Path path) throws Exception {
+      var node = PluginHostFiles.stat(path.toFile());
+      if (node.type.equals("MISSING")) throw new java.nio.file.NoSuchFileException(path.toString());
+      var type = Class.forName(PluginChangeDetector.class.getName() + "$Stamp");
+      var constructor =
+          type.getDeclaredConstructor(boolean.class, boolean.class, long.class, Object.class);
+      constructor.setAccessible(true);
+      return constructor.newInstance(
+          node.type.equals("DIRECTORY"), node.type.equals("LINK"), node.device, node.key);
+    }
+  }
+
   @Rule public TemporaryFolder temporary = new TemporaryFolder();
   private ManualWorker worker;
   private FakeObservers nativeObservers;
@@ -38,9 +66,13 @@ public final class PluginChangeDetectorTest {
 
   @After
   public void cleanup() {
-    detector.close();
-    worker.runDue();
-    assertEquals(0, nativeObservers.active());
+    try {
+      detector.close();
+      worker.runDue();
+      assertEquals(0, nativeObservers.active());
+    } finally {
+      PluginHostFiles.close();
+    }
   }
 
   private PluginChangeDetector detector(PluginChangeDetector.Limits limits) {
@@ -299,8 +331,8 @@ public final class PluginChangeDetectorTest {
     Path plugins = Files.createDirectories(root.resolve("plugins"));
     Path outside = temporary.newFolder("external").toPath();
     Path externalDeep = Files.createDirectories(outside.resolve("private/deep"));
-    Files.createSymbolicLink(plugins.resolve("external"), outside);
-    Files.createSymbolicLink(plugins.resolve("cycle"), plugins);
+    PluginHostFiles.symlink(plugins.resolve("external"), outside);
+    PluginHostFiles.symlink(plugins.resolve("cycle"), plugins);
     bind(path(plugins, PluginChangeDetector.Kind.CONTENT, true));
     assertNull(nativeObservers.latest(externalDeep));
     assertNull(nativeObservers.latest(plugins.resolve("external")));
@@ -312,7 +344,7 @@ public final class PluginChangeDetectorTest {
   public void symlinkInRequestedParentChainIsRejectedAndReported() throws Exception {
     Path outside = temporary.newFolder("external").toPath();
     Files.createDirectories(outside.resolve("plugins"));
-    Files.createSymbolicLink(root.resolve("alias"), outside);
+    PluginHostFiles.symlink(root.resolve("alias"), outside);
     bind(path(root.resolve("alias/plugins"), PluginChangeDetector.Kind.CONTENT, true));
     assertEquals(1, nativeObservers.active());
     assertTrue(detector.coverageLimited());

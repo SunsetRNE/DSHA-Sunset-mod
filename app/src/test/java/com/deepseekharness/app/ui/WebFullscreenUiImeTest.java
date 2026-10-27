@@ -130,6 +130,61 @@ public final class WebFullscreenUiImeTest {
     assertTrue(ViewCompat.dispatchApplyWindowInsets(content, insets(keyboard)).isConsumed());
   }
 
+  @Test
+  public void browserContentStartsAfterOneMaximumStatusCutoutCaptionInset() {
+    View browser = new View(host.get());
+    content.addView(browser, new FrameLayout.LayoutParams(-1, -1));
+    WindowInsetsCompat top =
+        new WindowInsetsCompat.Builder(insets(0))
+            .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, 38, 0, 0))
+            .setInsetsIgnoringVisibility(
+                WindowInsetsCompat.Type.statusBars(), Insets.of(0, 38, 0, 0))
+            .setInsets(WindowInsetsCompat.Type.displayCutout(), Insets.of(3, 44, 5, 0))
+            .setInsetsIgnoringVisibility(
+                WindowInsetsCompat.Type.displayCutout(), Insets.of(3, 44, 5, 0))
+            .build();
+    assertTrue(ViewCompat.dispatchApplyWindowInsets(content, top).isConsumed());
+    // Repeated dispatch does not add bar+cutout+caption or preserve old padding.
+    assertTrue(ViewCompat.dispatchApplyWindowInsets(content, top).isConsumed());
+    content.measure(
+        View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY));
+    content.layout(0, 0, 400, 800);
+    assertEquals(44, browser.getTop());
+    assertEquals(3, browser.getLeft());
+    assertEquals(786, browser.getBottom());
+    assertEquals(44, content.getPaddingTop());
+  }
+
+  @Test
+  public void rotationMovesCutoutToSideWithoutRetainingPortraitTopSpace() {
+    apply(0);
+    View browser = new View(host.get());
+    content.addView(browser, new FrameLayout.LayoutParams(-1, -1));
+    WindowInsetsCompat landscape =
+        new WindowInsetsCompat.Builder()
+            .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, 24, 0, 0))
+            .setInsetsIgnoringVisibility(
+                WindowInsetsCompat.Type.statusBars(), Insets.of(0, 24, 0, 0))
+            .setInsets(WindowInsetsCompat.Type.displayCutout(), Insets.of(44, 0, 0, 0))
+            .setInsetsIgnoringVisibility(
+                WindowInsetsCompat.Type.displayCutout(), Insets.of(44, 0, 0, 0))
+            .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, 14))
+            .setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE)
+            .build();
+    content.layout(0, 0, 800, 400);
+    assertTrue(ViewCompat.dispatchApplyWindowInsets(content, landscape).isConsumed());
+    content.measure(
+        View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY));
+    content.layout(0, 0, 800, 400);
+    assertEquals(24, browser.getTop());
+    assertEquals(44, browser.getLeft());
+    assertEquals(800, browser.getRight());
+    assertEquals(386, browser.getBottom());
+    assertEquals(24, content.getPaddingTop());
+  }
+
   private WindowInsetsAnimationCompat prepare() {
     WindowInsetsAnimationCompat animation =
         new WindowInsetsAnimationCompat(WindowInsetsCompat.Type.ime(), null, 250);

@@ -11,11 +11,15 @@
     <string name="build190_auto_port" formatted="false">"Portum Web automatice assigna (commendatum)"</string>
     <string name="build190_restore_port_drafts" formatted="false">"Rudimenta portus prioris restitue"</string>
     <string name="computer_use_title" formatted="false">"Moderatio veli"</string>
+    <string name="copy_text" formatted="false">"Exscribe"</string>
     <string name="device_checking" formatted="false">"Auctoritas verificatur…"</string>
     <string name="device_open_access" formatted="false">"Aditum ad fasciculos administra"</string>
     <string name="dns_auto" formatted="false">"Compatibilitas automatica (commendata)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilitas DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Resolutio nativa duplicis ordinis"</string>
+    <string name="paste_text" formatted="false">"Insere"</string>
+    <string name="phone_assistant" formatted="false">"Adiutor supernatans"</string>
+    <string name="phone_assistant_detail" formatted="false">"Veram sessionem DSH in hoc telephono elige ad colloquium supernatans et moderamina morae."</string>
     <string name="picture_in_picture_allowed" formatted="false">"A systemate permissum; colloquium in fenestella manet cum ad Domum is aut applicationes mutas."</string>
     <string name="picture_in_picture_disabled" formatted="false">"A systemate inactivum; nulla fenestella in recessu apparet. Tange ad mutandum."</string>
     <string name="picture_in_picture_enable" formatted="false">"Colloquium in imagine intra imaginem activa"</string>
@@ -30,57 +34,7 @@
     <string name="plugin_sort_title" formatted="false">"Additamenta ordina"</string>
     <string name="plugin_sort_updates" formatted="false">"Renovationes priores"</string>
     <string name="plugin_sort_za" formatted="false">"Nomen Z–A"</string>
-    <string name="remote_assistant" formatted="false">"Adiutor supernatans"</string>
-    <string name="remote_assistant_detail" formatted="false">"Veram sessionem DSH in hoc telephono aut computatro conexo elige ad colloquium supernatans et moderamina morae."</string>
-    <string name="remote_back" formatted="false">"Ad spatia laboris redi"</string>
-    <string name="remote_camera_unavailable" formatted="false">"Camera non praesto. Redi et codicem copulationis insere."</string>
-    <string name="remote_cancel" formatted="false">"Interrumpe"</string>
-    <string name="remote_checking_trust" formatted="false">"Fides computatri in hoc telephono verificatur…"</string>
-    <string name="remote_code_hint" formatted="false">"Codicem copulationis integrum insere (dsha-connect://pair?ticket=…)"</string>
-    <string name="remote_code_invalid" formatted="false">"Codex copulationis invalidus aut exspiratus. Eum in computatro tuo renova et iterum tempta."</string>
-    <string name="remote_computers" formatted="false">"Spatia laboris computatrorum"</string>
-    <string name="remote_connect" formatted="false">"Computatrum conecte"</string>
-    <string name="remote_disconnect" formatted="false">"Sessionem remotam disiunge"</string>
-    <string name="remote_endpoint_count" formatted="false">"%1$d inscriptiones conexionis memoria retentae"</string>
-    <string name="remote_error" formatted="false">"Operatio imperfecta est. Iterum tempta. Operationes negotiorum numquam automatice repetuntur."</string>
-    <string name="remote_grant" formatted="false">"Fide et copula"</string>
-    <string name="remote_grant_body" formatted="false">"Computatrum: %1$s\nIdentitas: %2$s\n\nHoc computatrum memoria tene, ad colloquia DSH et fasciculos eius conecte, et facultates adiutoris telephoni quas concessisti permitte. Facultates systematis Android adhuc approbationem separatam requirunt. Fidem in Spatiis laboris revocare potes.\n\nContinua solum si hunc codicem in tuo ipsius computatro generavisti."</string>
-    <string name="remote_grant_title" formatted="false">"Huic computatro fidere?"</string>
-    <string name="remote_latency" formatted="false">"Mora itineris et reditus: %1$d ms"</string>
-    <string name="remote_latency_unknown" formatted="false">"Mora itineris et reditus: nondum mensa"</string>
-    <string name="remote_local_detail" formatted="false">"DSH in hoc telephono cum colloquiis et fasciculis localibus exsequere."</string>
-    <string name="remote_local_phone" formatted="false">"Hoc telephonum"</string>
-    <string name="remote_manual_instead" formatted="false">"Potius codice copulationis utere"</string>
-    <string name="remote_no_computers" formatted="false">"Nulla computatra adhuc copulata. Semel copula ut computatrum tuum memoria teneatur. Fidem quovis tempore revocare potes."</string>
-    <string name="remote_open_local" formatted="false">"Spatium laboris telephoni aperi"</string>
-    <string name="remote_open_pc" formatted="false">"Colloquia computatri aperi"</string>
-    <string name="remote_pair_computer" formatted="false">"Computatrum copula"</string>
-    <string name="remote_pair_instructions" formatted="false">"DSHA Connect in DSH computatri tui activa et codicem QR copulationis eius ostende. Eum lege aut codicem copulationis integrum ibi ostensum insere. Codex mox exspirat; privatum tene. Si computatrum iam copulatum rete aut inscriptiones mutat, codicem QR «Inscriptiones conexionis renova» eius lege."</string>
-    <string name="remote_pair_started" formatted="false">"Copulatio verificatur. Fides computatri solum post successum servatur."</string>
-    <string name="remote_path_direct" formatted="false">"Via: directa"</string>
-    <string name="remote_path_relay" formatted="false">"Via: translatio cryptata"</string>
-    <string name="remote_path_unknown" formatted="false">"Via: mensuram exspectat"</string>
-    <string name="remote_refresh_body" formatted="false">"Computatrum: %1$s\nIdentitas: %2$s\nNovae inscriptiones conexionis: %3$d\n\nInscriptiones renova solum post identitatem computatri fixam, clavem conexionis exsistentem et processum praesentem verificatos. Concessiones exsistentes retine. Defectio verificationis acta vetera immutata relinquit."</string>
-    <string name="remote_refresh_connect" formatted="false">"Inscriptiones verifica et conecte"</string>
-    <string name="remote_refresh_required" formatted="false">"Hoc computatrum iam copulatum est. Codicem QR «Inscriptiones conexionis renova» eius ostende. Fides exsistens servatur."</string>
-    <string name="remote_refresh_started" formatted="false">"Computatrum et novae inscriptiones verificantur. Acta conexionis solum post successum renovantur."</string>
-    <string name="remote_refresh_title" formatted="false">"Inscriptiones computatri renova"</string>
-    <string name="remote_refresh_unknown" formatted="false">"Hoc computatrum nondum fidum est. Primum codicem QR copulationis eius ostende."</string>
-    <string name="remote_review_pair" formatted="false">"Recense et copula"</string>
-    <string name="remote_revocation_body" formatted="false">"Revocatio %1$s conexionem et concessiones eius praesentes finit. Rursus copula ad reconectendum. Fasciculi et colloquia computatri servantur."</string>
-    <string name="remote_revocation_title" formatted="false">"Fidem computatri revocare?"</string>
-    <string name="remote_revoke" formatted="false">"Hoc computatrum revoca"</string>
-    <string name="remote_scan_instructions" formatted="false">"QR copulationis in DSH computatri tui ostensum lege. Imagines camerae in hoc telephono decodificantur."</string>
-    <string name="remote_scan_qr" formatted="false">"Codicem QR computatri lege"</string>
-    <string name="remote_state_connected" formatted="false">"Conexio computatri authentificata"</string>
-    <string name="remote_state_connecting" formatted="false">"Conectitur et identitas computatri verificatur…"</string>
-    <string name="remote_state_disconnected" formatted="false">"Conexio interrupta. Reconecte cum paratus sis; operationes negotiorum non rursus mittentur."</string>
-    <string name="remote_state_failed" formatted="false">"Conexio imperfecta. DSH computatri et rete verifica, deinde iterum tempta."</string>
-    <string name="remote_state_reconnecting" formatted="false">"Conexio interrupta. Reconectitur et intra spatium temporis limitatum verificatur. Operationes negotiorum non rursus mittentur."</string>
-    <string name="remote_state_stopped" formatted="false">"Conexio remota constitit"</string>
-    <string name="remote_trust_unavailable" formatted="false">"Acta fidei computatri legi non potuerunt. Acta exsistentia servata sunt."</string>
-    <string name="remote_workspace_intro" formatted="false">"Telephonum et computatrum tuum colloquia, fasciculos et optiones separata retinent. Spatium laboris computatri ambitum Ubuntu in hoc telephono non requirit."</string>
-    <string name="remote_workspaces" formatted="false">"Spatium laboris"</string>
+    <string name="text_selection_more" formatted="false">"Plura…"</string>
     <string name="ui134_adb_hint" formatted="false">"Android 11+: depurationem sine filo in eodem Wi-Fi copula. Root non requiritur. Post mutationes retis verifica aut rursus copula."</string>
     <string name="ui134_candidate" formatted="false">"Editionem candidati vide"</string>
     <string name="ui134_candidate_sub" formatted="false">"Notae editionis, magnitudo et installatio"</string>

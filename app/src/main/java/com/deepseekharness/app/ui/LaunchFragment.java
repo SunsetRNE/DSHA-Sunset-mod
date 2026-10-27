@@ -31,9 +31,6 @@ public class LaunchFragment extends Fragment {
   /** 通知点击进入时带上的参数：Web 就绪后自动打开会话。 */
   public static final String ARG_OPEN_WEB = "open_web";
 
-  /** Main can offer computer pairing before the user installs the phone runtime. */
-  public static final String ARG_PREPARE_LOCAL = "prepare_local";
-
   private HarnessController controller;
   private TextView lanAddrText;
   private TextView launchLog;
@@ -105,47 +102,6 @@ public class LaunchFragment extends Fragment {
             UiText.choose("打开本机终端，直接处理文件与命令", "Open the local terminal for files and commands"));
     ((TextView) v.findViewById(R.id.launch_environment_row))
         .setText(UiText.choose("运行环境 · 检查与维护", "Runtime environment · inspect and repair"));
-
-    ((TextView) v.findViewById(R.id.launch_workspaces))
-        .setText(com.deepseekharness.app.util.UiText.choose("电脑工作区", "Computer workspaces"));
-    ((TextView) v.findViewById(R.id.launch_workspaces_detail))
-        .setText(
-            com.deepseekharness.app.util.UiText.choose(
-                "配对电脑，使用电脑上的 DSH；无需安装手机环境。",
-                "Pair a computer and use its DSH. Phone runtime setup is optional."));
-    v.findViewById(R.id.launch_workspaces)
-        .setOnClickListener(
-            x -> com.deepseekharness.app.remote.ui.WorkspaceActivity.open(requireContext()));
-    if (getArguments() != null && getArguments().getBoolean(ARG_PREPARE_LOCAL, false)) {
-      ((TextView) v.findViewById(R.id.launch_run_state))
-          .setText(
-              com.deepseekharness.app.util.UiText.choose("手机环境尚未准备", "Phone runtime not set up"));
-      ((TextView) v.findViewById(R.id.launch_subtitle))
-          .setText(
-              com.deepseekharness.app.util.UiText.choose(
-                  "在手机运行 DSH 时再准备环境，也可直接连接电脑。",
-                  "Set up DSH to run on this phone, or connect a computer below."));
-      ((Button) v.findViewById(R.id.launch_start))
-          .setText(com.deepseekharness.app.util.UiText.choose("准备手机环境", "Set up phone runtime"));
-      v.findViewById(R.id.launch_start)
-          .setOnClickListener(
-              x ->
-                  startActivity(
-                      com.deepseekharness.app.remote.ui.WorkspaceEntry.local(requireContext())));
-      ((TextView) v.findViewById(R.id.launch_eyebrow))
-          .setText(UiText.choose("本机工作台 · 首次准备", "Local workspace · first-time setup"));
-      if (activityTrack != null) activityTrack.setState(ShellActivityTrack.IDLE);
-      for (int id :
-          new int[] {
-            R.id.launch_status,
-            R.id.launch_controls,
-            R.id.launch_metrics,
-            R.id.launch_shortcuts_title,
-            R.id.launch_shortcuts,
-            R.id.launch_log_panel
-          }) v.findViewById(id).setVisibility(View.GONE);
-      return v;
-    }
 
     controller = HarnessController.get(requireContext());
     final Activity activity = requireActivity();
@@ -305,9 +261,9 @@ public class LaunchFragment extends Fragment {
    * <p>页面不可见时由 {@code onPause} 清掉，避免用户回来时被意外带走。
    */
   void requestAutoEnterWeb() {
-    if (controller == null) return;
+    // Main 的入口检查可能仍挂起恢复页视图；先保留明确请求，创建视图后再等待鉴权。
     pendingAutoEnter = true;
-    if (getView() != null) ui.post(refreshState);
+    if (controller != null && getView() != null) ui.post(refreshState);
   }
 
   /** 打开 WebPreviewActivity 进入 dsh WebUI。 */

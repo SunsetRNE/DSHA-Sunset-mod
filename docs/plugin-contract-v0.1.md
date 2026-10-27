@@ -1,6 +1,6 @@
 # DSHA 插件参考约定 v0.1
 
-这是一份插件作者参考，不是新 SDK、加载器或权限系统。当前 DSH 仍加载 Node/Cordis 包；已有插件继续使用现有包格式，无须改写。本文以随包 DSH `0.2.1-rc.3` 的源码为基线，新增 `dsha` 元数据和目录分工均为**可选建议**；当前安装器不会据此创建 venv、安装依赖或授予能力。真实 PC 连接组件另有实现，不能由本文推导连接、配对或设备操作已经完成。
+这是一份插件作者参考，不是新 SDK、加载器或权限系统。当前 DSH 仍加载 Node/Cordis 包；已有插件继续使用现有包格式，无须改写。本文以随包 DSH `0.2.1-rc.3` 的源码为基线，新增 `dsha` 元数据和目录分工均为**可选建议**；当前安装器不会据此创建 venv、安装依赖或授予能力。本文描述本机插件扩展，不提供电脑连接或配对协议。
 
 ## 当前可用的包契约
 
@@ -22,7 +22,7 @@
 
 手机中的 Ubuntu 是共享 Linux arm64/glibc 用户空间。Node 插件直接按现有机制加载；需要 Python 的插件保留薄 Node/Cordis 入口，由它启动自己的 Python worker。Python 源码不是另一种可直接导入的 DSH 插件类型。
 
-Python 插件共用基础 Python，但各自使用独立 `venv` 和依赖锁。创建前实际检查 `python3 -m venv` 及所需构建工具，缺失时报告具体前提，不把基础 Python 就绪当作所有扩展模块齐备。venv 防止依赖版本互相覆盖，不隔离文件、进程或秘密，也不把 proot/proroot 变成强沙箱。不要在插件安装时全局升级 Python 包或覆盖随包 Node/DSH。Android arm64 的 wheel、外部命令及 ABI 要逐项核对；Windows PC 使用自己的运行环境，不能复制手机 venv 或 Linux 原生模块过去运行。
+Python 插件共用基础 Python，但各自使用独立 `venv` 和依赖锁。创建前实际检查 `python3 -m venv` 及所需构建工具，缺失时报告具体前提，不把基础 Python 就绪当作所有扩展模块齐备。venv 防止依赖版本互相覆盖，不隔离文件、进程或秘密，也不把 proot/proroot 变成强沙箱。不要在插件安装时全局升级 Python 包或覆盖随包 Node/DSH。Android arm64 的 wheel、外部命令及 ABI 要逐项核对；跨平台使用须重建对应环境，不能直接复用手机 venv 或 Linux 原生模块。
 
 工具型 worker 可以沿用现有 MCP stdio 适配器，参照[虚拟屏插件](../app/src/main/assets/builtin-plugins/dsh-tool-vscreen/lib/index.js)；它仍需真实 MCP server、匹配的 peer dependency 和明确的启动/调用失败处理。普通 worker 也可使用插件自有的有界 stdin/stdout 协议；协议名称不能冒充宿主已经支持的接口。
 
@@ -79,7 +79,7 @@ Python 插件共用基础 Python，但各自使用独立 `venv` 和依赖锁。�
 | 能声明需求、仍需授权 | 读屏、截图、输入、通知、麦克风、定位、传感器、文件分享；分别核对 Android 权限、用户策略、前台条件、目标、运行代次和最新帧。ADB、Root、Shizuku 另需真实系统能力 |
 | 不保证 | 插件间秘密隔离、任意代码强沙箱、guest root 等于 Android root、所有 wheel/原生二进制兼容、任意 PC 程序可在手机运行、后台永久存活、Python直接加载、无限传输或通用热加载 |
 
-本机桥端口由安装实例发现，当前优先 3090、占用时 3091–3099；不能永远缓存 3090。参考随包[端口读取器](../app/src/main/assets/builtin-plugins/dsh-device-shell-guide/lib/bridge-port.cjs)，再以当前 `/app/version`、`/app/help` 核对协议和端点。凭据仅按当前 `X-Token` 机制传递，不放进 URL、argv、网页全局变量或报告。PC 配对身份与本机桥凭据属于不同域，不能转发本机 token 给远端。
+本机桥端口由安装实例发现，当前优先 3090、占用时 3091–3099；不能永远缓存 3090。参考随包[端口读取器](../app/src/main/assets/builtin-plugins/dsh-device-shell-guide/lib/bridge-port.cjs)，再以当前 `/app/version`、`/app/help` 核对协议和端点。凭据仅按当前 `X-Token` 机制传递，不放进 URL、argv、网页全局变量或报告。本机桥凭据只用于当前安装的本机桥，不作为插件自有外部服务的凭据。
 
 声明能力不会批准操作。“全部允许”只影响对应 DSHA 确认域，不取消系统能力、目标、帧/节点身份和代次核验。权限撤销、owner切换、连接断开或会话停止后，旧请求必须失效。收到 `UNKNOWN`/`EXECUTION_UNKNOWN` 时先观察实际状态，不换通道或自动重放写操作。
 
@@ -178,53 +178,6 @@ export async function apply(ctx) {
 ```
 
 `timeout`/abort 是健康检查的取消手段，不证明任意业务或派生进程树已经停止。生产 worker 必须有自己的关闭协议、请求ID、期限、输出上限和退出证据；不能将启动失败写成 ready，不能在未知结果后自动重跑业务。需要持久状态时显式选用插件数据目录，不能写回源码或 venv。
-
-## 示例三：PC connector 插件
-
-PC 端仍以 Node/Cordis bundle 进入 DSH；独立连接进程拥有配对、设备身份和连接生命周期，插件负责把当前 DSH 与工具接入它。手机连接远端不等于启动本机 Ubuntu，也不等于向 PC 开放任意本机桥请求。
-
-```json
-{
-  "name": "dsh-example-pc-connector",
-  "version": "0.1.0",
-  "type": "module",
-  "main": "index.js",
-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
-  "peerDependencies": { "@deepseek-ai/dsh-tools": "0.2.1-rc.3" },
-  "dsha": {
-    "schema": 1,
-    "platforms": ["win32-x64"],
-    "capabilities": { "required": ["remote.connection"], "optional": ["android.screen.input"] }
-  }
-}
-```
-
-该 manifest 示意声明边界，`dsha` 仍是提案。其 `cordis.patch.yml` 与示例一同形。`index.js` 可以沿用生产连接组件的 `client.js`，只注册一个实际状态工具：
-
-```js
-import { defineTool } from '@deepseek-ai/dsh-tools';
-import { createClient } from './client.js';
-export const name = 'dsh-example-pc-connector';
-export const inject = ['tools'];
-export function apply(ctx, config = {}) {
-  const request = createClient({ ipcPath: config.ipcPath });
-  ctx.tools.register(defineTool({
-    name: 'dsha_example_phone_status',
-    description: '读取已配对手机的实际远程任务状态。',
-    parameters: {}, timeoutMs: 35000,
-    output: { schema: { type: 'json' }, render: (_args, result) => [
-      { type: 'text', text: JSON.stringify(result) }
-    ] },
-    execute: (_args, exec) => request('status', {}, exec.signal)
-  }));
-}
-```
-
-`client.js` 是本仓库 `tools/remote/dsh-plugin/client.js` 的实际 IPC 客户端，不是新的通用 SDK。它从当前用户私有状态读取 companion 地址和 Bearer，检查 loopback 目标及请求/响应身份；凭据不写入插件 manifest。不要用本文的 capability 标签猜测 HTTP 端点。PC 和手机在握手时应核对协议版本、双方身份、连接 epoch、当前 DSH 实例及能力；工具请求带会话、requestId、期限和观察身份，执行状态明确区分未派发、已完成和未知。
-
-连接进程停止、撤销配对或 DSH 退出时分别收敛对应资源；任务结束不能借此结束整台 PC 的连接，也不能把“已连接”显示成“DSH就绪”。恢复传输不自动重放消息、输入或手机操作。远程 HTML/HTTP/WebSocket/附件各有实际边界，网页可访问不证明手机设备授权可用；中继不能代替端点身份认证。
-
-本仓库 PC 生产示例以 `tools/remote/dsh-plugin/` 和 `tools/remote/companion/` 的实际实现、随包说明与测试为准；本文不另造一套 SDK 或平行协议。具体已实现的配对、传输和工具范围须按 build195 交付回执确认，不能只用此 manifest 当作通过证据。
 
 ## 作者交付检查
 

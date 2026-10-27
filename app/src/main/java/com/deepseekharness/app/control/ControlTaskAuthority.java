@@ -7,8 +7,7 @@ import java.util.Map;
 /** One physical screen owner. Every transition fences queued work before cancellation callbacks. */
 public final class ControlTaskAuthority {
   public enum Owner {
-    LOCAL_DSH,
-    REMOTE_DEVICE
+    LOCAL_DSH
   }
 
   public record Binding(Owner owner, String connection, String taskSessionId, String turnId) {
@@ -37,24 +36,20 @@ public final class ControlTaskAuthority {
   private Binding binding;
   private long revision;
   private boolean paused, needsObservation = true;
+  private com.deepseekharness.app.util.ScreenTarget observedTarget;
+  private long observationSequence;
   private String reason = "IDLE";
   // Local Agent turn numbers are monotonic within a full conversation. Keep
   // completion watermarks so a delayed old request cannot reacquire the screen.
   private final Map<String, Long> completedLocalTurns = new HashMap<>();
-  private final java.util.Set<String> completedRemoteTasks = new java.util.HashSet<>();
 
   public synchronized void checkBegin(Binding requested) {
-    if (requested.owner() == Owner.REMOTE_DEVICE
-        && completedRemoteTasks.contains(requested.identity()))
+    long turn = localTurn(requested.turnId());
+    String key = localKey(requested);
+    if (turn <= completedLocalTurns.getOrDefault(key, 0L))
       throw new IllegalStateException("SCREEN_TURN_ENDED");
-    if (requested.owner() == Owner.LOCAL_DSH) {
-      long turn = localTurn(requested.turnId());
-      String key = localKey(requested);
-      if (turn <= completedLocalTurns.getOrDefault(key, 0L))
-        throw new IllegalStateException("SCREEN_TURN_ENDED");
-      if (!completedLocalTurns.containsKey(key) && completedLocalTurns.size() >= 4096)
-        throw new IllegalStateException("CONTROL_SESSION_LIMIT");
-    }
+    if (!completedLocalTurns.containsKey(key) && completedLocalTurns.size() >= 4096)
+      throw new IllegalStateException("CONTROL_SESSION_LIMIT");
     if (paused) throw new IllegalStateException("SCREEN_CONTROL_PAUSED");
     if (binding != null && !binding.equals(requested))
       throw new IllegalStateException("PHYSICAL_SCREEN_BUSY");
@@ -62,11 +57,9 @@ public final class ControlTaskAuthority {
 
   public synchronized Lease begin(Binding requested) {
     checkBegin(requested);
-    if (requested.owner() == Owner.LOCAL_DSH) {
-      // Reserve before accepting work, so unrelated ended conversations cannot
-      // fill the bound and prevent this turn's retirement.
-      completedLocalTurns.putIfAbsent(localKey(requested), 0L);
-    }
+    // Reserve before accepting work, so unrelated ended conversations cannot
+    // fill the bound and prevent this turn's retirement.
+    completedLocalTurns.putIfAbsent(localKey(requested), 0L);
     if (binding == null) {
       binding = requested;
       revision++;
@@ -91,8 +84,6 @@ public final class ControlTaskAuthority {
 
   /** An exact actual turn/end; never cancels another conversation or a newer turn. */
   public synchronized boolean completeLocal(Binding ended) {
-    if (ended.owner() != Owner.LOCAL_DSH)
-      throw new IllegalArgumentException("CONTROL_OWNER_INVALID");
     long turn = localTurn(ended.turnId());
     String key = localKey(ended);
     // Bound hostile/invalid traffic without evicting a live completion fence.
@@ -100,7 +91,6 @@ public final class ControlTaskAuthority {
       throw new IllegalStateException("CONTROL_SESSION_LIMIT");
     completedLocalTurns.merge(key, turn, Math::max);
     if (binding == null
-        || binding.owner() != Owner.LOCAL_DSH
         || !binding.connection().equals(ended.connection())
         || !binding.taskSessionId().equals(ended.taskSessionId())
         || localTurn(binding.turnId()) > turn) return false;
@@ -108,20 +98,6 @@ public final class ControlTaskAuthority {
     needsObservation = true;
     revision++;
     if (!paused) reason = "LOCAL_TURN_ENDED";
-    return true;
-  }
-
-  /** Explicit completion fences this task without sending an Agent cancellation. */
-  public synchronized boolean finish(Binding ended) {
-    if (ended.owner() == Owner.LOCAL_DSH) return completeLocal(ended);
-    if (!ended.equals(binding)) return false;
-    if (completedRemoteTasks.size() >= 4096)
-      throw new IllegalStateException("CONTROL_SESSION_LIMIT");
-    completedRemoteTasks.add(ended.identity());
-    binding = null;
-    needsObservation = true;
-    revision++;
-    if (!paused) reason = "REMOTE_TASK_ENDED";
     return true;
   }
 
@@ -145,9 +121,51 @@ public final class ControlTaskAuthority {
 
   public synchronized boolean observed(Lease lease) {
     if (!current(lease)) return false;
+    observedTarget = null;
     needsObservation = false;
     reason = "ACTIVE";
     return true;
+  }
+
+  /** Invalidate prior evidence before a new observation starts, including on failure. */
+  public synchronized long beginObservation(Lease lease) {
+    if (!current(lease)) return -1;
+    needsObservation = true;
+    observedTarget = null;
+    reason = "OBSERVE_REQUIRED";
+    return ++observationSequence;
+  }
+
+  /** Only the most recently requested observation can establish an action target. */
+  public synchronized boolean observed(
+      Lease lease, long sequence, com.deepseekharness.app.util.ScreenTarget target) {
+    if (!current(lease)
+        || sequence != observationSequence
+        || target == null
+        || target.displayId != 0
+        || target.windowId < 0
+        || target.packageName.isEmpty()) return false;
+    observedTarget = target;
+    needsObservation = false;
+    reason = "ACTIVE";
+    return true;
+  }
+
+  public synchronized boolean actionAllowed(
+      Lease lease, com.deepseekharness.app.util.ScreenTarget target) {
+    return actionAllowed(lease) && observedTarget != null && observedTarget.matches(target);
+  }
+
+  /** A changed target consumes prior evidence; returning to it still requires a fresh read. */
+  public synchronized boolean checkActionTarget(
+      Lease lease, com.deepseekharness.app.util.ScreenTarget target) {
+    if (actionAllowed(lease, target)) return true;
+    if (current(lease)) {
+      needsObservation = true;
+      observedTarget = null;
+      reason = "OBSERVE_REQUIRED";
+    }
+    return false;
   }
 
   /** Changing an owned window invalidates pixels/nodes without cancelling or resuming the task. */

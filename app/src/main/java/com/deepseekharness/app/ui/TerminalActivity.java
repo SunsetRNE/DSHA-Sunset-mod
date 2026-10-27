@@ -73,6 +73,14 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private String closeAllNotice = "";
   private Runnable closeAllWatchdog;
   private final Runnable protectionChanged = () -> runOnUiThread(this::onTerminalPaneChanged);
+  private final Runnable simpleStateChanged =
+      () ->
+          runOnUiThread(
+              () -> {
+                if (getLifecycle()
+                    .getCurrentState()
+                    .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) onTerminalPaneChanged();
+              });
 
   @Override
   protected void onCreate(@Nullable Bundle saved) {
@@ -602,7 +610,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     icon.setImageTintList(primaryText);
     icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     row.addView(icon, new LinearLayout.LayoutParams(dp(20), dp(20)));
-    createLabel = panelText(UiText.choose("新建会话", "New session"), 14, 0, true);
+    createLabel = panelText(UiText.choose("新建终端会话", "New terminal session"), 14, 0, true);
     createLabel.setTextColor(primaryText);
     LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(-2, -2);
     labelParams.setMarginStart(dp(8));
@@ -774,7 +782,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (id == R.id.terminal_sessions_action_display_dense) return UiText.choose("显示", "Display");
     if (id == R.id.terminal_sessions_action_keyboard_dense) return UiText.choose("键盘", "Keyboard");
     if (id == R.id.terminal_sessions_action_paste_dense) return UiText.choose("粘贴", "Paste");
-    if (id == R.id.terminal_sessions_action_focus_dense) return UiText.choose("输入", "Input");
+    if (id == R.id.terminal_sessions_action_focus_dense) return UiText.choose("聚焦输入", "Focus");
     if (id == R.id.terminal_sessions_action_help_dense) return UiText.choose("说明", "Help");
     return "";
   }
@@ -1164,7 +1172,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     };
     panel =
         new DshaDialogBuilder(this)
-            .setTitle(UiText.choose("新建会话", "New session"))
+            .setTitle(UiText.choose("新建终端会话", "New terminal session"))
             .setItems(
                 choices,
                 (dialog, index) -> {
@@ -1435,11 +1443,15 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
    * 维护流程仍使用其原有的 fail-fast closeAll，不与此入口混用。
    */
   private void confirmCloseAll() {
-    if (closeAllRunning) return;
+    if (closeAllRunning || refuseCloseAllWhileCreating()) return;
     var ptyTabs = owner.ptyTabs().snapshot();
     var simpleTabs = owner.simpleTabs().snapshot();
     int total = ptyTabs.size() + simpleTabs.size();
     if (total == 0) return;
+    final java.util.Set<Long> expectedPty = new java.util.HashSet<>();
+    final java.util.Set<Long> expectedSimple = new java.util.HashSet<>();
+    for (var tab : ptyTabs) expectedPty.add(tab.id);
+    for (var tab : simpleTabs) expectedSimple.add(tab.id);
     dismissPanel();
     panel =
         new DshaDialogBuilder(this)
@@ -1454,14 +1466,41 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                     simpleTabs.size()))
             .setNegativeButton(UiText.text("取消"), null)
             .setPositiveButton(
-                UiText.choose("全部结束并核验", "End all and verify"), (d, w) -> closeAllBestEffort())
+                UiText.choose("全部结束并核验", "End all and verify"),
+                (d, w) -> closeAllBestEffort(expectedPty, expectedSimple))
             .show();
   }
 
-  private void closeAllBestEffort() {
-    if (closeAllRunning) return;
+  private boolean terminalCreationPending() {
+    var snapshot = owner.protectionSnapshot();
+    return snapshot.preparing > 0 || snapshot.creating > 0;
+  }
+
+  private boolean refuseCloseAllWhileCreating() {
+    if (!terminalCreationPending()) return false;
+    refreshCloseAllNotice();
+    return true;
+  }
+
+  private void closeAllBestEffort(
+      java.util.Set<Long> expectedPty, java.util.Set<Long> expectedSimple) {
+    if (closeAllRunning || refuseCloseAllWhileCreating()) return;
     var ptyTabs = owner.ptyTabs().snapshot();
     var simpleTabs = owner.simpleTabs().snapshot();
+    java.util.Set<Long> actualPty = new java.util.HashSet<>();
+    java.util.Set<Long> actualSimple = new java.util.HashSet<>();
+    for (var tab : ptyTabs) actualPty.add(tab.id);
+    for (var tab : simpleTabs) actualSimple.add(tab.id);
+    if (!actualPty.equals(expectedPty) || !actualSimple.equals(expectedSimple)) {
+      android.widget.Toast.makeText(
+              this,
+              UiText.choose(
+                  "会话列表已改变，请重新确认结束全部。",
+                  "The session list changed. Confirm again before ending all sessions."),
+              android.widget.Toast.LENGTH_LONG)
+          .show();
+      return;
+    }
     int total = ptyTabs.size() + simpleTabs.size();
     if (total == 0) return;
     final int run = ++closeAllRun;
@@ -1544,7 +1583,13 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void refreshCloseAllNotice() {
-    if (closeAllTotal <= 0) {
+    boolean creating = terminalCreationPending();
+    if (!closeAllRunning && creating) {
+      closeAllNotice =
+          UiText.choose(
+              "终端会话正在创建，请稍后再结束全部。",
+              "A terminal session is being created. Wait before ending all sessions.");
+    } else if (closeAllTotal <= 0) {
       closeAllNotice = "";
     } else {
       int[] counts = closeAllCounts();
@@ -1587,8 +1632,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       panelNotice.setVisibility(closeAllNotice.isEmpty() ? View.GONE : View.VISIBLE);
     }
     if (closeAllButton != null) {
-      closeAllButton.setEnabled(!closeAllRunning);
-      closeAllButton.setAlpha(closeAllRunning ? .55f : 1f);
+      closeAllButton.setEnabled(!closeAllRunning && !creating);
+      closeAllButton.setAlpha(closeAllRunning || creating ? .55f : 1f);
       closeAllButton.setText(
           closeAllRunning ? UiText.choose("正在结束…", "Ending…") : UiText.choose("结束全部", "End all"));
     }
@@ -1608,7 +1653,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void createInMode(boolean pty) {
-    if (changingMode
+    if (!allowTerminalCreation()
+        || changingMode
         || getSupportFragmentManager().isStateSaved()
         || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
       return;
@@ -1619,6 +1665,18 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     // 禁止模式首次自动创建与菜单新建叠加：显式新建的目标Fragment跳过默认创建。
     replacePane(pty, true);
     if (pane() != null && pane().isPty() == pty) pane().newSession();
+  }
+
+  /** A close-all operation applies to its confirmed snapshot; do not start new tabs mid-close. */
+  public boolean allowTerminalCreation() {
+    if (!closeAllRunning) return true;
+    android.widget.Toast.makeText(
+            this,
+            UiText.choose(
+                "正在结束全部会话，请稍后再新建。", "Sessions are being ended. Wait before creating another."),
+            android.widget.Toast.LENGTH_SHORT)
+        .show();
+    return false;
   }
 
   @Override
@@ -1677,11 +1735,13 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   protected void onResume() {
     super.onResume();
     owner.protection().addObserver(protectionChanged);
+    owner.addSimpleStateObserver(simpleStateChanged);
     onTerminalPaneChanged();
   }
 
   @Override
   protected void onPause() {
+    owner.removeSimpleStateObserver(simpleStateChanged);
     owner.protection().removeObserver(protectionChanged);
     dismissPanel();
     super.onPause();
