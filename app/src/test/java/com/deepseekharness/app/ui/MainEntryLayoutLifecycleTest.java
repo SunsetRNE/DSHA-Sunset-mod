@@ -108,6 +108,20 @@ public final class MainEntryLayoutLifecycleTest {
     }
   }
 
+  /** Restored legacy terminal page with a harmless view and no terminal session creation. */
+  public static final class SavedTerminal extends TerminalFragment {
+    static int viewsCreated;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
+      viewsCreated++;
+      return new View(inflater.getContext());
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle state) {}
+  }
+
   @Before
   public void prepare() throws Exception {
     var app = (App) RuntimeEnvironment.getApplication();
@@ -123,6 +137,7 @@ public final class MainEntryLayoutLifecycleTest {
     Controller.stopRequests = Controller.startRequests = 0;
     Controller.checks.clear();
     SavedPage.viewsCreated = 0;
+    SavedTerminal.viewsCreated = 0;
     ConfigStore config = new ConfigStore(RuntimeEnvironment.getApplication());
     config.setWelcomed(true);
     config.setCheckUpdate(false);
@@ -234,6 +249,59 @@ public final class MainEntryLayoutLifecycleTest {
           restored.page,
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container));
       assertSame(view, restored.page.requireView());
+      assertNull(nextActivity(restored.main));
+    } finally {
+      restored.host.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void terminalEntriesUseLocalRecoveryGateWithoutReplacingLaunchPage() throws Exception {
+    var restored = restoreLaunch(false);
+    try {
+      showMain(restored);
+      View page = restored.page.requireView();
+      assertNotNull(page.findViewById(R.id.launch_activity));
+      assertNotNull(page.findViewById(R.id.launch_environment_row));
+      assertNotNull(page.findViewById(R.id.launch_address));
+      int retired =
+          page.getResources().getIdentifier("launch_workspaces", "id", restored.main.getPackageName());
+      if (retired != 0) assertNull(page.findViewById(retired));
+      var nav =
+          (com.google.android.material.bottomnavigation.BottomNavigationView)
+              restored.main.findViewById(R.id.bottom_nav);
+      int selected = nav.getSelectedItemId();
+      assertNull(nextActivity(restored.main));
+      nav.setSelectedItemId(R.id.nav_terminal);
+      Intent recovery = nextActivity(restored.main);
+      assertNotNull(recovery);
+      assertEquals(StartupRecoveryActivity.class.getName(), recovery.getComponent().getClassName());
+      assertEquals(selected, nav.getSelectedItemId());
+      assertSame(
+          restored.page,
+          restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container));
+      assertTrue(page.findViewById(R.id.launch_terminal_row).performClick());
+      recovery = nextActivity(restored.main);
+      assertNotNull(recovery);
+      assertEquals(StartupRecoveryActivity.class.getName(), recovery.getComponent().getClassName());
+      assertSame(page, restored.page.requireView());
+    } finally {
+      restored.host.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void unknownSessionDoesNotReopenRestoredLegacyTerminal() throws Exception {
+    var restored = restorePage(new SavedTerminal());
+    try {
+      Controller.unresolved = true;
+      SavedTerminal.viewsCreated = 0;
+      showMain(restored);
+      assertTrue(
+          restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container)
+              instanceof LaunchFragment);
+      assertEquals(0, SavedTerminal.viewsCreated);
+      assertFalse(restored.main.getIntent().hasExtra("open_terminal"));
       assertNull(nextActivity(restored.main));
     } finally {
       restored.host.pause().stop().destroy();

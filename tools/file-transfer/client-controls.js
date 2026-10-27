@@ -227,7 +227,7 @@ function installNativeFileActions() {
 [data-files-body] li[data-files-entry="file"]:has(>[data-dsha-row-actions]){display:flex;align-items:center}
 [data-files-body] li[data-files-entry="file"]:has(>[data-dsha-row-actions])>button:first-child{flex:1;min-width:0}
 [data-dsha-file-sheet]{position:fixed;inset:0;z-index:1600;background:#0007;display:flex;align-items:flex-end;justify-content:center;padding:16px;box-sizing:border-box}
-[data-dsha-file-sheet]>div{background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#222);width:min(100%,440px);border-radius:18px;padding:12px;max-height:80dvh;overflow:auto;box-shadow:0 8px 40px #0005;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+[data-dsha-file-sheet]>div{background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#222);width:min(100%,440px);border-radius:18px;padding:12px;max-height:80dvh;overflow:auto;box-shadow:0 8px 40px #0005;padding-bottom:max(12px,env(safe-area-inset-bottom, 0px))}
 [data-dsha-file-sheet]>div>div{padding:8px 12px;overflow-wrap:anywhere;font-weight:600}
 [data-dsha-file-sheet] button{display:block;text-align:start;width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:8px;padding:12px;min-height:44px}
 [data-dsha-file-sheet] button:hover{background:var(--dsw-alias-interactive-bg-hover,#8882)}

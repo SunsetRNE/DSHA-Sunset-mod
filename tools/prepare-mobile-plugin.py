@@ -15,13 +15,14 @@ PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/ind
            'src/client/i18n/locales.ts', 'src/client/components/file-share-locale.ts',
            'src/client/effects/attachment-mention.ts', 'src/client/index.tsx',
            'src/client/effects/file-share.ts', 'lib/types/client/i18n/locales.d.ts',
+           'src/client/effects/drawer-session-log.ts', 'src/client/effects/drawer-quick-settings.ts',
            'lib/types/client/components/file-share-locale.d.ts',
            'lib/types/client/effects/attachment-mention.d.ts'}
 ADDITIONAL = {'lib/file-transfer.js', 'lib/file-transfer.js.map'}
 
 def prepare(source, write):
     lock = json.loads(LOCK.read_text(encoding='utf8'))
-    if lock['schema'] != 1 or lock['version'] != '3.2.1' or lock['commit'] != '10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4':
+    if lock['schema'] != 1 or lock['version'] != '3.2.2' or lock['commit'] != '4c798ecc554009e401dc1f166b73c314cdf5273f':
         raise ValueError('MOBILE_UPSTREAM_LOCK')
     source = source.resolve(strict=True)
     contents = {}

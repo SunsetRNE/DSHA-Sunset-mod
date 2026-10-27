@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { createHash } from 'node:crypto';
-import { mobileLocaleCatalog, mobileLocaleDictionaries, mobileLocaleSourceFiles, applyMobileLocaleSourcePatch } from './mobile-locales.mjs';
+import { mobileLocaleCatalog, mobileLocaleDictionaries, mobileLocaleSourceFiles, applyMobileLocaleSourcePatch, restoreMobileLiveLocaleSource } from './mobile-locales.mjs';
 import { applyMobileClientPatches } from './apply-mobile-client-patches.mjs';
 
 const destination = 'app/src/main/assets/builtin-plugins/dsh-web-mobile';
@@ -96,6 +96,8 @@ test('mobile source and bundle outputs are deterministic transformations of lock
       .replace('scope.locale.register(FILE_SHARE_NS, fileShareLocales)', 'scope.locale.register(FILE_SHARE_NS, { zh: fileShareZh, en: fileShareEn })');
     if (name === 'src/client/effects/attachment-mention.ts') pristine = pristine
       .replace('ctx.locale.register(ATTACHMENT_NS, attachmentLocales)', 'ctx.locale.register(ATTACHMENT_NS, { zh: ATTACHMENT_ZH, en: ATTACHMENT_EN })');
+    if (name === 'src/client/effects/drawer-session-log.ts' || name === 'src/client/effects/drawer-quick-settings.ts')
+      pristine = restoreMobileLiveLocaleSource(name, pristine);
     assert.equal(createHash('sha256').update(pristine).digest('hex'), lock.files[name].sha256, name);
     assert.equal(output, applyMobileLocaleSourcePatch(name, pristine), name);
   }

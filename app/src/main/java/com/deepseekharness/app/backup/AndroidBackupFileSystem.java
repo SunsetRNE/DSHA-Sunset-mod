@@ -186,6 +186,30 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   }
 
   @Override
+  public byte[] currentSnapshot(File file, int limit) throws IOException {
+    if (limit < 1) throw new IOException("METADATA_LIMIT");
+    try {
+      ParcelFileDescriptor handle =
+          owned(file, OsConstants.O_RDONLY | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0);
+      try (InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(handle);
+          ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        var stat = Os.fstat(handle.getFileDescriptor());
+        if (!OsConstants.S_ISREG(stat.st_mode) || stat.st_size > limit)
+          throw new IOException("METADATA_LIMIT");
+        byte[] buffer = new byte[4096];
+        int count;
+        while ((count = in.read(buffer)) != -1) {
+          if (out.size() + count > limit) throw new IOException("METADATA_LIMIT");
+          out.write(buffer, 0, count);
+        }
+        return out.toByteArray();
+      }
+    } catch (ErrnoException error) {
+      throw failure(error);
+    }
+  }
+
+  @Override
   public OutputStream create(File file) throws IOException {
     try {
       ParcelFileDescriptor handle =

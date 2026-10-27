@@ -599,9 +599,13 @@ public class PluginFragment extends Fragment {
     find(R.id.btnMarket).setSelected(market);
     find(R.id.btnInstalled).setSelected(!market);
     ((TextView) find(R.id.btnMarket))
-        .setTextColor(requireContext().getColor(market ? R.color.primary : R.color.text_secondary));
+        .setTextColor(
+            requireContext()
+                .getColor(market ? R.color.shell_accent : R.color.shell_text_secondary));
     ((TextView) find(R.id.btnInstalled))
-        .setTextColor(requireContext().getColor(market ? R.color.text_secondary : R.color.primary));
+        .setTextColor(
+            requireContext()
+                .getColor(market ? R.color.shell_text_secondary : R.color.shell_accent));
     find(R.id.pluginBusy).setVisibility(current.busy ? View.VISIBLE : View.GONE);
     find(R.id.statusText).setVisibility(current.message.isEmpty() ? View.GONE : View.VISIBLE);
     android.widget.ProgressBar progress = find(R.id.pluginBusy);
@@ -1271,7 +1275,7 @@ public class PluginFragment extends Fragment {
               .getColor(
                   !item.available || row.pending()
                       ? R.color.warn
-                      : item.enabled ? R.color.primary : R.color.text_muted));
+                      : item.enabled ? R.color.shell_accent : R.color.shell_text_muted));
       holder.itemView.findViewById(R.id.pluginDelete).setEnabled(!row.pending());
       holder.toggle.setVisibility(item.dynamic ? View.GONE : View.VISIBLE);
       holder.toggle.setOnCheckedChangeListener(null);

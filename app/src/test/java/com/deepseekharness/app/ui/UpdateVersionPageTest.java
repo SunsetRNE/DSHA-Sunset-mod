@@ -130,6 +130,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
+      assertTrue(shown.contains("第一次点按"));
+      assertTrue(shown.contains("3.2.2"));
+      assertTrue(shown.contains("撤下电脑工作区"));
+      assertTrue(shown.contains("状态预检"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -150,6 +154,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
+      assertTrue(shown.contains("first tap"));
+      assertTrue(shown.contains("3.2.2"));
+      assertTrue(shown.contains("Remove PC workspaces"));
+      assertTrue(shown.contains("status precheck"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }

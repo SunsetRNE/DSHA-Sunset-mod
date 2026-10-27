@@ -1,8 +1,35 @@
 # AGENTS.md
 
+<!-- merge-worktree-rules-20261027 -->
+> **2026-10-27 本轮合并的当前约束**：本轮在 F 盘隔离工作树 `<local-workspace>` 处理源码，后续工作树和构建输出继续放 F 盘；保留 `<local-workspace>` 中用户未提交的路径说明及 C 盘活动 UI 原型。用户已暂停手机验收，须等用户明确恢复后才能进行；不自动构建、安装或发布 APK，也不擅自操作设备或改动授权。只处理和验证 Standard，不运行或安装 Low，保留既有 Low 交付原字节。build198 已撤除整套电脑连接，本次合并不得恢复电脑连接及其入口；手机控制和既有本机/LAN 能力仍按用户要求保留。
+>
+> 下方双方版本、构建、CI、设备与路径记录均属于各自对应的历史提交、候选和时点；不能作为本次合并后的测试、设备验收或发布结论。历史文本中的“当前”、手机状态和工作路径按当时阅读；最终源码身份、依赖及验证范围以本次合并后实际检查为准。基线文档曾记录移动插件 3.2.1 / 上游 `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`，Sunset 分支文档记录 3.2.2 / 上游 `4c798ecc554009e401dc1f166b73c314cdf5273f`，这两条仅为分支历史。
+
+> **本轮源码身份**：`0.2.1-rc.3-20261027.1149-dsh0.2.1-rc.3` / build204，基于 build198 合并 Sunset-3090-Q 的 `5d694b65f5ceca9ccbd3d854a2b1efbacd53c159`。虚拟屏 MCP 的 launch 接受可选 `generation`，预检后只向原生 launch 发送 `coreInstance` 和 `package`；预检不构成原子代次围栏，取消或未知结果不能自动重放。tap/node 继续使用原观察代次。本轮未安装或发布 build204，手机验收仍暂停。
+
+**build198 基线历史（路径和设备状态均为当时记录）**
+
 <!-- build198-software-candidate -->
 > **当前源码：build198软件候选** — `0.2.1-rc.3-20261025.2100-dsh0.2.1-rc.3` /Standard /dsh.android.client /E7E3非调试。真实合入Sunset19提交，修复授权切换隐藏暂停，撤下整套电脑连接，统一顶部安全区并解耦活动服务等待。91类806项Standard测试零失败/错误，7项Windows软链权限skip已由真实POSIX44项补验覆盖；Release Lint0错误/致命279警告。用户暂停手机验收，手机仍197；本条不证明198装机或发布。[范围与失败记录](docs/releases/v0.2.1-rc.3-build198-20261025.md)。实际源 `<local-workspace>`，不构建旧F173/S197。下方旧当前条目按历史阅读。
 
+**Sunset 分支历史（以下证据仅适用于各自对应的提交、候选和时点）**
+
+<!-- build202-current -->
+> **2026-10-26 build202（Sunset-3090-Q，UI v5 原生试点 + 全屏终端整合）**：`0.2.1-rc.3-20261026.2115-dsh0.2.1-rc.3` / 202 / Standard / 测试包 `dsh.android.client.SunsetRNE` / 非调试 / CI 临时证书（非 E7E3）。合并 `Sunset-zhongdua-G`（merge commit `6a0cf18`）保留点击即拉起独立全屏 `TerminalActivity`、会话保护、手机 7+7 / 平板 8+8 附加键、侧栏三向态与横屏压缩；新增 v5 原生外壳试点：顶栏品牌/页面语境、手机悬浮胶囊导航、平板 80dp 左栏、启动主页活动条/三格真实状态/日志复制跟随导出，插件与设置沿用真实功能。最终 commit `11d2f348…`，[run 40342031367](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40342031367)（run 39）Source-only 与 Signed APK 两个 job 成功：全量 Standard **2788 tests / 0 fail / 0 error / 1 allowed skip**、7 项固定夹具实跑、Lint 0 error/0 fatal；APK 435,467,169 bytes，SHA `71f4159fbe9ae0b7beaa9448d1aca83185ef652e69d2d8dde374c63f6a309b27`，临时证书 `4dfb75c2…c20077`。失败尝试 run 40334979040（固定输入描述符不一致）与 run 40340264326（UpdateVersionPageTest 旧断言）保留，修正见 commit `c289b4d` / `11d2f34`。未安装、未操作手机；真机渲染、点击、TalkBack、字体缩放与旋转未验收。报告见 [本轮报告](docs/releases/v0.2.1-rc.3-build202-ui-v5-20261026.md)，回执 `<workspace>/deliveries/ui-v5-20261026/delivery.json`。
+
+<!-- ui-replacement-20261027 -->
+> **2026-10-27 build202 UI 替换二批（同 versionCode 202，Sunset-3090-Q）**：commit `4ecfff0`（UI 主体 `fc3998d`），[run 40371493536](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40371493536)（run 41 / attempt 2）source 与 APK 两个 job 成功。新增 `shell_page.xml` 页面组件层与 `bg_shell_*`，通用 surface/card/text/line 对齐 v5；设置、插件、运行配置、安装与环境、设备授权、数据与备份、更新、诊断、欢迎/首启、关于、环境恢复与 CardPage 内页统一 v5 标题/分组卡片/行/输入/按钮。终端修复侧栏新建/结束会话与“回到输入”首击被触摸焦点吞掉的问题（移除 `focusableInTouchMode`，收起侧栏后同步恢复输入焦点），并按用户要求删除侧栏白天/黑夜/系统主题分段；保留点击「终端」拉起独立全屏 `TerminalActivity`、返回不结束会话。全量 Standard **2790 tests / 0 fail / 0 error / 1 allowed skip**，7 项固定夹具实跑，格式门禁与 Release Lint 通过；APK 435,475,663 bytes，SHA `a72d02516c2511d3dfe2c45e5d887d3688e8dfeb03f0379e791f4e0f2dbaec45`，同测试证书 `4dfb75c2…c20077`（非 E7E3），手机副本 `/storage/emulated/0/Download/DSHA/dsha-ui-v5-replacement-4ecfff0c-SunsetRNE.apk`。失败尝试 run 40369592143（新增焦点回归测试发现延后一帧不生效，已改同步）与 run 40371493536 首轮 `LanPortPolicyTest` 端口竞态（重跑通过）保留。未安装、未操作手机；真机渲染、点击、TalkBack、字体缩放与旋转未验收。报告见 [本轮报告](docs/releases/v0.2.1-rc.3-build202-ui-replacement-20261027.md)，回执 `<workspace>/deliveries/ui-v5-replacement-20261027/delivery.json`。
+
+> **2026-10-24 Sunset-3090-Q 分支 CI 范围**：用户取消本分支全部 Low 测试。当前所有工作流仅运行 Standard 的源码/完整输入 JUnit、Lint 与打包；宿主执行器也拒绝 Low，专用 Low 预览用例保留历史。Sunset 构建使用 rc.3 固定源码输入、`dsh.android.client.SunsetRNE` 测试签名身份，不与 E7E3 正式包混同。历史双版本回执只用于兼容读取，不视为本轮 Low 测试。
+<!-- build198-native-landscape-current -->
+> **2026-10-26 build198 后续（终端侧栏横屏压缩）**：commit `8d7e4b620c0f1df36c4ecebc0a27a20d5dbd4b2b`，[run 40306054023](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40306054023) 两个 job 成功；2551 tests / 0 fail / 0 error / 1 allowed skip，Lint 0 error/350 warnings；APK 307,898,702 bytes，SHA `af91812eae766d889b134d60d0525d701884f55c3406153dc7675dd3d68485a2`，临时证书 `5c58107033ce4ccb4edcfb04389b3a593b9ab48520244726f2d68147771ecc7a`（非 E7E3，需先卸载旧 SunsetRNE2 测试包）。横屏侧栏改为三列两行、44dp/10.5sp 动作、短标签+完整无障碍名、单行摘要、隐藏副标题/脚注并收紧主题/头部；竖屏与超高窗口恢复原两列三行。用户已覆盖更新并提供新截图：横屏三列两行/短标签生效、底栏约由侧栏 1/2 降到 1/3，竖屏保持完整标签；设备上是正式包 `dsh.android.client`，测试包 `SunsetRNE2` 未安装。报告见 docs/releases/v0.2.1-rc.3-build198-terminal-landscape-20261026.md，回执 `<workspace>/deliveries/native-terminal-landscape-20261026/delivery.json`。上一批原生主题包见下行。
+
+<!-- build198-native-theme-current -->
+> **2026-10-26 build198 后续（终端侧栏三向态、图标化与 2×2 底栏）**：feature commit `1be3f6ab91f25e50ae844cf1a1ca01e775d20df3`，格式清单修订 `fb95eeafd18cbbb2ade15887fc796295970309eb`，[run 40294484304](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40294484304) 两个 job 成功；2550 tests / 0 fail / 0 error / 1 allowed skip，Lint 0 error/350 warnings；APK 307,898,702 bytes，SHA `8815e6517c52297039156be21c66290a90629e238b6dda07213d55a6ca976d24`，临时证书 `8bd5e1e985a5fa443f047c20f9de1fee11f229505dbb2187202233e4a91d4124`（非 E7E3，不保证覆盖上一测试包）。终端侧栏/悬浮球改为浅蓝三向态、11 个新矢量、单行会话、三向态开关、2×2 主操作+输入辅助六动作、系统栏规则与软危险结束全部；手机 7+7 / 平板 8+8 附加键沿用。未安装、未操作手机；报告见 docs/releases/v0.2.1-rc.3-build198-native-terminal-theme-20261026.md，回执 `<workspace>/deliveries/native-terminal-theme-20261026/delivery.json`。首次 run 40294086317 因新测试未进格式清单失败，已保留。
+
+<!-- build198-current -->
+> **2026-10-26 build198（个人测试分支，CI 已产包）**：`0.2.1-rc.3-20261026.0644-dsh0.2.1-rc.3` /198 /Standard /Sunset 独立测试包 `dsh.android.client.SunsetRNE2`（正式包仍 `dsh.android.client`）/ 非调试 / CI 临时测试证书。终端悬浮球与工作台“菜单”改为会话侧栏（极简与窄工作台抽屉、≥840dp 内联），终端内核和运行保护沿用 build197。最终 commit `7eaf914ba46b3be3f0c84b87a82701487fbc6bf3` 的 [terminal-regression run 40248037705](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40248037705) 成功：source contracts + signed Standard test APK；2519 tests / 0 fail / 0 error / 1 allowed skip；APK 307,831,518 bytes，SHA `dad7d25983f1f7a783d130c0bcad08ad9f53cca7c77fa3d5079b614bd2c231d1`，证书 SHA `e962ccabeb1bcc58fd55cf2fdfc46f208b68e8ba9e7b75ee1b81efc4b6ef2599`（非 E7E3）。前两次运行失败（iOS-only API、无障碍/说明断言及无关 LAN 端口竞态）已修正并保留。未安装、未操作手机、未做设备验收；本地回执 `<workspace>/deliveries/terminal-20261026/delivery.json`，报告见 docs/releases/v0.2.1-rc.3-build198-terminal-sidebar-20261026.md。下方 build197 身份为历史。
+> **2026-10-26 build198 后续源修订（同 versionCode 的 CI 测试包）**：commit `f8117b67948eb4c0691a3dbe236193d9966a39ec`，[run 40262205574](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40262205574) 成功；2526 tests / 0 fail / 0 error / 1 allowed skip，Lint 0 error/346 warnings。新增终端侧栏平板形态重判定（极简宽屏打开时内联）、深色侧栏与短窗密集底栏、宽屏设置/说明和“结束全部”逐项核验入口。APK 307,852,222 bytes，SHA `d72ef9f6f0581d54f27b24100273c46fcd95a4a28066e17992052c3a5950348b`，临时证书 `6b4d668b99f03b5d685d168c9dcc1901177197761df09094a02c0c0291fd10e1`（非 E7E3，不保证覆盖上一测试包）。未安装、未操作手机；报告见 docs/releases/v0.2.1-rc.3-build198-terminal-tablet-20261026.md，回执 `<workspace>/deliveries/terminal-tablet-20261026/delivery.json`。
 
 <!-- build197-current -->
 > **2026-10-25 build197**：`0.2.1-rc.3-20261025.2000-dsh0.2.1-rc.3` /197 /Standard /dsh.android.client /E7E3非调试；常规APK307703892字节，SHA `5cd635ab68ea61e74822e5d25a0b7ddc66ce21d03ea4412faa045c070a90f244`。单最近任务/主页返回、LAN状态、当前对话手机工具、十语及动态主提示，修复IME观察取消、旧poll和gated恢复空白。76类505项Standard零失败错误skip，Lint0错/致命337警告，17命令含9APK门禁，1168份当前格式证据。最终Android13同签名覆盖/实算SHA、当前会话手机任务确认→COMPLETED（空WebView语义节点边界保留）→finishOK、三次Main返回重进同task1680、一张recents、正常停止及原权限恢复；此前候选Settings树/阿语RTL/十语/法语证据独立标注，确认超时不删。正式/独立应急仍rc3共用36c3归档字节而运行根独立，Ubuntu10不变。仅固定私有SunsetRNE/DSHA-Sunset-mod-3090-Q，实际发布与完整源码/六资产commit/SHA见外部artifacts/deliveries/build197-navigation-language-20261025.json；不跑Low、不写公开DSHA/网站。实际源仍<local-workspace>
@@ -53,7 +80,7 @@ DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— �
 
 **F13当前入口**：`0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` /code190。F13冻结源码2215成员/200篇Markdown，Java adoption 1029项。分发/格式证明与JUnit执行计数分开。固定输入包738,101,893 bytes，SHA-256 `da3a87e9782469136f08d37143582fec845af1a69406b9a534f8cb7f68249ed8`，原始输入直接展开到项目路径；不是完整源码ZIP的大小或摘要。本批软件与APK见[F13记录](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。UNKNOWN保留原DOM等待同身份核验，不授ready；旧票不复活、业务不重发；guest与launcher停止仍分证。
 
-**仓库事实速览**：build170基座/code190，Java17/:app/arm64，DSH0.2.1-rc.2/base10，proot默认+proroot可选。固定包内启动入口及受管dsh包装继续保留。键盘动画期间不逐帧setPadding，原生有界帧通道用当前完整身份校验，网页只合成移动聚焦composer，末帧提交布局，失焦/分离/PiP清理。mobile3.2.1固定main10e58ce，保留安全服务端差异，不恢复上游撤回的#236。OneClickBackup复用NativeBackupJobs安全停止/v5/tar.gz/读回验证；Standard写Download/DSHA，Low旧系统首次选目录；不扫外置工作区、不默认导出原生密钥、不自动重启或重放。源码冻结、测试原始失败与补跑、精确APK资产及最终上传回执分开保存，不把浏览器机制回归写成手机FPS。完整源码ZIP直接展开固定输入；不能从F盘旧173构建。
+**仓库事实速览**：build170基座/code190，Java17/:app/arm64，DSH0.2.1-rc.2/base10，proot默认+proroot可选。固定包内启动入口及受管dsh包装继续保留。键盘动画期间不逐帧setPadding，原生有界帧通道用当前完整身份校验，网页只合成移动聚焦composer，末帧提交布局，失焦/分离/PiP清理。mobile3.2.2固定main4c798ec，保留安全服务端差异，不恢复上游撤回的#236。OneClickBackup复用NativeBackupJobs安全停止/v5/tar.gz/读回验证；Standard写Download/DSHA，Low旧系统首次选目录；不扫外置工作区、不默认导出原生密钥、不自动重启或重放。源码冻结、测试原始失败与补跑、精确APK资产及最终上传回执分开保存，不把浏览器机制回归写成手机FPS。完整源码ZIP直接展开固定输入；不能从F盘旧173构建。
 
 维护入口见[文档总索引](docs/documentation-index.md)、[项目总手册](docs/project-architecture-handbook.md)、[权限](docs/device-permissions-architecture.md)、[环境/数据/插件](docs/runtime-data-plugin-architecture.md)、[运行引擎](docs/runtime-engines.md)、[端口](docs/ports-and-networking.md)、[DNS](docs/dns-configuration.md)、[虚拟屏](docs/virtual-screen-architecture.md)、[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)及[来源依据](docs/references-and-provenance.md)。
 
@@ -198,7 +225,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - **麦克风**：清单同时声明 `RECORD_AUDIO` 与 `MODIFY_AUDIO_SETTINGS`；由 `BrowserMicrophone` 按网页请求申请，不能在普通启动时预授权；只放行当前本机页面的纯音频请求，摄像头 / 屏幕音频拒绝；旧回调不能批准新页。
 - **设备验收经验**：`uiautomator dump` 会抑制其他无障碍服务；截图授权绑定 DSH generation，停止 / 断连 / 撤销后失效；截图存应用私有 Pictures/DSHA，无需所有文件访问；PiP 可能盖住底部控件，自动化必须核对实际可见区域与屏幕方向；截图 / 读屏不可将敏感值写入公开取证文件。
 - Shizuku 必须注册 `rikka.shizuku.ShizukuProvider`；标准版 13.1.5 / 兼容版 12.2.0（不用 overrideLibrary 掩盖 minSdk 24）。回调严格核对管理器 UID、Binder 描述符、单次请求与超时。
-- 内置移动插件 `dsh-web-mobile` 为 3.2.1，固定上游 main `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
+- 内置移动插件 `dsh-web-mobile` 为 3.2.2，固定上游 main `4c798ecc554009e401dc1f166b73c314cdf5273f`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
 
 ---
 

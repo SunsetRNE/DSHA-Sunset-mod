@@ -44,19 +44,25 @@ try {
   await page.addScriptTag({content:mobile.replace('var __cache = {};','window.mobileRequire=__localRequire; var __cache = {};')});
   await page.evaluate(()=>{
     const style=document.createElement('style');style.textContent=mobileRequire('./styles/index.js').MOBILE_CSS;document.head.append(style);
+    window.DSHA={downloadArtifact:()=>{}};
+    window.disposeNativeFileActions=mobileRequire('./components/file-share-controls.js').installNativeFileActions();
+    const sheet=document.createElement('div');sheet.dataset.dshaFileSheet='';
+    sheet.innerHTML='<div>File action sheet</div>';document.body.append(sheet);
   });
   await page.addStyleTag({content:'html,body{height:100%;margin:0} [data-mobile-nav="frame"]{height:100%;display:grid}header{display:flex;align-items:center} [data-probe]{position:fixed;top:var(--dsha-safe-area-inset-top,env(safe-area-inset-top,0px));bottom:var(--dsha-safe-area-inset-bottom,env(safe-area-inset-bottom,0px));left:0;width:1px}'});
   const measure=()=>page.evaluate(()=>{
-    const frame=document.querySelector('[data-mobile-nav="frame"]'),header=document.querySelector('header'),probe=document.querySelector('[data-probe]');
+    const frame=document.querySelector('[data-mobile-nav="frame"]'),header=document.querySelector('header'),probe=document.querySelector('[data-probe]'),sheet=document.querySelector('[data-dsha-file-sheet]>div');
     return {paddingTop:getComputedStyle(frame).paddingTop,paddingBottom:getComputedStyle(frame).paddingBottom,
       headerTop:header.getBoundingClientRect().top,headerMargin:getComputedStyle(header).marginTop,
       probeTop:probe.getBoundingClientRect().top,probeBottom:probe.getBoundingClientRect().bottom,viewport:innerHeight,
-      frameBottom:frame.getBoundingClientRect().bottom,scrollHeight:document.documentElement.scrollHeight};
+      frameBottom:frame.getBoundingClientRect().bottom,scrollHeight:document.documentElement.scrollHeight,
+      sheetPaddingBottom:getComputedStyle(sheet).paddingBottom};
   });
   const external=await measure();
   assert.equal(external.paddingTop,'38px','ordinary browser keeps its real status/cutout env inset');
   assert.equal(external.paddingBottom,'24px');
   assert.equal(external.probeTop,38);
+  assert.equal(external.sheetPaddingBottom,'24px','browser file sheet keeps its navigation inset');
   await page.addScriptTag({content:safeArea});
   for (const size of [{width:360,height:754},{width:754,height:360},{width:754,height:210},{width:360,height:754}]) {
     await page.setViewportSize(size);
@@ -65,6 +71,7 @@ try {
     assert.equal(native.paddingBottom,'0px','native navigation/IME boundary is not duplicated by CSS');
     assert.equal(native.probeTop,0,'fixed surfaces share the same inset owner');
     assert.equal(native.probeBottom,size.height);
+    assert.equal(native.sheetPaddingBottom,'12px','native file sheet must not consume the navigation inset again');
     assert.equal(native.headerMargin,'0px','no negative header lift into system icons');
     assert.ok(native.headerTop>=0);
     assert.ok(native.frameBottom<=size.height+1);

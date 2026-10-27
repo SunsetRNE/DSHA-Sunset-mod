@@ -50,7 +50,7 @@ const sourcePoint={type:'integer',minimum:0,maximum:Number.MAX_SAFE_INTEGER};
 const definitions=[
  ['android_vscreen_create','创建或复用虚拟屏。',{orientation:{type:'string',enum:['portrait','landscape']}}],
  ['android_vscreen_status','读取显示尺寸、方向、通道和最新 frameSeq。',{}],
- ['android_vscreen_launch','把已安装应用启动到虚拟屏。',{package:{type:'string',maxLength:160}}],
+ ['android_vscreen_launch','把已安装应用启动到虚拟屏。可选 generation 仅用于启动前状态检查；检查与启动不是原子操作，原生 launch 不校验 generation，显示代次可能在检查后变化。取消或中断（包括 SDK 抛出 AbortError）可能丢失回执，不证明启动未执行；先观察实际状态，不自动重放。',{package:{type:'string',maxLength:160},generation:{type:'string',minLength:1,maxLength:80}}],
  ['android_vscreen_see','读取同次原图及观察元数据。anchoredAvailable=true 且原图中有唯一可操作按钮时，优先显式 anchor→anchored_click；保留原 coreInstance/generation/frameSeq/observationId，不用旧 tap 试探。不可锚定时根据 tree/node 或新观察明确决定。',{}],
  ['android_vscreen_anchor','从 see 的原观察和全分辨率整数坐标选择唯一可操作节点，不执行点击、不续期。必须使用该原观察的 coreInstance/generation/frameSeq/observationId；ANCHOR_ALREADY_ISSUED 或丢失回复时不得自动重选或补图。',{generation:{type:'string',maxLength:80},frameSeq:sourceFrame,observationId:coreIdentity,x:sourcePoint,y:sourcePoint}],
  ['android_vscreen_anchored_click','一次性点击原观察的 anchorId。保留原 coreInstance/generation/frameSeq；由原生严格复核节点语义及原区域。失败或 UNKNOWN 不恢复锚点、不重放，不自动换成 tap。',{generation:{type:'string',maxLength:80},frameSeq:sourceFrame,anchorId:coreIdentity}],
@@ -95,7 +95,7 @@ function validate(def,args){
   if(rule.enum&&!rule.enum.includes(v))throw Error('INVALID_'+key);
   if(rule.type==='integer'&&(!Number.isInteger(v)||(rule.minimum!==undefined&&v<rule.minimum)||(rule.maximum!==undefined&&v>rule.maximum)))throw Error('INVALID_'+key);
   if(rule.type==='number'&&(typeof v!=='number'||!Number.isFinite(v)||v<rule.minimum))throw Error('INVALID_'+key);
-  if(rule.type==='string'&&(typeof v!=='string'||(rule.maxLength!==undefined&&v.length>rule.maxLength)))throw Error('INVALID_'+key);
+  if(rule.type==='string'&&(typeof v!=='string'||(rule.minLength!==undefined&&v.length<rule.minLength)||(rule.maxLength!==undefined&&v.length>rule.maxLength)))throw Error('INVALID_'+key);
   if(rule.pattern&&typeof v==='string'&&!new RegExp(rule.pattern).test(v))throw Error('INVALID_'+key);
  }
  for(const key of ['generation','package','nodeId'])if(needed.includes(key)&&!args[key])throw Error('INVALID_'+key);
@@ -107,6 +107,7 @@ function requestFor(name,args){
  const def=definitions.find(x=>x[0]===name);if(!def)throw Error('UNKNOWN_TOOL');validate(def,args);
  let route={android_vscreen_create:'create',android_vscreen_status:'status',android_vscreen_launch:'launch',android_vscreen_see:'see',android_vscreen_anchor:'anchor',android_vscreen_anchored_click:'anchored-click',android_vscreen_tap:'tap',android_vscreen_swipe:'swipe',android_vscreen_touch:'touch',android_vscreen_type:'type',android_vscreen_key:'key',android_vscreen_tree:'tree',android_vscreen_node:'node',android_vscreen_close:'close'}[name];
  const parameters={...args};
+ if(name==='android_vscreen_launch')delete parameters.generation;
  if(name==='android_vscreen_editor'){route={get:'editor',edit:'edit',submit:'submit'}[args.op];delete parameters.op;}
  const endpoint='/app/vscreen/'+route;
  if(['edit','submit','node','type','anchor','anchored-click'].includes(route)){
@@ -123,24 +124,107 @@ function decodeBridge(raw){
  }
  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('INVALID_BRIDGE_RESPONSE');return value;
 }
+// HTTP authorization and caller-identity refusals occur before appVscreen's action supplier.
+// Manager.bridge checks Core/evidence before dispatch; query grammar and method guards precede it.
+const launchPreDispatchErrors=new Set([
+ 'USER_REJECTED','USER_NO_ANSWER','USER_CONFIRM_UNAVAILABLE',
+ 'VSCREEN_CORE_IDENTITY_REQUIRED','VSCREEN_CORE_IDENTITY_CHANGED','VSCREEN_GENERATION_CHANGED',
+ 'CORE_EVIDENCE_REQUIRED','EXPLICIT_SCREEN_REQUEST_REQUIRED',
+ 'INVALID_coreInstance','INVALID_package','UNKNOWN_ARGUMENT','VSCREEN_QUERY_LIMIT',
+ 'DUPLICATE_ARGUMENT','INVALID_ARGUMENT_ENCODING','METHOD_NOT_ALLOWED'
+]);
+// Only fixed diagnostic codes are echoed; arbitrary errors/causes may contain private data.
+const launchKnownDetails=new Set([
+ ...launchPreDispatchErrors,'LAUNCH_RESULT_UNKNOWN','INPUT_RESULT_UNKNOWN',
+ 'VSCREEN_TRANSPORT_UNAVAILABLE','VSCREEN_RESPONSE_LIMIT','SCREEN_TARGET_CHANGED','VSCREEN_REVOKED',
+ 'VSCREEN_OPERATION_FAILED','VSCREEN_DISPLAY_IO','STALE_GENERATION','VSCREEN_PERMISSION_DENIED',
+ 'VSCREEN_DISPLAY_SERVICE_UNAVAILABLE','VSCREEN_NATIVE_API_UNAVAILABLE','VSCREEN_INVALID_DISPLAY_REQUEST',
+ 'VSCREEN_DISPLAY_STATE','VSCREEN_DISPLAY_CREATE_FAILED','VSCREEN_TRUSTED_DISPLAY_DENIED',
+ 'VSCREEN_TARGET_CHANGED','VSCREEN_TARGET_UNVERIFIABLE','VSCREEN_NOT_CREATED','VSCREEN_NOT_RUNNING',
+ 'VSCREEN_START_IN_PROGRESS','VSCREEN_RESPONSE_BOUNDARY_INVALID','VSCREEN_RESPONSE_DEADLINE',
+ 'VSCREEN_RESPONSE_INCOMPLETE','VSCREEN_REQUEST_TARGET_INVALID','VSCREEN_REQUEST_TOKEN_INVALID',
+ 'INVALID_ARGUMENT','INVALID_PACKAGE','NO_LAUNCH_ACTIVITY','LAUNCH_REJECTED','BRIDGE_ERROR',
+ 'BRIDGE_TRANSPORT_UNAVAILABLE','BRIDGE_CANCELLED','BRIDGE_TOKEN_CHANGED','BRIDGE_PORT_CHANGED',
+ 'BRIDGE_RESPONSE_TOO_LARGE','INVALID_BRIDGE_RESPONSE'
+]);
+function launchDetail(error){
+ if(typeof error!=='string'||!error)return 'UNSPECIFIED_RESULT';
+ return launchKnownDetails.has(error)?error:'UNCLASSIFIED_ERROR';
+}
+function launchResult(value,checked,isError){
+ const metadata={...value,generationCheckedBeforeLaunch:checked,generationEnforcedAtLaunch:false};
+ if(metadata.executionUnknown===true)metadata.noReplay=true;
+ return{content:[{type:'text',text:JSON.stringify(metadata)}],isError};
+}
+function launchNotSent(error,checked=false,extra={}){
+ return launchResult({ok:false,state:'NOT_SENT',error,...extra},checked,true);
+}
+function launchUnknown(error,checked){
+ return launchResult({ok:false,state:'UNKNOWN',error:'LAUNCH_RESULT_UNKNOWN',detail:launchDetail(error),executionUnknown:true,noReplay:true},checked,true);
+}
+function launchBridgeResult(value,checked,httpOk){
+ const marked=value.executionUnknown===true||value.targetChangedAfterExecution===true||value.runChangedAfterExecution===true||value.noReplay===true;
+ const failureState=value.state===undefined||value.state==='REJECTED'||value.state==='NOT_SENT';
+ if(value.ok===false&&failureState&&!marked&&launchPreDispatchErrors.has(value.error))
+  return launchNotSent(value.error,checked);
+ const successState=value.state===undefined||value.state==='COMPLETED';
+ if(httpOk&&value.ok===true&&successState&&!marked&&(value.error===undefined||value.error===''))
+  return launchResult(value,checked,false);
+ return launchUnknown(value.error,checked);
+}
+function launchErrorCode(error,fallback){
+ const safe=['BRIDGE_CANCELLED_BEFORE_SEND','BRIDGE_ROUTE_INVALID','BRIDGE_BODY_LIMIT','BRIDGE_TOKEN_PARENT','BRIDGE_TOKEN_FILE','BRIDGE_TOKEN_CHANGED'];
+ return safe.includes(error?.message)?error.message:fallback;
+}
 async function call(name,args,signal,dependencies={}){
  const request=requestFor(name,args);
  const operation=request.route.split('?')[0].split('/').pop();
  const mutating=['tap','swipe','touch','type','key','node','edit','submit','anchored-click'].includes(operation);
+ const fetchBridge=dependencies.bridgeFetch||bridgeFetch;
+ let launchGenerationChecked=false;
+ if(operation==='launch'){
+  if(signal?.aborted)return launchNotSent('BRIDGE_CANCELLED_BEFORE_LAUNCH');
+  if(Object.hasOwn(args,'generation')){
+   try{
+    const response=await fetchBridge('/app/vscreen/status',{method:'GET',headers:{},signal});
+    const status=decodeBridge(await response.text());
+    if(signal?.aborted)return launchNotSent('BRIDGE_CANCELLED_BEFORE_LAUNCH');
+    if(!response.ok||bridgeFailed(status)||status.executionUnknown===true||status.cleanupPending===true||
+       (status.state!==undefined&&status.state!=='COMPLETED')||(status.error!==undefined&&status.error!=='')){
+     const statusCode=launchDetail(status.error),statusError=statusCode==='UNSPECIFIED_RESULT'?{}:{statusError:statusCode};
+     return launchNotSent('VSCREEN_STATUS_UNAVAILABLE',false,statusError);
+    }
+    if(typeof status.coreInstance!=='string'||!status.coreInstance||typeof status.generation!=='string'||!status.generation)
+     return launchNotSent('VSCREEN_STATUS_IDENTITY_UNAVAILABLE');
+    if(status.coreInstance!==args.coreInstance)return launchNotSent('VSCREEN_CORE_IDENTITY_CHANGED');
+    if(status.generation!==args.generation)return launchNotSent('VSCREEN_GENERATION_CHANGED');
+    launchGenerationChecked=true;
+   }catch(error){
+    return launchNotSent(signal?.aborted?'BRIDGE_CANCELLED_BEFORE_LAUNCH':'VSCREEN_STATUS_UNAVAILABLE');
+   }
+  }
+  if(signal?.aborted)return launchNotSent('BRIDGE_CANCELLED_BEFORE_LAUNCH',launchGenerationChecked);
+ }
  try{
   const {route,...init}=request;
-  const response=await (dependencies.bridgeFetch||bridgeFetch)(route,{...init,signal});
-  const value=decodeBridge(await response.text());const{previewB64,...metadata}=value;const content=[{type:'text',text:JSON.stringify(metadata)}];
+  const response=await fetchBridge(route,{...init,signal});
+  const value=decodeBridge(await response.text());
+  if(operation==='launch')return launchBridgeResult(value,launchGenerationChecked,response.ok);
+  const{previewB64,...metadata}=value;const content=[{type:'text',text:JSON.stringify(metadata)}];
   if(name==='android_vscreen_see'&&previewB64)content.push({type:'image',mimeType:'image/jpeg',data:previewB64});
   return{content,isError:!response.ok||bridgeFailed(value)};
  }catch(error){
+  if(operation==='launch'){
+   if(error?.executionUnknown===false)return launchNotSent(launchErrorCode(error,'VSCREEN_LAUNCH_NOT_SENT'),launchGenerationChecked);
+   return launchUnknown(error?.message,launchGenerationChecked);
+  }
   if(operation==='anchor'&&error.executionUnknown!==false)return{content:[{type:'text',text:JSON.stringify({ok:false,error:'ANCHOR_RESULT_UNKNOWN',selectionUnknown:true,noReplay:true,sourceFrameSeq:args.frameSeq})}],isError:true};
   if(!mutating||error.executionUnknown===false)throw error;
   // 取消请求或丢失回执不能证明写动作尚未执行。
   return{content:[{type:'text',text:JSON.stringify({ok:false,error:'INPUT_RESULT_UNKNOWN',executionUnknown:true,...(operation==='anchored-click'?{noReplay:true,mode:'ANCHORED_NODE',sourceFrameSeq:args.frameSeq}:{})})}],isError:true};
  }
 }
-function start(){const active=new Map(),cancelled=new Set();let buffer='',queue=Promise.resolve(),ended=false,pending=0;const send=m=>process.stdout.write(JSON.stringify({jsonrpc:'2.0',...m})+'\n');async function receive(m){const{id,method,params={}}=m;if(method==='notifications/cancelled'){if(active.has(params.requestId))active.get(params.requestId).abort();else if(cancelled.size<128)cancelled.add(params.requestId);return;}if(id===undefined)return;if(ended||cancelled.delete(id)){send({id,error:{code:-32800,message:'Request cancelled'}});return;}try{let result;if(method==='initialize')result={protocolVersion:params.protocolVersion||'2025-03-26',capabilities:{tools:{listChanged:false}},serverInfo:{name:'DSHA Virtual Screen',version:'0.2.1'},instructions:'Read create/status first. For every existing-Core operation pass its authenticated coreInstance UUID explicitly. Keep coreInstance, generation and frame/node identity from the same observation; never upgrade an old observation with a newer Core identity. Close requires that Core identity while a live or pending Core exists. Observe before input. Legacy tap/swipe/touch use logical display coordinates and require the latest observed frame. The displayed JPEG has previewWidth by previewHeight pixels; if these differ from width and height, convert image x/y by width/previewWidth and height/previewHeight before an explicit coordinate action. An anchoredAvailable=true observation returns its retained full-resolution source image, so its image coordinates directly match the anchor display coordinates. Touch supports down/move/up. Use accessibility tree/editor for app controls and Unicode text. Semantic node actions do not require frameSeq. When see returns anchoredAvailable=true and the original image has one actionable button, prefer explicit android_vscreen_anchor then android_vscreen_anchored_click; never try a legacy tap first or fall back between these modes. Anchor x/y are full-resolution integer coordinates from that original image, not normalized or preview coordinates. Keep the original coreInstance/generation/frameSeq/observationId and returned anchorId together; never refresh the frame or upgrade old evidence with current status. Selection executes no click, does not renew TTL, and ANCHOR_ALREADY_ISSUED never returns the old ID. A lost selection reply is not permission to reselect or take a hidden screenshot. Anchored click consumes its anchor once; UNKNOWN/noReplay never restores it. Its sourceFrameSeq stays original and validatedCurrentSeq reports the actual later validation frame. If anchoring is unavailable, Canvas or ambiguous, choose an explicit semantic tree/node operation or a new observation; do not automatically retry. Keep anchor selection and click on the same observation; after a business action take a new explicit observation before deciding the next action. A cleanupPending, CLOSE_UNKNOWN, START_UNKNOWN or DISCONNECTED result is not permission to recreate automatically; inspect status first. An executionUnknown result or targetChangedAfterExecution/runChangedAfterExecution marker must never be replayed automatically; observe the real state first.'};else if(method==='ping')result={};else if(method==='tools/list')result={tools};else if(method==='tools/call'){const ac=new AbortController();active.set(id,ac);try{result=await call(params.name,params.arguments||{},ac.signal);}finally{active.delete(id);}}else{send({id,error:{code:-32601,message:'Method not found'}});return;}send({id,result});}catch(error){send({id,result:{content:[{type:'text',text:'Virtual screen unavailable: '+(error.message||'OPERATION_UNAVAILABLE')}],isError:true}});}}
+function start(){const active=new Map(),cancelled=new Set();let buffer='',queue=Promise.resolve(),ended=false,pending=0;const send=m=>process.stdout.write(JSON.stringify({jsonrpc:'2.0',...m})+'\n');async function receive(m){const{id,method,params={}}=m;if(method==='notifications/cancelled'){if(active.has(params.requestId))active.get(params.requestId).abort();else if(cancelled.size<128)cancelled.add(params.requestId);return;}if(id===undefined)return;if(ended||cancelled.delete(id)){send({id,error:{code:-32800,message:'Request cancelled'}});return;}try{let result;if(method==='initialize')result={protocolVersion:params.protocolVersion||'2025-03-26',capabilities:{tools:{listChanged:false}},serverInfo:{name:'DSHA Virtual Screen',version:'0.2.1'},instructions:'Read create/status first. For every existing-Core operation pass its authenticated coreInstance UUID explicitly. Cancellation, timeout or interruption, including an SDK AbortError, can discard the server receipt and does not prove launch was not executed; inspect actual state before deciding and never replay automatically. Keep coreInstance, generation and frame/node identity from the same observation; never upgrade an old observation with a newer Core identity. Close requires that Core identity while a live or pending Core exists. Observe before input. Legacy tap/swipe/touch use logical display coordinates and require the latest observed frame. The displayed JPEG has previewWidth by previewHeight pixels; if these differ from width and height, convert image x/y by width/previewWidth and height/previewHeight before an explicit coordinate action. An anchoredAvailable=true observation returns its retained full-resolution source image, so its image coordinates directly match the anchor display coordinates. Touch supports down/move/up. Use accessibility tree/editor for app controls and Unicode text. Semantic node actions do not require frameSeq. When see returns anchoredAvailable=true and the original image has one actionable button, prefer explicit android_vscreen_anchor then android_vscreen_anchored_click; never try a legacy tap first or fall back between these modes. Anchor x/y are full-resolution integer coordinates from that original image, not normalized or preview coordinates. Keep the original coreInstance/generation/frameSeq/observationId and returned anchorId together; never refresh the frame or upgrade old evidence with current status. Selection executes no click, does not renew TTL, and ANCHOR_ALREADY_ISSUED never returns the old ID. A lost selection reply is not permission to reselect or take a hidden screenshot. Anchored click consumes its anchor once; UNKNOWN/noReplay never restores it. Its sourceFrameSeq stays original and validatedCurrentSeq reports the actual later validation frame. If anchoring is unavailable, Canvas or ambiguous, choose an explicit semantic tree/node operation or a new observation; do not automatically retry. Keep anchor selection and click on the same observation; after a business action take a new explicit observation before deciding the next action. A cleanupPending, CLOSE_UNKNOWN, START_UNKNOWN or DISCONNECTED result is not permission to recreate automatically; inspect status first. An executionUnknown result or targetChangedAfterExecution/runChangedAfterExecution marker must never be replayed automatically; observe the real state first.'};else if(method==='ping')result={};else if(method==='tools/list')result={tools};else if(method==='tools/call'){const ac=new AbortController();active.set(id,ac);try{result=await call(params.name,params.arguments||{},ac.signal);}finally{active.delete(id);}}else{send({id,error:{code:-32601,message:'Method not found'}});return;}send({id,result});}catch(error){send({id,result:{content:[{type:'text',text:'Virtual screen unavailable: '+(error.message||'OPERATION_UNAVAILABLE')}],isError:true}});}}
 process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>{buffer+=chunk;if(buffer.length>1024*1024)process.exit(1);let end;while((end=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,end);buffer=buffer.slice(end+1);if(!line.trim())continue;let value;try{value=JSON.parse(line);}catch{send({id:null,error:{code:-32700,message:'Parse error'}});continue;}if(value.method==='notifications/cancelled'){void receive(value);continue;}if(pending>=32){send({id:value.id??null,error:{code:-32000,message:'Request queue full'}});continue;}pending++;queue=queue.then(()=>receive(value)).finally(()=>pending--);}});process.stdin.on('end',()=>{ended=true;for(const ac of active.values())ac.abort();});process.stdout.on('error',e=>{if(e.code==='EPIPE')process.exit(0);});}
 if(require.main===module)start();module.exports={definitions,tools,validate,call,requestFor,decodeBridge,bridgeFailed};
 

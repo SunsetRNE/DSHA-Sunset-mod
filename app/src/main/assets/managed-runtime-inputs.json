@@ -555,6 +555,8 @@
     "core/ConfigStore.java",
     "core/HarnessController.java",
     "core/TerminalSessionOwner.java",
+    "core/TerminalRuntimeProtection.java",
+    "TerminalRuntimeService.java",
     "core/SimpleTerminalBackend.java",
     "util/TerminalSession.java",
     "util/TerminalReady.java",

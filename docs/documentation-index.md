@@ -78,7 +78,7 @@ F11以实际分发stage检查引用，而非用开发机全树存在替代交付
 | [build155架构副本](../tools/history/documents/docs/audits/build155/architecture-assessment.md) | [原文](audits/build155/architecture-assessment.md) |
 | [build155发布页副本](../tools/history/documents/docs/releases/v0.2.6-build155-20261003.md) | [原文](releases/v0.2.6-build155-20261003.md) |
 
-两份固定上游原文另有8条**上游相对引用**，不代表这些目标存在于APK本地：mobile README（SHA `852f84c7a58695bfca8730e003155c2a061d58e31f648e88d10e0528499b63ab`）的4图及AGENTS映射到上游固定commit `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`；Termux原许可证（SHA `a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304`）的2目录及共享许可证映射到commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`。门禁输出精确上游URL并标`upstream-source-relative`警告；`--strict-history`仍失败。源路径、源摘要或目标任一变化都不能沿用例外，其他缺失目标继续失败。没有改动这两份上游原文或APK资产。
+两份固定上游原文另有8条**上游相对引用**，不代表这些目标存在于APK本地：mobile README（SHA `c204351fe1ec3f011c08d6e65ab698f9a8863014069182c4f431b4c9fe2bd92c`）的4图及AGENTS映射到上游固定commit `4c798ecc554009e401dc1f166b73c314cdf5273f`；Termux原许可证（SHA `a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304`）的2目录及共享许可证映射到commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`。门禁输出精确上游URL并标`upstream-source-relative`警告；`--strict-history`仍失败。源路径、源摘要或目标任一变化都不能沿用例外，其他缺失目标继续失败。没有改动这两份上游原文或APK资产。
 
 1. 改默认值、设置项、环境变量、授权或端口时，先核ConfigStore/配置入口与实际调用链，补用户可见作用层、下次生效时机及迁移规则。
 2. 同步专页、总手册、README和CHANGELOG；历史条目保留时间归属，不用新状态重写旧结果。
