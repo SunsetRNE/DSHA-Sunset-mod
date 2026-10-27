@@ -449,6 +449,22 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_LAN_MODE, v).apply();
   }
 
+  /** Password verifier remains local and is never included in backup exports. */
+  public boolean hasLanPassword() {
+    return !text(com.deepseekharness.app.util.LanPassword.PREF_KEY, "").isEmpty();
+  }
+
+  /** Call off the UI thread: deriving the verifier is deliberately expensive. */
+  public void setLanPassword(String password) {
+    String verifier = com.deepseekharness.app.util.LanPassword.create(password);
+    com.deepseekharness.app.LanProxyService.stopLanListener();
+    if (!prefs
+        .edit()
+        .putString(com.deepseekharness.app.util.LanPassword.PREF_KEY, verifier)
+        .commit()) throw new IllegalStateException("LAN password could not be saved");
+    com.deepseekharness.app.LanProxyService.stopLanListener();
+  }
+
   // ================= 其他 =================
 
   public String getWorkdir() {

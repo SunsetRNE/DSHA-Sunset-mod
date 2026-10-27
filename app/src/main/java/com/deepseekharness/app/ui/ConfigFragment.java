@@ -44,6 +44,8 @@ public class ConfigFragment extends Fragment {
   private TextView pictureStatus;
   private CompoundButton pictureEnabled;
   private boolean renderingPictureInPicture;
+  private static final java.util.concurrent.atomic.AtomicBoolean savingLanPassword =
+      new java.util.concurrent.atomic.AtomicBoolean();
 
   @Nullable
   @Override
@@ -111,6 +113,11 @@ public class ConfigFragment extends Fragment {
     gecko.setChecked(c.isGeckoCore());
     proroot.setChecked(c.isProroot());
     lan.setChecked(c.isLanMode());
+    TextView lanPasswordStatus = v.findViewById(R.id.config_lan_password_status);
+    lanPasswordStatus.setText(
+        c.hasLanPassword() ? R.string.lan_password_set : R.string.lan_password_missing);
+    v.findViewById(R.id.config_lan_password)
+        .setOnClickListener(x -> showLanPasswordDialog(c, lanPasswordStatus));
     overlay.setChecked(pref(ctx, "overlay_stream", false));
     bindChoice(
         v,
@@ -230,7 +237,10 @@ public class ConfigFragment extends Fragment {
                   if (!overlayEnabled) OverlayController.teardown(ctx.getApplicationContext());
                   else if (OverlayController.permitted(ctx))
                     OverlayController.applyStyleNow(ctx.getApplicationContext());
-                  applyLanMode(c, lan.isChecked());
+                  boolean lanApplied = applyLanMode(ctx, lan.isChecked());
+                  int lanMessage =
+                      lanSettingsMessage(lan.isChecked(), c.hasLanPassword(), lanApplied);
+                  if (lanMessage != 0) Toast.makeText(ctx, lanMessage, Toast.LENGTH_LONG).show();
                   if (lan.isChecked() && getActivity() instanceof MainActivity)
                     ((MainActivity) getActivity()).requestLocalNetwork();
                   Toast.makeText(
@@ -323,26 +333,118 @@ public class ConfigFragment extends Fragment {
     }
   }
 
-  /** LAN 开关真正生效：开启时若 dsh 已鉴权则启动 3081 代理，关闭时停掉监听。 */
-  private void applyLanMode(ConfigStore c, boolean on) {
+  private void showLanPasswordDialog(ConfigStore config, TextView status) {
+    if (savingLanPassword.get()) {
+      Toast.makeText(requireContext(), R.string.lan_password_saving, Toast.LENGTH_SHORT).show();
+      return;
+    }
+    Context context = requireContext();
+    LinearLayout fields = new LinearLayout(context);
+    fields.setOrientation(LinearLayout.VERTICAL);
+    int padding = (int) (20 * getResources().getDisplayMetrics().density);
+    fields.setPadding(padding, 0, padding, 0);
+    EditText password = new EditText(context);
+    password.setHint(R.string.lan_password_new);
+    password.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT
+            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    password.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+    EditText confirmation = new EditText(context);
+    confirmation.setHint(R.string.lan_password_confirm);
+    confirmation.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT
+            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    confirmation.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+    fields.addView(password);
+    fields.addView(confirmation);
+    var dialog =
+        new DshaDialogBuilder(context)
+            .setTitle(R.string.lan_password_button)
+            .setMessage(R.string.lan_password_prompt)
+            .setView(fields)
+            .setNegativeButton(R.string.lan_password_cancel, null)
+            .setPositiveButton(R.string.lan_password_save, null)
+            .create();
+    dialog.show();
+    dialog
+        .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+        .setOnClickListener(
+            ignored -> {
+              String value = password.getText().toString();
+              if (!com.deepseekharness.app.util.LanPassword.validPassword(value)
+                  || !value.equals(confirmation.getText().toString())) {
+                confirmation.setError(getString(R.string.lan_password_invalid));
+                return;
+              }
+              if (!savingLanPassword.compareAndSet(false, true)) return;
+              password.setText("");
+              confirmation.setText("");
+              dialog.dismiss();
+              status.setText(R.string.lan_password_saving);
+              Context app = context.getApplicationContext();
+              new Thread(
+                      () -> {
+                        boolean saved = false;
+                        try {
+                          config.setLanPassword(value);
+                          saved = true;
+                        } catch (RuntimeException ignoredFailure) {
+                          // Do not log exception details: the input is a secret.
+                        }
+                        final boolean success = saved;
+                        new android.os.Handler(android.os.Looper.getMainLooper())
+                            .post(
+                                () -> {
+                                  boolean enabled = config.isLanMode();
+                                  boolean applied = success && applyLanMode(app, enabled);
+                                  savingLanPassword.set(false);
+                                  if (!isAdded() || getView() == null) return;
+                                  TextView currentStatus =
+                                      getView().findViewById(R.id.config_lan_password_status);
+                                  currentStatus.setText(
+                                      config.hasLanPassword()
+                                          ? R.string.lan_password_set
+                                          : R.string.lan_password_missing);
+                                  int message = lanPasswordSavedMessage(success, enabled, applied);
+                                  Toast.makeText(app, message, Toast.LENGTH_LONG).show();
+                                });
+                      },
+                      "dsha-lan-password")
+                  .start();
+            });
+  }
+
+  // Submission is not proof of a successful asynchronous bind. The Launch page
+  // observes the actual listener and network state.
+  static int lanSettingsMessage(boolean enabled, boolean hasPassword, boolean submitted) {
+    if (!enabled) return submitted ? 0 : R.string.lan_apply_failed;
+    if (!hasPassword) return R.string.lan_password_missing;
+    return submitted ? R.string.lan_apply_check : R.string.lan_apply_failed;
+  }
+
+  static int lanPasswordSavedMessage(boolean saved, boolean enabled, boolean submitted) {
+    if (!saved) return R.string.lan_password_failed;
+    if (!submitted) return R.string.lan_password_listener_failed;
+    return enabled ? R.string.lan_password_saved_check : R.string.lan_password_waiting;
+  }
+
+  /** Submit the desired state; successful submission does not mean binding succeeded. */
+  private static boolean applyLanMode(Context context, boolean on) {
     try {
       if (!on) {
         com.deepseekharness.app.LanProxyService.stopLanListener();
-        com.deepseekharness.app.HarnessService.refreshPowerMode(requireContext());
-        return;
+        com.deepseekharness.app.HarnessService.refreshPowerMode(context);
+        return true;
       }
-      com.deepseekharness.app.HarnessService.ensureLanForeground(requireContext());
-      HarnessController hc = HarnessController.get(requireContext());
+      com.deepseekharness.app.HarnessService.ensureLanForeground(context);
+      HarnessController hc = HarnessController.get(context);
       long gen = hc.getWebGeneration();
-      if (gen <= 0 || !com.deepseekharness.app.LanProxyService.hasDshAuth(gen)) {
-        // dsh 还没起来/还没交换 cookie：等下次进入对话时 HarnessController 自动启动
-        return;
-      }
+      if (gen <= 0 || !com.deepseekharness.app.LanProxyService.hasDshAuth(gen)) return true;
       com.deepseekharness.app.LanProxyService.start(
-          hc.proot().getRootfsDir().getAbsolutePath(), requireContext(), hc.getWebPort(), gen);
-    } catch (Throwable t) {
-      android.util.Log.w(
-          "DSHA", com.deepseekharness.app.util.UiText.format("LAN 开关生效失败: %s", t.getMessage()));
+          hc.proot().getRootfsDir().getAbsolutePath(), context, hc.getWebPort(), gen);
+      return true;
+    } catch (RuntimeException failure) {
+      return false;
     }
   }
 

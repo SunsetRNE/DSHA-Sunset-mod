@@ -256,6 +256,28 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   @Test
+  public void launchUsesOneActivityTrackAndAnnouncesStatus() throws Exception {
+    var restored = restoreLaunch(false);
+    try {
+      showMain(restored);
+      View page = restored.page.requireView();
+      ViewGroup actions = page.findViewById(R.id.launch_actions);
+      View track = page.findViewById(R.id.launch_activity);
+      assertEquals(
+          actions.indexOfChild(page.findViewById(R.id.launch_subtitle)) + 1,
+          actions.indexOfChild(track));
+      for (int i = 0; i < actions.getChildCount(); i++) {
+        assertFalse(actions.getChildAt(i) instanceof android.widget.ProgressBar);
+      }
+      assertEquals(
+          View.ACCESSIBILITY_LIVE_REGION_POLITE,
+          page.findViewById(R.id.launch_status).getAccessibilityLiveRegion());
+    } finally {
+      restored.host.pause().stop().destroy();
+    }
+  }
+
+  @Test
   public void terminalEntriesUseLocalRecoveryGateWithoutReplacingLaunchPage() throws Exception {
     var restored = restoreLaunch(false);
     try {
@@ -265,7 +287,8 @@ public final class MainEntryLayoutLifecycleTest {
       assertNotNull(page.findViewById(R.id.launch_environment_row));
       assertNotNull(page.findViewById(R.id.launch_address));
       int retired =
-          page.getResources().getIdentifier("launch_workspaces", "id", restored.main.getPackageName());
+          page.getResources()
+              .getIdentifier("launch_workspaces", "id", restored.main.getPackageName());
       if (retired != 0) assertNull(page.findViewById(retired));
       var nav =
           (com.google.android.material.bottomnavigation.BottomNavigationView)
