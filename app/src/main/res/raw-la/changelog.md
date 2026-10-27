@@ -1,8 +1,6 @@
-# DSHA 0.2.1-rc.3-20261027.1312-dsh0.2.1-rc.3 / build205
+# DSHA 0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3 / build206
 
-- Textus in terminale insertus per seriem FIFO limitatam transit; insertio signis inclusa una vice traditur. Serie plena, input posterior ad confirmationem suspenditur; textus non missus non iteratur automatice.
-- Si exitus initii screen virtualis ignotus est, codices diagnostici permissos servamus. Diagnostica exitum remotum non probat neque custodiam exitus ignoti tollit.
-- Actiones telephoni ad scopum ultimae observationis felicis screen ligantur. Scopo mutato vel nova observatione incepta, nova observatio requiritur; vetus permissum actionis restituere non potest.
-- DNS machinae praesto, sola configuratio DNS vetus et originali per singulos bytes aequalis ad DNS machinae migratur. Configurationes ab utente mutatae et configuratio vetus, si DNS machinae deest, servantur.
-- Experimenta regressionis pro restitutione fluxuum sessionis et spatii laboris, exploratione download et responsis compressis amplificata sunt. Haec experimenta probationem telephoni vel veri servitoris restituti non demonstrant.
-- dsh-web-mobile 3.2.2, DSH rc.3, accessus localis et LAN et decem linguae servantur. Probatio telephoni adhuc suspensa est.
+- Actiones terminalis, prospectus et exportatio output ampliantur. Pars lateralis sessionum et globulus mobilis ad diversas fenestrarum magnitudines accommodantur; textus decem linguarum renovantur.
+- Consultationes pluginorum cum initio et operationibus terminalis melius coordinantur; nuntius status manet si petitio initii non mittitur.
+- Recuperatio ambitus et inspectiones viarum emendantur; prioritas inscriptionum DNS et tractatio Unicode in acquisitione paginarum mutantur.
+- Haec versio in telephono neque installata neque probata est. Mores terminalis, retis et machinae adhuc verificandi sunt.

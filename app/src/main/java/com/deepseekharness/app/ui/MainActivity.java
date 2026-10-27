@@ -212,7 +212,8 @@ public class MainActivity extends AppCompatActivity {
         () -> {
           boolean limited =
               admittedIntent.getBooleanExtra("limited_entry", false)
-                  || config.allowsLimitedEntry(controller.proot().environmentIdentity());
+                  || config.allowsLimitedEntry(
+                      com.deepseekharness.app.core.EnvironmentAccess.limitedEntryKey(controller));
           return !limited
               && (com.deepseekharness.app.core.MaintenanceCoordinator.pending(controller)
                   || !skipExtract

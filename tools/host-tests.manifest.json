@@ -2,6 +2,15 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-web-fetch-unicode.py",
+      "stage": "runtime",
+      "requires": ["python39", "node24"],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Execute bundled rc3 HTTP body and web-fetch output functions after the signed patch chain, including UTF-16 surrogate boundaries, metadata, caps, idempotence, and changed-anchor rejection."
+    },
+    {
       "path": "tools/test-vscreen-help.py",
       "stage": "fast",
       "requires": ["python39", "jdk17", "toolchains"],

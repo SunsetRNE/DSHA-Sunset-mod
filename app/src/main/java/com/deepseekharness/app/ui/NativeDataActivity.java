@@ -851,6 +851,12 @@ public final class NativeDataActivity extends AppCompatActivity {
             t(
                 "\n这是未加密的 v5 备份；摘要能校验文件完整性，但不能提供保密或来源认证。",
                 "\nThis is an unencrypted v5 backup; the digest verifies file integrity but provides no confidentiality or sender authentication.");
+      if (preview.get("warnings") instanceof List
+          && ((List<?>) preview.get("warnings")).contains("LINK_METADATA_RETAINED"))
+        info +=
+            t(
+                "\n部分链接无法安全还原，不会创建；确认恢复后，链接信息会保存在应用私有恢复记录中。",
+                "\nSome links cannot be restored safely and will not be created. If you confirm, their metadata will be retained in the app's private restore record.");
       if (preview.get("warnings") instanceof List && !((List<?>) preview.get("warnings")).isEmpty())
         info +=
             t(
@@ -1012,8 +1018,13 @@ public final class NativeDataActivity extends AppCompatActivity {
                 "此备份格式尚不支持，当前数据未覆盖。",
                 "This backup format is unsupported. Current data was not overwritten.");
         break;
-      case "SOURCE_CHANGED":
       case "TARGET_CHANGED":
+        message =
+            t(
+                "目标在核验期间发生变化，操作已停止并保留原件。如果正在恢复，请先停止 Web、终端及其他写入任务，再重新选择备份并核对恢复预览。",
+                "The target changed during verification. The operation stopped and originals were retained. If restoring, stop Web, terminals and other writers, then select the backup again and review the new restore preview.");
+        break;
+      case "SOURCE_CHANGED":
       case "INPUT_CHANGED":
         message =
             t(

@@ -620,6 +620,19 @@ final class RuntimeTools {
       RuntimeHostPorts.Settings settings,
       java.util.List<String> deviceDns)
       throws IOException {
+    try {
+      prepareDnsServers(context, rootfs, settings, deviceDns);
+    } finally {
+      prepareAddressPrecedence(context, rootfs, settings.dnsMode);
+    }
+  }
+
+  private static void prepareDnsServers(
+      Context context,
+      File rootfs,
+      RuntimeHostPorts.Settings settings,
+      java.util.List<String> deviceDns)
+      throws IOException {
     File target = new File(rootfs, "etc/resolv.conf");
     if (!target.getParentFile().isDirectory()) return;
     // 特殊文件或外部软链接保持原位；不能跟随 guest 绝对链接写到宿主。
@@ -627,6 +640,19 @@ final class RuntimeTools {
     String old = target.isFile() ? Compat.readAll(target) : "";
     String updated =
         com.deepseekharness.app.util.ResolverConfig.reconcile(old, settings.dnsMode, deviceDns);
+    if (!old.equals(updated))
+      writeIfChanged(
+          context, target, updated.getBytes(java.nio.charset.StandardCharsets.UTF_8), false);
+  }
+
+  private static void prepareAddressPrecedence(Context context, File rootfs, String mode)
+      throws IOException {
+    File target = new File(rootfs, "etc/gai.conf");
+    if (!target.getParentFile().isDirectory()) return;
+    // Preserve links and special files; never follow guest links into host paths.
+    if (Compat.isSymbolicLink(target) || target.exists() && !target.isFile()) return;
+    String old = target.isFile() ? Compat.readAll(target) : "";
+    String updated = com.deepseekharness.app.util.GaiConfig.reconcile(old, mode);
     if (!old.equals(updated))
       writeIfChanged(
           context, target, updated.getBytes(java.nio.charset.StandardCharsets.UTF_8), false);

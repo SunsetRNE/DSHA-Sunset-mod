@@ -3,6 +3,12 @@
   "dshVersion": "0.2.1-rc.3",
   "active": [
     {
+      "asset": "web-fetch-http-surrogate-patch.json"
+    },
+    {
+      "asset": "web-fetch-output-surrogate-patch.json"
+    },
+    {
       "asset": "permission-full-access-patch.json"
     },
     {
@@ -14,6 +20,9 @@
       "markers": [
         "DSHA_STARTUP_MCP_TIMING_V1"
       ]
+    },
+    {
+      "asset": "mcp-image-base64-patch.json"
     },
     {
       "asset": "welcome-notice-patch.json",

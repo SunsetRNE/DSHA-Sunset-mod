@@ -50,6 +50,8 @@ public class LaunchFragment extends Fragment {
   private boolean webEntryFailure;
 
   private boolean preparingStart;
+  // Preserve admission failures until the next explicit action or a ready Web instance.
+  private String startStatusMessage = "";
   private final java.util.concurrent.atomic.AtomicLong startRequest =
       new java.util.concurrent.atomic.AtomicLong();
   private static final java.util.concurrent.Executor START_IO =
@@ -177,6 +179,7 @@ public class LaunchFragment extends Fragment {
         x -> {
           startRequest.incrementAndGet();
           preparingStart = false;
+          startStatusMessage = "";
           FirstRunWebStart.cancel(requireContext());
           invalidateWebEntry();
           controller.stopWeb(
@@ -216,6 +219,7 @@ public class LaunchFragment extends Fragment {
     FirstRunWebStart.cancel(requireContext());
     preparingStart = true;
     long request = startRequest.incrementAndGet();
+    startStatusMessage = "";
     invalidateWebEntry();
     startAtMs = System.currentTimeMillis();
     String time =
@@ -229,23 +233,29 @@ public class LaunchFragment extends Fragment {
           long generation = controller.getWebGeneration();
           activity.runOnUiThread(
               () -> {
-                if (getView() != root || generation != controller.getWebGeneration()) return;
-                status.setText(com.deepseekharness.app.util.UiStateText.render(msg));
+                if (startRequest.get() != request
+                    || getView() != root
+                    || generation != controller.getWebGeneration()) return;
+                startStatusMessage = msg == null ? "" : msg;
                 refreshRunState();
                 refreshLanAddr();
               });
         };
     refreshRunState();
     boolean queued =
-        FirstRunWebStart.enqueueVisible(
+        enqueueStart(
             requireActivity(),
-            START_IO,
-            safeMode,
             safeMode,
             startStatus,
-            () -> {
+            accepted -> {
               if (startRequest.get() != request || getView() != root) return;
               preparingStart = false;
+              if (!accepted && startStatusMessage.isEmpty()) {
+                startStatusMessage =
+                    UiText.choose(
+                        "启动请求未执行，请检查运行状态后重试。",
+                        "The start request was not submitted. Check the run status and retry.");
+              }
               refreshRunState();
               refreshLanAddr();
             });
@@ -253,6 +263,16 @@ public class LaunchFragment extends Fragment {
       preparingStart = false;
       refreshRunState();
     }
+  }
+
+  // Isolate dispatch from presentation so host tests can exercise the real button and callbacks.
+  boolean enqueueStart(
+      androidx.fragment.app.FragmentActivity activity,
+      boolean safeMode,
+      java.util.function.Consumer<String> status,
+      java.util.function.Consumer<Boolean> completed) {
+    return FirstRunWebStart.enqueueVisible(
+        activity, START_IO, safeMode, safeMode, status, completed);
   }
 
   /**
@@ -526,6 +546,7 @@ public class LaunchFragment extends Fragment {
               && (stopResult != null && !stopResult.stopped()
                   || !controller.lastStopError().isEmpty());
       boolean ready = !starting && !stopping && !webEntryUrl().isEmpty();
+      if (ready) startStatusMessage = "";
       boolean restoring = controller.isRestoringWebSession();
       boolean unresolved = controller.hasUnresolvedWebSession();
       com.deepseekharness.app.util.StartupTrace.Snapshot trace =
@@ -604,6 +625,7 @@ public class LaunchFragment extends Fragment {
                       || starting
                       || stopping
                       || unresolvedStop
+                      || !startStatusMessage.isEmpty()
                       || !trace.issues.isEmpty()
                   ? View.VISIBLE
                   : View.GONE);
@@ -618,6 +640,9 @@ public class LaunchFragment extends Fragment {
                     trace.issues.isEmpty()
                         ? com.deepseekharness.app.util.UiText.text("下方实时显示启动输出；等待不会自动终止。")
                         : com.deepseekharness.app.util.UiText.text("检测到插件或配置异常，可查看恢复选项。")));
+      else if (!startStatusMessage.isEmpty() && !stopping && !enteringWeb)
+        ((TextView) root.findViewById(R.id.launch_status))
+            .setText(com.deepseekharness.app.util.UiStateText.render(startStatusMessage));
       root.findViewById(R.id.launch_busy)
           .setVisibility(starting || stopping ? View.VISIBLE : View.GONE);
       Button recovery = root.findViewById(R.id.launch_recovery);

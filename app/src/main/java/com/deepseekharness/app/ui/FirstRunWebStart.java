@@ -81,7 +81,7 @@ final class FirstRunWebStart {
       boolean safe,
       boolean recover,
       java.util.function.Consumer<String> status,
-      Runnable completed) {
+      java.util.function.Consumer<Boolean> completed) {
     Context app = activity.getApplicationContext();
     com.deepseekharness.app.util.WebStartProtection.Ticket ticket;
     try {
@@ -105,7 +105,8 @@ final class FirstRunWebStart {
               // Recovery retains this ticket across its own Stop; its controller continuation
               // owns cleanup. An ordinary accepted start has already handed off atomically.
               if (!accepted || !recover) HarnessService.finishVisibleStart(app, ticket);
-              if (completed != null) MAIN.post(completed);
+              boolean submitted = accepted;
+              if (completed != null) MAIN.post(() -> completed.accept(submitted));
             }
           });
       return true;
