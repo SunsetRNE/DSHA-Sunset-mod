@@ -97,13 +97,7 @@ public final class AssistantInputAndroidTest {
     session =
         new AssistantSessionController(
             app,
-            new AssistantBinding(
-                AssistantBinding.Target.LOCAL,
-                "host-input",
-                "full-session-input",
-                "input-epoch",
-                1,
-                null),
+            new AssistantBinding("host-input", "full-session-input", "input-epoch", 1),
             backend);
     drain();
   }

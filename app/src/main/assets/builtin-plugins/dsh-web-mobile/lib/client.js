@@ -762,7 +762,7 @@ exports.BASE_CSS = `
    the safe-area inset moves it below the notch too. */
 [data-mobile-nav="fab"] {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px);
   left: 10px;
   z-index: 21;
   display: inline-flex;
@@ -928,7 +928,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     box-sizing: border-box !important;
     position: relative !important;
     grid-template-columns: minmax(0, 1fr) 0 0 !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
     /* Bottom safe area, symmetric with the top inset above. It MUST stay in
        this rule: box-sizing: border-box is the pair that makes the padding eat
        into the one-viewport height instead of adding scrollable overflow
@@ -941,7 +941,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        in the system-bar band (issue #193). In the <=768px band that sheet's
        declaration and this one are the same property with the same value, so
        they do not stack. */
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-bottom: var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* The sidebar column (first grid child) becomes a left drawer. The drawer
@@ -997,7 +997,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        frame's padding box, so the frame's own safe-area padding does NOT
        reach it). The drawer background paints the status-bar strip, which
        the client's theme-color meta matches, so the strip reads seamless. */
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
     /* Kill the official sidebarCol right border: with the backdrop the edge
        reads cleanly, and the settings dialog (width:100% of this box) stays
        pixel-flush with the drawer. */
@@ -1172,7 +1172,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
      instead of silently double-padding. The rule lives in the mobile branch,
      so desktop keeps the host layout. */
   [data-sidebar-right-panel="fullscreen"] {
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
   }
 
   /* Phone chrome keeps only the collapse control. Split visibility must not
@@ -3148,7 +3148,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     position: fixed !important;
     left: 8px !important;
     right: 8px !important;
-    top: calc(env(safe-area-inset-top, 0px) + 80px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 80px) !important;
     bottom: auto !important;
     width: auto !important;
     max-width: none !important;
@@ -3167,7 +3167,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     position: fixed !important;
     left: 8px !important;
     right: 8px !important;
-    top: calc(env(safe-area-inset-top, 0px) + 80px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 80px) !important;
     bottom: auto !important;
     width: auto !important;
     max-width: none !important;
@@ -3571,7 +3571,7 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        panel overflowing the max-content drawer shifts the fixed overlay's
        coordinate frame, dragging the whole sidebar content off-screen. The
        safe-area inset keeps the sheet below the status bar / notch. */
-    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) !important;
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
     /* Height follows the content (no dead space under a short page); it
@@ -3584,8 +3584,8 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
        「又闪一下」. The variable never moves for the keyboard, so the sheet
        keeps its size and the keyboard covers its lower half instead. */
     height: auto;
-    max-height: min(800px, calc(100vh - 24px - env(safe-area-inset-top, 0px)));
-    max-height: min(800px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - env(safe-area-inset-top, 0px)));
+    max-height: min(800px, calc(100vh - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px))));
+    max-height: min(800px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px))));
     /* Only a real viewport change (rotation / window resize) reaches this now,
        so the short transition reads as a slide instead of a jump. */
     transition: max-height .2s var(--ds-ease-out, ease-in-out);
@@ -3990,12 +3990,12 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
   [aria-modal="true"][data-shortcut-modal="shortcuts"] {
     position: absolute !important;
     left: 8px !important;
-    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) !important;
     width: calc(100vw - 16px) !important;
     max-width: calc(100vw - 16px) !important;
     /* 同上：键盘不进这层的高度。这一层下面就是键盘，卡片缩一次就一定被看见，
        所以用「不含键盘的视口高度」定高 → 点搜索框时卡片纹丝不动，键盘盖住下半截。 */
-    max-height: min(760px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - env(safe-area-inset-top, 0px))) !important;
+    max-height: min(760px, calc(var(--dsh-web-mobile-vh, 100dvh) - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)))) !important;
     transition: max-height .2s var(--ds-ease-out, ease-in-out);
     transform: none !important;
     border-radius: 14px !important;
@@ -4061,8 +4061,8 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
   /* DSHA 可见区域边界：原生已消费 IME/systemBars，只读浏览器实际视口。 */
   [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]),
   [aria-modal="true"][data-shortcut-modal="shortcuts"] {
-    top: calc(env(safe-area-inset-top, 0px) + 12px + var(--dsha-mobile-viewport-top, 0px)) !important;
-    max-height: max(1px, calc(var(--dsha-mobile-visible-vh, 100vh) - 24px - env(safe-area-inset-top, 0px))) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px + var(--dsha-mobile-viewport-top, 0px)) !important;
+    max-height: max(1px, calc(var(--dsha-mobile-visible-vh, 100vh) - 24px - var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)))) !important;
     min-height: 0 !important;
     box-sizing: border-box;
     overflow-y: auto;
@@ -4967,7 +4967,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
     height: 100dvh !important;
     max-height: none !important;
     box-sizing: border-box !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     z-index: 57 !important;
@@ -4976,7 +4976,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   /* Fullscreen: the column fills the viewport, so the button follows the
      titlebar row down below the notch. */
   [data-mobile-nav="frame"][data-mobile-preview-full] [data-aionui-preview-col] [data-mobile-nav="preview-full-toggle"] {
-    top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+    top: calc(var(--dsha-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 8px) !important;
   }
   @media (prefers-reduced-motion: reduce) {
     [data-aionui-preview-col],
@@ -5868,7 +5868,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   [data-mobile-nav="frame"][data-file-viewer-open] .dsfv-statusbar {
     flex-wrap: wrap !important;
     gap: 4px 10px !important;
-    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 4px 8px calc(4px + var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
     font-size: 12px !important;
   }
   /* Content scrollers must own horizontal scrolling; the flex columns and the
@@ -5974,7 +5974,7 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   [data-mobile-nav="file-share-toast"] {
     position: fixed;
     left: 50%;
-    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(24px + var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     z-index: 1500;
     max-width: min(90vw, 420px);
     padding: 8px 14px;
@@ -7115,6 +7115,242 @@ exports.en = {
     'deleteErrorResolve': 'Could not identify the session to delete. Please try again.',
     'deleteErrorGeneric': 'Delete failed: {message}',
 };
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+exports.mobileNavLocales = { zh: exports.zh, en: exports.en, ...{
+  "zh-Hant": {
+    "open": "開啟目錄",
+    "close": "收合目錄",
+    "backdrop": "點擊關閉目錄",
+    "back": "返回",
+    "backToConversation": "返回對話",
+    "sessionLog": "匯出對話記錄",
+    "downloadMenu": "下載",
+    "downloads": "下載記錄",
+    "quickSettings": "設定",
+    "files": "瀏覽檔案",
+    "fileUpload": "新增檔案",
+    "fileUploadImage": "上傳圖片",
+    "fileUploadAttachment": "上傳附件",
+    "previewFullscreen": "全螢幕預覽",
+    "previewExitFullscreen": "結束全螢幕",
+    "questionExpand": "展開回答",
+    "questionCollapse": "收合回答",
+    "deleteSession": "刪除對話",
+    "deleteConfirmTitle": "刪除對話？",
+    "deleteConfirmDesc": "將永久刪除「{title}」的完整對話記錄，此操作無法復原。",
+    "deleteConfirmYes": "刪除",
+    "deleteConfirmNo": "取消",
+    "deletePending": "正在刪除…",
+    "deleteErrorBusy": "此對話正在執行且無法停止，請稍後再試。",
+    "deleteErrorNotFound": "對話不存在或已被刪除。",
+    "deleteErrorResolve": "無法確定要刪除的對話，請重試。",
+    "deleteErrorGeneric": "刪除失敗：{message}"
+  },
+  "ru": {
+    "open": "Открыть каталог",
+    "close": "Закрыть каталог",
+    "backdrop": "Нажмите, чтобы закрыть каталог",
+    "back": "Назад",
+    "backToConversation": "Назад к беседе",
+    "sessionLog": "Экспорт журнала беседы",
+    "downloadMenu": "Загрузки",
+    "downloads": "История загрузок",
+    "quickSettings": "Настройки",
+    "files": "Файлы",
+    "fileUpload": "Добавить файлы",
+    "fileUploadImage": "Загрузить изображение",
+    "fileUploadAttachment": "Загрузить вложение",
+    "previewFullscreen": "Полноэкранный просмотр",
+    "previewExitFullscreen": "Выйти из полноэкранного режима",
+    "questionExpand": "Развернуть ответ",
+    "questionCollapse": "Свернуть ответ",
+    "deleteSession": "Удалить беседу",
+    "deleteConfirmTitle": "Удалить беседу?",
+    "deleteConfirmDesc": "Весь журнал беседы «{title}» будет удалён без возможности восстановления.",
+    "deleteConfirmYes": "Удалить",
+    "deleteConfirmNo": "Отмена",
+    "deletePending": "Удаление…",
+    "deleteErrorBusy": "Беседа выполняется, и её не удалось остановить. Повторите попытку позже.",
+    "deleteErrorNotFound": "Беседа не существует или уже удалена.",
+    "deleteErrorResolve": "Не удалось определить беседу для удаления. Повторите попытку.",
+    "deleteErrorGeneric": "Не удалось удалить: {message}"
+  },
+  "ja": {
+    "open": "ディレクトリを開く",
+    "close": "ディレクトリを閉じる",
+    "backdrop": "タップしてディレクトリを閉じる",
+    "back": "戻る",
+    "backToConversation": "会話に戻る",
+    "sessionLog": "会話ログを書き出す",
+    "downloadMenu": "ダウンロード",
+    "downloads": "ダウンロード履歴",
+    "quickSettings": "設定",
+    "files": "ファイル",
+    "fileUpload": "ファイルを追加",
+    "fileUploadImage": "画像をアップロード",
+    "fileUploadAttachment": "添付ファイルをアップロード",
+    "previewFullscreen": "全画面プレビュー",
+    "previewExitFullscreen": "全画面を終了",
+    "questionExpand": "回答を展開",
+    "questionCollapse": "回答を折りたたむ",
+    "deleteSession": "会話を削除",
+    "deleteConfirmTitle": "会話を削除しますか？",
+    "deleteConfirmDesc": "「{title}」の会話ログ全体を完全に削除します。この操作は元に戻せません。",
+    "deleteConfirmYes": "削除",
+    "deleteConfirmNo": "キャンセル",
+    "deletePending": "削除中…",
+    "deleteErrorBusy": "この会話は実行中で停止できませんでした。しばらくしてから再試行してください。",
+    "deleteErrorNotFound": "会話が存在しないか、すでに削除されています。",
+    "deleteErrorResolve": "削除する会話を特定できませんでした。再試行してください。",
+    "deleteErrorGeneric": "削除に失敗しました：{message}"
+  },
+  "ko": {
+    "open": "디렉터리 열기",
+    "close": "디렉터리 닫기",
+    "backdrop": "눌러서 디렉터리 닫기",
+    "back": "뒤로",
+    "backToConversation": "대화로 돌아가기",
+    "sessionLog": "대화 기록 내보내기",
+    "downloadMenu": "다운로드",
+    "downloads": "다운로드 기록",
+    "quickSettings": "설정",
+    "files": "파일",
+    "fileUpload": "파일 추가",
+    "fileUploadImage": "이미지 업로드",
+    "fileUploadAttachment": "첨부 파일 업로드",
+    "previewFullscreen": "전체 화면 미리 보기",
+    "previewExitFullscreen": "전체 화면 종료",
+    "questionExpand": "답변 펼치기",
+    "questionCollapse": "답변 접기",
+    "deleteSession": "대화 삭제",
+    "deleteConfirmTitle": "대화를 삭제할까요?",
+    "deleteConfirmDesc": "‘{title}’의 전체 대화 기록이 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+    "deleteConfirmYes": "삭제",
+    "deleteConfirmNo": "취소",
+    "deletePending": "삭제 중…",
+    "deleteErrorBusy": "이 대화가 실행 중이며 중지할 수 없습니다. 나중에 다시 시도하세요.",
+    "deleteErrorNotFound": "대화가 없거나 이미 삭제되었습니다.",
+    "deleteErrorResolve": "삭제할 대화를 확인할 수 없습니다. 다시 시도하세요.",
+    "deleteErrorGeneric": "삭제 실패: {message}"
+  },
+  "ar": {
+    "open": "فتح المجلد",
+    "close": "إغلاق المجلد",
+    "backdrop": "اضغط لإغلاق المجلد",
+    "back": "رجوع",
+    "backToConversation": "العودة إلى المحادثة",
+    "sessionLog": "تصدير سجل المحادثة",
+    "downloadMenu": "التنزيلات",
+    "downloads": "سجل التنزيلات",
+    "quickSettings": "الإعدادات",
+    "files": "الملفات",
+    "fileUpload": "إضافة ملفات",
+    "fileUploadImage": "رفع صورة",
+    "fileUploadAttachment": "رفع مرفق",
+    "previewFullscreen": "معاينة بملء الشاشة",
+    "previewExitFullscreen": "الخروج من ملء الشاشة",
+    "questionExpand": "توسيع الإجابة",
+    "questionCollapse": "طي الإجابة",
+    "deleteSession": "حذف المحادثة",
+    "deleteConfirmTitle": "هل تريد حذف المحادثة؟",
+    "deleteConfirmDesc": "سيُحذف سجل المحادثة «{title}» بالكامل وبشكل نهائي. لا يمكن التراجع عن هذا الإجراء.",
+    "deleteConfirmYes": "حذف",
+    "deleteConfirmNo": "إلغاء",
+    "deletePending": "جارٍ الحذف…",
+    "deleteErrorBusy": "المحادثة قيد التشغيل وتعذّر إيقافها. أعد المحاولة لاحقًا.",
+    "deleteErrorNotFound": "المحادثة غير موجودة أو حُذفت بالفعل.",
+    "deleteErrorResolve": "تعذّر تحديد المحادثة المطلوب حذفها. أعد المحاولة.",
+    "deleteErrorGeneric": "فشل الحذف: {message}"
+  },
+  "pt": {
+    "open": "Abrir diretório",
+    "close": "Fechar diretório",
+    "backdrop": "Toque para fechar o diretório",
+    "back": "Voltar",
+    "backToConversation": "Voltar à conversa",
+    "sessionLog": "Exportar registro da conversa",
+    "downloadMenu": "Downloads",
+    "downloads": "Histórico de downloads",
+    "quickSettings": "Configurações",
+    "files": "Arquivos",
+    "fileUpload": "Adicionar arquivos",
+    "fileUploadImage": "Enviar imagem",
+    "fileUploadAttachment": "Enviar anexo",
+    "previewFullscreen": "Prévia em tela cheia",
+    "previewExitFullscreen": "Sair da tela cheia",
+    "questionExpand": "Expandir resposta",
+    "questionCollapse": "Recolher resposta",
+    "deleteSession": "Excluir conversa",
+    "deleteConfirmTitle": "Excluir conversa?",
+    "deleteConfirmDesc": "Todo o registro de “{title}” será excluído permanentemente. Esta ação não pode ser desfeita.",
+    "deleteConfirmYes": "Excluir",
+    "deleteConfirmNo": "Cancelar",
+    "deletePending": "Excluindo…",
+    "deleteErrorBusy": "Esta conversa está em execução e não pôde ser interrompida. Tente novamente mais tarde.",
+    "deleteErrorNotFound": "A conversa não existe ou já foi excluída.",
+    "deleteErrorResolve": "Não foi possível identificar a conversa a excluir. Tente novamente.",
+    "deleteErrorGeneric": "Falha ao excluir: {message}"
+  },
+  "la": {
+    "open": "Aperi directorium",
+    "close": "Claude directorium",
+    "backdrop": "Tange ut directorium claudatur",
+    "back": "Retro",
+    "backToConversation": "Redi ad colloquium",
+    "sessionLog": "Exporta acta colloquii",
+    "downloadMenu": "Depositiones",
+    "downloads": "Historia depositionum",
+    "quickSettings": "Optiones",
+    "files": "Fasciculi",
+    "fileUpload": "Adde fasciculos",
+    "fileUploadImage": "Mitte imaginem",
+    "fileUploadAttachment": "Mitte adnexum",
+    "previewFullscreen": "Praevisio in toto velo",
+    "previewExitFullscreen": "Exi e toto velo",
+    "questionExpand": "Expande responsum",
+    "questionCollapse": "Contrahe responsum",
+    "deleteSession": "Dele colloquium",
+    "deleteConfirmTitle": "Deleatur colloquium?",
+    "deleteConfirmDesc": "Omnia acta colloquii «{title}» perpetuo delebuntur. Haec actio revocari non potest.",
+    "deleteConfirmYes": "Dele",
+    "deleteConfirmNo": "Cancella",
+    "deletePending": "Deletur…",
+    "deleteErrorBusy": "Hoc colloquium currit nec sisti potuit. Postea iterum tempta.",
+    "deleteErrorNotFound": "Colloquium non exstat aut iam deletum est.",
+    "deleteErrorResolve": "Colloquium delendum agnosci non potuit. Iterum tempta.",
+    "deleteErrorGeneric": "Deletio defecit: {message}"
+  },
+  "fr": {
+    "open": "Ouvrir le dossier",
+    "close": "Fermer le dossier",
+    "backdrop": "Appuyez pour fermer le dossier",
+    "back": "Retour",
+    "backToConversation": "Retour à la conversation",
+    "sessionLog": "Exporter le journal de conversation",
+    "downloadMenu": "Téléchargements",
+    "downloads": "Historique des téléchargements",
+    "quickSettings": "Paramètres",
+    "files": "Fichiers",
+    "fileUpload": "Ajouter des fichiers",
+    "fileUploadImage": "Importer une image",
+    "fileUploadAttachment": "Importer une pièce jointe",
+    "previewFullscreen": "Aperçu en plein écran",
+    "previewExitFullscreen": "Quitter le plein écran",
+    "questionExpand": "Développer la réponse",
+    "questionCollapse": "Réduire la réponse",
+    "deleteSession": "Supprimer la conversation",
+    "deleteConfirmTitle": "Supprimer la conversation ?",
+    "deleteConfirmDesc": "Tout le journal de « {title} » sera définitivement supprimé. Cette action est irréversible.",
+    "deleteConfirmYes": "Supprimer",
+    "deleteConfirmNo": "Annuler",
+    "deletePending": "Suppression…",
+    "deleteErrorBusy": "Cette conversation est en cours et n’a pas pu être arrêtée. Réessayez plus tard.",
+    "deleteErrorNotFound": "La conversation n’existe pas ou a déjà été supprimée.",
+    "deleteErrorResolve": "Impossible d’identifier la conversation à supprimer. Réessayez.",
+    "deleteErrorGeneric": "Échec de la suppression : {message}"
+  }
+} };
+
 };
 __modules["effects/aionui-compat.js"] = function (require, module, exports) {
 "use strict";
@@ -8303,6 +8539,7 @@ function createDrawerSessionLogTask(ctx) {
     let wrapper = null;
     let button = null;
     let unsubscribe = null;
+    let unsubscribeLocale = null;
     let menu = null;
     let exportItem = null;
     let onDocPointerDown = null;
@@ -8473,6 +8710,18 @@ function createDrawerSessionLogTask(ctx) {
                 button.addEventListener('click', openMenu);
                 wrapper.appendChild(button);
                 unsubscribe = ctx.sessions.list.subscribe(() => { syncDisabled(); });
+                  // DSHA_MOBILE_LIVE_LOCALE_V1
+                  unsubscribeLocale = ctx.locale.subscribe?.(() => {
+                    const label = t('downloadMenu');
+                    if (button !== null) { button.setAttribute('aria-label', label); button.title = label; }
+                    if (menu !== null) {
+                      menu.setAttribute('aria-label', label);
+                      const exportLabel = menu.querySelector('[data-mobile-nav="session-log-export"] span');
+                      const downloadLabel = menu.querySelector('[data-mobile-nav="session-log-downloads"] span');
+                      if (exportLabel !== null) exportLabel.textContent = t('sessionLog');
+                      if (downloadLabel !== null) downloadLabel.textContent = t('downloads');
+                    }
+                  }) ?? null;
             }
             if (wrapper !== null)
                 mount(row, wrapper);
@@ -8482,6 +8731,8 @@ function createDrawerSessionLogTask(ctx) {
             closeMenu();
             unsubscribe?.();
             unsubscribe = null;
+            unsubscribeLocale?.();
+            unsubscribeLocale = null;
             wrapper?.remove();
             wrapper = null;
             button = null;
@@ -8538,6 +8789,7 @@ function createDrawerQuickSettingsTask(ctx) {
     let wrap = null;
     let button = null;
     let pending = null;
+    let unsubscribeLocale = null;
     const row = () => {
         const frame = (0, frame_ts_1.getFrame)();
         if (frame === null)
@@ -8659,14 +8911,25 @@ function createDrawerQuickSettingsTask(ctx) {
             const target = row();
             if (target === null)
                 return;
-            if (button === null || wrap === null)
+            if (button === null || wrap === null) {
                 build();
+                unsubscribeLocale?.();
+                // DSHA_MOBILE_LIVE_LOCALE_V1
+                unsubscribeLocale = ctx.locale.subscribe?.(() => {
+                    if (button === null) return;
+                    const label = t('quickSettings');
+                    button.setAttribute('aria-label', label);
+                    button.title = label;
+                }) ?? null;
+            }
             if (wrap !== null && wrap.parentElement !== target)
                 target.appendChild(wrap);
             syncMenuEntry(target);
         },
         dispose: () => {
             clearPending();
+            unsubscribeLocale?.();
+            unsubscribeLocale = null;
             document.documentElement.removeAttribute('data-mobile-nav-quick');
             clearMenuEntry();
             wrap?.remove();
@@ -15580,7 +15843,7 @@ function createAttachmentSource(ctx) {
  * @param ctx - client root context.
  */
 function installAttachmentMention(ctx) {
-    ctx.effect(() => ctx.locale.register(exports.ATTACHMENT_NS, { zh: exports.ATTACHMENT_ZH, en: exports.ATTACHMENT_EN }), 'dsh-web-mobile: attachment mention dictionaries');
+    ctx.effect(() => ctx.locale.register(exports.ATTACHMENT_NS, exports.attachmentLocales), 'dsh-web-mobile: attachment mention dictionaries');
     ctx.inject(['inputTriggers'], (scope) => {
         (0, breakpoints_ts_1.installMobileEffect)(scope, 'dsh-web-mobile: attachment mention source', () => {
             const registry = scope.get('inputTriggers');
@@ -15590,6 +15853,82 @@ function installAttachmentMention(ctx) {
         });
     });
 }
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+exports.attachmentLocales = { zh: exports.ATTACHMENT_ZH, en: exports.ATTACHMENT_EN, ...{
+  "zh-Hant": {
+    "section": "本次附件",
+    "kind.file": "檔案",
+    "kind.image": "圖片",
+    "status.uploading": "上傳中",
+    "status.failed": "上傳失敗",
+    "unnamed": "附件 {n}",
+    "mention": "附件"
+  },
+  "ru": {
+    "section": "Вложения в этом сообщении",
+    "kind.file": "Файл",
+    "kind.image": "Изображение",
+    "status.uploading": "Загрузка",
+    "status.failed": "Не удалось загрузить",
+    "unnamed": "Вложение {n}",
+    "mention": "вложение"
+  },
+  "ja": {
+    "section": "このメッセージの添付ファイル",
+    "kind.file": "ファイル",
+    "kind.image": "画像",
+    "status.uploading": "アップロード中",
+    "status.failed": "アップロード失敗",
+    "unnamed": "添付ファイル {n}",
+    "mention": "添付ファイル"
+  },
+  "ko": {
+    "section": "이 메시지의 첨부 파일",
+    "kind.file": "파일",
+    "kind.image": "이미지",
+    "status.uploading": "업로드 중",
+    "status.failed": "업로드 실패",
+    "unnamed": "첨부 파일 {n}",
+    "mention": "첨부 파일"
+  },
+  "ar": {
+    "section": "مرفقات هذه الرسالة",
+    "kind.file": "ملف",
+    "kind.image": "صورة",
+    "status.uploading": "جارٍ الرفع",
+    "status.failed": "فشل الرفع",
+    "unnamed": "مرفق {n}",
+    "mention": "مرفق"
+  },
+  "pt": {
+    "section": "Anexos desta mensagem",
+    "kind.file": "Arquivo",
+    "kind.image": "Imagem",
+    "status.uploading": "Enviando",
+    "status.failed": "Falha no envio",
+    "unnamed": "Anexo {n}",
+    "mention": "anexo"
+  },
+  "la": {
+    "section": "Adnexa huius nuntii",
+    "kind.file": "Fasciculus",
+    "kind.image": "Imago",
+    "status.uploading": "Mittitur",
+    "status.failed": "Missio defecit",
+    "unnamed": "Adnexum {n}",
+    "mention": "adnexum"
+  },
+  "fr": {
+    "section": "Pièces jointes de ce message",
+    "kind.file": "Fichier",
+    "kind.image": "Image",
+    "status.uploading": "Importation",
+    "status.failed": "Échec de l’importation",
+    "unnamed": "Pièce jointe {n}",
+    "mention": "pièce jointe"
+  }
+} };
+
 };
 __modules["components/file-share-locale.js"] = function (require, module, exports) {
 "use strict";
@@ -15627,6 +15966,269 @@ exports.fileShareEn = {
     'errorNotFound': 'The file no longer exists or was moved',
     'errorGeneric': 'Share failed: {message}',
 };
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+exports.fileShareLocales = { zh: exports.fileShareZh, en: exports.fileShareEn, ...{
+  "zh-Hant": {
+    "share": "分享",
+    "shareFile": "分享「{name}」",
+    "downloadFile": "下載「{name}」",
+    "sharing": "正在準備檔案…",
+    "downloadedUnsupported": "此環境不支援直接分享；已開始下載，請在系統顯示的儲存位置確認",
+    "downloadedTooLarge": "檔案超過 50 MB；已開始下載，請在系統顯示的儲存位置確認",
+    "downloadedShareFailed": "分享未能完成；已開始下載，請在系統顯示的儲存位置確認",
+    "errorTooLarge": "檔案太大（超過 200 MB），無法在手機上分享或下載",
+    "errorNotFound": "檔案不存在或已被移動",
+    "errorGeneric": "分享失敗：{message}"
+  },
+  "ru": {
+    "share": "Поделиться",
+    "shareFile": "Поделиться файлом «{name}»",
+    "downloadFile": "Скачать «{name}»",
+    "sharing": "Подготовка файла…",
+    "downloadedUnsupported": "Прямая отправка недоступна; загрузка началась. Проверьте место сохранения, указанное системой",
+    "downloadedTooLarge": "Размер файла превышает 50 MB; загрузка началась. Проверьте место сохранения, указанное системой",
+    "downloadedShareFailed": "Отправка не завершена; загрузка началась. Проверьте место сохранения, указанное системой",
+    "errorTooLarge": "Файл слишком большой (более 200 MB) для отправки или скачивания на телефоне",
+    "errorNotFound": "Файл больше не существует или был перемещён",
+    "errorGeneric": "Не удалось поделиться: {message}"
+  },
+  "ja": {
+    "share": "共有",
+    "shareFile": "「{name}」を共有",
+    "downloadFile": "「{name}」をダウンロード",
+    "sharing": "ファイルを準備中…",
+    "downloadedUnsupported": "この環境では直接共有できないため、ダウンロードを開始しました。システムに表示された保存先で確認してください",
+    "downloadedTooLarge": "ファイルが 50 MB を超えるため、ダウンロードを開始しました。システムに表示された保存先で確認してください",
+    "downloadedShareFailed": "共有を完了できなかったため、ダウンロードを開始しました。システムに表示された保存先で確認してください",
+    "errorTooLarge": "ファイルが大きすぎる（200 MB 超）ため、スマートフォンでは共有またはダウンロードできません",
+    "errorNotFound": "ファイルが存在しないか、移動されています",
+    "errorGeneric": "共有に失敗しました：{message}"
+  },
+  "ko": {
+    "share": "공유",
+    "shareFile": "‘{name}’ 공유",
+    "downloadFile": "‘{name}’ 다운로드",
+    "sharing": "파일 준비 중…",
+    "downloadedUnsupported": "여기서는 직접 공유할 수 없어 다운로드를 시작했습니다. 시스템에 표시된 저장 위치를 확인하세요",
+    "downloadedTooLarge": "파일이 50 MB를 초과하여 다운로드를 시작했습니다. 시스템에 표시된 저장 위치를 확인하세요",
+    "downloadedShareFailed": "공유를 완료하지 못해 다운로드를 시작했습니다. 시스템에 표시된 저장 위치를 확인하세요",
+    "errorTooLarge": "파일이 너무 커서(200 MB 초과) 휴대전화에서 공유하거나 다운로드할 수 없습니다",
+    "errorNotFound": "파일이 없거나 이동되었습니다",
+    "errorGeneric": "공유 실패: {message}"
+  },
+  "ar": {
+    "share": "مشاركة",
+    "shareFile": "مشاركة «{name}»",
+    "downloadFile": "تنزيل «{name}»",
+    "sharing": "جارٍ تجهيز الملف…",
+    "downloadedUnsupported": "المشاركة المباشرة غير متاحة هنا؛ بدأ التنزيل. تحقّق من موقع الحفظ الذي يعرضه النظام",
+    "downloadedTooLarge": "يتجاوز حجم الملف 50 MB؛ بدأ التنزيل. تحقّق من موقع الحفظ الذي يعرضه النظام",
+    "downloadedShareFailed": "لم تكتمل المشاركة؛ بدأ التنزيل. تحقّق من موقع الحفظ الذي يعرضه النظام",
+    "errorTooLarge": "الملف كبير جدًا (أكثر من 200 MB) ولا يمكن مشاركته أو تنزيله على الهاتف",
+    "errorNotFound": "الملف لم يعد موجودًا أو تم نقله",
+    "errorGeneric": "فشلت المشاركة: {message}"
+  },
+  "pt": {
+    "share": "Compartilhar",
+    "shareFile": "Compartilhar “{name}”",
+    "downloadFile": "Baixar “{name}”",
+    "sharing": "Preparando arquivo…",
+    "downloadedUnsupported": "O compartilhamento direto não está disponível aqui; o download foi iniciado. Confira o local de salvamento indicado pelo sistema",
+    "downloadedTooLarge": "O arquivo tem mais de 50 MB; o download foi iniciado. Confira o local de salvamento indicado pelo sistema",
+    "downloadedShareFailed": "O compartilhamento não foi concluído; o download foi iniciado. Confira o local de salvamento indicado pelo sistema",
+    "errorTooLarge": "O arquivo é grande demais (mais de 200 MB) para compartilhar ou baixar no celular",
+    "errorNotFound": "O arquivo não existe mais ou foi movido",
+    "errorGeneric": "Falha ao compartilhar: {message}"
+  },
+  "la": {
+    "share": "Communica",
+    "shareFile": "Communica «{name}»",
+    "downloadFile": "Depone «{name}»",
+    "sharing": "Fasciculus paratur…",
+    "downloadedUnsupported": "Communicatio directa hic non praesto est; depositio incepta est. Confirma in loco quem systema indicat",
+    "downloadedTooLarge": "Fasciculus maior est quam 50 MB; depositio incepta est. Confirma in loco quem systema indicat",
+    "downloadedShareFailed": "Communicatio non perfecta est; depositio incepta est. Confirma in loco quem systema indicat",
+    "errorTooLarge": "Fasciculus nimis magnus est (maior quam 200 MB) ut in telephono communicetur aut deponatur",
+    "errorNotFound": "Fasciculus iam non exstat aut motus est",
+    "errorGeneric": "Communicatio defecit: {message}"
+  },
+  "fr": {
+    "share": "Partager",
+    "shareFile": "Partager « {name} »",
+    "downloadFile": "Télécharger « {name} »",
+    "sharing": "Préparation du fichier…",
+    "downloadedUnsupported": "Le partage direct est indisponible ici ; le téléchargement a commencé. Vérifiez l’emplacement indiqué par le système",
+    "downloadedTooLarge": "Le fichier dépasse 50 MB ; le téléchargement a commencé. Vérifiez l’emplacement indiqué par le système",
+    "downloadedShareFailed": "Le partage n’a pas abouti ; le téléchargement a commencé. Vérifiez l’emplacement indiqué par le système",
+    "errorTooLarge": "Le fichier est trop volumineux (plus de 200 MB) pour être partagé ou téléchargé sur mobile",
+    "errorNotFound": "Le fichier n’existe plus ou a été déplacé",
+    "errorGeneric": "Échec du partage : {message}"
+  }
+} };
+// DSHA_MOBILE_LOCALES_V1: generated from tools/mobile-locales.json; do not edit here.
+const nativeFileActionLocales = {
+  "zh": {
+    "download": "下载",
+    "more": "更多文件操作",
+    "saveas": "另存为…",
+    "share": "分享",
+    "gallery": "保存到相册",
+    "records": "下载记录",
+    "close": "取消",
+    "queued": "已加入下载任务，可在下载记录中查看",
+    "preparing": "正在准备文件…",
+    "sharing": "正在准备分享，完成后将打开系统分享选择器",
+    "saving": "正在准备另存为，完成后请选择保存位置",
+    "shareLimit": "系统分享上限为 32 MiB；较大文件请使用下载或另存为",
+    "failed": "文件操作失败："
+  },
+  "en": {
+    "download": "Download",
+    "more": "More file actions",
+    "saveas": "Save as…",
+    "share": "Share",
+    "gallery": "Save to gallery",
+    "records": "Downloads",
+    "close": "Cancel",
+    "queued": "Added to downloads. View progress in Downloads.",
+    "preparing": "Preparing file…",
+    "sharing": "Preparing to share. The system share picker will open when ready.",
+    "saving": "Preparing Save as. Choose a destination when ready.",
+    "shareLimit": "System sharing is limited to 32 MiB. Use Download or Save as for larger files.",
+    "failed": "File action failed: "
+  },
+  "zh-Hant": {
+    "download": "下載",
+    "more": "更多檔案操作",
+    "saveas": "另存新檔…",
+    "share": "分享",
+    "gallery": "儲存到相簿",
+    "records": "下載記錄",
+    "close": "取消",
+    "queued": "已加入下載工作，可在下載記錄中查看",
+    "preparing": "正在準備檔案…",
+    "sharing": "正在準備分享，完成後將開啟系統分享選擇器",
+    "saving": "正在準備另存新檔，完成後請選擇儲存位置",
+    "shareLimit": "系統分享上限為 32 MiB；較大檔案請使用下載或另存新檔",
+    "failed": "檔案操作失敗："
+  },
+  "ru": {
+    "download": "Скачать",
+    "more": "Другие действия с файлом",
+    "saveas": "Сохранить как…",
+    "share": "Поделиться",
+    "gallery": "Сохранить в галерею",
+    "records": "Загрузки",
+    "close": "Отмена",
+    "queued": "Добавлено в загрузки. Ход выполнения доступен в разделе «Загрузки».",
+    "preparing": "Подготовка файла…",
+    "sharing": "Подготовка к отправке. Затем откроется системное меню отправки.",
+    "saving": "Подготовка сохранения. Затем выберите место сохранения.",
+    "shareLimit": "Системная отправка ограничена 32 MiB. Для больших файлов используйте «Скачать» или «Сохранить как».",
+    "failed": "Не удалось выполнить действие с файлом: "
+  },
+  "ja": {
+    "download": "ダウンロード",
+    "more": "その他のファイル操作",
+    "saveas": "名前を付けて保存…",
+    "share": "共有",
+    "gallery": "ギャラリーに保存",
+    "records": "ダウンロード履歴",
+    "close": "キャンセル",
+    "queued": "ダウンロードに追加しました。進行状況はダウンロード履歴で確認できます。",
+    "preparing": "ファイルを準備中…",
+    "sharing": "共有の準備中です。準備ができるとシステムの共有メニューが開きます。",
+    "saving": "保存の準備中です。準備ができたら保存先を選択してください。",
+    "shareLimit": "システムで共有できる上限は 32 MiB です。大きなファイルはダウンロードか「名前を付けて保存」を使用してください。",
+    "failed": "ファイル操作に失敗しました："
+  },
+  "ko": {
+    "download": "다운로드",
+    "more": "기타 파일 작업",
+    "saveas": "다른 이름으로 저장…",
+    "share": "공유",
+    "gallery": "갤러리에 저장",
+    "records": "다운로드 기록",
+    "close": "취소",
+    "queued": "다운로드에 추가했습니다. 다운로드 기록에서 진행 상황을 확인하세요.",
+    "preparing": "파일 준비 중…",
+    "sharing": "공유를 준비 중입니다. 준비가 끝나면 시스템 공유 선택기가 열립니다.",
+    "saving": "저장을 준비 중입니다. 준비가 끝나면 저장 위치를 선택하세요.",
+    "shareLimit": "시스템 공유 한도는 32 MiB입니다. 더 큰 파일은 다운로드하거나 다른 이름으로 저장하세요.",
+    "failed": "파일 작업 실패: "
+  },
+  "ar": {
+    "download": "تنزيل",
+    "more": "المزيد من إجراءات الملف",
+    "saveas": "حفظ باسم…",
+    "share": "مشاركة",
+    "gallery": "حفظ في المعرض",
+    "records": "التنزيلات",
+    "close": "إلغاء",
+    "queued": "أُضيف إلى التنزيلات. يمكنك متابعة التقدم في التنزيلات.",
+    "preparing": "جارٍ تجهيز الملف…",
+    "sharing": "جارٍ التجهيز للمشاركة. ستُفتح نافذة المشاركة في النظام عند الانتهاء.",
+    "saving": "جارٍ التجهيز للحفظ باسم. اختر موقع الحفظ عند الانتهاء.",
+    "shareLimit": "حد المشاركة عبر النظام هو 32 MiB. استخدم التنزيل أو الحفظ باسم للملفات الأكبر.",
+    "failed": "فشل إجراء الملف: "
+  },
+  "pt": {
+    "download": "Baixar",
+    "more": "Mais ações de arquivo",
+    "saveas": "Salvar como…",
+    "share": "Compartilhar",
+    "gallery": "Salvar na galeria",
+    "records": "Downloads",
+    "close": "Cancelar",
+    "queued": "Adicionado aos downloads. Confira o progresso em Downloads.",
+    "preparing": "Preparando arquivo…",
+    "sharing": "Preparando o compartilhamento. O seletor de compartilhamento do sistema será aberto quando estiver pronto.",
+    "saving": "Preparando para salvar como. Escolha um destino quando estiver pronto.",
+    "shareLimit": "O compartilhamento pelo sistema é limitado a 32 MiB. Use Baixar ou Salvar como para arquivos maiores.",
+    "failed": "Falha na ação de arquivo: "
+  },
+  "la": {
+    "download": "Depone",
+    "more": "Plures actiones fasciculi",
+    "saveas": "Serva ut…",
+    "share": "Communica",
+    "gallery": "Serva in pinacotheca",
+    "records": "Depositiones",
+    "close": "Cancella",
+    "queued": "Ad depositiones additum est. Progressum ibi vide.",
+    "preparing": "Fasciculus paratur…",
+    "sharing": "Communicatio paratur. Cum paratum erit, selector systematis aperietur.",
+    "saving": "Servatio paratur. Cum paratum erit, locum elige.",
+    "shareLimit": "Limes communicationis per systema est 32 MiB. Fasciculos maiores depone aut «Serva ut» utere.",
+    "failed": "Actio fasciculi defecit: "
+  },
+  "fr": {
+    "download": "Télécharger",
+    "more": "Autres actions sur le fichier",
+    "saveas": "Enregistrer sous…",
+    "share": "Partager",
+    "gallery": "Enregistrer dans la galerie",
+    "records": "Téléchargements",
+    "close": "Annuler",
+    "queued": "Ajouté aux téléchargements. Consultez la progression dans Téléchargements.",
+    "preparing": "Préparation du fichier…",
+    "sharing": "Préparation du partage. Le sélecteur de partage du système s’ouvrira une fois le fichier prêt.",
+    "saving": "Préparation de l’enregistrement. Choisissez un emplacement lorsque le fichier sera prêt.",
+    "shareLimit": "Le partage système est limité à 32 MiB. Utilisez Télécharger ou Enregistrer sous pour les fichiers plus volumineux.",
+    "failed": "Échec de l’action sur le fichier : "
+  }
+};
+function nativeFileCopy(language = document.documentElement.lang) {
+  const locale = String(language || 'en').replace(/_/g, '-').toLowerCase();
+  const base = locale.split('-')[0];
+  const key = base === 'zh'
+    ? (/^zh-(?:hant|tw|hk|mo)(?:-|$)/.test(locale) ? 'zh-Hant' : 'zh')
+    : (Object.prototype.hasOwnProperty.call(nativeFileActionLocales, base) ? base : 'en');
+  return nativeFileActionLocales[key];
+}
+exports.nativeFileActionLocales = nativeFileActionLocales;
+exports.nativeFileCopy = nativeFileCopy;
+
 };
 __modules["components/file-share-core.js"] = function (require, module, exports) {
 "use strict";
@@ -16061,23 +16663,20 @@ function nativeFiles() {
     return typeof window.DSHA?.downloadArtifact === 'function';
 }
 function fileCopy() {
-    return document.documentElement.lang?.startsWith('zh') ? {
-        download: '下载', more: '更多文件操作', saveas: '另存为…', share: '分享',
-        gallery: '保存到相册', records: '下载记录', close: '取消',
-        queued: '已加入下载任务，可在下载记录中查看', preparing: '正在准备文件…',
-        sharing: '正在准备分享，完成后将打开系统分享选择器',
-        saving: '正在准备另存为，完成后请选择保存位置',
-        shareLimit: '系统分享上限为 32 MiB；较大文件请使用下载或另存为',
-        failed: '文件操作失败：',
-    } : {
-        download: 'Download', more: 'More file actions', saveas: 'Save as…', share: 'Share',
-        gallery: 'Save to gallery', records: 'Downloads', close: 'Cancel',
-        queued: 'Added to downloads. View progress in Downloads.', preparing: 'Preparing file…',
-        sharing: 'Preparing to share. The system share picker will open when ready.',
-        saving: 'Preparing Save as. Choose a destination when ready.',
-        shareLimit: 'System sharing is limited to 32 MiB. Use Download or Save as for larger files.',
-        failed: 'File action failed: ',
-    };
+    return require('./components/file-share-locale.js').nativeFileCopy();
+}
+// Native controls do not receive every host locale prop. Track the effective
+// document language so mounted previews and decorated file rows relabel in place.
+function useFileCopy() {
+    const [language, setLanguage] = (0, react_1.useState)(() => document.documentElement.lang);
+    (0, react_1.useEffect)(() => {
+        const changed = () => setLanguage(document.documentElement.lang);
+        const observer = new MutationObserver(changed);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+        changed();
+        return () => observer.disconnect();
+    }, []);
+    return require('./components/file-share-locale.js').nativeFileCopy(language);
 }
 function imagePath(path) { return /\.(?:avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|webp)$/i.test(path); }
 function checkedArtifact(value) {
@@ -16180,7 +16779,7 @@ function nativeMenu(path, transfer, image = imagePath(path)) {
     ]);
 }
 function NativeFileButtons({ path, transfer, busy }) {
-    const copy = fileCopy();
+    const copy = useFileCopy();
     return (0, jsx_runtime_1.jsxs)('span', { 'data-dsha-file-actions': true, children: [
         (0, jsx_runtime_1.jsx)('button', { type: 'button', disabled: busy, 'aria-busy': busy,
             'aria-label': copy.download, title: copy.download + ' · Download/DSHA',
@@ -16201,6 +16800,7 @@ function FilePreviewShareButton(props) {
     return (0, jsx_runtime_1.jsx)(nativeFiles() ? NativePreviewActions : LegacyFilePreviewShareButton, props);
 }
 function NativePreviewActions({ absolutePath, sessionId }) {
+    const copy = useFileCopy();
     const { busy, transfer } = useNativeTransfer(sessionId);
     const anchor = (0, react_1.useRef)(null), latest = (0, react_1.useRef)(null);
     latest.current = { transfer, busy, path: absolutePath };
@@ -16219,13 +16819,14 @@ function NativePreviewActions({ absolutePath, sessionId }) {
     return (0, jsx_runtime_1.jsxs)('span', { ref: anchor, 'data-dsha-preview-actions': true, children: [
         (0, jsx_runtime_1.jsx)(NativeFileButtons, { path: absolutePath, transfer, busy }),
         imagePath(absolutePath) && (0, jsx_runtime_1.jsx)('button', { type: 'button', disabled: busy,
-            onClick: () => transfer(absolutePath, 'gallery'), children: fileCopy().gallery }),
+            onClick: () => transfer(absolutePath, 'gallery'), children: copy.gallery }),
     ] });
 }
 function FilesRowShare(props) {
     return (0, jsx_runtime_1.jsx)(nativeFiles() ? NativeFilesRows : LegacyFilesRowShare, props);
 }
 function NativeFilesRows({ sessionId }) {
+    const copy = useFileCopy();
     const anchor = (0, react_1.useRef)(null);
     const { busy, transfer } = useNativeTransfer(sessionId);
     const latest = (0, react_1.useRef)(null); latest.current = { busy, transfer };
@@ -16271,9 +16872,9 @@ function NativeFilesRows({ sessionId }) {
         return () => { observer.disconnect(); if (raf) cancelAnimationFrame(raf); body.removeEventListener('click', click);
             for (const controls of body.querySelectorAll('[data-dsha-row-actions]')) controls.remove(); decorateRef.current = null; activeFileSheet?.(); };
     }, [sessionId]);
-    (0, react_1.useEffect)(() => { decorateRef.current?.(); }, [busy]);
+    (0, react_1.useEffect)(() => { decorateRef.current?.(); }, [busy, copy]);
     return (0, jsx_runtime_1.jsx)('button', { ref: anchor, type: 'button', 'data-dsha-downloads': true,
-        onClick: () => window.DSHA.openDownloads().catch(error => showFallbackNotice(fileCopy().failed + error.message)), children: fileCopy().records });
+        onClick: () => window.DSHA.openDownloads().catch(error => showFallbackNotice(fileCopy().failed + error.message)), children: copy.records });
 }
 function installNativeFileActions() {
     if (!nativeFiles()) return () => {};
@@ -16285,11 +16886,11 @@ function installNativeFileActions() {
 [data-files-body] li[data-files-entry="file"]:has(>[data-dsha-row-actions]){display:flex;align-items:center}
 [data-files-body] li[data-files-entry="file"]:has(>[data-dsha-row-actions])>button:first-child{flex:1;min-width:0}
 [data-dsha-file-sheet]{position:fixed;inset:0;z-index:1600;background:#0007;display:flex;align-items:flex-end;justify-content:center;padding:16px;box-sizing:border-box}
-[data-dsha-file-sheet]>div{background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#222);width:min(100%,440px);border-radius:18px;padding:12px;max-height:80dvh;overflow:auto;box-shadow:0 8px 40px #0005;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+[data-dsha-file-sheet]>div{background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#222);width:min(100%,440px);border-radius:18px;padding:12px;max-height:80dvh;overflow:auto;box-shadow:0 8px 40px #0005;padding-bottom:max(12px,var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 [data-dsha-file-sheet]>div>div{padding:8px 12px;overflow-wrap:anywhere;font-weight:600}
 [data-dsha-file-sheet] button{display:block;text-align:start;width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:8px;padding:12px;min-height:44px}
 [data-dsha-file-sheet] button:hover{background:var(--dsw-alias-interactive-bg-hover,#8882)}
-[data-dsha-image-save]{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:1510;border:0;border-radius:20px;padding:10px 20px;background:#fff;color:#222;font:inherit}
+[data-dsha-image-save]{position:fixed;bottom:calc(18px + var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom,0px)));left:50%;transform:translateX(-50%);z-index:1510;border:0;border-radius:20px;padding:10px 20px;background:#fff;color:#222;font:inherit}
 `;
     document.head.appendChild(style);
     let hold = null, consumed = null, imageFlight = false;
@@ -16456,7 +17057,7 @@ function installFileShare(ctx) {
     // `remote.workspaceFiles` is not in the root inject list: a child fiber
     // waits for it, so hosts without the namespace stay a quiet no-op.
     ctx.inject(['slots', 'locale', 'remote', 'remote.workspaceFiles'], (scope) => {
-        scope.effect(() => scope.locale.register(file_share_locale_ts_1.FILE_SHARE_NS, { zh: file_share_locale_ts_1.fileShareZh, en: file_share_locale_ts_1.fileShareEn }), 'dsh-web-mobile: file-share dictionaries');
+        scope.effect(() => scope.locale.register(file_share_locale_ts_1.FILE_SHARE_NS, file_share_locale_ts_1.fileShareLocales), 'dsh-web-mobile: file-share dictionaries');
         const remote = scope.remote;
         const inject = () => ({
             readFileRange: (sessionId, path, range, signal) => remote.workspaceFiles.readBytes(sessionId, path, { range }, signal),
@@ -17379,7 +17980,7 @@ function restoreConversationScroll() {
  * @param ctx - client root context.
  */
 function apply(ctx) {
-    ctx.effect(() => ctx.locale.register(locales_ts_1.NS, { zh: locales_ts_1.zh, en: locales_ts_1.en }), 'dsh-web-mobile: dictionaries');
+    ctx.effect(() => ctx.locale.register(locales_ts_1.NS, locales_ts_1.mobileNavLocales), 'dsh-web-mobile: dictionaries');
     ctx.effect(() => {
         // 先清掉可能残留的同 id 样式表。
         // 2026-09-23：app 的 P8 自愈会把 client.js 换回上游版、页面里也随之挂着

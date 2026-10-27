@@ -41,8 +41,7 @@ public final class AssistantTaskAttachmentAndroidTest {
   private final List<ServiceController<AssistantService>> services = new ArrayList<>();
 
   private static AssistantBinding address(String session) {
-    return new AssistantBinding(
-        AssistantBinding.Target.LOCAL, "real-host", session, "local-4-real-host", 4, null);
+    return new AssistantBinding("real-host", session, "local-4-real-host", 4);
   }
 
   private static class Host implements AssistantBackend {

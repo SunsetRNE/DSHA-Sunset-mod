@@ -11,11 +11,15 @@
     <string name="build190_auto_port" formatted="false">"自動分配 Web 連接埠（推薦）"</string>
     <string name="build190_restore_port_drafts" formatted="false">"恢復舊連接埠草稿"</string>
     <string name="computer_use_title" formatted="false">"螢幕操作"</string>
+    <string name="copy_text" formatted="false">"複製"</string>
     <string name="device_checking" formatted="false">"正在讀取授權狀態…"</string>
     <string name="device_open_access" formatted="false">"管理檔案存取權限"</string>
     <string name="dns_auto" formatted="false">"自動相容（推薦）"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 相容"</string>
     <string name="dns_native" formatted="false">"原生雙棧解析"</string>
+    <string name="paste_text" formatted="false">"貼上"</string>
+    <string name="phone_assistant" formatted="false">"浮動助手"</string>
+    <string name="phone_assistant_detail" formatted="false">"選擇這部手機上的真實 DSH 工作階段，浮動聊天與暫停控制。"</string>
     <string name="picture_in_picture_allowed" formatted="false">"系統已允許；切到桌面或其他應用程式時保留對話小窗。"</string>
     <string name="picture_in_picture_disabled" formatted="false">"系統已關閉；切到背景時不顯示小窗。點此更改。"</string>
     <string name="picture_in_picture_enable" formatted="false">"開啟對話畫中畫"</string>
@@ -30,57 +34,7 @@
     <string name="plugin_sort_title" formatted="false">"外掛排序"</string>
     <string name="plugin_sort_updates" formatted="false">"可更新優先"</string>
     <string name="plugin_sort_za" formatted="false">"名稱 Z–A"</string>
-    <string name="remote_assistant" formatted="false">"浮動助手"</string>
-    <string name="remote_assistant_detail" formatted="false">"選擇本機或已連線電腦的真實 DSH 工作階段，浮動聊天與暫停控制。"</string>
-    <string name="remote_back" formatted="false">"返回工作區"</string>
-    <string name="remote_camera_unavailable" formatted="false">"無法使用相機。可返回並貼上配對碼。"</string>
-    <string name="remote_cancel" formatted="false">"取消"</string>
-    <string name="remote_checking_trust" formatted="false">"正在核對本機電腦信任記錄…"</string>
-    <string name="remote_code_hint" formatted="false">"貼上完整配對碼（dsha-connect://pair?ticket=…）"</string>
-    <string name="remote_code_invalid" formatted="false">"配對碼無效或已過期，請在電腦重新整理後重試。"</string>
-    <string name="remote_computers" formatted="false">"電腦工作區"</string>
-    <string name="remote_connect" formatted="false">"連線電腦"</string>
-    <string name="remote_disconnect" formatted="false">"斷開遠端連線"</string>
-    <string name="remote_endpoint_count" formatted="false">"已記住 %1$d 個連線位址"</string>
-    <string name="remote_error" formatted="false">"操作未完成，請重試。沒有自動重複業務操作。"</string>
-    <string name="remote_grant" formatted="false">"信任並配對"</string>
-    <string name="remote_grant_body" formatted="false">"電腦：%1$s\n身分：%2$s\n\n配對後記住此電腦，允許連線它的 DSH 對話與檔案，並使用已授權的手機助手能力。手機的系統權限仍需單獨授予。可在工作區隨時撤銷。\n\n僅在你自己的電腦上生成配對碼後繼續。"</string>
-    <string name="remote_grant_title" formatted="false">"信任這臺電腦？"</string>
-    <string name="remote_latency" formatted="false">"往返延遲：%1$d ms"</string>
-    <string name="remote_latency_unknown" formatted="false">"往返延遲：尚未測得"</string>
-    <string name="remote_local_detail" formatted="false">"在手機本機執行 DSH，使用本機對話與檔案。"</string>
-    <string name="remote_local_phone" formatted="false">"這部手機"</string>
-    <string name="remote_manual_instead" formatted="false">"改用手動配對碼"</string>
-    <string name="remote_no_computers" formatted="false">"尚未配對電腦。首次配對後會記住這臺電腦，可隨時撤銷。"</string>
-    <string name="remote_open_local" formatted="false">"進入手機工作區"</string>
-    <string name="remote_open_pc" formatted="false">"開啟電腦對話"</string>
-    <string name="remote_pair_computer" formatted="false">"配對電腦"</string>
-    <string name="remote_pair_instructions" formatted="false">"在電腦 DSH 中啟用 DSHA Connect，顯示配對二維碼。掃描二維碼，或貼上電腦顯示的完整配對碼。配對碼短時有效，請勿轉發。已配對電腦換網或位址變化時，掃描電腦的“更新連線位址”二維碼。"</string>
-    <string name="remote_pair_started" formatted="false">"正在驗證配對；成功後才會儲存電腦信任。"</string>
-    <string name="remote_path_direct" formatted="false">"路徑：直連"</string>
-    <string name="remote_path_relay" formatted="false">"路徑：加密中繼"</string>
-    <string name="remote_path_unknown" formatted="false">"路徑：等待實測"</string>
-    <string name="remote_refresh_body" formatted="false">"電腦：%1$s\n身分：%2$s\n新連線位址：%3$d 個\n\n僅在電腦身分、已有連線金鑰與本次處理程序驗證通過後更新位址。已有授權保留，驗證失敗不改舊記錄。"</string>
-    <string name="remote_refresh_connect" formatted="false">"驗證位址並連線"</string>
-    <string name="remote_refresh_required" formatted="false">"此電腦已配對。請在電腦顯示“更新連線位址”二維碼，已有信任保持不變。"</string>
-    <string name="remote_refresh_started" formatted="false">"正在驗證電腦與新位址；成功後才會更新連線記錄。"</string>
-    <string name="remote_refresh_title" formatted="false">"更新電腦連線位址"</string>
-    <string name="remote_refresh_unknown" formatted="false">"尚未信任此電腦。請在電腦顯示首次配對二維碼。"</string>
-    <string name="remote_review_pair" formatted="false">"核對並配對"</string>
-    <string name="remote_revocation_body" formatted="false">"撤銷 %1$s 後，目前連線與許可失效。再次連線需要重新配對。電腦檔案和對話保留。"</string>
-    <string name="remote_revocation_title" formatted="false">"撤銷電腦信任？"</string>
-    <string name="remote_revoke" formatted="false">"撤銷此電腦"</string>
-    <string name="remote_scan_instructions" formatted="false">"對準電腦 DSH 顯示的配對二維碼。相機畫面僅在本機用於識別。"</string>
-    <string name="remote_scan_qr" formatted="false">"掃描電腦二維碼"</string>
-    <string name="remote_state_connected" formatted="false">"電腦已鑑權連線"</string>
-    <string name="remote_state_connecting" formatted="false">"正在連線與驗證電腦身分…"</string>
-    <string name="remote_state_disconnected" formatted="false">"連線已中斷，可重新連線；業務操作不會自動重發。"</string>
-    <string name="remote_state_failed" formatted="false">"連線未完成，請檢查電腦 DSH 與網路後重試。"</string>
-    <string name="remote_state_reconnecting" formatted="false">"連線中斷，正在限時重新驗證連線。原業務操作不會重發。"</string>
-    <string name="remote_state_stopped" formatted="false">"遠端連線已停止"</string>
-    <string name="remote_trust_unavailable" formatted="false">"無法讀取電腦信任記錄；已有記錄未清除。"</string>
-    <string name="remote_workspace_intro" formatted="false">"手機與電腦各自保留對話、檔案和設定。選擇電腦不需要安裝手機 Ubuntu 環境。"</string>
-    <string name="remote_workspaces" formatted="false">"工作區"</string>
+    <string name="text_selection_more" formatted="false">"更多…"</string>
     <string name="ui134_adb_hint" formatted="false">"Android 11+：在同一 Wi-Fi 下配對無線除錯。無需 Root；網路變化後可驗證或重新配對。"</string>
     <string name="ui134_candidate" formatted="false">"檢視候選版本"</string>
     <string name="ui134_candidate_sub" formatted="false">"更新記錄、大小與安裝方式"</string>

@@ -167,6 +167,8 @@ public class TerminalFragment extends Fragment implements TerminalPane {
   @Override
   public void newSession() {
     if (!isResumed() || inputEdit == null || creationPending || refuseDuringMaintenance()) return;
+    if (getActivity() instanceof TerminalActivity
+        && !((TerminalActivity) getActivity()).allowTerminalCreation()) return;
     saveDraft();
     creationPending = true;
     startError = "";
@@ -404,8 +406,7 @@ public class TerminalFragment extends Fragment implements TerminalPane {
           UiText.format(
               UiText.choose("关闭未确认，输入已停用：%s", "Close unconfirmed; input disabled: %s"),
               SensitiveData.redact(selected.error()));
-    else if (active != null
-        && OWNER.protectionSnapshot().state == TerminalRuntimeProtection.State.LOST)
+    else if (active != null && selected != null && OWNER.isSimpleProtectionLost(selected.id))
       status =
           UiText.choose(
               "终端后台保护已丢失，输入已停用；请从菜单关闭并核验会话。",

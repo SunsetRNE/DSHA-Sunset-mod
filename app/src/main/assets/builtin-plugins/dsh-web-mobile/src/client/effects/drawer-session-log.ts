@@ -83,6 +83,7 @@ export function createDrawerSessionLogTask(ctx: ClientContext): ReconcilerTask {
   let wrapper: HTMLSpanElement | null = null
   let button: HTMLButtonElement | null = null
   let unsubscribe: (() => void) | null = null
+  let unsubscribeLocale: (() => void) | null = null
   let menu: HTMLDivElement | null = null
   let exportItem: HTMLButtonElement | null = null
   let onDocPointerDown: ((event: PointerEvent) => void) | null = null
@@ -254,6 +255,18 @@ export function createDrawerSessionLogTask(ctx: ClientContext): ReconcilerTask {
         button.addEventListener('click', openMenu)
         wrapper.appendChild(button)
         unsubscribe = ctx.sessions.list.subscribe(() => { syncDisabled() })
+        // DSHA_MOBILE_LIVE_LOCALE_V1
+        unsubscribeLocale = ctx.locale.subscribe?.(() => {
+          const label = t('downloadMenu')
+          if (button !== null) { button.setAttribute('aria-label', label); button.title = label; }
+          if (menu !== null) {
+            menu.setAttribute('aria-label', label)
+            const exportLabel = menu.querySelector('[data-mobile-nav="session-log-export"] span')
+            const downloadLabel = menu.querySelector('[data-mobile-nav="session-log-downloads"] span')
+            if (exportLabel !== null) exportLabel.textContent = t('sessionLog')
+            if (downloadLabel !== null) downloadLabel.textContent = t('downloads')
+          }
+        }) ?? null
       }
       if (wrapper !== null) mount(row, wrapper)
       syncDisabled()
@@ -262,6 +275,8 @@ export function createDrawerSessionLogTask(ctx: ClientContext): ReconcilerTask {
       closeMenu()
       unsubscribe?.()
       unsubscribe = null
+      unsubscribeLocale?.()
+      unsubscribeLocale = null
       wrapper?.remove()
       wrapper = null
       button = null

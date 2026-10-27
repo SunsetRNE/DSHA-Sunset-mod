@@ -184,8 +184,7 @@ public final class AssistantSessionController implements AutoCloseable {
     // The native fence has already invalidated every queued screen operation.
     if (closed || suppressCancellation || !owns(previous)) return;
     var authority = fence.snapshot();
-    if ("REMOTE_STOP".equals(authority.reason())) state.stop();
-    else if (authority.paused()
+    if (authority.paused()
         && state.phase() != AssistantSessionState.Phase.UNKNOWN
         && state.phase() != AssistantSessionState.Phase.DISCONNECTED)
       state.pause(authority.reason());

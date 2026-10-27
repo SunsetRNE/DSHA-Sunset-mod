@@ -58,7 +58,7 @@
         </LinearLayout>
       </LinearLayout>
 
-      <!-- 快捷行：打开本机终端 / 运行环境 / 访问地址 / 电脑工作区。 -->
+      <!-- 快捷行：打开本机终端 / 运行环境 / 访问地址。 -->
       <TextView android:id="@+id/launch_shortcuts_title" style="@style/ShellLaunchSectionTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:layout_marginBottom="10dp" android:text="@string/ui2_shortcuts" />
 
       <LinearLayout android:id="@+id/launch_shortcuts" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/bg_shell_launch_card">
@@ -80,12 +80,6 @@
           <ImageView android:layout_width="16dp" android:layout_height="16dp" android:contentDescription="@null" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
         </LinearLayout>
 
-      </LinearLayout>
-
-      <!-- 电脑工作区单独一张卡：首次准备模式下快捷卡整体隐藏，这里仍保持可见。 -->
-      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:background="@drawable/bg_shell_launch_card" android:orientation="vertical" android:paddingBottom="12dp">
-        <TextView android:id="@+id/launch_workspaces" style="@style/ShellLaunchRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="?attr/selectableItemBackground" android:drawableStart="@drawable/ic_ui2_folder" android:drawableEnd="@drawable/ic_ui2_chevron" android:drawablePadding="12dp" android:text="@string/remote_workspaces" />
-        <TextView android:id="@+id/launch_workspaces_detail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:includeFontPadding="false" android:lineSpacingExtra="3dp" android:paddingStart="16dp" android:paddingEnd="16dp" android:textColor="@color/shell_text_muted" android:textSize="11sp" />
       </LinearLayout>
 
       <!-- 日志面板：复制 / 导出 / 跟随最新，以及原有安全启动与恢复入口。 -->

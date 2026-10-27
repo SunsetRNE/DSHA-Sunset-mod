@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import com.deepseekharness.app.runtime.ProotBootstrap;
@@ -33,6 +34,7 @@ public final class TerminalSessionOwner {
   private final TerminalTabs<PtySession> pty = new TerminalTabs<>();
   private final TerminalTabs<SimpleTab> simple = new TerminalTabs<>();
   private final Object closing = new Object();
+  private final CopyOnWriteArrayList<Runnable> simpleStateObservers = new CopyOnWriteArrayList<>();
   private volatile PtyObserver ptyObserver;
   private volatile SimpleObserver simpleObserver;
   private boolean ptyInitialClaimed, simpleInitialClaimed;
@@ -113,6 +115,15 @@ public final class TerminalSessionOwner {
 
   public void detachSimple(SimpleObserver observer) {
     if (simpleObserver == observer) simpleObserver = null;
+  }
+
+  /** The host's session list also needs updates while the simple pane is detached. */
+  public void addSimpleStateObserver(Runnable observer) {
+    if (observer != null) simpleStateObservers.addIfAbsent(observer);
+  }
+
+  public void removeSimpleStateObserver(Runnable observer) {
+    simpleStateObservers.remove(observer);
   }
 
   public TerminalTabs.ReadOnly<PtySession> ptyTabs() {
@@ -295,6 +306,23 @@ public final class TerminalSessionOwner {
         && !tab.isClosing()
         && !tab.isUnconfirmed()
         && (protection == null || protection.isProtected(simpleProtection.get(id)));
+  }
+
+  public boolean isPtyProtectionLost(long id) {
+    return protectionLost(ptyProtection.get(id));
+  }
+
+  public boolean isSimpleProtectionLost(long id) {
+    return protectionLost(simpleProtection.get(id));
+  }
+
+  private boolean protectionLost(TerminalRuntimeProtection.Ticket ticket) {
+    if (protection == null || ticket == null) return false;
+    synchronized (protection) {
+      TerminalRuntimeProtection.State state = ticket.state();
+      return state == TerminalRuntimeProtection.State.LOST
+          || (state == TerminalRuntimeProtection.State.ACTIVE && !protection.isProtected(ticket));
+    }
   }
 
   public boolean selectPty(long id) {
@@ -512,6 +540,12 @@ public final class TerminalSessionOwner {
     if (observer != null) {
       try {
         observer.onState(tab);
+      } catch (RuntimeException ignored) {
+      }
+    }
+    for (Runnable stateObserver : simpleStateObservers) {
+      try {
+        stateObserver.run();
       } catch (RuntimeException ignored) {
       }
     }

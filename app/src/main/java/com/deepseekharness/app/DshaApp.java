@@ -11,15 +11,6 @@ public class DshaApp extends Application
         com.deepseekharness.app.data.PortableSettings.Owner,
         com.deepseekharness.app.backup.MaintenanceUiPorts {
 
-  private boolean remoteWebProcess;
-
-  @Override
-  protected void attachBaseContext(android.content.Context base) {
-    super.attachBaseContext(base);
-    remoteWebProcess =
-        com.deepseekharness.app.remote.gateway.RemoteWebProfile.initializeProcess(this);
-  }
-
   private final com.deepseekharness.app.capabilities.CapabilityBroker screenCapabilityBroker =
       new com.deepseekharness.app.capabilities.CapabilityBroker(
           android.os.SystemClock::elapsedRealtime);
@@ -114,12 +105,10 @@ public class DshaApp extends Application
   }
 
   public com.deepseekharness.app.core.PluginRepository pluginRepository() {
-    if (remoteWebProcess) throw new IllegalStateException("REMOTE_WEB_PLUGIN_SCOPE_UNAVAILABLE");
     return pluginOwner.get(() -> new com.deepseekharness.app.core.PluginRepository(this));
   }
 
   public com.deepseekharness.app.plugins.PluginManagementEngine pluginManagementEngine() {
-    if (remoteWebProcess) throw new IllegalStateException("REMOTE_WEB_PLUGIN_SCOPE_UNAVAILABLE");
     return pluginManagementOwner.get(
         () -> {
           var engine =
@@ -159,12 +148,6 @@ public class DshaApp extends Application
   @Override
   public void onCreate() {
     super.onCreate();
-    // The remote WebView process applies native text/RTL without initializing the local guest.
-    if (remoteWebProcess) {
-      com.deepseekharness.app.util.SystemLanguage.initialize(this);
-      com.deepseekharness.app.ui.LanguageController.initializeRemote(this);
-      return;
-    }
     // 必须早于界面 Locale.setDefault；保留系统原始语言供「跟随系统」使用。
     com.deepseekharness.app.util.SystemLanguage.initialize(this);
     com.deepseekharness.app.data.PortableSettings.initialize(this);

@@ -11,11 +11,15 @@
     <string name="build190_auto_port" formatted="false">"웹 포트 자동 할당 (권장)"</string>
     <string name="build190_restore_port_drafts" formatted="false">"이전 포트의 초안 복원"</string>
     <string name="computer_use_title" formatted="false">"화면 제어"</string>
+    <string name="copy_text" formatted="false">"복사"</string>
     <string name="device_checking" formatted="false">"권한 확인 중…"</string>
     <string name="device_open_access" formatted="false">"파일 접근 관리"</string>
     <string name="dns_auto" formatted="false">"자동 호환성(권장)"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 호환성"</string>
     <string name="dns_native" formatted="false">"네이티브 듀얼 스택 확인"</string>
+    <string name="paste_text" formatted="false">"붙여넣기"</string>
+    <string name="phone_assistant" formatted="false">"플로팅 어시스턴트"</string>
+    <string name="phone_assistant_detail" formatted="false">"이 휴대전화의 실제 DSH 세션을 선택하여 플로팅 대화와 일시 중지 제어를 사용하세요."</string>
     <string name="picture_in_picture_allowed" formatted="false">"시스템에서 허용했습니다. 홈으로 이동하거나 앱을 전환하면 대화를 작은 창으로 유지합니다."</string>
     <string name="picture_in_picture_disabled" formatted="false">"시스템에서 사용 중지했습니다. 백그라운드에서 작은 창이 표시되지 않습니다. 눌러서 변경하세요."</string>
     <string name="picture_in_picture_enable" formatted="false">"대화 PIP 모드 사용"</string>
@@ -30,57 +34,7 @@
     <string name="plugin_sort_title" formatted="false">"플러그인 정렬"</string>
     <string name="plugin_sort_updates" formatted="false">"업데이트 우선"</string>
     <string name="plugin_sort_za" formatted="false">"이름 Z–A"</string>
-    <string name="remote_assistant" formatted="false">"플로팅 어시스턴트"</string>
-    <string name="remote_assistant_detail" formatted="false">"이 휴대전화 또는 연결된 컴퓨터의 실제 DSH 세션을 선택하여 플로팅 대화와 일시 중지 제어를 사용하세요."</string>
-    <string name="remote_back" formatted="false">"작업 공간으로 돌아가기"</string>
-    <string name="remote_camera_unavailable" formatted="false">"카메라를 사용할 수 없습니다. 돌아가서 페어링 코드를 붙여넣으세요."</string>
-    <string name="remote_cancel" formatted="false">"취소"</string>
-    <string name="remote_checking_trust" formatted="false">"이 휴대전화에서 컴퓨터 신뢰 확인 중…"</string>
-    <string name="remote_code_hint" formatted="false">"전체 페어링 코드 붙여넣기 (dsha-connect://pair?ticket=…)"</string>
-    <string name="remote_code_invalid" formatted="false">"잘못되었거나 만료된 페어링 코드입니다. 컴퓨터에서 새로고침한 후 다시 시도하세요."</string>
-    <string name="remote_computers" formatted="false">"컴퓨터 작업 공간"</string>
-    <string name="remote_connect" formatted="false">"컴퓨터 연결"</string>
-    <string name="remote_disconnect" formatted="false">"원격 세션 연결 해제"</string>
-    <string name="remote_endpoint_count" formatted="false">"연결 주소 %1$d개 기억함"</string>
-    <string name="remote_error" formatted="false">"작업이 완료되지 않았습니다. 다시 시도하세요. 업무 작업은 자동으로 반복하지 않습니다."</string>
-    <string name="remote_grant" formatted="false">"신뢰 및 페어링"</string>
-    <string name="remote_grant_body" formatted="false">"컴퓨터: %1$s\n신원: %2$s\n\n이 컴퓨터를 기억하고 컴퓨터의 DSH 대화와 파일에 연결하며 사용자가 허용한 휴대전화 어시스턴트 기능을 허용합니다. Android 시스템 권한은 여전히 별도로 승인해야 합니다. 작업 공간에서 신뢰를 취소할 수 있습니다.\n\n본인의 컴퓨터에서 직접 생성한 코드인 경우에만 계속하세요."</string>
-    <string name="remote_grant_title" formatted="false">"이 컴퓨터를 신뢰할까요?"</string>
-    <string name="remote_latency" formatted="false">"왕복 지연 시간: %1$d ms"</string>
-    <string name="remote_latency_unknown" formatted="false">"왕복 지연 시간: 아직 측정하지 않음"</string>
-    <string name="remote_local_detail" formatted="false">"로컬 대화와 파일로 이 휴대전화에서 DSH를 실행합니다."</string>
-    <string name="remote_local_phone" formatted="false">"이 휴대전화"</string>
-    <string name="remote_manual_instead" formatted="false">"대신 페어링 코드 사용"</string>
-    <string name="remote_no_computers" formatted="false">"아직 페어링된 컴퓨터가 없습니다. 한 번 페어링하면 컴퓨터를 기억합니다. 신뢰는 언제든지 취소할 수 있습니다."</string>
-    <string name="remote_open_local" formatted="false">"휴대전화 작업 공간 열기"</string>
-    <string name="remote_open_pc" formatted="false">"컴퓨터 대화 열기"</string>
-    <string name="remote_pair_computer" formatted="false">"컴퓨터 페어링"</string>
-    <string name="remote_pair_instructions" formatted="false">"컴퓨터의 DSH에서 DSHA Connect를 켜고 페어링 QR 코드를 표시하세요. 스캔하거나 표시된 전체 페어링 코드를 붙여넣으세요. 코드는 잠시 후 만료되며 비공개로 보관하세요. 이미 페어링된 컴퓨터의 네트워크나 주소가 바뀌면 ‘연결 주소 새로고침’ QR 코드를 스캔하세요."</string>
-    <string name="remote_pair_started" formatted="false">"페어링 검증 중입니다. 성공한 후에만 컴퓨터 신뢰를 저장합니다."</string>
-    <string name="remote_path_direct" formatted="false">"경로: 직접 연결"</string>
-    <string name="remote_path_relay" formatted="false">"경로: 암호화 중계"</string>
-    <string name="remote_path_unknown" formatted="false">"경로: 측정 대기 중"</string>
-    <string name="remote_refresh_body" formatted="false">"컴퓨터: %1$s\n신원: %2$s\n새 연결 주소: %3$d개\n\n고정된 컴퓨터 신원, 기존 연결 키 및 현재 프로세스를 검증한 후에만 주소를 업데이트합니다. 기존 허용은 유지합니다. 검증에 실패하면 이전 기록을 변경하지 않습니다."</string>
-    <string name="remote_refresh_connect" formatted="false">"주소 검증 후 연결"</string>
-    <string name="remote_refresh_required" formatted="false">"이미 페어링된 컴퓨터입니다. ‘연결 주소 새로고침’ QR 코드를 표시하세요. 기존 신뢰는 유지됩니다."</string>
-    <string name="remote_refresh_started" formatted="false">"컴퓨터 및 새 주소를 검증하고 있습니다. 성공한 후에만 연결 기록을 업데이트합니다."</string>
-    <string name="remote_refresh_title" formatted="false">"컴퓨터 주소 새로고침"</string>
-    <string name="remote_refresh_unknown" formatted="false">"아직 신뢰하지 않은 컴퓨터입니다. 최초 페어링 QR 코드를 표시하세요."</string>
-    <string name="remote_review_pair" formatted="false">"검토 후 페어링"</string>
-    <string name="remote_revocation_body" formatted="false">"%1$s의 신뢰를 취소하면 현재 연결과 허용이 종료됩니다. 다시 연결하려면 다시 페어링하세요. 컴퓨터 파일과 대화는 유지됩니다."</string>
-    <string name="remote_revocation_title" formatted="false">"컴퓨터 신뢰를 취소할까요?"</string>
-    <string name="remote_revoke" formatted="false">"이 컴퓨터 신뢰 취소"</string>
-    <string name="remote_scan_instructions" formatted="false">"컴퓨터의 DSH에 표시된 페어링 QR을 스캔하세요. 카메라 프레임은 이 휴대전화에서 디코딩합니다."</string>
-    <string name="remote_scan_qr" formatted="false">"컴퓨터 QR 코드 스캔"</string>
-    <string name="remote_state_connected" formatted="false">"컴퓨터 연결 인증됨"</string>
-    <string name="remote_state_connecting" formatted="false">"연결 및 컴퓨터 신원 검증 중…"</string>
-    <string name="remote_state_disconnected" formatted="false">"연결이 중단되었습니다. 준비되면 다시 연결하세요. 업무 작업은 다시 전송하지 않습니다."</string>
-    <string name="remote_state_failed" formatted="false">"연결이 완료되지 않았습니다. 컴퓨터 DSH와 네트워크를 확인한 후 다시 시도하세요."</string>
-    <string name="remote_state_reconnecting" formatted="false">"연결이 중단되었습니다. 제한된 시간 내에 다시 연결하고 검증합니다. 업무 작업은 다시 전송하지 않습니다."</string>
-    <string name="remote_state_stopped" formatted="false">"원격 연결 중지됨"</string>
-    <string name="remote_trust_unavailable" formatted="false">"컴퓨터 신뢰 기록을 읽을 수 없습니다. 기존 기록은 유지했습니다."</string>
-    <string name="remote_workspace_intro" formatted="false">"휴대전화와 컴퓨터는 대화, 파일 및 설정을 각각 보관합니다. 컴퓨터 작업 공간은 이 휴대전화에 Ubuntu 환경이 없어도 사용할 수 있습니다."</string>
-    <string name="remote_workspaces" formatted="false">"작업 공간"</string>
+    <string name="text_selection_more" formatted="false">"더보기…"</string>
     <string name="ui134_adb_hint" formatted="false">"Android 11 이상: 같은 Wi-Fi에서 무선 디버깅을 페어링하세요. 루팅은 필요하지 않습니다. 네트워크가 변경되면 연결을 확인하거나 다시 페어링하세요."</string>
     <string name="ui134_candidate" formatted="false">"후보 출시 버전 보기"</string>
     <string name="ui134_candidate_sub" formatted="false">"출시 정보, 크기 및 설치"</string>

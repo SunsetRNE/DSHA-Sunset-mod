@@ -1,5 +1,19 @@
 # AGENTS.md
 
+<!-- merge-worktree-rules-20261027 -->
+> **2026-10-27 本轮合并的当前约束**：本轮在 F 盘隔离工作树 `<local-workspace>` 处理源码，后续工作树和构建输出继续放 F 盘；保留 `<local-workspace>` 中用户未提交的路径说明及 C 盘活动 UI 原型。用户已暂停手机验收，须等用户明确恢复后才能进行；不自动构建、安装或发布 APK，也不擅自操作设备或改动授权。只处理和验证 Standard，不运行或安装 Low，保留既有 Low 交付原字节。build198 已撤除整套电脑连接，本次合并不得恢复电脑连接及其入口；手机控制和既有本机/LAN 能力仍按用户要求保留。
+>
+> 下方双方版本、构建、CI、设备与路径记录均属于各自对应的历史提交、候选和时点；不能作为本次合并后的测试、设备验收或发布结论。历史文本中的“当前”、手机状态和工作路径按当时阅读；最终源码身份、依赖及验证范围以本次合并后实际检查为准。基线文档曾记录移动插件 3.2.1 / 上游 `10e58ce0c4ed424c7fbd9c91d48db06c6061b4e4`，Sunset 分支文档记录 3.2.2 / 上游 `4c798ecc554009e401dc1f166b73c314cdf5273f`，这两条仅为分支历史。
+
+> **本轮源码身份**：`0.2.1-rc.3-20261027.1149-dsh0.2.1-rc.3` / build204，基于 build198 合并 Sunset-3090-Q 的 `5d694b65f5ceca9ccbd3d854a2b1efbacd53c159`。虚拟屏 MCP 的 launch 接受可选 `generation`，预检后只向原生 launch 发送 `coreInstance` 和 `package`；预检不构成原子代次围栏，取消或未知结果不能自动重放。tap/node 继续使用原观察代次。本轮未安装或发布 build204，手机验收仍暂停。
+
+**build198 基线历史（路径和设备状态均为当时记录）**
+
+<!-- build198-software-candidate -->
+> **当前源码：build198软件候选** — `0.2.1-rc.3-20261025.2100-dsh0.2.1-rc.3` /Standard /dsh.android.client /E7E3非调试。真实合入Sunset19提交，修复授权切换隐藏暂停，撤下整套电脑连接，统一顶部安全区并解耦活动服务等待。91类806项Standard测试零失败/错误，7项Windows软链权限skip已由真实POSIX44项补验覆盖；Release Lint0错误/致命279警告。用户暂停手机验收，手机仍197；本条不证明198装机或发布。[范围与失败记录](docs/releases/v0.2.1-rc.3-build198-20261025.md)。实际源 `<local-workspace>`，不构建旧F173/S197。下方旧当前条目按历史阅读。
+
+**Sunset 分支历史（以下证据仅适用于各自对应的提交、候选和时点）**
+
 <!-- build202-current -->
 > **2026-10-26 build202（Sunset-3090-Q，UI v5 原生试点 + 全屏终端整合）**：`0.2.1-rc.3-20261026.2115-dsh0.2.1-rc.3` / 202 / Standard / 测试包 `dsh.android.client.SunsetRNE` / 非调试 / CI 临时证书（非 E7E3）。合并 `Sunset-zhongdua-G`（merge commit `6a0cf18`）保留点击即拉起独立全屏 `TerminalActivity`、会话保护、手机 7+7 / 平板 8+8 附加键、侧栏三向态与横屏压缩；新增 v5 原生外壳试点：顶栏品牌/页面语境、手机悬浮胶囊导航、平板 80dp 左栏、启动主页活动条/三格真实状态/日志复制跟随导出，插件与设置沿用真实功能。最终 commit `11d2f348…`，[run 40342031367](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/actions/runs/40342031367)（run 39）Source-only 与 Signed APK 两个 job 成功：全量 Standard **2788 tests / 0 fail / 0 error / 1 allowed skip**、7 项固定夹具实跑、Lint 0 error/0 fatal；APK 435,467,169 bytes，SHA `71f4159fbe9ae0b7beaa9448d1aca83185ef652e69d2d8dde374c63f6a309b27`，临时证书 `4dfb75c2…c20077`。失败尝试 run 40334979040（固定输入描述符不一致）与 run 40340264326（UpdateVersionPageTest 旧断言）保留，修正见 commit `c289b4d` / `11d2f34`。未安装、未操作手机；真机渲染、点击、TalkBack、字体缩放与旋转未验收。报告见 [本轮报告](docs/releases/v0.2.1-rc.3-build202-ui-v5-20261026.md)，回执 `<workspace>/deliveries/ui-v5-20261026/delivery.json`。
 
@@ -294,3 +308,8 @@ fix1当时本地日期版versionName **`0.2.1-rc.2-20261019.2352-dsh0.2.1-rc.2`*
 - f316修NioInstallationIdentity的FileStore拒绝，保留NOFOLLOW/CREATE_NEW/Unix0600与原身份；11项定向通过。实际第五轮已越journal，却ADB_CONNECT_FAILED→START_UNKNOWN、cleanupRequired=true、无core身份；旧屏障保留。后续原生ADB连接验证不能补成前次未执行证明；约21:20本地用户并行配对freeform→全屏片段不作单一因果归因。
 - f744四类NOT_SENT修复仅承认helper实际退出、输出完整及精确有效未commit票的原子撤销；commit/撤销同锁，已commit/丢回执/失配/过期/截断/异常仍UNKNOWN。manager仍核对epoch、状态与journal提交，不清f316旧UNKNOWN、不自动重放。代理定向131项（1skip）零失败/错误及Python8/29项通过，后两项当次输出OK但未保存原始日志；独立四类复核21/21，设备效果待验。
 - 旧UNKNOWN无core身份时，主负责人先正常停止DSH并确认无自有guest，取得用户**仅本次明确重启许可**后约15:03 UTC真实重启且确认boot变化，再覆盖f744。不能将其变成自动重启或清旧屏障的通用授权。f744最新有限Main/授权/ADB记录不代表MCP完整功能通过；当前日期版已有有限导航/停止换代、OFF跨进程及最终停止证明，未新增最后诊断导出；692局部结果和9ee115.042秒默认proot冷测各属旧SHA。Low190未验设备，未新增长时、全模型或全部ROM通过结论。本地交付以 artifacts/deliveries/build190-fix1.json 的实际生成及摘要核验为准；不发布GitHub。
+
+
+<!-- merged-sunset-ci-history -->
+> **2026-10-24 Sunset-3090-Q 分支 CI 范围**：用户取消本分支全部 Low 测试。当前所有工作流仅运行 Standard 的源码/完整输入 JUnit、Lint 与打包；宿主执行器也拒绝 Low，专用 Low 预览用例保留历史。Sunset 构建使用 rc.3 固定源码输入、`dsh.android.client.SunsetRNE` 测试签名身份，不与 E7E3 正式包混同。历史双版本回执只用于兼容读取，不视为本轮 Low 测试。
+> 本段只描述分支历史；本轮正式 E7E3 Standard 构建不启用 SunsetRNE 或额外测试 APK。

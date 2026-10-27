@@ -199,10 +199,7 @@ final class AssistantWindow implements AutoCloseable {
   private void render() {
     if (!added) return;
     var state = controller.snapshot();
-    String target =
-        state.binding().target() == AssistantBinding.Target.LOCAL
-            ? UiText.choose("本机 DSH", "Local DSH")
-            : UiText.choose("电脑 DSH", "PC DSH");
+    String target = UiText.choose("本机 DSH", "Local DSH");
     String progress = state.text().replaceAll("\\s+", " ").strip();
     if (progress.length() > 90) progress = progress.substring(progress.length() - 90);
     status.setText(

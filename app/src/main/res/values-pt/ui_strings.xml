@@ -11,11 +11,15 @@
     <string name="build190_auto_port" formatted="false">"Atribuir a porta Web automaticamente (recomendado)"</string>
     <string name="build190_restore_port_drafts" formatted="false">"Restaurar rascunhos de portas anteriores"</string>
     <string name="computer_use_title" formatted="false">"Controle da tela"</string>
+    <string name="copy_text" formatted="false">"Copiar"</string>
     <string name="device_checking" formatted="false">"Verificando autorização…"</string>
     <string name="device_open_access" formatted="false">"Gerir acesso a arquivos"</string>
     <string name="dns_auto" formatted="false">"Compatibilidade automática (recomendado)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilidade DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Resolução nativa de pilha dupla"</string>
+    <string name="paste_text" formatted="false">"Colar"</string>
+    <string name="phone_assistant" formatted="false">"Assistente flutuante"</string>
+    <string name="phone_assistant_detail" formatted="false">"Escolha uma sessão DSH real neste telefone para a conversa flutuante e os controles de pausa."</string>
     <string name="picture_in_picture_allowed" formatted="false">"Permitida pelo sistema; a conversa permanece em uma janela pequena ao ir para a tela inicial ou mudar de aplicativo."</string>
     <string name="picture_in_picture_disabled" formatted="false">"Desativada pelo sistema; não aparece uma janela pequena em segundo plano. Toque para alterar."</string>
     <string name="picture_in_picture_enable" formatted="false">"Ativar conversa em imagem na imagem"</string>
@@ -30,57 +34,7 @@
     <string name="plugin_sort_title" formatted="false">"Ordenar plugins"</string>
     <string name="plugin_sort_updates" formatted="false">"Atualizações primeiro"</string>
     <string name="plugin_sort_za" formatted="false">"Nome Z–A"</string>
-    <string name="remote_assistant" formatted="false">"Assistente flutuante"</string>
-    <string name="remote_assistant_detail" formatted="false">"Escolha uma sessão DSH real neste telefone ou em um computador conectado para a conversa flutuante e os controles de pausa."</string>
-    <string name="remote_back" formatted="false">"Voltar aos espaços de trabalho"</string>
-    <string name="remote_camera_unavailable" formatted="false">"Câmera indisponível. Volte e cole um código de pareamento."</string>
-    <string name="remote_cancel" formatted="false">"Cancelar"</string>
-    <string name="remote_checking_trust" formatted="false">"Verificando a confiança do computador neste telefone…"</string>
-    <string name="remote_code_hint" formatted="false">"Colar código de pareamento completo (dsha-connect://pair?ticket=…)"</string>
-    <string name="remote_code_invalid" formatted="false">"Código de pareamento inválido ou expirado. Atualize-o no computador e tente novamente."</string>
-    <string name="remote_computers" formatted="false">"Espaços de trabalho de computadores"</string>
-    <string name="remote_connect" formatted="false">"Conectar computador"</string>
-    <string name="remote_disconnect" formatted="false">"Desconectar sessão remota"</string>
-    <string name="remote_endpoint_count" formatted="false">"%1$d endereços de conexão memorizados"</string>
-    <string name="remote_error" formatted="false">"A operação não foi concluída. Tente novamente. As operações de negócio nunca são repetidas automaticamente."</string>
-    <string name="remote_grant" formatted="false">"Confiar e parear"</string>
-    <string name="remote_grant_body" formatted="false">"Computador: %1$s\nIdentidade: %2$s\n\nMemorizar este computador, ligar às suas conversas e arquivos DSH e permitir as capacidades do assistente do telefone que autorizou. As permissões do sistema Android continuam precisando de aprovação separada. Pode revogar a confiança em Espaços de trabalho.\n\nContinue apenas se gerou este código no seu próprio computador."</string>
-    <string name="remote_grant_title" formatted="false">"Confiar neste computador?"</string>
-    <string name="remote_latency" formatted="false">"Latência de ida e volta: %1$d ms"</string>
-    <string name="remote_latency_unknown" formatted="false">"Latência de ida e volta: ainda não medida"</string>
-    <string name="remote_local_detail" formatted="false">"Execute o DSH neste telefone com conversas e arquivos locais."</string>
-    <string name="remote_local_phone" formatted="false">"Este telefone"</string>
-    <string name="remote_manual_instead" formatted="false">"Usar um código de pareamento"</string>
-    <string name="remote_no_computers" formatted="false">"Ainda não há computadores pareados. Pareie uma vez para memorizar o computador. Pode revogar a confiança a qualquer momento."</string>
-    <string name="remote_open_local" formatted="false">"Abrir espaço de trabalho do telefone"</string>
-    <string name="remote_open_pc" formatted="false">"Abrir conversas do computador"</string>
-    <string name="remote_pair_computer" formatted="false">"Parear computador"</string>
-    <string name="remote_pair_instructions" formatted="false">"Ative DSHA Connect no DSH do computador e apresente o código QR de pareamento. Leia-o ou cole o código completo apresentado. O código expira em breve; mantenha-o privado. Se um computador já pareado mudar de rede ou endereços, leia o código QR Atualizar endereços de conexão."</string>
-    <string name="remote_pair_started" formatted="false">"Verificando o pareamento. A confiança do computador só é salva após o sucesso."</string>
-    <string name="remote_path_direct" formatted="false">"Via: direta"</string>
-    <string name="remote_path_relay" formatted="false">"Via: retransmissão criptografada"</string>
-    <string name="remote_path_unknown" formatted="false">"Via: aguardando medição"</string>
-    <string name="remote_refresh_body" formatted="false">"Computador: %1$s\nIdentidade: %2$s\nNovos endereços de conexão: %3$d\n\nAtualize os endereços apenas após verificar a identidade fixada do computador, a chave de conexão existente e o processo atual. Preserve as autorizações existentes. Uma falha de verificação deixa o registro antigo inalterado."</string>
-    <string name="remote_refresh_connect" formatted="false">"Verificar endereços e conectar"</string>
-    <string name="remote_refresh_required" formatted="false">"Este computador já está pareado. Apresente o código QR Atualizar endereços de conexão. A confiança existente é preservada."</string>
-    <string name="remote_refresh_started" formatted="false">"Verificando o computador e os novos endereços. Os registros de conexão só são atualizados após o sucesso."</string>
-    <string name="remote_refresh_title" formatted="false">"Atualizar endereços do computador"</string>
-    <string name="remote_refresh_unknown" formatted="false">"Este computador ainda não é de confiança. Apresente o código QR do primeiro pareamento."</string>
-    <string name="remote_review_pair" formatted="false">"Revisar e parear"</string>
-    <string name="remote_revocation_body" formatted="false">"Revogar %1$s termina a conexão e as autorizações atuais. Pareie novamente para reconectar. Os arquivos e as conversas do computador são preservados."</string>
-    <string name="remote_revocation_title" formatted="false">"Revogar confiança do computador?"</string>
-    <string name="remote_revoke" formatted="false">"Revogar este computador"</string>
-    <string name="remote_scan_instructions" formatted="false">"Leia o código QR de pareamento apresentado no DSH do computador. As imagens da câmera são descodificadas neste telefone."</string>
-    <string name="remote_scan_qr" formatted="false">"Ler código QR do computador"</string>
-    <string name="remote_state_connected" formatted="false">"Conexão ao computador autenticada"</string>
-    <string name="remote_state_connecting" formatted="false">"Conectando e verificar a identidade do computador…"</string>
-    <string name="remote_state_disconnected" formatted="false">"Conexão interrompida. Reconecte quando quiser; as operações de negócio não serão reenviadas."</string>
-    <string name="remote_state_failed" formatted="false">"Conexão incompleta. Verifique o DSH do computador e a rede e tente novamente."</string>
-    <string name="remote_state_reconnecting" formatted="false">"Conexão interrompida. Reconectando e verificar durante um período limitado. As operações de negócio não serão reenviadas."</string>
-    <string name="remote_state_stopped" formatted="false">"Conexão remota parada"</string>
-    <string name="remote_trust_unavailable" formatted="false">"Não foi possível ler os registros de confiança do computador. Os registros existentes foram preservados."</string>
-    <string name="remote_workspace_intro" formatted="false">"O telefone e o computador mantêm conversas, arquivos e configurações separados. Um espaço de trabalho no computador não precisa de um ambiente Ubuntu neste telefone."</string>
-    <string name="remote_workspaces" formatted="false">"Espaço de trabalho"</string>
+    <string name="text_selection_more" formatted="false">"Mais…"</string>
     <string name="ui134_adb_hint" formatted="false">"Android 11+: pareie a depuração Sem fio na mesma rede Wi-Fi. Não precisa de root. Verifique ou pareie novamente após alterações de rede."</string>
     <string name="ui134_candidate" formatted="false">"Ver versão candidata"</string>
     <string name="ui134_candidate_sub" formatted="false">"Notas de versão, tamanho e instalação"</string>

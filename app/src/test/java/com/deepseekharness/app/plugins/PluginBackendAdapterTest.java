@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongSupplier;
 import org.junit.Rule;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -31,6 +32,11 @@ import org.robolectric.annotation.Config;
 public final class PluginBackendAdapterTest {
   @Rule public TemporaryFolder temporary = new TemporaryFolder();
 
+  @After
+  public void closeHostFiles() {
+    PluginHostFiles.close();
+  }
+
   /** 解析若出现初始化、递归枚举或写盘，测试直接失败。 */
   private static class ReadOnlyFiles extends JvmBackupFileSystem {
     int stats;
@@ -38,7 +44,7 @@ public final class PluginBackendAdapterTest {
     @Override
     public Node stat(File path) throws IOException {
       stats++;
-      return super.stat(path);
+      return PluginHostFiles.stat(path);
     }
 
     @Override
@@ -272,13 +278,13 @@ public final class PluginBackendAdapterTest {
   public void unsafeWatchRootsAndParentLinksNeverFollowExternalTrees() throws Exception {
     File files = files(), external = temporary.newFolder();
     Path link = new File(files, UserDataLayout.LEGACY + "/plugin-src").toPath();
-    Files.createSymbolicLink(link, external.toPath());
+    PluginHostFiles.symlink(link, external.toPath());
     IOException failure =
         assertThrows(
             IOException.class, () -> adapter(files, new ReadOnlyFiles(), () -> 0).resolveSource());
     assertEquals("PLUGIN_SOURCE_UNSAFE_PATH", failure.getMessage());
     File other = files();
-    Files.createSymbolicLink(new File(other, "linux/ubuntu/usr").toPath(), external.toPath());
+    PluginHostFiles.symlink(new File(other, "linux/ubuntu/usr").toPath(), external.toPath());
     assertThrows(
         IOException.class, () -> adapter(other, new ReadOnlyFiles(), () -> 0).resolveSource());
     assertEquals(0, external.list().length);
@@ -288,7 +294,7 @@ public final class PluginBackendAdapterTest {
   public void unsafeDataSelectionAndRootOutsidePrivateDirectoryAreRejected() throws Exception {
     File files = files(), external = temporary.newFolder();
     directory(files, "user-data-v5");
-    Files.createSymbolicLink(new File(files, UserDataLayout.STABLE).toPath(), external.toPath());
+    PluginHostFiles.symlink(new File(files, UserDataLayout.STABLE).toPath(), external.toPath());
     file(files, UserDataLayout.RECORD, UserDataLayout.record(UserDataLayout.Home.STABLE));
     assertThrows(
         IOException.class, () -> adapter(files, new ReadOnlyFiles(), () -> 0).resolveSource());
@@ -392,7 +398,7 @@ public final class PluginBackendAdapterTest {
     File files = directory(authority, "files");
     directory(files, UserDataLayout.LEGACY);
     File alias = new File(temporary.newFolder(), "framework-alias");
-    Files.createSymbolicLink(alias.toPath(), authority.toPath());
+    PluginHostFiles.symlink(alias.toPath(), authority.toPath());
     File declaredFiles = new File(alias, "files");
     ReadOnlyFiles fs = new ReadOnlyFiles();
     PluginBackendAdapter adapter =
@@ -407,7 +413,7 @@ public final class PluginBackendAdapterTest {
   public void frameworkFilesSymlinkIsRejectedBeforeExternalContentsAreObserved() throws Exception {
     File authority = temporary.newFolder(), external = files();
     File filesLink = new File(authority, "files");
-    Files.createSymbolicLink(filesLink.toPath(), external.toPath());
+    PluginHostFiles.symlink(filesLink.toPath(), external.toPath());
     ReadOnlyFiles fs =
         new ReadOnlyFiles() {
           @Override
@@ -470,7 +476,7 @@ public final class PluginBackendAdapterTest {
   public void injectedTrustedRootStillRejectsAWritableFilesSymlink() throws Exception {
     File external = files();
     File link = new File(temporary.newFolder(), "files");
-    Files.createSymbolicLink(link.toPath(), external.toPath());
+    PluginHostFiles.symlink(link.toPath(), external.toPath());
     IOException error =
         assertThrows(
             IOException.class, () -> adapter(link, new ReadOnlyFiles(), () -> 0).resolveSource());

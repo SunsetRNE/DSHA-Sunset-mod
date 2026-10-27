@@ -18,6 +18,8 @@ public final class WebPageScripts {
 
   public static String compatibility(Context context) {
     return "window.__DSHA_NATIVE_PLUGINS__=true;\n"
+        + read(context, "web-integration/safe-area.js")
+        + "\n"
         + language(context)
         + "\n"
         + read(context, "web-integration/es-compat.js")

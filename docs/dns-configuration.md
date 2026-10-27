@@ -80,6 +80,7 @@ Android Java 网络、WebView／Gecko 自己的外网解析不由此 Node 补丁
 Android 侧从当前活动网络 `LinkProperties.getDnsServers()` 读取 DNS 地址。
 只接纳校验通过的数字 IPv4／IPv6 地址，并去重，不为此发主机名解析。
 代码没有通过 shell 调用 Android `dnsresolver` 命令修改系统服务。
+随包旧 rootfs 的原始文件恰为 `8.8.8.8`、`223.5.5.5` 两行；去掉 DSHA 自有段后，只有剩余内容与该默认值逐字节一致，且已读到有效设备 DNS 时，才迁移为设备 DNS。暂时无有效设备 DNS 时保留旧文件。任何其他内容（包括注释、换行格式或重新排序）均按用户配置保留；若有意继续使用这两台服务器，可在文件中加一行注释以避免被识别为原始默认值。设备 DNS 地址不等于完整复用 Android 私有 DNS 的加密解析行为。
 
 对已有 guest 文件采用以下次序：
 

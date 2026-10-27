@@ -11,7 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'tools/mobile-plugin-upstream.lock.json'
 DESTINATION = ROOT / 'app/src/main/assets/builtin-plugins/dsh-web-mobile'
 PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/index.js',
-           'lib/compress.js.map', 'lib/delete-session.js.map', 'lib/index.js.map'}
+           'lib/compress.js.map', 'lib/delete-session.js.map', 'lib/index.js.map',
+           'src/client/i18n/locales.ts', 'src/client/components/file-share-locale.ts',
+           'src/client/effects/attachment-mention.ts', 'src/client/index.tsx',
+           'src/client/effects/file-share.ts', 'lib/types/client/i18n/locales.d.ts',
+           'src/client/effects/drawer-session-log.ts', 'src/client/effects/drawer-quick-settings.ts',
+           'lib/types/client/components/file-share-locale.d.ts',
+           'lib/types/client/effects/attachment-mention.d.ts'}
 ADDITIONAL = {'lib/file-transfer.js', 'lib/file-transfer.js.map'}
 
 def prepare(source, write):
@@ -61,6 +67,7 @@ def prepare(source, write):
     patch = ROOT / 'tools/apply-mobile-client-patches.mjs'
     subprocess.run([node, str(patch), str(source / 'lib/client.js'), action], cwd=ROOT, check=True)
     subprocess.run([node, str(patch), '--server', str(source / 'lib'), action], cwd=ROOT, check=True)
+    subprocess.run([node, str(patch), '--locale-sources', str(source), action], cwd=ROOT, check=True)
     # Retire only the explicitly reviewed previous-version members; unknown local files stay errors.
     for name in lock.get('retiredFiles', []):
         relative = PurePosixPath(name)

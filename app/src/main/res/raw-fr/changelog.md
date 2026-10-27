@@ -1,7 +1,8 @@
-# DSHA 0.2.1-rc.3-20261027.0700-dsh0.2.1-rc.3 / build203
+# DSHA 0.2.1-rc.3-20261027.1312-dsh0.2.1-rc.3 / build205
 
-- Interface : l'habillage des pages v5 du prototype d'interaction couvre désormais les réglages, les plugins, la configuration d'exécution, l'installation et l'environnement, les autorisations de l'appareil, les données et sauvegardes, les mises à jour, le diagnostic, l'accueil/premier lancement, à propos et la restauration de l'environnement ; titres, groupes, cartes, champs et boutons partagent une même échelle de 26sp et une même palette claire/nuit.
-- Terminal : « Nouvelle session », « Terminer la session » et « Revenir à la saisie » réagissent au premier appui ; le sélecteur « Système / Clair / Sombre » est retiré de la barre latérale et le terminal suit le thème de l'application sans recréer les sessions ni rejouer les commandes.
-- Finitions : la page d'appairage ADB n'affiche plus de titre en double, la confirmation d'installation par lien passe à l'échelle de 26sp et la page de maintenance de l'environnement (extraction) utilise les cartes et boutons v5.
-- Le dsh-web-mobile intégré reste en 3.2.2 et le DSH intégré en rc.3 ; le versionCode passe à 203. L'identité de test est dsh.android.client.SunsetRNE avec un certificat de test local, pas le paquet officiel E7E3.
-- Limite : cette compilation reste un paquet de test. TalkBack, mise à l'échelle des polices et acceptation complète de la rotation n'ont pas été réalisés ; le navigateur de fichiers, l'appairage/les espaces de travail distants et l'aperçu web conservent l'implémentation existante.
+- Le collage du terminal utilise une file d’entrée FIFO bornée ; le collage entre marqueurs forme une seule entrée. Si la file est pleine, les entrées suivantes sont suspendues en attente de confirmation ; le contenu non envoyé n’est pas réessayé automatiquement.
+- Si le résultat du démarrage de l’écran virtuel est inconnu, conserver les diagnostics autorisés. Un diagnostic ne prouve pas l’arrêt distant et ne lève pas la protection liée au résultat inconnu.
+- Lier les actions de contrôle du téléphone à la cible de la dernière observation réussie. Un changement de cible ou une nouvelle observation exige une preuve actualisée ; une ancienne observation ne rétablit pas l’autorisation.
+- Lorsque le DNS de l’appareil est disponible, migrer uniquement la configuration DNS par défaut historique strictement identique octet par octet. Préserver les configurations modifiées et l’ancienne configuration si le DNS de l’appareil est indisponible.
+- Étendre les scénarios de régression pour la reprise des flux de session et d’espace de travail, la détection du téléchargement et les réponses compressées. Ces scénarios ne valident ni le téléphone ni le redémarrage d’un serveur réel.
+- Conserver dsh-web-mobile 3.2.2, DSH rc.3, l’accès local et réseau local et les dix langues. La validation sur téléphone reste suspendue.

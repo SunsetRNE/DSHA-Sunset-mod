@@ -7,6 +7,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import com.deepseekharness.app.util.TerminalSession;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -148,6 +149,121 @@ public class TerminalSessionOwnerTest {
     assertNotNull(owner.simpleTabs().find(tab.id));
     owner.closeSimple(tab.id, 1000);
     assertEquals(TerminalRuntimeProtection.State.RELEASED, owner.protectionSnapshot().state);
+  }
+
+  @Test
+  public void protectionLossIsReportedForTheExactSessionOnly() throws Exception {
+    var protection = new TerminalRuntimeProtection(() -> 1L);
+    var owner = new TerminalSessionOwner(protection);
+    Object oldService = new Object(), newService = new Object();
+    AtomicBoolean newServiceAlive = new AtomicBoolean(true);
+    CountDownLatch oldStarted = new CountDownLatch(1);
+    CountDownLatch failedStarts = new CountDownLatch(2);
+    TerminalSession.Backend neverStarted =
+        new TerminalSession.Backend() {
+          @Override
+          public Process open() throws IOException {
+            oldStarted.countDown();
+            failedStarts.countDown();
+            throw new IOException("definitely not started");
+          }
+
+          @Override
+          public void terminate(Process process, long group) {}
+        };
+    var oldSimpleTicket =
+        protection.prepare(owner.epoch(), TerminalRuntimeProtection.Kind.SIMPLE, admission());
+    assertTrue(protection.promoted(oldSimpleTicket.id(), oldService, () -> true));
+    var oldSimple = owner.createSimple(oldSimpleTicket, neverStarted);
+    var oldPtyTicket =
+        protection.prepare(owner.epoch(), TerminalRuntimeProtection.Kind.PTY, admission());
+    assertTrue(protection.promoted(oldPtyTicket.id(), oldService, () -> true));
+    var oldPty = createUnstartedPty(owner, oldPtyTicket);
+    assertTrue(oldStarted.await(2, TimeUnit.SECONDS));
+    protection.serviceDestroyed(oldService);
+
+    var newSimpleTicket =
+        protection.prepare(owner.epoch(), TerminalRuntimeProtection.Kind.SIMPLE, admission());
+    assertTrue(protection.promoted(newSimpleTicket.id(), newService, newServiceAlive::get));
+    var newSimple = owner.createSimple(newSimpleTicket, neverStarted);
+    var newPtyTicket =
+        protection.prepare(owner.epoch(), TerminalRuntimeProtection.Kind.PTY, admission());
+    assertTrue(protection.promoted(newPtyTicket.id(), newService, newServiceAlive::get));
+    var newPty = createUnstartedPty(owner, newPtyTicket);
+    try {
+      assertTrue(failedStarts.await(2, TimeUnit.SECONDS));
+      assertEquals(TerminalRuntimeProtection.State.LOST, owner.protectionSnapshot().state);
+      assertTrue(owner.isSimpleProtectionLost(oldSimple.id));
+      assertTrue(owner.isPtyProtectionLost(oldPty.id));
+      assertFalse(owner.isSimpleInputAllowed(oldSimple.id));
+      assertFalse(owner.isSimpleProtectionLost(newSimple.id));
+      assertFalse(owner.isPtyProtectionLost(newPty.id));
+      assertTrue(owner.isSimpleInputAllowed(newSimple.id));
+      // A stale service supplier must also disable only its own active tickets.
+      newServiceAlive.set(false);
+      assertTrue(owner.isSimpleProtectionLost(newSimple.id));
+      assertTrue(owner.isPtyProtectionLost(newPty.id));
+      assertFalse(owner.isSimpleInputAllowed(newSimple.id));
+    } finally {
+      owner.closeSimple(oldSimple.id, 1000);
+      owner.closePty(oldPty.id, 1000);
+      owner.closeSimple(newSimple.id, 1000);
+      owner.closePty(newPty.id, 1000);
+    }
+    assertFalse(protection.hasDemand());
+  }
+
+  @Test
+  public void detachedSimplePaneStillNotifiesIndependentStateObserver() throws Exception {
+    var owner = new TerminalSessionOwner();
+    var tab =
+        owner.addSimple(
+            new TerminalSession.Backend() {
+              @Override
+              public Process open() throws IOException {
+                throw new IOException("definitely not started");
+              }
+
+              @Override
+              public void terminate(Process process, long group) {}
+            });
+    CountDownLatch failure = new CountDownLatch(1);
+    AtomicInteger changes = new AtomicInteger();
+    Runnable broken =
+        () -> {
+          throw new IllegalStateException("stale observer");
+        };
+    Runnable observer =
+        () -> {
+          changes.incrementAndGet();
+          if (tab.value.session.state() == TerminalSession.State.FAILED) failure.countDown();
+        };
+    owner.addSimpleStateObserver(broken);
+    owner.addSimpleStateObserver(observer);
+    owner.addSimpleStateObserver(observer);
+    tab.value.session.ensureStarted();
+    assertTrue(failure.await(2, TimeUnit.SECONDS));
+    assertEquals(2, changes.get()); // STARTING and FAILED, without duplicate registration.
+    owner.removeSimpleStateObserver(observer);
+    owner.removeSimpleStateObserver(broken);
+    assertTrue(tab.value.session.shutdownAndWait(1000));
+    assertEquals(2, changes.get());
+    owner.closeSimple(tab.id, 1000);
+  }
+
+  private static com.deepseekharness.app.util.TerminalTabs.Tab<com.deepseekharness.app.PtySession>
+      createUnstartedPty(TerminalSessionOwner owner, TerminalRuntimeProtection.Ticket ticket)
+          throws Exception {
+    var constructor = com.deepseekharness.app.PtySession.class.getDeclaredConstructor();
+    constructor.setAccessible(true);
+    var session = constructor.newInstance();
+    return owner.createPty(
+        ticket,
+        (verified, changed, beforeFork, allocated) -> {
+          allocated.accept(session);
+          beforeFork.run();
+          return session;
+        });
   }
 
   @Test
