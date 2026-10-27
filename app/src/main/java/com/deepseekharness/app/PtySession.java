@@ -53,6 +53,9 @@ public final class PtySession implements TerminalSessionClient {
 
     /** 响铃：震一下比响一声合适。 */
     void onBell();
+
+    /** 输入未接收或写入结果不确定；内容不会自动重放。 */
+    default void onInputProblem(int reason) {}
   }
 
   private volatile WeakReference<Listener> listener = new WeakReference<>(null);
@@ -62,6 +65,7 @@ public final class PtySession implements TerminalSessionClient {
   private volatile boolean maintenanceClosing;
   private volatile String cleanupError = "";
   private volatile Integer exitStatus;
+  private int pendingInputProblem;
   private Runnable cleanupVerified, cleanupChanged;
   private boolean prootLauncher;
   private static final java.util.Set<PtySession> pending =
@@ -70,8 +74,19 @@ public final class PtySession implements TerminalSessionClient {
 
   private PtySession() {}
 
-  public void attachListener(Listener l) {
+  public synchronized void attachListener(Listener l) {
     listener = new WeakReference<>(l);
+    if (l != null && pendingInputProblem != 0) {
+      l.onInputProblem(pendingInputProblem);
+    }
+  }
+
+  public synchronized int inputProblem() {
+    return pendingInputProblem;
+  }
+
+  public synchronized void acknowledgeInputProblem(int reason) {
+    if (pendingInputProblem == reason) pendingInputProblem = 0;
   }
 
   public void detachListener(Listener l) {
@@ -266,6 +281,8 @@ public final class PtySession implements TerminalSessionClient {
         if (expected == null)
           throw new java.io.IOException(
               com.deepseekharness.app.util.UiText.text("无法确认终端身份，原环境保持保护"));
+        TerminalSession active = session;
+        if (active != null) active.cancelPendingInput();
         // 启动方式在 fork 前由可信 argv 记录，PID 身份仍用出生握手与当前 stat 双重核验。
         // /proc/PID/exe 在退出及非调试应用 exec 窗口可能不可读，不能把它当成永久维护故障。
         if (prootLauncher)
@@ -314,6 +331,7 @@ public final class PtySession implements TerminalSessionClient {
       if (!expected.sameProcess(readIdentity(pid)))
         throw new IllegalStateException(
             com.deepseekharness.app.util.UiText.text("终端进程身份已变化，未发送信号"));
+      t.cancelPendingInput();
       android.system.Os.kill(pid, signal);
     } catch (android.system.ErrnoException e) {
       if (e.errno != android.system.OsConstants.ESRCH)
@@ -335,6 +353,14 @@ public final class PtySession implements TerminalSessionClient {
   }
 
   // ==================== TerminalSessionClient ====================
+
+  @Override
+  public synchronized void onInputError(TerminalSession source, int reason) {
+    if (source != session) return;
+    Listener l = listener();
+    pendingInputProblem = Math.max(pendingInputProblem, reason);
+    if (l != null) l.onInputProblem(pendingInputProblem);
+  }
 
   @Override
   public void onTextChanged(TerminalSession changedSession) {

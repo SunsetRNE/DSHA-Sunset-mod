@@ -618,6 +618,12 @@ public final class VirtualScreenManager {
         safe.put(key, known ? code : "UNCLASSIFIED_FAILURE");
       }
     }
+    String diagnostic = value.optString("diagnostic");
+    if (!diagnostic.isEmpty()
+        && diagnostic.equals(
+            com.deepseekharness.app.util.VirtualScreenBootstrap.diagnosticCode(diagnostic))
+        && (diagnostic.startsWith("VSCREEN_CORE_") || diagnostic.startsWith("VSCREEN_ADB_")))
+      safe.put("diagnostic", diagnostic);
     if (value.has("cause")) safe.put("causeOmitted", true);
     return safe;
   }
@@ -627,7 +633,7 @@ public final class VirtualScreenManager {
       JSONObject safe = safeStartOutcome(value);
       java.util.Map<String, Object> fields = new java.util.LinkedHashMap<>();
       final long outcomeEpoch;
-      for (String key : new String[] {"ok", "error", "reason", "causeOmitted"})
+      for (String key : new String[] {"ok", "error", "reason", "diagnostic", "causeOmitted"})
         if (safe.has(key)) fields.put(key, safe.get(key));
       synchronized (LOCK) {
         outcomeEpoch = epoch();
@@ -791,10 +797,16 @@ public final class VirtualScreenManager {
       if (launched == null) {
         markStartUnknown(launchEpoch);
         String reason = com.deepseekharness.app.util.VirtualScreenBootstrap.error(output);
+        String diagnostic =
+            com.deepseekharness.app.util.VirtualScreenBootstrap.diagnosticCode("VSCREEN_" + reason);
         recordDiagnostic(
             "VSCREEN_START",
             reason.isEmpty() ? "VSCREEN_START_RESULT_UNKNOWN" : "VSCREEN_" + reason);
-        return decorate(failure("VSCREEN_START_UNKNOWN"));
+        JSONObject unknown = failure("VSCREEN_START_UNKNOWN");
+        // An observed diagnostic is not proof of remote exit and must not clear the fence.
+        if (diagnostic.startsWith("VSCREEN_CORE_") || diagnostic.startsWith("VSCREEN_ADB_"))
+          unknown.put("diagnostic", diagnostic);
+        return decorate(unknown);
       }
       com.deepseekharness.app.util.SensitiveData.registerKnownSecret(launched.token);
       boolean admitted, authorized = scope.current();

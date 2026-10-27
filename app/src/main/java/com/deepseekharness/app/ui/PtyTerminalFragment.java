@@ -66,6 +66,7 @@ public final class PtyTerminalFragment extends Fragment
   private boolean creationPending;
   private long viewGeneration, operationGeneration;
   private AlertDialog pasteDialog;
+  private AlertDialog inputProblemDialog;
   private String startError = "";
   private final java.util.concurrent.atomic.AtomicBoolean redrawPending =
       new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -231,6 +232,7 @@ public final class PtyTerminalFragment extends Fragment
       saveScroll();
       if (attachedSession != null) attachedSession.detachListener(sessionListener);
       dismissPaste();
+      if (inputProblemDialog != null) inputProblemDialog.dismiss();
       clearModifiers();
       replaceNativeView();
       attachedSession = selected;
@@ -316,6 +318,10 @@ public final class PtyTerminalFragment extends Fragment
 
       public void onBell() {
         if (active()) PtyTerminalFragment.this.onBell();
+      }
+
+      public void onInputProblem(int reason) {
+        if (active()) PtyTerminalFragment.this.onInputProblem(reason);
       }
     };
   }
@@ -649,6 +655,7 @@ public final class PtyTerminalFragment extends Fragment
     saveScroll();
     clearModifiers();
     dismissPaste();
+    if (inputProblemDialog != null) inputProblemDialog.dismiss();
     if (nativeClient != null) nativeClient.active = false;
     if (creating != null && creating.cancel()) { // 已开始的创建票不取消真实进程。
       creationPending = false;
@@ -764,6 +771,54 @@ public final class PtyTerminalFragment extends Fragment
             if (vibrator != null) vibrator.vibrate(30);
           } catch (RuntimeException ignored) {
           }
+        });
+  }
+
+  @Override
+  public void onInputProblem(int reason) {
+    final PtySession source = attachedSession;
+    main.post(
+        () -> {
+          if (!isAdded() || !isResumed() || source == null || attachedSession != source
+              || inputProblemDialog != null) return;
+          final int pending = source.inputProblem();
+          if (pending == 0) return;
+          boolean overflow = pending == TerminalSession.INPUT_QUEUE_FULL;
+          String message = overflow
+              ? UiText.choose(
+                  "终端输入队列已满，部分输入未发送。后续输入已暂停。先检查终端和命令状态；不会自动重试。此前排队的输入仍可能送达。",
+                  "The terminal input queue filled and some input was not sent. Further input is paused. Check the terminal and command state; nothing will be retried automatically. Previously queued input may still arrive.")
+              : UiText.choose(
+                  "终端输入未发送或可能未完整送达。请检查终端状态；不会自动重试。",
+                  "Terminal input was not sent or may be incomplete. Check the terminal state; it will not be retried automatically.");
+          DshaDialogBuilder builder = new DshaDialogBuilder(requireContext());
+          builder.setTitle(UiText.choose("终端输入中断", "Terminal input interrupted"))
+              .setMessage(message)
+              .setNegativeButton(UiText.choose("关闭", "Close"),
+                  (dialog, which) -> {
+                    // Overflow remains latched; another input attempt presents the choice again.
+                    if (!overflow) source.acknowledgeInputProblem(pending);
+                  });
+          if (overflow) builder.setPositiveButton(UiText.choose("继续输入", "Resume input"),
+              (dialog, which) -> {
+                TerminalSession terminal = source.session();
+                if (attachedSession != source || terminal == null || !inputAllowed()
+                    || !terminal.resumeInputAfterOverflow()) {
+                  Toast.makeText(requireContext(), UiText.choose(
+                      "先前输入仍在发送或终端已关闭，尚未恢复输入。",
+                      "Earlier input is still being sent or the terminal is closed. Input remains paused."),
+                      Toast.LENGTH_LONG).show();
+                } else source.acknowledgeInputProblem(pending);
+              });
+          inputProblemDialog = builder.create();
+          inputProblemDialog.setOnDismissListener(dialog -> {
+            inputProblemDialog = null;
+            PtySession current = attachedSession;
+            if (isResumed() && current != null && current.inputProblem() != 0
+                && (current != source || current.inputProblem() != pending))
+              main.post(() -> onInputProblem(current.inputProblem()));
+          });
+          inputProblemDialog.show();
         });
   }
 

@@ -61,6 +61,29 @@ public final class PhoneControlCoordinator {
     return result;
   }
 
+  public long beginObservation(ControlTaskAuthority.Lease lease) {
+    return authority.beginObservation(lease);
+  }
+
+  public boolean observed(
+      ControlTaskAuthority.Lease lease,
+      long sequence,
+      com.deepseekharness.app.util.ScreenTarget target) {
+    boolean result = authority.observed(lease, sequence, target);
+    if (result) changed();
+    return result;
+  }
+
+  public boolean actionAllowed(
+      ControlTaskAuthority.Lease lease, com.deepseekharness.app.util.ScreenTarget target) {
+    return authority.actionAllowed(lease, target);
+  }
+
+  public boolean checkActionTarget(
+      ControlTaskAuthority.Lease lease, com.deepseekharness.app.util.ScreenTarget target) {
+    return authority.checkActionTarget(lease, target);
+  }
+
   public void requireObservation(ControlTaskAuthority.Binding binding) {
     authority.requireObservation(binding);
     fence(false, null);
