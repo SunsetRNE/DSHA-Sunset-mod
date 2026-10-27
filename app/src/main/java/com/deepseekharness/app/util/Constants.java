@@ -70,6 +70,12 @@ public final class Constants {
   /** 电脑模式（预览用桌面浏览器 UA）。 */
   public static final String KEY_DESKTOP_MODE = "desktop_mode";
 
+  /** 任务状态上岛（Android 16 实时活动 / promoted ongoing），默认开启。 */
+  public static final String KEY_TASK_ISLAND = "task_island";
+
+  /** 岛上用系统计时器显示耗时，省掉 1Hz 重绘；默认关闭。 */
+  public static final String KEY_TASK_ISLAND_CHRONOMETER = "task_island_chronometer";
+
   /** 仅内置 DSH 网页支持画中画，默认关闭。 */
   public static final String KEY_PICTURE_IN_PICTURE = "picture_in_picture";
 

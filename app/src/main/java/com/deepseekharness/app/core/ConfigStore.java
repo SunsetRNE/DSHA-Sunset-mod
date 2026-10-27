@@ -264,6 +264,24 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_DESKTOP_MODE, v).apply();
   }
 
+  /** 任务状态上岛默认开启：它只是给已有通知补充短文本与提升请求，失败会静默降级。 */
+  public boolean isTaskIslandEnabled() {
+    return flag(Constants.KEY_TASK_ISLAND, true);
+  }
+
+  public void setTaskIslandEnabled(boolean v) {
+    prefs.edit().putBoolean(Constants.KEY_TASK_ISLAND, v).apply();
+  }
+
+  /** 岛上用系统计时器显示耗时；开启后状态不变就不再按秒重绘通知。 */
+  public boolean isTaskIslandChronometer() {
+    return flag(Constants.KEY_TASK_ISLAND_CHRONOMETER, false);
+  }
+
+  public void setTaskIslandChronometer(boolean v) {
+    prefs.edit().putBoolean(Constants.KEY_TASK_ISLAND_CHRONOMETER, v).apply();
+  }
+
   public boolean isPictureInPictureEnabled() {
     // 历史键可能来自默认开启或归档，不能证明用户明确选择；原值继续保留。
     // 本机选择不进入 BACKUP_SETTING_KEYS，因此恢复设置也不会重新开启小窗。
