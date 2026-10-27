@@ -112,31 +112,41 @@ public final class PtySession implements TerminalSessionClient {
       // 必须先登记异步寿命，再准备目录和 fork，避免维护切换与终端启动交错。
       ps.work = com.deepseekharness.app.core.RuntimeTasks.beginDetached("终端");
       pending.add(ps);
+      // 共享租约只覆盖创建/fork 窗口；终端寿命仍由上面的 RuntimeTasks token 与退出核验持有。
+      com.deepseekharness.app.util.EnvironmentTaskGate.Lease environmentUse =
+          com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared("启动终端");
+      if (environmentUse == null)
+        throw new IllegalStateException(
+            com.deepseekharness.app.util.UiText.text("环境维护或独占任务正在进行，终端未启动"));
       try {
-        proot.requireUserRuntime();
-      } catch (java.io.IOException error) {
-        throw new IllegalStateException(error.getMessage(), error);
+        try {
+          proot.requireUserRuntime();
+        } catch (java.io.IOException error) {
+          throw new IllegalStateException(error.getMessage(), error);
+        }
+        proot.ensureAndroidGroups(); // 登录 shell 的 $(groups) 依赖 /etc/group 里有 Android GID
+        ProotBootstrap.PtyLaunch launch = proot.ptyLaunch();
+        String[] argv = launch.argv;
+        ps.prootLauncher = com.deepseekharness.app.util.ProcessIdentity.isProot(argv[0]);
+        String[] env = launch.environment;
+        // args 就是 argv（含 argv[0]）：查过 termux.c，Java 数组原样转成 argv 后
+        // 直接 execvp(cmd, argv)，没有任何加工 —— 与 ProcessBuilder 的行为一致。
+        initializeOnMain(
+            () -> {
+              // 0.118.0 的 TerminalSession 内建 Handler 绑定构造线程；只能在主 Looper 构造/初始化。
+              // 资产准备留在工作线程，主线程只完成原有终端构造与出生握手。
+              if (beforeFork != null) beforeFork.run();
+              TerminalSession s = new TerminalSession(argv[0], "/", argv, env, TRANSCRIPT_ROWS, ps);
+              ps.session = s;
+              // initializeEmulator 才真正 fork 出子进程，所以尺寸要在这之前定好。
+              com.deepseekharness.app.runtime.NativeProcess.capturePtyIdentity(
+                  value -> ps.identity = value,
+                  () -> s.initializeEmulator(Math.max(4, cols), Math.max(2, rows)));
+            });
+        return ps;
+      } finally {
+        environmentUse.close();
       }
-      proot.ensureAndroidGroups(); // 登录 shell 的 $(groups) 依赖 /etc/group 里有 Android GID
-      ProotBootstrap.PtyLaunch launch = proot.ptyLaunch();
-      String[] argv = launch.argv;
-      ps.prootLauncher = com.deepseekharness.app.util.ProcessIdentity.isProot(argv[0]);
-      String[] env = launch.environment;
-      // args 就是 argv（含 argv[0]）：查过 termux.c，Java 数组原样转成 argv 后
-      // 直接 execvp(cmd, argv)，没有任何加工 —— 与 ProcessBuilder 的行为一致。
-      initializeOnMain(
-          () -> {
-            // 0.118.0 的 TerminalSession 内建 Handler 绑定构造线程；只能在主 Looper 构造/初始化。
-            // 资产准备留在工作线程，主线程只完成原有终端构造与出生握手。
-            if (beforeFork != null) beforeFork.run();
-            TerminalSession s = new TerminalSession(argv[0], "/", argv, env, TRANSCRIPT_ROWS, ps);
-            ps.session = s;
-            // initializeEmulator 才真正 fork 出子进程，所以尺寸要在这之前定好。
-            com.deepseekharness.app.runtime.NativeProcess.capturePtyIdentity(
-                value -> ps.identity = value,
-                () -> s.initializeEmulator(Math.max(4, cols), Math.max(2, rows)));
-          });
-      return ps;
     } catch (RuntimeException | Error e) {
       if (ps.session == null || (ps.session.getPid() == 0 && ps.identity == null)) ps.releaseWork();
       else if (ps.session.getPid() == 0) {

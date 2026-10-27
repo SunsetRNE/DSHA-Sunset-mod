@@ -144,6 +144,43 @@ final class RuntimeTools {
     }
   }
 
+  /** Read-only query readiness; never prepares, repairs, migrates or registers anything. */
+  static boolean queryReady(Context context, File requested) {
+    try {
+      File rootfs = RuntimeAssetFiles.root(context, requested);
+      var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+      File descriptor = new File(rootfs.getParentFile(), ".runtime-descriptor.json");
+      if (!fs.stat(descriptor).type.equals("FILE")) return false;
+      String identity = assetRuntimeId(context);
+      if (!identity.equals(descriptorRuntimeId(descriptor))) return false;
+      File marker = new File(rootfs, MANAGED_MARKER);
+      if (!fs.stat(marker).type.equals("FILE")) return false;
+      byte[] expected = com.deepseekharness.app.util.ManagedAssetVersion.bytes(identity);
+      if (!Arrays.equals(expected, fs.small(marker, expected.length + 1))) return false;
+      for (String path :
+          new String[] {
+            "usr/bin/python3.12",
+            "usr/lib/python3.12/encodings/__init__.py",
+            "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
+            "usr/lib/aarch64-linux-gnu/libreadline.so.8",
+            "root/.dsh/plugin-manager.py",
+            "root/.dsh/register-builtin-plugins.py",
+            "root/.dsh/builtin-plugins.json",
+            "root/.dsh/plugin-lifecycle.py",
+            "root/.dsh/plugin-capabilities.py",
+            "root/.dsh/plugin-transactions.py",
+            "root/.dsh/plugin-network.py",
+            "root/.dsh/plugin-dependencies.py"
+          }) {
+        if (!fs.stat(new File(rootfs, path)).type.equals("FILE")) return false;
+      }
+      var python = fs.stat(new File(rootfs, "usr/bin/python3.12"));
+      return (python.mode & 0111) == 0111;
+    } catch (IOException | RuntimeException unavailable) {
+      return false;
+    }
+  }
+
   /** Explicit ADB repair writes signed host files, including when guest STABLE uses file binds. */
   static void installDeviceScripts(Context context, File requested) throws IOException {
     synchronized (LOCK) {
