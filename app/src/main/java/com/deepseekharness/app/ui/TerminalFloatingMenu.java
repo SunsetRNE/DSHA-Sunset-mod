@@ -28,18 +28,26 @@ final class TerminalFloatingMenu extends AppCompatTextView {
     slop = ViewConfiguration.get(context).getScaledTouchSlop();
     setId(R.id.terminal_menu_ball);
     setText(">_");
-    setTextSize(20);
+    setTextDirection(View.TEXT_DIRECTION_LTR);
+    // >_ 是图标字形，保持 40dp 外观；可点击和拖动区域仍为完整的 48dp。
+    setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16);
+    setIncludeFontPadding(false);
     setTypeface(android.graphics.Typeface.MONOSPACE);
     setGravity(android.view.Gravity.CENTER);
     setTextColor(context.getColor(R.color.terminal_panel_text));
-    setBackgroundResource(R.drawable.bg_terminal_menu);
+    setBackground(
+        new android.graphics.drawable.InsetDrawable(
+            context.getDrawable(R.drawable.bg_terminal_menu), dp(4)));
+    setPadding(0, 0, 0, 0);
     setContentDescription(UiText.choose("打开会话侧栏", "Open sessions sidebar"));
     setSessionsExpanded(false);
     setFocusable(true);
     setFocusableInTouchMode(true);
     setClickable(true);
     setElevation(dp(6));
-    setLayoutParams(new FrameLayout.LayoutParams(dp(52), dp(52)));
+    setMinimumWidth(dp(48));
+    setMinimumHeight(dp(48));
+    setLayoutParams(new FrameLayout.LayoutParams(dp(48), dp(48)));
     setOnFocusChangeListener(
         (v, focus) -> {
           if (focus) wake();

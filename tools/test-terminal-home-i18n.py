@@ -15,11 +15,87 @@ from ui_language_catalog import LANGUAGES, RESOURCE_FOLDERS, format_signature, l
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'app/src/main/java/com/deepseekharness/app'
 RES = ROOT / 'app/src/main/res'
-CALL = re.compile(r'UiText\.(choose|text|format)\s*\(\s*("(?:\\.|[^"\\])*")', re.S)
 
-spec = importlib.util.spec_from_file_location('prepare_ui_languages', ROOT / 'tools/prepare-ui-languages.py')
-PREPARE = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(PREPARE)
+
+def module(name, filename):
+    spec = importlib.util.spec_from_file_location(name, ROOT / 'tools' / filename)
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    return loaded
+
+
+PREPARE = module('prepare_ui_languages', 'prepare-ui-languages.py')
+SOURCE_CHECK = module('check_ui_i18n', 'check-ui-i18n.py')
+
+# Scan the complete terminal chain, including future terminal collaborators.
+# ExtraKeysDialog's radio helper forwards its two literal arguments to UiText.choose.
+LITERAL_WRAPPERS = {'ui/ExtraKeysDialog.java': {'radio'}}
+# The close glyph is invariant; TerminalTabBar gives it a localized accessibility label.
+INVARIANT_LITERALS = {'ui/TerminalTabBar.java': {'×'}}
+REQUIRED_SOURCES = {
+    'ui/TerminalActivity.java', 'ui/LaunchFragment.java', 'ui/ExtraKeysDialog.java',
+    'ui/PtyTerminalFragment.java', 'ui/TerminalFragment.java', 'ui/TerminalFloatingMenu.java',
+    'ui/TerminalTabBar.java', 'ui/TerminalActionsDialog.java', 'ui/TerminalOutputDialog.java',
+    'util/TerminalExtraKeys.java', 'util/TerminalSession.java', 'util/TerminalTabs.java',
+    'core/TerminalSessionOwner.java', 'core/SimpleTerminalBackend.java',
+    'runtime/TerminalProcessCloser.java', 'TerminalRuntimeService.java', 'PtySession.java',
+}
+
+
+def terminal_sources():
+    paths = set(SOURCE.rglob('*Terminal*.java'))
+    paths.update(SOURCE / name for name in (
+        'PtySession.java', 'ui/ExtraKeysDialog.java', 'ui/LaunchFragment.java'))
+    return sorted(paths)
+
+
+def literal_expression(values):
+    """Read complete constant strings and conditional branches, not nested call arguments."""
+    if not values:
+        return []
+    if values[0] == '(':
+        _, end = SOURCE_CHECK.call_arguments(values, 0)
+        if end == len(values) - 1:
+            return literal_expression(values[1:-1])
+    if all(value.startswith('"') if index % 2 == 0 else value == '+'
+           for index, value in enumerate(values)) and len(values) % 2:
+        return [''.join(json.loads(value) for value in values[::2])]
+    depth, question, nested = 0, None, 0
+    for index, value in enumerate(values):
+        if value in ('(', '[', '{'):
+            depth += 1
+        elif value in (')', ']', '}'):
+            depth -= 1
+        elif depth == 0 and value == '?':
+            if question is None:
+                question = index
+            else:
+                nested += 1
+        elif depth == 0 and value == ':' and question is not None:
+            if nested:
+                nested -= 1
+            else:
+                return (literal_expression(values[question + 1:index])
+                        + literal_expression(values[index + 1:]))
+    return []
+
+
+def catalog_literals(source, wrappers=()):
+    values = [value for value, _ in SOURCE_CHECK.java_tokens(source)]
+    result = set()
+    for index, value in enumerate(values):
+        opening = None
+        if (value == 'UiText' and values[index + 1:index + 2] == ['.']
+                and values[index + 2:index + 3] in (['choose'], ['text'], ['format'])
+                and values[index + 3:index + 4] == ['(']):
+            opening = index + 3
+        elif value in wrappers and values[index + 1:index + 2] == ['(']:
+            opening = index + 1
+        if opening is not None:
+            arguments, _ = SOURCE_CHECK.call_arguments(values, opening)
+            if arguments:
+                result.update(literal_expression(arguments[0]))
+    return result
 
 
 class TerminalHomeLanguageTest(unittest.TestCase):
@@ -27,20 +103,63 @@ class TerminalHomeLanguageTest(unittest.TestCase):
     def setUpClass(cls):
         cls.messages, cls.catalogs = load_catalog(ROOT)
         cls.by_source = {item['zh']: item for item in cls.messages}
+        cls.source_literals = {}
+        for path in terminal_sources():
+            name = path.relative_to(SOURCE).as_posix()
+            cls.source_literals[name] = catalog_literals(
+                path.read_text(encoding='utf8'), LITERAL_WRAPPERS.get(name, ()))
+        cls.covered_literals = set().union(*cls.source_literals.values())
 
     def test_terminal_and_launch_literal_calls_have_complete_catalog_entries(self):
-        # Check actual application call sites, including accessibility and future additions.
-        for name in ('TerminalActivity.java', 'LaunchFragment.java'):
-            source = (SOURCE / 'ui' / name).read_text(encoding='utf8')
-            calls = [json.loads(match.group(2)) for match in CALL.finditer(source)]
-            self.assertGreater(len(calls), 20, name)
-            missing = sorted(set(calls) - self.by_source.keys())
-            self.assertEqual([], missing, name)
-        terminal = (SOURCE / 'ui/TerminalActivity.java').read_text(encoding='utf8')
-        terminal_literals = {json.loads(match.group(2)) for match in CALL.finditer(terminal)}
+        # Missing files cannot silently reduce coverage; new terminal classes join automatically.
+        self.assertEqual(set(), REQUIRED_SOURCES - self.source_literals.keys())
+        for name, literals in self.source_literals.items():
+            with self.subTest(source=name):
+                missing = sorted(literals - self.by_source.keys() - INVARIANT_LITERALS.get(name, set()))
+                self.assertEqual([], missing)
+        self.assertGreaterEqual(len(self.covered_literals), 250)
+        for name in ('ui/TerminalActivity.java', 'ui/LaunchFragment.java'):
+            self.assertGreater(len(self.source_literals[name]), 20, name)
+        terminal_literals = self.source_literals['ui/TerminalActivity.java']
         self.assertIn('新建终端会话', terminal_literals)
         self.assertNotIn('新建会话', terminal_literals)
         self.assertIn('聚焦输入', terminal_literals)
+        self.assertIn('留空恢复默认名称，最多 80 个字符', terminal_literals)
+        self.assertTrue({'手机布局', '平板布局'} <= self.source_literals['ui/ExtraKeysDialog.java'])
+        self.assertTrue({'终端 %s · 关闭中…', '终端 %s'} <= self.source_literals['ui/TerminalTabBar.java'])
+
+    def test_call_inventory_follows_wrappers_branches_and_constant_concatenation(self):
+        source = r'''
+        // UiText.text("注释不算")
+        String example = "UiText.text(\\\"示例不算\\\")";
+        UiText.choose("中文", "English");
+        radio("手机布局", "Phone layout");
+        UiText.format(tab.isClosing() ? "终端 %s · 关闭中…" : "终端 %s", tab.number);
+        UiText.choose("第一段" + "\n第二段", "First\nSecond");
+        UiText.format(UiText.choose("数量 %d", "Count %d"), number);
+        UiText.text(userContent);
+        '''
+        self.assertEqual({'中文', '手机布局', '终端 %s · 关闭中…', '终端 %s',
+                          '第一段\n第二段', '数量 %d'}, catalog_literals(source, {'radio'}))
+
+    def test_interruption_actions_and_output_scopes_have_distinct_sources(self):
+        pty = self.source_literals['ui/PtyTerminalFragment.java']
+        self.assertTrue({'关闭提示', '恢复输入', '终端输入中断', '粘贴预览'} <= pty)
+        self.assertNotIn('继续输入', pty)
+        self.assertEqual('Close notice', self.by_source['关闭提示']['en'])
+        self.assertEqual('Resume input', self.by_source['恢复输入']['en'])
+        output = self.source_literals['ui/TerminalOutputDialog.java']
+        self.assertTrue({'当前可见屏幕', '已保留的历史输出',
+                         '输出较长，仅保留最近的部分（最多 64K 字符）。'} <= output)
+        actions = self.source_literals['ui/TerminalActionsDialog.java']
+        self.assertTrue({'终端操作', '粘贴文本…', '查看终端输出…', '会话管理'} <= actions)
+        for tag in LANGUAGES:
+            with self.subTest(language=tag):
+                data = self.catalogs[tag]
+                self.assertNotEqual(data[self.by_source['关闭提示']['id']],
+                                    data[self.by_source['恢复输入']['id']])
+                self.assertIn('80', data[self.by_source['留空恢复默认名称，最多 80 个字符']['id']])
+                self.assertIn('64K', data[self.by_source['输出较长，仅保留最近的部分（最多 64K 字符）。']['id']])
 
     def test_indexed_close_all_messages_keep_argument_validation(self):
         indexed = [item for item in self.messages if item['id'].startswith('termhome')
@@ -51,9 +170,13 @@ class TerminalHomeLanguageTest(unittest.TestCase):
 
     def test_layout_string_resources_exist_in_every_language(self):
         names = set()
-        for filename in ('fragment_launch.xml', 'fragment_pty_terminal.xml', 'fragment_terminal.xml'):
-            names.update(re.findall(r'@string/([A-Za-z0-9_]+)',
-                                    (RES / 'layout' / filename).read_text(encoding='utf8')))
+        layouts = set(RES.glob('layout*/*terminal*.xml'))
+        layouts.update(RES.glob('layout*/fragment_launch.xml'))
+        self.assertTrue({'fragment_launch.xml', 'fragment_pty_terminal.xml',
+                         'fragment_terminal.xml', 'view_terminal_tabs.xml'}
+                        <= {path.name for path in layouts})
+        for path in sorted(layouts):
+            names.update(re.findall(r'@string/([A-Za-z0-9_]+)', path.read_text(encoding='utf8')))
 
         def resources(folder):
             found = {}
@@ -195,8 +318,8 @@ public final class TerminalHomeLanguageHarness {
                 ' static String tag() { return "zh"; } }\n', encoding='utf8')
             (package / 'TerminalHomeLanguageHarness.java').write_text(harness, encoding='utf8')
             extra = [item for item in self.messages if item['id'].startswith('termhome')
-                     or item['zh'] in ('复制', '粘贴', '更多…')]
-            self.assertGreaterEqual(len(extra), 74)
+                     or item['zh'] in self.covered_literals | {'复制', '粘贴', '更多…'}]
+            self.assertGreaterEqual(len(extra), 250)
             rows = []
             encode = lambda value: base64.b64encode(value.encode('utf8')).decode('ascii')
             for tag in LANGUAGES:
