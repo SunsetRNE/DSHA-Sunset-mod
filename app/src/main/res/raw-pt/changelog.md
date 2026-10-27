@@ -1,7 +1,7 @@
-# DSHA 0.2.1-rc.3-20261027.0700-dsh0.2.1-rc.3 / build203
+# DSHA 0.2.1-rc.3-20261027.1435-dsh0.2.1-rc.3 / build204
 
-- Interface: o aspeto das páginas v5 do protótipo de interação passa a cobrir definições, plugins, configuração de execução, instalação e ambiente, autorizações do dispositivo, dados e cópias de segurança, atualizações, diagnóstico, boas-vindas/primeiro arranque, sobre e recuperação do ambiente; títulos, grupos, cartões, campos e botões usam a mesma escala de 26sp e a mesma paleta clara/noturna.
-- Terminal: «Nova sessão», «Terminar sessão» e «Voltar à introdução» respondem ao primeiro toque; o seletor «Sistema / Claro / Escuro» foi removido da barra lateral e o terminal segue o tema da aplicação sem recriar sessões nem repetir comandos.
-- Remate: a página de emparelhamento ADB deixou de mostrar o título duplicado, a confirmação de instalação por ligação passou para a escala de 26sp e a página de manutenção do ambiente (extração) usa cartões e botões v5.
-- O dsh-web-mobile integrado mantém-se em 3.2.2 e o DSH integrado em rc.3; o versionCode passa para 203. A identidade de teste é dsh.android.client.SunsetRNE com um certificado de teste local, não o pacote oficial E7E3.
-- Limite: esta compilação continua a ser um pacote de teste. Não foram feitos TalkBack, escala de fonte nem aceitação completa de rotação; o navegador de ficheiros, o emparelhamento/áreas de trabalho remotos e a pré-visualização web mantêm a implementação atual.
+- Admissão de ambiente: consultas de plugins, início do DSH e criação de terminal usam leases de ambiente compartilhados; a varredura da lista não bloqueia mais iniciar/parar o DSH nem abrir/criar terminal.
+- Consultas somente leitura: a lista apenas verifica ferramentas prontas e não instala ou repara Python, pnpm ou ativos gerenciados; com ferramentas incompletas, mantém o snapshot anterior.
+- Prioridade do usuário: iniciar o DSH cancela consultas automáticas de plugins e usa uma fila de script de alta prioridade.
+- Identidade de build: versionCode 204; pacote de teste dsh.android.client.SunsetRNE com certificado de teste de CI, não E7E3.
+- Terminal: a correção do primeiro toque e o dsh-web-mobile 3.2.2 embutido foram mantidos.
