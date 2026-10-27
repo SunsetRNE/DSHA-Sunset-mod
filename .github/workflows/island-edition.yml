@@ -3,6 +3,8 @@ name: Island edition debug APK
 # 只在手动触发时运行：产出带独立包名（.island）的调试 APK，用于与本机正式 DSHA 并存验证。
 # 正式交付仍走 ci-package / 发布流程，本工作流不签名、不打 tag、不发布。
 on:
+  push:
+    branches: [island-edition]
   workflow_dispatch:
 
 permissions:
