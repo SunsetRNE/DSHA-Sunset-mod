@@ -40,6 +40,11 @@ final class GuestPluginScripts {
       return null;
     }
 
+    /** Query-only readiness; must not write, install, repair, migrate or register anything. */
+    default boolean queryReady() {
+      return false;
+    }
+
     default boolean cancelled(String taskId) {
       return false;
     }
@@ -100,6 +105,10 @@ final class GuestPluginScripts {
             return generation;
           }
 
+          public boolean queryReady() {
+            return RuntimeTools.queryReady(context, root);
+          }
+
           public boolean cancelled(String taskId) {
             return taskId != null
                 && taskId.matches("[a-f0-9]{32}")
@@ -116,7 +125,9 @@ final class GuestPluginScripts {
 
   /** One preparation for the two ordered startup helpers, without caching mutable root proof. */
   Startup startup() throws IOException, InterruptedException {
-    GuestScriptQueue.Lease lease = SCRIPT_QUEUE.enter();
+    GuestScriptQueue.Lease lease =
+        SCRIPT_QUEUE.enter(
+            new GuestScriptBudget(35_000, () -> false, "PLUGIN_STARTUP_QUEUE"), true);
     try {
       preparePlugins(null);
       return new Startup(lease);
@@ -178,7 +189,9 @@ final class GuestPluginScripts {
   }
 
   BoundedProcessRunner.Result builtin(String extraArgs) throws IOException, InterruptedException {
-    try (GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter()) {
+    try (GuestScriptQueue.Lease ignored =
+        SCRIPT_QUEUE.enter(
+            new GuestScriptBudget(35_000, () -> false, "PLUGIN_STARTUP_QUEUE"), true)) {
       preparePlugins();
       return runner.run(
           "python3 -u /root/.dsh/"
@@ -282,6 +295,7 @@ final class GuestPluginScripts {
       long totalMillis,
       boolean boundedPreparation)
       throws IOException, InterruptedException {
+    boolean query = "list".equals(args) || "refresh".equals(args);
     java.util.Objects.requireNonNull(source, "downloadSource");
     GuestScriptBudget budget =
         boundedPreparation
@@ -290,26 +304,44 @@ final class GuestPluginScripts {
                 () -> preparation.cancelled(taskId),
                 "list".equals(args) || "refresh".equals(args) ? "PLUGIN_QUERY" : "PLUGIN_INTENT")
             : null;
-    try (var scope = budget == null ? null : budget.enter();
-        GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter(budget)) {
-      preparePlugins(budget);
-      String task =
-          taskId != null && taskId.matches("[a-f0-9]{32}")
-              ? "DSHA_PLUGIN_TASK=" + taskId + " "
-              : "";
-      BoundedProcessRunner.Result result =
-          runner.run(
-              task
-                  + "DSHA_PLUGIN_DOWNLOAD_SOURCE="
-                  + source.value
-                  + " python3 /root/.dsh/"
-                  + PLUGIN_MANAGER_SCRIPT
-                  + (args == null || args.isEmpty() ? "" : " " + args)
-                  + " 2>&1",
-              budget == null ? totalMillis : budget.remainingMillis());
-      if (budget != null) budget.remainingMillis();
-      return result;
+    try (var scope = budget == null ? null : budget.enter()) {
+      // 查询只做就绪校验；完整准备仅属于启动、变更和迁移路径。
+      if (query) {
+        try (GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter(budget, false)) {
+          preparePluginsForQuery(budget);
+          return runManager(args, taskId, source, totalMillis, budget, true);
+        }
+      }
+      try (GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter(budget, true)) {
+        preparePlugins(budget);
+        return runManager(args, taskId, source, totalMillis, budget, false);
+      }
     }
+  }
+
+  private BoundedProcessRunner.Result runManager(
+      String args,
+      String taskId,
+      PluginDownloadSource source,
+      long totalMillis,
+      GuestScriptBudget budget,
+      boolean query)
+      throws IOException, InterruptedException {
+    String task =
+        taskId != null && taskId.matches("[a-f0-9]{32}") ? "DSHA_PLUGIN_TASK=" + taskId + " " : "";
+    BoundedProcessRunner.Result result =
+        runner.run(
+            task
+                + (query ? "DSHA_PLUGIN_QUERY=1 " : "")
+                + "DSHA_PLUGIN_DOWNLOAD_SOURCE="
+                + source.value
+                + " python3 /root/.dsh/"
+                + PLUGIN_MANAGER_SCRIPT
+                + (args == null || args.isEmpty() ? "" : " " + args)
+                + " 2>&1",
+            budget == null ? totalMillis : budget.remainingMillis());
+    if (budget != null) budget.remainingMillis();
+    return result;
   }
 
   String managerText(String args, String taskId) {
@@ -328,6 +360,16 @@ final class GuestPluginScripts {
       Thread.currentThread().interrupt();
       throw new java.io.InterruptedIOException("PLUGIN_PREPARATION_INTERRUPTED");
     }
+  }
+
+  private void preparePluginsForQuery(GuestScriptBudget budget)
+      throws IOException, InterruptedException {
+    if (budget != null) budget.remainingMillis();
+    if (!preparation.environmentReady())
+      throw new GuestPreparationFailure(GuestPreparationFailure.Code.ENV_NOT_READY);
+    if (budget != null) budget.remainingMillis();
+    if (!preparation.queryReady())
+      throw new GuestPreparationFailure(GuestPreparationFailure.Code.PREPARATION_REQUIRED);
   }
 
   private void preparePlugins(GuestScriptBudget budget) throws IOException, InterruptedException {
@@ -352,6 +394,8 @@ final class GuestPluginScripts {
       return "ENV_NOT_READY";
     if (GuestPreparationFailure.is(error, GuestPreparationFailure.Code.BUNDLED_PYTHON_UNAVAILABLE))
       return UiText.text("ERROR: Ubuntu Python 环境未就绪");
+    if (GuestPreparationFailure.is(error, GuestPreparationFailure.Code.PREPARATION_REQUIRED))
+      return "ENV_PREPARATION_REQUIRED";
     if (error instanceof InterruptedException) {
       Thread.currentThread().interrupt();
       return UiText.text("ERROR: 命令等待被中断");

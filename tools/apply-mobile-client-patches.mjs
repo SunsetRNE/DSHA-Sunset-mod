@@ -4,7 +4,6 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { applyFileTransferClient } from './file-transfer/client-mobile.mjs';
-import { applyMobileLocaleBundlePatch, applyMobileLocaleSourcePatch, mobileLocaleSourceFiles } from './mobile-locales.mjs';
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(readFileSync(path.join(project, 'tools/mobile-plugin-upstream.lock.json'), 'utf8'));
 export const upstreamCommit = lock.commit;
@@ -46,7 +45,7 @@ export function applyMobileClientPatches(bytes) {
       throw new Error('补丁模块范围缺失或不唯一: ' + startAnchor);
     source = source.slice(0, start) + after + source.slice(end);
   };
-  // 3.2.1 沿用已吸收的可见视口变量、写入去重与销毁清理；最新 main 已撤回
+  // 3.2.2 沿用已吸收的可见视口变量、写入去重与销毁清理；上游 main 未恢复
   // 后续按帧合并试验。保留原 viewport-meta 与 interactive-widget=resizes-content。
   // 按实际鼠标/touch/pen事件分流；不能把用户点击伪造成键盘 detail=0。
   replaceRange('            // DSHA detail=0 follows the host\'s keyboard/programmatic open path.',
@@ -107,24 +106,10 @@ export function applyMobileClientPatches(bytes) {
 `;
   replace('  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------',
     css + '  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------');
-  return applyFileTransferClient(applyMobileLocaleBundlePatch(source));
+  return applyFileTransferClient(source);
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [input, action = '--check'] = process.argv.slice(2);
-  if (input === '--locale-sources') {
-    const [directory, localeAction = '--check'] = process.argv.slice(3);
-    if (!directory || !['--check', '--write'].includes(localeAction)) throw new Error('用法: node tools/apply-mobile-client-patches.mjs --locale-sources <固定上游目录> [--check|--write]');
-    for (const name of mobileLocaleSourceFiles) {
-      const bytes = readFileSync(path.join(directory, name));
-      if (sha(bytes) !== lock.files[name]?.sha256) throw new Error('mobile locale source differs from fixed commit: ' + name);
-      const patched = applyMobileLocaleSourcePatch(name, bytes.toString('utf8'));
-      const output = path.join(project, 'app/src/main/assets/builtin-plugins/dsh-web-mobile', name);
-      if (localeAction === '--write') writeFileSync(output, patched);
-      else if (readFileSync(output, 'utf8') !== patched) throw new Error('移动语言源码与锁定补丁不符: ' + name);
-    }
-    console.log('移动语言源码与上游指纹核验通过: ' + upstreamCommit);
-    process.exit(0);
-  }
   if (input === '--server') {
     const [directory, serverAction = '--check'] = process.argv.slice(3);
     if (!directory || !['--check', '--write'].includes(serverAction)) throw new Error('用法: node tools/apply-mobile-client-patches.mjs --server <固定上游lib目录> [--check|--write]');

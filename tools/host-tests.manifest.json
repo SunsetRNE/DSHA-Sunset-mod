@@ -7,7 +7,9 @@
       "reason": "Sunset历史发布完整提交/run/attempt及显式基线绑定、合并历史顺序、已有tag与未知输出保护；纯临时Git/模拟GitHub，无网络或设备访问",
       "args": [],
       "timeoutSeconds": 120,
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "environment": {}
     },
     {
@@ -2002,31 +2004,6 @@
       "reason": "Current build172 isolated source/runtime fixture; no Android device, live model request or user data operations",
       "environment": {},
       "cli": "no positional arguments; explicit current fixture requirements"
-    },
-    {
-      "path": "tools/test-mobile-locales.mjs",
-      "stage": "fast",
-      "requires": [
-        "node24"
-      ],
-      "args": [],
-      "timeoutSeconds": 60,
-      "environment": {},
-      "reason": "Ten-language mobile nav/share/attachment registrations execute from the shipped bundle; preserve upstream zh/en, interpolation, regional lookup and deterministic published TypeScript sources."
-    },
-    {
-      "path": "tools/test-mobile-locales-browser.mjs",
-      "stage": "runtime",
-      "requires": [
-        "node24",
-        "raw",
-        "browser",
-        "browser_react"
-      ],
-      "args": [],
-      "timeoutSeconds": 120,
-      "environment": {},
-      "reason": "Locked rc3 React renders shipped native file controls and switches all ten languages while mounted; file rows, preview labels, downloads and action sheets relabel in place without device operations."
     },
     {
       "path": "tools/test-mobile-file-delivery.mjs",

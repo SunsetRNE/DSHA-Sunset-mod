@@ -92,6 +92,30 @@ function locate(name) {
   }
   throw new Error('找不到插件目录，请到插件管理检查安装：' + name);
 }
+const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
+/**
+ * 与原生 PluginIdentity、插件管理器的 DSHA_AUTO_REVIEW_ALIAS_V2 一致：只有这组历史别名共用
+ * 一张可见卡片。原生列表展示的是官方包版本，运行证据必须报告补丁实际加载的官方版本；其它
+ * 包装（如 dsh-computer-use-android）在列表里仍以包装自己的版本出现，不能替换。
+ * 只在补丁插入锁定模块、且实际安装版本等于 peerDependencies 锁定时替换；解析不到或版本不
+ * 一致就保留包装版本，宁可未确认也不把别的版本报成已加载。
+ */
+const ALIASED_EVIDENCE = new Map([
+  ['dsh-auto-review', '@deepseek-ai/dsh-experimental-auto-review'],
+]);
+
+function effectiveVersion(bundle, pkg, inserted, fallback) {
+  const canonical = ALIASED_EVIDENCE.get(bundle);
+  if (!canonical || !Array.isArray(inserted) || !inserted.includes(canonical)) return fallback;
+  const peers = pkg && typeof pkg.peerDependencies === 'object' && pkg.peerDependencies ? pkg.peerDependencies : null;
+  const pin = peers ? peers[canonical] : undefined;
+  if (typeof pin !== 'string' || !EXACT_VERSION.test(pin)) return fallback;
+  try {
+    const root = fs.realpathSync(locate(canonical));
+    return readJson(path.join(root, 'package.json')).version === pin ? pin : fallback;
+  } catch { return fallback; }
+}
 function owner(text) {
   text = text.replaceAll('\\', '/');
   const matches = plugins.filter(p => text.includes(p.url + '/') || text.includes(p.directory.replaceAll('\\', '/') + '/')
@@ -124,7 +148,7 @@ try {
         return !target.startsWith(root + path.sep) || !fs.existsSync(target)
           || !fs.realpathSync(target).startsWith(root + path.sep) || !fs.statSync(target).isFile();
       })) throw new Error('缺少 dsh.bundle.patch 声明或补丁文件');
-      emit('plugin', name, '配置检查：' + name + ' @ ' + (pkg.version || uiText('未知版本')), { path: root });
+      const inserted = [];
       for (const patch of patches) {
         // 只读取 id/module 的普通标量，不执行 YAML 的 !!js 用户表达式。
         const patchFile = path.resolve(root, patch);
@@ -133,10 +157,13 @@ try {
           try { bundleEntries(source, path.resolve(resolved, patch), evidence); }
           catch (_) { evidence.ambiguous = true; }
           const ids = [...source.matchAll(/^\s*(?:-\s*)?(?:id|name|module):\s*["']?([@A-Za-z0-9_./:-]+)["']?\s*$/gm)].map(m => m[1]);
+          inserted.push(...ids);
           for (const id of ids) moduleOwners.set(id, moduleOwners.has(id) && moduleOwners.get(id) !== name ? '' : name);
           emit('catalog', name, '', { ids: ids.slice(0, 100), path: root });
         } else evidence.ambiguous = true;
       }
+      evidence.version = effectiveVersion(name, pkg, inserted, evidence.version);
+      emit('plugin', name, '配置检查：' + name + ' @ ' + (evidence.version || uiText('未知版本')), { path: root });
     } catch (error) { evidence.ambiguous = true; emit('issue', name, error.message, { fatal: false }); }
   }
   emit('stage', '', '加载 DSH 和已启用插件');

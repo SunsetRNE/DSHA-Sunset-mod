@@ -10,6 +10,9 @@ final class StartupPipeline {
   interface Actions {
     boolean current();
 
+    /** 用户启动优先：在插件脚本/写入开始前取消低优先级自动查询。 */
+    default void yieldPluginQuery() throws Exception {}
+
     void stage(String stage);
 
     void status(String status);
@@ -185,6 +188,7 @@ final class StartupPipeline {
 
   String prepare(long generation, boolean safeMode, Actions actions) throws Exception {
     if (!actions.current()) return null;
+    actions.yieldPluginQuery();
     var timing = new StartupPreparationTiming(line -> diagnostics.message(generation, line));
     // The native key is a legacy environment fallback. Its unavailable state remains
     // explicit, but must not prevent opening Web's own credential configuration.

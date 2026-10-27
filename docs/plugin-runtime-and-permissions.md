@@ -11,7 +11,7 @@
 | 可见 | `dsh-device-shell-guide` 0.1.19 | 设备通道/桥使用说明，`lib/index.js` |
 | 可见 | `dsh-task-notifier` 0.2.0 | `/app/tasks/*`任务状态与通知 |
 | 可见 | `dsh-status-overlay` 0.1.4 | `/app/overlay`流式状态 |
-| 可见 | `dsh-web-mobile` 3.2.1 | Web移动界面；上游锁和本地差异独立记录 |
+| 可见 | `dsh-web-mobile` 3.2.2 | Web移动界面；上游锁和本地差异独立记录 |
 | 可见 | `dsh-computer-use-android` 0.1.1 | MCP stdio `dsha-android`，180秒调用预算 |
 | 可见 | `dsh-tool-vscreen` 0.1.1 | MCP stdio `dsha-vscreen`，60秒调用预算 |
 | 可见兼容包装 | `dsh-auto-review` 0.1.0 | 包装/alias；实际功能来自锁定官方实验Auto包，不能把空包装当完整实现 |

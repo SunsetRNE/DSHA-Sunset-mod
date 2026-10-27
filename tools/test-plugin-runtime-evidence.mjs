@@ -74,12 +74,43 @@ bundle('fixture-multi', '- insert:\n    - id: multi-active\n      name: ./active
   'active.js': 'export function apply() {}', 'pending.js': 'export const inject = ["evidenceMissing"]; export function apply() {}',
 });
 bundle('fixture-group', '- insert:\n    - id: nested-group\n      name: cordis:group\n      group: true\n      config:\n        - id: nested-child\n          name: ./child.js\n', { 'child.js': 'export function apply() {}' });
+// 组内可选子项用 !!js 条件禁用（对应真实 terminal-bundle 的 pwsh 行）：禁用的子项不进 init，
+// 采样不能把它当 unknown 拖累整组，也不能为了判定状态重新求值表达式。
+bundle('fixture-group-optional', '- insert:\n    - id: optional-group\n      name: cordis:group\n      group: true\n      config:\n        - id: optional-child\n          name: ./child.js\n        - id: optional-expression\n          name: ./never.js\n          disabled: !!js "(globalThis.evidenceExpressions++, true)"\n', {
+  'child.js': 'export function apply() {}',
+  'never.js': 'throw new Error("expression-disabled child must not execute");',
+});
 bundle('fixture-override-only', '- id: good\n  disabled: false\n');
 bundle('fixture-ambiguous', '- insert:\n    - id: opaque\n      name: cordis:include\n      config: { path: ./private.yml }\n');
 bundle('fixture-duplicate-a', '- insert:\n    - id: duplicate\n      name: ./index.js\n', { 'index.js': 'export function apply() {}' });
 bundle('fixture-duplicate-b', '- insert:\n    - id: duplicate\n      name: ./index.js\n', { 'index.js': 'export function apply() {}' });
 bundle('fixture-missing-entry', '- insert:\n    - id: never-mounted\n      name: ./index.js\n', { 'index.js': 'throw new Error("not mounted");' });
 bundle('fixture-config-replaced-group', '- insert:\n    - id: replaced-group\n      name: cordis:group\n      group: true\n      config: []\n- id: replaced-group\n  config: []\n');
+// 包装 bundle 自身没有运行逻辑，只把 peerDependencies 锁定的官方模块插进补丁。
+function wrapper(name, peer, ownVersion, pin) {
+  local.push(name);
+  const dir = path.join(profile, 'node_modules', name);
+  put(path.join(dir, 'package.json'), {
+    name, version: ownVersion, type: 'module',
+    dsh: { bundle: { patch: 'cordis.patch.yml' } },
+    peerDependencies: { [peer]: pin },
+  });
+  put(path.join(dir, 'cordis.patch.yml'), `- insert:\n    - id: ${name}-row\n      name: '${peer}'\n`);
+  return dir;
+}
+function peerPackage(name, version) {
+  const dir = path.join(fixture, 'node_modules', name);
+  put(path.join(dir, 'package.json'), { name, version, type: 'module', main: 'index.js' });
+  put(path.join(dir, 'index.js'), 'export function apply() {}\n');
+}
+peerPackage('@fixture/peer-target', '2.5.0');
+// 只有 Auto review 别名对共用可见卡片，运行证据报告锁定官方版本。
+const aliasTarget = '@deepseek-ai/dsh-experimental-auto-review';
+const aliasTargetVersion =
+    JSON.parse(fs.readFileSync(path.join(runtime, 'node_modules', aliasTarget, 'package.json'), 'utf8')).version;
+wrapper('dsh-auto-review', aliasTarget, '1.0.0', aliasTargetVersion);
+// 其它包装在原生列表里仍以包装版本出现，不能借用被包装模块的版本。
+wrapper('fixture-wrapper', '@fixture/peer-target', '1.0.0', '2.5.0');
 put(path.join(profile, 'package.json'), { dsh: { profile: { bundles: [...official, ...local, 'fixture-unresolvable'] } } });
 process.env.DSH_HOME = home;
 process.env.DSHA_OBSERVER_INSTALL = path.join(runtime, 'node_modules/@deepseek-ai/dsh');
@@ -103,6 +134,12 @@ test('官方 bundle 只拥有插入入口，禁用基础入口不是自身加载
     assert.equal(item.version, JSON.parse(fs.readFileSync(path.join(runtime, 'node_modules', name, 'package.json'))).version);
   });
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-override-only').entries.length, 0);
+  // Auto review 别名对共用一张可见卡片：运行证据必须报告补丁实际插入的锁定官方版本。
+  assert.equal(
+      evidence.bundles.find(row => row.name === 'dsh-auto-review').version,
+      aliasTargetVersion);
+  // 其它包装不是同一可见卡片，仍报告包装自己的版本。
+  assert.equal(evidence.bundles.find(row => row.name === 'fixture-wrapper').version, '1.0.0');
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-ambiguous').ambiguous, true);
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-config-replaced-group').ambiguous, true);
   assert(Object.isFrozen(evidence) && Object.isFrozen(evidence.bundles[0].entries[0]));
@@ -122,7 +159,7 @@ test('锁定 Loader 的实际 fiber、吞掉的导入失败与状态变化驱动
   put(config, '[]\n');
   await ctx.plugin(Loader);
   const selected = local.filter(name => !['fixture-ambiguous', 'fixture-missing-entry', 'fixture-duplicate-a',
-    'fixture-config-replaced-group'].includes(name));
+    'fixture-config-replaced-group', 'dsh-auto-review'].includes(name));
   const patches = selected.flatMap(name => loadOverlayPatches('fixture', path.join(profile, 'node_modules', name, 'cordis.patch.yml')));
   const sample = installedPluginSampler(ctx, identity);
   const state = name => sample().find(item => item.name === name)?.state;
@@ -141,6 +178,7 @@ test('锁定 Loader 的实际 fiber、吞掉的导入失败与状态变化驱动
     assert.equal(state('fixture-expression'), 'unknown', '采样不重新求值 !!js');
     assert.equal(state('fixture-multi'), 'pending', '同 bundle 的一个 active 不能覆盖另一个 pending');
     assert.equal(state('fixture-group'), 'loaded');
+    assert.equal(state('fixture-group-optional'), 'loaded', '条件禁用的可选子项不能拖累整组');
     for (const name of ['fixture-unresolvable', 'fixture-missing-entry', 'fixture-ambiguous',
       'fixture-override-only', 'fixture-duplicate-a', 'fixture-duplicate-b']) assert.equal(state(name), 'unknown', name);
     assert.equal(sample().length, official.length + local.length + 1);

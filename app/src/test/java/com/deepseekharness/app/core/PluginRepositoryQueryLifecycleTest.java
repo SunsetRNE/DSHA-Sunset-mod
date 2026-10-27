@@ -319,6 +319,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     repository = new PluginRepository(RuntimeEnvironment.getApplication(), queue::add);
     main = Shadow.extract(Looper.getMainLooper());
     assertFalse(EnvironmentTaskGate.isBusy());
+    assertFalse(EnvironmentTaskGate.hasSharedUse());
     assertFalse(RuntimeTasks.isBusy());
   }
 
@@ -328,6 +329,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     for (Worker worker : workers) worker.await();
     main.idle();
     assertFalse("任务完成后不得遗留全局占用", EnvironmentTaskGate.isBusy());
+    assertFalse("任务完成后不得遗留共享占用", EnvironmentTaskGate.hasSharedUse());
     assertFalse("任务完成后不得遗留工作锁", RuntimeTasks.isBusy());
     assertFalse("信号读、取消写入和清理不得在主线程", SignalAudit.mainIo.get());
   }
@@ -893,7 +895,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     Worker worker = startWorker();
     assertTrue(entered.await(2, TimeUnit.SECONDS));
     assertTrue(SignalAudit.read.await(2, TimeUnit.SECONDS));
-    assertTrue(EnvironmentTaskGate.isBusy());
+    assertEquals(1, EnvironmentTaskGate.sharedCount());
+    assertFalse(EnvironmentTaskGate.isBusy());
     assertTrue(RuntimeTasks.isBusy());
     AtomicInteger heartbeat = new AtomicInteger();
     new android.os.Handler(Looper.getMainLooper()).post(heartbeat::incrementAndGet);

@@ -35,7 +35,8 @@ public class GuestPluginScriptsTest {
         "DSHA_PLUGIN_DOWNLOAD_SOURCE=auto python3 /root/.dsh/plugin-manager.py migrate-review-markers 2>&1",
         calls.get(5));
     scripts.manager("list", "", PluginDownloadSource.AUTO);
-    assertEquals(List.of("ready", "python", "pnpm", "assets"), calls.subList(6, 10));
+    assertEquals(List.of("ready", "query"), calls.subList(6, 8));
+    assertTrue(calls.get(8).contains("DSHA_PLUGIN_QUERY=1"));
   }
 
   @Test
@@ -150,6 +151,11 @@ public class GuestPluginScriptsTest {
         return python;
       }
 
+      public boolean queryReady() {
+        calls.add("query");
+        return ready && python;
+      }
+
       public void pnpm() {
         calls.add("pnpm");
       }
@@ -183,7 +189,7 @@ public class GuestPluginScriptsTest {
     assertThrows(
         GuestPreparationFailure.class,
         () -> selected.manager("list", "", PluginDownloadSource.AUTO));
-    assertEquals(List.of("ready", "python"), calls);
+    assertEquals(List.of("ready", "query"), calls);
   }
 
   @Test
@@ -298,6 +304,11 @@ public class GuestPluginScriptsTest {
               }
 
               public boolean pythonReady() {
+                fail("查询不能走完整 Python 准备");
+                return false;
+              }
+
+              public boolean queryReady() {
                 try {
                   Thread.sleep(70);
                 } catch (InterruptedException e) {
@@ -343,6 +354,10 @@ public class GuestPluginScriptsTest {
               public boolean pythonReady() {
                 fail();
                 return false;
+              }
+
+              public boolean queryReady() {
+                return true;
               }
 
               public void pnpm() {

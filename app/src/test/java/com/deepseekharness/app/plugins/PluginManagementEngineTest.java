@@ -61,6 +61,19 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
+  public void automaticPrefetchDefersWhileUserActionSuspendsItButPageDemandStillReads() {
+    World w = new World();
+    w.backend.autoQueries = false;
+    w.engine.foreground(true);
+    w.pump();
+    assertEquals(1, w.backend.probes);
+    assertEquals(0, w.backend.queries);
+    w.engine.ensureLoaded();
+    w.advance(1_000);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
   public void notReadyRetainsUnknownAndDoesNotSelfRetry() {
     World w = new World();
     w.backend.source = null;
@@ -809,7 +822,7 @@ public final class PluginManagementEngineTest {
     String source = "A";
     Exception failure;
     int probes, queries, projections, cancelledQueries;
-    boolean observing;
+    boolean observing, autoQueries = true;
     final List<String> bindings = new ArrayList<>();
     final List<Long> queryTimes = new ArrayList<>();
 
@@ -844,7 +857,12 @@ public final class PluginManagementEngineTest {
     }
 
     @Override
-    public void query() {
+    public boolean autoQueryAllowed() {
+      return autoQueries;
+    }
+
+    @Override
+    public void query(boolean automatic) {
       assertFalse(world.background);
       queries++;
       queryTimes.add(world.now);

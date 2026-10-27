@@ -30,6 +30,7 @@ builtin = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(builtin)
 local = builtin.local
 DSH_HOME = builtin.DSH_HOME
+READ_ONLY = os.environ.get("DSHA_PLUGIN_QUERY") == "1"
 PLUGIN_SRC = os.path.join(DSH_HOME, "plugin-src")
 SOURCES = os.path.join(DSH_HOME, "plugin-sources.json")
 MAX_DOWNLOAD = 256 * 1024 * 1024
@@ -109,6 +110,9 @@ def check_cancel():
 
 
 def progress(stage, message, current=0, total=0, cancellable=True):
+    # 查询不写运行资产；进度只属于可变操作的任务文件。
+    if READ_ONLY:
+        return
     # 更新元数据可并行查询，进度文件仍由一个写者原子发布。
     with _progress_lock:
         _write_progress(stage, message, current, total, cancellable)
@@ -1170,7 +1174,11 @@ def cmd_npm(package, *, consume=None):
 
 
 def main():
-    os.makedirs(local(DSH_HOME), exist_ok=True)
+    if READ_ONLY:
+        if not os.path.isdir(local(DSH_HOME)):
+            raise ValueError('插件目录缺失，请先完成环境准备')
+    else:
+        os.makedirs(local(DSH_HOME), exist_ok=True)
     args = sys.argv[1:]
     try:
         check_cancel()

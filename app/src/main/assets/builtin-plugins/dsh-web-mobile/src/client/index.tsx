@@ -13,6 +13,8 @@ import { installSubagentChipTouch } from './effects/subagent-chip-touch.ts'
 import { installSessionMenuDelete } from './effects/session-menu.ts'
 import { installComposerKeyboardGuard } from './effects/composer-keyboard-guard.ts'
 import { installComposerKeyboardLift } from './effects/composer-keyboard-lift.ts'
+import { installComposerClearance } from './effects/composer-clearance.ts'
+import { installQuestionFullscreen } from './effects/question-fullscreen.ts'
 import { installComposerPlusToggle } from './effects/composer-plus-toggle.ts'
 import { installWorkspaceChipToggle } from './effects/workspace-chip-toggle.ts'
 import { installTeamChipToggle } from './effects/team-chip-toggle.ts'
@@ -29,7 +31,7 @@ import { installAttachmentMention } from './effects/attachment-mention.ts'
 import { installFileShare } from './effects/file-share.ts'
 import { createPanelExit, installPanelRowExit } from './effects/panel-exit.ts'
 import { installDebugBadge } from './debug.ts'
-import { NS, mobileNavLocales } from './i18n/locales.ts'
+import { NS, en, zh } from './i18n/locales.ts'
 import type { MobileNavKey } from './i18n/locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -92,7 +94,7 @@ function restoreConversationScroll(): void {
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, mobileNavLocales), 'dsh-web-mobile: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-web-mobile: dictionaries')
 
   ctx.effect(() => {
     // 先清掉可能残留的同 id 样式表。
@@ -187,6 +189,16 @@ export function apply(ctx: ClientContext): void {
   // iOS: the host Lexical scroll helper mis-scrolls the window on every
   // keystroke (issue #149); pin the composer seat above the keyboard.
   installComposerKeyboardLift(ctx)
+  // Keyboard-shrunken landscape (issue #245): the sticky composer seat's editing
+  // row lands inside the opaque, z-index-30 conversation header, so the input
+  // box is covered until the page reloads. Measure the band and let the CSS
+  // outrank the header while it is covered.
+  installComposerClearance(ctx)
+  // Ask-question card (owner report 2026-10-25): a manual expand/collapse control
+  // in the card header turns the answer area into the whole visible band
+  // (the host's 60vh ceiling collapses with the keyboard), and the answer field
+  // is scrolled back into the card body when it is covered.
+  installQuestionFullscreen(ctx)
   installComposerPlusToggle(ctx)
   // Hero workspace chip: the host's picker portaled its Menu with
   // `anchor={null}`, so its own outside-pointerdown close eats the trigger's

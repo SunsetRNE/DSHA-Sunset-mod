@@ -33,7 +33,7 @@ DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维
 当前使用哪个 DSH 版本，应读 [npm manifest](../tools/dsh-runtime/package.json) 与
 [完整 lock](../tools/dsh-runtime/package-lock.json)，不能根据上游默认分支推断。
 移动 UI 是 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) 第三方插件；
-当前 3.2.1 固定到实际 main 提交，并非未经修改的同名标签，详见 [上游锁](../tools/mobile-plugin-upstream.lock.json)。
+当前 3.2.2 锁定上游 main `4c798ec`（同时是 v3.2.2 发布提交），但包内产物含本地补丁、不等于同名标签原件，详见 [上游锁](../tools/mobile-plugin-upstream.lock.json)。
 本地补丁、固定归档、第三方许可与可复现范围分别记录，不能由“开源”推导所有 vendor 均可重编。
 
 | 当前生产选择 | 维护含义 |
