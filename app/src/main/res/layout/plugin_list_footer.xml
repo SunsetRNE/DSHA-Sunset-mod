@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 插件页尾部（UI v5）：空状态 + 本地插件导入/导出；保留 PluginFragment 使用的 id。 -->
+<!-- 插件页尾部（UI v5）：空状态卡片 + 本地插件导入/导出；保留 PluginFragment 使用的 id。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
 
-    <TextView android:id="@+id/pluginEmpty" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:padding="16dp" android:visibility="gone" />
+    <TextView android:id="@+id/pluginEmpty" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:background="@drawable/bg_plugin_empty" android:gravity="center" android:lineSpacingExtra="3dp" android:minHeight="120dp" android:padding="32dp" android:visibility="gone" />
 
     <TextView android:id="@+id/pluginLocalTitle" style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="10dp" android:text="@string/ui2_local_plugins" />
 

@@ -183,23 +183,105 @@ public class MainActivity extends AppCompatActivity {
     // FragmentManager可能先于后台磁盘检查恢复页面。首次就保留真实容器，
     // 后面只移除覆盖层，避免替换整个布局后恢复视图无法重新附着。
     setContentView(R.layout.activity_main);
-    var layout = new android.widget.LinearLayout(this);
-    layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-    layout.setGravity(android.view.Gravity.CENTER);
-    layout.setBackgroundColor(getColor(R.color.surface));
-    layout.setClickable(true);
-    layout.setFocusable(true);
+    float density = getResources().getDisplayMetrics().density;
+    var overlay = new android.widget.FrameLayout(this);
+    overlay.setBackgroundColor(getColor(R.color.shell_bg));
+    overlay.setClickable(true);
+    overlay.setFocusable(true);
+    var card = new android.widget.LinearLayout(this);
+    card.setOrientation(android.widget.LinearLayout.VERTICAL);
+    card.setBackgroundResource(R.drawable.bg_shell_card);
+    int pad = Math.round(20 * density);
+    card.setPadding(pad, pad, pad, pad);
+
+    var brand = new android.widget.LinearLayout(this);
+    brand.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    brand.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    var mark = new android.widget.ImageView(this);
+    mark.setImageResource(R.drawable.ic_terminal);
+    mark.setBackgroundResource(R.drawable.bg_shell_brand);
+    mark.setImageTintList(
+        android.content.res.ColorStateList.valueOf(getColor(R.color.shell_accent)));
+    int markPad = Math.round(10 * density);
+    mark.setPadding(markPad, markPad, markPad, markPad);
+    mark.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    int markSize = Math.round(44 * density);
+    brand.addView(mark, new android.widget.LinearLayout.LayoutParams(markSize, markSize));
+
+    var words = new android.widget.LinearLayout(this);
+    words.setOrientation(android.widget.LinearLayout.VERTICAL);
+    TextView name = new TextView(this);
+    name.setText(R.string.app_name);
+    name.setTextSize(16);
+    name.setTextColor(getColor(R.color.shell_text));
+    name.setTypeface(null, android.graphics.Typeface.BOLD);
+    name.setIncludeFontPadding(false);
     TextView status = new TextView(this);
     status.setText(
         com.deepseekharness.app.util.UiText.choose("正在检查运行环境…", "Checking the runtime…"));
-    layout.addView(status);
-    layout.addView(new android.widget.ProgressBar(this));
-    android.widget.Button diagnostics = new android.widget.Button(this);
+    status.setTextSize(13);
+    status.setTextColor(getColor(R.color.shell_text_secondary));
+    status.setIncludeFontPadding(false);
+    status.setPadding(0, Math.round(4 * density), 0, 0);
+    words.addView(name);
+    words.addView(status);
+    var wordParams = new android.widget.LinearLayout.LayoutParams(0, -2, 1);
+    wordParams.leftMargin = Math.round(12 * density);
+    brand.addView(words, wordParams);
+    card.addView(brand);
+
+    var track = new ShellActivityTrack(this);
+    track.setState(ShellActivityTrack.RUNNING);
+    var trackParams =
+        new android.widget.LinearLayout.LayoutParams(-1, Math.max(2, Math.round(2 * density)));
+    trackParams.topMargin = Math.round(18 * density);
+    card.addView(track, trackParams);
+
+    var diagnostics = new androidx.appcompat.widget.AppCompatButton(this);
     diagnostics.setText(com.deepseekharness.app.util.UiText.choose("查看诊断", "View diagnostics"));
+    diagnostics.setTextSize(14);
+    diagnostics.setAllCaps(false);
+    diagnostics.setTypeface(null, android.graphics.Typeface.BOLD);
+    diagnostics.setIncludeFontPadding(false);
+    diagnostics.setMinHeight(Math.round(46 * density));
+    diagnostics.setMinimumHeight(Math.round(46 * density));
+    diagnostics.setBackgroundResource(R.drawable.bg_btn);
+    diagnostics.setTextColor(getColorStateList(R.color.button_text));
     diagnostics.setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
-    layout.addView(diagnostics);
-    entryOverlay = layout;
-    addContentView(layout, new android.view.ViewGroup.LayoutParams(-1, -1));
+    var diagnosticsParams = new android.widget.LinearLayout.LayoutParams(-1, -2);
+    diagnosticsParams.topMargin = Math.round(16 * density);
+    card.addView(diagnostics, diagnosticsParams);
+
+    int screenWidth = getResources().getDisplayMetrics().widthPixels;
+    int cardWidth = Math.min(Math.round(340 * density), screenWidth - Math.round(56 * density));
+    overlay.addView(
+        card,
+        new android.widget.FrameLayout.LayoutParams(cardWidth, -2, android.view.Gravity.CENTER));
+    entryOverlay = overlay;
+    addContentView(overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
+  }
+
+  /** 入口检查结束后淡出遮罩；系统关闭动画或视图已分离时直接移除。 */
+  private void dismissEntryOverlay() {
+    final android.view.View overlay = entryOverlay;
+    entryOverlay = null;
+    if (overlay == null || !(overlay.getParent() instanceof android.view.ViewGroup parent)) return;
+    if (!UiMotion.animationsEnabled(this) || !overlay.isAttachedToWindow()) {
+      parent.removeView(overlay);
+      return;
+    }
+    overlay.setClickable(false);
+    overlay.setFocusable(false);
+    overlay
+        .animate()
+        .alpha(0f)
+        .setDuration(160L)
+        .setInterpolator(UiMotion.standard())
+        .withEndAction(
+            () -> {
+              if (overlay.getParent() == parent) parent.removeView(overlay);
+            })
+        .start();
   }
 
   private void checkEntry(
@@ -266,9 +348,7 @@ public class MainActivity extends AppCompatActivity {
       Bundle savedInstanceState, ConfigStore config, HarnessController controller) {
     if (mainReady || isFinishing() || isDestroyed()) return;
     mainReady = true;
-    if (entryOverlay != null && entryOverlay.getParent() instanceof android.view.ViewGroup parent)
-      parent.removeView(entryOverlay);
-    entryOverlay = null;
+    dismissEntryOverlay();
     android.view.ViewGroup appBar = findViewById(R.id.app_bar);
     var downloads = new androidx.appcompat.widget.AppCompatImageButton(this);
     downloads.setImageResource(R.drawable.ic_ui_downloads);

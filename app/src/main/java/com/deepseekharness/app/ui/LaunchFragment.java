@@ -37,6 +37,7 @@ public class LaunchFragment extends Fragment {
   private ShellActivityTrack activityTrack;
   private TextView latestLogsButton;
   private androidx.appcompat.app.AlertDialog accessDialog;
+  private android.animation.ObjectAnimator dotPulse;
 
   /** 日志跟随：默认跟随末尾；用户上翻或主动暂停后保留阅读位置。 */
   private boolean followLogs = true;
@@ -511,6 +512,10 @@ public class LaunchFragment extends Fragment {
     }
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
+    if (dotPulse != null) {
+      dotPulse.cancel();
+      dotPulse = null;
+    }
     super.onPause();
   }
 
@@ -526,6 +531,10 @@ public class LaunchFragment extends Fragment {
     launchLog = null;
     activityTrack = null;
     latestLogsButton = null;
+    if (dotPulse != null) {
+      dotPulse.cancel();
+      dotPulse = null;
+    }
     super.onDestroyView();
   }
 
@@ -752,6 +761,7 @@ public class LaunchFragment extends Fragment {
     if (eyebrow != null) eyebrow.setText(context);
     TextView dot = root.findViewById(R.id.launch_run_dot);
     if (dot != null) dot.setTextColor(requireContext().getColor(tone));
+    pulseDot(dot, starting || stopping || entering || restoring);
     if (activityTrack != null) {
       int track;
       if (needsRecovery || unresolved || restartBlocked) track = ShellActivityTrack.ERROR;
@@ -792,6 +802,22 @@ public class LaunchFragment extends Fragment {
       workbench.setText(value);
       workbench.setTextColor(requireContext().getColor(valueTone));
     }
+  }
+
+  /** 启动/停止/进入/核对中让状态点缓慢呼吸；静默与已就绪保持静止。 */
+  private void pulseDot(TextView dot, boolean active) {
+    if (dotPulse != null) {
+      dotPulse.cancel();
+      dotPulse = null;
+    }
+    if (dot == null) return;
+    dot.setAlpha(1f);
+    if (!active || !UiMotion.animationsEnabled(requireContext())) return;
+    dotPulse = android.animation.ObjectAnimator.ofFloat(dot, "alpha", 1f, 0.35f, 1f);
+    dotPulse.setDuration(1500L);
+    dotPulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+    dotPulse.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+    dotPulse.start();
   }
 
   private void offerForceStop(Activity activity, View root, TextView status, long generation) {

@@ -56,6 +56,9 @@
         <item name="radioButtonStyle">@style/Widget.DSHA.RadioButton</item>
         <item name="checkboxStyle">@style/Widget.DSHA.CheckBox</item>
         <item name="materialSwitchStyle">@style/Widget.DSHA.Switch</item>
+
+        <!-- 内页 Activity 统一走 v5 页面动效；系统关闭动画时由窗口管理器跳过。 -->
+        <item name="android:windowAnimationStyle">@style/Animation.DSHA.Activity</item>
     </style>
 
     <!-- appcompat / framework AlertDialog：必须是完整 Dialog 主题（不能给 Overlay） -->
