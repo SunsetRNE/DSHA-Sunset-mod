@@ -3,6 +3,9 @@
 <!-- build206-ci-continue-20261028 -->
 > **2026-10-28 CI 继续任务**：用户明确要求排查 GitHub API 并继续 Standard CI 编译；允许提交并推送上一轮 build206 修复，使用私有 `Sunset-3090-Q` 测试 APK 工作流。旧暂停构建条目仅属上一轮；不发布、不运行 Low、不操作手机。见[本轮 CI 记录](docs/source-updates/20261028-build206-ci.md)。
 
+<!-- build206-ui-completion-20261028 -->
+> **2026-10-28 build206 UI 补全轮（Sunset-3090-Q）**：用户明确要求开始补全 UI（插件列表、设置二级页、UI 动效、弹窗动效、终端侧边栏），并走 CI 工作流打 tag 发布 Releases。以 `deliveries/top4-interactive-20261028` 交互原型为基线：插件页完成行结构/分段筛选/空态/首屏入场；运行配置与设备授权等设置内页改走 `shell_page` 组件层；弹窗、底部弹层与内页 Activity 统一 220–300ms 动效；`MainActivity` 启动遮罩、启动状态点呼吸、终端侧栏开关抽屉动效与行/底栏细节完成。不改 versionCode/versionName、包名与签名身份，只跑 Standard，不运行 Low。手机安装与设备验收仍暂停；真机渲染、TalkBack、字体缩放、横竖屏未验证。范围、验证与边界见[本报告](docs/releases/v0.2.1-rc.3-build206-ui-completion-20261028.md)，CI/Release 结果在完成后回填该报告与交付回执。
+
 <!-- build206-terminal-followup-20261028 -->
 > **2026-10-28 本轮本地源码继续工作**：实际工作区为 `/root/Documents/deepseek-harness/default-workspace/DSHA-Sunset-mod-3090-Q`，分支 `Sunset-3090-Q`；同步私有默认主分支 `codex/prerelease-190` 的 build206，诊断版本 `0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3`。保留已有环境身份修改，继续修正终端输出脱敏和侧栏焦点。软件检查仅限 Standard；手机验收仍暂停，本轮不构建、安装、发布 APK，不触发远端构建。实际改动、合并身份和验证限制见[本轮记录](docs/source-updates/20261028-terminal-build206-followup.md)。下方 Windows/F 盘路径、旧“本轮源码身份”和发布结果均属于其原时点，不能替代当前工作区或验收证据。
 

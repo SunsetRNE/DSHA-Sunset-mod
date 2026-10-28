@@ -41,6 +41,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TerminalActivity extends AppCompatActivity implements TerminalPane.Host {
   private static final String WORKBENCH = "terminal_workbench";
   private static final String SESSIONS_OPEN = "sessions_open";
+  // v5 原型：抽屉滑入 300ms、遮罩淡入 200ms；反向滑出 220ms、遮罩淡出 180ms。
+  private static final long DRAWER_OPEN_MS = 300L;
+  private static final long DRAWER_OPEN_SCRIM_MS = 200L;
+  private static final long DRAWER_CLOSE_MS = 220L;
+  private static final long DRAWER_CLOSE_SCRIM_MS = 180L;
   private final TerminalSessionOwner owner = TerminalSessionOwner.shared();
   private FrameLayout root, content, drawerHost;
   private LinearLayout column, toolbar, body, sessionList, sessionHeader, sessionFooter;
@@ -54,6 +59,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private float chromeFontScale = Float.NaN;
   private boolean chromeLandscapeCompact;
   private View sessionScrim, inlineDivider, toolbarDivider, statusBarScrim;
+  // 关闭抽屉时真身立即隐藏（焦点/无障碍同步恢复），出屏观感交给这两个快照视图。
+  private View drawerExitScrim;
+  private AppCompatImageView drawerExitSnapshot;
+  private int drawerAnimationToken;
   private View menuButton, settingsButton, helpButton, newSessionButton, sessionClose;
   private TextView title, status, sessionSummary, sessionSubtitle, createLabel, createHint;
   private TextView panelSecondary, panelNotice, closeAllButton;
@@ -275,7 +284,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     panel.setVisibility(View.GONE);
     sessionHeader = new LinearLayout(this);
     sessionHeader.setGravity(Gravity.CENTER_VERTICAL);
-    sessionHeader.setPaddingRelative(dp(14), dp(12), dp(6), dp(8));
+    // 原型 .drawer-head：15/8/12/14 内边距、11dp 间距。
+    sessionHeader.setPaddingRelative(dp(14), dp(15), dp(8), dp(12));
     AppCompatImageView identity = new AppCompatImageView(this);
     identity.setImageResource(R.drawable.ic_terminal);
     identity.setBackgroundResource(R.drawable.bg_terminal_identity);
@@ -283,20 +293,20 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     identity.setPadding(dp(8), dp(8), dp(8), dp(8));
     identity.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     LinearLayout.LayoutParams identityParams = new LinearLayout.LayoutParams(dp(36), dp(36));
-    identityParams.setMarginEnd(dp(10));
+    identityParams.setMarginEnd(dp(11));
     sessionHeader.addView(identity, identityParams);
     LinearLayout headings = new LinearLayout(this);
     headings.setOrientation(LinearLayout.VERTICAL);
     TextView heading =
-        panelText(UiText.text("会话"), 16, getColor(R.color.terminal_panel_text_strong), true);
+        panelText(UiText.text("会话"), 17, getColor(R.color.terminal_panel_text_strong), true);
     sessionSubtitle =
         panelText(
             UiText.choose("独立会话 · 返回不结束进程", "Independent sessions · back keeps processes"),
-            11,
+            10.5f,
             getColor(R.color.terminal_muted),
             false);
     sessionSubtitle.setId(R.id.terminal_sessions_subtitle);
-    sessionSubtitle.setPadding(0, dp(2), 0, 0);
+    sessionSubtitle.setPadding(0, dp(3), 0, 0);
     headings.addView(heading);
     headings.addView(sessionSubtitle);
     sessionHeader.addView(headings, new LinearLayout.LayoutParams(0, -2, 1));
@@ -307,18 +317,19 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             this::closeSessions,
             R.color.terminal_muted);
     sessionClose.setId(R.id.terminal_sessions_close);
+    UiMotion.pressScale(sessionClose);
     sessionHeader.addView(sessionClose, new LinearLayout.LayoutParams(dp(48), dp(48)));
     panel.addView(sessionHeader, new LinearLayout.LayoutParams(-1, -2));
     newSessionButton = buildCreateButton();
     LinearLayout.LayoutParams createParams = new LinearLayout.LayoutParams(-1, -2);
-    createParams.setMargins(dp(12), dp(4), dp(12), dp(10));
+    createParams.setMargins(dp(12), dp(2), dp(12), dp(12));
     panel.addView(newSessionButton, createParams);
     sessionScroll = new ScrollView(this);
     sessionScroll.setId(R.id.terminal_sessions_scroll);
     sessionScroll.setFillViewport(true);
     sessionList = new LinearLayout(this);
     sessionList.setOrientation(LinearLayout.VERTICAL);
-    sessionList.setPadding(dp(6), dp(4), dp(6), dp(12));
+    sessionList.setPadding(dp(6), dp(2), dp(6), dp(12));
     sessionScroll.addView(sessionList, new FrameLayout.LayoutParams(-1, -2));
     panel.addView(sessionScroll, new LinearLayout.LayoutParams(-1, 0, 1));
     sessionDivider = divider(R.color.terminal_line);
@@ -326,31 +337,28 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionFooter = new LinearLayout(this);
     sessionFooter.setOrientation(LinearLayout.VERTICAL);
     sessionFooter.setBackgroundColor(getColor(R.color.terminal_panel_card));
-    sessionFooter.setPadding(dp(8), dp(6), dp(8), dp(10));
+    // 原型 .drawer-foot：9/12/12 内边距，摘要与动作左对齐到同一 12dp 网格。
+    sessionFooter.setPadding(dp(10), dp(6), dp(10), dp(10));
     LinearLayout summaryRow = new LinearLayout(this);
     summaryRow.setGravity(Gravity.CENTER_VERTICAL);
-    summaryRow.setPadding(dp(8), 0, dp(4), 0);
-    View summaryDot = new View(this);
-    summaryDot.setBackgroundResource(R.drawable.bg_terminal_dot);
-    summaryDot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    summaryRow.addView(summaryDot, new LinearLayout.LayoutParams(dp(6), dp(6)));
-    sessionSummary = panelText("", 12, getColor(R.color.terminal_panel_text), false);
+    summaryRow.setMinimumHeight(dp(26));
+    summaryRow.setPadding(dp(2), 0, dp(2), dp(2));
+    sessionSummary = panelText("", 11, getColor(R.color.terminal_panel_text), false);
     sessionSummary.setId(R.id.terminal_sessions_summary);
     sessionSummary.setMaxLines(1);
     sessionSummary.setEllipsize(TextUtils.TruncateAt.END);
-    LinearLayout.LayoutParams summaryParams = new LinearLayout.LayoutParams(0, -2, 1);
-    summaryParams.setMarginStart(dp(7));
-    summaryRow.addView(sessionSummary, summaryParams);
+    summaryRow.addView(sessionSummary, new LinearLayout.LayoutParams(0, -2, 1));
     closeAllButton =
         footerButton(
             UiText.choose("结束全部", "End all"),
             R.drawable.ic_terminal_end_all,
-            R.drawable.bg_terminal_action_danger,
+            R.drawable.bg_terminal_sidebar_end_all,
             getColor(R.color.terminal_danger),
             R.color.terminal_danger,
-            12,
+            11,
             this::confirmCloseAll);
     closeAllButton.setId(R.id.terminal_sessions_close_all);
+    closeAllButton.setTypeface(Typeface.DEFAULT_BOLD);
     closeAllButton.setContentDescription(
         UiText.choose("结束全部终端会话并核验", "End all terminal sessions and verify"));
     closeAllButton.setVisibility(View.GONE);
@@ -371,11 +379,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_home,
             UiText.choose("返回主界面", "Home"),
             R.drawable.ic_terminal_home,
-            R.drawable.bg_terminal_action_soft,
-            getColor(R.color.terminal_accent),
-            R.color.terminal_accent,
-            12,
-            true,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
+            11.5f,
+            false,
             () -> {
               closeSessions();
               leavePage();
@@ -384,10 +392,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_display,
             UiText.choose("显示设置", "Display"),
             R.drawable.ic_terminal_display,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
-            12,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
+            11.5f,
             false,
             this::showDisplaySettings));
     addFooterGridRow(
@@ -396,10 +404,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_keyboard,
             UiText.choose("显示键盘", "Keyboard"),
             R.drawable.ic_terminal_keyboard,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
-            12,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
+            11.5f,
             false,
             () ->
                 closeSessionsThen(
@@ -410,10 +418,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_help,
             UiText.choose("说明", "Help"),
             R.drawable.ic_terminal_help,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
-            12,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
+            11.5f,
             false,
             this::showSessionHelp));
     addFooterGridRow(
@@ -422,10 +430,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_paste,
             UiText.choose("粘贴文本", "Paste"),
             R.drawable.ic_ui_copy,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
-            12,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
+            11.5f,
             false,
             () ->
                 closeSessionsThen(
@@ -436,10 +444,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_focus,
             UiText.choose("回到输入", "Focus input"),
             R.drawable.ic_ui2_prompt,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
-            12,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
+            11.5f,
             false,
             () ->
                 closeSessionsThen(
@@ -456,11 +464,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_home_dense,
             UiText.choose("返回主界面", "Home"),
             R.drawable.ic_terminal_home,
-            R.drawable.bg_terminal_action_soft,
-            getColor(R.color.terminal_accent),
-            R.color.terminal_accent,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
             11,
-            true,
+            false,
             () -> {
               closeSessions();
               leavePage();
@@ -469,9 +477,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_display_dense,
             UiText.choose("显示设置", "Display"),
             R.drawable.ic_terminal_display,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
             11,
             false,
             this::showDisplaySettings),
@@ -479,9 +487,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_keyboard_dense,
             UiText.choose("显示键盘", "Keyboard"),
             R.drawable.ic_terminal_keyboard,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
             11,
             false,
             () ->
@@ -495,9 +503,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_paste_dense,
             UiText.choose("粘贴文本", "Paste"),
             R.drawable.ic_ui_copy,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
             11,
             false,
             () ->
@@ -509,9 +517,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_focus_dense,
             UiText.choose("回到输入", "Focus input"),
             R.drawable.ic_ui2_prompt,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
             11,
             false,
             () ->
@@ -523,9 +531,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_help_dense,
             UiText.choose("说明", "Help"),
             R.drawable.ic_terminal_help,
-            R.drawable.bg_btn,
-            getColor(R.color.terminal_panel_text),
-            R.color.terminal_accent,
+            R.drawable.bg_terminal_sidebar_action,
+            getColor(R.color.terminal_muted),
+            R.color.terminal_muted,
             11,
             false,
             this::showSessionHelp));
@@ -537,11 +545,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             UiText.choose(
                 "返回只关闭页面 · 结束进程单独核验", "Back closes the page only · exits are verified separately"),
             11,
-            getColor(R.color.terminal_faint),
+            getColor(R.color.terminal_muted),
             false);
     panelSecondary.setId(R.id.terminal_sessions_secondary);
     panelSecondary.setGravity(Gravity.CENTER);
-    panelSecondary.setPadding(dp(8), dp(6), dp(8), dp(2));
+    panelSecondary.setPadding(dp(8), dp(8), dp(8), 0);
     sessionFooter.addView(panelSecondary, new LinearLayout.LayoutParams(-1, -2));
     panel.addView(sessionFooter, new LinearLayout.LayoutParams(-1, -2));
     return panel;
@@ -696,6 +704,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     value.setFocusable(true);
     value.setClickable(true);
     value.setOnClickListener(v -> action.run());
+    UiMotion.pressScale(value);
     return value;
   }
 
@@ -704,8 +713,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     row.setId(R.id.terminal_sessions_create);
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setMinimumHeight(dp(48));
-    row.setPadding(dp(12), dp(6), dp(12), dp(6));
+    row.setMinimumHeight(
+        getResources().getDimensionPixelSize(R.dimen.terminal_sidebar_create_min_height));
+    row.setPadding(dp(14), dp(6), dp(14), dp(6));
     row.setBackgroundResource(R.drawable.bg_btn_primary);
     row.setFocusable(true);
     row.setClickable(true);
@@ -714,19 +724,20 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     icon.setImageResource(R.drawable.ic_terminal_new);
     icon.setImageTintList(primaryText);
     icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    row.addView(icon, new LinearLayout.LayoutParams(dp(20), dp(20)));
+    row.addView(icon, new LinearLayout.LayoutParams(dp(19), dp(19)));
     createLabel = panelText(UiText.choose("新建终端会话", "New terminal session"), 14, 0, true);
     createLabel.setTextColor(primaryText);
     LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, -2, 1);
-    labelParams.setMarginStart(dp(8));
+    labelParams.setMarginStart(dp(9));
     row.addView(createLabel, labelParams);
-    createHint = panelText(UiText.text("PTY / 简易"), 11, 0, false);
+    createHint = panelText(UiText.text("PTY / 简易"), 10, 0, false);
     createHint.setTextColor(primaryText);
-    createHint.setAlpha(.82f);
+    createHint.setAlpha(.75f);
     createHint.setGravity(Gravity.END);
     createHint.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     row.addView(createHint, new LinearLayout.LayoutParams(-2, -2));
     row.setOnClickListener(v -> showCreateChooser());
+    UiMotion.pressScale(row);
     return row;
   }
 
@@ -841,11 +852,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     boolean tight = compactHeight || landscapeCompact;
     sessionSubtitle.setVisibility(tight ? View.GONE : View.VISIBLE);
     panelSecondary.setVisibility(tight ? View.GONE : View.VISIBLE);
-    sessionHeader.setPaddingRelative(dp(14), dp(tight ? 8 : 12), dp(6), dp(tight ? 4 : 8));
+    sessionHeader.setPaddingRelative(dp(14), dp(tight ? 8 : 15), dp(8), dp(tight ? 4 : 12));
     sessionFooter.setPadding(
-        dp(landscapeCompact ? 6 : 8), dp(tight ? 4 : 6),
-        dp(landscapeCompact ? 6 : 8), dp(tight ? 6 : 10));
-    sessionList.setPadding(dp(6), dp(tight ? 0 : 4), dp(6), dp(tight ? 6 : 12));
+        dp(landscapeCompact ? 6 : 10), dp(tight ? 4 : 6),
+        dp(landscapeCompact ? 6 : 10), dp(tight ? 6 : 10));
+    sessionList.setPadding(dp(6), dp(tight ? 0 : 2), dp(6), dp(tight ? 6 : 12));
     createHint.setVisibility(
         landscapeCompact || TerminalWorkspacePolicy.stackSessionDetails(panelWidthDp, fontScale)
             ? View.GONE
@@ -904,7 +915,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
         button.setSingleLine(false);
         button.setMaxLines(2);
         button.setEllipsize(TextUtils.TruncateAt.END);
-        button.setTextSize(12);
+        button.setTextSize(11);
         button.setMinHeight(dp(48));
         button.setPaddingRelative(dp(8), dp(6), dp(5), dp(6));
         button.setCompoundDrawablePadding(dp(5));
@@ -924,6 +935,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void showInlinePanel() {
+    // 抽屉出屏快照不能跨形态残留。
+    clearDrawerExitAnimation();
     if (sessionPanel.getParent() != body) {
       sessionPanel.animate().cancel();
       removeSessionPanel();
@@ -975,6 +988,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
           sessionPanel, new FrameLayout.LayoutParams(drawerWidthPx(), -1, Gravity.START));
       renderSessions();
     }
+    // 重开时先掐掉尚未结束的关闭快照，避免旧抽屉叠在新抽屉上。
+    clearDrawerExitAnimation();
+    final int token = ++drawerAnimationToken;
     drawerHost.setVisibility(View.VISIBLE);
     sessionScrim.setVisibility(View.VISIBLE);
     sessionPanel.setVisibility(View.VISIBLE);
@@ -984,18 +1000,102 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     ViewCompat.setAccessibilityPaneTitle(sessionPanel, UiText.text("会话侧栏"));
     ball.setSessionsExpanded(true);
     updateDrawerWidth();
-    if (animate) {
+    sessionPanel.animate().cancel();
+    sessionScrim.animate().cancel();
+    if (animate && UiMotion.animationsEnabled(this)) {
       sessionPanel.setTranslationX(drawerHiddenTranslation());
       sessionScrim.setAlpha(0f);
       drawerHost.post(
           () -> {
-            if (!sessionsRequested || expanded) return;
-            sessionPanel.animate().translationX(0f).setDuration(180).start();
-            sessionScrim.animate().alpha(1f).setDuration(180).start();
+            if (token != drawerAnimationToken || !sessionsRequested || expanded || !drawerShowing())
+              return;
+            sessionPanel
+                .animate()
+                .translationX(0f)
+                .setDuration(DRAWER_OPEN_MS)
+                .setInterpolator(UiMotion.standard())
+                .start();
+            sessionScrim
+                .animate()
+                .alpha(1f)
+                .setDuration(DRAWER_OPEN_SCRIM_MS)
+                .setInterpolator(UiMotion.standard())
+                .start();
           });
-    } else if (sessionPanel.getTranslationX() != 0f) {
+    } else {
       sessionPanel.setTranslationX(0f);
       sessionScrim.setAlpha(1f);
+    }
+  }
+
+  /**
+   * 抽屉关闭动效：真身立即隐藏并同步恢复焦点/无障碍（首击语义不变），
+   * 面板位图 + 遮罩快照继续完成 220ms 出屏与 180ms 淡出后自移除。
+   */
+  private void startDrawerExitAnimation() {
+    if (!UiMotion.animationsEnabled(this) || root == null || sessionPanel == null) return;
+    if (!drawerShowing()) return;
+    int width = sessionPanel.getWidth();
+    int height = sessionPanel.getHeight();
+    if (width <= 0 || height <= 0) return;
+    clearDrawerExitAnimation();
+    android.graphics.Bitmap bitmap;
+    try {
+      bitmap =
+          android.graphics.Bitmap.createBitmap(
+              width, height, android.graphics.Bitmap.Config.ARGB_8888);
+      sessionPanel.draw(new android.graphics.Canvas(bitmap));
+    } catch (RuntimeException | OutOfMemoryError ignored) {
+      // 快照失败只损失动效，不阻断关闭与焦点恢复。
+      return;
+    }
+    AppCompatImageView snapshot = new AppCompatImageView(this);
+    snapshot.setImageBitmap(bitmap);
+    snapshot.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
+    snapshot.setTranslationX(sessionPanel.getTranslationX());
+    snapshot.setClickable(true); // 出屏期间吞掉点击，避免误触到底下的终端。
+    snapshot.setFocusable(false);
+    snapshot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    View scrim = new View(this);
+    scrim.setBackgroundColor(getColor(R.color.terminal_scrim));
+    scrim.setAlpha(sessionScrim.getAlpha());
+    scrim.setClickable(true);
+    scrim.setFocusable(false);
+    scrim.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    root.addView(scrim, new FrameLayout.LayoutParams(-1, -1));
+    root.addView(snapshot, new FrameLayout.LayoutParams(width, height, Gravity.START));
+    drawerExitScrim = scrim;
+    drawerExitSnapshot = snapshot;
+    snapshot
+        .animate()
+        .translationX(drawerHiddenTranslation())
+        .setDuration(DRAWER_CLOSE_MS)
+        .setInterpolator(UiMotion.standard())
+        .withEndAction(this::removeDrawerExitViews)
+        .start();
+    scrim
+        .animate()
+        .alpha(0f)
+        .setDuration(DRAWER_CLOSE_SCRIM_MS)
+        .setInterpolator(UiMotion.standard())
+        .start();
+  }
+
+  private void clearDrawerExitAnimation() {
+    if (drawerExitSnapshot != null) drawerExitSnapshot.animate().cancel();
+    if (drawerExitScrim != null) drawerExitScrim.animate().cancel();
+    removeDrawerExitViews();
+  }
+
+  private void removeDrawerExitViews() {
+    View scrim = drawerExitScrim;
+    drawerExitScrim = null;
+    if (scrim != null && scrim.getParent() instanceof ViewGroup parent) parent.removeView(scrim);
+    AppCompatImageView snapshot = drawerExitSnapshot;
+    drawerExitSnapshot = null;
+    if (snapshot != null) {
+      if (snapshot.getParent() instanceof ViewGroup parent) parent.removeView(snapshot);
+      snapshot.setImageDrawable(null);
     }
   }
 
@@ -1150,7 +1250,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private void closeSessions(boolean restoreSurfaceFocus) {
     if (workbench && expanded) return;
     if (!sessionsRequested && !expanded) return;
+    // 抽屉形态先留一张出屏快照；随后的 applyPresentation 立即隐藏真身并恢复焦点/无障碍。
+    if (!expanded && sessionsRequested && drawerShowing()) startDrawerExitAnimation();
     sessionsRequested = false;
+    drawerAnimationToken++;
     applyPresentation();
     if (restoreSurfaceFocus) restoreSurfaceFocus();
   }
@@ -1385,31 +1488,36 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private void addGroupHeader(String text, int count, int iconRes) {
     LinearLayout row = new LinearLayout(this);
     row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setPadding(dp(8), dp(14), dp(8), dp(6));
+    row.setMinimumHeight(
+        getResources().getDimensionPixelSize(R.dimen.terminal_sidebar_group_min_height));
+    // 原型 .group-head：36dp 行高、22dp 图标位、11.5sp 粗标题 + 11sp 计数胶囊。
+    row.setPadding(dp(8), dp(4), dp(8), dp(4));
     row.addView(
-        iconView(iconRes, R.color.terminal_faint, 15),
-        new LinearLayout.LayoutParams(dp(20), dp(20)));
-    TextView heading = panelText(text, 11, getColor(R.color.terminal_muted), true);
+        iconView(iconRes, R.color.terminal_muted, 15),
+        new LinearLayout.LayoutParams(dp(22), dp(22)));
+    TextView heading = panelText(text, 11.5f, getColor(R.color.terminal_muted), true);
     LinearLayout.LayoutParams headingParams = new LinearLayout.LayoutParams(0, -2, 1);
     headingParams.setMarginStart(dp(7));
     row.addView(heading, headingParams);
-    TextView number = panelText(String.valueOf(count), 10, getColor(R.color.terminal_muted), false);
+    TextView number = panelText(String.valueOf(count), 11, getColor(R.color.terminal_muted), false);
     number.setGravity(Gravity.CENTER);
     number.setMinWidth(dp(22));
     number.setMinHeight(dp(20));
     number.setPadding(dp(7), 0, dp(7), 0);
     number.setBackgroundResource(R.drawable.bg_terminal_count_pill);
     row.addView(number, new LinearLayout.LayoutParams(-2, -2));
-    sessionList.addView(row, new LinearLayout.LayoutParams(-1, -2));
+    LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+    rowParams.topMargin = dp(4);
+    sessionList.addView(row, rowParams);
   }
 
   private void addGroupEmpty() {
     TextView empty =
         panelText(
-            UiText.choose("暂无会话", "No sessions"), 11, getColor(R.color.terminal_faint), false);
-    empty.setBackgroundResource(R.drawable.bg_terminal_empty);
-    empty.setGravity(Gravity.CENTER_VERTICAL);
-    empty.setPadding(dp(10), dp(8), dp(10), dp(8));
+            UiText.choose("暂无会话", "No sessions"), 11, getColor(R.color.terminal_muted), false);
+    empty.setBackgroundResource(R.drawable.bg_terminal_sidebar_empty);
+    empty.setGravity(Gravity.CENTER);
+    empty.setPadding(dp(12), dp(11), dp(12), dp(11));
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
     params.setMargins(dp(2), dp(2), dp(2), dp(4));
     sessionList.addView(empty, params);
@@ -1422,39 +1530,39 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     LinearLayout row = new LinearLayout(this);
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setMinimumHeight(dp(56));
-    if (active) row.setBackgroundResource(R.drawable.bg_terminal_session);
-    View accent = new View(this);
-    accent.setBackgroundResource(R.drawable.bg_terminal_accent_bar);
-    accent.setVisibility(active ? View.VISIBLE : View.INVISIBLE);
-    row.addView(accent, new LinearLayout.LayoutParams(Math.max(1, dp(3)), -1));
+    row.setMinimumHeight(
+        getResources().getDimensionPixelSize(R.dimen.terminal_sidebar_row_min_height));
+    // 原型 .session-row.active：accent_soft 底 + accent_line 描边 + 11dp 圆角。
+    if (active) row.setBackgroundResource(R.drawable.bg_terminal_sidebar_row_active);
     LinearLayout body = new LinearLayout(this);
     body.setOrientation(LinearLayout.HORIZONTAL);
     body.setGravity(Gravity.CENTER_VERTICAL);
-    body.setPadding(dp(8), dp(6), dp(4), dp(6));
+    body.setPadding(dp(7), dp(6), dp(7), dp(6));
     body.setFocusable(true);
     body.setClickable(true);
-    body.setBackgroundResource(R.drawable.bg_terminal_touch);
+    body.setBackgroundResource(R.drawable.bg_terminal_sidebar_row);
     AppCompatImageView glyph =
         iconView(
             pty ? R.drawable.ic_terminal_pty : R.drawable.ic_terminal_simple,
             active ? R.color.terminal_accent : R.color.terminal_muted,
             16);
     glyph.setBackgroundResource(
-        active ? R.drawable.bg_terminal_icon_block_active : R.drawable.bg_terminal_icon_block);
-    glyph.setPadding(dp(7), dp(7), dp(7), dp(7));
+        active
+            ? R.drawable.bg_terminal_sidebar_symbol_active
+            : R.drawable.bg_terminal_sidebar_symbol);
+    glyph.setPadding(dp(6), dp(6), dp(6), dp(6));
     glyph.setVisibility(stackedSessionDetails ? View.GONE : View.VISIBLE);
-    body.addView(glyph, new LinearLayout.LayoutParams(dp(30), dp(30)));
+    body.addView(glyph, new LinearLayout.LayoutParams(dp(28), dp(28)));
     LinearLayout details = new LinearLayout(this);
     details.setOrientation(stackedSessionDetails ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
     details.setGravity(Gravity.CENTER_VERTICAL);
     LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(0, -2, 1);
-    detailsParams.setMarginStart(dp(stackedSessionDetails ? 0 : 9));
+    detailsParams.setMarginStart(dp(stackedSessionDetails ? 0 : 8));
     body.addView(details, detailsParams);
     TextView name =
         panelText(
             sessionDisplayName(pty, tab),
-            13,
+            12.5f,
             getColor(active ? R.color.terminal_accent : R.color.terminal_panel_text),
             active);
     name.setSingleLine(true);
@@ -1467,12 +1575,13 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     TextView state =
         panelText(
             sessionShortState(pty, tab),
-            10,
+            11,
             getColor(active || running ? R.color.terminal_accent : R.color.terminal_muted),
             false);
     state.setSingleLine(true);
     state.setGravity(Gravity.CENTER);
-    state.setPadding(dp(7), dp(3), dp(7), dp(3));
+    state.setMinHeight(dp(20));
+    state.setPadding(dp(7), 0, dp(7), 0);
     state.setBackgroundResource(
         active ? R.drawable.bg_terminal_state_pill_active : R.drawable.bg_terminal_state_pill);
     state.setEllipsize(TextUtils.TruncateAt.END);
@@ -1497,6 +1606,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     rename.setTag(new SessionFocusKey(pty, tab.id, "rename"));
     rename.setEnabled(!tab.isClosing());
     rename.setAlpha(rename.isEnabled() ? 1f : .35f);
+    UiMotion.pressScale(rename);
     row.addView(rename, new LinearLayout.LayoutParams(dp(48), dp(48)));
     View close =
         iconButton(
@@ -1513,9 +1623,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     close.setTag(new SessionFocusKey(pty, tab.id, "close"));
     close.setEnabled(!tab.isClosing());
     close.setAlpha(close.isEnabled() ? 1f : .35f);
+    UiMotion.pressScale(close);
     row.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
     LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-    rowParams.bottomMargin = dp(2);
+    rowParams.bottomMargin = dp(3);
     sessionList.addView(row, rowParams);
     if (!tab.closeError().isEmpty()) {
       TextView error =
@@ -1915,6 +2026,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   protected void onPause() {
     owner.removeSimpleStateObserver(simpleStateChanged);
     owner.protection().removeObserver(protectionChanged);
+    clearDrawerExitAnimation();
     dismissPanel();
     super.onPause();
   }
@@ -1922,6 +2034,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   @Override
   protected void onDestroy() {
     if (root != null && closeAllWatchdog != null) root.removeCallbacks(closeAllWatchdog);
+    clearDrawerExitAnimation();
     super.onDestroy();
   }
 

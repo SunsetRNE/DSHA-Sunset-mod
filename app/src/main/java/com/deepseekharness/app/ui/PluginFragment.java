@@ -71,6 +71,7 @@ public class PluginFragment extends Fragment {
   private android.net.Uri pendingImport;
   private PageState pageState;
   private boolean restoreScroll, createdView;
+  private boolean listEnterPlayed;
 
   /** Activity 范围只保存页面选择；不拥有插件任务或目录。Bundle 负责进程重建。 */
   public static final class PageState extends ViewModel {
@@ -407,6 +408,7 @@ public class PluginFragment extends Fragment {
     search = null;
     linkHint = null;
     hideBuiltin = null;
+    listEnterPlayed = false;
     super.onDestroyView();
   }
 
@@ -517,7 +519,45 @@ public class PluginFragment extends Fragment {
             requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
     if (keyboard != null) keyboard.hideSoftInputFromWindow(root.getWindowToken(), 0);
     render();
+    animateTabSelection();
     ensureInstalledState();
+  }
+
+  /** 分段切换反馈：选中段 260ms 轻微回弹；系统关闭动画时保持静态，不新增循环动画。 */
+  private void animateTabSelection() {
+    if (root == null) return;
+    TextView marketTab = find(R.id.btnMarket);
+    TextView installedTab = find(R.id.btnInstalled);
+    if (marketTab == null || installedTab == null) return;
+    for (TextView tab : new TextView[] {marketTab, installedTab}) {
+      tab.animate().cancel();
+      tab.setScaleX(1f);
+      tab.setScaleY(1f);
+    }
+    if (!UiMotion.animationsEnabled(requireContext())) return;
+    TextView selected = market ? marketTab : installedTab;
+    selected.setScaleX(0.96f);
+    selected.setScaleY(0.96f);
+    selected
+        .animate()
+        .scaleX(1f)
+        .scaleY(1f)
+        .setDuration(260L)
+        .setInterpolator(UiMotion.standard())
+        .start();
+  }
+
+  /** 首次出现插件行时逐项淡入；只播一次，滚动复用与局部刷新不重放。 */
+  private void playListEnter() {
+    if (listEnterPlayed || root == null) return;
+    listEnterPlayed = true;
+    View list = find(R.id.pluginList);
+    if (!(list instanceof ViewGroup)) return;
+    list.post(
+        () -> {
+          if (root == null) return;
+          UiMotion.staggerIn((ViewGroup) list, 8);
+        });
   }
 
   private void openPluginWebsite() {
@@ -649,6 +689,7 @@ public class PluginFragment extends Fragment {
     PluginListPresenter.Anchor before =
         !restoreScroll && !market && shown != adapter.rows ? captureAnchor() : null;
     boolean structural = adapter.submit(shown);
+    if (!market && !shown.isEmpty()) playListEnter();
     if (restoreScroll) {
       PluginListPresenter.Anchor anchor =
           market ? pageState.marketAnchor : pageState.installedAnchor;
@@ -1270,12 +1311,15 @@ public class PluginFragment extends Fragment {
           text += "\n" + com.deepseekharness.app.util.UiStateText.render(row.operation.message);
       }
       holder.state.setText(text);
-      holder.state.setTextColor(
-          requireContext()
-              .getColor(
-                  !item.available || row.pending()
-                      ? R.color.warn
-                      : item.enabled ? R.color.shell_accent : R.color.shell_text_muted));
+      int stateColor =
+          !item.available || row.pending()
+              ? R.color.warn
+              : item.enabled ? R.color.shell_accent : R.color.shell_text_muted;
+      holder.state.setTextColor(requireContext().getColor(stateColor));
+      View stateDot = holder.itemView.findViewById(R.id.pluginStatusDot);
+      if (stateDot != null)
+        stateDot.setBackgroundTintList(
+            android.content.res.ColorStateList.valueOf(requireContext().getColor(stateColor)));
       holder.itemView.findViewById(R.id.pluginDelete).setEnabled(!row.pending());
       holder.toggle.setVisibility(item.dynamic ? View.GONE : View.VISIBLE);
       holder.toggle.setOnCheckedChangeListener(null);

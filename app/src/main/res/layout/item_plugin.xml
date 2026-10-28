@@ -1,14 +1,39 @@
 <?xml version='1.0' encoding='utf-8'?>
-<!-- 插件卡片（UI v5）：名称/说明/状态在同一个 surface 卡片里，开关与操作保持真实绑定。 -->
+<!--
+  插件卡片（UI v5）：图标块 + 名称/说明 + 多行真实状态 + 底部状态点/更多/展开/开关。
+  pluginName / pluginDesc / pluginStatus / pluginSwitch / pluginActions / pluginExpand /
+  pluginDelete / pluginDetails 的 id、点击语义与文本源全部保留，这里只调整行结构与字号样式。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:background="@drawable/bg_shell_card" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
-    <TextView android:id="@+id/pluginName" android:layout_width="match_parent" android:layout_height="wrap_content" android:breakStrategy="simple" android:fontFamily="sans" android:includeFontPadding="false" android:textColor="@color/shell_text" android:textSize="15sp" android:textStyle="bold" />
-    <TextView android:id="@+id/pluginDesc" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="6dp" android:lineSpacingExtra="2dp" android:maxLines="3" android:textColor="@color/shell_text_secondary" android:textSize="12sp" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical" android:orientation="horizontal">
-        <TextView android:id="@+id/pluginStatus" style="@style/ShellStatusText" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginEnd="8dp" android:layout_weight="1" />
-        <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/pluginSwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="48dp" android:showText="false" />
-        <TextView android:id="@+id/pluginActions" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_shell_pill" android:minHeight="44dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/ui_m0146" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+
+        <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_plugin_glyph" android:contentDescription="@null" android:importantForAccessibility="no" android:padding="8dp" android:src="@drawable/ic_plugins" android:tint="@color/shell_accent" />
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+
+            <TextView android:id="@+id/pluginName" style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:breakStrategy="simple" />
+
+            <TextView android:id="@+id/pluginDesc" style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" />
+        </LinearLayout>
     </LinearLayout>
-    <Button android:id="@+id/pluginExpand" style="@style/ShellTextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="44dp" />
-    <TextView android:id="@+id/pluginDetails" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:textIsSelectable="true" android:visibility="gone" />
-    <Button android:id="@+id/pluginDelete" style="@style/ShellTextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="44dp" android:textColor="@color/shell_bad" android:visibility="gone" />
+
+    <TextView android:id="@+id/pluginStatus" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_plugin_status" android:lineSpacingExtra="2dp" android:padding="10dp" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
+
+        <View android:id="@+id/pluginStatusDot" android:layout_width="8dp" android:layout_height="8dp" android:background="@drawable/bg_plugin_dot" android:importantForAccessibility="no" />
+
+        <TextView android:id="@+id/pluginActions" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:background="@drawable/bg_shell_pill" android:minHeight="44dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/ui_m0146" />
+
+        <Button android:id="@+id/pluginExpand" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:background="@drawable/bg_shell_pill" android:minHeight="44dp" android:paddingStart="12dp" android:paddingEnd="12dp" />
+
+        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/pluginSwitch" style="@style/ShellSwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="48dp" android:showText="false" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/pluginDetails" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:textIsSelectable="true" android:visibility="gone" />
+
+    <Button android:id="@+id/pluginDelete" style="@style/ShellTextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:minHeight="44dp" android:textColor="@color/shell_bad" android:visibility="gone" />
 </LinearLayout>

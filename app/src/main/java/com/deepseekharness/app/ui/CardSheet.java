@@ -9,7 +9,7 @@ import com.deepseekharness.app.R;
 /** 内容短时收紧，长时滚动正文并保留底部操作。 */
 final class CardSheet {
   static androidx.appcompat.app.AlertDialog create(Context context, CardPage page) {
-    page.root.setBackgroundResource(R.drawable.bg_card);
+    page.root.setBackgroundResource(R.drawable.bg_shell_sheet);
     page.scroll.setFillViewport(false);
     page.scroll.setLayoutParams(new LinearLayout.LayoutParams(-1, -2, 1));
     FrameLayout container =
@@ -24,14 +24,19 @@ final class CardSheet {
           }
         };
     container.addView(page.root, new FrameLayout.LayoutParams(-1, -2));
-    return new DshaDialogBuilder(context).setView(container).create();
+    var dialog = new DshaDialogBuilder(context).setView(container).create();
+    // 贴底与半屏动效必须在第一次 show() 前设置，否则首帧会先出现在屏幕中央再跳到底部。
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setGravity(Gravity.BOTTOM);
+      dialog.getWindow().setLayout(-1, -2);
+      dialog.getWindow().setWindowAnimations(R.style.Animation_DSHA_Sheet);
+    }
+    return dialog;
   }
 
   static void show(androidx.appcompat.app.AlertDialog dialog, Context context) {
     dialog.show();
     if (dialog.getWindow() != null) {
-      dialog.getWindow().setGravity(Gravity.BOTTOM);
-      dialog.getWindow().setLayout(-1, -2);
       dialog
           .getWindow()
           .setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
