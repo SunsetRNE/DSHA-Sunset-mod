@@ -37,8 +37,7 @@ public final class ControlTaskAuthorityTest {
   @Test
   public void olderObservationCannotOverwriteNewerOrRestoreEvidenceAfterFailure() {
     var authority = new ControlTaskAuthority();
-    var lease =
-        authority.begin(binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "s", "1"));
+    var lease = authority.begin(binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "s", "1"));
     var github = new com.deepseekharness.app.util.ScreenTarget(0, 12, "com.github.android");
     var dsha = new com.deepseekharness.app.util.ScreenTarget(0, 13, "dsh.android.client");
     long old = authority.beginObservation(lease);

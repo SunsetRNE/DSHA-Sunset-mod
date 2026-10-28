@@ -51,7 +51,10 @@ jobs:
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
           buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
           ndk=$(python3 tools/ci-toolchain.py --field ndk)
-          sdkmanager "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager_bin"
+          "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
       - name: Full descriptor bytes, notices and native reproducibility
         run: |
           ndk=$(python3 tools/ci-toolchain.py --field ndk)
