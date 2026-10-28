@@ -4,11 +4,11 @@
   pluginName / pluginDesc / pluginStatus / pluginSwitch / pluginActions / pluginExpand /
   pluginDelete / pluginDetails 的 id、点击语义与文本源全部保留，这里只调整行结构与字号样式。
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:background="@drawable/bg_shell_card" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:background="@drawable/bg_shell_card" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
 
-        <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_plugin_glyph" android:contentDescription="@null" android:importantForAccessibility="no" android:padding="8dp" android:src="@drawable/ic_plugins" android:tint="@color/shell_accent" />
+        <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_plugin_glyph" android:contentDescription="@null" android:importantForAccessibility="no" android:padding="8dp" android:src="@drawable/ic_plugins" app:tint="@color/shell_accent" />
 
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
 
