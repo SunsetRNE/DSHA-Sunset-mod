@@ -1,5 +1,11 @@
 # AGENTS.md
 
+<!-- build206-ci-continue-20261028 -->
+> **2026-10-28 CI 继续任务**：用户明确要求排查 GitHub API 并继续 Standard CI 编译；允许提交并推送上一轮 build206 修复，使用私有 `Sunset-3090-Q` 测试 APK 工作流。旧暂停构建条目仅属上一轮；不发布、不运行 Low、不操作手机。见[本轮 CI 记录](docs/source-updates/20261028-build206-ci.md)。
+
+<!-- build206-terminal-followup-20261028 -->
+> **2026-10-28 本轮本地源码继续工作**：实际工作区为 `/root/Documents/deepseek-harness/default-workspace/DSHA-Sunset-mod-3090-Q`，分支 `Sunset-3090-Q`；同步私有默认主分支 `codex/prerelease-190` 的 build206，诊断版本 `0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3`。保留已有环境身份修改，继续修正终端输出脱敏和侧栏焦点。软件检查仅限 Standard；手机验收仍暂停，本轮不构建、安装、发布 APK，不触发远端构建。实际改动、合并身份和验证限制见[本轮记录](docs/source-updates/20261028-terminal-build206-followup.md)。下方 Windows/F 盘路径、旧“本轮源码身份”和发布结果均属于其原时点，不能替代当前工作区或验收证据。
+
 <!-- merge-worktree-rules-20261027 -->
 > **2026-10-27 本轮合并的当前约束**：本轮在 F 盘隔离工作树 `<local-workspace>` 处理源码，后续工作树和构建输出继续放 F 盘；保留 `<local-workspace>` 中用户未提交的路径说明及 C 盘活动 UI 原型。用户已暂停手机验收，须等用户明确恢复后才能进行；不自动构建、安装或发布 APK，也不擅自操作设备或改动授权。只处理和验证 Standard，不运行或安装 Low，保留既有 Low 交付原字节。build198 已撤除整套电脑连接，本次合并不得恢复电脑连接及其入口；手机控制和既有本机/LAN 能力仍按用户要求保留。
 >

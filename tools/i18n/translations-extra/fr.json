@@ -1225,5 +1225,7 @@
   "termhome0152": "Impossible de copier la sortie du terminal",
   "termhome0153": "Partager la sortie du terminal",
   "termhome0154": "Une maintenance de l’environnement ou une tâche exclusive est en cours. Le terminal n’a pas été lancé.",
-  "termhome0155": "Une ligne de sortie est trop longue pour être prévisualisée."
+  "termhome0155": "La sortie est trop longue pour générer un aperçu en toute sécurité.",
+  "termhome0156": "La demande de démarrage n’a pas été envoyée. Vérifiez l’état d’exécution, puis réessayez.",
+  "termhome0157": "Copier l’adresse"
 }

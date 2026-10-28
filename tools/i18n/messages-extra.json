@@ -9901,10 +9901,26 @@
   },
   {
     "id": "termhome0155",
-    "zh": "单行输出过长，无法显示预览。",
-    "en": "A single output line is too long to preview.",
+    "zh": "输出过长，无法安全生成预览。",
+    "en": "Output is too long to preview safely.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/TerminalOutputDialog.java"
+    ]
+  },
+  {
+    "id": "termhome0156",
+    "zh": "启动请求未执行，请检查运行状态后重试。",
+    "en": "The start request was not submitted. Check the run status and retry.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "termhome0157",
+    "zh": "复制地址",
+    "en": "Copy address",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
   }
 ]

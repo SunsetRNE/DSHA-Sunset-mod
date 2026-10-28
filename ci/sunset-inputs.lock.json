@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "url": "https://api.github.com/repos/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/assets/673911569",
-  "sha256": "b10df2d3b3eeccfd5aee61aba1c8ed116ad1e92a5258f2831f7fcd4df61f6241",
+  "url": "https://api.github.com/repos/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/assets/682649962",
+  "sha256": "d8073d0aa12f504e4c770d4347633f73e6431c0899effbae460d883ff3d40e5b",
   "format": "source-archive",
-  "release": "v0.2.1-rc.3-20261025.2000",
-  "asset": "DSHA-Sunset-mod-3090-Q-0.2.1-rc.3-20261025.2000-source.zip"
+  "release": "v0.2.1-rc.3-20261028.1200-lanfix",
+  "asset": "DSHA-Sunset-mod-3090-Q-0.2.1-rc.3-build206-lanfix-source.zip"
 }

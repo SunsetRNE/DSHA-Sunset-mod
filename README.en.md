@@ -1,5 +1,8 @@
 # DSHA
 
+<!-- build206-terminal-followup-20261028 -->
+> **Current source: build206** — `0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3`. The local `Sunset-3090-Q` branch integrates the private default branch `codex/prerelease-190`, with follow-up fixes for terminal output redaction and sidebar focus. This describes source changes and the checks actually run; APK and phone acceptance require separate evidence. [Changes and verification scope](docs/source-updates/20261028-terminal-build206-followup.md). Older “current” entries below are historical.
+
 <!-- build198-software-candidate -->
 > **Current source: build198 software candidate** — `0.2.1-rc.3-20261025.2100-dsh0.2.1-rc.3` /Standard /dsh.android.client /E7E3 nondebug. True Sunset merge, consent pause fix, complete PC feature removal, single safe-area ownership and decoupled activity sampling. Selected Standard:806 tests,0fail/error,7 Windows symlink skips separately covered by44 real POSIX cases; Release Lint0fatal/error,279warnings. Phone acceptance is paused at the user’s request; the device still runs197. This is not installation or publication proof. [Scope and retained failures](docs/releases/v0.2.1-rc.3-build198-20261025.md). Actual source:`<local-workspace>`. Older current-version blocks below are historical.
 

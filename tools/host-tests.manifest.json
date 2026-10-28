@@ -2,6 +2,24 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-android-image-wire.mjs",
+      "stage": "runtime",
+      "requires": ["node24", "raw"],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {"DSHA_TEST_SDK_ROOT": "{raw}"},
+      "reason": "Execute the pinned SDK stdio transport and exact-patched image projection with an 8 MiB PNG and canonical Base64 boundaries; no device access."
+    },
+    {
+      "path": "tools/test-web-fetch-unicode.mjs",
+      "stage": "support",
+      "requires": ["node24"],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Invoked by test-web-fetch-unicode.py with isolated exact-patched module files; executes provider and output surrogate boundaries."
+    },
+    {
       "path": "tools/test-web-fetch-unicode.py",
       "stage": "runtime",
       "requires": ["python39", "node24"],

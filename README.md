@@ -1,5 +1,8 @@
 # DSHA
 
+<!-- build206-terminal-followup-20261028 -->
+> **当前源码：build206** — `0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3`。当前 `Sunset-3090-Q` 同步私有默认主分支 `codex/prerelease-190`，继续完善终端“更多…”输出脱敏和侧栏焦点，并统一版本入口。仅记录本地源码与实际软件检查，APK 和手机验收另行取证。[本轮改动与验证范围](docs/source-updates/20261028-terminal-build206-followup.md)。下方“当前”条目均按其历史时点阅读。
+
 <!-- build204-source-merge-20261027 -->
 > **当前源码：build204** — `0.2.1-rc.3-20261027.1149-dsh0.2.1-rc.3`。合入 Sunset-3090-Q 的终端、界面与移动插件更新，并修复虚拟屏 MCP 启动参数兼容；保留手机控制及本机/LAN 访问，电脑连接仍已撤下。此版本目前为源码合并，未生成或发布新 APK；手机验收继续暂停。[改动与验证范围](docs/source-updates/20261027-sunset-vscreen-merge.md)。下方版本和设备记录均为各自的历史结果。
 

@@ -1,6 +1,7 @@
 package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -144,6 +145,66 @@ public class TerminalActivityLifecycleTest {
     assertEquals(0, FakePane.closes);
     assertEquals(0, FakePane.input);
     assertEquals(0, FakePane.creates);
+  }
+
+  @Test
+  @Config(qualifiers = "w400dp-h900dp")
+  public void touchModeDrawerTakesFocusFromTheTerminalWithoutChangingButtonTouchBehavior() {
+    var instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation();
+    instrumentation.setInTouchMode(true);
+    var host = Robolectric.buildActivity(Host.class).create().start().resume().visible();
+    try {
+      setTouchMode(host.get(), true);
+      var workspace = host.get().findViewById(R.id.terminal_workspace);
+      settleLayout(host.get(), workspace, 400, 900);
+      View input = focusablePaneView(host.get());
+      assertTrue(input.isInTouchMode());
+      assertTrue(input.requestFocus());
+      host.get().openSessions();
+      settleLayout(host.get(), workspace, 400, 900);
+      ViewGroup sidebar = host.get().findViewById(R.id.terminal_sessions_panel);
+      assertFalse(input.hasFocus());
+      assertFalse(input.requestFocus());
+      assertSame(sidebar, sidebar.findFocus());
+      assertFalse(host.get().findViewById(R.id.terminal_sessions_close).isFocusableInTouchMode());
+      assertFalse(host.get().findViewById(R.id.terminal_sessions_create).isFocusableInTouchMode());
+      assertFocusVisibleWithin((ViewGroup) workspace, sidebar);
+      host.get().findViewById(R.id.terminal_sessions_close).performClick();
+      assertTrue(input.requestFocus());
+      assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
+    } finally {
+      host.pause().stop().destroy();
+      instrumentation.setInTouchMode(true);
+    }
+  }
+
+  @Test
+  public void inlineRefreshKeepsInputFocusButNarrowingToADrawerReclaimsIt() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume().visible();
+    try {
+      setTouchMode(host.get(), true);
+      var workspace = host.get().findViewById(R.id.terminal_workspace);
+      settleLayout(host.get(), workspace, 900, 700);
+      host.get().openSessions();
+      settleLayout(host.get(), workspace, 900, 700);
+      View input = focusablePaneView(host.get());
+      assertTrue(input.requestFocus());
+      host.get().onTerminalPaneChanged();
+      settleLayout(host.get(), workspace, 900, 700);
+      assertTrue(input.hasFocus());
+      assertFocusVisibleWithin((ViewGroup) workspace, input);
+
+      settleLayout(host.get(), workspace, 400, 700);
+      assertFalse(input.hasFocus());
+      assertFalse(input.requestFocus());
+      ViewGroup sidebar = host.get().findViewById(R.id.terminal_sessions_panel);
+      View focused = sidebar.findFocus();
+      assertNotNull(focused);
+      assertFocusVisibleWithin((ViewGroup) workspace, focused);
+      assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
+    } finally {
+      host.pause().stop().destroy();
+    }
   }
 
   @Test
@@ -675,7 +736,7 @@ public class TerminalActivityLifecycleTest {
       assertTrue(
           isDescendant(scroll, host.get().findViewById(R.id.terminal_sessions_actions_dense)));
       assertTrue(scroll.getHeight() >= Math.round(179 * density(host.get())));
-      assertTrue(close.hasFocus());
+      assertFocusVisibleWithin((ViewGroup) workspace, close);
       assertTrue(scroll.canScrollVertically(1));
       assertTrue(
           containsText(scroll, com.deepseekharness.app.util.UiText.choose("暂无会话", "No sessions")));
@@ -692,6 +753,97 @@ public class TerminalActivityLifecycleTest {
         if (host != null) host.pause().stop().destroy();
       } finally {
         instrumentation.setInTouchMode(true);
+      }
+    }
+  }
+
+  @Test
+  public void resizingAndRefreshingKeepsTheFocusedBottomHelpFullyVisible() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume().visible();
+    try {
+      setTouchMode(host.get(), false);
+      var workspace = host.get().findViewById(R.id.terminal_workspace);
+      settleLayout(host.get(), workspace, 800, 500);
+      host.get().openSessions();
+      settleLayout(host.get(), workspace, 800, 500);
+      android.widget.ScrollView scroll = host.get().findViewById(R.id.terminal_sessions_scroll);
+      View help = host.get().findViewById(R.id.terminal_sessions_action_help_dense);
+      assertFalse(isDescendant(scroll, help));
+      assertTrue(help.requestFocus());
+      assertFocusVisibleWithin((ViewGroup) workspace, help);
+
+      settleLayout(host.get(), workspace, 800, 180);
+      assertTrue(isDescendant(scroll, help));
+      assertTrue(scroll.getScrollY() > 0);
+      assertFocusVisibleWithin((ViewGroup) workspace, help);
+      host.get().onTerminalPaneChanged();
+      settleLayout(host.get(), workspace, 800, 180);
+      assertFocusVisibleWithin((ViewGroup) workspace, help);
+
+      settleLayout(host.get(), workspace, 800, 500);
+      assertFalse(isDescendant(scroll, help));
+      assertFocusVisibleWithin((ViewGroup) workspace, help);
+      assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
+    } finally {
+      try {
+        host.pause().stop().destroy();
+      } finally {
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+            .setInTouchMode(true);
+      }
+    }
+  }
+
+  @Test
+  public void refreshingSessionControlsPreservesTheirIdentityAndVisibleFocus() throws Exception {
+    var owner = TerminalSessionOwner.shared();
+    var opened = new java.util.concurrent.CountDownLatch(1);
+    var tab = startFakeSimple(owner, opened, new java.util.concurrent.CountDownLatch(0));
+    assertTrue(opened.await(2, java.util.concurrent.TimeUnit.SECONDS));
+    assertTrue(owner.renameSimple(tab.id, "focus-fixture"));
+    var host = Robolectric.buildActivity(Host.class).create().start().resume().visible();
+    try {
+      setTouchMode(host.get(), false);
+      var workspace = host.get().findViewById(R.id.terminal_workspace);
+      settleLayout(host.get(), workspace, 800, 180);
+      host.get().openSessions();
+      settleLayout(host.get(), workspace, 800, 180);
+      String label =
+          com.deepseekharness.app.util.UiText.choose("简易", "Simple") + " · focus-fixture";
+      String[] descriptions = {
+        com.deepseekharness.app.util.UiText.format(
+            com.deepseekharness.app.util.UiText.choose("重命名 %s", "Rename %s"), label),
+        com.deepseekharness.app.util.UiText.format(
+            com.deepseekharness.app.util.UiText.choose("结束 %s 的进程", "End process for %s"), label)
+      };
+      View input = focusablePaneView(host.get());
+      for (String description : descriptions) {
+        View before = findByDescription(workspace, description);
+        assertNotNull(before);
+        assertTrue(before.requestFocus());
+        host.get().onTerminalPaneChanged();
+        settleLayout(host.get(), workspace, 800, 180);
+        View after = findByDescription(workspace, description);
+        assertNotNull(after);
+        assertNotSame(before, after);
+        assertFocusVisibleWithin((ViewGroup) workspace, after);
+        assertFalse(input.hasFocus());
+      }
+
+      owner.closeSimple(tab.id, 2000);
+      host.get().onTerminalPaneChanged();
+      settleLayout(host.get(), workspace, 800, 180);
+      View close = host.get().findViewById(R.id.terminal_sessions_close);
+      assertFocusVisibleWithin((ViewGroup) workspace, close);
+      assertFalse(input.hasFocus());
+      assertEquals(0, FakePane.creates + FakePane.closes + FakePane.input);
+    } finally {
+      try {
+        host.pause().stop().destroy();
+        owner.closeSimple(tab.id, 2000);
+      } finally {
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+            .setInTouchMode(true);
       }
     }
   }
@@ -771,6 +923,63 @@ public class TerminalActivityLifecycleTest {
     } finally {
       host.pause().stop().destroy();
     }
+  }
+
+  private static void setTouchMode(Host host, boolean touchMode) {
+    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        .setInTouchMode(touchMode);
+    // 与主分支的关闭按钮夹具一致：Robolectric 需将模式同步给已附着的 ViewRoot。
+    View decor = host.getWindow().getDecorView();
+    Object viewRoot =
+        org.robolectric.util.ReflectionHelpers.callInstanceMethod(decor, "getViewRootImpl");
+    assertNotNull(viewRoot);
+    org.robolectric.util.ReflectionHelpers.callInstanceMethod(
+        viewRoot,
+        "ensureTouchModeLocally",
+        org.robolectric.util.ReflectionHelpers.ClassParameter.from(boolean.class, touchMode));
+    assertEquals(touchMode, decor.isInTouchMode());
+  }
+
+  private static View focusablePaneView(Host host) {
+    View input =
+        host.getSupportFragmentManager().findFragmentById(R.id.terminal_content).requireView();
+    input.setFocusableInTouchMode(true);
+    return input;
+  }
+
+  private static View findByDescription(View root, String description) {
+    CharSequence actual = root.getContentDescription();
+    if (actual != null && description.contentEquals(actual)) return root;
+    if (root instanceof ViewGroup group) {
+      for (int i = 0; i < group.getChildCount(); i++) {
+        View match = findByDescription(group.getChildAt(i), description);
+        if (match != null) return match;
+      }
+    }
+    return null;
+  }
+
+  private static void assertFocusVisibleWithin(ViewGroup workspace, View focused) {
+    assertTrue("控件应保留输入焦点", focused.hasFocus());
+    assertTrue("控件必须有可见尺寸", focused.getWidth() > 0 && focused.getHeight() > 0);
+    assertEquals(View.VISIBLE, focused.getVisibility());
+    // 不依赖宿主 DecorView 的模拟屏幕大小；逐层检查实际布局、padding 与 ScrollView 裁剪。
+    for (android.view.ViewParent parent = focused.getParent();
+        parent instanceof ViewGroup group;
+        parent = group.getParent()) {
+      assertEquals(View.VISIBLE, group.getVisibility());
+      Rect bounds = new Rect(0, 0, focused.getWidth(), focused.getHeight());
+      group.offsetDescendantRectToMyCoords(focused, bounds);
+      Rect viewport =
+          new Rect(
+              group.getScrollX() + group.getPaddingLeft(),
+              group.getScrollY() + group.getPaddingTop(),
+              group.getScrollX() + group.getWidth() - group.getPaddingRight(),
+              group.getScrollY() + group.getHeight() - group.getPaddingBottom());
+      assertTrue("焦点 " + bounds + " 必须完整位于 " + viewport, viewport.contains(bounds));
+      if (group == workspace) return;
+    }
+    fail("焦点控件已离开当前工作区");
   }
 
   private static float density(android.app.Activity activity) {

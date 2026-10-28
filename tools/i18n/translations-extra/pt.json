@@ -1225,5 +1225,7 @@
   "termhome0152": "Não foi possível copiar a saída do terminal",
   "termhome0153": "Compartilhar saída do terminal",
   "termhome0154": "Há uma manutenção do ambiente ou tarefa exclusiva em andamento. O terminal não foi iniciado.",
-  "termhome0155": "Uma linha da saída é longa demais para ser exibida na prévia."
+  "termhome0155": "A saída é longa demais para gerar uma prévia com segurança.",
+  "termhome0156": "A solicitação de início não foi enviada. Verifique o estado de execução e tente novamente.",
+  "termhome0157": "Copiar endereço"
 }

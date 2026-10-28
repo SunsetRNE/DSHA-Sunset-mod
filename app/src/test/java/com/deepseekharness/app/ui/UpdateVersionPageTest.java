@@ -130,13 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("终端粘贴按顺序进入有界输入队列"));
-      assertTrue(shown.contains("队列满时暂停后续输入"));
-      assertTrue(shown.contains("未知结果围栏"));
-      assertTrue(shown.contains("最新成功读屏的目标"));
-      assertTrue(shown.contains("字节完全匹配的旧版默认 DNS"));
-      assertTrue(shown.contains("回归夹具"));
-      assertTrue(shown.contains("3.2.2"));
+      assertTrue(shown.contains("扩展终端操作面板、输出预览与导出"));
+      assertTrue(shown.contains("会话侧栏和悬浮球适配不同窗口尺寸"));
+      assertTrue(shown.contains("启动请求未提交时保留状态提示"));
+      assertTrue(shown.contains("完善环境恢复和路径检查"));
+      assertTrue(shown.contains("本版未进行手机安装或设备验收"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -157,13 +155,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Terminal paste uses a bounded FIFO input queue"));
-      assertTrue(shown.contains("later input pauses for confirmation"));
-      assertTrue(shown.contains("unknown-outcome fence"));
-      assertTrue(shown.contains("latest successful screen observation"));
-      assertTrue(shown.contains("byte-for-byte legacy default DNS configuration"));
-      assertTrue(shown.contains("regression fixtures"));
-      assertTrue(shown.contains("3.2.2"));
+      assertTrue(shown.contains("Expand terminal actions, output preview and export"));
+      assertTrue(shown.contains("Adapt the session sidebar and floating button"));
+      assertTrue(shown.contains("retain a status message when a start request is not submitted"));
+      assertTrue(shown.contains("Improve environment recovery and path checks"));
+      assertTrue(shown.contains("This build has not been installed or accepted on a phone"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
