@@ -10,6 +10,12 @@ on:
         description: Fixed SHA-256 for that input bundle
         required: true
         type: string
+      asset_archive_format:
+        description: Layout of the verified input archive
+        required: false
+        type: choice
+        default: bundle
+        options: [bundle, source-archive]
 permissions:
   contents: read
 jobs:
@@ -34,7 +40,12 @@ jobs:
         env:
           INPUT_URL: ${{ inputs.asset_bundle_url }}
           INPUT_SHA: ${{ inputs.asset_bundle_sha256 }}
-        run: python3 tools/ci-assets.py --url "$INPUT_URL" --sha256 "$INPUT_SHA"
+          INPUT_FORMAT: ${{ inputs.asset_archive_format }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
+          if [ "$INPUT_FORMAT" = source-archive ]; then args+=(--source-archive); fi
+          python3 tools/ci-assets.py "${args[@]}"
       - name: Android SDK
         run: |
           platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
