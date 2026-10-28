@@ -2,6 +2,15 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-sunset-release-delivery.py",
+      "stage": "fast",
+      "requires": ["python39"],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Reject wrong source/run/test-package identities, missing evidence, existing tags and incomplete Release uploads; mock API writes never retry unknown outcomes."
+    },
+    {
       "path": "tools/test-android-image-wire.mjs",
       "stage": "runtime",
       "requires": ["node24", "raw"],

@@ -9,8 +9,7 @@ public final class ResolverConfig {
   private static final String DNS_END = "# DSHA end device DNS\n";
   // Exact bytes of the resolv.conf shipped in the legacy rootfs. Any user edit,
   // including a comment, opts out of this migration.
-  private static final String LEGACY_DEFAULT =
-      "nameserver 8.8.8.8\nnameserver 223.5.5.5\n";
+  private static final String LEGACY_DEFAULT = "nameserver 8.8.8.8\nnameserver 223.5.5.5\n";
   private static final java.util.regex.Pattern MANAGED_DNS =
       java.util.regex.Pattern.compile(
           "(?m)^# DSHA managed device DNS\\r?\\n(?:nameserver [0-9A-Fa-f:.]+\\r?\\n)*# DSHA end device DNS\\r?\\n");

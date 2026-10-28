@@ -15,7 +15,8 @@ public class ResolverConfigTest {
     assertEquals(migrated, ResolverConfig.reconcile(migrated, "auto", java.util.List.of()));
     assertEquals(
         migrated, ResolverConfig.reconcile(migrated, "auto", java.util.List.of("192.0.2.53")));
-    assertEquals(migrated, ResolverConfig.reconcile(legacy, "native", java.util.List.of("192.0.2.53")));
+    assertEquals(
+        migrated, ResolverConfig.reconcile(legacy, "native", java.util.List.of("192.0.2.53")));
     String changed = legacy + "# retain my DNS\n";
     assertEquals(
         changed, ResolverConfig.reconcile(changed, "auto", java.util.List.of("192.0.2.53")));

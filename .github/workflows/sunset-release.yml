@@ -1,0 +1,366 @@
+name: Sunset Standard Release delivery
+
+# 显式私有 tag 预发布交付；不依赖 Actions artifacts 存储，不运行 Low。
+on:
+  # 注册分支工作流供API选择；push不进入发布job。
+  push:
+    branches: [Sunset-3090-Q]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: New sunset-build206-YYYYMMDD-HHMMSS prerelease tag
+        required: true
+        type: string
+      expected_sha:
+        description: Exact 40-character source commit to verify and publish
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: sunset-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+jobs:
+  build_release:
+    name: Verify and publish Standard test release
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'SunsetRNE/DSHA-Sunset-mod-3090-Q' && github.event.repository.private && github.ref == 'refs/heads/Sunset-3090-Q'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: write
+      actions: read
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Bind explicit release request to exact source and fixed inputs
+        run: |
+          python3 - <<'PYCODE'
+          import importlib.util, os, re
+          if os.environ['EXPECTED_SHA'] != os.environ['GITHUB_SHA'] or not re.fullmatch(r'[a-f0-9]{40}', os.environ['EXPECTED_SHA']):
+              raise SystemExit('RELEASE_COMMIT_MISMATCH')
+          if not re.fullmatch(r'sunset-build206-[0-9]{8}-[0-9]{6}', os.environ['RELEASE_TAG']):
+              raise SystemExit('RELEASE_TAG_INVALID')
+          spec = importlib.util.spec_from_file_location('fixed_inputs', 'tools/sunset-ci-inputs.py')
+          helper = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(helper)
+          selected = helper.resolve({})
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              for key, value in {'ASSET_URL': selected['url'], 'ASSET_SHA': selected['sha256'], 'ASSET_FORMAT': selected['format'], 'APK_NAME': 'dsha-sunset-' + os.environ['GITHUB_SHA'][:8] + '.apk'}.items():
+                  output.write(key + '=' + value + '\n')
+          PYCODE
+      - name: Verify toolchain against source configuration
+        id: toolchain
+        run: python3 tools/ci-toolchain.py --github-output
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ steps.toolchain.outputs.java }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.toolchain.outputs.node }}
+      - name: Verify checked-in contracts
+        run: |
+          python3 tools/prepare-runtime-tools.py --check
+          python3 tools/verify-runtime-descriptor-source.py
+          python3 tools/generate-third-party-notices.py --check
+          python3 tools/check-third-party-notices.py
+          python3 tools/generate-builtin-plugins.py --verify
+          python3 tools/generate-credential-paths.py --check
+          python3 tools/prepare-semver-reference.py
+          python3 tools/run-host-tests.py --check-manifest
+          python3 tools/check-source-hygiene.py
+          python3 tools/check-ui-i18n.py
+          python3 tools/generate-changelog.py --check
+          python3 tools/check-document-links.py
+      - name: Branch regression without fixed-input dependencies
+        # 完整 fast 套件里的 asset-deployment/mobile-upstream 需要离线输入包或
+        # 上游夹具；本分支只门禁与设备桥/consent/shell 直接相关的宿主回归。
+        run: |
+          python3 tools/run-host-tests.py --stage fast --jdk "$JAVA_HOME" \
+            --only test-native-consent-transport.mjs \
+            --only test-bridge-token-compat.mjs \
+            --only test-bridge-token-transport.py \
+            --only test-destructive-guard.mjs \
+            --only test-destructive-full-access.mjs \
+            --only test-vscreen-anchored.mjs \
+            --only test-device-shell-policy.py \
+            --only test-credential-paths.py \
+            --only test-runtime-descriptor-inputs.py \
+            --only test-runtime-descriptor-source.py \
+            --only test-plugin-capabilities.py \
+            --only test-plugin-transactions.py \
+            --only test-plugin-delete-nofollow.py \
+            --only test-architecture-boundaries.py \
+            --only test-bridge-port.mjs \
+            --only test-bridge-port.py \
+            --only test-ci-assets.py \
+            --only test-ci-package.py \
+            --only test-sunset-release-delivery.py \
+            --only test-host-test-runner.py \
+            --only test-release-evidence.py \
+            --only test-dsh-runtime-packaging.py \
+            --only test-sunset-ci-inputs.py \
+            --only test-sunset-plugin-release.py \
+            --only test-generate-changelog.py \
+            --only test-ui-language-catalog.py
+      - name: Restore exact fixed build inputs
+        env:
+          INPUT_URL: ${{ env.ASSET_URL }}
+          INPUT_SHA: ${{ env.ASSET_SHA }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
+          if [ "$ASSET_FORMAT" = source-archive ]; then args+=(--source-archive); fi
+          python3 tools/ci-assets.py "${args[@]}"
+      - name: Install Android SDK and NDK
+        run: |
+          platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
+          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
+          ndk=$(python3 tools/ci-toolchain.py --field ndk)
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager_bin" ]; then
+            sdkmanager_bin=$(find "$sdk_root" -path '*/cmdline-tools/*/bin/sdkmanager' | head -1)
+          fi
+          test -x "$sdkmanager_bin"
+          "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
+      # 输入 bundle 的字节先按源码 pin 核验；再从当前 npm lock 重建 DSH，避免旧 recipe 元数据阻塞本分支补丁。
+      - name: Rebuild current managed DSH runtime from the dependency lock
+        run: |
+          python3 tools/prepare-dsh-runtime.py
+          python3 tools/prepare-backup-assets.py --write
+          python3 tools/prepare-runtime-descriptor.py --write
+          python3 tools/verify-runtime-descriptor-source.py
+      - name: Prepare current verified runtime fixture
+        run: python3 tools/prepare-test-runtime.py
+      - name: Prepare pinned plugin browser fixture
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/dsha-plugin-browsers
+        run: |
+          npm ci --prefix tools/ci-browser --ignore-scripts --no-audit --no-fund
+          node tools/ci-browser/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Verify runtime patch upgrades and managed recovery consent
+        # 使用已验证 raw/managed，覆盖真实 Java 补丁升级与应急 ToolRuntime 授权。
+        run: |
+          python3 tools/run-host-tests.py --stage runtime --jdk "$JAVA_HOME" \
+            --playwright "$GITHUB_WORKSPACE/tools/ci-browser/node_modules/playwright" \
+            --browsers-path "$RUNNER_TEMP/dsha-plugin-browsers" \
+            --output app/build/host-tests/sunset-patch-chains \
+            --only test-plugin-management-patch-chain.py \
+            --only test-android-image-wire.mjs \
+            --only test-web-fetch-unicode.py \
+            --only test-language-patch-chain.py \
+            --only test-ui-language.mjs \
+            --only test-prompt-language.mjs \
+            --only test-app-activity.mjs \
+            --only test-plugin-runtime-evidence.mjs \
+            --only test-plugin-discovery.py \
+            --only test-plugin-review.py \
+            --only test-plugin-management-probe.mjs \
+            --only test-session-interaction-patch-upgrade.py \
+            --only test-preset-pending-patch-upgrade.py \
+            --only test-recovery-native-consent.mjs \
+            --only test-mobile-server-compression-carrier.mjs
+      - name: Complete Standard unit tests with fixed inputs
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testStandardDebugUnitTest -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
+      - name: Verify all seven Standard external-fixture tests executed
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          required = {
+              "com.deepseekharness.app.runtime.AdbWheelBundleTest": ["realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel"],
+              "com.deepseekharness.app.runtime.RuntimeToolsRegistryAndroidTest": [
+                  "completeProductionChainAppliesAllSpecializedStagesAndIsRepeatable",
+                  "lanRetirementRejectsModuleDriftAndPreservesOriginalBytes",
+                  "lanRetirementRejectsUnknownVersionAndContractDrift",
+                  "oldLanExactReplacementAndIdempotenceRemainStrict",
+                  "previousRuntimeGenerationCannotReceiveCurrentOverlayInPlace",
+              ],
+              "com.deepseekharness.app.util.ManagedPatchRegistryIntegrationTest": [
+                  "everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns",
+              ],
+          }
+          allowed_skips = {
+              ("com.deepseekharness.app.vscreen.VirtualScreenLowBoundaryTest",
+               "lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion"),
+          }
+          result = {"mode": "full", "flavors": {}}
+          for flavor in ("Standard",):
+              reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
+              if not reports:
+                  raise SystemExit(f"Missing JUnit reports: {flavor}")
+              suites = [ET.parse(report).getroot() for report in reports]
+              counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
+                        for key in ("tests", "failures", "errors", "skipped")}
+              if not counts["tests"] or counts["failures"] or counts["errors"]:
+                  raise SystemExit(f"Full unit tests failed: {flavor} {counts}")
+              cases_all = [case for suite in suites for case in suite.findall("testcase")]
+              skipped = [(case.get("classname"), case.get("name")) for case in cases_all
+                         if case.find("skipped") is not None]
+              if counts["tests"] != len(cases_all) or counts["skipped"] != len(skipped):
+                  raise SystemExit(f"JUnit report counts disagree: {flavor}")
+              if set(skipped) - allowed_skips:
+                  raise SystemExit(f"Unexpected full-input skips: {flavor} {skipped}")
+              for owner, methods in required.items():
+                  for method in methods:
+                      cases = [case for case in cases_all
+                               if case.get("classname") == owner
+                               and case.get("name") == method]
+                      if len(cases) != 1 or any(cases[0].find(tag) is not None
+                                                for tag in ("skipped", "failure", "error")):
+                          raise SystemExit(f"Required fixture test did not pass: {flavor} {owner}.{method}")
+              counts["requiredFixtureTestsPassed"] = sum(map(len, required.values()))
+              result["flavors"][flavor] = counts
+          Path("out").mkdir(exist_ok=True)
+          Path("out/full-unit-tests.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("### Full unit tests with fixed inputs\n")
+              for flavor, counts in result["flavors"].items():
+                  summary.write(f"- {flavor}: " + ", ".join(f"{key}={value}" for key, value in counts.items()) + "\n")
+          PY
+      - name: Verify complete Java formatting gate
+        run: |
+          python3 - <<'PYCODE'
+          import json, subprocess, sys
+          from pathlib import Path
+          result = subprocess.run(['python3', 'tools/format-java-tree.py', '--check'])
+          summary = Path('app/build/java-format/tree-summary.json')
+          if result.returncode and summary.is_file():
+              for report in json.loads(summary.read_text())['reports']:
+                  for row in json.loads((summary.parent / report).read_text())['files']:
+                      if row['needsFormatting']:
+                          print('NEEDS_FORMAT ' + row['file'], flush=True)
+          sys.exit(result.returncode)
+          PYCODE
+      - name: Lint Standard release
+        run: ./gradlew :app:lintStandardRelease -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true --no-daemon --max-workers=2
+      - name: Build unsigned Sunset test package
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleStandardRelease -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true --no-daemon
+      - name: Prepare ephemeral or configured test signing key
+        env:
+          CONFIGURED_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
+          CONFIGURED_TEST_PASSWORD: ${{ secrets.SUNSET_TEST_STORE_PASSWORD }}
+        run: |
+          umask 077
+          key="$RUNNER_TEMP/sunset-release-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.jks"
+          if [ -n "$CONFIGURED_TEST_KEYSTORE_B64" ]; then
+            password="${CONFIGURED_TEST_PASSWORD:-sunset-test-only}"
+            printf '%s' "$CONFIGURED_TEST_KEYSTORE_B64" | base64 -d > "$key"
+            source=configured-secret
+          else
+            password=$(python3 -c 'import secrets; print(secrets.token_hex(24))')
+            source=ephemeral
+          fi
+          echo "::add-mask::$password"
+          export SUNSET_TEST_STORE_PASSWORD="$password"
+          if [ "$source" = ephemeral ]; then
+            keytool -genkeypair -keystore "$key" -storetype PKCS12 -alias sunset-test \
+              -keyalg RSA -keysize 3072 -validity 3650 \
+              -dname 'CN=DSHA Sunset Test (NOT FOR RELEASE), OU=Sunset-3090-Q, O=SunsetRNE, C=CN' \
+              -storepass:env SUNSET_TEST_STORE_PASSWORD -keypass:env SUNSET_TEST_STORE_PASSWORD
+          fi
+          mkdir -p out
+          keytool -exportcert -rfc -keystore "$key" -alias sunset-test \
+            -storepass:env SUNSET_TEST_STORE_PASSWORD > out/sunset-test-cert.pem
+          printf 'SUNSET_RELEASE_KEY=%s\nSUNSET_TEST_STORE_PASSWORD=%s\nSIGNING_KEY_SOURCE=%s\n' "$key" "$password" "$source" >> "$GITHUB_ENV"
+      - name: Sign with test key and verify identity
+        id: sign
+        run: |
+          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          apksigner="$sdk_root/build-tools/$buildtools/apksigner"
+          aapt2="$sdk_root/build-tools/$buildtools/aapt2"
+          unsigned=$(find app/build/outputs/apk/standard/release -name '*-unsigned.apk' | head -1)
+          test -n "$unsigned"
+          version=$(python3 -c "import json;print(json.load(open('app/build/outputs/apk/standard/release/output-metadata.json'))['elements'][0]['versionName'])")
+          apk="out/$APK_NAME"
+          "$apksigner" sign --ks "$SUNSET_RELEASE_KEY" --ks-key-alias sunset-test \
+            --ks-pass env:SUNSET_TEST_STORE_PASSWORD \
+            --key-pass env:SUNSET_TEST_STORE_PASSWORD --out "$apk" "$unsigned"
+          package=$("$aapt2" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          test "$package" = "dsh.android.client.SunsetRNE"
+          "$aapt2" dump badging "$apk" | grep -q "versionName='.*-SunsetTest'"
+          if "$aapt2" dump badging "$apk" | grep -q 'application-debuggable'; then exit 1; fi
+          "$apksigner" verify --verbose --print-certs "$apk" > out/apk-signature.txt
+          "$aapt2" dump badging "$apk" > out/apk-badging.txt
+          cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
+          test -n "$cert"
+          test "$cert" != "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
+          python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
+          python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
+          (cd out && sha256sum *.apk sunset-test-cert.pem > SHA256SUMS)
+          python3 - <<PY
+          import hashlib, json, os
+          value = {
+            "schema": 1,
+            "kind": "sunset-3090-q-test-apk",
+            "flavors": ["standard"],
+            "commit": os.environ["GITHUB_SHA"],
+            "runNumber": os.environ["GITHUB_RUN_NUMBER"],
+            "runId": os.environ["GITHUB_RUN_ID"],
+            "runAttempt": os.environ["GITHUB_RUN_ATTEMPT"],
+            "inputArchiveFormat": os.environ["ASSET_FORMAT"],
+            "packageName": "dsh.android.client.SunsetRNE",
+            "versionCode": 206,
+            "apkSha256": hashlib.sha256(open("out/" + os.environ["APK_NAME"], "rb").read()).hexdigest(),
+            "apkSize": os.path.getsize("out/" + os.environ["APK_NAME"]),
+            "versionName": "$version",
+            "apkFile": os.environ["APK_NAME"],
+            "certificateSha256": "$cert",
+            "assetBundleSha256": os.environ["ASSET_SHA"],
+            "runtimeId": json.load(open("app/src/main/assets/runtime-descriptor.json", encoding="utf-8"))["runtimeId"],
+            "rebuiltRuntimeSha256": json.load(open("app/src/main/assets/dsh-runtime.inputs.json", encoding="utf-8"))["archive_sha256"],
+            "unitTests": json.load(open("out/full-unit-tests.json", encoding="utf-8")),
+            "note": "TEST ONLY - NOT FOR RELEASE",
+          }
+          open("out/build-info.json", "w", encoding="utf-8").write(json.dumps(value, ensure_ascii=False, indent=2) + "\\n")
+          PY
+          cat out/build-info.json
+          printf 'apk=%s\n' "$apk" >> "$GITHUB_OUTPUT"
+          printf 'commit=%s\nrun_id=%s\nrun_attempt=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+      - name: Remove test private key
+        if: always()
+        run: |
+          python3 - <<'PYCODE'
+          import os
+          from pathlib import Path
+          parent = Path(os.environ['RUNNER_TEMP']).resolve()
+          key = parent / ('sunset-release-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'] + '.jks')
+          if key.is_symlink() or key.resolve().parent != parent:
+              raise SystemExit('UNEXPECTED_TEST_KEY_PATH')
+          key.unlink(missing_ok=True)
+          PYCODE
+      - name: Package commit-bound public verification evidence
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import hashlib, os, zipfile
+          roots = [Path('app/build/test-results/testStandardDebugUnitTest'), Path('app/build/host-tests')]
+          files = [Path('out') / name for name in ['build-info.json', 'full-unit-tests.json', 'apk-signature.txt', 'apk-badging.txt', 'sunset-test-cert.pem', 'apk-runtime-verification.txt', 'apk-recovery-verification.txt']]
+          files += [Path('app/build/reports/lint-results-standardRelease.xml')]
+          for root in roots:
+              files += sorted(path for path in root.rglob('*') if path.is_file() and path.suffix in ('.xml', '.json', '.log'))
+          if any(not path.is_file() or path.is_symlink() for path in files):
+              raise SystemExit('PUBLIC_EVIDENCE_MISSING')
+          with zipfile.ZipFile('out/sunset-evidence.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
+              for path in sorted(set(files)):
+                  archive.write(path, path.as_posix())
+          names = [os.environ['APK_NAME'], 'sunset-evidence.zip', 'build-info.json', 'sunset-test-cert.pem']
+          Path('out/SHA256SUMS').write_text(''.join(hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names), encoding='utf-8')
+          PYCODE
+      - name: Publish verified new tag and prerelease with direct Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/sunset-release-delivery.py --tag "$RELEASE_TAG" --expected-sha "$EXPECTED_SHA" --output out
