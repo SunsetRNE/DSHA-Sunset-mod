@@ -2119,7 +2119,7 @@ public final class HttpShellService {
         if (media == null) return "NOT_IMAGE";
         if (!com.deepseekharness.app.util.BridgeImage.isStatic(image, media))
           return "ANIMATED_OR_INVALID_IMAGE";
-        if (!com.deepseekharness.app.util.BridgeImageDecoder.valid(image, media))
+        if (!com.deepseekharness.app.bridge.BridgeImageDecoder.valid(image, media))
           return "INVALID_IMAGE";
         return com.deepseekharness.app.util.BridgeImage.envelope(
             media, android.util.Base64.encodeToString(image, android.util.Base64.NO_WRAP));

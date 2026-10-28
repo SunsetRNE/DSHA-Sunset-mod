@@ -1,4 +1,4 @@
-package com.deepseekharness.app.util;
+package com.deepseekharness.app.bridge;
 
 import static org.junit.Assert.*;
 
