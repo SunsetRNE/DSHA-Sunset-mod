@@ -67,7 +67,9 @@ public final class EnvironmentIdentity {
       String attempted) {
     if (latest) return false;
     if (!candidateReadable) return true;
-    return shouldAutoStart(false, busy, pending, candidate, attempted);
+    // busy/pending 只决定维护能否立即执行，不能把尚未尝试的新候选判成无需维护。
+    // Main 入口和 Web 启动必须看到同一结论；各自的执行门禁继续检查任务与退出状态。
+    return shouldAutoStart(false, false, false, candidate, attempted);
   }
 
   /** 成功文案不是就绪证明；维护之后仍未就绪时留在原生页，不能再次进入跳转循环。 */

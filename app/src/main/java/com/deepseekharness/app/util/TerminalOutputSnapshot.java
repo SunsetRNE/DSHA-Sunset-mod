@@ -2,12 +2,13 @@ package com.deepseekharness.app.util;
 
 import com.termux.terminal.TerminalBuffer;
 import com.termux.terminal.TerminalEmulator;
-import java.util.ArrayDeque;
 
 /** 主线程读取终端缓冲区得到的只读快照；后续输出和会话切换不会改变导出内容。 */
 public final class TerminalOutputSnapshot {
   public static final int MAX_CHARACTERS = 65536;
   private static final int MAX_ROWS = 10000;
+  // 上下文预算独立于导出预算；超过预算时不使用缺少上下文的尾部代替。
+  static final int MAX_CONTEXT_CHARACTERS = 16 * MAX_CHARACTERS;
 
   public record Part(String text, boolean truncated) {}
 
@@ -28,38 +29,66 @@ public final class TerminalOutputSnapshot {
     int first = -buffer.getActiveTranscriptRows();
     int top = Math.max(first, Math.min(0, topRow));
     int last = emulator.mRows - 1;
-    Part screen = read(buffer, emulator.mColumns, top, Math.min(last, top + emulator.mRows - 1));
-    Part history = read(buffer, emulator.mColumns, first, last);
-    return new TerminalOutputSnapshot(SensitiveData.redact(sessionName), screen, history);
+    Source source = readContext(buffer, emulator.mColumns, first, last);
+    if (source == null) {
+      Part withheld = new Part("", true);
+      return new TerminalOutputSnapshot(SensitiveData.redact(sessionName), withheld, withheld);
+    }
+    Selection screen =
+        select(source, top - first, Math.min(last, top + emulator.mRows - 1) - first);
+    Selection history = select(source, 0, last - first);
+    // 在完整上下文中识别敏感区间，再投影到原始行范围；替换变短也不引入范围外正文。
+    String[] safe =
+        SensitiveData.redactRanges(
+            source.text(), screen.start(), screen.end(), history.start(), history.end());
+    return new TerminalOutputSnapshot(
+        SensitiveData.redact(sessionName),
+        finish(safe[0], screen.truncated()),
+        finish(safe[1], history.truncated()));
   }
 
-  private record Row(String text, boolean wrapped) {}
+  private record Source(String text, int[] starts, boolean[] wrapped) {}
 
-  private static Part read(TerminalBuffer buffer, int columns, int first, int last) {
-    ArrayDeque<Row> lines = new ArrayDeque<>();
-    int length = 0;
-    boolean truncated = false;
-    for (int row = last; row >= first; row--) {
+  private record Selection(int start, int end, boolean truncated) {}
+
+  private static Source readContext(TerminalBuffer buffer, int columns, int first, int last) {
+    int count = last - first + 1;
+    int[] starts = new int[count + 1];
+    boolean[] wrapped = new boolean[count];
+    StringBuilder raw = new StringBuilder();
+    for (int index = 0; index < count; index++) {
+      int row = first + index;
       String line = buffer.getSelectedText(0, row, columns - 1, row);
-      boolean wrapped = buffer.getLineWrap(row);
-      if (row < last && !wrapped) line += "\n";
-      if (lines.size() >= MAX_ROWS || length + line.length() > MAX_CHARACTERS) {
-        // 截断点若落在软换行中，舍弃不完整逻辑行，保留后面的完整行。
-        // 否则 password= 等前缀可能被剪掉，令凭据尾部失去脱敏上下文。
-        if (wrapped) {
-          while (!lines.isEmpty()) {
-            if (!lines.removeFirst().wrapped()) break;
+      wrapped[index] = buffer.getLineWrap(row);
+      boolean newline = row < last && !wrapped[index];
+      if (line.length() > MAX_CONTEXT_CHARACTERS - raw.length() - (newline ? 1 : 0)) return null;
+      starts[index] = raw.length();
+      raw.append(line);
+      if (newline) raw.append('\n');
+    }
+    starts[count] = raw.length();
+    return new Source(raw.toString(), starts, wrapped);
+  }
+
+  private static Selection select(Source source, int first, int last) {
+    int end = source.starts()[last + 1];
+    if (last + 1 < source.wrapped().length && !source.wrapped()[last]) end--;
+    for (int row = last; row >= first; row--) {
+      if (last - row >= MAX_ROWS || end - source.starts()[row] > MAX_CHARACTERS) {
+        int startRow = row + 1;
+        // 保留既有尾部范围：截断点若在软换行中，舍弃不完整逻辑行。
+        if (source.wrapped()[row]) {
+          while (startRow <= last) {
+            if (!source.wrapped()[startRow++]) break;
           }
         }
-        truncated = true;
-        break;
+        return new Selection(startRow > last ? end : source.starts()[startRow], end, true);
       }
-      lines.addFirst(new Row(line, wrapped));
-      length += line.length();
     }
-    StringBuilder raw = new StringBuilder(length);
-    for (Row line : lines) raw.append(line.text());
-    String text = SensitiveData.redact(raw.toString());
+    return new Selection(source.starts()[first], end, false);
+  }
+
+  private static Part finish(String text, boolean truncated) {
     // 短敏感值替换为 *** 可能变长；最后的预算以真正展示/导出的字符串为准。
     if (text.length() > MAX_CHARACTERS) {
       int start = text.length() - MAX_CHARACTERS;

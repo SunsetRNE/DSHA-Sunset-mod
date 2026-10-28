@@ -171,12 +171,12 @@ public final class TerminalOutputDialog extends DialogFragment {
     preview.setText(
         part.text().isBlank()
             ? part.truncated()
-                ? UiText.choose("单行输出过长，无法显示预览。", "A single output line is too long to preview.")
+                ? UiText.choose("输出过长，无法安全生成预览。", "Output is too long to preview safely.")
                 : UiText.choose("暂无终端输出", "No terminal output yet")
             : part.text());
     String message =
         UiText.choose("内容已固定为打开预览时的快照。", "Content is a snapshot taken when this preview opened.");
-    if (part.truncated())
+    if (part.truncated() && !part.text().isBlank())
       message =
           UiText.format(
               "%s\n%s",

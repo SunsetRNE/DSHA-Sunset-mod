@@ -12,6 +12,10 @@ import org.junit.Test;
 /** 用实际终端模拟器核验可见区、换行、历史边界和不可变导出内容。 */
 public class TerminalOutputSnapshotTest {
   private static TerminalEmulator emulator(int columns, int rows) {
+    return emulator(columns, rows, 2000);
+  }
+
+  private static TerminalEmulator emulator(int columns, int rows, int transcriptRows) {
     TerminalSessionClient client =
         (TerminalSessionClient)
             Proxy.newProxyInstance(
@@ -40,7 +44,7 @@ public class TerminalOutputSnapshotTest {
           @Override
           public void onColorsChanged() {}
         };
-    return new TerminalEmulator(output, columns, rows, 2000, client);
+    return new TerminalEmulator(output, columns, rows, transcriptRows, client);
   }
 
   private static void append(TerminalEmulator emulator, String text) {
@@ -148,6 +152,142 @@ public class TerminalOutputSnapshotTest {
     TerminalOutputSnapshot snapshot = TerminalOutputSnapshot.capture("PTY", emulator, 0);
     assertTrue(snapshot.history.truncated());
     assertTrue(snapshot.history.text().isEmpty());
+  }
+
+  @Test
+  public void historyCharacterCutKeepsMultilinePrivateKeyContext() {
+    TerminalEmulator emulator = emulator(80, 24);
+    String payload = "private-material-" + "A".repeat(48);
+    append(
+        emulator,
+        "outside before\r\n-----BEGIN RSA PRIVATE KEY-----\r\n"
+            + (payload + "\r\n").repeat(1200)
+            + "-----END RSA PRIVATE KEY-----\r\nsafe tail 😀");
+    String raw = emulator.getScreen().getTranscriptText();
+    assertTrue(raw.contains("-----BEGIN RSA PRIVATE KEY-----"));
+    assertTrue(raw.length() > TerminalOutputSnapshot.MAX_CHARACTERS);
+    String rawTail = raw.substring(raw.length() - TerminalOutputSnapshot.MAX_CHARACTERS);
+    assertFalse(rawTail.contains("-----BEGIN"));
+    assertTrue(rawTail.contains(payload));
+    TerminalOutputSnapshot snapshot = TerminalOutputSnapshot.capture("PTY", emulator, 0);
+    assertTrue(snapshot.history.truncated());
+    assertEquals(UiText.text("[私钥已隐藏]") + "\nsafe tail 😀", snapshot.history.text());
+    assertFalse(snapshot.screen.text().contains(payload));
+    assertTrue(snapshot.screen.text().endsWith("safe tail 😀"));
+  }
+
+  @Test
+  public void historyRowCutKeepsPrivateKeyContextEvenBelowCharacterBudget() {
+    TerminalEmulator emulator = emulator(80, 3, 12000);
+    append(
+        emulator,
+        "-----BEGIN PRIVATE KEY-----\r\n"
+            + "ZQ==\r\n".repeat(10050)
+            + "-----END PRIVATE KEY-----\r\nsafe tail");
+    String raw = emulator.getScreen().getTranscriptText();
+    assertTrue(raw.contains("-----BEGIN PRIVATE KEY-----"));
+    assertTrue(raw.length() < TerminalOutputSnapshot.MAX_CHARACTERS);
+    TerminalOutputSnapshot snapshot = TerminalOutputSnapshot.capture("PTY", emulator, 0);
+    assertTrue(snapshot.history.truncated());
+    assertEquals(UiText.text("[私钥已隐藏]") + "\nsafe tail", snapshot.history.text());
+  }
+
+  @Test
+  public void viewportUsesPrivateKeyContextOnBothSidesWithoutExportingOutsideRows() {
+    TerminalEmulator emulator = emulator(80, 3);
+    append(
+        emulator,
+        "outside before\r\n-----BEGIN EC PRIVATE KEY-----\r\n"
+            + "private one\r\nprivate two\r\nprivate three\r\n"
+            + "-----END EC PRIVATE KEY-----\r\noutside after");
+    int first = -emulator.getScreen().getActiveTranscriptRows();
+    for (int offset = 1; offset <= 3; offset++) {
+      TerminalOutputSnapshot snapshot =
+          TerminalOutputSnapshot.capture("PTY", emulator, first + offset);
+      assertEquals(UiText.text("[私钥已隐藏]"), snapshot.screen.text());
+      assertFalse(snapshot.screen.truncated());
+      assertTrue(snapshot.history.text().startsWith("outside before\n"));
+      assertTrue(snapshot.history.text().endsWith("\noutside after"));
+    }
+    assertEquals(
+        UiText.text("[私钥已隐藏]") + "\noutside after",
+        TerminalOutputSnapshot.capture("PTY", emulator, 0).screen.text());
+  }
+
+  @Test
+  public void viewportInsideSoftWrappedValueKeepsItsOffscreenCredentialPrefix() {
+    TerminalEmulator emulator = emulator(16, 3);
+    append(emulator, "before\r\npassword=" + "opaque".repeat(20) + "\r\nafter");
+    int first = -emulator.getScreen().getActiveTranscriptRows();
+    TerminalOutputSnapshot snapshot = TerminalOutputSnapshot.capture("PTY", emulator, first + 2);
+    assertEquals("***", snapshot.screen.text());
+    assertEquals("before\npassword=***\nafter", snapshot.history.text());
+    assertFalse(snapshot.screen.truncated());
+  }
+
+  @Test
+  public void historyCharacterCutKeepsMultilineQuotedValueContext() {
+    for (String quote : new String[] {"\"", "'"}) {
+      TerminalEmulator emulator = emulator(80, 24);
+      String payload = "quoted-private-material-" + "Q".repeat(40);
+      append(
+          emulator,
+          "outside before\r\npassword="
+              + quote
+              + "\r\n"
+              + (payload + "\r\n").repeat(1200)
+              + quote
+              + "\r\nsafe tail");
+      TerminalOutputSnapshot snapshot = TerminalOutputSnapshot.capture("PTY", emulator, 0);
+      assertTrue(snapshot.history.truncated());
+      assertEquals("***\nsafe tail", snapshot.history.text());
+      assertFalse(snapshot.screen.text().contains(payload));
+      assertTrue(snapshot.screen.text().endsWith("safe tail"));
+    }
+  }
+
+  @Test
+  public void incompletePrivateKeyRemainsHiddenWhileTerminalIsStillWriting() {
+    for (String type : new String[] {"", "RSA ", "EC ", "OPENSSH ", "ENCRYPTED ", "DSA "}) {
+      TerminalEmulator emulator = emulator(80, 3);
+      append(
+          emulator,
+          "public before\r\n-----BEGIN "
+              + type
+              + "PRIVATE KEY-----\r\nprivate one\r\nprivate two\r\nprivate three");
+      TerminalOutputSnapshot snapshot = TerminalOutputSnapshot.capture("PTY", emulator, 0);
+      assertEquals(UiText.text("[私钥已隐藏]"), snapshot.screen.text());
+      assertEquals("public before\n" + UiText.text("[私钥已隐藏]"), snapshot.history.text());
+    }
+  }
+
+  @Test
+  public void finalBudgetNeverStartsInsideSurrogatePairAfterRedactionExpansion() {
+    TerminalEmulator emulator = emulator(80, 24);
+    String body = "b".repeat(TerminalOutputSnapshot.MAX_CHARACTERS - 11);
+    append(emulator, "a😀" + body + "\r\ntoken=x");
+    TerminalOutputSnapshot snapshot = TerminalOutputSnapshot.capture("PTY", emulator, 0);
+    assertTrue(snapshot.history.truncated());
+    // 原文正好 64K；替换增加两字符，未经代理对保护的尾部会从 😀 的低代理项开始。
+    assertEquals(body + "\ntoken=***", snapshot.history.text());
+    assertEquals(TerminalOutputSnapshot.MAX_CHARACTERS - 1, snapshot.history.text().length());
+  }
+
+  @Test
+  public void contextBudgetIsInclusiveAndOverflowDoesNotFallBackToUnredactedTail() {
+    TerminalEmulator emulator = emulator(1024, 3);
+    append(
+        emulator, "x".repeat(TerminalOutputSnapshot.MAX_CONTEXT_CHARACTERS - 10) + "\r\nLATEST 😀");
+    TerminalOutputSnapshot atLimit = TerminalOutputSnapshot.capture("PTY", emulator, 0);
+    assertTrue(atLimit.history.truncated());
+    assertEquals("LATEST 😀", atLimit.history.text());
+    append(emulator, "!");
+    TerminalOutputSnapshot overflow = TerminalOutputSnapshot.capture("PTY", emulator, 0);
+    assertTrue(overflow.screen.truncated());
+    assertTrue(overflow.history.truncated());
+    assertEquals("", overflow.screen.text());
+    assertEquals("", overflow.history.text());
+    assertEquals("LATEST 😀", atLimit.history.text());
   }
 
   @Test

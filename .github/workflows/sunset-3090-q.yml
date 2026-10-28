@@ -299,6 +299,8 @@ jobs:
             --browsers-path "$RUNNER_TEMP/dsha-plugin-browsers" \
             --output app/build/host-tests/sunset-patch-chains \
             --only test-plugin-management-patch-chain.py \
+            --only test-android-image-wire.mjs \
+            --only test-web-fetch-unicode.py \
             --only test-language-patch-chain.py \
             --only test-ui-language.mjs \
             --only test-prompt-language.mjs \

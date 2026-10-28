@@ -2,6 +2,7 @@ package com.deepseekharness.app.ui;
 
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -42,13 +43,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private static final String SESSIONS_OPEN = "sessions_open";
   private final TerminalSessionOwner owner = TerminalSessionOwner.shared();
   private FrameLayout root, content, drawerHost;
-  private LinearLayout column,
-      toolbar,
-      body,
-      sessionPanel,
-      sessionList,
-      sessionHeader,
-      sessionFooter;
+  private LinearLayout column, toolbar, body, sessionList, sessionHeader, sessionFooter;
+  private SessionsPanelLayout sessionPanel;
   private LinearLayout footerActionsWide, footerActionsDense, sessionFlow;
   private ScrollView sessionScroll;
   private View sessionDivider;
@@ -267,14 +263,15 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   /** 侧栏内容只由宿主渲染；抽屉、平板内联与宽屏常驻复用同一份视图。 */
-  private LinearLayout buildSessionsPanel() {
-    LinearLayout panel = new SessionsPanelLayout();
+  private SessionsPanelLayout buildSessionsPanel() {
+    SessionsPanelLayout panel = new SessionsPanelLayout();
     sessionFlow = new LinearLayout(this);
     sessionFlow.setOrientation(LinearLayout.VERTICAL);
     panel.setId(R.id.terminal_sessions_panel);
     panel.setOrientation(LinearLayout.VERTICAL);
     panel.setBackgroundColor(getColor(R.color.terminal_panel));
-    panel.setFocusable(true);
+    // 容器接管触摸模式下的输入焦点；按钮仍保持首击直接执行。
+    panel.setFocusableInTouchMode(true);
     panel.setVisibility(View.GONE);
     sessionHeader = new LinearLayout(this);
     sessionHeader.setGravity(Gravity.CENTER_VERTICAL);
@@ -552,12 +549,18 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
 
   /** 测量固定区域后再决定滚动范围，避免极短窗把 weight=1 的会话列表压到零。 */
   private final class SessionsPanelLayout extends LinearLayout {
-    private View focusAfterLayout;
     private int scrollBeforeLayout, listTopBeforeLayout;
     private boolean restoreScrollAfterLayout;
 
     SessionsPanelLayout() {
       super(TerminalActivity.this);
+    }
+
+    void rememberScrollPosition() {
+      if (restoreScrollAfterLayout) return;
+      scrollBeforeLayout = sessionScroll.getScrollY();
+      listTopBeforeLayout = sessionList.getTop();
+      restoreScrollAfterLayout = true;
     }
 
     @Override
@@ -580,13 +583,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                     TerminalWorkspacePolicy.minimumSessionHeight(
                         getResources().getConfiguration().fontScale)));
         if (wholeSidebarScrolling != scrollAll) {
-          if (!restoreScrollAfterLayout) {
-            focusAfterLayout = findFocus();
-            scrollBeforeLayout = sessionScroll.getScrollY();
-            listTopBeforeLayout = sessionList.getTop();
-            restoreScrollAfterLayout = true;
-          }
+          View focused = findFocus();
+          rememberScrollPosition();
           setWholeSidebarScrolling(scrollAll);
+          if (focused != null && !focused.requestFocus()) focusSessions();
         }
       }
       super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -609,15 +609,16 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       super.onLayout(changed, left, top, right, bottom);
       if (!restoreScrollAfterLayout) return;
       restoreScrollAfterLayout = false;
-      View focused = focusAfterLayout;
-      focusAfterLayout = null;
-      if (focused != null) focused.requestFocus();
-      // 已滚动时保持同一段会话；首次展开仍从头部开始，避免藏住关闭和新建入口。
+      // 先保持原会话位置，再确保当前焦点可见；不能用旧偏移覆盖焦点所需的滚动。
       sessionScroll.scrollTo(
           0,
           scrollBeforeLayout > 0
               ? Math.max(0, scrollBeforeLayout + sessionList.getTop() - listTopBeforeLayout)
               : 0);
+      View focused = findFocus();
+      if (focused != null && focused != this)
+        focused.requestRectangleOnScreen(
+            new Rect(0, 0, focused.getWidth(), focused.getHeight()), true);
     }
   }
 
@@ -1031,6 +1032,14 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
         open ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_BEFORE_DESCENDANTS);
     ball.setFocusable(!open);
     ball.setFocusableInTouchMode(!open);
+    // 阻止后续请求不会清除已有输入焦点；触摸模式下关闭按钮也未必能接管。
+    if (open && !sessionPanel.hasFocus()) focusSessions();
+  }
+
+  private void focusSessions() {
+    if (sessionClose.getVisibility() == View.VISIBLE && sessionClose.requestFocus()) return;
+    if (newSessionButton.requestFocus()) return;
+    sessionPanel.requestFocus();
   }
 
   private void hideSessionsPanel() {
@@ -1331,10 +1340,15 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             .show();
   }
 
+  private record SessionFocusKey(boolean pty, long sessionId, String action) {}
+
   private void renderSessions() {
     if (sessionList == null) return;
-    int scrollY = sessionsRendered && sessionScroll != null ? sessionScroll.getScrollY() : -1;
-    int listOffset = scrollY - sessionList.getTop();
+    View focused = sessionList.findFocus();
+    Object focusKey = focused == null ? null : focused.getTag();
+    if (sessionsRendered) sessionPanel.rememberScrollPosition();
+    // 重建期间先把焦点留在侧栏，避免移除行控件后回到终端输入。
+    if (focused != null) sessionPanel.requestFocus();
     sessionList.removeAllViews();
     var ptyTabs = owner.ptyTabs().snapshot();
     var simpleTabs = owner.simpleTabs().snapshot();
@@ -1360,10 +1374,12 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
               simpleTabs.size()));
     if (closeAllButton != null) closeAllButton.setVisibility(total > 0 ? View.VISIBLE : View.GONE);
     sessionsRendered = true;
-    if (scrollY > 0 && sessionScroll != null)
-      sessionScroll.post(
-          () -> sessionScroll.scrollTo(0, Math.max(0, listOffset + sessionList.getTop())));
     refreshCloseAllNotice();
+    if (focused != null) {
+      View replacement =
+          focusKey instanceof SessionFocusKey ? sessionList.findViewWithTag(focusKey) : null;
+      if (replacement == null || !replacement.requestFocus()) focusSessions();
+    }
   }
 
   private void addGroupHeader(String text, int count, int iconRes) {
@@ -1469,6 +1485,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (active)
       description = UiText.format(UiText.choose("当前会话 · %s", "Current session · %s"), description);
     body.setContentDescription(description);
+    body.setTag(new SessionFocusKey(pty, tab.id, "select"));
     body.setOnClickListener(v -> selectSession(pty, tab.id));
     row.addView(body, new LinearLayout.LayoutParams(0, -2, 1));
     View rename =
@@ -1477,6 +1494,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             UiText.format(UiText.choose("重命名 %s", "Rename %s"), sessionLabel(pty, tab)),
             () -> rename(pty, tab.id),
             R.color.terminal_muted);
+    rename.setTag(new SessionFocusKey(pty, tab.id, "rename"));
     rename.setEnabled(!tab.isClosing());
     rename.setAlpha(rename.isEnabled() ? 1f : .35f);
     row.addView(rename, new LinearLayout.LayoutParams(dp(48), dp(48)));
@@ -1492,6 +1510,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                 sessionLabel(pty, tab)),
             () -> requestCloseSession(pty, tab.id),
             tab.isCloseUnconfirmed() ? R.color.terminal_warning : R.color.terminal_muted);
+    close.setTag(new SessionFocusKey(pty, tab.id, "close"));
     close.setEnabled(!tab.isClosing());
     close.setAlpha(close.isEnabled() ? 1f : .35f);
     row.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));

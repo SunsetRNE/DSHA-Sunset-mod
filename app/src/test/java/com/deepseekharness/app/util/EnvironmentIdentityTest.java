@@ -137,6 +137,32 @@ public class EnvironmentIdentityTest {
   }
 
   @Test
+  public void busyPluginReadCannotHideUnattemptedRuntimeMaintenance() {
+    String candidate = "runtime:" + "b".repeat(64);
+    String previous = "runtime:" + "a".repeat(64);
+    // 后台插件读取只影响维护执行时机，不改变覆盖安装后必须更新的事实。
+    assertFalse(EnvironmentIdentity.shouldAutoStart(false, true, false, candidate, previous));
+    assertTrue(
+        EnvironmentIdentity.shouldBlockRuntimeStart(false, true, true, false, candidate, previous));
+    assertTrue(
+        EnvironmentIdentity.shouldBlockRuntimeStart(
+            false, true, false, false, candidate, previous));
+  }
+
+  @Test
+  public void pendingMaintenanceCannotHideNewCandidateButAttemptedFallbackRemainsAvailable() {
+    String candidate = "runtime:" + "b".repeat(64);
+    assertFalse(EnvironmentIdentity.shouldAutoStart(false, false, true, candidate, ""));
+    assertTrue(
+        EnvironmentIdentity.shouldBlockRuntimeStart(false, true, false, true, candidate, ""));
+    assertTrue(EnvironmentIdentity.shouldBlockRuntimeStart(false, true, true, true, candidate, ""));
+    // 已尝试候选的健康兼容前代仍交给独立的任务/退出/维护门禁决定是否可运行。
+    assertFalse(
+        EnvironmentIdentity.shouldBlockRuntimeStart(false, true, true, true, candidate, candidate));
+    assertFalse(EnvironmentIdentity.shouldBlockRuntimeStart(true, true, true, true, candidate, ""));
+  }
+
+  @Test
   public void stickyServiceCannotBypassManagedRuntimeUpdate() {
     String candidate = "runtime:" + "b".repeat(64);
     assertTrue(
