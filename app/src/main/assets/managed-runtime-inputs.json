@@ -593,6 +593,7 @@
     "HttpShellService.java",
     "DshaAccessibilityService.java",
     "bridge/AdbBridge.java",
+    "bridge/BridgeImageDecoder.java",
     "util/SensitiveData.java",
     "recovery/RecoveryStoragePlan.java",
     "runtime/GuestPreparationFailure.java",

@@ -1,7 +1,8 @@
-package com.deepseekharness.app.util;
+package com.deepseekharness.app.bridge;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import com.deepseekharness.app.util.BridgeImage;
 
 /** Validate the actual Android decoder result before sending image bytes to a client. */
 public final class BridgeImageDecoder {

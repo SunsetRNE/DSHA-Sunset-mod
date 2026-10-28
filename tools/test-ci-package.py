@@ -169,6 +169,8 @@ class SunsetPatchRegressions(unittest.TestCase):
         self.assertEqual(selected.output, 'app/build/host-tests/sunset-patch-chains')
         expected = {
             'test-plugin-management-patch-chain.py': {'raw', 'jdk17'},
+            'test-android-image-wire.mjs': {'node24', 'raw'},
+            'test-web-fetch-unicode.py': {'node24', 'python39'},
             'test-language-patch-chain.py': {'raw', 'jdk17', 'current_archive'},
             'test-ui-language.mjs': {'node24', 'raw'},
             'test-prompt-language.mjs': {'node24', 'raw'},
