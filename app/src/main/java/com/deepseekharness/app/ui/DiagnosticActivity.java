@@ -96,6 +96,8 @@ public final class DiagnosticActivity extends AppCompatActivity {
         items -> {
           resultList.show(items);
           renderHero();
+          // 复制以检查结果为准：早期失败不经 busy=true，结果到达时也要重算反馈按钮。
+          renderActions();
         });
     repository.phase.observe(this, phase -> renderHero());
     repository.busy.observe(
