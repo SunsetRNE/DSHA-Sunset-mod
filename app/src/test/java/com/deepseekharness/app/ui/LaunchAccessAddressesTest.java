@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Looper;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,8 +15,8 @@ import androidx.appcompat.app.AlertDialog;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.LanProxyService;
 import com.deepseekharness.app.HarnessService;
-import com.deepseekharness.app.bridge.LocalNetworkAccess;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.bridge.LocalNetworkAccess;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.LanAccessPresentation;
@@ -35,8 +36,15 @@ import org.robolectric.annotation.Implements;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadow.api.Shadow;
 import org.robolectric.shadows.ShadowDialog;
+import org.robolectric.shadows.ShadowLooper;
 
-/** Real Launch layout, dialogs and clipboard with synthetic LAN snapshots; never opens a listener. */
+/**
+ * 真实 Launch 布局、访问地址自定义弹窗与剪贴板；用合成 LAN 快照驱动，绝不真正开监听。
+ *
+ * <p>build209 合并后的弹窗是 {@code dialog_access_address} 自定义视图：正文在
+ * {@code access_body}，三个横向按钮是 {@code access_lan_toggle / access_copy / access_close}；
+ * 不再使用 AlertDialog 的 message/positive/neutral 接口。
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(
     sdk = 34,
@@ -181,7 +189,43 @@ public final class LaunchAccessAddressesTest {
 
   private AlertDialog open() {
     entry.requireView().findViewById(R.id.launch_address).performClick();
-    return (AlertDialog) ShadowDialog.getLatestDialog();
+    AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+    assertNotNull("the access dialog must be shown", dialog);
+    return dialog;
+  }
+
+  private static String body(AlertDialog dialog) {
+    TextView view = dialog.findViewById(R.id.access_body);
+    assertNotNull("the access dialog must carry its custom body", view);
+    return view.getText().toString();
+  }
+
+  private static Button lanButton(AlertDialog dialog) {
+    Button button = dialog.findViewById(R.id.access_lan_toggle);
+    assertNotNull(button);
+    return button;
+  }
+
+  private static Button copyButton(AlertDialog dialog) {
+    Button button = dialog.findViewById(R.id.access_copy);
+    assertNotNull(button);
+    return button;
+  }
+
+  private static void click(Button button) {
+    assertTrue(button.performClick());
+    idle();
+  }
+
+  private static void clickDialogButton(AlertDialog dialog, int button) {
+    assertTrue("the tested dialog must be visible", dialog.isShowing());
+    assertTrue(dialog.getButton(button).performClick());
+    idle();
+  }
+
+  private static void idle() {
+    ShadowLooper shadow = org.robolectric.shadow.api.Shadow.extract(Looper.getMainLooper());
+    shadow.idle();
   }
 
   private static String message(AlertDialog dialog) {
@@ -192,25 +236,19 @@ public final class LaunchAccessAddressesTest {
     return (ClipboardManager) host.get().getSystemService(Context.CLIPBOARD_SERVICE);
   }
 
-  private static void clickDialogButton(AlertDialog dialog, int button) {
-    assertTrue("the tested dialog must be visible", dialog.isShowing());
-    assertTrue(dialog.getButton(button).performClick());
-    // AlertController dispatches its button listener through the main Handler.
-    // Observe the resulting state only after that listener has actually run.
-    org.robolectric.shadows.ShadowLooper shadow =
-        org.robolectric.shadow.api.Shadow.extract(Looper.getMainLooper());
-    shadow.idle();
-  }
-
   @Test
   public void disabledLanIsShownWithExplicitEnableAndOpeningDoesNotExposeIt() {
     AlertDialog dialog = open();
-    assertTrue(message(dialog).contains(LOCAL));
-    assertTrue(message(dialog).contains("LAN access: off"));
-    assertEquals("Enable LAN access", dialog.getButton(DialogInterface.BUTTON_NEUTRAL).getText());
+    String shown = body(dialog);
+    assertTrue(shown.contains(LOCAL));
+    assertTrue(shown.contains("LAN access: off"));
+    assertFalse("overview must not expose the LAN token", shown.contains(LAN_TOKEN));
+    assertEquals("Enable LAN", lanButton(dialog).getText().toString());
+    assertEquals("Copy local URL", copyButton(dialog).getText().toString());
+    assertTrue(copyButton(dialog).isEnabled());
     assertFalse(Controller.config.isLanMode());
     assertEquals(0, Proxy.starts);
-    clickDialogButton(dialog, DialogInterface.BUTTON_NEUTRAL);
+    click(lanButton(dialog));
     AlertDialog confirmation = (AlertDialog) ShadowDialog.getLatestDialog();
     assertTrue(message(confirmation).contains("unencrypted"));
     assertFalse("showing confirmation cannot enable LAN", Controller.config.isLanMode());
@@ -220,21 +258,21 @@ public final class LaunchAccessAddressesTest {
   }
 
   @Test
-  public void currentDynamicLanUrlsAreListedAndCopyContainsNoCredential() {
+  public void readyLanUrlsAreListedAndCopyCarriesTheTokenOnlyInClipboard() {
+    Controller.config.setLanMode(true);
     entry.snapshot = snapshot(true, true, List.of("192.168.1.2", "10.2.0.2"));
     AlertDialog dialog = open();
-    assertTrue(message(dialog).contains("http://192.168.1.2:49231/"));
-    assertTrue(message(dialog).contains("http://10.2.0.2:49231/"));
-    assertFalse("overview must not expose the LAN token", message(dialog).contains(LAN_TOKEN));
-    clickDialogButton(dialog, DialogInterface.BUTTON_NEUTRAL);
-    AlertDialog choice = (AlertDialog) ShadowDialog.getLatestDialog();
-    choice.getListView().performItemClick(null, 1, 1);
-    AlertDialog credential = (AlertDialog) ShadowDialog.getLatestDialog();
-    assertTrue(message(credential).contains("http://10.2.0.2:49231/"));
-    assertFalse(message(credential).contains(LAN_TOKEN));
-    clickDialogButton(credential, DialogInterface.BUTTON_POSITIVE);
+    String shown = body(dialog);
+    assertTrue(shown.contains("http://192.168.1.2:49231/"));
+    assertTrue(shown.contains("http://10.2.0.2:49231/"));
+    assertFalse("overview must not expose the LAN token", shown.contains(LAN_TOKEN));
+    assertEquals("Disable LAN", lanButton(dialog).getText().toString());
+    assertEquals("Copy LAN link", copyButton(dialog).getText().toString());
+    assertTrue(copyButton(dialog).isEnabled());
+    click(copyButton(dialog));
     assertEquals(
-        "http://10.2.0.2:49231/", clipboard().getPrimaryClip().getItemAt(0).getText().toString());
+        "http://192.168.1.2:49231/?token=" + LAN_TOKEN,
+        clipboard().getPrimaryClip().getItemAt(0).getText().toString());
     assertEquals(0, Proxy.starts);
   }
 
@@ -242,7 +280,7 @@ public final class LaunchAccessAddressesTest {
   public void explicitEnableConfirmationAppliesConfiguredNetworkFeaturesOnce() {
     AlertDialog dialog = open();
     assertEquals(0, NetworkAccess.applications);
-    clickDialogButton(dialog, DialogInterface.BUTTON_NEUTRAL);
+    click(lanButton(dialog));
     AlertDialog confirmation = (AlertDialog) ShadowDialog.getLatestDialog();
     assertFalse(Controller.config.isLanMode());
     assertTrue("confirmation applies only to the visible resumed launch page", entry.isResumed());
@@ -252,19 +290,13 @@ public final class LaunchAccessAddressesTest {
   }
 
   @Test
-  public void generationAndAddressChangesBlockStaleCopies() {
-    for (int change = 0; change < 2; change++) {
-      Controller.generation = 7;
-      Proxy.token = LAN_TOKEN;
-      entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
-      AlertDialog dialog = open();
-      clickDialogButton(dialog, DialogInterface.BUTTON_NEUTRAL);
-      AlertDialog credential = (AlertDialog) ShadowDialog.getLatestDialog();
-      if (change == 0) Controller.generation = 8;
-      else entry.snapshot = snapshot(true, true, List.of("192.168.2.2"));
-      clickDialogButton(credential, DialogInterface.BUTTON_POSITIVE);
-      assertFalse("changed connection must not be copied", clipboard().hasPrimaryClip());
-    }
+  public void generationChangeBlocksTheLanCopy() {
+    Controller.config.setLanMode(true);
+    entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
+    AlertDialog dialog = open();
+    Controller.generation = 8;
+    click(copyButton(dialog));
+    assertFalse("changed connection must not be copied", clipboard().hasPrimaryClip());
   }
 
   @Test
@@ -276,27 +308,36 @@ public final class LaunchAccessAddressesTest {
         .commit();
     entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
     AlertDialog dialog = open();
-    assertTrue(message(dialog).contains("No LAN password"));
-    assertFalse(message(dialog).contains("http://192.168.1.2"));
-    assertEquals("Set LAN password", dialog.getButton(DialogInterface.BUTTON_NEUTRAL).getText());
+    String shown = body(dialog);
+    assertTrue(shown.contains("No LAN password"));
+    assertFalse(shown.contains("http://192.168.1.2"));
+    assertEquals("Enable LAN", lanButton(dialog).getText().toString());
   }
 
   @Test
-  public void permissionFailureIsShownAndMissingLocalUrlDisablesItsCopyButton() {
+  public void permissionFailureIsShownAndMissingLocalUrlDisablesCopy() {
     Controller.local = "";
     entry.snapshot = snapshot(true, false, List.of("192.168.1.2"));
     AlertDialog dialog = open();
-    assertTrue(message(dialog).contains("permission is missing"));
-    assertFalse(message(dialog).contains("http://192.168"));
-    assertFalse(dialog.getButton(DialogInterface.BUTTON_POSITIVE).isEnabled());
-    assertEquals("Allow local network", dialog.getButton(DialogInterface.BUTTON_NEUTRAL).getText());
+    String shown = body(dialog);
+    assertTrue(shown.contains("permission is missing"));
+    assertFalse(shown.contains("http://192.168"));
+    assertFalse(copyButton(dialog).isEnabled());
+    assertEquals("Enable LAN", lanButton(dialog).getText().toString());
   }
 
   @Test
-  public void changedLocalGenerationAlsoBlocksTheOriginalCopyCallback() {
+  public void localCopyIsAvailableOnlyWhenALocalAddressExists() {
     AlertDialog dialog = open();
-    Controller.generation++;
-    clickDialogButton(dialog, DialogInterface.BUTTON_POSITIVE);
+    assertEquals("Copy local URL", copyButton(dialog).getText().toString());
+    click(copyButton(dialog));
+    assertEquals(LOCAL, clipboard().getPrimaryClip().getItemAt(0).getText().toString());
+    clipboard().clearPrimaryClip();
+    Controller.local = "";
+    entry.snapshot = snapshot(false, true, List.of());
+    AlertDialog second = open();
+    assertFalse(copyButton(second).isEnabled());
+    click(copyButton(second));
     assertFalse(clipboard().hasPrimaryClip());
   }
 }

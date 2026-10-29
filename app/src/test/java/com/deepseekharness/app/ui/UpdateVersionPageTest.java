@@ -130,12 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("误判为目标遮挡"));
-      assertTrue(shown.contains("按包名身份整窗排除"));
-      assertTrue(shown.contains("穿过排除区的坐标轨迹仍被拒绝"));
-      assertTrue(shown.contains("不再被固定 120 秒超时在中段终止"));
-      assertTrue(shown.contains("卡死下一次启动"));
-      assertTrue(shown.contains("3.2.2"));
+      assertTrue(shown.contains("应用名改为 DSH-A-Su"));
+      assertTrue(shown.contains("io.github.sunsetrne.dsha"));
+      assertTrue(shown.contains("上岛能力进入常驻包"));
+      assertTrue(shown.contains("最低 Android 11（API 30）"));
+      assertTrue(shown.contains("无障碍声明改为多变体共用"));
+      assertTrue(shown.contains("公开仓库的预发布 Release 资产"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -156,12 +156,12 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("as target occlusion"));
-      assertTrue(shown.contains("excluded whole-window by package identity"));
-      assertTrue(shown.contains("still refused, and a full cover"));
-      assertTrue(shown.contains("no longer killed mid-way by a fixed 120-second timeout"));
-      assertTrue(shown.contains("blocking the next start"));
-      assertTrue(shown.contains("3.2.2"));
+      assertTrue(shown.contains("App name is now DSH-A-Su"));
+      assertTrue(shown.contains("io.github.sunsetrne.dsha"));
+      assertTrue(shown.contains("Island variant is merged"));
+      assertTrue(shown.contains("minimum is Android 11 (API 30)"));
+      assertTrue(shown.contains("accessibility declaration is shared"));
+      assertTrue(shown.contains("prerelease Release assets"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
