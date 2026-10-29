@@ -53,7 +53,8 @@ public class IslandFragment extends Fragment {
     root.addView(
         body(
             UiText.text(
-                "任务运行时把当前阶段显示在系统的状态栏胶囊或灵动岛/流体云上。"
+                "任务运行时把当前阶段显示在系统的状态栏胶囊或灵动岛/流体云上，"
+                    + "结束后会短暂保留「完成 / 已停止」；展开通知可看工具、轮次与耗时。"
                     + "只使用 Android 16 的公开实时活动接口，不需要 root、不需要额外授权，"
                     + "任何环节失败都会退回普通通知。")));
 
@@ -103,7 +104,7 @@ public class IslandFragment extends Fragment {
     behaviors.addView(chronometer);
 
     behaviors.addView(
-        hint(UiText.text("开启后胶囊里的秒数由系统自己走，不再每秒重绘通知，更省电；" + "代价是胶囊只显示计时，不显示「执行中」「等你确认」这类阶段文字。")));
+        hint(UiText.text("开启后显示已用时间；关闭则显示开始时间。" + "秒数由系统自己走，不再每秒重绘通知，胶囊仍显示阶段文字与工具名。")));
     root.addView(behaviors);
 
     // ---- 说明 ----

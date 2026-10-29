@@ -7,8 +7,8 @@
 
 | Item | Value |
 |---|---|
-| Version | `0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3` |
-| versionCode | 207 |
+| Version | `0.2.1-rc.3-20261029.0741-dsh0.2.1-rc.3` |
+| versionCode | 208 |
 | Main branch | `Sunset-3090-Q` |
 | Package | `dsh.android.client` (installs alongside the legacy `com.dsh.client`) |
 | System | Android 11+ / arm64 |
@@ -24,7 +24,7 @@ This repository is a Mod maintained on top of the original; the changes focus on
 
 ## Mod highlights
 
-- **Three-mode root command policy (build207)**: strict (default allow-list), relaxed (blocks irreversible actions) and fully relaxed. Root channel only; Shizuku / ADB stay strict, and SMS reads always require native authorization.
+- **Three-mode root command policy (build208)**: strict (default allow-list), relaxed (blocks irreversible actions) and fully relaxed. Root channel only; Shizuku / ADB stay strict, and SMS reads always require native authorization.
 - **Terminal**: standalone full-screen terminal, session sidebar (three states, landscape compression), extra keys, an output "more" panel, output preview / copy / share / save and a responsive sidebar.
 - **Mobile UI v5**: plugin page cards and filters, componentized settings sub-pages, page and dialog transitions, unified launch state and floating-ball details.
 - **Device capabilities**: accessibility read/tap, ADB / Shizuku / Root command channels, SMS read gate, virtual display, notifications, clipboard and sensors.
@@ -39,7 +39,7 @@ Five working branches are kept; `main` currently points at the content of `Sunse
 
 | Branch | Purpose | Latest commit |
 |---|---|---|
-| `Sunset-3090-Q` | Mainline: terminal, UI, root three-mode policy (build207) | 2026-10-29 |
+| `Sunset-3090-Q` | Mainline: terminal, UI, root three-mode policy (build208) | 2026-10-29 |
 | `Sunset-zhongdua-G` | Terminal and device regression (landscape / extra keys) | 2026-10-26 |
 | `codex/prerelease-190` | Pre-release base (upstream sync starting point) | 2026-10-25 |
 | `plugin-state-fix-20261025` | Plugin state and executor fixes | 2026-10-25 |

@@ -11,8 +11,21 @@ final class CredentialPathRules {
     static final java.util.Set<String> MACHINE_EXACT=java.util.Set.of(".bridge_token",".bridge_headers",".bridge_status",".bridge_port",".anonymous-user-id","bridge-token",".dsha-bridge-token");
     static final java.util.Set<String> MACHINE_PREFIXES=java.util.Set.of(".bridge_token.",".bridge_headers.",".bridge_status.",".bridge_port.");
     static final java.util.Set<String> BACKUP_ADDITIONAL=java.util.Set.of(".plugins.lock",".dsha-web.pid",".dsha-web.identity",".dsha-stopped",".bridge_port","dsha-startup-checkpoints",".offline-extracted",".offline-identity",".offline-version",".runtime-descriptor.json",".runtime-health.json","plugin-activations.json","plugin-safe-mode.json",".dsha-rc1-restore-generation");
-    static final java.util.Set<String> CREDENTIAL_EXACT=java.util.Set.of(".env",".credentials",".dsha-apikey",".npmrc",".yarnrc.yml",".git-credentials");
-    static final java.util.Set<String> CREDENTIAL_PREFIXES=java.util.Set.of(".env.",".credentials.");
-    static final java.util.Set<String> GUEST_PREFIXES=java.util.Set.of("root/.dsha-");
+    static final java.util.Set<String> CREDENTIAL_EXACT=java.util.Set.of(
+        // 通用凭据文件
+        ".env",".credentials",".dsha-apikey",".npmrc",".yarnrc.yml",".git-credentials",
+        // SSH / 私钥
+        ".netrc","id_rsa","id_ed25519","id_ecdsa","id_dsa",
+        // 包管理器与数据库
+        ".pypirc","credentials.toml",".my.cnf",".pgpass","pgpass",".htpasswd",
+        // Git 身份里可能带 token（https://user:token@host）
+        ".gitconfig");
+    static final java.util.Set<String> CREDENTIAL_PREFIXES=java.util.Set.of(
+        ".env.",".credentials.","id_rsa.","id_ed25519.","id_ecdsa.","id_dsa.");
+    static final java.util.Set<String> GUEST_PREFIXES=java.util.Set.of(
+        "root/.dsha-",
+        // 容器里各工具自己的凭据目录：GitHub CLI 的 hosts.yml 就是一个明文 token
+        "root/.config/gh","root/.docker","root/.gnupg","root/.cargo","root/.config/gcloud",
+        "root/.kube","root/.aws","root/.ssh");
     static final String SESSION_ROOT="sessions", SESSION_TRASH=".sessions-trash";
 }

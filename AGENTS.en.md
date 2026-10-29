@@ -1,7 +1,7 @@
 # AGENTS.md — English contributor and agent guide
 
 
-> **Status**: `0.2.1-rc.3-20261029.1500` / build207 / `dsh.android.client` / Standard.
+> **Status**: `0.2.1-rc.3-20261029.0741` / build208 / `dsh.android.client` / Standard.
 > Main branch `Sunset-3090-Q`; Android 11+ / arm64; proot by default, proroot optional; bundled DSH 0.2.1-rc.3.
 
 DSHA's entry point for AI agents and new contributors — read [README](README.en.md) first, then this file, so you do not need to scan the whole repository.
@@ -107,7 +107,7 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 
 ### Versions and builds
 
-- **Current identity comes from `app/build.gradle` and [CHANGELOG.md](CHANGELOG.md).** build207 / `0.2.1-rc.3` / `dsh.android.client` / Standard. Earlier code/build numbers and signing identities are historical, not current build or signing inputs.
+- **Current identity comes from `app/build.gradle` and [CHANGELOG.md](CHANGELOG.md).** build208 / `0.2.1-rc.3` / `dsh.android.client` / Standard. Earlier code/build numbers and signing identities are historical, not current build or signing inputs.
 - `standard`: minSdk 30, system WebView. `low`: minSdk 23, bundled GeckoView 143. Build tasks: `assembleStandardRelease` / `assembleLowRelease`. Low proot/loader/terminal JNI are rebuilt for API 23 (`tools/build-low-proot.py`, `tools/termux-jni/`). **Do not treat Standard proot as an Android 6 executable.**
 - Offline rootfs (`assets/offline-rootfs.bin`) is **not committed**; preparation scripts generate it. `offline-rootfs.layout=split-runtime-v1` marks separate Ubuntu and `dsh-runtime.bin` packages; builds check both digests.
 - `tools/dsh-runtime/package-lock.json` locks new dsh dependencies. `tools/prepare-runtime-descriptor.py` generates independent managed-contract descriptors; the APK version is diagnostic context only. Update managed trees within the same base while keeping personal data in place. **UI-only APK updates do not replace the environment; ordinary dsh updates do not increment the Ubuntu base.**

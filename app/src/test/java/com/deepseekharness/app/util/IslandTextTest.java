@@ -83,4 +83,130 @@ public class IslandTextTest {
     var value = row("s", "tool", true, 1, false);
     assertTrue(IslandText.tagOf(value).startsWith("dsha-task:"));
   }
+
+  private static AgentTaskState.View view(
+      String phase,
+      String reason,
+      boolean active,
+      long started,
+      long seen,
+      boolean stopping,
+      String detail) {
+    return new AgentTaskState.View(
+        new AgentTaskState.Key(1, "run", "s-" + phase + "-" + started, 1),
+        phase,
+        reason,
+        active,
+        started,
+        seen,
+        "act",
+        stopping,
+        false,
+        detail,
+        "",
+        started);
+  }
+
+  @Test
+  public void shortTextKeepsToolDetailAndMapsEveryTerminalReason() {
+    assertEquals(
+        "执行·read",
+        IslandText.shortText(view("tool", "", true, 1, 1, false, "read_file · src/a.md"), true));
+    assertEquals("执行中", IslandText.shortText(view("tool", "", true, 1, 1, false, ""), true));
+    assertEquals("等你确认", IslandText.shortText(view("waiting", "", true, 1, 1, false, ""), true));
+    assertEquals("思考中", IslandText.shortText(view("reply", "", true, 1, 1, false, ""), true));
+    assertEquals("正在停止", IslandText.shortText(view("tool", "", true, 1, 1, true, ""), true));
+    assertEquals(
+        "正在停止", IslandText.shortText(view("stop-requested", "", true, 1, 1, false, ""), true));
+    assertEquals(
+        "完成", IslandText.shortText(view("ended", "completed", false, 1, 1, false, ""), true));
+    assertEquals(
+        "已停止", IslandText.shortText(view("ended", "aborted", false, 1, 1, false, ""), true));
+    assertEquals(
+        "已达上限", IslandText.shortText(view("ended", "max-tokens", false, 1, 1, false, ""), true));
+    assertEquals(
+        "已断开",
+        IslandText.shortText(view("ended", "connection-lost", false, 1, 1, false, ""), true));
+    assertEquals("需处理", IslandText.shortText(view("ended", "error", false, 1, 1, false, ""), true));
+    assertEquals(
+        "已结束", IslandText.shortText(view("ended", "unknown", false, 1, 1, false, ""), true));
+    // 英文胶囊上限 9 字符：工具名超过 4 个 code point 时先截工具名。
+    assertEquals(
+        "Tool bash", IslandText.shortText(view("tool", "", true, 1, 1, false, "bash · x"), false));
+  }
+
+  @Test
+  public void completionKeepsTheIslandForTheGraceWindowOnly() {
+    var active = view("tool", "", true, 1, 3_000, false, "read_file · a");
+    var ended =
+        new AgentTaskState.View(
+            new AgentTaskState.Key(1, "run", "done", 1),
+            "ended",
+            "completed",
+            false,
+            1,
+            4_000,
+            "act-done",
+            false,
+            false,
+            "",
+            "",
+            4_000);
+    assertEquals(active, IslandText.pickForDisplay(List.of(active, ended), 4_500, 8_000));
+    assertEquals(ended, IslandText.pickForDisplay(List.of(ended), 4_500, 8_000));
+    assertNull(IslandText.pickForDisplay(List.of(ended), 12_001, 8_000));
+    var dismissed =
+        new AgentTaskState.View(
+            ended.key(),
+            ended.phase(),
+            ended.reason(),
+            false,
+            ended.started(),
+            ended.seen(),
+            ended.action(),
+            false,
+            true,
+            "",
+            "",
+            ended.phaseAt());
+    assertNull(IslandText.pickForDisplay(List.of(dismissed), 4_500, 8_000));
+    var older =
+        new AgentTaskState.View(
+            new AgentTaskState.Key(1, "run", "older", 1),
+            "ended",
+            "aborted",
+            false,
+            1,
+            3_000,
+            "act-older",
+            false,
+            false,
+            "",
+            "",
+            3_000);
+    assertEquals(ended, IslandText.pickForDisplay(List.of(older, ended), 4_500, 8_000));
+    assertEquals(8_000L, IslandText.TERMINAL_GRACE_MS);
+  }
+
+  @Test
+  public void durationUsesMinutesAndHoursWithoutNinetyFiveMinuteStrings() {
+    assertEquals("0s", IslandText.duration(0, true));
+    assertEquals("59s", IslandText.duration(59_999, true));
+    assertEquals("1分", IslandText.duration(60_000, true));
+    assertEquals("1分35秒", IslandText.duration(95_000, true));
+    assertEquals("1m35s", IslandText.duration(95_000, false));
+    assertEquals("1小时00分", IslandText.duration(3_600_000, true));
+    assertEquals("1小时05分", IslandText.duration(3_900_000, true));
+    assertEquals("1h05m", IslandText.duration(3_900_000, false));
+    assertEquals("42s", IslandText.duration(42_000, false));
+  }
+
+  @Test
+  public void clipNeverSplitsSurrogatePairs() {
+    String emoji = "\uD83D\uDE00";
+    String nine = emoji.repeat(9);
+    String clipped = IslandText.clip(nine, true);
+    assertEquals(7, clipped.codePointCount(0, clipped.length()));
+    assertEquals(14, clipped.length());
+  }
 }

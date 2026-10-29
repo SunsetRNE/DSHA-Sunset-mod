@@ -8,6 +8,7 @@ import android.widget.LinearLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.AgentTaskNotifications;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.util.IslandText;
 import com.deepseekharness.app.util.UiText;
 
 /** Actual Agent turn facts; all cancellation goes through the authenticated one-shot queue. */
@@ -70,7 +71,13 @@ public final class AgentTasksActivity extends AppCompatActivity {
                         + ":"
                         + row.active()
                         + ":"
-                        + row.stopping())
+                        + row.stopping()
+                        + ":"
+                        + row.title()
+                        + ":"
+                        + row.detail()
+                        + ":"
+                        + row.phaseAt())
             .collect(java.util.stream.Collectors.joining("|"));
     if (next.equals(signature) && !timings.isEmpty()) {
       for (var row : rows) timings.get(row.key()).setText(timing(row));
@@ -86,10 +93,23 @@ public final class AgentTasksActivity extends AppCompatActivity {
     }
     for (var row : rows) {
       var card = page.card();
+      if (!row.title().isEmpty())
+        card.addView(page.text(row.title(), 13, R.color.shell_text_muted));
       card.addView(page.text(AgentTaskNotifications.phase(row), 16, R.color.text));
+      if (!row.detail().isEmpty())
+        card.addView(page.text(row.detail(), 13, R.color.shell_text_muted));
       var elapsed = page.text(timing(row), 12, R.color.text);
       timings.put(row.key(), elapsed);
       card.addView(elapsed);
+      if ("waiting".equals(row.phase()))
+        page.button(
+            card,
+            UiText.choose("回答", "Answer"),
+            true,
+            () ->
+                startActivity(
+                    BrowserConversationRoute.question(
+                        this, row.key().generation(), row.key().instance(), row.key().session())));
       if (row.active() && !row.stopping() && !row.phase().equals("unknown"))
         page.button(
             card,
@@ -112,12 +132,14 @@ public final class AgentTasksActivity extends AppCompatActivity {
   }
 
   private static String timing(com.deepseekharness.app.util.AgentTaskState.View row) {
+    boolean chinese = UiText.language().startsWith("zh");
+    long at = row.active() ? SystemClock.elapsedRealtime() : row.seen();
+    String total = IslandText.duration(Math.max(0, at - row.started()), chinese);
+    String phase = IslandText.duration(Math.max(0, at - row.phaseAt()), chinese);
     return row.key().session()
         + " · "
-        + row.key().turn()
+        + UiText.format(UiText.choose("第 %d 轮", "Turn %d"), row.key().turn())
         + " · "
-        + Math.max(
-            0, ((row.active() ? SystemClock.elapsedRealtime() : row.seen()) - row.started()) / 1000)
-        + "s";
+        + UiText.format(UiText.choose("阶段 %s · 总计 %s", "Phase %s · total %s"), phase, total);
   }
 }

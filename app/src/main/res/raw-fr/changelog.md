@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3 / build207
+# DSHA 0.2.1-rc.3-20261029.0741-dsh0.2.1-rc.3 / build208
 
-- Ajout de trois modes d’interception des commandes root : Strict (par défaut, liste d’autorisation uniquement), Assoupli (toute commande, mais les opérations irréversibles comme le formatage, le flash, le redémarrage ou l’effacement de données restent bloquées) et Complet (aucun contrôle du contenu des commandes) ; basculez dans Paramètres → Autorisations de l’appareil.
-- Les modes Assoupli et Complet ne s’appliquent qu’au canal root. L’exécuteur générique Shizuku/ADB reste strict, et la lecture des SMS exige toujours une autorisation native dans les trois modes.
-- Les commandes root brutes s’exécutent dans le processus privilégié avec délai d’expiration, troncature de la sortie à 256 Kio et vérification de l’identité d’exécution. Le mode Strict bloque aussi la suppression récursive des racines de stockage et des répertoires de premier niveau.
-- Il s’agit de l’identité de test SunsetRNE (pas E7E3) avec une signature de test fixe. La vérification couvre uniquement l’installation sur ce téléphone et les trois modes root ; tous les ROM et modèles ne sont pas couverts.
+- - Correction du contrôle du téléphone traitant les fenêtres en surimpression propres à DSHA (barre d’état, assistant, confirmation) comme une occlusion de la cible : les surimpressions propres non enregistrées et sans focus sont exclues en entier par identité de paquet et ne produisent plus TARGET_WINDOW_OCCLUDED. Les trajectoires traversant la zone exclue restent refusées, et une couverture complète ne laisse toujours aucune zone utilisable (#210).
+- - Sur les appareils où link() est refusé, la matérialisation des anciens liens pnpm en copies complètes n’est plus interrompue en cours par un délai fixe de 120 secondes ; le délai devient un garde-fou de 15 minutes contre les véritables blocages, afin qu’une copie interrompue ne laisse pas la transaction en attente et ne bloque pas le démarrage suivant (#209).
+- - Conserver dsh-web-mobile 3.2.2, DSH rc.3, l’accès local et réseau local et les dix langues. La validation sur téléphone reste suspendue.

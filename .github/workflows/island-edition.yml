@@ -1,14 +1,15 @@
 name: Island edition debug APK
 
-# 只在手动触发时运行：产出带独立包名（.island）的调试 APK，用于与本机正式 DSHA 并存验证。
-# 正式交付仍走 ci-package / 发布流程，本工作流不签名、不打 tag、不发布。
+# push 到 island-edition 或手动触发：产出带独立包名（.island）的调试 APK。
+# 正式交付仍走 ci-package / 发布流程；本工作流不签名、不发布正式版本。
+# 调试包先尝试 artifact；artifact 配额不可用时仍会作为 draft Release 附件保留。
 on:
   push:
     branches: [island-edition]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -75,8 +76,39 @@ jobs:
           fi
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        # artifact 存储是账号级配额；配额满时不能让构建本身算失败。
+        continue-on-error: true
         if: always()
         with:
           name: dsha-island-debug
           path: app/build/outputs/apk/standard/debug/*.apk
           if-no-files-found: warn
+
+      - name: Attach APK to a draft release
+        # Release 资产不占 artifact 配额，作为唯一稳定的下载通道。
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          APK=$(ls -1 app/build/outputs/apk/standard/debug/*.apk 2>/dev/null | head -1 || true)
+          if [ -z "$APK" ]; then
+            echo "no apk produced; skip draft release"
+            exit 0
+          fi
+          SHORT=$(echo "$GITHUB_SHA" | cut -c1-7)
+          TAG="island-debug-$SHORT"
+          ASSET="dsha-island-debug-$SHORT.apk"
+          cp "$APK" "$ASSET"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG" "$ASSET" --draft \
+              --title "上岛版调试包 $SHORT" \
+              --target "$GITHUB_SHA" \
+              --repo "${{ github.repository }}" \
+              --notes "任务状态修复调试包（draft）。提交 $GITHUB_SHA，工作流 run $GITHUB_RUN_ID。仅用于真机验证，不代表正式发布。"
+          fi
+          URL=$(gh release view "$TAG" --repo "${{ github.repository }}" --json url -q .url)
+          echo "draft release: $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "draft release: $URL"

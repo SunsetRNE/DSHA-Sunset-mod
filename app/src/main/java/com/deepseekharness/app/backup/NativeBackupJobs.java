@@ -1206,6 +1206,15 @@ public final class NativeBackupJobs {
                 try (InputStream source = fs.read(portable, fs.stat(portable));
                     OutputStream out = fs.create(plain)) {
                   PortableBackupCrypto.decrypt(source, out, password, cancellation);
+                } catch (Throwable failure) {
+                  // 解密是流式写出：口令错误/认证失败时，明文文件里已经落了前面若干块。
+                  // 不删就是「认证失败但明文留在磁盘上」，等于把错误口令变成了一次部分解密。
+                  try {
+                    fs.delete(plain);
+                  } catch (Throwable cleanup) {
+                    failure.addSuppressed(cleanup);
+                  }
+                  throw failure;
                 }
               } else if (BackupArchive.hasMagic(signature)) {
                 // 无密码导出的 v5 dshbak 已经是可直接读取的 BackupArchive。

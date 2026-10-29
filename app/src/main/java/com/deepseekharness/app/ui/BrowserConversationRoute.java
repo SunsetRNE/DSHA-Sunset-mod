@@ -15,6 +15,7 @@ public final class BrowserConversationRoute {
   public static final String INSTANCE = "dsha-route-instance";
   public static final String SESSION = "dsha-route-session";
   public static final String REQUEST = "dsha-route-request";
+  public static final String QUESTION = "dsha-route-question";
 
   private BrowserConversationRoute() {}
 
@@ -33,6 +34,11 @@ public final class BrowserConversationRoute {
         .putExtra(INSTANCE, instance)
         .putExtra(SESSION, session)
         .putExtra(REQUEST, java.util.UUID.randomUUID().toString());
+  }
+
+  /** 同一个会话入口，额外要求页面就绪后把待答问题滚进可视区并聚焦回答框。 */
+  public static Intent question(Context context, long generation, String instance, String session) {
+    return conversation(context, generation, instance, session).putExtra(QUESTION, true);
   }
 
   public static Intent conversation(Context context, String url, String cookie) {
@@ -80,5 +86,6 @@ public final class BrowserConversationRoute {
     for (String key : new String[] {MODE, INSTANCE, SESSION, REQUEST})
       if (from.hasExtra(key)) to.putExtra(key, from.getStringExtra(key));
     if (from.hasExtra(GENERATION)) to.putExtra(GENERATION, from.getLongExtra(GENERATION, -1));
+    if (from.hasExtra(QUESTION)) to.putExtra(QUESTION, from.getBooleanExtra(QUESTION, false));
   }
 }

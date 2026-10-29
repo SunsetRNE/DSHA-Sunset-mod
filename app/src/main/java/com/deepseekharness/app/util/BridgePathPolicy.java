@@ -42,12 +42,24 @@ public final class BridgePathPolicy {
     // 本机 Android 凭据
     "/root/.android",
     "/.android",
-    // SSH / 云凭据
+    // SSH / 云 / 包管理器 / 数据库凭据（每一条都是「里面躺着一份明文令牌」）
     "/root/.ssh",
     "/.ssh",
     "/root/.aws",
+    "/.aws",
     "/root/.config/gcloud",
     "/root/.kube",
+    "/.kube",
+    "/root/.config/gh",   // gh auth login 的 hosts.yml 就是明文 token
+    "/root/.docker",      // registry 登录凭据
+    "/root/.gnupg",
+    "/root/.cargo",       // credentials.toml
+    "/root/.netrc",       // 明文 machine/login/password
+    "/root/.pypirc",
+    "/root/.gitconfig",   // remote URL 里可能带 https://user:token@
+    "/root/.git-credentials",
+    "/root/.npmrc",
+    "/root/.yarnrc.yml",
     // 桥自己的凭据文件（与 .dsh 重叠，显式列出以防路径被改写）
     "/root/.dsha-",
   };

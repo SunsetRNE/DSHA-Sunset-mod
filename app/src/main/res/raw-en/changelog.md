@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3 / build207
+# DSHA 0.2.1-rc.3-20261029.0741-dsh0.2.1-rc.3 / build208
 
-- Add three root command interception modes: Strict (default, allow-list only), Relaxed (any command, but irreversible operations such as formatting, flashing, reboot or clearing app data stay blocked) and Full (no command-content checks); switch them in Settings → Device permissions.
-- Relaxed and Full apply only to the root channel. The generic Shizuku/ADB executor stays strict, and SMS reads still require native authorization in all three modes.
-- Root raw commands run in the privileged process with timeout, 256 KiB output truncation and execution-identity checks. Strict mode now also blocks recursive deletion of storage roots and first-level storage directories.
-- This is the SunsetRNE test identity (not E7E3) with a fixed test signature. Verification covers this phone installation and the three root modes only; all ROMs and device models are not covered.
+- - Fixed phone control treating DSHA's own overlay windows (status bar, assistant, confirmation) as target occlusion: unregistered non-focusable own overlays are excluded whole-window by package identity and no longer produce TARGET_WINDOW_OCCLUDED. Coordinate trajectories crossing the excluded region are still refused, and a full cover still leaves no usable area (#210).
+- - On devices where link() is rejected, materializing legacy pnpm content links as full copies is no longer killed mid-way by a fixed 120-second timeout; the timeout becomes a 15-minute backstop for genuine hangs, preventing an interrupted copy from leaving the plugin transaction pending and blocking the next start (#209).
+- - Retain dsh-web-mobile 3.2.2, DSH rc.3, local and LAN access, and ten languages. Phone acceptance remains paused.

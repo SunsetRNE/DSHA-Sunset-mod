@@ -1,7 +1,7 @@
 # AGENTS.md
 
 
-> **当前状态**：`0.2.1-rc.3-20261029.1500` / build207 / `dsh.android.client` / Standard。
+> **当前状态**：`0.2.1-rc.3-20261029.0741` / build208 / `dsh.android.client` / Standard。
 > 主线分支 `Sunset-3090-Q`；Android 11+ / arm64；proot 默认、proroot 可选；内置 DSH 0.2.1-rc.3。
 
 DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— 读它之前先读 [README.md](README.md)。
@@ -112,7 +112,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ### 版本与构建
 
-- **当前身份以 `app/build.gradle` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build207 / `0.2.1-rc.3` / `dsh.android.client` / Standard；更早的 code/build 编号与签名身份均为历史记录，不作为当前构建或签名输入。
+- **当前身份以 `app/build.gradle` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build208 / `0.2.1-rc.3` / `dsh.android.client` / Standard；更早的 code/build 编号与签名身份均为历史记录，不作为当前构建或签名输入。
 - `standard`：minSdk 30，系统 WebView；`low`：minSdk 23，内置 GeckoView 143。构建任务 `assembleStandardRelease` / `assembleLowRelease`。兼容版 proot / loader / 终端 JNI 以 API 23 重编（`tools/build-low-proot.py`、`tools/termux-jni/`），**不要把标准版 proot 当 Android 6 可执行文件**。
 - 离线 rootfs（`assets/offline-rootfs.bin`）**不提交**，由准备脚本生成；APK 用 `offline-rootfs.layout=split-runtime-v1` 标记 Ubuntu 与 `dsh-runtime.bin` 分包，构建核验两份摘要。
 - 新 dsh 依赖由 `tools/dsh-runtime/package-lock.json` 锁定；`tools/prepare-runtime-descriptor.py` 生成独立受管契约描述，APK 版本仅作诊断来源。相同基础版本更新受管树，个人数据保持原位；**不因 UI-only APK 更新替换环境，不因普通 dsh 更新递增 Ubuntu 基础环境版本**。

@@ -1219,6 +1219,18 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
         callback.onReceiveValue(null);
         return true;
       }
+      // 未授权文件访问时，网页不能借系统文档选择器读取手机文件。
+      if (!com.deepseekharness.app.StorageAccess.granted(WebPreviewActivity.this)) {
+        callback.onReceiveValue(null);
+        Toast.makeText(
+                WebPreviewActivity.this,
+                com.deepseekharness.app.util.UiText.choose(
+                    "未获得文件访问授权：网页暂不能打开手机文件。请先在“设备授权”页允许文件访问。",
+                    "File access is not granted, so the web page cannot open phone files. Allow file access on the device grants page first."),
+                Toast.LENGTH_LONG)
+            .show();
+        return true;
+      }
       cancelFileSelection();
       WebUploads.Session session = retained.uploadSession;
       if (session == null || session.isClosed())
@@ -1503,7 +1515,8 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
             BrowserConversationRoute.REQUEST,
             BrowserConversationRoute.SESSION,
             BrowserConversationRoute.GENERATION,
-            BrowserConversationRoute.INSTANCE
+            BrowserConversationRoute.INSTANCE,
+            BrowserConversationRoute.QUESTION
           }) getIntent().removeExtra(key);
       return;
     }
@@ -1556,12 +1569,15 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
                       "The task's session could not be opened. Your current chat was kept."),
                   Toast.LENGTH_LONG)
               .show();
+        else if (getIntent().getBooleanExtra(BrowserConversationRoute.QUESTION, false))
+          source.evaluateJavascript(WebPageScripts.focusQuestion(), null);
         for (String key :
             new String[] {
               BrowserConversationRoute.REQUEST,
               BrowserConversationRoute.SESSION,
               BrowserConversationRoute.GENERATION,
-              BrowserConversationRoute.INSTANCE
+              BrowserConversationRoute.INSTANCE,
+              BrowserConversationRoute.QUESTION
             }) getIntent().removeExtra(key);
       }
     } catch (org.json.JSONException ignored) {

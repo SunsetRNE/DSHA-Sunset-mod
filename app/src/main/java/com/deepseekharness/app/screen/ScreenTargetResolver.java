@@ -125,6 +125,11 @@ public final class ScreenTargetResolver {
       var exclusion =
           com.deepseekharness.app.control.OwnedScreenOverlay.match(
               window.getId(), measured, ownPackage);
+      // #210：登记可能因悬浮窗重建后 windowId 漂移而失配；未登记的非焦点自有
+      // 悬浮窗按包名身份整窗排除，不把自身浮条/助手/确认窗判成目标遮挡。
+      exclusion =
+          MainScreenWindowPolicy.ownFallbackExclusion(
+              ownPackage, window.isFocused(), window.getId(), measured, exclusion);
       var kind =
           switch (window.getType()) {
             case AccessibilityWindowInfo.TYPE_APPLICATION ->

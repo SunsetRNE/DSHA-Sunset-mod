@@ -77,6 +77,7 @@ public final class WebFullscreenUiImeTest {
   private static final class Content extends FrameLayout {
     boolean focused = true;
     final List<Integer> bottoms = new ArrayList<>();
+    int layoutRequests;
 
     Content(Context context) {
       super(context);
@@ -91,6 +92,12 @@ public final class WebFullscreenUiImeTest {
     public void setPadding(int left, int top, int right, int bottom) {
       super.setPadding(left, top, right, bottom);
       if (bottoms != null) bottoms.add(bottom);
+    }
+
+    @Override
+    public void requestLayout() {
+      layoutRequests++;
+      super.requestLayout();
     }
   }
 
@@ -526,5 +533,26 @@ public final class WebFullscreenUiImeTest {
     assertEquals(count, content.bottoms.size());
     callback.onEnd(animation);
     assertEquals(300, content.getPaddingBottom());
+  }
+
+  /**
+   * #190 回归：回前台且 root insets 报告 IME 不可见时，必须清掉键盘边距并强制
+   * 一次布局（等价于 workaround 里那次真实的 IME 高度变化），让 WebView 的
+   * 布局视口从键盘占位的矮视口收敛。Robolectric 的 getRootWindowInsets 不跟随
+   * dispatch、恒报告不可见，因此本用例锁定的是 reset 分支本身及其 requestLayout。
+   */
+  @Test
+  public void refocusWithHiddenImeReleasesKeyboardAndForcesRelayout() {
+    apply(300);
+    assertEquals(300, content.getPaddingBottom());
+    focus(false);
+    assertEquals(14, content.getPaddingBottom());
+    // Robolectric 环境 root insets 恒不可见：focus(true) 应走 reset 分支。
+    int layoutsBefore = content.layoutRequests;
+    focus(true);
+    assertEquals(14, content.getPaddingBottom());
+    assertTrue(
+        "回前台且 IME 不可见时必须强制一次布局（等价于 workaround 里的真实 resize）",
+        content.layoutRequests > layoutsBefore);
   }
 }

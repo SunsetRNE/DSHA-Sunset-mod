@@ -107,7 +107,7 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("--rootfs=" + rootfsDir.getAbsolutePath());
       argv.add("--cwd=/root");
-      for (Bind b : binds()) {
+      for (Bind b : binds(com.deepseekharness.app.StorageAccess.granted(context))) {
         if (!new File(b.host()).exists()) {
           if (context != null)
             RuntimeHostPorts.fromOwner(context.getApplicationContext())
@@ -251,7 +251,7 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("-w");
       argv.add("/root");
-      for (Bind b : binds()) {
+      for (Bind b : binds(com.deepseekharness.app.StorageAccess.granted(ctx))) {
         if (!new File(b.host()).exists()) {
           RuntimeHostPorts.fromOwner(ctx.getApplicationContext())
               .record("BIND_SKIPPED", b.host() + ": missing or inaccessible");
@@ -325,16 +325,23 @@ public interface ContainerRuntime {
    */
   record Bind(String host, String guest) {}
 
-  static java.util.List<Bind> binds() {
-    return java.util.List.of(
-        new Bind("/dev", "/dev"),
-        new Bind("/dev/urandom", "/dev/random"),
-        new Bind("/proc", "/proc"),
-        new Bind("/sys", "/sys"),
-        new Bind("/system", "/system"),
-        new Bind("/apex", "/apex"),
-        new Bind("/proc/self/fd", "/dev/fd"),
-        new Bind("/storage/emulated/0", "/sdcard"),
-        new Bind("/storage/emulated/0", "/storage/emulated/0"));
+  /**
+   * 容器挂载清单。公共存储（{@code /storage/emulated/0}）只在用户已授权文件访问时挂载；
+   * 未授权时容器只能读写自己的运行根与私有目录，不能读手机文件。
+   */
+  static java.util.List<Bind> binds(boolean includePublicStorage) {
+    java.util.List<Bind> list = new java.util.ArrayList<>();
+    list.add(new Bind("/dev", "/dev"));
+    list.add(new Bind("/dev/urandom", "/dev/random"));
+    list.add(new Bind("/proc", "/proc"));
+    list.add(new Bind("/sys", "/sys"));
+    list.add(new Bind("/system", "/system"));
+    list.add(new Bind("/apex", "/apex"));
+    list.add(new Bind("/proc/self/fd", "/dev/fd"));
+    if (includePublicStorage) {
+      list.add(new Bind("/storage/emulated/0", "/sdcard"));
+      list.add(new Bind("/storage/emulated/0", "/storage/emulated/0"));
+    }
+    return java.util.List.copyOf(list);
   }
 }

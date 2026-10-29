@@ -38,6 +38,10 @@ public class LaunchFragment extends Fragment {
   private TextView latestLogsButton;
   private androidx.appcompat.app.AlertDialog accessDialog;
   private android.animation.ObjectAnimator dotPulse;
+  /** 访问地址弹窗的自定义正文与三个横向按钮（关闭固定在最右）。 */
+  private TextView accessBody;
+  private Button accessLanButton;
+  private Button accessCopyButton;
 
   /** 日志跟随：默认跟随末尾；用户上翻或主动暂停后保留阅读位置。 */
   private boolean followLogs = true;
@@ -527,6 +531,9 @@ public class LaunchFragment extends Fragment {
     ui.removeCallbacks(refreshState);
     if (accessDialog != null) accessDialog.dismiss();
     accessDialog = null;
+    accessBody = null;
+    accessLanButton = null;
+    accessCopyButton = null;
     lanAddrText = null;
     launchLog = null;
     activityTrack = null;
@@ -929,18 +936,29 @@ public class LaunchFragment extends Fragment {
   void showAccessAddresses() {
     if (!isAdded() || controller == null) return;
     if (accessDialog != null) accessDialog.dismiss();
+    View content = getLayoutInflater().inflate(R.layout.dialog_access_address, null);
+    accessBody = content.findViewById(R.id.access_body);
+    accessLanButton = content.findViewById(R.id.access_lan_toggle);
+    accessCopyButton = content.findViewById(R.id.access_copy);
+    Button closeButton = content.findViewById(R.id.access_close);
+    closeButton.setText(UiText.choose("关闭", "Close"));
     var dialog =
         new DshaDialogBuilder(requireContext())
             .setTitle(R.string.ui2_address)
-            .setMessage("")
-            .setNegativeButton(UiText.choose("关闭", "Close"), null)
-            .setPositiveButton(UiText.choose("复制本机地址", "Copy local URL"), null)
-            .setNeutralButton(UiText.choose("局域网访问", "LAN access"), null)
+            .setView(content)
             .create();
     accessDialog = dialog;
+    closeButton.setOnClickListener(ignored -> dialog.dismiss());
+    accessCopyButton.setOnClickListener(ignored -> copyAddressNow());
+    accessLanButton.setOnClickListener(ignored -> onLanToggle());
     dialog.setOnDismissListener(
         ignored -> {
-          if (accessDialog == dialog) accessDialog = null;
+          if (accessDialog == dialog) {
+            accessDialog = null;
+            accessBody = null;
+            accessLanButton = null;
+            accessCopyButton = null;
+          }
         });
     dialog.show();
     renderAccessAddresses(lanAccess());
@@ -948,32 +966,86 @@ public class LaunchFragment extends Fragment {
 
   private void renderAccessAddresses(LanAccessPresentation access) {
     var dialog = accessDialog;
-    if (dialog == null || !dialog.isShowing() || !isAdded()) return;
+    if (dialog == null || !dialog.isShowing() || !isAdded() || accessBody == null) return;
     String local = webEntryUrl();
-    long generation = controller.getWebGeneration();
-    dialog.setMessage(
+    accessBody.setText(
         UiText.format(
             UiText.choose("本机访问\n%s\n\n%s", "On this phone\n%s\n\n%s"),
             local.isEmpty()
                 ? UiText.choose("启动 DSH 并等待就绪后显示本机地址。", "Start DSH and wait for its local URL.")
                 : local,
             lanStatusForDisplay(access)));
-    Button localButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
-    localButton.setEnabled(!local.isEmpty());
-    localButton.setOnClickListener(
-        ignored -> {
-          if (isAdded()
-              && generation == controller.getWebGeneration()
-              && !local.isEmpty()
-              && local.equals(webEntryUrl())) copyAddr("DSH", local);
-          else connectionChanged();
-        });
-    Button lanButton = dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL);
-    lanButton.setText(
-        needsLanPassword(access)
-            ? getString(R.string.lan_password_open)
-            : lanActionLabel(access.state));
-    lanButton.setOnClickListener(ignored -> onLanAction(lanAccess()));
+    if (accessLanButton != null)
+      accessLanButton.setText(
+          controller.config().isLanMode()
+              ? UiText.choose("关闭局域网", "Disable LAN")
+              : UiText.choose("开启局域网", "Enable LAN"));
+    if (accessCopyButton != null) {
+      boolean lanReady = access.state == LanAccessPresentation.State.READY;
+      accessCopyButton.setText(
+          lanReady
+              ? UiText.choose("复制局域网链接", "Copy LAN link")
+              : UiText.choose("复制本机地址", "Copy local URL"));
+      accessCopyButton.setEnabled(lanReady || !local.isEmpty());
+    }
+  }
+
+  /** 局域网开关：开启走既有确认流程；关闭时立刻停监听并撤销既有链接。 */
+  private void onLanToggle() {
+    if (!isAdded() || controller == null) return;
+    if (!controller.config().isLanMode()) {
+      onLanAction(lanAccess());
+      return;
+    }
+    new DshaDialogBuilder(requireContext())
+        .setTitle(UiText.choose("关闭局域网访问？", "Disable LAN access?"))
+        .setMessage(
+            UiText.choose(
+                "关闭后，其它设备将无法再通过局域网访问本轮 DSH，已发出的连接链接立即失效。本机访问不受影响。",
+                "Other devices lose LAN access to this DSH run and existing links stop working immediately. On-phone access is unaffected."))
+        .setNegativeButton(android.R.string.cancel, null)
+        .setPositiveButton(
+            UiText.choose("关闭", "Disable"),
+            (dialog, which) -> {
+              if (!isAdded() || controller == null) return;
+              controller.config().setLanMode(false);
+              try {
+                com.deepseekharness.app.LanProxyService.stopLanListener();
+                com.deepseekharness.app.HarnessService.refreshPowerMode(requireContext());
+              } catch (RuntimeException ignored) {
+              }
+              refreshLanAddr();
+            })
+        .show();
+  }
+
+  /** 复制当前可用地址：局域网就绪时复制带凭据链接，否则复制本机链接。 */
+  private void copyAddressNow() {
+    if (!isAdded() || controller == null) return;
+    LanAccessPresentation access = lanAccess();
+    long generation = controller.getWebGeneration();
+    if (access.state == LanAccessPresentation.State.READY && !access.services.isEmpty()) {
+      String service = access.services.get(0);
+      String token = LanProxyService.boundLanToken(generation);
+      if (!token.isEmpty() && access.stillOffers(generation, service)) {
+        copyAddr(UiText.choose("局域网地址", "LAN address"), service + "?token=" + token);
+        return;
+      }
+      connectionChanged();
+      return;
+    }
+    String local = webEntryUrl();
+    if (!local.isEmpty()) {
+      copyAddr("DSH", local);
+      return;
+    }
+    Toast.makeText(
+            requireContext(),
+            UiText.choose(
+                "暂时没有可复制的地址，请等待 DSH 就绪。",
+                "No address to copy yet; wait for DSH to be ready."),
+            Toast.LENGTH_SHORT)
+        .show();
   }
 
   private boolean needsLanPassword(LanAccessPresentation access) {

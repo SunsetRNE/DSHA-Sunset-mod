@@ -13,7 +13,9 @@
 | 需要 root / LSPosed | **不需要** |
 | 需要厂商白名单 | **不需要**（小米官方大岛 `miui.focus.param` 才需要，本功能不依赖它） |
 | 需要的权限 | `POST_PROMOTED_NOTIFICATIONS`（`normal\|appops`，装机即授予，用户可在系统设置关闭） |
-| 胶囊显示内容 | 图标 + 一行短文本（约 7 字符），**不含进度条** |
+| 胶囊显示内容 | 图标 + 一行短文本（约 7 字符），工具阶段带工具名，**不含进度条** |
+| 完成态 | 任务结束后 8 秒内保持 ongoing 并显示「完成 / 已停止 / 已达上限 / 已断开」，随后主动取消 |
+| 展开态详情 | 阶段、工具与目标、轮次、当前阶段耗时、总耗时；锁屏公开版本只显示阶段，不含工具与标题 |
 | 失败行为 | 任何异常都返回原通知，功能退化为普通通知，不影响任务本身 |
 
 支持的平台：原生 Android 16+、小米澎湃 OS 3.0.300+/4、ColorOS 16、OriginOS 6，以及后续跟进同一接口的厂商。
@@ -26,7 +28,9 @@
 | Android 16 GA（36.0，如 ColorOS 16） | 旧模型：需要 `android.colorized=true` |
 | Android 16 QPR1+（36.1 / Android 17，如 HyperOS 4） | 新模型：需要请求位 `android.requestPromotedOngoing=true`，且 **colorized 必须为 false** |
 
-因此实现按「系统是否提供 `canPostPromotedNotifications()`」分成两支，不能只写一支。
+因此实现按「平台是否存在 `setRequestPromotedOngoing`」分成两支，不能只写一支；
+权限查询（`canPostPromotedNotifications`）与模型判定必须分开 —— 用户关掉实时活动时
+权限查询返回 false，不能据此把 36.1 误判成旧模型。
 平台侧的 `setRequestPromotedOngoing` 是 36.1 才有的方法，在 36.0 上调用会抛
 `NoSuchMethodError`，所以这里统一走 **extra**（官方文档明确允许用它替代 setter）。
 
@@ -36,7 +40,13 @@
 |---|---|
 | `app/src/main/java/com/deepseekharness/app/IslandSupport.java` | 新增。能力查询、两代 ROM 分支、通知增强、系统设置入口；纯展示层 |
 | `app/src/main/java/com/deepseekharness/app/util/IslandText.java` | 新增。纯逻辑：短文本裁剪、岛位选举（无 Android import，配单测） |
-| `app/src/main/java/com/deepseekharness/app/AgentTaskNotifications.java` | 渲染时接入选举与增强；计时器模式 |
+| `app/src/main/java/com/deepseekharness/app/util/AgentTaskState.java` | 改。任务行增加工具详情/标题；断连 60 秒收敛为终态，心跳可恢复瞬时断连 |
+| `app/src/main/java/com/deepseekharness/app/AgentTaskNotifications.java` | 改。渲染时接入选举与增强；完成态保留 8 秒；内容去重；展开态详情 |
+| `app/src/main/java/com/deepseekharness/app/ui/AgentTasksActivity.java` | 改。详情页显示标题、工具与阶段耗时；等待中显示「回答」 |
+| `app/src/main/java/com/deepseekharness/app/AgentTaskAnswerReceiver.java` | 新增。通知选项按钮 → 本机一次性回答端点 |
+| `app/src/main/java/com/deepseekharness/app/ui/WebPageScripts.java` | 改。进入会话后滚动并聚焦提问卡 |
+| `app/src/main/java/com/deepseekharness/app/ui/BrowserConversationRoute.java` | 改。会话入口支持“带问题定位” |
+| `app/src/main/assets/builtin-plugins/dsh-task-notifier/lib/index.js` | 改。工具详情、会话标题、每秒心跳、丢失 turn/end 时 3 秒补终态 |
 | `app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java` | 新增。设置页「任务状态上岛」 |
 | `app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java` | 入口标签 |
 | `app/src/main/java/com/deepseekharness/app/core/ConfigStore.java` | 两个偏好读写 |
@@ -57,25 +67,80 @@
 不参与的条件：非活跃、状态 `unknown`、用户已划掉。同优先级取更早开始的任务，保证文字稳定。
 只有被选中的那条通知会被增强，其余保持普通通知。
 
+没有活跃任务时，最近 8 秒内结束且未被划掉的任务会短暂占用岛位，显示完成结果；
+这也是“任务完成后胶囊直接消失、看不到结果”的修复点。
+
 ## 5. 偏好字段
 
 | 键 | 默认 | 含义 |
 |---|---|---|
 | `task_island` | `true` | 任务状态上岛总开关 |
-| `task_island_chronometer` | `false` | 用系统计时器显示耗时（省掉 1Hz 重绘，但胶囊不再显示阶段文字） |
+| `task_island_chronometer` | `false` | 开：系统计时器显示已用时间；关：显示开始时间。两种情况都不再每秒重绘 |
 
-短文本与计时器互斥：官方胶囊内容优先级是 `shortCriticalText > MetricStyle > when(计时器)`，
-写了短文本就会盖掉计时器，所以计时器模式下不写短文本。
+系统胶囊最多约 7 个字符：`shortCriticalText` 优先，放不下时只显示图标或部分文字。
+运行中通知内容保持稳定（秒数交给系统 `when`/计时器），心跳不再触发 `notify`，
+避免每秒重绘导致通知按钮点击被替换吞掉。
 
-## 6. 独立版包名
+## 6. 状态更新、收敛与详情
+
+| 机制 | 行为 |
+|---|---|
+| 每秒心跳 | 上报端在任务仍存活时每秒发一条同阶段事实，原生刷新“最后活动时间”；长时间思考不会因 15 秒静默被判成未知 |
+| 15 秒静默 | 先显示「状态暂不可确认」，不再宣称正在执行 |
+| 60 秒静默 | 按「连接中断」结束并释放 ongoing/岛位；之后同一轮的新心跳可以恢复，真实终态（完成/停止/超限）不可复活 |
+| 丢失 turn/end | 上报端看到 Agent 已 idle 或已被替换时，3 秒后补发终态：停止过 → `aborted`，正常 idle → `completed`，被替换 → `interrupted` |
+| 瞬时页面不可用 | 页面身份暂时读不到不再判死已有任务；只有确认 Web 已停止才终结旧票 |
+| 内容去重 | 通知内容未变化时不重复 `notify`；配合计时器模式可避免每秒重绘 |
+| 详情来源 | 工具名 + 目标（路径/URL/查询词；命令只留 argv[0]）、会话标题、轮次、阶段耗时、总耗时 |
+| 隐私 | 锁屏公开版本只显示阶段，不含工具目标、命令或会话标题 |
+
+工具详情只在通知与详情页显示，胶囊受 7 字限制，只取工具名（如「执行·read」）。
+
+## 7. 点按进入与岛内回答
+
+| 入口 | 行为 |
+|---|---|
+| 点按通知/胶囊（等你确认） | 直接打开该会话；页面就绪后把提问卡滚进可视区并聚焦回答框（不自动全屏，全屏仍是卡片上的手动按钮） |
+| 通知卡片上的选项按钮 | 单问题、1–3 个选项时显示；单选点一下立即回答，多选先切换（✓）再「提交」，**不需要先打开 App** |
+| 通知「自己写」 | 直接输入自定义答案（RemoteInput）；单/多选都支持，多选时自定义答案与已选选项一起提交 |
+| 多问题 / 超过 3 个选项 / 自定义过长 | 显示「打开回答」，进入会话由提问卡回答（网页卡片本身一直支持自定义答案） |
+| 「Agent 任务」页 | 等待中的任务显示「回答」按钮，进入同一会话 |
+
+回答回传链路：
+
+```text
+web 事件里带 port/path/token/callId/questions
+  → 原生通知 addAction（AgentTaskAnswerReceiver）
+  → POST http://127.0.0.1:<webPort>/__dsha_question_answer
+  → 插件按“当前真正待答的问题”校验 token/callId/选项
+  → 唤醒 user-questions/waterfall，把结构化答案交回 ask_user_question
+```
+
+- 令牌每个进程随机生成，只通过已认证的任务 bridge 下发给原生；端点只接受本机回环请求。
+- 网页端先答、问题已结束、选项不匹配或令牌过期都会被端点拒绝（返回 409）；不会重复回答。
+- 通知上的选项只覆盖安全子集（单问题、≤3 选项）；多选用「切换 + 提交」，自定义答案用 RemoteInput；
+  多问题或超过 3 个选项时回到会话里回答。
+- 多选状态只保存在本机通知进程内，按任务 action 隔离；问题结束/切换任务时自动丢弃。
+- 锁屏公开版本仍只显示阶段，不含问题文本与选项。
+
+## 8. 独立版包名
 
 `-Pdsha.islandEdition=true`（或环境变量 `DSHA_ISLAND_EDITION=1`）时：
 `applicationIdSuffix '.island'`、`versionNameSuffix '-island'`，包名变为 `dsh.android.client.island`。
 应用私有目录、偏好、插件与运行环境随之隔离，可与正式 DSHA 并存安装。
 默认构建（不带该参数）完全不受影响。
 
-## 7. 验证范围
+## 9. 验证范围
 
-已做：宿主单测（`IslandTextTest`）、源码整洁与文档链接检查、Standard Debug 编译。
-未做：真机安装与胶囊显示验收（本轮不操作手机）。因此「在真机上确实出现胶囊」仍属未验证，
-不能从编译通过推导为设备通过。
+已做（2026-10-28 本轮）：
+
+- 宿主单测：`AgentTaskStateTest`、`IslandTextTest`（含详情限长、断连收敛与恢复、完成态选举、耗时格式）。
+- `:app:compileStandardDebugJavaWithJavac` 编译通过。
+- 源码整洁、UI i18n、文档链接门禁通过；`runtime-descriptor.json` 按新插件字节重算。
+- 正式 `tools/test-task-progress.mjs` 实跑通过：所有权隔离、一次性停止、问题载荷与原生回答端点、
+  详情/心跳/终态收敛、HMR 连续性。
+- 本机 util+core 1221 项测试 1220 通过；唯一失败是 `BoundedProcessRunnerTest` 的洪泛夹具在负载下
+  输出长度少一截，单独重跑通过（环境/时序抖动，非本次改动）。
+
+未做：真机安装与胶囊显示验收；8 秒完成态是否按系统节奏消失、锁屏公开版本的实际显示、
+长时间 Doze / 进程冻结下的心跳恢复，以及**通知选项按钮的真实点击回传**均未在真机验证。

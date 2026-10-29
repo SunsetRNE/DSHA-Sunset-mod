@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261029.1500` / build207（`Sunset-3090-Q`，`main` 同内容）。本版新增 Root 命令三态拦截，并延续终端与移动界面 v5 的改动；范围见 [build207 记录](releases/v0.2.1-rc.3-build207-root-policy-20261029.md) 与 [CHANGELOG](../CHANGELOG.md)。
+当前源码：`0.2.1-rc.3-20261029.0741` / build208（`Sunset-3090-Q`，`main` 同内容）。本版新增 Root 命令三态拦截，并延续终端与移动界面 v5 的改动；范围见 [build208 记录](releases/v0.2.1-rc.3-build207-root-policy-20261029.md) 与 [CHANGELOG](../CHANGELOG.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
@@ -17,6 +17,7 @@
 | [端口与网络](ports-and-networking.md) | 自动/手动Web端口、备用本机记忆、3090桥/ADB/LAN分域、当前重试接入边界 |
 | [DNS配置](dns-configuration.md) | auto/ipv4/native的真实差异、Node窄lookup重试、glibc no-aaaa与用户选择 |
 | [虚拟屏架构](virtual-screen-architecture.md) | Core/Manager/工具路由、帧/节点/anchor证据、采集输入、关闭恢复与修改回归 |
+| [任务状态上岛](island-status.md) | 实时活动/胶囊两代判据、岛位选举、完成态、心跳收敛与验证范围 |
 | [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果 |
 | [资料与来源依据](references-and-provenance.md) | 官方primary入口、工程上游关系、固定版本/摘要、许可与来源限制 |
 

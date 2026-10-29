@@ -49,6 +49,29 @@ public final class HttpShellService {
 
   public static final int PORT = 3090;
 
+  /**
+   * 未鉴权失败的滑动窗口：60 秒内累计 30 次就短暂拒绝。
+   *
+   * <p>token 是 128 位随机值，暴力穷举本身不可行；这个闸门挡的是「把桥当作免费算力/日志
+   * 放大器」的用法——每次失败都要走一遍路由匹配与日志，量级起来就是本地 DoS。
+   */
+  private static final class AuthFailureWindow {
+    private static final long WINDOW_MS = 60_000L;
+    private static final int LIMIT = 30;
+    private long windowStart = System.currentTimeMillis();
+    private int count;
+
+    synchronized boolean allow(long now) {
+      if (now - windowStart > WINDOW_MS) {
+        windowStart = now;
+        count = 0;
+      }
+      return ++count <= LIMIT;
+    }
+  }
+
+  private static final AuthFailureWindow AUTH_FAILURES = new AuthFailureWindow();
+
   /** 已发布的 IPv4 监听端口；未就绪时为 0。 */
   private volatile int bridgePort;
 
@@ -826,6 +849,13 @@ public final class HttpShellService {
       boolean authed =
           com.deepseekharness.app.util.BridgeCredentialAuth.authorized(
               path, tokenHeaders, authToken.isEmpty() ? ensureToken() : authToken);
+      // 同机任意应用都能连 127.0.0.1:3090，未鉴权请求必须有成本上限：
+      // 一分钟内失败超过阈值就直接回 429 并断开，而不是让对端无限试。
+      if (!authed && !AUTH_FAILURES.allow(System.currentTimeMillis())) {
+        android.util.Log.w("HttpShellService", "鉴权失败过多，暂时拒绝 path=" + route);
+        writeBridgeProtocolError(c, 429, "TOO_MANY_UNAUTHENTICATED");
+        return;
+      }
       // 预连接与未完成鉴权的 socket 不读写环境，不能占住维护屏障。
       try (com.deepseekharness.app.core.RuntimeTasks work =
           authed ? com.deepseekharness.app.core.RuntimeTasks.begin() : null) {
@@ -981,6 +1011,8 @@ public final class HttpShellService {
     String reason =
         status == 405
             ? "Method Not Allowed"
+            : status == 429
+                ? "Too Many Requests"
             : status == 413
                 ? "Payload Too Large"
                 : status == 415

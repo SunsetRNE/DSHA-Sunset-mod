@@ -65,9 +65,9 @@ android {
         buildConfigField 'boolean', 'ISLAND_EDITION', islandEdition ? 'true' : 'false'
         // 上岛版用独立显示名，避免桌面上与正式 DSHA 同名、误以为是同一个应用。
         resValue 'string', 'app_name', islandEdition ? 'DSHA 上岛版' : 'DSHA'
-        versionCode 207
+        versionCode 208
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3"
+        versionName "0.2.1-rc.3-20261029.0741-dsh0.2.1-rc.3"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
