@@ -1013,13 +1013,13 @@ public final class HttpShellService {
             ? "Method Not Allowed"
             : status == 429
                 ? "Too Many Requests"
-            : status == 413
-                ? "Payload Too Large"
-                : status == 415
-                    ? "Unsupported Media Type"
-                    : status == 411
-                        ? "Length Required"
-                        : status == 408 ? "Request Timeout" : "Bad Request";
+                : status == 413
+                    ? "Payload Too Large"
+                    : status == 415
+                        ? "Unsupported Media Type"
+                        : status == 411
+                            ? "Length Required"
+                            : status == 408 ? "Request Timeout" : "Bad Request";
     byte[] body =
         ("{\"ok\":false,\"error\":\"" + code + "\"}")
             .getBytes(java.nio.charset.StandardCharsets.UTF_8);

@@ -41,6 +41,15 @@ Git保存应用源码、资源、锁、recipe、校验脚本及必要且有notic
 
 实际“七项APK门禁”是具体交付时的选集与日志，不等于上表每一行只运行一次工具；精确组成和执行结果需看那次回执，不从本页推算已通过项目数。脚本参数以当前`--help`/入口为准，避免将历史审计工具默认路径指向新交付。
 
+## CI 正式发布
+
+公开仓库的正式成品由 [release-production.yml](../.github/workflows/release-production.yml) 构建与发布：
+`workflow_dispatch` 绑定精确 commit，从公开预发布资产还原固定输入，跑完整单测/Java 格式/Lint/文档门禁，
+用仓库 Secrets 中的 Mod 发布证书签名正式包，核验 `ci/release-identity.json` 的证书 SHA-256 与包名后
+创建 tag + prerelease，并上传 APK、证据 zip、`build-info.json` 与 `SHA256SUMS`。触发参数、Secrets、
+产物与核验命令见 [CI 构建与发布](ci-release.md)；固定输入见 [固定构建输入](fixed-build-inputs.md)。
+CI 通过只证明该 commit 在托管 runner 上的编译/门禁/签名/发布流程，不代替真机安装、覆盖升级与长期运行验收。
+
 ## 测试数字如何读
 
 F10各124类/785项、fix1各511项、build170各45项分别是其选择集和执行时点；它们不是静态Java文件数或 `@Test`文本计数。动态/参数化测试、flavor条件、skip、测试环境初始化失败和重跑都会改变口径。源码有某个测试不代表本轮执行，缓存通过也需明示。

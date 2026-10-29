@@ -50,13 +50,13 @@ public final class BridgePathPolicy {
     "/root/.config/gcloud",
     "/root/.kube",
     "/.kube",
-    "/root/.config/gh",   // gh auth login 的 hosts.yml 就是明文 token
-    "/root/.docker",      // registry 登录凭据
+    "/root/.config/gh", // gh auth login 的 hosts.yml 就是明文 token
+    "/root/.docker", // registry 登录凭据
     "/root/.gnupg",
-    "/root/.cargo",       // credentials.toml
-    "/root/.netrc",       // 明文 machine/login/password
+    "/root/.cargo", // credentials.toml
+    "/root/.netrc", // 明文 machine/login/password
     "/root/.pypirc",
-    "/root/.gitconfig",   // remote URL 里可能带 https://user:token@
+    "/root/.gitconfig", // remote URL 里可能带 https://user:token@
     "/root/.git-credentials",
     "/root/.npmrc",
     "/root/.yarnrc.yml",

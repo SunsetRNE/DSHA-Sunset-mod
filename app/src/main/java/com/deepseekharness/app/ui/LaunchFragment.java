@@ -38,8 +38,10 @@ public class LaunchFragment extends Fragment {
   private TextView latestLogsButton;
   private androidx.appcompat.app.AlertDialog accessDialog;
   private android.animation.ObjectAnimator dotPulse;
+
   /** 访问地址弹窗的自定义正文与三个横向按钮（关闭固定在最右）。 */
   private TextView accessBody;
+
   private Button accessLanButton;
   private Button accessCopyButton;
 
@@ -1042,8 +1044,7 @@ public class LaunchFragment extends Fragment {
     Toast.makeText(
             requireContext(),
             UiText.choose(
-                "暂时没有可复制的地址，请等待 DSH 就绪。",
-                "No address to copy yet; wait for DSH to be ready."),
+                "暂时没有可复制的地址，请等待 DSH 就绪。", "No address to copy yet; wait for DSH to be ready."),
             Toast.LENGTH_SHORT)
         .show();
   }

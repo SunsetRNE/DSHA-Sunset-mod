@@ -78,11 +78,8 @@ public final class MainScreenWindowPolicy {
       int windowId,
       ScreenWindowRegion.Bounds measured,
       ScreenWindowRegion.Exclusion registered) {
-    if (registered != null
-        || !ownPackage
-        || focused
-        || measured == null
-        || !measured.valid()) return registered;
+    if (registered != null || !ownPackage || focused || measured == null || !measured.valid())
+      return registered;
     return new ScreenWindowRegion.Exclusion(windowId, 0, measured);
   }
 

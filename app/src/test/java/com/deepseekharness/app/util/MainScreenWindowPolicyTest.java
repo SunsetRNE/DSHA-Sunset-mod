@@ -38,7 +38,8 @@ public class MainScreenWindowPolicyTest {
     var windows =
         java.util.List.of(
             window(1, MainScreenWindowPolicy.Kind.APPLICATION, true, true, 10, TARGET, null),
-            window(42, MainScreenWindowPolicy.Kind.APPLICATION, false, false, 20, OVERLAY, fallback));
+            window(
+                42, MainScreenWindowPolicy.Kind.APPLICATION, false, false, 20, OVERLAY, fallback));
     MainScreenWindowPolicy.Selection selection = MainScreenWindowPolicy.selection(windows);
     assertEquals("排除后的浮窗不参与目标选择", 0, selection.index());
     assertEquals("READABLE", selection.diagnostic());
@@ -62,15 +63,13 @@ public class MainScreenWindowPolicyTest {
   /** 可聚焦的自有窗口可能是观察目标本身，不适用整窗排除。 */
   @Test
   public void focusedOwnWindowIsNeverFallbackExcluded() {
-    assertNull(
-        MainScreenWindowPolicy.ownFallbackExclusion(true, true, 7, TARGET, null));
+    assertNull(MainScreenWindowPolicy.ownFallbackExclusion(true, true, 7, TARGET, null));
   }
 
   /** 其他应用的窗口绝不因本规则被排除。 */
   @Test
   public void foreignPackageIsNeverFallbackExcluded() {
-    assertNull(
-        MainScreenWindowPolicy.ownFallbackExclusion(false, false, 7, OVERLAY, null));
+    assertNull(MainScreenWindowPolicy.ownFallbackExclusion(false, false, 7, OVERLAY, null));
   }
 
   /** 无效边界的窗口拿不到 fallback 排除，继续按既有遮挡逻辑处理。 */
@@ -88,16 +87,15 @@ public class MainScreenWindowPolicyTest {
     var windows =
         java.util.List.of(
             window(1, MainScreenWindowPolicy.Kind.APPLICATION, true, true, 10, TARGET, null),
-            window(42, MainScreenWindowPolicy.Kind.APPLICATION, false, false, 20, OVERLAY, fallback));
+            window(
+                42, MainScreenWindowPolicy.Kind.APPLICATION, false, false, 20, OVERLAY, fallback));
     ScreenWindowRegion region = MainScreenWindowPolicy.region(0, windows);
     assertFalse("穿过浮条的滑动不得放行", region.containsTrajectory(600, 150, 600, 2700, 8));
     assertTrue("避开浮条的滑动照常可用", region.containsTrajectory(600, 400, 600, 2700, 8));
     assertTrue("扣除浮窗后仍有可点面积", region.hasUnexcludedArea(region.content()));
 
-    var fullCover =
-        new ScreenWindowRegion.Bounds(0, 0, 1260, 2800);
-    var full =
-        MainScreenWindowPolicy.ownFallbackExclusion(true, false, 43, fullCover, null);
+    var fullCover = new ScreenWindowRegion.Bounds(0, 0, 1260, 2800);
+    var full = MainScreenWindowPolicy.ownFallbackExclusion(true, false, 43, fullCover, null);
     var covered =
         java.util.List.of(
             window(1, MainScreenWindowPolicy.Kind.APPLICATION, true, true, 10, TARGET, null),
