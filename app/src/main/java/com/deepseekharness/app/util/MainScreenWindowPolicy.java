@@ -65,6 +65,27 @@ public final class MainScreenWindowPolicy {
     return new Selection(selected, "READABLE");
   }
 
+  /**
+   * #210：未登记（或登记后窗口重建、windowId 漂移）的自有<b>非焦点</b>悬浮窗，
+   * 按包名身份整窗排除，不计为目标遮挡。包名在 Android 内是精确身份，不存在冒名；
+   * 排除区内的坐标轨迹仍被 {@code ScreenWindowRegion} 拒绝，完全盖满时依旧
+   * 无可点面积 —— 行为与登记路径一致，只是不再要求每个悬浮窗都维护登记。
+   * 可聚焦的自有 Activity 窗口不适用：它们可能是观察目标本身。
+   */
+  public static ScreenWindowRegion.Exclusion ownFallbackExclusion(
+      boolean ownPackage,
+      boolean focused,
+      int windowId,
+      ScreenWindowRegion.Bounds measured,
+      ScreenWindowRegion.Exclusion registered) {
+    if (registered != null
+        || !ownPackage
+        || focused
+        || measured == null
+        || !measured.valid()) return registered;
+    return new ScreenWindowRegion.Exclusion(windowId, 0, measured);
+  }
+
   /** Clip only non-interactive system chrome / IME covering a complete edge. Interior covers refuse coordinates. */
   public static ScreenWindowRegion region(int selected, List<Window> windows) {
     Window target = windows.get(selected);

@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3 / build206
+# DSHA 0.2.1-rc.3-20261029.0741-dsh0.2.1-rc.3 / build208
 
-- Développement des actions du terminal, de l’aperçu et de l’exportation des sorties. La barre latérale des sessions et le bouton flottant s’adaptent aux dimensions de la fenêtre ; les textes sont complétés dans dix langues.
-- Amélioration de la coordination entre les requêtes de modules, le démarrage et les opérations du terminal ; un message est conservé si une demande de démarrage n’est pas soumise.
-- Amélioration de la récupération de l’environnement et des vérifications de chemins ; ajustement de la priorité des adresses DNS et du traitement Unicode lors de la récupération de pages web.
-- Cette version n’a pas été installée ni validée sur téléphone. Le comportement réel du terminal, du réseau et de l’appareil reste à vérifier.
+- - Correction du contrôle du téléphone traitant les fenêtres en surimpression propres à DSHA (barre d’état, assistant, confirmation) comme une occlusion de la cible : les surimpressions propres non enregistrées et sans focus sont exclues en entier par identité de paquet et ne produisent plus TARGET_WINDOW_OCCLUDED. Les trajectoires traversant la zone exclue restent refusées, et une couverture complète ne laisse toujours aucune zone utilisable (#210).
+- - Sur les appareils où link() est refusé, la matérialisation des anciens liens pnpm en copies complètes n’est plus interrompue en cours par un délai fixe de 120 secondes ; le délai devient un garde-fou de 15 minutes contre les véritables blocages, afin qu’une copie interrompue ne laisse pas la transaction en attente et ne bloque pas le démarrage suivant (#209).
+- - Conserver dsh-web-mobile 3.2.2, DSH rc.3, l’accès local et réseau local et les dix langues. La validation sur téléphone reste suspendue.

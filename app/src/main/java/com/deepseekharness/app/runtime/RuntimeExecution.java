@@ -250,9 +250,13 @@ final class RuntimeExecution {
 
   BoundedProcessRunner.Result collectCasLinks(java.util.function.Consumer<String> timing)
       throws IOException, InterruptedException {
+    // #209：link() 被 ROM 拒绝的设备上，实体化旧 pnpm CAS 链接退化为逐文件全量
+    // 复制（实测一例 420MB），固定 120 秒会在复制中段 SIGKILL，把事务留在
+    // pending、卡死在下一次启动。脚本本身带进度回调和取消票据，这里的超时
+    // 只兜底真正的挂死，不再按快设备的正常耗时定值。
     return collect(
         "python3 -u /root/.dsh/materialize-cas-links.py",
-        120_000,
+        900_000,
         true,
         null,
         new RuntimeCommandTiming(timing));
