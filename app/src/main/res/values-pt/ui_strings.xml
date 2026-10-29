@@ -47,7 +47,7 @@
     <string name="ui134_recent_startups" formatted="false">"Últimos cinco inicializações"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"Etapas, erros reais e códigos de saída"</string>
     <string name="ui134_results" formatted="false">"Resultados da verificação"</string>
-    <string name="ui134_root_hint" formatted="false">"Dispositivo com root: ative, autorize o DSHA em Magisk / KernelSU e verifique. Os outros dispositivos podem usar os canais abaixo."</string>
+    <string name="ui134_root_hint" formatted="false">"Num telefone com root, use su diretamente sem emparelhamento ADB. Autorize o DSHA no gestor de root na primeira execução. Escolha abaixo o nível de interceptação de comandos; as proteções nativas, como a leitura de SMS, aplicam-se aos três níveis."</string>
     <string name="ui134_screen_setup" formatted="false">"Configurar controle da tela · Dois passos"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Inicie o Shizuku no respetivo gerenciador e autorize o DSHA aqui. Normalmente é necessário reiniciar o serviço após reiniciar o dispositivo."</string>
     <string name="ui134_start_records" formatted="false">"Registros de inicialização"</string>
@@ -259,6 +259,7 @@
     <string name="ui_m0215" formatted="false">"Prévia"</string>
     <string name="ui_m0217" formatted="false">"Verificar conexão"</string>
     <string name="ui_m0218" formatted="false">"＋ Novo"</string>
+    <string name="ui_m9024" formatted="false">"Alterar"</string>
     <string name="welcome_eyebrow0" formatted="false">"DEEPSEEK HARNESS · ANDROID"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / FEITO PARA O SEU RITMO"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / OS SEUS DADOS, A SUA ESCOLHA"</string>

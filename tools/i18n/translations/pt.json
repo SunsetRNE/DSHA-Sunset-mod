@@ -123,7 +123,7 @@
   "m0121": "Exibir respostas da IA em uma sobreposição",
   "m0122": "Configurações da sobreposição ›",
   "m0123": "Acesso a todos os arquivos ›",
-  "m0124": "Em um telefone com root, use su diretamente sem pareamento ADB. Autorize o DSHA no gerenciador de root na primeira utilização. As regras de proteção do dispositivo sempre se aplicam.",
+  "m0124": "Num telefone com root, use su diretamente sem emparelhamento ADB. Autorize o DSHA no gestor de root na primeira execução; a interceptação de comandos é estrita por padrão e pode ser alterada abaixo.",
   "m0125": "Abrir gerenciador Shizuku",
   "m0126": "Abrir backup e dados",
   "m0127": "Abrir depuração sem fio",
@@ -3680,5 +3680,17 @@
   "m9008": "WHEELS_OPTIONAL_SKIP: Importações Python aprovadas; ignorando a injeção ou instalação de cache falhada e continuar a configuração ADB",
   "m9009": "WHEELS_INJECT_FAIL: %s; destino %s; %s; as entradas existentes não foram substituídas",
   "m9010": "Preparando o ambiente ADB offline…",
-  "m9011": "ADB_OFFLINE_READY: As dependências offline estão prontas; a conexão não foi verificada. Ative a depuração Sem fio e verifique novamente."
+  "m9011": "ADB_OFFLINE_READY: As dependências offline estão prontas; a conexão não foi verificada. Ative a depuração Sem fio e verifique novamente.",
+  "m9013": "Estrito (padrão)",
+  "m9014": "Relaxado (operações irreversíveis continuam bloqueadas)",
+  "m9015": "Totalmente relaxado (sem verificação do conteúdo dos comandos)",
+  "m9016": "Nível de interceptação de comandos: %s",
+  "m9017": "\n== Níveis de interceptação de comandos root ==\nDefinições → Permissões do dispositivo → Interceptação de comandos Root: Estrito (padrão, apenas lista de permissões), Relaxado (qualquer comando, mas operações irreversíveis como formatar, gravar firmware, reiniciar ou apagar dados continuam bloqueadas), Totalmente relaxado (sem verificação do conteúdo dos comandos). Os níveis aplicam-se apenas ao canal root; o executor genérico Shizuku/ADB permanece estrito e a leitura de SMS ainda exige autorização nativa em todos os níveis.\n",
+  "m9018": "Nível de interceptação de comandos root",
+  "m9019": "Estrito: apenas comandos da lista de permissões, modo padrão.\nRelaxado: qualquer comando é permitido, mas operações irreversíveis como formatar, gravar firmware, reiniciar ou apagar dados continuam bloqueadas.\nTotalmente relaxado: sem verificação do conteúdo dos comandos; comandos root são executados diretamente.",
+  "m9020": "Relaxar a interceptação de comandos root?",
+  "m9021": "Aplica-se apenas ao canal root; após o relaxamento, o assistente e os plugins podem executar qualquer comando root. O modo estrito permite apenas a lista de permissões; o totalmente relaxado não bloqueia operações irreversíveis, o que pode causar perda de dados ou danos ao sistema.",
+  "m9022": "Nível de interceptação guardado: %s",
+  "m9023": "Nível de interceptação de comandos: %s\nAplica-se apenas ao canal root; o executor genérico Shizuku/ADB permanece estrito.",
+  "m9024": "Alterar"
 }

@@ -17,18 +17,24 @@ public final class RootShellMain {
       java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
       byte[] buffer = new byte[2048];
       int count;
+      // 原始 root 命令的 JSON 请求比严格档单条命令更大；仍设硬上限，避免无限读入。
       while ((count = System.in.read(buffer)) != -1) {
-        if (bytes.size() + count > 16_384) throw new IllegalArgumentException("设备命令过长");
+        if (bytes.size() + count > 65_536) throw new IllegalArgumentException("设备命令过长");
         bytes.write(buffer, 0, count);
       }
       org.json.JSONObject request =
           new org.json.JSONObject(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
       String command = request.getString("command");
+      if (command.getBytes(StandardCharsets.UTF_8).length
+          > com.deepseekharness.app.util.DeviceShellPolicy.MAX_SHELL_COMMAND)
+        throw new IllegalArgumentException("设备命令超过上限");
       int smsUser = request.optInt("smsUser", -1);
       String operation = request.optString("operation", "");
+      boolean rawShell = operation.equals("root-unrestricted");
       boolean identityRequired =
           smsUser >= 0
               || operation.equals("virtual-screen-start")
+              || rawShell
               || com.deepseekharness.app.util.DeviceShellPolicy.inspect(command).kind
                   == com.deepseekharness.app.util.DeviceShellPolicy.Kind.STOP;
       ShellService shell;
@@ -42,6 +48,7 @@ public final class RootShellMain {
         shell =
             new ShellService(); // Historical ordinary reads do not require a guessed app identity.
       if (operation.equals("virtual-screen-start")) output = shell.execVirtualScreen(command);
+      else if (rawShell) output = shell.execUnrestricted(command);
       else if (operation.isEmpty())
         output = smsUser < 0 ? shell.exec(command) : shell.execAuthorizedSms(command, smsUser);
       else throw new SecurityException("未知 Root 操作");

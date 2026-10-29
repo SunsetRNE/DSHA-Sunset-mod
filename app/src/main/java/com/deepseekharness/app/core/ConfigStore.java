@@ -250,6 +250,21 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_ALLOW_ROOT_SHELL, v).apply();
   }
 
+  /** root 命令拦截档位；非法或缺失一律回落严格档（fail-closed）。 */
+  public com.deepseekharness.app.util.DeviceShellPolicy.Mode rootPolicyMode() {
+    return com.deepseekharness.app.util.DeviceShellPolicy.Mode.parse(
+        text(Constants.KEY_ROOT_POLICY_MODE, "strict"));
+  }
+
+  public void setRootPolicyMode(com.deepseekharness.app.util.DeviceShellPolicy.Mode mode) {
+    prefs
+        .edit()
+        .putString(
+            Constants.KEY_ROOT_POLICY_MODE,
+            (mode == null ? com.deepseekharness.app.util.DeviceShellPolicy.Mode.STRICT : mode).id)
+        .apply();
+  }
+
   public boolean isCheckUpdate() {
     return flag(Constants.KEY_CHECK_UPDATE, true);
   }

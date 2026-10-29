@@ -47,7 +47,7 @@
     <string name="ui134_recent_startups" formatted="false">"آخر خمس عمليات بدء تشغيل"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"المراحل والأخطاء الفعلية ورموز الخروج"</string>
     <string name="ui134_results" formatted="false">"نتائج الفحص"</string>
-    <string name="ui134_root_hint" formatted="false">"جهاز بصلاحيات الجذر: فعّل ثم فوّض DSHA في Magisk / KernelSU، ثم تحقّق. يمكن للأجهزة الأخرى استخدام القنوات أدناه."</string>
+    <string name="ui134_root_hint" formatted="false">"عندما يكون الهاتف بصلاحيات root، يمكن استخدام su مباشرة دون اقتران ADB. فوّض DSHA في مدير root عند أول تنفيذ. اختر مستوى اعتراض الأوامر أدناه؛ تظل البوابات الأصلية مثل قراءة الرسائل سارية في المستويات الثلاثة."</string>
     <string name="ui134_screen_setup" formatted="false">"إعداد التحكم في الشاشة · خطوتان"</string>
     <string name="ui134_shizuku_hint" formatted="false">"شغّل Shizuku في مديره، ثم فوّض DSHA هنا. تحتاج الخدمة عادةً إلى إعادة التشغيل بعد إقلاع الجهاز."</string>
     <string name="ui134_start_records" formatted="false">"سجلات بدء التشغيل"</string>
@@ -259,6 +259,7 @@
     <string name="ui_m0215" formatted="false">"تجريبي"</string>
     <string name="ui_m0217" formatted="false">"التحقق من الاتصال"</string>
     <string name="ui_m0218" formatted="false">"＋ جديد"</string>
+    <string name="ui_m9024" formatted="false">"تغيير"</string>
     <string name="welcome_eyebrow0" formatted="false">"DEEPSEEK HARNESS · ANDROID"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / مصمّم لطريقة عملك"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / بياناتك، اختيارك"</string>

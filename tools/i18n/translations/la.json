@@ -123,7 +123,7 @@
   "m0121": "Exitum IA in superpositione ostende",
   "m0122": "Optiones superpositionis ›",
   "m0123": "Accessus ad omnes plicas ›",
-  "m0124": "In telephono cum root, su recta sine coniunctione ADB utere. Primo usu DSHA in administratore root auctoritatem da. Regulae tutelae apparatus semper valent.",
+  "m0124": "In apparatu cum root, su directe sine coniunctione ADB uti potes. Primo exsecutione DSHA in administro root auctoriza; interceptio mandatorum praedefinita stricta est et infra mutari potest.",
   "m0125": "Administratorem Shizuku aperi",
   "m0126": "Exemplaria subsidiaria et data aperi",
   "m0127": "Emendationem sine filis aperi",
@@ -3680,5 +3680,17 @@
   "m9008": "WHEELS_OPTIONAL_SKIP: Importationes Python transierunt; iniectio aut installatio memoriae defecta praetermittitur et praeparatio ADB continuatur",
   "m9009": "WHEELS_INJECT_FAIL: %s; meta %s; %s; res exsistentes non superscriptae sunt",
   "m9010": "Ambitus ADB sine rete paratur…",
-  "m9011": "ADB_OFFLINE_READY: Dependentiae sine rete paratae sunt; conexio nondum verificata est. Depurationem sine filo habilita, deinde rursus verifica."
+  "m9011": "ADB_OFFLINE_READY: Dependentiae sine rete paratae sunt; conexio nondum verificata est. Depurationem sine filo habilita, deinde rursus verifica.",
+  "m9013": "Strictus (praedefinitus)",
+  "m9014": "Remissus (operationes irrevocabiles adhuc impediuntur)",
+  "m9015": "Plene remissus (nulla inspectio argumenti mandati)",
+  "m9016": "Gradus interceptionis mandatorum: %s",
+  "m9017": "\n== Gradus interceptionis mandatorum root ==\nOptiones → Facultates apparatus → Interceptio mandatorum Root: Strictus (praedefinitus, solum index permissus), Remissus (quodlibet mandatum, sed operationes irrevocabiles ut formatio/flash/restart/eradicatio datorum adhuc impediuntur), Plene remissus (nulla inspectio argumenti mandati). Gradus solum canalem root afficiunt; executor generalis Shizuku/ADB strictus manet, et lectio nuntiorum SMS in omnibus gradibus auctoritatem nativam postulat.\n",
+  "m9018": "Gradus interceptionis mandatorum root",
+  "m9019": "Strictus: solum mandata in indice permissa, gradus praedefinitus.\nRemissus: quodlibet mandatum permittitur, sed operationes irrevocabiles ut formatio, flash, restart, eradicatio datorum adhuc impediuntur.\nPlene remissus: nulla inspectio argumenti mandati; mandata root directe exsequuntur.",
+  "m9020": "Remissionem interceptionis mandatorum root confirmas?",
+  "m9021": "Solum canalem root afficit; post remissionem adiutor et plugins quodlibet mandatum root exsequi possunt. Strictus solum indicem permissum admittit; plene remissus nullas operationes irrevocabiles impedit, unde dati amissio vel systematis damnum accidere potest.",
+  "m9022": "Gradus interceptionis servatus: %s",
+  "m9023": "Gradus interceptionis mandatorum: %s\nSolum canalem root afficit; executor generalis Shizuku/ADB strictus manet.",
+  "m9024": "Mutare"
 }

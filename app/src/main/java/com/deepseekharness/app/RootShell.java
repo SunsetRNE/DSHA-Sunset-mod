@@ -82,21 +82,41 @@ public final class RootShell {
   public static String status(Context ctx) {
     if (!enabled(ctx)) return com.deepseekharness.app.util.UiText.text("未启用 · 开启后可直接申请 root 授权");
     String su = executable();
-    return su == null
-        ? com.deepseekharness.app.util.UiText.text("未找到 su，可使用 Shizuku 或 ADB 通道")
-        : lastResult.render(su);
+    String base =
+        su == null
+            ? com.deepseekharness.app.util.UiText.text("未找到 su，可使用 Shizuku 或 ADB 通道")
+            : lastResult.render(su);
+    return base + "\n" + com.deepseekharness.app.util.UiText.format("命令拦截档位：%s", policyLabel(ctx));
+  }
+
+  /** 当前档位的中文展示名；三个档位只影响 root 原始命令，不改变 SMS 等原生闸门。 */
+  public static String policyLabel(Context ctx) {
+    return switch (new com.deepseekharness.app.core.ConfigStore(ctx).rootPolicyMode()) {
+      case STRICT -> com.deepseekharness.app.util.UiText.text("严格（默认）");
+      case RELAXED -> com.deepseekharness.app.util.UiText.text("放宽（保留不可逆操作拦截）");
+      case FULL -> com.deepseekharness.app.util.UiText.text("完全放宽（不按命令内容拦截）");
+    };
   }
 
   public static String exec(Context ctx, String command, int authorizedSmsUser) {
     if (!enabled(ctx))
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
-    DeviceShellPolicy.Plan plan = DeviceShellPolicy.inspect(command);
+    DeviceShellPolicy.Mode mode =
+        new com.deepseekharness.app.core.ConfigStore(ctx).rootPolicyMode();
+    DeviceShellPolicy.Plan plan = DeviceShellPolicy.inspect(command, mode);
     if (!plan.allowed()) return plan.reason + "\n[EXIT=126]";
     if (plan.kind == DeviceShellPolicy.Kind.SENSITIVE_READ
         && (authorizedSmsUser < 0
             || !new com.deepseekharness.app.core.DeviceGrants(ctx).smsReadAllowed()))
       return com.deepseekharness.app.util.UiText.text("[POLICY_BLOCKED] 短信读取尚未经过原生授权\n[EXIT=126]");
+    if (plan.kind == DeviceShellPolicy.Kind.SHELL) {
+      // 原始 shell 只能经 root 通道执行；Shizuku/ADB 的通用执行器仍走严格档，不识别此计划。
+      if (mode == DeviceShellPolicy.Mode.STRICT || plan.shell == null)
+        return com.deepseekharness.app.util.UiText.text(
+            "[POLICY_BLOCKED] ROOT_SHELL_PLAN_UNVERIFIED\n[EXIT=126]");
+      return runPrivileged(ctx, plan.shell, -1, "root-unrestricted");
+    }
     return runPrivileged(ctx, command, authorizedSmsUser, "");
   }
 

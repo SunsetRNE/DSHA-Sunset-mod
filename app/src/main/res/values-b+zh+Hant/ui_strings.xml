@@ -47,7 +47,7 @@
     <string name="ui134_recent_startups" formatted="false">"最近五次啟動"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"階段、實際錯誤與退出碼"</string>
     <string name="ui134_results" formatted="false">"檢查結果"</string>
-    <string name="ui134_root_hint" formatted="false">"已 Root 的手機：開啟開關，在 Magisk / KernelSU 等管理器允許 DSHA，再點驗證。未 Root 可用下方通道。"</string>
+    <string name="ui134_root_hint" formatted="false">"手機已 root 時可直接使用 su，無需 ADB 配對。首次執行請在 root 管理器中授權 DSHA；指令攔截等級可在下方選擇，簡訊等原生閘門在三個等級都生效。"</string>
     <string name="ui134_screen_setup" formatted="false">"設定螢幕操作 · 兩步完成"</string>
     <string name="ui134_shizuku_hint" formatted="false">"先在 Shizuku 管理器啟動服務，再返回授權。手機重新啟動後通常需要重新啟動服務。"</string>
     <string name="ui134_start_records" formatted="false">"啟動記錄"</string>
@@ -259,6 +259,7 @@
     <string name="ui_m0215" formatted="false">"預覽版"</string>
     <string name="ui_m0217" formatted="false">"驗證已有連線"</string>
     <string name="ui_m0218" formatted="false">"＋ 新建"</string>
+    <string name="ui_m9024" formatted="false">"變更"</string>
     <string name="welcome_eyebrow0" formatted="false">"DeepSeek Harness · 安卓"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / 適合你的工作方式"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / 資料與選擇由你掌握"</string>

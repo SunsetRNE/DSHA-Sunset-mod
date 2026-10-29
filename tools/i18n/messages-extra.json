@@ -4062,8 +4062,8 @@
   },
   {
     "id": "x1970572",
-    "zh": "已 Root 的手机：开启开关，在 Magisk / KernelSU 等管理器允许 DSHA，再点验证。未 Root 可用下方通道。",
-    "en": "Rooted device: enable, authorize DSHA in Magisk / KernelSU, then verify. Other devices can use the channels below.",
+    "zh": "手机已 root 时可直接使用 su，无需 ADB 配对。首次执行请在 root 管理器中授权 DSHA；命令拦截档位可在下方选择，短信等原生闸门在三档都生效。",
+    "en": "On a rooted phone, use su directly without ADB pairing. Authorize DSHA in your root manager on first use. Choose the command interception mode below; native gates such as SMS reading apply in all three modes.",
     "files": [
       "app/src/main/res/values/ui_refinement.xml"
     ]

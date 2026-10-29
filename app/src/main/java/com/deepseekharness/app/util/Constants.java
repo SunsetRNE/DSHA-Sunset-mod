@@ -64,6 +64,9 @@ public final class Constants {
   /** 允许 root shell（--su 提权）。 */
   public static final String KEY_ALLOW_ROOT_SHELL = "allow_root_shell";
 
+  /** Root 命令拦截档位：strict（默认）/ relaxed / full；缺失或非法回落 strict。 */
+  public static final String KEY_ROOT_POLICY_MODE = "root_policy_mode";
+
   /** 启动时检查更新。 */
   public static final String KEY_CHECK_UPDATE = "check_update";
 

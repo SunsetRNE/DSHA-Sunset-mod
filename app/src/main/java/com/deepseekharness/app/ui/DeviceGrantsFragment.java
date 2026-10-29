@@ -24,6 +24,7 @@ import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.DeviceGrants;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.Constants;
+import com.deepseekharness.app.util.DeviceShellPolicy;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** 设备通道、系统权限与能力预授权的唯一设置页；沿用历史偏好键。 */
@@ -34,6 +35,8 @@ public final class DeviceGrantsFragment extends Fragment {
   private android.widget.Button screenPause;
   private android.widget.Button screenRules, screenRevoke;
   private android.widget.RadioGroup screenModes;
+  private TextView rootPolicy;
+  private android.widget.Button rootPolicyChange;
   private boolean updating;
   private int adbStatusRequest;
   private FullPermissionControls fullPermissions;
@@ -140,6 +143,10 @@ public final class DeviceGrantsFragment extends Fragment {
           syncSettings();
           refreshChannelLabels();
         });
+    rootPolicy = view.findViewById(R.id.device_root_policy);
+    rootPolicyChange = view.findViewById(R.id.device_root_policy_change);
+    rootPolicyChange.setOnClickListener(button -> showRootPolicyDialog());
+    refreshRootPolicy();
     view.findViewById(R.id.device_root_verify)
         .setOnClickListener(
             button -> {
@@ -367,6 +374,7 @@ public final class DeviceGrantsFragment extends Fragment {
 
     updating = false;
     updateSms();
+    refreshRootPolicy();
   }
 
   private void showScreenRules() {
@@ -550,6 +558,70 @@ public final class DeviceGrantsFragment extends Fragment {
     if (root.getTag() == null) root.setText(RootShell.status(requireContext()));
   }
 
+  /** 只读的当前 root 命令拦截档位摘要；修改入口是下方“更改”。 */
+  private void refreshRootPolicy() {
+    if (rootPolicy == null || !isAdded()) return;
+    rootPolicy.setText(
+        com.deepseekharness.app.util.UiText.format(
+            "命令拦截档位：%s\n仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。",
+            RootShell.policyLabel(requireContext())));
+  }
+
+  private void showRootPolicyDialog() {
+    final Context ctx = requireContext();
+    if (!RootShell.enabled(ctx)) {
+      toast(com.deepseekharness.app.util.UiText.text("请先启用「允许 Root Shell」"));
+      return;
+    }
+    final DeviceShellPolicy.Mode[] modes = {
+      DeviceShellPolicy.Mode.STRICT, DeviceShellPolicy.Mode.RELAXED, DeviceShellPolicy.Mode.FULL
+    };
+    final String[] labels = {
+      com.deepseekharness.app.util.UiText.text("严格（默认）· 仅放行白名单内的命令"),
+      com.deepseekharness.app.util.UiText.text("放宽 · 允许任意命令，仍拦截不可逆操作"),
+      com.deepseekharness.app.util.UiText.text("完全放宽 · 不按命令内容拦截")
+    };
+    // MaterialAlertDialog 同时设置 message 与单选列表时只会显示 message，档位实际无法选择；
+    // 这里把说明并进列表项，保证短屏和 TalkBack 下都能选到三档。
+    new DshaDialogBuilder(ctx)
+        .setTitle(com.deepseekharness.app.util.UiText.text("Root 命令拦截档位"))
+        .setItems(
+            labels,
+            (dialog, which) -> {
+              dialog.dismiss();
+              confirmRootPolicy(modes[which]);
+            })
+        .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
+        .show();
+  }
+
+  /** 放宽档位会扩大助手与插件的 root 权限，保存前必须再确认一次风险。 */
+  private void confirmRootPolicy(DeviceShellPolicy.Mode mode) {
+    final Context ctx = requireContext();
+    if (mode == DeviceShellPolicy.Mode.STRICT) {
+      saveRootPolicy(mode);
+      return;
+    }
+    new DshaDialogBuilder(ctx)
+        .setTitle(com.deepseekharness.app.util.UiText.text("确认放宽 root 命令拦截？"))
+        .setMessage(
+            com.deepseekharness.app.util.UiText.text(
+                "仅对 root 通道生效；放宽后助手和插件可执行任意 root 命令。严格档只放行白名单；完全放宽不拦截不可逆操作，可能导致数据丢失或系统损坏。"))
+        .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
+        .setPositiveButton(
+            com.deepseekharness.app.util.UiText.text("继续"), (dialog, which) -> saveRootPolicy(mode))
+        .show();
+  }
+
+  private void saveRootPolicy(DeviceShellPolicy.Mode mode) {
+    if (!isAdded()) return;
+    final Context ctx = requireContext();
+    new ConfigStore(ctx).setRootPolicyMode(mode);
+    refreshRootPolicy();
+    refreshChannelLabels();
+    toast(com.deepseekharness.app.util.UiText.format("已保存拦截档位：%s", RootShell.policyLabel(ctx)));
+  }
+
   private void saveSms(boolean enabled) {
     boolean saved = new DeviceGrants(requireContext()).setSmsReadAllowed(enabled);
     updateSms();
@@ -650,6 +722,8 @@ public final class DeviceGrantsFragment extends Fragment {
     adbStatusRequest++;
     sms = null;
     smsStatus = null;
+    rootPolicy = null;
+    rootPolicyChange = null;
     super.onDestroyView();
   }
 

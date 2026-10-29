@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3 / build206
+# DSHA 0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3 / build207
 
-- Actiones terminalis, prospectus et exportatio output ampliantur. Pars lateralis sessionum et globulus mobilis ad diversas fenestrarum magnitudines accommodantur; textus decem linguarum renovantur.
-- Consultationes pluginorum cum initio et operationibus terminalis melius coordinantur; nuntius status manet si petitio initii non mittitur.
-- Recuperatio ambitus et inspectiones viarum emendantur; prioritas inscriptionum DNS et tractatio Unicode in acquisitione paginarum mutantur.
-- Haec versio in telephono neque installata neque probata est. Mores terminalis, retis et machinae adhuc verificandi sunt.
+- Tres modi interceptionis mandatorum root adduntur: strictus (praedefinitus, sola index permissorum), laxus (quodlibet mandatum, sed operationes irrevocabiles sicut formatio, firmware scribendum, reinitiatio vel deletio datorum prohibentur) et plenus (nulla inspectio contenti mandatorum); in Constitutionibus → Permissionibus machinae mutatur.
+- Laxus et plenus ad canalem root solum pertinent. Executor generalis Shizuku/ADB strictus manet, et lectio nuntiorum brevium in tribus modis auctoritatem nativam requirit.
+- Mandata root cruda in processu privilegiato cum termino temporis, truncatione output 256 KiB et verificatione identitatis executionis currunt. Modus strictus etiam deletionem recursivam radicum reponendi et directoriorum primi gradus prohibet.
+- Haec est identitas probationis SunsetRNE (non E7E3) cum signatura probationis fixa. Probatio solum institutionem in hoc telephono et tres modos root complectitur; omnia ROM et exempla machinarum non comprehenduntur.

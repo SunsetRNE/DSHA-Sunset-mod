@@ -1,16 +1,8 @@
 {
   "schema": 1,
   "scope": "main-standard-low production source lexical findings",
-  "policy": "Reject every new signature or increased occurrence. All product-owned label and sentence fragments are repaired. The one protected external-source finding remains a separate debt row. Individually reviewed complete-paragraph joins in nonFindings require exact source SHA, signature and occurrence count; they cannot offset debt.",
-  "findings": [
-    {
-      "kind": "translated_fragment_concat",
-      "file": "app/src/main/java/com/deepseekharness/app/ShellService.java",
-      "signature": "UiText.text(\"\\n命令执行超时(\")+",
-      "line": 73,
-      "residual": "External decompiled Shizuku source is protected by the pinned formatter/source-origin contract; no product-owned caller translates command/user text."
-    }
-  ],
+  "policy": "Reject every new signature or increased occurrence. All product-owned label and sentence fragments are repaired. Individually reviewed complete-paragraph joins in nonFindings require exact source SHA, signature and occurrence count; they cannot offset debt.",
+  "findings": [],
   "nonFindings": [
     {
       "kind": "translated_choose_fragment_concat",

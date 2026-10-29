@@ -47,7 +47,7 @@
     <string name="ui134_recent_startups" formatted="false">"直近 5 回の起動"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"段階、実際のエラー、終了コード"</string>
     <string name="ui134_results" formatted="false">"確認結果"</string>
-    <string name="ui134_root_hint" formatted="false">"root 化済みの端末：有効にしてから Magisk / KernelSU で DSHA を許可し、検証してください。ほかの端末では以下の接続方法を使用できます。"</string>
+    <string name="ui134_root_hint" formatted="false">"root 化済みの端末では、ADB のペアリングなしで su を直接使用できます。初回実行時に root マネージャーで DSHA を許可してください。以下でコマンド遮断レベルを選択できます。SMS 読み取りなどのネイティブチェックは 3 つのレベルすべてで有効です。"</string>
     <string name="ui134_screen_setup" formatted="false">"画面操作を設定 · 2 つの手順"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Shizuku の管理アプリでサービスを起動してから、ここで DSHA を許可してください。通常は端末を再起動するたびにサービスの再起動が必要です。"</string>
     <string name="ui134_start_records" formatted="false">"起動記録"</string>
@@ -259,6 +259,7 @@
     <string name="ui_m0215" formatted="false">"プレビュー"</string>
     <string name="ui_m0217" formatted="false">"接続を確認"</string>
     <string name="ui_m0218" formatted="false">"＋ 新規"</string>
+    <string name="ui_m9024" formatted="false">"変更"</string>
     <string name="welcome_eyebrow0" formatted="false">"DEEPSEEK HARNESS · ANDROID"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / あなたの作業スタイルに"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / データも選択も、あなたの手に"</string>

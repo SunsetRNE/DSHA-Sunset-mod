@@ -47,7 +47,7 @@
     <string name="ui134_recent_startups" formatted="false">"Пять последних запусков"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"Этапы, реальные ошибки и коды завершения"</string>
     <string name="ui134_results" formatted="false">"Результаты проверки"</string>
-    <string name="ui134_root_hint" formatted="false">"Телефон с Root: включите переключатель, разрешите DSHA в Magisk / KernelSU и выполните проверку. На других устройствах можно использовать каналы ниже."</string>
+    <string name="ui134_root_hint" formatted="false">"На телефоне с root можно напрямую использовать su без сопряжения ADB. При первом запуске разрешите DSHA в менеджере root. Выберите уровень перехвата команд ниже; нативные проверки, например чтение SMS, действуют на всех трёх уровнях."</string>
     <string name="ui134_screen_setup" formatted="false">"Настроить управление экраном · два шага"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Запустите службу в менеджере Shizuku, затем разрешите DSHA здесь. После перезагрузки устройства службу обычно нужно запускать снова."</string>
     <string name="ui134_start_records" formatted="false">"Записи о запусках"</string>
@@ -259,6 +259,7 @@
     <string name="ui_m0215" formatted="false">"Просмотр"</string>
     <string name="ui_m0217" formatted="false">"Проверить подключение"</string>
     <string name="ui_m0218" formatted="false">"＋ Новый"</string>
+    <string name="ui_m9024" formatted="false">"Изменить"</string>
     <string name="welcome_eyebrow0" formatted="false">"DEEPSEEK HARNESS · ANDROID"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / ДЛЯ ВАШЕГО РИТМА РАБОТЫ"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / ВАШИ ДАННЫЕ, ВАШ ВЫБОР"</string>

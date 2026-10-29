@@ -503,7 +503,7 @@
   "x1970569": "Recuperação de inicialização",
   "x1970570": "Revisar problemas e opções de recuperação",
   "x1970571": "Desconectar ADB",
-  "x1970572": "Dispositivo com root: ative, autorize o DSHA em Magisk / KernelSU e verifique. Os outros dispositivos podem usar os canais abaixo.",
+  "x1970572": "Num telefone com root, use su diretamente sem emparelhamento ADB. Autorize o DSHA no gestor de root na primeira execução. Escolha abaixo o nível de interceptação de comandos; as proteções nativas, como a leitura de SMS, aplicam-se aos três níveis.",
   "x1970573": "Inicie o Shizuku no respetivo gerenciador e autorize o DSHA aqui. Normalmente é necessário reiniciar o serviço após reiniciar o dispositivo.",
   "x1970574": "Android 11+: pareie a depuração Sem fio na mesma rede Wi-Fi. Não precisa de root. Verifique ou pareie novamente após alterações de rede.",
   "x1970575": "Configurar controle da tela · Dois passos",

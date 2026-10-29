@@ -488,7 +488,7 @@ def request_native_execution(cmd, use_su=False, force_adb=False):
         plan = value.get('plan')
         if value.get('state') != 'adb' or not isinstance(plan, dict) or plan.get('version') != 1:
             raise ValueError('missing explicit ADB plan')
-        if plan.get('kind') not in ('READ', 'FILE', 'STOP'):
+        if plan.get('kind') not in ('READ', 'FILE', 'STOP', 'SHELL'):
             raise ValueError('invalid ADB plan')
         return plan
     except Exception as error:

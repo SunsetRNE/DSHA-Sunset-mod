@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3 / build206
+# DSHA 0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3 / build207
 
-- Développement des actions du terminal, de l’aperçu et de l’exportation des sorties. La barre latérale des sessions et le bouton flottant s’adaptent aux dimensions de la fenêtre ; les textes sont complétés dans dix langues.
-- Amélioration de la coordination entre les requêtes de modules, le démarrage et les opérations du terminal ; un message est conservé si une demande de démarrage n’est pas soumise.
-- Amélioration de la récupération de l’environnement et des vérifications de chemins ; ajustement de la priorité des adresses DNS et du traitement Unicode lors de la récupération de pages web.
-- Cette version n’a pas été installée ni validée sur téléphone. Le comportement réel du terminal, du réseau et de l’appareil reste à vérifier.
+- Ajout de trois modes d’interception des commandes root : Strict (par défaut, liste d’autorisation uniquement), Assoupli (toute commande, mais les opérations irréversibles comme le formatage, le flash, le redémarrage ou l’effacement de données restent bloquées) et Complet (aucun contrôle du contenu des commandes) ; basculez dans Paramètres → Autorisations de l’appareil.
+- Les modes Assoupli et Complet ne s’appliquent qu’au canal root. L’exécuteur générique Shizuku/ADB reste strict, et la lecture des SMS exige toujours une autorisation native dans les trois modes.
+- Les commandes root brutes s’exécutent dans le processus privilégié avec délai d’expiration, troncature de la sortie à 256 Kio et vérification de l’identité d’exécution. Le mode Strict bloque aussi la suppression récursive des racines de stockage et des répertoires de premier niveau.
+- Il s’agit de l’identité de test SunsetRNE (pas E7E3) avec une signature de test fixe. La vérification couvre uniquement l’installation sur ce téléphone et les trois modes root ; tous les ROM et modèles ne sont pas couverts.

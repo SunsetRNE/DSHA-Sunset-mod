@@ -1049,8 +1049,8 @@
   },
   {
     "id": "m0124",
-    "zh": "手机已 root 时可直接使用 su，无需 ADB 配对。首次执行请在 root 管理器中授权 DSHA；设备保护规则始终生效。",
-    "en": "On a rooted phone, use su directly without ADB pairing. Authorize DSHA in your root manager on first use. Device protection rules always apply.",
+    "zh": "手机已 root 时可直接使用 su，无需 ADB 配对。首次执行请在 root 管理器中授权 DSHA；命令拦截默认严格档，可在下方更改。",
+    "en": "On a rooted phone, use su directly without ADB pairing. Authorize DSHA in your root manager on first use. Command interception defaults to Strict and can be changed below.",
     "files": [
       "app/src/main/res/layout/fragment_device_grants.xml"
     ]
@@ -30138,6 +30138,105 @@
     "en": "ADB_OFFLINE_READY: Offline dependencies are ready; the connection has not been verified. Enable wireless debugging, then verify again.",
     "source": [
       "app/src/main/java/com/deepseekharness/app/ui/AdbPairActivity.java"
+    ]
+  },
+  {
+    "id": "m9013",
+    "zh": "严格（默认）",
+    "en": "Strict (default)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9014",
+    "zh": "放宽（保留不可逆操作拦截）",
+    "en": "Relaxed (irreversible operations still blocked)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9015",
+    "zh": "完全放宽（不按命令内容拦截）",
+    "en": "Full (no command-content checks)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9016",
+    "zh": "命令拦截档位：%s",
+    "en": "Command interception: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9017",
+    "zh": "\n== root 命令拦截档位 ==\n设置 → 设备能力授权 → Root 命令拦截：严格（默认，仅白名单）、放宽（任意命令，但拦截格式化/刷机/重启/清数据等不可逆操作）、完全放宽（不按命令内容拦截）。档位只对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档，短信读取三档都需要原生授权。\n",
+    "en": "\n== Root command interception modes ==\nSettings → Device permissions → Root command interception: Strict (default, allow-list only), Relaxed (any command, but irreversible operations such as formatting, flashing, reboot or clearing app data stay blocked), Full (no command-content checks). Modes apply to the root channel only; the generic Shizuku/ADB executor stays strict, and SMS reads still require native authorization in all modes.\n",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/HttpShellService.java"
+    ]
+  },
+  {
+    "id": "m9018",
+    "zh": "Root 命令拦截档位",
+    "en": "Root command interception mode",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9019",
+    "zh": "严格：仅放行白名单内的命令，默认档位。\n放宽：允许任意命令，但格式化、刷机、重启、清数据等不可逆操作仍会被拦截。\n完全放宽：不按命令内容拦截，root 命令直接执行。",
+    "en": "Strict: allow-list commands only (default).\nRelaxed: any command is allowed, but irreversible operations such as formatting, flashing, reboot or clearing data stay blocked.\nFull: no command-content checks; root commands run directly.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9020",
+    "zh": "确认放宽 root 命令拦截？",
+    "en": "Relax root command interception?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9021",
+    "zh": "仅对 root 通道生效；放宽后助手和插件可执行任意 root 命令。严格档只放行白名单；完全放宽不拦截不可逆操作，可能导致数据丢失或系统损坏。",
+    "en": "Applies to the root channel only. Once relaxed, the assistant and plugins can run arbitrary root commands. Strict allows allow-list commands only; Full blocks no irreversible operations, so data loss or system damage is possible.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9022",
+    "zh": "已保存拦截档位：%s",
+    "en": "Interception mode saved: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9023",
+    "zh": "命令拦截档位：%s\n仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。",
+    "en": "Command interception: %s\nApplies to the root channel only; the generic Shizuku/ADB executor stays strict.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9024",
+    "zh": "更改",
+    "en": "Change",
+    "files": [
+      "app/src/main/res/layout/fragment_device_grants.xml"
     ]
   }
 ]

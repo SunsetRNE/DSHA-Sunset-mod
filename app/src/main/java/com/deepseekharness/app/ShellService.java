@@ -55,6 +55,49 @@ extends IShellService.Stub {
         return executeArgv(com.deepseekharness.app.util.SmsQuery.forUser(plan.argv, user));
     }
 
+    /**
+     * 用户显式选择放宽/完全放宽档后的 root 原始 shell。
+     *
+     * <p>只允许由 {@link RootShellMain} 在 uid 0 下调用；方法不在 AIDL 接口里，Shizuku 的 Binder
+     * 调用方无法触达。原生策略已在 App 进程判定过档位，这里只做执行身份、长度和并发生命周期检查。
+     */
+    String execUnrestricted(String command) {
+        if (android.os.Process.myUid() != 0)
+            return com.deepseekharness.app.util.UiText.text("[POLICY_BLOCKED] 原始 root shell 仅允许 uid 0 执行\n[EXIT=126]");
+        if (command == null || command.isEmpty()
+                || command.length() > com.deepseekharness.app.util.DeviceShellPolicy.MAX_SHELL_COMMAND
+                || command.indexOf('\0') >= 0)
+            return com.deepseekharness.app.util.UiText.text("[POLICY_BLOCKED] ROOT_SHELL_PLAN_INVALID\n[EXIT=126]");
+        Process p = null;
+        try {
+            ProcessBuilder pb = new ProcessBuilder("/system/bin/sh", "-c", command).redirectErrorStream(true);
+            Map<String, String> env = pb.environment();
+            env.put("PATH", "/system/bin:/system/xbin:/sbin:/vendor/bin");
+            synchronized (processes) {
+                if (closing) return com.deepseekharness.app.util.UiText.text("[SHIZUKU_SERVICE_NOT_READY] 设备 Shell 正在退出\n[EXIT=124]");
+                p = pb.start(); processes.add(p);
+            }
+            BoundedProcessRunner.Result result = BoundedProcessRunner.collect(p, timeoutMillis, 262_144, Compat::destroy);
+            return renderResult(result);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return com.deepseekharness.app.util.UiText.text("命令等待已中断，本次进程已关闭\n[EXIT=interrupted]");
+        }
+        catch (Throwable e) {
+            return "ERROR: " + SensitiveData.redact(String.valueOf(e));
+        }
+        finally { if (p != null) { Compat.destroy(p); synchronized (processes) { processes.remove(p); } } }
+    }
+
+    private String renderResult(BoundedProcessRunner.Result result) {
+        String output = result.output + (result.truncated ? com.deepseekharness.app.util.UiText.text("\n[OUTPUT_TRUNCATED] 输出超过 256 KiB，已截断") : "");
+        String duration = timeoutMillis % 1000 == 0 ? timeoutMillis / 1000 + "s" : timeoutMillis + "ms";
+        return output + (result.timedOut
+                ? com.deepseekharness.app.util.UiText.format("\n命令执行超时(%s)，已终止本次进程\n[EXIT=timeout]", duration)
+                : "\n[EXIT=" + result.exitCode + "]");
+    }
+
     private String executeArgv(java.util.List<String> arguments) {
         Process p = null;
         try {
@@ -68,10 +111,7 @@ extends IShellService.Stub {
                 p = pb.start(); processes.add(p);
             }
             BoundedProcessRunner.Result result = BoundedProcessRunner.collect(p, timeoutMillis, 262_144, Compat::destroy);
-            String output = result.output + (result.truncated ? com.deepseekharness.app.util.UiText.text("\n[OUTPUT_TRUNCATED] 输出超过 256 KiB，已截断") : "");
-            String duration = timeoutMillis % 1000 == 0 ? timeoutMillis / 1000 + "s" : timeoutMillis + "ms";
-            return output + (result.timedOut ? com.deepseekharness.app.util.UiText.text("\n命令执行超时(") + duration + com.deepseekharness.app.util.UiText.text(")，已终止本次进程\n[EXIT=timeout]")
-                    : "\n[EXIT=" + result.exitCode + "]");
+            return renderResult(result);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();

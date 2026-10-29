@@ -47,7 +47,7 @@
     <string name="ui134_recent_startups" formatted="false">"Ultima quinque initia"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"Gradus, errores veri et codices exitus"</string>
     <string name="ui134_results" formatted="false">"Eventus examinis"</string>
-    <string name="ui134_root_hint" formatted="false">"Apparatus cum root: activa, DSHA in Magisk / KernelSU auctoriza, deinde verifica. Alii apparatus canalibus infra uti possunt."</string>
+    <string name="ui134_root_hint" formatted="false">"In apparatu cum root, su directe sine coniunctione ADB uti potes. Primo exsecutione DSHA in administro root auctoriza. Gradum interceptionis mandatorum infra elige; claustra nativa ut lectio nuntiorum SMS in omnibus tribus gradibus valent."</string>
     <string name="ui134_screen_setup" formatted="false">"Moderationem veli para · Duo gradus"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Shizuku in administratore eius initia, deinde DSHA hic auctoriza. Plerumque ministerium post reinitiationem rursus initia."</string>
     <string name="ui134_start_records" formatted="false">"Acta initii"</string>
@@ -259,6 +259,7 @@
     <string name="ui_m0215" formatted="false">"Praevisio"</string>
     <string name="ui_m0217" formatted="false">"Connexionem verifica"</string>
     <string name="ui_m0218" formatted="false">"＋ Novum"</string>
+    <string name="ui_m9024" formatted="false">"Mutare"</string>
     <string name="welcome_eyebrow0" formatted="false">"DEEPSEEK HARNESS · ANDROID"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / AD CURSUM TUUM FACTUM"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / DATA TUA, ELECTIO TUA"</string>

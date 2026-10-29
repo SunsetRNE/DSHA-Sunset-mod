@@ -123,7 +123,7 @@
   "m0121": "Afficher les réponses de l'IA en superposition",
   "m0122": "Paramètres de superposition ›",
   "m0123": "Accès à tous les fichiers ›",
-  "m0124": "Sur un téléphone rooté, utilisez directement su sans association ADB. Autorisez DSHA dans votre gestionnaire root lors de la première utilisation. Les règles de protection de l'appareil s'appliquent toujours.",
+  "m0124": "Sur un téléphone rooté, utilisez su directement sans appairage ADB. Autorisez DSHA dans le gestionnaire root lors de la première exécution ; l’interception des commandes est stricte par défaut et peut être modifiée ci-dessous.",
   "m0125": "Ouvrir le gestionnaire Shizuku",
   "m0126": "Ouvrir Sauvegarde et données",
   "m0127": "Ouvrir le débogage sans fil",
@@ -3680,5 +3680,17 @@
   "m9008": "WHEELS_OPTIONAL_SKIP: Imports Python réussis ; l’injection ou l’installation du cache échouée est ignorée, poursuite de la configuration ADB",
   "m9009": "WHEELS_INJECT_FAIL: %s ; cible %s ; %s ; les entrées existantes n’ont pas été remplacées",
   "m9010": "Préparation de l’environnement ADB hors ligne…",
-  "m9011": "ADB_OFFLINE_READY: Les dépendances hors ligne sont prêtes ; la connexion n’a pas été vérifiée. Activez le débogage sans fil, puis vérifiez à nouveau."
+  "m9011": "ADB_OFFLINE_READY: Les dépendances hors ligne sont prêtes ; la connexion n’a pas été vérifiée. Activez le débogage sans fil, puis vérifiez à nouveau.",
+  "m9013": "Strict (par défaut)",
+  "m9014": "Assoupli (opérations irréversibles toujours bloquées)",
+  "m9015": "Complètement assoupli (aucun contrôle du contenu des commandes)",
+  "m9016": "Niveau d’interception des commandes : %s",
+  "m9017": "\n== Niveaux d’interception des commandes root ==\nParamètres → Autorisations de l’appareil → Interception des commandes Root : Strict (par défaut, liste d’autorisation uniquement), Assoupli (toute commande, mais les opérations irréversibles comme le formatage, le flashage, le redémarrage ou l’effacement des données restent bloquées), Complètement assoupli (aucun contrôle du contenu des commandes). Les niveaux ne s’appliquent qu’à la voie root ; l’exécuteur générique Shizuku/ADB reste strict et la lecture des SMS nécessite toujours une autorisation native quel que soit le niveau.\n",
+  "m9018": "Niveau d’interception des commandes root",
+  "m9019": "Strict : uniquement la liste d’autorisation, mode par défaut.\nAssoupli : toute commande est autorisée, mais les opérations irréversibles comme le formatage, le flashage, le redémarrage ou l’effacement des données restent bloquées.\nComplètement assoupli : aucun contrôle du contenu des commandes ; les commandes root s’exécutent directement.",
+  "m9020": "Assouplir l’interception des commandes root ?",
+  "m9021": "S’applique uniquement à la voie root ; après assouplissement, l’assistant et les plugins peuvent exécuter n’importe quelle commande root. Le mode strict n’autorise que la liste d’autorisation ; le mode complètement assoupli ne bloque aucune opération irréversible, ce qui peut entraîner une perte de données ou des dommages système.",
+  "m9022": "Niveau d’interception enregistré : %s",
+  "m9023": "Niveau d’interception des commandes : %s\nS’applique uniquement à la voie root ; l’exécuteur générique Shizuku/ADB reste strict.",
+  "m9024": "Modifier"
 }

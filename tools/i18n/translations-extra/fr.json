@@ -503,7 +503,7 @@
   "x1970569": "Récupération du démarrage",
   "x1970570": "Examiner les problèmes et options de récupération",
   "x1970571": "Déconnecter ADB",
-  "x1970572": "Appareil rooté : activez, autorisez DSHA dans Magisk / KernelSU, puis vérifiez. Les autres appareils peuvent utiliser les canaux ci-dessous.",
+  "x1970572": "Sur un téléphone rooté, utilisez su directement sans appairage ADB. Autorisez DSHA dans le gestionnaire root lors de la première exécution. Choisissez ci-dessous le niveau d’interception des commandes ; les contrôles natifs comme la lecture des SMS s’appliquent dans les trois modes.",
   "x1970573": "Démarrez Shizuku dans son gestionnaire, puis autorisez DSHA ici. Il faut généralement redémarrer le service après un redémarrage de l’appareil.",
   "x1970574": "Android 11+ : associez le débogage sans fil sur le même Wi-Fi. Root non requis. Vérifiez ou recommencez l’association après un changement de réseau.",
   "x1970575": "Configurer le contrôle de l’écran · Deux étapes",

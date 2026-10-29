@@ -47,7 +47,7 @@
     <string name="ui134_recent_startups" formatted="false">"최근 5회 시작"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"단계, 실제 오류 및 종료 코드"</string>
     <string name="ui134_results" formatted="false">"확인 결과"</string>
-    <string name="ui134_root_hint" formatted="false">"루팅된 기기: 켠 후 Magisk / KernelSU에서 DSHA를 허용하고 확인하세요. 다른 기기는 아래의 연결 방식을 사용할 수 있습니다."</string>
+    <string name="ui134_root_hint" formatted="false">"루팅된 기기에서는 ADB 페어링 없이 su를 바로 사용할 수 있습니다. 처음 실행할 때 root 관리자에서 DSHA를 허용하세요. 아래에서 명령 차단 단계를 선택할 수 있으며, SMS 읽기 같은 네이티브 차단은 세 단계 모두에서 적용됩니다."</string>
     <string name="ui134_screen_setup" formatted="false">"화면 제어 설정 · 두 단계"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Shizuku 관리자에서 서비스를 시작한 후 여기에서 DSHA를 허용하세요. 보통 재부팅 후 서비스를 다시 시작해야 합니다."</string>
     <string name="ui134_start_records" formatted="false">"시작 기록"</string>
@@ -259,6 +259,7 @@
     <string name="ui_m0215" formatted="false">"미리보기"</string>
     <string name="ui_m0217" formatted="false">"연결 확인"</string>
     <string name="ui_m0218" formatted="false">"＋ 새로 만들기"</string>
+    <string name="ui_m9024" formatted="false">"변경"</string>
     <string name="welcome_eyebrow0" formatted="false">"DEEPSEEK HARNESS · ANDROID"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / 나만의 흐름에 맞게"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / 내 데이터, 내 선택"</string>
