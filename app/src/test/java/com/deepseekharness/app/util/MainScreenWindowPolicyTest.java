@@ -105,4 +105,57 @@ public class MainScreenWindowPolicyTest {
     ScreenWindowRegion coveredRegion = MainScreenWindowPolicy.region(0, covered);
     assertFalse("浮窗盖满目标时依然没有可点面积", coveredRegion.hasUnexcludedArea(coveredRegion.content()));
   }
+
+  /** #212 回归：1×1 的系统字形/角标窗不触发遮挡，坐标手势保持可用；2×2 起仍按遮挡处理。 */
+  @Test
+  public void tinyGlyphWindowsNeverTriggerOcclusion() {
+    for (ScreenWindowRegion.Bounds glyph :
+        new ScreenWindowRegion.Bounds[] {
+          new ScreenWindowRegion.Bounds(0, 200, 1, 201), // 1×1
+          new ScreenWindowRegion.Bounds(1259, 2799, 1260, 2800) // 角落 1×1
+        }) {
+      var windows =
+          java.util.List.of(
+              window(1, MainScreenWindowPolicy.Kind.APPLICATION, true, true, 10, TARGET, null),
+              window(
+                  77,
+                  MainScreenWindowPolicy.Kind.APPLICATION,
+                  false,
+                  false,
+                  30,
+                  glyph,
+                  null));
+      ScreenWindowRegion region = MainScreenWindowPolicy.region(0, windows);
+      assertFalse(
+          "微窗不得触发遮挡：" + glyph, region.obscured());
+      assertTrue("微窗不得记入排除表", region.exclusions().isEmpty());
+      assertTrue("坐标手势保持可用", region.hasUnexcludedArea(region.content()));
+      assertTrue(region.containsTrajectory(600, 150, 600, 2700, 8));
+    }
+    // 2×2 的内部覆盖窗必须保持拒绝：MainScreenObservationTest 锁定的既有契约。
+    var interior =
+        java.util.List.of(
+            window(1, MainScreenWindowPolicy.Kind.APPLICATION, true, true, 10, TARGET, null),
+            window(
+                77,
+                MainScreenWindowPolicy.Kind.APPLICATION,
+                false,
+                false,
+                30,
+                new ScreenWindowRegion.Bounds(600, 600, 602, 602),
+                null));
+    assertTrue("2×2 内部覆盖窗仍触发遮挡", MainScreenWindowPolicy.region(0, interior).obscured());
+  }
+
+  /** 稍大于豁免阈值的窗口仍按遮挡处理，规则不因此放松。 */
+  @Test
+  public void windowsAboveTheTinyThresholdStillOcclude() {
+    var small = new ScreenWindowRegion.Bounds(0, 200, 2, 202); // 2×1
+    var windows =
+        java.util.List.of(
+            window(1, MainScreenWindowPolicy.Kind.APPLICATION, true, true, 10, TARGET, null),
+            window(78, MainScreenWindowPolicy.Kind.APPLICATION, false, false, 30, small, null));
+    ScreenWindowRegion region = MainScreenWindowPolicy.region(0, windows);
+    assertTrue("超过豁免阈值的窗口仍触发遮挡", region.obscured());
+  }
 }

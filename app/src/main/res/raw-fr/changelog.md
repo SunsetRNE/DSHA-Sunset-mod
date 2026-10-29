@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.3-20261029.0741-dsh0.2.1-rc.3 / build208
+# DSHA 0.2.1-rc.3-20261030.0006-dsh0.2.1-rc.3 / build209
 
-- - Correction du contrôle du téléphone traitant les fenêtres en surimpression propres à DSHA (barre d’état, assistant, confirmation) comme une occlusion de la cible : les surimpressions propres non enregistrées et sans focus sont exclues en entier par identité de paquet et ne produisent plus TARGET_WINDOW_OCCLUDED. Les trajectoires traversant la zone exclue restent refusées, et une couverture complète ne laisse toujours aucune zone utilisable (#210).
-- - Sur les appareils où link() est refusé, la matérialisation des anciens liens pnpm en copies complètes n’est plus interrompue en cours par un délai fixe de 120 secondes ; le délai devient un garde-fou de 15 minutes contre les véritables blocages, afin qu’une copie interrompue ne laisse pas la transaction en attente et ne bloque pas le démarrage suivant (#209).
+- - Correction du problème où des fenêtre système minuscule 1×1 — glyphes HyperDuo, badge de notes, etc. — déclenchaient TARGET_WINDOW_OCCLUDED sur les systèmes de type HyperOS, rendant tap et swipe par coordonnées totalement inutilisables : les fenêtres d’une aire négligeable ne participent plus à la décision d’occlusion (#212).
+- - Lorsque l’arrêt d’une application est bloqué par « format de la liste d’applications non vérifiable », l’erreur embarque désormais la première ligne inattendue (masquée, tronquée) et précise la liste utilisateur ou système, afin de cerner les différences de sortie pm propres à chaque ROM (#210 complément).
 - - Conserver dsh-web-mobile 3.2.2, DSH rc.3, l’accès local et réseau local et les dix langues. La validation sur téléphone reste suspendue.

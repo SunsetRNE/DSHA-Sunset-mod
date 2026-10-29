@@ -130,11 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("误判为目标遮挡"));
-      assertTrue(shown.contains("按包名身份整窗排除"));
-      assertTrue(shown.contains("穿过排除区的坐标轨迹仍被拒绝"));
-      assertTrue(shown.contains("不再被固定 120 秒超时在中段终止"));
-      assertTrue(shown.contains("卡死下一次启动"));
+      assertTrue(shown.contains("系统字形/角标窗"));
+      assertTrue(shown.contains("坐标点击与滑动完全不可用"));
+      assertTrue(shown.contains("不再参与遮挡判定"));
+      assertTrue(shown.contains("首条意外行"));
+      assertTrue(shown.contains("pm 输出格式差异"));
       assertTrue(shown.contains("3.2.2"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
@@ -156,11 +156,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("as target occlusion"));
-      assertTrue(shown.contains("excluded whole-window by package identity"));
-      assertTrue(shown.contains("still refused, and a full cover"));
-      assertTrue(shown.contains("no longer killed mid-way by a fixed 120-second timeout"));
-      assertTrue(shown.contains("blocking the next start"));
+      assertTrue(shown.contains("system glyph/badge windows"));
+      assertTrue(shown.contains("coordinate taps and swipes entirely unusable"));
+      assertTrue(shown.contains("no longer participate in the occlusion decision"));
+      assertTrue(shown.contains("first unexpected line"));
+      assertTrue(shown.contains("ROM-specific pm output differences"));
       assertTrue(shown.contains("3.2.2"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
