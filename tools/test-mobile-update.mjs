@@ -19,12 +19,12 @@ function loadModules() {
 
 test('3.2.2 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () => {
   assert.equal(packageJson.version, '3.2.2');
-  assert.equal(packageJson.dshaUpstream.commit, '4c798ecc554009e401dc1f166b73c314cdf5273f');
-  assert.equal(packageJson.dshaUpstream.clientSha256, '17e95442d6f8c170d6b42a0281538af7ddba4cbeb05975d405236de6ee470dd6');
+  assert.equal(packageJson.dshaUpstream.commit, '04dcd19f17b2ee573b0173501edcacdd58f146b7');
+  assert.equal(packageJson.dshaUpstream.clientSha256, '5c8647ded0ea372d15803db6a300ead3c0ead0f4ffe4073674fca95e0e34ad27');
   assert.equal(packageJson.dshaUpstream.ref, 'main');
   assert.equal(packageJson.dshaUpstream.releaseTag, 'v3.2.2');
   assert.equal(packageJson.dshaUpstream.releaseCommit, '4c798ecc554009e401dc1f166b73c314cdf5273f');
-  assert.equal(packageJson.dshaUpstream.commit, packageJson.dshaUpstream.releaseCommit);
+  assert.notEqual(packageJson.dshaUpstream.commit, packageJson.dshaUpstream.releaseCommit); // main 已越过 v3.2.2 标签
   for (const marker of [
     'DSHA_SESSION_INPUT_V4',
     '[data-dsha-session-select]',

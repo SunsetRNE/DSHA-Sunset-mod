@@ -52,8 +52,8 @@ The lock also retains resolved URLs, integrity and declared licenses throughout 
 The current lock distinguishes the release tag from later main inputs:
 
 - The recorded release tag is `v3.2.2`, with releaseCommit `4c798ecc554009e401dc1f166b73c314cdf5273f`.
-- The imported commit is [`4c798ecc554009e401dc1f166b73c314cdf5273f`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/4c798ecc554009e401dc1f166b73c314cdf5273f); this release commit and the main input commit are the same.
-- The upstream source-archive SHA-256 in the lock is `bc367e6412296c7db38abf7ca146890d793c139f02f9fe84aa2308ed9959d369`.
+- The imported commit is [`04dcd19f17b2ee573b0173501edcacdd58f146b7`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/04dcd19f17b2ee573b0173501edcacdd58f146b7); main has moved past the v3.2.2 release commit, so the two differ.
+- The upstream source-archive SHA-256 in the lock is `3ed17c5b6ad7f24c6817f41ee25169efc986b8c87b13c8e45661a5f6f33a607b`.
 - Upstream client and final local client are recorded separately; final member digests are in the current THIRD_PARTY_NOTICES and descriptor.
 
 An internal package version of 3.2.2 does not mean it contains only that tag's original bytes. [apply-mobile-client-patches.mjs](../../tools/apply-mobile-client-patches.mjs) and [mobile-server](../../tools/mobile-server) manage local differences. Check individually whether an upstream upgrade absorbed local patches; do not apply the entire old patch set again.

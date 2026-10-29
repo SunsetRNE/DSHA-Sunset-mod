@@ -68,8 +68,8 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 当前锁区分发布标签和后续 main 输入：
 
 - 发布标签记录为 `v3.2.2`，releaseCommit 为 `4c798ecc554009e401dc1f166b73c314cdf5273f`。
-- 实际引入提交为 [`4c798ecc554009e401dc1f166b73c314cdf5273f`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/4c798ecc554009e401dc1f166b73c314cdf5273f)；本版发布提交与 main 引入提交相同。
-- 锁内上游源码归档 SHA-256 为 `bc367e6412296c7db38abf7ca146890d793c139f02f9fe84aa2308ed9959d369`。
+- 实际引入提交为 [`04dcd19f17b2ee573b0173501edcacdd58f146b7`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/04dcd19f17b2ee573b0173501edcacdd58f146b7)；main 已越过 v3.2.2 发布提交，两者不再相同。
+- 锁内上游源码归档 SHA-256 为 `3ed17c5b6ad7f24c6817f41ee25169efc986b8c87b13c8e45661a5f6f33a607b`。
 - 上游 client 与本地最终 client 分开记载；最终成员摘要见当前 THIRD_PARTY_NOTICES 与 descriptor。
 
 不要把“包内版本 3.2.2”解释为“只包含该标签原件”。
