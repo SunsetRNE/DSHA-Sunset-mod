@@ -1227,5 +1227,11 @@
   "termhome0154": "Há uma manutenção do ambiente ou tarefa exclusiva em andamento. O terminal não foi iniciado.",
   "termhome0155": "A saída é longa demais para gerar uma prévia com segurança.",
   "termhome0156": "A solicitação de início não foi enviada. Verifique o estado de execução e tente novamente.",
-  "termhome0157": "Copiar endereço"
+  "termhome0157": "Copiar endereço",
+  "x2090001": "Depois de desativar, outros dispositivos perdem o acesso a esta execução do DSH pela LAN e os links de conexão já emitidos deixam de funcionar imediatamente. O acesso neste telefone não é afetado.",
+  "x2090002": "Desativar LAN",
+  "x2090003": "Desativar acesso LAN?",
+  "x2090004": "Copiar link LAN",
+  "x2090005": "Ativar LAN",
+  "x2090006": "Ainda não há endereço para copiar; aguarde o DSH ficar pronto."
 }

@@ -1227,5 +1227,11 @@
   "termhome0154": "Une maintenance de l’environnement ou une tâche exclusive est en cours. Le terminal n’a pas été lancé.",
   "termhome0155": "La sortie est trop longue pour générer un aperçu en toute sécurité.",
   "termhome0156": "La demande de démarrage n’a pas été envoyée. Vérifiez l’état d’exécution, puis réessayez.",
-  "termhome0157": "Copier l’adresse"
+  "termhome0157": "Copier l’adresse",
+  "x2090001": "Après désactivation, les autres appareils perdront l’accès à cette exécution de DSH sur le réseau local et les liens de connexion déjà émis cesseront immédiatement de fonctionner. L’accès depuis ce téléphone n’est pas affecté.",
+  "x2090002": "Désactiver le réseau local",
+  "x2090003": "Désactiver l’accès au réseau local ?",
+  "x2090004": "Copier le lien réseau local",
+  "x2090005": "Activer le réseau local",
+  "x2090006": "Aucune adresse à copier pour l’instant ; attendez que DSH soit prêt."
 }

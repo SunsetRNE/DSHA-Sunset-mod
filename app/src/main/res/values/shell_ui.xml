@@ -16,7 +16,7 @@
     <!-- 文字 -->
     <color name="shell_text">#18273F</color>
     <color name="shell_text_secondary">#50617A</color>
-    <color name="shell_text_muted">#61728D</color>
+    <color name="shell_text_muted">#5A6B86</color>
 
     <!-- 强调与状态 -->
     <color name="shell_accent">#1E50D0</color>
@@ -33,7 +33,7 @@
     <!-- 玻璃层：胶囊导航底比页面底亮一档，仍保留一点透感 -->
     <color name="shell_glass">#E0FAFCFF</color>
     <color name="shell_nav_bg">#FAFCFDFF</color>
-    <color name="shell_nav_ripple">#1F1E50D0</color>
+    <color name="shell_nav_ripple">#141E50D0</color>
 
     <!-- 手机胶囊导航 -->
     <dimen name="shell_nav_height">64dp</dimen>

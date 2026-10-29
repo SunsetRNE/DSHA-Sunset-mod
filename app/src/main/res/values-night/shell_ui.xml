@@ -32,7 +32,7 @@
     <!-- 玻璃层 -->
     <color name="shell_glass">#DB192230</color>
     <color name="shell_nav_bg">#F2131923</color>
-    <color name="shell_nav_ripple">#1F6AA4FF</color>
+    <color name="shell_nav_ripple">#146AA4FF</color>
 
     <!-- 手机胶囊导航 -->
     <dimen name="shell_nav_height">64dp</dimen>

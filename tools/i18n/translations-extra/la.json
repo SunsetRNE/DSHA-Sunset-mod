@@ -1227,5 +1227,11 @@
   "termhome0154": "Curatio ambitus aut opus accessum exclusivum requirens agitur. Terminale non inceptum est.",
   "termhome0155": "Exitus nimis longus est ut tuto praevideri possit.",
   "termhome0156": "Petitio initiandi non missa est. Statum executionis inspice et iterum tenta.",
-  "termhome0157": "Exscribe inscriptionem"
+  "termhome0157": "Exscribe inscriptionem",
+  "x2090001": "Postquam clauseris, alia apparata aditum ad hanc DSH sessionem per LAN amittent, et vincula conexionis iam edita statim inefficacia fient. Aditus ex hoc apparatu non mutatur.",
+  "x2090002": "LAN claudere",
+  "x2090003": "Aditum LAN claudere?",
+  "x2090004": "Vinculum LAN exscribere",
+  "x2090005": "LAN aperire",
+  "x2090006": "Nulla inscriptio exscribenda adest; exspecta dum DSH paratus sit."
 }
