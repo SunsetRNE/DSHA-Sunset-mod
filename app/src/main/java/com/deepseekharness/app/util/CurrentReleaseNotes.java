@@ -12,8 +12,13 @@ public final class CurrentReleaseNotes {
 
   private static String bundledVersion(String versionName) {
     // 正式包与 -Pdsha.sunsetTest=true 测试包共用同一份更新说明；测试后缀不是发布身份。
-    if (versionName.endsWith("-test"))
-      versionName = versionName.substring(0, versionName.length() - "-test".length());
+    // 测试变体当前用 -SunsetTest（CI 与发布脚本按此核验），历史上也出现过 -test，两者都要剥离。
+    for (String suffix : new String[] {"-SunsetTest", "-test"}) {
+      if (versionName.endsWith(suffix)) {
+        versionName = versionName.substring(0, versionName.length() - suffix.length());
+        break;
+      }
+    }
     return versionName;
   }
 
