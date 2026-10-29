@@ -28,8 +28,8 @@ jobs:
     name: Verify, build and publish signed DSH-A-Su
     if: >-
       github.event_name == 'workflow_dispatch'
-      && github.repository == 'SunsetRNE/DSHA-Sunset-mod-3090-Q'
-      && github.ref == 'refs/heads/Sunset-3090-Q'
+      && github.repository == 'SunsetRNE/DSHA-Sunset-mod'
+      && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     permissions:
@@ -253,9 +253,12 @@ jobs:
           version_name = re.search(r"versionName='([^']*)'", badging).group(1)
           if version_code != meta['versionCode'] or version_name != meta['versionName']:
               raise SystemExit('APK_VERSION_MISMATCH')
-          if version_name.endswith('-test') or version_name.endswith('-island'):
+          if version_name.endswith(('-test', '-SunsetTest', '-island')):
               raise SystemExit('APK_TEST_OR_ISLAND_IDENTITY')
-          if "sdkVersion:'30'" not in badging:
+          # aapt2 不同版本对最低 API 的键名不一致（sdkVersion / minSdkVersion），
+          # 只认其中一种会让正式包在校验阶段被误判为 minSdk 不符。
+          minimum = re.search(r"^(?:sdkVersion|minSdkVersion):'(\d+)'", badging, re.M)
+          if not minimum or int(minimum.group(1)) != 30:
               raise SystemExit('APK_MINSDK_MISMATCH')
           if "native-code: 'arm64-v8a'" not in badging:
               raise SystemExit('APK_NATIVE_CODE_MISMATCH')

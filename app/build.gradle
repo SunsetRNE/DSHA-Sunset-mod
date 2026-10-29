@@ -80,7 +80,8 @@ android {
             minSdk 30
             if (sunsetTest) {
                 applicationIdSuffix '.test'
-                versionNameSuffix '-test'
+                // 测试包身份沿用历史 `-SunsetTest` 后缀：CI 与发布脚本按此核验，不能只写 `-test`。
+                versionNameSuffix '-SunsetTest'
             }
         }
     }
