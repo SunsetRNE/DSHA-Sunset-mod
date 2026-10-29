@@ -268,7 +268,7 @@ public final class UpdateEngine {
               UpdatePolicy.select(
                   options,
                   BuildConfig.VERSION_CODE,
-                  BuildConfig.LOW_ANDROID ? "low" : "standard",
+                  false ? "low" : "standard",
                   Build.VERSION.SDK_INT,
                   requestedChannel);
           if (!requestedChannel.equals(candidateChannel)
@@ -558,7 +558,7 @@ public final class UpdateEngine {
           UpdatePolicy.select(
               java.util.Collections.singletonList(r),
               BuildConfig.VERSION_CODE,
-              BuildConfig.LOW_ANDROID ? "low" : "standard",
+              false ? "low" : "standard",
               Build.VERSION.SDK_INT,
               candidateChannel == null ? UpdatePolicy.PREVIEW : candidateChannel);
       if (candidate == null) return;
@@ -639,7 +639,7 @@ public final class UpdateEngine {
       throw new IOException(com.deepseekharness.app.util.UiText.text("安装包版本不匹配或不是更新版本"));
     if (Build.VERSION.SDK_INT >= 24 && next.applicationInfo.minSdkVersion > Build.VERSION.SDK_INT)
       throw new IOException(com.deepseekharness.app.util.UiText.text("安装包不支持当前 Android 版本"));
-    String expectedVersion = release.version + (BuildConfig.LOW_ANDROID ? "low" : "");
+    String expectedVersion = release.version + (false ? "low" : "");
     if (!expectedVersion.equals(next.versionName))
       throw new IOException(com.deepseekharness.app.util.UiText.text("安装包不是当前高/低安卓版本"));
     Signature[] oldSign = signatures(installed), newSign = signatures(next);

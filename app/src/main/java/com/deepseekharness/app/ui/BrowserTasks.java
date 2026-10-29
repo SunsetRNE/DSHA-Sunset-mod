@@ -270,9 +270,7 @@ final class BrowserTasks {
   }
 
   private static boolean browserRoot(Context context, android.content.ComponentName root) {
-    return ownRoot(context, root)
-        && (WebPreviewActivity.class.getName().equals(root.getClassName())
-            || "com.deepseekharness.app.ui.GeckoPreviewActivity".equals(root.getClassName()));
+    return ownRoot(context, root) && WebPreviewActivity.class.getName().equals(root.getClassName());
   }
 
   static void openMain(Context context) {

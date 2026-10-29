@@ -126,10 +126,7 @@ public interface ContainerRuntime {
         throws java.io.IOException {
       prepare();
       File directory = nativeLibProot.getParentFile();
-      String loader =
-          nativeLibProot.getName().equals("libproot_legacy.so")
-              ? "libprootloader_legacy.so"
-              : "libprootloader.so";
+      String loader = "libprootloader.so";
       if (!new File(libDir, "libtalloc.so.2").isFile()
           || !new File(libDir, "libandroid-shmem.so").isFile())
         throw new java.io.IOException("PROOT_DEPENDENCIES_MISSING");
@@ -151,10 +148,7 @@ public interface ContainerRuntime {
     @Override
     public void prepare() throws java.io.IOException {
       if (!available()) throw new java.io.IOException("PROOT_EXECUTABLE_MISSING");
-      String loader =
-          nativeLibProot.getName().equals("libproot_legacy.so")
-              ? "libprootloader_legacy.so"
-              : "libprootloader.so";
+      String loader = "libprootloader.so";
       if (!new File(nativeLibProot.getParentFile(), loader).isFile())
         throw new java.io.IOException("PROOT_LOADER_MISSING");
     }

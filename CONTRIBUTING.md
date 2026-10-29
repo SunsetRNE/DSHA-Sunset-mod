@@ -81,8 +81,7 @@ python3 tools/check-source-hygiene.py
 完整输入准备后，运行当前正式源集的单测和 Release Lint：
 
 ```bash
-./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest \
-  :app:lintStandardRelease :app:lintLowRelease
+./gradlew :app:testStandardDebugUnitTest :app:lintStandardRelease
 python3 tools/verify-stability.py --stage software
 python3 tools/run-host-tests.py --stage runtime
 ```

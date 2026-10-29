@@ -343,7 +343,6 @@ Native `lastStartOutcome()` / `safeStartOutcome()` 提供去除秘密和图像�
 
 `VirtualScreenManager.supported()` 要求非 LOW_ANDROID 且 API 至少 30。
 Standard 的 minSdk 为 30，但满足版本并不证明某个 ROM 的隐藏 API、显示和注入可用。
-Low 即使运行在新系统上也不开放这条虚拟屏生产路径；其测试跳过不能计作能力通过。
 物理屏单独使用无障碍协议，不因虚拟屏不可用而自动切换。
 显示可能创建成功但没有目标窗口；应用可能拒绝在外部显示启动或渲染。
 安全窗口、密码内容、系统输入法、Canvas、动画与无障碍树缺失均可能限制功能。

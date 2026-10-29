@@ -217,7 +217,7 @@ public final class LayoutPreviewActivity extends AppCompatActivity {
                   114,
                   "布局样例",
                   UpdatePolicy.PREVIEW,
-                  BuildConfig.LOW_ANDROID ? "low" : "standard",
+                  "standard",
                   23,
                   "arm64-v8a",
                   "https://dsha.cc/example.apk",

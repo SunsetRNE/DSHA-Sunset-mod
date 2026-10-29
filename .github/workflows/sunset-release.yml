@@ -190,10 +190,8 @@ jobs:
                   "everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns",
               ],
           }
-          allowed_skips = {
-              ("com.deepseekharness.app.vscreen.VirtualScreenLowBoundaryTest",
-               "lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion"),
-          }
+          # 单 Standard 变体（Android 11+）：旧 low/API23 边界用例已随源集删除，不允许任何 skip。
+          allowed_skips = set()
           result = {"mode": "full", "flavors": {}}
           for flavor in ("Standard",):
               reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
@@ -290,14 +288,14 @@ jobs:
             --ks-pass env:SUNSET_TEST_STORE_PASSWORD \
             --key-pass env:SUNSET_TEST_STORE_PASSWORD --out "$apk" "$unsigned"
           package=$("$aapt2" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
-          test "$package" = "dsh.android.client.SunsetRNE"
+          test "$package" = "io.github.sunsetrne.dsha.test"
           "$aapt2" dump badging "$apk" | grep -q "versionName='.*-SunsetTest'"
           if "$aapt2" dump badging "$apk" | grep -q 'application-debuggable'; then exit 1; fi
           "$apksigner" verify --verbose --print-certs "$apk" > out/apk-signature.txt
           "$aapt2" dump badging "$apk" > out/apk-badging.txt
           cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
           test -n "$cert"
-          test "$cert" != "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
+          test "$cert" != "a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d"
           python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
           python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
           (cd out && sha256sum *.apk sunset-test-cert.pem > SHA256SUMS)
@@ -312,7 +310,7 @@ jobs:
             "runId": os.environ["GITHUB_RUN_ID"],
             "runAttempt": os.environ["GITHUB_RUN_ATTEMPT"],
             "inputArchiveFormat": os.environ["ASSET_FORMAT"],
-            "packageName": "dsh.android.client.SunsetRNE",
+            "packageName": "io.github.sunsetrne.dsha.test",
             "versionCode": 206,
             "apkSha256": hashlib.sha256(open("out/" + os.environ["APK_NAME"], "rb").read()).hexdigest(),
             "apkSize": os.path.getsize("out/" + os.environ["APK_NAME"]),

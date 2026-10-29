@@ -80,7 +80,7 @@ def verify_reader_contracts(source,manifest,repository=ROOT):
     # Supplemental Java literals catch new reads; they never select/prune assets.
     # Explicit deployment roots and structured dynamic registries own selection.
     pattern=re.compile(r'(?:(?:getAssets\(\)\.open|readAsset|readAssetString|assetText|assetObject|profileAsset)\(\s*(?:\w+\s*,\s*)?|\bread\(\s*context\s*,\s*)"([^"\n]+)"')
-    for base in ('main','standard','low'):
+    for base in ('main','standard'):
         for file in (repository/'app/src'/base/'java').rglob('*.java'):
             for name in pattern.findall(file.read_text(encoding='utf-8')):
                 if name in deployed or name in manifest.get('optionalHistoricalReads',[]):continue

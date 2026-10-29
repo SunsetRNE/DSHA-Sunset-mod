@@ -1,8 +1,9 @@
 {
   "schema": 1,
-  "url": "https://api.github.com/repos/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/assets/682649962",
-  "sha256": "d8073d0aa12f504e4c770d4347633f73e6431c0899effbae460d883ff3d40e5b",
-  "format": "source-archive",
-  "release": "v0.2.1-rc.3-20261028.1200-lanfix",
-  "asset": "DSHA-Sunset-mod-3090-Q-0.2.1-rc.3-build206-lanfix-source.zip"
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/download/fixed-inputs-20261029/dsha-a-su-fixed-inputs-20261029.zip",
+  "sha256": "28bb08ed8ce80b4c70c556cbe577b39fe03ead8cc20e7e932ceb21c0827b188d",
+  "format": "bundle",
+  "release": "fixed-inputs-20261029",
+  "asset": "dsha-a-su-fixed-inputs-20261029.zip",
+  "bytes": 696355569
 }

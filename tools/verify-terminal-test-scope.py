@@ -20,11 +20,8 @@ REQUIRED_FIXTURES = (
     (PREFIX + "util.ManagedPatchRegistryIntegrationTest",
      "everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns"),
 )
-# 这是 Standard 中显式不适用的边界用例，不是运行 Low flavor。
-ALLOWED_SKIPS = frozenset({
-    (PREFIX + "vscreen.VirtualScreenLowBoundaryTest",
-     "lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion"),
-})
+# 单 Standard 变体（Android 11+）：旧的 low/API23 边界用例已删除，不再有已批准的跳过。
+ALLOWED_SKIPS = frozenset()
 REQUIRED_TERMINAL_CLASSES = (
     PREFIX + "core.TerminalSessionOwnerTest",
     PREFIX + "core.TerminalRuntimeProtectionTest",
@@ -117,7 +114,7 @@ def main():
             summary.write("### Standard 全量完整输入测试\n\n")
             summary.write("- " + ", ".join(f"{key}={value}" for key, value
                                            in result["flavors"]["Standard"].items()) + "\n")
-            summary.write("七项外部夹具逐方法通过，终端类逐类执行；平台不适用跳过单列，未运行 Low。\n")
+            summary.write("七项外部夹具逐方法通过，终端类逐类执行；单 Standard 变体不允许平台跳过。\n")
 
 
 if __name__ == "__main__":

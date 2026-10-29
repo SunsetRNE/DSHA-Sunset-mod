@@ -34,7 +34,7 @@ import org.robolectric.util.ReflectionHelpers;
 public final class VirtualScreenNativeControlsTest {
   @org.junit.Before
   public void standardOnly() {
-    org.junit.Assume.assumeFalse(com.deepseekharness.app.BuildConfig.LOW_ANDROID);
+    org.junit.Assume.assumeFalse(false);
   }
 
   public static final String CORE = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",

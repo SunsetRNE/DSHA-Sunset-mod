@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "SunsetRNE/DSHA-Sunset-mod-3090-Q"
 BRANCH = "Sunset-zhongdua-G"
 WORKFLOW = ".github/workflows/terminal-regression.yml"
-PRODUCTION_CERT = "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
+MOD_RELEASE_CERT = "a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d"
 
 
 def sha(path):
@@ -110,8 +110,8 @@ def validate_certificate(signature, pem):
     if len(digests) != 1 or not re.fullmatch(r"[a-fA-F0-9]{64}", digests[0]):
         raise ValueError("TERMINAL_APK_CERTIFICATE")
     cert = digests[0].lower()
-    if cert == PRODUCTION_CERT:
-        raise ValueError("TERMINAL_PRODUCTION_CERTIFICATE_FORBIDDEN")
+    if cert == MOD_RELEASE_CERT:
+        raise ValueError("TERMINAL_MOD_RELEASE_CERTIFICATE_FORBIDDEN")
     matches = re.findall(r"-----BEGIN CERTIFICATE-----\s*([A-Za-z0-9+/=\s]+)-----END CERTIFICATE-----", pem)
     if len(matches) != 1:
         raise ValueError("TERMINAL_PUBLIC_CERTIFICATE")

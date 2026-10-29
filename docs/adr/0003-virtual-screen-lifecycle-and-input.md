@@ -121,6 +121,6 @@ Standard且API30+才支持虚拟屏；Low即使运行在现代系统也明确拒
 | 预览与手势互斥、旧手势不能释放新手势 | [PreviewInputGateTest](../../app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenPreviewInputGateTest.java) |
 | pause/换窗口/连接epoch、截断文本与一次提交 | [NativeControlsTest](../../app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenNativeControlsTest.java)、[ActivityNodeControlsTest](../../app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenActivityNodeControlsTest.java) |
 | 原通道不可用、迟到EXITED、journal失败仍保留pending | [CloseReconcileTest](../../app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenCloseReconcileTest.java)、[PersistentCleanupTest](../../app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenPersistentCleanupTest.java) |
-| Low/API23不解析API30执行能力或打开journal | [LowBoundaryTest](../../app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenLowBoundaryTest.java) |
+| 旧 low/API23 边界 | 已随 low 源集在 build209 删除；当前唯一变体为 Standard（API 30+） |
 
 设备显示/输入、OEM兼容、真实背景/恢复和长时场景仍需各自明确授权与对应正式包证据；本文不以宿主回归数量宣称这些范围完成。

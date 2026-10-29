@@ -570,8 +570,8 @@ public final class UpdateFlowAuditInstrumentation extends Instrumentation {
   private static JSONObject release(String channel, int increment) throws Exception {
     JSONObject apk =
         new JSONObject()
-            .put("flavor", BuildConfig.LOW_ANDROID ? "low" : "standard")
-            .put("minSdk", BuildConfig.LOW_ANDROID ? 23 : 30)
+            .put("flavor", "standard")
+            .put("minSdk", false ? 23 : 30)
             .put("abi", "arm64-v8a")
             .put("url", "https://example.invalid/update.apk")
             .put("sha256", HASH)

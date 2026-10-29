@@ -30,7 +30,8 @@ public final class NativeFileShareTest {
 
   @Test
   public void shareUsesSendWithExactUriMimeAndTemporaryReadGrant() {
-    Uri uri = Uri.parse("content://dsh.android.client.updates/transfers/share/task/report.txt");
+    Uri uri =
+        Uri.parse("content://io.github.sunsetrne.dsha.updates/transfers/share/task/report.txt");
     Intent chooser = NativeFileShare.chooser(uri, "report.txt", "text/plain", "Share file");
     assertEquals(Intent.ACTION_CHOOSER, chooser.getAction());
     Intent send = chooser.getParcelableExtra(Intent.EXTRA_INTENT, Intent.class);

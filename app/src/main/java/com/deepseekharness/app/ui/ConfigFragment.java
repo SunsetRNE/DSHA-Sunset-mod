@@ -108,8 +108,7 @@ public class ConfigFragment extends Fragment {
     desktop.setChecked(c.isDesktopMode());
     CompoundButton gecko = v.findViewById(R.id.config_gecko_core);
     gecko.setVisibility(View.GONE);
-    v.findViewById(R.id.config_gecko_hint)
-        .setVisibility(com.deepseekharness.app.BuildConfig.LOW_ANDROID ? View.VISIBLE : View.GONE);
+    v.findViewById(R.id.config_gecko_hint).setVisibility(false ? View.VISIBLE : View.GONE);
     gecko.setChecked(c.isGeckoCore());
     proroot.setChecked(c.isProroot());
     lan.setChecked(c.isLanMode());
@@ -146,12 +145,12 @@ public class ConfigFragment extends Fragment {
         v,
         R.id.config_core_choice,
         com.deepseekharness.app.util.UiText.choose("网页内核", "Browser engine"),
-        com.deepseekharness.app.BuildConfig.LOW_ANDROID
+        false
             ? new String[] {
               com.deepseekharness.app.util.UiText.choose("自动选择内核", "Automatic engine"), "Gecko"
             }
             : new String[] {"System WebView"},
-        com.deepseekharness.app.BuildConfig.LOW_ANDROID && c.isGeckoCore() ? 1 : 0,
+        false && c.isGeckoCore() ? 1 : 0,
         index -> gecko.setChecked(index == 1));
 
     // 悬浮条外观与行为（照 1.1.9.1：底色预设 + 不透明度/行数/字号/停留 + 行为开关）
@@ -217,8 +216,7 @@ public class ConfigFragment extends Fragment {
                   c.setWebPort(automaticPort.isChecked() ? "auto" : "fixed", chosenPort);
                   c.setCheckUpdate(checkUpdate.isChecked());
                   c.setDesktopMode(desktop.isChecked());
-                  if (com.deepseekharness.app.BuildConfig.LOW_ANDROID)
-                    c.setGeckoCore(gecko.isChecked());
+                  if (false) c.setGeckoCore(gecko.isChecked());
                   c.setProroot(proroot.isChecked());
                   c.setProrootStaticLoader(staticLoader.isChecked());
                   c.setProotSeccompDisabled(noSeccomp.isChecked());

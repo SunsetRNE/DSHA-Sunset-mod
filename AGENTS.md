@@ -1,15 +1,16 @@
 # AGENTS.md
 
 
-> **当前状态**：`0.2.1-rc.3-20261029.0741` / build208 / `dsh.android.client` / Standard。
-> 主线分支 `Sunset-3090-Q`；Android 11+ / arm64；proot 默认、proroot 可选；内置 DSH 0.2.1-rc.3。
+> **当前状态**：`0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3` / build209 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
+> 主线分支 `Sunset-3090-Q`；Android 11+（API 30）/ arm64；proot 默认、proroot 可选；内置 DSH 0.2.1-rc.3。
+> 上岛能力已并入正式包；旧 low/GeckoView 兼容线与独立上岛包已删除；签名使用 Mod 自有证书（见 BUILD.md）。
 
 DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— 读它之前先读 [README.md](README.md)。
 
 **仓库事实**：Java 17 / `:app` / arm64；移动 UI 3.2.2；proot 默认 + proroot 可选；固定离线输入由
 `tools/ci-assets.py` 还原。构建、签名与门禁见 [BUILD.md](BUILD.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-维护入口：[文档总索引](docs/documentation-index.md)、[项目总手册](docs/project-architecture-handbook.md)、
+维护入口：[文档总索引](docs/documentation-index.md)、[固定构建输入](docs/fixed-build-inputs.md)、[文案长度政策](docs/i18n-length-policy.md)、[项目总手册](docs/project-architecture-handbook.md)、
 [权限](docs/device-permissions-architecture.md)、[环境/数据/插件](docs/runtime-data-plugin-architecture.md)、
 [运行引擎](docs/runtime-engines.md)、[端口](docs/ports-and-networking.md)、[虚拟屏](docs/virtual-screen-architecture.md)、
 [ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)、[来源依据](docs/references-and-provenance.md)。
@@ -112,8 +113,8 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ### 版本与构建
 
-- **当前身份以 `app/build.gradle` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build208 / `0.2.1-rc.3` / `dsh.android.client` / Standard；更早的 code/build 编号与签名身份均为历史记录，不作为当前构建或签名输入。
-- `standard`：minSdk 30，系统 WebView；`low`：minSdk 23，内置 GeckoView 143。构建任务 `assembleStandardRelease` / `assembleLowRelease`。兼容版 proot / loader / 终端 JNI 以 API 23 重编（`tools/build-low-proot.py`、`tools/termux-jni/`），**不要把标准版 proot 当 Android 6 可执行文件**。
+- **当前身份以 `app/build.gradle`、`ci/release-identity.json` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build209 / `0.2.1-rc.3` / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard；更早的 code/build 编号、旧包名 `dsh.android.client` 与历史 E7E3 签名均为历史记录，不作为当前构建或签名输入。
+- `standard`：minSdk 30（Android 11+），系统 WebView，arm64-v8a，是唯一构建线，任务为 `assembleStandardRelease`。`low`/GeckoView 兼容线已整体删除（含 `assembleLowRelease`、legacy proot/loader），**不再声明 Android 10 及以下可用**；测试变体仅通过 `-Pdsha.sunsetTest=true` 生成 `io.github.sunsetrne.dsha.test`。
 - 离线 rootfs（`assets/offline-rootfs.bin`）**不提交**，由准备脚本生成；APK 用 `offline-rootfs.layout=split-runtime-v1` 标记 Ubuntu 与 `dsh-runtime.bin` 分包，构建核验两份摘要。
 - 新 dsh 依赖由 `tools/dsh-runtime/package-lock.json` 锁定；`tools/prepare-runtime-descriptor.py` 生成独立受管契约描述，APK 版本仅作诊断来源。相同基础版本更新受管树，个人数据保持原位；**不因 UI-only APK 更新替换环境，不因普通 dsh 更新递增 Ubuntu 基础环境版本**。
 - 离线 curl / git / 证书由 `tools/ubuntu-tools/packages.lock.json` 锁定（`tools/prepare-ubuntu-tools.py` 生成 `ubuntu-tools.bin`）；网页 ES 兼容依赖锁在 `tools/web-compat/`（`node tools/prepare-web-compat.mjs`）。生成文件不提交，构建核验摘要。
@@ -176,7 +177,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 - **停止靠 pid 文件 + 出生身份，不靠端口反查**：`/proc/net/tcp` 非 root 读不到（静默空），`/proc` 有 hidepid。启动时 `echo $$ > /root/.dsha-web.pid` 再 `exec node`；停止先写哨兵 `/root/.dsha-stopped`（看门狗见到就退出，否则「秒复活」）。旧 PID 复用按内核 `kill(pid,0)` + 出生身份二次核验，不得按裸 PID / 端口 / 名称强杀。
 - **app 私有目录禁 `link(2)`**（SELinux）：proot 必须带 `--link2symlink`；`PROOT_L2S_DIR` 在 rootfs 内的 `.l2s` 必须绑定到相同宿主绝对路径，否则 dpkg 安装对硬链接 chown/stat 会报文件不存在。
-- **两把签名钥匙各管一件事**：线上 APK 用历史发布证书（E7E3），增量更新清单用独立 keystore，绝不混用。
+- **签名身份分开管理**：Mod 正式 APK 用新建发布证书（SHA-256 见 `ci/release-identity.json`，由 `verifyPublishCertificate` 强制核对），增量更新清单若启用则用独立 keystore，绝不混用；历史 E7E3 只属于原版 `dsh.android.client`。
 - Android 的 `FileInputStream(FileDescriptor)` 不接管传入描述符：宿主备份通过 `ParcelFileDescriptor` 自动关闭流明确转移所有权。
 - 数据维护先关闭 PTY 与简易终端再取 `RuntimeTasks` 屏障；proroot 终端按本次独立会话核验并回收 guest，不能只结束启动器就释放工作锁。
 - 维护成功文案不能代替就绪检查；未就绪时留在原生页，不自动跳回循环。维护页忙状态不使用插件查询 / 终端等通用锁冒充数据维护。
@@ -186,7 +187,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 ## 交付与验收
 
 - 当前版本的改动见 [CHANGELOG.md](CHANGELOG.md)；各版本的构建、验收与回执归档在 [docs/releases/](docs/releases/) 与 `artifacts/`。
-- 验收范围如实声明：不把本机验证扩写成全部系统版本、机型或外部模型服务矩阵；Standard / Low 与虚拟屏能力按实际设备证据声明。
+- 验收范围如实声明：不把本机验证扩写成全部系统版本、机型或外部模型服务矩阵；单一 Standard 与虚拟屏能力按实际设备证据声明，Android 10 及以下不在支持范围。
 - 私钥、用户数据、设备截图与日志不进入仓库；安装、设备操作与发布按当次授权执行。
 
 ## 编码约定
@@ -207,6 +208,5 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 | [BUILD.md](BUILD.md) | 环境（JDK 17 / SDK 37 / NDK 26 / Python 3.9+）、构建、签名与发布交付流程 |
 | [docs/security-model.md](docs/security-model.md) | 安全模型与已知弱点 |
 | [docs/plugins.md](docs/plugins.md) | 插件安装、打包契约与验证范围 |
-| [docs/android-low.md](docs/android-low.md) | Low 版兼容差异（API 23 重编、desugaring、老系统权限） |
 | [docs/releases/](docs/releases/) | 各版本发布说明与真机验收记录（新版本验收写这里） |
 | [CHANGELOG.md](CHANGELOG.md) | 完整更新记录 |

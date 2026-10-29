@@ -11,11 +11,9 @@ public final class CurrentReleaseNotes {
   }
 
   private static String bundledVersion(String versionName) {
-    // Both editions share these notes; flavor/test suffixes are not release-source identities.
-    if (versionName.endsWith("-SunsetTest"))
-      versionName = versionName.substring(0, versionName.length() - "-SunsetTest".length());
-    if (versionName.endsWith("low"))
-      versionName = versionName.substring(0, versionName.length() - 3);
+    // 正式包与 -Pdsha.sunsetTest=true 测试包共用同一份更新说明；测试后缀不是发布身份。
+    if (versionName.endsWith("-test"))
+      versionName = versionName.substring(0, versionName.length() - "-test".length());
     return versionName;
   }
 

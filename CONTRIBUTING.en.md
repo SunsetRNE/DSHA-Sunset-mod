@@ -85,8 +85,7 @@ python3 tools/check-source-hygiene.py
 After complete inputs are ready, run unit tests and Release Lint for the current production source set:
 
 ```bash
-./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest \
-  :app:lintStandardRelease :app:lintLowRelease
+./gradlew :app:testStandardDebugUnitTest :app:lintStandardRelease
 python3 tools/verify-stability.py --stage software
 python3 tools/run-host-tests.py --stage runtime
 ```

@@ -217,10 +217,7 @@ public final class StartupRecoveryAudit extends Instrumentation {
       shot("startup-recovery-English-log");
       String cookie = c.exchangeDshAuthCookie();
       check(cookie != null, "Cookie 鉴权失败");
-      String activityName =
-          com.deepseekharness.app.BuildConfig.LOW_ANDROID
-              ? "com.deepseekharness.app.ui.GeckoPreviewActivity"
-              : WebPreviewActivity.class.getName();
+      String activityName = WebPreviewActivity.class.getName();
       ActivityMonitor browser = addMonitor(activityName, null, false);
       try {
         runOnMainSync(

@@ -32,6 +32,8 @@ CURRENT = (
     "docs/emergency-recovery.md", "docs/terminal.md", "docs/picture-in-picture.md",
     "docs/i18n.md", "docs/overlay-and-notifications.md", "docs/browser-engines.md",
     "docs/bridge-and-files.md", "docs/web-file-sharing.md", "docs/security-model.md",
+    "docs/fixed-build-inputs.md", "docs/ci-release.md", "docs/i18n-length-policy.md",
+    "docs/mod-identity-and-signing.md",
     "docs/security-model.en.md", "docs/engineering-standard.md", "docs/module-map.md",
     "docs/source-provenance.md", "docs/download-verification.md", "docs/download-verification.en.md",
     "docs/接手指南.md", "docs/agents/domain.md", "docs/agents/issue-tracker.md",

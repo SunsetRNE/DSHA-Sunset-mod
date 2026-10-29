@@ -59,8 +59,8 @@ public final class CurrentReleaseNotesTest {
   }
 
   @Test
-  public void editionSuffixesShareNotesButKeepTheirActualInstalledTitle() {
-    for (String suffix : new String[] {"low", "-SunsetTest", "low-SunsetTest"}) {
+  public void testSuffixSharesNotesButKeepsItsActualInstalledTitle() {
+    for (String suffix : new String[] {"", "-test"}) {
       String installed = VERSION + suffix;
       assertTrue(CurrentReleaseNotes.matches(installed, 194, NOTES));
       assertTrue(

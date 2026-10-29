@@ -20,6 +20,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 上岛（Promoted notifications / Live Updates）权限由原独立上岛包并入正式包。
+         Android 16（API 36）起为普通权限；低版本系统忽略，不影响安装。 -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" tools:targetApi="36" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -213,6 +216,9 @@
             android:permission="moe.shizuku.manager.permission.API_V23"
             tools:ignore="Instantiatable" />
 
+        <!-- 无障碍声明放在 main manifest：正式包、测试包与 debug 包共享同一 service 声明，
+             不使用 flavor 专属 manifest 覆盖，因此多个变体包可以各自独立启用、互不顶掉。
+             标签/描述按语言资源提供，随实际应用显示名（DSH-A-Su）区分。 -->
         <service
             android:name=".DshaAccessibilityService"
             android:exported="false"

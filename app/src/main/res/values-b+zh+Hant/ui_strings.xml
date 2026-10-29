@@ -3,8 +3,6 @@
     <string name="about_close_button" formatted="false">"關閉"</string>
     <string name="about_community" formatted="false">"QQ 交流群"</string>
     <string name="about_tagline" formatted="false">"DeepSeek Harness 安卓啟動器"</string>
-    <string name="accessibility_desc" formatted="false">"兩個用途：① 自動讀取系統「無線除錯」的配對碼，省掉手抄（配對碼兩分鐘就失效）；② 讓 AI 助手能讀取螢幕、點按、輸入、按鍵、截圖（截圖需 Android 11+），從而在沒有 ADB 和 Shizuku 的情況下也能操作手機。\n\n\n\nDSHA 不做任何背景螢幕記錄：讀取螢幕只發生在助手明確請求的那一刻，讀取螢幕文字和 MCP 截圖返回本次對話；普通截圖按請求儲存到應用程式私有截圖目錄。DSHA 不會單獨自動上傳截圖，模型/外掛對返回結果的處理由目前設定決定；配對碼只在你點過「自動讀配對碼」後的兩分鐘內讀取。"</string>
-    <string name="accessibility_service_label" formatted="false">"DSHA 配對助手"</string>
     <string name="adb_pairing_service_label" formatted="false">"ADB 無線配對"</string>
     <string name="alpha_no_seccomp" formatted="false">"禁用 proot seccomp 加速"</string>
     <string name="alpha_static_loader" formatted="false">"使用 proroot 靜態載入器"</string>

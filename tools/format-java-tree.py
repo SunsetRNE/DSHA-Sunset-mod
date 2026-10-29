@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-SETS = ("main", "low", "standard", "debug", "androidTest", "test")
+SETS = ("main", "standard", "debug", "androidTest", "test")
 SOURCE = "java/com/deepseekharness/app"
 MANIFEST = ROOT / "tools/java-format-files.json"
 LOCK = ROOT / "tools/java-format.lock.json"

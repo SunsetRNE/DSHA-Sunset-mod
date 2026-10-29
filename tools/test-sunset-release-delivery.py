@@ -54,7 +54,7 @@ class Fixture:
             archive.writestr("AndroidManifest.xml", b"synthetic binary manifest")
             archive.writestr("classes.dex", b"synthetic fixture")
         self.tests = dict(mode="full", flavors=dict(Standard=dict(
-            tests=8, failures=0, errors=0, skipped=1, requiredFixtureTestsPassed=7)))
+            tests=7, failures=0, errors=0, skipped=0, requiredFixtureTestsPassed=7)))
         self.info = dict(schema=1, kind="sunset-3090-q-test-apk", flavors=["standard"], commit=COMMIT,
                          runId="1234", runAttempt="2", apkFile=self.apk, packageName=release.PACKAGE,
                          versionCode=206, versionName="0.2.1-rc.3-SunsetTest", certificateSha256=certificate,
@@ -69,11 +69,9 @@ class Fixture:
             f"Signer #1 certificate SHA-256 digest: {certificate}\n")
         for name in ("apk-runtime-verification.txt", "apk-recovery-verification.txt"):
             (self.out / name).write_text("synthetic upstream verification succeeded\n")
-        suite = ET.Element("testsuite", tests="8", failures="0", errors="0", skipped="1")
+        suite = ET.Element("testsuite", tests="7", failures="0", errors="0", skipped="0")
         for owner, name in sorted(release.FIXTURES):
             ET.SubElement(suite, "testcase", classname=owner, name=name)
-        case = ET.SubElement(suite, "testcase", classname=release.ALLOWED_SKIP[0], name=release.ALLOWED_SKIP[1])
-        ET.SubElement(case, "skipped")
         self.junit = release.JUNIT_PREFIX + "TEST-fixture.xml"
         self.entries = {self.junit: ET.tostring(suite), release.LINT: b'<issues format="6"><issue severity="Warning"/></issues>'}
         for name, stage in release.HOST_REPORTS.items():
@@ -203,7 +201,7 @@ class LocalTests(FixtureTests):
         plan = self.fixture.plan()
         self.assertEqual([asset["name"] for asset in plan["assets"]], [self.fixture.apk, "sunset-evidence.zip", "build-info.json", "sunset-test-cert.pem", "SHA256SUMS"])
         self.assertEqual(plan["runAttempt"], 2)
-        self.assertNotEqual(plan["certificateSha256"], release.E7E3)
+        self.assertNotEqual(plan["certificateSha256"], release.MOD_CERT)
 
     def test_local_identity_mismatches_fail(self):
         for key, value in (("GITHUB_REPOSITORY", "DSH-APP/DSHA"), ("GITHUB_REF", "refs/tags/test"),
@@ -236,7 +234,7 @@ class LocalTests(FixtureTests):
 
     def test_build_info_wrong_commit_attempt_package_flavor_or_actual_digest_fails(self):
         for key, value in (("commit", "a" * 40), ("runId", "1235"), ("runAttempt", "1"),
-                           ("packageName", "dsh.android.client"), ("flavors", ["low"]), ("versionCode", 205),
+                           ("packageName", "io.github.sunsetrne.dsha"), ("flavors", ["low"]), ("versionCode", 205),
                            ("versionName", "0.2.1"), ("apkFile", "other.apk"), ("apkSha256", "0" * 64), ("apkSize", 1)):
             f = self.reset()
             f.change_info(key, value)
@@ -244,7 +242,7 @@ class LocalTests(FixtureTests):
                 f.plan()
 
     def test_actual_badging_package_code_debuggable_and_duplicate_rejected(self):
-        for old, new in ((release.PACKAGE, "dsh.android.client"), ("versionCode='206'", "versionCode='205'"),
+        for old, new in ((release.PACKAGE, "io.github.sunsetrne.dsha"), ("versionCode='206'", "versionCode='205'"),
                          ("sdkVersion:'30'", "application-debuggable"), ("versionCode='206'", "versionCode='206' versionCode='206'")):
             f = self.reset()
             path = f.out / "apk-badging.txt"
@@ -254,10 +252,10 @@ class LocalTests(FixtureTests):
                 f.plan()
 
     def test_public_certificate_and_signature_are_cross_checked(self):
-        for action in ("E7E3", "wrong-public-cert", "private-pem", "not-verified", "multiple-signers"):
+        for action in ("MOD_CERT", "wrong-public-cert", "private-pem", "not-verified", "multiple-signers"):
             f = self.reset()
-            if action == "E7E3":
-                f.change_info("certificateSha256", release.E7E3)
+            if action == "MOD_CERT":
+                f.change_info("certificateSha256", release.MOD_CERT)
             elif action == "wrong-public-cert":
                 (f.out / "sunset-test-cert.pem").write_text("-----BEGIN CERTIFICATE-----\nMAMCAQI=\n-----END CERTIFICATE-----\n")
             elif action == "private-pem":
@@ -294,10 +292,11 @@ class LocalTests(FixtureTests):
             elif action == "duplicate-fixture":
                 root[0].attrib.update(root[1].attrib)
             elif action == "skipped-fixture":
-                root[-1].remove(root[-1].find("skipped"))
                 ET.SubElement(root[0], "skipped")
             elif action == "unexpected-skip":
-                root[-1].set("classname", "some.other.SkippedTest")
+                case = ET.SubElement(root, "testcase", classname="some.other.SkippedTest",
+                                     name="skippedCase")
+                ET.SubElement(case, "skipped")
             elif action == "failed-case":
                 ET.SubElement(root[0], "failure")
             else:
@@ -384,7 +383,7 @@ class PublicationTests(FixtureTests):
         self.assertEqual(writes[1][0:2], ("POST", P + "/releases"))
         self.assertIs(writes[1][2]["draft"], True)
         self.assertIn("Standard 测试预发布", writes[1][2]["name"])
-        self.assertIn("非 E7E3 正式签名", writes[1][2]["body"])
+        self.assertIn("非 Mod 正式签名", writes[1][2]["body"])
         self.assertIn("不代表设备验收", writes[1][2]["body"])
         self.assertEqual([call[3] for call in writes[2:7]], [self.fixture.apk, "sunset-evidence.zip", "build-info.json", "sunset-test-cert.pem", "SHA256SUMS"])
         self.assertEqual(writes[-1][0], "PATCH")

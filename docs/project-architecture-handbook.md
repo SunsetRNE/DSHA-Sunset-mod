@@ -39,7 +39,7 @@ DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维
 | 当前生产选择 | 维护含义 |
 |---|---|
 | Java 17、Material3、单 `:app` 模块 | 原生页面与平台桥使用 Java，不新增 Kotlin 旁路 |
-| `dsh.android.client`、历史 E7E3、非调试正式包 | 覆盖兼容性由实际包和证书确认，不能换签名代替升级 |
+| `io.github.sunsetrne.dsha`、Mod 自有证书（见 `ci/release-identity.json`）、非调试正式包
 | Standard：minSdk 30、系统 WebView、arm64 | 本轮交付的 APK；系统 WebView 版本仍受设备影响 |
 | Low：minSdk 23、Gecko 兼容路径、arm64 | 保留源码与软件检查；本轮没有新的 Low APK/设备交付 |
 | Ubuntu base10、DSH 0.2.1-rc.2 | 基础环境、DSH、APK 与数据格式是不同身份 |
@@ -212,7 +212,7 @@ Ubuntu 基础环境相同的普通 DSH/UI 更新，不应重建现用 Ubuntu 或
 
 ## 6. 原生导航、双浏览器、PiP 与键盘
 
-Main 提供原生导航；WebPreviewActivity/Low GeckoPreviewActivity 持有网页实例。
+Main 提供原生导航；WebPreviewActivity 持有网页实例（旧 Low/Gecko 实现随 low 源集在 build209 删除）。
 同一运行代次切换全屏、后台或 PiP 时复用同一网页，不通过重建页面“恢复”草稿。
 `BrowserTasks` 与任务策略记录明确导航来源，区分系统 Home 后台与用户主动回主页。
 从 Web 按 Home 后点击桌面图标，应恢复同代 Web；主动 Back/主页按钮才回 Main。
@@ -446,7 +446,8 @@ Android 私有目录框架别名须显式绑定 canonical authority，不能放�
 | `res/`、`i18n/` | Material 资源、UiText 与双语索引 | 文案不泄漏内部凭据，不遗留死页面 |
 
 生产 Java 根目录见 [app 源码](../app/src/main/java/com/deepseekharness/app/)，
-Low 适配见 [low 源集](../app/src/low/)，测试见 [宿主 JUnit](../app/src/test/java/com/deepseekharness/app/)。
+测试见 [宿主 JUnit](../app/src/test/java/com/deepseekharness/app/)。历史 low 源集已在 build209 删除，
+本项目自 build209 起只有 Standard（Android 11+）一条构建线。
 不要把历史目录计数当实时架构，也不要将仅用于构建/夹具的脚本包装成用户功能。
 
 ## 14. 验证、构建和修改流程

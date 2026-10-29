@@ -220,10 +220,7 @@ public final class DiagnosticRepository extends AndroidViewModel {
         .append(BuildConfig.VERSION_NAME)
         .append(" / ")
         .append(BuildConfig.VERSION_CODE)
-        .append(
-            BuildConfig.LOW_ANDROID
-                ? t(" / 兼容版\n", " / Low edition\n")
-                : t(" / 标准版\n", " / Standard edition\n"));
+        .append(false ? t(" / 兼容版\n", " / Low edition\n") : t(" / 标准版\n", " / Standard edition\n"));
     metadata
         .append(t("系统：Android ", "System: Android "))
         .append(Build.VERSION.RELEASE)
@@ -280,7 +277,7 @@ public final class DiagnosticRepository extends AndroidViewModel {
     browser
         .append(t("兼容内核：", "Compatibility engine: "))
         .append(
-            BuildConfig.LOW_ANDROID
+            false
                 ? t(
                     "Gecko 143 可用（旧系统自动切换）",
                     "Gecko 143 bundled; selected automatically on older systems")
@@ -290,7 +287,7 @@ public final class DiagnosticRepository extends AndroidViewModel {
         "browser",
         browserAvailable ? DiagnosticReport.Health.INFO : DiagnosticReport.Health.NEEDS_ATTENTION,
         t("网页内核", "Browser engine"),
-        BuildConfig.LOW_ANDROID ? "WebView / Gecko 143" : "System WebView",
+        false ? "WebView / Gecko 143" : "System WebView",
         browser.toString());
     String cold = ColdInstallDiagnostics.read(getApplication());
     if (!cold.isEmpty())

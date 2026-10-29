@@ -21,7 +21,7 @@
 
 用户在[配置页 ConfigFragment](../app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java)的高级选项选择 proroot、静态加载器及 proot seccomp 选项，`config_save` 保存。选项决定后续新进程的 argv/env，不能替换已经运行的 Web/终端引擎；先正常停止，再启动才可核对实际运行方式。`RuntimeHostPorts` 为一次调用提供配置作用域，不能让执行到一半的命令读到另一套设置。
 
-[RuntimeExecution.runtime()](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.java) 还要求 Android API >= 26、没有本次 `forceProot`，且 proroot 的五个原始文件与两个兼容文件可用并准备成功。否则记录 `RUNTIME_SELECTION_FALLBACK`，选择 proot。这是**启动前可用性选择**，和“guest 已执行后再次运行命令”是两件事。Low 最低 API 23 不意味着 API 23–25 会使用 proroot。
+[RuntimeExecution.runtime()](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.java) 还要求 Android API >= 26、没有本次 `forceProot`，且 proroot 的五个原始文件与两个兼容文件可用并准备成功。否则记录 `RUNTIME_SELECTION_FALLBACK`，选择 proot。这是**启动前可用性选择**，和“guest 已执行后再次运行命令”是两件事。build209 起不再有 Low/API23 构建线。
 
 [CHANGELOG 历史段](../CHANGELOG.md)的“v1.1.6 起默认 proroot”说的是 **DSHA v1.1.6**，不是当前 proroot 二进制的版本号。该段还记录旧 vivo/Android14 的速度数据与旧兜底规则；“快 5–6 倍”、`+58%` 和“连续三次失败切换”等不能当成 build190 的全设备性能或当前重试契约。应分别阅读历史和上面的当前配置。
 
@@ -33,7 +33,7 @@ Linux Node、Bash、glibc 与原生 npm 模块需要 Linux 路径和 ABI。Andro
 
 `-0` 使 guest 看到 root 身份，但 **Android 内核仍按应用真实 UID、SELinux 与系统权限执行**。这没有授予 Android root、真实挂载权限、其他应用私有文件访问或系统后台豁免。所有 guest 和后代仍受系统进程回收、前台服务规则及 Android 权限约束。工具确认、路径校验也不是针对任意本地代码的强沙箱；终端、第三方插件及其生命周期脚本保有项目允许的执行能力。[AOSP 的应用沙箱说明](https://source.android.com/docs/security/app-sandbox)阐明了 UID 对 Java 和原生代码共同生效的边界。
 
-两个引擎共享 `ContainerRuntime.binds()` 的显式映射：`/dev`、`/proc`、`/sys`、`/system`、`/apex`、fd、随机设备及已可访问的共享存储。不存在或不可访问的源记录 `BIND_SKIPPED`。没有映射 `/linkerconfig`，避免将应用没有权限的目录反复当作可用依赖。`/sdcard` 映射不授予存储权限；SAF 等原生能力仍由各自受控接口提供。正式个人数据映射由 `UserDataBindings` 追加；独立应急根明确使用独立数据域，不从正式环境父目录猜测用户数据。
+两个引擎共享 `ContainerRuntime.binds(includePublicStorage)` 的显式映射：`/dev`、`/proc`、`/sys`、`/system`、`/apex`、fd、随机设备及已可访问的共享存储。不存在或不可访问的源记录 `BIND_SKIPPED`。没有映射 `/linkerconfig`，避免将应用没有权限的目录反复当作可用依赖。`/sdcard` 映射不授予存储权限；SAF 等原生能力仍由各自受控接口提供。正式个人数据映射由 `UserDataBindings` 追加；独立应急根明确使用独立数据域，不从正式环境父目录猜测用户数据。
 
 ## 3. 一次启动经过哪些层
 
@@ -76,8 +76,7 @@ flowchart TD
 | 当前文件 / 来源 | 已知边界 |
 |---|---|
 | Standard `libproot.so`、`libprootloader.so`、`libprootloader32.so` | Termux proot / GPL-2.0；[第三方声明](../THIRD_PARTY_NOTICES.md)明确：原始二进制的精确源码修订仍未核实。不能称 Standard 已按 Low 脚本复现。 |
-| Low `libproot_legacy.so`、`libprootloader_legacy.so` | [build-low-proot.py](../tools/build-low-proot.py) 固定 Termux `v5.1.107.92` 源码归档，SHA `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`；API23 本地构建标识 `5.1.107.92-dsha-android23`。 |
-| Low 本地差异 | 移除一个不适用于 Android 命名 fd 的 canon 断言；旧 API 下通过 `dlsym` 查询 `getifaddrs/freeifaddrs`，不存在则明确 ENOSYS；shmem 映射到随包实现。不是通用内核仿真。 |
+| 历史 Low 兼容库 | 已随 low 源集在 build209 删除；当前只随包发布 Standard 的三个 proot 原生库 |
 | NDK / 自有会话启动器 | [ci/toolchain.lock.json](../ci/toolchain.lock.json) 固定 NDK `26.3.11579264`；[native-session/build.py](../tools/native-session/build.py) 构建 API23 ARM64 会话启动器，4KiB/common 与 16KiB LOAD 对齐。对齐检查不等于全部 16KiB 手机实测。 |
 
 本次只读核对的 Standard 三件原件 SHA-256，供查找对应字节，不补造源码来源：
@@ -135,7 +134,7 @@ ABI、源码及输出摘要、五件 vendor 原件摘要均由 `abi.lock.json` �
 - `NARB_DISABLE_NATIVE_CACHE=1`：避免原生扩展复制缓存的 link/unlink 在 link2symlink 路径下形成悬链，不能据此删除实际原生依赖。
 - [runtime-patches.json](../app/src/main/assets/runtime-patches.json)：当前 DSH 精确版本的补丁注册表，由 `RuntimeTools.applyPatchChain()` 统一准备；历史 `DT_UNKNOWN`/JSON 重开修复不能脱离当前注册表继续照搬旧模块补丁。
 - [bridge-token-compat.cjs](../app/src/main/assets/bridge-token-compat.cjs)：固定受管启动预加载的一部分，与 GNU loader shim 分属不同层；其职责不授予本机桥的额外权限。
-- Low proot 的 API23 兼容、PTY JNI 的出生握手、网页 ES/PDF 兼容分别有独立实现和验证；网页浏览器兼容成功不能证明 guest 原生加载成功。
+- PTY JNI 的出生握手、网页 ES/PDF 兼容分别有独立实现和验证；网页浏览器兼容成功不能证明 guest 原生加载成功。
 
 ## 6. 没有 --kill-on-exit 时，停止怎么成立
 
@@ -177,4 +176,4 @@ proot 的实际 argv 包含 `--kill-on-exit`；proroot 当前集成没有这一�
 | [test-arm64.py](../tools/proroot-compat/test-arm64.py) | QEMU/WSL 上原始 ARM64 bridge/loader 接线与自有入口拒绝条件；binfmt/二次 exec 限制按结果记录，不能替代应用域测试。 |
 | [native-session/build.py --check](../tools/native-session/build.py)、[test-native-session-handshake.py](../tools/test-native-session-handshake.py)、[test-proot-runtime-libs.py](../tools/test-proot-runtime-libs.py) | 自有监督器可复现字节、宿主内核出生握手及参数/依赖契约；不覆盖全部 ROM 进程信息权限。 |
 
-真正判断一个正式 APK 的某引擎可用，还需记录该 APK 的签名/摘要、实际选择与实际运行方式、Node/路径 hook、后端鉴权、网页就绪以及正常停止后的 guest 与 launcher 退出。Standard 与 Low、Android13 与 Android16、宿主测试与应用域测试分别记账；proot 回退成功不能替 proroot 签字。没有数据比对、长时或全设备证据时，也不把本文的架构说明写成这些验收已完成。
+真正判断一个正式 APK 的某引擎可用，还需记录该 APK 的签名/摘要、实际选择与实际运行方式、Node/路径 hook、后端鉴权、网页就绪以及正常停止后的 guest 与 launcher 退出。Standard 与 Android13/Android16、宿主测试与应用域测试分别记账；proot 回退成功不能替 proroot 签字。没有数据比对、长时或全设备证据时，也不把本文的架构说明写成这些验收已完成。

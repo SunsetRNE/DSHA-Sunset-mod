@@ -3,8 +3,6 @@
     <string name="about_close_button" formatted="false">"닫기"</string>
     <string name="about_community" formatted="false">"QQ 커뮤니티"</string>
     <string name="about_tagline" formatted="false">"Android용 DeepSeek Harness"</string>
-    <string name="accessibility_desc" formatted="false">"두 가지 용도로 사용합니다. (1) Android 무선 디버깅 대화상자에서 페어링 코드를 읽어 2분 후 만료되는 코드를 직접 복사할 필요가 없습니다. (2) AI 어시스턴트가 화면을 읽고 탭, 입력, 키 누르기, 스크린샷 촬영(Android 11 이상)을 수행하여 ADB나 Shizuku 없이 기기를 제어할 수 있습니다.\n\nDSHA는 백그라운드에서 화면을 녹화하지 않습니다. 어시스턴트가 명시적으로 요청할 때만 화면 내용을 읽어 현재 대화에 반환합니다. 일반적인 요청 스크린샷은 앱 스크린샷 폴더에 저장하며 MCP 스크린샷은 메모리에서 인코딩합니다. DSHA가 스크린샷을 독립적으로 업로드하지는 않지만 설정된 모델과 플러그인이 반환된 결과를 처리할 수 있습니다. 페어링 코드는 ‘페어링 코드 자동 읽기’를 누른 후 2분 동안만 읽습니다."</string>
-    <string name="accessibility_service_label" formatted="false">"DSHA 페어링 도우미"</string>
     <string name="adb_pairing_service_label" formatted="false">"무선 ADB 페어링"</string>
     <string name="alpha_no_seccomp" formatted="false">"proot seccomp 가속 사용 중지"</string>
     <string name="alpha_static_loader" formatted="false">"proroot 정적 로더 사용"</string>

@@ -42,7 +42,7 @@ public class SettingsFragment extends Fragment {
     View v = inflater.inflate(R.layout.fragment_settings, container, false);
 
     LinearLayout tabs = v.findViewById(R.id.settings_tabs);
-    int optionCount = BuildConfig.ISLAND_EDITION ? TAB_OPTIONS.length : TAB_OPTIONS.length - 1;
+    int optionCount = TAB_OPTIONS.length;
     for (int i = 0; i < optionCount; i++) {
       if (i > 0) {
         View line = divider();

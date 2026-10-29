@@ -154,7 +154,7 @@ if __name__=='__main__':
     messages,catalogs=load_catalog(ROOT);translated={m['zh'] for m in messages if m['en']}
     total=0
     if not args.resources_only and not args.check:
-        for tree in ['app/src/main/java/com/deepseekharness/app','app/src/low/java']:
+        for tree in ['app/src/main/java/com/deepseekharness/app']:
             for file in (ROOT/tree).rglob('*.java'):
                 if args.scope=='all' or '/ui/' in str(file).replace('\\','/'):total+=source(file,translated)
     resources(messages,catalogs,ROOT,migrate=not args.resources_only and not args.check,check=args.check)

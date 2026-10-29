@@ -1,0 +1,374 @@
+name: DSH-A-Su production release
+
+# 公开仓库的正式成品发布：显式 workflow_dispatch、绑定精确 commit 与固定输入，
+# 用仓库 Secrets 里的 Mod 发布证书签名 io.github.sunsetrne.dsha 正式包，核验证书后
+# 创建 tag + prerelease，并上传 APK、校验和与构建/单测证据。不运行 Low，不使用测试包身份。
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: New tag dsha-a-su-build<code>-YYYYMMDD-HHMMSS (created at the verified commit)
+        required: true
+        type: string
+      expected_sha:
+        description: Exact 40-character source commit to verify and publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dsha-a-su-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build_release:
+    name: Verify, build and publish signed DSH-A-Su
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && github.repository == 'SunsetRNE/DSHA-Sunset-mod-3090-Q'
+      && github.ref == 'refs/heads/Sunset-3090-Q'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: write
+      actions: read
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind explicit release request to exact source and fixed inputs
+        run: |
+          python3 - <<'PYCODE'
+          import importlib.util, json, os, re
+          expected = os.environ['EXPECTED_SHA']
+          if expected != os.environ['GITHUB_SHA'] or not re.fullmatch(r'[a-f0-9]{40}', expected):
+              raise SystemExit('RELEASE_COMMIT_MISMATCH')
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'dsha-a-su-build[0-9]+-[0-9]{8}-[0-9]{6}', tag):
+              raise SystemExit('RELEASE_TAG_INVALID')
+          spec = importlib.util.spec_from_file_location('fixed_inputs', 'tools/sunset-ci-inputs.py')
+          helper = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(helper)
+          selected = helper.resolve({})
+          identity = json.load(open('ci/release-identity.json', encoding='utf-8'))
+          if identity['packageName'] != 'io.github.sunsetrne.dsha':
+              raise SystemExit('PACKAGE_IDENTITY_MISMATCH')
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              for key, value in {
+                  'ASSET_URL': selected['url'],
+                  'ASSET_SHA': selected['sha256'],
+                  'ASSET_FORMAT': selected['format'],
+                  'APK_NAME': 'dsha-a-su-' + expected[:8] + '.apk',
+                  'EXPECTED_PACKAGE': identity['packageName'],
+                  'EXPECTED_CERT': identity['certificateSha256'],
+              }.items():
+                  output.write(key + '=' + value + '\n')
+          PYCODE
+
+      - name: Verify toolchain against source configuration
+        id: toolchain
+        run: python3 tools/ci-toolchain.py --github-output
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ steps.toolchain.outputs.java }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.toolchain.outputs.node }}
+
+      - name: Verify checked-in contracts
+        run: |
+          python3 tools/prepare-runtime-tools.py --check
+          python3 tools/verify-runtime-descriptor-source.py
+          python3 tools/generate-third-party-notices.py --check
+          python3 tools/check-third-party-notices.py
+          python3 tools/generate-builtin-plugins.py --verify
+          python3 tools/generate-credential-paths.py --check
+          python3 tools/prepare-semver-reference.py
+          python3 tools/run-host-tests.py --check-manifest
+          python3 tools/check-source-hygiene.py
+          python3 tools/check-ui-i18n.py
+          python3 tools/generate-changelog.py --check
+          python3 tools/check-document-links.py
+
+      - name: Branch regression without fixed-input dependencies
+        run: |
+          python3 tools/run-host-tests.py --stage fast --jdk "$JAVA_HOME" \
+            --only test-native-consent-transport.mjs \
+            --only test-bridge-token-compat.mjs \
+            --only test-bridge-token-transport.py \
+            --only test-destructive-guard.mjs \
+            --only test-destructive-full-access.mjs \
+            --only test-vscreen-anchored.mjs \
+            --only test-device-shell-policy.py \
+            --only test-credential-paths.py \
+            --only test-runtime-descriptor-inputs.py \
+            --only test-runtime-descriptor-source.py \
+            --only test-plugin-capabilities.py \
+            --only test-plugin-transactions.py \
+            --only test-plugin-delete-nofollow.py \
+            --only test-architecture-boundaries.py \
+            --only test-bridge-port.mjs \
+            --only test-bridge-port.py \
+            --only test-ci-assets.py \
+            --only test-ci-package.py \
+            --only test-sunset-ci-inputs.py \
+            --only test-release-names.py \
+            --only test-release-layout.py \
+            --only test-release-evidence.py \
+            --only test-sunset-release-delivery.py \
+            --only test-host-test-runner.py \
+            --only test-dsh-runtime-packaging.py \
+            --only test-sunset-plugin-release.py \
+            --only test-generate-changelog.py \
+            --only test-ui-language-catalog.py \
+            --only test-format-java-tree.py
+
+      - name: Restore exact fixed build inputs
+        env:
+          INPUT_URL: ${{ env.ASSET_URL }}
+          INPUT_SHA: ${{ env.ASSET_SHA }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
+          if [ "$ASSET_FORMAT" = source-archive ]; then args+=(--source-archive); fi
+          python3 tools/ci-assets.py "${args[@]}"
+
+      - name: Install Android SDK and NDK
+        run: |
+          platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
+          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
+          ndk=$(python3 tools/ci-toolchain.py --field ndk)
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager_bin" ]; then
+            sdkmanager_bin=$(find "$sdk_root" -path '*/cmdline-tools/*/bin/sdkmanager' | head -1)
+          fi
+          test -x "$sdkmanager_bin"
+          "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
+
+      - name: Rebuild current managed DSH runtime from the dependency lock
+        run: |
+          python3 tools/prepare-dsh-runtime.py
+          python3 tools/prepare-backup-assets.py --write
+          python3 tools/prepare-runtime-descriptor.py --write
+          python3 tools/verify-runtime-descriptor-source.py
+
+      - name: Prepare current verified runtime fixture
+        run: python3 tools/prepare-test-runtime.py
+
+      - name: Complete Standard unit tests with fixed inputs
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testStandardDebugUnitTest -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
+
+      - name: Assert complete Standard unit-test results
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          reports = list(Path("app/build/test-results/testStandardDebugUnitTest").glob("TEST-*.xml"))
+          if not reports:
+              raise SystemExit("Missing JUnit reports")
+          suites = [ET.parse(report).getroot() for report in reports]
+          counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
+                    for key in ("tests", "failures", "errors", "skipped")}
+          if not counts["tests"] or counts["failures"] or counts["errors"] or counts["skipped"]:
+              raise SystemExit("Full unit tests failed: " + json.dumps(counts))
+          cases = [case for suite in suites for case in suite.findall("testcase")]
+          if counts["tests"] != len(cases):
+              raise SystemExit("JUnit report counts disagree")
+          result = {"mode": "full", "flavors": {"Standard": counts}}
+          Path("out").mkdir(exist_ok=True)
+          Path("out/full-unit-tests.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(result))
+          PY
+
+      - name: Verify complete Java formatting gate
+        run: python3 tools/format-java-tree.py --check
+
+      - name: Lint Standard release
+        run: ./gradlew :app:lintStandardRelease -Pdsha.unsignedPackage=true --no-daemon --max-workers=2
+
+      - name: Prepare Mod release signing key from secrets
+        env:
+          KEYSTORE_B64: ${{ secrets.DSHA_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.DSHA_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.DSHA_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DSHA_KEY_ALIAS }}
+        run: |
+          set -eu
+          test -n "${KEYSTORE_B64:-}" || { echo 'DSHA_KEYSTORE_B64 secret is required'; exit 1; }
+          test -n "${STORE_PASSWORD:-}" || { echo 'DSHA_KEYSTORE_PASSWORD secret is required'; exit 1; }
+          echo "::add-mask::$STORE_PASSWORD"
+          echo "::add-mask::${KEY_PASSWORD:-$STORE_PASSWORD}"
+          case "${KEY_ALIAS:-}" in *[!A-Za-z0-9._-]* ) echo 'unsafe alias'; exit 1 ;; esac
+          umask 077
+          key="$RUNNER_TEMP/dsha-a-su-release-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.jks"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$key"
+          test -s "$key"
+          {
+            printf 'DSHA_KEYSTORE=%s\n' "$key"
+            printf 'DSHA_KEYSTORE_PASSWORD=%s\n' "$STORE_PASSWORD"
+            printf 'DSHA_KEY_PASSWORD=%s\n' "${KEY_PASSWORD:-$STORE_PASSWORD}"
+            printf 'DSHA_KEY_ALIAS=%s\n' "${KEY_ALIAS:-dsha-a-su}"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed production APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleStandardRelease --no-daemon --max-workers=2
+
+      - name: Verify production APK identity and signing certificate
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re, subprocess
+          sdk = pathlib.Path(os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT') or '/usr/local/lib/android/sdk')
+          buildtools = subprocess.check_output(['python3', 'tools/ci-toolchain.py', '--field', 'buildTools'], text=True).strip()
+          apksigner = str(sdk / 'build-tools' / buildtools / 'apksigner')
+          aapt2 = str(sdk / 'build-tools' / buildtools / 'aapt2')
+          identity = json.load(open('ci/release-identity.json', encoding='utf-8'))
+          apk = pathlib.Path('app/build/outputs/apk/standard/release/app-standard-release.apk')
+          if not apk.is_file():
+              raise SystemExit('APK_MISSING')
+          badging = subprocess.check_output([aapt2, 'dump', 'badging', str(apk)], text=True)
+          if f"package: name='{identity['packageName']}'" not in badging:
+              raise SystemExit('APK_PACKAGE_MISMATCH')
+          if 'application-debuggable' in badging:
+              raise SystemExit('APK_DEBUGGABLE')
+          meta = json.load(open('app/build/outputs/apk/standard/release/output-metadata.json', encoding='utf-8'))['elements'][0]
+          version_code = int(re.search(r"versionCode='(\d+)'", badging).group(1))
+          version_name = re.search(r"versionName='([^']*)'", badging).group(1)
+          if version_code != meta['versionCode'] or version_name != meta['versionName']:
+              raise SystemExit('APK_VERSION_MISMATCH')
+          if version_name.endswith('-test') or version_name.endswith('-island'):
+              raise SystemExit('APK_TEST_OR_ISLAND_IDENTITY')
+          if "sdkVersion:'30'" not in badging:
+              raise SystemExit('APK_MINSDK_MISMATCH')
+          if "native-code: 'arm64-v8a'" not in badging:
+              raise SystemExit('APK_NATIVE_CODE_MISMATCH')
+          verify = subprocess.run([apksigner, 'verify', '--verbose', '--print-certs', str(apk)],
+                                  check=True, capture_output=True, text=True)
+          match = re.search(r'Signer #1 certificate SHA-256 digest: ([a-f0-9]{64})', verify.stdout)
+          if not match or match.group(1) != identity['certificateSha256']:
+              raise SystemExit('APK_CERTIFICATE_MISMATCH')
+          if f"application-label:'DSH-A-Su'" not in badging:
+              raise SystemExit('APK_LABEL_MISMATCH')
+          pathlib.Path('out').mkdir(exist_ok=True)
+          pathlib.Path('out/apk-signature.txt').write_text(verify.stdout, encoding='utf-8')
+          pathlib.Path('out/apk-badging.txt').write_text(badging, encoding='utf-8')
+          print(json.dumps({
+              'packageName': identity['packageName'],
+              'versionCode': version_code,
+              'versionName': version_name,
+              'certificateSha256': match.group(1),
+              'apkSize': apk.stat().st_size,
+          }, indent=2))
+          PY
+
+      - name: Package commit-bound build evidence
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib, json, os
+          from pathlib import Path
+          import zipfile
+          apk = Path('out') / (os.environ['APK_NAME'])
+          source = Path('app/build/outputs/apk/standard/release/app-standard-release.apk')
+          apk.write_bytes(source.read_bytes())
+          identity = json.load(open('ci/release-identity.json', encoding='utf-8'))
+          badging = (Path('out/apk-badging.txt')).read_text(encoding='utf-8')
+          meta = json.load(open('app/build/outputs/apk/standard/release/output-metadata.json', encoding='utf-8'))['elements'][0]
+          code = str(meta['versionCode'])
+          notes = Path('docs/releases/build' + code + '-changes.zh.md')
+          if not notes.is_file():
+              raise SystemExit('RELEASE_NOTES_MISSING: ' + str(notes))
+          cert = identity['certificateSha256']
+          value = {
+              'schema': 1,
+              'kind': 'dsha-a-su-production-release-apk',
+              'commit': os.environ['GITHUB_SHA'],
+              'runNumber': os.environ['GITHUB_RUN_NUMBER'],
+              'runId': os.environ['GITHUB_RUN_ID'],
+              'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'packageName': identity['packageName'],
+              'versionCode': meta['versionCode'],
+              'versionName': meta['versionName'],
+              'apkFile': os.environ['APK_NAME'],
+              'apkSize': apk.stat().st_size,
+              'apkSha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
+              'certificateSha256': cert,
+              'signingSchemes': identity['schemes'],
+              'assetBundleSha256': os.environ['ASSET_SHA'],
+              'unitTests': json.load(open('out/full-unit-tests.json', encoding='utf-8')),
+              'note': 'Production DSH-A-Su package. Verify SHA-256 and certificate before installing.',
+          }
+          Path('out/build-info.json').write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          files = [Path('out') / name for name in ['build-info.json', 'full-unit-tests.json', 'apk-signature.txt', 'apk-badging.txt', os.environ['APK_NAME']]]
+          files += sorted(path for path in Path('app/build/test-results/testStandardDebugUnitTest').rglob('TEST-*.xml'))
+          lint = Path('app/build/reports/lint-results-standardRelease.xml')
+          if lint.is_file():
+              files.append(lint)
+          if any(not path.is_file() or path.is_symlink() for path in files):
+              raise SystemExit('EVIDENCE_MISSING')
+          with zipfile.ZipFile('out/dsha-a-su-build-evidence.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
+              for path in sorted(set(files)):
+                  archive.write(path, path.as_posix())
+          names = [os.environ['APK_NAME'], 'dsha-a-su-build-evidence.zip', 'build-info.json']
+          Path('out/SHA256SUMS').write_text(''.join(
+              hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
+              encoding='utf-8')
+          Path('out/release-notes.md').write_text(
+              notes.read_text(encoding='utf-8')
+              + '\n\n## CI 构建与校验\n\n'
+              + f"- 源码 commit：`{os.environ['GITHUB_SHA']}`\n"
+              + f"- Actions run：`{os.environ['GITHUB_RUN_ID']}`（attempt {os.environ['GITHUB_RUN_ATTEMPT']}）\n"
+              + f"- APK：`{os.environ['APK_NAME']}`，{apk.stat().st_size} 字节，SHA-256 `{value['apkSha256']}`\n"
+              + f"- 包名 / versionCode / versionName：`{value['packageName']}` / {value['versionCode']} / `{value['versionName']}`\n"
+              + f"- 证书 SHA-256：`{cert}`（由 `apksigner` 从成品读取，与 ci/release-identity.json 一致）\n"
+              + f"- 固定输入 bundle SHA-256：`{os.environ['ASSET_SHA']}`\n"
+              + "- 完整单测、Lint、Java 格式与源码门禁均在本 run 内执行；安装前请先校验 SHA-256 与证书。\n",
+              encoding='utf-8')
+          Path('out/build-code.txt').write_text(code, encoding='utf-8')
+          print(apk.stat().st_size, value['apkSha256'])
+          PYCODE
+          echo "BUILD_CODE=$(cat out/build-code.txt)" >> "$GITHUB_ENV"
+          cat out/SHA256SUMS
+
+      - name: Publish verified tag and prerelease with direct Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'release tag already exists'; exit 1
+          fi
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$EXPECTED_SHA" \
+            --prerelease --title "DSH-A-Su build${BUILD_CODE} ($RELEASE_TAG)" --notes-file out/release-notes.md
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            "out/$APK_NAME" out/dsha-a-su-build-evidence.zip out/build-info.json out/SHA256SUMS
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isPrerelease,assets,url
+
+      - name: Remove release private key
+        if: always()
+        run: |
+          python3 - <<'PYCODE'
+          import os
+          from pathlib import Path
+          parent = Path(os.environ['RUNNER_TEMP']).resolve()
+          key = parent / ('dsha-a-su-release-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'] + '.jks')
+          if key.is_symlink() or key.resolve().parent != parent:
+              raise SystemExit('UNEXPECTED_RELEASE_KEY_PATH')
+          key.unlink(missing_ok=True)
+          PYCODE

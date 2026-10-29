@@ -44,8 +44,7 @@ python3 tools/check-source-hygiene.py
 Pure Java logic uses JUnit. PR source checks may generate current resources and run JVM tests for both variants. This is compilation and JVM verification, not generation or installation of an audit APK. Once complete inputs are prepared, run:
 
 ```bash
-./gradlew :app:testStandardDebugUnitTest :app:testLowDebugUnitTest \
-  :app:lintStandardRelease :app:lintLowRelease
+./gradlew :app:testStandardDebugUnitTest :app:lintStandardRelease
 python3 tools/run-host-tests.py --stage runtime
 python3 tools/verify-stability.py --stage software
 ```
@@ -71,7 +70,7 @@ The independent emergency runtime has its own root, HOME, and workspace and does
 Release APKs use the original package name, historical E7E3 certificate, an increasing versionCode, `debuggable=false`, and v1/v2/v3 signing. Passwords must be supplied explicitly. Do not substitute a temporary, A3, or debug certificate.
 
 ```bash
-./gradlew :app:assembleStandardRelease :app:assembleLowRelease
+./gradlew :app:assembleStandardRelease
 ```
 
 After the relevant software, asset, plugin, emergency, ELF, and signature gates, use the version directory `release/0.2.1-rc.2/dsha-0.2.1-rc.2.apk` and `.apk.sha256`. The present delivery scope is Standard only; preserve original Low172 bytes. Replace the same version and flavor while retaining other historical versions. Bind source snapshots and verification records to the final bytes.

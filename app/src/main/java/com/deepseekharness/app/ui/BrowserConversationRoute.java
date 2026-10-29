@@ -52,8 +52,6 @@ public final class BrowserConversationRoute {
         && current != null
         && browserPreference == PreviewFallback.preferred(context)
         && current.equals(browserIdentity)) intent.setClass(context, owner.getClass());
-    else if (PreviewFallback.preferred(context))
-      intent.setClassName(context, "com.deepseekharness.app.ui.GeckoPreviewActivity");
     return intent
         .putExtra(MODE, "FULL")
         .putExtra("url", url)

@@ -10,7 +10,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_CHECKS = {
     'gradle-verification', 'runtime-input-contract', 'release-acceptance-contract',
-    'apk-assets', 'standard-elf', 'low-elf', 'plugin-upgrade-gate',
+    'apk-assets', 'standard-elf', 'plugin-upgrade-gate',
     'recovery-apk', 'recovery-browser-overlay', 'recovery-profile-boot',
     'mobile-modal', 'adb-flow', 'adb-vscreen-bridge', 'web-ui-host-fixtures',
     'plugin-downloads',
@@ -91,6 +91,8 @@ def select_manifest(artifacts):
 
 def validate_receipt(receipt, artifacts, commit, source=ROOT, expected_sources=None,
                      offline_inputs=None, expected_flavors=("standard",)):
+    if expected_flavors != ("standard",):
+        raise ValueError('PACKAGE_EXPECTED_FLAVORS')
     if receipt.get('verificationSchema') != 2 \
             or receipt.get('status') != 'PASS_UNSIGNED_PACKAGE' or receipt.get('commit') != commit \
             or receipt.get('dirty') is not False:
@@ -118,15 +120,13 @@ def validate_receipt(receipt, artifacts, commit, source=ROOT, expected_sources=N
         if path.is_file() and (not path.resolve().is_relative_to(source.resolve())
                                or digest(path) != expected):
             raise ValueError('PACKAGE_SOURCE_CHANGED: ' + name)
-    if expected_flavors not in (('standard',), ('standard', 'low')):
-        raise ValueError('PACKAGE_EXPECTED_FLAVORS')
     rows = receipt.get('apks', [])
     if len(rows) != len(expected_flavors) or {row.get('flavor') for row in rows} != set(expected_flavors):
         raise ValueError('PACKAGE_FLAVORS')
     commands = receipt.get('commands', [])
     if not commands or any(row.get('exitCode') != 0 for row in commands):
         raise ValueError('PACKAGE_FAILED_CHECK')
-    required = REQUIRED_CHECKS if 'low' in expected_flavors else REQUIRED_CHECKS - {'low-elf'}
+    required = REQUIRED_CHECKS
     names = [row.get('name') for row in commands]
     if any(not isinstance(name, str) or not re.fullmatch('[a-z0-9-]+', name) for name in names) \
             or len(set(names)) != len(names) or not required.issubset(names):
@@ -155,9 +155,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', type=Path, required=True)
     parser.add_argument('--artifacts', type=Path, required=True)
-    parser.add_argument('--flavors', choices=('standard', 'both'), default='standard')
+    parser.add_argument('--flavors', choices=('standard',), default='standard')
     args = parser.parse_args()
-    flavors = ('standard',) if args.flavors == 'standard' else ('standard', 'low')
+    # Sunset-3090-Q 只有 Standard 变体；不再接受 both/low 包范围。
+    flavors = ('standard',)
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     validate_run(json.loads(args.run.read_text()), os.environ['GITHUB_REPOSITORY'], commit)
     manifest = select_manifest(args.artifacts)

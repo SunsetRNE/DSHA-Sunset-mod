@@ -4,7 +4,9 @@
     {
       "path": "tools/test-sunset-release-delivery.py",
       "stage": "fast",
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "args": [],
       "timeoutSeconds": 60,
       "environment": {},
@@ -13,16 +15,23 @@
     {
       "path": "tools/test-android-image-wire.mjs",
       "stage": "runtime",
-      "requires": ["node24", "raw"],
+      "requires": [
+        "node24",
+        "raw"
+      ],
       "args": [],
       "timeoutSeconds": 120,
-      "environment": {"DSHA_TEST_SDK_ROOT": "{raw}"},
+      "environment": {
+        "DSHA_TEST_SDK_ROOT": "{raw}"
+      },
       "reason": "Execute the pinned SDK stdio transport and exact-patched image projection with an 8 MiB PNG and canonical Base64 boundaries; no device access."
     },
     {
       "path": "tools/test-web-fetch-unicode.mjs",
       "stage": "support",
-      "requires": ["node24"],
+      "requires": [
+        "node24"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -31,7 +40,10 @@
     {
       "path": "tools/test-web-fetch-unicode.py",
       "stage": "runtime",
-      "requires": ["python39", "node24"],
+      "requires": [
+        "python39",
+        "node24"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -40,16 +52,26 @@
     {
       "path": "tools/test-vscreen-help.py",
       "stage": "fast",
-      "requires": ["python39", "jdk17", "toolchains"],
+      "requires": [
+        "python39",
+        "jdk17",
+        "toolchains"
+      ],
       "args": [],
       "timeoutSeconds": 180,
-      "environment": {"JAVA_HOME": "{jdk}", "GRADLE_USER_HOME": "{gradleHome}"},
+      "environment": {
+        "JAVA_HOME": "{jdk}",
+        "GRADLE_USER_HOME": "{gradleHome}"
+      },
       "reason": "Compile the production virtual-screen bridge parser and generated ten-language help; verify launch, observation and input examples against the actual parameter contract."
     },
     {
       "path": "tools/test-terminal-home-i18n.py",
       "stage": "fast",
-      "requires": ["python39", "jdk17"],
+      "requires": [
+        "python39",
+        "jdk17"
+      ],
       "args": [],
       "timeoutSeconds": 180,
       "environment": {},
@@ -58,7 +80,10 @@
     {
       "path": "tools/test-app-integration-lifecycle.mjs",
       "stage": "runtime",
-      "requires": ["node24", "raw"],
+      "requires": [
+        "node24",
+        "raw"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -67,7 +92,10 @@
     {
       "path": "tools/test-native-safe-area.mjs",
       "stage": "runtime",
-      "requires": ["node24", "browser"],
+      "requires": [
+        "node24",
+        "browser"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -1592,17 +1620,6 @@
       "reason": "Exact six-source-set formatter inventory and package batch regression; no device or APK",
       "requires": [
         "python39"
-      ],
-      "environment": {},
-      "timeoutSeconds": 300,
-      "args": []
-    },
-    {
-      "path": "tools/test-low-preview-capability.mjs",
-      "stage": "history",
-      "reason": "2026-10-24 Sunset-3090-Q 用户取消全部 Low 测试；保留历史用例，不进入任何当前宿主或 CI 阶段",
-      "requires": [
-        "node24"
       ],
       "environment": {},
       "timeoutSeconds": 300,

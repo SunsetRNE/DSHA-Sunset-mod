@@ -1,5 +1,7 @@
 # 任务状态上岛（Android 16 实时活动）
 
+> build209 起上岛能力已并入正式包，不再有独立上岛包（`dsha.islandEdition`、`.island` 包名与 `BuildConfig.ISLAND_EDITION` 均已删除）。本文其余内容保留 build205 历史实现记录。
+
 核验日期：2026-10-27。参考基线：build205 源码（`0.2.1-rc.3-20261027.1312`）。
 
 本页说明 DSHA 如何把「任务正在执行」的阶段性状态显示在系统状态栏胶囊 / 灵动岛 / 流体云上，
@@ -52,7 +54,7 @@
 | `app/src/main/java/com/deepseekharness/app/core/ConfigStore.java` | 两个偏好读写 |
 | `app/src/main/java/com/deepseekharness/app/util/Constants.java` | 两个偏好键名 |
 | `app/src/main/AndroidManifest.xml` | `POST_PROMOTED_NOTIFICATIONS` |
-| `app/build.gradle` | `dsha.islandEdition` 独立包名开关 + `BuildConfig.ISLAND_EDITION` |
+| `app/build.gradle` | build209 起无独立上岛包开关；上岛能力并入正式包 |
 | `app/src/test/java/com/deepseekharness/app/util/IslandTextTest.java` | 新增。选举与裁剪的单测 |
 
 ## 4. 岛位选举
@@ -123,12 +125,10 @@ web 事件里带 port/path/token/callId/questions
 - 多选状态只保存在本机通知进程内，按任务 action 隔离；问题结束/切换任务时自动丢弃。
 - 锁屏公开版本仍只显示阶段，不含问题文本与选项。
 
-## 8. 独立版包名
+## 8. 独立版包名（历史）
 
-`-Pdsha.islandEdition=true`（或环境变量 `DSHA_ISLAND_EDITION=1`）时：
-`applicationIdSuffix '.island'`、`versionNameSuffix '-island'`，包名变为 `dsh.android.client.island`。
-应用私有目录、偏好、插件与运行环境随之隔离，可与正式 DSHA 并存安装。
-默认构建（不带该参数）完全不受影响。
+build209 起独立上岛包已并入正式包，`dsha.islandEdition` 开关、`.island` 包名与 `ISLAND_EDITION` 构建字段全部删除，不再有可选的独立包。以下为历史记录：
+`-Pdsha.islandEdition=true` 曾把包名变为 `dsh.android.client.island`，使应用私有目录、偏好、插件与运行环境隔离。
 
 ## 9. 验证范围
 

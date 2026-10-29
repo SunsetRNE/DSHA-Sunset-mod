@@ -526,7 +526,6 @@
   ],
   "launcherTrees": [
     "app/src/main/jniLibs",
-    "app/src/low/jniLibs",
     "app/src/main/java/com/deepseekharness/app/runtime",
     "app/src/main/java/com/deepseekharness/app/backup",
     "app/src/main/java/com/deepseekharness/app/capabilities",

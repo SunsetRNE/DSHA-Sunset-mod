@@ -21,7 +21,7 @@ The current design uses **proot by default, with explicit proroot selection; bxr
 
 Advanced options in [ConfigFragment](../../app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java) select the engine, static loader and seccomp setting; `config_save` persists them. They determine argv/environment for subsequent processes. They do not replace the engine of a live Web or terminal process: stop normally, then start and verify the actual mode. `RuntimeHostPorts` supplies one invocation's settings scope so a command cannot observe a different configuration halfway through execution.
 
-[RuntimeExecution.runtime()](../../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.java) additionally requires API26+, no invocation-local `forceProot`, and successful preparation of proroot's five vendor files and two compatibility files. Otherwise it records `RUNTIME_SELECTION_FALLBACK` and selects proot. This is availability selection **before execution**, not permission to rerun a command after a guest has executed it. Low's minSdk23 does not imply proroot on API23–25.
+[RuntimeExecution.runtime()](../../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.java) additionally requires API26+, no invocation-local `forceProot`, and successful preparation of proroot's five vendor files and two compatibility files. Otherwise it records `RUNTIME_SELECTION_FALLBACK` and selects proot. This is availability selection **before execution**, not permission to rerun a command after a guest has executed it. There is no Low/API23 build line since build209.
 
 The [historical changelog](../../CHANGELOG.md) statement that proroot became the default in v1.1.6 refers to **DSHA v1.1.6**, not the vendor binary version. Its old vivo/Android14 benchmarks and fallback rules remain historical. “5–6 times faster,” `+58%`, and switching after three failures are not build190 performance or retry guarantees.
 
@@ -33,7 +33,7 @@ Linux Node, Bash, glibc and native npm modules need Linux paths and ABI behavior
 
 `-0` presents root to the guest, but **the Android kernel still enforces the app's real UID, SELinux and system permissions**. It grants no Android root, real mount privilege, access to other apps' private files, or background exemption. Guests and descendants remain subject to process reclamation and foreground-service rules. Tool approval and path checks do not sandbox arbitrary local code; terminals, plugins and lifecycle scripts retain their permitted execution abilities. [AOSP's app sandbox documentation](https://source.android.com/docs/security/app-sandbox) explains the UID boundary shared by Java and native code.
 
-Both engines use `ContainerRuntime.binds()` for explicit `/dev`, `/proc`, `/sys`, `/system`, `/apex`, fd/random-device and already-accessible shared-storage mappings. Missing or inaccessible sources produce `BIND_SKIPPED`. `/linkerconfig` is not bound: an inaccessible system directory must not be assumed available. Binding `/sdcard` does not grant storage permission; SAF remains a separate native capability. `UserDataBindings` adds production personal-data mappings. The independent recovery root uses a separate data domain rather than guessing user-data ownership from the production root's parent directory.
+Both engines use `ContainerRuntime.binds(includePublicStorage)` for explicit `/dev`, `/proc`, `/sys`, `/system`, `/apex`, fd/random-device and already-accessible shared-storage mappings. Missing or inaccessible sources produce `BIND_SKIPPED`. `/linkerconfig` is not bound: an inaccessible system directory must not be assumed available. Binding `/sdcard` does not grant storage permission; SAF remains a separate native capability. `UserDataBindings` adds production personal-data mappings. The independent recovery root uses a separate data domain rather than guessing user-data ownership from the production root's parent directory.
 
 ## 3. Layers in one launch
 
@@ -76,8 +76,7 @@ The current proot uses Termux's ptrace path translation. `baseArgv()` passes `-L
 | Files / source | Known boundary |
 |---|---|
 | Standard `libproot.so`, `libprootloader.so`, `libprootloader32.so` | Termux proot / GPL-2.0. [Third-party notices](third-party-notices.md) retain the unresolved exact source revision of these original binaries; Standard is not claimed reproducible using the Low script. |
-| Low `libproot_legacy.so`, `libprootloader_legacy.so` | [build-low-proot.py](../../tools/build-low-proot.py) pins Termux `v5.1.107.92`, archive SHA `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`; API23 build identity `5.1.107.92-dsha-android23`. |
-| Low local differences | Removes an assertion unsuitable for Android named fds; resolves `getifaddrs/freeifaddrs` via `dlsym` on old APIs and reports ENOSYS when absent; maps shmem to the bundled implementation. This is not general kernel emulation. |
+| Historical Low compatibility libraries | Removed from the repository with the low source set in build209; only the three Standard proot native libraries ship |
 | NDK / owned session launcher | [Toolchain lock](../../ci/toolchain.lock.json): NDK `26.3.11579264`. [native-session/build.py](../../tools/native-session/build.py) builds the API23 ARM64 launcher with 4KiB common and 16KiB LOAD alignment. Alignment is not all-device 16KiB testing. |
 
 The source inspection recorded these Standard originals, identifying bytes without inventing provenance:
@@ -133,7 +132,7 @@ The ABI lock pins source/output and all five vendor hashes. Constants and formul
 - `NARB_DISABLE_NATIVE_CACHE=1`: avoids dangling extension-cache links caused by link/unlink under link2symlink; it does not justify deleting native dependencies.
 - [runtime-patches.json](../../app/src/main/assets/runtime-patches.json): the exact-version patch registry prepared by `RuntimeTools.applyPatchChain()`. Old `DT_UNKNOWN`/JSON reopen patches cannot be reapplied independently of the current registry.
 - [bridge-token-compat.cjs](../../app/src/main/assets/bridge-token-compat.cjs): fixed managed launch preload, separate from GNU loader shims, granting no extra native-bridge permission.
-- Low API23 proot, PTY birth handshake and browser ES/PDF compatibility have independent implementations and evidence. Browser compatibility does not prove guest native loading.
+- PTY birth handshake and browser ES/PDF compatibility have independent implementations and evidence. Browser compatibility does not prove guest native loading.
 
 ## 6. Stopping without --kill-on-exit
 
@@ -175,4 +174,4 @@ These are existing entry points, not tests rerun by this translation. Historical
 | [test-arm64.py](../../tools/proroot-compat/test-arm64.py) | Original ARM64 bridge/loader and owned entry rejection under QEMU/WSL; binfmt/second-exec limitations remain, and it is not the app domain. |
 | [native-session/build.py --check](../../tools/native-session/build.py), [handshake test](../../tools/test-native-session-handshake.py), [proot library test](../../tools/test-proot-runtime-libs.py) | Owned-supervisor reproducible bytes, host-kernel birth handshake, argument/dependency contracts; not every ROM's process-information permissions. |
 
-Real engine acceptance for an exact release APK must record signature/hash, requested and actual modes, Node/path hooks, backend authentication, page readiness, and guest plus launcher exit after normal Stop. Standard/Low, Android13/16, host/app-domain tests are separate evidence. Successful proot fallback cannot sign off proroot. Without data comparison, long-run or device-matrix evidence, this architecture guide does not claim those completed.
+Real engine acceptance for an exact release APK must record signature/hash, requested and actual modes, Node/path hooks, backend authentication, page readiness, and guest plus launcher exit after normal Stop. Standard, Android13/16, host/app-domain tests are separate evidence. Successful proot fallback cannot sign off proroot. Without data comparison, long-run or device-matrix evidence, this architecture guide does not claim those completed.

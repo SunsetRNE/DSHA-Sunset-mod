@@ -45,11 +45,7 @@ public class IslandFragment extends Fragment {
 
     ConfigStore config = HarnessController.get(requireContext()).config();
 
-    root.addView(
-        title(
-            com.deepseekharness.app.BuildConfig.ISLAND_EDITION
-                ? UiText.text("任务状态上岛（独立版）")
-                : UiText.text("任务状态上岛")));
+    root.addView(title(UiText.text("任务状态上岛")));
     root.addView(
         body(
             UiText.text(

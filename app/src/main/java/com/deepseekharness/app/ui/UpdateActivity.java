@@ -38,7 +38,7 @@ public final class UpdateActivity extends AppCompatActivity {
                 BuildConfig.VERSION_CODE));
     ((TextView) findViewById(R.id.update_edition))
         .setText(
-            BuildConfig.LOW_ANDROID
+            false
                 ? com.deepseekharness.app.util.UiText.choose("兼容版", "Compatibility")
                 : com.deepseekharness.app.util.UiText.choose("标准版", "Standard"));
     RadioGroup channels = findViewById(R.id.update_channels);

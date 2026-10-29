@@ -331,7 +331,7 @@ public final class AgentTaskNotifications {
     String islandTag =
         IslandText.tagOf(IslandText.pickForDisplay(rows, now, IslandText.TERMINAL_GRACE_MS));
     var config = HarnessController.get(context).config();
-    boolean islandEnabled = BuildConfig.ISLAND_EDITION && config.isTaskIslandEnabled();
+    boolean islandEnabled = config.isTaskIslandEnabled();
     boolean islandChronometer = islandEnabled && config.isTaskIslandChronometer();
     Set<String> keep = new HashSet<>();
     for (var row : rows) {

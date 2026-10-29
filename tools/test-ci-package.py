@@ -54,26 +54,30 @@ class PackageBinding(unittest.TestCase):
             log=self.reports/(name+'.log');log.write_text(name+' passed\n')
             self.commands.append(dict(name=name,exitCode=0,sha256=gate.digest(log)))
         rows=[]
-        for flavor in ('standard','low'):
+        for flavor in ('standard',):
             apk=self.root/f'app-{flavor}-release-unsigned.apk';apk.write_bytes(flavor.encode())
             rows.append(dict(flavor=flavor,sha256=gate.digest(apk),certificateSha256=None))
         self.receipt=dict(verificationSchema=2,status='PASS_UNSIGNED_PACKAGE',commit='abc',dirty=False,
                           sourceSnapshot=dict(sha256=gate.digest(snapshot)),apks=rows,
                           commands=self.commands,
-                          junit={flavor:dict(tests=2,skipped=0,failures=0,errors=0)
-                                 for flavor in ('Standard','Low')})
+                          junit={'Standard':dict(tests=2,skipped=0,failures=0,errors=0)})
     def validate(self):return gate.validate_receipt(self.receipt,self.root,'abc',self.source,
-                                                  {'app/build.gradle'},set(), expected_flavors=('standard','low'))
-    def test_exact_pair_is_selected(self):self.assertEqual(2,len(self.validate()))
-    def test_standard_scope_keeps_gates_and_rejects_missing_expected_flavor(self):
-        self.receipt['apks'] = [row for row in self.receipt['apks'] if row['flavor'] == 'standard']
-        self.receipt['commands'] = [row for row in self.commands if row['name'] != 'low-elf']
-        self.receipt['junit'].pop('Low')
+                                                  {'app/build.gradle'},set())
+    def test_exact_standard_package_is_selected(self):self.assertEqual(1,len(self.validate()))
+    def test_standard_scope_keeps_all_gates_and_rejects_extra_or_legacy_flavor(self):
         selected = gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
                                          {'app/build.gradle'}, set())
         self.assertEqual([self.root / 'app-standard-release-unsigned.apk'], selected)
+        # 旧的 low 包范围必须被拒绝，不能只靠 workflow 参数约定。
+        with self.assertRaisesRegex(ValueError, 'PACKAGE_EXPECTED_FLAVORS'):
+            gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
+                                  {'app/build.gradle'}, set(),
+                                  expected_flavors=('standard', 'low'))
+        legacy = dict(self.receipt, apks=self.receipt['apks'] + [
+            dict(flavor='low', sha256='0' * 64, certificateSha256=None)])
         with self.assertRaisesRegex(ValueError, 'PACKAGE_FLAVORS'):
-            self.validate()
+            gate.validate_receipt(legacy, self.root, 'abc', self.source,
+                                  {'app/build.gradle'}, set())
         self.receipt['commands'] = [row for row in self.receipt['commands'] if row['name'] != 'standard-elf']
         with self.assertRaisesRegex(ValueError, 'PACKAGE_CHECK_INCOMPLETE'):
             gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
@@ -85,7 +89,7 @@ class PackageBinding(unittest.TestCase):
         duplicate.parent.mkdir();duplicate.write_text('{}')
         with self.assertRaisesRegex(ValueError,'MANIFEST_COUNT'):gate.select_manifest(self.root)
     def test_apk_tamper_and_failed_gate_are_rejected(self):
-        (self.root/'app-low-release-unsigned.apk').write_bytes(b'tampered')
+        (self.root/'app-standard-release-unsigned.apk').write_bytes(b'tampered')
         with self.assertRaisesRegex(ValueError,'APK_CHANGED'):self.validate()
         self.receipt['commands'][0]['exitCode']=1
         with self.assertRaisesRegex(ValueError,'FAILED_CHECK'):self.validate()
@@ -105,7 +109,7 @@ class PackageBinding(unittest.TestCase):
         self.receipt['commands']=[dict(name=name,exitCode=0,
                                       sha256=gate.digest(self.reports/(name+'.log')))
                                   for name in sorted(gate.REQUIRED_CHECKS)]
-        self.receipt['junit']['Low']['skipped']=2
+        self.receipt['junit']['Standard']['skipped']=2
         with self.assertRaisesRegex(ValueError,'JUNIT_INCOMPLETE'):self.validate()
     def test_omitted_deleted_and_unsafe_source_cannot_be_hidden(self):
         snapshot=self.reports/'source-sha256.json'
@@ -213,7 +217,6 @@ class SunsetPatchRegressions(unittest.TestCase):
                 'previousRuntimeGenerationCannotReceiveCurrentOverlayInPlace')],
             (prefix + 'util.ManagedPatchRegistryIntegrationTest', 'everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns'),
         ]
-        low = (prefix + 'vscreen.VirtualScreenLowBoundaryTest', 'lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion')
         def execute(rows):
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -231,11 +234,11 @@ class SunsetPatchRegressions(unittest.TestCase):
                                      capture_output=True, text=True)
                 output = root / 'out/full-unit-tests.json'
                 return run, json.loads(output.read_text()) if output.exists() else None
-        passing = [(owner, name, '') for owner, name in required] + [(*low, 'skipped')]
+        passing = [(owner, name, '') for owner, name in required]
         run, report = execute(passing)
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertEqual(report['flavors']['Standard']['requiredFixtureTestsPassed'], 7)
-        self.assertEqual(report['flavors']['Standard']['skipped'], 1)
+        self.assertEqual(report['flavors']['Standard']['skipped'], 0)
         for target in required:
             for status in ('missing', 'skipped'):
                 with self.subTest(target=target, status=status):
@@ -245,7 +248,8 @@ class SunsetPatchRegressions(unittest.TestCase):
                     run, report = execute(rows)
                     self.assertNotEqual(run.returncode, 0)
                     self.assertIsNone(report)
-        run, report = execute(passing + [(prefix + 'plugins.PluginRegistryTest', 'unexpected', 'skipped')])
+        run, report = execute(passing + [(prefix + 'vscreen.VirtualScreenLowBoundaryTest',
+                                          'lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion', 'skipped')])
         self.assertNotEqual(run.returncode, 0)
         self.assertIn('Unexpected full-input skips', run.stderr)
         self.assertIsNone(report)
@@ -265,10 +269,12 @@ class SunsetPatchRegressions(unittest.TestCase):
         self.assertIn('--stage package --flavors standard', package)
         self.assertNotIn('app/build/outputs/apk/*/', package)
         manifest = json.loads((self.root / 'tools/host-tests.manifest.json').read_text(encoding='utf-8'))
-        low = next(row for row in manifest['tests'] if row['path'] == 'tools/test-low-preview-capability.mjs')
-        self.assertEqual(low['stage'], 'history')
+        legacy = [row['path'] for row in manifest['tests']
+                  if re.search(r'(?<![a-z])low(?![a-z])', row['path'], re.I)
+                  or re.search(r'(?<![a-z])low(?![a-z])', row.get('stage', ''), re.I)]
+        self.assertEqual([], legacy)
 
-    def test_branch_stability_runner_refuses_low_scope_before_execution(self):
+    def test_branch_stability_runner_refuses_non_standard_scope_before_execution(self):
         result = subprocess.run([sys.executable, str(self.root / 'tools/verify-stability.py'),
                                  '--stage', 'software', '--flavors', 'both'],
                                 capture_output=True, text=True)
@@ -299,7 +305,7 @@ class TerminalTestScope(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.rows = [(owner, name, '') for owner, name in self.gate.REQUIRED_FIXTURES]
         self.rows += [(owner, 'fixtureIndependentTerminalCase', '') for owner in self.gate.REQUIRED_TERMINAL_CLASSES]
-        self.rows += [(*next(iter(self.gate.ALLOWED_SKIPS)), 'skipped')]
+        self.assertEqual(frozenset(), self.gate.ALLOWED_SKIPS)
 
     def write(self, rows, override=None):
         counts = dict(tests=len(rows), failures=sum(row[2] == 'failure' for row in rows),
@@ -320,7 +326,7 @@ class TerminalTestScope(unittest.TestCase):
         counts = result['flavors']['Standard']
         self.assertEqual(counts['requiredFixtureTestsPassed'], 7)
         self.assertEqual(counts['requiredTerminalClassesPassed'], len(self.gate.REQUIRED_TERMINAL_CLASSES))
-        self.assertEqual(counts['skipped'], 1)
+        self.assertEqual(counts['skipped'], 0)
         self.assertEqual(result['mode'], 'full')
         self.assertEqual(result['selection'], 'unfiltered')
 
@@ -350,7 +356,7 @@ class TerminalTestScope(unittest.TestCase):
     def test_missing_reports_and_forged_counts_or_hidden_failures_are_rejected(self):
         with self.assertRaisesRegex(ValueError, 'JUNIT_MISSING'):
             self.gate.verify(self.root)
-        for override in ({'tests': 9999}, {'skipped': 0}, {'failures': 1}):
+        for override in ({'tests': 9999}, {'skipped': 1}, {'failures': 1}):
             self.write(self.rows, override)
             with self.assertRaisesRegex(ValueError, 'JUNIT_COUNTS'):
                 self.gate.verify(self.root)
@@ -377,10 +383,10 @@ class TerminalPackageIdentity(unittest.TestCase):
                 self.gate.identity({**env, key: value})
 
     def test_package_version_abi_sdk_and_non_debuggable_match_current_source(self):
-        gradle = ('applicationId "dsh.android.client"\n'
-                  "applicationIdSuffix '.SunsetRNE2'\n"
+        gradle = ('applicationId "io.github.sunsetrne.dsha"\n'
+                  "applicationIdSuffix '.test'\n"
                   'versionCode 197\nversionName "current"\n')
-        badging = ("package: name='dsh.android.client.SunsetRNE2' versionCode='197' versionName='current-SunsetTest'\n"
+        badging = ("package: name='io.github.sunsetrne.dsha.test' versionCode='197' versionName='current-SunsetTest'\n"
                    "sdkVersion:'30'\ntargetSdkVersion:'37'\nnative-code: 'arm64-v8a'\n")
         self.assertEqual(self.gate.validate_badging(badging, gradle)['versionCode'], 197)
         # aapt2 版本间最低 API 的键名不同；两种拼写都必须精确绑定 30，target 仍精确 37。
@@ -389,7 +395,7 @@ class TerminalPackageIdentity(unittest.TestCase):
                 badging.replace("sdkVersion:'30'", spelling), gradle)
             self.assertEqual((parsed['minSdk'], parsed['targetSdk']), (30, 37))
         for wrong in (badging.replace("versionCode='197'", "versionCode='196'"),
-                      badging.replace(".SunsetRNE2", ".SunsetRNE"),
+                      badging.replace("io.github.sunsetrne.dsha.test", "io.github.sunsetrne.dsha.other"),
                       badging.replace('current-SunsetTest', 'current'),
                       badging.replace('arm64-v8a', 'x86_64'),
                       badging.replace("sdkVersion:'30'", "sdkVersion:'23'"),
@@ -400,10 +406,10 @@ class TerminalPackageIdentity(unittest.TestCase):
             with self.subTest(badging=wrong), self.assertRaises(ValueError):
                 self.gate.validate_badging(wrong, gradle)
         # 后缀缺失、重复或非法时不得猜测测试包身份。
-        for bad_gradle in (gradle.replace("applicationIdSuffix '.SunsetRNE2'\n", ''),
+        for bad_gradle in (gradle.replace("applicationIdSuffix '.test'\n", ''),
                            gradle + "applicationIdSuffix '.OtherRNE'\n",
-                           gradle.replace('.SunsetRNE2', '.2'),
-                           gradle.replace('.SunsetRNE2', '.Bad-Suffix')):
+                           gradle.replace('.test', '.2'),
+                           gradle.replace('.test', '.Bad-Suffix')):
             with self.subTest(gradle=bad_gradle), self.assertRaises(ValueError):
                 self.gate.validate_badging(badging, bad_gradle)
 
@@ -413,8 +419,8 @@ class TerminalPackageIdentity(unittest.TestCase):
         pem = '-----BEGIN CERTIFICATE-----\n' + base64.b64encode(der).decode() + '\n-----END CERTIFICATE-----\n'
         signature = 'Signer #1 certificate SHA-256 digest: ' + digest + '\n'
         self.assertEqual(self.gate.validate_certificate(signature, pem), digest)
-        with self.assertRaisesRegex(ValueError, 'PRODUCTION_CERTIFICATE'):
-            self.gate.validate_certificate(signature.replace(digest, self.gate.PRODUCTION_CERT), pem)
+        with self.assertRaisesRegex(ValueError, 'MOD_RELEASE_CERTIFICATE'):
+            self.gate.validate_certificate(signature.replace(digest, self.gate.MOD_RELEASE_CERT), pem)
         with self.assertRaisesRegex(ValueError, 'MISMATCH'):
             self.gate.validate_certificate(signature.replace(digest, 'a' * 64), pem)
         with self.assertRaisesRegex(ValueError, 'APK_CERTIFICATE'):
@@ -435,8 +441,8 @@ class TerminalPackageReceipt(unittest.TestCase):
             out.mkdir()
             (root / 'app/src/main/assets').mkdir(parents=True)
             (root / 'app/build.gradle').write_text(
-                'applicationId "dsh.android.client"\n'
-                "applicationIdSuffix '.SunsetRNE2'\n"
+                'applicationId "io.github.sunsetrne.dsha"\n'
+                "applicationIdSuffix '.test'\n"
                 'versionCode 197\nversionName "current"\n')
             (root / 'app/src/main/assets/runtime-descriptor.json').write_text(json.dumps({'runtimeId': 'b' * 64}))
             (root / 'app/src/main/assets/dsh-runtime.inputs.json').write_text(json.dumps({'archive_sha256': 'c' * 64}))
@@ -454,7 +460,7 @@ class TerminalPackageReceipt(unittest.TestCase):
                        GITHUB_RUN_ATTEMPT='2', GITHUB_RUN_NUMBER='8', SIGNING_KEY_SOURCE='ephemeral')
             inputs = dict(**helper.identity(env), archiveSha256='d' * 64, archiveFormat='source-archive')
             (out / 'fixed-inputs.json').write_text(json.dumps(inputs))
-            (out / 'apk-badging.txt').write_text("package: name='dsh.android.client.SunsetRNE2' versionCode='197' versionName='current-SunsetTest'\nsdkVersion:'30'\ntargetSdkVersion:'37'\nnative-code: 'arm64-v8a'\n")
+            (out / 'apk-badging.txt').write_text("package: name='io.github.sunsetrne.dsha.test' versionCode='197' versionName='current-SunsetTest'\nsdkVersion:'30'\ntargetSdkVersion:'37'\nnative-code: 'arm64-v8a'\n")
             der = b'public certificate fixture'
             cert = hashlib.sha256(der).hexdigest()
             (out / 'apk-signature.txt').write_text('Signer #1 certificate SHA-256 digest: ' + cert + '\n')

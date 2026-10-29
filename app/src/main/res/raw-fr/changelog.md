@@ -1,5 +1,12 @@
-# DSHA 0.2.1-rc.3-20261029.0741-dsh0.2.1-rc.3 / build208
+# DSHA 0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3 / build209
 
-- - Correction du contrôle du téléphone traitant les fenêtres en surimpression propres à DSHA (barre d’état, assistant, confirmation) comme une occlusion de la cible : les surimpressions propres non enregistrées et sans focus sont exclues en entier par identité de paquet et ne produisent plus TARGET_WINDOW_OCCLUDED. Les trajectoires traversant la zone exclue restent refusées, et une couverture complète ne laisse toujours aucune zone utilisable (#210).
-- - Sur les appareils où link() est refusé, la matérialisation des anciens liens pnpm en copies complètes n’est plus interrompue en cours par un délai fixe de 120 secondes ; le délai devient un garde-fou de 15 minutes contre les véritables blocages, afin qu’une copie interrompue ne laisse pas la transaction en attente et ne bloque pas le démarrage suivant (#209).
-- - Conserver dsh-web-mobile 3.2.2, DSH rc.3, l’accès local et réseau local et les dix langues. La validation sur téléphone reste suspendue.
+- Nom de l’application : DSH-A-Su (Sunset Mod) ; applicationId : io.github.sunsetrne.dsha. Installation en parallèle de l’original dsh.android.client, données totalement isolées, sans écraser les anciennes.
+- Signature de publication recréée : le certificat historique E7E3 n’est plus utilisé, au profit du certificat de publication propre au Mod. verifyPublishCertificate vérifie désormais le nouveau certificat et le nouveau nom de paquet ; l’empreinte attendue est consignée dans ci/release-identity.json.
+- La variante Île (notifications promues) rejoint le paquet normal : plus de build séparée ni de nom de paquet distinct.
+- Abandon d’Android 10 et antérieurs : la ligne de compatibilité low / GeckoView est supprimée ; minimum Android 11 (API 30), arm64-v8a uniquement.
+- Déclaration d’accessibilité commune à toutes les variantes : placée dans le manifest principal, sans packageNames et sans surcharge par flavor ; libellé et description passent à « DSH-A-Su contrôle d’écran », en plus concis.
+- Les dix langues restent prises en charge : zh, zh-Hant, en, ru, ja, ko, ar, pt, la, fr.
+- Les libellés courts d’interface en fr, pt, ru, ar et la sont encore raccourcis pour libérer de l’espace.
+- Correction du libellé latin (la) corrompu pour « Suivant ».
+- Les entrées de build fixes passent aux ressources de prérelease Release du dépôt public, verrouillées par SHA-256 ; le dépôt public permet de restaurer l’ensemble des entrées de build (voir le [document des entrées de build fixes](../../docs/fixed-build-inputs.md)).
+- Les outils de publication et les assertions CI liés au nom de paquet et au certificat sont mis à jour ; les résultats de build et de gate figurent dans les reçus du dépôt.

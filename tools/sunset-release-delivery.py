@@ -24,8 +24,8 @@ REPOSITORY = "SunsetRNE/DSHA-Sunset-mod-3090-Q"
 BRANCH = "Sunset-3090-Q"
 WORKFLOW = ".github/workflows/sunset-release.yml"
 WORKFLOW_NAME = "Sunset Standard Release delivery"
-PACKAGE = "dsh.android.client.SunsetRNE"
-E7E3 = "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
+PACKAGE = "io.github.sunsetrne.dsha.test"
+MOD_CERT = "a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d"
 SHA = re.compile(r"[a-f0-9]{40}")
 DIGEST = re.compile(r"[a-f0-9]{64}")
 POSITIVE = re.compile(r"[1-9][0-9]*")
@@ -51,8 +51,6 @@ HOST_REPORTS = {
     "app/build/host-tests/manifest.json": "fast",
     "app/build/host-tests/sunset-patch-chains/manifest.json": "runtime",
 }
-ALLOWED_SKIP = ("com.deepseekharness.app.vscreen.VirtualScreenLowBoundaryTest",
-                "lowFlavorRemainsUnsupportedEvenOnAModernAndroidVersion")
 FIXTURES = {
     ("com.deepseekharness.app.runtime.AdbWheelBundleTest",
      "realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel"),
@@ -166,8 +164,9 @@ def verify_junit(archive, names, summary):
             counts[key] += number
         cases.extend(current)
     require(all(counts[key] == summary[key] for key in counts), "JUNIT: full-unit-tests summary mismatch")
+    # 单 Standard 变体：没有已批准的平台跳过名单，任何 skip 都视为未执行。
     skipped = [(case.get("classname"), case.get("name")) for case in cases if case.find("skipped") is not None]
-    require(len(skipped) <= 1 and all(case == ALLOWED_SKIP for case in skipped), "JUNIT: unexpected skip")
+    require(not skipped, "JUNIT: unexpected skip")
     for fixture in FIXTURES:
         matches = [case for case in cases if (case.get("classname"), case.get("name")) == fixture]
         require(len(matches) == 1 and all(matches[0].find(key) is None for key in ("failure", "error", "skipped")),
@@ -264,8 +263,8 @@ def prepare(environment, tag, expected_sha, output):
             and attributes.get("versionName") == version, "BADGING: package/versionCode/versionName mismatch")
     require(type(info.get("versionCode")) is int and info["versionCode"] == 206, "BUILD_INFO: versionCode mismatch")
     certificate = info.get("certificateSha256", "")
-    require(isinstance(certificate, str) and DIGEST.fullmatch(certificate) and certificate != E7E3,
-            "CERTIFICATE: test-only non-E7E3 SHA-256 required")
+    require(isinstance(certificate, str) and DIGEST.fullmatch(certificate) and certificate != MOD_CERT,
+            "CERTIFICATE: test-only non-Mod-release SHA-256 required")
     match = re.fullmatch(rb"\s*-----BEGIN CERTIFICATE-----\s+([A-Za-z0-9+/=\r\n]+)\s+-----END CERTIFICATE-----\s*",
                          receipts["sunset-test-cert.pem"])
     require(match, "CERTIFICATE: one public PEM certificate required")
@@ -469,7 +468,7 @@ def publish(plan, client):
         stage = "create new tag"
         verify_ref(client.request("POST", PREFIX + "/git/refs", payload=dict(ref="refs/tags/" + plan["tag"], sha=plan["commit"])), plan)
         stage = "create draft release"
-        body = (f"Standard 测试 APK，版本码 206，包名 `{PACKAGE}`；使用测试证书，非 E7E3 正式签名。\n\n"
+        body = (f"Standard 测试 APK，版本码 206，包名 `{PACKAGE}`；使用测试证书，非 Mod 正式签名。\n\n"
                 f"源码提交：`{plan['commit']}`\n"
                 f"[本次 Actions 运行，attempt {plan['runAttempt']}](https://github.com/{REPOSITORY}/actions/runs/{plan['runId']}/attempts/{plan['runAttempt']})\n\n"
                 "完整 Standard 单测、七项固定夹具、宿主回归、格式、Lint 与签名门禁均已通过。\n"

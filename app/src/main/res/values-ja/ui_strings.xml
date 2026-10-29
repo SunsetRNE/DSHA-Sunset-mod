@@ -3,8 +3,6 @@
     <string name="about_close_button" formatted="false">"閉じる"</string>
     <string name="about_community" formatted="false">"QQ コミュニティ"</string>
     <string name="about_tagline" formatted="false">"DeepSeek Harness Android ランチャー"</string>
-    <string name="accessibility_desc" formatted="false">"用途は 2 つあります。(1) Android の「ワイヤレスデバッグ」ダイアログからペアリングコードを読み取り、2 分で期限切れになるコードを手動でコピーする手間を省きます。(2) AI アシスタントによる画面の読み取り、タップ、文字入力、キー操作、スクリーンショットの撮影（Android 11 以降）を可能にし、ADB や Shizuku がなくても端末を操作できるようにします。\n\nDSHA はバックグラウンドで画面を記録しません。画面の内容はアシスタントが明示的に要求したときだけ読み取られ、現在の会話に返されます。通常の要求によるスクリーンショットはアプリのスクリーンショットフォルダーに保存され、MCP のスクリーンショットはメモリ内でエンコードされます。DSHA が独自にスクリーンショットをアップロードすることはありません。設定されたモデルやプラグインが、返された結果を処理する場合があります。ペアリングコードは、「ペアリングコードを自動読み取り」をタップしてから 2 分間のみ読み取られます。"</string>
-    <string name="accessibility_service_label" formatted="false">"DSHA ペア設定アシスタント"</string>
     <string name="adb_pairing_service_label" formatted="false">"ADB のワイヤレス ペア設定"</string>
     <string name="alpha_no_seccomp" formatted="false">"proot の seccomp アクセラレーションを無効化"</string>
     <string name="alpha_static_loader" formatted="false">"proroot の静的ローダーを使用"</string>

@@ -3,7 +3,7 @@
 #
 # 用法（两种方式都行 —— 脚本本身在部分文件系统上没有可执行位）：
 #   bash build.sh :app:testStandardDebugUnitTest
-#   bash build.sh :app:assembleLowRelease
+#   bash build.sh :app:lintStandardRelease
 #   bash build.sh                      # 默认 :app:assembleStandardDebug
 #
 # 工具链解析顺序：环境变量 > 原开发机 F:/DSHA/_toolchains > 本机自动探测。

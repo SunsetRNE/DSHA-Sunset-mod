@@ -33,9 +33,7 @@ public final class OnboardingPrepareActivity extends AppCompatActivity {
         "Android "
             + android.os.Build.VERSION.RELEASE
             + " · "
-            + (com.deepseekharness.app.BuildConfig.LOW_ANDROID
-                ? UiText.choose("兼容版", "Compatibility")
-                : UiText.choose("标准版", "Standard")));
+            + (false ? UiText.choose("兼容版", "Compatibility") : UiText.choose("标准版", "Standard")));
     ui.row(
         UiText.choose("可用空间", "Free space"),
         android.text.format.Formatter.formatFileSize(this, getFilesDir().getUsableSpace()));

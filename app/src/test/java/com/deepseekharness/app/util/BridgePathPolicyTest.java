@@ -23,8 +23,8 @@ public class BridgePathPolicyTest {
       "/root/.aws/credentials",
       "/root/.config/gcloud/application_default_credentials.json",
       "/root/.kube/config",
-      "/root/.config/gh/hosts.yml",      // gh auth login 的 token
-      "/root/.docker/config.json",       // registry 凭据
+      "/root/.config/gh/hosts.yml", // gh auth login 的 token
+      "/root/.docker/config.json", // registry 凭据
       "/root/.netrc",
       "/root/.pypirc",
       "/root/.gitconfig",
@@ -32,7 +32,7 @@ public class BridgePathPolicyTest {
       "/root/.npmrc",
       "/root/.yarnrc.yml",
       "/root/.cargo/credentials.toml",
-      "/root/report/.netrc",             // 名字判据在任何层级都生效
+      "/root/report/.netrc", // 名字判据在任何层级都生效
       "/root/id_rsa",
     };
     for (String path : denied) {
@@ -70,10 +70,14 @@ public class BridgePathPolicyTest {
 
   @Test
   public void hostViewStillRejectsAppPrivateDataOutsideRootfs() {
-    assertTrue(BridgePathPolicy.deniedHostPath("/data/data/com.other.app/files/x", "/data/data/dsh.android.client/files/linux/ubuntu"));
+    assertTrue(
+        BridgePathPolicy.deniedHostPath(
+            "/data/data/com.other.app/files/x",
+            "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu"));
     // rootfs 内部交给 guest 视角判据，不因位于 /data/data 下一律拒绝
-    assertFalse(BridgePathPolicy.deniedHostPath(
-        "/data/data/dsh.android.client/files/linux/ubuntu/root/report.md",
-        "/data/data/dsh.android.client/files/linux/ubuntu"));
+    assertFalse(
+        BridgePathPolicy.deniedHostPath(
+            "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu/root/report.md",
+            "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu"));
   }
 }

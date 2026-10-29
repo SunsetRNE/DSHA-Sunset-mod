@@ -355,8 +355,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("-Pdsha.sourceOnlyTests=true", self.source)
         for gate in ("-Pdsha.sourceOnlyTests=false", "Verify all seven Standard external-fixture tests executed",
                      ":app:lintStandardRelease", ":app:assembleStandardRelease", "Sign with test key and verify identity",
-                     "test \"$package\" = \"dsh.android.client.SunsetRNE\"",
-                     "test \"$cert\" != \"e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5\"",
+                     "test \"$package\" = \"io.github.sunsetrne.dsha.test\"",
+                     "test \"$cert\" != \"a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d\"",
                      "python3 tools/verify-dsh-upgrade-apk.py", "python3 tools/verify-recovery-apk.py"):
             with self.subTest(gate=gate):
                 self.assertIn(gate, self.apk)

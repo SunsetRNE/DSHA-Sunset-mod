@@ -424,17 +424,10 @@ public final class RecoveryRuntime {
 
   private void verifyNativeLibraries() throws IOException {
     try {
-      JSONObject hashes =
-          descriptor
-              .getJSONObject("launcherHashes")
-              .getJSONObject(BuildConfig.LOW_ANDROID ? "low" : "standard");
+      JSONObject hashes = descriptor.getJSONObject("launcherHashes").getJSONObject("standard");
       for (String required :
-          new String[] {
-            BuildConfig.LOW_ANDROID ? "libproot_legacy.so" : "libproot.so",
-            BuildConfig.LOW_ANDROID ? "libprootloader_legacy.so" : "libprootloader.so",
-            "libtalloc.so",
-            "libandroidshmem.so"
-          }) if (!hashes.has(required)) throw new IOException("RECOVERY_LAUNCHER_PROOF_MISSING");
+          new String[] {"libproot.so", "libprootloader.so", "libtalloc.so", "libandroidshmem.so"})
+        if (!hashes.has(required)) throw new IOException("RECOVERY_LAUNCHER_PROOF_MISSING");
       Iterator<String> names = hashes.keys();
       while (names.hasNext()) {
         String name = names.next();
@@ -513,8 +506,8 @@ public final class RecoveryRuntime {
     copyNative("libtalloc.so", new File(lib, "libtalloc.so.2"));
     copyNative("libandroidshmem.so", new File(lib, "libandroid-shmem.so"));
     File nativeDir = new File(context.getApplicationInfo().nativeLibraryDir);
-    String proot = BuildConfig.LOW_ANDROID ? "libproot_legacy.so" : "libproot.so";
-    String loader = BuildConfig.LOW_ANDROID ? "libprootloader_legacy.so" : "libprootloader.so";
+    String proot = "libproot.so";
+    String loader = "libprootloader.so";
     List<String> argv = new ArrayList<>();
     Collections.addAll(
         argv,

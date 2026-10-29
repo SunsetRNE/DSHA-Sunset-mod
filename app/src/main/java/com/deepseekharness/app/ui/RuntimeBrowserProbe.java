@@ -58,7 +58,7 @@ public final class RuntimeBrowserProbe {
               try {
                 view = webView(activity, baseUrl, cookie, failed);
               } catch (RuntimeException | LinkageError error) {
-                if (!com.deepseekharness.app.BuildConfig.LOW_ANDROID) throw error;
+                if (!false) throw error;
                 view = gecko(activity, authUrl, failed);
               }
             attached.set(true);

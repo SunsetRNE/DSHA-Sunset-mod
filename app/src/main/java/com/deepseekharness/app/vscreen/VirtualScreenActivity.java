@@ -256,7 +256,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     root.addView(keyboard);
     if (!VirtualScreenManager.supported(this))
       state.setText(
-          com.deepseekharness.app.BuildConfig.LOW_ANDROID
+          false
               ? t(
                   "兼容版暂不支持虚拟屏，请使用标准版",
                   "Virtual screen is not available in the Low build yet; use Standard")

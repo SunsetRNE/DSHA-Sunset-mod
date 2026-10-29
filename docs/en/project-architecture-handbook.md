@@ -30,7 +30,7 @@ Read the [npm manifest](../../tools/dsh-runtime/package.json) and [complete lock
 | Java 17, Material3, single `:app` module | Native UI/platform bridges use Java; no new Kotlin bypass |
 | `dsh.android.client`, historical E7E3 certificate, non-debuggable release | Actual package/certificate checks establish upgrade compatibility; changing signatures is not an upgrade |
 | Standard: minSdk 30, system WebView, arm64 | APK delivery described by the source record; system WebView still depends on the device |
-| Low: minSdk 23, Gecko compatibility path, arm64 | Source/software checks retained; the source record did not deliver a new Low APK or device result |
+| Low: minSdk 23, Gecko compatibility path, arm64 | Historical only; the low/Gecko line was removed in build209; there is no Low APK |
 | Ubuntu base10, DSH 0.2.1-rc.2 | Base environment, DSH, APK, and data format have separate identities |
 | proot default, proroot explicit option | No production bxroot execution; old branch constraints do not override this choice |
 | PiP off by default | System picture-in-picture is permitted only after explicit user enablement |
@@ -52,7 +52,7 @@ Main's bottom navigation has Launch, Terminal, Plugins, and Settings. A separate
 | Plugin catalog, install, toggle, update | PluginFragment / PluginInstallActivity | Check package format, dependencies, and actual loading separately |
 | Root, Shizuku, ADB, and grants | DeviceGrantsFragment / AdbPairActivity | A channel toggle, actual grant, and connected state are different |
 | Observe/control the physical screen | Accessibility, device bridge, built-in tools | Current target, screen policy, and system capability must all hold |
-| Independent virtual screen and node actions | VirtualScreenActivity | Experimental Standard capability, not proof of Low support |
+| Independent virtual screen and node actions | VirtualScreenActivity | Standard-only capability (API 30+); the Low variant no longer exists |
 | Save a one-click backup | Data and backups → One-click backup | Safely stops before export; user restarts afterward |
 | More export, restore, verification | NativeDataActivity | Read fully, validate, and preflight before transaction commit |
 | Browse, save, share files | WorkspaceFilesActivity | SAF/Provider controlled streams; no arbitrary local path from Web |
@@ -91,7 +91,7 @@ flowchart TB
   APP --> LIFE[HarnessController / WebLifecycleController]
   LIFE --> START[StartupPipeline / RuntimeLauncher]
   START --> LINUX[Private Ubuntu / Node / DSH]
-  UI --> BROWSER[WebView or Low Gecko]
+  UI --> BROWSER[System WebView]
   BROWSER <--> LINUX
   LINUX --> HTTP[Authenticated local HttpShellService bridge]
   HTTP --> CAP[Capability and consent policy]
@@ -159,7 +159,7 @@ Discuss maintenance, repair, rebuilding, and APK upgrade separately:
 
 ## 6. Native navigation, both browsers, PiP, and keyboard
 
-Main provides native navigation; WebPreviewActivity/Low GeckoPreviewActivity hold the page instance. Within a runtime generation, full screen, background, and PiP reuse the same page rather than “restoring” drafts by recreating it. `BrowserTasks` and task policy record explicit navigation origins, distinguishing system Home/background from deliberate return to Main. After Home from Web, the desktop icon should restore same-generation Web; deliberate Back/home-page navigation returns to Main. A new generation cannot claim an old Web task. Retiring an empty old host must match current identity. A successful `moveTaskToBack()` alone does not prove Main actually became visible.
+Main provides native navigation; WebPreviewActivity holds the page instance (the Low/Gecko implementation was removed with the low source set in build209).
 
 PiP is off in the app by default; system PiP permission is not user enablement inside the app. Home, autoEnter, fullscreen return, and old-task re-entry all pass the same explicit-intent gate. Disabling PiP returns to normal home navigation while retaining the active page, sessions, and data. Native system bars stay visible. Safe regions cover stable status bars, cutouts, captions, and bottom system areas. PiP body insets are zero; fullscreen return uses current system state and idempotently clears only app-owned offsets/scales.
 
@@ -282,7 +282,7 @@ Old-port draft restore separately uses `BrowserOriginRestoreActivity` and a cont
 | `tools/` and locks | Generation, patches, host checks, release checks | Update source and deployed bytes together |
 | `res/`, `i18n/` | Material resources, UiText, bilingual indexes | No credential disclosure in text or dead-page remnants |
 
-Production Java is in [app source](../../app/src/main/java/com/deepseekharness/app/), Low adaptations in the [low source set](../../app/src/low/), and tests in [host JUnit](../../app/src/test/java/com/deepseekharness/app/). Historical directory counts are not live architecture. Build/fixture-only scripts must not be presented as user features.
+Production Java is in [app source](../../app/src/main/java/com/deepseekharness/app/) and tests are in [host JUnit](../../app/src/test/java/com/deepseekharness/app/); the historical low source set was removed in build209 and only the Standard line remains. Historical directory counts are not live architecture. Build/fixture-only scripts must not be presented as user features.
 
 ## 14. Verification, builds, and the modification workflow
 

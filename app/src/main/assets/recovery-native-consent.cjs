@@ -20,7 +20,7 @@ function current() {
 }
 function readConnection() {
   const owner = current();
-  return Object.freeze({ applicationId: 'dsh.android.client', generation: owner.connection, port: owner.port });
+  return Object.freeze({ applicationId: 'io.github.sunsetrne.dsha', generation: owner.connection, port: owner.port });
 }
 function bridgeFetch(route, init = {}) {
   if (route !== '/device/consent' || Object.keys(init).some(key => !['signal', 'expectedConnectionGeneration', 'expectedConnectionPort'].includes(key)))

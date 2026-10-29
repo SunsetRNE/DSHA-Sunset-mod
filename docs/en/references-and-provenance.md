@@ -34,8 +34,6 @@ The following values come from current files. Update the lock before this page w
 | Managed environment | Ubuntu 24.04 arm64; DSHA `baseVersion=10` | [runtime-descriptor.json](../../app/src/main/assets/runtime-descriptor.json), [Ubuntu package lock](../../tools/ubuntu-tools/packages.lock.json) |
 | Runtime tools | pnpm `10.34.5`, certifi `2026.7.22` | [runtime-tools.lock.json](../../tools/runtime-tools.lock.json) |
 | Default/optional engine | proot/proroot; the latter locally declared v1.2.8 | [AGENTS](../../AGENTS.en.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
-| Shizuku API/provider | Standard `13.1.5`; Low `12.2.0` | [app/build.gradle](../../app/build.gradle) |
-| Low GeckoView | `143.0.20251003115653`, arm64-v8a | [app/build.gradle](../../app/build.gradle) |
 | Android identity | `dsh.android.client`, versionCode `201`; see build configuration for the dated versionName | [app/build.gradle](../../app/build.gradle) |
 | Independent recovery environment | DSH `0.2.1-rc.2` / base `10`, separate archive digests | [recovery-runtime/lock.json](../../tools/recovery-runtime/lock.json) |
 
@@ -66,14 +64,14 @@ An internal package version of 3.2.2 does not mean it contains only that tag's o
 
 | Component/source | Direct primary reference and local evidence | Known boundary |
 |---|---|---|
-| proot | [Termux proot](https://github.com/termux/proot); [Low build script](../../tools/build-low-proot.py) | Low pins v5.1.107.92; the original Standard binary's exact revision remains unverified |
+| proot | [Termux proot](https://github.com/termux/proot) | The original Standard binary's exact revision remains unverified; the historical Low build script was removed with that line in build209 |
 | proroot | [coderredlab/proroot](https://github.com/coderredlab/proroot); local THIRD_PARTY_NOTICES | Local v1.2.8 is declared an upstream proprietary binary; do not claim a complete public-source rebuild or unrestricted redistribution |
 | DSHA proroot compatibility layer | [Independent compatibility-layer README](../../tools/proroot-compat/README.md), [ABI lock](../../tools/proroot-compat/abi.lock.json) | Owned shim/entry source and locks do not provide vendor source or provenance for its five libraries |
 | Termux terminal JNI | [Termux app](https://github.com/termux/termux-app); [local upstream license exception](../../tools/termux-jni/LICENSE.upstream.md) | A terminal-specific exception cannot be extended to the whole Termux project |
 | Ubuntu packages | [Ubuntu Security Notices](https://ubuntu.com/security/notices); local package locks and rootfs copyright files | USN is a verification entry point, not proof that the current archive has no vulnerabilities |
 | Other original JNI | THIRD_PARTY_NOTICES section on actual checked-in JNI members and provenance boundaries | Original provenance/license of libandroidshmem and exact versions of some Standard proot/talloc inputs remain unverified |
 
-The local fixed SHA-256 for the Low proot source ZIP is `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`. It identifies a particular input; it cannot establish that the original Standard proot library came from the same build. DSHA `v1.1.6` in CHANGELOG is a historical shell-project version, not an upstream proroot version. Keep unknown provenance explicit with the materials still needed; do not invent a license or commit. Use/distribution of closed-source components depends on their actual license terms. This page does not provide a legal authorization conclusion.
+The local fixed SHA-256 for the historical low/API23 proot source ZIP (unused since build209) is `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`. It identifies a particular input; it cannot establish that the original Standard proot library came from the same build. DSHA `v1.1.6` in CHANGELOG is a historical shell-project version, not an upstream proroot version. Keep unknown provenance explicit with the materials still needed; do not invent a license or commit. Use/distribution of closed-source components depends on their actual license terms. This page does not provide a legal authorization conclusion.
 
 ## 5. Android, Shizuku and Root upstream reference map
 
@@ -135,7 +133,7 @@ Gradle 9.3.1   AGP 9.1.1
 android-37.0   build-tools 36.0.0   NDK 26.3.11579264
 ```
 
-[ci-toolchain.py](../../tools/ci-toolchain.py) cross-checks the lock against Gradle, compile/targetSdk, NDK and Wrapper configuration. The distributionSha256Sum in [gradle-wrapper.properties](../../gradle/wrapper/gradle-wrapper.properties) is `b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06`. It pins the Gradle distribution ZIP, not every byte of the SDK, Maven cache or local JDK. [ci-fast](../../.github/workflows/ci-fast.yml) and [ci-package](../../.github/workflows/ci-package.yml) use fixed action commits. Workflow configuration can be reviewed, but its presence does not prove a particular remote commit ran and passed. The complete package workflow produces unsigned verification artifacts. The final APK's formal E7E3 signing identity needs independent verification. Signing keys, keystores, tokens and developer local.properties must not enter published source materials.
+[ci-toolchain.py](../../tools/ci-toolchain.py) cross-checks the lock against Gradle, compile/targetSdk, NDK and Wrapper configuration. The distributionSha256Sum in [gradle-wrapper.properties](../../gradle/wrapper/gradle-wrapper.properties) is `b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06`. It pins the Gradle distribution ZIP, not every byte of the SDK, Maven cache or local JDK. [ci-fast](../../.github/workflows/ci-fast.yml) and [ci-package](../../.github/workflows/ci-package.yml) use fixed action commits. Workflow configuration can be reviewed, but its presence does not prove a particular remote commit ran and passed. The complete package workflow produces unsigned verification artifacts. The final APK's signing identity is recorded in `ci/release-identity.json` and must be verified on the actual APK. Signing keys, keystores, tokens and developer local.properties must not enter published source materials.
 
 ## 7. Git source, complete source ZIP and APK
 

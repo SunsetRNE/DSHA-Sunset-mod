@@ -46,8 +46,6 @@ F11当时暂停设备验收，不应把历史包或软件结果转记为F11手�
 | 受管环境 | Ubuntu 24.04 arm64；DSHA `baseVersion=10` | [runtime-descriptor.json](../app/src/main/assets/runtime-descriptor.json)、[Ubuntu 包锁](../tools/ubuntu-tools/packages.lock.json) |
 | 运行时工具 | pnpm `10.34.5`，certifi `2026.7.22` | [runtime-tools.lock.json](../tools/runtime-tools.lock.json) |
 | 默认 / 可选引擎 | proot / proroot；后者本地声明 v1.2.8 | [AGENTS](../AGENTS.md)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
-| Shizuku API/provider | Standard `13.1.5`；Low `12.2.0` | [app/build.gradle](../app/build.gradle) |
-| Low GeckoView | `143.0.20251003115653`，arm64-v8a | [app/build.gradle](../app/build.gradle) |
 | Android 身份 | `dsh.android.client`，versionCode `201`；具体 dated versionName 看构建配置 | [app/build.gradle](../app/build.gradle) |
 | 独立应急环境 | DSH `0.2.1-rc.2` / base `10`，独立归档摘要 | [recovery-runtime/lock.json](../tools/recovery-runtime/lock.json) |
 
@@ -88,14 +86,14 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 
 | 组件/来源 | 直接 primary 入口与本地依据 | 已知边界 |
 |---|---|---|
-| proot | [Termux proot](https://github.com/termux/proot)；[Low 构建脚本](../tools/build-low-proot.py) | Low 锁定 v5.1.107.92；Standard 原二进制精确 revision 仍未核实 |
+| proot | [Termux proot](https://github.com/termux/proot) | Standard 原二进制精确 revision 仍未核实；旧 Low 构建脚本已随兼容线在 build209 删除 |
 | proroot | [coderredlab/proroot](https://github.com/coderredlab/proroot)；本地 THIRD_PARTY_NOTICES | 本地 v1.2.8 声明为上游专有二进制，不能声称公开源码完整重建或任意改分发 |
 | DSHA proroot 兼容层 | [独立兼容层说明](../tools/proroot-compat/README.md)、[ABI 锁](../tools/proroot-compat/abi.lock.json) | 自有 shim/entry 的源码与锁不等于 vendor 五库源码或来源证明 |
 | Termux 终端 JNI | [Termux app](https://github.com/termux/termux-app)；[本地上游许可例外](../tools/termux-jni/LICENSE.upstream.md) | terminal 部分许可例外不能外推整个 Termux 工程 |
 | Ubuntu 包 | [Ubuntu Security Notices](https://ubuntu.com/security/notices)；本地 Ubuntu 包锁与 rootfs 内版权文件 | USN 是核对入口，不表示已证明当前归档没有漏洞 |
 | 其他原始 JNI | THIRD_PARTY_NOTICES 的“实际入库 JNI 成员与来源边界” | libandroidshmem 的原件来源/许可、部分 Standard proot/talloc 的精确版本仍有未核实项 |
 
-Low proot 源码 ZIP 的本地固定 SHA-256 为：
+历史 low/API23 proot 源码 ZIP 的本地固定 SHA-256 为（build209 起不再使用）：
 `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`。
 这是特定输入的校验值，不能用来证明 Standard 原 proot 库来自同一构建。
 CHANGELOG 中 DSHA `v1.1.6` 是壳工程的历史版本，不能当作 proroot 上游版本。

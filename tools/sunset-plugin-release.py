@@ -143,7 +143,7 @@ def render(report):
         f"- 提交数：{len(report['commits'])}；按父先子后的拓扑顺序，保留合并提交和全部提交正文。",
         "",
         "本次 source 与 apk jobs 均成功：Standard 源码模式/完整输入单测、宿主回归、Lint、SunsetRNE 签名与包内校验。",
-        "SunsetRNE 是测试签名身份，不是 E7E3 正式包；本记录不代表设备安装或真机验收。",
+        "SunsetRNE 是测试签名身份，不是 Mod 正式发布包；本记录不代表设备安装或真机验收。",
         f"[本次测试 APK]({report['artifacts']['apk']['url']}) · [签名、输入与测试证据]({report['artifacts']['evidence']['url']})",
         "APK 与验证证据沿用 Actions 的 14 天保留期；本预发布附件只永久保留完整历史，不是完整源码或正式 APK 交付。",
         "",

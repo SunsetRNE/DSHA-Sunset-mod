@@ -168,7 +168,7 @@ public final class VirtualScreenManager {
     this.bootSource = java.util.Objects.requireNonNull(bootSource);
     VirtualScreenJournal storage = null;
     try {
-      if (application != null && !BuildConfig.LOW_ANDROID && android.os.Build.VERSION.SDK_INT >= 30)
+      if (application != null && !false && android.os.Build.VERSION.SDK_INT >= 30)
         storage = Api30JournalFactory.open(application.getFilesDir());
     } catch (Exception unavailable) {
       lastError = "VSCREEN_JOURNAL_UNAVAILABLE";
@@ -241,7 +241,7 @@ public final class VirtualScreenManager {
   }
 
   public static boolean supported(Context c) {
-    return !BuildConfig.LOW_ANDROID && android.os.Build.VERSION.SDK_INT >= 30;
+    return !false && android.os.Build.VERSION.SDK_INT >= 30;
   }
 
   public String channel() {
@@ -697,7 +697,7 @@ public final class VirtualScreenManager {
   }
 
   private JSONObject startOrdered(String orientation, VirtualScreenRequestScope scope) {
-    if (BuildConfig.LOW_ANDROID) return failure("VSCREEN_UNSUPPORTED_LOW");
+    if (false) return failure("VSCREEN_UNSUPPORTED_LOW");
     if (!supported(context)) return failure("VSCREEN_API_30_REQUIRED");
     if (!"portrait".equals(orientation) && !"landscape".equals(orientation))
       return failure("INVALID_ORIENTATION");

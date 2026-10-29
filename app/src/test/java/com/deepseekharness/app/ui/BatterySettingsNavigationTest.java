@@ -99,7 +99,7 @@ public final class BatterySettingsNavigationTest {
         new ContextWrapper(context) {
           @Override
           public String getPackageName() {
-            return "dsh.android.client.fixture";
+            return "io.github.sunsetrne.dsha.fixture";
           }
         };
     DeviceGrantsFragment.openBatterySettings(
@@ -109,7 +109,7 @@ public final class BatterySettingsNavigationTest {
           if (attempts.size() == 1) throw new ActivityNotFoundException("fixture");
         },
         failures::incrementAndGet);
-    assertDetailsFallback("dsh.android.client.fixture");
+    assertDetailsFallback("io.github.sunsetrne.dsha.fixture");
     assertEquals(0, failures.get());
   }
 

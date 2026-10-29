@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261029.0741` / build208（`Sunset-3090-Q`，`main` 同内容）。本版新增 Root 命令三态拦截，并延续终端与移动界面 v5 的改动；范围见 [build208 记录](releases/v0.2.1-rc.3-build207-root-policy-20261029.md) 与 [CHANGELOG](../CHANGELOG.md)。
+当前源码：`0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3` / build209 / `io.github.sunsetrne.dsha` / DSH-A-Su（`Sunset-3090-Q`）。本版合并上岛能力、删除 low/Gecko 与独立上岛包、更换 Mod 自有发布证书，并把固定输入与 CI 正式发布接入公开仓库；范围见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
@@ -20,6 +20,10 @@
 | [任务状态上岛](island-status.md) | 实时活动/胶囊两代判据、岛位选举、完成态、心跳收敛与验证范围 |
 | [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果 |
 | [资料与来源依据](references-and-provenance.md) | 官方primary入口、工程上游关系、固定版本/摘要、许可与来源限制 |
+| [固定构建输入](fixed-build-inputs.md) | 公开仓库预发布资产、11 项输入、SHA-256 锁定与还原流程 |
+| [CI 构建与发布](ci-release.md) | 公开仓库 Actions 正式成品：触发参数、Secrets、门禁、签名核验与 Release 产物 |
+| [Mod 身份与签名](mod-identity-and-signing.md) | DSH-A-Su 包名、证书、verifyPublishCertificate 与覆盖升级边界 |
+| [文案长度政策](i18n-length-policy.md) | 十种语言的短标签与长句处理边界 |
 
 ## 用户操作与开发入口
 
