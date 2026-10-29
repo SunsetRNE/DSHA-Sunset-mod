@@ -1,12 +1,9 @@
-# DSHA 0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3 / build209
+# DSHA 0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3 / build210
 
-- 应用名改为 DSH-A-Su（Sunset Mod），applicationId 改为 io.github.sunsetrne.dsha；与原版 dsh.android.client 并行安装、数据完全隔离，不覆盖旧版数据。
-- 发布签名新建：不再使用历史 E7E3 证书，改用 Mod 自有发布证书；verifyPublishCertificate 改为校验新证书与新包名，期望哈希记录在 ci/release-identity.json。
-- 上岛变体并入正式包：上岛能力进入常驻包，不再单独出包，也不再有独立包名。
-- 放弃 Android 10 及以下：删除 low / GeckoView 兼容线，最低 Android 11（API 30），仅 arm64-v8a。
-- 无障碍声明改为多变体共用：声明放在 main manifest，不限定 packageNames，也不再由 flavor 覆盖；标签与描述更新为「DSH-A-Su 屏幕控制」并精简。
-- 仍保留 zh、zh-Hant、en、ru、ja、ko、ar、pt、la、fr 十种语言。
-- fr、pt、ru、ar、la 的界面短标签进一步精简，减少占屏。
-- 修复拉丁语（la）「下一步」的损坏文案。
-- 固定构建输入改为公开仓库的预发布 Release 资产，以 SHA-256 锁定；公开仓库可直接还原完整构建输入（见[固定构建输入文档](../../docs/fixed-build-inputs.md)）。
-- 包名与证书相关的发布工具、CI 断言同步更新；构建与门禁结果以仓库回执为准。
+- 内置 dsh-web-mobile 同步到上游最新内容（main @ 04dcd19，版本仍是 3.2.2）：新增平板触屏档、文件下载入口与抽屉快捷设置，本地补丁按新上游重新对齐。
+- 修复正式包发布校验误报：aapt2 新版本把最低 API 打印为 minSdkVersion，正式包不再被误判为 minSdk 不符。
+- 测试包 versionName 后缀回到 -SunsetTest，更新页重新识别本机测试身份。
+- 发布工作流的仓库/分支门禁改为当前仓库名与 main，仓库改名后不再被跳过。
+- 源码门禁补齐：局域网文案进入十语种目录，语言入口与 DNS 下拉补可访问性属性，弱提示文字与按压态对比度达到 4.5:1。
+- HarnessController 门面拆分：打包资产读取移入 PackagedAssets，一键备份不再直接依赖核心配置。
+- 宿主回归 14 项全部转为通过；构建与发版结果以仓库回执为准。

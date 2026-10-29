@@ -1,12 +1,9 @@
-# DSHA 0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3 / build209
+# DSHA 0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3 / build210
 
-- Nom de l’application : DSH-A-Su (Sunset Mod) ; applicationId : io.github.sunsetrne.dsha. Installation en parallèle de l’original dsh.android.client, données totalement isolées, sans écraser les anciennes.
-- Signature de publication recréée : le certificat historique E7E3 n’est plus utilisé, au profit du certificat de publication propre au Mod. verifyPublishCertificate vérifie désormais le nouveau certificat et le nouveau nom de paquet ; l’empreinte attendue est consignée dans ci/release-identity.json.
-- La variante Île (notifications promues) rejoint le paquet normal : plus de build séparée ni de nom de paquet distinct.
-- Abandon d’Android 10 et antérieurs : la ligne de compatibilité low / GeckoView est supprimée ; minimum Android 11 (API 30), arm64-v8a uniquement.
-- Déclaration d’accessibilité commune à toutes les variantes : placée dans le manifest principal, sans packageNames et sans surcharge par flavor ; libellé et description passent à « DSH-A-Su contrôle d’écran », en plus concis.
-- Les dix langues restent prises en charge : zh, zh-Hant, en, ru, ja, ko, ar, pt, la, fr.
-- Les libellés courts d’interface en fr, pt, ru, ar et la sont encore raccourcis pour libérer de l’espace.
-- Correction du libellé latin (la) corrompu pour « Suivant ».
-- Les entrées de build fixes passent aux ressources de prérelease Release du dépôt public, verrouillées par SHA-256 ; le dépôt public permet de restaurer l’ensemble des entrées de build (voir le [document des entrées de build fixes](../../docs/fixed-build-inputs.md)).
-- Les outils de publication et les assertions CI liés au nom de paquet et au certificat sont mis à jour ; les résultats de build et de gate figurent dans les reçus du dépôt.
+- Le dsh-web-mobile intégré est synchronisé avec le contenu amont le plus récent (main @ 04dcd19, version toujours 3.2.2) : profil tactile tablette, entrée de téléchargement de fichiers et réglages rapides du tiroir, avec des correctifs locaux réalignés sur le nouvel amont.
+- Correction de faux échecs de vérification du paquet de production : le nouvel aapt2 imprime l’API minimale en minSdkVersion, et l’APK n’est plus refusé pour minSdk différent.
+- Le suffixe versionName de la build de test revient à -SunsetTest, et la page de mise à jour reconnaît de nouveau l’identité de test.
+- Les conditions du workflow de publication utilisent désormais le nom actuel du dépôt et main, donc la tâche n’est plus ignorée après le renommage.
+- Portes source complétées : textes du réseau local ajoutés au catalogue des dix langues, attributs d’accessibilité sur l’entrée de langue et la liste DNS, contraste du texte discret et de l’état pressé porté à 4,5:1.
+- Façade HarnessController scindée : la lecture des ressources embarquées passe dans PackagedAssets et la sauvegarde en un clic ne dépend plus directement du core.
+- Les 14 régressions hôte passent ; les résultats de build et de publication suivent les reçus du dépôt.

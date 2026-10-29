@@ -8,13 +8,13 @@
 | 项目 | 值 |
 |---|---|
 | 应用名 | **DSH-A-Su**（测试变体为 `DSH-A-Su Test`） |
-| 版本 | `0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3` |
+| 版本 | `0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3` |
 | versionCode | 209 |
 | 包名 | `io.github.sunsetrne.dsha`（测试变体 `io.github.sunsetrne.dsha.test`） |
 | 并行安装 | 与原版 `dsh.android.client`、更早的 `com.dsh.client` 完全独立，数据与系统授权互不继承 |
 | 签名 | Mod 自有发布证书，SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d` |
 | 系统 | Android 11+（API 30）/ arm64-v8a；**Android 10 及以下不再支持** |
-| 主线分支 | `Sunset-3090-Q`（`main` 指向同一内容） |
+| 主线分支 | `main`（原 `Sunset-3090-Q` 已合并删除） |
 | 许可 | MIT（沿用原版） |
 
 ## 这是什么
@@ -47,12 +47,11 @@ DSHA 把这些封进一个 APK：内置完整的 Ubuntu 环境，`apt`、交互�
 
 ## 分支说明
 
-公开仓库只保留两条分支（`main` 与 `Sunset-3090-Q` 指向同一内容）：
+公开仓库只保留 `main` 一条分支（原 `Sunset-3090-Q` 与它内容一致，已合并删除）：
 
 | 分支 | 定位 |
 |---|---|
-| `Sunset-3090-Q` | 主线：终端、界面、设备能力、Root 三态拦截与 Mod 身份改造 |
-| `main` | 默认分支，当前与 `Sunset-3090-Q` 同一提交 |
+| `main` | 默认与主线：终端、界面、设备能力、Root 三态拦截与 Mod 身份改造 |
 
 各版本的详细改动与验证边界见 [CHANGELOG.md](CHANGELOG.md) 与 [docs/releases/](docs/releases/)。
 

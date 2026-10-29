@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3` / build209 / `io.github.sunsetrne.dsha` / DSH-A-Su（`Sunset-3090-Q`）。本版合并上岛能力、删除 low/Gecko 与独立上岛包、更换 Mod 自有发布证书，并把固定输入与 CI 正式发布接入公开仓库；范围见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。
+当前源码：`0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3` / build210 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合并上岛能力、删除 low/Gecko 与独立上岛包、更换 Mod 自有发布证书，并把固定输入与 CI 正式发布接入公开仓库；范围见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
@@ -81,7 +81,7 @@ F11以实际分发stage检查引用，而非用开发机全树存在替代交付
 | [build155架构副本](../tools/history/documents/docs/audits/build155/architecture-assessment.md) | [原文](audits/build155/architecture-assessment.md) |
 | [build155发布页副本](../tools/history/documents/docs/releases/v0.2.6-build155-20261003.md) | [原文](releases/v0.2.6-build155-20261003.md) |
 
-两份固定上游原文另有8条**上游相对引用**，不代表这些目标存在于APK本地：mobile README（SHA `c204351fe1ec3f011c08d6e65ab698f9a8863014069182c4f431b4c9fe2bd92c`）的4图及AGENTS映射到上游固定commit `4c798ecc554009e401dc1f166b73c314cdf5273f`；Termux原许可证（SHA `a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304`）的2目录及共享许可证映射到commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`。门禁输出精确上游URL并标`upstream-source-relative`警告；`--strict-history`仍失败。源路径、源摘要或目标任一变化都不能沿用例外，其他缺失目标继续失败。没有改动这两份上游原文或APK资产。
+两份固定上游原文另有8条**上游相对引用**，不代表这些目标存在于APK本地：mobile README（SHA `2262a23310f73373cb31b761b7a2aa01066628ae4e82283c2fe9f1a903321c36`）的4图及AGENTS映射到上游固定commit `04dcd19f17b2ee573b0173501edcacdd58f146b7`；Termux原许可证（SHA `a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304`）的2目录及共享许可证映射到commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`。门禁输出精确上游URL并标`upstream-source-relative`警告；`--strict-history`仍失败。源路径、源摘要或目标任一变化都不能沿用例外，其他缺失目标继续失败。没有改动这两份上游原文或APK资产。
 
 1. 改默认值、设置项、环境变量、授权或端口时，先核ConfigStore/配置入口与实际调用链，补用户可见作用层、下次生效时机及迁移规则。
 2. 同步专页、总手册、README和CHANGELOG；历史条目保留时间归属，不用新状态重写旧结果。

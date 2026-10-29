@@ -1,13 +1,13 @@
 # CI 构建与发布（公开仓库正式成品）
 
-更新：2026-10-29 / build209。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
-目标仓库：`SunsetRNE/DSHA-Sunset-mod-3090-Q`（`Sunset-3090-Q` 分支）。本文说明如何用 GitHub Actions 产出并发布
+更新：2026-10-30 / build210。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
+目标仓库：`SunsetRNE/DSHA-Sunset-mod`（`main` 分支）。本文说明如何用 GitHub Actions 产出并发布
 **正式签名成品**（`io.github.sunsetrne.dsha`），以及需要哪些仓库 Secrets、产物如何核验。
 
 ## 1. 边界
 
 - 只做 **Standard（Android 11+ / arm64）正式包**；不运行 low/Gecko 兼容线，不再有独立上岛包。
-- 只由 `workflow_dispatch` 显式触发；运行必须绑定精确 40 位 commit，且该 commit 就是 `Sunset-3090-Q` 分支当前 HEAD。
+- 只由 `workflow_dispatch` 显式触发；运行必须绑定精确 40 位 commit，且该 commit 就是 `main` 分支当前 HEAD。
 - 发布目标是 **tag + GitHub prerelease**（预发布），不覆盖历史 Release，不创建正式 stable release。
 - 固定输入（约 664 MiB，11 项）不进 git，由 [固定构建输入](fixed-build-inputs.md) 的预发布资产按 SHA-256 还原。
 - 未验证范围：工作流通过只证明该 commit 在 GitHub 托管的 `ubuntu-24.04` 上编译、门禁、单测、签名与发布流程成功；
@@ -17,16 +17,16 @@
 
 | 参数 | 要求 | 示例 |
 |---|---|---|
-| `release_tag` | 新 tag，格式 `dsha-a-su-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-a-su-build209-20261029-220000` |
-| `expected_sha` | `Sunset-3090-Q` 上待发布的完整 40 位 commit | `0123abcd…` |
+| `release_tag` | 新 tag，格式 `dsha-a-su-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-a-su-build210-20261030-022000` |
+| `expected_sha` | `main` 上待发布的完整 40 位 commit | `0123abcd…` |
 
 `release_tag` 对应的日历时间必须合法；tag 已存在时工作流在任何构建前失败，不会覆盖已有发布。
 
 ```bash
 gh workflow run release-production.yml \
-  --repo SunsetRNE/DSHA-Sunset-mod-3090-Q \
-  --ref Sunset-3090-Q \
-  -f release_tag=dsha-a-su-build209-20261029-220000 \
+  --repo SunsetRNE/DSHA-Sunset-mod \
+  --ref main \
+  -f release_tag=dsha-a-su-build210-20261030-022000 \
   -f expected_sha=<40位commit>
 ```
 
@@ -43,10 +43,10 @@ gh workflow run release-production.yml \
 
 ```bash
 base64 -w0 dsha-a-su-release.jks | gh secret set DSHA_KEYSTORE_B64 \
-  --repo SunsetRNE/DSHA-Sunset-mod-3090-Q
-gh secret set DSHA_KEYSTORE_PASSWORD --repo SunsetRNE/DSHA-Sunset-mod-3090-Q --body "$PW"
-gh secret set DSHA_KEY_PASSWORD --repo SunsetRNE/DSHA-Sunset-mod-3090-Q --body "$PW"
-gh secret set DSHA_KEY_ALIAS --repo SunsetRNE/DSHA-Sunset-mod-3090-Q --body dsha-a-su
+  --repo SunsetRNE/DSHA-Sunset-mod
+gh secret set DSHA_KEYSTORE_PASSWORD --repo SunsetRNE/DSHA-Sunset-mod --body "$PW"
+gh secret set DSHA_KEY_PASSWORD --repo SunsetRNE/DSHA-Sunset-mod --body "$PW"
+gh secret set DSHA_KEY_ALIAS --repo SunsetRNE/DSHA-Sunset-mod --body dsha-a-su
 ```
 
 runner 把 keystore 解码到 `$RUNNER_TEMP`（权限 077），构建后 `if: always()` 删除；口令用 `::add-mask::` 遮蔽。

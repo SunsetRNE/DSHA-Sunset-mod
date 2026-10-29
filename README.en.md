@@ -8,13 +8,13 @@
 | Item | Value |
 |---|---|
 | App name | **DSH-A-Su** (test variant: `DSH-A-Su Test`) |
-| Version | `0.2.1-rc.3-20261029.1845-dsh0.2.1-rc.3` |
+| Version | `0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3` |
 | versionCode | 209 |
 | Package | `io.github.sunsetrne.dsha` (test variant `io.github.sunsetrne.dsha.test`) |
 | Coexistence | Fully independent from the original `dsh.android.client` and the older `com.dsh.client`; data and system grants are not shared |
 | Signing | Mod release certificate, SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d` |
 | System | Android 11+ (API 30) / arm64-v8a; **Android 10 and below are no longer supported** |
-| Main branch | `Sunset-3090-Q` (`main` points at the same content) |
+| Main branch | `main` (the former `Sunset-3090-Q` was merged and removed) |
 | License | MIT (inherited from upstream) |
 
 ## What this is
@@ -47,12 +47,11 @@ This repository is a Mod maintained on top of the original; the changes focus on
 
 ## Branches
 
-The public repository keeps only two branches (`main` and `Sunset-3090-Q` point at the same content):
+The public repository keeps a single `main` branch (the former `Sunset-3090-Q` carried the same content and was merged and removed):
 
 | Branch | Purpose |
 |---|---|
-| `Sunset-3090-Q` | Mainline: terminal, UI, device capabilities, root three-mode policy and the Mod identity change |
-| `main` | Default branch, currently the same commit as `Sunset-3090-Q` |
+| `main` | Default and mainline: terminal, UI, device capabilities, root three-mode policy and the Mod identity change |
 
 Per-version changes and verification boundaries are recorded in [CHANGELOG.md](CHANGELOG.md) and [docs/releases/](docs/releases/).
 
