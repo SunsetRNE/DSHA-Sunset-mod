@@ -13,6 +13,13 @@ ROOT = Path(__file__).resolve().parents[1]
 JAVA = ROOT / 'app/src/main/java/com/deepseekharness/app'
 TEST = ROOT / 'app/src/test/java/com/deepseekharness/app'
 
+# 宿主编译需要 androidx.annotation 的实现 jar（Android SDK 桩会抛异常）；
+# 版本与 Gradle 缓存中使用的 1.9.1 一致，摘要来自 Google Maven 同一构件。
+ANNOTATION_URL = ('https://dl.google.com/dl/android/maven2/androidx/annotation/'
+                  'annotation-jvm/1.9.1/annotation-jvm-1.9.1.jar')
+ANNOTATION_SIZE = 60577
+ANNOTATION_SHA256 = '1e343917ebf27ba96fe4dc52b1cad7fd32b738fbc6355bb6cd5b3b305d7212d0'
+
 
 def main():
     cache = Path(os.environ.get('GRADLE_USER_HOME', str(Path.home() / '.gradle')))
@@ -26,7 +33,6 @@ def main():
     gson = jar(gson_lock['group'], gson_lock['name'], gson_lock['version'])
     if hashlib.sha256(gson.read_bytes()).hexdigest() != gson_lock['sha256']:
         raise RuntimeError('GSON_DIGEST_MISMATCH')
-    annotations = jar('androidx.annotation', 'annotation-jvm', '1.9.1')
     lock = json.loads((ROOT / 'tools/vscreen-test-dependencies.json').read_text(encoding='utf-8'))
     names = ['util/VirtualScreenCoreIdentity', 'util/VirtualScreenHandshake', 'util/VirtualScreenLifecycleState',
              'util/VirtualScreenExitProofPolicy', 'util/ProcStat',
@@ -54,6 +60,18 @@ def main():
         if len(data) != lock['size'] or hashlib.sha256(data).hexdigest() != lock['sha256']:
             raise RuntimeError('HOST_JSON_DIGEST_MISMATCH')
         host_json.write_bytes(data)
+        # 宿主注解 jar 优先取 Gradle 缓存；托管 runner 未必解析到该配置，
+        # 就按固定摘要从 Google Maven 取同一份字节（与 android-json 同一策略）。
+        annotations = next((cache / 'caches/modules-2/files-2.1' / 'androidx.annotation' /
+                            'annotation-jvm' / '1.9.1').glob('**/annotation-jvm-1.9.1.jar'), None)
+        if annotations is None:
+            with urllib.request.urlopen(ANNOTATION_URL, timeout=30) as response:
+                annotation_bytes = response.read(ANNOTATION_SIZE + 1)
+            if len(annotation_bytes) != ANNOTATION_SIZE or \
+                    hashlib.sha256(annotation_bytes).hexdigest() != ANNOTATION_SHA256:
+                raise RuntimeError('ANNOTATION_JAR_DIGEST_MISMATCH')
+            annotations = work / 'annotation-jvm-1.9.1.jar'
+            annotations.write_bytes(annotation_bytes)
         generated = work / 'generated'
         subprocess.run([os.sys.executable, str(ROOT / 'tools/prepare-ui-languages.py'), '--output', str(generated)], check=True, timeout=30)
         cp = os.pathsep.join(map(str, [junit, hamcrest, host_json, gson, annotations]))
