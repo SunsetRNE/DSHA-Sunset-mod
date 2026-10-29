@@ -130,12 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("应用名改为 DSH-A-Su"));
-      assertTrue(shown.contains("io.github.sunsetrne.dsha"));
-      assertTrue(shown.contains("上岛能力进入常驻包"));
-      assertTrue(shown.contains("最低 Android 11（API 30）"));
-      assertTrue(shown.contains("无障碍声明改为多变体共用"));
-      assertTrue(shown.contains("公开仓库的预发布 Release 资产"));
+      assertTrue(shown.contains("内置 dsh-web-mobile 同步到上游最新内容"));
+      assertTrue(shown.contains("平板触屏档"));
+      assertTrue(shown.contains("versionName 后缀回到 -SunsetTest"));
+      assertTrue(shown.contains("minSdkVersion"));
+      assertTrue(shown.contains("对比度达到 4.5:1"));
+      assertTrue(shown.contains("PackagedAssets"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -156,12 +156,12 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("App name is now DSH-A-Su"));
-      assertTrue(shown.contains("io.github.sunsetrne.dsha"));
-      assertTrue(shown.contains("Island variant is merged"));
-      assertTrue(shown.contains("minimum is Android 11 (API 30)"));
-      assertTrue(shown.contains("accessibility declaration is shared"));
-      assertTrue(shown.contains("prerelease Release assets"));
+      assertTrue(shown.contains("Bundled dsh-web-mobile is synced to the latest upstream content"));
+      assertTrue(shown.contains("tablet touch profile"));
+      assertTrue(shown.contains("versionName suffix is back to -SunsetTest"));
+      assertTrue(shown.contains("minSdkVersion"));
+      assertTrue(shown.contains("4.5:1"));
+      assertTrue(shown.contains("PackagedAssets"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
