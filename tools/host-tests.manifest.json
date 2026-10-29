@@ -2376,7 +2376,7 @@
       "reason": "Production Gradle configuration gate executes in isolated offline assemble projects and rejects stale native/npm-lock/signed-registry generations and ambiguous native source anchors",
       "args": [
         "--gradle-user-home",
-        "{gradleCache}",
+        "{gradleHome}",
         "--jdk",
         "{jdk}",
         "--output",

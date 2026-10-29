@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.core.PackagedAssets;
 import com.deepseekharness.app.data.DownloadsExport;
 import com.deepseekharness.app.util.BackupScope;
 import com.deepseekharness.app.util.Compat;
@@ -359,7 +360,7 @@ public final class BackupManager {
     if (!rescue && !controller.proot().ensureBundledPython())
       throw new IOException(com.deepseekharness.app.util.UiText.text("内置 Python 无法使用，请从诊断页修复工具"));
     File script = new File(controller.proot().getRootfsDir(), "root/.dsha-backup-engine.py");
-    String asset = controller.readAsset("backup-engine.py");
+    String asset = PackagedAssets.read(controller.context(), "backup-engine.py");
     if (asset.isEmpty())
       throw new IOException(com.deepseekharness.app.util.UiText.text("缺少备份核心脚本"));
     writeContainer(controller, script, asset.getBytes(StandardCharsets.UTF_8));
@@ -367,7 +368,7 @@ public final class BackupManager {
         new String[] {
           "backup-plugin-graph.py", "register-builtin-plugins.py", "credential-yaml-filter.cjs"
         }) {
-      String body = controller.readAsset(helper);
+      String body = PackagedAssets.read(controller.context(), helper);
       if (body.isEmpty())
         throw new IOException(com.deepseekharness.app.util.UiText.format("缺少备份支持脚本：%s", helper));
       writeContainer(
@@ -378,9 +379,10 @@ public final class BackupManager {
     writeContainer(
         controller,
         new File(controller.proot().getRootfsDir(), "root/builtin-plugins.json"),
-        controller.readAsset("builtin-plugins.json").getBytes(StandardCharsets.UTF_8));
+        PackagedAssets.read(controller.context(), "builtin-plugins.json")
+            .getBytes(StandardCharsets.UTF_8));
     for (String identity : new String[] {"credential-paths.json", "adb-wheels.lock.json"}) {
-      String body = controller.readAsset(identity);
+      String body = PackagedAssets.read(controller.context(), identity);
       if (body.isEmpty()) throw new IOException("BACKUP_IDENTITY_MISSING:" + identity);
       writeContainer(
           controller,

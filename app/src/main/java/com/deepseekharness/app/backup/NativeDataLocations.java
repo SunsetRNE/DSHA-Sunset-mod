@@ -68,6 +68,11 @@ public final class NativeDataLocations {
     return fs;
   }
 
+  /** 一键备份入口经宿主定位器读取工作区，界面编排不直接依赖核心配置。 */
+  public static String workdir(Context context) {
+    return new ConfigStore(context).getWorkdir();
+  }
+
   public Located locate(Selection selection) throws IOException {
     return locate(selection, new BackupControl(null));
   }

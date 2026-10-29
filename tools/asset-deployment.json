@@ -190,8 +190,8 @@
   ],
   "dynamicReaders": [
     {
-      "source": "app/src/main/java/com/deepseekharness/app/core/HarnessController.java",
-      "method": "readAsset(name)",
+      "source": "app/src/main/java/com/deepseekharness/app/core/PackagedAssets.java",
+      "method": "read(context, name)",
       "contract": "BackupManager legacy reader helper/identity loops; current environment snapshots use the host filesystem.",
       "assets": [
         "backup-engine.py",

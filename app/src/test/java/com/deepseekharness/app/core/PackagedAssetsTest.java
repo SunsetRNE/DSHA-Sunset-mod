@@ -8,11 +8,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
-public class HarnessControllerAssetTest {
+public class PackagedAssetsTest {
   @Test
   public void normalizesAssetNewlinesAndClosesStream() throws Exception {
     TrackingStream source = new TrackingStream("a\r\nb\rc\n".getBytes(StandardCharsets.UTF_8));
-    assertEquals("a\nb\nc\n", HarnessController.readAssetText(source));
+    assertEquals("a\nb\nc\n", PackagedAssets.readText(source));
     assertTrue(source.closed);
   }
 
@@ -26,7 +26,7 @@ public class HarnessControllerAssetTest {
           }
         };
     try {
-      HarnessController.readAssetText(source);
+      PackagedAssets.readText(source);
       throw new AssertionError("Expected read failure");
     } catch (IOException expected) {
       assertEquals("synthetic read failure", expected.getMessage());

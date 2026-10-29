@@ -10,7 +10,6 @@ import android.os.Looper;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
-import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.util.UiText;
 import java.io.File;
 import java.io.IOException;
@@ -168,7 +167,7 @@ public final class OneClickBackup extends AndroidViewModel {
             com.deepseekharness.app.util.GuestPaths.rootfs(
                 context.getFilesDir().getCanonicalFile()),
             android.os.Environment.getExternalStorageDirectory().getCanonicalFile(),
-            new ConfigStore(context).getWorkdir());
+            NativeDataLocations.workdir(context));
     control.check();
     NativeBackupJobs owner = NativeBackupJobs.get(context);
     jobs = owner;
