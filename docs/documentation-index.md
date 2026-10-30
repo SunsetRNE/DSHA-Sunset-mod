@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3` / build210 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合并上岛能力、删除 low/Gecko 与独立上岛包、更换 Mod 自有发布证书，并把固定输入与 CI 正式发布接入公开仓库；范围见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。
+当前源码：`0.2.1-rc.3-20261030.1245-dsh0.2.1-rc.3` / build211 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合并上岛能力、删除 low/Gecko 与独立上岛包、更换 Mod 自有发布证书，并把固定输入与 CI 正式发布接入公开仓库；范围见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

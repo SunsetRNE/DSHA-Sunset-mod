@@ -1,9 +1,8 @@
-# DSHA 0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3 / build210
+# DSHA 0.2.1-rc.3-20261030.1245-dsh0.2.1-rc.3 / build211
 
-- O dsh-web-mobile embutido foi sincronizado com o conteúdo mais recente do upstream (main @ 04dcd19, versão ainda 3.2.2): perfil de toque para tablet, entrada de download de arquivos e ajustes rápidos na gaveta, com os patches locais realinhados ao novo upstream.
-- Corrigidas falhas falsas na verificação do pacote de produção: o aapt2 novo imprime a API mínima como minSdkVersion, e o APK não é mais recusado por minSdk divergente.
-- O sufixo versionName do build de teste voltou a -SunsetTest, e a página de atualização volta a reconhecer a identidade de teste.
-- As condições do workflow de release agora usam o nome atual do repositório e main, então o job não é mais ignorado após a renomeação.
-- Gates de fonte completados: textos de LAN entraram no catálogo de dez idiomas, atributos de acessibilidade no item de idioma e no seletor de DNS, e o contraste de texto suave e do estado pressionado chega a 4.5:1.
-- Fachada do HarnessController dividida: a leitura de assets empacotados foi para PackagedAssets e o backup em um clique não depende mais diretamente do core.
-- As 14 regressões de host agora passam; resultados de build e release seguem os recibos do repositório.
+- A barra de progresso da página de plugins agora usa o esquema F: respiração no estado indeterminado, luz fluida no determinado, e o progresso segue apenas o percent real.
+- O sucesso mostra verde em 100% por 700ms; a falha mostra vermelho no maior progresso visto na tarefa por 900ms e depois desaparece.
+- A nota longa e fixa da fonte de download foi movida para o popup do botão redondo de exclamação, que também mostra o último resultado ou erro da tarefa.
+- Os resultados de plugins agora têm estado explícito de sucesso/falha, então falhas antes do envio — fila cheia, executor em segundo plano indisponível, erro de seleção de arquivo — também aparecem nesse popup.
+- Os dois pontos de fonte de download compartilham a mesma barra; tokens claro/escuro, fallback de movimento reduzido e semântica de progresso do TalkBack foram cobertos.
+- O escopo de build, testes unitários e aceitação em dispositivo é limitado a esta run e ao recibo do Release.

@@ -1,6 +1,6 @@
 # DSH-A-Su build and signing instructions
 
-> Current identity (build210): `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.3-20261030.0214-dsh0.2.1-rc.3` / versionCode 210.
+> Current identity (build211): `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.3-20261030.1245-dsh0.2.1-rc.3` / versionCode 210.
 > Single Standard variant: minSdk 30 (Android 11+), arm64-v8a, system WebView. The old `low`/GeckoView line and the separate island package are gone.
 > Signing: a newly created Mod release certificate (SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`); the original E7E3 key is no longer used.
 > Fixed build inputs: published as a public pre-release Release asset and pinned by SHA-256; see [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md).
