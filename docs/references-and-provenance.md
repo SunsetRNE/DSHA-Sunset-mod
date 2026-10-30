@@ -1,14 +1,14 @@
 # 资料依据、上游来源与可验证范围
 
-本文是 build190 的事实索引，初版以F10为参考；Root源码与边界的补充核对日期为2026-10-22，范围见第5.1节，其余上游资料仍按2026-10-21的核对范围阅读。
+本文是 build216 的事实索引，覆盖当前发布身份、上游来源与固定输入；F10/F11/build190 等历史记录按原文保留，不能作为本版证据。
 用途是让维护者找到原始资料、版本锁和校验入口，不是官方背书或安全认证。
-初版编写只阅读源码、锁文件和上游资料；第5.1节另记后续已执行的隔离宿主检查。文档更正本身不重跑构建、不操作su设备或发布流程。
+文档更正本身不重跑构建、不操作 su 设备或发布流程；本版软件、APK 与发布结果以本轮 CI run 与 Release 回执为准。
 
 ## 1. 项目与上游之间的关系
 
 | 项目 | 本分支中的角色与依据 | 不能据此声称 |
 |---|---|---|
-| [SunsetRNE/DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q) | 当前 README 指向的私有维护与预发布分发仓库；仓库名按实际拼写保留 | DeepSeek 官方 Android 客户端或官方认证分支 |
+| [SunsetRNE/DSHA-Sunset-mod](https://github.com/SunsetRNE/DSHA-Sunset-mod) | 当前公开维护与预发布分发仓库；原 `DSHA-Sunset-mod-3090-Q` 已合并删除 | DeepSeek 官方 Android 客户端或官方认证分支 |
 | [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA) | DSHA 工程来源；本地 AGENTS 记录本轮从 build170 基座迁入后续改动 | 当前维护分支与该仓库每个分支、Release 或网站内容完全相同 |
 | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | DeepSeek 官方 Harness 上游；本项目将其 npm 运行时装入 Android 内的 Linux 环境 | 上游维护或批准了 DSHA 原生壳、授权策略、容器补丁或本地 APK |
 | [mexiaosqwq/dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) | 第三方移动网页插件上游；本地按精确提交引入后再应用维护差异 | DeepSeek 官方移动 UI，或完全未经修改的上游包 |
@@ -16,7 +16,7 @@
 工程关系以 [README](../README.md)、[AGENTS](../AGENTS.md)、锁和实际差异共同说明。
 公开项目介绍能证明项目公开声明，不能证明某个本地二进制来自某条源码提交。
 私有仓库匿名访问可能显示 404；这不证明仓库不存在，也不替代登录后的权限和附件核验。
-本文没有检查私有仓库的远端提交或附件状态；实际交付应另核精确 Release 和摘要。
+本文没有检查公开仓库的远端提交或附件状态；实际交付应另核精确 Release 和摘要。
 维护者署名、上游组织名、使用其 API、保留许可证，都不等同于组织授权或审计背书。
 
 ## 2. 三类依据分别回答什么问题
@@ -41,22 +41,22 @@ F11当时暂停设备验收，不应把历史包或软件结果转记为F11手�
 
 | 组件 | 当前本地选择 | 原始锁或配置 |
 |---|---|---|
-| DSH 主包 | `@deepseek-ai/dsh` `0.2.1-rc.2` | [package.json](../tools/dsh-runtime/package.json)、[package-lock.json](../tools/dsh-runtime/package-lock.json) |
+| DSH 主包 | `@deepseek-ai/dsh` `0.2.1-rc.5` | [package.json](../tools/dsh-runtime/package.json)、[package-lock.json](../tools/dsh-runtime/package-lock.json) |
 | 移动插件 | `3.2.2`；实际引入 main 提交见下文 | [mobile-plugin-upstream.lock.json](../tools/mobile-plugin-upstream.lock.json) |
 | 受管环境 | Ubuntu 24.04 arm64；DSHA `baseVersion=10` | [runtime-descriptor.json](../app/src/main/assets/runtime-descriptor.json)、[Ubuntu 包锁](../tools/ubuntu-tools/packages.lock.json) |
 | 运行时工具 | pnpm `10.34.5`，certifi `2026.7.22` | [runtime-tools.lock.json](../tools/runtime-tools.lock.json) |
 | 默认 / 可选引擎 | proot / proroot；后者本地声明 v1.2.8 | [AGENTS](../AGENTS.md)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
-| Android 身份 | `dsh.android.client`，versionCode `201`；具体 dated versionName 看构建配置 | [app/build.gradle](../app/build.gradle) |
+| Android 身份 | `io.github.sunsetrne.dsha`，versionCode `216`；测试变体 `io.github.sunsetrne.dsha.test` | [app/build.gradle](../app/build.gradle)、[release-identity](../ci/release-identity.json) |
 | 独立应急环境 | DSH `0.2.1-rc.5` / base `10`，独立归档摘要（build215 起与正式归档字节相同、APK 内共用） | [recovery-runtime/lock.json](../tools/recovery-runtime/lock.json) |
 
 ### DSH 包来源
 
 当前 npm lock 的主包 resolved 为：
-[registry.npmjs.org 的精确 0.2.1-rc.2 原包](https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.2.tgz)。
+[registry.npmjs.org 的精确 0.2.1-rc.5 原包](https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.5.tgz)。
 它的锁内完整性值为：
 
 ```text
-sha512-tvY+yhfKRifthbqPe/OK0AYxM5ZkvqfYq/jMYgJcEUxiRRL1Vwra3Ti5TB6AXgSWQdiPHYh/Vp6SJa9yHwMNuw==
+sha512-WkyJZv4zl9sCAxSzRctGm58m0rilGqwR6pniBiLOz5CPDfHfDuAUicg0AAazXI7oj/Cph6/cjNTncA/rpLTXpw==
 ```
 
 锁同时保留实际依赖图的 resolved、integrity 和声明许可，不能只核主包名称。

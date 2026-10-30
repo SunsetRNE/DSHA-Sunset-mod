@@ -4,7 +4,7 @@
 
 Verified: 2026-10-21. This page translates the build190 source review associated with the F10 documentation baseline. It explains how to use, diagnose, and maintain port handling. Current delivery identity and subsequent changes belong to the [release introduction](release-introduction.md).
 
-The application runs DSH 0.2.1-rc.2. See [runtime engines](runtime-engines.md) and [DNS configuration](dns-configuration.md) for those separate concerns. A port, authentication credentials, and a Web generation are three distinct fields; none proves either of the others.
+The application runs DSH 0.2.1-rc.5. See [runtime engines](runtime-engines.md) and [DNS configuration](dns-configuration.md) for those separate concerns. A port, authentication credentials, and a Web generation are three distinct fields; none proves either of the others.
 
 ## Identify the endpoint first
 

@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261031.0300-dsh0.2.1-rc.5` / build215 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build moves the independent emergency DSH lock to the same rc.5 archive bytes as the main environment (the APK keeps one copy, about 127.7 MB smaller), fixes the emergency overlay input list mismatch, and excludes unused BouncyCastle Picnic/CertPathReviewer resources; the build214 terminal drawer and settings font-row fixes are in the [build214 update notes](../releases/build214-changes.en.md); the bundled DSH rc.5, terminal DSH CLI entry and drawer narrowing from build213 are in the [build213 update notes](../releases/build213-changes.en.md). See the [build215 update notes](../releases/build215-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+Current source: `0.2.1-rc.3-20261031.0340-dsh0.2.1-rc.5` / build216 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build syncs bundled dsh-web-mobile to upstream main / the v3.2.2 tag `bb0e5e1` (panel, pet-overlay and files-panel gesture fixes), replays every local patch, and updates the upstream lock, runtime descriptor and third-party notices. It also corrects build190-era package, versionCode, DSH-version and Low/Gecko statements. See the [build216 update notes](../releases/build216-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

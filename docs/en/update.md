@@ -1,6 +1,6 @@
 # Application updates and managed runtime updates
 
-> Checked on 2026-10-21 against actual build190 update code, using published F10 `087724c` as a reference baseline. This page did not inspect the live remote feed, install an APK, or perform device acceptance. Current final identity is documented by [README](../../README.en.md) and the [release introduction](release-introduction.md).
+> Baseline checked on 2026-10-21 against build190 update code. Current publication identity is build216 / `io.github.sunsetrne.dsha` / single Standard; F10–F13/build190 records are historical. This page did not inspect the live remote feed, install an APK, or perform device acceptance. Current identity is documented by [README](../../README.en.md) and the [release introduction](release-introduction.md).
 
 APK updates and managed-component updates inside Ubuntu are different chains. An APK passes download and package-identity checks before the system installer opens. Managed components require plan review, normal task shutdown, candidate preparation/trial, and transactional switching. Both retain specific failures; version text does not replace actual outcomes.
 
@@ -24,7 +24,7 @@ The feed request uses `DSHA/<VERSION_NAME>` as User-Agent, and the receiving ser
 
 [UpdatePolicy](../../app/src/main/java/com/deepseekharness/app/util/UpdatePolicy.java) also validates flavor, minSdk, `arm64-v8a`, versionCode, allowed HTTPS source, 64-character hexadecimal SHA-256, and size up to 1 GiB. A saved candidate's checked channel is separate from the release's own channel; current preference cannot establish its origin.
 
-F10/F11 revisions that share code190 are not selected as a newer version even with a later version name: candidates require `versionCode > BuildConfig.VERSION_CODE`. Use [README](../../README.en.md), the [release introduction](release-introduction.md), the [historical F11 record](../releases/v0.2.1-rc.2-build190-fix11-20261021.md), and the actual Release for private publication, attachment digests, and manual downloads. Attachment status requires actual Release and independent external receipts. “No update” does not prove there are no remote prerelease attachments.
+F10/F11 revisions sharing code190 are not selected as a newer version even with a later version name: candidates require `versionCode > BuildConfig.VERSION_CODE`. Use [README](../../README.en.md), the [release introduction](release-introduction.md) and the actual Release for public prerelease assets, attachment digests, and manual downloads. Attachment status requires the actual Release and independent external receipts. “No update” does not prove there are no remote prerelease attachments.
 
 ## Download, verification, and system installation
 
@@ -32,10 +32,10 @@ Allowed sources are dsha.cc download paths and GitHub Release APK paths under DS
 
 - The package matches the installed application and has `debuggable=false`.
 - Actual versionCode matches the feed, is greater, and supports this Android version.
-- versionName matches the current Standard/Low variant.
+- versionName matches the current single Standard variant; Low was removed and Low candidates are rejected.
 - The candidate's complete current signer set exactly matches the installed application, not just a subset.
 
-Release delivery retains `dsh.android.client` and E7E3. The implementation compares the actual installed signer set; a shortened fingerprint in documentation does not authorize installation. A digest establishes byte equality, and a matching signature establishes continuity of installation identity. Neither proves plugin code harmless. See [download verification](download-verification.md) for manual APK checks.
+Current release delivery uses `io.github.sunsetrne.dsha` and the Mod-owned certificate recorded in `ci/release-identity.json`. The implementation compares the actual installed signer set; a shortened fingerprint in documentation does not authorize installation. A digest establishes byte equality, and a matching signature establishes continuity of installation identity. Neither proves plugin code harmless. See [download verification](download-verification.md) for manual APK checks.
 
 On Android 8+, if this application lacks unknown-source installation permission, the page opens system authorization settings first and verifies after the user returns. On Android 13+, download first requests notification permission and continues requesting the download after the callback; notification permission is not installation permission. The system installer still requires user confirmation; installation is not silent.
 

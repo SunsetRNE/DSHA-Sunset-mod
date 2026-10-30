@@ -2,7 +2,7 @@
 
 > build191入口核对（2026-10-23）：旧插件CAS链接兼容检查使用固定proot运行 `python3 -u /root/.dsh/materialize-cas-links.py`，不跟随主Web的proroot选项；轻入口/FD扫描和分段时序不改变事务执行域或退出屏障。[本轮范围与待验项](releases/v0.2.1-rc.2-build191-startup-20261023.md)。本页下方link2symlink概述须按入口理解：主Web使用实际硬链接探测结果；CAS所走install路径不执行同一探测，默认LaunchSpec仍可选择link2symlink，不能把主Web的探测结论移用于该入口。
 
-本文对照 **2026-10-21 F10 / build190** 的实际源码工作树 `<local-workspace>`。当前应用内置 DSH **0.2.1-rc.2**，Ubuntu 基础环境身份 **10**。旧 `<local-workspace>` 的 build173/bxroot 实现不代表当前构建。
+本文原于 **2026-10-21 F10 / build190** 工作树核对；当前应用内置 DSH **0.2.1-rc.5**，Ubuntu 基础环境身份 **10**，单一 Standard。旧 build173/bxroot 实现与 F10–F13 记录不代表当前构建。
 
 整体入口见[项目架构手册](project-architecture-handbook.md)，数据、插件与命令环境见[运行时数据和插件架构](runtime-data-plugin-architecture.md)，外部项目、许可证与证据层次见[来源与权威参考](references-and-provenance.md)。本页讲运行机制，不新增设备验收结论；F10 的实际验证范围以[发布记录](releases/v0.2.1-rc.2-build190-prerelease-20261020.md)为准。
 

@@ -1,6 +1,6 @@
 # 应用更新与受管运行时更新
 
-> 核验日期：2026-10-21。参考基线：已发布 F10 `087724c`；按本工作树 build190 的实际更新代码核验。本文未检查实时远端清单，也未安装 APK 或执行设备验收。
+> 核验基线：2026-10-21（按 build190 的实际更新代码核对）；当前发布身份为 build216 / `io.github.sunsetrne.dsha` / 单一 Standard。F10–F13/build190 记录属于历史。本文未检查实时远端清单，也未安装 APK 或执行设备验收。
 
 应用 APK 更新和 Ubuntu 内受管组件更新是两条链。APK 先通过下载与包身份检查，再交系统安装器；受管组件先审阅计划、正常停止运行任务、准备候选并试运行，再事务切换。两者都保留具体失败状态，不能用版本文案替代实际结果。
 
@@ -24,7 +24,7 @@
 
 [UpdatePolicy](../app/src/main/java/com/deepseekharness/app/util/UpdatePolicy.java)还检查当前 flavor、minSdk、`arm64-v8a`、版本码、有效 HTTPS 来源、64 位十六进制 SHA-256 与大小（至多 1 GiB）。旧候选记录的“查询通道”与发布自身通道分开保存，不能从当前偏好推断来源。
 
-同为 code190 的 F10/F11修订即使版本名更晚，也不会被当前应用内更新器当作更高版本选中；更新器要求候选 `versionCode > BuildConfig.VERSION_CODE`。当前私有 Release 是否发布、附件摘要与人工下载请从[F11记录](releases/v0.2.1-rc.2-build190-fix11-20261021.md)、[README](../README.md)和实际 Release 核查；F11附件状态按实际Release及独立外部回执核验，不能由“暂无更新”推断远端没有预发布附件。
+同为 code190 的 F10/F11 修订即使版本名更晚，也不会被当前应用内更新器当作更高版本选中；更新器要求候选 `versionCode > BuildConfig.VERSION_CODE`。当前公开预发布 Release 的附件与摘要请从 [README](../README.md) 和实际 Release 核查；附件状态按实际 Release 及独立外部回执核验，不能由“暂无更新”推断远端没有预发布附件。
 
 ## 下载、校验与系统安装
 
@@ -32,10 +32,10 @@
 
 - 与当前安装的包名相同，且 `debuggable=false`。
 - 实际 versionCode 与清单相符且更大，Android 版本兼容。
-- versionName 与当前 Standard/Low 变体对应。
+- versionName 与当前单一 Standard 变体对应；Low 已删除，不再接受 Low 候选。
 - 候选完整当前签名集合与已安装应用完全一致，不能只匹配一个子集。
 
-当前正式交付沿用 `dsh.android.client` 和 E7E3 发布证书；源码签名比较实际针对已安装证书集合，不凭文档中的指纹缩写放行。摘要证明字节一致，同签名证明安装身份延续，两者都不证明插件代码无害。手动 APK 核验见[下载校验](download-verification.md)。
+当前正式交付使用 `io.github.sunsetrne.dsha` 和 Mod 自有发布证书（见 `ci/release-identity.json`）；签名比较实际针对已安装证书集合，不凭文档中的指纹缩写放行。摘要证明字节一致，同签名证明安装身份延续，两者都不证明插件代码无害。手动 APK 核验见[下载校验](download-verification.md)。
 
 Android 8+ 未允许此应用安装未知来源时，页面先打开系统授权设置；用户返回后再发起校验。Android 13+ 下载前会请求通知权限，回调后继续请求下载；通知权限不授予安装权限。系统安装器仍由用户确认，不做静默安装。
 

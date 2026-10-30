@@ -1,6 +1,6 @@
 # Build, signing, source distribution, and evidence
 
-Checked on 2026-10-31. Current identity is build215 / `0.2.1-rc.3-20261031.0300-dsh0.2.1-rc.5` / `io.github.sunsetrne.dsha` / a single Standard variant (the historical android-low record stays in the releases archive). Use [BUILD](../../BUILD.en.md) for executable build steps, [Mod identity, package and signing](../mod-identity-and-signing.md) for identity details, and [fixed build inputs](../fixed-build-inputs.md) for the pre-release input asset. This build's test and APK results are established by the repository receipts and Release, not by historical records.
+Checked on 2026-10-31. Current identity is build216 / `0.2.1-rc.3-20261031.0340-dsh0.2.1-rc.5` / `io.github.sunsetrne.dsha` / a single Standard variant (the historical android-low record stays in the releases archive). Use [BUILD](../../BUILD.en.md) for executable build steps, [Mod identity, package and signing](../mod-identity-and-signing.md) for identity details, and [fixed build inputs](../fixed-build-inputs.md) for the pre-release input asset. This build's test and APK results are established by the repository receipts and Release, not by historical records.
 
 ## Where identities come from
 
@@ -32,7 +32,7 @@ These are responsibility groups, not a claim that any one script proves a whole 
 | Source and navigation | `check-source-hygiene.py`, `check-document-links.py`, host-manifest check | Exact file set, broken current links, historical local-evidence classification; no ignoring current broken links to pass |
 | Fixed inputs and descriptor | `ci-assets.py`, `verify-runtime-descriptor-source.py`, generator check modes | Actual input SHAs, missing inputs, and which bytes reuse older exact-equality proofs |
 | Host / browser | Each `run-host-tests.py` stage, real locked-runtime fixtures | Environment, selection, platform skips, expected negative controls; not phone acceptance |
-| Both variants' JUnit / Release Lint | Corresponding Gradle tasks | Selected classes/XML tests/failures/errors/skipped, cache/incremental reuse, Lint errors and warnings |
+| Standard JUnit / Release Lint | Corresponding Gradle tasks | Selected classes/XML tests/failures/errors/skipped, cache/incremental reuse, Lint errors and warnings |
 | Exact APK content | `audit-standard-apk.py`, `verify-dsh-upgrade-apk.py` | APK identity, managed assets/DSH, manifest/DEX, matching source and SHA |
 | Emergency / plugins / licensing | `verify-recovery-apk.py`, `verify-plugin-upgrade-gate.py`, `verify-third-party-apk.py` | Independent emergency lock/asset locations, plugin policy, notices, and actual APK contents |
 | Signing and delivery | Android `apksigner verify --verbose --print-certs`, release owner's inventory | Package/code, `debuggable=false`, certificate, ABI/API, APK/ZIP sizes and SHAs, remote attachment status |

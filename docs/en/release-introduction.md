@@ -1,14 +1,12 @@
 # Current delivery and historical evidence
 
-Updated: 2026-10-21. This English entry distinguishes the maintained build190/F13 source from completed historical records. It is not a remote-publication receipt.
+Updated: 2026-10-31. This English entry describes the maintained build216 source and links historical records separately. It is not a remote-publication receipt.
 
-> **F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190.** Directory-service composition, attachment-resolver disposal and recovery after transient background proof failure are fixed. Standard 150 selected classes/952 JUnit cases (3 skipped); Low 150 selected classes/952 cases (76 skipped). Both have zero failures/errors. Release Lint has zero errors and Standard/Low warnings 249/162; eight actual-APK gates passed. Original failures, corrections and negative controls remain separate; this is not one continuous green run. No device/ADB, real-account/model or new endurance acceptance. [Associated Release target](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.2107) · [Scope and evidence](releases/v0.2.1-rc.2-build190-fix13-20261021.md). Actual remote availability is established by the Release and independent receipt.
+> **build216 `0.2.1-rc.3-20261031.0340-dsh0.2.1-rc.5`.** The bundled dsh-web-mobile is synced to upstream main and the current v3.2.2 tag `bb0e5e1`; all DSHA local patches are replayed on the new bytes, and build190-era identity documents are corrected. versionCode 216, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5, Ubuntu base 10. See the [build216 notes](releases/build216-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
-Current F13 frozen inventory: 2215 source members / 200 Markdown documents; 1029 adopted Java files. Distribution/format proofs and JUnit execution counts are separate. The fixed packet is 738,101,893 bytes, SHA-256 `da3a87e9782469136f08d37143582fec845af1a69406b9a534f8cb7f68249ed8`. Originals expand directly at project paths, not as a nested packet. These are not the complete source ZIP's size or digest.
+Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261031`, 696,361,527 B, SHA-256 `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 
-Published F12 retains its original identity: [immutable English record](releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
-
-The Android application retains version code **190**, package `dsh.android.client`, Java 17, the historical E7E3 release identity, bundled DSH **0.2.1-rc.2**, and Ubuntu base **10**, unless the final owner explicitly records a later identity. proot is default; proroot is explicitly selectable. The [README](../../README.en.md) will carry the finalized download identity. [Build and release](build-and-release.md), [BUILD](../../BUILD.en.md), and [CONTRIBUTING](../../CONTRIBUTING.en.md) explain verification and distribution steps.
+F10–F13 and build190 records retain their original identity and scope. Their package names, version codes, DSH versions, test counts and device statements are historical evidence, not this build's acceptance.
 
 ## Confirmed behavior described by the current guides
 

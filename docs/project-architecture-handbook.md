@@ -1,7 +1,7 @@
 # DSHA 项目架构与功能维护总手册
 
-核验日期：2026-10-21。本文面向需要理解、修改和验证 DSHA 的维护者，以已发布F10 `087724c`为参考，按当前 F12 / build190 工作树维护。
-F11是未上传的本地检查点，不是新增已发布版本；最终诊断身份、软件、APK和附件范围见[README](../README.md)与[F12记录](releases/v0.2.1-rc.2-build190-fix12-20261021.md)，本页不预填最终版本或测试总数。
+核验日期：2026-10-31。本文面向需要理解、修改和验证 DSHA 的维护者，按当前 build216 / DSH 0.2.1-rc.5 工作树维护。
+F10–F13、build190 等记录保留各自历史归属，不是本版交付证据；最终诊断身份、软件、APK 与附件范围见 [README](../README.md) 与本轮 CI / Release 回执，本页不预填测试总数。
 版本最终以 [app/build.gradle](../app/build.gradle) 和对应产物回执为准。
 本文是功能与代码地图，不是新的验收报告，也不改变运行权限、数据格式或 APK。
 设备、ADB、真实账号/模型对话和长时验收仍按交付记录的暂停边界；宿主测试通过不等于手机性能通过。
@@ -27,9 +27,9 @@ F11是未上传的本地检查点，不是新增已发布版本；最终诊断�
 
 DSHA 是 Android 宿主与适配项目，内置上游 DSH，并增加安装、生命周期、设备桥和数据保护。
 [DeepSeek 官方 deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 是上游项目；
-当前维护分支、私有预发布仓库及其 Android 修改，不代表 DeepSeek 官方发布或认证。
+当前维护分支、公开预发布仓库及其 Android 修改，不代表 DeepSeek 官方发布或认证。
 DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维护/分发在
-[DSHA-Sunset-mod-3090-Q](https://github.com/SunsetRNE/DSHA-Sunset-mod-3090-Q)；私有页面需要相应访问权限。
+[DSHA-Sunset-mod](https://github.com/SunsetRNE/DSHA-Sunset-mod)。
 当前使用哪个 DSH 版本，应读 [npm manifest](../tools/dsh-runtime/package.json) 与
 [完整 lock](../tools/dsh-runtime/package-lock.json)，不能根据上游默认分支推断。
 移动 UI 是 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) 第三方插件；
@@ -39,10 +39,9 @@ DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维
 | 当前生产选择 | 维护含义 |
 |---|---|
 | Java 17、Material3、单 `:app` 模块 | 原生页面与平台桥使用 Java，不新增 Kotlin 旁路 |
-| `io.github.sunsetrne.dsha`、Mod 自有证书（见 `ci/release-identity.json`）、非调试正式包
-| Standard：minSdk 30、系统 WebView、arm64 | 本轮交付的 APK；系统 WebView 版本仍受设备影响 |
-| Low：minSdk 23、Gecko 兼容路径、arm64 | 保留源码与软件检查；本轮没有新的 Low APK/设备交付 |
-| Ubuntu base10、DSH 0.2.1-rc.2 | 基础环境、DSH、APK 与数据格式是不同身份 |
+| `io.github.sunsetrne.dsha`、Mod 自有证书（见 `ci/release-identity.json`）、非调试正式包 | 实际包名 / 证书检查决定升级兼容性；换签名不是升级 |
+| Standard：minSdk 30、系统 WebView、arm64 | 唯一构建线；Low/GeckoView 已整体删除，不再声明 Android 10 及以下可用。系统 WebView 版本仍受设备影响 |
+| Ubuntu base10、DSH 0.2.1-rc.5 | 基础环境、DSH、APK 与数据格式是不同身份 |
 | proot 默认、proroot 显式可选 | 当前不执行 bxroot；旧分支约束不能覆盖当前选择 |
 | PiP 默认关闭 | 只有用户明确开启，才允许进入系统画中画 |
 | 模型与 API Key 在 Web 设置 | 原生模型向导、配置页模型编辑及其生产路由已移除 |
@@ -67,7 +66,7 @@ Main 底部导航包含启动、终端、插件和设置；后台任务入口独
 | 插件市场、安装、启停、更新 | PluginFragment / PluginInstallActivity | 包格式、依赖和实际加载分别核验 |
 | Root、Shizuku、ADB 与权限 | DeviceGrantsFragment / AdbPairActivity | 通道开关、实际授权和连接状态不同 |
 | 物理屏观察与操作 | 无障碍、设备桥与内置工具 | 当前目标、屏幕策略和系统能力都要满足 |
-| 独立虚拟屏与节点操作 | VirtualScreenActivity | Standard 实验能力，不能转记为 Low 支持 |
+| 独立虚拟屏与节点操作 | VirtualScreenActivity | Standard 能力（API 30+）；不能转记为 Android 10 及以下支持 |
 | 一键保存备份 | 数据与备份 → 一键备份 | 安全停止后导出，完成后由用户启动 |
 | 更多导出、恢复、验证 | NativeDataActivity | 先读完、核验和预检，再事务提交 |
 | 文件浏览、保存和分享 | WorkspaceFilesActivity | SAF/Provider 与受控流处理，不接受任意网页路径 |
@@ -333,7 +332,7 @@ DSH 的 `tree/node/editor`、`see/anchor/anchored_click` 与原生节点操作�
 UNKNOWN 保留日志与屏障，缺身份时不按裸 PID 清理，也不自动重放创建或点击。
 
 修改前必须阅读 [虚拟屏架构](virtual-screen-architecture.md) 和 [ADR 0003](adr/0003-virtual-screen-lifecycle-and-input.md)。
-使用条件见 [虚拟屏指南](virtual-screen-guide.md)，Low 的不支持边界需要明确保持。
+使用条件见 [虚拟屏指南](virtual-screen-guide.md)，Android 10 及以下不支持的边界需要明确保持。
 
 ## 10. 终端、附件、文件、分享与麦克风
 
@@ -395,7 +394,7 @@ flowchart LR
 ```
 
 一键备份复用 `OneClickBackup`、`NativeBackupJobs` 和既有 v5 引擎，不另造轻量数据格式。
-Standard 直接发布到 `Download/DSHA`；Low 旧系统首次选择目录后按持久授权复用。
+Standard 直接发布到 `Download/DSHA`；Low 已删除，旧系统 SAF 目录流程只作历史记录。
 备份先安全停止 DSH 和运行任务，生成并验证，再交付文件；完成后不自动重启业务。
 包含实际清单记录的应用数据与当前应用内工作区，外置工作区内容需要用户另外备份。
 
@@ -499,7 +498,7 @@ JUnit 选择类、执行数、skip、平台依赖失败及补跑应分别记录�
 - 备份生成、发布到 Provider、完整读回验证和完整数据覆盖不能合并宣称。
 - 不可读凭据不等于未配置；未知数据不等于垃圾；历史回执不等于当前现场。
 - 同源桥校验、工具审批和 proot 不构成第三方任意代码的强沙箱。
-- 两版软件通过不等于本轮交付了 Low；浏览器夹具通过不等于全 ROM/输入法手机通过。
+- 单一 Standard 通过不等于所有 Android 11+ ROM 或输入法都通过；浏览器夹具通过也不等于全机型手机通过。
 - 新增手册和上传源码不改变已签 APK，也不产生新的设备或长时验收结论。
 
 继续阅读：[设备权限](device-permissions-architecture.md) · [运行时与数据](runtime-data-plugin-architecture.md) ·

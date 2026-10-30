@@ -1,6 +1,6 @@
 # Built-in plugins, protocols, permissions, and when changes take effect
 
-> Translation verified: 2026-10-21. Source baseline: released F10 `087724c`, with the current build190/F12 registry, generators, plugin entry points, and host readers checked against the Chinese guide and production sources. F11 is an unpublished local checkpoint, not another released version. Final identity and executed scope are in the [English README](../../README.en.md), [release introduction](release-introduction.md), and [F12 record](releases/v0.2.1-rc.2-build190-fix12-20261021.md). This page adds no software-test or device-acceptance result. Runtime hot-reload conclusions require matching bundled inputs and actual execution evidence; this translation and older audits do not prove Android validation.
+> Translation baseline: 2026-10-21, originally reviewed against the build190/F12 registry, generators, plugin entry points and host readers. Current publication identity is build216 / DSH 0.2.1-rc.5 / single Standard; F10–F13 records are historical, not this build's evidence. Final identity, software and APK results are in the [English README](../../README.en.md) and this CI / Release receipt. This page adds no device-acceptance result. Runtime hot-reload conclusions require matching bundled inputs and actual execution evidence; this page and older audits do not prove Android validation.
 
 ## Seven optional entries, eight signed entries, and a policy source
 

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261031.0300-dsh0.2.1-rc.5` / build215 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把独立应急 DSH 锁同步到与正式环境相同的 rc.5 归档字节（APK 只保留一份，约少 127.7 MB），修复应急覆盖层输入名单与描述不一致，并排除 BouncyCastle 中未使用的 Picnic/CertPathReviewer 资源；build214 的终端窄抽屉与设置字体行修复见 [build214 更新说明](releases/build214-changes.zh.md) 与 [build214 真机验收记录](releases/v0.2.1-rc.3-build214-acceptance-20261030.md)，build213 的内置 DSH rc.5、终端 DSH CLI 入口与抽屉收窄见 [build213 更新说明](releases/build213-changes.zh.md)，build209 的上岛能力合并、low/Gecko 删除、Mod 自有发布证书与固定输入/CI 发布接入见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。本版改动说明见 [build215 更新说明](releases/build215-changes.zh.md)，构建与验收范围以本轮 run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261031.0340-dsh0.2.1-rc.5` / build216 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把内置 dsh-web-mobile 同步到上游 main / v3.2.2 标签 `bb0e5e1`（面板、宠物悬浮层与文件面板手势修复），重放全部本地补丁并更新上游锁、运行时描述符与第三方声明；同时纠正仍停留在 build190 的包名、版本码、DSH 版本与 Low/Gecko 现行描述。改动说明见 [build216 更新说明](releases/build216-changes.zh.md)，构建与验收范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
