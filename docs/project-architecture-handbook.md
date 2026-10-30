@@ -106,7 +106,7 @@ flowchart TB
   APP --> LIFE[HarnessController / WebLifecycleController]
   LIFE --> START[StartupPipeline / RuntimeLauncher]
   START --> LINUX[私有 Ubuntu / Node / DSH]
-  UI --> BROWSER[WebView 或 Low Gecko]
+  UI --> BROWSER[系统 WebView]
   BROWSER <--> LINUX
   LINUX --> HTTP[本机 HttpShellService 鉴权桥]
   HTTP --> CAP[能力与确认策略]
@@ -244,7 +244,7 @@ Android 官方说明 `onPrepare` 在重布局前，而终态 Insets 可能在 `o
 因此不能把普通 onApply 当作每个动画帧，也不能让首帧直接跳终点。
 参见 [Android 键盘动画文档](https://developer.android.com/develop/ui/views/layout/sw-keyboard)；
 本项目消费与旧 API 兼容行为仍以当前 AndroidX 依赖和实际回归为准。
-双内核平台差异另见 [Standard](android-standard.md) 与 [Low](android-low.md)。
+系统 WebView 平台说明见 [Standard](android-standard.md)；旧 Low/Gecko 实现只作历史记录。
 
 ## 7. 模型、插件、市场和技能
 
