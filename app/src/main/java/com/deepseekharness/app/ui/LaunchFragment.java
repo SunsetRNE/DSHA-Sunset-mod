@@ -567,8 +567,8 @@ public class LaunchFragment extends Fragment {
       if (ready) startStatusMessage = "";
       boolean restoring = controller.isRestoringWebSession();
       boolean unresolved = controller.hasUnresolvedWebSession();
-      String restoreReason = controller.webSessionRestoreReason();
-      String restoreNotice = controller.webSessionRestoreNotice();
+      com.deepseekharness.app.core.WebSessionRestoreText.Status restore =
+          controller.webSessionRestoreStatus();
       com.deepseekharness.app.util.StartupTrace.Snapshot trace =
           controller.startupDiagnostics().snapshot();
       String localUrl = webEntryUrl();
@@ -588,9 +588,10 @@ public class LaunchFragment extends Fragment {
               ? com.deepseekharness.app.util.UiText.choose("正在打开 Web…", "Opening Web…")
               : restoring
                   ? com.deepseekharness.app.core.WebSessionRestoreText.progress(
-                      restoreReason, controller.webSessionRestoreAttempts())
+                      restore.reason(), restore.attempts())
                   : unresolved
-                      ? com.deepseekharness.app.core.WebSessionRestoreText.unresolved(restoreReason)
+                      ? com.deepseekharness.app.core.WebSessionRestoreText.unresolved(
+                          restore.reason())
                       : controller.isRestartBlocked()
                           ? com.deepseekharness.app.util.UiText.text("自动重启已暂停")
                           : stopping
@@ -607,8 +608,8 @@ public class LaunchFragment extends Fragment {
                                               ? com.deepseekharness.app.util.UiText.text(
                                                   " · 已兼容切换 proot")
                                               : "")
-                                      : !restoreNotice.isEmpty()
-                                          ? restoreNotice
+                                      : !restore.notice().isEmpty()
+                                          ? restore.notice()
                                           : controller.isUserStopped()
                                               ? getString(R.string.ui2_stopped)
                                               : getString(R.string.ui2_stopped));

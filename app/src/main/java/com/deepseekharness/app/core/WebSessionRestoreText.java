@@ -9,6 +9,9 @@ import com.deepseekharness.app.util.UiText;
 public final class WebSessionRestoreText {
   private WebSessionRestoreText() {}
 
+  /** 只读状态快照；reason 是稳定码，不包含凭据或异常正文。 */
+  public record Status(String reason, int attempts, String notice) {}
+
   /** 用户在核对旧实例期间点击启动：本轮意图已记录，完成后最多继续一次。 */
   public static String deferred() {
     return UiText.choose(

@@ -132,18 +132,10 @@ final class WebLifecycleController {
     return state.restoreChecking;
   }
 
-  /** 本次恢复的稳定原因码；只在未确认时用于展示，不参与启动授权。 */
-  public String webSessionRestoreReason() {
-    return state.restoreReason;
-  }
-
-  public int webSessionRestoreAttempts() {
-    return state.restoreAttempts;
-  }
-
-  /** 已确认退出等一次性结论；下一次启动或停止后清空。 */
-  public String webSessionRestoreNotice() {
-    return state.restoreNotice;
+  /** 本次恢复的只读状态：稳定原因码、鉴权次数与一次性结论，不参与启动授权。 */
+  public WebSessionRestoreText.Status webSessionRestoreStatus() {
+    return new WebSessionRestoreText.Status(
+        state.restoreReason, state.restoreAttempts, state.restoreNotice);
   }
 
   public boolean needsWebSessionRestore() {
