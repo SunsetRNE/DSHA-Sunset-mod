@@ -51,9 +51,9 @@ The lock also retains resolved URLs, integrity and declared licenses throughout 
 
 The current lock distinguishes the release tag from later main inputs:
 
-- The recorded release tag is `v3.2.2`, with releaseCommit `4c798ecc554009e401dc1f166b73c314cdf5273f`.
-- The imported commit is [`04dcd19f17b2ee573b0173501edcacdd58f146b7`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/04dcd19f17b2ee573b0173501edcacdd58f146b7); main has moved past the v3.2.2 release commit, so the two differ.
-- The upstream source-archive SHA-256 in the lock is `3ed17c5b6ad7f24c6817f41ee25169efc986b8c87b13c8e45661a5f6f33a607b`.
+- The current `v3.2.2` tag points to `bb0e5e151ca549fef506e829020a5d7138074711`, and releaseCommit is the same value. Upstream retargeted the tag on 2026-10-30 from the original release commit `4c798ecc554009e401dc1f166b73c314cdf5273f` to this commit; the Release body still says main is `04dcd19f…`, which is stale upstream metadata and cannot prove the bytes behind the current tag.
+- The imported commit is [`bb0e5e151ca549fef506e829020a5d7138074711`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/bb0e5e151ca549fef506e829020a5d7138074711), matching the current v3.2.2 tag; it contains nine changes plus the merge commit landed after the original v3.2.2 release, focused on panel, pet and gesture contracts.
+- The upstream source-archive SHA-256 in the lock is `80973622839452e52e586b4f7a87eb5a81a9fc26460d76c84d027c7ce6773e2c` (3,284,160 B).
 - Upstream client and final local client are recorded separately; final member digests are in the current THIRD_PARTY_NOTICES and descriptor.
 
 An internal package version of 3.2.2 does not mean it contains only that tag's original bytes. [apply-mobile-client-patches.mjs](../../tools/apply-mobile-client-patches.mjs) and [mobile-server](../../tools/mobile-server) manage local differences. Check individually whether an upstream upgrade absorbed local patches; do not apply the entire old patch set again.

@@ -157,7 +157,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - **麦克风**：清单同时声明 `RECORD_AUDIO` 与 `MODIFY_AUDIO_SETTINGS`；由 `BrowserMicrophone` 按网页请求申请，不能在普通启动时预授权；只放行当前本机页面的纯音频请求，摄像头 / 屏幕音频拒绝；旧回调不能批准新页。
 - **设备验收经验**：`uiautomator dump` 会抑制其他无障碍服务；截图授权绑定 DSH generation，停止 / 断连 / 撤销后失效；截图存应用私有 Pictures/DSHA，无需所有文件访问；PiP 可能盖住底部控件，自动化必须核对实际可见区域与屏幕方向；截图 / 读屏不可将敏感值写入公开取证文件。
 - Shizuku 必须注册 `rikka.shizuku.ShizukuProvider`；标准版 13.1.5 / 兼容版 12.2.0（不用 overrideLibrary 掩盖 minSdk 24）。回调严格核对管理器 UID、Binder 描述符、单次请求与超时。
-- 内置移动插件 `dsh-web-mobile` 为 3.2.2，固定上游 main `04dcd19f17b2ee573b0173501edcacdd58f146b7`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
+- 内置移动插件 `dsh-web-mobile` 为 3.2.2，固定上游 main `bb0e5e151ca549fef506e829020a5d7138074711`（2026-10-30 上游把 v3.2.2 标签重指到该提交）；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
 
 ---
 

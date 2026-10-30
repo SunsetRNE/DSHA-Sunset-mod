@@ -1,7 +1,8 @@
 # 内置移动插件 dsh-web-mobile 的 DSHA 本地补丁
 
 本文记录 [`tools/apply-mobile-client-patches.mjs`](../tools/apply-mobile-client-patches.mjs) 对固定上游
-`dsh-web-mobile` 3.2.2（[`04dcd19f17b2ee573b0173501edcacdd58f146b7`](https://github.com/mexiaosqwq/dsh-web-mobile/commit/04dcd19f17b2ee573b0173501edcacdd58f146b7)）
+`dsh-web-mobile` 3.2.2（[`bb0e5e151ca549fef506e829020a5d7138074711`](https://github.com/mexiaosqwq/dsh-web-mobile/commit/bb0e5e151ca549fef506e829020a5d7138074711)，
+2026-10-31 同步；上游已把 v3.2.2 标签重指到该提交）
 的本地差异。上游产物不手改；改动写进补丁脚本，再生成
 [`app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js`](../app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js)。
 
@@ -30,15 +31,17 @@
 输入框本身不是行的直接子节点。手机 sheet 内容宽约 340px，扣掉 240px 控件与
 `rowText` 的 48px 右内距后，文字列几乎没有可用宽度。
 
-### 上游核验（2026-10-30）
+### 上游核验（2026-10-31）
 
-- GitHub `mexiaosqwq/dsh-web-mobile` 的 `main` HEAD 仍是
-  `04dcd19f17b2ee573b0173501edcacdd58f146b7`（该仓库 `main` 最新提交），与
-  [`tools/mobile-plugin-upstream.lock.json`](../tools/mobile-plugin-upstream.lock.json) 一致；
-  0 个 open PR。
-- 固定上游 `lib/client.js` 中 `bVCLcG` / `rowText` / `FontFamily` 命中数均为 0，
-  即插件没有针对该字体行的移动端规则。
-- 上游 open issue #252、#245 是会话输入框（composer）问题，与本字体行无关。
+- GitHub `mexiaosqwq/dsh-web-mobile` 的 `main` 已从 `04dcd19f…` 前进到
+  [`bb0e5e151ca549fef506e829020a5d7138074711`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/bb0e5e151ca549fef506e829020a5d7138074711)：
+  9 个改动提交（另有 1 个合并提交）集中在全屏右侧面板层带 / 底色、宠物悬浮层遮罩与命名根节点、文件面板手势标记
+  （#247 / #248 / #249）；`v3.2.2` 标签当前也指向该提交。0 个 open PR。
+- 固定上游 `lib/client.js` 中 `bVCLcG` / `rowText` / `FontFamily` 命中数仍为 0，
+  即插件没有针对该字体行的移动端规则；本次上游改动没有吸收本补丁。
+- 上游 open issue #252、#231 是会话输入框（composer）与按钮间距问题，与本字体行无关。
+- 本次同步按新上游字节重放全部本地补丁，client 的各处补丁锚点、file-transfer、locale 与
+  server 补丁均保持唯一；`prepare-mobile-plugin.py --write` 重新生成产物并通过摘要核验。
 
 结论：上游暂无此修复，DSHA 需要本地 CSS 补丁。
 

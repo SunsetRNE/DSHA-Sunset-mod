@@ -102,12 +102,12 @@
   "dshaUpstream": {
     "version": "3.2.2",
     "source": "https://github.com/mexiaosqwq/dsh-web-mobile",
-    "commit": "04dcd19f17b2ee573b0173501edcacdd58f146b7",
-    "sourceDate": "2026-10-29",
+    "commit": "bb0e5e151ca549fef506e829020a5d7138074711",
+    "sourceDate": "2026-10-30",
     "ref": "main",
     "releaseTag": "v3.2.2",
-    "releaseCommit": "4c798ecc554009e401dc1f166b73c314cdf5273f",
-    "clientSha256": "5c8647ded0ea372d15803db6a300ead3c0ead0f4ffe4073674fca95e0e34ad27",
+    "releaseCommit": "bb0e5e151ca549fef506e829020a5d7138074711",
+    "clientSha256": "3cd931bcd261e7b280398f8849a556ec1dd54edaa4147c49c808d0ea60d94173",
     "lock": "tools/mobile-plugin-upstream.lock.json",
     "prebuilt": true
   }

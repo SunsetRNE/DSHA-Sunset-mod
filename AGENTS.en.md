@@ -152,7 +152,7 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 - **Microphone:** declare both `RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS`. `BrowserMicrophone` requests permission only on Web request, not ordinary startup. Allow pure audio only from the current local page; reject camera/screen audio. An old callback cannot approve a new page.
 - **Device-acceptance experience:** `uiautomator dump` suppresses other accessibility services. Screenshot grants bind DSH generation and expire on stop/disconnect/revocation. Store screenshots in app-private Pictures/DSHA, without all-files access. PiP can cover lower controls; automation must check actual visible region/orientation. Screenshots/UI reads must not put sensitive values in public evidence.
 - Register `rikka.shizuku.ShizukuProvider`. Standard uses 13.1.5, Low 12.2.0; do not conceal minSdk 24 with overrideLibrary. Validate manager UID, Binder descriptor, one-shot request, and timeout in callbacks.
-- Built-in `dsh-web-mobile` is 3.2.2 at upstream main `04dcd19f17b2ee573b0173501edcacdd58f146b7`. `tools/apply-mobile-client-patches.mjs` manages local changes. Do not restore withdrawn upstream viewport changes or reapply rc1 navigation patches now owned upstream.
+- Built-in `dsh-web-mobile` is 3.2.2 at upstream main `bb0e5e151ca549fef506e829020a5d7138074711` (upstream retargeted the v3.2.2 tag to this commit on 2026-10-30). `tools/apply-mobile-client-patches.mjs` manages local changes. Do not restore withdrawn upstream viewport changes or reapply rc1 navigation patches now owned upstream.
 
 ---
 

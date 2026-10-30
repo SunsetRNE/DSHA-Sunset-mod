@@ -112,8 +112,9 @@ export function applyMobileClientPatches(bytes) {
           .bVCLcG_row / .bVCLcG_rowText，加 primitives Input 的 .vnGTiq_field）
      why: 宿主的 .row 是不换行 flex、.field 固定 flex:0 240px；手机设置弹层内容宽约 340px，
           标题+说明列因此被压成约 1 字/行、弹层被纵向撑高。上游 dsh-web-mobile main 已核对
-          仍是固定提交 04dcd19f17b2ee573b0173501edcacdd58f146b7（2026-10-30，0 个 open PR），
-          插件 client 里没有任何 FontFamilyRow / rowText 选择器，暂无上游修复。
+          为固定提交 bb0e5e151ca549fef506e829020a5d7138074711（2026-10-31，0 个 open PR；
+          该提交同时是当前 v3.2.2 标签），插件 client 里没有任何 FontFamilyRow / rowText
+          选择器，暂无上游修复。
      until: 上游给字体行手机档换行排版，或宿主把 .field 固定宽改成可收缩——届时删本块
      test: tools/test-mobile-client-patches.mjs
   */

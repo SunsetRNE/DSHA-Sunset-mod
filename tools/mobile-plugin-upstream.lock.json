@@ -4,16 +4,16 @@
   "version": "3.2.2",
   "ref": "main",
   "tag": "v3.2.2",
-  "releaseCommit": "4c798ecc554009e401dc1f166b73c314cdf5273f",
-  "commit": "04dcd19f17b2ee573b0173501edcacdd58f146b7",
+  "releaseCommit": "bb0e5e151ca549fef506e829020a5d7138074711",
+  "commit": "bb0e5e151ca549fef506e829020a5d7138074711",
   "source": "https://github.com/mexiaosqwq/dsh-web-mobile",
-  "sourceDate": "2026-10-29",
+  "sourceDate": "2026-10-30",
   "publishedAt": "2026-10-26T06:23:25Z",
-  "committedAt": "2026-10-29T16:25:24Z",
+  "committedAt": "2026-10-30T14:45:09Z",
   "archive": {
-    "url": "https://codeload.github.com/mexiaosqwq/dsh-web-mobile/tar.gz/04dcd19f17b2ee573b0173501edcacdd58f146b7",
-    "sha256": "3ed17c5b6ad7f24c6817f41ee25169efc986b8c87b13c8e45661a5f6f33a607b",
-    "bytes": 3273674
+    "url": "https://codeload.github.com/mexiaosqwq/dsh-web-mobile/tar.gz/bb0e5e151ca549fef506e829020a5d7138074711",
+    "sha256": "80973622839452e52e586b4f7a87eb5a81a9fc26460d76c84d027c7ce6773e2c",
+    "bytes": 3284160
   },
   "retiredFiles": [],
   "files": {
@@ -30,8 +30,8 @@
       "bytes": 277
     },
     "lib/client.js": {
-      "sha256": "5c8647ded0ea372d15803db6a300ead3c0ead0f4ffe4073674fca95e0e34ad27",
-      "bytes": 958759
+      "sha256": "3cd931bcd261e7b280398f8849a556ec1dd54edaa4147c49c808d0ea60d94173",
+      "bytes": 962257
     },
     "lib/compress.js": {
       "sha256": "89805663c2e706004d7eb42212b73cf63af5b6e63c4e3e630f46a47100f16ebe",
@@ -478,12 +478,12 @@
       "bytes": 292
     },
     "lib/types/client/effects/sidebar-swipe.d.ts": {
-      "sha256": "a046dd47af864adbac11b42cc1c828eeb08215cbf1d4d4e41cc5cfe902cf3b48",
-      "bytes": 10836
+      "sha256": "23bb50ce37be559008a0b545a62b1979abc2243798c4ac00d791893bbdb744df",
+      "bytes": 13639
     },
     "lib/types/client/effects/sidebar-swipe.d.ts.map": {
-      "sha256": "3670654ee73c3eedd112c72e23bfc6794223f85c06764082b9ac35fc1edb72c5",
-      "bytes": 2513
+      "sha256": "968ccafb3b94971222035ee796ea154d288a8072424e408be9a0d1d19577277b",
+      "bytes": 2672
     },
     "lib/types/client/effects/stats-line.d.ts": {
       "sha256": "4dcde7162e9c800892a8eb30461d2b624842ac435a499a5a68fd9b3317dafe78",
@@ -598,11 +598,11 @@
       "bytes": 168
     },
     "lib/types/client/styles/compat.css.d.ts": {
-      "sha256": "59f618f7dac465e8570e05b4a07a01059855116ac606a23adda4550ffa8f3e64",
-      "bytes": 80278
+      "sha256": "8779253d68d1a69dcac9b607dd4267ac048d45107c047fe32629268170457129",
+      "bytes": 81283
     },
     "lib/types/client/styles/compat.css.d.ts.map": {
-      "sha256": "48edf2236d0d56f7aa9966215c9ab9ff7e2fd39794dacac8b1a986654d7e8f4b",
+      "sha256": "b0bd29d5d3b4cfc98dcf318e56b0f4e9df2e5db763cb66e0392cff6e780401b6",
       "bytes": 172
     },
     "lib/types/client/styles/index.d.ts": {
@@ -614,11 +614,11 @@
       "bytes": 171
     },
     "lib/types/client/styles/layout.css.d.ts": {
-      "sha256": "c49071b04072ab34921fd79f359b5bf59c3f5e5906ee74a70375d348dca4ee1a",
-      "bytes": 347116
+      "sha256": "f3bfe495ed94c6e773cdf6008eac7e74457655da735e189c23b4f356937c2cb1",
+      "bytes": 350037
     },
     "lib/types/client/styles/layout.css.d.ts.map": {
-      "sha256": "19d141b48203e01ce17e0d3de928f565ef1ca5eaf75a0458ec2b842398018d1b",
+      "sha256": "87cb66bc1732dd826ec0edb1787441f4086f77358d492e285409db48e5dc1fae",
       "bytes": 172
     },
     "lib/types/client/styles/misc.css.d.ts": {
@@ -866,8 +866,8 @@
       "bytes": 1375
     },
     "src/client/effects/sidebar-swipe.ts": {
-      "sha256": "64a16ccf579e2dff3a5eb2fffce446a6de911e7a5faf5014ef5b6dbc69e25c26",
-      "bytes": 76264
+      "sha256": "9cac1c7f8da7912d4113b91cb7a49dde461c87d3444163777143a07730007f84",
+      "bytes": 76943
     },
     "src/client/effects/stats-line.ts": {
       "sha256": "ef42d6a4635f321b573854f2b676cd0514a413816678e17acbf76f29c42f0832",
@@ -918,16 +918,16 @@
       "bytes": 29102
     },
     "src/client/styles/compat.css.ts": {
-      "sha256": "3fe9e0488b581421a10623eaeed16656ab2b85de09722839394ec32db866e039",
-      "bytes": 68136
+      "sha256": "a0b3336ff60faacd98878798fe7be74022950724644c0549933bf60ba05cfa0b",
+      "bytes": 68855
     },
     "src/client/styles/index.ts": {
       "sha256": "45fb79819245ae39008c68af7c21d2ee7b307ebd6989ff695b9fbcb7f4ecf8ea",
       "bytes": 514
     },
     "src/client/styles/layout.css.ts": {
-      "sha256": "5bd8c879b929ccc6a1ba62fe5fe716bea6fef7b7871156bdc158a624238af046",
-      "bytes": 262010
+      "sha256": "053c3e985bdbc8ebd1f0fc49df1ed19844bb4a5d909b3c689a0e7ae5a607377b",
+      "bytes": 264045
     },
     "src/client/styles/misc.css.ts": {
       "sha256": "b00fe157c1a4624955281868f1a9a453da38f89479679414c2471ac28a134e50",

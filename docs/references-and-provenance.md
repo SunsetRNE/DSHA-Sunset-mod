@@ -67,9 +67,9 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 
 当前锁区分发布标签和后续 main 输入：
 
-- 发布标签记录为 `v3.2.2`，releaseCommit 为 `4c798ecc554009e401dc1f166b73c314cdf5273f`。
-- 实际引入提交为 [`04dcd19f17b2ee573b0173501edcacdd58f146b7`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/04dcd19f17b2ee573b0173501edcacdd58f146b7)；main 已越过 v3.2.2 发布提交，两者不再相同。
-- 锁内上游源码归档 SHA-256 为 `3ed17c5b6ad7f24c6817f41ee25169efc986b8c87b13c8e45661a5f6f33a607b`。
+- 当前 `v3.2.2` 标签指向 `bb0e5e151ca549fef506e829020a5d7138074711`，releaseCommit 同为此值。上游在 2026-10-30 把标签从原发布提交 `4c798ecc554009e401dc1f166b73c314cdf5273f` 重指到该提交；Release 正文仍写 main 为 `04dcd19f…`，属于上游记录未同步，不能把正文当作当前标签字节的证明。
+- 实际引入提交为 [`bb0e5e151ca549fef506e829020a5d7138074711`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/bb0e5e151ca549fef506e829020a5d7138074711)，与当前 v3.2.2 标签一致；其中包含 v3.2.2 原发布之后的 9 个改动提交（另有 1 个合并提交），集中在面板 / 宠物 / 手势契约。
+- 锁内上游源码归档 SHA-256 为 `80973622839452e52e586b4f7a87eb5a81a9fc26460d76c84d027c7ce6773e2c`（3,284,160 B）。
 - 上游 client 与本地最终 client 分开记载；最终成员摘要见当前 THIRD_PARTY_NOTICES 与 descriptor。
 
 不要把“包内版本 3.2.2”解释为“只包含该标签原件”。

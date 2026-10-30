@@ -19,12 +19,12 @@ function loadModules() {
 
 test('3.2.2 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () => {
   assert.equal(packageJson.version, '3.2.2');
-  assert.equal(packageJson.dshaUpstream.commit, '04dcd19f17b2ee573b0173501edcacdd58f146b7');
-  assert.equal(packageJson.dshaUpstream.clientSha256, '5c8647ded0ea372d15803db6a300ead3c0ead0f4ffe4073674fca95e0e34ad27');
+  assert.equal(packageJson.dshaUpstream.commit, 'bb0e5e151ca549fef506e829020a5d7138074711');
+  assert.equal(packageJson.dshaUpstream.clientSha256, '3cd931bcd261e7b280398f8849a556ec1dd54edaa4147c49c808d0ea60d94173');
   assert.equal(packageJson.dshaUpstream.ref, 'main');
   assert.equal(packageJson.dshaUpstream.releaseTag, 'v3.2.2');
-  assert.equal(packageJson.dshaUpstream.releaseCommit, '4c798ecc554009e401dc1f166b73c314cdf5273f');
-  assert.notEqual(packageJson.dshaUpstream.commit, packageJson.dshaUpstream.releaseCommit); // main 已越过 v3.2.2 标签
+  assert.equal(packageJson.dshaUpstream.releaseCommit, 'bb0e5e151ca549fef506e829020a5d7138074711');
+  assert.equal(packageJson.dshaUpstream.commit, packageJson.dshaUpstream.releaseCommit); // 上游已把 v3.2.2 标签重指到当前 main 提交
   for (const marker of [
     'DSHA_SESSION_INPUT_V4',
     '[data-dsha-session-select]',
@@ -45,6 +45,12 @@ test('3.2.2 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () 
     'transform: rotate(180deg) !important',
     'session-log-downloads',
     'downloadMenu',
+    'data-sidebar-right-open',
+    '.dsh-pet-root',
+    'fullscreen-panel-sheet',
+    'wallpaper-panel-fill',
+    'pet-hidden-under-sheets',
+    'findFloatingWidget',
   ]) assert.ok(source.includes(marker), marker);
   for (const stale of [
     "'data-mobile-nav': 'files', 'data-dsha-downloads': true",
@@ -52,6 +58,8 @@ test('3.2.2 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () 
     'dsh_client_ui_primitives_1.IconFolderOpenOutline16',
     'dsh_client_ui_primitives_1.IconDownloadOutline16',
     'dsh_client_ui_primitives_1.IconPaperclipOutline16',
+    'panel.getBoundingClientRect().left < window.innerWidth',
+    'transform: scale(.66)',
   ]) assert.equal(source.includes(stale), false, stale);
   assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-runtime'], undefined);
   assert.ok(packageJson.peerDependencies['@deepseek-ai/dsh-client-ui-conversation'].includes('>=0.2.0-rc.1 <0.3.0-0'));

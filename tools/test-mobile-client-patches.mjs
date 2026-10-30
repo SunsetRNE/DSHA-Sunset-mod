@@ -7,7 +7,7 @@ import {applyMobileClientPatches,upstreamCommit,upstreamClientHash} from './appl
 test('移动client固定预构建来源与部署产物闭环，拒绝错误版本/追加字节',()=>{
   const source=readFileSync('tools/mobile-plugin-upstream/lib/client.js');
   assert.equal(createHash('sha256').update(source).digest('hex'),upstreamClientHash);
-  assert.equal(upstreamCommit,'04dcd19f17b2ee573b0173501edcacdd58f146b7');
+  assert.equal(upstreamCommit,'bb0e5e151ca549fef506e829020a5d7138074711');
   assert.equal(readFileSync('app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js','utf8'),applyMobileClientPatches(source));
   assert.throws(()=>applyMobileClientPatches(Buffer.concat([source,Buffer.from('\n')])),/字节不匹配/);
 });
