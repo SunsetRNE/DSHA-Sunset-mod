@@ -59,10 +59,12 @@
         </LinearLayout>
     </LinearLayout>
 
-    <Button android:id="@+id/btnPluginDownloadSource" style="@style/ShellSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textSize="13sp" />
-    <TextView android:id="@+id/pluginDownloadHint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <Button android:id="@+id/btnPluginDownloadSource" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="13sp" />
+        <ImageButton android:id="@+id/btnPluginDownloadInfo" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginStart="8dp" android:background="@drawable/bg_plugin_info" android:contentDescription="@string/ui_m0134" android:padding="10dp" android:src="@drawable/ic_plugin_info" app:tint="@color/shell_text_secondary" />
+    </LinearLayout>
 
-    <ProgressBar android:id="@+id/pluginBusy" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:layout_marginTop="10dp" android:indeterminate="true" android:indeterminateTint="@color/shell_accent" android:visibility="gone" />
+    <com.deepseekharness.app.ui.PluginTaskProgress android:id="@+id/pluginBusy" android:layout_width="match_parent" android:layout_height="4dp" android:layout_marginTop="10dp" android:importantForAccessibility="yes" android:visibility="gone" />
 
     <TextView android:id="@+id/statusText" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:clickable="true" android:contentDescription="@string/ui_m0134" android:focusable="true" android:gravity="center_vertical" android:maxLines="2" android:minHeight="44dp" android:paddingTop="4dp" android:paddingBottom="4dp" />
 

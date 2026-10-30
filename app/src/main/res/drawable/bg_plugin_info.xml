@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 插件页圆形信息按钮：与下载源按钮同高视觉组，不新增硬编码颜色。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/shell_raised" />
+    <stroke android:width="1dp" android:color="@color/shell_line" />
+    <size android:width="40dp" android:height="40dp" />
+</shape>

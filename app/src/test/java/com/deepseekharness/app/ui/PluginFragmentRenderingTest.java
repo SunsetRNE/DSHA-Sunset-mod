@@ -7,7 +7,6 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -225,7 +224,9 @@ public final class PluginFragmentRenderingTest {
 
     publish(state(catalog, List.of(), true, "fixture header progress", 37));
     assertEquals(View.VISIBLE, page.find(R.id.pluginBusy).getVisibility());
-    assertEquals(37, ((ProgressBar) page.find(R.id.pluginBusy)).getProgress());
+    PluginTaskProgress progress = page.find(R.id.pluginBusy);
+    assertEquals(37, progress.percent());
+    assertFalse(progress.indeterminate());
     assertEquals("fixture header progress", text(page.find(R.id.statusText)));
     assertEquals(View.VISIBLE, page.find(R.id.btnCancelPluginTask).getVisibility());
     observer.assertNone();
@@ -258,7 +259,7 @@ public final class PluginFragmentRenderingTest {
               percent,
               null));
       publish(state(catalog, queue.snapshot(), true, "global progress", percent));
-      assertEquals(percent, ((ProgressBar) page.find(R.id.pluginBusy)).getProgress());
+      assertEquals(percent, ((PluginTaskProgress) page.find(R.id.pluginBusy)).percent());
       observer.assertNone();
       assertEquals(alpha, text(rowAt(1).findViewById(R.id.pluginStatus)));
       assertEquals(beta, text(rowAt(2).findViewById(R.id.pluginStatus)));

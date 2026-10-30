@@ -421,11 +421,21 @@ public final class PluginRepository extends AndroidViewModel {
   }
 
   public static final class State {
+    /** 没有新的成功 / 失败结果；普通进度和目录更新都用它。 */
+    public static final int RESULT_NONE = 0;
+
+    /** 最近一次任务成功。 */
+    public static final int RESULT_SUCCESS = 1;
+
+    /** 最近一次任务失败，或一次明确的用户操作错误。 */
+    public static final int RESULT_FAILURE = 2;
+
     public final List<Item> items;
     public final boolean busy;
     public final String message;
     public final boolean cancellable;
     public final int percent;
+    public final int result;
     public final com.deepseekharness.app.plugins.PluginRegistry.Snapshot catalog;
     public final List<com.deepseekharness.app.plugins.PluginOperationQueue.Operation> operations;
 
@@ -439,8 +449,20 @@ public final class PluginRepository extends AndroidViewModel {
       this.message = message;
       this.cancellable = cancellable;
       this.percent = percent;
+      this.result = RESULT_NONE;
       this.catalog = null;
       this.operations = Collections.emptyList();
+    }
+
+    /** 保留原签名供既有反射测试使用；默认没有新结果。 */
+    private State(
+        com.deepseekharness.app.plugins.PluginRegistry.Snapshot catalog,
+        List<com.deepseekharness.app.plugins.PluginOperationQueue.Operation> operations,
+        boolean busy,
+        String message,
+        boolean cancellable,
+        int percent) {
+      this(catalog, operations, busy, message, cancellable, percent, RESULT_NONE);
     }
 
     private State(
@@ -449,7 +471,8 @@ public final class PluginRepository extends AndroidViewModel {
         boolean busy,
         String message,
         boolean cancellable,
-        int percent) {
+        int percent,
+        int result) {
       this.catalog = catalog;
       this.items = catalog.items;
       this.operations = operations;
@@ -457,6 +480,7 @@ public final class PluginRepository extends AndroidViewModel {
       this.message = message;
       this.cancellable = cancellable;
       this.percent = percent;
+      this.result = result;
     }
   }
 
@@ -722,7 +746,7 @@ public final class PluginRepository extends AndroidViewModel {
 
   public void selectionMessage(String message) {
     SIGNALS.execute(() -> DiagnosticLog.record(getApplication(), "FILE_SELECTION", message));
-    if (!working.get()) publish(message, false, -1);
+    if (!working.get()) publish(message, false, -1, State.RESULT_FAILURE);
   }
 
   private interface Work {
@@ -977,7 +1001,7 @@ public final class PluginRepository extends AndroidViewModel {
       request.id = entry.operationId;
       if (entry.operation().phase
           == com.deepseekharness.app.plugins.PluginOperationQueue.Phase.REJECTED) {
-        publish("插件任务队列已满，请等待已有任务完成", false, -1);
+        publish("插件任务队列已满，请等待已有任务完成", false, -1, State.RESULT_FAILURE);
         return request.id;
       }
     }
@@ -988,6 +1012,10 @@ public final class PluginRepository extends AndroidViewModel {
   }
 
   private void publish(String message, boolean cancellable, int percent) {
+    publish(message, cancellable, percent, State.RESULT_NONE);
+  }
+
+  private void publish(String message, boolean cancellable, int percent, int result) {
     Runnable publication =
         () ->
             state.setValue(
@@ -997,7 +1025,8 @@ public final class PluginRepository extends AndroidViewModel {
                     working.get() || operations.hasPending() || pendingQuery != null,
                     message,
                     cancellable,
-                    percent));
+                    percent,
+                    result));
     if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) publication.run();
     else main.post(publication);
   }
@@ -1013,7 +1042,8 @@ public final class PluginRepository extends AndroidViewModel {
     publish(
         shown == null ? "" : shown.message,
         shown != null && shown.cancellable,
-        shown == null ? -1 : shown.percent);
+        shown == null ? -1 : shown.percent,
+        shown == null ? State.RESULT_NONE : shown.result);
   }
 
   private void adoptCatalog() {
@@ -1039,7 +1069,7 @@ public final class PluginRepository extends AndroidViewModel {
       synchronized (this) {
         pendingQuery = null;
       }
-      publish("插件后台执行器不可用，请重试", false, -1);
+      publish("插件后台执行器不可用，请重试", false, -1, State.RESULT_FAILURE);
       Listener current = listener;
       if (current != null) main.post(current::queryFinished);
     }
@@ -1061,7 +1091,11 @@ public final class PluginRepository extends AndroidViewModel {
       // 释放 CAS 后复查，覆盖取消唯一等待项与并发入队之间的丢唤醒窗口。
       if (operations.hasPending() || pendingQuery != null) scheduleWorker();
       State shown = state.getValue();
-      publish(shown == null ? "" : shown.message, false, -1);
+      publish(
+          shown == null ? "" : shown.message,
+          false,
+          -1,
+          shown == null ? State.RESULT_NONE : shown.result);
       return;
     }
     activeWork = request;
@@ -1223,7 +1257,11 @@ public final class PluginRepository extends AndroidViewModel {
     try {
       if (task != null) task.close();
     } catch (RuntimeException cleanupFailed) {
-      publish("插件清理未确认，保留环境占用：" + SensitiveData.redact(String.valueOf(cleanupFailed)), false, -1);
+      publish(
+          "插件清理未确认，保留环境占用：" + SensitiveData.redact(String.valueOf(cleanupFailed)),
+          false,
+          -1,
+          State.RESULT_FAILURE);
       return;
     }
     if (runtimeWork != null) runtimeWork.close();
@@ -1234,11 +1272,17 @@ public final class PluginRepository extends AndroidViewModel {
     operations.complete(request.id, phase, message);
     DiagnosticLog.record(getApplication(), "PLUGIN_RESULT", message);
     boolean completed = success;
+    int result =
+        completed
+            ? State.RESULT_SUCCESS
+            : phase == com.deepseekharness.app.plugins.PluginOperationQueue.Phase.CANCELLED
+                ? State.RESULT_NONE
+                : State.RESULT_FAILURE;
     String resultMessage = message;
     main.post(
         () -> {
           working.set(false);
-          publish(resultMessage, false, -1);
+          publish(resultMessage, false, -1, result);
           if (completed && request.success != null) request.success.run();
           if (completed && request.committed && request.resumeWeb)
             pendingResume =
@@ -1266,7 +1310,8 @@ public final class PluginRepository extends AndroidViewModel {
       if (resume.matches(controller, session)
           && !controller.isStarting()
           && !controller.isStopping()) {
-        if (!controller.startWeb(ignored -> {})) publish("插件已安装并启用；Web 未自动重启，请在启动页重试", false, -1);
+        if (!controller.startWeb(ignored -> {}))
+          publish("插件已安装并启用；Web 未自动重启，请在启动页重试", false, -1, State.RESULT_SUCCESS);
       }
     }
   }
@@ -1350,7 +1395,7 @@ public final class PluginRepository extends AndroidViewModel {
           try {
             task.cancel();
           } catch (IOException error) {
-            if (activeWork == request) publish(error.getMessage(), false, -1);
+            if (activeWork == request) publish(error.getMessage(), false, -1, State.RESULT_FAILURE);
           }
         });
   }

@@ -22,6 +22,8 @@
     <color name="shell_accent">#1E50D0</color>
     <color name="shell_accent_soft">#141E50D0</color>
     <color name="shell_on_accent">#FFFFFF</color>
+    <!-- 进度条流光叠层：日间 38% 白，夜间压到 16%，只叠在强调色填充内。 -->
+    <color name="shell_sheen">#61FFFFFF</color>
     <color name="shell_good">#287453</color>
     <color name="shell_warn">#8C600D</color>
     <color name="shell_bad">#AF404B</color>

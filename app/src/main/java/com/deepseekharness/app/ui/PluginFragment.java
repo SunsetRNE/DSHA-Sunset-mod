@@ -72,6 +72,9 @@ public class PluginFragment extends Fragment {
   private PageState pageState;
   private boolean restoreScroll, createdView;
   private boolean listEnterPlayed;
+  private boolean taskWasBusy;
+  private String lastResultMessage = "";
+  private int taskMaxPercent = -1;
 
   /** Activity 范围只保存页面选择；不拥有插件任务或目录。Bundle 负责进程重建。 */
   public static final class PageState extends ViewModel {
@@ -229,10 +232,10 @@ public class PluginFragment extends Fragment {
     find(R.id.btnRefresh).setOnClickListener(v -> repository.refresh());
     find(R.id.btnPluginUpdates).setOnClickListener(v -> repository.checkUpdates(null));
     find(R.id.btnPluginDownloadSource).setOnClickListener(v -> showDownloadSources());
+    find(R.id.btnPluginDownloadInfo)
+        .setContentDescription(com.deepseekharness.app.util.UiText.text("使用说明"));
+    find(R.id.btnPluginDownloadInfo).setOnClickListener(v -> showDownloadSourceInfo());
     updateDownloadSourceLabel();
-    ((TextView) find(R.id.pluginDownloadHint))
-        .setText(
-            com.deepseekharness.app.util.UiText.text("自动选择可用的 npm 源；镜像失败时回退官方源。GitHub 使用官方直连。"));
     find(R.id.btnCancelPluginTask).setOnClickListener(v -> repository.cancelTask());
     find(R.id.btnPluginRestore)
         .setOnClickListener(
@@ -450,6 +453,21 @@ public class PluginFragment extends Fragment {
     };
   }
 
+  /** 下载源说明与最近一次任务结果：原文案不再常驻页面，只在用户主动点开时出现。 */
+  private void showDownloadSourceInfo() {
+    String hint =
+        com.deepseekharness.app.util.UiText.text("自动选择可用的 npm 源；镜像失败时回退官方源。GitHub 使用官方直连。");
+    String result =
+        lastResultMessage.isEmpty()
+            ? ""
+            : com.deepseekharness.app.util.UiStateText.render(lastResultMessage);
+    new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext())
+        .setTitle(com.deepseekharness.app.util.UiText.text("使用说明"))
+        .setMessage(result.isEmpty() ? hint : hint + "\n\n" + result)
+        .setPositiveButton(com.deepseekharness.app.util.UiText.text("关闭"), null)
+        .show();
+  }
+
   private void showDownloadSources() {
     if (repository.isBusy()) return;
     com.deepseekharness.app.core.ConfigStore config =
@@ -646,11 +664,29 @@ public class PluginFragment extends Fragment {
         .setTextColor(
             requireContext()
                 .getColor(market ? R.color.shell_text_secondary : R.color.shell_accent));
-    find(R.id.pluginBusy).setVisibility(current.busy ? View.VISIBLE : View.GONE);
     find(R.id.statusText).setVisibility(current.message.isEmpty() ? View.GONE : View.VISIBLE);
-    android.widget.ProgressBar progress = find(R.id.pluginBusy);
-    progress.setIndeterminate(current.percent < 0);
-    if (current.percent >= 0) progress.setProgress(current.percent);
+    PluginTaskProgress progress = find(R.id.pluginBusy);
+    if (current.busy) {
+      if (!taskWasBusy) {
+        lastResultMessage = "";
+        taskMaxPercent = -1;
+      }
+      if (current.percent >= 0) taskMaxPercent = Math.max(taskMaxPercent, current.percent);
+      progress.setTask(
+          current.percent, com.deepseekharness.app.util.UiStateText.render(current.message));
+      taskWasBusy = true;
+    } else {
+      if (current.result != PluginRepository.State.RESULT_NONE && !current.message.isEmpty())
+        lastResultMessage = current.message;
+      if (progress.finishing()) {
+        // 成功 / 失败收束自己会隐藏；后续状态更新不能把它重新拉回或打断。
+      } else if (taskWasBusy && current.result != PluginRepository.State.RESULT_NONE) {
+        progress.finish(current.result == PluginRepository.State.RESULT_SUCCESS, taskMaxPercent);
+      } else {
+        progress.hide();
+      }
+      taskWasBusy = false;
+    }
     find(R.id.btnCancelPluginTask).setVisibility(current.busy ? View.VISIBLE : View.GONE);
     find(R.id.btnCancelPluginTask).setEnabled(current.cancellable);
     ((TextView) find(R.id.statusText))

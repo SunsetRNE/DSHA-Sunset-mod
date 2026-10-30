@@ -401,6 +401,7 @@
     "app/src/main/java/com/deepseekharness/app/ui/PluginInstallActivity.java",
     "app/src/main/java/com/deepseekharness/app/ui/PluginListPresenter.java",
     "app/src/main/java/com/deepseekharness/app/ui/PluginNavigation.java",
+    "app/src/main/java/com/deepseekharness/app/ui/PluginTaskProgress.java",
     "app/src/main/java/com/deepseekharness/app/ui/PreviewAuth.java",
     "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java",
     "app/src/main/java/com/deepseekharness/app/ui/RecoveryActivity.java",
