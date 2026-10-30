@@ -130,12 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("内置 dsh-web-mobile 同步到上游最新内容"));
-      assertTrue(shown.contains("平板触屏档"));
-      assertTrue(shown.contains("versionName 后缀回到 -SunsetTest"));
-      assertTrue(shown.contains("minSdkVersion"));
-      assertTrue(shown.contains("对比度达到 4.5:1"));
-      assertTrue(shown.contains("PackagedAssets"));
+      assertTrue(shown.contains("插件页进度条改为 F 方案"));
+      assertTrue(shown.contains("不确定态呼吸"));
+      assertTrue(shown.contains("绿色 100%"));
+      assertTrue(shown.contains("圆形感叹号按钮弹窗"));
+      assertTrue(shown.contains("入队前失败"));
+      assertTrue(shown.contains("TalkBack 进度语义"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -156,12 +156,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Bundled dsh-web-mobile is synced to the latest upstream content"));
-      assertTrue(shown.contains("tablet touch profile"));
-      assertTrue(shown.contains("versionName suffix is back to -SunsetTest"));
-      assertTrue(shown.contains("minSdkVersion"));
-      assertTrue(shown.contains("4.5:1"));
-      assertTrue(shown.contains("PackagedAssets"));
+      assertTrue(shown.contains("scheme F"));
+      assertTrue(shown.contains("breathing when indeterminate"));
+      assertTrue(shown.contains("round exclamation-button popup"));
+      assertTrue(shown.contains("pre-dispatch failures"));
+      assertTrue(shown.contains("TalkBack progress semantics"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
