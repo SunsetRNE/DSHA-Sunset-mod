@@ -378,7 +378,7 @@ public final class PluginTaskProgress extends View {
               AccessibilityNodeInfo.RangeInfo.RANGE_TYPE_PERCENT, 0f, 100f, shown));
       info.setContentDescription(description(shown));
     } else if (mode == INDETERMINATE) {
-      info.setRangeInfo(AccessibilityNodeInfo.RangeInfo.INDETERMINATE);
+      // RangeInfo.INDETERMINATE 需要 API 36；minSdk 30 只用状态文字表达未知总量。
       info.setContentDescription(label);
     }
   }
