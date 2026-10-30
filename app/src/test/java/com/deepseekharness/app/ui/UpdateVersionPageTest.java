@@ -130,12 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("三态判定"));
-      assertTrue(shown.contains("原 Web 仍存活"));
-      assertTrue(shown.contains("加密实例记录"));
-      assertTrue(shown.contains("自动续接一次"));
-      assertTrue(shown.contains("500ms/1500ms"));
-      assertTrue(shown.contains("启动器仍在退出"));
+      assertTrue(shown.contains("内置 DSH 升级到上游"));
+      assertTrue(shown.contains("thinking 的展示随上游更新"));
+      assertTrue(shown.contains("DSH CLI 入口"));
+      assertTrue(shown.contains("336dp 收窄到 224dp"));
+      assertTrue(shown.contains("版本码提升为 213"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -156,11 +155,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("three states"));
-      assertTrue(shown.contains("PID record"));
-      assertTrue(shown.contains("automatically once"));
-      assertTrue(shown.contains("500ms/1500ms"));
-      assertTrue(shown.contains("launcher still exiting"));
+      assertTrue(shown.contains("bundled DSH is upgraded to upstream"));
+      assertTrue(shown.contains("thinking display"));
+      assertTrue(shown.contains("DSH CLI entry"));
+      assertTrue(shown.contains("336dp maximum width to 224dp"));
+      assertTrue(shown.contains("versionCode is raised to 213"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
