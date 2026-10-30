@@ -130,11 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("独立应急 DSH 由 0.2.1-rc.3 对齐"));
-      assertTrue(shown.contains("APK 只保留一份"));
-      assertTrue(shown.contains("覆盖层输入名单"));
-      assertTrue(shown.contains("Picnic 后量子常量表"));
-      assertTrue(shown.contains("版本码提升为 215"));
+      assertTrue(shown.contains("内置 dsh-web-mobile 同步到上游 main"));
+      assertTrue(shown.contains("全屏右侧面板层带与壁纸底色"));
+      assertTrue(shown.contains("宠物悬浮层在弹层/面板下遮挡并吞点击"));
+      assertTrue(shown.contains("文件面板手势改读"));
+      assertTrue(shown.contains("版本码提升为 216"));
+      assertFalse(shown.contains("版本码提升为 215"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -155,11 +156,12 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("independent emergency DSH moves from 0.2.1-rc.3"));
-      assertTrue(shown.contains("the APK keeps a single copy"));
-      assertTrue(shown.contains("overlay input list"));
-      assertTrue(shown.contains("Picnic post-quantum constant tables"));
-      assertTrue(shown.contains("versionCode is raised to 215"));
+      assertTrue(shown.contains("Bundled dsh-web-mobile is synced to upstream main"));
+      assertTrue(shown.contains("fullscreen right panel gets back its sheet band"));
+      assertTrue(shown.contains("pet overlay no longer covers sheets/panels"));
+      assertTrue(shown.contains("files-panel gesture reads"));
+      assertTrue(shown.contains("versionCode is raised to 216"));
+      assertFalse(shown.contains("versionCode is raised to 215"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
