@@ -130,11 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("内置 DSH 升级到上游"));
-      assertTrue(shown.contains("thinking 的展示随上游更新"));
-      assertTrue(shown.contains("DSH CLI 入口"));
-      assertTrue(shown.contains("336dp 收窄到 224dp"));
-      assertTrue(shown.contains("版本码提升为 213"));
+      assertTrue(shown.contains("224dp 会话抽屉做视觉对齐"));
+      assertTrue(shown.contains("底部动作改用短标签"));
+      assertTrue(shown.contains("12dp 网格"));
+      assertTrue(shown.contains("手机设置弹层里"));
+      assertTrue(shown.contains("输入框改为独占整行"));
+      assertTrue(shown.contains("版本码提升为 214"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -155,11 +156,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("bundled DSH is upgraded to upstream"));
-      assertTrue(shown.contains("thinking display"));
-      assertTrue(shown.contains("DSH CLI entry"));
-      assertTrue(shown.contains("336dp maximum width to 224dp"));
-      assertTrue(shown.contains("versionCode is raised to 213"));
+      assertTrue(shown.contains("Visual alignment pass for the 224dp"));
+      assertTrue(shown.contains("footer actions now use short labels"));
+      assertTrue(shown.contains("12dp grid"));
+      assertTrue(shown.contains("input field now takes its own full-width row"));
+      assertTrue(shown.contains("versionCode is raised to 214"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
