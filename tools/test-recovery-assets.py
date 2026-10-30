@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 import json
+import re
 import recovery_runtime_overlay as browser_overlay
 
 CURRENT_DSH = json.loads((Path(__file__).parents[1] / 'tools/recovery-runtime/lock.json').read_text(encoding='utf8'))['dshVersion']
@@ -59,6 +60,23 @@ class RecoveryAssetTests(unittest.TestCase):
         self.assertEqual(browser_overlay.exact('before patched + extra', 'before', 'before patched'), 'before patched + extra')
         with self.assertRaisesRegex(ValueError, 'RECOVERY_OVERLAY_ANCHOR'):
             browser_overlay.exact('before patched + before', 'before', 'before patched')
+
+    def test_android_overlay_inputs_match_the_generator_names(self):
+        # build193 起描述使用 recovery-recipes/<版本>/ 键，Android 曾仍读顶层 recipe 名；两边必须同源。
+        java = (module.ROOT / 'app/src/main/java/com/deepseekharness/app/util/RecoveryOverlayInputs.java').read_text(encoding='utf8')
+
+        def literals(field):
+            block = re.search(r'\b' + field + r'\s*=\s*\{(.*?)\};', java, re.S)
+            self.assertIsNotNone(block, field)
+            return tuple(re.findall(r'"([^"]+)"', block.group(1)))
+
+        fixed, recipes = literals('FIXED'), literals('RECIPES')
+        self.assertEqual(fixed, browser_overlay.INPUT_ASSETS)
+        self.assertEqual(browser_overlay.input_assets(CURRENT_DSH),
+                         fixed + tuple(browser_overlay.recipe_path(CURRENT_DSH, name) for name in recipes))
+        runtime = (module.ROOT / 'app/src/main/java/com/deepseekharness/app/recovery/RecoveryRuntime.java').read_text(encoding='utf8')
+        self.assertIn('RecoveryOverlayInputs.forVersion(descriptor.getString("dshVersion"))', runtime)
+        self.assertNotIn('OVERLAY_INPUTS', runtime)
 
     def layout(self, root):
         shared, store, output = root / 'shared', root / 'pinned', root / 'output'

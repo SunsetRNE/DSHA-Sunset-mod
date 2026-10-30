@@ -1,6 +1,6 @@
 # Fixed build inputs (public-repository prerelease asset)
 
-Updated 2026-10-30 (build214 / bundled DSH 0.2.1-rc.5). Current asset tag: [`fixed-inputs-20261030`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261030)
+Updated 2026-10-31 (build215 / bundled DSH 0.2.1-rc.5; the independent emergency DSH is also rc.5). Current asset tag: [`fixed-inputs-20261031`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261031)
 (a GitHub prerelease); the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
 
 ## Why the fixed inputs are not stored in git
@@ -37,12 +37,14 @@ rules do not apply to them, which is expected.
 | `app/src/main/assets/dsh-runtime.inputs.json` | 11490 | provenance (no separate binary pin) |
 | `app/src/main/assets/ubuntu-tools.inputs.json` | 592 | provenance (no separate binary pin) |
 | `tools/recovery-runtime/archives/recovery-rootfs.bin` | 85783057 | `tools/recovery-runtime/lock.json` |
-| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 127671447 | `tools/recovery-runtime/lock.json` |
+| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 127674426 | `tools/recovery-runtime/lock.json` |
 
 The set covers the Ubuntu offline rootfs, DSH runtime, ubuntu tools, pnpm runtime, Python support, glibc Python,
 and ADB wheels, plus the independent emergency DSH rootfs/runtime archives. The normal archive is now bundled DSH
 `0.2.1-rc.5` (127,674,426 B / SHA-256 `91aa4685721ce569e32953295dc6b01b63fe2ac5e1eac8173440656896acdcb2`); the
-emergency archive stays pinned to `0.2.1-rc.3` and their locks/verification contracts remain independent.
+since build215 the independent emergency lock was moved, with the user's authorization, to the same `0.2.1-rc.5`
+archive bytes, so the APK stores one shared copy (mapped by `recovery-asset-locations.json`). The locks and
+verification contracts remain independent; a regular upgrade never changes the emergency lock automatically.
 
 ## Lock and restoration
 
@@ -51,12 +53,12 @@ Fields in [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json):
 ```json
 {
   "schema": 1,
-  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261030/dsha-a-su-fixed-inputs-20261030.zip",
-  "sha256": "e07657055835136ec96fc70fbc3eff1037670bb845d052288fde2f72e9ffd3ef",
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261031/dsha-a-su-fixed-inputs-20261031.zip",
+  "sha256": "a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726",
   "format": "bundle",
-  "release": "fixed-inputs-20261030",
-  "asset": "dsha-a-su-fixed-inputs-20261030.zip",
-  "bytes": 696358548
+  "release": "fixed-inputs-20261031",
+  "asset": "dsha-a-su-fixed-inputs-20261031.zip",
+  "bytes": 696361527
 }
 ```
 
@@ -74,8 +76,8 @@ python3 tools/ci-assets.py --url "<lock.url>" --sha256 "<lock.sha256>"
 Or reuse a local archive:
 
 ```bash
-python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261030.zip \
-  --sha256 e07657055835136ec96fc70fbc3eff1037670bb845d052288fde2f72e9ffd3ef
+python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261031.zip \
+  --sha256 a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726
 ```
 
 `ci-assets.py` verifies, in order: whole-archive SHA-256 → member whitelist/path/type/duplicate and total size →
@@ -87,15 +89,15 @@ everything passes. Any failure leaves existing inputs untouched and never execut
 
 | Item | Value |
 |---|---|
-| release tag | `fixed-inputs-20261030` (prerelease, target `main`) |
-| release id | `428939604` |
-| asset | `dsha-a-su-fixed-inputs-20261030.zip` |
-| bytes | `696358548` |
-| SHA-256 | `e07657055835136ec96fc70fbc3eff1037670bb845d052288fde2f72e9ffd3ef` |
-| download URL | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261030/dsha-a-su-fixed-inputs-20261030.zip` |
+| release tag | `fixed-inputs-20261031` (prerelease, target `main`) |
+| release id | `429323356` |
+| asset | `dsha-a-su-fixed-inputs-20261031.zip` |
+| bytes | `696361527` |
+| SHA-256 | `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726` |
+| download URL | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261031/dsha-a-su-fixed-inputs-20261031.zip` |
 
 > Upload status is authoritative from the `name`/`size`/`state` returned by
-> `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261030`: only `size=696358548` and
+> `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261031`: only `size=696361527` and
 > `state=uploaded` mean the upload completed. The direct URL is determined by the tag plus the asset filename and does
 > not depend on the asset id. A same-tag `--clobber` replacement keeps the filename but changes the content and
 > SHA-256, so the lock must be updated.

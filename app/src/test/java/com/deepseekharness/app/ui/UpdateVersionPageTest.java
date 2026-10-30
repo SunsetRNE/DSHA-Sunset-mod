@@ -130,12 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("224dp 会话抽屉做视觉对齐"));
-      assertTrue(shown.contains("底部动作改用短标签"));
-      assertTrue(shown.contains("12dp 网格"));
-      assertTrue(shown.contains("手机设置弹层里"));
-      assertTrue(shown.contains("输入框改为独占整行"));
-      assertTrue(shown.contains("版本码提升为 214"));
+      assertTrue(shown.contains("独立应急 DSH 由 0.2.1-rc.3 对齐"));
+      assertTrue(shown.contains("APK 只保留一份"));
+      assertTrue(shown.contains("覆盖层输入名单"));
+      assertTrue(shown.contains("Picnic 后量子常量表"));
+      assertTrue(shown.contains("版本码提升为 215"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -156,11 +155,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Visual alignment pass for the 224dp"));
-      assertTrue(shown.contains("footer actions now use short labels"));
-      assertTrue(shown.contains("12dp grid"));
-      assertTrue(shown.contains("input field now takes its own full-width row"));
-      assertTrue(shown.contains("versionCode is raised to 214"));
+      assertTrue(shown.contains("independent emergency DSH moves from 0.2.1-rc.3"));
+      assertTrue(shown.contains("the APK keeps a single copy"));
+      assertTrue(shown.contains("overlay input list"));
+      assertTrue(shown.contains("Picnic post-quantum constant tables"));
+      assertTrue(shown.contains("versionCode is raised to 215"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }

@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261030.2130-dsh0.2.1-rc.5` / build214 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build visually aligns the 224dp terminal session drawer on phone portrait/narrow windows (short-label actions, compact summary/subtitle, 12dp grid) and fixes the narrow-screen layout of the font rows in the rc.5 mobile settings sheet; the bundled DSH rc.5, terminal DSH CLI entry and drawer narrowing from build213 are in the [build213 update notes](../releases/build213-changes.en.md). See the [build214 update notes](../releases/build214-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+Current source: `0.2.1-rc.3-20261031.0300-dsh0.2.1-rc.5` / build215 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build moves the independent emergency DSH lock to the same rc.5 archive bytes as the main environment (the APK keeps one copy, about 127.7 MB smaller), fixes the emergency overlay input list mismatch, and excludes unused BouncyCastle Picnic/CertPathReviewer resources; the build214 terminal drawer and settings font-row fixes are in the [build214 update notes](../releases/build214-changes.en.md); the bundled DSH rc.5, terminal DSH CLI entry and drawer narrowing from build213 are in the [build213 update notes](../releases/build213-changes.en.md). See the [build215 update notes](../releases/build215-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

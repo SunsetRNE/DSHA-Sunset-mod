@@ -47,7 +47,7 @@ F11当时暂停设备验收，不应把历史包或软件结果转记为F11手�
 | 运行时工具 | pnpm `10.34.5`，certifi `2026.7.22` | [runtime-tools.lock.json](../tools/runtime-tools.lock.json) |
 | 默认 / 可选引擎 | proot / proroot；后者本地声明 v1.2.8 | [AGENTS](../AGENTS.md)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
 | Android 身份 | `dsh.android.client`，versionCode `201`；具体 dated versionName 看构建配置 | [app/build.gradle](../app/build.gradle) |
-| 独立应急环境 | DSH `0.2.1-rc.2` / base `10`，独立归档摘要 | [recovery-runtime/lock.json](../tools/recovery-runtime/lock.json) |
+| 独立应急环境 | DSH `0.2.1-rc.5` / base `10`，独立归档摘要（build215 起与正式归档字节相同、APK 内共用） | [recovery-runtime/lock.json](../tools/recovery-runtime/lock.json) |
 
 ### DSH 包来源
 

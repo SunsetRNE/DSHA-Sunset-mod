@@ -104,6 +104,8 @@
     "recovery-recipes/0.2.1-rc.2/pdf-compat-patch.json",
     "recovery-recipes/0.2.1-rc.3/language-patch.json",
     "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json",
+    "recovery-recipes/0.2.1-rc.5/language-patch.json",
+    "recovery-recipes/0.2.1-rc.5/pdf-compat-patch.json",
     "register-builtin-plugins.py",
     "retire-guarded-preset-patch.json",
     "retired-market-catalog-patch.json",
@@ -244,7 +246,9 @@
         "recovery-recipes/0.2.1-rc.2/language-patch.json",
         "recovery-recipes/0.2.1-rc.2/pdf-compat-patch.json",
         "recovery-recipes/0.2.1-rc.3/language-patch.json",
-        "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json"
+        "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json",
+        "recovery-recipes/0.2.1-rc.5/language-patch.json",
+        "recovery-recipes/0.2.1-rc.5/pdf-compat-patch.json"
       ]
     },
     {

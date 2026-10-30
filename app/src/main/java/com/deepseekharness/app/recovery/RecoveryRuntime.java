@@ -12,6 +12,7 @@ import com.deepseekharness.app.util.ProcessIdentity;
 import com.deepseekharness.app.util.RuntimeInstanceRegistry;
 import com.deepseekharness.app.util.RecoveryArchiveSource;
 import com.deepseekharness.app.util.RecoveryDescriptorLimits;
+import com.deepseekharness.app.util.RecoveryOverlayInputs;
 import com.deepseekharness.app.util.ShellQuote;
 import com.deepseekharness.app.util.WebPidIdentity;
 import com.deepseekharness.app.util.UiText;
@@ -48,13 +49,6 @@ public final class RecoveryRuntime {
     "recovery-overlay/client.pdf.js",
     "recovery-overlay/client-resources.js",
     "recovery-overlay/client-locale.js"
-  };
-  private static final String[] OVERLAY_INPUTS = {
-    "web-integration/es-compat.js",
-    "web-integration/startup.js",
-    "pdf-compat-patch.json",
-    "language-patch.json",
-    "web-integration/language.js"
   };
   private static final String POLICY_ROOT =
       "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dsha-destructive-policy/";
@@ -317,14 +311,13 @@ public final class RecoveryRuntime {
   private void applyBrowserOverlay(File root) throws IOException {
     try {
       JSONObject inputHashes = descriptor.getJSONObject("overlayInputs");
-      if (inputHashes.length() != OVERLAY_INPUTS.length)
+      // 名单跟随描述里的独立锁版本，与 tools/recovery_runtime_overlay.py 的 input_assets() 同源。
+      String[] inputs = RecoveryOverlayInputs.forVersion(descriptor.getString("dshVersion"));
+      if (inputHashes.length() != inputs.length)
         throw new IOException("RECOVERY_OVERLAY_INPUT_COUNT");
-      for (String name : OVERLAY_INPUTS)
+      for (String name : inputs)
         verifyDigest(
-            new ByteArrayInputStream(
-                asset(
-                    name,
-                    name.equals("web-integration/language.js") ? 8 * 1024 * 1024 : 1024 * 1024)),
+            new ByteArrayInputStream(asset(name, RecoveryOverlayInputs.limit(name))),
             inputHashes.getString(name));
       JSONArray rows = descriptor.getJSONArray("overlays");
       if (rows.length() != OVERLAY_PATHS.length) throw new IOException("RECOVERY_OVERLAY_COUNT");

@@ -1,6 +1,6 @@
 # DSH rc5 数据读取证据（build213）
 
-本记录只针对正式运行时 `0.2.1-rc.3` → `0.2.1-rc.5` 的**前向读取**证据。它不从 DSH 版本号推导数据格式，不修改个人数据，不证明旧运行时可安全回退，也不把宿主夹具结果写成手机验收。独立应急运行时仍固定 `0.2.1-rc.3`（`tools/recovery-runtime/lock.json`），不在本记录覆盖范围。
+本记录只针对正式运行时 `0.2.1-rc.3` → `0.2.1-rc.5` 的**前向读取**证据。它不从 DSH 版本号推导数据格式，不修改个人数据，不证明旧运行时可安全回退，也不把宿主夹具结果写成手机验收。独立应急运行时当时仍固定 `0.2.1-rc.3`（`tools/recovery-runtime/lock.json`），不在本记录覆盖范围；build215 起应急锁另行同步到 rc.5，见下方说明。
 
 ## 归档与身份
 
@@ -13,7 +13,7 @@
 | rc5 锁 | SHA-256 `f9fa18056f0641e29c27c45b39cea3d6ec6535e7d61319c263a510d626561e6b` |
 | 描述符 dataRead | `['dsh-0.2.1-rc.3', 'dsh-0.2.1-rc.5']`（只新增这一条前向边，未扩写更老边） |
 
-旧归档 SHA 与 `tools/recovery-runtime/lock.json` 中 `recovery-dsh-runtime.bin` 相同；正式升级后应急仍使用该固定字节，不随本轮替换（`tools/recovery-runtime/archives/` 中两件归档摘要与锁一致）。
+旧归档 SHA 与 build213/214 的 `tools/recovery-runtime/lock.json` 中 `recovery-dsh-runtime.bin` 相同；当时正式升级后应急仍使用该固定字节，不随该轮替换。build215 经用户明确授权把应急锁同步到本表的新正式归档（`91aa4685…acdcb2`），APK 内共用一份字节；这是一次独立的锁变更，本记录的数据读取证据不因此扩写到应急运行时。
 
 ## 原始字节核对
 

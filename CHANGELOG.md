@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261031.0300-dsh0.2.1-rc.5 / build215（安装包减重：应急 DSH 对齐 rc.5 共用归档）
+
+- 独立应急（安全启动/救援）DSH 锁经用户明确授权由 0.2.1-rc.3 同步到正式环境同一份 0.2.1-rc.5 归档（127,674,426 B，SHA-256 `91aa4685721ce569e32953295dc6b01b63fe2ac5e1eac8173440656896acdcb2`）；两份归档字节相同，APK 按 `recovery-asset-locations.json` 只保留一份，少一份约 127.7 MB 的 DSH 归档。应急环境仍解压到独立目录，独立锁、runtimeId、会话与启动流程不变；固定输入换为 [`fixed-inputs-20261031`](docs/fixed-build-inputs.md)。
+- 修复独立应急首次准备时覆盖层输入名单与描述不一致（build193 起描述改用 `recovery-recipes/<版本>/` 键，Android 仍按顶层 recipe 名核对，会以 `RECOVERY_OVERLAY_INVALID` 失败）：新增 `util/RecoveryOverlayInputs` 按应急锁版本生成名单，配 JUnit 与构建侧对照测试；新增 `recovery-recipes/0.2.1-rc.5/` 两份 recipe。
+- 打包排除 BouncyCastle 中应用从不加载的 Picnic 后量子常量表与 CertPathReviewer 文案（压缩后约 1.2 MB）；备份加密用到的 AES-GCM / SHA-256 / PBKDF2 轻量 API 不受影响。
+- 版本码提升为 215；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 后缀为 0.2.1-rc.5；十语种更新说明见[build215 更新说明](docs/releases/build215-changes.zh.md)。构建与验收范围以本轮 run 与 Release 回执为准；应急环境在真机上的启动/对话验收未在本轮执行。
+
 ## 0.2.1-rc.3-20261030.2130-dsh0.2.1-rc.5 / build214（终端窄抽屉视觉对齐与移动端设置字体行修复）
 
 - 终端手机竖屏/窄窗 224dp 会话抽屉做视觉对齐：底部动作改用短标签并保持 2 列×3 行、单行等高，摘要简化为「N 个会话」（完整分组计数保留在无障碍名称里），头部副标题简化为「独立会话」，抽屉内边距统一到 12dp 网格；宽屏/平板布局不变。

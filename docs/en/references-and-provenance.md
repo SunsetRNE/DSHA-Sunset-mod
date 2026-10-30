@@ -35,7 +35,7 @@ The following values come from current files. Update the lock before this page w
 | Runtime tools | pnpm `10.34.5`, certifi `2026.7.22` | [runtime-tools.lock.json](../../tools/runtime-tools.lock.json) |
 | Default/optional engine | proot/proroot; the latter locally declared v1.2.8 | [AGENTS](../../AGENTS.en.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
 | Android identity | `dsh.android.client`, versionCode `201`; see build configuration for the dated versionName | [app/build.gradle](../../app/build.gradle) |
-| Independent recovery environment | DSH `0.2.1-rc.2` / base `10`, separate archive digests | [recovery-runtime/lock.json](../../tools/recovery-runtime/lock.json) |
+| Independent recovery environment | DSH `0.2.1-rc.5` / base `10`, separate archive digests (since build215 byte-identical to the regular archive and shared in the APK) | [recovery-runtime/lock.json](../../tools/recovery-runtime/lock.json) |
 
 ### DSH package provenance
 

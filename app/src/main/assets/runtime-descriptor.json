@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "af8f0faf88919c91b667ff4f5e156650891fab9d052d88ed0aae3fba3550d223",
+  "runtimeId": "1cdb9e702b45c0794160e33bacd27b71a6ce792c115ff2fc385cadf95bb9c86e",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.5",
   "launcherContract": "DSHA_ARM64_V2",
@@ -164,7 +164,7 @@
     "diagnostics/DiagnosticPrivacy.java": "b94d39648a159735e0e197948d1f55b2318b3694b6378ad952346fcff2f2bfbb",
     "diagnostics/Failure.java": "9c4c52d4205001a13d97141d3aa8edf7ddff23b4791eeafac64a4c5db9a2a74b",
     "generator:tools/apply-mobile-client-patches.mjs": "b53e90318f677c9421ca3775e12d3e9fe4bf190f38162309acfd03514a13af2e",
-    "generator:tools/asset-deployment.json": "c2a9f509746512bee270037a28a91460db77e84283db7299013826e090b98bff",
+    "generator:tools/asset-deployment.json": "2835db4d422ac0988d0f7764916ea8d339e1dd4cf8dc1bd2e94d8725f5004249",
     "generator:tools/asset_deployment.py": "a7bcb0d6c5f4dc5730274b49d74f765ef357c4e28a317e213a7c0987b4bb88ac",
     "generator:tools/backup-dependencies.lock.json": "891585530b7e3224f8ce8523ab2cf20b05dbaa4f472202742676f2799927ddbe",
     "generator:tools/file-transfer/client-controls.js": "462c682a966c5f350b4108eba7f67b588be91efadf9484369b0ad31687eec8a4",
