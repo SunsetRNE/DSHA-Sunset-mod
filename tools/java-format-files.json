@@ -613,6 +613,7 @@
     "app/src/main/java/com/deepseekharness/app/util/GeckoFileChooserState.java",
     "app/src/main/java/com/deepseekharness/app/util/GitHubRef.java",
     "app/src/main/java/com/deepseekharness/app/util/GrantSummary.java",
+    "app/src/main/java/com/deepseekharness/app/util/GrepReadPaths.java",
     "app/src/main/java/com/deepseekharness/app/util/GuestCommandOutcome.java",
     "app/src/main/java/com/deepseekharness/app/util/GuestPaths.java",
     "app/src/main/java/com/deepseekharness/app/util/GuestRegularFile.java",
