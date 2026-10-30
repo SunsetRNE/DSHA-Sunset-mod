@@ -11,6 +11,31 @@ test('移动client固定预构建来源与部署产物闭环，拒绝错误版�
   assert.equal(readFileSync('app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js','utf8'),applyMobileClientPatches(source));
   assert.throws(()=>applyMobileClientPatches(Buffer.concat([source,Buffer.from('\n')])),/字节不匹配/);
 });
+test('手机设置弹层字体族行换行，字号行/其它弹层不受影响且产物逐字节一致',()=>{
+  const source=readFileSync('tools/mobile-plugin-upstream/lib/client.js','utf8');
+  const patched=applyMobileClientPatches(Buffer.from(source));
+  const settings='[aria-modal="true"][data-shortcut-modal="settings"]';
+  const row=settings+' div[class*="_row"]';
+  const input='input[spellcheck="false"][autocomplete="off"][maxlength="200"]';
+  assert.ok(patched.includes('DSHA_FONT_FAMILY_ROW_V1'));
+  // rc.5 的 Input 原语把 <input> 包在 span[class*="_wrap"] 内（240px 也在 wrapper 上），
+  // 所以「裸 input」与「wrapper 内 input」两种宿主形态都要覆盖。
+  assert.ok(patched.includes(row+':has(> '+input+')'));
+  assert.ok(patched.includes(row+':has(> span[class*="_wrap"] > '+input+')'));
+  assert.ok(patched.includes(row+':has(> '+input+') > div[class*="_rowText"]'));
+  assert.ok(patched.includes(row+':has(> span[class*="_wrap"] > '+input+') > div[class*="_rowText"]'));
+  assert.ok(patched.includes(row+':has(> '+input+') > input'));
+  assert.ok(patched.includes(row+':has(> span[class*="_wrap"] > '+input+') > span[class*="_wrap"]'));
+  assert.ok(patched.includes('@media (max-width: 1023px) and (pointer: coarse) {'));
+  // 单层 :has：仓库踩过“嵌套 :has 整条失效”的坑；字号行没有 input 也不会命中。
+  const start=patched.indexOf('/* DSHA_FONT_FAMILY_ROW_V1');
+  const block=patched.slice(start,patched.indexOf('/* ---------- sidebar panel enter / exit',start));
+  assert.ok(block.length>500);
+  assert.ok(!block.includes('data-shortcut-modal="shortcuts"'));
+  for(const line of block.split('\n'))if(line.includes(':has('))
+    assert.equal((line.match(/:has\(/g)||[]).length,1,'同一选择器只允许单层 :has: '+line.trim());
+  assert.equal(readFileSync('app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js','utf8'),patched);
+});
 test('3.2.2 最新上游视口函数保持原字节，不复活已撤回的帧合并试验',()=>{
   const source=readFileSync('tools/mobile-plugin-upstream/lib/client.js','utf8');
   const patched=applyMobileClientPatches(Buffer.from(source));

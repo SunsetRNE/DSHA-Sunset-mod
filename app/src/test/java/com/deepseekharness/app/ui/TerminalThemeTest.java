@@ -102,7 +102,8 @@ public class TerminalThemeTest {
     setTheme("light");
     var controller = buildHost();
     TerminalActivity host = controller.get();
-    measure(host, 400, 900);
+    // 640dp 窗口的平板抽屉为 336dp（≥240dp），高窗下才应显示全标签动作组。
+    measure(host, 640, 900);
     openDrawer(host);
 
     assertEquals(View.VISIBLE, host.findViewById(R.id.terminal_sessions_actions).getVisibility());
@@ -113,7 +114,7 @@ public class TerminalThemeTest {
     // 主题切换从终端侧栏移出：侧栏只保留会话与输入相关动作。
     assertNull(host.findViewById(R.id.terminal_sessions_theme));
 
-    measure(host, 400, 470);
+    measure(host, 640, 470);
     assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_actions).getVisibility());
     assertEquals(
         View.VISIBLE, host.findViewById(R.id.terminal_sessions_actions_dense).getVisibility());

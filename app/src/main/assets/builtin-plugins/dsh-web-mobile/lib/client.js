@@ -4088,6 +4088,43 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     min-height: 0;
     max-height: 100%;
   }
+
+  /* @patch
+     id: font-family-row-wrap-rc5
+     for: dsh-client-ui-theme 0.2.1-rc.5 的 FontFamilyRow（FontSizeRow.module.css 的
+          .bVCLcG_row / .bVCLcG_rowText，加 primitives Input 的 .vnGTiq_field）
+     why: 宿主的 .row 是不换行 flex、.field 固定 flex:0 240px；手机设置弹层内容宽约 340px，
+          标题+说明列因此被压成约 1 字/行、弹层被纵向撑高。上游 dsh-web-mobile main 已核对
+          仍是固定提交 04dcd19f17b2ee573b0173501edcacdd58f146b7（2026-10-30，0 个 open PR），
+          插件 client 里没有任何 FontFamilyRow / rowText 选择器，暂无上游修复。
+     until: 上游给字体行手机档换行排版，或宿主把 .field 固定宽改成可收缩——届时删本块
+     test: tools/test-mobile-client-patches.mjs
+  */
+  /* DSHA_FONT_FAMILY_ROW_V1：rc.5 的 Input 原语把 <input> 包在 span[class*="_wrap"] 里，
+     240px 与 spellcheck/autocomplete/maxlength 也落在 wrapper 内层，因此同时覆盖
+     「裸 input」与「wrapper 内 input」两种形态；只命中设置弹层里带 FontFamilyRow 那组
+     属性的输入框行，字号行是 stepper、没有 input，天然不命中。:has 保持单层。 */
+  @media (max-width: 1023px) and (pointer: coarse) {
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> input[spellcheck="false"][autocomplete="off"][maxlength="200"]) {
+      flex-wrap: wrap !important;
+      row-gap: 8px !important;
+    }
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> span[class*="_wrap"] > input[spellcheck="false"][autocomplete="off"][maxlength="200"]) {
+      flex-wrap: wrap !important;
+      row-gap: 8px !important;
+    }
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > div[class*="_rowText"],
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> span[class*="_wrap"] > input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > div[class*="_rowText"] {
+      flex: 1 1 100% !important;
+      padding-right: 0 !important;
+    }
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > input,
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> span[class*="_wrap"] > input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > span[class*="_wrap"] {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+  }
   /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------
      A sidebar panel REPLACES the main area. Two motions, both short and
      horizontal, matching the drawer's own rail-in (.15s, translate + fade):

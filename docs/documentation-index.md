@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261030.1900-dsh0.2.1-rc.5` / build213 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把内置 DSH 升级到上游 0.2.1-rc.5，新增终端 DSH CLI 入口并收窄手机竖屏/窄窗的终端会话抽屉；build209 的上岛能力合并、low/Gecko 删除、Mod 自有发布证书与固定输入/CI 发布接入见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。本版改动说明见 [build213 更新说明](releases/build213-changes.zh.md)，构建与验收范围以本轮 run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261030.2130-dsh0.2.1-rc.5` / build214 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版对手机竖屏/窄窗 224dp 终端会话抽屉做视觉对齐（短标签动作、摘要/副标题精简、12dp 网格），并修复 rc.5 手机设置弹层字体行的窄屏排版；build213 的内置 DSH rc.5、终端 DSH CLI 入口与抽屉收窄见 [build213 更新说明](releases/build213-changes.zh.md)，build209 的上岛能力合并、low/Gecko 删除、Mod 自有发布证书与固定输入/CI 发布接入见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。本版改动说明见 [build214 更新说明](releases/build214-changes.zh.md)，构建与验收范围以本轮 run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
@@ -40,6 +40,7 @@
 | 设备通道、3090协议、LAN、文件与系统文档入口 | [设备通道](device-channels.md)、[桥与文件](bridge-and-files.md)、[LAN](lan.md)、[Web文件](web-file-sharing.md) |
 | 一键/手动/自动备份、恢复、快照与独立应急 | [备份与恢复](backup-and-restore.md)、[配置快照](config-snapshots.md)、[独立应急](emergency-recovery.md)、[v5格式](backup-format-v5.md) |
 | 插件安装、系统/用户分层、协议、权限与重启 | [插件操作](plugins.md)、[插件运行与权限](plugin-runtime-and-permissions.md) |
+| 内置移动 Web 适配、dsh-web-mobile 本地补丁与设置弹层修复 | [移动 Web 适配补丁](web-mobile-patches.md) |
 | PTY/简易终端、WebView/Gecko、桌面UA、PiP | [终端](terminal.md)、[浏览器内核](browser-engines.md)、[画中画](picture-in-picture.md) |
 | 语言锁存、悬浮条、审批和任务通知 | [语言](i18n.md)、[悬浮与通知](overlay-and-notifications.md) |
 | 源码/固定输入/签名/发布与测试证据 | [构建与发布](build-and-release.md)、[领域边界](agents/domain.md)、[议题流程](agents/issue-tracker.md)、[分诊用语](agents/triage-labels.md) |

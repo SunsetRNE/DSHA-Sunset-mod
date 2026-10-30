@@ -10,6 +10,10 @@ public final class TerminalWorkspacePolicy {
   private static final int NARROW_WINDOW_MAX_WIDTH_DP = 600;
   private static final int DRAWER_MAX_WIDTH_DP = 336;
   private static final int NARROW_DRAWER_MAX_WIDTH_DP = 224;
+
+  /** 窄于该宽度的侧栏（手机 224dp 抽屉及其更窄分屏）改用 dense 短标签动作组。 */
+  private static final int NARROW_ACTIONS_MAX_WIDTH_DP = 240;
+
   private static final int INLINE_MIN_WIDTH = 240;
   private static final int INLINE_MAX_WIDTH = 296;
 
@@ -85,6 +89,18 @@ public final class TerminalWorkspacePolicy {
 
   public static boolean denseFooter(int heightDp, float fontScale) {
     return heightDp < DENSE_FOOTER_HEIGHT_DP * readableScale(fontScale);
+  }
+
+  /**
+   * 窄侧栏是否改用 dense 短标签动作组（2 列 3 行、单行等高 48dp）。
+   *
+   * <p>224dp 抽屉放不下全标签：完整标签会折行，同一行按钮还会因行数不同而高度不齐。判据取
+   * 240dp 而不是抽屉上限 224dp：内联侧栏最小就是 240dp，回到 240dp 即恢复全标签；与
+   * {@link #footerColumns(int, float, boolean)} 在 224dp 给出的两列、{@link #drawerMaxWidth(int,
+   * int)} 的手机类上限 224dp 保持一致，更窄的分屏窗口同样落在该分支。
+   */
+  public static boolean narrowActions(int panelWidthDp) {
+    return panelWidthDp < NARROW_ACTIONS_MAX_WIDTH_DP;
   }
 
   /** 按侧栏自身宽度分列，不能用横屏窗口宽度代替每个按钮的实际空间。 */

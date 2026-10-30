@@ -80,6 +80,42 @@ public final class TerminalWorkspacePolicyTest {
   }
 
   @Test
+  public void narrowActionsStartBelow240dpAndMatchDrawerAndFooterColumns() {
+    // 239/240 边界：内联侧栏最小就是 240dp，回到 240dp 即恢复全标签。
+    assertTrue(TerminalWorkspacePolicy.narrowActions(0));
+    assertTrue(TerminalWorkspacePolicy.narrowActions(239));
+    assertFalse(TerminalWorkspacePolicy.narrowActions(240));
+    assertTrue(TerminalWorkspacePolicy.narrowActions(224));
+    assertFalse(TerminalWorkspacePolicy.narrowActions(320));
+    assertFalse(TerminalWorkspacePolicy.narrowActions(336));
+    // 手机类 224dp 抽屉上限落在窄分支；599dp 窗口仍 224dp，600dp 起回到 336dp 全标签。
+    assertTrue(
+        TerminalWorkspacePolicy.narrowActions(TerminalWorkspacePolicy.drawerMaxWidth(393, 393)));
+    assertTrue(
+        TerminalWorkspacePolicy.narrowActions(TerminalWorkspacePolicy.drawerMaxWidth(599, 599)));
+    assertFalse(
+        TerminalWorkspacePolicy.narrowActions(TerminalWorkspacePolicy.drawerMaxWidth(600, 599)));
+    assertFalse(
+        TerminalWorkspacePolicy.narrowActions(TerminalWorkspacePolicy.drawerMaxWidth(800, 393)));
+    int phoneDrawer =
+        TerminalWorkspacePolicy.drawerWidth(
+            393, TerminalWorkspacePolicy.drawerMaxWidth(393, 393), 32);
+    assertEquals(224, phoneDrawer);
+    assertTrue(TerminalWorkspacePolicy.narrowActions(phoneDrawer));
+    // 窄分支在默认字体下仍是两列；大字体继续按实际宽度减列。
+    assertEquals(2, TerminalWorkspacePolicy.footerColumns(224, 1f, true));
+    assertEquals(2, TerminalWorkspacePolicy.footerColumns(239, 1f, true));
+    assertEquals(1, TerminalWorkspacePolicy.footerColumns(224, 2f, true));
+    // 与内联侧栏下限一致：240dp 内联侧栏不属于窄分支。
+    assertEquals(240, TerminalWorkspacePolicy.inlineWidth(840));
+    assertFalse(TerminalWorkspacePolicy.narrowActions(TerminalWorkspacePolicy.inlineWidth(840)));
+    // 性质：判定只由宽度 < 240 决定，不受抽屉上限或字体缩放影响。
+    for (int width = 0; width <= 500; width++) {
+      assertEquals(width < 240, TerminalWorkspacePolicy.narrowActions(width));
+    }
+  }
+
+  @Test
   public void shortWindowsSwitchToCompactAndDenseChrome() {
     assertTrue(TerminalWorkspacePolicy.compactHeight(559));
     assertFalse(TerminalWorkspacePolicy.compactHeight(560));

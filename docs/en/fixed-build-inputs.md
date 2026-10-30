@@ -1,6 +1,6 @@
 # Fixed build inputs (public-repository prerelease asset)
 
-Updated 2026-10-30 (build213 / bundled DSH 0.2.1-rc.5). Current asset tag: [`fixed-inputs-20261030`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261030)
+Updated 2026-10-30 (build214 / bundled DSH 0.2.1-rc.5). Current asset tag: [`fixed-inputs-20261030`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261030)
 (a GitHub prerelease); the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
 
 ## Why the fixed inputs are not stored in git

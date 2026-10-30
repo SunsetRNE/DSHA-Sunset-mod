@@ -8,8 +8,8 @@
 | Item | Value |
 |---|---|
 | App name | **DSH-A-Su** (test variant: `DSH-A-Su Test`) |
-| Version | `0.2.1-rc.3-20261030.1900-dsh0.2.1-rc.5` |
-| versionCode | 213 |
+| Version | `0.2.1-rc.3-20261030.2130-dsh0.2.1-rc.5` |
+| versionCode | 214 |
 | Package | `io.github.sunsetrne.dsha` (test variant `io.github.sunsetrne.dsha.test`) |
 | Coexistence | Fully independent from the original `dsh.android.client` and the older `com.dsh.client`; data and system grants are not shared |
 | Signing | Mod release certificate, SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d` |

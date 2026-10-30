@@ -51,10 +51,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private FrameLayout root, content, drawerHost;
   private LinearLayout column, toolbar, body, sessionList, sessionHeader, sessionFooter;
   private SessionsPanelLayout sessionPanel;
-  private LinearLayout footerActionsWide, footerActionsDense, sessionFlow;
+  private LinearLayout footerActionsWide, footerActionsDense, sessionFlow, summaryRow;
   private ScrollView sessionScroll;
   private View sessionDivider;
-  private boolean wholeSidebarScrolling, stackedSessionDetails;
+  private boolean wholeSidebarScrolling, stackedSessionDetails, narrowActions;
   private int footerWideColumns = 2, footerDenseColumns = 3;
   private int chromeWidthDp = -1, chromeHeightDp = -1;
   private float chromeFontScale = Float.NaN;
@@ -346,7 +346,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionFooter.setBackgroundColor(getColor(R.color.terminal_panel_card));
     // 原型 .drawer-foot：9/12/12 内边距，摘要与动作左对齐到同一 12dp 网格。
     sessionFooter.setPadding(dp(10), dp(6), dp(10), dp(10));
-    LinearLayout summaryRow = new LinearLayout(this);
+    summaryRow = new LinearLayout(this);
     summaryRow.setGravity(Gravity.CENTER_VERTICAL);
     summaryRow.setMinimumHeight(dp(26));
     summaryRow.setPadding(dp(2), 0, dp(2), dp(2));
@@ -662,11 +662,30 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void addFooterGridRow(LinearLayout footer, TextView... buttons) {
+    addFooterGridRow(footer, false, buttons);
+  }
+
+  /**
+   * 窄抽屉按钮外缘贴齐 12dp 网格、按钮之间保留间距：首按 marginStart=0、末按 marginEnd=0，
+   * 相邻按钮各留 3dp（合计 6dp），上下各 3dp；固定 48dp 高让同一行（以及不同行）不因文字行数
+   * 不同而上下错位。宽侧栏沿用四边 3dp 外边距与自适应高度。
+   */
+  private void addFooterGridRow(LinearLayout footer, boolean narrowRow, TextView... buttons) {
     LinearLayout row = new LinearLayout(this);
     row.setOrientation(LinearLayout.HORIZONTAL);
-    for (TextView button : buttons) {
-      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
-      params.setMargins(dp(3), dp(3), dp(3), dp(3));
+    int gap = dp(3);
+    for (int index = 0; index < buttons.length; index++) {
+      TextView button = buttons[index];
+      LinearLayout.LayoutParams params =
+          new LinearLayout.LayoutParams(0, narrowRow ? dp(48) : -2, 1);
+      if (narrowRow) {
+        // 同时显式写 start/end（含 0），避免 RTL 解析落到默认边距。
+        params.setMargins(0, gap, 0, gap);
+        params.setMarginStart(index > 0 ? gap : 0);
+        params.setMarginEnd(index < buttons.length - 1 ? gap : 0);
+      } else {
+        params.setMargins(gap, gap, gap, gap);
+      }
       row.addView(button, params);
     }
     footer.addView(row, new LinearLayout.LayoutParams(-1, -2));
@@ -858,39 +877,88 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     compactHeight = TerminalWorkspacePolicy.compactHeight(panelHeightDp, fontScale);
     denseFooter = TerminalWorkspacePolicy.denseFooter(panelHeightDp, fontScale);
     boolean tight = compactHeight || landscapeCompact;
+    boolean narrow = TerminalWorkspacePolicy.narrowActions(panelWidthDp);
+    boolean narrowChanged = narrowActions != narrow;
+    narrowActions = narrow;
     sessionSubtitle.setVisibility(tight ? View.GONE : View.VISIBLE);
     panelSecondary.setVisibility(tight ? View.GONE : View.VISIBLE);
-    sessionHeader.setPaddingRelative(dp(14), dp(tight ? 8 : 15), dp(8), dp(tight ? 4 : 12));
-    sessionFooter.setPadding(
-        dp(landscapeCompact ? 6 : 10), dp(tight ? 4 : 6),
-        dp(landscapeCompact ? 6 : 10), dp(tight ? 6 : 10));
-    sessionList.setPadding(dp(6), dp(tight ? 0 : 2), dp(6), dp(tight ? 6 : 12));
+    applyNarrowGrid(narrow, tight);
+    if (narrowChanged) applyNarrowText(narrow);
     createHint.setVisibility(
         landscapeCompact || TerminalWorkspacePolicy.stackSessionDetails(panelWidthDp, fontScale)
             ? View.GONE
             : View.VISIBLE);
+    // 窄抽屉没有全标签的空间：始终用 dense 短标签组，高度足够时也不回到宽标签。
     boolean compactActions = denseFooter || landscapeCompact;
-    footerActionsWide.setVisibility(compactActions ? View.GONE : View.VISIBLE);
-    footerActionsDense.setVisibility(compactActions ? View.VISIBLE : View.GONE);
+    footerActionsWide.setVisibility(narrow || compactActions ? View.GONE : View.VISIBLE);
+    footerActionsDense.setVisibility(narrow || compactActions ? View.VISIBLE : View.GONE);
     int wideColumns = TerminalWorkspacePolicy.footerColumns(panelWidthDp, fontScale, false);
     int denseColumns = TerminalWorkspacePolicy.footerColumns(panelWidthDp, fontScale, true);
     if (wideColumns != footerWideColumns) {
       reflowFooterActions(footerActionsWide, wideColumns);
       footerWideColumns = wideColumns;
     }
-    if (denseColumns != footerDenseColumns) {
-      reflowFooterActions(footerActionsDense, denseColumns);
+    if (denseColumns != footerDenseColumns || narrowChanged) {
+      reflowFooterActions(footerActionsDense, denseColumns, true, narrow);
       footerDenseColumns = denseColumns;
     }
     boolean stacked = TerminalWorkspacePolicy.stackSessionDetails(panelWidthDp, fontScale);
-    if (stackedSessionDetails != stacked) {
-      stackedSessionDetails = stacked;
-      if (sessionsRendered) renderSessions();
+    boolean restacked = stackedSessionDetails != stacked;
+    stackedSessionDetails = stacked;
+    // 分组行/空态内边距在渲染时读取窄态，窄宽切换必须重建会话列表。
+    if ((restacked || narrowChanged) && sessionsRendered) renderSessions();
+  }
+
+  /** 窄抽屉统一 12dp 横向网格；宽度回到 ≥240dp 时恢复既有 14/8 与 6/10 内边距。 */
+  private void applyNarrowGrid(boolean narrow, boolean tight) {
+    sessionHeader.setPaddingRelative(
+        dp(narrow ? 12 : 14), dp(tight ? 8 : 15), dp(narrow ? 12 : 8), dp(tight ? 4 : 12));
+    int footerSide = narrow ? 12 : (landscapeCompact ? 6 : 10);
+    sessionFooter.setPadding(dp(footerSide), dp(tight ? 4 : 6), dp(footerSide), dp(tight ? 6 : 10));
+    sessionList.setPadding(
+        dp(narrow ? 12 : 6), dp(tight ? 0 : 2), dp(narrow ? 12 : 6), dp(tight ? 6 : 12));
+    if (summaryRow != null) {
+      int side = dp(narrow ? 0 : 2);
+      summaryRow.setPadding(side, 0, side, dp(2));
     }
+    if (panelNotice != null) {
+      int side = dp(narrow ? 0 : 8);
+      panelNotice.setPadding(side, dp(2), side, 0);
+    }
+    if (panelSecondary != null) {
+      int side = dp(narrow ? 0 : 8);
+      panelSecondary.setPadding(side, dp(8), side, 0);
+    }
+  }
+
+  /** 窄抽屉副标题只留短句，完整语义进 contentDescription；宽侧栏恢复完整副标题。 */
+  private void applyNarrowText(boolean narrow) {
+    String full = UiText.choose("独立会话 · 返回不结束进程", "Independent sessions · back keeps processes");
+    sessionSubtitle.setText(narrow ? firstSegment(full) : full);
+    sessionSubtitle.setContentDescription(narrow ? full : null);
+    sessionSubtitle.setSingleLine(narrow);
+    sessionSubtitle.setMaxLines(narrow ? 1 : Integer.MAX_VALUE);
+    sessionSubtitle.setEllipsize(narrow ? TextUtils.TruncateAt.END : null);
+  }
+
+  /**
+   * 窄态短文案取完整文案的首段。十语目录已为完整副标题/摘要保留 “ · ” 分隔，取首段既不必新增
+   * 文案键，也沿用既有翻译；分隔符缺失时退回完整文案，不丢语义。
+   */
+  private static String firstSegment(String full) {
+    if (full == null) return "";
+    int end = full.indexOf(" · ");
+    return end < 0 ? full : full.substring(0, end);
   }
 
   /** 列数只改变已有按钮的排布，不替换点击回调或完整的无障碍名称。 */
   private void reflowFooterActions(LinearLayout footer, int columns) {
+    reflowFooterActions(footer, columns, false, false);
+  }
+
+  /** dense 组在窄抽屉切换短标签样式；wide 组保持全标签与 3dp 外边距。 */
+  private void reflowFooterActions(
+      LinearLayout footer, int columns, boolean dense, boolean narrow) {
     View focused = footer.findFocus();
     java.util.ArrayList<TextView> buttons = new java.util.ArrayList<>();
     for (int rowIndex = 0; rowIndex < footer.getChildCount(); rowIndex++) {
@@ -903,32 +971,44 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     }
     footer.removeAllViews();
     for (int index = 0; index < buttons.size(); index += columns) {
-      addFooterGridRow(
-          footer,
+      TextView[] rowButtons =
           buttons
               .subList(index, Math.min(buttons.size(), index + columns))
-              .toArray(new TextView[0]));
+              .toArray(new TextView[0]);
+      if (dense) {
+        for (TextView button : rowButtons) applyDenseActionStyle(button, narrow);
+      }
+      addFooterGridRow(footer, dense && narrow, rowButtons);
     }
     if (focused != null) focused.requestFocus();
   }
 
-  /** 短窗使用简短标签，不缩小系统字号；保留换行和至少 48dp 的触摸高度。 */
+  /** 短窗使用简短标签，不缩小系统字号；窄抽屉另外强制单行、3dp 内边距与 48dp 等高。 */
   private void compactDenseActions() {
     for (int rowIndex = 0; rowIndex < footerActionsDense.getChildCount(); rowIndex++) {
       View row = footerActionsDense.getChildAt(rowIndex);
       if (!(row instanceof ViewGroup group)) continue;
       for (int index = 0; index < group.getChildCount(); index++) {
-        if (!(group.getChildAt(index) instanceof TextView button)) continue;
-        button.setText(denseActionLabel(button.getId()));
-        button.setSingleLine(false);
-        button.setMaxLines(2);
-        button.setEllipsize(TextUtils.TruncateAt.END);
-        button.setTextSize(11);
-        button.setMinHeight(dp(48));
-        button.setPaddingRelative(dp(8), dp(6), dp(5), dp(6));
-        button.setCompoundDrawablePadding(dp(5));
+        if (group.getChildAt(index) instanceof TextView button)
+          applyDenseActionStyle(button, false);
       }
     }
+  }
+
+  /**
+   * dense 按钮的短标签与度量。窄态单行、3dp 内边距、固定 48dp 高，避免折行和同行错位；
+   * 宽而短的窗口恢复既有 2 行上限与 8/6/5/6 内边距。完整名称始终留在 contentDescription。
+   */
+  private void applyDenseActionStyle(TextView button, boolean narrow) {
+    button.setText(denseActionLabel(button.getId()));
+    button.setTextSize(11);
+    button.setMinHeight(dp(48));
+    button.setSingleLine(narrow);
+    button.setMaxLines(narrow ? 1 : 2);
+    button.setEllipsize(TextUtils.TruncateAt.END);
+    if (narrow) button.setPaddingRelative(dp(3), dp(3), dp(3), dp(3));
+    else button.setPaddingRelative(dp(8), dp(6), dp(5), dp(6));
+    button.setCompoundDrawablePadding(dp(5));
   }
 
   /** 短标签配完整无障碍名称，按钮列数由实际宽度和字体决定。 */
@@ -1491,13 +1571,17 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (simpleTabs.isEmpty()) addGroupEmpty();
     for (var tab : simpleTabs) addSessionRow(false, tab);
     int total = ptyTabs.size() + simpleTabs.size();
-    if (sessionSummary != null)
-      sessionSummary.setText(
+    if (sessionSummary != null) {
+      String full =
           UiText.format(
               UiText.choose("%d 个会话 · PTY %d / 简易 %d", "%d sessions · PTY %d / simple %d"),
               total,
               ptyTabs.size(),
-              simpleTabs.size()));
+              simpleTabs.size());
+      // 窄抽屉只显示 “%d 个会话”，完整统计写入 contentDescription；宽侧栏保持原文本。
+      sessionSummary.setText(narrowActions ? firstSegment(full) : full);
+      sessionSummary.setContentDescription(narrowActions ? full : null);
+    }
     if (closeAllButton != null) closeAllButton.setVisibility(total > 0 ? View.VISIBLE : View.GONE);
     sessionsRendered = true;
     refreshCloseAllNotice();
@@ -1514,7 +1598,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     row.setMinimumHeight(
         getResources().getDimensionPixelSize(R.dimen.terminal_sidebar_group_min_height));
     // 原型 .group-head：36dp 行高、22dp 图标位、11.5sp 粗标题 + 11sp 计数胶囊。
-    row.setPadding(dp(8), dp(4), dp(8), dp(4));
+    // 窄抽屉的横向 12dp 由会话列表提供，分组行自身不再留水平内边距。
+    row.setPadding(dp(narrowActions ? 0 : 8), dp(4), dp(narrowActions ? 0 : 8), dp(4));
     row.addView(
         iconView(iconRes, R.color.terminal_muted, 15),
         new LinearLayout.LayoutParams(dp(22), dp(22)));
@@ -1542,7 +1627,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     empty.setGravity(Gravity.CENTER);
     empty.setPadding(dp(12), dp(11), dp(12), dp(11));
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-    params.setMargins(dp(2), dp(2), dp(2), dp(4));
+    // 空态同样对齐列表的 12dp 网格；垂直留白保留原节奏。
+    params.setMargins(dp(narrowActions ? 0 : 2), dp(2), dp(narrowActions ? 0 : 2), dp(4));
     sessionList.addView(empty, params);
   }
 
