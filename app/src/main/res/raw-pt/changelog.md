@@ -1,8 +1,8 @@
-# DSHA 0.2.1-rc.3-20261030.1245-dsh0.2.1-rc.3 / build211
+# DSHA 0.2.1-rc.3-20261030.1506-dsh0.2.1-rc.3 / build212
 
-- A barra de progresso da página de plugins agora usa o esquema F: respiração no estado indeterminado, luz fluida no determinado, e o progresso segue apenas o percent real.
-- O sucesso mostra verde em 100% por 700ms; a falha mostra vermelho no maior progresso visto na tarefa por 900ms e depois desaparece.
-- A nota longa e fixa da fonte de download foi movida para o popup do botão redondo de exclamação, que também mostra o último resultado ou erro da tarefa.
-- Os resultados de plugins agora têm estado explícito de sucesso/falha, então falhas antes do envio — fila cheia, executor em segundo plano indisponível, erro de seleção de arquivo — também aparecem nesse popup.
-- Os dois pontos de fonte de download compartilham a mesma barra; tokens claro/escuro, fallback de movimento reduzido e semântica de progresso do TalkBack foram cobertos.
-- O escopo de build, testes unitários e aceitação em dispositivo é limitado a esta run e ao recibo do Release.
+- A recuperação inicial agora decide em três estados: reconecta se o Web original ainda estiver vivo; só limpa os registros antigos e continua a inicialização depois de confirmar que o Web e o launcher saíram; e mantém a proteção quando não for possível confirmar.
+- Quando a saída é confirmada, o registro criptografado da instância e o registro de PID antigo são aposentados juntos, para que a próxima abertura não pare em "aguardando confirmação".
+- Tocar em iniciar durante a verificação da instância antiga registra a intenção desta rodada e continua automaticamente uma vez ao concluir; parada, nova geração ou sessão já reconectada não iniciam de novo.
+- Se a identidade está confirmada mas a autenticação falha por instantes, o vínculo é reverificado no máximo 3 vezes (esperas limitadas de 500ms/1500ms); só então o estado não confirmado é mantido.
+- A página de inicialização mostra estados e entradas por motivo — reconectando, launcher ainda saindo, registro ilegível, autenticação temporariamente indisponível — e, durante a verificação, o botão iniciar fica desabilitado, enquanto as entradas reiniciar/início seguro continuam clicáveis e registram a intenção de início desta rodada, continuando automaticamente uma vez ao concluir a verificação.
+- O versionCode sobe para 212; o escopo de build e aceitação segue esta rodada e o recibo do Release.

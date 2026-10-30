@@ -1,8 +1,8 @@
-# DSHA 0.2.1-rc.3-20261030.1245-dsh0.2.1-rc.3 / build211
+# DSHA 0.2.1-rc.3-20261030.1506-dsh0.2.1-rc.3 / build212
 
-- Progressionis virgula in pagina additamentorum ad formam F conversa est: spiritus cum incertum est, lux fluens cum certum est, et progressio solum verum percent sequitur.
-- Successus viridem 100% per 700ms ostendit; error rubrum ad maximum progressum huius operis per 900ms ostendit, deinde evanescit.
-- Longa descriptio fontis descensionis in fenestram rotundi globuli cum signo exclamationis translata est, quae etiam ultimum operis eventum vel errorem ostendit.
-- Eventus additamentorum nunc statum successus/erroris explicitum habent; ergo errores ante missum, ut plena series, executor post tergum non praesto, error delectus fasciculi, in eadem fenestra videntur.
-- Ambo loci fontis descensionis eadem virgula utuntur; signa obscura/clara, recessus motus diminuti et significatio progressionis TalkBack suppleta sunt.
-- Scopus aedificationis, probationum et acceptationis in fabrica ad hunc run et testimonium Release restringitur.
+- Recuperatio prima nunc tribus statibus decernitur: si Web originale adhuc vivit, reconiungitur; solum postquam Web et suus launcher exisse confirmantur, vetera monumenta purgantur et initium pergitur; si confirmari non potest, praesidium servatur.
+- Cum exitus confirmatus est, et monumentum instantiae encryptatum et vetus monumentum PID simul retirantur, ne proxima apertura in "confirmatio exspectatur" haereat.
+- Si dum vetus instancia examinatur initium tangitur, intentio huius vicis notatur et post completionem semel automatice continuatur; sistendum, nova generatio aut iam reconiuncta sessio numquam bis incipit.
+- Cum identitas confirmata est sed authentificatio breviter deficit, nexus ad summum 3 vices reexaminatur (morae finitae 500ms/1500ms); tum demum status non confirmatus servatur.
+- Pagina initii status et aditus per causam ostendit — reconiunctio, launcher adhuc exiens, monumentum non legibile, authentificatio ad tempus non praesto — et dum examinatur initium bulla vetatur, dum aditus restart/salvi initii tangibiles manent et intentionem initii huius vicis notant, post examinationem semel automatice continuantes.
+- Codex versionis ad 212 sublatus est; scopus aedificationis et acceptationis hunc run et testimonium Release sequitur.
