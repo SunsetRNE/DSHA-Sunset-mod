@@ -130,12 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("插件页进度条改为 F 方案"));
-      assertTrue(shown.contains("不确定态呼吸"));
-      assertTrue(shown.contains("绿色 100%"));
-      assertTrue(shown.contains("圆形感叹号按钮弹窗"));
-      assertTrue(shown.contains("入队前失败"));
-      assertTrue(shown.contains("TalkBack 进度语义"));
+      assertTrue(shown.contains("三态判定"));
+      assertTrue(shown.contains("原 Web 仍存活"));
+      assertTrue(shown.contains("加密实例记录"));
+      assertTrue(shown.contains("自动续接一次"));
+      assertTrue(shown.contains("500ms/1500ms"));
+      assertTrue(shown.contains("启动器仍在退出"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -156,11 +156,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("scheme F"));
-      assertTrue(shown.contains("breathing when indeterminate"));
-      assertTrue(shown.contains("round exclamation-button popup"));
-      assertTrue(shown.contains("pre-dispatch failures"));
-      assertTrue(shown.contains("TalkBack progress semantics"));
+      assertTrue(shown.contains("three states"));
+      assertTrue(shown.contains("PID record"));
+      assertTrue(shown.contains("automatically once"));
+      assertTrue(shown.contains("500ms/1500ms"));
+      assertTrue(shown.contains("launcher still exiting"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
