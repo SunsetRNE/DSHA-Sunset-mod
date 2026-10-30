@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "module": "@deepseek-ai/dsh-tool-web/lib/index.js",
   "patches": [
     {

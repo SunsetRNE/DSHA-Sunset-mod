@@ -1,4 +1,4 @@
-// Locked rc3 prompt assembly + real loopback HTTP; no model/device or user profile writes.
+// Locked current prompt assembly + real loopback HTTP; no model/device or user profile writes.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -9,7 +9,10 @@ import { pathToFileURL } from 'node:url';
 const root = path.resolve(import.meta.dirname, '..');
 const runtime = process.env.DSHA_TEST_RUNTIME
   || JSON.parse(fs.readFileSync(path.join(root, 'app/build/test-runtimes/current.json'), 'utf8')).raw;
-const expectedVersion = JSON.parse(fs.readFileSync(path.join(root, 'tools/recovery-runtime/lock.json'), 'utf8')).dshVersion;
+// The raw fixture follows the formal runtime lock, not the independently pinned
+// recovery runtime (which stays on rc3 for rescue and is not the module tree here).
+const expectedVersion = JSON.parse(fs.readFileSync(path.join(root, 'tools/dsh-runtime/package.json'), 'utf8'))
+  .dependencies['@deepseek-ai/dsh'];
 assert.equal(JSON.parse(fs.readFileSync(path.join(runtime, 'node_modules/@deepseek-ai/dsh/package.json'), 'utf8')).version, expectedVersion);
 const requireRuntime = createRequire(path.join(runtime, 'package.json'));
 const load = name => import(pathToFileURL(requireRuntime.resolve(name)).href);

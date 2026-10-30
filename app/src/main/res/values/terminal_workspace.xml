@@ -24,6 +24,7 @@
     <item name="terminal_workspace_help" type="id" />
     <!-- 终端侧栏三向态/图标化/底栏动作新增 ID：全部追加，不改旧 ID。 -->
     <item name="terminal_workspace_back" type="id" />
+    <item name="terminal_workspace_cli" type="id" />
     <item name="terminal_sessions_theme" type="id" />
     <item name="terminal_theme_system" type="id" />
     <item name="terminal_theme_light" type="id" />

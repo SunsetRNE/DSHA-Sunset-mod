@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-attachment/lib/client.js",
   "sourceSha256": "cdb497656ed0e66f011125df22791f6f579c85710d2d915020ddcfe6c0f58072",
-  "packageIntegrity": "sha512-i7s+0B8bTkOnysFz2ggKujfXrFFoqJLJqHekDYd/FahGkD/UvC8yKChTXxLPvpX1PJV0GEeotRz4EtFBplCWUQ==",
+  "packageIntegrity": "sha512-YKxkCuNhsjixm3ni32eCb1n3TNWOjf9wT9It0Kp/kE5Wz33vvZRbEtQquMfMNLoemvPElnzFt6jmphZgJR7mrQ==",
   "patches": [
     {
       "before": "\t\t\t\t\"aria-busy\": loadingThumbnail || void 0,\n\t\t\t\tonClick: () => {\n\t\t\t\t\tif (src !== null) setOpen(true);\n\t\t\t\t},",

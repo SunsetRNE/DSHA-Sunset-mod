@@ -1,8 +1,7 @@
-# DSHA 0.2.1-rc.3-20261030.1506-dsh0.2.1-rc.3 / build212
+# DSHA 0.2.1-rc.3-20261030.1900-dsh0.2.1-rc.5 / build213
 
-- Recuperatio prima nunc tribus statibus decernitur: si Web originale adhuc vivit, reconiungitur; solum postquam Web et suus launcher exisse confirmantur, vetera monumenta purgantur et initium pergitur; si confirmari non potest, praesidium servatur.
-- Cum exitus confirmatus est, et monumentum instantiae encryptatum et vetus monumentum PID simul retirantur, ne proxima apertura in "confirmatio exspectatur" haereat.
-- Si dum vetus instancia examinatur initium tangitur, intentio huius vicis notatur et post completionem semel automatice continuatur; sistendum, nova generatio aut iam reconiuncta sessio numquam bis incipit.
-- Cum identitas confirmata est sed authentificatio breviter deficit, nexus ad summum 3 vices reexaminatur (morae finitae 500ms/1500ms); tum demum status non confirmatus servatur.
-- Pagina initii status et aditus per causam ostendit — reconiunctio, launcher adhuc exiens, monumentum non legibile, authentificatio ad tempus non praesto — et dum examinatur initium bulla vetatur, dum aditus restart/salvi initii tangibiles manent et intentionem initii huius vicis notant, post examinationem semel automatice continuantes.
-- Codex versionis ad 212 sublatus est; scopus aedificationis et acceptationis hunc run et testimonium Release sequitur.
+- DSH inclusum ad superiorem dsh-v0.2.1-rc.5 evectum est: ostensio thinking in colloquio mutationem superiorem sequitur; archivum temporis exsecutionis ad rc.5 reaedificatum est (127,674,426 B, SHA-256 `91aa4685721ce569e32953295dc6b01b63fe2ac5e1eac8173440656896acdcb2`), catena emendationum et 31 fasciculi lectionis data/storage examinati sunt, testimonio in [testimonio lectionis datorum rc.5](../runtime-data-compatibility-rc5.md).
+- Terminale novum aditum DSH CLI accipit: bulla in summo opere et selector «Nova sessio» sessionem PTY cum titulo initiali fixo directe aperire possunt (versionem dsh praemittit et explicat TUI interactivum non esse, discrimina credentialium/permissionum headless et Web in terminali non esse incipiendum); nullum novum sessionis genus additur, et clausura sessionis, tutela exsecutionis et semantica claustri sustentationis immutata manent.
+- Pluteus sessionum terminalis in telephono erecto/fenestra angusta (< 600dp) a latitudine maxima 336dp ad 224dp (circa 1/3 minus) coartatur; tabulae/fenestrae latae (≥ 600dp) 336dp servant; regio obumbrationis/gestus regressus saltem 32dp retinetur, latitudo lateris inline immutata manet.
+- In pluteo 224dp, ordines sessionum statum secundum regulam fenestrae angustae exstantem congerunt, actiones inferiores duas columnas servant; regulae compressionis fenestrarum brevium/transversarum non mutantur.
+- versionCode ad 213 auctus est; recognitio DSHA 0.2.1-rc.3 manet, suffixum DSH inclusi 0.2.1-rc.5; scopus aedificationis et acceptationis hunc run et testimonium Release sequitur.

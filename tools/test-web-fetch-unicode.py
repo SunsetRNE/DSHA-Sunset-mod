@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the signed web-fetch patch recipes against the actual bundled rc3 code."""
+"""Exercise the signed web-fetch patch recipes against the actual bundled rc5 code."""
 import json
 from pathlib import Path
 import subprocess
@@ -14,7 +14,8 @@ MODULES = ['@deepseek-ai/dsh-web-fetch-http/lib/index.js', '@deepseek-ai/dsh-too
 
 
 def main():
-    chains, inputs = load_chains(ASSETS, '0.2.1-rc.3')
+    version = json.loads((ASSETS / 'runtime-patches.json').read_text(encoding='utf8'))['dshVersion']
+    chains, inputs = load_chains(ASSETS, version)
     assert 'web-fetch-http-surrogate-patch.json' in inputs
     assert 'web-fetch-output-surrogate-patch.json' in inputs
     manifest = json.loads((ASSETS / 'managed-runtime-inputs.json').read_text(encoding='utf8'))
@@ -56,7 +57,7 @@ def main():
             path.write_bytes(patched)
             paths.append(str(path))
         subprocess.run(['node', str(ROOT / 'tools/test-web-fetch-unicode.mjs'), *paths], check=True, cwd=ROOT)
-    print('PASS bundled rc3 exact anchors, idempotent managed recipes, drift rejection and executed Unicode boundaries')
+    print('PASS bundled rc5 exact anchors, idempotent managed recipes, drift rejection and executed Unicode boundaries')
 
 
 if __name__ == '__main__':

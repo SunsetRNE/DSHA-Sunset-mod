@@ -9924,6 +9924,14 @@
     ]
   },
   {
+    "id": "termhome0158",
+    "zh": "打开 DSH CLI",
+    "en": "Open DSH CLI",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
+    ]
+  },
+  {
     "id": "x2090001",
     "zh": "关闭后，其它设备将无法再通过局域网访问本轮 DSH，已发出的连接链接立即失效。本机访问不受影响。",
     "en": "Other devices lose LAN access to this DSH run and existing links stop working immediately. On-phone access is unaffected.",

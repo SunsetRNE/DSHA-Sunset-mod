@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "patches": [
     {
       "before": "\t\tfunction SearchResultItem({ result, currentId, onOpen, onUnarchive, t }) {",
@@ -38,5 +38,5 @@
   ],
   "module": "@deepseek-ai/dsh-client-ui-workspace/lib/client.js",
   "sourceSha256": "9c2c17a66a5c20de00ac2852cb76debb5237439e97f877403bcaa2a471086544",
-  "packageIntegrity": "sha512-ulJYTPrQQlyeBRbEtfO0U1nlqKE2iLB3kF2/adnSEco01AThel0joQ2kvy26yFpLkNnSjFkRAcv1ceaUoWgWNg=="
+  "packageIntegrity": "sha512-T3hHWUsrOsmjhV4VIfKTNwN2UrieMxnv5W26e6aiHr7YIy9Y98xfLINe7MpSk+kb2kBKRYyup8vDRW8X435J1w=="
 }

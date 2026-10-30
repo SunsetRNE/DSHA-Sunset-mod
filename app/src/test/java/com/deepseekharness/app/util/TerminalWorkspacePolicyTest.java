@@ -30,18 +30,53 @@ public final class TerminalWorkspacePolicyTest {
   }
 
   @Test
-  public void drawerWidthUsesTabletMaxAndScrimMargin() {
-    assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth());
+  public void drawerWidthUsesPhoneCapAndKeepsTabletSplitScreenWide() {
+    // 手机类（smallestScreenWidthDp < 600）：竖屏/窄窗 224dp，宽窗回到 336dp。
+    for (int widthDp : new int[] {360, 393, 411, 599}) {
+      assertEquals(224, TerminalWorkspacePolicy.drawerMaxWidth(widthDp, 393));
+    }
+    assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth(800, 393));
+    // 平板类（smallestScreenWidthDp >= 600）：分屏窄窗与宽窗都保持 336dp。
+    for (int widthDp : new int[] {500, 800, 840, 1000}) {
+      assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth(widthDp, 800));
+    }
+    assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth(1000, 1000));
+    // 393dp 手机窗口：224dp 抽屉仍让出 169dp，远大于 32dp 遮罩/返回手势下限。
+    int phoneDrawer =
+        TerminalWorkspacePolicy.drawerWidth(
+            393, TerminalWorkspacePolicy.drawerMaxWidth(393, 393), 32);
+    assertEquals(224, phoneDrawer);
+    assertTrue(phoneDrawer <= 393 - 32);
+    // 平板/宽窗的既有上限与遮罩边距语义保持不变。
     assertEquals(336, TerminalWorkspacePolicy.drawerWidth(1000, 336, 32));
     assertEquals(336, TerminalWorkspacePolicy.drawerWidth(368, 336, 32));
     assertEquals(288, TerminalWorkspacePolicy.drawerWidth(320, 336, 32));
     assertEquals(208, TerminalWorkspacePolicy.drawerWidth(240, 336, 32));
     assertEquals(336, TerminalWorkspacePolicy.drawerWidth(0, 336, 32));
     assertEquals(12, TerminalWorkspacePolicy.drawerWidth(16, 336, 32));
+    // 更窄窗口仍由 32dp 遮罩边距继续收缩，不会因 224dp 上限溢出。
+    assertEquals(192, TerminalWorkspacePolicy.drawerWidth(224, 224, 32));
     for (int width = 1; width <= 400; width++) {
       int drawer = TerminalWorkspacePolicy.drawerWidth(width, 336, 32);
       assertTrue(drawer > 0 && drawer <= width);
     }
+  }
+
+  @Test
+  public void drawerCapBoundariesFollowDeviceClassAndWindowWidth() {
+    // 手机类在 599dp 窗口仍收窄；窗口一到 600dp 即回到 336dp 上限。
+    assertEquals(224, TerminalWorkspacePolicy.drawerMaxWidth(599, 599));
+    assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth(600, 599));
+    // smallestScreenWidthDp 达到 600 即按平板类处理，即使当前窗口更窄。
+    assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth(599, 600));
+    assertEquals(336, TerminalWorkspacePolicy.drawerMaxWidth(600, 600));
+  }
+
+  @Test
+  public void narrowDrawerKeepsTwoFooterColumnsAndStackedRows() {
+    assertEquals(2, TerminalWorkspacePolicy.footerColumns(224, 1f, false));
+    assertEquals(2, TerminalWorkspacePolicy.footerColumns(224, 1f, true));
+    assertTrue(TerminalWorkspacePolicy.stackSessionDetails(224, 1f));
   }
 
   @Test

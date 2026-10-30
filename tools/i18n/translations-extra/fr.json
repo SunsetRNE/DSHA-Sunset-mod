@@ -1228,6 +1228,7 @@
   "termhome0155": "La sortie est trop longue pour générer un aperçu en toute sécurité.",
   "termhome0156": "La demande de démarrage n’a pas été envoyée. Vérifiez l’état d’exécution, puis réessayez.",
   "termhome0157": "Copier l’adresse",
+  "termhome0158": "Ouvrir DSH CLI",
   "x2090001": "Après désactivation, les autres appareils perdront l’accès à cette exécution de DSH sur le réseau local et les liens de connexion déjà émis cesseront immédiatement de fonctionner. L’accès depuis ce téléphone n’est pas affecté.",
   "x2090002": "Désactiver le réseau local",
   "x2090003": "Désactiver l’accès au réseau local ?",

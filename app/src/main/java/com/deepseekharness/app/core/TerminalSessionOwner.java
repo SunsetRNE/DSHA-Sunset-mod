@@ -166,11 +166,24 @@ public final class TerminalSessionOwner {
       int rows,
       PtySession.Listener listener)
       throws IOException {
+    return createPty(ticket, proot, cols, rows, listener, null);
+  }
+
+  /** 固定 guest command 只影响 PTY argv；创建票、发布与失败保留时序完全复用默认路径。 */
+  public TerminalTabs.Tab<PtySession> createPty(
+      TerminalRuntimeProtection.Ticket ticket,
+      ProotBootstrap proot,
+      int cols,
+      int rows,
+      PtySession.Listener listener,
+      String[] guestCommand)
+      throws IOException {
     return createPty(
         ticket,
-        (verified, changed, beforeFork, allocated) ->
+        guestCommand,
+        (verified, changed, beforeFork, allocated, command) ->
             PtySession.start(
-                proot, cols, rows, listener, verified, changed, beforeFork, allocated));
+                proot, cols, rows, listener, verified, changed, beforeFork, allocated, command));
   }
 
   interface PtyStart {
@@ -178,10 +191,17 @@ public final class TerminalSessionOwner {
         Runnable verified,
         Runnable changed,
         Runnable beforeFork,
-        java.util.function.Consumer<PtySession> allocated);
+        java.util.function.Consumer<PtySession> allocated,
+        String[] guestCommand);
   }
 
   TerminalTabs.Tab<PtySession> createPty(TerminalRuntimeProtection.Ticket ticket, PtyStart start)
+      throws IOException {
+    return createPty(ticket, null, start);
+  }
+
+  TerminalTabs.Tab<PtySession> createPty(
+      TerminalRuntimeProtection.Ticket ticket, String[] guestCommand, PtyStart start)
       throws IOException {
     requireProtection();
     protection.beginCreate(ticket, ownerEpoch, TerminalRuntimeProtection.Kind.PTY);
@@ -199,7 +219,8 @@ public final class TerminalSessionOwner {
                   throw new IllegalStateException(lost.getMessage(), lost);
                 }
               },
-              value -> allocated[0] = value);
+              value -> allocated[0] = value,
+              guestCommand);
       TerminalTabs.Tab<PtySession> tab = pty.add(session);
       ptyProtection.put(tab.id, ticket);
       notifyPty();

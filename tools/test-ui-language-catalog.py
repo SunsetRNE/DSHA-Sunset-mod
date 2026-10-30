@@ -144,10 +144,18 @@ ctx.locale.register(NS,{zh,en});'''
             self.assertTrue(matches_text(WEB.ASSETS / name, content), name)
         for tag, data in translations.items():
             self.assertEqual(ids, set(data), tag)
-        for recipe in ('language-patch.json', 'recovery-recipes/0.2.1-rc.3/language-patch.json'):
-            spec = json.loads(generated[recipe])
-            self.assertEqual(3, len(spec['previousPatches']))
-            self.assertEqual(3, len(spec['patches']))
+        self.assertEqual({'web-integration/language.js', 'language-patch.json'}, set(generated))
+        spec = json.loads(generated['language-patch.json'])
+        self.assertEqual(3, len(spec['previousPatches']))
+        self.assertEqual(3, len(spec['patches']))
+        # The independent rescue runtime keeps its own pinned recipe; upgrading the
+        # production runtime must not silently add or replace that rescue input.
+        recovery = json.loads((WEB.ROOT / 'tools/recovery-runtime/lock.json').read_text(encoding='utf8'))
+        rescue = json.loads((WEB.ASSETS / 'recovery-recipes' / recovery['dshVersion'] / 'language-patch.json').read_text(encoding='utf8'))
+        self.assertEqual(recovery['dshVersion'], rescue['dshVersion'])
+        self.assertEqual(3, len(rescue['previousPatches']))
+        self.assertEqual(3, len(rescue['patches']))
+        self.assertEqual('web-integration/language.js', rescue['patches'][0]['prependAsset'])
 
 
 if __name__ == '__main__':

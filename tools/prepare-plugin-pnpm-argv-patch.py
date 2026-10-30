@@ -19,7 +19,7 @@ def generate(modules):
         raise ValueError('PLUGIN_PNPM_ARGV_OFFICIAL_SOURCE_CHANGED')
     package = json.loads((modules / '@deepseek-ai/dsh-plugin-manager/package.json').read_text(encoding='utf8'))
     lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
-    if package['version'] != '0.2.1-rc.3' or lock['packages']['node_modules/@deepseek-ai/dsh-plugin-manager']['version'] != package['version']:
+    if package['version'] != '0.2.1-rc.5' or lock['packages']['node_modules/@deepseek-ai/dsh-plugin-manager']['version'] != package['version']:
         raise ValueError('PLUGIN_PNPM_ARGV_VERSION_CHANGED')
     policy = json.loads((ASSETS / 'plugin-manager-policy-patch.json').read_text(encoding='utf8'))
     old = policy['patches'][0]['after']
@@ -47,7 +47,7 @@ def generate(modules):
 		options = { ...options, args: prefix.slice(0, -policyFlags.length) };
 		args = [...args, ...policyFlags];
 	}'''
-    return dict(version=1, dshVersion='0.2.1-rc.3', module=MODULE, sourceSha256=SOURCE_SHA,
+    return dict(version=1, dshVersion='0.2.1-rc.5', module=MODULE, sourceSha256=SOURCE_SHA,
                 patches=[dict(before=old, after=old + added)])
 
 
@@ -56,15 +56,17 @@ def main():
     parser.add_argument('--modules', type=Path)
     parser.add_argument('--write', action='store_true')
     args = parser.parse_args()
-    selected = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
-    modules = args.modules or Path(selected['raw']) / 'node_modules'
+    modules = args.modules
+    if modules is None:
+        selected = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
+        modules = Path(selected['raw']) / 'node_modules'
     text = json.dumps(generate(modules), ensure_ascii=False, indent=2) + '\n'
     target = ASSETS / NAME
     if args.write:
         write_text(target, text, encoding='utf8')
     elif not matches_text(target, text, encoding='utf8'):
         raise ValueError('PLUGIN_PNPM_ARGV_RECIPE_STALE')
-    print('PASS plugin pnpm argv recipe: exact rc3 source / preserved V2 / command-first V3')
+    print('PASS plugin pnpm argv recipe: exact rc5 source / preserved V2 / command-first V3')
 
 
 if __name__ == '__main__':

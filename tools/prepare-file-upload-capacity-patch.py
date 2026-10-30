@@ -8,14 +8,14 @@ from source_text import write_text, matches_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
-VERSION = '0.2.1-rc.3'
+VERSION = '0.2.1-rc.5'
 SERVER = '@deepseek-ai/dsh-client-file-upload/lib/index.js'
 CLIENT = '@deepseek-ai/dsh-client-file-upload/lib/client.js'
 CONVERSATION = '@deepseek-ai/dsh-client-ui-conversation/lib/client.js'
 HASHES = {
     SERVER: '5dd5bd2d20656a1edeb1366e6b878afb04db519d2ba400135cb020ef037912fb',
     CLIENT: '4c09378ab7cb3dbe58253bd1fad8c4a00ebf5a93b462d96623edb7bd4e566305',
-    CONVERSATION: 'b81765f0998430bbf5ab6389e89a082b799f017275c5abe1efb3c701f0fa708a',
+    CONVERSATION: 'cfbd9fd95b0509f7c93a22a62a67ebc10481c8eda611704ea50c2e195b9a5a69',
 }
 
 

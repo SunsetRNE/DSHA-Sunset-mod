@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Prove the ten-language overlay upgrades the byte-pinned shared rc3 archive.
+"""Prove the ten-language overlay upgrades the current signed rc5 archive.
 
-Uses production Java patch algorithms, the verified raw rc3 fixture, the current
-signed archive, and the whole-module SHA of the retained d772 predecessor. No
-APK, device or archive is created or modified.
+Uses production Java patch algorithms, the verified raw rc5 fixture, the current
+signed archive, and the whole-module SHA of the pinned V1 predecessor form. The
+historical rc3 shared archive (d772) stored that predecessor form; current signed
+archives store the complete current form, so the shared-archive equality branch
+is retired and passing it fails closed. No APK, device or archive is modified.
 """
 import argparse
 import hashlib
@@ -19,7 +21,9 @@ from test_runtime_fixture import runtime
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
-SHARED_ARCHIVE_SHA256 = 'd77261bf677a83c2440aab7a60cacf9c95876b59777b74f9de4fa6be9c2ba514'
+# Historical 0.2.1-rc.3 archive that shared its locale module with the V1
+# predecessor form. Superseded archives are not accepted as current inputs.
+HISTORICAL_SHARED_ARCHIVE_SHA256 = 'd77261bf677a83c2440aab7a60cacf9c95876b59777b74f9de4fa6be9c2ba514'
 PREDECESSOR_MODULE_SHA256 = '13a5c7426aa5c424ddaeba7fd1ab59f148f388b96241fc43fdd6cbe71a7d5255'
 
 JAVA = r'''
@@ -55,7 +59,7 @@ public final class LanguagePatchChainFixture {
       try{ManagedPatchChain.apply(source,chain,()->"invalid canonical");throw new AssertionError("invalid canonical accepted");}
       catch(IOException error){require(error.getMessage().equals("PATCH_CHAIN_MISMATCH"),"wrong chain failure");}
     }
-    System.out.println("PASS real Java fresh npm/shared d772/current idempotence/partial canonical repair/duplicate and unknown fail-closed");
+    System.out.println("PASS real Java fresh npm/current rc5/current idempotence/partial canonical repair/duplicate and unknown fail-closed");
   }
 }
 '''
@@ -73,10 +77,12 @@ def main():
     canonical_root = runtime('raw')
     recipe = json.loads((ASSETS / 'language-patch.json').read_text(encoding='utf8'))
     canonical = (canonical_root / 'node_modules' / recipe['module']).read_bytes()
-    assert sha(canonical) == recipe['sourceSha256'], 'LOCKED_RC3_LOCALE_SOURCE'
+    assert sha(canonical) == recipe['sourceSha256'], 'LOCKED_CURRENT_LOCALE_SOURCE'
     archive_sha = sha(args.archive.read_bytes())
     current_proof = json.loads((ASSETS / 'dsh-runtime.inputs.json').read_text(encoding='utf8'))
     assert archive_sha == current_proof['archive_sha256'], 'CURRENT_SIGNED_ARCHIVE_IDENTITY'
+    if archive_sha == HISTORICAL_SHARED_ARCHIVE_SHA256:
+        raise AssertionError('HISTORICAL_SHARED_ARCHIVE_SUPERSEDED: use the current signed archive')
     target = 'usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/' + recipe['module']
     found = []
     with tarfile.open(args.archive, 'r|gz') as tree:
@@ -95,7 +101,8 @@ def main():
     chains, _ = load_chains(ASSETS, recipe['dshVersion'])
     chain = chains[recipe['module']]
     expected = apply(canonical, chain)
-    assert archived == (predecessor if archive_sha == SHARED_ARCHIVE_SHA256 else expected), 'CURRENT_ARCHIVE_COMPLETE_LOCALE_FORM'
+    # Current signed archives carry the complete current locale form only.
+    assert archived == expected, 'CURRENT_ARCHIVE_COMPLETE_LOCALE_FORM'
     assert apply(predecessor, chain) == expected
     assert apply(archived, chain) == expected
     assert apply(expected, chain) == expected
@@ -137,8 +144,10 @@ def main():
     (output / 'java.log').write_bytes(ran.stdout + ran.stderr)
     assert ran.returncode == 0, str(output / 'java.log')
     report = dict(status='PASS', archiveSha256=archive_sha, sourceSha256=sha(canonical),
-                  predecessorArchiveSha256=SHARED_ARCHIVE_SHA256, predecessorModuleSha256=PREDECESSOR_MODULE_SHA256,
-                  predecessorRecheckedFromActualArchive=archive_sha == SHARED_ARCHIVE_SHA256,
+                  predecessorModuleSha256=PREDECESSOR_MODULE_SHA256,
+                  historicalSharedArchiveSha256=HISTORICAL_SHARED_ARCHIVE_SHA256,
+                  historicalSharedArchiveStatus='superseded: stored the V1 predecessor form, not the current complete form',
+                  predecessorRecheckedFromActualArchive=False,
                   archivedModuleSha256=sha(archived), currentModuleSha256=sha(expected),
                   currentModuleBytes=len(expected), output=str(output), deviceValidation=False)
     (output / 'result.json').write_text(json.dumps(report, indent=2), encoding='utf8')

@@ -1,6 +1,6 @@
 # 终端：PTY、简易模式与会话关闭
 
-源码更新：2026-10-26。终端工作台基于 build197 `02f80ab` 落地，build198 补上悬浮球/菜单的会话抽屉；同日后续把侧栏改为跟随应用三向态、图标化与 2×2 填充底栏。本页说明源码合同，不是设备验收报告。构建、测试与交付状态见[终端回归说明](<terminal-regression-20261025.md>)和[CI 合同](<terminal-ci-20261025.md>)；本次原生三向态、图标化与 2×2 底栏的 CI 测试包见[build198 主题报告](<releases/v0.2.1-rc.3-build198-native-terminal-theme-20261026.md>)，旧审计 APK 不作为操作入口。
+源码更新：2026-10-30。终端工作台基于 build197 `02f80ab` 落地，build198 补上悬浮球/菜单的会话抽屉；同日后续把侧栏改为跟随应用三向态、图标化与 2×2 填充底栏。2026-10-30 起手机竖屏/窄窗抽屉上限收窄到 224dp，平板（含分屏窄窗）与宽窗仍为 336dp；同版加入 DSH CLI 入口（复用 PTY 固定 guest command）。本页说明源码合同，不是设备验收报告。构建、测试与交付状态见[终端回归说明](<terminal-regression-20261025.md>)和[CI 合同](<terminal-ci-20261025.md>)；本次原生三向态、图标化与 2×2 底栏的 CI 测试包见[build198 主题报告](<releases/v0.2.1-rc.3-build198-native-terminal-theme-20261026.md>)，旧审计 APK 不作为操作入口。
 
 ## 入口与选择
 
@@ -10,10 +10,10 @@ Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/
 
 | 窗口 | 极简模式 | 工作台模式 |
 |---|---|---|
-| 宽度 < 840dp | 会话抽屉（宽 336dp 上限，至少保留 32dp 遮罩/返回手势区） | 顶栏“菜单”打开同一抽屉 |
+| 宽度 < 840dp | 会话抽屉（手机竖屏/窄窗 224dp 上限；平板含分屏窄窗与宽窗 336dp；至少保留 32dp 遮罩/返回手势区） | 顶栏“菜单”打开同一抽屉 |
 | 宽度 ≥ 840dp，内联后终端宽度仍 ≥ 480dp | 用户打开会话时以约窗口 25%（240–296dp）的内联面板显示，终端同时保留并仍可输入；再次点击球或关闭按钮回到全宽 | 同一面板常驻内联；关闭按钮隐藏，顶栏显示“设置/说明” |
 
-宽度跨断点、旋转、分屏拖拽或折叠形态变化都会重新判定。极简模式的“已打开”意图随 Activity 保存：从抽屉转内联或反向时继续显示同一侧栏，不重建会话；工作台的内联常驻不依赖该意图。可用高度（扣除系统栏和输入法）< 560dp 时隐藏副标题和次要说明并收紧边距；< 480dp 或**横屏且高度 < 1000dp** 时底部动作改为三列两行，避免固定三行挤掉会话列表；横屏同时把动作压到 44dp/10.5sp、使用短标签（完整名称在 `contentDescription`），隐藏副标题与脚注，竖屏/超高窗口恢复两列三行与完整标签。极简内联时悬浮球隐藏，用侧栏关闭按钮或返回键收起；抽屉仍由球/菜单打开并被遮罩覆盖。侧栏与悬浮球跟随应用「系统 / 白天 / 黑夜」三向态：浅色为白/浅蓝、夜间为近黑/浅蓝，终端输出区在两套外观下都固定黑底；侧栏不再内置主题分段开关，外观统一由应用顶栏的主题按钮或系统设置驱动，切换由 AppCompat 重建 Activity，会话仍由进程级 owner 保持，不新建、不关闭也不重放命令。新建会话、结束会话与“回到输入”均按一次生效：收起侧栏后再在下一帧恢复终端输入焦点，避免第一次点按只关闭侧栏不回到输入。会话行是单行：类型图标 + 名称 + 短状态胶囊 + 重命名/结束图标，完整状态保留在无障碍描述；宽窗底部为 2×2 主操作加粘贴/回到输入一行，六个动作在短窗/横屏仍以三列两行保留。
+宽度跨断点、旋转、分屏拖拽或折叠形态变化都会重新判定。抽屉最大宽度按设备类与当前窗口宽度双重判定：`smallestScreenWidthDp < 600` 的手机类在窗口 < 600dp 时取 224dp；平板（含分屏窄窗）、手机宽窗与宽屏取 336dp，不按机型名猜测；224dp 下会话行继续按 < 320dp 规则上下堆叠状态，底部六个动作保持 2 列（大字体按实际宽度减列），32dp 遮罩/返回手势区不收缩；内联侧栏的 240–296dp 不受抽屉上限影响。极简模式的“已打开”意图随 Activity 保存：从抽屉转内联或反向时继续显示同一侧栏，不重建会话；工作台的内联常驻不依赖该意图。可用高度（扣除系统栏和输入法）< 560dp 时隐藏副标题和次要说明并收紧边距；< 480dp 或**横屏且高度 < 1000dp** 时底部动作改为三列两行，避免固定三行挤掉会话列表；横屏同时把动作压到 44dp/10.5sp、使用短标签（完整名称在 `contentDescription`），隐藏副标题与脚注，竖屏/超高窗口恢复两列三行与完整标签。极简内联时悬浮球隐藏，用侧栏关闭按钮或返回键收起；抽屉仍由球/菜单打开并被遮罩覆盖。侧栏与悬浮球跟随应用「系统 / 白天 / 黑夜」三向态：浅色为白/浅蓝、夜间为近黑/浅蓝，终端输出区在两套外观下都固定黑底；侧栏不再内置主题分段开关，外观统一由应用顶栏的主题按钮或系统设置驱动，切换由 AppCompat 重建 Activity，会话仍由进程级 owner 保持，不新建、不关闭也不重放命令。新建会话、结束会话与“回到输入”均按一次生效：收起侧栏后再在下一帧恢复终端输入焦点，避免第一次点按只关闭侧栏不回到输入。会话行常规为单行：类型图标 + 名称 + 短状态胶囊 + 重命名/结束图标，完整状态保留在无障碍描述；< 320dp（含 224dp 抽屉）隐藏类型图标并把状态堆到名称下方。宽窗底部为 2×2 主操作加粘贴/回到输入一行，六个动作在宽窗的短窗/横屏仍以三列两行保留；224dp 手机抽屉按自身宽度保持两列并在大字体下继续减列。
 
 “新建会话”先选择 PTY 交互会话或简易按行会话；两种模式共用上方同一套会话侧栏。底部的“结束全部”是宿主尽力关闭入口：逐项复用 owner 的关闭与核验，确认框列出 PTY/简易数量并说明这不是返回页面；结果按“已关闭/正在结束/未确认”显示，未确认会话保留在列表中，不会调用维护用的 fail-fast 全量关闭，也不停止 Web 或其他业务。关闭请求在 owner 的单线程关闭队列中串行执行，每个会话最长等待 5 秒，因此 N 个会话最坏约 N×5 秒；界面持续显示进度。运行保护、单会话结束和“核验并结束”语义不变。
 
@@ -27,6 +27,14 @@ Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/
 |---|---|---|
 | PTY | vim、htop、tmux、交互提示、逐键输入 | [PtySession](../app/src/main/java/com/deepseekharness/app/PtySession.java) 接 Termux terminal-emulator/JNI；附加键提供 Ctrl、Alt、Esc、Tab、方向键、翻页与控制字符，支持字号调整与缩放 |
 | 简易 | 按行提交命令、查看文字结果 | 管道 shell，命令排队并串行发送；不模拟完整终端，需交互输入/TUI 时切 PTY |
+
+### DSH CLI 入口
+
+工作台顶栏有 48dp 的「DSH CLI」按钮（仅工作台显示）；「新建会话」选择器也有第三项 `DSH CLI`（极简模式经侧栏“新建会话”可达；不占用侧栏第 7 个 footer 动作，避免挤压 224dp 抽屉）。入口只创建一个普通 PTY 会话，但把 guest command 固定为 `/bin/bash -c <脚本>`：脚本先 `stty sane`，用 `dsh --version` 预检（失败只提示“dsh 不可用”，当前 shell 仍可用，不伪造成功），打印中/英 banner 后 `exec /bin/bash -l`。标签创建成功后重命名为 `DSH CLI`。
+
+边界：内置 DSH 没有交互式 TUI，入口不自动运行 `dsh headless`，也不启动第二个 Web。banner 明确提示 `headless` 是一次性任务且默认不读取 GUI 保存的凭据（需自行提供环境变量或 `.env`），不要在终端启动 `dsh web`，也不要对 Web 正在使用的 profile 执行 `dsh plugin --profile web ...`。CLI 会话仍是 PTY：保护票、出生身份、关闭核验、全量结束与维护屏障完全复用，不新增 Kind、权限或 Manifest；环境未就绪时沿用 `terminalBlockMessage`，不创建半截会话。
+
+固定 argv 由纯逻辑 [DshaCliPreset](../app/src/main/java/com/deepseekharness/app/util/DshaCliPreset.java) 生成，不插值用户输入、不读写凭据；[DshaCliPresetTest](../app/src/test/java/com/deepseekharness/app/util/DshaCliPresetTest.java)、[TerminalRuntimeTest](../app/src/test/java/com/deepseekharness/app/runtime/TerminalRuntimeTest.java)、[TerminalSessionOwnerTest](../app/src/test/java/com/deepseekharness/app/core/TerminalSessionOwnerTest.java) 覆盖 argv 形状、只替换命令尾部与保护票时序。真实 PTY/IME/关闭核验/维护屏障仍须正式 APK 设备记录；320dp 窄窗顶栏 4 个按钮与大字体选择器也需目视验收。
 
 ### 附加键（PTY）
 
@@ -64,4 +72,4 @@ PTY 在底层核验 guest 为空后释放保护。简易标签的 `STOPPED/FAILE
 
 ## 核验入口
 
-修改后至少选择与变更相关的 [TerminalTabsTest](../app/src/test/java/com/deepseekharness/app/util/TerminalTabsTest.java)、[TerminalSessionTest](../app/src/test/java/com/deepseekharness/app/util/TerminalSessionTest.java)、[TerminalSessionOwnerTest](../app/src/test/java/com/deepseekharness/app/core/TerminalSessionOwnerTest.java)、[TerminalRuntimeTest](../app/src/test/java/com/deepseekharness/app/runtime/TerminalRuntimeTest.java)、[TerminalExtraKeysTest](../app/src/test/java/com/deepseekharness/app/util/TerminalExtraKeysTest.java)。它们分别覆盖编号/关闭、队列与未知结果、所有权和启动输入；测试源码存在不表示本轮已重新执行。真实 PTY、IME、ROM `/proc` 行为仍须精确正式 APK 的设备记录。
+修改后至少选择与变更相关的 [TerminalTabsTest](../app/src/test/java/com/deepseekharness/app/util/TerminalTabsTest.java)、[TerminalSessionTest](../app/src/test/java/com/deepseekharness/app/util/TerminalSessionTest.java)、[TerminalSessionOwnerTest](../app/src/test/java/com/deepseekharness/app/core/TerminalSessionOwnerTest.java)、[TerminalRuntimeTest](../app/src/test/java/com/deepseekharness/app/runtime/TerminalRuntimeTest.java)、[TerminalExtraKeysTest](../app/src/test/java/com/deepseekharness/app/util/TerminalExtraKeysTest.java)、[TerminalWorkspacePolicyTest](../app/src/test/java/com/deepseekharness/app/util/TerminalWorkspacePolicyTest.java)、[DshaCliPresetTest](../app/src/test/java/com/deepseekharness/app/util/DshaCliPresetTest.java)。它们分别覆盖编号/关闭、队列与未知结果、所有权和启动输入、抽屉宽度与侧栏形态、CLI 固定 argv；测试源码存在不表示本轮已重新执行。真实 PTY、IME、ROM `/proc` 行为仍须精确正式 APK 的设备记录。

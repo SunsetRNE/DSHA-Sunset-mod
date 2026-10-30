@@ -1,8 +1,7 @@
-# DSHA 0.2.1-rc.3-20261030.1506-dsh0.2.1-rc.3 / build212
+# DSHA 0.2.1-rc.3-20261030.1900-dsh0.2.1-rc.5 / build213
 
-- First-run recovery now decides among three states: reattach when the original Web is still alive; retire the old records and continue starting only after both the Web and its launcher are confirmed exited; keep the protection when that cannot be confirmed.
-- When an exit is confirmed, the encrypted instance record and the old PID record are retired together, so the next open no longer stops at "pending confirmation".
-- Tapping start while the old instance is being checked records this round's intent and continues automatically once when it completes; a stop, a new generation, or an already reattached session never starts twice.
-- When identity is confirmed but authentication briefly fails, the link is rechecked at most 3 times (bounded 500ms/1500ms waits); only then is the unconfirmed state kept.
-- The launch page shows the reason-specific states and entries — reconnecting, launcher still exiting, unreadable record, authentication temporarily unavailable — during the check the start button stays disabled, while the restart/safe-start entries remain clickable and record this round's start intent, continuing automatically once when the check completes.
-- versionCode is raised to 212; build and acceptance scope follows this run and the Release receipt.
+- The bundled DSH is upgraded to upstream dsh-v0.2.1-rc.5: the conversation's thinking display follows the upstream update; the runtime archive is rebuilt for rc.5 (127,674,426 B, SHA-256 `91aa4685721ce569e32953295dc6b01b63fe2ac5e1eac8173440656896acdcb2`), the patch chain and 31 data/storage reader packages are verified, with evidence in [rc.5 data-reader evidence](../runtime-data-compatibility-rc5.md).
+- The terminal gains a DSH CLI entry: the workspace top-bar button and the "New session" picker can directly open a PTY session with a fixed startup banner (it pre-checks the dsh version and explains that there is no interactive TUI, the credential/permission differences of headless, and not to start Web in the terminal); no new session type is added, and session closing, run protection and maintenance-barrier semantics are unchanged.
+- The terminal session drawer is narrowed from a 336dp maximum width to 224dp (about one third less) on phone portrait/narrow windows (< 600dp), while tablets/wide windows (≥ 600dp) keep 336dp; the scrim/back-gesture area still keeps at least 32dp and the inline sidebar width is unchanged.
+- In the 224dp drawer, session rows stack their status by the existing narrow-window rule and the footer keeps two columns; the compact/landscape compression rules are unchanged.
+- versionCode is raised to 213; the DSHA revision stays 0.2.1-rc.3 and the bundled-DSH suffix is 0.2.1-rc.5; build and acceptance scope follows this run and the Release receipt.

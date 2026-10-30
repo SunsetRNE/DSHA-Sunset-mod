@@ -127,6 +127,11 @@ public final class PtyTerminalFragment extends Fragment
 
   @Override
   public void newSession() {
+    newSessionWithCommand(null, null);
+  }
+
+  /** 固定 guest command 只影响新会话 argv；保护票与默认新建共用同一条创建时序。 */
+  public void newSessionWithCommand(String[] guestCommand, String sessionTitle) {
     if (!isResumed() || view == null || creationPending || c == null) return;
     if (getActivity() instanceof TerminalActivity
         && !((TerminalActivity) getActivity()).allowTerminalCreation()) return;
@@ -141,6 +146,10 @@ public final class PtyTerminalFragment extends Fragment
     final long generation = ++operationGeneration;
     final long targetView = viewGeneration;
     final var proot = c.proot();
+    final String[] command = guestCommand == null ? null : guestCommand.clone();
+    final var created =
+        new java.util.concurrent.atomic.AtomicReference<
+            com.deepseekharness.app.util.TerminalTabs.Tab<PtySession>>();
     try {
       creating =
           TerminalRuntimeService.requestFromVisible(
@@ -160,13 +169,16 @@ public final class PtyTerminalFragment extends Fragment
                           () -> {
                             String problem = "";
                             try {
-                              OWNER.createPty(ticket, proot, 80, 24, null);
+                              created.set(OWNER.createPty(ticket, proot, 80, 24, null, command));
                             } catch (Exception error) {
                               problem = SensitiveData.redact(String.valueOf(error));
                             }
                             final String result = problem;
                             main.post(
                                 () -> {
+                                  var tab = created.get();
+                                  if (tab != null && sessionTitle != null)
+                                    OWNER.renamePty(tab.id, sessionTitle);
                                   if (generation != operationGeneration) return;
                                   creationPending = false;
                                   creating = null;

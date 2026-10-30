@@ -30,6 +30,7 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.TerminalRuntimeProtection;
 import com.deepseekharness.app.core.TerminalSessionOwner;
+import com.deepseekharness.app.util.DshaCliPreset;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.TerminalSession;
 import com.deepseekharness.app.util.TerminalTabs;
@@ -63,7 +64,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private View drawerExitScrim;
   private AppCompatImageView drawerExitSnapshot;
   private int drawerAnimationToken;
-  private View menuButton, settingsButton, helpButton, newSessionButton, sessionClose;
+  private View menuButton, settingsButton, helpButton, cliButton, newSessionButton, sessionClose;
   private TextView title, status, sessionSummary, sessionSubtitle, createLabel, createHint;
   private TextView panelSecondary, panelNotice, closeAllButton;
   private TerminalFloatingMenu ball;
@@ -190,6 +191,14 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_panel_text);
     helpButton.setId(R.id.terminal_workspace_help);
     toolbar.addView(helpButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    cliButton =
+        iconButton(
+            R.drawable.ic_terminal,
+            UiText.choose("打开 DSH CLI", "Open DSH CLI"),
+            this::createCliSession,
+            R.color.terminal_panel_text);
+    cliButton.setId(R.id.terminal_workspace_cli);
+    toolbar.addView(cliButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
     menuButton =
         iconButton(
             R.drawable.ic_terminal_menu,
@@ -228,9 +237,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionScrim.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     drawerHost.addView(sessionScrim, new FrameLayout.LayoutParams(-1, -1));
     drawerHost.addView(
-        sessionPanel,
-        new FrameLayout.LayoutParams(
-            dp(TerminalWorkspacePolicy.drawerMaxWidth()), -1, Gravity.START));
+        sessionPanel, new FrameLayout.LayoutParams(dp(drawerMaxWidthDp()), -1, Gravity.START));
     root.addView(ball);
     root.addView(drawerHost, new FrameLayout.LayoutParams(-1, -1));
     setContentView(root);
@@ -811,6 +818,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     menuButton.setVisibility(workbench && !expanded ? View.VISIBLE : View.GONE);
     settingsButton.setVisibility(workbench && expanded ? View.VISIBLE : View.GONE);
     helpButton.setVisibility(workbench && expanded ? View.VISIBLE : View.GONE);
+    cliButton.setVisibility(workbench ? View.VISIBLE : View.GONE);
     float density = getResources().getDisplayMetrics().density;
     applyCompactChrome(
         Math.round((expanded ? inlineWidthPx() : drawerWidthPx()) / density),
@@ -1188,8 +1196,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private int drawerWidthPx() {
     int available =
         root == null ? 0 : root.getWidth() - root.getPaddingLeft() - root.getPaddingRight();
-    return TerminalWorkspacePolicy.drawerWidth(
-        available, dp(TerminalWorkspacePolicy.drawerMaxWidth()), dp(32));
+    return TerminalWorkspacePolicy.drawerWidth(available, dp(drawerMaxWidthDp()), dp(32));
   }
 
   private int inlineWidthPx() {
@@ -1201,6 +1208,20 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (root == null) return 0;
     int width = Math.max(0, root.getWidth() - root.getPaddingLeft() - root.getPaddingRight());
     return Math.round(width / getResources().getDisplayMetrics().density);
+  }
+
+  /** 当前窗口宽度：尚未布局时退回配置宽度，抽屉上限仍按手机/平板正确取值。 */
+  private int windowWidthDp() {
+    int widthDp = workspaceWidthDp();
+    if (widthDp > 0) return widthDp;
+    return Math.max(0, getResources().getConfiguration().screenWidthDp);
+  }
+
+  /** 抽屉上限：手机类窄窗 224dp；平板（含分屏窄窗）与宽窗 336dp，不按机型名猜测。 */
+  private int drawerMaxWidthDp() {
+    var configuration = getResources().getConfiguration();
+    return TerminalWorkspacePolicy.drawerMaxWidth(
+        windowWidthDp(), configuration.smallestScreenWidthDp);
   }
 
   private int workspaceHeightDp() {
@@ -1415,7 +1436,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     dismissPanel();
     String[] choices = {
       UiText.choose("PTY · 交互会话", "PTY · interactive session"),
-      UiText.choose("简易 · 按行命令", "Simple · line commands")
+      UiText.choose("简易 · 按行命令", "Simple · line commands"),
+      DshaCliPreset.TITLE
     };
     panel =
         new DshaDialogBuilder(this)
@@ -1424,7 +1446,8 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                 choices,
                 (dialog, index) -> {
                   dismissPanel();
-                  createInMode(index == 0);
+                  if (index == 2) createCliSession();
+                  else createInMode(index == 0);
                 })
             .setNegativeButton(UiText.text("取消"), null)
             .show();
@@ -1936,6 +1959,15 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void createInMode(boolean pty) {
+    createPaneSession(pty, null);
+  }
+
+  /** 「DSH CLI」只改变新 PTY 的固定 argv；保护票、关闭与维护仍走原 PTY 路径。 */
+  private void createCliSession() {
+    createPaneSession(true, DshaCliPreset.guestCommand(UiText.language()));
+  }
+
+  private void createPaneSession(boolean pty, String[] guestCommand) {
     if (!allowTerminalCreation()
         || changingMode
         || getSupportFragmentManager().isStateSaved()
@@ -1947,7 +1979,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     previousProcess = false;
     // 禁止模式首次自动创建与菜单新建叠加：显式新建的目标Fragment跳过默认创建。
     replacePane(pty, true);
-    if (pane() != null && pane().isPty() == pty) pane().newSession();
+    TerminalPane current = pane();
+    if (current == null || current.isPty() != pty) return;
+    if (guestCommand == null) current.newSession();
+    else if (current instanceof PtyTerminalFragment ptyPane)
+      ptyPane.newSessionWithCommand(guestCommand, DshaCliPreset.TITLE);
   }
 
   /** A close-all operation applies to its confirmed snapshot; do not start new tabs mid-close. */

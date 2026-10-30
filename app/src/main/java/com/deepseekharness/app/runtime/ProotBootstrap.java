@@ -377,7 +377,12 @@ public class ProotBootstrap {
   }
 
   public PtyLaunch ptyLaunch() {
-    TerminalRuntime.Launch value = terminal.launch();
+    return ptyLaunch(new String[0]);
+  }
+
+  /** 固定 guest command 只替换命令尾部，argv/env 仍由 {@link TerminalRuntime} 唯一构造。 */
+  public PtyLaunch ptyLaunch(String... guestCommand) {
+    TerminalRuntime.Launch value = terminal.launch(guestCommand);
     return new PtyLaunch(value.argv(), value.environment());
   }
 

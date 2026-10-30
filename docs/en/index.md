@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261029.0741` / build208 (`Sunset-3090-Q`; `main` carries the same content). This build adds the three-mode root command policy and continues the terminal and mobile UI v5 work; see the [build208 record](releases/v0.2.1-rc.3-build207-root-policy-20261029.md) and [CHANGELOG](../../CHANGELOG.md).
+Current source: `0.2.1-rc.3-20261030.1900-dsh0.2.1-rc.5` / build213 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build upgrades the bundled DSH to upstream 0.2.1-rc.5, adds a terminal DSH CLI entry and narrows the terminal session drawer on phone portrait/narrow windows; see the [build213 update notes](../releases/build213-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

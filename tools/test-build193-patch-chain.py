@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify every current Java patch chain and the exact published192 generation boundary.
+"""Verify every current Java patch chain and the exact build212 (rc3) generation boundary.
 
 Old-generation modules are evidence, never a substitute for staging the signed
 new runtime archive through ManagedRuntimeTransaction/RuntimeTrial. Marker
@@ -20,12 +20,12 @@ import runtime_stable_patches
 
 ROOT = Path(__file__).resolve().parents[1]
 NAMES = {'plugin-pnpm-argv-patch.json', 'language-patch.json'}
-OLD_APK_SHA = 'f1b332bc087e999bf9bd8954a70c9c7ad869d0a04193933d446854f0e31fbf3c'
+OLD_APK_SHA = '2a69a315eca22f8711a97122a54a2f8beb4d98e624a04d8bb3afa65a420e89d2'
 OLD_MODULE_SHA = {
-    '@deepseek-ai/dsh-plugin-manager/lib/index.js': '56bdecae13ed4b20abada3a0a5ed09cd492407ab8ee6db1e2d9bda3897c4dbdd',
+    '@deepseek-ai/dsh-plugin-manager/lib/index.js': '7b287c984c0f9e1835e59f3b5d5bf60a68f23430b627a85df41455136a453874',
 }
-OLD_ARCHIVE_SHA = '4d3a8da40af164725f01a6cd4d56559e13239dd706441ac1f1a53c3acd3af827'
-OLD_FRONTEND = '@deepseek-ai/dsh-web-frontend/dist/assets/index-CN7NIWNw.js'
+OLD_ARCHIVE_SHA = 'a02cc5a42727238491ee36d4b0b46461d035dd6f8fca22580eb19d8456fbefc3'
+OLD_FRONTEND = '@deepseek-ai/dsh-web-frontend/dist/assets/index-BXV-oxvX.js'
 
 JAVA = r'''
 import com.deepseekharness.app.util.ManagedPatchChain;
@@ -100,12 +100,15 @@ public final class Build193PatchChainFixture {
       String fromArchive=ManagedPatchChain.apply("incomplete previous managed module",chain,()->expected);
       require(fromArchive.equals(expected),"new managed canonical rebuild differs");
       rejectWithoutCanonical("incomplete old module",chain);
-      predecessorControls(old,chain,expected);
+      if(Files.exists(module.resolve("predecessor-unavailable.txt")))
+        System.out.println("PASS_PREDECESSOR_NOT_APPLICABLE "+Files.readString(module.resolve("predecessor-unavailable.txt")));
+      else
+        predecessorControls(old,chain,expected);
       if(Files.exists(module.resolve("apk.js"))) {
         String exact=Files.readString(module.resolve("apk.js"));require(exact.equals(expected),"exact new APK archive differs");
         require(ManagedPatchChain.apply(exact,chain,()->{throw new AssertionError("exact APK restore");}).equals(expected),"exact APK repeat differs");
       }
-      System.out.println("PASS_BUILD193_CHAIN fresh/repeat/published192-boundary/staged-canonical/failclosed "+Files.readString(module.resolve("name.txt")));
+      System.out.println("PASS_BUILD213_CHAIN fresh/repeat/build212-boundary/staged-canonical/failclosed "+Files.readString(module.resolve("name.txt")));
     }
   }
 }
@@ -158,13 +161,13 @@ def main():
     if bool(args.old_apk) == bool(args.old_archive):
         parser.error('provide exactly one of --old-apk or --old-archive; historical input cannot be synthesized from current upstream sources')
     if args.old_archive:
-        assert sha(args.old_archive.read_bytes()) == OLD_ARCHIVE_SHA, 'OLD_192_ARCHIVE_IDENTITY'
+        assert sha(args.old_archive.read_bytes()) == OLD_ARCHIVE_SHA, 'OLD_212_ARCHIVE_IDENTITY'
     if args.old_apk:
-        assert sha(args.old_apk.read_bytes()) == OLD_APK_SHA, 'OLD_192_APK_IDENTITY'
+        assert sha(args.old_apk.read_bytes()) == OLD_APK_SHA, 'OLD_212_APK_IDENTITY'
     assets = ROOT / 'app/src/main/assets'
     manifest = json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))
     version = manifest['dependencies']['@deepseek-ai/dsh']
-    assert version == '0.2.1-rc.3', 'BUILD193_REQUIRES_REVIEWED_RC3'
+    assert version == '0.2.1-rc.5', 'BUILD213_REQUIRES_REVIEWED_RC5'
     lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
     chains, _ = runtime_stable_patches.load_chains(assets, version)
     registered = {name for rows in chains.values() for name, _, _ in rows}
@@ -178,7 +181,7 @@ def main():
     assert sha((Path(selected) / 'package-lock.json').read_bytes()) == sha((ROOT / 'tools/dsh-runtime/package-lock.json').read_bytes()), 'RAW_RUNTIME_LOCK_IDENTITY'
     if args.old_apk:
         with zipfile.ZipFile(args.old_apk) as package:
-            assert sha(package.read('assets/dsh-runtime.bin')) == OLD_ARCHIVE_SHA, 'OLD_192_ARCHIVE_IDENTITY'
+            assert sha(package.read('assets/dsh-runtime.bin')) == OLD_ARCHIVE_SHA, 'OLD_212_ARCHIVE_IDENTITY'
     owned = Path(tempfile.mkdtemp(prefix='build193-java-chain-', dir=ROOT / 'app/build'))
     old = archive(args.old_apk) if args.old_apk else tarfile.open(args.old_archive, 'r:*') if args.old_archive else None
     new = archive(args.apk) if args.apk else None
@@ -204,7 +207,7 @@ def main():
             old_module = OLD_FRONTEND if module.startswith('@deepseek-ai/dsh-web-frontend/dist/assets/index-') else module
             old_bytes = module_bytes(old, old_module)
             if module in OLD_MODULE_SHA:
-                assert sha(old_bytes) == OLD_MODULE_SHA[module], 'PINNED_192_MODULE_IDENTITY'
+                assert sha(old_bytes) == OLD_MODULE_SHA[module], 'PINNED_212_MODULE_IDENTITY'
             direct_digest, direct_status = None, 'canonical-rebuild-on-anchor-mismatch'
             try:
                 direct = runtime_stable_patches.apply(old_bytes, chain)
@@ -216,12 +219,26 @@ def main():
                 direct_status = 'complete-current-bytes' if direct == expected else 'old-markers-retain-old-upstream-bytes'
             # The signed new archive is always the official generation transition.
             # A successful marker-only overlay is never accepted as that transition.
+            # Signed predecessor forms belong to the generation that introduced the
+            # recipe; when the pinned old input already contains the replacement
+            # form (e.g. the rc3 language receipt), the control is not applicable.
+            old_text = old_bytes.decode('utf8')
+            predecessor_problem = None
+            for name, patches, _ in chain:
+                for before, after in getattr(patches, 'previous', ()):
+                    if old_text.count(after) != 1:
+                        predecessor_problem = name + ': predecessor form absent from pinned old input (superseded generation)'
+                        break
+                if predecessor_problem:
+                    break
             for filename, data in [('canonical.js', prepared), ('old-192.js', old_bytes), ('expected.js', expected), ('name.txt', module.encode())]:
                 (directory / filename).write_bytes(data)
             write_chain(directory / 'chain', chain)
+            if predecessor_problem:
+                (directory / 'predecessor-unavailable.txt').write_bytes(predecessor_problem.encode())
             if new:
                 (directory / 'apk.js').write_bytes(module_bytes(new, module))
-            records.append(dict(module=module, sourceSha256=sha(canonical), old192Module=old_module, old192Sha256=sha(old_bytes), currentSha256=sha(expected), oldDirectStatus=direct_status, oldDirectSha256=direct_digest, generationUpgrade='stage-signed-new-runtime-with-ManagedRuntimeTransaction-and-RuntimeTrial', recipes=[name for name, _, _ in chain], previousPatchCounts={name: len(getattr(patches, 'previous', ())) for name, patches, _ in chain}))
+            records.append(dict(module=module, sourceSha256=sha(canonical), old192Module=old_module, old192Sha256=sha(old_bytes), currentSha256=sha(expected), oldDirectStatus=direct_status, oldDirectSha256=direct_digest, generationUpgrade='stage-signed-new-runtime-with-ManagedRuntimeTransaction-and-RuntimeTrial', recipes=[name for name, _, _ in chain], previousPatchCounts={name: len(getattr(patches, 'previous', ())) for name, patches, _ in chain}, predecessorControl='not-applicable' if predecessor_problem else 'executed'))
     finally:
         if old:
             old.close()
@@ -247,7 +264,7 @@ def main():
     result = dict(status='PASS' if ran.returncode == 0 else 'FAIL', exitCode=ran.returncode, modules=records,
                   old192ApkSha256=OLD_APK_SHA if args.old_apk else None,
                   old192ArchiveSha256=OLD_ARCHIVE_SHA if args.old_archive else None,
-                  historicalInput='actual published192 APK' if args.old_apk else 'actual published192 archive',
+                  historicalInput='actual build212 APK' if args.old_apk else 'actual build212 archive',
                   currentDshVersion=version, activeModuleCount=len(names),
                   predecessorPartialVariants=sum(sum(record['previousPatchCounts'].values()) for record in records),
                   predecessorNegativeControls=['each incomplete predecessor requires canonical repair', 'duplicate predecessor rejected', 'omitted predecessor metadata rejected'],

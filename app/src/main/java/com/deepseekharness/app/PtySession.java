@@ -118,6 +118,21 @@ public final class PtySession implements TerminalSessionClient {
       Runnable cleanupChanged,
       Runnable beforeFork,
       java.util.function.Consumer<PtySession> allocated) {
+    return start(
+        proot, cols, rows, l, cleanupVerified, cleanupChanged, beforeFork, allocated, null);
+  }
+
+  /** 固定 guest command 只替换命令尾部；fork、出生身份、保护票和失败清理保持原样。 */
+  public static PtySession start(
+      ProotBootstrap proot,
+      int cols,
+      int rows,
+      Listener l,
+      Runnable cleanupVerified,
+      Runnable cleanupChanged,
+      Runnable beforeFork,
+      java.util.function.Consumer<PtySession> allocated,
+      String[] guestCommand) {
     PtySession ps = new PtySession();
     ps.cleanupVerified = cleanupVerified;
     ps.cleanupChanged = cleanupChanged;
@@ -140,7 +155,7 @@ public final class PtySession implements TerminalSessionClient {
           throw new IllegalStateException(error.getMessage(), error);
         }
         proot.ensureAndroidGroups(); // 登录 shell 的 $(groups) 依赖 /etc/group 里有 Android GID
-        ProotBootstrap.PtyLaunch launch = proot.ptyLaunch();
+        ProotBootstrap.PtyLaunch launch = proot.ptyLaunch(guestCommand);
         String[] argv = launch.argv;
         ps.prootLauncher = com.deepseekharness.app.util.ProcessIdentity.isProot(argv[0]);
         String[] env = launch.environment;

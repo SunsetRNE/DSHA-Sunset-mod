@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261030.1506-dsh0.2.1-rc.3` / build212 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为异常退出后的 Web 恢复衔接修复；build209 的上岛能力合并、low/Gecko 删除、Mod 自有发布证书与固定输入/CI 发布接入见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。本版验收范围见 [build212 恢复验收记录](releases/v0.2.1-rc.3-build212-recovery-20261030.md)。
+当前源码：`0.2.1-rc.3-20261030.1900-dsh0.2.1-rc.5` / build213 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把内置 DSH 升级到上游 0.2.1-rc.5，新增终端 DSH CLI 入口并收窄手机竖屏/窄窗的终端会话抽屉；build209 的上岛能力合并、low/Gecko 删除、Mod 自有发布证书与固定输入/CI 发布接入见 [build209 记录](releases/build209-changes.zh.md)、[Mod 身份与签名](mod-identity-and-signing.md)、[CI 构建与发布](ci-release.md) 与 [CHANGELOG](../CHANGELOG.md)。本版改动说明见 [build213 更新说明](releases/build213-changes.zh.md)，构建与验收范围以本轮 run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

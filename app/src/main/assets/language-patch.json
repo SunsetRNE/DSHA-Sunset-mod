@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "module": "@deepseek-ai/dsh-client-locale/lib/client.js",
   "patches": [
     {
@@ -17,7 +17,7 @@
     }
   ],
   "sourceSha256": "bad8fe9bfb07af2a60c80933be65ceafdaab5386f404fb264401c7e540a36e16",
-  "packageIntegrity": "sha512-/WpBT8gEivbD/yndgefYM09SysDcLcd8/Ov5zmC+A1EPNv6UoQ+4avPT6tkwT46XaG4XoJXmVglDOmfg/vUFGg==",
+  "packageIntegrity": "sha512-8o/b921yIq1Y93b2xFcHIyfpBitgZEkwLkA1uE8ZakQwEotU5FvLTnC3JUb4KhsZhSKeO979V5yJo622cwclHQ==",
   "previousPatches": [
     {
       "before": "ctx.provide(\"locale\", locale);",

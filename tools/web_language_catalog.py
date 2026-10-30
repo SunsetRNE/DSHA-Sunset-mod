@@ -147,4 +147,4 @@ def extract(modules, transform=lambda relative, data: data):
                 messages.append({'id': namespace + ':' + key, 'namespace': namespace,
                                  'key': key, 'zh': values['zh'][key], 'en': values['en'][key]})
     messages.sort(key=lambda row: row['id'])
-    return {'schema': 1, 'dshVersion': '0.2.1-rc.3', 'inputs': inputs, 'messages': messages}
+    return {'schema': 1, 'dshVersion': '0.2.1-rc.5', 'inputs': inputs, 'messages': messages}

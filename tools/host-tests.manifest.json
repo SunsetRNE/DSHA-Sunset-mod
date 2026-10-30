@@ -118,7 +118,7 @@
       ],
       "timeoutSeconds": 300,
       "environment": {},
-      "reason": "Real production Java and Python signed patch chains verify the current rc3 archive and its language predecessor, repair, partial and duplicate cases, and idempotence without device operations."
+      "reason": "Real production Java and Python signed patch chains verify the current rc5 archive, the pinned V1 language predecessor, repair, partial and duplicate cases, and idempotence without device operations. The historical rc3 shared archive is superseded and rejected as a current input."
     },
     {
       "path": "tools/test-ui-language-catalog.py",
@@ -2819,7 +2819,7 @@
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "Exact historical rc2 2100-to191 account-chain regression with original SHA pins. Current rc3 account modules and the actual published192 generation boundary are covered by test-build193-patch-chain.py; do not synthesize old account modules from changed rc3 official source."
+      "reason": "Exact historical rc2 2100-to191 account-chain regression with original SHA pins. Current rc5 account modules and the actual build212 -> build213 generation boundary are covered by test-build193-patch-chain.py; do not synthesize old account modules from changed rc5 official source."
     },
     {
       "path": "tools/test-native-ime-hero.mjs",
@@ -2940,7 +2940,7 @@
       ],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "Exact historical rc2 build191-to192 chain regression with original SHA pins; current rc3 generation uses test-build193-patch-chain.py against actual published192 bytes across all current active modules."
+      "reason": "Exact historical rc2 build191-to192 chain regression with original SHA pins; current rc5 generation uses test-build193-patch-chain.py against actual build212 bytes across all current active modules."
     },
     {
       "path": "tools/file-transfer/test-large-download.mjs",
@@ -2972,8 +2972,8 @@
       ],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "All current production Java active-module chains: fresh/repeat, exact published192 boundary, staged signed current canonical recovery and fail-closed rejection. Old generation markers never prove a DSH upgrade.",
-      "cli": "Host runner requires explicit --previous-runtime-apk pointing to the exact published192 Standard APK. It passes --old-apk directly; no DSHA environment passthrough. Standalone gate also accepts --old-apk/--old-archive. Optional --apk validates every current module in the final exact APK."
+      "reason": "All current production Java active-module chains: fresh/repeat, exact build212 (rc3) boundary, staged signed current canonical recovery and fail-closed rejection. Old generation markers never prove a DSH upgrade.",
+      "cli": "Host runner requires explicit --previous-runtime-apk pointing to the exact build212 Standard APK. It passes --old-apk directly; no DSHA environment passthrough. Standalone gate also accepts --old-apk/--old-archive. Optional --apk validates every current module in the final exact APK."
     },
     {
       "path": "tools/test-plugin-pnpm-argv.mjs",

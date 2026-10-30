@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "module": "@deepseek-ai/dsh-web-search-deepseek/lib/index.js",
   "sourceSha256": "fc13dd4eaba3c9298af41a4d0559a1b8bb61614462fe18ba6e76d8c598c332bd",
-  "packageIntegrity": "sha512-BAxOlzM0L00y9dFjOptldKj3AAUn/MkD/x1SAC0FKxKt99K9/lgUm3dayPTIz8oYEUlzf3vNJnLh1kQavt0Wlg==",
+  "packageIntegrity": "sha512-CnGSJ7Pku+BiPNyOW8GkG1orC6rSa/b9KpTmuwiCNDIoRX+/Xv+qtX36eHYvnVEKhhGg8bbuEa7b2lOmD8dRXA==",
   "patchedSha256": "8e3ea9f811800c4e37b52fed521c0962be4134f5d2465f4b9247d8e6d673f9af",
   "purpose": "Validate each search header without changing credentials or precedence; report only fixed source/category and offending index/code point; distinguish local construction from fetch invocation.",
   "patches": [

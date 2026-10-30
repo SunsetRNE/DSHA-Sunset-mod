@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "module": "@deepseek-ai/dsh-client-file-upload/lib/index.js",
   "sourceSha256": "5dd5bd2d20656a1edeb1366e6b878afb04db519d2ba400135cb020ef037912fb",
-  "packageIntegrity": "sha512-ZsKt9Ea51ONNLcm83glPbF7NRdtW5dTPSiQCUxuI1MqWkSo1ytcAviWEMYYCCNyj41tKcGKZngpJwurORceWZg==",
+  "packageIntegrity": "sha512-DKDaLvz1cUKTzFVgWeZC66tc5qeVPJ/5+FFUZB4gFoGMkY/SNtxf36wHO7IUGCyDn752CgjqZdWLKEvoIJJRhg==",
   "reason": "Tie the sole cold-Session Agent resolver registration to its owning Service effect without comparing Cordis-wrapped function properties; preserve live duplicate rejection, exact old-disposer fencing, upload intake and Session-scoped receipts.",
   "patches": [
     {

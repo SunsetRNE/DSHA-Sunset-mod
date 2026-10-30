@@ -27,6 +27,12 @@ READ_COMPATIBILITY = {
     # and rollback still requires the archive/config fingerprint and RuntimeTrial.
     # See docs/runtime-data-compatibility-rc3-20261024.md. Do not infer older edges.
     '0.2.1-rc.3': ['dsh-0.2.1-rc.2'],
+    # build213 (upstream dsh-v0.2.1-rc.5): all 31 data/storage reader packages
+    # (75 JS modules) are byte-identical between the shipped rc3 archive and the
+    # rc5 builder projection; the real rc3 -> rc5 API cross read/write/reopen
+    # test passed. This is forward reading only; no rollback edge is declared.
+    # See docs/runtime-data-compatibility-rc5.md. Do not infer older edges.
+    '0.2.1-rc.5': ['dsh-0.2.1-rc.3'],
 }
 
 def digest(path):

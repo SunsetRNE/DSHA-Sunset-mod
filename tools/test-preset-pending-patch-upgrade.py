@@ -109,7 +109,7 @@ def main():
     lock = json.loads((root / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf-8'))
     package = 'node_modules/' + current['module'].split('/lib/')[0]
     assert old['module'] == current['module']
-    assert old['dshVersion'] == '0.2.1-rc.2' and current['dshVersion'] == '0.2.1-rc.3'
+    assert old['dshVersion'] == '0.2.1-rc.2' and current['dshVersion'] == json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8'))['dependencies']['@deepseek-ai/dsh']
     assert old['sourceSha256'] == sha(historical_canonical), 'unknown historical rc2 canonical bytes'
     assert current['sourceSha256'] == sha(canonical), 'unknown current rc3 canonical bytes'
     assert current['packageIntegrity'] == lock['packages'][package]['integrity']

@@ -7,7 +7,9 @@ public final class TerminalWorkspacePolicy {
   private static final int COMPACT_HEIGHT_DP = 560;
   private static final int DENSE_FOOTER_HEIGHT_DP = 480;
   private static final int LANDSCAPE_COMPACT_HEIGHT_DP = 1000;
+  private static final int NARROW_WINDOW_MAX_WIDTH_DP = 600;
   private static final int DRAWER_MAX_WIDTH_DP = 336;
+  private static final int NARROW_DRAWER_MAX_WIDTH_DP = 224;
   private static final int INLINE_MIN_WIDTH = 240;
   private static final int INLINE_MAX_WIDTH = 296;
 
@@ -45,12 +47,22 @@ public final class TerminalWorkspacePolicy {
     return Math.max(INLINE_MIN_WIDTH, Math.min(INLINE_MAX_WIDTH, Math.round(widthDp * .25f)));
   }
 
-  /** 抽屉最大宽度：平板上仍保持可读；窄窗口由遮罩边距继续收缩。 */
-  public static int drawerMaxWidth() {
-    return DRAWER_MAX_WIDTH_DP;
+  /**
+   * 抽屉最大宽度按设备类与当前窗口宽度双重判定：手机类（{@code smallestScreenWidthDp < 600}，与附加键布局同一判据）
+   * 且当前窗口 &lt; 600dp 时收窄到 224dp；平板（含分屏窄窗）、手机宽窗与宽屏保持 336dp。
+   * 内联侧栏不受该上限影响，仍由 {@link #inlineWidth(int)} 决定。
+   */
+  public static int drawerMaxWidth(int widthDp, int smallestWidthDp) {
+    boolean phone = smallestWidthDp < NARROW_WINDOW_MAX_WIDTH_DP;
+    return phone && widthDp < NARROW_WINDOW_MAX_WIDTH_DP
+        ? NARROW_DRAWER_MAX_WIDTH_DP
+        : DRAWER_MAX_WIDTH_DP;
   }
 
-  /** 抽屉保留遮罩区；极窄窗口最多让出四分之一宽度，不能回退到溢出窗口的最大宽度。 */
+  /**
+   * 抽屉保留遮罩区；极窄窗口最多让出四分之一宽度，不能回退到溢出窗口的最大宽度。
+   * maxPx 由 {@link #drawerMaxWidth(int, int)} 按设备类与当前窗口宽度给出。
+   */
   public static int drawerWidth(int availablePx, int maxPx, int marginPx) {
     if (availablePx <= 0) return maxPx;
     int margin = Math.min(Math.max(0, marginPx), availablePx / 4);

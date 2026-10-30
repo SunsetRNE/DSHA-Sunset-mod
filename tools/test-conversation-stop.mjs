@@ -11,6 +11,7 @@ import {testRuntime} from './test-runtime-fixture.mjs';
 import {reuseConversationRuntime} from './qa-rc21/conversation-stop-runtime.mjs';
 const stage=(phase,facts={})=>process.stderr.write(JSON.stringify({phase,at:new Date().toISOString(),...facts})+'\n');
 stage('conversation-stop-runtime-binding-before');
+const currentDshVersion=JSON.parse(readFileSync('app/src/main/assets/runtime-patches.json','utf8')).dshVersion;
 const namedProof=process.env.DSHA_STOP_REUSE_INPUTS?reuseConversationRuntime(process.env.DSHA_STOP_REUSE_INPUTS,{sourceRoot:process.cwd(),environmentRuntime:process.env.DSHA_STOP_RUNTIME}):undefined;
 const runtime=namedProof?.runtime??(process.env.DSHA_STOP_RUNTIME ? testRuntime('raw', 'DSHA_STOP_RUNTIME') : testRuntime('raw'));
 stage('conversation-stop-runtime-binding-after',{controlRole:namedProof?'PRIOR_MANAGED_UNCHANGED_CONTROL':'RAW_LOCKED_CONTROL',currentWholeRootProofExecuted:!namedProof});
@@ -73,7 +74,7 @@ const modulePath = name => require.resolve(name);
 const moduleSource = name => {const file=modulePath(name);namedProof?.observe(file);return readFileSync(file,'utf8');};
 function applyRecipe(text,name){
   const recipe=JSON.parse(readFileSync('app/src/main/assets/'+name,'utf8'));
-  assert.equal(recipe.dshVersion,'0.2.1-rc.3');
+  assert.equal(recipe.dshVersion,currentDshVersion);
   for(const {before,after}of recipe.patches){assert.equal(text.split(before).length-1,1,name+' source anchor');text=text.replace(before,after);}
   return text;
 }

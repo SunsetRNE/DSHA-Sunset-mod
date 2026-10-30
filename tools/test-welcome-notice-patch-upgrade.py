@@ -113,7 +113,7 @@ def main():
     assert historical['sourceSha256'] == current['sourceSha256'] == sha(canonical)
     # rc3 repackages this byte-identical JS; historical recipe bytes remain SHA pinned.
     assert historical['dshVersion'] == '0.2.1-rc.2'
-    assert current['dshVersion'] == '0.2.1-rc.3'
+    assert current['dshVersion'] == json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8'))['dependencies']['@deepseek-ai/dsh']
     old = apply_recipe(canonical, historical)
     expected = apply_recipe(canonical, current)
     assert old != expected
