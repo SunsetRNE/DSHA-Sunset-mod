@@ -259,6 +259,101 @@ public final class WebLifecycleStartProtectionTest {
   }
 
   @Test
+  public void startDuringRestoreIsRecordedOnceAndContinuesAfterConfirmedExit() {
+    var ticket = ticket();
+    var messages = new java.util.ArrayList<String>();
+    f.state.restoreChecking = true;
+    assertTrue(f.controller.startProtectedWeb(ticket, false, false, messages::add));
+    assertTrue(ticket.isDeferred());
+    assertEquals(0, f.controller.getWebGeneration());
+    assertNotNull(f.state.pendingStart);
+    assertTrue(f.pending.queued.isEmpty());
+    assertEquals(java.util.List.of(WebSessionRestoreText.deferred()), messages);
+
+    f.state.restoreChecking = false;
+    f.controller.continueDeferredStartAfterRestore(
+        new WebSessionRecovery.Outcome(WebSessionRecovery.Result.EXITED, "EXIT_CONFIRMED", 0));
+    assertNull(f.state.pendingStart);
+    assertEquals(1, f.controller.getWebGeneration());
+    assertTrue(f.controller.isStarting());
+    assertEquals(1, f.pending.queued.size());
+    assertTrue(messages.contains(WebSessionRestoreText.continuingAfterExit()));
+    // Drain the queued worker after a Stop so no fixture Web process is created.
+    Runnable queued = f.pending.queued.remove(0);
+    f.state.lifecycle.beginStop();
+    f.state.lifecycle.finishStop(f.state.lifecycle.generation());
+    queued.run();
+    assertFalse(EnvironmentTaskGate.isBusy());
+  }
+
+  @Test
+  public void restoredExistingInstanceOnlyReleasesTheDeferredTicketWithoutRestart() {
+    var ticket = ticket();
+    var messages = new java.util.ArrayList<String>();
+    f.state.restoreChecking = true;
+    assertTrue(f.controller.startProtectedWeb(ticket, true, false, messages::add));
+    f.state.restoreChecking = false;
+    f.controller.continueDeferredStartAfterRestore(
+        new WebSessionRecovery.Outcome(WebSessionRecovery.Result.RESTORED, "RESTORED", 1));
+    assertNull(f.state.pendingStart);
+    assertTrue(messages.contains(WebSessionRestoreText.restoredNoStart()));
+    assertEquals(0, f.controller.getWebGeneration());
+    assertTrue(f.pending.queued.isEmpty());
+    assertFalse(ticket.isDeferred());
+    assertFalse(f.state.startProtection.hasPreparing());
+  }
+
+  @Test
+  public void unconfirmedRestoreKeepsProtectionAndNeverStartsTheDeferredRequest() {
+    var ticket = ticket();
+    var messages = new java.util.ArrayList<String>();
+    f.state.restoreChecking = true;
+    assertTrue(f.controller.startProtectedWeb(ticket, false, false, messages::add));
+    f.state.restoreChecking = false;
+    f.controller.continueDeferredStartAfterRestore(
+        new WebSessionRecovery.Outcome(WebSessionRecovery.Result.UNKNOWN, "AUTH_UNAVAILABLE", 3));
+    assertNull(f.state.pendingStart);
+    assertEquals(0, f.controller.getWebGeneration());
+    assertTrue(f.pending.queued.isEmpty());
+    assertTrue(messages.contains(WebSessionRestoreText.unresolved("AUTH_UNAVAILABLE")));
+    assertFalse(ticket.isDeferred());
+    assertFalse(f.state.startProtection.hasPreparing());
+  }
+
+  @Test
+  public void stopDuringRestoreDiscardsTheRecordedStartBeforeAnyContinuation() {
+    var ticket = ticket();
+    f.state.restoreChecking = true;
+    assertTrue(f.controller.startProtectedWeb(ticket, false, false, null));
+    f.state.restoreChecking = false;
+    f.controller.stopWeb(x -> {});
+    assertNull(f.state.pendingStart);
+    assertFalse(ticket.isDeferred());
+    f.controller.continueDeferredStartAfterRestore(
+        new WebSessionRecovery.Outcome(WebSessionRecovery.Result.EXITED, "EXIT_CONFIRMED", 0));
+    assertFalse(f.controller.isStarting());
+    assertEquals(1, f.pending.queued.size());
+  }
+
+  @Test
+  public void staleAdmissionGenerationRejectsTheDeferredStartWithoutReplayingIt() {
+    var ticket = ticket();
+    var messages = new java.util.ArrayList<String>();
+    f.state.restoreChecking = true;
+    assertTrue(f.controller.startProtectedWeb(ticket, false, false, messages::add));
+    f.state.restoreChecking = false;
+    // A later intent advances the generation without cancelling the stored ticket.
+    f.state.lifecycle.beginStop();
+    f.state.lifecycle.finishStop(f.state.lifecycle.generation());
+    f.controller.continueDeferredStartAfterRestore(
+        new WebSessionRecovery.Outcome(WebSessionRecovery.Result.EXITED, "EXIT_CONFIRMED", 0));
+    assertNull(f.state.pendingStart);
+    assertTrue(f.pending.queued.isEmpty());
+    assertTrue(messages.contains(WebSessionRestoreText.continuationBlocked()));
+    assertFalse(ticket.isDeferred());
+  }
+
+  @Test
   public void rejectedStopSubmissionRevokesAndKeepsAFailedProofWithoutStuckStopping()
       throws Exception {
     var rejecting =

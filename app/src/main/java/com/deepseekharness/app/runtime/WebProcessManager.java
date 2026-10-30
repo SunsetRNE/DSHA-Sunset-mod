@@ -683,6 +683,24 @@ public class WebProcessManager {
     return !process.alive() || process.started() != saved.launcherStarted();
   }
 
+  /**
+   * 已确认原 guest 与启动器都退出后，隔离仍指向它的旧 PID 记录；不发送任何信号。
+   *
+   * <p>PID 记录已被换成其它实例时保留现场并返回 false；记录已不在时视为已完成。
+   * 只有与本次证明完全一致的旧记录才会被改名，异步检查不会误删新实例的记录。
+   */
+  public boolean retireConfirmedExit(com.deepseekharness.app.util.WebSessionProof.Saved saved)
+      throws IOException {
+    if (saved == null || records != null) return false;
+    if (observeSession(saved) != SessionObservation.EXITED) return false;
+    if (!recoveredLauncherExited(saved)) return false;
+    String record = pidRecord();
+    if (record == null) return true;
+    if (WebProcSel.parsePid(record) != saved.webPid()) return false;
+    retire(record);
+    return pidRecord() == null;
+  }
+
   /** 旧记录无法解密时，只读核对同UID的Web启动器已全部消失；绝不按名称发送信号。 */
   public boolean confirmNoUntrackedWebLaunchers() throws IOException {
     String[] entries = recoveryProcessEntries();

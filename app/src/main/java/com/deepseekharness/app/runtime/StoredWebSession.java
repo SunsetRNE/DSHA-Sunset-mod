@@ -22,6 +22,9 @@ public final class StoredWebSession {
       boolean compatible,
       String taskToken) {}
 
+  // 多个控制器门面共享同一文件；比较退休与新记录写入必须串行。
+  private static final Object RECORD_LOCK = new Object();
+
   private final Context context;
   private final AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
   private final KeyVault vault;
@@ -118,6 +121,12 @@ public final class StoredWebSession {
   }
 
   public void write(Record record) throws IOException {
+    synchronized (RECORD_LOCK) {
+      writeLocked(record);
+    }
+  }
+
+  private void writeLocked(Record record) throws IOException {
     try {
       var home = home();
       var p = record.proof();
@@ -156,6 +165,21 @@ public final class StoredWebSession {
 
   /** 调用方必须持有对应停止已完成或旧实例已退休的新启动围栏。 */
   public void clear() throws IOException {
+    synchronized (RECORD_LOCK) {
+      clearLocked();
+    }
+  }
+
+  /** 仅在原 Web 与启动器均已确认退出后调用；新记录不能被旧回调删除。 */
+  public boolean retire(Record expected) throws IOException {
+    synchronized (RECORD_LOCK) {
+      if (expected == null || !expected.equals(read())) return false;
+      clearLocked();
+      return true;
+    }
+  }
+
+  private void clearLocked() throws IOException {
     var home = home();
     File file = fs.child(home.directory, "web-session.enc");
     if (fs.stat(file).type.equals("MISSING")) {

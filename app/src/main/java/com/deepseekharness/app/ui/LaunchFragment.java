@@ -567,6 +567,8 @@ public class LaunchFragment extends Fragment {
       if (ready) startStatusMessage = "";
       boolean restoring = controller.isRestoringWebSession();
       boolean unresolved = controller.hasUnresolvedWebSession();
+      String restoreReason = controller.webSessionRestoreReason();
+      String restoreNotice = controller.webSessionRestoreNotice();
       com.deepseekharness.app.util.StartupTrace.Snapshot trace =
           controller.startupDiagnostics().snapshot();
       String localUrl = webEntryUrl();
@@ -585,12 +587,10 @@ public class LaunchFragment extends Fragment {
           enteringWeb
               ? com.deepseekharness.app.util.UiText.choose("正在打开 Web…", "Opening Web…")
               : restoring
-                  ? com.deepseekharness.app.util.UiText.choose(
-                      "正在核对原 Web 实例…", "Checking the existing Web instance…")
+                  ? com.deepseekharness.app.core.WebSessionRestoreText.progress(
+                      restoreReason, controller.webSessionRestoreAttempts())
                   : unresolved
-                      ? com.deepseekharness.app.util.UiText.choose(
-                          "原 Web 实例状态待确认，请查看诊断或正常停止后重试",
-                          "The previous Web instance is unconfirmed. Inspect diagnostics or stop it normally before retrying.")
+                      ? com.deepseekharness.app.core.WebSessionRestoreText.unresolved(restoreReason)
                       : controller.isRestartBlocked()
                           ? com.deepseekharness.app.util.UiText.text("自动重启已暂停")
                           : stopping
@@ -607,9 +607,11 @@ public class LaunchFragment extends Fragment {
                                               ? com.deepseekharness.app.util.UiText.text(
                                                   " · 已兼容切换 proot")
                                               : "")
-                                      : controller.isUserStopped()
-                                          ? getString(R.string.ui2_stopped)
-                                          : getString(R.string.ui2_stopped));
+                                      : !restoreNotice.isEmpty()
+                                          ? restoreNotice
+                                          : controller.isUserStopped()
+                                              ? getString(R.string.ui2_stopped)
+                                              : getString(R.string.ui2_stopped));
       ((TextView) root.findViewById(R.id.launch_port))
           .setText(ready ? String.valueOf(controller.getWebPort()) : "—");
       EnvironmentUiStatus.Snapshot environment = EnvironmentUiStatus.get(requireContext());

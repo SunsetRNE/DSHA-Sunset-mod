@@ -78,6 +78,18 @@ public class HarnessController {
     return web.isRestoringWebSession();
   }
 
+  public String webSessionRestoreReason() {
+    return web.webSessionRestoreReason();
+  }
+
+  public int webSessionRestoreAttempts() {
+    return web.webSessionRestoreAttempts();
+  }
+
+  public String webSessionRestoreNotice() {
+    return web.webSessionRestoreNotice();
+  }
+
   public boolean needsWebSessionRestore() {
     return web.needsWebSessionRestore();
   }
