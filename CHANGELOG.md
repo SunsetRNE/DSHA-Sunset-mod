@@ -6,6 +6,7 @@
 - 修复 DSH Web UI rc.5 手机设置弹层「正文字体 / 代码字体 / 终端字体」行的排版：窄屏下输入框改为独占整行，说明文字不再一字一行、弹层不再被纵向撑大；由内置 dsh-web-mobile 的本地补丁实现，桌面/平板不受影响。
 - 版本码提升为 214；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 后缀为 0.2.1-rc.5；构建与验收范围以本轮 run 与 Release 回执为准。
 - 十语种更新说明见[build214 更新说明](docs/releases/build214-changes.zh.md)。
+- 已在 OnePlus PJD110 / Android 16 安装正式包并完成窄抽屉与 rc.5 设置字体行验收；逐项实测、回归与限制见[build214 真机验收记录](docs/releases/v0.2.1-rc.3-build214-acceptance-20261030.md)。
 
 ## 0.2.1-rc.3-20261030.1900-dsh0.2.1-rc.5 / build213（内置 DSH rc.5、终端 CLI 与窄窗抽屉）
 

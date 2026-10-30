@@ -83,6 +83,20 @@ python3 tools/check-source-hygiene.py
 - `data-shortcut-modal="shortcuts"` 的同类结构保持 `nowrap`；
 - 视口 1280px 时设置弹层内字体行保持 `nowrap` 与 240px 控件。
 
+### 真机验收（build214，2026-10-30）
+
+在 OnePlus PJD110 / Android 16（1440×3168，4.0×，360dp 逻辑宽）安装 build214 正式包后实测
+「设置 → 通用设置 → 更多字体设置」：
+
+- 正文字体：说明 `[80,1928,1340,2072]` 整宽两行；输入框 `[112,2120,1308,2216]` 独占下一行；
+- 代码字体：说明 `[80,2464,1340,2612]` 整宽；输入框 `[112,2656,1308,2756]` 独占下一行；
+- 代码字号等 stepper 行保持原布局，未命中补丁；
+- 「终端字体」行在可视区下方：WebView 内容无障碍滚动返回 `NODE_SCROLL_REGION_UNAVAILABLE`，
+  主屏截图被系统悬浮窗标记遮挡、不签发坐标触控，未单独滚入目视；该行与已实测两行共用同一
+  `DSHA_FONT_FAMILY_ROW_V1` 规则，无头三行实测覆盖。
+
+完整记录见[build214 真机验收记录](releases/v0.2.1-rc.3-build214-acceptance-20261030.md)。
+
 ### 重新生成与退出条件
 
 ```bash
