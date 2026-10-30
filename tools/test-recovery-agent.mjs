@@ -5,9 +5,14 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
-const expectedDsh = JSON.parse(await readFile(path.join(root, 'tools/recovery-runtime/lock.json'), 'utf8')).dshVersion;
+// The emergency ABI is pinned only when the explicit recovery fixture is used.
+// A normal current fixture follows the formal runtime lock (recovery stays rc3).
+const recoveryRuntime = process.env.DSHA_TEST_RECOVERY_RUNTIME;
+const expectedDsh = recoveryRuntime
+  ? JSON.parse(await readFile(path.join(root, 'tools/recovery-runtime/lock.json'), 'utf8')).dshVersion
+  : JSON.parse(await readFile(path.join(root, 'tools/dsh-runtime/package.json'), 'utf8')).dependencies['@deepseek-ai/dsh'];
 const fixture = JSON.parse(await readFile(path.join(root, 'app/build/test-runtimes/current.json'), 'utf8'));
-const runtime = process.env.DSHA_TEST_RECOVERY_RUNTIME || process.env.DSHA_TEST_RUNTIME || fixture.raw;
+const runtime = recoveryRuntime || process.env.DSHA_TEST_RUNTIME || fixture.raw;
 const requireRuntime = createRequire(path.join(runtime, 'package.json'));
 const load = name => import(pathToFileURL(requireRuntime.resolve(name)).href);
 const { Context } = await load('@deepseek-ai/cordis');
