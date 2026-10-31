@@ -594,16 +594,44 @@ public final class DeviceGrantsFragment extends Fragment {
                   "已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。",
                   "Stellar (a Shizuku-compatible manager) is detected. Start its service and enable the Shizuku compatibility layer, then authorize here. Restart the service after reboot.")
               : getString(R.string.ui134_shizuku_hint));
-    if (root.getTag() == null) root.setText(RootShell.status(requireContext()));
+    if (root.getTag() == null) root.setText(rootStatusWithoutPolicy(requireContext()));
+    refreshRootPolicy();
   }
 
-  /** 只读的当前 root 命令拦截档位摘要；修改入口是下方“更改”。 */
+  /** RootShell.status 末行是拦截档位；本页档位已单独显示，这里去掉重复的那一行。 */
+  private static String rootStatusWithoutPolicy(Context ctx) {
+    String status = RootShell.status(ctx);
+    int cut = status.lastIndexOf('\n');
+    return RootShell.enabled(ctx) && cut > 0 ? status.substring(0, cut) : status;
+  }
+
+  /**
+   * 只读的当前 root 命令拦截档位：一行档位 + 同行「更改」；作用范围收进 ⓘ。放宽 / 完全放宽时
+   * 显示红色严重警告框，严格档隐藏。
+   */
   private void refreshRootPolicy() {
     if (rootPolicy == null || !isAdded()) return;
-    rootPolicy.setText(
+    Context ctx = requireContext();
+    InfoHint.bind(
+        rootPolicy,
+        com.deepseekharness.app.util.UiText.text("Root 命令拦截档位"),
         com.deepseekharness.app.util.UiText.format(
-            "命令拦截档位：%s\n仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。",
-            RootShell.policyLabel(requireContext())));
+            "命令拦截档位：%s\n仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。", RootShell.policyLabel(ctx)));
+    View page = getView();
+    TextView warning = page == null ? null : page.findViewById(R.id.device_root_policy_warning);
+    if (warning == null) return;
+    DeviceShellPolicy.Mode mode = new ConfigStore(ctx).rootPolicyMode();
+    boolean relaxed = RootShell.enabled(ctx) && mode != DeviceShellPolicy.Mode.STRICT;
+    warning.setVisibility(relaxed ? View.VISIBLE : View.GONE);
+    if (!relaxed) return;
+    warning.setText(
+        mode == DeviceShellPolicy.Mode.FULL
+            ? com.deepseekharness.app.util.UiText.choose(
+                "严重风险：已完全放宽。助手和插件可用 root 执行任意命令，包括格式化、刷机、清除数据等不可逆操作，可能导致数据丢失或系统损坏。不用时请改回严格。",
+                "Severe risk: fully relaxed. The assistant and plugins can run any root command, including irreversible ones such as formatting, flashing or wiping data. This may cause data loss or system damage. Switch back to strict when not needed.")
+            : com.deepseekharness.app.util.UiText.choose(
+                "高风险：已放宽。助手和插件可用 root 执行白名单以外的任意命令；仅拦截格式化、刷机、清除数据等不可逆操作。不用时请改回严格。",
+                "High risk: relaxed. The assistant and plugins can run root commands beyond the allowlist; only irreversible operations such as formatting, flashing or wiping data are blocked. Switch back to strict when not needed."));
   }
 
   private void showRootPolicyDialog() {
