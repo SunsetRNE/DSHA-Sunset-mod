@@ -109,11 +109,57 @@ node tools/apply-mobile-client-patches.mjs tools/mobile-plugin-upstream/lib/clie
 退出条件：上游给字体行提供手机档换行排版，或宿主不再把 `.field` 固定成 240px；
 届时删除 `font-family-row-wrap-rc5` 整块并重新生成产物。
 
-## 未决：宽屏触屏（≥1024px）会话行挤压（上游 #255，2026-10-31）
+## 2026-10-31：宽屏触屏档会话行收起归档/置顶（`DSHA_WIDE_TOUCH_ROW_ACTIONS_V1`）
 
-内置 3.2.2 的 `@media (min-width:1024px) and (pointer:coarse)` 档会把会话行 `_rowActions`
-（⋯ / 归档 / 置顶）常显并放大到 40×40，同时保留宿主 `.time`；280px 侧栏里标题只剩约 55px，
-与竖屏手机壳（只留时间 + ⋯）观感不一致。已提上游
-[#255](https://github.com/mexiaosqwq/dsh-web-mobile/issues/255)，**本地暂不打补丁**；
-修复方向 A（行内只留「时间 + ⋯」，归档/置顶留在 ⋯ 菜单）与前后验收见
-[平板会话行挤压记录](web-mobile-tablet-rows-20261031.md)。
+### 现象与根因
+
+内置 3.2.2 的 `@media (min-width: 1024px) and (pointer: coarse)` 档把会话行
+`_rowActions` 常显，并把 ⋯ / 归档 / 置顶三颗按钮放大到 40×40（gap 4）；宿主只在
+`:hover` / `menuOpen` 时隐藏 `.time`，触屏没有 hover，于是 280px 侧栏里同时常显
+「时间 + ⋯ + 归档 + 置顶」，标题可用宽只剩约 55px（实测 1024×640 / dpr 2.5）。
+手机壳（≤1023）自 #154 起已按 aria-label 收起归档/置顶，宽屏触屏档缺同一条规则。
+
+### 上游核验（2026-10-31）
+
+- issue [#255](https://github.com/mexiaosqwq/dsh-web-mobile/issues/255)；
+  PR [#256](https://github.com/mexiaosqwq/dsh-web-mobile/pull/256)（OPEN，SunsetRNE，
+  分支 `fix/255-wide-touch-row-actions`，含源码、测试、重建的 `lib/`）。
+- 固定上游 `bb0e5e15` 仍无该规则；`layout.css.ts:3469` 只作用于手机壳 frame。
+- 上游维护窗口暂停，DSHA 先打本地补丁；PR 合并后摘除。
+
+### 补丁位置与规则
+
+[apply-mobile-client-patches.mjs](../tools/apply-mobile-client-patches.mjs) 在宽屏触屏档
+`①′` 热区规则之后、`① 隐藏「更多视图」` 之前做锚点替换，注入带
+`@patch id: wide-touch-row-actions` 与产物标记 `DSHA_WIDE_TOUCH_ROW_ACTIONS_V1` 的规则：
+
+```css
+[class*="sessionRow"] [class*="_rowActions"] :is(
+  [aria-label="归档会话"], [aria-label="取消归档"],
+  [aria-label="置顶会话"], [aria-label="取消置顶"],
+  [aria-label="Archive session"], [aria-label="Unarchive session"],
+  [aria-label="Pin session"], [aria-label="Unpin session"]
+) {
+  display: none !important;
+}
+```
+
+只命中 ≥1024 + 粗指针的会话行；⋯ 仍保留 40×40 热区，归档/置顶/分叉/删除仍在 ⋯ 菜单。
+
+### 验证
+
+```bash
+node tools/apply-mobile-client-patches.mjs tools/mobile-plugin-upstream/lib/client.js --check
+node tools/test-mobile-client-patches.mjs
+python3 tools/generate-builtin-plugins.py --verify
+python3 tools/check-source-hygiene.py
+```
+
+`test-mobile-client-patches.mjs` 断言：规则位于 ≥1024 档内、名单与手机壳逐字一致
+（8 个 zh/en 标签）、`display:none !important`。真机前后量测等包含本补丁的 APK 安装后
+补写，指标见[平板会话行挤压记录](web-mobile-tablet-rows-20261031.md)。
+
+### 退出条件
+
+内置上游同步到包含 PR #256 的提交后：删除 `wide-touch-row-actions` 整块、对应测试分支与
+本文件该段，重新生成 `lib/client.js` 并核验。

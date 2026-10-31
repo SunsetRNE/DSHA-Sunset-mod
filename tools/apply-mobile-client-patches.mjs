@@ -90,6 +90,29 @@ export function applyMobileClientPatches(bytes) {
 }
 
 /* Floating fallback button (hero / blank phases without a session header).`);
+  // 宽屏触屏档（≥1024 + 粗指针）沿用手机壳的「⋯ 常显」，又把三颗按钮放大到 40×40；
+  // 宿主只在 hover/menuOpen 隐藏 .time，触屏没有 hover，于是行尾同时常显
+  // 「时间 + ⋯ + 归档 + 置顶」，280px 侧栏里的标题只剩约 55px。按手机壳 #154 的
+  // 同一份 zh/en aria-label 名单收起归档/置顶，⋯ 仍保留 40×40 热区。
+  // 上游 PR mexiaosqwq/dsh-web-mobile#256 是同一改动；内置快照包含它后删本块。
+  replace('  /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），',
+    `  /* @patch
+     id: wide-touch-row-actions
+     for: dsh-web-mobile 3.2.2（bb0e5e15）的 (min-width: 1024px) and (pointer: coarse) 档
+     why: 40×40 的 ⋯ / 归档 / 置顶三颗按钮和常显的 .time 把 280px 侧栏的标题压到约
+          55px（实测 1024×640 / dpr 2.5）；手机壳自 #154 起已按 aria-label 收起
+          归档/置顶，宽屏触屏档缺同一条规则。上游 PR #256 合并后删本块。
+     until: 内置上游同步到包含 mexiaosqwq/dsh-web-mobile#256 的提交——届时删本块并
+            重新生成产物
+     test: tools/test-mobile-client-patches.mjs
+  */
+  /* DSHA_WIDE_TOUCH_ROW_ACTIONS_V1：只藏归档/置顶两颗快捷按钮，⋯ 与行高不动；
+     名单与手机壳 #154 完全一致，宿主换语言时静默失效、不误伤第三方按钮。 */
+  [class*="sessionRow"] [class*="_rowActions"] :is([aria-label="归档会话"], [aria-label="取消归档"], [aria-label="置顶会话"], [aria-label="取消置顶"], [aria-label="Archive session"], [aria-label="Unarchive session"], [aria-label="Pin session"], [aria-label="Unpin session"]) {
+    display: none !important;
+  }
+
+  /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），`);
   const css = `
   /* DSHA 可见区域边界：原生已消费 IME/systemBars，只读浏览器实际视口。 */
   [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]),

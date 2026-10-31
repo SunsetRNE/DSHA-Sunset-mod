@@ -1,6 +1,6 @@
 # CI 构建与发布（公开仓库正式成品）
 
-更新：2026-10-31 / build217。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
+更新：2026-10-31 / build219。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
 目标仓库：`SunsetRNE/DSHA-Sunset-mod`（`main` 分支）。本文说明如何用 GitHub Actions 产出并发布
 **正式签名成品**（`io.github.sunsetrne.dsha`），以及需要哪些仓库 Secrets、产物如何核验。
 

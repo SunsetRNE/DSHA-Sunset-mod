@@ -6697,6 +6697,22 @@ exports.MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
     border-radius: 10px;
   }
 
+  /* @patch
+     id: wide-touch-row-actions
+     for: dsh-web-mobile 3.2.2（bb0e5e15）的 (min-width: 1024px) and (pointer: coarse) 档
+     why: 40×40 的 ⋯ / 归档 / 置顶三颗按钮和常显的 .time 把 280px 侧栏的标题压到约
+          55px（实测 1024×640 / dpr 2.5）；手机壳自 #154 起已按 aria-label 收起
+          归档/置顶，宽屏触屏档缺同一条规则。上游 PR #256 合并后删本块。
+     until: 内置上游同步到包含 mexiaosqwq/dsh-web-mobile#256 的提交——届时删本块并
+            重新生成产物
+     test: tools/test-mobile-client-patches.mjs
+  */
+  /* DSHA_WIDE_TOUCH_ROW_ACTIONS_V1：只藏归档/置顶两颗快捷按钮，⋯ 与行高不动；
+     名单与手机壳 #154 完全一致，宿主换语言时静默失效、不误伤第三方按钮。 */
+  [class*="sessionRow"] [class*="_rowActions"] :is([aria-label="归档会话"], [aria-label="取消归档"], [aria-label="置顶会话"], [aria-label="取消置顶"], [aria-label="Archive session"], [aria-label="Unarchive session"], [aria-label="Pin session"], [aria-label="Unpin session"]) {
+    display: none !important;
+  }
+
   /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），
      它的入口是宿主 header 里的 viewsMoreAnchor；平板这一档没有壳的帧内规则，
      于是这颗对触屏平板毫无用处的按钮就漏了出来。只藏按钮与锚点，菜单不会再弹。 */

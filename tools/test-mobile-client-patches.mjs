@@ -44,3 +44,28 @@ test('3.2.2 最新上游视口函数保持原字节，不复活已撤回的帧�
   assert.equal(viewport(patched),viewport(source));
   assert.ok(patched.includes('interactive-widget=resizes-content'));
 });
+test('宽屏触屏档收起归档/置顶，规则落在 ≥1024 档内且与手机壳名单一致',()=>{
+  const source=readFileSync('tools/mobile-plugin-upstream/lib/client.js','utf8');
+  const patched=applyMobileClientPatches(Buffer.from(source));
+  const open='@media (min-width: 1024px) and (pointer: coarse) {';
+  const at=patched.indexOf(open);
+  assert.ok(at>=0,'未找到宽屏触屏档');
+  let depth=0,end=-1;
+  for(let i=patched.indexOf('{',at);i<patched.length;i++){
+    if(patched[i]==='{')depth++;
+    else if(patched[i]==='}'){depth--;if(depth===0){end=i;break;}}
+  }
+  assert.ok(end>at,'宽屏触屏档大括号不配平');
+  const tablet=patched.slice(at,end+1);
+  assert.ok(tablet.includes('DSHA_WIDE_TOUCH_ROW_ACTIONS_V1'),'补丁标记缺失');
+  const hide=/\[class\*="sessionRow"\] \[class\*="_rowActions"\] :is\(([\s\S]*?)\) \{([\s\S]*?)\}/.exec(tablet);
+  assert.ok(hide,'宽屏触屏档没有隐藏归档/置顶的规则');
+  assert.match(hide[2],/display:\s*none !important/);
+  const labels=text=>[...text.matchAll(/aria-label="([^"]+)"/g)].map(m=>m[1]).sort();
+  const phone=/\[class\*="_rowActions"\] :is\(([\s\S]*?)\) \{/.exec(source);
+  assert.ok(phone,'手机壳 #154 规则缺失');
+  // 两档共用宿主 zh/en 字典：名单必须逐字一致，换语言时同时静默失效。
+  assert.deepEqual(labels(hide[1]),labels(phone[1]),'宽屏触屏档名单必须与手机壳一致');
+  assert.equal(labels(hide[1]).length,8);
+});
+

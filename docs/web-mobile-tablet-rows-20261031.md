@@ -1,8 +1,9 @@
 # 宽屏触屏平板侧栏会话行挤压（dsh-web-mobile ≥1024px）
 
-> **状态：未修复。** 上游 [issue #255](https://github.com/mexiaosqwq/dsh-web-mobile/issues/255)
-> 已于 2026-10-31 提交（OPEN；当前 GitHub 账号对上游仓库只有 READ 权限，添加 label 被拒绝）。
-> 本地**暂不打补丁**，修复方向定为 **A**：行内只保留「时间 + ⋯」，归档/置顶留在 ⋯ 菜单。
+> **状态：上游 PR 待合并；DSHA 已先行修复。** 上游 [issue #255](https://github.com/mexiaosqwq/dsh-web-mobile/issues/255)
+> 与 [PR #256](https://github.com/mexiaosqwq/dsh-web-mobile/pull/256) 已于 2026-10-31 提交（PR OPEN）。
+> 本地按方向 **A** 已打补丁 `DSHA_WIDE_TOUCH_ROW_ACTIONS_V1`，内置 `client.js` 已重新生成；
+> 上游合并并同步固定快照后摘除。修复方向：行内只保留「时间 + ⋯」，归档/置顶留在 ⋯ 菜单。
 > 记录基线：build218 / DSH 0.2.1-rc.5 / dsh-web-mobile 3.2.2（上游 main `bb0e5e15`，`v3.2.2` 标签同指）。
 
 ## 1. 结论
@@ -58,13 +59,16 @@
 
 - 上游 issue：[mexiaosqwq/dsh-web-mobile#255](https://github.com/mexiaosqwq/dsh-web-mobile/issues/255)
   （2026-10-31，OPEN，无 label）。
+- 上游 PR：[mexiaosqwq/dsh-web-mobile#256](https://github.com/mexiaosqwq/dsh-web-mobile/pull/256)
+  （2026-10-31，OPEN；分支 `SunsetRNE:fix/255-wide-touch-row-actions`，1 个 commit，
+  含源码、测试、重建的 `lib/` 与补丁登记库存）。
 - 2026-10-31 核对：上游 main `bb0e5e15` 的 `src/client/styles/misc.css.ts:409` 仍在，
   `layout.css.ts:3469` 只作用于手机壳 frame，宽屏触屏档没有同类规则。
 - DSHA 内置 3.2.2 从 build210（上游 `04dcd19`）起包含平板档；build216 同步到 `bb0e5e15`
   后行为不变。上游暂无重复 issue；#154 是手机档同源结论，#183/#241 不覆盖宽屏触屏档。
-- 结论：等上游；上游合入前本地不改产物。
+- 结论：上游合并前由 DSHA 补丁带着跑；合并并同步固定快照后摘除补丁。
 
-## 5. 修复方向 A（待实施）
+## 5. 修复方向 A（已落地）
 
 在 [misc.css.ts:409](../app/src/main/assets/builtin-plugins/dsh-web-mobile/src/client/styles/misc.css.ts#L409)
 的 `@media (min-width: 1024px) and (pointer: coarse)` 内追加与手机壳同源的规则：
@@ -89,6 +93,19 @@
   不会误伤（与 #154 同一策略）。
 - 保留时间与置顶指示的宿主逻辑；修复后行尾与竖屏一致，只有行距仍不同。
 
+### 本地落地（2026-10-31）
+
+- [apply-mobile-client-patches.mjs](../tools/apply-mobile-client-patches.mjs) 在
+  `①′` 热区规则之后、`① 隐藏「更多视图」` 之前插入同一段隐藏规则（锚点替换，不手改上游
+  源），带 `@patch id: wide-touch-row-actions` 与产物标记 `DSHA_WIDE_TOUCH_ROW_ACTIONS_V1`。
+- 内置 [client.js](../app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js) 已用
+  `node tools/apply-mobile-client-patches.mjs tools/mobile-plugin-upstream/lib/client.js --write`
+  重新生成；`--check` 与 `generate-builtin-plugins.py --verify` 均通过。
+- [test-mobile-client-patches.mjs](../tools/test-mobile-client-patches.mjs) 新增用例：
+  规则必须落在 `(min-width:1024px) and (pointer:coarse)` 档内、名单与手机壳 #154 逐字一致
+  （8 个标签）、`display:none !important`。
+- 上游 PR #256 合入并同步快照后，按 §7 删除本块与对应测试分支。
+
 ### 为什么不选 B / C
 
 - **B（常显 actions 时隐藏 time）**：标题只回到约 95px，仍然挤，且与手机壳不一致。
@@ -99,7 +116,7 @@
 
 ### 6.1 硬指标
 
-| 指标 | 修复前（build218 实测） | 修复后（目标） |
+| 指标 | 修复前（build218 实测） | 修复后（目标；内置 client 已改） |
 |---|---|---|
 | 行尾元素 | 时间 + ⋯ + 归档 + 置顶 | 时间 + ⋯ |
 | 行内归档/置顶按钮 | 可见 | 隐藏（⋯ 菜单可点） |
@@ -145,32 +162,37 @@ console.log({
 
 ### 6.3 真机验收
 
+> 2026-10-31：内置 `client.js` 已含补丁，但本机仍运行 build218 安装包；下面两项要等包含
+> 本次改动的 APK 安装后复测，届时把前后数字与截图结论写回本文。
+
 - 同一台 2560×1600 @2.5 设备横屏 1024×640：修复前后各截一张侧栏会话行图，按 §6.1 核对；
   截图只在本机/验收记录引用，不进仓库。
 - 竖屏 640×1024：布局不得变化。
 - 桌面鼠标窗口 ≥1024：hover 才出 actions 的宿主行为不得变化。
 - ⋯ 菜单内归档/取消归档/置顶/取消置顶/分叉/删除均可用；中英文各测一次隐藏规则。
 
-## 7. 将来实施步骤（完整流程）
+## 7. 实施记录（完整流程）
 
-1. **等上游**：跟踪 #255。上游合入后按固定提交更新 `tools/mobile-plugin-upstream/`，
-   重放本地补丁并 `python3 tools/generate-builtin-plugins.py --verify`。
-2. **上游不修时**：按方向 A 在 [apply-mobile-client-patches.mjs](../tools/apply-mobile-client-patches.mjs)
-   增加锚点补丁（`@patch id` + 产物标记，例如 `DSHA_WIDE_TOUCH_ROW_ACTIONS_V1`），只改
-   `lib/client.js`，不改上游源；补丁需覆盖 §5 的 8 个 aria-label。
-3. **验证**：
+1. **上游跟踪（已执行）**：issue #255、PR #256（2026-10-31）。上游合并后按固定提交更新
+   `tools/mobile-plugin-upstream/`，重放本地补丁并 `python3 tools/generate-builtin-plugins.py --verify`。
+2. **本地补丁（已执行）**：按方向 A 在 [apply-mobile-client-patches.mjs](../tools/apply-mobile-client-patches.mjs)
+   增加锚点补丁（`@patch id: wide-touch-row-actions` + 产物标记
+   `DSHA_WIDE_TOUCH_ROW_ACTIONS_V1`），只改 `lib/client.js`，不改上游源；覆盖 §5 的 8 个 aria-label。
+3. **验证（已执行）**：
    ```bash
    node tools/test-mobile-client-patches.mjs
    python3 tools/generate-builtin-plugins.py --verify
    python3 tools/check-source-hygiene.py
    ```
-   再按 §6.2/§6.3 量测与截图，把前后数字写回本文与
-   [web-mobile-patches.md](web-mobile-patches.md)。
-4. **收尾**：更新 [CHANGELOG](../CHANGELOG.md) 与发布说明；上游已修则删除本地补丁并记录退出条件。
+   真机侧按 §6.2/§6.3 量测与截图，等新 APK 安装后补写。
+4. **收尾（待上游）**：上游 PR #256 合入并同步后，删除 `wide-touch-row-actions` 整块、
+   `DSHA_WIDE_TOUCH_ROW_ACTIONS_V1` 测试分支与本文的本地补丁段，重新生成产物；
+   更新 [CHANGELOG](../CHANGELOG.md) 与发布说明。
 
 ## 8. 风险与边界
 
-- 本轮只记录与提报，**没有代码行为变化**；构建产物未动。
+- 本地补丁已改内置 `client.js`（下一版 APK 生效）；当前安装的 build218 行为不变，真机前后
+  数字与截图待新包复测。
 - 隐藏归档/置顶只发生在 ≥1024 触屏档；桌面鼠标完全不受影响。
 - 依赖宿主 aria-label 的 zh/en 文案；宿主换文案时规则静默失效（按钮照常显示），不会误隐藏。
 - 行距仍为 46px、与竖屏 34px 不同，这是触屏热区取舍，不在本轮修复范围。

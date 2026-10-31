@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261031.1800-dsh0.2.1-rc.5` / build218 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把首次引导重构为 4 步（欢迎 → 用途 → 授权 → 完成），首次部署与覆盖更新改用部署胶囊，覆盖更新进入受限主界面并以顶栏胶囊显示进度；改动说明见 [build218 更新说明](releases/build218-changes.zh.md)，build217 的插件就绪检查修复见 [build217 更新说明](releases/build217-changes.zh.md)。构建与验收范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261031.2130-dsh0.2.1-rc.5` / build219 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版收口首次引导重构（4 步引导、后台部署胶囊、整屏运行环境维护页），并按真机反馈修正用途生效、电池「允许后台使用」、Stellar 管理器命名与中断试运行恢复；宽屏触屏（≥1024px）会话行把归档/置顶收进 ⋯ 菜单；改动说明见 [build219 更新说明](releases/build219-changes.zh.md)。构建与验收范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
