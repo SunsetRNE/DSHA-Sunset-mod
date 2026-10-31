@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  插件详情窗格（UI v5 方案 A，窗口宽度 ≥ 840dp）：插件页右侧常驻。
+  文字全部由 PluginFragment 按当前语言写入，与卡片共用同一套描述 / 状态 / 详情文案；
+  开关、更多操作、删除复用卡片上的同一业务回调与确认。
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:clipToPadding="false" android:fillViewport="true">
+
+    <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="@dimen/shell_page_pad" android:paddingTop="@dimen/shell_page_top" android:paddingEnd="@dimen/shell_page_pad" android:paddingBottom="@dimen/shell_page_bottom">
+
+        <TextView android:id="@+id/plugin_detail_empty" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="40dp" android:gravity="center" android:visibility="gone" />
+
+        <LinearLayout android:id="@+id/plugin_detail_content" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+
+            <TextView android:id="@+id/plugin_detail_label" style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+            <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_margin" android:padding="@dimen/shell_card_pad">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+
+                    <ImageView android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_plugin_glyph" android:contentDescription="@null" android:importantForAccessibility="no" android:padding="9dp" android:src="@drawable/ic_plugins" android:tint="@color/shell_accent" />
+
+                    <TextView android:id="@+id/plugin_detail_name" style="@style/ShellCardTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:accessibilityHeading="true" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/plugin_detail_switch" style="@style/ShellSwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:showText="false" />
+                </LinearLayout>
+
+                <TextView android:id="@+id/plugin_detail_desc" style="@style/ShellCardBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textIsSelectable="true" />
+
+                <TextView android:id="@+id/plugin_detail_status" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_plugin_status" android:lineSpacingExtra="2dp" android:padding="10dp" />
+
+                <TextView android:id="@+id/plugin_detail_meta" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textIsSelectable="true" />
+
+                <TextView android:id="@+id/plugin_detail_actions" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_shell_pill" android:minHeight="44dp" android:paddingStart="14dp" android:paddingEnd="14dp" />
+
+                <Button android:id="@+id/plugin_detail_delete" style="@style/ShellTextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:minHeight="44dp" android:textColor="@color/shell_bad" android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</ScrollView>

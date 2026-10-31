@@ -158,6 +158,11 @@ public class ConfigFragment extends Fragment {
 
     v.findViewById(R.id.config_repo_link).setOnClickListener(x -> openRepo(ctx));
 
+    // 方案 A：多句说明行内只留第一句，完整内容点 ⓘ 查看；文案仍是原有已翻译资源。
+    InfoHint.attach(v.findViewById(R.id.config_page_hint), getString(R.string.ui2_runtime_config));
+    InfoHint.attach(v.findViewById(R.id.config_port_hint), getString(R.string.ui2_port_preferred));
+    InfoHint.attach(v.findViewById(R.id.config_lan_hint), getString(R.string.ui_m0063));
+
     Runnable validateInputs =
         () -> {
           try {
@@ -447,17 +452,12 @@ public class ConfigFragment extends Fragment {
   }
 
   private void open(Fragment f) {
-    UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-        .addToBackStack(null)
-        .replace(R.id.fragment_container, f)
-        .commit();
+    // 设置双栏里留在右侧详情窗格；单栏或从启动页进入时仍整页推进。
+    SettingsPanes.open(this, f, null);
   }
 
   private void showOverlayStyleDialog() {
-    UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-        .replace(R.id.fragment_container, new OverlayFragment())
-        .addToBackStack("config")
-        .commit();
+    SettingsPanes.open(this, new OverlayFragment(), "config");
   }
 
   private void openRepo(Context ctx) {

@@ -33,6 +33,49 @@ public class SettingsFragment extends Fragment {
     new TabOption("任务状态上岛", "状态栏胶囊 · 灵动岛 · 实时活动", IslandFragment::new, R.drawable.ic_ui2_box),
   };
 
+  private static final String STATE_SELECTED = "settings_selected";
+  private static final String KEY_OVERLAY = "overlay";
+  private static final String KEY_ABOUT = "about";
+  private static final String DEFAULT_KEY = "tab0";
+
+  /** 双栏左侧可选中的行：key → 行视图。单栏时不使用选中态。 */
+  private final java.util.Map<String, View> selectable = new java.util.LinkedHashMap<>();
+
+  private boolean twoPane;
+  private String selectedKey = DEFAULT_KEY;
+  private final androidx.fragment.app.FragmentManager.OnBackStackChangedListener detailStack =
+      this::notifyHost;
+
+  @Override
+  public void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    twoPane = SettingsPanes.twoPane(requireContext());
+    if (savedInstanceState != null)
+      selectedKey = savedInstanceState.getString(STATE_SELECTED, DEFAULT_KEY);
+    // 从双栏旋转/分屏到单栏：上次恢复的详情页不再有可见容器，直接丢弃，回到整页列表。
+    if (!twoPane && !getChildFragmentManager().getFragments().isEmpty()) {
+      var children = getChildFragmentManager();
+      children.popBackStackImmediate(
+          null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
+      var removal = children.beginTransaction();
+      for (Fragment child : children.getFragments()) removal.remove(child);
+      removal.commitNow();
+    }
+    getChildFragmentManager().addOnBackStackChangedListener(detailStack);
+  }
+
+  @Override
+  public void onDestroy() {
+    getChildFragmentManager().removeOnBackStackChangedListener(detailStack);
+    super.onDestroy();
+  }
+
+  @Override
+  public void onSaveInstanceState(@NonNull Bundle outState) {
+    super.onSaveInstanceState(outState);
+    outState.putString(STATE_SELECTED, selectedKey);
+  }
+
   @Nullable
   @Override
   public View onCreateView(
@@ -40,6 +83,7 @@ public class SettingsFragment extends Fragment {
       @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
     View v = inflater.inflate(R.layout.fragment_settings, container, false);
+    selectable.clear();
 
     LinearLayout tabs = v.findViewById(R.id.settings_tabs);
     int optionCount = TAB_OPTIONS.length;
@@ -89,13 +133,9 @@ public class SettingsFragment extends Fragment {
     TextView updateSub = v.findViewById(R.id.settings_update_sub);
     updateSub.setText(com.deepseekharness.app.util.UiText.text("稳定版与预览版更新"));
 
-    v.findViewById(R.id.settings_about)
-        .setOnClickListener(
-            x ->
-                UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-                    .replace(R.id.fragment_container, new AboutFragment())
-                    .addToBackStack("settings")
-                    .commit());
+    View about = v.findViewById(R.id.settings_about);
+    selectable.put(KEY_ABOUT, about);
+    about.setOnClickListener(x -> select(KEY_ABOUT));
     v.findViewById(R.id.settings_update).setOnClickListener(x -> checkUpdate());
     v.findViewById(R.id.settings_selftest).setOnClickListener(x -> runSelftest());
 
@@ -153,14 +193,137 @@ public class SettingsFragment extends Fragment {
                 .show();
     appearance.setOnClickListener(openLanguageDialog);
     languageSummary.setOnClickListener(openLanguageDialog);
-    v.findViewById(R.id.settings_overlay)
-        .setOnClickListener(
-            x ->
-                UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-                    .replace(R.id.fragment_container, new OverlayFragment())
-                    .addToBackStack("settings")
-                    .commit());
-    return v;
+    View overlayRow = v.findViewById(R.id.settings_overlay);
+    selectable.put(KEY_OVERLAY, overlayRow);
+    overlayRow.setOnClickListener(x -> select(KEY_OVERLAY));
+    InfoHint.attach(
+        (TextView) v.findViewById(R.id.settings_page_hint), getString(R.string.ui2_settings));
+    if (!twoPane) return v;
+    return twoPaneShell(v, savedInstanceState);
+  }
+
+  // ---------------------------------------------------------------- 方案 A 双栏
+
+  boolean isTwoPane() {
+    return twoPane && getView() != null && getView().findViewById(R.id.settings_detail) != null;
+  }
+
+  /** 左侧列表固定宽度、右侧详情占余下宽度；详情容器 id 固定，子页可跨旋转恢复。 */
+  private View twoPaneShell(View list, @Nullable Bundle savedInstanceState) {
+    android.content.Context context = requireContext();
+    list.setId(R.id.settings_list_scroll);
+    for (View row : selectable.values()) {
+      row.setBackgroundResource(R.drawable.bg_settings_row);
+      row.setForeground(context.getDrawable(R.drawable.bg_action_plain));
+    }
+    LinearLayout shell = new LinearLayout(context);
+    shell.setOrientation(LinearLayout.HORIZONTAL);
+    shell.setBackgroundColor(context.getColor(R.color.shell_bg));
+    shell.addView(list, new LinearLayout.LayoutParams(dp(LIST_PANE_DP), -1));
+    View line = divider();
+    shell.addView(line, new LinearLayout.LayoutParams(dp(1), -1));
+    android.widget.FrameLayout detail = new android.widget.FrameLayout(context);
+    detail.setId(R.id.settings_detail);
+    shell.addView(detail, new LinearLayout.LayoutParams(0, -1, 1f));
+    // 首次进入：直接给右侧一个默认详情；旋转/恢复时由 FragmentManager 自行恢复原详情页。
+    if (getChildFragmentManager().findFragmentById(R.id.settings_detail) == null)
+      shell.post(
+          () -> {
+            if (isAdded() && !getChildFragmentManager().isStateSaved()) showDetail(selectedKey);
+          });
+    markSelected();
+    return shell;
+  }
+
+  private static final int LIST_PANE_DP = 320;
+
+  /** 单栏：整页推进（原行为）；双栏：右侧详情替换并清空详情内的下一级返回栈。 */
+  private void select(String key) {
+    if (!isTwoPane()) {
+      Fragment page = create(key);
+      if (page == null) return;
+      UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
+          .replace(R.id.fragment_container, page)
+          .addToBackStack("settings")
+          .commit();
+      return;
+    }
+    if (key.equals(selectedKey)
+        && getChildFragmentManager().getBackStackEntryCount() == 0
+        && getChildFragmentManager().findFragmentById(R.id.settings_detail) != null) return;
+    showDetail(key);
+  }
+
+  private void showDetail(String key) {
+    Fragment page = create(key);
+    if (page == null) {
+      key = DEFAULT_KEY;
+      page = create(key);
+    }
+    selectedKey = key;
+    markSelected();
+    var children = getChildFragmentManager();
+    if (children.isStateSaved()) return;
+    children.popBackStackImmediate(
+        null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
+    UiMotion.page(requireContext(), children.beginTransaction())
+        .replace(R.id.settings_detail, page)
+        .commit();
+    notifyHost();
+  }
+
+  /** 详情页内再打开下一级页面（由 {@link SettingsPanes#open} 调用）。 */
+  void pushDetail(Fragment page) {
+    var children = getChildFragmentManager();
+    if (children.isStateSaved()) return;
+    UiMotion.page(requireContext(), children.beginTransaction())
+        .replace(R.id.settings_detail, page)
+        .addToBackStack("settings_detail")
+        .commit();
+  }
+
+  /** 系统返回 / 顶栏返回：先退详情内的下一级页面。返回 true 表示已处理。 */
+  boolean popDetail() {
+    if (!isTwoPane()) return false;
+    var children = getChildFragmentManager();
+    if (children.getBackStackEntryCount() == 0 || children.isStateSaved()) return false;
+    children.popBackStackImmediate();
+    return true;
+  }
+
+  boolean hasNestedDetail() {
+    return isTwoPane() && getChildFragmentManager().getBackStackEntryCount() > 0;
+  }
+
+  @Nullable
+  Fragment shownDetail() {
+    return isTwoPane() ? getChildFragmentManager().findFragmentById(R.id.settings_detail) : null;
+  }
+
+  @Nullable
+  private Fragment create(String key) {
+    if (KEY_OVERLAY.equals(key)) return new OverlayFragment();
+    if (KEY_ABOUT.equals(key)) return new AboutFragment();
+    if (key.startsWith("tab")) {
+      try {
+        int index = Integer.parseInt(key.substring(3));
+        if (index >= 0 && index < TAB_OPTIONS.length && TAB_OPTIONS[index].factory != null)
+          return TAB_OPTIONS[index].factory.get();
+      } catch (NumberFormatException ignored) {
+      }
+    }
+    return null;
+  }
+
+  private void markSelected() {
+    // View 的选中态会同步到无障碍节点（TalkBack 读出「已选择」），不另加委托。
+    for (java.util.Map.Entry<String, View> entry : selectable.entrySet())
+      entry.getValue().setSelected(twoPane && entry.getKey().equals(selectedKey));
+  }
+
+  private void notifyHost() {
+    if (getActivity() instanceof MainActivity)
+      ((MainActivity) getActivity()).onSettingsDetailChanged();
   }
 
   private void runSelftest() {
@@ -237,15 +400,18 @@ public class SettingsFragment extends Fragment {
     chevron.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     row.addView(chevron, new LinearLayout.LayoutParams(dp(16), dp(16)));
 
+    if (twoPane) {
+      // 双栏左侧列表较窄：说明收成一行，完整含义看右侧详情标题与页内说明。
+      sub.setMaxLines(1);
+      row.setMinimumHeight(dp(52));
+    }
+    if (opt.activity == null) selectable.put("tab" + index, row);
     row.setOnClickListener(
         v -> {
           if (opt.activity != null) {
             startActivity(new Intent(requireContext(), opt.activity));
           } else {
-            UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-                .replace(R.id.fragment_container, opt.factory.get())
-                .addToBackStack("settings")
-                .commit();
+            select("tab" + index);
           }
         });
     return row;

@@ -106,6 +106,10 @@ public class MainActivity extends AppCompatActivity {
               @Override
               public void handleOnBackPressed() {
                 var fragments = getSupportFragmentManager();
+                // 方案 A 双栏：设置详情窗格里的下一级页面先返回到详情首页，再走主返回栈。
+                Fragment current = fragments.findFragmentById(R.id.fragment_container);
+                if (current instanceof SettingsFragment && ((SettingsFragment) current).popDetail())
+                  return;
                 if (com.deepseekharness.app.util.TaskNavigationPolicy.back(
                         fragments.getBackStackEntryCount(), fragments.isStateSaved())
                     == com.deepseekharness.app.util.TaskNavigationPolicy.Back.POP_PAGE) {
@@ -790,6 +794,8 @@ public class MainActivity extends AppCompatActivity {
     if (intent.getBooleanExtra("open_install", false)) {
       intent.removeExtra("open_install");
       nav.setSelectedItemId(R.id.nav_settings);
+      // 双栏设置默认就在右侧显示安装与环境，不再整页推进一份重复的安装页。
+      if (SettingsPanes.twoPane(this)) return;
       UiMotion.page(this, getSupportFragmentManager().beginTransaction())
           .replace(R.id.fragment_container, new InstallFragment())
           .addToBackStack("settings")
@@ -829,11 +835,22 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  /** 设置双栏详情窗格的返回栈变化：只刷新顶栏返回与标题，不参与路由。 */
+  void onSettingsDetailChanged() {
+    if (!isFinishing() && !isDestroyed()) updateToolbar();
+  }
+
   private void updateToolbar() {
     TextView title = findViewById(R.id.app_title);
     if (title == null) return;
     Fragment shown = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
     boolean nested = getSupportFragmentManager().getBackStackEntryCount() > 0;
+    // 方案 A 双栏：详情窗格内进入了下一级页面时，顶栏同样显示返回与该页标题。
+    if (shown instanceof SettingsFragment && ((SettingsFragment) shown).hasNestedDetail()) {
+      nested = true;
+      Fragment detail = ((SettingsFragment) shown).shownDetail();
+      if (detail != null) shown = detail;
+    }
     findViewById(R.id.sub_back)
         .setVisibility(nested ? android.view.View.VISIBLE : android.view.View.GONE);
     findViewById(R.id.app_logo)

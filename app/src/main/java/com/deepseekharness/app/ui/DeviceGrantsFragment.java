@@ -274,6 +274,12 @@ public final class DeviceGrantsFragment extends Fragment {
               .show();
         });
     updateSms();
+    // 方案 A：静态多句说明行内只留第一句，完整内容点 ⓘ 查看（动态状态文本不收起）。
+    InfoHint.attach(
+        view.findViewById(R.id.grants_page_hint), getString(R.string.ui2_device_grants));
+    InfoHint.attach(view.findViewById(R.id.device_root_hint), getString(R.string.ui_m0062));
+    InfoHint.attach(view.findViewById(R.id.device_adb_hint), getString(R.string.ui_m0090));
+    InfoHint.attach(view.findViewById(R.id.config_battery_opt_hint), getString(R.string.ui_m0191));
     return view;
   }
 
@@ -575,7 +581,9 @@ public final class DeviceGrantsFragment extends Fragment {
       title.setText(stellar ? "Shizuku / Stellar" : getString(R.string.ui_brand_shizuku));
     TextView hint = page.findViewById(R.id.device_shizuku_hint);
     if (hint != null)
-      hint.setText(
+      InfoHint.bind(
+          hint,
+          title == null ? null : title.getText(),
           stellar
               ? com.deepseekharness.app.util.UiText.choose(
                   "已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。",

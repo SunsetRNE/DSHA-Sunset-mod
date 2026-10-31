@@ -85,85 +85,101 @@
                 android:textColor="@color/shell_text_secondary"
                 android:textSize="13.5sp" />
 
-            <LinearLayout
-                android:id="@+id/extract_stage_card"
+
+            <!-- 方案 A：内容宽度足够时，左列阶段卡、右列说明与本次维护记录并排；窄时保持原顺序。 -->
+            <com.deepseekharness.app.ui.AdaptiveColumns
+                android:id="@+id/extract_columns"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@drawable/bg_onb_perm"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginTop="16dp">
 
-                <TextView
-                    android:id="@+id/extract_stage_line"
+                <LinearLayout
+                    android:id="@+id/extract_stage_card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:includeFontPadding="false"
-                    android:lineSpacingExtra="3dp"
-                    android:textColor="@color/shell_text"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="0dp"
+                    android:background="@drawable/bg_onb_perm"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+    
+                    <TextView
+                        android:id="@+id/extract_stage_line"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:includeFontPadding="false"
+                        android:lineSpacingExtra="3dp"
+                        android:textColor="@color/shell_text"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+    
+                    <ProgressBar
+                        android:id="@+id/extract_progress"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:layout_marginTop="10dp"
+                        android:indeterminate="true"
+                        android:indeterminateTint="@color/shell_accent"
+                        android:visibility="gone" />
+    
+                    <FrameLayout
+                        android:id="@+id/extract_segments"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp" />
+    
+                    <FrameLayout
+                        android:id="@+id/extract_stages"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
 
-                <ProgressBar
-                    android:id="@+id/extract_progress"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="10dp"
-                    android:indeterminate="true"
-                    android:indeterminateTint="@color/shell_accent"
-                    android:visibility="gone" />
-
-                <FrameLayout
-                    android:id="@+id/extract_segments"
+                <LinearLayout
+                    android:id="@+id/extract_focus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp" />
+                    android:orientation="vertical">
 
-                <FrameLayout
-                    android:id="@+id/extract_stages"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/extract_error"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_onb_hint_bad"
-                android:lineSpacingExtra="3dp"
-                android:padding="12dp"
-                android:textColor="@color/shell_bad"
-                android:textIsSelectable="true"
-                android:textSize="13sp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/extract_detail_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:includeFontPadding="false"
-                android:letterSpacing="0.04"
-                android:textColor="@color/shell_text_muted"
-                android:textSize="12.5sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/extract_detail"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_ui2_console"
-                android:fontFamily="monospace"
-                android:lineSpacingExtra="5dp"
-                android:minHeight="96dp"
-                android:padding="14dp"
-                android:textColor="@color/ui2_log_text"
-                android:textIsSelectable="true"
-                android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/extract_error"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_onb_hint_bad"
+                        android:lineSpacingExtra="3dp"
+                        android:padding="12dp"
+                        android:textColor="@color/shell_bad"
+                        android:textIsSelectable="true"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+        
+                    <TextView
+                        android:id="@+id/extract_detail_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0.04"
+                        android:textColor="@color/shell_text_muted"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+        
+                    <TextView
+                        android:id="@+id/extract_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_ui2_console"
+                        android:fontFamily="monospace"
+                        android:lineSpacingExtra="5dp"
+                        android:minHeight="96dp"
+                        android:padding="14dp"
+                        android:textColor="@color/ui2_log_text"
+                        android:textIsSelectable="true"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.deepseekharness.app.ui.AdaptiveColumns>
         </LinearLayout>
     </ScrollView>
 

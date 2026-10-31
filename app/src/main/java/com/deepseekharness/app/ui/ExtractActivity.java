@@ -134,14 +134,22 @@ public class ExtractActivity extends AppCompatActivity {
                 rebuildRequested));
     enter.setText(UiText.text("进入主界面"));
     enter.setOnClickListener(v -> proceed());
-    // 宽屏（≥ 600dp）把正文与底栏收在约 640dp 宽的居中列内。
+    // 方案 A：内容宽度 ≥ 720dp 时阶段卡与说明/记录两列并排（容器按自身宽度判定）。
+    AdaptiveColumns columns = findViewById(R.id.extract_columns);
+    columns.setSplitWidthDp(720);
+    columns.setGutterDp(28);
+    columns.setWeights(1f, 1.15f);
+    // 宽屏（≥ 600dp）把正文与底栏收在居中列内：单列约 640dp，可并排时放宽到约 1040dp。
     if (kit.wide()) {
       int width = getResources().getDisplayMetrics().widthPixels;
-      int side = Math.max(kit.dp(20), (width - kit.dp(640)) / 2);
+      int column = getResources().getConfiguration().screenWidthDp >= 840 ? 1040 : 640;
+      int side = Math.max(kit.dp(20), (width - kit.dp(column)) / 2);
       View content = findViewById(R.id.extract_content);
       content.setPadding(side, kit.dp(28), side, kit.dp(24));
+      // 底栏按钮保持单列宽度，不随两列内容拉到 1040dp。
+      int footerSide = Math.max(kit.dp(20), (width - kit.dp(640)) / 2);
       View footer = findViewById(R.id.extract_footer);
-      footer.setPadding(side, footer.getPaddingTop(), side, footer.getPaddingBottom());
+      footer.setPadding(footerSide, footer.getPaddingTop(), footerSide, footer.getPaddingBottom());
     }
   }
 

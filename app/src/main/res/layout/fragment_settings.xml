@@ -10,7 +10,7 @@
 
     <TextView style="@style/ShellPageTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_settings" />
 
-    <TextView style="@style/ShellPageDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/ui2_settings_hint" />
+    <TextView android:id="@+id/settings_page_hint" style="@style/ShellPageDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/ui2_settings_hint" />
 
     <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_environment" />
 

@@ -3,4 +3,10 @@
     <item name="overlay_confirm_allow" type="id" />
     <item name="overlay_confirm_deny" type="id" />
     <item name="overlay_preview_button" type="id" />
+    <!-- UI v5 方案 A：AdaptiveColumns 记住子视图原始边距；设置/插件双栏的详情容器。 -->
+    <item name="adaptive_columns_margins" type="id" />
+    <item name="settings_detail" type="id" />
+    <item name="settings_list_scroll" type="id" />
+    <item name="plugin_detail_pane" type="id" />
+    <item name="plugin_detail_divider" type="id" />
 </resources>

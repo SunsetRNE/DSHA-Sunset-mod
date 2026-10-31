@@ -67,6 +67,11 @@ public class InstallFragment extends Fragment {
     repository = InstallRepository.get(requireContext());
     shownRevision = -1;
     lastRenderKey = "";
+    // 方案 A：详情窗格或整页宽度 ≥ 680dp 时，步骤与维护/日志两列并排。
+    AdaptiveColumns columns = view.findViewById(R.id.install_columns);
+    columns.setSplitWidthDp(680);
+    columns.setGutterDp(24);
+    columns.setWeights(1f, 1f);
     view.findViewById(R.id.install_status)
         .setOnClickListener(v -> BackgroundTasksActivity.open(requireContext()));
     var controller = com.deepseekharness.app.core.HarnessController.get(requireContext());
