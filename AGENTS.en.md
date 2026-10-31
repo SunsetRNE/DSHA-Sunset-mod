@@ -1,7 +1,7 @@
 # AGENTS.md — English contributor and agent guide
 
 
-> **Status**: `0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5` / build217 / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard.
+> **Status**: `0.2.1-rc.3-20261031.1800-dsh0.2.1-rc.5` / build218 / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard.
 > Main branch `main`; Android 11+ (API 30) / arm64; proot by default, proroot optional; bundled DSH 0.2.1-rc.5.
 > The island feature is folded into the regular package; the old low/GeckoView line and the separate island package are removed; signing uses the Mod-owned certificate (see BUILD.en.md).
 
@@ -55,7 +55,7 @@ For Root maintenance, use [permission architecture](docs/en/device-permissions-a
 
 | Layer | Key classes | Responsibility |
 |---|---|---|
-| `ui/` | MainActivity / WelcomeActivity / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | UI and startup gates |
+| `ui/` | MainActivity / OnboardingActivity / ExtractActivity (maintenance detail) / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | UI and startup gates; limited Main plus top-bar deployment capsule |
 | `core/` | `HarnessController` (historically about 57 KB, orchestration core) | Start/stop dsh and capture authenticated links. **Do not add new responsibilities here**; create focused collaborators |
 | `core/` | `ConfigStore` | Sole configuration read/write entry: port/model/workdir/API key |
 | `core/` | `InstallRepository` / `MaintenanceCoordinator` / `RuntimeTasks` / `StartupDiagnostics` | Install state, maintenance barrier, running-task locks, startup diagnostics |
@@ -108,7 +108,7 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 
 ### Versions and builds
 
-- **Current identity comes from `app/build.gradle`, `ci/release-identity.json` and [CHANGELOG.md](CHANGELOG.md).** build217 / DSHA revision `0.2.1-rc.3` (bundled DSH 0.2.1-rc.5) / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard. Earlier code/build numbers, the old `dsh.android.client` package and the historical E7E3 signature are records only, not current build or signing inputs.
+- **Current identity comes from `app/build.gradle`, `ci/release-identity.json` and [CHANGELOG.md](CHANGELOG.md).** build218 / DSHA revision `0.2.1-rc.3` (bundled DSH 0.2.1-rc.5) / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard. Earlier code/build numbers, the old `dsh.android.client` package and the historical E7E3 signature are records only, not current build or signing inputs.
 - `standard`: minSdk 30 (Android 11+), system WebView, arm64-v8a. It is the only build line; the task is `assembleStandardRelease`. The `low`/GeckoView line and legacy proot/loader are deleted (`assembleLowRelease` no longer exists), so **Android 10 and below are no longer supported**. The test variant only changes the package via `-Pdsha.sunsetTest=true` (`io.github.sunsetrne.dsha.test`).
 - Offline rootfs (`assets/offline-rootfs.bin`) is **not committed**; preparation scripts generate it. `offline-rootfs.layout=split-runtime-v1` marks separate Ubuntu and `dsh-runtime.bin` packages; builds check both digests.
 - `tools/dsh-runtime/package-lock.json` locks new dsh dependencies. `tools/prepare-runtime-descriptor.py` generates independent managed-contract descriptors; the APK version is diagnostic context only. Update managed trees within the same base while keeping personal data in place. **UI-only APK updates do not replace the environment; ordinary dsh updates do not increment the Ubuntu base.**
@@ -158,8 +158,8 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 
 ## Startup contracts
 
-- `welcomed == false` → `WelcomeActivity` → Start → `MainActivity`. Main checks `welcomed` before entry; otherwise return to Welcome.
-- Normal execution checks `.offline-extracted` and complete environment identity. Maintenance may allow a limited Main for configuration/logs; **it must not forge readiness markers**. Terminal/Web/plugin execution still passes environment gates.
+- `welcomed == false` → `OnboardingActivity` (welcome → purpose → grants → done) → `MainActivity`. Main checks `welcomed` before entry; otherwise return to onboarding.
+- Normal execution checks `.offline-extracted` and complete environment identity. Over-the-top updates enter a limited Main with a top-bar capsule; **the limited entry still writes no readiness marker**, and Terminal/Web/plugin execution still passes environment gates; an unfinished on-disk maintenance transaction still forces the maintenance page (`ExtractActivity`).
 - Startup failure enters native `StartupRecoveryActivity`; waiting for authentication alone is not failure. The latest five redacted startup records live independently in private storage.
 - Compatibility retry occurs once only after confirmed proroot exit, before authentication, without explicit plugin failure. **Timeout cannot trigger it.**
 - Host `ConfigurationSnapshots` stores each file's content outside rootfs, keeping three healthy and three pre-repair snapshots. A committed old journal must not overwrite later configuration edits.

@@ -35,7 +35,7 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
     super.onCreate(saved);
     controller = HarnessController.get(this);
     if (!controller.config().isWelcomed()) {
-      startActivity(new Intent(this, WelcomeActivity.class));
+      startActivity(new Intent(this, OnboardingActivity.class));
       finish();
       return;
     }

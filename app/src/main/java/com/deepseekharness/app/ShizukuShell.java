@@ -85,11 +85,16 @@ public final class ShizukuShell {
   }
 
   public static String userStatus(Context ctx) {
-    if (!isAvailable())
-      return isInstalled(ctx)
-          ? com.deepseekharness.app.util.UiText.text(
-              "管理器已安装，服务尚未连接。点击授权重新连接；若仍未连接，请启动管理器服务，并检查隐藏模式是否允许 DSHA。")
-          : com.deepseekharness.app.util.UiText.text("尚未安装 Shizuku。安装并启动后可在这里授权。");
+    if (!isAvailable()) {
+      if (!isInstalled(ctx))
+        return com.deepseekharness.app.util.UiText.text("尚未安装 Shizuku。安装并启动后可在这里授权。");
+      if (ShizukuManagerCompat.isStellar(ctx))
+        return com.deepseekharness.app.util.UiText.choose(
+            "已安装 Stellar，Shizuku 兼容层尚未连接。请在 Stellar 中启动服务并确认已开启「Shizuku 兼容层」，回到 DSHA 后点授权。",
+            "Stellar is installed, but the Shizuku compatibility layer is not connected. Start the service in Stellar and make sure the Shizuku compatibility layer is enabled, then return to DSHA and tap Authorize.");
+      return com.deepseekharness.app.util.UiText.text(
+          "管理器已安装，服务尚未连接。点击授权重新连接；若仍未连接，请启动管理器服务，并检查隐藏模式是否允许 DSHA。");
+    }
     if (!hasPermission())
       return com.deepseekharness.app.util.UiText.text("服务已连接，尚未授权 DSHA。点击下方授权。");
     if (isReady())

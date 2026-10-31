@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261031.1800-dsh0.2.1-rc.5 / build218（首次引导重构：4 步引导、部署胶囊与受限主界面）
+
+- 首次引导重构为 4 步（欢迎 → 用途 → 授权 → 完成），替换原 3 页 ViewPager2 `WelcomeActivity` 与独立 `OnboardingPrepareActivity`；`welcomed == false` 仍只进引导，Main、启动恢复页与终端入口继续校验同一契约。
+- 首次部署改为应用级后台维护任务，引导页与主界面顶栏用部署胶囊显示阶段，不再整屏等待 `ExtractActivity`；部署期间保持屏幕常亮，成功后才进入完成页并启动一次 Web。覆盖更新改为受限主界面 + 顶栏胶囊，磁盘上仍有未完成维护事务时强制进入维护页；受限入口不写就绪标记，终端、Web 与插件执行继续通过环境门禁。
+- 新增引导第 3 步授权卡片（7 类设备能力 + ADB，按用途推荐、可跳过，全部默认关闭）；通知权限按 Android 13+ 点击申请，电池优化只读检测且不申请豁免；识别并拉起 Stellar 管理器（`roro.stellar.manager`）；无障碍设置文案统一为系统列表实际名称。
+- 平板宽 ≥600dp 两栏、手机横屏压缩页头页脚，正文可滚动并适配 1.3 倍字体；部署阶段文案由纯逻辑 `DeployStages` 推断，不推导百分比。版本码提升为 218；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5；十语种更新说明见[build218 更新说明](docs/releases/build218-changes.zh.md)。本轮未在真机覆盖安装验证，构建与验收范围以 CI run 与 Release 回执为准。
+
 ## 0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5 / build217（插件列表读取误判修复：容器内 soname 符号链接）
 
 - 修复插件列表在容器内经 apt 等安装或升级系统库后一直读取失败：Playwright 等工具经 apt 安装 `libsqlite3-0` 时把 `libsqlite3.so.0` 换成指向 `libsqlite3.so.0.8.6` 的符号链接；`RuntimeTools.queryReady` 用 lstat 只认普通文件，于是每次都显示「运行工具或资产不完整」，而 `RootfsInstaller.python` 用跟随链接的 `isFile()` 判断该文件完好，「安装与修复」永远不会改写它。该严格判据自 `fffff8a`（10-27 插件查询解耦）引入。

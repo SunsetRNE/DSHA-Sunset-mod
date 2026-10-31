@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
     }
     // 所有入口共用本机设置门禁，恢复旧页面前先完成入口检查。
     if (!config.isWelcomed()) {
-      startActivity(new Intent(this, WelcomeActivity.class));
+      startActivity(new Intent(this, OnboardingActivity.class));
       finish();
       return;
     }
@@ -284,10 +284,21 @@ public class MainActivity extends AppCompatActivity {
         .start();
   }
 
+  /**
+   * 入口门禁。只有磁盘上存在未完成的维护事务（且用户没有显式选择受限入口）时才整屏进入维护页；
+   * 环境未就绪或有新的受管候选时留在受限主界面，由顶栏部署胶囊显示进度。
+   *
+   * <p>自动路径绝不调用 allowLimitedEntry、也不附加 limited_entry：否则更新中途进程被杀后，下次启动会因
+   * “已选受限”而跳过未完成事务的检查。新候选是否自动开始仍只由 attempted_identity 决定（同一候选只试一次）；
+   * 这里不写任何就绪标记，Web / 终端 / 插件继续由各自的环境门禁拦截。
+   */
   private void checkEntry(
       Bundle saved, ConfigStore config, HarnessController controller, boolean skipExtract) {
     long generation = controller.getWebGeneration();
     Intent admittedIntent = getIntent();
+    // 后台判定的第二个结果：需要维护但没有未完成事务（覆盖更新 / 首次部署未完成）。
+    java.util.concurrent.atomic.AtomicBoolean needsUpdate =
+        new java.util.concurrent.atomic.AtomicBoolean();
     entryGate.submit(
         ENTRY_IO,
         this::runOnUiThread,
@@ -296,12 +307,15 @@ public class MainActivity extends AppCompatActivity {
               admittedIntent.getBooleanExtra("limited_entry", false)
                   || config.allowsLimitedEntry(
                       com.deepseekharness.app.core.EnvironmentAccess.limitedEntryKey(controller));
-          return !limited
-              && (com.deepseekharness.app.core.MaintenanceCoordinator.pending(controller)
-                  || !skipExtract
-                      && (!controller.isEnvironmentReady()
-                          || com.deepseekharness.app.core.EnvironmentAccess
-                              .requiresMaintenanceBeforeStart(controller)));
+          boolean pending = com.deepseekharness.app.core.MaintenanceCoordinator.pending(controller);
+          needsUpdate.set(
+              !limited
+                  && !pending
+                  && !skipExtract
+                  && (!controller.isEnvironmentReady()
+                      || com.deepseekharness.app.core.EnvironmentAccess
+                          .requiresMaintenanceBeforeStart(controller)));
+          return !limited && pending;
         },
         () ->
             !isFinishing()
@@ -332,13 +346,24 @@ public class MainActivity extends AppCompatActivity {
                   + unresolved
                   + " restoring="
                   + restoring
+                  + " update="
+                  + needsUpdate.get()
                   + " restored="
                   + (saved != null));
           if (!failed && maintenance && !unresolved && !restoring) {
+            // 未完成的维护事务必须由用户在维护页明确恢复。
             startActivity(new Intent(this, ExtractActivity.class));
             finish();
           } else {
-            // 原实例证据未知时留在Main提供诊断，不触发解压或静默更新原环境。
+            // 覆盖更新 / 部署未完成：留在受限主界面，满足条件时自动开始一次（与旧维护页同一判定）。
+            // 原实例证据未知或网页会话尚待恢复时不触发维护，保留诊断入口。
+            if (!failed && needsUpdate.get() && !unresolved && !restoring)
+              try {
+                RuntimeMaintenanceStarter.autoStartUpdateIfEligible(this);
+              } catch (RuntimeException unavailable) {
+                com.deepseekharness.app.core.DiagnosticLog.record(
+                    this, "MAIN_AUTO_UPDATE", unavailable.getClass().getSimpleName());
+              }
             showMain(saved, config, controller);
           }
         });
@@ -369,6 +394,7 @@ public class MainActivity extends AppCompatActivity {
         downloads,
         appBar.indexOfChild(findViewById(R.id.btn_theme)),
         new android.widget.LinearLayout.LayoutParams(downloadButtonSize, downloadButtonSize));
+    installDeployCapsule(appBar, appBar.indexOfChild(downloads));
     TextView recovery = findViewById(R.id.environment_recovery_banner);
     recovery.setOnClickListener(
         v -> {
@@ -515,6 +541,64 @@ public class MainActivity extends AppCompatActivity {
     recoveryHandler.removeCallbacks(refreshRecovery);
     recoveryHandler.post(refreshRecovery);
     maybePromptExternalRestore();
+  }
+
+  // ---------------------------------------------------------------- 顶栏部署胶囊
+
+  /** 覆盖更新 / 首次部署的进度胶囊；只显示环境维护任务，点按打开阶段与维护记录面板。 */
+  private DeployMonitor deployMonitor;
+
+  private DeployCapsule deployCapsule;
+
+  private final Runnable deployCollapseCheck =
+      () -> {
+        if (deployMonitor != null) renderDeployCapsule(deployMonitor.current());
+      };
+
+  private void installDeployCapsule(android.view.ViewGroup appBar, int index) {
+    deployCapsule = new DeployCapsule(this);
+    boolean wide = getResources().getConfiguration().screenWidthDp >= 600;
+    deployCapsule.setMaxWidthFraction(wide ? 0.46f : 0.5f);
+    deployCapsule.setOnOpen(
+        () -> {
+          if (deployMonitor != null && !isFinishing() && !isDestroyed())
+            DeployTaskSheet.show(this, deployMonitor, false, null);
+        });
+    var params =
+        new android.widget.LinearLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+    int gap = Math.round(6 * getResources().getDisplayMetrics().density);
+    params.leftMargin = gap;
+    params.rightMargin = gap;
+    appBar.addView(deployCapsule, Math.max(0, index), params);
+    deployMonitor = new DeployMonitor(this, this, this::renderDeployCapsule);
+    renderDeployCapsule(deployMonitor.current());
+  }
+
+  /** 成功后显示约 5 秒再收起：只收起显示，不改任务状态；同一任务收起后本进程内不再出现。 */
+  private void renderDeployCapsule(com.deepseekharness.app.util.DeployStages.View view) {
+    if (deployCapsule == null || view == null) return;
+    recoveryHandler.removeCallbacks(deployCollapseCheck);
+    if (view.phase == com.deepseekharness.app.util.DeployStages.Phase.SUCCEEDED) {
+      if (DeployMonitor.collapsed(view.taskId)) {
+        view = com.deepseekharness.app.util.DeployStages.idle();
+      } else {
+        long seen = DeployMonitor.successSeenAt(view.taskId);
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (com.deepseekharness.app.util.DeployDisplay.collapse(view.phase, seen, now)) {
+          DeployMonitor.collapse(view.taskId);
+          view = com.deepseekharness.app.util.DeployStages.idle();
+        } else
+          recoveryHandler.postDelayed(
+              deployCollapseCheck,
+              Math.max(0, com.deepseekharness.app.util.DeployDisplay.COLLAPSE_AFTER_MILLIS - (now - seen))
+                  + 50);
+      }
+    }
+    boolean wasVisible = deployCapsule.getVisibility() == android.view.View.VISIBLE;
+    deployCapsule.render(view);
+    if (view.visible() && !wasVisible) deployCapsule.announceForAccessibility(view.label());
   }
 
   private void releaseGatedPages(boolean allowed) {
@@ -1027,8 +1111,12 @@ public class MainActivity extends AppCompatActivity {
           boolean limited = EnvironmentUiStatus.get(MainActivity.this).recovery;
           boolean busy =
               com.deepseekharness.app.core.BackupTask.get(MainActivity.this).maintenanceBusy();
+          // 顶栏胶囊正在显示环境维护（部署 / 更新 / 失败 / 未通过）时由胶囊取代横幅；
+          // 备份、恢复备份、启动恢复等其它情况仍用原横幅。
+          boolean capsuleShown =
+              deployCapsule != null && deployCapsule.getVisibility() == android.view.View.VISIBLE;
           banner.setVisibility(
-              limited || busy || startupRecovery
+              !capsuleShown && (limited || busy || startupRecovery)
                   ? android.view.View.VISIBLE
                   : android.view.View.GONE);
           banner.setText(

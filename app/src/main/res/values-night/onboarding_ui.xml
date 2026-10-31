@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首次引导夜间 token：与 values/onboarding_ui.xml 一一对应。 -->
+<resources>
+    <!-- 推荐卡片描边：夜间强调色 30% -->
+    <color name="onb_accent_line">#4D6AA4FF</color>
+</resources>

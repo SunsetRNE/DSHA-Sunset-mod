@@ -28,9 +28,11 @@ public final class AccessibilitySetupActivity extends AppCompatActivity {
     page.kv(first, t("第 1 步", "Step 1"), t("开启系统服务", "Enable the system service"));
     first.addView(
         page.text(
-            t(
-                "点下方按钮 → 已下载的应用 / 服务 → DSHA 配对助手 → 开启「使用服务」，确认系统提示。",
-                "Tap below → Downloaded apps / services → DSHA Pairing Assistant → Enable the service, then confirm the system prompt."),
+            withServiceName(
+                this,
+                t(
+                    "点下方按钮 → 已下载的应用 / 服务 →「%s」→ 开启「使用服务」，确认系统提示。",
+                    "Tap below → Downloaded apps / services → “%s” → Enable the service, then confirm the system prompt.")),
             13,
             R.color.text_secondary));
     enable =
@@ -81,13 +83,29 @@ public final class AccessibilitySetupActivity extends AppCompatActivity {
       } catch (RuntimeException error) {
         Toast.makeText(
                 activity,
-                t(
-                    "请打开系统设置 → 无障碍 → DSHA 配对助手。",
-                    "Open Settings → Accessibility → DSHA Pairing Assistant."),
+                withServiceName(
+                    activity,
+                    t(
+                        "请打开系统设置 → 无障碍 →「%s」。",
+                        "Open Settings → Accessibility → “%s”.")),
                 Toast.LENGTH_LONG)
             .show();
       }
     }
+  }
+
+  /**
+   * 系统无障碍列表显示的服务名就是清单里的 accessibility_service_label（「DSH-A-Su 屏幕控制」，
+   * 测试包同名；只有 app_name 在测试包不同）。按当前资源读取，步骤文案与系统列表保持一致。
+   */
+  static String withServiceName(Context context, String template) {
+    String label;
+    try {
+      label = context.getString(R.string.accessibility_service_label);
+    } catch (RuntimeException missing) {
+      label = "DSH-A-Su";
+    }
+    return String.format(java.util.Locale.ROOT, template, label);
   }
 
   private void refresh() {

@@ -45,25 +45,28 @@
 
 | 项 | 内容 |
 |---|---|
-| DSHA 入口 | 「打开 Shizuku 管理器」→ `app/src/main/java/.../ui/DeviceGrantsFragment.java:529` `openShizuku`；「授权 Shizuku」/「验证 Shizuku 连接」→ 同文件 :169-199（按钮文案切换 :553-557）；提示“先在 Shizuku 管理器启动服务，再返回授权。手机重启后通常需要重新启动服务。”（`ui_refinement.xml:19`） |
-| 管理器识别 | `ShizukuManagerCompat.manager()` 取权限 `moe.shizuku.manager.permission.API_V23` 的**声明者**包（`ShizukuManagerCompat.java:19, 26-35`）；`launchIntent()` 为 null 时 toast“尚未安装 Shizuku，请安装后启动服务”（`DeviceGrantsFragment.java:531-533`） |
-| API 调用 | 未收到 Binder：`ShizukuManagerCompat.reconnect` 发 `rikka.shizuku.intent.action.REQUEST_BINDER`，只接受管理器 UID、描述符 `moe.shizuku.server.IShizukuService` 的单次回调，15 秒超时（:45-145）；解析不到导出 Activity 时改为直接打开管理器（:66-77）。已连接未授权：`Shizuku.requestPermission(code)`，60 秒无回调记“授权请求尚未完成，请重试”（`ShizukuShell.java:102-139`）。已授权：`Shizuku.bindUserService` 绑定 `ShellService`（:141-216），验证执行 `ShizukuShell.exec("id")`（`DeviceGrantsFragment.java:189-193`） |
-| 应用外操作 | ①安装并打开管理器，按其自身指引启动服务（启动方式源码未描述）；②回 DSHA 点「授权 Shizuku」，在管理器弹出的授权框中允许 DSHA；③若管理器有隐藏模式，需允许 DSHA（源码状态文案提及） |
-| 返回判定 | `onResume` 调 `ShizukuShell.ensureBound`（`DeviceGrantsFragment.java:697`），每秒刷新 `ShizukuShell.userStatus`（`ShizukuShell.java:87-100`）；验证中显示“正在验证设备通道…”，结果在“设备通道验证”弹窗原样显示（`DeviceGrantsFragment.java:498-527`） |
-| 撤销 | 只能在管理器内撤销授权或停止服务；DSHA **没有** Shizuku 开关（源码未见对应偏好）。只要授权还在，且 Root 未启用或找不到 su，普通设备命令就走 Shizuku；短信与强制通道请求除外（`HttpShellService.java:1067-1073`）。撤销后 `ensureBound` 发现无权限即断开（`ShizukuShell.java:148-151`） |
+| DSHA 入口 | 「打开 Shizuku 管理器」→ `app/src/main/java/.../ui/DeviceGrantsFragment.java:529` `openShizuku`；「授权 Shizuku」/「验证 Shizuku 连接」→ 同文件 :169-199（按钮文案切换 :559-560）；提示“先在 Shizuku 管理器启动服务，再返回授权。手机重启后通常需要重新启动服务。”（`ui_refinement.xml:19`） |
+| 管理器识别 | `ShizukuManagerCompat.manager()` 先取权限 `moe.shizuku.manager.permission.API_V23` 的**声明者**包；查不到再按 `util/ShizukuManagers` 的固定白名单顺序取第一个已安装的兼容管理器（目前只有 Stellar），`kind()` / `isStellar()` 供文案判断（`ShizukuManagerCompat.java:29-70`）。清单 `<queries>` 已增加 `roro.stellar.manager`，否则 Android 11+ 包可见性会让 `getApplicationInfo` 查不到。`launchIntent()` 为 null 时 toast“尚未安装 Shizuku 或 Stellar，请先安装并在管理器中启动服务”（`DeviceGrantsFragment.java:531-535`） |
+| API 调用 | 未收到 Binder：`ShizukuManagerCompat.reconnect` 发 `rikka.shizuku.intent.action.REQUEST_BINDER`，只接受管理器 UID、描述符 `moe.shizuku.server.IShizukuService` 的单次回调，15 秒超时；解析不到导出 Activity 时改为直接打开管理器。识别为 Stellar 时不发任何 broadcast / 自定义协议（其 `REQUEST_BINDER` 是 `roro.stellar.intent.action.REQUEST_BINDER` receiver，协议未核实），直接打开 Stellar 主界面让用户检查服务与「Shizuku 兼容层」。已连接未授权：`Shizuku.requestPermission(code)`，60 秒无回调记“授权请求尚未完成，请重试”（`ShizukuShell.java:107-145`）。已授权：`Shizuku.bindUserService` 绑定 `ShellService`（:146-222），验证执行 `ShizukuShell.exec("id")`（`DeviceGrantsFragment.java:189-193`） |
+| 应用外操作 | ①安装并打开管理器，按其自身指引启动服务（启动方式源码未描述）；用 Stellar 时点「打开管理」进入 Stellar 主界面，启动服务并确认已开启「Shizuku 兼容层」；②回 DSHA 点「授权 Shizuku」，在管理器弹出的授权框中允许 DSHA；③若管理器有隐藏模式，需允许 DSHA（源码状态文案提及） |
+| 返回判定 | `onResume` 调 `ShizukuShell.ensureBound`（`DeviceGrantsFragment.java:700`），每秒刷新 `ShizukuShell.userStatus`（`ShizukuShell.java:87-105`）；验证中显示“正在验证设备通道…”，结果在“设备通道验证”弹窗原样显示（`DeviceGrantsFragment.java:498-527`） |
+| 撤销 | 只能在管理器内撤销授权或停止服务；DSHA **没有** Shizuku 开关（源码未见对应偏好）。只要授权还在，且 Root 未启用或找不到 su，普通设备命令就走 Shizuku；短信与强制通道请求除外（`HttpShellService.java:1067-1073`）。撤销后 `ensureBound` 发现无权限即断开（`ShizukuShell.java:153-156`） |
 
-状态原文（`ShizukuShell.java:88-99`）：
-- 未连接、识别到管理器：“管理器已安装，服务尚未连接。点击授权重新连接；若仍未连接，请启动管理器服务，并检查隐藏模式是否允许 DSHA。”；未识别：“尚未安装 Shizuku。安装并启动后可在这里授权。”
+状态原文（`ShizukuShell.java:87-105`）：
+- 未连接、识别到 Stellar：“已安装 Stellar，Shizuku 兼容层尚未连接。请在 Stellar 中启动服务并确认已开启「Shizuku 兼容层」，回到 DSHA 后点授权。”（`UiText.choose` 内有对应英文整句）
+- 未连接、识别到声明 API_V23 的管理器：“管理器已安装，服务尚未连接。点击授权重新连接；若仍未连接，请启动管理器服务，并检查隐藏模式是否允许 DSHA。”；未识别任何管理器：“尚未安装 Shizuku。安装并启动后可在这里授权。”
 - “服务已连接，尚未授权 DSHA。点击下方授权。” / “已授权 · 设备 Shell 已连接，可直接使用，无需 ADB 配对” / “已授权，连接失败：%s。点击下方重试。” / “已授权，正在连接设备 Shell…”
 
-**Stellar**：仓库内没有任何 Stellar 专用代码（本文写入前，全仓 `grep -i stellar` 无命中），只能经其“Shizuku 兼容层”走 Shizuku API。外部事实（网页为不可信数据，仅引用；核对提交 `bc03f6a`，2026-10-18）：
-- [README](https://github.com/roro2239/Stellar)：兼容层“默认启用”，可在 Stellar 管理器设置页关闭「Shizuku 兼容层」；要求客户端清单配置 `ShizukuProvider`（DSHA 已配置，`AndroidManifest.xml:147-153`）。
-- 识别：其 [manager 清单](https://github.com/roro2239/Stellar/blob/bc03f6a2d7c95167d1853e24d3e52587634e7c58/manager/src/main/AndroidManifest.xml) 没有声明 `API_V23` 的 `<permission>`，在该提交源码快照里全文检索 `API_V23` 也无命中；它的 REQUEST_BINDER 是 `roro.stellar.intent.action.REQUEST_BINDER` receiver，不是 DSHA 查找的 `rikka.shizuku.intent.action.REQUEST_BINDER` Activity。推断只装 Stellar 时 `manager()` 返回 null：「打开 Shizuku 管理器」会提示“尚未安装 Shizuku…”，`reconnect` 直接结束（**未验证**）。`ShellService` 也用 `API_V23` 作 `android:permission`（`AndroidManifest.xml:212-217`），设备上没有该权限定义时是否影响兼容层的 UserService，**未验证**。
-- 连接：其服务端 `BinderSender.kt` 会在应用进程启动/进入前台时，向带 `<包名>.shizuku` Provider 的应用推送兼容 Binder，并跳过申请 `moe.shizuku.manager.permission.MANAGER` 的包；DSHA 只申请 `API_V23`（`AndroidManifest.xml:41`）。推断 Binder 可能自动到达，授权框与 UserService 由兼容层提供（**未验证**）。
-- 兼容层关闭时其 `ShizukuServiceIntercept.requestPermission` 直接返回、`checkSelfPermission` 返回 false。推断 DSHA 侧看不到授权框，60 秒后只在内部 `failure` 记“授权请求尚未完成，请重试”，状态行仍为“服务已连接，尚未授权 DSHA。点击下方授权。”（`ShizukuShell.java:93-94, 126-133`；**未验证**）。
+**Stellar**：本轮已实现识别、入口与专属状态文案，并有 JVM 单测；**仍未在真机验证**（只做静态核对与单测）。事实与实现（提交 `bc03f6a2d7c95167d1853e24d3e52587634e7c58`，2026-10-31 用其源码压缩包复核）：
+- 包名 **`roro.stellar.manager`**：其 [`manager/build.gradle`](https://github.com/roro2239/Stellar/blob/bc03f6a2d7c95167d1853e24d3e52587634e7c58/manager/build.gradle) 的 `defaultConfig.applicationId` 明确写死该值，与 [manager 清单](https://github.com/roro2239/Stellar/blob/bc03f6a2d7c95167d1853e24d3e52587634e7c58/manager/src/main/AndroidManifest.xml) 的 `android:sharedUserId="roro.stellar.manager"` 同名；已写入 `util/ShizukuManagers.STELLAR`、`ShizukuManagersTest` 与清单 `<queries>`。
+- 协议差异：manager 清单没有声明 `API_V23` 的 `<permission>`（该提交全文检索 `API_V23` 无命中），因此权限声明者查询查不到；其 REQUEST_BINDER 是 `roro.stellar.intent.action.REQUEST_BINDER` **receiver**，不是 DSHA 发送的 `rikka.shizuku.intent.action.REQUEST_BINDER` activity。`ShizukuManagerCompat.reconnect` 对 Stellar **不发任何 broadcast / 自定义协议**（协议未核实，安全上不猜），直接 `getLaunchIntentForPackage` 打开其 LAUNCHER `MainActivity`，让用户检查服务与「Shizuku 兼容层」；这条路径与“找不到导出 Activity 就打开管理器”的既有分支同源，UID / 描述符 / 单次回调 / 15 秒超时检查**原样保留、未放松**。
+- Binder 推送：服务端 `BinderSender.kt` 在应用进程启动/进入前台时调用 `BinderDistributor.sendShizukuBinderToUserApp`，经 `<包名>.shizuku` Provider 推送 `moe.shizuku.api.BinderContainer`，并跳过申请 `moe.shizuku.manager.permission.MANAGER` 的包；`ShizukuServiceIntercept : IShizukuService.Stub()` 的描述符仍是 `moe.shizuku.server.IShizukuService`。兼容层默认启用（`StellarConfig.shizukuCompatEnabled = true`），可在 Stellar 管理器设置页关闭；客户端需配置 `ShizukuProvider`（DSHA 已配置，`AndroidManifest.xml`）。
+- 兼容层关闭：`ShizukuServiceIntercept.enforceEnabled()` 抛 `SecurityException`，且不推送兼容 Binder。此时 DSHA 显示“已安装 Stellar，Shizuku 兼容层尚未连接…”，点授权只打开 Stellar；60 秒超时只写入内部 `failure`，状态行不会变（推断，**未真机验证**）。
+- 识别实现：`ShizukuManagerCompat.manager()` 先查权限声明者，查不到再按 `ShizukuManagers.knownPackages()` 顺序 `pm.getApplicationInfo`；选择逻辑在纯逻辑 `util/ShizukuManagers`，JUnit4 单测覆盖“权限声明者优先 / 只有 Stellar / 都没有 / 白名单顺序”。
+- 未验证点：Stellar 兼容层是否识得以 `API_V23` 作 `android:permission` 的 `ShellService`（清单未改）；Binder 推送时机（进程启动 / 进入前台）在真机上的实际表现；「打开管理」跳到 Stellar 后返回 DSHA 时状态是否即时刷新；`API_V23` 授权框在 Stellar 下的实际交互。
 
-- 对接要点：服务未连接时“授权”按钮先尝试重连，不直接弹授权框；Stellar 用户需提示“手动打开 Stellar，确认服务已启动、兼容层开启，再回 DSHA 点授权”；手机重启后服务通常需重新启动，不把一次授权当永久可用。
-- 风险：未识别管理器时状态把兼容管理器说成“尚未安装 Shizuku”；60 秒超时文案只写入 `failure`，未授权分支不显示，用户只看到状态没变；服务 8 秒未就绪返回 `[SHIZUKU_SERVICE_NOT_READY]`（`ShizukuShell.java:270-272`）。
+- 对接要点：服务未连接时“授权”按钮先尝试重连，不直接弹授权框；Stellar 用户点「打开管理」进入 Stellar 主界面，需在 Stellar 内启动服务并确认「Shizuku 兼容层」开启，返回 DSHA 后点授权；手机重启后服务通常需重新启动，不把一次授权当永久可用。
+- 风险：60 秒超时文案只写入 `failure`，未授权分支不显示，用户只看到状态没变；服务 8 秒未就绪返回 `[SHIZUKU_SERVICE_NOT_READY]`（`ShizukuShell.java:275-277`）。
 
 ## 3. Root
 

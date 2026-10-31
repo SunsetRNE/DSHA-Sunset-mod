@@ -529,7 +529,10 @@ public final class DeviceGrantsFragment extends Fragment {
   private void openShizuku() {
     Intent launch = com.deepseekharness.app.ShizukuManagerCompat.launchIntent(requireContext());
     if (launch == null) {
-      toast(com.deepseekharness.app.util.UiText.text("尚未安装 Shizuku，请安装后启动服务"));
+      toast(
+          com.deepseekharness.app.util.UiText.choose(
+              "尚未安装 Shizuku 或 Stellar，请先安装并在管理器中启动服务",
+              "Shizuku or Stellar is not installed; install one and start its service first."));
       return;
     }
     try {

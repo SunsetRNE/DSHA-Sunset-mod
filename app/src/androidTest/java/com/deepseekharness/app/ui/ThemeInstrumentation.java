@@ -185,7 +185,6 @@ public final class ThemeInstrumentation extends Instrumentation {
       "activity_plugin_install",
       "activity_update",
       "activity_web_preview",
-      "activity_welcome",
       "fragment_config",
       "fragment_install",
       "fragment_launch",
@@ -194,10 +193,7 @@ public final class ThemeInstrumentation extends Instrumentation {
       "fragment_settings",
       "fragment_terminal",
       "fragment_workspace",
-      "item_plugin",
-      "welcome_page1",
-      "welcome_page2",
-      "welcome_page3"
+      "item_plugin"
     };
     for (String name : names) {
       int resource = theme.getResources().getIdentifier(name, "layout", host.getPackageName());

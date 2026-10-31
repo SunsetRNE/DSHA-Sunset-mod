@@ -1,6 +1,6 @@
 # Build, validate, and submit
 
-> Current publication identity: `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5` / versionCode 217 / single Standard; the Mod-owned release certificate. Full identity and signing entry points are in [README](README.en.md), [AGENTS](AGENTS.en.md) and [ci/release-identity.json](ci/release-identity.json).
+> Current publication identity: `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.3-20261031.1800-dsh0.2.1-rc.5` / versionCode 218 / single Standard; the Mod-owned release certificate. Full identity and signing entry points are in [README](README.en.md), [AGENTS](AGENTS.en.md) and [ci/release-identity.json](ci/release-identity.json).
 
 Read [README](README.en.md), [AGENTS](AGENTS.en.md), [BUILD](BUILD.en.md) and the [documentation index](docs/en/index.md) first. F10–F13 and build190 records describe only their own source, APK, tests and device state at that time; they neither override current requirements nor prove this build.
 
@@ -93,7 +93,7 @@ Explicitly configure `DSHA_KEYSTORE`, `DSHA_KEYSTORE_PASSWORD`, `DSHA_KEY_PASSWO
 ./gradlew :app:assembleStandardRelease
 ```
 
-Only Standard is published now; the actual package must verify `io.github.sunsetrne.dsha`, versionCode 217, `debuggable=false`, minSdk 30, arm64, assets, licenses, ELF, plugins and the independent emergency gates. Low has been removed; do not build or publish it, and do not claim Android 10 or below support.
+Only Standard is published now; the actual package must verify `io.github.sunsetrne.dsha`, versionCode 218, `debuggable=false`, minSdk 30, arm64, assets, licenses, ELF, plugins and the independent emergency gates. Low has been removed; do not build or publish it, and do not claim Android 10 or below support.
 
 Formal CI publication uses [`.github/workflows/release-production.yml`](.github/workflows/release-production.yml): `workflow_dispatch` binds an exact commit, restores fixed inputs from the public pre-release asset, runs complete unit tests / Java formatting / Lint / documentation gates, signs with the repository Secrets certificate, then creates a tag + prerelease and uploads the APK, evidence ZIP, `build-info.json` and `SHA256SUMS`. See [CI build and release](docs/en/ci-release.md) for parameters and verification.
 

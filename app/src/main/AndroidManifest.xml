@@ -43,6 +43,8 @@
     <queries>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
         <package android:name="moe.shizuku.privileged.api" />
+        <!-- Stellar 是兼容 Shizuku 协议的管理器（不声明 API_V23）；包可见性缺失会让安装检查查不到。 -->
+        <package android:name="roro.stellar.manager" />
         <intent><action android:name="rikka.shizuku.intent.action.REQUEST_BINDER" /></intent>
         <intent><action android:name="android.intent.action.OPEN_DOCUMENT" /><data android:mimeType="*/*" /></intent>
         <intent><action android:name="android.intent.action.GET_CONTENT" /><data android:mimeType="*/*" /></intent>
@@ -73,7 +75,6 @@
 
         <activity android:name=".ui.BrowserOriginRestoreActivity" android:exported="false" />
         <activity android:name=".ui.CommunityActivity" android:exported="false" />
-        <activity android:name=".ui.OnboardingPrepareActivity" android:exported="false" />
 
         <activity android:name=".ui.AccessibilitySetupActivity" android:exported="false" />
         <activity
@@ -165,8 +166,9 @@
             </intent-filter>
         </provider>
 
+        <!-- 首次引导（欢迎 → 用途 → 授权 → 完成）；旋转与分屏走正常重建，步骤与用途在实例状态中保留。 -->
         <activity
-            android:name=".ui.WelcomeActivity"
+            android:name=".ui.OnboardingActivity"
             android:exported="false"
             android:theme="@style/Theme.DeepseekHarness" />
 

@@ -18,7 +18,7 @@ import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 import org.robolectric.annotation.LooperMode;
 
-/** 实际首次入口共用 Welcome；检查期间不创建运行环境或加载旧业务页。 */
+/** 实际首次入口共用首次引导；检查期间不创建运行环境或加载旧业务页。 */
 @RunWith(RobolectricTestRunner.class)
 @Config(
     sdk = 34,
@@ -81,7 +81,7 @@ public final class MainLocalEntryTest {
         org.robolectric.shadow.api.Shadow.<org.robolectric.shadows.ShadowActivity>extract(main);
     Intent welcome = shadow.getNextStartedActivity();
     assertNotNull(welcome);
-    assertEquals(WelcomeActivity.class.getName(), welcome.getComponent().getClassName());
+    assertEquals(OnboardingActivity.class.getName(), welcome.getComponent().getClassName());
     assertNull(shadow.getNextStartedActivity());
     assertTrue(main.isFinishing());
     assertTrue(main.getSupportFragmentManager().getFragments().isEmpty());

@@ -4126,11 +4126,12 @@
   },
   {
     "id": "x1970580",
-    "zh": "点下方按钮 → 已下载的应用 / 服务 → DSHA 配对助手 → 开启「使用服务」，确认系统提示。",
-    "en": "Tap below → Downloaded apps / services → DSHA Pairing Assistant → Enable the service, then confirm the system prompt.",
+    "zh": "点下方按钮 → 已下载的应用 / 服务 →「%s」→ 开启「使用服务」，确认系统提示。",
+    "en": "Tap below → Downloaded apps / services → “%s” → Enable the service, then confirm the system prompt.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/AccessibilitySetupActivity.java"
-    ]
+    ],
+    "uiFormat": true
   },
   {
     "id": "x1970581",
@@ -4214,11 +4215,12 @@
   },
   {
     "id": "x1970591",
-    "zh": "请打开系统设置 → 无障碍 → DSHA 配对助手。",
-    "en": "Open Settings → Accessibility → DSHA Pairing Assistant.",
+    "zh": "请打开系统设置 → 无障碍 →「%s」。",
+    "en": "Open Settings → Accessibility → “%s”.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/AccessibilitySetupActivity.java"
-    ]
+    ],
+    "uiFormat": true
   },
   {
     "id": "x1970592",

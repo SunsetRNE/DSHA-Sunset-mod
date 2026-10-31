@@ -130,12 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("修复插件列表在容器里通过 apt 等安装或升级系统库后一直读取失败"));
-      assertTrue(shown.contains("插件只读查询与 Python 动态库修复现在共用同一 guest 判据"));
-      assertTrue(shown.contains("外部 su 授予的 root"));
-      assertTrue(shown.contains("libsqlite3.so.0:MISSING"));
-      assertTrue(shown.contains("版本码提升为 217"));
-      assertFalse(shown.contains("版本码提升为 216"));
+      assertTrue(shown.contains("首次引导重构为 4 步"));
+      assertTrue(shown.contains("进度在引导页与主界面顶栏的部署胶囊显示"));
+      assertTrue(shown.contains("覆盖更新改为进入受限主界面并以顶栏胶囊显示进度"));
+      assertTrue(shown.contains("版本码提升为 218"));
+      assertFalse(shown.contains("版本码提升为 217"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -156,12 +155,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Fixes the plugin list failing on every read"));
-      assertTrue(shown.contains("now share one guest check"));
-      assertTrue(shown.contains("root granted from outside through su"));
-      assertTrue(shown.contains("libsqlite3.so.0:MISSING"));
-      assertTrue(shown.contains("versionCode is raised to 217"));
-      assertFalse(shown.contains("versionCode is raised to 216"));
+      assertTrue(shown.contains("Rebuilds first-run onboarding as four steps"));
+      assertTrue(shown.contains("deployment capsule"));
+      assertTrue(shown.contains("Over-the-top updates now enter a limited Main"));
+      assertTrue(shown.contains("versionCode is raised to 218"));
+      assertFalse(shown.contains("versionCode is raised to 217"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }

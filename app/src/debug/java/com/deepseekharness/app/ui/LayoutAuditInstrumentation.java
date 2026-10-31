@@ -504,11 +504,7 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
               "fragment_terminal",
               "fragment_device_grants",
               "activity_adb_pair",
-              "activity_extract",
-              "activity_welcome",
-              "welcome_page1",
-              "welcome_page2",
-              "welcome_page3"
+              "activity_extract"
             };
       boolean recovery = "recovery".equals(args.getString("mode"));
       if (recovery) scenes = new String[] {"recovery_empty", "recovery_records"};
@@ -617,18 +613,6 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
                       && !screen.canvas.findViewById(R.id.update_download).isEnabled(),
                   "下载状态操作错误");
             if (n == 0 || n == 1 || n == 3 || n == 5) save(screen.canvas, name);
-            if (style && n == 5 && scene.equals("welcome_page1")) {
-              android.widget.ScrollView scroll = (android.widget.ScrollView) screen.canvas;
-              require(scroll.canScrollVertically(1), "短屏欢迎页不能滚动查看完整文案");
-              ui(
-                  () -> {
-                    scroll.setSmoothScrollingEnabled(false);
-                    scroll.fullScroll(View.FOCUS_DOWN);
-                  });
-              waitForIdleSync();
-              require(scroll.getScrollY() > 0, "欢迎页没有实际滚动到底部");
-              save(screen.canvas, name + "-bottom");
-            }
           }
           if (style)
             dialogs(
