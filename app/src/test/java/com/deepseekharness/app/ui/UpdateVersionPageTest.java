@@ -130,11 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("首次引导重构为 4 步"));
-      assertTrue(shown.contains("进度在引导页与主界面顶栏的部署胶囊显示"));
-      assertTrue(shown.contains("覆盖更新恢复为整屏的运行环境维护页"));
-      assertTrue(shown.contains("版本码提升为 218"));
-      assertFalse(shown.contains("版本码提升为 217"));
+      assertTrue(shown.contains("收口 218 的首次引导重构"));
+      assertTrue(shown.contains("后台部署胶囊与整屏运行环境维护页"));
+      assertTrue(shown.contains("覆盖更新恢复整屏维护页"));
+      assertTrue(shown.contains("版本码提升为 219"));
+      assertFalse(shown.contains("版本码提升为 218"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -155,13 +155,13 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Rebuilds first-run onboarding as four steps"));
+      assertTrue(shown.contains("Closes out the build218 onboarding redesign"));
       assertTrue(shown.contains("deployment capsule"));
       assertTrue(
           shown.contains(
-              "Over-the-top updates go back to the full-screen runtime maintenance page"));
-      assertTrue(shown.contains("versionCode is raised to 218"));
-      assertFalse(shown.contains("versionCode is raised to 217"));
+              "Over-the-top updates return to the full-screen maintenance page"));
+      assertTrue(shown.contains("versionCode is raised to 219"));
+      assertFalse(shown.contains("versionCode is raised to 218"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }
