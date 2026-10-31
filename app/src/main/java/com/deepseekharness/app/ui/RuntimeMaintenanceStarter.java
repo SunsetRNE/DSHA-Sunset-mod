@@ -61,7 +61,8 @@ final class RuntimeMaintenanceStarter {
   static Auto autoStart(Context context) {
     HarnessController controller = HarnessController.get(context);
     BackupTask task = BackupTask.get(context);
-    if (task.maintenanceBusy() || task.pendingMaintenance()) return Auto.NOT_ELIGIBLE;
+    // 有未关闭的试运行现场时自动更新必然以 TRIAL_RECOVERY_REQUIRED 失败，先由用户恢复。
+    if (task.maintenanceBusy() || needsRecovery(context)) return Auto.NOT_ELIGIBLE;
     if (controller.isEnvironmentReady()
         && !EnvironmentAccess.requiresMaintenanceBeforeStart(controller)) return Auto.NOT_ELIGIBLE;
     return attemptOnce(context, controller, task, EnvironmentAccess.runtimeLatest(controller));
@@ -105,10 +106,57 @@ final class RuntimeMaintenanceStarter {
     }
   }
 
+  /**
+   * 只读：files/runtime-trials 下是否有未确认关闭的隔离试运行现场（无 closed 标记）。
+   *
+   * <p>覆盖更新的试运行被清后台、重装或进程回收打断时会留下这种现场；新的试运行会以
+   * TRIAL_RECOVERY_REQUIRED 拒绝开始，而它不在宿主维护事务门禁里。只有“恢复中断维护”
+   * （EnvironmentMaintenance.recover → RuntimeTrial.recoverPending）会核实进程退出后关闭它，
+   * 所以重试必须改走恢复，不能再次发起更新。这里不删除、不修改任何文件。
+   */
+  static boolean pendingTrial(Context context) {
+    // 维护页 / 面板每秒重绘会调用：结果缓存 2 秒，只省目录列举，不影响执行门禁（试运行自身仍会拒绝）。
+    long now = android.os.SystemClock.elapsedRealtime();
+    synchronized (RuntimeMaintenanceStarter.class) {
+      if (trialCheckedAt != 0 && now - trialCheckedAt < 2_000L) return trialPending;
+    }
+    boolean result = scanPendingTrial(context);
+    synchronized (RuntimeMaintenanceStarter.class) {
+      trialPending = result;
+      trialCheckedAt = now;
+    }
+    return result;
+  }
+
+  private static long trialCheckedAt;
+  private static boolean trialPending;
+
+  private static boolean scanPendingTrial(Context context) {
+    try {
+      java.io.File home =
+          new java.io.File(context.getFilesDir().getCanonicalFile(), "runtime-trials");
+      String[] entries = home.list();
+      if (entries == null) return false;
+      for (String id : entries) {
+        if (!id.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN)) continue;
+        java.io.File operation = new java.io.File(home, id);
+        if (operation.isDirectory() && !new java.io.File(operation, "closed").exists()) return true;
+      }
+      return false;
+    } catch (java.io.IOException | RuntimeException unreadable) {
+      return false;
+    }
+  }
+
+  /** 需要先“恢复中断维护”：宿主维护事务，或未关闭的隔离试运行现场。 */
+  static boolean needsRecovery(Context context) {
+    return BackupTask.get(context).pendingMaintenance() || pendingTrial(context);
+  }
+
   /** 与 ExtractActivity 原 retry 分支一致：待恢复优先，其次原位更新，首次安装为重试部署，否则保护数据并重建。 */
   static Retry retryKind(Context context, boolean rebuildRequested) {
     HarnessController controller = HarnessController.get(context);
-    if (BackupTask.get(context).pendingMaintenance()) return Retry.RECOVER;
+    if (needsRecovery(context)) return Retry.RECOVER;
     if (!rebuildRequested && controller.proot().canUpdateManagedRuntime()) return Retry.UPDATE;
     if (firstInstall(context)) return Retry.DEPLOY;
     return Retry.REBUILD;

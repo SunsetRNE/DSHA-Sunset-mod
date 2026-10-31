@@ -324,7 +324,10 @@ final class DeployTaskSheet {
 
   /** 重试按钮文案用与确认对话框相同的判定（待恢复优先），磁盘检查已由监视器在后台完成。 */
   private RuntimeMaintenanceStarter.Retry retryKind(DeployStages.View view) {
-    if (view.phase == DeployStages.Phase.PENDING || monitor.pendingMaintenance())
+    // 未关闭的试运行现场同样要先恢复：再次更新会以 TRIAL_RECOVERY_REQUIRED 拒绝。
+    if (view.phase == DeployStages.Phase.PENDING
+        || monitor.pendingMaintenance()
+        || RuntimeMaintenanceStarter.pendingTrial(activity))
       return RuntimeMaintenanceStarter.Retry.RECOVER;
     switch (view.mode) {
       case INSTALL:

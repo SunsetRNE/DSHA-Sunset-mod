@@ -132,7 +132,7 @@ public final class UpdateVersionPageTest {
         bundledNotes(inLanguage(activity, language));
       assertTrue(shown.contains("首次引导重构为 4 步"));
       assertTrue(shown.contains("进度在引导页与主界面顶栏的部署胶囊显示"));
-      assertTrue(shown.contains("覆盖更新改为进入受限主界面并以顶栏胶囊显示进度"));
+      assertTrue(shown.contains("覆盖更新恢复为整屏的运行环境维护页"));
       assertTrue(shown.contains("版本码提升为 218"));
       assertFalse(shown.contains("版本码提升为 217"));
       assertFalse(shown.contains("build157"));
@@ -157,7 +157,9 @@ public final class UpdateVersionPageTest {
           englishBody);
       assertTrue(shown.contains("Rebuilds first-run onboarding as four steps"));
       assertTrue(shown.contains("deployment capsule"));
-      assertTrue(shown.contains("Over-the-top updates now enter a limited Main"));
+      assertTrue(
+          shown.contains(
+              "Over-the-top updates go back to the full-screen runtime maintenance page"));
       assertTrue(shown.contains("versionCode is raised to 218"));
       assertFalse(shown.contains("versionCode is raised to 217"));
       assertFalse(shown.contains("build157"));

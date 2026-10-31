@@ -1,4 +1,4 @@
-# 落地记录：首次引导重构 · 部署胶囊 · 覆盖更新改为受限主界面
+# 落地记录：首次引导重构 · 部署胶囊 · 覆盖更新整屏维护页
 
 日期：2026-10-31 · 分支 `feat/onboarding-redesign`（基于 main build217 `5a768d0`）· 设计依据：同目录 [README.md](README.md)、[preview.html](preview.html)、[external-authorizations.md](external-authorizations.md)
 
@@ -10,7 +10,7 @@
 |---|---|---|
 | `WelcomeActivity`（3 页 ViewPager2）+ `OnboardingPrepareActivity`（“4 / 4”）+ `OnboardingUi` | `OnboardingActivity`（单 Activity，4 步：欢迎 → 用途 → 授权 → 完成） | 启动契约不变：`welcomed == false` 只进引导；Main / 启动恢复页 / 终端入口照旧校验 |
 | `ExtractActivity` 整屏等待首次部署 | 「开始部署」即在后台启动应用级维护任务，进度进入**部署胶囊** | 复用 `BackupTask` 与 `DataProtectionService` 前台通知；部署期间引导页保持屏幕常亮 |
-| 覆盖更新后 `MainActivity` 跳整屏 `ExtractActivity` 自动更新 | 进入**受限主界面 + 顶栏胶囊**；只有磁盘上存在未完成维护事务时仍强制进入维护页 | 见 §3 |
+| 覆盖更新后 `MainActivity` 跳整屏 `ExtractActivity` 自动更新 | 仍整屏进入维护页，换成新版式（阶段条 + 阶段列表）；未关闭的隔离试运行现场也先恢复 | 见 §3 |
 | `ExtractActivity`（旧版式） | 同一个类，换成引导同款版式（阶段条 + 阶段列表 + 底部操作） | 保留全部 extra、保存态字段与审计依赖（`render()` / `lastRender` / `automaticEntry` / `R.id.extract_*`） |
 | 授权只在 设置 → 设备能力授权 | 引导第 3 步 `PermissionPanel`（7 类 + ADB），按第 2 步用途推荐与排序 | 全部默认关闭、可跳过；外跳只由点击触发；返回后 `onResume` 复查 |
 
@@ -31,31 +31,39 @@
 
 判定读当前 `Configuration`（`screenWidthDp` / `screenHeightDp`），旋转与分屏走 Activity 正常重建，步骤与用途选择由 `onSaveInstanceState` 与 `dsha-onboarding` 偏好恢复。正文始终在 `ScrollView` 内，1.3 倍字体与短屏下可完整滚动，底栏始终可见。
 
-## 3. 覆盖更新运行时：能否使用同一风格（评估结论：可以，已采用）
+## 3. 覆盖更新运行时：能否使用同一风格（结论：同一视觉风格，整屏呈现）
 
-### 结论
+### 结论与决定
 
-覆盖更新与首次部署是**同一个应用级任务**（`BackupTask.updateEnvironment()` → `EnvironmentMaintenance.update()`；首次安装时它落到冷部署 `initializeFresh`），进度来源、失败语义、应急入口完全一致，只是阶段表不同。因此胶囊、阶段条与维护详情页直接复用，**不需要单独设计一套界面**；差异只在三处：
+覆盖更新与首次部署是**同一个应用级任务**（`BackupTask.updateEnvironment()` → `EnvironmentMaintenance.update()`；首次安装时落到冷部署 `initializeFresh`），进度来源、失败语义、应急入口一致，只是阶段表不同。因此阶段条、阶段列表与失败说明直接复用，不需要另一套视觉。
 
-1. **阶段表**：`DeployStages.Mode.UPDATE`（停止 Web → 解压新版 dsh → 内置插件与界面适配 → 切换受管文件 → 隔离试运行），`REBUILD`（保护数据 → 解压 → 逐文件恢复 → 试运行），由任务种类与进度文案自动识别（`DeployStages.infer`），同一任务中途从“更新”转为“重建”时界面随之切换。
-2. **宿主**：首次部署的胶囊在引导页；覆盖更新的胶囊在主界面顶栏（平板在顶栏右侧）。
-3. **完成后的去向**：首次部署成功 → 完成页“进入主界面”并自动启动一次 Web；覆盖更新成功 → 胶囊变绿约 5 秒后收起，**不自动启动 Web**（与旧版一致，用户自己点启动）。
+呈现方式经真机试用后定为：**覆盖更新使用整屏运行环境维护页（`ExtractActivity`，新版式）**，不使用“受限主界面 + 顶栏胶囊 + 弹窗”。理由：覆盖更新期间 Web / 终端 / 插件本就不可用，整屏页把唯一能做的事（等待、重试 / 恢复、查看记录、应急 DSH）放在一处；弹窗形态在失败时容易让用户误以为主界面可用。部署胶囊只用于首次引导内的后台部署（用户此时可以继续完成用途与授权）。
 
-### 为什么覆盖更新不再整屏挡住仍然安全
+| 场景 | 呈现 |
+|---|---|
+| 首次部署（引导内） | 后台任务 + 部署胶囊（手机顶栏 / 平板左栏），点开为阶段面板 |
+| 覆盖更新 / 环境未就绪 | `MainActivity` 入口门禁整屏进入 `ExtractActivity`；同一候选只自动尝试一次 |
+| 未完成维护事务 / 未关闭的隔离试运行现场 | 同样整屏进入维护页，主按钮为“恢复中断维护”，不再发起注定失败的更新 |
+| 用户在维护页选“进入受限主界面” | 同一安装身份留在受限主界面，不写就绪标记 |
+
+阶段表：`DeployStages.Mode.UPDATE`（停止 Web → 解压新版 dsh → 内置插件与界面适配 → 切换受管文件 → 隔离试运行），`REBUILD`（保护数据 → 解压 → 逐文件恢复 → 试运行），由任务种类与进度文案识别（`DeployStages.infer`）。
+
+### 安全约束的落地
 
 | 安全约束（AGENTS.md 启动契约 / 已知 trap） | 落地方式 |
 |---|---|
-| 受限入口不能伪造就绪标记 | 受限主界面只是“不跳转”；不写 `.offline-extracted`、健康回执或任何就绪证明。Launch / 插件 / 终端沿用既有 `needsRecovery` 门禁，环境未就绪时保持禁用 |
-| 未完成的维护事务必须先恢复 | `MaintenanceCoordinator.pending()` 为真时仍然进入维护页（`ExtractActivity`），用户需显式“恢复中断维护” |
-| 自动更新不能写入“已选择受限入口” | 自动路径**不调用** `allowLimitedEntry`、不带 `limited_entry`。否则更新途中进程被杀后，下次启动会因 limited 短路掉 pending 检查 |
-| 同一候选只自动尝试一次，旋转 / 进程重建不重复覆盖环境 | 自动开始逻辑原样搬入 `RuntimeMaintenanceStarter.autoStartUpdateIfEligible`，继续使用 `dsha_environment_upgrade/attempted_identity` 与 `EnvironmentIdentity.shouldAutoStart` |
-| 成功文案不是就绪证明 | 胶囊“成功”状态要求 `SUCCEEDED` 且就绪检查通过；否则显示黄色“环境检查未通过”，不自动跳转 |
-| 历史任务不能冒充当前进度 | `BackupTask` 快照跨进程持久化：胶囊只把本进程内观察到运行过的任务显示为成功；旧的成功记录不再出现，旧的失败记录只在环境仍需处理时显示 |
+| 受限入口不能伪造就绪标记 | 只有用户在维护页显式选择后才登记受限入口；不写 `.offline-extracted`、健康回执或任何就绪证明 |
+| 未完成的维护必须先恢复 | `MaintenanceCoordinator.pending()` 或 `files/runtime-trials` 下存在无 `closed` 标记的试运行现场时，重试 / 自动开始都改走 `recoverMaintenance`（`EnvironmentMaintenance.recover` → `RuntimeTrial.recoverPending` 核实进程退出后关闭现场）。试运行现场的检测是 UI 层只读目录检查，不改受管运行时启动输入 |
+| 同一候选只自动尝试一次，旋转 / 进程重建不重复覆盖环境 | `RuntimeMaintenanceStarter.autoStart` 沿用 `dsha_environment_upgrade/attempted_identity` 与 `EnvironmentIdentity.shouldAutoStart` |
+| 成功文案不是就绪证明 | 维护后未就绪时停留在维护页（`mayAdvanceAfterMaintenance` 不变） |
+
+### 已知现场：`TRIAL_RECOVERY_REQUIRED`
+
+上一次隔离试运行被打断（更新途中清后台、覆盖安装或进程回收）时，`runtime-trials/<id>/` 留下未关闭现场，下一次试运行会以 `TRIAL_RECOVERY_REQUIRED` 拒绝开始。修复前维护页仍显示“重试更新运行时”，点了立即再失败；修复后显示“恢复中断维护”，先关闭旧现场，再可正常更新。
 
 ### 刻意保留的旧行为
 
 - 通知点击（`DshaApp.dataProtectionPage`）仍进入 `ExtractActivity` 的 `review_only` 详情页（静态守卫 `tools/test-notification-actions.py` 锁定）。
-- 主界面横幅：环境维护进行中由胶囊取代；“受限模式：环境需要恢复”“启动未完成”、备份 / 恢复备份等非环境任务仍用原横幅。
 
 ## 4. 与原型的差异
 

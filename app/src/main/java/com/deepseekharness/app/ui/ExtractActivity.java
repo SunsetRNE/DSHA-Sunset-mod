@@ -158,7 +158,8 @@ public class ExtractActivity extends AppCompatActivity {
     if (isFinishing() || isDestroyed()) return;
     BackupTaskState.Snapshot s = task.snapshot();
     boolean busy = task.maintenanceBusy(),
-        pending = task.pendingMaintenanceForUi(),
+        // 未关闭的隔离试运行现场也须先“恢复中断维护”（再次更新会以 TRIAL_RECOVERY_REQUIRED 拒绝）。
+        pending = task.pendingMaintenanceForUi() || RuntimeMaintenanceStarter.pendingTrial(this),
         executionBusy = task.busy();
     boolean ready = environmentReady(s, busy, pending);
     String renderKey =

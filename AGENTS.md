@@ -60,7 +60,7 @@ Root 维护以 [权限架构](docs/device-permissions-architecture.md) 与 [固�
 
 | 层 | 关键类 | 职责 |
 |---|---|---|
-| `ui/` | MainActivity / OnboardingActivity / ExtractActivity（维护详情） / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | 界面与启动门禁；受限主界面 + 顶栏部署胶囊 |
+| `ui/` | MainActivity / OnboardingActivity / ExtractActivity（维护详情） / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | 界面与启动门禁；首次部署在引导内后台进行并以部署胶囊显示；覆盖更新进入整屏维护页 |
 | `core/` | `HarnessController`（约 57 KB，编排核心） | 启动 / 停止 dsh、鉴权链接捕获；**不要再往里塞新职责**，新逻辑写成独立协作者 |
 | `core/` | `ConfigStore` | 配置唯一读写入口（端口 / 模型 / workdir / API key） |
 | `core/` | `InstallRepository` / `MaintenanceCoordinator` / `RuntimeTasks` / `StartupDiagnostics` | 安装状态、维护屏障、运行任务锁、启动诊断 |
@@ -164,7 +164,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 ## 启动契约（不可破坏）
 
 - `welcomed == false` → `OnboardingActivity`（欢迎 → 用途 → 授权 → 完成）→ `MainActivity`；`MainActivity` 进入前校验 `welcomed`，否则永远回引导。
-- 正常运行检查 `.offline-extracted` 与完整环境身份。覆盖更新进入受限主界面并以顶栏胶囊显示进度；**受限入口仍不写就绪标记**，终端、Web 与插件执行仍须通过环境门禁；磁盘上存在未完成维护事务时仍强制进入维护页（`ExtractActivity`）。
+- 正常运行检查 `.offline-extracted` 与完整环境身份。覆盖更新、环境未就绪、未完成维护事务或未关闭的隔离试运行现场，都整屏进入运行环境维护页（`ExtractActivity`），同一候选只自动尝试一次；用户在维护页显式选择后才进入受限主界面，**受限入口不写就绪标记**，终端、Web 与插件执行仍须通过环境门禁。
 - 启动失败自动进入原生 `StartupRecoveryActivity`；等待鉴权本身不是故障。最近五次脱敏启动记录独立保存在私有目录。
 - 兼容重试仅在 proroot 已确认退出、鉴权前且无明确插件故障时进行一次，**不能由超时触发**。
 - 配置快照由宿主 `ConfigurationSnapshots` 执行：正文逐文件存于 rootfs 外，保留三份健康与三份修复前快照；旧日志已提交后不得覆盖后来修改的配置。

@@ -285,20 +285,14 @@ public class MainActivity extends AppCompatActivity {
   }
 
   /**
-   * 入口门禁。只有磁盘上存在未完成的维护事务（且用户没有显式选择受限入口）时才整屏进入维护页；
-   * 环境未就绪或有新的受管候选时留在受限主界面，由顶栏部署胶囊显示进度。
-   *
-   * <p>自动路径绝不调用 allowLimitedEntry、也不附加 limited_entry：否则更新中途进程被杀后，下次启动会因
-   * “已选受限”而跳过未完成事务的检查。新候选是否自动开始仍只由 attempted_identity 决定（同一候选只试一次）；
-   * 这里不写任何就绪标记，Web / 终端 / 插件继续由各自的环境门禁拦截。
+   * 入口门禁：覆盖更新、环境未就绪、未完成的维护事务或未关闭的试运行现场，都整屏进入运行环境维护页
+   * （ExtractActivity），由维护页按原有一次性规则自动开始更新或给出恢复入口。只有用户在维护页显式选择
+   * “进入受限主界面”后，同一安装身份才留在受限主界面；这里不写任何就绪标记。
    */
   private void checkEntry(
       Bundle saved, ConfigStore config, HarnessController controller, boolean skipExtract) {
     long generation = controller.getWebGeneration();
     Intent admittedIntent = getIntent();
-    // 后台判定的第二个结果：需要维护但没有未完成事务（覆盖更新 / 首次部署未完成）。
-    java.util.concurrent.atomic.AtomicBoolean needsUpdate =
-        new java.util.concurrent.atomic.AtomicBoolean();
     entryGate.submit(
         ENTRY_IO,
         this::runOnUiThread,
@@ -307,15 +301,13 @@ public class MainActivity extends AppCompatActivity {
               admittedIntent.getBooleanExtra("limited_entry", false)
                   || config.allowsLimitedEntry(
                       com.deepseekharness.app.core.EnvironmentAccess.limitedEntryKey(controller));
-          boolean pending = com.deepseekharness.app.core.MaintenanceCoordinator.pending(controller);
-          needsUpdate.set(
-              !limited
-                  && !pending
-                  && !skipExtract
-                  && (!controller.isEnvironmentReady()
-                      || com.deepseekharness.app.core.EnvironmentAccess
-                          .requiresMaintenanceBeforeStart(controller)));
-          return !limited && pending;
+          return !limited
+              && (com.deepseekharness.app.core.MaintenanceCoordinator.pending(controller)
+                  || RuntimeMaintenanceStarter.pendingTrial(getApplicationContext())
+                  || !skipExtract
+                      && (!controller.isEnvironmentReady()
+                          || com.deepseekharness.app.core.EnvironmentAccess
+                              .requiresMaintenanceBeforeStart(controller)));
         },
         () ->
             !isFinishing()
@@ -346,29 +338,14 @@ public class MainActivity extends AppCompatActivity {
                   + unresolved
                   + " restoring="
                   + restoring
-                  + " update="
-                  + needsUpdate.get()
                   + " restored="
                   + (saved != null));
           if (!failed && maintenance && !unresolved && !restoring) {
-            // 未完成的维护事务必须由用户在维护页明确恢复。
+            // 覆盖更新与中断恢复都走整屏维护页：自动开始仍只按同一候选一次的规则。
             startActivity(new Intent(this, ExtractActivity.class));
             finish();
           } else {
-            // 覆盖更新 / 部署未完成：留在受限主界面，满足条件时自动开始一次（与旧维护页同一判定）。
-            // 判定含磁盘读取与偏好提交，放到入口检查线程；原实例证据未知或网页会话待恢复时不触发维护。
-            if (!failed && needsUpdate.get() && !unresolved && !restoring) {
-              android.content.Context app = getApplicationContext();
-              ENTRY_IO.execute(
-                  () -> {
-                    try {
-                      RuntimeMaintenanceStarter.autoStartUpdateIfEligible(app);
-                    } catch (RuntimeException unavailable) {
-                      com.deepseekharness.app.core.DiagnosticLog.record(
-                          app, "MAIN_AUTO_UPDATE", unavailable.getClass().getSimpleName());
-                    }
-                  });
-            }
+            // 原实例证据未知时留在Main提供诊断，不触发解压或静默更新原环境。
             showMain(saved, config, controller);
           }
         });

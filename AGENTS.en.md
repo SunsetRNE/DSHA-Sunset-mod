@@ -55,7 +55,7 @@ For Root maintenance, use [permission architecture](docs/en/device-permissions-a
 
 | Layer | Key classes | Responsibility |
 |---|---|---|
-| `ui/` | MainActivity / OnboardingActivity / ExtractActivity (maintenance detail) / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | UI and startup gates; limited Main plus top-bar deployment capsule |
+| `ui/` | MainActivity / OnboardingActivity / ExtractActivity (maintenance detail) / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | UI and startup gates; first deployment runs in the background inside onboarding with a deployment capsule; over-the-top updates open the full-screen maintenance page |
 | `core/` | `HarnessController` (historically about 57 KB, orchestration core) | Start/stop dsh and capture authenticated links. **Do not add new responsibilities here**; create focused collaborators |
 | `core/` | `ConfigStore` | Sole configuration read/write entry: port/model/workdir/API key |
 | `core/` | `InstallRepository` / `MaintenanceCoordinator` / `RuntimeTasks` / `StartupDiagnostics` | Install state, maintenance barrier, running-task locks, startup diagnostics |
@@ -159,7 +159,7 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 ## Startup contracts
 
 - `welcomed == false` → `OnboardingActivity` (welcome → purpose → grants → done) → `MainActivity`. Main checks `welcomed` before entry; otherwise return to onboarding.
-- Normal execution checks `.offline-extracted` and complete environment identity. Over-the-top updates enter a limited Main with a top-bar capsule; **the limited entry still writes no readiness marker**, and Terminal/Web/plugin execution still passes environment gates; an unfinished on-disk maintenance transaction still forces the maintenance page (`ExtractActivity`).
+- Normal execution checks `.offline-extracted` and complete environment identity. Over-the-top updates, an unready environment, unfinished maintenance transactions and unclosed isolated-trial records all open the full-screen runtime maintenance page (`ExtractActivity`), which auto-starts the same candidate at most once; the limited Main is entered only after an explicit choice there, **the limited entry writes no readiness marker**, and Terminal/Web/plugin execution still passes environment gates.
 - Startup failure enters native `StartupRecoveryActivity`; waiting for authentication alone is not failure. The latest five redacted startup records live independently in private storage.
 - Compatibility retry occurs once only after confirmed proroot exit, before authentication, without explicit plugin failure. **Timeout cannot trigger it.**
 - Host `ConfigurationSnapshots` stores each file's content outside rootfs, keeping three healthy and three pre-repair snapshots. A committed old journal must not overwrite later configuration edits.
