@@ -160,7 +160,7 @@ public final class UpdateVersionPageTest {
       assertTrue(shown.contains("The same task remains attached when the user expanded and paused it"));
       assertTrue(shown.contains("Old authorization and unknown actions are never replayed or approved automatically"));
       assertTrue(shown.contains("ScreenSense"));
-      assertTrue(shown.contains("versionCode is raised to 220"));
+      assertTrue(shown.contains("Raises versionCode to 220"));
       assertFalse(shown.contains("versionCode is raised to 219"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
