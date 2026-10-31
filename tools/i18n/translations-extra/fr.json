@@ -1250,5 +1250,14 @@
   "uiv5a013": "Détails du plugin",
   "uiv5a014": "Je comprends que les commandes root de l’assistant ou des plugins peuvent endommager les données ou le système, parfois sans retour possible.",
   "uiv5a015": "J’ai sauvegardé mes données importantes et je repasserai en Strict quand ce ne sera plus utile.",
-  "uiv5a016": "J’assume moi-même les conséquences ; DSHA et ses développeurs ne sont pas responsables."
+  "uiv5a016": "J’assume moi-même les conséquences ; DSHA et ses développeurs ne sont pas responsables.",
+  "uiv5a017": "Assoupli",
+  "uiv5a018": "Complètement assoupli",
+  "uiv5a019": "Commandes autorisées uniquement",
+  "uiv5a020": "Toute commande, sauf irréversible",
+  "uiv5a021": "Commandes non contrôlées",
+  "uiv5a022": "Recommandé",
+  "uiv5a023": "Risque élevé",
+  "uiv5a024": "Risque grave",
+  "uiv5a025": "Actuel"
 }

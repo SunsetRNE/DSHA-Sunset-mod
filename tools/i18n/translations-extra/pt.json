@@ -1250,5 +1250,14 @@
   "uiv5a013": "Detalhes do plugin",
   "uiv5a014": "Entendo que comandos root do assistente ou dos plugins podem danificar dados ou o sistema, talvez sem recuperação.",
   "uiv5a015": "Fiz backup dos dados importantes e voltarei para Estrito quando não precisar mais.",
-  "uiv5a016": "Assumo as consequências; o DSHA e seus desenvolvedores não se responsabilizam."
+  "uiv5a016": "Assumo as consequências; o DSHA e seus desenvolvedores não se responsabilizam.",
+  "uiv5a017": "Relaxado",
+  "uiv5a018": "Totalmente relaxado",
+  "uiv5a019": "Só comandos permitidos",
+  "uiv5a020": "Qualquer comando, exceto irreversíveis",
+  "uiv5a021": "Sem verificar comandos",
+  "uiv5a022": "Recomendado",
+  "uiv5a023": "Risco alto",
+  "uiv5a024": "Risco grave",
+  "uiv5a025": "Atual"
 }

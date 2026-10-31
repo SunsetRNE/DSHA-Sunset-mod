@@ -643,23 +643,192 @@ public final class DeviceGrantsFragment extends Fragment {
     final DeviceShellPolicy.Mode[] modes = {
       DeviceShellPolicy.Mode.STRICT, DeviceShellPolicy.Mode.RELAXED, DeviceShellPolicy.Mode.FULL
     };
-    final String[] labels = {
-      com.deepseekharness.app.util.UiText.text("严格（默认）· 仅放行白名单内的命令"),
-      com.deepseekharness.app.util.UiText.text("放宽 · 允许任意命令，仍拦截不可逆操作"),
-      com.deepseekharness.app.util.UiText.text("完全放宽 · 不按命令内容拦截")
+    final String[] names = {
+      com.deepseekharness.app.util.UiText.text("严格（默认）"),
+      com.deepseekharness.app.util.UiText.choose("放宽", "Relaxed"),
+      com.deepseekharness.app.util.UiText.choose("完全放宽", "Fully relaxed")
     };
-    // MaterialAlertDialog 同时设置 message 与单选列表时只会显示 message，档位实际无法选择；
-    // 这里把说明并进列表项，保证短屏和 TalkBack 下都能选到三档。
-    new DshaDialogBuilder(ctx)
-        .setTitle(com.deepseekharness.app.util.UiText.text("Root 命令拦截档位"))
-        .setItems(
-            labels,
-            (dialog, which) -> {
-              dialog.dismiss();
-              confirmRootPolicy(modes[which]);
-            })
-        .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
-        .show();
+    final String[] descriptions = {
+      com.deepseekharness.app.util.UiText.choose("仅放行白名单内的命令", "Only allowlisted commands run"),
+      com.deepseekharness.app.util.UiText.choose(
+          "允许任意命令，仍拦截不可逆操作", "Any command; irreversible operations still blocked"),
+      com.deepseekharness.app.util.UiText.choose("不按命令内容拦截", "No command-content checks")
+    };
+    final String[] badges = {
+      com.deepseekharness.app.util.UiText.choose("推荐", "Recommended"),
+      com.deepseekharness.app.util.UiText.choose("高风险", "High risk"),
+      com.deepseekharness.app.util.UiText.choose("严重风险", "Severe risk")
+    };
+    final int[] tones = {R.color.shell_good, R.color.shell_warn, R.color.shell_bad};
+    final DeviceShellPolicy.Mode current = new ConfigStore(ctx).rootPolicyMode();
+    final int[] selected = {0};
+    for (int i = 0; i < modes.length; i++) if (modes[i] == current) selected[0] = i;
+    final String currentTag = com.deepseekharness.app.util.UiText.choose("当前", "Current");
+
+    // 方案 A：三档单选卡片，当前档默认选中并标「当前」；风险按绿/橙/红分级，完全放宽常驻红边。
+    // 点卡片只是选中；「下一步」才生效，放宽档进入第二步红色确认（倒计时 + 勾选）。
+    android.widget.LinearLayout list = new android.widget.LinearLayout(ctx);
+    list.setOrientation(android.widget.LinearLayout.VERTICAL);
+    list.setPadding(dp(20), dp(4), dp(20), dp(4));
+    View[] cards = new View[modes.length];
+    Runnable[] render = new Runnable[1];
+    for (int i = 0; i < modes.length; i++) {
+      final int index = i;
+      cards[i] =
+          rootPolicyCard(
+              ctx,
+              names[i],
+              modes[i] == current ? currentTag : "",
+              descriptions[i],
+              badges[i],
+              tones[i]);
+      cards[i].setOnClickListener(
+          v -> {
+            selected[0] = index;
+            render[0].run();
+          });
+      android.widget.LinearLayout.LayoutParams params =
+          new android.widget.LinearLayout.LayoutParams(-1, -2);
+      if (i > 0) params.topMargin = dp(10);
+      list.addView(cards[i], params);
+    }
+    android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+    scroll.addView(list);
+    androidx.appcompat.app.AlertDialog dialog =
+        new DshaDialogBuilder(ctx)
+            .setTitle(com.deepseekharness.app.util.UiText.text("Root 命令拦截档位"))
+            .setView(scroll)
+            // 与第二步一致：「取消」在最右的安全位，「下一步」在其左侧。
+            .setPositiveButton(com.deepseekharness.app.util.UiText.text("取消"), null)
+            .setNegativeButton(
+                com.deepseekharness.app.util.UiText.text("下一步"),
+                (d, which) -> {
+                  DeviceShellPolicy.Mode chosen = modes[selected[0]];
+                  if (chosen != current) confirmRootPolicy(chosen);
+                })
+            .create();
+    dialog.show();
+    android.widget.Button next = dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE);
+    render[0] =
+        () -> {
+          for (int i = 0; i < cards.length; i++)
+            styleRootPolicyCard(ctx, cards[i], tones[i], i == selected[0], i == 2);
+          if (next != null) {
+            // 选中当前档时没有可提交的变化：「下一步」不可用，避免空走一遍确认。
+            boolean changed = modes[selected[0]] != current;
+            next.setEnabled(changed);
+            next.setAlpha(changed ? 1f : 0.45f);
+            next.setTextColor(
+                ctx.getColor(selected[0] == 0 ? R.color.shell_accent : tones[selected[0]]));
+          }
+        };
+    render[0].run();
+  }
+
+  /** 单张档位卡片：自绘单选圈 + 名称（当前档带「当前」）+ 说明 + 风险标签。 */
+  private View rootPolicyCard(
+      Context ctx, String name, String currentTag, String description, String badge, int tone) {
+    android.widget.LinearLayout card = new android.widget.LinearLayout(ctx);
+    card.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    card.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    card.setMinimumHeight(dp(64));
+    card.setPadding(dp(14), dp(12), dp(14), dp(12));
+    card.setClickable(true);
+    card.setFocusable(true);
+    card.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
+    View radio = new View(ctx);
+    radio.setTag("radio");
+    radio.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    android.widget.LinearLayout.LayoutParams radioParams =
+        new android.widget.LinearLayout.LayoutParams(dp(20), dp(20));
+    radioParams.setMarginEnd(dp(14));
+    card.addView(radio, radioParams);
+    android.widget.LinearLayout copy = new android.widget.LinearLayout(ctx);
+    copy.setOrientation(android.widget.LinearLayout.VERTICAL);
+    android.widget.LinearLayout titleRow = new android.widget.LinearLayout(ctx);
+    titleRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    TextView title = new TextView(ctx);
+    title.setText(name);
+    title.setTextSize(15);
+    title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+    title.setTextColor(ctx.getColor(R.color.shell_text));
+    titleRow.addView(title);
+    if (!currentTag.isEmpty()) {
+      TextView now = new TextView(ctx);
+      now.setText(currentTag);
+      now.setTextSize(11);
+      now.setTextColor(ctx.getColor(R.color.shell_text_secondary));
+      now.setBackgroundResource(R.drawable.bg_shell_status);
+      now.setPadding(dp(8), dp(2), dp(8), dp(2));
+      android.widget.LinearLayout.LayoutParams nowParams =
+          new android.widget.LinearLayout.LayoutParams(-2, -2);
+      nowParams.setMarginStart(dp(8));
+      titleRow.addView(now, nowParams);
+    }
+    copy.addView(titleRow);
+    TextView sub = new TextView(ctx);
+    sub.setText(description);
+    sub.setTextSize(12);
+    sub.setTextColor(ctx.getColor(R.color.shell_text_secondary));
+    android.widget.LinearLayout.LayoutParams subParams =
+        new android.widget.LinearLayout.LayoutParams(-1, -2);
+    subParams.topMargin = dp(4);
+    copy.addView(sub, subParams);
+    card.addView(copy, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
+    TextView tag = new TextView(ctx);
+    tag.setText(badge);
+    tag.setTextSize(11);
+    tag.setTypeface(tag.getTypeface(), android.graphics.Typeface.BOLD);
+    tag.setTextColor(ctx.getColor(tone));
+    tag.setPadding(dp(10), dp(4), dp(10), dp(4));
+    android.graphics.drawable.GradientDrawable pill =
+        new android.graphics.drawable.GradientDrawable();
+    pill.setCornerRadius(dp(999));
+    pill.setColor(androidx.core.graphics.ColorUtils.setAlphaComponent(ctx.getColor(tone), 0x1F));
+    tag.setBackground(pill);
+    android.widget.LinearLayout.LayoutParams tagParams =
+        new android.widget.LinearLayout.LayoutParams(-2, -2);
+    tagParams.setMarginStart(dp(10));
+    card.addView(tag, tagParams);
+    String spoken = currentTag.isEmpty() ? name : name + " " + currentTag;
+    card.setContentDescription(
+        com.deepseekharness.app.util.UiText.raw(spoken + ", " + description + ", " + badge));
+    return card;
+  }
+
+  /** 选中：风险色描边 + 浅底 + 实心单选圈；完全放宽未选中时也保留红色细边。 */
+  private void styleRootPolicyCard(
+      Context ctx, View card, int tone, boolean selected, boolean alwaysWarn) {
+    int color = ctx.getColor(tone);
+    android.graphics.drawable.GradientDrawable shape =
+        new android.graphics.drawable.GradientDrawable();
+    shape.setCornerRadius(dp(14));
+    shape.setColor(
+        selected
+            ? androidx.core.graphics.ColorUtils.setAlphaComponent(color, 0x14)
+            : ctx.getColor(R.color.shell_surface));
+    shape.setStroke(
+        dp(selected ? 2 : 1),
+        selected || alwaysWarn ? color : ctx.getColor(R.color.shell_line_strong));
+    card.setBackground(shape);
+    View radio = card.findViewWithTag("radio");
+    android.graphics.drawable.GradientDrawable dot =
+        new android.graphics.drawable.GradientDrawable();
+    dot.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    dot.setStroke(dp(2), selected ? color : ctx.getColor(R.color.shell_text_muted));
+    dot.setColor(selected ? color : android.graphics.Color.TRANSPARENT);
+    if (radio != null) radio.setBackground(dot);
+    card.setAccessibilityDelegate(
+        new View.AccessibilityDelegate() {
+          @Override
+          public void onInitializeAccessibilityNodeInfo(
+              View host, android.view.accessibility.AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setClassName(android.widget.RadioButton.class.getName());
+            info.setCheckable(true);
+            info.setChecked(selected);
+          }
+        });
   }
 
   /** 放宽档位会扩大助手与插件的 root 权限，保存前必须再确认一次风险。 */

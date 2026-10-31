@@ -10108,5 +10108,77 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
+  },
+  {
+    "id": "uiv5a017",
+    "zh": "放宽",
+    "en": "Relaxed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a018",
+    "zh": "完全放宽",
+    "en": "Fully relaxed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a019",
+    "zh": "仅放行白名单内的命令",
+    "en": "Only allowlisted commands run",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a020",
+    "zh": "允许任意命令，仍拦截不可逆操作",
+    "en": "Any command; irreversible operations still blocked",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a021",
+    "zh": "不按命令内容拦截",
+    "en": "No command-content checks",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a022",
+    "zh": "推荐",
+    "en": "Recommended",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a023",
+    "zh": "高风险",
+    "en": "High risk",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a024",
+    "zh": "严重风险",
+    "en": "Severe risk",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a025",
+    "zh": "当前",
+    "en": "Current",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
   }
 ]
