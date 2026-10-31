@@ -12,7 +12,7 @@
     <dimen name="shell_launch_section_gap">22dp</dimen>
     <dimen name="shell_launch_control_gap">10dp</dimen>
     <dimen name="shell_launch_metric_gap">8dp</dimen>
-    <dimen name="shell_launch_activity_height">2dp</dimen>
+    <dimen name="shell_launch_activity_height">24dp</dimen>
     <dimen name="shell_launch_radius_card">18dp</dimen>
     <dimen name="shell_launch_radius_status">16dp</dimen>
     <dimen name="shell_launch_radius_pill">999dp</dimen>

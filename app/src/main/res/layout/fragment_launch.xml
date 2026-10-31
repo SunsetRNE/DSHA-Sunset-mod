@@ -26,9 +26,9 @@
 
           <TextView android:id="@+id/launch_subtitle" style="@style/ShellLaunchDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="@string/ui2_launch_hint" />
 
-          <com.deepseekharness.app.ui.ShellActivityTrack android:id="@+id/launch_activity" android:layout_width="match_parent" android:layout_height="@dimen/shell_launch_activity_height" android:layout_marginTop="16dp" android:importantForAccessibility="no" />
+          <com.deepseekharness.app.ui.ShellActivityTrack android:id="@+id/launch_activity" android:layout_width="match_parent" android:layout_height="@dimen/shell_launch_activity_height" android:layout_marginTop="10dp" android:importantForAccessibility="no" />
 
-          <TextView android:id="@+id/launch_status" style="@style/ShellLaunchMeta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:accessibilityLiveRegion="polite" android:text="" android:visibility="gone" />
+          <TextView android:id="@+id/launch_status" style="@style/ShellLaunchMeta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:accessibilityLiveRegion="polite" android:text="" android:visibility="gone" />
 
           <!-- 主操作 + 轻量停止 / 重启；窄屏由 LaunchFragment 改为主操作独占一行。 -->
           <LinearLayout android:id="@+id/launch_controls" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:gravity="center_vertical" android:orientation="horizontal">
