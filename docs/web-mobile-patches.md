@@ -108,3 +108,12 @@ node tools/apply-mobile-client-patches.mjs tools/mobile-plugin-upstream/lib/clie
 
 退出条件：上游给字体行提供手机档换行排版，或宿主不再把 `.field` 固定成 240px；
 届时删除 `font-family-row-wrap-rc5` 整块并重新生成产物。
+
+## 未决：宽屏触屏（≥1024px）会话行挤压（上游 #255，2026-10-31）
+
+内置 3.2.2 的 `@media (min-width:1024px) and (pointer:coarse)` 档会把会话行 `_rowActions`
+（⋯ / 归档 / 置顶）常显并放大到 40×40，同时保留宿主 `.time`；280px 侧栏里标题只剩约 55px，
+与竖屏手机壳（只留时间 + ⋯）观感不一致。已提上游
+[#255](https://github.com/mexiaosqwq/dsh-web-mobile/issues/255)，**本地暂不打补丁**；
+修复方向 A（行内只留「时间 + ⋯」，归档/置顶留在 ⋯ 菜单）与前后验收见
+[平板会话行挤压记录](web-mobile-tablet-rows-20261031.md)。

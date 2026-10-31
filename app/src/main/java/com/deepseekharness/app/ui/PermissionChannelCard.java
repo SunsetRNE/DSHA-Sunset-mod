@@ -132,6 +132,19 @@ final class PermissionChannelCard {
     return status;
   }
 
+  /** 识别到 Stellar 时按实际管理器命名按钮；协议仍是 Shizuku 兼容层。 */
+  private static String authorizeLabel(Context context) {
+    return com.deepseekharness.app.ShizukuManagerCompat.isStellar(context)
+        ? UiText.choose("授权 Stellar", "Authorize Stellar")
+        : UiText.text("授权 Shizuku");
+  }
+
+  private static String verifyLabel(Context context) {
+    return com.deepseekharness.app.ShizukuManagerCompat.isStellar(context)
+        ? UiText.choose("验证 Stellar 连接", "Verify Stellar connection")
+        : UiText.text("验证 Shizuku 连接");
+  }
+
   private static void shizukuPanel(
       AppCompatActivity activity, OnboardingKit kit, LinearLayout panel, Runnable refresh) {
     boolean ok = shizukuReady();
@@ -152,7 +165,7 @@ final class PermissionChannelCard {
     if (!ShizukuShell.isAvailable())
       primary =
           kit.small(
-              UiText.text("授权 Shizuku"),
+              authorizeLabel(activity),
               true,
               v -> {
                 v.setEnabled(false);
@@ -174,7 +187,7 @@ final class PermissionChannelCard {
     else if (!ShizukuShell.hasPermission())
       primary =
           kit.small(
-              UiText.text("授权 Shizuku"),
+              authorizeLabel(activity),
               true,
               v ->
                   ShizukuShell.requestPermission(
@@ -182,7 +195,7 @@ final class PermissionChannelCard {
     else
       primary =
           kit.small(
-              UiText.text("验证 Shizuku 连接"),
+              verifyLabel(activity),
               false,
               v -> PermissionActions.verify(activity, v, () -> ShizukuShell.exec("id"), refresh));
     Button open =

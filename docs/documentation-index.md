@@ -41,7 +41,7 @@
 | 设备通道、3090协议、LAN、文件与系统文档入口 | [设备通道](device-channels.md)、[桥与文件](bridge-and-files.md)、[LAN](lan.md)、[Web文件](web-file-sharing.md) |
 | 一键/手动/自动备份、恢复、快照与独立应急 | [备份与恢复](backup-and-restore.md)、[配置快照](config-snapshots.md)、[独立应急](emergency-recovery.md)、[v5格式](backup-format-v5.md) |
 | 插件安装、系统/用户分层、协议、权限与重启 | [插件操作](plugins.md)、[插件运行与权限](plugin-runtime-and-permissions.md) |
-| 内置移动 Web 适配、dsh-web-mobile 本地补丁与设置弹层修复 | [移动 Web 适配补丁](web-mobile-patches.md) |
+| 内置移动 Web 适配、dsh-web-mobile 本地补丁与设置弹层修复；宽屏触屏会话行挤压跟踪 | [移动 Web 适配补丁](web-mobile-patches.md)、[平板会话行挤压（上游 #255）](web-mobile-tablet-rows-20261031.md) |
 | PTY/简易终端、WebView/Gecko、桌面UA、PiP | [终端](terminal.md)、[浏览器内核](browser-engines.md)、[画中画](picture-in-picture.md) |
 | 语言锁存、悬浮条、审批和任务通知 | [语言](i18n.md)、[悬浮与通知](overlay-and-notifications.md) |
 | 源码/固定输入/签名/发布与测试证据 | [构建与发布](build-and-release.md)、[领域边界](agents/domain.md)、[议题流程](agents/issue-tracker.md)、[分诊用语](agents/triage-labels.md) |

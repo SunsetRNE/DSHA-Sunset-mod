@@ -553,11 +553,34 @@ public final class DeviceGrantsFragment extends Fragment {
       shizuku.setText(
           com.deepseekharness.app.util.UiStateText.render(
               ShizukuShell.userStatus(requireContext())));
+    // 识别到 Stellar（Shizuku 兼容管理器）时按实际管理器命名；协议仍是 Shizuku 兼容层。
+    boolean stellar = com.deepseekharness.app.ShizukuManagerCompat.isStellar(requireContext());
     ((TextView) page.findViewById(R.id.workspace_shizuku_auth))
         .setText(
             ShizukuShell.hasPermission()
-                ? com.deepseekharness.app.util.UiText.text("验证 Shizuku 连接")
-                : com.deepseekharness.app.util.UiText.text("授权 Shizuku"));
+                ? stellar
+                    ? com.deepseekharness.app.util.UiText.choose(
+                        "验证 Stellar 连接", "Verify Stellar connection")
+                    : com.deepseekharness.app.util.UiText.text("验证 Shizuku 连接")
+                : stellar
+                    ? com.deepseekharness.app.util.UiText.choose("授权 Stellar", "Authorize Stellar")
+                    : com.deepseekharness.app.util.UiText.text("授权 Shizuku"));
+    ((TextView) page.findViewById(R.id.device_shizuku_open))
+        .setText(
+            stellar
+                ? com.deepseekharness.app.util.UiText.choose("打开 Stellar", "Open Stellar")
+                : getString(R.string.ui_m0125));
+    TextView title = page.findViewById(R.id.device_shizuku_title);
+    if (title != null)
+      title.setText(stellar ? "Shizuku / Stellar" : getString(R.string.ui_brand_shizuku));
+    TextView hint = page.findViewById(R.id.device_shizuku_hint);
+    if (hint != null)
+      hint.setText(
+          stellar
+              ? com.deepseekharness.app.util.UiText.choose(
+                  "已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。",
+                  "Stellar (a Shizuku-compatible manager) is detected. Start its service and enable the Shizuku compatibility layer, then authorize here. Restart the service after reboot.")
+              : getString(R.string.ui134_shizuku_hint));
     if (root.getTag() == null) root.setText(RootShell.status(requireContext()));
   }
 
