@@ -4,7 +4,7 @@
   文字全部由 PluginFragment 按当前语言写入，与卡片共用同一套描述 / 状态 / 详情文案；
   开关、更多操作、删除复用卡片上的同一业务回调与确认。
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:clipToPadding="false" android:fillViewport="true">
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:clipToPadding="false" android:fillViewport="true">
 
     <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="@dimen/shell_page_pad" android:paddingTop="@dimen/shell_page_top" android:paddingEnd="@dimen/shell_page_pad" android:paddingBottom="@dimen/shell_page_bottom">
 
@@ -18,7 +18,7 @@
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
 
-                    <ImageView android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_plugin_glyph" android:contentDescription="@null" android:importantForAccessibility="no" android:padding="9dp" android:src="@drawable/ic_plugins" android:tint="@color/shell_accent" />
+                    <ImageView android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_plugin_glyph" android:contentDescription="@null" android:importantForAccessibility="no" android:padding="9dp" android:src="@drawable/ic_plugins" app:tint="@color/shell_accent" />
 
                     <TextView android:id="@+id/plugin_detail_name" style="@style/ShellCardTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:accessibilityHeading="true" />
 
