@@ -157,8 +157,8 @@ public final class UpdateVersionPageTest {
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
       assertTrue(shown.contains("Fixes the race between the phone-task overlay and screen authorization"));
-      assertTrue(shown.contains("the same task stays attached for an explicit Continue or Stop"));
-      assertTrue(shown.contains("does not automatically approve or replay old authorization"));
+      assertTrue(shown.contains("The same task remains attached when the user expanded and paused it"));
+      assertTrue(shown.contains("Old authorization and unknown actions are never replayed or approved automatically"));
       assertTrue(shown.contains("ScreenSense"));
       assertTrue(shown.contains("versionCode is raised to 220"));
       assertFalse(shown.contains("versionCode is raised to 219"));
