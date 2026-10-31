@@ -156,9 +156,13 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Fixes the race between the phone-task overlay and screen authorization"));
-      assertTrue(shown.contains("The same task remains attached when the user expanded and paused it"));
-      assertTrue(shown.contains("Old authorization and unknown actions are never replayed or approved automatically"));
+      assertTrue(
+          shown.contains("Fixes the race between the phone-task overlay and screen authorization"));
+      assertTrue(
+          shown.contains("The same task remains attached when the user expanded and paused it"));
+      assertTrue(
+          shown.contains(
+              "Old authorization and unknown actions are never replayed or approved automatically"));
       assertTrue(shown.contains("ScreenSense"));
       assertTrue(shown.contains("Raises versionCode to 220"));
       assertFalse(shown.contains("versionCode is raised to 219"));
