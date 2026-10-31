@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 界面语言选择（方案 A）：顶部「跟随系统」卡片写明系统当前解析成哪种语言；下面十种语言两列网格，
+ * 界面语言选择（方案 A）：「跟随系统」作为第一格并写明系统当前解析的语言，其后十种语言；平板四列、手机两列，
  * 每格是母语名 + 当前界面语言里的名称。点选即生效，与原单选列表行为一致（关闭弹窗后切换）。
  */
 final class LanguagePicker {
@@ -51,28 +51,12 @@ final class LanguagePicker {
           dialog.dismiss();
         };
 
-    View system =
-        tile(
-            ctx,
-            dp,
-            UiText.choose("跟随系统", "Follow system"),
-            UiText.format("当前系统：%s", UiLanguagePreference.nativeName(systemLanguage)),
-            followSystem);
-    system.setOnClickListener(v -> pick.accept(UiLanguagePreference.SYSTEM));
-    body.addView(system, new LinearLayout.LayoutParams(-1, -2));
-
-    TextView label = new TextView(ctx);
-    label.setText(UiText.choose("指定语言", "Choose a language"));
-    label.setTextSize(12);
-    label.setTextColor(ctx.getColor(R.color.shell_text_secondary));
-    label.setPadding(dp.applyAsInt(2), dp.applyAsInt(16), 0, dp.applyAsInt(8));
-    body.addView(label);
-
+    // 「跟随系统」作为网格第一格；平板四列（3 行放下 11 项），手机两列。
     List<String> languages = UiLanguagePreference.LANGUAGES;
-    // 平板宽弹窗三列，手机两列。
-    int columns = ctx.getResources().getConfiguration().screenWidthDp >= 600 ? 3 : 2;
+    int count = languages.size() + 1;
+    int columns = ctx.getResources().getConfiguration().screenWidthDp >= 600 ? 4 : 2;
     LinearLayout row = null;
-    for (int i = 0; i < languages.size(); i++) {
+    for (int i = 0; i < count; i++) {
       if (i % columns == 0) {
         row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -80,27 +64,40 @@ final class LanguagePicker {
         if (i > 0) rowParams.topMargin = dp.applyAsInt(8);
         body.addView(row, rowParams);
       }
-      String language = languages.get(i);
-      String nativeName = UiLanguagePreference.nativeName(language);
-      String localized = localizedName(language, uiLanguage);
-      View cell =
-          tile(
-              ctx,
-              dp,
-              nativeName,
-              localized.equalsIgnoreCase(nativeName) ? "" : localized,
-              !followSystem && language.equals(preference));
-      cell.setOnClickListener(v -> pick.accept(language));
+      View cell;
+      if (i == 0) {
+        cell =
+            tile(
+                ctx,
+                dp,
+                UiText.choose("跟随系统", "Follow system"),
+                UiText.format("系统：%s", UiLanguagePreference.nativeName(systemLanguage)),
+                followSystem);
+        cell.setOnClickListener(v -> pick.accept(UiLanguagePreference.SYSTEM));
+      } else {
+        String language = languages.get(i - 1);
+        String nativeName = UiLanguagePreference.nativeName(language);
+        String localized = localizedName(language, uiLanguage);
+        cell =
+            tile(
+                ctx,
+                dp,
+                nativeName,
+                localized.equalsIgnoreCase(nativeName) ? "" : localized,
+                !followSystem && language.equals(preference));
+        cell.setOnClickListener(v -> pick.accept(language));
+      }
+      cell.setTag(i == 0 ? UiLanguagePreference.SYSTEM : languages.get(i - 1));
       LinearLayout.LayoutParams cellParams = new LinearLayout.LayoutParams(0, -1, 1f);
       if (i % columns > 0) cellParams.setMarginStart(dp.applyAsInt(8));
       row.addView(cell, cellParams);
     }
-    // 末行补齐空位，保持格子等宽。
-    int remainder = languages.size() % columns;
+    // 末行补齐空位，保持格子等宽（高度跟随同行格子）。
+    int remainder = count % columns;
     if (row != null && remainder > 0)
       for (int i = remainder; i < columns; i++) {
         View spacer = new View(ctx);
-        LinearLayout.LayoutParams spacerParams = new LinearLayout.LayoutParams(0, 1, 1f);
+        LinearLayout.LayoutParams spacerParams = new LinearLayout.LayoutParams(0, -1, 1f);
         spacerParams.setMarginStart(dp.applyAsInt(8));
         row.addView(spacer, spacerParams);
       }
@@ -117,6 +114,13 @@ final class LanguagePicker {
 
   /** 语言在当前界面语言里的名称（系统 ICU 提供），如中文界面下的 English → 英语。 */
   private static String localizedName(String language, String uiLanguage) {
+    // 中文界面里「简体中文 / 繁體中文」本身就能读懂，副标题「中文（简体中文）」只是重复。
+    boolean chineseUi =
+        UiLanguagePreference.ZH.equals(uiLanguage)
+            || UiLanguagePreference.ZH_HANT.equals(uiLanguage);
+    boolean chineseOption =
+        UiLanguagePreference.ZH.equals(language) || UiLanguagePreference.ZH_HANT.equals(language);
+    if (chineseUi && chineseOption) return "";
     try {
       String tag = UiLanguagePreference.ZH.equals(language) ? "zh-Hans" : language;
       String display = UiLanguagePreference.ZH.equals(uiLanguage) ? "zh-Hans" : uiLanguage;
@@ -139,8 +143,8 @@ final class LanguagePicker {
     LinearLayout tile = new LinearLayout(ctx);
     tile.setOrientation(LinearLayout.HORIZONTAL);
     tile.setGravity(Gravity.CENTER_VERTICAL);
-    tile.setMinimumHeight(dp.applyAsInt(60));
-    tile.setPadding(dp.applyAsInt(14), dp.applyAsInt(10), dp.applyAsInt(10), dp.applyAsInt(10));
+    tile.setMinimumHeight(dp.applyAsInt(56));
+    tile.setPadding(dp.applyAsInt(12), dp.applyAsInt(10), dp.applyAsInt(8), dp.applyAsInt(10));
     tile.setClickable(true);
     tile.setFocusable(true);
     tile.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
@@ -163,13 +167,16 @@ final class LanguagePicker {
     name.setTypeface(name.getTypeface(), android.graphics.Typeface.BOLD);
     name.setTextColor(ctx.getColor(selected ? R.color.shell_accent : R.color.shell_text));
     name.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+    name.setIncludeFontPadding(false);
+    name.setSingleLine(true);
+    name.setEllipsize(android.text.TextUtils.TruncateAt.END);
     copy.addView(name);
     if (!subtitle.isEmpty()) {
       TextView sub = new TextView(ctx);
       sub.setText(UiText.raw(subtitle));
       sub.setTextSize(12);
       sub.setTextColor(ctx.getColor(R.color.shell_text_muted));
-      sub.setSingleLine(true);
+      sub.setMaxLines(2);
       sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
       LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-2, -2);
       subParams.topMargin = dp.applyAsInt(2);
@@ -181,7 +188,7 @@ final class LanguagePicker {
       check.setImageResource(R.drawable.ic_onb_check);
       check.setColorFilter(accent);
       check.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-      tile.addView(check, new LinearLayout.LayoutParams(dp.applyAsInt(20), dp.applyAsInt(20)));
+      tile.addView(check, new LinearLayout.LayoutParams(dp.applyAsInt(18), dp.applyAsInt(18)));
     }
     tile.setContentDescription(UiText.raw(subtitle.isEmpty() ? title : title + ", " + subtitle));
     tile.setAccessibilityDelegate(

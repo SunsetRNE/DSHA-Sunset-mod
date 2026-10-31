@@ -938,6 +938,7 @@
     "app/src/test/java/com/deepseekharness/app/ui/FullPermissionControlsTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LanSettingsFeedbackTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LanguageControllerTest.java",
+    "app/src/test/java/com/deepseekharness/app/ui/LanguagePickerTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LaunchAccessAddressesTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LaunchStartFeedbackTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LaunchWebEntryPerformanceTest.java",

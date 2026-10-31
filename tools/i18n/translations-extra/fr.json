@@ -1298,6 +1298,5 @@
   "uiv5a061": "Les commandes à confirmer peuvent être approuvées ou refusées directement sur la barre.\n\nCe canal fonctionne en parallèle de la notification et de la boîte de dialogue DSHA ; le premier choix l’emporte. Désactivé, la barre n’affiche plus de boutons, mais la notification et la boîte de dialogue restent disponibles. Les règles de blocage ne changent pas.",
   "uiv5a062": "Les changements sont enregistrés automatiquement.",
   "uiv5a063": "Autorisation requise · Activer ›",
-  "uiv5a064": "Système : %s",
-  "uiv5a065": "Choisir une langue"
+  "uiv5a064": "Système : %s"
 }
