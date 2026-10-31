@@ -51,17 +51,20 @@ final class LanguagePicker {
           dialog.dismiss();
         };
 
-    // 「跟随系统」作为网格第一格；平板四列（3 行放下 11 项），手机两列。
+    // 「跟随系统」作为网格第一格。平板四列（3 行），常见手机（≥360dp）三列（4 行），更窄两列；
+    // 手机用紧凑格子，小屏也不必滚动。
     List<String> languages = UiLanguagePreference.LANGUAGES;
     int count = languages.size() + 1;
-    int columns = ctx.getResources().getConfiguration().screenWidthDp >= 600 ? 4 : 2;
+    int widthDp = ctx.getResources().getConfiguration().screenWidthDp;
+    int columns = widthDp >= 600 ? 4 : widthDp >= 360 ? 3 : 2;
+    boolean compact = columns < 4;
     LinearLayout row = null;
     for (int i = 0; i < count; i++) {
       if (i % columns == 0) {
         row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-        if (i > 0) rowParams.topMargin = dp.applyAsInt(8);
+        if (i > 0) rowParams.topMargin = dp.applyAsInt(compact ? 6 : 8);
         body.addView(row, rowParams);
       }
       View cell;
@@ -70,6 +73,7 @@ final class LanguagePicker {
             tile(
                 ctx,
                 dp,
+                compact,
                 UiText.choose("跟随系统", "Follow system"),
                 // 副标题只写系统当前解析出的语言名，避免窄格里折行。
                 UiLanguagePreference.nativeName(systemLanguage),
@@ -83,6 +87,7 @@ final class LanguagePicker {
             tile(
                 ctx,
                 dp,
+                compact,
                 nativeName,
                 localized.equalsIgnoreCase(nativeName) ? "" : localized,
                 !followSystem && language.equals(preference));
@@ -90,7 +95,7 @@ final class LanguagePicker {
       }
       cell.setTag(i == 0 ? UiLanguagePreference.SYSTEM : languages.get(i - 1));
       LinearLayout.LayoutParams cellParams = new LinearLayout.LayoutParams(0, -1, 1f);
-      if (i % columns > 0) cellParams.setMarginStart(dp.applyAsInt(8));
+      if (i % columns > 0) cellParams.setMarginStart(dp.applyAsInt(compact ? 6 : 8));
       row.addView(cell, cellParams);
     }
     // 末行补齐空位，保持格子等宽（高度跟随同行格子）。
@@ -99,11 +104,15 @@ final class LanguagePicker {
       for (int i = remainder; i < columns; i++) {
         View spacer = new View(ctx);
         LinearLayout.LayoutParams spacerParams = new LinearLayout.LayoutParams(0, -1, 1f);
-        spacerParams.setMarginStart(dp.applyAsInt(8));
+        spacerParams.setMarginStart(dp.applyAsInt(compact ? 6 : 8));
         row.addView(spacer, spacerParams);
       }
 
     ScrollView scroll = new ScrollView(ctx);
+    // 大字体或极矮屏仍可能超出：滚动条常显、边缘渐隐，提示下面还有选项。
+    scroll.setScrollbarFadingEnabled(false);
+    scroll.setVerticalFadingEdgeEnabled(true);
+    scroll.setFadingEdgeLength(dp.applyAsInt(24));
     scroll.addView(body);
     holder[0] =
         new DshaDialogBuilder(ctx)
@@ -138,14 +147,16 @@ final class LanguagePicker {
   private static View tile(
       Context ctx,
       java.util.function.IntUnaryOperator dp,
+      boolean compact,
       String title,
       String subtitle,
       boolean selected) {
     LinearLayout tile = new LinearLayout(ctx);
     tile.setOrientation(LinearLayout.HORIZONTAL);
     tile.setGravity(Gravity.CENTER_VERTICAL);
-    tile.setMinimumHeight(dp.applyAsInt(56));
-    tile.setPadding(dp.applyAsInt(12), dp.applyAsInt(10), dp.applyAsInt(10), dp.applyAsInt(10));
+    tile.setMinimumHeight(dp.applyAsInt(compact ? 50 : 56));
+    int padH = dp.applyAsInt(compact ? 9 : 12), padV = dp.applyAsInt(compact ? 7 : 10);
+    tile.setPadding(padH, padV, padH, padV);
     tile.setClickable(true);
     tile.setFocusable(true);
     tile.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
@@ -167,7 +178,7 @@ final class LanguagePicker {
     head.setGravity(Gravity.CENTER_VERTICAL);
     TextView name = new TextView(ctx);
     name.setText(UiText.raw(title));
-    name.setTextSize(15);
+    name.setTextSize(compact ? 14 : 15);
     name.setTypeface(name.getTypeface(), android.graphics.Typeface.BOLD);
     name.setTextColor(ctx.getColor(selected ? R.color.shell_accent : R.color.shell_text));
     name.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);

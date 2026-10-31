@@ -1297,5 +1297,14 @@
   "uiv5a060": "Contentum",
   "uiv5a061": "Mandata confirmationem poscentia in tabella fluitante probari vel recusari possunt.\n\nHoc cum notificatione et dialogo DSHA simul agit; quod prius tangis valet. Deactivato, tabella nullos probandi globulos ostendit, notificatio et dialogus manent. Regulae impediendi non mutantur.",
   "uiv5a062": "Mutationes statim servantur.",
-  "uiv5a063": "Licentia necessaria · Da ›"
+  "uiv5a063": "Licentia necessaria · Da ›",
+  "uiv5a064": "Artes",
+  "uiv5a065": "SKILL.md importa ut DSH praecepta iterabilia pro re legat.\n\nHic artes universales usoris administrantur; Root non requiritur. Solum SKILL.md exscribitur nec mandata eius exsequuntur. Scripta et subsidia citata per Fasciculos in eundem artis folliculum pone.\n\nLocus: %s",
+  "uiv5a066": "Instructae · %s",
+  "uiv5a067": "Alii %s fasciculi formae non congruunt; archetypa servata.",
+  "uiv5a068": "Nullae artes adhuc",
+  "uiv5a069": "SKILL.md importata hic apparent; DSH ea pro re legit.",
+  "uiv5a070": "Forma requisita",
+  "uiv5a071": "· Fasciculus SKILL.md nominari debet, textus UTF-8, non ultra 1 MiB.\n· Incipe capite YAML --- cum name minusculis et lineolis atque description non vacua.\n· disable-model-invocation / user-invocable (ad libitum) modum vocandi regunt.\n· Solum SKILL.md exscribitur nec mandata exsequuntur; ars eiusdem nominis non superscribitur.",
+  "uiv5a072": "Exemplar vocat"
 }

@@ -10485,5 +10485,80 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
     ]
+  },
+  {
+    "id": "uiv5a064",
+    "zh": "技能",
+    "en": "Skills",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a065",
+    "zh": "导入 SKILL.md，让 DSH 按需读取可复用的任务说明。\n\n这里管理用户全局技能，无需 Root。导入仅复制 SKILL.md，正文中的命令不会自动执行；引用的脚本和资料需用文件入口另行放入同一技能目录。\n\n存放位置：%s",
+    "en": "Import SKILL.md so DSH can load reusable task instructions as needed.\n\nThis page manages global user skills; Root is not required. Import copies only SKILL.md and never runs commands in its body. Add referenced scripts and resources to the same skill folder through Files.\n\nLocation: %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "uiv5a066",
+    "zh": "已安装 · %s",
+    "en": "Installed · %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "uiv5a067",
+    "zh": "另有 %s 个文件格式不符，原件已保留。",
+    "en": "%s more files failed format checks; originals kept.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "uiv5a068",
+    "zh": "还没有技能",
+    "en": "No skills yet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a069",
+    "zh": "导入 SKILL.md 后会出现在这里，DSH 会按需读取。",
+    "en": "Imported SKILL.md files appear here; DSH loads them as needed.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a070",
+    "zh": "格式要求",
+    "en": "Format requirements",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a071",
+    "zh": "· 文件名必须是 SKILL.md，UTF-8 文本，不超过 1 MiB。\n· 以 --- 开头的 YAML 头，包含小写短横线 name 和非空 description。\n· 可选 disable-model-invocation / user-invocable 控制调用方式。\n· 只复制 SKILL.md，不执行其中命令；同名技能不会被覆盖。",
+    "en": "· The file must be named SKILL.md, UTF-8 text, at most 1 MiB.\n· Start with --- YAML frontmatter containing a lowercase kebab-case name and a non-empty description.\n· Optional disable-model-invocation / user-invocable control how it is invoked.\n· Only SKILL.md is copied and its commands never run; a skill with the same name is not overwritten.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a072",
+    "zh": "模型可调用",
+    "en": "Model can invoke",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ]
   }
 ]

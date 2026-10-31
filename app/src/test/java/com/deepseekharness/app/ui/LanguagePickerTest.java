@@ -93,6 +93,12 @@ public final class LanguagePickerTest {
   }
 
   @Test
+  @Config(qualifiers = "zh-rCN-w360dp-h640dp-xhdpi")
+  public void smallPhoneShowsEveryOptionWithoutScrolling() {
+    assertAllOptionsFit();
+  }
+
+  @Test
   @Config(qualifiers = "en-rUS-w400dp-h800dp-xhdpi")
   public void phoneShowsEveryOptionWithoutScrolling() {
     assertAllOptionsFit();

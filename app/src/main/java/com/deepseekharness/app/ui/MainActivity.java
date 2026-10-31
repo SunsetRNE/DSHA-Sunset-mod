@@ -861,6 +861,8 @@ public class MainActivity extends AppCompatActivity {
     else if (shown instanceof ConfigFragment) title.setText(R.string.ui2_runtime_config);
     else if (shown instanceof DeviceGrantsFragment)
       title.setText(com.deepseekharness.app.util.UiText.text("设备能力授权"));
+    else if (shown instanceof SkillsFragment)
+      title.setText(com.deepseekharness.app.util.UiText.choose("技能", "Skills"));
     else if (shown instanceof WorkspaceFragment)
       title.setText(com.deepseekharness.app.util.UiText.text("数据与备份"));
     else if (shown instanceof InstallFragment) title.setText(R.string.ui2_environment_page);

@@ -90,7 +90,8 @@ public class WorkspaceFragment extends Fragment {
                     new android.content.Intent(requireContext(), StorageHelpActivity.class)));
     v.findViewById(R.id.workspace_skills)
         .setOnClickListener(
-            x -> startActivity(new android.content.Intent(requireContext(), SkillsActivity.class)));
+            // 设置子页：平板双栏时留在右侧详情窗格内，手机整页推进。
+            x -> SettingsPanes.open(this, new SkillsFragment(), "skills"));
     v.findViewById(R.id.workspace_backup)
         .setOnClickListener(
             x -> {

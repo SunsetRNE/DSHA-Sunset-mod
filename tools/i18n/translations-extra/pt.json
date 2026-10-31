@@ -1297,5 +1297,14 @@
   "uiv5a060": "Conteúdo",
   "uiv5a061": "Comandos que exigem confirmação podem ser aprovados ou recusados direto na barra.\n\nFunciona junto com a notificação e a caixa de diálogo do DSHA; vale o que for tocado primeiro. Desligado, a barra não mostra botões de aprovação, mas notificação e diálogo continuam funcionando. As regras de bloqueio não mudam.",
   "uiv5a062": "As alterações são salvas automaticamente.",
-  "uiv5a063": "Permissão necessária · Ativar ›"
+  "uiv5a063": "Permissão necessária · Ativar ›",
+  "uiv5a064": "Habilidades",
+  "uiv5a065": "Importe SKILL.md para que o DSH carregue instruções reutilizáveis quando precisar.\n\nEsta página gerencia as habilidades globais do usuário; não exige Root. Só o SKILL.md é copiado e seus comandos nunca são executados. Coloque scripts e recursos referenciados na mesma pasta pela tela Arquivos.\n\nLocal: %s",
+  "uiv5a066": "Instaladas · %s",
+  "uiv5a067": "Outros %s arquivos não seguem o formato; originais mantidos.",
+  "uiv5a068": "Nenhuma habilidade",
+  "uiv5a069": "Os SKILL.md importados aparecem aqui; o DSH os carrega quando precisar.",
+  "uiv5a070": "Formato exigido",
+  "uiv5a071": "· O arquivo deve se chamar SKILL.md, em UTF-8, com até 1 MiB.\n· Comece com cabeçalho YAML --- contendo name em minúsculas com hífens e description não vazia.\n· disable-model-invocation / user-invocable (opcionais) definem a forma de chamada.\n· Só o SKILL.md é copiado, sem executar comandos; habilidade de mesmo nome não é sobrescrita.",
+  "uiv5a072": "Modelo pode chamar"
 }

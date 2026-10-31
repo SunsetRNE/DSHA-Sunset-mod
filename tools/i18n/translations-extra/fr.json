@@ -1297,5 +1297,14 @@
   "uiv5a060": "Contenu",
   "uiv5a061": "Les commandes à confirmer peuvent être approuvées ou refusées directement sur la barre.\n\nCe canal fonctionne en parallèle de la notification et de la boîte de dialogue DSHA ; le premier choix l’emporte. Désactivé, la barre n’affiche plus de boutons, mais la notification et la boîte de dialogue restent disponibles. Les règles de blocage ne changent pas.",
   "uiv5a062": "Les changements sont enregistrés automatiquement.",
-  "uiv5a063": "Autorisation requise · Activer ›"
+  "uiv5a063": "Autorisation requise · Activer ›",
+  "uiv5a064": "Compétences",
+  "uiv5a065": "Importez SKILL.md pour que DSH charge au besoin des instructions réutilisables.\n\nCette page gère les compétences globales de l’utilisateur ; Root n’est pas nécessaire. Seul SKILL.md est copié et ses commandes ne sont jamais exécutées. Placez les scripts et ressources référencés dans le même dossier via Fichiers.\n\nEmplacement : %s",
+  "uiv5a066": "Installées · %s",
+  "uiv5a067": "%s autres fichiers ne respectent pas le format ; originaux conservés.",
+  "uiv5a068": "Aucune compétence",
+  "uiv5a069": "Les SKILL.md importés s’affichent ici ; DSH les charge au besoin.",
+  "uiv5a070": "Format requis",
+  "uiv5a071": "· Le fichier doit s’appeler SKILL.md, en UTF-8, 1 Mio au plus.\n· Il commence par un en-tête YAML --- avec un name en minuscules à tirets et une description non vide.\n· disable-model-invocation / user-invocable (facultatifs) règlent le mode d’appel.\n· Seul SKILL.md est copié, sans exécuter ses commandes ; une compétence du même nom n’est pas écrasée.",
+  "uiv5a072": "Appel par le modèle"
 }

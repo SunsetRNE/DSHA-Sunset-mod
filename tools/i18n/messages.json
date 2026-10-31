@@ -1663,7 +1663,7 @@
     "zh": "返回",
     "en": "Back",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java",
       "app/src/main/res/layout/activity_adb_pair.xml",
       "app/src/main/res/layout/activity_diagnostics.xml",
       "app/src/main/res/layout/activity_plugin_install.xml",
@@ -2822,7 +2822,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -28738,7 +28738,7 @@
     "zh": "技能（Skills）",
     "en": "Skills",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
     ]
   },
@@ -29260,7 +29260,7 @@
     "zh": "从文件导入 SKILL.md，让 DSH 按需读取可复用的任务说明。无需 Root。",
     "en": "Import SKILL.md files so DSH can load reusable task instructions as needed. Root is not required.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29268,7 +29268,7 @@
     "zh": "这里管理用户全局技能。导入仅复制 SKILL.md，正文中的命令不会自动执行；引用的脚本和资料需用文件入口另行放入同一技能目录。",
     "en": "This page manages global user skills. Import copies only SKILL.md and does not run commands in its body. Add referenced scripts and resources to the same skill folder through Files.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29276,7 +29276,7 @@
     "zh": "导入 SKILL.md",
     "en": "Import SKILL.md",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29284,7 +29284,7 @@
     "zh": "刷新技能",
     "en": "Refresh skills",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29292,7 +29292,7 @@
     "zh": "取消读取",
     "en": "Cancel reading",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29300,7 +29300,7 @@
     "zh": "尚无可读取的用户全局技能。",
     "en": "No readable global user skills yet.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29308,7 +29308,7 @@
     "zh": "可读取的用户全局技能：%s",
     "en": "Readable global user skills: %s",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29316,7 +29316,7 @@
     "zh": "另有 %s 个技能文件无法通过导入格式检查，原件已保留。",
     "en": "%s additional skill files did not pass the import format checks. Their originals were retained.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29324,7 +29324,7 @@
     "zh": "查看 SKILL.md",
     "en": "View SKILL.md",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29332,7 +29332,7 @@
     "zh": "模型可按需调用 skill 工具读取。",
     "en": "The model can load this with the skill tool as needed.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29340,7 +29340,7 @@
     "zh": "此技能禁止模型自主调用。",
     "en": "This skill disables autonomous model invocation.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29348,7 +29348,7 @@
     "zh": "在聊天中输入 /%s 可明确调用。",
     "en": "Enter /%s in chat to invoke it explicitly.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29356,7 +29356,7 @@
     "zh": "复制调用命令",
     "en": "Copy invocation",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29364,7 +29364,7 @@
     "zh": "此技能禁止用户直接调用。",
     "en": "This skill disables direct user invocation.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29372,7 +29372,7 @@
     "zh": "选择技能文件后可查看内容并复制调用命令。",
     "en": "Select a skill to view its contents and copy its invocation.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29380,7 +29380,7 @@
     "zh": "正在读取用户技能…",
     "en": "Reading user skills…",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29388,7 +29388,7 @@
     "zh": "正在读取并检查 SKILL.md…",
     "en": "Reading and checking SKILL.md…",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29396,7 +29396,7 @@
     "zh": "已导入技能：%s\n%s\nDSH 会在后续请求中发现此技能；若目录尚未刷新，可重启 Web。",
     "en": "Imported skill: %s\n%s\nDSH discovers this skill on subsequent requests. Restart Web if its catalog has not refreshed.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29404,7 +29404,7 @@
     "zh": "已取消读取，未导入技能。",
     "en": "Reading cancelled. No skill was imported.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29412,7 +29412,7 @@
     "zh": "请选择名为 SKILL.md 的文件，不能导入目录或压缩包。",
     "en": "Choose a file named SKILL.md. Folders and archives cannot be imported.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29420,7 +29420,7 @@
     "zh": "SKILL.md 必须为非空文件，且不超过 1 MiB。",
     "en": "SKILL.md must be non-empty and at most 1 MiB.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29428,7 +29428,7 @@
     "zh": "SKILL.md 必须是有效 UTF-8 文本。",
     "en": "SKILL.md must contain valid UTF-8 text.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29436,7 +29436,7 @@
     "zh": "技能格式无效。文件需以 --- YAML 开头，包含小写短横线 name 和非空 description；调用开关使用 disable-model-invocation / user-invocable。未导入文件。",
     "en": "Invalid skill format. Start with --- YAML frontmatter, include a lowercase kebab-case name and non-empty description, and use disable-model-invocation / user-invocable for invocation controls. No file was imported.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29444,7 +29444,7 @@
     "zh": "已有同名技能或目录，未覆盖原件。请先在源文件中使用不同的 name。",
     "en": "A skill or folder with this name already exists. The original was retained. Use a different name in the source file first.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29452,7 +29452,7 @@
     "zh": "有安装、备份、恢复或维护任务正在进行，请完成后重试。",
     "en": "An install, backup, restore or maintenance operation is active. Retry after it finishes.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29460,7 +29460,7 @@
     "zh": "当前 DSH 用户目录不可安全读取，请先完成环境安装或修复。未创建替代目录。",
     "en": "The current DSH user folder cannot be read safely. Complete environment setup or repair first. No replacement folder was created.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29468,7 +29468,7 @@
     "zh": "技能目录不是可安全读取的普通目录，或条目超过 512 项。原件已保留。",
     "en": "The skills folder is not a safely readable regular directory, or it has more than 512 entries. Originals were retained.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29476,7 +29476,7 @@
     "zh": "技能操作未完成。请检查文件授权、可用空间和目录状态；已有技能未覆盖。",
     "en": "The skill operation did not finish. Check file access, free space and the folder state. Existing skills were retained.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29484,7 +29484,7 @@
     "zh": "技能读取",
     "en": "Read skills",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29492,7 +29492,7 @@
     "zh": "技能导入",
     "en": "Import skill",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
