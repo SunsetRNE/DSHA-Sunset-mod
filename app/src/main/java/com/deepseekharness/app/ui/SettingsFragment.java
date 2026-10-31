@@ -146,18 +146,6 @@ public class SettingsFragment extends Fragment {
     boolean followSystem =
         com.deepseekharness.app.util.UiLanguagePreference.followsSystem(preference);
     String effective = config.getUiLanguage();
-    java.util.List<String> languages = com.deepseekharness.app.util.UiLanguagePreference.LANGUAGES;
-    String[] optionValues = new String[languages.size() + 1];
-    String[] optionLabels = new String[optionValues.length];
-    optionValues[0] = com.deepseekharness.app.util.UiLanguagePreference.SYSTEM;
-    optionLabels[0] = com.deepseekharness.app.util.UiText.choose("跟随系统", "Follow system");
-    for (int i = 0; i < languages.size(); i++) {
-      optionValues[i + 1] = languages.get(i);
-      // Native labels (including English) stay recognizable in an unfamiliar locale.
-      optionLabels[i + 1] =
-          com.deepseekharness.app.util.UiLanguagePreference.nativeName(languages.get(i));
-    }
-    int checked = followSystem ? 0 : languages.indexOf(preference) + 1;
     // 摘要始终显示当前**生效**语言的名字：跟随系统时补上来由，用户一眼能看出实际结果。
     String currentLabel = com.deepseekharness.app.util.UiLanguagePreference.nativeName(effective);
     String summary =
@@ -167,30 +155,9 @@ public class SettingsFragment extends Fragment {
     LinearLayout appearance = v.findViewById(R.id.settings_appearance);
     TextView languageSummary = v.findViewById(R.id.settings_language);
     languageSummary.setText(summary);
+    // 方案 A：跟随系统卡片 + 母语名网格，点选即生效。
     View.OnClickListener openLanguageDialog =
-        x ->
-            new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext())
-                .setTitle(
-                    com.deepseekharness.app.util.UiText.choose(
-                        "界面语言 / Interface language", "Interface language"))
-                .setSingleChoiceItems(
-                    optionLabels,
-                    checked,
-                    (dialog, which) -> {
-                      String selected = optionValues[which];
-                      if (dialog instanceof android.app.Dialog)
-                        ((android.app.Dialog) dialog)
-                            .setOnDismissListener(
-                                ignored ->
-                                    new android.os.Handler(android.os.Looper.getMainLooper())
-                                        .post(
-                                            () ->
-                                                LanguageController.select(
-                                                    requireContext(), selected)));
-                      dialog.dismiss();
-                    })
-                .setNegativeButton(com.deepseekharness.app.util.UiText.choose("取消", "Cancel"), null)
-                .show();
+        x -> LanguagePicker.show(requireContext(), preference);
     appearance.setOnClickListener(openLanguageDialog);
     languageSummary.setOnClickListener(openLanguageDialog);
     View overlayRow = v.findViewById(R.id.settings_overlay);

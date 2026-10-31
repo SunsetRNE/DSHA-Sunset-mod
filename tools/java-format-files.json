@@ -391,6 +391,7 @@
     "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java",
     "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java",
     "app/src/main/java/com/deepseekharness/app/ui/LanguageController.java",
+    "app/src/main/java/com/deepseekharness/app/ui/LanguagePicker.java",
     "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java",
     "app/src/main/java/com/deepseekharness/app/ui/LogScrollView.java",
     "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java",

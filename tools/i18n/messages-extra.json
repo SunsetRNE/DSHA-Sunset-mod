@@ -10485,5 +10485,22 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
     ]
+  },
+  {
+    "id": "uiv5a064",
+    "zh": "当前系统：%s",
+    "en": "System: %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LanguagePicker.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "uiv5a065",
+    "zh": "指定语言",
+    "en": "Choose a language",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LanguagePicker.java"
+    ]
   }
 ]
