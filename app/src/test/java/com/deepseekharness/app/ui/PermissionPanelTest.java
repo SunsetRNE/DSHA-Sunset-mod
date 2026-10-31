@@ -68,10 +68,18 @@ public final class PermissionPanelTest {
     host = Robolectric.buildActivity(Host.class).setup();
   }
 
-  private void battery(boolean unrestricted) {
+  /**
+   * allowed=false：用户关闭了“允许后台使用”（后台受限，不计入已开启）；allowed=true：不受限制。
+   * 系统默认的“允许后台（优化档）”也计入已开启，见 BatteryBackgroundStateTest。
+   */
+  private void battery(boolean allowed) {
     org.robolectric.shadows.ShadowPowerManager power =
         org.robolectric.shadow.api.Shadow.extract(app.getSystemService(PowerManager.class));
-    power.setIgnoringBatteryOptimizations(app.getPackageName(), unrestricted);
+    power.setIgnoringBatteryOptimizations(app.getPackageName(), allowed);
+    org.robolectric.shadows.ShadowActivityManager activities =
+        org.robolectric.shadow.api.Shadow.extract(
+            app.getSystemService(android.app.ActivityManager.class));
+    activities.setBackgroundRestricted(!allowed);
   }
 
   private static Intent startedActivity(AppCompatActivity activity) {

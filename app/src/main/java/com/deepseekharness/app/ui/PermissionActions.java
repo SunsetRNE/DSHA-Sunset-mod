@@ -78,11 +78,16 @@ final class PermissionActions {
 
   /** 打开本应用的系统详情页：厂商的电池 / 后台运行开关通常在这里（只在点击时）。 */
   static void openAppDetails(AppCompatActivity activity) {
+    Uri app = Uri.parse("package:" + activity.getPackageName());
     try {
-      activity.startActivity(
-          new Intent(
-              Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-              Uri.parse("package:" + activity.getPackageName())));
+      // 本应用的“应用的电池使用情况”页（含“允许后台使用”开关）；部分 ROM 没有时退回应用详情。
+      activity.startActivity(new Intent("android.settings.VIEW_ADVANCED_POWER_USAGE_DETAIL", app));
+      return;
+    } catch (RuntimeException unavailable) {
+      // 退回应用详情。
+    }
+    try {
+      activity.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, app));
     } catch (RuntimeException failure) {
       toast(activity, UiText.format("打开设置失败：%s", failure.getMessage()));
     }

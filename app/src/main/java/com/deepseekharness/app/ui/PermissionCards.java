@@ -119,45 +119,48 @@ final class PermissionCards {
             UiText.choose("后台 Web 少被中断", "Fewer background Web interruptions"),
             UiText.choose("ADB 保活更稳定", "Steadier ADB keep-alive"));
     var battery = PermissionActions.batteryState(a);
-    boolean restricted =
-        battery == com.deepseekharness.app.util.BatteryBackgroundState.State.RESTRICTED;
+    boolean unrestricted =
+        battery == com.deepseekharness.app.util.BatteryBackgroundState.State.UNRESTRICTED;
     m.ok = ok;
     m.pill =
-        ok
+        unrestricted
             ? UiText.choose("不受限制", "Unrestricted")
-            : restricted
-                ? UiText.choose("后台受限", "Restricted")
-                : UiText.choose("未确认", "Unconfirmed");
-    m.tone =
-        ok
-            ? OnboardingKit.Tone.GOOD
-            : restricted ? OnboardingKit.Tone.WARN : OnboardingKit.Tone.NEUTRAL;
+            : ok
+                ? UiText.choose("已允许后台", "Background allowed")
+                : UiText.choose("后台受限", "Restricted");
+    m.tone = ok ? OnboardingKit.Tone.GOOD : OnboardingKit.Tone.WARN;
     m.status =
-        ok
+        unrestricted
             ? UiText.choose(
-                "已在系统电池优化豁免名单中。厂商的后台管理仍可能单独暂停应用。",
-                "On the system battery-optimization exemption list. Vendor background managers may still pause the app separately.")
-            : restricted
+                "已允许后台使用，并设为“不受限制”：系统不会因电池优化推迟 Web、终端与保活。",
+                "Background usage is allowed and set to Unrestricted: battery optimization will not defer Web, the terminal or keep-alive.")
+            : ok
                 ? UiText.choose(
-                    "系统显示已限制 DSH-A-Su 的后台活动：后台 Web、终端与保活很可能被结束。",
-                    "Android reports that background activity is restricted for DSH-A-Su; background Web, the terminal and keep-alive will likely be stopped.")
+                    "已允许后台使用（系统“优化”档）。息屏较久时系统仍会批量推迟后台任务；需要长时间稳定运行时，可在电池页点开“允许后台使用”的文字，改为“不受限制”。",
+                    "Background usage is allowed (the system “Optimized” level). After the screen has been off for a while, background work may still be deferred; for long, steady runs open “Allow background usage” and choose Unrestricted.")
                 : UiText.choose(
-                    "未在系统电池优化豁免名单中。厂商的“允许后台运行 / 自启动”开关应用无法读取：若已在系统里允许，可忽略本项。",
-                    "Not on the battery-optimization exemption list. Vendor “allow background / auto-start” switches cannot be read by apps; if you already allowed them, you can ignore this.");
+                    "“允许后台使用”已关闭：后台 Web、终端与保活很可能被系统结束。",
+                    "“Allow background usage” is off: background Web, the terminal and keep-alive will likely be stopped.");
     m.outside =
         UiText.choose(
-            "电池优化：设为“不优化 / 不受限制”后这里会显示已开启。厂商后台开关（如联想“后台运行”）在应用详情 → 电池中设置。DSHA 不会自动申请豁免。",
-            "Battery optimization: once set to unrestricted this card shows as on. Vendor background switches (for example Lenovo “Run in background”) are under App info → Battery. DSHA never requests an exemption itself.");
+            "在 应用详情 → 电池（应用的电池使用情况）中打开“允许后台使用”；需要更稳定时再点开选择“不受限制”。DSHA 不会自动申请豁免。",
+            "In App info → Battery, turn on “Allow background usage”; for steadier runs open it and choose Unrestricted. DSHA never requests an exemption itself.");
+    // 本应用的电池页直接控制“允许后台使用”；通用电池优化列表只作为备用入口。
     m.actions =
         new View[] {
-          ok
+          unrestricted
               ? kit.ghost(
-                  UiText.choose("电池优化设置", "Battery settings"),
-                  v -> PermissionActions.openBattery(a))
-              : kit.small(UiText.text("设置电池优化"), true, v -> PermissionActions.openBattery(a)),
+                  UiText.choose("应用电池设置", "App battery settings"),
+                  v -> PermissionActions.openAppDetails(a))
+              : kit.small(
+                  ok
+                      ? UiText.choose("改为不受限制", "Set to Unrestricted")
+                      : UiText.choose("允许后台使用", "Allow background usage"),
+                  true,
+                  v -> PermissionActions.openAppDetails(a)),
           kit.ghost(
-              UiText.choose("应用详情（厂商后台开关）", "App info (vendor background switch)"),
-              v -> PermissionActions.openAppDetails(a))
+              UiText.choose("电池优化列表", "Battery optimization list"),
+              v -> PermissionActions.openBattery(a))
         };
     return m;
   }

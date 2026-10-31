@@ -1,37 +1,38 @@
 package com.deepseekharness.app.util;
 
 /**
- * 电池 / 后台运行状态的显示判定（纯逻辑）。Android 只开放两项可读事实：
+ * 电池 / 后台运行状态的显示判定（纯逻辑）。Android 开放两项可读事实：
  *
  * <ul>
- *   <li>{@code PowerManager.isIgnoringBatteryOptimizations}：是否在 Doze 豁免名单（“不优化 / 不受限制”）；
- *   <li>{@code ActivityManager.isBackgroundRestricted}：用户是否对本应用显式限制了后台（“受限”）。
+ *   <li>{@code ActivityManager.isBackgroundRestricted}：用户是否关闭了“允许后台使用”（RUN_ANY_IN_BACKGROUND）；
+ *   <li>{@code PowerManager.isIgnoringBatteryOptimizations}：是否在 Doze 豁免名单（“不受限制”档）。
  * </ul>
  *
- * 厂商系统（如联想 ZUI、MIUI、ColorOS）另有“允许后台运行 / 自启动 / 应用速冻”等开关，应用无法读取。
- * 因此两项都为否时只能说“未确认”，不能断言用户没有设置；也不能把它当作已允许。
+ * Android 14 起应用电池页的“允许后台使用”开关打开后默认是“优化”档：后台允许运行，但仍受 Doze
+ * 批处理；点开开关文字选择“不受限制”才进入豁免名单。因此“未受限但未豁免”就是用户已允许后台，
+ * 应计为已开启，只额外提示可选的“不受限制”。
  */
 public final class BatteryBackgroundState {
   private BatteryBackgroundState() {}
 
   public enum State {
-    /** 已在电池优化豁免名单：系统层面不因优化而限制后台。 */
+    /** 已在电池优化豁免名单（不受限制）。 */
     UNRESTRICTED,
-    /** 用户显式限制了本应用的后台活动：Web、终端与保活很可能在后台被结束。 */
-    RESTRICTED,
-    /** 两项均未命中：处于系统默认优化，厂商后台开关无法读取。 */
-    UNCONFIRMED
+    /** 允许后台使用，处于系统“优化”档（Doze 仍会批处理）。 */
+    ALLOWED,
+    /** 用户关闭了后台使用：Web、终端与保活在后台很可能被结束。 */
+    RESTRICTED
   }
 
-  /** 显式限制优先于豁免：两者同时出现时按受限提示（厂商实现偶有不一致，取保守结论）。 */
+  /** 显式限制优先于豁免：两者同时出现时按受限提示（取保守结论）。 */
   public static State of(boolean ignoringOptimizations, boolean backgroundRestricted) {
     if (backgroundRestricted) return State.RESTRICTED;
     if (ignoringOptimizations) return State.UNRESTRICTED;
-    return State.UNCONFIRMED;
+    return State.ALLOWED;
   }
 
-  /** 只有确认豁免才计入“已开启”，未确认与受限均不计。 */
+  /** 允许后台（优化或不受限制）即计入已开启；只有被限制才不计。 */
   public static boolean granted(State state) {
-    return state == State.UNRESTRICTED;
+    return state == State.UNRESTRICTED || state == State.ALLOWED;
   }
 }

@@ -13,11 +13,11 @@ public class BatteryBackgroundStateTest {
   }
 
   @Test
-  public void neitherSignalIsUnconfirmedNotDenied() {
-    // 厂商“允许后台运行”开关应用读不到：不能报成“未设置”，也不能算已开启。
+  public void allowedBackgroundUsageCountsAsEnabledEvenWithoutExemption() {
+    // Android 14+“允许后台使用”开关默认是“优化”档：未受限、未豁免，用户已允许后台。
     var state = BatteryBackgroundState.of(false, false);
-    assertEquals(BatteryBackgroundState.State.UNCONFIRMED, state);
-    assertFalse(BatteryBackgroundState.granted(state));
+    assertEquals(BatteryBackgroundState.State.ALLOWED, state);
+    assertTrue(BatteryBackgroundState.granted(state));
   }
 
   @Test
