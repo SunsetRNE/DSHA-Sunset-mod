@@ -236,8 +236,8 @@ public class MainActivity extends AppCompatActivity {
 
     var track = new ShellActivityTrack(this);
     track.setState(ShellActivityTrack.RUNNING);
-    var trackParams = new android.widget.LinearLayout.LayoutParams(-1, Math.round(24 * density));
-    trackParams.topMargin = Math.round(10 * density);
+    var trackParams = new android.widget.LinearLayout.LayoutParams(-1, Math.round(16 * density));
+    trackParams.topMargin = Math.round(14 * density);
     card.addView(track, trackParams);
 
     var diagnostics = new androidx.appcompat.widget.AppCompatButton(this);
