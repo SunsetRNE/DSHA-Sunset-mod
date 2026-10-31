@@ -48,15 +48,17 @@ public class WorkspaceFragment extends Fragment {
     View backup = v.findViewById(R.id.workspace_backup);
     ((TextView) backup.findViewById(android.R.id.title))
         .setText(com.deepseekharness.app.util.UiText.choose("一键备份", "One-click backup"));
-    ((TextView) backup.findViewById(android.R.id.summary))
-        .setText(
-            android.os.Build.VERSION.SDK_INT < 29
-                ? com.deepseekharness.app.util.UiText.choose(
-                    "首次选择保存目录，之后复用，无需密码；备份时会安全停止 DSH 和运行任务。\n包含对话、配置、插件和当前应用内工作区；外置工作区请另备。",
-                    "Choose a folder once, then reuse it. No password; backup safely stops DSH and running tasks.\nIncludes conversations, settings, plugins and the current app workspace. Back up external workspaces separately.")
-                : com.deepseekharness.app.util.UiText.choose(
-                    "直接保存到 下载/DSHA，无需密码；备份时会安全停止 DSH 和运行任务。\n包含对话、配置、插件和当前应用内工作区；外置工作区请另备。",
-                    "Saves directly to Download/DSHA without a password; backup safely stops DSH and running tasks.\nIncludes conversations, settings, plugins and the current app workspace. Back up external workspaces separately."));
+    // 方案 A：行内只留首句，完整说明点 ⓘ；行其它区域仍是「开始备份」。
+    InfoHint.bind(
+        (TextView) backup.findViewById(android.R.id.summary),
+        com.deepseekharness.app.util.UiText.choose("一键备份", "One-click backup"),
+        android.os.Build.VERSION.SDK_INT < 29
+            ? com.deepseekharness.app.util.UiText.choose(
+                "首次选择保存目录，之后复用，无需密码；备份时会安全停止 DSH 和运行任务。\n包含对话、配置、插件和当前应用内工作区；外置工作区请另备。",
+                "Choose a folder once, then reuse it. No password; backup safely stops DSH and running tasks.\nIncludes conversations, settings, plugins and the current app workspace. Back up external workspaces separately.")
+            : com.deepseekharness.app.util.UiText.choose(
+                "直接保存到 下载/DSHA，无需密码；备份时会安全停止 DSH 和运行任务。\n包含对话、配置、插件和当前应用内工作区；外置工作区请另备。",
+                "Saves directly to Download/DSHA without a password; backup safely stops DSH and running tasks.\nIncludes conversations, settings, plugins and the current app workspace. Back up external workspaces separately."));
     ((TextView) v.findViewById(R.id.workspace_location))
         .setText(
             com.deepseekharness.app.util.UiText.choose(

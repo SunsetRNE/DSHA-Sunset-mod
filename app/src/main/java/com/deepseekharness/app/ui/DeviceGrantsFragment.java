@@ -73,11 +73,12 @@ public final class DeviceGrantsFragment extends Fragment {
                   com.deepseekharness.app.util.UiText.choose("设备通道状态", "Device channel status"),
                   detail.getText().toString()));
     }
-    ((TextView) view.findViewById(R.id.computer_use_hint))
-        .setText(
-            com.deepseekharness.app.util.UiText.choose(
-                "让助手读屏、点击和输入。先完成屏幕操作设置，再在对话中描述任务。",
-                "Let the assistant observe, tap and type. Set up screen control, then describe the task in a conversation."));
+    InfoHint.bind(
+        (TextView) view.findViewById(R.id.computer_use_hint),
+        getString(R.string.computer_use_title),
+        com.deepseekharness.app.util.UiText.choose(
+            "让助手读屏、点击和输入。先完成屏幕操作设置，再在对话中描述任务。",
+            "Let the assistant observe, tap and type. Set up screen control, then describe the task in a conversation."));
     view.findViewById(R.id.computer_use_accessibility)
         .setOnClickListener(
             button ->
@@ -123,11 +124,13 @@ public final class DeviceGrantsFragment extends Fragment {
                 new Intent(ctx, com.deepseekharness.app.vscreen.VirtualScreenActivity.class)));
     if (com.deepseekharness.app.vscreen.VirtualScreenManager.supported(ctx)) {
       android.widget.TextView virtualHint = new android.widget.TextView(ctx);
-      virtualHint.setText(
+      virtualHint.setTextSize(12);
+      InfoHint.bind(
+          virtualHint,
+          com.deepseekharness.app.util.UiText.choose("虚拟屏", "Virtual screen"),
           com.deepseekharness.app.util.UiText.choose(
               "虚拟屏需要已连接的设备通道。无障碍不会自动创建，请打开虚拟屏后点“创建竖屏”或“创建横屏”；页内有使用说明。",
               "A virtual screen requires a connected device channel. Accessibility does not create it automatically. Open virtual screen, then tap Create portrait or Create landscape. Instructions are available on that page."));
-      virtualHint.setTextSize(12);
       virtualHint.setTextColor(ctx.getColor(R.color.text_secondary));
       screenCard.addView(virtualHint, new android.widget.LinearLayout.LayoutParams(-1, -2));
       screenCard.addView(virtualScreen, new android.widget.LinearLayout.LayoutParams(-1, -2));
@@ -348,7 +351,9 @@ public final class DeviceGrantsFragment extends Fragment {
     if (screenRules != null) screenRules.setEnabled(true);
     if (screenRevoke != null) screenRevoke.setEnabled(true);
     screenPause.setEnabled(true);
-    screenPolicyStatus.setText(
+    InfoHint.bind(
+        screenPolicyStatus,
+        com.deepseekharness.app.util.UiText.choose("屏幕确认规则", "Screen confirmation rules"),
         global
             ? com.deepseekharness.app.util.UiText.choose(
                 "全局权限已开启：已授权能力免 DSHA 安全确认。可编辑下列保留规则；关闭全局后按这些规则确认。独立撤销或暂停仍有效。",
