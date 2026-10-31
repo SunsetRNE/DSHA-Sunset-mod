@@ -10180,5 +10180,37 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
+  },
+  {
+    "id": "uiv5a026",
+    "zh": "开启全局权限？",
+    "en": "Turn on global permission?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FullPermissionControls.java"
+    ]
+  },
+  {
+    "id": "uiv5a027",
+    "zh": "开启后，助手和插件使用已获准的能力时不再逐次询问你，你无法在执行前拦下单次操作。",
+    "en": "When on, the assistant and plugins use authorized capabilities without asking each time, so you cannot stop a single action before it runs.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FullPermissionControls.java"
+    ]
+  },
+  {
+    "id": "uiv5a028",
+    "zh": "各项能力授权、拒绝和暂停仍然有效；可随时关闭。",
+    "en": "Capability grants, denials and pauses still apply. You can turn it off anytime.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FullPermissionControls.java"
+    ]
+  },
+  {
+    "id": "uiv5a029",
+    "zh": "仍要开启",
+    "en": "Turn on anyway",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FullPermissionControls.java"
+    ]
   }
 ]

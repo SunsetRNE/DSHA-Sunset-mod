@@ -69,7 +69,9 @@ final class FullPermissionControls implements AutoCloseable {
               : UiText.choose("重新选择关闭并保存", "Choose off and save"));
       choice.setOnClickListener(
           view -> {
-            if (!closed) save(enabled);
+            if (closed) return;
+            if (enabled) confirmEnable(ctx);
+            else save(false);
           });
       recoveryChoices.addView(choice, new LinearLayout.LayoutParams(0, -2, 1));
     }
@@ -124,10 +126,86 @@ final class FullPermissionControls implements AutoCloseable {
     global.setOnCheckedChangeListener(
         (button, enabled) -> {
           if (rendering || closed) return;
-          save(enabled);
+          if (!enabled) {
+            save(false);
+            return;
+          }
+          // 开启会免除后续逐次确认：先回到关闭态，等用户在警告弹窗里明确确认后才保存。
+          rendering = true;
+          try {
+            global.setChecked(false);
+          } finally {
+            rendering = false;
+          }
+          confirmEnable(ctx);
         });
     host.addView(card, 2, new LinearLayout.LayoutParams(-1, -2));
     refresh();
+  }
+
+  /**
+   * 开启全局权限前的红色警告确认。点空白处不关闭，只能点「取消」或返回键；「取消」放最右。
+   * 这个确认决定的就是「是否免确认」本身，所以不能被全局权限代答（safetyConfirmation=false）。
+   */
+  private void confirmEnable(Context ctx) {
+    if (closed) return;
+    int bad = ctx.getColor(R.color.shell_bad);
+    float density = ctx.getResources().getDisplayMetrics().density;
+    java.util.function.IntUnaryOperator dp = v -> Math.round(v * density);
+    android.text.SpannableString title =
+        new android.text.SpannableString(UiText.choose("开启全局权限？", "Turn on global permission?"));
+    title.setSpan(
+        new android.text.style.ForegroundColorSpan(bad),
+        0,
+        title.length(),
+        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    TextView warning = new TextView(ctx);
+    warning.setBackgroundResource(R.drawable.bg_root_policy_warning);
+    warning.setTextColor(bad);
+    warning.setTextSize(14);
+    warning.setTypeface(warning.getTypeface(), android.graphics.Typeface.BOLD);
+    warning.setLineSpacing(dp.applyAsInt(3), 1f);
+    warning.setPadding(dp.applyAsInt(14), dp.applyAsInt(12), dp.applyAsInt(14), dp.applyAsInt(12));
+    warning.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_section_warning, 0, 0, 0);
+    warning.setCompoundDrawablePadding(dp.applyAsInt(10));
+    warning.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(bad));
+    warning.setText(
+        UiText.choose(
+            "开启后，助手和插件使用已获准的能力时不再逐次询问你，你无法在执行前拦下单次操作。",
+            "When on, the assistant and plugins use authorized capabilities without asking each time, so you cannot stop a single action before it runs."));
+    TextView scope = new TextView(ctx);
+    scope.setTextSize(12);
+    scope.setTextColor(ctx.getColor(R.color.shell_text_secondary));
+    scope.setText(
+        UiText.choose(
+            "各项能力授权、拒绝和暂停仍然有效；可随时关闭。",
+            "Capability grants, denials and pauses still apply. You can turn it off anytime."));
+    LinearLayout body = new LinearLayout(ctx);
+    body.setOrientation(LinearLayout.VERTICAL);
+    body.setPadding(dp.applyAsInt(24), dp.applyAsInt(8), dp.applyAsInt(24), 0);
+    body.addView(warning, new LinearLayout.LayoutParams(-1, -2));
+    LinearLayout.LayoutParams scopeParams = new LinearLayout.LayoutParams(-1, -2);
+    scopeParams.topMargin = dp.applyAsInt(10);
+    body.addView(scope, scopeParams);
+    android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+    scroll.addView(body);
+    androidx.appcompat.app.AlertDialog dialog =
+        new DshaDialogBuilder(ctx, false)
+            .setTitle(title)
+            .setView(scroll)
+            .setPositiveButton(UiText.text("取消"), (d, which) -> refresh())
+            .setNegativeButton(
+                UiText.choose("仍要开启", "Turn on anyway"),
+                (d, which) -> {
+                  if (!closed) save(true);
+                })
+            .setOnCancelListener(d -> refresh())
+            .create();
+    dialog.setCanceledOnTouchOutside(false);
+    dialog.show();
+    android.widget.Button confirm =
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE);
+    if (confirm != null) confirm.setTextColor(bad);
   }
 
   private void save(boolean enabled) {

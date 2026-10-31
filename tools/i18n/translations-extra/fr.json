@@ -1259,5 +1259,9 @@
   "uiv5a022": "Recommandé",
   "uiv5a023": "Risque élevé",
   "uiv5a024": "Risque grave",
-  "uiv5a025": "Actuel"
+  "uiv5a025": "Actuel",
+  "uiv5a026": "Activer l’autorisation globale ?",
+  "uiv5a027": "Une fois activée, l’assistant et les plugins utilisent les capacités autorisées sans vous demander à chaque fois : impossible d’arrêter une action avant son exécution.",
+  "uiv5a028": "Les autorisations, refus et pauses restent valables. Désactivable à tout moment.",
+  "uiv5a029": "Activer"
 }
