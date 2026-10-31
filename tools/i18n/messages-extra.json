@@ -10212,5 +10212,222 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/FullPermissionControls.java"
     ]
+  },
+  {
+    "id": "uiv5a030",
+    "zh": "重新设置",
+    "en": "Set up again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a031",
+    "zh": "在独立屏幕里操作应用 · 需要已连接的设备通道",
+    "en": "Operate apps on a separate screen · needs a connected device channel",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a032",
+    "zh": "确认方式",
+    "en": "Confirmation",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a033",
+    "zh": "全局权限已开启，以下规则暂不生效；关闭全局权限后按这些规则确认。",
+    "en": "Global permission is on, so these rules are not in effect. They apply again when it is off.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a034",
+    "zh": "每次读屏和操作前都询问你",
+    "en": "Ask before every observation and action",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a035",
+    "zh": "指定应用免确认，其他应用仍询问",
+    "en": "Chosen apps skip confirmation; others still ask",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a036",
+    "zh": "所有应用免确认，含敏感界面",
+    "en": "No confirmation for any app, including sensitive screens",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a037",
+    "zh": "暂停并撤销全部预授权",
+    "en": "Pause and revoke all preauthorizations",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a038",
+    "zh": "全部允许屏幕操作？",
+    "en": "Allow all screen actions?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a039",
+    "zh": "助手将可在任何应用里读屏、点击和输入且不再询问，包括支付、密码和聊天等敏感界面。",
+    "en": "The assistant can observe, tap and type in any app without asking, including sensitive screens such as payments, passwords and chats.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a040",
+    "zh": "可随时改回全部手动，或用暂停开关立即停止。",
+    "en": "You can switch back to confirming every action, or pause at any time.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a041",
+    "zh": "仍要全部允许",
+    "en": "Allow all anyway",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a042",
+    "zh": "暂停并撤销全部预授权？",
+    "en": "Pause and revoke all preauthorizations?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a043",
+    "zh": "立即暂停助手屏幕操作，确认方式改回全部手动，并清空已保存的应用规则。",
+    "en": "Screen actions pause now, confirmation returns to every action, and saved app rules are cleared.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a044",
+    "zh": "无障碍等系统权限不受影响；之后可关闭暂停开关继续。",
+    "en": "Accessibility and other Android permissions are unaffected. Turn off the pause switch to continue later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a045",
+    "zh": "撤销",
+    "en": "Revoke",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a046",
+    "zh": "添加免确认的应用 ›",
+    "en": "Add apps that skip confirmation ›",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a047",
+    "zh": "已配置 %s 个应用 ›",
+    "en": "%s apps configured ›",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "uiv5a048",
+    "zh": "还没有应用规则。添加后，这些应用按规则处理，其他应用仍询问。",
+    "en": "No app rules yet. Added apps follow their rule; other apps still ask.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a049",
+    "zh": "已暂停：助手暂时不能读屏和操作",
+    "en": "Paused: the assistant cannot observe or act for now",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a050",
+    "zh": "未开启",
+    "en": "Not set up",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a051",
+    "zh": "尚未连接",
+    "en": "Not connected",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a052",
+    "zh": "搜索应用名称或包名",
+    "en": "Search app name or package",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ScreenAppPicker.java"
+    ]
+  },
+  {
+    "id": "uiv5a053",
+    "zh": "正在读取已安装应用…",
+    "en": "Loading installed apps…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ScreenAppPicker.java"
+    ]
+  },
+  {
+    "id": "uiv5a054",
+    "zh": "选择应用",
+    "en": "Choose app",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ScreenAppPicker.java"
+    ]
+  },
+  {
+    "id": "uiv5a055",
+    "zh": "手动输入包名",
+    "en": "Enter package name",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ScreenAppPicker.java"
+    ]
+  },
+  {
+    "id": "uiv5a056",
+    "zh": "没有匹配的应用",
+    "en": "No matching apps",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ScreenAppPicker.java"
+    ]
   }
 ]

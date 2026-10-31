@@ -49,10 +49,30 @@
     </LinearLayout>
 
     <TextView android:drawableStart="@drawable/ic_section_screen" style="@style/ShellSectionIconLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/computer_use_title" />
-    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
+    <!-- 方案 A 屏幕操作：状态行（+重新设置）→ 未设置时主按钮 → 暂停开关 → 确认方式风险卡片 → 红色撤销；虚拟屏单独成行。
+         卡片、自定义规则行与警示条由 DeviceGrantsFragment 注入到 screen_policy_cards。 -->
+    <LinearLayout android:id="@+id/screen_card" style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
       <TextView android:id="@+id/computer_use_hint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" />
-      <Button android:id="@+id/computer_use_accessibility" style="@style/ShellSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:minHeight="48dp" android:text="@string/ui134_screen_setup" />
-      <TextView android:id="@+id/config_a11y_status" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_shell_status" android:padding="12dp" android:text="@string/device_checking" />
+      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:background="@drawable/bg_shell_status" android:gravity="center_vertical" android:minHeight="52dp" android:orientation="horizontal" android:paddingStart="12dp" android:paddingEnd="4dp">
+        <TextView android:id="@+id/config_a11y_status" style="@style/ShellStatusText" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:accessibilityLiveRegion="polite" android:paddingTop="8dp" android:paddingBottom="8dp" android:text="@string/device_checking" />
+        <Button android:id="@+id/screen_resetup" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="48dp" android:paddingStart="14dp" android:paddingEnd="14dp" android:visibility="gone" />
+      </LinearLayout>
+      <Button android:id="@+id/computer_use_accessibility" style="@style/ShellPrimaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="@string/ui134_screen_setup" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/screen_pause" style="@style/ShellSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:minHeight="48dp" android:paddingStart="0dp" />
+      <View style="@style/ShellDivider" android:layout_marginStart="0dp" android:layout_marginTop="6dp" />
+      <TextView android:id="@+id/screen_policy_label" style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+      <TextView android:id="@+id/screen_policy_status" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" />
+      <LinearLayout android:id="@+id/screen_policy_cards" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" />
+      <Button android:id="@+id/screen_revoke" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="start" android:layout_marginTop="8dp" android:paddingStart="4dp" android:paddingEnd="12dp" android:textColor="@color/shell_bad" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/screen_virtual_group" style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" android:visibility="gone">
+      <LinearLayout android:id="@+id/screen_virtual_row" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="64dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+          <TextView android:id="@+id/screen_virtual_title" style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" />
+          <TextView android:id="@+id/screen_virtual_sub" style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" />
+        </LinearLayout>
+        <ImageView android:layout_width="@dimen/shell_row_chevron" android:layout_height="@dimen/shell_row_chevron" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
+      </LinearLayout>
     </LinearLayout>
 
     <TextView android:drawableStart="@drawable/ic_section_system" style="@style/ShellSectionIconLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_system_permissions" />
