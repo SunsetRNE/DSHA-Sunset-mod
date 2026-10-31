@@ -669,15 +669,70 @@ public final class DeviceGrantsFragment extends Fragment {
       saveRootPolicy(mode);
       return;
     }
-    new DshaDialogBuilder(ctx)
-        .setTitle(com.deepseekharness.app.util.UiText.text("确认放宽 root 命令拦截？"))
-        .setMessage(
-            com.deepseekharness.app.util.UiText.text(
-                "仅对 root 通道生效；放宽后助手和插件可执行任意 root 命令。严格档只放行白名单；完全放宽不拦截不可逆操作，可能导致数据丢失或系统损坏。"))
-        .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
-        .setPositiveButton(
-            com.deepseekharness.app.util.UiText.text("继续"), (dialog, which) -> saveRootPolicy(mode))
-        .show();
+    boolean full = mode == DeviceShellPolicy.Mode.FULL;
+    int bad = ctx.getColor(R.color.shell_bad);
+    // 高危确认：红色标题与警告框；点空白处不关闭，只能明确点「取消」或返回键。
+    android.text.SpannableString title =
+        new android.text.SpannableString(
+            com.deepseekharness.app.util.UiText.text("确认放宽 root 命令拦截？"));
+    title.setSpan(
+        new android.text.style.ForegroundColorSpan(bad),
+        0,
+        title.length(),
+        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    TextView warning = new TextView(ctx);
+    warning.setBackgroundResource(R.drawable.bg_root_policy_warning);
+    warning.setTextColor(bad);
+    warning.setTextSize(14);
+    warning.setTypeface(warning.getTypeface(), android.graphics.Typeface.BOLD);
+    warning.setLineSpacing(dp(3), 1f);
+    warning.setPadding(dp(14), dp(12), dp(14), dp(12));
+    warning.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_section_warning, 0, 0, 0);
+    warning.setCompoundDrawablePadding(dp(10));
+    warning.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(bad));
+    warning.setText(
+        full
+            ? com.deepseekharness.app.util.UiText.choose(
+                "严重风险：完全放宽后不按命令内容拦截。助手和插件可用 root 执行格式化、刷机、清除数据等不可逆操作，可能导致数据丢失或系统损坏。",
+                "Severe risk: fully relaxed mode does not inspect command content. The assistant and plugins can run irreversible root operations such as formatting, flashing or wiping data, which may cause data loss or system damage.")
+            : com.deepseekharness.app.util.UiText.choose(
+                "高风险：放宽后助手和插件可用 root 执行白名单以外的任意命令；仍拦截格式化、刷机、清除数据等不可逆操作。",
+                "High risk: relaxed mode lets the assistant and plugins run root commands beyond the allowlist; irreversible operations such as formatting, flashing or wiping data stay blocked."));
+    TextView scope = new TextView(ctx);
+    scope.setTextSize(12);
+    scope.setTextColor(ctx.getColor(R.color.shell_text_secondary));
+    scope.setText(
+        com.deepseekharness.app.util.UiText.choose(
+            "仅对 root 通道生效；Shizuku/ADB 仍按严格档。可随时改回严格。",
+            "Applies to the root channel only; Shizuku/ADB stay strict. You can switch back to strict anytime."));
+    android.widget.LinearLayout body = new android.widget.LinearLayout(ctx);
+    body.setOrientation(android.widget.LinearLayout.VERTICAL);
+    body.setPadding(dp(24), dp(8), dp(24), 0);
+    body.addView(warning, new android.widget.LinearLayout.LayoutParams(-1, -2));
+    android.widget.LinearLayout.LayoutParams scopeParams =
+        new android.widget.LinearLayout.LayoutParams(-1, -2);
+    scopeParams.topMargin = dp(10);
+    body.addView(scope, scopeParams);
+    androidx.appcompat.app.AlertDialog dialog =
+        new DshaDialogBuilder(ctx)
+            .setTitle(title)
+            .setView(body)
+            .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
+            .setPositiveButton(
+                full
+                    ? com.deepseekharness.app.util.UiText.choose("仍要完全放宽", "Fully relax anyway")
+                    : com.deepseekharness.app.util.UiText.choose("仍要放宽", "Relax anyway"),
+                (d, which) -> saveRootPolicy(mode))
+            .create();
+    dialog.setCanceledOnTouchOutside(false);
+    dialog.show();
+    android.widget.Button confirm =
+        dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
+    if (confirm != null) confirm.setTextColor(bad);
+  }
+
+  private int dp(int value) {
+    return Math.round(value * getResources().getDisplayMetrics().density);
   }
 
   private void saveRootPolicy(DeviceShellPolicy.Mode mode) {
