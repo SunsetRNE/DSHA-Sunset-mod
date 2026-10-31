@@ -157,9 +157,7 @@ public final class UpdateVersionPageTest {
           englishBody);
       assertTrue(shown.contains("Closes out the build218 onboarding redesign"));
       assertTrue(shown.contains("deployment capsule"));
-      assertTrue(
-          shown.contains(
-              "Over-the-top updates return to the full-screen maintenance page"));
+      assertTrue(shown.contains("Over-the-top updates return to the full-screen maintenance page"));
       assertTrue(shown.contains("versionCode is raised to 219"));
       assertFalse(shown.contains("versionCode is raised to 218"));
       assertFalse(shown.contains("build157"));
