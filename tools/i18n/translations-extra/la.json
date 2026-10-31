@@ -1234,5 +1234,18 @@
   "x2090003": "Aditum LAN claudere?",
   "x2090004": "Vinculum LAN exscribere",
   "x2090005": "LAN aperire",
-  "x2090006": "Nulla inscriptio exscribenda adest; exspecta dum DSH paratus sit."
+  "x2090006": "Nulla inscriptio exscribenda adest; exspecta dum DSH paratus sit.",
+  "uiv5a001": "Tabula virtualis",
+  "uiv5a002": "Confirmationes tabulae",
+  "uiv5a003": "Periculum grave: plene remissus. Adiutor et additamenta quodlibet mandatum root exsequi possunt, etiam irrevocabilia ut formationem aut deletionem datorum. Cum non opus est, ad Strictum redi.",
+  "uiv5a004": "Periculum magnum: remissus. Adiutor et additamenta mandata root extra indicem permissum exsequi possunt; sola irrevocabilia impediuntur. Cum non opus est, ad Strictum redi.",
+  "uiv5a005": "Periculum grave: plene remisso argumentum mandatorum non inspicitur. Adiutor et additamenta per root formare aut data delere possunt; data perire aut systema laedi potest.",
+  "uiv5a006": "Periculum magnum: remisso, adiutor et additamenta mandata root extra indicem permissum exsequi possunt; formatio et deletio datorum adhuc impediuntur.",
+  "uiv5a007": "Ad viam root tantum pertinet; Shizuku/ADB stricti manent. Quandocumque ad Strictum redire potes.",
+  "uiv5a008": "Tamen plene remitte",
+  "uiv5a009": "Tamen remitte",
+  "uiv5a010": "Cum activum est, operationes facultatum iam permissarum confirmationem DSHA non iam rogant.\n\nCum inactivum est, regulae confirmationis redeunt. Haec optio in hoc instrumento tantum servatur neque in exemplaria tutelae transit. Fasciculi, root, ADB, nuntii, situs, sensoria et permissiones Android suas licentias servant; negatio et pausa valent. Quae inscribenda sunt, ambitus restitutionis et locus servandi a te eliguntur.",
+  "uiv5a011": "(tange ut plura videas)",
+  "uiv5a012": "Elige additamentum",
+  "uiv5a013": "Singula additamenti"
 }

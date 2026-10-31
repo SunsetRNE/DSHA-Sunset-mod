@@ -1234,5 +1234,18 @@
   "x2090003": "Desativar acesso LAN?",
   "x2090004": "Copiar link LAN",
   "x2090005": "Ativar LAN",
-  "x2090006": "Ainda não há endereço para copiar; aguarde o DSH ficar pronto."
+  "x2090006": "Ainda não há endereço para copiar; aguarde o DSH ficar pronto.",
+  "uiv5a001": "Tela virtual",
+  "uiv5a002": "Confirmações de tela",
+  "uiv5a003": "Risco grave: modo totalmente relaxado. O assistente e os plugins podem executar qualquer comando root, inclusive operações irreversíveis como formatar, gravar firmware ou apagar dados. Volte para Estrito quando não precisar.",
+  "uiv5a004": "Risco alto: modo relaxado. O assistente e os plugins podem executar comandos root fora da lista permitida; só operações irreversíveis são bloqueadas. Volte para Estrito quando não precisar.",
+  "uiv5a005": "Risco grave: no modo totalmente relaxado o conteúdo dos comandos não é verificado. O assistente e os plugins podem formatar, gravar firmware ou apagar dados via root, com risco de perda de dados ou danos ao sistema.",
+  "uiv5a006": "Risco alto: no modo relaxado o assistente e os plugins podem executar comandos root fora da lista permitida; formatar, gravar firmware e apagar dados continuam bloqueados.",
+  "uiv5a007": "Vale só para o canal root; Shizuku/ADB continuam em Estrito. Você pode voltar para Estrito a qualquer momento.",
+  "uiv5a008": "Relaxar tudo",
+  "uiv5a009": "Relaxar mesmo assim",
+  "uiv5a010": "Quando ativado, operações com recursos já autorizados deixam de pedir a confirmação de segurança do DSHA.\n\nAo desativar, as regras de confirmação voltam. A opção fica só neste aparelho e não vai para backups. Arquivos, root, ADB, SMS, localização, sensores e permissões do Android continuam com autorizações próprias; negação e pausa continuam valendo. O conteúdo a preencher, o escopo da restauração e o local de salvamento continuam sendo escolha sua.",
+  "uiv5a011": "(toque para ver detalhes)",
+  "uiv5a012": "Escolha um plugin",
+  "uiv5a013": "Detalhes do plugin"
 }

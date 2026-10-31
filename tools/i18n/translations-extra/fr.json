@@ -1234,5 +1234,18 @@
   "x2090003": "Désactiver l’accès au réseau local ?",
   "x2090004": "Copier le lien réseau local",
   "x2090005": "Activer le réseau local",
-  "x2090006": "Aucune adresse à copier pour l’instant ; attendez que DSH soit prêt."
+  "x2090006": "Aucune adresse à copier pour l’instant ; attendez que DSH soit prêt.",
+  "uiv5a001": "Écran virtuel",
+  "uiv5a002": "Confirmations d’écran",
+  "uiv5a003": "Risque grave : mode complètement assoupli. L’assistant et les plugins peuvent exécuter n’importe quelle commande root, y compris des opérations irréversibles comme le formatage, le flashage ou l’effacement des données. Repassez en Strict quand ce n’est plus utile.",
+  "uiv5a004": "Risque élevé : mode assoupli. L’assistant et les plugins peuvent exécuter des commandes root hors liste autorisée ; seules les opérations irréversibles restent bloquées. Repassez en Strict quand ce n’est plus utile.",
+  "uiv5a005": "Risque grave : en mode complètement assoupli, le contenu des commandes n’est plus contrôlé. L’assistant et les plugins peuvent formater, flasher ou effacer des données via root, avec un risque de perte de données ou de dommages au système.",
+  "uiv5a006": "Risque élevé : en mode assoupli, l’assistant et les plugins peuvent exécuter des commandes root hors liste autorisée ; le formatage, le flashage et l’effacement des données restent bloqués.",
+  "uiv5a007": "S’applique au canal root uniquement ; Shizuku/ADB restent en Strict. Vous pouvez repasser en Strict à tout moment.",
+  "uiv5a008": "Assouplir totalement",
+  "uiv5a009": "Assouplir quand même",
+  "uiv5a010": "Une fois activé, les opérations utilisant des capacités déjà autorisées ne demandent plus la confirmation de sécurité DSHA.\n\nUne fois désactivé, les règles de confirmation reviennent. Ce réglage reste sur cet appareil et n’est pas inclus dans les sauvegardes. Fichiers, root, ADB, SMS, localisation, capteurs et autorisations Android gardent leurs autorisations propres ; refus et pause restent effectifs. Le contenu à saisir, l’étendue de la restauration et l’emplacement d’enregistrement restent à votre choix.",
+  "uiv5a011": "(touchez pour en savoir plus)",
+  "uiv5a012": "Choisissez un plugin",
+  "uiv5a013": "Détails du plugin"
 }
