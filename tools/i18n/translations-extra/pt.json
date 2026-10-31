@@ -1290,5 +1290,12 @@
   "uiv5a053": "Carregando apps…",
   "uiv5a054": "Escolher app",
   "uiv5a055": "Digitar pacote",
-  "uiv5a056": "Nenhum app encontrado"
+  "uiv5a056": "Nenhum app encontrado",
+  "uiv5a057": "Prévia do estilo",
+  "uiv5a058": "Ver na tela",
+  "uiv5a059": "Aparência",
+  "uiv5a060": "Conteúdo",
+  "uiv5a061": "Comandos que exigem confirmação podem ser aprovados ou recusados direto na barra.\n\nFunciona junto com a notificação e a caixa de diálogo do DSHA; vale o que for tocado primeiro. Desligado, a barra não mostra botões de aprovação, mas notificação e diálogo continuam funcionando. As regras de bloqueio não mudam.",
+  "uiv5a062": "As alterações são salvas automaticamente.",
+  "uiv5a063": "Permissão necessária · Ativar ›"
 }

@@ -1290,5 +1290,12 @@
   "uiv5a053": "Chargement des apps…",
   "uiv5a054": "Choisir une app",
   "uiv5a055": "Saisir le paquet",
-  "uiv5a056": "Aucune app trouvée"
+  "uiv5a056": "Aucune app trouvée",
+  "uiv5a057": "Aperçu du style",
+  "uiv5a058": "Aperçu à l’écran",
+  "uiv5a059": "Apparence",
+  "uiv5a060": "Contenu",
+  "uiv5a061": "Les commandes à confirmer peuvent être approuvées ou refusées directement sur la barre.\n\nCe canal fonctionne en parallèle de la notification et de la boîte de dialogue DSHA ; le premier choix l’emporte. Désactivé, la barre n’affiche plus de boutons, mais la notification et la boîte de dialogue restent disponibles. Les règles de blocage ne changent pas.",
+  "uiv5a062": "Les changements sont enregistrés automatiquement.",
+  "uiv5a063": "Autorisation requise · Activer ›"
 }

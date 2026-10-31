@@ -10429,5 +10429,61 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ScreenAppPicker.java"
     ]
+  },
+  {
+    "id": "uiv5a057",
+    "zh": "样式预览",
+    "en": "Style preview",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a058",
+    "zh": "在屏幕上预览",
+    "en": "Preview on screen",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a059",
+    "zh": "外观",
+    "en": "Appearance",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a060",
+    "zh": "显示内容",
+    "en": "Content",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a061",
+    "zh": "需要确认的命令可直接在悬浮条上批准或拒绝。\n\n这是与通知、DSHA 弹窗并行的确认渠道，谁先点谁生效。关闭后悬浮条不再显示批准按钮，通知和弹窗照常可用；命令拦截规则不变。",
+    "en": "Commands that need confirmation can be approved or rejected right on the overlay.\n\nThis runs alongside the notification and the DSHA dialog; whichever you tap first applies. When off, the overlay shows no approval buttons, while the notification and dialog still work. Command blocking rules do not change.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a062",
+    "zh": "改动会立即保存。",
+    "en": "Changes are saved automatically.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a063",
+    "zh": "需要悬浮窗权限 · 去开启 ›",
+    "en": "Overlay permission needed · Grant ›",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
+    ]
   }
 ]
