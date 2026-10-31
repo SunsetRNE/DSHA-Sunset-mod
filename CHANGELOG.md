@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5 / build217（插件列表读取误判修复：容器内 soname 符号链接）
+
+- 修复插件列表在容器内经 apt 等安装或升级系统库后一直读取失败：Playwright 等工具经 apt 安装 `libsqlite3-0` 时把 `libsqlite3.so.0` 换成指向 `libsqlite3.so.0.8.6` 的符号链接；`RuntimeTools.queryReady` 用 lstat 只认普通文件，于是每次都显示「运行工具或资产不完整」，而 `RootfsInstaller.python` 用跟随链接的 `isFile()` 判断该文件完好，「安装与修复」永远不会改写它。该严格判据自 `fffff8a`（10-27 插件查询解耦）引入。
+- 新增纯逻辑 `util/GuestRegularFile`：在 Ubuntu 运行根内逐级解析符号链接（相对链接、guest 绝对路径，以及 `.l2s` 等指回本次运行根的宿主路径），父目录链接同样按 guest 解析，`..` 不越过 guest 根，最多 40 跳；只接受最终落在运行根内的普通文件，`/system`、`/proc`、`/sdcard`、`/data` 等外部绑定、越界与循环链接判为未就绪。链接无论由容器内 proot 模拟的 root 还是外部 su 授予的 root 写入，判断一致；外部 root 写成本 UID 不可读的文件会判为 `UNREADABLE`。
+- 插件只读查询与 Python 动态库修复共用该判据；修复只删除无法解析的悬空链接本身后写回随包库，已可用的一项（含 apt 的有效链接）不重写。插件就绪结论变化时写入 `PLUGIN_QUERY_READINESS` 诊断，注明具体文件与原因（如 `usr/lib/aarch64-linux-gnu/libsqlite3.so.0:MISSING`），自动刷新不重复刷屏。
+- `GuestRegularFile` 配 JUnit（11 例：apt soname 链接、相对链与 `..` 钳制、guest 绝对链接、宿主镜像路径、外部绑定、悬空/循环/目录/父文件、合并 /usr 父链接、父链接越界、可执行位取目标、路径校验）；该类加入受管运行时启动输入，`runtime-descriptor.json` 随之重新生成。
+- 版本码提升为 217；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5；十语种更新说明见[build217 更新说明](docs/releases/build217-changes.zh.md)。构建与验收范围以本轮 CI run 与 Release 回执为准；本轮未在真机上覆盖安装验证。
+
 ## 0.2.1-rc.3-20261031.0340-dsh0.2.1-rc.5 / build216（内置移动插件同步上游与文档纠偏）
 
 - 内置 dsh-web-mobile 同步到上游 main 与当前 v3.2.2 标签 `bb0e5e1`：恢复全屏右侧面板层带与壁纸底色（#247），修复宠物悬浮层在弹层/面板下遮挡并吞点击（#248），文件面板手势改读 `data-sidebar-right-open` 并优先认领宠物根节点（#249）。

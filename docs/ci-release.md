@@ -1,6 +1,6 @@
 # CI 构建与发布（公开仓库正式成品）
 
-更新：2026-10-31 / build216。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
+更新：2026-10-31 / build217。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
 目标仓库：`SunsetRNE/DSHA-Sunset-mod`（`main` 分支）。本文说明如何用 GitHub Actions 产出并发布
 **正式签名成品**（`io.github.sunsetrne.dsha`），以及需要哪些仓库 Secrets、产物如何核验。
 
@@ -17,7 +17,7 @@
 
 | 参数 | 要求 | 示例 |
 |---|---|---|
-| `release_tag` | 新 tag，格式 `dsha-a-su-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-a-su-build216-20261031-034000` |
+| `release_tag` | 新 tag，格式 `dsha-a-su-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-a-su-build217-20261031-070000` |
 | `expected_sha` | `main` 上待发布的完整 40 位 commit | `0123abcd…` |
 
 `release_tag` 对应的日历时间必须合法；tag 已存在时工作流在任何构建前失败，不会覆盖已有发布。
@@ -26,7 +26,7 @@
 gh workflow run release-production.yml \
   --repo SunsetRNE/DSHA-Sunset-mod \
   --ref main \
-  -f release_tag=dsha-a-su-build216-20261031-034000 \
+  -f release_tag=dsha-a-su-build217-20261031-070000 \
   -f expected_sha=<40位commit>
 ```
 

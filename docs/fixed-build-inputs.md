@@ -1,6 +1,6 @@
 # 固定构建输入（公开仓库预发布资产）
 
-更新：2026-10-31（build216 / 内置 DSH 0.2.1-rc.5，独立应急 DSH 同为 rc.5）。当前资产 tag [`fixed-inputs-20261031`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261031)（GitHub 预发布 / prerelease），
+更新：2026-10-31（build217 / 内置 DSH 0.2.1-rc.5，独立应急 DSH 同为 rc.5）。当前资产 tag [`fixed-inputs-20261031`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261031)（GitHub 预发布 / prerelease），
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 
 ## 为什么固定输入不放进 git

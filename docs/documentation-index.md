@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261031.0340-dsh0.2.1-rc.5` / build216 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把内置 dsh-web-mobile 同步到上游 main / v3.2.2 标签 `bb0e5e1`（面板、宠物悬浮层与文件面板手势修复），重放全部本地补丁并更新上游锁、运行时描述符与第三方声明；同时纠正仍停留在 build190 的包名、版本码、DSH 版本与 Low/Gecko 现行描述。改动说明见 [build216 更新说明](releases/build216-changes.zh.md)，构建与验收范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5` / build217 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复容器内 apt 等把 `libsqlite3.so.0` 换成符号链接后插件列表一直读取失败的问题：插件只读查询与 Python 动态库修复共用新的 guest 判据 `GuestRegularFile`，在 Ubuntu 运行根内逐级解析链接并只接受落在运行根内的普通文件，诊断记录写明未就绪的具体文件与原因。改动说明见 [build217 更新说明](releases/build217-changes.zh.md)；build216 的内置 dsh-web-mobile 同步见 [build216 更新说明](releases/build216-changes.zh.md)。构建与验收范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

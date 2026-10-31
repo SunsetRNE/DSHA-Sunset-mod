@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261031.0340-dsh0.2.1-rc.5` / build216 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build syncs bundled dsh-web-mobile to upstream main / the v3.2.2 tag `bb0e5e1` (panel, pet-overlay and files-panel gesture fixes), replays every local patch, and updates the upstream lock, runtime descriptor and third-party notices. It also corrects build190-era package, versionCode, DSH-version and Low/Gecko statements. See the [build216 update notes](../releases/build216-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+Current source: `0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5` / build217 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the plugin list failing on every read after apt (or similar) inside the container turns `libsqlite3.so.0` into a symbolic link: the read-only plugin query and the Python shared-library repair now share the new guest check `GuestRegularFile`, which resolves links step by step inside the Ubuntu runtime root, accepts only regular files that land inside that root, and records the exact unready file and reason in diagnostics. See the [build217 notes](../releases/build217-changes.en.md); the build216 dsh-web-mobile sync is described in the [build216 notes](../releases/build216-changes.en.md). Build and acceptance scope follows this CI run and the Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

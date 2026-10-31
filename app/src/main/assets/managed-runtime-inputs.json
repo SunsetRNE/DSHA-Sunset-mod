@@ -571,6 +571,7 @@
     "util/ColdRuntimeSelection.java",
     "util/Ids.java",
     "util/GuestPaths.java",
+    "util/GuestRegularFile.java",
     "util/BackupScopes.java",
     "util/NpmPackageName.java",
     "util/BuiltinPluginRegistry.java",
