@@ -65,6 +65,18 @@
         <item name="android:orientation">vertical</item>
     </style>
 
+    <!-- UI v5 方案 A 设置子页：平铺分组（细边、无浮起底）与带图标的分组标题。 -->
+    <style name="ShellGroup" parent="">
+        <item name="android:background">@drawable/bg_settings_group</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="ShellSectionIconLabel" parent="ShellSectionLabel">
+        <item name="android:drawablePadding">8dp</item>
+        <item name="android:drawableTint">@color/shell_accent</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
     <style name="ShellCardTitle" parent="">
         <item name="android:textSize">16sp</item>
         <item name="android:textColor">@color/shell_text</item>

@@ -8,12 +8,16 @@
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:clipToPadding="false" android:background="@color/shell_bg">
   <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/shell_page_pad" android:paddingEnd="@dimen/shell_page_pad" android:paddingTop="@dimen/shell_page_top" android:paddingBottom="@dimen/shell_page_bottom">
-    <TextView style="@style/ShellPageTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_device_grants" />
+    <!-- 页首图标与标题同一行：根 LinearLayout 前两个子视图仍是标题行与说明，FullPermissionControls 按下标 2 插入。 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp" android:layout_marginEnd="14dp" android:background="@drawable/bg_launch_tile" android:importantForAccessibility="no"><ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_ui_shield" app:tint="@color/shell_accent" /></FrameLayout>
+      <TextView style="@style/ShellPageTitle" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/ui2_device_grants" />
+    </LinearLayout>
     <TextView android:id="@+id/grants_page_hint" style="@style/ShellPageDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="8dp" android:text="@string/ui2_grants_sub" />
 
-    <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_device_channels" />
+    <TextView android:drawableStart="@drawable/ic_section_channels" style="@style/ShellSectionIconLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_device_channels" />
 
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
       <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/config_root_shell" style="@style/ShellSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:paddingStart="0dp" android:text="@string/ui_m0062" />
       <TextView android:id="@+id/device_root_hint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/ui134_root_hint" />
       <TextView android:id="@+id/device_root_policy" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_shell_status" android:padding="12dp" android:text="@string/device_checking" android:textColor="@color/shell_text_secondary" />
@@ -23,7 +27,7 @@
       <Button android:id="@+id/device_root_verify" style="@style/ShellSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:minHeight="48dp" android:text="@string/ui_m0170" />
     </LinearLayout>
 
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
       <TextView android:id="@+id/device_shizuku_title" style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_brand_shizuku" />
       <TextView android:id="@+id/device_shizuku_hint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/ui134_shizuku_hint" />
       <TextView android:id="@+id/workspace_shizuku_status" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_shell_status" android:ellipsize="end" android:maxLines="4" android:minHeight="0dp" android:padding="12dp" android:text="@string/ui_m0039" android:textColor="@color/shell_text_secondary" />
@@ -33,22 +37,22 @@
       </LinearLayout>
     </LinearLayout>
 
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
       <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/config_adb_enable" style="@style/ShellSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:paddingStart="0dp" android:text="@string/ui_m0090" />
       <TextView android:id="@+id/device_adb_hint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/ui134_adb_hint" />
       <TextView android:id="@+id/config_adb_status" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_shell_status" android:ellipsize="end" android:maxLines="2" android:minHeight="0dp" android:padding="12dp" android:text="@string/ui_m0030" android:textColor="@color/shell_text_secondary" />
       <Button android:id="@+id/config_adb_pair" style="@style/ShellSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:minHeight="48dp" android:text="@string/ui_m0031" />
     </LinearLayout>
 
-    <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/computer_use_title" />
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
+    <TextView android:drawableStart="@drawable/ic_section_screen" style="@style/ShellSectionIconLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/computer_use_title" />
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
       <TextView android:id="@+id/computer_use_hint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" />
       <Button android:id="@+id/computer_use_accessibility" style="@style/ShellSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:minHeight="48dp" android:text="@string/ui134_screen_setup" />
       <TextView android:id="@+id/config_a11y_status" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_shell_status" android:padding="12dp" android:text="@string/device_checking" />
     </LinearLayout>
 
-    <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_system_permissions" />
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+    <TextView android:drawableStart="@drawable/ic_section_system" style="@style/ShellSectionIconLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_system_permissions" />
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
       <LinearLayout android:id="@+id/config_all_files" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp">
         <TextView style="@style/ShellRowTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/device_open_access" />
         <ImageView android:layout_width="@dimen/shell_row_chevron" android:layout_height="@dimen/shell_row_chevron" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
@@ -61,8 +65,8 @@
       </LinearLayout>
     </LinearLayout>
 
-    <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_sensitive" />
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
+    <TextView android:drawableStart="@drawable/ic_section_sensitive" style="@style/ShellSectionIconLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_sensitive" />
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
       <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/device_sms" style="@style/ShellSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:paddingStart="0dp" android:text="@string/ui_m0171" />
       <TextView android:id="@+id/device_sms_status" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_shell_status" android:padding="12dp" android:text="@string/device_checking" />
       <View style="@style/ShellDivider" android:layout_marginStart="0dp" android:layout_marginTop="8dp" />

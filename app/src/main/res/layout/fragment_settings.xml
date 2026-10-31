@@ -14,11 +14,11 @@
 
     <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_environment" />
 
-    <LinearLayout android:id="@+id/settings_tabs" style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <LinearLayout android:id="@+id/settings_tabs" style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" />
 
     <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_experience" />
 
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content">
 
       <LinearLayout android:id="@+id/settings_appearance" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:focusable="true">
         <ImageView style="@style/ShellRowIcon" android:layout_width="@dimen/shell_row_icon" android:layout_height="@dimen/shell_row_icon" android:contentDescription="@null" android:src="@drawable/ic_ui_language" />
@@ -54,7 +54,7 @@
 
     <TextView style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_support" />
 
-    <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <LinearLayout style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content">
 
       <LinearLayout android:id="@+id/settings_update" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content">
         <ImageView style="@style/ShellRowIcon" android:layout_width="@dimen/shell_row_icon" android:layout_height="@dimen/shell_row_icon" android:contentDescription="@null" android:src="@drawable/ic_recovery_refresh" />

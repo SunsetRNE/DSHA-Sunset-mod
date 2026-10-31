@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -145,6 +146,7 @@ public class LaunchFragment extends Fragment {
 
     v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
     restart.setText(R.string.ui2_restart);
+    applySchemeALayout(v);
     v.findViewById(R.id.launch_recovery).setOnClickListener(x -> showRecovery());
     v.findViewById(R.id.launch_safe)
         .setOnClickListener(
@@ -722,6 +724,40 @@ public class LaunchFragment extends Fragment {
 
   private void showRecovery() {
     startActivity(new Intent(requireContext(), StartupRecoveryActivity.class));
+  }
+
+  /**
+   * UI v5 方案 A 启动主页的宽窄形态：按当前窗口可用宽度决定，不按设备类型。
+   *
+   * <ul>
+   *   <li>≥ 600dp：标题右侧显示插图；主操作与停止/重启同一行。
+   *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，停止/重启在下方靠左（长译文不挤压主操作）。
+   *   <li>下半区「快捷入口 | 启动日志」由 AdaptiveColumns 按自身宽度（≥ 760dp）并排。
+   * </ul>
+   */
+  private void applySchemeALayout(View root) {
+    boolean wide = getResources().getConfiguration().screenWidthDp >= 600;
+    View art = root.findViewById(R.id.launch_art);
+    if (art != null) art.setVisibility(wide ? View.VISIBLE : View.GONE);
+    LinearLayout controls = root.findViewById(R.id.launch_controls);
+    View start = root.findViewById(R.id.launch_start);
+    View quiet = root.findViewById(R.id.launch_quiet_controls);
+    if (controls != null && start != null && quiet != null && !wide) {
+      controls.setOrientation(LinearLayout.VERTICAL);
+      controls.setGravity(android.view.Gravity.START);
+      LinearLayout.LayoutParams primary =
+          new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, -2);
+      start.setLayoutParams(primary);
+      LinearLayout.LayoutParams secondary = new LinearLayout.LayoutParams(-2, -2);
+      secondary.topMargin = Math.round(8 * getResources().getDisplayMetrics().density);
+      quiet.setLayoutParams(secondary);
+    }
+    AdaptiveColumns bottom = root.findViewById(R.id.launch_bottom);
+    if (bottom != null) {
+      bottom.setSplitWidthDp(760);
+      bottom.setGutterDp(32);
+      bottom.setWeights(1f, 1.3f);
+    }
   }
 
   /**

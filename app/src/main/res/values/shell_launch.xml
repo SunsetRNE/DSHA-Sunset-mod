@@ -197,6 +197,44 @@
         <item name="android:paddingBottom">10dp</item>
     </style>
 
+    <!-- ========== UI v5 方案 A：主操作旁的轻量停止 / 重启，与就绪轨道 ========== -->
+    <style name="ShellLaunchQuiet" parent="Widget.DSHA.Button">
+        <item name="android:background">@drawable/bg_action_plain</item>
+        <item name="android:minHeight">@dimen/touch_min</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:textSize">@dimen/shell_launch_body</item>
+        <item name="android:textColor">@color/shell_text_secondary</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+    </style>
+
+    <style name="ShellLaunchRailItem" parent="">
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">start</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+        <item name="android:paddingEnd">8dp</item>
+    </style>
+
+    <style name="ShellLaunchRailLabel" parent="">
+        <item name="android:textSize">@dimen/shell_launch_caption</item>
+        <item name="android:textColor">@color/shell_text_muted</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:layout_marginTop">10dp</item>
+    </style>
+
+    <style name="ShellLaunchRailValue" parent="">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/shell_text</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:layout_marginTop">5dp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
     <!-- ========== 日志正文 ========== -->
     <style name="ShellLaunchLog" parent="">
         <item name="android:textSize">@dimen/shell_launch_log_text</item>
