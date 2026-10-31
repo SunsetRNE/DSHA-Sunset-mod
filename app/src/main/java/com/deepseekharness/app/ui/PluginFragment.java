@@ -1349,6 +1349,19 @@ public class PluginFragment extends Fragment {
   }
 
   private String detailsText(PluginRepository.Item item) {
+    return detailsText(
+        item,
+        item.builtin
+            ? com.deepseekharness.app.util.UiStateText.render(item.description)
+            : item.description);
+  }
+
+  /** 版本 / 位置 / 来源；双栏详情窗格上方已显示说明，只用这一段避免重复（复用已翻译模板）。 */
+  private String metaText(PluginRepository.Item item) {
+    return detailsText(item, "").replaceFirst("^\\s+", "");
+  }
+
+  private String detailsText(PluginRepository.Item item, String description) {
     String location =
         item.runtimeProvided
             ? com.deepseekharness.app.util.UiText.choose("随 DSH 安装提供", "Provided by DSH")
@@ -1369,13 +1382,7 @@ public class PluginFragment extends Fragment {
                             "来源未记录", "Source not recorded"))
             : item.source;
     return com.deepseekharness.app.util.UiText.format(
-        "%s\n\n版本：%s\n位置：%s\n来源：%s",
-        item.builtin
-            ? com.deepseekharness.app.util.UiStateText.render(item.description)
-            : item.description,
-        item.version,
-        location,
-        source);
+        "%s\n\n版本：%s\n位置：%s\n来源：%s", description, item.version, location, source);
   }
 
   private int statusColor(PluginListPresenter.Row<PluginRepository.Item> row) {
@@ -1491,7 +1498,7 @@ public class PluginFragment extends Fragment {
     TextView state = detailPane.findViewById(R.id.plugin_detail_status);
     state.setText(statusText(row));
     state.setTextColor(requireContext().getColor(statusColor(row)));
-    ((TextView) detailPane.findViewById(R.id.plugin_detail_meta)).setText(detailsText(item));
+    ((TextView) detailPane.findViewById(R.id.plugin_detail_meta)).setText(metaText(item));
     ((TextView) detailPane.findViewById(R.id.plugin_detail_label))
         .setText(com.deepseekharness.app.util.UiText.choose("插件详情", "Plugin details"));
     bindToggle(detailPane.findViewById(R.id.plugin_detail_switch), row);

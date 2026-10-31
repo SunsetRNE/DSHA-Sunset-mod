@@ -41,6 +41,11 @@ public final class InfoHint {
     view.setMaxLines(2);
     view.setEllipsize(TextUtils.TruncateAt.END);
     view.setCompoundDrawablesRelative(null, null, icon(context, view), null);
+    android.view.ViewGroup.LayoutParams params = view.getLayoutParams();
+    if (params != null && params.width == android.view.ViewGroup.LayoutParams.MATCH_PARENT) {
+      params.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+      view.setLayoutParams(params);
+    }
     view.setCompoundDrawablePadding(dp(context, 6));
     view.setBackgroundResource(R.drawable.bg_action_plain);
     view.setMinHeight(dp(context, 32));
