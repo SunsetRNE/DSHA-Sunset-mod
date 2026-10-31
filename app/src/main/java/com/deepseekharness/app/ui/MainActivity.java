@@ -356,14 +356,19 @@ public class MainActivity extends AppCompatActivity {
             finish();
           } else {
             // 覆盖更新 / 部署未完成：留在受限主界面，满足条件时自动开始一次（与旧维护页同一判定）。
-            // 原实例证据未知或网页会话尚待恢复时不触发维护，保留诊断入口。
-            if (!failed && needsUpdate.get() && !unresolved && !restoring)
-              try {
-                RuntimeMaintenanceStarter.autoStartUpdateIfEligible(this);
-              } catch (RuntimeException unavailable) {
-                com.deepseekharness.app.core.DiagnosticLog.record(
-                    this, "MAIN_AUTO_UPDATE", unavailable.getClass().getSimpleName());
-              }
+            // 判定含磁盘读取与偏好提交，放到入口检查线程；原实例证据未知或网页会话待恢复时不触发维护。
+            if (!failed && needsUpdate.get() && !unresolved && !restoring) {
+              android.content.Context app = getApplicationContext();
+              ENTRY_IO.execute(
+                  () -> {
+                    try {
+                      RuntimeMaintenanceStarter.autoStartUpdateIfEligible(app);
+                    } catch (RuntimeException unavailable) {
+                      com.deepseekharness.app.core.DiagnosticLog.record(
+                          app, "MAIN_AUTO_UPDATE", unavailable.getClass().getSimpleName());
+                    }
+                  });
+            }
             showMain(saved, config, controller);
           }
         });
@@ -592,7 +597,10 @@ public class MainActivity extends AppCompatActivity {
         } else
           recoveryHandler.postDelayed(
               deployCollapseCheck,
-              Math.max(0, com.deepseekharness.app.util.DeployDisplay.COLLAPSE_AFTER_MILLIS - (now - seen))
+              Math.max(
+                      0,
+                      com.deepseekharness.app.util.DeployDisplay.COLLAPSE_AFTER_MILLIS
+                          - (now - seen))
                   + 50);
       }
     }

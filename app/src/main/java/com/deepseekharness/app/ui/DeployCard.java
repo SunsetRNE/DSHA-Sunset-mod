@@ -76,7 +76,8 @@ final class DeployCard extends FrameLayout {
     kit.add(body, kit.text(line(view), 12.5f, R.color.shell_text_secondary), 8);
     LinearLayout more = kit.row();
     TextView words =
-        kit.bold(UiText.choose("阶段与维护记录", "Stages and maintenance log"), 12.5f, R.color.shell_accent);
+        kit.bold(
+            UiText.choose("阶段与维护记录", "Stages and maintenance log"), 12.5f, R.color.shell_accent);
     more.addView(words);
     View chevron = kit.icon(R.drawable.ic_ui2_chevron, R.color.shell_accent, 14);
     LinearLayout.LayoutParams chevronParams = new LinearLayout.LayoutParams(kit.dp(14), kit.dp(14));
@@ -86,12 +87,15 @@ final class DeployCard extends FrameLayout {
     setContentDescription(
         String.format(
             java.util.Locale.ROOT,
-            UiText.choose("%1$s：%2$s。%3$s。点按查看阶段与维护记录", "%1$s: %2$s. %3$s. Tap for stages and the maintenance log"),
+            UiText.choose(
+                "%1$s：%2$s。%3$s。点按查看阶段与维护记录",
+                "%1$s: %2$s. %3$s. Tap for stages and the maintenance log"),
             view.title(),
             view.label(),
             line(view)));
     for (int i = 0; i < body.getChildCount(); i++)
-      body.getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+      body.getChildAt(i)
+          .setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
   }
 
   /** 状态标签：运行中为“n / m”，其余为结果短语。 */
@@ -133,7 +137,8 @@ final class DeployCard extends FrameLayout {
             "维护步骤已结束，但环境就绪检查未通过。", "Maintenance ended, but the readiness check did not pass.");
       case PENDING:
         return UiText.choose(
-            "上次维护未完成，请先恢复原环境。", "The last maintenance did not finish. Recover the original environment first.");
+            "上次维护未完成，请先恢复原环境。",
+            "The last maintenance did not finish. Recover the original environment first.");
       default:
         String reason = com.deepseekharness.app.util.MaintenanceErrorText.render(view.detail);
         int newline = reason.indexOf('\n');

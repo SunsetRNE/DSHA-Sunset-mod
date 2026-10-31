@@ -21,7 +21,9 @@ public final class DeployDisplay {
       boolean ready,
       boolean observed) {
     if (snapshotBusy)
-      return DeployStages.environmentKind(kind) ? DeployStages.Phase.RUNNING : DeployStages.Phase.IDLE;
+      return DeployStages.environmentKind(kind)
+          ? DeployStages.Phase.RUNNING
+          : DeployStages.Phase.IDLE;
     if (pending) return DeployStages.Phase.PENDING;
     if (!DeployStages.environmentKind(kind)) return DeployStages.Phase.IDLE;
     DeployStages.Phase phase = DeployStages.phase(status, false, false, ready);
@@ -30,8 +32,10 @@ public final class DeployDisplay {
         // 历史成功（例如上次进程留下的记录）不再弹出绿色胶囊。
         return observed ? DeployStages.Phase.SUCCEEDED : DeployStages.Phase.IDLE;
       case FAILED:
-        // 历史失败只在环境仍未就绪时提示；本进程内的失败一直显示到用户重试。
-        return observed || !ready ? DeployStages.Phase.FAILED : DeployStages.Phase.IDLE;
+        // 历史失败只在环境仍未就绪、或中断 / 取消（启动前仍须维护）时提示；本进程内的失败一直显示到用户重试。
+        return observed || !ready || EnvironmentIdentity.unresolvedTask(status)
+            ? DeployStages.Phase.FAILED
+            : DeployStages.Phase.IDLE;
       default:
         return phase;
     }

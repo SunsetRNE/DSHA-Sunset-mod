@@ -55,6 +55,8 @@ final class PermissionCards {
             UiText.choose("手机任务停止按钮", "Phone-task stop button"),
             UiText.choose("更新下载", "Update downloads"));
     boolean exhausted = panel.notificationRequestExhausted();
+    // Android 11 / 12 没有运行时申请框：未开启只表示通知总开关被关闭，只能去系统设置打开。
+    boolean settingsOnly = !PermissionPanel.notificationPromptAvailable();
     state(
         m,
         ok,
@@ -66,24 +68,32 @@ final class PermissionCards {
             ? UiText.choose(
                 "已允许通知 · 部署进度和手机任务停止按钮会显示在通知栏",
                 "Notifications allowed · deployment progress and the phone-task stop button appear in notifications")
-            : exhausted
+            : settingsOnly
                 ? UiText.choose(
-                    "系统不会再弹出申请框；如需开启，请在系统通知设置中允许。",
-                    "Android will not ask again. To enable, allow notifications in system settings.")
-                : UiText.choose(
-                    "未允许 · 部署进度和手机任务停止按钮不会显示在通知栏",
-                    "Not allowed · deployment progress and the phone-task stop button will not appear");
+                    "通知已关闭 · 请在系统通知设置中允许，部署进度和手机任务停止按钮才会显示在通知栏",
+                    "Notifications are off · allow them in system notification settings to see deployment progress and the phone-task stop button")
+                : exhausted
+                    ? UiText.choose(
+                        "系统不会再弹出申请框；如需开启，请在系统通知设置中允许。",
+                        "Android will not ask again. To enable, allow notifications in system settings.")
+                    : UiText.choose(
+                        "未允许 · 部署进度和手机任务停止按钮不会显示在通知栏",
+                        "Not allowed · deployment progress and the phone-task stop button will not appear");
     m.outside =
-        UiText.choose(
-            "Android 13+ 会弹出系统权限框；拒绝后只能在系统通知设置中开启，并可在其中打开“手机任务状态”类别。",
-            "Android 13+ shows a system prompt; after denial, enable it in system notification settings, including the “Phone task status” category.");
+        settingsOnly
+            ? UiText.choose(
+                "打开系统通知设置，允许 DSH-A-Su 发送通知，并可打开“手机任务状态”类别。",
+                "Open system notification settings, allow notifications for DSH-A-Su, and optionally enable the “Phone task status” category.")
+            : UiText.choose(
+                "Android 13+ 会弹出系统权限框；拒绝后只能在系统通知设置中开启，并可在其中打开“手机任务状态”类别。",
+                "Android 13+ shows a system prompt; after denial, enable it in system notification settings, including the “Phone task status” category.");
     m.actions =
         new View[] {
           ok
               ? kit.ghost(
                   UiText.choose("系统通知设置", "Notification settings"),
                   v -> PermissionActions.openNotificationSettings(a))
-              : exhausted
+              : exhausted || settingsOnly
                   ? kit.small(
                       UiText.choose("去系统通知设置", "Open notification settings"),
                       true,

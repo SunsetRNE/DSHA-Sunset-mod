@@ -72,7 +72,8 @@ final class DeployTaskSheet {
         new FrameLayout(activity) {
           @Override
           protected void onMeasure(int widthSpec, int heightSpec) {
-            int limit = Math.round(getResources().getDisplayMetrics().heightPixels * heightFraction);
+            int limit =
+                Math.round(getResources().getDisplayMetrics().heightPixels * heightFraction);
             if (MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED)
               limit = Math.min(limit, MeasureSpec.getSize(heightSpec));
             if (wide && MeasureSpec.getSize(widthSpec) > maxWidth)
@@ -145,7 +146,10 @@ final class DeployTaskSheet {
     pillParams.leftMargin = kit.dp(10);
     head.addView(kit.pill(DeployCard.pillText(view), tone), pillParams);
     content.addView(head, OnboardingKit.matchWrap());
-    kit.add(content, kit.text(description(view.mode, inOnboarding), 13.5f, R.color.shell_text_secondary), 8);
+    kit.add(
+        content,
+        kit.text(description(view.mode, inOnboarding), 13.5f, R.color.shell_text_secondary),
+        8);
     kit.add(content, kit.bold(DeployCard.line(view), 14, R.color.shell_text), 10);
     if (view.total() > 0) {
       kit.add(content, kit.segmentBar(view), 10);
@@ -200,7 +204,8 @@ final class DeployTaskSheet {
                 ? view.stages.get(view.current).title()
                 : view.lastStage.isEmpty()
                     ? UiText.choose(
-                        "旧记录未提供；请查看维护日志", "Not available in the old record; inspect maintenance logs")
+                        "旧记录未提供；请查看维护日志",
+                        "Not available in the old record; inspect maintenance logs")
                     : com.deepseekharness.app.util.LogCompactor.compactReason(
                         com.deepseekharness.app.util.UiStateText.render(view.lastStage), 240);
         return String.format(
@@ -226,11 +231,14 @@ final class DeployTaskSheet {
     boolean enabled =
         androidx.core.app.NotificationManagerCompat.from(activity).areNotificationsEnabled();
     if (enabled)
-      return kit.fine(UiText.choose("通知栏会同步显示进度。", "Progress is also shown in the notification shade."));
+      return kit.fine(
+          UiText.choose("通知栏会同步显示进度。", "Progress is also shown in the notification shade."));
     LinearLayout row = kit.row();
     TextView note =
         kit.fine(
-            UiText.choose("开启通知后，可在通知栏查看进度。", "Allow notifications to follow progress in the notification shade."));
+            UiText.choose(
+                "开启通知后，可在通知栏查看进度。",
+                "Allow notifications to follow progress in the notification shade."));
     row.addView(note, new LinearLayout.LayoutParams(0, -2, 1));
     View allow =
         kit.ghost(
@@ -296,7 +304,8 @@ final class DeployTaskSheet {
         View limitedSecondary =
             inOnboarding && onLimitedEntry != null
                 ? kit.secondary(
-                    UiText.choose("进入受限主界面 · 查看日志与配置", "Enter limited interface · logs and settings"),
+                    UiText.choose(
+                        "进入受限主界面 · 查看日志与配置", "Enter limited interface · logs and settings"),
                     v -> {
                       dismiss();
                       onLimitedEntry.run();

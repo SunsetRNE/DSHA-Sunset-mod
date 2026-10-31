@@ -138,7 +138,7 @@ final class PermissionActions {
     try {
       activity.startActivity(launch);
     } catch (RuntimeException failure) {
-      toast(activity, UiText.format("打开设置失败：%s", failure.getMessage()));
+      toast(activity, UiText.format("无法打开 Shizuku：%s", failure.getMessage()));
     }
   }
 

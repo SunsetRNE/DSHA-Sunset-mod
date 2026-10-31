@@ -195,7 +195,9 @@ public class ExtractActivity extends AppCompatActivity {
             ? DeployStages.Phase.RUNNING
             : pending
                 ? DeployStages.Phase.PENDING
-                : mine ? DeployStages.phase(s.status, false, false, ready) : DeployStages.Phase.IDLE;
+                : mine
+                    ? DeployStages.phase(s.status, false, false, ready)
+                    : DeployStages.Phase.IDLE;
     DeployStages.View view = DeployMonitor.stagesView(s, phase, cachedInstalled);
     boolean failed = mine && view.phase == DeployStages.Phase.FAILED;
     boolean incomplete = mine && s.status == BackupTaskState.Status.SUCCEEDED && !ready && !busy;
@@ -219,9 +221,7 @@ public class ExtractActivity extends AppCompatActivity {
     retry.setText(RuntimeMaintenanceStarter.retryLabel(kind, failed));
     retry.setEnabled(!executionBusy);
     enter.setText(
-        !busy && !pending && ready
-            ? UiText.text("进入主界面")
-            : UiText.text("进入受限主界面 · 查看日志与配置"));
+        !busy && !pending && ready ? UiText.text("进入主界面") : UiText.text("进入受限主界面 · 查看日志与配置"));
     if (com.deepseekharness.app.util.EnvironmentIdentity.mayAdvanceAfterMaintenance(
         automaticEntry, mine, s.status == BackupTaskState.Status.SUCCEEDED, busy, pending, ready)) {
       automaticEntry = false;
@@ -256,8 +256,7 @@ public class ExtractActivity extends AppCompatActivity {
     lead.setText(
         view.visible() && view.mode != DeployStages.Mode.GENERIC
             ? DeployTaskSheet.description(view.mode, false)
-            : UiText.text(
-                "相同基础环境只更新 dsh 与内置插件，个人数据保持原位；基础环境变更时先保护数据再重建。验证失败可恢复原环境。"));
+            : UiText.text("相同基础环境只更新 dsh 与内置插件，个人数据保持原位；基础环境变更时先保护数据再重建。验证失败可恢复原环境。"));
   }
 
   private void renderStages(DeployStages.View view) {
@@ -282,16 +281,17 @@ public class ExtractActivity extends AppCompatActivity {
     if (failed) {
       message =
           UiText.format(
-              "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可进入受限主界面导出可读副本。",
-              com.deepseekharness.app.util.UiStateText.render(s.kind),
-              s.lastStage.isEmpty()
-                  ? UiText.choose(
-                      "旧记录未提供；请查看维护日志", "Not available in the old record; inspect maintenance logs")
-                  : com.deepseekharness.app.util.LogCompactor.compactReason(
-                      com.deepseekharness.app.util.UiStateText.render(s.lastStage), 240),
-              com.deepseekharness.app.util.MaintenanceErrorText.render(s.detail))
-          + "\n\n"
-          + UiText.text("任务未完成。请按上方原因处理后重试；本页不会自动覆盖环境。");
+                  "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可进入受限主界面导出可读副本。",
+                  com.deepseekharness.app.util.UiStateText.render(s.kind),
+                  s.lastStage.isEmpty()
+                      ? UiText.choose(
+                          "旧记录未提供；请查看维护日志",
+                          "Not available in the old record; inspect maintenance logs")
+                      : com.deepseekharness.app.util.LogCompactor.compactReason(
+                          com.deepseekharness.app.util.UiStateText.render(s.lastStage), 240),
+                  com.deepseekharness.app.util.MaintenanceErrorText.render(s.detail))
+              + "\n\n"
+              + UiText.text("任务未完成。请按上方原因处理后重试；本页不会自动覆盖环境。");
       warn = false;
     } else if (incomplete) {
       message =

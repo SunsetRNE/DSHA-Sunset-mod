@@ -84,10 +84,7 @@ public final class AccessibilitySetupActivity extends AppCompatActivity {
         Toast.makeText(
                 activity,
                 withServiceName(
-                    activity,
-                    t(
-                        "请打开系统设置 → 无障碍 →「%s」。",
-                        "Open Settings → Accessibility → “%s”.")),
+                    activity, t("请打开系统设置 → 无障碍 →「%s」。", "Open Settings → Accessibility → “%s”.")),
                 Toast.LENGTH_LONG)
             .show();
       }

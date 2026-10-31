@@ -119,11 +119,13 @@ public final class OnboardingActivity extends AppCompatActivity {
     main.setBackgroundColor(kit.color(R.color.shell_bg));
     LinearLayout head = kit.row();
     head.setMinimumHeight(kit.dp(compact ? 40 : 52));
-    head.setPadding(kit.dp(wide ? 12 : 8), kit.dp(compact ? 2 : 4), kit.dp(wide ? 22 : 16), kit.dp(2));
+    head.setPadding(
+        kit.dp(wide ? 12 : 8), kit.dp(compact ? 2 : 4), kit.dp(wide ? 22 : 16), kit.dp(2));
     FrameLayout left = new FrameLayout(this);
     left.setMinimumWidth(kit.dp(wide ? 48 : 64));
     back = backButton();
-    left.addView(back, new FrameLayout.LayoutParams(kit.dp(48), kit.dp(48), Gravity.CENTER_VERTICAL));
+    left.addView(
+        back, new FrameLayout.LayoutParams(kit.dp(48), kit.dp(48), Gravity.CENTER_VERTICAL));
     TextView name = kit.bold("DSHA", 18, R.color.shell_text);
     name.setPadding(kit.dp(10), 0, 0, 0);
     brand = name;
@@ -160,7 +162,8 @@ public final class OnboardingActivity extends AppCompatActivity {
     main.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     FrameLayout foot = new FrameLayout(this);
     foot.setBackgroundResource(R.drawable.bg_onb_footer);
-    foot.setPadding(pad, kit.dp(compact ? 7 : wide ? 12 : 10), pad, kit.dp(compact ? 7 : wide ? 14 : 12));
+    foot.setPadding(
+        pad, kit.dp(compact ? 7 : wide ? 12 : 10), pad, kit.dp(compact ? 7 : wide ? 14 : 12));
     footer = new Capped(this);
     foot.addView(footer, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER_HORIZONTAL));
     main.addView(foot, OnboardingKit.matchWrap());
@@ -224,7 +227,8 @@ public final class OnboardingActivity extends AppCompatActivity {
   /** 正文实际可用宽度（dp）：用于决定功能点与用途是否并排。 */
   int contentWidthDp(int maxDp) {
     int screen = getResources().getConfiguration().screenWidthDp;
-    int pane = kit.wide() ? screen - Math.max(240, Math.round(screen * 0.3f)) - 1 - 56 : screen - 40;
+    int pane =
+        kit.wide() ? screen - Math.max(240, Math.round(screen * 0.3f)) - 1 - 56 : screen - 40;
     return Math.min(maxDp, Math.max(0, pane));
   }
 
@@ -248,18 +252,27 @@ public final class OnboardingActivity extends AppCompatActivity {
     if (current) row.setBackgroundResource(R.drawable.bg_onb_step_row_cur);
     FrameLayout mark = new FrameLayout(this);
     mark.setBackgroundResource(
-        done ? R.drawable.bg_onb_step_done : current ? R.drawable.bg_onb_step_cur : R.drawable.bg_onb_step_todo);
+        done
+            ? R.drawable.bg_onb_step_done
+            : current ? R.drawable.bg_onb_step_cur : R.drawable.bg_onb_step_todo);
     if (done)
       mark.addView(
           kit.icon(R.drawable.ic_onb_check, R.color.shell_on_accent, 13),
           new FrameLayout.LayoutParams(kit.dp(13), kit.dp(13), Gravity.CENTER));
     else {
-      TextView number = kit.bold(String.valueOf(index + 1), 11, current ? R.color.shell_accent : R.color.shell_text_muted);
+      TextView number =
+          kit.bold(
+              String.valueOf(index + 1),
+              11,
+              current ? R.color.shell_accent : R.color.shell_text_muted);
       number.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
       mark.addView(number, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
     }
     row.addView(mark, new LinearLayout.LayoutParams(kit.dp(24), kit.dp(24)));
-    TextView label = current ? kit.bold(stepName(index), 14, R.color.shell_text) : kit.text(stepName(index), 14, R.color.shell_text_muted);
+    TextView label =
+        current
+            ? kit.bold(stepName(index), 14, R.color.shell_text)
+            : kit.text(stepName(index), 14, R.color.shell_text_muted);
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
     lp.leftMargin = kit.dp(10);
     row.addView(label, lp);
@@ -268,7 +281,12 @@ public final class OnboardingActivity extends AppCompatActivity {
             ? UiText.choose("已完成", "Done")
             : current ? UiText.choose("当前步骤", "Current step") : UiText.choose("未开始", "Not started");
     row.setContentDescription(
-        String.format(Locale.ROOT, UiText.choose("第 %1$d 步：%2$s，%3$s", "Step %1$d: %2$s, %3$s"), index + 1, stepName(index), state));
+        String.format(
+            Locale.ROOT,
+            UiText.choose("第 %1$d 步：%2$s，%3$s", "Step %1$d: %2$s, %3$s"),
+            index + 1,
+            stepName(index),
+            state));
     row.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
     label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -282,12 +300,14 @@ public final class OnboardingActivity extends AppCompatActivity {
     if (!wide) brand.setVisibility(step == WELCOME ? View.VISIBLE : View.GONE);
     counter.setText((step + 1) + " / " + STEPS);
     counter.setContentDescription(
-        String.format(Locale.ROOT, UiText.choose("第 %1$d 步，共 %2$d 步", "Step %1$d of %2$d"), step + 1, STEPS));
+        String.format(
+            Locale.ROOT, UiText.choose("第 %1$d 步，共 %2$d 步", "Step %1$d of %2$d"), step + 1, STEPS));
     if (stepsBar != null) {
       stepsBar.removeAllViews();
       for (int i = 0; i < STEPS; i++) {
         View segment = new View(this);
-        segment.setBackgroundResource(i <= step ? R.drawable.bg_onb_seg_done : R.drawable.bg_onb_seg_todo);
+        segment.setBackgroundResource(
+            i <= step ? R.drawable.bg_onb_seg_done : R.drawable.bg_onb_seg_todo);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, kit.dp(3), 1);
         if (i > 0) p.leftMargin = kit.dp(4);
         stepsBar.addView(segment, p);
@@ -297,7 +317,11 @@ public final class OnboardingActivity extends AppCompatActivity {
       stepList.removeAllViews();
       for (int i = 0; i < STEPS; i++) kit.add(stepList, stepRow(i), i == 0 ? 0 : 3);
       sideCounter.setText(
-          String.format(Locale.ROOT, UiText.choose("首次引导 · %1$d / %2$d", "Setup · %1$d / %2$d"), step + 1, STEPS));
+          String.format(
+              Locale.ROOT,
+              UiText.choose("首次引导 · %1$d / %2$d", "Setup · %1$d / %2$d"),
+              step + 1,
+              STEPS));
     }
   }
 
@@ -412,15 +436,18 @@ public final class OnboardingActivity extends AppCompatActivity {
   void onDeploy(DeployStages.View view) {
     if (content == null || isFinishing() || isDestroyed()) return;
     DeployStages.Phase before = deploy.phase;
+    // 监视器在内容未变时返回同一快照对象：兜底轮询不重复重绘胶囊与进度卡（避免打断动效与朗读）。
+    boolean same = view != null && view == deploy;
     deploy = view == null ? DeployStages.idle() : view;
-    if (capsule != null) capsule.render(deploy);
-    if (card != null) card.render(deploy);
+    if (capsule != null && !same) capsule.render(deploy);
+    if (card != null && !same) card.render(deploy);
     // 部署期间保持屏幕常亮（原 ExtractActivity 行为）；结束、失败或未开始时清除。
     if (deploy.phase == DeployStages.Phase.RUNNING)
       getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     if (panel != null) panel.setEnvironmentReady(environmentReady());
-    if (before != deploy.phase && deploy.visible()) content.announceForAccessibility(deploy.label());
+    if (before != deploy.phase && deploy.visible())
+      content.announceForAccessibility(deploy.label());
     render(false);
   }
 
@@ -479,7 +506,8 @@ public final class OnboardingActivity extends AppCompatActivity {
     try {
       HarnessController controller = HarnessController.get(this);
       var task = com.deepseekharness.app.core.BackupTask.get(this);
-      limited = task.maintenanceBusy() || task.pendingMaintenance() || !controller.isEnvironmentReady();
+      limited =
+          task.maintenanceBusy() || task.pendingMaintenance() || !controller.isEnvironmentReady();
       if (limited)
         controller.config().allowLimitedEntry(EnvironmentAccess.limitedEntryKey(controller));
     } catch (RuntimeException failure) {
@@ -582,12 +610,7 @@ public final class OnboardingActivity extends AppCompatActivity {
   private void measureSpace() {
     spaceRequired = OnboardingEnvironment.requiredBytes(this);
     spaceUsable = OnboardingEnvironment.usableBytes(this);
-    boolean cold = true;
-    try {
-      cold = !HarnessController.get(this).proot().isEnvironmentInstalled();
-    } catch (RuntimeException unknown) {
-      // 读不到安装状态时按冷部署预检；冷部署事务自身仍会再核验空间。
-    }
+    boolean cold = !OnboardingEnvironment.installed(this);
     spaceLow =
         cold
             && !started()
@@ -609,10 +632,17 @@ public final class OnboardingActivity extends AppCompatActivity {
 
   private void buildWelcome() {
     content.addView(kit.eyebrow(getString(R.string.welcome_eyebrow0)));
-    kit.add(content, kit.heading(getString(R.string.ui2_welcome_title0), true), kit.shortScreen() ? 6 : 12);
+    kit.add(
+        content,
+        kit.heading(getString(R.string.ui2_welcome_title0), true),
+        kit.shortScreen() ? 6 : 12);
     kit.add(content, kit.lead(getString(R.string.ui2_welcome_lead0)), 10);
     TextView badge =
-        kit.bold(getString(R.string.ui2_offline_badge, com.deepseekharness.app.util.Constants.DSH_VERSION), 12, R.color.shell_accent);
+        kit.bold(
+            getString(
+                R.string.ui2_offline_badge, com.deepseekharness.app.util.Constants.DSH_VERSION),
+            12,
+            R.color.shell_accent);
     badge.setBackgroundResource(R.drawable.bg_onb_pill_accent);
     badge.setPadding(kit.dp(11), kit.dp(6), kit.dp(11), kit.dp(6));
     LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-2, -2);
@@ -621,14 +651,27 @@ public final class OnboardingActivity extends AppCompatActivity {
     kit.add(content, features(), 22);
     kit.add(content, kit.section(UiText.choose("部署前检查", "Pre-deployment check")), 22);
     OnboardingKit.Grid checks = new OnboardingKit.Grid(this, kit.dp(8), kit.dp(120));
-    checks.addView(tile(UiText.choose("设备架构", "Architecture"), android.os.Build.SUPPORTED_ABIS.length > 0 ? android.os.Build.SUPPORTED_ABIS[0] : "unknown", false));
+    checks.addView(
+        tile(
+            UiText.choose("设备架构", "Architecture"),
+            android.os.Build.SUPPORTED_ABIS.length > 0
+                ? android.os.Build.SUPPORTED_ABIS[0]
+                : "unknown",
+            false));
     checks.addView(
         tile(
             UiText.choose("系统与版本", "System"),
-            String.format(Locale.ROOT, UiText.choose("Android %s · 标准版", "Android %s · Standard"), android.os.Build.VERSION.RELEASE),
+            String.format(
+                Locale.ROOT,
+                UiText.choose("Android %s · 标准版", "Android %s · Standard"),
+                android.os.Build.VERSION.RELEASE),
             false));
     checks.addView(tile(UiText.choose("可用空间", "Free space"), size(spaceUsable), spaceLow));
-    checks.addView(tile(UiText.choose("安装方式", "Installation"), UiText.choose("随包离线部署", "Bundled offline runtime"), false));
+    checks.addView(
+        tile(
+            UiText.choose("安装方式", "Installation"),
+            UiText.choose("随包离线部署", "Bundled offline runtime"),
+            false));
     kit.add(content, checks, 8);
     if (spaceLow)
       kit.add(
@@ -655,8 +698,7 @@ public final class OnboardingActivity extends AppCompatActivity {
     kit.add(content, dataRow(), 14);
     kit.add(content, kit.fine(getString(R.string.ui2_online_notice)), 14);
     android.widget.Button primary;
-    if (spaceLow)
-      primary = kit.primary(UiText.choose("重新检查", "Check again"), v -> recheckSpace());
+    if (spaceLow) primary = kit.primary(UiText.choose("重新检查", "Check again"), v -> recheckSpace());
     else if (started() || environmentReady())
       primary =
           kit.primary(
@@ -717,16 +759,25 @@ public final class OnboardingActivity extends AppCompatActivity {
     row.setPadding(kit.dp(14), kit.dp(12), kit.dp(12), kit.dp(12));
     row.setMinimumHeight(kit.dp(56));
     FrameLayout slot = new FrameLayout(this);
-    slot.addView(kit.icon(R.drawable.ic_ui_shield, R.color.shell_accent, 22), new FrameLayout.LayoutParams(kit.dp(22), kit.dp(22), Gravity.CENTER));
+    slot.addView(
+        kit.icon(R.drawable.ic_ui_shield, R.color.shell_accent, 22),
+        new FrameLayout.LayoutParams(kit.dp(22), kit.dp(22), Gravity.CENTER));
     row.addView(slot, new LinearLayout.LayoutParams(kit.dp(38), kit.dp(38)));
     LinearLayout words = kit.column();
-    words.addView(kit.bold(UiText.choose("权限由你决定，数据有处可寻", "Your permissions, your data"), 14.5f, R.color.shell_text));
-    kit.add(words, kit.text(getString(R.string.ui2_welcome_lead2), 12.5f, R.color.shell_text_muted), 3);
+    words.addView(
+        kit.bold(
+            UiText.choose("权限由你决定，数据有处可寻", "Your permissions, your data"),
+            14.5f,
+            R.color.shell_text));
+    kit.add(
+        words, kit.text(getString(R.string.ui2_welcome_lead2), 12.5f, R.color.shell_text_muted), 3);
     LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1);
     wp.leftMargin = kit.dp(12);
     wp.rightMargin = kit.dp(8);
     row.addView(words, wp);
-    row.addView(kit.icon(R.drawable.ic_ui2_chevron, R.color.shell_text_muted, 18), new LinearLayout.LayoutParams(kit.dp(18), kit.dp(18)));
+    row.addView(
+        kit.icon(R.drawable.ic_ui2_chevron, R.color.shell_text_muted, 18),
+        new LinearLayout.LayoutParams(kit.dp(18), kit.dp(18)));
     row.setClickable(true);
     row.setFocusable(true);
     row.setAccessibilityDelegate(OnboardingRoles.BUTTON);
@@ -739,12 +790,18 @@ public final class OnboardingActivity extends AppCompatActivity {
     int pad = kit.dp(24);
     body.setPadding(pad, kit.dp(4), pad, kit.dp(8));
     body.addView(kit.lead(getString(R.string.ui2_welcome_lead2)));
-    int[][] rows = {{R.string.ui2_w2_0, R.string.ui2_ws2_0}, {R.string.ui2_w2_1, R.string.ui2_ws2_1}, {R.string.ui2_w2_2, R.string.ui2_ws2_2}};
+    int[][] rows = {
+      {R.string.ui2_w2_0, R.string.ui2_ws2_0},
+      {R.string.ui2_w2_1, R.string.ui2_ws2_1},
+      {R.string.ui2_w2_2, R.string.ui2_ws2_2}
+    };
     for (int[] r : rows) {
       LinearLayout line = kit.row();
       line.setGravity(Gravity.TOP);
       line.setPadding(0, kit.dp(10), 0, kit.dp(10));
-      line.addView(kit.bold(getString(r[0]), 13.5f, R.color.shell_text), new LinearLayout.LayoutParams(kit.dp(96), -2));
+      line.addView(
+          kit.bold(getString(r[0]), 13.5f, R.color.shell_text),
+          new LinearLayout.LayoutParams(kit.dp(96), -2));
       LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(0, -2, 1);
       vp.leftMargin = kit.dp(10);
       line.addView(kit.text(getString(r[1]), 13.5f, R.color.shell_text_secondary), vp);
@@ -808,27 +865,69 @@ public final class OnboardingActivity extends AppCompatActivity {
 
   private void buildGoals() {
     content.addView(kit.eyebrow(UiText.choose("第 2 步 · 用途", "Step 2 · Purpose")));
-    kit.add(content, kit.heading(UiText.choose("你想用 DSHA 做什么？", "What will you use DSHA for?"), false), 10);
-    kit.add(content, kit.lead(UiText.choose("可多选。只用来推荐下一步的授权，不会自动申请任何权限。", "Choose any. This only recommends permissions on the next step; nothing is requested automatically.")), 8);
+    kit.add(
+        content,
+        kit.heading(UiText.choose("你想用 DSHA 做什么？", "What will you use DSHA for?"), false),
+        10);
+    kit.add(
+        content,
+        kit.lead(
+            UiText.choose(
+                "可多选。只用来推荐下一步的授权，不会自动申请任何权限。",
+                "Choose any. This only recommends permissions on the next step; nothing is requested automatically.")),
+        8);
     OnboardingKit.Grid list = new OnboardingKit.Grid(this, kit.dp(10), kit.dp(290));
     list.setContentDescription(UiText.choose("用途（可多选）", "Purposes (multiple choice)"));
     String[][] items = {
-      {PermissionGoals.BASE, UiText.choose("对话、写代码、用终端", "Chat, code and use the terminal"), UiText.choose("无需任何设备授权", "No device permission needed")},
-      {PermissionGoals.FILES, UiText.choose("读写手机里的文件", "Work with files on the phone"), UiText.choose("推荐：存储读写", "Recommended: storage access")},
-      {PermissionGoals.SCREEN, UiText.choose("让 AI 操作手机屏幕", "Let AI operate the screen"), UiText.choose("推荐：无障碍 · 悬浮窗 · 通知", "Recommended: accessibility · overlay · notifications")},
-      {PermissionGoals.SHELL, UiText.choose("执行设备命令", "Run device commands"), UiText.choose("推荐：Shizuku / Stellar 或 Root（任选其一）", "Recommended: Shizuku / Stellar or Root (either one)")},
-      {PermissionGoals.BACKGROUND, UiText.choose("长时间在后台运行", "Keep running in the background"), UiText.choose("推荐：电池优化 · 通知", "Recommended: battery optimization · notifications")}
+      {
+        PermissionGoals.BASE,
+        UiText.choose("对话、写代码、用终端", "Chat, code and use the terminal"),
+        UiText.choose("无需任何设备授权", "No device permission needed")
+      },
+      {
+        PermissionGoals.FILES,
+        UiText.choose("读写手机里的文件", "Work with files on the phone"),
+        UiText.choose("推荐：存储读写", "Recommended: storage access")
+      },
+      {
+        PermissionGoals.SCREEN,
+        UiText.choose("让 AI 操作手机屏幕", "Let AI operate the screen"),
+        UiText.choose("推荐：无障碍 · 悬浮窗 · 通知", "Recommended: accessibility · overlay · notifications")
+      },
+      {
+        PermissionGoals.SHELL,
+        UiText.choose("执行设备命令", "Run device commands"),
+        UiText.choose(
+            "推荐：Shizuku / Stellar 或 Root（任选其一）",
+            "Recommended: Shizuku / Stellar or Root (either one)")
+      },
+      {
+        PermissionGoals.BACKGROUND,
+        UiText.choose("长时间在后台运行", "Keep running in the background"),
+        UiText.choose("推荐：电池优化 · 通知", "Recommended: battery optimization · notifications")
+      }
     };
-    int[] icons = {R.drawable.ic_onb_chat, R.drawable.ic_onb_folder, R.drawable.ic_onb_hand, R.drawable.ic_terminal, R.drawable.ic_onb_battery};
-    for (int i = 0; i < items.length; i++) list.addView(goal(items[i][0], items[i][1], items[i][2], icons[i]));
+    int[] icons = {
+      R.drawable.ic_onb_chat,
+      R.drawable.ic_onb_folder,
+      R.drawable.ic_onb_hand,
+      R.drawable.ic_terminal,
+      R.drawable.ic_onb_battery
+    };
+    for (int i = 0; i < items.length; i++)
+      list.addView(goal(items[i][0], items[i][1], items[i][2], icons[i]));
     kit.add(content, list, 18);
     if (deploy.phase == DeployStages.Phase.RUNNING)
       kit.add(
           content,
           kit.hint(
               kit.wide()
-                  ? UiText.choose("运行环境正在后台部署，左侧可查看进度。", "The runtime is deploying in the background; see progress on the left.")
-                  : UiText.choose("运行环境正在后台部署，点顶部胶囊可查看进度。", "The runtime is deploying in the background; tap the top capsule for progress."),
+                  ? UiText.choose(
+                      "运行环境正在后台部署，左侧可查看进度。",
+                      "The runtime is deploying in the background; see progress on the left.")
+                  : UiText.choose(
+                      "运行环境正在后台部署，点顶部胶囊可查看进度。",
+                      "The runtime is deploying in the background; tap the top capsule for progress."),
               OnboardingKit.Tone.ACCENT),
           14);
     renderGoalsFooter();
@@ -839,12 +938,16 @@ public final class OnboardingActivity extends AppCompatActivity {
     int n = PermissionGoals.recommendedCount(goals);
     String next =
         n > 0
-            ? String.format(Locale.ROOT, UiText.choose("下一步：查看 %d 项推荐授权", "Next: review %d recommended permissions"), n)
+            ? String.format(
+                Locale.ROOT,
+                UiText.choose("下一步：查看 %d 项推荐授权", "Next: review %d recommended permissions"),
+                n)
             : UiText.choose("下一步：查看授权", "Next: review permissions");
     footer.addView(
         kit.buttonBar(
             kit.primary(next, v -> show(PERMS)),
-            kit.secondary(UiText.choose("跳过授权，稍后在设置中开启", "Skip permissions for now"), v -> show(FINISH))),
+            kit.secondary(
+                UiText.choose("跳过授权，稍后在设置中开启", "Skip permissions for now"), v -> show(FINISH))),
         OnboardingKit.matchWrap());
   }
 
@@ -877,7 +980,8 @@ public final class OnboardingActivity extends AppCompatActivity {
         };
     paint.run();
     row.setAlpha(locked ? 0.78f : 1f);
-    row.setContentDescription(String.format(Locale.ROOT, UiText.choose("%1$s，%2$s", "%1$s, %2$s"), title, sub));
+    row.setContentDescription(
+        String.format(Locale.ROOT, UiText.choose("%1$s，%2$s", "%1$s, %2$s"), title, sub));
     row.setAccessibilityDelegate(OnboardingRoles.checkbox(locked));
     row.setFocusable(true);
     if (!locked) {
@@ -887,7 +991,8 @@ public final class OnboardingActivity extends AppCompatActivity {
             if (!goals.remove(id)) goals.add(id);
             saveGoals();
             paint.run();
-            v.sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_VIEW_CLICKED);
+            v.sendAccessibilityEvent(
+                android.view.accessibility.AccessibilityEvent.TYPE_VIEW_CLICKED);
             renderGoalsFooter();
           });
     }
@@ -916,18 +1021,32 @@ public final class OnboardingActivity extends AppCompatActivity {
       if (view.getParent() instanceof android.view.ViewGroup parent) parent.removeView(view);
       kit.add(content, view, 16);
     } else
-      kit.add(content, kit.hint(UiText.choose("授权状态暂时无法读取，可稍后在 设置 → 设备能力授权 中开启。", "Permission status is unavailable. You can enable permissions later in Settings → Device permissions."), OnboardingKit.Tone.WARN), 16);
+      kit.add(
+          content,
+          kit.hint(
+              UiText.choose(
+                  "授权状态暂时无法读取，可稍后在 设置 → 设备能力授权 中开启。",
+                  "Permission status is unavailable. You can enable permissions later in Settings → Device permissions."),
+              OnboardingKit.Tone.WARN),
+          16);
     footer.addView(
         kit.buttonBar(
             kit.primary(
-                granted() > 0 ? UiText.choose("完成授权", "Done") : UiText.choose("暂不授权，继续", "Skip for now"),
+                granted() > 0
+                    ? UiText.choose("完成授权", "Done")
+                    : UiText.choose("暂不授权，继续", "Skip for now"),
                 v -> show(FINISH))),
         OnboardingKit.matchWrap());
   }
 
   // ---------------------------------------------------------------- 第 4 步：完成
 
-  private static final int F_IDLE = 0, F_RUNNING = 1, F_READY = 2, F_FAILED = 3, F_PENDING = 4, F_UNREADY = 5;
+  private static final int F_IDLE = 0,
+      F_RUNNING = 1,
+      F_READY = 2,
+      F_FAILED = 3,
+      F_PENDING = 4,
+      F_UNREADY = 5;
 
   /** 完成页状态：成功文案不是就绪证明，只有就绪检查通过才允许“进入主界面”。 */
   private int finishState() {
@@ -954,20 +1073,33 @@ public final class OnboardingActivity extends AppCompatActivity {
     switch (state) {
       case F_RUNNING:
         title = UiText.choose("马上就好", "Almost there");
-        lead = UiText.choose("运行环境还在部署，完成后即可进入主界面并自动启动 Web。也可以先进入受限主界面查看配置和日志。", "The runtime is still deploying. When it finishes you can open the home screen and Web starts automatically. You can also enter the limited interface to view settings and logs.");
+        lead =
+            UiText.choose(
+                "运行环境还在部署，完成后即可进入主界面并自动启动 Web。也可以先进入受限主界面查看配置和日志。",
+                "The runtime is still deploying. When it finishes you can open the home screen and Web starts automatically. You can also enter the limited interface to view settings and logs.");
         break;
       case F_READY:
         title = UiText.choose("准备就绪", "All set");
-        lead = UiText.choose("运行环境已部署并通过检查。进入主界面后会自动启动 Web。", "The runtime is deployed and passed its checks. Web starts automatically on the home screen.");
+        lead =
+            UiText.choose(
+                "运行环境已部署并通过检查。进入主界面后会自动启动 Web。",
+                "The runtime is deployed and passed its checks. Web starts automatically on the home screen.");
         break;
       case F_FAILED:
       case F_PENDING:
-        title = state == F_PENDING ? deploy.label() : UiText.choose("部署未完成", "Deployment incomplete");
-        lead = UiText.choose("部署没有完成，本页不会自动覆盖环境。请按下方原因处理后重试。", "Deployment did not finish. This page will not overwrite the environment automatically. Fix the cause below, then retry.");
+        title =
+            state == F_PENDING ? deploy.label() : UiText.choose("部署未完成", "Deployment incomplete");
+        lead =
+            UiText.choose(
+                "部署没有完成，本页不会自动覆盖环境。请按下方原因处理后重试。",
+                "Deployment did not finish. This page will not overwrite the environment automatically. Fix the cause below, then retry.");
         break;
       case F_UNREADY:
         title = UiText.choose("需要处理环境", "The environment needs attention");
-        lead = UiText.choose("维护步骤已结束，但环境就绪检查未通过。已停止自动跳转，请查看原因或进入受限主界面。", "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the reason or enter the limited interface.");
+        lead =
+            UiText.choose(
+                "维护步骤已结束，但环境就绪检查未通过。已停止自动跳转，请查看原因或进入受限主界面。",
+                "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the reason or enter the limited interface.");
         break;
       default:
         title = UiText.choose("还未开始部署", "Deployment has not started");
@@ -991,12 +1123,14 @@ public final class OnboardingActivity extends AppCompatActivity {
       case F_FAILED:
       case F_PENDING:
         primary = kit.primary(retryLabel(), v -> retry());
-        second = kit.secondary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
+        second =
+            kit.secondary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
         third = kit.ghost(UiText.choose("启动应急 DSH", "Start emergency DSH"), v -> openRecovery());
         fourth = kit.ghost(limitedLabel, v -> enterLimited());
         break;
       case F_UNREADY:
-        primary = kit.primary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
+        primary =
+            kit.primary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
         second = kit.secondary(limitedLabel, v -> enterLimited());
         third = kit.ghost(UiText.choose("启动应急 DSH", "Start emergency DSH"), v -> openRecovery());
         break;
@@ -1029,7 +1163,11 @@ public final class OnboardingActivity extends AppCompatActivity {
     else if (state == F_UNREADY)
       kit.add(
           card,
-          kit.messageBox(UiText.choose("维护步骤已结束，但环境就绪检查未通过。已停止自动跳转，请查看原因或进入受限主界面。", "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the reason or enter the limited interface."), OnboardingKit.Tone.WARN),
+          kit.messageBox(
+              UiText.choose(
+                  "维护步骤已结束，但环境就绪检查未通过。已停止自动跳转，请查看原因或进入受限主界面。",
+                  "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the reason or enter the limited interface."),
+              OnboardingKit.Tone.WARN),
           12);
     return card;
   }
@@ -1042,11 +1180,16 @@ public final class OnboardingActivity extends AppCompatActivity {
           com.deepseekharness.app.util.LogCompactor.compactReason(
               com.deepseekharness.app.util.UiStateText.render(deploy.lastStage), 240);
     else if (deploy.current >= 0) stage = deploy.stages.get(deploy.current).title();
-    else stage = UiText.choose("旧记录未提供；请查看维护日志", "Not available in the old record; inspect maintenance logs");
+    else
+      stage =
+          UiText.choose(
+              "旧记录未提供；请查看维护日志", "Not available in the old record; inspect maintenance logs");
     String reason = com.deepseekharness.app.util.MaintenanceErrorText.render(deploy.detail);
     return String.format(
         Locale.ROOT,
-        UiText.choose("未完成的操作：%1$s\n最后记录阶段：%2$s\n\n%3$s", "Unfinished operation: %1$s\nLast recorded stage: %2$s\n\n%3$s"),
+        UiText.choose(
+            "未完成的操作：%1$s\n最后记录阶段：%2$s\n\n%3$s",
+            "Unfinished operation: %1$s\nLast recorded stage: %2$s\n\n%3$s"),
         deploy.title(),
         stage,
         reason == null ? "" : reason);
@@ -1062,19 +1205,43 @@ public final class OnboardingActivity extends AppCompatActivity {
     }
     int n = 0;
     for (String[] item : summary) if ("1".equals(item[1])) n++;
-    String count = String.format(Locale.ROOT, UiText.choose("已开启 %1$d / %2$d", "%1$d / %2$d enabled"), n, Math.max(7, summary.size()));
-    card.addView(kit.cardHeader(UiText.choose("授权", "Permissions"), kit.pill(count, n > 0 ? OnboardingKit.Tone.GOOD : OnboardingKit.Tone.NEUTRAL)));
-    OnboardingKit.FlowRow chips = new OnboardingKit.FlowRow(this, kit.dp(6), kit.dp(6), Gravity.START);
+    String count =
+        String.format(
+            Locale.ROOT,
+            UiText.choose("已开启 %1$d / %2$d", "%1$d / %2$d enabled"),
+            n,
+            Math.max(7, summary.size()));
+    card.addView(
+        kit.cardHeader(
+            UiText.choose("授权", "Permissions"),
+            kit.pill(count, n > 0 ? OnboardingKit.Tone.GOOD : OnboardingKit.Tone.NEUTRAL)));
+    OnboardingKit.FlowRow chips =
+        new OnboardingKit.FlowRow(this, kit.dp(6), kit.dp(6), Gravity.START);
     for (String[] item : summary) {
       boolean on = "1".equals(item[1]);
-      TextView chip = kit.pill(String.format(Locale.ROOT, on ? "✓ %s" : "– %s", item[0]), on ? OnboardingKit.Tone.GOOD : OnboardingKit.Tone.NEUTRAL);
-      chip.setContentDescription(String.format(Locale.ROOT, on ? UiText.choose("%s：已开启", "%s: enabled") : UiText.choose("%s：未开启", "%s: not enabled"), item[0]));
+      TextView chip =
+          kit.pill(
+              String.format(Locale.ROOT, on ? "✓ %s" : "– %s", item[0]),
+              on ? OnboardingKit.Tone.GOOD : OnboardingKit.Tone.NEUTRAL);
+      chip.setContentDescription(
+          String.format(
+              Locale.ROOT,
+              on
+                  ? UiText.choose("%s：已开启", "%s: enabled")
+                  : UiText.choose("%s：未开启", "%s: not enabled"),
+              item[0]));
       chips.addView(chip, new android.view.ViewGroup.LayoutParams(-2, -2));
     }
     kit.add(card, chips, 10);
     LinearLayout note = kit.row();
-    note.addView(kit.fine(UiText.choose("授权可随时在 设置 → 设备能力授权 中修改或撤销。", "Permissions can be changed or revoked anytime in Settings → Device permissions.")), new LinearLayout.LayoutParams(0, -2, 1));
-    android.widget.Button back = kit.ghost(UiText.choose("返回授权", "Back to permissions"), v -> show(PERMS));
+    note.addView(
+        kit.fine(
+            UiText.choose(
+                "授权可随时在 设置 → 设备能力授权 中修改或撤销。",
+                "Permissions can be changed or revoked anytime in Settings → Device permissions.")),
+        new LinearLayout.LayoutParams(0, -2, 1));
+    android.widget.Button back =
+        kit.ghost(UiText.choose("返回授权", "Back to permissions"), v -> show(PERMS));
     back.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
     note.addView(back);
     kit.add(card, note, 8);
@@ -1087,7 +1254,8 @@ public final class OnboardingActivity extends AppCompatActivity {
           com.deepseekharness.app.util.BackupTaskKinds.is(
               com.deepseekharness.app.util.BackupTaskKinds.REBUILD,
               com.deepseekharness.app.core.BackupTask.get(this).snapshot().kind);
-      return RuntimeMaintenanceStarter.retryLabel(RuntimeMaintenanceStarter.retryKind(this, rebuild), true);
+      return RuntimeMaintenanceStarter.retryLabel(
+          RuntimeMaintenanceStarter.retryKind(this, rebuild), true);
     } catch (RuntimeException unknown) {
       return UiText.choose("重试部署", "Retry deployment");
     }
@@ -1103,7 +1271,9 @@ public final class OnboardingActivity extends AppCompatActivity {
           });
     } catch (RuntimeException failure) {
       record("RETRY", failure);
-      toast(UiText.choose("无法开始重试，请查看维护记录。", "Could not start the retry. Check the maintenance record."));
+      toast(
+          UiText.choose(
+              "无法开始重试，请查看维护记录。", "Could not start the retry. Check the maintenance record."));
     }
   }
 

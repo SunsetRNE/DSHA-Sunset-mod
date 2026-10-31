@@ -24,6 +24,7 @@ import java.util.Set;
 final class PermissionPanel {
   static final String PREFS = "dsha-onboarding";
   private static final String NOTIFY_REQUESTS = "notify_requests";
+  private static final String NOTIFY_DENIALS = "notify_denials";
 
   private final AppCompatActivity activity;
   private final OnboardingKit kit;
@@ -85,7 +86,7 @@ final class PermissionPanel {
             .register(
                 "dsha-onboarding-notifications-" + System.identityHashCode(this),
                 new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
-                granted -> refresh());
+                this::onNotificationResult);
   }
 
   /** 返回面板根视图；每次调用都按 goals 的当前内容（宿主可能就地增删）重排推荐与分组。 */
@@ -157,6 +158,7 @@ final class PermissionPanel {
             + environmentReady
             + UiText.language()
             + notifyRequests()
+            + prefs().getInt(NOTIFY_DENIALS, 0)
             + new java.util.TreeSet<>(goals);
     if (!force && key.equals(lastKey)) return;
     lastKey = key;
@@ -300,16 +302,39 @@ final class PermissionPanel {
     return kit;
   }
 
-  /** 已经申请过且系统不再弹框时，改为引导到系统通知设置。 */
+  /** Android 13 以下没有运行时通知申请框：只能在系统通知设置中打开总开关。 */
+  static boolean notificationPromptAvailable() {
+    return Build.VERSION.SDK_INT >= 33;
+  }
+
+  /**
+   * 系统已不再弹出申请框：至少有一次申请明确返回“拒绝”，且系统不再建议说明理由（再次拒绝或“不再询问”）。
+   * 只取消、未作选择的申请不计入，避免把仍会弹框的情况误判成已拒绝。
+   */
   boolean notificationRequestExhausted() {
-    if (Build.VERSION.SDK_INT < 33) return true;
-    return notifyRequests() >= 1
+    if (!notificationPromptAvailable()) return false;
+    return prefs().getInt(NOTIFY_DENIALS, 0) >= 1
         && !activity.shouldShowRequestPermissionRationale(
             android.Manifest.permission.POST_NOTIFICATIONS);
   }
 
+  /** 申请框回调：只有明确拒绝才计数（取消对话框时系统同样回传 false，但随后仍可再弹）。 */
+  private void onNotificationResult(boolean granted) {
+    if (!granted && notificationPromptAvailable() && !PermissionActions.notifications(activity)) {
+      boolean rationale =
+          activity.shouldShowRequestPermissionRationale(
+              android.Manifest.permission.POST_NOTIFICATIONS);
+      // 第一次拒绝后系统建议说明理由（rationale=true）；第二次拒绝或“不再询问”后为 false。
+      // 二者都属于明确拒绝；首次请求被取消时 rationale 仍为 false 且系统下次还会弹框，
+      // 因此只有在之前已请求过至少一次的情况下，rationale=false 才计为拒绝。
+      if (rationale || notifyRequests() >= 2)
+        prefs().edit().putInt(NOTIFY_DENIALS, prefs().getInt(NOTIFY_DENIALS, 0) + 1).apply();
+    }
+    refresh();
+  }
+
   void requestNotifications() {
-    if (Build.VERSION.SDK_INT < 33
+    if (!notificationPromptAvailable()
         || notificationRequest == null
         || notificationRequestExhausted()) {
       PermissionActions.openNotificationSettings(activity);

@@ -65,7 +65,8 @@ final class DeployCapsule extends FrameLayout {
       body.getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     addView(
         body,
-        new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+        new LayoutParams(
+            LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
     setOnClickListener(
         v -> {
           if (open != null && this.view.visible()) open.run();
@@ -204,8 +205,7 @@ final class DeployCapsule extends FrameLayout {
   }
 
   private void startPulse() {
-    if (pulse != null || !isAttachedToWindow() || !UiMotion.animationsEnabled(getContext()))
-      return;
+    if (pulse != null || !isAttachedToWindow() || !UiMotion.animationsEnabled(getContext())) return;
     pulse = ObjectAnimator.ofFloat(dot, "alpha", 1f, 0.35f, 1f);
     pulse.setDuration(1600L);
     pulse.setRepeatCount(ValueAnimator.INFINITE);

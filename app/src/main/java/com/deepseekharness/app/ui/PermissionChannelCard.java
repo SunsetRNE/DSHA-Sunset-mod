@@ -242,23 +242,51 @@ final class PermissionChannelCard {
                     activity,
                     v,
                     () -> RootShell.exec(ctx.getApplicationContext(), "id", -1),
-                    refresh);
+                    () -> {
+                      refresh.run();
+                      // 开关打开且找到 su 时命令先走 root，管理器拒绝不会自动改用 Shizuku。
+                      if (RootShell.enabled(ctx) && !rootReady(ctx))
+                        PermissionActions.toast(
+                            activity,
+                            UiText.choose(
+                                "root 未响应：可在 root 管理器中允许 DSHA，或关闭「允许 Root Shell」改用 Shizuku / Stellar。",
+                                "Root did not respond: allow DSHA in your root manager, or turn off Allow Root Shell and use Shizuku / Stellar instead."));
+                    });
               });
       kit.add(panel, kit.actionRow(verify), 10);
     }
   }
 
+  /** ADB 状态只读：与 DeviceGrantsFragment.computeAdbStatus 同一判据（不发起连接或配对）。 */
+  private static String adbStatus(Context app) {
+    try {
+      if (!com.deepseekharness.app.DeviceBridgeService.isAdbEnabled(app))
+        return UiText.text("ADB 已关闭。开启后才会保持连接。");
+      String bridge = com.deepseekharness.app.DeviceBridgeService.adbState;
+      if ("need_pair".equals(bridge)) return UiText.text("配对已失效，请重新配对。");
+      if ("reconnecting".equals(bridge)) return UiText.format("正在重连无线调试…%s", "");
+      if ("connected".equals(bridge))
+        return UiText.choose("连接已验证 · ADB 通道可用", "Connection verified · ADB channel available");
+      return UiText.text("尚未配对：点下方「ADB 无线配对」，配对后还会验证连接。");
+    } catch (RuntimeException unknown) {
+      return UiText.text("尚未配对：点下方「ADB 无线配对」，配对后还会验证连接。");
+    }
+  }
+
   private static void adbPanel(
       AppCompatActivity activity, OnboardingKit kit, LinearLayout panel, boolean environmentReady) {
+    boolean connected =
+        environmentReady
+            && "connected".equals(com.deepseekharness.app.DeviceBridgeService.adbState);
     panel.addView(
         statusBox(
             kit,
             environmentReady
-                ? UiText.text("尚未配对：点下方「ADB 无线配对」，配对后还会验证连接。")
+                ? adbStatus(activity.getApplicationContext())
                 : UiText.choose(
                     "运行环境就绪后可配对：配对和连接验证依赖内置环境。",
                     "Pairing becomes available when the runtime is ready: pairing and verification use the bundled environment."),
-            false));
+            connected));
     kit.add(
         panel,
         kit.hint(
@@ -271,9 +299,13 @@ final class PermissionChannelCard {
         kit.small(
             UiText.choose("ADB 无线配对", "ADB wireless pairing"),
             true,
-            v ->
-                activity.startActivity(
-                    new android.content.Intent(activity, AdbPairActivity.class)));
+            v -> {
+              try {
+                activity.startActivity(new android.content.Intent(activity, AdbPairActivity.class));
+              } catch (RuntimeException failure) {
+                PermissionActions.toast(activity, UiText.format("打开设置失败：%s", failure.getMessage()));
+              }
+            });
     pair.setEnabled(environmentReady);
     kit.add(panel, kit.actionRow(pair), 10);
   }

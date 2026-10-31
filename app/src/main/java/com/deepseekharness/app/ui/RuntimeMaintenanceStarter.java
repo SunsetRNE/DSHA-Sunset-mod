@@ -136,8 +136,7 @@ final class RuntimeMaintenanceStarter {
         break;
       case UPDATE:
         title = UiText.text("更新运行时？");
-        message =
-            UiText.text("会停止 Web 和终端任务，再更新 dsh 和内置插件，个人目录、会话和配置保持原位。验证失败回切原运行时。");
+        message = UiText.text("会停止 Web 和终端任务，再更新 dsh 和内置插件，个人目录、会话和配置保持原位。验证失败回切原运行时。");
         break;
       case DEPLOY:
         title = UiText.choose("重试部署？", "Retry deployment?");
@@ -189,9 +188,7 @@ final class RuntimeMaintenanceStarter {
       case RECOVER:
         return UiText.text("恢复中断维护");
       case UPDATE:
-        return retry
-            ? UiText.choose("重试更新运行时", "Retry runtime update")
-            : UiText.text("更新运行时");
+        return retry ? UiText.choose("重试更新运行时", "Retry runtime update") : UiText.text("更新运行时");
       case DEPLOY:
         return retry
             ? UiText.choose("重试部署", "Retry deployment")

@@ -186,8 +186,7 @@ final class DeployMonitor implements DefaultLifecycleObserver {
             ? stored
             : DeployStages.modeFor(s.kind, before != null ? before : installedNow);
     int reached = stored != null ? REACHED.getOrDefault(s.id, -1) : -1;
-    DeployStages.View view =
-        DeployStages.view(mode, phase, reached, s.detail, s.lastStage, s.id);
+    DeployStages.View view = DeployStages.view(mode, phase, reached, s.detail, s.lastStage, s.id);
     if (view.mode != stored) REACHED.put(s.id, view.current);
     else REACHED.merge(s.id, view.current, Math::max);
     MODES.put(s.id, view.mode);

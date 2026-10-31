@@ -408,7 +408,12 @@ final class OnboardingKit {
       bar.addView(seg, p);
     }
     bar.setContentDescription(
-        com.deepseekharness.app.util.UiText.format("已完成 %s / %s 个阶段", view.completed(), total));
+        String.format(
+            java.util.Locale.ROOT,
+            com.deepseekharness.app.util.UiText.choose(
+                "已完成 %1$d / %2$d 个阶段", "%1$d of %2$d stages completed"),
+            view.completed(),
+            total));
     return bar;
   }
 
@@ -492,7 +497,12 @@ final class OnboardingKit {
           new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
       lp.leftMargin = dp(10);
       line.addView(label, lp);
-      line.setContentDescription(stages.get(i).title() + "：" + stepWord(step));
+      line.setContentDescription(
+          String.format(
+              java.util.Locale.ROOT,
+              com.deepseekharness.app.util.UiText.choose("%1$s：%2$s", "%1$s: %2$s"),
+              stages.get(i).title(),
+              stepWord(step)));
       line.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
       mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
       label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);

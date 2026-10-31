@@ -39,6 +39,15 @@ final class OnboardingEnvironment {
     }
   }
 
+  /** 运行环境是否已解压安装（不代表就绪）；读取失败按未安装处理，只用于决定是否做冷部署空间预检。 */
+  static boolean installed(Context context) {
+    try {
+      return HarnessController.get(context).proot().isEnvironmentInstalled();
+    } catch (RuntimeException unavailable) {
+      return false;
+    }
+  }
+
   /** 应用私有目录所在分区的可用空间；读取失败返回 -1（显示“未知”，不拦截）。 */
   static long usableBytes(Context context) {
     try {

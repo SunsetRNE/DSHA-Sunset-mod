@@ -2,7 +2,6 @@ package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
 
-import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -26,7 +25,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
@@ -58,21 +56,28 @@ public final class PermissionPanelTest {
     previousLanguage = UiText.language();
     UiText.setLanguage("zh");
     app = RuntimeEnvironment.getApplication();
-    // 首次安装：七类授权全部未开启。
+    // 首次安装：七类授权全部未开启（Robolectric 默认未授予“所有文件访问”）。
     ShadowSettings.setCanDrawOverlays(false);
-    Shadows.shadowOf(app.getSystemService(PowerManager.class))
-        .setIgnoringBatteryOptimizations(app.getPackageName(), false);
-    Shadows.shadowOf(app.getSystemService(AppOpsManager.class))
-        .setMode(
-            AppOpsManager.OPSTR_MANAGE_EXTERNAL_STORAGE,
-            android.os.Process.myUid(),
-            app.getPackageName(),
-            AppOpsManager.MODE_ERRORED);
-    Shadows.shadowOf(app).denyPermissions(android.Manifest.permission.POST_NOTIFICATIONS);
+    battery(false);
+    org.robolectric.shadows.ShadowApplication application =
+        org.robolectric.shadow.api.Shadow.extract(RuntimeEnvironment.getApplication());
+    application.denyPermissions(android.Manifest.permission.POST_NOTIFICATIONS);
     Settings.Secure.putString(
         app.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "");
     app.getSharedPreferences(PermissionPanel.PREFS, Context.MODE_PRIVATE).edit().clear().commit();
     host = Robolectric.buildActivity(Host.class).setup();
+  }
+
+  private void battery(boolean unrestricted) {
+    org.robolectric.shadows.ShadowPowerManager power =
+        org.robolectric.shadow.api.Shadow.extract(app.getSystemService(PowerManager.class));
+    power.setIgnoringBatteryOptimizations(app.getPackageName(), unrestricted);
+  }
+
+  private static Intent startedActivity(AppCompatActivity activity) {
+    org.robolectric.shadows.ShadowActivity shadow =
+        org.robolectric.shadow.api.Shadow.extract(activity);
+    return shadow.getNextStartedActivity();
   }
 
   @After
@@ -122,7 +127,7 @@ public final class PermissionPanelTest {
     assertEquals(0, count(texts, "按你的用途推荐"));
     assertEquals(0, count(texts, "推荐"));
     // 构造与复查不得外跳到任何系统页面。
-    assertNull(Shadows.shadowOf(host.get()).getNextStartedActivity());
+    assertNull(startedActivity(host.get()));
   }
 
   @Test
@@ -140,8 +145,7 @@ public final class PermissionPanelTest {
   public void returningFromSettingsRecountsSystemState() {
     PermissionPanel panel = panel(new LinkedHashSet<>());
     ShadowSettings.setCanDrawOverlays(true);
-    Shadows.shadowOf(app.getSystemService(PowerManager.class))
-        .setIgnoringBatteryOptimizations(app.getPackageName(), true);
+    battery(true);
     panel.refresh();
     assertEquals(2, panel.grantedCount());
     List<String[]> summary = panel.summary();
@@ -187,12 +191,50 @@ public final class PermissionPanelTest {
     assertFalse(step.contains("配对助手"));
   }
 
+  private static List<String> registeredResultKeys(AppCompatActivity activity) {
+    Bundle saved = new Bundle();
+    activity.getActivityResultRegistry().onSaveInstanceState(saved);
+    List<String> keys = saved.getStringArrayList("KEY_COMPONENT_ACTIVITY_REGISTERED_KEYS");
+    List<String> ours = new ArrayList<>();
+    if (keys != null)
+      for (String key : keys) if (key.startsWith("dsha-onboarding-notifications-")) ours.add(key);
+    return ours;
+  }
+
   @Test
-  public void destroyingTheHostUnregistersTheNotificationRequest() {
+  public void notificationRequestIsRegisteredAfterStartAndReleasedOnDestroy() {
+    // 宿主已经 RESUMED 后才构造：注册不依赖 STARTED 之前，也不会因此抛异常。
     panel(new LinkedHashSet<>());
-    Intent before = Shadows.shadowOf(host.get()).getNextStartedActivity();
-    assertNull(before);
+    assertEquals(1, registeredResultKeys(host.get()).size());
+    Host destroyed = host.get();
     host.pause().stop().destroy();
+    assertTrue(registeredResultKeys(destroyed).isEmpty());
     host = Robolectric.buildActivity(Host.class).setup();
+  }
+
+  @Test
+  public void onlyAClickLeavesDsha() {
+    PermissionPanel panel = panel(new LinkedHashSet<>(Set.of(PermissionGoals.FILES)));
+    host.pause();
+    host.resume();
+    ShadowLooper.idleMainLooper();
+    assertNull(startedActivity(host.get()));
+    View button = find(panel.view(), "去开启所有文件访问");
+    assertNotNull(button);
+    button.performClick();
+    Intent started = startedActivity(host.get());
+    assertNotNull(started);
+    assertEquals(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, started.getAction());
+    assertEquals("package:" + app.getPackageName(), started.getDataString());
+  }
+
+  private static View find(View view, String text) {
+    if (view instanceof TextView && text.contentEquals(((TextView) view).getText())) return view;
+    if (view instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+        View hit = find(((ViewGroup) view).getChildAt(i), text);
+        if (hit != null) return hit;
+      }
+    return null;
   }
 }
