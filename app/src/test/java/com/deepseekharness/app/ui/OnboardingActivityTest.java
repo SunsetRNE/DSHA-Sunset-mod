@@ -124,6 +124,21 @@ public final class OnboardingActivityTest {
     protected java.util.List<String[]> summary() {
       return new java.util.ArrayList<>();
     }
+
+    @Implementation
+    protected int recommendedDone() {
+      return 0;
+    }
+
+    @Implementation
+    protected int recommendedTotal() {
+      return 0;
+    }
+
+    @Implementation
+    protected java.util.List<String> recommendedMissingNames() {
+      return new java.util.ArrayList<>();
+    }
   }
 
   @Before
@@ -186,6 +201,31 @@ public final class OnboardingActivityTest {
     assertEquals(OnboardingActivity.WELCOME, page.step);
     page.show(OnboardingActivity.FINISH);
     assertEquals(OnboardingActivity.WELCOME, page.step);
+    host.pause().stop().destroy();
+  }
+
+  /**
+   * 回归：点“开始部署”后被清后台，进程重建时必须回到引导的原步骤（部署未完成），不能因为 welcomed
+   * 已写入而直接进入主界面。welcomed 只在离开引导进入主界面时写入。
+   */
+  @Test
+  public void processKillAfterDeployStartResumesOnboardingInsteadOfMain() {
+    Context app = RuntimeEnvironment.getApplication();
+    app.getSharedPreferences(OnboardingActivity.PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(OnboardingActivity.KEY_DEPLOY_STARTED, true)
+        .putInt("step", OnboardingActivity.PERMS)
+        .commit();
+    // 部署被打断：环境未就绪。即使就绪检查本身返回 true，未 welcomed 时也不能被转走。
+    Environment.ready = true;
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    assertFalse(page.isFinishing());
+    assertEquals(OnboardingActivity.PERMS, page.step);
+    assertFalse("开始部署不写 welcomed", new ConfigStore(page).isWelcomed());
+    var shadow =
+        org.robolectric.shadow.api.Shadow.<org.robolectric.shadows.ShadowActivity>extract(page);
+    assertNull("引导未完成，不能转入主界面", shadow.getNextStartedActivity());
     host.pause().stop().destroy();
   }
 

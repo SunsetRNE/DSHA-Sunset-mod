@@ -118,4 +118,62 @@ public final class PermissionGoals {
   public static int recommendedCount(Set<String> goals) {
     return recommended(goals).size();
   }
+
+  /** 有推荐项的分组（展开显示），按 groupOrder 顺序。 */
+  public static List<String> recommendedGroups(Set<String> goals) {
+    Set<String> rec = recommended(goals);
+    List<String> result = new ArrayList<>();
+    for (String group : groupOrder(goals)) {
+      boolean hit = false;
+      for (String card : cardsIn(group)) hit |= rec.contains(card);
+      if (hit) result.add(group);
+    }
+    return Collections.unmodifiableList(result);
+  }
+
+  /** 没有推荐项的分组（折叠到“其他授权（可选）”）。 */
+  public static List<String> otherGroups(Set<String> goals) {
+    List<String> rec = recommendedGroups(goals);
+    List<String> result = new ArrayList<>();
+    for (String group : groupOrder(goals)) if (!rec.contains(group)) result.add(group);
+    return Collections.unmodifiableList(result);
+  }
+
+  /**
+   * 卡片是否已满足。states 顺序固定：存储、Shizuku / Stellar、Root、无障碍、通知、悬浮窗、电池优化；
+   * 设备命令通道任选其一（Shizuku / Stellar 或 Root）。
+   */
+  public static boolean satisfied(String card, boolean[] states) {
+    if (card == null || states == null || states.length < 7) return false;
+    switch (card) {
+      case STORAGE:
+        return states[0];
+      case CHANNEL:
+        return states[1] || states[2];
+      case A11Y:
+        return states[3];
+      case NOTIFY:
+        return states[4];
+      case OVERLAY:
+        return states[5];
+      case BATTERY:
+        return states[6];
+      default:
+        return false;
+    }
+  }
+
+  /** 推荐卡片中已满足的数量。 */
+  public static int recommendedDone(Set<String> goals, boolean[] states) {
+    int done = 0;
+    for (String card : recommended(goals)) if (satisfied(card, states)) done++;
+    return done;
+  }
+
+  /** 推荐卡片中尚未满足的卡片 id（完成页提示用）。 */
+  public static List<String> recommendedMissing(Set<String> goals, boolean[] states) {
+    List<String> missing = new ArrayList<>();
+    for (String card : recommended(goals)) if (!satisfied(card, states)) missing.add(card);
+    return Collections.unmodifiableList(missing);
+  }
 }

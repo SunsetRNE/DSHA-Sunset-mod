@@ -162,13 +162,36 @@ public final class PermissionPanelTest {
     // 屏幕操作推荐无障碍、悬浮窗、通知三张卡片；分组推荐出现在基础与屏幕操作两组。
     assertEquals(3, count(texts, "按你的用途推荐"));
     assertEquals(2, count(texts, "推荐"));
-    assertTrue(texts.indexOf("屏幕操作（手机任务）") < texts.indexOf("文件"));
-    // 面板持有宿主的同一个 Set：就地增删后重绘即按新用途排序。
+    assertTrue(texts.contains("屏幕操作（手机任务）"));
+    // 用途决定结构：未推荐的分组折叠到“其他授权（可选）”，默认不显示。
+    assertFalse(texts.contains("文件"));
+    assertFalse(texts.contains("设备命令通道"));
+    assertTrue(texts.contains("其他授权（可选）· 2 组"));
+    // 面板持有宿主的同一个 Set：就地增删后重绘即按新用途重排。
     goals.add(PermissionGoals.SHELL);
     panel.refresh();
     texts = texts(panel.view());
     assertEquals(4, count(texts, "按你的用途推荐"));
-    assertTrue(texts.indexOf("设备命令通道") < texts.indexOf("文件"));
+    assertTrue(texts.contains("设备命令通道"));
+    assertTrue(texts.contains("其他授权（可选）· 1 组"));
+    // 展开后折叠分组才出现。
+    View toggle = find(panel.view(), "其他授权（可选）· 1 组");
+    assertNotNull(toggle);
+    toggle.performClick();
+    texts = texts(panel.view());
+    assertTrue(texts.contains("文件"));
+    assertTrue(texts.contains("收起其他授权"));
+  }
+
+  @Test
+  public void baseOnlyGoalShowsEverythingAsOptionalWithoutCollapse() {
+    PermissionPanel panel = panel(new LinkedHashSet<>(List.of(PermissionGoals.BASE)));
+    List<String> texts = texts(panel.view());
+    assertTrue(texts.contains("你选的用途不需要设备授权，可以直接继续。下面的授权都是可选的，需要时再开。"));
+    assertEquals(0, count(texts, "按你的用途推荐"));
+    assertTrue(texts.contains("文件"));
+    assertTrue(texts.contains("设备命令通道"));
+    assertEquals(0, panel.recommendedTotal());
   }
 
   @Test

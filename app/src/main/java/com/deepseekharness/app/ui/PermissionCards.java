@@ -118,24 +118,46 @@ final class PermissionCards {
                 "Reduces how often Android stops Web, the terminal and keep-alive services in the background."),
             UiText.choose("后台 Web 少被中断", "Fewer background Web interruptions"),
             UiText.choose("ADB 保活更稳定", "Steadier ADB keep-alive"));
-    state(m, ok, UiText.choose("不受限制", "Unrestricted"), UiText.choose("未设置", "Not set"));
+    var battery = PermissionActions.batteryState(a);
+    boolean restricted =
+        battery == com.deepseekharness.app.util.BatteryBackgroundState.State.RESTRICTED;
+    m.ok = ok;
+    m.pill =
+        ok
+            ? UiText.choose("不受限制", "Unrestricted")
+            : restricted
+                ? UiText.choose("后台受限", "Restricted")
+                : UiText.choose("未确认", "Unconfirmed");
+    m.tone =
+        ok
+            ? OnboardingKit.Tone.GOOD
+            : restricted ? OnboardingKit.Tone.WARN : OnboardingKit.Tone.NEUTRAL;
     m.status =
         ok
-            ? UiText.choose("不受电池优化限制", "Not restricted by battery optimization")
-            : UiText.choose(
-                "受系统电池优化管理，后台 Web 和终端可能被系统中断。厂商仍可能暂停后台。",
-                "Managed by battery optimization; background Web and the terminal may be interrupted. Vendors may still pause background work.");
+            ? UiText.choose(
+                "已在系统电池优化豁免名单中。厂商的后台管理仍可能单独暂停应用。",
+                "On the system battery-optimization exemption list. Vendor background managers may still pause the app separately.")
+            : restricted
+                ? UiText.choose(
+                    "系统显示已限制 DSH-A-Su 的后台活动：后台 Web、终端与保活很可能被结束。",
+                    "Android reports that background activity is restricted for DSH-A-Su; background Web, the terminal and keep-alive will likely be stopped.")
+                : UiText.choose(
+                    "未在系统电池优化豁免名单中。厂商的“允许后台运行 / 自启动”开关应用无法读取：若已在系统里允许，可忽略本项。",
+                    "Not on the battery-optimization exemption list. Vendor “allow background / auto-start” switches cannot be read by apps; if you already allowed them, you can ignore this.");
     m.outside =
         UiText.choose(
-            "打开系统电池优化设置，把 DSH-A-Su 设为不限制（各厂商叫法不同）。DSHA 不会自动申请豁免。",
-            "Open battery optimization settings and set DSH-A-Su to unrestricted (names vary by vendor). DSHA never requests an exemption itself.");
+            "电池优化：设为“不优化 / 不受限制”后这里会显示已开启。厂商后台开关（如联想“后台运行”）在应用详情 → 电池中设置。DSHA 不会自动申请豁免。",
+            "Battery optimization: once set to unrestricted this card shows as on. Vendor background switches (for example Lenovo “Run in background”) are under App info → Battery. DSHA never requests an exemption itself.");
     m.actions =
         new View[] {
           ok
               ? kit.ghost(
                   UiText.choose("电池优化设置", "Battery settings"),
                   v -> PermissionActions.openBattery(a))
-              : kit.small(UiText.text("设置电池优化"), true, v -> PermissionActions.openBattery(a))
+              : kit.small(UiText.text("设置电池优化"), true, v -> PermissionActions.openBattery(a)),
+          kit.ghost(
+              UiText.choose("应用详情（厂商后台开关）", "App info (vendor background switch)"),
+              v -> PermissionActions.openAppDetails(a))
         };
     return m;
   }

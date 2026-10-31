@@ -49,4 +49,32 @@ public class PermissionGoalsTest {
     assertTrue(PermissionGoals.cardsFor("unknown").isEmpty());
     assertTrue(PermissionGoals.cardsFor(PermissionGoals.BASE).isEmpty());
   }
+
+  @Test
+  public void goalsSplitGroupsIntoRecommendedAndCollapsed() {
+    Set<String> files = Set.of(PermissionGoals.FILES);
+    assertEquals(List.of("files"), PermissionGoals.recommendedGroups(files));
+    assertEquals(List.of("basic", "screen", "shell"), PermissionGoals.otherGroups(files));
+    // 只选“对话、写代码”：没有推荐分组，全部折叠为可选。
+    assertTrue(PermissionGoals.recommendedGroups(Set.of(PermissionGoals.BASE)).isEmpty());
+    assertEquals(4, PermissionGoals.otherGroups(Set.of(PermissionGoals.BASE)).size());
+  }
+
+  @Test
+  public void recommendedProgressCountsChannelAsEitherShizukuOrRoot() {
+    Set<String> goals = Set.of(PermissionGoals.SHELL, PermissionGoals.SCREEN);
+    // 存储、Shizuku、Root、无障碍、通知、悬浮窗、电池
+    boolean[] none = new boolean[7];
+    assertEquals(0, PermissionGoals.recommendedDone(goals, none));
+    assertEquals(4, PermissionGoals.recommendedMissing(goals, none).size());
+    boolean[] rootAndA11y = {false, false, true, true, false, false, false};
+    assertEquals(2, PermissionGoals.recommendedDone(goals, rootAndA11y));
+    assertEquals(
+        List.of("overlay", "notify"),
+        PermissionGoals.recommendedMissing(goals, rootAndA11y).stream()
+            .filter(c -> !c.equals("a11y") && !c.equals("channel"))
+            .toList());
+    assertFalse(PermissionGoals.satisfied("unknown", rootAndA11y));
+    assertFalse(PermissionGoals.satisfied(PermissionGoals.STORAGE, null));
+  }
 }

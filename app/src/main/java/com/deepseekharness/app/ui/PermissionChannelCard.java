@@ -135,6 +135,10 @@ final class PermissionChannelCard {
   private static void shizukuPanel(
       AppCompatActivity activity, OnboardingKit kit, LinearLayout panel, Runnable refresh) {
     boolean ok = shizukuReady();
+    com.deepseekharness.app.util.ShizukuChannelStatus.Step step = ShizukuShell.step(activity);
+    // 在管理器里授权后回到 DSHA 时，只补一次设备 Shell 绑定；这不是申请权限。
+    if (com.deepseekharness.app.util.ShizukuChannelStatus.shouldEnsureBound(step))
+      ShizukuShell.ensureBound(activity);
     panel.addView(statusBox(kit, ShizukuShell.userStatus(activity), ok));
     kit.add(
         panel,
@@ -164,6 +168,9 @@ final class PermissionChannelCard {
                       refresh.run();
                     });
               });
+    else if (step == com.deepseekharness.app.util.ShizukuChannelStatus.Step.AUTHORIZE_IN_OWNER)
+      // 分身 / 工作资料里没有管理器：授权只能在机主空间完成，这里只重新读取真实状态。
+      primary = kit.small(UiText.choose("刷新状态", "Refresh"), true, v -> refresh.run());
     else if (!ShizukuShell.hasPermission())
       primary =
           kit.small(

@@ -165,8 +165,77 @@ final class PermissionPanel {
     root.removeAllViews();
     root.addView(summaryBar(s));
     Set<String> rec = PermissionGoals.recommended(goals);
-    for (String group : PermissionGoals.groupOrder(goals))
-      root.addView(group(group, rec, s), kit.topMargin(22));
+    java.util.List<String> recommendedGroups = PermissionGoals.recommendedGroups(goals);
+    java.util.List<String> otherGroups = PermissionGoals.otherGroups(goals);
+    // 用途决定页面结构：推荐分组展开在前；其余折叠为“其他授权（可选）”，需要时再展开。
+    if (recommendedGroups.isEmpty())
+      root.addView(
+          kit.hint(
+              UiText.choose(
+                  "你选的用途不需要设备授权，可以直接继续。下面的授权都是可选的，需要时再开。",
+                  "Your choices need no device permissions, so you can continue. Everything below is optional."),
+              OnboardingKit.Tone.ACCENT),
+          kit.topMargin(14));
+    for (String group : recommendedGroups) root.addView(group(group, rec, s), kit.topMargin(22));
+    if (otherGroups.isEmpty()) return;
+    boolean expanded = othersExpanded || recommendedGroups.isEmpty();
+    if (!recommendedGroups.isEmpty())
+      root.addView(othersToggle(otherGroups.size(), expanded), kit.topMargin(22));
+    if (expanded)
+      for (String group : otherGroups) root.addView(group(group, rec, s), kit.topMargin(18));
+  }
+
+  /** 是否展开“其他授权（可选）”；只影响本次显示，不记忆、不申请任何权限。 */
+  private boolean othersExpanded;
+
+  private View othersToggle(int groups, boolean expanded) {
+    android.widget.Button toggle =
+        kit.ghost(
+            expanded
+                ? UiText.choose("收起其他授权", "Hide other permissions")
+                : String.format(
+                    java.util.Locale.ROOT,
+                    UiText.choose("其他授权（可选）· %d 组", "Other permissions (optional) · %d groups"),
+                    groups),
+            v -> {
+              othersExpanded = !othersExpanded;
+              render(true);
+            });
+    toggle.setContentDescription(toggle.getText());
+    return toggle;
+  }
+
+  /** 第 3 / 4 步用：推荐授权中已开启 / 总数，以及尚未开启的推荐卡片名。 */
+  int recommendedDone() {
+    return PermissionGoals.recommendedDone(goals, states());
+  }
+
+  int recommendedTotal() {
+    return PermissionGoals.recommendedCount(goals);
+  }
+
+  java.util.List<String> recommendedMissingNames() {
+    java.util.List<String> names = new java.util.ArrayList<>();
+    for (String card : PermissionGoals.recommendedMissing(goals, states()))
+      names.add(cardName(card));
+    return names;
+  }
+
+  private static String cardName(String card) {
+    switch (card) {
+      case PermissionGoals.STORAGE:
+        return UiText.choose("存储读写", "Storage");
+      case PermissionGoals.CHANNEL:
+        return UiText.choose("设备命令通道", "Device command channel");
+      case PermissionGoals.A11Y:
+        return UiText.choose("无障碍", "Accessibility");
+      case PermissionGoals.NOTIFY:
+        return UiText.choose("通知", "Notifications");
+      case PermissionGoals.OVERLAY:
+        return UiText.choose("悬浮窗", "Overlay");
+      default:
+        return UiText.choose("电池优化", "Battery optimization");
+    }
   }
 
   private View summaryBar(boolean[] s) {
@@ -175,9 +244,21 @@ final class PermissionPanel {
     bar.setPadding(kit.dp(14), kit.dp(12), kit.dp(14), kit.dp(12));
     int n = 0;
     for (boolean b : s) if (b) n++;
+    int total = PermissionGoals.recommendedCount(goals);
+    int done = PermissionGoals.recommendedDone(goals, s);
     TextView label =
         kit.bold(
-            String.format(java.util.Locale.ROOT, UiText.choose("已开启 %d / 7", "%d of 7 enabled"), n),
+            total > 0
+                ? String.format(
+                    java.util.Locale.ROOT,
+                    UiText.choose(
+                        "推荐授权已开启 %1$d / %2$d · 全部 %3$d / 7",
+                        "Recommended %1$d of %2$d · all %3$d of 7"),
+                    done,
+                    total,
+                    n)
+                : String.format(
+                    java.util.Locale.ROOT, UiText.choose("已开启 %d / 7", "%d of 7 enabled"), n),
             15,
             R.color.shell_text);
     bar.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));

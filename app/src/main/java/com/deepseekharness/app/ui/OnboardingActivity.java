@@ -40,6 +40,13 @@ public final class OnboardingActivity extends AppCompatActivity {
   static final String PREFS = PermissionPanel.PREFS;
   static final String KEY_GOALS = "goals";
   private static final String KEY_STEP = "step";
+
+  /**
+   * 已在本引导里点过“开始部署”（或确认环境已就绪）。只用于引导内步骤恢复：welcomed 要等用户离开引导
+   * 进入主界面时才写入，否则部署途中被清后台，下次启动会直接进主界面而未完成部署。
+   */
+  static final String KEY_DEPLOY_STARTED = "deploy_started";
+
   private static final String STATE_STEP = "onboarding_step";
   private static final String STATE_GOALS = "onboarding_goals";
   static final int WELCOME = 0, GOALS = 1, PERMS = 2, FINISH = 3, STEPS = 4;
@@ -82,9 +89,10 @@ public final class OnboardingActivity extends AppCompatActivity {
       for (String goal : PermissionGoals.goals()) if (restored.contains(goal)) goals.add(goal);
     } else goals.addAll(savedGoals(this));
     if (saved != null) step = clamp(saved.getInt(STATE_STEP, WELCOME));
-    else if (config.isWelcomed()) step = clamp(prefs().getInt(KEY_STEP, FINISH));
-    // 未写入 welcomed 时不能越过第 1 步。
-    if (!config.isWelcomed()) step = WELCOME;
+    else if (config.isWelcomed() || deployStarted())
+      step = clamp(prefs().getInt(KEY_STEP, config.isWelcomed() ? FINISH : GOALS));
+    // 没有在引导里开始过部署时不能越过第 1 步（进程被清后由偏好恢复到原步骤）。
+    if (!config.isWelcomed() && !deployStarted()) step = WELCOME;
     getOnBackPressedDispatcher().addCallback(this, backStep);
     setContentView(buildShell());
     panel = new PermissionPanel(this, goals, false);
@@ -334,8 +342,9 @@ public final class OnboardingActivity extends AppCompatActivity {
   private void show(int target, boolean announce) {
     if (content == null || isFinishing() || isDestroyed()) return;
     target = clamp(target);
-    // 未写入 welcomed（尚未点开始）时不能越过第 1 步。
-    if (target > WELCOME && !new ConfigStore(this).isWelcomed()) target = WELCOME;
+    // 尚未点“开始部署”时不能越过第 1 步。
+    if (target > WELCOME && !new ConfigStore(this).isWelcomed() && !deployStarted())
+      target = WELCOME;
     boolean changed = target != step;
     step = target;
     try {
@@ -396,7 +405,9 @@ public final class OnboardingActivity extends AppCompatActivity {
             .append(PermissionGoals.recommendedCount(goals));
         break;
       case PERMS:
-        key.append(granted() > 0);
+        key.append(granted() > 0)
+            .append(panel == null ? 0 : panel.recommendedDone())
+            .append(new java.util.TreeSet<>(goals));
         break;
       default:
         key.append(finishState())
@@ -449,6 +460,23 @@ public final class OnboardingActivity extends AppCompatActivity {
     if (before != deploy.phase && deploy.visible())
       content.announceForAccessibility(deploy.label());
     render(false);
+  }
+
+  /** 是否已在本引导中开始过部署（进程被清后仍保留，用于恢复到原步骤）。 */
+  boolean deployStarted() {
+    try {
+      return prefs().getBoolean(KEY_DEPLOY_STARTED, false);
+    } catch (RuntimeException unavailable) {
+      return false;
+    }
+  }
+
+  private void markDeployStarted() {
+    try {
+      prefs().edit().putBoolean(KEY_DEPLOY_STARTED, true).commit();
+    } catch (RuntimeException failure) {
+      record("DEPLOY_STARTED", failure);
+    }
   }
 
   boolean started() {
@@ -704,7 +732,7 @@ public final class OnboardingActivity extends AppCompatActivity {
           kit.primary(
               UiText.choose("继续", "Continue"),
               v -> {
-                new ConfigStore(this).setWelcomed(true);
+                markDeployStarted();
                 show(GOALS);
               });
     else primary = kit.primary(UiText.choose("开始部署", "Start deployment"), v -> startDeploy());
@@ -835,14 +863,14 @@ public final class OnboardingActivity extends AppCompatActivity {
             : UiText.choose("空间检查已通过。", "The space check passed."));
   }
 
-  /** “开始部署”：写入 welcomed，启动一次应用级维护任务，再进入第 2 步；不重复启动。 */
+  /** “开始部署”：记下引导进度，启动一次应用级维护任务，再进入第 2 步；不重复启动、不写 welcomed。 */
   private void startDeploy() {
     measureSpace();
     if (spaceLow) {
       recheckSpace();
       return;
     }
-    new ConfigStore(this).setWelcomed(true);
+    markDeployStarted();
     boolean accepted = false;
     try {
       accepted = RuntimeMaintenanceStarter.startInitialDeploy(this);
@@ -936,13 +964,22 @@ public final class OnboardingActivity extends AppCompatActivity {
   private void renderGoalsFooter() {
     footer.removeAllViews();
     int n = PermissionGoals.recommendedCount(goals);
+    if (n == 0) {
+      // 只选了“对话、写代码、用终端”：不需要任何设备授权，直接到完成页；授权页仍可选择进入。
+      footer.addView(
+          kit.buttonBar(
+              kit.primary(
+                  UiText.choose("无需授权，下一步", "No permissions needed · Next"), v -> show(FINISH)),
+              kit.secondary(
+                  UiText.choose("仍然查看可选授权", "Review optional permissions"), v -> show(PERMS))),
+          OnboardingKit.matchWrap());
+      return;
+    }
     String next =
-        n > 0
-            ? String.format(
-                Locale.ROOT,
-                UiText.choose("下一步：查看 %d 项推荐授权", "Next: review %d recommended permissions"),
-                n)
-            : UiText.choose("下一步：查看授权", "Next: review permissions");
+        String.format(
+            Locale.ROOT,
+            UiText.choose("下一步：开启 %d 项推荐授权", "Next: enable %d recommended permissions"),
+            n);
     footer.addView(
         kit.buttonBar(
             kit.primary(next, v -> show(PERMS)),
@@ -1029,14 +1066,24 @@ public final class OnboardingActivity extends AppCompatActivity {
                   "Permission status is unavailable. You can enable permissions later in Settings → Device permissions."),
               OnboardingKit.Tone.WARN),
           16);
-    footer.addView(
-        kit.buttonBar(
-            kit.primary(
-                granted() > 0
+    int total = panel == null ? 0 : panel.recommendedTotal();
+    int done = panel == null ? 0 : panel.recommendedDone();
+    String primary =
+        total > 0 && done >= total
+            ? UiText.choose("推荐授权已完成，下一步", "Recommended permissions done · Next")
+            : total > 0
+                ? String.format(
+                    Locale.ROOT,
+                    UiText.choose(
+                        "下一步（推荐已开启 %1$d / %2$d，其余可稍后开启）",
+                        "Next (%1$d of %2$d recommended on; the rest can wait)"),
+                    done,
+                    total)
+                : granted() > 0
                     ? UiText.choose("完成授权", "Done")
-                    : UiText.choose("暂不授权，继续", "Skip for now"),
-                v -> show(FINISH))),
-        OnboardingKit.matchWrap());
+                    : UiText.choose("暂不授权，继续", "Skip for now");
+    footer.addView(
+        kit.buttonBar(kit.primary(primary, v -> show(FINISH))), OnboardingKit.matchWrap());
   }
 
   // ---------------------------------------------------------------- 第 4 步：完成
@@ -1233,6 +1280,21 @@ public final class OnboardingActivity extends AppCompatActivity {
       chips.addView(chip, new android.view.ViewGroup.LayoutParams(-2, -2));
     }
     kit.add(card, chips, 10);
+    // 按第 2 步用途列出尚未开启的推荐授权：用途选择在完成页也有可见结果。
+    java.util.List<String> missing =
+        panel == null ? java.util.List.of() : panel.recommendedMissingNames();
+    if (!missing.isEmpty())
+      kit.add(
+          card,
+          kit.hint(
+              String.format(
+                  Locale.ROOT,
+                  UiText.choose(
+                      "按你选的用途，还建议开启：%s。不开也能先进入主界面。",
+                      "For the uses you picked, consider enabling: %s. You can enter the home screen without them."),
+                  String.join(UiText.choose("、", ", "), missing)),
+              OnboardingKit.Tone.ACCENT),
+          10);
     LinearLayout note = kit.row();
     note.addView(
         kit.fine(

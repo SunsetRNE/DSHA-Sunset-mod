@@ -49,13 +49,42 @@ final class PermissionActions {
     }
   }
 
-  /** 新增的只读检测：是否已不受电池优化限制。读取失败按“未设置”显示，不据此改动任何设置。 */
+  /** 是否已确认不受电池优化限制（只读；只有确认豁免才计入已开启）。 */
   static boolean batteryUnrestricted(Context context) {
+    return com.deepseekharness.app.util.BatteryBackgroundState.granted(batteryState(context));
+  }
+
+  /**
+   * 只读三态：Doze 豁免名单 + 用户显式后台限制。厂商的“允许后台运行 / 自启动”开关应用无法读取，
+   * 两项都未命中时为“未确认”。读取失败按未确认处理，不据此改动任何设置。
+   */
+  static com.deepseekharness.app.util.BatteryBackgroundState.State batteryState(Context context) {
+    boolean ignoring = false, restricted = false;
     try {
       android.os.PowerManager power = context.getSystemService(android.os.PowerManager.class);
-      return power != null && power.isIgnoringBatteryOptimizations(context.getPackageName());
+      ignoring = power != null && power.isIgnoringBatteryOptimizations(context.getPackageName());
     } catch (RuntimeException unknown) {
-      return false;
+      // 保持未确认。
+    }
+    try {
+      android.app.ActivityManager activities =
+          context.getSystemService(android.app.ActivityManager.class);
+      restricted = activities != null && activities.isBackgroundRestricted();
+    } catch (RuntimeException unknown) {
+      // 保持未确认。
+    }
+    return com.deepseekharness.app.util.BatteryBackgroundState.of(ignoring, restricted);
+  }
+
+  /** 打开本应用的系统详情页：厂商的电池 / 后台运行开关通常在这里（只在点击时）。 */
+  static void openAppDetails(AppCompatActivity activity) {
+    try {
+      activity.startActivity(
+          new Intent(
+              Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+              Uri.parse("package:" + activity.getPackageName())));
+    } catch (RuntimeException failure) {
+      toast(activity, UiText.format("打开设置失败：%s", failure.getMessage()));
     }
   }
 
