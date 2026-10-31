@@ -1247,5 +1247,8 @@
   "uiv5a010": "Quando ativado, operações com recursos já autorizados deixam de pedir a confirmação de segurança do DSHA.\n\nAo desativar, as regras de confirmação voltam. A opção fica só neste aparelho e não vai para backups. Arquivos, root, ADB, SMS, localização, sensores e permissões do Android continuam com autorizações próprias; negação e pausa continuam valendo. O conteúdo a preencher, o escopo da restauração e o local de salvamento continuam sendo escolha sua.",
   "uiv5a011": "(toque para ver detalhes)",
   "uiv5a012": "Escolha um plugin",
-  "uiv5a013": "Detalhes do plugin"
+  "uiv5a013": "Detalhes do plugin",
+  "uiv5a014": "Entendo que comandos root do assistente ou dos plugins podem danificar dados ou o sistema, talvez sem recuperação.",
+  "uiv5a015": "Fiz backup dos dados importantes e voltarei para Estrito quando não precisar mais.",
+  "uiv5a016": "Assumo as consequências; o DSHA e seus desenvolvedores não se responsabilizam."
 }

@@ -10084,5 +10084,29 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
     ]
+  },
+  {
+    "id": "uiv5a014",
+    "zh": "我了解：放宽后由助手或插件执行的 root 命令可能损坏数据或系统，且可能无法恢复。",
+    "en": "I understand that root commands run by the assistant or plugins may damage data or the system, possibly beyond recovery.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a015",
+    "zh": "我已备份重要数据，并会在不需要时改回严格。",
+    "en": "I have backed up important data and will switch back to strict when it is no longer needed.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "uiv5a016",
+    "zh": "由此产生的后果由我自行承担，DSHA 及其开发者不承担责任。",
+    "en": "I accept the consequences myself; DSHA and its developers are not responsible.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
   }
 ]

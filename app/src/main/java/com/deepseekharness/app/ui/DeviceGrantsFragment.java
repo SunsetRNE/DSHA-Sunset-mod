@@ -713,22 +713,91 @@ public final class DeviceGrantsFragment extends Fragment {
         new android.widget.LinearLayout.LayoutParams(-1, -2);
     scopeParams.topMargin = dp(10);
     body.addView(scope, scopeParams);
+    // 免责确认：三项都勾选，且十秒等待结束，确认按钮才可用。
+    String[] acknowledgements = {
+      com.deepseekharness.app.util.UiText.choose(
+          "我了解：放宽后由助手或插件执行的 root 命令可能损坏数据或系统，且可能无法恢复。",
+          "I understand that root commands run by the assistant or plugins may damage data or the system, possibly beyond recovery."),
+      com.deepseekharness.app.util.UiText.choose(
+          "我已备份重要数据，并会在不需要时改回严格。",
+          "I have backed up important data and will switch back to strict when it is no longer needed."),
+      com.deepseekharness.app.util.UiText.choose(
+          "由此产生的后果由我自行承担，DSHA 及其开发者不承担责任。",
+          "I accept the consequences myself; DSHA and its developers are not responsible.")
+    };
+    java.util.List<android.widget.CheckBox> checks = new java.util.ArrayList<>();
+    for (String acknowledgement : acknowledgements) {
+      android.widget.CheckBox check = new androidx.appcompat.widget.AppCompatCheckBox(ctx);
+      check.setText(acknowledgement);
+      check.setTextSize(13);
+      check.setTextColor(ctx.getColor(R.color.shell_text));
+      check.setButtonTintList(android.content.res.ColorStateList.valueOf(bad));
+      check.setMinHeight(dp(44));
+      android.widget.LinearLayout.LayoutParams checkParams =
+          new android.widget.LinearLayout.LayoutParams(-1, -2);
+      checkParams.topMargin = dp(checks.isEmpty() ? 12 : 4);
+      body.addView(check, checkParams);
+      checks.add(check);
+    }
+    android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+    scroll.addView(body);
+    String confirmLabel =
+        full
+            ? com.deepseekharness.app.util.UiText.choose("仍要完全放宽", "Fully relax anyway")
+            : com.deepseekharness.app.util.UiText.choose("仍要放宽", "Relax anyway");
+    long startedAt = android.os.SystemClock.elapsedRealtime();
+    int waitSeconds = com.deepseekharness.app.util.ConfirmCountdown.ROOT_RELAX_SECONDS;
+    java.util.function.BooleanSupplier allChecked =
+        () -> {
+          for (android.widget.CheckBox check : checks) if (!check.isChecked()) return false;
+          return true;
+        };
     androidx.appcompat.app.AlertDialog dialog =
         new DshaDialogBuilder(ctx)
             .setTitle(title)
-            .setView(body)
+            .setView(scroll)
             .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
             .setPositiveButton(
-                full
-                    ? com.deepseekharness.app.util.UiText.choose("仍要完全放宽", "Fully relax anyway")
-                    : com.deepseekharness.app.util.UiText.choose("仍要放宽", "Relax anyway"),
-                (d, which) -> saveRootPolicy(mode))
+                confirmLabel,
+                (d, which) -> {
+                  // 双保险：保存前再核对等待与勾选，不只依赖按钮可用状态。
+                  if (allChecked.getAsBoolean()
+                      && com.deepseekharness.app.util.ConfirmCountdown.remainingSeconds(
+                              startedAt, android.os.SystemClock.elapsedRealtime(), waitSeconds)
+                          == 0) saveRootPolicy(mode);
+                })
             .create();
     dialog.setCanceledOnTouchOutside(false);
     dialog.show();
     android.widget.Button confirm =
         dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
-    if (confirm != null) confirm.setTextColor(bad);
+    if (confirm == null) return;
+    confirm.setTextColor(bad);
+    // 十秒强制等待：倒计时显示在确认按钮上；「取消」与返回键始终可用。
+    Runnable tick =
+        new Runnable() {
+          @Override
+          public void run() {
+            if (!dialog.isShowing()) return;
+            int left =
+                com.deepseekharness.app.util.ConfirmCountdown.remainingSeconds(
+                    startedAt, android.os.SystemClock.elapsedRealtime(), waitSeconds);
+            boolean ready = left == 0 && allChecked.getAsBoolean();
+            confirm.setEnabled(ready);
+            confirm.setAlpha(ready ? 1f : 0.45f);
+            confirm.setText(
+                left > 0
+                    ? com.deepseekharness.app.util.UiText.raw(confirmLabel + " (" + left + ")")
+                    : confirmLabel);
+            // 勾选变化也会调用本方法：先清掉已排队的一次，保证只有一个倒计时循环。
+            confirm.removeCallbacks(this);
+            if (left > 0) confirm.postDelayed(this, 250);
+          }
+        };
+    for (android.widget.CheckBox check : checks)
+      check.setOnCheckedChangeListener((button, checked) -> tick.run());
+    tick.run();
+    dialog.setOnDismissListener(d -> confirm.removeCallbacks(tick));
   }
 
   private int dp(int value) {

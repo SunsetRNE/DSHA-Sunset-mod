@@ -1247,5 +1247,8 @@
   "uiv5a010": "Une fois activé, les opérations utilisant des capacités déjà autorisées ne demandent plus la confirmation de sécurité DSHA.\n\nUne fois désactivé, les règles de confirmation reviennent. Ce réglage reste sur cet appareil et n’est pas inclus dans les sauvegardes. Fichiers, root, ADB, SMS, localisation, capteurs et autorisations Android gardent leurs autorisations propres ; refus et pause restent effectifs. Le contenu à saisir, l’étendue de la restauration et l’emplacement d’enregistrement restent à votre choix.",
   "uiv5a011": "(touchez pour en savoir plus)",
   "uiv5a012": "Choisissez un plugin",
-  "uiv5a013": "Détails du plugin"
+  "uiv5a013": "Détails du plugin",
+  "uiv5a014": "Je comprends que les commandes root de l’assistant ou des plugins peuvent endommager les données ou le système, parfois sans retour possible.",
+  "uiv5a015": "J’ai sauvegardé mes données importantes et je repasserai en Strict quand ce ne sera plus utile.",
+  "uiv5a016": "J’assume moi-même les conséquences ; DSHA et ses développeurs ne sont pas responsables."
 }
