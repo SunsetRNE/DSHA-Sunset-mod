@@ -72,7 +72,20 @@
 - 电池优化：新增 `PowerManager.isIgnoringBatteryOptimizations` 只读检测；跳转仍是通用电池优化设置，**不申请豁免**（`BatterySettingsNavigationTest` 锁定）。
 - 无障碍设置文案统一为系统列表实际显示的「DSH-A-Su 屏幕控制」。
 
-## 6. 未验证
+## 6. 验证范围（2026-10-31，提交 `94b736b`）
 
-- 未在真机上安装、覆盖升级或走完首次部署；系统设置页的实际标题与 OEM 差异、Stellar 兼容层的实际授权交互、部署期间切到系统设置后 ROM 是否结束进程，均待真机核对。
-- 本机（aarch64）单测环境缺 Robolectric 原生图形库，依赖原生绘制的用例以远端 x86-64 CI 结果为准。
+| 项 | 结果 |
+|---|---|
+| 本机编译（aarch64 容器，`local-ci.sh`，qemu 运行 Google aapt2） | `:app:compileStandardDebugJavaWithJavac` 通过 |
+| 本机单测（Robolectric，`com.deepseekharness.app.ui.*` 全包 + 新增纯逻辑） | 329 例，0 失败 0 跳过 |
+| 快速门禁 | source-hygiene、ui-i18n（新增 0）、localize --check、changelog --check、文档链接（0 error）、host-tests manifest、运行时描述符（441 个启动输入未改）均通过；格式化 1228 个文件 0 变更 |
+| 测试包 APK | `io.github.sunsetrne.dsha.test` / build218，本地测试证书签名；**本机 `.so` 未 strip**（NDK llvm-strip 为 x86-64），正式包以 x86-64 CI 为准 |
+| 远端 CI | 推送分支自动触发 `Source checks`；结果见交付说明 |
+
+## 7. 未验证与后续
+
+- 未在真机上安装、覆盖升级或走完首次部署；系统设置页标题与 OEM 差异、Stellar 兼容层的实际授权交互、部署期间切到系统设置后 ROM 是否结束进程，均待真机核对。
+- 本机缺 Robolectric 原生图形库，未做截图验收；`LayoutAuditInstrumentation` 的日夜 / 短屏 / 1.3 倍字体设备验收尚未运行（审计场景表已去掉旧欢迎布局）。
+- 原位更新进行中，“启动 Web”按钮在界面上仍可点（环境此时通常仍就绪）；执行层会以“正在执行环境任务”拒绝，终端新会话与插件操作也被各自门禁拦截。后续可让启动页额外读取维护忙状态把按钮置灰。
+- 设置 → 设备能力授权（`DeviceGrantsFragment`）仍是旧长表单，可逐步迁移到 `PermissionPanel`。
+- 新文案均为中英整句，其余 8 种界面语言回退英文，待补译。
