@@ -756,8 +756,9 @@ public final class DeviceGrantsFragment extends Fragment {
         new DshaDialogBuilder(ctx)
             .setTitle(title)
             .setView(scroll)
-            .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
-            .setPositiveButton(
+            // 取消放在最右（拇指位、默认安全）；高危确认放在左侧，需要刻意去点。
+            .setPositiveButton(com.deepseekharness.app.util.UiText.text("取消"), null)
+            .setNegativeButton(
                 confirmLabel,
                 (d, which) -> {
                   // 双保险：保存前再核对等待与勾选，不只依赖按钮可用状态。
@@ -770,7 +771,7 @@ public final class DeviceGrantsFragment extends Fragment {
     dialog.setCanceledOnTouchOutside(false);
     dialog.show();
     android.widget.Button confirm =
-        dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
+        dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE);
     if (confirm == null) return;
     confirm.setTextColor(bad);
     // 十秒强制等待：倒计时显示在确认按钮上；「取消」与返回键始终可用。
