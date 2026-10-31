@@ -146,39 +146,92 @@ final class RuntimeTools {
 
   /** Read-only query readiness; never prepares, repairs, migrates or registers anything. */
   static boolean queryReady(Context context, File requested) {
+    String failure = queryFailure(context, requested);
+    reportQueryReadiness(context, failure);
+    return failure == null;
+  }
+
+  private static final String[] QUERY_FILES = {
+    "usr/bin/python3.12",
+    "usr/lib/python3.12/encodings/__init__.py",
+    "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
+    "usr/lib/aarch64-linux-gnu/libreadline.so.8",
+    "root/.dsh/plugin-manager.py",
+    "root/.dsh/register-builtin-plugins.py",
+    "root/.dsh/builtin-plugins.json",
+    "root/.dsh/plugin-lifecycle.py",
+    "root/.dsh/plugin-capabilities.py",
+    "root/.dsh/plugin-transactions.py",
+    "root/.dsh/plugin-network.py",
+    "root/.dsh/plugin-dependencies.py"
+  };
+  private static final Object QUERY_REPORT_LOCK = new Object();
+  private static String lastQueryFailure;
+
+  /** null 表示就绪；否则返回不含文件内容的失败位置与原因码，例如 {@code 路径:MISSING}。 */
+  private static String queryFailure(Context context, File requested) {
+    String stage = "ROOT";
     try {
       File rootfs = RuntimeAssetFiles.root(context, requested);
       var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+      stage = "DESCRIPTOR";
       File descriptor = new File(rootfs.getParentFile(), ".runtime-descriptor.json");
-      if (!fs.stat(descriptor).type.equals("FILE")) return false;
+      var descriptorNode = fs.stat(descriptor);
+      if (!descriptorNode.type.equals("FILE")) return "DESCRIPTOR:" + descriptorNode.type;
       String identity = assetRuntimeId(context);
-      if (!identity.equals(descriptorRuntimeId(descriptor))) return false;
+      if (!identity.equals(descriptorRuntimeId(descriptor))) return "DESCRIPTOR:IDENTITY";
+      stage = "MARKER";
       File marker = new File(rootfs, MANAGED_MARKER);
-      if (!fs.stat(marker).type.equals("FILE")) return false;
+      var markerNode = fs.stat(marker);
+      if (!markerNode.type.equals("FILE")) return "MARKER:" + markerNode.type;
       byte[] expected = com.deepseekharness.app.util.ManagedAssetVersion.bytes(identity);
-      if (!Arrays.equals(expected, fs.small(marker, expected.length + 1))) return false;
-      for (String path :
-          new String[] {
-            "usr/bin/python3.12",
-            "usr/lib/python3.12/encodings/__init__.py",
-            "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
-            "usr/lib/aarch64-linux-gnu/libreadline.so.8",
-            "root/.dsh/plugin-manager.py",
-            "root/.dsh/register-builtin-plugins.py",
-            "root/.dsh/builtin-plugins.json",
-            "root/.dsh/plugin-lifecycle.py",
-            "root/.dsh/plugin-capabilities.py",
-            "root/.dsh/plugin-transactions.py",
-            "root/.dsh/plugin-network.py",
-            "root/.dsh/plugin-dependencies.py"
-          }) {
-        if (!fs.stat(new File(rootfs, path)).type.equals("FILE")) return false;
+      if (!Arrays.equals(expected, fs.small(marker, expected.length + 1))) return "MARKER:IDENTITY";
+      for (String path : QUERY_FILES) {
+        stage = path;
+        // apt/dpkg 或外部 root 会把 soname 换成链接；按容器内实际可见的目标判断，不再只认 lstat 普通文件。
+        var file = guestFile(fs, rootfs, path);
+        if (!file.regular()) return path + ":" + file.failure;
+        // 外部 su root 写入的 0600 或其它 SELinux 标签文件，本 UID 下的 proot 同样读不到。
+        if (!file.file.canRead()) return path + ":UNREADABLE";
+        if (path.equals("usr/bin/python3.12") && (file.node.mode & 0111) != 0111)
+          return path + ":MODE";
       }
-      var python = fs.stat(new File(rootfs, "usr/bin/python3.12"));
-      return (python.mode & 0111) == 0111;
+      return null;
     } catch (IOException | RuntimeException unavailable) {
-      return false;
+      String message = String.valueOf(unavailable.getMessage());
+      return stage
+          + ":"
+          + unavailable.getClass().getSimpleName()
+          + ":"
+          + message.substring(0, Math.min(160, message.length()));
     }
+  }
+
+  /** 只在结论变化时记一条诊断，避免每次自动刷新重复刷屏；记录失败不影响查询结论。 */
+  private static void reportQueryReadiness(Context context, String failure) {
+    synchronized (QUERY_REPORT_LOCK) {
+      if (java.util.Objects.equals(failure, lastQueryFailure)) return;
+      lastQueryFailure = failure;
+    }
+    try {
+      RuntimeHostPorts.fromOwner(context.getApplicationContext())
+          .record("PLUGIN_QUERY_READINESS", failure == null ? "READY" : "NOT_READY " + failure);
+    } catch (RuntimeException unavailable) {
+      android.util.Log.w("DSHA", "PLUGIN_QUERY_READINESS " + failure, unavailable);
+    }
+  }
+
+  /** 查询就绪与 RootfsInstaller 修复共用同一判据：rootfs 内按 guest 语义解析出的普通文件。 */
+  static com.deepseekharness.app.util.GuestRegularFile.Result guestFile(
+      com.deepseekharness.app.backup.BackupFileSystem fs, File rootfs, String relative)
+      throws IOException {
+    String root = rootfs.getAbsolutePath();
+    return com.deepseekharness.app.util.GuestRegularFile.check(
+        fs,
+        rootfs,
+        relative,
+        target ->
+            com.deepseekharness.app.backup.GuestDataResolver.hostMirrorRelative(target, root));
   }
 
   /** Explicit ADB repair writes signed host files, including when guest STABLE uses file binds. */

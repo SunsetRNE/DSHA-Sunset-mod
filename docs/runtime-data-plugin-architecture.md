@@ -1,7 +1,7 @@
 # 运行环境、数据与插件机制
 
 本文面向准备修改 DSHA 的开发者，说明环境从哪里来、数据归谁、插件如何进入真实启动链。
-> 核验基线：2026-10-21（原于 build190/F13 工作树核对）。当前身份为 build216 / 单一 Standard：Ubuntu base10、官方 DSH `0.2.1-rc.5`、Node 24、随包 pnpm `10.34.5`。F10–F13、build190 与 Low 相关段落属于历史记录，不代表当前构建；最终身份、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数或设备验收结论。
+> 核验基线：2026-10-21（原于 build190/F13 工作树核对）。当前身份为 build217 / 单一 Standard：Ubuntu base10、官方 DSH `0.2.1-rc.5`、Node 24、随包 pnpm `10.34.5`。F10–F13、build190 与 Low 相关段落属于历史记录，不代表当前构建；最终身份、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数或设备验收结论。
 默认引擎是 `proot`，用户可显式选择 `proroot`；当前生产方案不使用 bxroot。
 这里的流程和约束属于 DSHA 实现，不代表 Ubuntu、Node、pnpm 或 DSH 上游对 Android 的保证。
 本文是源码导航，不是一次新的构建、设备验收或所有旧数据兼容性证明。
@@ -164,6 +164,8 @@ UNKNOWN保留原DOM或Gecko会话与后台保护，撤屏幕epoch、旧任务票
 `StartupRecoveryModel`读取恢复状态、快照和可处理插件，界面本身不持有后台维护所有权。
 短暂 `RECOVERY_BUSY` 在任务结束后应重新读取，成功读取要清除旧 error。
 普通插件只读查询的忙状态不能冒充“正在修改环境”。
+
+插件只读查询的就绪检查（`RuntimeTools.queryReady`）与 Python 动态库修复（`RootfsInstaller.python`）共用 `util/GuestRegularFile`：在 Ubuntu 运行根内按 guest 语义逐级解析符号链接，只接受落在运行根内、本 UID 可读的普通文件；apt/dpkg 或外部 root 把 soname 换成链接不再被误判为“运行工具或资产不完整”，外部绑定、越界和循环链接仍为未就绪。结论变化时写 `PLUGIN_QUERY_READINESS` 诊断并注明具体文件与原因（build217）。
 Main 对显式插件/设置导航保留故障提示，但不应抢走修复界面的前台。
 真实 pending 事务、Start/Stop 和环境维护仍是有效屏障；界面可用不等于绕过插件加载检查。
 
