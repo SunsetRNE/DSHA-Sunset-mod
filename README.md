@@ -8,7 +8,7 @@
 | 项目 | 值 |
 |---|---|
 | 应用名 | **DSH-A-Su**（测试变体为 `DSH-A-Su Test`） |
-| 版本 | `0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` |
+| 版本 | `0.2.1-rc.3-20261101.0306-dsh0.2.1-rc.5` |
 | versionCode | 220 |
 | 包名 | `io.github.sunsetrne.dsha`（测试变体 `io.github.sunsetrne.dsha.test`） |
 | 并行安装 | 与原版 `dsh.android.client`、更早的 `com.dsh.client` 完全独立，数据与系统授权互不继承 |

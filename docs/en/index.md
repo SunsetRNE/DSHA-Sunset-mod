@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` / build220 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the plugin list failing on every read after apt (or similar) inside the container turns `libsqlite3.so.0` into a symbolic link: the read-only plugin query and the Python shared-library repair now share the new guest check `GuestRegularFile`, which resolves links step by step inside the Ubuntu runtime root, accepts only regular files that land inside that root, and records the exact unready file and reason in diagnostics. See the [build217 notes](../releases/build217-changes.en.md); the build216 dsh-web-mobile sync is described in the [build216 notes](../releases/build216-changes.en.md). Build and acceptance scope follows this CI run and the Release receipt.
+Current source: `0.2.1-rc.3-20261101.0306-dsh0.2.1-rc.5` / build242 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build merges UI v5 Scheme A (wide two-pane layouts, risk-graded confirmations, the wavy activity bar, and rebuilt floating-status, language and Skills pages). See the [build242 notes](../releases/build242-changes.en.md) and the [build242 record](../releases/v0.2.1-rc.3-build242-ui-v5-scheme-a-20261101.md). It was verified only by overwrite-installing the test package on one Lenovo tablet and **was not tested on a physical phone**; build and publication scope follows this CI run and the Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

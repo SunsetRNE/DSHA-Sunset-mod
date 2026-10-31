@@ -1,7 +1,7 @@
 # 运行环境、数据与插件机制
 
 本文面向准备修改 DSHA 的开发者，说明环境从哪里来、数据归谁、插件如何进入真实启动链。
-> 核验基线：2026-10-21（原于 build190/F13 工作树核对）。当前身份为 build220 / 单一 Standard：Ubuntu base10、官方 DSH `0.2.1-rc.5`、Node 24、随包 pnpm `10.34.5`。F10–F13、build190 与 Low 相关段落属于历史记录，不代表当前构建；最终身份、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数或设备验收结论。
+> 核验基线：2026-10-21（原于 build190/F13 工作树核对）。当前身份为 build242 / 单一 Standard：Ubuntu base10、官方 DSH `0.2.1-rc.5`、Node 24、随包 pnpm `10.34.5`。F10–F13、build190 与 Low 相关段落属于历史记录，不代表当前构建；最终身份、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数或设备验收结论。
 默认引擎是 `proot`，用户可显式选择 `proroot`；当前生产方案不使用 bxroot。
 这里的流程和约束属于 DSHA 实现，不代表 Ubuntu、Node、pnpm 或 DSH 上游对 Android 的保证。
 本文是源码导航，不是一次新的构建、设备验收或所有旧数据兼容性证明。

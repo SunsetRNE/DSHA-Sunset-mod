@@ -1,6 +1,6 @@
 # Build, validate, and submit
 
-> Current publication identity: `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` / versionCode 220 / single Standard; the Mod-owned release certificate. Full identity and signing entry points are in [README](README.en.md), [AGENTS](AGENTS.en.md) and [ci/release-identity.json](ci/release-identity.json).
+> Current publication identity: `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.3-20261101.0306-dsh0.2.1-rc.5` / versionCode 242 / single Standard; the Mod-owned release certificate. Full identity and signing entry points are in [README](README.en.md), [AGENTS](AGENTS.en.md) and [ci/release-identity.json](ci/release-identity.json).
 
 Read [README](README.en.md), [AGENTS](AGENTS.en.md), [BUILD](BUILD.en.md) and the [documentation index](docs/en/index.md) first. F10–F13 and build190 records describe only their own source, APK, tests and device state at that time; they neither override current requirements nor prove this build.
 

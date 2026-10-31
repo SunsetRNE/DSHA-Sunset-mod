@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` / build220 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复手机任务悬浮控制窗与识屏授权的竞态，用户展开并暂停后，后续任务收尾保留控制窗供明确继续或停止；同时附带 ScreenSense 识屏/操作层性能评估。改动说明见 [build220 更新说明](releases/build220-changes.zh.md)；核心识屏协议仍未落地。构建与验收范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.0306-dsh0.2.1-rc.5` / build242 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版并入 UI v5 方案 A（宽屏双栏、风险分级确认、波浪活动条、悬浮条 / 语言 / 技能页重构），改动说明见 [build242 更新说明](releases/build242-changes.zh.md)，验证记录见 [build242 记录](releases/v0.2.1-rc.3-build242-ui-v5-scheme-a-20261101.md)。仅在一台联想平板上覆盖安装测试包验证，**未在手机真机上测试**；构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
