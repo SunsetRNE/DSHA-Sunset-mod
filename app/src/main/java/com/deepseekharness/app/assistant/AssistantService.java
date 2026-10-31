@@ -347,6 +347,20 @@ public final class AssistantService extends Service {
     return refused("ASSISTANT_UI_UNAVAILABLE");
   }
 
+  /**
+   * A canceled turn may still have a user-visible local pause. Keep that exact task attached so
+   * the user can press Continue; a normal completed turn remains eligible for retirement.
+   */
+  private static boolean retainLocalTaskAfterTurnEnd(ControlTaskAuthority.Binding task) {
+    AssistantService service = live;
+    if (service == null || service.controller == null || !service.controller.ownsTask(task))
+      return false;
+    var state = service.controller.snapshot();
+    return state.paused()
+        && state.phase() != AssistantSessionState.Phase.STOPPING
+        && state.phase() != AssistantSessionState.Phase.STOPPED;
+  }
+
   /** Called only after the exact local task completion has fenced the native authority. */
   public static void finishLocalTask(Context context, ControlTaskAuthority.Binding task) {
     new android.os.Handler(android.os.Looper.getMainLooper())
@@ -356,6 +370,9 @@ public final class AssistantService extends Service {
               if (service == null
                   || service.controller == null
                   || !service.controller.ownsTask(task)) return;
+              // Recheck on the UI thread: expansion may race the turn-end callback after the
+              // worker-side decision. A user-visible pause must never be closed by stale cleanup.
+              if (retainLocalTaskAfterTurnEnd(task)) return;
               if (service.window != null) service.window.close();
               service.controller.detachFinishedTask();
               service.stopSelf();

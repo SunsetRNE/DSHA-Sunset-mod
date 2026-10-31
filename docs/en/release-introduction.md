@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-10-31. This English entry describes the maintained build217 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build220 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build217 `0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5`.** Fixes the plugin list failing after apt (or similar) inside the container replaces `libsqlite3.so.0` with a symbolic link: the read-only plugin query and the Python shared-library repair share one guest check (`GuestRegularFile`) that resolves links inside the Ubuntu runtime root, and diagnostics now name the unready file. versionCode 217, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5, Ubuntu base 10. See the [build217 notes](releases/build217-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build220 `0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5`.** Fixes the race between the phone-task overlay and screen authorization: after the user expands and pauses the task, the later `turn/end` cleanup keeps that exact control window available for an explicit Continue or Stop instead of closing it. Continue requires a fresh screen observation and no old authorization or unknown action is replayed. The release also includes the ScreenSense performance evaluation as a design document; OCR and the compact protocol are not implemented in this build. versionCode 220, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build220 notes](releases/build220-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261031`, 696,361,527 B, SHA-256 `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

@@ -1,9 +1,7 @@
-# DSHA 0.2.1-rc.3-20261031.2130-dsh0.2.1-rc.5 / build219
+# DSHA 0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5 / build220
 
-- Closes out the build218 onboarding redesign: the four-step guide (welcome → purpose → grants → done), the background deployment capsule and the full-screen runtime maintenance page; first deployment and over-the-top updates share one maintenance entry.
-- On-device feedback fixes: an in-guide background deployment reclaimed by the system returns to the same step; the "purpose" choice now drives the recommendations; the battery card follows the system "allow background usage" state; Stellar clone setups show grants for the actual manager.
-- When a Stellar manager is detected, the device-grant page and the onboarding cards use the actual manager name instead of the old hardcoded one.
-- The battery-optimization entry opens this app's battery page directly; card and button copy now uses "allow background usage" semantics.
-- Over-the-top updates return to the full-screen maintenance page; when the disk holds an unfinished isolated trial or maintenance transaction, the app first verifies the old trial process has exited and closes the site, then enters maintenance/update instead of starting an update bound to fail.
-- Wide touch screens (tablet landscape / CSS ≥1024px) fold archive/pin into the ⋯ menu: fixes the 280px sidebar squeezing the title to about 55px, leaving only "time + ⋯" in the row. The bundled dsh-web-mobile carries a local early patch; remove it once upstream PR #256 lands.
-- versionCode is raised to 219; the DSHA revision stays 0.2.1-rc.3 and the bundled DSH is 0.2.1-rc.5; build and acceptance follow this CI run and the Release receipt, and this round claims no on-device overwrite-install acceptance.
+- Fixes the race between the phone-task overlay and screen authorization: after the user expands the status window, screen control is paused and the old authorization is revoked; a later `turn/end` or `/app/ui/task-end` no longer unconditionally closes the paused control window.
+- The same task remains attached when the user expanded and paused it. An explicit Continue requests a fresh screen observation, while an explicit Stop retires the task. Old authorization and unknown actions are never replayed or approved automatically. Ordinary completion still closes the window and retires the service.
+- Cleanup rechecks task ownership and pause state on the main thread. Android regression coverage now includes expanded-pause retention, explicit-stop retirement, and ordinary completion retirement; the device-operation guide is updated accordingly.
+- Adds the mobile ScreenSense recognition/action performance evaluation and staged refactoring proposal. OCR, the compact protocol, and latency budgets remain design evaluation rather than implemented features in this build.
+- Raises versionCode to 220. The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5. Complete build, unit-test, signing, and physical-device acceptance scope follows this CI / Release receipt.

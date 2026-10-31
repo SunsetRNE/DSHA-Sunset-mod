@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261031.2130-dsh0.2.1-rc.5` / build219 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版收口首次引导重构（4 步引导、后台部署胶囊、整屏运行环境维护页），并按真机反馈修正用途生效、电池「允许后台使用」、Stellar 管理器命名与中断试运行恢复；宽屏触屏（≥1024px）会话行把归档/置顶收进 ⋯ 菜单；改动说明见 [build219 更新说明](releases/build219-changes.zh.md)。构建与验收范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` / build220 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复手机任务悬浮控制窗与识屏授权的竞态，用户展开并暂停后，后续任务收尾保留控制窗供明确继续或停止；同时附带 ScreenSense 识屏/操作层性能评估。改动说明见 [build220 更新说明](releases/build220-changes.zh.md)；核心识屏协议仍未落地。构建与验收范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

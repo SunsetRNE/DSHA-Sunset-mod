@@ -1,7 +1,7 @@
 # AGENTS.md
 
 
-> **当前状态**：`0.2.1-rc.3-20261031.2130-dsh0.2.1-rc.5` / build219 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
+> **当前状态**：`0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` / build220 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
 > 主线分支 `main`；Android 11+（API 30）/ arm64；proot 默认、proroot 可选；内置 DSH 0.2.1-rc.5。
 > 上岛能力已并入正式包；旧 low/GeckoView 兼容线与独立上岛包已删除；签名使用 Mod 自有证书（见 BUILD.md）。
 
@@ -113,7 +113,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ### 版本与构建
 
-- **当前身份以 `app/build.gradle`、`ci/release-identity.json` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build219 / DSHA 修订 `0.2.1-rc.3`（内置 DSH 0.2.1-rc.5）/ `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard；更早的 code/build 编号、旧包名 `dsh.android.client` 与历史 E7E3 签名均为历史记录，不作为当前构建或签名输入。
+- **当前身份以 `app/build.gradle`、`ci/release-identity.json` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build220 / DSHA 修订 `0.2.1-rc.3`（内置 DSH 0.2.1-rc.5）/ `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard；更早的 code/build 编号、旧包名 `dsh.android.client` 与历史 E7E3 签名均为历史记录，不作为当前构建或签名输入。
 - `standard`：minSdk 30（Android 11+），系统 WebView，arm64-v8a，是唯一构建线，任务为 `assembleStandardRelease`。`low`/GeckoView 兼容线已整体删除（含 `assembleLowRelease`、legacy proot/loader），**不再声明 Android 10 及以下可用**；测试变体仅通过 `-Pdsha.sunsetTest=true` 生成 `io.github.sunsetrne.dsha.test`。
 - 离线 rootfs（`assets/offline-rootfs.bin`）**不提交**，由准备脚本生成；APK 用 `offline-rootfs.layout=split-runtime-v1` 标记 Ubuntu 与 `dsh-runtime.bin` 分包，构建核验两份摘要。
 - 新 dsh 依赖由 `tools/dsh-runtime/package-lock.json` 锁定；`tools/prepare-runtime-descriptor.py` 生成独立受管契约描述，APK 版本仅作诊断来源。相同基础版本更新受管树，个人数据保持原位；**不因 UI-only APK 更新替换环境，不因普通 dsh 更新递增 Ubuntu 基础环境版本**。

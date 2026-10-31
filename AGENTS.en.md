@@ -1,7 +1,7 @@
 # AGENTS.md — English contributor and agent guide
 
 
-> **Status**: `0.2.1-rc.3-20261031.2130-dsh0.2.1-rc.5` / build219 / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard.
+> **Status**: `0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` / build220 / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard.
 > Main branch `main`; Android 11+ (API 30) / arm64; proot by default, proroot optional; bundled DSH 0.2.1-rc.5.
 > The island feature is folded into the regular package; the old low/GeckoView line and the separate island package are removed; signing uses the Mod-owned certificate (see BUILD.en.md).
 
@@ -108,7 +108,7 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 
 ### Versions and builds
 
-- **Current identity comes from `app/build.gradle`, `ci/release-identity.json` and [CHANGELOG.md](CHANGELOG.md).** build219 / DSHA revision `0.2.1-rc.3` (bundled DSH 0.2.1-rc.5) / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard. Earlier code/build numbers, the old `dsh.android.client` package and the historical E7E3 signature are records only, not current build or signing inputs.
+- **Current identity comes from `app/build.gradle`, `ci/release-identity.json` and [CHANGELOG.md](CHANGELOG.md).** build220 / DSHA revision `0.2.1-rc.3` (bundled DSH 0.2.1-rc.5) / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard. Earlier code/build numbers, the old `dsh.android.client` package and the historical E7E3 signature are records only, not current build or signing inputs.
 - `standard`: minSdk 30 (Android 11+), system WebView, arm64-v8a. It is the only build line; the task is `assembleStandardRelease`. The `low`/GeckoView line and legacy proot/loader are deleted (`assembleLowRelease` no longer exists), so **Android 10 and below are no longer supported**. The test variant only changes the package via `-Pdsha.sunsetTest=true` (`io.github.sunsetrne.dsha.test`).
 - Offline rootfs (`assets/offline-rootfs.bin`) is **not committed**; preparation scripts generate it. `offline-rootfs.layout=split-runtime-v1` marks separate Ubuntu and `dsh-runtime.bin` packages; builds check both digests.
 - `tools/dsh-runtime/package-lock.json` locks new dsh dependencies. `tools/prepare-runtime-descriptor.py` generates independent managed-contract descriptors; the APK version is diagnostic context only. Update managed trees within the same base while keeping personal data in place. **UI-only APK updates do not replace the environment; ordinary dsh updates do not increment the Ubuntu base.**

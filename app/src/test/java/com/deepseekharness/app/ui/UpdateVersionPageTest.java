@@ -130,11 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("收口 218 的首次引导重构"));
-      assertTrue(shown.contains("后台部署胶囊与整屏运行环境维护页"));
-      assertTrue(shown.contains("覆盖更新恢复整屏维护页"));
-      assertTrue(shown.contains("版本码提升为 219"));
-      assertFalse(shown.contains("版本码提升为 218"));
+      assertTrue(shown.contains("修复手机任务右下角悬浮控制窗与识屏授权的竞态"));
+      assertTrue(shown.contains("用户展开并暂停的同一任务会保留控制窗"));
+      assertTrue(shown.contains("不自动批准、不重放旧授权或结果未知的动作"));
+      assertTrue(shown.contains("ScreenSense"));
+      assertTrue(shown.contains("版本码提升为 220"));
+      assertFalse(shown.contains("版本码提升为 219"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -155,11 +156,16 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Closes out the build218 onboarding redesign"));
-      assertTrue(shown.contains("deployment capsule"));
-      assertTrue(shown.contains("Over-the-top updates return to the full-screen maintenance page"));
-      assertTrue(shown.contains("versionCode is raised to 219"));
-      assertFalse(shown.contains("versionCode is raised to 218"));
+      assertTrue(
+          shown.contains("Fixes the race between the phone-task overlay and screen authorization"));
+      assertTrue(
+          shown.contains("The same task remains attached when the user expanded and paused it"));
+      assertTrue(
+          shown.contains(
+              "Old authorization and unknown actions are never replayed or approved automatically"));
+      assertTrue(shown.contains("ScreenSense"));
+      assertTrue(shown.contains("Raises versionCode to 220"));
+      assertFalse(shown.contains("versionCode is raised to 219"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }

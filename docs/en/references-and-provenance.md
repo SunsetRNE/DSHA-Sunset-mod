@@ -1,6 +1,6 @@
 # References, upstream provenance and verifiable scope
 
-This is a build217 fact index covering the current publication identity, upstream sources and fixed inputs. F10/F11/build190 and other historical records stay as written and cannot serve as evidence for this build. Its purpose is to locate primary references, version locks and verification entry points, not imply official endorsement or security certification. Documentation corrections do not rerun builds, operate a su device or publish artifacts; this build's software, APK and release results are bound by the CI run and Release receipt.
+This is a build220 fact index covering the current publication identity, upstream sources and fixed inputs. F10/F11/build190 and other historical records stay as written and cannot serve as evidence for this build. Its purpose is to locate primary references, version locks and verification entry points, not imply official endorsement or security certification. Documentation corrections do not rerun builds, operate a su device or publish artifacts; this build's software, APK and release results are bound by the CI run and Release receipt.
 
 ## 1. Project and upstream relationships
 

@@ -443,7 +443,7 @@ public final class AssistantSessionController implements AutoCloseable {
     close(true);
   }
 
-  /** A real task-end/explicit finish retires the view without cancelling later model work. */
+  /** Explicit finish retires the view without cancelling later model work. */
   void detachFinishedTask() {
     close(false);
   }
