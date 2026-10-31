@@ -71,7 +71,8 @@ final class LanguagePicker {
                 ctx,
                 dp,
                 UiText.choose("跟随系统", "Follow system"),
-                UiText.format("系统：%s", UiLanguagePreference.nativeName(systemLanguage)),
+                // 副标题只写系统当前解析出的语言名，避免窄格里折行。
+                UiLanguagePreference.nativeName(systemLanguage),
                 followSystem);
         cell.setOnClickListener(v -> pick.accept(UiLanguagePreference.SYSTEM));
       } else {
@@ -144,7 +145,7 @@ final class LanguagePicker {
     tile.setOrientation(LinearLayout.HORIZONTAL);
     tile.setGravity(Gravity.CENTER_VERTICAL);
     tile.setMinimumHeight(dp.applyAsInt(56));
-    tile.setPadding(dp.applyAsInt(12), dp.applyAsInt(10), dp.applyAsInt(8), dp.applyAsInt(10));
+    tile.setPadding(dp.applyAsInt(12), dp.applyAsInt(10), dp.applyAsInt(10), dp.applyAsInt(10));
     tile.setClickable(true);
     tile.setFocusable(true);
     tile.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
@@ -161,6 +162,9 @@ final class LanguagePicker {
     tile.setBackground(shape);
     LinearLayout copy = new LinearLayout(ctx);
     copy.setOrientation(LinearLayout.VERTICAL);
+    // 对勾放在标题行末尾，不占副标题宽度。
+    LinearLayout head = new LinearLayout(ctx);
+    head.setGravity(Gravity.CENTER_VERTICAL);
     TextView name = new TextView(ctx);
     name.setText(UiText.raw(title));
     name.setTextSize(15);
@@ -170,7 +174,18 @@ final class LanguagePicker {
     name.setIncludeFontPadding(false);
     name.setSingleLine(true);
     name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    copy.addView(name);
+    head.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
+    if (selected) {
+      ImageView check = new ImageView(ctx);
+      check.setImageResource(R.drawable.ic_onb_check);
+      check.setColorFilter(accent);
+      check.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      LinearLayout.LayoutParams checkParams =
+          new LinearLayout.LayoutParams(dp.applyAsInt(16), dp.applyAsInt(16));
+      checkParams.setMarginStart(dp.applyAsInt(4));
+      head.addView(check, checkParams);
+    }
+    copy.addView(head, new LinearLayout.LayoutParams(-1, -2));
     if (!subtitle.isEmpty()) {
       TextView sub = new TextView(ctx);
       sub.setText(UiText.raw(subtitle));
@@ -178,18 +193,11 @@ final class LanguagePicker {
       sub.setTextColor(ctx.getColor(R.color.shell_text_muted));
       sub.setMaxLines(2);
       sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-2, -2);
-      subParams.topMargin = dp.applyAsInt(2);
+      LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-1, -2);
+      subParams.topMargin = dp.applyAsInt(4);
       copy.addView(sub, subParams);
     }
     tile.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
-    if (selected) {
-      ImageView check = new ImageView(ctx);
-      check.setImageResource(R.drawable.ic_onb_check);
-      check.setColorFilter(accent);
-      check.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-      tile.addView(check, new LinearLayout.LayoutParams(dp.applyAsInt(18), dp.applyAsInt(18)));
-    }
     tile.setContentDescription(UiText.raw(subtitle.isEmpty() ? title : title + ", " + subtitle));
     tile.setAccessibilityDelegate(
         new View.AccessibilityDelegate() {

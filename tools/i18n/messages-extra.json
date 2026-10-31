@@ -10485,14 +10485,5 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java"
     ]
-  },
-  {
-    "id": "uiv5a064",
-    "zh": "系统：%s",
-    "en": "System: %s",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LanguagePicker.java"
-    ],
-    "uiFormat": true
   }
 ]

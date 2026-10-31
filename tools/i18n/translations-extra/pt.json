@@ -1297,6 +1297,5 @@
   "uiv5a060": "Conteúdo",
   "uiv5a061": "Comandos que exigem confirmação podem ser aprovados ou recusados direto na barra.\n\nFunciona junto com a notificação e a caixa de diálogo do DSHA; vale o que for tocado primeiro. Desligado, a barra não mostra botões de aprovação, mas notificação e diálogo continuam funcionando. As regras de bloqueio não mudam.",
   "uiv5a062": "As alterações são salvas automaticamente.",
-  "uiv5a063": "Permissão necessária · Ativar ›",
-  "uiv5a064": "Sistema: %s"
+  "uiv5a063": "Permissão necessária · Ativar ›"
 }
