@@ -10,7 +10,7 @@
 | 测试变体显示名 | `DSH-A-Su Test` | 同上（`-Pdsha.sunsetTest=true`） |
 | 正式包名 | `io.github.sunsetrne.dsha` | `app/build.gradle` `applicationId` + `ci/release-identity.json` `packageName` |
 | 测试包名 | `io.github.sunsetrne.dsha.test` | `applicationIdSuffix '.test'` |
-| versionCode / versionName | `217` / `0.2.1-rc.3-20261031.0700-dsh0.2.1-rc.5` | `app/build.gradle` |
+| versionCode / versionName | `220` / `0.2.1-rc.3-20261101.0053-dsh0.2.1-rc.5` | `app/build.gradle` |
 | 发布证书 SHA-256 | `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d` | `ci/release-identity.json` `certificateSha256` |
 | 签名方案 | v1 + v2 + v3 | `ci/release-identity.json` `schemes` |
 | 最低系统 | Android 11（API 30）/ arm64-v8a | `app/build.gradle` `minSdk` / `abiFilters` |

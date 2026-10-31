@@ -1,6 +1,6 @@
 # Installation, component checks, and environment maintenance
 
-> Checked on 2026-10-31 against the current build217 / DSH 0.2.1-rc.5 source. F10–F13 and build190 records retain their historical attribution. This page update ran no device or endurance acceptance; final identity, software and APK results are in the [README](../../README.en.md) and this CI / Release receipt. Historical results are not transferred to this work.
+> Checked on 2026-10-31 against the current build220 / DSH 0.2.1-rc.5 source. F10–F13 and build190 records retain their historical attribution. This page update ran no device or endurance acceptance; final identity, software and APK results are in the [README](../../README.en.md) and this CI / Release receipt. Historical results are not transferred to this work.
 
 Installation answers whether the offline environment can run, component checks answer whether a particular tool responds, and environment maintenance answers whether managed files or the environment need transactional repair. Their success criteria differ. See [runtime, data, and plugins](runtime-data-plugin-architecture.md) for the entry-point overview and [startup and diagnostics](startup-and-diagnostics.md) for states after installation.
 

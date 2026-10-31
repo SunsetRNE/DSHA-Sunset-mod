@@ -644,6 +644,51 @@ public final class AssistantTaskAttachmentAndroidTest {
   }
 
   @Test
+  public void expandedPauseRetainsTheTaskWindowAfterTurnEndRetirement() throws Exception {
+    Host host = new Host(address("expanded-retention"), "7");
+    var attached = request(host, "7");
+    var service = dispatchService();
+    assertTrue(attached.get(2, TimeUnit.SECONDS).ready());
+    var selected = AssistantSessionController.active();
+    var coordinator = PhoneControlCoordinator.get(app);
+    var task = task(host, "7");
+    coordinator.begin(task);
+
+    // The status-window click expands first and synchronously pauses/fences screen control.
+    selected.expand();
+    assertTrue(selected.snapshot().expanded());
+    assertTrue(selected.snapshot().paused());
+
+    // This is the same order as /app/ui/task-end: retire the native lease, then decide whether
+    // the local paused controller is still needed for an explicit Continue action.
+    coordinator.completeLocal(task);
+    AssistantService.finishLocalTask(app, task);
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+    assertSame(selected, AssistantSessionController.active());
+    Field windowField = AssistantService.class.getDeclaredField("window");
+    windowField.setAccessible(true);
+    assertTrue(((AssistantWindow) windowField.get(service.get())).visible());
+  }
+
+  @Test
+  public void explicitStopDoesNotRetainTheTaskWindowAfterTurnEndRetirement() throws Exception {
+    Host host = new Host(address("stopped-retirement"), "7");
+    var attached = request(host, "7");
+    var service = dispatchService();
+    assertTrue(attached.get(2, TimeUnit.SECONDS).ready());
+    var selected = AssistantSessionController.active();
+    var coordinator = PhoneControlCoordinator.get(app);
+    var task = task(host, "7");
+    coordinator.begin(task);
+    selected.stop();
+    coordinator.completeLocal(task);
+    AssistantService.finishLocalTask(app, task);
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+    assertNull(AssistantSessionController.active());
+    assertNotNull(service.get());
+  }
+
+  @Test
   public void exactTaskFinishClosesViewWithoutCancellingTheModelOrOtherConversations()
       throws Exception {
     Host host = new Host(address("finish-original"), "7");

@@ -1,6 +1,6 @@
 # Application updates and managed runtime updates
 
-> Baseline checked on 2026-10-21 against build190 update code. Current publication identity is build217 / `io.github.sunsetrne.dsha` / single Standard; F10–F13/build190 records are historical. This page did not inspect the live remote feed, install an APK, or perform device acceptance. Current identity is documented by [README](../../README.en.md) and the [release introduction](release-introduction.md).
+> Baseline checked on 2026-10-21 against build190 update code. Current publication identity is build220 / `io.github.sunsetrne.dsha` / single Standard; F10–F13/build190 records are historical. This page did not inspect the live remote feed, install an APK, or perform device acceptance. Current identity is documented by [README](../../README.en.md) and the [release introduction](release-introduction.md).
 
 APK updates and managed-component updates inside Ubuntu are different chains. An APK passes download and package-identity checks before the system installer opens. Managed components require plan review, normal task shutdown, candidate preparation/trial, and transactional switching. Both retain specific failures; version text does not replace actual outcomes.
 
