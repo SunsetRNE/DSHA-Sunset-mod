@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5` / build256 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build reworks the data and backup sub-pages: restore becomes an in-page four-step wizard, custom export and rescue tools are regrouped, the storage page shows usage by category, retained copies can be filtered by type, and the storage guide becomes expandable Q&A. Local build and related unit tests passed; no device installation was done, and UI tests and Lint are left to CI. See the [build256 notes](../releases/build256-changes.en.md) and the [build256 record](../releases/v0.2.1-rc.3-build256-data-backup-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0200-dsh0.2.1-rc.5` / build257 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes fcntl error codes in the proroot compatibility layer: the vendor runtime rewrote every fcntl failure to EPERM, which broke cross-process file locks such as Gradle's; the compat library now exports a correct fcntl. The test package was checked on a device under proroot with a lock probe and a Web conversation; release build and publication follow CI. See the [build257 notes](../releases/build257-changes.en.md) and the [build257 record](../releases/v0.2.1-rc.3-build257-proroot-fcntl-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

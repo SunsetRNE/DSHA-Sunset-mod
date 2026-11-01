@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0200-dsh0.2.1-rc.5 / build257（proroot 兼容层修正 fcntl 错误码，跨进程文件锁恢复正常）
+
+- proroot v1.2.8 的 `libproroot-runtime.so` 导出的 `fcntl` 把 `proroot_raw_syscall6` 已返回的 -1 再取反写入 errno，所有失败都变成 EPERM：锁被占用（EAGAIN/EACCES）、EBADF、EINVAL 都丢失。JDK `libnio` 走这个旧符号，另一进程持锁时 `FileChannel.tryLock` 抛 Operation not permitted，Gradle 等跨进程锁失效。
+- 先于 vendor 预加载的 `libdsha-proroot-compat.so` 现导出 `fcntl`：`F_DUPFD` / `F_DUPFD_CLOEXEC` 仍经 `RTLD_NEXT` 交给 vendor（保留 drm/seat/netlink dup 跟踪），其余命令直接发内核系统调用并按 glibc 语义设置 errno。NDK 26.3.11579264 锁定构建，旧源码可逐字节复现旧产物；新增 `tools/test-proroot-fcntl.py`，用假 vendor 复现 EPERM 并核对代理在前的结果。proot 引擎不经过该库，不受影响；vendor 的 `mmap` / `mmap64` 有同类写法，本版未改。
+- 验证范围：测试包（`.test`）在一台 Android 16 平板上安装；选 proroot 后，新开终端会话的 bash 映射中有 `libproroot-runtime.so` 与 `libdsha-proroot-compat.so`，跨进程 `F_SETLK` 探针返回 0（锁冲突得到 EAGAIN/EACCES，而非 EPERM）；proroot 与默认 proot 下 dsh Web 均能启动并完成一轮对话。主机侧 `test-proroot-fcntl.py` 与源码卫生检查通过。正式包未在真机安装；版本码提升为 257（基于 build256）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build257 更新说明](docs/releases/build257-changes.zh.md)，验证记录见 [build257 记录](docs/releases/v0.2.1-rc.3-build257-proroot-fcntl-20261102.md)。
+
 ## 0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5 / build256（数据与备份二级页重构：页内恢复向导、存储分布、保留副本筛选）
 
 - 恢复改为页内四步向导（选择文件 → 范围与选项 → 预检核验 → 确认恢复），原来的连续弹窗并入页内；因原有作业须先定范围才能预检，顺序为先选范围再核验。旧加密备份原密码、是否恢复 API Key、项目恢复位置放在第二步，密码不跨旋转保存、用完即清。确认按钮按一次即锁定；旋转后流程可续，重启后停在预检的作业重新显示确认步骤。底层仍是原预检、确认与取消作业，确认文案与错误提示不变。

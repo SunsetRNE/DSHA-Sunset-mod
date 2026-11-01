@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5` / build256 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版重构数据与备份二级页：恢复改为页内四步向导，自定义导出与救援工具分组整理，存储页加占用分布，保留副本页加分类筛选，储存指南改为可展开问答。本机构建与相关单测通过；未在真机安装验证，界面测试与 Lint 交由 CI。改动说明见 [build256 更新说明](releases/build256-changes.zh.md)，验证记录见 [build256 记录](releases/v0.2.1-rc.3-build256-data-backup-20261101.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.0200-dsh0.2.1-rc.5` / build257 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修正 proroot 兼容层的 fcntl 错误码：vendor 运行库把所有 fcntl 失败改写为 EPERM，导致 Gradle 等跨进程文件锁失效；兼容层现导出正确的 fcntl。测试包已在真机 proroot 下核对锁探针与 Web 对话；正式包的构建与发布以 CI 为准。改动说明见 [build257 更新说明](releases/build257-changes.zh.md)，验证记录见 [build257 记录](releases/v0.2.1-rc.3-build257-proroot-fcntl-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
