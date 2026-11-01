@@ -48,4 +48,11 @@
     <color name="terminal_ripple">#338AB4FF</color>
     <color name="terminal_scrim">#B3000000</color>
     <color name="terminal_panel_card">#10151E</color>
+    <color name="terminal_state_running">#5CC98F</color>
+    <color name="terminal_state_idle">#8AB4FF</color>
+    <color name="terminal_state_pending">#E5C07B</color>
+    <!-- 侧栏底部动作与弹窗选项卡：无描边柔和填充 / 按压加深；新建按钮内加号方块的半透明底。 -->
+    <color name="terminal_tile">#141B25</color>
+    <color name="terminal_tile_pressed">#1B2431</color>
+    <color name="terminal_on_primary_chip">#1F081428</color>
 </resources>

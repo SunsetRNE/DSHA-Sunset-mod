@@ -358,8 +358,10 @@ public final class PtyTerminalFragment extends Fragment
     var rows =
         TerminalExtraKeys.decode(
             prefs(context).getString(TerminalExtraKeys.prefKey(profile), ""), profile);
+    boolean anyRow = false;
     for (var actions : rows) {
       if (actions.isEmpty()) continue;
+      anyRow = true;
       HorizontalScrollView scroll = new HorizontalScrollView(context);
       scroll.setHorizontalScrollBarEnabled(false);
       scroll.setFillViewport(true);
@@ -377,13 +379,9 @@ public final class PtyTerminalFragment extends Fragment
         button.setSingleLine(true);
         button.setMaxLines(1);
         button.setIncludeFontPadding(false);
-        button.setPadding(dp(2), 0, dp(2), 0);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        // 大字体/窄屏时自动缩字，标签不会折行或把行高撑破。
-        button.setAutoSizeTextTypeUniformWithConfiguration(8, 13, 1, TypedValue.COMPLEX_UNIT_SP);
-        button.setTextColor(context.getColor(R.color.terminal_foreground));
-        button.setTypeface(android.graphics.Typeface.MONOSPACE);
-        button.setBackgroundResource(R.drawable.bg_terminal_key);
+        // 可见键帽在 48dp 触控格内各缩 2dp，文字内边距同步留出键帽圆角。
+        button.setPadding(dp(4), 0, dp(4), dp(1));
+        styleExtraKey(button, TerminalExtraKeys.style(action));
         button.setFocusable(false); // 触摸附加键不抢走 IME 组合焦点。
         button.setContentDescription(TerminalExtraKeys.description(action));
         if ("CTRL".equals(action)) ctrlBtn = button;
@@ -400,6 +398,14 @@ public final class PtyTerminalFragment extends Fragment
       scroll.addView(row, new HorizontalScrollView.LayoutParams(-1, dp(48)));
       box.addView(scroll, new LinearLayout.LayoutParams(-1, dp(48)));
     }
+    // 托盘底板与纯黑输出区分层；没有任何键时不留空条。
+    if (anyRow) {
+      box.setBackgroundResource(R.drawable.bg_terminal_key_tray);
+      box.setPadding(0, dp(4), 0, dp(2));
+    } else {
+      box.setBackground(null);
+      box.setPadding(0, 0, 0, 0);
+    }
     box.setContentDescription(
         UiText.choose("终端快捷按键，长按可自定义", "Terminal extra keys, long-press to customize"));
     box.setOnLongClickListener(
@@ -408,6 +414,47 @@ public final class PtyTerminalFragment extends Fragment
           return true;
         });
     paintModifiers();
+  }
+
+  /**
+   * 按键分类决定键帽底色与字形：功能键深一档、方向键放大、控制字符等宽强调色、符号等宽。
+   * 自动缩字上限随分类变化，大字体或窄屏时标签仍不折行、不撑破 48dp 行高。
+   */
+  private void styleExtraKey(TextView button, TerminalExtraKeys.KeyStyle style) {
+    var context = button.getContext();
+    int background = R.drawable.bg_terminal_key;
+    int color = R.color.terminal_key_text;
+    android.graphics.Typeface typeface =
+        android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL);
+    int maxSp = 15;
+    switch (style) {
+      case MODIFIER:
+        background = R.drawable.bg_terminal_key_mod;
+        typeface = android.graphics.Typeface.DEFAULT_BOLD;
+        break;
+      case FUNCTION:
+        background = R.drawable.bg_terminal_key_fn;
+        break;
+      case ARROW:
+        typeface = android.graphics.Typeface.DEFAULT;
+        maxSp = 18;
+        break;
+      case CONTROL:
+        color = R.color.terminal_key_control;
+        typeface = android.graphics.Typeface.MONOSPACE;
+        break;
+      case SYMBOL:
+      default:
+        color = R.color.terminal_key_symbol;
+        typeface = android.graphics.Typeface.MONOSPACE;
+        maxSp = 17;
+        break;
+    }
+    button.setBackgroundResource(background);
+    button.setTextColor(context.getColor(color));
+    button.setTypeface(typeface);
+    button.setTextSize(TypedValue.COMPLEX_UNIT_SP, maxSp);
+    button.setAutoSizeTextTypeUniformWithConfiguration(8, maxSp, 1, TypedValue.COMPLEX_UNIT_SP);
   }
 
   @Override
@@ -481,7 +528,8 @@ public final class PtyTerminalFragment extends Fragment
       ctrlBtn.setSelected(modifiers.control());
       ctrlBtn.setTextColor(
           requireContext()
-              .getColor(modifiers.control() ? R.color.ok : R.color.terminal_foreground));
+              .getColor(
+                  modifiers.control() ? R.color.terminal_key_led_on : R.color.terminal_key_text));
       ctrlBtn.setContentDescription(
           modifiers.control()
               ? UiText.choose("Ctrl，一次性修饰键，已启用", "Ctrl, one-shot modifier, enabled")
@@ -490,7 +538,8 @@ public final class PtyTerminalFragment extends Fragment
     if (altBtn != null) {
       altBtn.setSelected(modifiers.alt());
       altBtn.setTextColor(
-          requireContext().getColor(modifiers.alt() ? R.color.ok : R.color.terminal_foreground));
+          requireContext()
+              .getColor(modifiers.alt() ? R.color.terminal_key_led_on : R.color.terminal_key_text));
       altBtn.setContentDescription(
           modifiers.alt()
               ? UiText.choose("Alt，一次性修饰键，已启用", "Alt, one-shot modifier, enabled")

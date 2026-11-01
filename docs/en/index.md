@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.2130-dsh0.2.1-rc.5` / build252 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build simplifies the self-check and diagnostics page: phones show status, results, feedback and tools in three sections, tablets use two columns; items needing attention come first, unverified checks are marked separately and healthy ones collapse; export becomes a sheet that picks a diagnostic bundle or a text report. Local unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build252 notes](../releases/build252-changes.en.md) and the [build252 record](../releases/v0.2.1-rc.3-build252-diagnostics-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.2200-dsh0.2.1-rc.5` / build253 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build polishes the terminal UI: grouped extra keys with gaps, one PTY and simple-terminal session list ordered by creation, status dots, and three cards for new sessions. Local terminal unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build253 notes](../releases/build253-changes.en.md) and the [build253 record](../releases/v0.2.1-rc.3-build253-terminal-polish-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

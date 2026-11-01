@@ -1367,5 +1367,20 @@
   "diag248a26": "Paquet de journaux structuré ; étapes facultatives",
   "diag248a27": "Préparer à nouveau certificats, Python, npm et pnpm",
   "diag248a28": "Démarrage bloqué par plugin",
-  "diag248a29": "Dans Téléchargements"
+  "diag248a29": "Dans Téléchargements",
+  "tpolish01": "Choisissez un type ; les sessions tournent en arrière-plan",
+  "tpolish02": "Terminal PTY",
+  "tpolish03": "Terminal interactif complet : vim, top, complétion et couleurs",
+  "tpolish04": "Exécute ligne par ligne ; adapté aux lecteurs d’écran et aux longues commandes collées",
+  "tpolish05": "Lance la ligne de commande DSH dans un nouveau PTY",
+  "tpolish06": "Retour conserve les processus",
+  "tpolish07": "Retour ou Accueil ferme seulement la page ; les sessions continuent en arrière-plan.",
+  "tpolish08": "Fin avec confirmation",
+  "tpolish09": "Le × d’une ligne arrête un processus ; l’icône d’arrêt de l’en-tête arrête tout. Les deux demandent confirmation puis vérifient chaque sortie.",
+  "tpolish10": "Le crayon renomme une session sans toucher à la commande en cours.",
+  "tpolish11": "Touches supplémentaires",
+  "tpolish12": "Appui long sur une touche pour la personnaliser. Touchez Ctrl / Alt pour l’activer une fois ; la barre allumée indique qu’il est actif.",
+  "tpolish13": "Points d’état : %1$s, %2$s, %3$s, %4$s",
+  "tpolish14": "Inactif",
+  "tpolish15": "Sessions de terminal"
 }

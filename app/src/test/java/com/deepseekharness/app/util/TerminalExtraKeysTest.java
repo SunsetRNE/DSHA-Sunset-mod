@@ -342,4 +342,30 @@ public class TerminalExtraKeysTest {
     assertFalse(TerminalExtraKeys.isControl("ESC"));
     assertFalse(TerminalExtraKeys.isControl(null));
   }
+
+  @Test
+  public void everyCatalogKeyHasExactlyOneVisualStyle() {
+    Map<String, TerminalExtraKeys.KeyStyle> expected = new LinkedHashMap<>();
+    for (String action : Arrays.asList("CTRL", "ALT"))
+      expected.put(action, TerminalExtraKeys.KeyStyle.MODIFIER);
+    for (String action : Arrays.asList("ESC", "TAB", "HOME", "END", "PGUP", "PGDN"))
+      expected.put(action, TerminalExtraKeys.KeyStyle.FUNCTION);
+    for (String action : Arrays.asList("LEFT", "RIGHT", "UP", "DOWN"))
+      expected.put(action, TerminalExtraKeys.KeyStyle.ARROW);
+    for (String action : Arrays.asList("CC", "CD", "CZ", "CL"))
+      expected.put(action, TerminalExtraKeys.KeyStyle.CONTROL);
+    for (String action : TerminalExtraKeys.catalog()) {
+      TerminalExtraKeys.KeyStyle style = TerminalExtraKeys.style(action);
+      // 外观分类必须与语义分类一致：修饰键与控制字符不能被画成普通符号。
+      assertEquals(
+          action,
+          TerminalExtraKeys.isModifier(action),
+          style == TerminalExtraKeys.KeyStyle.MODIFIER);
+      assertEquals(
+          action, TerminalExtraKeys.isControl(action), style == TerminalExtraKeys.KeyStyle.CONTROL);
+      assertEquals(action, expected.getOrDefault(action, TerminalExtraKeys.KeyStyle.SYMBOL), style);
+    }
+    assertEquals(TerminalExtraKeys.KeyStyle.SYMBOL, TerminalExtraKeys.style(null));
+    assertEquals(TerminalExtraKeys.KeyStyle.SYMBOL, TerminalExtraKeys.style("esc"));
+  }
 }

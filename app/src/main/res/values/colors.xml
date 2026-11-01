@@ -24,6 +24,30 @@
     <color name="terminal_surface">#000000</color>
     <color name="terminal_foreground">#E4E8F0</color>
     <color name="terminal_outline">#263041</color>
+    <!-- 快捷键托盘：与输出区一样固定深色，不随明暗主题切换（values-night 不覆盖）。
+         键帽比托盘亮一档；功能键（Esc/Tab/Ctrl/Alt/Home/End）再深一档以分区。 -->
+    <color name="terminal_key_tray">#0A0D13</color>
+    <color name="terminal_key_tray_line">#1A212C</color>
+    <color name="terminal_key">#1C2430</color>
+    <color name="terminal_key_fn">#161D28</color>
+    <color name="terminal_key_highlight">#262E3A</color>
+    <color name="terminal_key_edge">#04060A</color>
+    <color name="terminal_key_ripple">#33FFFFFF</color>
+    <color name="terminal_key_text">#E8ECF3</color>
+    <color name="terminal_key_symbol">#C9D2DF</color>
+    <color name="terminal_key_control">#A9C4F7</color>
+    <color name="terminal_key_led_off">#354152</color>
+    <color name="terminal_key_led_on">#8AB4FF</color>
+    <color name="terminal_key_latched">#172A47</color>
+    <color name="terminal_key_latched_line">#5A7FBF</color>
+    <!-- 会话状态点：运行中 / 空闲 / 待核验，明暗各一套（values-night 覆盖）。 -->
+    <color name="terminal_state_running">#2FA36B</color>
+    <color name="terminal_state_idle">#1E50D0</color>
+    <color name="terminal_state_pending">#C98A12</color>
+    <!-- 侧栏底部动作与弹窗选项卡：无描边柔和填充 / 按压加深；新建按钮内加号方块的半透明底。 -->
+    <color name="terminal_tile">#F1F4F9</color>
+    <color name="terminal_tile_pressed">#E6EBF3</color>
+    <color name="terminal_on_primary_chip">#2EFFFFFF</color>
     <!-- 终端外壳跟随应用三向态：浅色为白/浅蓝灰，夜间为近黑/浅蓝；输出区仍固定黑底。
          外壳颜色只从这些 token 取，Java 与 drawable 不再写死色值。 -->
     <color name="terminal_panel">#FFFFFF</color>

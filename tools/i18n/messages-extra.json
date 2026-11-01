@@ -11060,5 +11060,126 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
     ]
+  },
+  {
+    "id": "tpolish01",
+    "zh": "选择类型，会话在后台独立运行",
+    "en": "Pick a type; sessions keep running in the background",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish02",
+    "zh": "PTY 终端",
+    "en": "PTY terminal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish03",
+    "zh": "完整交互终端，支持 vim、top、补全与颜色",
+    "en": "Full interactive terminal with vim, top, completion and colors",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish04",
+    "zh": "按行执行命令，适合读屏与粘贴长命令",
+    "en": "Runs one line at a time; suits screen readers and long pasted commands",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish05",
+    "zh": "在新 PTY 中直接启动 DSH 命令行",
+    "en": "Starts the DSH command line in a new PTY",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish06",
+    "zh": "返回不结束进程",
+    "en": "Back keeps processes",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish07",
+    "zh": "返回或回到主界面只关闭页面，会话继续在后台运行。",
+    "en": "Back or Home only closes the page; sessions keep running in the background.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish08",
+    "zh": "结束需确认",
+    "en": "Ending needs confirmation",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish09",
+    "zh": "会话行的 × 结束单个进程，标题栏的停止图标结束全部；两者都会先确认，再逐个核验退出。",
+    "en": "The × on a row ends one process; the stop icon in the header ends all. Both ask first, then verify each exit.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish10",
+    "zh": "铅笔图标修改会话名，不影响正在运行的命令。",
+    "en": "The pencil renames a session without touching the running command.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish11",
+    "zh": "快捷键",
+    "en": "Extra keys",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish12",
+    "zh": "长按底部任一快捷键可自定义；Ctrl / Alt 点一下锁定一次，指示条亮起即生效。",
+    "en": "Long-press any extra key to customize. Tap Ctrl / Alt to latch it once; the lit bar shows it is active.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish13",
+    "zh": "状态点：%1$s、%2$s、%3$s、%4$s",
+    "en": "Status dots: %1$s, %2$s, %3$s, %4$s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ],
+    "androidFormat": true
+  },
+  {
+    "id": "tpolish14",
+    "zh": "空闲",
+    "en": "Idle",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
+  },
+  {
+    "id": "tpolish15",
+    "zh": "终端会话",
+    "en": "Terminal sessions",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
+    ]
   }
 ]

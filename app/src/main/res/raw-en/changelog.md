@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.3-20261101.2130-dsh0.2.1-rc.5 / build252
+# DSHA 0.2.1-rc.3-20261101.2200-dsh0.2.1-rc.5 / build253
 
-- Self-check and diagnostics page simplified: on phones the status card, check results, feedback and tools follow in order, merging the former six groups into three sections; tablets put status, feedback and tools on the left and results on the right.
-- Items needing attention come first, unverified checks are marked separately with a grey dot, and healthy ones collapse into one "N OK" row, so unverified checks no longer report a problem while DSH is not running. Wide screens use two columns; 1.3x font falls back to one.
-- Export becomes a sheet: pick a diagnostic bundle or a text report first; optional reproduction steps are attached only to that export and never saved. The last saved file appears only after an export.
-- Verification scope: local unit tests and static checks only; not installed on a device, and UI tests and Lint are left to CI. Raises versionCode to 252 (based on build251). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- Terminal UI polish: the two rows of extra keys now have gaps between keycaps, function keys use a darker tone, arrow keys are larger, and ^C / ^D / ^Z and symbol keys use a monospace font; Ctrl and Alt locks show as a bottom indicator bar. Custom key layouts and long-press customisation are unchanged.
+- Simpler sidebar: PTY and simple-terminal sessions share one list ordered by creation, each session's status is a small dot after its name, and End all is hidden when no session exists and still asks for confirmation.
+- New session becomes three cards (PTY terminal, simple terminal, DSH CLI), and the help dialog shows four key points with a status legend.
+- Verification scope: local terminal unit tests and static checks only; not installed on a device, and UI tests and Lint are left to CI. Raises versionCode to 253 (based on build252). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.

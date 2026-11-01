@@ -130,10 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("自检与诊断页简化"));
-      assertTrue(shown.contains("未核验单独标记"));
+      assertTrue(shown.contains("终端界面精修"));
+      assertTrue(shown.contains("合成一个列表"));
       assertTrue(shown.contains("未在真机安装验证"));
-      assertTrue(shown.contains("版本码提升为 252"));
+      assertTrue(shown.contains("版本码提升为 253"));
+      assertFalse(shown.contains("自检与诊断页简化"));
+      assertFalse(shown.contains("版本码提升为 252"));
       assertFalse(shown.contains("插件页头部重构"));
       assertFalse(shown.contains("版本码提升为 251"));
       assertFalse(shown.contains("修复配置快照删不掉"));
@@ -166,10 +168,12 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Self-check and diagnostics page simplified"));
-      assertTrue(shown.contains("unverified checks are marked separately"));
+      assertTrue(shown.contains("Terminal UI polish"));
+      assertTrue(shown.contains("one list ordered by creation"));
       assertTrue(shown.contains("not installed on a device"));
-      assertTrue(shown.contains("Raises versionCode to 252"));
+      assertTrue(shown.contains("Raises versionCode to 253"));
+      assertFalse(shown.contains("Self-check and diagnostics page simplified"));
+      assertFalse(shown.contains("Raises versionCode to 252"));
       assertFalse(shown.contains("Plugin page header redesign"));
       assertFalse(shown.contains("Raises versionCode to 251"));
       assertFalse(shown.contains("Configuration snapshots can be deleted again"));

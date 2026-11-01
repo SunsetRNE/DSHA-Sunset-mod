@@ -27,8 +27,10 @@ import org.robolectric.annotation.LooperMode;
 public class TerminalThemeTest {
   private static final int LIGHT_PANEL = 0xFFFFFFFF;
   private static final int LIGHT_PANEL_TEXT = 0xFF152033;
+  private static final int LIGHT_PANEL_TEXT_STRONG = 0xFF0D1727;
   private static final int NIGHT_PANEL = 0xFF0B0F16;
   private static final int NIGHT_PANEL_TEXT = 0xFFE4E8F0;
+  private static final int NIGHT_PANEL_TEXT_STRONG = 0xFFF2F5FA;
 
   @Before
   public void prepare() {
@@ -63,8 +65,8 @@ public class TerminalThemeTest {
     assertEquals(LIGHT_PANEL, colorOf(host.findViewById(R.id.terminal_sessions_panel)));
     assertEquals(LIGHT_PANEL, colorOf(host.findViewById(R.id.terminal_workspace_toolbar)));
     assertEquals(
-        LIGHT_PANEL_TEXT,
-        ((TextView) host.findViewById(R.id.terminal_sessions_summary)).getCurrentTextColor());
+        LIGHT_PANEL_TEXT_STRONG,
+        ((TextView) host.findViewById(R.id.terminal_sessions_title)).getCurrentTextColor());
     assertEquals(Color.BLACK, colorOf(host.findViewById(R.id.terminal_workspace)));
     assertEquals(
         LIGHT_PANEL_TEXT,
@@ -86,8 +88,8 @@ public class TerminalThemeTest {
     assertEquals(NIGHT_PANEL, colorOf(host.findViewById(R.id.terminal_sessions_panel)));
     assertEquals(NIGHT_PANEL, colorOf(host.findViewById(R.id.terminal_workspace_toolbar)));
     assertEquals(
-        NIGHT_PANEL_TEXT,
-        ((TextView) host.findViewById(R.id.terminal_sessions_summary)).getCurrentTextColor());
+        NIGHT_PANEL_TEXT_STRONG,
+        ((TextView) host.findViewById(R.id.terminal_sessions_title)).getCurrentTextColor());
     assertEquals(Color.BLACK, colorOf(host.findViewById(R.id.terminal_workspace)));
     assertEquals(
         NIGHT_PANEL_TEXT,
@@ -135,8 +137,6 @@ public class TerminalThemeTest {
     assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_actions).getVisibility());
     assertEquals(
         View.VISIBLE, host.findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
-    assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_subtitle).getVisibility());
-    assertEquals(View.GONE, host.findViewById(R.id.terminal_sessions_secondary).getVisibility());
     assertFooterActions(host, true);
     TextView home = host.findViewById(R.id.terminal_sessions_action_home_dense);
     assertEquals(Math.round(48 * density(host)), home.getMinHeight());
@@ -187,8 +187,10 @@ public class TerminalThemeTest {
       assertNotNull(view.getContentDescription());
       assertFalse(view.getContentDescription().toString().isEmpty());
     }
-    TextView closeAll = host.findViewById(R.id.terminal_sessions_close_all);
-    assertNotNull(closeAll.getCompoundDrawablesRelative()[0]);
+    // “结束全部”只剩停止图标：必须是带无障碍名称的图标按钮，不再是文字胶囊。
+    View closeAll = host.findViewById(R.id.terminal_sessions_close_all);
+    assertTrue(closeAll instanceof AppCompatImageButton);
+    assertNotNull(((AppCompatImageButton) closeAll).getDrawable());
     for (int id :
         new int[] {
           R.id.terminal_sessions_action_home,

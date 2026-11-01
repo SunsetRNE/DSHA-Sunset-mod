@@ -1367,5 +1367,20 @@
   "diag248a26": "Pacote de registros estruturado; passos opcionais",
   "diag248a27": "Preparar de novo certificados, Python, npm e pnpm",
   "diag248a28": "Início falha por plugins",
-  "diag248a29": "Salvar em Downloads"
+  "diag248a29": "Salvar em Downloads",
+  "tpolish01": "Escolha o tipo; as sessões continuam em segundo plano",
+  "tpolish02": "Terminal PTY",
+  "tpolish03": "Terminal interativo completo com vim, top, autocompletar e cores",
+  "tpolish04": "Executa uma linha por vez; bom para leitores de tela e comandos longos",
+  "tpolish05": "Inicia a linha de comando do DSH em um novo PTY",
+  "tpolish06": "Voltar mantém os processos",
+  "tpolish07": "Voltar ou Início só fecha a página; as sessões continuam em segundo plano.",
+  "tpolish08": "Encerrar exige confirmação",
+  "tpolish09": "O × na linha encerra um processo; o ícone de parar no cabeçalho encerra todos. Ambos pedem confirmação e verificam cada saída.",
+  "tpolish10": "O lápis renomeia a sessão sem afetar o comando em execução.",
+  "tpolish11": "Teclas extras",
+  "tpolish12": "Toque e segure qualquer tecla extra para personalizar. Toque em Ctrl / Alt para fixar uma vez; a barra acesa indica que está ativo.",
+  "tpolish13": "Pontos de estado: %1$s, %2$s, %3$s, %4$s",
+  "tpolish14": "Ocioso",
+  "tpolish15": "Sessões de terminal"
 }
