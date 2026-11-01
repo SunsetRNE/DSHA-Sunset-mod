@@ -3088,6 +3088,17 @@
       ],
       "environment": {},
       "cli": "No positional arguments; verified raw runtime and isolated Loader fixtures, with required Node internals enabled by the script."
+    },
+    {
+      "path": "tools/test-screen-eval.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "ScreenSense 离线评估：固定合成样本可复现、与 Java 真实 codec 共享 golden 摘要、字符回归上限与 tokenizer 固定摘要；不读真机屏幕。"
     }
   ]
 }

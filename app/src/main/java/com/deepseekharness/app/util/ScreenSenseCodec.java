@@ -19,7 +19,7 @@ public final class ScreenSenseCodec {
             .append('x')
             .append(state.height)
             .append(" q=")
-            .append(state.truncated ? "partial" : "ok")
+            .append(state.quality())
             .append(" f=")
             .append(state.focused ? '1' : '0')
             .append(" ime=")
@@ -88,7 +88,7 @@ public final class ScreenSenseCodec {
             .append('x')
             .append(current.height)
             .append(" q=")
-            .append(current.truncated ? "partial" : "ok")
+            .append(current.quality())
             .append(" f=")
             .append(current.focused ? '1' : '0')
             .append(" ime=")
@@ -131,10 +131,11 @@ public final class ScreenSenseCodec {
         .append(element.role)
         .append(" \"")
         .append(escape(element.label.isEmpty() ? "?" : element.label))
-        .append("\" ")
-        .append(element.flags.isEmpty() ? "-" : element.flags)
-        .append(' ')
-        .append(element.actions.isEmpty() ? "-" : element.actions);
+        .append('"');
+    // flags（!*%^~）与 actions（clfbot）字符集互不相交，合成一个 token 仍可无歧义拆分；
+    // 两者都为空时整段省略，纯文本元素不再带占位符。
+    if (!element.flags.isEmpty() || !element.actions.isEmpty())
+      result.append(' ').append(element.flags).append(element.actions);
     if (element.hasBounds)
       result
           .append(" @")

@@ -4,6 +4,7 @@ import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
 import com.deepseekharness.app.util.AccessibilityDumpBounds;
 import com.deepseekharness.app.util.ScreenSenseCodec;
+import com.deepseekharness.app.util.ScreenSenseMetadata;
 import com.deepseekharness.app.util.ScreenSenseState;
 import com.deepseekharness.app.util.ScreenSenseStateStore;
 import java.util.ArrayList;
@@ -32,11 +33,13 @@ public final class ScreenSenseReader {
       String scopeId =
           states.scopeId(context.ownerIdentity(), context.serviceEpoch(), resolved.target);
       List<ScreenSenseState.Element> elements = new ArrayList<>();
+      long startedAt = android.os.SystemClock.elapsedRealtime();
       boolean[] maxReached = new boolean[1];
       ScreenReadBudget budget =
           new ScreenReadBudget(android.os.SystemClock::elapsedRealtime, context::current);
       collect(resolved.root, elements, budget, 0, max, includeBounds, maxReached);
       context.validateCurrentTarget();
+      long capturedAt = android.os.SystemClock.elapsedRealtime();
       android.util.DisplayMetrics metrics = context.service().getResources().getDisplayMetrics();
       long sid = states.nextSid();
       ScreenSenseState state =
@@ -56,12 +59,15 @@ public final class ScreenSenseReader {
                   : budget.exhausted() ? "nodes" : maxReached[0] ? "max" : "",
               elements);
       states.record(context.ownerIdentity(), context.serviceEpoch(), resolved.target, state);
+      ScreenSenseMetadata meta =
+          ScreenSenseMetadata.of(
+              state, startedAt, capturedAt, android.os.SystemClock.elapsedRealtime());
       // Compact ids are preview-only until a current-tree resolver exists. Never emit a
       // delta that could make a caller associate a new node with an old position.
       JSONObject result =
           ScreenReply.completed()
               .put("kind", "dsha-screen-sense-v1")
-              .put("format", "v4-preview")
+              .put("format", "v4-preview-2")
               .put("mode", "full")
               .put("fullRequested", full)
               .put("deltaAvailable", false)
@@ -72,6 +78,11 @@ public final class ScreenSenseReader {
               .put("visited", state.visited)
               .put("elements", state.elements.size())
               .put("truncated", state.truncated)
+              .put("source", meta.source)
+              .put("quality", meta.quality)
+              .put("partial", meta.partial)
+              .put("readMs", meta.readMs)
+              .put("ageMs", meta.ageMs)
               .put("encodedState", ScreenSenseCodec.encode(state))
               .put("target", ScreenSnapshotReader.target(resolved.target));
       if (state.truncated) result.put("truncationReason", state.truncationReason);

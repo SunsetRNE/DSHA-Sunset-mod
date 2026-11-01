@@ -96,6 +96,15 @@ public final class ScreenSenseState {
         elements);
   }
 
+  /**
+   * 读取质量：{@code partial} 表示达到节点/时间/数量上限，结果不完整；{@code empty} 表示树可读但没有可报告元素
+   * （空树或低语义界面，日后 OCR 决策门按它抽样）；其余为 {@code ok}。截断优先于空。
+   */
+  public String quality() {
+    if (truncated) return "partial";
+    return elements.isEmpty() ? "empty" : "ok";
+  }
+
   public ScreenSenseState withSid(long value) {
     return new ScreenSenseState(
         value,

@@ -719,6 +719,7 @@
     "util/ScreenPixelFingerprint.java",
     "util/ScreenRequestExecutor.java",
     "util/ScreenSenseCodec.java",
+    "util/ScreenSenseMetadata.java",
     "util/ScreenSenseState.java",
     "util/ScreenSenseStateStore.java",
     "util/ScreenSerialExecutor.java",
