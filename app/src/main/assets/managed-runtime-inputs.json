@@ -561,6 +561,7 @@
     "app/src/main/java/com/deepseekharness/app/plugins"
   ],
   "launcherSources": [
+    "util/ComposeGate.java",
     "util/IsolatedCommand.java",
     "util/OverlayPlacement.java",
     "util/OverlayTouchGuard.java",

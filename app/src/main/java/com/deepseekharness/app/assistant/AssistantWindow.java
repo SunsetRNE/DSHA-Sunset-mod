@@ -179,8 +179,7 @@ final class AssistantWindow implements AutoCloseable {
         row,
         UiText.choose("语音", "Voice"),
         () -> {
-          // 语音界面可聚焦：拦住手机操作，但不取消当前对话。
-          controller.holdForLocalInput("ASSISTANT_VOICE");
+          controller.beginComposing("voice");
           context.startActivity(
               new Intent(context, AssistantVoiceActivity.class)
                   .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -420,7 +419,7 @@ final class AssistantWindow implements AutoCloseable {
   }
 
   private void openEditor() {
-    controller.beginEditing();
+    controller.beginComposing("editor");
     controller.collapse();
     setEditorVisible(true);
     context.startActivity(editorIntent(context));

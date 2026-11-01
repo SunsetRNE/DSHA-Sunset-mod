@@ -41,8 +41,8 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
       finish();
       return;
     }
-    // 语音界面可聚焦：拦住手机操作，但不取消当前对话。
-    session.holdForLocalInput("ASSISTANT_VOICE");
+    // 语音输入：手机动作原地等待，不暂停、不取消当前对话。
+    session.beginComposing("voice");
     if (!SpeechRecognizer.isRecognitionAvailable(this)) {
       status.setText(
           UiText.choose(
@@ -133,9 +133,9 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
       recognizer.destroy();
       recognizer = null;
     }
-    // 未经编辑器接管就离开语音时放回手机操作；编辑器接管后原因已不同，这里不生效。
+    // 未经编辑器接管就离开语音时放开等待；编辑器接管后来源已不同，这里不生效。
     if (session != null && session == AssistantSessionController.active())
-      session.releaseLocalInput("ASSISTANT_VOICE");
+      session.endComposing("voice");
     super.onStop();
   }
 

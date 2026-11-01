@@ -412,12 +412,12 @@ public final class AssistantActivity extends AppCompatActivity {
           public void afterTextChanged(android.text.Editable value) {}
         });
     bound.collapse();
-    bound.beginEditing();
+    bound.beginComposing("editor");
     AssistantService.nativeEditorVisible(true);
     pendingInput = getIntent().getBooleanExtra("focus_input", false);
     input.setOnFocusChangeListener(
         (v, focus) -> {
-          if (focus) bound.beginEditing();
+          if (focus) bound.beginComposing("editor");
         });
     sendButton =
         button(
@@ -428,7 +428,7 @@ public final class AssistantActivity extends AppCompatActivity {
     button(
         UiText.choose("语音输入", "Voice input"),
         () -> {
-          bound.holdForLocalInput("ASSISTANT_VOICE");
+          bound.beginComposing("voice");
           startActivity(new Intent(this, AssistantVoiceActivity.class));
         });
     button(UiText.choose("暂停", "Pause"), () -> bound.pause("USER_PAUSED"));
@@ -556,8 +556,8 @@ public final class AssistantActivity extends AppCompatActivity {
       input.setShowSoftInputOnFocus(true);
     }
     if (bound != null) {
-      // 从语音或其他界面回到编辑器：重新拦住手机操作（不取消对话）。
-      bound.beginEditing();
+      // 从语音或其他界面回到编辑器：继续标记“用户正在输入”（不暂停、不取消）。
+      bound.beginComposing("editor");
       AssistantService.nativeEditorVisible(true);
       if (pendingInput && input != null) input.post(this::focusComposer);
     }
@@ -584,8 +584,8 @@ public final class AssistantActivity extends AppCompatActivity {
     if (bound != null) {
       bound.collapse();
       AssistantService.nativeEditorVisible(false);
-      // 编辑器未发送就离开：放回手机操作（仍要求先重新观察），不等模型被拒绝后才结束。
-      bound.releaseLocalInput("ASSISTANT_IME");
+      // 编辑器未发送就离开：放开等待中的手机动作（仍要求先重新观察）。
+      bound.endComposing("editor");
     }
     super.onPause();
   }

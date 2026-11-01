@@ -29,8 +29,11 @@
   `requireObservation`：作废旧观察与在途读屏，下一次手机操作前必须重新观察，但不暂停、不取消。
 - 助手面板从不可聚焦、不是输入法目标；展开时以 `expanded=false` 发布，按自有窗口整窗排除，读屏不再收走展开的面板，
   也不会在它上面落坐标动作。命令批准浮条等其它 owner 的展开语义不变。
-- 编辑器、语音是可聚焦界面：`holdForLocalInput` 拦住手机操作但**不取消对话**；未发送就离开时
-  `releaseLocalInput(reason)` 只放开同一原因的暂停，用户主动暂停/停止不受影响，放开后仍须重新观察。
+- 用户输入（窗内输入框、编辑器、语音）走 `util/ComposeGate`，**不暂停、不取消**：AI 的手机动作在桥上原地等待
+  （最多 60 秒；读屏照常并标注 `userComposing`）。发送后消息以 `steer` 插进正在运行的这一轮，等待中的动作返回
+  `USER_MESSAGE_ARRIVED`，AI 先读消息、重新观察再接着做；没发送就离开则放开等待并要求重新观察；超时返回
+  `USER_COMPOSING`，AI 停下等用户。两种结果都带 `actionExecuted:false`、`automaticRetry:false` 与中英文说明。
+  会话适配器 `sessions.send` 接受 `mode: queue|steer`，未知值拒绝。
 - 本轮结束时面板仍展开：延后到用户收起后再关窗，不在手指下消失。
 - 防误触（`util/OverlayTouchGuard`，纯逻辑有单测）：右上角 ✕ 收起；状态行只负责展开；展开/收起/改宽后 400ms 内忽略点按；
   「停止」放在最左并与其它按钮隔开，需 3 秒内再点一次确认；按钮之间 4dp 间距。

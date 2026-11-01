@@ -33,15 +33,24 @@ async function fixture(run) {
     // Real rc3 inspect/prompt entrypoints, with an explicit public Agent admission port.
     // No model, network, file mutation, or complete Host assembly is claimed here.
     const controller = Object.create(SessionController.prototype); controller.ctx = ctx
+    const modes = []
     controller.commands = { prompt(request, source) {
+      modes.push(request.mode)
       ctx.agents.get(request.sessionId).send(createUserMessage({ source, content: request.content }), 'next-turn', false)
       return { accepted: true }
     } }
     const call = sessionAdapter({ sessionController: controller, agents: ctx.agents }, 'host-actual-rc3')
-    await run(ctx, call, handles.map(handle => handle.agent))
+    await run(ctx, call, handles.map(handle => handle.agent), modes)
   } finally { await ctx.fiber.dispose() }
 }
 const args = sessionId => ({ hostInstanceId: 'host-actual-rc3', sessionId })
+
+test('send forwards an explicit steer mode, defaults to queue and rejects unknown modes', () => fixture(async (_ctx, call, [agent], modes) => {
+  await call('sessions.send', { ...args(agent.id), text: 'queued by default', requestId: 'mode-default' })
+  await call('sessions.send', { ...args(agent.id), text: 'into the running turn', requestId: 'mode-steer', mode: 'steer' })
+  await assert.rejects(call('sessions.send', { ...args(agent.id), text: 'bad', requestId: 'mode-bad', mode: 'interrupt' }), /PROMPT_INVALID/)
+  assert.deepEqual(modes, ['queue', 'steer'])
+}))
 
 /** Real controller constructor, list/create/prompt and real Agent/Session/Inbox.
  * Storage/auth/attachment ports are isolated fixtures; no model/network provider or Android is claimed.

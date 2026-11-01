@@ -71,19 +71,6 @@ public final class AssistantSessionState {
     detail = "";
   }
 
-  /**
-   * 撤销由本机输入界面加上的暂停：仅当当前暂停正是这一原因、且没有停止时生效。
-   * 是否仍在运行未知，交给下一次真实 status 观察确定。
-   */
-  public synchronized boolean releaseHold(String reason) {
-    if (!paused || stopped || phase == Phase.DISCONNECTED || !detail.equals(reason)) return false;
-    paused = false;
-    terminalKnown = false;
-    phase = Phase.RUNNING;
-    detail = "OBSERVE_REQUIRED";
-    return true;
-  }
-
   public synchronized void rejected(String reason) {
     if (phase == Phase.DISCONNECTED) return;
     paused = true;

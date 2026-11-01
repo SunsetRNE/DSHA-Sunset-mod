@@ -271,26 +271,35 @@ public final class AssistantInputAndroidTest {
   }
 
   @Test
-  public void voiceHoldIsReleasedOnlyByItsOwnReason() throws Exception {
-    session.holdForLocalInput("ASSISTANT_VOICE");
-    drain();
+  public void composingNeverPausesOrCancelsAndOnlyItsOwnSurfaceReleasesIt() throws Exception {
     var coordinator = PhoneControlCoordinator.get(app);
-    assertTrue(coordinator.snapshot().paused());
-    session.releaseLocalInput("ASSISTANT_IME");
-    assertTrue("另一界面的离开不能放开语音的暂停", coordinator.snapshot().paused());
-    session.releaseLocalInput("ASSISTANT_VOICE");
-    assertFalse(coordinator.snapshot().paused());
-    assertTrue(coordinator.snapshot().needsObservation());
-    // 用户主动暂停不会被输入界面的离开放开。
-    session.pause("USER_PAUSED");
+    session.beginComposing("voice");
     drain();
-    session.releaseLocalInput("ASSISTANT_VOICE");
-    session.releaseLocalInput("ASSISTANT_IME");
-    assertTrue(coordinator.snapshot().paused());
+    assertTrue(session.composing());
+    assertFalse("输入时不暂停手机控制", coordinator.snapshot().paused());
+    session.beginComposing("editor");
+    session.endComposing("voice");
+    assertTrue("语音交还编辑器后，旧来源的离开不能放开", session.composing());
+    session.endComposing("editor");
+    assertFalse(session.composing());
+    assertEquals("Composing never cancels the conversation", 0, cancellations.get());
+  }
+
+  @Test
+  public void sendingWhileComposingWakesTheWaitingActionWithTheNewMessage() throws Exception {
+    var gate = PhoneControlCoordinator.get(app).compose();
+    session.beginComposing("overlay");
+    var waiting = Executors.newSingleThreadExecutor().submit(() -> gate.await(5_000, () -> true));
+    Thread.sleep(50);
+    assertFalse(waiting.isDone());
+    // 本轮已结束（fixture 的 status 为 running=false）：走普通发送；接收后同样唤醒等待者。
+    assertTrue(session.send("顺便把字体调大"));
+    drain();
     assertEquals(
-        "Holding for local input never cancels the conversation; only the explicit pause does",
-        1,
-        cancellations.get());
+        com.deepseekharness.app.util.ComposeGate.Outcome.MESSAGE_ARRIVED,
+        waiting.get(2, TimeUnit.SECONDS));
+    assertFalse(session.composing());
+    assertEquals(0, cancellations.get());
   }
 
   private static Rect boundsWithin(ViewGroup viewport, View child) {
@@ -345,7 +354,9 @@ public final class AssistantInputAndroidTest {
         WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
         flags.softInputMode & WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
     assertFalse(session.snapshot().expanded());
-    assertTrue(PhoneControlCoordinator.get(app).snapshot().paused());
+    // 打开编辑器：标记用户正在输入，手机动作原地等待；不暂停、不取消。
+    assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
+    assertTrue(session.composing());
     assertEquals(
         "Opening the editor must not issue another background cancellation",
         before,

@@ -1652,6 +1652,48 @@ public final class HttpShellService {
       }
       boolean observing =
           java.util.Set.of("dump", "tree", "screenshot", "senseState").contains(operation);
+      var compose = coordinator.compose();
+      if (!observing) {
+        // 用户正在给 AI 输入消息：动作停在原地等，不取消对话、不结束本轮。读屏不受影响。
+        java.util.function.BooleanSupplier taskLive =
+            () -> {
+              var state = coordinator.snapshot();
+              return !state.paused()
+                  && binding.equals(state.binding())
+                  && screenBridgeCurrent(scope);
+            };
+        com.deepseekharness.app.util.ComposeGate.Outcome waited;
+        try {
+          waited =
+              compose.await(com.deepseekharness.app.util.ComposeGate.DEFAULT_WAIT_MILLIS, taskLive);
+        } catch (InterruptedException interrupted) {
+          Thread.currentThread().interrupt();
+          return com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_RUN_CHANGED")
+              .toString();
+        }
+        if (waited == com.deepseekharness.app.util.ComposeGate.Outcome.MESSAGE_ARRIVED)
+          return com.deepseekharness.app.screen.ScreenReply.refused("USER_MESSAGE_ARRIVED")
+              .put("userMessage", true)
+              .put(
+                  "guidance",
+                  com.deepseekharness.app.assistant.AssistantService.taskGuidance(
+                      "USER_MESSAGE_ARRIVED"))
+              .put("actionExecuted", false)
+              .put("nextAction", "READ_THE_NEW_USER_MESSAGE_THEN_OBSERVE_THE_SCREEN_AGAIN")
+              .put("automaticRetry", false)
+              .toString();
+        if (waited == com.deepseekharness.app.util.ComposeGate.Outcome.STILL_COMPOSING)
+          return com.deepseekharness.app.screen.ScreenReply.refused("USER_COMPOSING")
+              .put("userComposing", true)
+              .put(
+                  "guidance",
+                  com.deepseekharness.app.assistant.AssistantService.taskGuidance("USER_COMPOSING"))
+              .put("actionExecuted", false)
+              .put("nextAction", "WAIT_FOR_THE_USER_MESSAGE_DO_NOT_ACT")
+              .put("automaticRetry", false)
+              .toString();
+        // INTERRUPTED 落到下面原有的暂停 / 换轮检查，给出原来的拒绝原因。
+      }
       var screenUi =
           com.deepseekharness.app.assistant.AssistantService.prepareScreenOperation(
               ctx, binding, observing);
@@ -1694,6 +1736,7 @@ public final class HttpShellService {
                   && screenBridgeCurrent(scope)
                   && coordinator.current(taskLease)
                   && (observing || coordinator.actionAllowed(taskLease, target))
+                  && (observing || !compose.composing())
                   && !com.deepseekharness.app.control.OwnedScreenOverlay.expanded()
                   && capability.runtime.equals(
                       com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx))
@@ -1704,6 +1747,12 @@ public final class HttpShellService {
       String reply =
           DshaAccessibilityService.execute(
               DshaApp.from(ctx).capabilityBroker(), capability, live, operation, arguments);
+      if (observing && compose.composing()) {
+        // 读屏照常返回，但明确告诉 AI 用户正在输入，下一步动作会先等待。
+        var annotated = new org.json.JSONObject(reply);
+        annotated.put("userComposing", true);
+        reply = annotated.toString();
+      }
       if (observing
           && new org.json.JSONObject(reply).optString("state").equals("COMPLETED")
           && !coordinator.observed(taskLease, observationSequence, target))

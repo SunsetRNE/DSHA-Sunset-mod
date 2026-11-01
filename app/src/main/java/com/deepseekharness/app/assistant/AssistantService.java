@@ -392,6 +392,14 @@ public final class AssistantService extends Service {
 
   public static String taskGuidance(String code) {
     return switch (code) {
+      case "USER_MESSAGE_ARRIVED" ->
+          UiText.choose(
+              "用户刚给你发来新消息，这次手机动作没有执行。先阅读这条消息，再重新观察屏幕，按用户的新要求决定下一步；不要重放刚才的动作。",
+              "The user just sent you a new message, so this phone action was not executed. Read the message first, observe the screen again, then decide the next step from the user's new request. Do not replay the previous action.");
+      case "USER_COMPOSING" ->
+          UiText.choose(
+              "用户正在给你输入消息，这次手机动作没有执行。不要继续操作手机，等待用户的消息；本轮对话没有被取消。",
+              "The user is typing a message to you, so this phone action was not executed. Do not operate the phone; wait for the user's message. This turn has not been cancelled.");
       case "ASSISTANT_STOP_NOTIFICATION_REQUIRED" ->
           UiText.choose(
               "手机操作尚未执行或已暂停。请在系统设置 → 应用 → DSHA → 通知中允许通知，并开启“手机任务状态”通知类别；该通知提供停止入口。允许后回原对话明确继续，不会自动重放。",
