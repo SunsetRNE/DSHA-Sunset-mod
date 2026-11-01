@@ -336,6 +336,31 @@ public final class LocalTaskConfirmationAndroidTest {
   }
 
   @Test
+  public void allowForThisTurnSkipsLaterPromptsForTheSameAppUntilTheTurnEnds() throws Exception {
+    var coordinator = PhoneControlCoordinator.get(app);
+    var turnGrants = coordinator.turnGrants();
+    turnGrants.clear();
+    var first = capability("dump", true);
+    var result = authorize(first);
+    var prompt = awaitPrompt(result);
+    assertEquals(4, prompt.getChildCount());
+    assertTrue(prompt.getChildAt(3).performClick());
+    assertEquals("ALLOWED", await(result));
+    // 同一轮同一应用：不再弹窗。
+    var second = capability("dump", true);
+    assertEquals("ALLOWED", await(authorize(second)));
+    assertNull("没有新弹窗", get(window, "view"));
+    // 本轮结束后重新确认。
+    coordinator.completeLocal(binding);
+    assertFalse(
+        turnGrants.allows(
+            binding.identity(),
+            target.packageName,
+            false,
+            new DeviceGrants(app).screenPolicy().revision));
+  }
+
+  @Test
   public void globalAllowWhileIdleAdmitsFreshBoundScreenReadWithoutNativePrompt() throws Exception {
     var coordinator = PhoneControlCoordinator.get(app);
     coordinator.stop("IDLE");

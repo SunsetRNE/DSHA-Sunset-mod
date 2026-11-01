@@ -15,7 +15,12 @@ public interface ScreenControlConfirmation {
   }
 
   /** The removed prompt's accessibility identity is used only to drain that exact old window. */
-  record Decision(Boolean allowed, int windowId) {}
+  /** {@code rememberTurn}：用户选了「本轮允许此应用」。只在 allowed 为 true 时有意义。 */
+  record Decision(Boolean allowed, int windowId, boolean rememberTurn) {
+    public Decision(Boolean allowed, int windowId) {
+      this(allowed, windowId, false);
+    }
+  }
 
   Prompt confirm(
       CapabilityRequest request,

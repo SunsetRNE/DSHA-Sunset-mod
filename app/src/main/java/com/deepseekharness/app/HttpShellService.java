@@ -151,6 +151,7 @@ public final class HttpShellService {
     androidx.appcompat.app.AlertDialog dialog;
     boolean resolving, targetChanged;
     int promptWindow = -1;
+    volatile boolean rememberTurn;
 
     PendingConfirmation(com.deepseekharness.app.util.BridgeConfirmations.Request request) {
       this(request, false, null, null, null);
@@ -1524,13 +1525,39 @@ public final class HttpShellService {
           ? ScreenAuthorization.ALLOWED
           : ScreenAuthorization.UNAVAILABLE;
     }
+    // 「本轮允许此应用」：同一轮、同一应用、同一确认策略修订号内免于重复弹窗；敏感应用每 5 次再问。
+    // 仍走与弹窗允许相同的一次性授权与全部运行身份复核，不跳过目标、遮挡或代次检查。
+    var turnTask =
+        com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx).snapshot().binding();
+    String turnKey = turnTask == null ? null : turnTask.identity();
+    var turnGrants = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx).turnGrants();
+    long confirmRevision = grants.screenPolicy().revision;
+    if (turnGrants.allows(turnKey, pkg, sensitive, confirmRevision)) {
+      boolean remembered =
+          uiGrant.completeConfirmation(
+              true,
+              capability,
+              com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx),
+              scope.run.runId,
+              revision,
+              confirmRevision,
+              screenBridgeCurrent(scope)
+                  && !controller.isStopping()
+                  && !controller.isUserStopped()
+                  && DshaApp.from(ctx).capabilityBroker().current(capability),
+              false);
+      if (remembered && DshaApp.from(ctx).capabilityBroker().authorize(capability))
+        return ScreenAuthorization.ALLOWED;
+    }
     String where = pkg.isEmpty() ? com.deepseekharness.app.util.UiText.text("当前界面") : pkg;
     String why =
         sensitive
             ? com.deepseekharness.app.util.UiText.format(
                 "在【%s】里：%s  # 当前确认策略要求你确认，界面可能涉及支付或隐私", where, action)
             : com.deepseekharness.app.util.UiText.format("%s  # 仅批准本次操作；可在设备能力授权中设置确认策略", action);
-    ConfirmationOutcome outcome = confirmOutcome(scope, capability, why, true, target);
+    boolean[] rememberTurn = new boolean[1];
+    ConfirmationOutcome outcome =
+        confirmOutcome(scope, capability, why, true, target, rememberTurn);
     // A sensitive confirmation is one-shot, but must obey the same revocation and
     // run identity checks as a remembered grant. Never revive an old dialog result.
     boolean granted =
@@ -1546,8 +1573,14 @@ public final class HttpShellService {
                 && !controller.isUserStopped()
                 && DshaApp.from(ctx).capabilityBroker().current(capability),
             false);
-    if (granted && DshaApp.from(ctx).capabilityBroker().authorize(capability))
+    if (granted && DshaApp.from(ctx).capabilityBroker().authorize(capability)) {
+      if (rememberTurn[0]) {
+        turnGrants.remember(turnKey, pkg, confirmRevision);
+        // 敏感应用：这一次已用掉一次额度。
+        if (sensitive) turnGrants.allows(turnKey, pkg, true, confirmRevision);
+      }
       return ScreenAuthorization.ALLOWED;
+    }
     if (outcome == ConfirmationOutcome.DENIED) return ScreenAuthorization.DENIED;
     if (outcome == ConfirmationOutcome.NO_ANSWER) return ScreenAuthorization.NO_ANSWER;
     return ScreenAuthorization.UNAVAILABLE;
@@ -2856,6 +2889,17 @@ public final class HttpShellService {
       String cmd,
       boolean screen,
       com.deepseekharness.app.util.ScreenTarget target) {
+    return confirmOutcome(scope, capability, cmd, screen, target, null);
+  }
+
+  /** {@code rememberTurn} 非空时回填用户是否选了「本轮允许此应用」。 */
+  private ConfirmationOutcome confirmOutcome(
+      RequestScope scope,
+      com.deepseekharness.app.capabilities.CapabilityRequest capability,
+      String cmd,
+      boolean screen,
+      com.deepseekharness.app.util.ScreenTarget target,
+      boolean[] rememberTurn) {
     final PendingConfirmation pending;
     final com.deepseekharness.app.control.ScreenControlConfirmation taskHandler;
     synchronized (LIFECYCLE) {
@@ -2916,6 +2960,7 @@ public final class HttpShellService {
                       return;
                     }
                     pending.promptWindow = decision.windowId();
+                    pending.rememberTurn = decision.rememberTurn();
                   }
                   resolveConfirm(Boolean.TRUE.equals(decision.allowed()), pending.request.identity);
                 });
@@ -2980,6 +3025,7 @@ public final class HttpShellService {
             && run.generation == pending.request.generation
             && LIFECYCLE.isCurrent(run.generation))) return ConfirmationOutcome.UNAVAILABLE;
         if (pending.targetChanged) throw new DshaAccessibilityService.TargetChangedException();
+        if (rememberTurn != null) rememberTurn[0] = pending.rememberTurn;
         if (allowed) return ConfirmationOutcome.ALLOWED;
         // await 返回 false 只说明"期限内没等到"；用户的选择必须单独读 —— 否则迟到的「允许」
         // 会被报成「拒绝」，正是 issue #123 要消灭的那种误判。

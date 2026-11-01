@@ -36,6 +36,14 @@ public final class PhoneControlCoordinator {
     return compose;
   }
 
+  private final com.deepseekharness.app.util.TurnScreenGrants turnGrants =
+      new com.deepseekharness.app.util.TurnScreenGrants();
+
+  /** 「本轮允许此应用」：只在当前这一轮内有效，结束、暂停或停止即清空。 */
+  public com.deepseekharness.app.util.TurnScreenGrants turnGrants() {
+    return turnGrants;
+  }
+
   public ControlTaskAuthority.Snapshot snapshot() {
     return authority.snapshot();
   }
@@ -98,10 +106,12 @@ public final class PhoneControlCoordinator {
 
   /** Completion fences work but must not invoke the selected assistant's cancel callback. */
   public void completeLocal(ControlTaskAuthority.Binding binding) {
+    turnGrants.clear();
     if (authority.completeLocal(binding)) fence(false, null);
   }
 
   public void pause(String reason) {
+    turnGrants.clear();
     var previous = authority.pause(reason);
     fence(true, previous);
   }
@@ -120,6 +130,7 @@ public final class PhoneControlCoordinator {
 
   public void stop(String reason) {
     compose.reset();
+    turnGrants.clear();
     var previous = authority.stop(reason);
     fence(true, previous);
   }

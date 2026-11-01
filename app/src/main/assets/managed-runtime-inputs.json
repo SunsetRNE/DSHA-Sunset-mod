@@ -567,6 +567,7 @@
     "util/OverlayTouchGuard.java",
     "util/PluginDownloadSource.java",
     "backup/RuntimeTrialRecords.java",
+    "util/TurnScreenGrants.java",
     "util/WebProcSel.java",
     "util/WebPidIdentity.java",
     "util/WebStartProtection.java",
