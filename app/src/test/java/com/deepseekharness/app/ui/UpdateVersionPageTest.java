@@ -131,7 +131,7 @@ public final class UpdateVersionPageTest {
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
       assertTrue(shown.contains("维护页底部操作区"));
-      assertTrue(shown.contains("独立描边小按钮"));
+      assertTrue(shown.contains("各自带描边的小按钮"));
       assertTrue(shown.contains("未在真机安装验证"));
       assertTrue(shown.contains("版本码提升为 255"));
       assertFalse(shown.contains("安装与环境页压缩"));
