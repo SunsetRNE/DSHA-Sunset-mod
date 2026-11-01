@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("版本更新页压缩"));
-      assertTrue(shown.contains("版本码提升为 264"));
+      assertTrue(shown.contains("维护页底栏"));
+      assertTrue(shown.contains("版本码提升为 265"));
+      assertFalse(shown.contains("版本更新页压缩"));
+      assertFalse(shown.contains("版本码提升为 264"));
       assertFalse(shown.contains("关闭终端标签"));
       assertFalse(shown.contains("版本码提升为 263"));
       assertFalse(shown.contains("识屏预览"));
@@ -191,8 +193,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Update page compacted"));
-      assertTrue(shown.contains("Raises versionCode to 264"));
+      assertTrue(shown.contains("Maintenance buttons now center their icons"));
+      assertTrue(shown.contains("Raises versionCode to 265"));
+      assertFalse(shown.contains("Update page compacted"));
+      assertFalse(shown.contains("Raises versionCode to 264"));
       assertFalse(shown.contains("Closing a terminal tab"));
       assertFalse(shown.contains("Raises versionCode to 263"));
       assertFalse(shown.contains("screen preview"));

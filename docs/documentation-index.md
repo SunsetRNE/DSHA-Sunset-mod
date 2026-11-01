@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.0700-dsh0.2.1-rc.5` / build264 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版压缩版本更新页：版本、通道与状态合并为一张主卡，主按钮即进度条原位切换，平板横屏两栏；检查更新中也能切换通道。用户已在测试包上真机核对；本机单测与源码门禁通过。改动说明见 [build264 更新说明](releases/build264-changes.zh.md)，验证记录见 [build264 记录](releases/v0.2.1-rc.3-build264-update-compact-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.0730-dsh0.2.1-rc.5` / build265 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修正维护页底部三个次要按钮的图标位置，改为紧贴文字居中；另随版合入 DSH Web 独立进程设计稿。用户已真机确认；本机单测与源码门禁通过。改动说明见 [build265 更新说明](releases/build265-changes.zh.md)，验证记录见 [build265 记录](releases/v0.2.1-rc.3-build265-extract-footer-icons-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

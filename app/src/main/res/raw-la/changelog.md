@@ -1,6 +1,4 @@
-# DSHA 0.2.1-rc.3-20261102.0700-dsh0.2.1-rc.5 / build264
+# DSHA 0.2.1-rc.3-20261102.0730-dsh0.2.1-rc.5 / build265
 
-- Pagina renovationis compressa: versio, canalis renovationis et status in una charta principali coniunguntur; puga principalis ipsa est tabella progressus, ita ut inspectio, depromptio, probatio et institutio in loco mutentur nec puga moveatur aut magnitudinem mutet. Depromptionem abrogare adhuc in notificatione fit.
-- In tabulis transversis duae columnae: charta principalis et administratio sinistra, candidati et notae huius versionis dextra.
-- Canalis renovationis nunc dum inspectio currit mutari potest, quae in novo canali iterum incipit; dum depromitur et instituitur clausus manet.
-- Ambitus probationis: usor in fasciculo probationis mutationem canalis dum inspectio currit, motum pugae progressus et tabulam rectam probavit; telae breves, litterae 1,3× et tabula transversa seorsum non probatae sunt. versionCode ad 264 auctus (in build263 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.
+- Icones in imo paginae curationis mediae: in pagina curationis ambitus icones pugarum Acta curationis, Exscribere pro auxilio et DSH subsidiarium ad marginem sinistrum haerebant, procul a titulo; nunc iuxta titulum medium ponuntur.
+- Ambitus probationis: ab usore in fasciculo probationis confirmatum; probationes unitatum et inspectiones fontis locales transierunt. versionCode ad 265 auctus (in build264 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.

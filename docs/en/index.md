@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0700-dsh0.2.1-rc.5` / build264 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build compacts the update page: version, channel and status share one main card, the main button doubles as an in-place progress bar, and tablets in landscape get two columns; the update channel can also be switched while a check is running. The user checked it on a test package; local unit tests and source gates passed. See the [build264 notes](../releases/build264-changes.en.md) and the [build264 record](../releases/v0.2.1-rc.3-build264-update-compact-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0730-dsh0.2.1-rc.5` / build265 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build centers the icons on the three secondary buttons at the bottom of the maintenance page next to their labels, and adds the DSH Web separate-process design draft. The user confirmed it on a device; local unit tests and source gates passed. See the [build265 notes](../releases/build265-changes.en.md) and the [build265 record](../releases/v0.2.1-rc.3-build265-extract-footer-icons-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

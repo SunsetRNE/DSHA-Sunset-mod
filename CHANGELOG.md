@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0730-dsh0.2.1-rc.5 / build265（维护页底栏图标跟随文字居中）
+
+- 运行环境维护页（`ExtractActivity`）底部「维护记录 / 复制给支持 / 应急 DSH」三个按钮，build255 起用 compound drawable 挂图标，图标贴在按钮最左边、文字在中间。`ui/ExtractFooter` 改为图标紧贴文字居中，竖排分支保持图标在上（`ExtractFooterIconTest`）。
+- 随本版合入两项不占号的改动：`docs/design/web-process-isolation-20261102/` DSH Web 独立进程设计稿（看板 T15，D1–D4 未决，暂不实现）；识屏真机探针不再自行 task-begin / task-end、保留完整启动回执首行（仅测试工具，`tools/screen-eval/device_probe.py`）。
+- 验证范围：用户在测试包上真机确认底栏图标居中；合入 build264 后发布会话复跑维护页相关单测 45 项与源码门禁。版本码提升为 265（基于 build264）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build265 更新说明](docs/releases/build265-changes.zh.md)，验证记录见 [build265 记录](docs/releases/v0.2.1-rc.3-build265-extract-footer-icons-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0700-dsh0.2.1-rc.5 / build264（版本更新页压缩：主卡合并、进度按钮原位切换、平板横屏两栏）
 
 - 版本、通道、状态与主操作合并为一张主卡，去掉重复大标题与介绍，长版本名折叠可展开复制。主按钮 `ui/UpdateProgressButton` 本身就是进度条，检查 / 下载 / 核验 / 安装原位切换，宽高位置不变；页面不放取消（下载通知栏保留）。显示规则抽到 `util/UpdateActionPolicy` 并配单测。
