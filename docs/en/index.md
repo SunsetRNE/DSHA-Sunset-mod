@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.0450-dsh0.2.1-rc.5` / build243 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build is a phone-portrait revision: a truly floating bottom navigation capsule, stop / restart buttons on the launch page, a pre-deployment system and WebView check, and onboarding that recommends only Shizuku / Stellar (Root and ADB removed). See the [build243 notes](../releases/build243-changes.en.md) and the [build243 record](../releases/v0.2.1-rc.3-build243-phone-portrait-20261101.md). Verified only by overwrite-installing the test package on one OnePlus PJD110 phone; build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.0910-dsh0.2.1-rc.5` / build244 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the plugin transaction journal: the completion record moves out of the transaction directory, so old record leftovers and foreign entries no longer make Recover interrupted maintenance fail forever with `PLUGIN_JOURNAL_ID`. See the [build244 notes](../releases/build244-changes.en.md) and the [build244 record](../releases/v0.2.1-rc.3-build244-plugin-journal-20261101.md). Only local unit tests and Python regressions ran; not verified on a device that hit the problem. Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
