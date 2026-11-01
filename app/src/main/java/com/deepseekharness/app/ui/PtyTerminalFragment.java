@@ -57,6 +57,8 @@ public final class PtyTerminalFragment extends Fragment
                 if (getView() != null) attachSelected();
               });
   private HarnessController c;
+  /** 输入 / 切换热路径只读缓存结论（T12 ANR），门禁本身不放宽。 */
+  private TerminalReadiness readiness;
   private TerminalView view;
   private InputFrame inputFrame;
   private TextView title, ctrlBtn, altBtn;
@@ -104,6 +106,7 @@ public final class PtyTerminalFragment extends Fragment
   public void onViewCreated(@NonNull View root, @Nullable Bundle state) {
     viewGeneration++;
     c = HarnessController.get(requireContext());
+    readiness = new TerminalReadiness(requireContext(), c.proot());
     inputFrame = root.findViewById(R.id.pty_input_frame);
     inputFrame.allowed = this::inputAllowed;
     inputFrame.clipboardPaste = this::paste;
@@ -270,7 +273,7 @@ public final class PtyTerminalFragment extends Fragment
         .setVisibility(selected == null ? View.VISIBLE : View.GONE);
     getView().findViewById(R.id.terminal_new).setEnabled(!creationPending);
     String status = "";
-    if (c != null && !c.proot().isEnvironmentReady()) status = UiText.text("环境未就绪 —— 先到「安装」页装完再回来");
+    if (readiness != null && !readiness.ready()) status = UiText.text("环境未就绪 —— 先到「安装」页装完再回来");
     else if (!startError.isEmpty()) status = UiText.format("终端启动失败：%s", startError);
     else if (creationPending) status = UiText.choose("正在准备终端保护…", "Preparing terminal protection…");
     else if (tab != null && tab.isClosing()) status = UiText.text("正在关闭此终端…");
@@ -855,6 +858,7 @@ public final class PtyTerminalFragment extends Fragment
     ctrlBtn = null;
     altBtn = null;
     c = null;
+    readiness = null;
     super.onDestroyView();
   }
 
@@ -1010,8 +1014,8 @@ public final class PtyTerminalFragment extends Fragment
         && attachedSession == tab.value
         && tab.value.isRunning()
         && OWNER.isPtyInputAllowed(tab.id)
-        && c != null
-        && c.proot().isEnvironmentReady();
+        && readiness != null
+        && readiness.ready();
   }
 
   @Override
