@@ -190,6 +190,29 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - 验收范围如实声明：不把本机验证扩写成全部系统版本、机型或外部模型服务矩阵；单一 Standard 与虚拟屏能力按实际设备证据声明，Android 10 及以下不在支持范围。
 - 私钥、用户数据、设备截图与日志不进入仓库；安装、设备操作与发布按当次授权执行。
 
+## 多会话并行约定
+
+同一台机器上常有多个会话同时改本仓库。合并、发布、清理以「活跃声明」为准，不按空闲时长猜测会话是否结束。
+
+- **一会话一工作树**：新任务用 `git worktree add -b <type>/<name> .agents/worktrees/<type>/<name> origin/main` 建独立分支，基线取当时的 `origin/main`（不要基于未进 main 的侧分支）。不在主检出 `/root/DSH-A-mod` 上改代码；主检出只做只读查看。`/root/dsha-build` 是 `local-ci` 的同步镜像，不是工作区。
+- **建树即声明**：在工作树根目录写 `.ACTIVE-SESSION`。该文件已列入共享的 `.git/info/exclude`，不会被 `git add -A` 带进提交；不要改用设计 README 等会进仓库的文件做声明。字段：
+
+  ```text
+  状态：活跃（请勿合并 / 删除 / 重置本分支与工作树）
+  分支：<branch>（基于 <commit> <说明>）
+  会话：<完整 session id>
+  开始：<UTC 时间>
+  更新：<UTC 时间>
+  内容：<一句话任务>
+  当前阶段：<进行中 / 待用户确认 / 待真机核对 …>
+  占用文件：<会改动的文件或目录>
+  合并：不可合并 | 可合并（已提交 <commit>，建议版本说明 <一句话>）
+  ```
+- **每轮结束更新**：每次回复用户前改「更新」「当前阶段」「合并」三项。等待用户确认、待真机核对仍算活跃。
+- **结束即交还**：任务完成（或放弃）后把文件改名为 `.SESSION-DONE`，状态写「已结束」，「合并」写明是否可合并及提交号；放弃时写「放弃，勿合并」。
+- **合并 / 发布会话**：只合并有 `.SESSION-DONE` 且「合并」为可合并的工作树；`.ACTIVE-SESSION` 或没有任何声明的工作树一律不动，先问用户。合并后在对方 `.SESSION-DONE` 末尾追加一行「已合入 buildNNN（<commit>）」，不改其它字段。
+- **查看全部声明**：`for f in .agents/worktrees/*/.*SESSION* .agents/worktrees/*/*/.*SESSION* .ACTIVE-SESSION; do [ -f "$f" ] && { echo "== $f"; sed -n '1,9p' "$f"; }; done`
+
 ## 编码约定
 
 - 注释与 UI 串用中文；提交信息用中文 + `type:` 前缀说明原因。

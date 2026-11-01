@@ -185,6 +185,17 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 - Acceptance scope is stated as measured: local verification is not stretched into "all OS versions, devices or external model services"; Standard / Low and virtual-display capabilities are claimed only against actual device evidence.
 - Signing keys, user data, device screenshots and logs never enter the repository; installs, device operations and releases follow the authorization of that round.
 
+## Parallel session convention
+
+Several sessions often change this repository on the same machine at once. Merging, releasing and cleanup follow each worktree's session declaration; never guess from idle time that a session has finished.
+
+- **One session, one worktree**: start each task with `git worktree add -b <type>/<name> .agents/worktrees/<type>/<name> origin/main`, based on the current `origin/main` (not on a side branch that has not reached main). Do not change code in the main checkout `/root/DSH-A-mod`; use it read-only. `/root/dsha-build` is the `local-ci` sync mirror, not a workspace.
+- **Declare on creation**: write `.ACTIVE-SESSION` at the worktree root. It is listed in the shared `.git/info/exclude`, so `git add -A` never commits it; do not declare through tracked files such as a design README. Keep the Chinese field keys from [AGENTS.md](AGENTS.md) so every session can read them: `状态` status, `分支` branch and base commit, `会话` full session id, `开始` start (UTC), `更新` last update (UTC), `内容` one-line task, `当前阶段` current stage, `占用文件` files owned, `合并` `不可合并` (not mergeable) or `可合并（已提交 <commit>，…）` (mergeable).
+- **Update every turn**: refresh `更新`, `当前阶段` and `合并` before each reply to the user. Waiting for user confirmation or device checks still counts as active.
+- **Hand back when done**: when the task is finished (or abandoned), rename the file to `.SESSION-DONE`, set the status to ended, and state in `合并` whether it may be merged and at which commit; for abandoned work write "abandoned, do not merge".
+- **Merge / release sessions**: merge only worktrees whose `.SESSION-DONE` is marked mergeable. Leave any worktree with `.ACTIVE-SESSION`, or with no declaration, untouched and ask the user. After merging, append one line `已合入 buildNNN（<commit>）` to that `.SESSION-DONE` without changing other fields.
+- **List all declarations**: `for f in .agents/worktrees/*/.*SESSION* .agents/worktrees/*/*/.*SESSION* .ACTIVE-SESSION; do [ -f "$f" ] && { echo "== $f"; sed -n '1,9p' "$f"; }; done`
+
 ## Coding conventions
 
 - Write comments/UI strings in Chinese; use Chinese commit messages with a `type:` prefix explaining why.
