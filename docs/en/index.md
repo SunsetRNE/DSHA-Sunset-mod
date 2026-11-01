@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.1700-dsh0.2.1-rc.5` / build248 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build shares one plugin card across the list, the tablet left pane and the detail pane: a source badge, version under the title, configuration and current Web on one row, and a compact property table when expanded; More actions docks on phones and is centered and width-capped on tablets. See the [build248 notes](../releases/build248-changes.en.md) and the [build248 record](../releases/v0.2.1-rc.3-build248-plugin-card-20261101.md). The test package was checked on the plugin page of one OnePlus PJD110 (360dp portrait) and one Lenovo TB321FU tablet (portrait and landscape); other devices, languages, dark mode, short screens and 1.3× font were not checked. Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.1830-dsh0.2.1-rc.5` / build249 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is a CI identity update based on build248; it adds no new device-acceptance claim and does not prefill signed APK or Release results. See the [build249 notes](../releases/build249-changes.en.md) and the [build249 record](../releases/v0.2.1-rc.3-build249-ci-20261101.md).
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
