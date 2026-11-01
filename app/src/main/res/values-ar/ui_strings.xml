@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"فحص الأجزاء المفقودة والاحتفاظ بالمكوّنات العاملة"</string>
     <string name="ui2_reproduction" formatted="false">"خطوات إعادة الإظهار"</string>
     <string name="ui2_resolve" formatted="false">"تحليل وتثبيت"</string>
-    <string name="ui2_restart" formatted="false">"↻  إعادة التشغيل"</string>
+    <string name="ui2_restart" formatted="false">"إعادة التشغيل"</string>
     <string name="ui2_rollback" formatted="false">"الرجوع لبيئة متوافقة"</string>
     <string name="ui2_rollback_sub" formatted="false">"التبديل بعد التحقق المعزول فقط"</string>
     <string name="ui2_runtime_compat" formatted="false">"توافق بيئة التشغيل"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"الوصول السريع"</string>
     <string name="ui2_six_steps" formatted="false">"ست خطوات للتثبيت"</string>
     <string name="ui2_skip" formatted="false">"تخطي المقدمة"</string>
-    <string name="ui2_start" formatted="false">"▶  تشغيل DSHA"</string>
-    <string name="ui2_stop" formatted="false">"□  إيقاف"</string>
+    <string name="ui2_start" formatted="false">"تشغيل DSHA"</string>
+    <string name="ui2_stop" formatted="false">"إيقاف"</string>
     <string name="ui2_stopped" formatted="false">"DSH لا يعمل"</string>
     <string name="ui2_storage_files" formatted="false">"التخزين والملفات"</string>
     <string name="ui2_storage_files_sub" formatted="false">"استخدام التخزين وتنظيف الذاكرة المؤقتة ومشاركة الملفات"</string>

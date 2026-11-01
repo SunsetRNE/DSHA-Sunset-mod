@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"檢查缺失部分，保留可用元件"</string>
     <string name="ui2_reproduction" formatted="false">"補充重現步驟"</string>
     <string name="ui2_resolve" formatted="false">"解析安裝"</string>
-    <string name="ui2_restart" formatted="false">"↻  重新啟動"</string>
+    <string name="ui2_restart" formatted="false">"重新啟動"</string>
     <string name="ui2_rollback" formatted="false">"相容執行階段退回"</string>
     <string name="ui2_rollback_sub" formatted="false">"通過隔離試執行後再切換"</string>
     <string name="ui2_runtime_compat" formatted="false">"執行階段相容選項"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"快捷入口"</string>
     <string name="ui2_six_steps" formatted="false">"六個安裝步驟"</string>
     <string name="ui2_skip" formatted="false">"跳過介紹"</string>
-    <string name="ui2_start" formatted="false">"▶  啟動 DSHA"</string>
-    <string name="ui2_stop" formatted="false">"□  停止"</string>
+    <string name="ui2_start" formatted="false">"啟動 DSHA"</string>
+    <string name="ui2_stop" formatted="false">"停止"</string>
     <string name="ui2_stopped" formatted="false">"DSH 未執行"</string>
     <string name="ui2_storage_files" formatted="false">"儲存與檔案"</string>
     <string name="ui2_storage_files_sub" formatted="false">"空間佔用、快取清理和檔案共用"</string>

@@ -22,6 +22,8 @@
     <dimen name="shell_launch_secondary_height">46dp</dimen>
     <dimen name="shell_launch_log_height">184dp</dimen>
     <dimen name="shell_launch_icon">20dp</dimen>
+    <!-- 启动 / 停止 / 重启按钮内图标。 -->
+    <dimen name="shell_launch_action_icon">18dp</dimen>
     <dimen name="shell_launch_metric_pad">14dp</dimen>
 
     <!-- ========== 字号阶梯 ========== -->
@@ -181,6 +183,11 @@
         <item name="android:paddingEnd">16dp</item>
         <item name="android:paddingTop">12dp</item>
         <item name="android:paddingBottom">12dp</item>
+        <!-- MaterialButton 图标：贴文字起始侧、与文字整组居中；尺寸用 dp，不随字体缩放。 -->
+        <item name="iconGravity">textStart</item>
+        <item name="iconSize">@dimen/shell_launch_action_icon</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconTint">@color/shell_on_accent</item>
     </style>
 
     <style name="ShellLaunchSecondary" parent="Widget.DSHA.Button">
@@ -208,6 +215,10 @@
         <item name="android:gravity">center</item>
         <item name="android:paddingStart">12dp</item>
         <item name="android:paddingEnd">12dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconSize">@dimen/shell_launch_action_icon</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconTint">@color/shell_text_secondary</item>
     </style>
 
     <style name="ShellLaunchRailItem" parent="">

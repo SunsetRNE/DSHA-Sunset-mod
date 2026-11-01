@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"Partes absentes inspice et partes operantes retine"</string>
     <string name="ui2_reproduction" formatted="false">"Notae repetitionis"</string>
     <string name="ui2_resolve" formatted="false">"Resolve et institue"</string>
-    <string name="ui2_restart" formatted="false">"↻  Rursus initia"</string>
+    <string name="ui2_restart" formatted="false">"Iterum incipe"</string>
     <string name="ui2_rollback" formatted="false">"Reversio ambitus"</string>
     <string name="ui2_rollback_sub" formatted="false">"Post probationem separatam muta"</string>
     <string name="ui2_runtime_compat" formatted="false">"Compatibilitas ambitus"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"Aditus celer"</string>
     <string name="ui2_six_steps" formatted="false">"Sex gradus"</string>
     <string name="ui2_skip" formatted="false">"Prooemium praetermitte"</string>
-    <string name="ui2_start" formatted="false">"▶  DSHA initia"</string>
-    <string name="ui2_stop" formatted="false">"□  Siste"</string>
+    <string name="ui2_start" formatted="false">"DSHA initia"</string>
+    <string name="ui2_stop" formatted="false">"Siste"</string>
     <string name="ui2_stopped" formatted="false">"DSH non currit"</string>
     <string name="ui2_storage_files" formatted="false">"Repositorium, fasciculi"</string>
     <string name="ui2_storage_files_sub" formatted="false">"Usus repositorii, purgatio memoriae et communicatio fasciculorum"</string>

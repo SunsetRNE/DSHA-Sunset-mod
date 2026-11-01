@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"Проверить отсутствующие части и сохранить рабочие компоненты"</string>
     <string name="ui2_reproduction" formatted="false">"Шаги воспроизведения"</string>
     <string name="ui2_resolve" formatted="false">"Определить и установить"</string>
-    <string name="ui2_restart" formatted="false">"↻  Перезапустить"</string>
+    <string name="ui2_restart" formatted="false">"Перезапустить"</string>
     <string name="ui2_rollback" formatted="false">"Откат совместимой среды"</string>
     <string name="ui2_rollback_sub" formatted="false">"После изолированной проверки"</string>
     <string name="ui2_runtime_compat" formatted="false">"Совместимость среды"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"Быстрый доступ"</string>
     <string name="ui2_six_steps" formatted="false">"Шесть шагов установки"</string>
     <string name="ui2_skip" formatted="false">"Пропустить знакомство"</string>
-    <string name="ui2_start" formatted="false">"▶  Запустить DSHA"</string>
-    <string name="ui2_stop" formatted="false">"□  Остановить"</string>
+    <string name="ui2_start" formatted="false">"Запустить DSHA"</string>
+    <string name="ui2_stop" formatted="false">"Остановить"</string>
     <string name="ui2_stopped" formatted="false">"DSH не запущен"</string>
     <string name="ui2_storage_files" formatted="false">"Хранилище и файлы"</string>
     <string name="ui2_storage_files_sub" formatted="false">"Использование места, очистка кеша и обмен файлами"</string>

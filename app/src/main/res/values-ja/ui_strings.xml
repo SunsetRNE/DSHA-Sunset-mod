@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"不足部分を検査し、使用可能なコンポーネントを保持"</string>
     <string name="ui2_reproduction" formatted="false">"再現手順の補足"</string>
     <string name="ui2_resolve" formatted="false">"解析してインストール"</string>
-    <string name="ui2_restart" formatted="false">"↻  再起動"</string>
+    <string name="ui2_restart" formatted="false">"再起動"</string>
     <string name="ui2_rollback" formatted="false">"互換性のあるランタイムにロールバック"</string>
     <string name="ui2_rollback_sub" formatted="false">"隔離試運転で検証してから切り替え"</string>
     <string name="ui2_runtime_compat" formatted="false">"ランタイムの互換性設定"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"クイックアクセス"</string>
     <string name="ui2_six_steps" formatted="false">"6 つのインストール手順"</string>
     <string name="ui2_skip" formatted="false">"紹介をスキップ"</string>
-    <string name="ui2_start" formatted="false">"▶  DSHA を起動"</string>
-    <string name="ui2_stop" formatted="false">"□  停止"</string>
+    <string name="ui2_start" formatted="false">"DSHA を起動"</string>
+    <string name="ui2_stop" formatted="false">"停止"</string>
     <string name="ui2_stopped" formatted="false">"DSH は実行されていません"</string>
     <string name="ui2_storage_files" formatted="false">"ストレージとファイル"</string>
     <string name="ui2_storage_files_sub" formatted="false">"使用容量、キャッシュの削除、ファイル共有"</string>

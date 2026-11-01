@@ -23,6 +23,7 @@ import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.LanAccessPresentation;
 import com.deepseekharness.app.util.LanAddressPolicy;
 import com.deepseekharness.app.util.UiText;
+import com.google.android.material.button.MaterialButton;
 
 /**
  * 启动页：启动 / 进入 / 停止 dsh Web，显示运行状态、鉴权链接与局域网访问地址。
@@ -683,8 +684,13 @@ public class LaunchFragment extends Fragment {
             enteringWeb
                 ? com.deepseekharness.app.util.UiText.text("进入中…")
                 : ready
-                    ? com.deepseekharness.app.util.UiText.choose("▶  进入工作台", "▶  Open workspace")
+                    ? com.deepseekharness.app.util.UiText.choose("进入工作台", "Open workspace")
                     : getString(R.string.ui2_start));
+        // 已运行时主操作是导航（进入工作台），用箭头；未运行时才是启动进程的播放图标。
+        if (start instanceof MaterialButton)
+          ((MaterialButton) start)
+              .setIconResource(
+                  enteringWeb || ready ? R.drawable.ic_launch_open : R.drawable.ic_launch_start);
         start.setEnabled(!enteringWeb && !starting && !stopping && !restoring);
       }
       Button restart = root.findViewById(R.id.launch_open);

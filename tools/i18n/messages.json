@@ -23585,24 +23585,8 @@
   },
   {
     "id": "ui2_start",
-    "zh": "▶  启动 DSHA",
-    "en": "▶  Start DSHA",
-    "files": [
-      "app/src/main/res/values/ui_iteration.xml"
-    ]
-  },
-  {
-    "id": "ui2_restart",
-    "zh": "↻  重启",
-    "en": "↻  Restart",
-    "files": [
-      "app/src/main/res/values/ui_iteration.xml"
-    ]
-  },
-  {
-    "id": "ui2_stop",
-    "zh": "□  停止",
-    "en": "□  Stop",
+    "zh": "启动 DSHA",
+    "en": "Start DSHA",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]

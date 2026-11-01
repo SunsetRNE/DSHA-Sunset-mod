@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"Inspecionar componentes ausentes e preservar os funcionais"</string>
     <string name="ui2_reproduction" formatted="false">"Notas de reprodução"</string>
     <string name="ui2_resolve" formatted="false">"Resolver e instalar"</string>
-    <string name="ui2_restart" formatted="false">"↻  Reiniciar"</string>
+    <string name="ui2_restart" formatted="false">"Reiniciar"</string>
     <string name="ui2_rollback" formatted="false">"Voltar versão anterior"</string>
     <string name="ui2_rollback_sub" formatted="false">"Mudar após teste isolado"</string>
     <string name="ui2_runtime_compat" formatted="false">"Compatibilidade"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"Acesso rápido"</string>
     <string name="ui2_six_steps" formatted="false">"6 passos de instalação"</string>
     <string name="ui2_skip" formatted="false">"Ignorar apresentação"</string>
-    <string name="ui2_start" formatted="false">"▶  Iniciar DSHA"</string>
-    <string name="ui2_stop" formatted="false">"□  Parar"</string>
+    <string name="ui2_start" formatted="false">"Iniciar DSHA"</string>
+    <string name="ui2_stop" formatted="false">"Parar"</string>
     <string name="ui2_stopped" formatted="false">"DSH não está rodando"</string>
     <string name="ui2_storage_files" formatted="false">"Armazenamento e arquivos"</string>
     <string name="ui2_storage_files_sub" formatted="false">"Utilização do armazenamento, limpeza de cache e compartilhamento de arquivos"</string>

@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"Examiner les éléments manquants et conserver les composants fonctionnels"</string>
     <string name="ui2_reproduction" formatted="false">"Notes de reproduction"</string>
     <string name="ui2_resolve" formatted="false">"Résoudre et installer"</string>
-    <string name="ui2_restart" formatted="false">"↻  Redémarrer"</string>
+    <string name="ui2_restart" formatted="false">"Redémarrer"</string>
     <string name="ui2_rollback" formatted="false">"Revenir en arrière"</string>
     <string name="ui2_rollback_sub" formatted="false">"Basculer après test isolé"</string>
     <string name="ui2_runtime_compat" formatted="false">"Compatibilité runtime"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"Accès rapide"</string>
     <string name="ui2_six_steps" formatted="false">"6 étapes d'installation"</string>
     <string name="ui2_skip" formatted="false">"Passer la présentation"</string>
-    <string name="ui2_start" formatted="false">"▶  Démarrer DSHA"</string>
-    <string name="ui2_stop" formatted="false">"□  Arrêter"</string>
+    <string name="ui2_start" formatted="false">"Démarrer DSHA"</string>
+    <string name="ui2_stop" formatted="false">"Arrêter"</string>
     <string name="ui2_stopped" formatted="false">"DSH est arrêté"</string>
     <string name="ui2_storage_files" formatted="false">"Stockage et fichiers"</string>
     <string name="ui2_storage_files_sub" formatted="false">"Utilisation du stockage, nettoyage du cache et partage de fichiers"</string>

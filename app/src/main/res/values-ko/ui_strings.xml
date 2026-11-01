@@ -140,7 +140,7 @@
     <string name="ui2_repair_parts_sub" formatted="false">"누락된 부분을 확인하고 정상 구성요소 유지"</string>
     <string name="ui2_reproduction" formatted="false">"재현 메모"</string>
     <string name="ui2_resolve" formatted="false">"확인 후 설치"</string>
-    <string name="ui2_restart" formatted="false">"↻  재시작"</string>
+    <string name="ui2_restart" formatted="false">"다시 시작"</string>
     <string name="ui2_rollback" formatted="false">"호환 런타임 롤백"</string>
     <string name="ui2_rollback_sub" formatted="false">"격리 검증 후에만 전환"</string>
     <string name="ui2_runtime_compat" formatted="false">"런타임 호환성"</string>
@@ -151,8 +151,8 @@
     <string name="ui2_shortcuts" formatted="false">"빠른 접근"</string>
     <string name="ui2_six_steps" formatted="false">"설치 6단계"</string>
     <string name="ui2_skip" formatted="false">"소개 건너뛰기"</string>
-    <string name="ui2_start" formatted="false">"▶  DSHA 시작"</string>
-    <string name="ui2_stop" formatted="false">"□  중지"</string>
+    <string name="ui2_start" formatted="false">"DSHA 시작"</string>
+    <string name="ui2_stop" formatted="false">"중지"</string>
     <string name="ui2_stopped" formatted="false">"DSH가 실행 중이 아닙니다"</string>
     <string name="ui2_storage_files" formatted="false">"저장소 및 파일"</string>
     <string name="ui2_storage_files_sub" formatted="false">"저장소 사용량, 캐시 정리 및 파일 공유"</string>

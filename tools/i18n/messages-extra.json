@@ -2497,8 +2497,8 @@
   },
   {
     "id": "x1970328",
-    "zh": "▶  进入工作台",
-    "en": "▶  Open workspace",
+    "zh": "进入工作台",
+    "en": "Open workspace",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
