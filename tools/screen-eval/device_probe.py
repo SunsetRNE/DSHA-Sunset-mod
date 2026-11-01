@@ -8,6 +8,10 @@ $DSH_PHONE_SESSION_ID / $DSH_PHONE_TURN_ID。每次运行读当前前台页面�
   期望 STALE_NODE）→ sense/state → sense/state?geom=1 → tree（核对读取期间页面是否变化）
 
 输出只含计数、比例、耗时、长度和拒绝码，不写任何屏幕文字、包名以外的标识或截图。
+
+脚本**不**调用 task-begin / task-end：手机任务的开始与结束归运行它的 AI 所有（android_control begin/finish）。
+脚本若自己 task-end，会用 AI 本轮的身份把这一轮永久结束，AI 之后的 finish 或任何手机工具都会得到
+SCREEN_TURN_ENDED。运行前请先 android_control begin，结束后由 AI 自己 finish。
 不执行点击、输入、滑动；负控用 focus 且租约必然不匹配。
 """
 
@@ -139,13 +143,8 @@ def main(argv: list[str]) -> int:
         "screenSenseFlag": version.get("SCREEN_SENSE"),
         "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    began = False
+    record["taskLifecycle"] = "owned-by-caller"
     try:
-        begin = call(args.base, "/app/ui/task-begin", identity)
-        began = begin.strip() == "OK" or parse(begin).get("ok") is True
-        record["taskBegin"] = "OK" if began else parse(begin).get("error", "UNKNOWN")
-        if not began:
-            return 4
 
         if args.launch:
             launched = call(args.base, "/app/launch", dict(identity, pkg=args.launch)).strip()
@@ -225,11 +224,6 @@ def main(argv: list[str]) -> int:
                 )
         return 0
     finally:
-        if began:
-            try:
-                record["taskEnd"] = call(args.base, "/app/ui/task-end", identity).strip()[:16]
-            except Exception as error:  # noqa: BLE001 - 只记录类型
-                record["taskEnd"] = type(error).__name__
         with open(args.out, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
         print(json.dumps(record, ensure_ascii=False, indent=2))
