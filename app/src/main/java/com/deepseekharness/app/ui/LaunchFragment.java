@@ -737,7 +737,7 @@ public class LaunchFragment extends Fragment {
    * UI v5 方案 A 启动主页的宽窄形态：按当前窗口可用宽度决定，不按设备类型。
    *
    * <ul>
-   *   <li>≥ 600dp：标题右侧显示插图；主操作与停止/重启同一行。
+   *   <li>≥ 600dp：标题右侧显示插图；主操作与停止/重启同一行，放不下（任一按钮文字折行）时改用窄屏排列。
    *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，停止/重启在下方等分成两枚次要按钮（带边框、
    *       居中），不再是靠左的两段裸文字。
    *   <li>下半区「快捷入口 | 启动日志」由 AdaptiveColumns 按自身宽度（≥ 760dp）并排。
@@ -750,33 +750,68 @@ public class LaunchFragment extends Fragment {
     LinearLayout controls = root.findViewById(R.id.launch_controls);
     View start = root.findViewById(R.id.launch_start);
     View quiet = root.findViewById(R.id.launch_quiet_controls);
-    if (controls != null && start != null && quiet != null && !wide) {
-      controls.setOrientation(LinearLayout.VERTICAL);
-      controls.setGravity(android.view.Gravity.START);
-      LinearLayout.LayoutParams primary =
-          new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, -2);
-      start.setLayoutParams(primary);
-      float density = getResources().getDisplayMetrics().density;
-      LinearLayout.LayoutParams secondary = new LinearLayout.LayoutParams(-1, -2);
-      secondary.topMargin = Math.round(10 * density);
-      quiet.setLayoutParams(secondary);
-      int[] ids = {R.id.launch_stop, R.id.launch_open};
-      for (int i = 0; i < ids.length; i++) {
-        TextView button = root.findViewById(ids[i]);
-        if (button == null) continue;
-        LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, -2, 1f);
-        if (i > 0) half.setMarginStart(Math.round(10 * density));
-        button.setLayoutParams(half);
-        button.setBackgroundResource(R.drawable.bg_btn);
-        button.setMinHeight(
-            getResources().getDimensionPixelSize(R.dimen.shell_button_secondary_height));
-      }
+    if (controls != null && start != null && quiet != null) {
+      if (!wide) stackControls(root, controls, start, quiet);
+      else watchControlsFit(root, controls, start, quiet);
     }
     AdaptiveColumns bottom = root.findViewById(R.id.launch_bottom);
     if (bottom != null) {
       bottom.setSplitWidthDp(760);
       bottom.setGutterDp(32);
       bottom.setWeights(1f, 1.3f);
+    }
+  }
+
+  /**
+   * 宽窗口下同一行放不下时（平板竖屏插图占位、大字体、较长语言或按钮带图标），任一按钮文字折行
+   * 就改用窄屏的上下排列，避免「重启」被挤成竖排。只单向切换：本视图生命周期内不再切回，
+   * 避免文案变化时来回跳；旋转或换宽度时视图重建，会重新判断。
+   */
+  private void watchControlsFit(View root, LinearLayout controls, View start, View quiet) {
+    int[] ids = {R.id.launch_start, R.id.launch_stop, R.id.launch_open};
+    controls.addOnLayoutChangeListener(
+        new View.OnLayoutChangeListener() {
+          @Override
+          public void onLayoutChange(
+              View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+            for (int id : ids) {
+              TextView button = root.findViewById(id);
+              if (button == null || button.getVisibility() != View.VISIBLE) continue;
+              if (button.getLineCount() > 1) {
+                controls.removeOnLayoutChangeListener(this);
+                // 布局回调内不能同步改参数，下一帧再切换。
+                controls.post(
+                    () -> {
+                      if (isAdded()) stackControls(root, controls, start, quiet);
+                    });
+                return;
+              }
+            }
+          }
+        });
+  }
+
+  /** 主操作独占一行铺满，停止 / 重启在下方等分成两枚带边框的次要按钮。 */
+  private void stackControls(View root, LinearLayout controls, View start, View quiet) {
+    controls.setOrientation(LinearLayout.VERTICAL);
+    controls.setGravity(android.view.Gravity.START);
+    LinearLayout.LayoutParams primary =
+        new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, -2);
+    start.setLayoutParams(primary);
+    float density = getResources().getDisplayMetrics().density;
+    LinearLayout.LayoutParams secondary = new LinearLayout.LayoutParams(-1, -2);
+    secondary.topMargin = Math.round(10 * density);
+    quiet.setLayoutParams(secondary);
+    int[] ids = {R.id.launch_stop, R.id.launch_open};
+    for (int i = 0; i < ids.length; i++) {
+      TextView button = root.findViewById(ids[i]);
+      if (button == null) continue;
+      LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, -2, 1f);
+      if (i > 0) half.setMarginStart(Math.round(10 * density));
+      button.setLayoutParams(half);
+      button.setBackgroundResource(R.drawable.bg_btn);
+      button.setMinHeight(
+          getResources().getDimensionPixelSize(R.dimen.shell_button_secondary_height));
     }
   }
 
