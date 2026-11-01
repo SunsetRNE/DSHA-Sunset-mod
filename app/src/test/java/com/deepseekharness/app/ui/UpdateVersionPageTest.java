@@ -130,8 +130,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("运行配置页压缩"));
-      assertTrue(shown.contains("版本码提升为 260"));
+      assertTrue(shown.contains("终端粘贴长文本"));
+      assertTrue(shown.contains("版本码提升为 261"));
+      assertFalse(shown.contains("运行配置页压缩"));
+      assertFalse(shown.contains("版本码提升为 260"));
       assertFalse(shown.contains("矢量图标"));
       assertFalse(shown.contains("版本码提升为 259"));
       assertFalse(shown.contains("开机加载页"));
@@ -180,8 +182,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Run configuration compacted"));
-      assertTrue(shown.contains("Raises versionCode to 260"));
+      assertTrue(shown.contains("Pasting long text into the terminal"));
+      assertTrue(shown.contains("Raises versionCode to 261"));
+      assertFalse(shown.contains("Run configuration compacted"));
+      assertFalse(shown.contains("Raises versionCode to 260"));
       assertFalse(shown.contains("vector icons"));
       assertFalse(shown.contains("Raises versionCode to 259"));
       assertFalse(shown.contains("Boot loading screen"));

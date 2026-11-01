@@ -1,5 +1,4 @@
-# DSHA 0.2.1-rc.3-20261102.0500-dsh0.2.1-rc.5 / build260
+# DSHA 0.2.1-rc.3-20261102.0530-dsh0.2.1-rc.5 / build261
 
-- Configuração de execução compactada: os cinco grupos de cartões passam a dois, Execução e rede e Apresentação e arranque, para ver mais definições num ecrã de telemóvel; as opções de compatibilidade ficam recolhidas por omissão e marcadas quando alteradas; o DNS passa a escolha segmentada.
-- A barra de guardar em baixo mostra quantas alterações não estão guardadas e permite anulá-las com um toque; ecrãs largos como tablets usam duas colunas. O interruptor Abrir Web a partir do ícone da app é a primeira linha de Apresentação e arranque e aplica-se de imediato.
-- Âmbito da verificação: apenas testes unitários e verificações de código locais; sem instalação em dispositivo nem auditoria de layout. versionCode elevado para 260 (com base no build259). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Colar texto longo no terminal já não bloqueia a app: cada carácter escrito voltava a fazer uma verificação completa do ambiente na thread da interface, por isso uma colagem longa podia ultrapassar 5 segundos e mostrar o aviso A aplicação não está a responder. A escrita e a troca de separadores no terminal leem agora um resultado de verificação em cache; continua a haver verificação completa durante a manutenção do ambiente ou quando os ficheiros relevantes mudam.
+- Âmbito da verificação: o utilizador confirmou a colagem num pacote de teste; testes unitários e verificações de código locais aprovados. versionCode elevado para 261 (com base no build260). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

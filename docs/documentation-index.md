@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.0500-dsh0.2.1-rc.5` / build260 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把运行配置页压缩为「运行与网络」「显示与启动」两张卡片，底部保存条显示未保存项数并可撤销，宽窗格两列。本机单测与源码门禁通过；未在真机安装验证，未跑布局验收。改动说明见 [build260 更新说明](releases/build260-changes.zh.md)，验证记录见 [build260 记录](releases/v0.2.1-rc.3-build260-config-compact-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.0530-dsh0.2.1-rc.5` / build261 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复终端粘贴长文本时无响应：终端输入与切换改读缓存的环境就绪结论，门禁本身不放宽。用户已在测试包上真机确认；本机单测与源码门禁通过。改动说明见 [build261 更新说明](releases/build261-changes.zh.md)，验证记录见 [build261 记录](releases/v0.2.1-rc.3-build261-pty-input-ready-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

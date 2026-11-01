@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0530-dsh0.2.1-rc.5 / build261（终端粘贴长文本不再无响应）
+
+- `PtyTerminalFragment.inputAllowed()` 每个码点、`attachSelected()` 每次切换都在主线程全量计算运行时描述符（BackupJson 序列化 + 哈希），粘贴长文本时累计超过 5 秒触发 ANR，build253 起正式包同样受影响。
+- 新增纯逻辑 `util/ReadinessCache` 与 `ui/TerminalReadiness`：终端输入与切换只读缓存的就绪结论；维护进行中一律全量检查，维护任务代次 / 状态、就绪依赖文件 mtime/size 变化或超过 10 秒即重算。安装、维护与启动门禁仍走全量检查，门禁本身不放宽。
+- 验证范围：用户在 Android 16 平板测试包上真机确认粘贴长文本不再无响应；合入 build260 后发布会话复跑 `ReadinessCacheTest`、`TerminalInputContractTest` 等终端单测 213 项与源码门禁，并按固定格式化器补齐空行。版本码提升为 261（基于 build260）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build261 更新说明](docs/releases/build261-changes.zh.md)，验证记录见 [build261 记录](docs/releases/v0.2.1-rc.3-build261-pty-input-ready-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0500-dsh0.2.1-rc.5 / build260（运行配置页压缩为两张卡片与单行保存条）
 
 - 运行配置页原来五组卡片、整宽下拉与常驻提示占高过多，手机一屏只见 4 项。合并为「运行与网络」「显示与启动」两张卡片，行高 48dp；兼容选项默认折叠并标记已改；DNS 改用分段选择，网页内核改为副文案；局域网关闭时隐藏 HTTP 提示。
