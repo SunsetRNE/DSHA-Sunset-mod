@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0530-dsh0.2.1-rc.5` / build261 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the terminal freezing when long text is pasted: terminal input and tab switching now read a cached environment-readiness result while the gates themselves stay unchanged. The user confirmed the fix on a test package; local unit tests and source gates passed. See the [build261 notes](../releases/build261-changes.en.md) and the [build261 record](../releases/v0.2.1-rc.3-build261-pty-input-ready-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0600-dsh0.2.1-rc.5` / build262 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a read-only compact screen preview, /app/sense/state; node action lists are read once and included in lease rechecks, with a fixed synthetic evaluation set. A read-only check on a native settings page passed on a device; local unit tests and source gates passed. See the [build262 notes](../releases/build262-changes.en.md) and the [build262 record](../releases/v0.2.1-rc.3-build262-screen-sense-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

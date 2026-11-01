@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.0530-dsh0.2.1-rc.5` / build261 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复终端粘贴长文本时无响应：终端输入与切换改读缓存的环境就绪结论，门禁本身不放宽。用户已在测试包上真机确认；本机单测与源码门禁通过。改动说明见 [build261 更新说明](releases/build261-changes.zh.md)，验证记录见 [build261 记录](releases/v0.2.1-rc.3-build261-pty-input-ready-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.0600-dsh0.2.1-rc.5` / build262 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版新增只读紧凑识屏预览 /app/sense/state，节点动作列表一次读取并参与租约复核，附固定合成样本评估。真机原生设置页只读核对通过；本机单测与源码门禁通过。改动说明见 [build262 更新说明](releases/build262-changes.zh.md)，验证记录见 [build262 记录](releases/v0.2.1-rc.3-build262-screen-sense-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

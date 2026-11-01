@@ -1,4 +1,6 @@
-# DSHA 0.2.1-rc.3-20261102.0530-dsh0.2.1-rc.5 / build261
+# DSHA 0.2.1-rc.3-20261102.0600-dsh0.2.1-rc.5 / build262
 
-- Colar texto longo no terminal já não bloqueia a app: cada carácter escrito voltava a fazer uma verificação completa do ambiente na thread da interface, por isso uma colagem longa podia ultrapassar 5 segundos e mostrar o aviso A aplicação não está a responder. A escrita e a troca de separadores no terminal leem agora um resultado de verificação em cache; continua a haver verificação completa durante a manutenção do ambiente ou quando os ficheiros relevantes mudam.
-- Âmbito da verificação: o utilizador confirmou a colagem num pacote de teste; testes unitários e verificações de código locais aprovados. versionCode elevado para 261 (com base no build260). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Nova pré-visualização compacta do ecrã só de leitura: os assistentes de IA podem ler a estrutura completa do ecrã atual através de /app/sense/state com menos texto, com as mesmas permissões e isolamento de tarefas da leitura de ecrã existente. As etiquetas k*** da pré-visualização servem só para consulta e não permitem tocar; os toques continuam a usar as ações de nó existentes.
+- As ações que um nó suporta passam a ser lidas uma vez por observação e verificadas de novo antes de executar, reduzindo enganos depois de o ecrã mudar.
+- O build261 não foi publicado à parte: as Source checks e a publicação falharam porque faltavam três ficheiros novos na lista de formatação; a correção de colagem no terminal do build261 segue com esta versão.
+- Âmbito da verificação: verificação só de leitura numa página de definições do sistema num dispositivo; testes unitários e verificações de código locais aprovados. versionCode elevado para 262 (com base no build261). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0600-dsh0.2.1-rc.5 / build262（新增只读紧凑识屏预览 /app/sense/state）
+
+- 新增 `/app/sense/state`（及 `/app/ui/sense/state`）只读全量紧凑屏幕状态，复用手机任务、授权、窗口代次与 owner 围栏；`k***` 只是本次预览标识，不是动作凭据，动作仍走原 treeId/nodeId 租约。节点 action list 每次只读一次并转位图，租约复核同时比对 action-set；原 dump/tree 输出不变。
+- P0a：新增 `tools/screen-eval` 固定种子合成样本评估，compact 编码逐字节镜像 `ScreenSenseCodec`，与 Java `ScreenSenseBudgetTest` 共用 SHA-256 golden；去掉逐行占位符后 60/120/200 元素为 963/1869/3090 字符，60 元素仍未达 ≤900 目标。回复增加 source、quality（ok/partial/empty）、partial、readMs、ageMs，format 升为 v4-preview-2；`/app/help` 识屏说明改为中英双语。
+- 测试包专用真机核对探针只记录计数与拒绝码；原生设置页 tree 与 sense 31/31 一致，负控 STALE_NODE 通过。
+- 验证范围：分支内定向单测 30/30 与真机原生页只读核对通过；合入 build261 后重算运行时描述符，发布会话复跑识屏 / 桥路由单测 377 项、`test-screen-eval.py` 与源码门禁。版本码提升为 262（基于 build261）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- build261（990bd326）的 Source checks 与正式发布均因 `tools/java-format-files.json` 漏登记 T12 新增的 `TerminalReadiness` / `ReadinessCache` / `ReadinessCacheTest` 失败（FORMAT_MANIFEST_INCOMPLETE），未生成 Release、不补发；a86282da 补登记，261 的改动随本版发布。
+- 十语种更新说明见 [build262 更新说明](docs/releases/build262-changes.zh.md)，验证记录见 [build262 记录](docs/releases/v0.2.1-rc.3-build262-screen-sense-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0530-dsh0.2.1-rc.5 / build261（终端粘贴长文本不再无响应）
 
 - `PtyTerminalFragment.inputAllowed()` 每个码点、`attachSelected()` 每次切换都在主线程全量计算运行时描述符（BackupJson 序列化 + 哈希），粘贴长文本时累计超过 5 秒触发 ANR，build253 起正式包同样受影响。
