@@ -37,6 +37,7 @@ public class ExtractActivity extends AppCompatActivity {
   private View stageCard;
   private ProgressBar spinner, progress;
   private Button retry, enter;
+  private ExtractFooter footer;
   private long taskId;
   private boolean automaticEntry;
   private boolean automaticDeclined;
@@ -114,26 +115,26 @@ public class ExtractActivity extends AppCompatActivity {
     spinner = findViewById(R.id.extract_bar);
     progress = findViewById(R.id.extract_progress);
     ((TextView) findViewById(R.id.extract_title)).setText(UiText.text("运行环境维护"));
-    retry = findViewById(R.id.extract_retry);
-    enter = findViewById(R.id.extract_enter);
-    Button emergency = findViewById(R.id.extract_emergency);
-    Button logs = findViewById(R.id.extract_logs);
-    emergency.setText(UiText.choose("启动应急 DSH", "Start emergency DSH"));
-    emergency.setOnClickListener(v -> startActivity(new Intent(this, RecoveryActivity.class)));
-    logs.setText(UiText.choose("查看本次维护记录", "View maintenance record"));
-    logs.setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
-    Button copy = findViewById(R.id.extract_copy_support);
-    copy.setText(UiText.choose("复制给支持", "Copy for support"));
-    copy.setOnClickListener(
-        v -> {
-          if (support == null) support = DeviceSupportProbe.sample(this);
-          DeviceSupportProbe.copy(this, support);
-          Toast.makeText(
-                  this,
-                  UiText.choose("已复制本机环境摘要。", "Copied the device summary."),
-                  Toast.LENGTH_SHORT)
-              .show();
-        });
+    // 底栏外观（主按钮 / 进度面板、受限入口、次要入口）由 ExtractFooter 渲染；点击行为仍在本页。
+    footer = new ExtractFooter(this, kit);
+    retry = footer.retry();
+    enter = footer.enter();
+    footer
+        .emergency()
+        .setOnClickListener(v -> startActivity(new Intent(this, RecoveryActivity.class)));
+    footer.logs().setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
+    footer
+        .copy()
+        .setOnClickListener(
+            v -> {
+              if (support == null) support = DeviceSupportProbe.sample(this);
+              DeviceSupportProbe.copy(this, support);
+              Toast.makeText(
+                      this,
+                      UiText.choose("已复制本机环境摘要。", "Copied the device summary."),
+                      Toast.LENGTH_SHORT)
+                  .show();
+            });
     retry.setOnClickListener(
         v ->
             RuntimeMaintenanceStarter.confirmRetry(
@@ -145,7 +146,6 @@ public class ExtractActivity extends AppCompatActivity {
                   render();
                 },
                 rebuildRequested));
-    enter.setText(UiText.text("进入主界面"));
     enter.setOnClickListener(v -> proceed());
     // 方案 A：内容宽度 ≥ 720dp 且有失败/未就绪说明时，阶段卡与说明两列并排（容器按自身宽度判定）。
     AdaptiveColumns columns = findViewById(R.id.extract_columns);
@@ -234,10 +234,12 @@ public class ExtractActivity extends AppCompatActivity {
                 : !cachedInstalled
                     ? RuntimeMaintenanceStarter.Retry.DEPLOY
                     : RuntimeMaintenanceStarter.Retry.REBUILD;
-    retry.setText(RuntimeMaintenanceStarter.retryLabel(kind, failed));
-    retry.setEnabled(!executionBusy);
-    enter.setText(
-        !busy && !pending && ready ? UiText.text("进入主界面") : UiText.text("进入受限主界面 · 查看日志与配置"));
+    footer.render(
+        com.deepseekharness.app.util.MaintenanceFooterPolicy.decide(
+            busy, pending, failed, incomplete, !busy && !pending && ready),
+        view,
+        RuntimeMaintenanceStarter.retryLabel(kind, failed),
+        !executionBusy);
     if (com.deepseekharness.app.util.EnvironmentIdentity.mayAdvanceAfterMaintenance(
         automaticEntry, mine, s.status == BackupTaskState.Status.SUCCEEDED, busy, pending, ready)) {
       automaticEntry = false;

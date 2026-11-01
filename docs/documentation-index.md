@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.2230-dsh0.2.1-rc.5` / build254 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版压缩安装与环境页：版本表换成一张状态卡，六个步骤行内展开详情，首次安装测速与备份重建并入「维护与工具」，日志默认收起。本机相关单测与静态门禁通过；未在真机安装验证，界面测试与 Lint 交由 CI。改动说明见 [build254 更新说明](releases/build254-changes.zh.md)，验证记录见 [build254 记录](releases/v0.2.1-rc.3-build254-install-env-20261101.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.2300-dsh0.2.1-rc.5` / build255 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版重排运行环境维护页底部操作区：三个次要操作改为独立描边小按钮，失败与就绪检查未通过时分别强调对应入口，主按钮禁用态更易分辨。本机相关单测与静态门禁通过；未在真机安装验证，界面测试与 Lint 交由 CI。改动说明见 [build255 更新说明](releases/build255-changes.zh.md)，验证记录见 [build255 记录](releases/v0.2.1-rc.3-build255-maintenance-footer-20261101.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.2230-dsh0.2.1-rc.5` / build254 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build compacts the install and environment page: one status card replaces the version table, the six steps expand inline, first-install speed test and backup-and-rebuild move into Maintenance and tools, and the log starts collapsed. Local unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build254 notes](../releases/build254-changes.en.md) and the [build254 record](../releases/v0.2.1-rc.3-build254-install-env-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.2300-dsh0.2.1-rc.5` / build255 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build reworks the maintenance page footer: the three secondary actions become separate outlined buttons, failures and unmet readiness checks highlight the matching entry, and the disabled primary button is easier to tell apart. Local unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build255 notes](../releases/build255-changes.en.md) and the [build255 record](../releases/v0.2.1-rc.3-build255-maintenance-footer-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
