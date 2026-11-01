@@ -1178,10 +1178,7 @@ public final class OnboardingActivity extends AppCompatActivity {
     content.addView(kit.eyebrow(UiText.choose("第 3 步 · 授权", "Step 3 · Permissions")));
     kit.add(content, kit.heading(UiText.choose("按需授权", "Grant what you need"), false), 10);
     TextView lead =
-        kit.lead(
-            UiText.choose(
-                "全部可选，之后可在设置中修改。",
-                "All optional. Change later in Settings."));
+        kit.lead(UiText.choose("全部可选，之后可在设置中修改。", "All optional. Change later in Settings."));
     lead.setMaxWidth(kit.dp(680));
     kit.add(content, lead, 8);
     View view = null;

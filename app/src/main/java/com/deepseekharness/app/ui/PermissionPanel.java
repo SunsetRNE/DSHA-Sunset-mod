@@ -37,6 +37,7 @@ final class PermissionPanel {
   /** 各授权行的展开选择；状态变化后自动回到折叠，轮询重绘不丢。 */
   private final com.deepseekharness.app.util.PermissionExpansion expansion =
       new com.deepseekharness.app.util.PermissionExpansion();
+
   private String lastKey = "";
   private boolean heldA11yConnected;
   private long a11yConnectedUntil;
@@ -311,7 +312,8 @@ final class PermissionPanel {
     meter.setIndeterminate(false);
     meter.setMax(Math.max(1, max));
     meter.setProgress(value);
-    meter.setProgressTintList(android.content.res.ColorStateList.valueOf(kit.color(R.color.shell_good)));
+    meter.setProgressTintList(
+        android.content.res.ColorStateList.valueOf(kit.color(R.color.shell_good)));
     meter.setProgressBackgroundTintList(
         android.content.res.ColorStateList.valueOf(kit.color(R.color.shell_line)));
     meter.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -385,8 +387,10 @@ final class PermissionPanel {
       focusAfterRender = null;
       View row = item.getChildAt(0);
       row.post(
-          () -> row.performAccessibilityAction(
-              android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null));
+          () ->
+              row.performAccessibilityAction(
+                  android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS,
+                  null));
     }
     return item;
   }

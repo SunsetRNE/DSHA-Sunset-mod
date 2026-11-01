@@ -65,8 +65,7 @@ final class PermissionCards {
     m.outside =
         settingsOnly || exhausted
             ? UiText.choose(
-                "在系统通知设置中允许 DSH-A-Su。",
-                "Allow DSH-A-Su in system notification settings.")
+                "在系统通知设置中允许 DSH-A-Su。", "Allow DSH-A-Su in system notification settings.")
             : UiText.choose("会弹出系统权限框。", "Android will show a permission prompt.");
     m.actions =
         new View[] {
@@ -97,8 +96,7 @@ final class PermissionCards {
                   ? v -> PermissionActions.openNotificationSettings(a)
                   : v -> panel.requestNotifications());
       if (exhausted)
-        m.alert =
-            UiText.choose("系统不再弹框，需在系统设置中开启", "Android won't ask again; enable in settings");
+        m.alert = UiText.choose("系统不再弹框，需在系统设置中开启", "Android won't ask again; enable in settings");
       else if (settingsOnly)
         m.alert = UiText.choose("通知已关闭，需在系统设置中开启", "Notifications are off; enable in settings");
     }
@@ -156,8 +154,7 @@ final class PermissionCards {
               UiText.choose("去设置", "Settings"),
               UiText.choose("打开耗电管理", "Open battery usage"),
               v -> PermissionActions.openAppDetails(a));
-      m.alert =
-          UiText.choose("后台受限，可能被系统结束", "Restricted; may be stopped");
+      m.alert = UiText.choose("后台受限，可能被系统结束", "Restricted; may be stopped");
     }
     return m;
   }
@@ -174,15 +171,11 @@ final class PermissionCards {
                 "Read and write projects under /sdcard. Without it, only private folders work."),
             UiText.choose("读写 /sdcard", "Use /sdcard"));
     state(m, ok, UiText.choose("已开启", "On"), UiText.choose("未开启", "Off"));
-    m.outside =
-        UiText.choose(
-            "在「所有文件访问」中允许 DSH-A-Su。",
-            "Allow DSH-A-Su under All files access.");
+    m.outside = UiText.choose("在「所有文件访问」中允许 DSH-A-Su。", "Allow DSH-A-Su under All files access.");
     if (ok)
       m.note =
           UiText.choose(
-              "已在运行的 Web 与终端重启后生效。",
-              "Restart a running Web session or terminal to apply.");
+              "已在运行的 Web 与终端重启后生效。", "Restart a running Web session or terminal to apply.");
     m.actions =
         new View[] {
           ok
@@ -232,8 +225,7 @@ final class PermissionCards {
       m.inline =
           PermissionCard.inlineAction(
               kit, UiText.choose("检查", "Check"), UiText.text("检查连接"), v -> panel.refresh());
-      m.alert =
-          UiText.choose("已开启，等待系统连接", "On, waiting for the system");
+      m.alert = UiText.choose("已开启，等待系统连接", "On, waiting for the system");
       m.actions =
           new View[] {
             kit.small(UiText.text("检查连接"), true, v -> panel.refresh()),
@@ -257,9 +249,7 @@ final class PermissionCards {
               unknown ? UiText.choose("查看", "Check") : UiText.choose("去开启", "Enable"),
               UiText.choose("去开启屏幕操作", "Enable screen control"),
               v -> PermissionActions.openAccessibility(a));
-      if (unknown)
-        m.alert =
-            UiText.choose("暂时无法确认状态", "Status unavailable");
+      if (unknown) m.alert = UiText.choose("暂时无法确认状态", "Status unavailable");
     }
     m.outside =
         String.format(
@@ -284,13 +274,10 @@ final class PermissionCards {
             UiText.choose("悬浮条与状态窗", "Floating bar"));
     state(m, ok, UiText.choose("已允许", "Allowed"), UiText.choose("未允许", "Not allowed"));
     m.outside =
-        UiText.choose(
-            "在“显示在其他应用上层”中允许 DSH-A-Su。",
-            "Allow DSH-A-Su under Display over other apps.");
+        UiText.choose("在“显示在其他应用上层”中允许 DSH-A-Su。", "Allow DSH-A-Su under Display over other apps.");
     m.note =
         UiText.choose(
-            "悬浮条开关在 设置 → 悬浮条。",
-            "Turn on the floating bar in Settings → Floating status.");
+            "悬浮条开关在 设置 → 悬浮条。", "Turn on the floating bar in Settings → Floating status.");
     m.actions =
         new View[] {
           ok

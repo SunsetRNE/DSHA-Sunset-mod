@@ -164,8 +164,7 @@ final class PermissionChannelCard {
                           "在 Stellar 中启动服务并开启「Shizuku 兼容层」，再回来授权。",
                           "In Stellar, start the service and enable the Shizuku compatibility layer, then authorize here.")
                       : UiText.choose(
-                          "已识别 Shizuku，可直接授权。",
-                          "Shizuku is installed; authorize it here."))
+                          "已识别 Shizuku，可直接授权。", "Shizuku is installed; authorize it here."))
                   : UiText.choose(
                       "推荐安装 Stellar 并开启「Shizuku 兼容层」；已有 Shizuku 也可以。",
                       "Install Stellar and enable its Shizuku compatibility layer; Shizuku also works."),
