@@ -148,7 +148,8 @@ def main(argv: list[str]) -> int:
 
         if args.launch:
             launched = call(args.base, "/app/launch", dict(identity, pkg=args.launch)).strip()
-            record["launch"] = {"package": args.launch, "reply": launched[:24]}
+            # 回执是桥的状态文本（不含屏幕内容），保留完整首行便于定位失败原因。
+            record["launch"] = {"package": args.launch, "reply": launched.splitlines()[0][:200] if launched else ""}
         warm = parse(call(args.base, "/app/ui/tree", identity))
         record["warmupNodes"] = len(warm.get("nodes") or [])
         time.sleep(max(args.settle, 0))
