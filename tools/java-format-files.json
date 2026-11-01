@@ -981,6 +981,7 @@
     "app/src/test/java/com/deepseekharness/app/ui/DeployCapsuleTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/DiagnosticActivityRenderingTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/DirectWebEntryTest.java",
+    "app/src/test/java/com/deepseekharness/app/ui/ExtractFooterIconTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/FirstRunWebStartTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/FullPermissionControlsTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/InstallLayoutContractTest.java",

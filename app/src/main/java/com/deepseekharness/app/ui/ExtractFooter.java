@@ -1,6 +1,7 @@
 package com.deepseekharness.app.ui;
 
 import android.app.Activity;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -12,6 +13,7 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.DeployStages;
 import com.deepseekharness.app.util.MaintenanceFooterPolicy;
 import com.deepseekharness.app.util.UiText;
+import com.google.android.material.button.MaterialButton;
 
 /**
  * 运行环境维护页底栏的视图绑定：主操作行（主按钮 / 进度面板 + 受限入口）与一行三个独立描边次要入口。
@@ -117,7 +119,18 @@ final class ExtractFooter {
     b.setText(label);
     b.setContentDescription(description);
     icons.put(b, icon);
-    if (stacked) b.setCompoundDrawablePadding(kit.dp(2));
+    int padding = kit.dp(stacked ? 2 : 5);
+    if (b instanceof MaterialButton) {
+      // 图标跟随文字：横排贴在文字前方、竖排贴在文字上方，整体在按钮内居中。
+      // compound drawable 固定贴按钮边缘，三列等宽时图标与文字会离得很远。
+      MaterialButton m = (MaterialButton) b;
+      m.setIconGravity(
+          stacked ? MaterialButton.ICON_GRAVITY_TEXT_TOP : MaterialButton.ICON_GRAVITY_TEXT_START);
+      m.setIconPadding(padding);
+      m.setIconSize(activity.getResources().getDimensionPixelSize(R.dimen.extract_link_icon));
+    } else {
+      b.setCompoundDrawablePadding(padding);
+    }
   }
 
   /** 次要入口着色：图标与文字同色；强调项同时换成告警 / 提醒描边与浅底。 */
@@ -129,6 +142,13 @@ final class ExtractFooter {
     Drawable d = icon == null ? null : activity.getDrawable(icon);
     if (d == null) return;
     d = d.mutate();
+    if (b instanceof MaterialButton) {
+      MaterialButton m = (MaterialButton) b;
+      m.setIcon(d);
+      m.setIconTint(ColorStateList.valueOf(color));
+      return;
+    }
+    // 非 Material 主题下的退路：compound drawable 只能贴边。
     int size = activity.getResources().getDimensionPixelSize(R.dimen.extract_link_icon);
     d.setBounds(0, 0, size, size);
     d.setTint(color);
