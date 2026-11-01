@@ -1490,5 +1490,17 @@
   "cfg249a24": "Non pris en charge",
   "cfg249a25": "Autorisé par le système",
   "cfg249a26": "Bloqué par le système",
-  "cfg249a27": "%s %s"
+  "cfg249a27": "%s %s",
+  "upd252a01": "Candidate",
+  "upd252a02": "Cette version",
+  "upd252a03": "Notes complètes",
+  "upd252a04": "Copier la version",
+  "upd252a05": "Toutes les versions et APK",
+  "upd252a06": "Une fois une candidate trouvée, notes, taille et installation s’affichent ici.",
+  "upd252a07": "Vérification…",
+  "upd252a08": "Vérification de la signature…",
+  "upd252a09": "Ouverture de l’installateur",
+  "upd252a10": "Reprendre · %d %% terminé",
+  "upd252a11": "Télécharger · %s",
+  "upd252a12": "Version copiée"
 }

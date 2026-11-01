@@ -12062,5 +12062,103 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
     ]
+  },
+  {
+    "id": "upd252a01",
+    "zh": "候选版本",
+    "en": "Candidate",
+    "files": [
+      "app/src/main/res/values/update_strings.xml"
+    ]
+  },
+  {
+    "id": "upd252a02",
+    "zh": "本版本",
+    "en": "This build",
+    "files": [
+      "app/src/main/res/values/update_strings.xml"
+    ]
+  },
+  {
+    "id": "upd252a03",
+    "zh": "查看完整记录",
+    "en": "Full release notes",
+    "files": [
+      "app/src/main/res/values/update_strings.xml"
+    ]
+  },
+  {
+    "id": "upd252a04",
+    "zh": "复制版本信息",
+    "en": "Copy version info",
+    "files": [
+      "app/src/main/res/values/update_strings.xml"
+    ]
+  },
+  {
+    "id": "upd252a05",
+    "zh": "查看所有版本与安装包",
+    "en": "All releases and APKs",
+    "files": [
+      "app/src/main/res/values/update_strings.xml"
+    ]
+  },
+  {
+    "id": "upd252a06",
+    "zh": "检查到候选版本后，更新记录、大小与安装方式会显示在这里。",
+    "en": "Release notes, size and install method appear here once a candidate is found.",
+    "files": [
+      "app/src/main/res/values/update_strings.xml"
+    ]
+  },
+  {
+    "id": "upd252a07",
+    "zh": "正在检查…",
+    "en": "Checking…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/UpdateUi.java"
+    ]
+  },
+  {
+    "id": "upd252a08",
+    "zh": "正在核验签名…",
+    "en": "Verifying signature…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/UpdateUi.java"
+    ]
+  },
+  {
+    "id": "upd252a09",
+    "zh": "即将打开系统安装器",
+    "en": "Opening system installer",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/UpdateUi.java"
+    ]
+  },
+  {
+    "id": "upd252a10",
+    "zh": "继续下载 · 已下载 %d%%",
+    "en": "Resume download · %d%% done",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/UpdateUi.java"
+    ]
+  },
+  {
+    "id": "upd252a11",
+    "zh": "下载更新 · %s",
+    "en": "Download update · %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/UpdateUi.java"
+    ]
+  },
+  {
+    "id": "upd252a12",
+    "zh": "已复制版本信息",
+    "en": "Version info copied",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/UpdateActivity.java"
+    ]
   }
 ]

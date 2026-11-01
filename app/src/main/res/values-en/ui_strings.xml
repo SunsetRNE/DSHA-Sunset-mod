@@ -103,4 +103,11 @@
     <string name="ui_m0217" formatted="false">"Verify connection"</string>
     <string name="ui_m0218" formatted="false">"＋ New"</string>
     <string name="ui_m9024" formatted="false">"Change"</string>
+    <string name="upd_browser_sub" formatted="false">"All releases and APKs"</string>
+    <string name="upd_copy_version" formatted="false">"Copy version info"</string>
+    <string name="upd_full_notes" formatted="false">"Full release notes"</string>
+    <string name="upd_pane_empty" formatted="false">"Release notes, size and install method appear here once a candidate is found."</string>
+    <string name="upd_recheck" formatted="false">"Check again"</string>
+    <string name="upd_tab_candidate" formatted="false">"Candidate"</string>
+    <string name="upd_tab_current" formatted="false">"This build"</string>
 </resources>

@@ -19,8 +19,10 @@ The feed request uses `DSHA/<VERSION_NAME>` as User-Agent, and the receiving ser
 | Stable / preview channel | Switches while idle and checks immediately | Stable accepts stable only; preview accepts stable/preview. Select by larger versionCode, not rc filename ordering |
 | Default channel | Initialized when no preference exists | A version name containing `-` defaults to preview; otherwise stable |
 | Check again | User click, or first entry to an update page with no task | Network failure retains the channel's last result; an old candidate with unknown source cannot install directly |
-| Download / resume | Starts an application-scoped foreground download after selection | Leaving/rotating does not restart it; cancel retains partial progress for a later resume request |
+| Download / resume | Starts an application-scoped foreground download after selection | Leaving/rotating does not restart it; cancel lives in the download notification (the page has none) and retains partial progress for a later resume request |
 | Install update | A foreground page claims the fully reverified result once | Rejects channel/candidate changes during verification; process-recreation interruption requires a user retry |
+
+The page has a single main button that is itself the progress bar and never changes size or position: a sweep while checking, a fill from the start edge with percent and bytes while downloading, full while verifying, then "Install update". It is not clickable while busy and the channel is locked. [UpdateActionPolicy](../../app/src/main/java/com/deepseekharness/app/util/UpdateActionPolicy.java) derives what it shows. Tablet landscape (≥ 840dp) uses two panes: the main card and management on the left, candidate / this-build notes on the right.
 
 [UpdatePolicy](../../app/src/main/java/com/deepseekharness/app/util/UpdatePolicy.java) also validates flavor, minSdk, `arm64-v8a`, versionCode, allowed HTTPS source, 64-character hexadecimal SHA-256, and size up to 1 GiB. A saved candidate's checked channel is separate from the release's own channel; current preference cannot establish its origin.
 

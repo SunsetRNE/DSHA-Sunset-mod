@@ -1490,5 +1490,17 @@
   "cfg249a24": "Non sustentatur",
   "cfg249a25": "A systemate permissum",
   "cfg249a26": "A systemate prohibitum",
-  "cfg249a27": "%s %s"
+  "cfg249a27": "%s %s",
+  "upd252a01": "Candidata",
+  "upd252a02": "Haec versio",
+  "upd252a03": "Notae plenae",
+  "upd252a04": "Versionem exscribere",
+  "upd252a05": "Omnes versiones et APK",
+  "upd252a06": "Cum candidata inventa erit, notae, magnitudo et modus instituendi hic apparebunt.",
+  "upd252a07": "Inspicitur…",
+  "upd252a08": "Signum probatur…",
+  "upd252a09": "Institutor systematis aperitur",
+  "upd252a10": "Pergere · %d%% factum",
+  "upd252a11": "Renovationem depromere · %s",
+  "upd252a12": "Versio exscripta"
 }

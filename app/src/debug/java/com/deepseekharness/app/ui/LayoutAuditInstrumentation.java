@@ -606,13 +606,20 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
             }
             if (scene.equals("update_idle"))
               require(
-                  screen.canvas.findViewById(R.id.update_install).getVisibility() == View.GONE,
+                  ((UpdateProgressButton) screen.canvas.findViewById(R.id.update_action))
+                          .action()
+                          .command
+                      == com.deepseekharness.app.util.UpdateActionPolicy.Command.CHECK,
                   "无更新时仍展示安装操作");
-            if (scene.equals("update_busy"))
+            if (scene.equals("update_busy")) {
+              // 下载中主按钮原位变成进度条：不可点，页面不提供取消（通知栏保留）。
+              UpdateProgressButton action = screen.canvas.findViewById(R.id.update_action);
               require(
-                  screen.canvas.findViewById(R.id.update_cancel).getVisibility() == View.VISIBLE
-                      && !screen.canvas.findViewById(R.id.update_download).isEnabled(),
+                  !action.isEnabled()
+                      && action.action().mode
+                          == com.deepseekharness.app.util.UpdateActionPolicy.Mode.FILL,
                   "下载状态操作错误");
+            }
             if (n == 0 || n == 1 || n == 3 || n == 5) save(screen.canvas, name);
           }
           if (style)

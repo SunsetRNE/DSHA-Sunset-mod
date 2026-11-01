@@ -272,6 +272,13 @@
     <string name="ui_m0217" formatted="false">"接続を確認"</string>
     <string name="ui_m0218" formatted="false">"＋ 新規"</string>
     <string name="ui_m9024" formatted="false">"変更"</string>
+    <string name="upd_browser_sub" formatted="false">"すべてのリリースと APK"</string>
+    <string name="upd_copy_version" formatted="false">"バージョン情報をコピー"</string>
+    <string name="upd_full_notes" formatted="false">"すべての変更を見る"</string>
+    <string name="upd_pane_empty" formatted="false">"候補版が見つかると、変更内容、サイズ、インストール方法がここに表示されます。"</string>
+    <string name="upd_recheck" formatted="false">"再確認"</string>
+    <string name="upd_tab_candidate" formatted="false">"候補版"</string>
+    <string name="upd_tab_current" formatted="false">"このビルド"</string>
     <string name="welcome_eyebrow0" formatted="false">"DEEPSEEK HARNESS · ANDROID"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / あなたの作業スタイルに"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / データも選択も、あなたの手に"</string>

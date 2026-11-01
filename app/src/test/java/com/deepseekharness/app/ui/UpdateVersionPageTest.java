@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import androidx.lifecycle.MutableLiveData;
 import com.deepseekharness.app.BuildConfig;
@@ -18,6 +19,8 @@ import com.deepseekharness.app.core.UpdateRepository;
 import com.deepseekharness.app.util.CurrentReleaseNotes;
 import com.deepseekharness.app.util.UiLanguagePreference;
 import com.deepseekharness.app.util.UiText;
+import com.deepseekharness.app.util.UpdateActionPolicy;
+import com.deepseekharness.app.util.UpdatePolicy;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -234,10 +237,13 @@ public final class UpdateVersionPageTest {
       assertEquals(
           "暂无可用更新", ((TextView) activity.findViewById(R.id.update_status)).getText().toString());
       assertEquals(View.GONE, activity.findViewById(R.id.update_release_panel).getVisibility());
-      assertEquals(View.GONE, activity.findViewById(R.id.update_download).getVisibility());
-      assertEquals(View.GONE, activity.findViewById(R.id.update_install).getVisibility());
-      assertEquals(View.GONE, activity.findViewById(R.id.update_progress).getVisibility());
-      activity.findViewById(R.id.update_check).performClick();
+      // 没有候选：唯一主按钮就是“检查更新”，状态行不再重复显示“重新检查”链接。
+      UpdateProgressButton action = activity.findViewById(R.id.update_action);
+      assertEquals(UpdateActionPolicy.Command.CHECK, action.action().command);
+      assertFalse(action.animating());
+      assertEquals("检查更新", action.text().toString());
+      assertEquals(View.GONE, activity.findViewById(R.id.update_check).getVisibility());
+      action.performClick();
       assertEquals(1, Engine.checks);
       assertTrue(activity.findViewById(R.id.update_browser).performClick());
       Intent browser =
@@ -259,9 +265,190 @@ public final class UpdateVersionPageTest {
       Engine.states.setValue(state("javax.net.ssl.SSLHandshakeException: Trust anchor missing"));
       assertFalse(status.getText().toString().contains("Exception"));
       assertFalse(status.getText().toString().contains("暂无可用更新"));
-      assertTrue(activity.findViewById(R.id.update_check).isEnabled());
+      assertTrue(activity.findViewById(R.id.update_action).isEnabled());
       assertTrue(activity.findViewById(R.id.update_browser).isEnabled());
     }
+  }
+
+  @Test
+  public void progressButtonStaysInPlaceFromCandidateThroughDownloadWithoutCancel()
+      throws Exception {
+    UpdatePolicy.Release release = release();
+    Engine.states.setValue(state("发现候选", UpdateRepository.Stage.IDLE, 0, 0, release));
+    try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
+      UpdateActivity activity = controller.get();
+      UpdateProgressButton action = activity.findViewById(R.id.update_action);
+      assertEquals(View.VISIBLE, activity.findViewById(R.id.update_release_panel).getVisibility());
+      assertEquals(
+          "预览版 0.2.1-rc.9",
+          ((TextView) activity.findViewById(R.id.update_release_title)).getText().toString());
+      assertEquals(UpdateActionPolicy.Command.DOWNLOAD, action.action().command);
+      assertEquals("下载更新 · 4.0 MiB", action.text().toString());
+      assertEquals(View.VISIBLE, activity.findViewById(R.id.update_check).getVisibility());
+      assertTrue(activity.findViewById(R.id.update_stable).isEnabled());
+
+      long total = 4L * 1048576L;
+      Engine.states.setValue(
+          state("正在下载", UpdateRepository.Stage.DOWNLOADING, total / 4, total, release));
+      assertSame("下载中仍是同一个按钮", action, activity.findViewById(R.id.update_action));
+      assertEquals(UpdateActionPolicy.Mode.FILL, action.action().mode);
+      assertEquals(25, action.action().percent);
+      assertEquals("25% · 1.0 / 4.0 MiB", action.text().toString());
+      assertFalse("下载中按钮不可点", action.isEnabled());
+      assertEquals(View.GONE, activity.findViewById(R.id.update_check).getVisibility());
+      assertFalse("任务进行中锁定通道", activity.findViewById(R.id.update_preview).isEnabled());
+      assertNoCancel(activity.findViewById(android.R.id.content));
+
+      Engine.states.setValue(
+          state("已取消下载，进度已保留", UpdateRepository.Stage.IDLE, total / 4, total, release));
+      assertEquals(UpdateActionPolicy.Command.DOWNLOAD, action.action().command);
+      assertEquals("继续下载 · 已下载 25%", action.text().toString());
+      assertTrue(action.isEnabled());
+    }
+  }
+
+  @Test
+  public void phoneCandidateDetailOpensSheetWithMetaAndNotes() throws Exception {
+    Engine.states.setValue(state("发现候选", UpdateRepository.Stage.IDLE, 0, 0, release()));
+    try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
+      UpdateActivity activity = controller.get();
+      assertNull("手机布局没有右栏", activity.findViewById(R.id.update_pane_tabs));
+      activity.findViewById(R.id.update_release_detail).performClick();
+      Dialog dialog = ShadowDialog.getLatestDialog();
+      assertNotNull(dialog);
+      String shown = text(dialog.getWindow().getDecorView());
+      assertTrue(shown.contains("预览版 0.2.1-rc.9"));
+      assertTrue(shown.contains("build999 · 4.0 MiB"));
+      assertTrue(shown.contains("候选版本的完整更新记录"));
+      dialog.dismiss();
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "zh-w1280dp-h800dp-land")
+  public void tabletLandscapeShowsTwoPanesAndRowsSwitchThePaneWithoutDialogs() throws Exception {
+    Engine.states.setValue(state("发现候选", UpdateRepository.Stage.IDLE, 0, 0, release()));
+    try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
+      UpdateActivity activity = controller.get();
+      RadioGroup tabs = activity.findViewById(R.id.update_pane_tabs);
+      assertNotNull("≥ 840dp 使用两栏布局", tabs);
+      assertEquals("有候选时默认看候选", R.id.update_pane_candidate, tabs.getCheckedRadioButtonId());
+      assertEquals(
+          "候选版本的完整更新记录",
+          ((TextView) activity.findViewById(R.id.update_notes)).getText().toString());
+      assertEquals(View.GONE, activity.findViewById(R.id.update_pane_empty).getVisibility());
+
+      activity.findViewById(R.id.update_changelog).performClick();
+      assertNull("两栏下点“本版本更新记录”不弹层", ShadowDialog.getLatestDialog());
+      assertEquals(R.id.update_pane_current, tabs.getCheckedRadioButtonId());
+      assertEquals(
+          View.VISIBLE, activity.findViewById(R.id.update_pane_current_body).getVisibility());
+      String current =
+          ((TextView) activity.findViewById(R.id.update_pane_current_title)).getText().toString()
+              + "\n"
+              + ((TextView) activity.findViewById(R.id.update_pane_current_notes))
+                  .getText()
+                  .toString();
+      assertTrue(
+          current.contains(
+              "DSHA " + BuildConfig.VERSION_NAME + " / build" + BuildConfig.VERSION_CODE));
+      assertTrue(current.contains(body(bundledNotes(activity))));
+
+      // 用户切过标签后，状态刷新不再自动切回候选。
+      Engine.states.setValue(state("发现候选", UpdateRepository.Stage.IDLE, 0, 0, release()));
+      assertEquals(R.id.update_pane_current, tabs.getCheckedRadioButtonId());
+      activity.findViewById(R.id.update_release_detail).performClick();
+      assertNull(ShadowDialog.getLatestDialog());
+      assertEquals(R.id.update_pane_candidate, tabs.getCheckedRadioButtonId());
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "zh-w1280dp-h800dp-land")
+  public void tabletLandscapeWithoutCandidateShowsCurrentBuildAndEmptyCandidatePane() {
+    try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
+      UpdateActivity activity = controller.get();
+      RadioGroup tabs = activity.findViewById(R.id.update_pane_tabs);
+      assertEquals(R.id.update_pane_current, tabs.getCheckedRadioButtonId());
+      assertEquals(View.GONE, activity.findViewById(R.id.update_release_panel).getVisibility());
+      tabs.check(R.id.update_pane_candidate);
+      assertEquals(View.VISIBLE, activity.findViewById(R.id.update_pane_empty).getVisibility());
+    }
+  }
+
+  @Test
+  public void versionLineExpandsFullIdentity() {
+    try (var controller = Robolectric.buildActivity(UpdateActivity.class).setup()) {
+      UpdateActivity activity = controller.get();
+      assertEquals(
+          CurrentReleaseNotes.versionLabel(BuildConfig.VERSION_NAME)
+              + " · build"
+              + BuildConfig.VERSION_CODE,
+          ((TextView) activity.findViewById(R.id.update_version_line)).getText().toString());
+      View details = activity.findViewById(R.id.update_version_details);
+      assertEquals(View.GONE, details.getVisibility());
+      activity.findViewById(R.id.update_version_toggle).performClick();
+      assertEquals(View.VISIBLE, details.getVisibility());
+      assertEquals(
+          BuildConfig.VERSION_NAME,
+          ((TextView) activity.findViewById(R.id.update_current)).getText().toString());
+    }
+  }
+
+  @Test
+  public void policyStagesMirrorRepositoryStages() {
+    UpdateRepository.Stage[] stages = UpdateRepository.Stage.values();
+    assertEquals(stages.length, UpdateActionPolicy.Stage.values().length);
+    for (UpdateRepository.Stage stage : stages)
+      assertEquals(stage.name(), UpdateUi.stage(stage).name());
+  }
+
+  private static void assertNoCancel(View view) {
+    if (view instanceof TextView)
+      assertFalse("页面不提供取消（通知栏保留）", ((TextView) view).getText().toString().contains("取消"));
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++)
+        if (group.getChildAt(i).getVisibility() == View.VISIBLE)
+          assertNoCancel(group.getChildAt(i));
+    }
+  }
+
+  private static UpdatePolicy.Release release() {
+    return new UpdatePolicy.Release(
+        999,
+        "0.2.1-rc.9",
+        UpdatePolicy.PREVIEW,
+        "standard",
+        30,
+        "arm64-v8a",
+        "https://example.invalid/app.apk",
+        "0".repeat(64),
+        4L * 1048576L,
+        "候选版本的完整更新记录",
+        "https://example.invalid/releases");
+  }
+
+  private static UpdateRepository.State state(
+      String message,
+      UpdateRepository.Stage stage,
+      long downloaded,
+      long total,
+      UpdatePolicy.Release release)
+      throws Exception {
+    var constructor =
+        UpdateRepository.State.class.getDeclaredConstructor(
+            String.class,
+            UpdateRepository.Stage.class,
+            long.class,
+            long.class,
+            UpdatePolicy.Release.class,
+            File.class,
+            String.class,
+            String.class);
+    constructor.setAccessible(true);
+    return constructor.newInstance(
+        message, stage, downloaded, total, release, null, "preview", null);
   }
 
   private static String assertCurrentNotesShown(Context context, String shown) throws IOException {

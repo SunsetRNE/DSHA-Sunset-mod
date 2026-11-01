@@ -272,6 +272,13 @@
     <string name="ui_m0217" formatted="false">"驗證已有連線"</string>
     <string name="ui_m0218" formatted="false">"＋ 新建"</string>
     <string name="ui_m9024" formatted="false">"變更"</string>
+    <string name="upd_browser_sub" formatted="false">"查看所有版本與安裝包"</string>
+    <string name="upd_copy_version" formatted="false">"複製版本資訊"</string>
+    <string name="upd_full_notes" formatted="false">"查看完整記錄"</string>
+    <string name="upd_pane_empty" formatted="false">"檢查到候選版本後，更新記錄、大小與安裝方式會顯示在這裡。"</string>
+    <string name="upd_recheck" formatted="false">"重新檢查"</string>
+    <string name="upd_tab_candidate" formatted="false">"候選版本"</string>
+    <string name="upd_tab_current" formatted="false">"本版本"</string>
     <string name="welcome_eyebrow0" formatted="false">"DeepSeek Harness · 安卓"</string>
     <string name="welcome_eyebrow1" formatted="false">"01 / 適合你的工作方式"</string>
     <string name="welcome_eyebrow2" formatted="false">"02 / 資料與選擇由你掌握"</string>
