@@ -155,6 +155,11 @@ public final class AssistantInputAndroidTest {
     assertEquals(View.GONE, root.getVisibility());
     WindowManager.LayoutParams flags = (WindowManager.LayoutParams) field(window, "params");
     assertNotEquals(0, flags.flags & WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+    // 其他应用的输入法不能推动底部悬浮助手。
+    assertEquals(0, flags.getFitInsetsTypes() & WindowInsets.Type.ime());
+    assertNotEquals(
+        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+        flags.softInputMode & WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
     assertFalse(session.snapshot().expanded());
     assertTrue(PhoneControlCoordinator.get(app).snapshot().paused());
     assertEquals(

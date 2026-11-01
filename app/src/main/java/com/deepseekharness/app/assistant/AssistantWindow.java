@@ -172,7 +172,11 @@ final class AssistantWindow implements AutoCloseable {
     params.width =
         Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(210));
     params.height = -2;
-    params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
+    // 悬浮助手从不是输入法目标（编辑走 AssistantActivity）。ADJUST_RESIZE 会被
+    // ViewRootImpl 兼容换算为 fitInsetsTypes|=ime()，使底部窗口随其他应用的输入法上弹；
+    // 显式声明只避让系统栏，与他人输入法隔离。
+    params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
+    params.setFitInsetsTypes(android.view.WindowInsets.Type.systemBars());
     root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> publish());
     try {
       manager.addView(root, params);
