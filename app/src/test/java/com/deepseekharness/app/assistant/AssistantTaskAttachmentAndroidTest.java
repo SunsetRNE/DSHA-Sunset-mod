@@ -616,7 +616,8 @@ public final class AssistantTaskAttachmentAndroidTest {
     params.setAccessible(true);
     var geometry = (android.view.WindowManager.LayoutParams) params.get(window);
     assertEquals(android.view.Gravity.BOTTOM | android.view.Gravity.END, geometry.gravity);
-    assertTrue(geometry.width <= Math.round(210 * app.getResources().getDisplayMetrics().density));
+    // 收起胶囊不超过 236dp，不覆盖大半屏幕。
+    assertTrue(geometry.width <= Math.round(236 * app.getResources().getDisplayMetrics().density));
 
     var coordinator = PhoneControlCoordinator.get(app);
     var task =

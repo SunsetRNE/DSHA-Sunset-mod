@@ -126,6 +126,58 @@ public final class AssistantInputAndroidTest {
   }
 
   @Test
+  public void closeHidesTheWindowButKeepsTheTaskUsableAndShowRestoresTheCard() throws Exception {
+    window = new AssistantWindow(app, session);
+    window.show();
+    session.expand();
+    drain();
+    settle();
+    assertTrue(windowButton("closeButton").performClick());
+    drain();
+    assertFalse(window.visible());
+    assertTrue(window.userHidden());
+    assertTrue("隐藏后任务界面仍算可用（通知栏有停止与回复）", window.taskUiAvailable());
+    assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
+    assertEquals(0, cancellations.get());
+    // 读屏前收走窗口的逻辑在用户隐藏时不再报错，也不会把窗口变回来。
+    assertFalse(window.hideForScreen());
+    window.showByUser();
+    drain();
+    assertTrue(window.visible());
+    assertFalse(window.userHidden());
+    assertTrue(session.snapshot().expanded());
+  }
+
+  @Test
+  public void typingInsideTheCardMarksComposingAndBecomesFocusableOnlyWhileTyping()
+      throws Exception {
+    window = new AssistantWindow(app, session);
+    window.show();
+    session.expand();
+    drain();
+    settle();
+    var params = (WindowManager.LayoutParams) field(window, "params");
+    assertNotEquals(0, params.flags & WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+    EditText field = (EditText) field(window, "input");
+    touch(field, MotionEvent.ACTION_DOWN, 10, 10);
+    touch(field, MotionEvent.ACTION_UP, 10, 10);
+    drain();
+    assertTrue(session.composing());
+    assertEquals(0, params.flags & WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+    assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
+    field.setText("顺便把字体调大");
+    assertEquals("顺便把字体调大", session.snapshot().draft());
+    // 点到窗外：交还焦点，放开等待，草稿保留。
+    View root = (View) field(window, "root");
+    touch(root, MotionEvent.ACTION_OUTSIDE, -5, -5);
+    drain();
+    assertFalse(session.composing());
+    assertNotEquals(0, params.flags & WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+    assertEquals("顺便把字体调大", session.snapshot().draft());
+    assertEquals(0, cancellations.get());
+  }
+
+  @Test
   public void layoutSettleSwallowsTheTapThatExpandedThePanel() throws Exception {
     window = new AssistantWindow(app, session);
     window.show();
@@ -145,10 +197,11 @@ public final class AssistantInputAndroidTest {
     assertTrue(status.performClick());
     drain();
     assertTrue(session.snapshot().expanded());
-    assertTrue(windowButton("closeButton").performClick());
+    assertTrue(windowButton("minimizeButton").performClick());
     drain();
     assertFalse(session.snapshot().expanded());
     assertEquals(View.GONE, windowButton("closeButton").getVisibility());
+    assertTrue(window.visible());
     assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
     assertEquals(0, cancellations.get());
   }
@@ -235,8 +288,8 @@ public final class AssistantInputAndroidTest {
     assertEquals(0, cancellations.get());
     assertNotEquals(AssistantSessionState.Phase.STOPPING, session.snapshot().phase());
     assertEquals(UiText.choose("再点停止", "Tap again"), stop.getText().toString());
-    // 中间点了别的按钮（✕ 收起）：撤销待确认。
-    assertTrue(windowButton("closeButton").performClick());
+    // 中间点了别的按钮（— 收起）：撤销待确认。
+    assertTrue(windowButton("minimizeButton").performClick());
     drain();
     assertEquals(UiText.choose("停止", "Stop"), stop.getText().toString());
     session.expand();
@@ -336,14 +389,13 @@ public final class AssistantInputAndroidTest {
     assertEquals(0, cancellations.get());
     settle();
     int before = cancellations.get();
-    Button input = (Button) field(window, "input");
-    assertTrue(input.isShown());
-    assertTrue(input.performClick());
+    Button editor = windowButton("editorButton");
+    assertTrue(editor.performClick());
     drain();
-    Intent editor = Shadow.<ShadowApplication>extract(app).getNextStartedActivity();
-    assertEquals(AssistantActivity.class.getName(), editor.getComponent().getClassName());
-    assertTrue(editor.getBooleanExtra("bound", false));
-    assertTrue(editor.getBooleanExtra("focus_input", false));
+    Intent started = Shadow.<ShadowApplication>extract(app).getNextStartedActivity();
+    assertEquals(AssistantActivity.class.getName(), started.getComponent().getClassName());
+    assertTrue(started.getBooleanExtra("bound", false));
+    assertTrue(started.getBooleanExtra("focus_input", false));
     View root = (View) field(window, "root");
     assertEquals(View.GONE, root.getVisibility());
     WindowManager.LayoutParams flags = (WindowManager.LayoutParams) field(window, "params");
@@ -362,8 +414,7 @@ public final class AssistantInputAndroidTest {
         before,
         cancellations.get());
     TextView status = (TextView) field(window, "status");
-    assertEquals(2, status.getMaxLines());
-    assertTrue(status.getText().toString().split("\n").length <= 2);
+    assertEquals(1, status.getMaxLines());
   }
 
   @Test

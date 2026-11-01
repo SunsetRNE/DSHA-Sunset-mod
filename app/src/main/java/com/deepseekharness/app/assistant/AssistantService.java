@@ -58,6 +58,7 @@ public final class AssistantService extends Service {
   private AssistantSessionController controller;
   private volatile AssistantWindow window;
   private AssistantConfirmationWindow confirmations;
+  static final String REPLY_KEY = "dsha_assistant_reply";
   private static volatile AssistantService live;
   private PendingIntent stopAction;
   private Notification taskNotification;
@@ -531,6 +532,22 @@ public final class AssistantService extends Service {
     stopAction =
         PendingIntent.getService(
             this, 1952, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    // 直接回复：悬浮窗隐藏时也能从通知栏（或系统支持时的实时活动/岛）回复当前会话。
+    Intent reply = new Intent(this, AssistantService.class).setAction("REPLY");
+    PendingIntent replyAction =
+        PendingIntent.getService(
+            this,
+            1953,
+            reply,
+            PendingIntent.FLAG_UPDATE_CURRENT
+                | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
+    Intent showOverlay = new Intent(this, AssistantService.class).setAction("SHOW_OVERLAY");
+    PendingIntent showAction =
+        PendingIntent.getService(
+            this,
+            1954,
+            showOverlay,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     Notification.Builder note =
         Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(this, STOP_CHANNEL)
@@ -543,12 +560,29 @@ public final class AssistantService extends Service {
             PendingIntent.getActivity(
                 this, 1951, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
         .addAction(
+            new Notification.Action.Builder(null, UiText.choose("回复", "Reply"), replyAction)
+                .addRemoteInput(
+                    new android.app.RemoteInput.Builder(REPLY_KEY)
+                        .setLabel(UiText.choose("回复当前会话", "Reply to this conversation"))
+                        .build())
+                .setAllowGeneratedReplies(false)
+                .build())
+        .addAction(
+            new Notification.Action.Builder(
+                    null, UiText.choose("显示悬浮窗", "Show floating window"), showAction)
+                .build())
+        .addAction(
             new Notification.Action.Builder(null, UiText.choose("停止任务", "Stop task"), stopAction)
                 .build())
         .setOngoing(true);
     if (Build.VERSION.SDK_INT >= 31)
       note.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
     taskNotification = note.build();
+    if (new com.deepseekharness.app.core.ConfigStore(this).isTaskIslandEnabled())
+      // 系统支持实时活动时把同一条通知提升为岛；同一 id、频道与停止入口，不支持时原样返回。
+      taskNotification =
+          com.deepseekharness.app.IslandSupport.enhance(
+              this, taskNotification, UiText.choose("DSH 执行中", "DSH running"), true);
     startForeground(
         com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
     confirmations = new AssistantConfirmationWindow(this);
@@ -563,6 +597,23 @@ public final class AssistantService extends Service {
     }
     if ("STOP_TASK".equals(intent.getAction())) {
       if (controller != null) controller.stop();
+      return START_NOT_STICKY;
+    }
+    if ("SHOW_OVERLAY".equals(intent.getAction())) {
+      if (window != null) window.showByUser();
+      return START_NOT_STICKY;
+    }
+    if ("REPLY".equals(intent.getAction())) {
+      var results = android.app.RemoteInput.getResultsFromIntent(intent);
+      CharSequence text = results == null ? null : results.getCharSequence(REPLY_KEY);
+      String message = text == null ? "" : text.toString().strip();
+      if (controller != null && !message.isEmpty() && message.length() <= 32768)
+        controller.send(message);
+      // 重新发出同一条通知，结束系统的“发送中”状态。
+      var manager = getSystemService(NotificationManager.class);
+      if (manager != null && taskNotification != null)
+        manager.notify(
+            com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
       return START_NOT_STICKY;
     }
     String key = intent.getStringExtra("binding");

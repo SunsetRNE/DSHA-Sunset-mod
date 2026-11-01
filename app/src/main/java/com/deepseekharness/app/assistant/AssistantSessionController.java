@@ -303,13 +303,15 @@ public final class AssistantSessionController implements AutoCloseable {
             panelGeometryChanged();
             admittedDraft(message);
           } catch (AssistantBackend.Rejected rejected) {
+            // 明确未接收：放开等待，AI 照原任务继续；草稿保留。
             fence.compose().release(fence.compose().surface());
             state.failed(
                 UiText.choose(
                     "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
                     "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
           } catch (Exception failure) {
-            // 结果未知：不重发、不放开等待，让用户核对后再决定。
+            // 结果未知：不重发。按“可能已收到”唤醒等待者，让 AI 先读会话再决定，不在原地卡满 60 秒。
+            fence.compose().sent();
             state.failed(
                 UiText.choose(
                     "发送结果未知；请先核对会话，勿重复发送",
@@ -371,6 +373,7 @@ public final class AssistantSessionController implements AutoCloseable {
           } catch (AssistantBackend.Rejected rejected) {
             // Only the Host's explicit pre-admission errors get this path. Transport
             // loss still remains UNKNOWN; no prompt is retried automatically.
+            fence.compose().release(fence.compose().surface());
             suppressCancellation = true;
             try {
               fence.pause("ASSISTANT_PROMPT_REJECTED");
@@ -386,6 +389,7 @@ public final class AssistantSessionController implements AutoCloseable {
                         "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
                         "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
           } catch (Exception failure) {
+            fence.compose().sent();
             state.unknown(
                 UiText.choose(
                     "发送结果未知；请先核对会话，勿重复发送",

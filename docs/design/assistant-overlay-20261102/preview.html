@@ -161,13 +161,13 @@
           <div class="msg a">已进入显示与亮度，正在找深色模式开关。</div>
         </div>
         <div class="sp"></div>
-        <div class="chip"><span class="dot"></span>AI 继续执行中，键盘区域不会被读屏或点按</div>
+        <div class="chip"><span class="dot"></span>你正在输入：AI 的手机操作停在原地，发送后接着做</div>
         <div class="inputrow"><div class="field focus">顺便把字体调大一点<span class="caret"></span></div><span class="ib">🎤</span><span class="ib send">➤</span></div>
       </div>
       <div class="kbd"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
       <div class="tag" style="right:18px; top:12px">停止需 3 秒内再点</div>
     </div>
-    <p class="note">点输入框才变为可聚焦并弹键盘；不暂停 AI、不取消对话。卡片与键盘整块从读屏和坐标动作中排除。发送或收起后立即交还焦点。</p>
+    <p class="note">点输入框才变为可聚焦并弹键盘。输入期间 AI 的手机动作原地等待（读屏照常），不取消对话；发送后消息插进当前这一轮，AI 读完接着做；不发就收起则直接继续。</p>
   </div>
 
   <!-- 4 隐藏后 -->
@@ -197,7 +197,7 @@
 <div class="legend">
   <p><b>不变的边界</b>：停止仍需二次确认并取消当前轮；UNKNOWN 不重放；通知栏停止入口始终存在，✕ 不能把它也关掉。</p>
   <p><b>展开 / 收起 / 拖动 / 打开会话</b>：只改界面，不暂停、不取消；几何变化只让 AI 下一步先重新读屏（已在 T13 实现）。</p>
-  <p><b>直接打字的已知限制</b>：键盘弹出时，若 AI 的下一步需要点别的应用的输入框，系统会把焦点移走并收起你的键盘；草稿保留，再点输入框即可继续。个别 ROM 若悬浮窗键盘不稳定，自动退回现在的全屏编辑页。</p>
+  <p><b>直接打字</b>：输入期间 AI 不点、不滑、不输入，最多等 60 秒；超时后 AI 收到“用户仍在输入”并停下等你。个别 ROM 若悬浮窗拿不到键盘焦点，自动退回全屏编辑页，草稿保留。</p>
   <p><b>上岛</b>：复用现有 IslandSupport（Android 16 实时活动）与 RemoteInput；岛内能否直接打字取决于系统对实时活动回复的支持，需要真机确认，做不到时岛只显示状态与停止。</p>
 </div>
 </body>
