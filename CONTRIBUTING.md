@@ -4,7 +4,7 @@
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[BUILD](BUILD.md) 与[文档总索引](docs/documentation-index.md)。F10–F13、build190 等记录只描述各自当时的源码、APK、测试与设备状态，不能覆盖当前要求，也不能当作本版证据。
 
-当前固定输入由 [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json) 锁定：公开预发布资产 `fixed-inputs-20261031`，696,361,527 B，SHA-256 `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726`，由 `tools/ci-assets.py` 还原。大归档与离线 rootfs 不入 Git；只有源码的检出不能构建完整 APK。
+当前固定输入由 [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json) 锁定：公开预发布资产 `fixed-inputs-20261101`，696,361,671 B，SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`，由 `tools/ci-assets.py` 还原。大归档与离线 rootfs 不入 Git；只有源码的检出不能构建完整 APK。
 
 项目特有操作见[接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。`tools/history` 只保留退休工具与原件，不进入 APK 或自动测试。
 
@@ -24,7 +24,7 @@ Java 17，单模块 `:app`。单一 Standard：系统 WebView、最低 API 30、
 
 ## 准备输入
 
-Release 完整源码 ZIP 额外包含固定输入包 `locked-current-build-inputs.zip` 中的原始文件，按项目路径直接展开，不嵌套该 ZIP。当前固定输入为 `fixed-inputs-20261031`，696,361,527 B，SHA-256 `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726`，由 `tools/ci-assets.py --pack` 逐 SHA 核对；该大小不是完整源码 ZIP 大小。配置工具链后按当前 recipe 构建，无需独立 bundle；Git clone 可做 source-only 检查，完整打包仍需固定原始输入。APK 中的变换层不能逆还原全部原始 rootfs。
+Release 完整源码 ZIP 额外包含固定输入包 `locked-current-build-inputs.zip` 中的原始文件，按项目路径直接展开，不嵌套该 ZIP。当前固定输入为 `fixed-inputs-20261101`，696,361,671 B，SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`，由 `tools/ci-assets.py --pack` 逐 SHA 核对；该大小不是完整源码 ZIP 大小。配置工具链后按当前 recipe 构建，无需独立 bundle；Git clone 可做 source-only 检查，完整打包仍需固定原始输入。APK 中的变换层不能逆还原全部原始 rootfs。
 
 build190 的 F13 冻结统计、旧 738,101,893 B 输入包与 F10/F11 记录属于历史；它们不能代替当前输入身份，也不能把旧软件或设备结论转记为本版结果。当前软件、APK 与发布结果由本轮 CI run 与 Release 回执绑定。
 
