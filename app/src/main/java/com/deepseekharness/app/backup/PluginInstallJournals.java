@@ -1,13 +1,21 @@
 package com.deepseekharness.app.backup;
 
+import com.deepseekharness.app.util.PluginJournalNames;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** 插件安装与卸载日志归入既有维护门禁；只读探测不执行旧树中的任何程序。 */
+/**
+ * 插件安装与卸载日志归入既有维护门禁；只读探测不执行旧树中的任何程序。
+ *
+ * <p>完成证明是可再生缓存，存放在事务目录之外（{@link #HISTORY_PROOF}），其原子写残留不会混入
+ * 被逐项扫描的事务目录。目录子项按 {@link PluginJournalNames} 分类：旧版证明残留与外来条目原样
+ * 保留、不阻塞维护。
+ */
 public final class PluginInstallJournals {
-  public static final String DIRECTORY = "plugin-install-operations";
-  private static final String COMPLETED = "completed", HISTORY_PROOF = ".completed-proof-v1.json";
+  public static final String DIRECTORY = "plugin-install-operations",
+      HISTORY_PROOF = "plugin-install-completed-v1.json";
+  private static final String COMPLETED = PluginJournalNames.HISTORY;
 
   private PluginInstallJournals() {}
 
@@ -21,9 +29,7 @@ public final class PluginInstallJournals {
     List<String> names = fs.list(directory);
     List<File> result = new ArrayList<>();
     for (String id : names) {
-      if (id.equals(COMPLETED) || id.equals(HISTORY_PROOF)) continue;
-      if (!id.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN))
-        throw new IOException("PLUGIN_JOURNAL_ID");
+      if (PluginJournalNames.kind(id) != PluginJournalNames.Kind.TRANSACTION) continue;
       File entry = fs.child(directory, id);
       if (!fs.stat(entry).type.equals("DIRECTORY"))
         throw new IOException("PLUGIN_JOURNAL_DIRECTORY");
@@ -47,7 +53,7 @@ public final class PluginInstallJournals {
   private static void verifyHistory(BackupFileSystem fs, File home) throws IOException {
     File directory = new File(home, DIRECTORY),
         history = new File(directory, COMPLETED),
-        proof = new File(directory, HISTORY_PROOF);
+        proof = new File(home, HISTORY_PROOF);
     String type = fs.stat(history).type;
     if (type.equals("MISSING")) {
       if (!fs.stat(proof).type.equals("MISSING"))
@@ -60,8 +66,8 @@ public final class PluginInstallJournals {
     if (CompletedHistory.matches(fs, proof, "homeKey", homeKey, historyKey, "PLUGIN_HISTORY_"))
       return;
     for (String id : fs.list(history)) {
-      if (!id.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN))
-        throw new IOException("PLUGIN_HISTORY_ID");
+      // 写方只把 UUID 事务移入历史；其他名字是外来条目，保留但不作为历史校验对象。
+      if (PluginJournalNames.kind(id) != PluginJournalNames.Kind.TRANSACTION) continue;
       File entry = fs.child(history, id);
       if (!fs.stat(entry).type.equals("DIRECTORY")
           || marker(fs, entry, "committed") == marker(fs, entry, "rolled-back"))
@@ -78,9 +84,7 @@ public final class PluginInstallJournals {
     verifyHistory(fs, home);
     if (fs.stat(directory).type.equals("MISSING")) return;
     for (String id : fs.list(directory)) {
-      if (id.equals(COMPLETED) || id.equals(HISTORY_PROOF)) continue;
-      if (!id.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN))
-        throw new IOException("PLUGIN_JOURNAL_ID");
+      if (PluginJournalNames.kind(id) != PluginJournalNames.Kind.TRANSACTION) continue;
       File entry = fs.child(directory, id);
       if (!fs.stat(entry).type.equals("DIRECTORY"))
         throw new IOException("PLUGIN_JOURNAL_DIRECTORY");

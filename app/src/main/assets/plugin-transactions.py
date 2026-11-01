@@ -15,6 +15,31 @@ CAS_OPERATION = 'materialize-pnpm-cas-files-v1'
 CAS_FINGERPRINT = 'DSHA_PNPM_CAS_COPY_V1'
 CAS_BATCH_FILES = 512
 
+# plugin-install-operations/ 子项命名规则；与 Java util/PluginJournalNames 一致，
+# 两侧共用 app/src/test/resources/plugins/journal-names.json 做一致性测试。
+JOURNAL_HISTORY = 'completed'
+JOURNAL_LEGACY_PROOF = '.completed-proof-v1.json'
+_UUID = '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'
+_TRANSACTION_NAME = re.compile(_UUID)
+_LEGACY_PROOF_NAME = re.compile(re.escape(JOURNAL_LEGACY_PROOF) + r'(\.previous|\.(tmp|previous-retained|restore)-' + _UUID + ')?')
+
+
+def journal_name_kind(name):
+    """HISTORY / TRANSACTION / LEGACY_PROOF / FOREIGN。
+
+    写方只创建小写 UUID 事务目录；旧版目录内完成证明及其原子写残留、以及任何外来条目
+    都原样保留、不阻塞维护、不作为事务重放。
+    """
+    if not isinstance(name, str):
+        return 'FOREIGN'
+    if name == JOURNAL_HISTORY:
+        return 'HISTORY'
+    if _TRANSACTION_NAME.fullmatch(name):
+        return 'TRANSACTION'
+    if _LEGACY_PROOF_NAME.fullmatch(name):
+        return 'LEGACY_PROOF'
+    return 'FOREIGN'
+
 
 class DeleteObjects:
     """Fingerprint retained objects, never resolving a link's contents.
@@ -287,7 +312,7 @@ class Transactions:
         names = sorted(os.listdir(self.directory))
         result = []
         for name in names:
-            if name in ('completed', '.completed-proof-v1.json'):
+            if journal_name_kind(name) != 'TRANSACTION':
                 continue
             path = self.path(name)
             if os.path.lexists(os.path.join(self.directory, 'completed', name)):
@@ -304,7 +329,7 @@ class Transactions:
         if os.path.lexists(history) and (os.path.islink(history) or not os.path.isdir(history)):
             raise ValueError('插件完成历史目录类型异常')
         for name in sorted(os.listdir(self.directory)):
-            if name in ('completed', '.completed-proof-v1.json'):
+            if journal_name_kind(name) != 'TRANSACTION':
                 continue
             path = self.path(name)
             if not os.path.isdir(path):
