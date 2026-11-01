@@ -130,8 +130,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("矢量图标"));
-      assertTrue(shown.contains("版本码提升为 259"));
+      assertTrue(shown.contains("运行配置页压缩"));
+      assertTrue(shown.contains("版本码提升为 260"));
+      assertFalse(shown.contains("矢量图标"));
+      assertFalse(shown.contains("版本码提升为 259"));
       assertFalse(shown.contains("开机加载页"));
       assertFalse(shown.contains("版本码提升为 258"));
       assertFalse(shown.contains("proroot 文件锁修复"));
@@ -178,8 +180,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("vector icons"));
-      assertTrue(shown.contains("Raises versionCode to 259"));
+      assertTrue(shown.contains("Run configuration compacted"));
+      assertTrue(shown.contains("Raises versionCode to 260"));
+      assertFalse(shown.contains("vector icons"));
+      assertFalse(shown.contains("Raises versionCode to 259"));
       assertFalse(shown.contains("Boot loading screen"));
       assertFalse(shown.contains("Raises versionCode to 258"));
       assertFalse(shown.contains("proroot file lock fix"));

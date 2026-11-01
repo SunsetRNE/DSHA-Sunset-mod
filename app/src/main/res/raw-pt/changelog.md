@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5 / build259
+# DSHA 0.2.1-rc.3-20261102.0500-dsh0.2.1-rc.5 / build260
 
-- Os botões Iniciar, Parar e Reiniciar da página de arranque usam agora ícones vetoriais em vez de símbolos como ▶ ↻ □ no texto, por isso os leitores de ecrã já não leem os símbolos. Com o DSH em execução, o botão principal Abrir área de trabalho mostra uma seta para a direita.
-- Quando uma janela larga não consegue mostrar os botões numa linha, estes ficam empilhados em vez de comprimir Reiniciar numa coluna estreita.
-- Âmbito da verificação: o utilizador verificou paisagem e retrato, dia e noite e estados em execução / parado num tablet; a letra a 1,3× e ecrãs curtos de telemóvel não foram verificados à parte. versionCode elevado para 259 (com base no build258). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Configuração de execução compactada: os cinco grupos de cartões passam a dois, Execução e rede e Apresentação e arranque, para ver mais definições num ecrã de telemóvel; as opções de compatibilidade ficam recolhidas por omissão e marcadas quando alteradas; o DNS passa a escolha segmentada.
+- A barra de guardar em baixo mostra quantas alterações não estão guardadas e permite anulá-las com um toque; ecrãs largos como tablets usam duas colunas. O interruptor Abrir Web a partir do ícone da app é a primeira linha de Apresentação e arranque e aplica-se de imediato.
+- Âmbito da verificação: apenas testes unitários e verificações de código locais; sem instalação em dispositivo nem auditoria de layout. versionCode elevado para 260 (com base no build259). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

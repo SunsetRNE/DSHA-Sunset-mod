@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build259 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build260 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build259 `0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5`.** Launch page buttons now use vector icons instead of text symbols and stack when a wide window cannot fit them. Checked on a tablet by the user. versionCode 259, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build259 notes](../releases/build259-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build260 `0.2.1-rc.3-20261102.0500-dsh0.2.1-rc.5`.** Run configuration is compacted into two cards with a one-line save bar that counts unsaved changes. Local tests only; not installed on a device. versionCode 260, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build260 notes](../releases/build260-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

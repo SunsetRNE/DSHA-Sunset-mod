@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5 / build259
+# DSHA 0.2.1-rc.3-20261102.0500-dsh0.2.1-rc.5 / build260
 
-- Les boutons Démarrer, Arrêter et Redémarrer de la page de lancement utilisent désormais des icônes vectorielles au lieu de symboles comme ▶ ↻ □ dans le libellé ; les lecteurs d'écran ne lisent plus ces symboles. Quand DSH tourne, le bouton principal Ouvrir l'espace de travail affiche une flèche vers la droite.
-- Quand une fenêtre large ne peut pas afficher les boutons sur une ligne, ils s'empilent au lieu de comprimer Redémarrer dans une colonne étroite.
-- Portée de la vérification : l'utilisateur a vérifié paysage et portrait, jour et nuit, états en marche / arrêté sur une tablette ; la police à 1,3× et les écrans courts de téléphone n'ont pas été vérifiés séparément. versionCode porté à 259 (basé sur build258). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Configuration d'exécution compactée : les cinq groupes de cartes deviennent deux, Exécution et réseau et Affichage et lancement, pour voir plus de réglages sur un écran de téléphone ; les options de compatibilité sont repliées par défaut et signalées quand elles changent ; le DNS devient un choix segmenté.
+- La barre d'enregistrement en bas indique le nombre de modifications non enregistrées et permet de les annuler d'un geste ; les écrans larges comme les tablettes utilisent deux colonnes. L'interrupteur Ouvrir Web depuis l'icône de l'app est la première ligne d'Affichage et lancement et s'applique immédiatement.
+- Portée de la vérification : tests unitaires et contrôles de source locaux uniquement ; aucune installation sur appareil ni audit de mise en page. versionCode porté à 260 (basé sur build259). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
