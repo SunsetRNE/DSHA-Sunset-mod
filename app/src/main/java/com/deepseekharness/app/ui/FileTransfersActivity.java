@@ -139,7 +139,7 @@ public final class FileTransfersActivity extends AppCompatActivity {
     engine = DownloadEngine.get(this);
     LinearLayout root = new LinearLayout(this);
     root.setOrientation(LinearLayout.VERTICAL);
-    root.setBackgroundColor(getColor(R.color.surface));
+    root.setBackgroundColor(getColor(R.color.page_clear));
     setContentView(root);
     String title =
         pendingAction.action().equals("share")

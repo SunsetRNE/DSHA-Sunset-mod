@@ -77,11 +77,14 @@
     </style>
 
     <!-- ========== 三格状态 ========== -->
+    <!-- 三格必须等高：内容只有一行，minHeight 固定视觉基线；
+         数值与标签各自单行处理，避免某张卡因文案换行被撑高。 -->
     <style name="ShellLaunchMetric" parent="">
         <item name="android:background">@drawable/bg_shell_status</item>
         <item name="android:orientation">vertical</item>
         <item name="android:padding">@dimen/shell_launch_metric_pad</item>
         <item name="android:gravity">start</item>
+        <item name="android:minHeight">104dp</item>
     </style>
 
     <!-- 三格很窄：数值单行按可用宽度缩放，标签允许换行；都不伪造内容。 -->
@@ -218,11 +221,17 @@
         <item name="android:paddingEnd">8dp</item>
     </style>
 
+    <!-- 标签单行 + 按可用宽度轻微缩放：中文/英文/长语言名都不会把卡片撑高，
+         也不靠截断省略号硬切文案。 -->
     <style name="ShellLaunchRailLabel" parent="">
         <item name="android:textSize">@dimen/shell_launch_caption</item>
         <item name="android:textColor">@color/shell_text_muted</item>
         <item name="android:includeFontPadding">false</item>
         <item name="android:layout_marginTop">10dp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:autoSizeTextType">uniform</item>
+        <item name="android:autoSizeMinTextSize">9sp</item>
+        <item name="android:autoSizeMaxTextSize">@dimen/shell_launch_caption</item>
     </style>
 
     <style name="ShellLaunchRailValue" parent="">

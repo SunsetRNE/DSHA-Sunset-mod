@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   UI v5 原生外壳 token：顶栏 / 手机胶囊导航 / 平板左栏。
+  2026-11-01 起画布透明、卡片走玻璃：壁纸由 WindowBackdrop 统一铺底，
+  这里的 shell_bg 只保留“透明”语义，不再代表某个具体底色。
   数值取自设计源 base.html 的 .app(light) 与 refinement.css 覆盖层：
   层级色走 refinement 的 bg/surface/lift，强调色走设计源的 blue。
   与既有 colors.xml 的语义色分开命名，外壳改版不再牵动全站按钮与卡片配色。
 -->
 <resources>
     <!-- 画布与层级 -->
-    <color name="shell_bg">#F3F6FB</color>
-    <color name="shell_surface">#FCFDFF</color>
-    <color name="shell_raised">#E7EDF6</color>
+    <!-- 画布保持透明：壁纸由 WindowBackdrop 铺在 Activity content 上，页面只负责透出来。 -->
+    <color name="shell_bg">#00000000</color>
+    <!-- 卡片玻璃 71%：底图与描边都看得见，正文仍保持对比度。 -->
+    <color name="shell_surface">#B5FCFDFF</color>
+    <color name="shell_raised">#8CE7EDF6</color>
     <color name="shell_line">#131D3A60</color>
     <color name="shell_line_strong">#251D3A60</color>
 
@@ -32,9 +36,15 @@
     <color name="shell_warn_soft">#148C600D</color>
     <color name="shell_bad_soft">#14AF404B</color>
 
-    <!-- 玻璃层：其它半透明叠层仍可用；胶囊导航底改为不透明 surface。 -->
+    <!-- 玻璃层：胶囊导航 86%，选中态 raised 55%；都比卡片更实，浮在壁纸上才有层级。 -->
     <color name="shell_glass">#E0FAFCFF</color>
-    <color name="shell_nav_bg">#FCFDFF</color>
+    <color name="shell_nav_bg">#DBFCFDFF</color>
+    <!-- 底部胶囊毛玻璃：模糊壁纸之上压 70% 底色 + 顶部 11% 白色高光。 -->
+    <color name="shell_nav_glass">#D2FCFDFF</color>
+    <color name="shell_nav_edge">#66FFFFFF</color>
+    <color name="shell_nav_sheen">#3AFFFFFF</color>
+    <!-- 壁纸遮罩：白天压白、夜间压黑，35%，只用来保证文字对比度。 -->
+    <color name="shell_backdrop_scrim">#59FFFFFF</color>
     <color name="shell_nav_ripple">#141E50D0</color>
 
     <!-- 手机胶囊导航 -->

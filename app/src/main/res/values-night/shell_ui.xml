@@ -6,9 +6,11 @@
 -->
 <resources>
     <!-- 画布与层级 -->
-    <color name="shell_bg">#0B0F16</color>
-    <color name="shell_surface">#131923</color>
-    <color name="shell_raised">#1B2432</color>
+    <!-- 画布保持透明：壁纸由 WindowBackdrop 铺在 Activity content 上，页面只负责透出来。 -->
+    <color name="shell_bg">#00000000</color>
+    <!-- 夜间卡片玻璃 71%：压住深色壁纸又不把底图糊死。 -->
+    <color name="shell_surface">#B5131923</color>
+    <color name="shell_raised">#8C1B2432</color>
     <color name="shell_line">#12CBDCFF</color>
     <color name="shell_line_strong">#20D0E1FF</color>
 
@@ -31,9 +33,15 @@
     <color name="shell_warn_soft">#14E4BE83</color>
     <color name="shell_bad_soft">#14EEA3A6</color>
 
-    <!-- 玻璃层 -->
+    <!-- 玻璃层：胶囊导航 86%，选中态 raised 55%，与日间同一套不透明度。 -->
     <color name="shell_glass">#DB192230</color>
-    <color name="shell_nav_bg">#131923</color>
+    <color name="shell_nav_bg">#DB131923</color>
+    <!-- 夜间毛玻璃：同一套模糊层，压 70% 深底 + 更弱的白色高光。 -->
+    <color name="shell_nav_glass">#D2171E28</color>
+    <color name="shell_nav_edge">#4DFFFFFF</color>
+    <color name="shell_nav_sheen">#30FFFFFF</color>
+    <!-- 壁纸遮罩：白天压白、夜间压黑，35%。 -->
+    <color name="shell_backdrop_scrim">#59000000</color>
     <color name="shell_nav_ripple">#146AA4FF</color>
 
     <!-- 手机胶囊导航 -->

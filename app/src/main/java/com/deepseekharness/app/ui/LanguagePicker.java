@@ -1,25 +1,32 @@
 package com.deepseekharness.app.ui;
 
 import android.content.Context;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.SystemLanguage;
 import com.deepseekharness.app.util.UiLanguagePreference;
 import com.deepseekharness.app.util.UiText;
+
 import java.util.List;
 import java.util.Locale;
 
 /**
- * 界面语言选择（方案 A）：「跟随系统」作为第一格并写明系统当前解析的语言，其后十种语言；平板四列、手机两列，
- * 每格是母语名 + 当前界面语言里的名称。点选即生效，与原单选列表行为一致（关闭弹窗后切换）。
+ * 界面语言选择（弹窗）：顶部一条「跟随系统」，下面两列语言卡。
+ *
+ * <p>2026-11-01 重做卡片：去掉白底 + 灰描边（那是表单输入框的语汇），改用一层浅色底分层；
+ * 选中才出现主色描边、6% 主色底和右上角对勾。母语名为主标题，当前界面语言里的名称作副标题；
+ * 副标题始终占位，保证所有卡片等高。点选即生效，与原单选列表行为一致。
  */
 final class LanguagePicker {
   private LanguagePicker() {}
@@ -30,9 +37,23 @@ final class LanguagePicker {
     boolean followSystem = UiLanguagePreference.followsSystem(preference);
     String systemLanguage = UiLanguagePreference.resolveLanguage(SystemLanguage.tag());
     String uiLanguage = UiText.language();
+
     LinearLayout body = new LinearLayout(ctx);
     body.setOrientation(LinearLayout.VERTICAL);
-    body.setPadding(dp.applyAsInt(20), dp.applyAsInt(4), dp.applyAsInt(20), dp.applyAsInt(4));
+    body.setPadding(dp.applyAsInt(16), dp.applyAsInt(2), dp.applyAsInt(16), dp.applyAsInt(4));
+
+    TextView hint = new TextView(ctx);
+    hint.setText(
+        UiText.choose(
+            "点选即生效；跟随系统时随手机语言切换。",
+            "Changes apply immediately. Follow system uses your phone language."));
+    hint.setTextSize(12);
+    hint.setTextColor(ctx.getColor(R.color.shell_text_muted));
+    hint.setLineSpacing(dp.applyAsInt(3), 1f);
+    LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(-1, -2);
+    hintParams.bottomMargin = dp.applyAsInt(12);
+    body.addView(hint, hintParams);
+
     androidx.appcompat.app.AlertDialog[] holder = new androidx.appcompat.app.AlertDialog[1];
     java.util.function.Consumer<String> pick =
         value -> {
@@ -51,64 +72,32 @@ final class LanguagePicker {
           dialog.dismiss();
         };
 
-    // 「跟随系统」作为网格第一格。平板四列（3 行），常见手机（≥360dp）三列（4 行），更窄两列；
-    // 手机用紧凑格子，小屏也不必滚动。
+    View system = systemRow(ctx, dp, systemLanguage, followSystem);
+    system.setOnClickListener(v -> pick.accept(UiLanguagePreference.SYSTEM));
+    body.addView(system, new LinearLayout.LayoutParams(-1, dp.applyAsInt(58)));
+
     List<String> languages = UiLanguagePreference.LANGUAGES;
-    int count = languages.size() + 1;
-    // 列数按「宽度 ÷ 字体缩放」计：手机大字体时三列格子放不下「跟随系统」，自动退到两列。
-    android.content.res.Configuration config = ctx.getResources().getConfiguration();
-    float widthDp = config.screenWidthDp / Math.max(1f, config.fontScale);
-    int columns = widthDp >= 600 ? 4 : widthDp >= 360 ? 3 : 2;
-    boolean compact = columns < 4;
+    // 手机两列、平板四列；两列时一屏放得下 11 项，不靠滚动。
+    int columns = ctx.getResources().getConfiguration().screenWidthDp >= 600 ? 4 : 2;
     LinearLayout row = null;
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < languages.size(); i++) {
       if (i % columns == 0) {
         row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-        if (i > 0) rowParams.topMargin = dp.applyAsInt(compact ? 6 : 8);
+        rowParams.topMargin = dp.applyAsInt(9);
         body.addView(row, rowParams);
       }
-      View cell;
-      if (i == 0) {
-        cell =
-            tile(
-                ctx,
-                dp,
-                compact,
-                UiText.choose("跟随系统", "Follow system"),
-                // 副标题只写系统当前解析出的语言名，避免窄格里折行。
-                UiLanguagePreference.nativeName(systemLanguage),
-                followSystem);
-        cell.setOnClickListener(v -> pick.accept(UiLanguagePreference.SYSTEM));
-      } else {
-        String language = languages.get(i - 1);
-        String nativeName = UiLanguagePreference.nativeName(language);
-        String localized = localizedName(language, uiLanguage);
-        cell =
-            tile(
-                ctx,
-                dp,
-                compact,
-                nativeName,
-                localized.equalsIgnoreCase(nativeName) ? "" : localized,
-                !followSystem && language.equals(preference));
-        cell.setOnClickListener(v -> pick.accept(language));
-      }
-      cell.setTag(i == 0 ? UiLanguagePreference.SYSTEM : languages.get(i - 1));
-      LinearLayout.LayoutParams cellParams = new LinearLayout.LayoutParams(0, -1, 1f);
-      if (i % columns > 0) cellParams.setMarginStart(dp.applyAsInt(compact ? 6 : 8));
+      String language = languages.get(i);
+      View cell = languageCell(ctx, dp, language, uiLanguage, !followSystem && language.equals(preference));
+      cell.setTag(language);
+      // 卡片自己负责点击：languageCell 里只设了 clickable，没有绑定监听器，
+      // 2026-11-01 重做卡片时漏掉了这一行，表现就是「点语言没有反应」。
+      cell.setOnClickListener(v -> pick.accept(language));
+      LinearLayout.LayoutParams cellParams = new LinearLayout.LayoutParams(0, -2, 1f);
+      if (i % columns > 0) cellParams.setMarginStart(dp.applyAsInt(9));
       row.addView(cell, cellParams);
     }
-    // 末行补齐空位，保持格子等宽（高度跟随同行格子）。
-    int remainder = count % columns;
-    if (row != null && remainder > 0)
-      for (int i = remainder; i < columns; i++) {
-        View spacer = new View(ctx);
-        LinearLayout.LayoutParams spacerParams = new LinearLayout.LayoutParams(0, -1, 1f);
-        spacerParams.setMarginStart(dp.applyAsInt(compact ? 6 : 8));
-        row.addView(spacer, spacerParams);
-      }
 
     ScrollView scroll = new ScrollView(ctx);
     // 大字体或极矮屏仍可能超出：滚动条常显、边缘渐隐，提示下面还有选项。
@@ -118,10 +107,158 @@ final class LanguagePicker {
     scroll.addView(body);
     holder[0] =
         new DshaDialogBuilder(ctx)
-            .setTitle(UiText.choose("界面语言 / Interface language", "Interface language"))
+            .setTitle(UiText.choose("界面语言", "Interface language"))
             .setView(scroll)
             .setNegativeButton(UiText.choose("取消", "Cancel"), null)
             .show();
+  }
+
+  /** 「跟随系统」整行：手机图标 + 名称 + 当前解析结果 + 选中勾。 */
+  private static View systemRow(
+      Context ctx, java.util.function.IntUnaryOperator dp, String systemLanguage, boolean selected) {
+    LinearLayout row = new LinearLayout(ctx);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(dp.applyAsInt(14), dp.applyAsInt(12), dp.applyAsInt(12), dp.applyAsInt(12));
+    row.setBackgroundResource(selected ? R.drawable.bg_lang_tile_selected : R.drawable.bg_lang_tile);
+    row.setClickable(true);
+    row.setFocusable(true);
+    row.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
+
+    FrameLayout iconBox = new FrameLayout(ctx);
+    iconBox.setBackgroundResource(R.drawable.bg_lang_icon);
+    ImageView icon = new ImageView(ctx);
+    icon.setImageResource(R.drawable.ic_lang_system);
+    icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    FrameLayout.LayoutParams iconParams =
+        new FrameLayout.LayoutParams(dp.applyAsInt(17), dp.applyAsInt(17), Gravity.CENTER);
+    iconBox.addView(icon, iconParams);
+    LinearLayout.LayoutParams iconBoxParams =
+        new LinearLayout.LayoutParams(dp.applyAsInt(32), dp.applyAsInt(32));
+    iconBoxParams.setMarginEnd(dp.applyAsInt(12));
+    row.addView(iconBox, iconBoxParams);
+
+    LinearLayout copy = new LinearLayout(ctx);
+    copy.setOrientation(LinearLayout.VERTICAL);
+    TextView name = new TextView(ctx);
+    name.setText(UiText.choose("跟随系统", "Follow system"));
+    name.setTextSize(15);
+    name.setTypeface(name.getTypeface(), Typeface.BOLD);
+    name.setTextColor(ctx.getColor(R.color.shell_text));
+    name.setIncludeFontPadding(false);
+    copy.addView(name);
+    TextView sub = new TextView(ctx);
+    sub.setText(
+        UiText.choose("当前：", "Current: ") + UiLanguagePreference.nativeName(systemLanguage));
+    sub.setTextSize(11);
+    sub.setTextColor(ctx.getColor(R.color.shell_text_muted));
+    sub.setIncludeFontPadding(false);
+    LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-1, -2);
+    subParams.topMargin = dp.applyAsInt(3);
+    copy.addView(sub, subParams);
+    row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
+
+    if (selected)
+      row.addView(
+          check(ctx, dp),
+          new LinearLayout.LayoutParams(dp.applyAsInt(18), dp.applyAsInt(18)));
+    row.setContentDescription(
+        UiText.raw(
+            UiText.choose("跟随系统", "Follow system")
+                + "，"
+                + UiText.choose("当前：", "Current: ")
+                + UiLanguagePreference.nativeName(systemLanguage)));
+    setRadioSemantics(row, selected);
+    return row;
+  }
+
+  /** 语言卡：母语名 + 当前界面语言里的名称；选中时右上角对勾。 */
+  private static View languageCell(
+      Context ctx,
+      java.util.function.IntUnaryOperator dp,
+      String language,
+      String uiLanguage,
+      boolean selected) {
+    String nativeName = UiLanguagePreference.nativeName(language);
+    String localized = localizedName(language, uiLanguage);
+
+    FrameLayout cell = new FrameLayout(ctx);
+    cell.setMinimumHeight(dp.applyAsInt(60));
+    cell.setBackgroundResource(selected ? R.drawable.bg_lang_tile_selected : R.drawable.bg_lang_tile);
+    cell.setClickable(true);
+    cell.setFocusable(true);
+    cell.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
+
+    LinearLayout copy = new LinearLayout(ctx);
+    copy.setOrientation(LinearLayout.VERTICAL);
+    copy.setPadding(
+        dp.applyAsInt(13),
+        dp.applyAsInt(12),
+        dp.applyAsInt(selected ? 26 : 13),
+        dp.applyAsInt(12));
+    TextView name = new TextView(ctx);
+    name.setText(UiText.raw(nativeName));
+    name.setTextSize(15);
+    name.setTypeface(name.getTypeface(), Typeface.BOLD);
+    name.setTextColor(ctx.getColor(R.color.shell_text));
+    name.setIncludeFontPadding(false);
+    name.setSingleLine(true);
+    name.setEllipsize(TextUtils.TruncateAt.END);
+    copy.addView(name);
+    // 副标题始终占位：没有译名时留空行，保证同一行卡片等高。
+    TextView sub = new TextView(ctx);
+    sub.setText(UiText.raw(localized));
+    sub.setTextSize(11);
+    sub.setTextColor(ctx.getColor(R.color.shell_text_muted));
+    sub.setIncludeFontPadding(false);
+    sub.setSingleLine(true);
+    sub.setEllipsize(TextUtils.TruncateAt.END);
+    sub.setMinHeight(dp.applyAsInt(14));
+    LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-1, -2);
+    subParams.topMargin = dp.applyAsInt(3);
+    copy.addView(sub, subParams);
+    cell.addView(copy, new FrameLayout.LayoutParams(-1, -2));
+
+    if (selected) {
+      FrameLayout.LayoutParams checkParams =
+          new FrameLayout.LayoutParams(dp.applyAsInt(18), dp.applyAsInt(18), Gravity.TOP | Gravity.END);
+      checkParams.topMargin = dp.applyAsInt(10);
+      checkParams.setMarginEnd(dp.applyAsInt(10));
+      cell.addView(check(ctx, dp), checkParams);
+    }
+
+    cell.setContentDescription(
+        UiText.raw(localized.isEmpty() ? nativeName : nativeName + ", " + localized));
+    setRadioSemantics(cell, selected);
+    return cell;
+  }
+
+  /** 18dp 主色圆 + 白色对勾；只作视觉标记，读屏状态由 radio 语义承担。 */
+  private static View check(Context ctx, java.util.function.IntUnaryOperator dp) {
+    FrameLayout box = new FrameLayout(ctx);
+    box.setBackgroundResource(R.drawable.bg_lang_check);
+    box.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    ImageView tick = new ImageView(ctx);
+    tick.setImageResource(R.drawable.ic_lang_check);
+    tick.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    box.addView(
+        tick,
+        new FrameLayout.LayoutParams(dp.applyAsInt(10), dp.applyAsInt(10), Gravity.CENTER));
+    return box;
+  }
+
+  private static void setRadioSemantics(View view, boolean selected) {
+    view.setAccessibilityDelegate(
+        new View.AccessibilityDelegate() {
+          @Override
+          public void onInitializeAccessibilityNodeInfo(
+              View host, android.view.accessibility.AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setClassName(android.widget.RadioButton.class.getName());
+            info.setCheckable(true);
+            info.setChecked(selected);
+          }
+        });
   }
 
   /** 语言在当前界面语言里的名称（系统 ICU 提供），如中文界面下的 English → 英语。 */
@@ -143,88 +280,5 @@ final class LanguagePicker {
     } catch (RuntimeException unavailable) {
       return "";
     }
-  }
-
-  /** 选项格：主名称 + 副标题，选中时强调色描边、浅底与对勾。 */
-  private static View tile(
-      Context ctx,
-      java.util.function.IntUnaryOperator dp,
-      boolean compact,
-      String title,
-      String subtitle,
-      boolean selected) {
-    LinearLayout tile = new LinearLayout(ctx);
-    tile.setOrientation(LinearLayout.HORIZONTAL);
-    tile.setGravity(Gravity.CENTER_VERTICAL);
-    tile.setMinimumHeight(dp.applyAsInt(compact ? 50 : 56));
-    int padH = dp.applyAsInt(compact ? 9 : 12), padV = dp.applyAsInt(compact ? 7 : 10);
-    tile.setPadding(padH, padV, padH, padV);
-    tile.setClickable(true);
-    tile.setFocusable(true);
-    tile.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
-    int accent = ctx.getColor(R.color.shell_accent);
-    GradientDrawable shape = new GradientDrawable();
-    shape.setCornerRadius(dp.applyAsInt(14));
-    shape.setColor(
-        selected
-            ? androidx.core.graphics.ColorUtils.setAlphaComponent(accent, 0x1A)
-            : ctx.getColor(R.color.shell_surface));
-    shape.setStroke(
-        dp.applyAsInt(selected ? 2 : 1),
-        selected ? accent : ctx.getColor(R.color.shell_line_strong));
-    tile.setBackground(shape);
-    LinearLayout copy = new LinearLayout(ctx);
-    copy.setOrientation(LinearLayout.VERTICAL);
-    // 对勾放在标题行末尾，不占副标题宽度。
-    LinearLayout head = new LinearLayout(ctx);
-    head.setGravity(Gravity.CENTER_VERTICAL);
-    TextView name = new TextView(ctx);
-    name.setText(UiText.raw(title));
-    name.setTextSize(compact ? 14 : 15);
-    name.setTypeface(name.getTypeface(), android.graphics.Typeface.BOLD);
-    name.setTextColor(ctx.getColor(selected ? R.color.shell_accent : R.color.shell_text));
-    name.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
-    name.setIncludeFontPadding(false);
-    name.setSingleLine(true);
-    name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    head.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
-    // 手机三列格子太窄（厂商字体常比 fontScale 更大），对勾会把「跟随系统」挤成「跟随…」；
-    // 紧凑格子只靠描边 + 底色表示选中（无障碍仍读 checked），宽格子才显示对勾。
-    if (selected && !compact) {
-      ImageView check = new ImageView(ctx);
-      check.setImageResource(R.drawable.ic_onb_check);
-      check.setColorFilter(accent);
-      check.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-      LinearLayout.LayoutParams checkParams =
-          new LinearLayout.LayoutParams(dp.applyAsInt(16), dp.applyAsInt(16));
-      checkParams.setMarginStart(dp.applyAsInt(4));
-      head.addView(check, checkParams);
-    }
-    copy.addView(head, new LinearLayout.LayoutParams(-1, -2));
-    if (!subtitle.isEmpty()) {
-      TextView sub = new TextView(ctx);
-      sub.setText(UiText.raw(subtitle));
-      sub.setTextSize(12);
-      sub.setTextColor(ctx.getColor(R.color.shell_text_muted));
-      sub.setMaxLines(2);
-      sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-1, -2);
-      subParams.topMargin = dp.applyAsInt(4);
-      copy.addView(sub, subParams);
-    }
-    tile.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
-    tile.setContentDescription(UiText.raw(subtitle.isEmpty() ? title : title + ", " + subtitle));
-    tile.setAccessibilityDelegate(
-        new View.AccessibilityDelegate() {
-          @Override
-          public void onInitializeAccessibilityNodeInfo(
-              View host, android.view.accessibility.AccessibilityNodeInfo info) {
-            super.onInitializeAccessibilityNodeInfo(host, info);
-            info.setClassName(android.widget.RadioButton.class.getName());
-            info.setCheckable(true);
-            info.setChecked(selected);
-          }
-        });
-    return tile;
   }
 }

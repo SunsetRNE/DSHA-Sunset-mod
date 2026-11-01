@@ -61,9 +61,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private boolean chromeLandscapeCompact;
   private View sessionScrim, inlineDivider, toolbarDivider, statusBarScrim;
   // 关闭抽屉时真身立即隐藏（焦点/无障碍同步恢复），出屏观感交给这两个快照视图。
-  private View drawerExitScrim;
-  private AppCompatImageView drawerExitSnapshot;
   private int drawerAnimationToken;
+  /** 关闭动效进行中：期间 applyPresentation() 不得把面板立刻隐藏，否则看不到出屏。 */
+  private boolean drawerClosing;
   private View menuButton, settingsButton, helpButton, cliButton, newSessionButton, sessionClose;
   private TextView title, status, sessionSummary, sessionSubtitle, createLabel, createHint;
   private TextView panelSecondary, panelNotice, closeAllButton;
@@ -847,10 +847,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     } else if (sessionsRequested) {
       if (drawerShowing()) updateDrawerPresentation();
       else showDrawer(false);
-    } else {
+    } else if (!drawerClosing) {
       hideSessionsPanel();
     }
-    ball.setSessionsExpanded(expanded || sessionsRequested);
+    if (!drawerClosing) ball.setSessionsExpanded(expanded || sessionsRequested);
     applySystemBars();
   }
 
@@ -1023,8 +1023,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void showInlinePanel() {
-    // 抽屉出屏快照不能跨形态残留。
-    clearDrawerExitAnimation();
     if (sessionPanel.getParent() != body) {
       sessionPanel.animate().cancel();
       removeSessionPanel();
@@ -1076,8 +1074,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
           sessionPanel, new FrameLayout.LayoutParams(drawerWidthPx(), -1, Gravity.START));
       renderSessions();
     }
-    // 重开时先掐掉尚未结束的关闭快照，避免旧抽屉叠在新抽屉上。
-    clearDrawerExitAnimation();
+    // 重开时先掐掉尚未结束的关闭动效，避免旧位置叠在新抽屉上。
+    drawerClosing = false;
+    sessionPanel.animate().cancel();
+    sessionScrim.animate().cancel();
     final int token = ++drawerAnimationToken;
     drawerHost.setVisibility(View.VISIBLE);
     sessionScrim.setVisibility(View.VISIBLE);
@@ -1117,73 +1117,57 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   /**
-   * 抽屉关闭动效：真身立即隐藏并同步恢复焦点/无障碍（首击语义不变），
-   * 面板位图 + 遮罩快照继续完成 220ms 出屏与 180ms 淡出后自移除。
+   * 抽屉关闭动效：直接对真身做位移 + 遮罩淡出，结束后再由 {@link #applyPresentation()} 隐藏。
+   *
+   * <p>旧实现先截位图快照、真身立刻 GONE；只要快照建不出来（宽高为 0、OOM、动画开关为假）
+   * 就静默 return，表现成「只有淡入没有淡出」。现在不再依赖快照：动画在真身上跑，
+   * 期间用 {@link #drawerClosing} 拦住 applyPresentation 的隐藏，结束时整段收起。
+   *
+   * @return 是否启动了关闭动效（false 表示调用方应立刻隐藏）
    */
-  private void startDrawerExitAnimation() {
-    if (!UiMotion.animationsEnabled(this) || root == null || sessionPanel == null) return;
-    if (!drawerShowing()) return;
-    int width = sessionPanel.getWidth();
-    int height = sessionPanel.getHeight();
-    if (width <= 0 || height <= 0) return;
-    clearDrawerExitAnimation();
-    android.graphics.Bitmap bitmap;
-    try {
-      bitmap =
-          android.graphics.Bitmap.createBitmap(
-              width, height, android.graphics.Bitmap.Config.ARGB_8888);
-      sessionPanel.draw(new android.graphics.Canvas(bitmap));
-    } catch (RuntimeException | OutOfMemoryError ignored) {
-      // 快照失败只损失动效，不阻断关闭与焦点恢复。
-      return;
-    }
-    AppCompatImageView snapshot = new AppCompatImageView(this);
-    snapshot.setImageBitmap(bitmap);
-    snapshot.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
-    snapshot.setTranslationX(sessionPanel.getTranslationX());
-    snapshot.setClickable(true); // 出屏期间吞掉点击，避免误触到底下的终端。
-    snapshot.setFocusable(false);
-    snapshot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    View scrim = new View(this);
-    scrim.setBackgroundColor(getColor(R.color.terminal_scrim));
-    scrim.setAlpha(sessionScrim.getAlpha());
-    scrim.setClickable(true);
-    scrim.setFocusable(false);
-    scrim.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    root.addView(scrim, new FrameLayout.LayoutParams(-1, -1));
-    root.addView(snapshot, new FrameLayout.LayoutParams(width, height, Gravity.START));
-    drawerExitScrim = scrim;
-    drawerExitSnapshot = snapshot;
-    snapshot
+  private boolean startDrawerClose() {
+    if (!UiMotion.animationsEnabled(this) || root == null || sessionPanel == null) return false;
+    if (!drawerShowing()) return false;
+    final int token = ++drawerAnimationToken;
+    drawerClosing = true;
+    sessionPanel.animate().cancel();
+    sessionScrim.animate().cancel();
+    sessionPanel
         .animate()
         .translationX(drawerHiddenTranslation())
         .setDuration(DRAWER_CLOSE_MS)
         .setInterpolator(UiMotion.standard())
-        .withEndAction(this::removeDrawerExitViews)
+        .withEndAction(
+            () -> {
+              if (token != drawerAnimationToken) return;
+              drawerClosing = false;
+              applyPresentation();
+            })
         .start();
-    scrim
+    sessionScrim
         .animate()
         .alpha(0f)
         .setDuration(DRAWER_CLOSE_SCRIM_MS)
         .setInterpolator(UiMotion.standard())
         .start();
+    // 关闭按钮与面板不再可点，避免动效期间重复触发。
+    setDrawerAccessibility(false);
+    ball.setSessionsExpanded(false);
+    return true;
   }
 
-  private void clearDrawerExitAnimation() {
-    if (drawerExitSnapshot != null) drawerExitSnapshot.animate().cancel();
-    if (drawerExitScrim != null) drawerExitScrim.animate().cancel();
-    removeDrawerExitViews();
-  }
-
-  private void removeDrawerExitViews() {
-    View scrim = drawerExitScrim;
-    drawerExitScrim = null;
-    if (scrim != null && scrim.getParent() instanceof ViewGroup parent) parent.removeView(scrim);
-    AppCompatImageView snapshot = drawerExitSnapshot;
-    drawerExitSnapshot = null;
-    if (snapshot != null) {
-      if (snapshot.getParent() instanceof ViewGroup parent) parent.removeView(snapshot);
-      snapshot.setImageDrawable(null);
+  /** 页面离开/Destroy 时终止未完成的关闭动效，避免回到前台还停在半开位置。 */
+  private void cancelDrawerClose() {
+    if (!drawerClosing) return;
+    drawerClosing = false;
+    drawerAnimationToken++;
+    if (sessionPanel != null) {
+      sessionPanel.animate().cancel();
+      sessionPanel.setTranslationX(sessionsRequested ? 0f : drawerHiddenTranslation());
+    }
+    if (sessionScrim != null) {
+      sessionScrim.animate().cancel();
+      sessionScrim.setAlpha(1f);
     }
   }
 
@@ -1351,9 +1335,12 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private void closeSessions(boolean restoreSurfaceFocus) {
     if (workbench && expanded) return;
     if (!sessionsRequested && !expanded) return;
-    // 抽屉形态先留一张出屏快照；随后的 applyPresentation 立即隐藏真身并恢复焦点/无障碍。
-    if (!expanded && sessionsRequested && drawerShowing()) startDrawerExitAnimation();
     sessionsRequested = false;
+    // 先在真身上播关闭动效；抽屉形态下动画结束后再整段隐藏（见 startDrawerClose）。
+    if (!expanded && startDrawerClose()) {
+      if (restoreSurfaceFocus) restoreSurfaceFocus();
+      return;
+    }
     drawerAnimationToken++;
     applyPresentation();
     if (restoreSurfaceFocus) restoreSurfaceFocus();
@@ -2148,7 +2135,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   protected void onPause() {
     owner.removeSimpleStateObserver(simpleStateChanged);
     owner.protection().removeObserver(protectionChanged);
-    clearDrawerExitAnimation();
+    cancelDrawerClose();
     dismissPanel();
     super.onPause();
   }
@@ -2156,7 +2143,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   @Override
   protected void onDestroy() {
     if (root != null && closeAllWatchdog != null) root.removeCallbacks(closeAllWatchdog);
-    clearDrawerExitAnimation();
+    cancelDrawerClose();
     super.onDestroy();
   }
 

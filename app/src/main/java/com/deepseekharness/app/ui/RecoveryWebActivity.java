@@ -49,7 +49,7 @@ public final class RecoveryWebActivity extends AppCompatActivity {
     retained = new androidx.lifecycle.ViewModelProvider(this).get(Retained.class);
     LinearLayout root = new LinearLayout(this);
     root.setOrientation(LinearLayout.VERTICAL);
-    root.setBackgroundColor(getColor(R.color.surface));
+    root.setBackgroundColor(getColor(R.color.page_clear));
     setContentView(root);
     LinearLayout toolbar = new LinearLayout(this);
     toolbar.setOrientation(LinearLayout.HORIZONTAL);

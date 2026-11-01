@@ -7,13 +7,13 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
-import androidx.appcompat.widget.AppCompatTextView;
+import android.widget.ImageView;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.TerminalWorkspacePolicy;
 import com.deepseekharness.app.util.UiText;
 
 /** 页面内菜单球：只监听自身手势，不申请悬浮窗权限、不拦截终端选字。 */
-final class TerminalFloatingMenu extends AppCompatTextView {
+final class TerminalFloatingMenu extends FrameLayout {
   private boolean right = true, dragging;
   private float fraction = .6f, downX, downY, startX, startY;
   private final int slop;
@@ -27,14 +27,15 @@ final class TerminalFloatingMenu extends AppCompatTextView {
     super(context);
     slop = ViewConfiguration.get(context).getScaledTouchSlop();
     setId(R.id.terminal_menu_ball);
-    setText(">_");
-    setTextDirection(View.TEXT_DIRECTION_LTR);
-    // >_ 是图标字形，保持 40dp 外观；可点击和拖动区域仍为完整的 48dp。
-    setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16);
-    setIncludeFontPadding(false);
-    setTypeface(android.graphics.Typeface.MONOSPACE);
-    setGravity(android.view.Gravity.CENTER);
-    setTextColor(context.getColor(R.color.terminal_panel_text));
+    // 图标用子 View 居中，不再走 TextView 的 drawable 排版：
+    // 空文本时 compound drawable 会贴左边缘，实测会偏出 40dp 圆外。
+    ImageView mark = new ImageView(context);
+    mark.setImageResource(R.drawable.ic_terminal_menu);
+    mark.setImageTintList(
+        android.content.res.ColorStateList.valueOf(context.getColor(R.color.shell_accent)));
+    mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
+    mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    addView(mark, new FrameLayout.LayoutParams(dp(20), dp(20), android.view.Gravity.CENTER));
     setBackground(
         new android.graphics.drawable.InsetDrawable(
             context.getDrawable(R.drawable.bg_terminal_menu), dp(4)));
@@ -44,7 +45,8 @@ final class TerminalFloatingMenu extends AppCompatTextView {
     setFocusable(true);
     setFocusableInTouchMode(true);
     setClickable(true);
-    setElevation(dp(6));
+    // 外壳统一零阴影：悬浮球靠 86% 玻璃底与 1dp 描边拉开层级，不叠投影。
+    setElevation(0);
     setMinimumWidth(dp(48));
     setMinimumHeight(dp(48));
     setLayoutParams(new FrameLayout.LayoutParams(dp(48), dp(48)));

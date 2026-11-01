@@ -8,6 +8,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -123,43 +124,30 @@ public final class OnboardingActivity extends AppCompatActivity {
 
   private View buildShell() {
     boolean wide = kit.wide(), compact = kit.shortScreen();
-    int pad = kit.dp(wide ? 28 : 20);
+    int pad = kit.dp(wide ? 28 : 24);
     LinearLayout main = kit.column();
     main.setBackgroundColor(kit.color(R.color.shell_bg));
     LinearLayout head = kit.row();
-    head.setMinimumHeight(kit.dp(compact ? 40 : 52));
-    head.setPadding(
-        kit.dp(wide ? 12 : 8), kit.dp(compact ? 2 : 4), kit.dp(wide ? 22 : 16), kit.dp(2));
-    FrameLayout left = new FrameLayout(this);
-    left.setMinimumWidth(kit.dp(wide ? 48 : 64));
+    head.setMinimumHeight(kit.dp(compact ? 40 : 48));
+    head.setPadding(kit.dp(wide ? 12 : 6), kit.dp(compact ? 2 : 6), kit.dp(wide ? 22 : 12), 0);
     back = backButton();
-    left.addView(
-        back, new FrameLayout.LayoutParams(kit.dp(48), kit.dp(48), Gravity.CENTER_VERTICAL));
-    TextView name = kit.bold("DSHA", 18, R.color.shell_text);
-    name.setPadding(kit.dp(10), 0, 0, 0);
-    brand = name;
-    if (!wide) left.addView(brand, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL));
-    head.addView(left, new LinearLayout.LayoutParams(-2, -2));
-    FrameLayout middle = new FrameLayout(this);
-    if (!wide) {
+    head.addView(back, new LinearLayout.LayoutParams(kit.dp(48), kit.dp(48)));
+    if (wide) {
+      FrameLayout middle = new FrameLayout(this);
       capsule = new DeployCapsule(this);
       capsule.setMaxWidthFraction(0.62f);
       capsule.setOnOpen(this::openTaskSheet);
       middle.addView(capsule, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+      head.addView(middle, new LinearLayout.LayoutParams(0, -2, 1));
+      counter = kit.text("", 11.5f, R.color.shell_text_muted);
+      counter.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+      counter.setGravity(Gravity.END);
+      counter.setMinWidth(kit.dp(40));
+      head.addView(counter);
+    } else {
+      head.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
     }
-    head.addView(middle, new LinearLayout.LayoutParams(0, -2, 1));
-    counter = kit.text("", 11.5f, R.color.shell_text_muted);
-    counter.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-    counter.setGravity(Gravity.END);
-    counter.setMinWidth(kit.dp(40));
-    head.addView(counter);
     main.addView(head, OnboardingKit.matchWrap());
-    if (!wide) {
-      stepsBar = kit.row();
-      stepsBar.setPadding(kit.dp(20), kit.dp(2), kit.dp(20), kit.dp(4));
-      stepsBar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-      main.addView(stepsBar, OnboardingKit.matchWrap());
-    }
     scroll = new ScrollView(this);
     scroll.setFillViewport(true);
     scroll.setClipToPadding(false);
@@ -172,7 +160,7 @@ public final class OnboardingActivity extends AppCompatActivity {
     FrameLayout foot = new FrameLayout(this);
     foot.setBackgroundResource(R.drawable.bg_onb_footer);
     foot.setPadding(
-        pad, kit.dp(compact ? 7 : wide ? 12 : 10), pad, kit.dp(compact ? 7 : wide ? 14 : 12));
+        pad, kit.dp(compact ? 8 : wide ? 14 : 12), pad, kit.dp(compact ? 8 : wide ? 16 : 14));
     footer = new Capped(this);
     foot.addView(footer, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER_HORIZONTAL));
     main.addView(foot, OnboardingKit.matchWrap());
@@ -208,7 +196,12 @@ public final class OnboardingActivity extends AppCompatActivity {
     LinearLayout side = kit.column();
     side.setPadding(kit.dp(18), kit.dp(compact ? 14 : 22), kit.dp(18), kit.dp(18));
     int gap = compact ? 12 : 18;
-    side.addView(kit.bold("DSHA", 22, R.color.shell_text));
+    LinearLayout brandRow = kit.row();
+    brandRow.addView(kit.brandMark(compact ? 34 : 38, 19));
+    TextView wordmark = kit.bold("DSHA", 22, R.color.shell_text);
+    wordmark.setPadding(kit.dp(10), 0, 0, 0);
+    brandRow.addView(wordmark);
+    side.addView(brandRow);
     sideCounter = kit.text("", 12.5f, R.color.shell_text_muted);
     kit.add(side, sideCounter, 4);
     stepList = kit.column();
@@ -305,32 +298,27 @@ public final class OnboardingActivity extends AppCompatActivity {
   /** 顶栏（返回 / 品牌 / 计数）、手机步骤条与宽屏左栏随步骤更新。 */
   private void updateChrome() {
     boolean wide = kit.wide();
-    back.setVisibility(step > WELCOME ? View.VISIBLE : wide ? View.INVISIBLE : View.GONE);
-    if (!wide) brand.setVisibility(step == WELCOME ? View.VISIBLE : View.GONE);
-    counter.setText((step + 1) + " / " + STEPS);
-    counter.setContentDescription(
-        String.format(
-            Locale.ROOT, UiText.choose("第 %1$d 步，共 %2$d 步", "Step %1$d of %2$d"), step + 1, STEPS));
-    if (stepsBar != null) {
-      stepsBar.removeAllViews();
-      for (int i = 0; i < STEPS; i++) {
-        View segment = new View(this);
-        segment.setBackgroundResource(
-            i <= step ? R.drawable.bg_onb_seg_done : R.drawable.bg_onb_seg_todo);
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, kit.dp(3), 1);
-        if (i > 0) p.leftMargin = kit.dp(4);
-        stepsBar.addView(segment, p);
-      }
+    if (back != null)
+      back.setVisibility(step > WELCOME ? View.VISIBLE : wide ? View.INVISIBLE : View.GONE);
+    if (counter != null) {
+      counter.setText((step + 1) + " / " + STEPS);
+      counter.setContentDescription(
+          String.format(
+              Locale.ROOT,
+              UiText.choose("第 %1$d 步，共 %2$d 步", "Step %1$d of %2$d"),
+              step + 1,
+              STEPS));
     }
     if (stepList != null) {
       stepList.removeAllViews();
       for (int i = 0; i < STEPS; i++) kit.add(stepList, stepRow(i), i == 0 ? 0 : 3);
-      sideCounter.setText(
-          String.format(
-              Locale.ROOT,
-              UiText.choose("首次引导 · %1$d / %2$d", "Setup · %1$d / %2$d"),
-              step + 1,
-              STEPS));
+      if (sideCounter != null)
+        sideCounter.setText(
+            String.format(
+                Locale.ROOT,
+                UiText.choose("首次引导 · %1$d / %2$d", "Setup · %1$d / %2$d"),
+                step + 1,
+                STEPS));
     }
   }
 
@@ -399,10 +387,15 @@ public final class OnboardingActivity extends AppCompatActivity {
     StringBuilder key = new StringBuilder().append(step).append('|').append(UiText.language());
     switch (step) {
       case WELCOME:
-        key.append(lowSpace()).append(started()).append(environmentReady());
+        key.append(lowSpace())
+            .append(started())
+            .append(environmentReady())
+            // 部署进度写进底栏状态行：阶段、已完成数量都要能触发重绘。
+            .append(deploy.phase)
+            .append(deploy.completed());
         break;
       case GOALS:
-        key.append(deploy.phase == DeployStages.Phase.RUNNING)
+        key.append(deploy.phase).append(deploy.completed())
             .append(PermissionGoals.recommendedCount(goals));
         break;
       case PERMS:
@@ -630,6 +623,128 @@ public final class OnboardingActivity extends AppCompatActivity {
     }
   }
 
+
+  // ---------------------------------------------------------------- A 版式构件
+
+  /** 标题（30sp 两行内）+ 一句说明（14sp）。topMargin 控制内容落点。 */
+  private void hero(String title, String lead, int topMargin) {
+    TextView head = kit.bold(title, 30, R.color.shell_text);
+    head.setLineSpacing(kit.dp(2), 1f);
+    head.setAccessibilityHeading(true);
+    kit.add(content, head, topMargin);
+    kit.add(content, kit.lead(lead), 12);
+  }
+
+  /** 选项行：8dp 点 + 17sp 文字，行高 54dp；on 为实心点。 */
+  private LinearLayout choiceRow(boolean on, String text, Runnable click) {
+    LinearLayout row = kit.row();
+    row.setMinimumHeight(kit.dp(54));
+    View dot = new View(this);
+    dot.setBackground(dotDrawable(on));
+    row.addView(dot, new LinearLayout.LayoutParams(kit.dp(8), kit.dp(8)));
+    TextView label = kit.text(text, 17, on ? R.color.shell_text : R.color.shell_text_secondary);
+    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
+    lp.leftMargin = kit.dp(16);
+    row.addView(label, lp);
+    row.setContentDescription(text);
+    row.setFocusable(true);
+    if (click != null) {
+      row.setClickable(true);
+      row.setOnClickListener(v -> click.run());
+    }
+    return row;
+  }
+
+  private android.graphics.drawable.GradientDrawable dotDrawable(boolean on) {
+    var shape = new android.graphics.drawable.GradientDrawable();
+    shape.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    if (on) shape.setColor(kit.color(R.color.shell_accent));
+    else {
+      shape.setColor(android.graphics.Color.TRANSPARENT);
+      shape.setStroke(Math.max(2, kit.dp(1.5f)), kit.color(R.color.shell_line_strong));
+    }
+    return shape;
+  }
+
+  /** 底栏状态行：6dp 点 + 12sp 文字，可点开详情。 */
+  private LinearLayout statusLine(String text, int toneColor, Runnable action) {
+    LinearLayout row = kit.row();
+    row.setMinimumHeight(kit.dp(32));
+    View dot = new View(this);
+    var shape = new android.graphics.drawable.GradientDrawable();
+    shape.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    shape.setColor(kit.color(toneColor));
+    dot.setBackground(shape);
+    row.addView(dot, new LinearLayout.LayoutParams(kit.dp(6), kit.dp(6)));
+    TextView label = kit.text(text, 12, R.color.shell_text_muted);
+    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
+    lp.leftMargin = kit.dp(8);
+    row.addView(label, lp);
+    if (action != null) {
+      row.setClickable(true);
+      row.setFocusable(true);
+      row.setOnClickListener(v -> action.run());
+    }
+    return row;
+  }
+
+  /** A 版式底栏：状态行 + 唯一主按钮 + 一行文字链。 */
+  private void footerA(
+      String status, int toneColor, Runnable onStatus, android.widget.Button primary,
+      String[] links, Runnable[] linkActions) {
+    footer.removeAllViews();
+    if (status != null && !status.isEmpty())
+      footer.addView(statusLine(status, toneColor, onStatus), OnboardingKit.matchWrap());
+    footer.addView(primary, kit.topMargin(status == null || status.isEmpty() ? 0 : 10));
+    if (links != null && links.length > 0) {
+      OnboardingKit.FlowRow row =
+          new OnboardingKit.FlowRow(this, kit.dp(12), kit.dp(2), Gravity.CENTER);
+      for (int i = 0; i < links.length; i++) {
+        final int index = i;
+        android.widget.Button link =
+            kit.ghost(links[i], linkActions == null ? null : v -> linkActions[index].run());
+        link.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
+        row.addView(
+            link,
+            new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      }
+      footer.addView(row, kit.topMargin(2));
+    }
+  }
+
+  /** 部署进度一句话：给底栏状态行用。 */
+  private String deployLine() {
+    if (deploy.phase == DeployStages.Phase.RUNNING)
+      return String.format(
+          Locale.ROOT,
+          UiText.choose("部署中 · %1$d / %2$d", "Deploying · %1$d / %2$d"),
+          deploy.completed(),
+          deploy.total());
+    if (deploy.phase == DeployStages.Phase.SUCCEEDED)
+      return UiText.choose("部署完成", "Deployment finished");
+    if (deploy.phase == DeployStages.Phase.FAILED || deploy.phase == DeployStages.Phase.PENDING)
+      return UiText.choose("部署中断", "Deployment interrupted");
+    if (deploy.phase == DeployStages.Phase.UNREADY) return UiText.choose("环境未就绪", "Environment not ready");
+    return "";
+  }
+
+  private int deployTone() {
+    switch (deploy.phase) {
+      case SUCCEEDED:
+        return R.color.shell_good;
+      case FAILED:
+      case PENDING:
+        return R.color.shell_bad;
+      case UNREADY:
+        return R.color.shell_warn;
+      case RUNNING:
+        return R.color.shell_accent;
+      default:
+        return R.color.shell_text_muted;
+    }
+  }
+
   // ---------------------------------------------------------------- 第 1 步：欢迎
 
   private long spaceRequired, spaceUsable = -1;
@@ -661,62 +776,15 @@ public final class OnboardingActivity extends AppCompatActivity {
   }
 
   private void buildWelcome() {
-    content.addView(kit.eyebrow(getString(R.string.welcome_eyebrow0)));
-    kit.add(
-        content,
-        kit.heading(getString(R.string.ui2_welcome_title0), true),
-        kit.shortScreen() ? 6 : 12);
-    kit.add(content, kit.lead(getString(R.string.ui2_welcome_lead0)), 10);
-    TextView badge =
-        kit.bold(
-            getString(
-                R.string.ui2_offline_badge, com.deepseekharness.app.util.Constants.DSH_VERSION),
-            12,
-            R.color.shell_accent);
-    badge.setBackgroundResource(R.drawable.bg_onb_pill_accent);
-    badge.setPadding(kit.dp(11), kit.dp(6), kit.dp(11), kit.dp(6));
-    LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-2, -2);
-    bp.topMargin = kit.dp(14);
-    content.addView(badge, bp);
-    if (!kit.wide()) kit.add(content, features(), 14);
-    else kit.add(content, features(), 22);
     if (support == null) support = DeviceSupportProbe.sample(this);
     boolean blocked = support.blocksDeploy();
     boolean warn = support.gate == DeviceSupportReport.Gate.RISK;
     boolean advise = support.gate == DeviceSupportReport.Gate.ADVISE;
-    kit.add(
-        content, kit.section(UiText.choose("部署前检查", "Pre-deployment check")), kit.wide() ? 22 : 16);
-    if (kit.wide()) kit.add(content, checkGrid(blocked, warn, advise), 8);
-    else kit.add(content, checkSummary(blocked, warn, advise), 8);
-    if (blocked) kit.add(content, kit.hint(support.hint(), OnboardingKit.Tone.BAD), 12);
-    else if (warn || advise)
-      kit.add(content, kit.hint(support.hint(), OnboardingKit.Tone.WARN), 12);
-    if (spaceLow)
-      kit.add(
-          content,
-          kit.hint(
-              String.format(
-                  Locale.ROOT,
-                  UiText.choose(
-                      "可用空间不足：部署约需 %1$s，当前可用 %2$s。清理空间后点「重新检查」。",
-                      "Not enough free space: deployment needs about %1$s and %2$s is available. Free up space, then tap Check again."),
-                  size(spaceRequired),
-                  size(spaceUsable)),
-              OnboardingKit.Tone.BAD),
-          12);
-    else if (!blocked && kit.wide())
-      kit.add(
-          content,
-          kit.hint(
-              UiText.choose(
-                  "内置 Ubuntu 与运行组件将部署到应用私有目录。部署在后台进行，期间可以继续完成引导。",
-                  "Ubuntu and runtime components are deployed to the app’s private storage in the background, so you can keep going."),
-              OnboardingKit.Tone.ACCENT),
-          14);
-    if (kit.wide()) kit.add(content, dataRow(), 14);
-    if (kit.wide()) kit.add(content, kit.fine(getString(R.string.ui2_online_notice)), 14);
+    hero(
+        getString(R.string.ui2_welcome_title0),
+        UiText.choose("离线运行，不需要 root。", "Runs offline. No root needed."),
+        kit.shortScreen() ? 24 : 64);
     android.widget.Button primary;
-    android.widget.Button extra = null;
     if (blocked) {
       primary = kit.primary(UiText.choose("无法部署", "Cannot deploy"), v -> {});
       primary.setEnabled(false);
@@ -731,22 +799,54 @@ public final class OnboardingActivity extends AppCompatActivity {
                 show(GOALS);
               });
     else primary = kit.primary(UiText.choose("开始部署", "Start deployment"), v -> startDeploy());
-    if (support.openWebViewSettings)
-      extra =
-          kit.secondary(
-              UiText.choose("打开 WebView 设置", "Open WebView settings"),
-              v -> {
-                if (!DeviceSupportProbe.openWebViewSettings(this, support))
-                  toast(UiText.choose("打不开系统 WebView 设置。", "Could not open WebView settings."));
-              });
-    android.widget.Button copy =
-        kit.ghost(
-            UiText.choose("复制给支持", "Copy for support"),
-            v -> {
-              DeviceSupportProbe.copy(this, support);
-              toast(UiText.choose("已复制本机环境摘要。", "Copied the device summary."));
-            });
-    footer.addView(kit.buttonBar(primary, extra, copy), OnboardingKit.matchWrap());
+
+    String status;
+    int tone;
+    if (spaceLow) {
+      status = UiText.choose("可用空间不足", "Not enough space");
+      tone = R.color.shell_bad;
+    } else if (started() && !deployLine().isEmpty()) {
+      status = deployLine();
+      tone = deployTone();
+    } else if (blocked) {
+      status = support.conclusion();
+      tone = R.color.shell_bad;
+    } else if (warn || advise) {
+      status = support.conclusion();
+      tone = R.color.shell_warn;
+    } else {
+      status =
+          String.format(
+              Locale.ROOT,
+              UiText.choose("设备可用 · Android %s", "Device ready · Android %s"),
+              android.os.Build.VERSION.RELEASE);
+      tone = R.color.shell_good;
+    }
+    java.util.List<String> labels = new java.util.ArrayList<>();
+    java.util.List<Runnable> actions = new java.util.ArrayList<>();
+    labels.add(UiText.choose("检查详情", "Device check"));
+    actions.add(() -> showCheckDialog(blocked, warn, advise));
+    labels.add(UiText.choose("复制给支持", "Copy for support"));
+    actions.add(
+        () -> {
+          DeviceSupportProbe.copy(this, support);
+          toast(UiText.choose("已复制本机环境摘要。", "Copied the device summary."));
+        });
+    if (support.openWebViewSettings) {
+      labels.add(UiText.choose("WebView 设置", "WebView settings"));
+      actions.add(
+          () -> {
+            if (!DeviceSupportProbe.openWebViewSettings(this, support))
+              toast(UiText.choose("打不开系统 WebView 设置。", "Could not open WebView settings."));
+          });
+    }
+    footerA(
+        status,
+        tone,
+        started() ? this::openTaskSheet : () -> showCheckDialog(blocked, warn, advise),
+        primary,
+        labels.toArray(new String[0]),
+        actions.toArray(new Runnable[0]));
   }
 
   /** 三个功能点：正文足够宽时三列并排（图标在上），否则纵向列表。 */
@@ -812,13 +912,25 @@ public final class OnboardingActivity extends AppCompatActivity {
     return checks;
   }
 
-  /** 手机：一行摘要 + 点开看六项详情，避免欢迎页被检查区撑出一屏外。 */
+  /** 手机：一行摘要 + 点开看六项详情，避免欢迎页被检查区撑出一屏外。
+   *  不套边框盒子：状态点 + 一句话 + 箭头，视觉压力比整块 tile 低。 */
   private View checkSummary(boolean blocked, boolean warn, boolean advise) {
     LinearLayout row = kit.row();
-    row.setBackgroundResource(blocked ? R.drawable.bg_onb_tile_bad : R.drawable.bg_onb_tile);
-    row.setPadding(kit.dp(14), kit.dp(12), kit.dp(12), kit.dp(12));
-    row.setMinimumHeight(kit.dp(56));
+    row.setBackgroundResource(R.drawable.bg_onb_ghost);
+    row.setPadding(kit.dp(4), kit.dp(10), kit.dp(4), kit.dp(10));
+    row.setMinimumHeight(kit.dp(48));
     row.setGravity(Gravity.CENTER_VERTICAL);
+    int tone =
+        blocked ? R.color.shell_bad : warn || advise ? R.color.shell_warn : R.color.shell_good;
+    View dot = new View(this);
+    var shape = new android.graphics.drawable.GradientDrawable();
+    shape.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    shape.setColor(kit.color(tone));
+    dot.setBackground(shape);
+    dot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(kit.dp(8), kit.dp(8));
+    dotParams.leftMargin = kit.dp(4);
+    row.addView(dot, dotParams);
     LinearLayout words = kit.column();
     words.addView(
         kit.bold(
@@ -830,10 +942,8 @@ public final class OnboardingActivity extends AppCompatActivity {
                     android.os.Build.VERSION.RELEASE)
                 + " · "
                 + support.webViewLabel,
-            14.5f,
-            blocked
-                ? R.color.shell_bad
-                : warn || advise ? R.color.shell_warn : R.color.shell_text));
+            14,
+            blocked ? R.color.shell_bad : warn || advise ? R.color.shell_warn : R.color.shell_text));
     kit.add(
         words,
         kit.text(
@@ -843,10 +953,12 @@ public final class OnboardingActivity extends AppCompatActivity {
             12.5f,
             R.color.shell_text_muted),
         3);
-    row.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+    LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1);
+    wp.leftMargin = kit.dp(10);
+    row.addView(words, wp);
     row.addView(
-        kit.icon(R.drawable.ic_ui2_chevron, R.color.shell_text_muted, 18),
-        new LinearLayout.LayoutParams(kit.dp(18), kit.dp(18)));
+        kit.icon(R.drawable.ic_ui2_chevron, R.color.shell_text_muted, 16),
+        new LinearLayout.LayoutParams(kit.dp(16), kit.dp(16)));
     row.setClickable(true);
     row.setFocusable(true);
     row.setAccessibilityDelegate(OnboardingRoles.BUTTON);
@@ -1029,71 +1141,21 @@ public final class OnboardingActivity extends AppCompatActivity {
   // ---------------------------------------------------------------- 第 2 步：用途
 
   private void buildGoals() {
-    content.addView(kit.eyebrow(UiText.choose("第 2 步 · 用途", "Step 2 · Purpose")));
-    kit.add(
-        content,
-        kit.heading(UiText.choose("你想用 DSHA 做什么？", "What will you use DSHA for?"), false),
-        10);
-    kit.add(
-        content,
-        kit.lead(
-            UiText.choose(
-                "可多选。只用来推荐下一步的授权，不会自动申请任何权限。",
-                "Choose any. This only recommends permissions on the next step; nothing is requested automatically.")),
-        8);
-    OnboardingKit.Grid list = new OnboardingKit.Grid(this, kit.dp(10), kit.dp(290));
-    list.setContentDescription(UiText.choose("用途（可多选）", "Purposes (multiple choice)"));
+    hero(
+        UiText.choose("你打算用它做什么？", "What will you use it for?"),
+        UiText.choose("只影响下一步的推荐。", "Only affects what we recommend next."),
+        kit.shortScreen() ? 20 : 56);
     String[][] items = {
-      {
-        PermissionGoals.BASE,
-        UiText.choose("对话、写代码、用终端", "Chat, code and use the terminal"),
-        UiText.choose("无需任何设备授权", "No device permission needed")
-      },
-      {
-        PermissionGoals.FILES,
-        UiText.choose("读写手机里的文件", "Work with files on the phone"),
-        UiText.choose("推荐：存储读写", "Recommended: storage access")
-      },
-      {
-        PermissionGoals.SCREEN,
-        UiText.choose("让 AI 操作手机屏幕", "Let AI operate the screen"),
-        UiText.choose("推荐：无障碍 · 悬浮窗 · 通知", "Recommended: accessibility · overlay · notifications")
-      },
-      {
-        PermissionGoals.SHELL,
-        UiText.choose("执行设备命令", "Run device commands"),
-        UiText.choose(
-            "推荐：Stellar（Shizuku 兼容层）", "Recommended: Stellar (Shizuku compatibility layer)")
-      },
-      {
-        PermissionGoals.BACKGROUND,
-        UiText.choose("长时间在后台运行", "Keep running in the background"),
-        UiText.choose("推荐：电池优化 · 通知", "Recommended: battery optimization · notifications")
-      }
+      {PermissionGoals.BASE, UiText.choose("对话、写代码、用终端", "Chat, code and terminal")},
+      {PermissionGoals.FILES, UiText.choose("读写手机里的文件", "Work with files")},
+      {PermissionGoals.SCREEN, UiText.choose("让 AI 操作手机屏幕", "Let AI use the screen")},
+      {PermissionGoals.SHELL, UiText.choose("执行设备命令", "Run device commands")},
+      {PermissionGoals.BACKGROUND, UiText.choose("长时间在后台运行", "Run in the background")}
     };
-    int[] icons = {
-      R.drawable.ic_onb_chat,
-      R.drawable.ic_onb_folder,
-      R.drawable.ic_onb_hand,
-      R.drawable.ic_terminal,
-      R.drawable.ic_onb_battery
-    };
-    for (int i = 0; i < items.length; i++)
-      list.addView(goal(items[i][0], items[i][1], items[i][2], icons[i]));
-    kit.add(content, list, 18);
-    if (deploy.phase == DeployStages.Phase.RUNNING)
-      kit.add(
-          content,
-          kit.hint(
-              kit.wide()
-                  ? UiText.choose(
-                      "运行环境正在后台部署，左侧可查看进度。",
-                      "The runtime is deploying in the background; see progress on the left.")
-                  : UiText.choose(
-                      "运行环境正在后台部署，点顶部胶囊可查看进度。",
-                      "The runtime is deploying in the background; tap the top capsule for progress."),
-              OnboardingKit.Tone.ACCENT),
-          14);
+    LinearLayout list = kit.column();
+    list.setContentDescription(UiText.choose("用途（可多选）", "Purposes (multiple choice)"));
+    for (String[] item : items) list.addView(goalRow(item[0], item[1]), OnboardingKit.matchWrap());
+    kit.add(content, list, 22);
     renderGoalsFooter();
   }
 
@@ -1101,69 +1163,42 @@ public final class OnboardingActivity extends AppCompatActivity {
     footer.removeAllViews();
     int n = PermissionGoals.recommendedCount(goals);
     if (n == 0) {
-      // 只选了“对话、写代码、用终端”：不需要任何设备授权，直接到完成页；授权页仍可选择进入。
-      footer.addView(
-          kit.buttonBar(
-              kit.primary(
-                  UiText.choose("无需授权，下一步", "No permissions needed · Next"), v -> show(FINISH)),
-              kit.secondary(
-                  UiText.choose("仍然查看可选授权", "Review optional permissions"), v -> show(PERMS))),
-          OnboardingKit.matchWrap());
+      footerA(
+          null,
+          R.color.shell_good,
+          null,
+          kit.primary(UiText.choose("下一步", "Next"), v -> show(FINISH)),
+          new String[] {UiText.choose("仍然查看可选授权", "Review optional permissions")},
+          new Runnable[] {() -> show(PERMS)});
       return;
     }
-    String next =
-        String.format(
-            Locale.ROOT,
-            UiText.choose("下一步：开启 %d 项推荐授权", "Next: enable %d recommended permissions"),
-            n);
-    footer.addView(
-        kit.buttonBar(
-            kit.primary(next, v -> show(PERMS)),
-            kit.secondary(
-                UiText.choose("跳过授权，稍后在设置中开启", "Skip permissions for now"), v -> show(FINISH))),
-        OnboardingKit.matchWrap());
+    footerA(
+        null,
+        R.color.shell_good,
+        null,
+        kit.primary(
+            String.format(
+                Locale.ROOT,
+                UiText.choose("下一步 · 推荐 %d 项授权", "Next · %d recommended"),
+                n),
+            v -> show(PERMS)),
+        new String[] {UiText.choose("跳过授权", "Skip permissions")},
+        new Runnable[] {() -> show(FINISH)});
   }
 
-  /** 用途项：整行可点的复选框；base 锁定选中。勾选只原位更新，不重建页面，保持焦点与滚动。 */
-  private View goal(String id, String title, String sub, int icon) {
+  /** 用途行：8dp 点 + 17sp 标题，整行可点；base 锁定选中。 */
+  private View goalRow(String id, String title) {
     boolean locked = PermissionGoals.BASE.equals(id);
-    LinearLayout row = kit.row();
-    row.setBackgroundResource(R.drawable.bg_onb_goal);
-    row.setPadding(kit.dp(14), kit.dp(13), kit.dp(14), kit.dp(13));
-    row.setMinimumHeight(kit.dp(64));
-    FrameLayout box = new FrameLayout(this);
-    ImageView check = kit.icon(R.drawable.ic_onb_check, R.color.shell_on_accent, 14);
-    box.addView(check, new FrameLayout.LayoutParams(kit.dp(14), kit.dp(14), Gravity.CENTER));
-    row.addView(box, new LinearLayout.LayoutParams(kit.dp(22), kit.dp(22)));
-    LinearLayout words = kit.column();
-    words.addView(kit.bold(title, 15, R.color.shell_text));
-    kit.add(words, kit.text(sub, 12.5f, R.color.shell_text_muted), 2);
-    LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1);
-    wp.leftMargin = kit.dp(12);
-    wp.rightMargin = kit.dp(12);
-    row.addView(words, wp);
-    View badge = kit.iconBox(icon, false, 34, 18);
-    row.addView(badge);
-    Runnable paint =
-        () -> {
-          boolean on = locked || goals.contains(id);
-          row.setSelected(on);
-          box.setBackground(checkBox(on));
-          check.setVisibility(on ? View.VISIBLE : View.INVISIBLE);
-        };
-    paint.run();
-    row.setAlpha(locked ? 0.78f : 1f);
-    row.setContentDescription(
-        String.format(Locale.ROOT, UiText.choose("%1$s，%2$s", "%1$s, %2$s"), title, sub));
-    row.setAccessibilityDelegate(OnboardingRoles.checkbox(locked));
-    row.setFocusable(true);
+    boolean on = locked || goals.contains(id);
+    LinearLayout row = choiceRow(on, title, null);
+    row.setAlpha(locked ? 0.7f : 1f);
     if (!locked) {
       row.setClickable(true);
       row.setOnClickListener(
           v -> {
             if (!goals.remove(id)) goals.add(id);
             saveGoals();
-            paint.run();
+            redrawChoice(row, goals.contains(id));
             v.sendAccessibilityEvent(
                 android.view.accessibility.AccessibilityEvent.TYPE_VIEW_CLICKED);
             renderGoalsFooter();
@@ -1172,28 +1207,27 @@ public final class OnboardingActivity extends AppCompatActivity {
     return row;
   }
 
+  private void redrawChoice(LinearLayout row, boolean on) {
+    if (row.getChildCount() < 2) return;
+    row.getChildAt(0).setBackground(dotDrawable(on));
+    if (row.getChildAt(1) instanceof TextView text)
+      text.setTextColor(kit.color(on ? R.color.shell_text : R.color.shell_text_secondary));
+  }
+
   // ---------------------------------------------------------------- 第 3 步：授权
 
   private void buildPerms() {
-    content.addView(kit.eyebrow(UiText.choose("第 3 步 · 授权", "Step 3 · Permissions")));
-    kit.add(content, kit.heading(UiText.choose("按需授权", "Grant what you need"), false), 10);
-    TextView lead =
-        kit.lead(
-            UiText.choose(
-                "全部可选。授权在系统设置或管理器中完成，回到 DSHA 后会自动重新检查；之后可在 设置 → 设备能力授权 中修改或撤销。",
-                "Everything is optional. Grant access in system settings or the manager app; DSHA rechecks when you return. Change or revoke later in Settings → Device permissions."));
-    lead.setMaxWidth(kit.dp(680));
-    kit.add(content, lead, 8);
-    View view = null;
+    hero(
+        UiText.choose("按需开启", "Turn on what you need"),
+        UiText.choose("全部可选，随时可关。", "All optional, always revocable."),
+        kit.shortScreen() ? 20 : 56);
+    java.util.List<PermissionCard.Model> models = new java.util.ArrayList<>();
     try {
-      if (panel != null) view = panel.view();
+      if (panel != null) models = panel.models();
     } catch (RuntimeException failure) {
       record("PERMISSION_PANEL", failure);
     }
-    if (view != null) {
-      if (view.getParent() instanceof android.view.ViewGroup parent) parent.removeView(view);
-      kit.add(content, view, 16);
-    } else
+    if (models.isEmpty()) {
       kit.add(
           content,
           kit.hint(
@@ -1201,25 +1235,82 @@ public final class OnboardingActivity extends AppCompatActivity {
                   "授权状态暂时无法读取，可稍后在 设置 → 设备能力授权 中开启。",
                   "Permission status is unavailable. You can enable permissions later in Settings → Device permissions."),
               OnboardingKit.Tone.WARN),
-          16);
+          20);
+    } else {
+      LinearLayout list = kit.column();
+      for (PermissionCard.Model model : models)
+        list.addView(permissionRow(model), OnboardingKit.matchWrap());
+      kit.add(content, list, 20);
+    }
     int total = panel == null ? 0 : panel.recommendedTotal();
     int done = panel == null ? 0 : panel.recommendedDone();
-    String primary =
+    String label =
         total > 0 && done >= total
             ? UiText.choose("推荐授权已完成，下一步", "Recommended permissions done · Next")
             : total > 0
                 ? String.format(
                     Locale.ROOT,
-                    UiText.choose(
-                        "下一步（推荐已开启 %1$d / %2$d，其余可稍后开启）",
-                        "Next (%1$d of %2$d recommended on; the rest can wait)"),
+                    UiText.choose("下一步 · 推荐 %1$d / %2$d", "Next · %1$d of %2$d"),
                     done,
                     total)
-                : granted() > 0
-                    ? UiText.choose("完成授权", "Done")
-                    : UiText.choose("暂不授权，继续", "Skip for now");
-    footer.addView(
-        kit.buttonBar(kit.primary(primary, v -> show(FINISH))), OnboardingKit.matchWrap());
+                : UiText.choose("下一步", "Next");
+    footerA(
+        null,
+        R.color.shell_good,
+        null,
+        kit.primary(label, v -> show(FINISH)),
+        null,
+        null);
+  }
+
+  /** 授权行：点开该授权的说明与真实动作按钮，不在这里直接申请。 */
+  private View permissionRow(PermissionCard.Model model) {
+    LinearLayout row = choiceRow(model.ok, model.title, () -> showPermissionSheet(model));
+    TextView state =
+        kit.text(
+            model.ok ? UiText.choose("已开启", "On") : UiText.choose("未开启", "Off"),
+            12.5f,
+            model.ok ? R.color.shell_good : R.color.shell_text_muted);
+    state.setGravity(Gravity.END);
+    row.addView(state, new LinearLayout.LayoutParams(-2, -2));
+    return row;
+  }
+
+  private void showPermissionSheet(PermissionCard.Model model) {
+    LinearLayout body = kit.column();
+    body.setPadding(kit.dp(20), kit.dp(4), kit.dp(20), kit.dp(8));
+    if (model.why != null && !model.why.isEmpty())
+      kit.add(body, kit.text(model.why, 13, R.color.shell_text_secondary), 6);
+    if (model.status != null && !model.status.isEmpty())
+      kit.add(
+          body,
+          kit.text(
+              model.status,
+              12.5f,
+              model.ok ? R.color.shell_good : R.color.shell_text_muted),
+          12);
+    if (model.actions.length > 0) {
+      // 动作行右对齐：与弹窗右下角的「关闭」同一条边，不再左一个右一个。
+      OnboardingKit.FlowRow actions =
+          new OnboardingKit.FlowRow(this, kit.dp(8), kit.dp(8), Gravity.END);
+      for (View action : model.actions)
+        actions.addView(
+            action,
+            new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      kit.add(body, actions, 14);
+    }
+    ScrollView scroller = new ScrollView(this);
+    scroller.addView(body);
+    try {
+      new DshaDialogBuilder(this)
+          .setTitle(model.title)
+          .setView(scroller)
+          .setPositiveButton(UiText.choose("关闭", "Close"), null)
+          .show();
+    } catch (RuntimeException failure) {
+      record("PERMISSION_SHEET", failure);
+    }
   }
 
   // ---------------------------------------------------------------- 第 4 步：完成
@@ -1251,54 +1342,47 @@ public final class OnboardingActivity extends AppCompatActivity {
 
   private void buildFinish() {
     int state = finishState();
-    String limitedLabel = UiText.text("进入受限主界面 · 查看日志与配置");
+    String limitedLabel = UiText.choose("进入受限主界面", "Open limited home");
     String title, lead;
     switch (state) {
       case F_RUNNING:
         title = UiText.choose("马上就好", "Almost there");
         lead =
             UiText.choose(
-                "运行环境还在部署，完成后即可进入主界面并自动启动 Web。也可以先进入受限主界面查看配置和日志。",
-                "The runtime is still deploying. When it finishes you can open the home screen and Web starts automatically. You can also enter the limited interface to view settings and logs.");
+                "还在部署，可以先进入受限主界面。", "Still deploying. You can enter the limited interface for now.");
         break;
       case F_READY:
-        title = UiText.choose("准备就绪", "All set");
-        lead =
-            UiText.choose(
-                "运行环境已部署并通过检查。进入主界面后会自动启动 Web。",
-                "The runtime is deployed and passed its checks. Web starts automatically on the home screen.");
+        title = UiText.choose("准备好了", "All set");
+        lead = UiText.choose("进入后会自动启动 Web。", "Web starts automatically on the home screen.");
         break;
       case F_FAILED:
       case F_PENDING:
-        title =
-            state == F_PENDING ? deploy.label() : UiText.choose("部署未完成", "Deployment incomplete");
+        title = state == F_PENDING ? deploy.label() : UiText.choose("部署未完成", "Deployment incomplete");
         lead =
             UiText.choose(
-                "部署没有完成，本页不会自动覆盖环境。请按下方原因处理后重试。",
-                "Deployment did not finish. This page will not overwrite the environment automatically. Fix the cause below, then retry.");
+                "没有覆盖环境，处理原因后可以重试。", "The environment was not overwritten. Fix the cause, then retry.");
         break;
       case F_UNREADY:
-        title = UiText.choose("需要处理环境", "The environment needs attention");
+        title = UiText.choose("环境需要处理", "The environment needs attention");
         lead =
             UiText.choose(
-                "维护步骤已结束，但环境就绪检查未通过。已停止自动跳转，请查看原因或进入受限主界面。",
-                "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the reason or enter the limited interface.");
+                "维护已结束，但就绪检查未通过。", "Maintenance ended, but readiness checks did not pass.");
         break;
       default:
         title = UiText.choose("还未开始部署", "Deployment has not started");
         lead = UiText.choose("回到第 1 步开始部署。", "Go back to step 1 to start deployment.");
     }
-    content.addView(kit.eyebrow(UiText.choose("第 4 步 · 完成", "Step 4 · Finish")));
-    kit.add(content, kit.heading(title, false), 10);
-    kit.add(content, kit.lead(lead), 8);
-    kit.add(content, runtimeCard(state), 18);
-    kit.add(content, grantsCard(), 12);
-    android.widget.Button primary, second = null, third = null, fourth = null;
+    hero(title, lead, kit.shortScreen() ? 20 : 64);
+
+    android.widget.Button primary;
+    java.util.List<String> labels = new java.util.ArrayList<>();
+    java.util.List<Runnable> actions = new java.util.ArrayList<>();
     switch (state) {
       case F_RUNNING:
         primary = kit.primary(UiText.choose("等待部署完成…", "Waiting for deployment…"), null);
         primary.setEnabled(false);
-        second = kit.secondary(limitedLabel, v -> enterLimited());
+        labels.add(limitedLabel);
+        actions.add(this::enterLimited);
         break;
       case F_READY:
         primary = kit.primary(UiText.choose("进入主界面", "Open the home screen"), v -> enterMain());
@@ -1306,23 +1390,74 @@ public final class OnboardingActivity extends AppCompatActivity {
       case F_FAILED:
       case F_PENDING:
         primary = kit.primary(retryLabel(), v -> retry());
-        second =
-            kit.secondary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
-        third = kit.ghost(UiText.choose("启动应急 DSH", "Start emergency DSH"), v -> openRecovery());
-        fourth = kit.ghost(limitedLabel, v -> enterLimited());
+        labels.add(UiText.choose("查看原因", "See reason"));
+        actions.add(
+            () ->
+                CardSheet.show(
+                    this,
+                    UiText.choose("部署未完成", "Deployment incomplete"),
+                    failureText()));
+        labels.add(UiText.choose("维护记录", "Maintenance log"));
+        actions.add(this::openLogs);
+        labels.add(UiText.choose("应急 DSH", "Emergency DSH"));
+        actions.add(this::openRecovery);
+        labels.add(limitedLabel);
+        actions.add(this::enterLimited);
         break;
       case F_UNREADY:
         primary =
             kit.primary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
-        second = kit.secondary(limitedLabel, v -> enterLimited());
-        third = kit.ghost(UiText.choose("启动应急 DSH", "Start emergency DSH"), v -> openRecovery());
+        labels.add(UiText.choose("查看原因", "See reason"));
+        actions.add(
+            () ->
+                CardSheet.show(
+                    this,
+                    UiText.choose("环境未就绪", "Environment not ready"),
+                    UiText.choose(
+                        "维护步骤已结束，但环境就绪检查未通过。已停止自动跳转，请查看维护记录或进入受限主界面。",
+                        "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the log or enter the limited interface.")));
+        labels.add(limitedLabel);
+        actions.add(this::enterLimited);
+        labels.add(UiText.choose("应急 DSH", "Emergency DSH"));
+        actions.add(this::openRecovery);
         break;
       default:
         primary = kit.primary(UiText.choose("回到第 1 步", "Back to step 1"), v -> show(WELCOME));
-        // 兜底出口：部署未被接受时不把用户困在引导里；受限入口不写就绪标记。
-        second = kit.ghost(limitedLabel, v -> enterLimited());
+        labels.add(limitedLabel);
+        actions.add(this::enterLimited);
     }
-    footer.addView(kit.buttonBar(primary, second, third, fourth), OnboardingKit.matchWrap());
+
+    String status;
+    int tone;
+    switch (state) {
+      case F_READY:
+        status = UiText.choose("环境已就绪", "Environment ready");
+        tone = R.color.shell_good;
+        break;
+      case F_RUNNING:
+        status = deployLine();
+        tone = R.color.shell_accent;
+        break;
+      case F_UNREADY:
+        status = UiText.choose("需要处理环境", "Environment needs attention");
+        tone = R.color.shell_warn;
+        break;
+      case F_FAILED:
+      case F_PENDING:
+        status = UiText.choose("部署未完成", "Deployment incomplete");
+        tone = R.color.shell_bad;
+        break;
+      default:
+        status = UiText.choose("还未开始部署", "Not started");
+        tone = R.color.shell_text_muted;
+    }
+    footerA(
+        status,
+        tone,
+        state == F_RUNNING ? this::openTaskSheet : null,
+        primary,
+        labels.toArray(new String[0]),
+        actions.toArray(new Runnable[0]));
   }
 
   private View runtimeCard(int state) {

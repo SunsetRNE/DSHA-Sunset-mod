@@ -137,7 +137,7 @@ public final class NativeDataActivity extends AppCompatActivity {
     jobs = NativeBackupJobs.get(this);
     ScrollView scroll = new ScrollView(this);
     scroll.setFillViewport(true);
-    scroll.setBackgroundColor(getColor(R.color.surface));
+    scroll.setBackgroundColor(getColor(R.color.page_clear));
     page = new LinearLayout(this);
     page.setOrientation(LinearLayout.VERTICAL);
     int pad = dp(20);

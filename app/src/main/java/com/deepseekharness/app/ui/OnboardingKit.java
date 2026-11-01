@@ -131,18 +131,19 @@ final class OnboardingKit {
     return view;
   }
 
-  /** 页面主标题；欢迎页用 h1，其余用 h2。 */
+  /** 页面主标题；欢迎页用 h1，其余用 h2。字阶差一档，标题与说明之间留出眼距。 */
   TextView heading(CharSequence value, boolean h1) {
-    float size = h1 ? (shortScreen() ? 24 : 29) : 24;
+    float size = h1 ? (shortScreen() ? 25 : 30) : 24;
     TextView view = bold(value, size, R.color.shell_text);
     view.setLineSpacing(dp(2), 1f);
     view.setAccessibilityHeading(true);
     return view;
   }
 
+  /** 一句说明：只承载「这页是干什么的」，行距放大一档，长时间阅读不压眼。 */
   TextView lead(CharSequence value) {
     TextView view = text(value, 15, R.color.shell_text_secondary);
-    view.setLineSpacing(dp(4), 1f);
+    view.setLineSpacing(dp(5), 1f);
     return view;
   }
 
@@ -177,12 +178,12 @@ final class OnboardingKit {
 
   // ---------------------------------------------------------------- 按钮
 
-  /** 主按钮：实心强调色，52dp（矮屏 44dp）。 */
+  /** 主按钮：实心强调色，54dp（矮屏 46dp）；比次级按钮高 8dp，主次一眼可分。 */
   Button primary(CharSequence title, View.OnClickListener action) {
     Button b = baseButton(title, action);
     b.setBackgroundResource(R.drawable.bg_btn_primary);
     b.setTextColor(context.getColorStateList(R.color.button_primary_text));
-    int h = dp(shortScreen() ? 44 : 52);
+    int h = dp(shortScreen() ? 46 : 54);
     b.setMinHeight(h);
     b.setMinimumHeight(h);
     return b;
@@ -360,12 +361,24 @@ final class OnboardingKit {
     return box;
   }
 
-  /** 普通卡片容器（bg_shell_card 同色系）。 */
+  /** 普通卡片容器（bg_shell_card 同色系）：左右 18dp、上下 16dp，比旧版多 2dp 呼吸。 */
   LinearLayout card() {
     LinearLayout card = column();
     card.setBackgroundResource(R.drawable.bg_onb_perm);
-    card.setPadding(dp(16), dp(16), dp(16), dp(16));
+    card.setPadding(dp(18), dp(16), dp(18), dp(16));
     return card;
+  }
+
+  /** 品牌标记：圆角终端方牌（bg_shell_brand + 主色图标），引导页与主界面顶栏同一枚标记。 */
+  FrameLayout brandMark(int boxDp, int iconDp) {
+    FrameLayout box = new FrameLayout(context);
+    box.setBackgroundResource(R.drawable.bg_shell_brand);
+    box.addView(
+        icon(R.drawable.ic_terminal, R.color.shell_accent, iconDp),
+        new FrameLayout.LayoutParams(dp(iconDp), dp(iconDp), Gravity.CENTER));
+    box.setLayoutParams(new LinearLayout.LayoutParams(dp(boxDp), dp(boxDp)));
+    box.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    return box;
   }
 
   /** 卡片标题行：粗体标题 + 右侧状态标签。 */
@@ -675,9 +688,9 @@ final class OnboardingKit {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
       int max = r - l - getPaddingLeft() - getPaddingRight();
-      boolean end =
-          (gravity & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.END
-              || (gravity & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.RIGHT;
+      int mask = gravity & Gravity.HORIZONTAL_GRAVITY_MASK;
+      boolean end = mask == Gravity.END || mask == Gravity.RIGHT;
+      boolean center = mask == Gravity.CENTER_HORIZONTAL;
       boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
       if (rtl) end = !end;
       java.util.List<View> current = new java.util.ArrayList<>();
@@ -687,7 +700,7 @@ final class OnboardingKit {
         if (child.getVisibility() == GONE) continue;
         int w = child.getMeasuredWidth();
         if (x > 0 && x + w > max) {
-          place(current, x - hGap, y, max, end);
+          place(current, x - hGap, y, max, end, center);
           y += line + vGap;
           x = 0;
           line = 0;
@@ -697,11 +710,13 @@ final class OnboardingKit {
         x += w + hGap;
         line = Math.max(line, child.getMeasuredHeight());
       }
-      place(current, x - hGap, y, max, end);
+      place(current, x - hGap, y, max, end, center);
     }
 
-    private void place(java.util.List<View> views, int used, int y, int max, boolean end) {
-      int x = getPaddingLeft() + (end ? Math.max(0, max - used) : 0);
+    private void place(
+        java.util.List<View> views, int used, int y, int max, boolean end, boolean center) {
+      int start = end ? Math.max(0, max - used) : center ? Math.max(0, (max - used) / 2) : 0;
+      int x = getPaddingLeft() + start;
       for (View child : views) {
         child.layout(x, y, x + child.getMeasuredWidth(), y + child.getMeasuredHeight());
         x += child.getMeasuredWidth() + hGap;

@@ -50,7 +50,7 @@
       </LinearLayout>
 
       <!-- 三段就绪轨道：运行环境 / 工作台 / 实际端口。每项独立描边卡片，保留原设计。 -->
-      <LinearLayout android:id="@+id/launch_metrics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:orientation="horizontal">
+      <LinearLayout android:id="@+id/launch_metrics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:baselineAligned="false" android:orientation="horizontal">
 
         <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
           <FrameLayout android:layout_width="31dp" android:layout_height="31dp" android:background="@drawable/bg_launch_tile">

@@ -404,6 +404,40 @@ final class PermissionPanel {
     return activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
   }
 
+  /** 引导「纸感留白」版式用：按推荐顺序返回卡片模型（含真实动作按钮），由页面自己排版。 */
+  java.util.List<PermissionCard.Model> models() {
+    boolean[] s = states();
+    Set<String> rec = PermissionGoals.recommended(goals);
+    java.util.List<PermissionCard.Model> out = new java.util.ArrayList<>();
+    java.util.List<String> groups = new java.util.ArrayList<>();
+    groups.addAll(PermissionGoals.recommendedGroups(goals));
+    groups.addAll(PermissionGoals.otherGroups(goals));
+    for (String group : groups)
+      for (String card : PermissionGoals.cardsIn(group)) {
+        if (PermissionGoals.CHANNEL.equals(card))
+          out.add(
+              PermissionChannelCard.model(
+                  activity,
+                  kit,
+                  channelTab,
+                  environmentReady,
+                  rec.contains(card),
+                  tab -> {
+                    channelTab = tab;
+                    render(true);
+                  },
+                  this::refresh));
+        else out.add(model(card, rec.contains(card), s));
+      }
+    return out;
+  }
+
+  private PermissionCard.Model model(String id, boolean recommended, boolean[] s) {
+    PermissionCard.Model m = PermissionCards.model(this, id, s);
+    m.recommended = recommended;
+    return m;
+  }
+
   private View card(String id, boolean recommended, boolean[] s) {
     if (PermissionGoals.CHANNEL.equals(id))
       return PermissionCard.build(

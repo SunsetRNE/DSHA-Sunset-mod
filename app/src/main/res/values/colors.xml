@@ -11,6 +11,11 @@
     <color name="surface">#F3F6FB</color>
     <color name="card">#FCFDFF</color>
     <color name="raised">#E7EDF6</color>
+    <!-- 透明页面底与旧版卡片玻璃：遗留页面改用这两个 token 才透得出壁纸。 -->
+    <color name="lang_tile">#F2F4F8</color>
+    <color name="lang_tile_selected">#0F1E50D0</color>
+    <color name="page_clear">#00000000</color>
+    <color name="card_glass">#B5FCFDFF</color>
     <color name="line">#131D3A60</color>
     <color name="text">#18273F</color>
     <color name="text_secondary">#50617A</color>

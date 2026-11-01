@@ -1297,11 +1297,12 @@ public class PluginFragment extends Fragment {
           .itemView
           .findViewById(R.id.pluginDetails)
           .setVisibility(row.expanded ? View.VISIBLE : View.GONE);
+      // 两种状态都用 4 个汉字 / 等长英文：按钮宽度不随展开变化，行内不再跳动。
       ((android.widget.Button) holder.itemView.findViewById(R.id.pluginExpand))
           .setText(
               row.expanded
-                  ? com.deepseekharness.app.util.UiText.choose("收起详情", "Collapse details")
-                  : com.deepseekharness.app.util.UiText.choose("展开插件详情", "Plugin details"));
+                  ? com.deepseekharness.app.util.UiText.choose("收起详情", "Hide details")
+                  : com.deepseekharness.app.util.UiText.choose("展开详情", "Show details"));
     }
 
     private void bindStatus(Holder holder, PluginListPresenter.Row<PluginRepository.Item> row) {

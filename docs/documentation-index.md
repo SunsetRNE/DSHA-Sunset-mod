@@ -25,6 +25,7 @@
 | [Mod 身份与签名](mod-identity-and-signing.md) | DSH-A-Su 包名、证书、verifyPublishCertificate 与覆盖升级边界 |
 | [文案长度政策](i18n-length-policy.md) | 十种语言的短标签与长句处理边界 |
 | [首次引导重构设计](design/onboarding-20261031/README.md) | 4 步引导、部署胶囊、受限主界面、授权卡片、自适应布局与落地差异 |
+| [个人版 UI（壁纸 + 玻璃材质）](design/personal-ui-20261101/README.md) | 壁纸 + 遮罩、玻璃卡片与胶囊磨砂、语言弹窗、上岛页、终端球与引导页的个人审美版式；仅表现层，未改运行逻辑 |
 
 ## 用户操作与开发入口
 

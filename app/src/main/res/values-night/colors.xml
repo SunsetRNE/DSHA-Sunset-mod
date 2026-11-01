@@ -10,6 +10,10 @@
     <color name="surface">#0B0F16</color>
     <color name="card">#131923</color>
     <color name="raised">#1B2432</color>
+    <color name="lang_tile">#1E2430</color>
+    <color name="lang_tile_selected">#146AA4FF</color>
+    <color name="page_clear">#00000000</color>
+    <color name="card_glass">#B5131923</color>
     <color name="line">#12CBDCFF</color>
     <color name="text">#EDF1F7</color>
     <color name="text_secondary">#B0BBCC</color>

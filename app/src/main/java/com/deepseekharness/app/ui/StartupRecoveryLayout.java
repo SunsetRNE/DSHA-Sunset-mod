@@ -22,7 +22,7 @@ final class StartupRecoveryLayout {
     this.context = context;
     root = new ScrollView(context);
     root.setFillViewport(true);
-    root.setBackgroundColor(context.getColor(R.color.surface));
+    root.setBackgroundColor(context.getColor(R.color.page_clear));
     content = column();
     content.setPadding(dp(20), dp(12), dp(20), dp(20));
     root.addView(content);

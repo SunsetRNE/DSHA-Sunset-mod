@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
@@ -370,15 +371,18 @@ public class MainActivity extends AppCompatActivity {
         .resolveAttribute(
             android.R.attr.selectableItemBackgroundBorderless, downloadsBackground, true);
     downloads.setBackgroundResource(downloadsBackground.resourceId);
-    int downloadButtonSize = Math.round(44 * getResources().getDisplayMetrics().density);
-    int downloadButtonPadding = Math.round(11 * getResources().getDisplayMetrics().density);
+    // 顶栏三个动作统一 44dp 热区、图标墨迹约 18dp、彼此 4dp 间距：
+    // 下载图标路径只占 24 视口的 17，靠 26dp 渲染尺寸补回来，才能和主题/关于等大。
+    float density = getResources().getDisplayMetrics().density;
+    int downloadButtonSize = Math.round(44 * density);
+    int downloadButtonPadding = Math.round(9 * density);
     downloads.setPadding(
         downloadButtonPadding, downloadButtonPadding, downloadButtonPadding, downloadButtonPadding);
     downloads.setOnClickListener(v -> FileTransfersActivity.open(this));
-    appBar.addView(
-        downloads,
-        appBar.indexOfChild(findViewById(R.id.btn_theme)),
-        new android.widget.LinearLayout.LayoutParams(downloadButtonSize, downloadButtonSize));
+    var downloadParams =
+        new android.widget.LinearLayout.LayoutParams(downloadButtonSize, downloadButtonSize);
+    downloadParams.setMarginEnd(Math.round(4 * density));
+    appBar.addView(downloads, appBar.indexOfChild(findViewById(R.id.btn_theme)), downloadParams);
     installDeployCapsule(appBar, appBar.indexOfChild(downloads));
     TextView recovery = findViewById(R.id.environment_recovery_banner);
     recovery.setOnClickListener(
@@ -428,6 +432,7 @@ public class MainActivity extends AppCompatActivity {
     quickEntries.setOnClickListener(v -> AboutDialog.show(this));
 
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
+    installGlassNav(nav);
     shellRail = findViewById(R.id.shell_rail);
     if (shellRail != null)
       shellRail.setOnItemSelectedListener(
@@ -716,11 +721,17 @@ public class MainActivity extends AppCompatActivity {
     boolean system = com.deepseekharness.app.util.UiThemePreference.SYSTEM.equals(preference);
     boolean light = com.deepseekharness.app.util.UiThemePreference.LIGHT.equals(preference);
     theme.setText("");
-    theme.setCompoundDrawablesWithIntrinsicBounds(
-        system ? R.drawable.ic_ui2_auto : light ? R.drawable.ic_ui2_sun : R.drawable.ic_ui2_moon,
-        0,
-        0,
-        0);
+    int glyph = system ? R.drawable.ic_ui2_auto : light ? R.drawable.ic_ui2_sun : R.drawable.ic_ui2_moon;
+    android.graphics.drawable.Drawable mark = getDrawable(glyph);
+    if (mark != null) {
+      // 显式给 22dp 边界：三枚图标墨迹都落在约 18dp，顶栏看起来才等大。
+      mark = mark.mutate();
+      int box = Math.round(22 * getResources().getDisplayMetrics().density);
+      mark.setBounds(0, 0, box, box);
+      theme.setCompoundDrawables(mark, null, null, null);
+    } else {
+      theme.setCompoundDrawablesWithIntrinsicBounds(glyph, 0, 0, 0);
+    }
     theme.setContentDescription(
         com.deepseekharness.app.util.UiText.text(
             system
@@ -781,6 +792,22 @@ public class MainActivity extends AppCompatActivity {
               android.widget.Toast.LENGTH_LONG)
           .show();
     }
+  }
+
+  /**
+   * 底部胶囊磨砂：内容层离屏快照 + 模糊作为底，胶囊本体只负责底色、高光与描边。
+   *
+   * <p>快照在「滚动停止（防抖 120ms）」与「底栏重新布局」时刷新 —— 滚动过程中底栏显示的是
+   * 上一帧的模糊内容，这是拿性能换质感的取舍；不做逐帧截屏。
+   */
+  /**
+   * 底部胶囊用「伪毛玻璃」：模糊壁纸纹理 + 半透明白底 + 顶部高光 + 底部内阴影。
+   *
+   * <p>不做内容快照模糊：那需要每次整层离屏渲染 + 多遍模糊，滚动一停就掉帧，
+   * 实测体验比观感收益更亏。伪毛玻璃零运行时成本，浅色页面上靠描边与上下高光区分层级。
+   */
+  private void installGlassNav(@NonNull BottomNavigationView nav) {
+    nav.setBackground(GlassNavDrawable.create(this, 16));
   }
 
   private void consumeTaskTarget(Intent intent) {

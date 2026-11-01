@@ -34,8 +34,9 @@
 
         <item name="android:colorBackground">@color/surface</item>
         <item name="android:windowBackground">@color/surface</item>
-        <item name="android:statusBarColor">@color/surface</item>
-        <item name="android:navigationBarColor">@color/surface</item>
+        <!-- 系统栏透明：壁纸从状态栏一路铺到导航栏，图标明暗由 ModernAndroidUi 按日夜切换。 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:textColorPrimary">@color/text</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:textColorHint">@color/text_muted</item>

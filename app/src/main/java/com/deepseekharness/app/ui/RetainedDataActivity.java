@@ -56,7 +56,7 @@ public final class RetainedDataActivity extends AppCompatActivity {
     super.onCreate(saved);
     model = new ViewModelProvider(this).get(Model.class);
     ScrollView scroll = new ScrollView(this);
-    scroll.setBackgroundColor(getColor(R.color.surface));
+    scroll.setBackgroundColor(getColor(R.color.page_clear));
     LinearLayout body = new LinearLayout(this);
     body.setOrientation(LinearLayout.VERTICAL);
     int p = (int) (20 * getResources().getDisplayMetrics().density);

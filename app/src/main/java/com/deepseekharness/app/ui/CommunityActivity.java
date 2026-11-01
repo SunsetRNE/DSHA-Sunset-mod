@@ -25,7 +25,7 @@ public final class CommunityActivity extends AppCompatActivity {
     super.onCreate(saved);
     LinearLayout root = new LinearLayout(this);
     root.setOrientation(LinearLayout.VERTICAL);
-    root.setBackgroundColor(getColor(R.color.surface));
+    root.setBackgroundColor(getColor(R.color.page_clear));
     LinearLayout bar = new LinearLayout(this);
     bar.setGravity(android.view.Gravity.CENTER_VERTICAL);
     Button back = new Button(this);
@@ -49,7 +49,7 @@ public final class CommunityActivity extends AppCompatActivity {
     status.setTextColor(getColor(R.color.text_muted));
     root.addView(status);
     browser = new WebView(this);
-    browser.setBackgroundColor(getColor(R.color.surface));
+    browser.setBackgroundColor(getColor(R.color.page_clear));
     browser.getSettings().setJavaScriptEnabled(true);
     browser.getSettings().setDomStorageEnabled(true);
     browser.getSettings().setAllowFileAccess(false);

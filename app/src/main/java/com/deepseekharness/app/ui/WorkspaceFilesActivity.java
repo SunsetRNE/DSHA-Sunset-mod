@@ -179,7 +179,7 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
 
     LinearLayout body = new LinearLayout(this);
     body.setOrientation(LinearLayout.VERTICAL);
-    body.setBackgroundColor(getColor(R.color.surface));
+    body.setBackgroundColor(getColor(R.color.page_clear));
     body.setPadding(dp(12), dp(6), dp(12), dp(12));
     setContentView(body);
     UiNavigation.addHeader(this, body, UiText.choose("作品文件导出", "Export work files"), this::finish);
