@@ -4,6 +4,8 @@
   颜色仍只引用 shell_* token；行高 48dp 与 touch_min 以上的触控面积保持一致。
 -->
 <resources>
+    <!-- DNS 分段的协议名，各语言一致，不翻译 -->
+    <string name="cfg_dns_ipv4" translatable="false">IPv4</string>
     <dimen name="config_page_pad_h">16dp</dimen>
     <dimen name="config_page_top">4dp</dimen>
     <dimen name="config_row_min">48dp</dimen>

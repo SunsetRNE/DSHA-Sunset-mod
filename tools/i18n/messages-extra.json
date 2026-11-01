@@ -10963,7 +10963,8 @@
     "en": "Expanded",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java",
-      "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
     ]
   },
   {
@@ -10972,7 +10973,8 @@
     "en": "Collapsed",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java",
-      "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
     ]
   },
   {
@@ -11983,22 +11985,6 @@
     "id": "cfg249a16",
     "zh": "开",
     "en": "On",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
-    ]
-  },
-  {
-    "id": "cfg249a17",
-    "zh": "已展开",
-    "en": "Expanded",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
-    ]
-  },
-  {
-    "id": "cfg249a18",
-    "zh": "已收起",
-    "en": "Collapsed",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
     ]
