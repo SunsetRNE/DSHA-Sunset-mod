@@ -1322,6 +1322,10 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
           if (!navigatingBack || !isCurrentPage(current)) return;
           navigatingBack = false;
           if (current.canGoBack()) current.goBack();
+          else if (com.deepseekharness.app.util.EntryTarget.WEB.equals(
+              new com.deepseekharness.app.core.ConfigStore(this).getEntryTarget()))
+            // 启动目标为 Web：网页已无可返回的历史时回到桌面，页面与会话保留。
+            leaveToLauncher();
           else leavePreview();
         };
     current.postDelayed(fallback, 1200);
@@ -1555,6 +1559,8 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
         if (color != null) {
           retained.themeColor = color;
           WebFullscreenUi.applyThemeColor(this, color);
+          // 已核验页面的主题色留给下一次直启的加载页，衔接 DSH 主题与外部主题壳。
+          new com.deepseekharness.app.core.ConfigStore(this).setEntryWebBackground(color);
         }
       } else if ("session-route".equals(value.optString("type"))
           && value.optString("requestToken").equals(retained.routeRequestSent)

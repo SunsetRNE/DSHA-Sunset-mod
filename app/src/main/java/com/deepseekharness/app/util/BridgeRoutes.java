@@ -39,6 +39,7 @@ public final class BridgeRoutes {
     SENSOR(false),
     TORCH(false),
     EXPORT(false),
+    ENTRY_TARGET(false),
     CONFIRM(true),
     EXEC(true),
     UNKNOWN(false);
@@ -91,6 +92,7 @@ public final class BridgeRoutes {
     add(routes, "/app/sensor", Route.SENSOR);
     add(routes, "/app/torch", Route.TORCH);
     add(routes, "/app/export", Route.EXPORT);
+    add(routes, "/app/entry-target", Route.ENTRY_TARGET);
     add(routes, "/confirm", Route.CONFIRM);
     add(routes, "/exec", Route.EXEC);
     return Collections.unmodifiableMap(routes);

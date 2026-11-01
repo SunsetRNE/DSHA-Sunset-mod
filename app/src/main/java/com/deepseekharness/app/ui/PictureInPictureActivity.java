@@ -319,6 +319,31 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
     BrowserTasks.openMain(this);
   }
 
+  /**
+   * 启动目标为 Web 时，网页返回到底就回桌面：与按 Home 相同地登记“返回原网页”，
+   * 下次点桌面图标由 Main 的既有路由带回同一页面。页面、草稿与会话全部保留，不停止运行实例。
+   *
+   * <p>Main 与 Web 是两个任务，只把本任务移到后台会露出 Main；所以先显式切到桌面。
+   * 带 NO_USER_ACTION，避免这次程序化离开被当成用户按 Home 而自动进入画中画。
+   */
+  protected final void leaveToLauncher() {
+    if (isFinishing() || isDestroyed()) return;
+    if (showing(this)) {
+      hideConversation();
+      return;
+    }
+    BrowserTasks.rememberBackground(this);
+    try {
+      startActivity(
+          new Intent(Intent.ACTION_MAIN)
+              .addCategory(Intent.CATEGORY_HOME)
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION));
+    } catch (android.content.ActivityNotFoundException unavailable) {
+      android.util.Log.w("DSHA", "HOME_TASK_UNAVAILABLE");
+      moveTaskToBack(true);
+    }
+  }
+
   protected final void receivePresentationIntent() {
     String requested = getIntent().getStringExtra(BrowserConversationRoute.MODE);
     if ("HIDDEN".equals(requested)) {

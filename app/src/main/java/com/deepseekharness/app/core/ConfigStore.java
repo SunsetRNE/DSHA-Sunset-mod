@@ -327,6 +327,33 @@ public class ConfigStore {
         .apply();
   }
 
+  /** 桌面图标启动后的页面；未知或缺失值一律回到主界面。不在 BACKUP_SETTING_KEYS 中。 */
+  public String getEntryTarget() {
+    return com.deepseekharness.app.util.EntryTarget.normalize(
+        text(Constants.KEY_ENTRY_TARGET, com.deepseekharness.app.util.EntryTarget.MAIN));
+  }
+
+  /** 同步提交：桥接口需要如实回报是否已写入。 */
+  public boolean setEntryTarget(String value) {
+    return prefs
+        .edit()
+        .putString(
+            Constants.KEY_ENTRY_TARGET, com.deepseekharness.app.util.EntryTarget.normalize(value))
+        .commit();
+  }
+
+  /** 最近一次已核验网页的背景色；没有记录时返回 null。 */
+  public Integer getEntryWebBackground() {
+    Object value = prefs.getAll().get(Constants.KEY_ENTRY_WEB_BACKGROUND);
+    return value instanceof Integer ? (Integer) value : null;
+  }
+
+  public void setEntryWebBackground(int color) {
+    Integer current = getEntryWebBackground();
+    if (current != null && current == color) return;
+    prefs.edit().putInt(Constants.KEY_ENTRY_WEB_BACKGROUND, color).apply();
+  }
+
   public boolean isBackupKey() {
     return flag(Constants.KEY_BACKUP_KEY, true);
   }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "archiveSha256": "91aa4685721ce569e32953295dc6b01b63fe2ac5e1eac8173440656896acdcb2",
+  "archiveSha256": "2316d6d9051455a6ed1507b887e5c30fb2ac9fe4b204d97e179ef34c5f692dc0",
   "packages": {
     ".bin": "e538d5a987f49edfa9611b33e32cb9b64d290741fcff95837e09b3842dc9ef7c",
     "@agentclientprotocol/sdk": "2ad364c17a32f29dd05f7d28a052359a893f009ff5ad283e0acb5dd621deb765",
@@ -227,7 +227,7 @@
     "@deepseek-ai/dsh-permission-presets": "b6f4a6f59cba5c35f67b9a482505c15c54078cebbc81a7b8279d309de747f42a",
     "@deepseek-ai/dsh-persona": "7800f75b86945487585c0d19f0cd3a4372e6216b483ebda11d12e0a546c225c7",
     "@deepseek-ai/dsh-plan-mode": "2366f9746dda711a4e33d8f7511752edbc1c84f39eb7c538f6a403b8a55162e0",
-    "@deepseek-ai/dsh-plugin-manager": "7710ec01ecffa44c77d297f34c750eeb661606d4c024c00a91bdad9285f4fa6e",
+    "@deepseek-ai/dsh-plugin-manager": "8466cba21328a2b3b9819fcd5729c20f283656a8de3cc7c174099a5967e9228e",
     "@deepseek-ai/dsh-plugin-market": "e80ac162f413120a05bf08c7991878e21fcf0c79c2c506cf4d095875ed129119",
     "@deepseek-ai/dsh-plugin-market-index": "07c5e0f3ccc3398fe7576d1b7457d2ed34307cc53a6eb2801df32762fe64202b",
     "@deepseek-ai/dsh-plugin-package-inventory-deepseek": "6678a211e540798f4cd53b25e5cdf5ddf2126ca938003abad2baf698337003e1",

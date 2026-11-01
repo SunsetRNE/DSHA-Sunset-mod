@@ -20,6 +20,7 @@ public final class BridgeRoutesTest {
     assertEquals(BridgeRoutes.Route.TASK_ACK, BridgeRoutes.match("/app/tasks/ack"));
     assertEquals(BridgeRoutes.Route.CONSENT_POLICY, BridgeRoutes.match("/app/native-policy"));
     assertEquals(BridgeRoutes.Route.CONSENT_POLICY, BridgeRoutes.match("/device/consent"));
+    assertEquals(BridgeRoutes.Route.ENTRY_TARGET, BridgeRoutes.match("/app/entry-target"));
     for (String invalid :
         new String[] {
           "/app/readfile/secret",
@@ -35,7 +36,10 @@ public final class BridgeRoutesTest {
           "/app/tasks%2fevent",
           "/app/task/event",
           "/app/native-policy/child",
-          "/device/consent/child"
+          "/device/consent/child",
+          "/app/entry-target/child",
+          "/app/entry-targetXXX",
+          "/app/entry%2dtarget"
         }) {
       assertEquals(invalid, BridgeRoutes.Route.UNKNOWN, BridgeRoutes.match(invalid));
     }

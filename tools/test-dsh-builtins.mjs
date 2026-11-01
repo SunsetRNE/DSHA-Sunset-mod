@@ -66,7 +66,7 @@ const migratedPeers = {
 };
 test('all signed builtin manifests pass the actual upstream version gate without exemptions',async()=>{
   assert.equal(runtimeVersion,officialManifest.dependencies['@deepseek-ai/dsh']);
-  assert.equal(builtinRegistry.plugins.length,8);
+  assert.equal(builtinRegistry.plugins.length,9);
   for (const plugin of builtinRegistry.plugins) {
     const manifest = await bundledManifest(plugin);
     assert.equal(evaluatePluginCompatibility(manifest,{},runtimeVersion),undefined,
@@ -98,7 +98,7 @@ test('the upstream version gate still rejects each original stale wrapper declar
 });
 
 
-test('all eight signed wrappers activate with real 0.2.1 services; actual MCP and Auto lifecycles dispose cleanly',async()=>{
+test('all nine signed wrappers activate with real 0.2.1 services; actual MCP and Auto lifecycles dispose cleanly',async()=>{
   process.env.DSHA_BUILTIN_TEST_RUNTIME = runtime;
   await import('./fixtures/builtin-host-hooks.mjs');
   const load = async name => import(pathToFileURL(runtimeRequire.resolve(name)));
@@ -243,11 +243,11 @@ test('actual official base/Web and all signed bundle patches compose with every 
       dsh:{profile:{bundles:['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app',...builtinRegistry.plugins.map(plugin=>plugin.name)]}}}));
     await writeFile(resolve(owned,'cordis.patch.yml'),'[]\n');
     const profile=loadProfileDirectory('dsh',owned,resolve(runtime,'node_modules/@deepseek-ai/dsh/package.json'));
-    assert.deepEqual(profile.skippedBundles,[]);assert.equal(profile.layers.length,10);
+    assert.deepEqual(profile.skippedBundles,[]);assert.equal(profile.layers.length,11);
     const entries=composeEntries([...profile.layers.map(layer=>layer.patches),profile.patches]);
     for(const name of ['dsh-device-shell-guide','dsh-task-notifier','dsh-status-overlay','dsh-web-mobile',
       '@deepseek-ai/dsh-computer-use','dsh-computer-use-android','@deepseek-ai/dsh-experimental-auto-review',
-      'dsh-tool-vscreen','dsh-app-integration']) {
+      'dsh-tool-vscreen','dsh-launch-target','dsh-app-integration']) {
       const rows=entries.filter(row=>row.name===name);assert.equal(rows.length,1,name+' must be composed exactly once');
       assert.notEqual(rows[0].disabled,true,name+' must not be accidentally disabled');
     }

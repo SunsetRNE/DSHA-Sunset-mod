@@ -34,7 +34,13 @@ public class MainActivity extends AppCompatActivity {
   private boolean leavingUi;
   private boolean mainReady;
   private Bundle pendingMainState;
-  private android.view.View entryOverlay;
+  private BootScreen bootScreen;
+
+  /** 本次桌面图标启动是否按偏好直启 Web；入口门禁未放行前只是候选。 */
+  private boolean directWebArmed;
+
+  private DirectWebLaunch directWeb;
+  private PendingMain directWebMainState;
 
   /** 平板左栏；手机布局没有这个视图，所有使用点都按可空处理。 */
   private ShellRail shellRail;
@@ -149,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
       finish();
       return;
     }
+    directWebArmed = armDirectWeb(savedInstanceState, config);
     showEntryCheck();
     if (savedInstanceState != null) {
       var hold = getSupportFragmentManager().beginTransaction();
@@ -187,105 +194,49 @@ public class MainActivity extends AppCompatActivity {
     // FragmentManager可能先于后台磁盘检查恢复页面。首次就保留真实容器，
     // 后面只移除覆盖层，避免替换整个布局后恢复视图无法重新附着。
     setContentView(R.layout.activity_main);
-    float density = getResources().getDisplayMetrics().density;
-    var overlay = new android.widget.FrameLayout(this);
-    overlay.setBackgroundColor(getColor(R.color.shell_bg));
-    overlay.setClickable(true);
-    overlay.setFocusable(true);
-    var card = new android.widget.LinearLayout(this);
-    card.setOrientation(android.widget.LinearLayout.VERTICAL);
-    card.setBackgroundResource(R.drawable.bg_shell_card);
-    int pad = Math.round(20 * density);
-    card.setPadding(pad, pad, pad, pad);
-
-    var brand = new android.widget.LinearLayout(this);
-    brand.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-    brand.setGravity(android.view.Gravity.CENTER_VERTICAL);
-    var mark = new android.widget.ImageView(this);
-    mark.setImageResource(R.drawable.ic_terminal);
-    mark.setBackgroundResource(R.drawable.bg_shell_brand);
-    mark.setImageTintList(
-        android.content.res.ColorStateList.valueOf(getColor(R.color.shell_accent)));
-    int markPad = Math.round(10 * density);
-    mark.setPadding(markPad, markPad, markPad, markPad);
-    mark.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    int markSize = Math.round(44 * density);
-    brand.addView(mark, new android.widget.LinearLayout.LayoutParams(markSize, markSize));
-
-    var words = new android.widget.LinearLayout(this);
-    words.setOrientation(android.widget.LinearLayout.VERTICAL);
-    TextView name = new TextView(this);
-    name.setText(R.string.app_name);
-    name.setTextSize(16);
-    name.setTextColor(getColor(R.color.shell_text));
-    name.setTypeface(null, android.graphics.Typeface.BOLD);
-    name.setIncludeFontPadding(false);
-    TextView status = new TextView(this);
-    status.setText(
+    // 开机加载页：主界面路径用 shell 主题色；直启 Web 时衔接最近一次网页背景色。
+    com.deepseekharness.app.util.BootPalette palette = BootScreen.shellPalette(this);
+    Integer webBackground = directWebArmed ? new ConfigStore(this).getEntryWebBackground() : null;
+    if (webBackground != null)
+      palette = com.deepseekharness.app.util.BootPalette.fromWeb(webBackground, palette.background);
+    bootScreen = new BootScreen(this, palette);
+    bootScreen.setStatus(
         com.deepseekharness.app.util.UiText.choose("正在检查运行环境…", "Checking the runtime…"));
-    status.setTextSize(13);
-    status.setTextColor(getColor(R.color.shell_text_secondary));
-    status.setIncludeFontPadding(false);
-    status.setPadding(0, Math.round(4 * density), 0, 0);
-    words.addView(name);
-    words.addView(status);
-    var wordParams = new android.widget.LinearLayout.LayoutParams(0, -2, 1);
-    wordParams.leftMargin = Math.round(12 * density);
-    brand.addView(words, wordParams);
-    card.addView(brand);
-
-    var track = new ShellActivityTrack(this);
-    track.setState(ShellActivityTrack.RUNNING);
-    var trackParams = new android.widget.LinearLayout.LayoutParams(-1, Math.round(16 * density));
-    trackParams.topMargin = Math.round(14 * density);
-    card.addView(track, trackParams);
-
-    var diagnostics = new androidx.appcompat.widget.AppCompatButton(this);
-    diagnostics.setText(com.deepseekharness.app.util.UiText.choose("查看诊断", "View diagnostics"));
-    diagnostics.setTextSize(14);
-    diagnostics.setAllCaps(false);
-    diagnostics.setTypeface(null, android.graphics.Typeface.BOLD);
-    diagnostics.setIncludeFontPadding(false);
-    diagnostics.setMinHeight(Math.round(46 * density));
-    diagnostics.setMinimumHeight(Math.round(46 * density));
-    diagnostics.setBackgroundResource(R.drawable.bg_btn);
-    diagnostics.setTextColor(getColorStateList(R.color.button_text));
-    diagnostics.setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
-    var diagnosticsParams = new android.widget.LinearLayout.LayoutParams(-1, -2);
-    diagnosticsParams.topMargin = Math.round(16 * density);
-    card.addView(diagnostics, diagnosticsParams);
-
-    int screenWidth = getResources().getDisplayMetrics().widthPixels;
-    int cardWidth = Math.min(Math.round(340 * density), screenWidth - Math.round(56 * density));
-    overlay.addView(
-        card,
-        new android.widget.FrameLayout.LayoutParams(cardWidth, -2, android.view.Gravity.CENTER));
-    entryOverlay = overlay;
-    addContentView(overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
+    bootScreen.attach();
   }
 
-  /** 入口检查结束后淡出遮罩；系统关闭动画或视图已分离时直接移除。 */
+  /** 入口检查结束后淡出加载页；系统关闭动画或视图已分离时直接移除。 */
   private void dismissEntryOverlay() {
-    final android.view.View overlay = entryOverlay;
-    entryOverlay = null;
-    if (overlay == null || !(overlay.getParent() instanceof android.view.ViewGroup parent)) return;
-    if (!UiMotion.animationsEnabled(this) || !overlay.isAttachedToWindow()) {
-      parent.removeView(overlay);
-      return;
-    }
-    overlay.setClickable(false);
-    overlay.setFocusable(false);
-    overlay
-        .animate()
-        .alpha(0f)
-        .setDuration(160L)
-        .setInterpolator(UiMotion.standard())
-        .withEndAction(
-            () -> {
-              if (overlay.getParent() == parent) parent.removeView(overlay);
-            })
-        .start();
+    BootScreen screen = bootScreen;
+    bootScreen = null;
+    if (screen != null) screen.dismiss();
   }
+
+  /** 桌面图标新建实例、偏好为 Web 且没有待主界面处理的事项时，才在门禁后直启。 */
+  private boolean armDirectWeb(Bundle saved, ConfigStore config) {
+    return com.deepseekharness.app.util.EntryTarget.directWeb(
+        new com.deepseekharness.app.util.EntryTarget.Launch(
+            config.getEntryTarget(),
+            BrowserTasks.launcher(getIntent()),
+            saved != null,
+            !getSharedPreferences("dsha-install-link", MODE_PRIVATE)
+                .getString("pending", "")
+                .isEmpty(),
+            getIntent().getBooleanExtra(FirstRunWebStart.EXTRA, false),
+            config.isStartupRecoveryRequested()));
+  }
+
+  /** 放弃直启：回到主界面并显示真实状态。 */
+  private void leaveDirectWeb() {
+    directWebArmed = false;
+    if (directWeb != null) directWeb.cancel();
+    directWeb = null;
+    if (!mainReady && directWebMainState != null)
+      showMain(directWebMainState.saved, directWebMainState.config, directWebMainState.controller);
+    directWebMainState = null;
+  }
+
+  private record PendingMain(Bundle saved, ConfigStore config, HarnessController controller) {}
 
   /**
    * 入口门禁：覆盖更新、环境未就绪、未完成的维护事务或未关闭的试运行现场，都整屏进入运行环境维护页
@@ -347,11 +298,46 @@ public class MainActivity extends AppCompatActivity {
             // 覆盖更新与中断恢复都走整屏维护页：自动开始仍只按同一候选一次的规则。
             startActivity(new Intent(this, ExtractActivity.class));
             finish();
+          } else if (com.deepseekharness.app.util.EntryTarget.admitted(
+              directWebArmed, failed, maintenance, unresolved, restoring)) {
+            // 门禁已放行：停在开机加载页等待鉴权，就绪后直接进入 Web。
+            beginDirectWeb(saved, config, controller);
           } else {
+            directWebArmed = false;
             // 原实例证据未知时留在Main提供诊断，不触发解压或静默更新原环境。
             showMain(saved, config, controller);
           }
         });
+  }
+
+  /**
+   * 直启 Web：加载页保持可见，鉴权就绪后打开 Web；主界面随后在 Web 之下完成初始化，
+   * 因此之后点桌面图标由既有的“返回原网页”路由接管，按 Back 回到桌面。
+   */
+  private void beginDirectWeb(Bundle saved, ConfigStore config, HarnessController controller) {
+    if (directWeb != null && directWeb.active()) return; // onResume 重复入口检查不重启等待。
+    if (bootScreen == null) {
+      directWebArmed = false;
+      showMain(saved, config, controller);
+      return;
+    }
+    directWebMainState = new PendingMain(saved, config, controller);
+    directWeb =
+        new DirectWebLaunch(
+            this,
+            bootScreen,
+            this::leaveDirectWeb,
+            () -> {
+              directWebArmed = false;
+              directWeb = null;
+              PendingMain pending = directWebMainState;
+              directWebMainState = null;
+              // Web 已在前台：等本页离开前台后再收起加载页，避免切换时闪出主界面。
+              if (pending != null)
+                recoveryHandler.post(
+                    () -> showMain(pending.saved, pending.config, pending.controller));
+            });
+    directWeb.begin();
   }
 
   private void showMain(
@@ -685,6 +671,14 @@ public class MainActivity extends AppCompatActivity {
     BrowserTasks.entry("NEW_INTENT", intent);
     if (resumeBackground(intent)) return;
     if (!mainReady) {
+      // 加载期间收到明确的原生目的地（通知、任务、插件页等）：放弃直启，交给主界面处理。
+      if (!BrowserTasks.launcher(intent)) {
+        if (directWeb != null) directWeb.cancel();
+        directWeb = null;
+        directWebMainState = null;
+        directWebArmed = false;
+      }
+      if (directWeb != null && directWeb.active()) return;
       entryGate.cancel();
       beginEntryCheck();
       return;
@@ -1176,6 +1170,8 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onDestroy() {
     entryGate.cancel();
+    // 只停止加载页的等待；已提交的 Web 启动由运行时继续负责。
+    if (directWeb != null) directWeb.cancel();
     // Main销毁只解绑页面。终端由进程级owner和独立FGS持有，
     // 只能通过明确会话结束/环境维护核验退出，不能把Activity销毁当停止请求。
     super.onDestroy();

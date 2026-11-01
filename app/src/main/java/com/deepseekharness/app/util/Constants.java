@@ -88,6 +88,12 @@ public final class Constants {
 
   public static final String KEY_PICTURE_IN_PICTURE_LAYOUT = "picture_in_picture_layout";
 
+  /** 桌面图标启动后进入的页面（main / web），默认 main；仅本机，不进入任何备份。 */
+  public static final String KEY_ENTRY_TARGET = "entry_target_v1";
+
+  /** 最近一次已核验网页上报的背景色，供直启加载页衔接 DSH 主题；仅本机。 */
+  public static final String KEY_ENTRY_WEB_BACKGROUND = "entry_web_background_v1";
+
   /** 备份是否包含 API key。 */
   public static final String KEY_BACKUP_KEY = "backup_key";
 

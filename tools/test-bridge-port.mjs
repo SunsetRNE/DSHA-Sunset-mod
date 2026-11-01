@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { fileURLToPath } from 'node:url';
 const assets = new URL('../app/src/main/assets/', import.meta.url);
-const plugins = ['dsh-computer-use-android', 'dsh-tool-vscreen', 'dsh-device-shell-guide', 'dsh-status-overlay', 'dsh-task-notifier'];
+const plugins = ['dsh-computer-use-android', 'dsh-tool-vscreen', 'dsh-device-shell-guide', 'dsh-status-overlay', 'dsh-task-notifier', 'dsh-launch-target'];
 const helperPath = 'builtin-plugins/dsh-device-shell-guide/lib/bridge-port.cjs';
 const read = name => fs.readFileSync(new URL(name, assets), 'utf8');
 const results = [];

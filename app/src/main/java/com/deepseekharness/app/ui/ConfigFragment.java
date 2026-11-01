@@ -44,6 +44,8 @@ public class ConfigFragment extends Fragment {
   private TextView pictureStatus;
   private CompoundButton pictureEnabled;
   private boolean renderingPictureInPicture;
+  private CompoundButton entryWeb;
+  private boolean renderingEntryTarget;
   private static final java.util.concurrent.atomic.AtomicBoolean savingLanPassword =
       new java.util.concurrent.atomic.AtomicBoolean();
 
@@ -71,6 +73,7 @@ public class ConfigFragment extends Fragment {
         .setOnClickListener(x -> BrowserOriginRestore.show(requireContext()));
     CompoundButton checkUpdate = v.findViewById(R.id.config_check_update);
     CompoundButton desktop = v.findViewById(R.id.config_desktop_mode);
+    bindEntryTarget(v);
     pictureEnabled = v.findViewById(R.id.config_picture_in_picture);
     pictureEnabled.setChecked(c.isPictureInPictureEnabled());
     pictureEnabled.setOnCheckedChangeListener(
@@ -273,10 +276,53 @@ public class ConfigFragment extends Fragment {
   public void onResume() {
     super.onResume();
     renderPictureInPictureStatus();
+    // Web 页内的“启动目标”插件可能已改写该值；回到本页时按宿主真实值重绘。
+    renderEntryTarget();
+  }
+
+  /** 启动目标即时生效于下一次桌面图标启动；不保存其它字段，也不启动或停止 Web。 */
+  private void bindEntryTarget(View root) {
+    entryWeb = root.findViewById(R.id.config_entry_web);
+    entryWeb.setText(
+        com.deepseekharness.app.util.UiText.choose("从桌面图标直接进入 Web", "Open Web from the app icon"));
+    ((TextView) root.findViewById(R.id.config_entry_web_hint))
+        .setText(
+            com.deepseekharness.app.util.UiText.choose(
+                "开启后点击桌面图标先显示加载页，Web 就绪即进入；在 Web 里返回到底会回到桌面。环境需要维护或启动失败时仍进入主界面。也可在 Web 的插件页「启动目标」中修改。",
+                "When on, the app icon shows a loading screen and opens Web once it is ready; going back from the first Web page returns to the home screen. Maintenance or startup failures still open the main screen. You can also change this under the Launch target plugin in Web."));
+    entryWeb.setOnCheckedChangeListener(
+        (button, enabled) -> {
+          if (renderingEntryTarget) return;
+          boolean saved =
+              new ConfigStore(button.getContext())
+                  .setEntryTarget(
+                      enabled
+                          ? com.deepseekharness.app.util.EntryTarget.WEB
+                          : com.deepseekharness.app.util.EntryTarget.MAIN);
+          if (!saved)
+            Toast.makeText(
+                    button.getContext(),
+                    com.deepseekharness.app.util.UiText.choose(
+                        "启动目标未能保存，请重试", "The launch target was not saved. Try again."),
+                    Toast.LENGTH_SHORT)
+                .show();
+          renderEntryTarget();
+        });
+    renderEntryTarget();
+  }
+
+  private void renderEntryTarget() {
+    Context ctx = getContext();
+    if (ctx == null || entryWeb == null) return;
+    renderingEntryTarget = true;
+    entryWeb.setChecked(
+        com.deepseekharness.app.util.EntryTarget.WEB.equals(new ConfigStore(ctx).getEntryTarget()));
+    renderingEntryTarget = false;
   }
 
   @Override
   public void onDestroyView() {
+    entryWeb = null;
     pictureSettings = null;
     pictureStatus = null;
     pictureEnabled = null;

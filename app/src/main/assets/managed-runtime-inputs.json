@@ -426,6 +426,31 @@
       "asset": "builtin-plugins/dsh-web-mobile/lib/file-transfer.js",
       "target": "root/dsha-web-mobile/lib/file-transfer.js",
       "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/package.json",
+      "target": "root/dsha-launch-target/package.json",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/cordis.patch.yml",
+      "target": "root/dsha-launch-target/cordis.patch.yml",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/lib/index.js",
+      "target": "root/dsha-launch-target/lib/index.js",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/lib/bridge-port.cjs",
+      "target": "root/dsha-launch-target/lib/bridge-port.cjs",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/lib/client.js",
+      "target": "root/dsha-launch-target/lib/client.js",
+      "executable": false
     }
   ],
   "assetFiles": [
