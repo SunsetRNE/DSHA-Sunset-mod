@@ -800,6 +800,7 @@
     "app/src/test/java/com/deepseekharness/app/LanLoginThrottleTest.java",
     "app/src/test/java/com/deepseekharness/app/LanPasswordAuthTest.java",
     "app/src/test/java/com/deepseekharness/app/LanRequestOriginTest.java",
+    "app/src/test/java/com/deepseekharness/app/PtySessionLockContractTest.java",
     "app/src/test/java/com/deepseekharness/app/assistant/AssistantBindingTest.java",
     "app/src/test/java/com/deepseekharness/app/assistant/AssistantInputAndroidTest.java",
     "app/src/test/java/com/deepseekharness/app/assistant/AssistantSessionStateTest.java",
