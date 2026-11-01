@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0400-dsh0.2.1-rc.5` / build258 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a boot loading screen and a launcher-icon target: the app icon can open Web directly, with the new builtin system plugin dsh-launch-target; the runtime archive and emergency lock were rebuilt for the new signed list. Local targeted unit tests and source gates passed; no device installation was done. See the [build258 notes](../releases/build258-changes.en.md) and the [build258 record](../releases/v0.2.1-rc.3-build258-direct-web-launch-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5` / build259 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build replaces the text symbols on the launch page's Start / Stop / Restart buttons with vector icons and stacks the buttons when a wide window cannot fit them. The user checked the layout on a tablet; local unit tests and source gates passed. See the [build259 notes](../releases/build259-changes.en.md) and the [build259 record](../releases/v0.2.1-rc.3-build259-launch-icons-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

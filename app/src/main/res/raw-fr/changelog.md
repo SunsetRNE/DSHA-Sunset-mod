@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.3-20261102.0400-dsh0.2.1-rc.5 / build258
+# DSHA 0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5 / build259
 
-- Écran de chargement au démarrage et icône vers Web : dans Réglages → Configuration d'exécution, ou dans le nouveau plugin intégré dsh-launch-target (détails des plugins Web), choisissez si l'icône de l'app ouvre l'écran principal ou Web (écran principal par défaut). Avec Web, un écran de chargement s'affiche d'abord et Web s'ouvre dès que l'environnement est prêt ; revenir en arrière depuis Web ramène à l'écran d'accueil.
-- La maintenance, la récupération au démarrage et les liens de plugin en attente ouvrent toujours d'abord l'écran principal, et un retour depuis une notification ou la carte de tâche ne passe jamais directement à Web. Ce choix est stocké uniquement sur cet appareil et n'est pas sauvegardé.
-- Portée de la vérification : tests unitaires ciblés et contrôles de source locaux uniquement ; le DSH de secours et ce paquet n'ont pas été installés sur un appareil. versionCode porté à 258 (basé sur build257). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Les boutons Démarrer, Arrêter et Redémarrer de la page de lancement utilisent désormais des icônes vectorielles au lieu de symboles comme ▶ ↻ □ dans le libellé ; les lecteurs d'écran ne lisent plus ces symboles. Quand DSH tourne, le bouton principal Ouvrir l'espace de travail affiche une flèche vers la droite.
+- Quand une fenêtre large ne peut pas afficher les boutons sur une ligne, ils s'empilent au lieu de comprimer Redémarrer dans une colonne étroite.
+- Portée de la vérification : l'utilisateur a vérifié paysage et portrait, jour et nuit, états en marche / arrêté sur une tablette ; la police à 1,3× et les écrans courts de téléphone n'ont pas été vérifiés séparément. versionCode porté à 259 (basé sur build258). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.

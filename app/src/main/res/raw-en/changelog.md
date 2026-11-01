@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.3-20261102.0400-dsh0.2.1-rc.5 / build258
+# DSHA 0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5 / build259
 
-- Boot loading screen and launcher icon to Web: in Settings → Run configuration, or in the new builtin plugin dsh-launch-target in the Web plugin details, choose whether the app icon opens the main screen or Web (main screen by default). With Web selected, a boot loading screen shows first and Web opens once the environment is ready; backing out of Web returns to the home screen.
-- Maintenance, startup recovery and pending plugin links still open the main screen first, and returning from a notification or the task card never jumps straight to Web. The choice is stored only on this device and is not backed up.
-- Verification scope: local targeted unit tests and source gates only; the emergency DSH and this release package were not installed on a device. Raises versionCode to 258 (based on build257). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- The launch page's Start, Stop and Restart buttons now use vector icons instead of symbols such as ▶ ↻ □ in the label text, so screen readers no longer read the symbols aloud. When DSH is running, the main Open workspace button shows a right arrow.
+- When a wide window cannot fit the buttons in one row, they stack vertically instead of squeezing Restart into a narrow column.
+- Verification scope: the user checked landscape and portrait, day and night, and running / stopped states on a tablet; 1.3× font and short phone screens were not checked separately. Raises versionCode to 259 (based on build258). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.

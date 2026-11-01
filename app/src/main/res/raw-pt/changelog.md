@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.3-20261102.0400-dsh0.2.1-rc.5 / build258
+# DSHA 0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5 / build259
 
-- Ecrã de carregamento no arranque e ícone direto para Web: em Definições → Configuração de execução, ou no novo plugin integrado dsh-launch-target (detalhes dos plugins Web), escolha se o ícone da app abre o ecrã principal ou Web (ecrã principal por omissão). Com Web, aparece primeiro um ecrã de carregamento e Web abre quando o ambiente está pronto; voltar atrás a partir de Web regressa ao ecrã inicial.
-- Manutenção, recuperação no arranque e ligações de plugin pendentes continuam a abrir primeiro o ecrã principal, e voltar a partir de uma notificação ou do cartão de tarefas nunca salta diretamente para Web. A escolha fica guardada apenas neste dispositivo e não entra nas cópias de segurança.
-- Âmbito da verificação: apenas testes unitários direcionados e verificações de código locais; o DSH de emergência e este pacote não foram instalados em dispositivo. versionCode elevado para 258 (com base no build257). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Os botões Iniciar, Parar e Reiniciar da página de arranque usam agora ícones vetoriais em vez de símbolos como ▶ ↻ □ no texto, por isso os leitores de ecrã já não leem os símbolos. Com o DSH em execução, o botão principal Abrir área de trabalho mostra uma seta para a direita.
+- Quando uma janela larga não consegue mostrar os botões numa linha, estes ficam empilhados em vez de comprimir Reiniciar numa coluna estreita.
+- Âmbito da verificação: o utilizador verificou paisagem e retrato, dia e noite e estados em execução / parado num tablet; a letra a 1,3× e ecrãs curtos de telemóvel não foram verificados à parte. versionCode elevado para 259 (com base no build258). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

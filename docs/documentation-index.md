@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.0400-dsh0.2.1-rc.5` / build258 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版新增开机加载页与桌面图标启动目标：可选择桌面图标直接进入 Web，配套内置系统插件 dsh-launch-target；运行时归档与应急锁按新签名名单重建。本机定向单测与源码门禁通过；未在真机安装验证。改动说明见 [build258 更新说明](releases/build258-changes.zh.md)，验证记录见 [build258 记录](releases/v0.2.1-rc.3-build258-direct-web-launch-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.0430-dsh0.2.1-rc.5` / build259 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把启动页的启动 / 停止 / 重启按钮改为矢量图标，宽窗口放不下时自动上下排列。用户已在平板上真机核对布局；本机单测与源码门禁通过。改动说明见 [build259 更新说明](releases/build259-changes.zh.md)，验证记录见 [build259 记录](releases/v0.2.1-rc.3-build259-launch-icons-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
