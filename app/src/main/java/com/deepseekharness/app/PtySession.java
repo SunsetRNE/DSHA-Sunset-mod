@@ -65,6 +65,7 @@ public final class PtySession implements TerminalSessionClient {
   private volatile boolean maintenanceClosing;
   private volatile String cleanupError = "";
   private volatile Integer exitStatus;
+
   /**
    * 监听器与输入问题状态的独立锁。finishAndWait 持有会话监视器最长数秒等待进程退出；
    * 主线程切换 / 重绘时注册监听、读取输入问题不得排在它后面，否则关闭标签即 ANR，
