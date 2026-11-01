@@ -11856,5 +11856,225 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/AutomaticBackupActivity.java"
     ]
+  },
+  {
+    "id": "cfg249a01",
+    "zh": "自动",
+    "en": "Auto",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a02",
+    "zh": "系统设置",
+    "en": "System",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a03",
+    "zh": "撤销改动",
+    "en": "Undo",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a04",
+    "zh": "已改",
+    "en": "Changed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a05",
+    "zh": "网页内核 System WebView",
+    "en": "Browser engine: System WebView",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a06",
+    "zh": "外观与行为",
+    "en": "Appearance",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a07",
+    "zh": "项目主页",
+    "en": "Project page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a08",
+    "zh": "已撤销未保存的改动",
+    "en": "Unsaved changes discarded",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a09",
+    "zh": "首选 %s，占用时自动换用",
+    "en": "Preferred %s; switches if in use",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a10",
+    "zh": "已设密码 · 用户名 dsha",
+    "en": "Password set · user dsha",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a11",
+    "zh": "未设密码 · 用户名 dsha",
+    "en": "No password · user dsha",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a12",
+    "zh": "改密码",
+    "en": "Change",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a13",
+    "zh": "设密码",
+    "en": "Set password",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a14",
+    "zh": "未设密码时监听不会启动。",
+    "en": "Without a password the listener won't start.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a15",
+    "zh": "静态加载器 %s · seccomp 加速 %s",
+    "en": "Static loader %s · seccomp acceleration %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a16",
+    "zh": "开",
+    "en": "On",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a17",
+    "zh": "已展开",
+    "en": "Expanded",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a18",
+    "zh": "已收起",
+    "en": "Collapsed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a19",
+    "zh": "保存后需授予悬浮窗权限",
+    "en": "Grant overlay permission after saving",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a20",
+    "zh": "端口无效，修正后才能保存",
+    "en": "Invalid port; fix it to save",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a21",
+    "zh": "%d 项未保存",
+    "en": "%d unsaved",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a22",
+    "zh": "端口与运行时需重启 Web",
+    "en": "Port and runtime apply after restarting Web",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a23",
+    "zh": "配置已是最新",
+    "en": "Settings are up to date",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a24",
+    "zh": "设备不支持",
+    "en": "Not supported",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a25",
+    "zh": "系统已允许",
+    "en": "Allowed by system",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a26",
+    "zh": "系统已关闭小窗",
+    "en": "Blocked by system",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
+  },
+  {
+    "id": "cfg249a27",
+    "zh": "%s %s",
+    "en": "%s %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
+    ]
   }
 ]
