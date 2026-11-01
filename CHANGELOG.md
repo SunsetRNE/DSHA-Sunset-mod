@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0400-dsh0.2.1-rc.5 / build258（开机加载页、桌面图标直进 Web、内置插件 dsh-launch-target）
+
+- 新增桌面图标启动目标：原生「设置 → 运行配置」与新内置系统插件 `dsh-launch-target`（Web 插件详情页）可选「主界面 / Web 界面」，默认主界面。值只保存在原生 App（3090 桥 `/app/entry-target`，仅接受 `main` / `web`），不进入备份；插件路由经 DSH `connection` 鉴权与同源检查，浏览器不接触桥 token。
+- 选择 Web 时，桌面图标先显示开机加载页（`BootScreen` / `BootSpinnerView` / `util/BootPalette`），入口门禁放行且鉴权就绪后进入 Web；等待鉴权不设强制时限，60 秒后只补提示。维护、启动恢复、原实例待确认、待处理的插件链接，以及通知 / 任务卡 / 旋转恢复都仍进入主界面（`util/EntryTarget`、`ui/DirectWebLaunch`）。
+- 签名名单写在 `dsh-runtime.bin` 补丁内，运行时归档按 npm 锁重建（SHA-256 2316d6d9…）；独立应急锁同步到同一字节以恢复包内共用，应急 runtimeId 随之变化，已装应急舱会按新身份重建。固定输入切到 `fixed-inputs-20261101`。
+- 验证范围：分支内定向单测与源码门禁通过，合入 build257 后重算运行时描述符并复跑定向单测；应急 DSH 启动 / 停止与本版正式包均未在真机验收。版本码提升为 258（基于 build257）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build258 更新说明](docs/releases/build258-changes.zh.md)，验证记录见 [build258 记录](docs/releases/v0.2.1-rc.3-build258-direct-web-launch-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0200-dsh0.2.1-rc.5 / build257（proroot 兼容层修正 fcntl 错误码，跨进程文件锁恢复正常）
 
 - proroot v1.2.8 的 `libproroot-runtime.so` 导出的 `fcntl` 把 `proroot_raw_syscall6` 已返回的 -1 再取反写入 errno，所有失败都变成 EPERM：锁被占用（EAGAIN/EACCES）、EBADF、EINVAL 都丢失。JDK `libnio` 走这个旧符号，另一进程持锁时 `FileChannel.tryLock` 抛 Operation not permitted，Gradle 等跨进程锁失效。

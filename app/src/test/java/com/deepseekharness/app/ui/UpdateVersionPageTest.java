@@ -130,9 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("proroot 文件锁修复"));
-      assertTrue(shown.contains("错误码"));
-      assertTrue(shown.contains("版本码提升为 257"));
+      assertTrue(shown.contains("开机加载页"));
+      assertTrue(shown.contains("dsh-launch-target"));
+      assertTrue(shown.contains("版本码提升为 258"));
+      assertFalse(shown.contains("proroot 文件锁修复"));
+      assertFalse(shown.contains("版本码提升为 257"));
       assertFalse(shown.contains("数据与备份二级页重构"));
       assertFalse(shown.contains("版本码提升为 256"));
       assertFalse(shown.contains("维护页底部操作区"));
@@ -175,9 +177,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("proroot file lock fix"));
-      assertTrue(shown.contains("error code"));
-      assertTrue(shown.contains("Raises versionCode to 257"));
+      assertTrue(shown.contains("Boot loading screen"));
+      assertTrue(shown.contains("dsh-launch-target"));
+      assertTrue(shown.contains("Raises versionCode to 258"));
+      assertFalse(shown.contains("proroot file lock fix"));
+      assertFalse(shown.contains("Raises versionCode to 257"));
       assertFalse(shown.contains("Data and backup sub-pages reworked"));
       assertFalse(shown.contains("Raises versionCode to 256"));
       assertFalse(shown.contains("Maintenance page footer"));
