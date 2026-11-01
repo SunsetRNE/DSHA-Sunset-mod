@@ -130,11 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("手机竖屏修订"));
-      assertTrue(shown.contains("不再内嵌「本次维护记录」日志框"));
-      assertTrue(shown.contains("未在其他手机上测试"));
-      assertTrue(shown.contains("PJD110"));
-      assertTrue(shown.contains("版本码提升为 243"));
+      assertTrue(shown.contains("修复「恢复中断维护」永久失败"));
+      assertTrue(shown.contains("PLUGIN_JOURNAL_ID"));
+      assertTrue(shown.contains("插件完成证明改存到事务目录之外"));
+      assertTrue(shown.contains("尚未在出现该问题的设备上实机验证"));
+      assertTrue(shown.contains("版本码提升为 244"));
+      assertFalse(shown.contains("版本码提升为 243"));
       assertFalse(shown.contains("版本码提升为 242"));
       assertFalse(shown.contains("版本码提升为 220"));
       assertFalse(shown.contains("build157"));
@@ -157,11 +158,13 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Phone portrait fixes"));
-      assertTrue(shown.contains("no longer embeds the maintenance log box"));
-      assertTrue(shown.contains("No other phones were tested"));
-      assertTrue(shown.contains("PJD110"));
-      assertTrue(shown.contains("Raises versionCode to 243"));
+      assertTrue(shown.contains("Fixes Recover interrupted maintenance failing forever"));
+      assertTrue(shown.contains("PLUGIN_JOURNAL_ID"));
+      assertTrue(
+          shown.contains("The completion record now lives outside the transaction directory"));
+      assertTrue(shown.contains("not yet verified on a device that hit this problem"));
+      assertTrue(shown.contains("Raises versionCode to 244"));
+      assertFalse(shown.contains("Raises versionCode to 243"));
       assertFalse(shown.contains("Raises versionCode to 242"));
       assertFalse(shown.contains("Raises versionCode to 220"));
       assertFalse(shown.contains("build157"));
