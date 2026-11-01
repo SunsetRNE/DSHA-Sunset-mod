@@ -6,7 +6,13 @@ import android.widget.*;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.UiText;
 
-/** 恢复页的原生布局；静态展示可独立验收，不执行 Web 或修复操作。 */
+/**
+ * 恢复页的原生布局；静态展示可独立验收，不执行 Web 或修复操作。
+ *
+ * <p>2026-11-01 压缩：返回与标题同一行；操作改为分组内带分隔线的行（与设置子页一致），去掉泛化副标题；
+ * 分组顺序为 恢复与修复 → 最近五次启动 → 配置快照 → 插件卸载 → 其他工具。行文字与无障碍描述保持原文，
+ * 审计按文字查找可点行。
+ */
 final class StartupRecoveryLayout {
   final ScrollView root;
   final LinearLayout content, recovery, tools, attempts, snapshots, plugins;
@@ -22,61 +28,52 @@ final class StartupRecoveryLayout {
     this.context = context;
     root = new ScrollView(context);
     root.setFillViewport(true);
-    root.setBackgroundColor(context.getColor(R.color.surface));
+    root.setBackgroundColor(context.getColor(R.color.shell_bg));
     content = column();
-    content.setPadding(dp(20), dp(12), dp(20), dp(20));
+    content.setPadding(dp(16), dp(8), dp(16), dp(24));
     root.addView(content);
-    View backRow = action(content, t("返回", "Back"), R.drawable.ic_recovery_right, back, false);
-    ((ImageView) ((LinearLayout) backRow).getChildAt(0)).setRotation(180);
-    backRow.setBackgroundResource(R.drawable.bg_btn);
-    LinearLayout hero = new LinearLayout(context);
-    hero.setGravity(Gravity.CENTER_VERTICAL);
-    LinearLayout.LayoutParams heroParams = new LinearLayout.LayoutParams(-1, -2);
-    heroParams.topMargin = dp(16);
-    content.addView(hero, heroParams);
-    ImageView emblem = icon(R.drawable.ic_recovery_wrench, R.color.text);
-    emblem.setPadding(dp(10), dp(10), dp(10), dp(10));
-    emblem.setBackgroundResource(R.drawable.bg_recovery_emblem);
-    hero.addView(emblem, new LinearLayout.LayoutParams(dp(48), dp(48)));
-    LinearLayout titleBlock = column();
-    LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, -2, 1);
-    titleParams.leftMargin = dp(14);
-    hero.addView(titleBlock, titleParams);
-    TextView title = label(titleBlock, t("启动恢复", "Startup recovery"), 24, R.color.text);
+
+    LinearLayout bar = new LinearLayout(context);
+    bar.setGravity(Gravity.CENTER_VERTICAL);
+    content.addView(bar, new LinearLayout.LayoutParams(-1, -2));
+    ImageButton up = new ImageButton(context);
+    up.setImageResource(R.drawable.ic_ui_back);
+    up.setImageTintList(
+        android.content.res.ColorStateList.valueOf(context.getColor(R.color.shell_text)));
+    up.setBackgroundResource(R.drawable.bg_action_plain);
+    up.setContentDescription(t("返回", "Back"));
+    up.setOnClickListener(v -> back.run());
+    bar.addView(up, new LinearLayout.LayoutParams(dp(44), dp(44)));
+    TextView title = label(bar, t("启动恢复", "Startup recovery"), 22, R.color.shell_text);
     title.setTypeface(null, android.graphics.Typeface.BOLD);
-    label(titleBlock, t("进入原因：", "Reason: ") + reason, 14, R.color.text);
-    TextView description =
-        label(
-            content,
-            t(
-                "此页面不依赖 Web。可查看最近启动记录、恢复配置快照，或卸载出错的插件。",
-                "This page works independently of Web. Review recent starts, restore configuration snapshots, or remove faulty plugins."),
-            14,
-            R.color.text_secondary);
-    description.setPadding(0, dp(12), 0, dp(4));
-    progress = label(content, "", 13, R.color.primary);
+    title.setAccessibilityHeading(true);
+    ((LinearLayout.LayoutParams) title.getLayoutParams()).width = 0;
+    ((LinearLayout.LayoutParams) title.getLayoutParams()).weight = 1;
+    ((LinearLayout.LayoutParams) title.getLayoutParams()).leftMargin = dp(4);
+
+    TextView why =
+        label(content, t("进入原因：", "Reason: ") + reason, 13, R.color.shell_text_secondary);
+    why.setBackgroundResource(R.drawable.bg_onb_hint_warn);
+    why.setPadding(dp(12), dp(10), dp(12), dp(10));
+    why.setTextIsSelectable(true);
+    ((LinearLayout.LayoutParams) why.getLayoutParams()).topMargin = dp(10);
+    progress = label(content, "", 13, R.color.shell_accent);
+    progress.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+    ((LinearLayout.LayoutParams) progress.getLayoutParams()).topMargin = dp(8);
     progress.setVisibility(View.GONE);
-    recovery =
-        card(
-            t("恢复与修复", "Recovery & repair"),
-            t("通过以下操作尝试解决启动问题", "Try these actions to resolve startup problems"),
-            0);
-    tools =
-        card(
-            t("其他工具", "Other tools"),
-            t("更多高级选项，帮助排查和解决问题", "More options to diagnose and resolve problems"),
-            0);
-    attempts = card(t("最近五次启动", "Last five starts"), "", R.drawable.ic_recovery_clock);
+
+    recovery = group(t("恢复与修复", "Recovery & repair"), "");
+    attempts = group(t("最近五次启动", "Last five starts"), "");
     snapshots =
-        card(
+        group(
             t("配置快照", "Configuration snapshots"),
             t(
                 "保留三次健康启动与三次修复前快照；仅保存配置，不复制会话、工作区或依赖目录。",
-                "Keeps three healthy-start and three pre-repair snapshots. Saves configuration only, without sessions, workspaces, or dependency directories."),
-            R.drawable.ic_recovery_database);
-    plugins = card(t("插件卸载", "Remove plugins"), "", R.drawable.ic_recovery_document);
+                "Keeps three healthy-start and three pre-repair snapshots. Saves configuration only, without sessions, workspaces, or dependency directories."));
+    plugins = group(t("插件卸载", "Remove plugins"), "");
     pluginCard = (View) plugins.getParent();
     pluginCard.setVisibility(View.GONE);
+    tools = group(t("其他工具", "Other tools"), "");
   }
 
   private LinearLayout column() {
@@ -98,30 +95,28 @@ final class StartupRecoveryLayout {
     return icon;
   }
 
-  private LinearLayout card(String title, String subtitle, int icon) {
-    LinearLayout card = column();
-    card.setPadding(dp(12), dp(12), dp(12), dp(12));
-    card.setBackgroundResource(R.drawable.bg_card);
+  /**
+   * 分组：小标题（可带一行说明）+ 细边框行容器。返回值是行容器；整组外壳是它的父视图，
+   * 插件分组据此整体隐藏。
+   */
+  private LinearLayout group(String title, String subtitle) {
+    LinearLayout section = column();
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-    params.topMargin = dp(12);
-    content.addView(card, params);
-    LinearLayout heading = new LinearLayout(context);
-    heading.setGravity(Gravity.TOP);
-    card.addView(heading);
-    if (icon != 0) {
-      ImageView image = icon(icon, R.color.text_muted);
-      LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(24), dp(24));
-      imageParams.rightMargin = dp(12);
-      imageParams.topMargin = dp(2);
-      heading.addView(image, imageParams);
-    }
-    LinearLayout copy = column();
-    heading.addView(copy, new LinearLayout.LayoutParams(0, -2, 1));
-    TextView label = label(copy, title, 16, R.color.text);
+    params.topMargin = dp(18);
+    content.addView(section, params);
+    TextView label = label(section, title, 12, R.color.shell_text_secondary);
     label.setTypeface(null, android.graphics.Typeface.BOLD);
-    if (!subtitle.isEmpty()) label(copy, subtitle, 13, R.color.text_muted);
+    label.setLetterSpacing(0.03f);
+    label.setAccessibilityHeading(true);
+    label.setPadding(dp(4), 0, dp(4), dp(subtitle.isEmpty() ? 8 : 2));
+    if (!subtitle.isEmpty()) {
+      TextView note = label(section, subtitle, 11, R.color.shell_text_muted);
+      note.setPadding(dp(4), 0, dp(4), dp(8));
+    }
     LinearLayout entries = column();
-    card.addView(entries, new LinearLayout.LayoutParams(-1, -2));
+    entries.setBackgroundResource(R.drawable.bg_settings_group);
+    entries.setClipToOutline(true);
+    section.addView(entries, new LinearLayout.LayoutParams(-1, -2));
     return entries;
   }
 
@@ -136,38 +131,76 @@ final class StartupRecoveryLayout {
     return view;
   }
 
+  /** 组内空状态 / 错误说明：与行文字左对齐。 */
+  TextView note(LinearLayout parent, String value) {
+    TextView view = label(parent, value, 13, R.color.shell_text_muted);
+    view.setPadding(dp(12), dp(12), dp(12), dp(12));
+    return view;
+  }
+
   View action(LinearLayout parent, String label, int resource, Runnable click, boolean chevron) {
+    View mark = null;
+    if (resource != 0) {
+      FrameLayout box = new FrameLayout(context);
+      box.setBackgroundResource(R.drawable.bg_onb_icon);
+      box.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      box.addView(
+          icon(resource, R.color.shell_accent),
+          new FrameLayout.LayoutParams(dp(17), dp(17), Gravity.CENTER));
+      mark = box;
+    }
+    return row(parent, label, mark, mark == null ? 0 : 30, click, chevron);
+  }
+
+  /** 启动记录行：状态圆点 + 原文标签（日期 · 状态 · 耗时）。 */
+  View statusAction(LinearLayout parent, String label, int dot, Runnable click) {
+    View mark = new View(context);
+    mark.setBackgroundResource(dot);
+    mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    return row(parent, label, mark, 8, click, true);
+  }
+
+  private View row(
+      LinearLayout parent, String label, View mark, int markDp, Runnable click, boolean chevron) {
+    if (parent.getChildCount() > 0) {
+      View line = new View(context);
+      line.setBackgroundColor(context.getColor(R.color.shell_line));
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(1));
+      lp.setMarginStart(dp(mark == null ? 12 : markDp > 10 ? 54 : 32));
+      parent.addView(line, lp);
+    }
     LinearLayout row = new LinearLayout(context);
     row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setMinimumHeight(dp(48));
-    row.setPadding(dp(12), dp(10), dp(12), dp(10));
-    row.setBackgroundResource(R.drawable.bg_recovery_action);
+    row.setMinimumHeight(dp(52));
+    row.setPadding(dp(12), dp(8), dp(10), dp(8));
+    android.util.TypedValue ripple = new android.util.TypedValue();
+    context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
+    row.setBackgroundResource(ripple.resourceId);
     row.setFocusable(true);
+    row.setClickable(true);
     row.setContentDescription(label);
     row.setOnClickListener(v -> click.run());
-    if (resource != 0) {
-      ImageView icon = icon(resource, R.color.text);
-      LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(24), dp(24));
-      iconParams.rightMargin = dp(12);
-      row.addView(icon, iconParams);
+    if (mark != null) {
+      LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(dp(markDp), dp(markDp));
+      mp.setMarginEnd(dp(12));
+      row.addView(mark, mp);
     }
     TextView text = new TextView(context);
     text.setText(label);
-    text.setTextSize(15);
+    text.setTextSize(14);
     text.setIncludeFontPadding(false);
+    text.setLineSpacing(dp(2), 1);
     text.setGravity(Gravity.CENTER_VERTICAL);
     text.setTextColor(
         androidx.core.content.ContextCompat.getColorStateList(context, R.color.button_text));
     row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
     if (chevron) {
-      ImageView next = icon(R.drawable.ic_recovery_right, R.color.text_muted);
-      LinearLayout.LayoutParams nextParams = new LinearLayout.LayoutParams(dp(18), dp(18));
-      nextParams.leftMargin = dp(8);
+      ImageView next = icon(R.drawable.ic_ui2_chevron, R.color.shell_text_muted);
+      LinearLayout.LayoutParams nextParams = new LinearLayout.LayoutParams(dp(16), dp(16));
+      nextParams.setMarginStart(dp(8));
       row.addView(next, nextParams);
     }
-    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-    params.topMargin = dp(parent.getChildCount() == 0 ? 8 : 5);
-    parent.addView(row, params);
+    parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
     androidx.core.view.ViewCompat.setAccessibilityDelegate(
         row,
         new androidx.core.view.AccessibilityDelegateCompat() {
@@ -183,6 +216,7 @@ final class StartupRecoveryLayout {
 
   static void enabled(View action, boolean enabled) {
     action.setEnabled(enabled);
+    action.setAlpha(enabled ? 1f : 0.45f);
     if (action instanceof ViewGroup)
       for (int i = 0; i < ((ViewGroup) action).getChildCount(); i++)
         ((ViewGroup) action).getChildAt(i).setEnabled(enabled);

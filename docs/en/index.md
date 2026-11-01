@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.2200-dsh0.2.1-rc.5` / build253 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build polishes the terminal UI: grouped extra keys with gaps, one PTY and simple-terminal session list ordered by creation, status dots, and three cards for new sessions. Local terminal unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build253 notes](../releases/build253-changes.en.md) and the [build253 record](../releases/v0.2.1-rc.3-build253-terminal-polish-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.2230-dsh0.2.1-rc.5` / build254 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build compacts the install and environment page: one status card replaces the version table, the six steps expand inline, first-install speed test and backup-and-rebuild move into Maintenance and tools, and the log starts collapsed. Local unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build254 notes](../releases/build254-changes.en.md) and the [build254 record](../releases/v0.2.1-rc.3-build254-install-env-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

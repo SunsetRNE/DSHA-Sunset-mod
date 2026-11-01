@@ -334,9 +334,18 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
                   : "stopped".equals(entry.status)
                       ? t("已停止", "Stopped")
                       : t("启动中／已中断", "Starting / interrupted");
-      button(
+      int dot =
+          "ready".equals(entry.status)
+              ? R.drawable.bg_onb_dot_done
+              : "failed".equals(entry.status)
+                  ? R.drawable.bg_onb_dot_bad
+                  : "stopped".equals(entry.status)
+                      ? R.drawable.bg_plugin_dot
+                      : R.drawable.bg_onb_dot_warn;
+      layout.statusAction(
           attempts,
           date(entry.started) + " · " + status + " · " + entry.elapsed / 1000 + "s",
+          dot,
           () -> {
             ScrollView scroll = new ScrollView(this);
             TextView text = new TextView(this);
@@ -351,20 +360,17 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
                 .setView(scroll)
                 .setPositiveButton(t("关闭", "Close"), null)
                 .show();
-          },
-          false);
+          });
     }
     if (model.attempts.isEmpty()) {
-      TextView empty =
-          label(
-              attempts,
-              controller.startupDiagnostics().historyError().isEmpty()
-                  ? t(
-                      "还没有启动记录。下一次启动会自动记录。",
-                      "No startup records yet. The next start will be recorded automatically.")
-                  : t("启动记录暂不可用：", "Startup records are currently unavailable: ")
-                      + controller.startupDiagnostics().historyError());
-      empty.setPadding(dp(36), dp(2), 0, dp(2));
+      layout.note(
+          attempts,
+          controller.startupDiagnostics().historyError().isEmpty()
+              ? t(
+                  "还没有启动记录。下一次启动会自动记录。",
+                  "No startup records yet. The next start will be recorded automatically.")
+              : t("启动记录暂不可用：", "Startup records are currently unavailable: ")
+                  + controller.startupDiagnostics().historyError());
     }
   }
 
@@ -454,7 +460,7 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
     layout.pluginCard.setVisibility(
         count > 0 || !value.optString("pluginError").isEmpty() ? View.VISIBLE : View.GONE);
     if (!value.optString("pluginError").isEmpty())
-      label(
+      layout.note(
           plugins,
           t(
                   "插件清单暂不可读；可先恢复或新建配置。\n",

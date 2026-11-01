@@ -11181,5 +11181,159 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/TerminalSessionViews.java"
     ]
+  },
+  {
+    "id": "ienv250a01",
+    "zh": "环境可用",
+    "en": "Environment ready",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a02",
+    "zh": "正在检查组件",
+    "en": "Checking components",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a03",
+    "zh": "正在检查并按需修复",
+    "en": "Checking and repairing",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a04",
+    "zh": "%d 个组件需要处理",
+    "en": "%d components need attention",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a05",
+    "zh": "环境可用 · 全部组件正常",
+    "en": "Ready · all components OK",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a06",
+    "zh": "维护未完成",
+    "en": "Maintenance incomplete",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a07",
+    "zh": "检查全部",
+    "en": "Check all",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a08",
+    "zh": "查看日志",
+    "en": "Show log",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a09",
+    "zh": "收起日志",
+    "en": "Hide log",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a10",
+    "zh": "独立目录完整计时，不影响当前环境",
+    "en": "Timed in an isolated directory; current environment kept",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a11",
+    "zh": "先完整备份再重建，失败自动回切",
+    "en": "Full backup first; rolls back on failure",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a12",
+    "zh": "回切旧环境，保留安全备份",
+    "en": "Switch back; the safety backup is kept",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a13",
+    "zh": "我了解会停止 Web 并占用额外空间",
+    "en": "I understand Web will stop and extra space will be used",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a14",
+    "zh": "已复制应用版本",
+    "en": "App version copied",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a15",
+    "zh": "%d 行",
+    "en": "%d lines",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+    ]
+  },
+  {
+    "id": "ienv250a16",
+    "zh": "在独立目录完整执行首次安装，当前环境、数据和设置保持不变",
+    "en": "Runs a full first install in an isolated directory; environment, data and settings stay",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ColdSetupSpeedActivity.java"
+    ]
+  },
+  {
+    "id": "ienv250a17",
+    "zh": "开始时会正常停止 DSH 和终端",
+    "en": "DSH and terminals stop normally when timing starts",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ColdSetupSpeedActivity.java"
+    ]
+  },
+  {
+    "id": "ienv250a18",
+    "zh": "测速期间请保持应用在前台，结束后自动清理临时环境",
+    "en": "Keep the app in the foreground; the temporary environment is removed afterwards",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ColdSetupSpeedActivity.java"
+    ]
+  },
+  {
+    "id": "ienv250a19",
+    "zh": "最近一次结果",
+    "en": "Latest result",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ColdSetupSpeedActivity.java"
+    ]
   }
 ]

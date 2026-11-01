@@ -960,6 +960,7 @@
     "app/src/test/java/com/deepseekharness/app/ui/DiagnosticActivityRenderingTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/FirstRunWebStartTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/FullPermissionControlsTest.java",
+    "app/src/test/java/com/deepseekharness/app/ui/InstallLayoutContractTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LanSettingsFeedbackTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LanguageControllerTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/LanguagePickerTest.java",

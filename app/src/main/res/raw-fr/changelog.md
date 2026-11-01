@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.3-20261101.2200-dsh0.2.1-rc.5 / build253
+# DSHA 0.2.1-rc.3-20261101.2230-dsh0.2.1-rc.5 / build254
 
-- Finitions du terminal : les deux rangées de touches annexes ont un espace entre les touches, les touches de fonction sont plus foncées, les flèches plus grandes, et ^C / ^D / ^Z et les symboles utilisent une police à chasse fixe ; le verrouillage de Ctrl et Alt s'affiche par une barre en bas. La disposition personnalisée et la personnalisation par appui long ne changent pas.
-- Barre latérale simplifiée : les sessions PTY et terminal simple partagent une liste triée par création, l'état de chaque session est un petit point après son nom, et Tout terminer est masqué sans session et demande toujours confirmation.
-- Nouvelle session devient trois cartes (terminal PTY, terminal simple, DSH CLI), et l'aide présente quatre points clés avec une légende des états.
-- Portée de la vérification : tests unitaires locaux du terminal et contrôles statiques uniquement ; aucune installation sur appareil, tests d'interface et Lint confiés à la CI. versionCode porté à 253 (basé sur build252). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Page installation et environnement compactée : une carte d'état remplace le tableau des versions, avec un verdict en une ligne, trois étiquettes de version à toucher pour copier et une barre de progression ; Tout vérifier et Réparer au besoin sont côte à côte.
+- Les six étapes sont plus basses et se déplient sur place avec détails, Revérifier et Réparer au besoin, sans boîte de dialogue. Le test de vitesse de première installation et Sauvegarder et reconstruire l'environnement passent dans Maintenance et outils ; reconstruire exige d'abord de cocher une confirmation. Le journal est replié sur une ligne par défaut et s'ouvre automatiquement pendant l'exécution ou après un échec.
+- Les résultats du test de vitesse ont leur propre carte ; la page de réparation et de récupération regroupe ses boutons et ajoute des points d'état aux derniers démarrages.
+- Portée de la vérification : tests unitaires locaux et contrôles statiques uniquement ; aucune installation sur appareil, tests d'interface et Lint confiés à la CI. versionCode porté à 254 (basé sur build253). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
