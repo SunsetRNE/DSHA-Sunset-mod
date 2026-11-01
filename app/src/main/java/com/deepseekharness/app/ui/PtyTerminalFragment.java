@@ -57,8 +57,10 @@ public final class PtyTerminalFragment extends Fragment
                 if (getView() != null) attachSelected();
               });
   private HarnessController c;
+
   /** 输入 / 切换热路径只读缓存结论（T12 ANR），门禁本身不放宽。 */
   private TerminalReadiness readiness;
+
   private TerminalView view;
   private InputFrame inputFrame;
   private TextView title, ctrlBtn, altBtn;
