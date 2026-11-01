@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build263 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build264 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build263 `0.2.1-rc.3-20261102.0630-dsh0.2.1-rc.5`.** Closing a terminal tab no longer freezes the app or takes DSH down with it. Confirmed by the user on a test package. versionCode 263, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build263 notes](../releases/build263-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build264 `0.2.1-rc.3-20261102.0700-dsh0.2.1-rc.5`.** The update page is compacted into one main card whose button doubles as a progress bar, with two columns on landscape tablets; the channel can be switched during a check. Checked on a test package by the user. versionCode 264, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build264 notes](../releases/build264-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

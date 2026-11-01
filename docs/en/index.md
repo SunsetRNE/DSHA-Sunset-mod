@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0630-dsh0.2.1-rc.5` / build263 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the app freezing after a terminal tab is closed, which could take DSH down with it: PtySession listener and input state now use their own lock and are no longer blocked while the session finishes. The user confirmed the fix on a test package; local unit tests and source gates passed. See the [build263 notes](../releases/build263-changes.en.md) and the [build263 record](../releases/v0.2.1-rc.3-build263-pty-close-isolation-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0700-dsh0.2.1-rc.5` / build264 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build compacts the update page: version, channel and status share one main card, the main button doubles as an in-place progress bar, and tablets in landscape get two columns; the update channel can also be switched while a check is running. The user checked it on a test package; local unit tests and source gates passed. See the [build264 notes](../releases/build264-changes.en.md) and the [build264 record](../releases/v0.2.1-rc.3-build264-update-compact-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
