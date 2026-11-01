@@ -130,12 +130,14 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("先区分「有待恢复事务」与「记录无法读取」"));
-      assertTrue(shown.contains("plugin-install-quarantine"));
-      assertTrue(shown.contains("选择数据目录不再被这一状态挡住"));
-      assertTrue(shown.contains("未做设备验证"));
-      assertTrue(shown.contains("版本码提升为 245"));
-      assertFalse(shown.contains("版本码提升为 244"));
+      assertTrue(shown.contains("修复悬浮助手窗口未与输入法隔离"));
+      assertTrue(shown.contains("不再响应其他应用的输入法"));
+      assertTrue(shown.contains("排除区也不再随键盘开合变化"));
+      assertTrue(shown.contains("未在实机测试"));
+      assertTrue(shown.contains("需要用户后续反馈确认"));
+      assertTrue(shown.contains("版本码提升为 246"));
+      assertFalse(shown.contains("版本码提升为 245"));
+      assertFalse(shown.contains("plugin-install-quarantine"));
       assertFalse(shown.contains("版本码提升为 242"));
       assertFalse(shown.contains("版本码提升为 220"));
       assertFalse(shown.contains("build157"));
@@ -158,12 +160,14 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("tells pending transactions apart from unreadable records"));
-      assertTrue(shown.contains("plugin-install-quarantine"));
-      assertTrue(shown.contains("Selecting the data directory is no longer blocked"));
-      assertTrue(shown.contains("no device verification"));
-      assertTrue(shown.contains("Raises versionCode to 245"));
-      assertFalse(shown.contains("Raises versionCode to 244"));
+      assertTrue(shown.contains("not being isolated from the keyboard"));
+      assertTrue(shown.contains("ignores other apps' keyboards"));
+      assertTrue(shown.contains("no longer shift when a keyboard opens or closes"));
+      assertTrue(shown.contains("not tested on a real device"));
+      assertTrue(shown.contains("follow-up user feedback is needed"));
+      assertTrue(shown.contains("Raises versionCode to 246"));
+      assertFalse(shown.contains("Raises versionCode to 245"));
+      assertFalse(shown.contains("plugin-install-quarantine"));
       assertFalse(shown.contains("Raises versionCode to 242"));
       assertFalse(shown.contains("Raises versionCode to 220"));
       assertFalse(shown.contains("build157"));
