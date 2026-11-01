@@ -891,7 +891,38 @@ public class PluginFragment extends Fragment {
     } else repository.setEnabled(item, enabled);
   }
 
+  /** 「更多」走启动页同款 CardSheet：手机贴底滑入，宽屏仍用同一容器，不再用居中纯文字列表。 */
   private void itemActions(PluginRepository.Item item) {
+    List<PluginAction> actions = pluginActions(item);
+    var kind =
+        com.deepseekharness.app.util.PluginCardState.kind(
+            item.dynamic, item.official, item.runtimeProvided, item.builtin, item.runtimeLocated);
+    CardPage page = new CardPage(requireContext(), item.name, kindLabel(kind), true);
+    var dialog = CardSheet.create(requireContext(), page);
+    android.widget.LinearLayout group = page.card();
+    ((android.widget.LinearLayout.LayoutParams) group.getLayoutParams()).bottomMargin = page.dp(4);
+    page.content.setPadding(page.dp(16), page.dp(12), page.dp(16), page.dp(4));
+    page.footer.setPadding(page.dp(16), 0, page.dp(16), page.dp(8));
+    for (PluginAction action : actions) {
+      page.entry(
+          group,
+          actionLabel(action, item),
+          actionHint(action, item),
+          actionIcon(action),
+          () -> {
+            dialog.dismiss();
+            runPluginAction(action, item);
+          });
+    }
+    page.button(
+        page.footer,
+        com.deepseekharness.app.util.UiText.choose("取消", "Cancel"),
+        false,
+        dialog::dismiss);
+    CardSheet.show(dialog, requireContext());
+  }
+
+  private static List<PluginAction> pluginActions(PluginRepository.Item item) {
     List<PluginAction> actions = new ArrayList<>();
     actions.add(PluginAction.DETAIL);
     actions.add(PluginAction.COPY_NAME);
@@ -901,97 +932,80 @@ public class PluginFragment extends Fragment {
     if (item.updateAvailable) actions.add(PluginAction.UPDATE);
     if (!item.rollbackVersion.isEmpty()) actions.add(PluginAction.ROLLBACK);
     if (item.deletable) actions.add(PluginAction.DELETE);
-    new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext())
-        .setTitle(item.name)
-        .setItems(
-            actions.stream().map(action -> actionLabel(action, item)).toArray(String[]::new),
-            (d, which) -> {
-              PluginAction action = actions.get(which);
-              if (action == PluginAction.DETAIL) {
-                new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext())
-                    .setTitle(item.name)
-                    .setMessage(
-                        com.deepseekharness.app.util.UiText.format(
-                            "%s\n\n版本：%s%s%s%s%s%s",
-                            item.builtin
-                                ? com.deepseekharness.app.util.UiStateText.render(item.description)
-                                : item.description,
-                            item.version,
-                            (item.location.isEmpty()
-                                ? ""
-                                : com.deepseekharness.app.util.UiText.format(
-                                    "\n位置：%s", item.location)),
-                            (item.source.isEmpty()
-                                ? ""
-                                : com.deepseekharness.app.util.UiText.format(
-                                    "\n来源：%s", item.source)),
-                            (item.latestVersion.isEmpty()
-                                ? ""
-                                : com.deepseekharness.app.util.UiText.format(
-                                    "\n上次检查版本：%s", item.latestVersion)),
-                            (item.updateMessage.isEmpty()
-                                ? ""
-                                : "\n"
-                                    + com.deepseekharness.app.util.UiStateText.render(
-                                        item.updateMessage)),
-                            (item.rollbackVersion.isEmpty()
-                                ? ""
-                                : com.deepseekharness.app.util.UiText.format(
-                                    "\n可回退：%s", item.rollbackVersion))))
-                    .setPositiveButton(com.deepseekharness.app.util.UiText.text("关闭"), null)
-                    .setNeutralButton(
-                        com.deepseekharness.app.util.UiText.choose("能力声明", "Capabilities"),
-                        (dialog, button) ->
-                            repository.inspectCapabilities(
-                                item,
-                                details -> {
-                                  if (!isAdded()) return;
-                                  new DshaDialogBuilder(requireContext())
-                                      .setTitle(item.name)
-                                      .setMessage(details)
-                                      .setPositiveButton(
-                                          com.deepseekharness.app.util.UiText.text("关闭"), null)
-                                      .show();
-                                }))
-                    .show();
-              } else if (action == PluginAction.CHECK) {
-                repository.checkUpdates(item);
-              } else if (action == PluginAction.UPDATE) {
-                repository.prepareUpdate(item);
-              } else if (action == PluginAction.ROLLBACK) {
-                new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext(), true)
-                    .setTitle(com.deepseekharness.app.util.UiText.text("回退插件？"))
-                    .setMessage(
-                        item.name
-                            + com.deepseekharness.app.util.UiText.text("：")
-                            + item.version
-                            + " → "
-                            + item.rollbackVersion
-                            + com.deepseekharness.app.util.UiText.text(
-                                "\n只恢复插件文件，当前启用状态和对话数据保留；重启 Web 生效。"))
-                    .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
-                    .setPositiveButton(
-                        com.deepseekharness.app.util.UiText.text("回退"),
-                        (confirm, button) -> repository.rollback(item))
-                    .show();
-              } else if (action == PluginAction.EXPORT) {
-                ArrayList<String> names = new ArrayList<>();
-                names.add(item.name);
-                beginExport(names);
-              } else if (action == PluginAction.DELETE) {
-                confirmDelete(item);
-              } else {
-                ClipboardManager clipboard =
-                    (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                if (clipboard != null)
-                  clipboard.setPrimaryClip(
-                      ClipData.newPlainText(
-                          com.deepseekharness.app.util.UiText.text("插件"),
-                          action == PluginAction.COPY_NAME ? item.name : item.source));
-                toast(com.deepseekharness.app.util.UiText.text("已复制"));
-              }
-            })
-        .show();
+    return actions;
+  }
+
+  private void runPluginAction(PluginAction action, PluginRepository.Item item) {
+    if (action == PluginAction.DETAIL) {
+      new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext())
+          .setTitle(item.name)
+          .setMessage(
+              com.deepseekharness.app.util.UiText.format(
+                  "%s\n\n版本：%s%s%s%s%s%s",
+                  item.builtin
+                      ? com.deepseekharness.app.util.UiStateText.render(item.description)
+                      : item.description,
+                  item.version,
+                  (item.location.isEmpty()
+                      ? ""
+                      : com.deepseekharness.app.util.UiText.format("\n位置：%s", item.location)),
+                  (item.source.isEmpty()
+                      ? ""
+                      : com.deepseekharness.app.util.UiText.format("\n来源：%s", item.source)),
+                  (item.latestVersion.isEmpty()
+                      ? ""
+                      : com.deepseekharness.app.util.UiText.format(
+                          "\n上次检查版本：%s", item.latestVersion)),
+                  (item.updateMessage.isEmpty()
+                      ? ""
+                      : "\n" + com.deepseekharness.app.util.UiStateText.render(item.updateMessage)),
+                  (item.rollbackVersion.isEmpty()
+                      ? ""
+                      : com.deepseekharness.app.util.UiText.format(
+                          "\n可回退：%s", item.rollbackVersion))))
+          .setPositiveButton(com.deepseekharness.app.util.UiText.text("关闭"), null)
+          .setNeutralButton(
+              com.deepseekharness.app.util.UiText.choose("能力声明", "Capabilities"),
+              (dialog, button) ->
+                  repository.inspectCapabilities(
+                      item,
+                      details -> {
+                        if (!isAdded()) return;
+                        new DshaDialogBuilder(requireContext())
+                            .setTitle(item.name)
+                            .setMessage(details)
+                            .setPositiveButton(com.deepseekharness.app.util.UiText.text("关闭"), null)
+                            .show();
+                      }))
+          .show();
+    } else if (action == PluginAction.CHECK) {
+      repository.checkUpdates(item);
+    } else if (action == PluginAction.UPDATE) {
+      repository.prepareUpdate(item);
+    } else if (action == PluginAction.ROLLBACK) {
+      new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext(), true)
+          .setTitle(com.deepseekharness.app.util.UiText.text("回退插件？"))
+          .setMessage(
+              item.name
+                  + com.deepseekharness.app.util.UiText.text("：")
+                  + item.version
+                  + " → "
+                  + item.rollbackVersion
+                  + com.deepseekharness.app.util.UiText.text("\n只恢复插件文件，当前启用状态和对话数据保留；重启 Web 生效。"))
+          .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
+          .setPositiveButton(
+              com.deepseekharness.app.util.UiText.text("回退"),
+              (confirm, button) -> repository.rollback(item))
+          .show();
+    } else if (action == PluginAction.EXPORT) {
+      ArrayList<String> names = new ArrayList<>();
+      names.add(item.name);
+      beginExport(names);
+    } else if (action == PluginAction.DELETE) {
+      confirmDelete(item);
+    } else {
+      copyText(action == PluginAction.COPY_NAME ? item.name : item.source);
+    }
   }
 
   private enum PluginAction {
@@ -1015,6 +1029,46 @@ public class PluginFragment extends Fragment {
       case UPDATE -> com.deepseekharness.app.util.UiText.format("更新至 %s", item.latestVersion);
       case ROLLBACK -> com.deepseekharness.app.util.UiText.format("回退至 %s", item.rollbackVersion);
       case DELETE -> com.deepseekharness.app.util.UiText.text("删除插件");
+    };
+  }
+
+  private static int actionIcon(PluginAction action) {
+    return switch (action) {
+      case DETAIL -> R.drawable.ic_plugin_info;
+      case COPY_NAME, COPY_SOURCE -> R.drawable.ic_ui_copy;
+      case EXPORT -> R.drawable.ic_ui_export;
+      case CHECK -> R.drawable.ic_recovery_refresh;
+      case UPDATE -> R.drawable.ic_plugin_update;
+      case ROLLBACK -> R.drawable.ic_plugin_restart;
+      case DELETE -> R.drawable.ic_onb_x;
+    };
+  }
+
+  private String actionHint(PluginAction action, PluginRepository.Item item) {
+    return switch (action) {
+      case DETAIL ->
+          com.deepseekharness.app.util.UiText.choose(
+              "版本、位置、来源与能力声明", "Version, path, source and capabilities");
+      case COPY_NAME -> com.deepseekharness.app.util.UiText.raw(item.name);
+      case COPY_SOURCE -> com.deepseekharness.app.util.UiText.raw(item.source);
+      case EXPORT ->
+          com.deepseekharness.app.util.UiText.choose("导出为插件包文件", "Export as a plugin archive");
+      case CHECK ->
+          com.deepseekharness.app.util.UiText.choose(
+              "向当前下载源查询新版本", "Ask the current download source for a newer version");
+      case UPDATE ->
+          item.latestVersion.isEmpty()
+              ? ""
+              : com.deepseekharness.app.util.UiText.format(
+                  "%s → %s", item.version, item.latestVersion);
+      case ROLLBACK ->
+          item.rollbackVersion.isEmpty()
+              ? ""
+              : com.deepseekharness.app.util.UiText.format(
+                  "%s → %s", item.version, item.rollbackVersion);
+      case DELETE ->
+          com.deepseekharness.app.util.UiText.choose(
+              "从加载路径移除，原件保留在数据页", "Remove from the load path; the original stays in Data");
     };
   }
 
@@ -1201,15 +1255,8 @@ public class PluginFragment extends Fragment {
     }
 
     class Holder extends RecyclerView.ViewHolder {
-      final TextView name, state, description;
-      final android.widget.CompoundButton toggle;
-
       Holder(View view) {
         super(view);
-        name = view.findViewById(R.id.pluginName);
-        state = view.findViewById(R.id.pluginStatus);
-        description = view.findViewById(R.id.pluginDesc);
-        toggle = view.findViewById(R.id.pluginSwitch);
       }
     }
 
@@ -1245,76 +1292,18 @@ public class PluginFragment extends Fragment {
         return;
       }
       var row = rows.get(position - PluginListPresenter.HEADER_COUNT);
-      if ((changed & PluginListPresenter.OPERATION) != 0) bindStatus(holder, row);
-      if ((changed & PluginListPresenter.EXPANSION) != 0) bindExpansion(holder, row);
+      CardDensity density = listDensity();
+      if ((changed & PluginListPresenter.OPERATION) != 0)
+        bindCardStatus(holder.itemView, row, density);
+      if ((changed & PluginListPresenter.EXPANSION) != 0)
+        bindCardExpansion(holder.itemView, row, density);
     }
 
     @Override
     public void onBindViewHolder(@NonNull Holder holder, int position) {
       if (getItemViewType(position) != 1) return;
-      var row = rows.get(position - PluginListPresenter.HEADER_COUNT);
-      PluginRepository.Item item = row.entry.value;
-      holder.name.setText(item.name);
-      bindStatus(holder, row);
-      holder.description.setText(descriptionText(item));
-      holder.itemView.findViewById(R.id.pluginActions).setOnClickListener(v -> itemActions(item));
-      holder
-          .itemView
-          .findViewById(R.id.pluginActions)
-          .setContentDescription(com.deepseekharness.app.util.UiText.format("更多操作：%s", item.name));
-      ((TextView) holder.itemView.findViewById(R.id.pluginDetails)).setText(detailsText(item));
-      // 方案 A 双栏：点卡片在右侧详情窗格查看，不在卡片内展开。
-      if (twoPane) holder.itemView.setOnClickListener(v -> selectDetail(item.stableKey));
-      bindExpansion(holder, row);
-      holder
-          .itemView
-          .findViewById(R.id.pluginExpand)
-          .setOnClickListener(
-              v -> {
-                if (!expandedPlugins.add(item.stableKey)) expandedPlugins.remove(item.stableKey);
-                render();
-              });
-      android.widget.Button delete = holder.itemView.findViewById(R.id.pluginDelete);
-      delete.setVisibility(item.deletable ? View.VISIBLE : View.GONE);
-      delete.setText(com.deepseekharness.app.util.UiText.choose("删除插件", "Delete plugin"));
-      delete.setOnClickListener(v -> confirmDelete(item));
-      holder.itemView.setOnLongClickListener(
-          v -> {
-            itemActions(item);
-            return true;
-          });
-    }
-
-    private void bindExpansion(Holder holder, PluginListPresenter.Row<PluginRepository.Item> row) {
-      if (twoPane) {
-        // 详情由右侧窗格承担：卡片只保留摘要、状态与开关，并显示当前选中。
-        holder.itemView.findViewById(R.id.pluginDetails).setVisibility(View.GONE);
-        holder.itemView.findViewById(R.id.pluginExpand).setVisibility(View.GONE);
-        holder.itemView.setSelected(row.entry.stableKey.equals(selectedPlugin));
-        return;
-      }
-      holder
-          .itemView
-          .findViewById(R.id.pluginDetails)
-          .setVisibility(row.expanded ? View.VISIBLE : View.GONE);
-      ((android.widget.Button) holder.itemView.findViewById(R.id.pluginExpand))
-          .setText(
-              row.expanded
-                  ? com.deepseekharness.app.util.UiText.choose("收起详情", "Collapse details")
-                  : com.deepseekharness.app.util.UiText.choose("展开插件详情", "Plugin details"));
-    }
-
-    private void bindStatus(Holder holder, PluginListPresenter.Row<PluginRepository.Item> row) {
-      PluginRepository.Item item = row.entry.value;
-      holder.state.setText(statusText(row));
-      int stateColor = statusColor(row);
-      holder.state.setTextColor(requireContext().getColor(stateColor));
-      View stateDot = holder.itemView.findViewById(R.id.pluginStatusDot);
-      if (stateDot != null)
-        stateDot.setBackgroundTintList(
-            android.content.res.ColorStateList.valueOf(requireContext().getColor(stateColor)));
-      holder.itemView.findViewById(R.id.pluginDelete).setEnabled(!row.pending());
-      bindToggle(holder.toggle, row);
+      bindCard(
+          holder.itemView, rows.get(position - PluginListPresenter.HEADER_COUNT), listDensity());
     }
 
     @Override
@@ -1328,68 +1317,358 @@ public class PluginFragment extends Fragment {
     }
   }
 
-  // ---------------------------------------------------------------- 卡片与详情窗格共用文案
+  // ---------------------------------------------------------------- 插件卡片（列表 / 平板左栏 / 详情窗格共用）
 
-  private String descriptionText(PluginRepository.Item item) {
-    return item.description.isEmpty()
-        ? (item.official
-            ? com.deepseekharness.app.util.UiText.text("官方核心")
-            : item.runtimeProvided
-                ? com.deepseekharness.app.util.UiText.choose("随 DSH 安装提供", "Provided by DSH")
-                : item.builtin
-                    ? com.deepseekharness.app.util.UiText.text("DSHA 内置插件")
-                    : item.runtimeLocated
-                        ? com.deepseekharness.app.util.UiText.choose(
-                            "DSH 安装目录中的用户/未验证插件",
-                            "User or unverified plugin in the DSH installation")
-                        : com.deepseekharness.app.util.UiText.text("第三方插件"))
-        : item.builtin
-            ? com.deepseekharness.app.util.UiStateText.render(item.description)
-            : com.deepseekharness.app.util.UiText.raw(item.description);
+  /** 同一张 item_plugin 卡片的三种密度；原型见 docs/design/plugin-card-20261101/preview.html。 */
+  enum CardDensity {
+    /** 手机单栏：卡片内展开属性表与删除。 */
+    LIST,
+    /** 平板左栏：只留摘要、状态与首条提示，点卡片选中。 */
+    COMPACT,
+    /** 平板右栏：完整说明与属性表常驻，不显示展开按钮。 */
+    DETAIL
   }
 
-  private String detailsText(PluginRepository.Item item) {
-    return detailsText(
-        item,
-        item.builtin
-            ? com.deepseekharness.app.util.UiStateText.render(item.description)
-            : item.description);
+  private CardDensity listDensity() {
+    return twoPane ? CardDensity.COMPACT : CardDensity.LIST;
   }
 
-  /** 版本 / 位置 / 来源；双栏详情窗格上方已显示说明，只用这一段避免重复（复用已翻译模板）。 */
-  private String metaText(PluginRepository.Item item) {
-    return detailsText(item, "").replaceFirst("^\\s+", "");
-  }
-
-  private String detailsText(PluginRepository.Item item, String description) {
-    String location =
-        item.runtimeProvided
-            ? com.deepseekharness.app.util.UiText.choose("随 DSH 安装提供", "Provided by DSH")
-            : item.location.isEmpty()
-                ? com.deepseekharness.app.util.UiText.choose("未提供路径", "Path not provided")
-                : item.location;
-    String source =
-        item.source.isEmpty()
-            ? (item.builtin
-                ? com.deepseekharness.app.util.UiText.choose("随包内置", "Bundled")
-                : item.runtimeProvided
-                    ? com.deepseekharness.app.util.UiText.choose(
-                        "已核对当前 APK 受管内容", "Verified against the current APK")
-                    : item.official
-                        ? com.deepseekharness.app.util.UiText.choose(
-                            "DSH 官方组件", "Official DSH component")
-                        : com.deepseekharness.app.util.UiText.choose(
-                            "来源未记录", "Source not recorded"))
-            : item.source;
-    return com.deepseekharness.app.util.UiText.format(
-        "%s\n\n版本：%s\n位置：%s\n来源：%s", description, item.version, location, source);
-  }
-
-  private int statusColor(PluginListPresenter.Row<PluginRepository.Item> row) {
+  /** 完整绑定：标题行、说明、属性表文案与所有点击回调；状态与展开态分别走局部绑定。 */
+  private void bindCard(
+      View card, PluginListPresenter.Row<PluginRepository.Item> row, CardDensity density) {
     PluginRepository.Item item = row.entry.value;
-    return !item.available || row.pending()
-        ? R.color.warn
-        : item.enabled ? R.color.shell_accent : R.color.shell_text_muted;
+    var kind =
+        com.deepseekharness.app.util.PluginCardState.kind(
+            item.dynamic, item.official, item.runtimeProvided, item.builtin, item.runtimeLocated);
+    boolean neutral =
+        kind == com.deepseekharness.app.util.PluginCardState.Kind.THIRD
+            || kind == com.deepseekharness.app.util.PluginCardState.Kind.LOCATED;
+    android.widget.ImageView glyph = card.findViewById(R.id.pluginGlyph);
+    glyph.setImageResource(kindIcon(kind));
+    glyph.setImageTintList(
+        android.content.res.ColorStateList.valueOf(
+            requireContext()
+                .getColor(neutral ? R.color.shell_text_secondary : R.color.shell_accent)));
+    ((TextView) card.findViewById(R.id.pluginName)).setText(item.name);
+    TextView badge = card.findViewById(R.id.pluginBadge);
+    badge.setText(kindLabel(kind));
+    badge.setTextColor(
+        requireContext().getColor(neutral ? R.color.shell_text_secondary : R.color.shell_accent));
+    badge.setBackgroundTintList(
+        android.content.res.ColorStateList.valueOf(
+            requireContext().getColor(neutral ? R.color.shell_raised : R.color.shell_accent_soft)));
+    TextView version = card.findViewById(R.id.pluginVersion);
+    version.setText(com.deepseekharness.app.util.UiText.raw(item.version));
+    version.setVisibility(item.version.isEmpty() ? View.GONE : View.VISIBLE);
+    TextView description = card.findViewById(R.id.pluginDesc);
+    String text = descriptionText(item);
+    description.setText(
+        text.isEmpty()
+            ? com.deepseekharness.app.util.UiText.choose("作者未提供说明", "No description provided")
+            : text);
+    description.setTextColor(
+        requireContext()
+            .getColor(text.isEmpty() ? R.color.shell_text_muted : R.color.shell_text_secondary));
+    bindCardDetails(card, item);
+
+    View actions = card.findViewById(R.id.pluginActions);
+    actions.setOnClickListener(v -> itemActions(item));
+    actions.setContentDescription(com.deepseekharness.app.util.UiText.format("更多操作：%s", item.name));
+    android.widget.Button delete = card.findViewById(R.id.pluginDelete);
+    delete.setVisibility(item.deletable ? View.VISIBLE : View.GONE);
+    delete.setText(com.deepseekharness.app.util.UiText.choose("删除插件", "Delete plugin"));
+    delete.setOnClickListener(v -> confirmDelete(item));
+    card.findViewById(R.id.pluginExpand)
+        .setOnClickListener(
+            v -> {
+              if (!expandedPlugins.add(item.stableKey)) expandedPlugins.remove(item.stableKey);
+              render();
+            });
+    if (density == CardDensity.DETAIL) {
+      card.setOnClickListener(null);
+      card.setOnLongClickListener(null);
+      card.setClickable(false);
+      card.setLongClickable(false);
+    } else {
+      // 方案 A 双栏：点卡片在右侧详情窗格查看，不在卡片内展开。
+      if (density == CardDensity.COMPACT)
+        card.setOnClickListener(v -> selectDetail(item.stableKey));
+      else {
+        card.setOnClickListener(null);
+        card.setClickable(false);
+      }
+      card.setOnLongClickListener(
+          v -> {
+            itemActions(item);
+            return true;
+          });
+    }
+    bindCardExpansion(card, row, density);
+    bindCardStatus(card, row, density);
+  }
+
+  /** 展开态与选中态：手机按 expandedPlugins 展开属性表；平板左栏只显示选中描边；详情窗格常驻展开。 */
+  private void bindCardExpansion(
+      View card, PluginListPresenter.Row<PluginRepository.Item> row, CardDensity density) {
+    boolean open = density == CardDensity.DETAIL || (density == CardDensity.LIST && row.expanded);
+    card.findViewById(R.id.pluginDetails).setVisibility(open ? View.VISIBLE : View.GONE);
+    boolean foot = density != CardDensity.COMPACT;
+    card.findViewById(R.id.pluginFoot).setVisibility(foot ? View.VISIBLE : View.GONE);
+    card.findViewById(R.id.pluginFootLine).setVisibility(foot ? View.VISIBLE : View.GONE);
+    card.setPaddingRelative(
+        card.getPaddingStart(), card.getPaddingTop(), card.getPaddingEnd(), foot ? dp(4) : dp(14));
+    TextView expand = card.findViewById(R.id.pluginExpand);
+    expand.setVisibility(density == CardDensity.LIST ? View.VISIBLE : View.GONE);
+    expand.setText(
+        row.expanded
+            ? com.deepseekharness.app.util.UiText.choose("收起详情", "Collapse details")
+            : com.deepseekharness.app.util.UiText.choose("展开插件详情", "Plugin details"));
+    android.graphics.drawable.Drawable chevron = expand.getCompoundDrawablesRelative()[0];
+    if (chevron != null) chevron.mutate().setLevel(row.expanded ? 1 : 0);
+    TextView description = card.findViewById(R.id.pluginDesc);
+    description.setMaxLines(open ? Integer.MAX_VALUE : density == CardDensity.COMPACT ? 1 : 2);
+    card.setSelected(density == CardDensity.COMPACT && row.entry.stableKey.equals(selectedPlugin));
+  }
+
+  /** 主状态、语气点、卡片内进度、提示条与开关；操作进度只触发这一段。 */
+  private void bindCardStatus(
+      View card, PluginListPresenter.Row<PluginRepository.Item> row, CardDensity density) {
+    PluginRepository.Item item = row.entry.value;
+    int tone = toneColor(cardTone(row));
+    String configured = configuredText(row);
+    String runtime = runtimeText(item);
+    TextView state = card.findViewById(R.id.pluginStatus);
+    state.setText(configured);
+    state.setTextColor(requireContext().getColor(tone));
+    TextView runtimeView = card.findViewById(R.id.pluginRuntime);
+    runtimeView.setText(runtime);
+    runtimeView.setVisibility(runtime.isEmpty() ? View.GONE : View.VISIBLE);
+    card.findViewById(R.id.pluginStatusDot)
+        .setBackgroundTintList(
+            android.content.res.ColorStateList.valueOf(requireContext().getColor(tone)));
+    PluginTaskProgress progress = card.findViewById(R.id.pluginProgress);
+    if (row.pending()) progress.setTask(row.operation.percent, configured + "\n" + runtime);
+    else progress.hide();
+    bindCardNotes(card, row, density);
+    bindToggle(card.findViewById(R.id.pluginSwitch), row);
+    card.findViewById(R.id.pluginDelete).setEnabled(!row.pending());
+  }
+
+  private com.deepseekharness.app.util.PluginCardState.Tone cardTone(
+      PluginListPresenter.Row<PluginRepository.Item> row) {
+    PluginRepository.Item item = row.entry.value;
+    return com.deepseekharness.app.util.PluginCardState.tone(
+        row.pending(),
+        item.available,
+        item.enabled,
+        item.dynamic,
+        com.deepseekharness.app.util.PluginCardState.runtimeLoaded(
+            item.runtimeState, item.runtimeStale),
+        com.deepseekharness.app.util.PluginCardState.runtimeFailed(
+            item.runtimeState, item.runtimeStale));
+  }
+
+  private static int toneColor(com.deepseekharness.app.util.PluginCardState.Tone tone) {
+    return switch (tone) {
+      case GOOD -> R.color.shell_good;
+      case ACCENT -> R.color.shell_accent;
+      case WARN -> R.color.shell_warn;
+      case BAD -> R.color.shell_bad;
+      case MUTED -> R.color.shell_text_muted;
+    };
+  }
+
+  private static int toneSoftColor(com.deepseekharness.app.util.PluginCardState.Tone tone) {
+    return switch (tone) {
+      case GOOD -> R.color.shell_good_soft;
+      case ACCENT -> R.color.shell_accent_soft;
+      case WARN -> R.color.shell_warn_soft;
+      case BAD -> R.color.shell_bad_soft;
+      case MUTED -> R.color.shell_raised;
+    };
+  }
+
+  /** 提示条：重启生效 → 可更新（带更新动作）→ 最近一次操作消息；平板左栏只显示首条。 */
+  private void bindCardNotes(
+      View card, PluginListPresenter.Row<PluginRepository.Item> row, CardDensity density) {
+    PluginRepository.Item item = row.entry.value;
+    String message =
+        row.operation == null || row.operation.message.isEmpty()
+            ? ""
+            : com.deepseekharness.app.util.UiStateText.render(row.operation.message);
+    List<com.deepseekharness.app.util.PluginCardState.Note> notes =
+        com.deepseekharness.app.util.PluginCardState.notes(
+            item.restartRequired, item.updateAvailable, row.pending(), !message.isEmpty());
+    if (density == CardDensity.COMPACT && notes.size() > 1) notes = notes.subList(0, 1);
+    LinearLayout container = card.findViewById(R.id.pluginNotes);
+    // 进度每次刷新都会走到这里：提示内容不变时不重建子视图。
+    String signature =
+        notes
+            + "\u0000"
+            + message
+            + "\u0000"
+            + item.latestVersion
+            + "\u0000"
+            + com.deepseekharness.app.util.UiText.language()
+            + "\u0000"
+            + System.identityHashCode(item);
+    if (signature.equals(container.getTag())) return;
+    container.setTag(signature);
+    container.removeAllViews();
+    container.setVisibility(notes.isEmpty() ? View.GONE : View.VISIBLE);
+    for (var note : notes) {
+      switch (note) {
+        case RESTART ->
+            addNote(
+                container,
+                com.deepseekharness.app.util.PluginCardState.Tone.WARN,
+                R.drawable.ic_plugin_restart,
+                com.deepseekharness.app.util.UiText.choose("重启 Web 后生效。", "Restart Web to apply."),
+                null,
+                null);
+        case UPDATE ->
+            addNote(
+                container,
+                com.deepseekharness.app.util.PluginCardState.Tone.ACCENT,
+                R.drawable.ic_plugin_update,
+                com.deepseekharness.app.util.UiText.format("可更新到 %s。", item.latestVersion),
+                com.deepseekharness.app.util.UiText.choose("立即更新", "Update now"),
+                v -> repository.prepareUpdate(item));
+        case MESSAGE ->
+            addNote(
+                container,
+                com.deepseekharness.app.util.PluginCardState.Tone.MUTED,
+                R.drawable.ic_plugin_info,
+                message,
+                null,
+                null);
+      }
+    }
+  }
+
+  private void addNote(
+      LinearLayout container,
+      com.deepseekharness.app.util.PluginCardState.Tone tone,
+      int icon,
+      String text,
+      String action,
+      View.OnClickListener listener) {
+    View note = getLayoutInflater().inflate(R.layout.item_plugin_note, container, false);
+    note.setBackgroundTintList(
+        android.content.res.ColorStateList.valueOf(requireContext().getColor(toneSoftColor(tone))));
+    android.widget.ImageView image = note.findViewById(R.id.pluginNoteIcon);
+    image.setImageResource(icon);
+    image.setImageTintList(
+        android.content.res.ColorStateList.valueOf(requireContext().getColor(toneColor(tone))));
+    ((TextView) note.findViewById(R.id.pluginNoteText)).setText(text);
+    TextView button = note.findViewById(R.id.pluginNoteAction);
+    if (action != null) {
+      button.setText(action);
+      button.setTextColor(requireContext().getColor(toneColor(tone)));
+      button.setOnClickListener(listener);
+      button.setVisibility(View.VISIBLE);
+    }
+    container.addView(note);
+  }
+
+  /** 展开后的属性表：版本 / 位置 / 来源，路径与来源可复制（复用「已复制」提示）。 */
+  private void bindCardDetails(View card, PluginRepository.Item item) {
+    ((TextView) card.findViewById(R.id.pluginVersionLabel))
+        .setText(com.deepseekharness.app.util.UiText.choose("版本", "Version"));
+    ((TextView) card.findViewById(R.id.pluginLocationLabel))
+        .setText(com.deepseekharness.app.util.UiText.choose("位置", "Location"));
+    ((TextView) card.findViewById(R.id.pluginSourceLabel))
+        .setText(com.deepseekharness.app.util.UiText.choose("来源", "Source"));
+    String latest =
+        item.updateAvailable && !item.latestVersion.isEmpty()
+            ? com.deepseekharness.app.util.UiText.raw(" → " + item.latestVersion)
+            : "";
+    ((TextView) card.findViewById(R.id.pluginDetailVersion))
+        .setText(
+            com.deepseekharness.app.util.UiText.raw(
+                (item.version.isEmpty() ? "—" : item.version) + latest));
+    boolean path = !item.runtimeProvided && !item.location.isEmpty();
+    TextView location = card.findViewById(R.id.pluginDetailLocation);
+    location.setText(locationText(item));
+    location.setTypeface(
+        path ? android.graphics.Typeface.MONOSPACE : android.graphics.Typeface.DEFAULT);
+    View copyLocation = card.findViewById(R.id.pluginCopyLocation);
+    copyLocation.setVisibility(path ? View.VISIBLE : View.INVISIBLE);
+    copyLocation.setContentDescription(
+        com.deepseekharness.app.util.UiText.choose("复制插件路径", "Copy plugin path"));
+    copyLocation.setOnClickListener(v -> copyText(item.location));
+    boolean source = !item.source.isEmpty();
+    TextView sourceView = card.findViewById(R.id.pluginDetailSource);
+    sourceView.setText(sourceText(item));
+    sourceView.setTypeface(
+        source ? android.graphics.Typeface.MONOSPACE : android.graphics.Typeface.DEFAULT);
+    View copySource = card.findViewById(R.id.pluginCopySource);
+    copySource.setVisibility(source ? View.VISIBLE : View.INVISIBLE);
+    copySource.setContentDescription(com.deepseekharness.app.util.UiText.text("复制来源链接"));
+    copySource.setOnClickListener(v -> copyText(item.source));
+  }
+
+  private void copyText(String value) {
+    ClipboardManager clipboard =
+        (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+    if (clipboard == null) return;
+    clipboard.setPrimaryClip(
+        ClipData.newPlainText(com.deepseekharness.app.util.UiText.text("插件"), value));
+    toast(com.deepseekharness.app.util.UiText.text("已复制"));
+  }
+
+  private int dp(int value) {
+    return Math.round(value * getResources().getDisplayMetrics().density);
+  }
+
+  private static int kindIcon(com.deepseekharness.app.util.PluginCardState.Kind kind) {
+    return switch (kind) {
+      case DYNAMIC -> R.drawable.ic_plugin_bolt;
+      case OFFICIAL, RUNTIME -> R.drawable.ic_ui_shield;
+      case BUILTIN -> R.drawable.ic_ui2_box;
+      case LOCATED -> R.drawable.ic_ui2_folder;
+      case THIRD -> R.drawable.ic_plugins;
+    };
+  }
+
+  private static String kindLabel(com.deepseekharness.app.util.PluginCardState.Kind kind) {
+    return switch (kind) {
+      case DYNAMIC -> com.deepseekharness.app.util.UiText.choose("临时插件", "Temporary plugin");
+      case OFFICIAL -> com.deepseekharness.app.util.UiText.text("官方核心");
+      case RUNTIME -> com.deepseekharness.app.util.UiText.choose("随 DSH 安装提供", "Provided by DSH");
+      case BUILTIN -> com.deepseekharness.app.util.UiText.choose("DSHA 内置", "DSHA built-in");
+      case LOCATED ->
+          com.deepseekharness.app.util.UiText.choose("安装目录 · 未验证", "Install dir · unverified");
+      case THIRD -> com.deepseekharness.app.util.UiText.choose("第三方", "Third-party");
+    };
+  }
+
+  /** 插件自述；为空时返回空串，由卡片显示「作者未提供说明」，来源类别改由徽标表达。 */
+  private String descriptionText(PluginRepository.Item item) {
+    if (item.description.isEmpty()) return "";
+    return item.builtin
+        ? com.deepseekharness.app.util.UiStateText.render(item.description)
+        : com.deepseekharness.app.util.UiText.raw(item.description);
+  }
+
+  private String locationText(PluginRepository.Item item) {
+    return item.runtimeProvided
+        ? com.deepseekharness.app.util.UiText.choose("随 DSH 安装提供", "Provided by DSH")
+        : item.location.isEmpty()
+            ? com.deepseekharness.app.util.UiText.choose("未提供路径", "Path not provided")
+            : com.deepseekharness.app.util.UiText.raw(item.location);
+  }
+
+  private String sourceText(PluginRepository.Item item) {
+    if (!item.source.isEmpty()) return com.deepseekharness.app.util.UiText.raw(item.source);
+    return item.builtin
+        ? com.deepseekharness.app.util.UiText.choose("随包内置", "Bundled")
+        : item.runtimeProvided
+            ? com.deepseekharness.app.util.UiText.choose(
+                "已核对当前 APK 受管内容", "Verified against the current APK")
+            : item.official
+                ? com.deepseekharness.app.util.UiText.choose("DSH 官方组件", "Official DSH component")
+                : com.deepseekharness.app.util.UiText.choose("来源未记录", "Source not recorded");
   }
 
   private void bindToggle(
@@ -1405,48 +1684,38 @@ public class PluginFragment extends Fragment {
     toggle.setOnCheckedChangeListener((v, checked) -> toggle(item, checked));
   }
 
-  private String statusText(PluginListPresenter.Row<PluginRepository.Item> row) {
+  /** 左侧主状态：排队中显示意图与百分比，平时显示配置。当前 Web 单独写在右侧。 */
+  private String configuredText(PluginListPresenter.Row<PluginRepository.Item> row) {
     PluginRepository.Item item = row.entry.value;
-    String configured =
-        item.dynamic
-            ? com.deepseekharness.app.util.UiText.choose("临时插件", "Temporary plugin")
-            : !item.available
-                ? com.deepseekharness.app.util.UiText.text("实体缺失，请重新导入")
-                : item.enabled
-                    ? com.deepseekharness.app.util.UiText.choose("配置：已启用", "Configuration: enabled")
-                    : item.detected
-                        ? com.deepseekharness.app.util.UiText.text("已检测，可开启以加入 Web")
-                        : com.deepseekharness.app.util.UiText.choose(
-                            "配置：已禁用", "Configuration: disabled");
-    String runtime = runtimeText(item);
-    String text =
-        configured + (item.version.isEmpty() ? "" : " · " + item.version) + "\n" + runtime;
-    if (item.restartRequired)
-      text += com.deepseekharness.app.util.UiText.choose("\n重启 Web 后生效", "\nRestart Web to apply");
-    if (item.updateAvailable)
-      text += com.deepseekharness.app.util.UiText.format("\n可更新：%s", item.latestVersion);
-    if (row.operation != null) {
-      if (row.pending()) {
-        text +=
-            row.operation.desired == null
-                ? com.deepseekharness.app.util.UiText.choose("\n操作待完成", "\nOperation pending")
-                : row.operation.desired
-                    ? com.deepseekharness.app.util.UiText.choose("\n等待启用", "\nEnable pending")
-                    : com.deepseekharness.app.util.UiText.choose("\n等待禁用", "\nDisable pending");
-        String phase =
-            switch (row.operation.phase) {
-              case "RUNNING" -> com.deepseekharness.app.util.UiText.choose("正在执行", "Running");
-              case "COMMITTING" ->
-                  com.deepseekharness.app.util.UiText.choose("正在确认提交", "Confirming commit");
-              default -> com.deepseekharness.app.util.UiText.choose("排队中", "Queued");
-            };
-        text += " · " + phase;
-        if (row.operation.percent >= 0) text += " · " + row.operation.percent + "%";
-      }
-      if (!row.operation.message.isEmpty())
-        text += "\n" + com.deepseekharness.app.util.UiStateText.render(row.operation.message);
+    if (row.pending()) {
+      String intent =
+          (row.operation.desired == null
+                  ? com.deepseekharness.app.util.UiText.choose("\n操作待完成", "\nOperation pending")
+                  : row.operation.desired
+                      ? com.deepseekharness.app.util.UiText.choose("\n等待启用", "\nEnable pending")
+                      : com.deepseekharness.app.util.UiText.choose("\n等待禁用", "\nDisable pending"))
+              .substring(1);
+      String phase =
+          switch (row.operation.phase) {
+            case "RUNNING" -> com.deepseekharness.app.util.UiText.choose("正在执行", "Running");
+            case "COMMITTING" ->
+                com.deepseekharness.app.util.UiText.choose("正在确认提交", "Confirming commit");
+            default -> com.deepseekharness.app.util.UiText.choose("排队中", "Queued");
+          };
+      String progress = intent + " · " + phase;
+      if (row.operation.percent >= 0) progress += " · " + row.operation.percent + "%";
+      return progress;
     }
-    return text;
+    return item.dynamic
+        ? com.deepseekharness.app.util.UiText.choose("临时插件", "Temporary plugin")
+        : !item.available
+            ? com.deepseekharness.app.util.UiText.text("实体缺失，请重新导入")
+            : item.enabled
+                ? com.deepseekharness.app.util.UiText.choose("配置：已启用", "Configuration: enabled")
+                : item.detected
+                    ? com.deepseekharness.app.util.UiText.text("已检测，可开启以加入 Web")
+                    : com.deepseekharness.app.util.UiText.choose(
+                        "配置：已禁用", "Configuration: disabled");
   }
 
   // ---------------------------------------------------------------- 方案 A 双栏详情窗格
@@ -1466,7 +1735,7 @@ public class PluginFragment extends Fragment {
     renderDetail();
   }
 
-  /** 右侧窗格：名称、说明、实时状态、版本/位置/来源，以及与卡片相同的开关、更多与删除。 */
+  /** 右侧窗格：同一张 item_plugin 卡片以 DETAIL 密度绑定，开关、更多与删除走与列表相同的回调。 */
   private void renderDetail() {
     if (!twoPane || detailPane == null) return;
     // 插件市场页没有可选条目：隐藏详情窗格，列表占满宽度。
@@ -1492,24 +1761,8 @@ public class PluginFragment extends Fragment {
             com.deepseekharness.app.util.UiText.choose(
                 "选择左侧插件查看详情", "Select a plugin to see its details"));
     if (row == null) return;
-    PluginRepository.Item item = row.entry.value;
-    ((TextView) detailPane.findViewById(R.id.plugin_detail_name)).setText(item.name);
-    ((TextView) detailPane.findViewById(R.id.plugin_detail_desc)).setText(descriptionText(item));
-    TextView state = detailPane.findViewById(R.id.plugin_detail_status);
-    state.setText(statusText(row));
-    state.setTextColor(requireContext().getColor(statusColor(row)));
-    ((TextView) detailPane.findViewById(R.id.plugin_detail_meta)).setText(metaText(item));
     ((TextView) detailPane.findViewById(R.id.plugin_detail_label))
         .setText(com.deepseekharness.app.util.UiText.choose("插件详情", "Plugin details"));
-    bindToggle(detailPane.findViewById(R.id.plugin_detail_switch), row);
-    TextView actions = detailPane.findViewById(R.id.plugin_detail_actions);
-    actions.setText(R.string.ui_m0146);
-    actions.setContentDescription(com.deepseekharness.app.util.UiText.format("更多操作：%s", item.name));
-    actions.setOnClickListener(v -> itemActions(item));
-    android.widget.Button delete = detailPane.findViewById(R.id.plugin_detail_delete);
-    delete.setVisibility(item.deletable ? View.VISIBLE : View.GONE);
-    delete.setEnabled(!row.pending());
-    delete.setText(com.deepseekharness.app.util.UiText.choose("删除插件", "Delete plugin"));
-    delete.setOnClickListener(v -> confirmDelete(item));
+    bindCard(detailPane.findViewById(R.id.plugin_detail_card), row, CardDensity.DETAIL);
   }
 }

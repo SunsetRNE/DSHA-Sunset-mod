@@ -10654,5 +10654,135 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/recovery/RecoveryRepairBroker.java"
     ]
+  },
+  {
+    "id": "pcard246a01",
+    "zh": "重启 Web 后生效。",
+    "en": "Restart Web to apply.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a02",
+    "zh": "可更新到 %s。",
+    "en": "Update to %s available.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a03",
+    "zh": "立即更新",
+    "en": "Update now",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a04",
+    "zh": "版本",
+    "en": "Version",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a05",
+    "zh": "位置",
+    "en": "Location",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a06",
+    "zh": "来源",
+    "en": "Source",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a07",
+    "zh": "复制插件路径",
+    "en": "Copy plugin path",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a08",
+    "zh": "安装目录 · 未验证",
+    "en": "Install dir · unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a09",
+    "zh": "作者未提供说明",
+    "en": "No description provided",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a10",
+    "zh": "DSHA 内置",
+    "en": "DSHA built-in",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a11",
+    "zh": "第三方",
+    "en": "Third-party",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a12",
+    "zh": "版本、位置、来源与能力声明",
+    "en": "Version, path, source and capabilities",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a13",
+    "zh": "导出为插件包文件",
+    "en": "Export as a plugin archive",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a14",
+    "zh": "向当前下载源查询新版本",
+    "en": "Ask the current download source for a newer version",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a15",
+    "zh": "从加载路径移除，原件保留在数据页",
+    "en": "Remove from the load path; the original stays in Data",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "pcard246a16",
+    "zh": "%s → %s",
+    "en": "%s → %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
   }
 ]

@@ -174,7 +174,7 @@ public final class PluginFragmentRenderingTest {
   public void runtimeEvidenceRefreshKeepsRowsAndDistinguishesHistoryFromCurrent() throws Exception {
     var alpha = item("alpha").withRuntime("loaded", 1);
     mount(state(catalog(List.of(alpha, item("beta"))), List.of(), false, "", -1));
-    assertTrue(text(rowAt(1).findViewById(R.id.pluginStatus)).contains("Current Web: loaded"));
+    assertTrue(text(rowAt(1).findViewById(R.id.pluginRuntime)).contains("Current Web: loaded"));
     publish(
         state(
             catalog(List.of(alpha.withRuntime("loaded", 1, true), item("beta"))),
@@ -182,7 +182,7 @@ public final class PluginFragmentRenderingTest {
             false,
             "",
             -1));
-    String stale = text(rowAt(1).findViewById(R.id.pluginStatus));
+    String stale = text(rowAt(1).findViewById(R.id.pluginRuntime));
     assertTrue(stale.contains("awaiting verification; last state: loaded"));
     assertFalse(stale.contains("Current Web: loaded"));
     for (String runtime : List.of("pending", "failed", "loaded")) {
@@ -194,7 +194,7 @@ public final class PluginFragmentRenderingTest {
               "",
               -1));
       assertTrue(
-          text(rowAt(1).findViewById(R.id.pluginStatus))
+          text(rowAt(1).findViewById(R.id.pluginRuntime))
               .contains(
                   runtime.equals("pending")
                       ? "waiting for services"
@@ -210,7 +210,7 @@ public final class PluginFragmentRenderingTest {
                 .put("version", "1.0")
                 .put("loadState", "loaded"));
     publish(state(catalog(List.of(historical)), List.of(), false, "", -1));
-    String history = text(rowAt(1).findViewById(R.id.pluginStatus));
+    String history = text(rowAt(1).findViewById(R.id.pluginRuntime));
     assertTrue(history.contains("Current Web: load unconfirmed"));
     assertTrue(history.contains("Last activation record: loaded"));
     assertFalse(history.contains("Current Web: loaded"));
@@ -242,8 +242,8 @@ public final class PluginFragmentRenderingTest {
   public void unrelatedOperationProgressDoesNotNotifyOrChangePluginRows() throws Exception {
     PluginRegistry.Snapshot catalog = catalog(List.of(item("alpha"), item("beta")));
     mount(state(catalog, List.of(), false, "", -1));
-    String alpha = text(rowAt(1).findViewById(R.id.pluginStatus));
-    String beta = text(rowAt(2).findViewById(R.id.pluginStatus));
+    String alpha = rowStatus(1);
+    String beta = rowStatus(2);
     Notifications observer = observe();
     PluginOperationQueue.Queue<String> queue = new PluginOperationQueue.Queue<>();
     var operation =
@@ -261,8 +261,8 @@ public final class PluginFragmentRenderingTest {
       publish(state(catalog, queue.snapshot(), true, "global progress", percent));
       assertEquals(percent, ((PluginTaskProgress) page.find(R.id.pluginBusy)).percent());
       observer.assertNone();
-      assertEquals(alpha, text(rowAt(1).findViewById(R.id.pluginStatus)));
-      assertEquals(beta, text(rowAt(2).findViewById(R.id.pluginStatus)));
+      assertEquals(alpha, rowStatus(1));
+      assertEquals(beta, rowStatus(2));
     }
   }
 
@@ -294,9 +294,9 @@ public final class PluginFragmentRenderingTest {
               null));
       publish(state(catalog, queue.snapshot(), true, "target progress", 10));
       View target = rowAt(targetPosition);
-      assertTrue(text(target.findViewById(R.id.pluginStatus)).contains("10%"));
+      assertTrue(rowStatus(targetPosition).contains("10%"));
       int otherPosition = targetPosition == 1 ? 2 : 1;
-      String otherStatus = text(rowAt(otherPosition).findViewById(R.id.pluginStatus));
+      String otherStatus = rowStatus(otherPosition);
       long targetId = adapter().getItemId(targetPosition);
       observer.clear();
 
@@ -315,8 +315,8 @@ public final class PluginFragmentRenderingTest {
       assertEquals(
           items.get(targetPosition - 1).name,
           text(rowAt(targetPosition).findViewById(R.id.pluginName)));
-      assertTrue(text(rowAt(targetPosition).findViewById(R.id.pluginStatus)).contains("70%"));
-      assertEquals(otherStatus, text(rowAt(otherPosition).findViewById(R.id.pluginStatus)));
+      assertTrue(rowStatus(targetPosition).contains("70%"));
+      assertEquals(otherStatus, rowStatus(otherPosition));
       assertEquals(0, adapter().getItemViewType(0));
     }
   }
@@ -624,6 +624,13 @@ public final class PluginFragmentRenderingTest {
   private static String text(View view) {
     assertNotNull(view);
     return ((TextView) view).getText().toString();
+  }
+
+  private String rowStatus(int position) {
+    View row = rowAt(position);
+    return text(row.findViewById(R.id.pluginStatus))
+        + "\n"
+        + text(row.findViewById(R.id.pluginRuntime));
   }
 
   private Notifications observe() {

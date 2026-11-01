@@ -1317,5 +1317,21 @@
   "fix245a007": "Isolar e manter originais",
   "fix245a008": "O isolamento não começou: outra tarefa está em andamento.",
   "fix245a009": "1. Parar o Web principal e os terminais e verificar a identidade dos processos.\n2. Recalcular dentro da barreira os registros de transações de plug-ins ilegíveis; parar se forem diferentes do confirmado.\n3. Mover apenas esses registros, sem alteração, para plugin-install-quarantine/<lote>/ com um inventário; nada é excluído, reescrito ou reexecutado.\n4. Sessões, configurações e outras transações não são afetadas; os plug-ins relacionados podem precisar ser reinstalados.\n5. Depois, recuperar a manutenção interrompida novamente ou tentar o Web principal outra vez.",
-  "fix245a010": "Mover registros de transações de plug-ins ilegíveis, sem alteração, para a quarentena; os originais são mantidos."
+  "fix245a010": "Mover registros de transações de plug-ins ilegíveis, sem alteração, para a quarentena; os originais são mantidos.",
+  "pcard246a01": "Reinicie a Web para aplicar.",
+  "pcard246a02": "Atualização para %s disponível.",
+  "pcard246a03": "Atualizar agora",
+  "pcard246a04": "Versão",
+  "pcard246a05": "Local",
+  "pcard246a06": "Origem",
+  "pcard246a07": "Copiar caminho do plugin",
+  "pcard246a08": "Pasta de instalação · não verificado",
+  "pcard246a09": "Sem descrição",
+  "pcard246a10": "Integrado ao DSHA",
+  "pcard246a11": "Terceiros",
+  "pcard246a12": "Versão, caminho, origem e capacidades",
+  "pcard246a13": "Exportar como arquivo de plugin",
+  "pcard246a14": "Consultar a origem de download atual por uma versão mais nova",
+  "pcard246a15": "Remover do caminho de carregamento; o original fica em Dados",
+  "pcard246a16": "%s → %s"
 }

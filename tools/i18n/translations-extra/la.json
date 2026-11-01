@@ -1317,5 +1317,21 @@
   "fix245a007": "Seiunge et archetypa serva",
   "fix245a008": "Seiunctio non coepit: aliud opus agitur.",
   "fix245a009": "1. Web principale et terminalia siste et identitatem processuum proba.\n2. Intra saeptum acta transactionum additamentorum illegibilia denuo computa; si ab confirmatis differunt, siste.\n3. Ea sola immutata in plugin-install-quarantine/<fasciculus>/ cum indice move; nihil deletur, rescribitur aut iteratur.\n4. Sessiones, optiones et aliae transactiones non afficiuntur; additamenta coniuncta fortasse denuo inauguranda erunt.\n5. Postea curationem interruptam iterum restitue aut Web principale iterum tempta.",
-  "fix245a010": "Acta transactionum additamentorum illegibilia immutata in custodiam move; archetypa servantur."
+  "fix245a010": "Acta transactionum additamentorum illegibilia immutata in custodiam move; archetypa servantur.",
+  "pcard246a01": "Web iterum incipe ut valeat.",
+  "pcard246a02": "Renovatio ad %s praesto est.",
+  "pcard246a03": "Nunc renova",
+  "pcard246a04": "Versio",
+  "pcard246a05": "Locus",
+  "pcard246a06": "Origo",
+  "pcard246a07": "Viam plugini exscribe",
+  "pcard246a08": "Directorium · non probatum",
+  "pcard246a09": "Nulla descriptio data",
+  "pcard246a10": "DSHA insitum",
+  "pcard246a11": "Alienum",
+  "pcard246a12": "Versio, via, origo et facultates",
+  "pcard246a13": "Ut archivum pluginorum exporta",
+  "pcard246a14": "Fontem currentem de versione recentiore interroga",
+  "pcard246a15": "E via onerandi remove; originale in Data manet",
+  "pcard246a16": "%s → %s"
 }

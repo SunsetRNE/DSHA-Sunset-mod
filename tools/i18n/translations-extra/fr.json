@@ -1317,5 +1317,21 @@
   "fix245a007": "Isoler et conserver les originaux",
   "fix245a008": "L’isolement n’a pas démarré : une autre tâche est en cours.",
   "fix245a009": "1. Arrêter le Web principal et les terminaux et vérifier l’identité des processus.\n2. Recalculer dans la barrière les journaux de transactions de plugins illisibles ; s’arrêter s’ils diffèrent de ce qui a été confirmé.\n3. Déplacer uniquement ces enregistrements, tels quels, dans plugin-install-quarantine/<lot>/ avec un inventaire ; rien n’est supprimé, réécrit ni rejoué.\n4. Les sessions, paramètres et autres transactions ne sont pas touchés ; les plugins concernés devront peut-être être réinstallés.\n5. Ensuite, relancer la récupération de la maintenance interrompue ou réessayer le Web principal.",
-  "fix245a010": "Déplacer tels quels les journaux de transactions de plugins illisibles en quarantaine ; les originaux sont conservés."
+  "fix245a010": "Déplacer tels quels les journaux de transactions de plugins illisibles en quarantaine ; les originaux sont conservés.",
+  "pcard246a01": "Redémarrez Web pour appliquer.",
+  "pcard246a02": "Mise à jour vers %s disponible.",
+  "pcard246a03": "Mettre à jour",
+  "pcard246a04": "Version",
+  "pcard246a05": "Emplacement",
+  "pcard246a06": "Source",
+  "pcard246a07": "Copier le chemin du plugin",
+  "pcard246a08": "Dossier d’installation · non vérifié",
+  "pcard246a09": "Aucune description fournie",
+  "pcard246a10": "Intégré à DSHA",
+  "pcard246a11": "Tiers",
+  "pcard246a12": "Version, chemin, source et capacités",
+  "pcard246a13": "Exporter en archive de plugin",
+  "pcard246a14": "Interroger la source de téléchargement actuelle pour une version plus récente",
+  "pcard246a15": "Retirer du chemin de chargement ; l’original reste dans Données",
+  "pcard246a16": "%s → %s"
 }
