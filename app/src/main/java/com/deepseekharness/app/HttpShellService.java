@@ -265,6 +265,7 @@ public final class HttpShellService {
     routes.put(BridgeRoutes.Route.READ_FILE, (s, r) -> s.appReadFile(r.path));
     routes.put(BridgeRoutes.Route.HEALTH, (s, r) -> "OK");
     routes.put(BridgeRoutes.Route.UI, (s, r) -> s.appUi(r.path, r.scope));
+    routes.put(BridgeRoutes.Route.SENSE, (s, r) -> s.appSense(r.path, r.scope));
     routes.put(BridgeRoutes.Route.VSCREEN, (s, r) -> s.handleVscreen(r));
     routes.put(BridgeRoutes.Route.DEVICE, (s, r) -> s.appDevice());
     routes.put(BridgeRoutes.Route.APPS, (s, r) -> s.appList(r.path));
@@ -866,6 +867,7 @@ public final class HttpShellService {
         } else {
           if (!post
               && (selected == BridgeRoutes.Route.UI
+                  || selected == BridgeRoutes.Route.SENSE
                   || selected == BridgeRoutes.Route.VSCREEN
                   || selected == BridgeRoutes.Route.LAUNCH)) monitorScreenPeer(scope, requestInput);
           BridgeRequest bridgeRequest =
@@ -1557,11 +1559,20 @@ public final class HttpShellService {
     return t.length() > 24 ? t.substring(0, 24) + "…" : t;
   }
 
+  /** Strict ScreenSense namespace; the implementation reuses the existing task/auth fence. */
+  private String appSense(String path, RequestScope scope) {
+    String route = path.split("\\?", 2)[0];
+    if (!route.equals("/app/sense/state")) return "[ERR] UNKNOWN_ROUTE";
+    String query = queryOf(path);
+    return appUi("/app/ui/sense/state" + (query.isEmpty() ? "" : "?" + query), scope);
+  }
+
   /** Main-screen adapter receives an explicit request and the caller's observation evidence. */
   private String appUi(String path, RequestScope scope) {
     String route = path.split("\\?", 2)[0];
     String operation = route.substring("/app/ui/".length());
     if (operation.equals("shot")) operation = "screenshot";
+    if (operation.equals("sense/state")) operation = "senseState";
     if (!java.util.Set.of(
             "dump",
             "screenshot",
@@ -1570,6 +1581,7 @@ public final class HttpShellService {
             "key",
             "swipe",
             "tree",
+            "senseState",
             "node",
             "task-begin",
             "task-end")
@@ -1638,7 +1650,8 @@ public final class HttpShellService {
             .put("needsObservation", true)
             .toString();
       }
-      boolean observing = java.util.Set.of("dump", "tree", "screenshot").contains(operation);
+      boolean observing =
+          java.util.Set.of("dump", "tree", "screenshot", "senseState").contains(operation);
       var screenUi =
           com.deepseekharness.app.assistant.AssistantService.prepareScreenOperation(
               ctx, binding, observing);
@@ -1986,7 +1999,7 @@ public final class HttpShellService {
     // rather than the Web process's language captured before an in-place language change.
     return String.format(
         java.util.Locale.ROOT,
-        "BRIDGE_PROTOCOL=%s\nBRIDGE_PORT=%s\nAPPLICATION_ID=%s\nBRIDGE_AUTH=header-x-token\nAPP_VERSION=%s\nAPP_CODE=%s\nUI_LANGUAGE=%s\nHINT=See /app/help; compare protocol with >=\n",
+        "BRIDGE_PROTOCOL=%s\nBRIDGE_PORT=%s\nAPPLICATION_ID=%s\nBRIDGE_AUTH=header-x-token\nSCREEN_SENSE=1\nAPP_VERSION=%s\nAPP_CODE=%s\nUI_LANGUAGE=%s\nHINT=See /app/help; compare protocol with >=\n",
         BRIDGE_PROTOCOL,
         bridgePort,
         ctx.getPackageName(),
@@ -2017,6 +2030,8 @@ public final class HttpShellService {
         com.deepseekharness.app.util.UiText.choose(
             "\n== root 命令拦截档位 ==\n设置 → 设备能力授权 → Root 命令拦截：严格（默认，仅白名单）、放宽（任意命令，但拦截格式化/刷机/重启/清数据等不可逆操作）、完全放宽（不按命令内容拦截）。档位只对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档，短信读取三档都需要原生授权。\n",
             "\n== Root command interception modes ==\nSettings → Device permissions → Root command interception: Strict (default, allow-list only), Relaxed (any command, but irreversible operations such as formatting, flashing, reboot or clearing app data stay blocked), Full (no command-content checks). Modes apply to the root channel only; the generic Shizuku/ADB executor stays strict, and SMS reads still require native authorization in all modes.\n");
+    String senseHelp =
+        "\n== 紧凑识屏预览（ScreenSense） ==\n/app/sense/state?taskSessionId=...&turnId=...&geom=0|1&max=200&full=1\n该端点复用手机任务、无障碍授权、窗口代次和 owner 围栏，只返回全量紧凑树状态；返回的 k*** 仅为本次预览标识，不是动作凭据。动作仍使用最新 /app/ui/tree 或 dump 返回的 treeId/nodeId；Android 接受动作不等于业务状态已变化，不自动重放 UNKNOWN。\n";
     String taskHelp =
         com.deepseekharness.app.util.UiText.choose(
             "\n== 当前对话手机任务 ==\n用户明确要求手机操作时，先 /app/ui/task-begin；包括只启动应用的任务。每次请求携带真实工具环境的 taskSessionId=$DSH_PHONE_SESSION_ID 与 turnId=$DSH_PHONE_TURN_ID；不猜测或复制其它会话身份。begin 只显示当前对话状态和建立任务围栏，不授予系统权限、不自动批准动作。需要读屏再 dump/tree/screenshot；任务窗口会先隐藏，窗口可见状态变化后必须重新观察。成功 begin 后，任务完成或放弃时在 finally 收尾中调用一次 /app/ui/task-end，完成围栏；正常完成会关闭任务窗口，但用户在本机展开并暂停的任务会保留控制窗供明确继续或停止，不取消模型对话；本轮结束后不再重新 begin。完成收尾不证明 UNKNOWN 动作已成功或已退出，不自动重放。普通讨论、引用或翻译不开始手机任务。\n",
@@ -2026,6 +2041,7 @@ public final class HttpShellService {
                 BRIDGE_PROTOCOL)
             .replace("3090", Integer.toString(bridgePort))
         + taskHelp
+        + senseHelp
         + rootPolicyHelp;
   }
 

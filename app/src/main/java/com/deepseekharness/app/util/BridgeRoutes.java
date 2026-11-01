@@ -21,6 +21,7 @@ public final class BridgeRoutes {
     READ_FILE(false),
     HEALTH(false),
     UI(false),
+    SENSE(false),
     VSCREEN(false),
     DEVICE(false),
     APPS(false),
@@ -107,6 +108,7 @@ public final class BridgeRoutes {
     Route exact = EXACT.get(path);
     if (exact != null) return exact;
     if (path.startsWith("/app/ui/")) return Route.UI;
+    if (path.equals("/app/sense/state")) return Route.SENSE;
     if (path.startsWith("/app/vscreen/")) return Route.VSCREEN;
     return Route.UNKNOWN;
   }

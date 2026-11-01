@@ -9,6 +9,7 @@ import com.deepseekharness.app.util.ScreenConnectionEpoch;
 import com.deepseekharness.app.util.ScreenNodeLeaseStore;
 import com.deepseekharness.app.util.ScreenObservationLedger;
 import com.deepseekharness.app.util.ScreenRequestExecutor;
+import com.deepseekharness.app.util.ScreenSenseStateStore;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,8 +46,11 @@ public final class MainScreenActions {
       new ScreenObservationLedger(SystemClock::elapsedRealtime);
   private final ScreenNodeLeaseStore<ScreenSemanticNode> nodes =
       new ScreenNodeLeaseStore<>(SystemClock::elapsedRealtime, ScreenSemanticNode::close);
+  private final ScreenSenseStateStore senseStates =
+      new ScreenSenseStateStore(SystemClock::elapsedRealtime);
   private final ScreenScreenshotCapture captures = new ScreenScreenshotCapture();
   private final ScreenSnapshotReader reader = new ScreenSnapshotReader();
+  private final ScreenSenseReader senseReader = new ScreenSenseReader();
   private final ScreenActionExecutor actions =
       new ScreenActionExecutor(captures, observations, nodes);
 
@@ -152,6 +156,7 @@ public final class MainScreenActions {
     connection.revoke();
     observations.clear();
     nodes.clear();
+    senseStates.clear();
   }
 
   public String execute(
@@ -263,13 +268,35 @@ public final class MainScreenActions {
         "bridgeRunId", bridgeRunId);
   }
 
+  private static boolean flag(JSONObject args, String name) {
+    Object value = args.opt(name);
+    return value instanceof Boolean
+        ? (Boolean) value
+        : value != null
+            && ("1".equals(value.toString()) || "true".equalsIgnoreCase(value.toString()));
+  }
+
   private JSONObject run(ScreenRequestContext context, String operation, JSONObject args)
       throws Exception {
-    boolean mutating =
-        !operation.equals("dump") && !operation.equals("tree") && !operation.equals("screenshot");
+    boolean senseState = operation.equals("senseState");
+    boolean observing =
+        senseState
+            || operation.equals("dump")
+            || operation.equals("tree")
+            || operation.equals("screenshot");
+    boolean mutating = !observing;
     try {
       if (!mutating && !context.claimDispatch())
         return ScreenReply.refused("CAPABILITY_NOT_AUTHORIZED");
+      if (senseState) {
+        nodes.clear();
+        return senseReader.read(
+            context,
+            senseStates,
+            flag(args, "geom"),
+            args.has("max") ? args.optInt("max", 200) : 200,
+            flag(args, "full"));
+      }
       if (operation.equals("dump") || operation.equals("tree")) return reader.read(context, nodes);
       if (operation.equals("screenshot"))
         return screenshot(
@@ -281,6 +308,7 @@ public final class MainScreenActions {
       if (mutating) {
         observations.clear();
         nodes.clear();
+        senseStates.clearOwner(context.ownerIdentity());
       }
     }
   }
