@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.3-20261101.1830-dsh0.2.1-rc.5 / build249
+# DSHA 0.2.1-rc.3-20261101.2030-dsh0.2.1-rc.5 / build250
 
-- Updates the publication identity to versionCode 249, based on build248; the bundled DSH, package name and release certificate remain unchanged.
-- This build is intended for remote CI compilation and unsigned package gates; it does not prefill a signed APK, Release publication, device installation or overwrite-upgrade result.
-- The exact commit, CI logs and Release receipt define the verification scope; device acceptance is recorded separately.
+- Configuration snapshots can be deleted again. Interrupted writes no longer leave partial directories, and old snapshots are deleted in two steps. A damaged or manually deleted snapshot no longer makes pre-repair snapshots, configuration creation and plugin removal fail; unverifiable leftovers move to quarantine and no longer fill the snapshot limit.
+- Startup recovery page: damaged snapshots show the reason and can be deleted; tapping an ordinary snapshot offers Restore or Delete; quarantine can be emptied at once. Deleting removes only the snapshot copy; current configuration is unchanged.
+- Verification scope: local unit tests and static checks only; not installed on a device, and UI tests and Lint are left to CI. Raises versionCode to 250 (based on build249). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.

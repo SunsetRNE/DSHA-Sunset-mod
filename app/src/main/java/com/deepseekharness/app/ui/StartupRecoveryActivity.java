@@ -196,6 +196,77 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
         .show();
   }
 
+  /** 正常快照：恢复为主操作，删除为次要操作并单独二次确认。 */
+  private void snapshotActions(JSONObject record, String label) {
+    JSONObject restore = request("restore");
+    try {
+      restore.put("slot", record.getString("slot")).put("id", record.getString("id"));
+    } catch (JSONException ignored) {
+    }
+    String missing =
+        record.optJSONArray("missing") != null && record.optJSONArray("missing").length() > 0
+            ? t("\n快照中原本不存在，将恢复为缺失：", "\nAbsent in this snapshot; restore to absence: ")
+                + record.optJSONArray("missing")
+            : "";
+    // 选择本身不是安全确认；所选动作再各自进入既有确认，全局确认策略不会替用户选“恢复”。
+    String[] choices = {t("恢复此快照", "Restore this snapshot"), t("删除此快照", "Delete this snapshot")};
+    new com.deepseekharness.app.ui.DshaDialogBuilder(this)
+        .setTitle(label)
+        .setItems(
+            choices,
+            (d, index) -> {
+              if (index == 0)
+                confirm(
+                    t("恢复所选配置快照", "Restore selected configuration snapshot"),
+                    label
+                        + "\n"
+                        + record.optJSONArray("files")
+                        + missing
+                        + t(
+                            "\n只恢复这些配置文件；已卸载的插件不会自动重新安装。",
+                            "\nRestore only these configuration files. Removed plugins are not automatically reinstalled."),
+                    () -> repair(restore));
+              else confirmDiscard(label, discardRequest(record));
+            })
+        .setNegativeButton(t("取消", "Cancel"), null)
+        .show();
+  }
+
+  private static JSONObject discardRequest(JSONObject record) {
+    JSONObject value = request("discard");
+    try {
+      value.put("slot", record.optString("slot"));
+      if (!record.optString("id").isEmpty()) value.put("id", record.optString("id"));
+      if (!record.optString("fingerprint").isEmpty())
+        value.put("fingerprint", record.optString("fingerprint"));
+    } catch (JSONException ignored) {
+    }
+    return value;
+  }
+
+  private static JSONObject discardRetainedRequest() {
+    JSONObject value = request("discard-retained");
+    try {
+      value.put("target", "all");
+    } catch (JSONException ignored) {
+    }
+    return value;
+  }
+
+  /** 删除只移除快照副本，不改动当前配置；需要再次确认。 */
+  private void confirmDiscard(String detail, JSONObject request) {
+    new com.deepseekharness.app.ui.DshaDialogBuilder(this, true)
+        .setTitle(t("删除配置快照", "Delete configuration snapshot"))
+        .setMessage(
+            detail
+                + t(
+                    "\n\n只删除这份快照副本，当前配置、会话与插件不受影响。删除后无法用它恢复。",
+                    "\n\nOnly this snapshot copy is deleted. Current configuration, sessions, and plugins are unaffected. It cannot be used for restore afterwards."))
+        .setNegativeButton(t("取消", "Cancel"), null)
+        .setPositiveButton(t("删除", "Delete"), (d, w) -> repair(request))
+        .show();
+  }
+
   private void repair(JSONObject request) {
     if (!BackupTask.get(this).repairStartup(request))
       Toast.makeText(
@@ -308,10 +379,20 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
         JSONObject record = records.optJSONObject(i);
         if (record == null) continue;
         if (record.optBoolean("invalid")) {
-          label(
-              snapshots,
+          // 损坏快照禁止恢复，但必须能删除；否则它会一直占着槽位与列表。
+          String damaged =
               t("快照损坏，已禁止恢复：", "Snapshot is damaged and cannot be restored: ")
-                  + record.optString("slot"));
+                  + record.optString("slot")
+                  + (record.optString("error").isEmpty() ? "" : " · " + record.optString("error"));
+          button(
+              snapshots,
+              damaged,
+              () ->
+                  confirmDiscard(
+                      damaged
+                          + (record.optString("id").isEmpty() ? "" : "\n" + record.optString("id")),
+                      discardRequest(record)),
+              true);
           continue;
         }
         String label =
@@ -320,34 +401,30 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
                     : t("修复之前", "Before repair"))
                 + " · "
                 + date(record.optLong("created"));
-        button(
-            snapshots,
-            label,
-            () -> {
-              JSONObject request = request("restore");
-              try {
-                request.put("slot", record.getString("slot")).put("id", record.getString("id"));
-              } catch (JSONException ignored) {
-              }
-              String missing =
-                  record.optJSONArray("missing") != null
-                          && record.optJSONArray("missing").length() > 0
-                      ? t("\n快照中原本不存在，将恢复为缺失：", "\nAbsent in this snapshot; restore to absence: ")
-                          + record.optJSONArray("missing")
-                      : "";
-              confirm(
-                  t("恢复所选配置快照", "Restore selected configuration snapshot"),
-                  label
-                      + "\n"
-                      + record.optJSONArray("files")
-                      + missing
-                      + t(
-                          "\n只恢复这些配置文件；已卸载的插件不会自动重新安装。",
-                          "\nRestore only these configuration files. Removed plugins are not automatically reinstalled."),
-                  () -> repair(request));
-            },
-            true);
+        button(snapshots, label, () -> snapshotActions(record, label), true);
       }
+    JSONObject retained = value.optJSONObject("retained");
+    int retainedCount = retained == null ? 0 : retained.optInt("count");
+    if (retainedCount > 0) {
+      String summary =
+          String.format(
+              Locale.ROOT,
+              t(
+                  "已隔离 %d 份无法校验的异常快照（不参与恢复与轮换）",
+                  "%d unverifiable snapshots are quarantined (excluded from restore and rotation)"),
+              retainedCount);
+      button(
+          snapshots,
+          summary + " · " + t("删除", "Delete"),
+          () ->
+              confirmDiscard(
+                  summary
+                      + t(
+                          "\n这些是旧版本写入中断或校验失败留下的副本，无法用于恢复。",
+                          "\nThese copies were left by interrupted writes or failed checks in older versions and cannot be restored."),
+                  discardRetainedRequest()),
+          true);
+    }
 
     JSONArray items = value.optJSONArray("items");
     int count = 0;
@@ -409,6 +486,16 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
       return t(
           "配置或快照已变化，请刷新后重新选择。",
           "The configuration or snapshot changed. Refresh and select it again.");
+    if (value.contains("RECOVERY_RETENTION_LIMIT"))
+      return t(
+          "配置快照目录已满且无法自动整理，请删除损坏或隔离的快照后重试。",
+          "The configuration snapshot directory is full and could not be tidied. Delete damaged or quarantined snapshots, then retry.");
+    if (value.contains("RECOVERY_CATALOG"))
+      return t(
+          "快照目录索引无法读取，已停止整理以免误删；原文件保留，可导出日志排查。",
+          "The snapshot index cannot be read. Tidying stopped to avoid deleting anything; originals were retained. Export logs to investigate.");
+    if (value.contains("RECOVERY_SLOT"))
+      return t("所选快照不能删除或恢复。", "The selected snapshot cannot be deleted or restored.");
     if (value.contains("RECOVERY_SIZE"))
       return t(
           "配置文件超过快照大小限制或不是普通文件，原文件保留。",

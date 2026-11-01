@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build249 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build250 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build249 `0.2.1-rc.3-20261101.1830-dsh0.2.1-rc.5`.** This is a CI identity update based on build248. versionCode 249, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. No signed APK, Release publication or device result is prefilled. See the [build249 notes](../releases/build249-changes.en.md), [build249 record](../releases/v0.2.1-rc.3-build249-ci-20261101.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build250 `0.2.1-rc.3-20261101.2030-dsh0.2.1-rc.5`.** Configuration snapshots can be deleted again: failed captures leave nothing behind, damaged or dangling snapshots no longer block pre-repair snapshots, configuration creation or plugin removal, unverifiable leftovers are quarantined, and the startup recovery page can delete snapshots and empty quarantine. Local unit tests only; not installed on a device. versionCode 250, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build250 notes](../releases/build250-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261031`, 696,361,527 B, SHA-256 `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

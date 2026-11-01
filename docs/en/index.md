@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.1830-dsh0.2.1-rc.5` / build249 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is a CI identity update based on build248; it adds no new device-acceptance claim and does not prefill signed APK or Release results. See the [build249 notes](../releases/build249-changes.en.md) and the [build249 record](../releases/v0.2.1-rc.3-build249-ci-20261101.md).
+Current source: `0.2.1-rc.3-20261101.2030-dsh0.2.1-rc.5` / build250 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes configuration snapshots that could not be deleted: interrupted captures leave no partial directory, rotation deletes in two steps, damaged or dangling slots are replaced first, and unverifiable unreferenced directories move to quarantine, so pre-repair snapshots, configuration creation and plugin removal no longer get stuck. The startup recovery page can delete ordinary and damaged snapshots and empty quarantine. See the [build250 notes](../releases/build250-changes.en.md) and the [build250 record](../releases/v0.2.1-rc.3-build250-config-snapshot-20261101.md). Local unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

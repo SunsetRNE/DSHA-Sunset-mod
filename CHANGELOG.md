@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261101.2030-dsh0.2.1-rc.5 / build250（配置快照删不掉，坏快照不再卡死写入，恢复页可删除）
+
+- 修复配置快照“删不掉”及连带卡死：捕获中断（超 4 MiB、链接、源变化、取消）不再留下无元数据的半成品目录；轮换改为先 rename 到 `retiring/` 再清理，删除中断不再产生“元数据在、正文缺”的永久残留；删除失败只写诊断，不把已提交的目录更新报告为失败。
+- 选择槽位时坏或悬空（被手动删掉目录）的槽位最先替换，不再让“修复前快照”、新建配置与插件卸载前置全部报 `RECOVERY_CHECKSUM` / `UNSAFE_ROOT`。无法校验的未引用目录移入 `retained/` 隔离区（最多 32 份），不再计入 72 份上限，`RECOVERY_RETENTION_LIMIT` 死锁解除；异常原件仍不自动删除。
+- 启动恢复页：损坏快照显示错误码并可删除；普通快照点开后可选“恢复”或“删除”；隔离区可一次清空；均需原生确认与维护屏障，不改动当前配置。`catalog.json` 不可读时回退到 `.previous`；旧状态标记只保留最近 8 份；启动诊断改为记录受控错误码。
+- 验证范围：本机 `compileStandardDebugJavaWithJavac` 通过；`ConfigurationSnapshotsTest`、新增 `ConfigurationSnapshotsRetentionTest` 及相关宿主维护测试共 59 项在 JDK 21 + JUnit 4 下通过；源码卫生、UI i18n、资源本地化、运行时描述符、Java 格式与文档链接门禁通过。aarch64 上 AAPT2 守护进程无法启动，Robolectric 界面测试与 Lint 未运行；未在真机安装验证。版本码提升为 250（基于 build249）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build250 更新说明](docs/releases/build250-changes.zh.md)，验证记录见 [build250 记录](docs/releases/v0.2.1-rc.3-build250-config-snapshot-20261101.md)。
+
 ## 0.2.1-rc.3-20261101.1830-dsh0.2.1-rc.5 / build249（CI 编译身份更新：基于 build248 的未签名门禁）
 
 - 版本身份更新为 versionCode 249，基于 build248；内置 DSH、包名与 Mod 发布证书保持不变。

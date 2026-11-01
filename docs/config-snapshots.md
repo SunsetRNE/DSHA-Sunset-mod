@@ -21,6 +21,16 @@ DSHA 有三类不同的配置保护：启动六文件快照保护 DSH 启动配�
 
 新快照位于应用私有 `files/startup-config-snapshots/<UUID>/`。正文编号 0–5，`metadata.json` 记录存在状态、尺寸、摘要、创建时间与来源 DSH 版本；单文件上限 4 MiB。捕获后重新核对源内容和私有副本，再更新目录索引。目录保留三份 `healthy-*`、三份 `before-*` 和独立启动 `candidate` 引用；异常原件不作为正常轮换对象删除，恢复选中的快照会固定到本次操作结束。
 
+### 轮换、隔离与删除
+
+- **捕获失败不留残件**：超限、链接、源变化或取消导致捕获中断时，只回收本次刚建且 inode 未变的目录；它从未进入目录索引，不属于异常原件。
+- **两段删除**：删除先一次 rename 移入 `retiring/`，再递归清理；中途中断只留下 `retiring/` 中的残片，下一次整理继续，不再出现“元数据还在、正文已删”的目录。删除失败只写诊断（`STARTUP_CHECKPOINT_TIDY`），不把已提交的目录更新报告为失败。
+- **隔离区**：未被目录引用、又无法通过校验的目录移入 `retained/<UUID>`，最多 32 份，不参与恢复、轮换和数量上限；隔离区已满时原地保留并记诊断，不阻断后续快照。72 份上限只统计合法命名的快照目录，且在计数前先整理。
+- **坏槽位不卡写入**：选择写入槽位时，已损坏或悬空（目录已被手动删除）的槽位最先被替换，其余按空位、最旧顺序；被替换的坏快照随后进入隔离区。
+- **目录索引**：`catalog.json` 不可读时回退到上一次原子写留下的 `catalog.json.previous`；两份都不可读时不整理、不新建，写入明确失败（`RECOVERY_CATALOG`）。
+- **显式删除**：恢复页可删除任一普通快照（按 slot + id 绑定当前目录值）、损坏快照、旧版检查点（按 inode/大小/修改时间绑定）和隔离区全部内容；均需维护屏障与原生确认，不改动当前配置。启动 `candidate` 与旧版中断修复输入 `pending` 不可删除；仍被候选引用的正文只移除列表项。
+- 无日志的旧状态标记保留在 `retained-markers/`，只保留最近 8 份。
+
 ### 何时成为健康快照
 
 启动前先捕获 candidate，记录本次 startup ID。只有当前代次已报告浏览器就绪、未进入停止、且六个文件仍与启动前候选完全一致时，[StartupRepairs.healthy](../app/src/main/java/com/deepseekharness/app/core/StartupRepairs.java) 才保存健康引用。仅启动了进程、页面跳转或一次鉴权成功都不能替代这一条件；启动中用户改配置会使候选不再符合，不产生虚假的健康记录。
@@ -61,6 +71,6 @@ v5 手动备份通过 [ConfigStore.exportPortableSettings/prepareHostSettings](.
 
 ## 修改和验证入口
 
-[ConfigurationSnapshotsTest](../app/src/test/java/com/deepseekharness/app/backup/ConfigurationSnapshotsTest.java) 覆盖捕获、轮换、源变更、固定快照和事务；[LegacyConfigurationSnapshot](../app/src/main/java/com/deepseekharness/app/backup/LegacyConfigurationSnapshot.java) 约束历史读取；[ConfigStore](../app/src/main/java/com/deepseekharness/app/core/ConfigStore.java) 与凭据四态是设置导入入口。新增配置字段时，须分别判断是否属于快照正文、用户备份、系统迁移白名单和本机专有状态，不能一并导入。
+[ConfigurationSnapshotsTest](../app/src/test/java/com/deepseekharness/app/backup/ConfigurationSnapshotsTest.java) 覆盖捕获、轮换、源变更、固定快照和事务；[ConfigurationSnapshotsRetentionTest](../app/src/test/java/com/deepseekharness/app/backup/ConfigurationSnapshotsRetentionTest.java) 覆盖捕获失败回收、孤儿隔离、坏/悬空槽位、两段删除中断、删除失败不回报、显式删除绑定、目录索引回退与标记限量；[LegacyConfigurationSnapshot](../app/src/main/java/com/deepseekharness/app/backup/LegacyConfigurationSnapshot.java) 约束历史读取；[ConfigStore](../app/src/main/java/com/deepseekharness/app/core/ConfigStore.java) 与凭据四态是设置导入入口。新增配置字段时，须分别判断是否属于快照正文、用户备份、系统迁移白名单和本机专有状态，不能一并导入。
 
 本页只核对调用链和相对引用。历史强杀/临时目录测试不等于 Android 掉电持久性；未对本轮包做真实恢复、卸载迁移或所有历史数据矩阵复测。

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.1830-dsh0.2.1-rc.5` / build249 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是基于 build248 的 CI 编译身份更新；不新增功能验收结论，不预填正式 APK、Release 或设备结果。更新说明见 [build249 更新说明](releases/build249-changes.zh.md)，验证记录见 [build249 记录](releases/v0.2.1-rc.3-build249-ci-20261101.md)。
+当前源码：`0.2.1-rc.3-20261101.2030-dsh0.2.1-rc.5` / build250 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复配置快照“删不掉”：捕获中断不留半成品，轮换改为两段删除，坏或悬空的槽位优先替换，无法校验的未引用目录进入隔离区，不再卡死修复前快照、新建配置与插件卸载；启动恢复页可删除普通、损坏快照及隔离区。改动说明见 [build250 更新说明](releases/build250-changes.zh.md)，验证记录见 [build250 记录](releases/v0.2.1-rc.3-build250-config-snapshot-20261101.md)。本机相关单测与静态门禁通过；未在真机安装验证，界面测试与 Lint 交由 CI；构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

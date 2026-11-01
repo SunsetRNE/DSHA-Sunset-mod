@@ -130,13 +130,16 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("版本身份更新为 versionCode 249"));
-      assertTrue(shown.contains("远端 CI 编译"));
-      assertTrue(shown.contains("未签名 package 门禁"));
-      assertFalse(shown.contains("插件页卡片重构"));
+      assertTrue(shown.contains("修复配置快照删不掉"));
+      assertTrue(shown.contains("无法校验的残留移入隔离区"));
+      assertTrue(shown.contains("可选「恢复」或「删除」"));
+      assertTrue(shown.contains("未在真机安装验证"));
+      assertTrue(shown.contains("版本码提升为 250"));
       assertFalse(shown.contains("版本码提升为 248"));
+      assertFalse(shown.contains("插件页卡片重构"));
       assertFalse(shown.contains("版本码提升为 247"));
       assertFalse(shown.contains("压缩为一张单列表"));
+      assertFalse(shown.contains("版本身份更新为 versionCode 249"));
       assertFalse(shown.contains("plugin-install-quarantine"));
       assertFalse(shown.contains("版本码提升为 242"));
       assertFalse(shown.contains("版本码提升为 220"));
@@ -160,13 +163,16 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Updates the publication identity to versionCode 249"));
-      assertTrue(shown.contains("remote CI compilation"));
-      assertTrue(shown.contains("unsigned package gates"));
-      assertFalse(shown.contains("share one card"));
+      assertTrue(shown.contains("Configuration snapshots can be deleted again"));
+      assertTrue(shown.contains("unverifiable leftovers move to quarantine"));
+      assertTrue(shown.contains("offers Restore or Delete"));
+      assertTrue(shown.contains("not installed on a device"));
+      assertTrue(shown.contains("Raises versionCode to 250"));
       assertFalse(shown.contains("Raises versionCode to 248"));
+      assertFalse(shown.contains("share one card"));
       assertFalse(shown.contains("Raises versionCode to 247"));
       assertFalse(shown.contains("is now a single list"));
+      assertFalse(shown.contains("Updates the publication identity to versionCode 249"));
       assertFalse(shown.contains("plugin-install-quarantine"));
       assertFalse(shown.contains("Raises versionCode to 242"));
       assertFalse(shown.contains("Raises versionCode to 220"));

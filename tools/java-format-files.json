@@ -788,6 +788,7 @@
     "app/src/test/java/com/deepseekharness/app/backup/ColdProbeCleanupTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/ConfigResetCrashProcess.java",
     "app/src/test/java/com/deepseekharness/app/backup/ConfigurationCrashProcess.java",
+    "app/src/test/java/com/deepseekharness/app/backup/ConfigurationSnapshotsRetentionTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/ConfigurationSnapshotsTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/CredentialProjectionTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/DataFormatEvidenceTest.java",

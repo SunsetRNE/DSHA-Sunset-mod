@@ -348,7 +348,8 @@ final class StartupPipeline {
         diagnostics.message(
             generation,
             com.deepseekharness.app.util.UiText.format(
-                "本次配置快照暂不可用：%s", error.getClass().getSimpleName()));
+                "本次配置快照暂不可用：%s",
+                com.deepseekharness.app.backup.ConfigurationSnapshots.errorCode(error)));
       }
     return startupProfile;
   }
