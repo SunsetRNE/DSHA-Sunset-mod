@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.2100-dsh0.2.1-rc.5` / build251 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build redesigns the plugin page header: the title and Market / Manage share a row with a plugin count badge, progress, status, Cancel and Check updates merge into one wave-progress status strip, and the market and manage inputs, filters and download source each collapse to one row. Local plugin unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build251 notes](../releases/build251-changes.en.md) and the [build251 record](../releases/v0.2.1-rc.3-build251-plugin-header-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.2130-dsh0.2.1-rc.5` / build252 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build simplifies the self-check and diagnostics page: phones show status, results, feedback and tools in three sections, tablets use two columns; items needing attention come first, unverified checks are marked separately and healthy ones collapse; export becomes a sheet that picks a diagnostic bundle or a text report. Local unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build252 notes](../releases/build252-changes.en.md) and the [build252 record](../releases/v0.2.1-rc.3-build252-diagnostics-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

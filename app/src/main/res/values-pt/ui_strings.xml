@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"Copiar"</string>
     <string name="device_checking" formatted="false">"Verificando autorização…"</string>
     <string name="device_open_access" formatted="false">"Gerir acesso a arquivos"</string>
+    <string name="diag248_copy" formatted="false">"Copiar relatório"</string>
+    <string name="diag248_copy_sub" formatted="false">"Texto ocultado p/ feedback"</string>
+    <string name="diag248_empty" formatted="false">"Ainda sem resultados. As verificações só leem o estado local e não alteram o ambiente."</string>
+    <string name="diag248_export" formatted="false">"Exportar diagnóstico"</string>
+    <string name="diag248_export_sub" formatted="false">"Pacote de registros estruturado; passos opcionais"</string>
+    <string name="diag248_feedback" formatted="false">"Feedback"</string>
+    <string name="diag248_idle_sub" formatted="false">"Verificar componentes, armazenamento e serviços e gerar relatório ocultado"</string>
+    <string name="diag248_idle_title" formatted="false">"Não verificado"</string>
+    <string name="diag248_plugins" formatted="false">"Gerenciador de plugins"</string>
+    <string name="diag248_plugins_sub" formatted="false">"Início falha por plugins"</string>
+    <string name="diag248_repair_sub" formatted="false">"Preparar de novo certificados, Python, npm e pnpm"</string>
+    <string name="diag248_start" formatted="false">"Inspecionar"</string>
+    <string name="diag248_status" formatted="false">"Estado"</string>
+    <string name="diag248_tools" formatted="false">"Ferramentas"</string>
     <string name="dns_auto" formatted="false">"Auto (recomendado)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilidade DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Pilha dupla nativa"</string>

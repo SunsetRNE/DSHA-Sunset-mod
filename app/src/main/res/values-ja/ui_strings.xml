@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"コピー"</string>
     <string name="device_checking" formatted="false">"権限の状態を確認しています…"</string>
     <string name="device_open_access" formatted="false">"ファイルへのアクセス権を管理"</string>
+    <string name="diag248_copy" formatted="false">"診断レポートをコピー"</string>
+    <string name="diag248_copy_sub" formatted="false">"マスク済みテキスト。フィードバックに貼り付け可能"</string>
+    <string name="diag248_empty" formatted="false">"まだ結果はありません。チェックは本機の状態を読み取るだけで、環境は変更しません。"</string>
+    <string name="diag248_export" formatted="false">"診断情報をエクスポート"</string>
+    <string name="diag248_export_sub" formatted="false">"構造化ログパッケージ。再現手順を添付可能"</string>
+    <string name="diag248_feedback" formatted="false">"フィードバック"</string>
+    <string name="diag248_idle_sub" formatted="false">"コンポーネント・ストレージ・サービスを確認し、マスク済みレポートを作成"</string>
+    <string name="diag248_idle_title" formatted="false">"未検査"</string>
+    <string name="diag248_plugins" formatted="false">"プラグインマネージャー"</string>
+    <string name="diag248_plugins_sub" formatted="false">"プラグインによる起動の問題を調べる"</string>
+    <string name="diag248_repair_sub" formatted="false">"証明書・Python・npm・pnpm を再準備"</string>
+    <string name="diag248_start" formatted="false">"検査"</string>
+    <string name="diag248_status" formatted="false">"状態"</string>
+    <string name="diag248_tools" formatted="false">"ツール"</string>
     <string name="dns_auto" formatted="false">"自動互換モード（推奨）"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 互換モード"</string>
     <string name="dns_native" formatted="false">"ネイティブのデュアルスタック名前解決"</string>

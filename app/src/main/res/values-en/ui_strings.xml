@@ -2,6 +2,20 @@
 <resources>
     <string name="adb_pairing_service_label" formatted="false">"Wireless ADB pairing"</string>
     <string name="copy_text" formatted="false">"Copy"</string>
+    <string name="diag248_copy" formatted="false">"Copy diagnostic report"</string>
+    <string name="diag248_copy_sub" formatted="false">"Redacted text to paste into feedback"</string>
+    <string name="diag248_empty" formatted="false">"No results yet. Checks only read local state and do not change the environment."</string>
+    <string name="diag248_export" formatted="false">"Export diagnostics"</string>
+    <string name="diag248_export_sub" formatted="false">"Structured log package; reproduction steps optional"</string>
+    <string name="diag248_feedback" formatted="false">"Feedback"</string>
+    <string name="diag248_idle_sub" formatted="false">"Check components, storage and services and create a redacted report"</string>
+    <string name="diag248_idle_title" formatted="false">"Not checked"</string>
+    <string name="diag248_plugins" formatted="false">"Plugin manager"</string>
+    <string name="diag248_plugins_sub" formatted="false">"Troubleshoot startup problems caused by plugins"</string>
+    <string name="diag248_repair_sub" formatted="false">"Re-prepare certificates, Python, npm and pnpm"</string>
+    <string name="diag248_start" formatted="false">"Inspect"</string>
+    <string name="diag248_status" formatted="false">"Status"</string>
+    <string name="diag248_tools" formatted="false">"Tools"</string>
     <string name="paste_text" formatted="false">"Paste"</string>
     <string name="text_selection_more" formatted="false">"More…"</string>
     <string name="ui_m0001" formatted="false">"Download update"</string>

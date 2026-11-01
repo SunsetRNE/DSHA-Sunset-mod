@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"Copier"</string>
     <string name="device_checking" formatted="false">"Vérification de l’autorisation…"</string>
     <string name="device_open_access" formatted="false">"Accès aux fichiers"</string>
+    <string name="diag248_copy" formatted="false">"Copier le rapport"</string>
+    <string name="diag248_copy_sub" formatted="false">"Texte expurgé pour un retour"</string>
+    <string name="diag248_empty" formatted="false">"Aucun résultat. Les contrôles lisent seulement l’état local et ne modifient pas l’environnement."</string>
+    <string name="diag248_export" formatted="false">"Exporter les diagnostics"</string>
+    <string name="diag248_export_sub" formatted="false">"Paquet de journaux structuré ; étapes facultatives"</string>
+    <string name="diag248_feedback" formatted="false">"Retour"</string>
+    <string name="diag248_idle_sub" formatted="false">"Contrôler composants, stockage et services, et créer un rapport expurgé"</string>
+    <string name="diag248_idle_title" formatted="false">"Non vérifié"</string>
+    <string name="diag248_plugins" formatted="false">"Gestionnaire de plugins"</string>
+    <string name="diag248_plugins_sub" formatted="false">"Démarrage bloqué par plugin"</string>
+    <string name="diag248_repair_sub" formatted="false">"Préparer à nouveau certificats, Python, npm et pnpm"</string>
+    <string name="diag248_start" formatted="false">"Examiner"</string>
+    <string name="diag248_status" formatted="false">"État"</string>
+    <string name="diag248_tools" formatted="false">"Outils"</string>
     <string name="dns_auto" formatted="false">"Auto (recommandé)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilité DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Résolution double pile"</string>

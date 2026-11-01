@@ -10824,5 +10824,241 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
     ]
+  },
+  {
+    "id": "diag248a01",
+    "zh": "环境正常",
+    "en": "Everything looks fine",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a02",
+    "zh": "%d 项检查全部通过",
+    "en": "All %d checks passed",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a03",
+    "zh": "%d 项需要处理",
+    "en": "%d need attention",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a04",
+    "zh": "问题已排在结果顶部，点开查看原因",
+    "en": "Issues are listed first. Open one for details.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a05",
+    "zh": "%d 项未核验",
+    "en": "%d unverified",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a06",
+    "zh": "未核验不代表故障，通常是相关服务未运行",
+    "en": "Unverified is not a failure; the related service is usually not running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a07",
+    "zh": "故障包 .tar.gz（推荐）",
+    "en": "Diagnostics package .tar.gz (recommended)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a08",
+    "zh": "结构化状态、脱敏操作记录尾部与摘要",
+    "en": "Structured state, redacted operation tails and a summary",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a09",
+    "zh": "文本报告 .txt",
+    "en": "Text report .txt",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a10",
+    "zh": "仅本次检查结果",
+    "en": "Results of this check only",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a11",
+    "zh": "需先完成一次检查",
+    "en": "Run a check first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a12",
+    "zh": "可选，仅附加到本次导出或复制，不会保存",
+    "en": "Optional. Attached only to this export or copy and never saved",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
+  },
+  {
+    "id": "diag248a13",
+    "zh": "正在收集结果…",
+    "en": "Collecting results…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+    ]
+  },
+  {
+    "id": "diag248a14",
+    "zh": "%d 项正常",
+    "en": "%d OK",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+    ]
+  },
+  {
+    "id": "diag248a15",
+    "zh": "点按收起",
+    "en": "Tap to collapse",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+    ]
+  },
+  {
+    "id": "diag248a16",
+    "zh": "点按展开",
+    "en": "Tap to expand",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+    ]
+  },
+  {
+    "id": "diag248a17",
+    "zh": "已展开",
+    "en": "Expanded",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+    ]
+  },
+  {
+    "id": "diag248a18",
+    "zh": "已收起",
+    "en": "Collapsed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+    ]
+  },
+  {
+    "id": "diag248a19",
+    "zh": "状态",
+    "en": "Status",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a20",
+    "zh": "反馈",
+    "en": "Feedback",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a21",
+    "zh": "工具",
+    "en": "Tools",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a22",
+    "zh": "检查组件、存储与服务，生成脱敏报告",
+    "en": "Check components, storage and services and create a redacted report",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a23",
+    "zh": "还没有结果。检查只读取本机状态，不修改环境。",
+    "en": "No results yet. Checks only read local state and do not change the environment.",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a24",
+    "zh": "复制诊断报告",
+    "en": "Copy diagnostic report",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a25",
+    "zh": "脱敏文本，可粘贴到反馈",
+    "en": "Redacted text to paste into feedback",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a26",
+    "zh": "结构化日志包，可附复现步骤",
+    "en": "Structured log package; reproduction steps optional",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a27",
+    "zh": "重新准备证书、Python、npm 与 pnpm",
+    "en": "Re-prepare certificates, Python, npm and pnpm",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a28",
+    "zh": "排查插件导致的启动问题",
+    "en": "Troubleshoot startup problems caused by plugins",
+    "files": [
+      "app/src/main/res/values/diagnostics_strings.xml"
+    ]
+  },
+  {
+    "id": "diag248a29",
+    "zh": "保存到下载目录",
+    "en": "Save to Downloads",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
+    ]
   }
 ]

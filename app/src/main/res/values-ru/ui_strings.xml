@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"Копировать"</string>
     <string name="device_checking" formatted="false">"Проверка авторизации…"</string>
     <string name="device_open_access" formatted="false">"Доступ к файлам"</string>
+    <string name="diag248_copy" formatted="false">"Копировать отчёт"</string>
+    <string name="diag248_copy_sub" formatted="false">"Обезличенный текст для отзыва"</string>
+    <string name="diag248_empty" formatted="false">"Результатов пока нет. Проверка только читает локальное состояние и не меняет среду."</string>
+    <string name="diag248_export" formatted="false">"Экспортировать диагностику"</string>
+    <string name="diag248_export_sub" formatted="false">"Пакет журналов; шаги по желанию"</string>
+    <string name="diag248_feedback" formatted="false">"Отзыв"</string>
+    <string name="diag248_idle_sub" formatted="false">"Проверка компонентов, хранилища и служб с обезличенным отчётом"</string>
+    <string name="diag248_idle_title" formatted="false">"Ещё не проверено"</string>
+    <string name="diag248_plugins" formatted="false">"Менеджер плагинов"</string>
+    <string name="diag248_plugins_sub" formatted="false">"Сбой запуска из-за плагинов"</string>
+    <string name="diag248_repair_sub" formatted="false">"Заново подготовить сертификаты, Python, npm и pnpm"</string>
+    <string name="diag248_start" formatted="false">"Проверить"</string>
+    <string name="diag248_status" formatted="false">"Состояние"</string>
+    <string name="diag248_tools" formatted="false">"Инструменты"</string>
     <string name="dns_auto" formatted="false">"Авто (рекомендуется)"</string>
     <string name="dns_ipv4" formatted="false">"Совместимость с IPv4 DNS"</string>
     <string name="dns_native" formatted="false">"Двойной стек"</string>

@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"Exscribe"</string>
     <string name="device_checking" formatted="false">"Auctoritas verificatur…"</string>
     <string name="device_open_access" formatted="false">"Fasciculos administra"</string>
+    <string name="diag248_copy" formatted="false">"Relationem exscribe"</string>
+    <string name="diag248_copy_sub" formatted="false">"Textus purgatus pro responso"</string>
+    <string name="diag248_empty" formatted="false">"Nulli adhuc eventus. Probationes statum localem tantum legunt nec ambitum mutant."</string>
+    <string name="diag248_export" formatted="false">"Diagnosim exporta"</string>
+    <string name="diag248_export_sub" formatted="false">"Fasciculus actorum; gradus optionales"</string>
+    <string name="diag248_feedback" formatted="false">"Responsum"</string>
+    <string name="diag248_idle_sub" formatted="false">"Partes, repositorium et servitia proba et relationem purgatam crea"</string>
+    <string name="diag248_idle_title" formatted="false">"Nondum examinatum"</string>
+    <string name="diag248_plugins" formatted="false">"Additamenta administra"</string>
+    <string name="diag248_plugins_sub" formatted="false">"Initium a plugins impeditum"</string>
+    <string name="diag248_repair_sub" formatted="false">"Rursus para certificata, Python, npm et pnpm"</string>
+    <string name="diag248_start" formatted="false">"Inspice"</string>
+    <string name="diag248_status" formatted="false">"Status"</string>
+    <string name="diag248_tools" formatted="false">"Instrumenta"</string>
     <string name="dns_auto" formatted="false">"Auto (commendata)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilitas DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Duplex ordo nativus"</string>

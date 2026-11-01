@@ -1,9 +1,12 @@
 package com.deepseekharness.app.ui;
 
-import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -12,13 +15,22 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.DiagnosticRepository;
+import com.deepseekharness.app.util.DiagnosticSummary;
 import com.deepseekharness.app.util.SensitiveData;
+import com.deepseekharness.app.util.UiText;
 
 public final class DiagnosticActivity extends AppCompatActivity {
+  private static final String STATE_EXPANDED = "diagnostic_ok_expanded";
   private DiagnosticRepository repository;
   private com.deepseekharness.app.core.ErrorLogRepository logs;
-  private EditText steps;
+  private DiagnosticResultList resultList;
   private PendingLogExport pendingLogExport;
+
+  /** 本页输入的补充说明：仅内存，不持久化，不随页面重建恢复。 */
+  private String note = "";
+
+  /** 本页是否发起过导出；用于在页面上显示保存结果（包括失败）。 */
+  private boolean exportTouched;
 
   private record PendingLogExport(boolean include, String note) {}
 
@@ -72,196 +84,416 @@ public final class DiagnosticActivity extends AppCompatActivity {
     super.onCreate(saved);
     setContentView(R.layout.activity_diagnostics);
     repository = new ViewModelProvider(this).get(DiagnosticRepository.class);
+    logs = new ViewModelProvider(this).get(com.deepseekharness.app.core.ErrorLogRepository.class);
+    resultList =
+        new DiagnosticResultList(
+            findViewById(R.id.diagnostic_results),
+            findViewById(R.id.diagnostic_empty),
+            item -> CardSheet.show(this, item.title, item.detail));
+    if (saved != null) resultList.setExpanded(saved.getBoolean(STATE_EXPANDED, false));
     repository.results.observe(
         this,
         items -> {
-          android.widget.LinearLayout rows = findViewById(R.id.diagnostic_results);
-          rows.removeAllViews();
-          CardPage ui = new CardPage(this, "", "");
-          for (var item : items)
-            ui.entry(
-                rows,
-                item.title,
-                item.status,
-                R.drawable.ic_ui2_box,
-                () -> CardSheet.show(this, item.title, item.detail));
+          resultList.show(items);
+          renderHero();
         });
-    findViewById(R.id.diagnostic_history).setOnClickListener(v -> showHistory());
-    findViewById(R.id.diagnostic_recovery)
-        .setOnClickListener(
-            v -> startActivity(new android.content.Intent(this, StartupRecoveryActivity.class)));
-    logs = new ViewModelProvider(this).get(com.deepseekharness.app.core.ErrorLogRepository.class);
-    findViewById(R.id.diagnostic_logs_download).setOnClickListener(v -> chooseLogExport(false));
-    findViewById(R.id.diagnostic_logs_save_as).setOnClickListener(v -> chooseLogExport(true));
-    logs.state.observe(
+    repository.phase.observe(this, phase -> renderHero());
+    repository.busy.observe(
         this,
-        state -> {
-          ((TextView) findViewById(R.id.diagnostic_logs_status))
-              .setText(com.deepseekharness.app.util.UiStateText.render(state.message));
-          findViewById(R.id.diagnostic_logs_download).setEnabled(!state.busy);
-          findViewById(R.id.diagnostic_logs_save_as).setEnabled(!state.busy);
-          findViewById(R.id.diagnostic_logs_status).setEnabled(!state.busy && state.uri != null);
+        busy -> {
+          resultList.setRunning(Boolean.TRUE.equals(busy));
+          renderHero();
+          renderActions();
         });
-    findViewById(R.id.diagnostic_logs_status)
-        .setOnClickListener(
-            v -> {
-              com.deepseekharness.app.core.ErrorLogRepository.State state = logs.state.getValue();
-              if (state == null || state.uri == null || state.busy) return;
-              try {
-                android.net.Uri uri = state.uri;
-                if ("file".equals(uri.getScheme()))
-                  uri =
-                      androidx.core.content.FileProvider.getUriForFile(
-                          this, getPackageName() + ".updates", new java.io.File(uri.getPath()));
-                startActivity(
-                    new android.content.Intent(android.content.Intent.ACTION_VIEW)
-                        .setDataAndType(uri, logs.savedMimeType())
-                        .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION));
-              } catch (RuntimeException error) {
-                Toast.makeText(
-                        this,
-                        com.deepseekharness.app.util.UiText.text(
-                            "无法打开日志，可在文件管理器的 Download/DSHA 中查看，或重新下载"),
-                        Toast.LENGTH_LONG)
-                    .show();
-              }
-            });
-    steps = findViewById(R.id.diagnostic_steps);
-    steps.setSaveEnabled(false);
-    steps.setFilters(
-        new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(32768)});
+    repository.report.observe(
+        this,
+        text -> {
+          ((TextView) findViewById(R.id.diagnostic_report)).setText(text);
+          renderActions();
+        });
+    logs.state.observe(this, state -> renderLogs());
+
     findViewById(R.id.diagnostic_back).setOnClickListener(v -> finish());
     findViewById(R.id.diagnostic_refresh).setOnClickListener(v -> repository.generate());
     findViewById(R.id.diagnostic_repair).setOnClickListener(v -> repository.repairNetworkTools());
     findViewById(R.id.diagnostic_plugins)
         .setOnClickListener(
             v -> startActivity(MainActivity.navigationIntent(this).putExtra("open_plugins", true)));
-    findViewById(R.id.diagnostic_copy)
+    findViewById(R.id.diagnostic_history).setOnClickListener(v -> showHistory());
+    findViewById(R.id.diagnostic_recovery)
         .setOnClickListener(
-            v -> {
-              try {
-                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                if (clipboard == null)
-                  throw new IllegalStateException(
-                      com.deepseekharness.app.util.UiText.text("剪贴板不可用"));
-                clipboard.setPrimaryClip(
-                    com.deepseekharness.app.bridge.SensitiveClipboard.text(
-                        com.deepseekharness.app.util.UiText.text("DSHA 诊断"), completeReport()));
-                Toast.makeText(
-                        this,
-                        com.deepseekharness.app.util.UiText.choose(
-                            "报告已复制，请在公开分享前查看内容",
-                            "Report copied. Review its content before public sharing"),
-                        Toast.LENGTH_SHORT)
-                    .show();
-              } catch (Exception error) {
-                Toast.makeText(
-                        this,
-                        com.deepseekharness.app.util.UiText.text("复制失败，可尝试导出报告"),
-                        Toast.LENGTH_LONG)
-                    .show();
-              }
-            });
-    findViewById(R.id.diagnostic_export)
-        .setOnClickListener(
-            v -> {
-              try {
-                exporter.launch(
-                    "DSHA-diagnostic-"
-                        + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.ROOT)
-                            .format(new java.util.Date())
-                        + ".txt");
-              } catch (RuntimeException error) {
-                Toast.makeText(
-                        this,
-                        com.deepseekharness.app.util.UiText.text("无法打开保存位置，请使用复制报告或检查系统文件管理器"),
-                        Toast.LENGTH_LONG)
-                    .show();
-              }
-            });
-    repository.report.observe(
-        this, text -> ((TextView) findViewById(R.id.diagnostic_report)).setText(text));
-    repository.phase.observe(
-        this,
-        phase -> {
-          TextView headline = findViewById(R.id.diagnostic_headline);
-          TextView status = findViewById(R.id.diagnostic_status);
-          if (phase == DiagnosticRepository.Phase.RUNNING) {
-            headline.setText(com.deepseekharness.app.util.UiText.choose("正在检查", "Checking"));
-            status.setText(com.deepseekharness.app.util.UiText.text("正在检查环境…"));
-          } else if (phase == DiagnosticRepository.Phase.FAILED) {
-            headline.setText(
-                com.deepseekharness.app.util.UiText.choose("检查未完成", "Check incomplete"));
-            status.setText(
-                com.deepseekharness.app.util.UiText.choose(
-                    "请打开失败卡片查看原因，也可复制或导出脱敏报告。",
-                    "Open the failure card for details, or copy or export the redacted report."));
-          } else {
-            headline.setText(
-                phase == DiagnosticRepository.Phase.SUCCEEDED
-                    ? com.deepseekharness.app.util.UiText.choose("检查已完成", "Checks completed")
-                    : com.deepseekharness.app.util.UiText.choose("准备检查", "Ready to check"));
-            status.setText(com.deepseekharness.app.util.UiText.text("报告保留在本机，复制或导出后可用于反馈"));
-          }
-        });
-    repository.busy.observe(
-        this,
-        busy -> {
-          for (int id :
-              new int[] {
-                R.id.diagnostic_refresh,
-                R.id.diagnostic_repair,
-                R.id.diagnostic_copy,
-                R.id.diagnostic_export
-              }) findViewById(id).setEnabled(!busy);
-        });
+            v -> startActivity(new android.content.Intent(this, StartupRecoveryActivity.class)));
+    findViewById(R.id.diagnostic_copy).setOnClickListener(v -> copyReport());
+    findViewById(R.id.diagnostic_export).setOnClickListener(v -> showExportSheet());
+    findViewById(R.id.diagnostic_logs_status).setOnClickListener(v -> openSavedLog());
     if (saved == null) {
-      if (getIntent().getBooleanExtra("download_error_logs", false)) logs.download();
+      if (getIntent().getBooleanExtra("download_error_logs", false)) {
+        exportTouched = true;
+        logs.download();
+      }
       // 首页先展示检查范围，由用户发起耗时探针。
     }
   }
 
-  /** Additional context is an explicit choice for this action and is never persisted. */
-  private void chooseLogExport(boolean saveAs) {
-    pendingLogExport = null;
-    android.widget.CheckBox include = new android.widget.CheckBox(this);
-    include.setChecked(false);
-    include.setText(
-        com.deepseekharness.app.util.UiText.choose(
-            "仅本次附加本页主动填写的说明", "Attach the context entered on this page for this export only"));
-    new DshaDialogBuilder(this)
-        .setTitle(com.deepseekharness.app.util.UiText.choose("导出故障包", "Export diagnostics"))
-        .setMessage(
-            com.deepseekharness.app.util.UiText.choose(
-                "包含结构化状态、现有脱敏操作记录尾部和摘要。原始进程输出、完整异常链及未采集的历史不会补入。附加说明默认不选，仅包含本页输入，不开启自动业务记录。",
-                "Includes structured state, existing redacted operation tails and a summary. Raw process output, full exception chains and uncollected history are unavailable. Additional context is off by default and contains only this page's input; it enables no automatic business capture."))
-        .setView(include)
-        .setNegativeButton(
-            com.deepseekharness.app.util.UiText.choose("取消", "Cancel"),
-            (dialog, which) -> pendingLogExport = null)
-        .setOnCancelListener(dialog -> pendingLogExport = null)
-        .setPositiveButton(
-            com.deepseekharness.app.util.UiText.choose("继续", "Continue"),
-            (dialog, which) -> {
-              boolean selected = include.isChecked();
-              String note = selected && steps != null ? steps.getText().toString() : "";
-              if (!saveAs) {
-                logs.export(null, selected, note);
-                return;
-              }
-              pendingLogExport = new PendingLogExport(selected, note);
-              try {
-                logExporter.launch(com.deepseekharness.app.core.ErrorLogRepository.filename());
-              } catch (RuntimeException error) {
-                pendingLogExport = null;
-                Toast.makeText(
-                        this,
-                        com.deepseekharness.app.util.UiText.text("无法打开文件管理器，请尝试下载到默认目录"),
-                        Toast.LENGTH_LONG)
-                    .show();
-              }
-            })
-        .show();
+  @Override
+  protected void onSaveInstanceState(Bundle out) {
+    super.onSaveInstanceState(out);
+    if (resultList != null) out.putBoolean(STATE_EXPANDED, resultList.expanded());
+  }
+
+  // ---------- 状态卡：图标 + 一句结论 + 唯一主按钮 ----------
+
+  private void renderHero() {
+    java.util.List<DiagnosticRepository.Result> items = repository.results.getValue();
+    if (items == null) items = java.util.List.of();
+    java.util.List<com.deepseekharness.app.util.DiagnosticReport.Health> healths =
+        new java.util.ArrayList<>();
+    for (DiagnosticRepository.Result item : items) healths.add(item.health);
+    DiagnosticRepository.Phase phase = repository.phase.getValue();
+    boolean running =
+        Boolean.TRUE.equals(repository.busy.getValue())
+            || phase == DiagnosticRepository.Phase.RUNNING;
+    DiagnosticSummary.Tone tone =
+        DiagnosticSummary.tone(running, phase == DiagnosticRepository.Phase.FAILED, healths);
+    TextView headline = findViewById(R.id.diagnostic_headline);
+    TextView status = findViewById(R.id.diagnostic_status);
+    ImageView badge = findViewById(R.id.diagnostic_badge);
+    Button action = findViewById(R.id.diagnostic_refresh);
+    int attention = DiagnosticSummary.count(healths, DiagnosticSummary.Group.ATTENTION);
+    int unverified = DiagnosticSummary.count(healths, DiagnosticSummary.Group.UNVERIFIED);
+    int icon = R.drawable.ic_onb_info,
+        color = R.color.shell_text_muted,
+        soft = R.color.shell_raised;
+    switch (tone) {
+      case RUNNING -> {
+        headline.setText(UiText.choose("正在检查", "Checking"));
+        status.setText(UiText.text("正在检查环境…"));
+        icon = R.drawable.ic_recovery_refresh;
+        color = R.color.shell_accent;
+        soft = R.color.shell_accent_soft;
+      }
+      case GOOD -> {
+        headline.setText(UiText.choose("环境正常", "Everything looks fine"));
+        status.setText(UiText.format("%d 项检查全部通过", healths.size()));
+        icon = R.drawable.ic_onb_check;
+        color = R.color.shell_good;
+        soft = R.color.shell_good_soft;
+      }
+      case ATTENTION -> {
+        headline.setText(UiText.format("%d 项需要处理", attention));
+        status.setText(
+            UiText.choose("问题已排在结果顶部，点开查看原因", "Issues are listed first. Open one for details."));
+        icon = R.drawable.ic_onb_alert;
+        color = R.color.shell_warn;
+        soft = R.color.shell_warn_soft;
+      }
+      case UNVERIFIED -> {
+        headline.setText(UiText.format("%d 项未核验", unverified));
+        status.setText(
+            UiText.choose(
+                "未核验不代表故障，通常是相关服务未运行",
+                "Unverified is not a failure; the related service is usually not running"));
+      }
+      case FAILED -> {
+        headline.setText(UiText.choose("检查未完成", "Check incomplete"));
+        status.setText(
+            UiText.choose(
+                "请打开失败卡片查看原因，也可复制或导出脱敏报告。",
+                "Open the failure card for details, or copy or export the redacted report."));
+        icon = R.drawable.ic_onb_x;
+        color = R.color.shell_bad;
+        soft = R.color.shell_bad_soft;
+      }
+      case IDLE -> {
+        headline.setText(getString(R.string.diag248_idle_title));
+        status.setText(getString(R.string.diag248_idle_sub));
+      }
+    }
+    badge.setImageResource(icon);
+    badge.setImageTintList(android.content.res.ColorStateList.valueOf(getColor(color)));
+    badge.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getColor(soft)));
+    findViewById(R.id.diagnostic_progress)
+        .setVisibility(tone == DiagnosticSummary.Tone.RUNNING ? View.VISIBLE : View.GONE);
+    action.setText(
+        tone == DiagnosticSummary.Tone.IDLE
+            ? getString(R.string.diag248_start)
+            : UiText.text("重新检查"));
+    action.setEnabled(!running);
+    // 全部正常时主按钮退为次级样式，让结论成为视觉重点；其余状态保持主按钮。
+    boolean quiet = tone == DiagnosticSummary.Tone.GOOD;
+    action.setBackgroundResource(quiet ? R.drawable.bg_btn : R.drawable.bg_btn_primary);
+    action.setTextColor(
+        getColorStateList(quiet ? R.color.button_text : R.color.button_primary_text));
+  }
+
+  // ---------- 反馈 / 工具：忙时禁用并降低透明度（子视图不会随父视图自动变灰） ----------
+
+  private void renderActions() {
+    boolean busy = Boolean.TRUE.equals(repository.busy.getValue());
+    boolean hasReport = !resultsEmpty();
+    enable(R.id.diagnostic_copy, !busy && hasReport);
+    enable(R.id.diagnostic_repair, !busy);
+    renderLogs();
+  }
+
+  private void renderLogs() {
+    com.deepseekharness.app.core.ErrorLogRepository.State state = logs.state.getValue();
+    boolean logsBusy = state != null && state.busy;
+    enable(R.id.diagnostic_export, !logsBusy && !Boolean.TRUE.equals(repository.busy.getValue()));
+    TextView status = findViewById(R.id.diagnostic_logs_status);
+    // 初始说明已移入导出弹层；页面上只显示进行中、本次结果或上次保存的文件。
+    boolean show = state != null && (state.busy || state.uri != null || exportTouched);
+    status.setVisibility(show ? View.VISIBLE : View.GONE);
+    findViewById(R.id.diagnostic_logs_divider).setVisibility(show ? View.VISIBLE : View.GONE);
+    if (state != null)
+      status.setText(com.deepseekharness.app.util.UiStateText.render(state.message));
+    status.setEnabled(!logsBusy && state != null && state.uri != null);
+  }
+
+  private void enable(int id, boolean enabled) {
+    View view = findViewById(id);
+    view.setEnabled(enabled);
+    view.setAlpha(enabled ? 1f : 0.45f);
+  }
+
+  private boolean resultsEmpty() {
+    java.util.List<DiagnosticRepository.Result> items = repository.results.getValue();
+    return items == null || items.isEmpty();
+  }
+
+  private void copyReport() {
+    try {
+      ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+      if (clipboard == null) throw new IllegalStateException(UiText.text("剪贴板不可用"));
+      clipboard.setPrimaryClip(
+          com.deepseekharness.app.bridge.SensitiveClipboard.text(
+              UiText.text("DSHA 诊断"), completeReport()));
+      Toast.makeText(
+              this,
+              UiText.choose(
+                  "报告已复制，请在公开分享前查看内容", "Report copied. Review its content before public sharing"),
+              Toast.LENGTH_SHORT)
+          .show();
+    } catch (Exception error) {
+      Toast.makeText(this, UiText.text("复制失败，可尝试导出报告"), Toast.LENGTH_LONG).show();
+    }
+  }
+
+  private void openSavedLog() {
+    com.deepseekharness.app.core.ErrorLogRepository.State state = logs.state.getValue();
+    if (state == null || state.uri == null || state.busy) return;
+    try {
+      android.net.Uri uri = state.uri;
+      if ("file".equals(uri.getScheme()))
+        uri =
+            androidx.core.content.FileProvider.getUriForFile(
+                this, getPackageName() + ".updates", new java.io.File(uri.getPath()));
+      startActivity(
+          new android.content.Intent(android.content.Intent.ACTION_VIEW)
+              .setDataAndType(uri, logs.savedMimeType())
+              .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION));
+    } catch (RuntimeException error) {
+      Toast.makeText(
+              this, UiText.text("无法打开日志，可在文件管理器的 Download/DSHA 中查看，或重新下载"), Toast.LENGTH_LONG)
+          .show();
+    }
+  }
+
+  // ---------- 导出弹层：格式 + 补充复现步骤 + 下载 / 另存为 ----------
+
+  /** 补充说明只属于本次导出或复制，不写入设置、不随页面重建恢复，也不开启自动业务记录。 */
+  private void showExportSheet() {
+    CardPage page = new CardPage(this, UiText.text("导出故障包"), "", true);
+    var dialog = CardSheet.create(this, page);
+    TextView scope =
+        page.text(
+            UiText.choose(
+                "导出结构化状态、现有脱敏操作记录尾部及摘要。不主动采集业务正文，但自由格式错误可能包含业务内容，分享前请检查。可仅本次附加主动填写的说明。",
+                "Export structured state, existing redacted operation tails and a summary. Business bodies are not actively collected, but free-form errors may contain business content; review before sharing. You may attach the context entered here for this export only."),
+            12,
+            R.color.shell_text_secondary);
+    scope.setLineSpacing(page.dp(3), 1);
+    scope.setPadding(0, 0, 0, page.dp(14));
+    page.content.addView(scope);
+
+    boolean hasReport = !resultsEmpty();
+    boolean[] text = {false};
+    View[] options = new View[2];
+    Button[] download = new Button[1];
+    Runnable sync =
+        () -> {
+          options[0].setSelected(!text[0]);
+          options[1].setSelected(text[0]);
+          // 文本报告只走系统文件选择器；下载到默认目录只用于故障包。
+          if (download[0] != null) download[0].setVisibility(text[0] ? View.GONE : View.VISIBLE);
+        };
+    options[0] =
+        option(
+            page,
+            UiText.choose("故障包 .tar.gz（推荐）", "Diagnostics package .tar.gz (recommended)"),
+            UiText.choose(
+                "结构化状态、脱敏操作记录尾部与摘要", "Structured state, redacted operation tails and a summary"),
+            true,
+            () -> {
+              text[0] = false;
+              sync.run();
+            });
+    options[1] =
+        option(
+            page,
+            UiText.choose("文本报告 .txt", "Text report .txt"),
+            hasReport
+                ? UiText.choose("仅本次检查结果", "Results of this check only")
+                : UiText.choose("需先完成一次检查", "Run a check first"),
+            hasReport,
+            () -> {
+              text[0] = true;
+              sync.run();
+            });
+
+    TextView label =
+        page.text(getString(R.string.ui2_reproduction), 12, R.color.shell_text_secondary);
+    label.setTypeface(null, android.graphics.Typeface.BOLD);
+    label.setPadding(0, page.dp(14), 0, page.dp(4));
+    page.content.addView(label);
+    TextView hint =
+        page.text(
+            UiText.choose(
+                "可选，仅附加到本次导出或复制，不会保存",
+                "Optional. Attached only to this export or copy and never saved"),
+            12,
+            R.color.shell_text_muted);
+    hint.setPadding(0, 0, 0, page.dp(8));
+    page.content.addView(hint);
+    EditText steps = new EditText(this);
+    steps.setBackgroundResource(R.drawable.bg_shell_input);
+    steps.setTextSize(14);
+    steps.setTextColor(getColor(R.color.shell_text));
+    steps.setHintTextColor(getColor(R.color.shell_text_muted));
+    steps.setHint(getString(R.string.ui_m0182));
+    steps.setGravity(android.view.Gravity.TOP);
+    steps.setMinLines(3);
+    steps.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+    steps.setPadding(page.dp(14), page.dp(12), page.dp(14), page.dp(12));
+    steps.setSaveEnabled(false);
+    steps.setFilters(
+        new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(2000)});
+    steps.setText(note);
+    steps.addTextChangedListener(
+        new android.text.TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+          @Override
+          public void afterTextChanged(android.text.Editable s) {
+            note = s.toString();
+          }
+        });
+    page.content.addView(steps, new LinearLayout.LayoutParams(-1, -2));
+
+    LinearLayout buttons = new LinearLayout(this);
+    buttons.setOrientation(LinearLayout.HORIZONTAL);
+    page.footer.addView(buttons, new LinearLayout.LayoutParams(-1, -2));
+    Button saveAs =
+        page.button(
+            buttons,
+            getString(R.string.ui_m0080),
+            false,
+            () -> {
+              dialog.dismiss();
+              if (text[0]) exportText();
+              else exportPackage(true);
+            });
+    download[0] =
+        page.button(
+            buttons,
+            UiText.choose("保存到下载目录", "Save to Downloads"),
+            true,
+            () -> {
+              dialog.dismiss();
+              exportPackage(false);
+            });
+    LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, -2, 1);
+    left.topMargin = page.dp(10);
+    saveAs.setLayoutParams(left);
+    LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(0, -2, 1);
+    right.topMargin = page.dp(10);
+    right.setMarginStart(page.dp(8));
+    download[0].setLayoutParams(right);
+    page.button(page.footer, UiText.choose("取消", "Cancel"), false, dialog::dismiss)
+        .setBackgroundResource(android.R.color.transparent);
+    sync.run();
+    CardSheet.show(dialog, this);
+  }
+
+  /** 单选卡片：整行可点，选中态用强调描边；不可用时保持说明可读但不可选。 */
+  private View option(
+      CardPage page, String title, String subtitle, boolean enabled, Runnable select) {
+    LinearLayout row = new LinearLayout(this);
+    row.setOrientation(LinearLayout.VERTICAL);
+    row.setBackgroundResource(R.drawable.bg_plugin_card_selectable);
+    row.setPadding(page.dp(14), page.dp(12), page.dp(14), page.dp(12));
+    row.setMinimumHeight(page.dp(56));
+    row.setFocusable(enabled);
+    row.setClickable(enabled);
+    row.setEnabled(enabled);
+    row.setAlpha(enabled ? 1f : 0.5f);
+    TextView heading = page.text(title, 14, R.color.shell_text);
+    heading.setTypeface(null, android.graphics.Typeface.BOLD);
+    row.addView(heading);
+    TextView detail = page.text(subtitle, 12, R.color.shell_text_secondary);
+    detail.setPadding(0, page.dp(4), 0, 0);
+    detail.setLineSpacing(page.dp(2), 1);
+    row.addView(detail);
+    row.setOnClickListener(v -> select.run());
+    row.setAccessibilityDelegate(
+        new View.AccessibilityDelegate() {
+          @Override
+          public void onInitializeAccessibilityNodeInfo(
+              View host, android.view.accessibility.AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setClassName(android.widget.RadioButton.class.getName());
+            info.setCheckable(true);
+            info.setChecked(host.isSelected());
+          }
+        });
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+    p.bottomMargin = page.dp(8);
+    page.content.addView(row, p);
+    return row;
+  }
+
+  private void exportPackage(boolean saveAs) {
+    exportTouched = true;
+    String selected = note == null ? "" : note;
+    boolean include = !selected.trim().isEmpty();
+    if (!saveAs) {
+      logs.export(null, include, include ? selected : "");
+      return;
+    }
+    pendingLogExport = new PendingLogExport(include, include ? selected : "");
+    try {
+      logExporter.launch(com.deepseekharness.app.core.ErrorLogRepository.filename());
+    } catch (RuntimeException error) {
+      pendingLogExport = null;
+      Toast.makeText(this, UiText.text("无法打开文件管理器，请尝试下载到默认目录"), Toast.LENGTH_LONG).show();
+    }
+  }
+
+  private void exportText() {
+    try {
+      exporter.launch(
+          "DSHA-diagnostic-"
+              + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.ROOT)
+                  .format(new java.util.Date())
+              + ".txt");
+    } catch (RuntimeException error) {
+      Toast.makeText(this, UiText.text("无法打开保存位置，请使用复制报告或检查系统文件管理器"), Toast.LENGTH_LONG).show();
+    }
   }
 
   @Override
@@ -281,7 +513,7 @@ public final class DiagnosticActivity extends AppCompatActivity {
                   () -> {
                     if (isFinishing() || isDestroyed()) return;
                     CardPage page =
-                        new CardPage(this, getString(R.string.ui134_recent_startups), "");
+                        new CardPage(this, getString(R.string.ui134_recent_startups), "", true);
                     var dialog = CardSheet.create(this, page);
                     for (var entry : entries) {
                       String date =
@@ -301,15 +533,10 @@ public final class DiagnosticActivity extends AppCompatActivity {
                     if (entries.isEmpty())
                       page.content.addView(
                           page.text(
-                              com.deepseekharness.app.util.UiText.choose(
-                                  "还没有启动记录。", "No startup records yet."),
+                              UiText.choose("还没有启动记录。", "No startup records yet."),
                               13,
                               R.color.text_secondary));
-                    page.button(
-                        page.footer,
-                        com.deepseekharness.app.util.UiText.choose("关闭", "Close"),
-                        false,
-                        dialog::dismiss);
+                    page.button(page.footer, UiText.choose("关闭", "Close"), false, dialog::dismiss);
                     CardSheet.show(dialog, this);
                   });
             },
@@ -318,9 +545,10 @@ public final class DiagnosticActivity extends AppCompatActivity {
   }
 
   private String completeReport() {
-    return SensitiveData.redact(
-        String.valueOf(repository.report.getValue())
-            + com.deepseekharness.app.util.UiText.format(
-                "\n用户补充复现步骤：\n%s", (steps == null ? "" : steps.getText().toString())));
+    String report = String.valueOf(repository.report.getValue());
+    String extra = note == null ? "" : note.trim();
+    // 只有用户在导出弹层主动填写时才附加；空说明不再追加空标题。
+    if (!extra.isEmpty()) report += UiText.format("\n用户补充复现步骤：\n%s", extra);
+    return SensitiveData.redact(report);
   }
 }

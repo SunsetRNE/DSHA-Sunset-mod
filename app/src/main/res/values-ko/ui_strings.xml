@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"복사"</string>
     <string name="device_checking" formatted="false">"권한 확인 중…"</string>
     <string name="device_open_access" formatted="false">"파일 접근 관리"</string>
+    <string name="diag248_copy" formatted="false">"진단 보고서 복사"</string>
+    <string name="diag248_copy_sub" formatted="false">"마스킹된 텍스트, 피드백에 붙여넣기 가능"</string>
+    <string name="diag248_empty" formatted="false">"아직 결과가 없습니다. 검사는 로컬 상태만 읽고 환경을 바꾸지 않습니다."</string>
+    <string name="diag248_export" formatted="false">"진단 내보내기"</string>
+    <string name="diag248_export_sub" formatted="false">"구조화된 로그 패키지, 재현 단계 첨부 가능"</string>
+    <string name="diag248_feedback" formatted="false">"피드백"</string>
+    <string name="diag248_idle_sub" formatted="false">"구성 요소, 저장소, 서비스를 검사하고 마스킹된 보고서를 만듭니다"</string>
+    <string name="diag248_idle_title" formatted="false">"확인 안 함"</string>
+    <string name="diag248_plugins" formatted="false">"플러그인 관리자"</string>
+    <string name="diag248_plugins_sub" formatted="false">"플러그인으로 인한 시작 문제 해결"</string>
+    <string name="diag248_repair_sub" formatted="false">"인증서, Python, npm, pnpm 다시 준비"</string>
+    <string name="diag248_start" formatted="false">"검사"</string>
+    <string name="diag248_status" formatted="false">"상태"</string>
+    <string name="diag248_tools" formatted="false">"도구"</string>
     <string name="dns_auto" formatted="false">"자동 호환성(권장)"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 호환성"</string>
     <string name="dns_native" formatted="false">"네이티브 듀얼 스택 확인"</string>

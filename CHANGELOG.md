@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261101.2130-dsh0.2.1-rc.5 / build252（自检与诊断页简化：状态 / 结果 / 反馈 / 工具三段，平板两栏）
+
+- 自检与诊断页重排：手机顶栏只留标题，依次为状态卡、检查结果、反馈、工具，原 6 个分组合为 3 段；平板（`layout-sw600dp`）左栏 340dp 放状态、反馈、工具，右栏放检查结果。手机与平板共用 `diagnostic_hero` / `diagnostic_feedback` / `diagnostic_tools` 布局块，旧控件 id 保留。
+- 检查结果由 `ui/DiagnosticResultList` 渲染：需要处理的项最前，未核验其次，正常项收成「N 项正常」；结果卡宽度达 560dp 时两列，1.3 倍字体退回一列，旋转后展开状态保持。「未核验」单独成状态（灰点），DSH 未运行时不再误报需要处理；分组只看健康状态，由 `util/DiagnosticSummary` 推导。
+- 导出改为弹层：先选故障包（.tar.gz）或文本报告（.txt），复现步骤只在内存中附带不保存；故障包可存到下载目录或另存为，文本报告只能另存为；导出后才显示上次保存的文件。新增 29 条文案，十语种补齐，15 条译文按长度预算压短（未经母语者核对）。
+- 验证范围：`DiagnosticActivityRenderingTest` 6 项与 `DiagnosticSummaryTest` 5 项通过，i18n、源码卫生、Java 格式检查与 debug 编译通过；未在真机安装验证，`LayoutAuditInstrumentation` 未运行。版本码提升为 252（基于 build251）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build252 更新说明](docs/releases/build252-changes.zh.md)，验证记录见 [build252 记录](docs/releases/v0.2.1-rc.3-build252-diagnostics-20261101.md)。
+
 ## 0.2.1-rc.3-20261101.2100-dsh0.2.1-rc.5 / build251（插件页头部重构：统一状态条、波浪进度、计数徽标）
 
 - 插件页头部重构：标题与「市场 / 管理」同行，放不下时分段换行铺满；「插件管理」带插件数量徽标（`PluginCountBadge`），检测中、列表未确认、刷新失败各有样式；头部换行由 `PluginFlowRow` 负责。

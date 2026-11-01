@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.3-20261101.2100-dsh0.2.1-rc.5 / build251
+# DSHA 0.2.1-rc.3-20261101.2130-dsh0.2.1-rc.5 / build252
 
-- Caput paginae plugin renovatum: titulus et Forum / Administratio in uno versu stant, et segmenta, si spatium deest, in versum totius latitudinis transeunt. Administratio insigne numeri pluginorum ostendit, cum statibus distinctis pro inspectione, indice non confirmato et renovatione defecta.
-- Forum: charta communitatis pluginorum fit nexus iuxta titulum, adglutinare et purgare in fine campi ponuntur, et monitum colorem secundum agnitionis exitum mutat. Administratio: quaestio et Plugin inspicere in uno versu; filtrum, ordo et fons descensionis in uno versu.
-- Progressus, textus status, Abrogare et Renovationes inspicere in unam lineam status cum animatione undarum coniunguntur, cuius altitudo inter initium et finem operum non mutatur. Globulus restituendi modi tuti in fasciam superiorem, auxilium de fonte descensionis in dialogum electionis movetur.
-- Ambitus probationis: solum probationes unitatum pluginorum locales et inspectiones staticae; in instrumento non institutum, probationes interfaciei et Lint CI relinquuntur. versionCode ad 251 auctus (in build250 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.
+- Pagina sui inspectionis et diagnosis simplificata: in telephono charta status, eventus, responsa et instrumenta ordine sequuntur, sex greges in tres sectiones contracti; in tabula status, responsa et instrumenta sinistra, eventus dextra.
+- Res curandae primae veniunt, inspectiones non verificatae puncto cano separatim notantur, sanae in versum unum «N recte» complicantur; DSH non currente, inspectiones non verificatae iam non ut vitium nuntiantur. Lata tela duas columnas, littera 1.3x unam habet.
+- Exportatio fit tabella: primum fasciculum diagnosis aut relationem textus elige; gradus reproductionis optionales huic soli exportationi adduntur nec servantur. Ultimum fasciculum servatum post exportationem solum apparet.
+- Ambitus probationis: solum probationes unitatum locales et inspectiones staticae; in instrumento non institutum, probationes interfaciei et Lint CI relinquuntur. versionCode ad 252 auctus (in build251 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.

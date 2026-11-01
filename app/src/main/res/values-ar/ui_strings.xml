@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"نسخ"</string>
     <string name="device_checking" formatted="false">"جارٍ التحقق من التفويض…"</string>
     <string name="device_open_access" formatted="false">"إدارة الوصول إلى الملفات"</string>
+    <string name="diag248_copy" formatted="false">"نسخ تقرير التشخيص"</string>
+    <string name="diag248_copy_sub" formatted="false">"نص محجوب للصقه في الملاحظات"</string>
+    <string name="diag248_empty" formatted="false">"لا نتائج بعد. تقرأ الفحوص الحالة المحلية فقط ولا تغيّر البيئة."</string>
+    <string name="diag248_export" formatted="false">"تصدير التشخيص"</string>
+    <string name="diag248_export_sub" formatted="false">"حزمة سجلات منظمة؛ الخطوات اختيارية"</string>
+    <string name="diag248_feedback" formatted="false">"الملاحظات"</string>
+    <string name="diag248_idle_sub" formatted="false">"افحص المكوّنات والتخزين والخدمات وأنشئ تقريرًا محجوبًا"</string>
+    <string name="diag248_idle_title" formatted="false">"لم يُفحص"</string>
+    <string name="diag248_plugins" formatted="false">"مدير الإضافات"</string>
+    <string name="diag248_plugins_sub" formatted="false">"تشخيص مشكلات البدء بسبب الإضافات"</string>
+    <string name="diag248_repair_sub" formatted="false">"أعد تجهيز الشهادات وPython وnpm وpnpm"</string>
+    <string name="diag248_start" formatted="false">"فحص"</string>
+    <string name="diag248_status" formatted="false">"الحالة"</string>
+    <string name="diag248_tools" formatted="false">"الأدوات"</string>
     <string name="dns_auto" formatted="false">"توافق تلقائي (موصى به)"</string>
     <string name="dns_ipv4" formatted="false">"توافق DNS عبر IPv4"</string>
     <string name="dns_native" formatted="false">"التحليل الأصلي بمكدسين"</string>

@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build251 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build252 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build251 `0.2.1-rc.3-20261101.2100-dsh0.2.1-rc.5`.** The plugin page header is redesigned: a count badge on Manage, one status strip with wave progress for progress, status, Cancel and Check updates, and compact market and manage rows. Local unit tests only; not installed on a device. versionCode 251, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build251 notes](../releases/build251-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build252 `0.2.1-rc.3-20261101.2130-dsh0.2.1-rc.5`.** The diagnostics page is simplified into status, results, feedback and tools, with a two-column tablet layout, attention-first results, a separate unverified state and an export sheet. Local unit tests only; not installed on a device. versionCode 252, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build252 notes](../releases/build252-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261031`, 696,361,527 B, SHA-256 `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

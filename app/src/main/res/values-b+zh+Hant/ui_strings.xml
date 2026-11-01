@@ -12,6 +12,20 @@
     <string name="copy_text" formatted="false">"複製"</string>
     <string name="device_checking" formatted="false">"正在讀取授權狀態…"</string>
     <string name="device_open_access" formatted="false">"管理檔案存取權限"</string>
+    <string name="diag248_copy" formatted="false">"複製診斷報告"</string>
+    <string name="diag248_copy_sub" formatted="false">"脫敏文字，可貼到回饋"</string>
+    <string name="diag248_empty" formatted="false">"還沒有結果。檢查只讀取本機狀態，不修改環境。"</string>
+    <string name="diag248_export" formatted="false">"匯出故障包"</string>
+    <string name="diag248_export_sub" formatted="false">"結構化日誌包，可附重現步驟"</string>
+    <string name="diag248_feedback" formatted="false">"回饋"</string>
+    <string name="diag248_idle_sub" formatted="false">"檢查元件、儲存與服務，生成脫敏報告"</string>
+    <string name="diag248_idle_title" formatted="false">"尚未檢查"</string>
+    <string name="diag248_plugins" formatted="false">"外掛管理"</string>
+    <string name="diag248_plugins_sub" formatted="false">"排查外掛導致的啟動問題"</string>
+    <string name="diag248_repair_sub" formatted="false">"重新準備憑證、Python、npm 與 pnpm"</string>
+    <string name="diag248_start" formatted="false">"開始檢查"</string>
+    <string name="diag248_status" formatted="false">"狀態"</string>
+    <string name="diag248_tools" formatted="false">"工具"</string>
     <string name="dns_auto" formatted="false">"自動相容（推薦）"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 相容"</string>
     <string name="dns_native" formatted="false">"原生雙棧解析"</string>
