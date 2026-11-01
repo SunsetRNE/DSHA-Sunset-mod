@@ -41,7 +41,18 @@ def call(base: str, path: str, params: dict | None = None, timeout: float = 30.0
         url += "?" + urllib.parse.urlencode(params)
     request = urllib.request.Request(url, headers=headers())
     with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read().decode("utf-8", "replace")
+        return unwrap(response.read().decode("utf-8", "replace"))
+
+
+def unwrap(text: str) -> str:
+    """3091/3092 桥把正文放在 {"result": "<原文>"} 信封里；只解这一层，其它形状原样返回。"""
+    try:
+        value = json.loads(text)
+    except ValueError:
+        return text
+    if isinstance(value, dict) and set(value) == {"result"} and isinstance(value["result"], str):
+        return value["result"]
+    return text
 
 
 def parse(text: str) -> dict:
