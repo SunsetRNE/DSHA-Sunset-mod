@@ -2,9 +2,10 @@
 """ScreenSense 只读 state 的真机核对探针（仅测试包 io.github.sunsetrne.dsha.test）。
 
 在测试包自己的 DSH 对话里运行，taskSessionId/turnId 取该对话工具环境的
-$DSH_PHONE_SESSION_ID / $DSH_PHONE_TURN_ID。每次运行读一次当前前台页面：
+$DSH_PHONE_SESSION_ID / $DSH_PHONE_TURN_ID。每次运行读当前前台页面（或 --launch 指定的应用）：
 
-  tree → 负控（把 k000 当 nodeId 交给 node，期望 STALE_NODE）→ sense/state → sense/state?geom=1
+  预热 tree（WebView 等懒建树页面第一次查询只返回外壳）→ tree → 负控（把 k000 当 nodeId 交给 node，
+  期望 STALE_NODE）→ sense/state → sense/state?geom=1 → tree（核对读取期间页面是否变化）
 
 输出只含计数、比例、耗时、长度和拒绝码，不写任何屏幕文字、包名以外的标识或截图。
 不执行点击、输入、滑动；负控用 focus 且租约必然不匹配。
@@ -87,6 +88,21 @@ def compact_labels(encoded: str) -> list[str]:
     return labels
 
 
+def tree_summary(tree: dict) -> dict:
+    return {
+        "ok": tree.get("ok"),
+        "error": tree.get("error"),
+        "nodes": len(tree.get("nodes") or []),
+        "visited": tree.get("visited"),
+        "truncated": bool(tree.get("truncated")),
+        "replyChars": len(json.dumps(tree, ensure_ascii=False)),
+    }
+
+
+def labels_of(nodes: list) -> collections.Counter:
+    return collections.Counter(norm(str(n.get("text", "")) or "?") for n in nodes)
+
+
 def norm(label: str) -> str:
     # 两条路径对换行与截断处理不同：只比较前 40 个字符、换行折成空格。
     return label.replace("\n", " ")[:40]
@@ -97,6 +113,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--base", default=os.environ.get("DSHA_BRIDGE_BASE", "http://127.0.0.1:3091"))
     parser.add_argument("--label", required=True, help="页面代号，如 settings / chat-list（不要写真实内容）")
     parser.add_argument("--out", default="/sdcard/Download/dsha-sense-probe.jsonl")
+    parser.add_argument("--launch", help="先启动该包名的应用再读，例如 com.android.settings")
+    parser.add_argument("--settle", type=float, default=1.5, help="启动或预热后等待秒数")
     args = parser.parse_args(argv)
     session = os.environ.get("DSH_PHONE_SESSION_ID", "")
     turn = os.environ.get("DSH_PHONE_TURN_ID", "")
@@ -129,18 +147,18 @@ def main(argv: list[str]) -> int:
         if not began:
             return 4
 
+        if args.launch:
+            launched = call(args.base, "/app/launch", dict(identity, pkg=args.launch)).strip()
+            record["launch"] = {"package": args.launch, "reply": launched[:24]}
+        warm = parse(call(args.base, "/app/ui/tree", identity))
+        record["warmupNodes"] = len(warm.get("nodes") or [])
+        time.sleep(max(args.settle, 0))
+
         t0 = time.monotonic()
         tree = parse(call(args.base, "/app/ui/tree", identity))
         record["treeWallMs"] = round((time.monotonic() - t0) * 1000)
         nodes = tree.get("nodes") or []
-        record["tree"] = {
-            "ok": tree.get("ok"),
-            "error": tree.get("error"),
-            "nodes": len(nodes),
-            "visited": tree.get("visited"),
-            "truncated": bool(tree.get("truncated")),
-            "replyChars": len(json.dumps(tree, ensure_ascii=False)),
-        }
+        record["tree"] = tree_summary(tree)
 
         if tree.get("treeId"):
             negative = parse(
@@ -157,6 +175,7 @@ def main(argv: list[str]) -> int:
                 "pass": negative.get("ok") is False and negative.get("error") == "STALE_NODE",
             }
 
+        compact_text = ""
         for name, extra in (("sense", {}), ("senseGeom", {"geom": "1"})):
             t0 = time.monotonic()
             sense = parse(call(args.base, "/app/sense/state", dict(identity, **extra)))
@@ -179,20 +198,31 @@ def main(argv: list[str]) -> int:
                 "encodedChars": len(encoded),
                 "replyChars": len(json.dumps(sense, ensure_ascii=False)),
             }
-            if name == "sense" and nodes and encoded:
-                legacy = collections.Counter(norm(str(n.get("text", "")) or "?") for n in nodes)
-                compact = collections.Counter(norm(label) for label in compact_labels(encoded))
-                matched = sum((legacy & compact).values())
-                record["labelMatch"] = {
-                    "legacyOnly": sum((legacy - compact).values()),
-                    "compactOnly": sum((compact - legacy).values()),
-                    "matched": matched,
-                    "ratio": round(matched / max(len(nodes), 1), 3),
-                }
-        if record.get("tree", {}).get("replyChars") and record.get("sense", {}).get("replyChars"):
-            record["legacyOverSenseReplyChars"] = round(
-                record["tree"]["replyChars"] / record["sense"]["replyChars"], 2
-            )
+            if name == "sense":
+                compact_text = encoded
+        after = parse(call(args.base, "/app/ui/tree", identity))
+        after_nodes = after.get("nodes") or []
+        record["treeAfter"] = tree_summary(after)
+        before_labels = labels_of(nodes)
+        after_labels = labels_of(after_nodes)
+        # 前后两次 tree 标签不同，说明读取期间页面在变，下面的对照不可信。
+        record["pageStable"] = before_labels == after_labels
+        if compact_text:
+            compact = collections.Counter(norm(label) for label in compact_labels(compact_text))
+            legacy = after_labels
+            matched = sum((legacy & compact).values())
+            record["labelMatch"] = {
+                "against": "treeAfter",
+                "legacyOnly": sum((legacy - compact).values()),
+                "compactOnly": sum((compact - legacy).values()),
+                "matched": matched,
+                # 以较大一方为分母；sense 达到 max 上限时 legacyOnly 偏大属预期。
+                "ratio": round(matched / max(sum(legacy.values()), sum(compact.values()), 1), 3),
+            }
+            if record["pageStable"] and not record["treeAfter"]["truncated"]:
+                record["legacyOverSenseReplyChars"] = round(
+                    record["treeAfter"]["replyChars"] / max(record["sense"]["replyChars"], 1), 2
+                )
         return 0
     finally:
         if began:
