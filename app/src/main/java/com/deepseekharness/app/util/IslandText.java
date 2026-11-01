@@ -18,10 +18,18 @@ public final class IslandText {
 
   public static final int EN_LIMIT = 9;
 
+  /** 系统通知最多显示 3 个动作：选项最多 2 个，最后一个槽位留给提交/自己写。 */
+  public static final int QUICK_OPTION_LIMIT = 2;
+
   /** 完成态在岛上保留的时长：promoted 通知必须保持 ongoing，之后再主动取消。 */
   public static final long TERMINAL_GRACE_MS = 8_000;
 
   private IslandText() {}
+
+  /** 通知上实际显示的选项数：0..2；超出的选项由“点按通知进入对话”承接。 */
+  public static int quickOptionCount(int options) {
+    return Math.max(0, Math.min(QUICK_OPTION_LIMIT, options));
+  }
 
   /** 裁剪胶囊短文本；null/空返回空串。按 code point 裁剪，不会切出半个代理对。 */
   public static String clip(String text, boolean chinese) {

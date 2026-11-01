@@ -85,7 +85,7 @@ public final class IslandSupport {
       NotificationManager manager = context.getSystemService(NotificationManager.class);
       return manager != null && manager.canPostPromotedNotifications();
     } catch (Throwable unavailable) {
-      // 36.0 没有该方法，或厂商裁剪了实现：无法查询，交给旧模型判据。
+      // canPostPromotedNotifications() 自 API 36 起存在；这里只兜厂商裁剪或系统异常。
       return false;
     }
   }
@@ -94,8 +94,8 @@ public final class IslandSupport {
   public static int state(Context context) {
     if (!supported()) return STATE_UNSUPPORTED;
     if (canPost(context)) return STATE_ALLOWED;
-    // 36.0 没有权限查询接口，只能确认系统支持，不能确认用户是否关闭。
-    if (!newPromotionModel()) return STATE_UNKNOWN;
+    // canPostPromotedNotifications() 自 API 36 起就存在；查询返回 false 说明当前不能提升，
+    // 按“未被允许”提示用户去系统设置检查（厂商裁剪时也只能保守这样展示）。
     return STATE_DENIED;
   }
 
@@ -119,6 +119,8 @@ public final class IslandSupport {
       Bundle extras = new Bundle();
       if (modern) {
         extras.putBoolean(REQUEST_PROMOTED_ONGOING, promote);
+        // 36.1+ 新模型要求 colorized 必须为 false；显式写入，避免复用带旧标记的通知被拒。
+        extras.putBoolean(EXTRA_COLORIZED, false);
       } else {
         extras.putBoolean(EXTRA_COLORIZED, promote);
       }

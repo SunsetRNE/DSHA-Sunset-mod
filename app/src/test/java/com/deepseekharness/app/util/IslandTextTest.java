@@ -34,6 +34,17 @@ public class IslandTextTest {
   }
 
   @Test
+  public void quickOptionCountCapsNotificationActionsAtTwo() {
+    assertEquals(0, IslandText.quickOptionCount(0));
+    assertEquals(1, IslandText.quickOptionCount(1));
+    assertEquals(2, IslandText.quickOptionCount(2));
+    assertEquals(2, IslandText.quickOptionCount(3));
+    assertEquals(2, IslandText.quickOptionCount(99));
+    assertEquals(0, IslandText.quickOptionCount(-1));
+    assertEquals(2, IslandText.QUICK_OPTION_LIMIT);
+  }
+
+  @Test
   public void rankExcludesTerminalDismissedAndUnknownRows() {
     assertEquals(0, IslandText.rank(null));
     assertEquals(0, IslandText.rank(row("a", "waiting", false, 1, false)));

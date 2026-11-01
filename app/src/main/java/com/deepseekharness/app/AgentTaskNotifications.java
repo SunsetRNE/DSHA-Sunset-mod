@@ -419,10 +419,17 @@ public final class AgentTaskNotifications {
           UiText.choose(
               "可直接点通知按钮回答，或点按进入对话",
               "Answer from the notification buttons, or tap to open the chat");
+      boolean optionsClipped =
+          waiting && quick != null && quick.labels.length > IslandText.QUICK_OPTION_LIMIT;
+      String moreHint =
+          optionsClipped
+              ? UiText.choose("更多选项请点按通知进入对话回答", "More options: tap to answer in the chat")
+              : "";
       String bigText =
           phaseText
               + (detail.isEmpty() ? "" : "\n" + detail)
               + (waiting ? "\n" + answerHint : "")
+              + (moreHint.isEmpty() ? "" : "\n" + moreHint)
               + (selectionText.isEmpty()
                   ? ""
                   : "\n"
@@ -457,7 +464,9 @@ public final class AgentTaskNotifications {
               + '\u0000'
               + row.question()
               + '\u0000'
-              + selectionText;
+              + selectionText
+              + '\u0000'
+              + islandChronometer;
       if (!posted.contains(tag) || !signature.equals(signatures.get(tag))) {
         var publicNotice =
             new NotificationCompat.Builder(context, CHANNEL)
@@ -500,20 +509,30 @@ public final class AgentTaskNotifications {
                 dismissal,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         if (waiting && quick != null) {
-          // 岛/通知上直接作答：按钮 → BroadcastReceiver → 本机回答端点。
-          for (int i = 0; i < quick.labels.length; i++) {
+          // 系统通知最多显示 3 个动作：只放 2 个选项，最后一个槽位留给提交/自己写。
+          // 选项被裁剪时在展开态提示，用户仍可点通知进对话回答。
+          int shown = IslandText.quickOptionCount(quick.labels.length);
+          for (int i = 0; i < shown; i++) {
             String label = actionLabel(quick.labels[i]);
             if (quick.multi && chosen.contains(quick.labels[i])) label = "✓ " + label;
             notice.addAction(
                 0,
                 label,
                 quick.multi
-                    ? togglePendingIntent(row, quick.labels[i])
+                    ? togglePendingIntent(row, quick.labels[i], i)
                     : answerPendingIntent(row, quick, i));
           }
-          if (quick.multi && !chosen.isEmpty())
-            notice.addAction(0, UiText.choose("提交", "Submit"), submitPendingIntent(row, quick));
-          notice.addAction(customAnswerAction(row, quick));
+          if (quick.multi) {
+            if (!chosen.isEmpty()) {
+              notice.addAction(0, UiText.choose("提交", "Submit"), submitPendingIntent(row, quick));
+              // 1 个选项时仍有第三个槽位放“自己写”；2 个选项时已满。
+              if (shown <= 1) notice.addAction(customAnswerAction(row, quick));
+            } else {
+              notice.addAction(customAnswerAction(row, quick));
+            }
+          } else {
+            notice.addAction(customAnswerAction(row, quick));
+          }
           if (quick.labels.length == 0)
             notice.addAction(0, UiText.choose("打开回答", "Answer in app"), conversationPi);
         } else {
@@ -553,6 +572,10 @@ public final class AgentTaskNotifications {
     for (String tag : new HashSet<>(posted)) if (!keep.contains(tag)) cancel(manager, tag);
     for (String tag : new HashSet<>(finished)) if (!keep.contains(tag)) finished.remove(tag);
     for (String tag : new HashSet<>(activeTags)) if (!keep.contains(tag)) activeTags.remove(tag);
+    // 任务行被 prune 后不再出现在快照里，多选集合也要随之释放，避免长期运行残留。
+    Set<String> waitingActions = new HashSet<>();
+    for (var row : rows) if ("waiting".equals(row.phase())) waitingActions.add(row.action());
+    selections.keySet().retainAll(waitingActions);
   }
 
   /** 多选切换：更新本地选择集合并重绘通知；不改动任务或会话。 */
@@ -588,11 +611,11 @@ public final class AgentTaskNotifications {
     return label.substring(0, label.offsetByCodePoints(0, 12));
   }
 
-  private PendingIntent togglePendingIntent(AgentTaskState.View row, String label) {
+  private PendingIntent togglePendingIntent(AgentTaskState.View row, String label, int option) {
     Intent intent =
         new Intent(context, AgentTaskAnswerReceiver.class)
             .setAction("dsha-task-toggle")
-            .setData(Uri.parse("dsha-task://toggle/" + row.action() + "/" + label.hashCode()))
+            .setData(Uri.parse("dsha-task://toggle/" + row.action() + "/" + option))
             .putExtra("rowAction", row.action())
             .putExtra("label", label);
     return PendingIntent.getBroadcast(
@@ -638,6 +661,7 @@ public final class AgentTaskNotifications {
   private Intent answerBase(AgentTaskState.View row, QuickAnswer quick) {
     return new Intent(context, AgentTaskAnswerReceiver.class)
         .setAction("dsha-task-answer")
+        .putExtra("rowAction", row.action())
         .putExtra("port", quick.port)
         .putExtra("path", quick.path)
         .putExtra("token", quick.token)
