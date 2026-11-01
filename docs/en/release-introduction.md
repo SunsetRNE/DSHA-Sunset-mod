@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build246 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build247 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build246 `0.2.1-rc.3-20261101.1600-dsh0.2.1-rc.5`.** Floating assistant keyboard isolation: the collapsed floating assistant sits at the bottom of the screen and no longer moves up when another app shows its keyboard; its window now fits only the system bars, and screen-observation exclusion bounds stay stable. Not tested on a real device; the fix may not take effect on some ROMs and needs follow-up user feedback. versionCode 246, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build246 notes](../releases/build246-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build247 `0.2.1-rc.3-20261101.1630-dsh0.2.1-rc.5`.** Compact onboarding permissions: step 3 is now one list without categories, one row per permission; granted rows show only their status, ungranted rows put the action at the end, and details open on tap. Checked on one OnePlus PJD110 (360dp portrait) only. versionCode 247, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build247 notes](../releases/build247-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261031`, 696,361,527 B, SHA-256 `a1225b84d3c147727f27c92bf0dd684ed3be905d0a72f376c98dae7fef085726`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

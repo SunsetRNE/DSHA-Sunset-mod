@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.1600-dsh0.2.1-rc.5` / build246 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build isolates the floating assistant window from the keyboard: when another app shows its keyboard, the bottom floating assistant no longer jumps up with it, and screen-observation exclusion bounds no longer shift with the keyboard. See the [build246 notes](../releases/build246-changes.en.md) and the [build246 record](../releases/v0.2.1-rc.3-build246-assistant-ime-20261101.md). Not tested on a real device; the fix may not take effect and needs follow-up user feedback. Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.1630-dsh0.2.1-rc.5` / build247 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build compresses onboarding step 3, Grant what you need, into a single list: no categories, one row per permission, granted rows show only their status, ungranted rows carry the action at the end, and purpose and hand-off notes appear only after a row is expanded. See the [build247 notes](../releases/build247-changes.en.md) and the [build247 record](../releases/v0.2.1-rc.3-build247-permission-compact-20261101.md). The test package was checked on the permission page of one OnePlus PJD110 (360dp portrait); other devices, languages, dark mode, short screens and 1.3× font were not checked. Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

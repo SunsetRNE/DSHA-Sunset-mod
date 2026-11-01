@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.1600-dsh0.2.1-rc.5` / build246 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复悬浮助手窗口未与输入法隔离：其他应用弹出键盘时，底部悬浮助手不再随之上弹，读屏排除区也不再随键盘抖动；改动说明见 [build246 更新说明](releases/build246-changes.zh.md)，验证记录见 [build246 记录](releases/v0.2.1-rc.3-build246-assistant-ime-20261101.md)。未在实机测试，修复存在不生效的可能，需要用户后续反馈；构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.1630-dsh0.2.1-rc.5` / build247 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把首次引导第 3 步「按需授权」压缩为一张单列表：不再分类，每项授权一行，已开启只显示状态、未开启在行尾给出操作，用途说明与跳转提示点开后才显示；改动说明见 [build247 更新说明](releases/build247-changes.zh.md)，验证记录见 [build247 记录](releases/v0.2.1-rc.3-build247-permission-compact-20261101.md)。测试包在一台一加 PJD110（360dp 竖屏）上核对过授权页；其他机型、语言、深色、短屏与 1.3 倍字体未核对；构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

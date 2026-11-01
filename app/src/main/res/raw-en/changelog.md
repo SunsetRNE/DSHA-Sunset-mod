@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261101.1600-dsh0.2.1-rc.5 / build246
+# DSHA 0.2.1-rc.3-20261101.1630-dsh0.2.1-rc.5 / build247
 
-- Fixes the floating assistant window not being isolated from the keyboard: the collapsed assistant sits at the bottom of the screen, and when you tapped a text field in another app it moved up with that app's keyboard and covered content near the input area.
-- The floating assistant never takes text input (editing happens on the separate assistant page). Its window now fits only the system bars and ignores other apps' keyboards, and the exclusion bounds it registers for screen observation no longer shift when a keyboard opens or closes.
-- Verification scope: local/CI unit tests only; **not tested on a real device**. This fix may not take effect on some Android versions or ROMs (the assistant may still move up with the keyboard); follow-up user feedback is needed to confirm it. Raises versionCode to 246. The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- Onboarding step 3, Grant what you need, is now a single list: no categories, one row per permission. Granted rows show only their status; ungranted rows put Allow / Enable / Settings at the end, with a one-line subtitle on what it unlocks.
+- Purpose notes, hand-off hints and the remaining buttons move into an expandable area that opens on tap; a row collapses again once its permission changes. Only problems such as denied, background restricted or waiting to connect get an inline note.
+- Recommended items come first and the rest fold into More permissions; the page intro and the bottom button are each one line. On a 360dp portrait phone, all six recommended items fit on one screen.
+- Verification scope: local unit tests; the test package was overwrite-installed on one OnePlus PJD110 (360dp portrait) and its onboarding permission page checked. Other devices, languages, dark mode, short screens and 1.3× font were not checked. Raises versionCode to 247. The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
