@@ -130,12 +130,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("插件页卡片重构"));
-      assertTrue(shown.contains("配置状态与当前 Web 并排"));
-      assertTrue(shown.contains("「更多」改走卡片弹层"));
-      assertTrue(shown.contains("一加 PJD110"));
-      assertTrue(shown.contains("联想 TB321FU"));
-      assertTrue(shown.contains("版本码提升为 248"));
+      assertTrue(shown.contains("版本身份更新为 versionCode 249"));
+      assertTrue(shown.contains("远端 CI 编译"));
+      assertTrue(shown.contains("未签名 package 门禁"));
+      assertFalse(shown.contains("插件页卡片重构"));
+      assertFalse(shown.contains("版本码提升为 248"));
       assertFalse(shown.contains("版本码提升为 247"));
       assertFalse(shown.contains("压缩为一张单列表"));
       assertFalse(shown.contains("plugin-install-quarantine"));
@@ -161,12 +160,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("share one card"));
-      assertTrue(shown.contains("configuration and current Web sit on one row"));
-      assertTrue(shown.contains("More actions uses a card sheet"));
-      assertTrue(shown.contains("OnePlus PJD110"));
-      assertTrue(shown.contains("Lenovo TB321FU"));
-      assertTrue(shown.contains("Raises versionCode to 248"));
+      assertTrue(shown.contains("Updates the publication identity to versionCode 249"));
+      assertTrue(shown.contains("remote CI compilation"));
+      assertTrue(shown.contains("unsigned package gates"));
+      assertFalse(shown.contains("share one card"));
+      assertFalse(shown.contains("Raises versionCode to 248"));
       assertFalse(shown.contains("Raises versionCode to 247"));
       assertFalse(shown.contains("is now a single list"));
       assertFalse(shown.contains("plugin-install-quarantine"));
