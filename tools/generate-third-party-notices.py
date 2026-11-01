@@ -12,7 +12,7 @@ PERMISSIVE = {'MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0',
 NATIVE_NOTICES = {
     'libtermux.so': ('Apache-2.0 exception', 'tools/termux-jni, v0.118.0 source plus local handshake changes'),
     'libdsha-session.so': ('MIT', 'tools/native-session/session-launcher.c; locked API 23 build'),
-    'libdsha-proroot-compat.so': ('MIT', 'tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf proxy, locked NDK build; original proroot binaries unchanged'),
+    'libdsha-proroot-compat.so': ('MIT', 'tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf and fcntl-errno proxy, locked NDK build; original proroot binaries unchanged'),
     'libdsha-proroot-linker.so': ('MIT', 'tools/proroot-compat/linker-entry.c; freestanding GNU AArch64 direct-preload adapter; original proroot binaries unchanged'),
     'libproot.so': ('GPL-2.0', 'Termux proot; original Standard binary exact revision remains unverified'),
     'libprootloader.so': ('GPL-2.0', 'Termux proot; original Standard binary exact revision remains unverified'),

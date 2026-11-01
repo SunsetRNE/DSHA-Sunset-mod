@@ -263,7 +263,24 @@
         "python39"
       ],
       "environment": {},
-      "cli": "no arguments; GNU libc constructor/forwarding uses tools/proroot-compat/test-host.py; original ARM64 loader/bridge uses tools/proroot-compat/test-arm64.py with NDK, WSL and QEMU"
+      "cli": "no arguments; GNU libc constructor/forwarding uses tools/proroot-compat/test-host.py; fcntl errno restoration uses tools/test-proroot-fcntl.py; original ARM64 loader/bridge uses tools/proroot-compat/test-arm64.py with NDK, WSL and QEMU"
+    },
+    {
+      "path": "tools/test-proroot-fcntl.py",
+      "stage": "fast",
+      "reason": "Real GNU libc fcntl through the proxy: fake v1.2.8 vendor reproduces EPERM; proxy-first restores EAGAIN/EBADF/EINVAL, keeps errno on success and forwards F_DUPFD* to the vendor",
+      "args": [
+        "--output",
+        "{fixture}"
+      ],
+      "timeoutSeconds": 120,
+      "requires": [
+        "python39"
+      ],
+      "platform": [
+        "linux"
+      ],
+      "environment": {}
     },
     {
       "path": "tools/test-ci-assets.py",

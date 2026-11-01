@@ -117,7 +117,7 @@ proroot argv 还包括 `-r <根> -0 -w /root`、公共 bind、私有 cache 的 `
 
 | 自有组件 | 修复和限制 |
 |---|---|
-| `libdsha-proroot-compat.so` | GNU AArch64 `sysconf/__sysconf` 代理，只处理 GNU 枚举 75、249、250（线程最小栈、最小信号栈、信号栈）。从内核 `/proc/self/auxv` 获取真实辅助向量；完整但没有 `AT_MINSIGSTKSZ=51` 时使用 AArch64 glibc 默认 5120。其他查询转发 `RTLD_NEXT` 并保持查找前 errno。 |
+| `libdsha-proroot-compat.so` | GNU AArch64 `sysconf/__sysconf` 代理，只处理 GNU 枚举 75、249、250（线程最小栈、最小信号栈、信号栈）。从内核 `/proc/self/auxv` 获取真实辅助向量；完整但没有 `AT_MINSIGSTKSZ=51` 时使用 AArch64 glibc 默认 5120。其他查询转发 `RTLD_NEXT` 并保持查找前 errno。另导出 `fcntl`：vendor v1.2.8 的包装把所有失败改写成 EPERM（JDK 文件锁因此报 Operation not permitted），代理对 `F_DUPFD`/`F_DUPFD_CLOEXEC` 仍转发 vendor，其余命令直接发内核系统调用并恢复真实 errno。 |
 | `libdsha-proroot-linker.so` | 无依赖的入口适配器，给原始 bridge/linker 增加一个直接 `--preload <shim>`，同时保留原始 runtime 的直接预加载。只把 runtime 作为另一个库的间接依赖，曾造成路径 hook 不生效，因此不能替代此连接方式。 |
 
 原始 Android13 故障出现 glibc 信号栈/线程栈断言；“加载器可能没有初始化相应 glibc 内部状态”是支持该修复的**推断**，不是已审计闭源源码后的定论。代理不写私有 glibc 字段、不依赖私有偏移、没有构造器。auxv 无法读、截断、重复、零值、溢出或没有终止项时以固定诊断退出 126，不伪造成功。
@@ -172,6 +172,7 @@ proot 的实际 argv 包含 `--kill-on-exit`；proroot 当前集成没有这一�
 | [IsolatedInstallProcessTest](../app/src/test/java/com/deepseekharness/app/runtime/IsolatedInstallProcessTest.java)、[BoundedGuestLifetimeTest](../app/src/test/java/com/deepseekharness/app/runtime/BoundedGuestLifetimeTest.java)、[BoundedGuestSessionsTest](../app/src/test/java/com/deepseekharness/app/runtime/BoundedGuestSessionsTest.java) | 前台状态与整组退出分离、未确认状态与工作锁。 |
 | [ColdInstallPlanTest](../app/src/test/java/com/deepseekharness/app/util/ColdInstallPlanTest.java) | 探针顺序、包写一次、未知退出拒绝和窄动态 loader 条件。 |
 | [test-proroot-compat.py](../tools/test-proroot-compat.py) | 锁定来源/输出 ELF 依赖与原始 vendor 字节；不执行 Android guest。 |
+| [test-proroot-fcntl.py](../tools/test-proroot-fcntl.py) | 假 vendor 复现 v1.2.8 的 EPERM；代理在前时恢复 EAGAIN/EBADF/EINVAL、成功不改 errno、dup 仍转发 vendor。不执行专有加载器。 |
 | [test-host.py](../tools/proroot-compat/test-host.py) | GNU/Linux 上实际 sysconf 转发、auxv 拒绝及 direct preload；不是 ARM64 专有加载器或手机执行。 |
 | [test-arm64.py](../tools/proroot-compat/test-arm64.py) | QEMU/WSL 上原始 ARM64 bridge/loader 接线与自有入口拒绝条件；binfmt/二次 exec 限制按结果记录，不能替代应用域测试。 |
 | [native-session/build.py --check](../tools/native-session/build.py)、[test-native-session-handshake.py](../tools/test-native-session-handshake.py)、[test-proot-runtime-libs.py](../tools/test-proot-runtime-libs.py) | 自有监督器可复现字节、宿主内核出生握手及参数/依赖契约；不覆盖全部 ROM 进程信息权限。 |

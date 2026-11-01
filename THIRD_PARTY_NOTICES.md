@@ -63,7 +63,7 @@
 | 资产 | 许可声明 | 来源 / 可核验范围 |
 |---|---|---|
 | `app/src/main/jniLibs/arm64-v8a/libandroidshmem.so` | unknown origin/license for this original binary | Retained original; no current exact-source reproduction receipt |
-| `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-compat.so` | MIT | tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf proxy, locked NDK build; original proroot binaries unchanged |
+| `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-compat.so` | MIT | tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf and fcntl-errno proxy, locked NDK build; original proroot binaries unchanged |
 | `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-linker.so` | MIT | tools/proroot-compat/linker-entry.c; freestanding GNU AArch64 direct-preload adapter; original proroot binaries unchanged |
 | `app/src/main/jniLibs/arm64-v8a/libdsha-session.so` | MIT | tools/native-session/session-launcher.c; locked API 23 build |
 | `app/src/main/jniLibs/arm64-v8a/libproot.so` | GPL-2.0 | Termux proot; original Standard binary exact revision remains unverified |
