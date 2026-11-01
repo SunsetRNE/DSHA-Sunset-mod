@@ -763,6 +763,22 @@ P0a 实测（合成样本、字符数，未计 token）：当前 codec 去掉逐
 **60 元素 963 字符未达 ≤900**，原因是本实现每个元素都带预览 id（附录 B 的纯文本行用位置编号）。
 CI 回归上限设为 60≤1,000 / 120≤1,900 / 200≤3,200，是防回退的闸，不是已满足原目标的证明。
 
+P0a 真机只读核对（2026-11-01 19:22Z，测试包 `io.github.sunsetrne.dsha.test` build256 + 本分支，
+`tools/screen-eval/device_probe.py --launch com.android.settings`，单台平板、单个原生页面，只记录计数）：
+
+| 项 | 旧 tree | sense/state | sense/state?geom=1 |
+|---|---:|---:|---:|
+| 元素 / 节点 | 31 | 31 | 31 |
+| 访问节点 | 135 | 68 | 68 |
+| 回复字符 | 10,277 | 1,162 | 1,731 |
+| 墙钟 ms（含桥往返） | 394 | 166 | 198 |
+| quality / partial | — | ok / false | ok / false |
+
+前后两次 tree 一致（`pageStable=true`），sense 标签与 tree 31/31 对上；把 `k000` 当 nodeId 交给 `/app/ui/node`
+返回 `STALE_NODE`（预览 id 不能当动作凭据）。另在 DSH Web 聊天页（WebView）上观察到：首次查询只返回外壳
+（访问 3 个节点），约 0.5 秒后才建出 247 个节点，sense 达到 200 上限返回 `quality=partial`；该页平均每元素约 80 字符，
+远高于合成样本，**合成字符预算不能外推到真机页面**。以上只是单页单次结果，不是 p50/p95 或覆盖率结论。
+
 原始评估结果（临时脚本，仅供对照）：
 
 | 文件 | 字符 | token |
