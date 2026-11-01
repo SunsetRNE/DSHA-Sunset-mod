@@ -168,38 +168,46 @@ public final class PermissionPanelTest {
     Set<String> goals = new LinkedHashSet<>(List.of(PermissionGoals.BASE, PermissionGoals.SCREEN));
     PermissionPanel panel = panel(goals);
     List<String> texts = texts(panel.view());
-    // 屏幕操作推荐无障碍、悬浮窗、通知三张卡片；分组推荐出现在基础与屏幕操作两组。
-    assertEquals(3, count(texts, "按你的用途推荐"));
-    assertEquals(2, count(texts, "推荐"));
-    assertTrue(texts.contains("屏幕操作（手机任务）"));
-    // 用途决定结构：未推荐的分组折叠到“其他授权（可选）”，默认不显示。
-    assertFalse(texts.contains("文件"));
+    // 屏幕操作推荐无障碍、悬浮窗、通知三项：只列授权项，不显示分类标题、分类说明或推荐标签。
+    assertEquals(0, count(texts, "按你的用途推荐"));
+    assertEquals(0, count(texts, "推荐"));
+    assertTrue(texts.contains("推荐 0 / 3"));
+    for (String category : List.of("基础", "文件", "屏幕操作（手机任务）"))
+      assertFalse(category, texts.contains(category));
+    assertTrue(texts.contains("通知"));
+    assertTrue(texts.contains("无障碍"));
+    assertTrue(texts.contains("悬浮窗"));
+    // 未推荐的项收进“更多授权”，默认不显示。
+    assertFalse(texts.contains("存储读写"));
     assertFalse(texts.contains("设备命令通道"));
-    assertTrue(texts.contains("其他授权（可选）· 2 组"));
+    assertTrue(texts.contains("更多授权 · 3 项"));
     // 面板持有宿主的同一个 Set：就地增删后重绘即按新用途重排。
     goals.add(PermissionGoals.SHELL);
     panel.refresh();
     texts = texts(panel.view());
-    assertEquals(4, count(texts, "按你的用途推荐"));
+    assertTrue(texts.contains("推荐 0 / 4"));
     assertTrue(texts.contains("设备命令通道"));
-    assertTrue(texts.contains("其他授权（可选）· 1 组"));
-    // 展开后折叠分组才出现。
-    View toggle = find(panel.view(), "其他授权（可选）· 1 组");
+    assertTrue(texts.contains("更多授权 · 2 项"));
+    // 展开后未推荐的项才出现。
+    View toggle = find(panel.view(), "更多授权 · 2 项");
     assertNotNull(toggle);
     toggle.performClick();
     texts = texts(panel.view());
-    assertTrue(texts.contains("文件"));
-    assertTrue(texts.contains("收起其他授权"));
+    assertTrue(texts.contains("存储读写"));
+    assertTrue(texts.contains("电池优化"));
+    assertTrue(texts.contains("收起"));
   }
 
   @Test
   public void baseOnlyGoalShowsEverythingAsOptionalWithoutCollapse() {
     PermissionPanel panel = panel(new LinkedHashSet<>(List.of(PermissionGoals.BASE)));
     List<String> texts = texts(panel.view());
-    assertTrue(texts.contains("你选的用途不需要设备授权，可以直接继续。下面的授权都是可选的，需要时再开。"));
+    assertTrue(texts.contains("你选的用途不需要授权，可直接继续。"));
     assertEquals(0, count(texts, "按你的用途推荐"));
-    assertTrue(texts.contains("文件"));
+    // 没有推荐项时全部直接列出，不再折叠。
+    assertTrue(texts.contains("存储读写"));
     assertTrue(texts.contains("设备命令通道"));
+    assertFalse(texts.stream().anyMatch(t -> t.startsWith("更多授权")));
     assertEquals(0, panel.recommendedTotal());
   }
 
@@ -209,7 +217,8 @@ public final class PermissionPanelTest {
         app.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, null);
     PermissionPanel panel = panel(new LinkedHashSet<>());
     List<String> texts = texts(panel.view());
-    assertFalse(texts.contains("未开启 · 开启后可在对话中让助手操作屏幕"));
+    // 读不到设置时提示“无法确认”，不报成未开启。
+    assertTrue(texts.contains("暂时无法确认状态"));
     assertEquals(0, panel.grantedCount());
   }
 
@@ -259,13 +268,99 @@ public final class PermissionPanelTest {
     host.resume();
     ShadowLooper.idleMainLooper();
     assertNull(startedActivity(host.get()));
-    View button = find(panel.view(), "去开启所有文件访问");
+    // 主操作在行内，短文案“去开启”，读屏描述保留完整说法。
+    View button = findByDescription(panel.view(), "去开启所有文件访问");
     assertNotNull(button);
+    assertEquals("去开启", String.valueOf(((TextView) button).getText()));
     button.performClick();
     Intent started = startedActivity(host.get());
     assertNotNull(started);
     assertEquals(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, started.getAction());
     assertEquals("package:" + app.getPackageName(), started.getDataString());
+  }
+
+  private static View findByDescription(View view, String description) {
+    if (view.getContentDescription() != null
+        && description.contentEquals(view.getContentDescription())) return view;
+    if (view instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+        View hit = findByDescription(((ViewGroup) view).getChildAt(i), description);
+        if (hit != null) return hit;
+      }
+    return null;
+  }
+
+  private static final String STORAGE_WHY = "读写 /sdcard 下的项目和文件。不开也能用，仅限私有目录。";
+
+  /** 行的读屏描述以名称开头，按名称找到可点击的那一行。 */
+  private static View row(View view, String title) {
+    CharSequence d = view.getContentDescription();
+    if (view.isClickable() && d != null && d.toString().startsWith(title + "，")) return view;
+    if (view instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+        View hit = row(((ViewGroup) view).getChildAt(i), title);
+        if (hit != null) return hit;
+      }
+    return null;
+  }
+
+  @Test
+  public void rowsStartCollapsedAndExpandOnTapWithoutLeavingDsha() {
+    PermissionPanel panel = panel(new LinkedHashSet<>(Set.of(PermissionGoals.FILES)));
+    List<String> texts = texts(panel.view());
+    // 折叠：只有名称与“开了能做什么”，说明和跳转提示不在视图树里。
+    assertTrue(texts.contains("存储读写"));
+    assertTrue(texts.contains("读写 /sdcard"));
+    assertFalse(texts.contains(STORAGE_WHY));
+    View storage = row(panel.view(), "存储读写");
+    assertNotNull(storage);
+    assertEquals("已收起", String.valueOf(storage.getStateDescription()));
+    storage.performClick();
+    ShadowLooper.idleMainLooper();
+    texts = texts(panel.view());
+    assertTrue(texts.contains(STORAGE_WHY));
+    assertEquals("已展开", String.valueOf(row(panel.view(), "存储读写").getStateDescription()));
+    // 展开区不重复行内主操作。
+    assertEquals(1, countDescriptions(panel.view(), "去开启所有文件访问"));
+    assertNull(find(panel.view(), "去开启所有文件访问"));
+    // 轮询式重绘不收回用户展开的行。
+    panel.refresh();
+    assertTrue(texts(panel.view()).contains(STORAGE_WHY));
+    // 再点一次收起；展开 / 收起都不外跳。
+    row(panel.view(), "存储读写").performClick();
+    assertFalse(texts(panel.view()).contains(STORAGE_WHY));
+    assertNull(startedActivity(host.get()));
+  }
+
+  @Test
+  public void grantedRowShowsOnlyItsStatusAndCollapsesAfterReturning() {
+    Set<String> goals = new LinkedHashSet<>(List.of(PermissionGoals.SCREEN));
+    PermissionPanel panel = panel(goals);
+    View overlay = row(panel.view(), "悬浮窗");
+    assertNotNull(overlay);
+    overlay.performClick();
+    assertTrue(texts(panel.view()).contains("显示悬浮条、命令批准和手机任务状态窗。"));
+    // 从系统设置授权后回来：该行回到折叠，只剩名称 + “已允许”。
+    ShadowSettings.setCanDrawOverlays(true);
+    panel.refresh();
+    List<String> texts = texts(panel.view());
+    assertFalse(texts.contains("显示悬浮条、命令批准和手机任务状态窗。"));
+    assertTrue(texts.contains("已允许"));
+    assertFalse(texts.contains("悬浮条与状态窗"));
+    assertNull(findByDescription(panel.view(), "去允许悬浮窗"));
+    assertTrue(texts.contains("推荐 1 / 3"));
+  }
+
+  private static int countDescriptions(View view, String description) {
+    int n =
+        view.getContentDescription() != null
+                && description.contentEquals(view.getContentDescription())
+            ? 1
+            : 0;
+    if (view instanceof ViewGroup)
+      for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
+        n += countDescriptions(((ViewGroup) view).getChildAt(i), description);
+    return n;
   }
 
   private static View find(View view, String text) {

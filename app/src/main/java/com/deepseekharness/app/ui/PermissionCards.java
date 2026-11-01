@@ -49,11 +49,10 @@ final class PermissionCards {
             R.drawable.ic_onb_bell,
             UiText.choose("通知", "Notifications"),
             UiText.choose(
-                "部署与维护进度、手机任务的停止按钮、更新下载会显示在通知栏。",
-                "Deployment and maintenance progress, the phone-task stop button and update downloads appear in notifications."),
-            UiText.choose("部署进度", "Deployment progress"),
-            UiText.choose("手机任务停止按钮", "Phone-task stop button"),
-            UiText.choose("更新下载", "Update downloads"));
+                "在通知栏显示部署进度、更新下载和手机任务的停止按钮。",
+                "Shows deployment progress, update downloads and the phone-task stop button."),
+            UiText.choose("部署进度", "Progress"),
+            UiText.choose("任务停止按钮", "Stop button"));
     boolean exhausted = panel.notificationRequestExhausted();
     // Android 11 / 12 没有运行时申请框：未开启只表示通知总开关被关闭，只能去系统设置打开。
     boolean settingsOnly = !PermissionPanel.notificationPromptAvailable();
@@ -63,30 +62,12 @@ final class PermissionCards {
         UiText.choose("已开启", "On"),
         exhausted && !ok ? UiText.choose("已拒绝", "Denied") : UiText.choose("未开启", "Off"));
     if (!ok && exhausted) m.tone = OnboardingKit.Tone.WARN;
-    m.status =
-        ok
-            ? UiText.choose(
-                "已允许通知 · 部署进度和手机任务停止按钮会显示在通知栏",
-                "Notifications allowed · deployment progress and the phone-task stop button appear in notifications")
-            : settingsOnly
-                ? UiText.choose(
-                    "通知已关闭 · 请在系统通知设置中允许，部署进度和手机任务停止按钮才会显示在通知栏",
-                    "Notifications are off · allow them in system notification settings to see deployment progress and the phone-task stop button")
-                : exhausted
-                    ? UiText.choose(
-                        "系统不会再弹出申请框；如需开启，请在系统通知设置中允许。",
-                        "Android will not ask again. To enable, allow notifications in system settings.")
-                    : UiText.choose(
-                        "未允许 · 部署进度和手机任务停止按钮不会显示在通知栏",
-                        "Not allowed · deployment progress and the phone-task stop button will not appear");
     m.outside =
-        settingsOnly
+        settingsOnly || exhausted
             ? UiText.choose(
-                "打开系统通知设置，允许 DSH-A-Su 发送通知，并可打开“手机任务状态”类别。",
-                "Open system notification settings, allow notifications for DSH-A-Su, and optionally enable the “Phone task status” category.")
-            : UiText.choose(
-                "Android 13+ 会弹出系统权限框；拒绝后只能在系统通知设置中开启，并可在其中打开“手机任务状态”类别。",
-                "Android 13+ shows a system prompt; after denial, enable it in system notification settings, including the “Phone task status” category.");
+                "在系统通知设置中允许 DSH-A-Su。",
+                "Allow DSH-A-Su in system notification settings.")
+            : UiText.choose("会弹出系统权限框。", "Android will show a permission prompt.");
     m.actions =
         new View[] {
           ok
@@ -103,6 +84,24 @@ final class PermissionCards {
                       true,
                       v -> panel.requestNotifications())
         };
+    if (!ok) {
+      boolean viaSettings = exhausted || settingsOnly;
+      m.inline =
+          PermissionCard.inlineAction(
+              kit,
+              viaSettings ? UiText.choose("去设置", "Settings") : UiText.choose("允许", "Allow"),
+              viaSettings
+                  ? UiText.choose("去系统通知设置", "Open notification settings")
+                  : UiText.choose("允许通知", "Allow notifications"),
+              viaSettings
+                  ? v -> PermissionActions.openNotificationSettings(a)
+                  : v -> panel.requestNotifications());
+      if (exhausted)
+        m.alert =
+            UiText.choose("系统不再弹框，需在系统设置中开启", "Android won't ask again; enable in settings");
+      else if (settingsOnly)
+        m.alert = UiText.choose("通知已关闭，需在系统设置中开启", "Notifications are off; enable in settings");
+    }
     return m;
   }
 
@@ -114,10 +113,9 @@ final class PermissionCards {
             R.drawable.ic_onb_battery,
             UiText.choose("电池优化", "Battery optimization"),
             UiText.choose(
-                "减少系统在后台结束 Web、终端与保活服务。",
-                "Reduces how often Android stops Web, the terminal and keep-alive services in the background."),
-            UiText.choose("后台 Web 少被中断", "Fewer background Web interruptions"),
-            UiText.choose("终端与保活更稳", "Steadier terminal and keep-alive"));
+                "减少系统在后台结束 Web 和终端。",
+                "Android stops Web and the terminal less often in the background."),
+            UiText.choose("后台更稳", "Steadier in background"));
     var battery = PermissionActions.batteryState(a);
     boolean unrestricted =
         battery == com.deepseekharness.app.util.BatteryBackgroundState.State.UNRESTRICTED;
@@ -129,22 +127,17 @@ final class PermissionCards {
                 ? UiText.choose("已允许后台", "Background allowed")
                 : UiText.choose("后台受限", "Restricted");
     m.tone = ok ? OnboardingKit.Tone.GOOD : OnboardingKit.Tone.WARN;
+    // “优化”档已计入开启，但长时间息屏仍可能被推迟：只在这一档给出改法。
     m.status =
-        unrestricted
+        ok && !unrestricted
             ? UiText.choose(
-                "已允许后台使用，并设为“不受限制”：系统不会因电池优化推迟 Web、终端与保活。",
-                "Background usage is allowed and set to Unrestricted: battery optimization will not defer Web, the terminal or keep-alive.")
-            : ok
-                ? UiText.choose(
-                    "已允许后台使用（系统“优化”档）。息屏较久时系统仍会批量推迟后台任务；需要长时间稳定运行时，可在电池页点开“允许后台使用”的文字，改为“不受限制”。",
-                    "Background usage is allowed (the system “Optimized” level). After the screen has been off for a while, background work may still be deferred; for long, steady runs open “Allow background usage” and choose Unrestricted.")
-                : UiText.choose(
-                    "“允许后台使用”已关闭：后台 Web、终端与保活很可能被系统结束。",
-                    "“Allow background usage” is off: background Web, the terminal and keep-alive will likely be stopped.");
+                "长时间运行建议在电池页改为“不受限制”。",
+                "For long runs, set it to Unrestricted on the battery page.")
+            : null;
     m.outside =
         UiText.choose(
-            "会打开本应用的系统「关于」页。ColorOS 上再点「耗电管理」，选「完全允许后台行为」。其他系统在应用详情或电池页打开“允许后台使用”。DSHA 不会自动申请豁免。",
-            "Opens this app’s system App info page. On ColorOS tap Battery usage and choose Allow all background activity. On other systems turn on Allow background usage. DSHA never requests an exemption itself.");
+            "会打开应用详情。ColorOS 点「耗电管理」→「完全允许后台行为」。",
+            "Opens App info. On ColorOS: Battery usage → Allow all background activity.");
     m.actions =
         new View[] {
           unrestricted
@@ -156,6 +149,16 @@ final class PermissionCards {
                   true,
                   v -> PermissionActions.openAppDetails(a))
         };
+    if (!ok) {
+      m.inline =
+          PermissionCard.inlineAction(
+              kit,
+              UiText.choose("去设置", "Settings"),
+              UiText.choose("打开耗电管理", "Open battery usage"),
+              v -> PermissionActions.openAppDetails(a));
+      m.alert =
+          UiText.choose("后台受限，可能被系统结束", "Restricted; may be stopped");
+    }
     return m;
   }
 
@@ -167,26 +170,19 @@ final class PermissionCards {
             R.drawable.ic_onb_folder,
             UiText.choose("存储读写", "Storage access"),
             UiText.choose(
-                "让容器和工作区读写手机共享存储，例如 /sdcard 下的项目。不开也能用，仅限私有目录。",
-                "Lets the container and workspace use shared storage such as projects under /sdcard. Without it, only private folders are available."),
-            UiText.choose("工作区可建在 /sdcard", "Workspace on /sdcard"),
-            UiText.choose("读写下载与文档目录", "Downloads and Documents"));
+                "读写 /sdcard 下的项目和文件。不开也能用，仅限私有目录。",
+                "Read and write projects under /sdcard. Without it, only private folders work."),
+            UiText.choose("读写 /sdcard", "Use /sdcard"));
     state(m, ok, UiText.choose("已开启", "On"), UiText.choose("未开启", "Off"));
-    m.status =
-        ok
-            ? UiText.choose(
-                "已开启：可读写系统允许的共享存储；其他应用私有目录仍受系统限制",
-                "Allowed: shared storage permitted by Android; other apps' private directories remain restricted")
-            : UiText.text("未开启：仅能访问 App 私有目录；去系统设置开启后可访问全部文件");
     m.outside =
         UiText.choose(
-            "打开系统「所有文件访问」页，允许 DSH-A-Su。建议在首次启动 Web 前完成。",
-            "Open the system All files access page and allow DSH-A-Su, ideally before the first Web start.");
+            "在「所有文件访问」中允许 DSH-A-Su。",
+            "Allow DSH-A-Su under All files access.");
     if (ok)
       m.note =
           UiText.choose(
-              "已在运行的 Web 与终端需重启后才能访问共享存储。",
-              "Restart a running Web session or terminal before it can see shared storage.");
+              "已在运行的 Web 与终端重启后生效。",
+              "Restart a running Web session or terminal to apply.");
     m.actions =
         new View[] {
           ok
@@ -198,6 +194,13 @@ final class PermissionCards {
                   true,
                   v -> PermissionActions.openAllFilesAccess(a))
         };
+    if (!ok)
+      m.inline =
+          PermissionCard.inlineAction(
+              kit,
+              UiText.choose("去开启", "Enable"),
+              UiText.choose("去开启所有文件访问", "Allow all files access"),
+              v -> PermissionActions.openAllFilesAccess(a));
     return m;
   }
 
@@ -209,19 +212,14 @@ final class PermissionCards {
     PermissionCard.Model m =
         base(
             R.drawable.ic_onb_hand,
-            UiText.choose("无障碍（屏幕操作）", "Accessibility (screen control)"),
+            UiText.choose("无障碍", "Accessibility"),
             UiText.choose(
-                "让助手读屏、点按和输入，在对话中使用 Computer Use。",
-                "Lets the assistant read the screen, tap and type for Computer Use in conversations."),
-            UiText.choose("读屏与点按", "Read and tap the screen"),
-            UiText.choose("截屏", "Screenshots"));
+                "让助手读屏、点按和输入，用于手机任务。",
+                "Lets the assistant read the screen, tap and type for phone tasks."),
+            UiText.choose("读屏与点按", "Read and tap"));
     String service = a.getString(R.string.accessibility_service_label);
     if (connected) {
       state(m, true, UiText.choose("已连接", "Connected"), "");
-      m.status =
-          UiText.choose(
-              "已连接，可以在对话中使用 Computer Use。",
-              "Connected. Computer Use is available in conversations.");
       m.actions =
           new View[] {
             kit.ghost(
@@ -231,10 +229,11 @@ final class PermissionCards {
     } else if ("YES".equals(state)) {
       state(m, false, "", UiText.choose("等待连接", "Waiting"));
       m.tone = OnboardingKit.Tone.WARN;
-      m.status =
-          UiText.choose(
-              "开关已开启，正在等待系统连接；可重新开关服务。",
-              "Enabled, waiting for the system to connect. Try toggling the service.");
+      m.inline =
+          PermissionCard.inlineAction(
+              kit, UiText.choose("检查", "Check"), UiText.text("检查连接"), v -> panel.refresh());
+      m.alert =
+          UiText.choose("已开启，等待系统连接", "On, waiting for the system");
       m.actions =
           new View[] {
             kit.small(UiText.text("检查连接"), true, v -> panel.refresh()),
@@ -245,14 +244,6 @@ final class PermissionCards {
     } else {
       boolean unknown = !"NO".equals(state);
       state(m, false, "", unknown ? UiText.choose("无法确认", "Unknown") : UiText.choose("未开启", "Off"));
-      m.status =
-          unknown
-              ? UiText.choose(
-                  "暂时读不到系统无障碍设置，无法确认是否已开启；可打开系统设置查看。",
-                  "The accessibility setting cannot be read right now; open system settings to check.")
-              : UiText.choose(
-                  "未开启 · 开启后可在对话中让助手操作屏幕",
-                  "Off · enable it to let the assistant control the screen in conversations");
       m.actions =
           new View[] {
             kit.small(
@@ -260,13 +251,22 @@ final class PermissionCards {
                 true,
                 v -> PermissionActions.openAccessibility(a))
           };
+      m.inline =
+          PermissionCard.inlineAction(
+              kit,
+              unknown ? UiText.choose("查看", "Check") : UiText.choose("去开启", "Enable"),
+              UiText.choose("去开启屏幕操作", "Enable screen control"),
+              v -> PermissionActions.openAccessibility(a));
+      if (unknown)
+        m.alert =
+            UiText.choose("暂时无法确认状态", "Status unavailable");
     }
     m.outside =
         String.format(
             java.util.Locale.ROOT,
             UiText.choose(
-                "打开系统无障碍设置，开启「%s」。Android 13+ 若提示“受限设置”，先在应用详情右上角菜单中允许。",
-                "Open accessibility settings and turn on “%s”. On Android 13+, if restricted settings are reported, allow them from the app-info menu first."),
+                "在无障碍设置中开启「%s」。提示“受限设置”时，先在应用详情右上角菜单中允许。",
+                "Turn on “%s” in accessibility settings. If restricted settings are reported, allow them from the app-info menu first."),
             service);
     return m;
   }
@@ -277,27 +277,20 @@ final class PermissionCards {
     PermissionCard.Model m =
         base(
             R.drawable.ic_onb_layers,
-            UiText.choose("悬浮窗", "Display over other apps"),
+            UiText.choose("悬浮窗", "Overlay"),
             UiText.choose(
-                "显示流式悬浮条、命令批准和手机任务状态窗。",
-                "Shows the floating status bar, command approvals and the phone-task status window."),
-            UiText.choose("流式悬浮条", "Floating status"),
-            UiText.choose("手机任务状态窗", "Phone-task window"));
+                "显示悬浮条、命令批准和手机任务状态窗。",
+                "Shows the floating bar, command approvals and the phone-task window."),
+            UiText.choose("悬浮条与状态窗", "Floating bar"));
     state(m, ok, UiText.choose("已允许", "Allowed"), UiText.choose("未允许", "Not allowed"));
-    m.status =
-        ok
-            ? UiText.choose("已允许显示在其他应用上层", "Allowed to display over other apps")
-            : UiText.choose(
-                "未允许 · 悬浮条、命令批准和手机任务状态窗不可用",
-                "Not allowed · floating status, approvals and the phone-task window are unavailable");
     m.outside =
         UiText.choose(
-            "Android 11+ 进入的是“显示在其他应用上层”列表：找到 DSH-A-Su 并允许，然后返回。",
-            "Android 11+ opens the Display over other apps list: find DSH-A-Su, allow it, then return.");
+            "在“显示在其他应用上层”中允许 DSH-A-Su。",
+            "Allow DSH-A-Su under Display over other apps.");
     m.note =
         UiText.choose(
-            "允许系统权限不会自动打开悬浮条；悬浮条开关仍在 设置 → 悬浮条。",
-            "Granting the permission does not turn on the floating status; that switch stays in Settings → Floating status.");
+            "悬浮条开关在 设置 → 悬浮条。",
+            "Turn on the floating bar in Settings → Floating status.");
     m.actions =
         new View[] {
           ok
@@ -308,6 +301,13 @@ final class PermissionCards {
                   true,
                   v -> PermissionActions.openOverlay(a))
         };
+    if (!ok)
+      m.inline =
+          PermissionCard.inlineAction(
+              kit,
+              UiText.choose("去允许", "Allow"),
+              UiText.choose("去允许悬浮窗", "Allow overlay"),
+              v -> PermissionActions.openOverlay(a));
     return m;
   }
 }

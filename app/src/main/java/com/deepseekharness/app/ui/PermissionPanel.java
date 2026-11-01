@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 首次引导第 3 步（及后续可复用）的授权卡片组：7 类授权 + ADB，按第 2 步用途标推荐并排序。
+ * 首次引导第 3 步的授权列表：6 项授权（不分类），按第 2 步用途把推荐项排在前、其余收进“更多授权”。
  *
  * <p>全部默认关闭、可跳过；外跳只由点击触发；宿主 onResume 调 refresh() 重读系统状态。
  * Root / Shizuku 状态在异步回调后可能稍晚变化，面板在可见期间每秒复查一次，宿主暂停即停止。
@@ -33,6 +33,10 @@ final class PermissionPanel {
   private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
   private boolean environmentReady;
   private String channelTab = PermissionChannelCard.SHIZUKU;
+
+  /** 各授权行的展开选择；状态变化后自动回到折叠，轮询重绘不丢。 */
+  private final com.deepseekharness.app.util.PermissionExpansion expansion =
+      new com.deepseekharness.app.util.PermissionExpansion();
   private String lastKey = "";
   private boolean heldA11yConnected;
   private long a11yConnectedUntil;
@@ -202,44 +206,46 @@ final class PermissionPanel {
     lastKey = key;
     root.removeAllViews();
     root.addView(summaryBar(s));
-    Set<String> rec = PermissionGoals.recommended(goals);
-    java.util.List<String> recommendedGroups = PermissionGoals.recommendedGroups(goals);
-    java.util.List<String> otherGroups = PermissionGoals.otherGroups(goals);
-    // 用途决定页面结构：推荐分组展开在前；其余折叠为“其他授权（可选）”，需要时再展开。
-    if (recommendedGroups.isEmpty())
+    // 只列授权项，不分类：推荐项在前；其余收进“更多授权”，需要时再展开。
+    java.util.List<String> rec = PermissionGoals.recommendedCards(goals);
+    java.util.List<String> others = PermissionGoals.otherCards(goals);
+    if (rec.isEmpty()) {
       root.addView(
-          kit.hint(
-              UiText.choose(
-                  "你选的用途不需要设备授权，可以直接继续。下面的授权都是可选的，需要时再开。",
-                  "Your choices need no device permissions, so you can continue. Everything below is optional."),
-              OnboardingKit.Tone.ACCENT),
+          kit.text(
+              UiText.choose("你选的用途不需要授权，可直接继续。", "Nothing is required for your choices."),
+              12.5f,
+              R.color.shell_text_muted),
           kit.topMargin(14));
-    for (String group : recommendedGroups) root.addView(group(group, rec, s), kit.topMargin(22));
-    if (otherGroups.isEmpty()) return;
-    boolean expanded = othersExpanded || recommendedGroups.isEmpty();
-    if (!recommendedGroups.isEmpty())
-      root.addView(othersToggle(otherGroups.size(), expanded), kit.topMargin(22));
-    if (expanded)
-      for (String group : otherGroups) root.addView(group(group, rec, s), kit.topMargin(18));
+      root.addView(list(others, s), kit.topMargin(8));
+      return;
+    }
+    root.addView(list(rec, s), kit.topMargin(14));
+    if (others.isEmpty()) return;
+    root.addView(othersToggle(others.size(), othersExpanded), kit.topMargin(6));
+    if (othersExpanded) root.addView(list(others, s), kit.topMargin(2));
   }
 
-  /** 是否展开“其他授权（可选）”；只影响本次显示，不记忆、不申请任何权限。 */
+  /** 是否展开“更多授权”；只影响本次显示，不记忆、不申请任何权限。 */
   private boolean othersExpanded;
 
-  private View othersToggle(int groups, boolean expanded) {
+  private View othersToggle(int count, boolean expanded) {
     android.widget.Button toggle =
         kit.ghost(
             expanded
-                ? UiText.choose("收起其他授权", "Hide other permissions")
+                ? UiText.choose("收起", "Hide")
                 : String.format(
-                    java.util.Locale.ROOT,
-                    UiText.choose("其他授权（可选）· %d 组", "Other permissions (optional) · %d groups"),
-                    groups),
+                    java.util.Locale.ROOT, UiText.choose("更多授权 · %d 项", "More · %d"), count),
             v -> {
               othersExpanded = !othersExpanded;
               render(true);
             });
-    toggle.setContentDescription(toggle.getText());
+    toggle.setContentDescription(
+        expanded
+            ? UiText.choose("收起更多授权", "Hide more permissions")
+            : String.format(
+                java.util.Locale.ROOT,
+                UiText.choose("展开更多授权，共 %d 项", "Show %d more permissions"),
+                count));
     return toggle;
   }
 
@@ -276,13 +282,14 @@ final class PermissionPanel {
     }
   }
 
+  /** 进度行：“推荐 x / y”（无用途时“已开启 x / 6”）+ 细进度条。 */
   private View summaryBar(boolean[] s) {
-    LinearLayout bar = kit.row();
-    bar.setBackgroundResource(R.drawable.bg_onb_perm);
-    bar.setPadding(kit.dp(14), kit.dp(12), kit.dp(14), kit.dp(12));
+    LinearLayout bar = kit.column();
     int n = displayGranted(s);
     int total = PermissionGoals.recommendedCount(goals);
     int done = PermissionGoals.recommendedDone(goals, s);
+    int max = total > 0 ? total : displayTotal();
+    int value = total > 0 ? done : n;
     TextView label =
         kit.bold(
             total > 0
@@ -296,104 +303,43 @@ final class PermissionPanel {
                     UiText.choose("已开启 %1$d / %2$d", "%1$d of %2$d enabled"),
                     n,
                     displayTotal()),
-            15,
-            R.color.shell_text);
-    bar.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-    LinearLayout dots = kit.row();
-    java.util.List<String> recCards = new java.util.ArrayList<>(PermissionGoals.recommended(goals));
-    if (recCards.isEmpty()) {
-      for (int i = 0; i < s.length; i++) {
-        if (i == ROOT_INDEX) continue;
-        boolean b = s[i];
-        View dot = new View(activity);
-        dot.setBackgroundResource(b ? R.drawable.bg_onb_dot_done : R.drawable.bg_onb_step_todo);
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(kit.dp(9), kit.dp(9));
-        p.leftMargin = kit.dp(5);
-        dots.addView(dot, p);
-      }
-    } else {
-      for (String card : recCards) {
-        boolean on = PermissionGoals.satisfied(card, s);
-        View dot = new View(activity);
-        dot.setBackgroundResource(on ? R.drawable.bg_onb_dot_done : R.drawable.bg_onb_step_todo);
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(kit.dp(9), kit.dp(9));
-        p.leftMargin = kit.dp(5);
-        dots.addView(dot, p);
-      }
-    }
-    dots.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    bar.addView(dots);
+            13,
+            value >= max ? R.color.shell_good : R.color.shell_text_secondary);
+    bar.addView(label);
+    android.widget.ProgressBar meter =
+        new android.widget.ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal);
+    meter.setIndeterminate(false);
+    meter.setMax(Math.max(1, max));
+    meter.setProgress(value);
+    meter.setProgressTintList(android.content.res.ColorStateList.valueOf(kit.color(R.color.shell_good)));
+    meter.setProgressBackgroundTintList(
+        android.content.res.ColorStateList.valueOf(kit.color(R.color.shell_line)));
+    meter.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    bar.addView(
+        meter, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kit.dp(4)));
+    ((LinearLayout.LayoutParams) meter.getLayoutParams()).topMargin = kit.dp(6);
     bar.setContentDescription(label.getText());
     return bar;
   }
 
-  private View group(String group, Set<String> rec, boolean[] s) {
-    LinearLayout box = kit.column();
-    LinearLayout head = kit.row();
-    TextView title = kit.section(groupTitle(group));
-    head.addView(title);
-    boolean hit = false;
-    for (String card : PermissionGoals.cardsIn(group)) hit |= rec.contains(card);
-    if (hit) {
-      LinearLayout.LayoutParams p =
-          new LinearLayout.LayoutParams(
-              ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-      p.leftMargin = kit.dp(8);
-      head.addView(kit.pill(UiText.choose("推荐", "Recommended"), OnboardingKit.Tone.ACCENT), p);
+  /** 一组授权行：一个圆角列表，行间分隔线与文字左缘对齐。 */
+  private View list(java.util.List<String> cards, boolean[] s) {
+    Set<String> rec = PermissionGoals.recommended(goals);
+    LinearLayout list = kit.column();
+    list.setBackgroundResource(R.drawable.bg_onb_perm);
+    list.setClipToOutline(true);
+    for (String card : cards) {
+      if (list.getChildCount() > 0) {
+        View divider = new View(activity);
+        divider.setBackgroundColor(kit.color(R.color.shell_line));
+        LinearLayout.LayoutParams dp =
+            new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        dp.setMarginStart(kit.dp(54));
+        list.addView(divider, dp);
+      }
+      list.addView(card(card, rec.contains(card), s), OnboardingKit.matchWrap());
     }
-    box.addView(head);
-    String description = groupDescription(group, s);
-    if (!description.isEmpty())
-      kit.add(box, kit.text(description, 12.5f, R.color.shell_text_muted), 4);
-    OnboardingKit.Grid grid = new OnboardingKit.Grid(activity, kit.dp(10), kit.dp(330));
-    for (String card : PermissionGoals.cardsIn(group)) {
-      View v = card(card, rec.contains(card), s);
-      if (PermissionGoals.CHANNEL.equals(card)) OnboardingKit.Grid.setWide(v, true);
-      grid.addView(v);
-    }
-    kit.add(box, grid, 10);
-    return box;
-  }
-
-  private static String groupTitle(String group) {
-    switch (group) {
-      case PermissionGoals.GROUP_BASIC:
-        return UiText.choose("基础", "Basics");
-      case PermissionGoals.GROUP_FILES:
-        return UiText.choose("文件", "Files");
-      case PermissionGoals.GROUP_SCREEN:
-        return UiText.choose("屏幕操作（手机任务）", "Screen control (phone tasks)");
-      default:
-        return UiText.choose("设备命令通道", "Device command channel");
-    }
-  }
-
-  private static String mark(boolean ok) {
-    return ok ? "✓" : "○";
-  }
-
-  private String groupDescription(String group, boolean[] s) {
-    switch (group) {
-      case PermissionGoals.GROUP_BASIC:
-        return UiText.choose(
-            "让部署进度和后台任务可见，少被系统中断。",
-            "Keep deployment progress and background work visible and less likely to be interrupted.");
-      case PermissionGoals.GROUP_SCREEN:
-        return String.format(
-            java.util.Locale.ROOT,
-            UiText.choose(
-                "手机任务需要：%s 无障碍　%s 悬浮窗　%s 通知",
-                "Phone tasks need: %s accessibility  %s overlay  %s notifications"),
-            mark(s[3]),
-            mark(s[5]),
-            mark(s[4]));
-      case PermissionGoals.GROUP_SHELL:
-        return UiText.choose(
-            "普通对话和终端不依赖设备控制授权；设备命令白名单始终开启。",
-            "Chat and the terminal work without device-control access; the device command allowlist is always on.");
-      default:
-        return "";
-    }
+    return list;
   }
 
   private int notifyRequests() {
@@ -405,9 +351,9 @@ final class PermissionPanel {
   }
 
   private View card(String id, boolean recommended, boolean[] s) {
+    PermissionCard.Model m;
     if (PermissionGoals.CHANNEL.equals(id))
-      return PermissionCard.build(
-          kit,
+      m =
           PermissionChannelCard.model(
               activity,
               kit,
@@ -418,11 +364,34 @@ final class PermissionPanel {
                 channelTab = tab;
                 render(true);
               },
-              this::refresh));
-    PermissionCard.Model m = PermissionCards.model(this, id, s);
-    m.recommended = recommended;
-    return PermissionCard.build(kit, m);
+              this::refresh);
+    else {
+      m = PermissionCards.model(this, id, s);
+      m.recommended = recommended;
+    }
+    boolean ok = PermissionGoals.satisfied(id, s);
+    LinearLayout item =
+        PermissionCard.build(
+            kit,
+            m,
+            expansion.expanded(id, ok),
+            () -> {
+              expansion.toggle(id, ok);
+              focusAfterRender = id;
+              render(true);
+            });
+    // 整页重建会丢失读屏焦点：把焦点还给刚切换的那一行。
+    if (id.equals(focusAfterRender)) {
+      focusAfterRender = null;
+      View row = item.getChildAt(0);
+      row.post(
+          () -> row.performAccessibilityAction(
+              android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null));
+    }
+    return item;
   }
+
+  private String focusAfterRender;
 
   // ---------------------------------------------------------------- 卡片回调（PermissionCards 使用）
 

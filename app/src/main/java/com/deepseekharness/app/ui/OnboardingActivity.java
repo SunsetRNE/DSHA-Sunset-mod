@@ -1180,8 +1180,8 @@ public final class OnboardingActivity extends AppCompatActivity {
     TextView lead =
         kit.lead(
             UiText.choose(
-                "全部可选。授权在系统设置或管理器中完成，回到 DSHA 后会自动重新检查；之后可在 设置 → 设备能力授权 中修改或撤销。",
-                "Everything is optional. Grant access in system settings or the manager app; DSHA rechecks when you return. Change or revoke later in Settings → Device permissions."));
+                "全部可选，之后可在设置中修改。",
+                "All optional. Change later in Settings."));
     lead.setMaxWidth(kit.dp(680));
     kit.add(content, lead, 8);
     View view = null;
@@ -1206,13 +1206,11 @@ public final class OnboardingActivity extends AppCompatActivity {
     int done = panel == null ? 0 : panel.recommendedDone();
     String primary =
         total > 0 && done >= total
-            ? UiText.choose("推荐授权已完成，下一步", "Recommended permissions done · Next")
+            ? UiText.choose("下一步", "Next")
             : total > 0
                 ? String.format(
                     Locale.ROOT,
-                    UiText.choose(
-                        "下一步（推荐已开启 %1$d / %2$d，其余可稍后开启）",
-                        "Next (%1$d of %2$d recommended on; the rest can wait)"),
+                    UiText.choose("下一步 · 已开启 %1$d / %2$d", "Next · %1$d of %2$d on"),
                     done,
                     total)
                 : granted() > 0

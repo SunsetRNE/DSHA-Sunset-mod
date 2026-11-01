@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 首次引导第 2 步“用途”到第 3 步授权卡片的推荐映射。纯逻辑：只决定推荐标记与分组顺序，
- * 不申请、不打开任何权限。卡片 id 与分组 id 为界面常量，不写入任何权限状态。
+ * 首次引导第 2 步“用途”到第 3 步授权项的推荐映射。纯逻辑：只决定哪些项推荐、按什么顺序显示，
+ * 不申请、不打开任何权限。卡片 id 为界面常量，不写入任何权限状态。
  */
 public final class PermissionGoals {
   private PermissionGoals() {}
@@ -27,14 +27,13 @@ public final class PermissionGoals {
       CHANNEL = "channel",
       BATTERY = "battery";
 
-  /** 分组 id，默认顺序即原型顺序。 */
-  public static final String GROUP_BASIC = "basic",
-      GROUP_FILES = "files",
-      GROUP_SCREEN = "screen",
-      GROUP_SHELL = "shell";
+  /** 全部授权项的默认显示顺序（不分组）。 */
+  private static final List<String> CARDS =
+      Collections.unmodifiableList(List.of(NOTIFY, BATTERY, STORAGE, A11Y, OVERLAY, CHANNEL));
 
-  private static final List<String> GROUPS =
-      Collections.unmodifiableList(List.of(GROUP_BASIC, GROUP_FILES, GROUP_SCREEN, GROUP_SHELL));
+  public static List<String> cards() {
+    return CARDS;
+  }
 
   /** 可选用途（BASE 始终视为已选，不带推荐授权）。 */
   public static List<String> goals() {
@@ -65,78 +64,25 @@ public final class PermissionGoals {
     return result;
   }
 
-  /** 卡片所属分组。 */
-  public static String groupOf(String card) {
-    if (card == null) return "";
-    switch (card) {
-      case NOTIFY:
-      case BATTERY:
-        return GROUP_BASIC;
-      case STORAGE:
-        return GROUP_FILES;
-      case A11Y:
-      case OVERLAY:
-        return GROUP_SCREEN;
-      case CHANNEL:
-        return GROUP_SHELL;
-      default:
-        return "";
-    }
+  /** 推荐的授权项，按默认显示顺序。 */
+  public static List<String> recommendedCards(Set<String> goals) {
+    Set<String> rec = recommended(goals);
+    List<String> result = new ArrayList<>();
+    for (String card : CARDS) if (rec.contains(card)) result.add(card);
+    return Collections.unmodifiableList(result);
   }
 
-  /** 分组内的卡片，按原型顺序。 */
-  public static List<String> cardsIn(String group) {
-    if (group == null) return List.of();
-    switch (group) {
-      case GROUP_BASIC:
-        return List.of(NOTIFY, BATTERY);
-      case GROUP_FILES:
-        return List.of(STORAGE);
-      case GROUP_SCREEN:
-        return List.of(A11Y, OVERLAY);
-      case GROUP_SHELL:
-        return List.of(CHANNEL);
-      default:
-        return List.of();
-    }
-  }
-
-  /** 有推荐项的分组排前，其余保持默认顺序（稳定排序）。 */
-  public static List<String> groupOrder(Set<String> goals) {
-    Set<String> recommended = recommended(goals);
-    List<String> first = new ArrayList<>(), rest = new ArrayList<>();
-    for (String group : GROUPS) {
-      boolean hit = false;
-      for (String card : cardsIn(group)) hit |= recommended.contains(card);
-      (hit ? first : rest).add(group);
-    }
-    first.addAll(rest);
-    return Collections.unmodifiableList(first);
+  /** 未推荐的授权项（折叠到“更多授权”），按默认显示顺序。 */
+  public static List<String> otherCards(Set<String> goals) {
+    Set<String> rec = recommended(goals);
+    List<String> result = new ArrayList<>();
+    for (String card : CARDS) if (!rec.contains(card)) result.add(card);
+    return Collections.unmodifiableList(result);
   }
 
   /** 推荐授权卡片数（第 2 步按钮文案用）。 */
   public static int recommendedCount(Set<String> goals) {
     return recommended(goals).size();
-  }
-
-  /** 有推荐项的分组（展开显示），按 groupOrder 顺序。 */
-  public static List<String> recommendedGroups(Set<String> goals) {
-    Set<String> rec = recommended(goals);
-    List<String> result = new ArrayList<>();
-    for (String group : groupOrder(goals)) {
-      boolean hit = false;
-      for (String card : cardsIn(group)) hit |= rec.contains(card);
-      if (hit) result.add(group);
-    }
-    return Collections.unmodifiableList(result);
-  }
-
-  /** 没有推荐项的分组（折叠到“其他授权（可选）”）。 */
-  public static List<String> otherGroups(Set<String> goals) {
-    List<String> rec = recommendedGroups(goals);
-    List<String> result = new ArrayList<>();
-    for (String group : groupOrder(goals)) if (!rec.contains(group)) result.add(group);
-    return Collections.unmodifiableList(result);
   }
 
   /**

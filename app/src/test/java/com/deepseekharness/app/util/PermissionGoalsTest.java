@@ -12,7 +12,8 @@ public class PermissionGoalsTest {
     assertTrue(PermissionGoals.recommended(Set.of()).isEmpty());
     assertTrue(PermissionGoals.recommended(null).isEmpty());
     assertEquals(
-        List.of("basic", "files", "screen", "shell"), PermissionGoals.groupOrder(Set.of()));
+        List.of("notify", "battery", "storage", "a11y", "overlay", "channel"),
+        PermissionGoals.otherCards(Set.of()));
     assertEquals(0, PermissionGoals.recommendedCount(Set.of(PermissionGoals.BASE)));
   }
 
@@ -20,10 +21,10 @@ public class PermissionGoalsTest {
   public void screenGoalRecommendsAllThreePhoneTaskPrerequisites() {
     Set<String> rec = PermissionGoals.recommended(Set.of(PermissionGoals.SCREEN));
     assertEquals(Set.of("a11y", "overlay", "notify"), rec);
-    // 屏幕组与基础组（通知）都含推荐项，二者排前且保持默认相对顺序。
+    // 推荐项按默认顺序排列，不受用途内部顺序影响。
     assertEquals(
-        List.of("basic", "screen", "files", "shell"),
-        PermissionGoals.groupOrder(Set.of(PermissionGoals.SCREEN)));
+        List.of("notify", "a11y", "overlay"),
+        PermissionGoals.recommendedCards(Set.of(PermissionGoals.SCREEN)));
   }
 
   @Test
@@ -34,30 +35,27 @@ public class PermissionGoalsTest {
   }
 
   @Test
-  public void shellAndFilesMoveTheirGroupsFirst() {
+  public void recommendedAndOtherCardsPartitionEveryCardOnce() {
+    Set<String> files = Set.of(PermissionGoals.FILES);
+    assertEquals(List.of("storage"), PermissionGoals.recommendedCards(files));
     assertEquals(
-        List.of("files", "shell", "basic", "screen"),
-        PermissionGoals.groupOrder(Set.of(PermissionGoals.SHELL, PermissionGoals.FILES)));
-  }
-
-  @Test
-  public void everyCardBelongsToExactlyOneGroup() {
-    for (String group : List.of("basic", "files", "screen", "shell"))
-      for (String card : PermissionGoals.cardsIn(group))
-        assertEquals(group, PermissionGoals.groupOf(card));
-    assertEquals("", PermissionGoals.groupOf("unknown"));
+        List.of("notify", "battery", "a11y", "overlay", "channel"),
+        PermissionGoals.otherCards(files));
+    // 同组的其他项不会被“顺带”推荐：只选后台用途时，存储不在推荐里。
+    Set<String> bg = Set.of(PermissionGoals.BACKGROUND);
+    assertEquals(List.of("notify", "battery"), PermissionGoals.recommendedCards(bg));
+    // 只选“对话、写代码”：没有推荐项，全部可选。
+    assertTrue(PermissionGoals.recommendedCards(Set.of(PermissionGoals.BASE)).isEmpty());
+    assertEquals(6, PermissionGoals.otherCards(Set.of(PermissionGoals.BASE)).size());
     assertTrue(PermissionGoals.cardsFor("unknown").isEmpty());
     assertTrue(PermissionGoals.cardsFor(PermissionGoals.BASE).isEmpty());
-  }
-
-  @Test
-  public void goalsSplitGroupsIntoRecommendedAndCollapsed() {
-    Set<String> files = Set.of(PermissionGoals.FILES);
-    assertEquals(List.of("files"), PermissionGoals.recommendedGroups(files));
-    assertEquals(List.of("basic", "screen", "shell"), PermissionGoals.otherGroups(files));
-    // 只选“对话、写代码”：没有推荐分组，全部折叠为可选。
-    assertTrue(PermissionGoals.recommendedGroups(Set.of(PermissionGoals.BASE)).isEmpty());
-    assertEquals(4, PermissionGoals.otherGroups(Set.of(PermissionGoals.BASE)).size());
+    for (Set<String> goals :
+        List.of(Set.<String>of(), files, bg, Set.copyOf(PermissionGoals.goals()))) {
+      List<String> all = new java.util.ArrayList<>(PermissionGoals.recommendedCards(goals));
+      all.addAll(PermissionGoals.otherCards(goals));
+      assertEquals(PermissionGoals.cards().size(), all.size());
+      assertEquals(Set.copyOf(PermissionGoals.cards()), Set.copyOf(all));
+    }
   }
 
   @Test

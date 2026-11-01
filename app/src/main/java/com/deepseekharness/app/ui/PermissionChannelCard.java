@@ -60,8 +60,8 @@ final class PermissionChannelCard {
     m.title = UiText.choose("设备命令通道", "Device command channel");
     m.why =
         UiText.choose(
-            "推荐用 Stellar 作为管理器；DSHA 走它的 Shizuku 兼容层，不是 Stellar 原生权限。Root 与 ADB 在 设置 → 设备能力授权 中配置。",
-            "Stellar is the recommended manager; DSHA uses its Shizuku compatibility layer, not Stellar-native permissions. Configure Root or ADB in Settings → Device access.");
+            "通过 Stellar 的 Shizuku 兼容层执行设备命令。Root 与 ADB 在设置中配置。",
+            "Runs device commands through Stellar's Shizuku compatibility layer. Root and ADB are in Settings.");
     m.ok = shizuku || root;
     m.pill =
         shizuku
@@ -75,7 +75,7 @@ final class PermissionChannelCard {
     m.recommended = recommended;
 
     LinearLayout body = kit.column();
-    shizukuPanel(activity, kit, body, refresh);
+    shizukuPanel(activity, kit, body, refresh, m);
     m.extra = body;
     return m;
   }
@@ -139,8 +139,13 @@ final class PermissionChannelCard {
         : UiText.text("验证 Shizuku 连接");
   }
 
+  /** 通道未就绪时主操作移到行内（m.inline），展开区只留状态、说明与“打开管理器”。 */
   private static void shizukuPanel(
-      AppCompatActivity activity, OnboardingKit kit, LinearLayout panel, Runnable refresh) {
+      AppCompatActivity activity,
+      OnboardingKit kit,
+      LinearLayout panel,
+      Runnable refresh,
+      PermissionCard.Model m) {
     boolean ok = shizukuReady();
     com.deepseekharness.app.util.ShizukuChannelStatus.Step step = ShizukuShell.step(activity);
     // 在管理器里授权后回到 DSHA 时，只补一次设备 Shell 绑定；这不是申请权限。
@@ -156,14 +161,14 @@ final class PermissionChannelCard {
               hasManager
                   ? (stellar
                       ? UiText.choose(
-                          "已识别 Stellar。请启动服务并开启「Shizuku 兼容层」，回到这里授权。DSHA 不使用 Stellar 原生权限。",
-                          "Stellar is installed. Start the service, enable the Shizuku compatibility layer, then return here to authorize. DSHA does not use Stellar-native permissions.")
+                          "在 Stellar 中启动服务并开启「Shizuku 兼容层」，再回来授权。",
+                          "In Stellar, start the service and enable the Shizuku compatibility layer, then authorize here.")
                       : UiText.choose(
-                          "已识别 Shizuku。也可以改用 Stellar（仍走兼容层）。Root 与 ADB 在设置里配置。",
-                          "Shizuku is installed. You may switch to Stellar (still the compatibility layer). Root and ADB are in Settings."))
+                          "已识别 Shizuku，可直接授权。",
+                          "Shizuku is installed; authorize it here."))
                   : UiText.choose(
-                      "未安装管理器。推荐安装 Stellar，并在其设置中开启「Shizuku 兼容层」。已有 Shizuku 也可继续用。",
-                      "No manager installed. Stellar is recommended; enable its Shizuku compatibility layer. Existing Shizuku still works."),
+                      "推荐安装 Stellar 并开启「Shizuku 兼容层」；已有 Shizuku 也可以。",
+                      "Install Stellar and enable its Shizuku compatibility layer; Shizuku also works."),
               OnboardingKit.Tone.ACCENT),
           8);
     Button primary;
@@ -226,7 +231,10 @@ final class PermissionChannelCard {
                         "本机还没识别到 Shizuku。装好并启动服务后回到这里刷新。",
                         "Shizuku is not on this device yet. Install it, start the service, then return here and refresh."));
             });
-    kit.add(panel, kit.actionRow(primary, open), 10);
+    if (!m.ok) {
+      m.inline = PermissionCard.compact(kit, primary);
+      kit.add(panel, kit.actionRow(open), 10);
+    } else kit.add(panel, kit.actionRow(primary, open), 10);
   }
 
   private static void rootPanel(
