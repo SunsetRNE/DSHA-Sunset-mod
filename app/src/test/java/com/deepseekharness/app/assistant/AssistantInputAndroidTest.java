@@ -10,6 +10,8 @@ import android.widget.*;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.control.PhoneControlCoordinator;
+import com.deepseekharness.app.util.OverlayTouchGuard;
+import com.deepseekharness.app.util.UiText;
 import com.deepseekharness.app.core.HarnessController;
 import java.lang.reflect.Field;
 import java.util.concurrent.*;
@@ -113,6 +115,115 @@ public final class AssistantInputAndroidTest {
     Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
   }
 
+  /** 越过展开/改宽后的防误触静置期。 */
+  private static void settle() {
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper())
+        .idleFor(java.time.Duration.ofMillis(OverlayTouchGuard.SETTLE_MILLIS + 50));
+  }
+
+  private Button windowButton(String name) throws Exception {
+    return (Button) field(window, name);
+  }
+
+  @Test
+  public void layoutSettleSwallowsTheTapThatExpandedThePanel() throws Exception {
+    window = new AssistantWindow(app, session);
+    window.show();
+    settle();
+    TextView status = (TextView) field(window, "status");
+    assertTrue(status.performClick());
+    drain();
+    assertTrue(session.snapshot().expanded());
+    // 同一根手指的后续点按落在刚出现的按钮上：静置期内全部忽略。
+    assertTrue(windowButton("closeButton").performClick());
+    assertTrue(windowButton("stopButton").performClick());
+    drain();
+    assertTrue(session.snapshot().expanded());
+    assertEquals(0, cancellations.get());
+    // 再点状态行不会收起：收起只走 ✕。
+    settle();
+    assertTrue(status.performClick());
+    drain();
+    assertTrue(session.snapshot().expanded());
+    assertTrue(windowButton("closeButton").performClick());
+    drain();
+    assertFalse(session.snapshot().expanded());
+    assertEquals(View.GONE, windowButton("closeButton").getVisibility());
+    assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
+    assertEquals(0, cancellations.get());
+  }
+
+  @Test
+  public void stopNeedsTwoTapsAndOtherButtonsDisarmIt() throws Exception {
+    window = new AssistantWindow(app, session);
+    window.show();
+    session.expand();
+    drain();
+    settle();
+    Button stop = windowButton("stopButton");
+    assertTrue(stop.performClick());
+    drain();
+    assertEquals(0, cancellations.get());
+    assertNotEquals(AssistantSessionState.Phase.STOPPING, session.snapshot().phase());
+    assertEquals(UiText.choose("再点停止", "Tap again"), stop.getText().toString());
+    // 中间点了别的按钮（✕ 收起）：撤销待确认。
+    assertTrue(windowButton("closeButton").performClick());
+    drain();
+    assertEquals(UiText.choose("停止", "Stop"), stop.getText().toString());
+    session.expand();
+    drain();
+    settle();
+    assertTrue(stop.performClick());
+    // 超时自动撤销。
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper())
+        .idleFor(java.time.Duration.ofMillis(OverlayTouchGuard.CONFIRM_MILLIS + 100));
+    assertEquals(UiText.choose("停止", "Stop"), stop.getText().toString());
+    assertTrue(stop.performClick());
+    assertTrue(stop.performClick());
+    drain();
+    var phase = session.snapshot().phase();
+    assertTrue(
+        phase.toString(),
+        phase == AssistantSessionState.Phase.STOPPING
+            || phase == AssistantSessionState.Phase.STOPPED);
+  }
+
+  @Test
+  public void returnConversationCollapsesWithoutPausingOrCancelling() throws Exception {
+    window = new AssistantWindow(app, session);
+    window.show();
+    session.expand();
+    drain();
+    session.returnConversation();
+    drain();
+    assertFalse(session.snapshot().expanded());
+    assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
+    assertEquals(0, cancellations.get());
+  }
+
+  @Test
+  public void voiceHoldIsReleasedOnlyByItsOwnReason() throws Exception {
+    session.holdForLocalInput("ASSISTANT_VOICE");
+    drain();
+    var coordinator = PhoneControlCoordinator.get(app);
+    assertTrue(coordinator.snapshot().paused());
+    session.releaseLocalInput("ASSISTANT_IME");
+    assertTrue("另一界面的离开不能放开语音的暂停", coordinator.snapshot().paused());
+    session.releaseLocalInput("ASSISTANT_VOICE");
+    assertFalse(coordinator.snapshot().paused());
+    assertTrue(coordinator.snapshot().needsObservation());
+    // 用户主动暂停不会被输入界面的离开放开。
+    session.pause("USER_PAUSED");
+    drain();
+    session.releaseLocalInput("ASSISTANT_VOICE");
+    session.releaseLocalInput("ASSISTANT_IME");
+    assertTrue(coordinator.snapshot().paused());
+    assertEquals(
+        "Holding for local input never cancels the conversation; only the explicit pause does",
+        1,
+        cancellations.get());
+  }
+
   private static Rect boundsWithin(ViewGroup viewport, View child) {
     Rect bounds = new Rect(0, 0, child.getWidth(), child.getHeight());
     viewport.offsetDescendantRectToMyCoords(child, bounds);
@@ -142,6 +253,10 @@ public final class AssistantInputAndroidTest {
     window.show();
     session.expand();
     drain();
+    // 展开只改界面：不暂停手机操作，也不取消对话。
+    assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
+    assertEquals(0, cancellations.get());
+    settle();
     int before = cancellations.get();
     Button input = (Button) field(window, "input");
     assertTrue(input.isShown());
@@ -251,7 +366,11 @@ public final class AssistantInputAndroidTest {
           ViewGroup.FOCUS_BLOCK_DESCENDANTS,
           ((ViewGroup) field(activity, "content")).getDescendantFocusability());
       assertFalse(Shadow.<ShadowInputMethodManager>extract(ime).isSoftInputVisible());
-      assertTrue(PhoneControlCoordinator.get(app).snapshot().paused());
+      // 未发送就离开编辑器：放回手机操作，但下一步必须先重新观察；对话从未被取消。
+      var authority = PhoneControlCoordinator.get(app).snapshot();
+      assertFalse(authority.paused());
+      assertTrue(authority.needsObservation());
+      assertEquals(0, cancellations.get());
     } finally {
       host.destroy();
     }

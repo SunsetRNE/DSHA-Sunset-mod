@@ -326,6 +326,12 @@ public final class AssistantService extends Service {
                   outcome.set(refused("ASSISTANT_LOCAL_RESUME_REQUIRED"));
                   return;
                 }
+                // 用户正在看展开的面板：不收走它。面板是不可聚焦的自有窗口，读屏时整窗排除，
+                // 坐标动作也不会落在它上面；几何变化已在展开/收起时要求重新观察。
+                if (service.window.keptVisibleForUser()) {
+                  outcome.set(new TaskUiResult(true, "READY"));
+                  return;
+                }
                 boolean changed = service.window.visible();
                 if (changed) coordinator.requireObservation(task);
                 service.window.hideForScreen();
@@ -373,6 +379,11 @@ public final class AssistantService extends Service {
               // Recheck on the UI thread: expansion may race the turn-end callback after the
               // worker-side decision. A user-visible pause must never be closed by stale cleanup.
               if (retainLocalTaskAfterTurnEnd(task)) return;
+              if (service.controller.snapshot().expanded()) {
+                // 面板展开时本轮结束：等用户收起后再关窗，窗口不在手指下消失。
+                service.controller.deferFinishUntilCollapsed(() -> finishLocalTask(context, task));
+                return;
+              }
               if (service.window != null) service.window.close();
               service.controller.detachFinishedTask();
               service.stopSelf();

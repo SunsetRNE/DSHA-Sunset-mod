@@ -18,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import com.deepseekharness.app.control.OwnedScreenOverlay;
+import com.deepseekharness.app.util.OverlayTouchGuard;
 import com.deepseekharness.app.util.ScreenWindowRegion;
 
 /** Measured owned geometry is excluded only while collapsed. Expanding fences first. */
@@ -28,7 +29,7 @@ final class AssistantWindow implements AutoCloseable {
   private LinearLayout root, panel, actions;
   private TextView status, messages;
   private Button input;
-  private Button sendButton, resumeButton;
+  private Button sendButton, resumeButton, stopButton, closeButton;
   private Button notificationSettingsButton;
   private WindowManager.LayoutParams params;
   private volatile boolean added;
@@ -38,6 +39,15 @@ final class AssistantWindow implements AutoCloseable {
   private boolean hiddenForScreen;
   private boolean stopControlsRequired;
   private final Runnable changed = this::render;
+  private final OverlayTouchGuard guard =
+      new OverlayTouchGuard(android.os.SystemClock::elapsedRealtime);
+  private final Runnable stopExpired = this::renderStopButton;
+  private int renderedWidth = -1;
+
+  /** 展开的面板正被用户查看：读屏前不收走它（它不可聚焦，按自有窗口整窗排除）。 */
+  boolean keptVisibleForUser() {
+    return added && !hiddenForScreen && !editorVisible && controller.snapshot().expanded();
+  }
 
   boolean visible() {
     return added;
@@ -69,6 +79,7 @@ final class AssistantWindow implements AutoCloseable {
         manager.addView(root, params);
         added = true;
         hiddenForScreen = false;
+        guard.layoutChanged();
       } catch (RuntimeException unavailable) {
         return;
       }
@@ -102,11 +113,29 @@ final class AssistantWindow implements AutoCloseable {
     status.setMaxLines(2);
     status.setEllipsize(TextUtils.TruncateAt.END);
     status.setGravity(Gravity.CENTER_VERTICAL);
-    root.addView(status, new LinearLayout.LayoutParams(-1, dp(50)));
+    // 状态行只负责展开，不再来回切换；收起统一用右上角 ✕，避免同一位置连点误收、误触。
+    LinearLayout header = new LinearLayout(context);
+    header.setOrientation(LinearLayout.HORIZONTAL);
+    header.setGravity(Gravity.CENTER_VERTICAL);
+    root.addView(header, new LinearLayout.LayoutParams(-1, dp(50)));
+    header.addView(status, new LinearLayout.LayoutParams(0, -1, 1));
     status.setOnClickListener(
         v -> {
-          if (controller.snapshot().expanded()) controller.collapse();
-          else controller.expand();
+          if (!controller.snapshot().expanded() && guard.accept()) controller.expand();
+        });
+    closeButton = new Button(context);
+    closeButton.setText("✕");
+    closeButton.setTextSize(16);
+    closeButton.setMinWidth(0);
+    closeButton.setMinimumWidth(0);
+    closeButton.setPadding(0, 0, 0, 0);
+    closeButton.setContentDescription(UiText.choose("收起面板", "Collapse panel"));
+    LinearLayout.LayoutParams closeParams = new LinearLayout.LayoutParams(dp(44), dp(44));
+    closeParams.setMarginStart(dp(8));
+    header.addView(closeButton, closeParams);
+    closeButton.setOnClickListener(
+        v -> {
+          if (guard.accept()) controller.collapse();
         });
     panel = new LinearLayout(context);
     panel.setOrientation(LinearLayout.VERTICAL);
@@ -125,7 +154,10 @@ final class AssistantWindow implements AutoCloseable {
     input.setEllipsize(TextUtils.TruncateAt.END);
     input.setTextSize(14);
     panel.addView(input);
-    input.setOnClickListener(v -> openEditor());
+    input.setOnClickListener(
+        v -> {
+          if (guard.accept()) openEditor();
+        });
     LinearLayout row = new LinearLayout(context);
     panel.addView(row);
     sendButton =
@@ -139,17 +171,21 @@ final class AssistantWindow implements AutoCloseable {
         row,
         UiText.choose("语音", "Voice"),
         () -> {
-          controller.pause("ASSISTANT_VOICE");
+          // 语音界面可聚焦：拦住手机操作，但不取消当前对话。
+          controller.holdForLocalInput("ASSISTANT_VOICE");
           context.startActivity(
               new Intent(context, AssistantVoiceActivity.class)
                   .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         });
-    button(row, UiText.choose("收起", "Collapse"), controller::collapse);
     actions = new LinearLayout(context);
     root.addView(actions);
+    // 「停止」放在最左、离右上角 ✕ 最远，并与其它按钮隔开；需要二次确认。
+    stopButton = button(actions, "", null);
+    stopButton.setOnClickListener(v -> stopTapped());
+    ((LinearLayout.LayoutParams) stopButton.getLayoutParams()).setMarginEnd(dp(16));
+    renderStopButton();
     button(actions, UiText.choose("暂停", "Pause"), () -> controller.pause("USER_PAUSED"));
     resumeButton = button(actions, UiText.choose("继续", "Continue"), controller::resume);
-    button(actions, UiText.choose("停止", "Stop"), controller::stop);
     button(actions, UiText.choose("会话", "Chat"), controller::returnConversation);
     notificationSettingsButton = new Button(context);
     notificationSettingsButton.setText(
@@ -181,6 +217,7 @@ final class AssistantWindow implements AutoCloseable {
     try {
       manager.addView(root, params);
       added = true;
+      guard.layoutChanged();
       controller.addListener(changed);
       render();
     } catch (RuntimeException unavailable) {
@@ -195,9 +232,41 @@ final class AssistantWindow implements AutoCloseable {
     button.setTextSize(12);
     button.setMinWidth(0);
     button.setPadding(dp(4), 0, dp(4), 0);
-    row.addView(button, new LinearLayout.LayoutParams(0, dp(44), 1));
-    button.setOnClickListener(v -> action.run());
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(44), 1);
+    params.setMargins(dp(4), dp(4), dp(4), dp(4));
+    row.addView(button, params);
+    if (action != null)
+      button.setOnClickListener(
+          v -> {
+            if (guard.accept()) action.run();
+          });
     return button;
+  }
+
+  private void stopTapped() {
+    switch (guard.stop()) {
+      case IGNORED -> {}
+      case ARMED -> {
+        renderStopButton();
+        stopButton.removeCallbacks(stopExpired);
+        stopButton.postDelayed(stopExpired, OverlayTouchGuard.CONFIRM_MILLIS + 50);
+      }
+      case CONFIRMED -> {
+        stopButton.removeCallbacks(stopExpired);
+        renderStopButton();
+        controller.stop();
+      }
+    }
+  }
+
+  private void renderStopButton() {
+    if (stopButton == null) return;
+    boolean armed = guard.stopArmed();
+    stopButton.setText(armed ? UiText.choose("再点停止", "Tap again") : UiText.choose("停止", "Stop"));
+    stopButton.setContentDescription(
+        armed
+            ? UiText.choose("再点一次停止当前任务", "Tap again to stop the current task")
+            : UiText.choose("停止当前任务，需要点两次", "Stop the current task; requires two taps"));
   }
 
   private void render() {
@@ -225,7 +294,9 @@ final class AssistantWindow implements AutoCloseable {
             && state.paused()
             && state.phase() != AssistantSessionState.Phase.STOPPED);
     panel.setVisibility(state.expanded() ? View.VISIBLE : View.GONE);
+    closeButton.setVisibility(state.expanded() ? View.VISIBLE : View.GONE);
     actions.setVisibility(state.expanded() || stopControlsRequired ? View.VISIBLE : View.GONE);
+    renderStopButton();
     notificationSettingsButton.setVisibility(stopControlsRequired ? View.VISIBLE : View.GONE);
     if (draftRevision != state.draftRevision()) {
       draftRevision = state.draftRevision();
@@ -235,11 +306,15 @@ final class AssistantWindow implements AutoCloseable {
               : String.format(UiText.choose("编辑草稿：%s", "Edit draft: %s"), state.draft()));
     }
     if (renderedExpanded != state.expanded() || stopControlsRequired) {
+      boolean expansionChanged = renderedExpanded != state.expanded();
       renderedExpanded = state.expanded();
       params.width =
           state.expanded() || stopControlsRequired
               ? Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(440))
               : Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(210));
+      // 只有真实的展开/收起或改宽才进入静置期；轮询重绘不会吞掉点按。
+      if (expansionChanged || params.width != renderedWidth) guard.layoutChanged();
+      renderedWidth = params.width;
       // This window has buttons and a transcript, never an IME target.
       params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
       try {
@@ -272,6 +347,7 @@ final class AssistantWindow implements AutoCloseable {
     params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
     manager.updateViewLayout(root, params);
     root.setVisibility(visible ? View.GONE : View.VISIBLE);
+    if (!visible) guard.layoutChanged();
     publish();
   }
 
@@ -292,10 +368,10 @@ final class AssistantWindow implements AutoCloseable {
 
   static String detail(AssistantSessionController.Snapshot state) {
     return switch (state.detail()) {
-      case "ASSISTANT_EXPANDED", "ASSISTANT_IME", "ASSISTANT_VOICE" ->
+      case "ASSISTANT_IME", "ASSISTANT_VOICE" ->
           UiText.choose(
-              "聊天已展开，手机操作已暂停。核对停止状态后可发送新消息；收起后点继续恢复任务。",
-              "Phone actions are paused while chatting. Once cancellation is confirmed, send a message or collapse and continue the task.");
+              "正在输入，手机操作暂时拦住，对话不会被取消。发送或返回后自动放开。",
+              "Phone actions are held while you type; the conversation is not cancelled. They resume when you send or go back.");
       case "ASSISTANT_STOP_NOTIFICATION_REQUIRED" ->
           AssistantService.taskGuidance("ASSISTANT_STOP_NOTIFICATION_REQUIRED");
       case "USER_PAUSED" ->
@@ -306,9 +382,6 @@ final class AssistantWindow implements AutoCloseable {
           UiText.choose(
               "下一次手机操作前会重新观察屏幕。",
               "The screen must be observed again before the next phone action.");
-      case "RETURN_CONVERSATION" ->
-          UiText.choose(
-              "已暂停手机操作，正在打开完整会话。", "Phone actions paused; opening the full conversation.");
       case "CONNECTION_CHANGED" ->
           UiText.choose(
               "连接已改变。返回悬浮助手重新选择会话。",
@@ -333,7 +406,9 @@ final class AssistantWindow implements AutoCloseable {
       OwnedScreenOverlay.clear("assistant");
       return;
     }
-    publish(root, "assistant", controller.snapshot().expanded());
+    // 助手面板从不可聚焦、不是输入法目标；展开时也按自有窗口整窗排除，
+    // 不作为“展开即暂停”的信号（那会让查看面板就停掉手机操作和对话）。
+    publish(root, "assistant", false);
   }
 
   static void publish(View view, String owner, boolean expanded) {

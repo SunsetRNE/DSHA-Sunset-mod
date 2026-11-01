@@ -424,8 +424,18 @@ public final class AssistantTaskAttachmentAndroidTest {
     actionsField.setAccessible(true);
     ViewGroup actions = (ViewGroup) actionsField.get(window);
     assertEquals(View.VISIBLE, actions.getVisibility());
-    View stop = actions.getChildAt(2);
+    Field stopField = AssistantWindow.class.getDeclaredField("stopButton");
+    stopField.setAccessible(true);
+    View stop = (View) stopField.get(window);
+    assertSame(actions, stop.getParent());
     assertTrue(stop.isAttachedToWindow());
+    // 恢复停止入口会改变窗口宽度：先越过防误触静置期，再两次点按确认。
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper())
+        .idleFor(
+            java.time.Duration.ofMillis(
+                com.deepseekharness.app.util.OverlayTouchGuard.SETTLE_MILLIS + 50));
+    assertTrue(stop.performClick());
+    assertNotNull("The first tap only arms Stop", coordinator.snapshot().binding());
     assertTrue(stop.performClick());
     assertNull(coordinator.snapshot().binding());
   }
@@ -644,7 +654,44 @@ public final class AssistantTaskAttachmentAndroidTest {
   }
 
   @Test
-  public void expandedPauseRetainsTheTaskWindowAfterTurnEndRetirement() throws Exception {
+  public void expandedPanelStaysVisibleForObservationAndOnlyInvalidatesOldObservation()
+      throws Exception {
+    Host host = new Host(address("expanded-observation"), "7");
+    var attached = request(host, "7");
+    var service = dispatchService();
+    assertTrue(attached.get(2, TimeUnit.SECONDS).ready());
+    var selected = AssistantSessionController.active();
+    var coordinator = PhoneControlCoordinator.get(app);
+    var task = task(host, "7");
+    coordinator.begin(task);
+    Field windowField = AssistantService.class.getDeclaredField("window");
+    windowField.setAccessible(true);
+    var window = (AssistantWindow) windowField.get(service.get());
+    assertTrue(window.visible());
+
+    // 用户在面板可见时展开查看：手机操作不暂停、对话不取消。
+    selected.expand();
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+    assertFalse(coordinator.snapshot().paused());
+    assertTrue(window.keptVisibleForUser());
+    // 读屏前不再收走展开的面板，也不报“需要本机继续”；它按自有窗口整窗排除。
+    assertTrue(prepare(host, true).ready());
+    assertTrue(window.visible());
+    var lease = coordinator.lease(task);
+    assertTrue(coordinator.observed(lease));
+    assertTrue(prepare(host, false).ready());
+    assertTrue(coordinator.actionAllowed(lease));
+
+    // 收起改变几何：旧观察作废、需要重新观察，但仍不暂停。
+    selected.collapse();
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+    assertFalse(coordinator.snapshot().paused());
+    assertFalse(coordinator.actionAllowed(lease));
+    assertFalse(host.calls.contains("sessions.cancel"));
+  }
+
+  @Test
+  public void expandedPanelDefersTurnEndRetirementUntilCollapsed() throws Exception {
     Host host = new Host(address("expanded-retention"), "7");
     var attached = request(host, "7");
     var service = dispatchService();
@@ -654,20 +701,27 @@ public final class AssistantTaskAttachmentAndroidTest {
     var task = task(host, "7");
     coordinator.begin(task);
 
-    // The status-window click expands first and synchronously pauses/fences screen control.
+    // 展开只改界面：不暂停手机操作，也不取消对话。
     selected.expand();
     assertTrue(selected.snapshot().expanded());
-    assertTrue(selected.snapshot().paused());
+    assertFalse(selected.snapshot().paused());
+    assertFalse(coordinator.snapshot().paused());
 
-    // This is the same order as /app/ui/task-end: retire the native lease, then decide whether
-    // the local paused controller is still needed for an explicit Continue action.
+    // Same order as /app/ui/task-end. The user is reading the expanded panel, so the window stays
+    // until they collapse it instead of disappearing under their finger.
     coordinator.completeLocal(task);
     AssistantService.finishLocalTask(app, task);
     Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
     assertSame(selected, AssistantSessionController.active());
     Field windowField = AssistantService.class.getDeclaredField("window");
     windowField.setAccessible(true);
-    assertTrue(((AssistantWindow) windowField.get(service.get())).visible());
+    var window = (AssistantWindow) windowField.get(service.get());
+    assertTrue(window.visible());
+    selected.collapse();
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+    assertFalse(window.visible());
+    assertNull(AssistantSessionController.active());
+    assertFalse(host.calls.contains("sessions.cancel"));
   }
 
   @Test

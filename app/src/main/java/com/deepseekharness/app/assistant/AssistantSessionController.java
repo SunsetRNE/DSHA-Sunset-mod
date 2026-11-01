@@ -49,6 +49,7 @@ public final class AssistantSessionController implements AutoCloseable {
   private volatile String text = "", draft = "";
   private volatile long draftRevision;
   private volatile String cancelAttempt = null;
+  private Runnable deferredFinish;
   private long pollRevision;
 
   private record PollObservation(long revision, String turnId, String taskId, JSONObject args) {}
@@ -121,17 +122,64 @@ public final class AssistantSessionController implements AutoCloseable {
     if (draft.equals(submitted)) setDraft("");
   }
 
+  /**
+   * 展开只改界面：面板从不可聚焦，不是输入法目标，不暂停手机操作也不取消对话。
+   * 面板几何变化后，下一次手机操作前必须重新观察（{@link #panelGeometryChanged()}）。
+   * 可聚焦的编辑器 / 语音界面另由 {@link #holdForLocalInput(String)} 拦住手机操作。
+   */
   public void expand() {
-    // Fence synchronously before a focusable window/IME or recognizer can appear.
     if (!expanded) {
       expanded = true;
-      pause("ASSISTANT_EXPANDED");
+      panelGeometryChanged();
     }
     changed();
   }
 
   public void collapse() {
-    expanded = false;
+    Runnable finish;
+    synchronized (this) {
+      boolean wasExpanded = expanded;
+      expanded = false;
+      finish = deferredFinish;
+      deferredFinish = null;
+      if (wasExpanded) panelGeometryChanged();
+    }
+    changed();
+    // 本轮在面板展开时结束：收起后才关窗，避免窗口在用户手指下消失。
+    if (finish != null) main.post(finish);
+  }
+
+  /** Called by turn-end cleanup only while expanded; a later new prompt discards it. */
+  synchronized void deferFinishUntilCollapsed(Runnable finish) {
+    deferredFinish = finish;
+  }
+
+  /** 自有面板位置或大小变化：作废旧观察与在途读屏，但不暂停、不取消对话。 */
+  private void panelGeometryChanged() {
+    var task = fence.snapshot();
+    if (task.binding() == null || task.paused() || !owns(task.binding())) return;
+    suppressCancellation = true;
+    try {
+      fence.requireObservation(task.binding());
+    } catch (IllegalStateException changedConcurrently) {
+      // 任务已在别处暂停或更换；那条路径自己负责围栏。
+    } finally {
+      suppressCancellation = false;
+    }
+  }
+
+  /**
+   * 可聚焦的本机输入界面（编辑器、语音）出现前拦住手机操作，但不向 Host 取消当前轮次。
+   * 用户发送或点「继续」时再恢复。
+   */
+  public void holdForLocalInput(String reason) {
+    state.pause(reason);
+    suppressCancellation = true;
+    try {
+      fence.pause(reason);
+    } finally {
+      suppressCancellation = false;
+    }
     changed();
   }
 
@@ -147,16 +195,30 @@ public final class AssistantSessionController implements AutoCloseable {
     changed();
   }
 
-  /** Editing fences physical input without sending a model cancellation in the background. */
-  public void beginEditing() {
-    state.pause("ASSISTANT_IME");
-    suppressCancellation = true;
-    try {
-      fence.pause("ASSISTANT_IME");
-    } finally {
-      suppressCancellation = false;
+  /**
+   * 编辑器 / 语音未发送就离开时撤销对应的暂停；用户主动暂停、停止或其他原因的暂停不受影响。
+   * 恢复后原生围栏仍要求先重新观察屏幕。
+   */
+  public void releaseLocalInput(String reason) {
+    synchronized (this) {
+      if (closed) return;
+      var authority = fence.snapshot();
+      if (!authority.paused() || !reason.equals(authority.reason())) return;
+      if (!state.releaseHold(reason)) return;
+      pollRevision++;
+      suppressCancellation = true;
+      try {
+        fence.resume();
+      } finally {
+        suppressCancellation = false;
+      }
     }
     changed();
+  }
+
+  /** Editing fences physical input without sending a model cancellation in the background. */
+  public void beginEditing() {
+    holdForLocalInput("ASSISTANT_IME");
   }
 
   public void stop() {
@@ -256,6 +318,7 @@ public final class AssistantSessionController implements AutoCloseable {
         suppressCancellation = false;
       }
       expanded = false;
+      deferredFinish = null;
       cancelAttempt = null;
       state.sending();
     } catch (IllegalStateException blocked) {
@@ -414,8 +477,9 @@ public final class AssistantSessionController implements AutoCloseable {
     }
   }
 
+  /** 打开完整会话只收起面板，不暂停、不取消；前台变化由下一次观察发现。 */
   public void returnConversation() {
-    pause("RETURN_CONVERSATION");
+    collapse();
     worker.execute(
         () -> {
           try {

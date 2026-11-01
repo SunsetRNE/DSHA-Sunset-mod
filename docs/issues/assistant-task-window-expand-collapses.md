@@ -1,37 +1,41 @@
-# 待查：手机任务悬浮条（识屏任务窗）点开后立刻消失
+# 手机任务悬浮条（识屏任务窗）点开即停止对话、误触
 
-记录时间：2026-11-01 00:05（北京时间）。来源：用户实机反馈，分支 `ui-v5-scheme-a`，设备 Lenovo TB321FU / Android 16。
-状态：**未定位、未修复**。下面区分已观察到的现象、已读代码和尚未证实的推测。
+记录时间：2026-11-01 00:05（北京时间）首次记录，设备 Lenovo TB321FU / Android 16；2026-11-02 用户再次实机反馈并确认期望行为。
+状态：**已在分支 `fix/assistant-overlay-mistouch` 修复，待真机核对**。
 
 ## 现象（用户描述）
 
-- 模型在本对话里执行手机任务时，用户点击屏幕上的任务悬浮条，想看里面的内容。
-- 悬浮条展开，能看到里面有交互控件，但约 1 秒内整条消失。
-- 随后模型这一侧的读屏调用返回 `SCREEN_CONTROL_PAUSED`（「手机控制已在本机暂停」），用户感受为「授权异常」。
+- 模型执行手机任务时点开右下角悬浮条查看，约 1 秒内整条消失，或对话显示「已停止」。
+- 随后读屏返回 `SCREEN_CONTROL_PAUSED`（「手机控制已在本机暂停」）。
+- 面板按钮挤在一起，展开时窗口从 210dp 变 440dp，手指下的位置换成别的按钮，单纯收起也会误触其他按钮；没有关闭（✕）按钮。
 
-## 已读代码（事实）
+## 根因（已读代码确认）
 
-- 点击状态行调用 `AssistantSessionController.expand()`：设 `expanded=true` 并立即
-  `pause("ASSISTANT_EXPANDED")`，同时 `requestCancellation(turnId)`（向 Host 发 `sessions.cancel`）。
-  展开即暂停是有意设计：展开态有可聚焦窗口与输入，不能和读屏/点按并行。
-- `AssistantService.prepareScreenOperation()` 在每次截图/读屏前隐藏窗口；控制已暂停时直接返回
-  `ASSISTANT_LOCAL_RESUME_REQUIRED`，展开态下 `hideForScreen()` 会抛异常而不是隐藏。所以单看这段，
-  读屏本身不应把已展开的窗口收起。
-- `finishLocalTask()` 在本轮手机任务完成时调用 `window.close()`，直接移除悬浮条。
+- 点状态行调用 `AssistantSessionController.expand()`：设 `expanded=true` 并 `pause("ASSISTANT_EXPANDED")`，
+  同时 `requestCancellation(turnId)` 向 Host 发 `sessions.cancel`。看一眼面板就取消了当前轮次。
+- 「会话」「语音」同样先 `pause` 再取消；「收起」不恢复，只能点「继续」重新发一条提示。
+- 另有两处把“展开”当暂停信号：`AssistantWindow.publish(..., expanded)` 让 `OwnedScreenOverlay` 的展开监听调用
+  `PhoneControlCoordinator.pause("ASSISTANT_PANEL_EXPANDED")`；桥的最终输入校验 `!OwnedScreenOverlay.expanded()`。
+- 状态行既展开又收起；7 个按钮 44dp、零间距；「停止」单击即生效。
 
-## 推测（未证实）
+## 期望行为（用户 2026-11-02 确认）
 
-1. 展开 → `requestCancellation` 取消了正在执行的模型轮次 → 模型/工具层收尾时调用
-   `android_control finish` → `finishLocalTask()` → `window.close()`，于是刚展开的窗口被整条移除。
-   这能解释「展开后一秒内消失」以及后续 `SCREEN_CONTROL_PAUSED`。
-2. 另一种可能：展开时 `updateViewLayout` 失败走 `pause("OVERLAY_REMOVED")`，或厂商 ROM 对
-   `TYPE_APPLICATION_OVERLAY` 宽度变化的处理导致窗口被系统移除。
+展开、收起、打开完整会话：**不拦手机操作，也不取消对话**，更符合与 AI 操作助手的交互。
 
-本次 logcat 没有应用侧的窗口事件记录（只有系统 Zui/SurfaceFlinger 行），无法据此区分上面两种推测。
+## 修复
 
-## 复现与排查建议
+- `expand()` / `collapse()` / `returnConversation()` 只改界面。面板几何变化时调用
+  `requireObservation`：作废旧观察与在途读屏，下一次手机操作前必须重新观察，但不暂停、不取消。
+- 助手面板从不可聚焦、不是输入法目标；展开时以 `expanded=false` 发布，按自有窗口整窗排除，读屏不再收走展开的面板，
+  也不会在它上面落坐标动作。命令批准浮条等其它 owner 的展开语义不变。
+- 编辑器、语音是可聚焦界面：`holdForLocalInput` 拦住手机操作但**不取消对话**；未发送就离开时
+  `releaseLocalInput(reason)` 只放开同一原因的暂停，用户主动暂停/停止不受影响，放开后仍须重新观察。
+- 本轮结束时面板仍展开：延后到用户收起后再关窗，不在手指下消失。
+- 防误触（`util/OverlayTouchGuard`，纯逻辑有单测）：右上角 ✕ 收起；状态行只负责展开；展开/收起/改宽后 400ms 内忽略点按；
+  「停止」放在最左并与其它按钮隔开，需 3 秒内再点一次确认；按钮之间 4dp 间距。
+- 不变的边界：「暂停」「停止」仍会取消当前轮次；UNKNOWN 不重放；通知栏停止入口与权限门禁不变。
 
-- 在 `AssistantWindow.close()`、`hideForScreen()`、`render()` 的 `updateViewLayout` 失败分支、
-  `AssistantService.finishLocalTask()` 加带原因的 `DiagnosticLog.record`，复现一次后对照时间线。
-- 期望行为待产品确认：展开查看内容时，是否应当只暂停而不取消当前轮次，并保留窗口直到用户收起或明确停止。
-- 修复前不要把「展开即暂停」改成并行读屏；那是输入安全边界。
+## 验证
+
+- 定向单测：`assistant.*`、`control.*`、`OverlayTouchGuardTest` 共 81 项通过；相邻 `screen.*`、窗口区域/策略等 57 类 350 项通过。
+- 未做：真机核对（平板横竖屏、日夜、1.3 倍字体下的按钮间距和 ✕ 位置）。
