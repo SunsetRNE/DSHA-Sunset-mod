@@ -207,11 +207,33 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
   当前阶段：<进行中 / 待用户确认 / 待真机核对 …>
   占用文件：<会改动的文件或目录>
   合并：不可合并 | 可合并（已提交 <commit>，建议版本说明 <一句话>）
+  后台任务：无 | <命令摘要> → 日志 <路径>，产物 <路径>
   ```
-- **每轮结束更新**：每次回复用户前改「更新」「当前阶段」「合并」三项。等待用户确认、待真机核对仍算活跃。
+- **每轮结束更新**：每次回复用户前改「更新」「当前阶段」「合并」「后台任务」四项。等待用户确认、待真机核对仍算活跃。
 - **结束即交还**：任务完成（或放弃）后把文件改名为 `.SESSION-DONE`，状态写「已结束」，「合并」写明是否可合并及提交号；放弃时写「放弃，勿合并」。
-- **合并 / 发布会话**：只合并有 `.SESSION-DONE` 且「合并」为可合并的工作树；`.ACTIVE-SESSION` 或没有任何声明的工作树一律不动，先问用户。合并后在对方 `.SESSION-DONE` 末尾追加一行「已合入 buildNNN（<commit>）」，不改其它字段。
-- **查看全部声明**：`for f in .agents/worktrees/*/.*SESSION* .agents/worktrees/*/*/.*SESSION* .ACTIVE-SESSION; do [ -f "$f" ] && { echo "== $f"; sed -n '1,9p' "$f"; }; done`
+- **合并 / 发布会话**：只合并有 `.SESSION-DONE` 且「合并」为可合并的工作树；`.ACTIVE-SESSION` 或没有任何声明的工作树一律不动，先问用户。合并后在对方 `.SESSION-DONE` 末尾追加一行「已合入 buildNNN（<commit>）」，不改其它字段。**这一行只在推送成功、`git merge-base --is-ancestor <commit> origin/main` 为真之后写**；排队待推的写「待推送 buildNNN（<commit>）」。
+- **查看全部声明**：`for f in .agents/worktrees/*/.*SESSION* .agents/worktrees/*/*/.*SESSION* .ACTIVE-SESSION; do [ -f "$f" ] && { echo "== $f"; sed -n '1,10p' "$f"; }; done`
+
+### 本机共享环境（DSH 与所有会话同在一个 App 进程里）
+
+- **Gradle 只走 `dsha-gradle`**：proroot v1.2.8 的 `libproroot-runtime.so` 导出的 `fcntl` 把所有失败改写成 EPERM（抢锁失败本应 EAGAIN）。JDK `libnio` 用这个符号，另一个 JVM 持锁时 `FileChannel.tryLock` 抛 `IOException: Operation not permitted`，Gradle 直接失败。源码修复在 `tools/proroot-compat/stack-sysconf.c`（兼容层导出正确的 `fcntl`），装上含修复的 APK 才生效。本机在工作树内一律用：
+
+  ```bash
+  dsha-gradle :app:testStandardDebugUnitTest --tests '*XxxTest'   # 共用 /root/.gradle、--offline、固定 aapt2/Robolectric/JDK17
+  dsha-gradle --status                                            # 模式、槽位、谁在占用、日志在哪
+  dsha-gradle --stop                                              # 空闲时停掉常驻 daemon
+  ```
+
+  它启动时实测 `fcntl`：未修复时全局互斥、`--no-daemon`；已修复时按可用内存开最多 3 个并发槽位并复用常驻 daemon，内存不够就排队。Gradle JVM 的 `oom_score_adj` 设为 900，内存吃紧时先杀构建、不先杀 dsh。日志在 `/root/.cache/dsha-gradle-logs/`。不要直接跑 `./gradlew`，不要再建 `/root/.gradle-<任务>` 副本绕锁（每份约 1 GB，并多起一个 2–3 GB 堆的 JVM），不要杀别的会话的 Gradle 进程。
+- **内存即稳定性**：并发 Gradle / Robolectric 抢内存会把 dsh web 一起拖死，所有会话同时中断。一次只跑一个构建；全量单测只在合并前跑，日常跑定向 `--tests`。
+- **不在本机覆盖安装正式包**：安装 `io.github.sunsetrne.dsha` 会被系统以 PACKAGE UPDATED 结束整个 App，DSH 与全部会话随之中断。会话不得自行安装或降级正式包；测试包 `io.github.sunsetrne.dsha.test` 可装。用户要装正式包时，先让各活跃会话更新声明。
+- **本机专用覆盖放仓库外**：Conscrypt 关闭等只走 `-I /opt/dsha-x86/local-ci.init.gradle`，不往工作树写 `app/src/test/resources/robolectric.properties` 这类临时文件（已被忽略的 `local.properties` 除外），中断后才不会留下会被提交的残留。
+- **长任务写进声明**：后台 / `nohup` 任务必须输出到日志文件并登记在「后台任务」，结束时写明退出码。DSH 重启会杀掉这些任务。
+
+### 中断与接手
+
+- DSH 闪退或余额耗尽后，原会话的工作树和声明保持原样。新会话接手时把「会话」改为自己的 id，并注明「接手 <原 id>（原因）」；同一工作树同时只有一个持有者。
+- 接手第一步只读核对：`git status`、「后台任务」日志末尾与产物、临时文件残留。结果为 UNKNOWN 的命令（构建、推送、发布 dispatch）先核对实际状态，**不自动重放**；推送 / dispatch 前先查 `origin/main` 与已有 tag。
 
 ## 编码约定
 
