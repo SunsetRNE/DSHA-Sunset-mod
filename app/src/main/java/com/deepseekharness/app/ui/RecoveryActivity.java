@@ -216,6 +216,8 @@ public final class RecoveryActivity extends AppCompatActivity {
               String label =
                   switch (action) {
                     case "recover-maintenance" -> t("恢复中断维护", "Recover interrupted maintenance");
+                    case "isolate-plugin-journals" ->
+                        t("隔离无法读取的插件日志", "Isolate unreadable plugin journals");
                     case "repair-runtime" -> t("修复受管运行时", "Repair managed runtime");
                     case "repair-cli-dependencies" ->
                         t("修复 CLI/Node 依赖", "Repair CLI/Node dependencies");

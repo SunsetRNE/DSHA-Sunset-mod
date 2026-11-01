@@ -1306,5 +1306,16 @@
   "uiv5a069": "SKILL.md importata hic apparent; DSH ea pro re legit.",
   "uiv5a070": "Forma requisita",
   "uiv5a071": "· Fasciculus SKILL.md nominari debet, textus UTF-8, non ultra 1 MiB.\n· Incipe capite YAML --- cum name minusculis et lineolis atque description non vacua.\n· disable-model-invocation / user-invocable (ad libitum) modum vocandi regunt.\n· Solum SKILL.md exscribitur nec mandata exsequuntur; ars eiusdem nominis non superscribitur.",
-  "uiv5a072": "Exemplar vocat"
+  "uiv5a072": "Exemplar vocat",
+  "fix245a000": "Quaedam acta transactionum additamentorum legi non possunt (%s). Restitutio sistitur nec quicquam mutatum est. In pagina curationis elige «Seiunge acta additamentorum illegibilia» ut ea immutata in custodiam moveas, deinde iterum restitue.",
+  "fix245a001": "Non liquet quo indice datorum utendum sit (%s). Restitutio sistitur, ambo exemplaria immutata manent. In «Data et exemplaria» elige indicem datorum, deinde iterum restitue.",
+  "fix245a002": "Commentarius curationis legi non potest (%s / %s). Restitutio sistitur nec quicquam mutatum est. Huiusmodi commentarius ex parte tantum adhibitus esse potest, itaque non sponte seiungitur; diagnosin exporta et auxilium pete.",
+  "fix245a003": "Acta additamentorum illegibilia %s immutata in custodiam mota sunt; nullus fasciculus deletus: %s. Iterum «Restitue curationem interruptam» exsequere aut denuo incipe.",
+  "fix245a004": "Alia %s",
+  "fix245a005": "Inventa sunt acta transactionum additamentorum illegibilia %s, quae «Restitue curationem interruptam» semper deficere faciunt. Commentarii infra immutati in custodiam plugin-install-quarantine cum indice movebuntur; nihil deletur aut iteratur. Sessiones et optiones non afficiuntur; additamenta coniuncta fortasse denuo inauguranda erunt.",
+  "fix245a006": "Seiungene acta additamentorum illegibilia?",
+  "fix245a007": "Seiunge et archetypa serva",
+  "fix245a008": "Seiunctio non coepit: aliud opus agitur.",
+  "fix245a009": "1. Web principale et terminalia siste et identitatem processuum proba.\n2. Intra saeptum acta transactionum additamentorum illegibilia denuo computa; si ab confirmatis differunt, siste.\n3. Ea sola immutata in plugin-install-quarantine/<fasciculus>/ cum indice move; nihil deletur, rescribitur aut iteratur.\n4. Sessiones, optiones et aliae transactiones non afficiuntur; additamenta coniuncta fortasse denuo inauguranda erunt.\n5. Postea curationem interruptam iterum restitue aut Web principale iterum tempta.",
+  "fix245a010": "Acta transactionum additamentorum illegibilia immutata in custodiam move; archetypa servantur."
 }

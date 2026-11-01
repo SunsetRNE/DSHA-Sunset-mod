@@ -10560,5 +10560,99 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
+  },
+  {
+    "id": "fix245a000",
+    "zh": "插件事务日志有记录无法读取（%s），恢复已停止，原件未改动。可在维护页选择「隔离无法读取的插件日志」，把这些记录原样移入隔离区后再恢复。",
+    "en": "Some plugin transaction journals cannot be read (%s). Recovery stopped and nothing was changed. On the maintenance page choose Isolate unreadable plugin journals to move them, unchanged, into quarantine, then recover again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/core/MaintenanceUnreadable.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "fix245a001",
+    "zh": "无法确定使用哪个数据目录（%s），恢复已停止，两份数据都未改动。请在「数据与备份」中选择要使用的数据目录后再恢复。",
+    "en": "Cannot tell which data directory to use (%s). Recovery stopped and both copies are unchanged. Choose the data directory in Data & backup, then recover again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/core/MaintenanceUnreadable.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "fix245a002",
+    "zh": "维护记录无法读取（%s / %s），恢复已停止，原件未改动。这类记录可能处于半完成状态，不提供自动隔离；请导出诊断并联系支持。",
+    "en": "A maintenance record cannot be read (%s / %s). Recovery stopped and nothing was changed. This kind of record may be half-applied, so it is not isolated automatically; export diagnostics and contact support.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/core/MaintenanceUnreadable.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "fix245a003",
+    "zh": "已把 %s 条无法读取的插件日志原样移入隔离区，未删除任何文件：%s。请再次执行「恢复中断维护」或重新启动。",
+    "en": "Moved %s unreadable plugin journals, unchanged, into quarantine; no files were deleted: %s. Run Recover interrupted maintenance again or restart.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/core/PluginJournalIsolation.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "fix245a004",
+    "zh": "另有 %s 条",
+    "en": "%s more",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RuntimeMaintenanceStarter.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "fix245a005",
+    "zh": "检测到 %s 条无法读取的插件事务日志，恢复中断维护会因此一直失败。将把下列记录原样移入 plugin-install-quarantine 隔离区并留下清单，不删除、不重放；会话与配置不受影响，相关插件之后可能需要重新安装。",
+    "en": "Found %s unreadable plugin transaction journals, which make Recover interrupted maintenance fail every time. The records below will be moved, unchanged, into the plugin-install-quarantine area with a manifest; nothing is deleted or replayed. Sessions and settings are not affected; the related plugins may need to be reinstalled.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RuntimeMaintenanceStarter.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "fix245a006",
+    "zh": "隔离无法读取的插件日志？",
+    "en": "Isolate unreadable plugin journals?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RuntimeMaintenanceStarter.java"
+    ]
+  },
+  {
+    "id": "fix245a007",
+    "zh": "隔离并保留原件",
+    "en": "Isolate and keep originals",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RuntimeMaintenanceStarter.java"
+    ]
+  },
+  {
+    "id": "fix245a008",
+    "zh": "隔离未能开始：已有任务正在进行。",
+    "en": "Isolation did not start: another task is running.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RuntimeMaintenanceStarter.java"
+    ]
+  },
+  {
+    "id": "fix245a009",
+    "zh": "1. 停止正式 Web 与终端并核验进程身份。\n2. 在屏障内重新计算无法读取的插件事务日志；与确认时不一致即停止。\n3. 只把这些记录原样移入 plugin-install-quarantine/<批次>/，写入清单，不删除、不改写、不重放。\n4. 会话、配置与其他事务不受影响；相关插件之后可能需要重新安装。\n5. 完成后仍须再次恢复中断维护或重试正式 Web。",
+    "en": "1. Stop the main Web and terminals and verify process identity.\n2. Recompute the unreadable plugin transaction journals inside the barrier; stop if they differ from what you confirmed.\n3. Move only those records, unchanged, into plugin-install-quarantine/<batch>/ with a manifest; nothing is deleted, rewritten or replayed.\n4. Sessions, settings and other transactions are not affected; the related plugins may need to be reinstalled.\n5. Afterwards, recover interrupted maintenance again or retry the main Web.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/recovery/RecoveryRepairBroker.java"
+    ]
+  },
+  {
+    "id": "fix245a010",
+    "zh": "把无法读取的插件事务日志原样移入隔离区，保留原件。",
+    "en": "Move unreadable plugin transaction journals, unchanged, into quarantine; originals are kept.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/recovery/RecoveryRepairBroker.java"
+    ]
   }
 ]

@@ -173,9 +173,84 @@ final class RuntimeMaintenanceStarter {
   static void confirmRetry(
       AppCompatActivity activity, Runnable afterStart, boolean rebuildRequested) {
     if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+    Retry kind = retryKind(activity, rebuildRequested);
+    if (kind == Retry.RECOVER) {
+      offerRecoveryOrIsolation(activity, afterStart, rebuildRequested);
+      return;
+    }
+    showRetryDialog(activity, afterStart, rebuildRequested, kind);
+  }
+
+  /**
+   * 恢复前在后台只读计算插件日志隔离计划：有坏记录时先请用户确认隔离（摘要绑定到执行），
+   * 否则走原有恢复确认。计划读不出时按原恢复流程，由恢复入口给出精确诊断。
+   */
+  private static void offerRecoveryOrIsolation(
+      AppCompatActivity activity, Runnable afterStart, boolean rebuildRequested) {
+    java.io.File files = activity.getFilesDir();
+    new Thread(
+            () -> {
+              var offer = com.deepseekharness.app.core.PluginJournalIsolation.offerOrNull(files);
+              activity.runOnUiThread(
+                  () -> {
+                    if (activity.isFinishing() || activity.isDestroyed()) return;
+                    if (offer == null)
+                      showRetryDialog(activity, afterStart, rebuildRequested, Retry.RECOVER);
+                    else confirmIsolation(activity, afterStart, offer);
+                  });
+            },
+            "plugin-journal-isolation-plan")
+        .start();
+  }
+
+  static String isolationSummary(
+      java.util.List<com.deepseekharness.app.backup.PluginInstallJournals.Problem> problems) {
+    StringBuilder rows = new StringBuilder();
+    int shown = Math.min(problems.size(), 8);
+    for (int i = 0; i < shown; i++)
+      rows.append("\n• ")
+          .append(problems.get(i).path)
+          .append(" (")
+          .append(problems.get(i).reason)
+          .append(")");
+    if (problems.size() > shown)
+      rows.append("\n").append(UiText.format("另有 %s 条", problems.size() - shown));
+    return UiText.format(
+            "检测到 %s 条无法读取的插件事务日志，恢复中断维护会因此一直失败。将把下列记录原样移入 plugin-install-quarantine 隔离区并留下清单，不删除、不重放；会话与配置不受影响，相关插件之后可能需要重新安装。",
+            problems.size())
+        + rows;
+  }
+
+  private static void confirmIsolation(
+      AppCompatActivity activity,
+      Runnable afterStart,
+      com.deepseekharness.app.core.PluginJournalIsolation.Offer offer) {
     BackupTask task = BackupTask.get(activity);
     HarnessController controller = HarnessController.get(activity);
-    Retry kind = retryKind(activity, rebuildRequested);
+    new DshaDialogBuilder(activity, true)
+        .setTitle(UiText.text("隔离无法读取的插件日志？"))
+        .setMessage(isolationSummary(offer.problems))
+        .setPositiveButton(
+            UiText.text("隔离并保留原件"),
+            (dialog, which) -> {
+              boolean installed = controller.proot().isEnvironmentInstalled();
+              if (task.isolatePluginJournals(offer.digest)) {
+                DeployMonitor.noteStarted(activity, task.snapshot().id, installed);
+                if (afterStart != null) afterStart.run();
+              } else if (!activity.isFinishing() && !activity.isDestroyed()) {
+                android.widget.Toast.makeText(
+                        activity, UiText.text("隔离未能开始：已有任务正在进行。"), android.widget.Toast.LENGTH_LONG)
+                    .show();
+              }
+            })
+        .setNegativeButton(UiText.text("取消"), null)
+        .show();
+  }
+
+  private static void showRetryDialog(
+      AppCompatActivity activity, Runnable afterStart, boolean rebuildRequested, Retry kind) {
+    BackupTask task = BackupTask.get(activity);
+    HarnessController controller = HarnessController.get(activity);
     String title, message;
     switch (kind) {
       case RECOVER:

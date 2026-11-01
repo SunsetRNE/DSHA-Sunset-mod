@@ -49,6 +49,7 @@ public final class PrivateRoots {
       Set.of(
           "plugin-install-operations",
           PluginInstallJournals.HISTORY_PROOF,
+          PluginJournalQuarantine.DIRECTORY,
           "plugin-activations.json",
           "plugin-safe-mode.json",
           "plugin-previews",

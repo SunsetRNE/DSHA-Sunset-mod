@@ -1306,5 +1306,16 @@
   "uiv5a069": "Les SKILL.md importés s’affichent ici ; DSH les charge au besoin.",
   "uiv5a070": "Format requis",
   "uiv5a071": "· Le fichier doit s’appeler SKILL.md, en UTF-8, 1 Mio au plus.\n· Il commence par un en-tête YAML --- avec un name en minuscules à tirets et une description non vide.\n· disable-model-invocation / user-invocable (facultatifs) règlent le mode d’appel.\n· Seul SKILL.md est copié, sans exécuter ses commandes ; une compétence du même nom n’est pas écrasée.",
-  "uiv5a072": "Appel par le modèle"
+  "uiv5a072": "Appel par le modèle",
+  "fix245a000": "Certains journaux de transactions de plugins sont illisibles (%s). La récupération est arrêtée et rien n’a été modifié. Sur la page de maintenance, choisissez « Isoler les journaux de plugins illisibles » pour les déplacer tels quels en quarantaine, puis relancez la récupération.",
+  "fix245a001": "Impossible de déterminer quel dossier de données utiliser (%s). La récupération est arrêtée et les deux copies sont intactes. Choisissez le dossier de données dans Données et sauvegarde, puis relancez la récupération.",
+  "fix245a002": "Un enregistrement de maintenance est illisible (%s / %s). La récupération est arrêtée et rien n’a été modifié. Ce type d’enregistrement peut être appliqué à moitié ; il n’est donc pas isolé automatiquement. Exportez le diagnostic et contactez le support.",
+  "fix245a003": "%s journaux de plugins illisibles déplacés tels quels en quarantaine ; aucun fichier supprimé : %s. Relancez Récupérer la maintenance interrompue ou redémarrez.",
+  "fix245a004": "%s de plus",
+  "fix245a005": "%s journaux de transactions de plugins illisibles ont été trouvés ; ils font échouer Récupérer la maintenance interrompue à chaque fois. Les enregistrements ci-dessous seront déplacés tels quels dans la quarantaine plugin-install-quarantine avec un inventaire ; rien n’est supprimé ni rejoué. Les sessions et paramètres ne sont pas touchés ; les plugins concernés devront peut-être être réinstallés.",
+  "fix245a006": "Isoler les journaux de plugins illisibles ?",
+  "fix245a007": "Isoler et conserver les originaux",
+  "fix245a008": "L’isolement n’a pas démarré : une autre tâche est en cours.",
+  "fix245a009": "1. Arrêter le Web principal et les terminaux et vérifier l’identité des processus.\n2. Recalculer dans la barrière les journaux de transactions de plugins illisibles ; s’arrêter s’ils diffèrent de ce qui a été confirmé.\n3. Déplacer uniquement ces enregistrements, tels quels, dans plugin-install-quarantine/<lot>/ avec un inventaire ; rien n’est supprimé, réécrit ni rejoué.\n4. Les sessions, paramètres et autres transactions ne sont pas touchés ; les plugins concernés devront peut-être être réinstallés.\n5. Ensuite, relancer la récupération de la maintenance interrompue ou réessayer le Web principal.",
+  "fix245a010": "Déplacer tels quels les journaux de transactions de plugins illisibles en quarantaine ; les originaux sont conservés."
 }

@@ -1306,5 +1306,16 @@
   "uiv5a069": "Os SKILL.md importados aparecem aqui; o DSH os carrega quando precisar.",
   "uiv5a070": "Formato exigido",
   "uiv5a071": "· O arquivo deve se chamar SKILL.md, em UTF-8, com até 1 MiB.\n· Comece com cabeçalho YAML --- contendo name em minúsculas com hífens e description não vazia.\n· disable-model-invocation / user-invocable (opcionais) definem a forma de chamada.\n· Só o SKILL.md é copiado, sem executar comandos; habilidade de mesmo nome não é sobrescrita.",
-  "uiv5a072": "Modelo pode chamar"
+  "uiv5a072": "Modelo pode chamar",
+  "fix245a000": "Alguns registros de transações de plug-ins não podem ser lidos (%s). A recuperação parou e nada foi alterado. Na página de manutenção escolha «Isolar registros de plug-ins ilegíveis» para movê-los sem alteração para a quarentena e recupere novamente.",
+  "fix245a001": "Não é possível saber qual diretório de dados usar (%s). A recuperação parou e as duas cópias não foram alteradas. Escolha o diretório de dados em Dados e backup e recupere novamente.",
+  "fix245a002": "Um registro de manutenção não pode ser lido (%s / %s). A recuperação parou e nada foi alterado. Esse tipo de registro pode estar aplicado pela metade, por isso não é isolado automaticamente; exporte o diagnóstico e contate o suporte.",
+  "fix245a003": "Movidos sem alteração %s registros de plug-ins ilegíveis para a quarentena; nenhum arquivo foi excluído: %s. Execute Recuperar manutenção interrompida novamente ou reinicie.",
+  "fix245a004": "Mais %s",
+  "fix245a005": "Foram encontrados %s registros de transações de plug-ins ilegíveis, que fazem Recuperar manutenção interrompida falhar sempre. Os registros abaixo serão movidos sem alteração para a quarentena plugin-install-quarantine com um inventário; nada é excluído ou reexecutado. Sessões e configurações não são afetadas; os plug-ins relacionados podem precisar ser reinstalados.",
+  "fix245a006": "Isolar registros de plug-ins ilegíveis?",
+  "fix245a007": "Isolar e manter originais",
+  "fix245a008": "O isolamento não começou: outra tarefa está em andamento.",
+  "fix245a009": "1. Parar o Web principal e os terminais e verificar a identidade dos processos.\n2. Recalcular dentro da barreira os registros de transações de plug-ins ilegíveis; parar se forem diferentes do confirmado.\n3. Mover apenas esses registros, sem alteração, para plugin-install-quarantine/<lote>/ com um inventário; nada é excluído, reescrito ou reexecutado.\n4. Sessões, configurações e outras transações não são afetadas; os plug-ins relacionados podem precisar ser reinstalados.\n5. Depois, recuperar a manutenção interrompida novamente ou tentar o Web principal outra vez.",
+  "fix245a010": "Mover registros de transações de plug-ins ilegíveis, sem alteração, para a quarentena; os originais são mantidos."
 }
