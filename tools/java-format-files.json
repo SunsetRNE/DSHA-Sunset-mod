@@ -875,6 +875,7 @@
     "app/src/test/java/com/deepseekharness/app/backup/VerifiedFilePublicationTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/WorkerQuiescenceTest.java",
     "app/src/test/java/com/deepseekharness/app/bridge/AdbVirtualScreenStartTest.java",
+    "app/src/test/java/com/deepseekharness/app/bridge/AppLaunchIntentAndroidTest.java",
     "app/src/test/java/com/deepseekharness/app/bridge/BridgeImageDecoderTest.java",
     "app/src/test/java/com/deepseekharness/app/capabilities/CapabilityBrokerTest.java",
     "app/src/test/java/com/deepseekharness/app/control/ControlTaskAuthorityTest.java",

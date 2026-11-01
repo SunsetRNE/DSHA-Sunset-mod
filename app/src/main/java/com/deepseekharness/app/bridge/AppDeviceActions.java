@@ -38,9 +38,10 @@ public final class AppDeviceActions {
           confirmationFailure.apply(
               com.deepseekharness.app.util.UiText.format("启动应用：%s", pkg), pkg);
       if (failure != null) return "[ERR] " + failure;
-      android.content.Intent i = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
+      android.content.Intent i = launchIntent(ctx, pkg);
       if (i == null)
-        return com.deepseekharness.app.util.UiText.format("NOT_FOUND: %s（该应用没有启动入口或未安装）", pkg);
+        return com.deepseekharness.app.util.UiText.format("NOT_FOUND: %s（该应用没有启动入口或未安装）", pkg)
+            + (installed(ctx, pkg) ? " [installed=1]" : " [installed=0]");
       i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
       if (!current.getAsBoolean()) return "[ERR] SCREEN_RUN_CHANGED";
       if (broker == null || broker.claimDispatch(request) == null)
@@ -51,6 +52,38 @@ public final class AppDeviceActions {
     } catch (Throwable e) {
       return (submitted ? "[RESULT_UNKNOWN] APP_LAUNCH_RESULT_UNKNOWN: " : "ERROR: ")
           + safeError(e);
+    }
+  }
+
+  /**
+   * 先用系统的启动入口；个别 ROM 偶发返回空时，再按 MAIN/LAUNCHER 显式解析同一包内的可导出入口。
+   * 只解析调用方指定的包，不改用别的应用。
+   */
+  static android.content.Intent launchIntent(Context ctx, String pkg) {
+    var pm = ctx.getPackageManager();
+    android.content.Intent direct = pm.getLaunchIntentForPackage(pkg);
+    if (direct != null) return direct;
+    android.content.Intent query =
+        new android.content.Intent(android.content.Intent.ACTION_MAIN)
+            .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+            .setPackage(pkg);
+    for (var info : pm.queryIntentActivities(query, 0)) {
+      if (info.activityInfo == null
+          || !pkg.equals(info.activityInfo.packageName)
+          || !info.activityInfo.exported) continue;
+      return new android.content.Intent(android.content.Intent.ACTION_MAIN)
+          .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+          .setClassName(pkg, info.activityInfo.name);
+    }
+    return null;
+  }
+
+  private static boolean installed(Context ctx, String pkg) {
+    try {
+      ctx.getPackageManager().getPackageInfo(pkg, 0);
+      return true;
+    } catch (Exception missing) {
+      return false;
     }
   }
 
