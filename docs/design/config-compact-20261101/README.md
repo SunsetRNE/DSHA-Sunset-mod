@@ -2,7 +2,7 @@
 
 状态：v2 已实现。分支 `ui/config-compact`，日期 2026-11-01；版本号由发布时统一分配。
 
-v2 已落到 Android 源码（`fragment_config.xml`、`ConfigFragment.java`、`util/ConfigDraft` + 单测、`values/config_page.xml`、27 条新文案 × 8 语）。**未装机，未在真机验证**。
+v2 已落到 Android 源码（`fragment_config.xml`、`ConfigFragment.java`、`util/ConfigDraft` + 单测、`values/config_page.xml`、25 条新文案 × 8 语）。**未装机，未在真机验证**。
 
 | 文件 | 内容 |
 |---|---|
@@ -38,7 +38,7 @@ v2 已落到 Android 源码（`fragment_config.xml`、`ConfigFragment.java`、`u
 - 运行方式仍是 `DshaSelectView`（同一底部选择面板），只去掉输入框底，整行点按打开。
 - 未保存数由 `ConfigDraft.changesFrom` 计算；撤销恢复到上次保存快照。画中画开关、局域网密码不进草稿。
 - 两列由 `config_columns` 的实际宽度决定（≥720dp），超过 1080dp 两侧留白居中。
-- 新文案在 `messages-extra.json`（`cfg249a01–27`），8 语译文已补，`check-source-hygiene.py` 的字节钉已更新。
+- 新文案在 `messages-extra.json`（`cfg249a01–27`，其中 a17/a18 与 `diag248a17/18` 同源文，改为复用后者，实为 25 条），8 语译文已补，`check-source-hygiene.py` 的字节钉已更新。DNS 分段的 `IPv4` 用不翻译资源串 `cfg_dns_ipv4`。
 
 ## 待确认
 
