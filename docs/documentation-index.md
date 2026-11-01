@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.1630-dsh0.2.1-rc.5` / build247 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把首次引导第 3 步「按需授权」压缩为一张单列表：不再分类，每项授权一行，已开启只显示状态、未开启在行尾给出操作，用途说明与跳转提示点开后才显示；改动说明见 [build247 更新说明](releases/build247-changes.zh.md)，验证记录见 [build247 记录](releases/v0.2.1-rc.3-build247-permission-compact-20261101.md)。测试包在一台一加 PJD110（360dp 竖屏）上核对过授权页；其他机型、语言、深色、短屏与 1.3 倍字体未核对；构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.1700-dsh0.2.1-rc.5` / build248 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把插件页卡片改成列表、平板左栏与详情窗格共用同一张卡片：来源徽标、标题下版本、配置与当前 Web 并排，展开后的版本 / 位置 / 来源压成属性表；「更多」在手机贴底、在平板居中限宽。改动说明见 [build248 更新说明](releases/build248-changes.zh.md)，验证记录见 [build248 记录](releases/v0.2.1-rc.3-build248-plugin-card-20261101.md)。测试包在一台一加 PJD110（360dp 竖屏）与一台联想 TB321FU 平板（竖屏 / 横屏）上核对过插件页；其他机型、语言、深色、短屏与 1.3 倍字体未核对；构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

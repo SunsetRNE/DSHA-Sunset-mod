@@ -130,13 +130,14 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("压缩为一张单列表"));
-      assertTrue(shown.contains("不再分类，每项授权一行"));
-      assertTrue(shown.contains("授权状态变化后该行自动收起"));
+      assertTrue(shown.contains("插件页卡片重构"));
+      assertTrue(shown.contains("配置状态与当前 Web 并排"));
+      assertTrue(shown.contains("「更多」改走卡片弹层"));
       assertTrue(shown.contains("一加 PJD110"));
-      assertTrue(shown.contains("版本码提升为 247"));
-      assertFalse(shown.contains("版本码提升为 246"));
-      assertFalse(shown.contains("修复悬浮助手窗口未与输入法隔离"));
+      assertTrue(shown.contains("联想 TB321FU"));
+      assertTrue(shown.contains("版本码提升为 248"));
+      assertFalse(shown.contains("版本码提升为 247"));
+      assertFalse(shown.contains("压缩为一张单列表"));
       assertFalse(shown.contains("plugin-install-quarantine"));
       assertFalse(shown.contains("版本码提升为 242"));
       assertFalse(shown.contains("版本码提升为 220"));
@@ -160,13 +161,14 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("is now a single list"));
-      assertTrue(shown.contains("no categories, one row per permission"));
-      assertTrue(shown.contains("a row collapses again once its permission changes"));
+      assertTrue(shown.contains("share one card"));
+      assertTrue(shown.contains("configuration and current Web sit on one row"));
+      assertTrue(shown.contains("More actions uses a card sheet"));
       assertTrue(shown.contains("OnePlus PJD110"));
-      assertTrue(shown.contains("Raises versionCode to 247"));
-      assertFalse(shown.contains("Raises versionCode to 246"));
-      assertFalse(shown.contains("not being isolated from the keyboard"));
+      assertTrue(shown.contains("Lenovo TB321FU"));
+      assertTrue(shown.contains("Raises versionCode to 248"));
+      assertFalse(shown.contains("Raises versionCode to 247"));
+      assertFalse(shown.contains("is now a single list"));
       assertFalse(shown.contains("plugin-install-quarantine"));
       assertFalse(shown.contains("Raises versionCode to 242"));
       assertFalse(shown.contains("Raises versionCode to 220"));
