@@ -336,6 +336,41 @@ public final class LocalTaskConfirmationAndroidTest {
   }
 
   @Test
+  public void launchCarryingTheCurrentTaskIdentityUsesTheTaskConfirmationWindow() throws Exception {
+    var request =
+        (CapabilityRequest)
+            call(
+                bridge,
+                "screenRequestEvidence",
+                scope,
+                "launch",
+                new com.deepseekharness.app.bridge.AppLaunchTargetEvidence("com.android.settings"));
+    String path =
+        "/app/launch?pkg=com.android.settings&taskSessionId=original-full-conversation&turnId=17";
+    call(bridge, "bindLaunchToCurrentTask", path, scope, request);
+    assertFalse(
+        "绑定到当前这一轮",
+        com.deepseekharness.app.control.ScreenAuthorityBindings.identity(request).isEmpty());
+    var other =
+        (CapabilityRequest)
+            call(
+                bridge,
+                "screenRequestEvidence",
+                scope,
+                "launch",
+                new com.deepseekharness.app.bridge.AppLaunchTargetEvidence("com.android.settings"));
+    call(
+        bridge,
+        "bindLaunchToCurrentTask",
+        "/app/launch?pkg=com.android.settings&taskSessionId=someone-else&turnId=17",
+        scope,
+        other);
+    assertTrue(
+        "别的会话不能借用当前任务",
+        com.deepseekharness.app.control.ScreenAuthorityBindings.identity(other).isEmpty());
+  }
+
+  @Test
   public void allowForThisTurnSkipsLaterPromptsForTheSameAppUntilTheTurnEnds() throws Exception {
     var coordinator = PhoneControlCoordinator.get(app);
     var turnGrants = coordinator.turnGrants();

@@ -2482,6 +2482,7 @@ public final class HttpShellService {
             scope,
             "launch",
             new com.deepseekharness.app.bridge.AppLaunchTargetEvidence(packageName));
+    bindLaunchToCurrentTask(path, scope, capability);
     return com.deepseekharness.app.bridge.AppDeviceActions.launch(
         ctx,
         getParam(queryOf(path), "pkg", ""),
@@ -2502,6 +2503,35 @@ public final class HttpShellService {
                 && !controller.isUserStopped(),
         DshaApp.from(ctx).capabilityBroker(),
         capability);
+  }
+
+  /**
+   * 调用方带上当前手机任务的 taskSessionId/turnId 时，把启动请求绑定到这一轮：确认走悬浮助手的确认窗
+   * （可用「本轮允许此应用」），而不是容易错过的通知通道。身份不匹配或没有任务时保持原样（不借用别的会话）。
+   */
+  private void bindLaunchToCurrentTask(
+      String path,
+      RequestScope scope,
+      com.deepseekharness.app.capabilities.CapabilityRequest capability) {
+    String query = queryOf(path);
+    String taskSessionId = getParam(query, "taskSessionId", "");
+    String turnId = getParam(query, "turnId", "");
+    if (taskSessionId.isEmpty() || turnId.isEmpty() || !screenBridgeCurrent(scope)) return;
+    var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
+    var runtime = com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx);
+    var binding =
+        new com.deepseekharness.app.control.ControlTaskAuthority.Binding(
+            com.deepseekharness.app.control.ControlTaskAuthority.Owner.LOCAL_DSH,
+            scope.run.runId + ":" + runtime.instanceId,
+            taskSessionId,
+            turnId);
+    var state = coordinator.snapshot();
+    if (state.paused() || !binding.equals(state.binding())) return;
+    try {
+      coordinator.bindRequest(capability, coordinator.lease(binding));
+    } catch (IllegalStateException changed) {
+      // 任务刚好换轮或暂停：保持未绑定，走原有确认通道。
+    }
   }
 
   private String appClip(String path) {
