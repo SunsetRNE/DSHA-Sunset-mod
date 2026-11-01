@@ -41,6 +41,9 @@ public final class OneClickBackup extends AndroidViewModel {
   public final MutableLiveData<Boolean> busy = new MutableLiveData<>(false);
   public final MutableLiveData<Boolean> chooseDirectory = new MutableLiveData<>(false);
 
+  /** 本次会话内一键备份的失败码；取消不算失败，成功或重新开始时清空。供首页状态卡分级。 */
+  public final MutableLiveData<String> failure = new MutableLiveData<>("");
+
   public OneClickBackup(Application app) {
     this(app, work -> new Thread(work, "one-click-backup").start(), null);
   }
@@ -275,7 +278,14 @@ public final class OneClickBackup extends AndroidViewModel {
       text = String.format(java.util.Locale.ROOT, "%s\n%s", text, destination);
     status.postValue(text);
     busy.postValue(active);
+    failure.postValue(failureCode(active, issue, snapshot));
     chooseDirectory.postValue(directoryNeeded);
+  }
+
+  static String failureCode(boolean active, String issue, NativeBackupJobs.State snapshot) {
+    if (active) return "";
+    if (!issue.isEmpty()) return "CANCELLED".equals(issue) ? "" : issue;
+    return snapshot == null || snapshot.busy ? "" : snapshot.error;
   }
 
   static String describe(NativeBackupJobs.State value) {

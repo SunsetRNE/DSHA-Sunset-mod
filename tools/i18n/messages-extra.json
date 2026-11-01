@@ -10962,7 +10962,8 @@
     "zh": "已展开",
     "en": "Expanded",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java",
+      "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
     ]
   },
   {
@@ -10970,7 +10971,8 @@
     "zh": "已收起",
     "en": "Collapsed",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java"
+      "app/src/main/java/com/deepseekharness/app/ui/DiagnosticResultList.java",
+      "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
     ]
   },
   {
@@ -11334,6 +11336,525 @@
     "en": "Latest result",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ColdSetupSpeedActivity.java"
+    ]
+  },
+  {
+    "id": "data248w01",
+    "zh": "最近手动备份",
+    "en": "Last manual backup",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w02",
+    "zh": "下载/DSHA",
+    "en": "Download/DSHA",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w03",
+    "zh": "备份选项",
+    "en": "Backup options",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w04",
+    "zh": "备份时机 · 本机保留最近 3 份已验证副本",
+    "en": "Schedule · keeps the latest 3 verified copies on this device",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w05",
+    "zh": "自定义导出",
+    "en": "Custom export",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w06",
+    "zh": "选择范围 · 项目目录 · 是否包含 API Key",
+    "en": "Choose scope · project folders · API key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w07",
+    "zh": "手动备份、自动副本和维护结果",
+    "en": "Manual backups, automatic copies and maintenance",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w08",
+    "zh": "保留副本与旧环境",
+    "en": "Retained copies and old environments",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w09",
+    "zh": "旧环境、插件原件和隔离项，不自动删除",
+    "en": "Old environments, original and quarantined plugins; never deleted automatically",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w10",
+    "zh": "只读救援导出 · 恢复中断提交 · 回退运行时",
+    "en": "Read-only rescue export · interrupted commits · runtime rollback",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w11",
+    "zh": "保留原件，插件、对话和凭据不受影响",
+    "en": "Originals retained; plugins, conversations and credentials are kept",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w12",
+    "zh": "无需密码，保存为可在新设备恢复的 tar.gz。",
+    "en": "No password. Saves a tar.gz you can restore on a new device.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w13",
+    "zh": "会包含",
+    "en": "Included",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w14",
+    "zh": "对话与附件、运行配置、已安装插件、当前应用内工作区",
+    "en": "Conversations and attachments, settings, installed plugins, the current app workspace",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w15",
+    "zh": "不包含",
+    "en": "Not included",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w16",
+    "zh": "原生 API Key（可在「自定义导出」中勾选）；外置工作区，请另行备份",
+    "en": "Native API key (available in Custom export); external workspaces, back them up separately",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w17",
+    "zh": "备份时会安全停止 DSH 和运行任务，完成后不会自动重新启动。",
+    "en": "Backup safely stops DSH and running tasks; they are not restarted automatically.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w18",
+    "zh": "正在备份",
+    "en": "Backing up",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w19",
+    "zh": "数据任务进行中",
+    "en": "Data task in progress",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w20",
+    "zh": "请勿关闭应用。",
+    "en": "Keep the app open.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w21",
+    "zh": "有未完成的环境维护",
+    "en": "Environment maintenance is unfinished",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w22",
+    "zh": "原环境尚未确认，备份和恢复暂不可用。请先恢复中断维护。",
+    "en": "The original environment is unconfirmed, so backup and restore are unavailable. Resume the interrupted maintenance first.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w23",
+    "zh": "上次备份未完成",
+    "en": "The last backup did not finish",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w24",
+    "zh": "原数据和已有备份已保留。原因：%s",
+    "en": "Original data and existing backups were retained. Reason: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w25",
+    "zh": "还没有导出过备份",
+    "en": "No backup exported yet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w26",
+    "zh": "对话、配置和插件目前只存在应用内。建议先做一次一键备份。",
+    "en": "Conversations, settings and plugins exist only inside the app. Make a one-click backup first.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w27",
+    "zh": "已有 %s 天没有手动备份",
+    "en": "No manual backup for %s days",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w28",
+    "zh": "自动副本只保存在本机私有目录。换机或卸载前，请导出一份到手机存储。",
+    "en": "Automatic copies stay in private app storage. Export one to device storage before switching devices or uninstalling.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w29",
+    "zh": "数据已保护",
+    "en": "Your data is protected",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w30",
+    "zh": "最近 7 天内有手动导出的备份；自动副本另存于本机私有目录。",
+    "en": "A manual backup was exported within the last 7 days. Automatic copies are kept separately in private app storage.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w31",
+    "zh": "从未",
+    "en": "Never",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w32",
+    "zh": "已开启",
+    "en": "On",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w33",
+    "zh": "立即备份",
+    "en": "Back up now",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w34",
+    "zh": "每 %s 小时",
+    "en": "Every %s hours",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248w35",
+    "zh": "每天 %s",
+    "en": "Daily at %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "data248s01",
+    "zh": "选择位置并导出",
+    "en": "Choose a location and export",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s02",
+    "zh": "请先选择项目目录",
+    "en": "Choose a project folder first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s03",
+    "zh": "导出文件不加密，拿到文件的人都能读取其中的 API Key。",
+    "en": "The export is not encrypted; anyone with the file can read the API key.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s04",
+    "zh": "范围与选项",
+    "en": "Scope and options",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s05",
+    "zh": "预检核验",
+    "en": "Inspection",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s06",
+    "zh": "确认恢复",
+    "en": "Confirm restore",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s07",
+    "zh": "正在核验备份",
+    "en": "Inspecting the backup",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s08",
+    "zh": "选择备份文件",
+    "en": "Choose a backup file",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s09",
+    "zh": "备份来源",
+    "en": "Backup source",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s10",
+    "zh": "恢复范围",
+    "en": "Restore scope",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s11",
+    "zh": "重新选择",
+    "en": "Choose again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s12",
+    "zh": "正在恢复数据",
+    "en": "Restoring data",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s13",
+    "zh": "恢复完成",
+    "en": "Restore finished",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s14",
+    "zh": "恢复未完成",
+    "en": "Restore did not finish",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s15",
+    "zh": "完成",
+    "en": "Done",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s16",
+    "zh": "所选文件",
+    "en": "Selected file",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s17",
+    "zh": "第 %s 步，共 %s 步：%s",
+    "en": "Step %s of %s: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s18",
+    "zh": "%s · %s 项",
+    "en": "%s · %s entries",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s19",
+    "zh": "本机副本 %s",
+    "en": "Local copy %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s20",
+    "zh": "对话、附件、配置和用户插件，不含 Ubuntu",
+    "en": "Conversations, attachments, settings and user plugins, without Ubuntu",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s21",
+    "zh": "只导出会话记录和附件",
+    "en": "Only conversation records and attachments",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s22",
+    "zh": "profile 设置与工作目录配置",
+    "en": "Profile settings and workspace configuration",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s23",
+    "zh": "用户插件；系统插件按当前 APK 重建",
+    "en": "User plugins; system plugins are rebuilt from this APK",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s24",
+    "zh": "只导出下方选择的项目目录",
+    "en": "Only the project folders chosen below",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s25",
+    "zh": "全部",
+    "en": "All",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s26",
+    "zh": "旧环境",
+    "en": "Old environments",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s27",
+    "zh": "其他",
+    "en": "Other",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s28",
+    "zh": "本页没有这一类记录。",
+    "en": "No records of this type on this page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java"
+    ]
+  },
+  {
+    "id": "data248s31",
+    "zh": "本机副本 · 保留最近 3 份",
+    "en": "Local copies · latest 3 kept",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/AutomaticBackupActivity.java"
     ]
   }
 ]

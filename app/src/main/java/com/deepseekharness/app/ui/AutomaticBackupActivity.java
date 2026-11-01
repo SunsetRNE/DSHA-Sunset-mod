@@ -165,6 +165,7 @@ public final class AutomaticBackupActivity extends AppCompatActivity {
     settings.addView(localHint);
     state = page.text("", 12, R.color.text_secondary);
     page.content.addView(state);
+    page.label(t("本机副本 · 保留最近 3 份", "Local copies · latest 3 kept"));
     copies = page.card();
     page.button(
         page.footer,

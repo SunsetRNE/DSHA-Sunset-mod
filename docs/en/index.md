@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.2300-dsh0.2.1-rc.5` / build255 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build reworks the maintenance page footer: the three secondary actions become separate outlined buttons, failures and unmet readiness checks highlight the matching entry, and the disabled primary button is easier to tell apart. Local unit tests and static gates passed; no device installation was done, and UI tests and Lint are left to CI. See the [build255 notes](../releases/build255-changes.en.md) and the [build255 record](../releases/v0.2.1-rc.3-build255-maintenance-footer-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5` / build256 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build reworks the data and backup sub-pages: restore becomes an in-page four-step wizard, custom export and rescue tools are regrouped, the storage page shows usage by category, retained copies can be filtered by type, and the storage guide becomes expandable Q&A. Local build and related unit tests passed; no device installation was done, and UI tests and Lint are left to CI. See the [build256 notes](../releases/build256-changes.en.md) and the [build256 record](../releases/v0.2.1-rc.3-build256-data-backup-20261101.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

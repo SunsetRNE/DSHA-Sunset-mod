@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261101.2300-dsh0.2.1-rc.5 / build255
+# DSHA 0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5 / build256
 
-- Rodapé da página de manutenção reorganizado: as três ações secundárias passam a botões pequenos com contorno e espaço entre si, os ícones sobem acima do texto com letra grande ou ecrã estreito, e o botão principal desativado distingue-se melhor.
-- Após uma atualização falhada ou interrompida, o DSH de emergência fica realçado a vermelho; quando as verificações de prontidão falham, Registos de manutenção usa a cor de aviso. O comportamento ao tocar e os bloqueios de manutenção não mudam.
-- Âmbito da verificação: apenas testes unitários locais e verificações estáticas; sem instalação em dispositivo, testes de interface e Lint ficam para a CI. versionCode elevado para 255 (com base no build254). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Subpáginas de dados e cópias de segurança remodeladas: o restauro passa a um assistente de quatro passos na própria página (escolher ficheiro, âmbito e opções, verificação prévia, confirmar restauro), em vez de uma série de diálogos; Confirmar bloqueia após um toque e o fluxo continua após rodar o ecrã.
+- A exportação personalizada oferece cinco âmbitos de escolha única e avisa que o ficheiro não é cifrado quando inclui chaves API; as ferramentas de recuperação e manutenção estão agrupadas por finalidade e cada ação continua a pedir confirmação.
+- A página de armazenamento mostra a ocupação total e a distribuição por categoria; as cópias retidas filtram-se por cópias de segurança, ambientes antigos, plugins e outros sem perder os itens marcados; o guia de armazenamento passa a perguntas que se expandem ao tocar no título.
+- Âmbito da verificação: apenas compilação local e testes unitários relacionados; sem instalação em dispositivo, testes de interface e Lint ficam para a CI. versionCode elevado para 256 (com base no build255). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

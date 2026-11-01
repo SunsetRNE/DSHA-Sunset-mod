@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261101.2300-dsh0.2.1-rc.5 / build255
+# DSHA 0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5 / build256
 
-- Maintenance page footer reworked: the three secondary actions become separate outlined buttons with space between them, icons move above the text with large fonts or narrow screens, and the disabled primary button is easier to tell apart.
-- After a failed or interrupted update, Emergency DSH is highlighted in red; when readiness checks fail, Maintenance records uses the warning colour. Tap behaviour and maintenance gates are unchanged.
-- Verification scope: local unit tests and static checks only; not installed on a device, and UI tests and Lint are left to CI. Raises versionCode to 255 (based on build254). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- Data and backup sub-pages reworked: restore becomes an in-page four-step wizard (choose file, scope and options, preflight check, confirm restore) that replaces the chain of dialogs; Confirm locks after one tap, and the flow continues after rotation.
+- Custom export offers five scopes as single choices and warns that the export is unencrypted when it includes API keys; rescue and maintenance tools are grouped by purpose, and each action still asks for confirmation.
+- The storage page shows total usage and a breakdown by category; retained copies can be filtered by backup copies, old environments, plugins and more without losing checked items; the storage guide becomes Q&A that expands when you tap a title.
+- Verification scope: local build and related unit tests only; not installed on a device, and UI tests and Lint are left to CI. Raises versionCode to 256 (based on build255). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.

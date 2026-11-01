@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "5002bea4259417ca283ea5b4e49da7e5ce6f62af4a9215d5deb27ab9580104fd",
+  "runtimeId": "7945f2ca4fb222684a1fa2686222688b2de6583cbc2eb8104b49795560e246bb",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.5",
   "launcherContract": "DSHA_ARM64_V2",
@@ -84,7 +84,7 @@
     "backup/NativeRestorePlan.java": "8df4c3ea526c7aba6b21cb047e1d65c777e00b34094ae04e1b394befe2910ad7",
     "backup/NativeRestoreTargets.java": "cea37e5389f1a1b5bc7c1fbe2329f66951bfac90f0943460fb28e2335b24a4cd",
     "backup/NativeSafeProfile.java": "2f709e0883b0c33afd981fb6255eafa2b1347f442adaa7577b6d518c385a476d",
-    "backup/OneClickBackup.java": "29fdce3e467f38d04211e5d2fef16eab9aa2b536b1f55250e9bffc188f65af47",
+    "backup/OneClickBackup.java": "c1ff17bea6c141f7401520b621194246698a8acd2a19447378e0c78c69d8dedd",
     "backup/PasswordFreeBackupExport.java": "18337ccf06765aec2bdc95369d904cd7ce340239ed657be954887cd596c08583",
     "backup/PluginInstallJournals.java": "2c16bda78a259e5f9396fcc4023cc4946071a5f100a172021a6de74f129a7566",
     "backup/PluginJournalQuarantine.java": "9bcd1258e201ff24b8c513984aa13ad7b572cd45694388e1b2e8bca06971acd9",

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.2300-dsh0.2.1-rc.5` / build255 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版重排运行环境维护页底部操作区：三个次要操作改为独立描边小按钮，失败与就绪检查未通过时分别强调对应入口，主按钮禁用态更易分辨。本机相关单测与静态门禁通过；未在真机安装验证，界面测试与 Lint 交由 CI。改动说明见 [build255 更新说明](releases/build255-changes.zh.md)，验证记录见 [build255 记录](releases/v0.2.1-rc.3-build255-maintenance-footer-20261101.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5` / build256 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版重构数据与备份二级页：恢复改为页内四步向导，自定义导出与救援工具分组整理，存储页加占用分布，保留副本页加分类筛选，储存指南改为可展开问答。本机构建与相关单测通过；未在真机安装验证，界面测试与 Lint 交由 CI。改动说明见 [build256 更新说明](releases/build256-changes.zh.md)，验证记录见 [build256 记录](releases/v0.2.1-rc.3-build256-data-backup-20261101.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

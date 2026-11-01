@@ -111,15 +111,54 @@ public final class StorageHelpActivity extends AppCompatActivity {
         R.drawable.ic_ui2_box,
         () -> startActivity(new Intent(this, RetainedDataActivity.class)));
 
+    // 问答式：默认只展开第一组，其余点标题展开；内容与原说明逐字相同。
+    for (int i = 1; i < sections.size(); i++) setExpanded(sections.get(i), false);
     setContentView(page.root);
   }
 
+  private final java.util.List<LinearLayout> sections = new java.util.ArrayList<>();
+
   private LinearLayout section(String title) {
     LinearLayout card = page.card();
+    LinearLayout header = new LinearLayout(this);
+    header.setOrientation(LinearLayout.HORIZONTAL);
+    header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    header.setMinimumHeight(page.dp(48));
+    header.setBackgroundResource(R.drawable.bg_action_plain);
+    header.setClickable(true);
+    header.setFocusable(true);
     TextView heading = page.text(UiText.text(title), 16, R.color.text);
     heading.setTypeface(null, android.graphics.Typeface.BOLD);
-    card.addView(heading);
+    heading.setAccessibilityHeading(true);
+    header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+    android.widget.ImageView chevron = new android.widget.ImageView(this);
+    chevron.setImageResource(R.drawable.ic_chevron_down);
+    chevron.setImageTintList(
+        android.content.res.ColorStateList.valueOf(getColor(R.color.shell_text_muted)));
+    chevron.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    header.addView(chevron, new LinearLayout.LayoutParams(page.dp(20), page.dp(20)));
+    card.addView(header);
+    header.setOnClickListener(v -> setExpanded(card, card.getTag() != Boolean.TRUE));
+    sections.add(card);
+    card.setTag(Boolean.TRUE);
+    updateHeader(card);
     return card;
+  }
+
+  private void setExpanded(LinearLayout card, boolean expanded) {
+    card.setTag(expanded);
+    for (int i = 1; i < card.getChildCount(); i++)
+      card.getChildAt(i)
+          .setVisibility(expanded ? android.view.View.VISIBLE : android.view.View.GONE);
+    updateHeader(card);
+  }
+
+  private void updateHeader(LinearLayout card) {
+    boolean expanded = card.getTag() == Boolean.TRUE;
+    LinearLayout header = (LinearLayout) card.getChildAt(0);
+    header.getChildAt(1).setRotation(expanded ? 180 : 0);
+    header.setStateDescription(
+        expanded ? UiText.choose("已展开", "Expanded") : UiText.choose("已收起", "Collapsed"));
   }
 
   private void paragraph(LinearLayout card, String content) {

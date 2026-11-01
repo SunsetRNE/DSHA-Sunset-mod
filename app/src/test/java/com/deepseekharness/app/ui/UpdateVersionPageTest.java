@@ -130,10 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("维护页底部操作区"));
-      assertTrue(shown.contains("各自带描边的小按钮"));
+      assertTrue(shown.contains("数据与备份二级页重构"));
+      assertTrue(shown.contains("页内四步向导"));
       assertTrue(shown.contains("未在真机安装验证"));
-      assertTrue(shown.contains("版本码提升为 255"));
+      assertTrue(shown.contains("版本码提升为 256"));
+      assertFalse(shown.contains("维护页底部操作区"));
+      assertFalse(shown.contains("版本码提升为 255"));
       assertFalse(shown.contains("安装与环境页压缩"));
       assertFalse(shown.contains("版本码提升为 254"));
       assertFalse(shown.contains("终端界面精修"));
@@ -172,10 +174,12 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Maintenance page footer"));
-      assertTrue(shown.contains("separate outlined buttons"));
+      assertTrue(shown.contains("Data and backup sub-pages reworked"));
+      assertTrue(shown.contains("in-page four-step wizard"));
       assertTrue(shown.contains("not installed on a device"));
-      assertTrue(shown.contains("Raises versionCode to 255"));
+      assertTrue(shown.contains("Raises versionCode to 256"));
+      assertFalse(shown.contains("Maintenance page footer"));
+      assertFalse(shown.contains("Raises versionCode to 255"));
       assertFalse(shown.contains("Install and environment page compacted"));
       assertFalse(shown.contains("Raises versionCode to 254"));
       assertFalse(shown.contains("Terminal UI polish"));

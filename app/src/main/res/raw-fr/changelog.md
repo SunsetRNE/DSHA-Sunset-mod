@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261101.2300-dsh0.2.1-rc.5 / build255
+# DSHA 0.2.1-rc.3-20261101.2330-dsh0.2.1-rc.5 / build256
 
-- Pied de la page de maintenance réorganisé : les trois actions secondaires deviennent des petits boutons cerclés et espacés, les icônes passent au-dessus du texte en grande police ou sur écran étroit, et le bouton principal désactivé se distingue mieux.
-- Après une mise à jour échouée ou interrompue, DSH de secours est mis en rouge ; si les contrôles de disponibilité échouent, Journal de maintenance prend la couleur d'alerte. Le comportement au toucher et les verrous de maintenance ne changent pas.
-- Portée de la vérification : tests unitaires locaux et contrôles statiques uniquement ; aucune installation sur appareil, tests d'interface et Lint confiés à la CI. versionCode porté à 255 (basé sur build254). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Sous-pages données et sauvegarde repensées : la restauration devient un assistant en quatre étapes dans la page (choix du fichier, portée et options, contrôle préalable, confirmation) à la place d'une suite de boîtes de dialogue ; Confirmer se verrouille après un appui et le parcours reprend après rotation.
+- L'export personnalisé propose cinq portées au choix et avertit que le fichier n'est pas chiffré s'il inclut les clés API ; les outils de secours et de maintenance sont regroupés par usage et chaque action demande toujours confirmation.
+- La page stockage affiche l'occupation totale et sa répartition par catégorie ; les copies conservées se filtrent par copies de sauvegarde, anciens environnements, plugins, etc. sans perdre les éléments cochés ; le guide de stockage devient une FAQ qui se déplie au toucher.
+- Portée de la vérification : compilation locale et tests unitaires associés uniquement ; aucune installation sur appareil, tests d'interface et Lint confiés à la CI. versionCode porté à 256 (basé sur build255). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
