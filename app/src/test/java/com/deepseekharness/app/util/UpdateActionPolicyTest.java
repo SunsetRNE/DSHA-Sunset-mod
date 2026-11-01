@@ -39,12 +39,12 @@ public final class UpdateActionPolicyTest {
   }
 
   @Test
-  public void checkingSweepsInPlaceAndLocksChannel() {
+  public void checkingSweepsInPlaceAndKeepsChannelSwitchable() {
     Action action =
         UpdateActionPolicy.resolve(Stage.CHECKING, false, false, 0, 0, false, false, false);
     assertAction(action, Mode.SWEEP, Command.NONE, Label.CHECKING, -1);
     assertFalse(action.clickable());
-    assertFalse(action.channelEnabled);
+    assertTrue("检查中切换通道会作废当前检查并重查，不能被卡住", action.channelEnabled);
     assertFalse(action.recheck);
     assertFalse(action.showsBytes());
     assertEquals(Tone.ACCENT, action.tone);
@@ -132,6 +132,7 @@ public final class UpdateActionPolicyTest {
     Action action =
         UpdateActionPolicy.resolve(Stage.CHECKING, true, true, TOTAL, TOTAL, true, false, false);
     assertEquals(Label.REVERIFYING, action.label);
+    assertFalse("安装交接期间即使引擎在检查也锁定通道", action.channelEnabled);
   }
 
   @Test

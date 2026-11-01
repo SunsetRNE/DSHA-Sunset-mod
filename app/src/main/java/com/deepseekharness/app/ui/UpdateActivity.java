@@ -53,7 +53,7 @@ public final class UpdateActivity extends AppCompatActivity {
         UpdatePolicy.PREVIEW.equals(repository.channel())
             ? R.id.update_preview
             : R.id.update_stable);
-    // 切换通道即重新检查（UpdateEngine.setChannel）；忙碌时由 UpdateUi 锁定两段按钮。
+    // 切换通道即重新检查（UpdateEngine.setChannel）；检查中切换会作废旧检查，下载 / 校验时由 UpdateUi 锁定两段按钮。
     channels.setOnCheckedChangeListener(
         (g, id) ->
             repository.setChannel(

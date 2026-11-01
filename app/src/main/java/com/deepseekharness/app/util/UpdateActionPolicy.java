@@ -66,7 +66,7 @@ public final class UpdateActionPolicy {
     /** 状态行末尾的“重新检查”链接是否显示。 */
     public final boolean recheck;
 
-    /** 通道切换是否可用；任务进行中或安装交接未完成时锁定。 */
+    /** 通道切换是否可用；空闲与检查中可用，下载 / 校验或安装交接未完成时锁定。 */
     public final boolean channelEnabled;
 
     public final Tone tone;
@@ -158,7 +158,9 @@ public final class UpdateActionPolicy {
     else if (hasApk) tone = Tone.GOOD;
     else if (hasRelease) tone = Tone.ACCENT;
     else tone = Tone.MUTED;
-    return new Action(mode, command, label, percent, idle && hasRelease, idle, tone);
+    // 检查中可切换通道（引擎作废当前检查并按新通道重查）；下载、校验与安装交接仍锁定。
+    boolean channelEnabled = idle || (current == Stage.CHECKING && !handoff);
+    return new Action(mode, command, label, percent, idle && hasRelease, channelEnabled, tone);
   }
 
   /** 已下载比例，向下取整并夹在 0–100；总大小未知返回 -1。 */

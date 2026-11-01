@@ -166,6 +166,73 @@ public final class UpdateEngineCheckTest {
     assertFalse(failed.message.contains("暂无可用更新"));
   }
 
+  private UpdateRepository.State await(UpdateEngine engine) throws Exception {
+    long deadline = System.nanoTime() + 5_000_000_000L;
+    while (engine.state().getValue().busy && System.nanoTime() < deadline) {
+      Shadow.<org.robolectric.shadows.ShadowLooper>extract(Looper.getMainLooper()).idle();
+      Thread.sleep(5);
+    }
+    UpdateRepository.State done = engine.state().getValue();
+    assertFalse("update check must finish", done.busy);
+    return done;
+  }
+
+  @Test
+  public void switchingChannelWhileCheckingSupersedesTheStaleCheck() throws Exception {
+    Gated source = new Gated(feed("[" + release() + "]"));
+    UpdateEngine engine = new UpdateEngine(app, source);
+    engine.check();
+    assertTrue(source.entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+    engine.setChannel("stable");
+    UpdateRepository.State switching = engine.state().getValue();
+    assertEquals("切换不能被检查卡住", "stable", engine.channel());
+    assertEquals(UpdateRepository.Stage.CHECKING, switching.stage);
+    assertTrue(switching.message.startsWith("正在检查稳定版更新"));
+    source.gate.countDown();
+    UpdateRepository.State done = await(engine);
+    assertEquals("作废的检查结束后按新通道重查一次", 2, source.opened.get());
+    assertEquals("stable", done.channel);
+    assertNull("预览通道的旧结果不能写成候选", done.sourceChannel);
+    assertNull(done.release);
+    assertEquals("暂无可用更新", done.message);
+  }
+
+  @Test
+  public void cancelAfterSwitchingDoesNotStartAnotherCheck() throws Exception {
+    Gated source = new Gated(feed("[" + release() + "]"));
+    UpdateEngine engine = new UpdateEngine(app, source);
+    engine.check();
+    assertTrue(source.entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+    engine.setChannel("stable");
+    engine.cancel();
+    source.gate.countDown();
+    UpdateRepository.State done = await(engine);
+    assertEquals(1, source.opened.get());
+    assertNull(done.release);
+  }
+
+  /** 首个请求在 open 内等待放行，模拟慢网络下的检查。 */
+  private static final class Gated implements UpdateEngine.Transport {
+    final java.util.concurrent.CountDownLatch entered = new java.util.concurrent.CountDownLatch(1);
+    final java.util.concurrent.CountDownLatch gate = new java.util.concurrent.CountDownLatch(1);
+    final java.util.concurrent.atomic.AtomicInteger opened =
+        new java.util.concurrent.atomic.AtomicInteger();
+    final Response response;
+
+    Gated(String body) {
+      response = new Response(200, body);
+    }
+
+    @Override
+    public HttpURLConnection open(String target, long offset) throws Exception {
+      if (opened.incrementAndGet() == 1) {
+        entered.countDown();
+        assertTrue(gate.await(5, java.util.concurrent.TimeUnit.SECONDS));
+      }
+      return response.open(target, offset);
+    }
+  }
+
   private static final class Response implements UpdateEngine.Transport {
     int status;
     final String body;

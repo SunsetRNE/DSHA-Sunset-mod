@@ -61,6 +61,9 @@ public final class UpdateEngine {
   private volatile String stopReason = "";
   private volatile boolean runningDownload;
   private volatile boolean checking;
+  // 检查中切换通道：当前检查作废，收尾后按新通道重查。与 cancelled 一起在 commitLock 下读写。
+  private volatile boolean recheckPending;
+  private final Object commitLock = new Object();
   private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
 
   UpdateEngine(android.content.Context app) {
@@ -95,13 +98,37 @@ public final class UpdateEngine {
     return channel;
   }
 
+  /**
+   * 切换通道并重新检查。检查进行中也允许切换：断开当前请求、作废其结果，收尾后按新通道重查；
+   * 下载 / 校验进行中仍锁定，避免换掉正在传输的目标包。
+   */
   public void setChannel(String value) {
-    if (busy.get() || channel.equals(value)) return;
+    if (channel.equals(value)) return;
     if (!UpdatePolicy.STABLE.equals(value) && !UpdatePolicy.PREVIEW.equals(value)) return;
+    boolean supersede = busy.get();
+    if (supersede && (runningDownload || !checking)) return;
     channel = value;
     startupNotice = false;
     context.getSharedPreferences("dsha-updates", 0).edit().putString("channel", value).apply();
-    check();
+    if (!supersede) {
+      check();
+      return;
+    }
+    synchronized (commitLock) {
+      recheckPending = true;
+      cancelled = true;
+    }
+    HttpURLConnection active = connection;
+    if (active != null) active.disconnect();
+    state.setValue(snapshot(checkingMessage(), true));
+  }
+
+  private String checkingMessage() {
+    return com.deepseekharness.app.util.UiText.format(
+        "正在检查%s更新…",
+        UpdatePolicy.PREVIEW.equals(channel)
+            ? com.deepseekharness.app.util.UiText.text("预览版")
+            : com.deepseekharness.app.util.UiText.text("稳定版"));
   }
 
   public void cancel() {
@@ -200,6 +227,12 @@ public final class UpdateEngine {
                   () -> {
                     busy.set(false);
                     checking = false;
+                    if (recheckPending) {
+                      // 被通道切换作废的检查不落结果，直接按当前通道重查。
+                      recheckPending = false;
+                      check();
+                      return;
+                    }
                     finishState(verifiedApk != null ? "ready" : "available", done);
                   });
         });
@@ -230,11 +263,7 @@ public final class UpdateEngine {
   private void check(boolean startup) {
     final String requestedChannel = channel;
     submit(
-        com.deepseekharness.app.util.UiText.format(
-            "正在检查%s更新…",
-            UpdatePolicy.PREVIEW.equals(channel)
-                ? com.deepseekharness.app.util.UiText.text("预览版")
-                : com.deepseekharness.app.util.UiText.text("稳定版")),
+        checkingMessage(),
         () -> {
           HttpURLConnection conn = transport.open(FEED, 0);
           connection = conn;
@@ -271,15 +300,19 @@ public final class UpdateEngine {
                   false ? "low" : "standard",
                   Build.VERSION.SDK_INT,
                   requestedChannel);
-          if (!requestedChannel.equals(candidateChannel)
-              || candidate == null
-              || selected == null
-              || candidate.versionCode != selected.versionCode
-              || !candidate.version.equals(selected.version)
-              || candidate.bytes != selected.bytes
-              || !candidate.sha256.equalsIgnoreCase(selected.sha256)) verifiedApk = null;
-          candidate = selected;
-          candidateChannel = selected == null ? null : requestedChannel;
+          // 与 setChannel 的作废标记同锁：切换通道后不得再写入旧通道的候选。
+          synchronized (commitLock) {
+            ensureActive();
+            if (!requestedChannel.equals(candidateChannel)
+                || candidate == null
+                || selected == null
+                || candidate.versionCode != selected.versionCode
+                || !candidate.version.equals(selected.version)
+                || candidate.bytes != selected.bytes
+                || !candidate.sha256.equalsIgnoreCase(selected.sha256)) verifiedApk = null;
+            candidate = selected;
+            candidateChannel = selected == null ? null : requestedChannel;
+          }
           startupNotice = startup && selected != null;
           return candidate != null
               ? com.deepseekharness.app.util.UiText.format("发现新版本 %s", candidate.version)
@@ -432,6 +465,8 @@ public final class UpdateEngine {
   }
 
   private void stop(String reason, String nextPhase) {
+    // 显式停止（取消 / 暂停 / 格式化）优先于通道切换的重查。
+    recheckPending = false;
     cancelled = true;
     stopReason = reason;
     try {
