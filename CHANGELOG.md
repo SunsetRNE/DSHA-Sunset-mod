@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0630-dsh0.2.1-rc.5 / build263（关闭终端标签不再卡死，DSH 不会被连带结束）
+
+- `PtySession.finishAndWait` 持有会话监视器最长数秒等待 proroot 会话退出；主线程关闭 / 切换时调用的 `attachListener`、`inputProblem` 排在同一把锁后，FocusEvent 超时触发 ANR，用户选择「关闭应用」后 App 进程连同子进程 DSH Web 一起结束。真机进程树记录显示 PTY 会话 2 秒内已正常退出，DSH 是随 ANR 结束的 App 进程被带走。
+- 监听与输入问题状态改用独立锁，监听回调移到锁外执行（`PtySessionLockContractTest`）。`PtySession` 属受管启动器输入，运行时描述符随之更新。
+- 验证范围：用户在 Android 16 平板合并测试包上真机确认关闭唯一 PTY 标签不再 ANR、DSH 不掉线；合入 build262 后发布会话复跑终端 / PtySession 单测 209 项与源码门禁，按固定格式化器补空行并重算描述符。版本码提升为 263（基于 build262）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build263 更新说明](docs/releases/build263-changes.zh.md)，验证记录见 [build263 记录](docs/releases/v0.2.1-rc.3-build263-pty-close-isolation-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0600-dsh0.2.1-rc.5 / build262（新增只读紧凑识屏预览 /app/sense/state）
 
 - 新增 `/app/sense/state`（及 `/app/ui/sense/state`）只读全量紧凑屏幕状态，复用手机任务、授权、窗口代次与 owner 围栏；`k***` 只是本次预览标识，不是动作凭据，动作仍走原 treeId/nodeId 租约。节点 action list 每次只读一次并转位图，租约复核同时比对 action-set；原 dump/tree 输出不变。

@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0600-dsh0.2.1-rc.5` / build262 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a read-only compact screen preview, /app/sense/state; node action lists are read once and included in lease rechecks, with a fixed synthetic evaluation set. A read-only check on a native settings page passed on a device; local unit tests and source gates passed. See the [build262 notes](../releases/build262-changes.en.md) and the [build262 record](../releases/v0.2.1-rc.3-build262-screen-sense-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0630-dsh0.2.1-rc.5` / build263 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the app freezing after a terminal tab is closed, which could take DSH down with it: PtySession listener and input state now use their own lock and are no longer blocked while the session finishes. The user confirmed the fix on a test package; local unit tests and source gates passed. See the [build263 notes](../releases/build263-changes.en.md) and the [build263 record](../releases/v0.2.1-rc.3-build263-pty-close-isolation-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.0600-dsh0.2.1-rc.5` / build262 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版新增只读紧凑识屏预览 /app/sense/state，节点动作列表一次读取并参与租约复核，附固定合成样本评估。真机原生设置页只读核对通过；本机单测与源码门禁通过。改动说明见 [build262 更新说明](releases/build262-changes.zh.md)，验证记录见 [build262 记录](releases/v0.2.1-rc.3-build262-screen-sense-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.0630-dsh0.2.1-rc.5` / build263 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复关闭终端标签后应用无响应、DSH 随之退出：PtySession 的监听与输入状态改用独立锁，不再被关闭等待阻塞。用户已在测试包上真机确认；本机单测与源码门禁通过。改动说明见 [build263 更新说明](releases/build263-changes.zh.md)，验证记录见 [build263 记录](releases/v0.2.1-rc.3-build263-pty-close-isolation-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
