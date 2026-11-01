@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="@color/shell_bg" android:id="@+id/install_scroll">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/shell_page_pad" android:paddingEnd="@dimen/shell_page_pad" android:paddingTop="@dimen/shell_page_top" android:paddingBottom="22dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/shell_page_pad" android:paddingEnd="@dimen/shell_page_pad" android:paddingTop="@dimen/shell_page_top" android:paddingBottom="@dimen/shell_page_bottom">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
           <FrameLayout android:layout_width="44dp" android:layout_height="44dp" android:layout_marginEnd="14dp" android:background="@drawable/bg_launch_tile" android:importantForAccessibility="no"><ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_ui2_box" app:tint="@color/shell_accent" /></FrameLayout>
           <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/ui2_environment_page" android:textSize="26sp" android:textColor="@color/text" android:includeFontPadding="false" android:textStyle="bold" />
@@ -22,7 +22,7 @@
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:minHeight="38dp" android:gravity="center_vertical">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="@string/ui2_app_version" android:textSize="12sp" android:textColor="@color/text_secondary" android:includeFontPadding="false" android:layout_weight="1" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/install_app_version" android:text="" android:textSize="12sp" android:textColor="@color/text" android:includeFontPadding="false" android:maxWidth="220dp" android:gravity="end" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:id="@+id/install_app_version" android:text="" android:textSize="12sp" android:textColor="@color/text" android:includeFontPadding="false" android:gravity="end" android:breakStrategy="simple" />
             </LinearLayout>
         </LinearLayout>
         <!-- 方案 A：容器够宽时「六个安装步骤 + 操作」与「维护 + 日志」并排，窄时保持原顺序。 -->

@@ -76,21 +76,10 @@ final class PermissionActions {
     return com.deepseekharness.app.util.BatteryBackgroundState.of(ignoring, restricted);
   }
 
-  /** 打开本应用的系统详情页：厂商的电池 / 后台运行开关通常在这里（只在点击时）。 */
+  /** 打开本应用的系统详情页：ColorOS 上「耗电管理」在关于页内，不对外导出。 */
   static void openAppDetails(AppCompatActivity activity) {
-    Uri app = Uri.parse("package:" + activity.getPackageName());
-    try {
-      // 本应用的“应用的电池使用情况”页（含“允许后台使用”开关）；部分 ROM 没有时退回应用详情。
-      activity.startActivity(new Intent("android.settings.VIEW_ADVANCED_POWER_USAGE_DETAIL", app));
-      return;
-    } catch (RuntimeException unavailable) {
-      // 退回应用详情。
-    }
-    try {
-      activity.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, app));
-    } catch (RuntimeException failure) {
-      toast(activity, UiText.format("打开设置失败：%s", failure.getMessage()));
-    }
+    DeviceGrantsFragment.openBatterySettings(
+        activity, activity::startActivity, () -> toast(activity, UiText.text("无法打开电池优化设置")));
   }
 
   /** 无障碍三态：YES / NO / UNKNOWN；UNKNOWN 不等于未开启。 */
@@ -165,14 +154,30 @@ final class PermissionActions {
       toast(
           activity,
           UiText.choose(
-              "尚未安装 Shizuku 或 Stellar，请先安装并在管理器中启动服务",
-              "Shizuku or Stellar is not installed; install one and start its service first."));
+              "尚未安装 Stellar 或 Shizuku。可先安装 Stellar。",
+              "Neither Stellar nor Shizuku is installed. Install Stellar first."));
       return;
     }
     try {
       activity.startActivity(launch);
     } catch (RuntimeException failure) {
-      toast(activity, UiText.format("无法打开 Shizuku：%s", failure.getMessage()));
+      toast(activity, UiText.format("无法打开管理器：%s", failure.getMessage()));
+    }
+  }
+
+  static void openStellarInstall(AppCompatActivity activity) {
+    try {
+      activity.startActivity(
+          new Intent(
+                  Intent.ACTION_VIEW,
+                  android.net.Uri.parse("https://github.com/roro2239/Stellar/releases"))
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    } catch (RuntimeException failure) {
+      toast(
+          activity,
+          UiText.choose(
+              "尚未安装 Stellar。请到 GitHub roro2239/Stellar 安装，并在设置中开启「Shizuku 兼容层」。",
+              "Stellar is not installed. Install it from GitHub roro2239/Stellar and enable the Shizuku compatibility layer."));
     }
   }
 

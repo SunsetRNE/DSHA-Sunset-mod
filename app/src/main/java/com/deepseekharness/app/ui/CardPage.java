@@ -32,7 +32,9 @@ final class CardPage {
     scroll.setFillViewport(true);
     scroll.setClipToPadding(false);
     content = column();
-    content.setPadding(dp(pad()), dp(compact ? 16 : 18), dp(pad()), dp(compact ? 16 : 30));
+    int bottom =
+        compact ? dp(16) : context.getResources().getDimensionPixelSize(R.dimen.shell_page_bottom);
+    content.setPadding(dp(pad()), dp(compact ? 16 : 18), dp(pad()), bottom);
     scroll.addView(content);
     root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     if (title != null && !title.isEmpty()) {

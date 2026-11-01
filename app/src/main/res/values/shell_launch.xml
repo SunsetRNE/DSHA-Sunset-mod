@@ -8,7 +8,7 @@
     <!-- ========== 间距与尺寸 ========== -->
     <dimen name="shell_launch_page_pad">20dp</dimen>
     <dimen name="shell_launch_page_top">18dp</dimen>
-    <dimen name="shell_launch_page_bottom">30dp</dimen>
+    <dimen name="shell_launch_page_bottom">90dp</dimen>
     <dimen name="shell_launch_section_gap">22dp</dimen>
     <dimen name="shell_launch_control_gap">10dp</dimen>
     <dimen name="shell_launch_metric_gap">8dp</dimen>

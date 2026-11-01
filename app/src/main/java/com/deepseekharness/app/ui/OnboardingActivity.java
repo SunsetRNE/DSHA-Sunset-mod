@@ -22,6 +22,7 @@ import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.EnvironmentAccess;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.DeployStages;
+import com.deepseekharness.app.util.DeviceSupportReport;
 import com.deepseekharness.app.util.PermissionGoals;
 import com.deepseekharness.app.util.UiText;
 import java.util.ArrayList;
@@ -633,6 +634,7 @@ public final class OnboardingActivity extends AppCompatActivity {
 
   private long spaceRequired, spaceUsable = -1;
   private boolean spaceLow;
+  private DeviceSupportReport support;
 
   /** 真实空间预检：只在尚未部署、环境未安装时拦截；部署开始后可用空间会下降，不能再据此拦截。 */
   private void measureSpace() {
@@ -676,31 +678,19 @@ public final class OnboardingActivity extends AppCompatActivity {
     LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-2, -2);
     bp.topMargin = kit.dp(14);
     content.addView(badge, bp);
-    kit.add(content, features(), 22);
-    kit.add(content, kit.section(UiText.choose("部署前检查", "Pre-deployment check")), 22);
-    OnboardingKit.Grid checks = new OnboardingKit.Grid(this, kit.dp(8), kit.dp(120));
-    checks.addView(
-        tile(
-            UiText.choose("设备架构", "Architecture"),
-            android.os.Build.SUPPORTED_ABIS.length > 0
-                ? android.os.Build.SUPPORTED_ABIS[0]
-                : "unknown",
-            false));
-    checks.addView(
-        tile(
-            UiText.choose("系统与版本", "System"),
-            String.format(
-                Locale.ROOT,
-                UiText.choose("Android %s · 标准版", "Android %s · Standard"),
-                android.os.Build.VERSION.RELEASE),
-            false));
-    checks.addView(tile(UiText.choose("可用空间", "Free space"), size(spaceUsable), spaceLow));
-    checks.addView(
-        tile(
-            UiText.choose("安装方式", "Installation"),
-            UiText.choose("随包离线部署", "Bundled offline runtime"),
-            false));
-    kit.add(content, checks, 8);
+    if (!kit.wide()) kit.add(content, features(), 14);
+    else kit.add(content, features(), 22);
+    if (support == null) support = DeviceSupportProbe.sample(this);
+    boolean blocked = support.blocksDeploy();
+    boolean warn = support.gate == DeviceSupportReport.Gate.RISK;
+    boolean advise = support.gate == DeviceSupportReport.Gate.ADVISE;
+    kit.add(
+        content, kit.section(UiText.choose("部署前检查", "Pre-deployment check")), kit.wide() ? 22 : 16);
+    if (kit.wide()) kit.add(content, checkGrid(blocked, warn, advise), 8);
+    else kit.add(content, checkSummary(blocked, warn, advise), 8);
+    if (blocked) kit.add(content, kit.hint(support.hint(), OnboardingKit.Tone.BAD), 12);
+    else if (warn || advise)
+      kit.add(content, kit.hint(support.hint(), OnboardingKit.Tone.WARN), 12);
     if (spaceLow)
       kit.add(
           content,
@@ -713,8 +703,8 @@ public final class OnboardingActivity extends AppCompatActivity {
                   size(spaceRequired),
                   size(spaceUsable)),
               OnboardingKit.Tone.BAD),
-          14);
-    else
+          12);
+    else if (!blocked && kit.wide())
       kit.add(
           content,
           kit.hint(
@@ -723,10 +713,15 @@ public final class OnboardingActivity extends AppCompatActivity {
                   "Ubuntu and runtime components are deployed to the app’s private storage in the background, so you can keep going."),
               OnboardingKit.Tone.ACCENT),
           14);
-    kit.add(content, dataRow(), 14);
-    kit.add(content, kit.fine(getString(R.string.ui2_online_notice)), 14);
+    if (kit.wide()) kit.add(content, dataRow(), 14);
+    if (kit.wide()) kit.add(content, kit.fine(getString(R.string.ui2_online_notice)), 14);
     android.widget.Button primary;
-    if (spaceLow) primary = kit.primary(UiText.choose("重新检查", "Check again"), v -> recheckSpace());
+    android.widget.Button extra = null;
+    if (blocked) {
+      primary = kit.primary(UiText.choose("无法部署", "Cannot deploy"), v -> {});
+      primary.setEnabled(false);
+    } else if (spaceLow)
+      primary = kit.primary(UiText.choose("重新检查", "Check again"), v -> recheckSpace());
     else if (started() || environmentReady())
       primary =
           kit.primary(
@@ -736,7 +731,22 @@ public final class OnboardingActivity extends AppCompatActivity {
                 show(GOALS);
               });
     else primary = kit.primary(UiText.choose("开始部署", "Start deployment"), v -> startDeploy());
-    footer.addView(kit.buttonBar(primary), OnboardingKit.matchWrap());
+    if (support.openWebViewSettings)
+      extra =
+          kit.secondary(
+              UiText.choose("打开 WebView 设置", "Open WebView settings"),
+              v -> {
+                if (!DeviceSupportProbe.openWebViewSettings(this, support))
+                  toast(UiText.choose("打不开系统 WebView 设置。", "Could not open WebView settings."));
+              });
+    android.widget.Button copy =
+        kit.ghost(
+            UiText.choose("复制给支持", "Copy for support"),
+            v -> {
+              DeviceSupportProbe.copy(this, support);
+              toast(UiText.choose("已复制本机环境摘要。", "Copied the device summary."));
+            });
+    footer.addView(kit.buttonBar(primary, extra, copy), OnboardingKit.matchWrap());
   }
 
   /** 三个功能点：正文足够宽时三列并排（图标在上），否则纵向列表。 */
@@ -770,12 +780,132 @@ public final class OnboardingActivity extends AppCompatActivity {
     return list;
   }
 
+  private View checkGrid(boolean blocked, boolean warn, boolean advise) {
+    OnboardingKit.Grid checks = new OnboardingKit.Grid(this, kit.dp(8), kit.dp(120));
+    checks.addView(
+        tile(
+            UiText.choose("设备架构", "Architecture"),
+            android.os.Build.SUPPORTED_ABIS.length > 0
+                ? android.os.Build.SUPPORTED_ABIS[0]
+                : "unknown",
+            blocked && android.os.Build.VERSION.SDK_INT >= 30));
+    checks.addView(
+        tile(
+            UiText.choose("系统与版本", "System"),
+            String.format(
+                Locale.ROOT,
+                UiText.choose("Android %s", "Android %s"),
+                android.os.Build.VERSION.RELEASE),
+            blocked && android.os.Build.VERSION.SDK_INT < 30));
+    checks.addView(tile(UiText.choose("可用空间", "Free space"), size(spaceUsable), spaceLow));
+    checks.addView(
+        tile(
+            UiText.choose("安装方式", "Installation"),
+            UiText.choose("随包离线部署", "Bundled offline runtime"),
+            false));
+    checks.addView(
+        tile(
+            UiText.choose("网页内核", "Browser engine"),
+            support.webViewLabel,
+            blocked || warn || advise));
+    checks.addView(tile(UiText.choose("支持结论", "Support"), support.conclusion(), blocked || warn));
+    return checks;
+  }
+
+  /** 手机：一行摘要 + 点开看六项详情，避免欢迎页被检查区撑出一屏外。 */
+  private View checkSummary(boolean blocked, boolean warn, boolean advise) {
+    LinearLayout row = kit.row();
+    row.setBackgroundResource(blocked ? R.drawable.bg_onb_tile_bad : R.drawable.bg_onb_tile);
+    row.setPadding(kit.dp(14), kit.dp(12), kit.dp(12), kit.dp(12));
+    row.setMinimumHeight(kit.dp(56));
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    LinearLayout words = kit.column();
+    words.addView(
+        kit.bold(
+            support.conclusion()
+                + " · "
+                + String.format(
+                    Locale.ROOT,
+                    UiText.choose("Android %s", "Android %s"),
+                    android.os.Build.VERSION.RELEASE)
+                + " · "
+                + support.webViewLabel,
+            14.5f,
+            blocked
+                ? R.color.shell_bad
+                : warn || advise ? R.color.shell_warn : R.color.shell_text));
+    kit.add(
+        words,
+        kit.text(
+            spaceLow
+                ? UiText.choose("可用空间不足，点此查看详情", "Not enough space. Tap for details.")
+                : UiText.choose("点此查看架构、空间与网页内核", "Tap for architecture, space and WebView."),
+            12.5f,
+            R.color.shell_text_muted),
+        3);
+    row.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+    row.addView(
+        kit.icon(R.drawable.ic_ui2_chevron, R.color.shell_text_muted, 18),
+        new LinearLayout.LayoutParams(kit.dp(18), kit.dp(18)));
+    row.setClickable(true);
+    row.setFocusable(true);
+    row.setAccessibilityDelegate(OnboardingRoles.BUTTON);
+    row.setOnClickListener(v -> showCheckDialog(blocked, warn, advise));
+    return row;
+  }
+
+  private void showCheckDialog(boolean blocked, boolean warn, boolean advise) {
+    LinearLayout body = kit.column();
+    int pad = kit.dp(20);
+    body.setPadding(pad, kit.dp(4), pad, kit.dp(8));
+    body.addView(checkGrid(blocked, warn, advise));
+    if (blocked) kit.add(body, kit.hint(support.hint(), OnboardingKit.Tone.BAD), 12);
+    else if (warn || advise) kit.add(body, kit.hint(support.hint(), OnboardingKit.Tone.WARN), 12);
+    if (spaceLow)
+      kit.add(
+          body,
+          kit.hint(
+              String.format(
+                  Locale.ROOT,
+                  UiText.choose(
+                      "可用空间不足：部署约需 %1$s，当前可用 %2$s。",
+                      "Not enough free space: deployment needs about %1$s and %2$s is available."),
+                  size(spaceRequired),
+                  size(spaceUsable)),
+              OnboardingKit.Tone.BAD),
+          12);
+    else
+      kit.add(
+          body,
+          kit.hint(
+              UiText.choose(
+                  "内置 Ubuntu 与运行组件将部署到应用私有目录。部署在后台进行。",
+                  "Ubuntu and runtime components are deployed to the app’s private storage in the background."),
+              OnboardingKit.Tone.ACCENT),
+          12);
+    kit.add(body, kit.fine(getString(R.string.ui2_online_notice)), 10);
+    ScrollView scroller = new ScrollView(this);
+    scroller.addView(body);
+    try {
+      new DshaDialogBuilder(this)
+          .setTitle(UiText.choose("部署前检查", "Pre-deployment check"))
+          .setView(scroller)
+          .setPositiveButton(UiText.choose("知道了", "Got it"), null)
+          .show();
+    } catch (RuntimeException failure) {
+      record("SUPPORT_DIALOG", failure);
+    }
+  }
+
   private View tile(String label, String value, boolean bad) {
     LinearLayout tile = kit.column();
     tile.setBackgroundResource(bad ? R.drawable.bg_onb_tile_bad : R.drawable.bg_onb_tile);
     tile.setPadding(kit.dp(13), kit.dp(11), kit.dp(13), kit.dp(11));
     tile.addView(kit.text(label, 11, R.color.shell_text_muted));
-    kit.add(tile, kit.bold(value, 14.5f, bad ? R.color.shell_bad : R.color.shell_text), 4);
+    TextView body = kit.bold(value, 14.5f, bad ? R.color.shell_bad : R.color.shell_text);
+    body.setMaxLines(3);
+    body.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    kit.add(tile, body, 4);
     tile.setScreenReaderFocusable(true);
     return tile;
   }
@@ -866,6 +996,13 @@ public final class OnboardingActivity extends AppCompatActivity {
   /** “开始部署”：记下引导进度，启动一次应用级维护任务，再进入第 2 步；不重复启动、不写 welcomed。 */
   private void startDeploy() {
     measureSpace();
+    if (support == null) support = DeviceSupportProbe.sample(this);
+    if (support.blocksDeploy()) {
+      renderedKey = "";
+      render(true);
+      content.announceForAccessibility(support.conclusion());
+      return;
+    }
     if (spaceLow) {
       recheckSpace();
       return;
@@ -926,8 +1063,7 @@ public final class OnboardingActivity extends AppCompatActivity {
         PermissionGoals.SHELL,
         UiText.choose("执行设备命令", "Run device commands"),
         UiText.choose(
-            "推荐：Shizuku / Stellar 或 Root（任选其一）",
-            "Recommended: Shizuku / Stellar or Root (either one)")
+            "推荐：Stellar（Shizuku 兼容层）", "Recommended: Stellar (Shizuku compatibility layer)")
       },
       {
         PermissionGoals.BACKGROUND,
@@ -1257,7 +1393,7 @@ public final class OnboardingActivity extends AppCompatActivity {
             Locale.ROOT,
             UiText.choose("已开启 %1$d / %2$d", "%1$d / %2$d enabled"),
             n,
-            Math.max(7, summary.size()));
+            summary.isEmpty() ? PermissionPanel.displayTotal() : summary.size());
     card.addView(
         kit.cardHeader(
             UiText.choose("授权", "Permissions"),

@@ -261,10 +261,11 @@ public final class SkillsFragment extends Fragment {
     Context ctx = requireContext();
     listColumn.removeAllViews();
     detailColumn.removeAllViews();
-    // 窄屏主按钮铺满；并排时按内容宽度靠起始侧。
+    // 手机（含横屏）主按钮始终铺满；仅平板并排时按内容宽度靠起始侧。
+    boolean phone = getResources().getConfiguration().smallestScreenWidthDp < 600;
     LinearLayout.LayoutParams importParams =
         (LinearLayout.LayoutParams) importButton.getLayoutParams();
-    importParams.width = wide ? ViewGroup.LayoutParams.WRAP_CONTENT : -1;
+    importParams.width = (wide && !phone) ? ViewGroup.LayoutParams.WRAP_CONTENT : -1;
     importParams.gravity = Gravity.START;
     importButton.setLayoutParams(importParams);
     View head = ui.content.findViewWithTag("skills.head");

@@ -130,11 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("并入 UI v5 方案 A"));
-      assertTrue(shown.contains("启动活动条改为波浪进度条"));
-      assertTrue(shown.contains("未在任何手机真机上测试"));
-      assertTrue(shown.contains("TB321FU"));
-      assertTrue(shown.contains("版本码提升为 242"));
+      assertTrue(shown.contains("手机竖屏修订"));
+      assertTrue(shown.contains("不再内嵌「本次维护记录」日志框"));
+      assertTrue(shown.contains("未在其他手机上测试"));
+      assertTrue(shown.contains("PJD110"));
+      assertTrue(shown.contains("版本码提升为 243"));
+      assertFalse(shown.contains("版本码提升为 242"));
       assertFalse(shown.contains("版本码提升为 220"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
@@ -156,11 +157,12 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Merges UI v5 Scheme A"));
-      assertTrue(shown.contains("The launch activity bar becomes a wavy progress bar"));
-      assertTrue(shown.contains("Nothing was tested on a physical phone"));
-      assertTrue(shown.contains("TB321FU"));
-      assertTrue(shown.contains("Raises versionCode to 242"));
+      assertTrue(shown.contains("Phone portrait fixes"));
+      assertTrue(shown.contains("no longer embeds the maintenance log box"));
+      assertTrue(shown.contains("No other phones were tested"));
+      assertTrue(shown.contains("PJD110"));
+      assertTrue(shown.contains("Raises versionCode to 243"));
+      assertFalse(shown.contains("Raises versionCode to 242"));
       assertFalse(shown.contains("Raises versionCode to 220"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();

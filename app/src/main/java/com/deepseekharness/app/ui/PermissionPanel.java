@@ -34,6 +34,8 @@ final class PermissionPanel {
   private boolean environmentReady;
   private String channelTab = PermissionChannelCard.SHIZUKU;
   private String lastKey = "";
+  private boolean heldA11yConnected;
+  private long a11yConnectedUntil;
   private androidx.activity.result.ActivityResultLauncher<String> notificationRequest;
 
   PermissionPanel(AppCompatActivity activity, Set<String> goals, boolean environmentReady) {
@@ -99,24 +101,46 @@ final class PermissionPanel {
     render(true);
   }
 
+  boolean accessibilityConnectedForDisplay() {
+    return stableAccessibilityConnected(activity);
+  }
+
   void setEnvironmentReady(boolean ready) {
     if (environmentReady == ready) return;
     environmentReady = ready;
     render(true);
   }
 
-  /** 7 项状态：存储、Shizuku / Stellar、Root、无障碍（已连接）、通知、悬浮窗、电池优化。 */
+  /**
+   * 7 项状态（PermissionGoals 按此下标判定）：存储、Shizuku / Stellar、Root、无障碍（已连接）、通知、悬浮窗、
+   * 电池优化。展示层用 summary() / displayGranted() 去掉 Root。
+   */
   private boolean[] states() {
     Context c = activity;
     return new boolean[] {
       PermissionActions.storage(),
       PermissionChannelCard.shizukuReady(),
       PermissionChannelCard.rootReady(c),
-      PermissionActions.accessibilityConnected(c),
+      stableAccessibilityConnected(c),
       PermissionActions.notifications(c),
       PermissionActions.overlay(c),
       PermissionActions.batteryUnrestricted(c)
     };
+  }
+
+  /**
+   * 系统从设置返回时，无障碍服务可能短暂 onServiceDisconnected。1.5 秒内保持「已连接」，
+   * 避免每秒轮询在「已连接 / 等待连接」之间拆掉整页。
+   */
+  private boolean stableAccessibilityConnected(Context context) {
+    boolean now = PermissionActions.accessibilityConnected(context);
+    long t = android.os.SystemClock.elapsedRealtime();
+    if (now) {
+      heldA11yConnected = true;
+      a11yConnectedUntil = t + 1500;
+      return true;
+    }
+    return heldA11yConnected && t < a11yConnectedUntil;
   }
 
   private static String[] names() {
@@ -131,17 +155,31 @@ final class PermissionPanel {
     };
   }
 
-  int grantedCount() {
+  /** states() 中 Root 的下标；引导只推荐 Shizuku / Stellar，计数与完成页都不展示 Root。 */
+  private static final int ROOT_INDEX = 2;
+
+  /** 引导展示的项数（不含 Root）。 */
+  static int displayTotal() {
+    return names().length - 1;
+  }
+
+  private static int displayGranted(boolean[] s) {
     int n = 0;
-    for (boolean b : states()) if (b) n++;
+    for (int i = 0; i < s.length; i++) if (i != ROOT_INDEX && s[i]) n++;
     return n;
   }
 
+  int grantedCount() {
+    return displayGranted(states());
+  }
+
+  /** 引导展示用的 6 项（不含 Root）；Root 仍可在设置页开启，并照常满足设备命令通道。 */
   List<String[]> summary() {
     boolean[] s = states();
     String[] n = names();
     List<String[]> out = new ArrayList<>();
-    for (int i = 0; i < s.length; i++) out.add(new String[] {n[i], s[i] ? "1" : "0"});
+    for (int i = 0; i < s.length; i++)
+      if (i != ROOT_INDEX) out.add(new String[] {n[i], s[i] ? "1" : "0"});
     return out;
   }
 
@@ -152,8 +190,8 @@ final class PermissionPanel {
     String key =
         java.util.Arrays.toString(s)
             + a11y
-            + com.deepseekharness.app.ShizukuShell.userStatus(activity)
-            + com.deepseekharness.app.RootShell.status(activity)
+            + PermissionChannelCard.shizukuReady()
+            + PermissionChannelCard.rootReady(activity)
             + channelTab
             + environmentReady
             + UiText.language()
@@ -242,8 +280,7 @@ final class PermissionPanel {
     LinearLayout bar = kit.row();
     bar.setBackgroundResource(R.drawable.bg_onb_perm);
     bar.setPadding(kit.dp(14), kit.dp(12), kit.dp(14), kit.dp(12));
-    int n = 0;
-    for (boolean b : s) if (b) n++;
+    int n = displayGranted(s);
     int total = PermissionGoals.recommendedCount(goals);
     int done = PermissionGoals.recommendedDone(goals, s);
     TextView label =
@@ -251,24 +288,38 @@ final class PermissionPanel {
             total > 0
                 ? String.format(
                     java.util.Locale.ROOT,
-                    UiText.choose(
-                        "推荐授权已开启 %1$d / %2$d · 全部 %3$d / 7",
-                        "Recommended %1$d of %2$d · all %3$d of 7"),
+                    UiText.choose("推荐 %1$d / %2$d", "Recommended %1$d / %2$d"),
                     done,
-                    total,
-                    n)
+                    total)
                 : String.format(
-                    java.util.Locale.ROOT, UiText.choose("已开启 %d / 7", "%d of 7 enabled"), n),
+                    java.util.Locale.ROOT,
+                    UiText.choose("已开启 %1$d / %2$d", "%1$d of %2$d enabled"),
+                    n,
+                    displayTotal()),
             15,
             R.color.shell_text);
     bar.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
     LinearLayout dots = kit.row();
-    for (boolean b : s) {
-      View dot = new View(activity);
-      dot.setBackgroundResource(b ? R.drawable.bg_onb_dot_done : R.drawable.bg_onb_step_todo);
-      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(kit.dp(9), kit.dp(9));
-      p.leftMargin = kit.dp(5);
-      dots.addView(dot, p);
+    java.util.List<String> recCards = new java.util.ArrayList<>(PermissionGoals.recommended(goals));
+    if (recCards.isEmpty()) {
+      for (int i = 0; i < s.length; i++) {
+        if (i == ROOT_INDEX) continue;
+        boolean b = s[i];
+        View dot = new View(activity);
+        dot.setBackgroundResource(b ? R.drawable.bg_onb_dot_done : R.drawable.bg_onb_step_todo);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(kit.dp(9), kit.dp(9));
+        p.leftMargin = kit.dp(5);
+        dots.addView(dot, p);
+      }
+    } else {
+      for (String card : recCards) {
+        boolean on = PermissionGoals.satisfied(card, s);
+        View dot = new View(activity);
+        dot.setBackgroundResource(on ? R.drawable.bg_onb_dot_done : R.drawable.bg_onb_step_todo);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(kit.dp(9), kit.dp(9));
+        p.leftMargin = kit.dp(5);
+        dots.addView(dot, p);
+      }
     }
     dots.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     bar.addView(dots);

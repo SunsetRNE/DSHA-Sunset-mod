@@ -610,11 +610,9 @@ public class LaunchFragment extends Fragment {
                                               ? com.deepseekharness.app.util.UiText.text(
                                                   " · 已兼容切换 proot")
                                               : "")
-                                      : !restore.notice().isEmpty()
-                                          ? restore.notice()
-                                          : controller.isUserStopped()
-                                              ? getString(R.string.ui2_stopped)
-                                              : getString(R.string.ui2_stopped));
+                                      : controller.isUserStopped()
+                                          ? getString(R.string.ui2_stopped)
+                                          : getString(R.string.ui2_stopped));
       ((TextView) root.findViewById(R.id.launch_port))
           .setText(ready ? String.valueOf(controller.getWebPort()) : "—");
       EnvironmentUiStatus.Snapshot environment = EnvironmentUiStatus.get(requireContext());
@@ -629,7 +627,10 @@ public class LaunchFragment extends Fragment {
                           : controller.proot().runtime().id())
                       + " · dsh "
                       + com.deepseekharness.app.util.Constants.DSH_VERSION
-                  : getString(R.string.ui2_launch_hint));
+                  // 恢复核对的结论是一整句说明，放在副标题；大标题只放短状态，窄屏不再撑成三行。
+                  : !restore.notice().isEmpty()
+                      ? restore.notice()
+                      : getString(R.string.ui2_launch_hint));
       // 语境小字 / 活动条 / 工作台状态只取真实状态；不根据等待时长推算阶段。
       renderStatusChrome(
           root,
@@ -731,7 +732,8 @@ public class LaunchFragment extends Fragment {
    *
    * <ul>
    *   <li>≥ 600dp：标题右侧显示插图；主操作与停止/重启同一行。
-   *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，停止/重启在下方靠左（长译文不挤压主操作）。
+   *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，停止/重启在下方等分成两枚次要按钮（带边框、
+   *       居中），不再是靠左的两段裸文字。
    *   <li>下半区「快捷入口 | 启动日志」由 AdaptiveColumns 按自身宽度（≥ 760dp）并排。
    * </ul>
    */
@@ -748,9 +750,21 @@ public class LaunchFragment extends Fragment {
       LinearLayout.LayoutParams primary =
           new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, -2);
       start.setLayoutParams(primary);
-      LinearLayout.LayoutParams secondary = new LinearLayout.LayoutParams(-2, -2);
-      secondary.topMargin = Math.round(8 * getResources().getDisplayMetrics().density);
+      float density = getResources().getDisplayMetrics().density;
+      LinearLayout.LayoutParams secondary = new LinearLayout.LayoutParams(-1, -2);
+      secondary.topMargin = Math.round(10 * density);
       quiet.setLayoutParams(secondary);
+      int[] ids = {R.id.launch_stop, R.id.launch_open};
+      for (int i = 0; i < ids.length; i++) {
+        TextView button = root.findViewById(ids[i]);
+        if (button == null) continue;
+        LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, -2, 1f);
+        if (i > 0) half.setMarginStart(Math.round(10 * density));
+        button.setLayoutParams(half);
+        button.setBackgroundResource(R.drawable.bg_btn);
+        button.setMinHeight(
+            getResources().getDimensionPixelSize(R.dimen.shell_button_secondary_height));
+      }
     }
     AdaptiveColumns bottom = root.findViewById(R.id.launch_bottom);
     if (bottom != null) {

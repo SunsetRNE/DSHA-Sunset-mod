@@ -55,7 +55,9 @@ final class LanguagePicker {
     // 手机用紧凑格子，小屏也不必滚动。
     List<String> languages = UiLanguagePreference.LANGUAGES;
     int count = languages.size() + 1;
-    int widthDp = ctx.getResources().getConfiguration().screenWidthDp;
+    // 列数按「宽度 ÷ 字体缩放」计：手机大字体时三列格子放不下「跟随系统」，自动退到两列。
+    android.content.res.Configuration config = ctx.getResources().getConfiguration();
+    float widthDp = config.screenWidthDp / Math.max(1f, config.fontScale);
     int columns = widthDp >= 600 ? 4 : widthDp >= 360 ? 3 : 2;
     boolean compact = columns < 4;
     LinearLayout row = null;
@@ -186,7 +188,9 @@ final class LanguagePicker {
     name.setSingleLine(true);
     name.setEllipsize(android.text.TextUtils.TruncateAt.END);
     head.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
-    if (selected) {
+    // 手机三列格子太窄（厂商字体常比 fontScale 更大），对勾会把「跟随系统」挤成「跟随…」；
+    // 紧凑格子只靠描边 + 底色表示选中（无障碍仍读 checked），宽格子才显示对勾。
+    if (selected && !compact) {
       ImageView check = new ImageView(ctx);
       check.setImageResource(R.drawable.ic_onb_check);
       check.setColorFilter(accent);

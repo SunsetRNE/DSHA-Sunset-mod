@@ -91,7 +91,7 @@ public final class OnboardingActivityTest {
     protected void refreshNow() {}
   }
 
-  /** 授权面板：不读系统授权，只给出空视图与 0 / 7。 */
+  /** 授权面板：不读系统授权，只给出空视图与 0 / 6。 */
   @Implements(value = PermissionPanel.class, isInAndroidSdk = false)
   public static final class Panel {
     private View view;
@@ -163,7 +163,10 @@ public final class OnboardingActivityTest {
     assertEquals(OnboardingActivity.WELCOME, page.step);
     View root = page.findViewById(android.R.id.content);
     assertTrue(hasText(root, "1 / 4"));
-    assertTrue(hasText(root, "开始部署"));
+    assertTrue(hasText(root, "开始部署") || hasText(root, "无法部署") || hasText(root, "继续"));
+    assertTrue(hasText(root, "部署前检查"));
+    assertTrue(hasText(root, "网页内核") || hasText(root, "点此查看架构、空间与网页内核") || hasText(root, "可用"));
+    assertTrue(hasText(root, "复制给支持"));
     assertFalse("未点开始前不能写入 welcomed", new ConfigStore(page).isWelcomed());
     var shadow =
         org.robolectric.shadow.api.Shadow.<org.robolectric.shadows.ShadowActivity>extract(page);

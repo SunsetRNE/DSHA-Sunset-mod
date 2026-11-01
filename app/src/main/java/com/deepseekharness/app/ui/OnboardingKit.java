@@ -588,32 +588,46 @@ final class OnboardingKit {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
       int width = r - l - getPaddingLeft() - getPaddingRight();
       int column = columns == 2 ? (width - gap) / 2 : width;
-      int y = getPaddingTop(), rowHeight = 0, slot = 0, visible = 0, seen = 0;
+      int y = getPaddingTop(), visible = 0, seen = 0;
       for (int i = 0; i < getChildCount(); i++)
         if (getChildAt(i).getVisibility() != GONE) visible++;
       boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+      java.util.ArrayList<View> row = new java.util.ArrayList<>(2);
+      int slot = 0;
       for (int i = 0; i < getChildCount(); i++) {
         View child = getChildAt(i);
         if (child.getVisibility() == GONE) continue;
         seen++;
         boolean full = columns == 1 || wide(child) || (slot == 0 && seen == visible);
         if (full && slot == 1) {
-          y += rowHeight + gap;
-          rowHeight = 0;
+          y += layoutRow(row, y, column, width, rtl);
+          row.clear();
           slot = 0;
         }
-        int w = full ? width : column;
-        int x = getPaddingLeft() + (full || slot == 0 ? 0 : column + gap);
-        if (rtl) x = getPaddingLeft() + width - (x - getPaddingLeft()) - w;
-        // 同一行两张卡片等高：取已测量的较大值。
-        child.layout(x, y, x + w, y + child.getMeasuredHeight());
-        rowHeight = Math.max(rowHeight, child.getMeasuredHeight());
+        row.add(child);
         if (full || slot == 1) {
-          y += rowHeight + gap;
-          rowHeight = 0;
+          y += layoutRow(row, y, column, width, rtl);
+          row.clear();
           slot = 0;
         } else slot = 1;
       }
+      if (!row.isEmpty()) layoutRow(row, y, column, width, rtl);
+    }
+
+    /** 同一行两张卡片都拉到该行最大高度，避免换行格子参差。 */
+    private int layoutRow(java.util.List<View> row, int y, int column, int width, boolean rtl) {
+      int h = 0;
+      for (View child : row) h = Math.max(h, child.getMeasuredHeight());
+      int gapAfter = gap;
+      for (int i = 0; i < row.size(); i++) {
+        View child = row.get(i);
+        boolean full = row.size() == 1;
+        int w = full ? width : column;
+        int x = getPaddingLeft() + (full || i == 0 ? 0 : column + gap);
+        if (rtl) x = getPaddingLeft() + width - (x - getPaddingLeft()) - w;
+        child.layout(x, y, x + w, y + h);
+      }
+      return h + gapAfter;
     }
   }
 

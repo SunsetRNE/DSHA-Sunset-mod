@@ -9,7 +9,8 @@
     <!-- ========== 页面内边距与节奏 ========== -->
     <dimen name="shell_page_pad">20dp</dimen>
     <dimen name="shell_page_top">18dp</dimen>
-    <dimen name="shell_page_bottom">30dp</dimen>
+    <!-- 手机悬浮胶囊叠在内容上：64dp 高 + 10dp 底边距 + 16dp 余量。平板见 values-sw600dp。 -->
+    <dimen name="shell_page_bottom">90dp</dimen>
     <dimen name="shell_page_title">26sp</dimen>
     <dimen name="shell_page_desc">13sp</dimen>
     <dimen name="shell_section_gap">24dp</dimen>

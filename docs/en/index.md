@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.0306-dsh0.2.1-rc.5` / build242 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build merges UI v5 Scheme A (wide two-pane layouts, risk-graded confirmations, the wavy activity bar, and rebuilt floating-status, language and Skills pages). See the [build242 notes](../releases/build242-changes.en.md) and the [build242 record](../releases/v0.2.1-rc.3-build242-ui-v5-scheme-a-20261101.md). It was verified only by overwrite-installing the test package on one Lenovo tablet and **was not tested on a physical phone**; build and publication scope follows this CI run and the Release receipt.
+Current source: `0.2.1-rc.3-20261101.0450-dsh0.2.1-rc.5` / build243 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build is a phone-portrait revision: a truly floating bottom navigation capsule, stop / restart buttons on the launch page, a pre-deployment system and WebView check, and onboarding that recommends only Shizuku / Stellar (Root and ADB removed). See the [build243 notes](../releases/build243-changes.en.md) and the [build243 record](../releases/v0.2.1-rc.3-build243-phone-portrait-20261101.md). Verified only by overwrite-installing the test package on one OnePlus PJD110 phone; build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

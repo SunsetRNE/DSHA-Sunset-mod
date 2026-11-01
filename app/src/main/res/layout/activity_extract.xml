@@ -2,7 +2,7 @@
 <!--
   运行环境维护详情页（2026-10-31 重构，与部署胶囊面板同一风格）：标题 + 状态标签、说明、
   分段条 + 阶段列表、失败 / 未就绪说明框、底栏按钮。保留历史 id（extract_title / extract_status /
-  extract_detail / extract_error / extract_bar / extract_progress / extract_retry / extract_enter /
+  extract_error / extract_bar / extract_progress / extract_retry / extract_enter /
   extract_emergency / extract_logs / extract_actions），设备审计会按 id 与字段读取。
   extract_bar 只在维护进行中可见；extract_progress 不再显示（阶段条由代码按阶段绘制）。
 -->
@@ -86,7 +86,8 @@
                 android:textSize="13.5sp" />
 
 
-            <!-- 方案 A：内容宽度足够时，左列阶段卡、右列说明与本次维护记录并排；窄时保持原顺序。 -->
+            <!-- 方案 A：内容宽度足够时，左列阶段卡、右列失败/未就绪说明并排；无说明时右列隐藏，阶段卡占满。
+                 页内不内嵌维护记录，完整记录走底栏“查看本次维护记录”。 -->
             <com.deepseekharness.app.ui.AdaptiveColumns
                 android:id="@+id/extract_columns"
                 android:layout_width="match_parent"
@@ -153,31 +154,7 @@
                         android:textIsSelectable="true"
                         android:textSize="13sp"
                         android:visibility="gone" />
-        
-                    <TextView
-                        android:id="@+id/extract_detail_label"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="18dp"
-                        android:includeFontPadding="false"
-                        android:letterSpacing="0.04"
-                        android:textColor="@color/shell_text_muted"
-                        android:textSize="12.5sp"
-                        android:textStyle="bold" />
-        
-                    <TextView
-                        android:id="@+id/extract_detail"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/bg_ui2_console"
-                        android:fontFamily="monospace"
-                        android:lineSpacingExtra="5dp"
-                        android:minHeight="96dp"
-                        android:padding="14dp"
-                        android:textColor="@color/ui2_log_text"
-                        android:textIsSelectable="true"
-                        android:textSize="12sp" />
+
                 </LinearLayout>
             </com.deepseekharness.app.ui.AdaptiveColumns>
         </LinearLayout>
@@ -219,6 +196,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp" />
+
+            <Button
+                android:id="@+id/extract_copy_support"
+                style="@style/ShellTextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
             <Button
                 android:id="@+id/extract_emergency"

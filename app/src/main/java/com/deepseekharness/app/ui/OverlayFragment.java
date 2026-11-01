@@ -119,6 +119,7 @@ public final class OverlayFragment extends Fragment {
             lineLabels,
             lineSpoken,
             prefs.getInt(OverlayController.K_LINES, OverlayController.DEF_LINES) - 1);
+    equalizeChips(lines);
     divider(appearance);
     holdSeconds = prefs.getInt(OverlayController.K_HOLD, OverlayController.DEF_HOLD);
     int selected = -1;
@@ -305,6 +306,37 @@ public final class OverlayFragment extends Fragment {
     params.bottomMargin = ui.dp(8);
     parent.addView(group, params);
     return group;
+  }
+
+  /**
+   * 1–6 行这类短数字选项：在一行里等分宽度，窄屏不再剩一个「6」单独换行。
+   * 按 ChipGroup 实际宽度计算，放不下最小触控宽度时保持默认换行。
+   */
+  private void equalizeChips(ChipGroup group) {
+    group.addOnLayoutChangeListener(
+        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+          int count = group.getChildCount();
+          int width = right - left - group.getPaddingStart() - group.getPaddingEnd();
+          if (count == 0 || width <= 0 || width == oldRight - oldLeft) return;
+          int each = (width - group.getChipSpacingHorizontal() * (count - 1)) / count;
+          if (each < ui.dp(40)) return;
+          group.post(
+              () -> {
+                for (int i = 0; i < count; i++) {
+                  Chip chip = (Chip) group.getChildAt(i);
+                  chip.setEnsureMinTouchTargetSize(false);
+                  chip.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                  chip.setChipStartPadding(0);
+                  chip.setChipEndPadding(0);
+                  chip.setTextStartPadding(0);
+                  chip.setTextEndPadding(0);
+                  chip.setMinHeight(ui.dp(40));
+                  ViewGroup.LayoutParams params = chip.getLayoutParams();
+                  params.width = each;
+                  chip.setLayoutParams(params);
+                }
+              });
+        });
   }
 
   private static int checkedIndex(ChipGroup group) {

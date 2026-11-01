@@ -130,7 +130,7 @@ public final class PermissionPanelTest {
     ShadowLooper.idleMainLooper();
     assertEquals(0, panel.grantedCount());
     List<String> texts = texts(panel.view());
-    assertTrue(texts.contains("已开启 0 / 7"));
+    assertTrue(texts.contains("已开启 0 / 6"));
     // 没有选择用途时不出现任何推荐标记。
     assertEquals(0, count(texts, "按你的用途推荐"));
     assertEquals(0, count(texts, "推荐"));
@@ -141,8 +141,9 @@ public final class PermissionPanelTest {
   @Test
   public void summaryKeepsTheContractOrderAndFlags() {
     List<String[]> summary = panel(new LinkedHashSet<>()).summary();
-    assertEquals(7, summary.size());
-    String[] names = {"存储读写", "Shizuku / Stellar", "Root", "无障碍", "通知", "悬浮窗", "电池优化"};
+    // 引导与完成页不再展示 Root：只列 6 项。
+    assertEquals(6, summary.size());
+    String[] names = {"存储读写", "Shizuku / Stellar", "无障碍", "通知", "悬浮窗", "电池优化"};
     for (int i = 0; i < names.length; i++) {
       assertEquals(names[i], summary.get(i)[0]);
       assertEquals("0", summary.get(i)[1]);
@@ -157,9 +158,9 @@ public final class PermissionPanelTest {
     panel.refresh();
     assertEquals(2, panel.grantedCount());
     List<String[]> summary = panel.summary();
+    assertEquals("1", summary.get(4)[1]);
     assertEquals("1", summary.get(5)[1]);
-    assertEquals("1", summary.get(6)[1]);
-    assertTrue(texts(panel.view()).contains("已开启 2 / 7"));
+    assertTrue(texts(panel.view()).stream().anyMatch(t -> t.contains("已开启 2")));
   }
 
   @Test
@@ -241,6 +242,14 @@ public final class PermissionPanelTest {
     host.pause().stop().destroy();
     assertTrue(registeredResultKeys(destroyed).isEmpty());
     host = Robolectric.buildActivity(Host.class).setup();
+  }
+
+  @Test
+  public void accessibilityDisconnectIsHeldBrieflySoPollingDoesNotRebuild() {
+    PermissionPanel panel = panel(new LinkedHashSet<>());
+    assertFalse(panel.accessibilityConnectedForDisplay());
+    // 无服务实例时保持未连接；防抖只在曾经连上后才生效。
+    assertEquals(0, panel.grantedCount());
   }
 
   @Test

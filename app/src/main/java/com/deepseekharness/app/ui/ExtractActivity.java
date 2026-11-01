@@ -2,6 +2,7 @@ package com.deepseekharness.app.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Toast;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
@@ -17,6 +18,7 @@ import com.deepseekharness.app.core.BackupTask;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.BackupTaskState;
 import com.deepseekharness.app.util.DeployStages;
+import com.deepseekharness.app.util.DeviceSupportReport;
 import com.deepseekharness.app.util.UiText;
 
 /**
@@ -30,7 +32,7 @@ public class ExtractActivity extends AppCompatActivity {
   private BackupTask task;
   private HarnessController controller;
   private OnboardingKit kit;
-  private TextView status, detail, error, pill, lead, stageLine, detailLabel;
+  private TextView status, error, pill, lead, stageLine;
   private ViewGroup segments, stages;
   private View stageCard;
   private ProgressBar spinner, progress;
@@ -46,6 +48,7 @@ public class ExtractActivity extends AppCompatActivity {
   private boolean cachedReadyBusy, cachedReadyPending;
   private long cachedReadyAt;
   private boolean cachedInstalled, cachedCanUpdate;
+  private DeviceSupportReport support;
 
   @Override
   protected void onCreate(@Nullable Bundle saved) {
@@ -101,12 +104,10 @@ public class ExtractActivity extends AppCompatActivity {
 
   private void bindViews() {
     status = findViewById(R.id.extract_status);
-    detail = findViewById(R.id.extract_detail);
     error = findViewById(R.id.extract_error);
     pill = findViewById(R.id.extract_pill);
     lead = findViewById(R.id.extract_lead);
     stageLine = findViewById(R.id.extract_stage_line);
-    detailLabel = findViewById(R.id.extract_detail_label);
     segments = findViewById(R.id.extract_segments);
     stages = findViewById(R.id.extract_stages);
     stageCard = findViewById(R.id.extract_stage_card);
@@ -121,6 +122,18 @@ public class ExtractActivity extends AppCompatActivity {
     emergency.setOnClickListener(v -> startActivity(new Intent(this, RecoveryActivity.class)));
     logs.setText(UiText.choose("查看本次维护记录", "View maintenance record"));
     logs.setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
+    Button copy = findViewById(R.id.extract_copy_support);
+    copy.setText(UiText.choose("复制给支持", "Copy for support"));
+    copy.setOnClickListener(
+        v -> {
+          if (support == null) support = DeviceSupportProbe.sample(this);
+          DeviceSupportProbe.copy(this, support);
+          Toast.makeText(
+                  this,
+                  UiText.choose("已复制本机环境摘要。", "Copied the device summary."),
+                  Toast.LENGTH_SHORT)
+              .show();
+        });
     retry.setOnClickListener(
         v ->
             RuntimeMaintenanceStarter.confirmRetry(
@@ -134,7 +147,7 @@ public class ExtractActivity extends AppCompatActivity {
                 rebuildRequested));
     enter.setText(UiText.text("进入主界面"));
     enter.setOnClickListener(v -> proceed());
-    // 方案 A：内容宽度 ≥ 720dp 时阶段卡与说明/记录两列并排（容器按自身宽度判定）。
+    // 方案 A：内容宽度 ≥ 720dp 且有失败/未就绪说明时，阶段卡与说明两列并排（容器按自身宽度判定）。
     AdaptiveColumns columns = findViewById(R.id.extract_columns);
     columns.setSplitWidthDp(720);
     columns.setGutterDp(28);
@@ -213,12 +226,6 @@ public class ExtractActivity extends AppCompatActivity {
     renderHeader(s, view, busy, pending);
     renderStages(view);
     renderMessages(s, view, failed, incomplete, pending);
-    boolean showLog = (mine || busy) && !s.detail.isEmpty();
-    detailLabel.setVisibility(showLog ? View.VISIBLE : View.GONE);
-    detailLabel.setText(UiText.choose("本次维护记录", "This maintenance record"));
-    detail.setVisibility(showLog ? View.VISIBLE : View.GONE);
-    detail.setText(
-        showLog ? com.deepseekharness.app.util.MaintenanceErrorText.render(s.detail) : "");
     RuntimeMaintenanceStarter.Retry kind =
         pending
             ? RuntimeMaintenanceStarter.Retry.RECOVER
@@ -301,6 +308,7 @@ public class ExtractActivity extends AppCompatActivity {
                   com.deepseekharness.app.util.MaintenanceErrorText.render(s.detail))
               + "\n\n"
               + UiText.text("任务未完成。请按上方原因处理后重试；本页不会自动覆盖环境。");
+      message += supportHint();
       warn = false;
     } else if (incomplete) {
       message =
@@ -322,9 +330,20 @@ public class ExtractActivity extends AppCompatActivity {
       warn = false;
     }
     error.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE);
+    // 页内不再内嵌维护记录：没有说明时整列隐藏，宽屏下阶段卡占满内容宽度。
+    findViewById(R.id.extract_focus).setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE);
     error.setText(message);
     error.setBackgroundResource(warn ? R.drawable.bg_onb_hint_warn : R.drawable.bg_onb_hint_bad);
     error.setTextColor(getColor(warn ? R.color.shell_warn : R.color.shell_bad));
+  }
+
+  private String supportHint() {
+    if (support == null) support = DeviceSupportProbe.sample(this);
+    if (!support.showHint())
+      return "\n\n"
+          + String.format(
+              java.util.Locale.ROOT, UiText.choose("本机环境：%s", "Device: %s"), support.copyText);
+    return "\n\n" + support.conclusion() + "\n" + support.hint() + "\n\n" + support.copyText;
   }
 
   /**

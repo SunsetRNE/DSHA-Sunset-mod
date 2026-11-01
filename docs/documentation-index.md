@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.0306-dsh0.2.1-rc.5` / build242 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版并入 UI v5 方案 A（宽屏双栏、风险分级确认、波浪活动条、悬浮条 / 语言 / 技能页重构），改动说明见 [build242 更新说明](releases/build242-changes.zh.md)，验证记录见 [build242 记录](releases/v0.2.1-rc.3-build242-ui-v5-scheme-a-20261101.md)。仅在一台联想平板上覆盖安装测试包验证，**未在手机真机上测试**；构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.0450-dsh0.2.1-rc.5` / build243 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是手机竖屏修订：真悬浮底部胶囊、启动页停止 / 重启按钮、部署前系统与网页内核检查、引导授权只推荐 Shizuku / Stellar 并去掉 Root / ADB，改动说明见 [build243 更新说明](releases/build243-changes.zh.md)，验证记录见 [build243 记录](releases/v0.2.1-rc.3-build243-phone-portrait-20261101.md)。仅在一台一加 PJD110 手机上覆盖安装测试包验证；构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

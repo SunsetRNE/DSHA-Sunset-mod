@@ -971,10 +971,12 @@ public final class DeviceGrantsFragment extends Fragment {
     android.widget.LinearLayout.LayoutParams tagParams =
         new android.widget.LinearLayout.LayoutParams(-2, -2);
     tagParams.setMarginStart(dp(10));
-    card.addView(tag, tagParams);
+    // 没有风险标签的档位（如「按应用自定义」）不画空胶囊。
+    if (!badge.isEmpty()) card.addView(tag, tagParams);
     String spoken = currentTag.isEmpty() ? name : name + " " + currentTag;
     card.setContentDescription(
-        com.deepseekharness.app.util.UiText.raw(spoken + ", " + description + ", " + badge));
+        com.deepseekharness.app.util.UiText.raw(
+            spoken + ", " + description + (badge.isEmpty() ? "" : ", " + badge)));
     return card;
   }
 
@@ -1348,20 +1350,29 @@ public final class DeviceGrantsFragment extends Fragment {
         () -> toast(com.deepseekharness.app.util.UiText.text("无法打开电池优化设置")));
   }
 
-  /** 只在用户点击后导航到系统设置；不申请或自动修改电池优化白名单。 */
+  /**
+   * 只在用户点击后导航到系统设置；不申请或自动修改电池优化白名单。
+   *
+   * <p>ColorOS 16 的「耗电管理」页（PowerControlActivity）不对外导出，只能先打开本应用「关于 /
+   * 应用详情」，再由用户点「耗电管理」。AOSP 的应用电池使用情况页作为次选。
+   */
   static void openBatterySettings(
       Context context, java.util.function.Consumer<Intent> open, Runnable failed) {
+    Uri app = Uri.parse("package:" + context.getPackageName());
     try {
-      open.accept(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+      open.accept(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, app));
       return;
     } catch (RuntimeException unavailable) {
-      // OEM may omit or restrict the general battery settings Activity.
+      // 部分 ROM 拦截应用详情。
     }
     try {
-      open.accept(
-          new Intent(
-              Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-              Uri.parse("package:" + context.getPackageName())));
+      open.accept(new Intent("android.settings.VIEW_ADVANCED_POWER_USAGE_DETAIL", app));
+      return;
+    } catch (RuntimeException unavailable) {
+      // 没有应用电池页时再退回总名单。
+    }
+    try {
+      open.accept(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
     } catch (RuntimeException unavailable) {
       failed.run();
     }

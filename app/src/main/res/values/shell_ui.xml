@@ -32,9 +32,9 @@
     <color name="shell_warn_soft">#148C600D</color>
     <color name="shell_bad_soft">#14AF404B</color>
 
-    <!-- 玻璃层：胶囊导航底比页面底亮一档，仍保留一点透感 -->
+    <!-- 玻璃层：其它半透明叠层仍可用；胶囊导航底改为不透明 surface。 -->
     <color name="shell_glass">#E0FAFCFF</color>
-    <color name="shell_nav_bg">#FAFCFDFF</color>
+    <color name="shell_nav_bg">#FCFDFF</color>
     <color name="shell_nav_ripple">#141E50D0</color>
 
     <!-- 手机胶囊导航 -->

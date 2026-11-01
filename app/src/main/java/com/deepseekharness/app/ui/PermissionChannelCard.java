@@ -14,11 +14,8 @@ import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.util.UiText;
 
 /**
- * 设备命令通道宽卡片：Shizuku / Stellar · Root · ADB 配对三个分页（任选其一）。
- *
- * <p>按钮语义完全沿用 DeviceGrantsFragment：Shizuku 未连接先重连再申请授权；Root 开关只改 DSHA
- * 本地开关，验证才会触发 root 管理器授权；引导中 Root 档位只读显示，放宽仍须在设备授权页二次确认。
- * ADB 配对依赖运行环境就绪。三种通道共用同一套命令白名单。
+ * 引导里的设备命令通道：只推荐一台 Shizuku 兼容管理器（有 Stellar 就显示 Stellar）。
+ * Root 与 ADB 留在设置页。协议仍是 Shizuku API，不接入 Stellar 原生权限。
  */
 final class PermissionChannelCard {
   static final String SHIZUKU = "shizuku", ROOT = "root", ADB = "adb";
@@ -58,28 +55,27 @@ final class PermissionChannelCard {
     boolean shizuku = shizukuReady(), root = rootReady(ctx);
     PermissionCard.Model m = new PermissionCard.Model();
     m.icon = R.drawable.ic_terminal;
+    boolean stellar = com.deepseekharness.app.ShizukuManagerCompat.isStellar(ctx);
+    boolean hasManager = com.deepseekharness.app.ShizukuManagerCompat.manager(ctx) != null;
     m.title = UiText.choose("设备命令通道", "Device command channel");
     m.why =
         UiText.choose(
-            "让设备命令经 Shizuku / Stellar、Root 或 ADB 执行，任选其一。三种通道共用同一套命令白名单。",
-            "Run device commands through Shizuku / Stellar, Root or ADB — pick one. All channels share the same command allowlist.");
+            "推荐用 Stellar 作为管理器；DSHA 走它的 Shizuku 兼容层，不是 Stellar 原生权限。Root 与 ADB 在 设置 → 设备能力授权 中配置。",
+            "Stellar is the recommended manager; DSHA uses its Shizuku compatibility layer, not Stellar-native permissions. Configure Root or ADB in Settings → Device access.");
     m.ok = shizuku || root;
     m.pill =
-        root
-            ? UiText.choose("Root 已就绪", "Root ready")
-            : shizuku
-                ? UiText.choose("Shizuku 已授权", "Shizuku authorized")
-                : UiText.choose("未配置", "Not configured");
+        shizuku
+            ? (stellar
+                ? UiText.choose("Stellar 已授权", "Stellar authorized")
+                : UiText.choose("Shizuku 已授权", "Shizuku authorized"))
+            : hasManager
+                ? UiText.choose("未授权", "Not authorized")
+                : UiText.choose("未安装 Stellar", "Stellar not installed");
     m.tone = m.ok ? OnboardingKit.Tone.GOOD : OnboardingKit.Tone.NEUTRAL;
     m.recommended = recommended;
 
     LinearLayout body = kit.column();
-    body.addView(tabs(kit, tab, shizuku, root, selectTab));
-    LinearLayout panel = kit.column();
-    if (ROOT.equals(tab)) rootPanel(activity, kit, panel, refresh);
-    else if (ADB.equals(tab)) adbPanel(activity, kit, panel, environmentReady);
-    else shizukuPanel(activity, kit, panel, refresh);
-    kit.add(body, panel, 6);
+    shizukuPanel(activity, kit, body, refresh);
     m.extra = body;
     return m;
   }
@@ -94,9 +90,7 @@ final class PermissionChannelCard {
     bar.setBackgroundResource(R.drawable.bg_onb_tabs);
     bar.setPadding(kit.dp(3), kit.dp(3), kit.dp(3), kit.dp(3));
     String[][] items = {
-      {SHIZUKU, UiText.choose("Shizuku / Stellar", "Shizuku / Stellar"), shizuku ? "1" : ""},
-      {ROOT, "Root", root ? "1" : ""},
-      {ADB, UiText.choose("ADB 配对", "ADB pairing"), ""}
+      {SHIZUKU, UiText.choose("Shizuku / Stellar", "Shizuku / Stellar"), shizuku ? "1" : ""}
     };
     for (String[] item : items) {
       boolean selected = item[0].equals(current);
@@ -153,16 +147,33 @@ final class PermissionChannelCard {
     if (com.deepseekharness.app.util.ShizukuChannelStatus.shouldEnsureBound(step))
       ShizukuShell.ensureBound(activity);
     panel.addView(statusBox(kit, ShizukuShell.userStatus(activity), ok));
-    kit.add(
-        panel,
-        kit.hint(
-            UiText.choose(
-                "使用 Stellar 时，请在 Stellar 设置中开启「Shizuku 兼容层」并启动服务；手机重启后服务通常需要重新启动。",
-                "With Stellar, enable its Shizuku compatibility layer and start the service. Services usually need restarting after a reboot."),
-            OnboardingKit.Tone.ACCENT),
-        8);
+    boolean stellar = com.deepseekharness.app.ShizukuManagerCompat.isStellar(activity);
+    boolean hasManager = com.deepseekharness.app.ShizukuManagerCompat.manager(activity) != null;
+    if (!ok)
+      kit.add(
+          panel,
+          kit.hint(
+              hasManager
+                  ? (stellar
+                      ? UiText.choose(
+                          "已识别 Stellar。请启动服务并开启「Shizuku 兼容层」，回到这里授权。DSHA 不使用 Stellar 原生权限。",
+                          "Stellar is installed. Start the service, enable the Shizuku compatibility layer, then return here to authorize. DSHA does not use Stellar-native permissions.")
+                      : UiText.choose(
+                          "已识别 Shizuku。也可以改用 Stellar（仍走兼容层）。Root 与 ADB 在设置里配置。",
+                          "Shizuku is installed. You may switch to Stellar (still the compatibility layer). Root and ADB are in Settings."))
+                  : UiText.choose(
+                      "未安装管理器。推荐安装 Stellar，并在其设置中开启「Shizuku 兼容层」。已有 Shizuku 也可继续用。",
+                      "No manager installed. Stellar is recommended; enable its Shizuku compatibility layer. Existing Shizuku still works."),
+              OnboardingKit.Tone.ACCENT),
+          8);
     Button primary;
-    if (!ShizukuShell.isAvailable())
+    if (!hasManager)
+      primary =
+          kit.small(
+              UiText.choose("安装 Stellar", "Install Stellar"),
+              true,
+              v -> PermissionActions.openStellarInstall(activity));
+    else if (!ShizukuShell.isAvailable())
       primary =
           kit.small(
               authorizeLabel(activity),
@@ -200,9 +211,21 @@ final class PermissionChannelCard {
               v -> PermissionActions.verify(activity, v, () -> ShizukuShell.exec("id"), refresh));
     Button open =
         kit.small(
-            UiText.choose("打开 Shizuku / Stellar", "Open Shizuku / Stellar"),
+            hasManager
+                ? (stellar
+                    ? UiText.choose("打开 Stellar", "Open Stellar")
+                    : UiText.choose("打开 Shizuku", "Open Shizuku"))
+                : UiText.choose("我已有 Shizuku", "I already have Shizuku"),
             false,
-            v -> PermissionActions.openShizukuManager(activity));
+            v -> {
+              if (hasManager) PermissionActions.openShizukuManager(activity);
+              else
+                PermissionActions.toast(
+                    activity,
+                    UiText.choose(
+                        "本机还没识别到 Shizuku。装好并启动服务后回到这里刷新。",
+                        "Shizuku is not on this device yet. Install it, start the service, then return here and refresh."));
+            });
     kit.add(panel, kit.actionRow(primary, open), 10);
   }
 

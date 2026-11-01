@@ -49,11 +49,10 @@
         </FrameLayout>
       </LinearLayout>
 
-      <!-- 三段就绪轨道：运行环境 / 工作台 / 实际端口。无卡片，上下分隔线。 -->
-      <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="@dimen/shell_launch_section_gap" android:background="@color/shell_line" />
-      <LinearLayout android:id="@+id/launch_metrics" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+      <!-- 三段就绪轨道：运行环境 / 工作台 / 实际端口。每项独立描边卡片，保留原设计。 -->
+      <LinearLayout android:id="@+id/launch_metrics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:orientation="horizontal">
 
-        <LinearLayout style="@style/ShellLaunchRailItem" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+        <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
           <FrameLayout android:layout_width="31dp" android:layout_height="31dp" android:background="@drawable/bg_launch_tile">
             <ImageView android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui2_box" app:tint="@color/shell_accent" />
           </FrameLayout>
@@ -61,7 +60,7 @@
           <TextView android:id="@+id/launch_environment" style="@style/ShellLaunchRailValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_status_unavailable" />
         </LinearLayout>
 
-        <LinearLayout style="@style/ShellLaunchRailItem" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+        <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1">
           <FrameLayout android:layout_width="31dp" android:layout_height="31dp" android:background="@drawable/bg_launch_tile">
             <ImageView android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_terminal" app:tint="@color/shell_accent" />
           </FrameLayout>
@@ -69,7 +68,7 @@
           <TextView android:id="@+id/launch_workbench" style="@style/ShellLaunchRailValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_status_unavailable" />
         </LinearLayout>
 
-        <LinearLayout style="@style/ShellLaunchRailItem" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+        <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1">
           <FrameLayout android:layout_width="31dp" android:layout_height="31dp" android:background="@drawable/bg_launch_tile">
             <ImageView android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui_link" app:tint="@color/shell_accent" />
           </FrameLayout>
@@ -77,7 +76,6 @@
           <TextView android:id="@+id/launch_port" style="@style/ShellLaunchRailValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="monospace" android:text="@string/ui_status_unavailable" />
         </LinearLayout>
       </LinearLayout>
-      <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/shell_line" />
 
       <!-- 下半区：快捷入口 | 启动日志；内容宽度 ≥760dp 时并排（AdaptiveColumns）。 -->
       <com.deepseekharness.app.ui.AdaptiveColumns android:id="@+id/launch_bottom" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap">

@@ -117,7 +117,7 @@ final class PermissionCards {
                 "减少系统在后台结束 Web、终端与保活服务。",
                 "Reduces how often Android stops Web, the terminal and keep-alive services in the background."),
             UiText.choose("后台 Web 少被中断", "Fewer background Web interruptions"),
-            UiText.choose("ADB 保活更稳定", "Steadier ADB keep-alive"));
+            UiText.choose("终端与保活更稳", "Steadier terminal and keep-alive"));
     var battery = PermissionActions.batteryState(a);
     boolean unrestricted =
         battery == com.deepseekharness.app.util.BatteryBackgroundState.State.UNRESTRICTED;
@@ -143,24 +143,18 @@ final class PermissionCards {
                     "“Allow background usage” is off: background Web, the terminal and keep-alive will likely be stopped.");
     m.outside =
         UiText.choose(
-            "在 应用详情 → 电池（应用的电池使用情况）中打开“允许后台使用”；需要更稳定时再点开选择“不受限制”。DSHA 不会自动申请豁免。",
-            "In App info → Battery, turn on “Allow background usage”; for steadier runs open it and choose Unrestricted. DSHA never requests an exemption itself.");
-    // 本应用的电池页直接控制“允许后台使用”；通用电池优化列表只作为备用入口。
+            "会打开本应用的系统「关于」页。ColorOS 上再点「耗电管理」，选「完全允许后台行为」。其他系统在应用详情或电池页打开“允许后台使用”。DSHA 不会自动申请豁免。",
+            "Opens this app’s system App info page. On ColorOS tap Battery usage and choose Allow all background activity. On other systems turn on Allow background usage. DSHA never requests an exemption itself.");
     m.actions =
         new View[] {
           unrestricted
               ? kit.ghost(
-                  UiText.choose("应用电池设置", "App battery settings"),
+                  UiText.choose("打开应用详情", "Open app info"),
                   v -> PermissionActions.openAppDetails(a))
               : kit.small(
-                  ok
-                      ? UiText.choose("改为不受限制", "Set to Unrestricted")
-                      : UiText.choose("允许后台使用", "Allow background usage"),
+                  UiText.choose("打开耗电管理", "Open battery usage"),
                   true,
-                  v -> PermissionActions.openAppDetails(a)),
-          kit.ghost(
-              UiText.choose("电池优化列表", "Battery optimization list"),
-              v -> PermissionActions.openBattery(a))
+                  v -> PermissionActions.openAppDetails(a))
         };
     return m;
   }
@@ -211,7 +205,7 @@ final class PermissionCards {
     OnboardingKit kit = panel.kit();
     AppCompatActivity a = panel.activity();
     String state = PermissionActions.accessibilityState(a);
-    boolean connected = PermissionActions.accessibilityConnected(a);
+    boolean connected = panel.accessibilityConnectedForDisplay();
     PermissionCard.Model m =
         base(
             R.drawable.ic_onb_hand,

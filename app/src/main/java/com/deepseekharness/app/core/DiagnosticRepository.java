@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.runtime.ProotBootstrap;
+import com.deepseekharness.app.util.DeviceSupportReport;
 import com.deepseekharness.app.util.SensitiveData;
 import java.io.File;
 import com.deepseekharness.app.util.DiagnosticReport;
@@ -255,40 +256,44 @@ public final class DiagnosticRepository extends AndroidViewModel {
         t("应用与设备", "App and device"),
         t("本次只读采样", "Current read-only sample"),
         metadata.toString());
-    StringBuilder browser = new StringBuilder();
-    boolean browserAvailable = true;
+    String webPkg = "";
+    String webVer = "";
     try {
       android.content.pm.PackageInfo web =
           Build.VERSION.SDK_INT >= 26 ? android.webkit.WebView.getCurrentWebViewPackage() : null;
-      browser
-          .append("WebView: ")
-          .append(
-              web == null
-                  ? t("系统未提供版本信息", "System did not provide version information")
-                  : web.packageName + " " + web.versionName)
-          .append('\n');
-    } catch (Exception | LinkageError error) {
-      browserAvailable = false;
-      browser
-          .append(t("WebView：不可用（", "WebView: unavailable ("))
-          .append(error.getClass().getSimpleName())
-          .append(")\n");
+      if (web != null) {
+        webPkg = web.packageName == null ? "" : web.packageName;
+        webVer = web.versionName == null ? "" : web.versionName;
+      }
+    } catch (Exception | LinkageError ignored) {
     }
-    browser
-        .append(t("兼容内核：", "Compatibility engine: "))
-        .append(
-            false
-                ? t(
-                    "Gecko 143 可用（旧系统自动切换）",
-                    "Gecko 143 bundled; selected automatically on older systems")
-                : t("未内置", "Not bundled"));
+    DeviceSupportReport support =
+        DeviceSupportReport.from(
+            Build.VERSION.SDK_INT,
+            Build.SUPPORTED_ABIS,
+            Build.MANUFACTURER,
+            Build.BRAND,
+            Build.MODEL,
+            Build.DISPLAY,
+            webPkg,
+            webVer,
+            BuildConfig.VERSION_NAME,
+            BuildConfig.VERSION_CODE);
+    DiagnosticReport.Health browserHealth =
+        support.gate == DeviceSupportReport.Gate.OK
+            ? DiagnosticReport.Health.INFO
+            : DiagnosticReport.Health.NEEDS_ATTENTION;
     add(
         rows,
         "browser",
-        browserAvailable ? DiagnosticReport.Health.INFO : DiagnosticReport.Health.NEEDS_ATTENTION,
+        browserHealth,
         t("网页内核", "Browser engine"),
-        false ? "WebView / Gecko 143" : "System WebView",
-        browser.toString());
+        support.conclusion(),
+        support.copyText
+            + (support.showHint() ? "\n\n" + support.hint() : "")
+            + "\n"
+            + t("兼容内核：", "Compatibility engine: ")
+            + t("未内置", "Not bundled"));
     String cold = ColdInstallDiagnostics.read(getApplication());
     if (!cold.isEmpty())
       add(
