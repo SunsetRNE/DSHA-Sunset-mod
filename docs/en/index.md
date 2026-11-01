@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261101.0910-dsh0.2.1-rc.5` / build244 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the plugin transaction journal: the completion record moves out of the transaction directory, so old record leftovers and foreign entries no longer make Recover interrupted maintenance fail forever with `PLUGIN_JOURNAL_ID`. See the [build244 notes](../releases/build244-changes.en.md) and the [build244 record](../releases/v0.2.1-rc.3-build244-plugin-journal-20261101.md). Only local unit tests and Python regressions ran; not verified on a device that hit the problem. Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261101.1430-dsh0.2.1-rc.5` / build245 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build splits the maintenance gate into clear / pending / unreadable: unreadable records come with a reason and an exit, plugin transaction journals can be isolated unchanged after native confirmation, and Select data directory is no longer blocked when both data directories exist. See the [build245 notes](../releases/build245-changes.en.md) and the [build245 record](../releases/v0.2.1-rc.3-build245-maintenance-gate-20261101.md). Only local unit tests and Python regressions ran; no device verification. Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

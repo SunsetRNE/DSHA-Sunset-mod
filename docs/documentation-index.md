@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.0910-dsh0.2.1-rc.5` / build244 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复插件事务日志：完成证明移出事务目录，旧版证明残留与外来条目不再让「恢复中断维护」以 `PLUGIN_JOURNAL_ID` 永久失败，改动说明见 [build244 更新说明](releases/build244-changes.zh.md)，验证记录见 [build244 记录](releases/v0.2.1-rc.3-build244-plugin-journal-20261101.md)。只有本机单测与 Python 回归，未在出现该问题的设备上实机验证；构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.1430-dsh0.2.1-rc.5` / build245 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把维护门禁分为「无记录 / 有待恢复 / 无法读取」三态：记录读不了时说明原因与出口，插件事务日志可在原生确认后原样隔离，新旧数据目录并存时「选择数据目录」不再被挡住；改动说明见 [build245 更新说明](releases/build245-changes.zh.md)，验证记录见 [build245 记录](releases/v0.2.1-rc.3-build245-maintenance-gate-20261101.md)。只有本机单测与 Python 回归，未做设备验证；构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
