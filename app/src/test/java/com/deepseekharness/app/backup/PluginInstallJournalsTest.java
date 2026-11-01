@@ -184,6 +184,61 @@ public class PluginInstallJournalsTest {
       assertFalse(name, name.startsWith(PluginInstallJournals.HISTORY_PROOF));
   }
 
+  /** 只覆盖抽象原语；atomic() 等默认方法在本对象上执行，其内部 move 会经过故障注入。 */
+  private static final class InterruptSecondMove implements BackupFileSystem {
+    private final BackupFileSystem delegate;
+    private int moves;
+
+    InterruptSecondMove(BackupFileSystem delegate) {
+      this.delegate = delegate;
+    }
+
+    public Node stat(File file) throws IOException {
+      return delegate.stat(file);
+    }
+
+    public String readLink(File file) throws IOException {
+      return delegate.readLink(file);
+    }
+
+    public List<String> list(File directory) throws IOException {
+      return delegate.list(directory);
+    }
+
+    public InputStream read(File file, Node expected) throws IOException {
+      return delegate.read(file, expected);
+    }
+
+    public OutputStream create(File file) throws IOException {
+      return delegate.create(file);
+    }
+
+    public void directory(File file) throws IOException {
+      delegate.directory(file);
+    }
+
+    public void move(File source, File target) throws IOException {
+      if (++moves == 2) throw new IOException("PROCESS_INTERRUPTED");
+      delegate.move(source, target);
+    }
+
+    public void delete(File file) throws IOException {
+      delegate.delete(file);
+    }
+
+    public void syncDirectory(File directory) throws IOException {
+      delegate.syncDirectory(directory);
+    }
+
+    public void mode(File file, int mode) throws IOException {
+      delegate.mode(file, mode);
+    }
+
+    public void symlink(String target, File link) throws IOException {
+      delegate.symlink(target, link);
+    }
+  }
+
   /** 证明写到一半被杀：新位置的原子写残留同样不进入被扫描目录。 */
   @Test
   public void interruptedProofWriteLeavesTransactionDirectoryScannable() throws Exception {
@@ -197,21 +252,7 @@ public class PluginInstallJournalsTest {
     // 证明失配迫使下一次校验重写；第二次 move（target -> previous 之后的发布）被“杀”。
     Files.writeString(
         proof.toPath(), "{\"version\":1,\"homeKey\":\"stale\",\"historyKey\":\"stale\"}");
-    int[] moves = {0};
-    BackupFileSystem faulty =
-        (BackupFileSystem)
-            java.lang.reflect.Proxy.newProxyInstance(
-                BackupFileSystem.class.getClassLoader(),
-                new Class[] {BackupFileSystem.class},
-                (proxy, method, args) -> {
-                  if (method.getName().equals("move") && ++moves[0] == 2)
-                    throw new IOException("PROCESS_INTERRUPTED");
-                  try {
-                    return method.invoke(fs, args);
-                  } catch (java.lang.reflect.InvocationTargetException error) {
-                    throw error.getCause();
-                  }
-                });
+    BackupFileSystem faulty = new InterruptSecondMove(fs);
     assertThrows(IOException.class, () -> PluginInstallJournals.pending(faulty, home));
     assertTrue(new File(home, PluginInstallJournals.HISTORY_PROOF + ".previous").isFile());
     assertEquals(List.of("completed"), fs.list(root));
