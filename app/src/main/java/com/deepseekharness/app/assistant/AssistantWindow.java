@@ -18,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import com.deepseekharness.app.control.OwnedScreenOverlay;
+import com.deepseekharness.app.util.OverlayPlacement;
 import com.deepseekharness.app.util.OverlayTouchGuard;
 import com.deepseekharness.app.util.ScreenWindowRegion;
 
@@ -43,6 +44,11 @@ final class AssistantWindow implements AutoCloseable {
       new OverlayTouchGuard(android.os.SystemClock::elapsedRealtime);
   private final Runnable stopExpired = this::renderStopButton;
   private int renderedWidth = -1;
+  // 用户拖到的位置在进程内保留，下次出现时沿用；-1 表示默认右下角。
+  private static int savedX = -1, savedY = -1;
+  private float downRawX, downRawY;
+  private int downX, downY;
+  private boolean dragging;
 
   /** 展开的面板正被用户查看：读屏前不收走它（它不可聚焦，按自有窗口整窗排除）。 */
   boolean keptVisibleForUser() {
@@ -123,6 +129,8 @@ final class AssistantWindow implements AutoCloseable {
         v -> {
           if (!controller.snapshot().expanded() && guard.accept()) controller.expand();
         });
+    // 状态行同时是拖动把手：移动不超过触摸阈值仍算点按（展开），超过则移动整个悬浮窗。
+    status.setOnTouchListener(this::dragTouch);
     closeButton = new Button(context);
     closeButton.setText("✕");
     closeButton.setTextSize(16);
@@ -203,8 +211,8 @@ final class AssistantWindow implements AutoCloseable {
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
             | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
     params.gravity = Gravity.BOTTOM | Gravity.END;
-    params.y = dp(24);
-    params.x = dp(12);
+    params.y = savedY >= 0 ? savedY : dp(24);
+    params.x = savedX >= 0 ? savedX : dp(12);
     params.width =
         Math.min(context.getResources().getDisplayMetrics().widthPixels - dp(24), dp(210));
     params.height = -2;
@@ -213,7 +221,12 @@ final class AssistantWindow implements AutoCloseable {
     // 显式声明只避让系统栏，与他人输入法隔离。
     params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
     params.setFitInsetsTypes(android.view.WindowInsets.Type.systemBars());
-    root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> publish());
+    root.addOnLayoutChangeListener(
+        (v, l, t, r, b, ol, ot, or, ob) -> {
+          // 展开变宽变高、转屏后仍要整窗留在屏幕内。
+          keepOnScreen();
+          publish();
+        });
     try {
       manager.addView(root, params);
       added = true;
@@ -223,6 +236,77 @@ final class AssistantWindow implements AutoCloseable {
     } catch (RuntimeException unavailable) {
       controller.pause("OVERLAY_UNAVAILABLE");
       OwnedScreenOverlay.clear("assistant");
+    }
+  }
+
+  private boolean dragTouch(View view, android.view.MotionEvent event) {
+    switch (event.getActionMasked()) {
+      case android.view.MotionEvent.ACTION_DOWN -> {
+        downRawX = event.getRawX();
+        downRawY = event.getRawY();
+        downX = params.x;
+        downY = params.y;
+        dragging = false;
+        return false;
+      }
+      case android.view.MotionEvent.ACTION_MOVE -> {
+        float dx = event.getRawX() - downRawX, dy = event.getRawY() - downRawY;
+        if (!dragging
+            && OverlayPlacement.isDrag(
+                dx, dy, android.view.ViewConfiguration.get(context).getScaledTouchSlop())) {
+          dragging = true;
+          // 交给状态行一次 CANCEL，清掉按下/长按/点按回调，这次手势不会再触发展开。
+          android.view.MotionEvent cancel = android.view.MotionEvent.obtain(event);
+          cancel.setAction(android.view.MotionEvent.ACTION_CANCEL);
+          view.onTouchEvent(cancel);
+          cancel.recycle();
+        }
+        if (!dragging) return false;
+        moveTo(
+            OverlayPlacement.offset(downX, downRawX, event.getRawX()),
+            OverlayPlacement.offset(downY, downRawY, event.getRawY()));
+        return true;
+      }
+      case android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+        if (!dragging) return false;
+        dragging = false;
+        savedX = params.x;
+        savedY = params.y;
+        // 松手后新位置附近的按钮短暂不响应；旧观察作废，下一次手机操作先重新观察。
+        guard.layoutChanged();
+        controller.panelMoved();
+        publish();
+        return true;
+      }
+      default -> {
+        return dragging;
+      }
+    }
+  }
+
+  private void moveTo(int x, int y) {
+    var metrics = context.getResources().getDisplayMetrics();
+    int width = root.getWidth() > 0 ? root.getWidth() : params.width;
+    int height = root.getHeight() > 0 ? root.getHeight() : dp(62);
+    int nextX = OverlayPlacement.clamp(x, width, metrics.widthPixels, dp(8));
+    int nextY = OverlayPlacement.clamp(y, height, metrics.heightPixels, dp(8));
+    if (nextX == params.x && nextY == params.y) return;
+    params.x = nextX;
+    params.y = nextY;
+    try {
+      manager.updateViewLayout(root, params);
+    } catch (RuntimeException removed) {
+      // 窗口已被移除：下一次 show 重新建立。
+    }
+  }
+
+  private void keepOnScreen() {
+    if (!added || dragging) return;
+    int beforeX = params.x, beforeY = params.y;
+    moveTo(params.x, params.y);
+    if ((params.x != beforeX || params.y != beforeY) && savedX >= 0) {
+      savedX = params.x;
+      savedY = params.y;
     }
   }
 
@@ -283,7 +367,9 @@ final class AssistantWindow implements AutoCloseable {
             + (state.expanded() || progress.isEmpty() ? "" : "\n" + progress));
     status.setContentDescription(
         String.format(
-            UiText.choose("%s，会话 %s，%s。点按展开聊天", "%s, conversation %s, %s. Tap to expand chat"),
+            UiText.choose(
+                "%s，会话 %s，%s。点按展开聊天，按住拖动可移动",
+                "%s, conversation %s, %s. Tap to expand chat; drag to move"),
             target,
             state.binding().sessionId(),
             label(state.phase())));

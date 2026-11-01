@@ -153,6 +153,75 @@ public final class AssistantInputAndroidTest {
     assertEquals(0, cancellations.get());
   }
 
+  private static void touch(View view, int action, float x, float y) {
+    MotionEvent event =
+        MotionEvent.obtain(0, android.os.SystemClock.uptimeMillis(), action, x, y, 0);
+    view.dispatchTouchEvent(event);
+    event.recycle();
+  }
+
+  private static void resetSavedPosition() throws Exception {
+    for (String name : new String[] {"savedX", "savedY"}) {
+      Field field = AssistantWindow.class.getDeclaredField(name);
+      field.setAccessible(true);
+      field.setInt(null, -1);
+    }
+  }
+
+  @Test
+  public void draggingTheStatusMovesTheWindowWithoutExpandingOrPausing() throws Exception {
+    resetSavedPosition();
+    try {
+      window = new AssistantWindow(app, session);
+      window.show();
+      drain();
+      settle();
+      TextView status = (TextView) field(window, "status");
+      var params = (WindowManager.LayoutParams) field(window, "params");
+      int startX = params.x, startY = params.y;
+      // 向左上拖 300px：右下锚点的偏移增大。
+      touch(status, MotionEvent.ACTION_DOWN, 20, 20);
+      touch(status, MotionEvent.ACTION_MOVE, -100, -60);
+      touch(status, MotionEvent.ACTION_MOVE, -280, -280);
+      touch(status, MotionEvent.ACTION_UP, -280, -280);
+      drain();
+      assertTrue(params.x > startX);
+      assertTrue(params.y > startY);
+      assertFalse("A drag is not a tap", session.snapshot().expanded());
+      assertFalse(PhoneControlCoordinator.get(app).snapshot().paused());
+      assertEquals(0, cancellations.get());
+      // 位置在下次出现时沿用。
+      int movedX = params.x, movedY = params.y;
+      window.close();
+      window = new AssistantWindow(app, session);
+      window.show();
+      var reopened = (WindowManager.LayoutParams) field(window, "params");
+      assertEquals(movedX, reopened.x);
+      assertEquals(movedY, reopened.y);
+    } finally {
+      resetSavedPosition();
+    }
+  }
+
+  @Test
+  public void tinyMovementOnStatusIsStillATapThatExpands() throws Exception {
+    resetSavedPosition();
+    window = new AssistantWindow(app, session);
+    window.show();
+    drain();
+    settle();
+    TextView status = (TextView) field(window, "status");
+    var params = (WindowManager.LayoutParams) field(window, "params");
+    int startX = params.x, startY = params.y;
+    touch(status, MotionEvent.ACTION_DOWN, 20, 20);
+    touch(status, MotionEvent.ACTION_MOVE, 21, 21);
+    touch(status, MotionEvent.ACTION_UP, 21, 21);
+    drain();
+    assertEquals(startX, params.x);
+    assertEquals(startY, params.y);
+    assertTrue(session.snapshot().expanded());
+  }
+
   @Test
   public void stopNeedsTwoTapsAndOtherButtonsDisarmIt() throws Exception {
     window = new AssistantWindow(app, session);

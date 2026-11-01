@@ -562,6 +562,7 @@
   ],
   "launcherSources": [
     "util/IsolatedCommand.java",
+    "util/OverlayPlacement.java",
     "util/OverlayTouchGuard.java",
     "util/PluginDownloadSource.java",
     "backup/RuntimeTrialRecords.java",

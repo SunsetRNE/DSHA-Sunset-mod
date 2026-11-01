@@ -154,6 +154,11 @@ public final class AssistantSessionController implements AutoCloseable {
     deferredFinish = finish;
   }
 
+  /** 用户拖动了悬浮窗：与展开/收起相同，只要求下一次手机操作前重新观察。 */
+  void panelMoved() {
+    panelGeometryChanged();
+  }
+
   /** 自有面板位置或大小变化：作废旧观察与在途读屏，但不暂停、不取消对话。 */
   private void panelGeometryChanged() {
     var task = fence.snapshot();
