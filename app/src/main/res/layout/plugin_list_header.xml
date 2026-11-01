@@ -1,72 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  插件页头部（UI v5）：页面标题 → 市场/已安装分段 → 社区入口 → 链接安装 → 已安装筛选卡片。
-  保留 PluginFragment 使用的全部 id；真实插件状态仍由页面投影，不在这里伪造。
+  插件页头部（2026-11-01 压缩重构，原型 docs/design/plugin-header-20261101/preview.html）：
+    标题行    标题 + 市场/管理分段（PluginFlowRow：放不下时分段换到下一行并铺满）
+    安全模式  警示条 + 恢复（原页脚 btnPluginRestore）
+    市场卡片  从链接安装 · 社区插件外链 / 输入框（尾部粘贴或清空）/ 识别提示 / 下载源胶囊 + 解析安装
+    管理卡片  搜索 + 检测插件 / 只看自己装的 · 排序 · 下载源胶囊
+    状态条    图标 + 计数 + 状态文字 + 唯一动作（取消 / 检查更新），下方固定 12dp 波浪车道
+  保留 PluginFragment 与各审计使用的全部 id；下载源按钮由页面在两张卡片的槽位间移动，状态由页面投影。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
 
-    <TextView style="@style/ShellPageTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_m0016" />
+    <com.deepseekharness.app.ui.PluginFlowRow android:id="@+id/pluginTitleRow" android:layout_width="match_parent" android:layout_height="wrap_content" app:flowGapHorizontal="12dp" app:flowGapVertical="12dp" app:flowStretchWrapped="true">
+        <TextView style="@style/ShellPageTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:accessibilityHeading="true" android:text="@string/ui_m0016" />
 
-    <!-- 分段：选中项是白色滑块，selected 状态与点击由 PluginFragment 投影。 -->
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:layout_marginBottom="18dp" android:background="@drawable/bg_plugin_segment_track" android:orientation="horizontal" android:padding="4dp">
-        <TextView android:id="@+id/btnMarket" style="@style/ShellSegment" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_plugin_segment_tab" android:text="@string/ui_m0133" />
-        <TextView android:id="@+id/btnInstalled" style="@style/ShellSegment" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:layout_weight="1" android:background="@drawable/bg_plugin_segment_tab" android:text="@string/ui_m0135" />
-    </LinearLayout>
-
-    <LinearLayout android:id="@+id/pluginWebsiteSection" style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="14dp">
-        <LinearLayout android:id="@+id/btnPluginWebsite" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content">
-            <ImageView style="@style/ShellRowIcon" android:layout_width="@dimen/shell_row_icon" android:layout_height="@dimen/shell_row_icon" android:contentDescription="@null" android:src="@drawable/ic_plugins" />
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
-                <TextView style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_community" />
-                <TextView style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/ui2_community_sub" />
-            </LinearLayout>
-            <ImageView android:layout_width="@dimen/shell_row_chevron" android:layout_height="@dimen/shell_row_chevron" android:contentDescription="@null" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
+        <!-- 分段：选中项是白色滑块，selected 状态与点击由 PluginFragment 投影；管理页签带计数徽标。 -->
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_plugin_segment_track" android:orientation="horizontal" android:padding="3dp">
+            <TextView android:id="@+id/btnMarket" style="@style/ShellSegment" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_plugin_segment_tab" android:maxLines="1" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/ui_m0133" />
+            <TextView android:id="@+id/btnInstalled" style="@style/ShellSegment" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="2dp" android:layout_weight="1" android:background="@drawable/bg_plugin_segment_tab" android:maxLines="1" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/ui_m0135" />
         </LinearLayout>
+    </com.deepseekharness.app.ui.PluginFlowRow>
+
+    <!-- 安全模式：第三方插件已暂停；恢复走原确认弹窗。 -->
+    <LinearLayout android:id="@+id/pluginSafeBanner" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/plugin_header_gap" android:background="@drawable/bg_plugin_banner" android:gravity="center_vertical" android:minHeight="@dimen/plugin_strip_min" android:orientation="horizontal" android:paddingStart="12dp" android:paddingTop="2dp" android:paddingEnd="4dp" android:paddingBottom="2dp" android:visibility="gone">
+        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui_shield" app:tint="@color/shell_warn" />
+        <TextView android:id="@+id/pluginSafeText" style="@style/ShellStatusText" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_marginEnd="8dp" android:layout_weight="1" android:textColor="@color/shell_text" android:textSize="12.5sp" />
+        <Button android:id="@+id/btnPluginRestore" style="@style/PluginStripAction" android:layout_width="wrap_content" android:layout_height="wrap_content" android:contentDescription="@string/ui_m0104" android:text="@string/ui_m0104" android:textColor="@color/shell_warn" android:visibility="gone" />
     </LinearLayout>
 
-    <LinearLayout android:id="@+id/pluginMarketCard" style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="@dimen/shell_card_pad">
-        <TextView style="@style/ShellCardTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_from_link" />
+    <!-- 市场卡片：社区入口收为标题右侧外链；粘贴进入输入框尾部；下载源与解析安装同一行。 -->
+    <LinearLayout android:id="@+id/pluginMarketCard" style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/plugin_header_gap" android:padding="@dimen/plugin_header_card_pad">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:minHeight="32dp" android:orientation="horizontal" android:paddingStart="2dp" android:paddingEnd="0dp">
+            <TextView style="@style/ShellCardTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:accessibilityHeading="true" android:textSize="15sp" android:text="@string/ui2_from_link" />
+            <FrameLayout android:id="@+id/pluginWebsiteSection" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <TextView android:id="@+id/btnPluginWebsite" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="-6dp" android:background="@drawable/bg_plugin_icon_button" android:clickable="true" android:drawableEnd="@drawable/ic_plugin_external" android:drawablePadding="4dp" android:drawableTint="@color/shell_accent" android:focusable="true" android:gravity="center_vertical" android:includeFontPadding="false" android:maxLines="1" android:minHeight="40dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/ui2_community" android:textColor="@color/shell_accent" android:textSize="13sp" android:textStyle="bold" />
+            </FrameLayout>
+        </LinearLayout>
+
         <LinearLayout android:id="@+id/pluginLinkSection" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-            <TextView style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="@string/ui2_plugin_link" />
-            <EditText android:id="@+id/appbar_github_input" style="@style/ShellInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:drawableStart="@drawable/ic_ui_link" android:drawablePadding="12dp" android:hint="@string/ui_m0137" android:imeOptions="actionGo" android:importantForAutofill="no" android:inputType="textUri" android:singleLine="true" />
-            <TextView android:id="@+id/pluginLinkHint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
-                <TextView android:id="@+id/btnPluginPaste" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:drawableStart="@drawable/ic_ui_copy" android:drawablePadding="8dp" android:text="@string/ui_m0179" />
-                <TextView android:id="@+id/btnPluginInstall" style="@style/ShellPrimaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:text="@string/ui2_resolve" />
-            </LinearLayout>
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- 已安装筛选：标题 + 检测插件、搜索、只看自己装的、计数、排序 / 检查更新收进同一张 ShellCard。 -->
-    <LinearLayout android:id="@+id/installedControls" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:orientation="vertical" android:visibility="gone">
-        <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/shell_card_pad">
-
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-                <TextView style="@style/ShellCardTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/ui2_installed" />
-                <TextView android:id="@+id/btnRefresh" style="@style/ShellSecondaryButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:drawableStart="@drawable/ic_plugin_scan" android:drawablePadding="6dp" android:minHeight="44dp" android:paddingStart="12dp" android:paddingEnd="12dp" android:text="@string/ui_m0159" />
-            </LinearLayout>
-
-            <EditText android:id="@+id/pluginSearch" style="@style/ShellInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:drawableStart="@drawable/ic_ui_search" android:drawablePadding="12dp" android:hint="@string/ui_m0138" android:imeOptions="actionDone" android:inputType="text" android:singleLine="true" />
-
+            <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+                <EditText android:id="@+id/appbar_github_input" style="@style/ShellInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:drawableStart="@drawable/ic_ui_link" android:drawablePadding="10dp" android:hint="@string/ui_m0137" android:imeOptions="actionGo" android:importantForAutofill="no" android:inputType="textUri" android:minHeight="@dimen/plugin_header_control" android:paddingStart="14dp" android:paddingEnd="48dp" android:singleLine="true" />
+                <ImageButton android:id="@+id/btnPluginPaste" android:layout_width="44dp" android:layout_height="44dp" android:layout_gravity="end|center_vertical" android:background="@drawable/bg_plugin_icon_button" android:contentDescription="@string/ui_m0179" android:padding="12dp" android:scaleType="fitCenter" android:src="@drawable/ic_ui_copy" app:tint="@color/shell_text_secondary" />
+            </FrameLayout>
+            <TextView android:id="@+id/pluginLinkHint" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:drawablePadding="6dp" android:paddingStart="2dp" android:paddingEnd="2dp" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical" android:orientation="horizontal">
-                <CheckBox android:id="@+id/chkHideBuiltin" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:buttonTint="@color/shell_accent" android:minHeight="44dp" android:text="@string/ui_m0081" android:textColor="@color/shell_text_secondary" android:textSize="13sp" />
-                <Button android:id="@+id/btnSort" style="@style/ShellSecondaryButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:drawableEnd="@drawable/ic_ui_chevron" android:drawablePadding="4dp" android:text="@string/plugin_sort_az" android:textSize="13sp" />
+                <!-- 下载源胶囊：切换页签时由 PluginFragment 在两个槽位间移动。 -->
+                <FrameLayout android:id="@+id/pluginMarketSourceSlot" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <Button android:id="@+id/btnPluginDownloadSource" style="@style/PluginHeaderChip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:drawableStart="@drawable/ic_plugin_source" android:maxWidth="200dp" />
+                </FrameLayout>
+                <TextView android:id="@+id/btnPluginInstall" style="@style/ShellPrimaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:minHeight="@dimen/plugin_header_control" android:minWidth="96dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:text="@string/ui2_resolve" />
             </LinearLayout>
-
-            <TextView android:id="@+id/pluginCount" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
-
-            <Button android:id="@+id/btnPluginUpdates" style="@style/ShellSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="@string/ui_m0018" android:textColor="@color/shell_accent" android:textSize="13sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal">
-        <Button android:id="@+id/btnPluginDownloadSource" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="13sp" />
-        <ImageButton android:id="@+id/btnPluginDownloadInfo" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginStart="8dp" android:background="@drawable/bg_plugin_info" android:contentDescription="@string/ui_m0134" android:padding="10dp" android:src="@drawable/ic_plugin_info" app:tint="@color/shell_text_secondary" />
+    <!-- 管理卡片：去掉卡片标题；搜索与检测插件同行，筛选 / 排序 / 下载源为一行胶囊。 -->
+    <LinearLayout android:id="@+id/installedControls" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/plugin_header_gap" android:orientation="vertical" android:visibility="gone">
+        <LinearLayout style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/plugin_header_card_pad">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                <EditText android:id="@+id/pluginSearch" style="@style/ShellInput" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:drawableStart="@drawable/ic_ui_search" android:drawablePadding="10dp" android:hint="@string/ui_m0138" android:imeOptions="actionDone" android:importantForAutofill="no" android:inputType="text" android:minHeight="@dimen/plugin_header_control" android:singleLine="true" />
+                <TextView android:id="@+id/btnRefresh" style="@style/ShellSecondaryButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:drawableStart="@drawable/ic_plugin_scan" android:drawablePadding="6dp" android:drawableTint="@color/shell_accent" android:maxLines="1" android:minHeight="@dimen/plugin_header_control" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/ui_m0159" android:textSize="13sp" />
+            </LinearLayout>
+
+            <com.deepseekharness.app.ui.PluginFlowRow android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" app:flowGapHorizontal="6dp" app:flowGapVertical="6dp">
+                <CheckBox android:id="@+id/chkHideBuiltin" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="-4dp" android:buttonTint="@color/shell_accent" android:minHeight="@dimen/plugin_header_chip" android:text="@string/ui_m0081" android:textColor="@color/shell_text_secondary" android:textSize="13sp" />
+                <Button android:id="@+id/btnSort" style="@style/PluginHeaderChip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:drawableEnd="@drawable/ic_ui_chevron" android:text="@string/plugin_sort_az" />
+                <FrameLayout android:id="@+id/pluginManageSourceSlot" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </com.deepseekharness.app.ui.PluginFlowRow>
+        </LinearLayout>
     </LinearLayout>
 
-    <com.deepseekharness.app.ui.PluginTaskProgress android:id="@+id/pluginBusy" android:layout_width="match_parent" android:layout_height="4dp" android:layout_marginTop="10dp" android:importantForAccessibility="yes" android:visibility="gone" />
-
-    <TextView android:id="@+id/statusText" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:clickable="true" android:contentDescription="@string/ui_m0134" android:focusable="true" android:gravity="center_vertical" android:maxLines="2" android:minHeight="44dp" android:paddingTop="4dp" android:paddingBottom="4dp" />
-
-    <Button android:id="@+id/btnCancelPluginTask" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/ui_m0079" android:visibility="gone" />
+    <!-- 统一状态条：固定最小高度 + 12dp 波浪车道，任务开始 / 结束不顶动列表。 -->
+    <LinearLayout android:id="@+id/pluginStatusStrip" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/plugin_header_gap" android:layout_marginBottom="6dp" android:background="@drawable/bg_plugin_strip" android:orientation="vertical" android:paddingStart="12dp" android:paddingEnd="4dp" android:paddingBottom="2dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:minHeight="@dimen/plugin_strip_min" android:orientation="horizontal">
+            <FrameLayout android:layout_width="18dp" android:layout_height="18dp">
+                <ImageView android:id="@+id/pluginStatusIcon" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_plugin_info" />
+                <ProgressBar android:id="@+id/pluginStatusSpinner" style="?android:attr/progressBarStyleSmall" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:importantForAccessibility="no" android:indeterminate="true" android:visibility="gone" />
+            </FrameLayout>
+            <TextView android:id="@+id/pluginCount" style="@style/ShellStatusText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:ellipsize="end" android:maxLines="1" android:maxWidth="150dp" android:textColor="@color/shell_text" android:textStyle="bold" />
+            <TextView android:id="@+id/statusText" style="@style/ShellStatusText" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:background="@drawable/bg_plugin_icon_button" android:clickable="true" android:contentDescription="@string/ui_m0134" android:drawablePadding="2dp" android:ellipsize="end" android:focusable="true" android:gravity="center_vertical" android:maxLines="1" android:minHeight="40dp" android:textColor="@color/shell_text_secondary" android:textSize="12.5sp" />
+            <Button android:id="@+id/btnCancelPluginTask" style="@style/PluginStripAction" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:contentDescription="@string/ui_m0079" android:text="@string/ui_m0079" android:visibility="gone" />
+            <Button android:id="@+id/btnPluginUpdates" style="@style/PluginStripAction" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="@string/ui_m0018" android:visibility="gone" />
+        </LinearLayout>
+        <com.deepseekharness.app.ui.PluginWaveProgress android:id="@+id/pluginBusy" android:layout_width="match_parent" android:layout_height="@dimen/plugin_strip_wave" android:layout_marginEnd="8dp" android:importantForAccessibility="yes" android:visibility="invisible" />
+    </LinearLayout>
 </LinearLayout>

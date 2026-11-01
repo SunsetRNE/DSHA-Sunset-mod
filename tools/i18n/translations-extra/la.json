@@ -1333,5 +1333,10 @@
   "pcard246a13": "Ut archivum pluginorum exporta",
   "pcard246a14": "Fontem currentem de versione recentiore interroga",
   "pcard246a15": "E via onerandi remove; originale in Data manet",
-  "pcard246a16": "%s → %s"
+  "pcard246a16": "%s → %s",
+  "phead249a01": "Modus tutus: additamenta externa suspensa",
+  "phead249a02": "Fons: automaticus",
+  "phead249a03": "Fons: npm",
+  "phead249a04": "Fons: speculum",
+  "phead249a05": "Nexum dele"
 }

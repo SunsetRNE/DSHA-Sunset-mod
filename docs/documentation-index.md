@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261101.2030-dsh0.2.1-rc.5` / build250 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复配置快照“删不掉”：捕获中断不留半成品，轮换改为两段删除，坏或悬空的槽位优先替换，无法校验的未引用目录进入隔离区，不再卡死修复前快照、新建配置与插件卸载；启动恢复页可删除普通、损坏快照及隔离区。改动说明见 [build250 更新说明](releases/build250-changes.zh.md)，验证记录见 [build250 记录](releases/v0.2.1-rc.3-build250-config-snapshot-20261101.md)。本机相关单测与静态门禁通过；未在真机安装验证，界面测试与 Lint 交由 CI；构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261101.2100-dsh0.2.1-rc.5` / build251 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版重构插件页头部：标题与「市场 / 管理」同行并带插件数量徽标，进度、状态文字、取消与检查更新合成一条波浪进度状态条，市场与管理页的输入、筛选和下载源各压成一行。本机插件相关单测与静态门禁通过；未在真机安装验证，界面测试与 Lint 交由 CI。改动说明见 [build251 更新说明](releases/build251-changes.zh.md)，验证记录见 [build251 记录](releases/v0.2.1-rc.3-build251-plugin-header-20261101.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

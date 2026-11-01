@@ -222,20 +222,76 @@ public final class PluginFragmentRenderingTest {
     mount(state(catalog, List.of(), false, "", -1));
     Notifications observer = observe();
 
+    View strip = page.find(R.id.pluginStatusStrip);
+    int idleHeight = strip.getHeight();
+    assertEquals(View.VISIBLE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(View.VISIBLE, page.find(R.id.pluginCount).getVisibility());
+
     publish(state(catalog, List.of(), true, "fixture header progress", 37));
     assertEquals(View.VISIBLE, page.find(R.id.pluginBusy).getVisibility());
-    PluginTaskProgress progress = page.find(R.id.pluginBusy);
+    PluginWaveProgress progress = page.find(R.id.pluginBusy);
     assertEquals(37, progress.percent());
     assertFalse(progress.indeterminate());
     assertEquals("fixture header progress", text(page.find(R.id.statusText)));
+    // 同一条状态条里只有一个动作：忙碌时取消代替检查更新，计数让位。
     assertEquals(View.VISIBLE, page.find(R.id.btnCancelPluginTask).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.pluginCount).getVisibility());
+    assertEquals(View.VISIBLE, page.find(R.id.pluginStatusSpinner).getVisibility());
+    assertEquals("忙碌与空闲状态条等高，不顶动列表", idleHeight, strip.getHeight());
     observer.assertNone();
 
     publish(state(catalog, List.of(), false, "fixture header finished", -1));
-    assertEquals(View.GONE, page.find(R.id.pluginBusy).getVisibility());
+    // 没有明确结果时直接回到空闲；车道保留（INVISIBLE），状态条高度不变。
+    assertEquals(View.INVISIBLE, page.find(R.id.pluginBusy).getVisibility());
     assertEquals("fixture header finished", text(page.find(R.id.statusText)));
+    assertEquals(View.GONE, page.find(R.id.btnCancelPluginTask).getVisibility());
+    assertEquals(View.VISIBLE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(idleHeight, strip.getHeight());
     observer.assertNone();
     assertEquals(List.of("alpha", "beta"), renderedNames());
+  }
+
+  @Test
+  public void compactHeaderMovesSourceChipAndCollapsesIdleMarketStrip() throws Exception {
+    mount(state(catalog(List.of(item("alpha"), item("beta"))), List.of(), false, "", -1));
+    TextView source = page.find(R.id.btnPluginDownloadSource);
+    View manageSlot = page.find(R.id.pluginManageSourceSlot);
+    assertSame("管理页：下载源在筛选行", manageSlot, source.getParent());
+    assertEquals("Source: auto", text(source));
+    assertTrue(source.getContentDescription().toString().contains("Automatic"));
+    TextView installed = page.find(R.id.btnInstalled);
+    assertTrue("分段带计数徽标", text(installed).startsWith("Plugin manager"));
+    assertTrue(installed.getContentDescription().toString().contains("2"));
+    assertEquals(View.GONE, page.find(R.id.pluginSafeBanner).getVisibility());
+
+    assertTrue(page.find(R.id.btnMarket).performClick());
+    layout();
+    assertSame("市场页：下载源与解析安装同行", page.find(R.id.pluginMarketSourceSlot), source.getParent());
+    assertTrue(text(source).startsWith("Download source"));
+    assertEquals("市场页空闲且无消息时状态条收起", View.GONE, page.find(R.id.pluginStatusStrip).getVisibility());
+
+    publish(
+        state(
+            catalog(List.of(item("alpha"), item("beta"))),
+            List.of(),
+            false,
+            "fixture market note",
+            -1));
+    assertEquals(View.VISIBLE, page.find(R.id.pluginStatusStrip).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.pluginCount).getVisibility());
+
+    EditText link = page.find(R.id.appbar_github_input);
+    android.widget.ImageButton paste = page.find(R.id.btnPluginPaste);
+    assertEquals(host.get().getString(R.string.ui_m0179), paste.getContentDescription());
+    link.setText("https://github.com/example/plugin");
+    layout();
+    assertEquals("Clear link", paste.getContentDescription());
+    assertTrue(page.find(R.id.btnPluginInstall).isEnabled());
+    assertTrue(paste.performClick());
+    assertEquals("", text(link));
+    assertFalse(page.find(R.id.btnPluginInstall).isEnabled());
   }
 
   @Test
@@ -259,7 +315,7 @@ public final class PluginFragmentRenderingTest {
               percent,
               null));
       publish(state(catalog, queue.snapshot(), true, "global progress", percent));
-      assertEquals(percent, ((PluginTaskProgress) page.find(R.id.pluginBusy)).percent());
+      assertEquals(percent, ((PluginWaveProgress) page.find(R.id.pluginBusy)).percent());
       observer.assertNone();
       assertEquals(alpha, rowStatus(1));
       assertEquals(beta, rowStatus(2));

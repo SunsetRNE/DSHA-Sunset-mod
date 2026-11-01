@@ -395,7 +395,8 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
                     .setTitle(com.deepseekharness.app.util.UiText.text("持续允许读取短信？"))
                     .setMessage(
                         com.deepseekharness.app.util.UiText.text(
-                            "当前 DSHA 环境内的助手和插件将能通过已授权的 root 或 ADB 查询短信，包括正文、号码和可能存在的验证码。\n\n后续短信查询不再逐条询问。可随时回到本页关闭，恢复逐次确认。"))
+                            "当前 DSHA 环境内的助手和插件将能通过已授权的 root 或 ADB 查询短信，包括正文、号码和可能存在的验证码。\n\n"
+                                + "后续短信查询不再逐条询问。可随时回到本页关闭，恢复逐次确认。"))
                     .setPositiveButton(
                         com.deepseekharness.app.util.UiText.text("允许短信读取"), (d, w) -> {});
               else
@@ -594,8 +595,8 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
                     });
                 require(
                     screen.canvas.findViewById(R.id.btnSort).getHeight()
-                        == screen.canvas.findViewById(R.id.btnPluginUpdates).getHeight(),
-                    "排序与更新按钮高度不一致");
+                        == screen.canvas.findViewById(R.id.btnPluginDownloadSource).getHeight(),
+                    "排序与下载源胶囊高度不一致");
               }
               ui(
                   () ->

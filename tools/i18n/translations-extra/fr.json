@@ -1333,5 +1333,10 @@
   "pcard246a13": "Exporter en archive de plugin",
   "pcard246a14": "Interroger la source de téléchargement actuelle pour une version plus récente",
   "pcard246a15": "Retirer du chemin de chargement ; l’original reste dans Données",
-  "pcard246a16": "%s → %s"
+  "pcard246a16": "%s → %s",
+  "phead249a01": "Mode sans échec : extensions tierces en pause",
+  "phead249a02": "Source : auto",
+  "phead249a03": "Source : npm",
+  "phead249a04": "Source : miroir",
+  "phead249a05": "Effacer le lien"
 }

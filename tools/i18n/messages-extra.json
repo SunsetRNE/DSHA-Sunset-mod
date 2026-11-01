@@ -10784,5 +10784,45 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
     ]
+  },
+  {
+    "id": "phead249a01",
+    "zh": "安全模式：第三方插件已暂停",
+    "en": "Safe mode: third-party plugins paused",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "phead249a02",
+    "zh": "源：自动",
+    "en": "Source: auto",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "phead249a03",
+    "zh": "源：官方",
+    "en": "Source: npm",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "phead249a04",
+    "zh": "源：镜像",
+    "en": "Source: mirror",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "phead249a05",
+    "zh": "清空链接",
+    "en": "Clear link",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
   }
 ]

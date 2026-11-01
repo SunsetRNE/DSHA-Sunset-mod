@@ -343,7 +343,7 @@ public final class FragmentEntrySelfTest {
       if (root == null || fixture.getValue() == null || fixture.getValue().catalog.safeMode != safe)
         return false;
       RecyclerView list = root.findViewById(R.id.pluginList);
-      // 恢复按钮在 footer；插件从位置 1 开始，位置 0 是 header。
+      // 恢复按钮在 header 的安全模式警示条里；插件从位置 1 开始，位置 0 是 header。
       if ((find(R.id.btnPluginRestore).getVisibility() == View.VISIBLE) != safe) return false;
       RecyclerView.ViewHolder holder = list.findViewHolderForAdapterPosition(1);
       if (holder == null) {

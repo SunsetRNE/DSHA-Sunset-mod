@@ -254,10 +254,16 @@ public class PluginFragment extends Fragment {
     find(R.id.btnRefresh).setOnClickListener(v -> repository.refresh());
     find(R.id.btnPluginUpdates).setOnClickListener(v -> repository.checkUpdates(null));
     find(R.id.btnPluginDownloadSource).setOnClickListener(v -> showDownloadSources());
-    find(R.id.btnPluginDownloadInfo)
-        .setContentDescription(com.deepseekharness.app.util.UiText.text("使用说明"));
-    find(R.id.btnPluginDownloadInfo).setOnClickListener(v -> showDownloadSourceInfo());
     updateDownloadSourceLabel();
+    // 状态条与警示条空间有限：可见文字用短词，读屏仍读完整说明（XML contentDescription）。
+    ((TextView) find(R.id.btnCancelPluginTask))
+        .setText(com.deepseekharness.app.util.UiText.text("取消"));
+    ((TextView) find(R.id.btnPluginRestore))
+        .setText(com.deepseekharness.app.util.UiText.text("恢复"));
+    ((TextView) find(R.id.pluginSafeText))
+        .setText(
+            com.deepseekharness.app.util.UiText.choose(
+                "安全模式：第三方插件已暂停", "Safe mode: third-party plugins paused"));
     find(R.id.btnCancelPluginTask).setOnClickListener(v -> repository.cancelTask());
     find(R.id.btnPluginRestore)
         .setOnClickListener(
@@ -273,7 +279,16 @@ public class PluginFragment extends Fragment {
                         (d, which) -> repository.safeMode(false, null))
                     .show());
     find(R.id.btnPluginInstall).setOnClickListener(v -> installLink());
-    find(R.id.btnPluginPaste).setOnClickListener(v -> pasteLink());
+    // 输入框尾部同一个按钮：空时粘贴，有内容时清空。
+    find(R.id.btnPluginPaste)
+        .setOnClickListener(
+            v -> {
+              if (linkInput.getText().length() == 0) pasteLink();
+              else {
+                linkInput.setText("");
+                linkInput.requestFocus();
+              }
+            });
     find(R.id.btnImport).setOnClickListener(v -> chooseImport(false));
     find(R.id.btnExport).setOnClickListener(v -> chooseExport());
     find(R.id.btnSort).setOnClickListener(v -> showSortOptions());
@@ -460,12 +475,31 @@ public class PluginFragment extends Fragment {
     };
   }
 
+  /** 市场卡片显示完整下载源；管理页与筛选胶囊同行，只显示短词。读屏始终读完整名称。 */
   private void updateDownloadSourceLabel() {
     com.deepseekharness.app.util.PluginDownloadSource source =
         new com.deepseekharness.app.core.ConfigStore(requireContext()).getPluginDownloadSource();
-    String[] labels = downloadSourceLabels();
-    ((TextView) find(R.id.btnPluginDownloadSource))
-        .setText(com.deepseekharness.app.util.UiText.format("下载源：%s", labels[source.ordinal()]));
+    String full =
+        com.deepseekharness.app.util.UiText.format(
+            "下载源：%s", downloadSourceLabels()[source.ordinal()]);
+    String[] compact = {
+      com.deepseekharness.app.util.UiText.choose("源：自动", "Source: auto"),
+      com.deepseekharness.app.util.UiText.choose("源：官方", "Source: npm"),
+      com.deepseekharness.app.util.UiText.choose("源：镜像", "Source: mirror")
+    };
+    TextView chip = find(R.id.btnPluginDownloadSource);
+    chip.setText(market ? full : compact[source.ordinal()]);
+    chip.setContentDescription(full);
+  }
+
+  /** 下载源胶囊只有一个实例：切换页签时移到当前卡片的槽位，点击与状态不分叉。 */
+  private void placeDownloadSource() {
+    View chip = find(R.id.btnPluginDownloadSource);
+    ViewGroup target = find(market ? R.id.pluginMarketSourceSlot : R.id.pluginManageSourceSlot);
+    if (chip == null || target == null || chip.getParent() == target) return;
+    ((ViewGroup) chip.getParent()).removeView(chip);
+    target.addView(chip);
+    updateDownloadSourceLabel();
   }
 
   private String[] downloadSourceLabels() {
@@ -508,6 +542,10 @@ public class PluginFragment extends Fragment {
               }
               dialog.dismiss();
             })
+        // 原页面上的圆形感叹号并入这里：说明与最近一次任务结果从选择弹窗进入。
+        .setNeutralButton(
+            com.deepseekharness.app.util.UiText.text("使用说明"),
+            (dialog, which) -> showDownloadSourceInfo())
         .setNegativeButton(com.deepseekharness.app.util.UiText.text("取消"), null)
         .show();
   }
@@ -534,6 +572,7 @@ public class PluginFragment extends Fragment {
   private void recognizeLink() {
     if (root == null) return;
     String input = linkInput.getText().toString();
+    boolean empty = input.trim().isEmpty();
     boolean valid = false;
     try {
       PluginSource source = PluginSource.parse(input);
@@ -541,10 +580,33 @@ public class PluginFragment extends Fragment {
       valid = true;
     } catch (IllegalArgumentException error) {
       linkHint.setText(
-          input.trim().isEmpty()
+          empty
               ? com.deepseekharness.app.util.UiText.text("支持仓库、分支/子目录、Release 下载和压缩包直链")
               : error.getMessage());
     }
+    // 识别结果着色：空为说明，可识别为好色，不可识别为提醒色；只表达解析结论，不代表已下载。
+    int tone = empty ? R.color.shell_text_muted : valid ? R.color.shell_good : R.color.shell_warn;
+    int color = requireContext().getColor(tone);
+    linkHint.setTextColor(color);
+    android.graphics.drawable.Drawable mark =
+        empty
+            ? null
+            : requireContext()
+                .getDrawable(valid ? R.drawable.ic_plugin_check : R.drawable.ic_plugin_alert);
+    if (mark != null) {
+      mark = mark.mutate();
+      mark.setTint(color);
+      int size = dp(14);
+      mark.setBounds(0, 0, size, size);
+    }
+    linkHint.setCompoundDrawablesRelative(mark, null, null, null);
+    android.widget.ImageButton paste = find(R.id.btnPluginPaste);
+    boolean hasText = input.length() > 0;
+    paste.setImageResource(hasText ? R.drawable.ic_plugin_clear : R.drawable.ic_ui_copy);
+    paste.setContentDescription(
+        hasText
+            ? com.deepseekharness.app.util.UiText.choose("清空链接", "Clear link")
+            : getString(R.string.ui_m0179));
     find(R.id.btnPluginInstall).setEnabled(valid);
   }
 
@@ -675,8 +737,11 @@ public class PluginFragment extends Fragment {
     find(R.id.pluginLocalCard).setVisibility(market ? View.VISIBLE : View.GONE);
     find(R.id.pluginWebsiteSection).setVisibility(market ? View.VISIBLE : View.GONE);
     find(R.id.pluginLinkSection).setVisibility(market ? View.VISIBLE : View.GONE);
-    find(R.id.btnPluginRestore).setVisibility(safeModeActive() ? View.VISIBLE : View.GONE);
+    boolean safe = safeModeActive();
+    find(R.id.btnPluginRestore).setVisibility(safe ? View.VISIBLE : View.GONE);
+    find(R.id.pluginSafeBanner).setVisibility(safe ? View.VISIBLE : View.GONE);
     find(R.id.installedControls).setVisibility(market ? View.GONE : View.VISIBLE);
+    placeDownloadSource();
     find(R.id.btnMarket).setSelected(market);
     find(R.id.btnInstalled).setSelected(!market);
     ((TextView) find(R.id.btnMarket))
@@ -687,8 +752,8 @@ public class PluginFragment extends Fragment {
         .setTextColor(
             requireContext()
                 .getColor(market ? R.color.shell_text_secondary : R.color.shell_accent));
-    find(R.id.statusText).setVisibility(current.message.isEmpty() ? View.GONE : View.VISIBLE);
-    PluginTaskProgress progress = find(R.id.pluginBusy);
+    bindStatusStrip(catalogLoading, !catalogError.isEmpty());
+    PluginWaveProgress progress = find(R.id.pluginBusy);
     if (current.busy) {
       if (!taskWasBusy) {
         lastResultMessage = "";
@@ -710,10 +775,6 @@ public class PluginFragment extends Fragment {
       }
       taskWasBusy = false;
     }
-    find(R.id.btnCancelPluginTask).setVisibility(current.busy ? View.VISIBLE : View.GONE);
-    find(R.id.btnCancelPluginTask).setEnabled(current.cancellable);
-    ((TextView) find(R.id.statusText))
-        .setText(com.deepseekharness.app.util.UiStateText.render(current.message));
     // busy 表示队列在工作，不阻止继续提交其他插件意图。
     find(R.id.btnPluginDownloadSource).setEnabled(!current.busy);
     TextView sort = find(R.id.btnSort);
@@ -780,6 +841,8 @@ public class PluginFragment extends Fragment {
     else if (catalogKnown && catalogStale)
       count += com.deepseekharness.app.util.UiText.choose(" · 等待同步", " · Awaiting refresh");
     ((TextView) find(R.id.pluginCount)).setText(count);
+    bindInstalledBadge(
+        catalogKnown, catalogLoading, !catalogError.isEmpty() || catalogStale, count);
     TextView empty = find(R.id.pluginEmpty);
     empty.setVisibility(!market && visibleItems.isEmpty() ? View.VISIBLE : View.GONE);
     empty.setText(
@@ -798,6 +861,115 @@ public class PluginFragment extends Fragment {
         });
     recognizeLink();
     renderDetail();
+  }
+
+  /**
+   * 统一状态条：图标 / 计数 / 状态文字 / 唯一动作，形态由 {@link com.deepseekharness.app.util.PluginHeaderStrip}
+   * 推导。文字仍是管理引擎原消息，不在这里改写。
+   */
+  private void bindStatusStrip(boolean catalogLoading, boolean catalogError) {
+    var input = new com.deepseekharness.app.util.PluginHeaderStrip.Input();
+    input.market = market;
+    input.busy = current.busy;
+    input.cancellable = current.cancellable;
+    input.result = current.result;
+    input.hasMessage = !current.message.isEmpty();
+    input.catalogLoading = catalogLoading;
+    input.catalogError = catalogError;
+    var view = com.deepseekharness.app.util.PluginHeaderStrip.project(input);
+    View strip = find(R.id.pluginStatusStrip);
+    strip.setVisibility(view.visible ? View.VISIBLE : View.GONE);
+    int tone =
+        switch (view.tone) {
+          case ACCENT -> R.color.shell_accent;
+          case GOOD -> R.color.shell_good;
+          case WARN -> R.color.shell_warn;
+          case BAD -> R.color.shell_bad;
+          case MUTED -> R.color.shell_text_muted;
+        };
+    int soft =
+        switch (view.tone) {
+          case ACCENT -> R.color.shell_accent_soft;
+          case GOOD -> R.color.shell_good_soft;
+          case WARN -> R.color.shell_warn_soft;
+          case BAD -> R.color.shell_bad_soft;
+          case MUTED -> R.color.shell_raised;
+        };
+    // 同一语气重复渲染不重建 ColorStateList；下载进度每次回调都会走到这里。
+    if (!view.tone.equals(strip.getTag())) {
+      strip.setTag(view.tone);
+      strip.setBackgroundTintList(
+          android.content.res.ColorStateList.valueOf(requireContext().getColor(soft)));
+      ((android.widget.ImageView) find(R.id.pluginStatusIcon))
+          .setImageTintList(
+              android.content.res.ColorStateList.valueOf(requireContext().getColor(tone)));
+      ((android.widget.ProgressBar) find(R.id.pluginStatusSpinner))
+          .setIndeterminateTintList(
+              android.content.res.ColorStateList.valueOf(requireContext().getColor(tone)));
+    }
+    boolean spinner = view.icon == com.deepseekharness.app.util.PluginHeaderStrip.Icon.SPINNER;
+    find(R.id.pluginStatusSpinner).setVisibility(spinner ? View.VISIBLE : View.GONE);
+    android.widget.ImageView icon = find(R.id.pluginStatusIcon);
+    icon.setVisibility(spinner ? View.INVISIBLE : View.VISIBLE);
+    if (!spinner)
+      icon.setImageResource(
+          switch (view.icon) {
+            case CHECK -> R.drawable.ic_plugin_check;
+            case ERROR -> R.drawable.ic_plugin_error;
+            case WARN -> R.drawable.ic_plugin_alert;
+            default -> R.drawable.ic_plugin_info;
+          });
+    find(R.id.pluginCount).setVisibility(view.showCount ? View.VISIBLE : View.GONE);
+    TextView status = find(R.id.statusText);
+    status.setText(com.deepseekharness.app.util.UiStateText.render(current.message));
+    status.setClickable(input.hasMessage);
+    android.graphics.drawable.Drawable chevron = null;
+    if (view.chevron) {
+      chevron = requireContext().getDrawable(R.drawable.ic_ui2_chevron);
+      if (chevron != null) {
+        chevron = chevron.mutate();
+        chevron.setTint(requireContext().getColor(R.color.shell_text_muted));
+        chevron.setBounds(0, 0, dp(14), dp(14));
+      }
+    }
+    status.setCompoundDrawablesRelative(null, null, chevron, null);
+    var action = view.action;
+    find(R.id.btnCancelPluginTask)
+        .setVisibility(
+            action == com.deepseekharness.app.util.PluginHeaderStrip.Action.CANCEL
+                ? View.VISIBLE
+                : View.GONE);
+    find(R.id.btnCancelPluginTask).setEnabled(current.cancellable);
+    // 检查更新在忙碌时只是让位给取消，按钮本身保持可用（队列允许继续提交）。
+    find(R.id.btnPluginUpdates)
+        .setVisibility(
+            action == com.deepseekharness.app.util.PluginHeaderStrip.Action.CHECK_UPDATES
+                ? View.VISIBLE
+                : View.GONE);
+  }
+
+  /** 「插件管理」分段上的数量徽标；读屏读完整计数，不读徽标字符。 */
+  private void bindInstalledBadge(
+      boolean known, boolean loading, boolean warn, String countDescription) {
+    TextView tab = find(R.id.btnInstalled);
+    PluginCountBadge.Kind kind =
+        !known
+            ? (loading ? PluginCountBadge.Kind.LOADING : PluginCountBadge.Kind.UNKNOWN)
+            : warn ? PluginCountBadge.Kind.WARN : PluginCountBadge.Kind.COUNT;
+    int count = current.items.size();
+    String signature = kind + ":" + count + ":" + com.deepseekharness.app.util.UiText.language();
+    if (!signature.equals(tab.getTag())) {
+      tab.setTag(signature);
+      tab.setText(
+          PluginCountBadge.append(
+              requireContext(), getString(R.string.ui_m0135), kind, count, tab.getTextSize()));
+    }
+    // 徽标是全部已装数量（不受搜索 / 筛选影响），读屏描述与之一致。
+    String description =
+        known
+            ? getResources().getQuantityString(R.plurals.plugin_count, count, count)
+            : countDescription;
+    tab.setContentDescription(getString(R.string.ui_m0135) + " · " + description);
   }
 
   private String[] sortLabels() {
