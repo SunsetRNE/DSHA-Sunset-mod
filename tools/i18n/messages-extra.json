@@ -14998,5 +14998,617 @@
       "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
     ],
     "uiFormat": true
+  },
+  {
+    "id": "wcrash272a00",
+    "zh": "技术详情",
+    "en": "Technical details",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a01",
+    "zh": "入口、退出码、发生时间与内核版本",
+    "en": "Source, exit code, time and engine",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a02",
+    "zh": "复制详情",
+    "en": "Copy details",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a03",
+    "zh": "服务未就绪，暂不可用",
+    "en": "Unavailable until the service is ready",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a04",
+    "zh": "已复制技术详情",
+    "en": "Details copied",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a05",
+    "zh": "DSH 反复崩溃，已暂停自动重启",
+    "en": "DSH keeps crashing; auto-restart paused",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a06",
+    "zh": "连续几次启动后都没能稳定运行。先查看原因，再选择安全启动或修复。",
+    "en": "It failed to stay up after several starts. Review the cause, then start safely or repair.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a07",
+    "zh": "服务正在重新启动",
+    "en": "The service is restarting",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a08",
+    "zh": "后台服务刚刚结束，正在重新启动。就绪后自动回到对话。",
+    "en": "The service just ended and is starting again. The conversation reopens when it is ready.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a09",
+    "zh": "DSH 服务意外退出",
+    "en": "DSH service exited unexpectedly",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a10",
+    "zh": "进程已经结束，不会自动重启。回到启动页查看日志并重新启动。",
+    "en": "The process ended and will not restart on its own. Check logs and restart from the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a11",
+    "zh": "DSH 服务已停止",
+    "en": "DSH service stopped",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a12",
+    "zh": "后台进程已确认退出，当前页面已保留。回到启动页重新启动即可。",
+    "en": "The background process has exited. This page is kept; restart from the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a13",
+    "zh": "正在确认服务状态",
+    "en": "Checking the service",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a14",
+    "zh": "暂时无法确认后台服务身份。确认后自动恢复当前页面，不会重新发送消息。",
+    "en": "The service identity is not confirmed yet. This page resumes once verified; nothing is resent.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a15",
+    "zh": "DSH 正在启动",
+    "en": "DSH is starting",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a16",
+    "zh": "服务就绪后即可进入对话，可以回启动页查看进度。",
+    "en": "The conversation opens once the service is ready. Check progress on the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a17",
+    "zh": "服务暂时没有响应",
+    "en": "The service is not responding",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a18",
+    "zh": "本机端口暂时连不上，服务可能卡住或已经退出。稍后重试，或回启动页查看状态。",
+    "en": "The local port refused the connection; the service may be stuck or gone. Retry shortly, or check the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a19",
+    "zh": "连不上对话服务",
+    "en": "Cannot reach the service",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a20",
+    "zh": "这次请求没有连上服务。稍后重试；持续失败请回启动页查看日志。",
+    "en": "This request did not reach the service. Retry shortly, or check logs on the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a21",
+    "zh": "对话登录已过期",
+    "en": "Session sign-in expired",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a22",
+    "zh": "已自动重新登录一次仍未通过。回到启动页重新进入对话即可。",
+    "en": "An automatic sign-in retry failed. Re-enter the conversation from the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a23",
+    "zh": "对话页面没能打开",
+    "en": "The page did not load",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a24",
+    "zh": "服务返回了错误。可以重试，或回启动页查看服务状态。",
+    "en": "The service returned an error. Retry, or check its status on the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a25",
+    "zh": "获取对话凭据失败。重试一次；持续失败请回启动页重新进入。",
+    "en": "Getting the session credential failed. Retry, or re-enter from the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a26",
+    "zh": "网页渲染进程崩溃了",
+    "en": "The page renderer crashed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a27",
+    "zh": "系统 WebView 出现异常，后台服务不受影响。重新打开通常就能恢复。",
+    "en": "System WebView hit an error; the service is unaffected. Reopening usually fixes it.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a28",
+    "zh": "网页被系统回收了",
+    "en": "The system closed the page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a29",
+    "zh": "手机内存紧张时，系统会关闭后台网页。重新打开即可继续。",
+    "en": "Android frees background pages when memory is low. Reopen to continue.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a30",
+    "zh": "需要更新系统 WebView",
+    "en": "System WebView needs an update",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a31",
+    "zh": "当前内核缺少对话页需要的能力。更新后重试，或先用系统浏览器打开。",
+    "en": "The engine lacks features this page needs. Update it, or open in a browser for now.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a32",
+    "zh": "暂时无法显示对话",
+    "en": "The conversation cannot be shown",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a33",
+    "zh": "可以重试，或回启动页查看服务状态。",
+    "en": "Retry, or check the service on the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a34",
+    "zh": "返回启动页",
+    "en": "Back to start page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a35",
+    "zh": "重新验证",
+    "en": "Check again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a36",
+    "zh": "重新打开",
+    "en": "Reopen",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a37",
+    "zh": "更新 WebView",
+    "en": "Update WebView",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a38",
+    "zh": "查看原因与修复",
+    "en": "Review and repair",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a39",
+    "zh": "正在重新启动…",
+    "en": "Restarting…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a40",
+    "zh": "后台服务",
+    "en": "Service",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a41",
+    "zh": "自动恢复",
+    "en": "Auto-recovery",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a42",
+    "zh": "对话页面",
+    "en": "Page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a43",
+    "zh": "连接",
+    "en": "Connection",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a44",
+    "zh": "已退出 · 退出码 %s",
+    "en": "Exited · code %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "wcrash272a45",
+    "zh": "端口不通",
+    "en": "Port not reachable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a46",
+    "zh": "身份未确认",
+    "en": "Identity not confirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a47",
+    "zh": "尚未就绪",
+    "en": "Not ready",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a48",
+    "zh": "已暂停 · 连续失败 %s 次",
+    "en": "Paused · %s failures in a row",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "wcrash272a49",
+    "zh": "正在进行",
+    "en": "In progress",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a50",
+    "zh": "不会自动重启",
+    "en": "No automatic restart",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a51",
+    "zh": "保活检查中",
+    "en": "Health checks running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a52",
+    "zh": "正在核对",
+    "en": "Verifying",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a53",
+    "zh": "保活中",
+    "en": "Watching",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a54",
+    "zh": "当前不会自动重启",
+    "en": "Not restarting automatically",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a55",
+    "zh": "正常",
+    "en": "OK",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a56",
+    "zh": "渲染进程崩溃",
+    "en": "Renderer crashed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a57",
+    "zh": "被系统回收",
+    "en": "Closed by the system",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a58",
+    "zh": "版本过旧",
+    "en": "Outdated",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a59",
+    "zh": "无法启动",
+    "en": "Cannot start",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a60",
+    "zh": "已保留，可接回",
+    "en": "Kept, can resume",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a61",
+    "zh": "已关闭，需重新打开",
+    "en": "Closed; reopen needed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a62",
+    "zh": "尚未打开",
+    "en": "Not opened yet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a63",
+    "zh": "不适用（服务不在）",
+    "en": "N/A (service down)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a64",
+    "zh": "连接被拒绝",
+    "en": "Connection refused",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a65",
+    "zh": "连接失败 · 错误码 %s",
+    "en": "Failed · error %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "wcrash272a66",
+    "zh": "认证失效 · HTTP %s",
+    "en": "Sign-in expired · HTTP %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "wcrash272a67",
+    "zh": "凭据刷新失败",
+    "en": "Credential refresh failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a68",
+    "zh": "未检测",
+    "en": "Not checked",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a69",
+    "zh": "被强制结束，常见于内存不足",
+    "en": "Killed, often due to low memory",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a70",
+    "zh": "段错误，多为原生模块异常",
+    "en": "Segfault, usually a native module",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a71",
+    "zh": "收到终止信号",
+    "en": "Received a stop signal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a72",
+    "zh": "需要手动启动",
+    "en": "Start it manually",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a73",
+    "zh": "连续 3 次无响应才会自动重启",
+    "en": "Restarts after 3 failed checks in a row",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a74",
+    "zh": "已自动重试 1 次",
+    "en": "Retried once automatically",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
+    ]
+  },
+  {
+    "id": "wcrash272a75",
+    "zh": "对话服务已结束",
+    "en": "Conversation service ended",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebPreviewActivity.java"
+    ]
   }
 ]

@@ -57,6 +57,13 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   private View errorPanel;
   private TextView errorTitle;
   private TextView errorDetail;
+  private WebCrashPanel crashPanel;
+  private final Runnable endedRecheck =
+      () -> {
+        if (isFinishing() || isDestroyed() || !this.browserResumed) return;
+        synchronizeWebSession();
+        scheduleEndedRecheck();
+      };
   private ProgressBar progress;
 
   /** 实验性：首次进入对话时的原生加载页，覆盖 WebView 首帧与 DSH 网页启动画面之间的空白。 */
@@ -336,18 +343,14 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     if ((!emptyHostRetirementPending || initial == null) && retireEmptyHost(null, initial, false))
       return;
     if (retained.themeColor != null) WebFullscreenUi.applyThemeColor(this, retained.themeColor);
+    // 主按钮动作随错误面板结论变化；旧 ID 保留，默认仍是重新加载 / 重新核对。
     findViewById(R.id.web_retry)
-        .setOnClickListener(
-            v -> {
-              if (runtimeSuspended) {
-                com.deepseekharness.app.core.HarnessController.get(this)
-                    .requestWebSessionRecheck(() -> synchronizeWebSession());
-              } else loadSession();
-            });
+        .setOnClickListener(v -> onCrashAction(crashPanel().primaryAction()));
     findViewById(R.id.web_error_browser).setOnClickListener(v -> openExternal(authUrl));
     findViewById(R.id.web_error_logs)
         .setOnClickListener(v -> startActivity(DiagnosticActivity.downloadLogs(this)));
     findViewById(R.id.web_error_recovery).setOnClickListener(v -> leavePreview());
+    crashPanel();
     getOnBackPressedDispatcher()
         .addCallback(
             this,
@@ -411,8 +414,11 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     if (baseUrl == null) {
       authUrl = null;
       showError(
+          com.deepseekharness.app.util.WebCrashReport.Kind.INVALID_ADDRESS,
           com.deepseekharness.app.util.UiText.text("对话地址无效"),
-          com.deepseekharness.app.util.UiText.text("请返回启动页，重新进入对话。"));
+          com.deepseekharness.app.util.UiText.text("请返回启动页，重新进入对话。"),
+          "loopbackBaseUrl(authUrl) == null",
+          null);
       return;
     }
     if (current != null
@@ -463,9 +469,15 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     PreviewPageSession.Identity expected = currentWebIdentity();
     if (expected == null) {
       cancelPendingAuthentication();
+      boolean starting = com.deepseekharness.app.core.HarnessController.get(this).isStarting();
       showError(
+          starting
+              ? com.deepseekharness.app.util.WebCrashReport.Kind.STARTING
+              : com.deepseekharness.app.util.WebCrashReport.Kind.GENERIC,
           com.deepseekharness.app.util.UiText.text("暂时无法进入对话"),
-          com.deepseekharness.app.util.UiText.text("Web 尚未就绪，请返回启动页查看服务状态"));
+          com.deepseekharness.app.util.UiText.text("Web 尚未就绪，请返回启动页查看服务状态"),
+          "loadSession: currentWebIdentity() == null",
+          null);
       return;
     }
     if (!BrowserConversationRoute.current(getIntent(), expected)) {
@@ -493,7 +505,12 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
               || !expected.equals(currentWebIdentity())) return;
           pendingIdentity = null;
           if (error != null) {
-            showError(com.deepseekharness.app.util.UiText.text("暂时无法进入对话"), error);
+            showError(
+                com.deepseekharness.app.util.WebCrashReport.Kind.AUTH_REFRESH,
+                com.deepseekharness.app.util.UiText.text("暂时无法进入对话"),
+                error,
+                "previewAuth.refresh: " + error,
+                null);
             return;
           }
           if (!url.equals(authUrl)) restoreState = null;
@@ -603,6 +620,8 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
       restoreIdentity = null;
       if (webView == null && retained.view != null) webView = retained.view;
       destroyWebView();
+      // 服务结束而新服务尚未就绪：停在错误面板说明原因，不留空白页；用户停止与普通维护仍照常收尾。
+      if (current == null && !emptyHostRetirementPending && showEndedRuntime(obsolete)) return true;
       retireEmptyHost(obsolete, current, explicitFullEntry);
       // A refused retirement must not fall through and create a page in this old task.
       return true;
@@ -650,19 +669,20 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     progress.setVisibility(View.GONE);
     hidePageBoot();
     findViewById(R.id.web_error_browser).setEnabled(false);
-    errorTitle.setText(
-        com.deepseekharness.app.util.UiText.choose(
-            exited ? "Web 服务已退出" : "正在验证 Web 状态",
-            exited ? "Web service exited" : "Verifying Web session"));
-    errorDetail.setText(
-        com.deepseekharness.app.util.UiText.choose(
-            exited
-                ? "本次服务进程已确认退出，对话记录已保留。请返回启动页查看日志并手动启动。"
-                : "暂时无法确认后台服务身份，当前页面已保留。验证通过后恢复，不会重新发送对话。可点重试验证，或返回启动页查看状态。",
-            exited
-                ? "The service process has exited. Conversation records are retained. Return to the start page to inspect logs and start it manually."
-                : "The background service identity is not yet confirmed. This page is retained and will resume after verification. Messages will not be resent. Retry verification or check the start page."));
-    errorPanel.setVisibility(View.VISIBLE);
+    com.deepseekharness.app.util.WebCrashReport.Kind kind =
+        exited
+            ? com.deepseekharness.app.util.WebCrashReport.Kind.EXITED_KEPT
+            : com.deepseekharness.app.util.WebCrashReport.Kind.VERIFY;
+    crashPanel()
+        .show(
+            kind,
+            null,
+            null,
+            crashFacts(null),
+            technical(
+                exited ? "suspendRuntimePage(exited=true)" : "suspendRuntimePage(exited=false)",
+                null),
+            false);
     refreshPictureInPicture();
   }
 
@@ -844,9 +864,12 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
           com.deepseekharness.app.util.UiText.format(
               "系统 WebView 初始化失败: %s", e.getClass().getSimpleName()));
       showError(
+          com.deepseekharness.app.util.WebCrashReport.Kind.WEBVIEW_INIT,
           com.deepseekharness.app.util.UiText.text("系统 WebView 无法启动"),
           com.deepseekharness.app.util.UiText.text(
-              "请更新或启用 Android System WebView / Chrome，也可以使用系统浏览器进入对话。"));
+              "请更新或启用 Android System WebView / Chrome，也可以使用系统浏览器进入对话。"),
+          "createWebView: " + e.getClass().getName(),
+          null);
     }
   }
 
@@ -1056,15 +1079,21 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
               if (!(missing instanceof String) || !((String) missing).isEmpty()) {
                 if (openGeckoAfterWebViewFailure()) return;
                 showError(
+                    com.deepseekharness.app.util.WebCrashReport.Kind.WEBVIEW_OUTDATED,
                     com.deepseekharness.app.util.UiText.text("系统 WebView 需要更新"),
                     com.deepseekharness.app.util.UiText.format(
-                        "当前内核缺少：%s。\n更新 Android System WebView / Chrome 后重试，或在浏览器中打开。", missing));
+                        "当前内核缺少：%s。\n更新 Android System WebView / Chrome 后重试，或在浏览器中打开。", missing),
+                    "capability check: missing " + missing,
+                    null);
               }
             } catch (org.json.JSONException | NullPointerException invalid) {
               if (!openGeckoAfterWebViewFailure())
                 showError(
+                    com.deepseekharness.app.util.WebCrashReport.Kind.WEBVIEW_OUTDATED,
                     com.deepseekharness.app.util.UiText.text("系统 WebView 需要更新"),
-                    com.deepseekharness.app.util.UiText.text("网页能力检查未返回有效结果，请更新内核后重试。"));
+                    com.deepseekharness.app.util.UiText.text("网页能力检查未返回有效结果，请更新内核后重试。"),
+                    "capability check: invalid result",
+                    null);
             }
           });
     }
@@ -1072,10 +1101,16 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     @Override
     public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
       if (!isCurrentPage(view) || !request.isForMainFrame()) return;
+      com.deepseekharness.app.util.WebCrashReport.Facts facts =
+          new com.deepseekharness.app.util.WebCrashReport.Facts();
+      facts.errorCode = error.getErrorCode();
       showError(
+          com.deepseekharness.app.util.WebCrashReport.network(error.getErrorCode()),
           com.deepseekharness.app.util.UiText.text("暂时无法连接对话服务"),
           com.deepseekharness.app.util.UiText.format(
-              "服务可能仍在启动或已退出。请稍后重试，持续失败时返回启动页查看日志。\n错误代码：%s", error.getErrorCode()));
+              "服务可能仍在启动或已退出。请稍后重试，持续失败时返回启动页查看日志。\n错误代码：%s", error.getErrorCode()),
+          "onReceivedError " + error.getErrorCode() + " " + error.getDescription(),
+          facts);
     }
 
     @Override
@@ -1090,11 +1125,19 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
         loadSession(false);
         return;
       }
+      com.deepseekharness.app.util.WebCrashReport.Facts facts =
+          new com.deepseekharness.app.util.WebCrashReport.Facts();
+      facts.httpStatus = code;
       showError(
+          com.deepseekharness.app.util.WebCrashReport.http(code),
           code == 401 || code == 403
               ? com.deepseekharness.app.util.UiText.text("对话认证已失效")
               : com.deepseekharness.app.util.UiText.text("对话页面加载失败"),
-          com.deepseekharness.app.util.UiText.format("HTTP %s。请返回启动页重新进入对话，或稍后重试。", code));
+          com.deepseekharness.app.util.UiText.format("HTTP %s。请返回启动页重新进入对话，或稍后重试。", code),
+          "onReceivedHttpError HTTP "
+              + code
+              + (authRetried ? " (after one re-authentication)" : ""),
+          facts);
     }
 
     @androidx.annotation.RequiresApi(26)
@@ -1108,10 +1151,15 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
         // to Gecko after the dead WebView and its page resources close.
         if (detail.didCrash() && openGeckoAfterWebViewFailure()) return true;
         showError(
+            detail.didCrash()
+                ? com.deepseekharness.app.util.WebCrashReport.Kind.RENDER_CRASH
+                : com.deepseekharness.app.util.WebCrashReport.Kind.RENDER_RECLAIMED,
             com.deepseekharness.app.util.UiText.text("网页渲染进程已退出"),
             detail.didCrash()
                 ? com.deepseekharness.app.util.UiText.text("系统 WebView 发生异常，点击重试可重新打开；持续出现时请更新内核。")
-                : com.deepseekharness.app.util.UiText.text("系统可能因内存不足回收了网页，点击重试可重新打开。"));
+                : com.deepseekharness.app.util.UiText.text("系统可能因内存不足回收了网页，点击重试可重新打开。"),
+            "onRenderProcessGone(didCrash=" + detail.didCrash() + ")",
+            null);
       }
       return true;
     }
@@ -1339,6 +1387,20 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   }
 
   private void showError(String title, String detail) {
+    showError(
+        com.deepseekharness.app.util.WebCrashReport.Kind.GENERIC, title, detail, detail, null);
+  }
+
+  /**
+   * 显示错误面板（实验性，docs/design/web-crash-20261102）。title/detail 为原有文案，仍写入诊断记录；
+   * 面板标题与说明按 kind 选择，technicalDetail 为不翻译的协议原文，进入「技术详情」。
+   */
+  private void showError(
+      com.deepseekharness.app.util.WebCrashReport.Kind kind,
+      String title,
+      String detail,
+      String technicalDetail,
+      com.deepseekharness.app.util.WebCrashReport.Facts facts) {
     if (isFinishing() || isDestroyed()) return;
     cancelFileSelection();
     if (microphoneRequests != null) microphoneRequests.cancel();
@@ -1349,9 +1411,164 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     refreshPictureInPicture();
     progress.setVisibility(View.GONE);
     hidePageBoot();
-    errorTitle.setText(title);
-    errorDetail.setText(com.deepseekharness.app.util.UiText.raw(detail + "\n\n" + browserInfo));
-    errorPanel.setVisibility(View.VISIBLE);
+    crashPanel()
+        .show(
+            kind,
+            title,
+            detail,
+            crashFacts(facts),
+            technical(kind.name(), technicalDetail),
+            authUrl != null);
+  }
+
+  /** 就绪身份消失、且旧页面未被接回保留时决定是否停在面板上；返回 false 表示照常收尾窗口。 */
+  private boolean showEndedRuntime(PreviewPageSession.Identity obsolete) {
+    if (isFinishing() || isDestroyed() || conversationHidden()) return false;
+    var controller = com.deepseekharness.app.core.HarnessController.get(this);
+    com.deepseekharness.app.util.WebCrashReport.Kind kind;
+    try {
+      kind =
+          com.deepseekharness.app.util.WebCrashReport.ended(
+              controller.isUserStopped(),
+              controller.isStopping(),
+              controller.isRestartBlocked(),
+              controller.isStarting());
+    } catch (RuntimeException unavailable) {
+      return false;
+    }
+    if (kind == null) return false;
+    // 复核时结论未变：不重复写诊断记录、不重置用户已展开的详情。
+    if (kind == crashPanel().kind()) {
+      scheduleEndedRecheck();
+      return true;
+    }
+    cancelPendingAuthentication();
+    String reason = "";
+    try {
+      reason = controller.config().getWebFailureReason();
+    } catch (RuntimeException ignored) {
+    }
+    showError(
+        kind,
+        com.deepseekharness.app.util.UiText.choose("对话服务已结束", "Conversation service ended"),
+        reason,
+        "readyWebPageIdentity == null" + (reason.isEmpty() ? "" : "\n" + reason),
+        null);
+    scheduleEndedRecheck();
+    return true;
+  }
+
+  /** 服务结束后面板停留期间定期复核：重启就绪即交接，用户停止后照常收尾。 */
+  private void scheduleEndedRecheck() {
+    View panel = errorPanel;
+    if (panel == null) return;
+    panel.removeCallbacks(endedRecheck);
+    com.deepseekharness.app.util.WebCrashReport.Kind kind = crashPanel().kind();
+    if (kind == com.deepseekharness.app.util.WebCrashReport.Kind.BLOCKED
+        || kind == com.deepseekharness.app.util.WebCrashReport.Kind.RESTARTING
+        || kind == com.deepseekharness.app.util.WebCrashReport.Kind.EXITED)
+      panel.postDelayed(endedRecheck, 1500);
+  }
+
+  private WebCrashPanel crashPanel() {
+    if (crashPanel == null || crashPanel.root != errorPanel)
+      crashPanel =
+          new WebCrashPanel(
+              errorPanel, errorTitle, errorDetail, this::findViewById, this::onCrashAction);
+    return crashPanel;
+  }
+
+  /** 错误面板动作；null 表示顶栏返回，与系统返回键一致。 */
+  private void onCrashAction(com.deepseekharness.app.util.WebCrashReport.Action action) {
+    if (action == null) {
+      getOnBackPressedDispatcher().onBackPressed();
+      return;
+    }
+    switch (action) {
+      case HOME:
+        leavePreview();
+        break;
+      case RECHECK:
+        com.deepseekharness.app.core.HarnessController.get(this)
+            .requestWebSessionRecheck(() -> runOnUiThread(this::synchronizeWebSession));
+        break;
+      case RELOAD:
+        if (runtimeSuspended)
+          com.deepseekharness.app.core.HarnessController.get(this)
+              .requestWebSessionRecheck(() -> runOnUiThread(this::synchronizeWebSession));
+        else loadSession();
+        break;
+      case STORE:
+        openWebViewStore();
+        break;
+      case BROWSER:
+        openExternal(authUrl);
+        break;
+      case RECOVERY:
+        startActivity(new Intent(this, StartupRecoveryActivity.class));
+        leavePreview();
+        break;
+      case LOGS:
+        startActivity(DiagnosticActivity.downloadLogs(this));
+        break;
+      case WAIT:
+      default:
+        break;
+    }
+  }
+
+  /** 打开当前 WebView 提供方的商店页；没有商店时退回网页版。 */
+  private void openWebViewStore() {
+    String provider = "com.google.android.webview";
+    try {
+      PackageInfo current = WebView.getCurrentWebViewPackage();
+      if (current != null) provider = current.packageName;
+    } catch (RuntimeException ignored) {
+    }
+    try {
+      startActivity(
+          new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + provider))
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    } catch (RuntimeException noStore) {
+      openExternal("https://play.google.com/store/apps/details?id=" + provider);
+    }
+  }
+
+  /** 面板事实：只读控制器已有状态，读不到时保留未知，不推测。 */
+  private com.deepseekharness.app.util.WebCrashReport.Facts crashFacts(
+      com.deepseekharness.app.util.WebCrashReport.Facts base) {
+    com.deepseekharness.app.util.WebCrashReport.Facts facts =
+        base == null ? new com.deepseekharness.app.util.WebCrashReport.Facts() : base;
+    try {
+      var controller = com.deepseekharness.app.core.HarnessController.get(this);
+      facts.autoRestart = controller.canAutoRestart();
+      facts.failures = controller.config().getWebFailures();
+      // 退出码只存在于失败原因原文里（受运行时启动器字节钉保护，不在此改 Controller）；
+      // 状态行不解析本地化文案，原文进入「技术详情」。
+    } catch (RuntimeException unavailable) {
+      // 测试替身或进程收尾时读不到：保持默认（未知）。
+    }
+    return facts;
+  }
+
+  /** 技术详情原文：入口、协议细节、失败次数、时间与内核信息；不翻译。 */
+  private String technical(String entry, String detail) {
+    StringBuilder text = new StringBuilder(entry);
+    if (detail != null && !detail.isEmpty()) text.append('\n').append(detail);
+    try {
+      text.append("\nfailures=")
+          .append(new com.deepseekharness.app.core.ConfigStore(this).getWebFailures())
+          .append('/')
+          .append(com.deepseekharness.app.util.RestartBudget.LIMIT);
+    } catch (RuntimeException ignored) {
+    }
+    text.append('\n')
+        .append(
+            new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.ROOT)
+                .format(new java.util.Date()))
+        .append("\n\n")
+        .append(browserInfo);
+    return text.toString();
   }
 
   private void openExternal(String url) {

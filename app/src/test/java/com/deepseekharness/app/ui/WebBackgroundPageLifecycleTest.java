@@ -285,7 +285,7 @@ public final class WebBackgroundPageLifecycleTest {
       assertEquals(0, page.destroyed);
       assertFalse(page.isEnabled());
       assertEquals(View.VISIBLE, panel.getVisibility());
-      assertEquals("Verifying Web session", title.getText().toString());
+      assertEquals("Checking the service", title.getText().toString());
       assertFalse((Boolean) invoke("isCurrentPage", new Class<?>[] {WebView.class}, page));
       assertFalse(browser.getIntent().hasExtra(BrowserConversationRoute.REQUEST));
       Controller.ready = ORIGINAL;
@@ -306,7 +306,7 @@ public final class WebBackgroundPageLifecycleTest {
     Controller.ready = null;
     Controller.exited = true;
     invoke("synchronizeWebSession", new Class<?>[0]);
-    assertEquals("Web service exited", title.getText().toString());
+    assertEquals("DSH service stopped", title.getText().toString());
     assertSame(page, retained.view);
     assertFalse(page.isEnabled());
     assertEquals(0, page.destroyed);
@@ -337,7 +337,7 @@ public final class WebBackgroundPageLifecycleTest {
     assertFalse(page.isEnabled());
     assertFalse(browser.getIntent().hasExtra(BrowserConversationRoute.REQUEST));
     assertEquals(
-        "Verifying Web session",
+        "Checking the service",
         ((TextView) browser.findViewById(R.id.web_error_title)).getText().toString());
     browser.onNewIntent(
         new Intent(RuntimeEnvironment.getApplication(), Browser.class)

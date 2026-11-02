@@ -1405,6 +1405,10 @@
     "app/src/test/java/com/deepseekharness/app/util/RecoveryBannerStateTest.java",
     "app/src/main/java/com/deepseekharness/app/util/MaintenanceOwnership.java",
     "app/src/test/java/com/deepseekharness/app/util/MaintenanceOwnershipTest.java",
-    "app/src/main/java/com/deepseekharness/app/ui/MainEntryMaintenance.java"
+    "app/src/main/java/com/deepseekharness/app/ui/MainEntryMaintenance.java",
+    "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java",
+    "app/src/main/java/com/deepseekharness/app/util/WebCrashReport.java",
+    "app/src/test/java/com/deepseekharness/app/ui/WebCrashPanelTest.java",
+    "app/src/test/java/com/deepseekharness/app/util/WebCrashReportTest.java"
   ]
 }
