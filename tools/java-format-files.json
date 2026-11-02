@@ -1423,6 +1423,8 @@
     "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java",
     "app/src/main/java/com/deepseekharness/app/util/NetworkHealthPolicy.java",
     "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java",
-    "app/src/test/java/com/deepseekharness/app/backup/NativeDataLocationsProofTest.java"
+    "app/src/test/java/com/deepseekharness/app/backup/NativeDataLocationsProofTest.java",
+    "app/src/main/java/com/deepseekharness/app/util/NestedScrollArbiter.java",
+    "app/src/test/java/com/deepseekharness/app/util/NestedScrollArbiterTest.java"
   ]
 }
