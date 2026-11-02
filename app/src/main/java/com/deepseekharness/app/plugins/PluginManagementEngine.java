@@ -36,6 +36,7 @@ public final class PluginManagementEngine implements AutoCloseable {
   private final Observer<NativeBackupJobs.State> backupChanged = this::backupChanged;
   // 生命周期状态只由主线程修改；后台携带不可变来源，完成后投递回主线程。
   private boolean foreground, closed, signalsLoading, signalsAttached;
+  private int watchers;
   private HarnessController signalController;
   private LiveData<NativeBackupJobs.State> backupChanges;
   private volatile long autoQuerySuspendedUntil;
@@ -231,6 +232,27 @@ public final class PluginManagementEngine implements AutoCloseable {
           coordinator.foreground(true);
           attachSignals();
         });
+  }
+
+  /**
+   * 插件页 / 安装页可见期间持有；只有持有期间才做 TTL 周期核对与自动目录查询。
+   *
+   * @return 幂等释放；必须在页面 onPause 调用
+   */
+  public Runnable watch() {
+    dispatch(
+        () -> {
+          if (++watchers == 1) coordinator.watched(true);
+        });
+    java.util.concurrent.atomic.AtomicBoolean held =
+        new java.util.concurrent.atomic.AtomicBoolean(true);
+    return () -> {
+      if (!held.compareAndSet(true, false)) return;
+      dispatch(
+          () -> {
+            if (watchers > 0 && --watchers == 0) coordinator.watched(false);
+          });
+    };
   }
 
   public void onBackground() {
@@ -509,6 +531,8 @@ public final class PluginManagementEngine implements AutoCloseable {
     private final PluginChangeCoalescer changes = new PluginChangeCoalescer();
     private Cancellation scanTask, periodicTask, runtimeTask, runtimeExpiryTask;
     private boolean foreground, demand, closed, probing, awaitingProbe, queryIssued;
+    // 有插件页可见时才做 TTL 周期核对与自动目录查询；App 前台本身只维持廉价的来源核对、变更标记和运行投影。
+    private boolean watched;
     private boolean cancellingPrefetch, reconcilePending, sourceUnavailable;
     private long lifecycle, runtimeRevision;
     private long failedAt = -1;
@@ -571,6 +595,28 @@ public final class PluginManagementEngine implements AutoCloseable {
       }
     }
 
+    /**
+     * 插件页可见性。对话页等其它界面在前台时不周期跑 guest 目录查询；变更信号保留到下次可见再核对。
+     */
+    void watched(boolean value) {
+      if (closed || watched == value) return;
+      watched = value;
+      if (value) {
+        if (!foreground) return;
+        reconcile();
+        scheduleScan();
+        schedulePeriodic();
+      } else {
+        if (periodicTask != null) periodicTask.cancel();
+        periodicTask = null;
+        if (!demand) cancelScan();
+      }
+    }
+
+    private boolean active() {
+      return foreground && watched;
+    }
+
     void invalidated() {
       if (closed) return;
       changes.markDirty(clock.now());
@@ -604,7 +650,7 @@ public final class PluginManagementEngine implements AutoCloseable {
       awaitingProbe = queryIssued = false;
       Cache cache = backend.cache();
       boolean cancelledPrefetch = cancellingPrefetch;
-      boolean resumeCancelled = cancelledPrefetch && (foreground || demand) && !fresh(cache);
+      boolean resumeCancelled = cancelledPrefetch && (active() || demand) && !fresh(cache);
       cancellingPrefetch = false;
       sourceUnavailable = false;
       demand = demand && (changes.hasPending() || resumeCancelled);
@@ -656,7 +702,7 @@ public final class PluginManagementEngine implements AutoCloseable {
 
     private void scheduleScan() {
       cancelScan();
-      if (closed || (!foreground && !demand)) return;
+      if (closed || (!active() && !demand)) return;
       long delay = changes.nextDelayMillis(clock.now());
       if (delay < 0) return;
       scanTask = worker.schedule(() -> main.execute(this::beginScan), delay);
@@ -664,7 +710,7 @@ public final class PluginManagementEngine implements AutoCloseable {
 
     private void beginScan() {
       scanTask = null;
-      if (closed || (!foreground && !demand) || !changes.beginScan(clock.now())) return;
+      if (closed || (!active() && !demand) || !changes.beginScan(clock.now())) return;
       awaitingProbe = true;
       probe();
     }
@@ -745,7 +791,7 @@ public final class PluginManagementEngine implements AutoCloseable {
         issueQuery(!demand);
       } else if (foreground) {
         Cache cache = backend.cache();
-        if (!fresh(cache) && mayRetry(cache)) {
+        if (watched && !fresh(cache) && mayRetry(cache)) {
           changes.requestNow(clock.now());
           cancelScan();
           if (changes.beginScan(clock.now())) issueQuery(!demand);
@@ -759,6 +805,13 @@ public final class PluginManagementEngine implements AutoCloseable {
         // 用户动作期间只保留已有快照；下次页面需求或补偿窗口再核对。
         awaitingProbe = false;
         changes.scanFinished(clock.now());
+        return;
+      }
+      if (automatic && !active()) {
+        // probe 在途时插件页已离开：本轮不查，保留一次待办到下次可见。
+        awaitingProbe = false;
+        changes.scanFinished(clock.now());
+        changes.requestNow(clock.now());
         return;
       }
       queryIssued = true;
@@ -793,14 +846,14 @@ public final class PluginManagementEngine implements AutoCloseable {
     }
 
     private void schedulePeriodic() {
-      if (closed || !foreground || periodicTask != null) return;
+      if (closed || !active() || periodicTask != null) return;
       long epoch = lifecycle;
       periodicTask =
           worker.schedule(
               () ->
                   main.execute(
                       () -> {
-                        if (closed || !foreground || lifecycle != epoch) return;
+                        if (closed || !active() || lifecycle != epoch) return;
                         periodicTask = null;
                         reconcile();
                         schedulePeriodic();

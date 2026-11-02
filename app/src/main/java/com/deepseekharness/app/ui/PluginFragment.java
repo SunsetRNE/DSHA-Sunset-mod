@@ -47,6 +47,7 @@ public class PluginFragment extends Fragment {
   private TextView linkHint;
   private CheckBox hideBuiltin;
   private boolean market = true;
+  private Runnable releaseWatch;
   private final java.util.Set<String> expandedPlugins = new java.util.HashSet<>();
   private PluginSort.Mode sortOrder = PluginSort.Mode.NAME_ASC;
   private final List<PluginRepository.Item> visibleItems = new ArrayList<>();
@@ -335,11 +336,16 @@ public class PluginFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
+    // 插件页可见期间才允许后台周期核对；对话页等其它界面不再定时跑 guest 目录查询。
+    PluginManagementEngine engine = managementEngine();
+    if (engine != null && releaseWatch == null) releaseWatch = engine.watch();
     ensureInstalledState();
   }
 
   @Override
   public void onPause() {
+    if (releaseWatch != null) releaseWatch.run();
+    releaseWatch = null;
     capturePageState();
     super.onPause();
   }
