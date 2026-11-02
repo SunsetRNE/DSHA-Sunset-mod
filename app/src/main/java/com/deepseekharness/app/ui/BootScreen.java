@@ -28,6 +28,9 @@ import com.deepseekharness.app.util.UiText;
  * </ul>
  *
  * <p>只表达真实阶段文字，不推算百分比；操作按钮延迟出现，卡住时仍能看诊断或回到主界面。
+ *
+ * <p>嵌入模式（{@link #embedded}）用于对话页首次加载：挂进页面自己的容器，系统栏与安全区
+ * 仍由宿主页面管理；只保留字标、圆环与状态一行，与随后接手的 DSH 网页启动画面一致。
  */
 final class BootScreen {
   /** 诊断入口延迟出现：正常冷启动不打扰，真正卡住时仍可达。 */
@@ -46,9 +49,11 @@ final class BootScreen {
   private final BootLogoView logo;
   private final View glow;
   private final TextView wordmark;
+  private final boolean ownsSystemBars;
   private final Integer savedStatusBar, savedNavigationBar;
   private final boolean savedLightStatus, savedLightNavigation;
   private final Runnable revealDiagnostics;
+  private boolean mainWithDiagnostics;
 
   /** 本次是否播放开场（冷启动且系统动画开启）；决定最短可见时长。 */
   private final boolean intro;
@@ -68,7 +73,18 @@ final class BootScreen {
    * @param intro 冷启动首次显示时播放光晕、描线与逐项淡入；重建（换主题 / 语言）时直接显示静态完成态
    */
   BootScreen(Activity activity, BootPalette palette, boolean intro) {
+    this(activity, palette, intro, true);
+  }
+
+  /** 对话页加载遮罩：不接管系统栏与窗口边距，不播放开场，外观对齐 DSH 网页启动画面。 */
+  static BootScreen embedded(Activity activity, BootPalette palette) {
+    return new BootScreen(activity, palette, false, false);
+  }
+
+  private BootScreen(
+      Activity activity, BootPalette palette, boolean intro, boolean ownsSystemBars) {
     this.activity = activity;
+    this.ownsSystemBars = ownsSystemBars;
     this.intro = intro && UiMotion.animationsEnabled(activity);
     float density = activity.getResources().getDisplayMetrics().density;
     Configuration configuration = activity.getResources().getConfiguration();
@@ -95,6 +111,7 @@ final class BootScreen {
     glow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     glow.setAlpha(GLOW_ALPHA);
     root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
+    if (!ownsSystemBars) glow.setVisibility(View.GONE);
 
     LinearLayout card = new LinearLayout(activity);
     card.setOrientation(LinearLayout.VERTICAL);
@@ -106,13 +123,15 @@ final class BootScreen {
     var logoParams = new LinearLayout.LayoutParams(logoSize, logoSize);
     logoParams.bottomMargin = Math.round((tablet ? 12 : 8) * density);
     card.addView(logo, logoParams);
+    if (!ownsSystemBars) logo.setVisibility(View.GONE);
 
     wordmark = new TextView(activity);
     // DSH 字标是品牌名，不随语言翻译。
     wordmark.setText(UiText.raw("HARNESS"));
     wordmark.setTextSize(TypedValue.COMPLEX_UNIT_SP, tablet ? 20 : 16);
     wordmark.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-    wordmark.setLetterSpacing(0.3f);
+    // 嵌入模式与 DSH 网页启动画面同为 .08em，网页接手时字标不跳动。
+    wordmark.setLetterSpacing(ownsSystemBars ? 0.3f : 0.08f);
     wordmark.setTextColor(palette.primary);
     wordmark.setIncludeFontPadding(false);
     wordmark.setGravity(Gravity.CENTER);
@@ -159,34 +178,43 @@ final class BootScreen {
     actionParams.bottomMargin = Math.round(16 * density);
     root.addView(actions, actionParams);
 
-    // 遮罩盖住整窗：按系统栏与刘海避让内容，背景仍铺满。
-    ViewCompat.setOnApplyWindowInsetsListener(
-        root,
-        (view, insets) -> {
-          Insets bars =
-              insets.getInsets(
-                  WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
-          view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-          return insets;
-        });
+    if (ownsSystemBars) {
+      // 遮罩盖住整窗：按系统栏与刘海避让内容，背景仍铺满。
+      ViewCompat.setOnApplyWindowInsetsListener(
+          root,
+          (view, insets) -> {
+            Insets bars =
+                insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return insets;
+          });
 
-    // 系统栏随加载页底色；收起时还原 Activity 原值。
-    var window = activity.getWindow();
-    var controller = WindowCompat.getInsetsController(window, window.getDecorView());
-    savedStatusBar = window.getStatusBarColor();
-    savedNavigationBar = window.getNavigationBarColor();
-    savedLightStatus = controller.isAppearanceLightStatusBars();
-    savedLightNavigation = controller.isAppearanceLightNavigationBars();
-    boolean light = !BootPalette.dark(palette.background);
-    window.setStatusBarColor(palette.background);
-    window.setNavigationBarColor(palette.background);
-    controller.setAppearanceLightStatusBars(light);
-    controller.setAppearanceLightNavigationBars(light);
+      // 系统栏随加载页底色；收起时还原 Activity 原值。
+      var window = activity.getWindow();
+      var controller = WindowCompat.getInsetsController(window, window.getDecorView());
+      savedStatusBar = window.getStatusBarColor();
+      savedNavigationBar = window.getNavigationBarColor();
+      savedLightStatus = controller.isAppearanceLightStatusBars();
+      savedLightNavigation = controller.isAppearanceLightNavigationBars();
+      boolean light = !BootPalette.dark(palette.background);
+      window.setStatusBarColor(palette.background);
+      window.setNavigationBarColor(palette.background);
+      controller.setAppearanceLightStatusBars(light);
+      controller.setAppearanceLightNavigationBars(light);
+    } else {
+      // 嵌入模式：系统栏由宿主页面（WebFullscreenUi）管理，这里不保存也不还原。
+      savedStatusBar = null;
+      savedNavigationBar = null;
+      savedLightStatus = false;
+      savedLightNavigation = false;
+    }
 
     revealDiagnostics =
         () -> {
           if (root.getParent() == null) return;
           diagnostics.setVisibility(View.VISIBLE);
+          if (mainWithDiagnostics) openMain.setVisibility(View.VISIBLE);
           actions.setVisibility(View.VISIBLE);
         };
     diagnostics.setOnClickListener(
@@ -250,6 +278,13 @@ final class BootScreen {
     fadeUp(hint, 650L, 400L, rise);
   }
 
+  /** 嵌入模式：盖在指定容器最上层，尺寸与安全区随容器。 */
+  void attachTo(ViewGroup parent) {
+    parent.addView(root, new ViewGroup.LayoutParams(-1, -1));
+    root.postDelayed(revealDiagnostics, DIAGNOSTICS_DELAY_MS);
+    shownAt = android.os.SystemClock.uptimeMillis();
+  }
+
   private static void fadeUp(View view, long delay, long duration, float rise) {
     view.setAlpha(0f);
     view.setTranslationY(rise);
@@ -275,6 +310,13 @@ final class BootScreen {
     actions.setVisibility(View.VISIBLE);
   }
 
+  /** 与诊断入口一起延迟出现的退出口：正常加载不打扰，卡住时仍可离开。 */
+  void offerMainWithDiagnostics(String label, Runnable open) {
+    openMain.setText(label);
+    openMain.setOnClickListener(v -> open.run());
+    mainWithDiagnostics = true;
+  }
+
   boolean attached() {
     return root.getParent() != null;
   }
@@ -295,12 +337,14 @@ final class BootScreen {
   }
 
   private void exit() {
-    var window = activity.getWindow();
-    var controller = WindowCompat.getInsetsController(window, window.getDecorView());
-    window.setStatusBarColor(savedStatusBar);
-    window.setNavigationBarColor(savedNavigationBar);
-    controller.setAppearanceLightStatusBars(savedLightStatus);
-    controller.setAppearanceLightNavigationBars(savedLightNavigation);
+    if (ownsSystemBars) {
+      var window = activity.getWindow();
+      var controller = WindowCompat.getInsetsController(window, window.getDecorView());
+      window.setStatusBarColor(savedStatusBar);
+      window.setNavigationBarColor(savedNavigationBar);
+      controller.setAppearanceLightStatusBars(savedLightStatus);
+      controller.setAppearanceLightNavigationBars(savedLightNavigation);
+    }
     ViewGroup parent = (ViewGroup) root.getParent();
     if (parent == null) return;
     if (!root.isAttachedToWindow() || !UiMotion.animationsEnabled(activity)) {

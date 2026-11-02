@@ -58,6 +58,10 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   private TextView errorTitle;
   private TextView errorDetail;
   private ProgressBar progress;
+
+  /** 实验性：首次进入对话时的原生加载页，覆盖 WebView 首帧与 DSH 网页启动画面之间的空白。 */
+  private BootScreen pageBoot;
+
   private WebView webView;
   private String authUrl;
   private String authCookie;
@@ -425,6 +429,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
       container.addView(webView, new FrameLayout.LayoutParams(-1, -1));
       WebFrameRate.apply(this, webView);
       progress.setVisibility(retained.ready ? View.GONE : View.VISIBLE);
+      if (!retained.ready) showPageBoot();
       continueInitialNavigation();
     } else {
       // 旋转保留同一进程的页面；服务已换代时清理旧页面，再用当前凭据加载。
@@ -480,6 +485,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     pendingIdentity = expected;
     errorPanel.setVisibility(View.GONE);
     progress.setVisibility(View.VISIBLE);
+    showPageBoot();
     previewAuth.refresh(
         (url, cookie, error) -> {
           if (conversationHidden()
@@ -642,6 +648,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     }
     if (webView != null) webView.setEnabled(false);
     progress.setVisibility(View.GONE);
+    hidePageBoot();
     findViewById(R.id.web_error_browser).setEnabled(false);
     errorTitle.setText(
         com.deepseekharness.app.util.UiText.choose(
@@ -760,12 +767,16 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
 
   private void createWebView(boolean allowAuthRetry, PreviewPageSession.Identity identity) {
     destroyWebView();
+    // destroyWebView 把系统栏还原为宿主底色；加载页仍在时恢复为加载页底色。
+    if (pageBoot != null) applyEntryBars();
     pageFailed = false;
     authRetried = !allowAuthRetry;
     errorPanel.setVisibility(View.GONE);
     progress.setVisibility(View.VISIBLE);
     try {
       WebView view = new WebView(new android.content.MutableContextWrapper(this));
+      // WebView 首帧前默认画白底；改用最近一次网页背景色（无记录时宿主底色）。
+      view.setBackgroundColor(entryPalette().background);
       webView = view;
       retained.view = view;
       retained.authUrl = authUrl;
@@ -1007,6 +1018,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
       if (!isCurrentPage(view) || pageFailed) return;
       final long navigation = retained.pageNavigation;
       progress.setVisibility(View.GONE);
+      hidePageBoot();
       if (!WebPreviewPolicy.sameService(baseUrl, url)) return;
       retained.ready = true;
       final var theme = retained.themeGate;
@@ -1206,7 +1218,11 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
 
     @Override
     public void onProgressChanged(WebView view, int value) {
-      if (isCurrentPage(view) && !pageFailed) progress.setProgress(value);
+      if (isCurrentPage(view) && !pageFailed) {
+        progress.setProgress(value);
+        // 历史恢复等路径可能不回调页面完成；进度到顶同样收起加载页。
+        if (value >= 100) hidePageBoot();
+      }
     }
 
     @Override
@@ -1277,6 +1293,51 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     }
   }
 
+  /** 最近一次已核验网页上报的背景色；没有记录时用宿主 shell 底色。 */
+  private com.deepseekharness.app.util.BootPalette entryPalette() {
+    com.deepseekharness.app.util.BootPalette shell = BootScreen.shellPalette(this);
+    Integer web = new com.deepseekharness.app.core.ConfigStore(this).getEntryWebBackground();
+    return web == null
+        ? shell
+        : com.deepseekharness.app.util.BootPalette.fromWeb(web, shell.background);
+  }
+
+  /** 网页尚未上报主题时，状态栏 / 导航栏先随加载页底色，避免与加载页出现色差。 */
+  private void applyEntryBars() {
+    if (retained != null && retained.themeColor == null)
+      WebFullscreenUi.applyThemeColor(this, entryPalette().background);
+  }
+
+  /**
+   * 实验性尽力修复：从容器进入 DSH 时，鉴权刷新、WebView 首帧与网页脚本下载解析期间页面为空，
+   * 显示为长白屏。这里先盖与 DSH 网页启动画面同款的原生加载页，页面完成、出错或挂起时收起。
+   */
+  private void showPageBoot() {
+    if (pageBoot != null
+        || container == null
+        || isFinishing()
+        || isDestroyed()
+        || conversationHidden()
+        || pictureInPictureActiveOrTransitioning()
+        || !(container.getParent() instanceof android.view.ViewGroup layer)) return;
+    BootScreen screen = BootScreen.embedded(this, entryPalette());
+    screen.setStatus(
+        com.deepseekharness.app.util.UiText.choose("正在进入对话…", "Opening conversation…"));
+    screen.offerMainWithDiagnostics(
+        com.deepseekharness.app.util.UiText.choose("返回启动页", "Back to start page"),
+        this::leavePreview);
+    // 挂在网页与错误面板所在的内层容器最上层；顶部进度条仍在其上显示真实进度。
+    screen.attachTo(layer);
+    pageBoot = screen;
+    applyEntryBars();
+  }
+
+  private void hidePageBoot() {
+    BootScreen screen = pageBoot;
+    pageBoot = null;
+    if (screen != null) screen.dismiss();
+  }
+
   private void showError(String title, String detail) {
     if (isFinishing() || isDestroyed()) return;
     cancelFileSelection();
@@ -1287,6 +1348,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     retained.ready = false;
     refreshPictureInPicture();
     progress.setVisibility(View.GONE);
+    hidePageBoot();
     errorTitle.setText(title);
     errorDetail.setText(com.deepseekharness.app.util.UiText.raw(detail + "\n\n" + browserInfo));
     errorPanel.setVisibility(View.VISIBLE);
@@ -1560,6 +1622,8 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
                 value.optString("color"), getColor(R.color.surface));
         if (color != null) {
           retained.themeColor = color;
+          // 已核验页面在上报主题：网页自身已接手显示，收起原生加载页。
+          hidePageBoot();
           WebFullscreenUi.applyThemeColor(this, color);
           // 已核验页面的主题色留给下一次直启的加载页，衔接 DSH 主题与外部主题壳。
           new com.deepseekharness.app.core.ConfigStore(this).setEntryWebBackground(color);
@@ -1609,6 +1673,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
 
   @Override
   protected void onDestroy() {
+    hidePageBoot();
     BrowserConversationRoute.unregister(this);
     com.deepseekharness.app.core.HarnessController.get(this)
         .removeReadyWebPageListener(runtimeChanged);
