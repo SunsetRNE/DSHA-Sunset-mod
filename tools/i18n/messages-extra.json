@@ -14039,5 +14039,210 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
     ]
+  },
+  {
+    "id": "bgt273a01",
+    "zh": "相关页面",
+    "en": "Related pages",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a02",
+    "zh": "这里只显示进度。需要取消或处理时，请进入对应页面操作。",
+    "en": "This page only shows progress. Open the related page to cancel or resolve a task.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a03",
+    "zh": "%d 项",
+    "en": "%d entries",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "bgt273a04",
+    "zh": "当前空闲，没有正在执行的原生任务",
+    "en": "Idle; no native tasks are running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a05",
+    "zh": "%d 项任务正在执行",
+    "en": "%d tasks running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "bgt273a06",
+    "zh": "打开所属页面",
+    "en": "Open its page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a07",
+    "zh": "没有正在执行的任务",
+    "en": "Nothing is running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a08",
+    "zh": "终端、插件、备份与环境维护开始后会显示在这里。",
+    "en": "Terminals, plugins, backups and maintenance appear here while they run.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a09",
+    "zh": "正在运行的对话回合",
+    "en": "Conversation turns in progress",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a10",
+    "zh": "安装、更新与检测",
+    "en": "Install, update and scan",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a11",
+    "zh": "会话与运行中的命令",
+    "en": "Sessions and running commands",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a12",
+    "zh": "导出、恢复与副本",
+    "en": "Export, restore and copies",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a13",
+    "zh": "计划与最近结果",
+    "en": "Schedule and recent results",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a14",
+    "zh": "运行环境状态与维护",
+    "en": "Runtime status and maintenance",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/BackgroundTasksActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a15",
+    "zh": "环境维护进行中",
+    "en": "Environment maintenance in progress",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a16",
+    "zh": "相关操作完成前暂缓 · 点按查看进度",
+    "en": "Related actions wait until it finishes · Tap for progress",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a17",
+    "zh": "恢复备份等待确认",
+    "en": "Backup restore awaiting confirmation",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a18",
+    "zh": "预检已完成，确认后才会替换数据 · 点按查看",
+    "en": "Pre-check finished; data changes only after you confirm · Tap to review",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a19",
+    "zh": "受限模式：环境需要恢复",
+    "en": "Limited mode: the environment needs recovery",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a20",
+    "zh": "终端、Web 与插件暂不可用 · 点按处理",
+    "en": "Terminals, Web and plugins are unavailable · Tap to resolve",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a21",
+    "zh": "上次启动未完成",
+    "en": "The last startup did not complete",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a22",
+    "zh": "可查看日志与恢复选项 · 点按打开",
+    "en": "Logs and recovery options are available · Tap to open",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "bgt273a23",
+    "zh": "%d 秒",
+    "en": "%ds",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "bgt273a24",
+    "zh": "%d 分 %d 秒",
+    "en": "%dm %ds",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "bgt273a25",
+    "zh": "%d 小时 %d 分",
+    "en": "%dh %dm",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
+    ],
+    "uiFormat": true
   }
 ]

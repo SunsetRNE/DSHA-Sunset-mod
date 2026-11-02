@@ -1390,6 +1390,16 @@
     "app/src/main/java/com/deepseekharness/app/util/UiThemePalette.java",
     "app/src/test/java/com/deepseekharness/app/util/ThemeMotionTest.java",
     "app/src/test/java/com/deepseekharness/app/util/UiThemePaletteTest.java",
-    "app/src/test/java/com/deepseekharness/app/ui/ThemePaletteResourcesTest.java"
+    "app/src/test/java/com/deepseekharness/app/ui/ThemePaletteResourcesTest.java",
+    "app/src/main/java/com/deepseekharness/app/ui/EnvironmentNoticeBanner.java",
+    "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java",
+    "app/src/main/java/com/deepseekharness/app/util/MainRecreatePolicy.java",
+    "app/src/main/java/com/deepseekharness/app/util/RecoveryBannerState.java",
+    "app/src/test/java/com/deepseekharness/app/util/BackgroundTaskModelTest.java",
+    "app/src/test/java/com/deepseekharness/app/util/MainRecreatePolicyTest.java",
+    "app/src/test/java/com/deepseekharness/app/util/RecoveryBannerStateTest.java",
+    "app/src/main/java/com/deepseekharness/app/util/MaintenanceOwnership.java",
+    "app/src/test/java/com/deepseekharness/app/util/MaintenanceOwnershipTest.java",
+    "app/src/main/java/com/deepseekharness/app/ui/MainEntryMaintenance.java"
   ]
 }

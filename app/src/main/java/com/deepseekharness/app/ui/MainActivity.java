@@ -50,6 +50,10 @@ public class MainActivity extends AppCompatActivity {
 
   private final java.util.List<Fragment> gatedPages = new java.util.ArrayList<>();
   private final MainEntryGate entryGate = new MainEntryGate();
+
+  /** 本进程身份：进程回收后重新生成，保存态里的旧值不再匹配。 */
+  private static final String PROCESS_TOKEN = java.util.UUID.randomUUID().toString();
+
   private static final java.util.concurrent.Executor ENTRY_IO =
       java.util.concurrent.Executors.newSingleThreadExecutor();
 
@@ -158,6 +162,20 @@ public class MainActivity extends AppCompatActivity {
       finish();
       return;
     }
+    // 同进程重建（旋转、深浅色、语言、字体、分屏尺寸）：重建前已通过门禁，直接还原主界面，
+    // 不再整屏显示开机加载页，也不因正在写的后台事务记录被赶去维护页；后台维护由横幅表达。
+    if (com.deepseekharness.app.util.MainRecreatePolicy.skipEntryGate(
+        savedInstanceState == null
+            ? null
+            : savedInstanceState.getString(
+                com.deepseekharness.app.util.MainRecreatePolicy.STATE_KEY),
+        PROCESS_TOKEN,
+        savedInstanceState != null)) {
+      android.util.Log.i("DSHA", "MAIN_ENTRY_GATE recreate=same-process");
+      setContentView(R.layout.activity_main);
+      showMain(savedInstanceState, config, HarnessController.get(this));
+      return;
+    }
     directWebArmed = armDirectWeb(savedInstanceState, config);
     showEntryCheck(savedInstanceState != null);
     if (savedInstanceState != null) {
@@ -262,7 +280,8 @@ public class MainActivity extends AppCompatActivity {
                   || config.allowsLimitedEntry(
                       com.deepseekharness.app.core.EnvironmentAccess.limitedEntryKey(controller));
           return !limited
-              && (com.deepseekharness.app.core.MaintenanceCoordinator.pending(controller)
+              // 只把崩溃 / 中断残留当成维护；本进程正在写的记录不赶用户去维护页。
+              && (MainEntryMaintenance.blocksEntry(controller)
                   || RuntimeMaintenanceStarter.pendingTrial(getApplicationContext())
                   || !skipExtract
                       && (!controller.isEnvironmentReady()
@@ -373,7 +392,7 @@ public class MainActivity extends AppCompatActivity {
         appBar.indexOfChild(findViewById(R.id.btn_about)),
         new android.widget.LinearLayout.LayoutParams(downloadButtonSize, downloadButtonSize));
     installDeployCapsule(appBar, appBar.indexOfChild(downloads));
-    TextView recovery = findViewById(R.id.environment_recovery_banner);
+    android.view.View recovery = findViewById(R.id.environment_recovery_banner);
     recovery.setOnClickListener(
         v -> {
           if (com.deepseekharness.app.core.BackupTask.get(this).maintenanceBusy()
@@ -1057,11 +1076,66 @@ public class MainActivity extends AppCompatActivity {
     return selectedItem == R.id.nav_launch && (page == null || page instanceof LaunchFragment);
   }
 
+  /** 环境提示横幅文案：标题说清是什么状态，第二行说清影响与点按后去哪里。 */
+  private static void renderRecoveryBanner(
+      EnvironmentNoticeBanner banner,
+      com.deepseekharness.app.util.RecoveryBannerState.Kind kind,
+      String taskKind) {
+    String title, detail;
+    switch (kind) {
+      case BUSY -> {
+        String rendered =
+            taskKind == null || taskKind.isEmpty()
+                ? ""
+                : com.deepseekharness.app.util.StartupText.render(taskKind);
+        title =
+            rendered.isEmpty()
+                ? com.deepseekharness.app.util.UiText.choose(
+                    "环境维护进行中", "Environment maintenance in progress")
+                : rendered;
+        detail =
+            com.deepseekharness.app.util.UiText.choose(
+                "相关操作完成前暂缓 · 点按查看进度", "Related actions wait until it finishes · Tap for progress");
+      }
+      case AWAITING_CONFIRMATION -> {
+        title =
+            com.deepseekharness.app.util.UiText.choose(
+                "恢复备份等待确认", "Backup restore awaiting confirmation");
+        detail =
+            com.deepseekharness.app.util.UiText.choose(
+                "预检已完成，确认后才会替换数据 · 点按查看",
+                "Pre-check finished; data changes only after you confirm · Tap to review");
+      }
+      case LIMITED -> {
+        title =
+            com.deepseekharness.app.util.UiText.choose(
+                "受限模式：环境需要恢复", "Limited mode: the environment needs recovery");
+        detail =
+            com.deepseekharness.app.util.UiText.choose(
+                "终端、Web 与插件暂不可用 · 点按处理",
+                "Terminals, Web and plugins are unavailable · Tap to resolve");
+      }
+      case STARTUP -> {
+        title =
+            com.deepseekharness.app.util.UiText.choose(
+                "上次启动未完成", "The last startup did not complete");
+        detail =
+            com.deepseekharness.app.util.UiText.choose(
+                "可查看日志与恢复选项 · 点按打开", "Logs and recovery options are available · Tap to open");
+      }
+      default -> {
+        title = "";
+        detail = "";
+      }
+    }
+    banner.show(kind, title, detail);
+  }
+
   private final Runnable refreshRecovery =
       new Runnable() {
         @Override
         public void run() {
-          TextView banner = findViewById(R.id.environment_recovery_banner);
+          EnvironmentNoticeBanner banner = findViewById(R.id.environment_recovery_banner);
           if (banner == null || isFinishing()) return;
           HarnessController controller = HarnessController.get(MainActivity.this);
           boolean startupRecovery =
@@ -1074,27 +1148,18 @@ public class MainActivity extends AppCompatActivity {
           // 备份、恢复备份、启动恢复等其它情况仍用原横幅。
           boolean capsuleShown =
               deployCapsule != null && deployCapsule.getVisibility() == android.view.View.VISIBLE;
-          banner.setVisibility(
-              !capsuleShown && (limited || busy || startupRecovery)
-                  ? android.view.View.VISIBLE
-                  : android.view.View.GONE);
-          banner.setText(
-              busy
-                  ? com.deepseekharness.app.util.UiText.text("环境维护进行中 · 点击查看进度")
-                  : limited
-                      ? com.deepseekharness.app.util.UiText.text("受限模式：环境需要恢复 · 点击处理")
-                      : com.deepseekharness.app.util.UiText.choose(
-                          "启动未完成 · 点击查看恢复选项", "Startup did not complete · View recovery options"));
           com.deepseekharness.app.util.BackupTaskState.Snapshot task =
               com.deepseekharness.app.core.BackupTask.get(MainActivity.this).snapshot();
-          if (busy && task.busy())
-            banner.setText(
-                com.deepseekharness.app.util.UiText.format(
-                    "%s · 点击查看进度",
-                    (task.status == com.deepseekharness.app.util.BackupTaskState.Status.PREVIEW
-                        ? com.deepseekharness.app.util.UiText.choose(
-                            "等待确认恢复备份", "Backup restore awaiting confirmation")
-                        : com.deepseekharness.app.util.StartupText.render(task.kind))));
+          var kind =
+              com.deepseekharness.app.util.RecoveryBannerState.decide(
+                  capsuleShown,
+                  busy,
+                  busy
+                      && task.busy()
+                      && task.status == com.deepseekharness.app.util.BackupTaskState.Status.PREVIEW,
+                  limited,
+                  startupRecovery);
+          renderRecoveryBanner(banner, kind, busy && task.busy() ? task.kind : "");
           BottomNavigationView nav = findViewById(R.id.bottom_nav);
           String key =
               controller.startupDiagnostics().recordId()
@@ -1126,6 +1191,9 @@ public class MainActivity extends AppCompatActivity {
   protected void onSaveInstanceState(Bundle state) {
     state.putString("opened_startup_recovery", openedRecovery);
     state.putBoolean("terminal_page_in_flight", terminalPageInFlight);
+    // 只有已放行的主界面才登记本进程令牌；加载中旋转仍按原流程重新检查。
+    if (mainReady)
+      state.putString(com.deepseekharness.app.util.MainRecreatePolicy.STATE_KEY, PROCESS_TOKEN);
     super.onSaveInstanceState(state);
   }
 
