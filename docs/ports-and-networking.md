@@ -2,6 +2,8 @@
 
 > build196 共存修订：当前 `dsh.android.client` 的设备桥依次绑定3091–3099，最后尝试3090，优先让旧 `com.dsh.client` 使用其固定3090。LAN优先3082，忙时由操作系统直接分配并持有监听；旧应用仍用3081。设备桥`.bridge_port`、LAN当前代次实际端口和各自凭据分别读取，不能据固定端口推断另一安装的身份。以下说明已按当前实现更新；本轮宿主检查不代表手机并行运行或网络验收。
 
+> 端口发现 fail-closed：guest 侧所有桥客户端（`bridge-port.cjs` 及其插件副本、`adb-shell.py`、`dns-compat.cjs`）只认本安装发布的 `/root/.dsh/.bridge_port` 或显式 `DSHA_BRIDGE_PORT`。两者都读不到（桥停止、绑定失败或尚未发布）时报 `BRIDGE_PORT_UNAVAILABLE`，不发送请求和 token，也不回退 3090。3090–3099 中任何一个都可能属于同机另一个 DSHA 安装，猜端口等于把本安装凭据交给别的应用。设备 shell 返回 `[POLICY_BLOCKED]`，虚拟屏和手机工具按“未发送”报告，提示词中的端口显示为 `<PORT>`，并附“设备桥未就绪”说明。
+
 本文对应 build190 的实际源码，供使用、排查和修改端口逻辑时查阅；F10 基线与 F12 新增行为分别标注。
 当前应用运行 DSH 0.2.1-rc.5；运行引擎另见[运行引擎](runtime-engines.md)。
 DNS 策略另见 [DNS 配置](dns-configuration.md)。

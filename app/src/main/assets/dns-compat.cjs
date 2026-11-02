@@ -57,7 +57,9 @@ if (process.env.DSHA_DNS_MODE !== 'native' && !dns[marker]) {
     } catch {}
     if (!(port >= 1 && port <= 65535)) {
       const env = process.env.DSHA_BRIDGE_PORT;
-      port = /^[0-9]{1,5}$/.test(env || '') && Number(env) <= 65535 && Number(env) >= 1 ? Number(env) : 3090;
+      // 不回退固定端口：3090–3099 可能属于同机另一个 DSHA 安装，不能把本安装 token 发过去。
+      if (!/^[0-9]{1,5}$/.test(env || '') || Number(env) > 65535 || Number(env) < 1) throw Error('BRIDGE_PORT_UNAVAILABLE');
+      port = Number(env);
     }
     return { token: token[1], port };
   }

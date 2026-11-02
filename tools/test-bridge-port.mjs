@@ -118,10 +118,36 @@ async function run() {
     const f = fixture(), port = loadCjs(helperPath, f);
     assert.equal(port(), 3091); f.setPort('3092'); assert.equal(port(), 3092);
     f.missing = true; assert.equal(port(), 3097); f.env.DSHA_BRIDGE_PORT = '3098'; assert.equal(port(), 3098);
-    for (const [raw, expected] of [['1', 1], ['65535', 65535], ['03091', 3091], ['', 3090], ['0', 3090], ['65536', 3090],
-      ['0xc13', 3090], ['0b110000010011', 3090], ['3e3', 3090], ['+3091', 3090], ['3091.0', 3090], [' 3091', 3090], ['3091\n', 3090], ['٣٠٩١', 3090], ['²', 3090], ['9'.repeat(100000), 3090]]) {
+    for (const [raw, expected] of [['1', 1], ['65535', 65535], ['03091', 3091]]) {
       f.env.DSHA_BRIDGE_PORT = raw; assert.equal(port(), expected, raw.slice(0, 20));
     }
+    // 文件与环境都无效时不回退任何固定端口（3090 可能属于同机另一个 DSHA 安装）。
+    for (const raw of ['', '0', '65536', '0xc13', '0b110000010011', '3e3', '+3091', '3091.0', ' 3091', '3091\n', '٣٠٩١', '²', '9'.repeat(100000)]) {
+      f.env.DSHA_BRIDGE_PORT = raw; assert.throws(() => port(), { code: 'BRIDGE_PORT_UNAVAILABLE' }, raw.slice(0, 20));
+    }
+    delete f.env.DSHA_BRIDGE_PORT; assert.throws(() => port(), { code: 'BRIDGE_PORT_UNAVAILABLE' });
+  });
+  await test('unpublished port sends no credential from any consumer', async () => {
+    const unpublished = () => { const f = fixture(); f.missing = true; delete f.env.DSHA_BRIDGE_PORT; return f; };
+    const signal = new AbortController().signal, task = { sessionId: 'fixture-full-session', turnId: '1' };
+    { const f = unpublished(), sdk = loadCjs('builtin-plugins/dsh-computer-use-android/lib/server.cjs', f);
+      await assert.rejects(sdk.call('android_get_state', {}, signal, undefined, task), /BRIDGE_PORT_UNAVAILABLE/); assert.equal(f.requests.length, 0); }
+    { const f = unpublished(), sdk = loadCjs('builtin-plugins/dsh-tool-vscreen/lib/server.cjs', f);
+      // 未发送的失败按 vscreen 约定抛出，写操作也不能被报成 UNKNOWN。
+      await assert.rejects(sdk.call('android_vscreen_status', {}, signal), error => error.message === 'BRIDGE_PORT_UNAVAILABLE' && error.executionUnknown === false);
+      const args = { coreInstance: '11111111-2222-3333-4444-555555555555', generation: 'fixture', frameSeq: 1, text: 'fixture' };
+      await assert.rejects(sdk.call('android_vscreen_type', args, signal), error => error.executionUnknown === false);
+      assert.equal(f.requests.length, 0); }
+    { const f = unpublished(), sdk = loadCjs('native-consent.cjs', f); assert.throws(() => sdk.readConnection(), { code: 'BRIDGE_PORT_UNAVAILABLE' });
+      await assert.rejects(sdk.bridgeFetch('/app/native-policy', { expectedConnectionGeneration: 'x' }), { code: 'BRIDGE_PORT_UNAVAILABLE' }); assert.equal(f.requests.length, 0); }
+    { const f = unpublished(), plugin = await loadPlugin('dsh-task-notifier', f), reporter = new plugin.TaskReporter({}, undefined, undefined, {});
+      await assert.rejects(reporter.transport('claim', {})); assert.equal(f.requests.length, 0); reporter.dispose(); }
+    { const f = unpublished(); f.context.setTimeout = () => ({ unref() {} }); f.context.clearTimeout = () => {};
+      const plugin = await loadPlugin('dsh-status-overlay', f), ctx = context(); plugin.apply(ctx);
+      ctx.emit('session/event', { id: 'fixture-session' }, { type: 'tool/call', data: { name: 'read' } }); await settle(); assert.equal(f.requests.length, 0); }
+    { const f = unpublished(), plugin = await loadPlugin('dsh-device-shell-guide', f), text = plugin.promptText('zh');
+      assert(!/127\.0\.0\.1:30\d\d/.test(text), 'guide must not advertise a guessed bridge port');
+      assert(text.includes('127.0.0.1:<PORT>/app/help')); assert(text.includes('BRIDGE_PORT') || text.includes('.bridge_port')); }
   });
   await test('file rejects high-bit bytes, whitespace, excessive size and unsafe types', () => {
     for (const raw of ['', '0', '65536', '309100', '3091\n', ' 3091', '0xc13', '3e3', Buffer.from([0xb3, 0xb0, 0xb9, 0xb1])]) {

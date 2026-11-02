@@ -39,6 +39,10 @@ function bridgePort() {
   } catch {
     // 端口仅负责发现，不赋予权限；后续请求仍必须通过当前 token 鉴权。
   }
-  return decimalPort(typeof process !== 'undefined' ? process.env?.DSHA_BRIDGE_PORT : undefined) ?? 3090;
+  const explicit = decimalPort(typeof process !== 'undefined' ? process.env?.DSHA_BRIDGE_PORT : undefined);
+  if (explicit !== undefined) return explicit;
+  // 不回退任何固定端口：3090 及 3091–3099 可能属于同机另一个 DSHA 安装，
+  // 猜一个端口再带上本安装 token 发过去，等于把凭据交给别的应用。
+  throw Object.assign(Error('BRIDGE_PORT_UNAVAILABLE'), { code: 'BRIDGE_PORT_UNAVAILABLE' });
 }
 module.exports = bridgePort;

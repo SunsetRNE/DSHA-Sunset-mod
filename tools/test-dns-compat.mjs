@@ -129,7 +129,9 @@ test('old app ([NO_CMD]), HTTP errors and bad credential files fall back to the 
     {reply:'DSHA_RESOLVE_V1\nstatus=OK\n4 not-an-ip\n'}]){
     const f=hostFixture(options);await assert.rejects(cb(f,'api.example.com'),e=>e===f.error);
   }
-  const bad=hostFixture({reply:OK,port:'99999'});await cb(bad,'api.example.com');assert.equal(bad.requests[0].port,3090);
+  // 端口文件无效时不猜 3090（可能是同机另一个 DSHA 安装），保留原错误且不发送 token。
+  const bad=hostFixture({reply:OK,port:'99999'});await assert.rejects(cb(bad,'api.example.com'),e=>e===bad.error);assert.equal(bad.requests.length,0);
+  const explicit=hostFixture({reply:OK,port:'99999',env:{DSHA_BRIDGE_PORT:'3095'}});await cb(explicit,'api.example.com');assert.equal(explicit.requests[0].port,3095);
 });
 test('promise API returns the native result shape from the host fallback',async()=>{
   const f=hostFixture({reply:OK});

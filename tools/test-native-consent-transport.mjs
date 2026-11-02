@@ -9,7 +9,7 @@ import { fixture as portFixture, loadCjs } from './test-bridge-port.mjs';
 const source = fs.readFileSync(new URL('../app/src/main/assets/native-consent.cjs', import.meta.url), 'utf8');
 const results = [];
 function fixture() {
-  const f = { token: 'a'.repeat(43), mode: 0o100600, ino: 1, port: undefined, portMode: 0o100600,
+  const f = { token: 'a'.repeat(43), mode: 0o100600, ino: 1, port: 3090, portMode: 0o100600,
     portIno: 2, requests: [], closes: 0, body: '{"result":"native-payload"}', status: 200 };
   const info = directory => ({ dev: 1, ino: f.ino, size: f.token.length, mode: f.mode,
     isDirectory: () => directory && !f.parentLink, isFile: () => !directory && !f.fileLink,
@@ -88,9 +88,13 @@ await test('published fallback port is used and must stay stable', async () => {
     }), /PORT_CHANGED/);
   assert.equal(f.requests.length, 1);
 });
-await test('invalid port file falls back to the legacy port', async () => {
-  const f = fixture(); f.port = 3091; f.portMode = 0o100644;
-  assert.equal(f.sdk.readConnection().port, 3090);
+await test('invalid or missing port file fails closed without guessing a fixed port', async () => {
+  for (const arrange of [f => { f.port = 3091; f.portMode = 0o100644; }, f => { f.port = undefined; }]) {
+    const f = fixture(); arrange(f);
+    assert.throws(() => f.sdk.readConnection(), { code: 'BRIDGE_PORT_UNAVAILABLE' });
+    await assert.rejects(f.sdk.bridgeFetch('/device/consent', { expectedConnectionGeneration: 'x' }), { code: 'BRIDGE_PORT_UNAVAILABLE' });
+    assert.equal(f.requests.length, 0);
+  }
 });
 for (const [name, arrange] of [
   ['parent symlink', f => { f.parentLink = true; }], ['token symlink', f => { f.fileLink = true; }],
@@ -136,8 +140,9 @@ await test('launcher rereads strict file/environment ports without caching the f
     assert.equal(f.requests.at(-1).port, Number(port));
   }
   f.missing = true;
-  for (const [raw, expected] of [['3097', 3097], ['0xc13', 3090], ['3e3', 3090], ['3091\n', 3090], ['³', 3090], ['9'.repeat(100000), 3090]]) {
-    f.env.DSHA_BRIDGE_PORT = raw; assert.equal(sdk.readConnection().port, expected);
+  f.env.DSHA_BRIDGE_PORT = '3097'; assert.equal(sdk.readConnection().port, 3097);
+  for (const raw of ['0xc13', '3e3', '3091\n', '³', '9'.repeat(100000)]) {
+    f.env.DSHA_BRIDGE_PORT = raw; assert.throws(() => sdk.readConnection(), { code: 'BRIDGE_PORT_UNAVAILABLE' });
   }
 });
 await test('port rotation during response rejects without replay or accepting authority', async () => {

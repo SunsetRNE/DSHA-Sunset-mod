@@ -1,10 +1,11 @@
 'use strict';
 // APK-owned launcher query for the authenticated device bridge.
 //
-// The native bridge prefers the historical port 3090 and may fall back to
-// 3091-3099 when another DSHA installation owns 3090. The selected port is
-// published in this installation's rootfs at /root/.dsh/.bridge_port; guests
-// must use it instead of hard-coding 3090. The token remains the real gate.
+// The native bridge binds one of 3090-3099 (order depends on the package); any
+// of them may belong to another DSHA installation on the same device. The
+// selected port is published in this installation's rootfs at
+// /root/.dsh/.bridge_port; guests must use it and never guess a fixed port.
+// An unpublished port fails closed before the token is sent.
 const fs = require('node:fs');
 const http = require('node:http');
 const crypto = require('node:crypto');

@@ -2,6 +2,8 @@
 
 > Build191/1640 merge revision: the device bridge prefers3090 and, only on address-in-use, tries3091–3099. This installation's `.bridge_port`/environment discovery selects its current port while token and generation/port fences remain required. Web dynamic ports, LAN3081 and the independent recovery broker are separate services. The [current checks and unverified scope](releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md) supersedes build190's fixed-bridge description below, without transferring old device evidence.
 
+> Fail-closed discovery: every guest bridge client (`bridge-port.cjs` and its plugin copies, `adb-shell.py`, `dns-compat.cjs`) accepts only this installation's published `/root/.dsh/.bridge_port` or an explicit `DSHA_BRIDGE_PORT`. When neither is readable (bridge stopped, bind failed or not yet published) it reports `BRIDGE_PORT_UNAVAILABLE` and sends no request or token; it never falls back to 3090. Any port in 3090–3099 may belong to another DSHA installation on the same device, so guessing would hand this installation's credential to another app.
+
 Verified: 2026-10-21. This page translates the build190 source review associated with the F10 documentation baseline. It explains how to use, diagnose, and maintain port handling. Current delivery identity and subsequent changes belong to the [release introduction](release-introduction.md).
 
 The application runs DSH 0.2.1-rc.5. See [runtime engines](runtime-engines.md) and [DNS configuration](dns-configuration.md) for those separate concerns. A port, authentication credentials, and a Web generation are three distinct fields; none proves either of the others.

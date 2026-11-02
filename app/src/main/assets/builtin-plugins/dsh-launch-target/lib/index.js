@@ -21,7 +21,9 @@ export async function bridgeEntryTarget(set) {
   const token = (await readFile('/root/.dsh/.bridge_token', 'utf8')).trim()
   if (!token) throw Object.assign(Error('bridge unavailable'), { code: 'bridge-unavailable' })
   const query = set === undefined ? '' : '?set=' + encodeURIComponent(set)
-  const response = await fetch('http://127.0.0.1:' + bridgePort() + '/app/entry-target' + query, {
+  let port
+  try { port = bridgePort() } catch { throw Object.assign(Error('bridge unavailable'), { code: 'bridge-unavailable' }) }
+  const response = await fetch('http://127.0.0.1:' + port + '/app/entry-target' + query, {
     headers: { 'X-Token': token }, signal: AbortSignal.timeout(3000)
   })
   const result = (await response.json()).result

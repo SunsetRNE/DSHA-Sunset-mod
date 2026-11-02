@@ -195,9 +195,12 @@ test('status overlay actual apply forwards current stream and tool events throug
       return originalRead.call(this,file,...args);
     };
     syncBuiltinESMExports();
+    // 生产不再回退 3090：无本机端口文件时显式发布，期望值取实际解析结果（文件优先于环境）。
+    process.env.DSHA_BRIDGE_PORT ??= '3090';
+    const expectedOrigin='http://127.0.0.1:'+createRequire(import.meta.url)(resolve('app/src/main/assets/builtin-plugins/dsh-status-overlay/lib/bridge-port.cjs'))();
     globalThis.fetch = async (input,options) => {
       const url=new URL(input);
-      assert.equal(url.origin,'http://127.0.0.1:3090');
+      assert.equal(url.origin,expectedOrigin);
       assert.ok(['/app/overlay','/app/plugins'].includes(url.pathname));
       assert.equal(url.searchParams.has('token'),false);
       assert.equal(options.headers['X-Token'],'owned-fixture-token');

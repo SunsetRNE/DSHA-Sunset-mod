@@ -29,14 +29,17 @@ KEY = KEYDIR + '/adbkey'
 KEYPUB = KEY + '.pub'
 BRIDGE_TOKEN_FILE = '/root/.dsh/.bridge_token'
 BRIDGE_PORT_FILE = '/root/.dsh/.bridge_port'
-DEFAULT_BRIDGE_PORT = 3090
 TRANSPORT_TIMEOUT = 4.0
 CONNECT_TIMEOUT = 25.0
 COMMAND_TIMEOUT = 90.0
 
 
 def bridge_port():
-    """每次重读本安装端口；只接受 ASCII 十进制，失效时再读环境及旧默认值。"""
+    """每次重读本安装端口；只接受 ASCII 十进制，失效时只认显式环境值。
+
+    不回退任何固定端口：3090–3099 可能属于同机另一个 DSHA 安装，
+    猜端口再带上本安装 token 等于把凭据交给别的应用。未发布即视为桥未就绪，命令不发送。
+    """
     def regular(info):
         return (stat.S_ISREG(info.st_mode) and 1 <= info.st_size <= 5
                 and (info.st_mode & 0o077) == 0)
@@ -70,7 +73,7 @@ def bridge_port():
     raw = os.environ.get('DSHA_BRIDGE_PORT', '')
     if re.fullmatch(r'[0-9]{1,5}', raw) and 1 <= int(raw) <= 65535:
         return int(raw)
-    return DEFAULT_BRIDGE_PORT
+    raise policy.Blocked('设备桥端口未发布（BRIDGE_PORT_UNAVAILABLE），命令未发送；请打开 DSHA 等设备桥就绪后重试')
 
 class ConnectFail(Exception):
     """命令尚未发送，允许重新发现地址。"""

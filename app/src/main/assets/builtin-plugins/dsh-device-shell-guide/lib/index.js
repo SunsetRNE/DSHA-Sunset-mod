@@ -60,10 +60,14 @@ export function languageInstruction(language) {
 
 /**
  * 端口必须在每次组装提示时重读：Web 可能先于设备桥启动，桥重启也可能换端口。
- * 在模块加载时缓存会把双实例场景永久写成另一个安装的 3090。
+ * 在模块加载时缓存会把双实例场景永久写成另一个安装的端口。端口未发布时不猜固定值：
+ * 3090–3099 可能属于同机另一个 DSHA 安装，写进提示词会让模型把本安装 token 发过去。
  */
 export function promptText(language = fallbackLanguage()) {
-  const port = bridgePort();
+  let known;
+  try { known = bridgePort(); } catch { known = undefined; }
+  // 非数字占位让 curl 直接报 URL 错误，而不是连到默认端口。
+  const port = known === undefined ? '<PORT>' : String(known);
   return [
   '【设备操作能力 · DSHA】你正运行在用户 Android 手机的容器里，可以干预这台实体手机。',
   languageInstruction(language),
@@ -87,6 +91,9 @@ export function promptText(language = fallbackLanguage()) {
   '  - 观察、节点或输入框身份必须来自同一 coreInstance/generation；坐标动作仍须最新观察帧，锚定操作遵守工具返回的原观察与一次性规则。' +
   '    结果 UNKNOWN 或执行后目标变化时不得自动重放，也不得切换到另一块屏幕兜底；工具或权限不可用时说明实际原因。',
 
+  ...(known === undefined ? ['  ⚠ 设备桥端口尚未发布（/root/.dsh/.bridge_port 不存在或无效）：设备桥未就绪。' +
+    '不要猜 3090 或其他端口，那可能是同机另一个 DSHA 安装；请用户打开 DSHA 等设备桥就绪后再试，' +
+    '就绪后从 /root/.dsh/.bridge_port 读取端口替换下面的 <PORT>。'] : []),
   '■ 完整端点清单（读屏 / 点按 / 输入 / 截屏 / 通知 / 剪贴板 / 传感器 / 导出文件 …）：',
   '  # Credentials are sent by header file; do not place them in URLs or argv.',
   '  curl -s -H @/root/.dsh/.bridge_headers "http://127.0.0.1:' + port + '/app/help"',
