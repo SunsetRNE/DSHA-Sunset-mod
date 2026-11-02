@@ -1422,6 +1422,7 @@
     "app/src/main/java/com/deepseekharness/app/nethealth/NetworkHealthProbe.java",
     "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java",
     "app/src/main/java/com/deepseekharness/app/util/NetworkHealthPolicy.java",
-    "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java"
+    "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java",
+    "app/src/test/java/com/deepseekharness/app/backup/NativeDataLocationsProofTest.java"
   ]
 }
