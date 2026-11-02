@@ -189,4 +189,39 @@ public final class DeployCapsuleTest {
         RuntimeEnvironment.getApplication().getResources().getConfiguration();
     assertTrue(configuration.screenWidthDp > 0);
   }
+
+  /** 运行中只有当前阶段播放加载动画（分段流光 + 阶段圆环）；完成 / 失败后全部为静态。 */
+  @Test
+  public void onlyTheRunningStageShowsLoadingAnimation() {
+    OnboardingKit kit = new OnboardingKit(RuntimeEnvironment.getApplication());
+    DeployStages.View running = DeployStages.view(Mode.INSTALL, Phase.RUNNING, 2, "", "", 7);
+    int current = -1;
+    for (int i = 0; i < running.steps.length; i++)
+      if (running.steps[i] == DeployStages.Step.CURRENT) current = i;
+    assertTrue("运行中应有当前阶段", current >= 0);
+    android.widget.LinearLayout bar = kit.segmentBar(running);
+    android.widget.LinearLayout list = kit.stageList(running);
+    for (int i = 0; i < running.total(); i++) {
+      boolean expected = i == current;
+      assertEquals(expected, bar.getChildAt(i) instanceof DeployRunSegment);
+      assertEquals(expected, hasSpinner(list.getChildAt(i)));
+    }
+    for (Phase phase : new Phase[] {Phase.SUCCEEDED, Phase.FAILED, Phase.PENDING}) {
+      DeployStages.View done = DeployStages.view(Mode.INSTALL, phase, 2, "", "", 7);
+      android.widget.LinearLayout doneBar = kit.segmentBar(done);
+      android.widget.LinearLayout doneList = kit.stageList(done);
+      for (int i = 0; i < done.total(); i++) {
+        assertFalse(doneBar.getChildAt(i) instanceof DeployRunSegment);
+        assertFalse(hasSpinner(doneList.getChildAt(i)));
+      }
+    }
+  }
+
+  private static boolean hasSpinner(View view) {
+    if (view instanceof BootSpinnerView) return true;
+    if (view instanceof android.view.ViewGroup group)
+      for (int i = 0; i < group.getChildCount(); i++)
+        if (hasSpinner(group.getChildAt(i))) return true;
+    return false;
+  }
 }

@@ -395,14 +395,18 @@ final class OnboardingKit {
 
   // ---------------------------------------------------------------- 阶段条与阶段列表
 
-  /** 分段进度条：按阶段着色，不显示百分比；带无障碍进度描述。 */
+  /** 分段进度条：按阶段着色，不显示百分比；带无障碍进度描述。运行中的当前段以流光表示仍在进行。 */
   LinearLayout segmentBar(DeployStages.View view) {
     LinearLayout bar = row();
     bar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     int total = view.total();
     for (int i = 0; i < total; i++) {
-      View seg = new View(context);
-      seg.setBackgroundResource(segmentDrawable(view, i));
+      View seg;
+      if (running(view, i)) seg = new DeployRunSegment(context, color(R.color.shell_accent));
+      else {
+        seg = new View(context);
+        seg.setBackgroundResource(segmentDrawable(view, i));
+      }
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(6), 1);
       if (i > 0) p.leftMargin = dp(3);
       bar.addView(seg, p);
@@ -415,6 +419,14 @@ final class OnboardingKit {
             view.completed(),
             total));
     return bar;
+  }
+
+  /** 第 index 个阶段是否正在执行（只有部署进行中的当前阶段播放加载动画）。 */
+  static boolean running(DeployStages.View view, int index) {
+    return view.phase == DeployStages.Phase.RUNNING
+        && index >= 0
+        && index < view.steps.length
+        && view.steps[index] == DeployStages.Step.CURRENT;
   }
 
   static int segmentDrawable(DeployStages.View view, int index) {
@@ -469,8 +481,16 @@ final class OnboardingKit {
         default:
           bg = R.drawable.bg_onb_step_todo;
       }
-      mark.setBackgroundResource(bg);
-      if (glyph != 0)
+      boolean spinning = running(view, i);
+      // 运行中的当前阶段用转动的圆环代替静态描边圆，表明仍在工作；圆环自带底轨，不再叠描边。
+      if (!spinning) mark.setBackgroundResource(bg);
+      if (spinning) {
+        BootSpinnerView spinner = new BootSpinnerView(context);
+        int accent = color(R.color.shell_accent);
+        spinner.setColors((0x40 << 24) | (accent & 0x00FFFFFF), accent);
+        spinner.setStrokeWidth(dp(2));
+        mark.addView(spinner, new FrameLayout.LayoutParams(dp(18), dp(18), Gravity.CENTER));
+      } else if (glyph != 0)
         mark.addView(
             icon(glyph, R.color.shell_on_accent, 12),
             new FrameLayout.LayoutParams(dp(12), dp(12), Gravity.CENTER));

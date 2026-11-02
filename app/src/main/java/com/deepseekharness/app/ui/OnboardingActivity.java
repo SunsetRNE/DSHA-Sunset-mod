@@ -23,6 +23,7 @@ import com.deepseekharness.app.core.EnvironmentAccess;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.DeployStages;
 import com.deepseekharness.app.util.DeviceSupportReport;
+import com.deepseekharness.app.util.OnboardingMotionPlan;
 import com.deepseekharness.app.util.PermissionGoals;
 import com.deepseekharness.app.util.UiText;
 import java.util.ArrayList;
@@ -66,6 +67,10 @@ public final class OnboardingActivity extends AppCompatActivity {
   private DeployCapsule capsule;
   private DeployCard card;
   private String renderedKey = "";
+
+  /** 本实例是否已显示过任一步骤，以及是否来自旋转 / 分屏重建：决定是否播放入场动效。 */
+  private boolean shownOnce, recreated;
+
   private final OnBackPressedCallback backStep =
       new OnBackPressedCallback(false) {
         @Override
@@ -89,6 +94,7 @@ public final class OnboardingActivity extends AppCompatActivity {
       goals.add(PermissionGoals.BASE);
       for (String goal : PermissionGoals.goals()) if (restored.contains(goal)) goals.add(goal);
     } else goals.addAll(savedGoals(this));
+    recreated = saved != null;
     if (saved != null) step = clamp(saved.getInt(STATE_STEP, WELCOME));
     else if (config.isWelcomed() || deployStarted())
       step = clamp(prefs().getInt(KEY_STEP, config.isWelcomed() ? FINISH : GOALS));
@@ -303,7 +309,7 @@ public final class OnboardingActivity extends AppCompatActivity {
   }
 
   /** 顶栏（返回 / 品牌 / 计数）、手机步骤条与宽屏左栏随步骤更新。 */
-  private void updateChrome() {
+  private void updateChrome(OnboardingMotionPlan.Kind motion, int from) {
     boolean wide = kit.wide();
     back.setVisibility(step > WELCOME ? View.VISIBLE : wide ? View.INVISIBLE : View.GONE);
     if (!wide) brand.setVisibility(step == WELCOME ? View.VISIBLE : View.GONE);
@@ -321,10 +327,13 @@ public final class OnboardingActivity extends AppCompatActivity {
         if (i > 0) p.leftMargin = kit.dp(4);
         stepsBar.addView(segment, p);
       }
+      OnboardingMotion.segments(stepsBar, motion, from, step);
     }
     if (stepList != null) {
       stepList.removeAllViews();
       for (int i = 0; i < STEPS; i++) kit.add(stepList, stepRow(i), i == 0 ? 0 : 3);
+      if (stepList.getChildAt(step) instanceof android.view.ViewGroup row)
+        OnboardingMotion.pop(row.getChildAt(0), motion);
       sideCounter.setText(
           String.format(
               Locale.ROOT,
@@ -347,6 +356,11 @@ public final class OnboardingActivity extends AppCompatActivity {
     if (target > WELCOME && !new ConfigStore(this).isWelcomed() && !deployStarted())
       target = WELCOME;
     boolean changed = target != step;
+    int from = step;
+    OnboardingMotionPlan.Kind motion =
+        OnboardingMotionPlan.choose(
+            UiMotion.animationsEnabled(this), recreated, !shownOnce, from, target);
+    shownOnce = true;
     step = target;
     try {
       prefs().edit().putInt(KEY_STEP, step).apply();
@@ -355,10 +369,13 @@ public final class OnboardingActivity extends AppCompatActivity {
     }
     backStep.setEnabled(step > WELCOME);
     if (step == WELCOME) measureSpace();
-    updateChrome();
+    updateChrome(motion, from);
     renderedKey = "";
     render(true);
     if (changed || !announce) scroll.scrollTo(0, 0);
+    // 只在真正的步骤切换（或首次入场）时播放；同一步原位刷新走 render(false)，不触发动效。
+    OnboardingMotion.content(content, motion);
+    OnboardingMotion.footer(footer, motion);
     if (announce)
       content.announceForAccessibility(
           String.format(
@@ -1164,6 +1181,7 @@ public final class OnboardingActivity extends AppCompatActivity {
             if (!goals.remove(id)) goals.add(id);
             saveGoals();
             paint.run();
+            if (goals.contains(id)) OnboardingMotion.popIfEnabled(box);
             v.sendAccessibilityEvent(
                 android.view.accessibility.AccessibilityEvent.TYPE_VIEW_CLICKED);
             renderGoalsFooter();

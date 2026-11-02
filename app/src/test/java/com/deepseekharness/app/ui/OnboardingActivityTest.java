@@ -255,6 +255,32 @@ public final class OnboardingActivityTest {
     restoredHost.pause().stop().destroy();
   }
 
+  /** 动效只改 alpha / translation：入场与切步结束后正文落在静态位置；旋转重建不重演入场。 */
+  @Test
+  public void stepMotionSettlesToStaticStateAndRotationSkipsIntro() {
+    new ConfigStore(RuntimeEnvironment.getApplication()).setWelcomed(true);
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    page.show(OnboardingActivity.GOALS);
+    org.robolectric.shadows.ShadowLooper.idleMainLooper(2, java.util.concurrent.TimeUnit.SECONDS);
+    ViewGroup content = page.content;
+    assertTrue(content.getChildCount() > 0);
+    for (int i = 0; i < content.getChildCount(); i++) {
+      View child = content.getChildAt(i);
+      assertEquals(1f, child.getAlpha(), 0.001f);
+      assertEquals(0f, child.getTranslationX(), 0.001f);
+      assertEquals(0f, child.getTranslationY(), 0.001f);
+    }
+    assertEquals(1f, page.footer.getAlpha(), 0.001f);
+    Bundle saved = new Bundle();
+    host.pause().saveInstanceState(saved).stop().destroy();
+    var restoredHost = Robolectric.buildActivity(OnboardingActivity.class).create(saved).start();
+    OnboardingActivity restored = restoredHost.get();
+    // 未推进主循环：如果重建时播放了入场，正文此刻会是透明的。
+    assertEquals(1f, restored.content.getChildAt(0).getAlpha(), 0.001f);
+    restoredHost.resume().pause().stop().destroy();
+  }
+
   private static boolean hasText(View view, String text) {
     if (view instanceof TextView && text.contentEquals(((TextView) view).getText())) return true;
     if (view instanceof ViewGroup group)
