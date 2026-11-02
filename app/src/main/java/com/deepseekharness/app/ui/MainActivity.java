@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
   /** 本进程身份：进程回收后重新生成，保存态里的旧值不再匹配。 */
   private static final String PROCESS_TOKEN = java.util.UUID.randomUUID().toString();
 
+  private long entryWindow;
   private static final java.util.concurrent.Executor ENTRY_IO =
       java.util.concurrent.Executors.newSingleThreadExecutor();
 
@@ -227,10 +228,18 @@ public class MainActivity extends AppCompatActivity {
     bootScreen.setStatus(
         com.deepseekharness.app.util.UiText.choose("正在检查运行环境…", "Checking the runtime…"));
     bootScreen.attach();
+    // 加载页可见期间，ADB 后台探活有界避让，不与入口检查和 Web 启动争环境租约（T25，实验性）。
+    entryWindow = com.deepseekharness.app.DeviceBridgeService.entryCheckBegan();
+  }
+
+  private void endEntryWindow() {
+    com.deepseekharness.app.DeviceBridgeService.entryCheckEnded(entryWindow);
+    entryWindow = 0L;
   }
 
   /** 入口检查结束后淡出加载页；系统关闭动画或视图已分离时直接移除。 */
   private void dismissEntryOverlay() {
+    endEntryWindow();
     BootScreen screen = bootScreen;
     bootScreen = null;
     if (screen != null) screen.dismiss();
@@ -1209,6 +1218,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onDestroy() {
     entryGate.cancel();
+    endEntryWindow();
     // 只停止加载页的等待；已提交的 Web 启动由运行时继续负责。
     if (directWeb != null) directWeb.cancel();
     // Main销毁只解绑页面。终端由进程级owner和独立FGS持有，

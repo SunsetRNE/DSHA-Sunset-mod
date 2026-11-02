@@ -90,6 +90,23 @@ public class DeviceBridgeService extends Service {
   private static final long KICK_DEBOUNCE_MS = 1_500L;
   private static final long FULL_VERIFY_INTERVAL_MS = 30 * 60 * 1000L;
 
+  /** 主界面入口检查开始的单调时钟；0 表示没有进行中的入口检查（T25，实验性）。 */
+  private static volatile long entryCheckStartedAt = 0L;
+
+  /** 开机加载页出现时调用；返回本次窗口的令牌，收尾时原样交回。 */
+  public static long entryCheckBegan() {
+    long now = Math.max(1L, android.os.SystemClock.elapsedRealtime());
+    entryCheckStartedAt = now;
+    return now;
+  }
+
+  /** 只结束自己开始的窗口；较新的入口检查不被旧 Activity 收尾覆盖。 */
+  public static void entryCheckEnded(long token) {
+    if (token > 0 && entryCheckStartedAt == token) entryCheckStartedAt = 0L;
+  }
+
+  private volatile boolean deferredProbePending = false;
+
   public static volatile String adbState = "unknown";
   public static volatile String adbDetail = "";
 
@@ -313,7 +330,11 @@ public class DeviceBridgeService extends Service {
           new android.content.BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-              kick(com.deepseekharness.app.util.UiText.text("屏幕点亮/解锁"));
+              // 解锁正是用户重新打开 DSHA 的时刻：先让入口检查与 Web 启动拿到环境租约，
+              // 稍后再探活（探活持独占租约最长约 60 秒）。
+              watchHandler.postDelayed(
+                  () -> kick(com.deepseekharness.app.util.UiText.text("屏幕点亮/解锁")),
+                  com.deepseekharness.app.util.AdbProbeDeferral.SCREEN_DELAY_MS);
             }
           };
       android.content.IntentFilter f = new android.content.IntentFilter();
@@ -352,6 +373,30 @@ public class DeviceBridgeService extends Service {
   }
 
   private void probeAsync(final String reason) {
+    probeWhenEntryIdle(reason, android.os.SystemClock.elapsedRealtime());
+  }
+
+  /** 入口检查进行中时有界延后探活；累计避让与窗口有效期均有上限，见 AdbProbeDeferral。 */
+  private void probeWhenEntryIdle(final String reason, final long firstRequestedAt) {
+    if (!running || !isAdbEnabled(this)) return;
+    long delay =
+        com.deepseekharness.app.util.AdbProbeDeferral.delayMs(
+            firstRequestedAt, entryCheckStartedAt, android.os.SystemClock.elapsedRealtime());
+    if (delay > 0) {
+      if (deferredProbePending) return; // 已有一次延后探活，合并为同一次。
+      deferredProbePending = true;
+      watchHandler.postDelayed(
+          () -> {
+            deferredProbePending = false;
+            probeWhenEntryIdle(reason, firstRequestedAt);
+          },
+          delay);
+      return;
+    }
+    startProbe(reason);
+  }
+
+  private void startProbe(final String reason) {
     if (!running || !isAdbEnabled(this) || AdbBridge.isPairing()) return;
     if (!probing.compareAndSet(false, true)) return;
     final long probeIntentEpoch = ADB_INTENT_EPOCH.get();
