@@ -1,5 +1,4 @@
-# DSHA 0.2.1-rc.3-20261102.1430-dsh0.2.1-rc.5 / build279
+# DSHA 0.2.1-rc.3-20261103.0130-dsh0.2.1-rc.5 / build280
 
-- Experimental: a página de recuperação do arranque foi refeita; um cartão de estado no topo indica a conclusão atual e as falhas são agrupadas por causa com o passo seguinte correspondente.
-- O build278 não foi publicado separadamente: as durações da lista de tarefas em segundo plano podiam mostrar uma tradução errada após mudar de idioma. Esta versão corrige isso e inclui o resto do build278.
-- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 279 (com base no build278). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Quando a porta da ponte do dispositivo não está publicada ou não pode ser lida, o pedido falha em vez de recorrer à porta 3090 com o token desta instalação, pelo que as credenciais não são enviadas a outra instalação DSHA no mesmo dispositivo.
+- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 280 (com base no build279). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

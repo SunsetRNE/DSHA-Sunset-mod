@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("启动恢复页"));
-      assertTrue(shown.contains("版本码提升为 279"));
+      assertTrue(shown.contains("不再回退 3090"));
+      assertTrue(shown.contains("版本码提升为 280"));
+      assertFalse(shown.contains("启动恢复页"));
+      assertFalse(shown.contains("版本码提升为 279"));
       assertFalse(shown.contains("后台任务页"));
       assertFalse(shown.contains("版本码提升为 278"));
       assertFalse(shown.contains("导出可读副本"));
@@ -221,8 +223,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("startup recovery page"));
-      assertTrue(shown.contains("Raises versionCode to 279"));
+      assertTrue(shown.contains("falling back to port 3090"));
+      assertTrue(shown.contains("Raises versionCode to 280"));
+      assertFalse(shown.contains("startup recovery page"));
+      assertFalse(shown.contains("Raises versionCode to 279"));
       assertFalse(shown.contains("background tasks page"));
       assertFalse(shown.contains("Raises versionCode to 278"));
       assertFalse(shown.contains("readable copy"));

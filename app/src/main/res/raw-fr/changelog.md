@@ -1,5 +1,4 @@
-# DSHA 0.2.1-rc.3-20261102.1430-dsh0.2.1-rc.5 / build279
+# DSHA 0.2.1-rc.3-20261103.0130-dsh0.2.1-rc.5 / build280
 
-- Expérimental : la page de récupération au démarrage est refaite ; une carte d'état en haut indique la conclusion actuelle, et les échecs sont classés par cause avec l'étape suivante correspondante.
-- build278 n'a pas été publié séparément : les durées de la liste des tâches en arrière-plan pouvaient afficher une mauvaise traduction après un changement de langue. Cette version corrige ce point et inclut le reste de build278.
-- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 279 (basé sur build278). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Si le port du pont d'appareil n'est pas publié ou illisible, la requête échoue au lieu de se rabattre sur le port 3090 avec le jeton de cette installation ; les identifiants ne sont donc pas envoyés à une autre installation DSHA du même appareil.
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 280 (basé sur build279). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
