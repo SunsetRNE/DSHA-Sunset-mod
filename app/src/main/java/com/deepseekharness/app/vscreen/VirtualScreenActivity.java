@@ -184,11 +184,9 @@ public final class VirtualScreenActivity extends AppCompatActivity {
             R.id.vscreen_verify_close,
             t("核验关闭", "Verify close"),
             () -> {
-              // 启动结果未知时“关闭”无法解除屏障（ADR0003）；改为打开诊断，不派发任何设备命令。
+              // 启动结果未知时“关闭”无法解除屏障（ADR0003）；改为查看本机启动记录，不派发任何设备命令。
               if (manager.lifecycleState() == VirtualScreenLifecycleState.START_UNKNOWN)
-                startActivity(
-                    new android.content.Intent(
-                        this, com.deepseekharness.app.ui.DiagnosticActivity.class));
+                showStartRecords();
               else run(() -> manager.close());
             });
     actionButtons = new Button[] {nodes, rotate, close};
@@ -389,7 +387,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     boolean startUnknown = manager.lifecycleState() == VirtualScreenLifecycleState.START_UNKNOWN;
     verifyClose.setText(
         next == ViewState.CLEANUP && startUnknown
-            ? t("查看自检与诊断", "Open diagnostics")
+            ? t("查看启动记录", "View launch records")
             : t("核验关闭", "Verify close"));
     stageTitle.setText(stageTitle(next));
     String body = stageMessage(next);
@@ -495,8 +493,8 @@ public final class VirtualScreenActivity extends AppCompatActivity {
         String text =
             manager.lifecycleState() == VirtualScreenLifecycleState.START_UNKNOWN
                 ? t(
-                    "启动命令已发出，但没有收到可核验的回复，也无法确认它是否还在运行。为避免同时存在两块虚拟屏，本次开机内不再创建。重启设备后即可重新创建；也可先到“自检与诊断”导出日志。",
-                    "The launch was sent but no verifiable reply arrived, so it cannot be confirmed whether it is still running. To avoid two virtual screens, nothing new is created until the next restart. Restart the device to create again, or export a log from Diagnostics first.")
+                    "启动命令已发出，但没有收到可核验的回复，也无法确认它是否还在运行。为避免同时存在两块虚拟屏，本次开机内不再创建。重启设备后即可重新创建；反馈问题时可先查看启动记录。",
+                    "The launch was sent but no verifiable reply arrived, so it cannot be confirmed whether it is still running. To avoid two virtual screens, nothing new is created until the next restart. Restart the device to create again; check the launch records when reporting the problem.")
                 : message("VSCREEN_" + manager.lifecycleState().name(), "");
         yield text + diagnosticSuffix();
       }
@@ -508,6 +506,52 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     JSONObject last = manager.lastStartOutcome();
     String code = last == null ? "" : last.optString("diagnostic", last.optString("reason"));
     return code.isEmpty() ? "" : "\n\n" + t("诊断码：", "Diagnostic code: ") + code;
+  }
+
+  /** 从本机操作记录筛出虚拟屏启动相关行（写入时已脱敏），最新在前；不读其他功能的记录。 */
+  static String startRecords(String history, int max) {
+    java.util.ArrayList<String> lines = new java.util.ArrayList<>();
+    for (String line : history.split("\n")) if (line.contains("[VSCREEN_")) lines.add(line.trim());
+    java.util.Collections.reverse(lines);
+    return String.join("\n\n", lines.subList(0, Math.min(max, lines.size())));
+  }
+
+  private void showStartRecords() {
+    long current = callbackEpoch;
+    android.content.Context app = getApplicationContext();
+    try {
+      probe.execute(
+          () -> {
+            String text;
+            try {
+              text =
+                  startRecords(com.deepseekharness.app.core.DiagnosticLog.readExportTail(app), 8);
+            } catch (Exception unavailable) {
+              text = "";
+            }
+            String out =
+                text.isEmpty()
+                    ? t("本机没有虚拟屏启动记录。", "No virtual-screen launch records on this device.")
+                    : text;
+            main.post(
+                () -> {
+                  if (isDestroyed() || current != callbackEpoch) return;
+                  new com.deepseekharness.app.ui.DshaDialogBuilder(this)
+                      .setTitle(t("虚拟屏启动记录", "Virtual-screen launch records"))
+                      .setMessage(out)
+                      .setNeutralButton(
+                          t("自检与诊断", "Diagnostics"),
+                          (d, w) ->
+                              startActivity(
+                                  new android.content.Intent(
+                                      this, com.deepseekharness.app.ui.DiagnosticActivity.class)))
+                      .setPositiveButton(t("关闭", "Close"), null)
+                      .show();
+                });
+          });
+    } catch (RejectedExecutionException closed) {
+      // 页面已销毁。
+    }
   }
 
   private void showUsage() {

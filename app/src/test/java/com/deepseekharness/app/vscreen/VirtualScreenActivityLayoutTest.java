@@ -284,11 +284,25 @@ public final class VirtualScreenActivityLayoutTest {
     render.invoke(activity);
     Button verify = activity.findViewById(R.id.vscreen_verify_close);
     assertEquals(View.VISIBLE, verify.getVisibility());
-    assertEquals("查看自检与诊断", verify.getText().toString());
+    assertEquals("查看启动记录", verify.getText().toString());
     assertEquals(View.GONE, outcome.getVisibility());
     assertEquals(View.GONE, activity.findViewById(R.id.vscreen_create_group).getVisibility());
     assertEquals("待清理", ((TextView) field(activity, "state")).getText().toString());
     life.set(manager, com.deepseekharness.app.util.VirtualScreenLifecycleState.STOPPED);
+  }
+
+  @Test
+  public void startRecordsKeepOnlyVirtualScreenLinesNewestFirst() {
+    String history =
+        "11-03 06:15:01 [WEB_START] ok\n"
+            + "11-03 06:15:02 [VSCREEN_START] VSCREEN_START_RESULT_UNKNOWN\n"
+            + "11-03 06:15:03 [RUNTIME_TRIAL] IO_FAILURE\n"
+            + "11-03 06:15:04 [VSCREEN_START_RESULT] epoch=1 {\"error\":\"VSCREEN_START_UNKNOWN\"}\n";
+    String out = VirtualScreenActivity.startRecords(history, 8);
+    assertFalse(out.contains("WEB_START"));
+    assertFalse(out.contains("RUNTIME_TRIAL"));
+    assertTrue(out.indexOf("06:15:04") < out.indexOf("06:15:02"));
+    assertEquals("", VirtualScreenActivity.startRecords("x [OTHER] y", 8));
   }
 
   @Test
