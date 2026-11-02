@@ -25,31 +25,23 @@ final class FullPermissionControls implements AutoCloseable {
     app = owner.requireContext().getApplicationContext();
     this.policyChanged = policyChanged;
     Context ctx = owner.requireContext();
+    // 压缩卡片：分组标题由页面标签承担；卡内只有开关、状态行（ⓘ + 诊断）与异常时的恢复操作。
+    float density = ctx.getResources().getDisplayMetrics().density;
     LinearLayout card = new LinearLayout(ctx);
     card.setOrientation(LinearLayout.VERTICAL);
-    int pad = Math.round(16 * ctx.getResources().getDisplayMetrics().density);
-    card.setPadding(pad, pad, pad, pad);
+    card.setPadding(
+        Math.round(14 * density),
+        Math.round(4 * density),
+        Math.round(6 * density),
+        Math.round(4 * density));
     card.setBackgroundResource(R.drawable.bg_settings_group);
-    TextView heading = new TextView(ctx);
-    heading.setText(UiText.choose("全局权限", "Global permission"));
-    heading.setTextSize(16);
-    heading.setTypeface(heading.getTypeface(), android.graphics.Typeface.BOLD);
-    heading.setTextColor(ctx.getColor(R.color.shell_text));
-    card.addView(heading);
     global = new MaterialSwitch(ctx);
     global.setText(UiText.choose("不再询问 DSHA 安全确认", "Skip DSHA safety confirmations"));
-    card.addView(global);
-    TextView hint = new TextView(ctx);
-    hint.setTextSize(12);
-    hint.setTextColor(ctx.getColor(R.color.shell_text_muted));
-    card.addView(hint, new LinearLayout.LayoutParams(-2, -2));
-    // 方案 A：行内一句，完整边界（本机保存、各项授权独立、业务选择不代答）收进 ⓘ。
-    InfoHint.bind(
-        hint,
-        UiText.choose("全局权限", "Global permission"),
-        UiText.choose(
-            "开启后，已获准能力的操作不再弹出 DSHA 安全确认。\n\n关闭后恢复各项确认规则。此开关仅保存在本机，不随备份迁移。文件访问、Root、ADB、短信、定位、传感器和 Android 系统权限仍按各自授权设置生效，独立拒绝或暂停仍然有效。需要填写的业务内容、恢复范围和保存位置仍由你选择。",
-            "When on, authorized capabilities skip DSHA safety confirmations.\n\nTurning it off restores confirmation rules. This choice stays on this device and is excluded from backups. File access, Root, ADB, SMS, location, sensors and Android permissions keep their separate grants; explicit denial or pause remains effective. Business inputs, restore scope and save destinations still require your selection."));
+    global.setTextSize(14);
+    global.setTextColor(ctx.getColor(R.color.shell_text));
+    global.setMinHeight(Math.round(48 * density));
+    global.setPaddingRelative(0, 0, Math.round(8 * density), 0);
+    card.addView(global, new LinearLayout.LayoutParams(-1, -2));
     LinearLayout statusRow = new LinearLayout(ctx);
     statusRow.setOrientation(LinearLayout.HORIZONTAL);
     statusRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -57,9 +49,27 @@ final class FullPermissionControls implements AutoCloseable {
     status.setTextSize(12);
     status.setTextColor(ctx.getColor(R.color.shell_text_secondary));
     statusRow.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
-    LinearLayout.LayoutParams statusRowParams = new LinearLayout.LayoutParams(-1, -2);
-    statusRowParams.topMargin = Math.round(8 * ctx.getResources().getDisplayMetrics().density);
-    card.addView(statusRow, statusRowParams);
+    // 完整边界（本机保存、各项授权独立、业务选择不代答）收进 ⓘ。
+    android.widget.ImageButton info = new android.widget.ImageButton(ctx);
+    info.setImageResource(R.drawable.ic_onb_info);
+    info.setImageTintList(
+        android.content.res.ColorStateList.valueOf(ctx.getColor(R.color.shell_accent)));
+    info.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+    int infoPad = Math.round(10 * density);
+    info.setPadding(infoPad, infoPad, infoPad, infoPad);
+    info.setBackgroundResource(R.drawable.bg_action_plain);
+    info.setContentDescription(UiText.choose("全局权限说明", "About global permission"));
+    info.setOnClickListener(
+        view ->
+            InfoHint.show(
+                ctx,
+                UiText.choose("全局权限", "Global permission"),
+                UiText.choose(
+                    "开启后，已获准能力的操作不再弹出 DSHA 安全确认。\n\n关闭后恢复各项确认规则。此开关仅保存在本机，不随备份迁移。文件访问、Root、ADB、短信、定位、传感器和 Android 系统权限仍按各自授权设置生效，独立拒绝或暂停仍然有效。需要填写的业务内容、恢复范围和保存位置仍由你选择。",
+                    "When on, authorized capabilities skip DSHA safety confirmations.\n\nTurning it off restores confirmation rules. This choice stays on this device and is excluded from backups. File access, Root, ADB, SMS, location, sensors and Android permissions keep their separate grants; explicit denial or pause remains effective. Business inputs, restore scope and save destinations still require your selection.")));
+    int infoSize = Math.round(36 * density);
+    statusRow.addView(info, new LinearLayout.LayoutParams(infoSize, infoSize));
+    card.addView(statusRow, new LinearLayout.LayoutParams(-1, -2));
     recoveryChoices = new LinearLayout(ctx);
     for (boolean enabled : new boolean[] {false, true}) {
       var choice = new androidx.appcompat.widget.AppCompatButton(ctx);
@@ -112,7 +122,10 @@ final class FullPermissionControls implements AutoCloseable {
     diagnostics.setTextSize(13);
     diagnostics.setTextColor(ctx.getColor(R.color.shell_accent));
     diagnostics.setBackgroundResource(R.drawable.bg_action_plain);
-    diagnostics.setMinHeight(Math.round(44 * ctx.getResources().getDisplayMetrics().density));
+    diagnostics.setMinHeight(Math.round(36 * density));
+    diagnostics.setMinWidth(0);
+    diagnostics.setMinimumWidth(0);
+    diagnostics.setPaddingRelative(Math.round(8 * density), 0, Math.round(8 * density), 0);
     diagnostics.setMinimumHeight(diagnostics.getMinHeight());
     diagnostics.setOnClickListener(
         view -> {
@@ -139,7 +152,8 @@ final class FullPermissionControls implements AutoCloseable {
           }
           confirmEnable(ctx);
         });
-    host.addView(card, 2, new LinearLayout.LayoutParams(-1, -2));
+    // 追加到页面给出的槽位末尾，不再依赖页面子视图下标。
+    host.addView(card, new LinearLayout.LayoutParams(-1, -2));
     refresh();
   }
 

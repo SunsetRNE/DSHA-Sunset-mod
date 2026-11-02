@@ -25,6 +25,8 @@ import com.deepseekharness.app.core.DeviceGrants;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.Constants;
 import com.deepseekharness.app.util.DeviceShellPolicy;
+import com.deepseekharness.app.util.GrantSummary;
+import com.deepseekharness.app.util.UiText;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** 设备通道、系统权限与能力预授权的唯一设置页；沿用历史偏好键。 */
@@ -33,11 +35,15 @@ public final class DeviceGrantsFragment extends Fragment {
   private TextView smsStatus;
   private TextView screenPolicyStatus;
   private MaterialSwitch screenPause;
-  private android.widget.LinearLayout screenCards;
-  private View[] screenModeCards;
+  private android.widget.RadioGroup screenSegment;
+  private android.widget.RadioButton[] screenModeButtons;
   private TextView screenGlobalBanner, screenRulesRow;
-  private TextView rootPolicy;
-  private android.widget.Button rootPolicyChange;
+  private android.widget.RadioGroup rootModes;
+  private android.widget.RadioButton[] rootModeButtons;
+  private View[] pillDots;
+  private TextView[] pillTitles, pillValues;
+  private View[] pills;
+  private int columns = 1;
   private boolean updating;
   private int adbStatusRequest;
   private FullPermissionControls fullPermissions;
@@ -48,6 +54,7 @@ public final class DeviceGrantsFragment extends Fragment {
         public void run() {
           if (!isResumed() || getView() == null) return;
           refreshChannelLabels();
+          // refreshChannelLabels → refreshRootPolicy 已同步刷新概览。
           if (fullPermissions != null) fullPermissions.refresh();
           main.postDelayed(this, 1000);
         }
@@ -57,11 +64,17 @@ public final class DeviceGrantsFragment extends Fragment {
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle saved) {
     View view = inflater.inflate(R.layout.fragment_device_grants, container, false);
     Context ctx = requireContext();
+    columns = 1;
+    ((TextView) view.findViewById(R.id.grants_global_label))
+        .setText(UiText.choose("全局权限", "Global permission"));
     fullPermissions =
         new FullPermissionControls(
             this,
-            (android.widget.LinearLayout) ((android.widget.ScrollView) view).getChildAt(0),
-            this::refreshNativePolicyControls);
+            view.findViewById(R.id.grants_global_slot),
+            () -> {
+              refreshNativePolicyControls();
+              refreshSummary();
+            });
     for (int id :
         new int[] {
           R.id.device_root_status, R.id.workspace_shizuku_status, R.id.config_adb_status
@@ -115,28 +128,28 @@ public final class DeviceGrantsFragment extends Fragment {
           syncSettings();
           refreshChannelLabels();
         });
-    rootPolicy = view.findViewById(R.id.device_root_policy);
-    rootPolicyChange = view.findViewById(R.id.device_root_policy_change);
-    rootPolicyChange.setOnClickListener(button -> showRootPolicyDialog());
+    addRootModeControls(ctx, view);
     refreshRootPolicy();
-    view.findViewById(R.id.device_root_verify)
-        .setOnClickListener(
-            button -> {
-              if (!RootShell.enabled(ctx)) {
-                toast(com.deepseekharness.app.util.UiText.text("请先启用「允许 Root Shell」"));
-                return;
-              }
-              if (!RootShell.present()) {
-                toast(
-                    com.deepseekharness.app.util.UiText.text(
-                        "未找到 su；请确认手机已 root，且 root 管理器允许 DSHA 使用"));
-                return;
-              }
-              verify(
-                  button,
-                  view.findViewById(R.id.device_root_status),
-                  () -> RootShell.exec(ctx.getApplicationContext(), "id", -1));
-            });
+    android.widget.Button rootVerify = view.findViewById(R.id.device_root_verify);
+    rootVerify.setText(UiText.choose("验证", "Verify"));
+    rootVerify.setContentDescription(getString(R.string.ui_m0170));
+    rootVerify.setOnClickListener(
+        button -> {
+          if (!RootShell.enabled(ctx)) {
+            toast(com.deepseekharness.app.util.UiText.text("请先启用「允许 Root Shell」"));
+            return;
+          }
+          if (!RootShell.present()) {
+            toast(
+                com.deepseekharness.app.util.UiText.text(
+                    "未找到 su；请确认手机已 root，且 root 管理器允许 DSHA 使用"));
+            return;
+          }
+          verify(
+              button,
+              view.findViewById(R.id.device_root_status),
+              () -> RootShell.exec(ctx.getApplicationContext(), "id", -1));
+        });
     view.findViewById(R.id.device_shizuku_open).setOnClickListener(button -> openShizuku());
     view.findViewById(R.id.workspace_shizuku_auth)
         .setOnClickListener(
@@ -193,6 +206,8 @@ public final class DeviceGrantsFragment extends Fragment {
                 104);
         });
     CompoundButton adb = view.findViewById(R.id.config_adb_enable);
+    adb.setText(UiText.choose("ADB 设备通道", "ADB device channel"));
+    adb.setContentDescription(getString(R.string.ui_m0090));
     adb.setChecked(pref(ctx, "adb_enabled", false));
     adb.setOnCheckedChangeListener(
         (button, enabled) -> {
@@ -209,19 +224,21 @@ public final class DeviceGrantsFragment extends Fragment {
           syncSettings();
           refreshAdbStatus(view.findViewById(R.id.config_adb_status));
         });
-    view.findViewById(R.id.config_adb_pair)
-        .setOnClickListener(
-            button -> {
-              if (android.os.Build.VERSION.SDK_INT < 30) {
-                new com.deepseekharness.app.ui.DshaDialogBuilder(ctx)
-                    .setTitle(com.deepseekharness.app.util.UiText.text("当前系统没有配对码接口"))
-                    .setMessage(
-                        com.deepseekharness.app.util.UiText.text(
-                            "无线调试配对码需要 Android 11+。Android 6—10 可使用 Shizuku、已授权的 root，或由电脑开启 ADB TCP 通道。"))
-                    .setPositiveButton(com.deepseekharness.app.util.UiText.text("知道了"), null)
-                    .show();
-              } else startActivity(new Intent(ctx, AdbPairActivity.class));
-            });
+    android.widget.Button pair = view.findViewById(R.id.config_adb_pair);
+    pair.setText(UiText.choose("配对", "Pair"));
+    pair.setContentDescription(getString(R.string.ui_m0031));
+    pair.setOnClickListener(
+        button -> {
+          if (android.os.Build.VERSION.SDK_INT < 30) {
+            new com.deepseekharness.app.ui.DshaDialogBuilder(ctx)
+                .setTitle(com.deepseekharness.app.util.UiText.text("当前系统没有配对码接口"))
+                .setMessage(
+                    com.deepseekharness.app.util.UiText.text(
+                        "无线调试配对码需要 Android 11+。Android 6—10 可使用 Shizuku、已授权的 root，或由电脑开启 ADB TCP 通道。"))
+                .setPositiveButton(com.deepseekharness.app.util.UiText.text("知道了"), null)
+                .show();
+          } else startActivity(new Intent(ctx, AdbPairActivity.class));
+        });
     view.findViewById(R.id.config_all_files).setOnClickListener(button -> openAllFilesAccess(ctx));
     view.findViewById(R.id.config_battery_opt).setOnClickListener(button -> openBatteryOpt(ctx));
     sms = view.findViewById(R.id.device_sms);
@@ -246,12 +263,11 @@ public final class DeviceGrantsFragment extends Fragment {
               .show();
         });
     updateSms();
-    // 方案 A：静态多句说明行内只留第一句，完整内容点 ⓘ 查看（动态状态文本不收起）。
-    InfoHint.attach(
-        view.findViewById(R.id.grants_page_hint), getString(R.string.ui2_device_grants));
-    InfoHint.attach(view.findViewById(R.id.device_root_hint), getString(R.string.ui_m0062));
-    InfoHint.attach(view.findViewById(R.id.device_adb_hint), getString(R.string.ui_m0090));
-    InfoHint.attach(view.findViewById(R.id.config_battery_opt_hint), getString(R.string.ui_m0191));
+    // 压缩版：各通道的长说明合并到「设备执行通道」标签旁的 ⓘ；页面说明在概览头部的 ⓘ。
+    bindChannelInfo(ctx, view);
+    buildSummaryHeader(ctx, view);
+    adaptColumns(view);
+    refreshSummary();
     return view;
   }
 
@@ -259,90 +275,101 @@ public final class DeviceGrantsFragment extends Fragment {
       com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode.values();
 
   /**
-   * 方案 A 屏幕操作：暂停开关 + 确认方式风险卡片（全部手动「推荐」/ 按应用自定义 / 全部允许「高风险」）。
-   * 点卡片直接保存；全部允许需先通过红色确认。自定义选中时卡片下方出现「已配置 N 个应用 ›」。
+   * 压缩版屏幕操作：暂停开关 + 确认方式三段选择（全部手动 / 按应用 / 全部允许）。点一段即保存；
+   * 全部允许先经红色确认，确认前分段保持原值。选中「按应用」时下方出现「已配置 N 个应用 ›」。
    */
   private void addScreenPolicyControls(Context ctx, View page) {
     screenPause = page.findViewById(R.id.screen_pause);
-    screenPause.setText(
-        com.deepseekharness.app.util.UiText.choose("暂停助手屏幕操作", "Pause assistant screen actions"));
+    screenPause.setText(UiText.choose("暂停助手屏幕操作", "Pause assistant screen actions"));
     screenPause.setOnCheckedChangeListener(
         (button, paused) -> {
           if (updating) return;
           com.deepseekharness.app.HttpShellService.setScreenPaused(ctx, paused);
           refreshScreenPolicy();
+          refreshSummary();
         });
     ((TextView) page.findViewById(R.id.screen_policy_label))
-        .setText(com.deepseekharness.app.util.UiText.choose("确认方式", "Confirmation"));
+        .setText(UiText.choose("确认方式", "Confirmation"));
     screenPolicyStatus = page.findViewById(R.id.screen_policy_status);
-    screenCards = page.findViewById(R.id.screen_policy_cards);
+    android.widget.LinearLayout host = page.findViewById(R.id.screen_policy_cards);
     screenGlobalBanner = new TextView(ctx);
     screenGlobalBanner.setTextSize(12);
     screenGlobalBanner.setTextColor(ctx.getColor(R.color.shell_text_secondary));
     screenGlobalBanner.setBackgroundResource(R.drawable.bg_shell_status);
-    screenGlobalBanner.setPadding(dp(12), dp(10), dp(12), dp(10));
+    screenGlobalBanner.setPadding(dp(12), dp(8), dp(12), dp(8));
     screenGlobalBanner.setText(
-        com.deepseekharness.app.util.UiText.choose(
+        UiText.choose(
             "全局权限已开启，以下规则暂不生效；关闭全局权限后按这些规则确认。",
             "Global permission is on, so these rules are not in effect. They apply again when it is off."));
     android.widget.LinearLayout.LayoutParams bannerParams =
         new android.widget.LinearLayout.LayoutParams(-1, -2);
-    bannerParams.bottomMargin = dp(10);
-    screenCards.addView(screenGlobalBanner, bannerParams);
+    bannerParams.bottomMargin = dp(8);
+    host.addView(screenGlobalBanner, bannerParams);
     String[] names = {
-      com.deepseekharness.app.util.UiText.choose("全部手动", "Confirm every action"),
-      com.deepseekharness.app.util.UiText.choose("按应用自定义", "Customize by app"),
-      com.deepseekharness.app.util.UiText.choose("全部允许", "Allow all")
+      UiText.choose("全部手动", "Ask always"),
+      UiText.choose("按应用", "By app"),
+      UiText.choose("全部允许", "Allow all")
     };
-    String[] descriptions = {
-      com.deepseekharness.app.util.UiText.choose(
-          "每次读屏和操作前都询问你", "Ask before every observation and action"),
-      com.deepseekharness.app.util.UiText.choose(
-          "指定应用免确认，其他应用仍询问", "Chosen apps skip confirmation; others still ask"),
-      com.deepseekharness.app.util.UiText.choose(
-          "所有应用免确认，含敏感界面", "No confirmation for any app, including sensitive screens")
-    };
-    String[] badges = {
-      com.deepseekharness.app.util.UiText.choose("推荐", "Recommended"),
-      "",
-      com.deepseekharness.app.util.UiText.choose("高风险", "High risk")
-    };
-    screenModeCards = new View[SCREEN_MODES.length];
-    for (int i = 0; i < SCREEN_MODES.length; i++) {
-      final var mode = SCREEN_MODES[i];
-      View card = rootPolicyCard(ctx, names[i], "", descriptions[i], badges[i], screenTone(i));
-      card.setOnClickListener(
-          v -> {
-            var grants = new DeviceGrants(ctx);
-            var current = grants.screenPolicy();
-            if (current.mode == mode) return;
-            if (mode == com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode.ALLOW_ALL)
-              confirmScreenAllowAll();
-            else saveScreenMode(mode);
-          });
-      android.widget.LinearLayout.LayoutParams params =
-          new android.widget.LinearLayout.LayoutParams(-1, -2);
-      if (i > 0) params.topMargin = dp(10);
-      screenCards.addView(card, params);
-      screenModeCards[i] = card;
-      if (mode == com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode.CUSTOM) {
-        screenRulesRow = new TextView(ctx);
-        screenRulesRow.setTextSize(13);
-        screenRulesRow.setTextColor(ctx.getColor(R.color.shell_accent));
-        screenRulesRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        screenRulesRow.setMinHeight(dp(44));
-        screenRulesRow.setPadding(dp(48), 0, dp(14), 0);
-        screenRulesRow.setBackgroundResource(R.drawable.bg_action_plain);
-        screenRulesRow.setOnClickListener(v -> showScreenRules());
-        screenCards.addView(screenRulesRow, new android.widget.LinearLayout.LayoutParams(-1, -2));
-      }
-    }
+    String[] spoken = new String[SCREEN_MODES.length];
+    for (int i = 0; i < SCREEN_MODES.length; i++)
+      spoken[i] = UiText.format("%s, %s", names[i], screenModeDescription(i));
+    screenSegment = new android.widget.RadioGroup(ctx);
+    screenSegment.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    screenSegment.setBackgroundResource(R.drawable.bg_plugin_segment_track);
+    screenSegment.setPadding(dp(3), dp(3), dp(3), dp(3));
+    screenModeButtons =
+        buildSegment(
+            ctx,
+            screenSegment,
+            names,
+            spoken,
+            new int[] {screenTone(0), screenTone(1), screenTone(2)},
+            index -> pickScreenMode(SCREEN_MODES[index]));
+    host.addView(screenSegment, new android.widget.LinearLayout.LayoutParams(-1, -2));
+    screenRulesRow = new TextView(ctx);
+    screenRulesRow.setTextSize(13);
+    screenRulesRow.setTextColor(ctx.getColor(R.color.shell_accent));
+    screenRulesRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    screenRulesRow.setMinHeight(dp(40));
+    screenRulesRow.setPadding(dp(4), 0, dp(8), 0);
+    screenRulesRow.setBackgroundResource(R.drawable.bg_action_plain);
+    screenRulesRow.setOnClickListener(v -> showScreenRules());
+    host.addView(screenRulesRow, new android.widget.LinearLayout.LayoutParams(-1, -2));
     android.widget.Button revoke = page.findViewById(R.id.screen_revoke);
-    revoke.setText(
-        com.deepseekharness.app.util.UiText.choose(
-            "暂停并撤销全部预授权", "Pause and revoke all preauthorizations"));
+    revoke.setText(UiText.choose("撤销预授权", "Revoke"));
+    revoke.setContentDescription(
+        UiText.choose("暂停并撤销全部预授权", "Pause and revoke all preauthorizations"));
     revoke.setOnClickListener(button -> confirmScreenRevoke());
     refreshScreenPolicy();
+  }
+
+  private static String screenModeDescription(int index) {
+    return switch (index) {
+      case 0 -> UiText.choose("每次读屏和操作前都询问你", "Ask before every observation and action");
+      case 1 -> UiText.choose("指定应用免确认，其他应用仍询问", "Chosen apps skip confirmation; others still ask");
+      default ->
+          UiText.choose(
+              "所有应用免确认，含敏感界面", "No confirmation for any app, including sensitive screens");
+    };
+  }
+
+  private static String screenModeBadge(int index) {
+    return switch (index) {
+      case 0 -> UiText.choose("推荐", "Recommended");
+      case 2 -> UiText.choose("高风险", "High risk");
+      default -> "";
+    };
+  }
+
+  /** 屏幕确认方式：未变化不处理；全部允许必须先过红色确认。分段始终按已保存值重画。 */
+  private void pickScreenMode(com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode mode) {
+    if (!isAdded()) return;
+    var current = new DeviceGrants(requireContext()).screenPolicy().mode;
+    refreshScreenPolicy();
+    if (current == mode) return;
+    if (mode == com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode.ALLOW_ALL)
+      confirmScreenAllowAll();
+    else saveScreenMode(mode);
   }
 
   private static int screenTone(int index) {
@@ -355,6 +382,7 @@ public final class DeviceGrantsFragment extends Fragment {
     if (!grants.setScreenPolicy(mode, grants.screenPolicy().rules))
       toast(com.deepseekharness.app.util.UiText.text("授权保存失败，请重试"));
     refreshScreenPolicy();
+    refreshSummary();
   }
 
   /** 红色警告确认（无倒计时）：点空白不关闭，「取消」在最右，确认按钮为红色。 */
@@ -461,31 +489,42 @@ public final class DeviceGrantsFragment extends Fragment {
   }
 
   private void refreshScreenPolicy() {
-    if (screenModeCards == null || !isAdded()) return;
+    if (screenModeButtons == null || !isAdded()) return;
     Context ctx = requireContext();
     var policy = new DeviceGrants(ctx).screenPolicy();
     boolean global = new DeviceGrants(ctx).consentPolicy().globalAllow();
-    for (int i = 0; i < screenModeCards.length; i++)
-      styleRootPolicyCard(
-          ctx, screenModeCards[i], screenTone(i), SCREEN_MODES[i] == policy.mode, false);
-    // 全局权限开启时规则暂不生效：卡片变淡但仍可编辑。
+    int selected = 0;
+    updating = true;
+    for (int i = 0; i < screenModeButtons.length; i++) {
+      boolean on = SCREEN_MODES[i] == policy.mode;
+      if (on) selected = i;
+      screenModeButtons[i].setChecked(on);
+    }
+    updating = false;
+    // 全局权限开启时规则暂不生效：分段变淡但仍可编辑。
     screenGlobalBanner.setVisibility(global ? View.VISIBLE : View.GONE);
-    for (View card : screenModeCards) card.setAlpha(global ? 0.55f : 1f);
+    screenSegment.setAlpha(global ? 0.55f : 1f);
     boolean custom =
         policy.mode == com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode.CUSTOM;
     screenRulesRow.setVisibility(custom ? View.VISIBLE : View.GONE);
     screenRulesRow.setText(
         policy.rules.isEmpty()
-            ? com.deepseekharness.app.util.UiText.choose(
-                "添加免确认的应用 ›", "Add apps that skip confirmation ›")
-            : com.deepseekharness.app.util.UiText.format(
-                "已配置 %s 个应用 ›", String.valueOf(policy.rules.size())));
+            ? UiText.choose("添加免确认的应用 ›", "Add apps that skip confirmation ›")
+            : UiText.format("已配置 %s 个应用 ›", String.valueOf(policy.rules.size())));
+    String badge = screenModeBadge(selected);
+    String summary =
+        badge.isEmpty()
+            ? screenModeDescription(selected)
+            : UiText.format("%s · %s", screenModeDescription(selected), badge);
     InfoHint.bind(
         screenPolicyStatus,
-        com.deepseekharness.app.util.UiText.choose("屏幕确认规则", "Screen confirmation rules"),
-        com.deepseekharness.app.util.UiText.choose(
-            "仅设置 DSHA 的屏幕确认；不会授予系统权限。全部允许包含敏感界面；自定义中未配置的应用仍询问。规则保存在本机，不随备份迁移。",
-            "These rules only control DSHA confirmations and do not grant system permissions. Allow all includes sensitive screens. Unconfigured apps still ask in custom mode. Rules stay on this device and are excluded from backups."));
+        UiText.choose("屏幕确认规则", "Screen confirmation rules"),
+        UiText.format(
+            "%s\n%s",
+            summary,
+            UiText.choose(
+                "仅设置 DSHA 的屏幕确认；不会授予系统权限。全部允许包含敏感界面；自定义中未配置的应用仍询问。规则保存在本机，不随备份迁移。",
+                "These rules only control DSHA confirmations and do not grant system permissions. Allow all includes sensitive screens. Unconfigured apps still ask in custom mode. Rules stay on this device and are excluded from backups.")));
     updating = true;
     screenPause.setChecked(com.deepseekharness.app.HttpShellService.screenPaused());
     updating = false;
@@ -748,34 +787,25 @@ public final class DeviceGrantsFragment extends Fragment {
               ShizukuShell.userStatus(requireContext())));
     // 识别到 Stellar（Shizuku 兼容管理器）时按实际管理器命名；协议仍是 Shizuku 兼容层。
     boolean stellar = com.deepseekharness.app.ShizukuManagerCompat.isStellar(requireContext());
-    ((TextView) page.findViewById(R.id.workspace_shizuku_auth))
-        .setText(
-            ShizukuShell.hasPermission()
-                ? stellar
-                    ? com.deepseekharness.app.util.UiText.choose(
-                        "验证 Stellar 连接", "Verify Stellar connection")
-                    : com.deepseekharness.app.util.UiText.text("验证 Shizuku 连接")
-                : stellar
-                    ? com.deepseekharness.app.util.UiText.choose("授权 Stellar", "Authorize Stellar")
-                    : com.deepseekharness.app.util.UiText.text("授权 Shizuku"));
-    ((TextView) page.findViewById(R.id.device_shizuku_open))
-        .setText(
-            stellar
-                ? com.deepseekharness.app.util.UiText.choose("打开 Stellar", "Open Stellar")
-                : getString(R.string.ui_m0125));
+    // 行内按钮只放短动词；完整含义（验证 Stellar 连接 / 授权 Shizuku …）交给读屏。
+    TextView auth = page.findViewById(R.id.workspace_shizuku_auth);
+    boolean granted = ShizukuShell.hasPermission();
+    auth.setText(granted ? UiText.choose("验证", "Verify") : UiText.choose("授权", "Authorize"));
+    auth.setContentDescription(
+        granted
+            ? stellar
+                ? UiText.choose("验证 Stellar 连接", "Verify Stellar connection")
+                : UiText.text("验证 Shizuku 连接")
+            : stellar
+                ? UiText.choose("授权 Stellar", "Authorize Stellar")
+                : UiText.text("授权 Shizuku"));
+    TextView open = page.findViewById(R.id.device_shizuku_open);
+    open.setText(UiText.choose("打开", "Open"));
+    open.setContentDescription(
+        stellar ? UiText.choose("打开 Stellar", "Open Stellar") : getString(R.string.ui_m0125));
     TextView title = page.findViewById(R.id.device_shizuku_title);
     if (title != null)
       title.setText(stellar ? "Shizuku / Stellar" : getString(R.string.ui_brand_shizuku));
-    TextView hint = page.findViewById(R.id.device_shizuku_hint);
-    if (hint != null)
-      InfoHint.bind(
-          hint,
-          title == null ? null : title.getText(),
-          stellar
-              ? com.deepseekharness.app.util.UiText.choose(
-                  "已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。",
-                  "Stellar (a Shizuku-compatible manager) is detected. Start its service and enable the Shizuku compatibility layer, then authorize here. Restart the service after reboot.")
-              : getString(R.string.ui134_shizuku_hint));
     if (root.getTag() == null) root.setText(rootStatusWithoutPolicy(requireContext()));
     refreshRootPolicy();
   }
@@ -787,232 +817,395 @@ public final class DeviceGrantsFragment extends Fragment {
     return RootShell.enabled(ctx) && cut > 0 ? status.substring(0, cut) : status;
   }
 
+  private static final DeviceShellPolicy.Mode[] ROOT_MODES = {
+    DeviceShellPolicy.Mode.STRICT, DeviceShellPolicy.Mode.RELAXED, DeviceShellPolicy.Mode.FULL
+  };
+
+  /** Root 命令拦截三段：严格 / 放宽 / 完全放宽。点放宽档直接进入红色确认（勾选三项 + 10 秒）。 */
+  private void addRootModeControls(Context ctx, View page) {
+    rootModes = page.findViewById(R.id.device_root_modes);
+    String[] names = {
+      UiText.choose("严格", "Strict"),
+      UiText.choose("放宽", "Relaxed"),
+      UiText.choose("完全放宽", "Fully relaxed")
+    };
+    String[] spoken = {
+      UiText.format(
+          "%s, %s",
+          UiText.text("严格（默认）"), UiText.choose("仅放行白名单内的命令", "Only allowlisted commands run")),
+      UiText.format(
+          "%s, %s",
+          UiText.choose("放宽", "Relaxed"),
+          UiText.choose("允许任意命令，仍拦截不可逆操作", "Any command; irreversible operations still blocked")),
+      UiText.format(
+          "%s, %s",
+          UiText.choose("完全放宽", "Fully relaxed"),
+          UiText.choose("不按命令内容拦截", "No command-content checks"))
+    };
+    rootModeButtons =
+        buildSegment(
+            ctx,
+            rootModes,
+            names,
+            spoken,
+            new int[] {R.color.shell_good, R.color.shell_warn, R.color.shell_bad},
+            index -> pickRootMode(ROOT_MODES[index]));
+  }
+
+  /** 档位分段始终显示已保存值；只有确认保存后才会切换。 */
+  private void pickRootMode(DeviceShellPolicy.Mode mode) {
+    if (!isAdded()) return;
+    final Context ctx = requireContext();
+    DeviceShellPolicy.Mode current = new ConfigStore(ctx).rootPolicyMode();
+    refreshRootPolicy();
+    if (!RootShell.enabled(ctx)) {
+      toast(UiText.text("请先启用「允许 Root Shell」"));
+      return;
+    }
+    if (mode != current) confirmRootPolicy(mode);
+  }
+
   /**
-   * 只读的当前 root 命令拦截档位：一行档位 + 同行「更改」；作用范围收进 ⓘ。放宽 / 完全放宽时
-   * 显示红色严重警告框，严格档隐藏。
+   * 分段选择：放在 bg_plugin_segment_track 轨道里的等宽 RadioButton；选中段用对应风险色的文字。
+   * 点击由 onPick 处理，调用方负责按已保存值重画（RadioButton 自带的选中切换会被覆盖）。
    */
+  private android.widget.RadioButton[] buildSegment(
+      Context ctx,
+      android.widget.RadioGroup group,
+      String[] labels,
+      String[] descriptions,
+      int[] tones,
+      java.util.function.IntConsumer onPick) {
+    android.widget.RadioButton[] buttons = new android.widget.RadioButton[labels.length];
+    int muted = ctx.getColor(R.color.shell_text_secondary);
+    for (int i = 0; i < labels.length; i++) {
+      final int index = i;
+      android.widget.RadioButton button = new android.widget.RadioButton(ctx);
+      button.setId(View.generateViewId());
+      button.setButtonDrawable(null);
+      button.setBackgroundResource(R.drawable.bg_update_channel_tab);
+      button.setGravity(android.view.Gravity.CENTER);
+      button.setIncludeFontPadding(false);
+      button.setSingleLine(true);
+      button.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      button.setTextSize(13);
+      button.setTypeface(button.getTypeface(), android.graphics.Typeface.BOLD);
+      button.setText(labels[i]);
+      button.setContentDescription(descriptions[i]);
+      button.setTextColor(
+          new android.content.res.ColorStateList(
+              new int[][] {new int[] {android.R.attr.state_checked}, new int[] {}},
+              new int[] {ctx.getColor(tones[i]), muted}));
+      button.setMinHeight(dp(40));
+      button.setMinimumHeight(dp(40));
+      button.setPadding(dp(6), 0, dp(6), 0);
+      button.setOnClickListener(v -> onPick.accept(index));
+      android.widget.RadioGroup.LayoutParams params =
+          new android.widget.RadioGroup.LayoutParams(0, -2, 1f);
+      if (i > 0) params.setMarginStart(dp(2));
+      group.addView(button, params);
+      buttons[i] = button;
+    }
+    return buttons;
+  }
+
+  /** 当前档位按已保存值选中；放宽 / 完全放宽时显示红色警告框。Root 未启用时分段变淡。 */
   private void refreshRootPolicy() {
-    if (rootPolicy == null || !isAdded()) return;
+    if (rootModeButtons == null || !isAdded()) return;
     Context ctx = requireContext();
-    InfoHint.bind(
-        rootPolicy,
-        com.deepseekharness.app.util.UiText.text("Root 命令拦截档位"),
-        com.deepseekharness.app.util.UiText.format(
-            "命令拦截档位：%s\n仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。", RootShell.policyLabel(ctx)));
+    DeviceShellPolicy.Mode mode = new ConfigStore(ctx).rootPolicyMode();
+    boolean enabled = RootShell.enabled(ctx);
+    updating = true;
+    for (int i = 0; i < rootModeButtons.length; i++)
+      rootModeButtons[i].setChecked(ROOT_MODES[i] == mode);
+    updating = false;
+    rootModes.setAlpha(enabled ? 1f : 0.5f);
     View page = getView();
     TextView warning = page == null ? null : page.findViewById(R.id.device_root_policy_warning);
     if (warning == null) return;
-    DeviceShellPolicy.Mode mode = new ConfigStore(ctx).rootPolicyMode();
-    boolean relaxed = RootShell.enabled(ctx) && mode != DeviceShellPolicy.Mode.STRICT;
+    boolean relaxed = enabled && mode != DeviceShellPolicy.Mode.STRICT;
     warning.setVisibility(relaxed ? View.VISIBLE : View.GONE);
+    refreshSummary();
     if (!relaxed) return;
     warning.setText(
         mode == DeviceShellPolicy.Mode.FULL
-            ? com.deepseekharness.app.util.UiText.choose(
+            ? UiText.choose(
                 "严重风险：已完全放宽。助手和插件可用 root 执行任意命令，包括格式化、刷机、清除数据等不可逆操作，可能导致数据丢失或系统损坏。不用时请改回严格。",
                 "Severe risk: fully relaxed. The assistant and plugins can run any root command, including irreversible ones such as formatting, flashing or wiping data. This may cause data loss or system damage. Switch back to strict when not needed.")
-            : com.deepseekharness.app.util.UiText.choose(
+            : UiText.choose(
                 "高风险：已放宽。助手和插件可用 root 执行白名单以外的任意命令；仅拦截格式化、刷机、清除数据等不可逆操作。不用时请改回严格。",
                 "High risk: relaxed. The assistant and plugins can run root commands beyond the allowlist; only irreversible operations such as formatting, flashing or wiping data are blocked. Switch back to strict when not needed."));
   }
 
-  private void showRootPolicyDialog() {
-    final Context ctx = requireContext();
-    if (!RootShell.enabled(ctx)) {
-      toast(com.deepseekharness.app.util.UiText.text("请先启用「允许 Root Shell」"));
-      return;
+  /** 「设备执行通道」标签末尾加 ⓘ：Root / Shizuku / ADB 的长说明与拦截档位作用范围合在一处。 */
+  private void bindChannelInfo(Context ctx, View page) {
+    TextView label = page.findViewById(R.id.grants_channels_label);
+    android.graphics.drawable.Drawable icon = ctx.getDrawable(R.drawable.ic_onb_info);
+    if (icon != null) {
+      icon = icon.mutate();
+      icon.setBounds(0, 0, dp(16), dp(16));
+      icon.setTintList(
+          android.content.res.ColorStateList.valueOf(ctx.getColor(R.color.shell_accent)));
     }
-    final DeviceShellPolicy.Mode[] modes = {
-      DeviceShellPolicy.Mode.STRICT, DeviceShellPolicy.Mode.RELAXED, DeviceShellPolicy.Mode.FULL
-    };
-    final String[] names = {
-      com.deepseekharness.app.util.UiText.text("严格（默认）"),
-      com.deepseekharness.app.util.UiText.choose("放宽", "Relaxed"),
-      com.deepseekharness.app.util.UiText.choose("完全放宽", "Fully relaxed")
-    };
-    final String[] descriptions = {
-      com.deepseekharness.app.util.UiText.choose("仅放行白名单内的命令", "Only allowlisted commands run"),
-      com.deepseekharness.app.util.UiText.choose(
-          "允许任意命令，仍拦截不可逆操作", "Any command; irreversible operations still blocked"),
-      com.deepseekharness.app.util.UiText.choose("不按命令内容拦截", "No command-content checks")
-    };
-    final String[] badges = {
-      com.deepseekharness.app.util.UiText.choose("推荐", "Recommended"),
-      com.deepseekharness.app.util.UiText.choose("高风险", "High risk"),
-      com.deepseekharness.app.util.UiText.choose("严重风险", "Severe risk")
-    };
-    final int[] tones = {R.color.shell_good, R.color.shell_warn, R.color.shell_bad};
-    final DeviceShellPolicy.Mode current = new ConfigStore(ctx).rootPolicyMode();
-    final int[] selected = {0};
-    for (int i = 0; i < modes.length; i++) if (modes[i] == current) selected[0] = i;
-    final String currentTag = com.deepseekharness.app.util.UiText.choose("当前", "Current");
+    android.graphics.drawable.Drawable start = label.getCompoundDrawablesRelative()[0];
+    label.setCompoundDrawablesRelative(start, null, icon, null);
+    label.setBackgroundResource(R.drawable.bg_action_plain);
+    label.setMinHeight(dp(32));
+    label.setPaddingRelative(0, 0, dp(6), 0);
+    label.setContentDescription(
+        UiText.format(
+            "%s %s",
+            getString(R.string.ui2_device_channels),
+            UiText.choose("（点按查看完整说明）", "(tap for details)")));
+    label.setOnClickListener(
+        v ->
+            InfoHint.show(
+                ctx,
+                getString(R.string.ui2_device_channels),
+                UiText.format(
+                    "Root: %s\n\n%s\n\nShizuku: %s\n\nADB: %s",
+                    getString(R.string.ui134_root_hint),
+                    UiText.choose(
+                        "命令拦截档位仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。",
+                        "Command filtering levels apply only to the root channel; Shizuku/ADB general executors stay strict."),
+                    com.deepseekharness.app.ShizukuManagerCompat.isStellar(ctx)
+                        ? UiText.choose(
+                            "已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。",
+                            "Stellar (a Shizuku-compatible manager) is detected. Start its service and enable the Shizuku compatibility layer, then authorize here. Restart the service after reboot.")
+                        : getString(R.string.ui134_shizuku_hint),
+                    getString(R.string.ui134_adb_hint))));
+  }
 
-    // 方案 A：三档单选卡片，当前档默认选中并标「当前」；风险按绿/橙/红分级，完全放宽常驻红边。
-    // 点卡片只是选中；「下一步」才生效，放宽档进入第二步红色确认（倒计时 + 勾选）。
-    android.widget.LinearLayout list = new android.widget.LinearLayout(ctx);
-    list.setOrientation(android.widget.LinearLayout.VERTICAL);
-    list.setPadding(dp(20), dp(4), dp(20), dp(4));
-    View[] cards = new View[modes.length];
-    Runnable[] render = new Runnable[1];
-    for (int i = 0; i < modes.length; i++) {
-      final int index = i;
-      cards[i] =
-          rootPolicyCard(
-              ctx,
-              names[i],
-              modes[i] == current ? currentTag : "",
-              descriptions[i],
-              badges[i],
-              tones[i]);
-      cards[i].setOnClickListener(
-          v -> {
-            selected[0] = index;
-            render[0].run();
-          });
+  // ===== 固定概览头部 =====
+
+  private static final int PILL_GLOBAL = 0, PILL_ROOT = 1, PILL_SHIZUKU = 2, PILL_SCREEN = 3;
+
+  /** 四个概览胶囊（全局 / Root / Shizuku / 屏幕）+ 页面说明 ⓘ；点胶囊滚到对应分组。 */
+  private void buildSummaryHeader(Context ctx, View page) {
+    android.widget.LinearLayout header = page.findViewById(R.id.grants_header);
+    int[] targets = {
+      R.id.grants_section_global,
+      R.id.grants_section_channels,
+      R.id.grants_section_channels,
+      R.id.grants_section_screen
+    };
+    pills = new View[4];
+    pillDots = new View[4];
+    pillTitles = new TextView[4];
+    pillValues = new TextView[4];
+    for (int i = 0; i < 4; i++) {
+      android.widget.LinearLayout pill = new android.widget.LinearLayout(ctx);
+      pill.setOrientation(android.widget.LinearLayout.VERTICAL);
+      pill.setGravity(android.view.Gravity.CENTER_VERTICAL);
+      pill.setBackgroundResource(R.drawable.bg_grants_pill);
+      pill.setMinimumHeight(dp(44));
+      pill.setPadding(dp(8), dp(5), dp(6), dp(5));
+      pill.setClickable(true);
+      pill.setFocusable(true);
+      android.widget.LinearLayout top = new android.widget.LinearLayout(ctx);
+      top.setGravity(android.view.Gravity.CENTER_VERTICAL);
+      View dot = new View(ctx);
+      dot.setBackgroundResource(R.drawable.bg_update_dot);
+      android.widget.LinearLayout.LayoutParams dotParams =
+          new android.widget.LinearLayout.LayoutParams(dp(7), dp(7));
+      dotParams.setMarginEnd(dp(5));
+      top.addView(dot, dotParams);
+      TextView title = new TextView(ctx);
+      title.setTextSize(12);
+      title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+      title.setTextColor(ctx.getColor(R.color.shell_text));
+      title.setSingleLine(true);
+      title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      title.setIncludeFontPadding(false);
+      top.addView(title, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
+      pill.addView(top, new android.widget.LinearLayout.LayoutParams(-1, -2));
+      TextView value = new TextView(ctx);
+      value.setTextSize(11);
+      value.setTextColor(ctx.getColor(R.color.shell_text_secondary));
+      value.setSingleLine(true);
+      value.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      value.setIncludeFontPadding(false);
+      android.widget.LinearLayout.LayoutParams valueParams =
+          new android.widget.LinearLayout.LayoutParams(-1, -2);
+      valueParams.topMargin = dp(3);
+      valueParams.setMarginStart(dp(12));
+      pill.addView(value, valueParams);
+      final int target = targets[i];
+      pill.setOnClickListener(v -> scrollToSection(target));
+      android.widget.LinearLayout.LayoutParams params =
+          new android.widget.LinearLayout.LayoutParams(0, -2, 1f);
+      if (i > 0) params.setMarginStart(dp(6));
+      header.addView(pill, params);
+      pills[i] = pill;
+      pillDots[i] = dot;
+      pillTitles[i] = title;
+      pillValues[i] = value;
+    }
+    android.widget.ImageButton info = new android.widget.ImageButton(ctx);
+    info.setImageResource(R.drawable.ic_onb_info);
+    info.setImageTintList(
+        android.content.res.ColorStateList.valueOf(ctx.getColor(R.color.shell_accent)));
+    info.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+    info.setPadding(dp(12), dp(12), dp(12), dp(12));
+    info.setBackgroundResource(R.drawable.bg_action_plain);
+    info.setContentDescription(UiText.choose("页面说明", "About this page"));
+    info.setOnClickListener(
+        v ->
+            InfoHint.show(
+                ctx, getString(R.string.ui2_device_grants), getString(R.string.ui2_grants_sub)));
+    header.addView(info, new android.widget.LinearLayout.LayoutParams(dp(44), dp(44)));
+  }
+
+  private void scrollToSection(int id) {
+    View page = getView();
+    if (page == null) return;
+    android.widget.ScrollView scroll = page.findViewById(R.id.grants_scroll);
+    View target = page.findViewById(id);
+    View content = page.findViewById(R.id.grants_content);
+    if (scroll == null || target == null || content == null) return;
+    android.graphics.Rect rect = new android.graphics.Rect();
+    target.getDrawingRect(rect);
+    ((android.view.ViewGroup) content).offsetDescendantRectToMyCoords(target, rect);
+    scroll.smoothScrollTo(0, Math.max(0, rect.top - dp(6)));
+  }
+
+  /** 概览只读：状态来自已有授权与通道判据，映射规则在 GrantSummary（有单测）。 */
+  private void refreshSummary() {
+    if (pillValues == null || !isAdded()) return;
+    Context ctx = requireContext();
+    GrantSummary.Item[] items = {
+      GrantSummary.global(new DeviceGrants(ctx).consentSnapshot().readState()),
+      GrantSummary.root(
+          RootShell.enabled(ctx), RootShell.present(), new ConfigStore(ctx).rootPolicyMode()),
+      GrantSummary.shizuku(ShizukuShell.step(ctx)),
+      summaryScreen(ctx)
+    };
+    boolean stellar = com.deepseekharness.app.ShizukuManagerCompat.isStellar(ctx);
+    String[] titles = {
+      UiText.choose("全局", "Global"),
+      "Root",
+      stellar ? "Stellar" : "Shizuku",
+      UiText.choose("屏幕", "Screen")
+    };
+    for (int i = 0; i < items.length; i++) {
+      String value = summaryText(items[i].label);
+      pillTitles[i].setText(UiText.raw(titles[i]));
+      pillValues[i].setText(value);
+      pillDots[i].setBackgroundTintList(
+          android.content.res.ColorStateList.valueOf(ctx.getColor(summaryTone(items[i].tone))));
+      pills[i].setContentDescription(UiText.format("%s: %s", titles[i], value));
+    }
+  }
+
+  private static GrantSummary.Item summaryScreen(Context ctx) {
+    boolean enabled = "YES".equals(DshaAccessibilityService.enabledState(ctx));
+    return GrantSummary.screen(
+        enabled,
+        enabled && DshaAccessibilityService.connected(),
+        com.deepseekharness.app.HttpShellService.screenPaused(),
+        new DeviceGrants(ctx).screenPolicy().mode);
+  }
+
+  private static int summaryTone(GrantSummary.Tone tone) {
+    return switch (tone) {
+      case GOOD -> R.color.shell_good;
+      case WARN -> R.color.shell_warn;
+      case BAD -> R.color.shell_bad;
+      case NEUTRAL -> R.color.shell_text_muted;
+    };
+  }
+
+  private static String summaryText(GrantSummary.Label label) {
+    return switch (label) {
+      case GLOBAL_ON -> UiText.choose("已开启", "On");
+      case GLOBAL_OFF -> UiText.choose("关闭", "Off");
+      case GLOBAL_ATTENTION -> UiText.choose("需处理", "Check");
+      case GLOBAL_UPDATING -> UiText.choose("更新中", "Updating");
+      case ROOT_OFF -> UiText.choose("未启用", "Off");
+      case ROOT_NO_SU -> UiText.choose("未找到 su", "No su");
+      case ROOT_STRICT -> UiText.choose("严格", "Strict");
+      case ROOT_RELAXED -> UiText.choose("放宽", "Relaxed");
+      case ROOT_FULL -> UiText.choose("完全放宽", "Fully relaxed");
+      case SHIZUKU_READY -> UiText.choose("已连接", "Connected");
+      case SHIZUKU_NOT_AUTHORIZED -> UiText.choose("未授权", "Not authorized");
+      case SHIZUKU_BINDING -> UiText.choose("连接中", "Connecting");
+      case SHIZUKU_FAILED -> UiText.choose("连接失败", "Failed");
+      case SHIZUKU_NOT_RUNNING -> UiText.choose("未运行", "Not running");
+      case SCREEN_NOT_SET -> UiText.choose("未设置", "Not set up");
+      case SCREEN_CONNECTING -> UiText.choose("连接中", "Connecting");
+      case SCREEN_PAUSED -> UiText.choose("已暂停", "Paused");
+      case SCREEN_MANUAL -> UiText.choose("全部手动", "Ask always");
+      case SCREEN_CUSTOM -> UiText.choose("按应用", "By app");
+      case SCREEN_ALLOW_ALL -> UiText.choose("全部允许", "Allow all");
+    };
+  }
+
+  // ===== 平板 / 宽窗格：按实际宽度分栏 =====
+
+  /**
+   * 内容宽 ≥640dp 时把屏幕操作与敏感能力移到右栏，并把内容收进上限宽度居中；回到窄宽度时
+   * 按手机顺序（全局 / 通道 / 屏幕 / 系统 / 敏感）放回左栏。只在列数变化时搬动视图。
+   */
+  private void adaptColumns(View page) {
+    View scroll = page.findViewById(R.id.grants_scroll);
+    View content = page.findViewById(R.id.grants_content);
+    int base = getResources().getDimensionPixelSize(R.dimen.grants_page_pad);
+    scroll.addOnLayoutChangeListener(
+        (v, l, t, r, b, ol, ot, or, ob) -> {
+          if (r - l == or - ol) return;
+          float density = getResources().getDisplayMetrics().density;
+          int widthDp = Math.round((r - l) / density);
+          int baseDp = Math.round(base / density);
+          int side = Math.round(GrantSummary.sidePadding(widthDp, baseDp) * density);
+          int wanted = GrantSummary.columns(widthDp - 2 * baseDp);
+          v.post(
+              () -> {
+                if (getView() != page) return;
+                if (side != content.getPaddingStart())
+                  content.setPaddingRelative(
+                      side, content.getPaddingTop(), side, content.getPaddingBottom());
+                if (wanted != columns) applyColumns(page, wanted);
+              });
+        });
+  }
+
+  private void applyColumns(View page, int count) {
+    columns = count;
+    android.view.ViewGroup start = page.findViewById(R.id.grants_col_start);
+    android.view.ViewGroup end = page.findViewById(R.id.grants_col_end);
+    int[] order =
+        count == 2
+            ? new int[] {
+              R.id.grants_section_global, R.id.grants_section_channels, R.id.grants_section_system
+            }
+            : new int[] {
+              R.id.grants_section_global,
+              R.id.grants_section_channels,
+              R.id.grants_section_screen,
+              R.id.grants_section_system,
+              R.id.grants_section_sensitive
+            };
+    int[] right =
+        count == 2
+            ? new int[] {R.id.grants_section_screen, R.id.grants_section_sensitive}
+            : new int[0];
+    place(page, start, order);
+    place(page, end, right);
+    end.setVisibility(count == 2 ? View.VISIBLE : View.GONE);
+  }
+
+  /** 按给定顺序把分组放进栏内；每栏第一个分组不留顶部间距，保证两栏顶端对齐。 */
+  private void place(View page, android.view.ViewGroup column, int[] ids) {
+    int gap = getResources().getDimensionPixelSize(R.dimen.grants_section_gap);
+    for (int i = 0; i < ids.length; i++) {
+      View section = page.findViewById(ids[i]);
+      if (section.getParent() != null)
+        ((android.view.ViewGroup) section.getParent()).removeView(section);
       android.widget.LinearLayout.LayoutParams params =
           new android.widget.LinearLayout.LayoutParams(-1, -2);
-      if (i > 0) params.topMargin = dp(10);
-      list.addView(cards[i], params);
+      params.topMargin = i == 0 ? 0 : gap;
+      column.addView(section, params);
     }
-    android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
-    scroll.addView(list);
-    androidx.appcompat.app.AlertDialog dialog =
-        new DshaDialogBuilder(ctx)
-            .setTitle(com.deepseekharness.app.util.UiText.text("Root 命令拦截档位"))
-            .setView(scroll)
-            // 与第二步一致：「取消」在最右的安全位，「下一步」在其左侧。
-            .setPositiveButton(com.deepseekharness.app.util.UiText.text("取消"), null)
-            .setNegativeButton(
-                com.deepseekharness.app.util.UiText.text("下一步"),
-                (d, which) -> {
-                  DeviceShellPolicy.Mode chosen = modes[selected[0]];
-                  if (chosen != current) confirmRootPolicy(chosen);
-                })
-            .create();
-    dialog.show();
-    android.widget.Button next = dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE);
-    render[0] =
-        () -> {
-          for (int i = 0; i < cards.length; i++)
-            styleRootPolicyCard(ctx, cards[i], tones[i], i == selected[0], i == 2);
-          if (next != null) {
-            // 选中当前档时没有可提交的变化：「下一步」不可用，避免空走一遍确认。
-            boolean changed = modes[selected[0]] != current;
-            next.setEnabled(changed);
-            next.setAlpha(changed ? 1f : 0.45f);
-            next.setTextColor(
-                ctx.getColor(selected[0] == 0 ? R.color.shell_accent : tones[selected[0]]));
-          }
-        };
-    render[0].run();
-  }
-
-  /** 单张档位卡片：自绘单选圈 + 名称（当前档带「当前」）+ 说明 + 风险标签。 */
-  private View rootPolicyCard(
-      Context ctx, String name, String currentTag, String description, String badge, int tone) {
-    android.widget.LinearLayout card = new android.widget.LinearLayout(ctx);
-    card.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-    card.setGravity(android.view.Gravity.CENTER_VERTICAL);
-    card.setMinimumHeight(dp(64));
-    card.setPadding(dp(14), dp(12), dp(14), dp(12));
-    card.setClickable(true);
-    card.setFocusable(true);
-    card.setForeground(ctx.getDrawable(R.drawable.bg_action_plain));
-    View radio = new View(ctx);
-    radio.setTag("radio");
-    radio.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    android.widget.LinearLayout.LayoutParams radioParams =
-        new android.widget.LinearLayout.LayoutParams(dp(20), dp(20));
-    radioParams.setMarginEnd(dp(14));
-    card.addView(radio, radioParams);
-    android.widget.LinearLayout copy = new android.widget.LinearLayout(ctx);
-    copy.setOrientation(android.widget.LinearLayout.VERTICAL);
-    android.widget.LinearLayout titleRow = new android.widget.LinearLayout(ctx);
-    titleRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-    TextView title = new TextView(ctx);
-    title.setText(name);
-    title.setTextSize(15);
-    title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-    title.setTextColor(ctx.getColor(R.color.shell_text));
-    titleRow.addView(title);
-    if (!currentTag.isEmpty()) {
-      TextView now = new TextView(ctx);
-      now.setText(currentTag);
-      now.setTextSize(11);
-      now.setTextColor(ctx.getColor(R.color.shell_text_secondary));
-      now.setBackgroundResource(R.drawable.bg_shell_status);
-      now.setPadding(dp(8), dp(2), dp(8), dp(2));
-      android.widget.LinearLayout.LayoutParams nowParams =
-          new android.widget.LinearLayout.LayoutParams(-2, -2);
-      nowParams.setMarginStart(dp(8));
-      titleRow.addView(now, nowParams);
-    }
-    copy.addView(titleRow);
-    TextView sub = new TextView(ctx);
-    sub.setText(description);
-    sub.setTextSize(12);
-    sub.setTextColor(ctx.getColor(R.color.shell_text_secondary));
-    android.widget.LinearLayout.LayoutParams subParams =
-        new android.widget.LinearLayout.LayoutParams(-1, -2);
-    subParams.topMargin = dp(4);
-    copy.addView(sub, subParams);
-    card.addView(copy, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
-    TextView tag = new TextView(ctx);
-    tag.setText(badge);
-    tag.setTextSize(11);
-    tag.setTypeface(tag.getTypeface(), android.graphics.Typeface.BOLD);
-    tag.setTextColor(ctx.getColor(tone));
-    tag.setPadding(dp(10), dp(4), dp(10), dp(4));
-    android.graphics.drawable.GradientDrawable pill =
-        new android.graphics.drawable.GradientDrawable();
-    pill.setCornerRadius(dp(999));
-    pill.setColor(androidx.core.graphics.ColorUtils.setAlphaComponent(ctx.getColor(tone), 0x1F));
-    tag.setBackground(pill);
-    android.widget.LinearLayout.LayoutParams tagParams =
-        new android.widget.LinearLayout.LayoutParams(-2, -2);
-    tagParams.setMarginStart(dp(10));
-    // 没有风险标签的档位（如「按应用自定义」）不画空胶囊。
-    if (!badge.isEmpty()) card.addView(tag, tagParams);
-    String spoken = currentTag.isEmpty() ? name : name + " " + currentTag;
-    card.setContentDescription(
-        com.deepseekharness.app.util.UiText.raw(
-            spoken + ", " + description + (badge.isEmpty() ? "" : ", " + badge)));
-    return card;
-  }
-
-  /** 选中：风险色描边 + 浅底 + 实心单选圈；完全放宽未选中时也保留红色细边。 */
-  private void styleRootPolicyCard(
-      Context ctx, View card, int tone, boolean selected, boolean alwaysWarn) {
-    int color = ctx.getColor(tone);
-    android.graphics.drawable.GradientDrawable shape =
-        new android.graphics.drawable.GradientDrawable();
-    shape.setCornerRadius(dp(14));
-    shape.setColor(
-        selected
-            ? androidx.core.graphics.ColorUtils.setAlphaComponent(color, 0x14)
-            : ctx.getColor(R.color.shell_surface));
-    shape.setStroke(
-        dp(selected ? 2 : 1),
-        selected || alwaysWarn ? color : ctx.getColor(R.color.shell_line_strong));
-    card.setBackground(shape);
-    View radio = card.findViewWithTag("radio");
-    android.graphics.drawable.GradientDrawable dot =
-        new android.graphics.drawable.GradientDrawable();
-    dot.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-    dot.setStroke(dp(2), selected ? color : ctx.getColor(R.color.shell_text_muted));
-    dot.setColor(selected ? color : android.graphics.Color.TRANSPARENT);
-    if (radio != null) radio.setBackground(dot);
-    card.setAccessibilityDelegate(
-        new View.AccessibilityDelegate() {
-          @Override
-          public void onInitializeAccessibilityNodeInfo(
-              View host, android.view.accessibility.AccessibilityNodeInfo info) {
-            super.onInitializeAccessibilityNodeInfo(host, info);
-            info.setClassName(android.widget.RadioButton.class.getName());
-            info.setCheckable(true);
-            info.setChecked(selected);
-          }
-        });
   }
 
   /** 放宽档位会扩大助手与插件的 root 权限，保存前必须再确认一次风险。 */
@@ -1267,8 +1460,13 @@ public final class DeviceGrantsFragment extends Fragment {
     adbStatusRequest++;
     sms = null;
     smsStatus = null;
-    rootPolicy = null;
-    rootPolicyChange = null;
+    rootModes = null;
+    rootModeButtons = null;
+    screenModeButtons = null;
+    pills = null;
+    pillDots = null;
+    pillTitles = null;
+    pillValues = null;
     super.onDestroyView();
   }
 
@@ -1336,7 +1534,9 @@ public final class DeviceGrantsFragment extends Fragment {
         return com.deepseekharness.app.util.UiText.format(
             "配对密钥已保存，连接尚未验证。%s", (detail.isEmpty() ? "" : "\n" + detail));
       } else {
-        return com.deepseekharness.app.util.UiText.text("尚未配对：点下方「ADB 无线配对」，配对后还会验证连接。");
+        return UiText.choose(
+            "尚未配对：点「配对」，配对后还会验证连接。",
+            "Not paired: tap Pair; the connection is verified after pairing.");
       }
     } catch (Throwable e) {
       return com.deepseekharness.app.util.UiText.format("ADB 状态读取失败：%s", e.getMessage());

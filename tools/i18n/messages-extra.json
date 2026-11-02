@@ -12160,5 +12160,197 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/UpdateActivity.java"
     ]
+  },
+  {
+    "id": "grt264a01",
+    "zh": "验证",
+    "en": "Verify",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a02",
+    "zh": "配对",
+    "en": "Pair",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a03",
+    "zh": "按应用",
+    "en": "By app",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a04",
+    "zh": "撤销预授权",
+    "en": "Revoke",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a05",
+    "zh": "授权",
+    "en": "Authorize",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a06",
+    "zh": "验证 Stellar 连接",
+    "en": "Verify Stellar connection",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a07",
+    "zh": "授权 Stellar",
+    "en": "Authorize Stellar",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a08",
+    "zh": "打开 Stellar",
+    "en": "Open Stellar",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a09",
+    "zh": "严格",
+    "en": "Strict",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a10",
+    "zh": "命令拦截档位仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。",
+    "en": "Command filtering levels apply only to the root channel; Shizuku/ADB general executors stay strict.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a11",
+    "zh": "已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。",
+    "en": "Stellar (a Shizuku-compatible manager) is detected. Start its service and enable the Shizuku compatibility layer, then authorize here. Restart the service after reboot.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a12",
+    "zh": "页面说明",
+    "en": "About this page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a13",
+    "zh": "全局",
+    "en": "Global",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a14",
+    "zh": "屏幕",
+    "en": "Screen",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a15",
+    "zh": "需处理",
+    "en": "Check",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a16",
+    "zh": "更新中",
+    "en": "Updating",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a17",
+    "zh": "未启用",
+    "en": "Off",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a18",
+    "zh": "未找到 su",
+    "en": "No su",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a19",
+    "zh": "已连接",
+    "en": "Connected",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a20",
+    "zh": "未授权",
+    "en": "Not authorized",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a21",
+    "zh": "连接失败",
+    "en": "Failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a22",
+    "zh": "未设置",
+    "en": "Not set up",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a23",
+    "zh": "尚未配对：点「配对」，配对后还会验证连接。",
+    "en": "Not paired: tap Pair; the connection is verified after pairing.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "grt264a24",
+    "zh": "全局权限说明",
+    "en": "About global permission",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FullPermissionControls.java"
+    ]
   }
 ]
