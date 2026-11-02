@@ -377,17 +377,64 @@ public class IslandFragment extends Fragment {
     }
   }
 
+  /**
+   * 「支持的设备」：沿用 CardSheet（手机贴底并让出悬浮胶囊，宽屏居中限宽卡片）。
+   * 三条完整句各占一行，前面的状态点与页面系统状态行同色：可上岛 / 仅普通通知 / 补充说明。
+   */
   private void showDevices() {
-    InfoHint.show(
-        requireContext(),
-        UiText.text("支持的设备"),
-        // 三段各自是完整句，逐段翻译后再分段，不拼接半句。
-        String.join(
-            "\n\n",
-            UiText.text(
-                "Android 16 及以上的原生系统、小米澎湃 OS 3.0.300+/4、ColorOS 16、OriginOS 6，以及后续跟进同一接口的厂商。"),
-            UiText.text("更老的系统和鸿蒙只显示普通通知，这是系统能力差异，不是开关失效。"),
-            UiText.text("小米超级岛的大岛样式需要向小米申请白名单；DSHA 不依赖它，未申请时使用系统生成的胶囊。")));
+    android.content.Context context = requireContext();
+    CardPage page = new CardPage(context, UiText.text("支持的设备"), "", true);
+    LinearLayout card = page.card();
+    card.setPadding(page.dp(16), page.dp(4), page.dp(16), page.dp(4));
+    deviceRow(
+        page,
+        card,
+        R.color.shell_good,
+        R.color.shell_text,
+        UiText.text(
+            "Android 16 及以上的原生系统、小米澎湃 OS 3.0.300+/4、ColorOS 16、OriginOS 6，以及后续跟进同一接口的厂商。"));
+    deviceRow(
+        page,
+        card,
+        R.color.shell_warn,
+        R.color.shell_text_secondary,
+        UiText.text("更老的系统和鸿蒙只显示普通通知，这是系统能力差异，不是开关失效。"));
+    deviceRow(
+        page,
+        card,
+        R.color.shell_text_muted,
+        R.color.shell_text_secondary,
+        UiText.text("小米超级岛的大岛样式需要向小米申请白名单；DSHA 不依赖它，未申请时使用系统生成的胶囊。"));
+    var dialog = CardSheet.create(context, page);
+    page.button(page.footer, UiText.text("知道了"), false, dialog::dismiss);
+    CardSheet.show(dialog, context);
+  }
+
+  private void deviceRow(CardPage page, LinearLayout card, int dot, int color, String text) {
+    if (card.getChildCount() > 0) {
+      View divider = new View(page.context);
+      divider.setBackgroundResource(R.color.shell_line);
+      LinearLayout.LayoutParams line = new LinearLayout.LayoutParams(-1, page.dp(1));
+      line.setMarginStart(page.dp(22));
+      card.addView(divider, line);
+    }
+    LinearLayout row = new LinearLayout(page.context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setPadding(0, page.dp(12), 0, page.dp(12));
+    View mark = new View(page.context);
+    mark.setBackgroundResource(R.drawable.bg_island_dot);
+    mark.setBackgroundTintList(ColorStateList.valueOf(page.context.getColor(dot)));
+    mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    // 点与首行文字垂直居中：首行行高约 20dp，点 8dp。
+    LinearLayout.LayoutParams markParams = new LinearLayout.LayoutParams(page.dp(8), page.dp(8));
+    markParams.topMargin = page.dp(6);
+    markParams.setMarginEnd(page.dp(14));
+    row.addView(mark, markParams);
+    TextView body = page.text(text, 14, color);
+    body.setLineSpacing(page.dp(4), 1);
+    body.setTextIsSelectable(true);
+    row.addView(body, new LinearLayout.LayoutParams(0, -2, 1));
+    card.addView(row);
   }
 
   // ---------- 布局 ----------
