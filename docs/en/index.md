@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0400-dsh0.2.1-rc.5` / build285 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adapts the ⓘ info dialog to tablets, phone landscape and portrait (experimental). Local targeted unit tests, Lint and source gates passed; awaiting a unified visual review. See the [build285 notes](../releases/build285-changes.en.md) and the [build285 record](../releases/v0.2.1-rc.3-build285-info-dialog-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0430-dsh0.2.1-rc.5` / build286 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds /app/install to the device bridge so the container can hand an APK to the system installer (experimental). Local targeted unit tests, Lint and source gates passed. See the [build286 notes](../releases/build286-changes.en.md) and the [build286 record](../releases/v0.2.1-rc.3-build286-bridge-apk-install-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

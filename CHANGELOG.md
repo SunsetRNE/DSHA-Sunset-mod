@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0430-dsh0.2.1-rc.5 / build286（实验性：桥新增 /app/install）
+
+- **实验性。** 设备桥新增 `/app/install`：容器推送单个 APK，DSHA 在前台或有后台启动豁免时直接拉起系统安装器，否则发通知由用户点按打开；未允许「安装未知应用」时引导到设置页（分支 `feat/bridge-apk-install` 1d574da4，原基于 build274）。合入时把三处 `UiText.choose` 参数拼接改为整句选择与 `%s` 模板（4fd3b598），否则 `check-ui-i18n` 契约失败；文字不变。
+- 验证范围：发布会话在 build286 上复跑 `BridgeApkInstallTest` / `BridgeRoutesTest` / `NotificationIdsTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 286（基于 build285）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build286 更新说明](docs/releases/build286-changes.zh.md)，验证记录见 [build286 记录](docs/releases/v0.2.1-rc.3-build286-bridge-apk-install-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0400-dsh0.2.1-rc.5 / build285（实验性：ⓘ 说明弹窗按窗口形态适配）
 
 - **实验性 UI 渲染更新，待统一视觉验收。** ⓘ 说明弹窗按窗口形态适配：平板贴 ⓘ 显示气泡，手机横屏用紧凑弹窗，竖屏用底部说明面板（T23，分支 `design/info-dialog-20261102` 5eb7074d + 831e27a2，基于 build272，无冲突）。
