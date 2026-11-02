@@ -395,29 +395,24 @@ final class OnboardingKit {
 
   // ---------------------------------------------------------------- 阶段条与阶段列表
 
-  /** 分段进度条：按阶段着色，不显示百分比；带无障碍进度描述。运行中的当前段以流光表示仍在进行。 */
-  LinearLayout segmentBar(DeployStages.View view) {
-    LinearLayout bar = row();
-    bar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-    int total = view.total();
-    for (int i = 0; i < total; i++) {
-      View seg;
-      if (running(view, i)) seg = new DeployRunSegment(context, color(R.color.shell_accent));
-      else {
-        seg = new View(context);
-        seg.setBackgroundResource(segmentDrawable(view, i));
-      }
-      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(6), 1);
-      if (i > 0) p.leftMargin = dp(3);
-      bar.addView(seg, p);
-    }
+  /** 分段条动画进度；页面每秒重建分段条，记录随本 kit（即所属页面）保留。 */
+  private final com.deepseekharness.app.util.StageSegmentMotion.Tracker segmentMotion =
+      new com.deepseekharness.app.util.StageSegmentMotion.Tracker();
+
+  /**
+   * 分段进度条：按阶段着色并带填充 / 流光动画，不显示百分比；带无障碍进度描述。
+   *
+   * <p>当前段是否叠流光由 {@link #running} 判定，与阶段列表的加载圈同一口径。
+   */
+  View segmentBar(DeployStages.View view) {
+    StageSegmentBar bar = new StageSegmentBar(context, segmentMotion, view, density);
     bar.setContentDescription(
         String.format(
             java.util.Locale.ROOT,
             com.deepseekharness.app.util.UiText.choose(
                 "已完成 %1$d / %2$d 个阶段", "%1$d of %2$d stages completed"),
             view.completed(),
-            total));
+            view.total()));
     return bar;
   }
 
@@ -427,28 +422,6 @@ final class OnboardingKit {
         && index >= 0
         && index < view.steps.length
         && view.steps[index] == DeployStages.Step.CURRENT;
-  }
-
-  static int segmentDrawable(DeployStages.View view, int index) {
-    DeployStages.Step step = view.steps[index];
-    switch (view.phase) {
-      case SUCCEEDED:
-        return R.drawable.bg_onb_seg_ok;
-      case UNREADY:
-        return R.drawable.bg_onb_seg_warn;
-      default:
-        break;
-    }
-    switch (step) {
-      case DONE:
-        return R.drawable.bg_onb_seg_done;
-      case CURRENT:
-        return R.drawable.bg_onb_seg_done;
-      case FAILED:
-        return R.drawable.bg_onb_seg_bad;
-      default:
-        return R.drawable.bg_onb_seg_todo;
-    }
   }
 
   /** 阶段列表：完成打勾、当前加粗、失败标红。 */

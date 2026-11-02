@@ -199,19 +199,19 @@ public final class DeployCapsuleTest {
     for (int i = 0; i < running.steps.length; i++)
       if (running.steps[i] == DeployStages.Step.CURRENT) current = i;
     assertTrue("运行中应有当前阶段", current >= 0);
-    android.widget.LinearLayout bar = kit.segmentBar(running);
+    StageSegmentBar bar = (StageSegmentBar) kit.segmentBar(running);
     android.widget.LinearLayout list = kit.stageList(running);
     for (int i = 0; i < running.total(); i++) {
       boolean expected = i == current;
-      assertEquals(expected, bar.getChildAt(i) instanceof DeployRunSegment);
+      assertEquals(expected, bar.shimmering(i));
       assertEquals(expected, hasSpinner(list.getChildAt(i)));
     }
     for (Phase phase : new Phase[] {Phase.SUCCEEDED, Phase.FAILED, Phase.PENDING}) {
       DeployStages.View done = DeployStages.view(Mode.INSTALL, phase, 2, "", "", 7);
-      android.widget.LinearLayout doneBar = kit.segmentBar(done);
+      StageSegmentBar doneBar = (StageSegmentBar) kit.segmentBar(done);
       android.widget.LinearLayout doneList = kit.stageList(done);
       for (int i = 0; i < done.total(); i++) {
-        assertFalse(doneBar.getChildAt(i) instanceof DeployRunSegment);
+        assertFalse(doneBar.shimmering(i));
         assertFalse(hasSpinner(doneList.getChildAt(i)));
       }
     }

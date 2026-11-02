@@ -387,7 +387,6 @@
     "app/src/main/java/com/deepseekharness/app/ui/DeployCapsule.java",
     "app/src/main/java/com/deepseekharness/app/ui/DeployCard.java",
     "app/src/main/java/com/deepseekharness/app/ui/DeployMonitor.java",
-    "app/src/main/java/com/deepseekharness/app/ui/DeployRunSegment.java",
     "app/src/main/java/com/deepseekharness/app/ui/DeployTaskSheet.java",
     "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java",
     "app/src/main/java/com/deepseekharness/app/ui/DeviceSupportProbe.java",
@@ -1415,6 +1414,9 @@
     "app/src/main/java/com/deepseekharness/app/util/WebCrashReport.java",
     "app/src/test/java/com/deepseekharness/app/ui/WebCrashPanelTest.java",
     "app/src/test/java/com/deepseekharness/app/util/WebCrashReportTest.java",
-    "app/src/main/java/com/deepseekharness/app/ui/AppEntryRouterActivity.java"
+    "app/src/main/java/com/deepseekharness/app/ui/AppEntryRouterActivity.java",
+    "app/src/main/java/com/deepseekharness/app/ui/StageSegmentBar.java",
+    "app/src/main/java/com/deepseekharness/app/util/StageSegmentMotion.java",
+    "app/src/test/java/com/deepseekharness/app/util/StageSegmentMotionTest.java"
   ]
 }
