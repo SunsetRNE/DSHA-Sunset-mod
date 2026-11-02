@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1100-dsh0.2.1-rc.5 / build272（实验性：启动日志区原生重做）
+
+- **实验性 UI 更新，待统一视觉验收。** 启动页「启动日志」区按 `docs/design/launch-log-20261101/preview.html` 原型原生实现（分支 `ui/launch-log-native` 241d1541）：概览按阶段分组显示开始 / 完成 / 耗时，问题行上浮并自动展开；原始视图保留完整日志，支持「仅问题」「隐藏计时」「换行」切换与从概览跳转高亮。
+- 阶段分组由 `util/StartupLogDigest` 按 `StartupTrace.Entry.kind` 计算，不解析中文文案；整体结果只取 controller 真实状态，不从日志推测。上翻后显示「n 条新日志」浮标，点按回到末尾；复制与下载始终是完整原文，与筛选无关。`StartupTrace.Snapshot.log` 与诊断归档字节不变。
+- 验证范围：分支内定向单测 71 项与源码 / 文案门禁；合入 build271 时 i18n 按条目三方合并、字节钉重算，发布会话复跑启动页与启动诊断相关单测、`UpdateVersionPageTest`、`lintStandardRelease`（0 错误）及源码门禁。未跑全量单测与 LayoutAuditInstrumentation，未上真机。版本码提升为 272（基于 build271）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build272 更新说明](docs/releases/build272-changes.zh.md)，验证记录见 [build272 记录](docs/releases/v0.2.1-rc.3-build272-launch-log-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1030-dsh0.2.1-rc.5 / build271（实验性：外接设备（默认关闭））
 
 - **实验性功能，默认关闭，未经真机验收。** 新增「外接设备」能力（`extdev/**`，接手 T3 `feat/external-device-debug` 骨架并重做）：经 USB 或无线调试（IPv4:端口）控制另一台手机，独立授权、不继承本机 ADB / 全局授权；首次开启需原生确认。

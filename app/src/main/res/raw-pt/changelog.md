@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.3-20261102.1030-dsh0.2.1-rc.5 / build271
+# DSHA 0.2.1-rc.3-20261102.1100-dsh0.2.1-rc.5 / build272
 
-- Experimental: nova capacidade Dispositivo externo, desligada por omissão. Depois de a ligar à parte no grupo de canais de Definições → Permissões do dispositivo, permite controlar outro telemóvel por USB ou depuração sem fios e instalar nele um APK, APKS, XAPK ou módulo após confirmação; cada instalação pede confirmação primeiro.
-- O flash limita-se a uma verificação prévia só de leitura e a uma simulação, sem escrever nada; a capacidade precisa de root autorizado e não herda o ADB nem as permissões globais deste telemóvel.
-- É uma funcionalidade experimental ainda não verificada com um dispositivo ligado e pode não funcionar.
-- Âmbito da verificação: apenas testes unitários e verificações de código locais; não verificado num dispositivo. versionCode elevado para 271 (com base no build270). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Experimental: área do registo de arranque refeita de forma nativa. A vista geral agrupa as entradas por etapa e mostra o início, o fim e a duração de cada passo; um passo com problema sobe para o topo e expande-se sozinho, sem procurar num registo longo.
+- A vista bruta mantém o registo completo, com opções só problemas, ocultar tempos e quebra de linha; ao deslizar para cima aparece um selo n linhas novas e um toque volta ao mais recente. Copiar e transferir continuam a usar o texto original completo.
+- É uma atualização de interface experimental ainda sem revisão visual unificada num dispositivo.
+- Âmbito da verificação: apenas testes unitários, Lint e verificações de código locais; sem renderização num dispositivo. versionCode elevado para 272 (com base no build271). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

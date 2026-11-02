@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.3-20261102.1030-dsh0.2.1-rc.5 / build271
+# DSHA 0.2.1-rc.3-20261102.1100-dsh0.2.1-rc.5 / build272
 
-- Experimentale: nova facultas Instrumentum externum, per defectum exstincta. Postquam seorsum in grege canalium Configurationis → Permissionum instrumenti accensa est, aliud telephonum per USB vel emendationem sine filo regere et post confirmationem in eo APK, APKS, XAPK vel modulum instituere potest; quaeque institutio prius confirmationem petit.
-- Inscriptio firmware solum ad praeviam inspectionem legendi et simulationem limitatur, nihil scribitur; facultas root permissum requirit nec ADB nec permissiones universales huius telephoni hereditat.
-- Haec facultas experimentalis cum instrumento coniuncto non probata est et fortasse non operabitur.
-- Ambitus probationis: solum probationes unitatum et inspectiones fontis locales; in instrumento non probatum. versionCode ad 271 auctus (in build270 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.
+- Experimentale: area acti initii nativē refecta. Conspectus inscriptiones per gradus coniungit et initium, finem et durationem cuiusque gradus ostendit; gradus vitiosus sursum movetur et sponte aperitur, ne in longo acto quaerere oporteat.
+- Visus crudus actum integrum servat cum commutationibus «sola vitia», «tempora celare» et «versus involvere»; dum sursum volvis, signum «n novi versus» apparet et uno tactu ad recentissima redis. Exscriptio et depromptio textum originalem integrum adhuc praebent.
+- Haec est renovatio interfaciei experimentalis sine recognitione visuali unita in instrumento.
+- Ambitus probationis: solum probationes unitatum, Lint et inspectiones fontis locales; in instrumento non redditum. versionCode ad 272 auctus (in build271 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.
