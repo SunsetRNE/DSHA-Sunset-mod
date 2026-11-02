@@ -2844,15 +2844,14 @@ public final class HttpShellService {
           } catch (Throwable ignored) {
           }
         }
-        return com.deepseekharness.app.util.UiText.choose(
-            "NO_PERMISSION: 未允许 DSHA 安装未知应用。"
-                + (notified ? "已发通知，用户点通知打开设置页" : "已尝试打开设置页")
-                + "：请在「安装未知应用」中允许 DSHA，然后重新请求一次。",
-            "NO_PERMISSION: DSHA is not allowed to install unknown apps. "
-                + (notified
-                    ? "Posted a notification that opens the settings page"
-                    : "Opened the settings page")
-                + ": allow DSHA under \"Install unknown apps\", then request once more.");
+        // 整句选择，不在 choose 参数里拼接（check-ui-i18n）。
+        return notified
+            ? com.deepseekharness.app.util.UiText.choose(
+                "NO_PERMISSION: 未允许 DSHA 安装未知应用。已发通知，用户点通知打开设置页：请在「安装未知应用」中允许 DSHA，然后重新请求一次。",
+                "NO_PERMISSION: DSHA is not allowed to install unknown apps. Posted a notification that opens the settings page: allow DSHA under \"Install unknown apps\", then request once more.")
+            : com.deepseekharness.app.util.UiText.choose(
+                "NO_PERMISSION: 未允许 DSHA 安装未知应用。已尝试打开设置页：请在「安装未知应用」中允许 DSHA，然后重新请求一次。",
+                "NO_PERMISSION: DSHA is not allowed to install unknown apps. Opened the settings page: allow DSHA under \"Install unknown apps\", then request once more.");
       }
       var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
       java.io.File cache = ctx.getCacheDir().getCanonicalFile();
@@ -2913,11 +2912,12 @@ public final class HttpShellService {
               "NO_NOTIFICATION: DSHA 在后台且通知被关闭，无法拉起安装器。请把 DSHA 切到前台或允许通知后再请求一次。",
               "NO_NOTIFICATION: DSHA is in the background and notifications are off, so the installer cannot be opened. Bring DSHA to the foreground or allow notifications, then request once more.");
         }
-        return com.deepseekharness.app.util.UiText.choose(
-            "OK: notification 已发出安装通知 " + version + "；用户点通知后打开系统安装器并确认。",
-            "OK: notification posted for "
-                + version
-                + "; the user taps it to open the system installer and confirm.");
+        return String.format(
+            java.util.Locale.ROOT,
+            com.deepseekharness.app.util.UiText.choose(
+                "OK: notification 已发出安装通知 %s；用户点通知后打开系统安装器并确认。",
+                "OK: notification posted for %s; the user taps it to open the system installer and confirm."),
+            version);
       }
       try {
         ctx.startActivity(install);
@@ -2925,11 +2925,12 @@ public final class HttpShellService {
         removeInstallSlot(fs, owned);
         return com.deepseekharness.app.util.UiText.text("ERROR: 系统没有可用的安装器");
       }
-      return com.deepseekharness.app.util.UiText.choose(
-          "OK: installer 已请求系统安装器 " + version + "；需用户在系统界面确认。厂商「后台弹出界面」开关关闭时仍可能不显示。",
-          "OK: installer requested for "
-              + version
-              + "; the user must confirm in the system screen. A vendor \"background pop-up\" switch may still hide it.");
+      return String.format(
+          java.util.Locale.ROOT,
+          com.deepseekharness.app.util.UiText.choose(
+              "OK: installer 已请求系统安装器 %s；需用户在系统界面确认。厂商「后台弹出界面」开关关闭时仍可能不显示。",
+              "OK: installer requested for %s; the user must confirm in the system screen. A vendor \"background pop-up\" switch may still hide it."),
+          version);
     } catch (Throwable e) {
       return "ERROR: " + safeError(e);
     }
