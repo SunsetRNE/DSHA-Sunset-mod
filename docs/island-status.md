@@ -49,7 +49,7 @@
 | `app/src/main/java/com/deepseekharness/app/ui/WebPageScripts.java` | 改。进入会话后滚动并聚焦提问卡 |
 | `app/src/main/java/com/deepseekharness/app/ui/BrowserConversationRoute.java` | 改。会话入口支持“带问题定位” |
 | `app/src/main/assets/builtin-plugins/dsh-task-notifier/lib/index.js` | 改。工具详情、会话标题、每秒心跳、丢失 turn/end 时 3 秒补终态 |
-| `app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java` | 新增。设置页「任务状态上岛」 |
+| `app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java` | 新增。设置页「任务状态上岛」；2026-11-02 按[方案 B](design/island-status-20261102/README.md) 重绘（`layout/fragment_island.xml`、`util/IslandPage` + 单测） |
 | `app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java` | 入口标签 |
 | `app/src/main/java/com/deepseekharness/app/core/ConfigStore.java` | 两个偏好读写 |
 | `app/src/main/java/com/deepseekharness/app/util/Constants.java` | 两个偏好键名 |
@@ -82,6 +82,17 @@
 系统胶囊最多约 7 个字符：`shortCriticalText` 优先，放不下时只显示图标或部分文字。
 运行中通知内容保持稳定（秒数交给系统 `when`/计时器），心跳不再触发 `notify`，
 避免每秒重绘导致通知按钮点击被替换吞掉。
+
+### 设置页（2026-11-02 方案 B）
+
+| 区块 | 行为 |
+|---|---|
+| 回到桌面后（示意） | 页面可见时每秒读 `AgentTaskState` 快照，代表与保留期用 `IslandText.pickForDisplay`，胶囊文字用 `islandShortText`，与真实通知同源；只读，不发通知 |
+| 系统状态行 | `IslandSupport.state()` 每次 `onResume` 重读。36.0 旧接口的 `STATE_UNKNOWN` 显示“系统支持，开关状态查不到”并附系统设置入口，胶囊示意为虚线；36.1+ 关闭时按钮为“去打开”；低于 API 36 不显示入口 |
+| 行为开关 | 键与默认值不变；计时器开关在总开关关闭时置灰但保留已存值（与 `islandEnabled && chronometer` 一致） |
+| 上岛顺序 | 五级只读列表，高亮当前活跃代表所在级；完成态不属于任何一级。顺序不可配置 |
+
+DSHA 原生页面在前台时任务通知被撤下（`AgentTaskNotifications` 的 `foreground → cancel`），所以页面只做示意，不在本页内发布胶囊。
 
 ## 6. 状态更新、收敛与详情
 

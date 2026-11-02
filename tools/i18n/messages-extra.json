@@ -13223,5 +13223,344 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
     ]
+  },
+  {
+    "id": "isl264a01",
+    "zh": "任务状态上岛",
+    "en": "Task status island",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
+    ]
+  },
+  {
+    "id": "isl264a02",
+    "zh": "任务运行时把当前阶段显示在状态栏胶囊上；在 DSHA 页面里时不显示。结束后保留 8 秒显示「完成 / 已停止」，展开通知可看工具、轮次与耗时。只使用 Android 16 的公开实时活动接口，不需要 root 或额外授权；任何环节失败都退回普通通知。",
+    "en": "While a task runs, its current phase appears in the status bar capsule; it is hidden while you are in DSHA. After the task ends, “Done / Stopped” stays for 8 seconds; expand the notification to see the tool, turn and duration. Only the public Android 16 Live Updates API is used, with no root or extra permission; any failure falls back to a normal notification.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a03",
+    "zh": "当前状态",
+    "en": "Current status",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a04",
+    "zh": "行为",
+    "en": "Behavior",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a05",
+    "zh": "上岛顺序",
+    "en": "Island order",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a06",
+    "zh": "同级先开始的优先 · 结束后保留 8 秒",
+    "en": "Earlier start wins ties · ended stays 8 s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a07",
+    "zh": "回到桌面后（示意）",
+    "en": "After you leave DSHA (preview)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a08",
+    "zh": "多个任务同时运行时，只显示优先级最高的一个",
+    "en": "With several tasks, only the highest priority one is shown",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a09",
+    "zh": "用系统计时器显示耗时",
+    "en": "Use system timer for duration",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a10",
+    "zh": "支持的设备",
+    "en": "Supported devices",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a11",
+    "zh": "已允许",
+    "en": "Allowed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a12",
+    "zh": "回到桌面后，运行中的任务会显示在状态栏胶囊上。",
+    "en": "After you leave DSHA, running tasks appear in the status bar capsule.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a13",
+    "zh": "实时活动已关闭",
+    "en": "Live Updates turned off",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a14",
+    "zh": "系统支持，但本应用未被允许；现在只显示普通通知。",
+    "en": "Supported, but not allowed for this app; only normal notifications are shown.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a15",
+    "zh": "当前系统不支持",
+    "en": "Not supported on this system",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a16",
+    "zh": "需要 Android 16 及以上；任务只显示普通通知。",
+    "en": "Requires Android 16 or later; tasks show normal notifications only.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a17",
+    "zh": "系统支持，开关状态查不到",
+    "en": "Supported, switch state unknown",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a18",
+    "zh": "这一版 Android 16 没有查询接口，DSHA 仍会尝试上岛。任务时没看到胶囊，就到系统设置打开「实时活动」。",
+    "en": "This Android 16 build has no query API, so DSHA still tries the capsule. If you see no capsule during a task, turn on Live Updates in system settings.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a19",
+    "zh": "旧版接口",
+    "en": "legacy API",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a20",
+    "zh": "打开系统实时活动设置",
+    "en": "Open system Live Updates settings",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a21",
+    "zh": "无法打开系统实时活动设置",
+    "en": "Cannot open Live Updates settings",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a22",
+    "zh": "需先开启任务状态上岛",
+    "en": "Turn on task status island first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a23",
+    "zh": "等你确认",
+    "en": "Waiting for you",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a24",
+    "zh": "执行工具",
+    "en": "Running a tool",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a25",
+    "zh": "生成回复",
+    "en": "Writing a reply",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a26",
+    "zh": "其他运行中",
+    "en": "Other running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a27",
+    "zh": "需要你回答，排最前",
+    "en": "Needs your answer; first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a28",
+    "zh": "你已点停止，先显示结果",
+    "en": "You pressed stop; shown first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a29",
+    "zh": "胶囊带工具名",
+    "en": "Capsule shows the tool name",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a30",
+    "zh": "现在没有运行中的任务。任务开始后，这里显示回到桌面时的样子。",
+    "en": "No task is running. Once one starts, this shows what you will see outside DSHA.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a31",
+    "zh": "任务状态上岛已关闭，只显示普通通知。",
+    "en": "Task status island is off; only normal notifications are shown.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a32",
+    "zh": "系统未允许实时活动，只显示普通通知。",
+    "en": "The system does not allow Live Updates; only normal notifications are shown.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a33",
+    "zh": "是否显示胶囊由系统决定。",
+    "en": "Whether the capsule appears is up to the system.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a34",
+    "zh": "另有 %d 个任务只显示普通通知",
+    "en": "%d more tasks show normal notifications",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "isl264a35",
+    "zh": "在岛上",
+    "en": "On island",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a36",
+    "zh": "%d 个",
+    "en": "%d",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "isl264a37",
+    "zh": "Android 16 及以上的原生系统、小米澎湃 OS 3.0.300+/4、ColorOS 16、OriginOS 6，以及后续跟进同一接口的厂商。",
+    "en": "Stock Android 16 or later, Xiaomi HyperOS 3.0.300+/4, ColorOS 16, OriginOS 6, and vendors that adopt the same API later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a38",
+    "zh": "更老的系统和鸿蒙只显示普通通知，这是系统能力差异，不是开关失效。",
+    "en": "Older systems and HarmonyOS show normal notifications only. This is a system difference, not a broken switch.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a39",
+    "zh": "小米超级岛的大岛样式需要向小米申请白名单；DSHA 不依赖它，未申请时使用系统生成的胶囊。",
+    "en": "Xiaomi's large Super Island style needs a Xiaomi whitelist. DSHA does not rely on it and uses the system-generated capsule.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a40",
+    "zh": "去打开",
+    "en": "Turn on",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a41",
+    "zh": "通知显示已用时间，由系统计秒",
+    "en": "Notification shows elapsed time, counted by system",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
+  },
+  {
+    "id": "isl264a42",
+    "zh": "通知显示开始时间",
+    "en": "Notification shows start time",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
+    ]
   }
 ]
