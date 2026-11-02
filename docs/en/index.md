@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0130-dsh0.2.1-rc.5` / build280 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build stops falling back to port 3090 with this installation's token when the device bridge port cannot be discovered. Local targeted unit tests, Lint and source gates passed. See the [build280 notes](../releases/build280-changes.en.md) and the [build280 record](../releases/v0.2.1-rc.3-build280-bridge-port-fail-closed-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0200-dsh0.2.1-rc.5` / build281 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build tries to fix DSHA getting stuck on "Checking environment" when reopened with ADB enabled (experimental). Local targeted unit tests, Lint and source gates passed. See the [build281 notes](../releases/build281-changes.en.md) and the [build281 record](../releases/v0.2.1-rc.3-build281-adb-reopen-env-check-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

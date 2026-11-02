@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.0130-dsh0.2.1-rc.5 / build280
+# DSHA 0.2.1-rc.3-20261103.0200-dsh0.2.1-rc.5 / build281
 
-- Si le port du pont d'appareil n'est pas publié ou illisible, la requête échoue au lieu de se rabattre sur le port 3090 avec le jeton de cette installation ; les identifiants ne sont donc pas envoyés à une autre installation DSHA du même appareil.
-- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 280 (basé sur build279). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Expérimental : avec ADB activé, rouvrir DSHA après déverrouillage fait d'abord céder la sonde ADB en arrière-plan, ce qui réduit les longues attentes sur « Vérification de l'environnement ». Correctif au mieux : le problème d'origine n'a pas pu être reproduit.
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 281 (basé sur build280). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.

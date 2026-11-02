@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build280 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build281 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build280 `0.2.1-rc.3-20261103.0130-dsh0.2.1-rc.5`.** Device bridge port discovery now fails closed instead of falling back to 3090 with this installation's token. versionCode 280, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build280 notes](../releases/build280-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build281 `0.2.1-rc.3-20261103.0200-dsh0.2.1-rc.5`.** Experimental fix for reopening DSHA with ADB enabled getting stuck on the environment check. versionCode 281, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build281 notes](../releases/build281-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0200-dsh0.2.1-rc.5 / build281（实验性：ADB 开启时重新打开不再卡在环境检查）
+
+- **实验性尽力修复。** 开启 ADB 时，解锁后重新打开 DSHA 不再与 ADB 后台探活争抢环境，减少长时间停在「正在检查运行环境」（T25，分支 `fix/adb-reopen-env-check` 18af5dc9，原基于 build272；未能复现原问题）。与 build278 的 `MainActivity` 字段在同一处新增，两边保留；运行时描述符重算。
+- 验证范围：发布会话在 build281 上复跑 `AdbProbeDeferralTest` / `MainRecreatePolicyTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 281（基于 build280）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build281 更新说明](docs/releases/build281-changes.zh.md)，验证记录见 [build281 记录](docs/releases/v0.2.1-rc.3-build281-adb-reopen-env-check-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0130-dsh0.2.1-rc.5 / build280（设备桥端口发现失败时不再回退 3090）
 
 - **安全修复。** 设备桥端口未发布或读取失败时 fail-closed，不再回退默认 3090 并携带本安装 token；多个 DSHA 共存时凭据不会发给另一个安装（分支 `fix/bridge-port-fail-closed` 3be984d6，基于 build279，无冲突）。涉及 `bridge-port.cjs`、`adb-shell.py`、`native-consent.cjs`、`dns-compat.cjs` 与 6 个内置插件，运行时描述符随之更新。CI 节点化后的首个正式发布。

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.0130-dsh0.2.1-rc.5` / build280 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复设备桥端口发现失败时回退 3090 并携带本安装 token 的问题。本机定向单测、Lint 与源码门禁通过。改动说明见 [build280 更新说明](releases/build280-changes.zh.md)，验证记录见 [build280 记录](releases/v0.2.1-rc.3-build280-bridge-port-fail-closed-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.0200-dsh0.2.1-rc.5` / build281 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版尝试修复开启 ADB 时重新打开 DSHA 卡在「正在检查运行环境」（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build281 更新说明](releases/build281-changes.zh.md)，验证记录见 [build281 记录](releases/v0.2.1-rc.3-build281-adb-reopen-env-check-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
