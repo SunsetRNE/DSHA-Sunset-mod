@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.0230-dsh0.2.1-rc.5` / build282 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让插件后台检测只在插件页可见时进行，对话页前台不再定时进容器刷新插件列表（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build282 更新说明](releases/build282-changes.zh.md)，验证记录见 [build282 记录](releases/v0.2.1-rc.3-build282-plugin-auto-query-scope-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.0300-dsh0.2.1-rc.5` / build283 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版在进入对话时先显示原生加载页，WebView 不再白底（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build283 更新说明](releases/build283-changes.zh.md)，验证记录见 [build283 记录](releases/v0.2.1-rc.3-build283-web-entry-blank-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0300-dsh0.2.1-rc.5 / build283（实验性：进入对话先显示原生加载页）
+
+- **实验性尽力修复。** 从容器进入对话时先显示原生加载页，WebView 首帧不再白底：首帧底色取最近一次已核验的网页背景色，对话页首次加载盖与网页启动画面同款的原生加载页，8 秒后与诊断入口一起出现「返回启动页」（分支 `fix/web-entry-blank` 39583ae0，原基于 build274，无冲突；用户未复现原问题）。
+- 验证范围：发布会话在 build283 上复跑 `WebPageBootOverlayTest` / `WebBackgroundPageLifecycleTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 283（基于 build282）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build283 更新说明](docs/releases/build283-changes.zh.md)，验证记录见 [build283 记录](docs/releases/v0.2.1-rc.3-build283-web-entry-blank-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0230-dsh0.2.1-rc.5 / build282（实验性：插件后台检测只在插件页可见时进行）
 
 - **实验性。** 插件自动查询只在插件页可见时周期进行；对话页在前台时不再每约 2 分钟进容器跑一次 `plugin-manager.py refresh`（分支 `fix/plugin-auto-query-scope` ecdec5b9，原基于 build272，无冲突；运行时描述符重算）。
