@@ -50,6 +50,8 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   private String stageNote = "";
   // null = 尚未探测；"" = 当前没有可用通道。
   private String channelHint;
+  // 最近一帧画面里的前台应用；旋转会重建显示，需要把它重新打开到新方向上。
+  private String shownPackage = "";
   private VirtualScreenPreviews.Lease previewLease;
   private volatile long callbackEpoch;
   private final VirtualScreenTouchFeedback touchFeedback = new VirtualScreenTouchFeedback();
@@ -176,11 +178,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     Button keyboard =
         bind(R.id.vscreen_tool_keyboard, t("键盘", "Keyboard"), () -> toggle(textPanel));
     Button nodes = bind(R.id.vscreen_tool_nodes, t("节点操作", "Node actions"), this::showNodes);
-    Button rotate =
-        bind(
-            R.id.vscreen_tool_rotate,
-            t("旋转", "Rotate"),
-            () -> run(() -> manager.start(landscapeFrame ? "portrait" : "landscape")));
+    Button rotate = bind(R.id.vscreen_tool_rotate, t("旋转", "Rotate"), this::rotate);
     rotate.setContentDescription(t("切换竖屏或横屏", "Switch portrait or landscape"));
     Button close =
         bind(R.id.vscreen_tool_close, t("关闭", "Close"), () -> run(() -> manager.close()));
@@ -1064,6 +1062,20 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     return b;
   }
 
+  /**
+   * 旋转 = 按新方向重建显示（Core 释放旧 VirtualDisplay，应用不会自动迁移）。用户点旋转的意图是“同一应用换方向”，
+   * 所以重建成功后在同一次动作里重新打开刚才显示的应用；这是本次用户动作的一部分，不是失败重试。
+   */
+  private void rotate() {
+    String orientation = landscapeFrame ? "portrait" : "landscape", pkg = shownPackage;
+    run(
+        () -> {
+          JSONObject created = manager.start(orientation);
+          if (!created.optBoolean("ok") || pkg.isEmpty()) return created;
+          return manager.launch(pkg);
+        });
+  }
+
   private void create(String orientation) {
     if (busy) return;
     creating = true;
@@ -1208,6 +1220,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
                     updating = false;
                     stageNote = "";
                     landscapeFrame = frame.value.optInt("width") > frame.value.optInt("height");
+                    shownPackage = frame.value.optString("package");
                     generation = frame.value.optString("generation");
                     touchFeedback.generation(generation);
                     frameSeq = frame.value.optLong("frameSeq");
