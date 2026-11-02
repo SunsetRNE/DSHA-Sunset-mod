@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("直进 Web"));
-      assertTrue(shown.contains("版本码提升为 287"));
+      assertTrue(shown.contains("启动目标"));
+      assertTrue(shown.contains("版本码提升为 288"));
+      assertFalse(shown.contains("直进 Web"));
+      assertFalse(shown.contains("版本码提升为 287"));
       assertFalse(shown.contains("/app/install"));
       assertFalse(shown.contains("版本码提升为 286"));
       assertFalse(shown.contains("说明弹窗"));
@@ -237,8 +239,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("direct Web launch"));
-      assertTrue(shown.contains("Raises versionCode to 287"));
+      assertTrue(shown.contains("Launch target"));
+      assertTrue(shown.contains("Raises versionCode to 288"));
+      assertFalse(shown.contains("direct Web launch"));
+      assertFalse(shown.contains("Raises versionCode to 287"));
       assertFalse(shown.contains("/app/install"));
       assertFalse(shown.contains("Raises versionCode to 286"));
       assertFalse(shown.contains("info dialog"));

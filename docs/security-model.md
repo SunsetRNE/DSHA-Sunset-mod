@@ -59,4 +59,4 @@ su的metadata发现、管理器授权和UID 0执行是不同事实；DSHA未在A
 
 ## 交付与验证限度
 
-正式包使用 `io.github.sunsetrne.dsha` 与 `ci/release-identity.json` 记录的 Mod 发布证书（v1/v2/v3）。构建不缺省发布口令，不替换为其它证书。build287 的 CI 只证明该 commit 在托管 runner 上的编译、门禁、单测、签名与发布流程；软件测试、APK/ELF/签名核验和手机覆盖安装是不同证据。本轮只有本机相关单测与静态门禁（见 [build287 记录](releases/v0.2.1-rc.3-build287-direct-web-entries-20261103.md)），测试包与正式包均未做设备安装或覆盖升级验证，不能继承旧报告的通过范围。
+正式包使用 `io.github.sunsetrne.dsha` 与 `ci/release-identity.json` 记录的 Mod 发布证书（v1/v2/v3）。构建不缺省发布口令，不替换为其它证书。build288 的 CI 只证明该 commit 在托管 runner 上的编译、门禁、单测、签名与发布流程；软件测试、APK/ELF/签名核验和手机覆盖安装是不同证据。本轮只有本机相关单测与静态门禁（见 [build288 记录](releases/v0.2.1-rc.3-build288-launch-target-settings-20261103.md)），测试包与正式包均未做设备安装或覆盖升级验证，不能继承旧报告的通过范围。

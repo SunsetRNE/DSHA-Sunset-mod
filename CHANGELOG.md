@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0530-dsh0.2.1-rc.5 / build288（实验性：Web 设置导航新增「启动目标」面板）
+
+- **实验性。** Web 设置导航新增独立的「启动目标」面板（settings.section），插件只负责传递设置；禁用 `dsh-launch-target` 插件不再改变启动目标（分支 `fix/launch-target-settings` 99716b5b，原基于 build277）。运行配置页说明文字与 build287 同改：合并为「桌面图标或常驻通知…系统回收后回到 Web…设置 → 启动目标」；运行时描述符重算。
+- 验证范围：发布会话在 build288 上复跑 宿主 `test-launch-target-client.mjs`、`UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 288（基于 build287）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build288 更新说明](docs/releases/build288-changes.zh.md)，验证记录见 [build288 记录](docs/releases/v0.2.1-rc.3-build288-launch-target-settings-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0500-dsh0.2.1-rc.5 / build287（实验性：直进 Web 修复闪屏并补齐入口）
 
 - **实验性。** 直进 Web 不再闪出主界面：Web 打开后加载页转为主界面上的静态遮罩；并补齐通知、最近任务与系统回收后恢复入口——通知经透明中转页回到存活的原网页或直接打开已就绪的 Web，偏好为主界面时行为不变（分支 `fix/direct-web-entries` ae4e9a15 + a9e34d60，原基于 build278；`BootScreen` 与 build283 在同一处各新增方法，两边保留；运行时描述符重算）。
