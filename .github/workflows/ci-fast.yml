@@ -1,11 +1,12 @@
 name: Source checks
+
+# 节点图：
+#   contracts ─┐
+#   java-format┤  （互不依赖，立即并行）
+#   inputs ────┼─► unit-source（源码模式单测，最多五个外部夹具跳过）
+#              └─► host-fast（fast 阶段宿主回归，含 raw 夹具与 toolchains）
 on:
   push:
-    # 个人测试分支由各自工作流门禁；终端分支只运行 Standard。
-    # 保留本工作流历史合同，不在上述分支重复执行双 flavor 任务。
-    branches-ignore:
-      - Sunset-3090-Q
-      - Sunset-zhongdua-G
   pull_request:
   workflow_dispatch:
 permissions:
@@ -14,141 +15,28 @@ concurrency:
   group: source-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  source:
-    runs-on: ubuntu-24.04
-    # The fast manifest contains fixtures that compile against the production
-    # Gradle toolchain and verify the restored fixed binary inputs, so this job
-    # now downloads/rebuilds those inputs instead of letting the fixtures fail
-    # on missing files.
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Verify toolchain against source configuration
-        id: toolchain
-        run: python3 tools/ci-toolchain.py --github-output
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: temurin
-          java-version: ${{ steps.toolchain.outputs.java }}
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ steps.toolchain.outputs.node }}
-      - name: Verify checked-in contracts
-        run: |
-          python3 tools/prepare-runtime-tools.py --check
-          python3 tools/verify-runtime-descriptor-source.py
-          python3 tools/generate-third-party-notices.py --check
-          python3 tools/check-third-party-notices.py
-          python3 tools/generate-builtin-plugins.py --verify
-          python3 tools/generate-credential-paths.py --check
-          python3 tools/prepare-semver-reference.py
-          python3 tools/format-java-tree.py --check
-          python3 tools/run-host-tests.py --check-manifest
-          python3 tools/check-source-hygiene.py
-          python3 tools/check-ui-i18n.py
-          python3 tools/generate-changelog.py --check
-          python3 tools/check-document-links.py
-      # Same fixed-input pair as release-production: the checked-in lock is the
-      # fallback, workflow-dispatch/repository variables only override it.
-      - name: Resolve fixed input pair
-        id: fixed_inputs
-        run: python3 tools/sunset-ci-inputs.py --github-output
-      - name: Restore exact fixed build inputs
-        env:
-          INPUT_URL: ${{ steps.fixed_inputs.outputs.url }}
-          INPUT_SHA: ${{ steps.fixed_inputs.outputs.sha256 }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
-          if [ "${{ steps.fixed_inputs.outputs.format }}" = source-archive ]; then args+=(--source-archive); fi
-          python3 tools/ci-assets.py "${args[@]}"
-      # Rebuild the managed runtime from the dependency lock and regenerate the
-      # descriptor pins, exactly as release-production does before preparing
-      # the verified raw/managed host fixtures.
-      - name: Rebuild current managed DSH runtime from the dependency lock
-        run: |
-          python3 tools/prepare-dsh-runtime.py
-          python3 tools/prepare-backup-assets.py --write
-          python3 tools/prepare-runtime-descriptor.py --write
-          python3 tools/verify-runtime-descriptor-source.py
-      - name: Prepare current verified runtime fixture
-        run: python3 tools/prepare-test-runtime.py
-      # The Gradle step also warms GRADLE_USER_HOME for the fast fixtures that
-      # declare "toolchains" (the runner exposes {sdk}/{gradleHome}/{gradleCache}
-      # only through that requirement) and for the offline Gradle gate.
-      - name: Source-only Standard unit tests (up to five external-fixture skips)
-        run: |
-          platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
-          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
-          # 托管 runner 不一定把 sdkmanager 放进 PATH；与 release-production 一样
-          # 从 SDK 根目录解析，避免这里直接以 127 失败。
-          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$sdkmanager_bin" ]; then
-            sdkmanager_bin=$(find "$sdk_root" -path '*/cmdline-tools/*/bin/sdkmanager' | head -1)
-          fi
-          test -x "$sdkmanager_bin"
-          "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools"
-          chmod +x gradlew
-          ./gradlew :app:testStandardDebugUnitTest -Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets --no-daemon --max-workers=2
-      - name: Report source-only test scope
-        if: always()
-        run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
-          lines = ["### Source-only unit tests",
-                   "This job is not a complete fixed-input test run. Only the five Standard external-fixture tests may skip for missing inputs; existing inputs remain validated."]
-          for flavor in ("Standard",):
-              reports = list(Path(f"app/build/test-results/test{flavor}DebugUnitTest").glob("TEST-*.xml"))
-              if not reports:
-                  lines.append(f"- {flavor}: no JUnit reports; execution not established.")
-                  continue
-              suites = [ET.parse(report).getroot() for report in reports]
-              counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
-                        for key in ("tests", "failures", "errors", "skipped")}
-              lines.append(f"- {flavor}: " + ", ".join(f"{key}={value}" for key, value in counts.items()))
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-              summary.write("\n".join(lines) + "\n")
-          PY
-      # A hosted runner has no fixed toolchain root. Expose the SDK and the
-      # Gradle user home warmed above under the exact layout that
-      # run-host-tests.py requires, without dropping the fixtures that declare
-      # the real inputs they compile against.
-      - name: Prepare locked toolchain root for host fixtures
-        if: always()
-        run: |
-          root="$RUNNER_TEMP/dsha-toolchains"
-          gradle_home="${GRADLE_USER_HOME:-$HOME/.gradle}"
-          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          test -d "$sdk_root"
-          test -d "$gradle_home/caches/modules-2"
-          test -d "$gradle_home/wrapper/dists"
-          mkdir -p "$root/gradle-user-home"
-          ln -sfn "$sdk_root" "$root/android-sdk"
-          ln -sfn "$gradle_home/caches" "$root/gradle-user-home/caches"
-          ln -sfn "$gradle_home/wrapper" "$root/gradle-user-home/wrapper"
-      - name: Isolated source and protocol regressions
-        if: always()
-        run: |
-          # The raw fixture is only produced by "Prepare current verified runtime
-          # fixture". Keep the rest of the fast stage runnable and let the one
-          # fixture test fail explicitly if that preparation did not succeed.
-          raw_args=()
-          if [ -f app/build/test-runtimes/current.json ]; then
-            raw_args=(--raw "$(python3 -c "import json;print(json.load(open('app/build/test-runtimes/current.json'))['raw'])")")
-          fi
-          python3 tools/run-host-tests.py --stage fast --jdk "$JAVA_HOME" \
-            --toolchain-root "$RUNNER_TEMP/dsha-toolchains" "${raw_args[@]}"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: source-regressions
-          path: |
-            app/build/host-tests
-            app/build/test-results
-          if-no-files-found: error
-          retention-days: 14
+  contracts:
+    uses: ./.github/workflows/_node-contracts.yml
+  java-format:
+    uses: ./.github/workflows/_node-java-format.yml
+  inputs:
+    uses: ./.github/workflows/_node-inputs.yml
+    with:
+      rebuild_runtime: true
+  unit-source:
+    needs: inputs
+    uses: ./.github/workflows/_node-unit-tests.yml
+    with:
+      mode: source-only
+      handoff: ${{ needs.inputs.outputs.artifact }}
+      sunset_test: false
+      forks: 2
+      artifact: source-unit-results
+  host-fast:
+    needs: inputs
+    uses: ./.github/workflows/_node-host-tests.yml
+    with:
+      stage: fast
+      handoff: ${{ needs.inputs.outputs.artifact }}
+      toolchains: true
+      artifact: source-regressions

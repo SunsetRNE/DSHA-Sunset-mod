@@ -3,6 +3,14 @@ name: DSH-A-Su production release
 # 公开仓库的正式成品发布：显式 workflow_dispatch、绑定精确 commit 与固定输入，
 # 用仓库 Secrets 里的 Mod 发布证书签名 io.github.sunsetrne.dsha 正式包，核验证书后
 # 创建 tag + prerelease，并上传 APK、校验和与构建/单测证据。不运行 Low，不使用测试包身份。
+#
+# 节点图（任一节点失败都不会签名或发布）：
+#   bind ─┬─► contracts ───────────┐
+#         ├─► java-format ─────────┤
+#         ├─► host-regression ─────┤
+#         └─► inputs ─┬─► unit ────┼─► build-signed ─► publish
+#                     └─► lint ────┘
+# 只有 build-signed 读取签名 Secrets；只有 publish 拥有 contents: write，且不 checkout、不签名。
 
 on:
   workflow_dispatch:
@@ -24,183 +32,177 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build_release:
-    name: Verify, build and publish signed DSH-A-Su
+  bind:
+    name: Bind release request to exact source
     if: >-
       github.event_name == 'workflow_dispatch'
       && github.repository == 'SunsetRNE/DSHA-Sunset-mod'
       && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
-    permissions:
-      contents: write
-      actions: read
+    timeout-minutes: 10
     env:
       RELEASE_TAG: ${{ inputs.release_tag }}
       EXPECTED_SHA: ${{ inputs.expected_sha }}
+    outputs:
+      apk_name: ${{ steps.bind.outputs.apk_name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.expected_sha }}
-          fetch-depth: 0
           persist-credentials: false
-
       - name: Bind explicit release request to exact source and fixed inputs
+        id: bind
         run: |
           python3 - <<'PYCODE'
           import importlib.util, json, os, re
+          from datetime import datetime
           expected = os.environ['EXPECTED_SHA']
           if expected != os.environ['GITHUB_SHA'] or not re.fullmatch(r'[a-f0-9]{40}', expected):
               raise SystemExit('RELEASE_COMMIT_MISMATCH')
           tag = os.environ['RELEASE_TAG']
           if not re.fullmatch(r'dsha-a-su-build[0-9]+-[0-9]{8}-[0-9]{6}', tag):
               raise SystemExit('RELEASE_TAG_INVALID')
+          try:
+              datetime.strptime(tag.rsplit('-', 2)[1] + tag.rsplit('-', 1)[1], '%Y%m%d%H%M%S')
+          except ValueError:
+              raise SystemExit('RELEASE_TAG_DATE_INVALID') from None
           spec = importlib.util.spec_from_file_location('fixed_inputs', 'tools/sunset-ci-inputs.py')
           helper = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(helper)
-          selected = helper.resolve({})
+          helper.resolve({})
           identity = json.load(open('ci/release-identity.json', encoding='utf-8'))
           if identity['packageName'] != 'io.github.sunsetrne.dsha':
               raise SystemExit('PACKAGE_IDENTITY_MISMATCH')
-          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
-              for key, value in {
-                  'ASSET_URL': selected['url'],
-                  'ASSET_SHA': selected['sha256'],
-                  'ASSET_FORMAT': selected['format'],
-                  'APK_NAME': 'dsha-a-su-' + expected[:8] + '.apk',
-                  'EXPECTED_PACKAGE': identity['packageName'],
-                  'EXPECTED_CERT': identity['certificateSha256'],
-              }.items():
-                  output.write(key + '=' + value + '\n')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('apk_name=dsha-a-su-' + expected[:8] + '.apk\n')
           PYCODE
-
-      - name: Verify toolchain against source configuration
-        id: toolchain
-        run: python3 tools/ci-toolchain.py --github-output
-
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: temurin
-          java-version: ${{ steps.toolchain.outputs.java }}
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ steps.toolchain.outputs.node }}
-
-      - name: Verify checked-in contracts
-        run: |
-          python3 tools/prepare-runtime-tools.py --check
-          python3 tools/verify-runtime-descriptor-source.py
-          python3 tools/generate-third-party-notices.py --check
-          python3 tools/check-third-party-notices.py
-          python3 tools/generate-builtin-plugins.py --verify
-          python3 tools/generate-credential-paths.py --check
-          python3 tools/prepare-semver-reference.py
-          python3 tools/run-host-tests.py --check-manifest
-          python3 tools/check-source-hygiene.py
-          python3 tools/check-ui-i18n.py
-          python3 tools/generate-changelog.py --check
-          python3 tools/check-document-links.py
-
-      - name: Branch regression without fixed-input dependencies
-        run: |
-          python3 tools/run-host-tests.py --stage fast --jdk "$JAVA_HOME" \
-            --only test-native-consent-transport.mjs \
-            --only test-bridge-token-compat.mjs \
-            --only test-bridge-token-transport.py \
-            --only test-destructive-guard.mjs \
-            --only test-destructive-full-access.mjs \
-            --only test-vscreen-anchored.mjs \
-            --only test-device-shell-policy.py \
-            --only test-credential-paths.py \
-            --only test-runtime-descriptor-inputs.py \
-            --only test-runtime-descriptor-source.py \
-            --only test-plugin-capabilities.py \
-            --only test-plugin-transactions.py \
-            --only test-plugin-delete-nofollow.py \
-            --only test-architecture-boundaries.py \
-            --only test-bridge-port.mjs \
-            --only test-bridge-port.py \
-            --only test-ci-assets.py \
-            --only test-ci-package.py \
-            --only test-sunset-ci-inputs.py \
-            --only test-release-names.py \
-            --only test-release-layout.py \
-            --only test-release-evidence.py \
-            --only test-sunset-release-delivery.py \
-            --only test-host-test-runner.py \
-            --only test-dsh-runtime-packaging.py \
-            --only test-sunset-plugin-release.py \
-            --only test-generate-changelog.py \
-            --only test-ui-language-catalog.py \
-            --only test-format-java-tree.py
-
-      - name: Restore exact fixed build inputs
+      # 在任何构建前拒绝已存在的 tag；publish 节点创建前会再查一次。
+      - name: Refuse an existing release tag before building
         env:
-          INPUT_URL: ${{ env.ASSET_URL }}
-          INPUT_SHA: ${{ env.ASSET_SHA }}
-          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
-          if [ "$ASSET_FORMAT" = source-archive ]; then args+=(--source-archive); fi
-          python3 tools/ci-assets.py "${args[@]}"
-
-      - name: Install Android SDK and NDK
-        run: |
-          platform=$(python3 tools/ci-toolchain.py --field androidPlatform)
-          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
-          ndk=$(python3 tools/ci-toolchain.py --field ndk)
-          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$sdkmanager_bin" ]; then
-            sdkmanager_bin=$(find "$sdk_root" -path '*/cmdline-tools/*/bin/sdkmanager' | head -1)
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'release tag already exists'; exit 1
           fi
-          test -x "$sdkmanager_bin"
-          "$sdkmanager_bin" "platforms;$platform" "build-tools;$buildtools" "ndk;$ndk"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'git tag already exists'; exit 1
+          fi
 
-      - name: Rebuild current managed DSH runtime from the dependency lock
-        run: |
-          python3 tools/prepare-dsh-runtime.py
-          python3 tools/prepare-backup-assets.py --write
-          python3 tools/prepare-runtime-descriptor.py --write
-          python3 tools/verify-runtime-descriptor-source.py
+  contracts:
+    needs: bind
+    uses: ./.github/workflows/_node-contracts.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
 
-      - name: Prepare current verified runtime fixture
-        run: python3 tools/prepare-test-runtime.py
+  java-format:
+    needs: bind
+    uses: ./.github/workflows/_node-java-format.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
 
-      - name: Complete Standard unit tests with fixed inputs
-        run: |
-          chmod +x gradlew
-          ./gradlew :app:testStandardDebugUnitTest -Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false --no-daemon --max-workers=2
+  host-regression:
+    name: Branch regression without fixed-input dependencies
+    needs: bind
+    uses: ./.github/workflows/_node-host-tests.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+      stage: fast
+      artifact: release-host-regression
+      only: >-
+        test-native-consent-transport.mjs
+        test-bridge-token-compat.mjs
+        test-bridge-token-transport.py
+        test-destructive-guard.mjs
+        test-destructive-full-access.mjs
+        test-vscreen-anchored.mjs
+        test-device-shell-policy.py
+        test-credential-paths.py
+        test-runtime-descriptor-inputs.py
+        test-runtime-descriptor-source.py
+        test-plugin-capabilities.py
+        test-plugin-transactions.py
+        test-plugin-delete-nofollow.py
+        test-architecture-boundaries.py
+        test-bridge-port.mjs
+        test-bridge-port.py
+        test-ci-assets.py
+        test-ci-package.py
+        test-ci-handoff.py
+        test-ci-workflows.py
+        test-sunset-ci-inputs.py
+        test-release-names.py
+        test-release-layout.py
+        test-release-evidence.py
+        test-host-test-runner.py
+        test-dsh-runtime-packaging.py
+        test-generate-changelog.py
+        test-ui-language-catalog.py
+        test-format-java-tree.py
 
-      - name: Assert complete Standard unit-test results
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
-          reports = list(Path("app/build/test-results/testStandardDebugUnitTest").glob("TEST-*.xml"))
-          if not reports:
-              raise SystemExit("Missing JUnit reports")
-          suites = [ET.parse(report).getroot() for report in reports]
-          counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
-                    for key in ("tests", "failures", "errors", "skipped")}
-          if not counts["tests"] or counts["failures"] or counts["errors"] or counts["skipped"]:
-              raise SystemExit("Full unit tests failed: " + json.dumps(counts))
-          cases = [case for suite in suites for case in suite.findall("testcase")]
-          if counts["tests"] != len(cases):
-              raise SystemExit("JUnit report counts disagree")
-          result = {"mode": "full", "flavors": {"Standard": counts}}
-          Path("out").mkdir(exist_ok=True)
-          Path("out/full-unit-tests.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-          print(json.dumps(result))
-          PY
+  inputs:
+    needs: bind
+    uses: ./.github/workflows/_node-inputs.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+      rebuild_runtime: true
+      artifact: release-inputs
 
-      - name: Verify complete Java formatting gate
-        run: python3 tools/format-java-tree.py --check
+  unit:
+    needs: inputs
+    uses: ./.github/workflows/_node-unit-tests.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+      mode: full
+      handoff: ${{ needs.inputs.outputs.artifact }}
+      require_fixtures: true
+      forks: 1
+      artifact: release-unit-results
 
-      - name: Lint Standard release
-        run: ./gradlew :app:lintStandardRelease -Pdsha.unsignedPackage=true --no-daemon --max-workers=2
+  lint:
+    needs: inputs
+    uses: ./.github/workflows/_node-lint.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+      handoff: ${{ needs.inputs.outputs.artifact }}
+      sunset_test: false
+      artifact: release-lint-results
+
+  build-signed:
+    name: Build and verify signed DSH-A-Su
+    needs: [bind, contracts, java-format, host-regression, inputs, unit, lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      APK_NAME: ${{ needs.bind.outputs.apk_name }}
+      ASSET_SHA: ${{ needs.inputs.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      # 持有签名 Secrets 的节点不写入任何共享缓存。
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          gradle-cache: 'false'
+      - uses: ./.github/actions/android-sdk
+        with:
+          ndk: 'true'
+      - uses: ./.github/actions/restore-handoff
+        with:
+          artifact: ${{ needs.inputs.outputs.artifact }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.unit.outputs.artifact }}
+          path: .
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.lint.outputs.artifact }}
+          path: app/build/reports
+      # unit 节点已经验证；这里对下载到的 XML 重新核对，回执只由本节点写出。
+      - name: Re-verify complete Standard unit-test results
+        run: python3 tools/verify-unit-results.py --mode full --require-fixtures --output out/full-unit-tests.json
 
       - name: Prepare Mod release signing key from secrets
         env:
@@ -349,20 +351,6 @@ jobs:
           echo "BUILD_CODE=$(cat out/build-code.txt)" >> "$GITHUB_ENV"
           cat out/SHA256SUMS
 
-      - name: Publish verified tag and prerelease with direct Release assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -eu
-          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo 'release tag already exists'; exit 1
-          fi
-          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$EXPECTED_SHA" \
-            --prerelease --title "DSH-A-Su build${BUILD_CODE} ($RELEASE_TAG)" --notes-file out/release-notes.md
-          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-            "out/$APK_NAME" out/dsha-a-su-build-evidence.zip out/build-info.json out/SHA256SUMS
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isPrerelease,assets,url
-
       - name: Remove release private key
         if: always()
         run: |
@@ -375,3 +363,64 @@ jobs:
               raise SystemExit('UNEXPECTED_RELEASE_KEY_PATH')
           key.unlink(missing_ok=True)
           PYCODE
+
+      # 1 天保留：只交给同一 run 的 publish 节点，正式交付物以 Release 资产为准。
+      - name: Hand verified release bundle to publish
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-bundle
+          path: |
+            out/${{ needs.bind.outputs.apk_name }}
+            out/dsha-a-su-build-evidence.zip
+            out/build-info.json
+            out/SHA256SUMS
+            out/release-notes.md
+            out/build-code.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish verified tag and prerelease
+    needs: [bind, build-signed]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      APK_NAME: ${{ needs.bind.outputs.apk_name }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-bundle
+          path: out
+      - name: Verify bundle checksums and commit binding
+        working-directory: out
+        run: |
+          set -eu
+          sha256sum -c SHA256SUMS
+          python3 - <<'PYCODE'
+          import json, os
+          info = json.load(open('build-info.json', encoding='utf-8'))
+          if info['commit'] != os.environ['EXPECTED_SHA'] or info['apkFile'] != os.environ['APK_NAME']:
+              raise SystemExit('BUNDLE_IDENTITY_MISMATCH')
+          if info['runId'] != os.environ['GITHUB_RUN_ID'] or info['runAttempt'] != os.environ['GITHUB_RUN_ATTEMPT']:
+              raise SystemExit('BUNDLE_RUN_MISMATCH')
+          if str(info['versionCode']) != open('build-code.txt', encoding='utf-8').read().strip():
+              raise SystemExit('BUNDLE_VERSION_MISMATCH')
+          PYCODE
+      - name: Publish verified tag and prerelease with direct Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          BUILD_CODE=$(cat out/build-code.txt)
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'release tag already exists'; exit 1
+          fi
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$EXPECTED_SHA" \
+            --prerelease --title "DSH-A-Su build${BUILD_CODE} ($RELEASE_TAG)" --notes-file out/release-notes.md
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            "out/$APK_NAME" out/dsha-a-su-build-evidence.zip out/build-info.json out/SHA256SUMS
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isPrerelease,assets,url

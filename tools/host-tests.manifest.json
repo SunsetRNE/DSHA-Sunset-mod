@@ -2,17 +2,6 @@
   "schema": 1,
   "tests": [
     {
-      "path": "tools/test-sunset-release-delivery.py",
-      "stage": "fast",
-      "requires": [
-        "python39"
-      ],
-      "args": [],
-      "timeoutSeconds": 60,
-      "environment": {},
-      "reason": "Reject wrong source/run/test-package identities, missing evidence, existing tags and incomplete Release uploads; mock API writes never retry unknown outcomes."
-    },
-    {
       "path": "tools/test-android-image-wire.mjs",
       "stage": "runtime",
       "requires": [
@@ -3066,17 +3055,6 @@
       "reason": "Actual signed guest install recipe imports all builtin entrypoints; negative controls reproduce omitted helper MODULE_NOT_FOUND."
     },
     {
-      "path": "tools/test-sunset-plugin-release.py",
-      "stage": "fast",
-      "reason": "Sunset历史发布完整提交/run/attempt及显式基线绑定、合并历史顺序、已有tag与未知输出保护；纯临时Git/模拟GitHub，无网络或设备访问",
-      "args": [],
-      "timeoutSeconds": 120,
-      "requires": [
-        "python39"
-      ],
-      "environment": {}
-    },
-    {
       "path": "tools/test-plugin-runtime-evidence.mjs",
       "stage": "runtime",
       "reason": "用锁定 Cordis Loader 和官方 bundle 补丁验证当前实例的持久插件状态，不重复执行插件或读取设备数据",
@@ -3110,6 +3088,28 @@
       "timeoutSeconds": 60,
       "environment": {},
       "reason": "External-device adb/fastboot/loader proof must be generated from the pinned Ubuntu package lock; tampered lock fields are rejected."
+    },
+    {
+      "path": "tools/test-ci-handoff.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "CI node input handoff: exact allow-list, commit binding, digest/traversal rejection before any write; unit-result receipts reject missing/skipped fixtures and forged JUnit counts"
+    },
+    {
+      "path": "tools/test-ci-workflows.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Static Actions node graph: pinned external actions, read-only reusable nodes, release gates before signing, secrets only in the sign node, write permission only in publish"
     }
   ]
 }

@@ -57,8 +57,16 @@ for name in names:
     value = path.read_bytes()
     if b"\0" not in value and b"\r\n" in value:
         errors.append("CRLF: " + name)
-for path in (ROOT / ".github/workflows").glob("*.yml"):
+# 外部 action 必须钉到完整 commit；仓库内的 ./.github/actions 与 ./.github/workflows
+# 节点随同一 commit 审阅，本身也在此扫描。
+workflow_files = sorted((ROOT / ".github/workflows").glob("*.yml"))
+workflow_files += sorted((ROOT / ".github/actions").glob("*/action.yml"))
+for path in workflow_files:
     for selected in re.findall(r"uses:\s*([^\s#]+)", path.read_text(encoding="utf-8")):
+        if re.fullmatch(r"\./\.github/(?:actions/[\w-]+|workflows/_node-[\w-]+\.yml)", selected):
+            if not (ROOT / selected[2:]).exists():
+                errors.append("MISSING_LOCAL_ACTION: " + selected)
+            continue
         if not re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", selected):
             errors.append("UNPINNED_ACTION: " + str(path.relative_to(ROOT)))
 if "mavenLocal()" in (ROOT / "settings.gradle").read_text(encoding="utf-8"):
