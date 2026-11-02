@@ -21,6 +21,8 @@
     <!-- 强调与状态 -->
     <color name="shell_accent">#1E50D0</color>
     <color name="shell_accent_soft">#141E50D0</color>
+    <!-- 下载记录页的浅色主操作底：比 accent_soft 深一档，主色文字仍满足对比度。 -->
+    <color name="shell_accent_tonal">#1F1E50D0</color>
     <color name="shell_on_accent">#FFFFFF</color>
     <!-- 进度条流光叠层：日间 38% 白，夜间压到 16%，只叠在强调色填充内。 -->
     <color name="shell_sheen">#61FFFFFF</color>

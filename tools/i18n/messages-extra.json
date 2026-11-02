@@ -12352,5 +12352,876 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/FullPermissionControls.java"
     ]
+  },
+  {
+    "id": "x2100001",
+    "zh": "更多选项",
+    "en": "More options",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100002",
+    "zh": "记录详情",
+    "en": "Record details",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100003",
+    "zh": "%d 条记录 · %d 个正在传输 · %d 个失败",
+    "en": "%d records · %d transferring · %d failed",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100004",
+    "zh": "%d 条记录 · %d 个正在传输",
+    "en": "%d records · %d transferring",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100005",
+    "zh": "%d 条记录 · %d 个失败",
+    "en": "%d records · %d failed",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100006",
+    "zh": "%d 条记录",
+    "en": "%d records",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100007",
+    "zh": "正在传输",
+    "en": "Transferring",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100008",
+    "zh": "移除记录不会删除已完成的文件。",
+    "en": "Removing a record keeps completed files.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100009",
+    "zh": "了解下载记录",
+    "en": "About download history",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100010",
+    "zh": "暂无下载记录",
+    "en": "No downloads yet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100011",
+    "zh": "网页文件菜单中的下载会显示在这里。",
+    "en": "Downloads from the web file menu appear here.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100012",
+    "zh": "已结束",
+    "en": "Finished",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100013",
+    "zh": "%s，%d 条",
+    "en": "%s, %d",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100014",
+    "zh": "没有可查看的记录",
+    "en": "No records to show",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100015",
+    "zh": "选择一条记录查看详情",
+    "en": "Select a record to see details",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100016",
+    "zh": "更多操作",
+    "en": "More actions",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100017",
+    "zh": "已选中",
+    "en": "Selected",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100018",
+    "zh": "%s：%s",
+    "en": "%s: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100019",
+    "zh": "已自动改名",
+    "en": "Renamed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100020",
+    "zh": "%s/秒",
+    "en": "%s/s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100021",
+    "zh": "已校验，请选择保存位置",
+    "en": "Verified · choose where to save",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100022",
+    "zh": "文件名",
+    "en": "File name",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100023",
+    "zh": "详细信息与位置",
+    "en": "Details and location",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100024",
+    "zh": "复制文件名",
+    "en": "Copy file name",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100025",
+    "zh": "移除已结束记录",
+    "en": "Remove finished records",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100026",
+    "zh": "取消这次下载？",
+    "en": "Cancel this download?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100027",
+    "zh": "已下载的 %s 会被丢弃，之后需要从网页重新发起。",
+    "en": "The %s already downloaded will be discarded. Start again from the web app.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100028",
+    "zh": "取消下载",
+    "en": "Cancel download",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100029",
+    "zh": "继续保留",
+    "en": "Keep",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100030",
+    "zh": "只移除这条记录，%s 仍保留在 %s。",
+    "en": "Only the record is removed. %s stays in %s.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100031",
+    "zh": "只移除此条下载记录，不影响其他文件。",
+    "en": "Only this download record is removed. Other files are not affected.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100032",
+    "zh": "已移除记录，文件仍在 %s",
+    "en": "Record removed. The file is still in %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100033",
+    "zh": "已移除记录",
+    "en": "Record removed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100034",
+    "zh": "移除 %d 条已结束记录？",
+    "en": "Remove %d finished records?",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100035",
+    "zh": "包括已完成和已取消的记录。已完成文件仍保留在原保存位置；失败、暂停和进行中的记录不受影响。",
+    "en": "Includes completed and cancelled records. Completed files stay where they were saved. Failed, paused and active records are not affected.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100036",
+    "zh": "已移除 %d 条记录，文件均已保留",
+    "en": "Removed %d records. Files were kept.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100037",
+    "zh": "已移除 %d 条，%d 条正在收尾，请稍后再试",
+    "en": "Removed %d. %d are still finishing; try again shortly.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100038",
+    "zh": "移除记录只删除这里的条目，已完成的文件仍在原保存位置。",
+    "en": "Removing a record only deletes the entry here. Completed files stay where they were saved.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100039",
+    "zh": "保存位置已有同名文件时，会自动使用新名称，原文件不会被覆盖。",
+    "en": "If a file with the same name exists, a new name is used and the original is not overwritten.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100040",
+    "zh": "打开分享选择器不代表对方已收到，请在接收应用中确认。",
+    "en": "Opening the share picker does not confirm delivery. Check in the receiving app.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100041",
+    "zh": "失败或暂停的下载会保留已下载进度，可以重试或继续。",
+    "en": "Failed or paused downloads keep their progress, so you can retry or resume.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100042",
+    "zh": "关于下载记录",
+    "en": "About download history",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100043",
+    "zh": "此设备没有提供系统下载列表，请按详情中的保存位置在文件管理器中查找。",
+    "en": "This device has no system Downloads list. Use the saved location in the details to find the file.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/FileTransfersActivity.java"
+    ]
+  },
+  {
+    "id": "x2100044",
+    "zh": "待选择保存位置",
+    "en": "Choose a destination",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100045",
+    "zh": "今天",
+    "en": "Today",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100046",
+    "zh": "昨天",
+    "en": "Yesterday",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100047",
+    "zh": "剩余约 %d 秒",
+    "en": "About %d s left",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100048",
+    "zh": "剩余约 %d 分钟",
+    "en": "About %d min left",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100049",
+    "zh": "剩余约 %d 小时",
+    "en": "About %d h left",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100050",
+    "zh": "尚未选择，选好后才会写入",
+    "en": "Not chosen yet. Nothing is written until you choose.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100051",
+    "zh": "应用私有缓存，只用于这次分享",
+    "en": "Private app storage used only for this share",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100052",
+    "zh": "系统相册可见",
+    "en": "Visible in the system gallery",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100053",
+    "zh": "通过系统保存界面选择的位置",
+    "en": "Chosen in the system save screen",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100054",
+    "zh": "系统「下载」目录中的 DSHA 文件夹",
+    "en": "DSHA folder in the system Downloads directory",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100055",
+    "zh": "无法访问保存位置",
+    "en": "Cannot access the destination",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100056",
+    "zh": "完整性校验未通过",
+    "en": "Integrity check failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100057",
+    "zh": "运行环境未就绪",
+    "en": "Runtime not ready",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100058",
+    "zh": "文件访问未获授权",
+    "en": "File access not authorized",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100059",
+    "zh": "源文件已不可用",
+    "en": "Source file unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100060",
+    "zh": "传输中断",
+    "en": "Transfer interrupted",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100061",
+    "zh": "下载长度校验失败",
+    "en": "Download size check failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100062",
+    "zh": "文件超过 5 GB 上限",
+    "en": "File exceeds the 5 GB limit",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100063",
+    "zh": "下载记录已满",
+    "en": "Download history is full",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100064",
+    "zh": "不是有效图片",
+    "en": "Not a valid image",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100065",
+    "zh": "下载器正在收尾",
+    "en": "Downloader is finishing",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100066",
+    "zh": "无法完成保存",
+    "en": "Could not save the file",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100067",
+    "zh": "记录或文件已不可用",
+    "en": "Record or file unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100068",
+    "zh": "操作未完成，可以重试。",
+    "en": "The operation did not complete. You can retry.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100069",
+    "zh": "操作未完成：%s",
+    "en": "Operation did not complete: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100070",
+    "zh": "取消保存",
+    "en": "Cancel save",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+    ]
+  },
+  {
+    "id": "x2100071",
+    "zh": "已保存并通过校验",
+    "en": "Saved and verified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100072",
+    "zh": "已保存到 %s。保存位置已有同名文件，已自动改名。",
+    "en": "Saved to %s. A file with the same name existed, so it was renamed.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100073",
+    "zh": "已保存到 %s。",
+    "en": "Saved to %s.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100074",
+    "zh": "前一个任务完成后自动开始，共 %s。",
+    "en": "Starts automatically after the current task. Size: %s.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100075",
+    "zh": "正在校验完整性…",
+    "en": "Verifying integrity…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100076",
+    "zh": "校验通过后才会写入保存位置。",
+    "en": "The file is written only after verification passes.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100077",
+    "zh": "正在保存…",
+    "en": "Saving…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100078",
+    "zh": "正在写入 %s。",
+    "en": "Writing to %s.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100079",
+    "zh": "已通过校验，请选择保存位置",
+    "en": "Verified. Choose a destination",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100080",
+    "zh": "选好位置后才会写入。取消选择不会丢失这条记录，可以稍后再选。",
+    "en": "Nothing is written until you choose. Cancelling the picker keeps this record so you can choose later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100081",
+    "zh": "已下载 %s，重试时从断点继续。",
+    "en": "%s downloaded. Retry resumes from there.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100082",
+    "zh": "需要再次下载请从网页重新发起。",
+    "en": "To download again, start a new download from the web app.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100083",
+    "zh": "下载文件",
+    "en": "Download",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100084",
+    "zh": "校验",
+    "en": "Verify",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100085",
+    "zh": "已暂停。已下载的进度会保留，继续后从断点续传。",
+    "en": "Paused. Downloaded progress is kept and resumes from where it stopped.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100086",
+    "zh": "%s：已完成",
+    "en": "%s: done",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100087",
+    "zh": "%s：进行中",
+    "en": "%s: in progress",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100088",
+    "zh": "%s：已暂停",
+    "en": "%s: paused",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100089",
+    "zh": "%s：失败",
+    "en": "%s: failed",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100090",
+    "zh": "%s：未开始",
+    "en": "%s: not started",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100091",
+    "zh": "等待选择",
+    "en": "Not chosen",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100092",
+    "zh": "复制路径",
+    "en": "Copy path",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100093",
+    "zh": "技术信息",
+    "en": "Technical details",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100094",
+    "zh": "文档 URI",
+    "en": "Document URI",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100095",
+    "zh": "系统不保证能按文档 URI 精确定位文件夹；相册和其他提供方保存的文件可能不在系统下载列表中。",
+    "en": "Android does not guarantee exact folder navigation from a document URI. Gallery files and files saved by other providers may not appear in the system Downloads list.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100096",
+    "zh": "文件信息",
+    "en": "File info",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100097",
+    "zh": "类型",
+    "en": "Type",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100098",
+    "zh": "大小",
+    "en": "Size",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100099",
+    "zh": "创建时间",
+    "en": "Created",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100100",
+    "zh": "原文件名",
+    "en": "Original name",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100101",
+    "zh": "同名文件已存在，已自动改名",
+    "en": "Renamed because the name was taken",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100102",
+    "zh": "丢弃已下载的 %s，之后需从网页重新发起。",
+    "en": "Discards %s downloaded. Start again from the web app.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100103",
+    "zh": "停止这次文件操作，之后需从网页重新发起。",
+    "en": "Stops this file operation. Start again from the web app.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100104",
+    "zh": "只删除这条记录，文件仍保留在 %s。",
+    "en": "Removes only this record. The file stays in %s.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
+  },
+  {
+    "id": "x2100105",
+    "zh": "只删除这条记录，不影响其他文件。",
+    "en": "Removes only this record. Other files are not affected.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/TransferDetailView.java"
+    ]
   }
 ]

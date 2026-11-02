@@ -8,5 +8,7 @@
     <item name="settings_detail" type="id" />
     <item name="settings_list_scroll" type="id" />
     <item name="plugin_detail_pane" type="id" />
+    <!-- 下载记录页：重建列表后按语义标签恢复焦点。 -->
+    <item name="transfer_focus_key" type="id" />
     <item name="plugin_detail_divider" type="id" />
 </resources>
