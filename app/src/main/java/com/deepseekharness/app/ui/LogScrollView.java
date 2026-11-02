@@ -4,12 +4,17 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewParent;
 import android.widget.ScrollView;
+import com.deepseekharness.app.util.NestedScrollArbiter;
 
-/** 日志框自己处理上下滑动，到边缘再让外层页面滚动；保留文字长按选择。 */
+/**
+ * 日志框自己处理上下滑动；手势起点已在边缘且朝外滑时交给外层页面。归属在越过 slop 后整次手势锁定，
+ * 见 {@link NestedScrollArbiter}。保留文字长按选择。
+ */
 public final class LogScrollView extends ScrollView {
-  private float lastY;
+  private final NestedScrollArbiter arbiter;
   private boolean interacting;
   private long gestureRevision;
   // 启动日志「展开」：放宽高度上限；页面整体可滚动，不再受剩余高度约束。
@@ -17,6 +22,7 @@ public final class LogScrollView extends ScrollView {
 
   public LogScrollView(Context context, AttributeSet attrs) {
     super(context, attrs);
+    arbiter = new NestedScrollArbiter(ViewConfiguration.get(context).getScaledTouchSlop());
   }
 
   @Override
@@ -39,22 +45,23 @@ public final class LogScrollView extends ScrollView {
     ViewParent parent = getParent();
     switch (event.getActionMasked()) {
       case MotionEvent.ACTION_DOWN:
-        lastY = event.getY();
         interacting = true;
         gestureRevision++;
-        if (parent != null)
-          parent.requestDisallowInterceptTouchEvent(
-              canScrollVertically(-1) || canScrollVertically(1));
+        boolean holdDown =
+            arbiter.down(
+                event.getX(), event.getY(), canScrollVertically(-1), canScrollVertically(1));
+        if (parent != null) parent.requestDisallowInterceptTouchEvent(holdDown);
         break;
       case MotionEvent.ACTION_MOVE:
-        float delta = event.getY() - lastY;
-        if (parent != null && Math.abs(delta) > 0.5f)
-          parent.requestDisallowInterceptTouchEvent(canScrollVertically(delta > 0 ? -1 : 1));
-        lastY = event.getY();
+        boolean hold =
+            arbiter.move(
+                event.getX(), event.getY(), canScrollVertically(-1), canScrollVertically(1));
+        if (parent != null) parent.requestDisallowInterceptTouchEvent(hold);
         break;
       case MotionEvent.ACTION_UP:
       case MotionEvent.ACTION_CANCEL:
         interacting = false;
+        arbiter.end();
         if (parent != null) parent.requestDisallowInterceptTouchEvent(false);
         break;
       default:
