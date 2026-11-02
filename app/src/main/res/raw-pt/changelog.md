@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.0630-dsh0.2.1-rc.5 / build290
+# DSHA 0.2.1-rc.3-20261103.0700-dsh0.2.1-rc.5 / build291
 
-- Experimental: a página de diagnóstico acrescenta uma verificação de saúde da rede que deteta problemas como o sistema bloquear a rede da aplicação, falta do serviço em primeiro plano, DNS do contentor desatualizado, rede sem saída e processo congelado; apenas deteta e informa, sem reparação automática.
-- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 290 (com base no build289). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Corrige a cópia de segurança num toque que falhava sempre com uma mudança de localização dos dados: a aplicação passa a parar as escritas antes de confirmar as localizações; os ficheiros de estado próprios do dispositivo deixam de entrar nessa verificação e a cópia continua a parar se os dados do utilizador forem substituídos.
+- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 291 (com base no build290). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

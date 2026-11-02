@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0700-dsh0.2.1-rc.5 / build291（一键备份位置证明改在停写之后记录）
+
+- 修复一键备份每次以 `DATA_LOCATION_CHANGED` 失败（一加 12 报告）：位置证明原先在停 Web 前记录，停 Web 会删除或原子重写 `.dsh` 顶层机器状态文件（`.bridge_port` / `.bridge_status`），导致同一链路必然失败。现在手动、自动与救援三条路径都在停写之后再定位；整项排除的机器状态不做位置核对，用户数据在定位后被替换仍失败关闭（分支 `fix/backup-location-proof`，原会话 session-42f01268 未提交，主会话按用户要求提交；新增 `NativeDataLocationsProofTest`）。
+- 宿主回归修正两处过期断言：`test-plugin-management-patch-chain.py` 的前序模块与 V1 模块摘要按内置 DSH 0.2.1-rc.5 重算（配方夹具摘要不变）；`test-dsh-builtins.mjs` 实体屏工具数由 10 改为 11（新增 `android_read_image`）。两项均不在发布门禁内，本机复跑通过。
+- 验证范围：发布会话在 build291 上复跑 `com.deepseekharness.app.backup.*` / `UpdateVersionPageTest`、宿主回归 `test-plugin-management-patch-chain.py` / `test-dsh-builtins.mjs`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 291（基于 build290）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build291 更新说明](docs/releases/build291-changes.zh.md)，验证记录见 [build291 记录](docs/releases/v0.2.1-rc.3-build291-backup-location-proof-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0630-dsh0.2.1-rc.5 / build290（实验性：网络健康检测一期）
 
 - **实验性。** 网络健康检测一期（只检测不修复）：诊断页新增网络健康面板，检测系统拦截本 App 网络、Web 在跑但前台服务缺失、容器 DNS 过期、有网络但出不去、进程曾被冻结五类问题，只记录并提示，不重启 Web、不改系统设置、不重放请求（分支 `design/network-health-20261102`，原会话未提交，主会话按用户要求提交为 4cd38fde；原基于 build274，无冲突）。
