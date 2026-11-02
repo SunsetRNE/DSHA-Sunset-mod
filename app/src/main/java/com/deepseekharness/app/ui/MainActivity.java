@@ -45,6 +45,22 @@ public class MainActivity extends AppCompatActivity {
   private DirectWebLaunch directWeb;
   private PendingMain directWebMainState;
 
+  /**
+   * 直启打开 Web 后留在 Main 上的加载页遮罩。Main 在 Web 之下完成初始化，但遮罩保持到 Main
+   * 真正作为原生页面回到前台才收起：打开 Web 的任务切换期间、以及之后点桌面图标经 Main
+   * 返回原网页时，系统显示的都是遮罩，而不是主界面。
+   */
+  private BootScreen webCover;
+
+  /** 回到前台仍停在 Main 时，等待“返回原网页”派发的宽限；超时收起遮罩，不让 Main 卡在加载页。 */
+  private static final long WEB_COVER_GRACE_MS = 1_500L;
+
+  private final Runnable releaseWebCover =
+      () -> {
+        if (getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
+          dropWebCover();
+      };
+
   /** 平板左栏；手机布局没有这个视图，所有使用点都按可空处理。 */
   private ShellRail shellRail;
 
@@ -237,6 +253,24 @@ public class MainActivity extends AppCompatActivity {
     entryWindow = 0L;
   }
 
+  /**
+   * Main 回到前台时决定 Web 遮罩去留：正在返回原网页时保留（宽限后仍停在 Main 再收起），
+   * 否则这是用户明确回到原生页面，立即收起。
+   */
+  private void scheduleWebCoverRelease(boolean returningToWeb) {
+    recoveryHandler.removeCallbacks(releaseWebCover);
+    if (webCover == null) return;
+    if (returningToWeb) recoveryHandler.postDelayed(releaseWebCover, WEB_COVER_GRACE_MS);
+    else dropWebCover();
+  }
+
+  private void dropWebCover() {
+    recoveryHandler.removeCallbacks(releaseWebCover);
+    BootScreen screen = webCover;
+    webCover = null;
+    if (screen != null) screen.dismiss();
+  }
+
   /** 入口检查结束后淡出加载页；系统关闭动画或视图已分离时直接移除。 */
   private void dismissEntryOverlay() {
     endEntryWindow();
@@ -366,7 +400,14 @@ public class MainActivity extends AppCompatActivity {
               directWeb = null;
               PendingMain pending = directWebMainState;
               directWebMainState = null;
-              // Web 已在前台：等本页离开前台后再收起加载页，避免切换时闪出主界面。
+              // Web 是独立任务，切换是异步的：此刻收起加载页会在 Web 首帧前露出主界面。
+              // 加载页转为遮罩，主界面在其下初始化，Main 作为原生页面回到前台时才收起。
+              BootScreen screen = bootScreen;
+              bootScreen = null;
+              if (screen != null) {
+                screen.quiet();
+                webCover = screen;
+              }
               if (pending != null)
                 recoveryHandler.post(
                     () -> showMain(pending.saved, pending.config, pending.controller));
@@ -689,6 +730,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onPause() {
     if (!mainReady) entryGate.cancel();
+    recoveryHandler.removeCallbacks(releaseWebCover);
     recoveryHandler.removeCallbacks(refreshRecovery);
     if (updateNotice != null) {
       updateNotice.dismiss();
@@ -913,7 +955,9 @@ public class MainActivity extends AppCompatActivity {
     leavingUi = false;
     BrowserTasks.entry("RESUME", getIntent());
     // 已核验的同代网页先恢复，避免入口检查完成后遗漏唯一一次 onResume。
-    if (BrowserTasks.resumeBackground(this)) return;
+    boolean returning = BrowserTasks.resumeBackground(this);
+    scheduleWebCoverRelease(returning || BrowserTasks.returnPending());
+    if (returning) return;
     if (!mainReady && !isFinishing()) {
       beginEntryCheck();
       return;

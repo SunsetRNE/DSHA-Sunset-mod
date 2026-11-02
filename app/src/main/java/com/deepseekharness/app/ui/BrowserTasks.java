@@ -99,6 +99,14 @@ final class BrowserTasks {
     return resumeBackground(context, false);
   }
 
+  /** 仍有待回到的原网页（含等待核验 / 内容就绪）；只读，不派发。 */
+  static boolean returnPending() {
+    Background pending = background;
+    if (pending == null) return false;
+    var owner = pending.owner().get();
+    return owner != null && !owner.isFinishing() && !owner.isDestroyed();
+  }
+
   /** A new launcher entry can retry; its matching onResume does not dispatch twice. */
   static boolean resumeBackground(Context context, boolean newEntry) {
     Background pending = background;

@@ -55,8 +55,8 @@ final class BootScreen {
   private final Runnable revealDiagnostics;
   private boolean mainWithDiagnostics;
 
-  /** 本次是否播放开场（冷启动且系统动画开启）；决定最短可见时长。 */
-  private final boolean intro;
+  /** 本次是否播放开场（冷启动且系统动画开启）；决定最短可见时长。转为 Web 遮罩后清除。 */
+  private boolean intro;
 
   private long shownAt;
   private boolean dismissing;
@@ -315,6 +315,21 @@ final class BootScreen {
     openMain.setText(label);
     openMain.setOnClickListener(v -> open.run());
     mainWithDiagnostics = true;
+  }
+
+  /**
+   * 直启已打开 Web：加载页转为 Main 上的静态遮罩，不再显示状态与按钮。
+   *
+   * <p>Web 是独立任务，桌面图标却属于 Main 任务；系统切回 Main 时先显示它最后一帧的快照，
+   * 再由“返回原网页”路由切到 Web。遮罩保证这一帧与加载页一致，而不是闪出主界面。
+   * 之后收起只做短淡出，不再播放开场上滑。
+   */
+  void quiet() {
+    intro = false;
+    root.removeCallbacks(revealDiagnostics);
+    actions.setVisibility(View.GONE);
+    hint.setText("");
+    hint.setVisibility(View.INVISIBLE);
   }
 
   boolean attached() {

@@ -231,6 +231,13 @@ public final class DirectWebEntryTest {
       assertFalse(field(main, "directWebArmed"));
       assertNull(drainUntil(main, WebPreviewActivity.class));
       assertEquals("已就绪的实例不重复启动", 0, Controller.startRequests);
+      // 打开 Web 后加载页转为遮罩留在 Main 上：任务切换期间不露出主界面。
+      var cover = (BootScreen) object(main, "webCover");
+      assertNotNull("Web 打开后保留遮罩", cover);
+      assertTrue(cover.attached());
+      // 没有待返回的原网页时，Main 回到前台就是原生页面：收起遮罩。
+      host.pause().stop().restart().resume();
+      assertNull("回到原生主界面时收起遮罩", object(main, "webCover"));
     } finally {
       host.pause().stop().destroy();
     }
