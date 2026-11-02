@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  预览下方（横屏为右侧）操作区。详情行与结果条固定高度；三组操作按状态只显示一组：
+  未开启/创建中 → 创建；运行中 → 工具；待清理 → 核验关闭。应用与键盘面板由工具组展开。
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+  <TextView android:id="@+id/vscreen_detail" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="22dp" android:layout_marginTop="6dp" android:gravity="center_vertical" android:singleLine="true" android:ellipsize="middle" />
+  <TextView android:id="@+id/vscreen_result" style="@style/ShellCardBody" android:layout_width="match_parent" android:layout_height="40dp" android:background="?attr/selectableItemBackground" android:gravity="center_vertical" android:maxLines="2" android:ellipsize="end" />
+
+  <!-- 未开启 / 创建中 -->
+  <LinearLayout android:id="@+id/vscreen_create_group" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:baselineAligned="false" android:orientation="horizontal">
+    <Button android:id="@+id/vscreen_create_portrait" style="@style/ShellPrimaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" />
+    <Button android:id="@+id/vscreen_create_landscape" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="@dimen/shell_button_height" android:layout_weight="1" android:layout_marginStart="8dp" />
+  </LinearLayout>
+
+  <!-- 运行中 -->
+  <LinearLayout android:id="@+id/vscreen_tool_group" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+      <Button android:id="@+id/vscreen_tool_app" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" />
+      <Button android:id="@+id/vscreen_tool_keyboard" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" />
+      <Button android:id="@+id/vscreen_tool_nodes" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
+      <Button android:id="@+id/vscreen_tool_rotate" style="@style/ShellSecondaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" />
+      <Button android:id="@+id/vscreen_tool_close" style="@style/ShellDangerButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" />
+    </LinearLayout>
+  </LinearLayout>
+
+  <!-- 待清理：只允许核验关闭 -->
+  <Button android:id="@+id/vscreen_verify_close" style="@style/ShellPrimaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" />
+
+  <!-- 应用面板 -->
+  <LinearLayout android:id="@+id/vscreen_app_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal" android:visibility="gone">
+    <EditText android:id="@+id/vscreen_package" style="@style/ShellInput" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:importantForAutofill="no" android:inputType="text" android:singleLine="true" />
+    <Button android:id="@+id/vscreen_package_choose" style="@style/ShellSecondaryButton" android:layout_width="wrap_content" android:layout_height="@dimen/shell_input_height" android:layout_marginStart="8dp" />
+    <Button android:id="@+id/vscreen_package_launch" style="@style/ShellPrimaryButton" android:layout_width="wrap_content" android:layout_height="@dimen/shell_input_height" android:layout_marginStart="8dp" android:minHeight="@dimen/shell_input_height" />
+  </LinearLayout>
+
+  <!-- 键盘面板 -->
+  <LinearLayout android:id="@+id/vscreen_text_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal" android:visibility="gone">
+    <EditText android:id="@+id/vscreen_text" style="@style/ShellInput" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:importantForAutofill="no" android:inputType="text" android:singleLine="true" />
+    <Button android:id="@+id/vscreen_text_send" style="@style/ShellPrimaryButton" android:layout_width="wrap_content" android:layout_height="@dimen/shell_input_height" android:layout_marginStart="8dp" android:minHeight="@dimen/shell_input_height" />
+    <Button android:id="@+id/vscreen_text_enter" style="@style/ShellSecondaryButton" android:layout_width="@dimen/shell_input_height" android:layout_height="@dimen/shell_input_height" android:layout_marginStart="8dp" android:paddingStart="0dp" android:paddingEnd="0dp" />
+  </LinearLayout>
+</merge>

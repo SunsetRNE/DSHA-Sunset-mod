@@ -145,6 +145,7 @@ public final class VirtualScreenActivityLayoutTest {
     outcome.setText("操作完成");
     layout(384, 780);
     int before = preview.getTop();
+    int heightBefore = preview.getHeight();
     int parentBefore = ((View) preview.getParent()).getTop();
     String failure = frameError();
     outcome.setText(failure);
@@ -154,7 +155,8 @@ public final class VirtualScreenActivityLayoutTest {
         parentBefore,
         ((View) preview.getParent()).getTop());
     assertEquals(before, preview.getTop());
-    assertEquals(1, outcome.getLineCount());
+    assertEquals("Failure text must not resize the preview", heightBefore, preview.getHeight());
+    assertTrue("Result strip is bounded to two lines", outcome.getLineCount() <= 2);
     assertTrue("Truncated status must open its full detail", outcome.performClick());
     drain();
     var dialog = ShadowDialog.getLatestDialog();
@@ -169,10 +171,12 @@ public final class VirtualScreenActivityLayoutTest {
     View preview = (View) field(activity, "preview");
     layout(320, 600);
     int before = ((View) preview.getParent()).getTop();
+    int height = preview.getHeight();
     ((TextView) field(activity, "state")).setText("状态说明".repeat(80));
     ((TextView) field(activity, "detail")).setText("com.example.longpackage.".repeat(30));
     layout(320, 600);
     assertEquals(before, ((View) preview.getParent()).getTop());
+    assertEquals(height, preview.getHeight());
     assertEquals(1, ((TextView) field(activity, "state")).getLineCount());
     assertEquals(1, ((TextView) field(activity, "detail")).getLineCount());
   }
@@ -256,6 +260,40 @@ public final class VirtualScreenActivityLayoutTest {
         android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
         activity.getWindow().getAttributes().softInputMode
             & android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
+  }
+
+  @Test
+  public void stoppedPageShowsCreateActionsAndHidesRunningTools() throws Exception {
+    assertEquals(View.VISIBLE, activity.findViewById(R.id.vscreen_create_group).getVisibility());
+    assertEquals(View.GONE, activity.findViewById(R.id.vscreen_tool_group).getVisibility());
+    assertEquals(View.GONE, activity.findViewById(R.id.vscreen_verify_close).getVisibility());
+    assertEquals(View.VISIBLE, activity.findViewById(R.id.vscreen_stage_card).getVisibility());
+    assertEquals("未开启", ((TextView) field(activity, "state")).getText().toString());
+  }
+
+  @Test
+  public void viewStateFollowsLifecycleFactsWithCleanupFirst() {
+    var S = com.deepseekharness.app.util.VirtualScreenLifecycleState.class;
+    assertEquals(
+        VirtualScreenActivity.ViewState.UNSUPPORTED,
+        VirtualScreenActivity.viewState(false, null, true, true));
+    assertEquals(
+        VirtualScreenActivity.ViewState.STOPPED,
+        VirtualScreenActivity.viewState(
+            true, com.deepseekharness.app.util.VirtualScreenLifecycleState.STOPPED, false, false));
+    assertEquals(
+        VirtualScreenActivity.ViewState.STARTING,
+        VirtualScreenActivity.viewState(
+            true, com.deepseekharness.app.util.VirtualScreenLifecycleState.STOPPED, false, true));
+    assertEquals(
+        VirtualScreenActivity.ViewState.RUNNING,
+        VirtualScreenActivity.viewState(
+            true, com.deepseekharness.app.util.VirtualScreenLifecycleState.READY, true, true));
+    for (var life : S.getEnumConstants())
+      if (life.cleanupPending())
+        assertEquals(
+            VirtualScreenActivity.ViewState.CLEANUP,
+            VirtualScreenActivity.viewState(true, life, true, true));
   }
 
   private static final class PendingExecutor extends AbstractExecutorService {

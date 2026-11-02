@@ -65,8 +65,9 @@ public final class VirtualScreenForeground {
         });
   }
 
-  public void stopped() {
-    stopped(session.epoch());
+  /** 系统悬浮预览显示或收起后重新判断：两者不同时出现。 */
+  void refresh() {
+    onMain(this::sync);
   }
 
   public void stopped(long fence) {
@@ -92,6 +93,7 @@ public final class VirtualScreenForeground {
         || activity.isFinishing()
         || activity.isDestroyed()
         || activity instanceof VirtualScreenActivity
+        || session.overlay().showing()
         || generation.isEmpty()
         || hiddenGeneration.equals(generation)) {
       detach();

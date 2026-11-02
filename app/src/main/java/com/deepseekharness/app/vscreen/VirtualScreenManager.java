@@ -181,6 +181,7 @@ public final class VirtualScreenManager {
             ? new Visuals() {
               public void present() {
                 foreground().present();
+                overlay().restore();
               }
 
               public void stopped(long fence) {

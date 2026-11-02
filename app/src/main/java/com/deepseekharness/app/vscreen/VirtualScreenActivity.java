@@ -6,25 +6,50 @@ import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.UiText;
+import com.deepseekharness.app.util.VirtualScreenLifecycleState;
 import java.util.concurrent.*;
 import org.json.JSONObject;
 
-/** 以预览为主的虚拟屏控制页：单指直接触控、双指缩放，其他操作折叠。 */
+/**
+ * 虚拟识屏页：按真实状态切换「未开启 / 创建中 / 运行中 / 待清理」四种画面。预览为主，单指直接触控、双指缩放；
+ * 操作收在预览下方（横屏在右侧）。生命周期事实仍由 VirtualScreenManager 持有，本页只读并渲染。
+ */
 public final class VirtualScreenActivity extends AppCompatActivity {
+  /** 页面展示状态，只由 Manager 的生命周期事实与本页正在进行的创建推导。 */
+  enum ViewState {
+    UNSUPPORTED,
+    STOPPED,
+    STARTING,
+    RUNNING,
+    CLEANUP
+  }
+
   private VirtualScreenManager manager;
   private final Handler main = new Handler(Looper.getMainLooper());
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
+  // 通道探测独立排队：不占用动作队列，也不会被误当成一次用户动作。
+  private final ExecutorService probe = Executors.newSingleThreadExecutor();
   private TextView state, operationResult, detail;
   private VirtualScreenPreviewView preview;
   private EditText packageInput, textInput;
   private View packagePanel, textPanel;
   private ScrollView scroll;
   private View expandedPanel;
-  private SeekBar size;
-  private boolean busy;
+  private View stage, stageCard, stageProgress, createGroup, toolGroup;
+  private TextView stageTitle, stageMessage;
+  private ImageView stageIcon;
+  private ImageButton floatButton;
+  private Button createPortrait, createLandscape, verifyClose;
+  private Button[] actionButtons = new Button[0];
+  private ViewState shown;
+  private boolean busy, creating, updating, landscapeFrame;
   private volatile boolean visible;
   private long frameSeq = -1;
   private String generation = "";
+  // 最近一次预览/创建失败的完整说明；VSCREEN_NOT_RUNNING 由说明卡本身表达，不重复写入。
+  private String stageNote = "";
+  // null = 尚未探测；"" = 当前没有可用通道。
+  private String channelHint;
   private VirtualScreenPreviews.Lease previewLease;
   private volatile long callbackEpoch;
   private final VirtualScreenTouchFeedback touchFeedback = new VirtualScreenTouchFeedback();
@@ -79,35 +104,121 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     return UiText.choose(zh, en);
   }
 
+  /** 纯推导，便于单测：待清理优先于一切，运行中优先于创建中。 */
+  static ViewState viewState(
+      boolean supported, VirtualScreenLifecycleState life, boolean live, boolean creating) {
+    if (!supported) return ViewState.UNSUPPORTED;
+    if (life != null && life.cleanupPending()) return ViewState.CLEANUP;
+    if (live || life == VirtualScreenLifecycleState.READY) return ViewState.RUNNING;
+    if (creating || life == VirtualScreenLifecycleState.STARTING) return ViewState.STARTING;
+    return ViewState.STOPPED;
+  }
+
+  static String channelLabel(String id) {
+    return switch (id == null ? "" : id) {
+      case "root" -> "Root";
+      case "shizuku" -> "Shizuku";
+      case "adb" -> "ADB";
+      default -> "";
+    };
+  }
+
   @Override
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     manager = VirtualScreenManager.from(this);
-    LinearLayout root = new LinearLayout(this);
-    root.setOrientation(LinearLayout.VERTICAL);
-    root.setPadding(dp(12), dp(10), dp(12), dp(12));
-    root.setBackgroundResource(R.color.surface);
-    LinearLayout navigation = new LinearLayout(this);
-    navigation.addView(
-        button(t("返回", "Back"), this::finish), new LinearLayout.LayoutParams(0, dp(40), 1));
-    navigation.addView(
-        button(t("使用说明", "How to use"), this::showUsage),
-        new LinearLayout.LayoutParams(0, dp(40), 1));
-    root.addView(navigation);
-    state =
-        label(
-            t(
-                "先连接设备通道，再点“创建竖屏”或“创建横屏”。",
-                "Connect a device channel, then tap Create portrait or Create landscape."),
-            14);
-    root.addView(state);
-    operationResult = label("", 12);
-    root.addView(operationResult);
-    JSONObject previousStart = manager.lastStartOutcome();
-    if (previousStart != null) operationResult.setText(outcomeText(previousStart));
-    detail = label("", 11);
-    root.addView(detail);
+    setContentView(R.layout.activity_virtual_screen);
+    scroll = findViewById(R.id.vscreen_scroll);
+    state = findViewById(R.id.vscreen_state);
+    state.setSingleLine(true);
+    state.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    detail = findViewById(R.id.vscreen_detail);
+    operationResult = findViewById(R.id.vscreen_result);
+    expandable(operationResult);
+    expandable(detail);
+    stage = findViewById(R.id.vscreen_stage);
+    stage.setClipToOutline(true);
+    stageCard = findViewById(R.id.vscreen_stage_card);
+    stageIcon = findViewById(R.id.vscreen_stage_icon);
+    stageTitle = findViewById(R.id.vscreen_stage_title);
+    stageMessage = findViewById(R.id.vscreen_stage_message);
+    stageProgress = findViewById(R.id.vscreen_stage_progress);
+    createGroup = findViewById(R.id.vscreen_create_group);
+    toolGroup = findViewById(R.id.vscreen_tool_group);
+
+    ((TextView) findViewById(R.id.vscreen_title)).setText(t("虚拟识屏", "Virtual screen"));
+    ImageButton back = findViewById(R.id.vscreen_back);
+    back.setContentDescription(t("返回", "Back"));
+    back.setOnClickListener(v -> finish());
+    ImageButton help = findViewById(R.id.vscreen_help);
+    help.setContentDescription(t("使用说明", "How to use"));
+    help.setOnClickListener(v -> showUsage());
+    floatButton = findViewById(R.id.vscreen_float);
+    floatButton.setOnClickListener(
+        v -> {
+          manager.overlay().toggle(this);
+          render();
+        });
+
+    createPortrait =
+        bind(R.id.vscreen_create_portrait, t("创建竖屏", "Create portrait"), () -> create("portrait"));
+    createLandscape =
+        bind(
+            R.id.vscreen_create_landscape,
+            t("创建横屏", "Create landscape"),
+            () -> create("landscape"));
+    Button app = bind(R.id.vscreen_tool_app, t("应用", "App"), () -> toggle(packagePanel));
+    Button keyboard =
+        bind(R.id.vscreen_tool_keyboard, t("键盘", "Keyboard"), () -> toggle(textPanel));
+    Button nodes = bind(R.id.vscreen_tool_nodes, t("节点操作", "Node actions"), this::showNodes);
+    Button rotate =
+        bind(
+            R.id.vscreen_tool_rotate,
+            t("旋转", "Rotate"),
+            () -> run(() -> manager.start(landscapeFrame ? "portrait" : "landscape")));
+    rotate.setContentDescription(t("切换竖屏或横屏", "Switch portrait or landscape"));
+    Button close =
+        bind(R.id.vscreen_tool_close, t("关闭", "Close"), () -> run(() -> manager.close()));
+    verifyClose =
+        bind(
+            R.id.vscreen_verify_close, t("核验关闭", "Verify close"), () -> run(() -> manager.close()));
+    actionButtons = new Button[] {nodes, rotate, close};
+
+    packagePanel = findViewById(R.id.vscreen_app_panel);
+    packageInput = findViewById(R.id.vscreen_package);
+    packageInput.setHint(t("选择应用后会自动填入包名", "Choose an app to fill its package"));
+    bind(R.id.vscreen_package_choose, t("选择", "Choose"), this::chooseApp);
+    bind(
+        R.id.vscreen_package_launch,
+        t("启动", "Launch"),
+        () -> {
+          String pkg = packageInput.getText().toString().trim();
+          run(() -> manager.launch(pkg));
+        });
+    textPanel = findViewById(R.id.vscreen_text_panel);
+    textInput = findViewById(R.id.vscreen_text);
+    textInput.setHint(t("本机键盘输入（中文需无障碍）", "Keyboard input (accessibility for Unicode)"));
+    bind(
+        R.id.vscreen_text_send,
+        t("发送", "Send"),
+        () -> {
+          String text = textInput.getText().toString(), gen = generation;
+          long seq = frameSeq;
+          run(() -> manager.type(gen, seq, text));
+        });
+    Button enter =
+        bind(
+            R.id.vscreen_text_enter,
+            "↵",
+            () -> {
+              String gen = generation;
+              long seq = frameSeq;
+              run(() -> manager.action("key", gen, seq, "keycode=66"));
+            });
+    enter.setContentDescription(t("回车", "Enter"));
+
     preview = new VirtualScreenPreviewView(this);
+    ((ViewGroup) stage).addView(preview, 0, new FrameLayout.LayoutParams(-1, -1));
     preview.listener =
         new VirtualScreenPreviewView.Touch() {
           public void input(
@@ -159,111 +270,9 @@ public final class VirtualScreenActivity extends AppCompatActivity {
             }
           }
         };
-    int initial =
-        Math.max(
-            280,
-            Math.min(
-                720,
-                (int)
-                    (getResources().getDisplayMetrics().heightPixels
-                        / getResources().getDisplayMetrics().density
-                        * 0.62f)));
-    FrameLayout frame = new FrameLayout(this);
-    frame.setPadding(0, dp(4), 0, dp(4));
-    frame.addView(preview, new FrameLayout.LayoutParams(-1, dp(initial)));
-    root.addView(frame, new LinearLayout.LayoutParams(-1, dp(initial + 8)));
-    size = new SeekBar(this);
-    size.setMax(100);
-    size.setProgress(Math.round((initial - 280) * 100f / 440));
-    size.setContentDescription(t("调整预览大小", "Adjust preview size"));
-    size.setOnSeekBarChangeListener(
-        new SeekBar.OnSeekBarChangeListener() {
-          public void onProgressChanged(SeekBar b, int v, boolean from) {
-            int h = 280 + Math.round(v * 4.4f);
-            frame.getLayoutParams().height = dp(h + 8);
-            frame.requestLayout();
-          }
 
-          public void onStartTrackingTouch(SeekBar b) {}
-
-          public void onStopTrackingTouch(SeekBar b) {}
-        });
-    root.addView(size, new LinearLayout.LayoutParams(-1, dp(32)));
-    LinearLayout orientation = new LinearLayout(this);
-    orientation.addView(
-        button(t("创建竖屏", "Create portrait"), () -> create("portrait")),
-        new LinearLayout.LayoutParams(0, dp(40), 1));
-    orientation.addView(
-        button(t("创建横屏", "Create landscape"), () -> create("landscape")),
-        new LinearLayout.LayoutParams(0, dp(40), 1));
-    root.addView(orientation);
-    LinearLayout tools = new LinearLayout(this);
-    tools.setGravity(Gravity.CENTER);
-    tools.addView(
-        button(t("应用", "App"), () -> toggle(packagePanel)),
-        new LinearLayout.LayoutParams(0, dp(40), 1));
-    tools.addView(
-        button(t("键盘", "Keyboard"), () -> toggle(textPanel)),
-        new LinearLayout.LayoutParams(0, dp(40), 1));
-    tools.addView(
-        button(t("节点操作", "Node actions"), this::showNodes),
-        new LinearLayout.LayoutParams(0, dp(40), 1));
-    tools.addView(
-        button(t("关闭", "Close"), () -> run(() -> manager.close())),
-        new LinearLayout.LayoutParams(0, dp(40), 1));
-    root.addView(tools);
-    LinearLayout apps = new LinearLayout(this);
-    apps.setOrientation(LinearLayout.HORIZONTAL);
-    packageInput = edit(t("选择应用后会自动填入包名", "Choose an app to fill its package"));
-    apps.addView(packageInput, new LinearLayout.LayoutParams(0, dp(44), 1));
-    apps.addView(
-        button(t("选择", "Choose"), this::chooseApp), new LinearLayout.LayoutParams(dp(76), dp(44)));
-    apps.addView(
-        button(
-            t("启动", "Launch"),
-            () -> {
-              String pkg = packageInput.getText().toString().trim();
-              run(() -> manager.launch(pkg));
-            }),
-        new LinearLayout.LayoutParams(dp(76), dp(44)));
-    packagePanel = apps;
-    apps.setVisibility(View.GONE);
-    root.addView(apps);
-    LinearLayout keyboard = new LinearLayout(this);
-    keyboard.setOrientation(LinearLayout.HORIZONTAL);
-    textInput = edit(t("本机键盘输入（中文需无障碍）", "Keyboard input (accessibility for Unicode)"));
-    keyboard.addView(textInput, new LinearLayout.LayoutParams(0, dp(44), 1));
-    keyboard.addView(
-        button(
-            t("发送", "Send"),
-            () -> {
-              String text = textInput.getText().toString(), gen = generation;
-              long seq = frameSeq;
-              run(() -> manager.type(gen, seq, text));
-            }),
-        new LinearLayout.LayoutParams(dp(88), dp(44)));
-    Button enter =
-        button(
-            "↵",
-            () -> {
-              String gen = generation;
-              long seq = frameSeq;
-              run(() -> manager.action("key", gen, seq, "keycode=66"));
-            });
-    keyboard.addView(enter, new LinearLayout.LayoutParams(dp(44), dp(44)));
-    textPanel = keyboard;
-    keyboard.setVisibility(View.GONE);
-    root.addView(keyboard);
-    if (!VirtualScreenManager.supported(this))
-      state.setText(
-          false
-              ? t(
-                  "兼容版暂不支持虚拟屏，请使用标准版",
-                  "Virtual screen is not available in the Low build yet; use Standard")
-              : t("虚拟屏需要 Android 11 及以上", "Requires Android 11 or later"));
-    scroll = new ScrollView(this);
-    scroll.setFillViewport(true);
-    scroll.addView(root);
+    JSONObject previousStart = manager.lastStartOutcome();
+    if (previousStart != null) operationResult.setText(outcomeText(previousStart));
     scroll.addOnLayoutChangeListener(
         (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
           if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop)
@@ -283,63 +292,219 @@ public final class VirtualScreenActivity extends AppCompatActivity {
             revealPanel(textPanel);
           }
         });
-    setContentView(scroll);
+    render();
+  }
+
+  private Button bind(int id, String text, Runnable click) {
+    Button b = findViewById(id);
+    b.setText(text);
+    b.setAllCaps(false);
+    b.setOnClickListener(v -> click.run());
+    return b;
+  }
+
+  /** 固定行高的文字可能被截断：点按查看完整内容，不改变布局高度。 */
+  private void expandable(TextView v) {
+    v.setOnClickListener(
+        view -> {
+          if (v.getText().length() == 0) return;
+          new com.deepseekharness.app.ui.DshaDialogBuilder(this)
+              .setTitle(t("状态详情", "Status details"))
+              .setMessage(v.getText())
+              .setPositiveButton(t("关闭", "Close"), null)
+              .show();
+        });
+  }
+
+  /** 后台探测将使用的通道；与创建时的选择同一判据，只读不派发。 */
+  private void probeChannel() {
+    long current = callbackEpoch;
+    android.content.Context app = getApplicationContext();
+    try {
+      probe.execute(
+          () -> {
+            String hint;
+            try {
+              VirtualScreenChannel selected = VirtualScreenChannels.choose(app);
+              hint = selected == null ? "" : channelLabel(selected.id());
+            } catch (RuntimeException unavailable) {
+              hint = "";
+            }
+            String out = hint;
+            main.post(
+                () -> {
+                  if (isDestroyed() || current != callbackEpoch) return;
+                  channelHint = out;
+                  render();
+                });
+          });
+    } catch (RejectedExecutionException closed) {
+      // 页面已销毁。
+    }
+  }
+
+  /** 按当前事实重绘；只在状态切换时收起面板，同一状态内的轮询不打断用户操作。 */
+  private void render() {
+    if (stage == null || isDestroyed()) return;
+    ViewState next =
+        viewState(
+            VirtualScreenManager.supported(this),
+            manager.lifecycleState(),
+            !manager.generation().isEmpty(),
+            creating);
+    boolean framed = next == ViewState.RUNNING && preview.hasFrame();
+    stageCard.setVisibility(framed ? View.GONE : View.VISIBLE);
+    stageProgress.setVisibility(
+        next == ViewState.STARTING || next == ViewState.RUNNING && !framed
+            ? View.VISIBLE
+            : View.GONE);
+    createGroup.setVisibility(
+        next == ViewState.STOPPED || next == ViewState.STARTING ? View.VISIBLE : View.GONE);
+    toolGroup.setVisibility(next == ViewState.RUNNING ? View.VISIBLE : View.GONE);
+    verifyClose.setVisibility(next == ViewState.CLEANUP ? View.VISIBLE : View.GONE);
+    boolean canCreate = !busy && next == ViewState.STOPPED && !"".equals(channelHint);
+    createPortrait.setEnabled(canCreate);
+    createLandscape.setEnabled(canCreate);
+    verifyClose.setEnabled(!busy);
+    for (Button b : actionButtons) b.setEnabled(!busy);
+    if (next != shown) {
+      if (next != ViewState.RUNNING) {
+        packagePanel.setVisibility(View.GONE);
+        textPanel.setVisibility(View.GONE);
+        expandedPanel = null;
+      }
+      shown = next;
+    }
+    stageIcon.setImageResource(
+        next == ViewState.CLEANUP
+            ? R.drawable.ic_onb_alert
+            : landscapeFrame ? R.drawable.ic_pip_landscape : R.drawable.ic_pip_portrait);
+    stageTitle.setText(stageTitle(next));
+    stageMessage.setText(stageMessage(next));
+    state.setText(stateLabel(next, framed));
+    state.setTextColor(
+        getColor(
+            switch (next) {
+              case RUNNING -> framed ? R.color.shell_good : R.color.shell_text_muted;
+              case STARTING, CLEANUP -> R.color.shell_warn;
+              default -> R.color.shell_text_muted;
+            }));
+    if (next != ViewState.RUNNING)
+      detail.setText(
+          channelHint == null
+              ? ""
+              : channelHint.isEmpty()
+                  ? t("没有可用的设备通道", "No device channel available")
+                  : String.format(t("将使用通道：%s", "Channel: %s"), channelHint));
+    boolean floating = manager.overlay().enabled();
+    floatButton.setImageTintList(
+        android.content.res.ColorStateList.valueOf(
+            getColor(floating ? R.color.shell_accent : R.color.shell_text_secondary)));
+    floatButton.setContentDescription(
+        floating
+            ? t("关闭悬浮预览", "Turn off floating preview")
+            : t("开启悬浮预览", "Turn on floating preview"));
+  }
+
+  private String stateLabel(ViewState next, boolean framed) {
+    return switch (next) {
+      case UNSUPPORTED -> t("不可用", "Unavailable");
+      case STOPPED -> t("未开启", "Off");
+      case STARTING -> t("正在创建…", "Creating…");
+      case CLEANUP -> t("待清理", "Cleanup pending");
+      case RUNNING -> {
+        if (!framed) yield t("等待画面…", "Waiting for picture…");
+        String channel = channelLabel(manager.channel());
+        String base =
+            channel.isEmpty()
+                ? t("运行中", "Running")
+                : String.format(t("运行中 · %s", "Running · %s"), channel);
+        yield updating ? base + " · " + t("画面更新中…", "Updating picture…") : base;
+      }
+    };
+  }
+
+  private String stageTitle(ViewState next) {
+    return switch (next) {
+      case UNSUPPORTED -> t("此设备不支持虚拟屏", "Virtual screens are unavailable");
+      case STOPPED -> t("虚拟屏未开启", "Virtual screen is off");
+      case STARTING -> t("正在创建虚拟屏", "Creating virtual screen");
+      case RUNNING -> t("等待第一帧画面", "Waiting for the first picture");
+      case CLEANUP ->
+          switch (manager.lifecycleState()) {
+            case START_UNKNOWN -> t("上次启动结果未知", "Previous launch result unknown");
+            case DISCONNECTED -> t("通道已断开", "Channel disconnected");
+            default -> t("尚未确认关闭", "Close not yet confirmed");
+          };
+    };
+  }
+
+  private String stageMessage(ViewState next) {
+    String note = stageNote.isEmpty() ? "" : "\n\n" + stageNote;
+    return switch (next) {
+      case UNSUPPORTED -> t("需要 Android 11 或更高版本。", "Requires Android 11 or later.");
+      case STOPPED -> {
+        if (channelHint == null) yield t("正在检查设备通道…", "Checking device channels…") + note;
+        if (channelHint.isEmpty())
+          yield t(
+                  "没有可用的设备通道。请先到“设置 → 设备能力授权”连接 Root、Shizuku 或 ADB 其中一种。",
+                  "No device channel is available. Connect Root, Shizuku or ADB in Settings →"
+                      + " Device capability access first.")
+              + note;
+        yield String.format(
+                t(
+                    "将通过 %s 创建一块独立屏幕，应用在里面运行，不占用当前画面。",
+                    "A separate screen will be created through %s. Apps run there without taking"
+                        + " over this screen."),
+                channelHint)
+            + note;
+      }
+      case STARTING ->
+          t(
+              "通常几秒内完成。结果返回前不会重复创建。",
+              "This usually takes a few seconds. Nothing is created twice while waiting.");
+      case RUNNING ->
+          stageNote.isEmpty()
+              ? t("虚拟屏已创建，画面马上出现。", "The virtual screen is ready; the picture appears shortly.")
+              : stageNote;
+      case CLEANUP -> message("VSCREEN_" + manager.lifecycleState().name(), "");
+    };
   }
 
   private void showUsage() {
     new com.deepseekharness.app.ui.DshaDialogBuilder(this)
-        .setTitle(t("虚拟屏开启与使用", "Start and use a virtual screen"))
+        .setTitle(t("虚拟识屏使用说明", "Using the virtual screen"))
         .setMessage(
             t(
-                "1. 使用标准版，手机系统需为 Android 11 或更高。兼容版暂不支持虚拟屏。\n\n"
-                    + "2. 打开“设置 → 设备能力授权”，连接 ADB、Shizuku 或 Root 中的一种通道即可。没有 Root"
-                    + " 时，可在系统开发者选项开启“无线调试”，再按 DSHA 的 ADB 配对页提示完成配对与连接。仅打开无线调试开关还不够，请确认通道已连接。\n\n"
-                    + "3. 回到“设备能力授权”，点“打开虚拟屏”。在本页点“创建竖屏”或“创建横屏”，等待画面出现。打开此页或开启无障碍，都不会自动创建虚拟屏。\n\n"
-                    + "4. 点“应用 → 选择”，选中想操作的应用，再点“启动”，把它打开到虚拟屏。预览里可以点击、滑动；双指用于调整预览。\n\n"
-                    + "5. 开启 DSHA"
-                    + " 无障碍后，可点“节点操作”，核对实际应用与节点文字，再明确选择点击或输入。输入只在点“设置文字”后提交；每次动作后先看画面，需要继续时手动刷新节点。关闭面板或离开本页会撤销这次节点操作许可。让助手操作时，还要按应用提示确认本次读屏与操作授权，并将操作目标设为虚拟屏。\n\n"
-                    + "VSCREEN_NOT_RUNNING 表示虚拟屏还没创建、已经关闭，或连接已断开。先检查设备通道，再点创建按钮；不需要清除数据或重新解压环境。\n\n"
-                    + "创建仍失败：到“设置 → 自检与诊断”查看错误记录并导出日志。仅开启无障碍不能解决设备通道或系统兼容问题。\n\n"
-                    + "画面持续变化时，预览触摸可能被最新帧检查拒绝；可自行打开“节点操作”，选择系统提供的可操作节点。触摸失败不会自动改用节点，也不会自动重发。系统没有提供节点时不能使用此方式。Android"
-                    + " 12 上 ADB/Shizuku 通道通常拿不到系统的受信任显示权限，创建会按非受信任显示进行；若系统仍然拒绝，请改用 Root"
-                    + " 通道或无障碍屏幕操作。\n\n"
-                    + "不用时点本页“关闭”回收虚拟屏；连接断开或授权被撤销后，需要重新连接并创建。",
-                "1. Use Standard on Android 11 or later. Low does not support virtual screens"
-                    + " yet.\n\n"
-                    + "2. Open Settings → Device capability access and connect one channel: ADB,"
-                    + " Shizuku, or Root. Without Root, enable Wireless debugging in the system"
-                    + " Developer options, then follow DSHA's ADB pairing page to pair and connect."
-                    + " Enabling the system switch alone is not enough; confirm the channel is"
-                    + " connected.\n\n"
-                    + "3. In Device capability access, tap Open virtual screen. Tap Create portrait"
-                    + " or Create landscape here and wait for a picture. Opening this page or"
-                    + " enabling accessibility does not create a virtual screen automatically.\n\n"
-                    + "4. Tap App → Choose, select an app, then tap Launch to open it on the"
-                    + " virtual screen. Tap and swipe in the preview; use two fingers to adjust the"
-                    + " preview.\n\n"
-                    + "5. Enable DSHA accessibility, then open Node actions. Check the actual app"
-                    + " and node label before choosing Click or Enter text. Text is submitted only"
-                    + " when you tap Set text. Observe the picture after each action and refresh"
-                    + " nodes yourself before continuing. Closing the panel or leaving this page"
-                    + " revokes this node session. For assistant control, also confirm this run's"
-                    + " screen access when prompted and choose the virtual screen as the action"
-                    + " target.\n\n"
-                    + "VSCREEN_NOT_RUNNING means no virtual screen has been created, it was closed,"
-                    + " or its connection was lost. Check the device channel, then tap a create"
-                    + " button. You do not need to clear data or extract the environment again.\n\n"
-                    + "If creation still fails, open Settings → Diagnostics to inspect the error"
-                    + " record and export logs. Accessibility alone cannot resolve a missing device"
-                    + " channel or system compatibility problem.\n\n"
-                    + "On a changing screen, preview touches may be refused by the latest-frame"
-                    + " check. You can explicitly open Node actions and choose an actionable node"
-                    + " supplied by the system. Failed touches never switch to nodes or resend"
-                    + " automatically. This method is unavailable when the system provides no"
-                    + " nodes. On Android 12 the ADB/Shizuku channel usually cannot hold the"
-                    + " trusted-display permission, so creation falls back to a non-trusted"
-                    + " display; if the system still refuses, use the Root channel or accessibility"
-                    + " screen actions.\n\n"
-                    + "Tap Close when finished. After a disconnection or revoked access, reconnect"
-                    + " and create the virtual screen again."))
+                "1. 连接通道：在“设置 → 设备能力授权”连接 Root、Shizuku 或 ADB 任一种。仅打开系统“无线调试”还不够，要确认通道已连接。\n\n"
+                    + "2. 创建：点“创建竖屏”或“创建横屏”，画面出现即可使用；运行中点“旋转”切换方向。\n\n"
+                    + "3. 打开应用：点“应用 → 选择 → 启动”。预览里单指点击、滑动，双指缩放。\n\n"
+                    + "4. 节点操作：需开启 DSHA 无障碍。核对目标后再选择点击或输入；每次动作后先看画面，不会自动重试或改用其他方式。\n\n"
+                    + "5. 悬浮预览：点右上角悬浮按钮，离开本页后仍能看到画面；需要系统悬浮窗权限。\n\n"
+                    + "6. 让助手操作时，按提示确认本轮读屏与操作授权，并把目标设为虚拟屏。\n\n"
+                    + "7. 用完点“关闭”。连接断开或结果未知时页面显示“待清理”：先恢复原通道，再点“核验关闭”；不需要清除数据。仍失败请到“设置 → 自检与诊断”导出日志。\n\n"
+                    + "Android 12 上 ADB/Shizuku 通常拿不到受信任显示权限，系统拒绝时请改用 Root。",
+                "1. Connect a channel: in Settings → Device capability access, connect Root,"
+                    + " Shizuku or ADB. Turning on Wireless debugging alone is not enough; make"
+                    + " sure the channel is connected.\n\n"
+                    + "2. Create: tap Create portrait or Create landscape and wait for the picture."
+                    + " While running, tap Rotate to switch orientation.\n\n"
+                    + "3. Open an app: tap App → Choose → Launch. Tap and swipe in the preview;"
+                    + " pinch with two fingers to zoom.\n\n"
+                    + "4. Node actions need DSHA accessibility. Check the target before choosing"
+                    + " Click or Enter text, and observe the picture after each action. Nothing is"
+                    + " retried or switched automatically.\n\n"
+                    + "5. Floating preview: tap the floating button at the top right to keep"
+                    + " watching after leaving this page. Requires the system overlay"
+                    + " permission.\n\n"
+                    + "6. For assistant control, confirm this run's screen access when prompted"
+                    + " and choose the virtual screen as the target.\n\n"
+                    + "7. Tap Close when finished. After a disconnection or unknown result the page"
+                    + " shows Cleanup pending: restore the original channel, then tap Verify"
+                    + " close. You do not need to clear data. If it still fails, export a log from"
+                    + " Settings → Diagnostics.\n\n"
+                    + "On Android 12, ADB/Shizuku usually lack the trusted-display permission; use"
+                    + " Root if the system refuses."))
         .setPositiveButton(t("知道了", "Got it"), null)
         .show();
   }
@@ -800,6 +965,9 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   }
 
   private void create(String orientation) {
+    if (busy) return;
+    creating = true;
+    stageNote = "";
     run(() -> manager.start(orientation));
   }
 
@@ -877,6 +1045,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     preview.cancelStream();
     long outcomeRevision = touchFeedback.invalidate();
     operationResult.setText(t("正在处理，请等待结果…", "Working. Please wait for the result…"));
+    render();
     long current = callbackEpoch;
     long session = manager.epoch();
     worker.execute(
@@ -884,7 +1053,12 @@ public final class VirtualScreenActivity extends AppCompatActivity {
           JSONObject result;
           try {
             if (current != callbackEpoch || session != manager.epoch()) {
-              main.post(() -> busy = false);
+              main.post(
+                  () -> {
+                    busy = false;
+                    creating = false;
+                    render();
+                  });
               return;
             }
             result = action.get();
@@ -900,12 +1074,16 @@ public final class VirtualScreenActivity extends AppCompatActivity {
           main.post(
               () -> {
                 busy = false;
-                if (isDestroyed()
-                    || !visible
-                    || current != callbackEpoch
-                    || outcomeRevision != touchFeedback.revision()) return;
-                operationResult.setText(outcomeText(out));
-                if (manager.generation().isEmpty()) preview.clear();
+                boolean wasCreating = creating;
+                creating = false;
+                if (isDestroyed() || !visible || current != callbackEpoch) return;
+                if (outcomeRevision == touchFeedback.revision()) {
+                  operationResult.setText(outcomeText(out));
+                  if (manager.generation().isEmpty()) preview.clear();
+                  if (wasCreating && !out.optBoolean("ok")) stageNote = outcomeText(out);
+                }
+                render();
+                probeChannel();
               });
         });
   }
@@ -925,9 +1103,11 @@ public final class VirtualScreenActivity extends AppCompatActivity {
                     return;
                   }
                   if (frame.bitmap != null) {
-                    if (!busy) state.setText(t("虚拟屏已开启", "Virtual screen ready"));
                     if (!preview.frame(frame.bitmap, frame.value)) return;
                     frame.adopted();
+                    updating = false;
+                    stageNote = "";
+                    landscapeFrame = frame.value.optInt("width") > frame.value.optInt("height");
                     generation = frame.value.optString("generation");
                     touchFeedback.generation(generation);
                     frameSeq = frame.value.optLong("frameSeq");
@@ -938,18 +1118,24 @@ public final class VirtualScreenActivity extends AppCompatActivity {
                             + "×"
                             + frame.value.optInt("height")
                             + " · "
-                            + manager.channel());
+                            + channelLabel(manager.channel()));
+                    render();
                   } else if (!frame.value.optBoolean("ok")) {
                     String code = frame.value.optString("error");
                     boolean retained = preview.unavailable(code, manager.generation());
-                    if (!busy && retained) state.setText(t("画面更新中…", "Updating picture…"));
-                    else if (!busy && !code.isEmpty())
-                      state.setText(
-                          message(code, frame.value.optString("reason")) + cause(frame.value));
+                    updating = retained;
+                    // 未开启由说明卡本身表达；其他失败把完整原因留在卡片里。
+                    if (!busy
+                        && !retained
+                        && !code.isEmpty()
+                        && !"VSCREEN_NOT_RUNNING".equals(code))
+                      stageNote =
+                          message(code, frame.value.optString("reason")) + cause(frame.value);
                     if (!retained) detail.setText("");
                     generation = "";
                     touchFeedback.generation(generation);
                     frameSeq = -1;
+                    render();
                   }
                 });
   }
@@ -1110,6 +1296,12 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     visible = true;
     callbackEpoch++;
     beginPreview();
+    // 本页已有大预览：悬浮预览暂时让位，离开本页后恢复。
+    if (stage != null) {
+      manager.overlay().suppress(true);
+      render();
+      probeChannel();
+    }
   }
 
   @Override
@@ -1123,6 +1315,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
       previewLease = null;
     }
     if (preview != null) preview.cancelStream();
+    if (stage != null) manager.overlay().suppress(false);
     super.onPause();
   }
 
@@ -1139,6 +1332,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     main.removeCallbacksAndMessages(null);
     if (preview != null) preview.clear();
     worker.shutdown();
+    probe.shutdownNow();
     super.onDestroy();
   }
 }
