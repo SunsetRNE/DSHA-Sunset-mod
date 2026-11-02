@@ -1,4 +1,6 @@
-# DSHA 0.2.1-rc.3-20261102.0730-dsh0.2.1-rc.5 / build265
+# DSHA 0.2.1-rc.3-20261102.0800-dsh0.2.1-rc.5 / build266
 
-- Ícones do rodapé da página de manutenção centrados: na página de manutenção do ambiente, os ícones dos botões Registo de manutenção, Copiar para suporte e DSH de emergência ficavam encostados à esquerda, longe do texto; agora ficam junto ao texto centrado.
-- Âmbito da verificação: confirmado pelo utilizador num pacote de teste; testes unitários e verificações de código locais aprovados. versionCode elevado para 265 (com base no build264). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Assistente flutuante redesenhado: passa a ser uma cápsula arrastável com um cartão de conversa, e expandir, recolher ou mudar de sessão já não cancela uma conversa em curso. Pode escrever diretamente na janela; se a IA estiver a operar o telemóvel, espera no mesmo sítio até enviar e depois junta a mensagem à ronda atual. ✕ esconde a janela e as respostas continuam pela notificação.
+- Proteção contra toques acidentais: parar uma tarefa pede confirmação e só a linha de estado arrasta a janela; a posição fica memorizada e dentro do ecrã.
+- As confirmações de ações no telemóvel acrescentam Permitir esta app nesta ronda, para não confirmar a mesma app repetidamente na mesma ronda; apps sensíveis voltam a perguntar a cada 5 ações.
+- Âmbito da verificação: verificado num dispositivo que expandir já não cancela a conversa, o novo cartão de dia e de noite, a permissão por ronda e a confirmação de arranque; a passagem do teclado na escrita dentro da janela, as respostas pela notificação e pela ilha não foram verificadas num dispositivo. versionCode elevado para 266 (com base no build265). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

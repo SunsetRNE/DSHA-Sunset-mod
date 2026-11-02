@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0800-dsh0.2.1-rc.5 / build266（悬浮助手重构：可拖动胶囊与对话卡片，展开收起不再取消对话）
+
+- 悬浮助手（`assistant/**`、`control/OwnedScreenOverlay`）重构为可拖动胶囊加对话卡片：展开 / 收起 / 切换会话不再取消对话；状态行为拖动把手，限制在屏幕内并记住位置（`OverlayPlacementTest`）；加 ✕、防误触与停止二次确认（`OverlayTouchGuardTest`）；✕ 隐藏后转通知回复。
+- 窗内直接输入：用户输入期间 AI 的手机动作原地等待（`util/ComposeGate`，读屏 dump/tree/screenshot/senseState 不受影响），发送后以 USER_MESSAGE_ARRIVED 插进当前轮次接着做，不自动重放动作。
+- 手机操作确认增加「本轮允许此应用」，敏感应用每 5 次再确认（`TurnScreenGrantsTest`）；带当前手机任务身份的 `/app/launch` 改走悬浮助手确认窗；启动入口偶发为空时按 MAIN/LAUNCHER 解析同包导出入口，NOT_FOUND 附带是否已安装。
+- 验证范围：分支内全量单测 3157 项仅 8 项本机环境基线失败；真机核对展开不取消对话、新卡片日夜、本轮授权、启动确认绑定与设置页启动。合入 build265 时 `HttpShellService` 与 build262 新增的 senseState 读屏操作冲突，两边保留；重算运行时描述符，发布会话复跑助手 / 控制 / 桥 / 识屏等单测与源码门禁。窗内输入键盘与 steer 衔接、通知回复、上岛回复未真机核对。版本码提升为 266（基于 build265）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build266 更新说明](docs/releases/build266-changes.zh.md)，验证记录见 [build266 记录](docs/releases/v0.2.1-rc.3-build266-assistant-overlay-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0730-dsh0.2.1-rc.5 / build265（维护页底栏图标跟随文字居中）
 
 - 运行环境维护页（`ExtractActivity`）底部「维护记录 / 复制给支持 / 应急 DSH」三个按钮，build255 起用 compound drawable 挂图标，图标贴在按钮最左边、文字在中间。`ui/ExtractFooter` 改为图标紧贴文字居中，竖排分支保持图标在上（`ExtractFooterIconTest`）。

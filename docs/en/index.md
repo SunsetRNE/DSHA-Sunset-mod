@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0730-dsh0.2.1-rc.5` / build265 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build centers the icons on the three secondary buttons at the bottom of the maintenance page next to their labels, and adds the DSH Web separate-process design draft. The user confirmed it on a device; local unit tests and source gates passed. See the [build265 notes](../releases/build265-changes.en.md) and the [build265 record](../releases/v0.2.1-rc.3-build265-extract-footer-icons-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0800-dsh0.2.1-rc.5` / build266 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build redesigns the floating assistant as a draggable capsule with a conversation card: expanding or collapsing no longer cancels the conversation, and you can type in the window; phone action confirmations add Allow this app for this turn. The main flows were checked on a device; local unit tests and source gates passed. See the [build266 notes](../releases/build266-changes.en.md) and the [build266 record](../releases/v0.2.1-rc.3-build266-assistant-overlay-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
