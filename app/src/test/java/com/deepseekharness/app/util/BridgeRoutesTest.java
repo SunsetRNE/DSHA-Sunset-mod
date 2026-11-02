@@ -11,6 +11,7 @@ public final class BridgeRoutesTest {
   public void exactRoutesStayDistinctFromSensitiveSuffixes() {
     assertEquals(BridgeRoutes.Route.READ_FILE, BridgeRoutes.match("/app/readfile"));
     assertEquals(BridgeRoutes.Route.SHARE, BridgeRoutes.match("/app/share"));
+    assertEquals(BridgeRoutes.Route.INSTALL, BridgeRoutes.match("/app/install"));
     assertEquals(BridgeRoutes.Route.EXPORT, BridgeRoutes.match("/app/export"));
     assertEquals(BridgeRoutes.Route.SENSORS, BridgeRoutes.match("/app/sensors"));
     assertEquals(BridgeRoutes.Route.SENSOR, BridgeRoutes.match("/app/sensor"));
@@ -34,6 +35,8 @@ public final class BridgeRoutesTest {
           "/app/readfile/secret",
           "/app/readfileXXX",
           "/app/share2",
+          "/app/install/child",
+          "/app/installXXX",
           "/app/export/child",
           "/app/sensorsXXX",
           "/app/sensor/child",

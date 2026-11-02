@@ -38,6 +38,7 @@ public final class BridgeRoutes {
     LAUNCH(false),
     CLIP(false),
     SHARE(false),
+    INSTALL(false),
     OPEN(false),
     VIBRATE(false),
     ASK(false),
@@ -101,6 +102,7 @@ public final class BridgeRoutes {
     add(routes, "/app/launch", Route.LAUNCH);
     add(routes, "/app/clip", Route.CLIP);
     add(routes, "/app/share", Route.SHARE);
+    add(routes, "/app/install", Route.INSTALL);
     add(routes, "/app/open", Route.OPEN);
     add(routes, "/app/vibrate", Route.VIBRATE);
     add(routes, "/app/ask", Route.ASK);

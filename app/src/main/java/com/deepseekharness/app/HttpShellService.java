@@ -289,6 +289,7 @@ public final class HttpShellService {
     routes.put(BridgeRoutes.Route.LAUNCH, (s, r) -> s.appLaunch(r.path, r.scope));
     routes.put(BridgeRoutes.Route.CLIP, (s, r) -> s.appClip(r.path));
     routes.put(BridgeRoutes.Route.SHARE, (s, r) -> s.appShare(r.path));
+    routes.put(BridgeRoutes.Route.INSTALL, (s, r) -> s.appInstall(r.path));
     routes.put(BridgeRoutes.Route.OPEN, (s, r) -> s.appOpen(r.path));
     routes.put(BridgeRoutes.Route.VIBRATE, (s, r) -> s.appVibrate(r.path));
     routes.put(BridgeRoutes.Route.ASK, (s, r) -> s.appAsk(r.path));
@@ -2134,6 +2135,10 @@ public final class HttpShellService {
 
   /** /app/help lists bridge endpoint parameters for authenticated clients. */
   private String appHelp() {
+    String installHelp =
+        com.deepseekharness.app.util.UiText.choose(
+            "\n== 安装应用（宿主系统安装器）==\n/app/install?path=/root/out/app.apk  把容器路径或 /sdcard 下的单个 .apk 交给系统安装器；安装与否由用户在系统界面确认\nDSHA 在前台、无障碍服务已连接，或 Android 14 及以下已授悬浮窗时直接打开安装器（OK: installer）；否则发通知由用户点按打开（OK: notification）。通知被关闭返回 NO_NOTIFICATION。\nOK 只表示已请求，不证明已安装；之后用 /app/apps?q=包名 核对。\nNO_PERMISSION：DSHA 未获「安装未知应用」授权，已打开设置页，用户允许后再请求一次，不要循环重试。\n不支持 .apks/.xapk 分包；不能经桥覆盖安装 DSHA 自身（会结束 App 与全部会话），请用应用内更新页。\n",
+            "\n== Install apps (host system installer) ==\n/app/install?path=/root/out/app.apk  hand a single .apk from a container path or /sdcard to the system installer; the user confirms in the system screen\nWhen DSHA is in the foreground, its accessibility service is connected, or it holds the overlay grant on Android 14 or lower, the installer opens directly (OK: installer); otherwise a notification is posted for the user to tap (OK: notification). Disabled notifications return NO_NOTIFICATION.\nOK only means the request was made, not that the app is installed; verify with /app/apps?q=package.\nNO_PERMISSION: DSHA lacks the \"Install unknown apps\" grant; the settings page was opened, request once more after the user allows it and never loop.\n.apks/.xapk bundles are unsupported; DSHA cannot overwrite itself through the bridge (that ends the App and every session); use the in-app update page.\n");
     String netHelp =
         com.deepseekharness.app.util.UiText.choose(
             "\n== 网络与 DNS（实验性） ==\n/app/net  宿主默认网络（类型/VPN/验证/私有 DNS/设备 DNS）与容器 resolv.conf 来源及是否过期；只读，不含本机 IP\n/app/net/resolve?host=example.com&family=0|4|6  用 Android 系统解析器在当前网络解析域名，返回 DSHA_RESOLVE_V1 文本；只解析不连接\n切网后宿主自动刷新容器 resolv.conf 的 DSHA 托管段；Node 解析遇 EAI_AGAIN/EAI_FAIL 时会经此端点兜底一次。用户自定义 nameserver 不被改写。属争取性修复，不保证所有网络下可靠。\n",
@@ -2155,6 +2160,7 @@ public final class HttpShellService {
                 BRIDGE_PROTOCOL)
             .replace("3090", Integer.toString(bridgePort))
         + taskHelp
+        + installHelp
         + senseHelp
         + netHelp
         + rootPolicyHelp;
@@ -2779,6 +2785,232 @@ public final class HttpShellService {
       return com.deepseekharness.app.util.UiText.text("OK: 已弹出分享面板");
     } catch (Throwable e) {
       return "ERROR: " + safeError(e);
+    }
+  }
+
+  /**
+   * /app/install?path=/root/x.apk ：把容器或共享存储里的 APK 交给宿主系统安装器。
+   *
+   * <p>桥只复制快照并拉起系统安装界面，安装与否由用户在系统界面确认；未允许「安装未知应用」时打开对应设置页。
+   * 覆盖安装 DSHA 自身会结束整个 App，必须走应用内更新页。
+   */
+  private String appInstall(String path) {
+    try {
+      String src = getParam(queryOf(path), "path", "");
+      if (src.isEmpty()) return "NO_PATH";
+      if (com.deepseekharness.app.util.BridgePathPolicy.denied(src))
+        return "FORBIDDEN: " + com.deepseekharness.app.util.BridgePathPolicy.reason();
+      java.io.File f = new java.io.File(src);
+      if (!f.isFile()) {
+        // 与 /app/export 一致：容器内 guest 路径映射到 rootfs 宿主路径。
+        try {
+          java.io.File guess =
+              new java.io.File(
+                  HarnessController.get(ctx).getProot().getRootfsDir(),
+                  src.startsWith("/") ? src.substring(1) : src);
+          if (guess.isFile()) f = guess;
+        } catch (Throwable ignored) {
+        }
+      }
+      if (!f.isFile()) return "NOT_FOUND: " + SensitiveData.redact(src);
+      if (exportDeniedByCanonical(f))
+        return "FORBIDDEN: " + com.deepseekharness.app.util.BridgePathPolicy.reason();
+      if (!com.deepseekharness.app.util.BridgeApkInstall.apkName(f.getName()))
+        return com.deepseekharness.app.util.UiText.choose(
+            "NOT_APK: 只支持单个 .apk 文件（.apks/.xapk 分包不支持）",
+            "NOT_APK: only a single .apk file is supported (.apks/.xapk bundles are not)");
+      if (!com.deepseekharness.app.util.BridgeApkInstall.sizeAllowed(f.length()))
+        return "TOO_LARGE: " + f.length();
+      if (!ctx.getPackageManager().canRequestPackageInstalls()) {
+        // 系统权限只能由用户在设置页授予；不自动重试，授权后由调用方重新请求。
+        Intent settings =
+            new Intent(
+                    android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    android.net.Uri.parse("package:" + ctx.getPackageName()))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        boolean notified = false;
+        if (installLaunch() == com.deepseekharness.app.util.BridgeApkInstall.Launch.NOTIFICATION) {
+          notified =
+              postInstallNotification(
+                  "unknown-sources",
+                  com.deepseekharness.app.util.UiText.choose(
+                      "需要允许 DSHA 安装应用", "Allow DSHA to install apps"),
+                  com.deepseekharness.app.util.UiText.choose(
+                      "点此打开「安装未知应用」设置", "Tap to open \"Install unknown apps\""),
+                  settings);
+        } else {
+          try {
+            ctx.startActivity(settings);
+          } catch (Throwable ignored) {
+          }
+        }
+        return com.deepseekharness.app.util.UiText.choose(
+            "NO_PERMISSION: 未允许 DSHA 安装未知应用。"
+                + (notified ? "已发通知，用户点通知打开设置页" : "已尝试打开设置页")
+                + "：请在「安装未知应用」中允许 DSHA，然后重新请求一次。",
+            "NO_PERMISSION: DSHA is not allowed to install unknown apps. "
+                + (notified
+                    ? "Posted a notification that opens the settings page"
+                    : "Opened the settings page")
+                + ": allow DSHA under \"Install unknown apps\", then request once more.");
+      }
+      var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+      java.io.File cache = ctx.getCacheDir().getCanonicalFile();
+      java.io.File slots = fs.child(cache, "bridge-installs");
+      if (fs.stat(slots).type.equals("MISSING")) fs.directory(slots);
+      long now = System.currentTimeMillis();
+      pruneInstallSlots(fs, slots, now);
+      java.io.File owned =
+          fs.child(
+              slots,
+              com.deepseekharness.app.util.BridgeApkInstall.slotName(
+                  now, java.util.UUID.randomUUID().toString()));
+      fs.directory(owned);
+      java.io.File snapshot = fs.child(owned, "payload.apk");
+      com.deepseekharness.app.util.BridgeFileSnapshot.copy(
+          fs,
+          f.getCanonicalFile(),
+          snapshot,
+          com.deepseekharness.app.util.BridgeApkInstall.SIZE_LIMIT);
+      android.content.pm.PackageInfo info =
+          ctx.getPackageManager().getPackageArchiveInfo(snapshot.getPath(), 0);
+      if (info == null || info.packageName == null) {
+        removeInstallSlot(fs, owned);
+        return com.deepseekharness.app.util.UiText.choose(
+            "BAD_APK: 系统无法解析该安装包", "BAD_APK: the system could not parse this package");
+      }
+      String version =
+          info.packageName
+              + " "
+              + safeDisplay(info.versionName == null ? "" : info.versionName)
+              + " ("
+              + info.getLongVersionCode()
+              + ")";
+      if (com.deepseekharness.app.util.BridgeApkInstall.selfPackage(
+          info.packageName, ctx.getPackageName())) {
+        removeInstallSlot(fs, owned);
+        return com.deepseekharness.app.util.UiText.choose(
+            "FORBIDDEN: 不能经桥覆盖安装 DSHA 自身（会结束 App 与全部会话），请使用应用内更新页。",
+            "FORBIDDEN: DSHA cannot overwrite itself through the bridge (that ends the App and every session); use the in-app update page.");
+      }
+      android.net.Uri uri =
+          androidx.core.content.FileProvider.getUriForFile(
+              ctx, ctx.getPackageName() + ".updates", snapshot);
+      Intent install =
+          new Intent(Intent.ACTION_VIEW)
+              .setDataAndType(uri, "application/vnd.android.package-archive")
+              .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+      install.setClipData(android.content.ClipData.newRawUri("DSHA install", uri));
+      if (installLaunch() == com.deepseekharness.app.util.BridgeApkInstall.Launch.NOTIFICATION) {
+        // 无 AOSP 后台启动豁免：改由用户点通知打开，点按属于用户操作，系统不会拦截。
+        if (!postInstallNotification(
+            info.packageName,
+            com.deepseekharness.app.util.UiText.choose("点此安装应用", "Tap to install app"),
+            version,
+            install)) {
+          removeInstallSlot(fs, owned);
+          return com.deepseekharness.app.util.UiText.choose(
+              "NO_NOTIFICATION: DSHA 在后台且通知被关闭，无法拉起安装器。请把 DSHA 切到前台或允许通知后再请求一次。",
+              "NO_NOTIFICATION: DSHA is in the background and notifications are off, so the installer cannot be opened. Bring DSHA to the foreground or allow notifications, then request once more.");
+        }
+        return com.deepseekharness.app.util.UiText.choose(
+            "OK: notification 已发出安装通知 " + version + "；用户点通知后打开系统安装器并确认。",
+            "OK: notification posted for "
+                + version
+                + "; the user taps it to open the system installer and confirm.");
+      }
+      try {
+        ctx.startActivity(install);
+      } catch (android.content.ActivityNotFoundException missing) {
+        removeInstallSlot(fs, owned);
+        return com.deepseekharness.app.util.UiText.text("ERROR: 系统没有可用的安装器");
+      }
+      return com.deepseekharness.app.util.UiText.choose(
+          "OK: installer 已请求系统安装器 " + version + "；需用户在系统界面确认。厂商「后台弹出界面」开关关闭时仍可能不显示。",
+          "OK: installer requested for "
+              + version
+              + "; the user must confirm in the system screen. A vendor \"background pop-up\" switch may still hide it.");
+    } catch (Throwable e) {
+      return "ERROR: " + safeError(e);
+    }
+  }
+
+  /** 按 AOSP 后台启动 Activity 豁免选择直接打开或发通知；判定逻辑在 util 并有单测。 */
+  private com.deepseekharness.app.util.BridgeApkInstall.Launch installLaunch() {
+    return com.deepseekharness.app.util.BridgeApkInstall.launch(
+        ForegroundActivity.current() != null,
+        DshaAccessibilityService.connected(),
+        OverlayController.permitted(ctx),
+        Build.VERSION.SDK_INT);
+  }
+
+  /** 发一条点按后打开 target 的通知；通知被关闭时返回 false，由调用方如实告知。 */
+  private boolean postInstallNotification(String tag, String title, String text, Intent target) {
+    try {
+      NotificationManager nm =
+          (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+      if (nm == null
+          || !androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled())
+        return false;
+      NotificationChannel ch =
+          new NotificationChannel(
+              "dsh_install_channel",
+              com.deepseekharness.app.util.UiText.choose("应用安装", "App installs"),
+              NotificationManager.IMPORTANCE_HIGH);
+      ch.setDescription(
+          com.deepseekharness.app.util.UiText.choose(
+              "智能体请求安装应用时，点通知打开系统安装器",
+              "Tap to open the system installer when the agent requests an install"));
+      nm.createNotificationChannel(ch);
+      if (nm.getNotificationChannel("dsh_install_channel").getImportance()
+          == NotificationManager.IMPORTANCE_NONE) return false;
+      // 每个包（或设置页）用独立 tag + requestCode，后一次不覆盖前一次的 PendingIntent。
+      PendingIntent open =
+          PendingIntent.getActivity(
+              ctx,
+              tag.hashCode(),
+              target,
+              PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+      nm.notify(
+          tag,
+          com.deepseekharness.app.util.NotificationIds.BRIDGE_INSTALL,
+          new NotificationCompat.Builder(ctx, "dsh_install_channel")
+              .setSmallIcon(R.drawable.ic_launch)
+              .setContentTitle(safeDisplay(title))
+              .setContentText(safeDisplay(text))
+              .setPriority(NotificationCompat.PRIORITY_HIGH)
+              .setContentIntent(open)
+              .setAutoCancel(true)
+              // 快照超过保留期会被清理，通知随之过期，不留指向已删文件的入口。
+              .setTimeoutAfter(com.deepseekharness.app.util.BridgeApkInstall.RETAIN_MS)
+              .build());
+      return true;
+    } catch (Throwable e) {
+      return false;
+    }
+  }
+
+  /** 清理超过保留期的安装快照；只动本端点格式的目录，失败不影响本次安装。 */
+  private static void pruneInstallSlots(
+      com.deepseekharness.app.backup.AndroidBackupFileSystem fs, java.io.File slots, long now) {
+    try {
+      for (String name :
+          com.deepseekharness.app.util.BridgeApkInstall.expiredSlots(fs.list(slots), now))
+        removeInstallSlot(fs, fs.child(slots, name));
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static void removeInstallSlot(
+      com.deepseekharness.app.backup.AndroidBackupFileSystem fs, java.io.File owned) {
+    try {
+      if (!fs.stat(owned).type.equals("DIRECTORY")) return;
+      for (String child : fs.list(owned)) {
+        java.io.File file = fs.child(owned, child);
+        if (fs.stat(file).type.equals("FILE")) fs.delete(file);
+      }
+      if (fs.list(owned).isEmpty()) fs.delete(owned);
+    } catch (Throwable ignored) {
     }
   }
 
