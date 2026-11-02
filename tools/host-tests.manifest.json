@@ -232,6 +232,16 @@
       }
     },
     {
+      "path": "tools/test-launch-target-client.mjs",
+      "stage": "fast",
+      "reason": "启动目标网页端：设置导航独立面板与插件详情卡片共用组件和路由，文案说明禁用插件不改启动目标；不连接设备或桥",
+      "args": [],
+      "requires": [
+        "node24"
+      ],
+      "timeoutSeconds": 60
+    },
+    {
       "path": "tools/test-bridge-port.py",
       "stage": "fast",
       "reason": "Python设备shell端口解析的ASCII、NOFOLLOW和文件身份变更回归；不执行设备命令",

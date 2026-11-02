@@ -1,9 +1,11 @@
 window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
   'use strict';
   /*
-   * DSHA 内置插件「启动目标」网页端：插件详情页里的一张设置卡片。
+   * DSHA 内置插件「启动目标」网页端：Web 设置导航里的独立面板，插件详情页保留同一张卡片。
    *
-   * - 注册到 plugins.bundle.config（DSH 约定的 bundle 自身配置位），键为本插件包名；
+   * - 面板注册为 settings.section（id 见 SECTION_ID），在设置导航里有自己的入口；
+   *   插件只负责把选择传给原生 App，面板管理参数，关闭直进 Web 不需要禁用插件；
+   * - 同一组件另注册到 plugins.bundle.config（DSH 约定的 bundle 自身配置位），键为本插件包名；
    * - 只使用 DSH 原语（SegmentedControl）与 --dsw-alias-* 变量，DSH 主题、主题插件与外部主题壳
    *   改色后自动跟随，不写死任何颜色；
    * - 宽屏（平板 / 桌面）标签与选择器同一行，窄屏（手机）上下排列；粗指针放大触控高度；
@@ -16,10 +18,15 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
   const NS = 'dsha.launchTarget';
   const KEY = 'dsh-launch-target';
   const ROUTE = '/api/dsha-launch-target';
+  const SECTION_ID = 'dsha-launch-target';
+  // 在「通用」（order 0）之后、插件等官方分区之前。
+  const SECTION_ORDER = 5;
 
   const zh = {
+    nav: '启动目标',
     title: '桌面图标启动后进入',
     hint: '只影响下一次从桌面图标启动。选择 Web 后，点击图标先显示加载页，就绪即进入 Web；在 Web 里返回到底会回到桌面。环境需要维护或启动失败时仍进入主界面。',
+    pluginNote: '要回到主界面，在这里选「主界面」即可，不需要禁用插件。禁用 dsh-launch-target 只会移除这个面板，已选的启动目标保持不变。',
     main: '主界面',
     web: 'Web 界面',
     loading: '正在读取…',
@@ -31,6 +38,7 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     retry: '重试'
   };
   const en = {
+    nav: 'Launch target',
     title: 'Open from the app icon',
     hint: 'Applies the next time you open DSHA from the app icon. With Web selected, the icon shows a loading screen and opens Web once it is ready; going back from the first Web page returns to the home screen. Maintenance or startup failures still open the main screen.',
     main: 'Main screen',
@@ -40,12 +48,15 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     saved: 'Saved. Takes effect the next time you open DSHA from the app icon.',
     unsupported: 'This app version does not support this setting. Update DSHA.',
     denied: 'Your session has expired. Refresh the page and try again.',
+    pluginNote: 'To go back to the main screen, choose Main screen here. You do not need to disable the plugin. Disabling dsh-launch-target only removes this panel and keeps the selected launch target.',
     failed: 'Could not read or save the setting; the previous value was kept. Try again later, or change it in the app under Settings → Runtime.',
     retry: 'Retry'
   };
 
   const css = [
     '.dshaLt_root{display:grid;gap:8px;container-type:inline-size}',
+    '.dshaLt_section{display:grid;gap:12px}',
+    '.dshaLt_sectionTitle{margin:0;color:var(--dsw-alias-label-primary);font-size:var(--dsh-content-font-size-primary,15px);line-height:1.4;font-weight:600}',
     '.dshaLt_row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}',
     '.dshaLt_label{color:var(--dsw-alias-label-primary);font-size:var(--dsh-content-font-size-secondary,13px);line-height:1.5;font-weight:500;flex:1 1 180px;min-width:0}',
     '.dshaLt_control{flex:0 1 260px;min-width:200px}',
@@ -143,6 +154,7 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
           ]
         }),
         jsx.jsx('p', { className: 'dshaLt_hint', children: t('hint') }),
+        jsx.jsx('p', { className: 'dshaLt_hint', children: t('pluginNote') }),
         jsx.jsxs('p', {
           className: 'dshaLt_status',
           role: 'status',
@@ -159,6 +171,19 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     });
   }
 
+  /** 设置导航里的独立面板：标题 + 同一张卡片，读写同一路由，值仍以原生 App 为准。 */
+  function LaunchTargetSection(props) {
+    return jsx.jsxs('section', {
+      className: 'dshaLt_section',
+      'aria-label': props.t('nav'),
+      'data-dsha-launch-target-section': '',
+      children: [
+        jsx.jsx('h2', { className: 'dshaLt_sectionTitle', children: props.t('nav') }),
+        jsx.jsx(LaunchTargetCard, { t: props.t })
+      ]
+    });
+  }
+
   const inject = ['slots', 'locale'];
   function apply(ctx) {
     const t = ctx.locale.bind(NS);
@@ -169,6 +194,14 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
       locale: NS,
       inject: () => ({ t })
     }, LaunchTargetCard)), 'dsh-launch-target: settings card');
+    ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: SECTION_ID,
+      order: SECTION_ORDER,
+      label: () => t('nav'),
+      locale: NS,
+      inject: () => ({ t })
+    }, LaunchTargetSection)), 'dsh-launch-target: settings section');
   }
-  return { NS, inject, apply, LaunchTargetCard };
+  return { NS, SECTION_ID, inject, apply, LaunchTargetCard, LaunchTargetSection };
 }});
