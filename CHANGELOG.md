@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0500-dsh0.2.1-rc.5 / build287（实验性：直进 Web 修复闪屏并补齐入口）
+
+- **实验性。** 直进 Web 不再闪出主界面：Web 打开后加载页转为主界面上的静态遮罩；并补齐通知、最近任务与系统回收后恢复入口——通知经透明中转页回到存活的原网页或直接打开已就绪的 Web，偏好为主界面时行为不变（分支 `fix/direct-web-entries` ae4e9a15 + a9e34d60，原基于 build278；`BootScreen` 与 build283 在同一处各新增方法，两边保留；运行时描述符重算）。
+- 验证范围：发布会话在 build287 上复跑 `DirectWebEntryTest` / `EntryTargetTest` / `WebPageBootOverlayTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 287（基于 build286）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build287 更新说明](docs/releases/build287-changes.zh.md)，验证记录见 [build287 记录](docs/releases/v0.2.1-rc.3-build287-direct-web-entries-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0430-dsh0.2.1-rc.5 / build286（实验性：桥新增 /app/install）
 
 - **实验性。** 设备桥新增 `/app/install`：容器推送单个 APK，DSHA 在前台或有后台启动豁免时直接拉起系统安装器，否则发通知由用户点按打开；未允许「安装未知应用」时引导到设置页（分支 `feat/bridge-apk-install` 1d574da4，原基于 build274）。合入时把三处 `UiText.choose` 参数拼接改为整句选择与 `%s` 模板（4fd3b598），否则 `check-ui-i18n` 契约失败；文字不变。

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.0430-dsh0.2.1-rc.5` / build286 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为设备桥新增 /app/install，可从容器推送 APK 拉起系统安装器（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build286 更新说明](releases/build286-changes.zh.md)，验证记录见 [build286 记录](releases/v0.2.1-rc.3-build286-bridge-apk-install-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.0500-dsh0.2.1-rc.5` / build287 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复直进 Web 时闪出主界面，并让通知、最近任务和系统回收后恢复也能直接回到 Web（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build287 更新说明](releases/build287-changes.zh.md)，验证记录见 [build287 记录](releases/v0.2.1-rc.3-build287-direct-web-entries-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

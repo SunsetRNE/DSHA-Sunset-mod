@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0430-dsh0.2.1-rc.5` / build286 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds /app/install to the device bridge so the container can hand an APK to the system installer (experimental). Local targeted unit tests, Lint and source gates passed. See the [build286 notes](../releases/build286-changes.en.md) and the [build286 record](../releases/v0.2.1-rc.3-build286-bridge-apk-install-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0500-dsh0.2.1-rc.5` / build287 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build stops direct Web launch from flashing the main screen and lets notifications, Recents and restore after process death return to the Web page (experimental). Local targeted unit tests, Lint and source gates passed. See the [build287 notes](../releases/build287-changes.en.md) and the [build287 record](../releases/v0.2.1-rc.3-build287-direct-web-entries-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
