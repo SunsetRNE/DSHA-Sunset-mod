@@ -96,6 +96,11 @@ jobs:
         run: |
           npm ci --prefix tools/ci-browser --ignore-scripts --no-audit --no-fund
           node tools/ci-browser/node_modules/playwright/cli.js install --with-deps chromium
+      # browser_react 类浏览器用例（如 test-welcome-notice.mjs）读取锁定的 React 18 参照；
+      # 按 sha512 核对后放在 app/build，不进签名资产。
+      - name: Prepare pinned React browser reference
+        if: inputs.playwright
+        run: python3 tools/prepare-browser-react-reference.py
       # test-plugin-semver.cjs 读取生成的 semver 参照；契约节点生成的副本不跨节点传递。
       - name: Prepare semver reference
         run: python3 tools/prepare-semver-reference.py
