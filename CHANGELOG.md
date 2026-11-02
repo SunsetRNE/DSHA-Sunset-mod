@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1000-dsh0.2.1-rc.5 / build270（实验性：任务状态上岛页重绘）
+
+- **实验性 UI 更新，待统一视觉验收。** 设置 › 任务状态上岛页（`IslandFragment`）按方案 B 重绘。原页面在 API 36.0 上只显示「无法确认系统状态」，用户不知道该做什么；顶栏落到 app_name；计时器开关与总开关的依赖未体现。
+- 顶部示意卡展示回到桌面后的胶囊与通知（每秒读任务快照，选举与文案沿用 `IslandText`，只读不发通知）；系统状态行：36.0 旧接口改为「系统支持，开关状态查不到」并给出系统设置入口，36.1+ 关闭时提供「去打开」；行为开关标题列可点按，总开关关闭时计时器置灰但保留已存值，偏好键与默认值不变；上岛顺序五级只读列表高亮当前占岛级别；窗格 ≥700dp 两列。纯逻辑 `util/IslandPage`（+单测）；新增 42 条文案及译文；MainActivity 顶栏标题一行。
+- 验证范围：分支内格式 / i18n / hygiene / 文档链接 / 资源门禁与 4 个定向单测类（35 项）；合入 build269 时 i18n 按条目三方合并、字节钉重算，发布会话复跑 `ui.*` 与 `IslandPageTest` 共 342 项及源码门禁。未装机，未跑 LayoutAuditInstrumentation，需统一视觉验收。版本码提升为 270（基于 build269）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- build269（bc41c40c）的 Source checks 通过，但正式发布在 `lintStandardRelease` 报 3 个 WrongConstant 失败（`TransferDetailView` 用了 `Layout.BREAK_STRATEGY_SIMPLE`），未生成 Release、不补发；c9edb6af 改用 `LineBreaker` 常量（本机 lint 0 errors），269 的改动随本版发布。
+- 十语种更新说明见 [build270 更新说明](docs/releases/build270-changes.zh.md)，验证记录见 [build270 记录](docs/releases/v0.2.1-rc.3-build270-island-status-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0930-dsh0.2.1-rc.5 / build269（实验性：下载记录页重写（分段筛选、分组列表、详情页））
 
 - **实验性 UI 更新，待统一视觉验收。** 下载记录页（`FileTransfersActivity`）按 `docs/design/downloads-20261102` 原型重写界面渲染，传输引擎语义不变。原页四个等权按钮易误触、同名记录无法区分、标题不可见。

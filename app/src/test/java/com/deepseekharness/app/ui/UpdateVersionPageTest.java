@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("下载记录页重写"));
-      assertTrue(shown.contains("版本码提升为 269"));
+      assertTrue(shown.contains("任务状态上岛页重绘"));
+      assertTrue(shown.contains("版本码提升为 270"));
+      assertFalse(shown.contains("下载记录页重写"));
+      assertFalse(shown.contains("版本码提升为 269"));
       assertFalse(shown.contains("设备能力授权页压缩"));
       assertFalse(shown.contains("版本码提升为 268"));
       assertFalse(shown.contains("切到移动数据"));
@@ -201,8 +203,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Downloads page rewritten"));
-      assertTrue(shown.contains("Raises versionCode to 269"));
+      assertTrue(shown.contains("Task status island page redrawn"));
+      assertTrue(shown.contains("Raises versionCode to 270"));
+      assertFalse(shown.contains("Downloads page rewritten"));
+      assertFalse(shown.contains("Raises versionCode to 269"));
       assertFalse(shown.contains("Device permissions page compacted"));
       assertFalse(shown.contains("Raises versionCode to 268"));
       assertFalse(shown.contains("switching to mobile data"));
