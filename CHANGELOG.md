@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1300-dsh0.2.1-rc.5 / build276（首次引导动效与部署加载动画）
+
+- 首次引导步骤切换动效；部署进度当前阶段增加加载动画（分段流光 + 阶段圆环），引导、左栏进度卡、阶段面板与维护页共用（分支 `ui/onboarding-motion` 5de52819，原基于 build272，无冲突）。
+- 验证范围：原会话在 build272 测试包上真机视觉核验通过；发布会话在 build275 上复跑 `OnboardingMotionPlanTest` / `OnboardingActivityTest` / `DeployCapsuleTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未跑 LayoutAudit。版本码提升为 276（基于 build275）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build276 更新说明](docs/releases/build276-changes.zh.md)，验证记录见 [build276 记录](docs/releases/v0.2.1-rc.3-build276-onboarding-motion-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1230-dsh0.2.1-rc.5 / build275（实验性：启动日志就绪用时修复）
 
 - **实验性 UI 修复，待统一视觉验收。** 启动日志「已就绪 · 用时」不再随刷新增长（T22，分支 `fix/launch-log-ready-duration` 9cd7b3af）：build272 引入，`LaunchLogPanel.renderMeta()` 的 READY / FAILED 直接用 `snapshot.elapsedMs`，进入网页前该值随面板每秒刷新增长。改用 `StartupLogDigest.endMs`：已就绪取 browserReadyMs，其次 backendReadyMs，与概览占比条同口径；RUNNING 不变。

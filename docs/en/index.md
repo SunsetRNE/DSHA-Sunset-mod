@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.1230-dsh0.2.1-rc.5` / build275 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the launch log title "Ready · took" growing until the Web page opens (introduced in build272). Local targeted unit tests, Lint and source gates passed; awaiting a unified visual review. See the [build275 notes](../releases/build275-changes.en.md) and the [build275 record](../releases/v0.2.1-rc.3-build275-launch-ready-duration-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.1300-dsh0.2.1-rc.5` / build276 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds step transitions to onboarding and a loading animation for the current deployment stage. Local targeted unit tests, Lint and source gates passed. See the [build276 notes](../releases/build276-changes.en.md) and the [build276 record](../releases/v0.2.1-rc.3-build276-onboarding-motion-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
