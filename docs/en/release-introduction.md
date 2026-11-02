@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build268 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build269 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build268 `0.2.1-rc.3-20261102.0900-dsh0.2.1-rc.5`.** Experimental: the device permissions page is compacted with a fixed overview header, a combined channel card and segmented choices. Not rendered on a device; awaiting a visual review. versionCode 268, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build268 notes](../releases/build268-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build269 `0.2.1-rc.3-20261102.0930-dsh0.2.1-rc.5`.** Experimental: the downloads page gets segmented filters, grouped lists and a detail page. Not rendered on a device; awaiting a visual review. versionCode 269, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build269 notes](../releases/build269-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

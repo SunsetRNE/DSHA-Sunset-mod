@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0900-dsh0.2.1-rc.5` / build268 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is an experimental UI build: the device permissions page is compacted with a fixed overview header, a combined channel card, segmented level choices and two columns on tablets, while risk confirmations are unchanged; a retained-copies page redesign draft is also included. Local unit tests and source gates passed; not rendered on a device and awaiting a unified visual review. See the [build268 notes](../releases/build268-changes.en.md) and the [build268 record](../releases/v0.2.1-rc.3-build268-device-grants-compact-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0930-dsh0.2.1-rc.5` / build269 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is an experimental UI build: the downloads page is rewritten with segmented filters, grouped lists and a detail page (two columns on tablets), with the transfer engine unchanged. Local unit tests and source gates passed; not rendered on a device and awaiting a unified visual review. See the [build269 notes](../releases/build269-changes.en.md) and the [build269 record](../releases/v0.2.1-rc.3-build269-downloads-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
