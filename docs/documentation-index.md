@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.0730-dsh0.2.1-rc.5` / build292 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让上岛页「支持的设备」避开手机悬浮胶囊，入口移入状态卡，说明改用卡片弹层。本机定向单测、Lint 与源码门禁通过。改动说明见 [build292 更新说明](releases/build292-changes.zh.md)，验证记录见 [build292 记录](releases/v0.2.1-rc.3-build292-island-devices-inset-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.0800-dsh0.2.1-rc.5` / build293 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让启动日志框的滑动不再被外层页面抢走：越过起滑距离后整次手势锁定归属。本机定向单测、Lint 与源码门禁通过。改动说明见 [build293 更新说明](releases/build293-changes.zh.md)，验证记录见 [build293 记录](releases/v0.2.1-rc.3-build293-launch-log-nested-scroll-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

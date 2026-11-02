@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0730-dsh0.2.1-rc.5` / build292 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build keeps the island page's supported-devices entry clear of the phone's floating capsule, moves it into the status card and shows its explanation in a card sheet. Local targeted unit tests, Lint and source gates passed. See the [build292 notes](../releases/build292-changes.en.md) and the [build292 record](../releases/v0.2.1-rc.3-build292-island-devices-inset-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0800-dsh0.2.1-rc.5` / build293 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build stops the outer page from stealing scrolls from the startup log box: once past the touch slop, the whole gesture keeps its owner. Local targeted unit tests, Lint and source gates passed. See the [build293 notes](../releases/build293-changes.en.md) and the [build293 record](../releases/v0.2.1-rc.3-build293-launch-log-nested-scroll-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

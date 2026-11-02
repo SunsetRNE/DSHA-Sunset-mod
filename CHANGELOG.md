@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0800-dsh0.2.1-rc.5 / build293（启动日志框滑动归属一次性锁定）
+
+- 启动日志框与外层页面的嵌套滑动改为越过 touchSlop 后按累计位移一次性锁定归属：旧实现逐帧按单帧位移判断，贴边时一帧抖动就放开外层，外层随即抢走手势，概览日志难以滑动（新增 `util/NestedScrollArbiter` 与单测；分支 `fix/launch-log-nested-scroll` 37725ccb，原基于 build284，用户已真机确认手感）。
+- 验证范围：发布会话在 build293 上复跑 `NestedScrollArbiterTest` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 293（基于 build292）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build293 更新说明](docs/releases/build293-changes.zh.md)，验证记录见 [build293 记录](docs/releases/v0.2.1-rc.3-build293-launch-log-nested-scroll-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0730-dsh0.2.1-rc.5 / build292（上岛页「支持的设备」避开悬浮胶囊）
 
 - 上岛页「支持的设备」不再被手机悬浮胶囊遮挡：页底余量改用 `shell_page_bottom`（手机 90dp、平板 30dp）；入口从页底孤立按钮移入「当前状态」卡末行；说明弹窗改用 CardSheet，手机贴底并抬到胶囊上方，宽屏居中限宽。文案未改（分支 `ui/island-devices-inset` 7965b7ac，原基于 build282，用户已在测试包真机确认平板横屏页面与弹窗）。
