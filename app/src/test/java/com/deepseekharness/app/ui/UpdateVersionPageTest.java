@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("错误面板"));
-      assertTrue(shown.contains("版本码提升为 284"));
+      assertTrue(shown.contains("说明弹窗"));
+      assertTrue(shown.contains("版本码提升为 285"));
+      assertFalse(shown.contains("错误面板"));
+      assertFalse(shown.contains("版本码提升为 284"));
       assertFalse(shown.contains("原生加载页"));
       assertFalse(shown.contains("版本码提升为 283"));
       assertFalse(shown.contains("插件页可见"));
@@ -231,8 +233,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("error panel"));
-      assertTrue(shown.contains("Raises versionCode to 284"));
+      assertTrue(shown.contains("info dialog"));
+      assertTrue(shown.contains("Raises versionCode to 285"));
+      assertFalse(shown.contains("error panel"));
+      assertFalse(shown.contains("Raises versionCode to 284"));
       assertFalse(shown.contains("native loading screen"));
       assertFalse(shown.contains("Raises versionCode to 283"));
       assertFalse(shown.contains("plugin page is visible"));

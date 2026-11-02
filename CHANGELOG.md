@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0400-dsh0.2.1-rc.5 / build285（实验性：ⓘ 说明弹窗按窗口形态适配）
+
+- **实验性 UI 渲染更新，待统一视觉验收。** ⓘ 说明弹窗按窗口形态适配：平板贴 ⓘ 显示气泡，手机横屏用紧凑弹窗，竖屏用底部说明面板（T23，分支 `design/info-dialog-20261102` 5eb7074d + 831e27a2，基于 build272，无冲突）。
+- 验证范围：发布会话在 build285 上复跑 `InfoSurfacePolicyTest` / `TerminalInputContractTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 285（基于 build284）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build285 更新说明](docs/releases/build285-changes.zh.md)，验证记录见 [build285 记录](docs/releases/v0.2.1-rc.3-build285-info-dialog-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0330-dsh0.2.1-rc.5 / build284（实验性：对话页错误面板重绘）
 
 - **实验性 UI 渲染更新，待统一视觉验收。** 对话页错误面板重绘：崩溃结论与逐层状态，服务结束后面板停留并定期复核，重启就绪即接回（分支 `design/web-crash-20261102` 809a99ba，原基于 build272）。与 build283 同改 `WebPreviewActivity.showError`：保留本版面板并在其前收起 build283 的原生加载页；i18n 条目级三方合并、语言字节钉重算。

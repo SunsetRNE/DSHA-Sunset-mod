@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.0330-dsh0.2.1-rc.5` / build284 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版重绘对话页错误面板，显示崩溃结论与逐层状态（实验性）。本机定向单测、Lint 与源码门禁通过；待统一视觉验收。改动说明见 [build284 更新说明](releases/build284-changes.zh.md)，验证记录见 [build284 记录](releases/v0.2.1-rc.3-build284-web-crash-panel-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.0400-dsh0.2.1-rc.5` / build285 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让 ⓘ 说明弹窗按平板、手机横屏和竖屏分别适配（实验性）。本机定向单测、Lint 与源码门禁通过；待统一视觉验收。改动说明见 [build285 更新说明](releases/build285-changes.zh.md)，验证记录见 [build285 记录](releases/v0.2.1-rc.3-build285-info-dialog-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
