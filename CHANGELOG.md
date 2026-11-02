@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1400-dsh0.2.1-rc.5 / build278（实验性：后台任务页与环境提示重绘）
+
+- **实验性 UI 渲染更新，待统一视觉验收。** 后台任务页与环境提示横幅重绘；同进程重建界面不再显示冷启动加载页；主界面门禁区分本进程进行中的事务与崩溃残留（分支 `ui/background-tasks-redraw`，原会话未提交，主会话按用户要求提交为 68b6c294；i18n 条目级三方合并、语言字节钉重算）。
+- 验证范围：发布会话在 build278 上复跑 `BackgroundTaskModelTest` / `MainRecreatePolicyTest` / `MaintenanceOwnershipTest` / `RecoveryBannerStateTest` / `StartupRecoveryLifecycleTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 278（基于 build277）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build278 更新说明](docs/releases/build278-changes.zh.md)，验证记录见 [build278 记录](docs/releases/v0.2.1-rc.3-build278-background-tasks-redraw-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1330-dsh0.2.1-rc.5 / build277（受限状态导出可读副本入口）
 
 - 维护失败或待恢复时，维护页与数据与备份页直接提供「导出可读副本」入口；受限主界面的数据救援入口不再置灰（分支 `fix/limited-rescue-export` 15072402，原基于 build271；原会话未结束，按用户要求由主会话合并，语言字节钉重算）。
