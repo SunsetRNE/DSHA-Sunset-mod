@@ -10,6 +10,7 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
   private final boolean safetyConfirmation;
   private final long consentRevision;
   private android.content.DialogInterface.OnClickListener positive;
+  private boolean keepWindowSize;
   private static final java.util.Map<AlertDialog, Long> safetyDialogs =
       new java.util.WeakHashMap<>();
 
@@ -25,6 +26,12 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
         safetyConfirmation
             ? new com.deepseekharness.app.core.DeviceGrants(context).consentPolicy().revision()
             : -1;
+  }
+
+  /** 调用方自己决定窗口尺寸与位置（InfoSurface 的气泡与说明弹窗），不套用默认 560dp 居中宽度。 */
+  DshaDialogBuilder keepWindowSize() {
+    keepWindowSize = true;
+    return this;
   }
 
   @Override
@@ -95,6 +102,7 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
     if (dialog.getWindow() != null) {
       android.view.Window window = dialog.getWindow();
       window.setWindowAnimations(R.style.Animation_DSHA_Dialog);
+      if (keepWindowSize) return dialog;
       // 只在窗口第一次真正显示后设置尺寸。持续监听布局会在动画、输入法和
       // CardSheet 的底部测量期间反复调用 setLayout，导致 Language 首帧停顿。
       window

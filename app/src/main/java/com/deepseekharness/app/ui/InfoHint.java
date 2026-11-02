@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
 import com.deepseekharness.app.R;
@@ -52,15 +53,22 @@ public final class InfoHint {
     view.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
     String tapHint = UiText.choose("（点按查看完整说明）", "(tap for details)");
     view.setContentDescription(UiText.format("%s %s", split.summary, tapHint));
-    view.setOnClickListener(v -> show(context, title, split.full));
+    view.setOnClickListener(v -> show(context, v, title, split.full));
   }
 
+  /** 无锚点调用（程序直接打开）：宽屏用收紧的居中弹窗，手机仍按窗口选底部面板 / 紧凑弹窗。 */
   public static void show(Context context, @Nullable CharSequence title, CharSequence full) {
-    new DshaDialogBuilder(context)
-        .setTitle(title == null || title.length() == 0 ? UiText.text("说明") : title)
-        .setMessage(full)
-        .setPositiveButton(UiText.text("知道了"), (d, w) -> d.dismiss())
-        .show();
+    show(context, null, title, full);
+  }
+
+  /** 宽屏有锚点时说明贴着 ⓘ 出现；形态规则见 {@link com.deepseekharness.app.util.InfoSurfacePolicy}。 */
+  public static void show(
+      Context context, @Nullable View anchor, @Nullable CharSequence title, CharSequence full) {
+    InfoSurface.show(
+        context,
+        anchor,
+        title == null || title.length() == 0 ? UiText.text("说明") : title,
+        full == null ? "" : full);
   }
 
   private static Drawable icon(Context context, TextView view) {
