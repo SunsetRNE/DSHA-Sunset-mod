@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0300-dsh0.2.1-rc.5` / build283 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build shows a native loading screen when entering a chat, so the WebView no longer starts on a white background (experimental). Local targeted unit tests, Lint and source gates passed. See the [build283 notes](../releases/build283-changes.en.md) and the [build283 record](../releases/v0.2.1-rc.3-build283-web-entry-blank-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0330-dsh0.2.1-rc.5` / build284 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build redraws the chat error panel with a crash conclusion and layer-by-layer status (experimental). Local targeted unit tests, Lint and source gates passed; awaiting a unified visual review. See the [build284 notes](../releases/build284-changes.en.md) and the [build284 record](../releases/v0.2.1-rc.3-build284-web-crash-panel-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

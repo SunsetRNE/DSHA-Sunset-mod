@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.0300-dsh0.2.1-rc.5 / build283
+# DSHA 0.2.1-rc.3-20261103.0330-dsh0.2.1-rc.5 / build284
 
-- Expérimental : entrer dans une discussion depuis le conteneur affiche d'abord un écran de chargement natif au lieu d'un long écran blanc ; au-delà de 8 secondes, « Retour à la page de démarrage » et un accès aux diagnostics apparaissent.
-- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 283 (basé sur build282). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Expérimental : le panneau d'erreur de la discussion est redessiné pour donner d'abord une conclusion, puis l'état du service, de la page et du moteur couche par couche ; après l'arrêt du service, le panneau reste, revérifie automatiquement et revient à la discussion dès qu'un redémarrage est prêt.
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 284 (basé sur build283). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
