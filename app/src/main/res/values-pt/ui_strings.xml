@@ -29,6 +29,8 @@
     <string name="dns_auto" formatted="false">"Auto (recomendado)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilidade DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Pilha dupla nativa"</string>
+    <string name="nh_sub" formatted="false">"Detecta perda em segundo plano, DNS desatualizado e saída; só registra"</string>
+    <string name="nh_title" formatted="false">"Saúde da rede"</string>
     <string name="paste_text" formatted="false">"Colar"</string>
     <string name="phone_assistant" formatted="false">"Assistente flutuante"</string>
     <string name="phone_assistant_detail" formatted="false">"Escolha uma sessão DSH real neste telefone para a conversa flutuante e os controles de pausa."</string>

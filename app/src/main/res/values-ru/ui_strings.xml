@@ -29,6 +29,8 @@
     <string name="dns_auto" formatted="false">"Авто (рекомендуется)"</string>
     <string name="dns_ipv4" formatted="false">"Совместимость с IPv4 DNS"</string>
     <string name="dns_native" formatted="false">"Двойной стек"</string>
+    <string name="nh_sub" formatted="false">"Обрыв в фоне, устаревший DNS и выход в сеть; только запись, без исправления"</string>
+    <string name="nh_title" formatted="false">"Состояние сети"</string>
     <string name="paste_text" formatted="false">"Вставить"</string>
     <string name="phone_assistant" formatted="false">"Плавающий помощник"</string>
     <string name="phone_assistant_detail" formatted="false">"Выберите настоящий сеанс DSH на этом телефоне для плавающего чата и приостановки задач."</string>

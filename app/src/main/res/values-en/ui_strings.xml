@@ -16,6 +16,8 @@
     <string name="diag248_start" formatted="false">"Inspect"</string>
     <string name="diag248_status" formatted="false">"Status"</string>
     <string name="diag248_tools" formatted="false">"Tools"</string>
+    <string name="nh_sub" formatted="false">"Detects background network loss, stale DNS and egress; records only, never repairs"</string>
+    <string name="nh_title" formatted="false">"Network health"</string>
     <string name="paste_text" formatted="false">"Paste"</string>
     <string name="text_selection_more" formatted="false">"More…"</string>
     <string name="ui_m0001" formatted="false">"Download update"</string>

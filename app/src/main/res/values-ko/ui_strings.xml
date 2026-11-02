@@ -29,6 +29,8 @@
     <string name="dns_auto" formatted="false">"자동 호환성(권장)"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 호환성"</string>
     <string name="dns_native" formatted="false">"네이티브 듀얼 스택 확인"</string>
+    <string name="nh_sub" formatted="false">"백그라운드 끊김, DNS 만료, 외부 연결을 감지합니다. 기록만 하고 고치지 않습니다"</string>
+    <string name="nh_title" formatted="false">"네트워크 상태"</string>
     <string name="paste_text" formatted="false">"붙여넣기"</string>
     <string name="phone_assistant" formatted="false">"플로팅 어시스턴트"</string>
     <string name="phone_assistant_detail" formatted="false">"이 휴대전화의 실제 DSH 세션을 선택하여 플로팅 대화와 일시 중지 제어를 사용하세요."</string>

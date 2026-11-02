@@ -29,6 +29,8 @@
     <string name="dns_auto" formatted="false">"Auto (commendata)"</string>
     <string name="dns_ipv4" formatted="false">"Compatibilitas DNS IPv4"</string>
     <string name="dns_native" formatted="false">"Duplex ordo nativus"</string>
+    <string name="nh_sub" formatted="false">"Retis amissionem, DNS veterem et exitum detegit; tantum notat"</string>
+    <string name="nh_title" formatted="false">"Valetudo retis"</string>
     <string name="paste_text" formatted="false">"Insere"</string>
     <string name="phone_assistant" formatted="false">"Adiutor supernatans"</string>
     <string name="phone_assistant_detail" formatted="false">"Veram sessionem DSH in hoc telephono elige ad colloquium supernatans et moderamina morae."</string>

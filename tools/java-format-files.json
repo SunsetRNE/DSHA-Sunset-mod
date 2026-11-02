@@ -1417,6 +1417,11 @@
     "app/src/main/java/com/deepseekharness/app/ui/AppEntryRouterActivity.java",
     "app/src/main/java/com/deepseekharness/app/ui/StageSegmentBar.java",
     "app/src/main/java/com/deepseekharness/app/util/StageSegmentMotion.java",
-    "app/src/test/java/com/deepseekharness/app/util/StageSegmentMotionTest.java"
+    "app/src/test/java/com/deepseekharness/app/util/StageSegmentMotionTest.java",
+    "app/src/main/java/com/deepseekharness/app/nethealth/NetworkHealthMonitor.java",
+    "app/src/main/java/com/deepseekharness/app/nethealth/NetworkHealthProbe.java",
+    "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java",
+    "app/src/main/java/com/deepseekharness/app/util/NetworkHealthPolicy.java",
+    "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java"
   ]
 }

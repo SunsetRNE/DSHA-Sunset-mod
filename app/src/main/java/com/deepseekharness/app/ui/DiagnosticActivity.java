@@ -116,6 +116,7 @@ public final class DiagnosticActivity extends AppCompatActivity {
     findViewById(R.id.diagnostic_back).setOnClickListener(v -> finish());
     findViewById(R.id.diagnostic_refresh).setOnClickListener(v -> repository.generate());
     findViewById(R.id.diagnostic_repair).setOnClickListener(v -> repository.repairNetworkTools());
+    findViewById(R.id.diagnostic_network).setOnClickListener(v -> NetworkHealthSheet.show(this));
     findViewById(R.id.diagnostic_plugins)
         .setOnClickListener(
             v -> startActivity(MainActivity.navigationIntent(this).putExtra("open_plugins", true)));

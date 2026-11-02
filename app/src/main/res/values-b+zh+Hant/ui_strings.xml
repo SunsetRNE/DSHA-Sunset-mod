@@ -29,6 +29,8 @@
     <string name="dns_auto" formatted="false">"自動相容（推薦）"</string>
     <string name="dns_ipv4" formatted="false">"IPv4 DNS 相容"</string>
     <string name="dns_native" formatted="false">"原生雙棧解析"</string>
+    <string name="nh_sub" formatted="false">"偵測背景斷網、DNS 過期與對外連線，只記錄不修復"</string>
+    <string name="nh_title" formatted="false">"網路健康"</string>
     <string name="paste_text" formatted="false">"貼上"</string>
     <string name="phone_assistant" formatted="false">"浮動助手"</string>
     <string name="phone_assistant_detail" formatted="false">"選擇這部手機上的真實 DSH 工作階段，浮動聊天與暫停控制。"</string>

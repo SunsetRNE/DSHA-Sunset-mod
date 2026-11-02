@@ -29,6 +29,8 @@
     <string name="dns_auto" formatted="false">"توافق تلقائي (موصى به)"</string>
     <string name="dns_ipv4" formatted="false">"توافق DNS عبر IPv4"</string>
     <string name="dns_native" formatted="false">"التحليل الأصلي بمكدسين"</string>
+    <string name="nh_sub" formatted="false">"يكتشف انقطاع الخلفية وقدم DNS والاتصال الخارجي؛ يسجل فقط ولا يصلح"</string>
+    <string name="nh_title" formatted="false">"سلامة الشبكة"</string>
     <string name="paste_text" formatted="false">"لصق"</string>
     <string name="phone_assistant" formatted="false">"المساعد العائم"</string>
     <string name="phone_assistant_detail" formatted="false">"اختر جلسة DSH فعلية على هذا الهاتف للمحادثة العائمة وعناصر التحكم في الإيقاف المؤقت."</string>

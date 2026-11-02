@@ -15610,5 +15610,157 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/WebPreviewActivity.java"
     ]
+  },
+  {
+    "id": "nh274a01",
+    "zh": "网络健康",
+    "en": "Network health",
+    "files": [
+      "app/src/main/res/values/network_health_strings.xml"
+    ]
+  },
+  {
+    "id": "nh274a02",
+    "zh": "后台断网、DNS 过期与出网检测，只记录不修复",
+    "en": "Detects background network loss, stale DNS and egress; records only, never repairs",
+    "files": [
+      "app/src/main/res/values/network_health_strings.xml"
+    ]
+  },
+  {
+    "id": "nh274a03",
+    "zh": "最近事件",
+    "en": "Recent events",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a04",
+    "zh": "立即体检",
+    "en": "Check now",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a05",
+    "zh": "体检失败，请稍后重试",
+    "en": "Check failed. Try again later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a06",
+    "zh": "复制体检报告",
+    "en": "Copy check report",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a07",
+    "zh": "暂无异常记录。",
+    "en": "No issues recorded.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a08",
+    "zh": "未发现网络异常",
+    "en": "No network issues found",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a09",
+    "zh": "后台保护未开启",
+    "en": "Background protection is off",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a10",
+    "zh": "系统正在限制后台联网",
+    "en": "System is restricting background network",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a11",
+    "zh": "容器 DNS 已过期",
+    "en": "Container DNS is out of date",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a12",
+    "zh": "无法连接模型服务",
+    "en": "Cannot reach the model service",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a13",
+    "zh": "疑似在后台被冻结",
+    "en": "Possibly frozen in the background",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a14",
+    "zh": "这里只记录检测结果，不会自动修复或重启。点「立即体检」查看当前状态。",
+    "en": "Results are only recorded; nothing is repaired or restarted automatically. Tap Check now for the current state.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a15",
+    "zh": "DSH 仍在运行，但后台保护未开启，切到后台可能断网。回到 DSHA 即可重新开启。",
+    "en": "DSH is still running without background protection, so it may lose network in the background. Return to DSHA to turn it back on.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a16",
+    "zh": "系统阻止了 DSHA 联网。回到 DSHA 通常可恢复；如果经常发生，请在电池设置中允许后台运行。",
+    "en": "The system blocked DSHA from the network. Returning to DSHA usually restores it; if this happens often, allow background use in battery settings.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a17",
+    "zh": "容器仍在使用上一个网络的 DNS 地址，切换网络后会自动刷新。",
+    "en": "The container still uses the previous network's DNS server. It is refreshed automatically after the network changes.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a18",
+    "zh": "手机有网络，但连不上模型服务。可能是 VPN、代理或服务端问题。",
+    "en": "The phone has a network but cannot reach the model service. A VPN, proxy or the service itself may be the cause.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
+  },
+  {
+    "id": "nh274a19",
+    "zh": "DSHA 在后台有一段时间没有运行，可能被系统或省电策略冻结。",
+    "en": "DSHA did not run for a while in the background and may have been frozen by the system or a power-saving policy.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
+    ]
   }
 ]

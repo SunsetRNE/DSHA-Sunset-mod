@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  工具卡：启动记录 / 启动故障处理 / 修复网络工具 / 插件管理。手机与平板共用。
+  工具卡：启动记录 / 启动故障处理 / 网络健康 / 修复网络工具 / 插件管理。手机与平板共用。
   diagnostic_history / diagnostic_recovery / diagnostic_repair / diagnostic_plugins 的 id 保持不变。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
@@ -18,6 +18,15 @@
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
       <TextView style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui134_startup_recovery" />
       <TextView style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/ui134_startup_recovery_sub" />
+    </LinearLayout>
+    <ImageView android:layout_width="@dimen/shell_row_chevron" android:layout_height="@dimen/shell_row_chevron" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
+  </LinearLayout>
+  <View style="@style/ShellDivider" android:layout_marginStart="60dp" />
+  <LinearLayout android:id="@+id/diagnostic_network" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <ImageView style="@style/ShellRowIcon" android:layout_width="@dimen/shell_row_icon" android:layout_height="@dimen/shell_row_icon" android:contentDescription="@null" android:src="@drawable/ic_onb_info" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+      <TextView style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nh_title" />
+      <TextView style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/nh_sub" />
     </LinearLayout>
     <ImageView android:layout_width="@dimen/shell_row_chevron" android:layout_height="@dimen/shell_row_chevron" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
   </LinearLayout>
