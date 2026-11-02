@@ -100,7 +100,7 @@ final class TransferDetailView {
     row.addView(texts, params);
     TextView name = TransferUi.text(context, TransferText.name(task), 19, R.color.shell_text, true);
     name.setTextIsSelectable(true);
-    name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+    name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE);
     name.setAccessibilityHeading(true);
     texts.addView(name);
     LinearLayout sub = TransferUi.horizontal(context);
@@ -505,7 +505,7 @@ final class TransferDetailView {
     TextView text = TransferUi.text(context, value, 11.5f, R.color.shell_text_secondary, false);
     text.setTypeface(Typeface.MONOSPACE);
     text.setTextIsSelectable(true);
-    text.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+    text.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE);
     row.addView(text, TransferUi.match(context, 3));
     return row;
   }
@@ -554,7 +554,7 @@ final class TransferDetailView {
     TextView text = TransferUi.text(context, value, 14, R.color.shell_text, true);
     text.setGravity(Gravity.END);
     text.setTextIsSelectable(true);
-    text.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+    text.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE);
     right.addView(text, new LinearLayout.LayoutParams(-1, -2));
     if (note != null) {
       TextView sub = TransferUi.text(context, note, 12, R.color.shell_text_muted, false);
