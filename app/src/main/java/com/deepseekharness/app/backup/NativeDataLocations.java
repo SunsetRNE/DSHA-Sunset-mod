@@ -49,8 +49,13 @@ public final class NativeDataLocations {
   private final GuestDataResolver resolver;
 
   public NativeDataLocations(Context context) throws IOException {
+    this(context, new AndroidBackupFileSystem());
+  }
+
+  /** 测试夹具注入宿主文件系统实现；生产只经上面的入口使用 Android lstat。 */
+  NativeDataLocations(Context context, BackupFileSystem fs) throws IOException {
     this.context = context.getApplicationContext();
-    fs = new AndroidBackupFileSystem();
+    this.fs = fs;
     files = context.getFilesDir().getCanonicalFile();
     rootfs = com.deepseekharness.app.util.GuestPaths.rootfs(files);
     publicStorage = Environment.getExternalStorageDirectory().getCanonicalFile();
@@ -312,6 +317,9 @@ public final class NativeDataLocations {
 
             @Override
             protected File locate(String relative) throws IOException {
+              // 机器状态（桥端口 / 状态等）整项排除、不读内容；停 Web 时会被删除或原子重写，
+              // 不能因位置变化让整份备份失败。
+              if (machine) return super.locate(relative);
               GuestDataResolver.Resolved now = resolver.resolve(origin);
               if (!now.proof.equals(resolved.proof) || !now.file.equals(resolved.file))
                 throw new IOException("DATA_LOCATION_CHANGED");

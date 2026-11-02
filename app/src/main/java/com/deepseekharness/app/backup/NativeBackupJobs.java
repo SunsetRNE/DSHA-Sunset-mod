@@ -622,7 +622,6 @@ public final class NativeBackupJobs {
           try {
             if (activeProtection != null) activeProtection.await();
             NativeDataLocations locations = new NativeDataLocations(context);
-            NativeDataLocations.Located located = locations.locate(frozen, cancellation);
             Map<String, Object> provenance = new LinkedHashMap<>();
             provenance.put("operation", rescue ? "RESCUE" : "EXPORT");
             provenance.put("createdAt", System.currentTimeMillis());
@@ -635,9 +634,6 @@ public final class NativeBackupJobs {
             provenance.put("dataFormat", "UNINSPECTED");
             provenance.put(
                 "sensitivePolicy", password == null ? "UNENCRYPTED" : "PASSWORD_ENCRYPTED");
-            provenance.put(
-                "plugins",
-                located.plugins == null ? Collections.emptyMap() : located.plugins.description());
             RuntimeDescriptor observed = null;
             try {
               if (frozen.retainedKey == null || frozen.retainedKey.isEmpty())
@@ -645,13 +641,28 @@ public final class NativeBackupJobs {
             } catch (IOException unavailable) {
             }
             provenance.put("dataCompatibility", DataFormatEvidence.unknown(observed));
-            HostSnapshot.FinalCheck check =
-                located.plugins == null ? null : located.plugins::verify;
+            // 位置证明必须在停写之后记录：手动备份会先停终端与 Web，停止过程会删除或原子重写
+            // .dsh 顶层文件；若先定位再停写，同一条链路每次都会以 DATA_LOCATION_CHANGED 失败。
+            NativeDataLocations.Located[] locatedHolder = new NativeDataLocations.Located[1];
+            MaintenanceCoordinator.Operation<Map<String, Object>> capture =
+                () -> {
+                  NativeDataLocations.Located found = locations.locate(frozen, cancellation);
+                  locatedHolder[0] = found;
+                  provenance.put(
+                      "plugins",
+                      found.plugins == null ? Collections.emptyMap() : found.plugins.description());
+                  return HostSnapshot.create(
+                      fs,
+                      found.sources,
+                      owned,
+                      plain,
+                      provenance,
+                      rescue,
+                      cancellation,
+                      found.plugins == null ? null : found.plugins::verify);
+                };
             Map<String, Object> summary;
-            if (rescue)
-              summary =
-                  HostSnapshot.create(
-                      fs, located.sources, owned, plain, provenance, true, cancellation, check);
+            if (rescue) summary = capture.run();
             else if (automatic)
               summary =
                   MaintenanceCoordinator.snapshot(
@@ -664,31 +675,12 @@ public final class NativeBackupJobs {
                         try (var idle =
                             com.deepseekharness.app.core.RuntimeTasks.tryEnterMaintenance()) {
                           if (idle == null) throw new IOException("AUTOMATIC_BACKUP_DEFERRED");
-                          return HostSnapshot.create(
-                              fs,
-                              located.sources,
-                              owned,
-                              plain,
-                              provenance,
-                              false,
-                              cancellation,
-                              check);
+                          return capture.run();
                         }
                       });
             else
-              summary =
-                  MaintenanceCoordinator.exclusive(
-                      HarnessController.get(context),
-                      () ->
-                          HostSnapshot.create(
-                              fs,
-                              located.sources,
-                              owned,
-                              plain,
-                              provenance,
-                              false,
-                              cancellation,
-                              check));
+              summary = MaintenanceCoordinator.exclusive(HarnessController.get(context), capture);
+            NativeDataLocations.Located located = locatedHolder[0];
             try (InputStream input = fs.read(plain, fs.stat(plain))) {
               BackupArchive.read(input, null, cancellation);
             }
