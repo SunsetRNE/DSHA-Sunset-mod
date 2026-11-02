@@ -14,7 +14,6 @@
       <TextView android:id="@+id/app_title" style="@style/DshaText.PageTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/app_name" android:textColor="@color/shell_text" android:textSize="@dimen/shell_title_text" android:letterSpacing="0.06" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" />
       <TextView android:id="@+id/app_context" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:textColor="@color/shell_text_secondary" android:textSize="@dimen/shell_context_text" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" />
     </LinearLayout>
-    <TextView android:id="@+id/btn_theme" style="@style/Widget.DSHA.ToolbarAction" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginEnd="4dp" android:padding="12dp" android:gravity="center" android:background="?attr/selectableItemBackgroundBorderless" android:text="@string/ui_m0020" />
     <FrameLayout android:id="@+id/btn_about" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:clickable="true" android:focusable="true" android:contentDescription="@string/ui_m0067" android:visibility="gone">
       <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_about" app:tint="@color/shell_text_secondary" />
     </FrameLayout>

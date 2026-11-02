@@ -6,9 +6,6 @@
 -->
 <resources>
     <!-- 画布与层级 -->
-    <color name="shell_bg">#0B0F16</color>
-    <color name="shell_surface">#131923</color>
-    <color name="shell_raised">#1B2432</color>
     <color name="shell_line">#12CBDCFF</color>
     <color name="shell_line_strong">#20D0E1FF</color>
 
@@ -18,11 +15,6 @@
     <color name="shell_text_muted">#8895AA</color>
 
     <!-- 强调与状态 -->
-    <color name="shell_accent">#6AA4FF</color>
-    <color name="shell_accent_soft">#146AA4FF</color>
-    <!-- 下载记录页的浅色主操作底：比 accent_soft 深一档，主色文字仍满足对比度。 -->
-    <color name="shell_accent_tonal">#246AA4FF</color>
-    <color name="shell_on_accent">#091729</color>
     <!-- 进度条流光叠层：夜间 16% 白，避免在深底上发糊。 -->
     <color name="shell_sheen">#29FFFFFF</color>
     <color name="shell_good">#93CCAF</color>
@@ -34,9 +26,6 @@
     <color name="shell_bad_soft">#14EEA3A6</color>
 
     <!-- 玻璃层 -->
-    <color name="shell_glass">#DB192230</color>
-    <color name="shell_nav_bg">#131923</color>
-    <color name="shell_nav_ripple">#146AA4FF</color>
 
     <!-- 手机胶囊导航 -->
     <dimen name="shell_nav_height">64dp</dimen>

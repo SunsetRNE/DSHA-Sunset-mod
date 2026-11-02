@@ -13835,5 +13835,209 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
+  },
+  {
+    "id": "thm267a01",
+    "zh": "主题与外观",
+    "en": "Theme & appearance",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "thm267a02",
+    "zh": "选择应用的明暗外观，切换会立即生效。",
+    "en": "Choose the app’s light or dark look. Changes apply right away.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267a03",
+    "zh": "外观模式",
+    "en": "Appearance mode",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267a04",
+    "zh": "同步",
+    "en": "Sync",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267a05",
+    "zh": "Web 界面跟随",
+    "en": "Web follows the app",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267a06",
+    "zh": "切换时把浅色、深色或跟随系统同步到内嵌 Web；之后在 Web 里改的外观保留到下次切换。",
+    "en": "When you switch, light, dark or follow-system is applied to the built-in Web. Changes made in Web stay until your next switch.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267a07",
+    "zh": "浅色",
+    "en": "Light",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "thm267a08",
+    "zh": "深色",
+    "en": "Dark",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "thm267b01",
+    "zh": "切换动画",
+    "en": "Transition",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b02",
+    "zh": "圆形扩散",
+    "en": "Circle reveal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b03",
+    "zh": "对角擦除",
+    "en": "Diagonal wipe",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b04",
+    "zh": "淡入淡出",
+    "en": "Crossfade",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b05",
+    "zh": "直接切换",
+    "en": "Instant",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b06",
+    "zh": "从点按处向外铺开，不回缩",
+    "en": "Spreads out from where you tap, never shrinks back",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b07",
+    "zh": "从左上角柔和地斜扫到右下角",
+    "en": "Sweeps softly from the top-left corner to the bottom-right",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b08",
+    "zh": "整屏新旧主题交叉淡化",
+    "en": "The whole screen fades from the old theme to the new one",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b09",
+    "zh": "不做过渡，立即换成新外观",
+    "en": "No transition; the new look appears right away",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267b10",
+    "zh": "已选择 %s",
+    "en": "%s selected",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "thm267c01",
+    "zh": "配色",
+    "en": "Colors",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c02",
+    "zh": "经典蓝",
+    "en": "Classic blue",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c03",
+    "zh": "极光",
+    "en": "Aurora",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c04",
+    "zh": "樱花",
+    "en": "Sakura",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c05",
+    "zh": "赛博",
+    "en": "Cyber",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c06",
+    "zh": "琥珀",
+    "en": "Amber",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c07",
+    "zh": "配色只改原生界面；内嵌 Web 只同步浅色和深色。",
+    "en": "Colors apply to the app’s own screens. The built-in Web only follows light or dark.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
   }
 ]

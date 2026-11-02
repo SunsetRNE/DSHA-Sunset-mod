@@ -160,6 +160,12 @@ public class SettingsFragment extends Fragment {
         x -> LanguagePicker.show(requireContext(), preference);
     appearance.setOnClickListener(openLanguageDialog);
     languageSummary.setOnClickListener(openLanguageDialog);
+    // 主题入口只在设置里：独立页面，主界面顶栏不再直接切换。
+    ((TextView) v.findViewById(R.id.settings_theme_title))
+        .setText(com.deepseekharness.app.util.UiText.text("主题与外观"));
+    v.findViewById(R.id.settings_theme)
+        .setOnClickListener(x -> ThemeActivity.open(requireContext()));
+    renderThemeSummary(v);
     View overlayRow = v.findViewById(R.id.settings_overlay);
     selectable.put(KEY_OVERLAY, overlayRow);
     overlayRow.setOnClickListener(x -> select(KEY_OVERLAY));
@@ -167,6 +173,34 @@ public class SettingsFragment extends Fragment {
         (TextView) v.findViewById(R.id.settings_page_hint), getString(R.string.ui2_settings));
     if (!twoPane) return v;
     return twoPaneShell(v, savedInstanceState);
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    // 从主题页返回且明暗未变时不会重建，这里刷新摘要。
+    if (getView() != null) renderThemeSummary(getView());
+  }
+
+  /** 摘要显示偏好；跟随系统时补上当前实际明暗。 */
+  private void renderThemeSummary(View root) {
+    TextView sub = root.findViewById(R.id.settings_theme_sub);
+    if (sub == null) return;
+    String preference = ThemeController.preference(requireContext());
+    String dark = com.deepseekharness.app.util.UiText.text("深色");
+    String light = com.deepseekharness.app.util.UiText.text("浅色");
+    String mode =
+        com.deepseekharness.app.util.UiThemePreference.SYSTEM.equals(preference)
+            ? com.deepseekharness.app.util.UiText.format(
+                "跟随系统 · %s", ThemeController.isDark(requireContext()) ? dark : light)
+            : com.deepseekharness.app.util.UiThemePreference.DARK.equals(preference) ? dark : light;
+    String palette = ThemeController.palette(requireContext());
+    // 标准色不重复写出，其余配色附在明暗后面。
+    sub.setText(
+        com.deepseekharness.app.util.UiThemePalette.needsOverlay(palette)
+            ? com.deepseekharness.app.util.UiText.format(
+                "%s · %s", mode, ThemeActivity.paletteName(palette))
+            : mode);
   }
 
   // ---------------------------------------------------------------- 方案 A 双栏

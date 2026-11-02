@@ -7,9 +7,6 @@
 -->
 <resources>
     <!-- 画布与层级 -->
-    <color name="shell_bg">#F3F6FB</color>
-    <color name="shell_surface">#FCFDFF</color>
-    <color name="shell_raised">#E7EDF6</color>
     <color name="shell_line">#131D3A60</color>
     <color name="shell_line_strong">#251D3A60</color>
 
@@ -19,11 +16,6 @@
     <color name="shell_text_muted">#5A6B86</color>
 
     <!-- 强调与状态 -->
-    <color name="shell_accent">#1E50D0</color>
-    <color name="shell_accent_soft">#141E50D0</color>
-    <!-- 下载记录页的浅色主操作底：比 accent_soft 深一档，主色文字仍满足对比度。 -->
-    <color name="shell_accent_tonal">#1F1E50D0</color>
-    <color name="shell_on_accent">#FFFFFF</color>
     <!-- 进度条流光叠层：日间 38% 白，夜间压到 16%，只叠在强调色填充内。 -->
     <color name="shell_sheen">#61FFFFFF</color>
     <color name="shell_good">#287453</color>
@@ -34,10 +26,7 @@
     <color name="shell_warn_soft">#148C600D</color>
     <color name="shell_bad_soft">#14AF404B</color>
 
-    <!-- 玻璃层：其它半透明叠层仍可用；胶囊导航底改为不透明 surface。 -->
-    <color name="shell_glass">#E0FAFCFF</color>
-    <color name="shell_nav_bg">#FCFDFF</color>
-    <color name="shell_nav_ripple">#141E50D0</color>
+    <!-- 画布、卡片、强调色、玻璃层与导航底随调色板切换，见 theme_palettes.xml。 -->
 
     <!-- 手机胶囊导航 -->
     <dimen name="shell_nav_height">64dp</dimen>

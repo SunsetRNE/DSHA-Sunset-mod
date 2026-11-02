@@ -625,8 +625,30 @@ window.__ModuleLoader__.load({id:'dsh-app-integration', factory: () => {
       document.removeEventListener('dsha-native-route-cancel',cancel);
       document.removeEventListener('dsha-native-open-session',open); };
   }
+  /* 原生亮暗同步：只在原生偏好变化时写一次 Web 外观；之后用户在 Web 里改的保留到下次原生切换。
+     window.__DSHA_THEME__ 由原生注入：{preference:'light'|'dark'|'system', sync:boolean}。 */
+  function installThemeSync(theme) {
+    const KEY = 'dsha-native-theme-applied';
+    const valid = value => value === 'light' || value === 'dark' || value === 'system';
+    const apply = () => {
+      const state = window.__DSHA_THEME__;
+      if (!state || state.sync !== true || !valid(state.preference)) return;
+      let last = null;
+      try { last = localStorage.getItem(KEY); } catch {}
+      if (last === state.preference) return;
+      try {
+        theme.setTheme(state.preference);
+        try { localStorage.setItem(KEY, state.preference); } catch {}
+      } catch {}
+    };
+    window.addEventListener('dsha-theme', apply);
+    apply();
+    return () => window.removeEventListener('dsha-theme', apply);
+  }
   function apply(ctx) {
     ctx.effect(() => installNativeRoute(ctx), 'dsha-native-session-route');
+    // 主题服务缺失（旧组合或被禁用）时不安装，其余集成照常。
+    ctx.inject(['theme'], scoped => scoped.effect(() => installThemeSync(scoped.theme), 'dsha-native-theme-sync'));
     ctx.inject(['connection'], scoped => scoped.effect(() => installStreamResume(scoped), 'dsha-browser-stream-resume'));
     ctx.effect(() => {
       // Gecko 132+ 默认只缩小 visual viewport；dsh 的整屏布局需要随键盘一起重新排版。

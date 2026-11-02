@@ -1378,6 +1378,14 @@
     "app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenTouchOutcomeTest.java",
     "app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenTransportTest.java",
     "app/src/test/java/com/deepseekharness/app/vscreen/VscreenTargetEvidenceTest.java",
-    "tools/java-format/JavaTokenFingerprint.java"
+    "tools/java-format/JavaTokenFingerprint.java",
+    "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java",
+    "app/src/main/java/com/deepseekharness/app/ui/ThemeReveal.java",
+    "app/src/main/java/com/deepseekharness/app/ui/BootLogoView.java",
+    "app/src/main/java/com/deepseekharness/app/util/ThemeMotion.java",
+    "app/src/main/java/com/deepseekharness/app/util/UiThemePalette.java",
+    "app/src/test/java/com/deepseekharness/app/util/ThemeMotionTest.java",
+    "app/src/test/java/com/deepseekharness/app/util/UiThemePaletteTest.java",
+    "app/src/test/java/com/deepseekharness/app/ui/ThemePaletteResourcesTest.java"
   ]
 }

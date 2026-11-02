@@ -5,8 +5,7 @@
   断点：宽 ≥ 600dp 两栏；授权卡片内容区 ≥ 700dp 两列；高 ≤ 480dp 压缩页头页脚（由代码按 Configuration 判定）。
 -->
 <resources>
-    <!-- 推荐卡片描边：强调色 28% -->
-    <color name="onb_accent_line">#471E50D0</color>
+    <!-- 推荐卡片描边 onb_accent_line 随调色板切换，见 theme_palettes.xml。 -->
 
     <!-- 圆角 -->
     <dimen name="onb_radius_card">18dp</dimen>

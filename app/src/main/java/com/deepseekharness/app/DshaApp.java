@@ -154,6 +154,8 @@ public class DshaApp extends Application
     com.deepseekharness.app.ui.LanguageController.apply(this);
     ShizukuShell.init(this);
     com.deepseekharness.app.ui.ThemeController.apply(this);
+    // 调色板色经主题属性引用：应用上下文也带上应用主题，避免直接用它取色时属性无从解析。
+    setTheme(R.style.Theme_DeepseekHarness);
     com.deepseekharness.app.core.RuntimeTasks.initialize(this);
     final android.content.Context runtimeApp = getApplicationContext();
     runtimeHostPorts.install(
@@ -249,6 +251,9 @@ public class DshaApp extends Application
     com.deepseekharness.app.backup.AutomaticBackups.schedule(this);
     com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(this);
     com.deepseekharness.app.core.DiagnosticLog.installCrashHandler(this);
+    // 调色板叠加须早于各页 onCreate 解析主题属性。
+    registerActivityLifecycleCallbacks(
+        new com.deepseekharness.app.ui.ThemeController.PaletteHook());
     registerActivityLifecycleCallbacks(new com.deepseekharness.app.ui.ModernAndroidUi());
     registerActivityLifecycleCallbacks(new ForegroundActivity());
     registerActivityLifecycleCallbacks(new PluginLifecycle());

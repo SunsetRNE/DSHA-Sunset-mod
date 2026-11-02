@@ -188,7 +188,9 @@ final class AssistantWindow implements AutoCloseable {
                 ? Configuration.UI_MODE_NIGHT_NO
                 : config.uiMode & Configuration.UI_MODE_NIGHT_MASK;
     config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | night;
-    return context.createConfigurationContext(config);
+    // 配置上下文没有应用主题；调色板色经主题属性引用，必须再套上应用主题与当前调色板。
+    return com.deepseekharness.app.ui.ThemeController.themed(
+        context.createConfigurationContext(config));
   }
 
   private int color(int id) {

@@ -157,9 +157,6 @@ public final class LayoutPreviewActivity extends AppCompatActivity {
               || scene.contains("device_grants");
       visible(R.id.sub_back, nested);
       visible(R.id.app_logo, !nested);
-      ((TextView) canvas.findViewById(R.id.btn_theme))
-          .setText(
-              com.deepseekharness.app.util.UiText.text(ThemeController.isDark(this) ? "黑夜" : "白天"));
       com.google.android.material.bottomnavigation.BottomNavigationView nav =
           canvas.findViewById(R.id.bottom_nav);
       nav.setSelectedItemId(

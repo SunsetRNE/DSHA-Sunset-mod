@@ -36,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
   private Bundle pendingMainState;
   private BootScreen bootScreen;
 
+  /** 本进程是否已播放过开机开场动画（只在冷启动首个入口播放一次）。 */
+  private static boolean bootIntroPlayed;
+
   /** 本次桌面图标启动是否按偏好直启 Web；入口门禁未放行前只是候选。 */
   private boolean directWebArmed;
 
@@ -156,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
     directWebArmed = armDirectWeb(savedInstanceState, config);
-    showEntryCheck();
+    showEntryCheck(savedInstanceState != null);
     if (savedInstanceState != null) {
       var hold = getSupportFragmentManager().beginTransaction();
       for (Fragment page : getSupportFragmentManager().getFragments()) {
@@ -190,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
         });
   }
 
-  private void showEntryCheck() {
+  private void showEntryCheck(boolean restored) {
     // FragmentManager可能先于后台磁盘检查恢复页面。首次就保留真实容器，
     // 后面只移除覆盖层，避免替换整个布局后恢复视图无法重新附着。
     setContentView(R.layout.activity_main);
@@ -199,7 +202,10 @@ public class MainActivity extends AppCompatActivity {
     Integer webBackground = directWebArmed ? new ConfigStore(this).getEntryWebBackground() : null;
     if (webBackground != null)
       palette = com.deepseekharness.app.util.BootPalette.fromWeb(webBackground, palette.background);
-    bootScreen = new BootScreen(this, palette);
+    // 开场只在进程冷启动的首次入口播放；换主题 / 语言重建或系统回收后恢复都直接静态显示。
+    boolean intro = !bootIntroPlayed && !restored;
+    bootIntroPlayed = true;
+    bootScreen = new BootScreen(this, palette, intro);
     bootScreen.setStatus(
         com.deepseekharness.app.util.UiText.choose("正在检查运行环境…", "Checking the runtime…"));
     bootScreen.attach();
@@ -363,7 +369,8 @@ public class MainActivity extends AppCompatActivity {
     downloads.setOnClickListener(v -> FileTransfersActivity.open(this));
     appBar.addView(
         downloads,
-        appBar.indexOfChild(findViewById(R.id.btn_theme)),
+        // 主题切换已移到设置 › 主题与外观；下载入口占用原主题按钮的位置。
+        appBar.indexOfChild(findViewById(R.id.btn_about)),
         new android.widget.LinearLayout.LayoutParams(downloadButtonSize, downloadButtonSize));
     installDeployCapsule(appBar, appBar.indexOfChild(downloads));
     TextView recovery = findViewById(R.id.environment_recovery_banner);
@@ -393,7 +400,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     TextView title = findViewById(R.id.app_title);
-    renderThemeButton();
     findViewById(R.id.sub_back)
         .setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
     getSupportFragmentManager().addOnBackStackChangedListener(this::updateToolbar);
@@ -702,52 +708,6 @@ public class MainActivity extends AppCompatActivity {
       return false;
     }
     return BrowserTasks.resumeBackground(this, true);
-  }
-
-  private void renderThemeButton() {
-    TextView theme = findViewById(R.id.btn_theme);
-    String preference = ThemeController.preference(this);
-    boolean system = com.deepseekharness.app.util.UiThemePreference.SYSTEM.equals(preference);
-    boolean light = com.deepseekharness.app.util.UiThemePreference.LIGHT.equals(preference);
-    theme.setText("");
-    theme.setCompoundDrawablesWithIntrinsicBounds(
-        system ? R.drawable.ic_ui2_auto : light ? R.drawable.ic_ui2_sun : R.drawable.ic_ui2_moon,
-        0,
-        0,
-        0);
-    theme.setContentDescription(
-        com.deepseekharness.app.util.UiText.text(
-            system
-                ? "当前跟随系统，点击切换白天；长按跟随系统"
-                : light ? "当前白天模式，点击切换黑夜；长按跟随系统" : "当前黑夜模式，点击切换跟随系统；长按跟随系统"));
-    theme.setOnClickListener(
-        v -> {
-          ThemeController.cycle(this);
-          renderThemeButton();
-          showThemePreference();
-        });
-    theme.setOnLongClickListener(
-        v -> {
-          ThemeController.followSystem(this);
-          renderThemeButton();
-          showThemePreference();
-          return true;
-        });
-  }
-
-  private void showThemePreference() {
-    String preference = ThemeController.preference(this);
-    String message =
-        com.deepseekharness.app.util.UiThemePreference.SYSTEM.equals(preference)
-            ? "已跟随系统主题"
-            : com.deepseekharness.app.util.UiThemePreference.LIGHT.equals(preference)
-                ? "已切换白天模式"
-                : "已切换黑夜模式";
-    android.widget.Toast.makeText(
-            this,
-            com.deepseekharness.app.util.UiText.text(message),
-            android.widget.Toast.LENGTH_SHORT)
-        .show();
   }
 
   /** 所有本机终端入口共用门禁；不替换Main页面，也不把导航当新建命令。 */

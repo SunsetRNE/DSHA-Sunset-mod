@@ -33,6 +33,9 @@ final class BootScreen {
   /** 诊断入口延迟出现：正常冷启动不打扰，真正卡住时仍可达。 */
   static final long DIAGNOSTICS_DELAY_MS = 8_000L;
 
+  /** 光晕最终不透明度（参考稿 0.15）。 */
+  private static final float GLOW_ALPHA = 0.15f;
+
   private final Activity activity;
   private final FrameLayout root;
   private final TextView hint;
@@ -40,12 +43,33 @@ final class BootScreen {
   private final TextView diagnostics;
   private final TextView openMain;
   private final BootSpinnerView spinner;
+  private final BootLogoView logo;
+  private final View glow;
+  private final TextView wordmark;
   private final Integer savedStatusBar, savedNavigationBar;
   private final boolean savedLightStatus, savedLightNavigation;
   private final Runnable revealDiagnostics;
 
+  /** 本次是否播放开场（冷启动且系统动画开启）；决定最短可见时长。 */
+  private final boolean intro;
+
+  private long shownAt;
+  private boolean dismissing;
+
+  /** 上滑收起：cubic-bezier(.85, 0, .15, 1)，慢起慢停。 */
+  private static final android.view.animation.Interpolator EXIT =
+      new android.view.animation.PathInterpolator(0.85f, 0f, 0.15f, 1f);
+
   BootScreen(Activity activity, BootPalette palette) {
+    this(activity, palette, false);
+  }
+
+  /**
+   * @param intro 冷启动首次显示时播放光晕、描线与逐项淡入；重建（换主题 / 语言）时直接显示静态完成态
+   */
+  BootScreen(Activity activity, BootPalette palette, boolean intro) {
     this.activity = activity;
+    this.intro = intro && UiMotion.animationsEnabled(activity);
     float density = activity.getResources().getDisplayMetrics().density;
     Configuration configuration = activity.getResources().getConfiguration();
     boolean tablet = configuration.smallestScreenWidthDp >= 600;
@@ -55,16 +79,40 @@ final class BootScreen {
     root.setClickable(true);
     root.setFocusable(true);
 
+    // 全屏光晕：强调色从中心向外淡到透明，开场时放大淡入到 15%。
+    glow = new View(activity);
+    android.graphics.drawable.GradientDrawable halo =
+        new android.graphics.drawable.GradientDrawable(
+            android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+            new int[] {palette.brand, palette.brand & 0x00FFFFFF});
+    halo.setGradientType(android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT);
+    halo.setGradientRadius(
+        0.5f
+            * Math.min(
+                activity.getResources().getDisplayMetrics().widthPixels,
+                activity.getResources().getDisplayMetrics().heightPixels));
+    glow.setBackground(halo);
+    glow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    glow.setAlpha(GLOW_ALPHA);
+    root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
+
     LinearLayout card = new LinearLayout(activity);
     card.setOrientation(LinearLayout.VERTICAL);
     card.setGravity(Gravity.CENTER_HORIZONTAL);
 
-    TextView wordmark = new TextView(activity);
+    logo = new BootLogoView(activity);
+    logo.setAccent(palette.brand);
+    int logoSize = Math.round((tablet ? 112 : 88) * density);
+    var logoParams = new LinearLayout.LayoutParams(logoSize, logoSize);
+    logoParams.bottomMargin = Math.round((tablet ? 12 : 8) * density);
+    card.addView(logo, logoParams);
+
+    wordmark = new TextView(activity);
     // DSH 字标是品牌名，不随语言翻译。
     wordmark.setText(UiText.raw("HARNESS"));
     wordmark.setTextSize(TypedValue.COMPLEX_UNIT_SP, tablet ? 20 : 16);
     wordmark.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-    wordmark.setLetterSpacing(0.08f);
+    wordmark.setLetterSpacing(0.3f);
     wordmark.setTextColor(palette.primary);
     wordmark.setIncludeFontPadding(false);
     wordmark.setGravity(Gravity.CENTER);
@@ -153,7 +201,8 @@ final class BootScreen {
         activity.getColor(R.color.shell_text),
         activity.getColor(R.color.shell_text_muted),
         activity.getColor(R.color.shell_line_strong),
-        activity.getColor(R.color.shell_text));
+        // 品牌色走 shell 强调色：标志描线、光晕与圆环弧共用。
+        activity.getColor(R.color.shell_accent));
   }
 
   private TextView action(BootPalette palette, boolean tablet, String label) {
@@ -181,6 +230,36 @@ final class BootScreen {
     activity.addContentView(root, new ViewGroup.LayoutParams(-1, -1));
     ViewCompat.requestApplyInsets(root);
     root.postDelayed(revealDiagnostics, DIAGNOSTICS_DELAY_MS);
+    shownAt = android.os.SystemClock.uptimeMillis();
+    logo.start(intro);
+    if (!intro) return;
+    // 开场：光晕放大淡入 → 标志描线 → 字标、圆环与状态依次上浮淡入。
+    glow.setAlpha(0f);
+    glow.setScaleX(0.8f);
+    glow.setScaleY(0.8f);
+    glow.animate()
+        .alpha(GLOW_ALPHA)
+        .scaleX(1f)
+        .scaleY(1f)
+        .setDuration(1_600L)
+        .setInterpolator(UiMotion.standard())
+        .start();
+    float rise = 10f * activity.getResources().getDisplayMetrics().density;
+    fadeUp(wordmark, 450L, 500L, rise);
+    fadeUp(spinner, 650L, 400L, rise);
+    fadeUp(hint, 650L, 400L, rise);
+  }
+
+  private static void fadeUp(View view, long delay, long duration, float rise) {
+    view.setAlpha(0f);
+    view.setTranslationY(rise);
+    view.animate()
+        .alpha(1f)
+        .translationY(0f)
+        .setStartDelay(delay)
+        .setDuration(duration)
+        .setInterpolator(UiMotion.standard())
+        .start();
   }
 
   void setStatus(String text) {
@@ -200,9 +279,22 @@ final class BootScreen {
     return root.getParent() != null;
   }
 
-  /** 淡出并移除；系统关闭动画时直接移除。系统栏还原到 Activity 原值。 */
+  /**
+   * 收起加载页。播放过开场时至少保留 {@link com.deepseekharness.app.util.ThemeMotion#SPLASH_MIN_VISIBLE_MS}，让描线完整播放；
+   * 之后上滑淡出。重复调用只生效一次。
+   */
   void dismiss() {
+    if (dismissing) return;
+    dismissing = true;
     root.removeCallbacks(revealDiagnostics);
+    long hold =
+        com.deepseekharness.app.util.ThemeMotion.splashHoldMs(
+            intro, shownAt, android.os.SystemClock.uptimeMillis());
+    if (hold > 0 && root.isAttachedToWindow()) root.postDelayed(this::exit, hold);
+    else exit();
+  }
+
+  private void exit() {
     var window = activity.getWindow();
     var controller = WindowCompat.getInsetsController(window, window.getDecorView());
     window.setStatusBarColor(savedStatusBar);
@@ -215,10 +307,27 @@ final class BootScreen {
       parent.removeView(root);
       return;
     }
+    if (!intro) {
+      // 重建路径：底下界面已经就绪，只做短淡出，不做整屏上滑。
+      root.animate()
+          .alpha(0f)
+          .setDuration(160L)
+          .setInterpolator(UiMotion.standard())
+          .withEndAction(
+              () -> {
+                if (root.getParent() == parent) parent.removeView(root);
+              })
+          .start();
+      return;
+    }
+    // 交还触摸：上滑期间露出的主界面可以立即操作。
+    root.setClickable(false);
+    root.setFocusable(false);
     root.animate()
+        .translationY(-root.getHeight())
         .alpha(0f)
-        .setDuration(160L)
-        .setInterpolator(UiMotion.standard())
+        .setDuration(com.deepseekharness.app.util.ThemeMotion.SPLASH_EXIT_MS)
+        .setInterpolator(EXIT)
         .withEndAction(
             () -> {
               if (root.getParent() == parent) parent.removeView(root);

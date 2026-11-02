@@ -22,6 +22,8 @@ public final class WebPageScripts {
         + "\n"
         + language(context)
         + "\n"
+        + theme(context)
+        + "\n"
         + read(context, "web-integration/es-compat.js")
         + "\n"
         + read(context, "web-integration/compat.js")
@@ -41,6 +43,19 @@ public final class WebPageScripts {
         + compatibility(context)
         + "\n//# sourceURL="
         + gate.source();
+  }
+
+  /**
+   * 原生亮暗偏好交给集成插件（dsha-native-theme-sync）；偏好值经 normalize 只可能是三个常量之一。
+   * 应急页不注入：应急 DSH 没有集成插件。
+   */
+  public static String theme(Context context) {
+    var config = new com.deepseekharness.app.core.ConfigStore(context);
+    return "window.__DSHA_THEME__={preference:'"
+        + config.getUiTheme()
+        + "',sync:"
+        + config.isWebThemeSync()
+        + "};window.dispatchEvent(new CustomEvent('dsha-theme'));";
   }
 
   public static String language(Context context) {

@@ -1452,6 +1452,8 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
         && WebPreviewPolicy.sameService(baseUrl, webView.getUrl())) {
       updateDocumentLanguage(webView);
       webView.evaluateJavascript(WebPageScripts.language(this), null);
+      // 保留的 WebView 不会重跑文档起始脚本：回到前台时重推原生主题，插件只在值变化时写入。
+      webView.evaluateJavascript(WebPageScripts.theme(this), null);
     }
     resumePageStreams();
   }

@@ -90,6 +90,41 @@ public class ConfigStore {
         .apply();
   }
 
+  /** 调色板（与日夜正交）；未注册的旧值回到标准色。 */
+  public String getUiPalette() {
+    return com.deepseekharness.app.util.UiThemePalette.normalize(text("ui_palette", null));
+  }
+
+  public void setUiPalette(String value) {
+    prefs
+        .edit()
+        .putString("ui_palette", com.deepseekharness.app.util.UiThemePalette.normalize(value))
+        .apply();
+  }
+
+  /** 主题切换动画样式；未知值回到圆形扩散。 */
+  public String getThemeTransition() {
+    return com.deepseekharness.app.util.ThemeMotion.normalizeStyle(
+        text("ui_theme_transition", null));
+  }
+
+  public void setThemeTransition(String value) {
+    prefs
+        .edit()
+        .putString(
+            "ui_theme_transition", com.deepseekharness.app.util.ThemeMotion.normalizeStyle(value))
+        .apply();
+  }
+
+  /** 原生亮暗是否同步到内嵌 Web 的外观设置；默认开启，用户可在主题页关闭。 */
+  public boolean isWebThemeSync() {
+    return prefs.getBoolean("ui_theme_web_sync", true);
+  }
+
+  public void setWebThemeSync(boolean value) {
+    prefs.edit().putBoolean("ui_theme_web_sync", value).apply();
+  }
+
   public com.deepseekharness.app.util.PluginSort.Mode getPluginSort() {
     return com.deepseekharness.app.util.PluginSort.Mode.parse(
         text("plugin_sort_order", "NAME_ASC"));

@@ -345,7 +345,8 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
         "返回入口缺失");
     ui(() -> ((EditText) MainActivity.active().findViewById(R.id.config_port)).setText("39081"));
     MainActivity before = MainActivity.active();
-    ui(() -> before.findViewById(R.id.btn_theme).performClick());
+    // 顶栏主题按钮已移到设置 › 主题与外观；直接切换到相反明暗，重建路径相同。
+    ui(() -> ThemeController.select(before, ThemeController.isDark(before) ? "light" : "dark"));
     until(
         () ->
             MainActivity.active() != null

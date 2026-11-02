@@ -1741,8 +1741,9 @@ public final class DeviceGrantsFragment extends Fragment {
     try {
       status.setTextColor(
           granted
-              ? getResources().getColor(R.color.primary, null)
-              : getResources().getColor(R.color.err, null));
+              // 调色板色经主题属性引用：必须带页面主题取色，不能传 null。
+              ? requireContext().getColor(R.color.primary)
+              : requireContext().getColor(R.color.err));
     } catch (Throwable ignored) {
     }
   }
