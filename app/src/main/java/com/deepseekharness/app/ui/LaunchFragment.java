@@ -36,8 +36,8 @@ public class LaunchFragment extends Fragment {
   private HarnessController controller;
   private TextView lanAddrText;
   private TextView launchLog;
+  private LaunchLogPanel logPanel;
   private ShellActivityTrack activityTrack;
-  private TextView latestLogsButton;
   private androidx.appcompat.app.AlertDialog accessDialog;
   private android.animation.ObjectAnimator dotPulse;
 
@@ -46,9 +46,6 @@ public class LaunchFragment extends Fragment {
 
   private Button accessLanButton;
   private Button accessCopyButton;
-
-  /** 日志跟随：默认跟随末尾；用户上翻或主动暂停后保留阅读位置。 */
-  private boolean followLogs = true;
 
   /** 启动按钮当前是否处于「进入」态（鉴权链接已就绪）。 */
   private boolean webReady;
@@ -69,8 +66,6 @@ public class LaunchFragment extends Fragment {
   /** 本次启动开始时刻（显示耗时用）。 */
   private long startAtMs;
 
-  private long logRevision = -1;
-  private String logUrl = "";
   private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
 
   /** 通知点击进来、待自动进入 Web 的意图；由既有每秒刷新循环消费，就绪即进。 */
@@ -103,9 +98,7 @@ public class LaunchFragment extends Fragment {
     View v = inflater.inflate(R.layout.fragment_launch, container, false);
 
     // v5 主页新增的语境、活动条与日志工具；原有 id 与业务 id 全部保留。
-    followLogs = true;
     activityTrack = v.findViewById(R.id.launch_activity);
-    latestLogsButton = v.findViewById(R.id.launch_latest_button);
     ((TextView) v.findViewById(R.id.launch_terminal_row))
         .setText(UiText.choose("打开本机终端", "Open local terminal"));
     v.findViewById(R.id.launch_terminal_row)
@@ -122,8 +115,8 @@ public class LaunchFragment extends Fragment {
     Button stop = v.findViewById(R.id.launch_stop);
     lanAddrText = v.findViewById(R.id.lan_addr);
     launchLog = v.findViewById(R.id.launch_log);
-    logRevision = -1;
-    logUrl = "";
+    // 启动日志区（概览 / 原始 / 跟随浮标）由独立协作者渲染，本页只提供真实状态。
+    logPanel = new LaunchLogPanel(v);
     v.findViewById(R.id.launch_download_logs)
         .setOnClickListener(x -> startActivity(DiagnosticActivity.downloadLogs(requireContext())));
 
@@ -131,19 +124,13 @@ public class LaunchFragment extends Fragment {
     v.findViewById(R.id.launch_terminal_row).setOnClickListener(x -> openLocalTerminal());
     v.findViewById(R.id.launch_environment_row).setOnClickListener(x -> openEnvironment());
     v.findViewById(R.id.launch_copy_logs).setOnClickListener(x -> copyLogs());
-    v.findViewById(R.id.launch_follow_logs).setOnClickListener(x -> toggleLogFollow());
-    if (latestLogsButton != null) latestLogsButton.setOnClickListener(x -> resumeLogFollow());
-    ((TextView) v.findViewById(R.id.launch_copy_logs)).setText(UiText.choose("复制日志", "Copy log"));
     v.findViewById(R.id.launch_copy_logs)
-        .setContentDescription(UiText.choose("复制启动日志", "Copy the startup log"));
-    LogScrollView launchLogScroll = v.findViewById(R.id.launch_log_scroll);
-    // 用户滚回末尾时恢复跟随；离开末尾时暂停，避免下一秒刷新把阅读位置拉走。
-    launchLogScroll.setOnScrollChangeListener(
-        (view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-          boolean atEnd = launchLogScroll.shouldFollowEnd();
-          if (atEnd != followLogs) setLogFollow(atEnd);
-        });
-    renderLogControls(v);
+        .setContentDescription(UiText.choose("复制完整启动日志", "Copy the full startup log"));
+    v.findViewById(R.id.launch_download_logs)
+        .setContentDescription(UiText.choose("下载启动日志", "Download the startup log"));
+    v.findViewById(R.id.launch_copy_logs).setTooltipText(UiText.choose("复制日志", "Copy log"));
+    v.findViewById(R.id.launch_download_logs)
+        .setTooltipText(UiText.choose("下载日志", "Download logs"));
 
     v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
     restart.setText(R.string.ui2_restart);
@@ -367,21 +354,19 @@ public class LaunchFragment extends Fragment {
     enteringWeb = false;
   }
 
-  /** 仅在用户仍位于底部且跟随开启时滚动；滚动日志本身，不请求焦点或移动操作区。 */
+  /**
+   * 只有纯文本时直接显示原始视图（布局验收经反射调用）；仅在用户仍位于底部且跟随开启时滚动，
+   * 不请求焦点或移动操作区。
+   */
   private void updateLog(String text) {
-    View root = getView();
-    if (root == null || launchLog == null) return;
-    LogScrollView scroll = root.findViewById(R.id.launch_log_scroll);
-    boolean follow = followLogs && scroll.shouldFollowEnd();
-    launchLog.setText(text);
-    if (follow) scroll.followEndAfterLayout();
-    else renderLogControls(root);
+    if (getView() == null || logPanel == null) return;
+    logPanel.renderPlain(text);
   }
 
-  /** 复制当前日志框的完整文本；日志可能含本机鉴权地址，按敏感剪贴板写入。 */
+  /** 复制完整原文（与概览 / 筛选无关）；日志可能含本机鉴权地址，按敏感剪贴板写入。 */
   private void copyLogs() {
-    if (launchLog == null) return;
-    CharSequence logs = launchLog.getText();
+    if (logPanel == null) return;
+    CharSequence logs = logPanel.plainText();
     if (logs == null || logs.length() == 0) {
       Toast.makeText(
               requireContext(),
@@ -446,60 +431,6 @@ public class LaunchFragment extends Fragment {
     showRecovery();
   }
 
-  /** 跟随开关只改展示，不触发任务状态变化；打开时再显式滚到末尾。 */
-  private void setLogFollow(boolean follow) {
-    if (followLogs == follow) {
-      renderLogControls(getView());
-      return;
-    }
-    followLogs = follow;
-    renderLogControls(getView());
-  }
-
-  private void toggleLogFollow() {
-    if (followLogs) {
-      setLogFollow(false);
-      return;
-    }
-    resumeLogFollow();
-  }
-
-  /** 恢复跟随并滚到最新；由「跟随最新」和「查看最新」共用。 */
-  private void resumeLogFollow() {
-    setLogFollow(true);
-    View root = getView();
-    if (root == null) return;
-    LogScrollView scroll = root.findViewById(R.id.launch_log_scroll);
-    if (scroll == null) return;
-    scroll.fullScroll(View.FOCUS_DOWN);
-    scroll.followEndAfterLayout();
-  }
-
-  /** 同步跟随按钮文案与「查看最新」可见性；暂停时保留当前阅读位置。 */
-  private void renderLogControls(View root) {
-    if (root == null) return;
-    TextView follow = root.findViewById(R.id.launch_follow_logs);
-    if (follow != null) {
-      follow.setText(
-          followLogs
-              ? UiText.choose("暂停跟随", "Pause following")
-              : UiText.choose("跟随最新", "Follow latest"));
-      follow.setContentDescription(
-          followLogs
-              ? UiText.choose("日志跟随中，点按暂停跟随", "Log following is on. Tap to pause.")
-              : UiText.choose("日志已暂停跟随，点按恢复", "Log following is paused. Tap to resume."));
-      follow.setTextColor(
-          requireContext()
-              .getColor(followLogs ? R.color.shell_text_secondary : R.color.shell_accent));
-    }
-    if (latestLogsButton != null) {
-      latestLogsButton.setText(UiText.choose("查看最新", "View latest"));
-      latestLogsButton.setContentDescription(
-          UiText.choose("跳到启动日志最新一行", "Jump to the latest startup log line"));
-      latestLogsButton.setVisibility(followLogs ? View.GONE : View.VISIBLE);
-    }
-  }
-
   @Override
   public void onResume() {
     super.onResume();
@@ -541,8 +472,8 @@ public class LaunchFragment extends Fragment {
     accessCopyButton = null;
     lanAddrText = null;
     launchLog = null;
+    logPanel = null;
     activityTrack = null;
-    latestLogsButton = null;
     if (dotPulse != null) {
       dotPulse.cancel();
       dotPulse = null;
@@ -575,16 +506,18 @@ public class LaunchFragment extends Fragment {
       com.deepseekharness.app.util.StartupTrace.Snapshot trace =
           controller.startupDiagnostics().snapshot();
       String localUrl = webEntryUrl();
-      if (launchLog != null && (trace.revision != logRevision || !localUrl.equals(logUrl))) {
+      if (logPanel != null) {
         // 仅原生本机视图显示当前鉴权地址；归档与导出的诊断仍统一脱敏。
-        updateLog(
+        String urlNote =
+            localUrl.isEmpty()
+                ? ""
+                : com.deepseekharness.app.util.UiText.format("\n\n本机 Web 地址（可长按复制）：\n%s", localUrl);
+        logPanel.render(
+            trace,
+            logOutcome(trace, starting, stopping, ready, restoring),
             (trace.log.isEmpty() ? com.deepseekharness.app.util.UiText.text("还没有日志。") : trace.log)
-                + (localUrl.isEmpty()
-                    ? ""
-                    : com.deepseekharness.app.util.UiText.format(
-                        "\n\n本机 Web 地址（可长按复制）：\n%s", localUrl)));
-        logRevision = trace.revision;
-        logUrl = localUrl;
+                + urlNote,
+            urlNote.trim());
       }
       runState.setText(
           enteringWeb
@@ -727,6 +660,22 @@ public class LaunchFragment extends Fragment {
                   "运行状态暂时无法读取，请查看操作记录", "Run state unavailable. See operation history."));
       }
     }
+  }
+
+  /** 启动日志概览的整体结果：只取 controller 已给出的真实状态，不从日志文本推测。 */
+  private com.deepseekharness.app.util.StartupLogDigest.Outcome logOutcome(
+      com.deepseekharness.app.util.StartupTrace.Snapshot trace,
+      boolean starting,
+      boolean stopping,
+      boolean ready,
+      boolean restoring) {
+    if (starting || restoring) return com.deepseekharness.app.util.StartupLogDigest.Outcome.RUNNING;
+    if (ready) return com.deepseekharness.app.util.StartupLogDigest.Outcome.READY;
+    if (trace.entries.isEmpty()) return com.deepseekharness.app.util.StartupLogDigest.Outcome.IDLE;
+    // 网页就绪过（之后退出）或用户主动停止，都不算启动失败。
+    if (stopping || trace.browserReady || controller.isUserStopped())
+      return com.deepseekharness.app.util.StartupLogDigest.Outcome.STOPPED;
+    return com.deepseekharness.app.util.StartupLogDigest.Outcome.FAILED;
   }
 
   private void showRecovery() {

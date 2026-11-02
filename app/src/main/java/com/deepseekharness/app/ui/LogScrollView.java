@@ -12,6 +12,8 @@ public final class LogScrollView extends ScrollView {
   private float lastY;
   private boolean interacting;
   private long gestureRevision;
+  // 启动日志「展开」：放宽高度上限；页面整体可滚动，不再受剩余高度约束。
+  private boolean tall;
 
   public LogScrollView(Context context, AttributeSet attrs) {
     super(context, attrs);
@@ -20,10 +22,13 @@ public final class LogScrollView extends ScrollView {
   @Override
   protected void onMeasure(int widthSpec, int heightSpec) {
     // 短屏保留页面操作空间；大屏的长日志也不无限撑开页面。
+    int screen = getResources().getConfiguration().screenHeightDp;
     int heightDp =
-        Math.max(144, Math.min(220, getResources().getConfiguration().screenHeightDp / 3));
+        tall
+            ? Math.max(260, Math.min(480, screen * 2 / 3))
+            : Math.max(144, Math.min(220, screen / 3));
     int available = Math.round(heightDp * getResources().getDisplayMetrics().density);
-    if (View.MeasureSpec.getMode(heightSpec) != View.MeasureSpec.UNSPECIFIED)
+    if (!tall && View.MeasureSpec.getMode(heightSpec) != View.MeasureSpec.UNSPECIFIED)
       available = Math.min(available, View.MeasureSpec.getSize(heightSpec));
     super.onMeasure(
         widthSpec, View.MeasureSpec.makeMeasureSpec(available, View.MeasureSpec.EXACTLY));
@@ -56,6 +61,22 @@ public final class LogScrollView extends ScrollView {
         break;
     }
     return super.dispatchTouchEvent(event);
+  }
+
+  void setTall(boolean value) {
+    if (tall == value) return;
+    tall = value;
+    android.view.ViewGroup.LayoutParams lp = getLayoutParams();
+    if (lp != null) {
+      // 固定 dp 高度会被 EXACTLY 测量卡死；展开时改为自适应，由 onMeasure 决定上限。
+      if (value) lp.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+      else
+        lp.height =
+            getResources()
+                .getDimensionPixelSize(com.deepseekharness.app.R.dimen.shell_launch_log_height);
+      setLayoutParams(lp);
+    }
+    requestLayout();
   }
 
   /** 只有原本正在看末尾且未触摸时，追加输出才跟随到末尾。 */

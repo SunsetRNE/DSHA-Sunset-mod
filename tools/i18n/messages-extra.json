@@ -13562,5 +13562,278 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/IslandFragment.java"
     ]
+  },
+  {
+    "id": "llog267a01",
+    "zh": " · %s 项",
+    "en": " · %s entries",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a02",
+    "zh": "%s 条新日志",
+    "en": "%s new lines",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a03",
+    "zh": "%s 行原文",
+    "en": "%s raw lines",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a04",
+    "zh": "%s 行原文 → %s 个阶段 · 计时 %s 条归入明细",
+    "en": "%s lines → %s stages · %s timings in details",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a05",
+    "zh": "%s 问题",
+    "en": "%s issues",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a06",
+    "zh": "%s，%s",
+    "en": "%s, %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a07",
+    "zh": "%s，%s，%s",
+    "en": "%s, %s, %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a08",
+    "zh": "仅问题",
+    "en": "Issues only",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a09",
+    "zh": "准备",
+    "en": "Preparing",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a10",
+    "zh": "原始",
+    "en": "Raw",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a11",
+    "zh": "原始日志，%s 行",
+    "en": "Raw log, %s lines",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a12",
+    "zh": "原始日志，%s 行，%s 个问题",
+    "en": "Raw log, %s lines, %s issues",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a13",
+    "zh": "启动失败 · %s",
+    "en": "Startup failed · %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a14",
+    "zh": "回到最新",
+    "en": "Back to latest",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a15",
+    "zh": "在原始日志中查看 %s 行 ›",
+    "en": "View %s lines in raw log ›",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a16",
+    "zh": "展开日志区域",
+    "en": "Expand log area",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a17",
+    "zh": "已就绪 · 用时 %s",
+    "en": "Ready · %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a18",
+    "zh": "已就绪 · 用时 %s · %s 项提示",
+    "en": "Ready · %s · %s notices",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a19",
+    "zh": "换行",
+    "en": "Wrap",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a20",
+    "zh": "收起日志区域",
+    "en": "Collapse log area",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a21",
+    "zh": "显示 %s / %s 行",
+    "en": "Showing %s of %s lines",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a22",
+    "zh": "有提示",
+    "en": "Has notices",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a23",
+    "zh": "概览",
+    "en": "Overview",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a24",
+    "zh": "概览，%s 个阶段",
+    "en": "Overview, %s stages",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a25",
+    "zh": "没有失败或跳过的行。",
+    "en": "No failed or skipped lines.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a26",
+    "zh": "跳到最新并恢复跟随",
+    "en": "Jump to latest and resume following",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a27",
+    "zh": "较早的 %s 行已折叠，可在原始日志中查看",
+    "en": "%s earlier lines folded; see the raw log",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a28",
+    "zh": "还没有日志。点按「启动」后这里按阶段显示。",
+    "en": "No log yet. Stages appear here after you start.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a29",
+    "zh": "阶段开始后 %s",
+    "en": "%s after stage start",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "llog267a30",
+    "zh": "隐藏计时",
+    "en": "Hide timing",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "llog267a31",
+    "zh": "下载启动日志",
+    "en": "Download the startup log",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "llog267a32",
+    "zh": "复制完整启动日志",
+    "en": "Copy the full startup log",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
   }
 ]

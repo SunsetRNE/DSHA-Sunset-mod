@@ -2,6 +2,7 @@
 <!--
   启动主页（UI v5 方案 A）：顶部语境 → 大标题 + 说明 + 主操作（右侧插图，仅 ≥600dp）→
   三段就绪轨道（无卡片，上下分隔线）→ 快捷入口 / 启动日志（内容宽度 ≥760dp 时左右并排）。
+  启动日志区按 docs/design/launch-log-20261101 压缩：概览分阶段 + 原始视图。
   - 所有状态文案与可见性仍由 LaunchFragment 按真实运行状态写入；保留全部既有 id。
   - launch_activity 必须紧跟 launch_subtitle、位于 launch_actions 内（单测锁定）。
 -->
@@ -106,25 +107,64 @@
           </LinearLayout>
         </LinearLayout>
 
-        <!-- 启动日志：复制 / 导出 / 跟随最新，以及原有安全启动与恢复入口。 -->
+        <!--
+          启动日志（docs/design/launch-log-20261101）：标题行（状态小字 + 复制 / 下载图标钮）→
+          概览 / 原始分段 → 日志框（原始工具条 + 滚动内容 + 「回到最新」浮标 + 底栏）→ 安全启动 / 恢复。
+          概览行由 LaunchLogPanel 按 StartupTrace 结构化行生成；复制 / 下载始终是完整原文。
+        -->
         <LinearLayout android:id="@+id/launch_log_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:orientation="vertical">
 
-          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-            <TextView style="@style/ShellLaunchSectionTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/ui2_logs" />
-            <Button android:id="@+id/launch_copy_logs" style="@style/ShellLaunchPillButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" />
-            <Button android:id="@+id/launch_download_logs" style="@style/ShellLaunchPillButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="@string/ui_m0046" />
+          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:minHeight="@dimen/shell_launch_log_ibtn" android:orientation="horizontal">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+              <TextView android:id="@+id/launch_log_title" style="@style/ShellLaunchLogTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityHeading="true" android:text="@string/ui2_logs" />
+              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:gravity="center_vertical" android:orientation="horizontal">
+                <View android:id="@+id/launch_log_dot" android:layout_width="7dp" android:layout_height="7dp" android:importantForAccessibility="no" />
+                <TextView android:id="@+id/launch_log_meta" style="@style/ShellLaunchLogMeta" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:layout_weight="1" android:accessibilityLiveRegion="polite" android:text="" />
+              </LinearLayout>
+            </LinearLayout>
+            <ImageButton android:id="@+id/launch_copy_logs" style="@style/ShellLaunchLogIconButton" android:layout_width="@dimen/shell_launch_log_ibtn" android:layout_height="@dimen/shell_launch_log_ibtn" android:layout_marginStart="8dp" android:src="@drawable/ic_launch_log_copy" />
+            <ImageButton android:id="@+id/launch_download_logs" style="@style/ShellLaunchLogIconButton" android:layout_width="@dimen/shell_launch_log_ibtn" android:layout_height="@dimen/shell_launch_log_ibtn" android:layout_marginStart="8dp" android:src="@drawable/ic_launch_log_download" />
           </LinearLayout>
 
-          <com.deepseekharness.app.ui.LogScrollView android:id="@+id/launch_log_scroll" android:layout_width="match_parent" android:layout_height="@dimen/shell_launch_log_height" android:layout_marginTop="10dp" android:background="@drawable/bg_shell_status" android:fillViewport="true">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-              <TextView android:id="@+id/lan_addr" android:layout_width="match_parent" android:layout_height="wrap_content" android:includeFontPadding="false" android:text="" android:textColor="@color/shell_accent" android:textIsSelectable="true" android:textSize="11sp" android:visibility="gone" />
-              <TextView android:id="@+id/launch_log" style="@style/ShellLaunchLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_m0025" />
-            </LinearLayout>
-          </com.deepseekharness.app.ui.LogScrollView>
+          <!-- 概览 / 原始：两段等宽；计数徽标由代码写入。 -->
+          <LinearLayout android:id="@+id/launch_log_tabs" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:background="@drawable/bg_launch_log_seg_track" android:orientation="horizontal" android:padding="3dp">
+            <TextView android:id="@+id/launch_log_tab_overview" style="@style/ShellLaunchLogTab" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="" />
+            <TextView android:id="@+id/launch_log_tab_raw" style="@style/ShellLaunchLogTab" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:layout_weight="1" android:text="" />
+          </LinearLayout>
 
-          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal">
-            <TextView android:id="@+id/launch_follow_logs" style="@style/ShellLaunchPill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" />
-            <TextView android:id="@+id/launch_latest_button" style="@style/ShellLaunchLatest" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="" android:visibility="gone" />
+          <LinearLayout android:id="@+id/launch_log_box" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_launch_log_box" android:clipToOutline="true" android:orientation="vertical">
+
+            <!-- 原始视图工具条：筛选只影响显示，复制仍是完整原文。 -->
+            <HorizontalScrollView android:id="@+id/launch_log_rawbar" android:layout_width="match_parent" android:layout_height="wrap_content" android:scrollbars="none" android:visibility="gone">
+              <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="10dp" android:paddingTop="8dp" android:paddingEnd="10dp" android:paddingBottom="6dp">
+                <TextView android:id="@+id/launch_log_filter_all" style="@style/ShellLaunchLogChip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" />
+                <TextView android:id="@+id/launch_log_filter_notiming" style="@style/ShellLaunchLogChip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="" />
+                <TextView android:id="@+id/launch_log_filter_issues" style="@style/ShellLaunchLogChip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="" />
+                <TextView android:id="@+id/launch_log_wrap" style="@style/ShellLaunchLogChip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="" />
+              </LinearLayout>
+            </HorizontalScrollView>
+            <View android:id="@+id/launch_log_rawbar_line" android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/shell_line" android:visibility="gone" />
+
+            <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+              <com.deepseekharness.app.ui.LogScrollView android:id="@+id/launch_log_scroll" android:layout_width="match_parent" android:layout_height="@dimen/shell_launch_log_height" android:fillViewport="true">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                  <LinearLayout android:id="@+id/launch_log_overview" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                  <LinearLayout android:id="@+id/launch_log_raw" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="10dp" android:paddingTop="6dp" android:paddingEnd="10dp" android:paddingBottom="8dp" android:visibility="gone">
+                    <TextView android:id="@+id/lan_addr" android:layout_width="match_parent" android:layout_height="wrap_content" android:includeFontPadding="false" android:text="" android:textColor="@color/shell_accent" android:textIsSelectable="true" android:textSize="11sp" android:visibility="gone" />
+                    <TextView android:id="@+id/launch_log" style="@style/ShellLaunchLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_m0025" />
+                  </LinearLayout>
+                </LinearLayout>
+              </com.deepseekharness.app.ui.LogScrollView>
+
+              <!-- 跟随浮标：只在暂停跟随时出现，带新日志数；点按回到最新并恢复跟随。 -->
+              <TextView android:id="@+id/launch_latest_button" style="@style/ShellLaunchLogFollow" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|end" android:layout_margin="8dp" android:text="" android:visibility="gone" />
+            </FrameLayout>
+
+            <!-- 底栏：压缩摘要 + 展开 / 收起日志区域。 -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@color/shell_surface" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="12dp" android:paddingEnd="4dp">
+              <TextView android:id="@+id/launch_log_digest" style="@style/ShellLaunchLogDigest" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="" />
+              <ImageButton android:id="@+id/launch_log_expand" style="@style/ShellLaunchLogExpand" android:layout_width="40dp" android:layout_height="40dp" android:src="@drawable/ic_launch_log_expand" />
+            </LinearLayout>
           </LinearLayout>
 
           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
