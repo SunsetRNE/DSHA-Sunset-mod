@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0230-dsh0.2.1-rc.5 / build282（实验性：插件后台检测只在插件页可见时进行）
+
+- **实验性。** 插件自动查询只在插件页可见时周期进行；对话页在前台时不再每约 2 分钟进容器跑一次 `plugin-manager.py refresh`（分支 `fix/plugin-auto-query-scope` ecdec5b9，原基于 build272，无冲突；运行时描述符重算）。
+- 验证范围：发布会话在 build282 上复跑 `PluginManagementEngineTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 282（基于 build281）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build282 更新说明](docs/releases/build282-changes.zh.md)，验证记录见 [build282 记录](docs/releases/v0.2.1-rc.3-build282-plugin-auto-query-scope-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0200-dsh0.2.1-rc.5 / build281（实验性：ADB 开启时重新打开不再卡在环境检查）
 
 - **实验性尽力修复。** 开启 ADB 时，解锁后重新打开 DSHA 不再与 ADB 后台探活争抢环境，减少长时间停在「正在检查运行环境」（T25，分支 `fix/adb-reopen-env-check` 18af5dc9，原基于 build272；未能复现原问题）。与 build278 的 `MainActivity` 字段在同一处新增，两边保留；运行时描述符重算。

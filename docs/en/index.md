@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0200-dsh0.2.1-rc.5` / build281 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build tries to fix DSHA getting stuck on "Checking environment" when reopened with ADB enabled (experimental). Local targeted unit tests, Lint and source gates passed. See the [build281 notes](../releases/build281-changes.en.md) and the [build281 record](../releases/v0.2.1-rc.3-build281-adb-reopen-env-check-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0230-dsh0.2.1-rc.5` / build282 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build runs the background plugin check only while the plugin page is visible; the chat page no longer refreshes the plugin list in the container on a timer (experimental). Local targeted unit tests, Lint and source gates passed. See the [build282 notes](../releases/build282-changes.en.md) and the [build282 record](../releases/v0.2.1-rc.3-build282-plugin-auto-query-scope-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
