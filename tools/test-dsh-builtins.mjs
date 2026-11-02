@@ -152,7 +152,8 @@ test('all nine signed wrappers activate with real 0.2.1 services; actual MCP and
     const passthrough=await ctx.waterfall(null,'tools/pre-execute',{name:'fixture',signal:new AbortController().signal},async()=>{next++;return {kind:'allow'};});
     assert.equal(passthrough.kind,'allow');assert.equal(next,1);assert.equal(llmRequests,0);
     const schemas=ctx.tools.schemas().map(tool=>tool.name);
-    assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-android__')).length,10);
+    assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-android__')).length,11);
+    assert(schemas.includes('mcp__dsha-android__android_read_image'),'shared-storage image reads are exposed as a separate physical-phone tool');
     assert(schemas.includes('mcp__dsha-android__android_node'),'physical-screen semantic actions must be exposed to ordinary conversations');
     assert(schemas.includes('mcp__dsha-android__android_control'),'ordinary conversations need explicit task begin/finish without changing chats');
     assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-vscreen__')).length,15);

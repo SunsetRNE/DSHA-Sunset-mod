@@ -22,8 +22,10 @@ import runtime_stable_patches
 ROOT = Path(__file__).resolve().parents[1]
 WORKER = 'plugin-bundle-proof-workers-patch.json'
 OLD_RECIPE_SHA = '466c61d0fc0d180cd4828fb981a0851cf1721ced023163cf7e17469e1144b681'
-OLD_MODULE_SHA = '9f47fda97820a06f33a29f5b5903412c91e3f5f7873c064f1ab18fe91b8657ca'
-PRE_WORKER_SHA = 'c1072ef0368c7d352cdba9535b240c5c5b9691c5fcab0e4a2fc44104a9db0714'
+# 模块字节随内置 DSH 上游与前序配方变化：build193（rc.3）时为 9f47fda9… / c1072ef0…，
+# 当前按 0.2.1-rc.5 canonical 与现行前序链重算。配方夹具本身（OLD_RECIPE_SHA）不变。
+OLD_MODULE_SHA = '8043321a15a77b0559a03165b253bf366ea04abc4397a808828d083e9c5d87ea'
+PRE_WORKER_SHA = '1eb661c0f36bcc5dcf47570f0c09ae26215bcf449031f218bc32bf6dc98a3d85'
 MANAGER = '@deepseek-ai/dsh-plugin-manager/lib/index.js'
 NEW_RECIPES = {WORKER, 'plugin-inventory-management-patch.json',
                'plugin-manager-management-probe-patch.json',
