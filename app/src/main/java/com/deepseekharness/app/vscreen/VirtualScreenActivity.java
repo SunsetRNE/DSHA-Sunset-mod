@@ -181,7 +181,16 @@ public final class VirtualScreenActivity extends AppCompatActivity {
         bind(R.id.vscreen_tool_close, t("关闭", "Close"), () -> run(() -> manager.close()));
     verifyClose =
         bind(
-            R.id.vscreen_verify_close, t("核验关闭", "Verify close"), () -> run(() -> manager.close()));
+            R.id.vscreen_verify_close,
+            t("核验关闭", "Verify close"),
+            () -> {
+              // 启动结果未知时“关闭”无法解除屏障（ADR0003）；改为打开诊断，不派发任何设备命令。
+              if (manager.lifecycleState() == VirtualScreenLifecycleState.START_UNKNOWN)
+                startActivity(
+                    new android.content.Intent(
+                        this, com.deepseekharness.app.ui.DiagnosticActivity.class));
+              else run(() -> manager.close());
+            });
     actionButtons = new Button[] {nodes, rotate, close};
 
     packagePanel = findViewById(R.id.vscreen_app_panel);
@@ -377,11 +386,21 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     }
     stageIcon.setImageResource(
         next == ViewState.CLEANUP ? R.drawable.ic_onb_alert : R.drawable.ic_vscreen_screen);
-    // 运行中结果条常驻（触摸反馈不能挪动预览）；其余状态没有内容时收起，不留空白。
-    operationResult.setVisibility(
-        next == ViewState.RUNNING || operationResult.length() > 0 ? View.VISIBLE : View.GONE);
+    boolean startUnknown = manager.lifecycleState() == VirtualScreenLifecycleState.START_UNKNOWN;
+    verifyClose.setText(
+        next == ViewState.CLEANUP && startUnknown
+            ? t("查看自检与诊断", "Open diagnostics")
+            : t("核验关闭", "Verify close"));
     stageTitle.setText(stageTitle(next));
-    stageMessage.setText(stageMessage(next));
+    String body = stageMessage(next);
+    stageMessage.setText(body);
+    // 运行中结果条常驻（触摸反馈不能挪动预览）；其余状态没有内容、或与说明卡重复时收起。
+    String result = operationResult.getText().toString();
+    boolean duplicate =
+        next != ViewState.RUNNING
+            && (next == ViewState.CLEANUP || !result.isEmpty() && body.contains(result));
+    operationResult.setVisibility(
+        next == ViewState.RUNNING || !result.isEmpty() && !duplicate ? View.VISIBLE : View.GONE);
     state.setText(stateLabel(next, framed));
     state.setTextColor(
         getColor(
@@ -390,7 +409,11 @@ public final class VirtualScreenActivity extends AppCompatActivity {
               case STARTING, CLEANUP -> R.color.shell_warn;
               default -> R.color.shell_text_muted;
             }));
-    if (next != ViewState.RUNNING)
+    String original = channelLabel(manager.channel());
+    if (next == ViewState.CLEANUP)
+      detail.setText(
+          original.isEmpty() ? "" : String.format(t("原通道：%s", "Original channel: %s"), original));
+    else if (next != ViewState.RUNNING)
       detail.setText(
           channelHint == null
               ? ""
@@ -468,8 +491,23 @@ public final class VirtualScreenActivity extends AppCompatActivity {
           stageNote.isEmpty()
               ? t("虚拟屏已创建，画面马上出现。", "The virtual screen is ready; the picture appears shortly.")
               : stageNote;
-      case CLEANUP -> message("VSCREEN_" + manager.lifecycleState().name(), "");
+      case CLEANUP -> {
+        String text =
+            manager.lifecycleState() == VirtualScreenLifecycleState.START_UNKNOWN
+                ? t(
+                    "启动命令已发出，但没有收到可核验的回复，也无法确认它是否还在运行。为避免同时存在两块虚拟屏，本次开机内不再创建。重启设备后即可重新创建；也可先到“自检与诊断”导出日志。",
+                    "The launch was sent but no verifiable reply arrived, so it cannot be confirmed whether it is still running. To avoid two virtual screens, nothing new is created until the next restart. Restart the device to create again, or export a log from Diagnostics first.")
+                : message("VSCREEN_" + manager.lifecycleState().name(), "");
+        yield text + diagnosticSuffix();
+      }
     };
+  }
+
+  /** 只展示 Manager 已净化过的诊断码（safeStartOutcome），便于反馈时对照，不显示原始输出。 */
+  private String diagnosticSuffix() {
+    JSONObject last = manager.lastStartOutcome();
+    String code = last == null ? "" : last.optString("diagnostic", last.optString("reason"));
+    return code.isEmpty() ? "" : "\n\n" + t("诊断码：", "Diagnostic code: ") + code;
   }
 
   private void showUsage() {

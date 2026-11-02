@@ -272,6 +272,26 @@ public final class VirtualScreenActivityLayoutTest {
   }
 
   @Test
+  public void startUnknownOffersDiagnosticsAndDoesNotRepeatTheCardMessage() throws Exception {
+    var manager = (VirtualScreenManager) field(activity, "manager");
+    var life = VirtualScreenManager.class.getDeclaredField("lifecycleState");
+    life.setAccessible(true);
+    life.set(manager, com.deepseekharness.app.util.VirtualScreenLifecycleState.START_UNKNOWN);
+    TextView outcome = (TextView) field(activity, "operationResult");
+    outcome.setText("上次启动结果未知");
+    var render = VirtualScreenActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+    render.invoke(activity);
+    Button verify = activity.findViewById(R.id.vscreen_verify_close);
+    assertEquals(View.VISIBLE, verify.getVisibility());
+    assertEquals("查看自检与诊断", verify.getText().toString());
+    assertEquals(View.GONE, outcome.getVisibility());
+    assertEquals(View.GONE, activity.findViewById(R.id.vscreen_create_group).getVisibility());
+    assertEquals("待清理", ((TextView) field(activity, "state")).getText().toString());
+    life.set(manager, com.deepseekharness.app.util.VirtualScreenLifecycleState.STOPPED);
+  }
+
+  @Test
   public void viewStateFollowsLifecycleFactsWithCleanupFirst() {
     var S = com.deepseekharness.app.util.VirtualScreenLifecycleState.class;
     assertEquals(
