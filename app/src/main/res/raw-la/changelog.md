@@ -1,7 +1,6 @@
-# DSHA 0.2.1-rc.3-20261102.1000-dsh0.2.1-rc.5 / build270
+# DSHA 0.2.1-rc.3-20261102.1030-dsh0.2.1-rc.5 / build271
 
-- Experimentale: pagina insulae status operum redelineata. Charta exempli in summo capsulam et notificationem ostendit quas post reditum ad telam domesticam videbis; status systematis non iam solum dicit se confirmari non posse, sed explicat quid fieri possit et ad configurationem systematis ducit, cum compendio ad commutatorem systematis accendendum si exstinctus est.
-- Commutatore principali exstincto, commutator temporis cinereus fit sed electionem servatam retinet; novus index ordinis insulae gradum operis qui eam nunc tenet illustrat; telae latae duabus columnis utuntur. Configurationes exsistentes non mutantur.
-- Haec renovatio interfaciei experimentalis est sine recognitione visuali unita in instrumento.
-- build269 seorsum non est editum: editio eius inspectione Lint defecit quia pagina depromptionum constantem fractionis linearum falsam adhibebat; emendatum est, et pagina depromptionum rescripta cum hac versione editur.
-- Ambitus probationis: solum probationes unitatum et inspectiones fontis locales; in instrumento non redditum. versionCode ad 270 auctus (in build269 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.
+- Experimentale: nova facultas Instrumentum externum, per defectum exstincta. Postquam seorsum in grege canalium Configurationis → Permissionum instrumenti accensa est, aliud telephonum per USB vel emendationem sine filo regere et post confirmationem in eo APK, APKS, XAPK vel modulum instituere potest; quaeque institutio prius confirmationem petit.
+- Inscriptio firmware solum ad praeviam inspectionem legendi et simulationem limitatur, nihil scribitur; facultas root permissum requirit nec ADB nec permissiones universales huius telephoni hereditat.
+- Haec facultas experimentalis cum instrumento coniuncto non probata est et fortasse non operabitur.
+- Ambitus probationis: solum probationes unitatum et inspectiones fontis locales; in instrumento non probatum. versionCode ad 271 auctus (in build270 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.1000-dsh0.2.1-rc.5` / build270 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为实验性 UI 更新：任务状态上岛页重绘，加入回到桌面的效果示意、可执行的系统状态提示与上岛顺序说明，偏好设置不变。本机单测与源码门禁通过；未经真机渲染，待统一视觉验收。改动说明见 [build270 更新说明](releases/build270-changes.zh.md)，验证记录见 [build270 记录](releases/v0.2.1-rc.3-build270-island-status-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.1030-dsh0.2.1-rc.5` / build271 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版新增实验性「外接设备」能力（默认关闭）：经 USB 或无线调试控制另一台手机，确认后安装应用或模块，刷机只做只读预检，不执行刷写；adb / fastboot 纳入固定锁。本机单测与源码门禁通过；未经真机验收。改动说明见 [build271 更新说明](releases/build271-changes.zh.md)，验证记录见 [build271 记录](releases/v0.2.1-rc.3-build271-external-device-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

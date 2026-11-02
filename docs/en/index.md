@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.1000-dsh0.2.1-rc.5` / build270 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is an experimental UI build: the task status island page is redrawn with a preview of what appears after returning home, actionable system status and the island priority order, with preferences unchanged. Local unit tests and source gates passed; not rendered on a device and awaiting a unified visual review. See the [build270 notes](../releases/build270-changes.en.md) and the [build270 record](../releases/v0.2.1-rc.3-build270-island-status-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.1030-dsh0.2.1-rc.5` / build271 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds an experimental External device capability, off by default: control another phone over USB or wireless debugging and install apps or modules after confirmation, while flashing is limited to read-only preflight; adb and fastboot are pinned by a fixed lock. Local unit tests and source gates passed; not verified on a device. See the [build271 notes](../releases/build271-changes.en.md) and the [build271 record](../releases/v0.2.1-rc.3-build271-external-device-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

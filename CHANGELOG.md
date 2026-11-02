@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1030-dsh0.2.1-rc.5 / build271（实验性：外接设备（默认关闭））
+
+- **实验性功能，默认关闭，未经真机验收。** 新增「外接设备」能力（`extdev/**`，接手 T3 `feat/external-device-debug` 骨架并重做）：经 USB 或无线调试（IPv4:端口）控制另一台手机，独立授权、不继承本机 ADB / 全局授权；首次开启需原生确认。
+- USB 模式识别：adb / fastboot 按接口三元组，9008 / BROM / Preloader / 展锐 / Odin 按 VID/PID 只识别并提示。SuperADB 式安装 APK / APKS / XAPK(+OBB) / 模块 ZIP，root 下走 pm 会话，每次原生确认，确认后按 SHA-256 与绑定代次复核。刷机只做只读预检与 dry-run，不执行刷写；fastboot、预检、刷写只认 USB；无线目标排除本机网卡地址与同指纹设备。
+- 同一专属 loopback server 内多步执行，nonce 切分步骤，UNKNOWN 不重放；执行守卫只放行计划生成的 install / push / shell 形状，adb / fastboot reboot 受限。adb / fastboot / 加载器纳入固定锁 `tools/external-tools/lock.json`，构建核对证明，运行时字节不符即拒绝。附 ADB 遥控 / 刷机指令参考文档。
+- 合入时与 build268 设备能力授权页压缩冲突：外接设备卡原先按 ScrollView 首个子视图插入，新布局根节点已不是 ScrollView，会在打开页面时抛出类型转换异常；改为追加到「通道」分组末尾，随分组在单栏 / 双栏间移动；字段两边保留。
+- 验证范围：分支内定向单测通过；合入 build270 后重算运行时描述符，发布会话复跑外接设备 / 设备命令守卫 / 桥路由与 `ui.*` 共 414 项、`test-external-tools.py`（11 项篡改用例被拒）与源码门禁。未经真机验收，未在真机上连接任何外接设备。版本码提升为 271（基于 build270）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build271 更新说明](docs/releases/build271-changes.zh.md)，验证记录见 [build271 记录](docs/releases/v0.2.1-rc.3-build271-external-device-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1000-dsh0.2.1-rc.5 / build270（实验性：任务状态上岛页重绘）
 
 - **实验性 UI 更新，待统一视觉验收。** 设置 › 任务状态上岛页（`IslandFragment`）按方案 B 重绘。原页面在 API 36.0 上只显示「无法确认系统状态」，用户不知道该做什么；顶栏落到 app_name；计时器开关与总开关的依赖未体现。
