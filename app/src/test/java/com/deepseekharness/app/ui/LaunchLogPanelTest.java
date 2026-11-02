@@ -126,6 +126,22 @@ public final class LaunchLogPanelTest {
   }
 
   @Test
+  public void readyMetaDurationIsFixedAtBackendReady() {
+    // T22：后端就绪、尚未进入网页且未 completed() 时，面板每秒刷新不能让「已就绪 · 用时」增长。
+    StartupTrace trace = new StartupTrace();
+    trace.begin(1, 0, false);
+    trace.stage(1, 100, "启动 Web 服务");
+    trace.backendReady(1, 3400);
+    TextView meta = root.findViewById(R.id.launch_log_meta);
+    for (long now : new long[] {3400, 4400, 179_400}) {
+      StartupTrace.Snapshot s = trace.snapshot(now, "zh");
+      assertEquals(now, s.elapsedMs);
+      panel.render(s, StartupLogDigest.Outcome.READY, s.log, "");
+      assertEquals("已就绪 · 用时 3.4s", meta.getText().toString());
+    }
+  }
+
+  @Test
   public void plainTextPathStillDrivesRawView() {
     panel.renderPlain("验收日志 0\n验收日志 1");
     assertTrue(panel.isRawMode());

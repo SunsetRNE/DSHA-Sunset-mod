@@ -223,6 +223,8 @@ final class LaunchLogPanel {
     StartupTrace.Snapshot s = snapshot;
     int tone;
     String text;
+    // 已结束态与概览占比条同口径：已就绪取浏览器 / 后端就绪时刻，不随面板刷新增长（T22）。
+    long end = StartupLogDigest.endMs(s, outcome);
     switch (outcome) {
       case RUNNING:
         tone = R.color.shell_accent;
@@ -234,14 +236,13 @@ final class LaunchLogPanel {
             digest.issueCount > 0
                 ? UiText.format(
                     UiText.choose("已就绪 · 用时 %s · %s 项提示", "Ready · %s · %s notices"),
-                    seconds(s.elapsedMs),
+                    seconds(end),
                     digest.issueCount)
-                : UiText.format(UiText.choose("已就绪 · 用时 %s", "Ready · %s"), seconds(s.elapsedMs));
+                : UiText.format(UiText.choose("已就绪 · 用时 %s", "Ready · %s"), seconds(end));
         break;
       case FAILED:
         tone = R.color.shell_bad;
-        text =
-            UiText.format(UiText.choose("启动失败 · %s", "Startup failed · %s"), seconds(s.elapsedMs));
+        text = UiText.format(UiText.choose("启动失败 · %s", "Startup failed · %s"), seconds(end));
         break;
       case STOPPED:
         tone = R.color.shell_text_muted;
