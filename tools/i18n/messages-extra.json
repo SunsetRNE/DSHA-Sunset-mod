@@ -14217,5 +14217,786 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
     ]
+  },
+  {
+    "id": "srec271a01",
+    "zh": "端口被占用",
+    "en": "Port in use",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a02",
+    "zh": "插件出错",
+    "en": "Plugin error",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a03",
+    "zh": "网页加载失败",
+    "en": "Web page failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a04",
+    "zh": "配置检查失败",
+    "en": "Configuration check failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a05",
+    "zh": "进程退出",
+    "en": "Process exited",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a06",
+    "zh": "API Key 无法读取",
+    "en": "API key unreadable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a07",
+    "zh": "健康检查无响应",
+    "en": "Health check timed out",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a08",
+    "zh": "原因未分类",
+    "en": "Unclassified cause",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a09",
+    "zh": "成功 · 安全模式",
+    "en": "Succeeded · safe mode",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a10",
+    "zh": "成功 · 后已手动停止",
+    "en": "Succeeded · stopped later",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a11",
+    "zh": "启动时被手动取消",
+    "en": "Cancelled during start",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a12",
+    "zh": "中断 · 无结果",
+    "en": "Interrupted · no result",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a13",
+    "zh": "DSH 正在正常运行",
+    "en": "DSH is running normally",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a14",
+    "zh": "正在启动 DSH",
+    "en": "Starting DSH",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a15",
+    "zh": "DSH 已手动停止",
+    "en": "DSH was stopped manually",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a16",
+    "zh": "启动失败：Web 端口被占用",
+    "en": "Start failed: Web port in use",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a17",
+    "zh": "启动失败：启动配置检查未通过",
+    "en": "Start failed: startup configuration check failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a18",
+    "zh": "启动失败：API Key 无法读取",
+    "en": "Start failed: API key unreadable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a19",
+    "zh": "运行中断：服务连续 3 次健康检查无响应",
+    "en": "Interrupted: service missed 3 health checks",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a20",
+    "zh": "启动失败：原因未分类",
+    "en": "Start failed: cause not classified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a21",
+    "zh": "运行环境损坏或需要更新",
+    "en": "Runtime is damaged or needs an update",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a22",
+    "zh": "上次启动被中断，没有结果",
+    "en": "Last start was interrupted with no result",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a23",
+    "zh": "有一次配置修复没有完成",
+    "en": "A configuration repair did not finish",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a24",
+    "zh": "网页已就绪，最近一次启动没有错误。这里的修复操作会先停止 Web。",
+    "en": "The web page is ready and the last start had no errors. Repairs here stop Web first.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a25",
+    "zh": "启动完成或失败前，会改动配置的操作暂不可用。",
+    "en": "Actions that change configuration are unavailable until the start succeeds or fails.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a26",
+    "zh": "Web 是手动停止的，这不是故障。",
+    "en": "Web was stopped manually. This is not a fault.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a27",
+    "zh": "另一个程序正在使用这个端口。改用自动端口或换一个端口后重试。",
+    "en": "Another program is using this port. Switch to an automatic port or choose another, then retry.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a28",
+    "zh": "只有这个插件报错。卸载它，或先安全启动再到插件页处理。",
+    "en": "Only this plugin reported an error. Remove it, or start in safe mode and fix it on the Plugins page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a29",
+    "zh": "后端已启动，网页插件初始化失败。安全启动只加载官方基础界面。",
+    "en": "The backend started but a web plugin failed to initialize. Safe start loads only the official basic interface.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a30",
+    "zh": "配置文件没有通过启动检查。恢复健康快照或新建该配置。",
+    "en": "A configuration file failed the startup check. Restore a healthy snapshot or create that configuration again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a31",
+    "zh": "服务进程意外退出，日志保留了退出前的输出。",
+    "en": "The service process exited unexpectedly. The log keeps its output before exit.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a32",
+    "zh": "已保存的 API Key 读不出来，原记录已保留。到配置页重新输入后再启动。",
+    "en": "The saved API key cannot be read; the original record was kept. Enter it again on the Configuration page, then start.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a33",
+    "zh": "Web 曾正常就绪，之后停止响应并被结束。重试通常可以恢复。",
+    "en": "Web was ready, then stopped responding and was ended. Retrying usually recovers it.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a34",
+    "zh": "没有识别出具体原因，下方保留原文。可以先安全启动，或查看日志。",
+    "en": "No specific cause was recognized; the original text is kept below. Try a safe start or view the log.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a35",
+    "zh": "这不是配置问题，重试和安全启动都无效。请先修复运行环境；对话和配置会单独保护。",
+    "en": "This is not a configuration problem; retrying or safe start will not help. Repair the runtime first; conversations and configuration are protected separately.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a36",
+    "zh": "这次启动既没有成功也没有报错，通常是应用被系统结束。不能确定是否有故障。",
+    "en": "This start neither succeeded nor reported an error, usually because the system ended the app. It is unknown whether anything is wrong.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a37",
+    "zh": "修复写到一半被中断。必须先回滚，之后才能启动或做其它修复。",
+    "en": "The repair was interrupted mid-write. Roll it back before starting or making other repairs.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a38",
+    "zh": "任务结束后记录会自动刷新，修复操作随即可用。",
+    "en": "Records refresh automatically when the task ends, and repairs become available.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a39",
+    "zh": "当前没有启动任务，也没有未处理的故障。",
+    "en": "No start is in progress and there are no unresolved faults.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a40",
+    "zh": "等待当前任务完成",
+    "en": "Waiting for the current task",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a41",
+    "zh": "没有未完成的修复",
+    "en": "No unfinished repair",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a42",
+    "zh": "先回滚未完成的修复",
+    "en": "Roll back the unfinished repair first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a43",
+    "zh": "启动进行中",
+    "en": "A start is in progress",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a44",
+    "zh": "已在运行",
+    "en": "Already running",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "srec271a45",
+    "zh": "没有可用的健康快照",
+    "en": "No healthy snapshot available",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java",
+      "app/src/debug/java/com/deepseekharness/app/ui/LayoutPreviewActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a46",
+    "zh": "就绪后中断 · %s",
+    "en": "Stopped after ready · %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a47",
+    "zh": "失败 · %s",
+    "en": "Failed · %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a48",
+    "zh": "%s 秒就绪",
+    "en": "Ready in %ss",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a49",
+    "zh": "已用 %s 秒",
+    "en": "%ss elapsed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a50",
+    "zh": "第 %s 秒后无记录",
+    "en": "No record after %ss",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a51",
+    "zh": "第 %s 秒取消",
+    "en": "Cancelled at %ss",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a52",
+    "zh": "第 %s 秒失败",
+    "en": "Failed at %ss",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a53",
+    "zh": "启动失败：端口 %s 被占用",
+    "en": "Start failed: port %s in use",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a54",
+    "zh": "启动失败：插件 %s 加载出错",
+    "en": "Start failed: plugin %s failed to load",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a55",
+    "zh": "网页加载失败：%s 初始化出错",
+    "en": "Web page failed: %s failed to initialize",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a56",
+    "zh": "启动失败：%s 进程退出，退出码 %s",
+    "en": "Start failed: %s exited with code %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a57",
+    "zh": "其它恢复操作",
+    "en": "Other recovery actions",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryLayout.java"
+    ]
+  },
+  {
+    "id": "srec271a58",
+    "zh": "最近启动",
+    "en": "Recent starts",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryLayout.java"
+    ]
+  },
+  {
+    "id": "srec271a59",
+    "zh": "数据与诊断",
+    "en": "Data & diagnostics",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryLayout.java"
+    ]
+  },
+  {
+    "id": "srec271a60",
+    "zh": "不可用：",
+    "en": "Unavailable: ",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryLayout.java",
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a61",
+    "zh": "启动失败后自动打开",
+    "en": "Opened automatically after a failed start",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a62",
+    "zh": "失败阶段：",
+    "en": "Failed stage: ",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a63",
+    "zh": "独立运行根，不读取正式环境，可让 AI 协助排查。",
+    "en": "Separate runtime root that does not read the main environment; AI can help investigate.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a64",
+    "zh": "返回 Web",
+    "en": "Back to Web",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a65",
+    "zh": "修改 Web 端口",
+    "en": "Change Web port",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java",
+      "app/src/debug/java/com/deepseekharness/app/ui/LayoutPreviewActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a66",
+    "zh": "重新输入 API Key",
+    "en": "Re-enter API key",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a67",
+    "zh": "修复运行环境",
+    "en": "Repair runtime",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a68",
+    "zh": "启动 DSH",
+    "en": "Start DSH",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a69",
+    "zh": "正常启动，加载全部已启用插件。",
+    "en": "Start normally with all enabled plugins.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a70",
+    "zh": "按原配置重新启动一次。",
+    "en": "Start once more with the current configuration.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a71",
+    "zh": "只加载官方基础界面；插件开关与配置原样保留。",
+    "en": "Loads only the official basic interface; plugin switches and configuration stay as they are.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java",
+      "app/src/debug/java/com/deepseekharness/app/ui/LayoutPreviewActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a72",
+    "zh": "以默认内容替换所选配置，原文件先存为修复前快照。",
+    "en": "Replaces the selected configuration with defaults after saving the original as a pre-repair snapshot.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a73",
+    "zh": "恢复最近健康快照",
+    "en": "Restore latest healthy snapshot",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java",
+      "app/src/debug/java/com/deepseekharness/app/ui/LayoutPreviewActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a74",
+    "zh": "只覆盖配置文件；会话、工作区和插件文件不动。",
+    "en": "Overwrites configuration files only; sessions, workspaces and plugin files are untouched.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a75",
+    "zh": "回滚未完成的修复",
+    "en": "Roll back the unfinished repair",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a76",
+    "zh": "用修复前快照撤回写了一半的配置。",
+    "en": "Uses the pre-repair snapshot to undo the half-written configuration.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a77",
+    "zh": "卸载出错插件",
+    "en": "Remove failing plugin",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a78",
+    "zh": "恢复此快照",
+    "en": "Restore this snapshot",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a79",
+    "zh": "删除此快照",
+    "en": "Delete this snapshot",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a80",
+    "zh": "删除配置快照",
+    "en": "Delete configuration snapshot",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a81",
+    "zh": "\n\n只删除这份快照副本，当前配置、会话与插件不受影响。删除后无法用它恢复。",
+    "en": "\n\nOnly this snapshot copy is deleted. Current configuration, sessions, and plugins are unaffected. It cannot be used for restore afterwards.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a82",
+    "zh": "全部成功",
+    "en": "All succeeded",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a83",
+    "zh": "已损坏 · 禁止恢复",
+    "en": "Damaged · restore blocked",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a84",
+    "zh": "\n这些是旧版本写入中断或校验失败留下的副本，无法用于恢复。",
+    "en": "\nThese copies were left by interrupted writes or failed checks in older versions and cannot be restored.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a85",
+    "zh": "还没有快照。下一次无错误的启动会自动保存。",
+    "en": "No snapshots yet. The next error-free start saves one automatically.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a86",
+    "zh": "本次启动报错",
+    "en": "Failed in this start",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a87",
+    "zh": "配置修复未完成，请使用“回滚未完成的修复”。",
+    "en": "Configuration repair is incomplete. Select Roll back the unfinished repair.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a88",
+    "zh": "配置快照目录已满且无法自动整理，请删除损坏或隔离的快照后重试。",
+    "en": "The configuration snapshot directory is full and could not be tidied. Delete damaged or quarantined snapshots, then retry.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a89",
+    "zh": "快照目录索引无法读取，已停止整理以免误删；原文件保留，可导出日志排查。",
+    "en": "The snapshot index cannot be read. Tidying stopped to avoid deleting anything; originals were retained. Export logs to investigate.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a90",
+    "zh": "所选快照不能删除或恢复。",
+    "en": "The selected snapshot cannot be deleted or restored.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ]
+  },
+  {
+    "id": "srec271a91",
+    "zh": "%s 次未成功",
+    "en": "%s not successful",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a92",
+    "zh": "全部 %s 条",
+    "en": "All %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a93",
+    "zh": "已隔离 %s 份无法校验的异常快照（不参与恢复与轮换）",
+    "en": "%s unverifiable snapshots are quarantined (excluded from restore and rotation)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a94",
+    "zh": "已隔离 %s 份",
+    "en": "%s quarantined",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "srec271a95",
+    "zh": "今天 %s",
+    "en": "Today %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
+    ],
+    "uiFormat": true
   }
 ]

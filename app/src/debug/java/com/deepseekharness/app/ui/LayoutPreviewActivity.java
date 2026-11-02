@@ -44,62 +44,76 @@ public final class LayoutPreviewActivity extends AppCompatActivity {
     if (old != null) getSupportFragmentManager().beginTransaction().remove(old).commitNow();
     frame.removeAllViews();
     if (scene.startsWith("recovery")) {
-      StartupRecoveryLayout page =
-          new StartupRecoveryLayout(
-              this,
-              com.deepseekharness.app.util.UiText.choose(
-                  "启动配置或插件加载失败", "Startup configuration or plugin loading failed"),
-              () -> {});
-      String[] zh = {"重试启动", "安全启动基础界面", "新建配置文件", "恢复中断的配置修复", "环境安装与修复", "查看并下载日志", "刷新恢复记录"};
-      String[] en = {
-        "Retry startup",
-        "Start the basic interface in safe mode",
-        "Create configuration file",
-        "Recover interrupted configuration repair",
-        "Environment installation and repair",
-        "View and download logs",
-        "Refresh recovery records"
-      };
-      int[] icons = {
-        R.drawable.ic_recovery_refresh,
-        R.drawable.ic_recovery_shield,
-        R.drawable.ic_recovery_new_file,
-        R.drawable.ic_recovery_wrench,
-        R.drawable.ic_recovery_gear,
-        R.drawable.ic_recovery_document,
-        R.drawable.ic_recovery_refresh
-      };
-      for (int i = 0; i < zh.length; i++)
-        page.action(
-            i < 4 ? page.recovery : page.tools,
-            com.deepseekharness.app.util.UiText.choose(zh[i], en[i]),
-            icons[i],
-            () -> {},
-            true);
+      // 方案 A 静态预览：失败状态卡 + 其它操作（含一条不可用原因）+ 记录胶囊 + 快照。
+      StartupRecoveryLayout page = new StartupRecoveryLayout(this, () -> {}, () -> {});
+      com.deepseekharness.app.util.StartupRecoveryState.Kind kind =
+          scene.equals("recovery_empty")
+              ? com.deepseekharness.app.util.StartupRecoveryState.Kind.IDLE
+              : com.deepseekharness.app.util.StartupRecoveryState.Kind.PORT;
+      android.widget.LinearLayout buttons =
+          page.statusCard(
+              kind.tone,
+              com.deepseekharness.app.util.StartupRecoveryState.title(kind, "3080", ""),
+              kind.code,
+              com.deepseekharness.app.util.StartupRecoveryState.detail(kind),
+              "");
+      page.statusButton(
+          buttons,
+          com.deepseekharness.app.util.UiText.choose("修改 Web 端口", "Change Web port"),
+          true,
+          () -> {});
+      page.statusButton(
+          buttons,
+          com.deepseekharness.app.util.UiText.choose("重试启动", "Retry startup"),
+          false,
+          () -> {});
+      page.action(
+          page.recovery,
+          com.deepseekharness.app.util.UiText.choose("安全启动", "Safe start"),
+          com.deepseekharness.app.util.UiText.choose(
+              "只加载官方基础界面；插件开关与配置原样保留。",
+              "Loads only the official basic interface; plugin switches and configuration stay as they are."),
+          false,
+          R.drawable.ic_recovery_shield,
+          () -> {},
+          true);
+      page.action(
+          page.recovery,
+          com.deepseekharness.app.util.UiText.choose("恢复最近健康快照", "Restore latest healthy snapshot"),
+          com.deepseekharness.app.util.UiText.choose("没有可用的健康快照", "No healthy snapshot available"),
+          true,
+          R.drawable.ic_recovery_clock,
+          () -> {},
+          true);
+      page.action(
+          page.tools,
+          com.deepseekharness.app.util.UiText.choose("查看并下载日志", "View and download logs"),
+          R.drawable.ic_recovery_document,
+          () -> {},
+          true);
       if (scene.equals("recovery_empty"))
-        page.label(
+        page.note(
             page.attempts,
             com.deepseekharness.app.util.UiText.choose(
                 "还没有启动记录。下一次启动会自动记录。",
-                "No startup records yet. The next start will be recorded automatically."),
-            13,
-            R.color.text_muted);
+                "No startup records yet. The next start will be recorded automatically."));
       else {
-        page.action(
+        page.statusAction(
             page.attempts,
-            "2026-09-11 22:03 · "
-                + com.deepseekharness.app.util.UiText.choose("失败", "Failed")
-                + " · 4.9s",
-            0,
-            () -> {},
-            true);
-        page.action(
+            com.deepseekharness.app.util.StartupRecoveryState.Tone.BAD,
+            com.deepseekharness.app.util.StartupRecoveryState.outcomeLabel(
+                com.deepseekharness.app.util.StartupRecoveryState.Outcome.FAILED, kind),
+            "09-11 22:03",
+            com.deepseekharness.app.util.StartupRecoveryState.elapsedLabel(
+                com.deepseekharness.app.util.StartupRecoveryState.Outcome.FAILED, 4900, -1),
+            () -> {});
+        page.statusAction(
             page.snapshots,
-            com.deepseekharness.app.util.UiText.choose("健康启动", "Healthy start")
-                + " · 2026-09-11 21:40",
-            0,
-            () -> {},
-            true);
+            com.deepseekharness.app.util.StartupRecoveryState.Tone.GOOD,
+            com.deepseekharness.app.util.UiText.choose("健康启动", "Healthy start"),
+            "09-11 21:40",
+            "",
+            () -> {});
         page.pluginCard.setVisibility(View.VISIBLE);
         page.action(
             page.plugins,

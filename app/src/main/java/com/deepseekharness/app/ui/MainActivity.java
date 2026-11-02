@@ -763,6 +763,15 @@ public class MainActivity extends AppCompatActivity {
       intent.removeExtra("open_terminal");
       openTerminal();
     }
+    // 启动恢复页「修改 Web 端口 / 重新输入 API Key」复用启动页原有的配置页入口，不另建页面。
+    if (intent.getBooleanExtra("open_config", false)) {
+      intent.removeExtra("open_config");
+      nav.setSelectedItemId(R.id.nav_launch);
+      UiMotion.page(this, getSupportFragmentManager().beginTransaction())
+          .replace(R.id.fragment_container, new ConfigFragment())
+          .addToBackStack(null)
+          .commit();
+    }
     if (intent.getBooleanExtra("open_install", false)) {
       intent.removeExtra("open_install");
       nav.setSelectedItemId(R.id.nav_settings);
