@@ -22,7 +22,10 @@ final class ExternalToolProof {
           if (bytes.size() + count > 64 * 1024) throw new IOException("EXTERNAL_PROOF_LIMIT");
           bytes.write(buffer, 0, count);
         }
-        proof = new JSONObject(bytes.toString(java.nio.charset.StandardCharsets.UTF_8));
+        // ByteArrayOutputStream#toString(Charset) 需 API 33；先取字节再解码以兼容 minSdk 30。
+        proof =
+            new JSONObject(
+                new String(bytes.toByteArray(), java.nio.charset.StandardCharsets.UTF_8));
       }
       // schema 2 由 tools/prepare-external-tools.py 从 tools/external-tools/lock.json 生成；不再按 rootfs
       // 版本放行。

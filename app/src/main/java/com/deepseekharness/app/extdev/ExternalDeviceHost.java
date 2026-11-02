@@ -484,10 +484,16 @@ public final class ExternalDeviceHost {
   private boolean fastbootVisible(String serial) throws Exception {
     Toolchain tools = toolchain();
     String connected = run(tools.fastbootPrefix(serial, "devices"), tools.environment(), 30_000);
-    return connected
-        .lines()
-        .anyMatch(
-            line -> line.trim().startsWith(serial + "\t") || line.trim().startsWith(serial + " "));
+    return listsSerial(connected, serial);
+  }
+
+  /** fastboot devices 输出中是否有以该序列号开头的行；String#lines 需 API 33，这里按行切分以兼容 minSdk 30。 */
+  private static boolean listsSerial(String output, String serial) {
+    for (String line : output.split("\r?\n|\r", -1)) {
+      String trimmed = line.trim();
+      if (trimmed.startsWith(serial + "\t") || trimmed.startsWith(serial + " ")) return true;
+    }
+    return false;
   }
 
   private static final long INSTALL_TIMEOUT_MS = 600_000;
@@ -1022,11 +1028,7 @@ public final class ExternalDeviceHost {
   private String runFastboot(String serial, String... command) throws Exception {
     Toolchain tools = toolchain();
     String connected = run(tools.fastbootPrefix(serial, "devices"), tools.environment(), 30_000);
-    if (!connected
-        .lines()
-        .anyMatch(
-            line -> line.trim().startsWith(serial + "\t") || line.trim().startsWith(serial + " ")))
-      throw new IOException("FASTBOOT_TARGET_NOT_CONNECTED");
+    if (!listsSerial(connected, serial)) throw new IOException("FASTBOOT_TARGET_NOT_CONNECTED");
     List<String> argv = new ArrayList<>(tools.fastbootPrefix(serial));
     for (String item : command) argv.add(item);
     return run(argv, tools.environment(), 60_000);
