@@ -9,7 +9,7 @@
         <include layout="@layout/vscreen_stage_content" />
       </FrameLayout>
 
-      <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+      <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="12dp" android:gravity="bottom" android:orientation="vertical">
         <include layout="@layout/vscreen_controls" />
       </LinearLayout>
     </LinearLayout>

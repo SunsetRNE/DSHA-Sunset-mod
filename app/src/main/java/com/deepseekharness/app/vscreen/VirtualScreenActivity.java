@@ -376,9 +376,10 @@ public final class VirtualScreenActivity extends AppCompatActivity {
       shown = next;
     }
     stageIcon.setImageResource(
-        next == ViewState.CLEANUP
-            ? R.drawable.ic_onb_alert
-            : landscapeFrame ? R.drawable.ic_pip_landscape : R.drawable.ic_pip_portrait);
+        next == ViewState.CLEANUP ? R.drawable.ic_onb_alert : R.drawable.ic_vscreen_screen);
+    // 运行中结果条常驻（触摸反馈不能挪动预览）；其余状态没有内容时收起，不留空白。
+    operationResult.setVisibility(
+        next == ViewState.RUNNING || operationResult.length() > 0 ? View.VISIBLE : View.GONE);
     stageTitle.setText(stageTitle(next));
     stageMessage.setText(stageMessage(next));
     state.setText(stateLabel(next, framed));
