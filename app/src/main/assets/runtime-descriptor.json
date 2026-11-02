@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "runtimeId": "c2ce26d822e54ab7e360f2aae0dc1bcb175389fd660fc4e8ec44c8b9c7d832b2",
+  "runtimeId": "5d2c99931e5344ed681db54d2318a3073d73c24fa298d5a89d661a26b20a6b5d",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.5",
   "launcherContract": "DSHA_ARM64_V2",
   "launcherInputs": {
-    "DeviceBridgeService.java": "9a8eae565824a26bb582476a5684675c9370b3e061f4c3a2d7df4e811a30895b",
+    "DeviceBridgeService.java": "3557243b2a00a7860e8e6e13d6cd2ed06bee97af02a4c5813f97002b68ba6f56",
     "DeviceFileCore.java": "fae1c8279c4805665ce0b4cb6b377f7c7cab7e9e16bc97007fadb207e0b74846",
     "DeviceShellExecutor.java": "b24b8b8045cc8938378015ed2463193b39baeb62f6e95fdf61861c9f6b3aba6f",
     "DshaAccessibilityService.java": "7f1a58b6cf74da8dfa981d943aead773db76cb8f7c35642a992fba2d2e725253",
