@@ -480,7 +480,7 @@ final class InfoSurface {
     view.setTextSize(sp);
     view.setTextColor(context.getColor(R.color.shell_text_secondary));
     view.setLineSpacing(0f, 1.3f);
-    view.setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY);
+    view.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     view.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL);
     return view;
   }
