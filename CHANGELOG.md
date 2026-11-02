@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1130-dsh0.2.1-rc.5 / build273（运行配置页保存栏避让导航胶囊）
+
+- 运行配置页保存栏让出手机底部悬浮导航胶囊（分支 `fix/config-save-bar-clearance` 52e151a7）：手机上胶囊（64dp 高 + 10dp 底边距）浮在内容之上，固定页底的保存栏整条被盖住，改了配置无法保存。新增 `shell_nav_clearance`（手机 74dp，平板 sw600dp 左侧导航为 0dp），保存栏加底边距；位置与保存逻辑不变。
+- 验证范围：发布会话在 build272 上复跑 `ConfigSaveBarClearanceTest`、`UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。LayoutAudit 单独渲染配置页时没有胶囊，量不到这处重叠；未上真机。版本码提升为 273（基于 build272）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build273 更新说明](docs/releases/build273-changes.zh.md)，验证记录见 [build273 记录](docs/releases/v0.2.1-rc.3-build273-config-save-bar-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1100-dsh0.2.1-rc.5 / build272（实验性：启动日志区原生重做）
 
 - **实验性 UI 更新，待统一视觉验收。** 启动页「启动日志」区按 `docs/design/launch-log-20261101/preview.html` 原型原生实现（分支 `ui/launch-log-native` 241d1541）：概览按阶段分组显示开始 / 完成 / 耗时，问题行上浮并自动展开；原始视图保留完整日志，支持「仅问题」「隐藏计时」「换行」切换与从概览跳转高亮。

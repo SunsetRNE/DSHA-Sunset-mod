@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.1100-dsh0.2.1-rc.5` / build272 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is an experimental UI build: the launch log area on the launch page is rebuilt natively with a stage-grouped overview that surfaces problems, a filterable raw view and a new-lines badge while scrolled up; copy and download still use the full original text. Local unit tests, Lint and source gates passed; not rendered on a device and awaiting a unified visual review. See the [build272 notes](../releases/build272-changes.en.md) and the [build272 record](../releases/v0.2.1-rc.3-build272-launch-log-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.1130-dsh0.2.1-rc.5` / build273 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the run configuration save bar being covered by the floating navigation capsule on phones, which blocked saving. Local targeted unit tests, Lint and source gates passed; not checked on a device. See the [build273 notes](../releases/build273-changes.en.md) and the [build273 record](../releases/v0.2.1-rc.3-build273-config-save-bar-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

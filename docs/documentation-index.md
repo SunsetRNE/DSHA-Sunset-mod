@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.1100-dsh0.2.1-rc.5` / build272 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为实验性 UI 更新：启动页启动日志区原生重做，概览按阶段分组、问题上浮，原始视图可筛选，上翻时以浮标提示新日志；复制与下载仍是完整原文。本机单测、Lint 与源码门禁通过；未经真机渲染，待统一视觉验收。改动说明见 [build272 更新说明](releases/build272-changes.zh.md)，验证记录见 [build272 记录](releases/v0.2.1-rc.3-build272-launch-log-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.1130-dsh0.2.1-rc.5` / build273 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复手机上运行配置页保存栏被底部导航胶囊盖住、无法保存的问题。本机定向单测、Lint 与源码门禁通过；未上真机。改动说明见 [build273 更新说明](releases/build273-changes.zh.md)，验证记录见 [build273 记录](releases/v0.2.1-rc.3-build273-config-save-bar-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

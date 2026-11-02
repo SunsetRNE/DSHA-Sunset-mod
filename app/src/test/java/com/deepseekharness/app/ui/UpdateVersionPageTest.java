@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("启动日志区原生重做"));
-      assertTrue(shown.contains("版本码提升为 272"));
+      assertTrue(shown.contains("保存栏不再被底部导航胶囊盖住"));
+      assertTrue(shown.contains("版本码提升为 273"));
+      assertFalse(shown.contains("启动日志区原生重做"));
+      assertFalse(shown.contains("版本码提升为 272"));
       assertFalse(shown.contains("外接设备"));
       assertFalse(shown.contains("版本码提升为 271"));
       assertFalse(shown.contains("任务状态上岛页重绘"));
@@ -207,8 +209,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Launch log area rebuilt"));
-      assertTrue(shown.contains("Raises versionCode to 272"));
+      assertTrue(shown.contains("save bar is no longer covered"));
+      assertTrue(shown.contains("Raises versionCode to 273"));
+      assertFalse(shown.contains("Launch log area rebuilt"));
+      assertFalse(shown.contains("Raises versionCode to 272"));
       assertFalse(shown.contains("External device"));
       assertFalse(shown.contains("Raises versionCode to 271"));
       assertFalse(shown.contains("Task status island page redrawn"));
