@@ -28467,8 +28467,8 @@
     "id": "build156_d343d0af604d"
   },
   {
-    "zh": "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可进入受限主界面导出可读副本。",
-    "en": "Incomplete operation: %s\nLast recorded stage: %s\n\n%s\n\nOriginal state: recovery has not been confirmed. Inspect the record and use Recover interrupted maintenance, or enter the limited interface to export readable copies.",
+    "zh": "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可先点“导出可读副本”保存数据。",
+    "en": "Incomplete operation: %s\nLast recorded stage: %s\n\n%s\n\nOriginal state: recovery has not been confirmed. Inspect the record and use Recover interrupted maintenance, or first save your data with Export readable copy.",
     "uiFormat": true,
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java"
@@ -30221,6 +30221,31 @@
     "en": "Change",
     "files": [
       "app/src/main/res/layout/fragment_device_grants.xml"
+    ]
+  },
+  {
+    "id": "rescue272_export_copy",
+    "zh": "导出可读副本",
+    "en": "Export readable copy",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "rescue272_export_desc",
+    "zh": "只读救援导出可读取的数据，不停止写入、不修改原件",
+    "en": "Read-only rescue export of readable data; writers keep running and originals stay untouched",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java"
+    ]
+  },
+  {
+    "id": "rescue272_pending_hint",
+    "zh": "原环境尚未确认，常规备份和恢复暂不可用。可先导出可读副本保存数据，再恢复中断维护。",
+    "en": "The original environment is unconfirmed, so regular backup and restore are unavailable. Export a readable copy first, then resume the interrupted maintenance.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
     ]
   }
 ]

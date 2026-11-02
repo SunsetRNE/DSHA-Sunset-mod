@@ -42,10 +42,17 @@ public final class MaintenanceFooterPolicy {
     public final Entry entry;
     public final Emphasis emphasis;
 
-    Model(Primary primary, Entry entry, Emphasis emphasis) {
+    /**
+     * 是否在说明上方给出「导出可读副本」（只读救援导出）直达入口。维护执行中不给：树正在移动，
+     * 救援结果没有参考价值；失败 / 待恢复 / 就绪检查未通过时给，说明文案也据此引导。
+     */
+    public final boolean rescue;
+
+    Model(Primary primary, Entry entry, Emphasis emphasis, boolean rescue) {
       this.primary = primary;
       this.entry = entry;
       this.emphasis = emphasis;
+      this.rescue = rescue;
     }
   }
 
@@ -58,11 +65,12 @@ public final class MaintenanceFooterPolicy {
    */
   public static Model decide(
       boolean busy, boolean pending, boolean failed, boolean incomplete, boolean ready) {
-    if (busy) return new Model(Primary.PROGRESS, Entry.OUTLINE, Emphasis.NONE);
-    if (pending || failed) return new Model(Primary.DANGER, Entry.OUTLINE, Emphasis.EMERGENCY);
-    if (incomplete) return new Model(Primary.NORMAL, Entry.ACCENT_OUTLINE, Emphasis.LOGS);
-    if (ready) return new Model(Primary.DEMOTED, Entry.PRIMARY, Emphasis.NONE);
-    return new Model(Primary.NORMAL, Entry.OUTLINE, Emphasis.NONE);
+    if (busy) return new Model(Primary.PROGRESS, Entry.OUTLINE, Emphasis.NONE, false);
+    if (pending || failed)
+      return new Model(Primary.DANGER, Entry.OUTLINE, Emphasis.EMERGENCY, true);
+    if (incomplete) return new Model(Primary.NORMAL, Entry.ACCENT_OUTLINE, Emphasis.LOGS, true);
+    if (ready) return new Model(Primary.DEMOTED, Entry.PRIMARY, Emphasis.NONE, false);
+    return new Model(Primary.NORMAL, Entry.OUTLINE, Emphasis.NONE, false);
   }
 
   /**

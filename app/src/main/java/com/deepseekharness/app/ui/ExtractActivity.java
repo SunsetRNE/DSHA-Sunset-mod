@@ -36,7 +36,7 @@ public class ExtractActivity extends AppCompatActivity {
   private ViewGroup segments, stages;
   private View stageCard;
   private ProgressBar spinner, progress;
-  private Button retry, enter;
+  private Button retry, enter, rescue;
   private ExtractFooter footer;
   private long taskId;
   private boolean automaticEntry;
@@ -147,6 +147,15 @@ public class ExtractActivity extends AppCompatActivity {
                 },
                 rebuildRequested));
     enter.setOnClickListener(v -> proceed());
+    // 只读救援导出：不停止写入、不进入受限主界面，也不写就绪标记；后端在维护待恢复时仍允许 rescue。
+    rescue = findViewById(R.id.extract_rescue);
+    rescue.setText(UiText.text("导出可读副本"));
+    rescue.setContentDescription(UiText.text("只读救援导出可读取的数据，不停止写入、不修改原件"));
+    rescue.setOnClickListener(
+        v ->
+            startActivity(
+                new Intent(this, NativeDataActivity.class)
+                    .putExtra("data_mode", NativeDataActivity.MODE_RESCUE)));
     // 方案 A：内容宽度 ≥ 720dp 且有失败/未就绪说明时，阶段卡与说明两列并排（容器按自身宽度判定）。
     AdaptiveColumns columns = findViewById(R.id.extract_columns);
     columns.setSplitWidthDp(720);
@@ -234,12 +243,15 @@ public class ExtractActivity extends AppCompatActivity {
                 : !cachedInstalled
                     ? RuntimeMaintenanceStarter.Retry.DEPLOY
                     : RuntimeMaintenanceStarter.Retry.REBUILD;
-    footer.render(
+    com.deepseekharness.app.util.MaintenanceFooterPolicy.Model footerModel =
         com.deepseekharness.app.util.MaintenanceFooterPolicy.decide(
-            busy, pending, failed, incomplete, !busy && !pending && ready),
-        view,
-        RuntimeMaintenanceStarter.retryLabel(kind, failed),
-        !executionBusy);
+            busy, pending, failed, incomplete, !busy && !pending && ready);
+    footer.render(
+        footerModel, view, RuntimeMaintenanceStarter.retryLabel(kind, failed), !executionBusy);
+    // 兑现说明里的“导出可读副本”：入口在说明上方；没有说明文字时也保留说明列显示入口。
+    rescue.setVisibility(footerModel.rescue ? View.VISIBLE : View.GONE);
+    rescue.setEnabled(!executionBusy);
+    if (footerModel.rescue) findViewById(R.id.extract_focus).setVisibility(View.VISIBLE);
     if (com.deepseekharness.app.util.EnvironmentIdentity.mayAdvanceAfterMaintenance(
         automaticEntry, mine, s.status == BackupTaskState.Status.SUCCEEDED, busy, pending, ready)) {
       automaticEntry = false;
@@ -299,7 +311,7 @@ public class ExtractActivity extends AppCompatActivity {
     if (failed) {
       message =
           UiText.format(
-                  "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可进入受限主界面导出可读副本。",
+                  "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可先点“导出可读副本”保存数据。",
                   com.deepseekharness.app.util.UiStateText.render(s.kind),
                   s.lastStage.isEmpty()
                       ? UiText.choose(

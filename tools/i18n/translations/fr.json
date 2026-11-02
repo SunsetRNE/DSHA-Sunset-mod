@@ -3476,7 +3476,7 @@
   "build156_fde437ced4f1": "L’enregistrement d’identité Web est invalide ; l’environnement est conservé.",
   "build156_982cf35420d2": "Le processus d’essai isolé est illisible ; son état d’origine est conservé.",
   "build156_d343d0af604d": "La fin du lanceur Web connu n’a pas été confirmée.",
-  "build156_choose_ea901bcfbcae": "Opération incomplète : %s\nDernière étape enregistrée : %s\n\n%s\n\nÉtat d’origine : récupération non confirmée. Examinez l’enregistrement et utilisez Récupérer la maintenance interrompue, ou accédez à l’interface limitée pour exporter les copies lisibles.",
+  "build156_choose_ea901bcfbcae": "Opération incomplète : %s\nDernière étape enregistrée : %s\n\n%s\n\nÉtat d’origine : récupération non confirmée. Examinez l’enregistrement et utilisez Récupérer la maintenance interrompue, ou enregistrez d’abord vos données avec Exporter une copie lisible.",
   "build156_choose_37d1a8e0770a": "Dernière sauvegarde manuelle : %s\n%s",
   "build156_choose_8f9ebfb52663": "\nDernière copie automatique : %s",
   "build156_choose_777bbf8413a3": "Une sauvegarde a été trouvée :\n%s\n\nSon contenu et son périmètre réel sont vérifiés avant confirmation de la restauration.",
@@ -3690,5 +3690,8 @@
   "m9021": "S’applique uniquement à la voie root ; après assouplissement, l’assistant et les plugins peuvent exécuter n’importe quelle commande root. Le mode strict n’autorise que la liste d’autorisation ; le mode complètement assoupli ne bloque aucune opération irréversible, ce qui peut entraîner une perte de données ou des dommages système.",
   "m9022": "Niveau d’interception enregistré : %s",
   "m9023": "Niveau d’interception des commandes : %s\nS’applique uniquement à la voie root ; l’exécuteur générique Shizuku/ADB reste strict.",
-  "m9024": "Modifier"
+  "m9024": "Modifier",
+  "rescue272_export_copy": "Exporter une copie lisible",
+  "rescue272_export_desc": "Export de secours en lecture seule des données lisibles ; les écritures continuent et les originaux restent intacts",
+  "rescue272_pending_hint": "L’environnement d’origine n’est pas confirmé : la sauvegarde et la restauration habituelles sont indisponibles. Exportez d’abord une copie lisible, puis reprenez la maintenance interrompue."
 }

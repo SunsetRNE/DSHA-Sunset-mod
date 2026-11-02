@@ -3476,7 +3476,7 @@
   "build156_fde437ced4f1": "O registro de identidade Web é inválido; o ambiente foi preservado.",
   "build156_982cf35420d2": "O processo do teste isolado é ilegível; o estado original foi preservado.",
   "build156_d343d0af604d": "A saída do iniciador Web conhecido ainda não foi confirmada.",
-  "build156_choose_ea901bcfbcae": "Operação incompleta: %s\nÚltima etapa registrada: %s\n\n%s\n\nEstado original: a recuperação não foi confirmada. Inspecione o registro e use Recuperar manutenção interrompida ou entre na interface limitada para exportar cópias legíveis.",
+  "build156_choose_ea901bcfbcae": "Operação incompleta: %s\nÚltima etapa registrada: %s\n\n%s\n\nEstado original: a recuperação não foi confirmada. Inspecione o registro e use Recuperar manutenção interrompida ou salve primeiro seus dados com Exportar cópia legível.",
   "build156_choose_37d1a8e0770a": "Último backup manual: %s\n%s",
   "build156_choose_8f9ebfb52663": "\nÚltima cópia automática: %s",
   "build156_choose_777bbf8413a3": "Foi encontrado um backup:\n%s\n\nO conteúdo e o escopo real são verificados antes de confirmar a restauração.",
@@ -3690,5 +3690,8 @@
   "m9021": "Aplica-se apenas ao canal root; após o relaxamento, o assistente e os plugins podem executar qualquer comando root. O modo estrito permite apenas a lista de permissões; o totalmente relaxado não bloqueia operações irreversíveis, o que pode causar perda de dados ou danos ao sistema.",
   "m9022": "Nível de interceptação guardado: %s",
   "m9023": "Nível de interceptação de comandos: %s\nAplica-se apenas ao canal root; o executor genérico Shizuku/ADB permanece estrito.",
-  "m9024": "Alterar"
+  "m9024": "Alterar",
+  "rescue272_export_copy": "Exportar cópia legível",
+  "rescue272_export_desc": "Exportação de resgate somente leitura dos dados legíveis; as gravações continuam e os originais ficam intactos",
+  "rescue272_pending_hint": "O ambiente original não foi confirmado, então o backup e a restauração normais estão indisponíveis. Exporte primeiro uma cópia legível e depois retome a manutenção interrompida."
 }

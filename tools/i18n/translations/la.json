@@ -3476,7 +3476,7 @@
   "build156_fde437ced4f1": "Acta identitatis Web invalida sunt; ambitus retinetur.",
   "build156_982cf35420d2": "Processus probationis separatae illegibilis est; status originalis eius retinetur.",
   "build156_d343d0af604d": "Exitus noti initiatoris Web nondum confirmatus est.",
-  "build156_choose_ea901bcfbcae": "Operatio imperfecta: %s\nUltimus gradus descriptus: %s\n\n%s\n\nStatus originalis: recuperatio nondum confirmata est. Acta inspice et «Conservationem interruptam recupera» adhibe, aut interfaciem limitatam ingredere ut exemplaria legibilia exportes.",
+  "build156_choose_ea901bcfbcae": "Operatio imperfecta: %s\nUltimus gradus descriptus: %s\n\n%s\n\nStatus originalis: recuperatio nondum confirmata est. Acta inspice et «Conservationem interruptam recupera» adhibe, aut prius data tua «Exemplar legibile exporta» serva.",
   "build156_choose_37d1a8e0770a": "Ultimum exemplar subsidiarium manuale: %s\n%s",
   "build156_choose_8f9ebfb52663": "\nUltimum exemplar automaticum: %s",
   "build156_choose_777bbf8413a3": "Exemplar subsidiarium repertum est:\n%s\n\nRes et fines veri eius verificantur antequam restitutionem confirmes.",
@@ -3690,5 +3690,8 @@
   "m9021": "Solum canalem root afficit; post remissionem adiutor et plugins quodlibet mandatum root exsequi possunt. Strictus solum indicem permissum admittit; plene remissus nullas operationes irrevocabiles impedit, unde dati amissio vel systematis damnum accidere potest.",
   "m9022": "Gradus interceptionis servatus: %s",
   "m9023": "Gradus interceptionis mandatorum: %s\nSolum canalem root afficit; executor generalis Shizuku/ADB strictus manet.",
-  "m9024": "Mutare"
+  "m9024": "Mutare",
+  "rescue272_export_copy": "Exemplar legibile exporta",
+  "rescue272_export_desc": "Exportatio salutaris tantum legendi datorum legibilium; scriptiones pergunt et originalia intacta manent",
+  "rescue272_pending_hint": "Ambitus originalis nondum confirmatus est, ideo tutela et restitutio ordinariae non praesto sunt. Prius exemplar legibile exporta, deinde conservationem interruptam resume."
 }

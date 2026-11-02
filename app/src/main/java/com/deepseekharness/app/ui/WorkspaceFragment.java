@@ -65,7 +65,7 @@ public class WorkspaceFragment extends Fragment {
     ((Button) v.findViewById(android.R.id.button2)).setText(UiText.text("取消备份"));
     v.findViewById(android.R.id.button2).setOnClickListener(x -> oneClick.cancel());
     v.findViewById(R.id.workspace_backup).setOnClickListener(x -> primaryAction());
-    v.findViewById(R.id.workspace_restore).setOnClickListener(x -> openData("restore"));
+    v.findViewById(R.id.workspace_restore).setOnClickListener(x -> secondaryAction());
     v.findViewById(R.id.workspace_stat_manual).setOnClickListener(x -> showHistory());
     v.findViewById(R.id.workspace_stat_auto)
         .setOnClickListener(x -> open(AutomaticBackupActivity.class));
@@ -186,6 +186,16 @@ public class WorkspaceFragment extends Fragment {
       return;
     }
     confirmBackup();
+  }
+
+  /**
+   * 副按钮：维护未完成时常规恢复不可用，改为只读救援导出（后端在待恢复时仍允许 rescue，
+   * 不停止写入、不写就绪标记）；否则照旧从备份恢复。
+   */
+  private void secondaryAction() {
+    if (EnvironmentUiStatus.get(requireContext()).recovery)
+      openData(NativeDataActivity.MODE_RESCUE);
+    else openData("restore");
   }
 
   /** 一键备份前的确认：列出包含 / 不包含与保存位置。真正开始仍走 {@link OneClickBackup#start}。 */
@@ -351,10 +361,7 @@ public class WorkspaceFragment extends Fragment {
       case PENDING -> {
         icon = R.drawable.ic_recovery_wrench;
         title = UiText.choose("有未完成的环境维护", "Environment maintenance is unfinished");
-        detail =
-            UiText.choose(
-                "原环境尚未确认，备份和恢复暂不可用。请先恢复中断维护。",
-                "The original environment is unconfirmed, so backup and restore are unavailable. Resume the interrupted maintenance first.");
+        detail = UiText.text("原环境尚未确认，常规备份和恢复暂不可用。可先导出可读副本保存数据，再恢复中断维护。");
       }
       case FAILED -> {
         title = UiText.choose("上次备份未完成", "The last backup did not finish");
@@ -412,8 +419,12 @@ public class WorkspaceFragment extends Fragment {
     Button primary = view.findViewById(R.id.workspace_backup);
     primary.setText(pending ? UiText.text("恢复中断维护") : UiText.choose("立即备份", "Back up now"));
     primary.setEnabled(!busy);
-    enable(view.findViewById(R.id.workspace_restore), !busy && !pending);
-    for (int id : new int[] {R.id.workspace_export, R.id.workspace_location, R.id.workspace_reset})
+    // 维护未完成时副按钮改为只读救援导出；「环境修复与数据救援」正是此状态的出口，不再置灰。
+    Button secondary = view.findViewById(R.id.workspace_restore);
+    secondary.setText(pending ? UiText.text("导出可读副本") : UiText.text("从备份恢复"));
+    enable(secondary, !busy);
+    enable(view.findViewById(R.id.workspace_location), !busy);
+    for (int id : new int[] {R.id.workspace_export, R.id.workspace_reset})
       enable(view.findViewById(id), !busy && !pending);
 
     if (s.status == BackupTaskState.Status.PREVIEW && previewDialog == null && isResumed()) {

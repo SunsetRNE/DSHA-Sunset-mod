@@ -56,6 +56,19 @@ public class MaintenanceFooterPolicyTest {
   }
 
   @Test
+  public void rescueExportOfferedOnlyWhenMaintenanceStoppedUnfinished() {
+    // 失败 / 待恢复 / 就绪检查未通过：说明文案承诺的「导出可读副本」必须有直达入口
+    assertTrue(MaintenanceFooterPolicy.decide(false, true, false, false, false).rescue);
+    assertTrue(MaintenanceFooterPolicy.decide(false, false, true, false, false).rescue);
+    assertTrue(MaintenanceFooterPolicy.decide(false, false, false, true, false).rescue);
+    assertTrue(MaintenanceFooterPolicy.decide(false, true, false, false, true).rescue);
+    // 维护执行中树正在移动；就绪或空闲时走常规备份
+    assertFalse(MaintenanceFooterPolicy.decide(true, true, true, true, false).rescue);
+    assertFalse(MaintenanceFooterPolicy.decide(false, false, false, false, true).rescue);
+    assertFalse(MaintenanceFooterPolicy.decide(false, false, false, false, false).rescue);
+  }
+
+  @Test
   public void progressLevelIsBoundedAndShowsRunningStep() {
     assertEquals(0, MaintenanceFooterPolicy.progressLevel(0, 0, true));
     assertEquals(1000, MaintenanceFooterPolicy.progressLevel(0, 5, true));

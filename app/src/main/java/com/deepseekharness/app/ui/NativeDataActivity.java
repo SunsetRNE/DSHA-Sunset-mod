@@ -64,6 +64,12 @@ public final class NativeDataActivity extends AppCompatActivity {
   private boolean alwaysWizard;
   private int renderedStep = -1;
 
+  /**
+   * data_mode=rescue：维护页与「数据与备份」的「导出可读副本」直达入口。页面同默认救援工具页，
+   * 首次创建时直接弹出现有「救援导出」确认框；旋转重建不重复弹出。
+   */
+  static final String MODE_RESCUE = "rescue";
+
   private static String t(String zh, String en) {
     return UiText.choose(zh, en);
   }
@@ -228,6 +234,11 @@ public final class NativeDataActivity extends AppCompatActivity {
         && (getIntent().hasExtra("auto_restore_id") || getIntent().hasExtra("auto_export_id")))
       page.root.post(this::automaticCopy);
     if (saved == null && getIntent().hasExtra("retained_key")) page.root.post(this::retainedAction);
+    if (saved == null && MODE_RESCUE.equals(mode))
+      page.root.post(
+          () -> {
+            if (!isFinishing() && !isDestroyed()) chooseExport(true, null);
+          });
     if (saved == null && getIntent().hasExtra("restore_uri")) {
       Uri input = Uri.parse(getIntent().getStringExtra("restore_uri"));
       if ("content".equals(input.getScheme()))

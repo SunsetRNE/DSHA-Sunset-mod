@@ -142,6 +142,17 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- 失败 / 待恢复 / 未通过就绪检查时的直达入口：只读救援导出（NativeDataActivity rescue 模式）。
+                         放在说明上方：失败说明较长，放下方时手机竖屏首屏看不到；底栏三列在大字体下也无余量。 -->
+                    <Button
+                        android:id="@+id/extract_rescue"
+                        style="@style/ShellSecondaryButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:minHeight="@dimen/touch_min"
+                        android:visibility="gone" />
+
                     <TextView
                         android:id="@+id/extract_error"
                         android:layout_width="match_parent"
