@@ -1,6 +1,4 @@
-# DSHA 0.2.1-rc.3-20261102.1200-dsh0.2.1-rc.5 / build274
+# DSHA 0.2.1-rc.3-20261102.1230-dsh0.2.1-rc.5 / build275
 
-- Experimental: tema e aparência. Definições › Experiência tem uma nova página Tema e aparência com pré-visualizações claro, escuro e seguir o sistema; o botão de tema da barra superior passa para aqui.
-- A troca de tema pode usar expansão circular, varrimento diagonal, transição suave ou nenhuma animação. São adicionadas cinco paletas (Azul clássico, Aurora, Sakura, Cyber, Âmbar), em claro e escuro. Ao arrancar a frio aparece uma animação de carregamento.
-- O claro / escuro nativo pode ser sincronizado com a interface Web (pode desligar); as paletas não são sincronizadas.
-- É uma atualização de interface experimental ainda sem revisão visual unificada num dispositivo. Âmbito da verificação: testes unitários direcionados, Lint e verificações de código locais. versionCode elevado para 274 (com base no build273). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- A duração «Pronto · tempo» no título do registo de arranque já não aumenta a cada atualização; mostra o momento em que o arranque ficou realmente pronto (regressão do build272).
+- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 275 (com base no build274). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

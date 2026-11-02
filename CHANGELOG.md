@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1230-dsh0.2.1-rc.5 / build275（实验性：启动日志就绪用时修复）
+
+- **实验性 UI 修复，待统一视觉验收。** 启动日志「已就绪 · 用时」不再随刷新增长（T22，分支 `fix/launch-log-ready-duration` 9cd7b3af）：build272 引入，`LaunchLogPanel.renderMeta()` 的 READY / FAILED 直接用 `snapshot.elapsedMs`，进入网页前该值随面板每秒刷新增长。改用 `StartupLogDigest.endMs`：已就绪取 browserReadyMs，其次 backendReadyMs，与概览占比条同口径；RUNNING 不变。
+- 验证范围：发布会话在 build274 上复跑 `LaunchLogPanelTest` / `StartupLogDigestTest` / `StartupTraceTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 275（基于 build274）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build275 更新说明](docs/releases/build275-changes.zh.md)，验证记录见 [build275 记录](docs/releases/v0.2.1-rc.3-build275-launch-ready-duration-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1200-dsh0.2.1-rc.5 / build274（实验性：主题与外观）
 
 - **实验性 UI 更新，待统一视觉验收。** 主题与外观（分支 `feat/theme-motion` e935ec96）：设置 › 体验新增独立「主题与外观」页（浅色 / 深色 / 跟随系统预览卡），顶栏主题按钮移除；切换动画四选一（圆形扩散、对角擦除、淡入淡出、直接切换），截图先盖住旧窗口再开始，修掉回闪；冷启动开机加载页加描线与字标淡入。

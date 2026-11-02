@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.1200-dsh0.2.1-rc.5` / build274 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为实验性 UI 更新：新增独立主题与外观页、四种切换动画、五套配色与冷启动加载动画，原生亮暗可同步到 Web。本机定向单测、Lint 与源码门禁通过；待统一视觉验收。改动说明见 [build274 更新说明](releases/build274-changes.zh.md)，验证记录见 [build274 记录](releases/v0.2.1-rc.3-build274-theme-motion-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.1230-dsh0.2.1-rc.5` / build275 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复启动日志标题「已就绪 · 用时」在进入网页前持续增长的问题（build272 引入）。本机定向单测、Lint 与源码门禁通过；待统一视觉验收。改动说明见 [build275 更新说明](releases/build275-changes.zh.md)，验证记录见 [build275 记录](releases/v0.2.1-rc.3-build275-launch-ready-duration-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
