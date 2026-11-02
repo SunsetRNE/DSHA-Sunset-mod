@@ -269,6 +269,12 @@ public final class HttpShellService {
     routes.put(BridgeRoutes.Route.SENSE, (s, r) -> s.appSense(r.path, r.scope));
     routes.put(BridgeRoutes.Route.VSCREEN, (s, r) -> s.handleVscreen(r));
     routes.put(BridgeRoutes.Route.DEVICE, (s, r) -> s.appDevice());
+    routes.put(BridgeRoutes.Route.NET, (s, r) -> s.appNet());
+    routes.put(
+        BridgeRoutes.Route.NET_RESOLVE,
+        (s, r) ->
+            com.deepseekharness.app.device.HostResolver.resolve(
+                s.ctx, r.param("host", ""), r.param("family", "0")));
     routes.put(BridgeRoutes.Route.APPS, (s, r) -> s.appList(r.path));
     routes.put(BridgeRoutes.Route.LAUNCH, (s, r) -> s.appLaunch(r.path, r.scope));
     routes.put(BridgeRoutes.Route.CLIP, (s, r) -> s.appClip(r.path));
@@ -2108,6 +2114,10 @@ public final class HttpShellService {
 
   /** /app/help lists bridge endpoint parameters for authenticated clients. */
   private String appHelp() {
+    String netHelp =
+        com.deepseekharness.app.util.UiText.choose(
+            "\n== 网络与 DNS（实验性） ==\n/app/net  宿主默认网络（类型/VPN/验证/私有 DNS/设备 DNS）与容器 resolv.conf 来源及是否过期；只读，不含本机 IP\n/app/net/resolve?host=example.com&family=0|4|6  用 Android 系统解析器在当前网络解析域名，返回 DSHA_RESOLVE_V1 文本；只解析不连接\n切网后宿主自动刷新容器 resolv.conf 的 DSHA 托管段；Node 解析遇 EAI_AGAIN/EAI_FAIL 时会经此端点兜底一次。用户自定义 nameserver 不被改写。属争取性修复，不保证所有网络下可靠。\n",
+            "\n== Network and DNS (experimental) ==\n/app/net  host default network (transport/VPN/validation/private DNS/device DNS) and the container resolv.conf source and staleness; read-only, no local IP\n/app/net/resolve?host=example.com&family=0|4|6  resolve a name with the Android system resolver on the current network; returns DSHA_RESOLVE_V1 text; resolves only, never connects\nAfter a network switch the host refreshes the DSHA-managed block of the container resolv.conf; Node lookups that fail with EAI_AGAIN/EAI_FAIL fall back to this endpoint once. User nameservers are never rewritten. Best-effort fix; reliability is not guaranteed on every network.\n");
     String rootPolicyHelp =
         com.deepseekharness.app.util.UiText.choose(
             "\n== root 命令拦截档位 ==\n设置 → 设备能力授权 → Root 命令拦截：严格（默认，仅白名单）、放宽（任意命令，但拦截格式化/刷机/重启/清数据等不可逆操作）、完全放宽（不按命令内容拦截）。档位只对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档，短信读取三档都需要原生授权。\n",
@@ -2126,6 +2136,7 @@ public final class HttpShellService {
             .replace("3090", Integer.toString(bridgePort))
         + taskHelp
         + senseHelp
+        + netHelp
         + rootPolicyHelp;
   }
 
@@ -2336,6 +2347,14 @@ public final class HttpShellService {
   }
 
   // ================= App 层能力（不需要 ADB / Shizuku，agent 直接调） =================
+
+  /** /app/net ：宿主网络与容器 resolv.conf 的只读诊断（不发 DNS 查询、不含本机 IP）。 */
+  private String appNet() {
+    return com.deepseekharness.app.device.NetworkDiagnostics.render(
+        ctx,
+        new com.deepseekharness.app.core.ConfigStore(ctx).getDnsMode(),
+        java.util.List.of(new java.io.File(ctx.getFilesDir(), "linux/ubuntu").getAbsolutePath()));
+  }
 
   /** /app/device ：设备状态一览（机型/系统/电量/网络/屏幕/存储/内存） */
   private String appDevice() {

@@ -39,6 +39,8 @@ Accessibility can receive window events from other apps. Pairing-event scans han
 
 Native API keys use Keystore ciphertext. Temporary unreadability must not be treated as an unconfigured value, and must not cause automatic ciphertext deletion or replacement decryption keys. The bridge uses the `X-Token` request header. A compatibility shim migrates known local fetch calls; it does not enable CORS or claim support for arbitrary HTTP libraries. External file access and default backups exclude machine tokens. User-selected projects may intentionally contain `.env` files, which are not silently discarded.
 
+`/app/net/resolve` is gated by the same `X-Token` and only maps a domain name to numeric addresses: it rejects IP literals, `localhost` and single-label names, opens no connection, does not log host names, and is bounded in concurrency and time. The guest can already send DNS queries over the same default network, so it adds no egress capability, though queries then follow the Android private-DNS / VPN path. `/app/net` is read-only and omits local IPs, SSIDs and carrier names.
+
 Update URLs are subject to HTTPS, redirect, and APK identity checks. API23 and existing user HTTP/LAN behavior retain necessary cleartext compatibility. The app therefore must not be described as a global cleartext-blocking network firewall. Logs redact known secrets and common credential patterns; arbitrary third-party output is not guaranteed to have every secret detected.
 
 ## Backups and restoration

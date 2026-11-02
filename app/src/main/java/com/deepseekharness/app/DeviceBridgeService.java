@@ -81,7 +81,7 @@ public class DeviceBridgeService extends Service {
   private volatile long lastFullVerifyAt = 0L;
   private volatile long lastKickAt = 0L;
 
-  private android.net.ConnectivityManager.NetworkCallback netCallback;
+  private com.deepseekharness.app.device.NetworkStateMonitor.Listener netListener;
   private android.content.BroadcastReceiver screenReceiver;
 
   private static final long OK_INTERVAL_MS = 60_000L;
@@ -223,11 +223,10 @@ public class DeviceBridgeService extends Service {
     adbDetail = com.deepseekharness.app.util.UiText.text("ADB 保活已停止");
     watchHandler.removeCallbacksAndMessages(null);
     try {
-      if (netCallback != null) {
-        android.net.ConnectivityManager cm =
-            (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm != null) cm.unregisterNetworkCallback(netCallback);
-      }
+      // 只退订本服务；共享监听随进程存活，容器 DNS 刷新仍需要它。
+      if (netListener != null)
+        com.deepseekharness.app.device.NetworkStateMonitor.ensureStarted(this)
+            .removeListener(netListener);
     } catch (Throwable ignored) {
     }
     try {
@@ -282,34 +281,23 @@ public class DeviceBridgeService extends Service {
     AdbKeepAliveReceiver.schedule(this);
   }
 
-  /** 网络恢复立刻重连（不然要等下一个周期，WiFi 切换后能白等半分钟）。 */
+  /**
+   * 网络恢复立刻重连（不然要等下一个周期，WiFi 切换后能白等半分钟）。
+   *
+   * <p>订阅全 App 唯一的 {@link com.deepseekharness.app.device.NetworkStateMonitor}，与容器 DNS
+   * 刷新看到同一份网络事实；切网时旧网络迟到的 LOST 已在监听源头过滤。
+   */
   private void startNetworkWatcher() {
     try {
-      final android.net.ConnectivityManager cm =
-          (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-      if (cm == null) return;
-      netCallback =
-          new android.net.ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(android.net.Network network) {
+      netListener =
+          (event, snapshot) -> {
+            if (event == com.deepseekharness.app.device.NetworkStateMonitor.Event.AVAILABLE)
               kick(com.deepseekharness.app.util.UiText.text("网络恢复"));
-            }
-
-            @Override
-            public void onLost(android.net.Network network) {
+            else if (event == com.deepseekharness.app.device.NetworkStateMonitor.Event.LOST)
               setAdbState("network_lost", com.deepseekharness.app.util.UiText.text("网络断开，等待恢复"));
-            }
           };
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-        cm.registerDefaultNetworkCallback(netCallback);
-      } else {
-        // Android 6 没有 registerDefaultNetworkCallback，退回到显式网络请求监听
-        cm.registerNetworkCallback(
-            new android.net.NetworkRequest.Builder()
-                .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .build(),
-            netCallback);
-      }
+      com.deepseekharness.app.device.NetworkStateMonitor.ensureStarted(this)
+          .addListener(netListener);
     } catch (Throwable e) {
       Log.w(
           "DSHA-ADB",

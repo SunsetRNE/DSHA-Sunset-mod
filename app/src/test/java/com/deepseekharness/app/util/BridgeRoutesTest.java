@@ -21,6 +21,8 @@ public final class BridgeRoutesTest {
     assertEquals(BridgeRoutes.Route.CONSENT_POLICY, BridgeRoutes.match("/app/native-policy"));
     assertEquals(BridgeRoutes.Route.CONSENT_POLICY, BridgeRoutes.match("/device/consent"));
     assertEquals(BridgeRoutes.Route.ENTRY_TARGET, BridgeRoutes.match("/app/entry-target"));
+    assertEquals(BridgeRoutes.Route.NET, BridgeRoutes.match("/app/net"));
+    assertEquals(BridgeRoutes.Route.NET_RESOLVE, BridgeRoutes.match("/app/net/resolve"));
     for (String invalid :
         new String[] {
           "/app/readfile/secret",
@@ -38,6 +40,9 @@ public final class BridgeRoutesTest {
           "/app/native-policy/child",
           "/device/consent/child",
           "/app/entry-target/child",
+          "/app/net/child",
+          "/app/net/resolve/child",
+          "/app/netXXX",
           "/app/entry-targetXXX",
           "/app/entry%2dtarget"
         }) {

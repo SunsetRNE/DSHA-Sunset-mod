@@ -24,6 +24,8 @@ public final class BridgeRoutes {
     SENSE(false),
     VSCREEN(false),
     DEVICE(false),
+    NET(false),
+    NET_RESOLVE(false),
     APPS(false),
     LAUNCH(false),
     CLIP(false),
@@ -77,6 +79,8 @@ public final class BridgeRoutes {
     add(routes, "/app/readfile", Route.READ_FILE);
     add(routes, "/health", Route.HEALTH);
     add(routes, "/app/device", Route.DEVICE);
+    add(routes, "/app/net", Route.NET);
+    add(routes, "/app/net/resolve", Route.NET_RESOLVE);
     add(routes, "/app/apps", Route.APPS);
     add(routes, "/app/launch", Route.LAUNCH);
     add(routes, "/app/clip", Route.CLIP);

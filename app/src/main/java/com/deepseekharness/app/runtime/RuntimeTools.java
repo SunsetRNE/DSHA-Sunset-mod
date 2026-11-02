@@ -35,7 +35,8 @@ final class RuntimeTools {
     rootfs = RuntimeAssetFiles.root(context, rootfs);
     try (RuntimeHostPorts.Scope scope =
         RuntimeHostPorts.fromOwner(context.getApplicationContext()).open()) {
-      // 设备 DNS 查询可能跨 Binder；不能在资产准备 monitor 内查询系统服务。
+      // 设备 DNS 查询与网络回调注册都可能跨 Binder；不能在资产准备 monitor 内调用系统服务。
+      ResolverRefresher.start(context);
       java.util.List<String> deviceDns = deviceDns(context);
       RuntimeHostPorts.Settings settings =
           RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings();
@@ -664,6 +665,7 @@ final class RuntimeTools {
 
   static void prepareResolver(Context context, File rootfs, RuntimeHostPorts.Settings settings)
       throws IOException {
+    ResolverRefresher.start(context);
     prepareResolver(context, rootfs, settings, deviceDns(context));
   }
 
@@ -677,6 +679,21 @@ final class RuntimeTools {
       prepareDnsServers(context, rootfs, settings, deviceDns);
     } finally {
       prepareAddressPrecedence(context, rootfs, settings.dnsMode);
+      // 启动只是第一次投影；此后切网由 ResolverRefresher 按同一规则持续更新。
+      ResolverRefresher.register(context, rootfs, deviceDns);
+    }
+  }
+
+  /**
+   * 切网后的刷新入口：与启动时同一套 reconcile 规则，在资产准备锁内写入，避免与并发准备交错。
+   * 设备 DNS 由调用方在锁外取得（跨 Binder）。
+   */
+  static void refreshResolver(Context context, File rootfs, java.util.List<String> deviceDns)
+      throws IOException {
+    RuntimeHostPorts.Settings settings =
+        RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings();
+    synchronized (LOCK) {
+      prepareDnsServers(context, rootfs, settings, deviceDns);
     }
   }
 
@@ -693,9 +710,12 @@ final class RuntimeTools {
     String old = target.isFile() ? Compat.readAll(target) : "";
     String updated =
         com.deepseekharness.app.util.ResolverConfig.reconcile(old, settings.dnsMode, deviceDns);
-    if (!old.equals(updated))
-      writeIfChanged(
+    // resolv.conf 随网络变化，不计入受管资产戳：否则每次切网都会让下次启动重做整套准备。
+    if (!old.equals(updated)) {
+      GuestScriptBudget.checkpoint();
+      RuntimeAssetFiles.write(
           context, target, updated.getBytes(java.nio.charset.StandardCharsets.UTF_8), false);
+    }
   }
 
   private static void prepareAddressPrecedence(Context context, File rootfs, String mode)
@@ -712,22 +732,10 @@ final class RuntimeTools {
   }
 
   private static java.util.List<String> deviceDns(Context context) {
-    java.util.List<String> deviceDns = new java.util.ArrayList<>();
-    try {
-      android.net.ConnectivityManager manager =
-          (android.net.ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-      if (manager != null) {
-        android.net.Network active = manager.getActiveNetwork();
-        android.net.LinkProperties links =
-            active == null ? null : manager.getLinkProperties(active);
-        if (links != null)
-          for (java.net.InetAddress address : links.getDnsServers())
-            deviceDns.add(address.getHostAddress());
-      }
-    } catch (RuntimeException unavailable) {
-      /* Keep the original file; do not require network access at boot. */
-    }
-    return deviceDns;
+    // 与网络监听共用字段提取；查询失败返回空列表，保留原文件，不要求启动时联网。
+    if (context == null) return new java.util.ArrayList<>();
+    return new java.util.ArrayList<>(
+        com.deepseekharness.app.device.NetworkStateMonitor.query(context).dnsServers);
   }
 
   static void applyEnvironment(Context context, File rootfs, Map<String, String> environment) {
