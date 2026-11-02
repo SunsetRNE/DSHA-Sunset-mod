@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("启动日志"));
-      assertTrue(shown.contains("版本码提升为 293"));
+      assertTrue(shown.contains("虚拟识屏"));
+      assertTrue(shown.contains("版本码提升为 294"));
+      assertFalse(shown.contains("启动日志"));
+      assertFalse(shown.contains("版本码提升为 293"));
       assertFalse(shown.contains("支持的设备"));
       assertFalse(shown.contains("版本码提升为 292"));
       assertFalse(shown.contains("一键备份"));
@@ -249,8 +251,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("startup log"));
-      assertTrue(shown.contains("Raises versionCode to 293"));
+      assertTrue(shown.contains("virtual screen"));
+      assertTrue(shown.contains("Raises versionCode to 294"));
+      assertFalse(shown.contains("startup log"));
+      assertFalse(shown.contains("Raises versionCode to 293"));
       assertFalse(shown.contains("supported devices"));
       assertFalse(shown.contains("Raises versionCode to 292"));
       assertFalse(shown.contains("one-tap backup"));

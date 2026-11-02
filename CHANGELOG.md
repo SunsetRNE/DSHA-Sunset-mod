@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0830-dsh0.2.1-rc.5 / build294（实验性：虚拟识屏页按状态重做）
+
+- **实验性。** 虚拟识屏页按状态重做：未开启 / 创建中 / 运行中 / 待清理四态各有独立布局，横屏改为左右布局、操作贴底；旋转后自动重新打开原应用；接回系统悬浮预览；启动结果未知时引导查看虚拟屏启动记录，不再重复文案；首帧等待不报错，节点面板不留空白（分支 `ui/vscreen-page` cd9f414b..2f1c0c7d 共 6 个提交，原基于 build287，用户已真机核对；逻辑层遗留问题记录在 T28 交接，不在本版）。
+- 验证范围：发布会话在 build294 上复跑 `com.deepseekharness.app.vscreen.*` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 294（基于 build293）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build294 更新说明](docs/releases/build294-changes.zh.md)，验证记录见 [build294 记录](docs/releases/v0.2.1-rc.3-build294-vscreen-page-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0800-dsh0.2.1-rc.5 / build293（启动日志框滑动归属一次性锁定）
 
 - 启动日志框与外层页面的嵌套滑动改为越过 touchSlop 后按累计位移一次性锁定归属：旧实现逐帧按单帧位移判断，贴边时一帧抖动就放开外层，外层随即抢走手势，概览日志难以滑动（新增 `util/NestedScrollArbiter` 与单测；分支 `fix/launch-log-nested-scroll` 37725ccb，原基于 build284，用户已真机确认手感）。
