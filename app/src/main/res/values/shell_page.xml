@@ -11,6 +11,11 @@
     <dimen name="shell_page_top">18dp</dimen>
     <!-- 手机悬浮胶囊叠在内容上：64dp 高 + 10dp 底边距 + 16dp 余量。平板见 values-sw600dp。 -->
     <dimen name="shell_page_bottom">90dp</dimen>
+    <!--
+      固定在页底、不随内容滚动的栏（如运行配置页保存栏）要让出悬浮胶囊：
+      shell_nav_height 64dp + shell_nav_margin_bottom 10dp。平板没有胶囊，见 values-sw600dp。
+    -->
+    <dimen name="shell_nav_clearance">74dp</dimen>
     <dimen name="shell_page_title">26sp</dimen>
     <dimen name="shell_page_desc">13sp</dimen>
     <dimen name="shell_section_gap">24dp</dimen>

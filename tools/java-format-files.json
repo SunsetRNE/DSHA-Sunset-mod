@@ -1015,6 +1015,7 @@
     "app/src/test/java/com/deepseekharness/app/ui/BatterySettingsNavigationTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/BrowserTasksTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/CompactLayoutTest.java",
+    "app/src/test/java/com/deepseekharness/app/ui/ConfigSaveBarClearanceTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/DeployCapsuleTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/DeviceGrantsLayoutTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/DiagnosticActivityRenderingTest.java",

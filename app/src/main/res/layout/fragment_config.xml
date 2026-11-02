@@ -132,8 +132,8 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- 保存条：单行状态 + 撤销 + 保存 -->
-    <LinearLayout android:id="@+id/config_save_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_config_save_bar" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="@dimen/config_page_pad_h" android:paddingEnd="@dimen/config_page_pad_h" android:paddingTop="8dp" android:paddingBottom="10dp">
+    <!-- 保存条：单行状态 + 撤销 + 保存；固定页底不随滚动，手机上用 shell_nav_clearance 让出悬浮导航胶囊 -->
+    <LinearLayout android:id="@+id/config_save_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/shell_nav_clearance" android:background="@drawable/bg_config_save_bar" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="@dimen/config_page_pad_h" android:paddingEnd="@dimen/config_page_pad_h" android:paddingTop="8dp" android:paddingBottom="10dp">
         <TextView android:id="@+id/config_save_status" style="@style/ShellStatusText" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:accessibilityLiveRegion="polite" android:ellipsize="end" android:maxLines="1" />
         <androidx.appcompat.widget.AppCompatButton android:id="@+id/config_undo" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:minWidth="0dp" android:paddingStart="10dp" android:paddingEnd="10dp" android:textAllCaps="false" android:visibility="gone" />
         <androidx.appcompat.widget.AppCompatButton android:id="@+id/config_save" style="@style/ConfigSaveButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:text="@string/ui_m0002" />
