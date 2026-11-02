@@ -72,8 +72,19 @@ jobs:
         with:
           artifact: ${{ inputs.handoff }}
           fixture: 'true'
+      # Robolectric 默认在单测中途临时下载 android-all，runner 网络抖动会让整批 sdk=N 测试类
+      # 以 MavenArtifactFetcher IOException 失败（build273、build277）。改为测试前按锁文件准备、
+      # 逐个核对 sha256（缓存命中也重新核对），单测走 robolectric.offline。
+      - name: Restore Robolectric android-all cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/robolectric-deps
+          key: robolectric-android-all-${{ hashFiles('tools/robolectric-sdk.lock.json') }}
+      - name: Prepare pinned Robolectric android-all jars
+        run: python3 tools/prepare-robolectric-sdks.py --dir "$RUNNER_TEMP/robolectric-deps"
       - name: Run Standard unit tests
         env:
+          DSHA_ROBOLECTRIC_DEPENDENCY_DIR: ${{ runner.temp }}/robolectric-deps
           MODE: ${{ inputs.mode }}
           TESTS: ${{ inputs.tests }}
           RERUN: ${{ inputs.rerun }}

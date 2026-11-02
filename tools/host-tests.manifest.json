@@ -3101,6 +3101,17 @@
       "reason": "CI node input handoff: exact allow-list, commit binding, digest/traversal rejection before any write; unit-result receipts reject missing/skipped fixtures and forged JUnit counts"
     },
     {
+      "path": "tools/test-robolectric-sdks.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Robolectric android-all offline preparation: flat resolver layout, exact Maven Central URL, size/sha256 before rename, bounded retries, corrupt or symlinked cache replaced; lock rejects traversal, foreign repository and duplicates"
+    },
+    {
       "path": "tools/test-ci-workflows.py",
       "stage": "fast",
       "requires": [

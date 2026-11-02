@@ -12,7 +12,7 @@
 | `_node-contracts.yml` | 描述符、声明、内置插件、凭据路径、测试清单、源码整洁、i18n、changelog、文档链接 | — |
 | `_node-java-format.yml` | `tools/format-java-tree.py --check`（失败时列出文件并上传报告） | `java-format-reports`（仅失败） |
 | `_node-inputs.yml` | 成对解析固定输入 → `ci-assets.py` 按 SHA-256 还原 → 可选重建受管运行时并重算描述符 → `ci-handoff.py pack` | 交接 artifact（无压缩、1 天） |
-| `_node-unit-tests.yml` | `:app:testStandardDebugUnitTest`，`full` / `source-only`，可选 `--tests` 与 fork 数 | JUnit XML + `out/unit-tests.json` |
+| `_node-unit-tests.yml` | 先按 `tools/robolectric-sdk.lock.json` 准备 android-all（缓存 + 逐个 sha256 核对 + 有界重试），再以 `robolectric.offline` 跑 `:app:testStandardDebugUnitTest`，`full` / `source-only`，可选 `--tests` 与 fork 数 | JUnit XML + `out/unit-tests.json` |
 | `_node-lint.yml` | `:app:lintStandardRelease`（未签名模式） | lint 报告 |
 | `_node-host-tests.yml` | `run-host-tests.py` 的一个阶段或 `--only` 子集；可选夹具、toolchains、Playwright | `app/build/host-tests` |
 
@@ -60,6 +60,8 @@ prerelease。任一前置节点失败都不会签名。签名包经 1 天保留�
 
 拆分后的耗时尚未在 GitHub 上实测；每个节点各自 checkout 与安装工具链，会增加约 1–2 分钟固定开销。
 关键路径预计为 inputs → unit → build-signed。
+
+Robolectric android-all 不经 Gradle 依赖解析，原先在单测中途从 Maven 临时下载，runner 网络抖动时整批 sdk=N 测试类以 `MavenArtifactFetcher` IOException 失败（build273、build277 正式发布各一次）。现由单测节点在测试前准备锁定的 5 个 jar；缺失或摘要不符时单测前即失败，单测中不再联网取 android-all。锁定新 SDK 时同时更新锁文件里的 `size` 与 `sha256`，并与 Maven Central 的 `.sha1` 交叉核对。
 
 ## 4. 已删除
 
