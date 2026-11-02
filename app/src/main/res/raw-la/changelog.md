@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261102.0830-dsh0.2.1-rc.5 / build267
+# DSHA 0.2.1-rc.3-20261102.0900-dsh0.2.1-rc.5 / build268
 
-- Experimentale: emendatio pro viribus cum continens interretem amittit post transitum ad data mobilia. DNS continentis solum in initio cum servitoribus retis praesentis scribebatur, itaque post transitum a Wi-Fi ad data mobilia ii servitores attingi non poterant et omnes resolutiones nominum tempus excedebant donec Wi-Fi rediret. Nunc DNS continentis post mutationem retis sponte renovatur; si resolutio adhuc deficit, semel iterum per resolutorem systematis Android fit (solum resolutio, nec petitio iterum mittitur nec DNS publicum inseritur). Additur diagnosis solum ad legendum /app/net.
-- Haec emendatio experimentalis est nec pro omnibus coniunctionibus instrumenti, systematis, provisoris, VPN vel DNS privati praestatur; si continens post mutationem retis adhuc interrete caret, exitum /app/net nuntia.
-- Ambitus probationis: solum probationes unitatum et inspectiones fontis locales; mutatio retis in instrumento non probata est. versionCode ad 267 auctus (in build266 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.
+- Experimentale: pagina permissionum instrumenti compressa. In summo est conspectus fixus, et tactus unius ex quattuor capsulis status ad gregem pertinentem ducit; Root, Shizuku et ADB unam chartam canalium communicant; gradus impedimenti Root et modus confirmationis telae fiunt electiones trium partium; telae latae ut tabulae duabus columnis utuntur.
+- Confirmationes periculi non mutantur: gradum laxare adhuc confirmationem rubram (tres notas et 10 secundas exspectationis) requirit, et tactus extra eam non claudit.
+- Haec renovatio interfaciei experimentalis est sine recognitione visuali unita in instrumento, itaque quaedam dispositiones inaequales videri possunt.
+- Ambitus probationis: solum probationes unitatum et inspectiones fontis locales; in instrumento non redditum. versionCode ad 268 auctus (in build267 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.

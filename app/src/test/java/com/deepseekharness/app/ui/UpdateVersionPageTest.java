@@ -133,9 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("实验性"));
-      assertTrue(shown.contains("切到移动数据"));
-      assertTrue(shown.contains("版本码提升为 267"));
+      assertTrue(shown.contains("设备能力授权页压缩"));
+      assertTrue(shown.contains("版本码提升为 268"));
+      assertFalse(shown.contains("切到移动数据"));
+      assertFalse(shown.contains("版本码提升为 267"));
       assertFalse(shown.contains("悬浮助手重构"));
       assertFalse(shown.contains("版本码提升为 266"));
       assertFalse(shown.contains("维护页底栏"));
@@ -198,9 +199,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Experimental"));
-      assertTrue(shown.contains("switching to mobile data"));
-      assertTrue(shown.contains("Raises versionCode to 267"));
+      assertTrue(shown.contains("Device permissions page compacted"));
+      assertTrue(shown.contains("Raises versionCode to 268"));
+      assertFalse(shown.contains("switching to mobile data"));
+      assertFalse(shown.contains("Raises versionCode to 267"));
       assertFalse(shown.contains("Floating assistant redesigned"));
       assertFalse(shown.contains("Raises versionCode to 266"));
       assertFalse(shown.contains("Maintenance buttons now center their icons"));

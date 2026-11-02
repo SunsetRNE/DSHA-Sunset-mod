@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.0830-dsh0.2.1-rc.5` / build267 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为实验性更新：尝试修复切到移动数据后容器无外网——切网后自动刷新容器 DNS，解析失败时经 Android 系统解析器兜底一次，并新增只读诊断 /app/net。本机单测与源码门禁通过；未做切网真机验证。改动说明见 [build267 更新说明](releases/build267-changes.zh.md)，验证记录见 [build267 记录](releases/v0.2.1-rc.3-build267-mobile-data-network-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.0900-dsh0.2.1-rc.5` / build268 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为实验性 UI 更新：设备能力授权页压缩为固定概览头部、通道合卡、档位分段选择与平板双栏，风险确认流程不变；另随版合入保留副本页重设计原型。本机单测与源码门禁通过；未经真机渲染，待统一视觉验收。改动说明见 [build268 更新说明](releases/build268-changes.zh.md)，验证记录见 [build268 记录](releases/v0.2.1-rc.3-build268-device-grants-compact-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
