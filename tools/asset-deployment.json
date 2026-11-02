@@ -138,7 +138,8 @@
     "web-integration/permission-full-access.js",
     "web-integration/session-interaction.js",
     "welcome-notice-patch.json",
-    "workspace-directory-policy-patch.json"
+    "workspace-directory-policy-patch.json",
+    "external-tool-proof.json"
   ],
   "packagedTrees": [
     "app-integration",

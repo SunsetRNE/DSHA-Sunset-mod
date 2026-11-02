@@ -3099,6 +3099,17 @@
       "timeoutSeconds": 60,
       "environment": {},
       "reason": "ScreenSense 离线评估：固定合成样本可复现、与 Java 真实 codec 共享 golden 摘要、字符回归上限与 tokenizer 固定摘要；不读真机屏幕。"
+    },
+    {
+      "path": "tools/test-external-tools.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "External-device adb/fastboot/loader proof must be generated from the pinned Ubuntu package lock; tampered lock fields are rejected."
     }
   ]
 }

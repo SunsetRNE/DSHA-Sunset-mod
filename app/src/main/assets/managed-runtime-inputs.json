@@ -541,7 +541,8 @@
     "conversation-large-image-file-patch.json",
     "file-deliverables-patch.json",
     "file-image-actions-patch.json",
-    "plugin-pnpm-argv-patch.json"
+    "plugin-pnpm-argv-patch.json",
+    "external-tool-proof.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -755,7 +756,12 @@
     "util/LanPortPolicy.java",
     "core/StartupPreparationTiming.java",
     "util/WebSessionStorage.java",
-    "util/WebSessionDiagnostics.java"
+    "util/WebSessionDiagnostics.java",
+    "util/ExternalToolPolicy.java",
+    "util/ExternalDevicePolicy.java",
+    "util/ExternalInstallPlan.java",
+    "util/ExternalStepOutput.java",
+    "util/ExternalImportQuota.java"
   ],
   "generatorSources": [
     "tools/mobile-server/compress.js",

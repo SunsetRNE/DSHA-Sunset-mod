@@ -300,6 +300,14 @@ def prepareBackupAssets = tasks.register("prepareBackupAssets", Exec) {
     commandLine(System.getenv("DSHA_PYTHON") ?: "python3", "-B", rootProject.file("tools/prepare-backup-assets.py").absolutePath, "--check")
 }
 prepareStandardAssets.configure { dependsOn(prepareBackupAssets) }
+def verifyExternalToolProof = tasks.register("verifyExternalToolProof", Exec) {
+    // 外接设备 root 执行的 adb/fastboot/加载器摘要必须由固定锁生成，不能手工改证明。
+    inputs.file(rootProject.file("tools/prepare-external-tools.py"))
+    inputs.file(rootProject.file("tools/external-tools/lock.json"))
+    inputs.file(file("src/main/assets/external-tool-proof.json"))
+    commandLine(System.getenv("DSHA_PYTHON") ?: "python3", "-B", rootProject.file("tools/prepare-external-tools.py").absolutePath, "--check")
+}
+prepareStandardAssets.configure { dependsOn(verifyExternalToolProof) }
 def runtimeInputContractFile = file("src/main/assets/managed-runtime-inputs.json")
 def runtimeInputContract = new groovy.json.JsonSlurper().parse(runtimeInputContractFile)
 if (runtimeInputContract.schema != 1) throw new GradleException("未知受管运行时输入契约")

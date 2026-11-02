@@ -23,6 +23,12 @@ public final class BridgeRoutesTest {
     assertEquals(BridgeRoutes.Route.ENTRY_TARGET, BridgeRoutes.match("/app/entry-target"));
     assertEquals(BridgeRoutes.Route.NET, BridgeRoutes.match("/app/net"));
     assertEquals(BridgeRoutes.Route.NET_RESOLVE, BridgeRoutes.match("/app/net/resolve"));
+    assertEquals(BridgeRoutes.Route.EXTDEV_STATUS, BridgeRoutes.match("/app/extdev/status"));
+    assertEquals(BridgeRoutes.Route.EXTDEV_DISCOVER, BridgeRoutes.match("/app/extdev/discover"));
+    assertEquals(BridgeRoutes.Route.EXTDEV_INSPECT, BridgeRoutes.match("/app/extdev/inspect"));
+    assertEquals(BridgeRoutes.Route.EXTDEV_OPERATE, BridgeRoutes.match("/app/extdev/operate"));
+    assertEquals(BridgeRoutes.Route.EXTDEV_PREFLIGHT, BridgeRoutes.match("/app/extdev/preflight"));
+    assertEquals(BridgeRoutes.Route.EXTDEV_IMPORT, BridgeRoutes.match("/app/extdev/import"));
     for (String invalid :
         new String[] {
           "/app/readfile/secret",

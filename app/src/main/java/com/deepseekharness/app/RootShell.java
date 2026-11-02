@@ -102,6 +102,8 @@ public final class RootShell {
     if (!enabled(ctx))
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
+    String hostBlocked = com.deepseekharness.app.util.HostDeviceCommandGuard.rejection(command);
+    if (hostBlocked != null) return hostBlocked + "\n[EXIT=126]";
     DeviceShellPolicy.Mode mode =
         new com.deepseekharness.app.core.ConfigStore(ctx).rootPolicyMode();
     DeviceShellPolicy.Plan plan = DeviceShellPolicy.inspect(command, mode);
@@ -170,6 +172,248 @@ public final class RootShell {
         "root",
         runPrivileged(ctx, command, -1, "virtual-screen-start"),
         com.deepseekharness.app.device.DeviceTransportIdentity.unknown());
+  }
+
+  /**
+   * Typed external-device execution. This is deliberately separate from exec(): it accepts an
+   * argv array only, never a shell string, and is callable only through the dedicated root helper.
+   */
+  public static String execExternal(
+      Context ctx,
+      java.util.List<String> argv,
+      java.util.Map<String, String> environment,
+      long timeoutMs) {
+    return execExternal(ctx, argv, environment, timeoutMs, null);
+  }
+
+  public static String execExternal(
+      Context ctx,
+      java.util.List<String> argv,
+      java.util.Map<String, String> environment,
+      long timeoutMs,
+      String expectedRoot) {
+    if (!enabled(ctx))
+      return com.deepseekharness.app.util.UiText.text(
+          "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
+    if (executable() == null)
+      return com.deepseekharness.app.util.UiText.text("[ROOT_UNAVAILABLE] 未找到 su\n[EXIT=124]");
+    if (argv == null || argv.isEmpty() || argv.size() > 32 || timeoutMs <= 0 || timeoutMs > 900_000)
+      return com.deepseekharness.app.util.UiText.text("[POLICY_BLOCKED] 外接命令参数无效\n[EXIT=126]");
+    String externalPolicy =
+        expectedRoot == null
+            ? "EXTERNAL_ROOT_REQUIRED"
+            : com.deepseekharness.app.util.ExternalToolPolicy.rejection(argv, expectedRoot);
+    if (externalPolicy != null) return "[POLICY_BLOCKED] " + externalPolicy + "\n[EXIT=126]";
+    try {
+      org.json.JSONArray values = new org.json.JSONArray();
+      for (String value : argv) {
+        if (value == null || value.isEmpty() || value.length() > 4096 || value.indexOf('\0') >= 0)
+          return com.deepseekharness.app.util.UiText.text("[POLICY_BLOCKED] 外接命令参数无效\n[EXIT=126]");
+        values.put(value);
+      }
+      org.json.JSONObject env = new org.json.JSONObject();
+      if (environment != null) {
+        if (environment.size() > 32) return "[POLICY_BLOCKED] 外接环境变量过多\n[EXIT=126]";
+        for (var entry : environment.entrySet()) {
+          String key = entry.getKey(), value = entry.getValue();
+          if (key == null
+              || !key.matches("[A-Z_][A-Z0-9_]{0,63}")
+              || value == null
+              || value.length() > 4096
+              || value.indexOf('\0') >= 0) return "[POLICY_BLOCKED] 外接环境变量无效\n[EXIT=126]";
+          env.put(key, value);
+        }
+      }
+      org.json.JSONObject request =
+          new org.json.JSONObject()
+              .put("operation", "external-argv")
+              .put("argv", values)
+              .put("environment", env)
+              .put("timeoutMs", timeoutMs)
+              .put("expectedRoot", expectedRoot)
+              .put("selfPackage", ctx.getPackageName())
+              .put("selfUid", ctx.getApplicationInfo().uid);
+      return runPrivilegedExternal(ctx, request, timeoutMs);
+    } catch (Exception error) {
+      return "[EXECUTION_UNKNOWN] " + SensitiveData.redact(String.valueOf(error)) + "\n[EXIT=125]";
+    }
+  }
+
+  /** Runs one owned local-only ADB server and client inside the same root helper process. */
+  public static String execExternalAdbSession(
+      Context ctx,
+      java.util.List<String> serverArgv,
+      java.util.List<String> clientArgv,
+      java.util.Map<String, String> environment,
+      long timeoutMs,
+      String expectedRoot) {
+    if (!enabled(ctx))
+      return com.deepseekharness.app.util.UiText.text(
+          "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
+    if (executable() == null)
+      return com.deepseekharness.app.util.UiText.text("[ROOT_UNAVAILABLE] 未找到 su\n[EXIT=124]");
+    if (timeoutMs <= 0 || timeoutMs > 900_000 || expectedRoot == null)
+      return "[POLICY_BLOCKED] 外接 ADB 会话参数无效\n[EXIT=126]";
+    String serverPolicy =
+        com.deepseekharness.app.util.ExternalToolPolicy.rejectionAdbServer(
+            serverArgv, expectedRoot);
+    String clientPolicy =
+        com.deepseekharness.app.util.ExternalToolPolicy.rejection(clientArgv, expectedRoot);
+    if (serverPolicy != null || clientPolicy != null)
+      return "[POLICY_BLOCKED] "
+          + (serverPolicy != null ? serverPolicy : clientPolicy)
+          + "\n[EXIT=126]";
+    try {
+      org.json.JSONArray serverValues = new org.json.JSONArray();
+      org.json.JSONArray clientValues = new org.json.JSONArray();
+      for (String value : serverArgv) serverValues.put(value);
+      for (String value : clientArgv) clientValues.put(value);
+      org.json.JSONObject env = new org.json.JSONObject();
+      if (environment == null || environment.size() > 32)
+        return "[POLICY_BLOCKED] 外接环境变量无效\n[EXIT=126]";
+      for (var entry : environment.entrySet()) {
+        String key = entry.getKey(), value = entry.getValue();
+        if (key == null
+            || !key.matches("[A-Z_][A-Z0-9_]{0,63}")
+            || value == null
+            || value.length() > 4096
+            || value.indexOf('\0') >= 0) return "[POLICY_BLOCKED] 外接环境变量无效\n[EXIT=126]";
+        env.put(key, value);
+      }
+      org.json.JSONObject request =
+          new org.json.JSONObject()
+              .put("operation", "external-adb-session")
+              .put("serverArgv", serverValues)
+              .put("argv", clientValues)
+              .put("environment", env)
+              .put("timeoutMs", timeoutMs)
+              .put("expectedRoot", expectedRoot)
+              .put("selfPackage", ctx.getPackageName())
+              .put("selfUid", ctx.getApplicationInfo().uid);
+      // server 就绪等待最多 15 秒，再加客户端期限与 su 启动余量。
+      return runPrivilegedExternal(ctx, request, timeoutMs + 25_000);
+    } catch (Exception error) {
+      return "[EXECUTION_UNKNOWN] " + SensitiveData.redact(String.valueOf(error)) + "\n[EXIT=125]";
+    }
+  }
+
+  /**
+   * 同一专属 server 内顺序执行多步客户端命令；每步都在 App 侧和 root helper 内各按 {@link
+   * com.deepseekharness.app.util.ExternalToolPolicy} 核验一次。输出格式见 {@link
+   * com.deepseekharness.app.util.ExternalStepOutput}。
+   */
+  public static String execExternalAdbSteps(
+      Context ctx,
+      java.util.List<String> serverArgv,
+      java.util.List<java.util.List<String>> steps,
+      java.util.Map<String, String> environment,
+      long timeoutMs,
+      String expectedRoot,
+      String importRoot,
+      String nonce,
+      boolean continueOnFailure) {
+    if (!enabled(ctx))
+      return com.deepseekharness.app.util.UiText.text(
+          "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
+    if (executable() == null)
+      return com.deepseekharness.app.util.UiText.text("[ROOT_UNAVAILABLE] 未找到 su\n[EXIT=124]");
+    if (timeoutMs <= 0
+        || timeoutMs > 900_000
+        || expectedRoot == null
+        || steps == null
+        || steps.isEmpty()
+        || steps.size() > 64
+        || !com.deepseekharness.app.util.ExternalStepOutput.validNonce(nonce))
+      return "[POLICY_BLOCKED] 外接 ADB 会话参数无效\n[EXIT=126]";
+    String serverPolicy =
+        com.deepseekharness.app.util.ExternalToolPolicy.rejectionAdbServer(
+            serverArgv, expectedRoot);
+    if (serverPolicy != null) return "[POLICY_BLOCKED] " + serverPolicy + "\n[EXIT=126]";
+    try {
+      org.json.JSONArray stepValues = new org.json.JSONArray();
+      for (int i = 0; i < steps.size(); i++) {
+        String policy =
+            com.deepseekharness.app.util.ExternalToolPolicy.rejection(
+                steps.get(i), expectedRoot, importRoot);
+        if (policy != null) return "[POLICY_BLOCKED] " + policy + " @step " + i + "\n[EXIT=126]";
+        stepValues.put(new org.json.JSONArray(steps.get(i)));
+      }
+      org.json.JSONObject env = new org.json.JSONObject();
+      if (environment == null || environment.size() > 32)
+        return "[POLICY_BLOCKED] 外接环境变量无效\n[EXIT=126]";
+      for (var entry : environment.entrySet()) {
+        String key = entry.getKey(), value = entry.getValue();
+        if (key == null
+            || !key.matches("[A-Z_][A-Z0-9_]{0,63}")
+            || value == null
+            || value.length() > 4096
+            || value.indexOf('\0') >= 0) return "[POLICY_BLOCKED] 外接环境变量无效\n[EXIT=126]";
+        env.put(key, value);
+      }
+      org.json.JSONObject request =
+          new org.json.JSONObject()
+              .put("operation", "external-adb-steps")
+              .put("serverArgv", new org.json.JSONArray(serverArgv))
+              .put("steps", stepValues)
+              .put("environment", env)
+              .put("timeoutMs", timeoutMs)
+              .put("expectedRoot", expectedRoot)
+              .put("importRoot", importRoot == null ? "" : importRoot)
+              .put("nonce", nonce)
+              .put("continueOnFailure", continueOnFailure)
+              .put("selfPackage", ctx.getPackageName())
+              .put("selfUid", ctx.getApplicationInfo().uid);
+      return runPrivilegedExternal(ctx, request, timeoutMs + 25_000);
+    } catch (Exception error) {
+      return "[EXECUTION_UNKNOWN] " + SensitiveData.redact(String.valueOf(error)) + "\n[EXIT=125]";
+    }
+  }
+
+  private static String runPrivilegedExternal(
+      Context ctx, org.json.JSONObject request, long timeoutMs) {
+    String su = executable();
+    if (su == null) return "[ROOT_UNAVAILABLE] 未找到 su\n[EXIT=124]";
+    Process process = null;
+    try {
+      String entry =
+          "CLASSPATH="
+              + ShellQuote.arg(ctx.getApplicationInfo().sourceDir)
+              + " /system/bin/app_process /system/bin "
+              + RootShellMain.class.getName();
+      process = new ProcessBuilder(su, "-c", entry).redirectErrorStream(true).start();
+      try (java.io.OutputStream input = process.getOutputStream()) {
+        input.write(request.toString().getBytes(StandardCharsets.UTF_8));
+      }
+      BoundedProcessRunner.Result result =
+          BoundedProcessRunner.collect(process, timeoutMs, 768 * 1024, Compat::destroy);
+      int marker = result.output.lastIndexOf(RootShellMain.RESULT);
+      if (!result.timedOut && !result.truncated && marker >= 0) {
+        String encoded = result.output.substring(marker + RootShellMain.RESULT.length()).trim();
+        return new String(Base64.decode(encoded, Base64.DEFAULT), StandardCharsets.UTF_8);
+      }
+      return "[EXECUTION_UNKNOWN] 外接 root 进程未返回完整结果，不会自动重试\n[EXIT=125]";
+    } catch (InterruptedException error) {
+      Thread.currentThread().interrupt();
+      return "[EXECUTION_UNKNOWN] 外接 root 请求已中断，不会自动重试\n[EXIT=125]";
+    } catch (Throwable error) {
+      return "[EXECUTION_UNKNOWN] " + SensitiveData.redact(String.valueOf(error)) + "\n[EXIT=125]";
+    } finally {
+      if (process != null) {
+        try {
+          process.exitValue();
+        } catch (IllegalThreadStateException running) {
+          Compat.destroy(process);
+        }
+        try {
+          process.getOutputStream().close();
+        } catch (java.io.IOException ignored) {
+        }
+        try {
+          process.getInputStream().close();
+        } catch (java.io.IOException ignored) {
+        }
+      }
+    }
   }
 
   private static String runPrivileged(

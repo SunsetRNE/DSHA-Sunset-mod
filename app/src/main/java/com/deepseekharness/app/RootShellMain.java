@@ -24,19 +24,27 @@ public final class RootShellMain {
       }
       org.json.JSONObject request =
           new org.json.JSONObject(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
-      String command = request.getString("command");
-      if (command.getBytes(StandardCharsets.UTF_8).length
-          > com.deepseekharness.app.util.DeviceShellPolicy.MAX_SHELL_COMMAND)
+      String command = request.optString("command", "");
+      if (!command.isEmpty()
+          && command.getBytes(StandardCharsets.UTF_8).length
+              > com.deepseekharness.app.util.DeviceShellPolicy.MAX_SHELL_COMMAND)
         throw new IllegalArgumentException("设备命令超过上限");
       int smsUser = request.optInt("smsUser", -1);
       String operation = request.optString("operation", "");
+      boolean externalArgv = operation.equals("external-argv");
+      boolean externalAdbSession = operation.equals("external-adb-session");
+      boolean externalAdbSteps = operation.equals("external-adb-steps");
       boolean rawShell = operation.equals("root-unrestricted");
       boolean identityRequired =
-          smsUser >= 0
+          externalArgv
+              || externalAdbSession
+              || externalAdbSteps
+              || smsUser >= 0
               || operation.equals("virtual-screen-start")
               || rawShell
-              || com.deepseekharness.app.util.DeviceShellPolicy.inspect(command).kind
-                  == com.deepseekharness.app.util.DeviceShellPolicy.Kind.STOP;
+              || !command.isEmpty()
+                  && com.deepseekharness.app.util.DeviceShellPolicy.inspect(command).kind
+                      == com.deepseekharness.app.util.DeviceShellPolicy.Kind.STOP;
       ShellService shell;
       if (request.has("selfPackage") || request.has("selfUid"))
         shell =
@@ -47,7 +55,98 @@ public final class RootShellMain {
       else
         shell =
             new ShellService(); // Historical ordinary reads do not require a guessed app identity.
-      if (operation.equals("virtual-screen-start")) output = shell.execVirtualScreen(command);
+      if (externalAdbSteps) {
+        if (android.os.Process.myUid() != 0) throw new SecurityException("外接命令需要 root");
+        String expectedRoot = request.optString("expectedRoot", "");
+        String importRoot = request.optString("importRoot", "");
+        java.util.List<String> serverArgv = stringList(request.getJSONArray("serverArgv"));
+        String serverPolicy =
+            com.deepseekharness.app.util.ExternalToolPolicy.rejectionAdbServer(
+                serverArgv, expectedRoot);
+        if (serverPolicy != null) throw new SecurityException(serverPolicy);
+        org.json.JSONArray rawSteps = request.getJSONArray("steps");
+        if (rawSteps.length() == 0 || rawSteps.length() > 64)
+          throw new IllegalArgumentException("外接步骤数量无效");
+        java.util.List<java.util.List<String>> steps = new java.util.ArrayList<>();
+        for (int i = 0; i < rawSteps.length(); i++) {
+          java.util.List<String> step = stringList(rawSteps.getJSONArray(i));
+          String policy =
+              com.deepseekharness.app.util.ExternalToolPolicy.rejection(
+                  step, expectedRoot, importRoot.isEmpty() ? null : importRoot);
+          if (policy != null) throw new SecurityException(policy + " @step " + i);
+          steps.add(step);
+        }
+        long timeout = request.optLong("timeoutMs", 120_000L);
+        if (timeout <= 0 || timeout > 900_000L) throw new IllegalArgumentException("外接期限无效");
+        org.json.JSONObject envObject = request.optJSONObject("environment");
+        java.util.Map<String, String> environment = new java.util.LinkedHashMap<>();
+        if (envObject != null) {
+          java.util.Iterator<String> keys = envObject.keys();
+          while (keys.hasNext()) {
+            String key = keys.next(), value = envObject.getString(key);
+            if (!key.matches("[A-Z_][A-Z0-9_]{0,63}")
+                || value.length() > 4096
+                || value.indexOf('\0') >= 0) throw new IllegalArgumentException("外接环境变量无效");
+            environment.put(key, value);
+          }
+        }
+        output =
+            shell.execExternalAdbSteps(
+                serverArgv,
+                steps,
+                environment,
+                timeout,
+                request.optString("nonce", ""),
+                request.optBoolean("continueOnFailure", false));
+      } else if (externalArgv || externalAdbSession) {
+        if (android.os.Process.myUid() != 0) throw new SecurityException("外接命令需要 root");
+        org.json.JSONArray values = request.getJSONArray("argv");
+        if (values.length() == 0 || values.length() > 32)
+          throw new IllegalArgumentException("外接参数过多");
+        java.util.List<String> argv = new java.util.ArrayList<>();
+        for (int i = 0; i < values.length(); i++) {
+          String value = values.getString(i);
+          if (value.isEmpty() || value.length() > 4096 || value.indexOf('\0') >= 0)
+            throw new IllegalArgumentException("外接参数无效");
+          argv.add(value);
+        }
+        org.json.JSONObject envObject = request.optJSONObject("environment");
+        java.util.Map<String, String> environment = new java.util.LinkedHashMap<>();
+        if (envObject != null) {
+          java.util.Iterator<String> keys = envObject.keys();
+          while (keys.hasNext()) {
+            String key = keys.next(), value = envObject.getString(key);
+            if (!key.matches("[A-Z_][A-Z0-9_]{0,63}")
+                || value.length() > 4096
+                || value.indexOf('\0') >= 0) throw new IllegalArgumentException("外接环境变量无效");
+            environment.put(key, value);
+          }
+        }
+        long timeout = request.optLong("timeoutMs", 120_000L);
+        if (timeout <= 0 || timeout > 900_000L) throw new IllegalArgumentException("外接期限无效");
+        String expectedRoot = request.optString("expectedRoot", "");
+        String policy =
+            com.deepseekharness.app.util.ExternalToolPolicy.rejection(argv, expectedRoot);
+        if (policy != null) throw new SecurityException(policy);
+        if (externalAdbSession) {
+          org.json.JSONArray serverValues = request.getJSONArray("serverArgv");
+          if (serverValues.length() == 0 || serverValues.length() > 32)
+            throw new IllegalArgumentException("外接 ADB server 参数无效");
+          java.util.List<String> serverArgv = new java.util.ArrayList<>();
+          for (int i = 0; i < serverValues.length(); i++) {
+            String value = serverValues.getString(i);
+            if (value.isEmpty() || value.length() > 4096 || value.indexOf('\0') >= 0)
+              throw new IllegalArgumentException("外接 ADB server 参数无效");
+            serverArgv.add(value);
+          }
+          String serverPolicy =
+              com.deepseekharness.app.util.ExternalToolPolicy.rejectionAdbServer(
+                  serverArgv, expectedRoot);
+          if (serverPolicy != null) throw new SecurityException(serverPolicy);
+          output = shell.execExternalAdbSession(serverArgv, argv, environment, timeout);
+        } else output = shell.execExternal(argv, environment, timeout);
+      } else if (operation.equals("virtual-screen-start"))
+        output = shell.execVirtualScreen(command);
       else if (rawShell) output = shell.execUnrestricted(command);
       else if (operation.isEmpty())
         output = smsUser < 0 ? shell.exec(command) : shell.execAuthorizedSms(command, smsUser);
@@ -59,5 +158,20 @@ public final class RootShellMain {
         RESULT + Base64.encodeToString(output.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP));
     System.out.flush();
     System.exit(0);
+  }
+
+  /** JSON 字符串数组 → argv；空串、NUL、过长或超过 32 项一律拒绝。 */
+  private static java.util.List<String> stringList(org.json.JSONArray values)
+      throws org.json.JSONException {
+    if (values.length() == 0 || values.length() > 32)
+      throw new IllegalArgumentException("外接参数数量无效");
+    java.util.List<String> out = new java.util.ArrayList<>();
+    for (int i = 0; i < values.length(); i++) {
+      String value = values.getString(i);
+      if (value.isEmpty() || value.length() > 4096 || value.indexOf('\0') >= 0)
+        throw new IllegalArgumentException("外接参数无效");
+      out.add(value);
+    }
+    return out;
   }
 }

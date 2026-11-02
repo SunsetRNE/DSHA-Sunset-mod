@@ -255,6 +255,16 @@ public final class HttpShellService {
         (s, r) ->
             s.deviceExecute(
                 r.command, "1".equals(r.param("su", "0")), "1".equals(r.param("adb", "0"))));
+    routes.put(BridgeRoutes.Route.EXTDEV_STATUS, (s, r) -> s.externalDeviceStatus());
+    routes.put(BridgeRoutes.Route.EXTDEV_DISCOVER, (s, r) -> s.externalDeviceDiscover());
+    routes.put(
+        BridgeRoutes.Route.EXTDEV_INSPECT,
+        (s, r) -> s.externalDeviceInspect(r.param("serial", "")));
+    routes.put(BridgeRoutes.Route.EXTDEV_BIND, (s, r) -> s.externalDeviceBind(r));
+    routes.put(BridgeRoutes.Route.EXTDEV_OPERATE, (s, r) -> s.externalDeviceOperate(r));
+    routes.put(BridgeRoutes.Route.EXTDEV_PREFLIGHT, (s, r) -> s.externalDevicePreflight(r));
+    routes.put(BridgeRoutes.Route.EXTDEV_IMPORT, (s, r) -> s.externalDeviceImport(r));
+    routes.put(BridgeRoutes.Route.EXTDEV_FORGET, (s, r) -> s.externalDeviceForget());
     routes.put(BridgeRoutes.Route.CONSENT_POLICY, (s, r) -> s.consentPolicy(r.scope));
     routes.put(BridgeRoutes.Route.NOTIFY, (s, r) -> s.appNotify(r.path));
     routes.put(
@@ -1053,6 +1063,8 @@ public final class HttpShellService {
   /** 在发送命令前选一次通道；只有明确返回 ADB 计划时客户端才可连接 ADB。 */
   private String deviceExecute(String command, boolean forceRoot, boolean forceAdb) {
     try {
+      String blockedHost = com.deepseekharness.app.util.HostDeviceCommandGuard.rejection(command);
+      if (blockedHost != null) return completedExecution("policy", blockedHost + "\n[EXIT=126]");
       String planned = devicePlan(command, forceRoot);
       if (!planned.startsWith("{")) return completedExecution("policy", planned + "\n[EXIT=126]");
       org.json.JSONObject plan = new org.json.JSONObject(planned);
@@ -1154,6 +1166,14 @@ public final class HttpShellService {
   /** ADB 每次发送前向原生策略取计划；计划只包含已验证 argv 或显式 root 原始命令。 */
   private String devicePlan(String command, boolean root) {
     try {
+      String blockedHost = com.deepseekharness.app.util.HostDeviceCommandGuard.rejection(command);
+      if (blockedHost != null)
+        return new org.json.JSONObject()
+            .put("version", 1)
+            .put("kind", "DENY")
+            .put("reason", blockedHost)
+            .put("argv", new org.json.JSONArray())
+            .toString();
       com.deepseekharness.app.util.DeviceShellPolicy.Mode mode =
           new com.deepseekharness.app.core.ConfigStore(ctx).rootPolicyMode();
       // 放宽档只对真实可用的 root 通道生效；Shizuku/ADB 通用执行器继续按严格档取计划。
@@ -2343,6 +2363,153 @@ public final class HttpShellService {
       return bytes.toString("UTF-8");
     } catch (Throwable e) {
       return "ERROR: " + safeError(e);
+    }
+  }
+
+  // ================= 外接设备（独立授权、独立目标、结构化操作） =================
+
+  private com.deepseekharness.app.extdev.ExternalDeviceHost externalDeviceHost() {
+    return new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx);
+  }
+
+  private String externalDeviceStatus() {
+    try {
+      return externalDeviceHost().status().toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  private String externalDeviceDiscover() {
+    try {
+      return externalDeviceHost().discover().toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  private String externalDeviceInspect(String serial) {
+    try {
+      return externalDeviceHost().inspectTarget(serial).toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  private String externalDeviceBind(BridgeRequest request) {
+    String serial = request.param("serial", "");
+    String product = request.param("product", "");
+    String fingerprint = request.param("fingerprint", "");
+    String epoch = request.param("epoch", "");
+    try {
+      long value = Long.parseLong(epoch);
+      String summary =
+          "绑定外接目标 "
+              + serial
+              + " / "
+              + product
+              + " / 指纹 "
+              + (fingerprint.length() > 16 ? fingerprint.substring(0, 16) : fingerprint);
+      if (!requestUserConfirm(summary))
+        return "{\"state\":\"NOT_SENT\",\"error\":\"CONFIRMATION_REQUIRED\"}";
+      org.json.JSONObject candidate =
+          new org.json.JSONObject()
+              .put("serial", serial)
+              .put("product", product)
+              .put("fingerprint", fingerprint)
+              .put("epoch", value);
+      return externalDeviceHost().bind(candidate)
+          ? "{\"state\":\"BOUND\"}"
+          : "{\"state\":\"NOT_BOUND\"}";
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  private String externalDeviceOperate(BridgeRequest request) {
+    String operation = request.param("operation", "");
+    String partition = request.param("partition", "");
+    String value = request.param("value", "");
+    try {
+      var plan =
+          com.deepseekharness.app.util.ExternalDevicePolicy.plan(operation, partition, value);
+      if (!plan.allowed())
+        return "{\"state\":\"BLOCKED\",\"error\":\"" + jsonEscape(plan.reason) + "\"}";
+      if (plan.risk == com.deepseekharness.app.util.ExternalDevicePolicy.Risk.L3)
+        return "{\"state\":\"BLOCKED\",\"error\":\"L3 操作未开放\"}";
+      if (plan.operation == com.deepseekharness.app.util.ExternalDevicePolicy.Operation.INSTALL)
+        return externalDeviceInstall(value);
+      if (plan.risk != com.deepseekharness.app.util.ExternalDevicePolicy.Risk.L0) {
+        String summary =
+            com.deepseekharness.app.util.ExternalDevicePolicy.summary(
+                plan,
+                externalDeviceHost().binding() == null ? "" : externalDeviceHost().binding().serial,
+                "",
+                "",
+                0);
+        if (!requestUserConfirm(summary))
+          return "{\"state\":\"NOT_SENT\",\"error\":\"CONFIRMATION_REQUIRED\"}";
+      }
+      return externalDeviceHost().operate(operation, partition, value, true).toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  /**
+   * 安装专用确认：先只读描述（种类、风险级、SHA-256、大小、目标与代次），确认框显示这些值；确认后 install()
+   * 按同一摘要与代次复核，文件或目标在确认后变化即拒绝。每次安装都确认，没有「本任务内不再询问」。
+   */
+  private String externalDeviceInstall(String importName) {
+    try {
+      org.json.JSONObject info = externalDeviceHost().describeInstall(importName);
+      String summary =
+          String.format(
+              java.util.Locale.ROOT,
+              "外接目标 %s（%s%s）：安装 %s（%s，%s）\nSHA-256 %s\n%d bytes%s",
+              info.getString("serial"),
+              info.getString("product"),
+              info.getBoolean("wireless") ? "，无线" : "，USB",
+              info.getString("name"),
+              info.getString("kind"),
+              info.getString("level"),
+              info.getString("sha256"),
+              info.getLong("size"),
+              "L2".equals(info.getString("level")) ? "\n模块在开机早期执行，坏模块可能导致目标无法开机" : "");
+      if (!requestUserConfirm(summary))
+        return "{\"state\":\"NOT_SENT\",\"error\":\"CONFIRMATION_REQUIRED\"}";
+      return externalDeviceHost()
+          .install(importName, info.getString("sha256"), info.getLong("epoch"))
+          .toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  private String externalDevicePreflight(BridgeRequest request) {
+    try {
+      java.io.File image = externalDeviceHost().importedFile(request.param("file", ""));
+      return externalDeviceHost().preflight(request.param("partition", ""), image).toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  private String externalDeviceImport(BridgeRequest request) {
+    try {
+      return externalDeviceHost().importImage(request.param("path", "")).toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  private String externalDeviceForget() {
+    try {
+      return externalDeviceHost().forgetTarget()
+          ? "{\"state\":\"FORGOTTEN\"}"
+          : "{\"state\":\"ERROR\"}";
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
     }
   }
 

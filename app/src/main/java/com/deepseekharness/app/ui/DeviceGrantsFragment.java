@@ -44,6 +44,8 @@ public final class DeviceGrantsFragment extends Fragment {
   private TextView[] pillTitles, pillValues;
   private View[] pills;
   private int columns = 1;
+  private MaterialSwitch externalDevice;
+  private TextView externalDeviceStatus;
   private boolean updating;
   private int adbStatusRequest;
   private FullPermissionControls fullPermissions;
@@ -99,6 +101,7 @@ public final class DeviceGrantsFragment extends Fragment {
     android.widget.Button resetup = view.findViewById(R.id.screen_resetup);
     resetup.setText(com.deepseekharness.app.util.UiText.choose("重新设置", "Set up again"));
     resetup.setOnClickListener(setup);
+    addExternalDeviceControls(ctx, view);
     addScreenPolicyControls(ctx, view);
     // 虚拟屏是另一项能力：单独一行，点进虚拟屏页（页内有创建与使用说明）。
     if (com.deepseekharness.app.vscreen.VirtualScreenManager.supported(ctx)) {
@@ -269,6 +272,110 @@ public final class DeviceGrantsFragment extends Fragment {
     adaptColumns(view);
     refreshSummary();
     return view;
+  }
+
+  /** 独立外接目标能力：默认关闭、不继承本机 ADB/全局授权，首版只开放 USB root 调试与只读预检。 */
+  private void addExternalDeviceControls(Context ctx, View page) {
+    // 外接设备属于设备通道：追加到「通道」分组末尾，随分组在单栏 / 双栏间整体移动。
+    android.widget.LinearLayout root = page.findViewById(R.id.grants_section_channels);
+    android.widget.LinearLayout card = new android.widget.LinearLayout(ctx);
+    card.setOrientation(android.widget.LinearLayout.VERTICAL);
+    card.setPadding(dp(16), dp(14), dp(16), dp(14));
+    card.setBackgroundResource(R.drawable.bg_shell_status);
+    TextView title = new TextView(ctx);
+    title.setText(
+        com.deepseekharness.app.util.UiText.choose("外接设备（实验性）", "External device (experimental)"));
+    title.setTextSize(16);
+    title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+    title.setTextColor(ctx.getColor(R.color.shell_text));
+    card.addView(title);
+    TextView hint = new TextView(ctx);
+    hint.setText(
+        com.deepseekharness.app.util.UiText.choose(
+            "实验性，未经真机验收。独立授权另一台手机（USB 或无线调试），绑定后可受控调试、重启和确认后安装；刷机只做只读预检，不执行刷写。",
+            "Experimental, not yet device-verified. Authorize another phone (USB or wireless debugging); once bound it allows controlled debugging, reboot and confirmed installs. Flashing is read-only preflight only."));
+    hint.setTextSize(12);
+    hint.setTextColor(ctx.getColor(R.color.shell_text_secondary));
+    hint.setPadding(0, dp(6), 0, dp(8));
+    card.addView(hint);
+    externalDevice = new MaterialSwitch(ctx);
+    externalDevice.setText(
+        com.deepseekharness.app.util.UiText.choose("允许外接设备能力", "Allow external-device access"));
+    externalDevice.setChecked(new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).enabled());
+    card.addView(externalDevice);
+    externalDeviceStatus = new TextView(ctx);
+    externalDeviceStatus.setTextSize(12);
+    externalDeviceStatus.setTextColor(ctx.getColor(R.color.shell_text_secondary));
+    externalDeviceStatus.setPadding(0, dp(6), 0, 0);
+    card.addView(externalDeviceStatus);
+    externalDevice.setOnCheckedChangeListener(
+        (button, enabled) -> {
+          if (updating) return;
+          if (!enabled) {
+            new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).setEnabled(false);
+            refreshExternalDeviceStatus();
+            return;
+          }
+          new DshaDialogBuilder(ctx)
+              .setTitle(com.deepseekharness.app.util.UiText.text("开启外接设备能力？"))
+              .setMessage(
+                  com.deepseekharness.app.util.UiText.choose(
+                      "实验性功能。这会允许 DSHA 通过已授权的 root 访问 USB 或无线调试目标。它不会开启本机刷机，也不会自动授权或刷写另一台手机。",
+                      "Experimental. This allows DSHA to access a USB or wireless-debugging target through authorized root. It does not enable host flashing or automatically authorize or flash the target."))
+              .setPositiveButton(
+                  com.deepseekharness.app.util.UiText.choose("开启", "Enable"),
+                  (dialog, which) -> {
+                    new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).setEnabled(true);
+                    refreshExternalDeviceStatus();
+                  })
+              .setNegativeButton(
+                  com.deepseekharness.app.util.UiText.choose("取消", "Cancel"),
+                  (dialog, which) -> {
+                    updating = true;
+                    externalDevice.setChecked(false);
+                    updating = false;
+                  })
+              .show();
+        });
+    android.widget.LinearLayout.LayoutParams params =
+        new android.widget.LinearLayout.LayoutParams(-1, -2);
+    params.topMargin = dp(10);
+    root.addView(card, params);
+    refreshExternalDeviceStatus();
+  }
+
+  private void refreshExternalDeviceStatus() {
+    if (externalDeviceStatus == null || !isAdded()) return;
+    final Context ctx = requireContext().getApplicationContext();
+    new Thread(
+            () -> {
+              String text;
+              try {
+                org.json.JSONObject state =
+                    new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).status();
+                text =
+                    state.optBoolean("enabled", false)
+                        ? state.optBoolean("rootVerified", false)
+                            ? state.optBoolean("bound", false)
+                                ? com.deepseekharness.app.util.UiText.format(
+                                    "已开启 · 已绑定 %s · 刷机执行关闭", state.optString("serial", ""))
+                                : com.deepseekharness.app.util.UiText.text("已开启 · 尚未绑定目标 · 刷机执行关闭")
+                            : com.deepseekharness.app.util.UiText.text("已开启 · root 尚未验证 · 不会执行目标操作")
+                        : com.deepseekharness.app.util.UiText.text("已关闭 · 不读取或操作外接目标");
+              } catch (Throwable error) {
+                text =
+                    com.deepseekharness.app.util.UiText.format(
+                        "状态不可用：%s", error.getClass().getSimpleName());
+              }
+              final String displayText = text;
+              main.post(
+                  () -> {
+                    if (isAdded() && externalDeviceStatus != null)
+                      externalDeviceStatus.setText(displayText);
+                  });
+            },
+            "external-device-status")
+        .start();
   }
 
   private static final com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode[] SCREEN_MODES =
@@ -1437,6 +1544,7 @@ public final class DeviceGrantsFragment extends Fragment {
     main.removeCallbacks(refreshConnections);
     main.post(refreshConnections);
     View page = getView();
+    refreshExternalDeviceStatus();
     if (page != null) {
       refreshAllFilesStatus(page.findViewById(R.id.config_all_files_status));
       refreshA11yStatus(page.findViewById(R.id.config_a11y_status));
@@ -1467,6 +1575,8 @@ public final class DeviceGrantsFragment extends Fragment {
     pillDots = null;
     pillTitles = null;
     pillValues = null;
+    externalDevice = null;
+    externalDeviceStatus = null;
     super.onDestroyView();
   }
 

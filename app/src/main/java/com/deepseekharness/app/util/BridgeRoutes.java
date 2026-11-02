@@ -11,6 +11,14 @@ public final class BridgeRoutes {
     DEVICE_VSCREEN_COMMIT(false),
     DEVICE_PLAN(true),
     DEVICE_EXECUTE(true),
+    EXTDEV_STATUS(false),
+    EXTDEV_DISCOVER(false),
+    EXTDEV_INSPECT(false),
+    EXTDEV_BIND(false),
+    EXTDEV_OPERATE(false),
+    EXTDEV_PREFLIGHT(false),
+    EXTDEV_IMPORT(false),
+    EXTDEV_FORGET(false),
     NOTIFY(false),
     TASK_CONTEXT(false),
     TASK_EVENT(false),
@@ -68,6 +76,14 @@ public final class BridgeRoutes {
     add(routes, "/device/vscreen/commit", Route.DEVICE_VSCREEN_COMMIT);
     add(routes, "/device/plan", Route.DEVICE_PLAN);
     add(routes, "/device/execute", Route.DEVICE_EXECUTE);
+    add(routes, "/app/extdev/status", Route.EXTDEV_STATUS);
+    add(routes, "/app/extdev/discover", Route.EXTDEV_DISCOVER);
+    add(routes, "/app/extdev/inspect", Route.EXTDEV_INSPECT);
+    add(routes, "/app/extdev/bind", Route.EXTDEV_BIND);
+    add(routes, "/app/extdev/operate", Route.EXTDEV_OPERATE);
+    add(routes, "/app/extdev/preflight", Route.EXTDEV_PREFLIGHT);
+    add(routes, "/app/extdev/import", Route.EXTDEV_IMPORT);
+    add(routes, "/app/extdev/forget", Route.EXTDEV_FORGET);
     add(routes, "/app/notify", Route.NOTIFY);
     add(routes, "/app/tasks/context", Route.TASK_CONTEXT);
     add(routes, "/app/tasks/event", Route.TASK_EVENT);
