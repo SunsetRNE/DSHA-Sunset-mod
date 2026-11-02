@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build291 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build292 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build291 `0.2.1-rc.3-20261103.0700-dsh0.2.1-rc.5`.** Fixes one-tap backup failing with DATA_LOCATION_CHANGED by taking the location proof after writes stop. versionCode 291, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build291 notes](../releases/build291-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build292 `0.2.1-rc.3-20261103.0730-dsh0.2.1-rc.5`.** The island page's supported-devices entry no longer hides behind the floating capsule. versionCode 292, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build292 notes](../releases/build292-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

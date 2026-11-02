@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0730-dsh0.2.1-rc.5 / build292（上岛页「支持的设备」避开悬浮胶囊）
+
+- 上岛页「支持的设备」不再被手机悬浮胶囊遮挡：页底余量改用 `shell_page_bottom`（手机 90dp、平板 30dp）；入口从页底孤立按钮移入「当前状态」卡末行；说明弹窗改用 CardSheet，手机贴底并抬到胶囊上方，宽屏居中限宽。文案未改（分支 `ui/island-devices-inset` 7965b7ac，原基于 build282，用户已在测试包真机确认平板横屏页面与弹窗）。
+- 验证范围：发布会话在 build292 上复跑 `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 292（基于 build291）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build292 更新说明](docs/releases/build292-changes.zh.md)，验证记录见 [build292 记录](docs/releases/v0.2.1-rc.3-build292-island-devices-inset-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0700-dsh0.2.1-rc.5 / build291（一键备份位置证明改在停写之后记录）
 
 - 修复一键备份每次以 `DATA_LOCATION_CHANGED` 失败（一加 12 报告）：位置证明原先在停 Web 前记录，停 Web 会删除或原子重写 `.dsh` 顶层机器状态文件（`.bridge_port` / `.bridge_status`），导致同一链路必然失败。现在手动、自动与救援三条路径都在停写之后再定位；整项排除的机器状态不做位置核对，用户数据在定位后被替换仍失败关闭（分支 `fix/backup-location-proof`，原会话 session-42f01268 未提交，主会话按用户要求提交；新增 `NativeDataLocationsProofTest`）。

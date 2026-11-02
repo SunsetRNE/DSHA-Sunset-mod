@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0700-dsh0.2.1-rc.5` / build291 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes one-tap backup failing every time with a data-location change: the location proof is now taken after writes stop. Local targeted unit tests, Lint and source gates passed. See the [build291 notes](../releases/build291-changes.en.md) and the [build291 record](../releases/v0.2.1-rc.3-build291-backup-location-proof-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0730-dsh0.2.1-rc.5` / build292 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build keeps the island page's supported-devices entry clear of the phone's floating capsule, moves it into the status card and shows its explanation in a card sheet. Local targeted unit tests, Lint and source gates passed. See the [build292 notes](../releases/build292-changes.en.md) and the [build292 record](../releases/v0.2.1-rc.3-build292-island-devices-inset-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

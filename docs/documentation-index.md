@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.0700-dsh0.2.1-rc.5` / build291 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复一键备份每次报数据位置变化而失败的问题：位置证明改在停写之后记录。本机定向单测、Lint 与源码门禁通过。改动说明见 [build291 更新说明](releases/build291-changes.zh.md)，验证记录见 [build291 记录](releases/v0.2.1-rc.3-build291-backup-location-proof-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.0730-dsh0.2.1-rc.5` / build292 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让上岛页「支持的设备」避开手机悬浮胶囊，入口移入状态卡，说明改用卡片弹层。本机定向单测、Lint 与源码门禁通过。改动说明见 [build292 更新说明](releases/build292-changes.zh.md)，验证记录见 [build292 记录](releases/v0.2.1-rc.3-build292-island-devices-inset-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
