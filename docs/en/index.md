@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.1130-dsh0.2.1-rc.5` / build273 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes the run configuration save bar being covered by the floating navigation capsule on phones, which blocked saving. Local targeted unit tests, Lint and source gates passed; not checked on a device. See the [build273 notes](../releases/build273-changes.en.md) and the [build273 record](../releases/v0.2.1-rc.3-build273-config-save-bar-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.1200-dsh0.2.1-rc.5` / build274 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is an experimental UI build: a dedicated Theme and appearance page, four switch animations, five color palettes and a cold-start loading animation, with native light/dark optionally synced to the Web UI. Local targeted unit tests, Lint and source gates passed; awaiting a unified visual review. See the [build274 notes](../releases/build274-changes.en.md) and the [build274 record](../releases/v0.2.1-rc.3-build274-theme-motion-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

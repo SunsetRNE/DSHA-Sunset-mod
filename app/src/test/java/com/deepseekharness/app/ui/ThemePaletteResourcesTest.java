@@ -63,7 +63,7 @@ public final class ThemePaletteResourcesTest {
   @Test
   public void everyPaletteResolvesItsGeneratedColorsInBothModes() throws Exception {
     List<String> names = names();
-    assertEquals(32, names.size());
+    assertEquals(33, names.size());
     for (String palette : UiThemePalette.REGISTERED) {
       for (boolean night : new boolean[] {false, true}) {
         Context context = themed(night, palette);

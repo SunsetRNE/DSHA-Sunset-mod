@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1200-dsh0.2.1-rc.5 / build274（实验性：主题与外观）
+
+- **实验性 UI 更新，待统一视觉验收。** 主题与外观（分支 `feat/theme-motion` e935ec96）：设置 › 体验新增独立「主题与外观」页（浅色 / 深色 / 跟随系统预览卡），顶栏主题按钮移除；切换动画四选一（圆形扩散、对角擦除、淡入淡出、直接切换），截图先盖住旧窗口再开始，修掉回闪；冷启动开机加载页加描线与字标淡入。
+- 五套配色（经典蓝 / 极光 / 樱花 / 赛博 / 琥珀）与日夜正交：强调色与底色改为 `?attr/dsha_pal_*` 间接引用，`tools/generate-theme-palettes.py` 生成并校验 WCAG ≥ 4.5，经典蓝逐字保留原值。原生亮暗经集成插件同步到 Web（可关），配色不同步到 Web。
+- 合入 build273 时：build270 下载记录页新增的 `shell_accent_tonal` 并入调色板强调色族（按各配色主色换色相、保持原透明度，经典蓝保持 `#1F1E50D0` / `#246AA4FF`，五套配色主色文字在其上对比度均 ≥ 4.5）；i18n 按条目三方合并、字节钉重算，`runtime-descriptor` 重新生成。
+- 验证范围：分支内定向单测 29 项与测试包真机浏览；发布会话在 build273 上复跑主题相关单测、`UpdateVersionPageTest`、`test-ui-colors.py`、`lintStandardRelease` 与源码门禁。未跑全量单测与 LayoutAuditInstrumentation。版本码提升为 274（基于 build273）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build274 更新说明](docs/releases/build274-changes.zh.md)，验证记录见 [build274 记录](docs/releases/v0.2.1-rc.3-build274-theme-motion-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1130-dsh0.2.1-rc.5 / build273（运行配置页保存栏避让导航胶囊）
 
 - 运行配置页保存栏让出手机底部悬浮导航胶囊（分支 `fix/config-save-bar-clearance` 52e151a7）：手机上胶囊（64dp 高 + 10dp 底边距）浮在内容之上，固定页底的保存栏整条被盖住，改了配置无法保存。新增 `shell_nav_clearance`（手机 74dp，平板 sw600dp 左侧导航为 0dp），保存栏加底边距；位置与保存逻辑不变。
