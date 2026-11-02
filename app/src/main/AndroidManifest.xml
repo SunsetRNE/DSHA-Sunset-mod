@@ -89,6 +89,16 @@
             </intent-filter>
         </activity>
 
+        <!-- 常驻通知的应用入口中转：独立 affinity，不把 Main 任务带到前台；透明且立即结束。 -->
+        <activity
+            android:name=".ui.AppEntryRouterActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:documentLaunchMode="never"
+            android:taskAffinity="${applicationId}.entry"
+            android:theme="@style/Theme.DSHA.EntryRouter" />
+
         <!-- 同 task 终端视图；离开页面只解绑，运行会话由独立服务保护。 -->
         <activity android:name=".ui.TerminalActivity" android:exported="false"
             android:launchMode="singleTop" android:documentLaunchMode="never"

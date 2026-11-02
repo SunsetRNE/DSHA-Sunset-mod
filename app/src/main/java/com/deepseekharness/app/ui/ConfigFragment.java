@@ -626,8 +626,8 @@ public class ConfigFragment extends Fragment {
     ((TextView) root.findViewById(R.id.config_entry_web_hint))
         .setText(
             com.deepseekharness.app.util.UiText.choose(
-                "开启后点击桌面图标先显示加载页，Web 就绪即进入；在 Web 里返回到底会回到桌面。环境需要维护或启动失败时仍进入主界面。也可在 Web 的插件页「启动目标」中修改。",
-                "When on, the app icon shows a loading screen and opens Web once it is ready; going back from the first Web page returns to the home screen. Maintenance or startup failures still open the main screen. You can also change this under the Launch target plugin in Web."));
+                "开启后点击桌面图标或常驻通知先显示加载页，Web 就绪即进入；在 Web 里返回到底会回到桌面。应用被系统回收后，离开前停在 Web 就回到 Web。环境需要维护或启动失败时仍进入主界面。也可在 Web 的插件页「启动目标」中修改。",
+                "When on, the app icon and the ongoing notification show a loading screen and open Web once it is ready; going back from the first Web page returns to the home screen. After the system reclaims the app, it returns to Web if you left from Web. Maintenance or startup failures still open the main screen. You can also change this under the Launch target plugin in Web."));
     entryWeb.setOnCheckedChangeListener(
         (button, enabled) -> {
           if (renderingEntryTarget) return;

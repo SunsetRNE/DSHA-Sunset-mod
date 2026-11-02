@@ -99,6 +99,23 @@ final class BrowserTasks {
     return resumeBackground(context, false);
   }
 
+  /**
+   * 通知等应用入口：回到仍存活、可整屏显示的原网页。没有登记“返回原网页”时（例如用户正停在 Web
+   * 时拉下通知），按 Home 相同的规则登记后再派发；用户主动隐藏的会话与未就绪的页面不派发。
+   */
+  static boolean returnToLiveBrowser(Context context) {
+    if (resumeBackground(context, true)) return true;
+    // 已登记但仍在核验 / 等内容：保持登记，交给 Main 的既有返回路由，不覆盖。
+    if (returnPending()) return false;
+    PictureInPictureActivity owner = BrowserConversationRoute.owner();
+    if (owner == null || owner.conversationHidden()) return false;
+    rememberBackground(owner);
+    if (resumeBackground(context, true)) return true;
+    // 未能派发：撤销本次登记，避免之后进入 Main 时被意外带回网页。
+    nativeNavigation();
+    return false;
+  }
+
   /** 仍有待回到的原网页（含等待核验 / 内容就绪）；只读，不派发。 */
   static boolean returnPending() {
     Background pending = background;

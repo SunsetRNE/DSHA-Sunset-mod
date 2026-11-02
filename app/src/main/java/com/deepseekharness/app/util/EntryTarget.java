@@ -1,9 +1,9 @@
 package com.deepseekharness.app.util;
 
 /**
- * 桌面图标启动后进入哪个页面。只有两个值：主界面（默认）与 Web 界面。
+ * 进入应用后去哪个页面。只有两个值：主界面（默认）与 Web 界面。
  *
- * <p>选择只决定“下一次从桌面图标启动”的去向，不启动、不停止、也不改变任何运行状态；
+ * <p>作用于桌面图标、常驻通知点按与系统回收后的恢复；选择只决定“下一次进入”的去向，不启动、不停止、也不改变任何运行状态；
  * 环境门禁、维护页、启动恢复与原实例核验始终优先，任何一项未放行都回到主界面。
  */
 public final class EntryTarget {
@@ -29,24 +29,57 @@ public final class EntryTarget {
       boolean restoredState,
       boolean pendingInstallLink,
       boolean firstRunStart,
-      boolean startupRecoveryRequested) {}
+      boolean startupRecoveryRequested,
+      boolean appEntry,
+      boolean lastForegroundWeb) {
+    /** 桌面图标 / 新建实例的六项事实；通知入口与回收恢复另用完整构造。 */
+    public Launch(
+        String preference,
+        boolean launcherIntent,
+        boolean restoredState,
+        boolean pendingInstallLink,
+        boolean firstRunStart,
+        boolean startupRecoveryRequested) {
+      this(
+          preference,
+          launcherIntent,
+          restoredState,
+          pendingInstallLink,
+          firstRunStart,
+          startupRecoveryRequested,
+          false,
+          false);
+    }
+  }
 
   /**
    * 是否在入口门禁放行后直接进入 Web。
    *
    * <ul>
-   *   <li>只认桌面图标（ACTION_MAIN + CATEGORY_LAUNCHER）的新建实例；通知、任务卡、旋转恢复都不直启；
+   *   <li>新建实例：桌面图标（ACTION_MAIN + CATEGORY_LAUNCHER）或常驻通知的应用入口；
+   *   <li>系统回收后恢复：只在用户离开前最后停在 Web 时恢复到 Web；离开前停在主界面（含旋转、换主题前）
+   *       仍恢复主界面；
    *   <li>待安装插件链接、首次部署的启动请求与已登记的启动恢复都需要主界面处理，不能被直启吞掉。
    * </ul>
    */
   public static boolean directWeb(Launch launch) {
-    return launch != null
-        && WEB.equals(normalize(launch.preference()))
-        && launch.launcherIntent()
-        && !launch.restoredState()
-        && !launch.pendingInstallLink()
-        && !launch.firstRunStart()
-        && !launch.startupRecoveryRequested();
+    if (launch == null
+        || !WEB.equals(normalize(launch.preference()))
+        || launch.pendingInstallLink()
+        || launch.firstRunStart()
+        || launch.startupRecoveryRequested()) return false;
+    return launch.restoredState()
+        ? launch.lastForegroundWeb()
+        : launch.launcherIntent() || launch.appEntry();
+  }
+
+  /**
+   * 常驻通知点按（应用入口）是否改为进入 Web。偏好为主界面、尚未完成首次设置或已登记启动恢复时
+   * 保持原行为：回到原生启动页。
+   */
+  public static boolean notificationWeb(
+      String preference, boolean welcomed, boolean startupRecoveryRequested) {
+    return welcomed && !startupRecoveryRequested && WEB.equals(normalize(preference));
   }
 
   /** 门禁回调里的二次判断：维护、未确认原实例或恢复中的会话一律交还主界面。 */

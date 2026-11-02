@@ -48,6 +48,57 @@ public final class EntryTargetTest {
   }
 
   @Test
+  public void notificationAppEntryOpensWebLikeTheLauncherIcon() {
+    String web = EntryTarget.WEB;
+    assertTrue(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(web, false, false, false, false, false, true, false)));
+    assertFalse(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(
+                EntryTarget.MAIN, false, false, false, false, false, true, false)));
+    // 应用入口同样让位于待安装链接、首次部署启动与启动恢复。
+    assertFalse(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(web, false, false, true, false, false, true, false)));
+    assertFalse(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(web, false, false, false, false, true, true, false)));
+  }
+
+  @Test
+  public void processRestoreFollowsWhereTheUserLeft() {
+    String web = EntryTarget.WEB;
+    // 系统回收前停在 Web：桌面图标、最近任务或其它恢复入口都回到 Web。
+    assertTrue(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(web, true, true, false, false, false, false, true)));
+    assertTrue(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(web, false, true, false, false, false, false, true)));
+    // 停在主界面（含旋转、换主题前）：恢复主界面，即使本次是桌面图标。
+    assertFalse(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(web, true, true, false, false, false, false, false)));
+    assertFalse(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(
+                EntryTarget.MAIN, true, true, false, false, false, false, true)));
+    assertFalse(
+        EntryTarget.directWeb(
+            new EntryTarget.Launch(web, true, true, false, false, true, false, true)));
+  }
+
+  @Test
+  public void notificationsKeepTheNativeStartPageUnlessWebIsPreferred() {
+    assertTrue(EntryTarget.notificationWeb(EntryTarget.WEB, true, false));
+    assertFalse(EntryTarget.notificationWeb(EntryTarget.MAIN, true, false));
+    assertFalse(EntryTarget.notificationWeb(null, true, false));
+    assertFalse("首次设置未完成", EntryTarget.notificationWeb(EntryTarget.WEB, false, false));
+    assertFalse("启动恢复优先", EntryTarget.notificationWeb(EntryTarget.WEB, true, true));
+  }
+
+  @Test
   public void gateOutcomesOtherThanACleanPassReturnToMain() {
     assertTrue(EntryTarget.admitted(true, false, false, false, false));
     assertFalse(EntryTarget.admitted(false, false, false, false, false));

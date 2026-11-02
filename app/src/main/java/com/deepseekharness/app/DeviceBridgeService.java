@@ -283,11 +283,11 @@ public class DeviceBridgeService extends Service {
         .build();
   }
 
-  /** 通知正文点击回到 DSHA；不会直接跳到外部页面或自动启动 Web。 */
+  /** 通知正文点击回到 DSHA（经应用入口中转，按启动目标进入）；不会跳到外部页面。 */
   private PendingIntent dshaNotificationIntent(boolean openWeb) {
     Intent intent = com.deepseekharness.app.ui.MainActivity.homeIntent(this);
     if (openWeb) intent.putExtra("open_web", true);
-    return PendingIntent.getActivity(
+    return com.deepseekharness.app.ui.AppEntryRouterActivity.pending(
         this, 3006, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
   }
 

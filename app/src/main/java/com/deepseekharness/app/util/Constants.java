@@ -94,6 +94,9 @@ public final class Constants {
   /** 最近一次已核验网页上报的背景色，供直启加载页衔接 DSH 主题；仅本机。 */
   public static final String KEY_ENTRY_WEB_BACKGROUND = "entry_web_background_v1";
 
+  /** 用户最近一次离开应用时停在 Web（true）还是原生页面；只用于系统回收后的恢复去向，不进备份。 */
+  public static final String KEY_ENTRY_LAST_WEB = "entry_last_foreground_web_v1";
+
   /** 备份是否包含 API key。 */
   public static final String KEY_BACKUP_KEY = "backup_key";
 

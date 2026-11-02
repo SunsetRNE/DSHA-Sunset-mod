@@ -389,6 +389,17 @@ public class ConfigStore {
     prefs.edit().putInt(Constants.KEY_ENTRY_WEB_BACKGROUND, color).apply();
   }
 
+  /** 最近一次前台是否为 Web；系统回收后恢复时据此决定回到 Web 还是主界面。 */
+  public boolean isLastForegroundWeb() {
+    return flag(Constants.KEY_ENTRY_LAST_WEB, false);
+  }
+
+  /** 只在值变化时写入：Web / 主界面每次回到前台都会调用。 */
+  public void setLastForegroundWeb(boolean web) {
+    if (isLastForegroundWeb() == web) return;
+    prefs.edit().putBoolean(Constants.KEY_ENTRY_LAST_WEB, web).apply();
+  }
+
   public boolean isBackupKey() {
     return flag(Constants.KEY_BACKUP_KEY, true);
   }

@@ -204,6 +204,90 @@ public final class DirectWebEntryTest {
     }
   }
 
+  /** 进程被系统回收后的保存态：同进程令牌不再匹配。 */
+  private static Bundle crossProcessState() {
+    var first = Robolectric.buildActivity(MainActivity.class, launcher()).create().start().resume();
+    Bundle saved = new Bundle();
+    first.pause().saveInstanceState(saved).stop().destroy();
+    saved.remove(com.deepseekharness.app.util.MainRecreatePolicy.STATE_KEY);
+    return saved;
+  }
+
+  @Test
+  public void processRestoreReturnsToWebOnlyWhenTheUserLeftFromWeb() throws Exception {
+    ConfigStore config = new ConfigStore(RuntimeEnvironment.getApplication());
+    config.setEntryTarget(EntryTarget.WEB);
+    Bundle saved = crossProcessState();
+    config.setLastForegroundWeb(true);
+    // 最近任务恢复不带桌面图标意图：只按离开前的位置决定。
+    var fromWeb =
+        Robolectric.buildActivity(
+                MainActivity.class,
+                new Intent(RuntimeEnvironment.getApplication(), MainActivity.class))
+            .create(saved)
+            .start()
+            .resume();
+    try {
+      assertTrue("离开前停在 Web：恢复后回到 Web", field(fromWeb.get(), "directWebArmed"));
+    } finally {
+      fromWeb.pause().stop().destroy();
+    }
+    config.setLastForegroundWeb(false);
+    var fromMain =
+        Robolectric.buildActivity(MainActivity.class, launcher()).create(saved).start().resume();
+    try {
+      assertFalse("离开前停在主界面：恢复主界面", field(fromMain.get(), "directWebArmed"));
+    } finally {
+      fromMain.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void notificationAppEntryArmsDirectWebOnlyWhenWebIsPreferred() throws Exception {
+    Intent entry =
+        new Intent(RuntimeEnvironment.getApplication(), MainActivity.class)
+            .putExtra(AppEntryRouterActivity.EXTRA_APP_ENTRY, true)
+            .putExtra("open_launch", true);
+    var main = Robolectric.buildActivity(MainActivity.class, entry).create().start().resume();
+    try {
+      assertFalse(field(main.get(), "directWebArmed"));
+    } finally {
+      main.pause().stop().destroy();
+    }
+    new ConfigStore(RuntimeEnvironment.getApplication()).setEntryTarget(EntryTarget.WEB);
+    var web =
+        Robolectric.buildActivity(MainActivity.class, new Intent(entry)).create().start().resume();
+    try {
+      assertTrue(field(web.get(), "directWebArmed"));
+    } finally {
+      web.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void openingWebFromTheMainScreenCoversMainOnlyWhenWebIsPreferred() throws Exception {
+    var host = Robolectric.buildActivity(MainActivity.class, launcher()).create().start().resume();
+    try {
+      MainActivity main = host.get();
+      var ready = MainActivity.class.getDeclaredField("mainReady");
+      ready.setAccessible(true);
+      ready.setBoolean(main, true);
+      // 主界面已显示：入口加载页已收起（showMain 的效果，不运行真实启动页）。
+      var dismiss = MainActivity.class.getDeclaredMethod("dismissEntryOverlay");
+      dismiss.setAccessible(true);
+      dismiss.invoke(main);
+      main.startActivity(
+          WebPreviewActivity.intent(main, "http://127.0.0.1:1/?token=fixture", null));
+      assertNull("偏好为主界面：行为不变", object(main, "webCover"));
+      new ConfigStore(main).setEntryTarget(EntryTarget.WEB);
+      main.startActivity(
+          WebPreviewActivity.intent(main, "http://127.0.0.1:1/?token=fixture", null));
+      assertNotNull("偏好为 Web：打开前先盖遮罩", object(main, "webCover"));
+    } finally {
+      host.pause().stop().destroy();
+    }
+  }
+
   @Test
   public void readyAuthenticationOpensWebOnceAndMainCompletesBehindIt() throws Exception {
     new ConfigStore(RuntimeEnvironment.getApplication()).setEntryTarget(EntryTarget.WEB);
@@ -236,8 +320,10 @@ public final class DirectWebEntryTest {
       assertNotNull("Web 打开后保留遮罩", cover);
       assertTrue(cover.attached());
       // 没有待返回的原网页时，Main 回到前台就是原生页面：收起遮罩。
+      new ConfigStore(main).setLastForegroundWeb(true); // Web 在前台时由浏览器宿主记下
       host.pause().stop().restart().resume();
       assertNull("回到原生主界面时收起遮罩", object(main, "webCover"));
+      assertFalse("原生页面回到前台后，回收恢复去主界面", new ConfigStore(main).isLastForegroundWeb());
     } finally {
       host.pause().stop().destroy();
     }

@@ -1317,7 +1317,8 @@ public final class HttpShellService {
   private PendingIntent agentNotificationIntent() {
     Intent intent =
         com.deepseekharness.app.ui.MainActivity.navigationIntent(ctx).putExtra("open_web", true);
-    return PendingIntent.getActivity(
+    // 经应用入口中转：启动目标为 Web 时直接回到网页，不先切到 Main 再自动进入。
+    return com.deepseekharness.app.ui.AppEntryRouterActivity.pending(
         ctx,
         AGENT_NOTIF_REQUEST,
         intent,

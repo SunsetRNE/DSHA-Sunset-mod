@@ -474,7 +474,12 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
     synchronizePictureViewport();
     refreshPictureInPicture();
     if (conversationHidden() && userHidden && !showing(this)) hideConversationTask();
-    else BrowserTasks.browserResumed(this);
+    else {
+      BrowserTasks.browserResumed(this);
+      // 整屏可见的 Web：系统回收后从桌面 / 最近任务恢复时据此回到 Web。
+      if (!conversationHidden() && !showing(this))
+        new com.deepseekharness.app.core.ConfigStore(this).setLastForegroundWeb(true);
+    }
   }
 
   /** 文件选择、系统浏览器、恢复页等由应用主动打开时，不留下多余的小窗。 */

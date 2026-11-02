@@ -19,6 +19,12 @@ public final class BrowserConversationRoute {
 
   private BrowserConversationRoute() {}
 
+  /** 当前存活的浏览器宿主；已结束或正在结束时为 null。 */
+  static PictureInPictureActivity owner() {
+    var owner = browser.get();
+    return owner == null || owner.isFinishing() || owner.isDestroyed() ? null : owner;
+  }
+
   static int taskId() {
     var owner = browser.get();
     return owner == null || owner.isFinishing() || owner.isDestroyed() ? -1 : owner.getTaskId();

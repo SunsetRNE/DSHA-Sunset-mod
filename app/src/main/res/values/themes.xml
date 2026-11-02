@@ -61,6 +61,14 @@
         <item name="android:windowAnimationStyle">@style/Animation.DSHA.Activity</item>
     </style>
 
+    <!-- 通知入口中转页：透明、无动画、不画任何内容，只决定去向后立即结束。 -->
+    <style name="Theme.DSHA.EntryRouter" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoDisplay">false</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
     <!-- appcompat / framework AlertDialog：必须是完整 Dialog 主题（不能给 Overlay） -->
     <style name="Dialog.DSHA.Alert" parent="Theme.Material3.DayNight.Dialog.Alert">
         <item name="colorPrimary">?attr/dsha_pal_primary</item>
