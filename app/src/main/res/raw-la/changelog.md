@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.0530-dsh0.2.1-rc.5 / build288
+# DSHA 0.2.1-rc.3-20261103.0600-dsh0.2.1-rc.5 / build289
 
-- Experimentale: optiones Web nunc tabulam separatam «Destinatio initii» habent, ubi eligis utrum aperta applicatio ad Web an ad paginam principalem ducat; additamentum destinationis initii debilitatum hanc electionem non iam mutat.
-- Ambitus probationis: solum probationes unitatum destinatae, Lint et inspectiones fontis locales; in instrumento non probatum. versionCode ad 288 auctus (in build287 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.
+- Virga graduum in pagina curationis et progressu explicationis nunc movetur: partes perfectae a sinistra ad dextram implentur, pars currens micat, et colores in fine leniter mutantur; immota manet cum motus systematis exstincti sunt.
+- Ambitus probationis: solum probationes unitatum destinatae, Lint et inspectiones fontis locales; in instrumento non probatum. versionCode ad 289 auctus (in build288 fundatum). Revisio DSHA manet 0.2.1-rc.3 et DSH inclusum manet 0.2.1-rc.5.

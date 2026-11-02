@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0530-dsh0.2.1-rc.5` / build288 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a separate Launch target panel to the Web settings navigation; disabling the plugin no longer changes the launch target (experimental). Local targeted unit tests, Lint and source gates passed. See the [build288 notes](../releases/build288-changes.en.md) and the [build288 record](../releases/v0.2.1-rc.3-build288-launch-target-settings-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.0600-dsh0.2.1-rc.5` / build289 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build animates the stage segment bar on the maintenance page and deployment progress with fill, shimmer and colour transitions, merged with the onboarding current-stage motion. Local targeted unit tests, Lint and source gates passed. See the [build289 notes](../releases/build289-changes.en.md) and the [build289 record](../releases/v0.2.1-rc.3-build289-stage-segment-motion-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

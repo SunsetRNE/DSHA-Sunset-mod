@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.0530-dsh0.2.1-rc.5 / build288
+# DSHA 0.2.1-rc.3-20261103.0600-dsh0.2.1-rc.5 / build289
 
-- Experimental: Web settings now have a separate Launch target panel where you choose whether opening the app goes to Web or the main screen; disabling the launch target plugin no longer changes this choice.
-- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 288 (based on build287). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- The stage segment bar on the maintenance page and deployment progress is now animated: finished segments fill from left to right, the running segment shimmers, and colours change smoothly at the end; it stays static when system animations are off.
+- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 289 (based on build288). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.

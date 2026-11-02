@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0600-dsh0.2.1-rc.5 / build289（阶段分段进度条动画）
+
+- 维护页与部署进度的阶段分段条加动画：完成段从左向右填充、当前段流光、结束时颜色淡变；系统关闭动画时画静态终态（分支 `ui/maintenance-progress-motion` 613e7b96，原基于 build274，用户已在测试包真机核对节奏与亮度）。与 build276 的当前段流光（`DeployRunSegment`）同改 `OnboardingKit.segmentBar`，按用户选择合并：画法用 `StageSegmentBar`，“正在执行”判定沿用 build276 的 `OnboardingKit.running`，并承接窗口不可见时停止重绘与 RTL 镜像；删除 `DeployRunSegment`。
+- 验证范围：发布会话在 build289 上复跑 `DeployCapsuleTest` / `StageSegmentMotionTest` / `OnboardingActivityTest` / `OnboardingMotionPlanTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 289（基于 build288）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build289 更新说明](docs/releases/build289-changes.zh.md)，验证记录见 [build289 记录](docs/releases/v0.2.1-rc.3-build289-stage-segment-motion-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0530-dsh0.2.1-rc.5 / build288（实验性：Web 设置导航新增「启动目标」面板）
 
 - **实验性。** Web 设置导航新增独立的「启动目标」面板（settings.section），插件只负责传递设置；禁用 `dsh-launch-target` 插件不再改变启动目标（分支 `fix/launch-target-settings` 99716b5b，原基于 build277）。运行配置页说明文字与 build287 同改：合并为「桌面图标或常驻通知…系统回收后回到 Web…设置 → 启动目标」；运行时描述符重算。

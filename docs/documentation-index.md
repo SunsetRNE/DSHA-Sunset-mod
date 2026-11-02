@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.0530-dsh0.2.1-rc.5` / build288 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版在 Web 设置导航中新增独立的「启动目标」面板，禁用插件不再改变启动目标（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build288 更新说明](releases/build288-changes.zh.md)，验证记录见 [build288 记录](releases/v0.2.1-rc.3-build288-launch-target-settings-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.0600-dsh0.2.1-rc.5` / build289 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为维护页与部署进度的阶段分段条加入填充、流光与变色动画，并与首次引导的当前段动效合并。本机定向单测、Lint 与源码门禁通过。改动说明见 [build289 更新说明](releases/build289-changes.zh.md)，验证记录见 [build289 记录](releases/v0.2.1-rc.3-build289-stage-segment-motion-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
