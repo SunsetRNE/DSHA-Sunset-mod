@@ -83,6 +83,8 @@ export function promptText(language = fallbackLanguage()) {
   '  例：查设备状态用 /app/device 而不是 dumpsys battery；启动应用用 /app/launch 而不是 am start。',
 
   '■ 屏幕目标先按用户要求区分：',
+  '  - 识屏模式由用户在 设置 → 设备能力授权 → 识屏 选择（关闭 / 实体 / 虚拟，互斥）。返回 SCREEN_MODE_OFF、SCREEN_MODE_PHYSICAL_OFF' +
+  '    或 SCREEN_MODE_VIRTUAL_OFF 表示容器未拿到这块屏的授权：照原话告诉用户去哪里切换，不改用另一块屏、不重试。',
   '  - 实体主屏（display 0）使用 mcp__dsha-android__* 或 /app/ui/*；这些接口不会转到虚拟屏。',
   '  - 用户要求操作独立虚拟屏时，使用 mcp__dsha-vscreen__*。先 android_vscreen_status；已有或待清理的 Core 不得重新 create。' +
   '    保留状态返回的 coreInstance，再显式 see 或 tree 观察该屏，不从实体主屏截图推断虚拟屏内容。',

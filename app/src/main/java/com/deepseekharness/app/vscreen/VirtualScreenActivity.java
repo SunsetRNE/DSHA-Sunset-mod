@@ -1065,22 +1065,46 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   /**
    * 旋转 = 按新方向重建显示（Core 释放旧 VirtualDisplay，应用不会自动迁移）。用户点旋转的意图是“同一应用换方向”，
    * 所以重建成功后在同一次动作里重新打开刚才显示的应用；这是本次用户动作的一部分，不是失败重试。
+   *
+   * <p>旋转只在虚拟屏运行时出现，此时应为虚拟识屏；模式已不是 virtual（例如刚被切走或降级）时拒绝，不借旋转重新创建。
    */
   private void rotate() {
     String orientation = landscapeFrame ? "portrait" : "landscape", pkg = shownPackage;
     run(
         () -> {
+          if (com.deepseekharness.app.screen.ScreenMode.current(getApplicationContext())
+              != com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL)
+            return new JSONObject()
+                .put("ok", false)
+                .put(
+                    "error", com.deepseekharness.app.util.ScreenModePolicy.SCREEN_MODE_VIRTUAL_OFF);
           JSONObject created = manager.start(orientation);
           if (!created.optBoolean("ok") || pkg.isEmpty()) return created;
           return manager.launch(pkg);
         });
   }
 
+  /** 用户在本页创建即选择虚拟识屏：经识屏模式切换（先收尾实体识屏），保持两种模式互斥。 */
   private void create(String orientation) {
     if (busy) return;
     creating = true;
     stageNote = "";
-    run(() -> manager.start(orientation));
+    run(
+        () -> {
+          // 已在虚拟识屏：保持原有直接创建路径。
+          if (com.deepseekharness.app.screen.ScreenMode.current(getApplicationContext())
+              == com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL)
+            return manager.start(orientation);
+          var result =
+              com.deepseekharness.app.screen.ScreenMode.request(
+                  getApplicationContext(),
+                  com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL,
+                  orientation);
+          if (result.start != null) return result.start;
+          return new JSONObject()
+              .put("ok", false)
+              .put("error", result.code.isEmpty() ? "SCREEN_MODE_" + result.outcome : result.code);
+        });
   }
 
   private interface Work {

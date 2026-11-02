@@ -979,6 +979,17 @@ public final class VirtualScreenManager {
         if (currentLocked(session)) lifecycleState = VirtualScreenLifecycleState.DISCONNECTED;
       }
       stopIfCurrent(session);
+      // 通道授权已丢失（如 Shizuku 权限被收回）：识屏模式按统一钩子判定是否降为 off。
+      if (!available) modeCapabilityRevoked("CHANNEL_LOST_" + session.channel);
+    }
+  }
+
+  private void modeCapabilityRevoked(String reason) {
+    if (context == null) return;
+    try {
+      com.deepseekharness.app.screen.ScreenMode.capabilityRevoked(context, reason);
+    } catch (RuntimeException unavailable) {
+      recordDiagnostic("SCREEN_MODE_REVOKE", unavailable.getClass().getSimpleName());
     }
   }
 
@@ -1692,6 +1703,15 @@ public final class VirtualScreenManager {
 
   public void discardObservations() {
     semantics.clearObserved();
+  }
+
+  /**
+   * 统一撤销钩子：某项设备能力被撤销（Root / ADB 开关关闭、Shizuku 权限丢失等）。先回收虚拟屏，再由识屏模式判定是否降为
+   * off；调用方不再直调 {@link #revoke()}。
+   */
+  public void revokeFor(String reason) {
+    revoke();
+    modeCapabilityRevoked(reason == null || reason.isEmpty() ? "CAPABILITY_REVOKED" : reason);
   }
 
   public void revoke() {

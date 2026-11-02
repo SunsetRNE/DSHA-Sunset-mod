@@ -102,12 +102,13 @@ public final class DeviceGrantsFragment extends Fragment {
     resetup.setText(com.deepseekharness.app.util.UiText.choose("重新设置", "Set up again"));
     resetup.setOnClickListener(setup);
     addExternalDeviceControls(ctx, view);
+    addScreenModeControls(ctx, view);
     addScreenPolicyControls(ctx, view);
     // 虚拟屏是另一项能力：单独一行，点进虚拟屏页（页内有创建与使用说明）。
     if (com.deepseekharness.app.vscreen.VirtualScreenManager.supported(ctx)) {
       view.findViewById(R.id.screen_virtual_group).setVisibility(View.VISIBLE);
       ((TextView) view.findViewById(R.id.screen_virtual_title))
-          .setText(com.deepseekharness.app.util.UiText.choose("虚拟屏", "Virtual screen"));
+          .setText(com.deepseekharness.app.util.UiText.choose("虚拟识屏", "Virtual screen"));
       ((TextView) view.findViewById(R.id.screen_virtual_sub))
           .setText(
               com.deepseekharness.app.util.UiText.choose(
@@ -127,7 +128,9 @@ public final class DeviceGrantsFragment extends Fragment {
         (button, enabled) -> {
           if (updating) return;
           new ConfigStore(ctx).setRootShellAllowed(enabled);
-          if (!enabled) com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx).revoke();
+          if (!enabled)
+            com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx)
+                .revokeFor("ROOT_DISABLED");
           syncSettings();
           refreshChannelLabels();
         });
@@ -218,7 +221,9 @@ public final class DeviceGrantsFragment extends Fragment {
           com.deepseekharness.app.HttpShellService.smsPolicyChanged(ctx);
           DeviceBridgeService.adbIntentChanging();
           savePreference("adb_enabled", enabled);
-          if (!enabled) com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx).revoke();
+          if (!enabled)
+            com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx)
+                .revokeFor("ADB_DISABLED");
           if (enabled) {
             DeviceBridgeService.apply(ctx);
             if (getActivity() instanceof MainActivity)
@@ -385,6 +390,182 @@ public final class DeviceGrantsFragment extends Fragment {
    * 压缩版屏幕操作：暂停开关 + 确认方式三段选择（全部手动 / 按应用 / 全部允许）。点一段即保存；
    * 全部允许先经红色确认，确认前分段保持原值。选中「按应用」时下方出现「已配置 N 个应用 ›」。
    */
+  private TextView screenModeStatus;
+
+  /**
+   * 识屏模式（关闭 / 实体 / 虚拟，互斥）：卡片顶部一行显示当前模式与缺项，点按选择。确认方式、暂停与撤销仍是全局设置。
+   */
+  private void addScreenModeControls(Context ctx, View page) {
+    android.widget.LinearLayout card = page.findViewById(R.id.screen_card);
+    android.widget.LinearLayout row = new android.widget.LinearLayout(ctx);
+    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    row.setMinimumHeight(dp(48));
+    row.setBackgroundResource(R.drawable.bg_action_plain);
+    TextView label = new TextView(ctx, null, 0, R.style.ShellRowTitle);
+    label.setText(UiText.choose("识屏模式", "Screen mode"));
+    label.setTextSize(13);
+    row.addView(label, new android.widget.LinearLayout.LayoutParams(-2, -2));
+    screenModeStatus = new TextView(ctx, null, 0, R.style.ShellStatusText);
+    screenModeStatus.setGravity(android.view.Gravity.END);
+    screenModeStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+    android.widget.LinearLayout.LayoutParams statusParams =
+        new android.widget.LinearLayout.LayoutParams(0, -2, 1);
+    statusParams.setMarginStart(dp(12));
+    row.addView(screenModeStatus, statusParams);
+    row.setOnClickListener(v -> chooseScreenMode(ctx));
+    card.addView(row, 1, new android.widget.LinearLayout.LayoutParams(-1, -2));
+    refreshScreenMode();
+  }
+
+  private static String modeName(com.deepseekharness.app.util.ScreenModePolicy.Mode mode) {
+    switch (mode) {
+      case PHYSICAL:
+        return UiText.choose("实体识屏", "Physical screen");
+      case VIRTUAL:
+        return UiText.choose("虚拟识屏", "Virtual screen");
+      default:
+        return UiText.choose("关闭", "Off");
+    }
+  }
+
+  private static String missingText(java.util.List<String> missing) {
+    java.util.List<String> parts = new java.util.ArrayList<>();
+    for (String code : missing) {
+      switch (code) {
+        case com.deepseekharness.app.util.ScreenCapabilityGate.MISSING_ACCESSIBILITY:
+          parts.add(UiText.choose("无障碍", "accessibility"));
+          break;
+        case com.deepseekharness.app.util.ScreenCapabilityGate.MISSING_DEVICE_CHANNEL:
+          parts.add(
+              UiText.choose(
+                  "可用的 Root / Shizuku / ADB 通道", "a usable Root / Shizuku / ADB channel"));
+          break;
+        case com.deepseekharness.app.util.ScreenCapabilityGate.MISSING_API:
+          parts.add("Android 11+");
+          break;
+        case com.deepseekharness.app.util.ScreenCapabilityGate.MISSING_OVERLAY:
+          parts.add(UiText.choose("悬浮窗", "overlay"));
+          break;
+        default:
+          parts.add(code);
+      }
+    }
+    return String.join(UiText.choose("、", ", "), parts);
+  }
+
+  /** 某模式的一行说明：可开启 / 缺什么 / 将用哪个通道。 */
+  private static String verdictLine(
+      Context ctx, com.deepseekharness.app.util.ScreenModePolicy.Mode mode) {
+    var verdict = com.deepseekharness.app.screen.ScreenMode.verdict(ctx, mode);
+    if (!verdict.allowed)
+      return String.format(UiText.choose("需要：%s", "Needs: %s"), missingText(verdict.missing));
+    String line =
+        verdict.channel.isEmpty()
+            ? UiText.choose("可开启", "Ready")
+            : String.format(UiText.choose("可开启 · 通道 %s", "Ready · channel %s"), verdict.channel);
+    if (mode == com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL
+        && verdict.degraded.contains(
+            com.deepseekharness.app.util.ScreenCapabilityGate.MISSING_ACCESSIBILITY))
+      line += UiText.choose(" · 无无障碍时节点与中文输入不可用", " · nodes and Unicode input need accessibility");
+    return line;
+  }
+
+  private void refreshScreenMode() {
+    if (screenModeStatus == null || getContext() == null) return;
+    Context ctx = requireContext();
+    var mode = com.deepseekharness.app.screen.ScreenMode.current(ctx);
+    String text = modeName(mode);
+    String reason = com.deepseekharness.app.screen.ScreenMode.lastReason(ctx);
+    if (mode == com.deepseekharness.app.util.ScreenModePolicy.Mode.OFF && !reason.isEmpty())
+      text += UiText.choose(" · 授权丢失已自动关闭", " · turned off after a permission was lost");
+    screenModeStatus.setText(text);
+    View page = getView();
+    if (page != null
+        && page.findViewById(R.id.screen_virtual_sub) != null
+        && com.deepseekharness.app.vscreen.VirtualScreenManager.supported(ctx))
+      ((TextView) page.findViewById(R.id.screen_virtual_sub))
+          .setText(verdictLine(ctx, com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL));
+  }
+
+  private void chooseScreenMode(Context ctx) {
+    var modes = com.deepseekharness.app.util.ScreenModePolicy.Mode.values();
+    var current = com.deepseekharness.app.screen.ScreenMode.current(ctx);
+    CharSequence[] items = new CharSequence[modes.length];
+    for (int i = 0; i < modes.length; i++)
+      items[i] =
+          modes[i] == com.deepseekharness.app.util.ScreenModePolicy.Mode.OFF
+              ? modeName(modes[i])
+              : modeName(modes[i]) + "\n" + verdictLine(ctx, modes[i]);
+    new DshaDialogBuilder(ctx)
+        .setTitle(UiText.choose("识屏模式", "Screen mode"))
+        .setSingleChoiceItems(
+            items,
+            current.ordinal(),
+            (dialog, which) -> {
+              dialog.dismiss();
+              applyScreenMode(ctx, modes[which]);
+            })
+        .setNegativeButton(UiText.choose("取消", "Cancel"), null)
+        .show();
+  }
+
+  private void applyScreenMode(
+      Context ctx, com.deepseekharness.app.util.ScreenModePolicy.Mode target) {
+    Context app = ctx.getApplicationContext();
+    String orientation =
+        getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+            ? "landscape"
+            : "portrait";
+    if (screenModeStatus != null) screenModeStatus.setText(UiText.choose("切换中…", "Switching…"));
+    new Thread(
+            () -> {
+              com.deepseekharness.app.screen.ScreenMode.Result result;
+              try {
+                result =
+                    com.deepseekharness.app.screen.ScreenMode.request(app, target, orientation);
+              } catch (RuntimeException failed) {
+                result = null;
+              }
+              final com.deepseekharness.app.screen.ScreenMode.Result done = result;
+              main.post(
+                  () -> {
+                    refreshScreenMode();
+                    refreshSummary();
+                    if (getContext() == null) return;
+                    String message = screenModeMessage(target, done);
+                    if (!message.isEmpty())
+                      android.widget.Toast.makeText(app, message, android.widget.Toast.LENGTH_LONG)
+                          .show();
+                  });
+            },
+            "screen-mode")
+        .start();
+  }
+
+  private static String screenModeMessage(
+      com.deepseekharness.app.util.ScreenModePolicy.Mode target,
+      com.deepseekharness.app.screen.ScreenMode.Result result) {
+    if (result == null) return UiText.choose("切换失败，请重试", "Could not switch. Try again.");
+    switch (result.outcome) {
+      case NOT_ADMITTED:
+        return String.format(
+            UiText.choose("条件未满足，无法开启：%s", "Requirements not met: %s"), modeName(target));
+      case CLEANUP_PENDING:
+        return UiText.choose(
+            "虚拟屏仍在清理，暂不能切换；请到虚拟识屏页查看",
+            "The virtual screen is still being cleaned up; check the virtual screen page");
+      default:
+        if (!result.code.isEmpty())
+          return String.format(
+              UiText.choose(
+                  "已开启虚拟识屏，但虚拟屏未创建：%s", "Virtual mode is on but the screen was not created: %s"),
+              result.code);
+        return "";
+    }
+  }
+
   private void addScreenPolicyControls(Context ctx, View page) {
     screenPause = page.findViewById(R.id.screen_pause);
     screenPause.setText(UiText.choose("暂停助手屏幕操作", "Pause assistant screen actions"));
@@ -1550,6 +1731,7 @@ public final class DeviceGrantsFragment extends Fragment {
       refreshA11yStatus(page.findViewById(R.id.config_a11y_status));
       refreshAdbStatus(page.findViewById(R.id.config_adb_status));
     }
+    refreshScreenMode();
   }
 
   @Override
