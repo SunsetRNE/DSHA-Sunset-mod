@@ -69,6 +69,11 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     NodePanel(VirtualScreenNativeControls controls) {
       this.controls = controls;
       nodes.setOrientation(LinearLayout.VERTICAL);
+      // 面板内的说明需要完整阅读，不沿用页面单行状态的截断规则。
+      result.setSingleLine(false);
+      result.setMaxLines(6);
+      target.setSingleLine(false);
+      target.setMaxLines(2);
     }
 
     boolean current() {
@@ -663,6 +668,18 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     list.addView(panel.nodes);
     int height = Math.min(dp(320), getResources().getDisplayMetrics().heightPixels * 2 / 5);
     body.addView(list, new LinearLayout.LayoutParams(-1, height));
+    // 没有可选节点时收起列表区，不留一大块空白；节点到达后再展开。
+    list.setVisibility(View.GONE);
+    panel.nodes.setOnHierarchyChangeListener(
+        new ViewGroup.OnHierarchyChangeListener() {
+          public void onChildViewAdded(View parent, View child) {
+            list.setVisibility(View.VISIBLE);
+          }
+
+          public void onChildViewRemoved(View parent, View child) {
+            if (panel.nodes.getChildCount() <= 1) list.setVisibility(View.GONE);
+          }
+        });
     panel.dialog =
         new com.deepseekharness.app.ui.DshaDialogBuilder(this)
             .setTitle(t("节点操作", "Node actions"))
@@ -1211,7 +1228,10 @@ public final class VirtualScreenActivity extends AppCompatActivity {
                     if (!busy
                         && !retained
                         && !code.isEmpty()
-                        && !"VSCREEN_NOT_RUNNING".equals(code))
+                        && !"VSCREEN_NOT_RUNNING".equals(code)
+                        // 首帧未到或编码间隙是正常的等待，不当作失败写进说明卡。
+                        && !"FRAME_NOT_READY".equals(code)
+                        && !"STALE_FRAME".equals(code))
                       stageNote =
                           message(code, frame.value.optString("reason")) + cause(frame.value);
                     if (!retained) detail.setText("");
