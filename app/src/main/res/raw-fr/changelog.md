@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261102.1300-dsh0.2.1-rc.5 / build276
+# DSHA 0.2.1-rc.3-20261102.1330-dsh0.2.1-rc.5 / build277
 
-- L'accueil anime désormais le passage d'une étape à l'autre, et l'étape de déploiement en cours affiche une animation de chargement (commune à l'accueil, à la carte de progression, au panneau d'étapes et à la page de maintenance).
-- Portée de la vérification : l'animation d'accueil a été vérifiée sur appareil avec un paquet de test ; cette version n'a exécuté que des tests unitaires ciblés, Lint et des contrôles de source locaux. versionCode porté à 276 (basé sur build275). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Lorsque la maintenance échoue ou qu'une restauration est en attente, les pages Maintenance et Données et sauvegarde proposent directement l'export d'une copie lisible, et les entrées de sauvetage des données de l'écran principal restreint ne sont plus grisées.
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 277 (basé sur build276). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.

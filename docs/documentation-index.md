@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.1300-dsh0.2.1-rc.5` / build276 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为首次引导增加步骤切换动效，部署进度的当前阶段增加加载动画。本机定向单测、Lint 与源码门禁通过。改动说明见 [build276 更新说明](releases/build276-changes.zh.md)，验证记录见 [build276 记录](releases/v0.2.1-rc.3-build276-onboarding-motion-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.1330-dsh0.2.1-rc.5` / build277 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版在维护失败或待恢复时提供「导出可读副本」直达入口。本机定向单测、Lint 与源码门禁通过。改动说明见 [build277 更新说明](releases/build277-changes.zh.md)，验证记录见 [build277 记录](releases/v0.2.1-rc.3-build277-limited-rescue-export-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

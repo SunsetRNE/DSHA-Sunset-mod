@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1330-dsh0.2.1-rc.5 / build277（受限状态导出可读副本入口）
+
+- 维护失败或待恢复时，维护页与数据与备份页直接提供「导出可读副本」入口；受限主界面的数据救援入口不再置灰（分支 `fix/limited-rescue-export` 15072402，原基于 build271；原会话未结束，按用户要求由主会话合并，语言字节钉重算）。
+- 验证范围：发布会话在 build277 上复跑 `MaintenanceFooterPolicyTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 277（基于 build276）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build277 更新说明](docs/releases/build277-changes.zh.md)，验证记录见 [build277 记录](docs/releases/v0.2.1-rc.3-build277-limited-rescue-export-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1300-dsh0.2.1-rc.5 / build276（首次引导动效与部署加载动画）
 
 - 首次引导步骤切换动效；部署进度当前阶段增加加载动画（分段流光 + 阶段圆环），引导、左栏进度卡、阶段面板与维护页共用（分支 `ui/onboarding-motion` 5de52819，原基于 build272，无冲突）。

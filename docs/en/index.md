@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.1300-dsh0.2.1-rc.5` / build276 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds step transitions to onboarding and a loading animation for the current deployment stage. Local targeted unit tests, Lint and source gates passed. See the [build276 notes](../releases/build276-changes.en.md) and the [build276 record](../releases/v0.2.1-rc.3-build276-onboarding-motion-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.1330-dsh0.2.1-rc.5` / build277 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a direct "Export readable copy" entry when maintenance fails or recovery is pending. Local targeted unit tests, Lint and source gates passed. See the [build277 notes](../releases/build277-changes.en.md) and the [build277 record](../releases/v0.2.1-rc.3-build277-limited-rescue-export-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
