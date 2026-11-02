@@ -2,6 +2,8 @@
 
 状态：用户选定方案 B，已实现到 Android 源码。分支 `design/island-status-20261102`，日期 2026-11-02。**未装机，未在真机验证。**
 
+**实验性提交**：允许合并（基于 build267），合入后须做统一视觉验收——`LayoutAuditInstrumentation` 中英文 / 日夜 / 短屏 / 1.3× 字体，以及真机核对平板两列、36.0 旧接口状态行与示意胶囊。验收前不在版本说明里宣称已完成视觉核对。
+
 对应页面：设置 › 任务状态上岛（`ui/IslandFragment.java`）。截图里的“无法确认系统状态。（API 36）”是 `IslandSupport.STATE_UNKNOWN`：Android 16 早期版本（36.0 旧接口）没有 `canPostPromotedNotifications` 查询，DSHA 仍会按 colorized 请求提升。
 
 | 文件 | 内容 |
