@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.0630-dsh0.2.1-rc.5 / build290（实验性：网络健康检测一期）
+
+- **实验性。** 网络健康检测一期（只检测不修复）：诊断页新增网络健康面板，检测系统拦截本 App 网络、Web 在跑但前台服务缺失、容器 DNS 过期、有网络但出不去、进程曾被冻结五类问题，只记录并提示，不重启 Web、不改系统设置、不重放请求（分支 `design/network-health-20261102`，原会话未提交，主会话按用户要求提交为 4cd38fde；原基于 build274，无冲突）。
+- 验证范围：发布会话在 build290 上复跑 `NetworkHealthPolicyTest` / `UiStateTextTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 290（基于 build289）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build290 更新说明](docs/releases/build290-changes.zh.md)，验证记录见 [build290 记录](docs/releases/v0.2.1-rc.3-build290-network-health-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0600-dsh0.2.1-rc.5 / build289（阶段分段进度条动画）
 
 - 维护页与部署进度的阶段分段条加动画：完成段从左向右填充、当前段流光、结束时颜色淡变；系统关闭动画时画静态终态（分支 `ui/maintenance-progress-motion` 613e7b96，原基于 build274，用户已在测试包真机核对节奏与亮度）。与 build276 的当前段流光（`DeployRunSegment`）同改 `OnboardingKit.segmentBar`，按用户选择合并：画法用 `StageSegmentBar`，“正在执行”判定沿用 build276 的 `OnboardingKit.running`，并承接窗口不可见时停止重绘与 RTL 镜像；删除 `DeployRunSegment`。
