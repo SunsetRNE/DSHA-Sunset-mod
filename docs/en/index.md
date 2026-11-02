@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.1400-dsh0.2.1-rc.5` / build278 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build redraws the background tasks page and environment notice banner; in-process recreation no longer shows the cold-start loading screen (experimental). Local targeted unit tests, Lint and source gates passed; awaiting a unified visual review. See the [build278 notes](../releases/build278-changes.en.md) and the [build278 record](../releases/v0.2.1-rc.3-build278-background-tasks-redraw-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.1430-dsh0.2.1-rc.5` / build279 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build reworks the startup recovery page (plan A, experimental) and fixes duration text picking the wrong translation after a language switch (build278 was not published separately). Local targeted unit tests, Lint and source gates passed; awaiting a unified visual review. See the [build279 notes](../releases/build279-changes.en.md) and the [build279 record](../releases/v0.2.1-rc.3-build279-startup-recovery-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261102.1400-dsh0.2.1-rc.5` / build278 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版重绘后台任务页与环境提示横幅，同进程重建不再显示冷启动加载页（实验性）。本机定向单测、Lint 与源码门禁通过；待统一视觉验收。改动说明见 [build278 更新说明](releases/build278-changes.zh.md)，验证记录见 [build278 记录](releases/v0.2.1-rc.3-build278-background-tasks-redraw-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261102.1430-dsh0.2.1-rc.5` / build279 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版按方案 A 重做启动恢复页（实验性），并修复 build278 切换语言时时长文案选错译文的问题（build278 未单独发布）。本机定向单测、Lint 与源码门禁通过；待统一视觉验收。改动说明见 [build279 更新说明](releases/build279-changes.zh.md)，验证记录见 [build279 记录](releases/v0.2.1-rc.3-build279-startup-recovery-20261102.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

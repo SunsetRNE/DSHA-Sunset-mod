@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.1430-dsh0.2.1-rc.5 / build279（实验性：启动恢复页重做）
+
+- **build278 未单独发布**：其正式发布单测 `UiStateTextTest` 失败——后台任务列表新增的时长模板「%d 秒 / %d 分 %d 秒 / %d 小时 %d 分」与已有模板渲染结果相同，切换语言时选错译文。本版改为复用 `Fmt` 的时长模板并删除三条新模板，日文「%d 件」重名改为「%d 項目」（dc6155a7）；build278 的其余改动随本版发布。
+- **实验性 UI 渲染更新，待统一视觉验收。** 启动恢复页按方案 A 实现：状态卡语义、失败分类与多语文案（分支 `design/startup-recovery-20261102`，原会话停在实现中、未提交，主会话按用户要求提交为 b7538465；临时渲染测试未入库；i18n 条目级三方合并、语言字节钉重算）。
+- 验证范围：发布会话在 build279 上复跑 `StartupRecoveryStateTest` / `StartupRecoveryLifecycleTest` / `UiStateTextTest` / `BackgroundTaskModelTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 279（基于 build278）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build279 更新说明](docs/releases/build279-changes.zh.md)，验证记录见 [build279 记录](docs/releases/v0.2.1-rc.3-build279-startup-recovery-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.1400-dsh0.2.1-rc.5 / build278（实验性：后台任务页与环境提示重绘）
 
 - **实验性 UI 渲染更新，待统一视觉验收。** 后台任务页与环境提示横幅重绘；同进程重建界面不再显示冷启动加载页；主界面门禁区分本进程进行中的事务与崩溃残留（分支 `ui/background-tasks-redraw`，原会话未提交，主会话按用户要求提交为 68b6c294；i18n 条目级三方合并、语言字节钉重算）。
