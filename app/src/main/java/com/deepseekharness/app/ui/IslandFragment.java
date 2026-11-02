@@ -391,8 +391,7 @@ public class IslandFragment extends Fragment {
         card,
         R.color.shell_good,
         R.color.shell_text,
-        UiText.text(
-            "Android 16 及以上的原生系统、小米澎湃 OS 3.0.300+/4、ColorOS 16、OriginOS 6，以及后续跟进同一接口的厂商。"));
+        UiText.text("Android 16 及以上的原生系统、小米澎湃 OS 3.0.300+/4、ColorOS 16、OriginOS 6，以及后续跟进同一接口的厂商。"));
     deviceRow(
         page,
         card,
