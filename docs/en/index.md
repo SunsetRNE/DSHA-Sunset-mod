@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261102.0800-dsh0.2.1-rc.5` / build266 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build redesigns the floating assistant as a draggable capsule with a conversation card: expanding or collapsing no longer cancels the conversation, and you can type in the window; phone action confirmations add Allow this app for this turn. The main flows were checked on a device; local unit tests and source gates passed. See the [build266 notes](../releases/build266-changes.en.md) and the [build266 record](../releases/v0.2.1-rc.3-build266-assistant-overlay-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261102.0830-dsh0.2.1-rc.5` / build267 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This is an experimental build that tries to fix the container losing internet after switching to mobile data: container DNS refreshes after a network change, failed lookups get one fallback through Android's system resolver, and a read-only /app/net diagnostic is added. Local unit tests and source gates passed; network switching was not tested on a device. See the [build267 notes](../releases/build267-changes.en.md) and the [build267 record](../releases/v0.2.1-rc.3-build267-mobile-data-network-20261102.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

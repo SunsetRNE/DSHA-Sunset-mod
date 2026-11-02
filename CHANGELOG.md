@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261102.0830-dsh0.2.1-rc.5 / build267（实验性：切到移动数据后容器无外网的争取性修复）
+
+- **实验性更新。** 根因：容器 `/etc/resolv.conf` 只在拉起进程时写入当时网络的设备 DNS（常为 WiFi 私网 DNS），切网后不更新，新网络下该地址不可达，解析全部超时。
+- `device/NetworkStateMonitor`：全 App 唯一默认网络回调，ADB 重连改为订阅它，过滤切网时旧网络迟到的 onLost。`runtime/ResolverRefresher`：设备 DNS 变为新的非空列表后按原规则重写 DSHA 托管段；用户 nameserver 与软链接不动，断网瞬间不写，维护独占期间推迟；`resolv.conf` 不再计入受管资产戳。
+- `dns-compat.cjs`：EAI_AGAIN / EAI_FAIL 时经 `/app/net/resolve` 让 Android 系统解析器解析一次，只解析不重放 HTTP，旧 App 返回 [NO_CMD] 时保持原错误，不注入公共 DNS。`/app/net` 只读诊断宿主网络与容器 resolv.conf 来源及是否过期；两个端点均受 X-Token 门控（见安全模型）。
+- 验证范围：分支内定向单测 27 项通过；合入 build266 后发布会话复跑网络 / RuntimeTools / 桥路由单测 36 项、`test-dns-compat.mjs` 13/14（原生 LD_PRELOAD 夹具项在合入前同样失败，属 proot 环境限制）与源码门禁。未做切网真机验证，不保证所有机型、ROM、运营商、VPN 或私有 DNS 组合下可靠。版本码提升为 267（基于 build266）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build267 更新说明](docs/releases/build267-changes.zh.md)，验证记录见 [build267 记录](docs/releases/v0.2.1-rc.3-build267-mobile-data-network-20261102.md)。
+
 ## 0.2.1-rc.3-20261102.0800-dsh0.2.1-rc.5 / build266（悬浮助手重构：可拖动胶囊与对话卡片，展开收起不再取消对话）
 
 - 悬浮助手（`assistant/**`、`control/OwnedScreenOverlay`）重构为可拖动胶囊加对话卡片：展开 / 收起 / 切换会话不再取消对话；状态行为拖动把手，限制在屏幕内并记住位置（`OverlayPlacementTest`）；加 ✕、防误触与停止二次确认（`OverlayTouchGuardTest`）；✕ 隐藏后转通知回复。

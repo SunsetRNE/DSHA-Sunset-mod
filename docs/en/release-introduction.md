@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build266 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build267 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build266 `0.2.1-rc.3-20261102.0800-dsh0.2.1-rc.5`.** The floating assistant becomes a draggable capsule with a conversation card that no longer cancels the conversation when expanded or collapsed. Main flows checked on a device. versionCode 266, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build266 notes](../releases/build266-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build267 `0.2.1-rc.3-20261102.0830-dsh0.2.1-rc.5`.** Experimental: container DNS now refreshes after switching networks, with a one-time fallback through Android's resolver. Not tested on a device. versionCode 267, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build267 notes](../releases/build267-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 
