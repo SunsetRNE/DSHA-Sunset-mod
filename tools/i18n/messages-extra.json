@@ -14217,32 +14217,5 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/MainActivity.java"
     ]
-  },
-  {
-    "id": "bgt273a23",
-    "zh": "%d 秒",
-    "en": "%ds",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
-    ],
-    "uiFormat": true
-  },
-  {
-    "id": "bgt273a24",
-    "zh": "%d 分 %d 秒",
-    "en": "%dm %ds",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
-    ],
-    "uiFormat": true
-  },
-  {
-    "id": "bgt273a25",
-    "zh": "%d 小时 %d 分",
-    "en": "%dh %dm",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
-    ],
-    "uiFormat": true
   }
 ]

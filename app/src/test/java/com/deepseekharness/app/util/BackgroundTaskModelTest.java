@@ -53,12 +53,12 @@ public final class BackgroundTaskModelTest {
   @Test
   public void elapsedUsesMinutesThenHours() {
     assertEquals("0 秒", BackgroundTaskModel.elapsed(-1, "zh"));
-    assertEquals("0s", BackgroundTaskModel.elapsed(0, "en"));
+    assertEquals("0 seconds", BackgroundTaskModel.elapsed(0, "en"));
     assertEquals("59 秒", BackgroundTaskModel.elapsed(59_000, "zh"));
     assertEquals("1 分 0 秒", BackgroundTaskModel.elapsed(60_000, "zh"));
-    assertEquals("24m 53s", BackgroundTaskModel.elapsed(1_493_000, "en"));
+    assertEquals("24 min 53 s", BackgroundTaskModel.elapsed(1_493_000, "en"));
     assertEquals("24 分 53 秒", BackgroundTaskModel.elapsed(1_493_000, "zh"));
-    assertEquals("1 小时 0 分", BackgroundTaskModel.elapsed(3_600_000, "zh"));
-    assertEquals("2h 5m", BackgroundTaskModel.elapsed(7_500_000, "en"));
+    assertEquals("1 时 0 分", BackgroundTaskModel.elapsed(3_600_000, "zh"));
+    assertEquals("2 h 5 min", BackgroundTaskModel.elapsed(7_500_000, "en"));
   }
 }

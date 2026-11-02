@@ -24896,7 +24896,8 @@
     "en": "%s seconds",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java",
-      "app/src/main/java/com/deepseekharness/app/util/Fmt.java"
+      "app/src/main/java/com/deepseekharness/app/util/Fmt.java",
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
     ],
     "uiFormat": true
   },
@@ -27077,7 +27078,8 @@
     "en": "%s min %s s",
     "uiFormat": true,
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/Fmt.java"
+      "app/src/main/java/com/deepseekharness/app/util/Fmt.java",
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
     ],
     "id": "build156_1a44477ef110"
   },
@@ -27086,7 +27088,8 @@
     "en": "%s h %s min",
     "uiFormat": true,
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/Fmt.java"
+      "app/src/main/java/com/deepseekharness/app/util/Fmt.java",
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
     ],
     "id": "build156_39052ebfe40c"
   },

@@ -59,21 +59,27 @@ public final class BackgroundTaskModel {
     };
   }
 
-  /** 已运行时长：不足 1 分钟显示秒，不足 1 小时显示分秒，更长显示时分。负值按 0。 */
+  /**
+   * 已运行时长：不足 1 分钟显示秒，不足 1 小时显示分秒，更长显示时分。负值按 0。
+   *
+   * <p>复用 {@link Fmt} 的时长模板：另建渲染结果相同的模板（如「%d 秒」对「%s 秒」）会让
+   * UiStateText 切换语言时选错译文（UiStateTextTest）。
+   */
   public static String elapsed(long millis, String language) {
     long seconds = Math.max(0, millis) / 1000;
     if (seconds < 60)
-      return String.format(java.util.Locale.ROOT, UiText.choose(language, "%d 秒", "%ds"), seconds);
+      return String.format(
+          java.util.Locale.ROOT, UiText.choose(language, "%s 秒", "%s seconds"), seconds);
     long minutes = seconds / 60;
     if (minutes < 60)
       return String.format(
           java.util.Locale.ROOT,
-          UiText.choose(language, "%d 分 %d 秒", "%dm %ds"),
+          UiText.choose(language, "%s 分 %s 秒", "%s min %s s"),
           minutes,
           seconds % 60);
     return String.format(
         java.util.Locale.ROOT,
-        UiText.choose(language, "%d 小时 %d 分", "%dh %dm"),
+        UiText.choose(language, "%s 时 %s 分", "%s h %s min"),
         minutes / 60,
         minutes % 60);
   }
