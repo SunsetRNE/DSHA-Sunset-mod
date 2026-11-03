@@ -14,6 +14,7 @@
     {"name": "dsh-tool-vscreen", "guestDirectory": "/root/dsha-tool-vscreen", "entrypoint": "lib/index.js", "internal": false},
     {"name": "dsh-launch-target", "guestDirectory": "/root/dsha-launch-target", "entrypoint": "lib/index.js", "internal": false},
     {"name": "dsh-fs-read-hint", "guestDirectory": "/root/dsha-fs-read-hint", "entrypoint": "lib/index.js", "internal": false},
+    {"name": "dsh-fs-search-scope", "guestDirectory": "/root/dsha-fs-search-scope", "entrypoint": "lib/index.js", "internal": false},
     {"name": "dsh-app-integration", "guestDirectory": "/root/dsha-app-integration", "entrypoint": "index.js", "internal": true}
   ]
 }

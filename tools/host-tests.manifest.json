@@ -2462,6 +2462,19 @@
       "cli": "No arguments; uses the verified current raw test-runtime fixture"
     },
     {
+      "path": "tools/test-fs-search-scope.mjs",
+      "stage": "runtime",
+      "reason": "dsh-fs-search-scope regression over the real rc.5 managed ToolRuntime, local subprocess and fs-search glob against a temporary git repository with linked worktrees; no Android device operations",
+      "args": [],
+      "timeoutSeconds": 900,
+      "requires": [
+        "node24",
+        "managed"
+      ],
+      "environment": {},
+      "cli": "No arguments; uses the verified current managed test-runtime fixture and the host git binary"
+    },
+    {
       "path": "tools/test-signed-builtin-web-intent.mjs",
       "stage": "runtime",
       "reason": "Actual seven signed-wrapper Host OFF/ON and repeated native registration, manual/unknown/safe marker priority, profile isolation and serialized concurrent Native OFF; no device operations",

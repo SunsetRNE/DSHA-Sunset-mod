@@ -16,6 +16,7 @@
 | Visible | `dsh-tool-vscreen` 0.1.1 | MCP stdio `dsha-vscreen`, 60-second call budget |
 | Visible compatibility wrapper | `dsh-auto-review` 0.1.0 | Wrapper/alias; functionality comes from the locked official experimental Auto package, not the empty wrapper alone |
 | Visible, temporary fix | `dsh-fs-read-hint` 0.1.0 | Appends a same-name read-path hint to `FS_NOT_OBSERVED` errors; message only. Removal criteria in [its page](fs-read-hint-plugin.md) |
+| Visible, temporary fix | `dsh-fs-search-scope` 0.1.0 | glob skips nested git worktrees; keeps hidden/ignored files and DSHA required policy. Removal criteria in [its page](fs-search-scope-plugin.md) |
 | Internal | `dsh-app-integration` 1.2.3 | Activity heartbeat, temporary-plugin summaries, native back navigation, and browser-origin recovery |
 | Policy source | `dsh-destructive-guard` 0.1.0 | Outside the eight-entry registry; generates `destructive-policy` at build time rather than acting as a ninth ordinary removable plugin |
 

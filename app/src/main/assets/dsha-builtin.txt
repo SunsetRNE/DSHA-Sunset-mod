@@ -7,3 +7,4 @@ dsh-auto-review
 dsh-tool-vscreen
 dsh-launch-target
 dsh-fs-read-hint
+dsh-fs-search-scope

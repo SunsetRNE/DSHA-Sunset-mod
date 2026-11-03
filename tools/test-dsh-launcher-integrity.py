@@ -226,8 +226,8 @@ public class EntryDump {
         self.assertFalse(self.command.exists())
         self.assertTrue(self.command.is_symlink())
 
-    def test_real_registrar_links_all_ten_wrappers_and_cache_reuses_them(self):
-        self.assertEqual(10, len(self.managed))
+    def test_real_registrar_links_all_eleven_wrappers_and_cache_reuses_them(self):
+        self.assertEqual(11, len(self.managed))
         self.assertGreater(self.registrar.ensure_runtime_modules(), 0)
         with contextlib.redirect_stdout(io.StringIO()) as captured:
             self.assertEqual(0, self.registrar.ensure_runtime_modules())
@@ -241,7 +241,7 @@ public class EntryDump {
         self.registrar.ensure_runtime_modules()
         for directory in self.managed:
             (directory / "node_modules").unlink()
-        self.assertEqual(10, self.registrar.ensure_runtime_modules())
+        self.assertEqual(11, self.registrar.ensure_runtime_modules())
         for directory in self.managed:
             self.boot_ok(directory / "launcher-anchor-probe.mjs")
 

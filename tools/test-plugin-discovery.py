@@ -519,7 +519,7 @@ class DiscoveryTest(unittest.TestCase):
         visible = [item for item in items.values() if not item['internal']]
         self.assertEqual({'dsh-device-shell-guide','dsh-task-notifier','dsh-status-overlay','dsh-web-mobile',
                           'dsh-computer-use-android','@deepseek-ai/dsh-experimental-auto-review','dsh-tool-vscreen',
-                          'dsh-launch-target','dsh-fs-read-hint'}, {item['name'] for item in visible})
+                          'dsh-launch-target','dsh-fs-read-hint','dsh-fs-search-scope'}, {item['name'] for item in visible})
 
     def test_auto_review_web_off_survives_register_and_removes_both_aliases(self):
         aliases = self.builtin.AUTO_REVIEW_ALIASES

@@ -471,6 +471,21 @@
       "asset": "builtin-plugins/dsh-fs-read-hint/lib/index.js",
       "target": "root/dsha-fs-read-hint/lib/index.js",
       "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-search-scope/package.json",
+      "target": "root/dsha-fs-search-scope/package.json",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-search-scope/cordis.patch.yml",
+      "target": "root/dsha-fs-search-scope/cordis.patch.yml",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-search-scope/lib/index.js",
+      "target": "root/dsha-fs-search-scope/lib/index.js",
+      "executable": false
     }
   ],
   "assetFiles": [
