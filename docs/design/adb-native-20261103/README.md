@@ -60,8 +60,8 @@
 |---|---|---|---|
 | E1 | proot 内能否看到宿主 App 私有目录（`/data/data/<pkg>/shared_prefs`、`no_backup`、`databases`、`files/` 以外） | `ls -ld`、`stat` 宿主绝对路径；`cat /proc/self/mountinfo`、`/proc/self/status` 的 TracerPid；不读文件内容 | 决定 K2 是否还有意义 |
 | E2 | 绕过 proot 路径翻译：静态二进制直接 `openat` 宿主路径；proroot 与 proot 两种引擎分别看 | 只 `open(O_RDONLY)` 后立刻关闭、不读内容；只针对 DSHA 自己的目录 | 同上；也决定 R5 的严重度 |
-| E3 | 容器能否直接执行 `/system/bin/su` 拿到 root | 只看 `ls -l` / `which su` 和管理器授权记录；**不实际执行 su**，除非用户另行同意执行 `su -c id` | R2 |
-| E4 | 容器能否打开 `/dev/binder`、执行 `app_process` | `ls -l /dev/binder`；`app_process` 只跑 `--help` 类无副作用调用，不加载任何类 | R1、R3 |
+| E3 | 容器能否直接执行 `/system/bin/su` 拿到 root | 只看 `ls -l` / `which su` 和管理器授权记录；**不实际执行 su**，除非用户另行同意执行 `su -c id`。T38 真机记录：容器 `PATH` 上的 `su` 是 guest 自带 `/usr/bin/su`，不是管理器的；要查的是宿主 `/system/bin/su`、KernelSU 等管理器路径能否从容器访问。该机为 KernelSU，未下结论 | R2 |
+| E4 | 容器能否打开 `/dev/binder`、执行 `app_process` | `ls -l /dev/binder`；`app_process` 只跑 `--help` 类无副作用调用，不加载任何类。T38 真机记录：Shizuku 兼容管理器为 Stellar（`roro.stellar.manager`），user service 以 uid0 运行，R3 若成立即为 root 级 | R1、R3 |
 | E5 | `app_process` 在 App UID 下能否调 keystore2 | 需要探针类，放实现阶段在 `.test` 包验证 | R1 |
 | E6 | 系统「已配对设备」能否列出 / 撤销旧配对；`/data/misc/adb/adb_keys` 是否 shell 可读 | 手机设置页只读查看（需 `android_control begin`） | 迁移文案 |
 | E7 | 平台 TLS（非 Conscrypt 独立包）能否用 AndroidKeyStore RSA 私钥做 TLS 1.3 客户端认证（`rsa_pss_rsae_sha256`）对 adbd 握手 | `.test` 包探针 | K1 是否可行 |
@@ -123,7 +123,7 @@
 
 1. `BridgeRoutes` 的 `DEVICE_EXECUTE` 不再读 `adb` 参数；带了就按 §5.2 拒绝。
 2. `deviceExecute(command, forceRoot, forceAdb)` 去掉 `forceAdb`，选通道调用 T41 的统一顺序函数（T41 未进 main 时保持现有 Root → Shizuku → ADB）。
-3. T38 分支 `AdbBridge.probe` 为了不被 Root/Shizuku 冒充而加了 `--port`（`fix/adb-channel-pileup` 53938150）。原生探活直接用 `AdbChannelOwner` 跑 `id`，这条强制路径一起退役。
+3. T38 分支 `AdbBridge.probe` 为了不被 Root/Shizuku 冒充而加了 `--port`（`fix/adb-channel-pileup` 53938150）。原生探活直接用 `AdbChannelOwner` 跑 `id`，这条强制路径一起退役；「探活结果只能来自 ADB」语义保留（§8 T38 行）。
 4. `AccessibilityRepairOwner` 等「必须是 ADB」的内部调用走原生 API，不再借桥参数强制。
 
 ## 7. 旧密钥迁移与撤销
@@ -158,7 +158,7 @@
 
 | 任务 | 交叉点 | 约定 |
 |---|---|---|
-| T38（@t38-adb，`fix/adb-channel-pileup`） | 同改 `AdbBridge`、`DeviceBridgeService`；探活加 `--port` | T38 先合入；T42 在其上变基。T38 的探活强制端口在 T42 Phase 3 退役；`AdbChannelOwner` 的连接上限 / 回收沿用 T38 取证结论，有冲突先 peer 协调 |
+| T38（@t38-adb，`fix/adb-channel-pileup` 53938150） | 两文件共 33+/11−：① `AdbBridge.probe()` 无端点时带 `--port <connect_port，缺省 5555>`，有意借 #11 的强制路径，防 root/Shizuku 的 `uid=…` 冒充「ADB 已连接」；② `DeviceBridgeService.startProbe()` 不再整轮持有环境租约，每条容器命令短暂持有，环境忙时本轮返回不计失败，连续 ≥3 次 need_manual 记 `DeviceChannelDiagnostics`。主体在 `RootShell` / `RootShellMain` / `ShellService`（与本稿无交叉） | 谁先进 main 另一方变基，冲突只在 `probe()` / `startProbe()`。T42 Phase 2 用原生 `AdbChannelOwner` 跑 `id` 整块替换 ①，不经 `/device/execute` 选通道，并保住两条语义（写成单测）：**探活结果只能来自 ADB 连接，不能来自 root/Shizuku**；**探活不长时间独占环境租约，环境忙不计失败**（原生探活本身不再需要容器环境，后者自然满足，但保留「忙/未就绪不计失败」）。`DeviceChannelDiagnostics` 记录点保留 |
 | T40（@t40-devexec，DeviceGuard） | T40 §5.3 为 ADB 设计了 `nativeTicket` + `/device/commit` 发送前核销；§7 表把 ADB 写成「确认挡不住」 | T42 原生执行后确认在原生阻塞完成，**不需要 ADB 票据**。若 T42 实现排在 T40 之后，T40 的票据作过渡，T42 删除；若同期，T40 跳过票据。T40 §7 的 ADB 行改为「随包入口可强制，同 UID 见 R1」 |
 | T41（选通道顺序） | `deviceExecute` 的顺序 | T42 不改顺序，只删 `forceAdb`；顺序函数归 T41，T42 调用它 |
 | T39（@t39-guard，AgentNextAction 与错误格式） | 新错误码 | 不新增 nextAction 词。新增 error：`DEVICE_ADB_NOT_PAIRED`、`DEVICE_ADB_REPAIR_REQUIRED`、`DEVICE_CHANNEL_FORCE_UNSUPPORTED`，均 `nextAction: REPORT_TO_USER`，格式用 T40 `DeviceRefusal`；登记进同一张表 |
