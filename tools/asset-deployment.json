@@ -61,6 +61,7 @@
     "managed-runtime-inputs.json",
     "materialize-cas-links.py",
     "native-consent.cjs",
+    "net-epoch.cjs",
     "office-fonts-patch.json",
     "offline-rootfs.version",
     "pdf-compat-patch.json",

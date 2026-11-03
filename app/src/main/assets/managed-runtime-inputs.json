@@ -43,6 +43,11 @@
       "executable": false
     },
     {
+      "asset": "net-epoch.cjs",
+      "target": "usr/local/share/dsha/net-epoch.cjs",
+      "executable": false
+    },
+    {
       "asset": "dsha-builtin.txt",
       "target": "root/dsha-builtin.txt",
       "executable": false

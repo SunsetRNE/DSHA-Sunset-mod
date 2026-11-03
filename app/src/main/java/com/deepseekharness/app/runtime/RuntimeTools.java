@@ -37,6 +37,7 @@ final class RuntimeTools {
         RuntimeHostPorts.fromOwner(context.getApplicationContext()).open()) {
       // 设备 DNS 查询与网络回调注册都可能跨 Binder；不能在资产准备 monitor 内调用系统服务。
       ResolverRefresher.start(context);
+      NetworkEpochPublisher.start(context);
       java.util.List<String> deviceDns = deviceDns(context);
       RuntimeHostPorts.Settings settings =
           RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings();
@@ -666,6 +667,7 @@ final class RuntimeTools {
   static void prepareResolver(Context context, File rootfs, RuntimeHostPorts.Settings settings)
       throws IOException {
     ResolverRefresher.start(context);
+    NetworkEpochPublisher.start(context);
     prepareResolver(context, rootfs, settings, deviceDns(context));
   }
 
@@ -755,8 +757,10 @@ final class RuntimeTools {
     environment.put("DSHA_PLUGIN_UNLOCKED", "1");
     environment.put("DSHA_ANDROID_RUNTIME", "1");
     environment.put("DSHA_DNS_MODE", settings.dnsMode);
-    String preload = "--require=/usr/local/share/dsha/dns-compat.cjs";
-    if (new File(rootfs, "usr/local/share/dsha/dns-compat.cjs").isFile()) {
+    // DNS 兼容与切网后回收外网连接（net-epoch.cjs，T37）；文件缺失（旧环境）时不加。
+    for (String name : new String[] {"net-epoch.cjs", "dns-compat.cjs"}) {
+      String preload = "--require=/usr/local/share/dsha/" + name;
+      if (!new File(rootfs, "usr/local/share/dsha/" + name).isFile()) continue;
       String previous = environment.getOrDefault("NODE_OPTIONS", "");
       if (!Arrays.asList(previous.split("\\s+")).contains(preload))
         environment.put("NODE_OPTIONS", preload + (previous.isEmpty() ? "" : " " + previous));

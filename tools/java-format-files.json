@@ -302,6 +302,7 @@
     "app/src/main/java/com/deepseekharness/app/runtime/ManagedRuntimeAssets.java",
     "app/src/main/java/com/deepseekharness/app/runtime/NativeProcess.java",
     "app/src/main/java/com/deepseekharness/app/runtime/NativeStorage.java",
+    "app/src/main/java/com/deepseekharness/app/runtime/NetworkEpochPublisher.java",
     "app/src/main/java/com/deepseekharness/app/runtime/PrivilegedPackageContext.java",
     "app/src/main/java/com/deepseekharness/app/runtime/ProfileSettingsTrial.java",
     "app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.java",
@@ -1435,6 +1436,8 @@
     "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/NativeDataLocationsProofTest.java",
     "app/src/main/java/com/deepseekharness/app/util/NestedScrollArbiter.java",
-    "app/src/test/java/com/deepseekharness/app/util/NestedScrollArbiterTest.java"
+    "app/src/main/java/com/deepseekharness/app/util/NetworkEpochPolicy.java",
+    "app/src/test/java/com/deepseekharness/app/util/NestedScrollArbiterTest.java",
+    "app/src/test/java/com/deepseekharness/app/util/NetworkEpochPolicyTest.java"
   ]
 }
