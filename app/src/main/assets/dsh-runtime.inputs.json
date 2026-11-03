@@ -51,6 +51,7 @@
     "app/src/main/assets/guard-tools-patch.json": "183b611857d85ee5bb876c08a27bad4101266d3f98f64dbcf5c9106bcfa8a1ee",
     "app/src/main/assets/language-patch.json": "e7711eaf2cfe225f8e63884092bcb0032263b5c1dd8cba54273936b049d96333",
     "app/src/main/assets/mcp-image-base64-patch.json": "23ba215b76e6636df5a37e7fd8b2286868a220b80dc309f93437f7033e590d86",
+    "app/src/main/assets/mcp-version-negotiation-patch.json": "ac4aabe127070faed62ec94afac817ae455c265f43df73fcbee8c92de8bae790",
     "app/src/main/assets/office-fonts-patch.json": "4a78eb61f065ced0b6e67d7d87c68057c0959345fe920a034f2b996becaa0886",
     "app/src/main/assets/permission-full-access-patch.json": "e76ee0c832599ecf303a422ec12b45be518f752d37ccc1a94b0539e2d53318cb",
     "app/src/main/assets/persona-compat-patch.json": "32b80ece1695b3eb49475cfd86ea18ecf5a7e0ef67f87245f88d6a0864c5db04",
@@ -71,7 +72,7 @@
     "app/src/main/assets/retire-guarded-preset-patch.json": "232162ab07646bceeef4bcbe1909872f04342b7c6b698a68836169cc3300e108",
     "app/src/main/assets/retired-market-catalog-patch.json": "a2ff7c0fd9456da1c1c09b3738613c4a89a84e7172ef1cae2653bb192277b09f",
     "app/src/main/assets/retired-market-optional-patch.json": "93147f30b2af3f1da304fbe75803b91f48785c114f5f80ab3b3b46fb96b8ce1f",
-    "app/src/main/assets/runtime-patches.json": "25ffd47e51605a25605c051899a2a7f3a7689e531c612b22d76c906933d58139",
+    "app/src/main/assets/runtime-patches.json": "f8873cf07386aaa9114372d74a0ba35eb114b6a0a7791d54670aaa166b0f5906",
     "app/src/main/assets/session-interaction-patch.json": "bbd70d4fa4d28decb62d3a81712866dd8ca94079042d65eca452b7f9358503e7",
     "app/src/main/assets/sidebar-layout-recovery-patch.json": "fac70cb2e37129e010d7f24526d541bd5f63e84acd6737517fce4e30b18226e3",
     "app/src/main/assets/startup-mcp-timing-patch.json": "c8b03650b74ee9ef1f1133761eec1eb38be9e2fdc083b5eb81badd8c56571e69",
@@ -92,5 +93,5 @@
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
     "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
-  "archive_sha256": "2316d6d9051455a6ed1507b887e5c30fb2ac9fe4b204d97e179ef34c5f692dc0"
+  "archive_sha256": "6fd66dc0ff674053a938d5222aa6dfe5377a258a8e71feddfd7978851810cc9f"
 }
