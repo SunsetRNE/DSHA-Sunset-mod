@@ -208,7 +208,7 @@ public final class RuntimeToolsRegistryAndroidTest {
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
     assertEquals(45, groups.size());
-    assertEquals(60, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(61, groups.values().stream().mapToInt(java.util.List::size).sum());
     assertEquals(
         "web-fetch-http-surrogate-patch.json",
         groups.get("@deepseek-ai/dsh-web-fetch-http/lib/index.js").get(0).id());
@@ -218,6 +218,10 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertTrue(
         groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
             .anyMatch(recipe -> recipe.id().equals("mcp-image-base64-patch.json")));
+    // T31：虚拟屏插件靠此补丁选择 legacy 协商；默认 auto 不变。
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
+            .anyMatch(recipe -> recipe.id().equals("mcp-version-negotiation-patch.json")));
     var locale = groups.get("@deepseek-ai/dsh-client-locale/lib/client.js");
     assertEquals(1, locale.size());
     assertEquals("language-patch.json", locale.get(0).id());
