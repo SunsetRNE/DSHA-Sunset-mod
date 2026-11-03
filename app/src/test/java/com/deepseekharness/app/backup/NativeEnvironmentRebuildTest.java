@@ -89,6 +89,28 @@ public class NativeEnvironmentRebuildTest {
   }
 
   @Test
+  public void localRebuildKeepsAdbPairingKeysButNotOtherMachineState() throws Exception {
+    File files = temp.newFolder();
+    fixture(files);
+    put(files, "linux/ubuntu/root/.dsh/adbkeys/adbkey", "local pairing key");
+    put(files, "linux/ubuntu/root/.dsh/adbkeys/adbkey.pub", "local pairing pub");
+    put(files, "linux/ubuntu/root/.dsh/.bridge_token", "old bridge token");
+    var transaction = prepared(files);
+    transaction.begin();
+    put(files, "linux/ubuntu/usr/bin/system-tool", "new system");
+    new MaintenanceDataSnapshot(FS, files, transaction.directory(), new File(files, "public"))
+        .restore(new File(files, "linux/ubuntu"), new BackupControl(null));
+    // adbkeys 已不进用户备份，但本机重建只在私有目录间迁移，原配对保留。
+    assertEquals(
+        "local pairing key",
+        Files.readString(new File(files, "linux/ubuntu/root/.dsh/adbkeys/adbkey").toPath()));
+    assertEquals(
+        "local pairing pub",
+        Files.readString(new File(files, "linux/ubuntu/root/.dsh/adbkeys/adbkey.pub").toPath()));
+    assertFalse(new File(files, "linux/ubuntu/root/.dsh/.bridge_token").exists());
+  }
+
+  @Test
   public void failureAndRepeatedRollbackKeepOriginalAndFailedTrees() throws Exception {
     File files = temp.newFolder();
     fixture(files);

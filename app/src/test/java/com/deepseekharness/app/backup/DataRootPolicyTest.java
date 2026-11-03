@@ -47,4 +47,16 @@ public class DataRootPolicyTest {
         DataRootPolicy.exclusion("profiles", "web/.bridge_token.previous"));
     assertEquals("", DataRootPolicy.exclusion("profiles", "web/.env"));
   }
+
+  @Test
+  public void adbPairingKeysAreDeviceStateInBackupAndRestore() {
+    // .dsh/adbkeys 是 .dsh 的直接子项：备份侧整根排除，恢复侧 dsh-child 映射为不落地。
+    assertTrue(DataRootPolicy.machine("adbkeys"));
+    assertEquals("DEVICE_SPECIFIC_STATE", DataRootPolicy.exclusion("adbkeys", ""));
+    assertEquals("DEVICE_SPECIFIC_STATE", DataRootPolicy.exclusion("adbkeys", "adbkey"));
+    assertEquals("DEVICE_SPECIFIC_STATE", DataRootPolicy.exclusion("adbkeys", "adbkey.pub"));
+    // 只按 .dsh 顶层名排除，插件或项目里的同名目录仍是用户数据。
+    assertEquals("", DataRootPolicy.exclusion("profiles", "web/adbkeys/readme.md"));
+    assertFalse(DataRootPolicy.machine("adbkeys-notes"));
+  }
 }
