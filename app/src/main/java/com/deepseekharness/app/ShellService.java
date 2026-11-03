@@ -38,6 +38,15 @@ extends IShellService.Stub {
     private com.deepseekharness.app.util.SelfPackageIdentity identity()throws java.io.IOException{
         return launchIdentity!=null?launchIdentity:com.deepseekharness.app.runtime.PrivilegedPackageContext.callerIdentity(ShellService.class,packageContext);
     }
+    /** RootShellMain 看门狗用：以本进程（root）身份结束本次登记的子进程，不退出、不抛出。 */
+    void terminateOwned() {
+        java.util.List<Process> owned;
+        synchronized (processes) { closing = true; owned = new java.util.ArrayList<>(processes); }
+        for (Process process : owned) {
+            try { Compat.destroy(process); } catch (RuntimeException ignored) { }
+        }
+    }
+
     @Override public void destroy() {
         java.util.List<Process> owned;
         synchronized (processes) { closing = true; owned = new java.util.ArrayList<>(processes); }
