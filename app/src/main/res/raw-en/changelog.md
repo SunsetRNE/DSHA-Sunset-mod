@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.2000-dsh0.2.1-rc.5 / build300
+# DSHA 0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5 / build301
 
-- Adds the temporary fix plugin dsh-fs-read-hint: when an edit is rejected because the file was not read first, it points to an already-read path with the same name; the runtime archive is rebuilt and the emergency environment stays in sync.
-- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 300 (based on build299). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- Virtual screen observation failures are split into blank screen, first-frame wait and stalled frames with a next step; generation drift after assistant rotation is fixed; device and screen prompts are deduplicated.
+- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 301 (based on build300). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.

@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build300 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build301 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build300 `0.2.1-rc.3-20261103.2000-dsh0.2.1-rc.5`.** Adds the temporary fix plugin dsh-fs-read-hint, which points to an already-read path with the same name when an unread edit is rejected. versionCode 300, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build300 notes](../releases/build300-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build301 `0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5`.** Virtual screen observation failures now say whether the screen is blank, waiting for the first frame or stalled, with a next step. versionCode 301, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build301 notes](../releases/build301-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103b`, 696,362,663 B, SHA-256 `c8856fc98e69c994eeb39e5cedab3d4316c35297e3ddb70943f3b3d431d61f88`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

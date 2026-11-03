@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.2000-dsh0.2.1-rc.5` / build300 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版新增临时修复插件 dsh-fs-read-hint，未读即改被拒时提示已读的同名路径；运行时归档按签名名单重建，应急归档同步。本机定向单测、Lint 与源码门禁通过。改动说明见 [build300 更新说明](releases/build300-changes.zh.md)，验证记录见 [build300 记录](releases/v0.2.1-rc.3-build300-fs-read-hint-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5` / build301 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版细分虚拟屏观察失败（空屏、首帧等待、画面停滞）并给出下一步，修复助手旋转后代次失步；设备与屏幕提示词去重。本机定向单测、Lint 与源码门禁通过。改动说明见 [build301 更新说明](releases/build301-changes.zh.md)，验证记录见 [build301 记录](releases/v0.2.1-rc.3-build301-vscreen-hints-prompts-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

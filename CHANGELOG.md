@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5 / build301（虚拟屏观察失败细分并给出下一步，修复助手旋转后代次失步；设备/屏幕提示词去重）
+
+- 虚拟屏助手侧观察失败细分为空屏、首帧等待、画面停滞并给出下一步；待清理 Core 下 see/tree 不再互相指向重看；助手旋转虚拟屏不再判成「目标已变」导致管理器与 Core 代次失步，旋转回复写明显示已重建、原应用需重新 launch（分支 `fix/vscreen-error-detail` 4a17f5c2..b2f033f7，T35，基于 build299；真机四种情况已由原会话核对）。
+- 设备 / 屏幕常驻提示词去重为中文单份，写明虚拟屏不需 android_control begin、无障碍关闭时像素路径仍可用，97 条约束由测试逐条锁定（分支 `docs/screen-prompt-consolidation` 2378a0e3，T36；真机三项已由原会话核对）。
+- 验证范围：发布会话在 build301 上复跑 `com.deepseekharness.app.vscreen.*` / `*VirtualScreenObservationHintTest` / `*HttpShellService*` / `*DshaAccessibility*` / `RuntimeToolsRegistryAndroidTest` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 301（基于 build300）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build301 更新说明](docs/releases/build301-changes.zh.md)，验证记录见 [build301 记录](docs/releases/v0.2.1-rc.3-build301-vscreen-hints-prompts-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.2000-dsh0.2.1-rc.5 / build300（新增临时修复插件 dsh-fs-read-hint：未读即改被拒时提示已读的同名路径）
 
 - 新增签名内置临时修复插件 `dsh-fs-read-hint`：助手未读即改被 `fs-observation-policy` 拒绝时，在报错里追加本会话已读过的同名路径，帮助改用正确路径；`dsh-runtime.bin` 按签名名单重建（只有 `dsh-plugin-manager/lib/index.js` 一个成员变化），应急锁同步到同一字节保持去重，固定构建输入切到 `fixed-inputs-20261103b`；发布会话补登记 `tools/test-fs-read-hint.mjs` 到 host-tests 清单（分支 `fix/fs-read-hint-rebuild` 71be0f94..d5f96f58，基于 build299；未上真机）。
