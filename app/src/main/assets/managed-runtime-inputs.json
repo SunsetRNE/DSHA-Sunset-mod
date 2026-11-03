@@ -451,6 +451,21 @@
       "asset": "builtin-plugins/dsh-launch-target/lib/client.js",
       "target": "root/dsha-launch-target/lib/client.js",
       "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-read-hint/package.json",
+      "target": "root/dsha-fs-read-hint/package.json",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-read-hint/cordis.patch.yml",
+      "target": "root/dsha-fs-read-hint/cordis.patch.yml",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-read-hint/lib/index.js",
+      "target": "root/dsha-fs-read-hint/lib/index.js",
+      "executable": false
     }
   ],
   "assetFiles": [

@@ -15,6 +15,7 @@
 | 可见 | `dsh-computer-use-android` 0.1.1 | MCP stdio `dsha-android`，180秒调用预算 |
 | 可见 | `dsh-tool-vscreen` 0.1.1 | MCP stdio `dsha-vscreen`，60秒调用预算 |
 | 可见兼容包装 | `dsh-auto-review` 0.1.0 | 包装/alias；实际功能来自锁定官方实验Auto包，不能把空包装当完整实现 |
+| 可见·临时修复 | `dsh-fs-read-hint` 0.1.0 | `FS_NOT_OBSERVED` 报错附已读同名路径，只改文字；撤除条件见[专页](fs-read-hint-plugin.md) |
 | 内部 | `dsh-app-integration` 1.2.3 | 活动心跳、临时插件摘要、原生返回与浏览器origin恢复 |
 | 策略源 | `dsh-destructive-guard` 0.1.0 | 不在8项注册表中；构建时生成`destructive-policy`，不是可随意卸载的第9个普通插件 |
 

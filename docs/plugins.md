@@ -41,6 +41,8 @@
 
 内置系统插件 `dsh-launch-target`（启动目标）在 Web「设置」导航注册独立的「启动目标」面板（`settings.section`），插件详情页保留同一张卡片，提供“桌面图标启动后进入：主界面 / Web 界面”。面板管理参数，插件只负责把选择传给原生 App；禁用插件只移除面板，不改变已选的启动目标，关闭直进 Web 请在面板或原生开关里选“主界面”。值只保存在原生 App（3090 桥 `/app/entry-target`，仅 `main` / `web`），默认主界面，不进入任何备份；原生“设置 → 运行配置”有同一开关。选择 Web 时，桌面图标先显示开机加载页，入口门禁放行且鉴权就绪后进入 Web，在 Web 返回到底回到桌面；维护、启动恢复、原实例待确认或待处理的插件链接时仍进入主界面。插件页路由经 DSH `connection` 鉴权与同源检查，浏览器不接触桥 token。
 
+内置临时修复插件 `dsh-fs-read-hint`（读取提示）：DSH 以 `file has not been read` 拒绝修改、而本会话读过同名的另一路径（如主检出与 worktree 副本）时，在报错后附上该路径。只改报错文字，不放行修改；可在插件页单独停用或删除，停用后报错与上游一致。上游跟踪与撤除条件见[专页](fs-read-hint-plugin.md)。
+
 F11按APK提供的受管包proof及实际完整内容区分DSHA签名组件、DSH受管包和用户插件；npm scope、`dsh-`前缀、目录位于DSH安装树或可写`installation.dependencies`都不能提升来源。位于安装树但未获受管证明的包显示用户/未验证；原生管理允许查看、开关与导出，不在该位置自动更新或删除。标准profile中的用户插件仍按正常安装/启停/删除链管理。具体分层和备份复核见[插件运行与权限](plugin-runtime-and-permissions.md)。
 
 发现先筛选小manifest与真实patch bundle，每命令/请求认证一次proof表并按canonical目录去重，不复用跨请求stat缓存。Node真实Host完整FILE/mode/LINK、目录成员与竞态证明使用异步API，最多2个内容扫描并发、64 KiB读取块；删除在提交前对实际目标再次完整核验。已有桌面夹具双list约0.65秒、独立Worker HTTP ping约14毫秒且扫描pending，仅代表该桌面输入，不是手机或最终性能保证，本页未重跑该测试。

@@ -36,6 +36,7 @@ Build and acceptance records for earlier versions stay in [releases/](releases/)
 | Device channels, 3090 protocol, LAN, files, system documents | [Device channels](device-channels.md), [bridge and files](bridge-and-files.md), [LAN](lan.md), [Web files](web-file-sharing.md) |
 | One-click/manual/automatic backup, restore, snapshots, independent recovery | [Backup and restore](backup-and-restore.md), [configuration snapshots](config-snapshots.md), [independent recovery](emergency-recovery.md), [v5 format](backup-format-v5.md) |
 | Plugin installation, system/user separation, protocol, permissions, restart | [Plugin operations](plugins.md), [plugin runtime and permissions](plugin-runtime-and-permissions.md) |
+| Temporary built-in fix: read hint for "file has not been read" (upstream #11977) | [dsh-fs-read-hint](fs-read-hint-plugin.md) |
 | PTY/simple terminals, WebView/Gecko, desktop UA, PiP | [Terminals](terminal.md), [browser engines](browser-engines.md), [picture-in-picture](picture-in-picture.md) |
 | Language latching, overlays, approval, task notifications | [Language](i18n.md), [overlays and notifications](overlay-and-notifications.md) |
 | Source, pinned inputs, signing, release, and test evidence | [Build and release](build-and-release.md), [domain boundaries](agents/domain.md), [issue workflow](agents/issue-tracker.md), [triage vocabulary](agents/triage-labels.md) |
