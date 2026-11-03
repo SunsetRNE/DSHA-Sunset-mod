@@ -16,6 +16,13 @@ final class CardPage {
   final Context context;
   final LinearLayout root, content, footer;
   final ScrollView scroll;
+
+  /** 标题与副标题（可能为 null）；CardSheet 的短屏分栏形态把它们移到左栏。 */
+  TextView heading, subtitle;
+
+  /** 由 {@link #button} 创建的主按钮；CardSheet 横排页脚时把主操作放到右侧。 */
+  final java.util.Set<View> primaryButtons = new java.util.HashSet<>();
+
   private final boolean compact;
 
   CardPage(Context context, String title, String subtitle) {
@@ -38,7 +45,7 @@ final class CardPage {
     scroll.addView(content);
     root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     if (title != null && !title.isEmpty()) {
-      TextView heading = text(title, compact ? 20 : 26, R.color.shell_text);
+      heading = text(title, compact ? 20 : 26, R.color.shell_text);
       heading.setTypeface(null, android.graphics.Typeface.BOLD);
       heading.setLineSpacing(dp(2), 1);
       if (subtitle == null || subtitle.isEmpty())
@@ -50,6 +57,7 @@ final class CardPage {
       sub.setLineSpacing(dp(3), 1);
       sub.setPadding(0, dp(8), 0, dp(compact ? 14 : 20));
       content.addView(sub);
+      this.subtitle = sub;
     }
     footer = column();
     footer.setPadding(dp(pad()), dp(8), dp(pad()), dp(compact ? 12 : 16));
@@ -128,9 +136,9 @@ final class CardPage {
     mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     row.addView(mark, new LinearLayout.LayoutParams(dp(32), dp(32)));
     LinearLayout words = column();
-    TextView heading = text(title, 14, R.color.shell_text);
-    heading.setTypeface(null, android.graphics.Typeface.BOLD);
-    words.addView(heading);
+    TextView name = text(title, 14, R.color.shell_text);
+    name.setTypeface(null, android.graphics.Typeface.BOLD);
+    words.addView(name);
     if (subtitle != null && !subtitle.isEmpty()) {
       TextView detail = text(subtitle, 12, R.color.shell_text_muted);
       detail.setPadding(0, dp(4), 0, 0);
@@ -174,6 +182,7 @@ final class CardPage {
     button.setTextColor(
         context.getColorStateList(primary ? R.color.button_primary_text : R.color.button_text));
     button.setOnClickListener(v -> action.run());
+    if (primary) primaryButtons.add(button);
     LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
     p.topMargin = dp(10);
     parent.addView(button, p);
