@@ -2437,6 +2437,19 @@
       "cli": "No arguments; uses the verified current raw/managed test-runtime fixture and controlled official Auto review LLM response"
     },
     {
+      "path": "tools/test-fs-read-hint.mjs",
+      "stage": "runtime",
+      "reason": "dsh-fs-read-hint regression over the real rc.5 ToolRuntime and fs tools in a temporary app/build directory; no Android device operations",
+      "args": [],
+      "timeoutSeconds": 900,
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "environment": {},
+      "cli": "No arguments; uses the verified current raw test-runtime fixture"
+    },
+    {
       "path": "tools/test-signed-builtin-web-intent.mjs",
       "stage": "runtime",
       "reason": "Actual seven signed-wrapper Host OFF/ON and repeated native registration, manual/unknown/safe marker priority, profile isolation and serialized concurrent Native OFF; no device operations",
