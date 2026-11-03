@@ -272,6 +272,36 @@ public final class VirtualScreenActivityLayoutTest {
   }
 
   @Test
+  public void operatorCreateNeverReadsOrWritesTheAssistantScreenMode() throws Exception {
+    var prefs =
+        activity.getSharedPreferences(
+            com.deepseekharness.app.util.Constants.PREFS, android.content.Context.MODE_PRIVATE);
+    prefs.edit().putString(com.deepseekharness.app.screen.ScreenMode.KEY, "off").commit();
+    var create = VirtualScreenActivity.class.getDeclaredMethod("create", String.class);
+    create.setAccessible(true);
+    create.invoke(activity, "portrait");
+    for (int i = 0; i < 40 && (boolean) field(activity, "busy"); i++) {
+      Thread.sleep(50);
+      drain();
+    }
+    assertEquals(false, field(activity, "busy"));
+    // 操作者自己创建虚拟屏不能顺带把助手授权切到虚拟屏（ADR0003 决定六）。
+    assertEquals("off", prefs.getString(com.deepseekharness.app.screen.ScreenMode.KEY, null));
+  }
+
+  @Test
+  public void stoppedPageExplainsWhetherTheAssistantMayUseThisScreen() throws Exception {
+    var line = VirtualScreenActivity.class.getDeclaredMethod("assistantLine");
+    line.setAccessible(true);
+    field(activity, "assistantAllowed", null);
+    assertEquals("", line.invoke(activity));
+    field(activity, "assistantAllowed", Boolean.FALSE);
+    assertTrue(((String) line.invoke(activity)).contains("助手：不可使用本屏"));
+    field(activity, "assistantAllowed", Boolean.TRUE);
+    assertTrue(((String) line.invoke(activity)).contains("助手：可使用虚拟屏"));
+  }
+
+  @Test
   public void startUnknownOffersDiagnosticsAndDoesNotRepeatTheCardMessage() throws Exception {
     var manager = (VirtualScreenManager) field(activity, "manager");
     var life = VirtualScreenManager.class.getDeclaredField("lifecycleState");

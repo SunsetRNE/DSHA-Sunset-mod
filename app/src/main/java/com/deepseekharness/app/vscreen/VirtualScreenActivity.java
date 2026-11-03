@@ -50,6 +50,10 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   private String stageNote = "";
   // null = 尚未探测；"" = 当前没有可用通道。
   private String channelHint;
+
+  /** 助手当前能否使用虚拟屏（识屏模式 = virtual）；null 表示尚未读取。只读展示，不影响本页操作。 */
+  private Boolean assistantAllowed;
+
   // 最近一帧画面里的前台应用；旋转会重建显示，需要把它重新打开到新方向上。
   private String shownPackage = "";
   private VirtualScreenPreviews.Lease previewLease;
@@ -341,10 +345,20 @@ public final class VirtualScreenActivity extends AppCompatActivity {
               hint = "";
             }
             String out = hint;
+            boolean assistant;
+            try {
+              assistant =
+                  com.deepseekharness.app.screen.ScreenMode.current(app)
+                      == com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL;
+            } catch (RuntimeException unavailable) {
+              assistant = false;
+            }
+            boolean assistantOut = assistant;
             main.post(
                 () -> {
                   if (isDestroyed() || current != callbackEpoch) return;
                   channelHint = out;
+                  assistantAllowed = assistantOut;
                   render();
                 });
           });
@@ -416,11 +430,12 @@ public final class VirtualScreenActivity extends AppCompatActivity {
           original.isEmpty() ? "" : String.format(t("原通道：%s", "Original channel: %s"), original));
     else if (next != ViewState.RUNNING)
       detail.setText(
-          channelHint == null
-              ? ""
-              : channelHint.isEmpty()
-                  ? t("没有可用的设备通道", "No device channel available")
-                  : String.format(t("将使用通道：%s", "Channel: %s"), channelHint));
+          (channelHint == null
+                  ? ""
+                  : channelHint.isEmpty()
+                      ? t("没有可用的设备通道", "No device channel available")
+                      : String.format(t("将使用通道：%s", "Channel: %s"), channelHint))
+              + assistantLine());
     boolean floating = manager.overlay().enabled();
     floatButton.setImageTintList(
         android.content.res.ColorStateList.valueOf(
@@ -462,6 +477,20 @@ public final class VirtualScreenActivity extends AppCompatActivity {
             default -> t("尚未确认关闭", "Close not yet confirmed");
           };
     };
+  }
+
+  /** 操作者面板与助手授权分开：这里只说明助手能否使用本屏，以及去哪里改。 */
+  private String assistantLine() {
+    if (assistantAllowed == null) return "";
+    return "\n"
+        + (assistantAllowed
+            ? t(
+                "助手：可使用虚拟屏（识屏模式 = 虚拟识屏）",
+                "Assistant: may use the virtual screen (screen mode = Virtual)")
+            : t(
+                "助手：不可使用本屏；在“设置 → 设备能力授权 → 识屏模式”中选择虚拟识屏",
+                "Assistant: cannot use this screen; choose Virtual in Settings → Device capability"
+                    + " access → Screen mode"));
   }
 
   private String stageMessage(ViewState next) {
@@ -1065,46 +1094,26 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   /**
    * 旋转 = 按新方向重建显示（Core 释放旧 VirtualDisplay，应用不会自动迁移）。用户点旋转的意图是“同一应用换方向”，
    * 所以重建成功后在同一次动作里重新打开刚才显示的应用；这是本次用户动作的一部分，不是失败重试。
-   *
-   * <p>旋转只在虚拟屏运行时出现，此时应为虚拟识屏；模式已不是 virtual（例如刚被切走或降级）时拒绝，不借旋转重新创建。
    */
   private void rotate() {
     String orientation = landscapeFrame ? "portrait" : "landscape", pkg = shownPackage;
     run(
         () -> {
-          if (com.deepseekharness.app.screen.ScreenMode.current(getApplicationContext())
-              != com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL)
-            return new JSONObject()
-                .put("ok", false)
-                .put(
-                    "error", com.deepseekharness.app.util.ScreenModePolicy.SCREEN_MODE_VIRTUAL_OFF);
           JSONObject created = manager.start(orientation);
           if (!created.optBoolean("ok") || pkg.isEmpty()) return created;
           return manager.launch(pkg);
         });
   }
 
-  /** 用户在本页创建即选择虚拟识屏：经识屏模式切换（先收尾实体识屏），保持两种模式互斥。 */
+  /**
+   * 操作者侧创建：只受设备能力（{@link VirtualScreenChannels#choose}）与生命周期约束，不读也不改识屏模式。识屏模式只决定助手能用哪块屏
+   * （ADR0003 决定六）；用户自己创建虚拟屏不会把助手授权切到虚拟屏。
+   */
   private void create(String orientation) {
     if (busy) return;
     creating = true;
     stageNote = "";
-    run(
-        () -> {
-          // 已在虚拟识屏：保持原有直接创建路径。
-          if (com.deepseekharness.app.screen.ScreenMode.current(getApplicationContext())
-              == com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL)
-            return manager.start(orientation);
-          var result =
-              com.deepseekharness.app.screen.ScreenMode.request(
-                  getApplicationContext(),
-                  com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL,
-                  orientation);
-          if (result.start != null) return result.start;
-          return new JSONObject()
-              .put("ok", false)
-              .put("error", result.code.isEmpty() ? "SCREEN_MODE_" + result.outcome : result.code);
-        });
+    run(() -> manager.start(orientation));
   }
 
   private interface Work {
