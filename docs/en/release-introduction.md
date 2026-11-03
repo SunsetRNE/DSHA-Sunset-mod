@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build302 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build303 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build302 `0.2.1-rc.3-20261103.2100-dsh0.2.1-rc.5`.** Experimental: stale outbound connections are recycled after a network switch, so model requests no longer hang for 300 seconds. versionCode 302, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build302 notes](../releases/build302-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build303 `0.2.1-rc.3-20261103.2130-dsh0.2.1-rc.5`.** Experimental: sheets and dialogs adapt to window width, height and content size. versionCode 303, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build303 notes](../releases/build303-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103b`, 696,362,663 B, SHA-256 `c8856fc98e69c994eeb39e5cedab3d4316c35297e3ddb70943f3b3d431d61f88`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

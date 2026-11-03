@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.2130-dsh0.2.1-rc.5 / build303（实验性：弹层按窗口宽、高与内容自适应；收录 ADB 通道原生化设计稿，补充识屏守卫与设备命令确认设计稿）
+
+- 实验性：`CardSheet` / `CardPage` / `DshaDialogBuilder` 弹层按窗口宽、高与内容档自适应，几何计算抽到纯逻辑 `util/SheetGeometry`（分支 `feat/sheet-geometry` 8a207c13，基于 build296；**未上真机**）。
+- 文档：T42 ADB 通道原生化设计稿（`docs/design/adb-native-20261103/`，c68cbb5a、b8295fc5、02335afa）；T39 识屏守卫设计稿补权限审计与 Q8 定案（424c933f、4d0127aa）；T40 设备命令确认设计稿补 T42 依赖、T43 拆分与 §4.5 强确认（6da09a79）。均未实现。
+- 验证范围：发布会话在 build303 上复跑 `*SheetGeometryTest` / `*CardSheetGeometryTest` / `UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 303（基于 build302）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build303 更新说明](docs/releases/build303-changes.zh.md)，验证记录见 [build303 记录](docs/releases/v0.2.1-rc.3-build303-sheet-geometry-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.2100-dsh0.2.1-rc.5 / build302（实验性：切网后回收失效的外网连接，模型请求不再卡满 300 秒；收录识屏守卫与设备命令确认设计稿）
 
 - 实验性：网络切换（Wi-Fi / 移动数据）或切后台后，按网络代次回收失效的外网连接，模型请求不再卡满 300 秒；宿主发布网络代次 `NetworkEpochPublisher`，容器内 `net-epoch.cjs` 预加载后丢弃旧代次连接（分支 `fix/stream-stall-network` 0607535a、b457c17e，T37，基于 build299；**未上真机切网验证**，排查见 `docs/network-switch-connection-recycle.md` 与日志 `[dsha-net]`）。
