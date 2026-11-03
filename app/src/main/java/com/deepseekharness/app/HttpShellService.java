@@ -1910,6 +1910,8 @@ public final class HttpShellService {
       boolean existingCore = !operation.equals("create");
       if (existingCore) {
         if (callerCore.isEmpty()) return vscreenNotSent("VSCREEN_CORE_IDENTITY_REQUIRED");
+        // status 本身失败（待清理、未运行等）时如实回传该状态，不把它说成「Core 身份已变」。
+        if (!status.optBoolean("ok")) return vscreenStatusNotSent(status);
         if (!callerCore.equals(status.optString("coreInstance", "")))
           return vscreenNotSent("VSCREEN_CORE_IDENTITY_CHANGED");
         if (!callerGeneration.isEmpty()
@@ -2103,11 +2105,48 @@ public final class HttpShellService {
   }
 
   private static String vscreenNotSent(String code) {
+    String next =
+        code.startsWith("VSCREEN_CORE_IDENTITY") || code.equals("VSCREEN_GENERATION_CHANGED")
+            ? ",\"nextAction\":\""
+                + com.deepseekharness.app.util.VirtualScreenObservationHint.identityNextAction(code)
+                + "\""
+            : "";
     return "{\"ok\":false,\"state\":\"NOT_SENT\",\"error\":\""
         + code
         + "\",\"code\":\""
         + code
-        + "\"}";
+        + "\""
+        + next
+        + "}";
+  }
+
+  /**
+   * 现有 Core 请求发送前 status 失败：回传原状态码、生命周期与清理信息及下一步，请求未发送。待清理时
+   * nextAction=ASK_USER_TO_CLOSE：须用户同意后用同一 coreInstance 显式 close，绝不自动重建或换通道。
+   */
+  private static String vscreenStatusNotSent(org.json.JSONObject status) {
+    try {
+      String error = status.optString("error", "VSCREEN_STATUS_UNAVAILABLE");
+      boolean cleanup = status.optBoolean("cleanupPending");
+      var value =
+          new org.json.JSONObject()
+              .put("ok", false)
+              .put("state", "NOT_SENT")
+              .put("error", error)
+              .put("code", error)
+              .put("cleanupPending", cleanup)
+              .put(
+                  "nextAction",
+                  com.deepseekharness.app.util.VirtualScreenObservationHint.statusNextAction(
+                      error, cleanup))
+              .put("retryable", !cleanup);
+      for (String key :
+          new String[] {"lifecycleState", "coreInstance", "cleanupChannel", "cleanupProbeReason"})
+        if (status.has(key)) value.put(key, status.get(key));
+      return value.toString();
+    } catch (org.json.JSONException invalid) {
+      return vscreenNotSent("VSCREEN_STATUS_UNAVAILABLE");
+    }
   }
 
   private int intParam(String q, String k, int def) {

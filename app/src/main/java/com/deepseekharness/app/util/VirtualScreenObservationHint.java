@@ -158,8 +158,30 @@ public final class VirtualScreenObservationHint {
     return "ANCHOR_TARGET_EVIDENCE_UNAVAILABLE";
   }
 
+  public static final String CHECK_STATUS = "CHECK_STATUS";
+  public static final String ASK_USER_TO_CLOSE = "ASK_USER_TO_CLOSE";
+  public static final String CREATE_FIRST = "CREATE_FIRST";
+
+  /**
+   * 现有 Core 的请求在发送前发现 status 本身失败时的下一步。待清理（START_UNKNOWN / DISCONNECTED / CLOSING /
+   * CLOSE_UNKNOWN）不能靠重看或重建解决：先告诉用户，经同意后用同一 coreInstance 显式 close；绝不自动重建。
+   */
+  public static String statusNextAction(String statusError, boolean cleanupPending) {
+    if (cleanupPending) return ASK_USER_TO_CLOSE;
+    if ("VSCREEN_NOT_RUNNING".equals(statusError)) return CREATE_FIRST;
+    if ("VSCREEN_START_IN_PROGRESS".equals(statusError)) return WAIT_AND_SEE_AGAIN;
+    return CHECK_STATUS;
+  }
+
+  /** 身份不一致的未发送拒绝：Core 变了要先 status；只是代次变了重新观察即可。 */
+  public static String identityNextAction(String code) {
+    return "VSCREEN_GENERATION_CHANGED".equals(code) ? SEE_AGAIN : CHECK_STATUS;
+  }
+
   /** tree / node / editor 因拿不到虚拟屏窗口而未发送时的下一步建议。 */
   public static String semanticNextAction(Accessibility accessibility, String windowDiagnostic) {
+    // 没有可用显示与无障碍无关：先查 status，而不是重看同一块不存在的屏。
+    if ("DISPLAY_UNAVAILABLE".equals(windowDiagnostic)) return CHECK_STATUS;
     if (accessibility == Accessibility.NOT_ENABLED) return ENABLE_ACCESSIBILITY;
     if (accessibility != Accessibility.CONNECTED) return WAIT_ACCESSIBILITY_RECONNECT;
     if ("NO_WINDOWS".equals(windowDiagnostic)) return LAUNCH_APP_FIRST;
@@ -169,6 +191,7 @@ public final class VirtualScreenObservationHint {
 
   /** tree 未发送时的细分原因；error 仍保留 ACCESSIBILITY_UNAVAILABLE 兼容旧调用方。 */
   public static String semanticReason(Accessibility accessibility, String windowDiagnostic) {
+    if ("DISPLAY_UNAVAILABLE".equals(windowDiagnostic)) return "VSCREEN_DISPLAY_UNAVAILABLE";
     if (accessibility == Accessibility.NOT_ENABLED) return "ACCESSIBILITY_NOT_ENABLED";
     if (accessibility != Accessibility.CONNECTED) return "ACCESSIBILITY_NOT_CONNECTED";
     if ("NO_WINDOWS".equals(windowDiagnostic)) return NO_WINDOW;

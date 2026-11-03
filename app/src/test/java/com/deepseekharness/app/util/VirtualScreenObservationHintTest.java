@@ -146,4 +146,52 @@ public class VirtualScreenObservationHintTest {
         "VSCREEN_WINDOW_UNREADABLE",
         VirtualScreenObservationHint.semanticReason(CONNECTED, "WINDOW_ID_MISMATCH"));
   }
+
+  @Test
+  public void pendingCleanupAsksUserToCloseInsteadOfSeeingAgain() {
+    // 现场：CLOSE_UNKNOWN / cleanupPending 时 see 与 tree 都不能靠重看解决，也不能自动重建。
+    for (String code :
+        new String[] {
+          "VSCREEN_CLOSE_UNKNOWN",
+          "VSCREEN_START_UNKNOWN",
+          "VSCREEN_DISCONNECTED",
+          "VSCREEN_CLOSING"
+        })
+      assertEquals("ASK_USER_TO_CLOSE", VirtualScreenObservationHint.statusNextAction(code, true));
+    assertEquals(
+        "CREATE_FIRST",
+        VirtualScreenObservationHint.statusNextAction("VSCREEN_NOT_RUNNING", false));
+    assertEquals(
+        "WAIT_AND_SEE_AGAIN",
+        VirtualScreenObservationHint.statusNextAction("VSCREEN_START_IN_PROGRESS", false));
+    assertEquals(
+        "CHECK_STATUS",
+        VirtualScreenObservationHint.statusNextAction("VSCREEN_TRANSPORT_UNAVAILABLE", false));
+  }
+
+  @Test
+  public void identityRejectionsPointToStatusOrFreshObservation() {
+    assertEquals(
+        "CHECK_STATUS",
+        VirtualScreenObservationHint.identityNextAction("VSCREEN_CORE_IDENTITY_CHANGED"));
+    assertEquals(
+        "CHECK_STATUS",
+        VirtualScreenObservationHint.identityNextAction("VSCREEN_CORE_IDENTITY_REQUIRED"));
+    assertEquals(
+        "SEE_AGAIN", VirtualScreenObservationHint.identityNextAction("VSCREEN_GENERATION_CHANGED"));
+  }
+
+  @Test
+  public void missingDisplayIsNotReportedAsUnreadableWindow() {
+    // 现场：tree 在没有可用显示时曾回 VSCREEN_WINDOW_UNREADABLE + SEE_AGAIN，与 see 的拒绝形成循环。
+    for (VirtualScreenObservationHint.Accessibility a :
+        VirtualScreenObservationHint.Accessibility.values()) {
+      assertEquals(
+          "CHECK_STATUS",
+          VirtualScreenObservationHint.semanticNextAction(a, "DISPLAY_UNAVAILABLE"));
+      assertEquals(
+          "VSCREEN_DISPLAY_UNAVAILABLE",
+          VirtualScreenObservationHint.semanticReason(a, "DISPLAY_UNAVAILABLE"));
+    }
+  }
 }
