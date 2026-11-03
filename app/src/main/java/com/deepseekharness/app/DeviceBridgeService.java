@@ -21,7 +21,6 @@ import com.deepseekharness.app.runtime.ProotBootstrap;
 import com.deepseekharness.app.util.Constants;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.AdbResult;
-import com.deepseekharness.app.util.AdbEnvironmentTask;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -406,15 +405,10 @@ public class DeviceBridgeService extends Service {
         new Thread(
             () -> {
               try {
-                AdbBridge.runEnvironmentTask(
-                    this,
-                    com.deepseekharness.app.util.UiText.text("ADB 后台准备与探活"),
-                    () -> {
-                      runProbe(reason, probeIntentEpoch, repairIntentEpoch);
-                      return null;
-                    });
-              } catch (AdbEnvironmentTask.Busy e) {
-                setAdbState("environment_busy", e.getMessage());
+                // 不再用一个环境租约包住整轮探活（握手 + mDNS 发现 + 重开无线调试可达数分钟，
+                // 期间 Web 启动 / 终端 / 插件全被拒绝，T38）。每个容器命令各自短暂持有租约，
+                // 发现与等待阶段不占锁；被占用时本轮记为环境忙，不计失败。
+                runProbe(reason, probeIntentEpoch, repairIntentEpoch);
               } catch (Throwable e) {
                 Log.w(
                     "DSHA-ADB",
@@ -480,6 +474,7 @@ public class DeviceBridgeService extends Service {
     }
     // 2) 完整握手验证（无副作用探活失败时才做）
     String r = probeCommand(proot, null);
+    if (environmentBusy(r)) return;
     if (AdbResult.shellReady(r)) {
       lastFullVerifyAt = System.currentTimeMillis();
       onProbeOk(reason, r, probeIntentEpoch, repairIntentEpoch);
@@ -507,6 +502,7 @@ public class DeviceBridgeService extends Service {
     AdbBridge.Endpoint endpoint = discoverConnPortSync();
     if (endpoint != null) {
       String r2 = probeCommand(proot, endpoint);
+      if (environmentBusy(r2)) return;
       if (AdbResult.shellReady(r2)) {
         lastFullVerifyAt = System.currentTimeMillis();
         onProbeOk(
@@ -541,6 +537,7 @@ public class DeviceBridgeService extends Service {
       }
       if (p2 != null) {
         String r3 = probeCommand(proot, p2);
+        if (environmentBusy(r3)) return;
         if (AdbResult.shellReady(r3)) {
           lastFullVerifyAt = System.currentTimeMillis();
           onProbeOk(
@@ -620,6 +617,13 @@ public class DeviceBridgeService extends Service {
         this, "_adb-tls-connect._tcp.", 5000, detail -> setAdbState("reconnecting", detail));
   }
 
+  /** 容器命令因环境任务占用而未执行：本轮结束、不计失败，等下一周期。 */
+  private boolean environmentBusy(String result) {
+    if (!AdbResult.marker(result, "ENVIRONMENT_BUSY")) return false;
+    setAdbState("environment_busy", result);
+    return true;
+  }
+
   private String probeCommand(ProotBootstrap proot, AdbBridge.Endpoint endpoint) {
     if (!running || !isAdbEnabled(this) || Thread.currentThread().isInterrupted()) return "STOPPED";
     return AdbBridge.probe(proot, endpoint);
@@ -650,6 +654,9 @@ public class DeviceBridgeService extends Service {
     if (!running || current != this) return; // 服务停止后的迟到回调不能覆盖新实例状态。
     adbState = state;
     adbDetail = detail == null ? "" : detail;
+    // 连续失败后自动留证（限频），卡死后重启手机也能看到当时的通道与进程状态。
+    if ("need_manual".equals(state) && consecutiveFailures >= 3)
+      com.deepseekharness.app.device.DeviceChannelDiagnostics.record(this, "adb-need-manual");
   }
 
   private void notifyAdbProblem(String title, String text) {

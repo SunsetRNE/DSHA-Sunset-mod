@@ -28,8 +28,12 @@ public class BootReceiver extends BroadcastReceiver {
       }
       if (!Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(action))
         com.deepseekharness.app.backup.AutomaticBackups.schedule(context);
-      if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(action))
+      if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
         com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(context);
+        // T38：覆盖安装后旧 root / Shizuku 服务进程是否残留，留一份快照（不论 ADB 开关）。
+        com.deepseekharness.app.device.DeviceChannelDiagnostics.recordLater(
+            context, "package-replaced", 30_000L);
+      }
       // 用户没开 ADB 就不拉起（尊重开关）
       if (!DeviceBridgeService.isAdbEnabled(context)) return;
       android.util.Log.i(

@@ -10,8 +10,64 @@ public final class RootShellMain {
 
   private RootShellMain() {}
 
+  /** 收到请求前的兜底期限：App 写完请求就关闭 stdin，正常情况下远远用不到。 */
+  private static final long BOOT_DEADLINE_MS = 90_000L;
+
+  private static final long STARTED = System.nanoTime();
+  private static volatile long deadlineMs = BOOT_DEADLINE_MS;
+  private static volatile com.deepseekharness.app.util.RootHelperWatchdog.Owner owner;
+  private static volatile ShellService active;
+
+  /**
+   * T38：App 的 uid 对本 root 进程发信号会被拒绝（EPERM），所以本进程自己负责退出。超过请求给出的期限，
+   * 或发起请求的 App 进程已退出 / PID 被复用（覆盖安装、被系统结束），就结束本次子进程并立即退出。
+   */
+  private static void startWatchdog() {
+    Thread watchdog =
+        new Thread(
+            () -> {
+              while (true) {
+                long elapsed = (System.nanoTime() - STARTED) / 1_000_000L;
+                com.deepseekharness.app.util.RootHelperWatchdog.Owner current = owner;
+                String stat = current == null || !current.known() ? null : readStat(current.pid);
+                com.deepseekharness.app.util.RootHelperWatchdog.Verdict verdict =
+                    com.deepseekharness.app.util.RootHelperWatchdog.check(
+                        elapsed, deadlineMs, current, stat);
+                if (verdict != com.deepseekharness.app.util.RootHelperWatchdog.Verdict.CONTINUE) {
+                  try {
+                    ShellService shell = active;
+                    if (shell != null) shell.terminateOwned();
+                    System.err.println("DSHA_ROOT_WATCHDOG=" + verdict);
+                  } finally {
+                    Runtime.getRuntime().halt(125);
+                  }
+                }
+                try {
+                  Thread.sleep(500);
+                } catch (InterruptedException ignored) {
+                  // 看门狗不响应中断；只按期限与 owner 判定退出。
+                }
+              }
+            },
+            "dsha-root-watchdog");
+    watchdog.setDaemon(true);
+    watchdog.start();
+  }
+
+  private static String readStat(int pid) {
+    try {
+      return new String(
+              java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("/proc/" + pid + "/stat")),
+              StandardCharsets.US_ASCII)
+          .trim();
+    } catch (java.io.IOException | RuntimeException gone) {
+      return null;
+    }
+  }
+
   public static void main(String[] args) {
     String output;
+    startWatchdog();
     try {
       if (android.os.Process.myUid() != 0) throw new SecurityException("su 未授予 root 身份");
       java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
@@ -24,6 +80,13 @@ public final class RootShellMain {
       }
       org.json.JSONObject request =
           new org.json.JSONObject(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
+      // 旧版 App 不传这些字段：沿用兜底期限，不按 owner 判定。
+      deadlineMs =
+          com.deepseekharness.app.util.RootHelperWatchdog.deadlineMs(
+              request.optLong("helperDeadlineMs", -1), BOOT_DEADLINE_MS);
+      owner =
+          new com.deepseekharness.app.util.RootHelperWatchdog.Owner(
+              request.optInt("ownerPid", -1), request.optLong("ownerStarted", -1));
       String command = request.optString("command", "");
       if (!command.isEmpty()
           && command.getBytes(StandardCharsets.UTF_8).length
@@ -55,6 +118,7 @@ public final class RootShellMain {
       else
         shell =
             new ShellService(); // Historical ordinary reads do not require a guessed app identity.
+      active = shell;
       if (externalAdbSteps) {
         if (android.os.Process.myUid() != 0) throw new SecurityException("外接命令需要 root");
         String expectedRoot = request.optString("expectedRoot", "");
