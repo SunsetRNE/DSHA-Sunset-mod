@@ -83,7 +83,7 @@ public final class ScreenGuard {
 | G4 | 选通道（§5.1）；虚拟屏待清理时只允许 status / close | `VSCREEN_CLEANUP_PENDING` | 助手先 status / close |
 | G5 | 任务身份：实体须已 begin 且未暂停；虚拟须有会话身份（§5.3） | `SCREEN_TASK_IDENTITY_REQUIRED` / `SCREEN_TASK_NOT_BEGUN` / `ASSISTANT_LOCAL_RESUME_REQUIRED` / `SCREEN_TURN_ENDED` | 助手 begin / 用户点继续 |
 | G6 | 用户正在输入（仅 ACT） | `USER_COMPOSING` / `USER_MESSAGE_ARRIVED` | 等待 / 读新消息 |
-| G6a | 目标是 DSHA 自身普通界面（§5.5，Q8 待定） | `SCREEN_TARGET_SELF_APP` | 用户自己操作 |
+| G6a | ACT / LAUNCH 的目标是 DSHA 自身普通界面（§5.5）；OBSERVE 不在此拦 | `SCREEN_TARGET_SELF_APP` | 用户自己操作 |
 | G7 | 确认：全局同意 / ALLOW_ALL / CUSTOM 规则 / 读屏选项 / 本轮记忆 → ALLOW；否则 CONFIRM | —（CONFIRM 不是拒绝） | — |
 | G8 | 确认结果：拒绝 / 无人应答 / 确认通道不可用 | `USER_REJECTED` / `USER_NO_ANSWER` / `USER_CONFIRM_UNAVAILABLE` | 拒绝不重试；无应答可再问一次 |
 
@@ -183,11 +183,12 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 - 布局里没有找到 `filterTouchesWhenObscured` 或「拒绝无障碍注入」一类的防护。授权页的开关只要无障碍点得到，就能被助手切换。
 - 结论：在 ALLOW_ALL 或全局同意下，助手可以 `launch` DSHA，再点「设备能力授权」给自己开识屏、Root 或短信。这破坏了「能写容器的助手不能给自己加权限」这条前提。真机可行性还没验证。
 
-**处置（焊死项，Q8 待用户定细节）**
+**处置（焊死项；Q8 用户 2026-11-03 已定）**
 
 - G6a：目标包等于 DSHA 自身包名（含 `.test` 变体，取 `Context.getPackageName()`）时，ACT 一律拒绝，返回 `SCREEN_TARGET_SELF_APP`、`retry: never`、`nextAction: REPORT_TO_USER`，`userAction` 写明「请你在 DSHA 里自己操作」。这一条不受 ALLOW_ALL、全局同意或本轮记忆影响。
 - LAUNCH 自身包名也拒绝，实体屏 `/app/launch` 和虚拟屏 `launch` 都算。
-- OBSERVE 自身界面：建议也拒绝。配置页可能显示 API Key 的掩码、令牌或端口，读到也没有合法用途。备选是按敏感应用逐次确认，不吃 ALLOW_ALL。
+- OBSERVE 自身界面（截图、读树）：**放行**，按普通应用走确认策略和本轮记忆（Q8 已定）。用户的依据是：配置页基于 DSH 配置，不直接显示 API Key；令牌和端口是动态的；最新 UI 已经做了遮挡；DSH 本身不重复显示敏感值。
+- 以后如果某个页面确实会显示敏感值，就给那个页面单独加「读屏受限」（页面级标记，命中时 OBSERVE 返回 `SCREEN_TARGET_RESTRICTED_PAGE`），不收紧整个 DSHA。本任务不预设具体页面。
 - 自有悬浮窗（助手窗、确认窗）照旧按排除区处理，不算目标，不受本条影响。
 - 设备命令 `am start` 拉起自身属于 T40 / T42 的范围，本条只在识屏侧拦截。另外提醒 T40：ALLOW_ALL 下系统「设置」（无障碍 / 悬浮窗授权页）同样不再询问。这是确认策略本身的语义，不在本条修复范围，但要在安全模型里如实写明「ALLOW_ALL 下助手可操作系统设置」。
 
@@ -330,6 +331,6 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 - **Q6 前台元数据**：`dumpsys window` / `activity activities` 等只暴露当前应用和窗口标题，不算读屏，照旧放行（§5.4.1）。
 - **Q7 输入注入**：`input tap` / `input text` 不算读屏，按档位处理：严格档不认识照旧拒绝，放宽 / 完全放宽档的 Root 原始 shell 可执行；识屏模式不影响它。
 
-还没定（权限审计补充，2026-11-03）：
+权限审计补充（2026-11-03）：
 
-- **Q8 DSHA 自身界面**：操作和启动自身一律拒绝，这一点建议直接焊死。读自身界面（截图、读树）二选一：(a) 也拒绝（建议），(b) 按敏感应用逐次确认，不吃 ALLOW_ALL。
+- **Q8 DSHA 自身界面**：操作和启动自身一律拒绝，焊死（G6a）。读自身界面放行，按普通应用走确认策略。依据：配置页不直接显示 API Key，令牌和端口是动态的，最新 UI 已做遮挡，DSH 不重复显示。以后某页确有敏感值时，再给那一页单独加读屏受限（§5.5）。
