@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5` / build301 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版细分虚拟屏观察失败（空屏、首帧等待、画面停滞）并给出下一步，修复助手旋转后代次失步；设备与屏幕提示词去重。本机定向单测、Lint 与源码门禁通过。改动说明见 [build301 更新说明](releases/build301-changes.zh.md)，验证记录见 [build301 记录](releases/v0.2.1-rc.3-build301-vscreen-hints-prompts-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.2100-dsh0.2.1-rc.5` / build302 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版实验性地在切网后回收失效的外网连接，模型请求不再卡满 300 秒（未真机验证）；另收录识屏守卫与设备命令确认两份设计稿。本机定向单测、Lint 与源码门禁通过。改动说明见 [build302 更新说明](releases/build302-changes.zh.md)，验证记录见 [build302 记录](releases/v0.2.1-rc.3-build302-network-recycle-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

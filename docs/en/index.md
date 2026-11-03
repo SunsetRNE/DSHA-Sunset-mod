@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5` / build301 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build splits virtual screen observation failures into blank screen, first-frame wait and stalled frames with a next step, fixes generation drift after assistant rotation, and deduplicates the device and screen prompts. Local targeted unit tests, Lint and source gates passed. See the [build301 notes](../releases/build301-changes.en.md) and the [build301 record](../releases/v0.2.1-rc.3-build301-vscreen-hints-prompts-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.2100-dsh0.2.1-rc.5` / build302 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build experimentally recycles stale outbound connections after a network switch so model requests no longer hang for 300 seconds (not verified on a device), and adds the screen guard and device command confirmation design documents. Local targeted unit tests, Lint and source gates passed. See the [build302 notes](../releases/build302-changes.en.md) and the [build302 record](../releases/v0.2.1-rc.3-build302-network-recycle-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5 / build301
+# DSHA 0.2.1-rc.3-20261103.2100-dsh0.2.1-rc.5 / build302
 
-- As falhas de observação do ecrã virtual distinguem ecrã vazio, espera pelo primeiro fotograma e imagem parada, com o passo seguinte; corrigido o desfasamento de geração após rotação pelo assistente; os prompts de dispositivo e ecrã foram desduplicados.
-- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 301 (com base no build300). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Experimental: após mudar de rede ou passar para segundo plano, as ligações externas obsoletas são recicladas e os pedidos ao modelo deixam de ficar parados 300 segundos (não verificado num dispositivo); adicionados os documentos de conceção da proteção de ecrã e da confirmação de comandos do dispositivo.
+- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 302 (com base no build301). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.

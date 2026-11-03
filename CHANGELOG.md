@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.2100-dsh0.2.1-rc.5 / build302（实验性：切网后回收失效的外网连接，模型请求不再卡满 300 秒；收录识屏守卫与设备命令确认设计稿）
+
+- 实验性：网络切换（Wi-Fi / 移动数据）或切后台后，按网络代次回收失效的外网连接，模型请求不再卡满 300 秒；宿主发布网络代次 `NetworkEpochPublisher`，容器内 `net-epoch.cjs` 预加载后丢弃旧代次连接（分支 `fix/stream-stall-network` 0607535a、b457c17e，T37，基于 build299；**未上真机切网验证**，排查见 `docs/network-switch-connection-recycle.md` 与日志 `[dsha-net]`）。
+- 文档：收录 T39 识屏单一守卫设计稿（`docs/design/screen-guard-20261103/`，1012cd6c、4a8e9f27）与 T40 原生设备命令确认设计稿（`docs/design/device-exec-confirm-20261103/`，e6bada84），均已由用户确认，尚未实现。
+- 验证范围：发布会话在 build302 上复跑 `*NetworkEpochPolicyTest` / `*RuntimeTools*` / `*ManagedRuntimeLayout*` / `RuntimeToolsRegistryAndroidTest` / `UpdateVersionPageTest` / `UiStateTextTest`、`tools/test-net-epoch.mjs`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 302（基于 build301）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build302 更新说明](docs/releases/build302-changes.zh.md)，验证记录见 [build302 记录](docs/releases/v0.2.1-rc.3-build302-network-recycle-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.2030-dsh0.2.1-rc.5 / build301（虚拟屏观察失败细分并给出下一步，修复助手旋转后代次失步；设备/屏幕提示词去重）
 
 - 虚拟屏助手侧观察失败细分为空屏、首帧等待、画面停滞并给出下一步；待清理 Core 下 see/tree 不再互相指向重看；助手旋转虚拟屏不再判成「目标已变」导致管理器与 Core 代次失步，旋转回复写明显示已重建、原应用需重新 launch（分支 `fix/vscreen-error-detail` 4a17f5c2..b2f033f7，T35，基于 build299；真机四种情况已由原会话核对）。
