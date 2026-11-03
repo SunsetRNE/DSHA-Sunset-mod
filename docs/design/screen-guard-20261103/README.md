@@ -83,6 +83,7 @@ public final class ScreenGuard {
 | G4 | 选通道（§5.1）；虚拟屏待清理时只允许 status / close | `VSCREEN_CLEANUP_PENDING` | 助手先 status / close |
 | G5 | 任务身份：实体须已 begin 且未暂停；虚拟须有会话身份（§5.3） | `SCREEN_TASK_IDENTITY_REQUIRED` / `SCREEN_TASK_NOT_BEGUN` / `ASSISTANT_LOCAL_RESUME_REQUIRED` / `SCREEN_TURN_ENDED` | 助手 begin / 用户点继续 |
 | G6 | 用户正在输入（仅 ACT） | `USER_COMPOSING` / `USER_MESSAGE_ARRIVED` | 等待 / 读新消息 |
+| G6a | 目标是 DSHA 自身普通界面（§5.5，Q8 待定） | `SCREEN_TARGET_SELF_APP` | 用户自己操作 |
 | G7 | 确认：全局同意 / ALLOW_ALL / CUSTOM 规则 / 读屏选项 / 本轮记忆 → ALLOW；否则 CONFIRM | —（CONFIRM 不是拒绝） | — |
 | G8 | 确认结果：拒绝 / 无人应答 / 确认通道不可用 | `USER_REJECTED` / `USER_NO_ANSWER` / `USER_CONFIRM_UNAVAILABLE` | 拒绝不重试；无应答可再问一次 |
 
@@ -145,6 +146,8 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 - 通道顺序：识屏沿用 `ScreenCapabilityGate.order`，本任务不改设备命令的选通道逻辑；两边顺序不一致（A9）记作已知差异，交给 T40。
 - 递归 READ 跟随子链接的已知缺口（[权限架构](../../device-permissions-architecture.md) §6.2）同样不在本任务范围。
 
+#### 5.4.0 见 §5.5：自身界面与会话绑定（权限审计补充）
+
 #### 5.4.1 唯一交叉点：读屏类设备命令（用户 2026-11-03 定）
 
 规则：**读屏没有允许时，读屏类设备命令一律拦截；其他设备命令照旧按档位处理。** 理由：设备 shell 能绕过无障碍和确认窗直接截屏或导出界面，不拦就等于读屏开关形同虚设。
@@ -167,6 +170,35 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 - 判定只读识屏状态，不改识屏状态；设备命令仍不进入 ScreenGuard 的确认和本轮记忆（§5.4 拆开的决定不变）。
 
 单测：`DeviceShellPolicyTest` 加「读屏允许 × 档位 × 命令清单」表，并锁住「严格档未允许时 `screencap` 带任何参数都拒」「放宽档关键字命中即拒」两条。
+
+### 5.5 自身界面与会话绑定（主会话权限审计 2026-11-03 第 5、6 条）
+
+审计原文在 `.agents/claims/T42/perm-audit-20261103.md`。下面是本会话只读源码核实的结果（build299 / build301，未上真机）。
+
+**第 5 条：识屏目标没有排除 DSHA 自身的普通界面。核实属实。**
+
+- `ScreenTargetResolver.physical`（113–132 行）判断出 `ownPackage` 后，只交给 `OwnedScreenOverlay.match`（已登记的自有悬浮窗）和 `MainScreenWindowPolicy.ownFallbackExclusion` 处理。后者在 `focused == true` 时原样返回，不排除。所以前台获得焦点的 DSHA Activity（主界面、设置、设备能力授权页）会被选为识屏目标。
+- `SensitiveAppPolicy` 里没有 DSHA 包名。`appLaunch` → `AppDeviceActions.launch` 也不拒绝启动自身。只有 `/app/install` 拒绝覆盖安装自身，那条和这里无关。
+- `screenAuthorization` 先判 `policy.allows(pkg)`。在 ALLOW_ALL 或全局同意下，这里直接放行，不看是否敏感。
+- 布局里没有找到 `filterTouchesWhenObscured` 或「拒绝无障碍注入」一类的防护。授权页的开关只要无障碍点得到，就能被助手切换。
+- 结论：在 ALLOW_ALL 或全局同意下，助手可以 `launch` DSHA，再点「设备能力授权」给自己开识屏、Root 或短信。这破坏了「能写容器的助手不能给自己加权限」这条前提。真机可行性还没验证。
+
+**处置（焊死项，Q8 待用户定细节）**
+
+- G6a：目标包等于 DSHA 自身包名（含 `.test` 变体，取 `Context.getPackageName()`）时，ACT 一律拒绝，返回 `SCREEN_TARGET_SELF_APP`、`retry: never`、`nextAction: REPORT_TO_USER`，`userAction` 写明「请你在 DSHA 里自己操作」。这一条不受 ALLOW_ALL、全局同意或本轮记忆影响。
+- LAUNCH 自身包名也拒绝，实体屏 `/app/launch` 和虚拟屏 `launch` 都算。
+- OBSERVE 自身界面：建议也拒绝。配置页可能显示 API Key 的掩码、令牌或端口，读到也没有合法用途。备选是按敏感应用逐次确认，不吃 ALLOW_ALL。
+- 自有悬浮窗（助手窗、确认窗）照旧按排除区处理，不算目标，不受本条影响。
+- 设备命令 `am start` 拉起自身属于 T40 / T42 的范围，本条只在识屏侧拦截。另外提醒 T40：ALLOW_ALL 下系统「设置」（无障碍 / 悬浮窗授权页）同样不再询问。这是确认策略本身的语义，不在本条修复范围，但要在安全模型里如实写明「ALLOW_ALL 下助手可操作系统设置」。
+
+**第 6 条：任务身份是会话绑定，不是调用者认证。**
+
+- `taskSessionId` / `turnId` 由容器侧参数传入（`/app/ui/*` 的 query，或 MCP `_meta['dsha/phone-task']`）。按审计记录，原生核对用的会话状态也来自容器插件 `dsh-status-overlay`，这一点本会话没有另读源码复核。
+- 所以 `TurnScreenGrants`、§5.3 的虚拟屏身份、§6.1 的「本轮任务」都只能说明「这次请求自称属于哪一轮」，不能证明「是哪个调用者发来的」。同 UID 的任何容器进程只要拿到或猜到当前身份，都能共享本轮记忆。
+- 设计上的含义：
+  - 本轮记忆只用来省弹窗，不能当作授权的唯一依据。真正的边界仍是识屏模式、确认策略、桥 token、运行身份、执行期围栏，以及本节的自身界面拒绝。
+  - 本轮记忆在暂停、停止、修订号变化、本轮结束时失效（§6.1），把被冒用的时间窗限制在一轮之内。
+  - 文档、提示词和回复里一律写「会话绑定」，不写「调用者认证」或「仅当前对话可用」。
 
 ## 6. 弹窗：本轮记忆与读屏选项
 
@@ -275,6 +307,8 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 | 通道顺序与各能力的允许通道子集 | 全局同意开关（已有） |
 | 执行失败不换通道重放、UNKNOWN 不重放 | 读屏确认：跟随 / 本轮首次 / 不确认（新增） |
 | 敏感应用名单与「每 5 次再问」 | Root / Shizuku / ADB 各自授权（已有） |
+| 拒绝操作 / 启动 DSHA 自身普通界面（§5.5，不受 ALLOW_ALL / 全局同意影响） | — |
+| 任务身份只算会话绑定，本轮记忆不作为唯一授权依据（§5.5） | — |
 | 本轮记忆失效条件（结束 / 暂停 / 停止 / 修订号 / Core 重建） | 无障碍、悬浮窗（Android 系统授权） |
 | 执行期围栏：最新帧、目标复核、遮挡、代次、锚点一次性 | — |
 | 错误格式与 nextAction 词表 | — |
@@ -295,3 +329,7 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 
 - **Q6 前台元数据**：`dumpsys window` / `activity activities` 等只暴露当前应用和窗口标题，不算读屏，照旧放行（§5.4.1）。
 - **Q7 输入注入**：`input tap` / `input text` 不算读屏，按档位处理：严格档不认识照旧拒绝，放宽 / 完全放宽档的 Root 原始 shell 可执行；识屏模式不影响它。
+
+还没定（权限审计补充，2026-11-03）：
+
+- **Q8 DSHA 自身界面**：操作和启动自身一律拒绝，这一点建议直接焊死。读自身界面（截图、读树）二选一：(a) 也拒绝（建议），(b) 按敏感应用逐次确认，不吃 ALLOW_ALL。
