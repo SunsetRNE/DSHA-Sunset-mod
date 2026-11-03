@@ -167,6 +167,10 @@ public class VirtualScreenObservationHintTest {
     assertEquals(
         "CHECK_STATUS",
         VirtualScreenObservationHint.statusNextAction("VSCREEN_TRANSPORT_UNAVAILABLE", false));
+    // 现场：旋转后管理器未采用新代次，status 持续 STALE_GENERATION；再查 status 只会原地打转。
+    assertEquals(
+        "ASK_USER_TO_CLOSE",
+        VirtualScreenObservationHint.statusNextAction("STALE_GENERATION", false));
   }
 
   @Test

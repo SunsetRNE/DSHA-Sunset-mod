@@ -2001,12 +2001,15 @@ public final class HttpShellService {
                   && !controller.isStopping()
                   && !controller.isUserStopped();
       if (!live.getAsBoolean()) return "{\"ok\":false,\"error\":\"SCREEN_RUN_CHANGED\"}";
+      // create 在现有 Core 上就是旋转：它会重建显示并销毁当前窗口，不能再绑定这个窗口做执行期复核，
+      // 否则执行后必判「目标已变」、管理器不采用新代次，之后 status 永远 STALE_GENERATION。
+      // 确认前后的窗口一致性检查（上方）照旧；launch 原本就不绑定窗口。
+      boolean bindWindow =
+          target != null && !operation.equals("launch") && !operation.equals("create");
       java.util.function.Supplier<String> action =
           () -> {
             if (!live.getAsBoolean()
-                || target != null
-                    && !operation.equals("launch")
-                    && !DshaAccessibilityService.matchesTarget(target))
+                || bindWindow && !DshaAccessibilityService.matchesTarget(target))
               return "{\"ok\":false,\"error\":\"SCREEN_TARGET_CHANGED\"}";
             dispatched[0] = true;
             String result =
@@ -2017,14 +2020,9 @@ public final class HttpShellService {
                         request,
                         () ->
                             live.getAsBoolean()
-                                && (target == null
-                                    || operation.equals("launch")
-                                    || DshaAccessibilityService.matchesTarget(target)));
+                                && (!bindWindow || DshaAccessibilityService.matchesTarget(target)));
             receipt[0] = result;
-            boolean targetChanged =
-                target != null
-                    && !operation.equals("launch")
-                    && !DshaAccessibilityService.matchesTarget(target);
+            boolean targetChanged = bindWindow && !DshaAccessibilityService.matchesTarget(target);
             boolean runChanged = !live.getAsBoolean();
             if (targetChanged || runChanged)
               return VirtualScreenRoutes.mutates(operation)
@@ -2032,7 +2030,7 @@ public final class HttpShellService {
                   : ScreenActionResult.notExecuted();
             return result;
           };
-      return target != null && !operation.equals("launch")
+      return bindWindow
           ? DshaAccessibilityService.runAuthorized(target, live, action)
           : action.get();
     } catch (Throwable error) {
@@ -2128,6 +2126,9 @@ public final class HttpShellService {
     try {
       String error = status.optString("error", "VSCREEN_STATUS_UNAVAILABLE");
       boolean cleanup = status.optBoolean("cleanupPending");
+      String next =
+          com.deepseekharness.app.util.VirtualScreenObservationHint.statusNextAction(
+              error, cleanup);
       var value =
           new org.json.JSONObject()
               .put("ok", false)
@@ -2135,11 +2136,12 @@ public final class HttpShellService {
               .put("error", error)
               .put("code", error)
               .put("cleanupPending", cleanup)
+              .put("nextAction", next)
+              // 需要用户关闭重建时，重看或重试都不会改变结果。
               .put(
-                  "nextAction",
-                  com.deepseekharness.app.util.VirtualScreenObservationHint.statusNextAction(
-                      error, cleanup))
-              .put("retryable", !cleanup);
+                  "retryable",
+                  !com.deepseekharness.app.util.VirtualScreenObservationHint.ASK_USER_TO_CLOSE
+                      .equals(next));
       for (String key :
           new String[] {"lifecycleState", "coreInstance", "cleanupChannel", "cleanupProbeReason"})
         if (status.has(key)) value.put(key, status.get(key));

@@ -168,6 +168,8 @@ public final class VirtualScreenObservationHint {
    */
   public static String statusNextAction(String statusError, boolean cleanupPending) {
     if (cleanupPending) return ASK_USER_TO_CLOSE;
+    // status 自身报代次过期：管理器与 Core 已失步，重看或再查 status 都不会自愈，须用户同意后 close 重建。
+    if ("STALE_GENERATION".equals(statusError)) return ASK_USER_TO_CLOSE;
     if ("VSCREEN_NOT_RUNNING".equals(statusError)) return CREATE_FIRST;
     if ("VSCREEN_START_IN_PROGRESS".equals(statusError)) return WAIT_AND_SEE_AGAIN;
     return CHECK_STATUS;
