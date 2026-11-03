@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.1430-dsh0.2.1-rc.5` / build295 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes Web startup after an in-place update getting stuck while confirming that the previous launcher exited. Local targeted unit tests, Lint and source gates passed. See the [build295 notes](../releases/build295-changes.en.md) and the [build295 record](../releases/v0.2.1-rc.3-build295-retire-prior-launchers-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.1500-dsh0.2.1-rc.5` / build296 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build consolidates screen modes: physical and virtual screen sensing are mutually exclusive, the mode only limits the assistant, and the virtual screen page stays under the user's control (experimental). Local targeted unit tests, Lint and source gates passed. See the [build296 notes](../releases/build296-changes.en.md) and the [build296 record](../releases/v0.2.1-rc.3-build296-screen-mode-gate-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

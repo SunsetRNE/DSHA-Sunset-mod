@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.1500-dsh0.2.1-rc.5 / build296（实验性：识屏模式收束，助手侧与操作者面板分开）
+
+- **实验性。** 识屏模式收束：实体识屏与虚拟识屏互斥，桥与 MCP 按识屏模式放行（模式不符返回 `SCREEN_MODE_*`），能力撤销时同步降级；授权页新增识屏模式行。识屏模式只约束助手：虚拟识屏页的创建、旋转、输入、关闭只看设备能力与生命周期，不读也不改识屏模式，页内显示助手能否使用本屏并给出授权页入口；ADR0003 决定六相应改写（分支 `feat/screen-mode-gate-b` 4dee3c7f、9fa148f7、5860efb2，T29，原基于 build294；用户已用测试包真机核对：虚拟识屏下 Shizuku 虚拟屏 READY，启动应用后 see 与 tree 正常）。
+- 验证范围：发布会话在 build296 上复跑 `com.deepseekharness.app.vscreen.*` / `ScreenMode*` / `ScreenCapabilityGate*` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 296（基于 build295）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build296 更新说明](docs/releases/build296-changes.zh.md)，验证记录见 [build296 记录](docs/releases/v0.2.1-rc.3-build296-screen-mode-gate-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.1430-dsh0.2.1-rc.5 / build295（覆盖安装后 Web 启动不再卡在确认旧启动器退出）
 
 - 修复覆盖安装后 Web 启动卡在「已知 Web 启动器未能确认退出」（`retire-prior-launchers`），只能杀进程才恢复：停止证据读取失败不再整进程锁存，之后重读成功即按原记录判定；记录里的启动器 PID 已被其它 UID 复用时，判定原进程已退出（只用于退出证明，不据此发送任何信号）（分支 `fix/retire-prior-launchers` 9707bbcb，T32，477a5781 发现；未真机复现）。
