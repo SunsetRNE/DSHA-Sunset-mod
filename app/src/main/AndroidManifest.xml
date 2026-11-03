@@ -182,13 +182,16 @@
             android:exported="false"
             android:theme="@style/Theme.DeepseekHarness" />
 
+        <!-- 与 Main 同一默认 affinity：一个应用只有一个任务（自由窗口 / 桌面模式下只有一个窗口）。
+             不用 singleTask：它在同一任务里会清掉压在上面的 Main。唯一宿主由
+             BrowserTasks.forwardToLiveBrowser 保证；excludeFromRecents 只对画中画等以网页为根的任务生效，
+             Main 所在任务由 BrowserTasks.reconcileRecents 显式显示。 -->
         <activity
             android:name=".ui.WebPreviewActivity"
             android:exported="false"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:documentLaunchMode="never"
             android:excludeFromRecents="true"
-            android:taskAffinity="${applicationId}.browser.webview"
             android:supportsPictureInPicture="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:windowSoftInputMode="adjustResize"

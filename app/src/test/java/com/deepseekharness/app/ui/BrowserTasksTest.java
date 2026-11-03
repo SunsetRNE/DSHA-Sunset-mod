@@ -416,4 +416,103 @@ public final class BrowserTasksTest {
     assertTrue(BrowserTasks.finishEmptyHost(unknown));
     assertFalse(unknown.removed);
   }
+
+  private static void setField(Class<?> type, String name, Object value) throws Exception {
+    var field = type.getDeclaredField(name);
+    field.setAccessible(true);
+    field.set(null, value);
+  }
+
+  /** 以 Web 为根、但存活 Main 已加入的同一任务（通知先开 Web 的单任务布局）。 */
+  private Host liveMainIn(int task) throws Exception {
+    var main = new Host();
+    main.id = task;
+    main.root = false;
+    setField(BrowserTasks.class, "nativeMain", new WeakReference<Activity>(main));
+    return main;
+  }
+
+  @Test
+  public void sharedWebRootedTaskWithLiveMainStaysTheOneVisibleCard() throws Exception {
+    liveMainIn(7);
+    var shared = task(7, WebPreviewActivity.class, 2);
+    var legacyMain = task(3, MainActivity.class, 1);
+    Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(legacyMain, shared));
+    BrowserTasks.reconcileRecents(context, -1);
+    assertFalse(Shadow.<ShadowAppTask>extract(shared).isExcludedFromRecents());
+    assertTrue(Shadow.<ShadowAppTask>extract(legacyMain).isExcludedFromRecents());
+  }
+
+  @Test
+  public void explicitHomeReordersMainInsideTheSharedTaskInsteadOfAnotherWindow()
+      throws Exception {
+    liveMainIn(7);
+    var browser = new Browser();
+    setField(
+        BrowserConversationRoute.class,
+        "browser",
+        new WeakReference<PictureInPictureActivity>(browser));
+    var shared = task(7, WebPreviewActivity.class, 2);
+    var legacyMain = task(9, MainActivity.class, 1);
+    Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(legacyMain, shared));
+    browser.hideConversation();
+    assertEquals(1, browser.starts.size());
+    Intent intent = browser.starts.get(0);
+    assertEquals(MainActivity.class.getName(), intent.getComponent().getClassName());
+    // 经 AppTask 派发进同一任务：不带 NEW_TASK，也不清栈。
+    assertEquals(
+        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP, intent.getFlags());
+    assertFalse(browser.finished);
+  }
+
+  @Test
+  public void duplicateHostForwardsTheRequestIntoTheLiveHostTaskOnce() throws Exception {
+    var live = new Browser();
+    setField(
+        BrowserConversationRoute.class,
+        "browser",
+        new WeakReference<PictureInPictureActivity>(live));
+    Shadow.<ShadowActivityManager>extract(manager)
+        .setAppTasks(List.of(task(7, WebPreviewActivity.class, 1)));
+    var created = new Browser();
+    created.entry =
+        new Intent()
+            .putExtra(BrowserConversationRoute.MODE, "FULL")
+            .putExtra(BrowserConversationRoute.SESSION, "s1")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    assertTrue(BrowserTasks.forwardToLiveBrowser(created));
+    assertEquals(1, created.starts.size());
+    Intent forward = created.starts.get(0);
+    assertEquals(Browser.class.getName(), forward.getComponent().getClassName());
+    assertEquals("FULL", forward.getStringExtra(BrowserConversationRoute.MODE));
+    assertEquals("s1", forward.getStringExtra(BrowserConversationRoute.SESSION));
+    assertTrue(forward.getBooleanExtra(BrowserTasks.FORWARDED, false));
+    assertEquals(
+        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP, forward.getFlags());
+    // 已转交过的请求不再转交，避免来回弹跳。
+    var bounced = new Browser();
+    bounced.entry = forward;
+    assertFalse(BrowserTasks.forwardToLiveBrowser(bounced));
+    assertTrue(bounced.starts.isEmpty());
+  }
+
+  @Test
+  public void hostWithoutAnotherLiveOwnerOrReachableTaskKeepsTheRequest() throws Exception {
+    var created = new Browser();
+    assertFalse(BrowserTasks.forwardToLiveBrowser(created));
+    setField(
+        BrowserConversationRoute.class,
+        "browser",
+        new WeakReference<PictureInPictureActivity>(created));
+    assertFalse(BrowserTasks.forwardToLiveBrowser(created));
+    var live = new Browser();
+    setField(
+        BrowserConversationRoute.class,
+        "browser",
+        new WeakReference<PictureInPictureActivity>(live));
+    Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of());
+    var orphan = new Browser();
+    assertFalse(BrowserTasks.forwardToLiveBrowser(orphan));
+    assertTrue(orphan.starts.isEmpty());
+  }
 }

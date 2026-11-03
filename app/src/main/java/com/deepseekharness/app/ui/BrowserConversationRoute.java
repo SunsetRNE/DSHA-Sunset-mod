@@ -62,7 +62,11 @@ public final class BrowserConversationRoute {
         .putExtra(MODE, "FULL")
         .putExtra("url", url)
         .putExtra("cookie", cookie)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        // 与 Main 同一任务：已有宿主压在 Main 下面时重排到前面，不再叠第二个；不清栈、不另起任务。
+        .addFlags(
+            Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
   }
 
   static void register(PictureInPictureActivity owner) {

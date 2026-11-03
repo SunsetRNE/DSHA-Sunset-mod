@@ -304,14 +304,14 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
       input.hideSoftInputFromWindow(pictureFrame.getWindowToken(), 0);
     // 保留任务及 ViewModel；再次进入接管同一页面、草稿和浏览器会话。
     if (inPicture) {
-      // 先将同一 singleTask 从 PiP 展开，再显式返回原生主页；保留当前网页。
-      startActivity(
+      // 先将同一宿主从 PiP 展开，再显式返回原生主页；保留当前网页。宿主不再独占 affinity，
+      // 优先派发进它自己的画中画任务，避免按 affinity 落进 Main 任务另建一个宿主。
+      Intent expand =
           new Intent(this, getClass())
-              .addFlags(
-                  Intent.FLAG_ACTIVITY_NEW_TASK
-                      | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                      | Intent.FLAG_ACTIVITY_SINGLE_TOP)
-              .putExtra(BrowserConversationRoute.MODE, "HIDDEN"));
+              .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP)
+              .putExtra(BrowserConversationRoute.MODE, "HIDDEN");
+      if (!BrowserTasks.startInTask(this, getTaskId(), expand))
+        startActivity(expand.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     } else hideConversationTask();
   }
 
@@ -323,7 +323,7 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
    * 启动目标为 Web 时，网页返回到底就回桌面：与按 Home 相同地登记“返回原网页”，
    * 下次点桌面图标由 Main 的既有路由带回同一页面。页面、草稿与会话全部保留，不停止运行实例。
    *
-   * <p>Main 与 Web 是两个任务，只把本任务移到后台会露出 Main；所以先显式切到桌面。
+   * <p>Main 与 Web 同一任务（旧版本遗留的独立网页任务亦然），结束或移走本页都会露出 Main；所以先显式切到桌面。
    * 带 NO_USER_ACTION，避免这次程序化离开被当成用户按 Home 而自动进入画中画。
    */
   protected final void leaveToLauncher() {

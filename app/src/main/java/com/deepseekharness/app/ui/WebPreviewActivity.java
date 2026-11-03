@@ -90,6 +90,8 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   private PreviewPageSession.Identity restoreIdentity;
   private PreviewPageSession.Identity obsoleteHostIdentity;
   private boolean emptyHostRetirementPending;
+  // 本实例只把请求转交给已有存活宿主后即结束；生命周期回调全部跳过。
+  private boolean forwardedDuplicate;
   private PreviewPageSession.Identity pendingIdentity;
   private PreviewPageSession.Identity startupIdentity;
   private final Runnable runtimeChanged =
@@ -314,6 +316,13 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    // 宿主与 Main 同一任务、不再是 singleTask：已有存活宿主（例如在画中画任务里）时，
+    // 把本次请求转交给它并结束这个新实例，不建第二个 WebView、不登记成新 owner。
+    if (savedInstanceState == null && BrowserTasks.forwardToLiveBrowser(this)) {
+      forwardedDuplicate = true;
+      finish();
+      return;
+    }
     closeOriginRestorePreview = BrowserOriginRestore.registerPreview(this);
     microphone = new BrowserMicrophone(this);
     retained = new androidx.lifecycle.ViewModelProvider(this).get(Retained.class);
@@ -1890,6 +1899,11 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
 
   @Override
   protected void onDestroy() {
+    if (forwardedDuplicate) {
+      // 只走过 super.onCreate：没有页面、监听或 owner 登记需要撤销。
+      super.onDestroy();
+      return;
+    }
     hidePageBoot();
     BrowserConversationRoute.unregister(this);
     com.deepseekharness.app.core.HarnessController.get(this)
