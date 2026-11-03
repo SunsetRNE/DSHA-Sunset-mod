@@ -444,8 +444,7 @@ public final class BrowserTasksTest {
   }
 
   @Test
-  public void explicitHomeReordersMainInsideTheSharedTaskInsteadOfAnotherWindow()
-      throws Exception {
+  public void explicitHomeReordersMainInsideTheSharedTaskInsteadOfAnotherWindow() throws Exception {
     liveMainIn(7);
     var browser = new Browser();
     setField(
@@ -488,7 +487,8 @@ public final class BrowserTasksTest {
     assertEquals("s1", forward.getStringExtra(BrowserConversationRoute.SESSION));
     assertTrue(forward.getBooleanExtra(BrowserTasks.FORWARDED, false));
     assertEquals(
-        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP, forward.getFlags());
+        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP,
+        forward.getFlags());
     // 已转交过的请求不再转交，避免来回弹跳。
     var bounced = new Browser();
     bounced.entry = forward;
