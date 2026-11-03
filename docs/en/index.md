@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.1530-dsh0.2.1-rc.5` / build297 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build makes the startup log and diagnostics state whether proot runs with the seccomp filter, so a slower compatibility mode is visible (experimental). Local targeted unit tests, Lint and source gates passed. See the [build297 notes](../releases/build297-changes.en.md) and the [build297 record](../releases/v0.2.1-rc.3-build297-proot-mode-log-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.1600-dsh0.2.1-rc.5` / build298 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build only updates documentation: a proot overhead study, a UI template baseline and collaboration conventions; app behavior is unchanged. Local targeted unit tests, Lint and source gates passed. See the [build298 notes](../releases/build298-changes.en.md) and the [build298 record](../releases/v0.2.1-rc.3-build298-docs-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

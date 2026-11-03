@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("seccomp 过滤"));
-      assertTrue(shown.contains("版本码提升为 297"));
+      assertTrue(shown.contains("仅更新文档"));
+      assertTrue(shown.contains("版本码提升为 298"));
+      assertFalse(shown.contains("seccomp 过滤"));
+      assertFalse(shown.contains("版本码提升为 297"));
       assertFalse(shown.contains("识屏模式"));
       assertFalse(shown.contains("版本码提升为 296"));
       assertFalse(shown.contains("覆盖安装"));
@@ -255,8 +257,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("seccomp filter"));
-      assertTrue(shown.contains("Raises versionCode to 297"));
+      assertTrue(shown.contains("Documentation only"));
+      assertTrue(shown.contains("Raises versionCode to 298"));
+      assertFalse(shown.contains("seccomp filter"));
+      assertFalse(shown.contains("Raises versionCode to 297"));
       assertFalse(shown.contains("screen mode"));
       assertFalse(shown.contains("Raises versionCode to 296"));
       assertFalse(shown.contains("in-place update"));
