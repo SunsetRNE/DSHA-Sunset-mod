@@ -49,8 +49,8 @@ const initialize=spawnSync(process.execPath,[fileURLToPath(new URL('../app/src/m
 });
 assert.equal(initialize.status,0);assert.equal(initialize.stderr,'');
 const instructions=JSON.parse(initialize.stdout.trim()).result.instructions;
-assert.match(instructions,/SDK AbortError/);assert.match(instructions,/does not prove launch was not executed/);
-assert.match(instructions,/inspect actual state before deciding and never replay automatically/);
+assert.match(instructions,/SDK 抛出 AbortError/);assert.match(instructions,/不证明动作或 launch 未执行/);
+assert.match(instructions,/一律不自动重放，先观察实际状态/);
 assert.deepEqual(launch.inputSchema.required,['coreInstance','package']);
 assert.deepEqual(Object.keys(launch.inputSchema.properties),['coreInstance','package','generation']);
 assert.equal(launch.inputSchema.additionalProperties,false);

@@ -161,8 +161,8 @@ test('all ten signed wrappers activate with real 0.2.1 services; actual MCP and 
     const assembly=await ctx.systemPrompt.assemble();
     assert.ok(assembly.sections.some(section=>section.name==='dsh:device-shell-guide'));
     const phoneInstructions=assembly.sections.find(section=>section.name==='dsha:android-mcp')?.text;
-    assert(phoneInstructions?.includes('Call android_control with action begin'),'actual MCP initialization must explain task begin');
-    assert(phoneInstructions?.includes('call android_control with action finish'),'actual MCP initialization must explain task cleanup');
+    assert(phoneInstructions?.includes('先调用 android_control begin'),'actual MCP initialization must explain task begin');
+    assert(phoneInstructions?.includes('调用一次 android_control finish'),'actual MCP initialization must explain task cleanup');
     assert.ok(routes.some(route=>route.path==='/api/mobile-nav.session.delete'));
     const restore=routes.find(route=>route.path==='/__dsha/browser-origin-restore');assert.ok(restore);
     let denied;
