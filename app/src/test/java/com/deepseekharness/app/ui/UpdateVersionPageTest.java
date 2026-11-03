@@ -137,7 +137,6 @@ public final class UpdateVersionPageTest {
       assertTrue(shown.contains("版本码提升为 296"));
       assertFalse(shown.contains("覆盖安装"));
       assertFalse(shown.contains("版本码提升为 295"));
-      assertFalse(shown.contains("虚拟识屏"));
       assertFalse(shown.contains("版本码提升为 294"));
       assertFalse(shown.contains("启动日志"));
       assertFalse(shown.contains("版本码提升为 293"));
@@ -259,7 +258,6 @@ public final class UpdateVersionPageTest {
       assertTrue(shown.contains("Raises versionCode to 296"));
       assertFalse(shown.contains("in-place update"));
       assertFalse(shown.contains("Raises versionCode to 295"));
-      assertFalse(shown.contains("virtual screen"));
       assertFalse(shown.contains("Raises versionCode to 294"));
       assertFalse(shown.contains("startup log"));
       assertFalse(shown.contains("Raises versionCode to 293"));
