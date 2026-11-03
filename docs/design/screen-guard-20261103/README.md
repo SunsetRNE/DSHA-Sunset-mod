@@ -224,6 +224,7 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 ```
 
 - `nextAction` 统一用 T35 短词表，并补齐：`SEE_AGAIN`、`WAIT_AND_SEE_AGAIN`、`CREATE_FIRST`、`LAUNCH_APP_FIRST`、`LAUNCH_APP_OR_WAIT`、`CHECK_STATUS`、`ENABLE_ACCESSIBILITY`、`WAIT_ACCESSIBILITY_RECONNECT`、`ASK_USER_TO_CLOSE`、`REPORT_TO_USER`，新增 `BEGIN_TASK`、`WAIT_USER_MESSAGE`、`READ_USER_MESSAGE`、`ASK_USER_TO_RESUME`、`STOP`。实体屏现有长词（如 `CLEAR_OCCLUSION_OR_USE_FRESH_TREE_NODE`）保留在 `reason` 旁的 `detail` 字段一个版本，再删。
+- 词表归属：nextAction 词表抽成共用的 `util/AgentNextAction`（枚举 + 线上字符串，配单测锁住取值），T39 与 T40（设备命令）共用一张。谁先进 main 谁建，后到的变基复用，不另起一份。
 - `userAction` 只在需要用户动手时给，文字走 `UiText`（中英文），写明设置入口路径。
 - `UNKNOWN` 一律 `retry: never`，并带 `executionUnknown: true`。
 - 旧格式兼容（Q5 已定）：`[ERR] CODE` 文本前缀和实体屏长 nextAction 词只保留一个版本，下一版直接删除。删除那一版同时发一份声明 `docs/releases/screen-error-format-removal-<日期>.md`，写明删了什么（前缀格式、长词清单、涉及的端点）、用什么替代（`error` / `nextAction` 字段）、插件和脚本需要怎么改。兼容版内插件改为只按 JSON 的 `error` 字段转述。
@@ -254,7 +255,7 @@ G7 之后的执行期失败（目标变化、遮挡、帧过期、UNKNOWN）不�
 ## 9. 落点与实施顺序（确认后）
 
 1. `util/ScreenGuard` + `ScreenGuardTest`（纯逻辑，可先独立合入，生产不调用）。
-2. `util/ScreenRefusal`（§7 格式）+ 测试；`TurnScreenGrants` 改键（§6.1）+ 测试。
+2. `util/AgentNextAction`（若 T40 尚未建）+ `util/ScreenRefusal`（§7 格式）+ 测试；`DeviceShellPolicy` 只加 §5.4.1 读屏类拦截，T40 的按类别确认在 `util/DeviceGuard`，互不改对方部分；`TurnScreenGrants` 改键（§6.1）+ 测试。
 3. `screen/ScreenGuardInputs.sample(ctx)`：把现在散在 `screenAuthorization` / `ScreenMode.bridgeRejection` / `ScreenCapabilities.sample` 的采样收拢。
 4. `HttpShellService`：`appUi`、`appVscreen`、`appLaunch` 的前置判定换成 `ScreenGuard.evaluate`；`screenAuthorization` 只留弹窗与票据。不往 HttpShellService 加新职责，新逻辑放 `screen/ScreenGuardBridge`。
 5. 确认窗稳定窗口（§6.3）、读屏选项设置页（§6.2，含中英文与布局验收）。
