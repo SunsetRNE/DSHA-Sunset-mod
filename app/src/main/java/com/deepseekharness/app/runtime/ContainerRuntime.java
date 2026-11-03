@@ -130,11 +130,7 @@ public interface ContainerRuntime {
       if (!new File(libDir, "libtalloc.so.2").isFile()
           || !new File(libDir, "libandroid-shmem.so").isFile())
         throw new java.io.IOException("PROOT_DEPENDENCIES_MISSING");
-      RuntimeHostPorts.Settings settings =
-          explicitSettings == null
-              ? RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings()
-              : explicitSettings;
-      if (settings.disableProotSeccomp) pb.environment().put("PROOT_NO_SECCOMP", "1");
+      if (seccompDisabled()) pb.environment().put("PROOT_NO_SECCOMP", "1");
       else pb.environment().remove("PROOT_NO_SECCOMP");
       pb.environment().put("PROOT_TMP_DIR", tmpDir.getAbsolutePath());
       pb.environment().put("PROOT_LOADER", new File(directory, loader).getAbsolutePath());
@@ -143,6 +139,15 @@ public interface ContainerRuntime {
       else pb.environment().remove("PROOT_LOADER_32");
       pb.environment()
           .put("LD_LIBRARY_PATH", libDir.getAbsolutePath() + ":" + directory.getAbsolutePath());
+    }
+
+    /** 与 applyEnv 同一来源：本次启动是否带 PROOT_NO_SECCOMP（无 seccomp 过滤的兼容档）。 */
+    public boolean seccompDisabled() {
+      RuntimeHostPorts.Settings settings =
+          explicitSettings == null
+              ? RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings()
+              : explicitSettings;
+      return settings.disableProotSeccomp;
     }
 
     @Override

@@ -15762,5 +15762,21 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/NetworkHealthSheet.java"
     ]
+  },
+  {
+    "id": "rml296a01",
+    "zh": "proot（seccomp 过滤）",
+    "en": "proot (seccomp filter)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/RuntimeModeLabel.java"
+    ]
+  },
+  {
+    "id": "rml296a02",
+    "zh": "proot（兼容模式：无 seccomp）",
+    "en": "proot (compatibility mode: no seccomp)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/RuntimeModeLabel.java"
+    ]
   }
 ]

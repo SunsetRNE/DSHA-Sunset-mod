@@ -1942,5 +1942,7 @@
   "nh274a16": "Systema DSHA a rete prohibuit. Reditus ad DSHA plerumque restituit; si saepe fit, usum in fundo in pugillae optionibus permitte.",
   "nh274a17": "Continens adhuc DNS retis prioris utitur. Post mutationem retis sponte renovatur.",
   "nh274a18": "Telephonum retem habet, sed ministerium exemplaris attingere non potest. VPN, procurator aut ministerium causa esse potest.",
-  "nh274a19": "DSHA aliquamdiu in fundo non cucurrit; fortasse a systemate aut parsimonia energiae congelatum est."
+  "nh274a19": "DSHA aliquamdiu in fundo non cucurrit; fortasse a systemate aut parsimonia energiae congelatum est.",
+  "rml296a01": "proot (filtrum seccomp)",
+  "rml296a02": "proot (modus compatibilitatis: sine seccomp)"
 }

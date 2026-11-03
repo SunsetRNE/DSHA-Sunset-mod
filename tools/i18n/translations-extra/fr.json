@@ -1942,5 +1942,7 @@
   "nh274a16": "Le système a bloqué le réseau de DSHA. Revenir dans DSHA suffit en général ; si cela se répète, autorisez l’arrière-plan dans les réglages batterie.",
   "nh274a17": "Le conteneur utilise encore le DNS du réseau précédent. Il est actualisé après le changement de réseau.",
   "nh274a18": "Le téléphone a du réseau mais n’atteint pas le service de modèle. Un VPN, un proxy ou le service peut en être la cause.",
-  "nh274a19": "DSHA ne s’est pas exécuté un moment en arrière-plan ; le système ou l’économie d’énergie l’a peut-être gelé."
+  "nh274a19": "DSHA ne s’est pas exécuté un moment en arrière-plan ; le système ou l’économie d’énergie l’a peut-être gelé.",
+  "rml296a01": "proot (filtre seccomp)",
+  "rml296a02": "proot (mode compatibilité : sans seccomp)"
 }

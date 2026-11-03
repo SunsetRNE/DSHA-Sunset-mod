@@ -366,11 +366,12 @@ public final class DiagnosticRepository extends AndroidViewModel {
             + t(
                 "\n正在验证所选运行方式（最多 60 秒）与 Node / npm / Python（最多 20 秒）…\n",
                 "\nChecking the selected runtime (up to 60 seconds), then Node / npm / Python (up to 20 seconds)…\n"));
-    String selectedMode = "", smokeStatus = "";
+    String selectedMode = "", selectedDetail = "", smokeStatus = "";
     DiagnosticReport.ToolVersions versions = null;
     if (ready) {
       ProotBootstrap.SmokeResult smoke = proot.smokeTestResult();
       selectedMode = smoke.runtimeMode;
+      selectedDetail = smoke.runtimeDetail;
       String smokeOutput =
           com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
               smoke.command, "SELECTED_RUNTIME_SMOKE");
@@ -390,9 +391,9 @@ public final class DiagnosticRepository extends AndroidViewModel {
         "selected-runtime",
         ready ? DiagnosticReport.Health.PASS : DiagnosticReport.Health.UNVERIFIED,
         t("所选运行方式", "Selected runtime"),
-        ready ? selectedMode + " · SMOKE_OK" : t("尚未验证", "Not verified"),
+        ready ? selectedDetail + " · SMOKE_OK" : t("尚未验证", "Not verified"),
         ready
-            ? "runtimeMode=" + selectedMode + "\n" + smokeStatus
+            ? "runtimeMode=" + selectedMode + "\nruntimeDetail=" + selectedDetail + "\n" + smokeStatus
             : t("运行环境尚未就绪。", "The runtime is not ready."));
     add(
         rows,

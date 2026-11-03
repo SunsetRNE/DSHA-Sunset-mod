@@ -129,15 +129,27 @@ final class RuntimeExecution {
     }
   }
 
-  record Probe(String runtimeMode, BoundedProcessRunner.Result command) {}
+  record Probe(String runtimeMode, String runtimeDetail, BoundedProcessRunner.Result command) {}
 
   Probe probe() throws IOException, InterruptedException {
     try (RuntimeHostPorts.Scope ignored = ports.open()) {
       nativeFiles();
       ensurePatches();
       ContainerRuntime selected = runtime();
-      return new Probe(selected.id(), collect("/bin/echo SMOKE_OK", 60_000, false, selected));
+      String detail = modeKey(selected);
+      return new Probe(
+          selected.id(), detail, collect("/bin/echo SMOKE_OK", 60_000, false, selected));
     }
+  }
+
+  /** 诊断键：proot 带 seccomp 状态；须在与启动参数相同的配置 scope 内读取。 */
+  static String modeKey(ContainerRuntime runtime) {
+    return com.deepseekharness.app.util.RuntimeModeLabel.key(runtime.id(), seccompOff(runtime));
+  }
+
+  static boolean seccompOff(ContainerRuntime runtime) {
+    return runtime instanceof ContainerRuntime.Proot
+        && ((ContainerRuntime.Proot) runtime).seccompDisabled();
   }
 
   String smokeText() {

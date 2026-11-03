@@ -1942,5 +1942,7 @@
   "nh274a16": "O sistema bloqueou a rede do DSHA. Voltar ao DSHA geralmente resolve; se for frequente, permita o uso em segundo plano na bateria.",
   "nh274a17": "O contêiner ainda usa o DNS da rede anterior. Ele é atualizado após a troca de rede.",
   "nh274a18": "O telefone tem rede, mas não alcança o serviço de modelo. Pode ser VPN, proxy ou o próprio serviço.",
-  "nh274a19": "O DSHA ficou um tempo sem rodar em segundo plano e pode ter sido congelado pelo sistema ou pela economia de energia."
+  "nh274a19": "O DSHA ficou um tempo sem rodar em segundo plano e pode ter sido congelado pelo sistema ou pela economia de energia.",
+  "rml296a01": "proot (filtro seccomp)",
+  "rml296a02": "proot (modo de compatibilidade: sem seccomp)"
 }
