@@ -22,9 +22,9 @@ import java.util.List;
 public final class ScreenCapabilityGate {
   private ScreenCapabilityGate() {}
 
-  public static final String ROOT = "root";
-  public static final String SHIZUKU = "shizuku";
-  public static final String ADB = "adb";
+  public static final String ROOT = DeviceChannelOrder.ROOT;
+  public static final String SHIZUKU = DeviceChannelOrder.SHIZUKU;
+  public static final String ADB = DeviceChannelOrder.ADB;
 
   /** 缺项代码；界面按代码渲染文案，不在这里拼语言。 */
   public static final String MISSING_ACCESSIBILITY = "ACCESSIBILITY";
@@ -97,21 +97,9 @@ public final class ScreenCapabilityGate {
     }
   }
 
-  /**
-   * 通道尝试顺序：Root 优先。Android 17 上 Shizuku 用户服务可能在进入 DSHA 前退出，ADB 连接已验证时排在
-   * Shizuku 之前；其余情况 Shizuku 在 ADB 之前。
-   */
+  /** 通道尝试顺序；与设备命令共用 {@link DeviceChannelOrder#order}，这里不再单独决定。 */
   public static List<String> order(int api, boolean adbConnected) {
-    List<String> order = new ArrayList<>();
-    order.add(ROOT);
-    if (api >= 37 && adbConnected) {
-      order.add(ADB);
-      order.add(SHIZUKU);
-    } else {
-      order.add(SHIZUKU);
-      order.add(ADB);
-    }
-    return order;
+    return DeviceChannelOrder.order(api, adbConnected);
   }
 
   public static boolean channelUsable(String id, Inputs in) {

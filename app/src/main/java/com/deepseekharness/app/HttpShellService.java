@@ -1073,34 +1073,40 @@ public final class HttpShellService {
         return completedExecution("policy", plan.optString("reason") + "\n[EXIT=126]");
       boolean sms = "sms.read".equals(plan.optString("capability"));
       boolean rawShell = "SHELL".equals(plan.optString("kind"));
-      if (rawShell) {
-        // 原始 shell 只允许 root 身份：优先本机 su，其次显式 ADB 计划由 guest 执行 `su -c`。
-        // 不能落到 Shizuku（Shizuku 的通用执行器仍按严格档），也不能在 root 不可用时降级。
-        if (!forceAdb && RootShell.enabled(ctx) && RootShell.present())
-          return completedExecution("root", RootShell.exec(ctx, command, -1));
-        if (DeviceBridgeService.isAdbEnabled(ctx)) {
-          plan.put("su", true);
+      // 通道顺序与判据和虚拟屏共用 DeviceChannelOrder，只选一次；失败不换通道重放。
+      // 原始 shell 只允许 root 身份（本机 su 或 ADB + su），不落到 Shizuku、不降级；短信不走 Shizuku。
+      com.deepseekharness.app.util.DeviceChannelOrder.Choice choice =
+          com.deepseekharness.app.util.DeviceChannelOrder.forDeviceCommand(
+              com.deepseekharness.app.screen.ScreenCapabilities.sample(ctx),
+              rawShell
+                  ? com.deepseekharness.app.util.DeviceChannelOrder.Kind.SHELL
+                  : sms
+                      ? com.deepseekharness.app.util.DeviceChannelOrder.Kind.SMS
+                      : com.deepseekharness.app.util.DeviceChannelOrder.Kind.NORMAL,
+              forceRoot,
+              forceAdb);
+      switch (choice.channel) {
+        case com.deepseekharness.app.util.DeviceChannelOrder.ROOT:
+          {
+            int user = sms ? android.os.Process.myUid() / 100000 : -1;
+            return completedExecution("root", RootShell.exec(ctx, command, user));
+          }
+        case com.deepseekharness.app.util.DeviceChannelOrder.SHIZUKU:
+          return completedExecution("shizuku", ShizukuShell.exec(command));
+        case com.deepseekharness.app.util.DeviceChannelOrder.ADB:
+          plan.put("su", choice.su);
           return new org.json.JSONObject().put("state", "adb").put("plan", plan).toString();
-        }
-        return completedExecution(
-            "none",
-            com.deepseekharness.app.util.UiText.text(
-                "[DEVICE_CHANNEL_UNAVAILABLE] 放宽档需要可用的 root 通道；请先在设备能力授权中启用 root shell\n[EXIT=124]"));
+        default:
+          if (rawShell)
+            return completedExecution(
+                "none",
+                com.deepseekharness.app.util.UiText.text(
+                    "[DEVICE_CHANNEL_UNAVAILABLE] 放宽档需要可用的 root 通道；请先在设备能力授权中启用 root shell\n[EXIT=124]"));
+          return completedExecution(
+              "none",
+              com.deepseekharness.app.util.UiText.text(
+                  "[DEVICE_CHANNEL_UNAVAILABLE] 请在设置 → 设备能力授权中连接 root、Shizuku 或 ADB 通道\n[EXIT=124]"));
       }
-      if (!forceAdb && RootShell.enabled(ctx) && RootShell.present()) {
-        int user = sms ? android.os.Process.myUid() / 100000 : -1;
-        return completedExecution("root", RootShell.exec(ctx, command, user));
-      }
-      if (!forceAdb && !forceRoot && !sms && ShizukuShell.hasPermission()) {
-        return completedExecution("shizuku", ShizukuShell.exec(command));
-      }
-      if (!DeviceBridgeService.isAdbEnabled(ctx))
-        return completedExecution(
-            "none",
-            com.deepseekharness.app.util.UiText.text(
-                "[DEVICE_CHANNEL_UNAVAILABLE] 请在设置 → 设备能力授权中连接 root、Shizuku 或 ADB 通道\n[EXIT=124]"));
-      plan.put("su", forceRoot);
-      return new org.json.JSONObject().put("state", "adb").put("plan", plan).toString();
     } catch (Exception error) {
       // 此时可能已经向设备发过命令，绝不能返回可重试的 ADB 计划。
       return completedExecution(

@@ -18,7 +18,7 @@ ADB配对与连接端口均由Android提供，不能填写Web端口或3090。依
 
 ## 一次设备命令如何派发
 
-[HttpShellService](../app/src/main/java/com/deepseekharness/app/HttpShellService.java)的自动设备执行按Root → Shizuku → ADB选择**一次**可用通道；`--su`只用于明确需要root且已授权的操作。命令先由[DeviceShellPolicy](../app/src/main/java/com/deepseekharness/app/util/DeviceShellPolicy.java)判定，再进入[DeviceShellExecutor](../app/src/main/java/com/deepseekharness/app/DeviceShellExecutor.java)。root通道另有strict（默认）/relaxed/full三档，只能由用户显式切换，不是单条命令的“仍然允许”按钮；档位只改变以root身份执行时的拦截强度。
+[HttpShellService](../app/src/main/java/com/deepseekharness/app/HttpShellService.java)的自动设备执行与虚拟屏共用[DeviceChannelOrder](../app/src/main/java/com/deepseekharness/app/util/DeviceChannelOrder.java)的顺序，选择**一次**可用通道：Root → Shizuku → ADB，Android 17（API 37）及以上且ADB连接已验证时ADB先于Shizuku。先按严格判据（Shizuku用户服务已绑定、ADB已启用且有局域网授权并已验证连接）选，都不满足时再按已授权判据（Shizuku已授权待绑定、ADB已启用且有局域网授权待连接）选；短信不走Shizuku，放宽档原始shell只走Root或ADB+su，执行失败不换通道重放；`--su`只用于明确需要root且已授权的操作。命令先由[DeviceShellPolicy](../app/src/main/java/com/deepseekharness/app/util/DeviceShellPolicy.java)判定，再进入[DeviceShellExecutor](../app/src/main/java/com/deepseekharness/app/DeviceShellExecutor.java)。root通道另有strict（默认）/relaxed/full三档，只能由用户显式切换，不是单条命令的“仍然允许”按钮；档位只改变以root身份执行时的拦截强度。
 
 strict只接受可完整识别的单条argv，不执行调用方提供的shell程序、管道、重定向或未知命令。relaxed放行root原始命令，但仍拒绝格式化、刷机、重启/关机、挂载、SELinux、块设备写入、清除应用数据以及递归删除存储根或一级目录等不可逆操作；full不再按命令内容拦截。放宽后的SHELL计划只交给真实root路径（本机root，或带`su=true`的ADB `su -c`）；Shizuku通用执行器与普通ADB计划仍按严格档生成，root不可用时不降级到它们。
 

@@ -299,7 +299,7 @@ DSH 的 Android 工具通过内置适配器进入本机鉴权桥，原生终端�
 | Shizuku | 服务 Binder 可用、用户授权和 UserService 绑定有效 | 与 ADB 开关独立，不能把 binder 存在当授权完成 |
 | ADB | 实际配对/连接、端口与密钥身份、当前连接代次 | 配对端口与连接端口不同，不固定写死 |
 
-`devicePlan/deviceExecute` 的普通通道选择为 Root → Shizuku → ADB；force/SMS 等有专用规则。
+`devicePlan/deviceExecute` 与虚拟屏共用 `util/DeviceChannelOrder` 的通道顺序：Root → Shizuku → ADB，API≥37 且 ADB 已验证连接时 ADB 先于 Shizuku；设备命令先严格判据、再已授权判据各选一次；force/SMS/SHELL 等有专用规则。
 已发送后结果未知不能继续换通道重放；只有明确 NOT_SENT 才可按受控契约撤销未提交票。
 无线配对 UI 主要面向 Android11+；旧系统路径依真实 ADB TCP、Root 或 Shizuku 条件。
 App 不会凭空获得 Root，也不代替系统完成所有受保护设置授权。
