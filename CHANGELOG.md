@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261104.0030-dsh0.2.1-rc.5 / build305（实验性：主 tab 切换按方向横移并淡入淡出）
+
+- 实验性：启动/插件/设置三个主 tab 互切时按底栏顺序横向滑入并淡入淡出，帮助感知页面方位；子页返回、门禁页恢复、重复点选仍用原页面动效，系统关闭动画时一并关闭（分支 `ui/tab-switch-motion`，4f657a02，基于 build303；测试包经用户真机确认观感）。
+- 验证范围：发布会话在 build305 上复跑 `*UpdateVersionPageTest` / `*MainActivity*` / `*UiMotion*`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 305（基于 build304）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build305 更新说明](docs/releases/build305-changes.zh.md)，验证记录见 [build305 记录](docs/releases/v0.2.1-rc.3-build305-tab-switch-motion-20261104.md)。
+
 ## 0.2.1-rc.3-20261103.2330-dsh0.2.1-rc.5 / build304（实验性：ADB/root 通道进程治理与备份凭据排除；设备命令与虚拟屏共用通道顺序；Web 页不再成第二个窗口；glob 跳过嵌套工作树）
 
 - 实验性：T38 对 root 通道增加并发上限 3、超时与 App 退出自动回收，避免 helper 进程堆积；ADB 探活不再被 Root/Shizuku 通道冒充；覆盖安装后旧 helper 退出并自动记录 root-busy、package-replaced 快照（分支 `fix/adb-channel-pileup`，37812c45、a137fb74，基于 build303；`.test` 真机已核对）。

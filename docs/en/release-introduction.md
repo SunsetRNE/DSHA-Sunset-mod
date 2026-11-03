@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build304 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build305 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build304 `0.2.1-rc.3-20261103.2330-dsh0.2.1-rc.5`.** Experimental: ADB/root helper processes are bounded and recovered across replacement, local ADB pairing keys are excluded from backups, device commands and the virtual screen share one channel order, the Web page no longer opens a second window, and glob skips nested worktrees. versionCode 304, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build304 notes](../releases/build304-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build305 `0.2.1-rc.3-20261104.0030-dsh0.2.1-rc.5`.** Experimental: switching between the main tabs now slides in the direction of the bottom bar and fades. versionCode 305, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build305 notes](../releases/build305-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

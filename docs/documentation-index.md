@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.2330-dsh0.2.1-rc.5` / build304 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版实验性地治理 ADB/root 通道 helper 的并发、超时、覆盖安装回收与取证，让备份/导出排除本机 ADB 配对密钥；设备命令与虚拟屏共用一份通道顺序；Web 页并入主界面任务，桌面窗口下不再出现两个窗口；新增 glob 跳过嵌套工作树的内置修复插件。本机定向单测、Lint 与源码门禁通过，T38 已在测试包真机核对，T46 经用户真机确认。改动说明见 [build304 更新说明](releases/build304-changes.zh.md)，验证记录见 [build304 记录](releases/v0.2.1-rc.3-build304-channels-window-search-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261104.0030-dsh0.2.1-rc.5` / build305 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为主 tab（启动/插件/设置）切换加入按方向横移与淡入淡出动效，系统关闭动画时同步关闭。本机定向单测、Lint 与源码门禁通过，测试包经用户真机确认观感。改动说明见 [build305 更新说明](releases/build305-changes.zh.md)，验证记录见 [build305 记录](releases/v0.2.1-rc.3-build305-tab-switch-motion-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
