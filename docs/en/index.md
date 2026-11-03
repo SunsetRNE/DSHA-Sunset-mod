@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261104.0030-dsh0.2.1-rc.5` / build305 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a direction-aware slide and fade when switching between the main tabs (Launch, Plugins, Settings), and follows the system setting when animations are off. Local targeted tests, Lint and source gates passed; the look was confirmed by the user on a test package device. See the [build305 notes](../releases/build305-changes.en.md) and the [build305 record](../releases/v0.2.1-rc.3-build305-tab-switch-motion-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261104.0100-dsh0.2.1-rc.5` / build306 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build shows icons only in the phone-portrait bottom navigation and shrinks the pill to 52dp; landscape and tablets are unchanged. Local targeted tests, Lint and source gates passed; the user checked it on a tablet device. See the [build306 notes](../releases/build306-changes.en.md) and the [build306 record](../releases/v0.2.1-rc.3-build306-compact-nav-portrait-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

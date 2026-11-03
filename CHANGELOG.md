@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261104.0100-dsh0.2.1-rc.5 / build306（实验性：手机竖屏底部导航只显示图标，胶囊压缩到 52dp）
+
+- 实验性：手机竖屏底部胶囊导航只显示图标，高度由 64dp 压缩到 52dp，页底让位随之收紧（90→78dp、74→62dp）；菜单标题保留，无障碍朗读与长按提示不变；横屏保留带文字胶囊，sw600dp 平板左栏不受影响（分支 `ui/compact-nav-portrait`，6db8c400，基于 build305；用户已在平板真机验收）。
+- 验证范围：发布会话在 build306 上复跑 `*ShellNavCompactPortraitTest` / `*UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 306（基于 build305）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build306 更新说明](docs/releases/build306-changes.zh.md)，验证记录见 [build306 记录](docs/releases/v0.2.1-rc.3-build306-compact-nav-portrait-20261104.md)。
+
 ## 0.2.1-rc.3-20261104.0030-dsh0.2.1-rc.5 / build305（实验性：主 tab 切换按方向横移并淡入淡出）
 
 - 实验性：启动/插件/设置三个主 tab 互切时按底栏顺序横向滑入并淡入淡出，帮助感知页面方位；子页返回、门禁页恢复、重复点选仍用原页面动效，系统关闭动画时一并关闭（分支 `ui/tab-switch-motion`，4f657a02，基于 build303；测试包经用户真机确认观感）。

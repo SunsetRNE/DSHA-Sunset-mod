@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("主 tab"));
-      assertTrue(shown.contains("版本码提升为 305"));
+      assertTrue(shown.contains("竖屏底部导航"));
+      assertTrue(shown.contains("版本码提升为 306"));
+      assertFalse(shown.contains("主 tab"));
+      assertFalse(shown.contains("版本码提升为 305"));
       assertFalse(shown.contains("ADB/root 通道"));
       assertFalse(shown.contains("版本码提升为 304"));
       assertFalse(shown.contains("弹层按窗口宽、高"));
@@ -270,8 +272,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("main tabs"));
-      assertTrue(shown.contains("Raises versionCode to 305"));
+      assertTrue(shown.contains("phone-portrait bottom navigation"));
+      assertTrue(shown.contains("Raises versionCode to 306"));
+      assertFalse(shown.contains("main tabs"));
+      assertFalse(shown.contains("Raises versionCode to 305"));
       assertFalse(shown.contains("ADB/root helper"));
       assertFalse(shown.contains("Raises versionCode to 304"));
       assertFalse(shown.contains("sheets and dialogs adapt"));
