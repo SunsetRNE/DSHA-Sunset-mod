@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.2000-dsh0.2.1-rc.5 / build300（新增临时修复插件 dsh-fs-read-hint：未读即改被拒时提示已读的同名路径）
+
+- 新增签名内置临时修复插件 `dsh-fs-read-hint`：助手未读即改被 `fs-observation-policy` 拒绝时，在报错里追加本会话已读过的同名路径，帮助改用正确路径；`dsh-runtime.bin` 按签名名单重建（只有 `dsh-plugin-manager/lib/index.js` 一个成员变化），应急锁同步到同一字节保持去重，固定构建输入切到 `fixed-inputs-20261103b`；发布会话补登记 `tools/test-fs-read-hint.mjs` 到 host-tests 清单（分支 `fix/fs-read-hint-rebuild` 71be0f94..d5f96f58，基于 build299；未上真机）。
+- 验证范围：发布会话在 build300 上复跑 `RuntimeToolsRegistryAndroidTest` / `*PluginManager*` / `*BuiltinPlugin*` / `*RecoveryRuntime*` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 300（基于 build299）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build300 更新说明](docs/releases/build300-changes.zh.md)，验证记录见 [build300 记录](docs/releases/v0.2.1-rc.3-build300-fs-read-hint-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.1630-dsh0.2.1-rc.5 / build299（虚拟屏 MCP 插件声明版本协商，启动时少起一次 server.cjs）
 
 - 虚拟屏 MCP 插件声明 `versionNegotiation: legacy`，`dsh-mcp-client` 运行时补丁增加可选版本协商（默认仍为 auto），启动时 `server.cjs` 从 2 次降为 1 次；`dsh-runtime.bin` 按补丁重建（只有 `mcp-client/index.js` 一个成员变化），应急锁同步到同一字节保持去重，固定构建输入切到 `fixed-inputs-20261103`（分支 `fix/vscreen-mcp-negotiation` 8d2c76b3..70fd2ac4，T31，基于 build297；未上真机）。
