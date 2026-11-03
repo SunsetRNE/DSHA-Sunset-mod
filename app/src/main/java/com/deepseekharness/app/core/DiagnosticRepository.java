@@ -393,7 +393,12 @@ public final class DiagnosticRepository extends AndroidViewModel {
         t("所选运行方式", "Selected runtime"),
         ready ? selectedDetail + " · SMOKE_OK" : t("尚未验证", "Not verified"),
         ready
-            ? "runtimeMode=" + selectedMode + "\nruntimeDetail=" + selectedDetail + "\n" + smokeStatus
+            ? "runtimeMode="
+                + selectedMode
+                + "\nruntimeDetail="
+                + selectedDetail
+                + "\n"
+                + smokeStatus
             : t("运行环境尚未就绪。", "The runtime is not ready."));
     add(
         rows,
