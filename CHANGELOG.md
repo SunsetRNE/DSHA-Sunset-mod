@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.1630-dsh0.2.1-rc.5 / build299（虚拟屏 MCP 插件声明版本协商，启动时少起一次 server.cjs）
+
+- 虚拟屏 MCP 插件声明 `versionNegotiation: legacy`，`dsh-mcp-client` 运行时补丁增加可选版本协商（默认仍为 auto），启动时 `server.cjs` 从 2 次降为 1 次；`dsh-runtime.bin` 按补丁重建（只有 `mcp-client/index.js` 一个成员变化），应急锁同步到同一字节保持去重，固定构建输入切到 `fixed-inputs-20261103`（分支 `fix/vscreen-mcp-negotiation` 8d2c76b3..70fd2ac4，T31，基于 build297；未上真机）。
+- 验证范围：发布会话在 build299 上复跑 `RuntimeToolsRegistryAndroidTest` / `com.deepseekharness.app.vscreen.*` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 299（基于 build298）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build299 更新说明](docs/releases/build299-changes.zh.md)，验证记录见 [build299 记录](docs/releases/v0.2.1-rc.3-build299-vscreen-mcp-negotiation-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.1600-dsh0.2.1-rc.5 / build298（文档：proot 开销调查、UI 模板基准与协作约定）
 
 - 仅文档，应用行为不变：新增 proot 本体开销调查（`docs/design/proot-overhead-20261103`，T34：随包 libproot.so 核实为 termux/proot v5.1.107.91，首选 readlink 入口直答方案，实施另行决定）；新增 UI 模板基准（`docs/design/ui-template-baseline-20261103`，四档位整套导出、适配度审计与弹层自适应提案）；AGENTS 增加 DSH 文件工具先 read 再 edit 的约定（分支 `research/proot-overhead` 34981e28、`design/ui-template-baseline` 67724f5e、`docs/agents-fs-read-rule` 3a62dd40）。

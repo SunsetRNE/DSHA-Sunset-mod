@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.1600-dsh0.2.1-rc.5` / build298 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版只更新文档：proot 开销调查、UI 模板基准和协作约定，应用行为不变。本机定向单测、Lint 与源码门禁通过。改动说明见 [build298 更新说明](releases/build298-changes.zh.md)，验证记录见 [build298 记录](releases/v0.2.1-rc.3-build298-docs-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.1630-dsh0.2.1-rc.5` / build299 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让虚拟屏 MCP 插件声明版本协商，启动时少起一次 server.cjs；运行时归档按补丁重建，应急归档同步。本机定向单测、Lint 与源码门禁通过。改动说明见 [build299 更新说明](releases/build299-changes.zh.md)，验证记录见 [build299 记录](releases/v0.2.1-rc.3-build299-vscreen-mcp-negotiation-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

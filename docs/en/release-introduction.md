@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build298 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build299 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build298 `0.2.1-rc.3-20261103.1600-dsh0.2.1-rc.5`.** Documentation only: proot overhead study, UI template baseline and collaboration conventions. versionCode 298, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build298 notes](../releases/build298-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build299 `0.2.1-rc.3-20261103.1630-dsh0.2.1-rc.5`.** The virtual screen MCP plugin declares version negotiation, so server.cjs starts once instead of twice. versionCode 299, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build299 notes](../releases/build299-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103`, 696,362,435 B, SHA-256 `53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 
