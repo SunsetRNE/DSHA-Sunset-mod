@@ -307,11 +307,14 @@ Manager `closeExpected()` 核对 Core UUID，`detachLocked()` 先令旧请求失
 | START_UNKNOWN / DISCONNECTED | status 的 pending、清理身份是否存在、原通道可否只读探针 | 再 create 或换通道重放启动 |
 | CLOSE_UNKNOWN | release ACK、出生 proof、journal commit 和 cleanup reason | 仅因画面消失就宣布 STOPPED |
 | FRAME_NOT_READY / STALE_FRAME | generation、最新帧、是否刚从无帧恢复、采用回调 | 保图同时继续开放触摸 |
+| 助手 see：VSCREEN_NO_WINDOW / FRAME_PENDING / FRAME_STALLED | windowState、windowEvidence、foregroundPackage、sinceReadyOrLaunchMs、nextAction | 空屏时等待或重建；无障碍不可用时把 UNKNOWN 当成空屏 |
 | FRAME_NOT_OBSERVED / FRAME_EXPIRED | requested/current/observed frame 字段及 TTL | 用 status 的新帧号替换旧图帧号 |
 | STALE_TREE / STALE_NODE | 实际窗口/包、服务状态和树期限 | 自动刷新并补发旧业务动作 |
 | NATIVE_CONTROL_REVOKED | 页面是否已暂停、面板是否已取消、Core 是否变更 | 重新激活旧 owner |
 | INPUT_RESULT_UNKNOWN | 实际应用画面和状态，保留原动作回执 | 换坐标/节点/通道重复同一动作 |
 | inputUnavailable / 无节点 | 后端缺失成员、系统权限、目标应用语义能力 | 宣称所有按钮都应可控 |
+
+助手侧 `see` 把 Core 的 `FRAME_NOT_READY` 细分（`util/VirtualScreenObservationHint`，`legacyError` 保留原码）：该显示没有窗口且 Core 报不出前台应用 → `VSCREEN_NO_WINDOW` / `LAUNCH_APP_FIRST`；有窗口且距就绪或最近一次 launch 不足 10 秒 → `FRAME_PENDING` / `WAIT_AND_SEE_AGAIN`；超过 10 秒仍无帧 → `FRAME_STALLED` / `REPORT_TO_USER`；无障碍不可用且 Core 无前台包名时无法区分，保留 `FRAME_NOT_READY` / `LAUNCH_APP_OR_WAIT`。降级为纯图片时 `availabilityReason` 拆为 `ANCHOR_ACCESSIBILITY_NOT_ENABLED` / `_NOT_CONNECTED`、`ANCHOR_NO_WINDOW`、`ANCHOR_TARGET_EVIDENCE_UNAVAILABLE`、`ANCHOR_CONSENT_EVIDENCE_UNAVAILABLE`、`ANCHOR_REQUEST_EVIDENCE_REQUIRED`；tree/node/editor 拿不到窗口时 `error` 仍为 `ACCESSIBILITY_UNAVAILABLE`，另附 `reason` 与 `nextAction`。这些都是只读失败，不改变任何门控、不重放、不换屏；虚拟识屏页仍直接读 Core 预览，`FRAME_NOT_READY` 保持「等待中」语义。
 
 先收集脱敏技术字段：错误码、阶段、方向/尺寸、状态、帧关系、后端类型和证明分类。
 不要公开真实 token、handshake、清理 handle、用户输入、树正文或截图中的个人数据。
