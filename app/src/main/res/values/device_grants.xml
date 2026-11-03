@@ -10,4 +10,6 @@
     <dimen name="grants_column_gap">12dp</dimen>
     <dimen name="grants_segment_height">40dp</dimen>
     <dimen name="grants_pill_min_height">44dp</dimen>
+    <!-- 通道 / 屏幕卡的标题行：标题 + 短动作 + 开关同一行，保持 44dp 触控下限 -->
+    <dimen name="grants_channel_row">46dp</dimen>
 </resources>

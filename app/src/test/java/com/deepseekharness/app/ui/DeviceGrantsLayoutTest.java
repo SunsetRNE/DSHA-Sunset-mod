@@ -181,6 +181,35 @@ public final class DeviceGrantsLayoutTest {
     assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
   }
 
+  /**
+   * 紧凑行式：Root / ADB 的开关与标题同一行；屏幕设置入口是状态行行尾的短按钮，虚拟识屏并入屏幕卡。
+   * 高度预算按 mdpi、360dp 宽、全部未开启的默认状态；Robolectric 字体行高偏大，预算按其实测值加余量。
+   */
+  @Test
+  public void channelAndScreenSectionsUseCompactRows() {
+    View page = start(360);
+    // 标题与状态叠成左侧两行，开关在同一行右侧。
+    View rootSwitch = page.findViewById(R.id.config_root_shell);
+    assertSame(
+        page.findViewById(R.id.device_root_title).getParent().getParent(), rootSwitch.getParent());
+    assertSame(
+        page.findViewById(R.id.device_root_title).getParent(),
+        page.findViewById(R.id.device_root_status).getParent());
+    assertSame(
+        page.findViewById(R.id.config_adb_title).getParent().getParent(),
+        page.findViewById(R.id.config_adb_enable).getParent());
+    assertSame(
+        page.findViewById(R.id.config_a11y_status).getParent(),
+        page.findViewById(R.id.computer_use_accessibility).getParent());
+    assertSame(
+        page.findViewById(R.id.screen_card),
+        page.findViewById(R.id.screen_virtual_group).getParent());
+    int channels = page.findViewById(R.id.grants_section_channels).getHeight();
+    int screen = page.findViewById(R.id.grants_section_screen).getHeight();
+    assertTrue("channels too tall: " + channels, channels <= 460);
+    assertTrue("screen too tall: " + screen, screen <= 400);
+  }
+
   @Test
   public void relaxedSegmentDoesNotSaveWhileRootIsDisabled() {
     Context context = org.robolectric.RuntimeEnvironment.getApplication();
