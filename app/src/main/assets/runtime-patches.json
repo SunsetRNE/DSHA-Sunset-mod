@@ -25,6 +25,13 @@
       "asset": "mcp-image-base64-patch.json"
     },
     {
+      "asset": "mcp-version-negotiation-patch.json",
+      "module": "@deepseek-ai/dsh-mcp-client/lib/index.js",
+      "markers": [
+        "DSHA_MCP_VERSION_NEGOTIATION_V1"
+      ]
+    },
+    {
       "asset": "welcome-notice-patch.json",
       "markers": [
         "DSHA_WELCOME_NOTICE_RC2_V1",

@@ -455,6 +455,7 @@
   ],
   "assetFiles": [
     "mcp-image-base64-patch.json",
+    "mcp-version-negotiation-patch.json",
     "web-fetch-http-surrogate-patch.json",
     "web-fetch-output-surrogate-patch.json",
     "client-combo-patch.json",

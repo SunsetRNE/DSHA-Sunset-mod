@@ -120,6 +120,7 @@
     "sidebar-layout-recovery-patch.json",
     "startup-mcp-timing-patch.json",
     "mcp-image-base64-patch.json",
+    "mcp-version-negotiation-patch.json",
     "startup-observer.cjs",
     "subagent-navigation-patch.json",
     "tool-block-identity-patch.json",
