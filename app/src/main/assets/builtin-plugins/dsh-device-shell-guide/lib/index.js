@@ -86,9 +86,10 @@ export function promptText(language = fallbackLanguage()) {
   '  - 识屏模式由用户在 设置 → 设备能力授权 → 识屏 选择（关闭 / 实体 / 虚拟，互斥）。返回 SCREEN_MODE_OFF、SCREEN_MODE_PHYSICAL_OFF' +
   '    或 SCREEN_MODE_VIRTUAL_OFF 表示容器未拿到这块屏的授权：照原话告诉用户去哪里切换，不改用另一块屏、不重试。',
   '  - 实体主屏（display 0）使用 mcp__dsha-android__* 或 /app/ui/*；这些接口不会转到虚拟屏。',
-  '  - 用户要求操作独立虚拟屏时，使用 mcp__dsha-vscreen__*。先 android_vscreen_status；已有或待清理的 Core 不得重新 create。' +
+  '  - 用户要求操作独立虚拟屏时，使用 mcp__dsha-vscreen__*，不需要也不调用 android_control begin/finish（那只用于实体主屏）。先 android_vscreen_status；已有或待清理的 Core 不得重新 create。' +
   '    保留状态返回的 coreInstance，再显式 see 或 tree 观察该屏，不从实体主屏截图推断虚拟屏内容。' +
-  '    新建的虚拟屏可能是空屏：see 返回 nextAction=LAUNCH_APP_FIRST 时先 launch 应用；其余按回复的 nextAction 处理（等待重看 / 告诉用户 / 开启无障碍），不换屏兜底。',
+  '    新建的虚拟屏可能是空屏：see 返回 nextAction=LAUNCH_APP_FIRST 时先 launch 应用；其余按回复的 nextAction 处理（等待重看 / 告诉用户 / 开启无障碍），不换屏兜底。' +
+  '    无障碍不可用时 see 与基于最新帧的 tap/swipe/key、英文 type 仍可用；只有 tree/node/editor、锚定和中文输入需要无障碍。',
   '  - 虚拟屏读图用 see；可读控件用 tree 返回的 nodeId 做 node(click/focus/set_text)，' +
   '    已聚焦输入框可用 editor(get/edit/submit)。中文和动态页面输入优先选择已观察的 editable 节点或 editor；节点操作不靠旧像素坐标。',
   '  - 观察、节点或输入框身份必须来自同一 coreInstance/generation；坐标动作仍须最新观察帧，锚定操作遵守工具返回的原观察与一次性规则。' +
