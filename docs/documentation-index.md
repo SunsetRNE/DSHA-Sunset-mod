@@ -27,6 +27,7 @@
 | [文案长度政策](i18n-length-policy.md) | 十种语言的短标签与长句处理边界 |
 | [首次引导重构设计](design/onboarding-20261031/README.md) | 4 步引导、部署胶囊、受限主界面、授权卡片、自适应布局与落地差异 |
 | [DSH Web 独立进程设计（待确认）](design/web-process-isolation-20261102/README.md) | `:web` 进程划分、IWebHost 接口、维护屏障跨进程协议、故障场景与分阶段计划；未实现 |
+| [proot 本体开销调查（T34）](design/proot-overhead-20261103/README.md) | 随包 libproot.so 对应 termux/proot v5.1.107.91、上游新修订无提速、停顿来源与 readlink 入口直答方案；未实现 |
 
 ## 用户操作与开发入口
 
