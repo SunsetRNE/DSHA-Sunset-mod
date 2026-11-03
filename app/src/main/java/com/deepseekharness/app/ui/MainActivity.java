@@ -533,6 +533,15 @@ public class MainActivity extends AppCompatActivity {
             openTerminal();
             return false; // 保留来源根页/子页及未保存草稿。
           }
+          // 切换前记下来源：只有「根页 → 另一根页」才用横向 tab 动效。
+          int fromTab = tabOrder(nav.getSelectedItemId());
+          int toTab = tabOrder(item.getItemId());
+          boolean lateral =
+              fromTab >= 0
+                  && toTab >= 0
+                  && fromTab != toTab
+                  && getSupportFragmentManager().getBackStackEntryCount() == 0
+                  && getSupportFragmentManager().findFragmentById(R.id.fragment_container) != null;
           // 根页真正切换后再同步：终端动作仍停在原根页。
           syncShellRail(item.getItemId());
           // 当前根页面再次点选时保留输入和滚动；从子页返回或外部打开插件仍执行导航。
@@ -577,7 +586,10 @@ public class MainActivity extends AppCompatActivity {
           } else {
             return false;
           }
-          UiMotion.page(this, getSupportFragmentManager().beginTransaction())
+          var transaction = getSupportFragmentManager().beginTransaction();
+          (lateral
+                  ? UiMotion.tab(this, transaction, toTab > fromTab)
+                  : UiMotion.page(this, transaction))
               .replace(R.id.fragment_container, f)
               .commit();
           return true;
@@ -968,6 +980,14 @@ public class MainActivity extends AppCompatActivity {
     else if (selectedId == R.id.nav_terminal)
       context.setText(com.deepseekharness.app.util.UiText.choose("本机终端", "Local terminal"));
     else context.setText(com.deepseekharness.app.util.UiText.choose("本机环境", "Local environment"));
+  }
+
+  /** 根页在底栏中的左右顺序；终端等非根页返回 -1，不参与横向动效。 */
+  private static int tabOrder(int itemId) {
+    if (itemId == R.id.nav_launch) return 0;
+    if (itemId == R.id.nav_plugins) return 1;
+    if (itemId == R.id.nav_settings) return 2;
+    return -1;
   }
 
   /**
