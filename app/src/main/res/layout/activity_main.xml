@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  UI v5 手机外壳：顶栏品牌/页面语境 + 内容区铺满 + 底部悬浮胶囊导航。
+  UI v5 手机外壳：顶栏品牌/页面语境 + 内容区铺满 + 底部悬浮胶囊导航（竖屏只显示图标，见 values-port）。
   胶囊叠在内容之上（不占纵向空间），底色不透明；页面用 shell_page_bottom 留出胶囊高度。
   底栏仍必须是 BottomNavigationView（单元测试与 debug 工具会强转）。
   平板形态见 layout-sw600dp/activity_main.xml（左栏 + 隐藏底栏）。
@@ -25,6 +25,6 @@
       <com.deepseekharness.app.ui.EnvironmentNoticeBanner android:id="@+id/environment_recovery_banner" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:layout_marginTop="8dp" android:layout_marginBottom="2dp" android:visibility="gone" />
       <FrameLayout android:id="@+id/fragment_container" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     </LinearLayout>
-    <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/bottom_nav" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginStart="@dimen/shell_nav_margin_horizontal" android:layout_marginEnd="@dimen/shell_nav_margin_horizontal" android:layout_marginBottom="@dimen/shell_nav_margin_bottom" android:background="@drawable/bg_shell_nav" android:backgroundTint="@null" android:elevation="8dp" android:outlineProvider="background" android:minHeight="@dimen/shell_nav_height" app:backgroundTint="@null" app:itemIconSize="@dimen/shell_nav_icon_size" app:itemPaddingTop="@dimen/shell_nav_item_padding_top" app:itemPaddingBottom="@dimen/shell_nav_item_padding_bottom" app:itemIconTint="@color/shell_nav_item_tint" app:itemTextColor="@color/shell_nav_item_tint" app:itemRippleColor="@color/shell_nav_ripple" app:itemTextAppearanceActive="@style/Widget.DSHA.ShellNavLabel" app:itemTextAppearanceInactive="@style/Widget.DSHA.ShellNavLabel" app:labelVisibilityMode="labeled" app:elevation="8dp" app:menu="@menu/bottom_nav_menu" />
+    <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/bottom_nav" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginStart="@dimen/shell_nav_margin_horizontal" android:layout_marginEnd="@dimen/shell_nav_margin_horizontal" android:layout_marginBottom="@dimen/shell_nav_margin_bottom" android:background="@drawable/bg_shell_nav" android:backgroundTint="@null" android:elevation="8dp" android:outlineProvider="background" android:minHeight="@dimen/shell_nav_height" app:backgroundTint="@null" app:itemIconSize="@dimen/shell_nav_icon_size" app:itemPaddingTop="@dimen/shell_nav_item_padding_top" app:itemPaddingBottom="@dimen/shell_nav_item_padding_bottom" app:itemIconTint="@color/shell_nav_item_tint" app:itemTextColor="@color/shell_nav_item_tint" app:itemRippleColor="@color/shell_nav_ripple" app:itemTextAppearanceActive="@style/Widget.DSHA.ShellNavLabel" app:itemTextAppearanceInactive="@style/Widget.DSHA.ShellNavLabel" app:labelVisibilityMode="@integer/shell_nav_label_visibility" app:elevation="8dp" app:menu="@menu/bottom_nav_menu" />
   </FrameLayout>
 </LinearLayout>

@@ -29,6 +29,8 @@
     <!-- 画布、卡片、强调色、玻璃层与导航底随调色板切换，见 theme_palettes.xml。 -->
 
     <!-- 手机胶囊导航 -->
+    <!-- 对应 labelVisibilityMode：1 = labeled；手机竖屏见 values-port 只显示图标 -->
+    <integer name="shell_nav_label_visibility">1</integer>
     <dimen name="shell_nav_height">64dp</dimen>
     <dimen name="shell_nav_margin_horizontal">12dp</dimen>
     <dimen name="shell_nav_margin_bottom">10dp</dimen>

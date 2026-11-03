@@ -9,7 +9,7 @@
     <!-- ========== 页面内边距与节奏 ========== -->
     <dimen name="shell_page_pad">20dp</dimen>
     <dimen name="shell_page_top">18dp</dimen>
-    <!-- 手机悬浮胶囊叠在内容上：64dp 高 + 10dp 底边距 + 16dp 余量。平板见 values-sw600dp。 -->
+    <!-- 手机悬浮胶囊叠在内容上：64dp 高 + 10dp 底边距 + 16dp 余量（横屏带文字胶囊）。手机竖屏见 values-port，平板见 values-sw600dp。 -->
     <dimen name="shell_page_bottom">90dp</dimen>
     <!--
       固定在页底、不随内容滚动的栏（如运行配置页保存栏）要让出悬浮胶囊：
