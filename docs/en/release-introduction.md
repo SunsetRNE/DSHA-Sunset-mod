@@ -4,7 +4,7 @@ Updated: 2026-11-01. This English entry describes the maintained build299 source
 
 > **build299 `0.2.1-rc.3-20261103.1630-dsh0.2.1-rc.5`.** The virtual screen MCP plugin declares version negotiation, so server.cjs starts once instead of twice. versionCode 299, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build299 notes](../releases/build299-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
-Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103`, 696,362,435 B, SHA-256 `53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
+Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103b`, 696,362,663 B, SHA-256 `c8856fc98e69c994eeb39e5cedab3d4316c35297e3ddb70943f3b3d431d61f88`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 
 F10–F13 and build190 records retain their original identity and scope. Their package names, version codes, DSH versions, test counts and device statements are historical evidence, not this build's acceptance.
 
