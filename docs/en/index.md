@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.1500-dsh0.2.1-rc.5` / build296 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build consolidates screen modes: physical and virtual screen sensing are mutually exclusive, the mode only limits the assistant, and the virtual screen page stays under the user's control (experimental). Local targeted unit tests, Lint and source gates passed. See the [build296 notes](../releases/build296-changes.en.md) and the [build296 record](../releases/v0.2.1-rc.3-build296-screen-mode-gate-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.1530-dsh0.2.1-rc.5` / build297 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build makes the startup log and diagnostics state whether proot runs with the seccomp filter, so a slower compatibility mode is visible (experimental). Local targeted unit tests, Lint and source gates passed. See the [build297 notes](../releases/build297-changes.en.md) and the [build297 record](../releases/v0.2.1-rc.3-build297-proot-mode-log-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

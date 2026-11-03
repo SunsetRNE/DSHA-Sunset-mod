@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.1530-dsh0.2.1-rc.5 / build297（实验性：启动日志与诊断写明 proot 是否带 seccomp 过滤）
+
+- **实验性。** 启动日志「本次实际运行方式」改为 proot（seccomp 过滤）/ proot（兼容模式：无 seccomp）/ proroot，seccomp 状态由 `ContainerRuntime.Proot.seccompDisabled()` 读取，与 applyEnv 同一配置快照；诊断报告「所选运行方式」增加 `runtimeDetail=proroot|proot-seccomp|proot-no-seccomp`；新增 `util/RuntimeModeLabel` 及单测，不改运行方式选择逻辑（分支 `feat/proot-mode-log` 00a59814、f1b93538，T33，基于 build296；未上真机）。
+- 验证范围：发布会话在 build297 上复跑 `RuntimeModeLabelTest` / `ContainerRuntimeEnvironmentTest` / `DiagnosticReportTest` / `StartupDiagnosticsTest` / `WebLifecycle*` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 297（基于 build296）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build297 更新说明](docs/releases/build297-changes.zh.md)，验证记录见 [build297 记录](docs/releases/v0.2.1-rc.3-build297-proot-mode-log-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.1500-dsh0.2.1-rc.5 / build296（实验性：识屏模式收束，助手侧与操作者面板分开）
 
 - **实验性。** 识屏模式收束：实体识屏与虚拟识屏互斥，桥与 MCP 按识屏模式放行（模式不符返回 `SCREEN_MODE_*`），能力撤销时同步降级；授权页新增识屏模式行。识屏模式只约束助手：虚拟识屏页的创建、旋转、输入、关闭只看设备能力与生命周期，不读也不改识屏模式，页内显示助手能否使用本屏并给出授权页入口；ADR0003 决定六相应改写（分支 `feat/screen-mode-gate-b` 4dee3c7f、9fa148f7、5860efb2，T29，原基于 build294；用户已用测试包真机核对：虚拟识屏下 Shizuku 虚拟屏 READY，启动应用后 see 与 tree 正常）。

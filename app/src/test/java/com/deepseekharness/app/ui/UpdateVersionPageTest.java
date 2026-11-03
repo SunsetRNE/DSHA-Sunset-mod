@@ -133,12 +133,13 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("识屏模式"));
-      assertTrue(shown.contains("版本码提升为 296"));
+      assertTrue(shown.contains("seccomp 过滤"));
+      assertTrue(shown.contains("版本码提升为 297"));
+      assertFalse(shown.contains("识屏模式"));
+      assertFalse(shown.contains("版本码提升为 296"));
       assertFalse(shown.contains("覆盖安装"));
       assertFalse(shown.contains("版本码提升为 295"));
       assertFalse(shown.contains("版本码提升为 294"));
-      assertFalse(shown.contains("启动日志"));
       assertFalse(shown.contains("版本码提升为 293"));
       assertFalse(shown.contains("支持的设备"));
       assertFalse(shown.contains("版本码提升为 292"));
@@ -254,12 +255,13 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("screen mode"));
-      assertTrue(shown.contains("Raises versionCode to 296"));
+      assertTrue(shown.contains("seccomp filter"));
+      assertTrue(shown.contains("Raises versionCode to 297"));
+      assertFalse(shown.contains("screen mode"));
+      assertFalse(shown.contains("Raises versionCode to 296"));
       assertFalse(shown.contains("in-place update"));
       assertFalse(shown.contains("Raises versionCode to 295"));
       assertFalse(shown.contains("Raises versionCode to 294"));
-      assertFalse(shown.contains("startup log"));
       assertFalse(shown.contains("Raises versionCode to 293"));
       assertFalse(shown.contains("supported devices"));
       assertFalse(shown.contains("Raises versionCode to 292"));

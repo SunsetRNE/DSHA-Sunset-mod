@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261103.1500-dsh0.2.1-rc.5` / build296 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版收束识屏模式：实体与虚拟识屏互斥，模式只约束助手，虚拟识屏页由用户自主使用（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build296 更新说明](releases/build296-changes.zh.md)，验证记录见 [build296 记录](releases/v0.2.1-rc.3-build296-screen-mode-gate-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261103.1530-dsh0.2.1-rc.5` / build297 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让启动日志与诊断写明 proot 是否带 seccomp 过滤，便于看出是否落在较慢的兼容模式（实验性）。本机定向单测、Lint 与源码门禁通过。改动说明见 [build297 更新说明](releases/build297-changes.zh.md)，验证记录见 [build297 记录](releases/v0.2.1-rc.3-build297-proot-mode-log-20261103.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
