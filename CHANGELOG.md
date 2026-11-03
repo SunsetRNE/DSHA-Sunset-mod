@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5 / build307（实验性：设备能力授权页「设备执行通道」「屏幕操作」改为紧凑两行条目）
+
+- 实验性：设备能力授权页的「设备执行通道」与「屏幕操作」两个板块改为紧凑两行条目，减少纵向占用；授权逻辑与开关行为不变（分支 `ui/compact-device-sections`，90a0f4b4，基于 build304，挑入 build306 之上无冲突；用户已在真机竖屏与横屏确认）。
+- 验证范围：发布会话在 build307 上复跑 `*DeviceGrantsLayoutTest` / `*UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 307（基于 build306）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build307 更新说明](docs/releases/build307-changes.zh.md)，验证记录见 [build307 记录](docs/releases/v0.2.1-rc.3-build307-compact-device-sections-20261104.md)。
+
 ## 0.2.1-rc.3-20261104.0100-dsh0.2.1-rc.5 / build306（实验性：手机竖屏底部导航只显示图标，胶囊压缩到 52dp）
 
 - 实验性：手机竖屏底部胶囊导航只显示图标，高度由 64dp 压缩到 52dp，页底让位随之收紧（90→78dp、74→62dp）；菜单标题保留，无障碍朗读与长按提示不变；横屏保留带文字胶囊，sw600dp 平板左栏不受影响（分支 `ui/compact-nav-portrait`，6db8c400，基于 build305；用户已在平板真机验收）。

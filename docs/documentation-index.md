@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261104.0100-dsh0.2.1-rc.5` / build306 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版让手机竖屏底部导航只显示图标、胶囊压缩到 52dp，横屏与平板不变。本机定向单测、Lint 与源码门禁通过，用户已在平板真机验收。改动说明见 [build306 更新说明](releases/build306-changes.zh.md)，验证记录见 [build306 记录](releases/v0.2.1-rc.3-build306-compact-nav-portrait-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` / build307 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把设备能力授权页的「设备执行通道」「屏幕操作」板块改为紧凑两行条目，授权逻辑不变。本机定向单测、Lint 与源码门禁通过，用户已在真机竖屏与横屏确认。改动说明见 [build307 更新说明](releases/build307-changes.zh.md)，验证记录见 [build307 记录](releases/v0.2.1-rc.3-build307-compact-device-sections-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

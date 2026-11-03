@@ -1,6 +1,6 @@
 # Build, signing, source distribution, and evidence
 
-Checked on 2026-11-01. Current identity is build306 / `0.2.1-rc.3-20261104.0100-dsh0.2.1-rc.5` / `io.github.sunsetrne.dsha` / a single Standard variant (the historical android-low record stays in the releases archive). Use [BUILD](../../BUILD.en.md) for executable build steps, [Mod identity, package and signing](../mod-identity-and-signing.md) for identity details, and [fixed build inputs](../fixed-build-inputs.md) for the pre-release input asset. This build's test and APK results are established by the repository receipts and Release, not by historical records.
+Checked on 2026-11-01. Current identity is build307 / `0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` / `io.github.sunsetrne.dsha` / a single Standard variant (the historical android-low record stays in the releases archive). Use [BUILD](../../BUILD.en.md) for executable build steps, [Mod identity, package and signing](../mod-identity-and-signing.md) for identity details, and [fixed build inputs](../fixed-build-inputs.md) for the pre-release input asset. This build's test and APK results are established by the repository receipts and Release, not by historical records.
 
 ## Where identities come from
 

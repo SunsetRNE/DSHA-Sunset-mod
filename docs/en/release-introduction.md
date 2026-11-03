@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build306 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build307 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build306 `0.2.1-rc.3-20261104.0100-dsh0.2.1-rc.5`.** Experimental: the phone-portrait bottom navigation now shows icons only in a slimmer 52dp pill. versionCode 306, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build306 notes](../releases/build306-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build307 `0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5`.** Experimental: the device capability page shows channel and screen sections as compact two-line rows. versionCode 307, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build307 notes](../releases/build307-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261104.0100-dsh0.2.1-rc.5` / build306 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build shows icons only in the phone-portrait bottom navigation and shrinks the pill to 52dp; landscape and tablets are unchanged. Local targeted tests, Lint and source gates passed; the user checked it on a tablet device. See the [build306 notes](../releases/build306-changes.en.md) and the [build306 record](../releases/v0.2.1-rc.3-build306-compact-nav-portrait-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` / build307 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build turns the Device execution channel and Screen operation sections of the device capability page into compact two-line rows; grant logic is unchanged. Local targeted tests, Lint and source gates passed; the user confirmed it on a device in portrait and landscape. See the [build307 notes](../releases/build307-changes.en.md) and the [build307 record](../releases/v0.2.1-rc.3-build307-compact-device-sections-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
