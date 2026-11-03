@@ -1,5 +1,16 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.2330-dsh0.2.1-rc.5 / build304（实验性：ADB/root 通道进程治理与备份凭据排除；设备命令与虚拟屏共用通道顺序；Web 页不再成第二个窗口；glob 跳过嵌套工作树）
+
+- 实验性：T38 对 root 通道增加并发上限 3、超时与 App 退出自动回收，避免 helper 进程堆积；ADB 探活不再被 Root/Shizuku 通道冒充；覆盖安装后旧 helper 退出并自动记录 root-busy、package-replaced 快照（分支 `fix/adb-channel-pileup`，37812c45、a137fb74，基于 build303；`.test` 真机已核对）。
+- 安全修复：T42 §7a 让备份与导出排除 `.dsh/adbkeys`，恢复 build303 及以前的旧归档时不落地其中的配对密钥；本机环境重建保留当前设备配对（分支 `fix/backup-exclude-adbkeys`，74632bdb，基于 build303）。
+- 实验性：T41 设备命令与虚拟屏共用一份原生选通道顺序（Root → Shizuku → ADB；Android 17 上 ADB 已验证连接时先于 Shizuku），设备命令先按严格判据、再按已授权判据各选一次，执行失败不换通道重放；ADB 路径新增局域网授权前提（分支 `fix/channel-order-align`，6066f5f3，基于 build303）。
+- 修复：T46 Web 页并入 Main 同一任务，桌面/自由窗口模式下不再出现两个窗口；已有存活宿主时转交请求而不另建（分支 `fix/single-window-task`，d642b1f9，基于 build303；用户真机确认不再复现，画中画展开未单独验收）。
+- 实验性：T45 新增签名内置临时修复插件 `dsh-fs-search-scope`，DSH 的 glob 默认跳过 `.agents/worktrees` 与已登记的链接工作树，避免多工作树仓库检索膨胀；停用插件即恢复上游原样。为签名名单重建 `dsh-runtime.bin`，固定构建输入切到 `fixed-inputs-20261103c`（分支 `feat/fs-search-override`，b3f77cdd、bd0f5895、7dfc3aac，基于 build303；未真机）。
+- 文档：补充 T42 ADB 通道原生化设计稿的 Q1–Q9 决定与 E1–E4 只读取证结论，并加入文档总索引；原生 ADB 客户端实现仍未开始。
+- 验证范围：发布会话在 build304 上复跑 `*RootHelper*` / `*DeviceChannel*` / `AdbResultTest` / `ScreenCapabilityGateTest` / `*BrowserTask*` / `*BuiltinPlugin*` / `DataRootPolicyTest` / `NativeEnvironmentRebuildTest` / `tools/test-backup-engine.py` / `tools/test-fs-search-scope.mjs`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 304（基于 build303）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build304 更新说明](docs/releases/build304-changes.zh.md)，验证记录见 [build304 记录](docs/releases/v0.2.1-rc.3-build304-channels-window-search-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.2130-dsh0.2.1-rc.5 / build303（实验性：弹层按窗口宽、高与内容自适应；收录 ADB 通道原生化设计稿，补充识屏守卫与设备命令确认设计稿）
 
 - 实验性：`CardSheet` / `CardPage` / `DshaDialogBuilder` 弹层按窗口宽、高与内容档自适应，几何计算抽到纯逻辑 `util/SheetGeometry`（分支 `feat/sheet-geometry` 8a207c13，基于 build296；**未上真机**）。

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "6c0a5fec3d022dcae0b5c9745842ae31561bf041553e8ed6f906c9588029a674",
+  "runtimeId": "2fd3bef1358dc693f56248fd4d336043b8cde74bcae1128195e1fa3c91b10874",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.5",
   "launcherContract": "DSHA_ARM64_V2",
@@ -566,7 +566,7 @@
     "device-shell-policy.py": "56b4ec341d335c9d4d268e0c44eee33fa8cff06b120a66e26f875983c48025ff",
     "directory-picker-service-patch.json": "87d2c4d9b1bda00eb6715a36fa389c3ba98b67304bc810d3765596c7f4ecff15",
     "dns-compat.cjs": "33a00c153c7244963455e90fef2468c96bf8c1611620e420a2380f819b328cf2",
-    "dsh-runtime.bin": "c84729a72c3bf3556d6fbb66db436f8d0dbe34f376e640d031995a9bb43bcec7",
+    "dsh-runtime.bin": "5c24b1f29db8a14581b17d1692c5585e8b78a7197940c3f45040be8ffcd0aa08",
     "dsha-builtin.txt": "80fbe1d5909e6b4b925691e6d8dc49d3ce39146f1393dabfddde5ca90f252b2f",
     "dsha-deepseek-messages-compat.js": "ecaed254bff32b497112d524984aa5b58f3cdbf6fb9ee2b77876e1197f132f37",
     "dsha-device-shell.sh": "3347727402d0f887ec7099a275dc4a2af7ce7891dc4f338e87680512b852d62c",

@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.2130-dsh0.2.1-rc.5` / build303 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build experimentally adapts sheets and dialogs to window width, height and content size (not verified on a device), adds the ADB native channel design document and updates the screen guard and device command confirmation designs. Local targeted unit tests, Lint and source gates passed. See the [build303 notes](../releases/build303-changes.en.md) and the [build303 record](../releases/v0.2.1-rc.3-build303-sheet-geometry-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.2330-dsh0.2.1-rc.5` / build304 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build experimentally bounds ADB/root helper concurrency, timeout cleanup, reinstall recovery and evidence capture, excludes local ADB pairing keys from backups and exports, shares one channel order between device commands and the virtual screen, keeps the Web page in the main task so desktop windowing no longer shows two windows, and adds a bundled fix plugin that makes glob skip nested worktrees. Local targeted tests, Lint and source gates passed; T38 was checked on a test package device and T46 was confirmed on device by the user. See the [build304 notes](../releases/build304-changes.en.md) and the [build304 record](../releases/v0.2.1-rc.3-build304-channels-window-search-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
