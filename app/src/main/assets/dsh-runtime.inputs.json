@@ -27,7 +27,7 @@
     "app/src/main/assets/workspace-directory-policy-patch.json": "26a11977982d39305d183e1fcd1081524cca13c38f0457fac418ddd9f5d067fe",
     "app/src/main/assets/dsha-deepseek-messages-compat.js": "ecaed254bff32b497112d524984aa5b58f3cdbf6fb9ee2b77876e1197f132f37",
     "app/src/main/assets/agent-preset-pending-patch.json": "6213ed1dfb472eb8ae0f94cf2170a0c01206b4a77cdc8bcc6e4479e5723c9d3a",
-    "app/src/main/assets/auto-review-native-disabled-patch.json": "83c0ca48e98b018bab4bcb87153f984e1db4aaf9b928dfc43d3a353a5d458067",
+    "app/src/main/assets/auto-review-native-disabled-patch.json": "e76c2953b92fbca7fee531ffdcd8e311dbded2f4cfb8bd1ba840a094c2f2579e",
     "app/src/main/assets/composer-enter-patch.json": "9052c744313ec07c3ea8072c5aae7048e554f85833f8202746ffa473820314a5",
     "app/src/main/assets/config-editor-lock-order-patch.json": "9e1688a60ed761053f821de641781b10f9cdaa5ca2ecbc600a116c631601ace7",
     "app/src/main/assets/conversation-large-image-file-patch.json": "16af8b155e83467bc32e889ff0c2284380e152e56130936938cb7730ab8fcf6e",
@@ -65,7 +65,7 @@
     "app/src/main/assets/plugin-manager-entries-patch.json": "70aa9bbe50746706fe8dc5347394fa287a9d438692aa0953c52bfefd15351e25",
     "app/src/main/assets/plugin-manager-management-probe-patch.json": "7fd35a3b82350bfc892ff1b4aaf04a5950279ea082333b4ce7e390f0b477d157",
     "app/src/main/assets/plugin-manager-pending-patch.json": "20e452600432e11381168e1027cecd48e4d3ea5dd74dadfc83ff986d1a6ece0d",
-    "app/src/main/assets/plugin-manager-policy-patch.json": "da75e2a052604acdbf13f7f9e94de45cb195988aab41ebb45d4671df23be5428",
+    "app/src/main/assets/plugin-manager-policy-patch.json": "f4ef3ad2549c55efa9669d6655f08bdac4d5f888e9fb86abcf3c13c90df645b9",
     "app/src/main/assets/plugin-pnpm-argv-patch.json": "0b481ae877379510145ec76f76e8423299ae1850fdaac531dea17ca12f155fb0",
     "app/src/main/assets/queue-agent-patch.json": "f15085d29161508a7ee5b877a44595d924e2ad9f3e6c2ddb4ea4b48dc9b42916",
     "app/src/main/assets/queue-dock-patch.json": "575711262cee5c7ec70620b1350bc82a311a4c6c8150388586f2aa1d8f4bf5f3",
@@ -93,5 +93,5 @@
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
     "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
-  "archive_sha256": "6fd66dc0ff674053a938d5222aa6dfe5377a258a8e71feddfd7978851810cc9f"
+  "archive_sha256": "c84729a72c3bf3556d6fbb66db436f8d0dbe34f376e640d031995a9bb43bcec7"
 }
