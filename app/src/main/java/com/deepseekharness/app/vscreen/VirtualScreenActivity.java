@@ -51,8 +51,8 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   // null = 尚未探测；"" = 当前没有可用通道。
   private String channelHint;
 
-  /** 助手当前能否使用虚拟屏（识屏模式 = virtual）；null 表示尚未读取。只读展示，不影响本页操作。 */
-  private Boolean assistantAllowed;
+  /** 当前识屏模式（只约束助手）；null 表示尚未读取。只读展示，不影响本页操作。 */
+  private com.deepseekharness.app.util.ScreenModePolicy.Mode assistantMode;
 
   // 最近一帧画面里的前台应用；旋转会重建显示，需要把它重新打开到新方向上。
   private String shownPackage = "";
@@ -144,6 +144,18 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     state.setSingleLine(true);
     state.setEllipsize(android.text.TextUtils.TruncateAt.END);
     detail = findViewById(R.id.vscreen_detail);
+    Button assistantOpen = findViewById(R.id.vscreen_assistant_open);
+    if (assistantOpen != null) {
+      assistantOpen.setText(t("识屏模式", "Screen mode"));
+      assistantOpen.setContentDescription(
+          t("打开设备能力授权页设置识屏模式", "Open device permissions to set the screen mode"));
+      assistantOpen.setOnClickListener(
+          v ->
+              startActivity(
+                  com.deepseekharness.app.ui.MainActivity.navigationIntent(this)
+                      .putExtra(
+                          com.deepseekharness.app.ui.MainActivity.EXTRA_OPEN_DEVICE_GRANTS, true)));
+    }
     operationResult = findViewById(R.id.vscreen_result);
     expandable(operationResult);
     expandable(detail);
@@ -345,20 +357,18 @@ public final class VirtualScreenActivity extends AppCompatActivity {
               hint = "";
             }
             String out = hint;
-            boolean assistant;
+            com.deepseekharness.app.util.ScreenModePolicy.Mode assistant;
             try {
-              assistant =
-                  com.deepseekharness.app.screen.ScreenMode.current(app)
-                      == com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL;
+              assistant = com.deepseekharness.app.screen.ScreenMode.current(app);
             } catch (RuntimeException unavailable) {
-              assistant = false;
+              assistant = com.deepseekharness.app.util.ScreenModePolicy.Mode.OFF;
             }
-            boolean assistantOut = assistant;
+            com.deepseekharness.app.util.ScreenModePolicy.Mode assistantOut = assistant;
             main.post(
                 () -> {
                   if (isDestroyed() || current != callbackEpoch) return;
                   channelHint = out;
-                  assistantAllowed = assistantOut;
+                  assistantMode = assistantOut;
                   render();
                 });
           });
@@ -431,11 +441,11 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     else if (next != ViewState.RUNNING)
       detail.setText(
           (channelHint == null
-                  ? ""
-                  : channelHint.isEmpty()
-                      ? t("没有可用的设备通道", "No device channel available")
-                      : String.format(t("将使用通道：%s", "Channel: %s"), channelHint))
-              + assistantLine());
+              ? ""
+              : channelHint.isEmpty()
+                  ? t("没有可用的设备通道", "No device channel available")
+                  : String.format(t("将使用通道：%s", "Channel: %s"), channelHint)));
+    renderAssistant();
     boolean floating = manager.overlay().enabled();
     floatButton.setImageTintList(
         android.content.res.ColorStateList.valueOf(
@@ -480,17 +490,23 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   }
 
   /** 操作者面板与助手授权分开：这里只说明助手能否使用本屏，以及去哪里改。 */
-  private String assistantLine() {
-    if (assistantAllowed == null) return "";
-    return "\n"
-        + (assistantAllowed
-            ? t(
-                "助手：可使用虚拟屏（识屏模式 = 虚拟识屏）",
-                "Assistant: may use the virtual screen (screen mode = Virtual)")
-            : t(
-                "助手：不可使用本屏；在“设置 → 设备能力授权 → 识屏模式”中选择虚拟识屏",
-                "Assistant: cannot use this screen; choose Virtual in Settings → Device capability"
-                    + " access → Screen mode"));
+  String assistantLine() {
+    if (assistantMode == null) return "";
+    return switch (assistantMode) {
+      case VIRTUAL ->
+          t("助手：可使用本屏（识屏模式 = 虚拟识屏）", "Assistant: may use this screen (screen mode = Virtual)");
+      case PHYSICAL ->
+          t("助手：不可使用本屏（识屏模式 = 实体识屏）", "Assistant: cannot use this screen (screen mode = Physical)");
+      default -> t("助手：不可使用本屏（识屏模式 = 关闭）", "Assistant: cannot use this screen (screen mode = Off)");
+    };
+  }
+
+  private void renderAssistant() {
+    View row = findViewById(R.id.vscreen_assistant_row);
+    if (row == null) return;
+    String line = assistantLine();
+    row.setVisibility(line.isEmpty() ? View.GONE : View.VISIBLE);
+    ((TextView) findViewById(R.id.vscreen_assistant)).setText(line);
   }
 
   private String stageMessage(ViewState next) {

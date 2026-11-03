@@ -290,15 +290,23 @@ public final class VirtualScreenActivityLayoutTest {
   }
 
   @Test
-  public void stoppedPageExplainsWhetherTheAssistantMayUseThisScreen() throws Exception {
+  public void pageExplainsWhetherTheAssistantMayUseThisScreen() throws Exception {
     var line = VirtualScreenActivity.class.getDeclaredMethod("assistantLine");
     line.setAccessible(true);
-    field(activity, "assistantAllowed", null);
+    var render = VirtualScreenActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+    field(activity, "assistantMode", null);
     assertEquals("", line.invoke(activity));
-    field(activity, "assistantAllowed", Boolean.FALSE);
-    assertTrue(((String) line.invoke(activity)).contains("助手：不可使用本屏"));
-    field(activity, "assistantAllowed", Boolean.TRUE);
-    assertTrue(((String) line.invoke(activity)).contains("助手：可使用虚拟屏"));
+    field(activity, "assistantMode", com.deepseekharness.app.util.ScreenModePolicy.Mode.OFF);
+    assertEquals("助手：不可使用本屏（识屏模式 = 关闭）", line.invoke(activity));
+    field(activity, "assistantMode", com.deepseekharness.app.util.ScreenModePolicy.Mode.PHYSICAL);
+    assertEquals("助手：不可使用本屏（识屏模式 = 实体识屏）", line.invoke(activity));
+    field(activity, "assistantMode", com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL);
+    assertEquals("助手：可使用本屏（识屏模式 = 虚拟识屏）", line.invoke(activity));
+    render.invoke(activity);
+    assertEquals(View.VISIBLE, activity.findViewById(R.id.vscreen_assistant_row).getVisibility());
+    assertEquals(
+        "识屏模式", ((Button) activity.findViewById(R.id.vscreen_assistant_open)).getText().toString());
   }
 
   @Test

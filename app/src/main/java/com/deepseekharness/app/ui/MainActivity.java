@@ -837,6 +837,9 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  /** 打开设备能力授权页（虚拟识屏页的「识屏模式」入口）。 */
+  public static final String EXTRA_OPEN_DEVICE_GRANTS = "open_device_grants";
+
   private void consumeTaskTarget(Intent intent) {
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     if (nav == null) return;
@@ -851,6 +854,14 @@ public class MainActivity extends AppCompatActivity {
       UiMotion.page(this, getSupportFragmentManager().beginTransaction())
           .replace(R.id.fragment_container, new ConfigFragment())
           .addToBackStack(null)
+          .commit();
+    }
+    if (intent.getBooleanExtra(EXTRA_OPEN_DEVICE_GRANTS, false)) {
+      intent.removeExtra(EXTRA_OPEN_DEVICE_GRANTS);
+      nav.setSelectedItemId(R.id.nav_settings);
+      UiMotion.page(this, getSupportFragmentManager().beginTransaction())
+          .replace(R.id.fragment_container, new DeviceGrantsFragment())
+          .addToBackStack("settings")
           .commit();
     }
     if (intent.getBooleanExtra("open_install", false)) {

@@ -7,6 +7,12 @@
   <TextView android:id="@+id/vscreen_detail" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="22dp" android:layout_marginTop="6dp" android:gravity="center_vertical" android:singleLine="true" android:ellipsize="middle" />
   <TextView android:id="@+id/vscreen_result" style="@style/ShellCardBody" android:layout_width="match_parent" android:layout_height="40dp" android:background="?attr/selectableItemBackground" android:gravity="center_vertical" android:maxLines="2" android:ellipsize="end" />
 
+  <!-- 助手能否使用本屏（识屏模式只约束助手；本页操作不受它影响），带去授权页的入口 -->
+  <LinearLayout android:id="@+id/vscreen_assistant_row" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:minHeight="36dp" android:orientation="horizontal" android:visibility="gone">
+    <TextView android:id="@+id/vscreen_assistant" style="@style/ShellStatusText" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:accessibilityLiveRegion="polite" android:ellipsize="end" android:maxLines="2" />
+    <Button android:id="@+id/vscreen_assistant_open" style="@style/ShellTextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:minHeight="36dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+  </LinearLayout>
+
   <!-- 未开启 / 创建中 -->
   <LinearLayout android:id="@+id/vscreen_create_group" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:baselineAligned="false" android:orientation="horizontal">
     <Button android:id="@+id/vscreen_create_portrait" style="@style/ShellPrimaryButton" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" />
