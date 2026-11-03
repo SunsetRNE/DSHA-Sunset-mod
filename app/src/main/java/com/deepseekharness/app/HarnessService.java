@@ -158,6 +158,8 @@ public class HarnessService extends Service {
     super.onCreate();
     c = HarnessController.get(this);
     DshaApp.from(this).harnessService().attach(this);
+    // T38：覆盖安装后首次启动时记录一次设备通道快照（每个版本一次，异步、失败不影响启动）。
+    com.deepseekharness.app.device.DeviceChannelDiagnostics.recordFirstStartAfterUpgrade(this);
     c.restoreRunningWebSession(
         () -> {
           if (DshaApp.from(this).harnessService().current() == this && foregroundPromoted) {
