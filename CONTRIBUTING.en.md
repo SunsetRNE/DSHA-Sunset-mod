@@ -4,7 +4,7 @@
 
 Read [README](README.en.md), [AGENTS](AGENTS.en.md), [BUILD](BUILD.en.md) and the [documentation index](docs/en/index.md) first. F10–F13 and build190 records describe only their own source, APK, tests and device state at that time; they neither override current requirements nor prove this build.
 
-Current fixed inputs are pinned by [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json): public pre-release asset `fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`, restored by `tools/ci-assets.py`. Large archives and the offline rootfs are not committed; a source-only checkout cannot build a complete APK.
+Current fixed inputs are pinned by [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json): public pre-release asset `fixed-inputs-20261103`, 696,362,435 B, SHA-256 `53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c`, restored by `tools/ci-assets.py`. Large archives and the offline rootfs are not committed; a source-only checkout cannot build a complete APK.
 
 Use the [handoff guide](docs/en/handoff.md) for project-specific operations, the [module map](docs/en/module-map.md) for ownership, and the [engineering standard](docs/en/engineering-standard.md) / [ADR 0001](docs/en/adr/0001-build154-boundaries.md) for constraints. `tools/history` retains retired tools and exact originals only; it does not enter APKs or automatic test execution.
 
@@ -24,7 +24,7 @@ Normalizable source uses actual LF. Nineteen necessary small binaries and histor
 
 ## Prepare inputs
 
-The complete Release source ZIP additionally contains original files from `locked-current-build-inputs.zip`, expanded directly into project paths rather than embedding that ZIP. Current fixed inputs are `fixed-inputs-20261101`, 696,361,671 B, SHA-256 `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`, verified by `tools/ci-assets.py --pack` against each SHA. This is not the complete source ZIP's size. After toolchain setup, use the current recipe without a separate bundle. A Git clone supports source-only checks; complete packaging still needs fixed original inputs. APK transformation layers cannot recover the whole original rootfs.
+The complete Release source ZIP additionally contains original files from `locked-current-build-inputs.zip`, expanded directly into project paths rather than embedding that ZIP. Current fixed inputs are `fixed-inputs-20261103`, 696,362,435 B, SHA-256 `53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c`, verified by `tools/ci-assets.py --pack` against each SHA. This is not the complete source ZIP's size. After toolchain setup, use the current recipe without a separate bundle. A Git clone supports source-only checks; complete packaging still needs fixed original inputs. APK transformation layers cannot recover the whole original rootfs.
 
 The build190 F13 inventory, the older 738,101,893 B input package, and F10/F11 records are historical. They cannot replace the current input identity or transfer old software/device conclusions to this build. Current software, APK and publication results are bound by this CI run and the Release receipt.
 

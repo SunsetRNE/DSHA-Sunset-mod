@@ -1,6 +1,6 @@
 # 固定构建输入（公开仓库预发布资产）
 
-更新：2026-11-01（build298 后、dsh-launch-target 重建归档 / 内置 DSH 0.2.1-rc.5，独立应急 DSH 同为 rc.5）。当前资产 tag [`fixed-inputs-20261101`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261101)（GitHub 预发布 / prerelease），
+更新：2026-11-03（build297 后、T31 MCP 版本协商补丁重建归档 / 内置 DSH 0.2.1-rc.5，独立应急 DSH 同为 rc.5）。当前资产 tag [`fixed-inputs-20261103`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261103)（GitHub 预发布 / prerelease），
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 
 ## 为什么固定输入不放进 git
@@ -24,7 +24,7 @@
 | ZIP 成员 | 字节 | 当前 pin 来源 |
 |---|---:|---|
 | `app/src/main/assets/offline-rootfs.bin` | 304037588 | `runtime-descriptor.json` |
-| `app/src/main/assets/dsh-runtime.bin` | 127674498 | `runtime-descriptor.json` |
+| `app/src/main/assets/dsh-runtime.bin` | 127674815 | `runtime-descriptor.json` |
 | `app/src/main/assets/ubuntu-tools.bin` | 29919475 | `runtime-descriptor.json` |
 | `app/src/main/assets/pnpm-runtime.bin` | 3837861 | `runtime-descriptor.json` |
 | `app/src/main/assets/python-support.bin` | 904360 | `tools/ci-build-inputs.lock.json`（大小 + 摘要） |
@@ -33,12 +33,12 @@
 | `app/src/main/assets/dsh-runtime.inputs.json` | 11490 | provenance（不单独做二进制 pin） |
 | `app/src/main/assets/ubuntu-tools.inputs.json` | 592 | provenance（不单独做二进制 pin） |
 | `tools/recovery-runtime/archives/recovery-rootfs.bin` | 85783057 | `tools/recovery-runtime/lock.json` |
-| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 127674498 | `tools/recovery-runtime/lock.json` |
+| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 127674815 | `tools/recovery-runtime/lock.json` |
 
 覆盖 Ubuntu 离线 rootfs、DSH runtime、ubuntu tools、pnpm runtime、Python 支持、glibc Python、ADB wheels，
 以及独立应急 DSH 的 rootfs / runtime 归档。正式归档为内置 DSH `0.2.1-rc.5`
-（127,674,498 B / SHA-256 `2316d6d9051455a6ed1507b887e5c30fb2ac9fe4b204d97e179ef34c5f692dc0`）；
-build215 起独立应急锁经用户授权同步到同一 `0.2.1-rc.5` 归档字节；2026-11-01 因新增签名内置插件 dsh-launch-target 重建正式归档后，经用户授权再次同步，APK 内两者共用一份（`recovery-asset-locations.json` 映射），
+（127,674,815 B / SHA-256 `6fd66dc0ff674053a938d5222aa6dfe5377a258a8e71feddfd7978851810cc9f`）；
+build215 起独立应急锁经用户授权同步到同一 `0.2.1-rc.5` 归档字节；2026-11-01 因新增签名内置插件 dsh-launch-target、2026-11-03 因新增运行时补丁 mcp-version-negotiation-patch.json 重建正式归档后，均经用户授权再次同步，APK 内两者共用一份（`recovery-asset-locations.json` 映射），
 锁与验证合同仍相互独立，正式升级不会自动改动应急锁。
 
 ## 锁定与还原
@@ -48,12 +48,12 @@ build215 起独立应急锁经用户授权同步到同一 `0.2.1-rc.5` 归档字
 ```json
 {
   "schema": 1,
-  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261101/dsha-a-su-fixed-inputs-20261101.zip",
-  "sha256": "ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e",
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261103/dsha-a-su-fixed-inputs-20261103.zip",
+  "sha256": "53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c",
   "format": "bundle",
-  "release": "fixed-inputs-20261101",
-  "asset": "dsha-a-su-fixed-inputs-20261101.zip",
-  "bytes": 696361671
+  "release": "fixed-inputs-20261103",
+  "asset": "dsha-a-su-fixed-inputs-20261103.zip",
+  "bytes": 696362435
 }
 ```
 
@@ -70,8 +70,8 @@ python3 tools/ci-assets.py --url "<lock.url>" --sha256 "<lock.sha256>"
 已有本地归档时：
 
 ```bash
-python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261101.zip \
-  --sha256 ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e
+python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261103.zip \
+  --sha256 53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c
 ```
 
 `ci-assets.py` 的校验顺序：整包 SHA-256 → 成员白名单/路径/类型/重复与总大小 → 解压到暂存目录后逐项对照
@@ -82,16 +82,16 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261101.zip \
 
 | 项目 | 值 |
 |---|---|
-| release tag | `fixed-inputs-20261101`（prerelease，target `main`） |
-| release id | `430723045` |
-| asset | `dsha-a-su-fixed-inputs-20261101.zip` |
-| bytes | `696361671` |
-| SHA-256 | `ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e` |
-| 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261101/dsha-a-su-fixed-inputs-20261101.zip` |
+| release tag | `fixed-inputs-20261103`（prerelease，target `main`） |
+| release id | `432415104` |
+| asset | `dsha-a-su-fixed-inputs-20261103.zip` |
+| bytes | `696362435` |
+| SHA-256 | `53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c` |
+| 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261103/dsha-a-su-fixed-inputs-20261103.zip` |
 
-> 上传状态以 `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261101` 返回的资产 `name`/`size`/`state` 为准：
-> 只有 `size=696361671` 且 `state=uploaded` 才算上传完成。直链由 tag + 资产文件名确定，不依赖 asset id；
-> 2026-11-01 实测：release id `430723045`，asset id `698931723`，上传回执 `state=uploaded`（`digest=sha256:ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e`）。
+> 上传状态以 `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261103` 返回的资产 `name`/`size`/`state` 为准：
+> 只有 `size=696362435` 且 `state=uploaded` 才算上传完成。直链由 tag + 资产文件名确定，不依赖 asset id；
+> 2026-11-03 实测：release id `432415104`，asset id `704818500`，上传回执 `state=uploaded`（`digest=sha256:53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c`）。
 > 若后续在同 tag 内 `--clobber` 替换资产，文件名不变但内容与 SHA-256 会变，必须同步更新锁。
 
 ## 升级流程（新预发布资产）

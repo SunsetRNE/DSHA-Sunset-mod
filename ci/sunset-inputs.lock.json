@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261101/dsha-a-su-fixed-inputs-20261101.zip",
-  "sha256": "ef66a2b501558bec7a13521bdd9d27b2bece37077cdb9b6cb8abe517e5149c2e",
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261103/dsha-a-su-fixed-inputs-20261103.zip",
+  "sha256": "53662cbcbe2e1261a2667270acce5ed3ff8d3bfa5c9d51b13e7b3c360387455c",
   "format": "bundle",
-  "release": "fixed-inputs-20261101",
-  "asset": "dsha-a-su-fixed-inputs-20261101.zip",
-  "bytes": 696361671
+  "release": "fixed-inputs-20261103",
+  "asset": "dsha-a-su-fixed-inputs-20261103.zip",
+  "bytes": 696362435
 }
