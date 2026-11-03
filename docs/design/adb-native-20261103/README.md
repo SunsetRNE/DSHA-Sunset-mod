@@ -12,6 +12,7 @@
 4. 写文件 / 结束应用 / 短信复核 / `su -c` / 虚拟屏 commit 的判定只留 Java 一份，`device-shell-policy.py` 在迁移完成后删除。
 5. 旧容器密钥不导入：新版本生成新密钥、要求重新配对一次，然后删除 `/root/.dsh/adbkeys/adbkey*`，并提示用户在系统「无线调试 → 已配对设备」里撤销旧配对。
 6. 必须照实写：原生化堵住的是「读走私钥文件、离线或事后复用」和「随包脚本自己拼命令」。同 UID 代码仍可能通过 `app_process` + Binder 使用 Keystore 里的不可导出密钥，或直接执行 `su`（§2.2）。这是降低风险，不能写成隔离。
+7. **可先行的小修 P0（§7a）**：已发布版本的完整备份和用户导出（无需密码）都带着 ADB 私钥。这条泄露比原生化更急，可以不等原生化单独先修：备份与恢复都排除 `.dsh/adbkeys`。是否先修见 Q9。
 
 ## 1. 现状（源码事实，build301）
 
@@ -132,11 +133,26 @@
 | M1 | 新版本首次启动检测 rootfs 有 `adbkeys/adbkey`：**不导入**（容器早已知道这把钥，导入等于保留漏洞）。ADB 状态置「需要重新配对」，设备能力授权页提示原因 |
 | M2 | 用户重新配对成功（新 Keystore 密钥）后，原生删除 `root/.dsh/adbkeys/adbkey`、`adbkey.pub`（NOFOLLOW、只删这两个常规文件，不递归）；`connect_port*` 改存原生偏好后一并删除 |
 | M3 | 提示用户到系统「开发者选项 → 无线调试 → 已配对设备」撤销旧条目（E6 确认能否区分新旧，靠 §4 的指纹）；DSHA 不能替用户撤销 |
-| M4 | 备份：今后备份排除 `.dsh/adbkeys`；恢复旧备份时 `adbkeys/` 进隔离区不落地（与「本机授权状态不能从用户归档生效」一致）；`test-backup-engine.py:532-542` 的断言反过来 |
+| M4 | 备份（可先行，见 §7a）：今后备份排除 `.dsh/adbkeys`；恢复旧备份时 `adbkeys/` 进隔离区不落地（与「本机授权状态不能从用户归档生效」一致）；`test-backup-engine.py:532-542` 的断言反过来 |
 | M5 | 用户不重新配对：ADB 通道不可用，返回 `DEVICE_ADB_REPAIR_REQUIRED`，Root / Shizuku 不受影响 |
 | M6 | 关闭 ADB：删除密钥（Q2）；`docs/device-permissions-architecture.md:149-150`「关闭 ADB 保留配对密钥」改写 |
 
 规则对齐：迁移前先把 `device-shell-policy.py` 与 Java（`DeviceShellExecutor`、`DeviceAppPolicy`、`DeviceFileOperations`、`validateRootReadPaths`）逐条对照（审计未核实 7），把 `tools/test-device-shell-policy.py`、`test-adb-flow.py` 的用例移植为 Java 单测，差异逐条列出由用户定取哪边（不放宽）。之后只留 Java 一份。
+
+## 7a. 先行小修 P0：备份 / 导出排除 ADB 密钥（不依赖原生化）
+
+现状（build301 已发布版本即存在）：
+- 生产备份引擎 `assets/backup-engine.py` 只排除 `SKIP`、缓存和 `credential-paths.json` 里的本机状态；第 75 行注释明确写「插件内同名目录与配对密钥均属于备份内容」，`tools/test-backup-engine.py:532-542` 断言保留 `.dsh/adbkeys/adbkey`。
+- 用户导出 v5（`DSHA-data-v5-<UUID>.tar.gz`）无需密码，私钥随文件离开设备；拿到文件的人在用户未撤销配对、无线调试开着时可连这台手机的 adbd。
+- 对照：桥 token 按 `credential-paths.json` 的 `externalMachine` 整文件排除。
+
+修法（最小改动，和桥 token 同一套机制）：
+1. `app/src/main/assets/credential-paths.json` 的 `backupMachine.additionalExact` 加 `adbkeys`，用 `tools/generate-credential-paths.py` 重新生成 `CredentialPathRules.java`（源摘要随之更新）。这一项同时被备份引擎（`LOCAL_DEVICE_FILES`，第 57-62 行）和恢复侧 `DataRootPolicy.machine`（`DEVICE_SPECIFIC_STATE`）使用，所以新备份不带、旧备份恢复时也不落地。
+2. 实现时核对该集合在 `.dsh` 子目录层级是否生效；若只作用于顶层，就在 `.dsh` 枚举处补一条按名排除，不新增第二套规则。
+3. 改第 75 行注释和 `test-backup-engine.py` 的断言（改为 `assertNotIn`），并加一条「旧归档含 `adbkeys/` 时恢复不还原」的测试；Java 侧 `DataRootPolicy` 补对应单测。
+4. 文档：`docs/security-model.md` 已知弱点里写明「build301 及以前的完整备份 / 导出含 ADB 私钥」，并给用户处理建议：删除旧导出文件，或在系统「无线调试 → 已配对设备」撤销 DSHA 的配对后重新配对。
+
+影响：在同一台手机上用新备份恢复后，ADB 需要重新配对一次（密钥本来就在原 rootfs 里，正常覆盖更新不受影响）。不改 ADB 执行路径，不碰 `AdbBridge` / `DeviceBridgeService`，与 T38 不冲突。原生化（§9）落地后，这条排除规则继续保留，防旧密钥目录残留。
 
 ## 8. 与其它任务的边界
 
@@ -172,6 +188,7 @@
 - **Q3 迁移**：按 §7 强制重新配对一次并删除旧密钥文件（推荐）？还是允许导入旧密钥免重配（不推荐：容器已持有这把钥）？
 - **Q4 旧入口**：`adb=1` 与 `--host/--port` 直接返回错误码（推荐），还是一个版本内忽略并警告？
 - **Q5 `WRITE_SECURE_SETTINGS` 保活授权**：保留现状、改为用户可选且默认不授，还是取消？它给整个 App UID，同 UID 代码可改其他安全设置。
-- **Q6 备份**：今后备份排除 `.dsh/adbkeys`，恢复时隔离旧备份里的密钥（推荐）？
+- **Q6 备份**：今后备份排除 `.dsh/adbkeys`，恢复时隔离旧备份里的密钥（推荐）？（具体做法见 §7a，是否先行见 Q9）
 - **Q7 取证授权**：是否允许我在本会话做 §3 的 E1–E4（容器内只读，`su` 不执行）和 E6（手机设置页只读查看，需先 `android_control begin`）？
 - **Q8 排期**：实现等 T38 合入后开始，与 T40 同期（T40 跳过 ADB 票据）？
+- **Q9 先修备份泄露**：是否同意不等原生化，先按 §7a 单独做一个小修（排除 `adbkeys` + 测试 + 安全模型说明）排一个版本号？代价是在同一台机上从新备份恢复后要重新配对 ADB 一次。
