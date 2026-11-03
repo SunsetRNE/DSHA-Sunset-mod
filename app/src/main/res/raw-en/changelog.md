@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261103.0830-dsh0.2.1-rc.5 / build294
+# DSHA 0.2.1-rc.3-20261103.1430-dsh0.2.1-rc.5 / build295
 
-- Experimental: the virtual screen page is rebuilt around four states (off, creating, running and awaiting cleanup) with a side-by-side layout in landscape; rotating reopens the original app, and the floating preview is back.
-- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 294 (based on build293). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- Fixes Web startup after an in-place update getting stuck at "a known Web launcher could not be confirmed as exited", which could only be cleared by force-stopping the app.
+- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 295 (based on build294). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.

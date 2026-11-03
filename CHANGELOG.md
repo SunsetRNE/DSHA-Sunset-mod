@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.3-20261103.1430-dsh0.2.1-rc.5 / build295（覆盖安装后 Web 启动不再卡在确认旧启动器退出）
+
+- 修复覆盖安装后 Web 启动卡在「已知 Web 启动器未能确认退出」（`retire-prior-launchers`），只能杀进程才恢复：停止证据读取失败不再整进程锁存，之后重读成功即按原记录判定；记录里的启动器 PID 已被其它 UID 复用时，判定原进程已退出（只用于退出证明，不据此发送任何信号）（分支 `fix/retire-prior-launchers` 9707bbcb，T32，477a5781 发现；未真机复现）。
+- 验证范围：发布会话在 build295 上复跑 `RecoveredWebStopBarrierTest` / `WebSessionKernelEvidenceTest` / `UpdateVersionPageTest` / `UiStateTextTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 295（基于 build294）；DSHA 修订号保持 0.2.1-rc.3，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build295 更新说明](docs/releases/build295-changes.zh.md)，验证记录见 [build295 记录](docs/releases/v0.2.1-rc.3-build295-retire-prior-launchers-20261103.md)。
+
 ## 0.2.1-rc.3-20261103.0830-dsh0.2.1-rc.5 / build294（实验性：虚拟识屏页按状态重做）
 
 - **实验性。** 虚拟识屏页按状态重做：未开启 / 创建中 / 运行中 / 待清理四态各有独立布局，横屏改为左右布局、操作贴底；旋转后自动重新打开原应用；接回系统悬浮预览；启动结果未知时引导查看虚拟屏启动记录，不再重复文案；首帧等待不报错，节点面板不留空白（分支 `ui/vscreen-page` cd9f414b..2f1c0c7d 共 6 个提交，原基于 build287，用户已真机核对；逻辑层遗留问题记录在 T28 交接，不在本版）。

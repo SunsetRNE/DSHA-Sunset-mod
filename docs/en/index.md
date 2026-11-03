@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261103.0830-dsh0.2.1-rc.5` / build294 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build redesigns the virtual screen page around its states, uses a side-by-side landscape layout and restores the floating preview (experimental). Local targeted unit tests, Lint and source gates passed. See the [build294 notes](../releases/build294-changes.en.md) and the [build294 record](../releases/v0.2.1-rc.3-build294-vscreen-page-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.3-20261103.1430-dsh0.2.1-rc.5` / build295 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes Web startup after an in-place update getting stuck while confirming that the previous launcher exited. Local targeted unit tests, Lint and source gates passed. See the [build295 notes](../releases/build295-changes.en.md) and the [build295 record](../releases/v0.2.1-rc.3-build295-retire-prior-launchers-20261103.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
