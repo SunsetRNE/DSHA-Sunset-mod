@@ -2028,7 +2028,7 @@ public final class HttpShellService {
               return VirtualScreenRoutes.mutates(operation)
                   ? ScreenActionResult.executed(result, targetChanged, runChanged)
                   : ScreenActionResult.notExecuted();
-            return result;
+            return operation.equals("create") ? vscreenRecreatedHint(result, display, pkg) : result;
           };
       return bindWindow
           ? DshaAccessibilityService.runAuthorized(target, live, action)
@@ -2100,6 +2100,31 @@ public final class HttpShellService {
         frame,
         id,
         consentRevision);
+  }
+
+  /**
+   * 现有 Core 上的 create（旋转）会重建显示，原窗口不会迁到新显示。成功回复里写明这一点和原前台包名，
+   * 让助手直接决定是否重新 launch，而不是等下一次 see 失败才知道；不自动 launch（launch 需要单独授权）。
+   */
+  private static String vscreenRecreatedHint(
+      String result, int previousDisplay, String previousPackage) {
+    try {
+      var value = new org.json.JSONObject(result);
+      int display = value.optInt("displayId", -1);
+      if (!value.optBoolean("ok")
+          || previousDisplay <= 0
+          || display <= 0
+          || display == previousDisplay) return result;
+      value.put("displayRecreated", true).put("previousDisplayId", previousDisplay);
+      if (!previousPackage.isEmpty()) value.put("previousPackage", previousPackage);
+      return value
+          .put(
+              "nextAction",
+              com.deepseekharness.app.util.VirtualScreenObservationHint.LAUNCH_APP_FIRST)
+          .toString();
+    } catch (org.json.JSONException invalid) {
+      return result;
+    }
   }
 
   private static String vscreenNotSent(String code) {

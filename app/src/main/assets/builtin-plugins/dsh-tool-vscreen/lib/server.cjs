@@ -48,7 +48,7 @@ const coreIdentity={type:'string',maxLength:36,pattern:'^[0-9a-f]{8}-[0-9a-f]{4}
 const sourceFrame={type:'integer',minimum:1,maximum:Number.MAX_SAFE_INTEGER};
 const sourcePoint={type:'integer',minimum:0,maximum:Number.MAX_SAFE_INTEGER};
 const definitions=[
- ['android_vscreen_create','创建或复用虚拟屏。',{orientation:{type:'string',enum:['portrait','landscape']}}],
+ ['android_vscreen_create','创建或复用虚拟屏。对已有 Core 换方向即旋转：coreInstance 不变、generation 与 displayId 换新，原应用窗口不会跟过去；回复带 displayRecreated、previousPackage 和 nextAction=LAUNCH_APP_FIRST，需要原应用时重新 launch 后再 see。',{orientation:{type:'string',enum:['portrait','landscape']}}],
  ['android_vscreen_status','读取显示尺寸、方向、通道和最新 frameSeq。',{}],
  ['android_vscreen_launch','把已安装应用启动到虚拟屏。可选 generation 仅用于启动前状态检查；检查与启动不是原子操作，原生 launch 不校验 generation，显示代次可能在检查后变化。取消或中断（包括 SDK 抛出 AbortError）可能丢失回执，不证明启动未执行；先观察实际状态，不自动重放。',{package:{type:'string',maxLength:160},generation:{type:'string',minLength:1,maxLength:80}}],
  ['android_vscreen_see','读取同次原图及观察元数据。anchoredAvailable=true 且原图中有唯一可操作按钮时，优先显式 anchor→anchored_click；保留原 coreInstance/generation/frameSeq/observationId，不用旧 tap 试探。不可锚定时根据 tree/node 或新观察明确决定。新建的虚拟屏可能没有任何窗口：失败回复的 nextAction 为 LAUNCH_APP_FIRST（error VSCREEN_NO_WINDOW）时先 launch 应用；WAIT_AND_SEE_AGAIN（FRAME_PENDING）时稍等再 see；REPORT_TO_USER（FRAME_STALLED）时告诉用户；LAUNCH_APP_OR_WAIT 表示无障碍不可用、无法区分空屏与首帧未到。这些都是只读失败，重新 see 安全；legacyError 保留旧码 FRAME_NOT_READY。',{}],
