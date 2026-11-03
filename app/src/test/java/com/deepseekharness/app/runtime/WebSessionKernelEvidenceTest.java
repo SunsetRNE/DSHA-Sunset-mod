@@ -113,6 +113,46 @@ public final class WebSessionKernelEvidenceTest {
   }
 
   @Test
+  public void pidReusedByOtherUidProvesOriginalExitedWithoutReadingIt() throws Exception {
+    // 覆盖安装后旧启动器 PID 被其它应用复用：内容不可读，但属主已变，原进程必然已退出。
+    Kernel kernel = new Kernel();
+    kernel.uid = 10002;
+    kernel.denied = false;
+    var evidence = kernel.recoveryProcess(42);
+    assertFalse(evidence.alive());
+    var saved =
+        new com.deepseekharness.app.util.WebSessionProof.Saved(
+            "12345678-1234-1234-1234-123456789abc",
+            7,
+            INSTANCE,
+            "ab".repeat(32),
+            43,
+            123,
+            "web",
+            42,
+            123,
+            "launcher");
+    class SameBoot extends Kernel {
+      @Override
+      String recoveryBoot() {
+        return "12345678-1234-1234-1234-123456789abc";
+      }
+    }
+    SameBoot same = new SameBoot();
+    same.uid = 10002;
+    assertTrue(same.recoveredLauncherExited(saved));
+    // 同 UID 但拒读仍是未知，不得放行。
+    SameBoot denied = new SameBoot();
+    denied.denied = true;
+    try {
+      denied.recoveredLauncherExited(saved);
+      fail("同 UID 拒读不是退出证明");
+    } catch (IOException expected) {
+      assertNotNull(expected);
+    }
+  }
+
+  @Test
   public void guestObservationNeverTurnsProcDenialOrIdentityMismatchIntoExit() {
     String boot = "12345678-1234-1234-1234-123456789abc";
     var saved =

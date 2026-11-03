@@ -545,6 +545,12 @@ public class WebProcessManager {
       return new com.deepseekharness.app.util.WebSessionProof.Process(
           pid, 0, -1, "", "", "", "", false);
     Integer uid = processOwner(pid);
+    // 进程存活期间不会换 UID：编号已属于其它 UID，说明记录里的本应用进程已退出、编号被复用。
+    // 与 inspectOnce 的 differentUid 判据一致；只用于退出证明，不据此发送任何信号。
+    // 覆盖安装后旧启动器 PID 常被其它应用复用，若按“不可读”处理，停止屏障会一直不放行。
+    if (state.differentUid || (uid != null && uid != recoveryHostUid()))
+      return new com.deepseekharness.app.util.WebSessionProof.Process(
+          pid, 0, -1, "", "", "", "", false);
     if (uid == null || state.identity == null || state.kind == Kind.DENIED)
       throw new IOException("WEB_SESSION_PROCESS_UNREADABLE");
     java.util.Map<String, String> env = new java.util.HashMap<>();

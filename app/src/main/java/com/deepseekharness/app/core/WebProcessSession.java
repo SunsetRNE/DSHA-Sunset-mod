@@ -71,12 +71,16 @@ final class WebProcessSession {
             if (state.webStopProofLoaded) return;
             try {
               var record = records.read();
-              if (record != null) state.retainedWebStopProof = record.proof();
-              else if (manager.hasRecordedSession()) state.unreadableWebStopProof = true;
-            } catch (Exception unknown) {
-              state.unreadableWebStopProof = true;
-            } finally {
+              if (record != null) {
+                // 重读成功：以可核验的原记录代替先前“不可读”的保守结论，屏障仍按其原启动器判定。
+                state.retainedWebStopProof = record.proof();
+                state.unreadableWebStopProof = false;
+              } else if (manager.hasRecordedSession()) state.unreadableWebStopProof = true;
               state.webStopProofLoaded = true;
+            } catch (Exception unknown) {
+              // 读取失败只保留“不可读”屏障，不锁存：覆盖安装后私有目录或密钥可能暂时不可用，
+              // 若整进程只读一次，之后每次停止 / 启动都会卡在 retire-prior-launchers，直到进程被杀。
+              state.unreadableWebStopProof = true;
             }
           }
         };
