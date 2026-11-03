@@ -195,6 +195,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 同一台机器上常有多个会话同时改本仓库。合并、发布、清理以「活跃声明」为准，不按空闲时长猜测会话是否结束。
 
 - **一会话一工作树**：新任务用 `git worktree add -b <type>/<name> .agents/worktrees/<type>/<name> origin/main` 建独立分支，基线取当时的 `origin/main`（不要基于未进 main 的侧分支）。不在主检出 `/root/DSH-A-mod` 上改代码；主检出只做只读查看。`/root/dsha-build` 是 `local-ci` 的同步镜像，不是工作区。
+- **改文件前用 `read` 读工作树路径**：DSH 的 `fs-observation-policy` 只认同一会话里 `read` 工具读过的同一绝对路径，否则 `edit` / 覆盖 `write` 报 `file has not been read`。在工作树里改文件，读和改都用 `.agents/worktrees/<type>/<name>/...`，读主检出的同名文件不算；`cat` / `sed` / `grep` 等 shell 读取不算；新会话、subagent、接手或 resume 后要重新读。授权只看版本，`read` 带 `offset`/`limit` 读一小段即可。shell 写过的文件要重新 `read` 后再 `edit`。
 - **建树即声明**：在工作树根目录写 `.ACTIVE-SESSION`。该文件已列入共享的 `.git/info/exclude`，不会被 `git add -A` 带进提交；不要改用设计 README 等会进仓库的文件做声明。字段：
 
   ```text
