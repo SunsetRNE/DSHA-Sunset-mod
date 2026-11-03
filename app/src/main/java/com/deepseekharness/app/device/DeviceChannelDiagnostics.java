@@ -66,23 +66,54 @@ public final class DeviceChannelDiagnostics {
     }
   }
 
-  /** 延后记录（例如覆盖安装后等服务端重新拉起）；进程期间被结束则不记录。 */
-  public static void recordLater(Context context, String trigger, long delayMs) {
+  /**
+   * 广播接收器用：在 goAsync 期限内同步写完再返回。不能用延时线程——真机核对（T38）：
+   * 覆盖安装后由广播拉起的进程很快被系统判为缓存并冻结（isFrozen=true），延时线程永远不会运行。
+   */
+  public static void recordNow(Context context, String trigger, long waitMs) {
     try {
       init(context);
-      Thread delayed =
+      Context ctx = app;
+      if (ctx == null || trigger == null || !RUNNING.compareAndSet(false, true)) return;
+      long now = System.currentTimeMillis();
+      LAST.put(trigger, now);
+      Thread worker =
           new Thread(
               () -> {
                 try {
-                  Thread.sleep(Math.max(0L, delayMs));
-                } catch (InterruptedException interrupted) {
-                  return;
+                  write(ctx, trigger, now);
+                } catch (Throwable error) {
+                  Log.w(TAG, "snapshot failed: " + SensitiveData.redact(String.valueOf(error)));
+                } finally {
+                  RUNNING.set(false);
                 }
-                record(app, trigger);
               },
-              "dsha-device-channel-delay");
-      delayed.setDaemon(true);
-      delayed.start();
+              "dsha-device-channel-snapshot");
+      worker.setDaemon(true);
+      worker.start();
+      worker.join(Math.max(0L, waitMs));
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    } catch (Throwable ignored) {
+    }
+  }
+
+  /**
+   * 覆盖安装后第一次启动前台服务时留一份快照：此刻新版刚起来，旧版 root / Shizuku 服务进程是否仍在一目了然。
+   * 每个 versionCode 只记一次。
+   */
+  public static void recordFirstStartAfterUpgrade(Context context) {
+    try {
+      init(context);
+      Context ctx = app;
+      if (ctx == null) return;
+      android.content.SharedPreferences prefs =
+          ctx.getSharedPreferences("dsha_device_channel_diagnostics", Context.MODE_PRIVATE);
+      int current = com.deepseekharness.app.BuildConfig.VERSION_CODE;
+      int seen = prefs.getInt("startedVersionCode", 0);
+      if (seen == current) return;
+      prefs.edit().putInt("startedVersionCode", current).apply();
+      if (seen != 0) record(ctx, "first-start-after-upgrade:" + seen + "->" + current);
     } catch (Throwable ignored) {
     }
   }
