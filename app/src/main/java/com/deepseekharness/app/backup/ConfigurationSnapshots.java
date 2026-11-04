@@ -359,7 +359,7 @@ public final class ConfigurationSnapshots {
     ensureStore();
     // 先整理再计数：上限只统计合法命名的快照目录，隔离区、暂存区和目录文件都不占名额。
     // 目录不可读时引用关系未知：不整理、不新建，直接失败（所有调用方随后都要写目录）。
-    tidy(catalog(), pinned, control);
+    tidy(writableCatalog(), pinned, control);
     if (snapshotCount() >= SNAPSHOT_LIMIT) throw new IOException("RECOVERY_RETENTION_LIMIT");
     if (!fs.stat(dsh).type.equals("DIRECTORY")) throw new IOException("RECOVERY_DATA_UNAVAILABLE");
     String id = UUID.randomUUID().toString();
@@ -454,18 +454,31 @@ public final class ConfigurationSnapshots {
   }
 
   /**
-   * 当前目录不可读时回退到上一次原子写留下的 previous。两份都不可读才失败；
-   * 回退结果只用于读取与重写，不会据此删除任何未知引用的目录（整理只在目录可读时进行）。
+   * 当前目录不可读时允许列表只读回退到 previous；它可能缺少较新的引用，不能用于写入或整理。
    */
   private Map<String, Object> catalog() throws IOException {
+    return catalog(true);
+  }
+
+  /** 写入必须掌握当前完整引用；备用目录不能证明哪些快照已无引用。 */
+  private Map<String, Object> writableCatalog() throws IOException {
+    return catalog(false);
+  }
+
+  private Map<String, Object> catalog(boolean allowPrevious) throws IOException {
     if (fs.stat(store).type.equals("MISSING")) return new LinkedHashMap<>();
     File current = fs.child(store, "catalog.json"),
         previous = fs.child(store, "catalog.json.previous");
-    if (fs.stat(current).type.equals("MISSING")) return readCatalog(previous);
+    if (fs.stat(current).type.equals("MISSING")) {
+      if (!allowPrevious && !fs.stat(previous).type.equals("MISSING"))
+        throw new IOException("RECOVERY_CATALOG");
+      return readCatalog(previous);
+    }
     try {
       return readCatalog(current);
     } catch (IOException damaged) {
-      if (cancelled(damaged) || fs.stat(previous).type.equals("MISSING")) throw damaged;
+      if (!allowPrevious || cancelled(damaged) || fs.stat(previous).type.equals("MISSING"))
+        throw damaged;
       try {
         return readCatalog(previous);
       } catch (IOException alsoDamaged) {
@@ -476,7 +489,8 @@ public final class ConfigurationSnapshots {
   }
 
   private void catalog(Map<String, Object> values) throws IOException {
-    // values 已由调用方从可读目录得出；旧 previous 只是上一次原子写的残留，直接让位给新记录。
+    // 不得用备用目录补写当前目录并丢失未知引用，也不能先删除用于只读恢复的 previous。
+    writableCatalog();
     File previous = fs.child(store, "catalog.json.previous");
     var old = fs.stat(previous);
     if (old.type.equals("FILE")) {
@@ -498,7 +512,7 @@ public final class ConfigurationSnapshots {
   private String save(
       Map<String, Object> doc, String kind, BackupControl control, Collection<?> pinned)
       throws IOException {
-    Map<String, Object> index = catalog();
+    Map<String, Object> index = writableCatalog();
     String target = null;
     long oldest = Long.MAX_VALUE;
     for (int i = 1; i <= 3; i++) {
@@ -658,7 +672,7 @@ public final class ConfigurationSnapshots {
       if (pending()) throw new IOException("RECOVERY_PENDING");
       if (startup == null || startup.length() > 128) throw new IOException("RECOVERY_FORMAT");
       Map<String, Object> doc = capture(startup, Collections.emptySet(), control),
-          index = catalog();
+          index = writableCatalog();
       index.put("candidate", doc.get("id"));
       catalog(index);
       tidyAfterCommit(index, Collections.emptySet(), control);
@@ -668,7 +682,7 @@ public final class ConfigurationSnapshots {
   public Map<String, Object> healthy(String startup, BackupControl control) throws IOException {
     synchronized (LOCK) {
       if (pending()) throw new IOException("RECOVERY_PENDING");
-      Map<String, Object> index = catalog();
+      Map<String, Object> index = writableCatalog();
       Object id = index.get("candidate");
       if (!(id instanceof String)) throw new IOException("RECOVERY_CHANGED");
       Map<String, Object> doc = load((String) id, control);
@@ -710,7 +724,7 @@ public final class ConfigurationSnapshots {
       }
       if (!slot(slot) || slot.equals("candidate")) throw new IOException("RECOVERY_SLOT");
       uuid(id);
-      Map<String, Object> index = catalog();
+      Map<String, Object> index = writableCatalog();
       if (!id.equals(index.get(slot))) throw new IOException("RECOVERY_CHANGED");
       index.remove(slot);
       catalog(index);
@@ -950,7 +964,7 @@ public final class ConfigurationSnapshots {
       change(null, snapshot, true, original, id, control);
     } else {
       if (!slot(slot) || slot.equals("candidate")) throw new IOException("RECOVERY_SLOT");
-      Map<String, Object> index = catalog();
+      Map<String, Object> index = writableCatalog();
       if (!id.equals(index.get(slot))) throw new IOException("RECOVERY_CHANGED");
       change(null, load(id, control), false, null, id, control);
     }

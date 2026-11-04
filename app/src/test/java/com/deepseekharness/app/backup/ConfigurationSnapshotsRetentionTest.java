@@ -326,7 +326,7 @@ public class ConfigurationSnapshotsRetentionTest {
   }
 
   @Test
-  public void damagedCatalogFallsBackToPreviousAndBothDamagedFailsClosed() throws Exception {
+  public void damagedCatalogFallsBackOnlyForReadingAndBothDamagedFailsClosed() throws Exception {
     File root = temp.newFolder();
     fixture(root);
     var engine = engine(root, null);
@@ -336,16 +336,51 @@ public class ConfigurationSnapshotsRetentionTest {
     Files.copy(catalog.toPath(), previous.toPath());
     Files.writeString(catalog.toPath(), "{broken");
     assertEquals(1, rows(engine).size());
-    engine.before(CONTROL);
-    assertEquals(2, rows(engine).size());
-    assertFalse(previous.exists());
+    assertThrows(IOException.class, () -> engine.before(CONTROL));
+    assertEquals(1, rows(engine).size());
+    assertTrue(previous.exists());
     // 两份都损坏：引用关系未知，不整理任何目录，写入明确失败。
     String unrelated = orphan(root, false);
     Files.writeString(catalog.toPath(), "{broken");
     Files.writeString(previous.toPath(), "{broken");
     assertThrows(IOException.class, () -> engine.before(CONTROL));
     assertTrue(new File(store(root), unrelated).isDirectory());
-    assertEquals(3, snapshotDirs(root).size()); // 两份已提交快照 + 未知孤儿，没有新建目录。
+    assertEquals(2, snapshotDirs(root).size()); // 已提交快照 + 未知孤儿，没有新建目录。
+  }
+
+  @Test
+  public void stalePreviousNeverDropsNewerReferencesOrChangesOriginals() throws Exception {
+    // 当前目录损坏或丢失时，previous 可供查看，但可能遗漏最后一次已提交的快照。
+    for (boolean missing : List.of(false, true)) {
+      File root = temp.newFolder();
+      fixture(root);
+      var engine = engine(root, null);
+      engine.prepare("startup", CONTROL);
+      engine.healthy("startup", CONTROL);
+      Map<String, Object> oldSnapshot = rows(engine).get(0);
+      File catalog = new File(store(root), "catalog.json"),
+          previous = new File(store(root), "catalog.json.previous");
+      byte[] olderCatalog = Files.readAllBytes(catalog.toPath());
+      engine.before(CONTROL);
+      assertEquals(2, snapshotDirs(root).size());
+      Files.write(previous.toPath(), olderCatalog);
+      if (missing) Files.delete(catalog.toPath());
+      else Files.writeString(catalog.toPath(), "{broken");
+      var fs = new JvmBackupFileSystem();
+      String originals = BackupTree.digest(fs, root, CONTROL);
+      assertEquals(1, rows(engine).size());
+      String slot = (String) oldSnapshot.get("slot"), id = (String) oldSnapshot.get("id");
+      assertThrows(IOException.class, () -> engine.before(CONTROL));
+      assertThrows(IOException.class, () -> engine.prepare("next", CONTROL));
+      assertThrows(IOException.class, () -> engine.healthy("startup", CONTROL));
+      assertThrows(IOException.class, () -> engine.create("settings.yaml", CONTROL));
+      assertThrows(IOException.class, () -> engine.restore(slot, id, CONTROL));
+      assertThrows(IOException.class, () -> engine.discard(slot, id, null, CONTROL));
+      assertEquals(2, snapshotDirs(root).size());
+      assertArrayEquals(olderCatalog, Files.readAllBytes(previous.toPath()));
+      assertEquals(originals, BackupTree.digest(fs, root, CONTROL));
+      untouched(root);
+    }
   }
 
   @Test
