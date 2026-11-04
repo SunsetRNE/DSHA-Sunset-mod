@@ -132,6 +132,16 @@ await test('launcher and plugins load the same deployable parser', () => {
   assert.equal(fs.readFileSync(new URL('../app/src/main/assets/bridge-port.cjs', import.meta.url), 'utf8'),
     fs.readFileSync(new URL('../app/src/main/assets/builtin-plugins/dsh-device-shell-guide/lib/bridge-port.cjs', import.meta.url), 'utf8'));
 });
+await test('descriptor follows the actual installed application identity without reading another token', () => {
+  const f = portFixture(), sdk = loadCjs('native-consent.cjs', f);
+  const original = sdk.readConnection();
+  assert.equal(original.applicationId, 'io.github.sunsetrne.dsha');
+  f.env.DSHA_BRIDGE_APPLICATION_ID = 'io.github.sunsetrne.dsha.test';
+  const variant = sdk.readConnection();
+  assert.equal(variant.applicationId, 'io.github.sunsetrne.dsha.test');
+  assert.equal(variant.generation, original.generation);
+  assert.equal(f.requests.length, 0);
+});
 await test('launcher rereads strict file/environment ports without caching the fallback', async () => {
   const f = portFixture(), sdk = loadCjs('native-consent.cjs', f);
   for (const port of ['3091', '3092']) {

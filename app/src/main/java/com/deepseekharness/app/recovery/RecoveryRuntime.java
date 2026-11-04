@@ -557,6 +557,7 @@ public final class RecoveryRuntime {
     env.put("NARB_DISABLE_NATIVE_CACHE", "1");
     env.put("DSHA_ANDROID_RUNTIME", "1");
     env.put("DSHA_NATIVE_PLUGIN_MANAGER", "1");
+    env.put("DSHA_BRIDGE_APPLICATION_ID", context.getPackageName());
     env.put("DSHA_RECOVERY_INSTANCE_ID", instanceId);
     env.put("DSHA_RECOVERY_GENERATION", Long.toString(generation));
     env.put("DSHA_RECOVERY_BROKER_PORT", Integer.toString(broker.port()));
