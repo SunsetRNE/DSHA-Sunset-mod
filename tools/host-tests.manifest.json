@@ -3196,6 +3196,20 @@
       "timeoutSeconds": 60,
       "environment": {},
       "reason": "Dual release identity: default mod, explicit upstream, unknown -Pdsha.identity rejected without fallback; mod/upstream never share package or certificate; Gradle allowed names and identity fields match the resolver"
+    },
+    {
+      "path": "tools/test-backup-read-nonblock.py",
+      "stage": "linux",
+      "platform": [
+        "linux"
+      ],
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Exact Android filesystem final-open flag expressions exercised with real Linux FIFO replacement, old blocking negative control, regular reads, directory rejection and FD balance; no phone."
     }
   ]
 }

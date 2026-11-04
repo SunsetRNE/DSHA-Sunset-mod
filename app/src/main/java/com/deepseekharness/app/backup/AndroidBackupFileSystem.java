@@ -10,6 +10,9 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   private static final int O_PATH = 0x200000; // Linux UAPI；仅持有目录，不要求列出 /data 等父目录。
   // NDK r26 asm-generic/fcntl.h: 02000000；内核早已支持，Android Java 字段到 API 27 才公开。
   private static final int O_CLOEXEC = 0x80000;
+  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
+  // asm-generic/x86 uses 00200000 instead. Public OsConstants has no O_DIRECTORY.
+  private static final int O_DIRECTORY = 040000;
 
   private static FileDescriptor anchored(File file, int flags, int mode)
       throws IOException, ErrnoException {
@@ -124,7 +127,14 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
     if (!before.type.equals("DIRECTORY")) throw new IOException("DIRECTORY_TYPE");
     try {
       FileDescriptor fd =
-          anchored(file, OsConstants.O_RDONLY | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0);
+          anchored(
+              file,
+              OsConstants.O_RDONLY
+                  | O_DIRECTORY
+                  | OsConstants.O_NONBLOCK
+                  | O_CLOEXEC
+                  | OsConstants.O_NOFOLLOW,
+              0);
       try (ParcelFileDescriptor handle = ParcelFileDescriptor.dup(fd)) {
         if (!before.same(node(Os.fstat(fd)))) throw new IOException("SOURCE_CHANGED");
         String[] names = new File("/proc/self/fd/" + handle.getFd()).list();
@@ -148,7 +158,12 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
     if (!expected.type.equals("FILE")) throw new IOException("FILE_TYPE");
     try {
       ParcelFileDescriptor handle =
-          owned(file, OsConstants.O_RDONLY | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0);
+          // A regular file can become a FIFO after stat(). Never wait for a
+          // writer before fstat can reject the opened descriptor's identity.
+          owned(
+              file,
+              OsConstants.O_RDONLY | OsConstants.O_NONBLOCK | O_CLOEXEC | OsConstants.O_NOFOLLOW,
+              0);
       FileDescriptor fd = handle.getFileDescriptor();
       InputStream stream = new ParcelFileDescriptor.AutoCloseInputStream(handle);
       try {
@@ -190,7 +205,10 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
     if (limit < 1) throw new IOException("METADATA_LIMIT");
     try {
       ParcelFileDescriptor handle =
-          owned(file, OsConstants.O_RDONLY | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0);
+          owned(
+              file,
+              OsConstants.O_RDONLY | OsConstants.O_NONBLOCK | O_CLOEXEC | OsConstants.O_NOFOLLOW,
+              0);
       try (InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(handle);
           ByteArrayOutputStream out = new ByteArrayOutputStream()) {
         var stat = Os.fstat(handle.getFileDescriptor());
@@ -380,7 +398,14 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   public void syncDirectory(File file) throws IOException {
     try {
       FileDescriptor fd =
-          anchored(file, OsConstants.O_RDONLY | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0);
+          anchored(
+              file,
+              OsConstants.O_RDONLY
+                  | O_DIRECTORY
+                  | OsConstants.O_NONBLOCK
+                  | O_CLOEXEC
+                  | OsConstants.O_NOFOLLOW,
+              0);
       try {
         if (!OsConstants.S_ISDIR(Os.fstat(fd).st_mode)) throw new IOException("DIRECTORY_TYPE");
         Os.fsync(fd);
