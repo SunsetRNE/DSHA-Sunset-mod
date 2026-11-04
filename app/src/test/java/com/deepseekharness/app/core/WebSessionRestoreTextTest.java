@@ -18,10 +18,13 @@ public final class WebSessionRestoreTextTest {
     String identity = WebSessionRestoreText.unresolved("IDENTITY_UNKNOWN");
     String auth = WebSessionRestoreText.unresolved("AUTH_UNAVAILABLE");
     String launcher = WebSessionRestoreText.unresolved("LAUNCHER_PENDING");
+    String unknownLauncher = WebSessionRestoreText.unresolved("LAUNCHER_UNKNOWN");
     String retire = WebSessionRestoreText.unresolved("RETIRE_UNAVAILABLE");
     assertTrue(identity.contains("身份无法确认"));
     assertTrue(auth.contains("仍然存活"));
     assertTrue(launcher.contains("启动器"));
+    assertTrue(unknownLauncher.contains("无法确认启动器状态"));
+    assertNotEquals(launcher, unknownLauncher);
     assertTrue(retire.contains("清理失败"));
     assertNotEquals(identity, auth);
     assertNotEquals(launcher, retire);
