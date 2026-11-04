@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync, mkdirSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
 import vm from 'node:vm';
 
-const oldSource = execFileSync('git', ['show', '8321228e:app/src/main/assets/runtime-trial-page.js'], {encoding:'utf8'});
+// Pre-diagnostic page from 8321228e, vendored so shallow CI checkouts need no git history.
+const oldSource = readFileSync('tools/fixtures/trial-renderer/runtime-trial-page.8321228e.js', 'utf8');
 const newSource = readFileSync('app/src/main/assets/runtime-trial-page.js', 'utf8');
 const nonce = 'a'.repeat(32), home = '/isolated-fixture-home';
 function setup(source, bridge = 'present') {
