@@ -185,7 +185,19 @@ public final class WebFullscreenUi {
       if (!hasFocus) {
         forgetKeyboard();
         render();
-      } else if (attached) ViewCompat.requestApplyInsets(content);
+      } else if (attached) {
+        // #190：带键盘切后台再回来时 IME 已消失，但系统派发的边距可能仍带着键盘
+        // 占位，而 WebView 的布局视口就此停在矮视口且不再随任何事件收敛。
+        // 回前台核对 IME 的真实可见性：不可见就清掉键盘边距并强制一次布局，
+        // 等价于网页侧 workaround 里那次真实的 IME 高度变化。
+        WindowInsetsCompat now = ViewCompat.getRootWindowInsets(content);
+        if (now == null || !now.isVisible(WindowInsetsCompat.Type.ime())) {
+          forgetKeyboard();
+          render();
+          content.requestLayout();
+        }
+        ViewCompat.requestApplyInsets(content);
+      }
     }
 
     @Override

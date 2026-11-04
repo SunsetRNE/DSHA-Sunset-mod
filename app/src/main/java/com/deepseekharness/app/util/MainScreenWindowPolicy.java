@@ -65,6 +65,27 @@ public final class MainScreenWindowPolicy {
     return new Selection(selected, "READABLE");
   }
 
+  /**
+   * #210：未登记（或登记后窗口重建、windowId 漂移）的自有<b>非焦点</b>悬浮窗，
+   * 按包名身份整窗排除，不计为目标遮挡。包名在 Android 内是精确身份，不存在冒名；
+   * 排除区内的坐标轨迹仍被 {@code ScreenWindowRegion} 拒绝，完全盖满时依旧
+   * 无可点面积 —— 行为与登记路径一致，只是不再要求每个悬浮窗都维护登记。
+   * 可聚焦的自有 Activity 窗口不适用：它们可能是观察目标本身。
+   */
+  public static ScreenWindowRegion.Exclusion ownFallbackExclusion(
+      boolean ownPackage,
+      boolean focused,
+      int windowId,
+      ScreenWindowRegion.Bounds measured,
+      ScreenWindowRegion.Exclusion registered) {
+    if (registered != null
+        || !ownPackage
+        || focused
+        || measured == null
+        || !measured.valid()) return registered;
+    return new ScreenWindowRegion.Exclusion(windowId, 0, measured);
+  }
+
   /** Clip only non-interactive system chrome / IME covering a complete edge. Interior covers refuse coordinates. */
   public static ScreenWindowRegion region(int selected, List<Window> windows) {
     Window target = windows.get(selected);
@@ -82,6 +103,12 @@ public final class MainScreenWindowPolicy {
         occluders.add(new ScreenWindowRegion.Occluder(other.id, other.kind.name(), cover));
         continue;
       }
+      // #212：1×1 的系统字形/角标窗（HyperOS 的 HyperDuo glyph、笔记角标等）
+      // 物理上不可见，不得触发遮挡判定，否则整台设备的坐标手势全部不可用。
+      // 阈值收紧到 1×1：既有契约锁定「内部小覆盖窗即使 2×2 也必须拒绝坐标」
+      // （MainScreenObservationTest），不能为字形窗放宽到 4px²。
+      // 跳过时不进排除表 —— 它们不构成任何可用面积的变化。
+      if (cover.right() - cover.left() <= 1 && cover.bottom() - cover.top() <= 1) continue;
       if (!content.intersects(cover)) continue;
       if (other.ownedExclusion != null && cover.equals(other.ownedExclusion.bounds())) {
         exclusions.add(other.ownedExclusion);

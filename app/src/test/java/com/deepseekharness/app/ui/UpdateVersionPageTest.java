@@ -130,11 +130,12 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("扩展终端操作面板、输出预览与导出"));
-      assertTrue(shown.contains("会话侧栏和悬浮球适配不同窗口尺寸"));
-      assertTrue(shown.contains("启动请求未提交时保留状态提示"));
-      assertTrue(shown.contains("完善环境恢复和路径检查"));
-      assertTrue(shown.contains("本版未进行手机安装或设备验收"));
+      assertTrue(shown.contains("系统字形/角标窗"));
+      assertTrue(shown.contains("坐标点击与滑动完全不可用"));
+      assertTrue(shown.contains("不再参与遮挡判定"));
+      assertTrue(shown.contains("首条意外行"));
+      assertTrue(shown.contains("pm 输出格式差异"));
+      assertTrue(shown.contains("3.2.2"));
       assertFalse(shown.contains("build157"));
       assertFalse(shown.contains("0.2.0-rc2"));
       dialog.dismiss();
@@ -155,11 +156,12 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Expand terminal actions, output preview and export"));
-      assertTrue(shown.contains("Adapt the session sidebar and floating button"));
-      assertTrue(shown.contains("retain a status message when a start request is not submitted"));
-      assertTrue(shown.contains("Improve environment recovery and path checks"));
-      assertTrue(shown.contains("This build has not been installed or accepted on a phone"));
+      assertTrue(shown.contains("system glyph/badge windows"));
+      assertTrue(shown.contains("coordinate taps and swipes entirely unusable"));
+      assertTrue(shown.contains("no longer participate in the occlusion decision"));
+      assertTrue(shown.contains("first unexpected line"));
+      assertTrue(shown.contains("ROM-specific pm output differences"));
+      assertTrue(shown.contains("3.2.2"));
       assertFalse(shown.contains("build157"));
       dialog.dismiss();
     }

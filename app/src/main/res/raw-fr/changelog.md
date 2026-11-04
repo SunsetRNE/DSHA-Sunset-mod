@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3 / build206
+# DSHA 0.2.1-rc.3-20261030.0006-dsh0.2.1-rc.3 / build209
 
-- Développement des actions du terminal, de l’aperçu et de l’exportation des sorties. La barre latérale des sessions et le bouton flottant s’adaptent aux dimensions de la fenêtre ; les textes sont complétés dans dix langues.
-- Amélioration de la coordination entre les requêtes de modules, le démarrage et les opérations du terminal ; un message est conservé si une demande de démarrage n’est pas soumise.
-- Amélioration de la récupération de l’environnement et des vérifications de chemins ; ajustement de la priorité des adresses DNS et du traitement Unicode lors de la récupération de pages web.
-- Cette version n’a pas été installée ni validée sur téléphone. Le comportement réel du terminal, du réseau et de l’appareil reste à vérifier.
+- - Correction du problème où des fenêtre système minuscule 1×1 — glyphes HyperDuo, badge de notes, etc. — déclenchaient TARGET_WINDOW_OCCLUDED sur les systèmes de type HyperOS, rendant tap et swipe par coordonnées totalement inutilisables : les fenêtres d’une aire négligeable ne participent plus à la décision d’occlusion (#212).
+- - Lorsque l’arrêt d’une application est bloqué par « format de la liste d’applications non vérifiable », l’erreur embarque désormais la première ligne inattendue (masquée, tronquée) et précise la liste utilisateur ou système, afin de cerner les différences de sortie pm propres à chaque ROM (#210 complément).
+- - Conserver dsh-web-mobile 3.2.2, DSH rc.3, l’accès local et réseau local et les dix langues. La validation sur téléphone reste suspendue.

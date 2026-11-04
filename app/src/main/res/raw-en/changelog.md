@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3 / build206
+# DSHA 0.2.1-rc.3-20261030.0006-dsh0.2.1-rc.3 / build209
 
-- Expand terminal actions, output preview and export. Adapt the session sidebar and floating button to different window sizes, and update text in ten languages.
-- Coordinate plugin queries with startup and terminal operations; retain a status message when a start request is not submitted.
-- Improve environment recovery and path checks, and adjust DNS address precedence and Unicode handling in web fetches.
-- This build has not been installed or accepted on a phone. Actual terminal, network and device behavior remains to be verified.
+- - Fixed 1×1 system glyph/badge windows (HyperDuo glyph, notes badge, etc.) on HyperOS-like systems triggering TARGET_WINDOW_OCCLUDED and making coordinate taps and swipes entirely unusable: windows of negligible area no longer participate in the occlusion decision (#212).
+- - When stopping an app is blocked by "app list format could not be verified", the error now carries the first unexpected line (redacted, truncated) and names the user/system list, helping pinpoint ROM-specific pm output differences (#210 follow-up).
+- - Retain dsh-web-mobile 3.2.2, DSH rc.3, local and LAN access, and ten languages. Phone acceptance remains paused.

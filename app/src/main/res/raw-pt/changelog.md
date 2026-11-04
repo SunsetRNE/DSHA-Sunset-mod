@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.3-20261028.1200-dsh0.2.1-rc.3 / build206
+# DSHA 0.2.1-rc.3-20261030.0006-dsh0.2.1-rc.3 / build209
 
-- Ampliação das ações do terminal, da pré-visualização e da exportação da saída. A barra lateral de sessões e o botão flutuante adaptam-se a diferentes tamanhos de janela; os textos foram atualizados em dez idiomas.
-- Ajuste da coordenação entre consultas de plug-ins, inicialização e operações do terminal; uma mensagem de estado é mantida quando um pedido de início não é enviado.
-- Melhorias na recuperação do ambiente e nas verificações de caminhos, além de ajustes na prioridade de endereços DNS e no tratamento de Unicode ao obter páginas web.
-- Esta versão não foi instalada nem validada num telefone. O comportamento real do terminal, da rede e do dispositivo ainda precisa de verificação.
+- - Corrigido o problema em que janelas de sistema minúsculas (1×1), como o HyperDuo glyph e o selo de notas em sistemas tipo HyperOS, acionavam TARGET_WINDOW_OCCLUDED e tornavam toques e deslizes por coordenadas totalmente inutilizáveis: janelas de área desprezível não participam mais da decisão de oclusão (#212).
+- - Quando a parada de um aplicativo é bloqueada por "formato da lista de aplicativos não pôde ser verificado", o erro agora inclui a primeira linha inesperada (mascarada, truncada) e indica a lista do usuário ou do sistema, ajudando a identificar diferenças de saída do pm em cada ROM (#210 complemento).
+- - Manter dsh-web-mobile 3.2.2, DSH rc.3, acesso local e à rede local e dez idiomas. A validação no telefone continua suspensa.
