@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5` / build316 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build tightens the plugin dependency CAS scan (the fast path rechecks entry types and inodes, T48) and makes the document snapshot release its permit when SQLite initialization fails (T47). Local targeted tests and source gates passed; not yet checked on a device. See the [build316 notes](../releases/build316-changes.en.md) and the [build316 record](../releases/v0.2.1-rc.5-build316-cas-scandir-document-rows-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261105.0330-dsh0.2.1-rc.5` / build317 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build moves the gh wrapper and GitHub forwarding proxy into the managed runtime; forwarding only allows GitHub domains on port 443 (T49). Local targeted tests and source gates passed; not yet checked on a device. See the [build317 notes](../releases/build317-changes.en.md) and the [build317 record](../releases/v0.2.1-rc.5-build317-gh-managed-shim-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

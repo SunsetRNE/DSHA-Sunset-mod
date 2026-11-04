@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0330-dsh0.2.1-rc.5 / build317（gh 适配纳入受管运行时：包装脚本与 GitHub 转发代理随包写入，转发只放行 GitHub 域名）
+
+- gh 适配：`gh` 包装脚本与 CONNECT 转发代理改为受管资产，由 RuntimeTools 随包写入并纳入运行时描述符；代理只监听 127.0.0.1，只放行 github.com / api.github.com / codeload.github.com / uploads.github.com 与 *.githubusercontent.com 的 443 端口（T49）。
+- 实现（fed4f46b）：新增 `gh-wrapper.sh` / `gh-proxy.mjs`，同步 `managed-runtime-inputs.json`、`asset-deployment.json`、`ManagedRuntimeLayout` 与 `RuntimeTools` 的主机路径、CA 与代理环境；端口被占用时自动换临时端口，代理退出后自恢复。
+- 验证范围：发布会话在 build317 上复跑 `*RuntimePackageCommandsAndroidTest`；主机测试 `tools/test-gh-managed-shim.mjs`（4 项）、`test-runtime-descriptor-inputs.py`、`test-runtime-input-contract.py`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 317（基于 build316）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build317 更新说明](docs/releases/build317-changes.zh.md)，验证记录见 [build317 记录](docs/releases/v0.2.1-rc.5-build317-gh-managed-shim-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5 / build316（插件依赖核验：CAS 扫描快路径复核目录项类型与 inode；文件快照在 SQLite 初始化出错时释放许可）
 
 - 插件依赖核验与文件快照：CAS 扫描快路径复核目录项类型与 inode，堵住同一时间刻度内的替换漏检（T48）；`DocumentRowsSnapshot` 在 SQLite 初始化抛出 Error 时也释放许可（T47）。

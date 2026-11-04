@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5 / build316
+# DSHA 0.2.1-rc.5-20261105.0330-dsh0.2.1-rc.5 / build317
 
-- Vérification des dépendances de plugins : le chemin rapide de l’analyse CAS revérifie le type et l’inode des entrées ; remplacer un fichier par un lien puis rétablir sa date de modification dans le même intervalle n’échappe plus à la détection. L’instantané de documents libère désormais son autorisation si l’initialisation de SQLite échoue, la navigation suivante ne se bloque plus.
-- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 316 (basé sur build315). La révision DSHA reste 0.2.1-rc.5 et le DSH intégré reste 0.2.1-rc.5.
+- Adaptateur gh : le script d’enveloppe et le proxy de transfert GitHub sont désormais écrits dans l’environnement géré avec le paquet. Le transfert n’autorise que les domaines GitHub sur le port 443, et un port occupé est remplacé automatiquement par un port temporaire.
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 317 (basé sur build316). La révision DSHA reste 0.2.1-rc.5 et le DSH intégré reste 0.2.1-rc.5.

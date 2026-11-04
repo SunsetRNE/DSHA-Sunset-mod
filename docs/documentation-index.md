@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5` / build316 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版收紧插件依赖 CAS 扫描（快路径复核目录项类型与 inode，T48），并让文件快照在 SQLite 初始化出错时释放许可（T47）。本机定向测试与源码门禁通过，尚未真机核对。改动说明见 [build316 更新说明](releases/build316-changes.zh.md)，验证记录见 [build316 记录](releases/v0.2.1-rc.5-build316-cas-scandir-document-rows-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.0330-dsh0.2.1-rc.5` / build317 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把 gh 包装脚本与 GitHub 转发代理纳入受管运行时，转发只放行 GitHub 域名的 443 端口（T49）。本机定向测试与源码门禁通过，尚未真机核对。改动说明见 [build317 更新说明](releases/build317-changes.zh.md)，验证记录见 [build317 记录](releases/v0.2.1-rc.5-build317-gh-managed-shim-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
