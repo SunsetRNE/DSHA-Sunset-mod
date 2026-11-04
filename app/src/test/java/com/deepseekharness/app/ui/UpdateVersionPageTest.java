@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("动作按钮超过系统上限"));
-      assertTrue(shown.contains("版本码提升为 308"));
+      assertTrue(shown.contains("固定目标设备"));
+      assertTrue(shown.contains("版本码提升为 309"));
+      assertFalse(shown.contains("动作按钮超过系统上限"));
+      assertFalse(shown.contains("版本码提升为 308"));
       assertFalse(shown.contains("紧凑两行条目"));
       assertFalse(shown.contains("版本码提升为 307"));
       assertFalse(shown.contains("竖屏底部导航"));
@@ -203,7 +205,6 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("版本码提升为 273"));
       assertFalse(shown.contains("启动日志区原生重做"));
       assertFalse(shown.contains("版本码提升为 272"));
-      assertFalse(shown.contains("外接设备"));
       assertFalse(shown.contains("版本码提升为 271"));
       assertFalse(shown.contains("任务状态上岛页重绘"));
       assertFalse(shown.contains("版本码提升为 270"));
@@ -275,8 +276,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("grep pattern-file"));
-      assertTrue(shown.contains("Raises versionCode to 308"));
+      assertTrue(shown.contains("pins the target device"));
+      assertTrue(shown.contains("Raises versionCode to 309"));
+      assertFalse(shown.contains("grep pattern-file"));
+      assertFalse(shown.contains("Raises versionCode to 308"));
       assertFalse(shown.contains("compact two-line rows"));
       assertFalse(shown.contains("Raises versionCode to 307"));
       assertFalse(shown.contains("phone-portrait bottom navigation"));

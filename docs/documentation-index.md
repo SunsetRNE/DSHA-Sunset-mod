@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5` / build308 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合入四项修复：外部贡献者 Ralsei1337 的上岛通知多选提交与动作按钮上限修复；上游 #215 的 Root 读取守卫 grep 模式文件路径校验；上游 #213 诊断页早期失败后的复制按钮启用；启动目标插件面板窄屏竖排的空白与分段控件宽度（实验性）。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build308 更新说明](releases/build308-changes.zh.md)，验证记录见 [build308 记录](releases/v0.2.1-rc.5-build308-island-grep-diagnostics-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261104.1930-dsh0.2.1-rc.5` / build309 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合入发布双身份与三项协作者修复：构建与发布支持可切换的 mod / upstream 身份（默认 Mod，上游流程仅在协作者私有仓库运行）；外接设备确认时固定目标设备、只读调试命令校验参数；备份读取非阻塞打开并修正 arm64 目录标志，失败时记录阶段（挑自 ym2025szz，实验性）。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build309 更新说明](releases/build309-changes.zh.md)，验证记录见 [build309 记录](releases/v0.2.1-rc.5-build309-dual-identity-external-backup-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
