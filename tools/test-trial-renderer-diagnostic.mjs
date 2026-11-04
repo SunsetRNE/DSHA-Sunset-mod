@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync, mkdirSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 
-const oldSource = execFileSync('git', ['show', 'd9d87531:app/src/main/assets/runtime-trial-page.js'], {encoding:'utf8'});
+// The build295 page is identical to Sunset f5ec2520's runtime-trial-page.js.
+// Keep its exact bytes available to shallow checkouts and source archives.
+const oldSource = readFileSync(new URL('./fixtures/trial-renderer/build295-runtime-trial-page.js', import.meta.url), 'utf8');
+assert.equal(createHash('sha256').update(oldSource).digest('hex'), '8706c7b5692d36921c9e1471bcaabf9a8f77209102a2d0af98b15370fcbf62e8');
 const newSource = readFileSync('app/src/main/assets/runtime-trial-page.js', 'utf8');
 const nonce = 'a'.repeat(32), home = '/isolated-fixture-home';
 function setup(source, bridge = 'present') {
