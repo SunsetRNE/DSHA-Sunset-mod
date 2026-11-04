@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261104.1930-dsh0.2.1-rc.5` / build309 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合入发布双身份与三项协作者修复：构建与发布支持可切换的 mod / upstream 身份（默认 Mod，上游流程仅在协作者私有仓库运行）；外接设备确认时固定目标设备、只读调试命令校验参数；备份读取非阻塞打开并修正 arm64 目录标志，失败时记录阶段（挑自 ym2025szz，实验性）。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build309 更新说明](releases/build309-changes.zh.md)，验证记录见 [build309 记录](releases/v0.2.1-rc.5-build309-dual-identity-external-backup-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261104.2030-dsh0.2.1-rc.5` / build310 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版挑入协作者 ym2025szz 的三项修复：后台进程退出无法确认时保留环境保护并记录诊断；配置快照备用目录只读；桥接 APK 安装源沿用读取入口的域边界（实验性）。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build310 更新说明](releases/build310-changes.zh.md)，验证记录见 [build310 记录](releases/v0.2.1-rc.5-build310-retained-exit-install-source-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

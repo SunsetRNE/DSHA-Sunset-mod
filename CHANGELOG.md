@@ -1,5 +1,15 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261104.2030-dsh0.2.1-rc.5 / build310（实验性：后台进程退出无法确认时保留环境保护；配置快照备用目录只读；桥接 APK 安装源沿用读取入口的域边界（修复挑自协作者 ym2025szz））
+
+- 实验性：后台进程退出无法确认时保留环境保护并记录诊断；配置快照的备用目录只读；桥接 APK 安装源沿用读取入口的域边界（修复挑自协作者 ym2025szz efe03f81 快照）。
+- 环境保护（c76fa239）：新增 `util/RetainedProcessObserver`，`RuntimeTasks.waitForRetainedExit` 改用它轮询保留进程；`exitValue` 之外的探测失败报 UNKNOWN，保护继续保持、任务说明改为 `EXIT_PROBE_UNAVAILABLE`，并只记一次 `RUNTIME_EXIT_OBSERVATION` 诊断，不提前释放。`EnvironmentTaskGate` 同步。
+- 配置快照（54ee5c2f）：`ConfigurationSnapshots.writableCatalog` 只认主目录 `catalog.json`；备用 `catalog.json.previous` 仍可读来恢复，但不再作为写入或整理的依据。
+- 桥接安装（70c9d262）：`/app/install` 改用 `BridgePathPolicy.deniedReadRaw` / `resolveReadFile`，canonical 只解析一次并绑定到后续快照；新增 `BridgeApkInstall.sourceAllowed`，共享存储只认当前用户根，guest 链接不能跨到共享或宿主域。测试中的示例路径改为 Mod 包名。
+- 运行时描述符随 `RuntimeTasks` 与 `HttpShellService` 源码重算（受管启动器输入）。
+- 验证范围：发布会话在 build310 上复跑 `*RetainedProcessObserver*` / `*EnvironmentRetainedExit*` / `*EnvironmentTaskGate*` / `*ConfigurationSnapshots*` / `*BridgeApkInstall*` / `*BridgePathPolicy*` / `*RuntimeTasks*` / `*UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 310（基于 build309）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build310 更新说明](docs/releases/build310-changes.zh.md)，验证记录见 [build310 记录](docs/releases/v0.2.1-rc.5-build310-retained-exit-install-source-20261104.md)。
+
 ## 0.2.1-rc.5-20261104.1930-dsh0.2.1-rc.5 / build309（实验性：发布身份可切换（默认 Mod 身份，上游身份流程仅在协作者私有仓库运行）；外接设备确认时固定目标设备、只读调试命令校验参数；备份读取非阻塞打开并修正 arm64 目录标志，失败时记录阶段（部分修复挑自协作者 ym2025szz））
 
 - 实验性：发布身份改为可切换（默认 Mod 身份，另有仅在协作者私有仓库运行的上游身份流程）；外接设备确认时固定目标设备、只读调试命令校验参数；备份读取改为非阻塞打开并修正 arm64 目录标志，失败时记录阶段（部分修复挑自协作者 ym2025szz）。

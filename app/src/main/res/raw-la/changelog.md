@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.5-20261104.1930-dsh0.2.1-rc.5 / build309
+# DSHA 0.2.1-rc.5-20261104.2030-dsh0.2.1-rc.5 / build310
 
-- Experimentale: identitas editionis nunc commutari potest (identitas Mod per defectum, additque cursum identitatis fontis qui solum in repositorio privato collaboratoris currit); confirmatio instrumenti externi instrumentum destinatum figit, et mandata depurationis tantum ad legendum argumenta probant; lectiones tutelae sine obstructione aperiuntur signo directorii arm64 correcto, et defectus gradum suum notant (quaedam emendationes a collaboratore ym2025szz sumptae).
-- Ambitus probationis: solum probationes unitatum destinatae, Lint et inspectiones fontis locales; in instrumento non probatum. versionCode ad 309 auctus (in build308 fundatum). Revisio DSHA manet 0.2.1-rc.5 et DSH inclusum manet 0.2.1-rc.5.
+- Experimentale: custodia ambitus servatur et diagnosis notatur cum exitus processus in fundo confirmari non potest; catalogus subsidiarius imaginum configurationis tantum ad legendum est; fontes institutionis APK per pontem fines dominii lectionis sequuntur (emendationes a collaboratore ym2025szz sumptae).
+- Ambitus probationis: solum probationes unitatum destinatae, Lint et inspectiones fontis locales; in instrumento non probatum. versionCode ad 310 auctus (in build309 fundatum). Revisio DSHA manet 0.2.1-rc.5 et DSH inclusum manet 0.2.1-rc.5.

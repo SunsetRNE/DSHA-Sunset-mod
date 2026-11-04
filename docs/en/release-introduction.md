@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build309 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build310 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build309 `0.2.1-rc.5-20261104.1930-dsh0.2.1-rc.5`.** Experimental: switchable release identities (Mod by default), external device confirmation that pins the target, read-only debug argument checks, and non-blocking backup reads with failure-stage diagnostics (some fixes from collaborator ym2025szz). versionCode 309, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build309 notes](../releases/build309-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build310 `0.2.1-rc.5-20261104.2030-dsh0.2.1-rc.5`.** Experimental: keeps the environment guard when a background exit cannot be confirmed, makes the backup snapshot catalog read-only, and applies read-domain rules to bridge APK installs (fixes from collaborator ym2025szz). versionCode 310, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build310 notes](../releases/build310-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

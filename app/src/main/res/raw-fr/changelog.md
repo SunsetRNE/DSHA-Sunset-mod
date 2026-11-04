@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.5-20261104.1930-dsh0.2.1-rc.5 / build309
+# DSHA 0.2.1-rc.5-20261104.2030-dsh0.2.1-rc.5 / build310
 
-- Expérimental : l’identité de publication devient commutable (identité Mod par défaut, plus un flux d’identité amont exécuté uniquement dans le dépôt privé d’un collaborateur) ; la confirmation d’appareil externe fige l’appareil cible et les commandes de débogage en lecture seule vérifient leurs arguments ; les lectures de sauvegarde s’ouvrent en mode non bloquant avec l’indicateur de répertoire arm64 corrigé, et les échecs enregistrent leur étape (certains correctifs repris du collaborateur ym2025szz).
-- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 309 (basé sur build308). La révision DSHA reste 0.2.1-rc.5 et le DSH intégré reste 0.2.1-rc.5.
+- Expérimental : la protection de l’environnement est conservée, avec un diagnostic, quand la fin d’un processus d’arrière-plan ne peut pas être confirmée ; le catalogue de secours des instantanés de configuration est en lecture seule ; les sources d’installation d’APK par le pont suivent les limites de domaine de la lecture (correctifs repris du collaborateur ym2025szz).
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 310 (basé sur build309). La révision DSHA reste 0.2.1-rc.5 et le DSH intégré reste 0.2.1-rc.5.
