@@ -110,14 +110,25 @@ public final class CompactLayoutTest {
   }
 
   private SkillsFragment skills(int width, int count) throws Exception {
+    return skills(width, count, 0, 0);
+  }
+
+  private SkillsFragment skills(int width, int count, int disabled, int trashed) throws Exception {
     SkillsFragment page = new SkillsFragment();
     page.disableAutoLoadForTest();
     start(page);
     String[] names = new String[count];
     for (int i = 0; i < count; i++) names[i] = "fixture-skill-" + (i + 1);
-    page.showCatalogueForTest(SkillCatalogueFixture.of(1, names));
+    page.showCatalogueForTest(SkillCatalogueFixture.withStates(1, disabled, trashed, names));
     layout(page.requireView(), width);
     return page;
+  }
+
+  private static int checkedSwitches(View root, boolean checked) {
+    int count = 0;
+    for (View view : tagged(root, "skill.switch:", new ArrayList<>()))
+      if (((android.widget.CompoundButton) view).isChecked() == checked) count++;
+    return count;
   }
 
   @Test
@@ -131,21 +142,55 @@ public final class CompactLayoutTest {
   }
 
   @Test
+  public void skillsPhoneShowsSwitchesDisabledGroupAndRecentlyDeleted() throws Exception {
+    SkillsFragment page = skills(360, 3, 1, 2);
+    View root = page.requireView();
+    assertEquals(3, tagged(root, "skill:", new ArrayList<>()).size());
+    assertEquals(2, checkedSwitches(root, true));
+    assertEquals(1, checkedSwitches(root, false));
+    assertEquals(2, tagged(root, "skills.count", new ArrayList<>()).size());
+    assertEquals(1, tagged(root, "skills.trash", new ArrayList<>()).size());
+    assertNoHorizontalOverflow(root, 360);
+  }
+
+  @Test
   @Config(qualifiers = "zh-rCN-w720dp-h1000dp-mdpi")
+  public void skillsTabletPortraitIsSingleColumnWideRows() throws Exception {
+    // 平板竖屏（设置子页约 700dp）：单列宽行，详情走居中弹层，不挤成两栏。
+    SkillsFragment page = skills(720, 3, 1, 1);
+    View root = page.requireView();
+    assertEquals(3, tagged(root, "skill:", new ArrayList<>()).size());
+    assertEquals(0, tagged(root, "skills.detail", new ArrayList<>()).size());
+    assertEquals(3, tagged(root, "skill.switch:", new ArrayList<>()).size());
+    assertNoHorizontalOverflow(root, 720);
+  }
+
+  @Test
+  @Config(qualifiers = "zh-rCN-w900dp-h700dp-mdpi")
   public void skillsWideShowsListAndDetailSideBySide() throws Exception {
-    SkillsFragment page = skills(720, 3);
+    SkillsFragment page = skills(900, 3);
     View root = page.requireView();
     List<View> rows = tagged(root, "skill:", new ArrayList<>());
     assertEquals(3, rows.size());
     List<View> detail = tagged(root, "skills.detail", new ArrayList<>());
     assertEquals(1, detail.size());
-    // 并排：详情在列表右侧，首项默认选中。
+    // 并排：详情在列表右侧，首项默认选中；详情带状态卡与删除入口。
     int[] rowAt = new int[2], detailAt = new int[2];
     rows.get(0).getLocationInWindow(rowAt);
     detail.get(0).getLocationInWindow(detailAt);
     assertTrue(detailAt[0] > rowAt[0] + rows.get(0).getWidth() - 1);
     assertTrue(rows.get(0).isSelected());
-    assertNoHorizontalOverflow(root, 720);
+    assertEquals(1, tagged(detail.get(0), "skills.state", new ArrayList<>()).size());
+    assertEquals(1, tagged(detail.get(0), "skills.delete", new ArrayList<>()).size());
+    assertNoHorizontalOverflow(root, 900);
+  }
+
+  @Test
+  public void skillTierThresholds() {
+    assertEquals(SkillsFragment.Tier.NARROW, SkillsFragment.tierFor(599));
+    assertEquals(SkillsFragment.Tier.MEDIUM, SkillsFragment.tierFor(600));
+    assertEquals(SkillsFragment.Tier.MEDIUM, SkillsFragment.tierFor(705));
+    assertEquals(SkillsFragment.Tier.WIDE, SkillsFragment.tierFor(780));
   }
 
   @Test
