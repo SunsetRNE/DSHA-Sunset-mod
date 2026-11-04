@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261105.0630-dsh0.2.1-rc.5` / build320 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a Keep screen on switch in Settings (off by default); when on, Web, terminal and other app pages do not turn the screen off automatically (T53). Local targeted tests and source gates passed; not yet checked on a device. See the [build320 notes](../releases/build320-changes.en.md) and the [build320 record](../releases/v0.2.1-rc.5-build320-keep-screen-on-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261105.0730-dsh0.2.1-rc.5` / build321 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build prepares the DSH 0.2.2 upgrade: the host and bundled plugins work with both 0.2.1-rc.5 and 0.2.2, and data written by a newer DSH only triggers a notice instead of automatic repair (T51). Bundled DSH remains 0.2.1-rc.5. Local targeted tests and source gates passed; not yet checked on a device. See the [build321 notes](../releases/build321-changes.en.md) and the [build321 record](../releases/v0.2.1-rc.5-build321-dsh022-s0-prep-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

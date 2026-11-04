@@ -23,7 +23,7 @@
 
 | 共用项 | 当前值 | 权威来源 |
 |---|---|---|
-| versionCode / versionName | `320` / `0.2.1-rc.5-20261105.0630-dsh0.2.1-rc.5` | `app/build.gradle` |
+| versionCode / versionName | `321` / `0.2.1-rc.5-20261105.0730-dsh0.2.1-rc.5` | `app/build.gradle` |
 | 签名方案 | v1 + v2 + v3 | 身份文件 `schemes`（兼容入口 `ci/release-identity.json` 一致） |
 | 最低系统 | Android 11（API 30）/ arm64-v8a | `app/build.gradle` `minSdk` / `abiFilters` |
 

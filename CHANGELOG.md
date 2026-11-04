@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0730-dsh0.2.1-rc.5 / build321（DSH 0.2.2 升级预备：宿主与内置插件同时兼容 0.2.1-rc.5 与 0.2.2，发现数据被更高版本写过时只提示不自动修复）
+
+- DSH 0.2.2 升级预备（S0，T51）：宿主与内置插件同时兼容当前 0.2.1-rc.5 与即将切换的 0.2.2；内置 DSH 仍是 0.2.1-rc.5，本版不换运行时。
+- 实现（1503a647、a04e77ae）：内置插件 peer 版本范围放宽到 0.2.2；网页兼容层补 `URL.canParse`；LAN 契约识别 rc5 / 0.2.2 两族；`dsh-fs-search-scope` 同时适配新旧工具 API；新增 `DshVersionPolicy` 检测 DSH 数据代次：仅当数据由更高版本写过（INSTALLED_NEWER）时维护页提示并拦截自动覆盖，版本未知或缺失不再阻断启动与维护。
+- 验证范围：发布会话在 build321 上复跑 `*DshVersionPolicyTest` / `*RuntimeToolsRegistryAndroidTest` / `*UpdateVersionPageTest` / `*WebLifecycleTest` / `*WebLifecycleStartProtectionTest` / `*WebLifecycleResponsivenessTest`；主机测试 `test-fs-search-scope.mjs`、`test-runtime-input-contract.py`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 321（基于 build320）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build321 更新说明](docs/releases/build321-changes.zh.md)，验证记录见 [build321 记录](docs/releases/v0.2.1-rc.5-build321-dsh022-s0-prep-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0630-dsh0.2.1-rc.5 / build320（设置页新增屏幕常亮开关（默认关闭），网页与终端页面不自动息屏）
 
 - 设置（T53，来自 PR #4）：新增「屏幕常亮」开关，默认关闭；开启后应用内各页面（含网页预览与终端）保持亮屏，关闭即恢复系统息屏；该开关是本机设置，不随备份恢复。

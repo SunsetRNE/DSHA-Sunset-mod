@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("屏幕常亮：设置页新增"));
-      assertTrue(shown.contains("版本码提升为 320"));
+      assertTrue(shown.contains("DSH 0.2.2 升级预备"));
+      assertTrue(shown.contains("版本码提升为 321"));
+      assertFalse(shown.contains("屏幕常亮：设置页新增"));
+      assertFalse(shown.contains("版本码提升为 320"));
       assertFalse(shown.contains("剪贴板读取：新增"));
       assertFalse(shown.contains("版本码提升为 319"));
       assertFalse(shown.contains("技能页：可单独禁用"));
@@ -298,8 +300,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Keep screen on: Settings adds"));
-      assertTrue(shown.contains("Raises versionCode to 320"));
+      assertTrue(shown.contains("DSH 0.2.2 upgrade preparation"));
+      assertTrue(shown.contains("Raises versionCode to 321"));
+      assertFalse(shown.contains("Keep screen on: Settings adds"));
+      assertFalse(shown.contains("Raises versionCode to 320"));
       assertFalse(shown.contains("Clipboard reading: adds"));
       assertFalse(shown.contains("Raises versionCode to 319"));
       assertFalse(shown.contains("Skills page: each skill"));

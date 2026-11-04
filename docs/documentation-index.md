@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.0630-dsh0.2.1-rc.5` / build320 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版在设置页新增屏幕常亮开关（默认关闭），开启后网页与终端等页面不自动息屏（T53）。本机定向测试与源码门禁通过，尚未真机核对。改动说明见 [build320 更新说明](releases/build320-changes.zh.md)，验证记录见 [build320 记录](releases/v0.2.1-rc.5-build320-keep-screen-on-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.0730-dsh0.2.1-rc.5` / build321 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为 DSH 0.2.2 升级做预备：宿主与内置插件同时兼容 0.2.1-rc.5 与 0.2.2，数据由更高 DSH 版本写过时只提示、不自动修复（T51）。内置 DSH 仍为 0.2.1-rc.5。本机定向测试与源码门禁通过，尚未真机核对。改动说明见 [build321 更新说明](releases/build321-changes.zh.md)，验证记录见 [build321 记录](releases/v0.2.1-rc.5-build321-dsh022-s0-prep-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
