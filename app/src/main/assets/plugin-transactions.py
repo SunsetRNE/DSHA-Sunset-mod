@@ -457,6 +457,9 @@ class Transactions:
         POSIX traversal is anchored to held NOFOLLOW directory descriptors.
         Fresh scandir entries supply file types without a separate stat for
         every ordinary file (DT_UNKNOWN falls back to NOFOLLOW stat in Python).
+        Each directory's entry types and inode numbers are sampled again after
+        its children are visited, closing the cached-dirent replacement window
+        without turning the fast path back into one stat per ordinary file.
         No stored receipt, root timestamp or previous entry list skips a scan.
         Directory identity, timestamps and membership are checked on return;
         replacing an entry changes its containing directory, even if its name
@@ -488,13 +491,25 @@ class Transactions:
                         raise ValueError('旧 pnpm 模块父目录在核验期间变化，全部现场保留')
                 counts['directories'] += 1
                 counts['maxDepth'] = max(counts['maxDepth'], depth)
-                if reader.relative:
+                def dirent_mode(entry):
+                    return (stat.S_IFLNK if entry.is_symlink() else
+                            stat.S_IFDIR if entry.is_dir(follow_symlinks=False) else
+                            stat.S_IFREG if entry.is_file(follow_symlinks=False) else 0)
+                def dirent_inode(entry):
+                    inode = getattr(entry, 'inode', None)
+                    return inode() if callable(inode) else None
+                def scan_dirents():
                     with os.scandir(directory) as scan:
-                        entries = {entry.name: entry for entry in scan}
+                        return {entry.name: entry for entry in scan}
+                if reader.relative:
+                    entries = scan_dirents()
                     names = sorted(entries)
+                    initial_modes = {child: dirent_mode(entries[child]) for child in names}
+                    initial_inodes = {child: dirent_inode(entries[child]) for child in names}
                 else:
                     entries = None
                     names = sorted(os.listdir(directory))
+                    initial_modes = {}
                 for child in names:
                     self.g['check_cancel']()
                     budget[0] += 1
@@ -504,9 +519,7 @@ class Transactions:
                         raise ValueError('旧 pnpm 模块条目超过核验上限，全部现场保留')
                     if reader.relative:
                         entry = entries[child]
-                        mode = (stat.S_IFLNK if entry.is_symlink() else
-                                stat.S_IFDIR if entry.is_dir(follow_symlinks=False) else
-                                stat.S_IFREG if entry.is_file(follow_symlinks=False) else 0)
+                        mode = dirent_mode(entry)
                         info = None
                     else:
                         nested_verify()
@@ -541,7 +554,16 @@ class Transactions:
                         walk(directory, child, nested_verify, relative + '/', depth + 1)
                     elif not stat.S_ISREG(mode):
                         raise ValueError('旧 pnpm 模块含特殊文件，全部现场保留')
-                if names != sorted(os.listdir(directory)) or not reader.stable(before, os.fstat(descriptor) if reader.relative else os.lstat(directory)):
+                if reader.relative:
+                    current = scan_dirents()
+                    if sorted(current) != names or any(
+                            dirent_mode(current[child]) != initial_modes[child] or (
+                                initial_inodes[child] is not None and dirent_inode(current[child]) != initial_inodes[child])
+                            for child in names):
+                        raise ValueError('旧 pnpm 模块条目在扫描期间变化，全部现场保留')
+                elif names != sorted(os.listdir(directory)):
+                    raise ValueError('旧 pnpm 模块目录在扫描期间变化，全部现场保留')
+                if not reader.stable(before, os.fstat(descriptor) if reader.relative else os.lstat(directory)):
                     raise ValueError('旧 pnpm 模块目录在核验期间变化，全部现场保留')
                 nested_verify()
                 verify()
