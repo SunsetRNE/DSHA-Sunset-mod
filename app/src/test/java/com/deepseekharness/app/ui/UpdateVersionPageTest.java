@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("大目录流式列出"));
-      assertTrue(shown.contains("版本码提升为 312"));
+      assertTrue(shown.contains("渲染进程退出后回收"));
+      assertTrue(shown.contains("版本码提升为 313"));
+      assertFalse(shown.contains("大目录流式列出"));
+      assertFalse(shown.contains("版本码提升为 312"));
       assertFalse(shown.contains("不再被旧 PID 翻回未知"));
       assertFalse(shown.contains("版本码提升为 311"));
       assertFalse(shown.contains("保留环境保护"));
@@ -282,8 +284,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("streams large folder listings"));
-      assertTrue(shown.contains("Raises versionCode to 312"));
+      assertTrue(shown.contains("reclaimed after the WebView renderer exits"));
+      assertTrue(shown.contains("Raises versionCode to 313"));
+      assertFalse(shown.contains("streams large folder listings"));
+      assertFalse(shown.contains("Raises versionCode to 312"));
       assertFalse(shown.contains("no longer turned back to unknown"));
       assertFalse(shown.contains("Raises versionCode to 311"));
       assertFalse(shown.contains("keeps the environment guard"));

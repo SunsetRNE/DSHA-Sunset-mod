@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261104.2230-dsh0.2.1-rc.5` / build312 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版挑入协作者 ym2025szz 的两项修复：文件接口大目录流式列出并可取消（实验性）；通知进入 Web 就绪即进；启动页次要按钮改为重启 / 停止。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build312 更新说明](releases/build312-changes.zh.md)，验证记录见 [build312 记录](releases/v0.2.1-rc.5-build312-documents-listing-ready-enter-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261104.2330-dsh0.2.1-rc.5` / build313 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版挑入协作者 ym2025szz 的两项修复：WebView 渲染进程退出后回收上传、下载与麦克风（实验性）；输入法、画中画与颜色探针去重。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build313 更新说明](releases/build313-changes.zh.md)，验证记录见 [build313 记录](releases/v0.2.1-rc.5-build313-renderer-exit-ime-dedupe-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

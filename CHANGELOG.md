@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261104.2330-dsh0.2.1-rc.5 / build313（实验性：WebView 渲染进程退出后回收上传、下载与麦克风；输入法、画中画与颜色探针去重（修复挑自协作者 ym2025szz））
+
+- 实验性：WebView 渲染进程退出后回收上传、下载与麦克风，旋转期间旧页面仍有清理方；相同输入法帧、画中画恢复布局与颜色探针不再重复（修复挑自协作者 ym2025szz efe03f81 快照）。
+- 渲染进程退出（6215ae02）：`WebPreviewActivity` 在 renderer 退出时清理页面状态并回收文件选择、Blob 下载与麦克风授权；旋转改用保留的 renderer 客户端，旧页面仍有清理方；`BrowserTasks.browserUnavailable`、`WebBlobDownload.close`、`BrowserOriginRestore*`、`CommunityActivity` 同步。快照中的 `UiFrameRate` 帧率改造未挑入，保留 `WebFrameRate.apply/clear`。
+- 去重（f9731b0e）：`WebFullscreenUi` 相同 IME 帧不重复发送；`PictureInPictureFrame.resumeViewport` 关闭画中画时不重复布局；`web-integration/page.js` 颜色探针去重。
+- 运行时描述符随源码重算（受管启动器输入）。
+- 验证范围：发布会话在 build313 上复跑 `*RendererSurfaceLifecycle*` / `*WebBackgroundPageLifecycle*` / `*WebFullscreenUi*` / `*PictureInPictureFrame*` / `*WebPreview*` / `*BrowserOriginRestore*` / `*WebBlobDownload*` / `*Community*` / `*UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 313（基于 build312）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build313 更新说明](docs/releases/build313-changes.zh.md)，验证记录见 [build313 记录](docs/releases/v0.2.1-rc.5-build313-renderer-exit-ime-dedupe-20261104.md)。
+
 ## 0.2.1-rc.5-20261104.2230-dsh0.2.1-rc.5 / build312（实验性：文件接口大目录流式列出并可取消；通知进入 Web 就绪即进；启动页按钮改为重启 / 停止（修复挑自协作者 ym2025szz））
 
 - 实验性：文件接口（DocumentsProvider）大目录流式列出并可取消；通知点击进入 Web 改为就绪即进；启动页次要按钮顺序改为重启 / 停止（修复挑自协作者 ym2025szz efe03f81 快照）。

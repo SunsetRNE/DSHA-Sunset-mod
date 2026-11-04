@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261104.2230-dsh0.2.1-rc.5` / build312 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build picks two fixes from collaborator ym2025szz: the documents provider streams large folder listings and supports cancellation (experimental); opening Web from the notification enters as soon as it is ready; the launch page's secondary buttons now read Restart / Stop. Local targeted tests and source gates passed; not yet checked on a device. See the [build312 notes](../releases/build312-changes.en.md) and the [build312 record](../releases/v0.2.1-rc.5-build312-documents-listing-ready-enter-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261104.2330-dsh0.2.1-rc.5` / build313 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build picks two fixes from collaborator ym2025szz: uploads, downloads and microphone access are reclaimed after the WebView renderer exits (experimental); repeated IME frames, picture-in-picture layouts and color probes are deduplicated. Local targeted tests and source gates passed; not yet checked on a device. See the [build313 notes](../releases/build313-changes.en.md) and the [build313 record](../releases/v0.2.1-rc.5-build313-renderer-exit-ime-dedupe-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
