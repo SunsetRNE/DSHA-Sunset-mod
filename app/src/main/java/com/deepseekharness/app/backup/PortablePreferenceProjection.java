@@ -16,6 +16,7 @@ public final class PortablePreferenceProjection {
           "plugin_sort_order",
           "dns_mode",
           Constants.KEY_PICTURE_IN_PICTURE_LAYOUT);
+
   /** 原生授权偏好只属于本机，绝不进入便携设置或系统备份。 */
   private static final Set<String> NATIVE_ONLY =
       Set.of("clipboard_read_mode_v1", "sms_read", "dsha_device_grants");
