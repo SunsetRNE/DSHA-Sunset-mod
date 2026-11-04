@@ -46,7 +46,23 @@ public final class DirectWebEntryTest {
     static HarnessController value;
     static String authUrl = "";
     static int startRequests;
+    static boolean starting;
     static final List<Runnable> checks = new ArrayList<>();
+    static final java.util.Set<Runnable> readyListeners = new java.util.LinkedHashSet<>();
+
+    @Implementation
+    protected void addReadyWebPageListener(Runnable listener) {
+      readyListeners.add(listener);
+    }
+
+    @Implementation
+    protected void removeReadyWebPageListener(Runnable listener) {
+      readyListeners.remove(listener);
+    }
+
+    static void notifyReady() {
+      for (Runnable listener : List.copyOf(readyListeners)) listener.run();
+    }
 
     @Implementation
     protected static HarnessController get(Context context) {
@@ -75,7 +91,7 @@ public final class DirectWebEntryTest {
 
     @Implementation
     protected boolean isStarting() {
-      return false;
+      return starting;
     }
 
     @Implementation
@@ -120,7 +136,9 @@ public final class DirectWebEntryTest {
     Controller.value = org.robolectric.shadow.api.Shadow.newInstanceOf(HarnessController.class);
     Controller.authUrl = "";
     Controller.startRequests = 0;
+    Controller.starting = false;
     Controller.checks.clear();
+    Controller.readyListeners.clear();
     ConfigStore config = new ConfigStore(app);
     config.setWelcomed(true);
     config.setCheckUpdate(false);
@@ -344,6 +362,102 @@ public final class DirectWebEntryTest {
       assertNull(drainUntil(main, WebPreviewActivity.class));
     } finally {
       host.pause().stop().destroy();
+    }
+  }
+
+  private static final class WaitingEntry implements AutoCloseable {
+    final org.robolectric.android.controller.ActivityController<
+            androidx.fragment.app.FragmentActivity>
+        host = Robolectric.buildActivity(androidx.fragment.app.FragmentActivity.class).setup();
+    final DirectWebLaunch launch;
+    int opened, abandoned;
+
+    WaitingEntry() {
+      Controller.starting = true;
+      launch =
+          new DirectWebLaunch(
+              host.get(),
+              new BootScreen(host.get(), com.deepseekharness.app.util.BootPalette.fromWeb(-1, -1)),
+              () -> abandoned++,
+              () -> opened++);
+      launch.begin();
+      org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
+    }
+
+    Intent nextActivity() {
+      ShadowActivity shadow = org.robolectric.shadow.api.Shadow.extract(host.get());
+      return shadow.getNextStartedActivity();
+    }
+
+    @Override
+    public void close() {
+      launch.cancel();
+      host.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void readyEventOpensDirectEntryWithoutWaitingForThe400MillisecondPoll() {
+    try (var entry = new WaitingEntry()) {
+      assertEquals(1, Controller.readyListeners.size());
+      assertNull(entry.nextActivity());
+      long before = android.os.SystemClock.uptimeMillis();
+      Controller.authUrl = "http://127.0.0.1:43210/?token=fixture";
+      Controller.notifyReady();
+      assertEquals(before, android.os.SystemClock.uptimeMillis());
+      assertEquals(1, entry.opened);
+      assertEquals(Controller.authUrl, entry.nextActivity().getStringExtra("url"));
+      assertTrue("Successful entry detaches its listener", Controller.readyListeners.isEmpty());
+      org.robolectric.shadows.ShadowLooper.shadowMainLooper()
+          .idleFor(java.time.Duration.ofSeconds(1));
+      assertEquals(1, entry.opened);
+      assertNull(entry.nextActivity());
+      assertEquals(0, Controller.startRequests);
+    }
+  }
+
+  @Test
+  public void pausedDirectEntryWaitsForForegroundAndKeepsThePollFallback() {
+    try (var entry = new WaitingEntry()) {
+      entry.host.pause();
+      Controller.authUrl = "http://127.0.0.1:43210/?token=fixture";
+      Controller.notifyReady();
+      assertEquals(0, entry.opened);
+      assertNull(entry.nextActivity());
+      entry.host.resume();
+      org.robolectric.shadows.ShadowLooper.shadowMainLooper()
+          .idleFor(java.time.Duration.ofMillis(400));
+      assertEquals(1, entry.opened);
+      assertNotNull(entry.nextActivity());
+    }
+  }
+
+  @Test
+  public void abandonedDirectEntryIgnoresAnAlreadyQueuedReadyEvent() {
+    try (var entry = new WaitingEntry()) {
+      Runnable stale = Controller.readyListeners.iterator().next();
+      entry.launch.abandon();
+      assertEquals(1, entry.abandoned);
+      assertTrue(Controller.readyListeners.isEmpty());
+      Controller.authUrl = "http://127.0.0.1:43210/?token=fixture";
+      stale.run();
+      org.robolectric.shadows.ShadowLooper.shadowMainLooper()
+          .idleFor(java.time.Duration.ofSeconds(1));
+      assertEquals(0, entry.opened);
+      assertNull(entry.nextActivity());
+      assertEquals(0, Controller.startRequests);
+    }
+  }
+
+  @Test
+  public void unreadyEventsDoNotStartOrAbandonAnExistingDirectEntry() {
+    try (var entry = new WaitingEntry()) {
+      for (int i = 0; i < 20; i++) Controller.notifyReady();
+      assertTrue(entry.launch.active());
+      assertEquals(0, entry.abandoned);
+      assertEquals(0, entry.opened);
+      assertNull(entry.nextActivity());
+      assertEquals(0, Controller.startRequests);
     }
   }
 }
