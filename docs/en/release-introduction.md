@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build317 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build318 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build317 `0.2.1-rc.5-20261105.0330-dsh0.2.1-rc.5`.** The gh wrapper and GitHub forwarding proxy are now managed runtime assets, and forwarding only allows GitHub domains. versionCode 317, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build317 notes](../releases/build317-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build318 `0.2.1-rc.5-20261105.0430-dsh0.2.1-rc.5`.** The Skills page gains a disable switch, Recently Deleted and permanent deletion, with a three-tier layout. versionCode 318, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build318 notes](../releases/build318-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

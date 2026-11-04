@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0430-dsh0.2.1-rc.5 / build318（技能页：新增禁用开关、最近删除与彻底删除，按内容宽度分三档布局）
+
+- 技能管理：每个技能可单独禁用（`SKILL.md` 原地改名为 `SKILL.md.disabled`，DSH 不再发现它，重新启用即恢复）；删除先移到「最近删除」，默认保留 30 天（1–365 天可调），到期在打开技能页时清理，也可随时恢复或彻底删除（T52）。
+- 实现（439d3e45、2aa52f61）：新增 `SkillLibrary`（禁用 / 移入最近删除 / 恢复 / 彻底删除，经受控文件系统 NOFOLLOW 操作）与纯逻辑 `SkillLifecycle`（槽位命名、元数据、过期判定）；`SkillsFragment` 按内容宽度分窄屏 / 宽行 / 并排三档布局。
+- 验证范围：发布会话在 build318 上复跑 `*SkillLibraryTest` / `*SkillLifecycleTest` / `*SkillCatalogueFixture` 相关 / `*CompactLayoutTest` / `*UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 318（基于 build317）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build318 更新说明](docs/releases/build318-changes.zh.md)，验证记录见 [build318 记录](docs/releases/v0.2.1-rc.5-build318-skill-disable-trash-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0330-dsh0.2.1-rc.5 / build317（gh 适配纳入受管运行时：包装脚本与 GitHub 转发代理随包写入，转发只放行 GitHub 域名）
 
 - gh 适配：`gh` 包装脚本与 CONNECT 转发代理改为受管资产，由 RuntimeTools 随包写入并纳入运行时描述符；代理只监听 127.0.0.1，只放行 github.com / api.github.com / codeload.github.com / uploads.github.com 与 *.githubusercontent.com 的 443 端口（T49）。
