@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "7be3d925ec177477e85b87e4626a2af7f4b6aa5743038b035c0ba43cad8430cf",
+  "runtimeId": "49a632dc46b47b5c0e32571afb9b779e93dc59ad8154facafeea0cfaeb1ac448",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.5",
   "launcherContract": "DSHA_ARM64_V2",
@@ -670,7 +670,7 @@
     "web-integration/ime.js": "9e93bc098f81196fce08a9399d3d1d4589ae3a39973a2419720566e8ea817d35",
     "web-integration/language.js": "04cc151c9c9ff08eb1de05710e03ecc767adc5115b1858bcbf16f0b11e027bd6",
     "web-integration/manifest.json": "e1c0bbbd5fca4fba173e7b08ac43d9534e01a0894ce5ab2ece495158c8b9c156",
-    "web-integration/page.js": "d900a265e77b9f19d7b34c9fae5997fa45582620e5b0d591e1153ae1f12db381",
+    "web-integration/page.js": "ac2e7b92b5bf55a001340edc4092e086fd06eafe74a826b1f68d8bf4e560cad0",
     "web-integration/permission-full-access.js": "af9961be02886c71d477a11d927a5c1e0ff4cb9839d146e75ac7fd0ad90b3d65",
     "web-integration/safe-area.js": "827db0626fc7cfe046409caf38a0606ae55ebdf11c14e11f8e1607a218663596",
     "web-integration/session-interaction.js": "6dac58b61d0523376aa514d17019344f56e25da62e7b2530c40b45b02b50a280",
