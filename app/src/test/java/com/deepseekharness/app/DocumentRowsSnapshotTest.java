@@ -109,6 +109,22 @@ public final class DocumentRowsSnapshotTest {
   }
 
   @Test
+  public void constructorErrorReleasesActivePermit() throws Exception {
+    File cache = temporary.newFolder();
+    for (int i = 0; i < 5; i++) {
+      assertThrows(
+          AssertionError.class,
+          () ->
+              new DocumentRowsSnapshot(
+                  cache,
+                  file -> {
+                    throw new AssertionError("sqlite open failed");
+                  }));
+    }
+    assertArrayEquals(new String[0], cache.list());
+  }
+
+  @Test
   public void activeQueryLimitIsReleasedByClientCloseAndConstructorFailure() throws Exception {
     File cache = temporary.newFolder();
     assertThrows(IOException.class, () -> new DocumentRowsSnapshot(new File(cache, "missing")));

@@ -16,6 +16,15 @@ final class DocumentRowsSnapshot implements AutoCloseable {
   static final String[] COLUMNS = {
     "document_id", "mime_type", "_display_name", "last_modified", "flags", "_size"
   };
+
+  @FunctionalInterface
+  interface DatabaseOpener {
+    SQLiteDatabase open(File file);
+  }
+
+  private static final DatabaseOpener DEFAULT_DATABASE_OPENER =
+      file -> SQLiteDatabase.openOrCreateDatabase(file, null);
+
   private final File file;
   private SQLiteDatabase database;
   private SQLiteStatement insert;
@@ -24,15 +33,19 @@ final class DocumentRowsSnapshot implements AutoCloseable {
   private boolean disposed;
 
   DocumentRowsSnapshot(File cache) throws IOException {
+    this(cache, DEFAULT_DATABASE_OPENER);
+  }
+
+  DocumentRowsSnapshot(File cache, DatabaseOpener opener) throws IOException {
     if (!ACTIVE.tryAcquire()) throw new IOException("DOCUMENT_LIST_BUSY");
     try {
       file = File.createTempFile("dsha-document-list-", ".db", cache);
-    } catch (IOException | RuntimeException error) {
+    } catch (IOException | RuntimeException | Error error) {
       ACTIVE.release();
       throw error;
     }
     try {
-      database = SQLiteDatabase.openOrCreateDatabase(file, null);
+      database = opener.open(file);
       // Sorting can spill to disk, and the page cache does not scale with the folder.
       database.execSQL("PRAGMA temp_store=FILE");
       database.execSQL("PRAGMA cache_size=-256");
@@ -42,8 +55,13 @@ final class DocumentRowsSnapshot implements AutoCloseable {
       database.beginTransaction();
       transaction = true;
       insert = database.compileStatement("INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?)");
-    } catch (RuntimeException error) {
-      dispose();
+    } catch (Throwable error) {
+      try {
+        dispose();
+      } catch (Throwable cleanupError) {
+        error.addSuppressed(cleanupError);
+      }
+      if (error instanceof Error) throw (Error) error;
       throw new IOException("DOCUMENT_LIST_STORAGE", error);
     }
   }
