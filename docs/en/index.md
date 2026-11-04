@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261105.0530-dsh0.2.1-rc.5` / build319 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build makes clipboard reading off / ask each time / pre-approved (off by default), confirms or rejects external links by type, and keeps these grants out of backups (T43). Local targeted tests and source gates passed; not yet checked on a device. See the [build319 notes](../releases/build319-changes.en.md) and the [build319 record](../releases/v0.2.1-rc.5-build319-clipboard-open-grant-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261105.0630-dsh0.2.1-rc.5` / build320 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a Keep screen on switch in Settings (off by default); when on, Web, terminal and other app pages do not turn the screen off automatically (T53). Local targeted tests and source gates passed; not yet checked on a device. See the [build320 notes](../releases/build320-changes.en.md) and the [build320 record](../releases/v0.2.1-rc.5-build320-keep-screen-on-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

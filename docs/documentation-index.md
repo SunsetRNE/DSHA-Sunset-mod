@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.0530-dsh0.2.1-rc.5` / build319 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把剪贴板读取改为关闭 / 每次询问 / 预授权三态（默认关闭），打开外部链接按类型确认或拒绝，相关授权不随备份恢复（T43）。本机定向测试与源码门禁通过，尚未真机核对。改动说明见 [build319 更新说明](releases/build319-changes.zh.md)，验证记录见 [build319 记录](releases/v0.2.1-rc.5-build319-clipboard-open-grant-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.0630-dsh0.2.1-rc.5` / build320 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版在设置页新增屏幕常亮开关（默认关闭），开启后网页与终端等页面不自动息屏（T53）。本机定向测试与源码门禁通过，尚未真机核对。改动说明见 [build320 更新说明](releases/build320-changes.zh.md)，验证记录见 [build320 记录](releases/v0.2.1-rc.5-build320-keep-screen-on-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

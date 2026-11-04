@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0630-dsh0.2.1-rc.5 / build320（设置页新增屏幕常亮开关（默认关闭），网页与终端页面不自动息屏）
+
+- 设置（T53，来自 PR #4）：新增「屏幕常亮」开关，默认关闭；开启后应用内各页面（含网页预览与终端）保持亮屏，关闭即恢复系统息屏；该开关是本机设置，不随备份恢复。
+- 实现（874822e9）：`ConfigStore.isKeepScreenOn` / `setKeepScreenOn`；`ModernAndroidUi` 在 Activity 创建与恢复时按设置同步 `FLAG_KEEP_SCREEN_ON`，读取失败保持系统默认；设置页新增开关与图标及十种语言文案。
+- 验证范围：发布会话在 build320 上复跑 `*ConfigStoreKeepScreenOnTest` / `*ModernAndroidUiKeepScreenOnTest` / `*ConfigStoreRuntimeSettingsTest` / `*WebLifecycleTest` / `*WebLifecycleStartProtectionTest` / `*WebLifecycleResponsivenessTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 320（基于 build319）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build320 更新说明](docs/releases/build320-changes.zh.md)，验证记录见 [build320 记录](docs/releases/v0.2.1-rc.5-build320-keep-screen-on-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0530-dsh0.2.1-rc.5 / build319（剪贴板读取改为关闭 / 每次询问 / 预授权三态（默认关闭），打开外部链接按类型确认）
 
 - 设备能力授权（T43）：剪贴板读取新增关闭 / 每次询问 / 预授权三态，默认关闭；写入剪贴板不受影响。`/app/open` 只直接放行 http(s) 与 geo，tel / mailto / market 先原生确认，其余 scheme 一律拒绝。
