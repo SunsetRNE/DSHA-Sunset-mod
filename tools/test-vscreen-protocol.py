@@ -76,8 +76,9 @@ def main():
         subprocess.run([os.sys.executable, str(ROOT / 'tools/prepare-ui-languages.py'), '--output', str(generated)], check=True, timeout=30)
         cp = os.pathsep.join(map(str, [junit, hamcrest, host_json, gson, annotations]))
         # AppIdentity reads the AGP-generated BuildConfig; host compilation needs the same
-        # production application id from the build script, not a hard-coded package name.
-        application_id = re.search(r'applicationId\s+"([^"]+)"', (ROOT / 'app/build.gradle').read_text(encoding='utf-8')).group(1)
+        # production application id, not a hard-coded package name. build.gradle now reads it
+        # from the selected release identity (default mod), so take it from that same file.
+        application_id = json.loads((ROOT / 'ci/release-identity.mod.json').read_text(encoding='utf-8'))['packageName']
         build_config = work / 'BuildConfig.java'
         build_config.write_text('package com.deepseekharness.app;\n\npublic final class BuildConfig {\n  public static final String APPLICATION_ID = "' + application_id + '";\n}\n', encoding='utf-8')
         sources = [str(JAVA / (name + '.java')) for name in names] + [str(TEST / (name + '.java')) for name in tests]
