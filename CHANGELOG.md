@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0530-dsh0.2.1-rc.5 / build319（剪贴板读取改为关闭 / 每次询问 / 预授权三态（默认关闭），打开外部链接按类型确认）
+
+- 设备能力授权（T43）：剪贴板读取新增关闭 / 每次询问 / 预授权三态，默认关闭；写入剪贴板不受影响。`/app/open` 只直接放行 http(s) 与 geo，tel / mailto / market 先原生确认，其余 scheme 一律拒绝。
+- 实现（c2d8341a、21822a5a）：新增纯逻辑 `ClipboardReadPolicy`、`ExternalOpenPolicy`、`TurnCapabilityGrants`；询问模式经能力票据与前台复核后原生确认；设备能力页增加三态控件；剪贴板 / 短信 / 设备授权偏好排除出可迁移偏好与备份范围（`PortablePreferenceProjection`、`BackupScope`），授权不随备份恢复。
+- 验证范围：发布会话在 build319 上复跑 `*ClipboardReadPolicyTest` / `*ExternalOpenPolicyTest` / `*TurnCapabilityGrantsTest` / `*BackupScopeTest` / `*PortablePreferenceProjectionTest` / `*BridgeRoutesTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 319（基于 build318）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build319 更新说明](docs/releases/build319-changes.zh.md)，验证记录见 [build319 记录](docs/releases/v0.2.1-rc.5-build319-clipboard-open-grant-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0430-dsh0.2.1-rc.5 / build318（技能页：新增禁用开关、最近删除与彻底删除，按内容宽度分三档布局）
 
 - 技能管理：每个技能可单独禁用（`SKILL.md` 原地改名为 `SKILL.md.disabled`，DSH 不再发现它，重新启用即恢复）；删除先移到「最近删除」，默认保留 30 天（1–365 天可调），到期在打开技能页时清理，也可随时恢复或彻底删除（T52）。

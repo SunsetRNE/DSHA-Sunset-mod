@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("技能页：可单独禁用"));
-      assertTrue(shown.contains("版本码提升为 318"));
+      assertTrue(shown.contains("剪贴板读取：新增"));
+      assertTrue(shown.contains("版本码提升为 319"));
+      assertFalse(shown.contains("技能页：可单独禁用"));
+      assertFalse(shown.contains("版本码提升为 318"));
       assertFalse(shown.contains("gh 适配：包装脚本"));
       assertFalse(shown.contains("版本码提升为 317"));
       assertFalse(shown.contains("CAS 扫描快路径复核"));
@@ -294,8 +296,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Skills page: each skill"));
-      assertTrue(shown.contains("Raises versionCode to 318"));
+      assertTrue(shown.contains("Clipboard reading: adds"));
+      assertTrue(shown.contains("Raises versionCode to 319"));
+      assertFalse(shown.contains("Skills page: each skill"));
+      assertFalse(shown.contains("Raises versionCode to 318"));
       assertFalse(shown.contains("gh adapter: the wrapper"));
       assertFalse(shown.contains("Raises versionCode to 317"));
       assertFalse(shown.contains("CAS scan fast path rechecks"));

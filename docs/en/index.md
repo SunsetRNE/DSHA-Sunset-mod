@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261105.0430-dsh0.2.1-rc.5` / build318 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build adds a disable switch, Recently Deleted (30 days by default) and permanent deletion to the Skills page, with a three-tier layout by content width (T52). Local targeted tests and source gates passed; the UI was checked on a device with the test package. See the [build318 notes](../releases/build318-changes.en.md) and the [build318 record](../releases/v0.2.1-rc.5-build318-skill-disable-trash-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261105.0530-dsh0.2.1-rc.5` / build319 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build makes clipboard reading off / ask each time / pre-approved (off by default), confirms or rejects external links by type, and keeps these grants out of backups (T43). Local targeted tests and source gates passed; not yet checked on a device. See the [build319 notes](../releases/build319-changes.en.md) and the [build319 record](../releases/v0.2.1-rc.5-build319-clipboard-open-grant-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 
