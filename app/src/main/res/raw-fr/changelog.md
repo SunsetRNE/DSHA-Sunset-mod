@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.5-20261104.2130-dsh0.2.1-rc.5 / build311
+# DSHA 0.2.1-rc.5-20261104.2230-dsh0.2.1-rc.5 / build312
 
-- Expérimental : un arrêt du Web confirmé ne redevient plus inconnu à cause d’un ancien PID, et un processus illisible bloque la maintenance au lieu d’être signalé comme actif ; quand l’environnement est occupé, le diagnostic affiche l’état de l’hôte en lecture seule (correctifs repris du collaborateur ym2025szz).
-- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 311 (basé sur build310). La révision DSHA reste 0.2.1-rc.5 et le DSH intégré reste 0.2.1-rc.5.
+- Expérimental : le fournisseur de documents liste les grands dossiers en flux et prend en charge l’annulation ; les FIFO et entrées illisibles ne le bloquent plus ; ouvrir le Web depuis la notification y entre dès qu’il est prêt ; les boutons secondaires de la page de lancement deviennent Redémarrer / Arrêter (correctifs repris du collaborateur ym2025szz).
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 312 (basé sur build311). La révision DSHA reste 0.2.1-rc.5 et le DSH intégré reste 0.2.1-rc.5.

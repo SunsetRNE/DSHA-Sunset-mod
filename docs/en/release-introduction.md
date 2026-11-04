@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build311 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build312 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build311 `0.2.1-rc.5-20261104.2130-dsh0.2.1-rc.5`.** Experimental: a confirmed Web stop stays confirmed despite stale PIDs, and diagnostics show read-only host state while the environment is busy (fixes from collaborator ym2025szz). versionCode 311, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build311 notes](../releases/build311-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build312 `0.2.1-rc.5-20261104.2230-dsh0.2.1-rc.5`.** Experimental: streamed, cancellable folder listings in the documents provider, immediate Web entry from the notification, and Restart / Stop button order (fixes from collaborator ym2025szz). versionCode 312, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build312 notes](../releases/build312-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261104.2130-dsh0.2.1-rc.5` / build311 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build picks two fixes from collaborator ym2025szz: a confirmed Web stop is no longer turned back to unknown by a stale PID (experimental); diagnostics take a read-only host-state sample while the environment is busy. Local targeted tests and source gates passed; not yet checked on a device. See the [build311 notes](../releases/build311-changes.en.md) and the [build311 record](../releases/v0.2.1-rc.5-build311-web-stop-evidence-host-diagnostics-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261104.2230-dsh0.2.1-rc.5` / build312 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build picks two fixes from collaborator ym2025szz: the documents provider streams large folder listings and supports cancellation (experimental); opening Web from the notification enters as soon as it is ready; the launch page's secondary buttons now read Restart / Stop. Local targeted tests and source gates passed; not yet checked on a device. See the [build312 notes](../releases/build312-changes.en.md) and the [build312 record](../releases/v0.2.1-rc.5-build312-documents-listing-ready-enter-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

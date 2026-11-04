@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261104.2230-dsh0.2.1-rc.5 / build312（实验性：文件接口大目录流式列出并可取消；通知进入 Web 就绪即进；启动页按钮改为重启 / 停止（修复挑自协作者 ym2025szz））
+
+- 实验性：文件接口（DocumentsProvider）大目录流式列出并可取消；通知点击进入 Web 改为就绪即进；启动页次要按钮顺序改为重启 / 停止（修复挑自协作者 ym2025szz efe03f81 快照）。
+- 文件接口（13e1fd49）：`queryChildDocuments` 改用 `DirectoryStream` 流式遍历，行先写入有界的 `DocumentRowsSnapshot`（缓存目录内 SQLite，限制并发打开数）再返回，避免大目录整体排序与内存峰值；FIFO 与拒读条目跳过不阻塞；同进程调用经 `DocumentStreams` 传递取消信号（外部 SAF 客户端仍受框架限制）；目录过多 / 暂存失败给出明确提示，并设置子目录通知 URI。
+- 启动页（1a235ab6）：通知点击进入 Web 由就绪事件立即触发，每秒刷新只作兜底，页面不可见时停止并注销监听，不再叠加刷新任务；次要按钮顺序由「停止 / 重启」改为「重启 / 停止」（用户确认的 UI 调整）。
+- 运行时描述符随源码重算（受管启动器输入）。
+- 验证范围：发布会话在 build312 上复跑 `*DshaDocumentsProvider*` / `*DocumentRowsSnapshot*` / `*DocumentStreams*` / `*DocumentPaths*` / `*LaunchAccessAddresses*` / `*LaunchWebEntry*` / `*MainEntryLayout*` / `*UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 312（基于 build311）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build312 更新说明](docs/releases/build312-changes.zh.md)，验证记录见 [build312 记录](docs/releases/v0.2.1-rc.5-build312-documents-listing-ready-enter-20261104.md)。
+
 ## 0.2.1-rc.5-20261104.2130-dsh0.2.1-rc.5 / build311（实验性：Web 停止已证实退出后不再被旧 PID 翻回未知；环境忙时诊断改为只读宿主状态（修复挑自协作者 ym2025szz））
 
 - 实验性：Web 停止已证实退出后不再被旧 PID 翻回未知，读不到进程时阻断维护而非误判仍在运行；环境忙时诊断改为只读宿主状态采样（修复挑自协作者 ym2025szz efe03f81 快照）。
