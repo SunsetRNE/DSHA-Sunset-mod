@@ -80,3 +80,4 @@ app/src/main/assets/plugin-manager.py -text -eol
 /tools/i18n/web-translations/ru.json -text -eol
 /tools/i18n/web-translations/zh-Hant.json -text -eol
 release/0.2.1-rc.5/dsha-0.2.1-rc.5.apk filter=lfs diff=lfs merge=lfs -text
+ci/fixed-inputs/dsha-build308.zip filter=lfs diff=lfs merge=lfs -text
