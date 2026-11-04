@@ -3243,6 +3243,46 @@
         "node24"
       ],
       "environment": {}
+    },
+    {
+      "path": "tools/test-reading-position-checkpoint.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Production reading-position checkpoints: scrollend/trailing fallback, node removal, page lifetime, session identity and disposal without per-frame path serialization."
+    },
+    {
+      "path": "tools/test-reading-position-browser.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual browser DOM scroll offsets and event delivery with detached/reused nodes, horizontal position, session routing and visibility; synthetic local page only."
+    },
+    {
+      "path": "tools/test-file-image-lifetime.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {
+        "DSHA_TEST_RUNTIME": "{raw}",
+        "DSHA_REACT": "{reactReference}"
+      },
+      "reason": "Actual shipped mobile image controls: no duplicate whole-image JS chunks, preserve 33MiB payload and cancel delayed completion after disposal."
     }
   ]
 }

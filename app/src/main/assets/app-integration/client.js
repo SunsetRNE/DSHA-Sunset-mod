@@ -414,11 +414,12 @@ window.__ModuleLoader__.load({id:'dsh-app-integration', factory: () => {
   }
   function installReadingPosition(ctx, index = createSessionIndex(ctx)) {
     const currentId = () => index.current();
-    let restoring = true, touched = false, lastSession = currentId(),
+    // DSHA_READING_IDLE_CHECKPOINT_V1: persistence does not need a visual frame clock.
+    let restoring = true, touched = false, lastSession = currentId(), lastUrl = location.pathname,
       positions = [], deadline = Date.now()+10000, lastSaved = '', leaving = false,
-      dirty = false, scrollFrame = 0, storeTimer = 0;
+      dirty = false, storeTimer = 0, storeEpoch = 0, lastScrollAt = 0, disposed = false;
     const storageKey = 'dsha.reading-position';
-    const pendingScrolls = new Set();
+    const pendingScrolls = new Map();
     let previous, previousRaw = null;
     try {
       previousRaw = localStorage.getItem(storageKey);
@@ -435,12 +436,25 @@ window.__ModuleLoader__.load({id:'dsh-app-integration', factory: () => {
     let requestedRestore = false;
     const scheduleStore = () => {
       dirty = true;
-      if (storeTimer) clearTimeout(storeTimer);
-      storeTimer = setTimeout(() => { storeTimer = 0; store(); },180);
+      if (!storeTimer && !leaving && !disposed && !document.hidden)
+        armStore(180);
     };
+    function armStore(delay) {
+      const epoch = ++storeEpoch;
+      storeTimer = setTimeout(() => { if (epoch === storeEpoch) settleStore(); },delay);
+    }
+    function settleStore() {
+      storeTimer = 0;
+      if (disposed || leaving || document.hidden) return;
+      syncSession();
+      const remaining = 180 - (Date.now() - lastScrollAt);
+      if (pendingScrolls.size && remaining > 0) { armStore(remaining); return; }
+      flushScrolls(); store();
+    }
     const interact = () => {
       touched = true;
       if (restoring) { restoring = false; scheduleStore(); }
+      else checkpoint(); // capture phase runs before a navigation handler can unmount its scroller.
     };
     document.addEventListener('pointerdown',interact,true); document.addEventListener('keydown',interact,true);
     const pathFor = element => {
@@ -462,50 +476,75 @@ window.__ModuleLoader__.load({id:'dsh-app-integration', factory: () => {
       return node;
     };
     const syncSession = () => {
-      const id = currentId();
-      if (lastSession !== id) { lastSession = id; positions = []; dirty = true; }
+      const id = currentId(), url = location.pathname;
+      if (lastSession !== id || lastUrl !== url) {
+        // A reused DOM node may already show the new session; never sample it into the old identity.
+        flushScrolls(true); store(true);
+        lastSession = id; lastUrl = url; positions = []; dirty = true;
+      }
       return id;
     };
     function store(force = false) {
       if (restoring || leaving || (!force && document.hidden)) return;
-      const id = syncSession();
       if (!dirty) return;
       try {
-        const value = JSON.stringify({id,url:location.pathname,positions});
+        const value = JSON.stringify({id:lastSession,url:lastUrl,positions});
         if (value !== lastSaved) { localStorage.setItem(storageKey,value); lastSaved = value; }
       } catch {}
       dirty = false;
     }
-    const flushScrolls = force => {
-      if (restoring || leaving || (!force && document.hidden)) { pendingScrolls.clear(); return; }
-      syncSession();
-      let changed = false;
-      for (const node of pendingScrolls) {
-        const path = pathFor(node); if (!path) continue;
-        const key = JSON.stringify(path);
-        positions = positions.filter(p => JSON.stringify(p.path) !== key);
-        positions.push({path,top:node.scrollTop,left:node.scrollLeft});
-        positions = positions.slice(-8); changed = true;
+    function flushScrolls(snapshotOnly = false) {
+      if (restoring || leaving || disposed) { pendingScrolls.clear(); return; }
+      if (!pendingScrolls.size) return;
+      const next = new Map(positions.map(item => [JSON.stringify(item.path),item]));
+      for (const [node, saved] of pendingScrolls) {
+        // Detached elements report zero offsets. Keep their last delivered scroll snapshot.
+        const live = !snapshotOnly && node.isConnected !== false;
+        const path = live ? pathFor(node) ?? saved.path : saved.path;
+        if (!path) continue;
+        const key = JSON.stringify(path), top = live ? node.scrollTop : saved.top, left = live ? node.scrollLeft : saved.left;
+        next.delete(key); next.set(key,{path,top,left});
       }
       pendingScrolls.clear();
-      if (changed) { dirty = true; if (!force) scheduleStore(); }
-    };
+      positions = Array.from(next.values()).slice(-8); dirty = true;
+    }
+    function checkpoint() {
+      if (disposed || leaving) return;
+      storeEpoch++;
+      if (storeTimer) { clearTimeout(storeTimer); storeTimer = 0; }
+      syncSession(); flushScrolls(); store(true);
+    }
     const scrolled = event => {
-      if (restoring || leaving || document.hidden) return;
+      if (restoring || leaving || disposed || document.hidden) return;
+      syncSession();
       const node = event.target === document ? document.scrollingElement : event.target;
-      // 同一帧内同一个滚动容器只处理一次，避免触摸滚动每个事件都走 DOM 路径并同步写存储。
-      if (node && (pendingScrolls.size < 16 || pendingScrolls.has(node))) pendingScrolls.add(node);
-      if (!scrollFrame) scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; flushScrolls(false); });
+      if (!node) return;
+      let saved = pendingScrolls.get(node);
+      if (!saved) {
+        if (pendingScrolls.size >= 16) flushScrolls();
+        const path = pathFor(node); if (!path) return;
+        saved = {path,top:0,left:0};
+      }
+      saved.top = node.scrollTop; saved.left = node.scrollLeft;
+      // Map order preserves the most recently scrolled eight containers, including nested ones.
+      pendingScrolls.delete(node); pendingScrolls.set(node,saved);
+      lastScrollAt = Date.now(); scheduleStore();
     };
     document.addEventListener('scroll',scrolled,{capture:true,passive:true});
+    document.addEventListener('scrollend',checkpoint,{capture:true,passive:true});
     const pageHide = () => {
-      if (scrollFrame) { cancelAnimationFrame(scrollFrame); scrollFrame = 0; }
-      if (storeTimer) { clearTimeout(storeTimer); storeTimer = 0; }
-      flushScrolls(true); store(true); leaving = true;
+      checkpoint(); leaving = true;
     };
+    const pageShow = () => { if (!disposed) { leaving = false; syncSession(); if (dirty) scheduleStore(); } };
+    const visibility = () => { if (document.hidden) checkpoint(); else if (!leaving && !disposed) { syncSession(); if (dirty) scheduleStore(); } };
+    const routeChanged = () => { if (!disposed && !leaving) { checkpoint(); if (dirty) scheduleStore(); } };
     window.addEventListener('pagehide',pageHide);
+    window.addEventListener('pageshow',pageShow);
+    window.addEventListener('popstate',routeChanged);
+    window.addEventListener('hashchange',routeChanged);
+    document.addEventListener('visibilitychange',visibility);
     const timer = setInterval(() => {
-      if (document.hidden || leaving) return;
+      if (document.hidden || leaving || disposed) return;
       if (!restoring) { clearInterval(timer); return; }
       const snapshot = ctx.sessions.list.getSnapshot();
       if (restoring && !touched && !requestedRestore && snapshot.phase === 'ready'
@@ -528,11 +567,16 @@ window.__ModuleLoader__.load({id:'dsh-app-integration', factory: () => {
     },750);
     const offSessions = ctx.sessions.list.subscribe?.(() => {
       index.invalidate();
-      if (!document.hidden && !leaving) { syncSession(); scheduleStore(); }
+      if (!leaving && !disposed) { syncSession(); scheduleStore(); }
     });
-    return () => { pageHide(); clearInterval(timer); document.removeEventListener('scroll',scrolled,true);
+    return () => { pageHide(); disposed = true; pendingScrolls.clear(); clearInterval(timer); document.removeEventListener('scroll',scrolled,true);
+      document.removeEventListener('scrollend',checkpoint,true);
+      document.removeEventListener('visibilitychange',visibility);
       offSessions?.();
       window.removeEventListener('pagehide',pageHide);
+      window.removeEventListener('pageshow',pageShow);
+      window.removeEventListener('popstate',routeChanged);
+      window.removeEventListener('hashchange',routeChanged);
       document.removeEventListener('pointerdown',interact,true); document.removeEventListener('keydown',interact,true); };
   }
   function installStreamResume(ctx) {

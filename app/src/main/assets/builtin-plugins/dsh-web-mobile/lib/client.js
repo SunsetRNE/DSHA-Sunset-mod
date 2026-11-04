@@ -17191,31 +17191,34 @@ function installNativeFileActions() {
 [data-dsha-image-save]{position:fixed;bottom:calc(18px + var(--dsha-safe-area-inset-bottom, env(safe-area-inset-bottom,0px)));left:50%;transform:translateX(-50%);z-index:1510;border:0;border-radius:20px;padding:10px 20px;background:#fff;color:#222;font:inherit}
 `;
     document.head.appendChild(style);
+    const imageLifetime = new AbortController();
     let hold = null, consumed = null, imageFlight = false;
     const imageMenu = (url, name) => {
         if (typeof window.DSHA?.saveImage !== 'function' || typeof url !== 'string' || !url.startsWith('blob:' + location.origin + '/')) return false;
         showFileSheet(name || 'image', [{ label: fileCopy().gallery, run: async () => {
-            if (imageFlight) return; imageFlight = true;
+            if (imageFlight || imageLifetime.signal.aborted) return; imageFlight = true;
             try {
-                const response = await fetch(url); if (!response.ok) throw new Error('Original image is unavailable');
+                const response = await fetch(url, { signal: imageLifetime.signal });
+                if (!response.ok) throw new Error('Original image is unavailable');
                 const mime = response.headers.get('content-type')?.split(';')[0] || '';
                 const maximum = 5_000_000_000;
-                if (!mime.startsWith('image/') || Number(response.headers.get('content-length') || 0) > maximum || !response.body)
+                // DSHA_IMAGE_BLOB_LIFETIME_V1: same-origin Blob URLs have an immutable,
+                // known byte length. Keep their native backing storage instead of
+                // copying every byte into JS chunk arrays and then another Blob.
+                const header = response.headers.get('content-length');
+                const length = header === null ? NaN : Number(header);
+                if (!mime.startsWith('image/') || !Number.isSafeInteger(length) || length < 0 || length > maximum || !response.body) {
+                    await response.body?.cancel();
                     throw new Error('Original image is unsupported or exceeds 5 GB');
-                const reader = response.body.getReader(), parts = []; let total = 0;
-                try {
-                    while (true) {
-                        const part = await reader.read(); if (part.done) break;
-                        total += part.value.byteLength;
-                        if (total > maximum) { await reader.cancel(); throw new Error('Original image exceeds 5 GB'); }
-                        parts.push(part.value);
-                    }
-                } finally { reader.releaseLock(); }
-                const blob = new Blob(parts, { type: mime });
+                }
+                const blob = await response.blob();
+                imageLifetime.signal.throwIfAborted();
+                if (blob.size !== length || blob.size > maximum || blob.type.split(';')[0] !== mime)
+                    throw new Error('Original image metadata changed');
                 const result = await window.DSHA.saveImage(new File([blob], name || 'image', { type: blob.type }));
                 if (result?.status !== 'queued' || !result.taskId) throw new Error('The image task was not accepted');
-                showFallbackNotice(fileCopy().queued);
-            } catch (error) { if (error.name !== 'AbortError') showFallbackNotice(fileCopy().failed + error.message); }
+                if (!imageLifetime.signal.aborted) showFallbackNotice(fileCopy().queued);
+            } catch (error) { if (!imageLifetime.signal.aborted && error.name !== 'AbortError') showFallbackNotice(fileCopy().failed + error.message); }
             finally { imageFlight = false; }
         } }]); return true;
     };
@@ -17234,7 +17237,7 @@ function installNativeFileActions() {
             if (prior?.node === event.currentTarget && performance.now() <= prior.expires) { event.preventDefault(); event.stopPropagation(); return true; } return false; },
     };
     window.DSHAFileTransfer = face;
-    return () => { cancelHold(); activeFileSheet?.(); style.remove(); if (window.DSHAFileTransfer === face) delete window.DSHAFileTransfer; };
+    return () => { imageLifetime.abort(); cancelHold(); activeFileSheet?.(); style.remove(); if (window.DSHAFileTransfer === face) delete window.DSHAFileTransfer; };
 }
 
 /**
