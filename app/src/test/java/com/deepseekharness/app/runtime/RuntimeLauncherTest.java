@@ -62,6 +62,33 @@ public class RuntimeLauncherTest {
   }
 
   @Test
+  public void directRootContainerFailsClosedBeforeBuildingDeviceRootArgv() throws Exception {
+    File root = temporary.newFolder("rootfs with spaces");
+    File su = temporary.newFile("su");
+    assertTrue(su.setExecutable(true));
+    ContainerRuntime.Root runtime =
+        new ContainerRuntime.Root(null, root, null, su.getAbsolutePath());
+
+    assertFalse(runtime.available());
+    assertEquals("ROOT_CONTAINER_ISOLATION_UNAVAILABLE", runtime.unavailableReason());
+    assertThrows(IllegalStateException.class, () -> runtime.baseArgv(root, true, null));
+    assertEquals(
+        "exec /system/bin/chroot "
+            + com.deepseekharness.app.util.ShellQuote.arg(root.getAbsolutePath())
+            + " /bin/bash -c "
+            + com.deepseekharness.app.util.ShellQuote.arg("printf '%s' 'root command'"),
+        ContainerRuntime.Root.command(root, "printf '%s' 'root command'"));
+  }
+
+  @Test
+  public void rootRuntimeRejectsMissingSuExecutable() throws Exception {
+    File root = temporary.newFolder();
+    ContainerRuntime.Root runtime = new ContainerRuntime.Root(null, root, null, null);
+    assertFalse(runtime.available());
+    assertThrows(IllegalStateException.class, () -> runtime.baseArgv(root, true, null));
+  }
+
+  @Test
   public void secretsStayInEnvironmentAndSpecDiagnosticsContainOnlyKeys() throws Exception {
     File root = temporary.newFolder();
     var launcher = new RuntimeLauncher(null, root, root, root, root, ports);

@@ -3,6 +3,7 @@ package com.deepseekharness.app.runtime;
 import android.content.Context;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +23,10 @@ import java.util.List;
 public interface ContainerRuntime {
 
   String id();
+
+  default boolean rootMode() {
+    return false;
+  }
 
   String displayName();
 
@@ -43,6 +48,82 @@ public interface ContainerRuntime {
   void prepare() throws Exception;
 
   // ==================================================================
+
+  /** Root 直接运行：只在 RootShell 已经验证 uid=0 后使用，不自动请求或绕过授权。 */
+  final class Root implements ContainerRuntime {
+    private final Context context;
+    private final File rootfs, dataDomain;
+    private final String su;
+
+    Root(Context context, File rootfs, File dataDomain) {
+      this(context, rootfs, dataDomain, com.deepseekharness.app.RootShell.verifiedExecutable());
+    }
+
+    Root(Context context, File rootfs, File dataDomain, String su) {
+      this.context = context;
+      this.rootfs = rootfs;
+      this.dataDomain = dataDomain;
+      this.su = su;
+    }
+
+    @Override
+    public String id() {
+      return "root";
+    }
+
+    @Override
+    public boolean rootMode() {
+      return true;
+    }
+
+    @Override
+    public String displayName() {
+      return com.deepseekharness.app.util.UiText.text("root（直接，需授权）");
+    }
+
+    @Override
+    public boolean available() {
+      return com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()
+          && rootfs.isDirectory()
+          && su != null
+          && new File(su).canExecute();
+    }
+
+    @Override
+    public String unavailableReason() {
+      return com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()
+          ? (rootfs.isDirectory() && su != null ? "" : "ROOT_RUNTIME_UNAVAILABLE")
+          : com.deepseekharness.app.util.RootRuntimePolicy.directContainerUnavailableReason();
+    }
+
+    @Override
+    public List<String> baseArgv(File rootfsDir, boolean hardlinkSupported) {
+      return baseArgv(rootfsDir, hardlinkSupported, dataDomain);
+    }
+
+    @Override
+    public List<String> baseArgv(File rootfsDir, boolean hardlinkSupported, File ignored) {
+      if (!available()) throw new IllegalStateException(unavailableReason());
+      return new java.util.ArrayList<>(java.util.List.of(su, "-c"));
+    }
+
+    static String command(File rootfs, String guestCommand) {
+      return "exec /system/bin/chroot "
+          + com.deepseekharness.app.util.ShellQuote.arg(rootfs.getAbsolutePath())
+          + " /bin/bash -c "
+          + com.deepseekharness.app.util.ShellQuote.arg(guestCommand);
+    }
+
+    @Override
+    public void applyEnv(ProcessBuilder pb, File baseDir, File libDir, File tmpDir) {
+      pb.environment().put("HOME", "/root");
+    }
+
+    @Override
+    public void prepare() throws IOException {
+      if (!available()) throw new IOException(unavailableReason());
+    }
+  }
 
   /** Termux proot，APK 内置。 */
   class Proot implements ContainerRuntime {
@@ -107,7 +188,7 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("--rootfs=" + rootfsDir.getAbsolutePath());
       argv.add("--cwd=/root");
-      for (Bind b : binds()) {
+      for (Bind b : binds(context)) {
         if (!new File(b.host()).exists()) {
           if (context != null)
             RuntimeHostPorts.fromOwner(context.getApplicationContext())
@@ -251,7 +332,7 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("-w");
       argv.add("/root");
-      for (Bind b : binds()) {
+      for (Bind b : binds(ctx)) {
         if (!new File(b.host()).exists()) {
           RuntimeHostPorts.fromOwner(ctx.getApplicationContext())
               .record("BIND_SKIPPED", b.host() + ": missing or inaccessible");
@@ -325,6 +406,23 @@ public interface ContainerRuntime {
    */
   record Bind(String host, String guest) {}
 
+  static java.util.List<Bind> binds(Context context) {
+    java.util.ArrayList<Bind> result = new java.util.ArrayList<>();
+    result.add(new Bind("/dev", "/dev"));
+    result.add(new Bind("/dev/urandom", "/dev/random"));
+    result.add(new Bind("/proc", "/proc"));
+    result.add(new Bind("/sys", "/sys"));
+    result.add(new Bind("/system", "/system"));
+    result.add(new Bind("/apex", "/apex"));
+    result.add(new Bind("/proc/self/fd", "/dev/fd"));
+    if (com.deepseekharness.app.util.ExternalStorageAccess.granted(context)) {
+      result.add(new Bind("/storage/emulated/0", "/sdcard"));
+      result.add(new Bind("/storage/emulated/0", "/storage/emulated/0"));
+    }
+    return java.util.Collections.unmodifiableList(result);
+  }
+
+  /** Compatibility view for static tests; it never grants external storage access. */
   static java.util.List<Bind> binds() {
     return java.util.List.of(
         new Bind("/dev", "/dev"),
@@ -333,8 +431,6 @@ public interface ContainerRuntime {
         new Bind("/sys", "/sys"),
         new Bind("/system", "/system"),
         new Bind("/apex", "/apex"),
-        new Bind("/proc/self/fd", "/dev/fd"),
-        new Bind("/storage/emulated/0", "/sdcard"),
-        new Bind("/storage/emulated/0", "/storage/emulated/0"));
+        new Bind("/proc/self/fd", "/dev/fd"));
   }
 }

@@ -180,6 +180,8 @@ public final class RuntimeTrial {
               + "; "
               + "export DSHA_TRIAL_DSH_VERSION="
               + ShellQuote.arg(Constants.DSH_VERSION)
+              + "; export DSHA_TRIAL_ARCH="
+              + ShellQuote.arg(com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? "x64" : "arm64")
               + "; export DSHA_TRIAL_PNPM_VERSION="
               + ShellQuote.arg(com.deepseekharness.app.BuildConfig.BUNDLED_PNPM_VERSION)
               + "; export DSHA_TRIAL_BUILTIN_ENTRIES="

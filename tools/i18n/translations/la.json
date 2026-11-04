@@ -3680,5 +3680,8 @@
   "m9008": "WHEELS_OPTIONAL_SKIP: Importationes Python transierunt; iniectio aut installatio memoriae defecta praetermittitur et praeparatio ADB continuatur",
   "m9009": "WHEELS_INJECT_FAIL: %s; meta %s; %s; res exsistentes non superscriptae sunt",
   "m9010": "Ambitus ADB sine rete paratur…",
-  "m9011": "ADB_OFFLINE_READY: Dependentiae sine rete paratae sunt; conexio nondum verificata est. Depurationem sine filo habilita, deinde rursus verifica."
+  "m9011": "ADB_OFFLINE_READY: Dependentiae sine rete paratae sunt; conexio nondum verificata est. Depurationem sine filo habilita, deinde rursus verifica.",
+  "ui2_module_center": "Modulorum centrum · Module center",
+  "ui2_module_center_sub": "Modula instituta, architecturae, facultates et commutationes",
+  "ui2_modules": "Modulorum centrum"
 }

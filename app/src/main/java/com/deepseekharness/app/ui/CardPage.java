@@ -116,6 +116,7 @@ final class CardPage {
     row.setMinimumHeight(dp(56));
     row.setBackgroundResource(R.drawable.bg_action_plain);
     row.setFocusable(true);
+    UiMotion.pressScale(row);
     row.setOnClickListener(v -> action.run());
     ImageView mark = new ImageView(context);
     mark.setImageResource(icon);
@@ -171,6 +172,7 @@ final class CardPage {
     button.setBackgroundResource(primary ? R.drawable.bg_btn_primary : R.drawable.bg_btn);
     button.setTextColor(
         context.getColorStateList(primary ? R.color.button_primary_text : R.color.button_text));
+    UiMotion.pressScale(button);
     button.setOnClickListener(v -> action.run());
     LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
     p.topMargin = dp(10);

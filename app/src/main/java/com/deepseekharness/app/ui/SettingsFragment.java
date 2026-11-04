@@ -16,22 +16,13 @@ import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.HarnessController;
-
-import java.util.function.Supplier;
+import com.deepseekharness.app.module.SettingsModuleCatalog;
+import com.deepseekharness.app.module.UiModuleDescriptor;
 
 /**
  * 设置页：模块入口（安装/配置/数据与备份）+ 其他（更新/自检/重新解压/关于）。
  */
 public class SettingsFragment extends Fragment {
-
-  private static final TabOption[] TAB_OPTIONS = {
-    new TabOption("安装", "安装与修复运行环境", InstallFragment::new, R.drawable.ic_ui2_box),
-    new TabOption("配置", "接口、显示与运行", ConfigFragment::new, R.drawable.ic_settings),
-    new TabOption("数据与备份", "备份恢复 · 文件共享", WorkspaceFragment::new, R.drawable.ic_ui2_folder),
-    new TabOption(
-        "设备能力授权", "Root · Shizuku · ADB · 权限", DeviceGrantsFragment::new, R.drawable.ic_ui_shield),
-    new TabOption("任务状态上岛", "状态栏胶囊 · 灵动岛 · 实时活动", IslandFragment::new, R.drawable.ic_ui2_box),
-  };
 
   @Nullable
   @Override
@@ -42,15 +33,16 @@ public class SettingsFragment extends Fragment {
     View v = inflater.inflate(R.layout.fragment_settings, container, false);
 
     LinearLayout tabs = v.findViewById(R.id.settings_tabs);
-    int optionCount = BuildConfig.ISLAND_EDITION ? TAB_OPTIONS.length : TAB_OPTIONS.length - 1;
-    for (int i = 0; i < optionCount; i++) {
+    java.util.List<UiModuleDescriptor> modules =
+        SettingsModuleCatalog.visible(BuildConfig.ISLAND_EDITION);
+    for (int i = 0; i < modules.size(); i++) {
       if (i > 0) {
         View line = divider();
         LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(-1, dp(1));
         lineParams.leftMargin = dp(44);
         tabs.addView(line, lineParams);
       }
-      tabs.addView(buildRow(i), new LinearLayout.LayoutParams(-1, -2));
+      tabs.addView(buildRow(modules.get(i)), new LinearLayout.LayoutParams(-1, -2));
     }
     com.deepseekharness.app.core.ConfigStore config =
         HarnessController.get(requireContext()).config();
@@ -89,6 +81,9 @@ public class SettingsFragment extends Fragment {
     TextView updateSub = v.findViewById(R.id.settings_update_sub);
     updateSub.setText(com.deepseekharness.app.util.UiText.text("稳定版与预览版更新"));
 
+    v.findViewById(R.id.settings_module_center)
+        .setOnClickListener(
+            x -> startActivity(new Intent(requireContext(), ModuleCenterActivity.class)));
     v.findViewById(R.id.settings_about)
         .setOnClickListener(
             x ->
@@ -171,8 +166,7 @@ public class SettingsFragment extends Fragment {
     startActivity(new Intent(requireContext(), UpdateActivity.class));
   }
 
-  private LinearLayout buildRow(final int index) {
-    TabOption opt = TAB_OPTIONS[index];
+  private LinearLayout buildRow(final UiModuleDescriptor module) {
     LinearLayout row = new LinearLayout(requireContext());
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setGravity(Gravity.CENTER_VERTICAL);
@@ -191,19 +185,14 @@ public class SettingsFragment extends Fragment {
     body.setLayoutParams(bodyParams);
 
     TextView title = new TextView(requireContext());
-    title.setText(
-        index == 0
-            ? getString(R.string.ui2_install_environment)
-            : index == 1
-                ? getString(R.string.ui2_runtime_config)
-                : com.deepseekharness.app.util.UiText.text(opt.title));
+    title.setText(module.title(requireContext()));
     title.setTextSize(14);
     title.setTextColor(requireContext().getColor(R.color.shell_text));
     title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
     title.setIncludeFontPadding(false);
 
     TextView sub = new TextView(requireContext());
-    sub.setText(com.deepseekharness.app.util.UiText.text(opt.sub));
+    sub.setText(com.deepseekharness.app.util.UiText.text(module.subtitle()));
     sub.setTextSize(12);
     sub.setTextColor(requireContext().getColor(R.color.shell_text_muted));
     sub.setIncludeFontPadding(false);
@@ -219,7 +208,7 @@ public class SettingsFragment extends Fragment {
     body.addView(sub);
 
     android.widget.ImageView icon = new android.widget.ImageView(requireContext());
-    icon.setImageResource(opt.icon);
+    icon.setImageResource(module.icon());
     icon.setImageTintList(
         android.content.res.ColorStateList.valueOf(
             requireContext().getColor(R.color.shell_accent)));
@@ -239,11 +228,11 @@ public class SettingsFragment extends Fragment {
 
     row.setOnClickListener(
         v -> {
-          if (opt.activity != null) {
-            startActivity(new Intent(requireContext(), opt.activity));
+          if (module.destinationType() == UiModuleDescriptor.DestinationType.ACTIVITY) {
+            startActivity(new Intent(requireContext(), module.activityClass()));
           } else {
             UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-                .replace(R.id.fragment_container, opt.factory.get())
+                .replace(R.id.fragment_container, module.newFragment())
                 .addToBackStack("settings")
                 .commit();
           }
@@ -259,29 +248,5 @@ public class SettingsFragment extends Fragment {
 
   private int dp(int v) {
     return Math.round(v * getResources().getDisplayMetrics().density);
-  }
-
-  private static final class TabOption {
-    final String title;
-    final String sub;
-    final Supplier<Fragment> factory;
-    final Class<? extends android.app.Activity> activity;
-    final int icon;
-
-    TabOption(String title, String sub, Supplier<Fragment> factory, int icon) {
-      this.title = title;
-      this.sub = sub;
-      this.factory = factory;
-      this.activity = null;
-      this.icon = icon;
-    }
-
-    TabOption(String title, String sub, Class<? extends android.app.Activity> activity, int icon) {
-      this.title = title;
-      this.sub = sub;
-      this.factory = null;
-      this.activity = activity;
-      this.icon = icon;
-    }
   }
 }

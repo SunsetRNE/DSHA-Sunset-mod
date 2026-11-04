@@ -60,6 +60,7 @@
     "managed-package-proofs.json",
     "managed-runtime-inputs.json",
     "materialize-cas-links.py",
+    "module-trust/keys.json",
     "native-consent.cjs",
     "office-fonts-patch.json",
     "offline-rootfs.version",
@@ -147,7 +148,8 @@
     "runtime-fs",
     "session-compat",
     "web-integration",
-    "destructive-policy"
+    "destructive-policy",
+    "container-ssh"
   ],
   "sourceInputs": [
     "offline-rootfs.bin",

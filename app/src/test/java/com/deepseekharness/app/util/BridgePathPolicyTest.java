@@ -226,10 +226,10 @@ public class BridgePathPolicyTest {
     assertFalse(BridgePathPolicy.deniedReadRaw("/home/alice/report"));
     assertTrue(
         BridgePathPolicy.deniedReadCanonical(
-            secretLink.toFile().getCanonicalPath(), rootCanonical, null, null, false));
+            secretLink.toRealPath().toString(), rootCanonical, null, null, false));
     assertTrue(
         BridgePathPolicy.deniedReadCanonical(
-            escapeLink.toFile().getCanonicalPath(), rootCanonical, null, null, false));
+            escapeLink.toRealPath().toString(), rootCanonical, null, null, false));
   }
 
   /** normalize 的边界。 */

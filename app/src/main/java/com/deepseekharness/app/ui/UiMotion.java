@@ -79,18 +79,21 @@ final class UiMotion {
    */
   static void pressScale(View view) {
     if (view == null) return;
+    view.setHapticFeedbackEnabled(true);
     view.setOnTouchListener(
         (target, event) -> {
           if (!animationsEnabled(target.getContext())) return false;
           switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN ->
-                target
-                    .animate()
-                    .scaleX(0.985f)
-                    .scaleY(0.985f)
-                    .setDuration(90L)
-                    .setInterpolator(STANDARD)
-                    .start();
+            case MotionEvent.ACTION_DOWN -> {
+              target.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK);
+              target
+                  .animate()
+                  .scaleX(0.985f)
+                  .scaleY(0.985f)
+                  .setDuration(90L)
+                  .setInterpolator(STANDARD)
+                  .start();
+            }
             case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
                 target
                     .animate()

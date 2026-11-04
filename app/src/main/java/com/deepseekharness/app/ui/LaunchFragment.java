@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -63,6 +64,25 @@ public class LaunchFragment extends Fragment {
 
   private long logRevision = -1;
   private String logUrl = "";
+
+  /**
+   * 上一轮真正应用到真实视图的布局签名。模块中心改完顺序／可见性只写偏好，
+   * Fragment 复用时 onCreateView 不会重跑，靠这里在 onResume 比对后才重排。
+   */
+  private String appliedLayoutSignature = "";
+
+  private HomeCanvas homeCanvas;
+  private ModuleAppHost moduleAppHost;
+
+  /** 模块中心点「回主页编辑」后置位，下一次主页显示时直接进编辑态。 */
+  static boolean pendingEditOnResume;
+
+  /**
+   * 无效模块文件提示：容器收取或已装模块里发现读不出的内容时显示在主页，
+   * 点击进模块中心看详情 —— 坏文件不再静默丢失。
+   */
+  private TextView moduleIssueBanner;
+
   private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
 
   /** 通知点击进来、待自动进入 Web 的意图；由既有每秒刷新循环消费，就绪即进。 */
@@ -93,10 +113,13 @@ public class LaunchFragment extends Fragment {
       @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
     View v = inflater.inflate(R.layout.fragment_launch, container, false);
+    moduleAppHost =
+        new ModuleAppHost(requireContext(), v.findViewById(R.id.launch_module_app), "home");
 
     // v5 主页新增的语境、活动条与日志工具；原有 id 与业务 id 全部保留。
     followLogs = true;
     activityTrack = v.findViewById(R.id.launch_activity);
+    applyHomeProgressSkin();
     latestLogsButton = v.findViewById(R.id.launch_latest_button);
     ((TextView) v.findViewById(R.id.launch_terminal_row))
         .setText(UiText.choose("打开本机终端", "Open local terminal"));
@@ -105,7 +128,70 @@ public class LaunchFragment extends Fragment {
             UiText.choose("打开本机终端，直接处理文件与命令", "Open the local terminal for files and commands"));
     ((TextView) v.findViewById(R.id.launch_environment_row))
         .setText(UiText.choose("运行环境 · 检查与维护", "Runtime environment · inspect and repair"));
+    ((TextView) v.findViewById(R.id.launch_ssh_title))
+        .setText(UiText.choose("启动 SSH 调试", "SSH debugging"));
+    ((TextView) v.findViewById(R.id.launch_ssh_subtitle))
+        .setText(UiText.choose("连接 Ubuntu 容器进行调试", "Connect to the Ubuntu container"));
+    v.findViewById(R.id.launch_ssh_row)
+        .setContentDescription(
+            UiText.choose(
+                "SSH 调试设置；默认关闭，不会自动开放连接",
+                "SSH debugging settings; off by default, no listener starts automatically"));
 
+    homeCanvas =
+        new HomeCanvas(
+            v,
+            new HomeCanvas.Host() {
+              @Override
+              public void onEditModeChanged(boolean editing) {
+                if (requireActivity() instanceof MainActivity)
+                  ((MainActivity) requireActivity()).setHomeEditMode(editing);
+              }
+
+              @Override
+              public void openBuiltin(String target) {
+                if (!(requireActivity() instanceof MainActivity)) return;
+                MainActivity main = (MainActivity) requireActivity();
+                if ("settings".equals(target)) main.openSettings();
+                else if ("terminal".equals(target)) openLocalTerminal();
+              }
+            });
+    appliedLayoutSignature = layoutSignature();
+    if (pendingEditOnResume) {
+      pendingEditOnResume = false;
+      homeCanvas.setEditing(true);
+    }
+    // 编辑态下返回键先收起编辑，而不是直接退出主界面。
+    requireActivity()
+        .getOnBackPressedDispatcher()
+        .addCallback(
+            getViewLifecycleOwner(),
+            new androidx.activity.OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                if (homeCanvas != null && homeCanvas.exitEditing()) return;
+                // 只暂时让出这次返回，不要永久禁用；否则下一次进编辑后返回就失灵。
+                setEnabled(false);
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
+                setEnabled(true);
+              }
+            });
+    // 无效模块文件提示条：插在启动状态行下方；有错才显示，点击进模块中心。
+    moduleIssueBanner = new TextView(requireContext());
+    moduleIssueBanner.setTextSize(12f);
+    moduleIssueBanner.setTextColor(requireContext().getColor(R.color.shell_bad));
+    moduleIssueBanner.setVisibility(View.GONE);
+    moduleIssueBanner.setClickable(true);
+    moduleIssueBanner.setFocusable(true);
+    moduleIssueBanner.setOnClickListener(
+        x -> startActivity(new Intent(requireContext(), ModuleCenterActivity.class)));
+    android.widget.LinearLayout actionsHost = v.findViewById(R.id.launch_actions);
+    LinearLayout.LayoutParams bannerParams =
+        new android.widget.LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    bannerParams.topMargin = Math.round(10f * getResources().getDisplayMetrics().density);
+    int anchorIndex = actionsHost.indexOfChild(v.findViewById(R.id.launch_status));
+    actionsHost.addView(moduleIssueBanner, Math.max(anchorIndex, 0) + 1, bannerParams);
     controller = HarnessController.get(requireContext());
     final Activity activity = requireActivity();
     TextView status = v.findViewById(R.id.launch_status);
@@ -138,6 +224,9 @@ public class LaunchFragment extends Fragment {
     renderLogControls(v);
 
     v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
+    v.findViewById(R.id.launch_ssh_row)
+        .setOnClickListener(
+            x -> startActivity(new Intent(requireContext(), ContainerSshActivity.class)));
     restart.setText(R.string.ui2_restart);
     v.findViewById(R.id.launch_recovery).setOnClickListener(x -> showRecovery());
     v.findViewById(R.id.launch_safe)
@@ -154,9 +243,16 @@ public class LaunchFragment extends Fragment {
                         (dialog, which) -> doStart(activity, status, start, true))
                     .show());
 
-    // 启动按钮：未就绪时是「启动」；鉴权链接就绪后自动变为「进入」，点击进 WebUI。
+    // 启动按钮：只启动容器里的东西 —— 容器工作台（DSH Web），或容器内登记的程序。
+    // 终端/设置/模块中心都在底栏，不能把主页主按钮变成第二个导航按钮。
     start.setOnClickListener(
         x -> {
+          String action =
+              com.deepseekharness.app.util.HomeLayoutStore.launchAction(requireContext());
+          if (com.deepseekharness.app.util.HomeLayoutStore.isToolAction(action)) {
+            runContainerTool(com.deepseekharness.app.util.HomeLayoutStore.toolIdOf(action), start);
+            return;
+          }
           if (webReady || !webEntryUrl().isEmpty()) {
             enterWeb();
             return;
@@ -206,6 +302,137 @@ public class LaunchFragment extends Fragment {
         });
 
     return v;
+  }
+
+  /**
+   * 从模块中心或其他入口改过模块顺序／可见性后，按偏好重建画布。
+   *
+   * <p>只在签名变化时重建，避免每次 onResume 都把模块拆了重加一遍。
+   */
+  private long seenModuleStamp = -1;
+
+  /** 模块主页接管：Web 页有内容时先让位，回到主页再按启用/退出状态显示。 */
+  private void syncModuleApp() {
+    if (moduleAppHost == null || getView() == null) return;
+    View web = getView().findViewById(R.id.launch_web);
+    if (web != null && web.getVisibility() == View.VISIBLE) {
+      moduleAppHost.hide();
+      return;
+    }
+    moduleAppHost.sync();
+  }
+
+  /** 模块换肤：让启用的 {@code ui.skin} 模块改主页原有启动状态条，而不是另画一条。 */
+  private void applyHomeProgressSkin() {
+    if (activityTrack == null) return;
+    com.deepseekharness.app.module.ModuleCard card =
+        com.deepseekharness.app.module.ModuleCardStore.skinCard(requireContext());
+    if (card != null && card.skin != null) activityTrack.applySkin(card.skin.homeProgress);
+  }
+
+  private void applyHomeLayoutIfChanged() {
+    if (homeCanvas == null || getView() == null) return;
+    // 模块集合变了（导入/移除/开关）就重渲染，开关状态也要立刻反映到主页。
+    long stamp = com.deepseekharness.app.module.ModuleCardStore.stamp();
+    if (seenModuleStamp >= 0 && stamp != seenModuleStamp) {
+      homeCanvas.reloadUserCards();
+      applyHomeProgressSkin();
+    }
+    seenModuleStamp = stamp;
+    // 容器里的 dsh 写进 ~/.dsha-launch/ 的工具登记也在这里刷新一次。
+    com.deepseekharness.app.module.ContainerTools.refresh(requireContext());
+    // 容器里的 dsh 把 card.json 写进 ~/.dsha-modules/ 后，回主页就收进来。
+    if (scanModuleInbox()) {
+      homeCanvas.reloadUserCards();
+      if (requireActivity() instanceof MainActivity)
+        ((MainActivity) requireActivity()).refreshModuleLayers();
+      appliedLayoutSignature = layoutSignature();
+      refreshModuleIssueBanner();
+      return;
+    }
+    refreshModuleIssueBanner();
+    if (pendingEditOnResume) {
+      pendingEditOnResume = false;
+      homeCanvas.setEditing(true);
+      appliedLayoutSignature = layoutSignature();
+      return;
+    }
+    String signature = layoutSignature();
+    if (signature.equals(appliedLayoutSignature)) return;
+    appliedLayoutSignature = signature;
+    homeCanvas.render();
+  }
+
+  /** @return 是否新导入了卡片模块 */
+  private boolean scanModuleInbox() {
+    try {
+      com.deepseekharness.app.core.HarnessController controller =
+          com.deepseekharness.app.core.HarnessController.get(requireContext());
+      java.io.File rootfs = controller.proot().getRootfsDir();
+      // 让容器里的 dsh 知道模块格式，用户不用自己解释。
+      com.deepseekharness.app.module.ModuleCardStore.ensureSkill(rootfs);
+      return com.deepseekharness.app.module.ModuleCardStore.scanContainerInbox(
+              requireContext(), rootfs)
+          > 0;
+    } catch (RuntimeException ignored) {
+      return false;
+    }
+  }
+
+  /** 主页无效模块提示条：按真实错误列表显隐，文字只报数量，详情在模块中心。 */
+  private void refreshModuleIssueBanner() {
+    if (moduleIssueBanner == null) return;
+    java.util.List<com.deepseekharness.app.module.ModuleCardStore.Issue> issues =
+        com.deepseekharness.app.module.ModuleCardStore.issues();
+    if (issues.isEmpty()) {
+      moduleIssueBanner.setVisibility(View.GONE);
+      moduleIssueBanner.setText("");
+      return;
+    }
+    String text =
+        com.deepseekharness.app.util.UiText.format(
+            com.deepseekharness.app.util.UiText.choose(
+                "有 %s 个模块文件无效或安装失败，点击查看详情",
+                "%s module files are invalid or failed to install; tap for details"),
+            String.valueOf(issues.size()));
+    moduleIssueBanner.setText(text);
+    moduleIssueBanner.setContentDescription(text);
+    moduleIssueBanner.setVisibility(View.VISIBLE);
+  }
+
+  /** 顶栏「编辑布局」入口调用；主页不在前台时忽略。 */
+  public void enterEditMode() {
+    if (homeCanvas != null) homeCanvas.setEditing(true);
+  }
+
+  /** 同一个顶栏按钮再点一次就退出编辑，避免找不到「完成」。 */
+  /** 模块开关变化后立即刷新主页卡片（不必等进程重启）。 */
+  public void refreshHomeAfterModuleChange() {
+    if (homeCanvas != null) homeCanvas.reloadUserCards();
+  }
+
+  public void toggleEditMode() {
+    if (homeCanvas == null) return;
+    if (homeCanvas.isEditing()) homeCanvas.exitEditing();
+    else homeCanvas.setEditing(true);
+  }
+
+  /** 导航离开主页时收起编辑，回到主页不会仍卡在编辑态。 */
+  public void exitEditMode() {
+    if (homeCanvas != null) homeCanvas.exitEditing();
+  }
+
+  private String layoutSignature() {
+    StringBuilder builder = new StringBuilder();
+    for (String id : com.deepseekharness.app.util.HomeLayoutStore.order(requireContext())) {
+      builder
+          .append(id)
+          .append(
+              com.deepseekharness.app.util.HomeLayoutStore.isHidden(requireContext(), id)
+                  ? '-'
+                  : '+');
+    }
+    return builder.toString();
   }
 
   /** 启动 dsh：记录启动时刻，鉴权链接就绪后把「启动」变「进入」并输出 URL 到日志。 */
@@ -426,6 +653,116 @@ public class LaunchFragment extends Fragment {
         .show();
   }
 
+  /**
+   * 启动容器里登记的工具：作为 proot 直接子进程运行登记的命令，宿主持有进程句柄。
+   *
+   * <p>容器会话里 {@code nohup … &} 活不过 proot 退出（ptracer 死时 tracees 被内核杀掉），
+   * 所以工具和 DSH web 同一生命周期：宿主进程活着它就活着，重复「启动」先停旧实例。
+   * 有端口号时启动后探测 127.0.0.1:&lt;port&gt; 是否开始监听；日志固定落
+   * 容器内 /tmp/dsha-tool-&lt;id&gt;.log。
+   */
+  private void runContainerTool(String toolId, Button start) {
+    com.deepseekharness.app.core.HarnessController controller =
+        com.deepseekharness.app.core.HarnessController.get(requireContext());
+    if (!controller.isEnvironmentReady()) {
+      Toast.makeText(
+              requireContext(),
+              UiText.choose(
+                  "容器环境还没就绪，先完成运行环境安装", "Container is not ready; install the runtime first"),
+              Toast.LENGTH_SHORT)
+          .show();
+      return;
+    }
+    com.deepseekharness.app.module.ContainerTools.refresh(requireContext());
+    com.deepseekharness.app.module.ContainerTools.Tool tool =
+        com.deepseekharness.app.module.ContainerTools.byId(requireContext(), toolId);
+    if (tool == null) {
+      Toast.makeText(
+              requireContext(), UiText.format("找不到登记的工具 %s，可能已被删除", toolId), Toast.LENGTH_SHORT)
+          .show();
+      return;
+    }
+    if (start != null) start.setEnabled(false);
+    boolean wasRunning = com.deepseekharness.app.module.ContainerTools.isRunning(tool.id);
+    com.deepseekharness.app.module.ContainerTools.stopRunning(tool.id);
+    Toast.makeText(requireContext(), UiText.format("正在启动 %s…", tool.name), Toast.LENGTH_SHORT)
+        .show();
+    final String logPath = "/tmp/dsha-tool-" + tool.id + ".log";
+    final String wrapped =
+        "bash -lc "
+            + com.deepseekharness.app.util.ShellQuote.arg(tool.command)
+            + " >>"
+            + logPath
+            + " 2>&1";
+    new Thread(
+            () -> {
+              String failure = null;
+              try {
+                Process process = controller.proot().execRootfs(wrapped);
+                com.deepseekharness.app.module.ContainerTools.putRunning(tool.id, process);
+              } catch (Exception error) {
+                failure =
+                    error.getMessage() == null
+                        ? error.getClass().getSimpleName()
+                        : error.getMessage();
+              }
+              boolean listening = false;
+              if (failure == null && tool.port > 0) {
+                // 给工具一点起服务的时间：最多等 6 秒，250ms 探测一次。
+                for (int attempt = 0; attempt < 24 && !listening; attempt++) {
+                  try (java.net.Socket socket = new java.net.Socket()) {
+                    socket.connect(new java.net.InetSocketAddress("127.0.0.1", tool.port), 300);
+                    listening = true;
+                  } catch (java.io.IOException ignored) {
+                    try {
+                      Thread.sleep(250);
+                    } catch (InterruptedException interrupted) {
+                      Thread.currentThread().interrupt();
+                      break;
+                    }
+                  }
+                }
+              }
+              boolean alive =
+                  failure == null
+                      && com.deepseekharness.app.module.ContainerTools.isRunning(tool.id);
+              final boolean ready = listening;
+              final boolean stillRunning = alive;
+              final String launchFailure = failure;
+              final boolean restart = wasRunning;
+              Activity host = getActivity();
+              if (host == null || host.isFinishing() || host.isDestroyed()) return;
+              host.runOnUiThread(
+                  () -> {
+                    if (getView() == null) return;
+                    if (start != null) start.setEnabled(true);
+                    String message;
+                    if (launchFailure != null) {
+                      message = UiText.format("%s 启动失败：%s", tool.name, launchFailure);
+                    } else if (tool.port > 0 && ready) {
+                      message =
+                          UiText.format(
+                              "%s 已启动 · 端口 %s 已监听（容器内 127.0.0.1:%s）",
+                              tool.name, String.valueOf(tool.port), String.valueOf(tool.port));
+                    } else if (stillRunning) {
+                      message = UiText.format("%s 运行中；日志见容器内 %s", tool.name, logPath);
+                    } else if (tool.port > 0) {
+                      message =
+                          UiText.format(
+                              "%s 已退出，端口 %s 未监听；日志见容器内 %s",
+                              tool.name, String.valueOf(tool.port), logPath);
+                    } else {
+                      message = UiText.format("%s 已执行完成；输出见容器内 %s", tool.name, logPath);
+                    }
+                    if (restart && launchFailure == null)
+                      message = UiText.choose("已重启：", "Restarted: ") + message;
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                  });
+            },
+            "dsha-container-tool")
+        .start();
+  }
+
   /** 运行环境行复用现有恢复入口：需要恢复时进入环境维护，否则打开启动恢复页。 */
   private void openEnvironment() {
     if (!isAdded()) return;
@@ -494,6 +831,9 @@ public class LaunchFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
+    applyHomeLayoutIfChanged();
+    refreshModuleIssueBanner();
+    syncModuleApp();
     if (controller == null) return;
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
@@ -531,6 +871,7 @@ public class LaunchFragment extends Fragment {
     launchLog = null;
     activityTrack = null;
     latestLogsButton = null;
+    moduleIssueBanner = null;
     if (dotPulse != null) {
       dotPulse.cancel();
       dotPulse = null;
@@ -607,15 +948,48 @@ public class LaunchFragment extends Fragment {
       boolean needsRecovery = environment.recovery;
       ((TextView) root.findViewById(R.id.launch_environment))
           .setText(environment.ready ? "READY" : "—");
-      ((TextView) root.findViewById(R.id.launch_subtitle))
-          .setText(
-              ready
-                  ? (controller.isWebCompatibilityFallback()
-                          ? "proot"
-                          : controller.proot().runtime().id())
-                      + " · dsh "
-                      + com.deepseekharness.app.util.Constants.DSH_VERSION
-                  : getString(R.string.ui2_launch_hint));
+      // 副标题反映真实启动入口：容器工作台，或容器里登记的程序。
+      String launchTarget =
+          com.deepseekharness.app.util.HomeLayoutStore.launchAction(requireContext());
+      CharSequence subtitleText;
+      if (com.deepseekharness.app.util.HomeLayoutStore.isToolAction(launchTarget)) {
+        com.deepseekharness.app.module.ContainerTools.Tool targetTool =
+            com.deepseekharness.app.module.ContainerTools.byId(
+                requireContext(),
+                com.deepseekharness.app.util.HomeLayoutStore.toolIdOf(launchTarget));
+        if (targetTool == null) {
+          subtitleText =
+              com.deepseekharness.app.util.UiText.choose(
+                  "启动入口指向的容器程序已不存在，请在模块中心重新选择",
+                  "The registered container program is gone; pick another in the module center");
+        } else {
+          subtitleText =
+              com.deepseekharness.app.util.UiText.format(
+                  com.deepseekharness.app.util.UiText.choose(
+                      "启动后运行容器程序：%s%s", "Starts the container program: %s%s"),
+                  targetTool.name,
+                  targetTool.port > 0
+                      ? UiText.choose(" · 容器内 127.0.0.1:", " · in-container 127.0.0.1:")
+                          + targetTool.port
+                      : "");
+        }
+      } else if (ready) {
+        subtitleText =
+            com.deepseekharness.app.util.UiText.format(
+                com.deepseekharness.app.util.UiText.choose(
+                    "127.0.0.1:%s · %s · dsh %s", "127.0.0.1:%s · %s · dsh %s"),
+                String.valueOf(controller.getWebPort()),
+                controller.isWebCompatibilityFallback()
+                    ? "proot"
+                    : controller.proot().runtime().id(),
+                com.deepseekharness.app.util.Constants.DSH_VERSION);
+      } else {
+        subtitleText =
+            com.deepseekharness.app.util.UiText.choose(
+                "启动后运行容器里的 DSH 工作台 · 就绪后显示 127.0.0.1 端口",
+                "Starts the DSH workspace inside the container · shows the 127.0.0.1 port when ready");
+      }
+      ((TextView) root.findViewById(R.id.launch_subtitle)).setText(subtitleText);
       // 语境小字 / 活动条 / 工作台状态只取真实状态；不根据等待时长推算阶段。
       renderStatusChrome(
           root,
@@ -627,6 +1001,8 @@ public class LaunchFragment extends Fragment {
           unresolved,
           controller.isRestartBlocked(),
           needsRecovery);
+      // 工作台值文字刚被改回主题默认色：套了卡片皮肤就重套一次，深色卡上保持可读。
+      if (homeCanvas != null) homeCanvas.reapplyCardSkins();
       root.findViewById(R.id.launch_status)
           .setVisibility(
               enteringWeb
@@ -663,13 +1039,28 @@ public class LaunchFragment extends Fragment {
               : com.deepseekharness.app.util.UiText.format(
                   "失败 %s/3，%s，查看恢复选项", failures, controller.config().getWebFailureStage()));
       if (start != null) {
+        // 从「未就绪」变成「就绪」记一次启动，供主页模块显示「今天跑了几次」。
+        if (ready && !webReady)
+          com.deepseekharness.app.module.ModuleData.recordRun(requireContext());
         webReady = ready;
+        // 选中的是容器程序时，主按钮不能写「进入工作台」——它启动的不是 Web。
+        com.deepseekharness.app.module.ContainerTools.Tool launchProgram =
+            com.deepseekharness.app.util.HomeLayoutStore.isToolAction(launchTarget)
+                ? com.deepseekharness.app.module.ContainerTools.byId(
+                    requireContext(),
+                    com.deepseekharness.app.util.HomeLayoutStore.toolIdOf(launchTarget))
+                : null;
         start.setText(
             enteringWeb
                 ? com.deepseekharness.app.util.UiText.text("进入中…")
-                : ready
-                    ? com.deepseekharness.app.util.UiText.choose("▶  进入工作台", "▶  Open workspace")
-                    : getString(R.string.ui2_start));
+                : launchProgram != null
+                    ? com.deepseekharness.app.module.ContainerTools.isRunning(launchProgram.id)
+                        ? com.deepseekharness.app.util.UiText.format("重启 %s", launchProgram.name)
+                        : com.deepseekharness.app.util.UiText.format("启动 %s", launchProgram.name)
+                    : ready
+                        ? com.deepseekharness.app.util.UiText.choose(
+                            "▶  进入工作台", "▶  Open workspace")
+                        : getString(R.string.ui2_start));
         start.setEnabled(!enteringWeb && !starting && !stopping && !restoring);
       }
       Button restart = root.findViewById(R.id.launch_open);
@@ -1040,10 +1431,13 @@ public class LaunchFragment extends Fragment {
     if (!isAdded()) return;
     if (needsLanPassword(access)) {
       if (accessDialog != null) accessDialog.dismiss();
-      UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-          .addToBackStack(null)
-          .replace(R.id.fragment_container, new ConfigFragment())
-          .commit();
+      LanPasswordDialog.show(
+          requireContext(),
+          controller.config(),
+          () -> {
+            refreshLanAddr();
+            showAccessAddresses();
+          });
     } else if (access.state == LanAccessPresentation.State.DISABLED) {
       new DshaDialogBuilder(requireContext())
           .setTitle(UiText.choose("开启局域网访问？", "Enable LAN access?"))

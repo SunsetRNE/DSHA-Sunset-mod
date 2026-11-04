@@ -285,7 +285,7 @@ public final class PluginRuntimeProjectionTest {
     File real = temporary.newFolder("files", "linux", "ubuntu");
     File alias = new File(temporary.getRoot(), "alias-root");
     Files.createSymbolicLink(alias.toPath(), real.toPath());
-    File snapshot = PluginRuntimeProjection.snapshotPath(alias);
+    File snapshot = PluginRuntimeProjection.snapshotPath(PluginHostFiles.frameworkAlias(alias));
     assertEquals(
         new File(real.getCanonicalFile(), "root/.dsha-web-activity.json").getPath(),
         snapshot.getPath());

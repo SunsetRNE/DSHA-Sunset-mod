@@ -3680,5 +3680,8 @@
   "m9008": "WHEELS_OPTIONAL_SKIP: Python 가져오기를 통과했습니다. 실패한 캐시 주입 또는 설치를 건너뛰고 ADB 설정을 계속합니다",
   "m9009": "WHEELS_INJECT_FAIL: %s; 대상 %s; %s; 기존 항목은 덮어쓰지 않았습니다",
   "m9010": "오프라인 ADB 환경 준비 중…",
-  "m9011": "ADB_OFFLINE_READY: 오프라인 의존성이 준비되었습니다. 연결은 아직 검증되지 않았습니다. 무선 디버깅을 켠 후 다시 검증하세요."
+  "m9011": "ADB_OFFLINE_READY: 오프라인 의존성이 준비되었습니다. 연결은 아직 검증되지 않았습니다. 무선 디버깅을 켠 후 다시 검증하세요.",
+  "ui2_module_center": "모듈 센터 · Module center",
+  "ui2_module_center_sub": "설치된 모듈·구조·능력 및 전환",
+  "ui2_modules": "모듈 센터"
 }

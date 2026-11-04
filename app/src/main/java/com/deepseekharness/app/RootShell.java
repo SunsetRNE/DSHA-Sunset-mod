@@ -79,6 +79,18 @@ public final class RootShell {
     return executable() != null;
   }
 
+  /** 返回已通过文件身份与权限检查的 su 路径；调用方仍须验证授权结果。 */
+  public static String verifiedExecutable() {
+    return executable();
+  }
+
+  /** 固定的 root 身份探测；不受设备命令白名单或 Root Shell 开关影响。 */
+  public static boolean verifyAuthorization(Context ctx) {
+    if (ctx == null || executable() == null) return false;
+    String output = runPrivileged(ctx, "", -1, "root-runtime-probe");
+    return com.deepseekharness.app.util.RootRuntimePolicy.authorizedIdentity(output);
+  }
+
   public static String status(Context ctx) {
     if (!enabled(ctx)) return com.deepseekharness.app.util.UiText.text("未启用 · 开启后可直接申请 root 授权");
     String su = executable();

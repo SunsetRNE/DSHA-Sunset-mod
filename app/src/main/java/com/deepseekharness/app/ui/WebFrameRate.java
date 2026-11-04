@@ -15,15 +15,28 @@ import com.deepseekharness.app.util.FrameRatePolicy;
 
 import java.util.ArrayList;
 
-/** 仅在 Web 工作台可交互时请求设备允许的高刷新率。 */
+/** 原生页和 Web 共用的刷新率请求；不改变分辨率或系统显示设置。 */
 final class WebFrameRate {
   private WebFrameRate() {}
 
   static void apply(Activity activity, View content) {
     if (activity == null || content == null) return;
-    Display display = activity.getWindowManager().getDefaultDisplay();
+    try {
+      applyCurrentDisplay(activity, content);
+    } catch (RuntimeException unavailable) {
+      // 热插拔/旋转期间显示代次可能已消失；本次不保留旧刷新率请求。
+      clear(activity, content);
+    }
+  }
+
+  private static void applyCurrentDisplay(Activity activity, View content) {
+    Display display = content.getDisplay();
+    if (display == null) display = activity.getWindowManager().getDefaultDisplay();
     Display.Mode current = display == null ? null : display.getMode();
-    if (current == null) return;
+    if (current == null) {
+      clear(activity, content);
+      return;
+    }
     ArrayList<Float> matching = new ArrayList<>();
     for (Display.Mode mode : display.getSupportedModes()) {
       // 刷新率请求不能顺带改变面板分辨率。

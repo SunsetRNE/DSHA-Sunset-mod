@@ -5,6 +5,8 @@ import {Script} from 'node:vm';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 // Node has already selected this preload. Consume only its exact first option,
 // so fresh storage/MCP children keep all ordinary preloads without rerunning it.
+const expectedArch=process.env.DSHA_TRIAL_ARCH||'arm64';
+if(!['arm64','x64'].includes(expectedArch))throw Error('Unsupported runtime trial architecture');
 const nonce=process.env.DSHA_RUNTIME_TRIAL_NONCE;
 const ownOptions=['--import='+fileURLToPath(import.meta.url)+' ','--import='+import.meta.url+' '];
 if(/^[a-f0-9]{32}$/.test(nonce||''))ownOptions.push('--import=/root/.dsha-runtime-trial-'+nonce+'/runtime-entry.mjs ');
@@ -32,7 +34,7 @@ try {
  stage('modules');
  const packagePath='/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json';
  const pkg=JSON.parse(readFileSync(packagePath,'utf8'));
- if(pkg.version!==process.env.DSHA_TRIAL_DSH_VERSION||process.arch!=='arm64'||!process.versions.node.startsWith('24.'))throw Error('Runtime version mismatch');
+ if(pkg.version!==process.env.DSHA_TRIAL_DSH_VERSION||process.arch!==expectedArch||!process.versions.node.startsWith('24.'))throw Error('Runtime version mismatch');
  const require=createRequire(packagePath);
  for(const name of ['sharp','koffi','node-pty','@deepseek-ai/node-addon-system/landlock-run'])require(name);
  stage('loader');

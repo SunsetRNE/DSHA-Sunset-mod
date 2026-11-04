@@ -403,7 +403,11 @@ public final class PluginBackendAdapterTest {
     ReadOnlyFiles fs = new ReadOnlyFiles();
     PluginBackendAdapter adapter =
         new PluginBackendAdapter(
-            fs, alias, declaredFiles, new File(declaredFiles, "linux/ubuntu"), () -> 5);
+            fs,
+            PluginHostFiles.frameworkAlias(alias),
+            PluginHostFiles.frameworkAlias(declaredFiles),
+            new File(declaredFiles, "linux/ubuntu"),
+            () -> 5);
     assertEquals(0, fs.stats);
     assertEquals(new File(files, UserDataLayout.LEGACY), adapter.resolveSource().identity.dataRoot);
     assertEquals(new File(files, "linux/ubuntu"), adapter.resolveSource().identity.rootfs);

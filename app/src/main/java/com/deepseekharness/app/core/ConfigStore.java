@@ -13,11 +13,13 @@ import com.deepseekharness.app.util.PreferenceValue;
  */
 public class ConfigStore {
 
+  private final Context context;
   private final SharedPreferences prefs;
   private final KeyVault vault;
   private static final Object COLD_SELECTION_LOCK = new Object();
 
   public ConfigStore(Context ctx) {
+    this.context = ctx.getApplicationContext();
     this.prefs = ctx.getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
     this.vault = new KeyVault(ctx);
     // 启动计数备份已移除；覆盖安装与旧备份恢复均不能重新启用。
@@ -48,6 +50,15 @@ public class ConfigStore {
 
   public String getUiTheme() {
     return com.deepseekharness.app.util.UiThemePreference.normalize(text("ui_theme", "system"));
+  }
+
+  /** 手机底部导航的局部高斯磨砂效果，默认开启；平板左侧栏不受此偏好影响。 */
+  public boolean isBottomNavBlurEnabled() {
+    return flag("ui_bottom_nav_gaussian_blur", true);
+  }
+
+  public void setBottomNavBlurEnabled(boolean enabled) {
+    prefs.edit().putBoolean("ui_bottom_nav_gaussian_blur", enabled).apply();
   }
 
   /**
@@ -328,13 +339,40 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_GECKO_CORE, v).apply();
   }
 
-  /** 默认稳定的 proot；用户可选择 proroot。 */
+  /** 当前容器运行模式；root 只在显式选择且授权成功后生效。 */
+  public String containerRuntimeMode() {
+    return com.deepseekharness.app.util.RootRuntimePolicy.normalize(
+        text(Constants.KEY_CONTAINER_RUNTIME, "proot"));
+  }
+
+  public void setContainerRuntimeMode(String mode) {
+    if (!com.deepseekharness.app.util.RootRuntimePolicy.validMode(mode))
+      throw new IllegalArgumentException("CONTAINER_RUNTIME_MODE");
+    prefs.edit().putString(Constants.KEY_CONTAINER_RUNTIME, mode).apply();
+  }
+
   public boolean isProroot() {
-    return "proroot".equals(text(Constants.KEY_CONTAINER_RUNTIME, "proot"));
+    return "proroot".equals(containerRuntimeMode());
   }
 
   public void setProroot(boolean v) {
-    prefs.edit().putString(Constants.KEY_CONTAINER_RUNTIME, v ? "proroot" : "proot").apply();
+    setContainerRuntimeMode(v ? "proroot" : "proot");
+  }
+
+  public boolean isRootRuntime() {
+    return "root".equals(containerRuntimeMode());
+  }
+
+  public void setRootRuntime(boolean enabled) {
+    setContainerRuntimeMode(enabled ? "root" : "proot");
+  }
+
+  public void setRootRuntimeAuthorization(boolean authorized) {
+    prefs.edit().putBoolean("container_root_runtime_authorized", authorized).apply();
+  }
+
+  public boolean isRootRuntimeAuthorized() {
+    return flag("container_root_runtime_authorized", false);
   }
 
   /** 首次安装同样默认稳定 proot；只由用户显式选择启用 proroot。 */
@@ -463,6 +501,44 @@ public class ConfigStore {
         .putString(com.deepseekharness.app.util.LanPassword.PREF_KEY, verifier)
         .commit()) throw new IllegalStateException("LAN password could not be saved");
     com.deepseekharness.app.LanProxyService.stopLanListener();
+  }
+
+  /** 容器 SSH 密码只用本机 Keystore 加密保存，不进入 LAN/用户备份投影。 */
+  public boolean isSshEnabled() {
+    return flag("container_ssh_enabled", false);
+  }
+
+  public boolean isSshLanEnabled() {
+    return flag("container_ssh_lan_enabled", false);
+  }
+
+  public void setSshLanEnabled(boolean enabled) {
+    prefs.edit().putBoolean("container_ssh_lan_enabled", enabled).apply();
+  }
+
+  public void setSshEnabled(boolean enabled) {
+    if (!enabled && context != null)
+      com.deepseekharness.app.runtime.ContainerSshService.stop(context);
+    prefs.edit().putBoolean("container_ssh_enabled", enabled).apply();
+  }
+
+  public boolean hasSshPassword() {
+    return !text("container_ssh_password", "").isEmpty();
+  }
+
+  public boolean setSshPassword(String password) {
+    if (!com.deepseekharness.app.util.ContainerSshPolicy.validPassword(password))
+      throw new IllegalArgumentException("SSH password must have 8 to 128 printable characters");
+    String encrypted = new KeyVault(context, "dsha_ssh_password").encrypt(password);
+    if (encrypted.isEmpty()) return false;
+    return prefs.edit().putString("container_ssh_password", encrypted).commit();
+  }
+
+  public String getSshPassword() {
+    String encrypted = text("container_ssh_password", "");
+    if (encrypted.isEmpty()) return "";
+    var read = new KeyVault(context, "dsha_ssh_password").read(encrypted);
+    return read.usable() ? read.requireValue() : "";
   }
 
   // ================= 其他 =================

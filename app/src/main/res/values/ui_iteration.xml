@@ -21,6 +21,9 @@
 
     <string name="ui2_overlay">悬浮条</string>
     <string name="ui2_overlay_sub">显示内容、透明度与停留时间</string>
+    <string name="ui2_modules">模块中心</string>
+    <string name="ui2_module_center">模块中心 · Module center</string>
+    <string name="ui2_module_center_sub">查看已安装模块、架构、能力与启停</string>
     <string name="ui2_support">支持</string>
     <string name="ui2_updates">版本更新</string>
     <string name="ui2_diagnostics">自检与诊断</string>

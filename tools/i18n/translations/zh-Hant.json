@@ -3680,5 +3680,8 @@
   "m9008": "WHEELS_OPTIONAL_SKIP: Python 相依項目匯入已通過，跳過失敗的快取注入或安裝並繼續準備 ADB",
   "m9009": "WHEELS_INJECT_FAIL: %s；目標 %s；%s；未覆蓋已有條目",
   "m9010": "正在準備離線 ADB 環境…",
-  "m9011": "ADB_OFFLINE_READY: 離線相依項目已準備好，未驗證連線。請開啟無線除錯後再次驗證。"
+  "m9011": "ADB_OFFLINE_READY: 離線相依項目已準備好，未驗證連線。請開啟無線除錯後再次驗證。",
+  "ui2_module_center": "模組中心 · Module center",
+  "ui2_module_center_sub": "查看已安裝模塊、架構、能力與啟停",
+  "ui2_modules": "模組中心"
 }

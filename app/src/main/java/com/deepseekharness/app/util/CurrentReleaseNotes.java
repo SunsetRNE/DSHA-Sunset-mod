@@ -12,10 +12,19 @@ public final class CurrentReleaseNotes {
 
   private static String bundledVersion(String versionName) {
     // Both editions share these notes; flavor/test suffixes are not release-source identities.
-    if (versionName.endsWith("-SunsetTest"))
-      versionName = versionName.substring(0, versionName.length() - "-SunsetTest".length());
-    if (versionName.endsWith("low"))
-      versionName = versionName.substring(0, versionName.length() - 3);
+    // 所有调试/分支后缀都在这里剥掉（长后缀在前），否则 x86 模拟器包与 island 包
+    // 会被误判成「本安装包未附当前版本的更新说明」。
+    String[] suffixes = {"low-SunsetTest", "-SunsetTest", "-EmulatorX64Debug", "-island", "low"};
+    boolean changed = true;
+    while (changed) {
+      changed = false;
+      for (String suffix : suffixes) {
+        if (versionName.endsWith(suffix)) {
+          versionName = versionName.substring(0, versionName.length() - suffix.length());
+          changed = true;
+        }
+      }
+    }
     return versionName;
   }
 

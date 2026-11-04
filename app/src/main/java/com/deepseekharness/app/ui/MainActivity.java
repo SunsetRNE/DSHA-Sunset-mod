@@ -28,10 +28,19 @@ public class MainActivity extends AppCompatActivity {
 
   private com.deepseekharness.app.core.UpdateEngine startupUpdates;
   private com.google.android.material.snackbar.Snackbar updateNotice;
+  private BottomNavigationBlur bottomNavigationBlur;
+  private BottomNavDragController bottomNavDrag;
+  private String appliedNavSignature;
+  private ModuleOverlayLayer moduleOverlay;
+  private ModuleAppHost moduleAppHost;
   private boolean requestingLocalNetwork;
   private boolean restoreProbeStarted;
   private boolean discardedLauncherEntry;
   private boolean leavingUi;
+
+  /** 正在程序化重建底栏菜单：此时的选中态变化不是用户导航，不能退出主页编辑。 */
+  private boolean rebuildingNavigation;
+
   private boolean mainReady;
   private Bundle pendingMainState;
   private android.view.View entryOverlay;
@@ -96,7 +105,29 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
+    // 模块崩溃看门狗：先于任何模块界面安装；上次若被模块弄崩，这次直接停用它再启动。
+    com.deepseekharness.app.module.ModuleCrashGuard.install(this);
+    String recoveredModule = com.deepseekharness.app.module.ModuleCrashGuard.recover(this);
+    if (!recoveredModule.isEmpty()) {
+      String recoveredLabel =
+          com.deepseekharness.app.module.ModuleCrashGuard.labelOf(this, recoveredModule);
+      android.widget.Toast.makeText(
+              this,
+              com.deepseekharness.app.util.UiText.choose(
+                  "已自动停用疑似导致崩溃的模块：" + recoveredLabel + "。可在模块中心重新启用。",
+                  "Disabled a module that likely crashed the app: "
+                      + recoveredLabel
+                      + ". Re-enable it in Module center."),
+              android.widget.Toast.LENGTH_LONG)
+          .show();
+    }
     ConfigStore config = new ConfigStore(this);
+    // 模块中心「重启 App」用 fresh_start 重开干净任务，避免又落回上一个页面。
+    boolean freshStart = getIntent().getBooleanExtra("fresh_start", false);
+    if (freshStart) {
+      getIntent().removeExtra("fresh_start");
+      savedInstanceState = null;
+    }
     // 首次设置完成前不恢复旧终端或插件页，也不初始化 Ubuntu。
     super.onCreate(config.isWelcomed() ? savedInstanceState : null);
     getOnBackPressedDispatcher()
@@ -183,6 +214,22 @@ public class MainActivity extends AppCompatActivity {
     // FragmentManager可能先于后台磁盘检查恢复页面。首次就保留真实容器，
     // 后面只移除覆盖层，避免替换整个布局后恢复视图无法重新附着。
     setContentView(R.layout.activity_main);
+    android.widget.FrameLayout appHost = findViewById(R.id.module_app_overlay);
+    if (appHost != null) moduleAppHost = new ModuleAppHost(this, appHost);
+    // 每次有页面 view 建出来就补一次主题底色清除：主题要在所有页面上都成立。
+    getSupportFragmentManager()
+        .registerFragmentLifecycleCallbacks(
+            new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+              @Override
+              public void onFragmentViewCreated(
+                  @androidx.annotation.NonNull androidx.fragment.app.FragmentManager fm,
+                  @androidx.annotation.NonNull androidx.fragment.app.Fragment fragment,
+                  @androidx.annotation.NonNull android.view.View view,
+                  @androidx.annotation.Nullable android.os.Bundle savedState) {
+                view.post(() -> ModuleThemeLayer.reapply(MainActivity.this));
+              }
+            },
+            false);
     float density = getResources().getDisplayMetrics().density;
     var overlay = new android.widget.FrameLayout(this);
     overlay.setBackgroundColor(getColor(R.color.shell_bg));
@@ -417,6 +464,14 @@ public class MainActivity extends AppCompatActivity {
     quickEntries.setOnClickListener(v -> AboutDialog.show(this));
 
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
+    applyNavigationOrder(nav);
+    nav.setItemIconTintList(getColorStateList(R.color.shell_nav_item_tint));
+    nav.setItemTextColor(getColorStateList(R.color.shell_nav_item_tint));
+    android.view.View content = findViewById(R.id.fragment_container);
+    if (nav != null && content != null && nav.getVisibility() == android.view.View.VISIBLE) {
+      bottomNavigationBlur = new BottomNavigationBlur(this, content, nav);
+      bottomNavigationBlur.setEnabled(moduleNavBlur());
+    }
     shellRail = findViewById(R.id.shell_rail);
     if (shellRail != null)
       shellRail.setOnItemSelectedListener(
@@ -427,6 +482,20 @@ public class MainActivity extends AppCompatActivity {
           });
     nav.setOnItemSelectedListener(
         item -> {
+          // 重建菜单/换位时会对当前项重新 setSelectedItemId，这也会同步触发本监听器。
+          // 那不是用户导航，必须原样保留选中、也不能退出主页编辑。
+          if (rebuildingNavigation) return true;
+          // 离开主页或点底栏任意项时收起编辑，避免用户被卡在编辑态找不到出口。
+          Fragment currentPage =
+              getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+          if (currentPage instanceof LaunchFragment) ((LaunchFragment) currentPage).exitEditMode();
+          // 页面切换后重挂模块层：主题要能盖住新页面的底色。
+          findViewById(android.R.id.content).post(this::syncModuleLayers);
+          syncModuleAppSurface(item.getItemId());
+          if (item.getItemId() == R.id.nav_module) {
+            startActivity(new Intent(this, ModuleCenterActivity.class));
+            return false;
+          }
           if (item.getItemId() == R.id.nav_terminal) {
             // 终端是导航动作：不切根页，也不把左栏/语境切到终端。
             openTerminal();
@@ -458,6 +527,9 @@ public class MainActivity extends AppCompatActivity {
               f.setArguments(args);
             }
             title.setText(R.string.app_name);
+          } else if (id == R.id.nav_module) {
+            startActivity(new Intent(this, ModuleCenterActivity.class));
+            return false;
           } else if (id == R.id.nav_plugins) {
             f =
                 com.deepseekharness.app.core.EnvironmentAccess.needsRecovery(controller)
@@ -591,11 +663,76 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onWindowFocusChanged(boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);
-    if (hasFocus) showStartupUpdate();
+    if (hasFocus) {
+      // 模块是在主页 fragment resume 之后才从容器收进来的，这里兜一次重建。
+      refreshModuleLayers();
+      showStartupUpdate();
+    }
+  }
+
+  /** 模块清单变了（导入/移除）时由主页调用，重挂悬浮层与主题层。 */
+  public void refreshModuleLayers() {
+    syncModuleLayers();
+  }
+
+  /** 模块开关变化后立即刷新主页卡片（不必等进程重启）。 */
+  public void refreshHomeCards() {
+    Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    if (current instanceof LaunchFragment)
+      ((LaunchFragment) current).refreshHomeAfterModuleChange();
+  }
+
+  /** 模块的两个新位置：悬浮层（宠物满屏跑）和主题层（整页背景图）。 */
+  /**
+   * 模块页面接管：只开放设置页和插件页；主页由 LaunchFragment 自己的画布接管，
+   * 模块中心与终端永远是宿主安全出口。
+   */
+  private void syncModuleAppSurface(int selectedId) {
+    if (moduleAppHost == null) return;
+    String surface =
+        selectedId == R.id.nav_settings
+            ? "settings"
+            : selectedId == R.id.nav_plugins ? "plugins" : "";
+    if (surface.isEmpty()) {
+      moduleAppHost.hide();
+      return;
+    }
+    moduleAppHost.setSurface(surface);
+    moduleAppHost.sync();
+  }
+
+  private void syncModuleLayers() {
+    if (isFinishing() || findViewById(R.id.fragment_container) == null) return;
+    if (moduleOverlay == null) moduleOverlay = new ModuleOverlayLayer(this);
+    moduleOverlay.refresh();
+    ModuleThemeLayer.apply(this);
+    // 底栏外观模块可能在主页已创建后才导入/打开；签名变了就重建一次菜单。
+    String navSignature = navVisualSignature();
+    if (!navSignature.equals(appliedNavSignature)) refreshBottomNavigation();
+  }
+
+  /** 底栏外观指纹：模块 id + 每项 label/image；用于避免每次 resume 都重建菜单。 */
+  private String navVisualSignature() {
+    com.deepseekharness.app.module.ModuleCard card =
+        com.deepseekharness.app.module.ModuleCardStore.navCard(this);
+    if (card == null) return "";
+    StringBuilder value = new StringBuilder(card.id);
+    for (java.util.Map.Entry<String, com.deepseekharness.app.module.ModuleCard.NavItem> entry :
+        card.nav.items.entrySet()) {
+      value
+          .append('|')
+          .append(entry.getKey())
+          .append('=')
+          .append(entry.getValue().label)
+          .append(':')
+          .append(entry.getValue().image);
+    }
+    return value.toString();
   }
 
   @Override
   protected void onPause() {
+    if (moduleOverlay != null) moduleOverlay.stop();
     if (!mainReady) entryGate.cancel();
     recoveryHandler.removeCallbacks(refreshRecovery);
     if (updateNotice != null) {
@@ -760,10 +897,32 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * 顶栏「编辑布局」入口：只在主页可见时出现，点一下直接进就地编辑模式。
+   *
+   * <p>主页上的模块本身也能长按进入，但长按落在「启动」这类按钮上会被按钮吃掉，
+   * 所以必须有一个不依赖手势盲区的显式入口。
+   */
+  private void updateEditLayoutEntry(Fragment shown) {
+    android.view.View entry = findViewById(R.id.btn_edit_layout);
+    if (entry == null) return;
+    boolean onHome = shown instanceof LaunchFragment;
+    entry.setVisibility(onHome ? android.view.View.VISIBLE : android.view.View.GONE);
+    if (!onHome) return;
+    entry.setContentDescription(
+        com.deepseekharness.app.util.UiText.choose("编辑主页布局", "Edit home layout"));
+    entry.setOnClickListener(
+        v -> {
+          Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+          if (current instanceof LaunchFragment) ((LaunchFragment) current).toggleEditMode();
+        });
+  }
+
   private void updateToolbar() {
     TextView title = findViewById(R.id.app_title);
     if (title == null) return;
     Fragment shown = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    updateEditLayoutEntry(shown);
     boolean nested = getSupportFragmentManager().getBackStackEntryCount() > 0;
     findViewById(R.id.sub_back)
         .setVisibility(nested ? android.view.View.VISIBLE : android.view.View.GONE);
@@ -796,7 +955,9 @@ public class MainActivity extends AppCompatActivity {
     if (shellRail != null) shellRail.setSelectedItemId(selectedId);
     TextView context = findViewById(R.id.app_context);
     if (context == null) return;
-    if (selectedId == R.id.nav_plugins)
+    if (selectedId == R.id.nav_module)
+      context.setText(com.deepseekharness.app.util.UiText.choose("模块中心", "Module center"));
+    else if (selectedId == R.id.nav_plugins)
       context.setText(
           com.deepseekharness.app.util.UiText.choose("扩展你的工作方式", "Extend how you work"));
     else if (selectedId == R.id.nav_settings)
@@ -826,9 +987,219 @@ public class MainActivity extends AppCompatActivity {
           com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management"));
   }
 
+  private void applyNavigationOrder(BottomNavigationView nav) {
+    java.util.Map<String, Integer> ids = new java.util.LinkedHashMap<>();
+    ids.put("module", R.id.nav_module);
+    ids.put("plugins", R.id.nav_plugins);
+    ids.put("launch", R.id.nav_launch);
+    ids.put("settings", R.id.nav_settings);
+    ids.put("terminal", R.id.nav_terminal);
+    java.util.List<String> order = com.deepseekharness.app.util.HomeLayoutStore.navOrder(this);
+    android.view.Menu menu = nav.getMenu();
+    int selectedId = nav.getSelectedItemId();
+    Fragment restored = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    if (restored instanceof LaunchFragment) selectedId = R.id.nav_launch;
+    else if (restored instanceof PluginFragment || restored instanceof EnvironmentRecoveryFragment)
+      selectedId = R.id.nav_plugins;
+    else if (restored instanceof SettingsFragment) selectedId = R.id.nav_settings;
+    java.util.Map<String, CharSequence> titles = new java.util.LinkedHashMap<>();
+    java.util.Map<String, android.graphics.drawable.Drawable> icons =
+        new java.util.LinkedHashMap<>();
+    for (java.util.Map.Entry<String, Integer> entry : ids.entrySet()) {
+      android.view.MenuItem item = menu.findItem(entry.getValue());
+      if (item != null) {
+        titles.put(entry.getKey(), item.getTitle());
+        icons.put(entry.getKey(), item.getIcon());
+      }
+    }
+    // 底栏外观模块：只覆盖已有五个目的地的 label/图标，不替换宿主路由。
+    com.deepseekharness.app.module.ModuleCard navCard =
+        com.deepseekharness.app.module.ModuleCardStore.navCard(this);
+    if (navCard != null) {
+      for (java.util.Map.Entry<String, com.deepseekharness.app.module.ModuleCard.NavItem> entry :
+          navCard.nav.items.entrySet()) {
+        String key = entry.getKey();
+        com.deepseekharness.app.module.ModuleCard.NavItem item = entry.getValue();
+        if (!item.label.isEmpty()) titles.put(key, item.label);
+        if (!item.image.isEmpty()) {
+          java.io.File file =
+              com.deepseekharness.app.module.ModuleCardStore.assetOf(this, navCard, item.image);
+          android.graphics.drawable.Drawable icon = navIcon(file);
+          if (icon != null) icons.put(key, icon);
+        }
+      }
+    }
+    rebuildingNavigation = true;
+    try {
+      menu.clear();
+      for (int i = 0; i < order.size(); i++) {
+        String key = order.get(i);
+        Integer id = ids.get(key);
+        if (id == null) continue;
+        android.view.MenuItem item = menu.add(android.view.Menu.NONE, id, i, titles.get(key));
+        item.setIcon(icons.get(key));
+        item.setCheckable(true);
+        item.setChecked(id == selectedId);
+        item.setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER);
+      }
+      if (selectedId == 0 && menu.findItem(R.id.nav_launch) != null) selectedId = R.id.nav_launch;
+      if (menu.findItem(selectedId) != null) nav.setSelectedItemId(selectedId);
+    } finally {
+      rebuildingNavigation = false;
+    }
+    appliedNavSignature = navVisualSignature();
+    applyNavItemScale(nav);
+    if (bottomNavigationBlur != null) bottomNavigationBlur.setEnabled(moduleNavBlur());
+  }
+
+  /** 底栏磨砂不再内置：只有模块通过 {@code ui.nav.blur} 开启时才启用，否则保持原版。 */
+  private boolean moduleNavBlur() {
+    com.deepseekharness.app.module.ModuleCard card =
+        com.deepseekharness.app.module.ModuleCardStore.navCard(this);
+    return card != null && card.nav != null && card.nav.blur;
+  }
+
+  /**
+   * 把每个底栏按钮的缩放应用到真实 view 上。
+   *
+   * <p>菜单刚重建时 item view 还没挂上，post 一次再设；缩放整个按钮的视觉内容，
+   * 不改布局格子。编辑态命中使用底栏内未缩放的格子坐标。
+   */
+  private void applyNavItemScale(BottomNavigationView nav) {
+    nav.post(
+        () -> {
+          android.view.Menu menu = nav.getMenu();
+          for (int i = 0; i < menu.size(); i++) {
+            int id = menu.getItem(i).getItemId();
+            String key = navKeyOf(id);
+            if (key == null) continue;
+            android.view.View item = nav.findViewById(id);
+            if (item == null) continue;
+            float scale = com.deepseekharness.app.util.HomeLayoutStore.navItemScale(this, key);
+            item.setPivotX(item.getWidth() / 2f);
+            item.setPivotY(item.getHeight() / 2f);
+            item.setScaleX(scale);
+            item.setScaleY(scale);
+          }
+        });
+  }
+
+  /** 底栏自定义图标：按 24dp 目标尺寸降采样，坏图返回 null 保持默认图标。 */
+  private android.graphics.drawable.Drawable navIcon(java.io.File file) {
+    if (file == null || !file.isFile()) return null;
+    try {
+      android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+      bounds.inJustDecodeBounds = true;
+      android.graphics.BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+      int target = Math.max(1, dp(24) * 2);
+      int sample = 1;
+      while (bounds.outWidth / (sample * 2) >= target) sample *= 2;
+      android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+      options.inSampleSize = sample;
+      android.graphics.Bitmap bitmap =
+          android.graphics.BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+      if (bitmap == null) return null;
+      android.graphics.drawable.BitmapDrawable drawable =
+          new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
+      drawable.setBounds(0, 0, dp(24), dp(24));
+      return drawable;
+    } catch (RuntimeException | OutOfMemoryError error) {
+      return null;
+    }
+  }
+
+  private int dp(int value) {
+    return Math.round(value * getResources().getDisplayMetrics().density);
+  }
+
+  /** 底栏菜单 id → 偏好的 key。 */
+  public static String navKeyOf(int itemId) {
+    if (itemId == R.id.nav_launch) return "launch";
+    if (itemId == R.id.nav_module) return "module";
+    if (itemId == R.id.nav_plugins) return "plugins";
+    if (itemId == R.id.nav_settings) return "settings";
+    if (itemId == R.id.nav_terminal) return "terminal";
+    return null;
+  }
+
+  /** 双指缩放提交或重置布局后调用。 */
+  public void applyNavItemScales() {
+    BottomNavigationView nav = findViewById(R.id.bottom_nav);
+    if (nav != null) applyNavItemScale(nav);
+  }
+
+  /** 主页编辑态：单指拖动底栏本体换位，双指捏合调整按钮大小，松手保存。 */
+  public void setHomeEditMode(boolean editing) {
+    BottomNavigationView nav = findViewById(R.id.bottom_nav);
+    if (nav != null) {
+      if (bottomNavDrag == null && nav instanceof EditableBottomNavigationView)
+        bottomNavDrag =
+            new BottomNavDragController(
+                this,
+                (EditableBottomNavigationView) nav,
+                new BottomNavDragController.Host() {
+                  @Override
+                  public void onOrderCommitted() {
+                    refreshBottomNavigation();
+                  }
+
+                  @Override
+                  public void onNavTapped(int itemId) {
+                    // 编辑态轻点底栏 = 第④条编辑出口：走正常导航管线（监听器里会先
+                    // exitEditMode，再切页/保留当前页），用户不会被困在编辑态。
+                    nav.setSelectedItemId(itemId);
+                  }
+                });
+      if (bottomNavDrag != null) bottomNavDrag.setEnabled(editing);
+      // 进入编辑时底栏轻微弹一下，让模式切换有明确反馈。
+      if (UiMotion.animationsEnabled(this)) {
+        nav.animate().cancel();
+        if (editing) {
+          nav.setScaleX(0.97f);
+          nav.setScaleY(0.97f);
+        }
+        nav.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(260)
+            .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
+            .start();
+      }
+    }
+    // 不再有任何提示条：底栏自己的虚线边框就是「可编辑」的说明。
+  }
+
+  /** 供主页卡片模块的「设置」按钮调用：回到主界面并切到设置。 */
+  public void openSettings() {
+    BottomNavigationView nav = findViewById(R.id.bottom_nav);
+    if (nav != null) nav.setSelectedItemId(R.id.nav_settings);
+  }
+
+  /** 底栏顺序被拖动后重建真实菜单，松手即生效。 */
+  public void refreshBottomNavigation() {
+    BottomNavigationView nav = findViewById(R.id.bottom_nav);
+    if (nav == null) return;
+    applyNavigationOrder(nav);
+  }
+
   @Override
   protected void onResume() {
     super.onResume();
+    // 界面已正常显示；正常退出不应被下次启动当成崩溃。
+    com.deepseekharness.app.module.ModuleCrashGuard.bootCompleted(this);
+    com.google.android.material.bottomnavigation.BottomNavigationView nav =
+        findViewById(R.id.bottom_nav);
+    syncModuleAppSurface(nav == null ? 0 : nav.getSelectedItemId());
+    // 模块中心改完突出显示开关只写了偏好；不在这里补应用，回到主页就一直看不到变化。
+    if (bottomNavigationBlur != null) bottomNavigationBlur.setEnabled(moduleNavBlur());
+    // 模块被启用/停用/删除后回主页：立即重挂卡片/底栏/主题，不必等下一次冷启动。
+    android.content.SharedPreferences homePrefs = getSharedPreferences("dsha_home_layout", 0);
+    if (homePrefs.getBoolean("modules_dirty", false)) {
+      homePrefs.edit().remove("modules_dirty").apply();
+      refreshModuleLayers();
+      refreshHomeCards();
+      if (nav != null) applyNavigationOrder(nav);
+    }
     if (discardedLauncherEntry) return;
     leavingUi = false;
     BrowserTasks.entry("RESUME", getIntent());
@@ -845,6 +1216,7 @@ public class MainActivity extends AppCompatActivity {
     recoveryHandler.removeCallbacks(refreshRecovery);
     recoveryHandler.post(refreshRecovery);
     updateToolbar();
+    syncModuleLayers();
     if (!isFinishing()
         && findViewById(R.id.bottom_nav) != null
         && (new ConfigStore(this).isLanMode()
@@ -1084,6 +1456,11 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onDestroy() {
+    if (bottomNavDrag != null) bottomNavDrag.setEnabled(false);
+    if (bottomNavigationBlur != null) {
+      bottomNavigationBlur.close();
+      bottomNavigationBlur = null;
+    }
     entryGate.cancel();
     // Main销毁只解绑页面。终端由进程级owner和独立FGS持有，
     // 只能通过明确会话结束/环境维护核验退出，不能把Activity销毁当停止请求。

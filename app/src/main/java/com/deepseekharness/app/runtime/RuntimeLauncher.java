@@ -30,15 +30,20 @@ final class RuntimeLauncher {
         ports.record("DNS_PREPARE", error.getClass().getSimpleName());
       }
       List<String> argv = spec.runtime.baseArgv(rootfs, spec.hardlinks, spec.dataDomain);
-      File preloads = context == null ? null : RuntimeLauncherAssets.prepare(context);
-      bindPreloads(argv, preloads);
-      for (var bind : spec.binds) {
-        argv.add("-b");
-        argv.add(bind.host() + ":" + bind.guest());
+      File preloads = null;
+      if (spec.runtime.rootMode()) {
+        argv.add(ContainerRuntime.Root.command(rootfs, command));
+      } else {
+        preloads = context == null ? null : RuntimeLauncherAssets.prepare(context);
+        bindPreloads(argv, preloads);
+        for (var bind : spec.binds) {
+          argv.add("-b");
+          argv.add(bind.host() + ":" + bind.guest());
+        }
+        argv.add("/bin/bash");
+        argv.add("-c");
+        argv.add(command);
       }
-      argv.add("/bin/bash");
-      argv.add("-c");
-      argv.add(command);
       ProcessBuilder builder = new ProcessBuilder(argv).redirectErrorStream(true);
       if (!spec.isolated && !spec.pipedInput) Compat.redirectStdinDevNull(builder);
       environment(builder, spec, preloads);
@@ -79,7 +84,7 @@ final class RuntimeLauncher {
     builder.environment().put("TMPDIR", "/tmp");
     builder.environment().put("DEBIAN_FRONTEND", "noninteractive");
     RuntimeTools.applyEnvironment(rootfs, builder.environment(), ports.settings());
-    if (context != null) {
+    if (context != null && !spec.runtime.rootMode()) {
       // builder() already checked the exact overlay it bound. Independent terminal/recovery
       // callers still prepare here; no mutable filesystem proof survives a builder invocation.
       if (preparedPreloads == null) RuntimeLauncherAssets.prepare(context);
@@ -97,7 +102,7 @@ final class RuntimeLauncher {
     // Classification evidence comes from this APK, never a guest-writable JSON
     // or caller-supplied environment. Native backup independently reads the APK.
     builder.environment().remove("DSHA_MANAGED_PACKAGE_PROOFS_SHA256");
-    if (context != null)
+    if (context != null && !spec.runtime.rootMode())
       builder
           .environment()
           .put("DSHA_MANAGED_PACKAGE_PROOFS_SHA256", managedPackageProofAssetSha256(context));

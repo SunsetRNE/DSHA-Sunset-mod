@@ -44,16 +44,35 @@ final class TerminalRuntime {
     }
   }
 
+  private static String quoteArgv(String[] argv) {
+    StringBuilder command = new StringBuilder();
+    for (String arg : argv) {
+      if (command.length() > 0) command.append(' ');
+      command.append(com.deepseekharness.app.util.ShellQuote.arg(arg));
+    }
+    return command.toString();
+  }
+
   static Launch prepare(
       RuntimeLauncher launcher, File rootfs, LaunchSpec spec, String... guestCommand)
       throws IOException {
     List<String> argv = spec.runtime.baseArgv(rootfs, spec.hardlinks, spec.dataDomain);
-    launcher.bindPreloads(argv);
-    if (guestCommand == null || guestCommand.length == 0) {
-      argv.add("/bin/bash");
-      argv.add("-c");
-      argv.add("stty sane 2>/dev/null || stty echo icanon 2>/dev/null || true; exec /bin/bash -l");
-    } else java.util.Collections.addAll(argv, guestCommand);
+    if (spec.runtime.rootMode()) {
+      argv.add(
+          ContainerRuntime.Root.command(
+              rootfs,
+              guestCommand == null || guestCommand.length == 0
+                  ? "stty sane 2>/dev/null || stty echo icanon 2>/dev/null || true; exec /bin/bash -l"
+                  : quoteArgv(guestCommand)));
+    } else {
+      launcher.bindPreloads(argv);
+      if (guestCommand == null || guestCommand.length == 0) {
+        argv.add("/bin/bash");
+        argv.add("-c");
+        argv.add(
+            "stty sane 2>/dev/null || stty echo icanon 2>/dev/null || true; exec /bin/bash -l");
+      } else java.util.Collections.addAll(argv, guestCommand);
+    }
     ProcessBuilder probe = new ProcessBuilder("/system/bin/true");
     launcher.environment(probe, spec);
     probe.environment().put("LANG", "C.UTF-8");
@@ -75,8 +94,15 @@ final class TerminalRuntime {
       try {
         LaunchSpec spec = spec();
         List<String> argv = spec.runtime.baseArgv(rootfs, spec.hardlinks, spec.dataDomain);
-        execution.launcher().bindPreloads(argv);
-        argv.add("/bin/bash");
+        if (spec.runtime.rootMode()) {
+          argv.add(
+              ContainerRuntime.Root.command(
+                  rootfs,
+                  "stty sane 2>/dev/null || stty echo icanon 2>/dev/null || true; exec /bin/bash -l"));
+        } else {
+          execution.launcher().bindPreloads(argv);
+          argv.add("/bin/bash");
+        }
         ProcessBuilder builder = new ProcessBuilder(argv).redirectErrorStream(true);
         execution.launcher().environment(builder, spec);
         builder.environment().put("DSH_CONFIRM", "0");

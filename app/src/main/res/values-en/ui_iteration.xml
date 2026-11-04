@@ -21,6 +21,9 @@
 
     <string name="ui2_overlay">Floating status</string>
     <string name="ui2_overlay_sub">Content, opacity and display time</string>
+    <string name="ui2_modules">Module center</string>
+    <string name="ui2_module_center">Module center</string>
+    <string name="ui2_module_center_sub">Installed modules, architectures, capabilities and toggles</string>
     <string name="ui2_support">Support</string>
     <string name="ui2_updates">App updates</string>
     <string name="ui2_diagnostics">Diagnostics</string>

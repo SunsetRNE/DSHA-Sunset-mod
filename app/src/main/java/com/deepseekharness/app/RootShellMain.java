@@ -41,7 +41,8 @@ public final class RootShellMain {
       else
         shell =
             new ShellService(); // Historical ordinary reads do not require a guessed app identity.
-      if (operation.equals("virtual-screen-start")) output = shell.execVirtualScreen(command);
+      if (operation.equals("root-runtime-probe")) output = "uid=" + android.os.Process.myUid();
+      else if (operation.equals("virtual-screen-start")) output = shell.execVirtualScreen(command);
       else if (operation.isEmpty())
         output = smsUser < 0 ? shell.exec(command) : shell.execAuthorizedSms(command, smsUser);
       else throw new SecurityException("未知 Root 操作");

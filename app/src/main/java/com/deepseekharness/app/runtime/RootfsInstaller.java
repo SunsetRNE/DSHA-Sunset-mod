@@ -54,8 +54,9 @@ final class RootfsInstaller {
         throw new IOException(com.deepseekharness.app.util.UiText.text("Ubuntu Python 运行环境不完整"));
       GuestScriptBudget.checkpoint();
       // 标准库的 C 扩展还依赖 SQLite/readline；仅有 Python 主程序并不代表它们可用。
-      File sqlite = new File(stage, "usr/lib/aarch64-linux-gnu/libsqlite3.so.0");
-      File readline = new File(stage, "usr/lib/aarch64-linux-gnu/libreadline.so.8");
+      String machine = com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? "x86_64" : "aarch64";
+      File sqlite = new File(stage, "usr/lib/" + machine + "-linux-gnu/libsqlite3.so.0");
+      File readline = new File(stage, "usr/lib/" + machine + "-linux-gnu/libreadline.so.8");
       if (!sqlite.isFile()
           || sqlite.length() == 0
           || !readline.isFile()
@@ -82,7 +83,10 @@ final class RootfsInstaller {
       RuntimeAssetFiles.write(
           ctx,
           new File(stage, "root/.dsha-python-version"),
-          "3.12-glibc-arm64\n".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+          (com.deepseekharness.app.BuildConfig.EMULATOR_X64
+                  ? "3.12-glibc-x86_64\n"
+                  : "3.12-glibc-arm64\n")
+              .getBytes(java.nio.charset.StandardCharsets.UTF_8),
           false);
     }
   }

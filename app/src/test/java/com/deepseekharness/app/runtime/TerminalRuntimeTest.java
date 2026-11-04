@@ -11,6 +11,18 @@ public class TerminalRuntimeTest {
   @Rule public TemporaryFolder temporary = new TemporaryFolder();
 
   @Test
+  public void rootTerminalRuntimeIsUnavailableWithoutContainerIsolation() throws Exception {
+    File root = temporary.newFolder("rootfs with spaces");
+    File su = temporary.newFile("su");
+    assertTrue(su.setExecutable(true));
+    ContainerRuntime.Root runtime =
+        new ContainerRuntime.Root(null, root, null, su.getAbsolutePath());
+
+    assertFalse(runtime.available());
+    assertEquals("ROOT_CONTAINER_ISOLATION_UNAVAILABLE", runtime.unavailableReason());
+  }
+
+  @Test
   public void argvAndEnvironmentUseOneExplicitRuntimeAndSettingsImage() throws Exception {
     RuntimeHostPorts ports = new RuntimeHostPorts();
     ports.install(

@@ -417,11 +417,22 @@ public final class JvmBackupFileSystemTest {
                   while (running.get()) {
                     File next = new File(temporary.getRoot(), "snapshot.next");
                     Files.writeString(next.toPath(), Integer.toString(round++ % 10).repeat(4096));
-                    Files.move(
-                        next.toPath(),
-                        target.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE);
+                    boolean moved = false;
+                    for (int attempt = 0; attempt < 100 && running.get(); attempt++) {
+                      try {
+                        Files.move(
+                            next.toPath(),
+                            target.toPath(),
+                            StandardCopyOption.REPLACE_EXISTING,
+                            StandardCopyOption.ATOMIC_MOVE);
+                        moved = true;
+                        break;
+                      } catch (java.nio.file.AccessDeniedException transientWindowsLock) {
+                        Thread.sleep(2);
+                      }
+                    }
+                    if (!moved && running.get())
+                      throw new java.io.IOException("ATOMIC_REPLACEMENT_RETRY_LIMIT");
                   }
                 } catch (Exception error) {
                   throw new IllegalStateException(error);

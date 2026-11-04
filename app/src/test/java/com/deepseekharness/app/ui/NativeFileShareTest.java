@@ -28,6 +28,13 @@ public final class NativeFileShareTest {
     }
   }
 
+  @org.junit.Before
+  public void pinChinese() {
+    // UiText 的语言是全局静态：同一 JVM 里先跑的测试可能把它切成 en，
+    // 本类的断言默认中文文案，必须显式钉住，不能依赖默认值。
+    com.deepseekharness.app.util.UiText.setLanguage("zh");
+  }
+
   @Test
   public void shareUsesSendWithExactUriMimeAndTemporaryReadGrant() {
     Uri uri = Uri.parse("content://dsh.android.client.updates/transfers/share/task/report.txt");

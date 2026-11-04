@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 行内小按钮：实心底 + 描边。原来的 bg_shell_edit_bar 是半透明玻璃底，在模块中心看着像透明的。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/shell_surface" />
+    <corners android:radius="@dimen/radius_pill" />
+    <stroke android:width="1dp" android:color="@color/shell_line_strong" />
+</shape>

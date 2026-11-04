@@ -35,7 +35,8 @@ final class RootfsReadiness {
               throw new IOException(error);
             }
             return resolved;
-          });
+          },
+          com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? 62 : 183);
     } catch (IOException error) {
       return false;
     }

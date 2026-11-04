@@ -522,7 +522,8 @@
     "web-integration",
     "app-integration",
     "client-combo-cache",
-    "destructive-policy"
+    "destructive-policy",
+    "container-ssh"
   ],
   "launcherTrees": [
     "app/src/main/jniLibs",

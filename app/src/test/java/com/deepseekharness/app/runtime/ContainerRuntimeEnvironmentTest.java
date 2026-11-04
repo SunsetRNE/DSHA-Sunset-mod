@@ -15,6 +15,14 @@ public class ContainerRuntimeEnvironmentTest {
   }
 
   @Test
+  public void defaultBindListDoesNotExposeSharedStorageWithoutExplicitGrant() {
+    assertTrue(ContainerRuntime.binds().stream().noneMatch(bind -> "/sdcard".equals(bind.guest())));
+    assertTrue(
+        ContainerRuntime.binds().stream()
+            .noneMatch(bind -> "/storage/emulated/0".equals(bind.guest())));
+  }
+
+  @Test
   public void prootOwnsRequiredLoaderDependencyAndModeEnvironment() throws Exception {
     File nativeDir = temporary.newFolder(),
         base = temporary.newFolder(),

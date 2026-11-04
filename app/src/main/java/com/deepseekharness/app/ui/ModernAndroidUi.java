@@ -14,9 +14,21 @@ import com.deepseekharness.app.R;
 
 /** 统一处理 Android 15+ 强制铺满窗口后的状态栏、挖孔和输入法区域。 */
 public final class ModernAndroidUi implements Application.ActivityLifecycleCallbacks {
+  private final AppFrameRate frameRate = new AppFrameRate();
+
   @Override
   public void onActivityPostCreated(Activity activity, Bundle saved) {
     applyInsets(activity);
+  }
+
+  @Override
+  public void onActivityResumed(Activity activity) {
+    frameRate.resume(activity);
+  }
+
+  @Override
+  public void onActivityPaused(Activity activity) {
+    frameRate.pause(activity);
   }
 
   private void applyInsets(Activity activity) {
@@ -72,12 +84,6 @@ public final class ModernAndroidUi implements Application.ActivityLifecycleCallb
 
   @Override
   public void onActivityStarted(Activity activity) {}
-
-  @Override
-  public void onActivityResumed(Activity activity) {}
-
-  @Override
-  public void onActivityPaused(Activity activity) {}
 
   @Override
   public void onActivityStopped(Activity activity) {}

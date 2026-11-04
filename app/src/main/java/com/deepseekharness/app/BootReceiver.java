@@ -30,6 +30,11 @@ public class BootReceiver extends BroadcastReceiver {
         com.deepseekharness.app.backup.AutomaticBackups.schedule(context);
       if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(action))
         com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(context);
+      // 模块定时任务：重启后系统闹钟被清空，重新排一次（内部自兜底，绝不抛出）。
+      try {
+        com.deepseekharness.app.module.ModuleScheduler.rearmAll(context);
+      } catch (Throwable ignored) {
+      }
       // 用户没开 ADB 就不拉起（尊重开关）
       if (!DeviceBridgeService.isAdbEnabled(context)) return;
       android.util.Log.i(

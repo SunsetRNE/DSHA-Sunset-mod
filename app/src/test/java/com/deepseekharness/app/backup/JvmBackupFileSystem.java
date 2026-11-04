@@ -75,6 +75,24 @@ public class JvmBackupFileSystem implements BackupFileSystem {
   @Override
   public byte[] currentSnapshot(File file, int limit) throws IOException {
     if (limit < 1) throw new IOException("METADATA_LIMIT");
+    // Windows 的 ATOMIC_MOVE + REPLACE_EXISTING 在杀毒/索引器介入时，极短窗口内目标名会
+    // 不存在；测试读者按真实读者的退避重试，而不是把平台的瞬时空窗当成数据丢失。
+    for (int attempt = 0; ; attempt++) {
+      try {
+        return readSnapshot(file, limit);
+      } catch (NoSuchFileException transientMissing) {
+        if (attempt >= 50) throw transientMissing;
+        try {
+          Thread.sleep(1);
+        } catch (InterruptedException interrupted) {
+          Thread.currentThread().interrupt();
+          throw new IOException("INTERRUPTED", interrupted);
+        }
+      }
+    }
+  }
+
+  private byte[] readSnapshot(File file, int limit) throws IOException {
     InputStream in = Files.newInputStream(file.toPath(), LinkOption.NOFOLLOW_LINKS);
     try (in;
         ByteArrayOutputStream out = new ByteArrayOutputStream()) {

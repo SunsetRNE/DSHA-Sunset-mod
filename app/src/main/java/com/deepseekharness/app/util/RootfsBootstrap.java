@@ -31,6 +31,12 @@ public final class RootfsBootstrap {
   }
 
   public static boolean ready(Resolver resolver) {
+    return ready(resolver, 183);
+  }
+
+  /** 只由显式调试构建选择 x86_64；默认仍严格验证 AArch64。 */
+  public static boolean ready(Resolver resolver, int expectedMachine) {
+    if (expectedMachine != 183 && expectedMachine != 62) return false;
     try {
       File shell = resolver.resolve("/bin/bash");
       if (!shell.isFile() || !shell.canRead()) return false;
@@ -41,7 +47,7 @@ public final class RootfsBootstrap {
         if (elf.getInt(0) != 0x464c457f
             || header[4] != 2
             || header[5] != 1
-            || elf.getShort(18) != 183) return false;
+            || elf.getShort(18) != expectedMachine) return false;
         long offset = elf.getLong(32);
         int size = elf.getShort(54) & 65535, count = elf.getShort(56) & 65535;
         if (offset < 64

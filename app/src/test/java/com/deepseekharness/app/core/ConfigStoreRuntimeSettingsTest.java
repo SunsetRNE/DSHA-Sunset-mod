@@ -4,10 +4,29 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import com.deepseekharness.app.util.Constants;
+import com.deepseekharness.app.util.RootRuntimePolicy;
 import java.util.Map;
 import org.junit.Test;
 
 public class ConfigStoreRuntimeSettingsTest {
+  @Test
+  public void rootAuthorizationFailureAlwaysFallsBackToStableProot() {
+    assertFalse(RootRuntimePolicy.directContainerAllowed());
+    assertEquals(
+        "ROOT_CONTAINER_ISOLATION_UNAVAILABLE",
+        RootRuntimePolicy.directContainerUnavailableReason());
+    assertTrue(RootRuntimePolicy.authorizedIdentity("uid=0"));
+    assertTrue(RootRuntimePolicy.authorizedIdentity("\nuid=0\n"));
+    assertFalse(RootRuntimePolicy.authorizedIdentity("uid=2000"));
+    assertFalse(RootRuntimePolicy.authorizedIdentity("prefix uid=0 suffix"));
+    assertFalse(RootRuntimePolicy.authorizedIdentity(null));
+    assertEquals("proot", RootRuntimePolicy.fallback("root", false));
+    assertEquals("proot", RootRuntimePolicy.fallback("root", true));
+    assertEquals("proroot", RootRuntimePolicy.fallback("proroot", false));
+    assertEquals("ROOT_NOT_FOUND", RootRuntimePolicy.unavailableReason(false, false));
+    assertEquals("ROOT_PERMISSION_REQUIRED", RootRuntimePolicy.unavailableReason(true, false));
+  }
+
   @Test
   public void missingSettingsUseTheSingleConfigStoreDefaults() {
     var snapshot = ConfigStore.runtimeSettingsFrom(Map.of());

@@ -3680,5 +3680,8 @@
   "m9008": "WHEELS_OPTIONAL_SKIP: Imports Python réussis ; l’injection ou l’installation du cache échouée est ignorée, poursuite de la configuration ADB",
   "m9009": "WHEELS_INJECT_FAIL: %s ; cible %s ; %s ; les entrées existantes n’ont pas été remplacées",
   "m9010": "Préparation de l’environnement ADB hors ligne…",
-  "m9011": "ADB_OFFLINE_READY: Les dépendances hors ligne sont prêtes ; la connexion n’a pas été vérifiée. Activez le débogage sans fil, puis vérifiez à nouveau."
+  "m9011": "ADB_OFFLINE_READY: Les dépendances hors ligne sont prêtes ; la connexion n’a pas été vérifiée. Activez le débogage sans fil, puis vérifiez à nouveau.",
+  "ui2_module_center": "Centre de modules · Module center",
+  "ui2_module_center_sub": "Modules installés, architectures, capacités et activation",
+  "ui2_modules": "Centre de modules"
 }

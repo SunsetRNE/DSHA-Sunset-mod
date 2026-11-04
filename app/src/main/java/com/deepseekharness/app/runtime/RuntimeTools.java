@@ -161,8 +161,12 @@ final class RuntimeTools {
           new String[] {
             "usr/bin/python3.12",
             "usr/lib/python3.12/encodings/__init__.py",
-            "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
-            "usr/lib/aarch64-linux-gnu/libreadline.so.8",
+            com.deepseekharness.app.BuildConfig.EMULATOR_X64
+                ? "usr/lib/x86_64-linux-gnu/libsqlite3.so.0"
+                : "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
+            com.deepseekharness.app.BuildConfig.EMULATOR_X64
+                ? "usr/lib/x86_64-linux-gnu/libreadline.so.8"
+                : "usr/lib/aarch64-linux-gnu/libreadline.so.8",
             "root/.dsh/plugin-manager.py",
             "root/.dsh/register-builtin-plugins.py",
             "root/.dsh/builtin-plugins.json",

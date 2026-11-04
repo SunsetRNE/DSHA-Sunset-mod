@@ -94,6 +94,16 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-started interactive terminal sessions and pending verified process cleanup" />
         </service>
+        <activity android:name=".ui.ModuleCenterActivity" android:exported="false" />
+        <activity android:name=".ui.ModulePageActivity" android:exported="false" />
+        <activity android:name=".ui.ManifestPageActivity" android:exported="false" />
+        <activity android:name=".ui.ContainerSshActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <service android:name=".runtime.ContainerSshService" android:exported="false"
+            android:stopWithTask="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-enabled container SSH debugging with password authentication and explicit stop." />
+        </service>
 
         <activity android:name=".ui.UpdateActivity" android:exported="false" />
         <activity android:name=".ui.DiagnosticActivity" android:exported="false" />
@@ -242,6 +252,10 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".ModuleScheduleReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

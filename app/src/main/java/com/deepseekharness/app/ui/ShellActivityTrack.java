@@ -29,17 +29,18 @@ public final class ShellActivityTrack extends View {
   /** 需要处理（原实例待确认、环境待恢复）：静态错误色。 */
   public static final int ERROR = 3;
 
-  /** 与设计源 activity-track 的 sweep 时长一致。 */
-  private static final long SWEEP_DURATION_MS = 2600L;
+  /** 与设计源 activity-track 的 sweep 时长一致；模块换肤可覆盖。 */
+  private long sweepDurationMs = 2600L;
 
-  /** 光带宽度占总宽度的比例（设计源 34%）。 */
-  private static final float BAND_WIDTH_FRACTION = 0.34f;
+  /** 光带宽度占总宽度的比例（设计源 34%）；模块换肤可覆盖。 */
+  private float bandFraction = 0.34f;
 
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private final int idleColor;
-  private final int runningColor;
-  private final int settledColor;
-  private final int errorColor;
+  private int idleColor;
+  private int runningColor;
+  private int settledColor;
+  private int errorColor;
+  private int cornerRadiusPx;
 
   private int state = IDLE;
   private long sweepStartMs;
@@ -59,6 +60,42 @@ public final class ShellActivityTrack extends View {
     settledColor = context.getColor(com.deepseekharness.app.R.color.shell_good);
     errorColor = context.getColor(com.deepseekharness.app.R.color.shell_bad);
     refreshAnimationSetting();
+  }
+
+  /**
+   * 应用模块换肤：模块可以改「主页原有」状态条的颜色、粗细、圆角、光带宽度和扫光速度，
+   * 而不是另画一条新的。空字段沿用宿主默认。
+   */
+  public void applySkin(com.deepseekharness.app.module.ModuleCard.Skin.Progress skin) {
+    if (skin == null) return;
+    idleColor = skinColor(skin.idle, idleColor);
+    runningColor = skinColor(skin.running, runningColor);
+    settledColor = skinColor(skin.success, settledColor);
+    errorColor = skinColor(skin.error, errorColor);
+    bandFraction = skin.bandFraction;
+    sweepDurationMs = skin.sweepMs;
+    cornerRadiusPx = dp(skin.radiusDp);
+    android.view.ViewGroup.LayoutParams params = getLayoutParams();
+    if (params != null && params.height != dp(skin.heightDp)) {
+      params.height = dp(skin.heightDp);
+      setLayoutParams(params);
+    }
+    bandShader = null;
+    bandShaderWidth = -1;
+    invalidate();
+  }
+
+  private int skinColor(String raw, int fallback) {
+    if (raw == null || raw.isEmpty()) return fallback;
+    try {
+      return android.graphics.Color.parseColor(raw);
+    } catch (RuntimeException ignored) {
+      return fallback;
+    }
+  }
+
+  private int dp(int value) {
+    return Math.round(value * getResources().getDisplayMetrics().density);
   }
 
   /** 设置展示状态；同一状态重复设置不会重置光带或启动新的重绘循环。 */
@@ -120,14 +157,14 @@ public final class ShellActivityTrack extends View {
     if (width <= 0 || height <= 0) return;
     paint.setShader(null);
     paint.setColor(idleColor);
-    canvas.drawRect(0f, 0f, width, height, paint);
+    canvas.drawRoundRect(0f, 0f, width, height, cornerRadiusPx, cornerRadiusPx, paint);
     if (state == SETTLED || state == ERROR) {
       paint.setColor(state == SETTLED ? settledColor : errorColor);
-      canvas.drawRect(0f, 0f, width, height, paint);
+      canvas.drawRoundRect(0f, 0f, width, height, cornerRadiusPx, cornerRadiusPx, paint);
       return;
     }
     if (state != RUNNING) return;
-    float sweepWidth = Math.max(1f, width * BAND_WIDTH_FRACTION);
+    float sweepWidth = Math.max(1f, width * bandFraction);
     if (!animationsEnabled || !windowVisible || !isShown()) {
       // 系统关闭动画或视图不可见时保持静态强调段：仍能看出“进行中”，但不再逐帧重绘。
       drawBand(canvas, width * 0.33f, sweepWidth, height);
@@ -135,7 +172,7 @@ public final class ShellActivityTrack extends View {
     }
     long now = android.os.SystemClock.uptimeMillis();
     if (sweepStartMs <= 0) sweepStartMs = now;
-    float phase = (now - sweepStartMs) % SWEEP_DURATION_MS / (float) SWEEP_DURATION_MS;
+    float phase = (now - sweepStartMs) % sweepDurationMs / (float) sweepDurationMs;
     float start = -sweepWidth + (width + sweepWidth) * phase;
     drawBand(canvas, start, sweepWidth, height);
     postInvalidateOnAnimation();
@@ -159,7 +196,7 @@ public final class ShellActivityTrack extends View {
     canvas.save();
     canvas.translate(start, 0f);
     paint.setShader(bandShader);
-    canvas.drawRect(0f, 0f, sweepWidth, height, paint);
+    canvas.drawRoundRect(0f, 0f, sweepWidth, height, cornerRadiusPx, cornerRadiusPx, paint);
     paint.setShader(null);
     canvas.restore();
   }

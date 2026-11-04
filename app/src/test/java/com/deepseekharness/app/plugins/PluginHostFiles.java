@@ -19,6 +19,28 @@ final class PluginHostFiles {
 
   private PluginHostFiles() {}
 
+  /** 只模拟 Android 对可信 framework 别名的 canonical 行为，不用于可写子路径。 */
+  static File frameworkAlias(File file) {
+    if (!WINDOWS) return file;
+    return new File(file.getAbsolutePath()) {
+      @Override
+      public File getAbsoluteFile() {
+        return this;
+      }
+
+      @Override
+      public File getCanonicalFile() throws IOException {
+        return toPath().toRealPath().toFile();
+      }
+
+      @Override
+      public File getParentFile() {
+        File parent = super.getParentFile();
+        return parent == null ? null : frameworkAlias(parent);
+      }
+    };
+  }
+
   static synchronized BackupFileSystem.Node stat(File file) throws IOException {
     if (!WINDOWS) return new JvmBackupFileSystem().stat(file);
     if (worker == null) {
@@ -74,7 +96,7 @@ final class PluginHostFiles {
         fields[1] + ":" + fields[2],
         Long.parseLong(fields[3]),
         Long.parseLong(fields[4]),
-        Long.parseLong(fields[1]),
+        Long.parseUnsignedLong(fields[1]),
         Integer.parseInt(fields[5]));
   }
 

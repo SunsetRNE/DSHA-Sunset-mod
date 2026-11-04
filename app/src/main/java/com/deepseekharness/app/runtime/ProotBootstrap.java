@@ -299,6 +299,33 @@ public class ProotBootstrap {
     return execution.exec(command, environment);
   }
 
+  /** 模块受管程序：只读绑定私有目录到固定 guest 路径，返回有界收集结果。 */
+  public com.deepseekharness.app.util.BoundedProcessRunner.Result execProgram(
+      String command, long timeoutMs, File hostDir, String guestDir)
+      throws IOException, InterruptedException {
+    return execution.collectBound(command, timeoutMs, hostDir, guestDir);
+  }
+
+  /** 用户显式启动的 SSH 独立进程组；正常门禁、原生握手及持久退出证据不省略。 */
+  IsolatedInstallProcess startSsh(String command) throws IOException {
+    requireUserRuntime();
+    ensureRuntimeFiles();
+    prepareRuntimeTools();
+    if (IsolatedInstallProcess.bundledLauncher(ctx) == null)
+      throw new IOException("SSH_SESSION_LAUNCHER_MISSING");
+    ContainerRuntime proot = new ContainerRuntime.Proot(ctx, findNativeLib("libproot.so"));
+    LaunchSpec.Builder spec = launch(proot).hardlinks(false).isolated(true).pipedInput(true);
+    ContainerSshAssets.bind(ctx, spec);
+    BoundedGuestSessions.Operation record = BoundedGuestSessions.begin(ctx.getFilesDir());
+    spec.record(record);
+    try {
+      return (IsolatedInstallProcess) startRootfs(command, spec.build());
+    } catch (IOException | RuntimeException failure) {
+      record.uncertain();
+      throw failure;
+    }
+  }
+
   public Process execRootfsForInstall(String command) throws IOException {
     return execution.install(command, false);
   }

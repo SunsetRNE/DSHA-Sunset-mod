@@ -15,6 +15,23 @@ public class DshaApp extends Application
       new com.deepseekharness.app.capabilities.CapabilityBroker(
           android.os.SystemClock::elapsedRealtime);
   private volatile String screenInstallationId;
+  private volatile com.deepseekharness.app.module.ModuleRegistry.Snapshot moduleSnapshot;
+
+  public com.deepseekharness.app.module.ModuleRegistry.Snapshot moduleSnapshot() {
+    var snapshot = moduleSnapshot;
+    if (snapshot == null) {
+      synchronized (this) {
+        snapshot = moduleSnapshot;
+        if (snapshot == null)
+          moduleSnapshot = snapshot = com.deepseekharness.app.module.ModuleRegistry.load(this);
+      }
+    }
+    return snapshot;
+  }
+
+  public synchronized void invalidateModuleSnapshot() {
+    moduleSnapshot = null;
+  }
 
   public com.deepseekharness.app.capabilities.CapabilityBroker capabilityBroker() {
     return screenCapabilityBroker;
@@ -150,6 +167,14 @@ public class DshaApp extends Application
     super.onCreate();
     // 必须早于界面 Locale.setDefault；保留系统原始语言供「跟随系统」使用。
     com.deepseekharness.app.util.SystemLanguage.initialize(this);
+    moduleSnapshot();
+    // 被 force-stop / OEM 清理后系统会撤销闹钟；每次进程启动都重排一次，用户重新打开
+    // App 就能恢复定时任务，不再只依赖开机广播。内部自兜底，绝不抛出。
+    try {
+      com.deepseekharness.app.module.ModuleScheduler.rearmAll(this);
+    } catch (Throwable ignored) {
+      // 定时任务恢复失败不能阻断应用启动
+    }
     com.deepseekharness.app.data.PortableSettings.initialize(this);
     com.deepseekharness.app.ui.LanguageController.apply(this);
     ShizukuShell.init(this);

@@ -233,6 +233,27 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   @Test
+  public void restoredNavigationMenuKeepsExactlyOneSelectedRootPage() throws Exception {
+    var restored = restoreLaunch(false);
+    try {
+      showMain(restored);
+      var nav =
+          (com.google.android.material.bottomnavigation.BottomNavigationView)
+              restored.main.findViewById(R.id.bottom_nav);
+      nav.setSelectedItemId(R.id.nav_launch);
+      int checked = 0;
+      for (int index = 0; index < nav.getMenu().size(); index++) {
+        var item = nav.getMenu().getItem(index);
+        if (item.isChecked()) checked++;
+      }
+      assertEquals(1, checked);
+      assertTrue(nav.getMenu().findItem(R.id.nav_launch).isChecked());
+    } finally {
+      restored.host.pause().stop().destroy();
+    }
+  }
+
+  @Test
   public void unchangedGateKeepsRestoredLaunchInstanceAndItsView() throws Exception {
     var restored = restoreLaunch(false);
     try {

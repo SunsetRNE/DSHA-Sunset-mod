@@ -26,6 +26,7 @@ import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.DeviceBridgeService;
 import com.deepseekharness.app.DshaAccessibilityService;
 import com.deepseekharness.app.OverlayController;
+import com.deepseekharness.app.RootShell;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.bridge.AdbBridge;
 import com.deepseekharness.app.core.ConfigStore;
@@ -111,6 +112,11 @@ public class ConfigFragment extends Fragment {
     v.findViewById(R.id.config_gecko_hint)
         .setVisibility(com.deepseekharness.app.BuildConfig.LOW_ANDROID ? View.VISIBLE : View.GONE);
     gecko.setChecked(c.isGeckoCore());
+    if (c.isRootRuntime()
+        && !com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
+      c.setContainerRuntimeMode("proot");
+      c.setRootRuntimeAuthorization(false);
+    }
     proroot.setChecked(c.isProroot());
     lan.setChecked(c.isLanMode());
     TextView lanPasswordStatus = v.findViewById(R.id.config_lan_password_status);
@@ -126,10 +132,44 @@ public class ConfigFragment extends Fragment {
         new String[] {
           com.deepseekharness.app.util.UiText.choose("proot（默认，稳定）", "proot (default, stable)"),
           com.deepseekharness.app.util.UiText.choose(
-              "proroot（可选，实验）", "proroot (optional, experimental)")
+              "proroot（可选，实验）", "proroot (optional, experimental)"),
+          com.deepseekharness.app.util.UiText.choose(
+              "root（直接运行，需授权）", "root (direct, permission required)")
         },
-        c.isProroot() ? 1 : 0,
-        index -> proroot.setChecked(index == 1));
+        c.containerRuntimeMode().equals("proroot")
+            ? 1
+            : c.containerRuntimeMode().equals("root") ? 2 : 0,
+        index -> {
+          if (index == 2) {
+            if (!com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
+              toast(
+                  com.deepseekharness.app.util.UiText.text(
+                      "root 容器模式暂不可用：设备隔离与清理保护尚未完成，已保持 proot"));
+              c.setContainerRuntimeMode("proot");
+              c.setRootRuntimeAuthorization(false);
+              return;
+            }
+            if (!RootShell.present()) {
+              toast(com.deepseekharness.app.util.UiText.text("root 模式不可用：未找到 su/root 权限"));
+              c.setContainerRuntimeMode("proot");
+              c.setRootRuntimeAuthorization(false);
+              return;
+            }
+            if (!RootShell.verifyAuthorization(requireContext())) {
+              toast(com.deepseekharness.app.util.UiText.text("root 模式不可用：Root 管理器未授予 DSHA 权限"));
+              c.setContainerRuntimeMode("proot");
+              c.setRootRuntimeAuthorization(false);
+              return;
+            }
+            c.setRootRuntimeAuthorization(true);
+            c.setContainerRuntimeMode("root");
+            proroot.setChecked(false);
+          } else {
+            c.setContainerRuntimeMode(index == 1 ? "proroot" : "proot");
+            c.setRootRuntimeAuthorization(false);
+            proroot.setChecked(index == 1);
+          }
+        });
     bindChoice(
         v,
         R.id.config_dns_choice,
@@ -219,7 +259,6 @@ public class ConfigFragment extends Fragment {
                   c.setDesktopMode(desktop.isChecked());
                   if (com.deepseekharness.app.BuildConfig.LOW_ANDROID)
                     c.setGeckoCore(gecko.isChecked());
-                  c.setProroot(proroot.isChecked());
                   c.setProrootStaticLoader(staticLoader.isChecked());
                   c.setProotSeccompDisabled(noSeccomp.isChecked());
                   c.setDnsMode(
@@ -334,84 +373,15 @@ public class ConfigFragment extends Fragment {
   }
 
   private void showLanPasswordDialog(ConfigStore config, TextView status) {
-    if (savingLanPassword.get()) {
-      Toast.makeText(requireContext(), R.string.lan_password_saving, Toast.LENGTH_SHORT).show();
-      return;
-    }
-    Context context = requireContext();
-    LinearLayout fields = new LinearLayout(context);
-    fields.setOrientation(LinearLayout.VERTICAL);
-    int padding = (int) (20 * getResources().getDisplayMetrics().density);
-    fields.setPadding(padding, 0, padding, 0);
-    EditText password = new EditText(context);
-    password.setHint(R.string.lan_password_new);
-    password.setInputType(
-        android.text.InputType.TYPE_CLASS_TEXT
-            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-    password.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
-    EditText confirmation = new EditText(context);
-    confirmation.setHint(R.string.lan_password_confirm);
-    confirmation.setInputType(
-        android.text.InputType.TYPE_CLASS_TEXT
-            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-    confirmation.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
-    fields.addView(password);
-    fields.addView(confirmation);
-    var dialog =
-        new DshaDialogBuilder(context)
-            .setTitle(R.string.lan_password_button)
-            .setMessage(R.string.lan_password_prompt)
-            .setView(fields)
-            .setNegativeButton(R.string.lan_password_cancel, null)
-            .setPositiveButton(R.string.lan_password_save, null)
-            .create();
-    dialog.show();
-    dialog
-        .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
-        .setOnClickListener(
-            ignored -> {
-              String value = password.getText().toString();
-              if (!com.deepseekharness.app.util.LanPassword.validPassword(value)
-                  || !value.equals(confirmation.getText().toString())) {
-                confirmation.setError(getString(R.string.lan_password_invalid));
-                return;
-              }
-              if (!savingLanPassword.compareAndSet(false, true)) return;
-              password.setText("");
-              confirmation.setText("");
-              dialog.dismiss();
-              status.setText(R.string.lan_password_saving);
-              Context app = context.getApplicationContext();
-              new Thread(
-                      () -> {
-                        boolean saved = false;
-                        try {
-                          config.setLanPassword(value);
-                          saved = true;
-                        } catch (RuntimeException ignoredFailure) {
-                          // Do not log exception details: the input is a secret.
-                        }
-                        final boolean success = saved;
-                        new android.os.Handler(android.os.Looper.getMainLooper())
-                            .post(
-                                () -> {
-                                  boolean enabled = config.isLanMode();
-                                  boolean applied = success && applyLanMode(app, enabled);
-                                  savingLanPassword.set(false);
-                                  if (!isAdded() || getView() == null) return;
-                                  TextView currentStatus =
-                                      getView().findViewById(R.id.config_lan_password_status);
-                                  currentStatus.setText(
-                                      config.hasLanPassword()
-                                          ? R.string.lan_password_set
-                                          : R.string.lan_password_missing);
-                                  int message = lanPasswordSavedMessage(success, enabled, applied);
-                                  Toast.makeText(app, message, Toast.LENGTH_LONG).show();
-                                });
-                      },
-                      "dsha-lan-password")
-                  .start();
-            });
+    LanPasswordDialog.show(
+        requireContext(),
+        config,
+        () -> {
+          status.setText(
+              config.hasLanPassword() ? R.string.lan_password_set : R.string.lan_password_missing);
+          Toast.makeText(requireContext(), R.string.lan_password_saved_check, Toast.LENGTH_LONG)
+              .show();
+        });
   }
 
   // Submission is not proof of a successful asynchronous bind. The Launch page

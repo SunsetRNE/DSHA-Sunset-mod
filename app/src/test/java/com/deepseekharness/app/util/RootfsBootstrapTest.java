@@ -51,6 +51,19 @@ public class RootfsBootstrapTest {
   }
 
   @Test
+  public void explicitX64TargetRejectsArmAndDefaultRejectsX64() throws Exception {
+    var resolver = fixture();
+    assertFalse(RootfsBootstrap.ready(resolver, 62));
+    try (var file = new RandomAccessFile(new File(root, "bin/bash"), "rw")) {
+      file.seek(18);
+      file.write(new byte[] {62, 0});
+    }
+    assertFalse(RootfsBootstrap.ready(resolver));
+    assertTrue(RootfsBootstrap.ready(resolver, 62));
+    assertFalse(RootfsBootstrap.ready(resolver, 3));
+  }
+
+  @Test
   public void recoverySelectionAcceptsUbuntuDotPrefixAndExcludesNodeAndPersonalData() {
     for (String name :
         new String[] {

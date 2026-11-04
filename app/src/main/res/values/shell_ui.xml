@@ -34,11 +34,18 @@
     <color name="shell_glass">#E0FAFCFF</color>
     <color name="shell_nav_bg">#FAFCFDFF</color>
     <color name="shell_nav_ripple">#1F1E50D0</color>
+    <color name="shell_switch_track_unchecked">#405068</color>
+    <color name="shell_switch_track_checked">#1E50D0</color>
+    <color name="shell_switch_track_disabled">#263347</color>
+    <color name="shell_switch_thumb_unchecked">#F4F7FC</color>
+    <color name="shell_switch_thumb_checked">#FFFFFF</color>
+    <color name="shell_switch_thumb_disabled">#AEB9C9</color>
 
     <!-- 手机胶囊导航 -->
     <dimen name="shell_nav_height">64dp</dimen>
     <dimen name="shell_nav_margin_horizontal">12dp</dimen>
     <dimen name="shell_nav_margin_bottom">10dp</dimen>
+    <dimen name="shell_nav_bottom_clearance">112dp</dimen>
     <dimen name="shell_nav_icon_size">22dp</dimen>
     <dimen name="shell_nav_label">10sp</dimen>
     <dimen name="shell_nav_item_padding_top">8dp</dimen>

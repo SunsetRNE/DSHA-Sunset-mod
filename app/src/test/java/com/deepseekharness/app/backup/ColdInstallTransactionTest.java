@@ -23,7 +23,7 @@ public class ColdInstallTransactionTest {
               n.type,
               n.type.equals("MISSING")
                   ? ""
-                  : keys.computeIfAbsent(f.getAbsolutePath(), k -> UUID.randomUUID().toString()),
+                  : keys.computeIfAbsent(identityPath(f), k -> UUID.randomUUID().toString()),
               n.size,
               n.modified,
               n.device,
@@ -47,27 +47,33 @@ public class ColdInstallTransactionTest {
           return io.create(f);
         }
 
+        String identityPath(File file) {
+          try {
+            return file.getCanonicalPath();
+          } catch (IOException ignored) {
+            return file.getAbsolutePath();
+          }
+        }
+
         public void directory(File f) throws IOException {
           io.directory(f);
-          keys.remove(f.getAbsolutePath());
+          keys.remove(identityPath(f));
         }
 
         public void move(File a, File b) throws IOException {
           io.move(a, b);
+          String source = identityPath(a), destination = identityPath(b);
           var copy = new HashMap<>(keys);
           for (var e : copy.entrySet())
-            if (e.getKey().equals(a.getAbsolutePath())
-                || e.getKey().startsWith(a.getAbsolutePath() + File.separator)) {
+            if (e.getKey().equals(source) || e.getKey().startsWith(source + File.separator)) {
               keys.remove(e.getKey());
-              keys.put(
-                  b.getAbsolutePath() + e.getKey().substring(a.getAbsolutePath().length()),
-                  e.getValue());
+              keys.put(destination + e.getKey().substring(source.length()), e.getValue());
             }
         }
 
         public void delete(File f) throws IOException {
           io.delete(f);
-          keys.remove(f.getAbsolutePath());
+          keys.remove(identityPath(f));
         }
 
         public void mode(File f, int m) throws IOException {

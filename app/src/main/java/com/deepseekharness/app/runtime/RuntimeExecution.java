@@ -54,6 +54,26 @@ final class RuntimeExecution {
   ContainerRuntime runtime() {
     RuntimeHostPorts.Settings settings = ports.settings();
     try {
+      String configured =
+          new com.deepseekharness.app.core.ConfigStore(context).containerRuntimeMode();
+      if ("root".equals(configured)) {
+        if (!com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
+          ports.record(
+              "RUNTIME_ROOT_BLOCKED",
+              com.deepseekharness.app.util.RootRuntimePolicy.directContainerUnavailableReason());
+          new com.deepseekharness.app.core.ConfigStore(context).setRootRuntimeAuthorization(false);
+          new com.deepseekharness.app.core.ConfigStore(context).setContainerRuntimeMode("proot");
+          return proot();
+        }
+        if (com.deepseekharness.app.RootShell.verifyAuthorization(context)) {
+          ports.record("RUNTIME_ROOT_AUTHORIZED", "root runtime requested and authorized");
+          return new ContainerRuntime.Root(context, rootfs, context.getFilesDir());
+        }
+        ports.record("RUNTIME_ROOT_FALLBACK", "root authorization unavailable; using proot");
+        new com.deepseekharness.app.core.ConfigStore(context).setRootRuntimeAuthorization(false);
+        new com.deepseekharness.app.core.ConfigStore(context).setContainerRuntimeMode("proot");
+        return proot();
+      }
       if (!forceProot && android.os.Build.VERSION.SDK_INT >= 26 && settings.proroot) {
         ContainerRuntime selected =
             new ContainerRuntime.Proroot(
@@ -109,7 +129,10 @@ final class RuntimeExecution {
       throw new IllegalStateException(detail, error);
     }
     File home = new File(rootfs, "root"), link = new File(home, "手机存储");
-    if (home.isDirectory() && !link.exists() && !Compat.isSymbolicLink(link))
+    if (home.isDirectory()
+        && com.deepseekharness.app.util.ExternalStorageAccess.granted(context)
+        && !link.exists()
+        && !Compat.isSymbolicLink(link))
       try {
         Compat.symlink("/sdcard", link);
       } catch (IOException | RuntimeException error) {
@@ -246,6 +269,55 @@ final class RuntimeExecution {
       String command, long timeoutMs, boolean proot, ContainerRuntime selected)
       throws IOException, InterruptedException {
     return collect(command, timeoutMs, proot, selected, null);
+  }
+
+  /**
+   * 模块受管程序：把应用私有目录只读绑定到固定 guest 路径，按固定 argv 执行。
+   *
+   * <p>与普通 {@link #collect} 的区别是显式 {@code bind}，并且 proroot 下登记 guest lease。
+   * 仍走 {@link BoundedProcessRunner} 的限时限长收集和退出收口；返回结果不含命令原文。
+   */
+  BoundedProcessRunner.Result collectBound(
+      String command, long timeoutMs, File hostDir, String guestDir)
+      throws IOException, InterruptedException {
+    try (RuntimeHostPorts.Scope ignored = ports.open()) {
+      requireReady();
+      ContainerRuntime selected = runtime();
+      boolean links = hardlinks();
+      prepareTools();
+      nativeFiles();
+      BoundedGuestSessions.Operation record = null;
+      if ("proroot".equals(selected.id())) {
+        if (IsolatedInstallProcess.bundledLauncher(context) == null)
+          throw new IOException("BOUNDED_PROGRAM_SESSION_UNAVAILABLE");
+        record = BoundedGuestSessions.begin(context.getFilesDir());
+      }
+      RuntimeWorkPort.Work work = RuntimeWorkPort.begin("模块程序");
+      Process process = null;
+      Throwable original = null;
+      try {
+        LaunchSpec.Builder spec =
+            launch(selected).hardlinks(links).bind(hostDir.getAbsolutePath(), guestDir);
+        if (record != null) spec.isolated(true).record(record);
+        process = start(command, spec.build());
+        return BoundedProcessRunner.collect(process, timeoutMs, 64 * 1024, Compat::destroy);
+      } catch (IOException | InterruptedException | RuntimeException | Error failure) {
+        original = failure;
+        if (record != null) record.uncertain();
+        throw failure;
+      } finally {
+        Process ending = process;
+        Runnable close =
+            ending instanceof IsolatedInstallProcess
+                ? ((IsolatedInstallProcess) ending)::close
+                : null;
+        Runnable uncertain =
+            ending instanceof IsolatedInstallProcess
+                ? ((IsolatedInstallProcess) ending)::markRecordUncertain
+                : null;
+        BoundedGuestLifetime.finish(ending, close, uncertain, work, original);
+      }
+    }
   }
 
   BoundedProcessRunner.Result collectCasLinks(java.util.function.Consumer<String> timing)
