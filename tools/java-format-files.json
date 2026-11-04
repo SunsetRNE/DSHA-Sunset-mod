@@ -1072,6 +1072,7 @@
     "app/src/test/java/com/deepseekharness/app/ui/PluginFlowRowTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/PluginFragmentRenderingTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/PluginListPresenterTest.java",
+    "app/src/test/java/com/deepseekharness/app/ui/RendererSurfaceLifecycleTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/TerminalActivityLifecycleTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/TerminalFloatingMenuTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/TerminalInputContractTest.java",

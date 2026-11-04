@@ -163,6 +163,52 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     final com.deepseekharness.app.util.BrowserUploadRequestState<WebView, WebUploads.Session>
         uploadRequests = new com.deepseekharness.app.util.BrowserUploadRequestState<>();
 
+    void clearPageState() {
+      view = null;
+      authUrl = null;
+      ready = false;
+      needsStreamResume = false;
+      pageSession.clear();
+      pageEvents = null;
+      themeGate = null;
+      themeColor = null;
+      routeRequestSent = null;
+      pageNavigation++;
+      navigation.cancel();
+      pendingHistory = null;
+      compatibilityScript = null;
+      scriptLanguage = null;
+    }
+
+    boolean rendererGone(WebView failed, RenderProcessGoneDetail detail) {
+      if (failed != view) return true; // A late callback cannot retire its replacement.
+      WebPreviewActivity current = owner.get();
+      if (current != null && current.webView == failed && !current.isDestroyed()) {
+        current.rendererGone(failed, detail);
+        return true;
+      }
+      retireRendererView(failed);
+      return true;
+    }
+
+    void retireRendererView(WebView failed) {
+      // A retained WebView remains alive between the old Activity's destruction and
+      // the replacement's attachment. It still needs a renderer-exit owner in that gap.
+      clearPageState();
+      uploadRequests.invalidate();
+      PendingUpload upload = pendingUpload;
+      pendingUpload = null;
+      if (upload != null) rendererCleanup("upload", () -> upload.complete(null));
+      WebBlobDownload blob = blobDownload;
+      blobDownload = null;
+      if (blob != null) rendererCleanup("blob", blob::close);
+      WebUploads.Session uploads = uploadSession;
+      uploadSession = null;
+      if (uploads != null) rendererCleanup("upload-session", uploads::close);
+      if (failed.getParent() instanceof android.view.ViewGroup parent) parent.removeView(failed);
+      rendererCleanup("destroy", failed::destroy);
+    }
+
     @Override
     protected void onCleared() {
       if (pendingUpload != null) {
@@ -184,6 +230,30 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
         uploadSession.close();
         uploadSession = null;
       }
+    }
+  }
+
+  /** Does not retain the retired Activity while the same page is waiting for reattachment. */
+  static final class RetainedRendererClient extends WebViewClient {
+    private final Retained page;
+
+    RetainedRendererClient(Retained page) {
+      this.page = page;
+    }
+
+    @Override
+    public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+      return page.rendererGone(view, detail);
+    }
+  }
+
+  private static void rendererCleanup(String stage, Runnable cleanup) {
+    try {
+      cleanup.run();
+    } catch (RuntimeException failure) {
+      // An already-dead renderer can reject an outstanding framework callback. Continue
+      // retiring the other page resources; never turn that into a second host crash.
+      Log.w("DSHA", "WEB_RENDERER_CLEANUP " + stage + " " + failure.getClass().getSimpleName());
     }
   }
 
@@ -1152,26 +1222,39 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     @androidx.annotation.RequiresApi(26)
     @Override
     public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-      if (webView == view) {
-        boolean currentPage = isCurrentPage(view);
-        destroyWebView();
-        if (!currentPage) return true;
-        // A crashed renderer is an engine failure. Low may switch once
-        // to Gecko after the dead WebView and its page resources close.
-        if (detail.didCrash() && openGeckoAfterWebViewFailure()) return true;
-        showError(
-            detail.didCrash()
-                ? com.deepseekharness.app.util.WebCrashReport.Kind.RENDER_CRASH
-                : com.deepseekharness.app.util.WebCrashReport.Kind.RENDER_RECLAIMED,
-            com.deepseekharness.app.util.UiText.text("网页渲染进程已退出"),
-            detail.didCrash()
-                ? com.deepseekharness.app.util.UiText.text("系统 WebView 发生异常，点击重试可重新打开；持续出现时请更新内核。")
-                : com.deepseekharness.app.util.UiText.text("系统可能因内存不足回收了网页，点击重试可重新打开。"),
-            "onRenderProcessGone(didCrash=" + detail.didCrash() + ")",
-            null);
-      }
-      return true;
+      return retained == null || retained.rendererGone(view, detail);
     }
+  }
+
+  private void rendererGone(WebView failed, RenderProcessGoneDetail detail) {
+    boolean currentPage = isCurrentPage(failed);
+    BrowserTasks.browserUnavailable(this);
+    // Revoke the native bridge before cancelIme: no JavaScript may be sent to the dead page.
+    webView = null;
+    WebFrameRate.clear(this, failed);
+    WebFullscreenUi.cancelIme(this);
+    WebFullscreenUi.applyThemeColor(this, getColor(R.color.surface));
+    if (microphoneRequests != null) {
+      WebViewMicrophone audio = microphoneRequests;
+      microphoneRequests = null;
+      rendererCleanup("microphone", audio::cancel);
+    }
+    boolean hadBlob = retained.blobDownload != null;
+    retained.retireRendererView(failed);
+    if (hadBlob && downloads != null) rendererCleanup("download", downloads.model::cancel);
+    navigatingBack = false;
+    refreshPictureInPicture();
+    if (!currentPage) return;
+    showError(
+        detail.didCrash()
+            ? com.deepseekharness.app.util.WebCrashReport.Kind.RENDER_CRASH
+            : com.deepseekharness.app.util.WebCrashReport.Kind.RENDER_RECLAIMED,
+        com.deepseekharness.app.util.UiText.text("网页渲染进程已退出"),
+        detail.didCrash()
+            ? com.deepseekharness.app.util.UiText.text("系统 WebView 发生异常，点击重试可重新打开；持续出现时请更新内核。")
+            : com.deepseekharness.app.util.UiText.text("系统可能因内存不足回收了网页，点击重试可重新打开。"),
+        "onRenderProcessGone(didCrash=" + detail.didCrash() + ")",
+        null);
   }
 
   private boolean openGeckoAfterWebViewFailure() {
@@ -1648,20 +1731,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     WebView previous = webView;
     WebFrameRate.clear(this, previous);
     webView = null;
-    if (retained != null) {
-      retained.view = null;
-      retained.authUrl = null;
-      retained.ready = false;
-      retained.needsStreamResume = false;
-      retained.pageSession.clear();
-      retained.pageEvents = null;
-      retained.themeGate = null;
-      retained.themeColor = null;
-      retained.routeRequestSent = null;
-      retained.pageNavigation++;
-      retained.navigation.cancel();
-      retained.pendingHistory = null;
-    }
+    if (retained != null) retained.clearPageState();
     refreshPictureInPicture();
     if (retained != null) {
       retained.compatibilityScript = null;
@@ -1916,7 +1986,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     if (downloads != null) downloads.dismiss();
     if (isChangingConfigurations() && webView != null) {
       container.removeView(webView);
-      webView.setWebViewClient(new WebViewClient());
+      webView.setWebViewClient(new RetainedRendererClient(retained));
       webView.setWebChromeClient(null);
       webView.setDownloadListener(null);
       ((android.content.MutableContextWrapper) webView.getContext())

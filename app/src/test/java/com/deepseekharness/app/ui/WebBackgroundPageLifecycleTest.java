@@ -275,6 +275,91 @@ public final class WebBackgroundPageLifecycleTest {
     }
   }
 
+  static android.webkit.RenderProcessGoneDetail rendererExit(boolean crashed) {
+    return new android.webkit.RenderProcessGoneDetail() {
+      @Override
+      public boolean didCrash() {
+        return crashed;
+      }
+
+      @Override
+      public int rendererPriorityAtExit() {
+        return WebView.RENDERER_PRIORITY_IMPORTANT;
+      }
+    };
+  }
+
+  @Test
+  public void rendererDeathDuringRotationGapIsHandledAndClearsOnlyTheRetainedPage()
+      throws Exception {
+    var stored =
+        new androidx.lifecycle.ViewModelProvider(browser).get(WebPreviewActivity.Retained.class);
+    stored.view = page;
+    stored.ready = true;
+    stored.pageSession.claim(ORIGINAL);
+    // prepare() already loaded this page. A real retained ready page has also consumed
+    // its initial-navigation ticket; leaving the gate new would authorize a first load
+    // during onCreate, before the renderer-exit scenario even starts.
+    stored.navigation.begin(false);
+    assertTrue(stored.navigation.claim());
+    browser
+        .getIntent()
+        .putExtra(BrowserConversationRoute.GENERATION, ORIGINAL.generation())
+        .putExtra(BrowserConversationRoute.INSTANCE, ORIGINAL.instanceId());
+    lifecycle.create().start().resume().visible();
+    created = true;
+    assertEquals("reattaching the ready page must not navigate", 1, page.navigations);
+    var uploads = new WebUploads.Session(browser.getCacheDir());
+    stored.uploadSession = uploads;
+    lifecycle.pause().stop();
+    org.robolectric.util.ReflectionHelpers.setField(browser, "mChangingConfigurations", true);
+    lifecycle.destroy();
+    created = false;
+    assertNull(page.getParent());
+    assertSame(page, stored.view);
+    assertEquals(0, page.destroyed);
+    assertTrue(page.getWebViewClient() instanceof WebPreviewActivity.RetainedRendererClient);
+    assertTrue(page.getWebViewClient().onRenderProcessGone(page, rendererExit(true)));
+    assertNull(stored.view);
+    assertNull(stored.pageSession.identity());
+    assertFalse(stored.ready);
+    assertTrue(uploads.isClosed());
+    assertEquals(1, page.destroyed);
+    assertEquals("renderer loss is not Web-node exit", ORIGINAL, Controller.ready);
+    assertEquals(1, page.navigations);
+  }
+
+  @Test
+  public void foregroundRendererDeathCancelsOnlyItsContentReturnWithoutRestartingRuntime()
+      throws Exception {
+    BrowserTasks.rememberBackground(browser);
+    assertTrue(BrowserTasks.returnPending());
+    BrowserTasks.browserUnavailable(Robolectric.buildActivity(Browser.class).get());
+    assertTrue("another host cannot cancel the pending return", BrowserTasks.returnPending());
+    assertTrue(retained.rendererGone(page, rendererExit(false)));
+    assertFalse(BrowserTasks.returnPending());
+    assertNull(retained.view);
+    assertNull(retained.pageSession.identity());
+    assertEquals(1, page.destroyed);
+    assertEquals(1, page.navigations);
+    assertEquals(ORIGINAL, Controller.ready);
+    assertFalse(Controller.exited);
+    assertEquals(View.VISIBLE, panel.getVisibility());
+    assertEquals("The system closed the page", title.getText().toString());
+  }
+
+  @Test
+  public void lateRetainedRendererCallbackCannotDisposeAReplacementPage() {
+    var stale = new WebPreviewActivity.RetainedRendererClient(retained);
+    var replacement = new Page(new MutableContextWrapper(browser));
+    retained.view = replacement;
+    assertTrue(stale.onRenderProcessGone(page, rendererExit(true)));
+    assertSame(replacement, retained.view);
+    assertEquals(ORIGINAL, retained.pageSession.identity());
+    assertEquals(0, replacement.destroyed);
+    replacement.destroy();
+  }
+
   @Test
   public void threeUnknownRestoreCyclesKeepTheSameDomAndBlockOldNativeCallbacksWithoutNavigation()
       throws Exception {

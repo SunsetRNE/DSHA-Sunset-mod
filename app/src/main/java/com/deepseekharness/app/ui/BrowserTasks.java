@@ -83,6 +83,15 @@ final class BrowserTasks {
     dispatched = null;
   }
 
+  /** A confirmed renderer loss cannot keep Main waiting for that page's content forever. */
+  static void browserUnavailable(PictureInPictureActivity owner) {
+    if (background != null && background.owner().get() == owner) {
+      background = null;
+      dispatched = null;
+      trace("CANCEL_RENDERER_GONE");
+    }
+  }
+
   /** Only the original browser reaching full-screen resume acknowledges the Home return. */
   static void browserResumed(PictureInPictureActivity owner) {
     if (background != null
