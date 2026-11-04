@@ -1,5 +1,15 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0030-dsh0.2.1-rc.5 / build314（实验性：插件卡片不对临时插件显示删除、元数据损坏仍可删除；应急确认按实际包名；插件启动路径减少 import 与 I/O（修复挑自协作者 ym2025szz））
+
+- 实验性：插件卡片不对临时插件显示删除，元数据损坏的插件仍可删除；应急原生确认与旧源恢复广播按实际安装包名；插件管理启动路径减少 import 与元数据 I/O（修复挑自协作者 ym2025szz efe03f81 快照）。
+- 插件卡片（eaef0bcd）：临时插件不再显示删除，改为提示到对应 Web 会话的 Cordis 插件管理中移除；`package.json` 缺失或损坏时卡片仍显示并标注元数据错误，仍可删除；带保留注册的已禁用插件不再从列表消失。`plugin-manager.py` 新增 `plugin_card_metadata`。
+- 应急确认包名（1281c88b）：`recovery-native-consent.cjs` 读取 `DSHA_BRIDGE_APPLICATION_ID`，缺省为 `io.github.sunsetrne.dsha`；`RecoveryRuntime` 注入实际包名；`BrowserOriginRestore.QUIESCE` 改用 `AppIdentity.applicationId()`。快照中把缺省改为原版包名的部分未挑入。
+- 插件启动（f96f200b）：`plugin-manager.py` / `register-builtin-plugins.py` / `plugin-transactions.py` 延迟导入 tar / zip / ssl / urllib，`ensure_relative_link` 走快路径，CAS 链接扫描改用 `scandir` 类型，新增 `REGISTER_TIMING` 阶段计时；`startup-observer.cjs` 复用 require 与 YAML schema。插件锁相关改动未挑入。
+- 运行时描述符随源码重算；六份补充翻译的字节钉同步更新。
+- 验证范围：发布会话在 build314 上复跑 `*Plugin*` / `*Recovery*` / `*UpdateVersionPageTest`；主机测试 `test-plugin-startup-imports` / `test-plugin-runtime-links` / `test-plugin-cas-scan-review` / `test-recovery-native-consent` / `test-native-consent-transport` / `test-runtime-proof`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 314（基于 build313）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build314 更新说明](docs/releases/build314-changes.zh.md)，验证记录见 [build314 记录](docs/releases/v0.2.1-rc.5-build314-plugin-cards-recovery-identity-startup-20261105.md)。
+
 ## 0.2.1-rc.5-20261104.2330-dsh0.2.1-rc.5 / build313（实验性：WebView 渲染进程退出后回收上传、下载与麦克风；输入法、画中画与颜色探针去重（修复挑自协作者 ym2025szz））
 
 - 实验性：WebView 渲染进程退出后回收上传、下载与麦克风，旋转期间旧页面仍有清理方；相同输入法帧、画中画恢复布局与颜色探针不再重复（修复挑自协作者 ym2025szz efe03f81 快照）。
