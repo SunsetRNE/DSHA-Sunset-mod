@@ -53,6 +53,9 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     retry: 'Retry'
   };
 
+  const NARROW = '.dshaLt_row{flex-direction:column;align-items:stretch}'
+    + '.dshaLt_label,.dshaLt_control{flex:0 0 auto;min-width:0}'
+    + '.dshaLt_control .dshaLt_segments{display:grid;width:100%;box-sizing:border-box}';
   const css = [
     '.dshaLt_root{display:grid;gap:8px;container-type:inline-size}',
     '.dshaLt_section{display:grid;gap:12px}',
@@ -66,8 +69,10 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     '.dshaLt_retry{appearance:none;border:0;background:none;padding:0 0 0 6px;color:var(--dsw-alias-link);font:inherit;cursor:pointer}',
     '.dshaLt_retry:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:2px;border-radius:4px}',
     // 窄屏（手机竖屏、分屏）上下排列，选择器占满整行。
-    '@container (max-width:420px){.dshaLt_row{flex-direction:column;align-items:stretch}.dshaLt_control{flex:1 1 auto;min-width:0}}',
-    '@supports not (container-type:inline-size){@media (max-width:599px){.dshaLt_row{flex-direction:column;align-items:stretch}.dshaLt_control{flex:1 1 auto;min-width:0}}}',
+    // 竖排时主轴变成高度：标签与选择器都必须改回按内容取高，否则标签的 180px 横向基准
+    // 会变成 180px 高的空白；分段控件原语是 inline-grid，需要显式撑满整行。
+    '@container (max-width:420px){' + NARROW + '}',
+    '@supports not (container-type:inline-size){@media (max-width:599px){' + NARROW + '}}',
     // 触屏：放大分段按钮的触控高度，不改变 DSH 原语的配色。
     '@media (pointer:coarse){.dshaLt_control [role=tab]{min-height:40px}}'
   ].join('');
@@ -141,6 +146,7 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
               'aria-labelledby': id + '-label',
               children: jsx.jsx(primitives.SegmentedControl, {
                 id: id + '-target',
+                className: 'dshaLt_segments',
                 label: t('title'),
                 value: state.target ?? 'main',
                 disabled: busy || unknown,
