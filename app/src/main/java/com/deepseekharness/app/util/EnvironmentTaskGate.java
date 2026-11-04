@@ -109,33 +109,38 @@ public final class EnvironmentTaskGate {
         }
         retained = process;
       }
-      Thread watcher =
-          new Thread(
-              () -> {
-                for (; ; ) {
-                  try {
-                    synchronized (EnvironmentTaskGate.class) {
-                      if (retained == process
-                          && runner == null
-                          && ProcessTermination.exited(process)) {
-                        retained = null;
-                        closed = true;
-                        if (active == this) active = null;
-                        return;
-                      }
-                    }
-                    Thread.sleep(1000);
-                  } catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                    return;
-                  } catch (RuntimeException unknown) {
-                    return;
-                  } // Retain the lease when exit evidence itself is unavailable.
-                }
-              },
-              "dsha-environment-exit");
+      Thread watcher = new Thread(() -> waitForRetainedExit(process), "dsha-environment-exit");
       watcher.setDaemon(true);
       watcher.start();
+    }
+
+    private void waitForRetainedExit(Process process) {
+      // Read only this exact Process, outside the global gate monitor. A transient failed probe or
+      // interrupted wait keeps the lease and the observer; it never authorizes a retry or signal.
+      RetainedProcessObserver.awaitExit(process, null);
+      boolean interrupted = Thread.interrupted();
+      try {
+        while (true) {
+          synchronized (EnvironmentTaskGate.class) {
+            if (retained != process) return;
+            // Process exit is monotonic, but the original Java operation may still be unwinding.
+            // Both facts are required, and a late old observer cannot release a newer lease.
+            if (runner == null) {
+              retained = null;
+              closed = true;
+              if (active == this) active = null;
+              return;
+            }
+          }
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException retry) {
+            interrupted = true;
+          }
+        }
+      } finally {
+        if (interrupted) Thread.currentThread().interrupt();
+      }
     }
 
     /** 可先在 UI 获取再转交 worker；同一凭据不允许两个 worker 同时执行。 */
