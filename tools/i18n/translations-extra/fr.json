@@ -1948,5 +1948,7 @@
   "x296plugin001": "Supprimez ce plugin temporaire dans la gestion des plugins Cordis de sa session Web.",
   "x296plugin002": "%s\n\nSupprimez ce plugin temporaire dans la gestion des plugins Cordis de sa session Web.",
   "x296plugin003": "Les métadonnées du plugin sont illisibles. Vous pouvez retirer son entrée de chargement ; l’original reste dans Données.",
-  "x296plugin004": "Métadonnées du plugin indisponibles"
+  "x296plugin004": "Métadonnées du plugin indisponibles",
+  "x319keep001": "Garder l’écran allumé",
+  "x319keep002": "Empêche l’extinction automatique ; s’applique au Web et au terminal."
 }

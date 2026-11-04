@@ -15812,5 +15812,21 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
     ]
+  },
+  {
+    "id": "x319keep001",
+    "zh": "屏幕常亮",
+    "en": "Keep screen on",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "x319keep002",
+    "zh": "不自动息屏；网页与终端适用",
+    "en": "Prevent automatic screen-off; applies to Web and terminal.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
   }
 ]

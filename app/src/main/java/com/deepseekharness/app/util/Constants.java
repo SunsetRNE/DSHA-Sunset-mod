@@ -73,6 +73,9 @@ public final class Constants {
   /** 电脑模式（预览用桌面浏览器 UA）。 */
   public static final String KEY_DESKTOP_MODE = "desktop_mode";
 
+  /** 屏幕常亮：仅本机 UI 行为，默认关闭，不进入备份。 */
+  public static final String KEY_KEEP_SCREEN_ON = "ui_keep_screen_on";
+
   /** 任务状态上岛（Android 16 实时活动 / promoted ongoing），默认开启。 */
   public static final String KEY_TASK_ISLAND = "task_island";
 

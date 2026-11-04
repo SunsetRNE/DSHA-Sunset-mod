@@ -119,6 +119,21 @@ public class SettingsFragment extends Fragment {
           describe.accept(checked);
         });
 
+    TextView keepTitle = v.findViewById(R.id.settings_keep_screen_on_title);
+    keepTitle.setText(com.deepseekharness.app.util.UiText.text("屏幕常亮"));
+    TextView keepHint = v.findViewById(R.id.settings_keep_screen_on_hint);
+    keepHint.setText(com.deepseekharness.app.util.UiText.text("不自动息屏；网页与终端适用"));
+    com.google.android.material.materialswitch.MaterialSwitch keepOn =
+        v.findViewById(R.id.settings_keep_screen_on_switch);
+    keepOn.setContentDescription(com.deepseekharness.app.util.UiText.text("屏幕常亮"));
+    keepOn.setChecked(config.isKeepScreenOn());
+    keepOn.setOnCheckedChangeListener(
+        (button, checked) -> {
+          config.setKeepScreenOn(checked);
+          android.app.Activity activity = getActivity();
+          if (activity != null) ModernAndroidUi.applyKeepScreenOn(activity);
+        });
+
     String version = "unknown";
     try {
       version =

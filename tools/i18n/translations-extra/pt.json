@@ -1948,5 +1948,7 @@
   "x296plugin001": "Exclua este plugin temporário no gerenciamento de plugins Cordis da sessão Web correspondente.",
   "x296plugin002": "%s\n\nExclua este plugin temporário no gerenciamento de plugins Cordis da sessão Web correspondente.",
   "x296plugin003": "Não é possível ler os metadados do plugin. Você pode remover a entrada de carregamento; o original permanece em Dados.",
-  "x296plugin004": "Metadados do plugin indisponíveis"
+  "x296plugin004": "Metadados do plugin indisponíveis",
+  "x319keep001": "Manter a tela ligada",
+  "x319keep002": "Evita o apagamento automático; aplica-se à Web e ao terminal."
 }

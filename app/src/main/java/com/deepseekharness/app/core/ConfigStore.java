@@ -316,6 +316,15 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_DESKTOP_MODE, v).apply();
   }
 
+  /** 屏幕常亮：默认关闭，按窗口生命周期应用，不随备份恢复。 */
+  public boolean isKeepScreenOn() {
+    return flag(Constants.KEY_KEEP_SCREEN_ON, false);
+  }
+
+  public void setKeepScreenOn(boolean value) {
+    prefs.edit().putBoolean(Constants.KEY_KEEP_SCREEN_ON, value).apply();
+  }
+
   /** 任务状态上岛默认开启：它只是给已有通知补充短文本与提升请求，失败会静默降级。 */
   public boolean isTaskIslandEnabled() {
     return flag(Constants.KEY_TASK_ISLAND, true);
