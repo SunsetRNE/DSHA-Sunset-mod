@@ -454,13 +454,15 @@ class Transactions:
     def cas_links(self):
         """Inspect every real profile directory without following directory links.
 
-        POSIX traversal is anchored to held NOFOLLOW directory descriptors. Each
-        directory edge is checked while visiting its children and its caller
-        checks the containing edge on entry/return. This avoids re-statting the
-        full ancestor chain for every ordinary file. Detaching an ancestor
-        cannot redirect descriptor-relative reads. Directory stable/member and
-        outer path identity checks still reject persistent replacements before
-        a result is returned; publishing separately rechecks each selected path.
+        POSIX traversal is anchored to held NOFOLLOW directory descriptors.
+        Fresh scandir entries supply file types without a separate stat for
+        every ordinary file (DT_UNKNOWN falls back to NOFOLLOW stat in Python).
+        No stored receipt, root timestamp or previous entry list skips a scan.
+        Directory identity, timestamps and membership are checked on return;
+        replacing an entry changes its containing directory, even if its name
+        is restored. Detaching an ancestor cannot redirect descriptor-relative
+        reads, and each containing edge is checked as recursion unwinds. Links
+        still receive full snapshots and independent publishing checks.
         Windows has path-based reads, so it retains the full ancestor checks.
         """
         root = self.g['local'](self.g['builtin'].NODE_MODULES)
@@ -486,22 +488,43 @@ class Transactions:
                         raise ValueError('旧 pnpm 模块父目录在核验期间变化，全部现场保留')
                 counts['directories'] += 1
                 counts['maxDepth'] = max(counts['maxDepth'], depth)
-                names = sorted(os.listdir(directory))
+                if reader.relative:
+                    with os.scandir(directory) as scan:
+                        entries = {entry.name: entry for entry in scan}
+                    names = sorted(entries)
+                else:
+                    entries = None
+                    names = sorted(os.listdir(directory))
                 for child in names:
-                    self.g['check_cancel'](); nested_verify()
+                    self.g['check_cancel']()
                     budget[0] += 1
                     counts['entries'] = budget[0]
                     counts['maxDepth'] = max(counts['maxDepth'], depth + 1)
                     if budget[0] > 100000:
                         raise ValueError('旧 pnpm 模块条目超过核验上限，全部现场保留')
-                    info = reader.stat(directory, child)
+                    if reader.relative:
+                        entry = entries[child]
+                        mode = (stat.S_IFLNK if entry.is_symlink() else
+                                stat.S_IFDIR if entry.is_dir(follow_symlinks=False) else
+                                stat.S_IFREG if entry.is_file(follow_symlinks=False) else 0)
+                        info = None
+                    else:
+                        nested_verify()
+                        info = reader.stat(directory, child)
+                        mode = 0 if reader.reparse(info) and not stat.S_ISLNK(info.st_mode) else info.st_mode
                     relative = prefix + child
-                    if stat.S_ISLNK(info.st_mode):
+                    if stat.S_ISLNK(mode):
                         # Native enable/disable markers are intent, not package
                         # cache entries, even if a user made one a CAS link.
                         if relative.endswith('.disabled') and ('/' not in relative or relative.startswith('@') and relative.count('/') == 1):
                             continue
+                        if info is None:
+                            info = reader.stat(directory, child)
+                        if not stat.S_ISLNK(info.st_mode):
+                            raise ValueError('旧 pnpm 模块链接在核验期间变化，全部现场保留')
                         old = reader.snapshot(directory, child, nested_verify)
+                        if old['kind'] != 'link':
+                            raise ValueError('旧 pnpm 模块链接在核验期间变化，全部现场保留')
                         path = self.cas_module_path(relative)
                         target = self.g['local'](old['target']) if os.path.isabs(old['target']) else os.path.normpath(os.path.join(os.path.dirname(path), old['target']))
                         target = os.path.abspath(target)
@@ -514,9 +537,9 @@ class Transactions:
                         found.append({'path': relative, 'before': old, 'beforeStat': [info.st_mtime_ns, info.st_ctime_ns], 'cas': cas_relative,
                                       'sha512': match[1] + match[2], 'mode': 0o755 if match[3] else 0o644})
                         counts['candidates'] = len(found)
-                    elif stat.S_ISDIR(info.st_mode) and not reader.reparse(info):
+                    elif stat.S_ISDIR(mode):
                         walk(directory, child, nested_verify, relative + '/', depth + 1)
-                    elif not stat.S_ISREG(info.st_mode) or reader.reparse(info):
+                    elif not stat.S_ISREG(mode):
                         raise ValueError('旧 pnpm 模块含特殊文件，全部现场保留')
                 if names != sorted(os.listdir(directory)) or not reader.stable(before, os.fstat(descriptor) if reader.relative else os.lstat(directory)):
                     raise ValueError('旧 pnpm 模块目录在核验期间变化，全部现场保留')

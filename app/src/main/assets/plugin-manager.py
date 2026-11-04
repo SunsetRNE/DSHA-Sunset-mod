@@ -10,19 +10,15 @@ import contextlib
 import os
 import re
 import shutil
-import ssl
 import stat
 import subprocess
 import signal
 import sys
-import tarfile
 import tempfile
 import threading
 import time
 import urllib.error
 import urllib.parse
-import urllib.request
-import zipfile
 
 spec = importlib.util.spec_from_file_location("builtin", os.path.join(
     os.path.dirname(__file__), "register-builtin-plugins.py"))
@@ -360,6 +356,10 @@ def safe_target(root, name):
 
 
 def extract_archive(path, staging):
+    # Startup migration and local queries do not open package archives. Keep
+    # these modules at the actual archive boundary to avoid proot import I/O.
+    import tarfile
+    import zipfile
     progress('extract', '正在校验并解压插件包…')
     """先校验所有条目，再解包；内部软链接延迟建立，不允许链接写出暂存目录。"""
     size, count, links = 0, 0, []
@@ -714,6 +714,7 @@ def resolve_plugin_dir(name, discovered=None):
 
 
 def cmd_export(names, out):
+    import tarfile
     progress('export', '正在打包插件…')
     names = json.loads(names)
     if not isinstance(names, list) or not names or len(names) > 30:
@@ -1341,6 +1342,8 @@ def main():
                 429: "请求过于频繁，请稍后重试"}.get(error.code, "服务器返回错误")
         result("error", "下载失败：%s（HTTP %s），也可下载压缩包后本地导入" % (hint, error.code))
     except urllib.error.URLError as error:
+        # Network owns SSL initialization; local commands need no TLS stack.
+        import ssl
         if isinstance(error.reason, ssl.SSLCertVerificationError):
             result("error", "HTTPS 证书校验失败。请更新 DSHA 并重新进入插件页，检查设备日期及网络代理；未关闭证书校验。")
         else:

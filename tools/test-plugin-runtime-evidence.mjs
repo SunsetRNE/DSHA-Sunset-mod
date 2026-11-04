@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
+import Module, { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -117,9 +117,46 @@ process.env.DSHA_OBSERVER_INSTALL = path.join(runtime, 'node_modules/@deepseek-a
 process.env.DSHA_STARTUP_PROFILE = 'web';
 process.env.DSHA_WEB_GENERATION = generation;
 process.env.DSH_TASK_INSTANCE = instance;
-createRequire(import.meta.url)('../app/src/main/assets/startup-observer.cjs');
+// 在真实文件与锁定 YAML 上统计观察器工作；只复用解析设置，不复用包/补丁内容。
+const observerRequire = createRequire(import.meta.url);
+const observerYaml = createRequire(runtimeRequire.resolve('@deepseek-ai/dsh-app-boot'))('js-yaml');
+const originalRequire = Module.createRequire, originalRead = fs.readFileSync;
+const originalSchemaExtend = observerYaml.JSON_SCHEMA.extend;
+const ownSchemaExtend = Object.hasOwn(observerYaml.JSON_SCHEMA, 'extend');
+const observerAnchors = new Map(), observerReads = new Map();
+let observerSchemaBuilds = 0;
+Module.createRequire = function (anchor) {
+  observerAnchors.set(String(anchor), (observerAnchors.get(String(anchor)) || 0) + 1);
+  return originalRequire.apply(this, arguments);
+};
+fs.readFileSync = function (file) {
+  observerReads.set(String(file), (observerReads.get(String(file)) || 0) + 1);
+  return originalRead.apply(this, arguments);
+};
+observerYaml.JSON_SCHEMA.extend = function () {
+  observerSchemaBuilds++;
+  return originalSchemaExtend.apply(this, arguments);
+};
+try { observerRequire('../app/src/main/assets/startup-observer.cjs'); }
+finally {
+  Module.createRequire = originalRequire;
+  fs.readFileSync = originalRead;
+  if (ownSchemaExtend) observerYaml.JSON_SCHEMA.extend = originalSchemaExtend;
+  else delete observerYaml.JSON_SCHEMA.extend;
+}
 const evidence = globalThis[Symbol.for('dsha.installed-plugin-evidence')];
 const hash = value => createHash('sha256').update(value).digest('hex');
+
+test('启动观察只创建一份固定解析设置，仍逐项读取当前插件内容', () => {
+  assert.equal(observerSchemaBuilds, 1);
+  assert.equal(observerAnchors.size, 3, 'installation, profile and YAML dependency anchors');
+  for (const count of observerAnchors.values()) assert.equal(count, 1);
+  for (const name of local) {
+    const directory = path.join(profile, 'node_modules', name);
+    assert.equal(observerReads.get(path.join(directory, 'package.json')), 1, name);
+    assert.equal(observerReads.get(path.join(directory, 'cordis.patch.yml')), 1, name);
+  }
+});
 
 // 使用真实官方补丁验证归属，不执行这些官方业务插件。
 test('官方 bundle 只拥有插入入口，禁用基础入口不是自身加载条件', () => {

@@ -133,7 +133,7 @@ print('FORBIDDEN_IMPORTS: ' + ','.join(sorted(set(sys.modules) & {'urllib.reques
         self.assertEqual({row['path'] for row in second}, {'test-plugin/index.js', 'test-plugin/a/b/c/late.js'})
         self.assertTrue(link.is_symlink())
 
-    def test_fd_scan_metadata_checks_grow_linearly_for_deep_regular_files(self):
+    def test_fd_scan_metadata_checks_depend_on_directories_not_regular_files(self):
         directory = self.package
         for level in range(12):
             directory = directory / ('level-' + str(level)); directory.mkdir()
@@ -148,31 +148,34 @@ print('FORBIDDEN_IMPORTS: ' + ','.join(sorted(set(sys.modules) & {'urllib.reques
         with patch.object(reader, 'stat', counted):
             found = self.transaction.cas_links()
         self.assertEqual(len(found), 1)
-        # Includes metadata on the absolute private ancestor chain and link
-        # snapshots; a per-file recursive ancestor verifier exceeds this bound.
-        entries = 3 + 12 * 25
-        self.assertLess(len(calls), 3 * entries + 200)
+        # Includes private ancestors and the real CAS-link snapshot. Ordinary
+        # files use fresh dirent types; they must not trigger metadata reads.
+        self.assertFalse(any(name.startswith('file-') for name in calls))
+        self.assertLess(len(calls), 12 * 8 + 100)
 
     def test_detached_ancestor_and_swap_restore_are_rejected_without_following(self):
         nested = self.package / 'a/b'; nested.mkdir(parents=True)
         sentinel = nested / 'sentinel'; sentinel.write_bytes(b'owned')
         outside = self.root / 'outside-scan'; outside.mkdir()
         (outside / 'special').write_bytes(b'outside unchanged')
-        reader = self.transaction.cas_links.__globals__['DeleteObjects']
-        original = reader.stat
+        original = os.scandir
         for restore in (False, True):
             moved = self.modules / 'retained-package'
             swapped = []
-            def swapped_stat(instance, parent, name):
-                value = original(instance, parent, name)
-                if name == 'sentinel' and not swapped:
-                    self.package.rename(moved)
-                    self.package.symlink_to(outside, target_is_directory=True)
-                    swapped.append(True)
-                    if restore:
-                        self.package.unlink(); moved.rename(self.package)
-                return value
-            with patch.object(reader, 'stat', swapped_stat):
+            def inspect(scan):
+                for entry in scan:
+                    if entry.name == 'sentinel' and not swapped:
+                        self.package.rename(moved)
+                        self.package.symlink_to(outside, target_is_directory=True)
+                        swapped.append(True)
+                        if restore:
+                            self.package.unlink(); moved.rename(self.package)
+                    yield entry
+            @contextlib.contextmanager
+            def swapped_scan(directory):
+                with original(directory) as scan:
+                    yield inspect(scan)
+            with patch.object(os, 'scandir', swapped_scan):
                 with self.assertRaisesRegex((ValueError, OSError), '变化|directory|Directory'):
                     self.transaction.cas_links()
             self.assertTrue(swapped)

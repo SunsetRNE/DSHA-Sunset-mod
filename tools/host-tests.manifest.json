@@ -2864,6 +2864,28 @@
       "reason": "Independent real Linux FD/NOFOLLOW negative controls for ancestor swaps during CAS scan and before transaction publication."
     },
     {
+      "path": "tools/test-plugin-startup-imports.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Fresh Python interpreters exercise actual local startup commands, lazy optional I/O imports and cancellation."
+    },
+    {
+      "path": "tools/test-plugin-runtime-links.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 30,
+      "environment": {},
+      "reason": "Actual POSIX relative/absolute link preservation, canonical migration and failure cleanup; Windows explicitly skips unsupported symlink scenarios."
+    },
+    {
       "path": "tools/test-deepseek-account-requests.mjs",
       "stage": "runtime",
       "requires": [

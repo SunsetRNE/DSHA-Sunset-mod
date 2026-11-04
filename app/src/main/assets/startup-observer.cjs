@@ -35,18 +35,25 @@ const installedBundles = [];
 const initAttempts = new WeakMap();
 const changedGroups = new Set();
 const moduleHash = name => createHash('sha256').update(name).digest('hex');
-let yaml;
+const requireAnchors = new Map();
+function requireFrom(anchor) {
+  // 固定 anchor 的 require 工厂不随 bundle 改变；仍逐次检查磁盘上的包与补丁。
+  // 延迟创建，保留解析失败在当前 bundle/loader 诊断边界内的原有行为。
+  if (!requireAnchors.has(anchor)) requireAnchors.set(anchor, Module.createRequire(anchor));
+  return requireAnchors.get(anchor);
+}
+let yaml, yamlSchema;
 function bundleEntries(patches, patchFile, output) {
   // 只解析普通数据；!!js 保留为不透明标记，绝不执行表达式或插件。
   if (!yaml) {
-    const anchor = Module.createRequire(path.join(installation, 'package.json'));
+    const anchor = requireFrom(path.join(installation, 'package.json'));
     const boot = anchor.resolve('@deepseek-ai/dsh-app-boot');
-    yaml = Module.createRequire(boot)('js-yaml');
+    yaml = requireFrom(boot)('js-yaml');
   }
-  const schema = yaml.JSON_SCHEMA.extend(new yaml.Type('tag:yaml.org,2002:js', {
+  if (!yamlSchema) yamlSchema = yaml.JSON_SCHEMA.extend(new yaml.Type('tag:yaml.org,2002:js', {
     kind: 'scalar', construct: () => Object.freeze({ expression: true }),
   }));
-  const parsed = yaml.load(patches, { schema });
+  const parsed = yaml.load(patches, { schema: yamlSchema });
   if (!Array.isArray(parsed)) throw new Error('插件补丁不是数组');
   const visit = (rows, parentId = '', depth = 0) => {
     if (!Array.isArray(rows) || depth > 32) throw new Error('插件入口结构无法确认');
@@ -85,7 +92,7 @@ function locate(name) {
   // 与锁定 dsh-app-boot.resolveBundleDir 的两个 anchor 及 Node 查找顺序一致。
   // 不能只列几个固定目录：全局安装、hoisted 依赖和 pnpm 链接都可能合法存在。
   for (const anchor of [path.join(installation, 'package.json'), path.join(directory, 'package.json')]) {
-    for (const root of Module.createRequire(anchor).resolve.paths(name) || []) {
+    for (const root of requireFrom(anchor).resolve.paths(name) || []) {
       const candidate = path.join(root, name);
       if (fs.existsSync(path.join(candidate, 'package.json'))) return candidate;
     }
@@ -195,9 +202,10 @@ function errorDetail(error) {
 }
 // 使用已锁定 Cordis 的实际加载边界；同一模块缓存只加载一次，不拦截每一次 Node 依赖解析。
 try {
-  const loaderModule = Module.createRequire(path.join(installation, 'package.json')).resolve('@deepseek-ai/cordis-plugin-loader');
+  const loaderModule = requireFrom(path.join(installation, 'package.json')).resolve('@deepseek-ai/cordis-plugin-loader');
   const { Entry } = require(loaderModule);
   const original = Entry.prototype.init;
+  const required = new Set(['agent-loop','webserver','web-runtime','modules','connection','headless-runner','acp','sdk-jsonrpc-server']);
   Entry.prototype.init = function () {
     const attempt = { options: this.options, name: this.options?.name, disabled: this.options?.disabled,
       fiber: this.fiber, state: 'loading' };
@@ -207,7 +215,6 @@ try {
       || ['web-startup', 'webserver', 'modules'].includes(this.options?.id);
     if (show) emit('loading', name, '正在加载插件：' + (name || id));
     // alpha.1 允许可选插件失败；只有上游声明的关键入口可提前触发原生恢复。
-    const required = new Set(['agent-loop','webserver','web-runtime','modules','connection','headless-runner','acp','sdk-jsonrpc-server']);
     const failed = error => { attempt.state = 'failed'; emit('issue', name || owner(errorDetail(error)), id + '\n' + errorDetail(error),
       { fatal: required.has(this.options?.id) }); throw error; };
     try {
