@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 屏幕常亮（设置行）：环 + 八条射线。
+         渲染环境：ShellRowIcon（32dp 盒子 + 7dp padding → 可见 18dp），着色由样式 tint 统一给主题蓝。
+         环 r=4.3、射线 7.0→9.0、stroke 2.1：18dp 下与月亮的线条重量一致，又不糊成一团。 -->
+    <path
+        android:pathData="M12,7.7 a4.3,4.3 0 1 0 0.01,0 z"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M12,3.0 V5.0 M12,19.0 V21.0 M3.0,12 H5.0 M19.0,12 H21.0 M5.64,5.64 L7.05,7.05 M16.95,7.05 L18.36,5.64 M5.64,18.36 L7.05,16.95 M16.95,16.95 L18.36,18.36"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -316,6 +316,18 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_DESKTOP_MODE, v).apply();
   }
 
+  /** 屏幕常亮：默认关，用户可在配置页打开。 */
+  public boolean isKeepScreenOn() {
+    return flag(KEY_KEEP_SCREEN_ON, false);
+  }
+
+  public void setKeepScreenOn(boolean v) {
+    prefs.edit().putBoolean(KEY_KEEP_SCREEN_ON, v).apply();
+  }
+
+  private static final String KEY_KEEP_SCREEN_ON = "ui_keep_screen_on";
+
+
   /** 任务状态上岛默认开启：它只是给已有通知补充短文本与提升请求，失败会静默降级。 */
   public boolean isTaskIslandEnabled() {
     return flag(Constants.KEY_TASK_ISLAND, true);
