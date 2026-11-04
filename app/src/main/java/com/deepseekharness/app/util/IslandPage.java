@@ -36,6 +36,18 @@ public final class IslandPage {
     };
   }
 
+  /**
+   * {@code IslandSupport.state()} 的判定（0 不支持 / 1 已关闭 / 2 已允许 / 3 查不到）。
+   *
+   * <p>{@code canPostPromotedNotifications()} 自 API 36 起存在，但只反映新模型（请求位）的许可；
+   * 36.0 旧模型按 colorized 提升，查询为 false 时不能断言用户已关闭，只能是“查不到”。
+   */
+  public static int supportState(boolean supported, boolean canPost, boolean newPromotionModel) {
+    if (!supported) return 0;
+    if (canPost) return 2;
+    return newPromotionModel ? 1 : 3;
+  }
+
   /** 状态行是否给出“去系统设置”入口：不支持的系统没有对应设置页可开。 */
   public static boolean offersSettings(Status status) {
     return status != Status.UNSUPPORTED;

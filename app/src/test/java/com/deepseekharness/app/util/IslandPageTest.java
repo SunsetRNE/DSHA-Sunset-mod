@@ -33,6 +33,21 @@ public class IslandPageTest {
   }
 
   @Test
+  public void supportStateKeepsOldModelUndeterminedWhenQueryIsFalse() {
+    assertEquals(0, IslandPage.supportState(false, true, true));
+    assertEquals(2, IslandPage.supportState(true, true, false));
+    assertEquals(2, IslandPage.supportState(true, true, true));
+    // 36.1+ 新模型：查询为 false 就是用户关掉了实时活动。
+    assertEquals(1, IslandPage.supportState(true, false, true));
+    // 36.0 旧模型（colorized 判据）：查询为 false 不能显示成“已关闭”，DSHA 仍会尝试提升。
+    assertEquals(3, IslandPage.supportState(true, false, false));
+    assertTrue(
+        IslandPage.mayPromote(IslandPage.status(IslandPage.supportState(true, false, false))));
+    assertFalse(
+        IslandPage.mayPromote(IslandPage.status(IslandPage.supportState(true, false, true))));
+  }
+
+  @Test
   public void settingsAndPromotionFollowStatus() {
     assertFalse(IslandPage.offersSettings(IslandPage.Status.UNSUPPORTED));
     assertTrue(IslandPage.offersSettings(IslandPage.Status.DENIED));

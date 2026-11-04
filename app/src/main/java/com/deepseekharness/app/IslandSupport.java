@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import com.deepseekharness.app.util.IslandPage;
 
 /**
  * Android 16 Live Updates（实时活动 / promoted ongoing）的门控与通知增强。
@@ -93,10 +94,10 @@ public final class IslandSupport {
   /** 供设置页展示的三态。 */
   public static int state(Context context) {
     if (!supported()) return STATE_UNSUPPORTED;
-    if (canPost(context)) return STATE_ALLOWED;
-    // canPostPromotedNotifications() 自 API 36 起就存在；查询返回 false 说明当前不能提升，
-    // 按“未被允许”提示用户去系统设置检查（厂商裁剪时也只能保守这样展示）。
-    return STATE_DENIED;
+    // canPostPromotedNotifications() 自 API 36 起就存在，但它只反映 AOSP 新模型（请求位）的许可；
+    // 36.0 旧模型 ROM（如 ColorOS 16）走 colorized 判据，查询返回 false 不等于用户关闭，
+    // DSHA 仍会尝试提升，所以那一支保持“查不到”，不能显示成“已关闭”。
+    return IslandPage.supportState(true, canPost(context), newPromotionModel());
   }
 
   /**

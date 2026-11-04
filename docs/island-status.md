@@ -35,6 +35,8 @@
 权限查询返回 false，不能据此把 36.1 误判成旧模型。
 API 引入版本：`canPostPromotedNotifications()` 自 **API 36** 起就有；`setRequestPromotedOngoing`
 与 `POST_PROMOTED_NOTIFICATIONS` 自 **API 36.1** 起才有。
+查询只反映新模型（请求位）的许可：36.0 旧模型 ROM 按 colorized 提升，查询返回 false 时设置页仍显示
+「查不到」（`STATE_UNKNOWN`），不显示成「已关闭」；判定见 `util/IslandPage.supportState`。
 平台侧的 `setRequestPromotedOngoing` 是 36.1 才有的方法，在 36.0 上调用会抛
 `NoSuchMethodError`，所以这里统一走 **extra**（官方文档明确允许用它替代 setter）。
 
