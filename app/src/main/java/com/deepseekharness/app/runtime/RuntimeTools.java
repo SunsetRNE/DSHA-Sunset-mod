@@ -150,6 +150,7 @@ final class RuntimeTools {
         com.deepseekharness.app.util.DshEntrypoint.wrapper()
             .getBytes(java.nio.charset.StandardCharsets.UTF_8),
         true);
+
   }
 
   static void invalidate() {
@@ -799,6 +800,10 @@ final class RuntimeTools {
     // silently add confirmation, frozen-lockfile, or lifecycle blocking.
     environment.put("DSHA_PLUGIN_UNLOCKED", "1");
     environment.put("DSHA_ANDROID_RUNTIME", "1");
+    // The Go gh binary bypasses proroot path translation. Keep the host root explicit
+    // so its config/CA and file arguments resolve to the same private runtime tree.
+    if (rootfs != null) environment.put("DSHA_GH_HOST_ROOT", rootfs.getAbsolutePath());
+    environment.put("DSHA_GH_PROXY_SCRIPT", "/usr/local/share/dsha/gh-proxy.mjs");
     environment.put("DSHA_DNS_MODE", settings.dnsMode);
     // DNS 兼容与切网后回收外网连接（net-epoch.cjs，T37）；文件缺失（旧环境）时不加。
     for (String name : new String[] {"net-epoch.cjs", "dns-compat.cjs"}) {

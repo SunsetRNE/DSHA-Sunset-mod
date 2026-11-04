@@ -48,6 +48,8 @@
     "guard-editor-patch.json",
     "guard-fs-patch.json",
     "guard-tools-patch.json",
+    "gh-proxy.mjs",
+    "gh-wrapper.sh",
     "install-basic-tools.sh",
     "install-ubuntu-tools.sh",
     "lan-settings-upstream-contract.json",

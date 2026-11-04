@@ -49,8 +49,11 @@ public final class ManagedRuntimeLayout {
           "bridge-token-compat.cjs"
         }) out.add("root/.dsh/" + name);
     for (String name :
-        new String[] {"dsh", "npm", "npx", "dsha-plugin", "adb-shell", "install-ubuntu-tools"})
+        new String[] {
+          "dsh", "npm", "npx", "gh", "dsha-plugin", "adb-shell", "install-ubuntu-tools"
+        })
       out.add("root/dsh-bin/" + name);
+    out.add("usr/local/share/dsha/gh-proxy.mjs");
     return out;
   }
 

@@ -308,6 +308,16 @@
       "executable": true
     },
     {
+      "asset": "gh-wrapper.sh",
+      "target": "root/dsh-bin/gh",
+      "executable": true
+    },
+    {
+      "asset": "gh-proxy.mjs",
+      "target": "usr/local/share/dsha/gh-proxy.mjs",
+      "executable": false
+    },
+    {
       "asset": "install-ubuntu-tools.sh",
       "target": "root/dsh-bin/install-ubuntu-tools",
       "executable": true

@@ -138,7 +138,12 @@ public final class RuntimePackageCommandsAndroidTest {
     archive.toFile().deleteOnExit();
     var resources = new java.util.LinkedHashMap<String, String>();
     resources.put("runtime-descriptor.json", "{\"runtimeId\":\"" + ID + "\"}");
-    resources.put("managed-runtime-inputs.json", "{\"schema\":1,\"installs\":[]}");
+    resources.put(
+        "managed-runtime-inputs.json",
+        "{\"schema\":1,\"installs\":["
+            + "{\"asset\":\"gh-wrapper.sh\",\"target\":\"root/dsh-bin/gh\",\"executable\":true},"
+            + "{\"asset\":\"gh-proxy.mjs\",\"target\":\"usr/local/share/dsha/gh-proxy.mjs\",\"executable\":false}"
+            + "]}");
     resources.put(
         "runtime-patches.json",
         new JSONObject()
@@ -149,6 +154,10 @@ public final class RuntimePackageCommandsAndroidTest {
     resources.put("builtin-plugins.json", "{}");
     resources.put("runtime-tools.json", "{}");
     resources.put("bridge-token-compat.cjs", "// isolated command fixture\n");
+    resources.put(
+        "gh-wrapper.sh",
+        "#!/bin/bash\nexec /opt/gh/bin/gh \"$@\"\n");
+    resources.put("gh-proxy.mjs", "// isolated proxy fixture\n");
     try (var zip = new java.util.zip.ZipOutputStream(Files.newOutputStream(archive))) {
       for (var item : resources.entrySet()) {
         zip.putNextEntry(new java.util.zip.ZipEntry("assets/" + item.getKey()));
@@ -194,6 +203,10 @@ public final class RuntimePackageCommandsAndroidTest {
       RuntimeTools.prepare(context, root.toFile());
       Path wrapper = root.resolve("root/dsh-bin/pnpm");
       assertTrue(Files.readString(wrapper).contains("package_import_method"));
+      assertTrue(Files.isExecutable(root.resolve("root/dsh-bin/gh")));
+      assertEquals(
+          "// isolated proxy fixture\n",
+          Files.readString(root.resolve("usr/local/share/dsha/gh-proxy.mjs")));
       // Model the prior APK's valid cached stamp after its old publication.
       Files.writeString(wrapper, OLD_PNPM);
       var stamp = RuntimeTools.class.getDeclaredMethod("stamp", File.class);
