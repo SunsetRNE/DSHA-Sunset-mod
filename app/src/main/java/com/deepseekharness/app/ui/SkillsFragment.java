@@ -138,7 +138,13 @@ public final class SkillsFragment extends Fragment {
 
   private Model model;
   private CardPage ui;
-  private LinearLayout split, listColumn, detailColumn, progressRow, toolsRow, segmentRow, statusRow;
+  private LinearLayout split,
+      listColumn,
+      detailColumn,
+      progressRow,
+      toolsRow,
+      segmentRow,
+      statusRow;
   private TextView status, progressText;
   private Button importButton, refreshButton, cancelButton, undoButton;
   private final Button[] segments = new Button[3];
@@ -462,8 +468,10 @@ public final class SkillsFragment extends Fragment {
       String label = tf(labels[i][0], labels[i][1], counts[i]);
       segment.setText(label);
       segment.setSelected(chosen);
-      segment.setTypeface(null, chosen ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-      segment.setTextColor(ctx.getColor(chosen ? R.color.shell_text : R.color.shell_text_secondary));
+      segment.setTypeface(
+          null, chosen ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+      segment.setTextColor(
+          ctx.getColor(chosen ? R.color.shell_text : R.color.shell_text_secondary));
     }
     if (catalogue.unreadable > 0) {
       TextView notice = ui.text("", 12, R.color.shell_warn);
@@ -552,7 +560,9 @@ public final class SkillsFragment extends Fragment {
     for (int i = 0; i < entries.size(); i++) {
       SkillImports.Entry entry = entries.get(i);
       if (i > 0) group.addView(divider(ctx));
-      group.addView(row(ctx, entry, tier == Tier.WIDE && entry == current), new LinearLayout.LayoutParams(-1, -2));
+      group.addView(
+          row(ctx, entry, tier == Tier.WIDE && entry == current),
+          new LinearLayout.LayoutParams(-1, -2));
     }
     listColumn.addView(group, new LinearLayout.LayoutParams(-1, -2));
   }
@@ -641,9 +651,7 @@ public final class SkillsFragment extends Fragment {
     LinearLayout copy = ui.column();
     TextView name =
         ui.text(
-            entry.document.name,
-            15,
-            entry.enabled ? R.color.shell_text : R.color.shell_text_muted);
+            entry.document.name, 15, entry.enabled ? R.color.shell_text : R.color.shell_text_muted);
     name.setTypeface(null, android.graphics.Typeface.BOLD);
     name.setSingleLine(true);
     name.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -788,8 +796,7 @@ public final class SkillsFragment extends Fragment {
         tf("最近删除保留 %d 天，点按修改", "Recently deleted kept for %d days. Tap to change", days));
     retention.setOnClickListener(v -> showRetention());
     head.addView(retention);
-    Button expand =
-        textButton(ctx, model.trashExpanded ? t("收起", "Collapse") : t("展开", "Expand"));
+    Button expand = textButton(ctx, model.trashExpanded ? t("收起", "Collapse") : t("展开", "Expand"));
     expand.setOnClickListener(
         v -> {
           model.trashExpanded = !model.trashExpanded;
@@ -841,9 +848,7 @@ public final class SkillsFragment extends Fragment {
   }
 
   private String remaining(int days) {
-    return days <= 0
-        ? t("今天彻底删除", "removed today")
-        : tf("%d 天后彻底删除", "removed in %d days", days);
+    return days <= 0 ? t("今天彻底删除", "removed today") : tf("%d 天后彻底删除", "removed in %d days", days);
   }
 
   private View trashRow(Context ctx, SkillLibrary.Item item, long now, int days) {
@@ -979,9 +984,12 @@ public final class SkillsFragment extends Fragment {
     // SKILL.md 原文：默认折叠到前几行。
     LinearLayout sourceHead = new LinearLayout(ctx);
     sourceHead.setGravity(Gravity.CENTER_VERTICAL);
-    sourceHead.addView(detailLabel(entry.relative.endsWith(SkillLifecycle.DISABLED_SUFFIX)
-        ? SkillLifecycle.DISABLED_DOCUMENT
-        : SkillLifecycle.DOCUMENT), new LinearLayout.LayoutParams(0, -2, 1f));
+    sourceHead.addView(
+        detailLabel(
+            entry.relative.endsWith(SkillLifecycle.DISABLED_SUFFIX)
+                ? SkillLifecycle.DISABLED_DOCUMENT
+                : SkillLifecycle.DOCUMENT),
+        new LinearLayout.LayoutParams(0, -2, 1f));
     String[] lines = entry.document.text.split("\n", -1);
     boolean long_ = lines.length > SOURCE_PREVIEW_LINES;
     TextView source = ui.text(entry.document.text, 12, R.color.shell_text);
@@ -1070,7 +1078,8 @@ public final class SkillsFragment extends Fragment {
     LinearLayout row = new LinearLayout(ctx);
     row.setGravity(Gravity.CENTER_VERTICAL);
     row.setMinimumHeight(ui.dp(42));
-    row.addView(ui.text(label, 13, R.color.shell_text_secondary), new LinearLayout.LayoutParams(-2, -2));
+    row.addView(
+        ui.text(label, 13, R.color.shell_text_secondary), new LinearLayout.LayoutParams(-2, -2));
     TextView content = ui.text(value, mono ? 12 : 13, R.color.shell_text);
     if (mono) {
       content.setTypeface(android.graphics.Typeface.MONOSPACE);
@@ -1099,9 +1108,10 @@ public final class SkillsFragment extends Fragment {
     var dialog = CardSheet.create(ctx, page, SheetGeometry.Size.M);
     holder[0] = dialog;
     page.footer.setVisibility(View.GONE);
-    dialog.setOnDismissListener(d -> {
-      if (sheet == dialog) sheet = null;
-    });
+    dialog.setOnDismissListener(
+        d -> {
+          if (sheet == dialog) sheet = null;
+        });
     sheet = dialog;
     CardSheet.show(dialog, ctx);
   }
@@ -1165,14 +1175,9 @@ public final class SkillsFragment extends Fragment {
               (more > 0 || preview.truncated
                       ? tf(
                           "另有 %s 项 · ",
-                          "%s more · ",
-                          preview.truncated ? more + "+" : String.valueOf(more))
+                          "%s more · ", preview.truncated ? more + "+" : String.valueOf(more))
                       : "")
-                  + tf(
-                      "共 %d 个文件，%s",
-                      "%d files, %s",
-                      preview.paths.size(),
-                      size(preview.bytes)),
+                  + tf("共 %d 个文件，%s", "%d files, %s", preview.paths.size(), size(preview.bytes)),
               11,
               R.color.shell_text_muted);
       summary.setPadding(0, ui.dp(6), 0, ui.dp(2));
@@ -1251,8 +1256,7 @@ public final class SkillsFragment extends Fragment {
             t("清空最近删除？", "Empty Recently deleted?"),
             tf(
                 "%d 个技能会被立即彻底删除，无法恢复。",
-                "%d skills will be permanently deleted now. This cannot be undone.",
-                count),
+                "%d skills will be permanently deleted now. This cannot be undone.", count),
             true);
     var dialog = CardSheet.create(ctx, page, SheetGeometry.Size.S);
     page.button(page.footer, t("取消", "Cancel"), false, dialog::dismiss);
@@ -1316,9 +1320,7 @@ public final class SkillsFragment extends Fragment {
     input.setHint(
         tf(
             "%d–%d 天",
-            "%d–%d days",
-            SkillLifecycle.MIN_RETENTION_DAYS,
-            SkillLifecycle.MAX_RETENTION_DAYS));
+            "%d–%d days", SkillLifecycle.MIN_RETENTION_DAYS, SkillLifecycle.MAX_RETENTION_DAYS));
     input.setBackgroundResource(R.drawable.bg_shell_input);
     input.setTextColor(ctx.getColor(R.color.shell_text));
     input.setHintTextColor(ctx.getColor(R.color.shell_text_muted));
@@ -1418,7 +1420,16 @@ public final class SkillsFragment extends Fragment {
     }
     boolean ok =
         switch (code) {
-          case "IMPORTED", "ENABLED", "DISABLED", "TRASHED", "RESTORED", "PURGED", "DELETED", "EMPTIED", "RETENTION" -> true;
+          case "IMPORTED",
+                  "ENABLED",
+                  "DISABLED",
+                  "TRASHED",
+                  "RESTORED",
+                  "PURGED",
+                  "DELETED",
+                  "EMPTIED",
+                  "RETENTION" ->
+              true;
           default -> false;
         };
     boolean cancelled = "CANCELLED".equals(code);
@@ -1457,8 +1468,7 @@ public final class SkillsFragment extends Fragment {
       for (SkillImports.Entry entry : catalogue.entries)
         if (entry.document.name.equals(last.name) && !entry.enabled) toggle(entry, true);
     } else if ("TRASHED".equals(last.code)) {
-      for (SkillLibrary.Item item : catalogue.trash)
-        if (item.slot.equals(last.path)) restore(item);
+      for (SkillLibrary.Item item : catalogue.trash) if (item.slot.equals(last.path)) restore(item);
     }
   }
 
@@ -1598,7 +1608,8 @@ public final class SkillsFragment extends Fragment {
               try {
                 purgeExpired(app);
                 owner.catalogue.postValue(catalogue(app, control));
-                owner.result.postValue(keepResult && previous != null ? previous : new Result("READY", "", ""));
+                owner.result.postValue(
+                    keepResult && previous != null ? previous : new Result("READY", "", ""));
               } catch (Exception failure) {
                 String code =
                     failure instanceof java.io.InterruptedIOException || control.isCancelled()
@@ -1800,14 +1811,12 @@ public final class SkillsFragment extends Fragment {
               ? tf("已恢复 %s。", "Restored %s.", result.name)
               : tf("已恢复 %s，保持禁用状态。", "Restored %s. It stays off.", result.name);
       case "PURGED", "DELETED" ->
-          tf("已彻底删除 %s，可重新导入同名技能。", "Permanently deleted %s. The name can be used again.", result.name);
-      case "EMPTIED" ->
-          tf("已彻底删除 %d 个技能。", "Permanently deleted %d skills.", result.count);
-      case "RETENTION" ->
           tf(
-              "最近删除改为保留 %d 天。",
-              "Recently deleted now keeps items for %d days.",
-              result.count);
+              "已彻底删除 %s，可重新导入同名技能。",
+              "Permanently deleted %s. The name can be used again.", result.name);
+      case "EMPTIED" -> tf("已彻底删除 %d 个技能。", "Permanently deleted %d skills.", result.count);
+      case "RETENTION" ->
+          tf("最近删除改为保留 %d 天。", "Recently deleted now keeps items for %d days.", result.count);
       case "CANCELLED" -> t("已取消读取，未导入技能。", "Reading cancelled. No skill was imported.");
       case "SKILL_FILENAME", "SKILL_URI" ->
           t(
@@ -1845,7 +1854,10 @@ public final class SkillsFragment extends Fragment {
           t(
               "技能已移出技能目录，但未能全部清除，剩余内容留在最近删除中，可再次彻底删除。",
               "The skill was moved out of the skills folder but could not be fully removed. What remains is in Recently deleted; delete it permanently again.");
-      case "SKILL_TRASH_DIRECTORY", "SKILL_TRASH_ITEM", "SKILL_TRASH_META", "RETIRED_DIRECTORY_NOT_OWNED" ->
+      case "SKILL_TRASH_DIRECTORY",
+              "SKILL_TRASH_ITEM",
+              "SKILL_TRASH_META",
+              "RETIRED_DIRECTORY_NOT_OWNED" ->
           t(
               "最近删除中的内容状态异常，未做改动。请刷新后重试。",
               "Recently deleted is in an unexpected state, so nothing was changed. Refresh and try again.");

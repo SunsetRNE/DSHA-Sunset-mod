@@ -60,7 +60,8 @@ public final class SkillLibraryTest {
     assertFalse(disabled.enabled);
     assertEquals("web-scraper/SKILL.md.disabled", disabled.relative);
     assertFalse(Files.exists(folder.resolve("SKILL.md")));
-    assertArrayEquals(skill("web-scraper"), Files.readAllBytes(folder.resolve("SKILL.md.disabled")));
+    assertArrayEquals(
+        skill("web-scraper"), Files.readAllBytes(folder.resolve("SKILL.md.disabled")));
     assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(folder.resolve("scripts/fetch.py")));
     var listed = imports.list(control());
     assertEquals(1, listed.entries.size());
@@ -159,7 +160,8 @@ public final class SkillLibraryTest {
     } catch (IOException expected) {
       assertEquals("SKILL_RESTORE_EXISTS", expected.getMessage());
     }
-    assertArrayEquals(skill("replacement"), Files.readAllBytes(skills.resolve("web-scraper/SKILL.md")));
+    assertArrayEquals(
+        skill("replacement"), Files.readAllBytes(skills.resolve("web-scraper/SKILL.md")));
     assertEquals(1, library.list(control()).size());
   }
 

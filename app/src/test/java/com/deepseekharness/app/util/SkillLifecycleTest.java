@@ -56,7 +56,8 @@ public final class SkillLifecycleTest {
   @Test
   public void trashMetaRoundTripsAndRejectsTampering() throws Exception {
     var meta =
-        SkillLifecycle.TrashMeta.of("web-scraper", "web-scraper", SkillLifecycle.Kind.DIRECTORY, 42);
+        SkillLifecycle.TrashMeta.of(
+            "web-scraper", "web-scraper", SkillLifecycle.Kind.DIRECTORY, 42);
     var decoded = SkillLifecycle.TrashMeta.decode(meta.encode());
     assertEquals("web-scraper", decoded.member);
     assertEquals(SkillLifecycle.Kind.DIRECTORY, decoded.kind);

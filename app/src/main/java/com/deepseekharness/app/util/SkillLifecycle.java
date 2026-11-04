@@ -35,7 +35,8 @@ public final class SkillLifecycle {
   public static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
 
   private static final java.util.regex.Pattern SLOT =
-      java.util.regex.Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+      java.util.regex.Pattern.compile(
+          "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
 
   /** 条目形态：目录技能（{@code <名>/SKILL.md}）或单文件技能（{@code <名>.md}）。 */
   public enum Kind {
@@ -79,9 +80,7 @@ public final class SkillLifecycle {
 
   /** 保留天数：越界值收回默认值，避免一次误配置把最近删除全部清空。 */
   public static int retention(int days) {
-    return days >= MIN_RETENTION_DAYS && days <= MAX_RETENTION_DAYS
-        ? days
-        : DEFAULT_RETENTION_DAYS;
+    return days >= MIN_RETENTION_DAYS && days <= MAX_RETENTION_DAYS ? days : DEFAULT_RETENTION_DAYS;
   }
 
   /** 解析用户输入的天数；非数字或越界返回 -1，由界面提示，不静默改值。 */

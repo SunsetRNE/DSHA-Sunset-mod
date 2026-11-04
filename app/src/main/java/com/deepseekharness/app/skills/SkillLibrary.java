@@ -79,8 +79,8 @@ public final class SkillLibrary {
   // ---- 启用 / 禁用 ----
 
   /** 原地改名 SKILL.md ⇄ SKILL.md.disabled（单文件技能为 名.md ⇄ 名.md.disabled）；返回新状态的条目。 */
-  public SkillImports.Entry setEnabled(SkillImports.Entry entry, boolean enabled, BackupControl control)
-      throws IOException {
+  public SkillImports.Entry setEnabled(
+      SkillImports.Entry entry, boolean enabled, BackupControl control) throws IOException {
     control.check();
     if (entry.enabled == enabled) return entry;
     File root = skillsRoot();
@@ -172,7 +172,8 @@ public final class SkillLibrary {
       File child = fs.child(directory, name);
       var node = fs.stat(child);
       String relative = prefix + name;
-      if (node.type.equals("DIRECTORY")) walk(child, relative + "/", paths, bytes, truncated, control);
+      if (node.type.equals("DIRECTORY"))
+        walk(child, relative + "/", paths, bytes, truncated, control);
       else {
         paths.add(relative);
         if (node.type.equals("FILE")) bytes[0] += node.size;
@@ -218,7 +219,8 @@ public final class SkillLibrary {
       fs.syncDirectory(slot);
       control.check();
       // 改名前最后一次确认：条目仍是同一个对象，之后不再响应取消。
-      if (!SkillImports.identity(memberNode, fs.stat(member))) throw new IOException("SKILL_CHANGED");
+      if (!SkillImports.identity(memberNode, fs.stat(member)))
+        throw new IOException("SKILL_CHANGED");
       fs.move(member, fs.child(slot, SkillLifecycle.TRASH_ITEM));
       moved = true;
       fs.syncDirectory(root);
@@ -344,8 +346,7 @@ public final class SkillLibrary {
       boolean directory = meta.kind == SkillLifecycle.Kind.DIRECTORY;
       if (!node.type.equals(directory ? "DIRECTORY" : "FILE")) continue;
       String description = "";
-      boolean wasEnabled =
-          directory ? true : !SkillLifecycle.disabledFile(meta.member);
+      boolean wasEnabled = directory ? true : !SkillLifecycle.disabledFile(meta.member);
       try {
         File document = item;
         if (directory) {

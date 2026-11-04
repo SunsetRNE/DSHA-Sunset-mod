@@ -128,8 +128,8 @@ public final class SkillImports {
         }
       } else if (SkillLifecycle.disabledFile(name)) {
         // 同名启用文件仍在时以它为准，不列出重复项。
-        if (present.contains(name.substring(0, name.length() - SkillLifecycle.DISABLED_SUFFIX.length())))
-          continue;
+        if (present.contains(
+            name.substring(0, name.length() - SkillLifecycle.DISABLED_SUFFIX.length()))) continue;
         relative = name;
         document = member;
         enabled = false;
