@@ -254,7 +254,8 @@ public final class DiagnosticRepository extends AndroidViewModel {
                               t("环境诊断", "Environment diagnostics"),
                               t("本次只读采样", "Current read-only sample"),
                               com.deepseekharness.app.util.RuntimeStateDiagnostics.render(
-                                  snapshot))),
+                                  snapshot)),
+                          backupOperations()),
                       t(
                           "环境任务或旧记录尚待处理，以上仅为只读状态。PENDING 表示待核对记录，不表示进程仍在运行。可复制报告；先正常停止，再到安装与修复恢复中断维护。",
                           "An environment task or old record needs attention. This is a read-only snapshot. PENDING means a record needs checking, not that a process is running. Copy the report; stop normally, then recover interrupted maintenance in Installation and repair.")));
@@ -304,6 +305,7 @@ public final class DiagnosticRepository extends AndroidViewModel {
 
   private DiagnosticReport collect() throws Exception {
     List<DiagnosticReport.Check> rows = new ArrayList<>();
+    rows.add(backupOperations());
     HarnessController controller = HarnessController.get(getApplication());
     ProotBootstrap proot = controller.proot();
     ConfigStore config = new ConfigStore(getApplication());
@@ -627,6 +629,18 @@ public final class DiagnosticRepository extends AndroidViewModel {
         com.deepseekharness.app.util.UiText.text(
             "\n建议操作\n证书或 npm 异常：点击「修复证书与 npm」。\n文件选择无返回：到插件页使用「其他文件选择器」。\n第三方插件导致启动失败：使用启动页的安全启动，再逐个恢复插件。\n存储不足：清理下载目录后重试，避免重新解压整个环境。\n\n隐私范围：未读取 API 配置、对话、终端命令或系统完整日志；没有自动上传此报告。可在下面补充复现步骤后复制或导出。\n");
     return new DiagnosticReport(t("DSHA 诊断报告\n", "DSHA diagnostic report\n"), rows, footer);
+  }
+
+  /** Fixed host backup facts remain available even when guest execution is blocked. */
+  private DiagnosticReport.Check backupOperations() {
+    return new DiagnosticReport.Check(
+        "backup-operations",
+        DiagnosticReport.Health.INFO,
+        t("数据与备份", "Data and backups"),
+        t("本次只读采样", "Current read-only sample"),
+        com.deepseekharness.app.backup.BackupOperationDiagnostics.describe(
+            new com.deepseekharness.app.backup.AndroidBackupFileSystem(),
+            getApplication().getFilesDir()));
   }
 
   private static void add(
