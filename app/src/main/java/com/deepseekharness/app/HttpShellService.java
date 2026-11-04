@@ -287,10 +287,10 @@ public final class HttpShellService {
                 s.ctx, r.param("host", ""), r.param("family", "0")));
     routes.put(BridgeRoutes.Route.APPS, (s, r) -> s.appList(r.path));
     routes.put(BridgeRoutes.Route.LAUNCH, (s, r) -> s.appLaunch(r.path, r.scope));
-    routes.put(BridgeRoutes.Route.CLIP, (s, r) -> s.appClip(r.path));
+    routes.put(BridgeRoutes.Route.CLIP, (s, r) -> s.appClip(r.path, r.scope));
     routes.put(BridgeRoutes.Route.SHARE, (s, r) -> s.appShare(r.path));
     routes.put(BridgeRoutes.Route.INSTALL, (s, r) -> s.appInstall(r.path));
-    routes.put(BridgeRoutes.Route.OPEN, (s, r) -> s.appOpen(r.path));
+    routes.put(BridgeRoutes.Route.OPEN, (s, r) -> s.appOpen(r.path, r.scope));
     routes.put(BridgeRoutes.Route.VIBRATE, (s, r) -> s.appVibrate(r.path));
     routes.put(BridgeRoutes.Route.ASK, (s, r) -> s.appAsk(r.path));
     routes.put(BridgeRoutes.Route.VERSION, (s, r) -> s.appVersion());
@@ -1401,6 +1401,10 @@ public final class HttpShellService {
     DshaApp.from(context).capabilityBroker().revoke("sms");
   }
 
+  public static void clipboardPolicyChanged(Context context) {
+    DshaApp.from(context).capabilityBroker().revoke("clipboard.read");
+  }
+
   public static boolean screenPaused() {
     return uiGrant.paused();
   }
@@ -1454,6 +1458,36 @@ public final class HttpShellService {
           && LIFECYCLE.isCurrent(scope.run.generation)
           && scope.screenRevision == uiGrant.revision()
           && scope.webGeneration == HarnessController.get(ctx).getWebGeneration();
+    }
+  }
+
+  private com.deepseekharness.app.capabilities.CapabilityRequest capabilityRequest(
+      RequestScope scope,
+      String capability,
+      String action,
+      com.deepseekharness.app.capabilities.TargetEvidence target,
+      long policyRevision) {
+    if (scope == null || scope.run == null || !bridgeCurrent(scope)) return null;
+    var broker = DshaApp.from(ctx).capabilityBroker();
+    var runtime = com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx);
+    if (runtime.generation <= 0) return null;
+    try {
+      var request =
+          new com.deepseekharness.app.capabilities.CapabilityRequest(
+              scope.requestId,
+              capability,
+              action,
+              runtime,
+              DshaApp.from(ctx).installationId(),
+              scope.run.runId,
+              target,
+              policyRevision,
+              broker.epoch(capability),
+              broker.nowMillis() + 65000);
+      scope.capability = request;
+      return request;
+    } catch (RuntimeException invalid) {
+      return null;
     }
   }
 
@@ -2827,10 +2861,23 @@ public final class HttpShellService {
       String path,
       RequestScope scope,
       com.deepseekharness.app.capabilities.CapabilityRequest capability) {
+    bindActionToCurrentTask(path, scope, capability, true);
+  }
+
+  /** Bind a non-screen capability to the exact local conversation turn when supplied. */
+  private void bindActionToCurrentTask(
+      String path,
+      RequestScope scope,
+      com.deepseekharness.app.capabilities.CapabilityRequest capability,
+      boolean screen) {
     String query = queryOf(path);
     String taskSessionId = getParam(query, "taskSessionId", "");
     String turnId = getParam(query, "turnId", "");
-    if (taskSessionId.isEmpty() || turnId.isEmpty() || !screenBridgeCurrent(scope)) return;
+    if (taskSessionId.isEmpty()
+        || turnId.isEmpty()
+        || scope == null
+        || scope.run == null
+        || !(screen ? screenBridgeCurrent(scope) : bridgeCurrent(scope))) return;
     var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
     var runtime = com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx);
     var binding =
@@ -2848,9 +2895,64 @@ public final class HttpShellService {
     }
   }
 
-  private String appClip(String path) {
-    return com.deepseekharness.app.bridge.AppDeviceActions.clipboard(
-        ctx, mainHandler, getParam(queryOf(path), "text", ""));
+  private static String capabilityTurnKey(String path) {
+    String query = queryOf(path);
+    String session = getParam(query, "taskSessionId", "");
+    String turn = getParam(query, "turnId", "");
+    return session.isEmpty() || turn.isEmpty() ? "" : session + "\0" + turn;
+  }
+
+  private String appClip(String path, RequestScope scope) {
+    try {
+      String query = queryOf(path);
+      String rawText = com.deepseekharness.app.util.Query.raw(query, "text");
+      String text = getParam(query, "text", "");
+      // /app/clip?text=... is a write even when the value is empty; an omitted text reads.
+      if (rawText != null)
+        return com.deepseekharness.app.bridge.AppDeviceActions.clipboard(
+            ctx, mainHandler, text, true, () -> true);
+      if (!bridgeCurrent(scope)) return "[ERR] BRIDGE_RUN_CHANGED";
+      var grants = new com.deepseekharness.app.core.DeviceGrants(ctx);
+      var mode = grants.clipboardReadMode();
+      if (!com.deepseekharness.app.util.ClipboardReadPolicy.readsAllowed(mode))
+        return com.deepseekharness.app.util.ClipboardReadPolicy.ERROR_OFF
+            + ": "
+            + com.deepseekharness.app.util.ClipboardReadPolicy.USER_ACTION;
+      var request =
+          capabilityRequest(
+              scope,
+              "clipboard.read",
+              "读取剪贴板（内容不会写入 DSHA 日志）",
+              new com.deepseekharness.app.bridge.ClipboardTargetEvidence(),
+              grants.clipboardReadRevision());
+       if (request == null) return "DEVICE_CONFIRM_UNAVAILABLE";
+       var broker = DshaApp.from(ctx).capabilityBroker();
+       if (mode == com.deepseekharness.app.util.ClipboardReadPolicy.Mode.ASK) {
+         bindActionToCurrentTask(path, scope, request, false);
+         var outcome = capabilityConfirmation(path, scope, request);
+        if (outcome != ConfirmationOutcome.ALLOWED)
+          return switch (outcome) {
+            case DENIED -> "DEVICE_USER_REJECTED";
+            case NO_ANSWER -> "DEVICE_USER_NO_ANSWER";
+            default -> "DEVICE_CONFIRM_UNAVAILABLE";
+          };
+      }
+      if (!broker.authorize(request)) return "DEVICE_CONFIRM_UNAVAILABLE";
+      var permit = broker.claimDispatch(request);
+      if (permit == null) return "DEVICE_CONFIRM_UNAVAILABLE";
+      return com.deepseekharness.app.bridge.AppDeviceActions.clipboard(
+          ctx,
+          mainHandler,
+          text,
+          false,
+          () ->
+              bridgeCurrent(scope)
+                  && new com.deepseekharness.app.core.DeviceGrants(ctx).clipboardReadMode()
+                      != com.deepseekharness.app.util.ClipboardReadPolicy.Mode.OFF
+                  && permit.isCurrent());
+    } catch (Throwable error) {
+      return "ERROR: " + safeError(error);
+    }
   }
 
   /** /app/share?text=... 或 /app/share?path=/sdcard/x.txt ：调起系统分享面板 */
@@ -3145,30 +3247,47 @@ public final class HttpShellService {
     }
   }
 
-  /** /app/open?url=... ：用系统默认应用打开链接（http/https/geo/tel…） */
-  private String appOpen(String path) {
+  /** /app/open?url=...：安全 scheme 直接打开，tel/mailto/market 先走原生确认。 */
+  private String appOpen(String path, RequestScope scope) {
     try {
       String url = getParam(queryOf(path), "url", "");
       if (url.isEmpty()) return "NO_URL";
-      String low = url.toLowerCase(java.util.Locale.ROOT);
-      // 只放行常见安全 scheme：file:// 会把 App 私有文件暴露给任意应用
-      if (!low.startsWith("http://")
-          && !low.startsWith("https://")
-          && !low.startsWith("geo:")
-          && !low.startsWith("tel:")
-          && !low.startsWith("mailto:")
-          && !low.startsWith("market://")) {
+      var kind = com.deepseekharness.app.util.ExternalOpenPolicy.classify(url);
+      if (kind == com.deepseekharness.app.util.ExternalOpenPolicy.Kind.FORBIDDEN)
         return com.deepseekharness.app.util.UiText.text(
             "FORBIDDEN: 只支持 http/https/geo/tel/mailto/market 链接");
+      if (!bridgeCurrent(scope)) return "[ERR] BRIDGE_RUN_CHANGED";
+      android.net.Uri uri = android.net.Uri.parse(url);
+      if (kind == com.deepseekharness.app.util.ExternalOpenPolicy.Kind.CONFIRM) {
+        var request =
+            capabilityRequest(
+                scope,
+                "external.open",
+                com.deepseekharness.app.util.UiText.format("打开外部链接（%s）", uri.getScheme()),
+                new com.deepseekharness.app.bridge.ExternalOpenTargetEvidence(
+                    url, uri.getScheme().toLowerCase(java.util.Locale.ROOT)),
+                new com.deepseekharness.app.core.DeviceGrants(ctx).clipboardReadRevision());
+        if (request == null) return "DEVICE_CONFIRM_UNAVAILABLE";
+        var broker = DshaApp.from(ctx).capabilityBroker();
+        bindActionToCurrentTask(path, scope, request, false);
+        var outcome = capabilityConfirmation(path, scope, request);
+        if (outcome != ConfirmationOutcome.ALLOWED)
+          return switch (outcome) {
+            case DENIED -> "DEVICE_USER_REJECTED";
+            case NO_ANSWER -> "DEVICE_USER_NO_ANSWER";
+            default -> "DEVICE_CONFIRM_UNAVAILABLE";
+          };
+        if (!broker.authorize(request) || broker.claimDispatch(request) == null)
+          return "DEVICE_CONFIRM_UNAVAILABLE";
       }
       android.content.Intent i =
-          new android.content.Intent(
-              android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url));
-      i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+          new android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+              .addCategory(android.content.Intent.CATEGORY_BROWSABLE)
+              .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
       ctx.startActivity(i);
       return com.deepseekharness.app.util.UiText.format("OK: 已打开 %s", safeDisplay(url));
     } catch (Throwable e) {
-      return "ERROR: " + safeError(e);
+      return "[RESULT_UNKNOWN] EXTERNAL_OPEN_RESULT_UNKNOWN: " + safeError(e);
     }
   }
 
@@ -3372,6 +3491,11 @@ public final class HttpShellService {
    *  通知与弹窗同时发：只走弹窗的话，Activity 一被 pause 用户就再也看不见，
    *  只能干等 60s 超时——这正是「弹窗有时不出现」的由来。（吸收上游 PR#24） */
   private boolean requestUserConfirm(String cmd) {
+    return requestUserConfirm(cmd, null);
+  }
+
+  /** Generic bridge confirmation; rememberTurn is only exposed when the caller supplies a valid task. */
+  private boolean requestUserConfirm(String cmd, boolean[] rememberTurn) {
     final PendingConfirmation pending;
     synchronized (LIFECYCLE) {
       BridgeRun run = activeRun;
@@ -3462,6 +3586,25 @@ public final class HttpShellService {
    *  通知与弹窗同时发：只走弹窗的话，Activity 一被 pause 用户就再也看不见，
    *  只能干等 60s 超时——这正是「弹窗有时不出现」的由来。（吸收上游 PR#24）
    *  返回三态结果：桥要用它区分「用户还没点允许」与「用户拒绝了」（issue #123）。 */
+  private ConfirmationOutcome capabilityConfirmation(
+      String path,
+      RequestScope scope,
+      com.deepseekharness.app.capabilities.CapabilityRequest capability) {
+    var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
+    String turnKey = capabilityTurnKey(path);
+    var grants = coordinator.capabilityGrants();
+    if ("external.open".equals(capability.capability)
+        && grants.allows(turnKey, capability.capability, capability.policyRevision))
+      return ConfirmationOutcome.ALLOWED;
+    boolean[] remember = new boolean[1];
+    var outcome = confirmOutcome(scope, capability, capability.action, false, null, remember);
+    if (outcome == ConfirmationOutcome.ALLOWED
+        && remember[0]
+        && "external.open".equals(capability.capability))
+      grants.remember(turnKey, capability.capability, capability.policyRevision);
+    return outcome;
+  }
+
   private ConfirmationOutcome confirmOutcome(
       RequestScope scope,
       com.deepseekharness.app.capabilities.CapabilityRequest capability,
@@ -3487,12 +3630,13 @@ public final class HttpShellService {
           || run == null
           || !LIFECYCLE.isCurrent(run.generation)
           || scope.run != run
-          || !screenBridgeCurrent(scope)) return ConfirmationOutcome.UNAVAILABLE;
+          || !(screen ? screenBridgeCurrent(scope) : bridgeCurrent(scope)))
+         return ConfirmationOutcome.UNAVAILABLE;
       com.deepseekharness.app.control.ControlTaskAuthority.Lease taskLease = null;
       var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
       String taskIdentity =
           com.deepseekharness.app.control.ScreenAuthorityBindings.identity(capability);
-      if (screen && !taskIdentity.isEmpty()) {
+      if (!taskIdentity.isEmpty()) {
         var state = coordinator.snapshot();
         var binding = state.binding();
         // A bound request cannot fall back to another confirmation channel after losing its task.
@@ -3630,7 +3774,7 @@ public final class HttpShellService {
         && run.generation == pending.request.generation
         && LIFECYCLE.isCurrent(run.generation)
         && (pending.taskLease == null
-            || screenBridgeCurrent(pending.scope)
+            || (pending.screen ? screenBridgeCurrent(pending.scope) : bridgeCurrent(pending.scope))
                 && com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx)
                     .current(pending.taskLease)
                 && com.deepseekharness.app.control.ScreenAuthorityBindings.current(

@@ -22,12 +22,14 @@ public final class DeviceGrants {
   private final android.content.SharedPreferences preferences;
   private final Runnable invalidateScreen;
   private final Runnable invalidateSms;
+  private final Runnable invalidateClipboard;
   private final Runnable invalidateAll;
 
   public DeviceGrants(Context context) {
     Context app = context.getApplicationContext();
     invalidateScreen = () -> com.deepseekharness.app.HttpShellService.screenPolicyChanged(app);
     invalidateSms = () -> com.deepseekharness.app.HttpShellService.smsPolicyChanged(app);
+    invalidateClipboard = () -> com.deepseekharness.app.HttpShellService.clipboardPolicyChanged(app);
     invalidateAll = () -> com.deepseekharness.app.HttpShellService.globalConsentChanged(app);
     preferences = context.getSharedPreferences("dsha_device_grants", Context.MODE_PRIVATE);
   }
@@ -40,13 +42,23 @@ public final class DeviceGrants {
       android.content.SharedPreferences preferences,
       Runnable invalidateScreen,
       Runnable invalidateSms) {
+    this(preferences, invalidateScreen, invalidateSms, () -> {});
+  }
+
+  DeviceGrants(
+      android.content.SharedPreferences preferences,
+      Runnable invalidateScreen,
+      Runnable invalidateSms,
+      Runnable invalidateClipboard) {
     this.preferences = preferences;
     this.invalidateScreen = invalidateScreen;
     this.invalidateSms = invalidateSms;
+    this.invalidateClipboard = invalidateClipboard;
     this.invalidateAll =
         () -> {
           invalidateScreen.run();
           invalidateSms.run();
+          invalidateClipboard.run();
         };
   }
 
@@ -364,6 +376,36 @@ public final class DeviceGrants {
   public boolean setSmsReadAllowed(boolean allowed) {
     invalidateSms.run();
     return preferences.edit().putBoolean("sms_read", allowed).commit();
+  }
+
+  public com.deepseekharness.app.util.ClipboardReadPolicy.Mode clipboardReadMode() {
+    try {
+      return com.deepseekharness.app.util.ClipboardReadPolicy.Mode.decode(
+          preferences.getString("clipboard_read_mode_v1", null));
+    } catch (RuntimeException malformed) {
+      return com.deepseekharness.app.util.ClipboardReadPolicy.Mode.OFF;
+    }
+  }
+
+  /** Policy revision is process-local and only fences in-flight requests; it is not portable data. */
+  private static final java.util.concurrent.atomic.AtomicLong clipboardRevision =
+      new java.util.concurrent.atomic.AtomicLong();
+
+  public long clipboardReadRevision() {
+    return clipboardRevision.get();
+  }
+
+  public boolean setClipboardReadMode(
+      com.deepseekharness.app.util.ClipboardReadPolicy.Mode mode) {
+    if (mode == null) return false;
+    invalidateClipboard.run();
+    try {
+      boolean saved = preferences.edit().putString("clipboard_read_mode_v1", mode.id).commit();
+      if (saved) clipboardRevision.incrementAndGet();
+      return saved && clipboardReadMode() == mode;
+    } catch (RuntimeException failed) {
+      return false;
+    }
   }
 
   public com.deepseekharness.app.util.ScreenConfirmationPolicy screenPolicy() {

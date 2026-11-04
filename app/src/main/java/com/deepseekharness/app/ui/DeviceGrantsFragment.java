@@ -33,6 +33,9 @@ import com.google.android.material.materialswitch.MaterialSwitch;
 public final class DeviceGrantsFragment extends Fragment {
   private MaterialSwitch sms;
   private TextView smsStatus;
+  private TextView clipboardTitle, clipboardStatus;
+  private android.widget.RadioGroup clipboardModes;
+  private android.widget.RadioButton[] clipboardModeButtons;
   private TextView screenPolicyStatus;
   private MaterialSwitch screenPause;
   private android.widget.RadioGroup screenSegment;
@@ -286,6 +289,7 @@ public final class DeviceGrantsFragment extends Fragment {
               .show();
         });
     updateSms();
+    addClipboardControls(ctx, view);
     // 压缩版：各通道的长说明合并到「设备执行通道」标签旁的 ⓘ；页面说明在概览头部的 ⓘ。
     bindChannelInfo(ctx, view);
     buildSummaryHeader(ctx, view);
@@ -1700,6 +1704,77 @@ public final class DeviceGrantsFragment extends Fragment {
     toast(com.deepseekharness.app.util.UiText.format("已保存拦截档位：%s", RootShell.policyLabel(ctx)));
   }
 
+  private void addClipboardControls(Context ctx, View page) {
+    clipboardTitle = page.findViewById(R.id.device_clipboard_title);
+    clipboardStatus = page.findViewById(R.id.device_clipboard_status);
+    clipboardModes = page.findViewById(R.id.device_clipboard_modes);
+    clipboardTitle.setText(UiText.choose("读剪贴板", "Read clipboard"));
+    clipboardTitle.setContentDescription(
+        UiText.choose("读剪贴板：允许助手读取系统剪贴板内容", "Read clipboard: let the assistant read system clipboard content"));
+    String[] names = {
+      UiText.choose("关闭", "Off"), UiText.choose("每次询问", "Ask each time"), UiText.choose("预授权", "Pre-authorized")
+    };
+    String[] spoken = {
+      UiText.choose("关闭，读取会被阻止", "Off, reads are blocked"),
+      UiText.choose("每次读取前询问", "Ask before each read"),
+      UiText.choose("直接读取，可随时撤销", "Read directly, revocable at any time")
+    };
+    var modes = com.deepseekharness.app.util.ClipboardReadPolicy.Mode.values();
+    clipboardModeButtons =
+        buildSegment(
+            ctx,
+            clipboardModes,
+            names,
+            spoken,
+            new int[] {R.color.shell_good, R.color.shell_warn, R.color.shell_accent},
+            index -> pickClipboardMode(modes[index]));
+    refreshClipboardMode();
+  }
+
+  private void pickClipboardMode(com.deepseekharness.app.util.ClipboardReadPolicy.Mode mode) {
+    if (!isAdded()) return;
+    var grants = new DeviceGrants(requireContext());
+    var current = grants.clipboardReadMode();
+    refreshClipboardMode();
+    if (current == mode) return;
+    if (mode == com.deepseekharness.app.util.ClipboardReadPolicy.Mode.ALLOW) {
+      new DshaDialogBuilder(requireContext(), true)
+          .setTitle(UiText.text("持续允许读取剪贴板？"))
+          .setMessage(
+              UiText.choose(
+                  "助手和插件可读取当前系统剪贴板内容。DSHA 不把内容写入桥日志，但剪贴板本身可能含有密码、验证码或私人信息。之后可在此页撤销。",
+                  "The assistant and plugins may read the system clipboard. DSHA does not write the content to bridge logs, but the clipboard may contain passwords, codes, or private data. Revoke this here at any time."))
+          .setPositiveButton(UiText.choose("预授权读取", "Pre-authorize reads"), (dialog, which) -> saveClipboardMode(mode))
+          .setNegativeButton(UiText.choose("取消", "Cancel"), null)
+          .show();
+    } else saveClipboardMode(mode);
+  }
+
+  private void saveClipboardMode(com.deepseekharness.app.util.ClipboardReadPolicy.Mode mode) {
+    boolean saved = new DeviceGrants(requireContext()).setClipboardReadMode(mode);
+    refreshClipboardMode();
+    if (!saved) toast(UiText.text("授权保存失败，请重试"));
+  }
+
+  private void refreshClipboardMode() {
+    if (clipboardModes == null || !isAdded()) return;
+    var mode = new DeviceGrants(requireContext()).clipboardReadMode();
+    var modes = com.deepseekharness.app.util.ClipboardReadPolicy.Mode.values();
+    updating = true;
+    for (int i = 0; i < clipboardModeButtons.length; i++)
+      clipboardModeButtons[i].setChecked(modes[i] == mode);
+    updating = false;
+    clipboardStatus.setText(
+        switch (mode) {
+          case OFF -> UiText.choose("已关闭 · 读取会被阻止", "Off · reads are blocked");
+          case ASK -> UiText.choose("每次读取前询问", "Ask before each read");
+          case ALLOW -> UiText.choose("已预授权 · 可随时撤销", "Pre-authorized · revocable");
+        });
+    clipboardStatus.setTextColor(
+        requireContext().getColor(mode == com.deepseekharness.app.util.ClipboardReadPolicy.Mode.ALLOW
+            ? R.color.primary : R.color.text_muted));
+  }
+
   private void saveSms(boolean enabled) {
     boolean saved = new DeviceGrants(requireContext()).setSmsReadAllowed(enabled);
     updateSms();
@@ -1784,6 +1859,7 @@ public final class DeviceGrantsFragment extends Fragment {
       refreshAdbStatus(page.findViewById(R.id.config_adb_status));
     }
     refreshScreenMode();
+    refreshClipboardMode();
   }
 
   @Override
@@ -1802,6 +1878,10 @@ public final class DeviceGrantsFragment extends Fragment {
     adbStatusRequest++;
     sms = null;
     smsStatus = null;
+    clipboardTitle = null;
+    clipboardStatus = null;
+    clipboardModes = null;
+    clipboardModeButtons = null;
     rootModes = null;
     rootModeButtons = null;
     screenModeButtons = null;

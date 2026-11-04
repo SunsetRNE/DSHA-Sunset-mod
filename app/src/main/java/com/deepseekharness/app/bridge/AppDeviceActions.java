@@ -87,8 +87,24 @@ public final class AppDeviceActions {
     }
   }
 
-  /** /app/clip 读剪贴板；/app/clip?text=xxx 写剪贴板 */
+  /** /app/clip 读剪贴板；/app/clip?text=xxx 写剪贴板。旧入口默认拒绝读取。 */
   public static String clipboard(Context ctx, Handler mainHandler, String text) {
+    return clipboard(ctx, mainHandler, text, () -> false);
+  }
+
+  /** 原生读取闸门由调用方传入；写剪贴板不经过读取授权。 */
+  public static String clipboard(
+      Context ctx, Handler mainHandler, String text, java.util.function.BooleanSupplier readAllowed) {
+    return clipboard(ctx, mainHandler, text, !text.isEmpty(), readAllowed);
+  }
+
+  /** 显式区分「text 参数缺失（读取）」和「text 参数为空（写入空串）」。 */
+  public static String clipboard(
+      Context ctx,
+      Handler mainHandler,
+      String text,
+      boolean write,
+      java.util.function.BooleanSupplier readAllowed) {
     try {
       // HTTP 工作线程有界等待。不能在排队后先报成功，也不能因等待超时就假定尚未写入。
       if (Looper.myLooper() == Looper.getMainLooper())
@@ -107,11 +123,14 @@ public final class AppDeviceActions {
                 }
               },
               () -> {
+                if (!write && (readAllowed == null || !readAllowed.getAsBoolean()))
+                  return com.deepseekharness.app.util.UiText.text(
+                      "DEVICE_CLIPBOARD_OFF: 读取剪贴板已关闭，请在设备能力授权中开启");
                 android.content.ClipboardManager cm =
                     (android.content.ClipboardManager)
                         ctx.getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm == null) return "NO_SERVICE";
-                if (!text.isEmpty()) {
+                if (write) {
                   cm.setPrimaryClip(
                       com.deepseekharness.app.bridge.SensitiveClipboard.text("DSHA", text));
                   return com.deepseekharness.app.util.UiText.format(

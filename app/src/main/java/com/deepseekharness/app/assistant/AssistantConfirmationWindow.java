@@ -11,6 +11,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -136,7 +137,9 @@ final class AssistantConfirmationWindow implements AutoCloseable {
               v -> {
                 if (active == pending && sequence == stamp) finish(false);
               });
-          Button allowTurn = new Button(context);
+          boolean turnAllowed = target != null || "external.open".equals(request.capability);
+           Button allowTurn = new Button(context);
+           allowTurn.setVisibility(turnAllowed ? View.VISIBLE : View.GONE);
           allowTurn.setText(
               target != null
                       && com.deepseekharness.app.util.SensitiveAppPolicy.sensitive(
