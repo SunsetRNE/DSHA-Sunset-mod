@@ -53,7 +53,8 @@ public final class BridgeApkInstallTest {
   public void guestApkRemainsInsideTheSelectedRootfs() {
     assertTrue(source("/root/out/app.apk", ROOT + "/root/out/app.apk"));
     assertFalse(source("/root/out/app.apk", SHARED + "/app.apk"));
-    assertFalse(source("/root/out/app.apk", "/data/user/0/io.github.sunsetrne.dsha/files/private.apk"));
+    assertFalse(
+        source("/root/out/app.apk", "/data/user/0/io.github.sunsetrne.dsha/files/private.apk"));
     assertFalse(source("/root/out/app.apk", "/system/app/Settings/Settings.apk"));
     assertFalse(
         BridgeApkInstall.sourceAllowed(
@@ -64,7 +65,8 @@ public final class BridgeApkInstallTest {
   public void sharedAliasesCannotCrossToPrivateDataOtherUsersOrPrefixLookalikes() {
     assertFalse(source("/sdcard/Download/app.apk", ROOT + "/root/out/app.apk"));
     assertFalse(
-        source("/sdcard/Download/app.apk", "/data/user/0/io.github.sunsetrne.dsha/files/private.apk"));
+        source(
+            "/sdcard/Download/app.apk", "/data/user/0/io.github.sunsetrne.dsha/files/private.apk"));
     assertFalse(source("/sdcard/Download/app.apk", "/storage/emulated/10/app.apk"));
     assertFalse(source("/sdcard/Download/app.apk", "/storage/emulated/0-other/app.apk"));
     assertFalse(source("/sdcard/Download/app.apk", "/data/media/10/app.apk"));
