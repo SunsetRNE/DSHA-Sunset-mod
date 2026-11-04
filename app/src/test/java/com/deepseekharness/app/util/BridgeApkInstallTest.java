@@ -32,6 +32,57 @@ public final class BridgeApkInstallTest {
     assertFalse(BridgeApkInstall.sizeAllowed(BridgeApkInstall.SIZE_LIMIT + 1));
   }
 
+  private static final String ROOT = "/data/user/0/io.github.sunsetrne.dsha/files/linux/ubuntu";
+  private static final String SHARED = "/storage/emulated/0";
+  private static final String MEDIA = "/data/media/0";
+
+  private static boolean source(String requested, String canonical) {
+    return BridgeApkInstall.sourceAllowed(requested, canonical, ROOT, SHARED, MEDIA);
+  }
+
+  @Test
+  public void sharedApkUsesCurrentUsersStorageWithoutRelaxingExportPolicy() {
+    assertTrue(source("/sdcard/Download/app.apk", SHARED + "/Download/app.apk"));
+    assertTrue(source(SHARED + "/Download/app.apk", SHARED + "/Download/app.apk"));
+    assertTrue(source("/storage/self/primary/app.apk", SHARED + "/app.apk"));
+    assertTrue(source("/data/media/0/app.apk", MEDIA + "/app.apk"));
+    assertTrue(BridgePathPolicy.deniedGuestView(SHARED + "/Download/app.apk", ROOT));
+  }
+
+  @Test
+  public void guestApkRemainsInsideTheSelectedRootfs() {
+    assertTrue(source("/root/out/app.apk", ROOT + "/root/out/app.apk"));
+    assertFalse(source("/root/out/app.apk", SHARED + "/app.apk"));
+    assertFalse(source("/root/out/app.apk", "/data/user/0/io.github.sunsetrne.dsha/files/private.apk"));
+    assertFalse(source("/root/out/app.apk", "/system/app/Settings/Settings.apk"));
+    assertFalse(
+        BridgeApkInstall.sourceAllowed(
+            "/root/out/app.apk", ROOT + "/root/out/app.apk", null, SHARED, MEDIA));
+  }
+
+  @Test
+  public void sharedAliasesCannotCrossToPrivateDataOtherUsersOrPrefixLookalikes() {
+    assertFalse(source("/sdcard/Download/app.apk", ROOT + "/root/out/app.apk"));
+    assertFalse(
+        source("/sdcard/Download/app.apk", "/data/user/0/io.github.sunsetrne.dsha/files/private.apk"));
+    assertFalse(source("/sdcard/Download/app.apk", "/storage/emulated/10/app.apk"));
+    assertFalse(source("/sdcard/Download/app.apk", "/storage/emulated/0-other/app.apk"));
+    assertFalse(source("/sdcard/Download/app.apk", "/data/media/10/app.apk"));
+    assertFalse(
+        BridgeApkInstall.sourceAllowed("/sdcard/app.apk", SHARED + "/app.apk", ROOT, null, null));
+  }
+
+  @Test
+  public void installCannotExposeCredentialTreesThroughRawNamesOrResolvedAliases() {
+    assertFalse(source("/root/.dsh/app.apk", ROOT + "/root/out/app.apk"));
+    assertFalse(source("/root/out/app.apk", ROOT + "/root/.dsh/app.apk"));
+    assertFalse(source("/sdcard/Download/app.apk", SHARED + "/.ssh/app.apk"));
+    assertFalse(source("/sdcard/.dsh/app.apk", SHARED + "/Download/app.apk"));
+    assertFalse(
+        source("/data/user/0/io.github.sunsetrne.dsha/files/app.apk", ROOT + "/root/out/app.apk"));
+    assertFalse(source("relative.apk", ROOT + "/root/out/app.apk"));
+  }
+
   @Test
   public void blocksOnlyExactOwnPackage() {
     assertTrue(

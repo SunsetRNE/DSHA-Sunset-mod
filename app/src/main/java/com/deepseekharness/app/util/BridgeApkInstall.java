@@ -36,6 +36,22 @@ public final class BridgeApkInstall {
     return size > 0 && size <= SIZE_LIMIT;
   }
 
+  /** 安装源沿用读取入口的域边界；共享存储只认当前用户根，guest 链接不能跨到共享/宿主域。 */
+  public static boolean sourceAllowed(
+      String requested,
+      String canonical,
+      String rootfsCanonical,
+      String sharedCanonical,
+      String mediaCanonical) {
+    return !BridgePathPolicy.deniedReadRaw(requested)
+        && !BridgePathPolicy.deniedReadCanonical(
+            canonical,
+            rootfsCanonical,
+            sharedCanonical,
+            mediaCanonical,
+            BridgePathPolicy.readSharedDomain(requested));
+  }
+
   /** 覆盖安装自身会被系统结束整个 App（DSH 与全部会话随之中断），应走应用内更新页。 */
   public static boolean selfPackage(String archivePackage, String ownPackage) {
     return archivePackage != null && archivePackage.equals(ownPackage);

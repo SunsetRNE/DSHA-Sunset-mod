@@ -2920,24 +2920,35 @@ public final class HttpShellService {
     try {
       String src = getParam(queryOf(path), "path", "");
       if (src.isEmpty()) return "NO_PATH";
-      if (com.deepseekharness.app.util.BridgePathPolicy.denied(src))
+      if (com.deepseekharness.app.util.BridgePathPolicy.deniedReadRaw(src))
         return "FORBIDDEN: " + com.deepseekharness.app.util.BridgePathPolicy.reason();
-      java.io.File f = new java.io.File(src);
-      if (!f.isFile()) {
-        // 与 /app/export 一致：容器内 guest 路径映射到 rootfs 宿主路径。
-        try {
-          java.io.File guess =
-              new java.io.File(
-                  HarnessController.get(ctx).getProot().getRootfsDir(),
-                  src.startsWith("/") ? src.substring(1) : src);
-          if (guess.isFile()) f = guess;
-        } catch (Throwable ignored) {
-        }
+      java.io.File rootfs = null;
+      String rootfsCanonical = null, sharedCanonical = null, mediaCanonical = null;
+      try {
+        rootfs = HarnessController.get(ctx).getProot().getRootfsDir().getCanonicalFile();
+        rootfsCanonical = rootfs.getPath();
+      } catch (Throwable ignored) {
+        // 无法确认正式 rootfs 时，只可能接受已确认当前用户的共享存储域。
       }
-      if (!f.isFile()) return "NOT_FOUND: " + SensitiveData.redact(src);
-      if (exportDeniedByCanonical(f))
+      try {
+        java.io.File shared = android.os.Environment.getExternalStorageDirectory();
+        sharedCanonical = shared.getCanonicalPath();
+        String user = shared.getName();
+        if (user.matches("[0-9]+")) mediaCanonical = "/data/media/" + user;
+      } catch (Throwable ignored) {
+        // 不能确认当前用户共享根时，不猜测其他用户或宿主目录。
+      }
+      java.io.File candidate =
+          com.deepseekharness.app.util.BridgePathPolicy.resolveReadFile(src, rootfs);
+      if (candidate == null)
         return "FORBIDDEN: " + com.deepseekharness.app.util.BridgePathPolicy.reason();
-      if (!com.deepseekharness.app.util.BridgeApkInstall.apkName(f.getName()))
+      // 只解析一次：域检查与之后的描述符快照必须绑定同一个 canonical 对象。
+      java.io.File f = candidate.getCanonicalFile();
+      if (!com.deepseekharness.app.util.BridgeApkInstall.sourceAllowed(
+          src, f.getPath(), rootfsCanonical, sharedCanonical, mediaCanonical))
+        return "FORBIDDEN: " + com.deepseekharness.app.util.BridgePathPolicy.reason();
+      if (!f.isFile()) return "NOT_FOUND: " + SensitiveData.redact(src);
+      if (!com.deepseekharness.app.util.BridgeApkInstall.apkName(candidate.getName()))
         return com.deepseekharness.app.util.UiText.choose(
             "NOT_APK: 只支持单个 .apk 文件（.apks/.xapk 分包不支持）",
             "NOT_APK: only a single .apk file is supported (.apks/.xapk bundles are not)");
@@ -2989,10 +3000,7 @@ public final class HttpShellService {
       fs.directory(owned);
       java.io.File snapshot = fs.child(owned, "payload.apk");
       com.deepseekharness.app.util.BridgeFileSnapshot.copy(
-          fs,
-          f.getCanonicalFile(),
-          snapshot,
-          com.deepseekharness.app.util.BridgeApkInstall.SIZE_LIMIT);
+          fs, f, snapshot, com.deepseekharness.app.util.BridgeApkInstall.SIZE_LIMIT);
       android.content.pm.PackageInfo info =
           ctx.getPackageManager().getPackageArchiveInfo(snapshot.getPath(), 0);
       if (info == null || info.packageName == null) {
