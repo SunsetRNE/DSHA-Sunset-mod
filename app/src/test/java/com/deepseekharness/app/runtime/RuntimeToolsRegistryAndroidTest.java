@@ -180,7 +180,7 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     String version = registry.getString("dshVersion");
-    assertEquals("0.2.1-rc.3", version);
+    assertEquals("0.2.1-rc.5", version);
     assertEquals(version, Constants.DSH_VERSION);
     assertEquals("dsh-v" + version, Constants.DSH_RUNTIME_ID);
     try (var stream = context.getAssets().open("runtime-descriptor.json")) {
@@ -208,7 +208,7 @@ public final class RuntimeToolsRegistryAndroidTest {
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
     assertEquals(45, groups.size());
-    assertEquals(60, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(61, groups.values().stream().mapToInt(java.util.List::size).sum());
     assertEquals(
         "web-fetch-http-surrogate-patch.json",
         groups.get("@deepseek-ai/dsh-web-fetch-http/lib/index.js").get(0).id());
@@ -218,6 +218,10 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertTrue(
         groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
             .anyMatch(recipe -> recipe.id().equals("mcp-image-base64-patch.json")));
+    // T31：虚拟屏插件靠此补丁选择 legacy 协商；默认 auto 不变。
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
+            .anyMatch(recipe -> recipe.id().equals("mcp-version-negotiation-patch.json")));
     var locale = groups.get("@deepseek-ai/dsh-client-locale/lib/client.js");
     assertEquals(1, locale.size());
     assertEquals("language-patch.json", locale.get(0).id());
@@ -366,7 +370,7 @@ public final class RuntimeToolsRegistryAndroidTest {
             () ->
                 RuntimeTools.readPatchRegistry(
                     apkAssets(Map.of("runtime-patches.json", registry))));
-    assertEquals("PATCH_REGISTRY_VERSION: APK=0.2.1-rc.3 registry=0.2.0-rc.2", error.getMessage());
+    assertEquals("PATCH_REGISTRY_VERSION: APK=0.2.1-rc.5 registry=0.2.0-rc.2", error.getMessage());
   }
 
   @Test
@@ -394,7 +398,7 @@ public final class RuntimeToolsRegistryAndroidTest {
                 RuntimeTools.readPatchChains(
                     context, RuntimeTools.readPatchRegistry(context), Constants.DSH_VERSION));
     assertEquals(
-        "PATCH_REGISTRY_VERSION: recipe=" + first + " expected=0.2.1-rc.3 actual=0.2.0-rc.2",
+        "PATCH_REGISTRY_VERSION: recipe=" + first + " expected=0.2.1-rc.5 actual=0.2.0-rc.2",
         error.getMessage());
   }
 

@@ -5,6 +5,9 @@ import {fileURLToPath} from 'node:url';
 const server=fileURLToPath(new URL('../app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/server.cjs',import.meta.url));
 const {validate,definitions,tools,bridgeFailed,screenshotContent,fileImageContent,call:nativeCall,readBridgeResponse}=createRequire(import.meta.url)(server);
 const task={sessionId:'fixture-full-conversation',turnId:'2',completedTurnId:'1'};
+// 生产已不再把「端口未发布」回退到 3090；夹具显式发布端口，期望值取实际解析结果（本机文件优先于环境）。
+process.env.DSHA_BRIDGE_PORT??='3090';
+const expectedBridgePort=String(createRequire(import.meta.url)(fileURLToPath(new URL('../app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/bridge-port.cjs',import.meta.url)))());
 const call=(name,args,signal,dependencies)=>nativeCall(name,args,signal,dependencies,task);
 await assert.rejects(nativeCall('android_get_state',{},new AbortController().signal,{
   fs:{readFile(){throw Error('must not read token');}},fetch(){throw Error('must not dispatch');},
@@ -113,7 +116,7 @@ try{
     ['android_node',{treeId:'native-tree',nodeId:'native-node',action:'scroll_forward'},null],
     ['android_node',{treeId:'native-tree-back',nodeId:'native-node-back',action:'scroll_backward'},null]]){
     const before=seenRequests.length;
-    const result=await call(name,args,signal,{...fakeNative,fetch(url,options){assert.equal(url.hostname,'127.0.0.1');assert.equal(url.port,'3090');return fetch('http://127.0.0.1:'+http.address().port+url.pathname+url.search,options);}});
+    const result=await call(name,args,signal,{...fakeNative,fetch(url,options){assert.equal(url.hostname,'127.0.0.1');assert.equal(url.port,expectedBridgePort);return fetch('http://127.0.0.1:'+http.address().port+url.pathname+url.search,options);}});
     assert.equal(result.isError,false);assert.equal(seenRequests.length,before+1);
     const delivered=seenRequests.at(-1);assert.equal(delivered.token,'fixture-token');if(name==='android_node'){assert.equal(delivered.url.pathname,'/app/ui/node');assert.equal(delivered.url.searchParams.get('treeId'),args.treeId);assert.equal(delivered.url.searchParams.get('nodeId'),args.nodeId);assert.equal(delivered.url.searchParams.get('action'),args.action);assert.equal(delivered.url.searchParams.has('observationId'),false);}else assert.equal(delivered.url.searchParams.get('observationId'),wireMetadata.observationId);assert.equal(delivered.url.searchParams.get('gesture'),gesture);
   }

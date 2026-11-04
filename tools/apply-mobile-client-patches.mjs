@@ -90,6 +90,29 @@ export function applyMobileClientPatches(bytes) {
 }
 
 /* Floating fallback button (hero / blank phases without a session header).`);
+  // 宽屏触屏档（≥1024 + 粗指针）沿用手机壳的「⋯ 常显」，又把三颗按钮放大到 40×40；
+  // 宿主只在 hover/menuOpen 隐藏 .time，触屏没有 hover，于是行尾同时常显
+  // 「时间 + ⋯ + 归档 + 置顶」，280px 侧栏里的标题只剩约 55px。按手机壳 #154 的
+  // 同一份 zh/en aria-label 名单收起归档/置顶，⋯ 仍保留 40×40 热区。
+  // 上游 PR mexiaosqwq/dsh-web-mobile#256 是同一改动；内置快照包含它后删本块。
+  replace('  /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），',
+    `  /* @patch
+     id: wide-touch-row-actions
+     for: dsh-web-mobile 3.2.2（bb0e5e15）的 (min-width: 1024px) and (pointer: coarse) 档
+     why: 40×40 的 ⋯ / 归档 / 置顶三颗按钮和常显的 .time 把 280px 侧栏的标题压到约
+          55px（实测 1024×640 / dpr 2.5）；手机壳自 #154 起已按 aria-label 收起
+          归档/置顶，宽屏触屏档缺同一条规则。上游 PR #256 合并后删本块。
+     until: 内置上游同步到包含 mexiaosqwq/dsh-web-mobile#256 的提交——届时删本块并
+            重新生成产物
+     test: tools/test-mobile-client-patches.mjs
+  */
+  /* DSHA_WIDE_TOUCH_ROW_ACTIONS_V1：只藏归档/置顶两颗快捷按钮，⋯ 与行高不动；
+     名单与手机壳 #154 完全一致，宿主换语言时静默失效、不误伤第三方按钮。 */
+  [class*="sessionRow"] [class*="_rowActions"] :is([aria-label="归档会话"], [aria-label="取消归档"], [aria-label="置顶会话"], [aria-label="取消置顶"], [aria-label="Archive session"], [aria-label="Unarchive session"], [aria-label="Pin session"], [aria-label="Unpin session"]) {
+    display: none !important;
+  }
+
+  /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），`);
   const css = `
   /* DSHA 可见区域边界：原生已消费 IME/systemBars，只读浏览器实际视口。 */
   [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]),
@@ -104,6 +127,44 @@ export function applyMobileClientPatches(bytes) {
   [aria-modal="true"][data-shortcut-modal="shortcuts"] > :first-child {
     min-height: 0;
     max-height: 100%;
+  }
+
+  /* @patch
+     id: font-family-row-wrap-rc5
+     for: dsh-client-ui-theme 0.2.1-rc.5 的 FontFamilyRow（FontSizeRow.module.css 的
+          .bVCLcG_row / .bVCLcG_rowText，加 primitives Input 的 .vnGTiq_field）
+     why: 宿主的 .row 是不换行 flex、.field 固定 flex:0 240px；手机设置弹层内容宽约 340px，
+          标题+说明列因此被压成约 1 字/行、弹层被纵向撑高。上游 dsh-web-mobile main 已核对
+          为固定提交 bb0e5e151ca549fef506e829020a5d7138074711（2026-10-31，0 个 open PR；
+          该提交同时是当前 v3.2.2 标签），插件 client 里没有任何 FontFamilyRow / rowText
+          选择器，暂无上游修复。
+     until: 上游给字体行手机档换行排版，或宿主把 .field 固定宽改成可收缩——届时删本块
+     test: tools/test-mobile-client-patches.mjs
+  */
+  /* DSHA_FONT_FAMILY_ROW_V1：rc.5 的 Input 原语把 <input> 包在 span[class*="_wrap"] 里，
+     240px 与 spellcheck/autocomplete/maxlength 也落在 wrapper 内层，因此同时覆盖
+     「裸 input」与「wrapper 内 input」两种形态；只命中设置弹层里带 FontFamilyRow 那组
+     属性的输入框行，字号行是 stepper、没有 input，天然不命中。:has 保持单层。 */
+  @media (max-width: 1023px) and (pointer: coarse) {
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> input[spellcheck="false"][autocomplete="off"][maxlength="200"]) {
+      flex-wrap: wrap !important;
+      row-gap: 8px !important;
+    }
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> span[class*="_wrap"] > input[spellcheck="false"][autocomplete="off"][maxlength="200"]) {
+      flex-wrap: wrap !important;
+      row-gap: 8px !important;
+    }
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > div[class*="_rowText"],
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> span[class*="_wrap"] > input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > div[class*="_rowText"] {
+      flex: 1 1 100% !important;
+      padding-right: 0 !important;
+    }
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > input,
+    [aria-modal="true"][data-shortcut-modal="settings"] div[class*="_row"]:has(> span[class*="_wrap"] > input[spellcheck="false"][autocomplete="off"][maxlength="200"]) > span[class*="_wrap"] {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+      box-sizing: border-box;
+    }
   }
 `;
   replace('  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------',

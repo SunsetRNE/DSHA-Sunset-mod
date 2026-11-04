@@ -33,6 +33,26 @@ final class UiMotion {
     return transaction;
   }
 
+  /**
+   * 主 tab 之间切换：按 tab 顺序横向滑入，{@code forward} 表示目标在右侧。
+   *
+   * <p>只用于根页互切；从子页返回、门禁页恢复等非横向关系仍走 {@link #page}。
+   */
+  static FragmentTransaction tab(
+      Context context, FragmentTransaction transaction, boolean forward) {
+    transaction.setReorderingAllowed(true);
+    try {
+      if (animationsEnabled(context)) {
+        if (forward)
+          transaction.setCustomAnimations(R.anim.tab_enter_forward, R.anim.tab_exit_forward);
+        else transaction.setCustomAnimations(R.anim.tab_enter_backward, R.anim.tab_exit_backward);
+      }
+    } catch (RuntimeException ignored) {
+      /* 读取设置失败仍可正常导航。 */
+    }
+    return transaction;
+  }
+
   /** 系统动画总开关；读设置失败按开启处理，不因此阻断页面操作。 */
   static boolean animationsEnabled(Context context) {
     try {

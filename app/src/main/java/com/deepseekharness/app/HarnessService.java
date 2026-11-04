@@ -158,6 +158,8 @@ public class HarnessService extends Service {
     super.onCreate();
     c = HarnessController.get(this);
     DshaApp.from(this).harnessService().attach(this);
+    // T38：覆盖安装后首次启动时记录一次设备通道快照（每个版本一次，异步、失败不影响启动）。
+    com.deepseekharness.app.device.DeviceChannelDiagnostics.recordFirstStartAfterUpgrade(this);
     c.restoreRunningWebSession(
         () -> {
           if (DshaApp.from(this).harnessService().current() == this && foregroundPromoted) {
@@ -688,9 +690,10 @@ public class HarnessService extends Service {
     // 正文点击必须是一个真正的 Activity PendingIntent。显式复用已有任务并带上
     // open_launch，避免用户已经停在设置/终端页时点击通知看起来「没有反应」。
     // 停止按钮继续使用独立的 Service PendingIntent，不能与正文共用 requestCode。
+    // 经应用入口中转：启动目标为 Web 时进入 Web，否则仍是原来的原生启动页入口。
     Intent intent = com.deepseekharness.app.ui.MainActivity.homeIntent(this);
     PendingIntent pi =
-        PendingIntent.getActivity(
+        com.deepseekharness.app.ui.AppEntryRouterActivity.pending(
             this,
             NOTIF_ID,
             intent,

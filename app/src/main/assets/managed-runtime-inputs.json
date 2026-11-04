@@ -43,6 +43,11 @@
       "executable": false
     },
     {
+      "asset": "net-epoch.cjs",
+      "target": "usr/local/share/dsha/net-epoch.cjs",
+      "executable": false
+    },
+    {
       "asset": "dsha-builtin.txt",
       "target": "root/dsha-builtin.txt",
       "executable": false
@@ -426,10 +431,66 @@
       "asset": "builtin-plugins/dsh-web-mobile/lib/file-transfer.js",
       "target": "root/dsha-web-mobile/lib/file-transfer.js",
       "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/package.json",
+      "target": "root/dsha-launch-target/package.json",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/cordis.patch.yml",
+      "target": "root/dsha-launch-target/cordis.patch.yml",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/lib/index.js",
+      "target": "root/dsha-launch-target/lib/index.js",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/lib/bridge-port.cjs",
+      "target": "root/dsha-launch-target/lib/bridge-port.cjs",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-launch-target/lib/client.js",
+      "target": "root/dsha-launch-target/lib/client.js",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-read-hint/package.json",
+      "target": "root/dsha-fs-read-hint/package.json",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-read-hint/cordis.patch.yml",
+      "target": "root/dsha-fs-read-hint/cordis.patch.yml",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-read-hint/lib/index.js",
+      "target": "root/dsha-fs-read-hint/lib/index.js",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-search-scope/package.json",
+      "target": "root/dsha-fs-search-scope/package.json",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-search-scope/cordis.patch.yml",
+      "target": "root/dsha-fs-search-scope/cordis.patch.yml",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-fs-search-scope/lib/index.js",
+      "target": "root/dsha-fs-search-scope/lib/index.js",
+      "executable": false
     }
   ],
   "assetFiles": [
     "mcp-image-base64-patch.json",
+    "mcp-version-negotiation-patch.json",
     "web-fetch-http-surrogate-patch.json",
     "web-fetch-output-surrogate-patch.json",
     "client-combo-patch.json",
@@ -516,7 +577,8 @@
     "conversation-large-image-file-patch.json",
     "file-deliverables-patch.json",
     "file-image-actions-patch.json",
-    "plugin-pnpm-argv-patch.json"
+    "plugin-pnpm-argv-patch.json",
+    "external-tool-proof.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -527,7 +589,6 @@
   ],
   "launcherTrees": [
     "app/src/main/jniLibs",
-    "app/src/low/jniLibs",
     "app/src/main/java/com/deepseekharness/app/runtime",
     "app/src/main/java/com/deepseekharness/app/backup",
     "app/src/main/java/com/deepseekharness/app/capabilities",
@@ -538,9 +599,13 @@
     "app/src/main/java/com/deepseekharness/app/plugins"
   ],
   "launcherSources": [
+    "util/ComposeGate.java",
     "util/IsolatedCommand.java",
+    "util/OverlayPlacement.java",
+    "util/OverlayTouchGuard.java",
     "util/PluginDownloadSource.java",
     "backup/RuntimeTrialRecords.java",
+    "util/TurnScreenGrants.java",
     "util/WebProcSel.java",
     "util/WebPidIdentity.java",
     "util/WebStartProtection.java",
@@ -573,6 +638,7 @@
     "util/ColdRuntimeSelection.java",
     "util/Ids.java",
     "util/GuestPaths.java",
+    "util/GuestRegularFile.java",
     "util/BackupScopes.java",
     "util/NpmPackageName.java",
     "util/BuiltinPluginRegistry.java",
@@ -694,6 +760,10 @@
     "util/ScreenObservationLedger.java",
     "util/ScreenPixelFingerprint.java",
     "util/ScreenRequestExecutor.java",
+    "util/ScreenSenseCodec.java",
+    "util/ScreenSenseMetadata.java",
+    "util/ScreenSenseState.java",
+    "util/ScreenSenseStateStore.java",
     "util/ScreenSerialExecutor.java",
     "util/ScreenWindowRegion.java",
     "util/VirtualScreenCoreIdentity.java",
@@ -723,7 +793,12 @@
     "util/LanPortPolicy.java",
     "core/StartupPreparationTiming.java",
     "util/WebSessionStorage.java",
-    "util/WebSessionDiagnostics.java"
+    "util/WebSessionDiagnostics.java",
+    "util/ExternalToolPolicy.java",
+    "util/ExternalDevicePolicy.java",
+    "util/ExternalInstallPlan.java",
+    "util/ExternalStepOutput.java",
+    "util/ExternalImportQuota.java"
   ],
   "generatorSources": [
     "tools/mobile-server/compress.js",

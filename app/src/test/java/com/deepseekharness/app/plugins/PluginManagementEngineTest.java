@@ -518,6 +518,73 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
+  public void foregroundWithoutPluginPageNeverRunsPeriodicCatalogQuery() {
+    World w = World.unwatched();
+    w.known("A");
+    w.engine.foreground(true);
+    w.pump();
+    // 只做一次廉价来源核对；对话页前台 10 分钟也不应查询目录。
+    w.advance(600_000);
+    assertEquals(1, w.backend.probes);
+    assertEquals(0, w.backend.queries);
+  }
+
+  @Test
+  public void unwatchedDirtyIsDeferredUntilPluginPageIsVisible() {
+    World w = World.unwatched();
+    w.known("A");
+    w.engine.foreground(true);
+    w.pump();
+    w.dirty();
+    w.advance(300_000);
+    assertEquals(0, w.backend.queries);
+    w.engine.watched(true);
+    w.pump();
+    w.advance(301_000);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void leavingPluginPageStopsPeriodicRefresh() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    w.finish(true);
+    w.advance(130_000);
+    int whileWatched = w.backend.queries;
+    assertTrue(whileWatched >= 2);
+    w.engine.watched(false);
+    w.advance(900_000);
+    assertEquals(whileWatched, w.backend.queries);
+  }
+
+  @Test
+  public void pageDemandStillLoadsWhileUnwatched() {
+    World w = World.unwatched();
+    w.engine.foreground(true);
+    w.pump();
+    assertEquals(0, w.backend.queries);
+    w.engine.ensureLoaded();
+    w.advance(1_000);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void pageLeftDuringProbeKeepsOneDeferredQueryForReturn() {
+    World w = new World();
+    w.engine.foreground(true);
+    assertTrue(w.workerStep()); // probe 已执行，结果等待主线程。
+    w.engine.watched(false);
+    w.pump();
+    assertEquals(0, w.backend.queries);
+    w.advance(300_000);
+    assertEquals(0, w.backend.queries);
+    w.engine.watched(true);
+    w.advance(301_000);
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
   public void pageRequestBeforeIdleForegroundCannotLeaveProbeScanStuck() {
     World w = new World();
     w.engine.ensureLoaded();
@@ -715,6 +782,17 @@ public final class PluginManagementEngineTest {
     final ArrayDeque<Runnable> main = new ArrayDeque<>();
     final FakeBackend backend = new FakeBackend(this);
     final Coordinator<String> engine = new Coordinator<>(backend, this, this, main::addLast);
+
+    /** 既有用例描述插件页可见时的行为；未观看场景用 {@link #unwatched()}。 */
+    World() {
+      engine.watched(true);
+    }
+
+    static World unwatched() {
+      World w = new World();
+      w.engine.watched(false);
+      return w;
+    }
 
     @Override
     public long now() {

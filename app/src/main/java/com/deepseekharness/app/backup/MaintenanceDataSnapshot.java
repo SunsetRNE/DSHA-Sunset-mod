@@ -85,6 +85,10 @@ public final class MaintenanceDataSnapshot {
     String leaf = new File(relative).getName();
     String checkpoints = "root/.dsh/dsha-startup-checkpoints";
     if (relative.equals(checkpoints)) return false;
+    // ADB 配对密钥不进用户备份 / 导出，但本机环境重建只在本机私有目录间迁移：
+    // 保留原有配对，避免重建后被迫重新配对。
+    String adbKeys = "root/.dsh/adbkeys";
+    if (relative.equals(adbKeys) || relative.startsWith(adbKeys + "/")) return false;
     if (relative.startsWith(checkpoints + "/"))
       return !relative
           .substring(checkpoints.length() + 1)

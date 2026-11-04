@@ -35,7 +35,7 @@ public final class VirtualScreenAccessibility {
       JSONObject args,
       com.deepseekharness.app.screen.ScreenRequestContext context,
       ObservedPixels pixels) {
-    if (com.deepseekharness.app.BuildConfig.LOW_ANDROID) return fail("VSCREEN_UNSUPPORTED_LOW");
+    if (false) return fail("VSCREEN_UNSUPPORTED_LOW");
     if (android.os.Build.VERSION.SDK_INT < 30) return fail("VSCREEN_API_30_REQUIRED");
     return observedOwner()
         .run(

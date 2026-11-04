@@ -66,10 +66,16 @@ final class AssistantConfirmationWindow implements AutoCloseable {
     }
 
     void answer(Boolean approved, int windowId) {
+      answer(approved, windowId, false);
+    }
+
+    void answer(Boolean approved, int windowId, boolean rememberTurn) {
       var callback = answer;
       answer = null;
       if (callback != null)
-        callback.accept(new ScreenControlConfirmation.Decision(approved, windowId));
+        callback.accept(
+            new ScreenControlConfirmation.Decision(
+                approved, windowId, rememberTurn && Boolean.TRUE.equals(approved)));
     }
 
     @Override
@@ -130,6 +136,23 @@ final class AssistantConfirmationWindow implements AutoCloseable {
               v -> {
                 if (active == pending && sequence == stamp) finish(false);
               });
+          Button allowTurn = new Button(context);
+          allowTurn.setText(
+              target != null
+                      && com.deepseekharness.app.util.SensitiveAppPolicy.sensitive(
+                          target.packageName)
+                  ? UiText.choose(
+                      "本轮允许此应用（敏感：每 5 次再确认）",
+                      "Allow this app this turn (sensitive: re-ask every 5)")
+                  : UiText.choose("本轮允许此应用", "Allow this app for this turn"));
+          // 放在「拒绝」下方并隔开，避免和「允许本次」连按误触。
+          LinearLayout.LayoutParams turnParams = new LinearLayout.LayoutParams(-1, -2);
+          turnParams.topMargin = 18;
+          view.addView(allowTurn, turnParams);
+          allowTurn.setOnClickListener(
+              v -> {
+                if (active == pending && sequence == stamp) finish(true, true);
+              });
           WindowManager.LayoutParams params =
               new WindowManager.LayoutParams(
                   -1,
@@ -180,6 +203,10 @@ final class AssistantConfirmationWindow implements AutoCloseable {
   }
 
   private void finish(Boolean approved) {
+    finish(approved, false);
+  }
+
+  private void finish(Boolean approved, boolean rememberTurn) {
     ++sequence;
     Pending pending = active;
     active = null;
@@ -192,7 +219,7 @@ final class AssistantConfirmationWindow implements AutoCloseable {
       } catch (RuntimeException ignored) {
       }
     view = null;
-    if (pending != null) pending.answer(allowed, promptWindow);
+    if (pending != null) pending.answer(allowed, promptWindow, rememberTurn);
   }
 
   @Override

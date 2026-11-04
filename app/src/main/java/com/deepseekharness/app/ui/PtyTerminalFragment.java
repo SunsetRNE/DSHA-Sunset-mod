@@ -57,6 +57,10 @@ public final class PtyTerminalFragment extends Fragment
                 if (getView() != null) attachSelected();
               });
   private HarnessController c;
+
+  /** 输入 / 切换热路径只读缓存结论（T12 ANR），门禁本身不放宽。 */
+  private TerminalReadiness readiness;
+
   private TerminalView view;
   private InputFrame inputFrame;
   private TextView title, ctrlBtn, altBtn;
@@ -104,6 +108,7 @@ public final class PtyTerminalFragment extends Fragment
   public void onViewCreated(@NonNull View root, @Nullable Bundle state) {
     viewGeneration++;
     c = HarnessController.get(requireContext());
+    readiness = new TerminalReadiness(requireContext(), c.proot());
     inputFrame = root.findViewById(R.id.pty_input_frame);
     inputFrame.allowed = this::inputAllowed;
     inputFrame.clipboardPaste = this::paste;
@@ -127,6 +132,11 @@ public final class PtyTerminalFragment extends Fragment
 
   @Override
   public void newSession() {
+    newSessionWithCommand(null, null);
+  }
+
+  /** 固定 guest command 只影响新会话 argv；保护票与默认新建共用同一条创建时序。 */
+  public void newSessionWithCommand(String[] guestCommand, String sessionTitle) {
     if (!isResumed() || view == null || creationPending || c == null) return;
     if (getActivity() instanceof TerminalActivity
         && !((TerminalActivity) getActivity()).allowTerminalCreation()) return;
@@ -141,6 +151,10 @@ public final class PtyTerminalFragment extends Fragment
     final long generation = ++operationGeneration;
     final long targetView = viewGeneration;
     final var proot = c.proot();
+    final String[] command = guestCommand == null ? null : guestCommand.clone();
+    final var created =
+        new java.util.concurrent.atomic.AtomicReference<
+            com.deepseekharness.app.util.TerminalTabs.Tab<PtySession>>();
     try {
       creating =
           TerminalRuntimeService.requestFromVisible(
@@ -160,13 +174,16 @@ public final class PtyTerminalFragment extends Fragment
                           () -> {
                             String problem = "";
                             try {
-                              OWNER.createPty(ticket, proot, 80, 24, null);
+                              created.set(OWNER.createPty(ticket, proot, 80, 24, null, command));
                             } catch (Exception error) {
                               problem = SensitiveData.redact(String.valueOf(error));
                             }
                             final String result = problem;
                             main.post(
                                 () -> {
+                                  var tab = created.get();
+                                  if (tab != null && sessionTitle != null)
+                                    OWNER.renamePty(tab.id, sessionTitle);
                                   if (generation != operationGeneration) return;
                                   creationPending = false;
                                   creating = null;
@@ -258,7 +275,7 @@ public final class PtyTerminalFragment extends Fragment
         .setVisibility(selected == null ? View.VISIBLE : View.GONE);
     getView().findViewById(R.id.terminal_new).setEnabled(!creationPending);
     String status = "";
-    if (c != null && !c.proot().isEnvironmentReady()) status = UiText.text("环境未就绪 —— 先到「安装」页装完再回来");
+    if (readiness != null && !readiness.ready()) status = UiText.text("环境未就绪 —— 先到「安装」页装完再回来");
     else if (!startError.isEmpty()) status = UiText.format("终端启动失败：%s", startError);
     else if (creationPending) status = UiText.choose("正在准备终端保护…", "Preparing terminal protection…");
     else if (tab != null && tab.isClosing()) status = UiText.text("正在关闭此终端…");
@@ -346,8 +363,10 @@ public final class PtyTerminalFragment extends Fragment
     var rows =
         TerminalExtraKeys.decode(
             prefs(context).getString(TerminalExtraKeys.prefKey(profile), ""), profile);
+    boolean anyRow = false;
     for (var actions : rows) {
       if (actions.isEmpty()) continue;
+      anyRow = true;
       HorizontalScrollView scroll = new HorizontalScrollView(context);
       scroll.setHorizontalScrollBarEnabled(false);
       scroll.setFillViewport(true);
@@ -365,13 +384,9 @@ public final class PtyTerminalFragment extends Fragment
         button.setSingleLine(true);
         button.setMaxLines(1);
         button.setIncludeFontPadding(false);
-        button.setPadding(dp(2), 0, dp(2), 0);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        // 大字体/窄屏时自动缩字，标签不会折行或把行高撑破。
-        button.setAutoSizeTextTypeUniformWithConfiguration(8, 13, 1, TypedValue.COMPLEX_UNIT_SP);
-        button.setTextColor(context.getColor(R.color.terminal_foreground));
-        button.setTypeface(android.graphics.Typeface.MONOSPACE);
-        button.setBackgroundResource(R.drawable.bg_terminal_key);
+        // 可见键帽在 48dp 触控格内各缩 2dp，文字内边距同步留出键帽圆角。
+        button.setPadding(dp(4), 0, dp(4), dp(1));
+        styleExtraKey(button, TerminalExtraKeys.style(action));
         button.setFocusable(false); // 触摸附加键不抢走 IME 组合焦点。
         button.setContentDescription(TerminalExtraKeys.description(action));
         if ("CTRL".equals(action)) ctrlBtn = button;
@@ -388,6 +403,14 @@ public final class PtyTerminalFragment extends Fragment
       scroll.addView(row, new HorizontalScrollView.LayoutParams(-1, dp(48)));
       box.addView(scroll, new LinearLayout.LayoutParams(-1, dp(48)));
     }
+    // 托盘底板与纯黑输出区分层；没有任何键时不留空条。
+    if (anyRow) {
+      box.setBackgroundResource(R.drawable.bg_terminal_key_tray);
+      box.setPadding(0, dp(4), 0, dp(2));
+    } else {
+      box.setBackground(null);
+      box.setPadding(0, 0, 0, 0);
+    }
     box.setContentDescription(
         UiText.choose("终端快捷按键，长按可自定义", "Terminal extra keys, long-press to customize"));
     box.setOnLongClickListener(
@@ -396,6 +419,47 @@ public final class PtyTerminalFragment extends Fragment
           return true;
         });
     paintModifiers();
+  }
+
+  /**
+   * 按键分类决定键帽底色与字形：功能键深一档、方向键放大、控制字符等宽强调色、符号等宽。
+   * 自动缩字上限随分类变化，大字体或窄屏时标签仍不折行、不撑破 48dp 行高。
+   */
+  private void styleExtraKey(TextView button, TerminalExtraKeys.KeyStyle style) {
+    var context = button.getContext();
+    int background = R.drawable.bg_terminal_key;
+    int color = R.color.terminal_key_text;
+    android.graphics.Typeface typeface =
+        android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL);
+    int maxSp = 15;
+    switch (style) {
+      case MODIFIER:
+        background = R.drawable.bg_terminal_key_mod;
+        typeface = android.graphics.Typeface.DEFAULT_BOLD;
+        break;
+      case FUNCTION:
+        background = R.drawable.bg_terminal_key_fn;
+        break;
+      case ARROW:
+        typeface = android.graphics.Typeface.DEFAULT;
+        maxSp = 18;
+        break;
+      case CONTROL:
+        color = R.color.terminal_key_control;
+        typeface = android.graphics.Typeface.MONOSPACE;
+        break;
+      case SYMBOL:
+      default:
+        color = R.color.terminal_key_symbol;
+        typeface = android.graphics.Typeface.MONOSPACE;
+        maxSp = 17;
+        break;
+    }
+    button.setBackgroundResource(background);
+    button.setTextColor(context.getColor(color));
+    button.setTypeface(typeface);
+    button.setTextSize(TypedValue.COMPLEX_UNIT_SP, maxSp);
+    button.setAutoSizeTextTypeUniformWithConfiguration(8, maxSp, 1, TypedValue.COMPLEX_UNIT_SP);
   }
 
   @Override
@@ -469,7 +533,8 @@ public final class PtyTerminalFragment extends Fragment
       ctrlBtn.setSelected(modifiers.control());
       ctrlBtn.setTextColor(
           requireContext()
-              .getColor(modifiers.control() ? R.color.ok : R.color.terminal_foreground));
+              .getColor(
+                  modifiers.control() ? R.color.terminal_key_led_on : R.color.terminal_key_text));
       ctrlBtn.setContentDescription(
           modifiers.control()
               ? UiText.choose("Ctrl，一次性修饰键，已启用", "Ctrl, one-shot modifier, enabled")
@@ -478,7 +543,8 @@ public final class PtyTerminalFragment extends Fragment
     if (altBtn != null) {
       altBtn.setSelected(modifiers.alt());
       altBtn.setTextColor(
-          requireContext().getColor(modifiers.alt() ? R.color.ok : R.color.terminal_foreground));
+          requireContext()
+              .getColor(modifiers.alt() ? R.color.terminal_key_led_on : R.color.terminal_key_text));
       altBtn.setContentDescription(
           modifiers.alt()
               ? UiText.choose("Alt，一次性修饰键，已启用", "Alt, one-shot modifier, enabled")
@@ -794,6 +860,7 @@ public final class PtyTerminalFragment extends Fragment
     ctrlBtn = null;
     altBtn = null;
     c = null;
+    readiness = null;
     super.onDestroyView();
   }
 
@@ -949,8 +1016,8 @@ public final class PtyTerminalFragment extends Fragment
         && attachedSession == tab.value
         && tab.value.isRunning()
         && OWNER.isPtyInputAllowed(tab.id)
-        && c != null
-        && c.proot().isEnvironmentReady();
+        && readiness != null
+        && readiness.ready();
   }
 
   @Override

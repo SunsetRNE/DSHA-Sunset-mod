@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
 MODULE = '@deepseek-ai/dsh-client-locale/lib/client.js'
 SOURCE_SHA256 = 'bad8fe9bfb07af2a60c80933be65ceafdaab5386f404fb264401c7e540a36e16'
-VERSION = '0.2.1-rc.3'
+VERSION = '0.2.1-rc.5'
 
 
 def official_catalog(runtime):
@@ -103,8 +103,15 @@ def outputs(catalog, translations):
         raise ValueError('WEB_LANGUAGE_PREVIOUS_RECIPE_GENERATION')
     recipe['previousPatches'] = previous['patches']
     text = json.dumps(recipe, ensure_ascii=False, indent=2) + '\n'
-    return {'web-integration/language.js': helper, 'language-patch.json': text,
-            'recovery-recipes/' + VERSION + '/language-patch.json': text}
+    generated = {'web-integration/language.js': helper, 'language-patch.json': text}
+    # 独立应急 runtime 由 tools/recovery-runtime/lock.json 单独固定。只有救援
+    # 版本与当前正式 runtime 一致时才生成同内容应急 recipe；正式升级不得
+    # 静默新增或替换救援输入。
+    recovery_version = json.loads(
+        (ROOT / 'tools/recovery-runtime/lock.json').read_text(encoding='utf8')).get('dshVersion')
+    if recovery_version == VERSION:
+        generated['recovery-recipes/' + VERSION + '/language-patch.json'] = text
+    return generated
 
 
 def main():

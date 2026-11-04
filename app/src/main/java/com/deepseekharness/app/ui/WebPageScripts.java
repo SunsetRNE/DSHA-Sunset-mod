@@ -22,6 +22,8 @@ public final class WebPageScripts {
         + "\n"
         + language(context)
         + "\n"
+        + theme(context)
+        + "\n"
         + read(context, "web-integration/es-compat.js")
         + "\n"
         + read(context, "web-integration/compat.js")
@@ -41,6 +43,19 @@ public final class WebPageScripts {
         + compatibility(context)
         + "\n//# sourceURL="
         + gate.source();
+  }
+
+  /**
+   * 原生亮暗偏好交给集成插件（dsha-native-theme-sync）；偏好值经 normalize 只可能是三个常量之一。
+   * 应急页不注入：应急 DSH 没有集成插件。
+   */
+  public static String theme(Context context) {
+    var config = new com.deepseekharness.app.core.ConfigStore(context);
+    return "window.__DSHA_THEME__={preference:'"
+        + config.getUiTheme()
+        + "',sync:"
+        + config.isWebThemeSync()
+        + "};window.dispatchEvent(new CustomEvent('dsha-theme'));";
   }
 
   public static String language(Context context) {
@@ -112,6 +127,26 @@ public final class WebPageScripts {
       throw new IllegalStateException(impossible);
     }
     return request;
+  }
+
+  /**
+   * 进入会话后把待答问题滚进可视区并聚焦回答框。
+   *
+   * <p>只做“看得见 + 能直接打字”，不自动展开全屏：全屏回答是用户在提问卡上手动点的操作。
+   * 卡片由网页侧插件渲染，类名带宿主哈希前缀，因此按前缀匹配并轮询等待渲染完成。
+   */
+  public static String focusQuestion() {
+    return "(function(){var tries=0;function find(){"
+        + "var card=document.querySelector('[class*=\"Mbwy4a_frame\"]');"
+        + "if(!card)return null;"
+        + "if(!card.querySelector('[class*=\"Mbwy4a_body\"]'))return null;"
+        + "var field=card.querySelector('[class*=\"Mbwy4a_fieldInput\"]');"
+        + "if(!field)field=card.querySelector('[class*=\"Mbwy4a_body\"] textarea');"
+        + "if(!field)field=card.querySelector('[class*=\"Mbwy4a_body\"] input');"
+        + "return field?{card:card,field:field}:null;}"
+        + "function tick(){var hit=find();if(hit){try{hit.card.scrollIntoView({block:'center'});"
+        + "hit.field.focus({preventScroll:true});}catch(e){}return;}"
+        + "if(++tries<40)setTimeout(tick,250);}tick();})();";
   }
 
   /** 帧只携带几何与本页身份，不包含 URL、输入内容或模型资料。 */

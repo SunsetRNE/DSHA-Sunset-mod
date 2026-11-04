@@ -9,7 +9,7 @@ public final class LanPortPolicyTest {
   @Test
   public void currentPreferenceLeavesTheLegacyOnlyPortAvailable() {
     assertEquals(3081, LanPortPolicy.preferred("com.dsh.client"));
-    assertEquals(3082, LanPortPolicy.preferred("dsh.android.client"));
+    assertEquals(3082, LanPortPolicy.preferred("io.github.sunsetrne.dsha"));
   }
 
   @Test

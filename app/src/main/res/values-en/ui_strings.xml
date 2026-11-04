@@ -1,9 +1,23 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="accessibility_desc" formatted="false">"Two purposes: (1) Read the pairing code from Android's Wireless debugging dialog, so you do not have to copy a code that expires after two minutes. (2) Let the AI assistant read the screen, tap, type, press keys and take screenshots (Android 11+), enabling device control without ADB or Shizuku.\n\nDSHA does not record your screen in the background. Screen contents are read only when the assistant explicitly requests them, returned to the current conversation. Ordinary requested screenshots are saved in the app screenshot folder; MCP screenshots are encoded in memory. DSHA does not upload screenshots independently; configured models and plugins may process returned results. Pairing codes are read only during the two minutes after you tap Auto-read pairing code."</string>
-    <string name="accessibility_service_label" formatted="false">"DSHA Pairing Assistant"</string>
     <string name="adb_pairing_service_label" formatted="false">"Wireless ADB pairing"</string>
     <string name="copy_text" formatted="false">"Copy"</string>
+    <string name="diag248_copy" formatted="false">"Copy diagnostic report"</string>
+    <string name="diag248_copy_sub" formatted="false">"Redacted text to paste into feedback"</string>
+    <string name="diag248_empty" formatted="false">"No results yet. Checks only read local state and do not change the environment."</string>
+    <string name="diag248_export" formatted="false">"Export diagnostics"</string>
+    <string name="diag248_export_sub" formatted="false">"Structured log package; reproduction steps optional"</string>
+    <string name="diag248_feedback" formatted="false">"Feedback"</string>
+    <string name="diag248_idle_sub" formatted="false">"Check components, storage and services and create a redacted report"</string>
+    <string name="diag248_idle_title" formatted="false">"Not checked"</string>
+    <string name="diag248_plugins" formatted="false">"Plugin manager"</string>
+    <string name="diag248_plugins_sub" formatted="false">"Troubleshoot startup problems caused by plugins"</string>
+    <string name="diag248_repair_sub" formatted="false">"Re-prepare certificates, Python, npm and pnpm"</string>
+    <string name="diag248_start" formatted="false">"Inspect"</string>
+    <string name="diag248_status" formatted="false">"Status"</string>
+    <string name="diag248_tools" formatted="false">"Tools"</string>
+    <string name="nh_sub" formatted="false">"Detects background network loss, stale DNS and egress; records only, never repairs"</string>
+    <string name="nh_title" formatted="false">"Network health"</string>
     <string name="paste_text" formatted="false">"Paste"</string>
     <string name="text_selection_more" formatted="false">"More…"</string>
     <string name="ui_m0001" formatted="false">"Download update"</string>
@@ -90,4 +104,12 @@
     <string name="ui_m0215" formatted="false">"Preview"</string>
     <string name="ui_m0217" formatted="false">"Verify connection"</string>
     <string name="ui_m0218" formatted="false">"＋ New"</string>
+    <string name="ui_m9024" formatted="false">"Change"</string>
+    <string name="upd_browser_sub" formatted="false">"All releases and APKs"</string>
+    <string name="upd_copy_version" formatted="false">"Copy version info"</string>
+    <string name="upd_full_notes" formatted="false">"Full release notes"</string>
+    <string name="upd_pane_empty" formatted="false">"Release notes, size and install method appear here once a candidate is found."</string>
+    <string name="upd_recheck" formatted="false">"Check again"</string>
+    <string name="upd_tab_candidate" formatted="false">"Candidate"</string>
+    <string name="upd_tab_current" formatted="false">"This build"</string>
 </resources>

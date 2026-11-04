@@ -10,7 +10,7 @@ public final class ControlTaskAuthorityTest {
     var binding = binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "session", "1");
     var lease = authority.begin(binding);
     var github = new com.deepseekharness.app.util.ScreenTarget(0, 12, "com.github.android");
-    var dsha = new com.deepseekharness.app.util.ScreenTarget(0, 13, "dsh.android.client");
+    var dsha = new com.deepseekharness.app.util.ScreenTarget(0, 13, "io.github.sunsetrne.dsha");
     assertFalse(authority.actionAllowed(lease, github));
     assertTrue(authority.observed(lease, authority.beginObservation(lease), github));
     assertTrue(authority.actionAllowed(lease, github));
@@ -39,7 +39,7 @@ public final class ControlTaskAuthorityTest {
     var authority = new ControlTaskAuthority();
     var lease = authority.begin(binding(ControlTaskAuthority.Owner.LOCAL_DSH, "bridge", "s", "1"));
     var github = new com.deepseekharness.app.util.ScreenTarget(0, 12, "com.github.android");
-    var dsha = new com.deepseekharness.app.util.ScreenTarget(0, 13, "dsh.android.client");
+    var dsha = new com.deepseekharness.app.util.ScreenTarget(0, 13, "io.github.sunsetrne.dsha");
     long old = authority.beginObservation(lease);
     long newer = authority.beginObservation(lease);
     assertTrue(authority.observed(lease, newer, dsha));

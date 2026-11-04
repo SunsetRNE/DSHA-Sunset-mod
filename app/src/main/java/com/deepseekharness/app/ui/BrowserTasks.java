@@ -83,6 +83,15 @@ final class BrowserTasks {
     dispatched = null;
   }
 
+  /** A confirmed renderer loss cannot keep Main waiting for that page's content forever. */
+  static void browserUnavailable(PictureInPictureActivity owner) {
+    if (background != null && background.owner().get() == owner) {
+      background = null;
+      dispatched = null;
+      trace("CANCEL_RENDERER_GONE");
+    }
+  }
+
   /** Only the original browser reaching full-screen resume acknowledges the Home return. */
   static void browserResumed(PictureInPictureActivity owner) {
     if (background != null
@@ -97,6 +106,31 @@ final class BrowserTasks {
 
   static boolean resumeBackground(Context context) {
     return resumeBackground(context, false);
+  }
+
+  /**
+   * 通知等应用入口：回到仍存活、可整屏显示的原网页。没有登记“返回原网页”时（例如用户正停在 Web
+   * 时拉下通知），按 Home 相同的规则登记后再派发；用户主动隐藏的会话与未就绪的页面不派发。
+   */
+  static boolean returnToLiveBrowser(Context context) {
+    if (resumeBackground(context, true)) return true;
+    // 已登记但仍在核验 / 等内容：保持登记，交给 Main 的既有返回路由，不覆盖。
+    if (returnPending()) return false;
+    PictureInPictureActivity owner = BrowserConversationRoute.owner();
+    if (owner == null || owner.conversationHidden()) return false;
+    rememberBackground(owner);
+    if (resumeBackground(context, true)) return true;
+    // 未能派发：撤销本次登记，避免之后进入 Main 时被意外带回网页。
+    nativeNavigation();
+    return false;
+  }
+
+  /** 仍有待回到的原网页（含等待核验 / 内容就绪）；只读，不派发。 */
+  static boolean returnPending() {
+    Background pending = background;
+    if (pending == null) return false;
+    var owner = pending.owner().get();
+    return owner != null && !owner.isFinishing() && !owner.isDestroyed();
   }
 
   /** A new launcher entry can retry; its matching onResume does not dispatch twice. */
@@ -168,9 +202,9 @@ final class BrowserTasks {
       android.util.Log.w(
           "DSHA", "BROWSER_BACKGROUND_TASK: " + unavailable.getClass().getSimpleName());
     }
-    // Android/ROM may reject startActivityInTask even for our own retained task. The
-    // explicit singleTask component and its existing affinity select the same live host;
-    // NEW_TASK is required for this fallback, without CLEAR_* or MULTIPLE_TASK.
+    // Android/ROM may reject startActivityInTask even for our own retained task. The shared
+    // affinity plus REORDER_TO_FRONT reuses a host in the Main task; a host elsewhere (PiP task)
+    // is reached by WebPreviewActivity forwarding. NEW_TASK, without CLEAR_* or MULTIPLE_TASK.
     try {
       context.startActivity(full.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
       trace("DISPATCH_COMPONENT");
@@ -185,9 +219,62 @@ final class BrowserTasks {
   }
 
   static void rememberMain(Activity activity) {
-    if (!activity.isFinishing() && !activity.isDestroyed() && activity.isTaskRoot())
+    // Main 与 Web 同一任务后，Main 可能不是任务根（例如通知先开了 Web）；重复启动器包装在调用前已退出。
+    if (!activity.isFinishing() && !activity.isDestroyed())
       nativeMain = new WeakReference<>(activity);
     reconcileRecents(activity, activity.getTaskId());
+  }
+
+  /** 存活 Main 所在任务；没有时为 -1。 */
+  private static int liveMainTask() {
+    Activity main = nativeMain.get();
+    return main == null || main.isFinishing() || main.isDestroyed() ? -1 : main.getTaskId();
+  }
+
+  /**
+   * 把 intent 派发进指定的既有任务（不新建任务、不清栈）。系统或 ROM 拒绝、或任务已不存在时返回 false，
+   * 由调用方决定兜底。
+   */
+  static boolean startInTask(Context context, int taskId, Intent intent) {
+    if (taskId < 0) return false;
+    try {
+      ActivityManager manager =
+          (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+      if (manager == null) return false;
+      for (ActivityManager.AppTask task : manager.getAppTasks())
+        if (task.getTaskInfo().id == taskId) {
+          task.startActivity(context, intent, null);
+          return true;
+        }
+    } catch (RuntimeException unavailable) {
+      android.util.Log.w("DSHA", "TASK_DISPATCH: " + unavailable.getClass().getSimpleName());
+    }
+    return false;
+  }
+
+  static final String FORWARDED = "dsha-browser-forwarded";
+
+  /**
+   * Web 宿主不再用 singleTask 独占任务，同一时刻仍只允许一个存活宿主：新建实例发现已有存活宿主
+   * （例如它在画中画任务里）时，把本次请求原样转交给它所在的任务。成功返回 true，调用方结束新实例；
+   * 已转交过一次或派发失败时返回 false，新实例照常接管，避免来回转交。
+   */
+  static boolean forwardToLiveBrowser(Activity created) {
+    Intent request = created.getIntent();
+    PictureInPictureActivity owner = BrowserConversationRoute.owner();
+    if (owner == null || owner == created || request == null) return false;
+    if (request.getBooleanExtra(FORWARDED, false)) return false;
+    Intent forward =
+        new Intent(request)
+            .setComponent(new android.content.ComponentName(created, owner.getClass()))
+            .putExtra(FORWARDED, true);
+    forward.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    if (!startInTask(created, owner.getTaskId(), forward)) {
+      trace("FORWARD_REJECTED");
+      return false;
+    }
+    trace("FORWARD_LIVE_HOST");
+    return true;
   }
 
   static boolean duplicateLauncher(Activity activity, Bundle restored) {
@@ -240,18 +327,19 @@ final class BrowserTasks {
       List<BrowserTaskPolicy.Task> choices = new ArrayList<>();
       for (ActivityManager.AppTask task : appTasks) {
         var info = task.getTaskInfo();
-        choices.add(new BrowserTaskPolicy.Task(info.id, mainRoot(context, info.baseActivity)));
+        choices.add(new BrowserTaskPolicy.Task(info.id, nativeHost(context, info)));
       }
       int selected =
           BrowserTaskPolicy.nativeTask(
               choices, BrowserConversationRoute.taskId(), preferredMainTask);
       for (ActivityManager.AppTask task : appTasks) {
         var info = task.getTaskInfo();
+        boolean nativeHost = nativeHost(context, info);
         var visibility =
             TaskNavigationPolicy.recents(
                 info.id,
-                mainRoot(context, info.baseActivity),
-                browserRoot(context, info.baseActivity),
+                nativeHost,
+                !nativeHost && browserRoot(context, info.baseActivity),
                 selected);
         if (visibility != TaskNavigationPolicy.Recents.KEEP)
           task.setExcludeFromRecents(visibility == TaskNavigationPolicy.Recents.HIDE);
@@ -269,10 +357,14 @@ final class BrowserTasks {
     return ownRoot(context, root) && MainActivity.class.getName().equals(root.getClassName());
   }
 
+  /** 以 Main 为根的任务，或存活 Main 所在的任务（Web 先开、Main 后加入的同一任务）。 */
+  private static boolean nativeHost(Context context, ActivityManager.RecentTaskInfo info) {
+    int main = liveMainTask();
+    return mainRoot(context, info.baseActivity) || main >= 0 && info.id == main;
+  }
+
   private static boolean browserRoot(Context context, android.content.ComponentName root) {
-    return ownRoot(context, root)
-        && (WebPreviewActivity.class.getName().equals(root.getClassName())
-            || "com.deepseekharness.app.ui.GeckoPreviewActivity".equals(root.getClassName()));
+    return ownRoot(context, root) && WebPreviewActivity.class.getName().equals(root.getClassName());
   }
 
   static void openMain(Context context) {
@@ -293,7 +385,7 @@ final class BrowserTasks {
       List<BrowserTaskPolicy.Task> choices = new ArrayList<>();
       for (ActivityManager.AppTask task : appTasks) {
         var info = task.getTaskInfo();
-        choices.add(new BrowserTaskPolicy.Task(info.id, mainRoot(context, info.baseActivity)));
+        choices.add(new BrowserTaskPolicy.Task(info.id, nativeHost(context, info)));
       }
       int selected = BrowserTaskPolicy.nativeTask(choices, browserTask, preferredTask);
       for (ActivityManager.AppTask task : appTasks)

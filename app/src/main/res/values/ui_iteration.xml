@@ -2,9 +2,9 @@
 <resources>
     <string name="ui2_stopped">DSH 未运行</string>
     <string name="ui2_launch_hint">随时开始你的下一项任务。</string>
-    <string name="ui2_start">▶  启动 DSHA</string>
-    <string name="ui2_restart">↻  重启</string>
-    <string name="ui2_stop">□  停止</string>
+    <string name="ui2_start">启动 DSHA</string>
+    <string name="ui2_restart">重启</string>
+    <string name="ui2_stop">停止</string>
     <string name="ui2_port">实际 Web 端口</string>
     <string name="ui2_environment">运行环境</string>
     <string name="ui2_address">访问地址</string>

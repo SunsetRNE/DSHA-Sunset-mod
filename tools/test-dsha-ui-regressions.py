@@ -54,9 +54,12 @@ class LanguageDiscoverability(unittest.TestCase):
         self.assertIn('@+id/settings_language', read('app/src/main/res/layout/fragment_settings.xml'))
 
     def test_language_dialog_offers_follow_system(self):
-        self.assertIn('UiLanguagePreference.SYSTEM', self.settings,
+        # 方案 A：设置页只负责打开 LanguagePicker，选项网格在 LanguagePicker 内构建。
+        self.assertIn('LanguagePicker.show(', self.settings, "设置页语言入口必须打开语言选择弹窗")
+        picker = read('app/src/main/java/com/deepseekharness/app/ui/LanguagePicker.java')
+        self.assertIn('UiLanguagePreference.SYSTEM', picker,
                       "语言对话框必须提供「跟随系统」选项")
-        self.assertIn('UiLanguagePreference.nativeName', self.settings,
+        self.assertIn('UiLanguagePreference.nativeName', picker,
                       "语言选项必须以自身语言名称呈现，保证任何语言下都认得出")
         self.assertIn('"English"', read('app/src/main/java/com/deepseekharness/app/util/UiLanguagePreference.java'))
 

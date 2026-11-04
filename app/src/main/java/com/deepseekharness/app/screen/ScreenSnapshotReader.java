@@ -58,34 +58,38 @@ public final class ScreenSnapshotReader {
       ScreenNodeLeaseStore<ScreenSemanticNode> leases)
       throws Exception {
     if (node == null || !budget.enter(depth, nodes.length()) || text.length() > 12000) return;
-    String label = node.isPassword() ? "[PASSWORD]" : value(node.getText());
-    String description = node.isPassword() ? "" : value(node.getContentDescription());
+    boolean password = node.isPassword();
+    boolean clickable = node.isClickable();
+    boolean editable = node.isEditable();
+    boolean scrollable = node.isScrollable();
+    String label = password ? "[PASSWORD]" : value(node.getText());
+    String description = password ? "" : value(node.getContentDescription());
     if (label.isEmpty()) label = description;
     Rect bounds = new Rect();
     node.getBoundsInScreen(bounds);
-    JSONArray supportedActions = ScreenNodeActions.names(node);
+    ScreenNodeActions.ActionSnapshot actions = ScreenNodeActions.snapshot(node);
     if (AccessibilityDumpBounds.reportable(
         !label.isEmpty(),
-        node.isClickable()
-            || node.isEditable()
-            || node.isScrollable()
-            || supportedActions.length() > 0,
+        clickable || editable || scrollable || actions.hasAny(),
         bounds.left,
         bounds.top,
         bounds.right,
         bounds.bottom)) {
-      String id = leases.add(new ScreenSemanticNode(node));
+      JSONArray supportedActions = actions.names();
+      boolean enabled = node.isEnabled();
+      boolean checked = node.isChecked();
+      String id = leases.add(new ScreenSemanticNode(node, actions.mask()));
       nodes.put(
           new JSONObject()
               .put("nodeId", id)
               .put("text", label)
               .put("description", description)
-              .put("clickable", node.isClickable())
-              .put("editable", node.isEditable())
-              .put("scrollable", node.isScrollable())
+              .put("clickable", clickable)
+              .put("editable", editable)
+              .put("scrollable", scrollable)
               .put("supportedActions", supportedActions)
-              .put("enabled", node.isEnabled())
-              .put("checked", node.isChecked())
+              .put("enabled", enabled)
+              .put("checked", checked)
               .put("boundsHaveArea", bounds.width() > 0 && bounds.height() > 0)
               .put(
                   "bounds",
@@ -95,13 +99,13 @@ public final class ScreenSnapshotReader {
           .append("] \"")
           .append(label.replace('\n', ' '))
           .append('"');
-      if (node.isClickable()) text.append(" 可点击");
-      if (node.isEditable()) text.append(" 可输入");
-      if (ScreenNodeActions.supported(node, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD))
+      if (clickable) text.append(" 可点击");
+      if (editable) text.append(" 可输入");
+      if (actions.supports(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD))
         text.append(" 可向前滚动(scroll_forward)");
-      if (ScreenNodeActions.supported(node, AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD))
+      if (actions.supports(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD))
         text.append(" 可向后滚动(scroll_backward)");
-      if (!node.isEnabled()) text.append(" 不可用");
+      if (!enabled) text.append(" 不可用");
       if (bounds.width() > 0 && bounds.height() > 0)
         text.append(" 中心=(")
             .append(bounds.centerX())
@@ -119,7 +123,7 @@ public final class ScreenSnapshotReader {
           .append(bounds.bottom)
           .append('\n');
     }
-    if (node.isPassword()) return;
+    if (password) return;
     for (int i = 0; i < node.getChildCount() && budget.childSlot(nodes.length()); i++) {
       AccessibilityNodeInfo child = node.getChild(i);
       if (child != null)
@@ -155,13 +159,16 @@ public final class ScreenSnapshotReader {
       ScreenReadBudget budget,
       int[] count) {
     if (node == null || !budget.enter(depth, count[0]) || text.length() > 12000) return;
-    String label = node.isPassword() ? "[PASSWORD]" : value(node.getText());
+    boolean password = node.isPassword();
+    boolean clickable = node.isClickable();
+    boolean editable = node.isEditable();
+    String label = password ? "[PASSWORD]" : value(node.getText());
     if (label.isEmpty()) label = value(node.getContentDescription());
     Rect bounds = new Rect();
     node.getBoundsInScreen(bounds);
     if (AccessibilityDumpBounds.reportable(
         !label.isEmpty(),
-        node.isClickable() || node.isEditable(),
+        clickable || editable,
         bounds.left,
         bounds.top,
         bounds.right,
@@ -171,8 +178,8 @@ public final class ScreenSnapshotReader {
           .append("] \"")
           .append(label.replace('\n', ' '))
           .append('"');
-      if (node.isClickable()) text.append(" 可点击");
-      if (node.isEditable()) text.append(" 可输入");
+      if (clickable) text.append(" 可点击");
+      if (editable) text.append(" 可输入");
       text.append(" 中心=(")
           .append(bounds.centerX())
           .append(',')
@@ -187,7 +194,7 @@ public final class ScreenSnapshotReader {
           .append(bounds.bottom)
           .append('\n');
     }
-    if (node.isPassword()) return;
+    if (password) return;
     for (int i = 0; i < node.getChildCount() && budget.childSlot(count[0]); i++) {
       AccessibilityNodeInfo child = node.getChild(i);
       if (child != null)

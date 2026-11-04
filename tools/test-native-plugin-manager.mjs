@@ -12,6 +12,7 @@ const managed = testRuntime('managed');
 const raw = testRuntime('raw');
 const hostPath = 'node_modules/@deepseek-ai/dsh-plugin-manager/lib/index.js';
 const uiPath = 'node_modules/@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js';
+const dshVersion = JSON.parse(fs.readFileSync('app/src/main/assets/runtime-patches.json', 'utf8')).dshVersion;
 const policy = JSON.parse(fs.readFileSync('app/src/main/assets/plugin-manager-policy-patch.json', 'utf8'));
 const upstreamHost = fs.readFileSync(path.join(raw, hostPath), 'utf8').replaceAll('\r\n', '\n');
 const currentHost = fs.readFileSync(path.join(managed, hostPath), 'utf8').replaceAll('\r\n', '\n');
@@ -218,7 +219,7 @@ try {
   for(const name of custom)writePlugin(profile,name);
   const runtimeName='@deepseek-ai/dsh-experimental-voice-input-bundle';
   const runtime=writePlugin(sdk,runtimeName);
-  fs.writeFileSync(path.join(sdk,'package.json'),JSON.stringify({name:'@deepseek-ai/dsh',version:'0.2.1-rc.3',dependencies:{[runtimeName]:'1.0.0'}}));
+  fs.writeFileSync(path.join(sdk,'package.json'),JSON.stringify({name:'@deepseek-ai/dsh',version:dshVersion,dependencies:{[runtimeName]:'1.0.0'}}));
   fs.writeFileSync(path.join(profile,'package.json'),JSON.stringify({name:'isolated-provenance-profile',private:true,dependencies:Object.fromEntries([...custom,runtimeName].map(name=>[name,'1.0.0'])),dsh:{profile:{bundles:[...custom,runtimeName]}}}));
   fs.writeFileSync(path.join(profile,'cordis.patch.yml'),'[]\n');
   const ctx={get:()=>undefined,emit:()=>{},loader:{entries:()=>[]},logger:{warn:()=>{}}},manager=Object.create(PluginManager.prototype);
@@ -252,7 +253,7 @@ try {
   fs.mkdirSync(path.dirname(copy),{recursive:true});fs.cpSync(path.join(managed,'node_modules',actualName),copy,{recursive:true});
   authenticate(actualName,proofOf(copy));
   const profileDoc=JSON.parse(fs.readFileSync(path.join(profile,'package.json'),'utf8'));
-  profileDoc.dependencies[actualName]='0.2.1-rc.3';profileDoc.dsh.profile.bundles.push(actualName);
+  profileDoc.dependencies[actualName]=dshVersion;profileDoc.dsh.profile.bundles.push(actualName);
   fs.writeFileSync(path.join(profile,'package.json'),JSON.stringify(profileDoc));
   assert.equal((await rows()).get(actualName).origin,'user','a component without bundle metadata is not an installation bundle');
   const componentManifest=JSON.parse(fs.readFileSync(path.join(copy,'package.json'),'utf8'));

@@ -151,6 +151,19 @@ public class TerminalInputContractTest {
     assertTrue(source("TerminalFragment").contains("OWNER.isSimpleInputAllowed"));
   }
 
+  /** T12：逐码点输入与切换会话只读缓存结论，不在主线程反复重算运行时描述符（粘贴 / 关闭标签 ANR）。 */
+  @Test
+  public void ptyHotPathsReadCachedReadinessOnly() throws Exception {
+    String pty = source("PtyTerminalFragment");
+    assertTrue(method(pty, "boolean inputAllowed()").contains("readiness.ready()"));
+    assertTrue(method(pty, "void attachSelected()").contains("readiness.ready()"));
+    assertFalse(pty.contains("isEnvironmentReady()"));
+    String cache = source("TerminalReadiness");
+    // 全量检查仍是唯一结论来源；维护进行中不得复用缓存。
+    assertTrue(cache.contains("proot::isEnvironmentReady"));
+    assertTrue(cache.contains("task.maintenanceBusy() ? 1 : 0"));
+  }
+
   @Test
   public void defaultContentHasNoPersistentTitleOrTabChrome() throws Exception {
     for (String name : new String[] {"fragment_pty_terminal", "fragment_terminal"}) {

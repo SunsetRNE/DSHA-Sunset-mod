@@ -62,6 +62,7 @@
     "materialize-cas-links.py",
     "module-trust/keys.json",
     "native-consent.cjs",
+    "net-epoch.cjs",
     "office-fonts-patch.json",
     "offline-rootfs.version",
     "pdf-compat-patch.json",
@@ -105,6 +106,8 @@
     "recovery-recipes/0.2.1-rc.2/pdf-compat-patch.json",
     "recovery-recipes/0.2.1-rc.3/language-patch.json",
     "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json",
+    "recovery-recipes/0.2.1-rc.5/language-patch.json",
+    "recovery-recipes/0.2.1-rc.5/pdf-compat-patch.json",
     "register-builtin-plugins.py",
     "retire-guarded-preset-patch.json",
     "retired-market-catalog-patch.json",
@@ -119,6 +122,7 @@
     "sidebar-layout-recovery-patch.json",
     "startup-mcp-timing-patch.json",
     "mcp-image-base64-patch.json",
+    "mcp-version-negotiation-patch.json",
     "startup-observer.cjs",
     "subagent-navigation-patch.json",
     "tool-block-identity-patch.json",
@@ -137,7 +141,8 @@
     "web-integration/permission-full-access.js",
     "web-integration/session-interaction.js",
     "welcome-notice-patch.json",
-    "workspace-directory-policy-patch.json"
+    "workspace-directory-policy-patch.json",
+    "external-tool-proof.json"
   ],
   "packagedTrees": [
     "app-integration",
@@ -192,8 +197,8 @@
   ],
   "dynamicReaders": [
     {
-      "source": "app/src/main/java/com/deepseekharness/app/core/HarnessController.java",
-      "method": "readAsset(name)",
+      "source": "app/src/main/java/com/deepseekharness/app/core/PackagedAssets.java",
+      "method": "read(context, name)",
       "contract": "BackupManager legacy reader helper/identity loops; current environment snapshots use the host filesystem.",
       "assets": [
         "backup-engine.py",
@@ -246,7 +251,9 @@
         "recovery-recipes/0.2.1-rc.2/language-patch.json",
         "recovery-recipes/0.2.1-rc.2/pdf-compat-patch.json",
         "recovery-recipes/0.2.1-rc.3/language-patch.json",
-        "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json"
+        "recovery-recipes/0.2.1-rc.3/pdf-compat-patch.json",
+        "recovery-recipes/0.2.1-rc.5/language-patch.json",
+        "recovery-recipes/0.2.1-rc.5/pdf-compat-patch.json"
       ]
     },
     {

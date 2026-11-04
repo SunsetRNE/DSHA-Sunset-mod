@@ -404,7 +404,12 @@ public class ProotBootstrap {
   }
 
   public PtyLaunch ptyLaunch() {
-    TerminalRuntime.Launch value = terminal.launch();
+    return ptyLaunch(new String[0]);
+  }
+
+  /** 固定 guest command 只替换命令尾部，argv/env 仍由 {@link TerminalRuntime} 唯一构造。 */
+  public PtyLaunch ptyLaunch(String... guestCommand) {
+    TerminalRuntime.Launch value = terminal.launch(guestCommand);
     return new PtyLaunch(value.argv(), value.environment());
   }
 
@@ -429,10 +434,16 @@ public class ProotBootstrap {
 
   public static final class SmokeResult {
     public final String runtimeMode;
+
+    /** proroot / proot-seccomp / proot-no-seccomp，见 {@link com.deepseekharness.app.util.RuntimeModeLabel}。 */
+    public final String runtimeDetail;
+
     public final BoundedProcessRunner.Result command;
 
-    private SmokeResult(String runtimeMode, BoundedProcessRunner.Result command) {
+    private SmokeResult(
+        String runtimeMode, String runtimeDetail, BoundedProcessRunner.Result command) {
       this.runtimeMode = runtimeMode;
+      this.runtimeDetail = runtimeDetail;
       this.command = command;
     }
   }
@@ -440,7 +451,13 @@ public class ProotBootstrap {
   /** Read-only selected-runtime probe; mode and command use the same config image. */
   public SmokeResult smokeTestResult() throws IOException, InterruptedException {
     RuntimeExecution.Probe result = execution.probe();
-    return new SmokeResult(result.runtimeMode(), result.command());
+    return new SmokeResult(result.runtimeMode(), result.runtimeDetail(), result.command());
+  }
+
+  /** 已选运行时的启动日志标签；proot 写明是否带 seccomp 过滤。调用方须在本次启动的配置 scope 内。 */
+  public static String runtimeLabel(ContainerRuntime runtime) {
+    return com.deepseekharness.app.util.RuntimeModeLabel.display(
+        runtime.id(), RuntimeExecution.seccompOff(runtime));
   }
 
   public String smokeTest() {

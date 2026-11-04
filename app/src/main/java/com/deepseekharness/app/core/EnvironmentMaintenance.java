@@ -498,8 +498,11 @@ public final class EnvironmentMaintenance {
   public static String recover(HarnessController controller) throws Exception {
     if (!MaintenanceCoordinator.isOwner())
       throw new IOException(com.deepseekharness.app.util.UiText.text("维护回滚必须经过停止屏障与全局数据任务锁"));
-    ensureSingleRecovery(controller);
     File files = controller.context().getFilesDir().getCanonicalFile();
+    // 先做不抛异常的全域检查：记录读不了时给出可读原因与出口，不让后续探测把原始错误码
+    // 冒充为「恢复失败」，也不对读不了的域重复执行必然失败的批量扫描。
+    requireReadable(files);
+    ensureSingleRecovery(controller);
     com.deepseekharness.app.runtime.BoundedGuestSessions.reapExited(files);
     var filesystemCold = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
     if (!com.deepseekharness.app.backup.ColdInstallTransaction.pending(filesystemCold, files)
@@ -602,6 +605,14 @@ public final class EnvironmentMaintenance {
     pending.rollback();
     return com.deepseekharness.app.util.UiText.format(
         "中断的维护已回滚；安全备份、旧环境及失败的新环境均已保留。\n%s", pending.directory().getAbsolutePath());
+  }
+
+  /** 任一域记录无法读取时停止，并说明原因与可用出口；原件保持原样。 */
+  static void requireReadable(File files) throws IOException {
+    var unreadable = com.deepseekharness.app.backup.HostMaintenancePending.firstUnreadable(files);
+    if (unreadable == null) return;
+    throw MaintenanceUnreadable.explain(
+        unreadable, PluginJournalIsolation.offerOrNull(files) != null);
   }
 
   public static void ensureSingleRecovery(HarnessController controller) throws IOException {

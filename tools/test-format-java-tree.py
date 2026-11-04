@@ -31,17 +31,19 @@ class FormatTreeTests(unittest.TestCase):
         path.write_text("class Example {}\n", encoding="utf-8")
         return path.relative_to(self.root).as_posix()
 
-    def test_inventory_has_exact_six_owned_sets_and_protected_exclusion(self):
+    def test_inventory_has_exact_five_owned_sets_and_protected_exclusion(self):
         protected = self.source("main", "", "ShellService.java")
         generated = self.source("main", "util", "CredentialPathRules.java")
         main = self.source("main", "util", "Query.java")
-        low = self.source("low", "ui", "Gecko.java")
+        debug = self.source("debug", "ui", "Audit.java")
         self.source("main", "generated", "DoNotFormat.java")
         self.source("main", "vendor", "Foreign.java")
         (self.root / "app/src/main/java/org/upstream").mkdir(parents=True)
         (self.root / "app/src/main/java/org/upstream/Foreign.java").write_text("class Foreign {}\n")
-        self.assertEqual(sorted((main, low, tree.TOOL_SOURCE)),
+        self.assertEqual(sorted((main, debug, tree.TOOL_SOURCE)),
                          tree.inventory(self.root, protected=(protected,), generated=(generated,)))
+        # 旧 low 源集已删除，不能悄悄出现在受管清单里。
+        self.assertNotIn("low", tree.SETS)
 
     def test_declared_machine_generated_sources_have_real_owners(self):
         lock = json.loads(tree.LOCK.read_text(encoding="utf-8"))

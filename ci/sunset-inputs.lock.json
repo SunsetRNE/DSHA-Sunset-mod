@@ -1,8 +1,17 @@
 {
   "schema": 1,
+<<<<<<< 208ea63a
   "url": "https://api.github.com/repos/ym2025szz/DSHA-prerelase/releases/assets/682649962",
   "sha256": "d8073d0aa12f504e4c770d4347633f73e6431c0899effbae460d883ff3d40e5b",
   "format": "source-archive",
   "release": "v0.2.1-rc.3-20261028.1200-lanfix",
   "asset": "DSHA-prerelase-0.2.1-rc.3-build206-lanfix-source.zip"
+=======
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261103c/dsha-a-su-fixed-inputs-20261103c.zip",
+  "sha256": "f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2",
+  "format": "bundle",
+  "release": "fixed-inputs-20261103c",
+  "asset": "dsha-a-su-fixed-inputs-20261103c.zip",
+  "bytes": 696362745
+>>>>>>> sunset/main
 }

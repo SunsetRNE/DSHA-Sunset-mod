@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261028.0843-dsh0.2.1-rc.3 / build207
+# DSHA 0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3 / build207
 
-- Corrigido o problema da área de entrada permanecer no viewport baixo da altura do teclado após ir para o segundo plano com o teclado aberto e voltar: ao retomar o foco, a visibilidade real do IME é verificada e, se estiver oculto, o espaçamento do teclado é liberado e uma passagem de layout é forçada (#190, lado nativo).
-- O caminho normal de espaçamentos com o IME visível permanece inalterado; o tratamento das variáveis de viewport no lado web mantém a implementação atual do upstream e não é modificado nesta rodada.
-- Manter dsh-web-mobile 3.2.2, DSH rc.3, acesso local e à rede local e dez idiomas. A validação no telefone continua suspensa.
+- Adicionados três modos de interceptação de comandos root: Estrito (padrão, apenas lista permitida), Relaxado (qualquer comando, mas operações irreversíveis como formatar, gravar firmware, reiniciar ou limpar dados continuam bloqueadas) e Completo (sem verificação do conteúdo dos comandos); alterne em Configurações → Permissões do dispositivo.
+- Relaxado e Completo aplicam-se apenas ao canal root. O executor genérico Shizuku/ADB continua estrito, e a leitura de SMS ainda exige autorização nativa nos três modos.
+- Comandos root brutos são executados no processo privilegiado com tempo limite, truncamento de saída em 256 KiB e verificação de identidade de execução. O modo Estrito também bloqueia a remoção recursiva de raízes de armazenamento e diretórios de primeiro nível.
+- Este é o identificador de teste SunsetRNE (não E7E3) com assinatura de teste fixa. A verificação cobre apenas a instalação neste telefone e os três modos root; todos os ROMs e modelos não são cobertos.

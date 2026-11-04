@@ -65,8 +65,6 @@ public final class ScreenActionExecutor {
                   context.ownerIdentity());
           if (leased == null) return ScreenReply.refused("STALE_NODE");
           target = leased.node;
-          if (!leased.refreshMatches(root.root.getWindowId()))
-            return ScreenReply.refused("STALE_NODE");
           action = ScreenNodeActions.action(args.optString("action"));
           if (action < 0) return ScreenReply.refused("INVALID_NODE_ACTION");
           if (action == AccessibilityNodeInfo.ACTION_SET_TEXT) bundle = text(args);
@@ -88,8 +86,14 @@ public final class ScreenActionExecutor {
             : !target.refresh() || target.getWindowId() != root.root.getWindowId())
           return ScreenReply.refused("STALE_NODE");
         context.validateCurrentTarget();
-        if (ScreenNodeActions.scroll(action) && !ScreenNodeActions.supported(target, action))
-          return ScreenReply.refused("NODE_SCROLL_ACTION_UNAVAILABLE")
+        if (operation.equals("node")
+            && (leased == null
+                ? !ScreenNodeActions.supported(target, action)
+                : !leased.supports(action)))
+          return ScreenReply.refused(
+                  ScreenNodeActions.scroll(action)
+                      ? "NODE_SCROLL_ACTION_UNAVAILABLE"
+                      : "NODE_ACTION_UNAVAILABLE")
               .put("nextAction", "OBSERVE_A_FRESH_TREE_AND_USE_SUPPORTED_ACTION")
               .put("automaticRetry", false);
         if (operation.equals("input")) {

@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,12 +18,34 @@ PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/ind
            'src/client/effects/file-share.ts', 'lib/types/client/i18n/locales.d.ts',
            'src/client/effects/drawer-session-log.ts', 'src/client/effects/drawer-quick-settings.ts',
            'lib/types/client/components/file-share-locale.d.ts',
-           'lib/types/client/effects/attachment-mention.d.ts'}
-ADDITIONAL = {'lib/file-transfer.js', 'lib/file-transfer.js.map'}
+           'lib/types/client/effects/attachment-mention.d.ts',
+           # 上游已自带 lib/file-transfer.js；DSHA 仍从 tools/file-transfer/file-transfer.js
+           # 生成该模块（字节一致），因此只把无上游来源的 source map 列为本地追加成员。
+           'lib/file-transfer.js'}
+ADDITIONAL = {'lib/file-transfer.js.map'}
+SHA1 = re.compile(r'[0-9a-f]{40}\Z')
+
+def validate_lock(lock, package):
+    if lock.get('schema') != 1 or lock.get('name') != 'dsh-web-mobile' or not lock.get('version'):
+        raise ValueError('MOBILE_UPSTREAM_LOCK')
+    if lock.get('ref') != 'main' or not lock.get('tag'):
+        raise ValueError('MOBILE_UPSTREAM_LOCK')
+    for key in ('commit', 'releaseCommit'):
+        if not SHA1.fullmatch(lock.get(key, '')):
+            raise ValueError('MOBILE_UPSTREAM_LOCK: ' + key)
+    archive = lock.get('archive', {})
+    if not str(archive.get('url', '')).endswith('/tar.gz/' + lock['commit']):
+        raise ValueError('MOBILE_UPSTREAM_ARCHIVE')
+    if package.get('name') != lock['name'] or package.get('version') != lock['version'] \
+            or package.get('license') != 'MIT':
+        raise ValueError('MOBILE_UPSTREAM_METADATA')
+    recorded = package.get('dshaUpstream')
+    if recorded and (recorded.get('version') != lock['version'] or recorded.get('commit') != lock['commit']):
+        raise ValueError('MOBILE_UPSTREAM_COMMIT')
 
 def prepare(source, write):
     lock = json.loads(LOCK.read_text(encoding='utf8'))
-    if lock['schema'] != 1 or lock['version'] != '3.2.2' or lock['commit'] != '4c798ecc554009e401dc1f166b73c314cdf5273f':
+    if lock.get('schema') != 1:
         raise ValueError('MOBILE_UPSTREAM_LOCK')
     source = source.resolve(strict=True)
     contents = {}
@@ -38,8 +61,7 @@ def prepare(source, write):
             raise ValueError('MOBILE_UPSTREAM_BYTES: ' + name)
         contents[name] = content
     package = json.loads(contents['package.json'])
-    if package['version'] != lock['version'] or package['license'] != 'MIT':
-        raise ValueError('MOBILE_UPSTREAM_METADATA')
+    validate_lock(lock, package)
     package['dshaUpstream'] = {key: lock[key] for key in ['version', 'source', 'commit', 'sourceDate']}
     # 最新 main 已撤回标签之后的视口试验；发布标签与实际取用提交分别记录。
     package['dshaUpstream'].update(ref=lock.get('ref', lock['tag']), releaseTag=lock['tag'],
@@ -91,6 +113,8 @@ def prepare(source, write):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--upstream-dir', required=True, type=Path)
-    parser.add_argument('--write', action='store_true')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--write', action='store_true')
+    mode.add_argument('--check', action='store_true')
     options = parser.parse_args()
     prepare(options.upstream_dir, options.write)

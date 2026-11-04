@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "active": [
     {
       "asset": "web-fetch-http-surrogate-patch.json"
@@ -23,6 +23,13 @@
     },
     {
       "asset": "mcp-image-base64-patch.json"
+    },
+    {
+      "asset": "mcp-version-negotiation-patch.json",
+      "module": "@deepseek-ai/dsh-mcp-client/lib/index.js",
+      "markers": [
+        "DSHA_MCP_VERSION_NEGOTIATION_V1"
+      ]
     },
     {
       "asset": "welcome-notice-patch.json",

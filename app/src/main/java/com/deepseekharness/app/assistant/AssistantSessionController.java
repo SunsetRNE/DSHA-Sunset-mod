@@ -49,6 +49,7 @@ public final class AssistantSessionController implements AutoCloseable {
   private volatile String text = "", draft = "";
   private volatile long draftRevision;
   private volatile String cancelAttempt = null;
+  private Runnable deferredFinish;
   private long pollRevision;
 
   private record PollObservation(long revision, String turnId, String taskId, JSONObject args) {}
@@ -121,18 +122,76 @@ public final class AssistantSessionController implements AutoCloseable {
     if (draft.equals(submitted)) setDraft("");
   }
 
+  /**
+   * 展开只改界面：面板从不可聚焦，不是输入法目标，不暂停手机操作也不取消对话。
+   * 面板几何变化后，下一次手机操作前必须重新观察（{@link #panelGeometryChanged()}）。
+   * 用户输入期间由 {@link #beginComposing(String)} 让手机动作原地等待。
+   */
   public void expand() {
-    // Fence synchronously before a focusable window/IME or recognizer can appear.
     if (!expanded) {
       expanded = true;
-      pause("ASSISTANT_EXPANDED");
+      panelGeometryChanged();
     }
     changed();
   }
 
   public void collapse() {
-    expanded = false;
+    Runnable finish;
+    synchronized (this) {
+      boolean wasExpanded = expanded;
+      expanded = false;
+      finish = deferredFinish;
+      deferredFinish = null;
+      if (wasExpanded) panelGeometryChanged();
+    }
     changed();
+    // 本轮在面板展开时结束：收起后才关窗，避免窗口在用户手指下消失。
+    if (finish != null) main.post(finish);
+  }
+
+  /** Called by turn-end cleanup only while expanded; a later new prompt discards it. */
+  synchronized void deferFinishUntilCollapsed(Runnable finish) {
+    deferredFinish = finish;
+  }
+
+  /** 用户拖动了悬浮窗：与展开/收起相同，只要求下一次手机操作前重新观察。 */
+  void panelMoved() {
+    panelGeometryChanged();
+  }
+
+  /** 自有面板位置或大小变化：作废旧观察与在途读屏，但不暂停、不取消对话。 */
+  private void panelGeometryChanged() {
+    var task = fence.snapshot();
+    if (task.binding() == null || task.paused() || !owns(task.binding())) return;
+    suppressCancellation = true;
+    try {
+      fence.requireObservation(task.binding());
+    } catch (IllegalStateException changedConcurrently) {
+      // 任务已在别处暂停或更换；那条路径自己负责围栏。
+    } finally {
+      suppressCancellation = false;
+    }
+  }
+
+  /**
+   * 用户开始给 AI 输入（窗内输入框、编辑器、语音）。不暂停、不取消：手机动作在桥上原地等待，
+   * 读屏照常并标注 userComposing。{@code surface} 区分输入来源，避免交接时被提前放开。
+   */
+  public void beginComposing(String surface) {
+    if (closed) return;
+    fence.compose().begin(surface);
+    changed();
+  }
+
+  /** 没发送就离开该输入来源：放开等待，并要求 AI 下一步先重新观察屏幕。 */
+  public void endComposing(String surface) {
+    if (closed) return;
+    if (fence.compose().release(surface)) panelGeometryChanged();
+    changed();
+  }
+
+  public boolean composing() {
+    return fence.compose().composing();
   }
 
   public void pause(String reason) {
@@ -144,18 +203,6 @@ public final class AssistantSessionController implements AutoCloseable {
       suppressCancellation = false;
     }
     requestCancellation(state.turnId());
-    changed();
-  }
-
-  /** Editing fences physical input without sending a model cancellation in the background. */
-  public void beginEditing() {
-    state.pause("ASSISTANT_IME");
-    suppressCancellation = true;
-    try {
-      fence.pause("ASSISTANT_IME");
-    } finally {
-      suppressCancellation = false;
-    }
     changed();
   }
 
@@ -225,7 +272,54 @@ public final class AssistantSessionController implements AutoCloseable {
   }
 
   public boolean send(String message) {
+    if (steerable()) return steer(message);
     return sendInternal(message, false);
+  }
+
+  /** 本轮仍在运行且没有被暂停 / 停止：新消息插进当前轮次，AI 下一步即可看到。 */
+  private synchronized boolean steerable() {
+    var phase = state.phase();
+    return !closed
+        && !state.paused()
+        && !state.terminalKnown()
+        && (phase == AssistantSessionState.Phase.RUNNING
+            || phase == AssistantSessionState.Phase.SENDING);
+  }
+
+  private synchronized boolean steer(String message) {
+    if (message == null || message.isBlank() || message.length() > 32768 || closed) return false;
+    String requestId = UUID.randomUUID().toString();
+    worker.execute(
+        () -> {
+          try {
+            if (!backend.current() || closed) throw new java.io.IOException("CONNECTION_CHANGED");
+            JSONObject request =
+                args().put("text", message).put("requestId", requestId).put("mode", "steer");
+            JSONObject result = backend.call("sessions.send", request);
+            if (!result.optBoolean("accepted"))
+              throw new java.io.IOException("NO_ADMISSION_RECEIPT");
+            // 消息已进入当前轮次：唤醒正在等待的手机动作，让它返回“用户发来新消息”。
+            fence.compose().sent();
+            panelGeometryChanged();
+            admittedDraft(message);
+          } catch (AssistantBackend.Rejected rejected) {
+            // 明确未接收：放开等待，AI 照原任务继续；草稿保留。
+            fence.compose().release(fence.compose().surface());
+            state.failed(
+                UiText.choose(
+                    "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
+                    "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
+          } catch (Exception failure) {
+            // 结果未知：不重发。按“可能已收到”唤醒等待者，让 AI 先读会话再决定，不在原地卡满 60 秒。
+            fence.compose().sent();
+            state.failed(
+                UiText.choose(
+                    "发送结果未知；请先核对会话，勿重复发送",
+                    "Send result unknown; check the conversation before sending again"));
+          }
+          changed();
+        });
+    return true;
   }
 
   private synchronized boolean sendInternal(String message, boolean continuation) {
@@ -256,6 +350,7 @@ public final class AssistantSessionController implements AutoCloseable {
         suppressCancellation = false;
       }
       expanded = false;
+      deferredFinish = null;
       cancelAttempt = null;
       state.sending();
     } catch (IllegalStateException blocked) {
@@ -273,10 +368,12 @@ public final class AssistantSessionController implements AutoCloseable {
             if (!result.optBoolean("accepted"))
               throw new java.io.IOException("NO_ADMISSION_RECEIPT");
             state.accepted();
+            fence.compose().sent();
             if (!continuation) admittedDraft(message);
           } catch (AssistantBackend.Rejected rejected) {
             // Only the Host's explicit pre-admission errors get this path. Transport
             // loss still remains UNKNOWN; no prompt is retried automatically.
+            fence.compose().release(fence.compose().surface());
             suppressCancellation = true;
             try {
               fence.pause("ASSISTANT_PROMPT_REJECTED");
@@ -292,6 +389,7 @@ public final class AssistantSessionController implements AutoCloseable {
                         "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
                         "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
           } catch (Exception failure) {
+            fence.compose().sent();
             state.unknown(
                 UiText.choose(
                     "发送结果未知；请先核对会话，勿重复发送",
@@ -414,8 +512,9 @@ public final class AssistantSessionController implements AutoCloseable {
     }
   }
 
+  /** 打开完整会话只收起面板，不暂停、不取消；前台变化由下一次观察发现。 */
   public void returnConversation() {
-    pause("RETURN_CONVERSATION");
+    collapse();
     worker.execute(
         () -> {
           try {
@@ -443,7 +542,7 @@ public final class AssistantSessionController implements AutoCloseable {
     close(true);
   }
 
-  /** A real task-end/explicit finish retires the view without cancelling later model work. */
+  /** Explicit finish retires the view without cancelling later model work. */
   void detachFinishedTask() {
     close(false);
   }
@@ -451,6 +550,7 @@ public final class AssistantSessionController implements AutoCloseable {
   private synchronized void close(boolean cancelModel) {
     if (closed) return;
     pollRevision++;
+    fence.compose().reset();
     var previous = fence.snapshot().binding();
     boolean hadTask = !state.terminalKnown();
     // Invalidate screen work before stopping the subscription. Never stop the whole DSH.

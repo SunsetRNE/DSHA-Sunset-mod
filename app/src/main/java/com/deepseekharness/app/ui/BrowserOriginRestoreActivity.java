@@ -206,6 +206,23 @@ public final class BrowserOriginRestoreActivity extends AppCompatActivity {
     }
   }
 
+  void rendererGone(Surface failed) {
+    if (surface != failed) return;
+    surface = null;
+    if (server != null) server.close();
+    server = null;
+    BrowserOriginRestore.end(ticket);
+    com.deepseekharness.app.core.DiagnosticLog.record(
+        this, "BROWSER_ORIGIN_RESTORE_FAILED", "stage=RENDERER_GONE");
+    status.setText(
+        UiText.format(
+            "%s\n%s · %s",
+            UiText.choose(
+                "恢复页面无法打开，候选已保留。", "The recovery page could not open. Candidates were retained."),
+            "RENDERER",
+            "RENDERER_GONE"));
+  }
+
   @Override
   protected void onDestroy() {
     if (surface != null) surface.close();

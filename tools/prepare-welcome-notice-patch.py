@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从完整摘要锁定的官方 rc3 模块生成首次说明受管补丁，不改 npm 原件。"""
+"""从完整摘要锁定的官方 rc5 模块生成首次说明受管补丁，不改 npm 原件。"""
 import argparse
 import hashlib
 import json
@@ -9,7 +9,7 @@ from source_text import write_text, matches_text
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
 MODULE = '@deepseek-ai/dsh-client-ui-settings-models/lib/client.js'
-VERSION = '0.2.1-rc.3'
+VERSION = '0.2.1-rc.5'
 SOURCE_SHA256 = '190498e15358bcd3fe6810fe6368023a20b0403e3ea493bc979eca9bdb593b28'
 
 
@@ -87,7 +87,7 @@ def main():
             raise ValueError('WELCOME_NOTICE_PATCH_STALE')
     else:
         write_text(target, expected, encoding='utf8')
-    print('PASS locked rc3 welcome notice patch' + (' matches generated source' if args.check else ' generated'))
+    print('PASS locked rc5 welcome notice patch' + (' matches generated source' if args.check else ' generated'))
 
 
 if __name__ == '__main__':

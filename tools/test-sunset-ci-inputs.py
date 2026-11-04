@@ -11,10 +11,11 @@ SPEC.loader.exec_module(inputs)
 
 
 class SunsetInputsTests(unittest.TestCase):
-    def test_empty_configuration_uses_pinned_private_source_archive(self):
+    def test_empty_configuration_uses_pinned_public_bundle(self):
         result = inputs.resolve({})
         lock = json.loads((inputs.ROOT / "ci/sunset-inputs.lock.json").read_text(encoding="utf-8"))
         self.assertEqual(lock["schema"], 1)
+<<<<<<< 208ea63a
         self.assertEqual(lock["release"], "v0.2.1-rc.3-20261028.1200-lanfix")
         self.assertEqual(lock["asset"], "DSHA-prerelase-0.2.1-rc.3-build206-lanfix-source.zip")
         for key in ("url", "sha256", "format"):
@@ -23,6 +24,22 @@ class SunsetInputsTests(unittest.TestCase):
         self.assertEqual(result["format"], "source-archive")
         self.assertEqual(result["url"], "https://api.github.com/repos/ym2025szz/DSHA-prerelase/releases/assets/682649962")
         self.assertEqual(result["sha256"], "d8073d0aa12f504e4c770d4347633f73e6431c0899effbae460d883ff3d40e5b")
+=======
+        self.assertEqual(lock["release"], "fixed-inputs-20261103c")
+        self.assertEqual(lock["asset"], "dsha-a-su-fixed-inputs-20261103c.zip")
+        self.assertEqual(lock["format"], "bundle")
+        self.assertEqual(lock["bytes"], 696362745)
+        for key in ("url", "sha256", "format"):
+            self.assertEqual(result[key], lock[key])
+        self.assertEqual(result["source"], "source-lock")
+        self.assertEqual(result["format"], "bundle")
+        self.assertEqual(result["url"],
+                         "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/"
+                         "fixed-inputs-20261103c/dsha-a-su-fixed-inputs-20261103c.zip")
+        self.assertTrue(result["url"].endswith("/" + lock["asset"]))
+        self.assertEqual(result["sha256"],
+                         "f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2")
+>>>>>>> sunset/main
 
     def test_dispatch_pair_wins_as_one_unit(self):
         result = inputs.resolve({"SUNSET_DISPATCH_URL": "https://example.invalid/new.zip",

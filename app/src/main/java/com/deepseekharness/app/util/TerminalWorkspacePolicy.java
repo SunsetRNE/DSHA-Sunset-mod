@@ -7,7 +7,13 @@ public final class TerminalWorkspacePolicy {
   private static final int COMPACT_HEIGHT_DP = 560;
   private static final int DENSE_FOOTER_HEIGHT_DP = 480;
   private static final int LANDSCAPE_COMPACT_HEIGHT_DP = 1000;
+  private static final int NARROW_WINDOW_MAX_WIDTH_DP = 600;
   private static final int DRAWER_MAX_WIDTH_DP = 336;
+  private static final int NARROW_DRAWER_MAX_WIDTH_DP = 224;
+
+  /** 窄于该宽度的侧栏（手机 224dp 抽屉及其更窄分屏）改用 dense 短标签动作组。 */
+  private static final int NARROW_ACTIONS_MAX_WIDTH_DP = 240;
+
   private static final int INLINE_MIN_WIDTH = 240;
   private static final int INLINE_MAX_WIDTH = 296;
 
@@ -45,12 +51,22 @@ public final class TerminalWorkspacePolicy {
     return Math.max(INLINE_MIN_WIDTH, Math.min(INLINE_MAX_WIDTH, Math.round(widthDp * .25f)));
   }
 
-  /** 抽屉最大宽度：平板上仍保持可读；窄窗口由遮罩边距继续收缩。 */
-  public static int drawerMaxWidth() {
-    return DRAWER_MAX_WIDTH_DP;
+  /**
+   * 抽屉最大宽度按设备类与当前窗口宽度双重判定：手机类（{@code smallestScreenWidthDp < 600}，与附加键布局同一判据）
+   * 且当前窗口 &lt; 600dp 时收窄到 224dp；平板（含分屏窄窗）、手机宽窗与宽屏保持 336dp。
+   * 内联侧栏不受该上限影响，仍由 {@link #inlineWidth(int)} 决定。
+   */
+  public static int drawerMaxWidth(int widthDp, int smallestWidthDp) {
+    boolean phone = smallestWidthDp < NARROW_WINDOW_MAX_WIDTH_DP;
+    return phone && widthDp < NARROW_WINDOW_MAX_WIDTH_DP
+        ? NARROW_DRAWER_MAX_WIDTH_DP
+        : DRAWER_MAX_WIDTH_DP;
   }
 
-  /** 抽屉保留遮罩区；极窄窗口最多让出四分之一宽度，不能回退到溢出窗口的最大宽度。 */
+  /**
+   * 抽屉保留遮罩区；极窄窗口最多让出四分之一宽度，不能回退到溢出窗口的最大宽度。
+   * maxPx 由 {@link #drawerMaxWidth(int, int)} 按设备类与当前窗口宽度给出。
+   */
   public static int drawerWidth(int availablePx, int maxPx, int marginPx) {
     if (availablePx <= 0) return maxPx;
     int margin = Math.min(Math.max(0, marginPx), availablePx / 4);
@@ -73,6 +89,18 @@ public final class TerminalWorkspacePolicy {
 
   public static boolean denseFooter(int heightDp, float fontScale) {
     return heightDp < DENSE_FOOTER_HEIGHT_DP * readableScale(fontScale);
+  }
+
+  /**
+   * 窄侧栏是否改用 dense 短标签动作组（2 列 3 行、单行等高 48dp）。
+   *
+   * <p>224dp 抽屉放不下全标签：完整标签会折行，同一行按钮还会因行数不同而高度不齐。判据取
+   * 240dp 而不是抽屉上限 224dp：内联侧栏最小就是 240dp，回到 240dp 即恢复全标签；与
+   * {@link #footerColumns(int, float, boolean)} 在 224dp 给出的两列、{@link #drawerMaxWidth(int,
+   * int)} 的手机类上限 224dp 保持一致，更窄的分屏窗口同样落在该分支。
+   */
+  public static boolean narrowActions(int panelWidthDp) {
+    return panelWidthDp < NARROW_ACTIONS_MAX_WIDTH_DP;
   }
 
   /** 按侧栏自身宽度分列，不能用横屏窗口宽度代替每个按钮的实际空间。 */

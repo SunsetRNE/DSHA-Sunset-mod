@@ -87,7 +87,7 @@ export function registerRecoveryTools(ctx, request) {
     targetId: string('dsha_targets 返回的 target ID。'),
   });
   register('dsha_propose', 'propose', '生成待原生确认的修复候选，不立即写入。先调用 dsha_read；用户需回到原生应急页面检查差异并逐次确认。普通设置只允许当前 schema；CLI 依赖修复只能使用固定的签名 APK 受管动作，代码、插件、凭据和会话不能由模型直接覆盖。', {
-    action: { type: 'string', required: true, enum: ['recover-maintenance', 'repair-runtime', 'repair-cli-dependencies', 'profile-settings', 'new-web-profile', 'new-global-patch'] },
+    action: { type: 'string', required: true, enum: ['recover-maintenance', 'isolate-plugin-journals', 'repair-runtime', 'repair-cli-dependencies', 'profile-settings', 'new-web-profile', 'new-global-patch'] },
     targetId: string('来自 dsha_targets 的目标 ID。'),
     sourceSha256: string('dsha_read 返回的原始源摘要，不能自行猜测。'),
     dataGeneration: string('dsha_read 返回的数据代次。'),

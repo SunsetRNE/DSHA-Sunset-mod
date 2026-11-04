@@ -2,27 +2,41 @@
   "schema": 1,
   "tests": [
     {
-      "path": "tools/test-sunset-release-delivery.py",
+      "path": "tools/test-diagnostic-feedback.py",
       "stage": "fast",
-      "requires": ["python39"],
-      "args": [],
-      "timeoutSeconds": 60,
+      "reason": "Executes current diagnostic feedback observers on a JVM with LiveData/UI doubles; no Android device, clipboard or SAF execution",
+      "args": [
+        "--jdk",
+        "{jdk}"
+      ],
+      "timeoutSeconds": 120,
+      "requires": [
+        "python39",
+        "jdk17"
+      ],
       "environment": {},
-      "reason": "Reject wrong source/run/test-package identities, missing evidence, existing tags and incomplete Release uploads; mock API writes never retry unknown outcomes."
+      "cli": "--jdk <JDK home>; compiles production observer bodies to Java 17"
     },
     {
       "path": "tools/test-android-image-wire.mjs",
       "stage": "runtime",
-      "requires": ["node24", "raw"],
+      "requires": [
+        "node24",
+        "raw"
+      ],
       "args": [],
       "timeoutSeconds": 120,
-      "environment": {"DSHA_TEST_SDK_ROOT": "{raw}"},
+      "environment": {
+        "DSHA_TEST_SDK_ROOT": "{raw}"
+      },
       "reason": "Execute the pinned SDK stdio transport and exact-patched image projection with an 8 MiB PNG and canonical Base64 boundaries; no device access."
     },
     {
       "path": "tools/test-web-fetch-unicode.mjs",
       "stage": "support",
-      "requires": ["node24"],
+      "requires": [
+        "node24"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -31,7 +45,10 @@
     {
       "path": "tools/test-web-fetch-unicode.py",
       "stage": "runtime",
-      "requires": ["python39", "node24"],
+      "requires": [
+        "python39",
+        "node24"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -40,16 +57,26 @@
     {
       "path": "tools/test-vscreen-help.py",
       "stage": "fast",
-      "requires": ["python39", "jdk17", "toolchains"],
+      "requires": [
+        "python39",
+        "jdk17",
+        "toolchains"
+      ],
       "args": [],
       "timeoutSeconds": 180,
-      "environment": {"JAVA_HOME": "{jdk}", "GRADLE_USER_HOME": "{gradleHome}"},
+      "environment": {
+        "JAVA_HOME": "{jdk}",
+        "GRADLE_USER_HOME": "{gradleHome}"
+      },
       "reason": "Compile the production virtual-screen bridge parser and generated ten-language help; verify launch, observation and input examples against the actual parameter contract."
     },
     {
       "path": "tools/test-terminal-home-i18n.py",
       "stage": "fast",
-      "requires": ["python39", "jdk17"],
+      "requires": [
+        "python39",
+        "jdk17"
+      ],
       "args": [],
       "timeoutSeconds": 180,
       "environment": {},
@@ -58,7 +85,10 @@
     {
       "path": "tools/test-app-integration-lifecycle.mjs",
       "stage": "runtime",
-      "requires": ["node24", "raw"],
+      "requires": [
+        "node24",
+        "raw"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -67,7 +97,10 @@
     {
       "path": "tools/test-native-safe-area.mjs",
       "stage": "runtime",
-      "requires": ["node24", "browser"],
+      "requires": [
+        "node24",
+        "browser"
+      ],
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
@@ -90,7 +123,7 @@
       ],
       "timeoutSeconds": 300,
       "environment": {},
-      "reason": "Real production Java and Python signed patch chains verify the current rc3 archive and its language predecessor, repair, partial and duplicate cases, and idempotence without device operations."
+      "reason": "Real production Java and Python signed patch chains verify the current rc5 archive, the pinned V1 language predecessor, repair, partial and duplicate cases, and idempotence without device operations. The historical rc3 shared archive is superseded and rejected as a current input."
     },
     {
       "path": "tools/test-ui-language-catalog.py",
@@ -215,6 +248,16 @@
       }
     },
     {
+      "path": "tools/test-launch-target-client.mjs",
+      "stage": "fast",
+      "reason": "启动目标网页端：设置导航独立面板与插件详情卡片共用组件和路由，文案说明禁用插件不改启动目标；不连接设备或桥",
+      "args": [],
+      "requires": [
+        "node24"
+      ],
+      "timeoutSeconds": 60
+    },
+    {
       "path": "tools/test-bridge-port.py",
       "stage": "fast",
       "reason": "Python设备shell端口解析的ASCII、NOFOLLOW和文件身份变更回归；不执行设备命令",
@@ -235,7 +278,24 @@
         "python39"
       ],
       "environment": {},
-      "cli": "no arguments; GNU libc constructor/forwarding uses tools/proroot-compat/test-host.py; original ARM64 loader/bridge uses tools/proroot-compat/test-arm64.py with NDK, WSL and QEMU"
+      "cli": "no arguments; GNU libc constructor/forwarding uses tools/proroot-compat/test-host.py; fcntl errno restoration uses tools/test-proroot-fcntl.py; original ARM64 loader/bridge uses tools/proroot-compat/test-arm64.py with NDK, WSL and QEMU"
+    },
+    {
+      "path": "tools/test-proroot-fcntl.py",
+      "stage": "fast",
+      "reason": "Real GNU libc fcntl through the proxy: fake v1.2.8 vendor reproduces EPERM; proxy-first restores EAGAIN/EBADF/EINVAL, keeps errno on success and forwards F_DUPFD* to the vendor",
+      "args": [
+        "--output",
+        "{fixture}"
+      ],
+      "timeoutSeconds": 120,
+      "requires": [
+        "python39"
+      ],
+      "platform": [
+        "linux"
+      ],
+      "environment": {}
     },
     {
       "path": "tools/test-ci-assets.py",
@@ -868,6 +928,18 @@
       "environment": {
         "DSHA_RAW_RUNTIME": "{raw}"
       },
+      "cli": "no positional arguments; see explicit environment/requirements"
+    },
+    {
+      "path": "tools/test-net-epoch.mjs",
+      "stage": "fast",
+      "reason": "隔离宿主或纯源码/协议回归，无发布密钥、设备和真实用户数据",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": [
+        "node24"
+      ],
+      "environment": {},
       "cli": "no positional arguments; see explicit environment/requirements"
     },
     {
@@ -1592,17 +1664,6 @@
       "reason": "Exact six-source-set formatter inventory and package batch regression; no device or APK",
       "requires": [
         "python39"
-      ],
-      "environment": {},
-      "timeoutSeconds": 300,
-      "args": []
-    },
-    {
-      "path": "tools/test-low-preview-capability.mjs",
-      "stage": "history",
-      "reason": "2026-10-24 Sunset-3090-Q 用户取消全部 Low 测试；保留历史用例，不进入任何当前宿主或 CI 阶段",
-      "requires": [
-        "node24"
       ],
       "environment": {},
       "timeoutSeconds": 300,
@@ -2359,7 +2420,7 @@
       "reason": "Production Gradle configuration gate executes in isolated offline assemble projects and rejects stale native/npm-lock/signed-registry generations and ambiguous native source anchors",
       "args": [
         "--gradle-user-home",
-        "{gradleCache}",
+        "{gradleHome}",
         "--jdk",
         "{jdk}",
         "--output",
@@ -2402,6 +2463,32 @@
       ],
       "environment": {},
       "cli": "No arguments; uses the verified current raw/managed test-runtime fixture and controlled official Auto review LLM response"
+    },
+    {
+      "path": "tools/test-fs-read-hint.mjs",
+      "stage": "runtime",
+      "reason": "dsh-fs-read-hint regression over the real rc.5 ToolRuntime and fs tools in a temporary app/build directory; no Android device operations",
+      "args": [],
+      "timeoutSeconds": 900,
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "environment": {},
+      "cli": "No arguments; uses the verified current raw test-runtime fixture"
+    },
+    {
+      "path": "tools/test-fs-search-scope.mjs",
+      "stage": "runtime",
+      "reason": "dsh-fs-search-scope regression over the real rc.5 managed ToolRuntime, local subprocess and fs-search glob against a temporary git repository with linked worktrees; no Android device operations",
+      "args": [],
+      "timeoutSeconds": 900,
+      "requires": [
+        "node24",
+        "managed"
+      ],
+      "environment": {},
+      "cli": "No arguments; uses the verified current managed test-runtime fixture and the host git binary"
     },
     {
       "path": "tools/test-signed-builtin-web-intent.mjs",
@@ -2777,6 +2864,28 @@
       "reason": "Independent real Linux FD/NOFOLLOW negative controls for ancestor swaps during CAS scan and before transaction publication."
     },
     {
+      "path": "tools/test-plugin-startup-imports.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Fresh Python interpreters exercise actual local startup commands, lazy optional I/O imports and cancellation."
+    },
+    {
+      "path": "tools/test-plugin-runtime-links.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 30,
+      "environment": {},
+      "reason": "Actual POSIX relative/absolute link preservation, canonical migration and failure cleanup; Windows explicitly skips unsupported symlink scenarios."
+    },
+    {
       "path": "tools/test-deepseek-account-requests.mjs",
       "stage": "runtime",
       "requires": [
@@ -2802,7 +2911,7 @@
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "Exact historical rc2 2100-to191 account-chain regression with original SHA pins. Current rc3 account modules and the actual published192 generation boundary are covered by test-build193-patch-chain.py; do not synthesize old account modules from changed rc3 official source."
+      "reason": "Exact historical rc2 2100-to191 account-chain regression with original SHA pins. Current rc5 account modules and the actual build212 -> build213 generation boundary are covered by test-build193-patch-chain.py; do not synthesize old account modules from changed rc5 official source."
     },
     {
       "path": "tools/test-native-ime-hero.mjs",
@@ -2923,7 +3032,7 @@
       ],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "Exact historical rc2 build191-to192 chain regression with original SHA pins; current rc3 generation uses test-build193-patch-chain.py against actual published192 bytes across all current active modules."
+      "reason": "Exact historical rc2 build191-to192 chain regression with original SHA pins; current rc5 generation uses test-build193-patch-chain.py against actual build212 bytes across all current active modules."
     },
     {
       "path": "tools/file-transfer/test-large-download.mjs",
@@ -2955,8 +3064,8 @@
       ],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "All current production Java active-module chains: fresh/repeat, exact published192 boundary, staged signed current canonical recovery and fail-closed rejection. Old generation markers never prove a DSH upgrade.",
-      "cli": "Host runner requires explicit --previous-runtime-apk pointing to the exact published192 Standard APK. It passes --old-apk directly; no DSHA environment passthrough. Standalone gate also accepts --old-apk/--old-archive. Optional --apk validates every current module in the final exact APK."
+      "reason": "All current production Java active-module chains: fresh/repeat, exact build212 (rc3) boundary, staged signed current canonical recovery and fail-closed rejection. Old generation markers never prove a DSH upgrade.",
+      "cli": "Host runner requires explicit --previous-runtime-apk pointing to the exact build212 Standard APK. It passes --old-apk directly; no DSHA environment passthrough. Standalone gate also accepts --old-apk/--old-archive. Optional --apk validates every current module in the final exact APK."
     },
     {
       "path": "tools/test-plugin-pnpm-argv.mjs",
@@ -3032,17 +3141,6 @@
       "reason": "Actual signed guest install recipe imports all builtin entrypoints; negative controls reproduce omitted helper MODULE_NOT_FOUND."
     },
     {
-      "path": "tools/test-sunset-plugin-release.py",
-      "stage": "fast",
-      "reason": "Sunset历史发布完整提交/run/attempt及显式基线绑定、合并历史顺序、已有tag与未知输出保护；纯临时Git/模拟GitHub，无网络或设备访问",
-      "args": [],
-      "timeoutSeconds": 120,
-      "requires": [
-        "python39"
-      ],
-      "environment": {}
-    },
-    {
       "path": "tools/test-plugin-runtime-evidence.mjs",
       "stage": "runtime",
       "reason": "用锁定 Cordis Loader 和官方 bundle 补丁验证当前实例的持久插件状态，不重复执行插件或读取设备数据",
@@ -3054,6 +3152,137 @@
       ],
       "environment": {},
       "cli": "No positional arguments; verified raw runtime and isolated Loader fixtures, with required Node internals enabled by the script."
+    },
+    {
+      "path": "tools/test-screen-eval.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "ScreenSense 离线评估：固定合成样本可复现、与 Java 真实 codec 共享 golden 摘要、字符回归上限与 tokenizer 固定摘要；不读真机屏幕。"
+    },
+    {
+      "path": "tools/test-external-tools.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "External-device adb/fastboot/loader proof must be generated from the pinned Ubuntu package lock; tampered lock fields are rejected."
+    },
+    {
+      "path": "tools/test-ci-handoff.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "CI node input handoff: exact allow-list, commit binding, digest/traversal rejection before any write; unit-result receipts reject missing/skipped fixtures and forged JUnit counts"
+    },
+    {
+      "path": "tools/test-robolectric-sdks.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Robolectric android-all offline preparation: flat resolver layout, exact Maven Central URL, size/sha256 before rename, bounded retries, corrupt or symlinked cache replaced; lock rejects traversal, foreign repository and duplicates"
+    },
+    {
+      "path": "tools/test-ci-workflows.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Static Actions node graph: pinned external actions, read-only reusable nodes, release gates before signing, secrets only in the sign node, write permission only in publish"
+    },
+    {
+      "path": "tools/test-release-identity.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Dual release identity: default mod, explicit upstream, unknown -Pdsha.identity rejected without fallback; mod/upstream never share package or certificate; Gradle allowed names and identity fields match the resolver"
+    },
+    {
+      "path": "tools/test-backup-read-nonblock.py",
+      "stage": "linux",
+      "platform": [
+        "linux"
+      ],
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Exact Android filesystem final-open flag expressions exercised with real Linux FIFO replacement, old blocking negative control, regular reads, directory rejection and FD balance; no phone."
+    },
+    {
+      "path": "tools/test-trial-renderer-diagnostic.mjs",
+      "stage": "fast",
+      "reason": "Exact original-versus-diagnostic trial page POST/retry trajectory; bounded safe telemetry without runtime/device or new acceptance semantics",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": [
+        "node24"
+      ],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-reading-position-checkpoint.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Production reading-position checkpoints: scrollend/trailing fallback, node removal, page lifetime, session identity and disposal without per-frame path serialization."
+    },
+    {
+      "path": "tools/test-reading-position-browser.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual browser DOM scroll offsets and event delivery with detached/reused nodes, horizontal position, session routing and visibility; synthetic local page only."
+    },
+    {
+      "path": "tools/test-file-image-lifetime.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {
+        "DSHA_TEST_RUNTIME": "{raw}",
+        "DSHA_REACT": "{reactReference}"
+      },
+      "reason": "Actual shipped mobile image controls: no duplicate whole-image JS chunks, preserve 33MiB payload and cancel delayed completion after disposal."
     }
   ]
 }

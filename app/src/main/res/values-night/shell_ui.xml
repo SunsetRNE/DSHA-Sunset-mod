@@ -6,9 +6,6 @@
 -->
 <resources>
     <!-- 画布与层级 -->
-    <color name="shell_bg">#0B0F16</color>
-    <color name="shell_surface">#131923</color>
-    <color name="shell_raised">#1B2432</color>
     <color name="shell_line">#12CBDCFF</color>
     <color name="shell_line_strong">#20D0E1FF</color>
 
@@ -18,9 +15,8 @@
     <color name="shell_text_muted">#8895AA</color>
 
     <!-- 强调与状态 -->
-    <color name="shell_accent">#6AA4FF</color>
-    <color name="shell_accent_soft">#146AA4FF</color>
-    <color name="shell_on_accent">#091729</color>
+    <!-- 进度条流光叠层：夜间 16% 白，避免在深底上发糊。 -->
+    <color name="shell_sheen">#29FFFFFF</color>
     <color name="shell_good">#93CCAF</color>
     <color name="shell_warn">#E4BE83</color>
     <color name="shell_bad">#EEA3A6</color>
@@ -30,6 +26,7 @@
     <color name="shell_bad_soft">#14EEA3A6</color>
 
     <!-- 玻璃层 -->
+<<<<<<< 208ea63a
     <color name="shell_glass">#DB192230</color>
     <color name="shell_nav_bg">#F2131923</color>
     <color name="shell_nav_ripple">#1F6AA4FF</color>
@@ -39,6 +36,8 @@
     <color name="shell_switch_thumb_unchecked">#DCE6F4</color>
     <color name="shell_switch_thumb_checked">#081428</color>
     <color name="shell_switch_thumb_disabled">#7788A0</color>
+=======
+>>>>>>> sunset/main
 
     <!-- 手机胶囊导航 -->
     <dimen name="shell_nav_height">64dp</dimen>

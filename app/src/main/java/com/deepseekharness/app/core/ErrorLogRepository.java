@@ -265,7 +265,7 @@ public final class ErrorLogRepository extends AndroidViewModel {
     value.put("versionCode", (long) BuildConfig.VERSION_CODE);
     value.put("versionName", BuildConfig.VERSION_NAME);
     value.put("applicationId", context.getPackageName());
-    value.put("flavor", BuildConfig.LOW_ANDROID ? "low" : "standard");
+    value.put("flavor", false ? "low" : "standard");
     value.put("configuredRuntime", config.isProroot() ? "proroot" : "proot");
     value.put("failureStage", category(config.getDiagnosticFailureStage()));
     value.put("failureRecorded", !config.getDiagnosticFailureReason().isEmpty());
@@ -304,7 +304,7 @@ public final class ErrorLogRepository extends AndroidViewModel {
         .append(" / ")
         .append(BuildConfig.VERSION_CODE)
         .append(
-            BuildConfig.LOW_ANDROID
+            false
                 ? com.deepseekharness.app.util.UiText.text(" / 兼容版\n")
                 : com.deepseekharness.app.util.UiText.text(" / 标准版\n"));
     text.append(com.deepseekharness.app.util.UiText.text("设备："))

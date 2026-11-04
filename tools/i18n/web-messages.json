@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "dshVersion": "0.2.1-rc.3",
+  "dshVersion": "0.2.1-rc.5",
   "inputs": {
     "@deepseek-ai/dsh-client-locale/lib/client.js": "bad8fe9bfb07af2a60c80933be65ceafdaab5386f404fb264401c7e540a36e16",
     "@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js": "b5990540be57e44c391aa7caf83def0249c82342e54449ae1d382f1506d7f895",

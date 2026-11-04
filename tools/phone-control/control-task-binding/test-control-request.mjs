@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
+// 生产不再回退 3090（build280）：CI 主机没有 /root/.dsh/.bridge_port，显式发布一个夹具端口；本用例不断言端口。
+process.env.DSHA_BRIDGE_PORT ??= '3090';
 const server = require('../../../app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/server.cjs');
 
 test('explicit phone task begin/finish transport supplies only the actual caller identity', async () => {

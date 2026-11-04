@@ -14,6 +14,8 @@ public final class PhoneControlCoordinator {
   private final CopyOnWriteArrayList<Runnable> listeners = new CopyOnWriteArrayList<>();
   private volatile ScreenControlConfirmation confirmation;
   private volatile java.util.function.Consumer<ControlTaskAuthority.Binding> turnCancellation;
+  private final com.deepseekharness.app.util.ComposeGate compose =
+      new com.deepseekharness.app.util.ComposeGate(android.os.SystemClock::elapsedRealtime);
 
   private PhoneControlCoordinator(Context context) {
     this.context = context.getApplicationContext();
@@ -27,6 +29,19 @@ public final class PhoneControlCoordinator {
   public static synchronized PhoneControlCoordinator get(Context context) {
     if (instance == null) instance = new PhoneControlCoordinator(context);
     return instance;
+  }
+
+  /** 用户正在给 AI 输入消息：手机动作在此等待，不暂停、不取消对话。 */
+  public com.deepseekharness.app.util.ComposeGate compose() {
+    return compose;
+  }
+
+  private final com.deepseekharness.app.util.TurnScreenGrants turnGrants =
+      new com.deepseekharness.app.util.TurnScreenGrants();
+
+  /** 「本轮允许此应用」：只在当前这一轮内有效，结束、暂停或停止即清空。 */
+  public com.deepseekharness.app.util.TurnScreenGrants turnGrants() {
+    return turnGrants;
   }
 
   public ControlTaskAuthority.Snapshot snapshot() {
@@ -91,10 +106,12 @@ public final class PhoneControlCoordinator {
 
   /** Completion fences work but must not invoke the selected assistant's cancel callback. */
   public void completeLocal(ControlTaskAuthority.Binding binding) {
+    turnGrants.clear();
     if (authority.completeLocal(binding)) fence(false, null);
   }
 
   public void pause(String reason) {
+    turnGrants.clear();
     var previous = authority.pause(reason);
     fence(true, previous);
   }
@@ -112,6 +129,8 @@ public final class PhoneControlCoordinator {
   }
 
   public void stop(String reason) {
+    compose.reset();
+    turnGrants.clear();
     var previous = authority.stop(reason);
     fence(true, previous);
   }

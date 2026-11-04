@@ -23,6 +23,7 @@ import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.LanAccessPresentation;
 import com.deepseekharness.app.util.LanAddressPolicy;
 import com.deepseekharness.app.util.UiText;
+import com.google.android.material.button.MaterialButton;
 
 /**
  * 启动页：启动 / 进入 / 停止 dsh Web，显示运行状态、鉴权链接与局域网访问地址。
@@ -35,13 +36,16 @@ public class LaunchFragment extends Fragment {
   private HarnessController controller;
   private TextView lanAddrText;
   private TextView launchLog;
+  private LaunchLogPanel logPanel;
   private ShellActivityTrack activityTrack;
-  private TextView latestLogsButton;
   private androidx.appcompat.app.AlertDialog accessDialog;
   private android.animation.ObjectAnimator dotPulse;
 
-  /** 日志跟随：默认跟随末尾；用户上翻或主动暂停后保留阅读位置。 */
-  private boolean followLogs = true;
+  /** 访问地址弹窗的自定义正文与三个横向按钮（关闭固定在最右）。 */
+  private TextView accessBody;
+
+  private Button accessLanButton;
+  private Button accessCopyButton;
 
   /** 启动按钮当前是否处于「进入」态（鉴权链接已就绪）。 */
   private boolean webReady;
@@ -62,6 +66,7 @@ public class LaunchFragment extends Fragment {
   /** 本次启动开始时刻（显示耗时用）。 */
   private long startAtMs;
 
+<<<<<<< 208ea63a
   private long logRevision = -1;
   private String logUrl = "";
 
@@ -83,18 +88,24 @@ public class LaunchFragment extends Fragment {
    */
   private TextView moduleIssueBanner;
 
+=======
+>>>>>>> sunset/main
   private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
 
-  /** 通知点击进来、待自动进入 Web 的意图；由既有每秒刷新循环消费，就绪即进。 */
+  /** 通知点击进来、待自动进入 Web 的意图；就绪事件立即消费，每秒刷新兜底。 */
   private boolean pendingAutoEnter;
+
+  private final Runnable readyChanged = this::requestStateRefresh;
 
   private final Runnable refreshState =
       new Runnable() {
         @Override
         public void run() {
+          ui.removeCallbacks(this);
+          if (getView() == null || !isResumed()) return;
           refreshRunState();
           refreshLanAddr();
-          // 通知点击进来的自动进入：复用这个每秒循环等鉴权链接，不另开定时器。
+          // 通知点击进来的自动进入：就绪事件与周期兜底共用一条刷新链。
           // 判据只认「鉴权链接已出现」——它就是进入 Web 的前提，也是按钮变「进入」的
           // 同一条件。不能拿 getWebAuthFailure() 判成败：那是最近一次鉴权结果消息，
           // 初始值与成功值都非 null（成功时是"鉴权成功"），用它当成功判据会永不进入。
@@ -102,9 +113,16 @@ public class LaunchFragment extends Fragment {
             pendingAutoEnter = false;
             enterWeb();
           }
-          ui.postDelayed(this, 1000);
+          if (getView() != null && isResumed()) ui.postDelayed(this, 1000);
         }
       };
+
+  /** 合并同时到达的通知和就绪事件，不叠加永久的每秒刷新任务。 */
+  private void requestStateRefresh() {
+    if (controller == null || getView() == null || !isResumed()) return;
+    ui.removeCallbacks(refreshState);
+    ui.post(refreshState);
+  }
 
   @Nullable
   @Override
@@ -117,10 +135,12 @@ public class LaunchFragment extends Fragment {
         new ModuleAppHost(requireContext(), v.findViewById(R.id.launch_module_app), "home");
 
     // v5 主页新增的语境、活动条与日志工具；原有 id 与业务 id 全部保留。
-    followLogs = true;
     activityTrack = v.findViewById(R.id.launch_activity);
+<<<<<<< 208ea63a
     applyHomeProgressSkin();
     latestLogsButton = v.findViewById(R.id.launch_latest_button);
+=======
+>>>>>>> sunset/main
     ((TextView) v.findViewById(R.id.launch_terminal_row))
         .setText(UiText.choose("打开本机终端", "Open local terminal"));
     v.findViewById(R.id.launch_terminal_row)
@@ -200,8 +220,8 @@ public class LaunchFragment extends Fragment {
     Button stop = v.findViewById(R.id.launch_stop);
     lanAddrText = v.findViewById(R.id.lan_addr);
     launchLog = v.findViewById(R.id.launch_log);
-    logRevision = -1;
-    logUrl = "";
+    // 启动日志区（概览 / 原始 / 跟随浮标）由独立协作者渲染，本页只提供真实状态。
+    logPanel = new LaunchLogPanel(v);
     v.findViewById(R.id.launch_download_logs)
         .setOnClickListener(x -> startActivity(DiagnosticActivity.downloadLogs(requireContext())));
 
@@ -209,25 +229,20 @@ public class LaunchFragment extends Fragment {
     v.findViewById(R.id.launch_terminal_row).setOnClickListener(x -> openLocalTerminal());
     v.findViewById(R.id.launch_environment_row).setOnClickListener(x -> openEnvironment());
     v.findViewById(R.id.launch_copy_logs).setOnClickListener(x -> copyLogs());
-    v.findViewById(R.id.launch_follow_logs).setOnClickListener(x -> toggleLogFollow());
-    if (latestLogsButton != null) latestLogsButton.setOnClickListener(x -> resumeLogFollow());
-    ((TextView) v.findViewById(R.id.launch_copy_logs)).setText(UiText.choose("复制日志", "Copy log"));
     v.findViewById(R.id.launch_copy_logs)
-        .setContentDescription(UiText.choose("复制启动日志", "Copy the startup log"));
-    LogScrollView launchLogScroll = v.findViewById(R.id.launch_log_scroll);
-    // 用户滚回末尾时恢复跟随；离开末尾时暂停，避免下一秒刷新把阅读位置拉走。
-    launchLogScroll.setOnScrollChangeListener(
-        (view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-          boolean atEnd = launchLogScroll.shouldFollowEnd();
-          if (atEnd != followLogs) setLogFollow(atEnd);
-        });
-    renderLogControls(v);
+        .setContentDescription(UiText.choose("复制完整启动日志", "Copy the full startup log"));
+    v.findViewById(R.id.launch_download_logs)
+        .setContentDescription(UiText.choose("下载启动日志", "Download the startup log"));
+    v.findViewById(R.id.launch_copy_logs).setTooltipText(UiText.choose("复制日志", "Copy log"));
+    v.findViewById(R.id.launch_download_logs)
+        .setTooltipText(UiText.choose("下载日志", "Download logs"));
 
     v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
     v.findViewById(R.id.launch_ssh_row)
         .setOnClickListener(
             x -> startActivity(new Intent(requireContext(), ContainerSshActivity.class)));
     restart.setText(R.string.ui2_restart);
+    applySchemeALayout(v);
     v.findViewById(R.id.launch_recovery).setOnClickListener(x -> showRecovery());
     v.findViewById(R.id.launch_safe)
         .setOnClickListener(
@@ -266,7 +281,7 @@ public class LaunchFragment extends Fragment {
           doStart(activity, status, start);
         });
 
-    // 通知点击进来：置待进入标记，由每秒刷新循环在鉴权链接就绪后自动进入。
+    // 通知点击进来：置待进入标记，由就绪事件或周期兜底在鉴权后自动进入。
     if (getArguments() != null && getArguments().getBoolean(ARG_OPEN_WEB, false)) {
       getArguments().remove(ARG_OPEN_WEB);
       pendingAutoEnter = true;
@@ -504,14 +519,14 @@ public class LaunchFragment extends Fragment {
   }
 
   /**
-   * 外部（通知点击）请求：下一次刷新周期自动进入 Web。
+   * 外部（通知点击）请求：立即刷新；未就绪时继续等待事件或周期兜底。
    *
    * <p>页面不可见时由 {@code onPause} 清掉，避免用户回来时被意外带走。
    */
   void requestAutoEnterWeb() {
     // Main 的入口检查可能仍挂起恢复页视图；先保留明确请求，创建视图后再等待鉴权。
     pendingAutoEnter = true;
-    if (controller != null && getView() != null) ui.post(refreshState);
+    requestStateRefresh();
   }
 
   /** 打开 WebPreviewActivity 进入 dsh WebUI。 */
@@ -585,21 +600,19 @@ public class LaunchFragment extends Fragment {
     enteringWeb = false;
   }
 
-  /** 仅在用户仍位于底部且跟随开启时滚动；滚动日志本身，不请求焦点或移动操作区。 */
+  /**
+   * 只有纯文本时直接显示原始视图（布局验收经反射调用）；仅在用户仍位于底部且跟随开启时滚动，
+   * 不请求焦点或移动操作区。
+   */
   private void updateLog(String text) {
-    View root = getView();
-    if (root == null || launchLog == null) return;
-    LogScrollView scroll = root.findViewById(R.id.launch_log_scroll);
-    boolean follow = followLogs && scroll.shouldFollowEnd();
-    launchLog.setText(text);
-    if (follow) scroll.followEndAfterLayout();
-    else renderLogControls(root);
+    if (getView() == null || logPanel == null) return;
+    logPanel.renderPlain(text);
   }
 
-  /** 复制当前日志框的完整文本；日志可能含本机鉴权地址，按敏感剪贴板写入。 */
+  /** 复制完整原文（与概览 / 筛选无关）；日志可能含本机鉴权地址，按敏感剪贴板写入。 */
   private void copyLogs() {
-    if (launchLog == null) return;
-    CharSequence logs = launchLog.getText();
+    if (logPanel == null) return;
+    CharSequence logs = logPanel.plainText();
     if (logs == null || logs.length() == 0) {
       Toast.makeText(
               requireContext(),
@@ -774,60 +787,6 @@ public class LaunchFragment extends Fragment {
     showRecovery();
   }
 
-  /** 跟随开关只改展示，不触发任务状态变化；打开时再显式滚到末尾。 */
-  private void setLogFollow(boolean follow) {
-    if (followLogs == follow) {
-      renderLogControls(getView());
-      return;
-    }
-    followLogs = follow;
-    renderLogControls(getView());
-  }
-
-  private void toggleLogFollow() {
-    if (followLogs) {
-      setLogFollow(false);
-      return;
-    }
-    resumeLogFollow();
-  }
-
-  /** 恢复跟随并滚到最新；由「跟随最新」和「查看最新」共用。 */
-  private void resumeLogFollow() {
-    setLogFollow(true);
-    View root = getView();
-    if (root == null) return;
-    LogScrollView scroll = root.findViewById(R.id.launch_log_scroll);
-    if (scroll == null) return;
-    scroll.fullScroll(View.FOCUS_DOWN);
-    scroll.followEndAfterLayout();
-  }
-
-  /** 同步跟随按钮文案与「查看最新」可见性；暂停时保留当前阅读位置。 */
-  private void renderLogControls(View root) {
-    if (root == null) return;
-    TextView follow = root.findViewById(R.id.launch_follow_logs);
-    if (follow != null) {
-      follow.setText(
-          followLogs
-              ? UiText.choose("暂停跟随", "Pause following")
-              : UiText.choose("跟随最新", "Follow latest"));
-      follow.setContentDescription(
-          followLogs
-              ? UiText.choose("日志跟随中，点按暂停跟随", "Log following is on. Tap to pause.")
-              : UiText.choose("日志已暂停跟随，点按恢复", "Log following is paused. Tap to resume."));
-      follow.setTextColor(
-          requireContext()
-              .getColor(followLogs ? R.color.shell_text_secondary : R.color.shell_accent));
-    }
-    if (latestLogsButton != null) {
-      latestLogsButton.setText(UiText.choose("查看最新", "View latest"));
-      latestLogsButton.setContentDescription(
-          UiText.choose("跳到启动日志最新一行", "Jump to the latest startup log line"));
-      latestLogsButton.setVisibility(followLogs ? View.GONE : View.VISIBLE);
-    }
-  }
-
   @Override
   public void onResume() {
     super.onResume();
@@ -836,8 +795,8 @@ public class LaunchFragment extends Fragment {
     syncModuleApp();
     if (controller == null) return;
     invalidateWebEntry();
-    ui.removeCallbacks(refreshState);
-    ui.post(refreshState);
+    controller.addReadyWebPageListener(readyChanged);
+    requestStateRefresh();
   }
 
   @Override
@@ -852,6 +811,7 @@ public class LaunchFragment extends Fragment {
     }
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
+    if (controller != null) controller.removeReadyWebPageListener(readyChanged);
     if (dotPulse != null) {
       dotPulse.cancel();
       dotPulse = null;
@@ -865,13 +825,21 @@ public class LaunchFragment extends Fragment {
     preparingStart = false;
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
+    if (controller != null) controller.removeReadyWebPageListener(readyChanged);
     if (accessDialog != null) accessDialog.dismiss();
     accessDialog = null;
+    accessBody = null;
+    accessLanButton = null;
+    accessCopyButton = null;
     lanAddrText = null;
     launchLog = null;
+    logPanel = null;
     activityTrack = null;
+<<<<<<< 208ea63a
     latestLogsButton = null;
     moduleIssueBanner = null;
+=======
+>>>>>>> sunset/main
     if (dotPulse != null) {
       dotPulse.cancel();
       dotPulse = null;
@@ -899,30 +867,33 @@ public class LaunchFragment extends Fragment {
       if (ready) startStatusMessage = "";
       boolean restoring = controller.isRestoringWebSession();
       boolean unresolved = controller.hasUnresolvedWebSession();
+      com.deepseekharness.app.core.WebSessionRestoreText.Status restore =
+          controller.webSessionRestoreStatus();
       com.deepseekharness.app.util.StartupTrace.Snapshot trace =
           controller.startupDiagnostics().snapshot();
       String localUrl = webEntryUrl();
-      if (launchLog != null && (trace.revision != logRevision || !localUrl.equals(logUrl))) {
+      if (logPanel != null) {
         // 仅原生本机视图显示当前鉴权地址；归档与导出的诊断仍统一脱敏。
-        updateLog(
+        String urlNote =
+            localUrl.isEmpty()
+                ? ""
+                : com.deepseekharness.app.util.UiText.format("\n\n本机 Web 地址（可长按复制）：\n%s", localUrl);
+        logPanel.render(
+            trace,
+            logOutcome(trace, starting, stopping, ready, restoring),
             (trace.log.isEmpty() ? com.deepseekharness.app.util.UiText.text("还没有日志。") : trace.log)
-                + (localUrl.isEmpty()
-                    ? ""
-                    : com.deepseekharness.app.util.UiText.format(
-                        "\n\n本机 Web 地址（可长按复制）：\n%s", localUrl)));
-        logRevision = trace.revision;
-        logUrl = localUrl;
+                + urlNote,
+            urlNote.trim());
       }
       runState.setText(
           enteringWeb
               ? com.deepseekharness.app.util.UiText.choose("正在打开 Web…", "Opening Web…")
               : restoring
-                  ? com.deepseekharness.app.util.UiText.choose(
-                      "正在核对原 Web 实例…", "Checking the existing Web instance…")
+                  ? com.deepseekharness.app.core.WebSessionRestoreText.progress(
+                      restore.reason(), restore.attempts())
                   : unresolved
-                      ? com.deepseekharness.app.util.UiText.choose(
-                          "原 Web 实例状态待确认，请查看诊断或正常停止后重试",
-                          "The previous Web instance is unconfirmed. Inspect diagnostics or stop it normally before retrying.")
+                      ? com.deepseekharness.app.core.WebSessionRestoreText.unresolved(
+                          restore.reason())
                       : controller.isRestartBlocked()
                           ? com.deepseekharness.app.util.UiText.text("自动重启已暂停")
                           : stopping
@@ -948,6 +919,7 @@ public class LaunchFragment extends Fragment {
       boolean needsRecovery = environment.recovery;
       ((TextView) root.findViewById(R.id.launch_environment))
           .setText(environment.ready ? "READY" : "—");
+<<<<<<< 208ea63a
       // 副标题反映真实启动入口：容器工作台，或容器里登记的程序。
       String launchTarget =
           com.deepseekharness.app.util.HomeLayoutStore.launchAction(requireContext());
@@ -990,6 +962,20 @@ public class LaunchFragment extends Fragment {
                 "Starts the DSH workspace inside the container · shows the 127.0.0.1 port when ready");
       }
       ((TextView) root.findViewById(R.id.launch_subtitle)).setText(subtitleText);
+=======
+      ((TextView) root.findViewById(R.id.launch_subtitle))
+          .setText(
+              ready
+                  ? (controller.isWebCompatibilityFallback()
+                          ? "proot"
+                          : controller.proot().runtime().id())
+                      + " · dsh "
+                      + com.deepseekharness.app.util.Constants.DSH_VERSION
+                  // 恢复核对的结论是一整句说明，放在副标题；大标题只放短状态，窄屏不再撑成三行。
+                  : !restore.notice().isEmpty()
+                      ? restore.notice()
+                      : getString(R.string.ui2_launch_hint));
+>>>>>>> sunset/main
       // 语境小字 / 活动条 / 工作台状态只取真实状态；不根据等待时长推算阶段。
       renderStatusChrome(
           root,
@@ -1053,6 +1039,7 @@ public class LaunchFragment extends Fragment {
         start.setText(
             enteringWeb
                 ? com.deepseekharness.app.util.UiText.text("进入中…")
+<<<<<<< 208ea63a
                 : launchProgram != null
                     ? com.deepseekharness.app.module.ContainerTools.isRunning(launchProgram.id)
                         ? com.deepseekharness.app.util.UiText.format("重启 %s", launchProgram.name)
@@ -1061,6 +1048,16 @@ public class LaunchFragment extends Fragment {
                         ? com.deepseekharness.app.util.UiText.choose(
                             "▶  进入工作台", "▶  Open workspace")
                         : getString(R.string.ui2_start));
+=======
+                : ready
+                    ? com.deepseekharness.app.util.UiText.choose("进入工作台", "Open workspace")
+                    : getString(R.string.ui2_start));
+        // 已运行时主操作是导航（进入工作台），用箭头；未运行时才是启动进程的播放图标。
+        if (start instanceof MaterialButton)
+          ((MaterialButton) start)
+              .setIconResource(
+                  enteringWeb || ready ? R.drawable.ic_launch_open : R.drawable.ic_launch_start);
+>>>>>>> sunset/main
         start.setEnabled(!enteringWeb && !starting && !stopping && !restoring);
       }
       Button restart = root.findViewById(R.id.launch_open);
@@ -1099,8 +1096,106 @@ public class LaunchFragment extends Fragment {
     }
   }
 
+  /** 启动日志概览的整体结果：只取 controller 已给出的真实状态，不从日志文本推测。 */
+  private com.deepseekharness.app.util.StartupLogDigest.Outcome logOutcome(
+      com.deepseekharness.app.util.StartupTrace.Snapshot trace,
+      boolean starting,
+      boolean stopping,
+      boolean ready,
+      boolean restoring) {
+    if (starting || restoring) return com.deepseekharness.app.util.StartupLogDigest.Outcome.RUNNING;
+    if (ready) return com.deepseekharness.app.util.StartupLogDigest.Outcome.READY;
+    if (trace.entries.isEmpty()) return com.deepseekharness.app.util.StartupLogDigest.Outcome.IDLE;
+    // 网页就绪过（之后退出）或用户主动停止，都不算启动失败。
+    if (stopping || trace.browserReady || controller.isUserStopped())
+      return com.deepseekharness.app.util.StartupLogDigest.Outcome.STOPPED;
+    return com.deepseekharness.app.util.StartupLogDigest.Outcome.FAILED;
+  }
+
   private void showRecovery() {
     startActivity(new Intent(requireContext(), StartupRecoveryActivity.class));
+  }
+
+  /**
+   * UI v5 方案 A 启动主页的宽窄形态：按当前窗口可用宽度决定，不按设备类型。
+   *
+   * <ul>
+   *   <li>≥ 600dp：标题右侧显示插图；主操作与重启/停止同一行，放不下（任一按钮文字折行）时改用窄屏排列。
+   *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，重启/停止在下方等分成两枚次要按钮（带边框、
+   *       居中），不再是靠左的两段裸文字。
+   *   <li>下半区「快捷入口 | 启动日志」由 AdaptiveColumns 按自身宽度（≥ 760dp）并排。
+   * </ul>
+   */
+  private void applySchemeALayout(View root) {
+    boolean wide = getResources().getConfiguration().screenWidthDp >= 600;
+    View art = root.findViewById(R.id.launch_art);
+    if (art != null) art.setVisibility(wide ? View.VISIBLE : View.GONE);
+    LinearLayout controls = root.findViewById(R.id.launch_controls);
+    View start = root.findViewById(R.id.launch_start);
+    View quiet = root.findViewById(R.id.launch_quiet_controls);
+    if (controls != null && start != null && quiet != null) {
+      if (!wide) stackControls(root, controls, start, quiet);
+      else watchControlsFit(root, controls, start, quiet);
+    }
+    AdaptiveColumns bottom = root.findViewById(R.id.launch_bottom);
+    if (bottom != null) {
+      bottom.setSplitWidthDp(760);
+      bottom.setGutterDp(32);
+      bottom.setWeights(1f, 1.3f);
+    }
+  }
+
+  /**
+   * 宽窗口下同一行放不下时（平板竖屏插图占位、大字体、较长语言或按钮带图标），任一按钮文字折行
+   * 就改用窄屏的上下排列，避免「重启」被挤成竖排。只单向切换：本视图生命周期内不再切回，
+   * 避免文案变化时来回跳；旋转或换宽度时视图重建，会重新判断。
+   */
+  private void watchControlsFit(View root, LinearLayout controls, View start, View quiet) {
+    int[] ids = {R.id.launch_start, R.id.launch_open, R.id.launch_stop};
+    controls.addOnLayoutChangeListener(
+        new View.OnLayoutChangeListener() {
+          @Override
+          public void onLayoutChange(
+              View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+            for (int id : ids) {
+              TextView button = root.findViewById(id);
+              if (button == null || button.getVisibility() != View.VISIBLE) continue;
+              if (button.getLineCount() > 1) {
+                controls.removeOnLayoutChangeListener(this);
+                // 布局回调内不能同步改参数，下一帧再切换。
+                controls.post(
+                    () -> {
+                      if (isAdded()) stackControls(root, controls, start, quiet);
+                    });
+                return;
+              }
+            }
+          }
+        });
+  }
+
+  /** 主操作独占一行铺满，重启 / 停止在下方等分成两枚带边框的次要按钮。 */
+  private void stackControls(View root, LinearLayout controls, View start, View quiet) {
+    controls.setOrientation(LinearLayout.VERTICAL);
+    controls.setGravity(android.view.Gravity.START);
+    LinearLayout.LayoutParams primary =
+        new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, -2);
+    start.setLayoutParams(primary);
+    float density = getResources().getDisplayMetrics().density;
+    LinearLayout.LayoutParams secondary = new LinearLayout.LayoutParams(-1, -2);
+    secondary.topMargin = Math.round(10 * density);
+    quiet.setLayoutParams(secondary);
+    int[] ids = {R.id.launch_open, R.id.launch_stop};
+    for (int i = 0; i < ids.length; i++) {
+      TextView button = root.findViewById(ids[i]);
+      if (button == null) continue;
+      LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, -2, 1f);
+      if (i > 0) half.setMarginStart(Math.round(10 * density));
+      button.setLayoutParams(half);
+      button.setBackgroundResource(R.drawable.bg_btn);
+      button.setMinHeight(
+          getResources().getDimensionPixelSize(R.dimen.shell_button_secondary_height));
+    }
   }
 
   /**
@@ -1320,18 +1415,29 @@ public class LaunchFragment extends Fragment {
   void showAccessAddresses() {
     if (!isAdded() || controller == null) return;
     if (accessDialog != null) accessDialog.dismiss();
+    View content = getLayoutInflater().inflate(R.layout.dialog_access_address, null);
+    accessBody = content.findViewById(R.id.access_body);
+    accessLanButton = content.findViewById(R.id.access_lan_toggle);
+    accessCopyButton = content.findViewById(R.id.access_copy);
+    Button closeButton = content.findViewById(R.id.access_close);
+    closeButton.setText(UiText.choose("关闭", "Close"));
     var dialog =
         new DshaDialogBuilder(requireContext())
             .setTitle(R.string.ui2_address)
-            .setMessage("")
-            .setNegativeButton(UiText.choose("关闭", "Close"), null)
-            .setPositiveButton(UiText.choose("复制本机地址", "Copy local URL"), null)
-            .setNeutralButton(UiText.choose("局域网访问", "LAN access"), null)
+            .setView(content)
             .create();
     accessDialog = dialog;
+    closeButton.setOnClickListener(ignored -> dialog.dismiss());
+    accessCopyButton.setOnClickListener(ignored -> copyAddressNow());
+    accessLanButton.setOnClickListener(ignored -> onLanToggle());
     dialog.setOnDismissListener(
         ignored -> {
-          if (accessDialog == dialog) accessDialog = null;
+          if (accessDialog == dialog) {
+            accessDialog = null;
+            accessBody = null;
+            accessLanButton = null;
+            accessCopyButton = null;
+          }
         });
     dialog.show();
     renderAccessAddresses(lanAccess());
@@ -1339,32 +1445,85 @@ public class LaunchFragment extends Fragment {
 
   private void renderAccessAddresses(LanAccessPresentation access) {
     var dialog = accessDialog;
-    if (dialog == null || !dialog.isShowing() || !isAdded()) return;
+    if (dialog == null || !dialog.isShowing() || !isAdded() || accessBody == null) return;
     String local = webEntryUrl();
-    long generation = controller.getWebGeneration();
-    dialog.setMessage(
+    accessBody.setText(
         UiText.format(
             UiText.choose("本机访问\n%s\n\n%s", "On this phone\n%s\n\n%s"),
             local.isEmpty()
                 ? UiText.choose("启动 DSH 并等待就绪后显示本机地址。", "Start DSH and wait for its local URL.")
                 : local,
             lanStatusForDisplay(access)));
-    Button localButton = dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
-    localButton.setEnabled(!local.isEmpty());
-    localButton.setOnClickListener(
-        ignored -> {
-          if (isAdded()
-              && generation == controller.getWebGeneration()
-              && !local.isEmpty()
-              && local.equals(webEntryUrl())) copyAddr("DSH", local);
-          else connectionChanged();
-        });
-    Button lanButton = dialog.getButton(android.content.DialogInterface.BUTTON_NEUTRAL);
-    lanButton.setText(
-        needsLanPassword(access)
-            ? getString(R.string.lan_password_open)
-            : lanActionLabel(access.state));
-    lanButton.setOnClickListener(ignored -> onLanAction(lanAccess()));
+    if (accessLanButton != null)
+      accessLanButton.setText(
+          controller.config().isLanMode()
+              ? UiText.choose("关闭局域网", "Disable LAN")
+              : UiText.choose("开启局域网", "Enable LAN"));
+    if (accessCopyButton != null) {
+      boolean lanReady = access.state == LanAccessPresentation.State.READY;
+      accessCopyButton.setText(
+          lanReady
+              ? UiText.choose("复制局域网链接", "Copy LAN link")
+              : UiText.choose("复制本机地址", "Copy local URL"));
+      accessCopyButton.setEnabled(lanReady || !local.isEmpty());
+    }
+  }
+
+  /** 局域网开关：开启走既有确认流程；关闭时立刻停监听并撤销既有链接。 */
+  private void onLanToggle() {
+    if (!isAdded() || controller == null) return;
+    if (!controller.config().isLanMode()) {
+      onLanAction(lanAccess());
+      return;
+    }
+    new DshaDialogBuilder(requireContext())
+        .setTitle(UiText.choose("关闭局域网访问？", "Disable LAN access?"))
+        .setMessage(
+            UiText.choose(
+                "关闭后，其它设备将无法再通过局域网访问本轮 DSH，已发出的连接链接立即失效。本机访问不受影响。",
+                "Other devices lose LAN access to this DSH run and existing links stop working immediately. On-phone access is unaffected."))
+        .setNegativeButton(android.R.string.cancel, null)
+        .setPositiveButton(
+            UiText.choose("关闭", "Disable"),
+            (dialog, which) -> {
+              if (!isAdded() || controller == null) return;
+              controller.config().setLanMode(false);
+              try {
+                com.deepseekharness.app.LanProxyService.stopLanListener();
+                com.deepseekharness.app.HarnessService.refreshPowerMode(requireContext());
+              } catch (RuntimeException ignored) {
+              }
+              refreshLanAddr();
+            })
+        .show();
+  }
+
+  /** 复制当前可用地址：局域网就绪时复制带凭据链接，否则复制本机链接。 */
+  private void copyAddressNow() {
+    if (!isAdded() || controller == null) return;
+    LanAccessPresentation access = lanAccess();
+    long generation = controller.getWebGeneration();
+    if (access.state == LanAccessPresentation.State.READY && !access.services.isEmpty()) {
+      String service = access.services.get(0);
+      String token = LanProxyService.boundLanToken(generation);
+      if (!token.isEmpty() && access.stillOffers(generation, service)) {
+        copyAddr(UiText.choose("局域网地址", "LAN address"), service + "?token=" + token);
+        return;
+      }
+      connectionChanged();
+      return;
+    }
+    String local = webEntryUrl();
+    if (!local.isEmpty()) {
+      copyAddr("DSH", local);
+      return;
+    }
+    Toast.makeText(
+            requireContext(),
+            UiText.choose(
+                "暂时没有可复制的地址，请等待 DSH 就绪。", "No address to copy yet; wait for DSH to be ready."),
+            Toast.LENGTH_SHORT)
+        .show();
   }
 
   private boolean needsLanPassword(LanAccessPresentation access) {

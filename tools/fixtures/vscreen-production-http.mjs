@@ -37,7 +37,8 @@ const transport = { request(options, accept) {
 } };
 const portModule = { exports: {} };
 const portSource = fs.readFileSync(new URL('../../app/src/main/assets/builtin-plugins/dsh-tool-vscreen/lib/bridge-port.cjs', import.meta.url), 'utf8');
-vm.runInNewContext('(function(require,module,Buffer){' + portSource + '\n})', {})(name => {
+// 夹具显式发布端口（环境值），不依赖「读不到即 3090」——生产已不再回退固定端口。
+vm.runInNewContext('(function(require,module,Buffer){' + portSource + '\n})', { process: { env: { DSHA_BRIDGE_PORT: '3090' } } })(name => {
   assert.equal(name, 'node:fs'); return platformFs;
 }, portModule, Buffer);
 const module = { exports: {} }, require = name => ({ 'node:fs': platformFs, 'node:http': transport, './bridge-port.cjs': portModule.exports })[name];

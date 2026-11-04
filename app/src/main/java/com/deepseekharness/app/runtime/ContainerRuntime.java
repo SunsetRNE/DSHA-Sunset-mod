@@ -188,7 +188,11 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("--rootfs=" + rootfsDir.getAbsolutePath());
       argv.add("--cwd=/root");
+<<<<<<< 208ea63a
       for (Bind b : binds(context)) {
+=======
+      for (Bind b : binds(com.deepseekharness.app.StorageAccess.granted(context))) {
+>>>>>>> sunset/main
         if (!new File(b.host()).exists()) {
           if (context != null)
             RuntimeHostPorts.fromOwner(context.getApplicationContext())
@@ -207,18 +211,11 @@ public interface ContainerRuntime {
         throws java.io.IOException {
       prepare();
       File directory = nativeLibProot.getParentFile();
-      String loader =
-          nativeLibProot.getName().equals("libproot_legacy.so")
-              ? "libprootloader_legacy.so"
-              : "libprootloader.so";
+      String loader = "libprootloader.so";
       if (!new File(libDir, "libtalloc.so.2").isFile()
           || !new File(libDir, "libandroid-shmem.so").isFile())
         throw new java.io.IOException("PROOT_DEPENDENCIES_MISSING");
-      RuntimeHostPorts.Settings settings =
-          explicitSettings == null
-              ? RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings()
-              : explicitSettings;
-      if (settings.disableProotSeccomp) pb.environment().put("PROOT_NO_SECCOMP", "1");
+      if (seccompDisabled()) pb.environment().put("PROOT_NO_SECCOMP", "1");
       else pb.environment().remove("PROOT_NO_SECCOMP");
       pb.environment().put("PROOT_TMP_DIR", tmpDir.getAbsolutePath());
       pb.environment().put("PROOT_LOADER", new File(directory, loader).getAbsolutePath());
@@ -229,13 +226,19 @@ public interface ContainerRuntime {
           .put("LD_LIBRARY_PATH", libDir.getAbsolutePath() + ":" + directory.getAbsolutePath());
     }
 
+    /** 与 applyEnv 同一来源：本次启动是否带 PROOT_NO_SECCOMP（无 seccomp 过滤的兼容档）。 */
+    public boolean seccompDisabled() {
+      RuntimeHostPorts.Settings settings =
+          explicitSettings == null
+              ? RuntimeHostPorts.fromOwner(context.getApplicationContext()).settings()
+              : explicitSettings;
+      return settings.disableProotSeccomp;
+    }
+
     @Override
     public void prepare() throws java.io.IOException {
       if (!available()) throw new java.io.IOException("PROOT_EXECUTABLE_MISSING");
-      String loader =
-          nativeLibProot.getName().equals("libproot_legacy.so")
-              ? "libprootloader_legacy.so"
-              : "libprootloader.so";
+      String loader = "libprootloader.so";
       if (!new File(nativeLibProot.getParentFile(), loader).isFile())
         throw new java.io.IOException("PROOT_LOADER_MISSING");
     }
@@ -332,7 +335,11 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("-w");
       argv.add("/root");
+<<<<<<< 208ea63a
       for (Bind b : binds(ctx)) {
+=======
+      for (Bind b : binds(com.deepseekharness.app.StorageAccess.granted(ctx))) {
+>>>>>>> sunset/main
         if (!new File(b.host()).exists()) {
           RuntimeHostPorts.fromOwner(ctx.getApplicationContext())
               .record("BIND_SKIPPED", b.host() + ": missing or inaccessible");
@@ -406,6 +413,7 @@ public interface ContainerRuntime {
    */
   record Bind(String host, String guest) {}
 
+<<<<<<< 208ea63a
   static java.util.List<Bind> binds(Context context) {
     java.util.ArrayList<Bind> result = new java.util.ArrayList<>();
     result.add(new Bind("/dev", "/dev"));
@@ -432,5 +440,25 @@ public interface ContainerRuntime {
         new Bind("/system", "/system"),
         new Bind("/apex", "/apex"),
         new Bind("/proc/self/fd", "/dev/fd"));
+=======
+  /**
+   * 容器挂载清单。公共存储（{@code /storage/emulated/0}）只在用户已授权文件访问时挂载；
+   * 未授权时容器只能读写自己的运行根与私有目录，不能读手机文件。
+   */
+  static java.util.List<Bind> binds(boolean includePublicStorage) {
+    java.util.List<Bind> list = new java.util.ArrayList<>();
+    list.add(new Bind("/dev", "/dev"));
+    list.add(new Bind("/dev/urandom", "/dev/random"));
+    list.add(new Bind("/proc", "/proc"));
+    list.add(new Bind("/sys", "/sys"));
+    list.add(new Bind("/system", "/system"));
+    list.add(new Bind("/apex", "/apex"));
+    list.add(new Bind("/proc/self/fd", "/dev/fd"));
+    if (includePublicStorage) {
+      list.add(new Bind("/storage/emulated/0", "/sdcard"));
+      list.add(new Bind("/storage/emulated/0", "/storage/emulated/0"));
+    }
+    return java.util.List.copyOf(list);
+>>>>>>> sunset/main
   }
 }

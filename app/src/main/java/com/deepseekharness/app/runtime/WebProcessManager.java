@@ -420,18 +420,18 @@ public class WebProcessManager {
 
   /** 只读确认同 UID 可控进程；绝不按名称批量停止，也不依赖端口反查。 */
   boolean hasOwnedWeb() throws IOException {
-    String[] entries = new File("/proc").list();
+    String[] entries = recoveryProcessEntries();
     if (entries == null) throw new WebStopException(Code.OWNED_WEB_SCAN_UNCONFIRMED);
+    int appUid = recoveryHostUid();
     for (String value : entries) {
       int pid = WebProcSel.parsePid(value);
-      if (pid < 0 || pid == android.os.Process.myPid()) continue;
+      if (pid < 0 || pid == recoveryHostPid()) continue;
       // hidepid 可列出其它应用的数字目录，却禁止读取其 uid/cmdline，
       // 这不能当作“本应用还有 Web”的证据。已记录 PID 另由 stopOne/
       // confirmStopped 单独严格核验；全局扫描只检查证实同 UID 的项。
       Integer owner = processOwner(pid);
       if (owner != null
-          && !com.deepseekharness.app.util.WebStopEvidence.scanCandidate(
-              owner, android.os.Process.myUid())) continue;
+          && !com.deepseekharness.app.util.WebStopEvidence.scanCandidate(owner, appUid)) continue;
       ProcessState state = inspect(pid);
       // uid 不可读时，只有已经完整读到 dsh Web 身份的条目才进入屏障；
       // 单纯的 DENIED/未知系统进程不能把维护永久锁死。
@@ -440,8 +440,11 @@ public class WebProcessManager {
       if (state.kind == Kind.WEB
           && com.deepseekharness.app.util.RuntimeInstanceRegistry.shared()
               .isIndependentRecovery(state.identity, state.command)) continue;
-      if (globalScanUnconfirmed(state.kind, state.differentUid, owner, android.os.Process.myUid()))
+      if (globalScanUnconfirmed(state.kind, state.differentUid, owner, appUid)) {
+        // A denied read still blocks maintenance, but it is not proof that a Web is running.
+        if (state.kind == Kind.DENIED) throw new WebStopException(Code.OWNED_WEB_SCAN_UNCONFIRMED);
         return true;
+      }
     }
     return false;
   }
@@ -545,6 +548,12 @@ public class WebProcessManager {
       return new com.deepseekharness.app.util.WebSessionProof.Process(
           pid, 0, -1, "", "", "", "", false);
     Integer uid = processOwner(pid);
+    // 进程存活期间不会换 UID：编号已属于其它 UID，说明记录里的本应用进程已退出、编号被复用。
+    // 与 inspectOnce 的 differentUid 判据一致；只用于退出证明，不据此发送任何信号。
+    // 覆盖安装后旧启动器 PID 常被其它应用复用，若按“不可读”处理，停止屏障会一直不放行。
+    if (state.differentUid || (uid != null && uid != recoveryHostUid()))
+      return new com.deepseekharness.app.util.WebSessionProof.Process(
+          pid, 0, -1, "", "", "", "", false);
     if (uid == null || state.identity == null || state.kind == Kind.DENIED)
       throw new IOException("WEB_SESSION_PROCESS_UNREADABLE");
     java.util.Map<String, String> env = new java.util.HashMap<>();
@@ -670,6 +679,10 @@ public class WebProcessManager {
       if (!web.alive() || web.started() != saved.webStarted()) return SessionObservation.EXITED;
       return verifySession(saved) ? SessionObservation.LIVE : SessionObservation.UNKNOWN;
     } catch (IOException | RuntimeException unavailable) {
+      // An unrelated replacement may hide environ even though its readable birth already
+      // proves the saved guest exited. Recheck only that narrow exit fact; never adopt it.
+      if (recordedProcessExited(saved.webPid(), saved.webStarted()))
+        return SessionObservation.EXITED;
       return SessionObservation.UNKNOWN;
     }
   }
@@ -679,8 +692,44 @@ public class WebProcessManager {
       throws IOException {
     if (saved == null) return true;
     if (!saved.boot().equals(recoveryBoot())) return true;
-    var process = recoveryProcess(saved.launcherPid());
-    return !process.alive() || process.started() != saved.launcherStarted();
+    try {
+      var process = recoveryProcess(saved.launcherPid());
+      return !process.alive() || process.started() != saved.launcherStarted();
+    } catch (IOException unavailable) {
+      if (recordedProcessExited(saved.launcherPid(), saved.launcherStarted())) return true;
+      throw unavailable;
+    }
+  }
+
+  /** Exit proof needs the saved birth, never the replacement process's environment or token. */
+  private boolean recordedProcessExited(int pid, long started) {
+    if (pid <= 1 || started <= 0) return false;
+    try {
+      ProcessState current = inspect(pid);
+      return current.kind == Kind.GONE
+          || current.differentUid
+          || current.identity != null && current.identity.started != started;
+    } catch (IOException | RuntimeException unavailable) {
+      return false;
+    }
+  }
+
+  /**
+   * 已确认原 guest 与启动器都退出后，隔离仍指向它的旧 PID 记录；不发送任何信号。
+   *
+   * <p>PID 记录已被换成其它实例时保留现场并返回 false；记录已不在时视为已完成。
+   * 只有与本次证明完全一致的旧记录才会被改名，异步检查不会误删新实例的记录。
+   */
+  public boolean retireConfirmedExit(com.deepseekharness.app.util.WebSessionProof.Saved saved)
+      throws IOException {
+    if (saved == null || records != null) return false;
+    if (observeSession(saved) != SessionObservation.EXITED) return false;
+    if (!recoveredLauncherExited(saved)) return false;
+    String record = pidRecord();
+    if (record == null) return true;
+    if (WebProcSel.parsePid(record) != saved.webPid()) return false;
+    retire(record);
+    return pidRecord() == null;
   }
 
   /** 旧记录无法解密时，只读核对同UID的Web启动器已全部消失；绝不按名称发送信号。 */

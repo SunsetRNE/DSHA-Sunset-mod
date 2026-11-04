@@ -114,7 +114,10 @@ public final class StartupRecoveryAudit extends Instrumentation {
   }
 
   private View find(View view, String value) {
-    if (view instanceof TextView && value.equals(((TextView) view).getText().toString())) {
+    // 顶栏刷新是图标按钮，按无障碍描述查找；其余行按可见文字查找。
+    if ((view instanceof TextView && value.equals(((TextView) view).getText().toString()))
+        || (view instanceof android.widget.ImageButton
+            && value.contentEquals(String.valueOf(view.getContentDescription())))) {
       View action = view;
       while (!action.isClickable() && action.getParent() instanceof View)
         action = (View) action.getParent();
@@ -217,10 +220,7 @@ public final class StartupRecoveryAudit extends Instrumentation {
       shot("startup-recovery-English-log");
       String cookie = c.exchangeDshAuthCookie();
       check(cookie != null, "Cookie 鉴权失败");
-      String activityName =
-          com.deepseekharness.app.BuildConfig.LOW_ANDROID
-              ? "com.deepseekharness.app.ui.GeckoPreviewActivity"
-              : WebPreviewActivity.class.getName();
+      String activityName = WebPreviewActivity.class.getName();
       ActivityMonitor browser = addMonitor(activityName, null, false);
       try {
         runOnMainSync(

@@ -9,7 +9,13 @@
     <!-- ========== 页面内边距与节奏 ========== -->
     <dimen name="shell_page_pad">20dp</dimen>
     <dimen name="shell_page_top">18dp</dimen>
-    <dimen name="shell_page_bottom">30dp</dimen>
+    <!-- 手机悬浮胶囊叠在内容上：64dp 高 + 10dp 底边距 + 16dp 余量（横屏带文字胶囊）。手机竖屏见 values-port，平板见 values-sw600dp。 -->
+    <dimen name="shell_page_bottom">90dp</dimen>
+    <!--
+      固定在页底、不随内容滚动的栏（如运行配置页保存栏）要让出悬浮胶囊：
+      shell_nav_height 64dp + shell_nav_margin_bottom 10dp。平板没有胶囊，见 values-sw600dp。
+    -->
+    <dimen name="shell_nav_clearance">74dp</dimen>
     <dimen name="shell_page_title">26sp</dimen>
     <dimen name="shell_page_desc">13sp</dimen>
     <dimen name="shell_section_gap">24dp</dimen>
@@ -63,6 +69,18 @@
     <style name="ShellCard" parent="">
         <item name="android:background">@drawable/bg_shell_card</item>
         <item name="android:orientation">vertical</item>
+    </style>
+
+    <!-- UI v5 方案 A 设置子页：平铺分组（细边、无浮起底）与带图标的分组标题。 -->
+    <style name="ShellGroup" parent="">
+        <item name="android:background">@drawable/bg_settings_group</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="ShellSectionIconLabel" parent="ShellSectionLabel">
+        <item name="android:drawablePadding">8dp</item>
+        <item name="android:drawableTint">@color/shell_accent</item>
+        <item name="android:gravity">center_vertical</item>
     </style>
 
     <style name="ShellCardTitle" parent="">

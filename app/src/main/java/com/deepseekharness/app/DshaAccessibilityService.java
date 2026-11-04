@@ -417,6 +417,21 @@ public class DshaAccessibilityService extends AccessibilityService {
     return value == null ? "ROOT_UNAVAILABLE" : value;
   }
 
+  /**
+   * 只读诊断：该显示当前的窗口解析结果（READABLE / NO_WINDOWS / …）。不返回节点、不登记目标证据，
+   * 只用于在失败回复里说明原因；不替代授权链使用的 observeTarget。
+   */
+  public static String displayWindowDiagnostic(int display) {
+    var lease = CONNECTION.snapshot();
+    if (lease == null || display < 0) return "ACCESSIBILITY_UNAVAILABLE";
+    try (var result =
+        com.deepseekharness.app.screen.ScreenTargetResolver.resolve(lease.service, display)) {
+      return CONNECTION.current(lease) ? result.diagnostic : "ACCESSIBILITY_UNAVAILABLE";
+    } catch (RuntimeException unavailable) {
+      return "ACCESSIBILITY_UNAVAILABLE";
+    }
+  }
+
   private static AccessibilityNodeInfo displayRoot(DshaAccessibilityService service, int display) {
     var result = com.deepseekharness.app.screen.ScreenTargetResolver.resolve(service, display);
     WINDOW_DIAGNOSTIC.set(result.diagnostic);

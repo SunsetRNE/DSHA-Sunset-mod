@@ -31,7 +31,9 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.bridge.AdbBridge;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.util.ConfigDraft;
 import com.deepseekharness.app.util.Constants;
+import com.deepseekharness.app.util.UiText;
 
 /**
  * 配置子页：接口、显示与运行行为；设备授权由独立页面管理。
@@ -45,6 +47,10 @@ public class ConfigFragment extends Fragment {
   private TextView pictureStatus;
   private CompoundButton pictureEnabled;
   private boolean renderingPictureInPicture;
+  private CompoundButton entryWeb;
+  private boolean renderingEntryTarget;
+  private View root;
+  private ConfigDraft savedDraft;
   private static final java.util.concurrent.atomic.AtomicBoolean savingLanPassword =
       new java.util.concurrent.atomic.AtomicBoolean();
 
@@ -57,14 +63,18 @@ public class ConfigFragment extends Fragment {
     View v = inflater.inflate(R.layout.fragment_config, container, false);
     ConfigStore c = new ConfigStore(requireContext());
     Context ctx = requireContext();
+    root = v;
     android.widget.RadioGroup dns = v.findViewById(R.id.config_dns_mode);
     dns.check(
         "ipv4".equals(c.getDnsMode())
             ? R.id.dns_ipv4
             : "native".equals(c.getDnsMode()) ? R.id.dns_native : R.id.dns_auto);
+    ((TextView) v.findViewById(R.id.dns_auto)).setText(UiText.choose("自动", "Auto"));
+    ((TextView) v.findViewById(R.id.dns_native)).setText(UiText.choose("原生", "Native"));
 
-    v.findViewById(R.id.config_workspace_entry)
-        .setOnClickListener(x -> open(new WorkspaceFragment()));
+    Button workspace = v.findViewById(R.id.config_workspace_entry);
+    workspace.setText(UiText.text("数据与备份"));
+    workspace.setOnClickListener(x -> open(new WorkspaceFragment()));
 
     EditText port = v.findViewById(R.id.config_port);
     CompoundButton automaticPort = v.findViewById(R.id.config_automatic_port);
@@ -72,6 +82,7 @@ public class ConfigFragment extends Fragment {
         .setOnClickListener(x -> BrowserOriginRestore.show(requireContext()));
     CompoundButton checkUpdate = v.findViewById(R.id.config_check_update);
     CompoundButton desktop = v.findViewById(R.id.config_desktop_mode);
+    bindEntryTarget(v);
     pictureEnabled = v.findViewById(R.id.config_picture_in_picture);
     pictureEnabled.setChecked(c.isPictureInPictureEnabled());
     pictureEnabled.setOnCheckedChangeListener(
@@ -81,8 +92,10 @@ public class ConfigFragment extends Fragment {
           renderPictureInPictureStatus();
         });
     pictureSettings = v.findViewById(R.id.config_picture_in_picture_settings);
+    ((TextView) pictureSettings).setText(UiText.choose("系统设置", "System"));
     pictureStatus = v.findViewById(R.id.config_picture_in_picture_status);
     pictureSettings.setOnClickListener(x -> openPictureInPictureSettings());
+    bindRowToggle(v, R.id.config_picture_in_picture_text, pictureEnabled);
     renderPictureInPictureStatus();
     CompoundButton staticLoader = v.findViewById(R.id.config_static_loader),
         noSeccomp = v.findViewById(R.id.config_no_seccomp);
@@ -92,14 +105,18 @@ public class ConfigFragment extends Fragment {
     CompoundButton lan = v.findViewById(R.id.config_lan_mode);
     CompoundButton overlay = v.findViewById(R.id.config_overlay_stream);
     Button save = v.findViewById(R.id.config_save);
+    Button undo = v.findViewById(R.id.config_undo);
+    undo.setText(UiText.choose("撤销改动", "Undo"));
 
-    // 高级项折叠
+    // 运行时兼容选项：默认折叠，摘要显示当前值；偏离默认值时标「已改」。
+    View advHeader = v.findViewById(R.id.config_adv_header);
     View advBody = v.findViewById(R.id.config_adv_body);
-    v.findViewById(R.id.config_adv_header)
-        .setOnClickListener(
-            x ->
-                advBody.setVisibility(
-                    advBody.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+    ((TextView) v.findViewById(R.id.config_adv_badge)).setText(UiText.choose("已改", "Changed"));
+    advHeader.setOnClickListener(
+        x -> {
+          advBody.setVisibility(advBody.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+          renderCompatibility();
+        });
 
     // 这里只编辑运行选项；模型与凭据统一由 Web UI 管理。
     port.setText(c.getPort());
@@ -109,22 +126,27 @@ public class ConfigFragment extends Fragment {
     desktop.setChecked(c.isDesktopMode());
     CompoundButton gecko = v.findViewById(R.id.config_gecko_core);
     gecko.setVisibility(View.GONE);
-    v.findViewById(R.id.config_gecko_hint)
-        .setVisibility(com.deepseekharness.app.BuildConfig.LOW_ANDROID ? View.VISIBLE : View.GONE);
+    v.findViewById(R.id.config_gecko_hint).setVisibility(View.GONE);
     gecko.setChecked(c.isGeckoCore());
+<<<<<<< 208ea63a
     if (c.isRootRuntime()
         && !com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
       c.setContainerRuntimeMode("proot");
       c.setRootRuntimeAuthorization(false);
     }
+=======
+    // 网页内核目前只有 System WebView 一项，作为桌面布局行的副文案显示，不再给出单选下拉。
+    ((TextView) v.findViewById(R.id.config_core_choice))
+        .setText(UiText.choose("网页内核 System WebView", "Browser engine: System WebView"));
+>>>>>>> sunset/main
     proroot.setChecked(c.isProroot());
     lan.setChecked(c.isLanMode());
     TextView lanPasswordStatus = v.findViewById(R.id.config_lan_password_status);
-    lanPasswordStatus.setText(
-        c.hasLanPassword() ? R.string.lan_password_set : R.string.lan_password_missing);
+    renderLanPassword(c.hasLanPassword(), false);
     v.findViewById(R.id.config_lan_password)
         .setOnClickListener(x -> showLanPasswordDialog(c, lanPasswordStatus));
     overlay.setChecked(pref(ctx, "overlay_stream", false));
+<<<<<<< 208ea63a
     bindChoice(
         v,
         R.id.config_runtime_choice,
@@ -193,21 +215,54 @@ public class ConfigFragment extends Fragment {
             : new String[] {"System WebView"},
         com.deepseekharness.app.BuildConfig.LOW_ANDROID && c.isGeckoCore() ? 1 : 0,
         index -> gecko.setChecked(index == 1));
+=======
+    ((TextView) v.findViewById(R.id.config_overlay_style))
+        .setText(UiText.choose("外观与行为", "Appearance"));
+    ((TextView) v.findViewById(R.id.config_repo_link))
+        .setText(UiText.choose("项目主页", "Project page"));
+    ((TextView) v.findViewById(R.id.config_runtime_title)).setText(UiText.text("运行方式"));
+    DshaSelectView runtime =
+        bindChoice(
+            v,
+            R.id.config_runtime_choice,
+            UiText.choose("运行方式", "Runtime"),
+            new String[] {
+              UiText.choose("proot（默认，稳定）", "proot (default, stable)"),
+              UiText.choose("proroot（可选，实验）", "proroot (optional, experimental)")
+            },
+            c.isProroot() ? 1 : 0,
+            index -> {
+              proroot.setChecked(index == 1);
+              renderRuntimeDescription();
+            });
+    // 行内值显示：去掉下拉框底与内边距，整行点按打开同一个底部选择面板。
+    runtime.setBackground(null);
+    runtime.setPadding(0, 0, 0, 0);
+    v.findViewById(R.id.config_runtime_row).setOnClickListener(x -> runtime.performClick());
+    renderRuntimeDescription();
+>>>>>>> sunset/main
 
     // 悬浮条外观与行为（照 1.1.9.1：底色预设 + 不透明度/行数/字号/停留 + 行为开关）
     v.findViewById(R.id.config_overlay_style).setOnClickListener(x -> showOverlayStyleDialog());
 
     v.findViewById(R.id.config_repo_link).setOnClickListener(x -> openRepo(ctx));
 
+    // 方案 A：多句说明行内只留第一句，完整内容点 ⓘ 查看；文案仍是原有已翻译资源。
+    InfoHint.attach(v.findViewById(R.id.config_page_hint), getString(R.string.ui2_runtime_config));
+
+    // 标题列点按与开关等价；无障碍焦点落在开关上，读出标题与副文案。
+    bindRowToggle(v, R.id.config_automatic_port_text, automaticPort);
+    bindRowToggle(v, R.id.config_lan_text, lan);
+    bindRowToggle(v, R.id.config_desktop_text, desktop);
+    bindRowToggle(v, R.id.config_overlay_text, overlay);
+
+    savedDraft = storedDraft(c);
     Runnable validateInputs =
         () -> {
-          try {
-            if (!automaticPort.isChecked())
-              com.deepseekharness.app.util.ConfigInput.port(port.getText().toString());
-            save.setEnabled(true);
-          } catch (IllegalArgumentException invalid) {
-            save.setEnabled(false);
-          }
+          boolean valid = portError() == null;
+          save.setEnabled(valid);
+          if (valid) port.setError(null);
+          renderDraft();
         };
     android.text.TextWatcher inputWatcher =
         new android.text.TextWatcher() {
@@ -222,9 +277,26 @@ public class ConfigFragment extends Fragment {
     automaticPort.setOnCheckedChangeListener(
         (button, checked) -> {
           port.setEnabled(!checked);
+          renderPort();
           validateInputs.run();
         });
     port.addTextChangedListener(inputWatcher);
+    CompoundButton.OnCheckedChangeListener draftChanged = (button, checked) -> renderDraft();
+    for (CompoundButton b :
+        new CompoundButton[] {proroot, staticLoader, noSeccomp, desktop, checkUpdate, overlay})
+      b.setOnCheckedChangeListener(draftChanged);
+    lan.setOnCheckedChangeListener(
+        (button, checked) -> {
+          renderLanPassword(new ConfigStore(requireContext()).hasLanPassword(), false);
+          renderDraft();
+        });
+    dns.setOnCheckedChangeListener((group, id) -> renderDraft());
+    undo.setOnClickListener(
+        x -> {
+          restoreDraft(savedDraft);
+          toast(UiText.choose("已撤销未保存的改动", "Unsaved changes discarded"));
+        });
+    renderPort();
     validateInputs.run();
     save.setOnClickListener(
         x -> {
@@ -235,7 +307,6 @@ public class ConfigFragment extends Fragment {
                     ? c.getPortInt()
                     : com.deepseekharness.app.util.ConfigInput.port(port.getText().toString());
           } catch (IllegalArgumentException e) {
-            advBody.setVisibility(View.VISIBLE);
             port.setError(e.getMessage());
             port.requestFocus();
             return;
@@ -257,8 +328,13 @@ public class ConfigFragment extends Fragment {
                   c.setWebPort(automaticPort.isChecked() ? "auto" : "fixed", chosenPort);
                   c.setCheckUpdate(checkUpdate.isChecked());
                   c.setDesktopMode(desktop.isChecked());
+<<<<<<< 208ea63a
                   if (com.deepseekharness.app.BuildConfig.LOW_ANDROID)
                     c.setGeckoCore(gecko.isChecked());
+=======
+                  if (false) c.setGeckoCore(gecko.isChecked());
+                  c.setProroot(proroot.isChecked());
+>>>>>>> sunset/main
                   c.setProrootStaticLoader(staticLoader.isChecked());
                   c.setProotSeccompDisabled(noSeccomp.isChecked());
                   c.setDnsMode(
@@ -292,6 +368,8 @@ public class ConfigFragment extends Fragment {
                     openOverlayPermission();
                   return null;
                 });
+            savedDraft = storedDraft(c);
+            renderDraft();
           } catch (Exception e) {
             toast(
                 com.deepseekharness.app.util.UiText.format(
@@ -302,20 +380,376 @@ public class ConfigFragment extends Fragment {
           }
         });
 
+    // 详情窗格足够宽时两列；按实际宽度判断，分屏/双栏/旋转都适用。
+    View columns = v.findViewById(R.id.config_columns);
+    columns.addOnLayoutChangeListener(
+        (view, l, t, r, b, ol, ot, orr, ob) -> {
+          if (r - l != orr - ol) view.post(this::applyColumns);
+        });
     return v;
+  }
+
+  @Override
+  public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+    super.onViewStateRestored(savedInstanceState);
+    // 系统恢复的开关/输入可能晚于 onCreateView，重新渲染一次派生文案与未保存数。
+    renderPort();
+    renderRuntimeDescription();
+    if (root != null) {
+      ConfigStore c = new ConfigStore(requireContext());
+      renderLanPassword(c.hasLanPassword(), false);
+    }
+    renderDraft();
+  }
+
+  /** 标题列（含副文案）点按时切换同一行的开关；开关的无障碍描述同步为标题 + 副文案。 */
+  private void bindRowToggle(View root, int textColumn, CompoundButton target) {
+    View column = root.findViewById(textColumn);
+    column.setOnClickListener(
+        x -> {
+          if (target.isEnabled()) target.toggle();
+        });
+    describe(column, target);
+  }
+
+  private static void describe(View column, CompoundButton target) {
+    if (!(column instanceof ViewGroup)) return;
+    StringBuilder text = new StringBuilder();
+    ViewGroup group = (ViewGroup) column;
+    for (int i = 0; i < group.getChildCount(); i++) {
+      View child = group.getChildAt(i);
+      if (child instanceof TextView
+          && child.getVisibility() == View.VISIBLE
+          && ((TextView) child).getText().length() > 0) {
+        if (text.length() > 0) text.append(UiText.text("，"));
+        text.append(((TextView) child).getText());
+      }
+    }
+    target.setContentDescription(text.toString());
+  }
+
+  /** 无障碍描述用的分句连接；分隔符走现有已翻译的「，」。 */
+  private static String join(CharSequence... parts) {
+    StringBuilder text = new StringBuilder();
+    for (CharSequence part : parts) {
+      if (part == null || part.length() == 0) continue;
+      if (text.length() > 0) text.append(UiText.text("，"));
+      text.append(part);
+    }
+    return text.toString();
+  }
+
+  private void redescribe(int textColumn, int switchId) {
+    if (root == null) return;
+    describe(root.findViewById(textColumn), root.findViewById(switchId));
+  }
+
+  /** 自动端口副文案与固定端口行显隐。 */
+  private void renderPort() {
+    if (root == null) return;
+    CompoundButton automatic = root.findViewById(R.id.config_automatic_port);
+    TextView hint = root.findViewById(R.id.config_port_hint);
+    View row = root.findViewById(R.id.config_port_row);
+    String saved =
+        savedDraft != null ? savedDraft.port : new ConfigStore(requireContext()).getPort();
+    if (automatic.isChecked()) {
+      hint.setText(UiText.format("首选 %s，占用时自动换用", saved));
+      hint.setVisibility(View.VISIBLE);
+      row.setVisibility(View.GONE);
+    } else {
+      hint.setText("");
+      hint.setVisibility(View.GONE);
+      row.setVisibility(View.VISIBLE);
+    }
+    redescribe(R.id.config_automatic_port_text, R.id.config_automatic_port);
+  }
+
+  private void renderRuntimeDescription() {
+    if (root == null) return;
+    DshaSelectView runtime = root.findViewById(R.id.config_runtime_choice);
+    Object selected = runtime.getSelectedItem();
+    root.findViewById(R.id.config_runtime_row)
+        .setContentDescription(
+            join(UiText.text("运行方式"), selected == null ? "" : String.valueOf(selected)));
+  }
+
+  /** 局域网副文案、设密码按钮与开启后的未加密提示。{@code saving} 时显示保存中。 */
+  private void renderLanPassword(boolean hasPassword, boolean saving) {
+    if (root == null) return;
+    boolean enabled = ((CompoundButton) root.findViewById(R.id.config_lan_mode)).isChecked();
+    TextView status = root.findViewById(R.id.config_lan_password_status);
+    if (saving) {
+      status.setText(R.string.lan_password_saving);
+      status.setTextColor(requireContext().getColor(R.color.shell_text_secondary));
+    } else {
+      status.setText(
+          hasPassword
+              ? UiText.choose("已设密码 · 用户名 dsha", "Password set · user dsha")
+              : UiText.choose("未设密码 · 用户名 dsha", "No password · user dsha"));
+      status.setTextColor(
+          requireContext()
+              .getColor(
+                  !hasPassword && enabled ? R.color.shell_warn : R.color.shell_text_secondary));
+    }
+    ((TextView) root.findViewById(R.id.config_lan_password))
+        .setText(
+            hasPassword ? UiText.choose("改密码", "Change") : UiText.choose("设密码", "Set password"));
+    TextView hint = root.findViewById(R.id.config_lan_hint);
+    hint.setVisibility(enabled ? View.VISIBLE : View.GONE);
+    String unencrypted = getString(R.string.ui_lan_unencrypted);
+    hint.setText(
+        hasPassword
+            ? unencrypted
+            : UiText.format(
+                "%s %s",
+                UiText.choose("未设密码时监听不会启动。", "Without a password the listener won't start."),
+                unencrypted));
+    redescribe(R.id.config_lan_text, R.id.config_lan_mode);
+  }
+
+  private void renderCompatibility() {
+    if (root == null) return;
+    CompoundButton staticLoader = root.findViewById(R.id.config_static_loader);
+    CompoundButton noSeccomp = root.findViewById(R.id.config_no_seccomp);
+    View body = root.findViewById(R.id.config_adv_body);
+    boolean open = body.getVisibility() == View.VISIBLE;
+    boolean changed = !staticLoader.isChecked() || noSeccomp.isChecked();
+    root.findViewById(R.id.config_adv_badge).setVisibility(changed ? View.VISIBLE : View.GONE);
+    root.findViewById(R.id.config_adv_chevron).setRotation(open ? 90f : 0f);
+    String summary =
+        UiText.format(
+            "静态加载器 %s · seccomp 加速 %s",
+            staticLoader.isChecked() ? UiText.text("开") : UiText.text("关"),
+            noSeccomp.isChecked() ? UiText.text("已禁用") : UiText.text("开"));
+    ((TextView) root.findViewById(R.id.config_adv_summary)).setText(summary);
+    View header = root.findViewById(R.id.config_adv_header);
+    header.setContentDescription(
+        changed
+            ? join(getString(R.string.ui2_runtime_compat), summary, UiText.choose("已改", "Changed"))
+            : join(getString(R.string.ui2_runtime_compat), summary));
+    androidx.core.view.ViewCompat.setStateDescription(
+        header, open ? UiText.choose("已展开", "Expanded") : UiText.choose("已收起", "Collapsed"));
+  }
+
+  private void renderOverlayStatus() {
+    if (root == null) return;
+    Context ctx = requireContext();
+    boolean on = ((CompoundButton) root.findViewById(R.id.config_overlay_stream)).isChecked();
+    TextView status = root.findViewById(R.id.config_overlay_status);
+    boolean needsPermission = on && !OverlayController.permitted(ctx);
+    status.setVisibility(needsPermission ? View.VISIBLE : View.GONE);
+    status.setText(
+        needsPermission
+            ? UiText.choose("保存后需授予悬浮窗权限", "Grant overlay permission after saving")
+            : "");
+    redescribe(R.id.config_overlay_text, R.id.config_overlay_stream);
+  }
+
+  /** 端口校验错误；自动端口时不校验输入框。 */
+  @Nullable
+  private String portError() {
+    if (root == null) return null;
+    if (((CompoundButton) root.findViewById(R.id.config_automatic_port)).isChecked()) return null;
+    try {
+      com.deepseekharness.app.util.ConfigInput.port(
+          ((EditText) root.findViewById(R.id.config_port)).getText().toString());
+      return null;
+    } catch (IllegalArgumentException invalid) {
+      return invalid.getMessage();
+    }
+  }
+
+  private ConfigDraft storedDraft(ConfigStore c) {
+    return new ConfigDraft(
+        c.isProroot(),
+        "auto".equals(c.getWebPortMode()),
+        c.getPort(),
+        c.getDnsMode(),
+        c.isLanMode(),
+        c.isProrootStaticLoader(),
+        c.isProotSeccompDisabled(),
+        c.isDesktopMode(),
+        c.isCheckUpdate(),
+        pref(requireContext(), "overlay_stream", false));
+  }
+
+  @Nullable
+  private ConfigDraft currentDraft() {
+    if (root == null) return null;
+    int dns =
+        ((android.widget.RadioGroup) root.findViewById(R.id.config_dns_mode))
+            .getCheckedRadioButtonId();
+    return new ConfigDraft(
+        checked(R.id.config_proroot),
+        checked(R.id.config_automatic_port),
+        ((EditText) root.findViewById(R.id.config_port)).getText().toString(),
+        dns == R.id.dns_ipv4 ? "ipv4" : dns == R.id.dns_native ? "native" : "auto",
+        checked(R.id.config_lan_mode),
+        checked(R.id.config_static_loader),
+        checked(R.id.config_no_seccomp),
+        checked(R.id.config_desktop_mode),
+        checked(R.id.config_check_update),
+        checked(R.id.config_overlay_stream));
+  }
+
+  private boolean checked(int id) {
+    return ((CompoundButton) root.findViewById(id)).isChecked();
+  }
+
+  /** 保存条状态：端口错误 > 未保存数 > 已是最新；同时刷新折叠摘要与悬浮条提示。 */
+  private void renderDraft() {
+    if (root == null) return;
+    renderCompatibility();
+    renderOverlayStatus();
+    ConfigDraft current = currentDraft();
+    int changes = current == null ? 0 : current.changesFrom(savedDraft);
+    String error = portError();
+    TextView status = root.findViewById(R.id.config_save_status);
+    View undo = root.findViewById(R.id.config_undo);
+    if (error != null) {
+      status.setText(UiText.choose("端口无效，修正后才能保存", "Invalid port; fix it to save"));
+      status.setTextColor(requireContext().getColor(R.color.shell_bad));
+      undo.setVisibility(changes > 0 ? View.VISIBLE : View.GONE);
+      return;
+    }
+    status.setTextColor(requireContext().getColor(R.color.shell_text_secondary));
+    if (changes > 0) {
+      android.text.SpannableStringBuilder text = new android.text.SpannableStringBuilder();
+      String count = UiText.format("%d 项未保存", changes);
+      text.append(count);
+      text.setSpan(
+          new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+          0,
+          count.length(),
+          android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      text.setSpan(
+          new android.text.style.ForegroundColorSpan(requireContext().getColor(R.color.shell_text)),
+          0,
+          count.length(),
+          android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      text.append("  ")
+          .append(UiText.choose("端口与运行时需重启 Web", "Port and runtime apply after restarting Web"));
+      status.setText(text);
+      undo.setVisibility(View.VISIBLE);
+    } else {
+      status.setText(UiText.choose("配置已是最新", "Settings are up to date"));
+      undo.setVisibility(View.GONE);
+    }
+  }
+
+  private void restoreDraft(@Nullable ConfigDraft d) {
+    if (root == null || d == null) return;
+    DshaSelectView runtime = root.findViewById(R.id.config_runtime_choice);
+    runtime.setSelection(d.proroot ? 1 : 0);
+    ((CompoundButton) root.findViewById(R.id.config_proroot)).setChecked(d.proroot);
+    ((CompoundButton) root.findViewById(R.id.config_automatic_port)).setChecked(d.automaticPort);
+    EditText port = root.findViewById(R.id.config_port);
+    port.setText(d.port);
+    port.setError(null);
+    ((android.widget.RadioGroup) root.findViewById(R.id.config_dns_mode))
+        .check(
+            "ipv4".equals(d.dnsMode)
+                ? R.id.dns_ipv4
+                : "native".equals(d.dnsMode) ? R.id.dns_native : R.id.dns_auto);
+    ((CompoundButton) root.findViewById(R.id.config_lan_mode)).setChecked(d.lan);
+    ((CompoundButton) root.findViewById(R.id.config_static_loader)).setChecked(d.staticLoader);
+    ((CompoundButton) root.findViewById(R.id.config_no_seccomp)).setChecked(d.seccompDisabled);
+    ((CompoundButton) root.findViewById(R.id.config_desktop_mode)).setChecked(d.desktop);
+    ((CompoundButton) root.findViewById(R.id.config_check_update)).setChecked(d.checkUpdate);
+    ((CompoundButton) root.findViewById(R.id.config_overlay_stream)).setChecked(d.overlay);
+    renderPort();
+    renderRuntimeDescription();
+    renderDraft();
+  }
+
+  /** 内容宽度 ≥ config_two_column_dp 时左右两列；超过最大内容宽度时两侧留白居中。 */
+  private void applyColumns() {
+    if (root == null) return;
+    LinearLayout columns = root.findViewById(R.id.config_columns);
+    View start = root.findViewById(R.id.config_column_start);
+    View end = root.findViewById(R.id.config_column_end);
+    float density = getResources().getDisplayMetrics().density;
+    int width = columns.getWidth();
+    if (width == 0) return;
+    int widthDp = Math.round(width / density);
+    boolean two = widthDp >= getResources().getInteger(R.integer.config_two_column_dp);
+    int basePad = getResources().getDimensionPixelSize(R.dimen.config_page_pad_h);
+    int maxContent =
+        Math.round(getResources().getInteger(R.integer.config_max_content_dp) * density);
+    int side = two ? Math.max(Math.round(28 * density), (width - maxContent) / 2) : basePad;
+    if (columns.getPaddingStart() != side || columns.getPaddingEnd() != side)
+      columns.setPaddingRelative(side, columns.getPaddingTop(), side, columns.getPaddingBottom());
+    int orientation = two ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL;
+    if (columns.getOrientation() == orientation) return;
+    columns.setOrientation(orientation);
+    int gap = getResources().getDimensionPixelSize(R.dimen.config_column_gap);
+    LinearLayout.LayoutParams a = (LinearLayout.LayoutParams) start.getLayoutParams();
+    LinearLayout.LayoutParams b = (LinearLayout.LayoutParams) end.getLayoutParams();
+    a.width = two ? 0 : ViewGroup.LayoutParams.MATCH_PARENT;
+    b.width = two ? 0 : ViewGroup.LayoutParams.MATCH_PARENT;
+    a.weight = two ? 1f : 0f;
+    b.weight = two ? 1f : 0f;
+    a.setMarginEnd(two ? gap / 2 : 0);
+    b.setMarginStart(two ? gap / 2 : 0);
+    start.setLayoutParams(a);
+    end.setLayoutParams(b);
   }
 
   @Override
   public void onResume() {
     super.onResume();
     renderPictureInPictureStatus();
+    // Web 页内的“启动目标”插件可能已改写该值；回到本页时按宿主真实值重绘。
+    renderEntryTarget();
+  }
+
+  /** 启动目标即时生效于下一次桌面图标启动；不保存其它字段，也不启动或停止 Web。 */
+  private void bindEntryTarget(View root) {
+    entryWeb = root.findViewById(R.id.config_entry_web);
+    entryWeb.setText(
+        com.deepseekharness.app.util.UiText.choose("从桌面图标直接进入 Web", "Open Web from the app icon"));
+    ((TextView) root.findViewById(R.id.config_entry_web_hint))
+        .setText(
+            com.deepseekharness.app.util.UiText.choose(
+                "开启后点击桌面图标或常驻通知先显示加载页，Web 就绪即进入；在 Web 里返回到底会回到桌面。应用被系统回收后，离开前停在 Web 就回到 Web。环境需要维护或启动失败时仍进入主界面。也可在 Web 的「设置 → 启动目标」中修改；禁用 dsh-launch-target 插件不会改变这里的选择。",
+                "When on, the app icon and the ongoing notification show a loading screen and open Web once it is ready; going back from the first Web page returns to the home screen. After the system reclaims the app, it returns to Web if you left from Web. Maintenance or startup failures still open the main screen. You can also change this in Web under Settings → Launch target; disabling the dsh-launch-target plugin keeps this choice."));
+    entryWeb.setOnCheckedChangeListener(
+        (button, enabled) -> {
+          if (renderingEntryTarget) return;
+          boolean saved =
+              new ConfigStore(button.getContext())
+                  .setEntryTarget(
+                      enabled
+                          ? com.deepseekharness.app.util.EntryTarget.WEB
+                          : com.deepseekharness.app.util.EntryTarget.MAIN);
+          if (!saved)
+            Toast.makeText(
+                    button.getContext(),
+                    com.deepseekharness.app.util.UiText.choose(
+                        "启动目标未能保存，请重试", "The launch target was not saved. Try again."),
+                    Toast.LENGTH_SHORT)
+                .show();
+          renderEntryTarget();
+        });
+    renderEntryTarget();
+  }
+
+  private void renderEntryTarget() {
+    Context ctx = getContext();
+    if (ctx == null || entryWeb == null) return;
+    renderingEntryTarget = true;
+    entryWeb.setChecked(
+        com.deepseekharness.app.util.EntryTarget.WEB.equals(new ConfigStore(ctx).getEntryTarget()));
+    renderingEntryTarget = false;
   }
 
   @Override
   public void onDestroyView() {
+    entryWeb = null;
     pictureSettings = null;
     pictureStatus = null;
     pictureEnabled = null;
+    root = null;
     super.onDestroyView();
   }
 
@@ -351,14 +785,32 @@ public class ConfigFragment extends Fragment {
     }
     pictureSettings.setEnabled(supported);
     pictureSettings.setAlpha(supported ? 1f : 0.55f);
+    boolean enabled = new ConfigStore(ctx).isPictureInPictureEnabled();
+    boolean allowed = supported && enabled && PictureInPictureActivity.allowed(ctx);
+    // 行内只显示短状态；完整说明（原有已翻译资源）交给开关的无障碍描述。
     pictureStatus.setText(
         !supported
-            ? R.string.picture_in_picture_unsupported
-            : !new ConfigStore(ctx).isPictureInPictureEnabled()
-                ? R.string.picture_in_picture_opted_out
-                : PictureInPictureActivity.allowed(ctx)
-                    ? R.string.picture_in_picture_allowed
-                    : R.string.picture_in_picture_disabled);
+            ? UiText.choose("设备不支持", "Not supported")
+            : !enabled
+                ? UiText.text("已关闭")
+                : allowed
+                    ? UiText.choose("系统已允许", "Allowed by system")
+                    : UiText.choose("系统已关闭小窗", "Blocked by system"));
+    pictureStatus.setTextColor(
+        ctx.getColor(
+            supported && enabled && !allowed ? R.color.shell_warn : R.color.shell_text_secondary));
+    if (pictureEnabled != null)
+      pictureEnabled.setContentDescription(
+          join(
+              getString(R.string.picture_in_picture_enable),
+              getString(
+                  !supported
+                      ? R.string.picture_in_picture_unsupported
+                      : !enabled
+                          ? R.string.picture_in_picture_opted_out
+                          : allowed
+                              ? R.string.picture_in_picture_allowed
+                              : R.string.picture_in_picture_disabled)));
   }
 
   private void openOverlayPermission() {
@@ -373,6 +825,7 @@ public class ConfigFragment extends Fragment {
   }
 
   private void showLanPasswordDialog(ConfigStore config, TextView status) {
+<<<<<<< 208ea63a
     LanPasswordDialog.show(
         requireContext(),
         config,
@@ -382,6 +835,81 @@ public class ConfigFragment extends Fragment {
           Toast.makeText(requireContext(), R.string.lan_password_saved_check, Toast.LENGTH_LONG)
               .show();
         });
+=======
+    if (savingLanPassword.get()) {
+      Toast.makeText(requireContext(), R.string.lan_password_saving, Toast.LENGTH_SHORT).show();
+      return;
+    }
+    Context context = requireContext();
+    LinearLayout fields = new LinearLayout(context);
+    fields.setOrientation(LinearLayout.VERTICAL);
+    int padding = (int) (20 * getResources().getDisplayMetrics().density);
+    fields.setPadding(padding, 0, padding, 0);
+    EditText password = new EditText(context);
+    password.setHint(R.string.lan_password_new);
+    password.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT
+            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    password.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+    EditText confirmation = new EditText(context);
+    confirmation.setHint(R.string.lan_password_confirm);
+    confirmation.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT
+            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    confirmation.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+    fields.addView(password);
+    fields.addView(confirmation);
+    var dialog =
+        new DshaDialogBuilder(context)
+            .setTitle(R.string.lan_password_button)
+            .setMessage(R.string.lan_password_prompt)
+            .setView(fields)
+            .setNegativeButton(R.string.lan_password_cancel, null)
+            .setPositiveButton(R.string.lan_password_save, null)
+            .create();
+    dialog.show();
+    dialog
+        .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+        .setOnClickListener(
+            ignored -> {
+              String value = password.getText().toString();
+              if (!com.deepseekharness.app.util.LanPassword.validPassword(value)
+                  || !value.equals(confirmation.getText().toString())) {
+                confirmation.setError(getString(R.string.lan_password_invalid));
+                return;
+              }
+              if (!savingLanPassword.compareAndSet(false, true)) return;
+              password.setText("");
+              confirmation.setText("");
+              dialog.dismiss();
+              renderLanPassword(config.hasLanPassword(), true);
+              Context app = context.getApplicationContext();
+              new Thread(
+                      () -> {
+                        boolean saved = false;
+                        try {
+                          config.setLanPassword(value);
+                          saved = true;
+                        } catch (RuntimeException ignoredFailure) {
+                          // Do not log exception details: the input is a secret.
+                        }
+                        final boolean success = saved;
+                        new android.os.Handler(android.os.Looper.getMainLooper())
+                            .post(
+                                () -> {
+                                  boolean enabled = config.isLanMode();
+                                  boolean applied = success && applyLanMode(app, enabled);
+                                  savingLanPassword.set(false);
+                                  if (!isAdded() || getView() == null) return;
+                                  renderLanPassword(config.hasLanPassword(), false);
+                                  int message = lanPasswordSavedMessage(success, enabled, applied);
+                                  Toast.makeText(app, message, Toast.LENGTH_LONG).show();
+                                });
+                      },
+                      "dsha-lan-password")
+                  .start();
+            });
+>>>>>>> sunset/main
   }
 
   // Submission is not proof of a successful asynchronous bind. The Launch page
@@ -419,17 +947,12 @@ public class ConfigFragment extends Fragment {
   }
 
   private void open(Fragment f) {
-    UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-        .addToBackStack(null)
-        .replace(R.id.fragment_container, f)
-        .commit();
+    // 设置双栏里留在右侧详情窗格；单栏或从启动页进入时仍整页推进。
+    SettingsPanes.open(this, f, null);
   }
 
   private void showOverlayStyleDialog() {
-    UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-        .replace(R.id.fragment_container, new OverlayFragment())
-        .addToBackStack("config")
-        .commit();
+    SettingsPanes.open(this, new OverlayFragment(), "config");
   }
 
   private void openRepo(Context ctx) {
@@ -456,7 +979,7 @@ public class ConfigFragment extends Fragment {
     if (context != null) Toast.makeText(context, s, Toast.LENGTH_SHORT).show();
   }
 
-  private void bindChoice(
+  private DshaSelectView bindChoice(
       View root,
       int id,
       String prompt,
@@ -465,8 +988,9 @@ public class ConfigFragment extends Fragment {
       java.util.function.IntConsumer action) {
     DshaSelectView choice = root.findViewById(id);
     choice.setPrompt(prompt);
-    choice.setAdapter(
-        new android.widget.ArrayAdapter<>(requireContext(), R.layout.item_data_choice, labels));
+    android.widget.ArrayAdapter<String> adapter =
+        new android.widget.ArrayAdapter<>(requireContext(), R.layout.item_config_value, labels);
+    choice.setAdapter(adapter);
     choice.setSelection(selected);
     choice.setOnItemSelectedListener(
         new android.widget.AdapterView.OnItemSelectedListener() {
@@ -477,5 +1001,6 @@ public class ConfigFragment extends Fragment {
             action.accept(position);
           }
         });
+    return choice;
   }
 }

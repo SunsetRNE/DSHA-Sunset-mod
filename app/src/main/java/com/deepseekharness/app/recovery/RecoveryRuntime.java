@@ -12,6 +12,7 @@ import com.deepseekharness.app.util.ProcessIdentity;
 import com.deepseekharness.app.util.RuntimeInstanceRegistry;
 import com.deepseekharness.app.util.RecoveryArchiveSource;
 import com.deepseekharness.app.util.RecoveryDescriptorLimits;
+import com.deepseekharness.app.util.RecoveryOverlayInputs;
 import com.deepseekharness.app.util.ShellQuote;
 import com.deepseekharness.app.util.WebPidIdentity;
 import com.deepseekharness.app.util.UiText;
@@ -48,13 +49,6 @@ public final class RecoveryRuntime {
     "recovery-overlay/client.pdf.js",
     "recovery-overlay/client-resources.js",
     "recovery-overlay/client-locale.js"
-  };
-  private static final String[] OVERLAY_INPUTS = {
-    "web-integration/es-compat.js",
-    "web-integration/startup.js",
-    "pdf-compat-patch.json",
-    "language-patch.json",
-    "web-integration/language.js"
   };
   private static final String POLICY_ROOT =
       "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/dsha-destructive-policy/";
@@ -317,14 +311,13 @@ public final class RecoveryRuntime {
   private void applyBrowserOverlay(File root) throws IOException {
     try {
       JSONObject inputHashes = descriptor.getJSONObject("overlayInputs");
-      if (inputHashes.length() != OVERLAY_INPUTS.length)
+      // 名单跟随描述里的独立锁版本，与 tools/recovery_runtime_overlay.py 的 input_assets() 同源。
+      String[] inputs = RecoveryOverlayInputs.forVersion(descriptor.getString("dshVersion"));
+      if (inputHashes.length() != inputs.length)
         throw new IOException("RECOVERY_OVERLAY_INPUT_COUNT");
-      for (String name : OVERLAY_INPUTS)
+      for (String name : inputs)
         verifyDigest(
-            new ByteArrayInputStream(
-                asset(
-                    name,
-                    name.equals("web-integration/language.js") ? 8 * 1024 * 1024 : 1024 * 1024)),
+            new ByteArrayInputStream(asset(name, RecoveryOverlayInputs.limit(name))),
             inputHashes.getString(name));
       JSONArray rows = descriptor.getJSONArray("overlays");
       if (rows.length() != OVERLAY_PATHS.length) throw new IOException("RECOVERY_OVERLAY_COUNT");
@@ -424,17 +417,10 @@ public final class RecoveryRuntime {
 
   private void verifyNativeLibraries() throws IOException {
     try {
-      JSONObject hashes =
-          descriptor
-              .getJSONObject("launcherHashes")
-              .getJSONObject(BuildConfig.LOW_ANDROID ? "low" : "standard");
+      JSONObject hashes = descriptor.getJSONObject("launcherHashes").getJSONObject("standard");
       for (String required :
-          new String[] {
-            BuildConfig.LOW_ANDROID ? "libproot_legacy.so" : "libproot.so",
-            BuildConfig.LOW_ANDROID ? "libprootloader_legacy.so" : "libprootloader.so",
-            "libtalloc.so",
-            "libandroidshmem.so"
-          }) if (!hashes.has(required)) throw new IOException("RECOVERY_LAUNCHER_PROOF_MISSING");
+          new String[] {"libproot.so", "libprootloader.so", "libtalloc.so", "libandroidshmem.so"})
+        if (!hashes.has(required)) throw new IOException("RECOVERY_LAUNCHER_PROOF_MISSING");
       Iterator<String> names = hashes.keys();
       while (names.hasNext()) {
         String name = names.next();
@@ -513,8 +499,8 @@ public final class RecoveryRuntime {
     copyNative("libtalloc.so", new File(lib, "libtalloc.so.2"));
     copyNative("libandroidshmem.so", new File(lib, "libandroid-shmem.so"));
     File nativeDir = new File(context.getApplicationInfo().nativeLibraryDir);
-    String proot = BuildConfig.LOW_ANDROID ? "libproot_legacy.so" : "libproot.so";
-    String loader = BuildConfig.LOW_ANDROID ? "libprootloader_legacy.so" : "libprootloader.so";
+    String proot = "libproot.so";
+    String loader = "libprootloader.so";
     List<String> argv = new ArrayList<>();
     Collections.addAll(
         argv,
@@ -571,6 +557,7 @@ public final class RecoveryRuntime {
     env.put("NARB_DISABLE_NATIVE_CACHE", "1");
     env.put("DSHA_ANDROID_RUNTIME", "1");
     env.put("DSHA_NATIVE_PLUGIN_MANAGER", "1");
+    env.put("DSHA_BRIDGE_APPLICATION_ID", context.getPackageName());
     env.put("DSHA_RECOVERY_INSTANCE_ID", instanceId);
     env.put("DSHA_RECOVERY_GENERATION", Long.toString(generation));
     env.put("DSHA_RECOVERY_BROKER_PORT", Integer.toString(broker.port()));

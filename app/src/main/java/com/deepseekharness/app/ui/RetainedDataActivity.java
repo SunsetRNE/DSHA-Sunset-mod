@@ -23,6 +23,7 @@ public final class RetainedDataActivity extends AppCompatActivity {
     final List<RetainedCatalogue.Cursor> starts = new ArrayList<>();
     BackupControl control;
     int page;
+    int filter = RetainedFilter.ALL;
     long requestId;
     boolean pluginAction;
 
@@ -39,6 +40,7 @@ public final class RetainedDataActivity extends AppCompatActivity {
   private Model model;
   private LinearLayout rows;
   private TextView report, pageStatus;
+  private LinearLayout chips;
   private com.deepseekharness.app.core.PluginRepository plugins;
 
   private static String t(String zh, String en) {
@@ -55,35 +57,32 @@ public final class RetainedDataActivity extends AppCompatActivity {
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     model = new ViewModelProvider(this).get(Model.class);
-    ScrollView scroll = new ScrollView(this);
-    scroll.setBackgroundColor(getColor(R.color.surface));
-    LinearLayout body = new LinearLayout(this);
-    body.setOrientation(LinearLayout.VERTICAL);
-    int p = (int) (20 * getResources().getDisplayMetrics().density);
-    body.setPadding(p, p, p, p);
-    scroll.addView(body);
-    setContentView(scroll);
+    CardPage shell =
+        new CardPage(
+            this,
+            t("保留副本与旧环境", "Retained copies and old environments"),
+            t(
+                "原件保持只读。记录中的成功状态不是本次重新验证；检查、导出与恢复分别处理。未知或受损原件继续保留。",
+                "Originals remain read-only. A recorded success is not a fresh verification. Inspect, export and restore are separate operations. Unknown or damaged originals remain retained."));
+    UiNavigation.addHeader(
+        this, shell.root, t("保留副本与旧环境", "Retained copies and old environments"), this::finish);
+    LinearLayout body = shell.content;
     plugins = com.deepseekharness.app.core.PluginRepository.get(this);
-    button(body, t("返回", "Back"), this::finish);
-    TextView title = new TextView(this);
-    title.setText(t("保留副本与旧树", "Retained copies and old trees"));
-    title.setTextSize(22);
-    title.setTextColor(getColor(R.color.text));
-    title.setTypeface(null, android.graphics.Typeface.BOLD);
-    title.setPadding(0, p, 0, p / 2);
-    body.addView(title);
-    TextView note = new TextView(this);
-    note.setText(
-        t(
-            "原件保持只读。记录中的成功状态不是本次重新验证；检查、导出与恢复分别处理。未知或受损原件继续保留。",
-            "Originals remain read-only. A recorded success is not a fresh verification. Inspect, export and restore are separate operations. Unknown or damaged originals remain retained."));
-    note.setTextSize(14);
-    note.setTextColor(getColor(R.color.text_secondary));
-    note.setPadding(0, 0, 0, p / 2);
-    body.addView(note);
-    button(
-        body,
+    // 类型筛选只影响当前页显示；已勾选的记录跨筛选保留，「检查所选记录」仍按全部勾选执行。
+    HorizontalScrollView chipScroll = new HorizontalScrollView(this);
+    chipScroll.setHorizontalScrollBarEnabled(false);
+    chips = new LinearLayout(this);
+    chips.setOrientation(LinearLayout.HORIZONTAL);
+    chipScroll.addView(chips);
+    LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-1, -2);
+    chipParams.bottomMargin = shell.dp(10);
+    body.addView(chipScroll, chipParams);
+    renderChips();
+    shell.button(shell.footer, t("检查所选记录", "Inspect selected records"), true, this::inspect);
+    shell.button(
+        shell.footer,
         t("刷新清单", "Refresh list"),
+        false,
         () -> {
           if (model.working.get()) return;
           model.page = 0;
@@ -91,17 +90,21 @@ public final class RetainedDataActivity extends AppCompatActivity {
           model.starts.add(null);
           refresh();
         });
-    button(body, t("检查所选记录", "Inspect selected records"), this::inspect);
-    button(
-        body,
+    shell.button(
+        shell.footer,
         t("取消检查", "Cancel inspection"),
+        false,
         () -> {
           if (model.control != null) model.control.cancel();
         });
+    setContentView(shell.root);
     report = new TextView(this);
+    report.setTextColor(getColor(R.color.shell_text_secondary));
+    report.setTextIsSelectable(true);
     body.addView(report);
     pageStatus = new TextView(this);
-    pageStatus.setTextColor(getColor(R.color.text_secondary));
+    pageStatus.setTextColor(getColor(R.color.shell_text_muted));
+    pageStatus.setPadding(0, shell.dp(4), 0, shell.dp(8));
     body.addView(pageStatus);
     rows = new LinearLayout(this);
     rows.setOrientation(LinearLayout.VERTICAL);
@@ -127,6 +130,55 @@ public final class RetainedDataActivity extends AppCompatActivity {
                 model.report.setValue(UiStateText.render(state.message));
               }
             });
+  }
+
+  private void renderChips() {
+    chips.removeAllViews();
+    String[] names = {
+      t("全部", "All"),
+      t("备份副本", "Backup copies"),
+      t("旧环境", "Old environments"),
+      t("插件", "Plugins"),
+      t("其他", "Other")
+    };
+    float density = getResources().getDisplayMetrics().density;
+    for (int i = 0; i < names.length; i++) {
+      final int filter = i;
+      TextView chip = new TextView(this);
+      chip.setText(names[i]);
+      chip.setTextSize(13);
+      chip.setGravity(android.view.Gravity.CENTER);
+      chip.setMinHeight((int) (40 * density));
+      chip.setPadding((int) (14 * density), 0, (int) (14 * density), 0);
+      chip.setBackgroundResource(R.drawable.bg_chip_clickable);
+      boolean on = model.filter == i;
+      chip.setSelected(on);
+      chip.setTextColor(getColor(on ? R.color.shell_accent : R.color.shell_text_secondary));
+      chip.setTypeface(
+          null, on ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+      chip.setClickable(true);
+      chip.setFocusable(true);
+      chip.setAccessibilityDelegate(
+          new View.AccessibilityDelegate() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(
+                View host, android.view.accessibility.AccessibilityNodeInfo info) {
+              super.onInitializeAccessibilityNodeInfo(host, info);
+              info.setCheckable(true);
+              info.setChecked(model.filter == filter);
+            }
+          });
+      chip.setOnClickListener(
+          v -> {
+            model.filter = filter;
+            renderChips();
+            RetainedCatalogue.Page current = model.entries.getValue();
+            if (current != null) render(current);
+          });
+      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, -2);
+      if (i > 0) p.leftMargin = (int) (8 * density);
+      chips.addView(chip, p);
+    }
   }
 
   private void button(LinearLayout parent, String label, Runnable action) {
@@ -248,7 +300,10 @@ public final class RetainedDataActivity extends AppCompatActivity {
       rows.addView(empty);
       return;
     }
+    int shown = 0;
     for (var entry : page.entries) {
+      if (!RetainedFilter.matches(model.filter, entry.kind.name())) continue;
+      shown++;
       if (entry.status.equals("DUPLICATE")) {
         String owner = entry.kind.name() + ":" + entry.id + ":";
         model.selected.keySet().removeIf(key -> key.startsWith(owner));
@@ -276,6 +331,12 @@ public final class RetainedDataActivity extends AppCompatActivity {
       LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-1, -2);
       layout.bottomMargin = pad;
       rows.addView(card, layout);
+    }
+    if (shown == 0) {
+      TextView empty = new TextView(this);
+      empty.setText(t("本页没有这一类记录。", "No records of this type on this page."));
+      empty.setTextColor(getColor(R.color.shell_text_muted));
+      rows.addView(empty);
     }
     if (model.page > 0)
       button(

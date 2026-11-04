@@ -14,7 +14,7 @@ public final class BridgePortPolicy {
 
   /** Production order leaves 3090 available to an unmodified com.dsh.client installation. */
   public static int[] candidates() {
-    return candidates("dsh.android.client");
+    return candidates(AppIdentity.applicationId());
   }
 
   public static int[] candidates(String applicationId) {

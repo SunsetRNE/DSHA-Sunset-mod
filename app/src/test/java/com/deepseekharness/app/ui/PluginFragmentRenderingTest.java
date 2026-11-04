@@ -7,7 +7,6 @@ import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -172,10 +171,40 @@ public final class PluginFragmentRenderingTest {
   }
 
   @Test
+  public void damagedPluginShowsRecoveryGuidanceAndKeepsDeleteAvailable() throws Exception {
+    var damaged =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "damaged-plugin")
+                .put("available", true)
+                .put("deletable", true)
+                .put("metadataError", "PLUGIN_METADATA_UNREADABLE"));
+    mount(state(catalog(List.of(damaged)), List.of(), false, "", -1));
+    assertTrue(text(rowAt(1).findViewById(R.id.pluginDesc)).contains("metadata cannot be read"));
+    assertTrue(rowStatus(1).contains("Plugin metadata unavailable"));
+    assertEquals(View.VISIBLE, rowAt(1).findViewById(R.id.pluginDelete).getVisibility());
+  }
+
+  @Test
+  public void temporaryPluginPointsToItsWebSessionAndNeverShowsPackageDeletion() throws Exception {
+    var temporary =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "temporary-plugin")
+                .put("dynamic", true)
+                .put("deletable", true)
+                .put("sessionId", "fixture-session")
+                .put("pluginId", "fixture-plugin"));
+    mount(state(catalog(List.of(temporary)), List.of(), false, "", -1));
+    assertTrue(text(rowAt(1).findViewById(R.id.pluginDesc)).contains("Cordis plugin management"));
+    assertEquals(View.GONE, rowAt(1).findViewById(R.id.pluginDelete).getVisibility());
+  }
+
+  @Test
   public void runtimeEvidenceRefreshKeepsRowsAndDistinguishesHistoryFromCurrent() throws Exception {
     var alpha = item("alpha").withRuntime("loaded", 1);
     mount(state(catalog(List.of(alpha, item("beta"))), List.of(), false, "", -1));
-    assertTrue(text(rowAt(1).findViewById(R.id.pluginStatus)).contains("Current Web: loaded"));
+    assertTrue(text(rowAt(1).findViewById(R.id.pluginRuntime)).contains("Current Web: loaded"));
     publish(
         state(
             catalog(List.of(alpha.withRuntime("loaded", 1, true), item("beta"))),
@@ -183,7 +212,7 @@ public final class PluginFragmentRenderingTest {
             false,
             "",
             -1));
-    String stale = text(rowAt(1).findViewById(R.id.pluginStatus));
+    String stale = text(rowAt(1).findViewById(R.id.pluginRuntime));
     assertTrue(stale.contains("awaiting verification; last state: loaded"));
     assertFalse(stale.contains("Current Web: loaded"));
     for (String runtime : List.of("pending", "failed", "loaded")) {
@@ -195,7 +224,7 @@ public final class PluginFragmentRenderingTest {
               "",
               -1));
       assertTrue(
-          text(rowAt(1).findViewById(R.id.pluginStatus))
+          text(rowAt(1).findViewById(R.id.pluginRuntime))
               .contains(
                   runtime.equals("pending")
                       ? "waiting for services"
@@ -211,7 +240,7 @@ public final class PluginFragmentRenderingTest {
                 .put("version", "1.0")
                 .put("loadState", "loaded"));
     publish(state(catalog(List.of(historical)), List.of(), false, "", -1));
-    String history = text(rowAt(1).findViewById(R.id.pluginStatus));
+    String history = text(rowAt(1).findViewById(R.id.pluginRuntime));
     assertTrue(history.contains("Current Web: load unconfirmed"));
     assertTrue(history.contains("Last activation record: loaded"));
     assertFalse(history.contains("Current Web: loaded"));
@@ -223,26 +252,84 @@ public final class PluginFragmentRenderingTest {
     mount(state(catalog, List.of(), false, "", -1));
     Notifications observer = observe();
 
+    View strip = page.find(R.id.pluginStatusStrip);
+    int idleHeight = strip.getHeight();
+    assertEquals(View.VISIBLE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(View.VISIBLE, page.find(R.id.pluginCount).getVisibility());
+
     publish(state(catalog, List.of(), true, "fixture header progress", 37));
     assertEquals(View.VISIBLE, page.find(R.id.pluginBusy).getVisibility());
-    assertEquals(37, ((ProgressBar) page.find(R.id.pluginBusy)).getProgress());
+    PluginWaveProgress progress = page.find(R.id.pluginBusy);
+    assertEquals(37, progress.percent());
+    assertFalse(progress.indeterminate());
     assertEquals("fixture header progress", text(page.find(R.id.statusText)));
+    // 同一条状态条里只有一个动作：忙碌时取消代替检查更新，计数让位。
     assertEquals(View.VISIBLE, page.find(R.id.btnCancelPluginTask).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.pluginCount).getVisibility());
+    assertEquals(View.VISIBLE, page.find(R.id.pluginStatusSpinner).getVisibility());
+    assertEquals("忙碌与空闲状态条等高，不顶动列表", idleHeight, strip.getHeight());
     observer.assertNone();
 
     publish(state(catalog, List.of(), false, "fixture header finished", -1));
-    assertEquals(View.GONE, page.find(R.id.pluginBusy).getVisibility());
+    // 没有明确结果时直接回到空闲；车道保留（INVISIBLE），状态条高度不变。
+    assertEquals(View.INVISIBLE, page.find(R.id.pluginBusy).getVisibility());
     assertEquals("fixture header finished", text(page.find(R.id.statusText)));
+    assertEquals(View.GONE, page.find(R.id.btnCancelPluginTask).getVisibility());
+    assertEquals(View.VISIBLE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(idleHeight, strip.getHeight());
     observer.assertNone();
     assertEquals(List.of("alpha", "beta"), renderedNames());
+  }
+
+  @Test
+  public void compactHeaderMovesSourceChipAndCollapsesIdleMarketStrip() throws Exception {
+    mount(state(catalog(List.of(item("alpha"), item("beta"))), List.of(), false, "", -1));
+    TextView source = page.find(R.id.btnPluginDownloadSource);
+    View manageSlot = page.find(R.id.pluginManageSourceSlot);
+    assertSame("管理页：下载源在筛选行", manageSlot, source.getParent());
+    assertEquals("Source: auto", text(source));
+    assertTrue(source.getContentDescription().toString().contains("Automatic"));
+    TextView installed = page.find(R.id.btnInstalled);
+    assertTrue("分段带计数徽标", text(installed).startsWith("Plugin manager"));
+    assertTrue(installed.getContentDescription().toString().contains("2"));
+    assertEquals(View.GONE, page.find(R.id.pluginSafeBanner).getVisibility());
+
+    assertTrue(page.find(R.id.btnMarket).performClick());
+    layout();
+    assertSame("市场页：下载源与解析安装同行", page.find(R.id.pluginMarketSourceSlot), source.getParent());
+    assertTrue(text(source).startsWith("Download source"));
+    assertEquals("市场页空闲且无消息时状态条收起", View.GONE, page.find(R.id.pluginStatusStrip).getVisibility());
+
+    publish(
+        state(
+            catalog(List.of(item("alpha"), item("beta"))),
+            List.of(),
+            false,
+            "fixture market note",
+            -1));
+    assertEquals(View.VISIBLE, page.find(R.id.pluginStatusStrip).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.btnPluginUpdates).getVisibility());
+    assertEquals(View.GONE, page.find(R.id.pluginCount).getVisibility());
+
+    EditText link = page.find(R.id.appbar_github_input);
+    android.widget.ImageButton paste = page.find(R.id.btnPluginPaste);
+    assertEquals(host.get().getString(R.string.ui_m0179), paste.getContentDescription());
+    link.setText("https://github.com/example/plugin");
+    layout();
+    assertEquals("Clear link", paste.getContentDescription());
+    assertTrue(page.find(R.id.btnPluginInstall).isEnabled());
+    assertTrue(paste.performClick());
+    assertEquals("", text(link));
+    assertFalse(page.find(R.id.btnPluginInstall).isEnabled());
   }
 
   @Test
   public void unrelatedOperationProgressDoesNotNotifyOrChangePluginRows() throws Exception {
     PluginRegistry.Snapshot catalog = catalog(List.of(item("alpha"), item("beta")));
     mount(state(catalog, List.of(), false, "", -1));
-    String alpha = text(rowAt(1).findViewById(R.id.pluginStatus));
-    String beta = text(rowAt(2).findViewById(R.id.pluginStatus));
+    String alpha = rowStatus(1);
+    String beta = rowStatus(2);
     Notifications observer = observe();
     PluginOperationQueue.Queue<String> queue = new PluginOperationQueue.Queue<>();
     var operation =
@@ -258,10 +345,10 @@ public final class PluginFragmentRenderingTest {
               percent,
               null));
       publish(state(catalog, queue.snapshot(), true, "global progress", percent));
-      assertEquals(percent, ((ProgressBar) page.find(R.id.pluginBusy)).getProgress());
+      assertEquals(percent, ((PluginWaveProgress) page.find(R.id.pluginBusy)).percent());
       observer.assertNone();
-      assertEquals(alpha, text(rowAt(1).findViewById(R.id.pluginStatus)));
-      assertEquals(beta, text(rowAt(2).findViewById(R.id.pluginStatus)));
+      assertEquals(alpha, rowStatus(1));
+      assertEquals(beta, rowStatus(2));
     }
   }
 
@@ -293,9 +380,9 @@ public final class PluginFragmentRenderingTest {
               null));
       publish(state(catalog, queue.snapshot(), true, "target progress", 10));
       View target = rowAt(targetPosition);
-      assertTrue(text(target.findViewById(R.id.pluginStatus)).contains("10%"));
+      assertTrue(rowStatus(targetPosition).contains("10%"));
       int otherPosition = targetPosition == 1 ? 2 : 1;
-      String otherStatus = text(rowAt(otherPosition).findViewById(R.id.pluginStatus));
+      String otherStatus = rowStatus(otherPosition);
       long targetId = adapter().getItemId(targetPosition);
       observer.clear();
 
@@ -314,8 +401,8 @@ public final class PluginFragmentRenderingTest {
       assertEquals(
           items.get(targetPosition - 1).name,
           text(rowAt(targetPosition).findViewById(R.id.pluginName)));
-      assertTrue(text(rowAt(targetPosition).findViewById(R.id.pluginStatus)).contains("70%"));
-      assertEquals(otherStatus, text(rowAt(otherPosition).findViewById(R.id.pluginStatus)));
+      assertTrue(rowStatus(targetPosition).contains("70%"));
+      assertEquals(otherStatus, rowStatus(otherPosition));
       assertEquals(0, adapter().getItemViewType(0));
     }
   }
@@ -623,6 +710,13 @@ public final class PluginFragmentRenderingTest {
   private static String text(View view) {
     assertNotNull(view);
     return ((TextView) view).getText().toString();
+  }
+
+  private String rowStatus(int position) {
+    View row = rowAt(position);
+    return text(row.findViewById(R.id.pluginStatus))
+        + "\n"
+        + text(row.findViewById(R.id.pluginRuntime));
   }
 
   private Notifications observe() {

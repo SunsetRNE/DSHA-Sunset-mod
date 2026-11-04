@@ -1,5 +1,7 @@
 # 终端 Standard CI 产包合同（2026-10-25）
 
+> 已退役（2026-11-02）：私有仓库 `DSHA-Sunset-mod-3090-Q` 的工作流与配套脚本已从本仓库删除，本文仅作历史记录；文中路径可在 `git log` 中查到。当前 CI 见 [CI 节点图](ci-nodes.md)。
+
 ## 边界与已核实身份
 
 - 当前基座：`Sunset-zhongdua-G`，`02f80abeee37f3b107544714c8544ada5a1c40b9`，build197；2026-10-26 build198 将 versionCode 提升到 198、Sunset 测试包包名后缀改为 `.SunsetRNE2`，并补上悬浮球/菜单的会话侧栏；固定输入仍以 build197 为来源，终端内核与运行保护未改。最终产物须绑定 Lead 实际提交的新 SHA，不能拿该基座或参考分支的绿灯替代。
@@ -11,7 +13,7 @@
 
 ## 工作流
 
-[terminal-regression.yml](../.github/workflows/terminal-regression.yml) 仅接受本私有仓库的 `Sunset-zhongdua-G` push 或该分支手动 dispatch；checkout 固定 `github.sha`。两个必要 job：
+`.github/workflows/terminal-regression.yml`（已删除） 仅接受本私有仓库的 `Sunset-zhongdua-G` push 或该分支手动 dispatch；checkout 固定 `github.sha`。两个必要 job：
 
 1. **Terminal source contracts**：当前描述符、notice、builtin、credential、Java 格式、host manifest、source hygiene、i18n、changelog 和文档链接；运行 7 个已登记的输入/CI/描述符/架构宿主回归入口。此 job 不声称执行 Android source-only 或全量单测。
 2. **Terminal Standard signed test APK**：严格恢复原始输入 → 保存原始输入回执 → 当前 npm lock/recipe 重建 DSH、备份证明和描述符 → 当前 raw/managed 夹具 → 4 个真实 Java 补丁/独立应急宿主回归 → **未筛选 Standard 全量 JUnit** → 七夹具与终端类门禁 → Standard Release Lint → Standard unsigned assemble → 测试签名 → 精确包身份/ABI/SDK/资产/应急/第三方校验 → APK 与公有证据分别上传。
@@ -61,7 +63,7 @@
 
 ## 七项夹具 scope
 
-[verify-terminal-test-scope.py](../tools/verify-terminal-test-scope.py) 核对每份原始 JUnit XML 的 tests/failures/errors/skipped 与真实 testcase 一致，拒绝重复身份、隐藏失败、未知 skip。以下每个方法必须恰好一次通过：
+`tools/verify-terminal-test-scope.py`（已删除，七夹具核对现由 [verify-unit-results.py](../tools/verify-unit-results.py) 承担） 核对每份原始 JUnit XML 的 tests/failures/errors/skipped 与真实 testcase 一致，拒绝重复身份、隐藏失败、未知 skip。以下每个方法必须恰好一次通过：
 
 1. `runtime.AdbWheelBundleTest.realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel`：真实随包 wheel 归档。
 2. `runtime.RuntimeToolsRegistryAndroidTest.completeProductionChainAppliesAllSpecializedStagesAndIsRepeatable`：真实 raw/managed 完整生产补丁链。
@@ -83,7 +85,7 @@
 
 **临时签名不保证与任何旧 Sunset 测试包同证书，不能承诺覆盖安装；不读取旧 artifact 私钥来解决。** 与 E7E3 正式包也不能互相覆盖。此任务没有安装验收。
 
-[terminal-package.py](../ci/terminal-package.py) 记录 repository/branch/workflow/full SHA/run ID/attempt、实际版本/包名/ABI、APK bytes/SHA、实际证书 SHA、原输入12项与整个输入包 SHA、重建运行时 SHA、当前 runtimeId 与完整测试回执。其版本直接核当前 Gradle，不把 build196 写死迁入。签名验证后还核公有 PEM 与 APK signer 同证书、APK 不含 keystore；保存回执前重新读取 XML 门禁，而非只信 JSON 摘要。
+`ci/terminal-package.py`（已删除） 记录 repository/branch/workflow/full SHA/run ID/attempt、实际版本/包名/ABI、APK bytes/SHA、实际证书 SHA、原输入12项与整个输入包 SHA、重建运行时 SHA、当前 runtimeId 与完整测试回执。其版本直接核当前 Gradle，不把 build196 写死迁入。签名验证后还核公有 PEM 与 APK signer 同证书、APK 不含 keystore；保存回执前重新读取 XML 门禁，而非只信 JSON 摘要。
 
 | artifact | 内容 |
 |---|---|

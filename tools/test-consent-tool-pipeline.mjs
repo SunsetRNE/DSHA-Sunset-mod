@@ -14,7 +14,8 @@ import { testRuntime } from './test-runtime-fixture.mjs';
 const root = path.resolve(import.meta.dirname, '..'), assets = path.join(root, 'app/src/main/assets');
 const raw = testRuntime('raw');
 const rawProof = JSON.parse(fs.readFileSync(path.join(raw, 'dsha-test-runtime.json')));
-assert.equal(JSON.parse(fs.readFileSync(path.join(raw, 'node_modules/@deepseek-ai/dsh/package.json'))).version, '0.2.1-rc.3');
+const expectedDshVersion = JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname, '..'), 'app/src/main/assets/runtime-patches.json'), 'utf8')).dshVersion;
+assert.equal(JSON.parse(fs.readFileSync(path.join(raw, 'node_modules/@deepseek-ai/dsh/package.json'))).version, expectedDshVersion);
 const directory = fs.mkdtempSync(path.join(root, 'app/build/consent-tools-'));
 const modules = path.join(directory, 'node_modules'); fs.mkdirSync(modules);
 const recipes = ['guard-tools-patch.json','guard-bash-patch.json','guard-fs-patch.json','guard-editor-patch.json'].map(name => JSON.parse(fs.readFileSync(path.join(assets, name))));
@@ -149,7 +150,7 @@ try {
   }
 } finally { Module._load = originalLoad; }
 console.log(JSON.stringify({ scope: 'ACTUAL_PINNED_RC3_TOOL_RUNTIME_BASH_FS_AND_NATIVE_SDK_CONTROLLED_PLATFORM_IO',
-  actualDshVersion: '0.2.1-rc.3', shellSpawned: false, networkRequested: false, nativeEndpointTested: false,
+  actualDshVersion: expectedDshVersion, shellSpawned: false, networkRequested: false, nativeEndpointTested: false,
   discoveryBody: 'actual pinned rc3 glob; controlled subprocess', fixture: directory,
   cases: results.length, passed: results.filter(row => row.status === 'PASS').length, results }, null, 2));
 if (results.some(row => row.status !== 'PASS')) process.exitCode = 1;

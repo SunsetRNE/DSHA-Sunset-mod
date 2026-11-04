@@ -1049,8 +1049,8 @@
   },
   {
     "id": "m0124",
-    "zh": "手机已 root 时可直接使用 su，无需 ADB 配对。首次执行请在 root 管理器中授权 DSHA；设备保护规则始终生效。",
-    "en": "On a rooted phone, use su directly without ADB pairing. Authorize DSHA in your root manager on first use. Device protection rules always apply.",
+    "zh": "手机已 root 时可直接使用 su，无需 ADB 配对。首次执行请在 root 管理器中授权 DSHA；命令拦截默认严格档，可在下方更改。",
+    "en": "On a rooted phone, use su directly without ADB pairing. Authorize DSHA in your root manager on first use. Command interception defaults to Strict and can be changed below.",
     "files": [
       "app/src/main/res/layout/fragment_device_grants.xml"
     ]
@@ -1663,7 +1663,7 @@
     "zh": "返回",
     "en": "Back",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java",
       "app/src/main/res/layout/activity_adb_pair.xml",
       "app/src/main/res/layout/activity_diagnostics.xml",
       "app/src/main/res/layout/activity_plugin_install.xml",
@@ -2822,7 +2822,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -23585,24 +23585,8 @@
   },
   {
     "id": "ui2_start",
-    "zh": "▶  启动 DSHA",
-    "en": "▶  Start DSHA",
-    "files": [
-      "app/src/main/res/values/ui_iteration.xml"
-    ]
-  },
-  {
-    "id": "ui2_restart",
-    "zh": "↻  重启",
-    "en": "↻  Restart",
-    "files": [
-      "app/src/main/res/values/ui_iteration.xml"
-    ]
-  },
-  {
-    "id": "ui2_stop",
-    "zh": "□  停止",
-    "en": "□  Stop",
+    "zh": "启动 DSHA",
+    "en": "Start DSHA",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]
@@ -24912,7 +24896,8 @@
     "en": "%s seconds",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java",
-      "app/src/main/java/com/deepseekharness/app/util/Fmt.java"
+      "app/src/main/java/com/deepseekharness/app/util/Fmt.java",
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
     ],
     "uiFormat": true
   },
@@ -27093,7 +27078,8 @@
     "en": "%s min %s s",
     "uiFormat": true,
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/Fmt.java"
+      "app/src/main/java/com/deepseekharness/app/util/Fmt.java",
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
     ],
     "id": "build156_1a44477ef110"
   },
@@ -27102,7 +27088,8 @@
     "en": "%s h %s min",
     "uiFormat": true,
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/Fmt.java"
+      "app/src/main/java/com/deepseekharness/app/util/Fmt.java",
+      "app/src/main/java/com/deepseekharness/app/util/BackgroundTaskModel.java"
     ],
     "id": "build156_39052ebfe40c"
   },
@@ -28483,8 +28470,8 @@
     "id": "build156_d343d0af604d"
   },
   {
-    "zh": "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可进入受限主界面导出可读副本。",
-    "en": "Incomplete operation: %s\nLast recorded stage: %s\n\n%s\n\nOriginal state: recovery has not been confirmed. Inspect the record and use Recover interrupted maintenance, or enter the limited interface to export readable copies.",
+    "zh": "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可先点“导出可读副本”保存数据。",
+    "en": "Incomplete operation: %s\nLast recorded stage: %s\n\n%s\n\nOriginal state: recovery has not been confirmed. Inspect the record and use Recover interrupted maintenance, or first save your data with Export readable copy.",
     "uiFormat": true,
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java"
@@ -28738,7 +28725,7 @@
     "zh": "技能（Skills）",
     "en": "Skills",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
     ]
   },
@@ -29260,7 +29247,7 @@
     "zh": "从文件导入 SKILL.md，让 DSH 按需读取可复用的任务说明。无需 Root。",
     "en": "Import SKILL.md files so DSH can load reusable task instructions as needed. Root is not required.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29268,7 +29255,7 @@
     "zh": "这里管理用户全局技能。导入仅复制 SKILL.md，正文中的命令不会自动执行；引用的脚本和资料需用文件入口另行放入同一技能目录。",
     "en": "This page manages global user skills. Import copies only SKILL.md and does not run commands in its body. Add referenced scripts and resources to the same skill folder through Files.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29276,7 +29263,7 @@
     "zh": "导入 SKILL.md",
     "en": "Import SKILL.md",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29284,7 +29271,7 @@
     "zh": "刷新技能",
     "en": "Refresh skills",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29292,7 +29279,7 @@
     "zh": "取消读取",
     "en": "Cancel reading",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29300,7 +29287,7 @@
     "zh": "尚无可读取的用户全局技能。",
     "en": "No readable global user skills yet.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29308,7 +29295,7 @@
     "zh": "可读取的用户全局技能：%s",
     "en": "Readable global user skills: %s",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29316,7 +29303,7 @@
     "zh": "另有 %s 个技能文件无法通过导入格式检查，原件已保留。",
     "en": "%s additional skill files did not pass the import format checks. Their originals were retained.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29324,7 +29311,7 @@
     "zh": "查看 SKILL.md",
     "en": "View SKILL.md",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29332,7 +29319,7 @@
     "zh": "模型可按需调用 skill 工具读取。",
     "en": "The model can load this with the skill tool as needed.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29340,7 +29327,7 @@
     "zh": "此技能禁止模型自主调用。",
     "en": "This skill disables autonomous model invocation.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29348,7 +29335,7 @@
     "zh": "在聊天中输入 /%s 可明确调用。",
     "en": "Enter /%s in chat to invoke it explicitly.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29356,7 +29343,7 @@
     "zh": "复制调用命令",
     "en": "Copy invocation",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29364,7 +29351,7 @@
     "zh": "此技能禁止用户直接调用。",
     "en": "This skill disables direct user invocation.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29372,7 +29359,7 @@
     "zh": "选择技能文件后可查看内容并复制调用命令。",
     "en": "Select a skill to view its contents and copy its invocation.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29380,7 +29367,7 @@
     "zh": "正在读取用户技能…",
     "en": "Reading user skills…",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29388,7 +29375,7 @@
     "zh": "正在读取并检查 SKILL.md…",
     "en": "Reading and checking SKILL.md…",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29396,7 +29383,7 @@
     "zh": "已导入技能：%s\n%s\nDSH 会在后续请求中发现此技能；若目录尚未刷新，可重启 Web。",
     "en": "Imported skill: %s\n%s\nDSH discovers this skill on subsequent requests. Restart Web if its catalog has not refreshed.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29404,7 +29391,7 @@
     "zh": "已取消读取，未导入技能。",
     "en": "Reading cancelled. No skill was imported.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29412,7 +29399,7 @@
     "zh": "请选择名为 SKILL.md 的文件，不能导入目录或压缩包。",
     "en": "Choose a file named SKILL.md. Folders and archives cannot be imported.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29420,7 +29407,7 @@
     "zh": "SKILL.md 必须为非空文件，且不超过 1 MiB。",
     "en": "SKILL.md must be non-empty and at most 1 MiB.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29428,7 +29415,7 @@
     "zh": "SKILL.md 必须是有效 UTF-8 文本。",
     "en": "SKILL.md must contain valid UTF-8 text.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29436,7 +29423,7 @@
     "zh": "技能格式无效。文件需以 --- YAML 开头，包含小写短横线 name 和非空 description；调用开关使用 disable-model-invocation / user-invocable。未导入文件。",
     "en": "Invalid skill format. Start with --- YAML frontmatter, include a lowercase kebab-case name and non-empty description, and use disable-model-invocation / user-invocable for invocation controls. No file was imported.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29444,7 +29431,7 @@
     "zh": "已有同名技能或目录，未覆盖原件。请先在源文件中使用不同的 name。",
     "en": "A skill or folder with this name already exists. The original was retained. Use a different name in the source file first.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29452,7 +29439,7 @@
     "zh": "有安装、备份、恢复或维护任务正在进行，请完成后重试。",
     "en": "An install, backup, restore or maintenance operation is active. Retry after it finishes.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29460,7 +29447,7 @@
     "zh": "当前 DSH 用户目录不可安全读取，请先完成环境安装或修复。未创建替代目录。",
     "en": "The current DSH user folder cannot be read safely. Complete environment setup or repair first. No replacement folder was created.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29468,7 +29455,7 @@
     "zh": "技能目录不是可安全读取的普通目录，或条目超过 512 项。原件已保留。",
     "en": "The skills folder is not a safely readable regular directory, or it has more than 512 entries. Originals were retained.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29476,7 +29463,7 @@
     "zh": "技能操作未完成。请检查文件授权、可用空间和目录状态；已有技能未覆盖。",
     "en": "The skill operation did not finish. Check file access, free space and the folder state. Existing skills were retained.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29484,7 +29471,7 @@
     "zh": "技能读取",
     "en": "Read skills",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -29492,7 +29479,7 @@
     "zh": "技能导入",
     "en": "Import skill",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/SkillsActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
     ]
   },
   {
@@ -30141,6 +30128,7 @@
     ]
   },
   {
+<<<<<<< 208ea63a
     "id": "ui2_modules",
     "zh": "模块中心",
     "en": "Module center",
@@ -30162,6 +30150,129 @@
     "en": "Installed modules, architectures, capabilities and toggles",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
+=======
+    "id": "m9013",
+    "zh": "严格（默认）",
+    "en": "Strict (default)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9014",
+    "zh": "放宽（保留不可逆操作拦截）",
+    "en": "Relaxed (irreversible operations still blocked)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9015",
+    "zh": "完全放宽（不按命令内容拦截）",
+    "en": "Full (no command-content checks)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9016",
+    "zh": "命令拦截档位：%s",
+    "en": "Command interception: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/RootShell.java"
+    ]
+  },
+  {
+    "id": "m9017",
+    "zh": "\n== root 命令拦截档位 ==\n设置 → 设备能力授权 → Root 命令拦截：严格（默认，仅白名单）、放宽（任意命令，但拦截格式化/刷机/重启/清数据等不可逆操作）、完全放宽（不按命令内容拦截）。档位只对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档，短信读取三档都需要原生授权。\n",
+    "en": "\n== Root command interception modes ==\nSettings → Device permissions → Root command interception: Strict (default, allow-list only), Relaxed (any command, but irreversible operations such as formatting, flashing, reboot or clearing app data stay blocked), Full (no command-content checks). Modes apply to the root channel only; the generic Shizuku/ADB executor stays strict, and SMS reads still require native authorization in all modes.\n",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/HttpShellService.java"
+    ]
+  },
+  {
+    "id": "m9018",
+    "zh": "Root 命令拦截档位",
+    "en": "Root command interception mode",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9019",
+    "zh": "严格：仅放行白名单内的命令，默认档位。\n放宽：允许任意命令，但格式化、刷机、重启、清数据等不可逆操作仍会被拦截。\n完全放宽：不按命令内容拦截，root 命令直接执行。",
+    "en": "Strict: allow-list commands only (default).\nRelaxed: any command is allowed, but irreversible operations such as formatting, flashing, reboot or clearing data stay blocked.\nFull: no command-content checks; root commands run directly.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9020",
+    "zh": "确认放宽 root 命令拦截？",
+    "en": "Relax root command interception?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9021",
+    "zh": "仅对 root 通道生效；放宽后助手和插件可执行任意 root 命令。严格档只放行白名单；完全放宽不拦截不可逆操作，可能导致数据丢失或系统损坏。",
+    "en": "Applies to the root channel only. Once relaxed, the assistant and plugins can run arbitrary root commands. Strict allows allow-list commands only; Full blocks no irreversible operations, so data loss or system damage is possible.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9022",
+    "zh": "已保存拦截档位：%s",
+    "en": "Interception mode saved: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9023",
+    "zh": "命令拦截档位：%s\n仅对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档。",
+    "en": "Command interception: %s\nApplies to the root channel only; the generic Shizuku/ADB executor stays strict.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9024",
+    "zh": "更改",
+    "en": "Change",
+    "files": [
+      "app/src/main/res/layout/fragment_device_grants.xml"
+    ]
+  },
+  {
+    "id": "rescue272_export_copy",
+    "zh": "导出可读副本",
+    "en": "Export readable copy",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "rescue272_export_desc",
+    "zh": "只读救援导出可读取的数据，不停止写入、不修改原件",
+    "en": "Read-only rescue export of readable data; writers keep running and originals stay untouched",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java"
+    ]
+  },
+  {
+    "id": "rescue272_pending_hint",
+    "zh": "原环境尚未确认，常规备份和恢复暂不可用。可先导出可读副本保存数据，再恢复中断维护。",
+    "en": "The original environment is unconfirmed, so regular backup and restore are unavailable. Export a readable copy first, then resume the interrupted maintenance.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+>>>>>>> sunset/main
     ]
   }
 ]

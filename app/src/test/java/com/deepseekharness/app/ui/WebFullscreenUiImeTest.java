@@ -493,6 +493,58 @@ public final class WebFullscreenUiImeTest {
   }
 
   @Test
+  public void duplicateInsetsBeforeAckDoNotSendAnIdenticalTailFrame() {
+    host.get().autoAck = false;
+    apply(180);
+    long first = host.get().frames.get(0).optLong("frameId");
+    for (int frame = 0; frame < 120; frame++) apply(180);
+    assertEquals(1, host.get().frames.size());
+    WebFullscreenUi.acknowledgeIme(host.get(), host.get().identity, first, true);
+    assertEquals("no duplicate IPC after the renderer becomes ready", 1, host.get().frames.size());
+    // The page can cancel its composer independently on focus/session changes. The next
+    // real native dispatch must still be delivered after acknowledgment, even at this size.
+    apply(180);
+    assertEquals(2, host.get().frames.size());
+  }
+
+  @Test
+  public void repeatedPendingGeometryKeepsLatestAndEndPhaseIsNeverSuppressed() {
+    host.get().autoAck = false;
+    apply(0);
+    long first = host.get().frames.get(0).optLong("frameId");
+    WindowInsetsAnimationCompat animation = prepare();
+    progress(animation, 100);
+    for (int frame = 0; frame < 120; frame++) progress(animation, 100);
+    WebFullscreenUi.acknowledgeIme(host.get(), host.get().identity, first, true);
+    assertEquals(2, host.get().frames.size());
+    var current = host.get().frames.get(1);
+    assertEquals("frame", current.optString("phase"));
+    assertEquals(668, current.optInt("height"));
+    callback.onEnd(animation);
+    for (int frame = 0; frame < 120; frame++) apply(100);
+    WebFullscreenUi.acknowledgeIme(
+        host.get(), host.get().identity, current.optLong("frameId"), true);
+    assertEquals(3, host.get().frames.size());
+    var end = host.get().frames.get(2);
+    assertEquals("end", end.optString("phase"));
+    assertEquals(668, end.optInt("height"));
+    WebFullscreenUi.acknowledgeIme(host.get(), host.get().identity, end.optLong("frameId"), true);
+    assertEquals(3, host.get().frames.size());
+  }
+
+  @Test
+  public void latestGeometryCanReturnToInFlightSizeBeforeItsAcknowledgment() {
+    host.get().autoAck = false;
+    apply(100);
+    long first = host.get().frames.get(0).optLong("frameId");
+    apply(200);
+    apply(100);
+    WebFullscreenUi.acknowledgeIme(host.get(), host.get().identity, first, true);
+    assertEquals(2, host.get().frames.size());
+    assertEquals(668, host.get().frames.get(1).optInt("height"));
+  }
+
+  @Test
   public void manyActualFramesDoNotChangeNativeSizeOrTransformTheWholePage() {
     apply(0);
     WindowInsetsAnimationCompat animation = prepare();

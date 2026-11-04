@@ -61,7 +61,8 @@ const actualTransport = (() => {
   } };
   const portModule = { exports: {} };
   const portSource = fs.readFileSync(new URL('../app/src/main/assets/bridge-port.cjs', import.meta.url), 'utf8');
-  vm.runInNewContext('(function(require,module,Buffer){' + portSource + '\n})', {})(name => {
+  // 显式发布端口：生产不再把「端口未发布」回退到 3090。
+  vm.runInNewContext('(function(require,module,Buffer){' + portSource + '\n})', { process: { env: { DSHA_BRIDGE_PORT: '3090' } } })(name => {
     assert.equal(name, 'node:fs'); return platformFs;
   }, portModule, Buffer);
   const module = { exports: {} }, require = name => ({ 'node:fs': platformFs, 'node:http': http, 'node:crypto': crypto, './bridge-port.cjs': portModule.exports })[name];

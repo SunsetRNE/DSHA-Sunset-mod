@@ -11,6 +11,14 @@ public final class BridgeRoutes {
     DEVICE_VSCREEN_COMMIT(false),
     DEVICE_PLAN(true),
     DEVICE_EXECUTE(true),
+    EXTDEV_STATUS(false),
+    EXTDEV_DISCOVER(false),
+    EXTDEV_INSPECT(false),
+    EXTDEV_BIND(false),
+    EXTDEV_OPERATE(false),
+    EXTDEV_PREFLIGHT(false),
+    EXTDEV_IMPORT(false),
+    EXTDEV_FORGET(false),
     NOTIFY(false),
     TASK_CONTEXT(false),
     TASK_EVENT(false),
@@ -21,12 +29,16 @@ public final class BridgeRoutes {
     READ_FILE(false),
     HEALTH(false),
     UI(false),
+    SENSE(false),
     VSCREEN(false),
     DEVICE(false),
+    NET(false),
+    NET_RESOLVE(false),
     APPS(false),
     LAUNCH(false),
     CLIP(false),
     SHARE(false),
+    INSTALL(false),
     OPEN(false),
     VIBRATE(false),
     ASK(false),
@@ -39,6 +51,7 @@ public final class BridgeRoutes {
     SENSOR(false),
     TORCH(false),
     EXPORT(false),
+    ENTRY_TARGET(false),
     CONFIRM(true),
     EXEC(true),
     UNKNOWN(false);
@@ -64,6 +77,14 @@ public final class BridgeRoutes {
     add(routes, "/device/vscreen/commit", Route.DEVICE_VSCREEN_COMMIT);
     add(routes, "/device/plan", Route.DEVICE_PLAN);
     add(routes, "/device/execute", Route.DEVICE_EXECUTE);
+    add(routes, "/app/extdev/status", Route.EXTDEV_STATUS);
+    add(routes, "/app/extdev/discover", Route.EXTDEV_DISCOVER);
+    add(routes, "/app/extdev/inspect", Route.EXTDEV_INSPECT);
+    add(routes, "/app/extdev/bind", Route.EXTDEV_BIND);
+    add(routes, "/app/extdev/operate", Route.EXTDEV_OPERATE);
+    add(routes, "/app/extdev/preflight", Route.EXTDEV_PREFLIGHT);
+    add(routes, "/app/extdev/import", Route.EXTDEV_IMPORT);
+    add(routes, "/app/extdev/forget", Route.EXTDEV_FORGET);
     add(routes, "/app/notify", Route.NOTIFY);
     add(routes, "/app/tasks/context", Route.TASK_CONTEXT);
     add(routes, "/app/tasks/event", Route.TASK_EVENT);
@@ -75,10 +96,13 @@ public final class BridgeRoutes {
     add(routes, "/app/readfile", Route.READ_FILE);
     add(routes, "/health", Route.HEALTH);
     add(routes, "/app/device", Route.DEVICE);
+    add(routes, "/app/net", Route.NET);
+    add(routes, "/app/net/resolve", Route.NET_RESOLVE);
     add(routes, "/app/apps", Route.APPS);
     add(routes, "/app/launch", Route.LAUNCH);
     add(routes, "/app/clip", Route.CLIP);
     add(routes, "/app/share", Route.SHARE);
+    add(routes, "/app/install", Route.INSTALL);
     add(routes, "/app/open", Route.OPEN);
     add(routes, "/app/vibrate", Route.VIBRATE);
     add(routes, "/app/ask", Route.ASK);
@@ -91,6 +115,7 @@ public final class BridgeRoutes {
     add(routes, "/app/sensor", Route.SENSOR);
     add(routes, "/app/torch", Route.TORCH);
     add(routes, "/app/export", Route.EXPORT);
+    add(routes, "/app/entry-target", Route.ENTRY_TARGET);
     add(routes, "/confirm", Route.CONFIRM);
     add(routes, "/exec", Route.EXEC);
     return Collections.unmodifiableMap(routes);
@@ -105,6 +130,7 @@ public final class BridgeRoutes {
     Route exact = EXACT.get(path);
     if (exact != null) return exact;
     if (path.startsWith("/app/ui/")) return Route.UI;
+    if (path.equals("/app/sense/state")) return Route.SENSE;
     if (path.startsWith("/app/vscreen/")) return Route.VSCREEN;
     return Route.UNKNOWN;
   }

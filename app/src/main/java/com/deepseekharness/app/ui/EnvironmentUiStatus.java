@@ -37,9 +37,8 @@ final class EnvironmentUiStatus {
                   new Snapshot(
                       true,
                       ready,
-                      !ready
-                          || com.deepseekharness.app.core.MaintenanceCoordinator.pending(
-                              controller),
+                      // 受限提示与主界面入口同一判定：进行中的后台事务由维护横幅表达。
+                      !ready || MainEntryMaintenance.blocksEntry(controller),
                       com.deepseekharness.app.core.StartupRepairs.pending(app));
             } finally {
               synchronized (EnvironmentUiStatus.class) {

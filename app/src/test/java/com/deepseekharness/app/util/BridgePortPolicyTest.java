@@ -93,7 +93,8 @@ public class BridgePortPolicyTest {
       } finally {
         for (ServerSocket reservation : reservations) if (reservation != null) reservation.close();
       }
-      int[] current = mapped("dsh.android.client", slots), legacy = mapped("com.dsh.client", slots);
+      int[] current = mapped("io.github.sunsetrne.dsha", slots),
+          legacy = mapped("com.dsh.client", slots);
       try (ServerSocket first = BridgePortPolicy.bind(currentFirst ? current : legacy);
           ServerSocket second = BridgePortPolicy.bind(currentFirst ? legacy : current)) {
         ServerSocket currentSocket = currentFirst ? first : second,

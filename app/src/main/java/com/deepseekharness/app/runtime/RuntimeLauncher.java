@@ -30,6 +30,7 @@ final class RuntimeLauncher {
         ports.record("DNS_PREPARE", error.getClass().getSimpleName());
       }
       List<String> argv = spec.runtime.baseArgv(rootfs, spec.hardlinks, spec.dataDomain);
+<<<<<<< 208ea63a
       File preloads = null;
       if (spec.runtime.rootMode()) {
         argv.add(ContainerRuntime.Root.command(rootfs, command));
@@ -43,10 +44,18 @@ final class RuntimeLauncher {
         argv.add("/bin/bash");
         argv.add("-c");
         argv.add(command);
+=======
+      var apk = context == null ? null : RuntimeApkAssets.get(context);
+      File preloads = context == null ? null : RuntimeLauncherAssets.prepare(context, apk);
+      bindPreloads(argv, preloads);
+      for (var bind : spec.binds) {
+        argv.add("-b");
+        argv.add(bind.host() + ":" + bind.guest());
+>>>>>>> sunset/main
       }
       ProcessBuilder builder = new ProcessBuilder(argv).redirectErrorStream(true);
       if (!spec.isolated && !spec.pipedInput) Compat.redirectStdinDevNull(builder);
-      environment(builder, spec, preloads);
+      environment(builder, spec, preloads, apk);
       if (spec.coldTrace)
         ports.record(
             "EXEC",
@@ -65,10 +74,11 @@ final class RuntimeLauncher {
   }
 
   void environment(ProcessBuilder builder, LaunchSpec spec) throws IOException {
-    environment(builder, spec, null);
+    environment(builder, spec, null, context == null ? null : RuntimeApkAssets.get(context));
   }
 
-  private void environment(ProcessBuilder builder, LaunchSpec spec, File preparedPreloads)
+  private void environment(
+      ProcessBuilder builder, LaunchSpec spec, File preparedPreloads, RuntimeApkAssets.Snapshot apk)
       throws IOException {
     spec.runtime.applyEnv(builder, base, lib, tmp);
     if ("proot".equals(spec.runtime.id()) && !spec.hardlinks) {
@@ -87,7 +97,7 @@ final class RuntimeLauncher {
     if (context != null && !spec.runtime.rootMode()) {
       // builder() already checked the exact overlay it bound. Independent terminal/recovery
       // callers still prepare here; no mutable filesystem proof survives a builder invocation.
-      if (preparedPreloads == null) RuntimeLauncherAssets.prepare(context);
+      if (preparedPreloads == null) RuntimeLauncherAssets.prepare(context, apk);
       String bridge = "--require=" + RuntimeLauncherAssets.GUEST + "/bridge-token-compat.cjs";
       String previous = builder.environment().getOrDefault("NODE_OPTIONS", "");
       if (!java.util.Arrays.asList(previous.split("\\s+")).contains(bridge))
@@ -102,24 +112,19 @@ final class RuntimeLauncher {
     // Classification evidence comes from this APK, never a guest-writable JSON
     // or caller-supplied environment. Native backup independently reads the APK.
     builder.environment().remove("DSHA_MANAGED_PACKAGE_PROOFS_SHA256");
+<<<<<<< 208ea63a
     if (context != null && !spec.runtime.rootMode())
       builder
           .environment()
           .put("DSHA_MANAGED_PACKAGE_PROOFS_SHA256", managedPackageProofAssetSha256(context));
+=======
+    if (context != null)
+      builder.environment().put("DSHA_MANAGED_PACKAGE_PROOFS_SHA256", apk.packageProofSha256);
+>>>>>>> sunset/main
   }
 
   static String managedPackageProofAssetSha256(Context context) throws IOException {
-    java.security.MessageDigest digest = com.deepseekharness.app.backup.BackupArchive.sha();
-    try (java.io.InputStream input = context.getAssets().open("managed-package-proofs.json")) {
-      byte[] buffer = new byte[8192];
-      int count, total = 0;
-      while ((count = input.read(buffer)) != -1) {
-        total += count;
-        if (total > 2 * 1024 * 1024) throw new IOException("PACKAGE_PROOFS_LIMIT");
-        digest.update(buffer, 0, count);
-      }
-    }
-    return com.deepseekharness.app.backup.BackupArchive.hex(digest.digest());
+    return RuntimeApkAssets.get(context).packageProofSha256;
   }
 
   Process start(String command, LaunchSpec spec) throws IOException {

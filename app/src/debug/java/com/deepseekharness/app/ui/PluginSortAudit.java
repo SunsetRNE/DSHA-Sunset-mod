@@ -244,8 +244,9 @@ public final class PluginSortAudit extends Instrumentation {
                   .equals(page.getString(labels[index])),
               "按钮没有显示当前排序");
           check(
-              control(R.id.btnSort).getHeight() == control(R.id.btnPluginUpdates).getHeight(),
-              "操作框高度不一致");
+              control(R.id.btnSort).getHeight()
+                  == control(R.id.btnPluginDownloadSource).getHeight(),
+              "排序与下载源胶囊高度不一致");
         }
         screenshot(lang + "-management");
         ui(() -> ((EditText) control(R.id.pluginSearch)).setText("plugin"));

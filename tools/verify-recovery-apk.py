@@ -74,7 +74,8 @@ def verify(path):
         verify_overlays(apk,descriptor)
         verify_overlay_inputs(apk,descriptor)
         verify_capsule_dependencies(apk,descriptor)
-        flavor='low' if 'lib/arm64-v8a/libproot_legacy.so' in apk.namelist() else 'standard'
+        require(('lib/arm64-v8a/libproot_legacy.so' not in apk.namelist()), 'RECOVERY_LOW_LIBRARY')
+        flavor='standard'
         for name,sha in descriptor['launcherHashes'][flavor].items():
             require((hash_entry(apk,'lib/arm64-v8a/'+name)==sha), 'RECOVERY_LAUNCHER')
         for name in ('recovery-web-integration/manifest.json',

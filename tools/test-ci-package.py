@@ -1,21 +1,9 @@
-import argparse
-import base64
 import copy
-import hashlib
 import importlib.util
 import json
-import os
-import re
-import shlex
-import subprocess
-import sys
 from pathlib import Path
 import tempfile
-import textwrap
 import unittest
-from unittest import mock
-import xml.etree.ElementTree as ET
-import zipfile
 
 spec=importlib.util.spec_from_file_location('ci_package',Path(__file__).with_name('verify-ci-package.py'))
 gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(gate)
@@ -54,26 +42,30 @@ class PackageBinding(unittest.TestCase):
             log=self.reports/(name+'.log');log.write_text(name+' passed\n')
             self.commands.append(dict(name=name,exitCode=0,sha256=gate.digest(log)))
         rows=[]
-        for flavor in ('standard','low'):
+        for flavor in ('standard',):
             apk=self.root/f'app-{flavor}-release-unsigned.apk';apk.write_bytes(flavor.encode())
             rows.append(dict(flavor=flavor,sha256=gate.digest(apk),certificateSha256=None))
         self.receipt=dict(verificationSchema=2,status='PASS_UNSIGNED_PACKAGE',commit='abc',dirty=False,
                           sourceSnapshot=dict(sha256=gate.digest(snapshot)),apks=rows,
                           commands=self.commands,
-                          junit={flavor:dict(tests=2,skipped=0,failures=0,errors=0)
-                                 for flavor in ('Standard','Low')})
+                          junit={'Standard':dict(tests=2,skipped=0,failures=0,errors=0)})
     def validate(self):return gate.validate_receipt(self.receipt,self.root,'abc',self.source,
-                                                  {'app/build.gradle'},set(), expected_flavors=('standard','low'))
-    def test_exact_pair_is_selected(self):self.assertEqual(2,len(self.validate()))
-    def test_standard_scope_keeps_gates_and_rejects_missing_expected_flavor(self):
-        self.receipt['apks'] = [row for row in self.receipt['apks'] if row['flavor'] == 'standard']
-        self.receipt['commands'] = [row for row in self.commands if row['name'] != 'low-elf']
-        self.receipt['junit'].pop('Low')
+                                                  {'app/build.gradle'},set())
+    def test_exact_standard_package_is_selected(self):self.assertEqual(1,len(self.validate()))
+    def test_standard_scope_keeps_all_gates_and_rejects_extra_or_legacy_flavor(self):
         selected = gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
                                          {'app/build.gradle'}, set())
         self.assertEqual([self.root / 'app-standard-release-unsigned.apk'], selected)
+        # 旧的 low 包范围必须被拒绝，不能只靠 workflow 参数约定。
+        with self.assertRaisesRegex(ValueError, 'PACKAGE_EXPECTED_FLAVORS'):
+            gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
+                                  {'app/build.gradle'}, set(),
+                                  expected_flavors=('standard', 'low'))
+        legacy = dict(self.receipt, apks=self.receipt['apks'] + [
+            dict(flavor='low', sha256='0' * 64, certificateSha256=None)])
         with self.assertRaisesRegex(ValueError, 'PACKAGE_FLAVORS'):
-            self.validate()
+            gate.validate_receipt(legacy, self.root, 'abc', self.source,
+                                  {'app/build.gradle'}, set())
         self.receipt['commands'] = [row for row in self.receipt['commands'] if row['name'] != 'standard-elf']
         with self.assertRaisesRegex(ValueError, 'PACKAGE_CHECK_INCOMPLETE'):
             gate.validate_receipt(self.receipt, self.root, 'abc', self.source,
@@ -85,7 +77,7 @@ class PackageBinding(unittest.TestCase):
         duplicate.parent.mkdir();duplicate.write_text('{}')
         with self.assertRaisesRegex(ValueError,'MANIFEST_COUNT'):gate.select_manifest(self.root)
     def test_apk_tamper_and_failed_gate_are_rejected(self):
-        (self.root/'app-low-release-unsigned.apk').write_bytes(b'tampered')
+        (self.root/'app-standard-release-unsigned.apk').write_bytes(b'tampered')
         with self.assertRaisesRegex(ValueError,'APK_CHANGED'):self.validate()
         self.receipt['commands'][0]['exitCode']=1
         with self.assertRaisesRegex(ValueError,'FAILED_CHECK'):self.validate()
@@ -105,7 +97,7 @@ class PackageBinding(unittest.TestCase):
         self.receipt['commands']=[dict(name=name,exitCode=0,
                                       sha256=gate.digest(self.reports/(name+'.log')))
                                   for name in sorted(gate.REQUIRED_CHECKS)]
-        self.receipt['junit']['Low']['skipped']=2
+        self.receipt['junit']['Standard']['skipped']=2
         with self.assertRaisesRegex(ValueError,'JUNIT_INCOMPLETE'):self.validate()
     def test_omitted_deleted_and_unsafe_source_cannot_be_hidden(self):
         snapshot=self.reports/'source-sha256.json'
@@ -126,6 +118,7 @@ class PackageBinding(unittest.TestCase):
             other=copy.deepcopy(run);other[key]=value
             with self.subTest(key=key),self.assertRaises(ValueError):gate.validate_run(other,'DSH-APP/DSHA','abc')
 
+<<<<<<< 208ea63a
 class SunsetPatchRegressions(unittest.TestCase):
     def setUp(self):
         self.root = Path(__file__).resolve().parents[1]
@@ -557,4 +550,6 @@ class TerminalWorkflowContract(unittest.TestCase):
         self.assertIn('out/build-info.json', evidence)
 
 
+=======
+>>>>>>> sunset/main
 if __name__=='__main__':unittest.main()

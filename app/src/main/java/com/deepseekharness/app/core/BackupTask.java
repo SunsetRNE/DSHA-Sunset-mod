@@ -344,6 +344,15 @@ public final class BackupTask {
         id -> EnvironmentMaintenance.recover(controller));
   }
 
+  /** 原生确认后执行；expectedDigest 为确认时展示的计划摘要，执行前在屏障内重新核对。 */
+  public boolean isolatePluginJournals(String expectedDigest) {
+    return start(
+        com.deepseekharness.app.util.BackupTaskKinds.ISOLATE_PLUGIN_JOURNALS,
+        true,
+        true,
+        id -> PluginJournalIsolation.isolate(controller, expectedDigest));
+  }
+
   public boolean rollbackRuntime(String operation) {
     return start(
         com.deepseekharness.app.util.BackupTaskKinds.ROLLBACK,
@@ -363,8 +372,12 @@ public final class BackupTask {
           // 此动作只选择已有目录，不复制、清空或修复其中的数据。
           var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
           java.io.File files = app.getFilesDir().getCanonicalFile();
-          var pending = com.deepseekharness.app.backup.HostMaintenancePending.inspect(files);
-          if (pending.blocked) throw new IOException("RECOVERY_PENDING: " + pending.domain);
+          // 数据根无法确定（DATA_LOCATION_*）时各域探测都会读不了；选择目录正是这一状态的出口，
+          // 不能被它自己挡住。其余待恢复或读不了的记录仍须先处理。
+          var blocking =
+              com.deepseekharness.app.backup.HostMaintenancePending.blocksDataHomeSelection(
+                  com.deepseekharness.app.backup.HostMaintenancePending.inspectAllWithGuest(files));
+          if (blocking != null) throw new IOException("RECOVERY_PENDING: " + blocking.domain);
           var layout = new com.deepseekharness.app.backup.UserDataLayout(fs, files);
           layout.choose(home);
           return com.deepseekharness.app.util.UiText.choose(

@@ -4,7 +4,7 @@
 
 ## DSH 与 npm 依赖
 
-- 当前 `@deepseek-ai/dsh` 为 **0.2.1-rc.3**。完整版本、来源与 integrity 见 `tools/dsh-runtime/package-lock.json`；各包原许可文件保留在运行归档中。
+- 当前 `@deepseek-ai/dsh` 为 **0.2.1-rc.5**。完整版本、来源与 integrity 见 `tools/dsh-runtime/package-lock.json`；各包原许可文件保留在运行归档中。
 - Office 入口 `@deepseek-ai/libreoffice-kit` **0.1.5**、WASM **0.1.5**：保留上游 NOTICE、licenses、sources 与预构建说明。DSHA 的字体路径适配见 `assets/office-fonts-patch.json`。
 - pnpm **10.34.5**（MIT）和 certifi **2026.7.22**（MPL-2.0）：版本和原包摘要由 `tools/runtime-tools.lock.json` 固定。CA 未关闭 TLS 核验。
 - 许可目录和实际依赖需结合归档成员检查；锁文件内其他平台可选依赖不等于已进入 arm64 APK。
@@ -15,11 +15,11 @@
 
 ## 移动插件
 
-- `dsh-web-mobile` **3.2.2**，MIT，来自 `https://github.com/mexiaosqwq/dsh-web-mobile`，固定提交 `4c798ecc554009e401dc1f166b73c314cdf5273f`。
-- 上游 client 摘要 `17e95442d6f8c170d6b42a0281538af7ddba4cbeb05975d405236de6ee470dd6`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
+- `dsh-web-mobile` **3.2.2**，MIT，来自 `https://github.com/mexiaosqwq/dsh-web-mobile`，固定提交 `bb0e5e151ca549fef506e829020a5d7138074711`。
+- 上游 client 摘要 `3cd931bcd261e7b280398f8849a556ec1dd54edaa4147c49c808d0ea60d94173`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
 - 许可全文：`app/src/main/assets/builtin-plugins/dsh-web-mobile/LICENSE`。当前产物摘要：
 
-- `client.js`：`665699341525871da011ee98b18891bb35c69e7173235be7bdaa0e29e9c50194`
+- `client.js`：`a324159afb345f391a9b090bdb374b1b28893d56ddf4e8ebbdb0bc2a0e3f713e`
 - `index.js`：`dcddbce73ec1052b7c02e961bac1389d227f72f1ef49f62a2f16f692e8f930ab`
 - `compress.js`：`a7f4f7f89cc99490978ed4cbfd16ab86f71e1f7fbf2241c00c2811e7cde9aeab`
 - `delete-session.js`：`cb119ff9703716fe1111ee5a2f211d14886ab1d2310601c5787efc8d91219d51`
@@ -32,18 +32,17 @@
 
 ## proot / proroot
 
-- proot（Termux 分支）为 GPL-2.0。标准与兼容资产保留 COPYING；API 23 构建及源码差异见 `tools/build-low-proot.py`。完整声明位于 `assets/licenses/proot-COPYING.txt`。
+- proot（Termux 分支）为 GPL-2.0。包内保留 COPYING；标准 proot 二进制原件的精确修订仍未核实，不声明可逐字节重现。完整声明位于 `assets/licenses/proot-COPYING.txt`。
 - proroot v1.2.8 为上游专有许可。DSHA 分发上游原始二进制，不声称可重编、审计源码或任意修改后再分发；许可证与来源见随包声明。不能用容器 root 身份推断 Android root 权限。
 - Windows 重编、Linux 重编与手机执行是不同证据；不能从一种宿主成功推导全部平台通过。
 
 ## Android 与备份依赖
 
-- Shizuku API/provider：Standard 13.1.5、Low 12.2.0（MIT），公开来源 RikkaApps/Shizuku-API；许可全文随 `assets/licenses/Shizuku-MIT.txt` 保存，原始 Git blob 及 SHA 记录在 build154 审计。
+- Shizuku API/provider：Standard 13.1.5（MIT），公开来源 RikkaApps/Shizuku-API；许可全文随 `assets/licenses/Shizuku-MIT.txt` 保存，原始 Git blob 及 SHA 记录在 build154 审计。
 - Termux terminal-view / terminal-emulator 0.118.0 的 Apache-2.0 例外及全文随 `assets/licenses/Termux-terminal-Apache-2.0.txt` 保存；不将其声明扩展到整个上游工程。
 - terminal-emulator Java 源码固定于 Termux v0.118.0 提交 `6e2689f55295fa444be8ac8592c527c2c5ef3253` 并内置；DSHA 对 `TerminalSession.java`、`TerminalEmulator.java`、`TerminalSessionClient.java` 的修改及自有队列说明见 `app/src/main/java/com/termux/terminal/NOTICE.dsha.md`。terminal-view 保持 0.118.0 上游依赖，JNI 使用项目内已有构建。
 - Gson 2.13.1：Apache-2.0；Bouncy Castle bcprov-jdk15to18 1.85.2：上游许可全文随 `assets/licenses` 保存。版本与 JAR 摘要见 `tools/backup-dependencies.lock.json`，构建执行 `verifyBackupDependencies`。
-- SnakeYAML 2.4（Apache-2.0）：固定官方 Maven Central JAR/POM 与 `snakeyaml-2.4` 源码标签，使用宿主 data-only SafeConstructor 投影凭据中的本机连接字段。许可原文为 `assets/licenses/snakeyaml-LICENSE.txt`，Java 8 类文件及 Android FIELD 路径见 `docs/audits/build156/snakeyaml-official-artifacts.json`；不由静态兼容声明推导旧设备验收完成。
-- Low 的 GeckoView 143.0.20251003115653 为 MPL-2.0，来自 Mozilla Maven；保留相应声明。兼容版最低 API 23，不表示所有旧设备已经验收。
+- SnakeYAML 2.4（Apache-2.0）：固定官方 Maven Central JAR/POM 与 `snakeyaml-2.4` 源码标签，使用宿主 data-only SafeConstructor 投影凭据中的本机连接字段。许可原文为 `assets/licenses/snakeyaml-LICENSE.txt`，Java 8 类文件及 Android FIELD 路径见 `docs/audits/build156/snakeyaml-official-artifacts.json`；当前只支持 Android 11（API 30）及以上，不表示旧设备已经验收。
 - Ubuntu 软件包各自遵循其许可；包内 `/usr/share/doc` 与 common-licenses 保留版权信息。根环境仍为 Ubuntu 24.04 arm64，DSHA 基础环境身份 10。
 - node-semver 7.8.1 为 ISC，完整许可随 `assets/plugin-semver.cjs` 提供。
 
@@ -54,22 +53,17 @@
 - `com.android.tools:desugar_jdk_libs:2.0.4`
 - `com.google.android.material:material:1.11.0`
 - `com.google.code.gson:gson:2.13.1`
-- `dev.rikka.shizuku:api:12.2.0`
 - `dev.rikka.shizuku:api:13.1.5`
-- `dev.rikka.shizuku:provider:12.2.0`
 - `dev.rikka.shizuku:provider:13.1.5`
 - `org.bouncycastle:bcprov-jdk15to18:1.85.2`
-- `org.mozilla.geckoview:geckoview-arm64-v8a:143.0.20251003115653`
 - `org.yaml:snakeyaml:2.4`
 
 ## 实际入库 JNI 成员与来源边界
 
 | 资产 | 许可声明 | 来源 / 可核验范围 |
 |---|---|---|
-| `app/src/low/jniLibs/arm64-v8a/libproot_legacy.so` | GPL-2.0 | tools/build-low-proot.py, proot v5.1.107.92 source archive and local changes |
-| `app/src/low/jniLibs/arm64-v8a/libprootloader_legacy.so` | GPL-2.0 | tools/build-low-proot.py, proot v5.1.107.92 source archive |
 | `app/src/main/jniLibs/arm64-v8a/libandroidshmem.so` | unknown origin/license for this original binary | Retained original; no current exact-source reproduction receipt |
-| `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-compat.so` | MIT | tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf proxy, locked NDK build; original proroot binaries unchanged |
+| `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-compat.so` | MIT | tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf and fcntl-errno proxy, locked NDK build; original proroot binaries unchanged |
 | `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-linker.so` | MIT | tools/proroot-compat/linker-entry.c; freestanding GNU AArch64 direct-preload adapter; original proroot binaries unchanged |
 | `app/src/main/jniLibs/arm64-v8a/libdsha-session.so` | MIT | tools/native-session/session-launcher.c; locked API 23 build |
 | `app/src/main/jniLibs/arm64-v8a/libproot.so` | GPL-2.0 | Termux proot; original Standard binary exact revision remains unverified |
@@ -80,7 +74,7 @@
 | `app/src/main/jniLibs/arm64-v8a/libproroot-runtime.so` | upstream proprietary | proroot v1.2.8 original binary |
 | `app/src/main/jniLibs/arm64-v8a/libproroot-stub-loader.so` | upstream proprietary | proroot v1.2.8 original binary |
 | `app/src/main/jniLibs/arm64-v8a/libproroot.so` | upstream proprietary | proroot v1.2.8 original binary; source reproducibility not asserted |
-| `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL family; exact binary revision unverified | Samba talloc; build-low-proot.py locks talloc 2.4.3 headers, not the origin of this binary |
+| `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL family; exact binary revision unverified | Samba talloc; original Standard binary exact revision unverified |
 | `app/src/main/jniLibs/arm64-v8a/libtermux.so` | Apache-2.0 exception | tools/termux-jni, v0.118.0 source plus local handshake changes |
 
 ## npm 锁中需另核对的许可声明

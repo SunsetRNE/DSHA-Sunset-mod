@@ -19,17 +19,24 @@ public final class StartupTrace {
     final long at, runtimeAt;
     final String text, previous;
     final int kind;
+    final boolean problem;
 
-    Line(long at, long runtimeAt, String text, String previous, int kind) {
+    Line(long at, long runtimeAt, String text, String previous, int kind, boolean problem) {
       this.at = at;
       this.runtimeAt = runtimeAt;
       this.text = text;
       this.previous = previous;
       this.kind = kind;
+      this.problem = problem;
+    }
+
+    /** 不含时间前缀的显示正文；阶段行只返回阶段名，供启动页概览按 kind 分组。 */
+    String body(String language) {
+      return kind == 0 ? text : StartupText.render(text, language);
     }
 
     String render(String language) {
-      String value = kind == 0 ? text : StartupText.render(text, language);
+      String value = body(language);
       if (kind == 2) value = StartupText.choose(language, "正在", "Current stage: ") + value + "…";
       if (kind == 3)
         value =
@@ -60,6 +67,41 @@ public final class StartupTrace {
   private long renderedRevision = -1;
   private String renderedLanguage = "";
   private String renderedLog = "";
+  private java.util.List<Entry> renderedEntries = java.util.Collections.emptyList();
+  // issue() 产生的标题与原因行；用于概览直接上浮，不靠匹配中文文案。
+  private boolean appendingProblem;
+
+  /** 结构化日志行：与 {@link Snapshot#log} 一一对应，复制 / 导出仍只用完整原文。 */
+  public static final class Entry {
+    /** 普通输出 / DSHA 自有输出 / 阶段开始 / 阶段完成 / 阶段切离（等待鉴权时离开）。 */
+    public static final int OUTPUT = 0, OWNED = 1, STAGE_START = 2, STAGE_DONE = 3, STAGE_LEFT = 4;
+
+    /** 自本次启动开始的毫秒数。 */
+    public final long atMs;
+
+    /** 网页就绪后的运行毫秒数；就绪前为 -1。 */
+    public final long runtimeMs;
+
+    public final int kind;
+
+    /** 阶段行是阶段名，其余是去掉时间前缀的正文。 */
+    public final String body;
+
+    /** 与 {@link Snapshot#log} 中同一行完全相同的原文（含时间前缀）。 */
+    public final String line;
+
+    /** 由 issue() 记录的插件 / 端口 / 启动异常。 */
+    public final boolean problem;
+
+    public Entry(long atMs, long runtimeMs, int kind, String body, String line, boolean problem) {
+      this.atMs = atMs;
+      this.runtimeMs = runtimeMs;
+      this.kind = kind;
+      this.body = body == null ? "" : body;
+      this.line = line == null ? "" : line;
+      this.problem = problem;
+    }
+  }
 
   public static final class Snapshot {
     public final long generation, revision, elapsedMs, stageElapsedMs, runElapsedMs;
@@ -68,8 +110,11 @@ public final class StartupTrace {
     public final long backendReadyMs, browserReadyMs;
 
     public final String stage, log;
-    public final boolean safe, browserReady, backendReady;
+    public final boolean safe, browserReady, backendReady, ended;
     public final Map<String, String> issues;
+
+    /** 与 log 同序的结构化行；不可修改。 */
+    public final java.util.List<Entry> entries;
 
     Snapshot(
         long generation,
@@ -83,7 +128,9 @@ public final class StartupTrace {
         String log,
         boolean safe,
         boolean ready,
-        Map<String, String> issues) {
+        boolean ended,
+        Map<String, String> issues,
+        java.util.List<Entry> entries) {
       this.generation = generation;
       this.revision = revision;
       elapsedMs = elapsed;
@@ -96,7 +143,9 @@ public final class StartupTrace {
       this.log = log;
       this.safe = safe;
       browserReady = ready;
+      this.ended = ended;
       this.issues = java.util.Collections.unmodifiableMap(issues);
+      this.entries = entries;
     }
   }
 
@@ -114,6 +163,7 @@ public final class StartupTrace {
     renderedRevision = -1;
     renderedLanguage = "";
     renderedLog = "";
+    renderedEntries = java.util.Collections.emptyList();
     owned(
         next,
         now,
@@ -163,7 +213,8 @@ public final class StartupTrace {
             browserReady ? Math.max(0, now - browserReadyAt) : -1,
             text,
             previous,
-            kind);
+            kind,
+            appendingProblem);
     if (!lines.isEmpty() && lines.peekLast().render("zh").equals(line.render("zh"))) return;
     lines.addLast(line);
     length += line.text.length() + line.previous.length() + 80;
@@ -181,21 +232,31 @@ public final class StartupTrace {
     if (conflict > 0) name = "";
     if (name.length() > 180 || reason.isEmpty()) return;
     if (browserReady) {
-      add(
-          expected,
-          now,
-          "RUNTIME_ERROR" + (name.isEmpty() ? "" : "[" + name + "]") + ": " + reason);
+      appendingProblem = true;
+      try {
+        add(
+            expected,
+            now,
+            "RUNTIME_ERROR" + (name.isEmpty() ? "" : "[" + name + "]") + ": " + reason);
+      } finally {
+        appendingProblem = false;
+      }
       return;
     }
     if (reason.length() > 1200) reason = reason.substring(0, 1200) + "…";
     if (reason.equals(issues.get(name))) return;
     issues.put(name, reason);
     while (issues.size() > 20) issues.remove(issues.keySet().iterator().next());
-    owned(
-        expected,
-        now,
-        conflict > 0 ? "Web 端口被占用：" + conflict : name.isEmpty() ? "DSH 启动异常" : "插件加载异常：" + name);
-    add(expected, now, reason);
+    appendingProblem = true;
+    try {
+      owned(
+          expected,
+          now,
+          conflict > 0 ? "Web 端口被占用：" + conflict : name.isEmpty() ? "DSH 启动异常" : "插件加载异常：" + name);
+      add(expected, now, reason);
+    } finally {
+      appendingProblem = false;
+    }
   }
 
   public synchronized void backendReady(long expected, long now) {
@@ -229,6 +290,7 @@ public final class StartupTrace {
     String keyLanguage = language == null ? "" : language;
     if (renderedRevision != revision || !renderedLanguage.equals(keyLanguage)) {
       renderedLog = renderLog(keyLanguage);
+      renderedEntries = renderEntries(keyLanguage);
       renderedRevision = revision;
       renderedLanguage = keyLanguage;
     }
@@ -244,7 +306,23 @@ public final class StartupTrace {
         renderedLog,
         safe,
         browserReady,
-        new LinkedHashMap<>(issues));
+        endedAt >= 0,
+        new LinkedHashMap<>(issues),
+        renderedEntries);
+  }
+
+  private java.util.List<Entry> renderEntries(String language) {
+    java.util.ArrayList<Entry> result = new java.util.ArrayList<>(lines.size());
+    for (Line line : lines)
+      result.add(
+          new Entry(
+              line.at,
+              line.runtimeAt,
+              line.kind,
+              line.body(language),
+              line.render(language),
+              line.problem));
+    return java.util.Collections.unmodifiableList(result);
   }
 
   private String renderLog(String language) {

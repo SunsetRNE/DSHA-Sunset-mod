@@ -292,6 +292,41 @@ public final class TerminalExtraKeys {
     }
   }
 
+  /** 键帽外观分类：只决定底色、字体与字号，不影响按键语义。 */
+  public enum KeyStyle {
+    /** Ctrl / Alt：功能键底色 + 锁定指示条。 */
+    MODIFIER,
+    /** Esc / Tab / Home / End / PgUp / PgDn：功能键底色。 */
+    FUNCTION,
+    /** 方向键：标准底色、较大字号。 */
+    ARROW,
+    /** ^C / ^D / ^Z / ^L：等宽、强调色。 */
+    CONTROL,
+    /** 其余单字符符号：等宽。 */
+    SYMBOL
+  }
+
+  public static KeyStyle style(String action) {
+    if (isModifier(action)) return KeyStyle.MODIFIER;
+    if (isControl(action)) return KeyStyle.CONTROL;
+    switch (action == null ? "" : action) {
+      case "ESC":
+      case "TAB":
+      case "HOME":
+      case "END":
+      case "PGUP":
+      case "PGDN":
+        return KeyStyle.FUNCTION;
+      case "LEFT":
+      case "RIGHT":
+      case "UP":
+      case "DOWN":
+        return KeyStyle.ARROW;
+      default:
+        return KeyStyle.SYMBOL;
+    }
+  }
+
   private static Profile profileOrDefault(Profile profile) {
     return profile == null ? Profile.PHONE : profile;
   }

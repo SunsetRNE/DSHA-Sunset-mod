@@ -30,7 +30,7 @@ import bridgePort from './bridge-port.cjs'
 import { installSessionAdapter } from './session-adapter.js'
 export const name = 'dsh-status-overlay'
 
-/** 桥端口由本安装原生写入 .bridge_port；读不到才回退 3090。 */
+/** 桥端口由本安装原生写入 .bridge_port；读不到即视为桥未就绪，不回退任何固定端口。 */
 
 function bridgeBase() { return 'http://127.0.0.1:' + bridgePort() }
 const TOKEN_PATH = '/root/.dsh/.bridge_token'
@@ -169,10 +169,11 @@ async function send(key, kind, text) {
   const tok = bridgeToken()
   if (!tok) return
   if (Date.now() < cooldownUntil) return
-  const url = `${bridgeBase()}/app/overlay?kind=${encodeURIComponent(kind)}`
-    + `&session=${encodeURIComponent(key)}`
-    + `&text=${encodeURIComponent(text || '')}`
   try {
+    // 端口未发布时 bridgeBase 抛出，进入下方静默降级，不会产生未处理的 rejection。
+    const url = `${bridgeBase()}/app/overlay?kind=${encodeURIComponent(kind)}`
+      + `&session=${encodeURIComponent(key)}`
+      + `&text=${encodeURIComponent(text || '')}`
     const res = await fetch(url, {
       headers: { 'X-Token': tok },
       signal: AbortSignal.timeout(TIMEOUT_MS),

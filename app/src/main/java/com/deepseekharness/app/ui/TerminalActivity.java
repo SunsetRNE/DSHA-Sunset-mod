@@ -30,8 +30,10 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.TerminalRuntimeProtection;
 import com.deepseekharness.app.core.TerminalSessionOwner;
+import com.deepseekharness.app.util.DshaCliPreset;
 import com.deepseekharness.app.util.SensitiveData;
-import com.deepseekharness.app.util.TerminalSession;
+import com.deepseekharness.app.util.TerminalListOrder;
+import com.deepseekharness.app.util.TerminalSessionDot;
 import com.deepseekharness.app.util.TerminalTabs;
 import com.deepseekharness.app.util.TerminalWorkspacePolicy;
 import com.deepseekharness.app.util.UiText;
@@ -47,13 +49,15 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private static final long DRAWER_CLOSE_MS = 220L;
   private static final long DRAWER_CLOSE_SCRIM_MS = 180L;
   private final TerminalSessionOwner owner = TerminalSessionOwner.shared();
+  // 与 shared owner 同为进程级：旋转 / 重建页面后混合列表先后不变。
+  private static final TerminalListOrder LIST_ORDER = new TerminalListOrder();
   private FrameLayout root, content, drawerHost;
   private LinearLayout column, toolbar, body, sessionList, sessionHeader, sessionFooter;
   private SessionsPanelLayout sessionPanel;
   private LinearLayout footerActionsWide, footerActionsDense, sessionFlow;
   private ScrollView sessionScroll;
   private View sessionDivider;
-  private boolean wholeSidebarScrolling, stackedSessionDetails;
+  private boolean wholeSidebarScrolling, narrowActions, compactRows;
   private int footerWideColumns = 2, footerDenseColumns = 3;
   private int chromeWidthDp = -1, chromeHeightDp = -1;
   private float chromeFontScale = Float.NaN;
@@ -63,9 +67,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private View drawerExitScrim;
   private AppCompatImageView drawerExitSnapshot;
   private int drawerAnimationToken;
-  private View menuButton, settingsButton, helpButton, newSessionButton, sessionClose;
-  private TextView title, status, sessionSummary, sessionSubtitle, createLabel, createHint;
-  private TextView panelSecondary, panelNotice, closeAllButton;
+  private View menuButton, settingsButton, helpButton, cliButton, newSessionButton, sessionClose;
+  private AppCompatImageButton closeAllButton;
+  private TextView title, status, createLabel, panelNotice;
   private TerminalFloatingMenu ball;
   private AlertDialog panel;
   private boolean workbench, imeVisible, previousProcess, changingMode, expanded, sessionsRequested;
@@ -190,6 +194,14 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.color.terminal_panel_text);
     helpButton.setId(R.id.terminal_workspace_help);
     toolbar.addView(helpButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    cliButton =
+        iconButton(
+            R.drawable.ic_terminal,
+            UiText.choose("打开 DSH CLI", "Open DSH CLI"),
+            this::createCliSession,
+            R.color.terminal_panel_text);
+    cliButton.setId(R.id.terminal_workspace_cli);
+    toolbar.addView(cliButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
     menuButton =
         iconButton(
             R.drawable.ic_terminal_menu,
@@ -228,9 +240,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionScrim.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     drawerHost.addView(sessionScrim, new FrameLayout.LayoutParams(-1, -1));
     drawerHost.addView(
-        sessionPanel,
-        new FrameLayout.LayoutParams(
-            dp(TerminalWorkspacePolicy.drawerMaxWidth()), -1, Gravity.START));
+        sessionPanel, new FrameLayout.LayoutParams(dp(drawerMaxWidthDp()), -1, Gravity.START));
     root.addView(ball);
     root.addView(drawerHost, new FrameLayout.LayoutParams(-1, -1));
     setContentView(root);
@@ -285,31 +295,34 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     sessionHeader = new LinearLayout(this);
     sessionHeader.setGravity(Gravity.CENTER_VERTICAL);
     // 原型 .drawer-head：15/8/12/14 内边距、11dp 间距。
-    sessionHeader.setPaddingRelative(dp(14), dp(15), dp(8), dp(12));
+    sessionHeader.setPaddingRelative(dp(16), dp(14), dp(6), dp(12));
     AppCompatImageView identity = new AppCompatImageView(this);
     identity.setImageResource(R.drawable.ic_terminal);
     identity.setBackgroundResource(R.drawable.bg_terminal_identity);
     identity.setImageTintList(ColorStateList.valueOf(getColor(R.color.terminal_accent)));
-    identity.setPadding(dp(8), dp(8), dp(8), dp(8));
+    identity.setPadding(dp(9), dp(9), dp(9), dp(9));
     identity.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    LinearLayout.LayoutParams identityParams = new LinearLayout.LayoutParams(dp(36), dp(36));
-    identityParams.setMarginEnd(dp(11));
+    LinearLayout.LayoutParams identityParams = new LinearLayout.LayoutParams(dp(40), dp(40));
+    identityParams.setMarginEnd(dp(12));
     sessionHeader.addView(identity, identityParams);
-    LinearLayout headings = new LinearLayout(this);
-    headings.setOrientation(LinearLayout.VERTICAL);
     TextView heading =
-        panelText(UiText.text("会话"), 17, getColor(R.color.terminal_panel_text_strong), true);
-    sessionSubtitle =
-        panelText(
-            UiText.choose("独立会话 · 返回不结束进程", "Independent sessions · back keeps processes"),
-            10.5f,
-            getColor(R.color.terminal_muted),
-            false);
-    sessionSubtitle.setId(R.id.terminal_sessions_subtitle);
-    sessionSubtitle.setPadding(0, dp(3), 0, 0);
-    headings.addView(heading);
-    headings.addView(sessionSubtitle);
-    sessionHeader.addView(headings, new LinearLayout.LayoutParams(0, -2, 1));
+        panelText(UiText.text("会话"), 19, getColor(R.color.terminal_panel_text_strong), true);
+    heading.setId(R.id.terminal_sessions_title);
+    heading.setMaxLines(1);
+    heading.setEllipsize(TextUtils.TruncateAt.END);
+    sessionHeader.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+    // “结束全部”只剩一个危险色停止图标：无会话时隐藏，点击仍走确认 + 逐个核验。
+    closeAllButton =
+        iconButton(
+            R.drawable.ic_terminal_end_all,
+            UiText.choose("结束全部终端会话并核验", "End all terminal sessions and verify"),
+            this::confirmCloseAll,
+            R.color.terminal_danger);
+    closeAllButton.setId(R.id.terminal_sessions_close_all);
+    closeAllButton.setBackgroundResource(R.drawable.bg_terminal_icon_round_danger);
+    closeAllButton.setVisibility(View.GONE);
+    UiMotion.pressScale(closeAllButton);
+    sessionHeader.addView(closeAllButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
     sessionClose =
         iconButton(
             R.drawable.ic_terminal_close,
@@ -317,12 +330,13 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             this::closeSessions,
             R.color.terminal_muted);
     sessionClose.setId(R.id.terminal_sessions_close);
+    sessionClose.setBackgroundResource(R.drawable.bg_terminal_icon_round);
     UiMotion.pressScale(sessionClose);
     sessionHeader.addView(sessionClose, new LinearLayout.LayoutParams(dp(48), dp(48)));
     panel.addView(sessionHeader, new LinearLayout.LayoutParams(-1, -2));
     newSessionButton = buildCreateButton();
     LinearLayout.LayoutParams createParams = new LinearLayout.LayoutParams(-1, -2);
-    createParams.setMargins(dp(12), dp(2), dp(12), dp(12));
+    createParams.setMargins(dp(14), 0, dp(14), dp(12));
     panel.addView(newSessionButton, createParams);
     sessionScroll = new ScrollView(this);
     sessionScroll.setId(R.id.terminal_sessions_scroll);
@@ -336,78 +350,29 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     panel.addView(sessionDivider, new LinearLayout.LayoutParams(-1, Math.max(1, dp(1))));
     sessionFooter = new LinearLayout(this);
     sessionFooter.setOrientation(LinearLayout.VERTICAL);
-    sessionFooter.setBackgroundColor(getColor(R.color.terminal_panel_card));
-    // 原型 .drawer-foot：9/12/12 内边距，摘要与动作左对齐到同一 12dp 网格。
-    sessionFooter.setPadding(dp(10), dp(6), dp(10), dp(10));
-    LinearLayout summaryRow = new LinearLayout(this);
-    summaryRow.setGravity(Gravity.CENTER_VERTICAL);
-    summaryRow.setMinimumHeight(dp(26));
-    summaryRow.setPadding(dp(2), 0, dp(2), dp(2));
-    sessionSummary = panelText("", 11, getColor(R.color.terminal_panel_text), false);
-    sessionSummary.setId(R.id.terminal_sessions_summary);
-    sessionSummary.setMaxLines(1);
-    sessionSummary.setEllipsize(TextUtils.TruncateAt.END);
-    summaryRow.addView(sessionSummary, new LinearLayout.LayoutParams(0, -2, 1));
-    closeAllButton =
-        footerButton(
-            UiText.choose("结束全部", "End all"),
-            R.drawable.ic_terminal_end_all,
-            R.drawable.bg_terminal_sidebar_end_all,
-            getColor(R.color.terminal_danger),
-            R.color.terminal_danger,
-            11,
-            this::confirmCloseAll);
-    closeAllButton.setId(R.id.terminal_sessions_close_all);
-    closeAllButton.setTypeface(Typeface.DEFAULT_BOLD);
-    closeAllButton.setContentDescription(
-        UiText.choose("结束全部终端会话并核验", "End all terminal sessions and verify"));
-    closeAllButton.setVisibility(View.GONE);
-    summaryRow.addView(closeAllButton, new LinearLayout.LayoutParams(-2, -2));
-    sessionFooter.addView(summaryRow, new LinearLayout.LayoutParams(-1, -2));
+    // 底部与面板同底色，仅靠上方 1dp 分隔线分区；不再显示会话统计与说明行。
+    sessionFooter.setBackgroundColor(getColor(R.color.terminal_panel));
+    sessionFooter.setPadding(dp(12), dp(10), dp(12), dp(12));
     panelNotice = panelText("", 11, getColor(R.color.terminal_warning), false);
     panelNotice.setId(R.id.terminal_sessions_notice);
-    panelNotice.setPadding(dp(8), dp(2), dp(8), 0);
+    panelNotice.setPadding(dp(2), 0, dp(2), dp(6));
     panelNotice.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
     panelNotice.setVisibility(View.GONE);
     sessionFooter.addView(panelNotice, new LinearLayout.LayoutParams(-1, -2));
+    // 六个动作按使用频率排列：键盘、粘贴、回到输入在前，显示设置、主界面、说明在后。
     footerActionsWide = new LinearLayout(this);
     footerActionsWide.setOrientation(LinearLayout.VERTICAL);
     footerActionsWide.setId(R.id.terminal_sessions_actions);
     addFooterGridRow(
         footerActionsWide,
         footerAction(
-            R.id.terminal_sessions_action_home,
-            UiText.choose("返回主界面", "Home"),
-            R.drawable.ic_terminal_home,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11.5f,
-            false,
-            () -> {
-              closeSessions();
-              leavePage();
-            }),
-        footerAction(
-            R.id.terminal_sessions_action_display,
-            UiText.choose("显示设置", "Display"),
-            R.drawable.ic_terminal_display,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11.5f,
-            false,
-            this::showDisplaySettings));
-    addFooterGridRow(
-        footerActionsWide,
-        footerAction(
             R.id.terminal_sessions_action_keyboard,
             UiText.choose("显示键盘", "Keyboard"),
             R.drawable.ic_terminal_keyboard,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11.5f,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13.5f,
             false,
             () ->
                 closeSessionsThen(
@@ -415,45 +380,70 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                       if (pane() != null) pane().showKeyboard();
                     })),
         footerAction(
-            R.id.terminal_sessions_action_help,
-            UiText.choose("说明", "Help"),
-            R.drawable.ic_terminal_help,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11.5f,
-            false,
-            this::showSessionHelp));
-    addFooterGridRow(
-        footerActionsWide,
-        footerAction(
             R.id.terminal_sessions_action_paste,
             UiText.choose("粘贴文本", "Paste"),
             R.drawable.ic_ui_copy,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11.5f,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13.5f,
             false,
             () ->
                 closeSessionsThen(
                     () -> {
                       if (pane() != null) pane().paste();
-                    })),
+                    })));
+    addFooterGridRow(
+        footerActionsWide,
         footerAction(
             R.id.terminal_sessions_action_focus,
             UiText.choose("回到输入", "Focus input"),
             R.drawable.ic_ui2_prompt,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11.5f,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13.5f,
             false,
             () ->
                 closeSessionsThen(
                     () -> {
                       if (pane() != null) pane().restoreInputFocus();
-                    })));
+                    })),
+        footerAction(
+            R.id.terminal_sessions_action_display,
+            UiText.choose("显示设置", "Display"),
+            R.drawable.ic_terminal_display,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13.5f,
+            false,
+            this::showDisplaySettings));
+    addFooterGridRow(
+        footerActionsWide,
+        footerAction(
+            R.id.terminal_sessions_action_home,
+            UiText.choose("返回主界面", "Home"),
+            R.drawable.ic_terminal_home,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13.5f,
+            false,
+            () -> {
+              closeSessions();
+              leavePage();
+            }),
+        footerAction(
+            R.id.terminal_sessions_action_help,
+            UiText.choose("说明", "Help"),
+            R.drawable.ic_terminal_help,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13.5f,
+            false,
+            this::showSessionHelp));
     sessionFooter.addView(footerActionsWide, new LinearLayout.LayoutParams(-1, -2));
     footerActionsDense = new LinearLayout(this);
     footerActionsDense.setOrientation(LinearLayout.VERTICAL);
@@ -461,52 +451,27 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     addFooterGridRow(
         footerActionsDense,
         footerAction(
-            R.id.terminal_sessions_action_home_dense,
-            UiText.choose("返回主界面", "Home"),
-            R.drawable.ic_terminal_home,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11,
-            false,
-            () -> {
-              closeSessions();
-              leavePage();
-            }),
-        footerAction(
-            R.id.terminal_sessions_action_display_dense,
-            UiText.choose("显示设置", "Display"),
-            R.drawable.ic_terminal_display,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11,
-            false,
-            this::showDisplaySettings),
-        footerAction(
             R.id.terminal_sessions_action_keyboard_dense,
             UiText.choose("显示键盘", "Keyboard"),
             R.drawable.ic_terminal_keyboard,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13,
             false,
             () ->
                 closeSessionsThen(
                     () -> {
                       if (pane() != null) pane().showKeyboard();
-                    })));
-    addFooterGridRow(
-        footerActionsDense,
+                    })),
         footerAction(
             R.id.terminal_sessions_action_paste_dense,
             UiText.choose("粘贴文本", "Paste"),
             R.drawable.ic_ui_copy,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13,
             false,
             () ->
                 closeSessionsThen(
@@ -517,40 +482,54 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             R.id.terminal_sessions_action_focus_dense,
             UiText.choose("回到输入", "Focus input"),
             R.drawable.ic_ui2_prompt,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13,
             false,
             () ->
                 closeSessionsThen(
                     () -> {
                       if (pane() != null) pane().restoreInputFocus();
-                    })),
+                    })));
+    addFooterGridRow(
+        footerActionsDense,
+        footerAction(
+            R.id.terminal_sessions_action_display_dense,
+            UiText.choose("显示设置", "Display"),
+            R.drawable.ic_terminal_display,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13,
+            false,
+            this::showDisplaySettings),
+        footerAction(
+            R.id.terminal_sessions_action_home_dense,
+            UiText.choose("返回主界面", "Home"),
+            R.drawable.ic_terminal_home,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13,
+            false,
+            () -> {
+              closeSessions();
+              leavePage();
+            }),
         footerAction(
             R.id.terminal_sessions_action_help_dense,
             UiText.choose("说明", "Help"),
             R.drawable.ic_terminal_help,
-            R.drawable.bg_terminal_sidebar_action,
-            getColor(R.color.terminal_muted),
-            R.color.terminal_muted,
-            11,
+            R.drawable.bg_terminal_sidebar_tile,
+            getColor(R.color.terminal_panel_text),
+            R.color.terminal_accent,
+            13,
             false,
             this::showSessionHelp));
     footerActionsDense.setVisibility(View.GONE);
     compactDenseActions();
     sessionFooter.addView(footerActionsDense, new LinearLayout.LayoutParams(-1, -2));
-    panelSecondary =
-        panelText(
-            UiText.choose(
-                "返回只关闭页面 · 结束进程单独核验", "Back closes the page only · exits are verified separately"),
-            11,
-            getColor(R.color.terminal_muted),
-            false);
-    panelSecondary.setId(R.id.terminal_sessions_secondary);
-    panelSecondary.setGravity(Gravity.CENTER);
-    panelSecondary.setPadding(dp(8), dp(8), dp(8), 0);
-    sessionFooter.addView(panelSecondary, new LinearLayout.LayoutParams(-1, -2));
     panel.addView(sessionFooter, new LinearLayout.LayoutParams(-1, -2));
     return panel;
   }
@@ -655,11 +634,30 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void addFooterGridRow(LinearLayout footer, TextView... buttons) {
+    addFooterGridRow(footer, false, buttons);
+  }
+
+  /**
+   * 窄抽屉按钮外缘贴齐 12dp 网格、按钮之间保留间距：首按 marginStart=0、末按 marginEnd=0，
+   * 相邻按钮各留 3dp（合计 6dp），上下各 3dp；固定 48dp 高让同一行（以及不同行）不因文字行数
+   * 不同而上下错位。宽侧栏沿用四边 3dp 外边距与自适应高度。
+   */
+  private void addFooterGridRow(LinearLayout footer, boolean narrowRow, TextView... buttons) {
     LinearLayout row = new LinearLayout(this);
     row.setOrientation(LinearLayout.HORIZONTAL);
-    for (TextView button : buttons) {
-      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
-      params.setMargins(dp(3), dp(3), dp(3), dp(3));
+    int gap = dp(3);
+    for (int index = 0; index < buttons.length; index++) {
+      TextView button = buttons[index];
+      LinearLayout.LayoutParams params =
+          new LinearLayout.LayoutParams(0, narrowRow ? dp(48) : -2, 1);
+      if (narrowRow) {
+        // 同时显式写 start/end（含 0），避免 RTL 解析落到默认边距。
+        params.setMargins(0, gap, 0, gap);
+        params.setMarginStart(index > 0 ? gap : 0);
+        params.setMarginEnd(index < buttons.length - 1 ? gap : 0);
+      } else {
+        params.setMargins(gap, gap, gap, gap);
+      }
       row.addView(button, params);
     }
     footer.addView(row, new LinearLayout.LayoutParams(-1, -2));
@@ -695,12 +693,13 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     value.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
     value.setMinHeight(dp(48));
     value.setMinWidth(dp(48));
-    value.setPaddingRelative(dp(10), dp(6), dp(8), dp(6));
+    value.setPaddingRelative(dp(12), dp(6), dp(8), dp(6));
     value.setSingleLine(false);
     value.setMaxLines(2);
     value.setEllipsize(TextUtils.TruncateAt.END);
     value.setBackgroundResource(backgroundRes);
-    setCompoundIcon(value, iconRes, iconTintRes, 17);
+    setCompoundIcon(value, iconRes, iconTintRes, 19);
+    value.setCompoundDrawablePadding(dp(10));
     value.setFocusable(true);
     value.setClickable(true);
     value.setOnClickListener(v -> action.run());
@@ -715,27 +714,26 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     row.setGravity(Gravity.CENTER_VERTICAL);
     row.setMinimumHeight(
         getResources().getDimensionPixelSize(R.dimen.terminal_sidebar_create_min_height));
-    row.setPadding(dp(14), dp(6), dp(14), dp(6));
+    row.setPaddingRelative(dp(11), dp(6), dp(16), dp(6));
     row.setBackgroundResource(R.drawable.bg_btn_primary);
     row.setFocusable(true);
     row.setClickable(true);
     ColorStateList primaryText = getColorStateList(R.color.button_primary_text);
+    // 加号放进半透明方块；类型选择交给弹窗，按钮本身不再重复“PTY / 简易”。
     AppCompatImageView icon = new AppCompatImageView(this);
     icon.setImageResource(R.drawable.ic_terminal_new);
     icon.setImageTintList(primaryText);
+    icon.setBackgroundResource(R.drawable.bg_terminal_create_chip);
+    icon.setPadding(dp(6), dp(6), dp(6), dp(6));
     icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    row.addView(icon, new LinearLayout.LayoutParams(dp(19), dp(19)));
-    createLabel = panelText(UiText.choose("新建终端会话", "New terminal session"), 14, 0, true);
+    row.addView(icon, new LinearLayout.LayoutParams(dp(30), dp(30)));
+    createLabel = panelText(UiText.choose("新建终端会话", "New terminal session"), 15, 0, true);
     createLabel.setTextColor(primaryText);
+    createLabel.setMaxLines(1);
+    createLabel.setEllipsize(TextUtils.TruncateAt.END);
     LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, -2, 1);
-    labelParams.setMarginStart(dp(9));
+    labelParams.setMarginStart(dp(12));
     row.addView(createLabel, labelParams);
-    createHint = panelText(UiText.text("PTY / 简易"), 10, 0, false);
-    createHint.setTextColor(primaryText);
-    createHint.setAlpha(.75f);
-    createHint.setGravity(Gravity.END);
-    createHint.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    row.addView(createHint, new LinearLayout.LayoutParams(-2, -2));
     row.setOnClickListener(v -> showCreateChooser());
     UiMotion.pressScale(row);
     return row;
@@ -811,6 +809,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     menuButton.setVisibility(workbench && !expanded ? View.VISIBLE : View.GONE);
     settingsButton.setVisibility(workbench && expanded ? View.VISIBLE : View.GONE);
     helpButton.setVisibility(workbench && expanded ? View.VISIBLE : View.GONE);
+    cliButton.setVisibility(workbench ? View.VISIBLE : View.GONE);
     float density = getResources().getDisplayMetrics().density;
     applyCompactChrome(
         Math.round((expanded ? inlineWidthPx() : drawerWidthPx()) / density),
@@ -850,39 +849,52 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     compactHeight = TerminalWorkspacePolicy.compactHeight(panelHeightDp, fontScale);
     denseFooter = TerminalWorkspacePolicy.denseFooter(panelHeightDp, fontScale);
     boolean tight = compactHeight || landscapeCompact;
-    sessionSubtitle.setVisibility(tight ? View.GONE : View.VISIBLE);
-    panelSecondary.setVisibility(tight ? View.GONE : View.VISIBLE);
-    sessionHeader.setPaddingRelative(dp(14), dp(tight ? 8 : 15), dp(8), dp(tight ? 4 : 12));
-    sessionFooter.setPadding(
-        dp(landscapeCompact ? 6 : 10), dp(tight ? 4 : 6),
-        dp(landscapeCompact ? 6 : 10), dp(tight ? 6 : 10));
-    sessionList.setPadding(dp(6), dp(tight ? 0 : 2), dp(6), dp(tight ? 6 : 12));
-    createHint.setVisibility(
-        landscapeCompact || TerminalWorkspacePolicy.stackSessionDetails(panelWidthDp, fontScale)
-            ? View.GONE
-            : View.VISIBLE);
+    boolean narrow = TerminalWorkspacePolicy.narrowActions(panelWidthDp);
+    boolean narrowChanged = narrowActions != narrow;
+    narrowActions = narrow;
+    applyNarrowGrid(narrow, tight);
+    // 窄抽屉没有全标签的空间：始终用 dense 短标签组，高度足够时也不回到宽标签。
     boolean compactActions = denseFooter || landscapeCompact;
-    footerActionsWide.setVisibility(compactActions ? View.GONE : View.VISIBLE);
-    footerActionsDense.setVisibility(compactActions ? View.VISIBLE : View.GONE);
+    footerActionsWide.setVisibility(narrow || compactActions ? View.GONE : View.VISIBLE);
+    footerActionsDense.setVisibility(narrow || compactActions ? View.VISIBLE : View.GONE);
     int wideColumns = TerminalWorkspacePolicy.footerColumns(panelWidthDp, fontScale, false);
     int denseColumns = TerminalWorkspacePolicy.footerColumns(panelWidthDp, fontScale, true);
     if (wideColumns != footerWideColumns) {
       reflowFooterActions(footerActionsWide, wideColumns);
       footerWideColumns = wideColumns;
     }
-    if (denseColumns != footerDenseColumns) {
-      reflowFooterActions(footerActionsDense, denseColumns);
+    if (denseColumns != footerDenseColumns || narrowChanged) {
+      reflowFooterActions(footerActionsDense, denseColumns, true, narrow);
       footerDenseColumns = denseColumns;
     }
-    boolean stacked = TerminalWorkspacePolicy.stackSessionDetails(panelWidthDp, fontScale);
-    if (stackedSessionDetails != stacked) {
-      stackedSessionDetails = stacked;
-      if (sessionsRendered) renderSessions();
-    }
+    // 窄或大字体时会话行收起类型图标块，名称仍单行；类型由名称本身与无障碍描述给出。
+    boolean compact = TerminalWorkspacePolicy.stackSessionDetails(panelWidthDp, fontScale);
+    boolean recompact = compactRows != compact;
+    compactRows = compact;
+    if ((recompact || narrowChanged) && sessionsRendered) renderSessions();
+  }
+
+  /** 窄抽屉统一 12dp 横向网格；宽侧栏标题 16dp、列表与底部 10/12dp。 */
+  private void applyNarrowGrid(boolean narrow, boolean tight) {
+    sessionHeader.setPaddingRelative(
+        dp(narrow ? 12 : 16), dp(tight ? 8 : 14), dp(narrow ? 12 : 6), dp(tight ? 6 : 12));
+    int footerSide = narrow ? 12 : (landscapeCompact ? 8 : 12);
+    sessionFooter.setPadding(
+        dp(footerSide), dp(tight ? 6 : 10), dp(footerSide), dp(tight ? 6 : 12));
+    sessionList.setPadding(
+        dp(narrow ? 12 : 10), dp(tight ? 0 : 2), dp(narrow ? 12 : 10), dp(tight ? 6 : 10));
+    if (panelNotice != null)
+      panelNotice.setPadding(dp(narrow ? 0 : 2), 0, dp(narrow ? 0 : 2), dp(6));
   }
 
   /** 列数只改变已有按钮的排布，不替换点击回调或完整的无障碍名称。 */
   private void reflowFooterActions(LinearLayout footer, int columns) {
+    reflowFooterActions(footer, columns, false, false);
+  }
+
+  /** dense 组在窄抽屉切换短标签样式；wide 组保持全标签与 3dp 外边距。 */
+  private void reflowFooterActions(
+      LinearLayout footer, int columns, boolean dense, boolean narrow) {
     View focused = footer.findFocus();
     java.util.ArrayList<TextView> buttons = new java.util.ArrayList<>();
     for (int rowIndex = 0; rowIndex < footer.getChildCount(); rowIndex++) {
@@ -895,32 +907,44 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     }
     footer.removeAllViews();
     for (int index = 0; index < buttons.size(); index += columns) {
-      addFooterGridRow(
-          footer,
+      TextView[] rowButtons =
           buttons
               .subList(index, Math.min(buttons.size(), index + columns))
-              .toArray(new TextView[0]));
+              .toArray(new TextView[0]);
+      if (dense) {
+        for (TextView button : rowButtons) applyDenseActionStyle(button, narrow);
+      }
+      addFooterGridRow(footer, dense && narrow, rowButtons);
     }
     if (focused != null) focused.requestFocus();
   }
 
-  /** 短窗使用简短标签，不缩小系统字号；保留换行和至少 48dp 的触摸高度。 */
+  /** 短窗使用简短标签，不缩小系统字号；窄抽屉另外强制单行、3dp 内边距与 48dp 等高。 */
   private void compactDenseActions() {
     for (int rowIndex = 0; rowIndex < footerActionsDense.getChildCount(); rowIndex++) {
       View row = footerActionsDense.getChildAt(rowIndex);
       if (!(row instanceof ViewGroup group)) continue;
       for (int index = 0; index < group.getChildCount(); index++) {
-        if (!(group.getChildAt(index) instanceof TextView button)) continue;
-        button.setText(denseActionLabel(button.getId()));
-        button.setSingleLine(false);
-        button.setMaxLines(2);
-        button.setEllipsize(TextUtils.TruncateAt.END);
-        button.setTextSize(11);
-        button.setMinHeight(dp(48));
-        button.setPaddingRelative(dp(8), dp(6), dp(5), dp(6));
-        button.setCompoundDrawablePadding(dp(5));
+        if (group.getChildAt(index) instanceof TextView button)
+          applyDenseActionStyle(button, false);
       }
     }
+  }
+
+  /**
+   * dense 按钮的短标签与度量。窄态单行、3dp 内边距、固定 48dp 高，避免折行和同行错位；
+   * 宽而短的窗口恢复既有 2 行上限与 8/6/5/6 内边距。完整名称始终留在 contentDescription。
+   */
+  private void applyDenseActionStyle(TextView button, boolean narrow) {
+    button.setText(denseActionLabel(button.getId()));
+    button.setTextSize(11);
+    button.setMinHeight(dp(48));
+    button.setSingleLine(narrow);
+    button.setMaxLines(narrow ? 1 : 2);
+    button.setEllipsize(TextUtils.TruncateAt.END);
+    if (narrow) button.setPaddingRelative(dp(3), dp(3), dp(3), dp(3));
+    else button.setPaddingRelative(dp(8), dp(6), dp(5), dp(6));
+    button.setCompoundDrawablePadding(dp(5));
   }
 
   /** 短标签配完整无障碍名称，按钮列数由实际宽度和字体决定。 */
@@ -1188,8 +1212,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   private int drawerWidthPx() {
     int available =
         root == null ? 0 : root.getWidth() - root.getPaddingLeft() - root.getPaddingRight();
-    return TerminalWorkspacePolicy.drawerWidth(
-        available, dp(TerminalWorkspacePolicy.drawerMaxWidth()), dp(32));
+    return TerminalWorkspacePolicy.drawerWidth(available, dp(drawerMaxWidthDp()), dp(32));
   }
 
   private int inlineWidthPx() {
@@ -1201,6 +1224,20 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (root == null) return 0;
     int width = Math.max(0, root.getWidth() - root.getPaddingLeft() - root.getPaddingRight());
     return Math.round(width / getResources().getDisplayMetrics().density);
+  }
+
+  /** 当前窗口宽度：尚未布局时退回配置宽度，抽屉上限仍按手机/平板正确取值。 */
+  private int windowWidthDp() {
+    int widthDp = workspaceWidthDp();
+    if (widthDp > 0) return widthDp;
+    return Math.max(0, getResources().getConfiguration().screenWidthDp);
+  }
+
+  /** 抽屉上限：手机类窄窗 224dp；平板（含分屏窄窗）与宽窗 336dp，不按机型名猜测。 */
+  private int drawerMaxWidthDp() {
+    var configuration = getResources().getConfiguration();
+    return TerminalWorkspacePolicy.drawerMaxWidth(
+        windowWidthDp(), configuration.smallestScreenWidthDp);
   }
 
   private int workspaceHeightDp() {
@@ -1323,26 +1360,25 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
         : UiText.format(UiText.choose("简易 %d", "Simple %d"), tab.number);
   }
 
-  /** 状态胶囊只放短词；完整状态仍由无障碍描述与对话框说明。 */
-  private String sessionShortState(boolean pty, TerminalTabs.Tab<?> tab) {
-    if (tab.isClosing()) return UiText.choose("结束中", "Ending");
-    if (tab.isCloseUnconfirmed()) return UiText.choose("待核验", "Unverified");
+  /** 名称后的状态点：绿 = 运行中，蓝 = 空闲，黄 = 需要留意，空心 = 已退出。 */
+  private android.graphics.drawable.GradientDrawable sessionDot(
+      boolean pty, TerminalTabs.Tab<?> tab) {
+    TerminalSessionDot.Kind kind;
     if (pty) {
       var process = (PtySession) tab.value;
-      if (process.isRunning()) return UiText.choose("运行中", "Running");
-      return process.isCleanupPending()
-          ? UiText.choose("待清理", "Cleanup")
-          : UiText.choose("已退出", "Exited");
+      kind =
+          TerminalSessionDot.forPty(
+              tab.isClosing(),
+              tab.isCloseUnconfirmed(),
+              process.isRunning(),
+              process.isCleanupPending());
+    } else {
+      var simple = (TerminalSessionOwner.SimpleTab) tab.value;
+      kind =
+          TerminalSessionDot.forSimple(
+              tab.isClosing(), tab.isCloseUnconfirmed(), simple.session.state());
     }
-    var simple = (TerminalSessionOwner.SimpleTab) tab.value;
-    return switch (simple.session.state()) {
-      case STARTING -> UiText.choose("启动中", "Starting");
-      case READY -> UiText.choose("就绪", "Ready");
-      case BUSY -> UiText.choose("执行中", "Busy");
-      case STOPPING -> UiText.choose("停止中", "Stopping");
-      case FAILED -> UiText.choose("失败", "Failed");
-      default -> UiText.choose("未运行", "Idle");
-    };
+    return TerminalSessionViews.dot(this, kind);
   }
 
   private String sessionState(boolean pty, TerminalTabs.Tab<?> tab) {
@@ -1364,13 +1400,6 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       case FAILED -> UiText.choose("失败 · 请检查", "Failed · inspect session");
       default -> UiText.choose("未运行", "Not running");
     };
-  }
-
-  private boolean sessionRunning(boolean pty, TerminalTabs.Tab<?> tab) {
-    if (tab.isClosing() || tab.isCloseUnconfirmed()) return false;
-    if (pty) return ((PtySession) tab.value).isRunning();
-    var state = ((TerminalSessionOwner.SimpleTab) tab.value).session.state();
-    return state == TerminalSession.State.READY || state == TerminalSession.State.BUSY;
   }
 
   void showDisplaySettings() {
@@ -1413,34 +1442,33 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
 
   private void showCreateChooser() {
     dismissPanel();
-    String[] choices = {
-      UiText.choose("PTY · 交互会话", "PTY · interactive session"),
-      UiText.choose("简易 · 按行命令", "Simple · line commands")
-    };
     panel =
-        new DshaDialogBuilder(this)
-            .setTitle(UiText.choose("新建终端会话", "New terminal session"))
-            .setItems(
-                choices,
-                (dialog, index) -> {
-                  dismissPanel();
-                  createInMode(index == 0);
-                })
-            .setNegativeButton(UiText.text("取消"), null)
-            .show();
+        TerminalSessionViews.showCreateChooser(
+            this,
+            new TerminalSessionViews.CreateChoice() {
+              @Override
+              public void pty() {
+                dismissPanel();
+                createInMode(true);
+              }
+
+              @Override
+              public void simple() {
+                dismissPanel();
+                createInMode(false);
+              }
+
+              @Override
+              public void cli() {
+                dismissPanel();
+                createCliSession();
+              }
+            });
   }
 
   private void showSessionHelp() {
     dismissPanel();
-    panel =
-        new DshaDialogBuilder(this)
-            .setTitle(UiText.choose("会话侧栏", "Sessions sidebar"))
-            .setMessage(
-                UiText.choose(
-                    "点击悬浮球或顶栏“菜单”打开会话侧栏。平板宽屏在侧栏打开时内联显示并保留终端，工作台宽屏常驻；窄窗口用抽屉。返回只关闭页面，结束进程必须在会话行明确确认并核验。",
-                    "Tap the floating ball or the top menu to open the sessions sidebar. On wide tablets the sidebar stays inline beside the terminal when opened, and is persistent in workbench mode; narrow windows use a drawer. Back only closes the page; ending a process requires an explicit confirmed and verified action on its row."))
-            .setPositiveButton(UiText.choose("知道了", "Got it"), null)
-            .show();
+    panel = TerminalSessionViews.showHelp(this);
   }
 
   private record SessionFocusKey(boolean pty, long sessionId, String action) {}
@@ -1453,28 +1481,25 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     // 重建期间先把焦点留在侧栏，避免移除行控件后回到终端输入。
     if (focused != null) sessionPanel.requestFocus();
     sessionList.removeAllViews();
+    // 一个混合列表：PTY 与简易按创建先后排列，类型由左侧图标与名称区分。
     var ptyTabs = owner.ptyTabs().snapshot();
     var simpleTabs = owner.simpleTabs().snapshot();
-    addGroupHeader(
-        UiText.choose("PTY · 交互会话", "PTY · interactive sessions"),
-        ptyTabs.size(),
-        R.drawable.ic_terminal_pty);
-    if (ptyTabs.isEmpty()) addGroupEmpty();
-    for (var tab : ptyTabs) addSessionRow(true, tab);
-    addGroupHeader(
-        UiText.choose("简易 · 按行命令", "Simple · line commands"),
-        simpleTabs.size(),
-        R.drawable.ic_terminal_simple);
-    if (simpleTabs.isEmpty()) addGroupEmpty();
-    for (var tab : simpleTabs) addSessionRow(false, tab);
-    int total = ptyTabs.size() + simpleTabs.size();
-    if (sessionSummary != null)
-      sessionSummary.setText(
-          UiText.format(
-              UiText.choose("%d 个会话 · PTY %d / 简易 %d", "%d sessions · PTY %d / simple %d"),
-              total,
-              ptyTabs.size(),
-              simpleTabs.size()));
+    java.util.ArrayList<Long> ptyIds = new java.util.ArrayList<>();
+    java.util.ArrayList<Long> simpleIds = new java.util.ArrayList<>();
+    for (var tab : ptyTabs) ptyIds.add(tab.id);
+    for (var tab : simpleTabs) simpleIds.add(tab.id);
+    java.util.ArrayList<SessionEntry> entries = new java.util.ArrayList<>();
+    for (var key : LIST_ORDER.arrange(ptyIds, simpleIds)) {
+      TerminalTabs.Tab<?> tab =
+          key.pty() ? owner.ptyTabs().find(key.id()) : owner.simpleTabs().find(key.id());
+      if (tab != null) entries.add(new SessionEntry(key.pty(), tab));
+    }
+    // 两类各有一个“当前”；只高亮正在显示的那一类，避免列表里出现两个当前行。
+    TerminalPane shown = pane();
+    boolean showingPty = shown == null || shown.isPty();
+    for (var entry : entries) addSessionRow(entry.pty(), entry.tab(), entry.pty() == showingPty);
+    if (entries.isEmpty()) addListEmpty();
+    int total = entries.size();
     if (closeAllButton != null) closeAllButton.setVisibility(total > 0 ? View.VISIBLE : View.GONE);
     sessionsRendered = true;
     refreshCloseAllNotice();
@@ -1485,59 +1510,33 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     }
   }
 
-  private void addGroupHeader(String text, int count, int iconRes) {
-    LinearLayout row = new LinearLayout(this);
-    row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setMinimumHeight(
-        getResources().getDimensionPixelSize(R.dimen.terminal_sidebar_group_min_height));
-    // 原型 .group-head：36dp 行高、22dp 图标位、11.5sp 粗标题 + 11sp 计数胶囊。
-    row.setPadding(dp(8), dp(4), dp(8), dp(4));
-    row.addView(
-        iconView(iconRes, R.color.terminal_muted, 15),
-        new LinearLayout.LayoutParams(dp(22), dp(22)));
-    TextView heading = panelText(text, 11.5f, getColor(R.color.terminal_muted), true);
-    LinearLayout.LayoutParams headingParams = new LinearLayout.LayoutParams(0, -2, 1);
-    headingParams.setMarginStart(dp(7));
-    row.addView(heading, headingParams);
-    TextView number = panelText(String.valueOf(count), 11, getColor(R.color.terminal_muted), false);
-    number.setGravity(Gravity.CENTER);
-    number.setMinWidth(dp(22));
-    number.setMinHeight(dp(20));
-    number.setPadding(dp(7), 0, dp(7), 0);
-    number.setBackgroundResource(R.drawable.bg_terminal_count_pill);
-    row.addView(number, new LinearLayout.LayoutParams(-2, -2));
-    LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-    rowParams.topMargin = dp(4);
-    sessionList.addView(row, rowParams);
-  }
+  private record SessionEntry(boolean pty, TerminalTabs.Tab<?> tab) {}
 
-  private void addGroupEmpty() {
+  /** 空列表只留一行淡色文字，不再画虚线框；新建入口就在正上方。 */
+  private void addListEmpty() {
     TextView empty =
         panelText(
-            UiText.choose("暂无会话", "No sessions"), 11, getColor(R.color.terminal_muted), false);
-    empty.setBackgroundResource(R.drawable.bg_terminal_sidebar_empty);
-    empty.setGravity(Gravity.CENTER);
-    empty.setPadding(dp(12), dp(11), dp(12), dp(11));
-    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-    params.setMargins(dp(2), dp(2), dp(2), dp(4));
-    sessionList.addView(empty, params);
+            UiText.choose("暂无会话", "No sessions"), 13, getColor(R.color.terminal_faint), false);
+    empty.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+    empty.setMinHeight(dp(44));
+    empty.setPaddingRelative(dp(narrowActions ? 2 : 10), 0, dp(10), 0);
+    sessionList.addView(empty, new LinearLayout.LayoutParams(-1, -2));
   }
 
-  private void addSessionRow(boolean pty, TerminalTabs.Tab<?> tab) {
+  private void addSessionRow(boolean pty, TerminalTabs.Tab<?> tab, boolean shownKind) {
     TerminalTabs.Tab<?> current = pty ? owner.currentPty() : owner.currentSimple();
-    boolean active = current != null && current.id == tab.id;
-    boolean running = sessionRunning(pty, tab);
+    boolean active = shownKind && current != null && current.id == tab.id;
     LinearLayout row = new LinearLayout(this);
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setGravity(Gravity.CENTER_VERTICAL);
     row.setMinimumHeight(
         getResources().getDimensionPixelSize(R.dimen.terminal_sidebar_row_min_height));
-    // 原型 .session-row.active：accent_soft 底 + accent_line 描边 + 11dp 圆角。
-    if (active) row.setBackgroundResource(R.drawable.bg_terminal_sidebar_row_active);
+    // 当前行：强调浅底 + 起始侧 3dp 强调条；其余行透明，按压才有涟漪。
+    if (active) row.setBackgroundResource(R.drawable.bg_terminal_sidebar_row_current);
     LinearLayout body = new LinearLayout(this);
     body.setOrientation(LinearLayout.HORIZONTAL);
     body.setGravity(Gravity.CENTER_VERTICAL);
-    body.setPadding(dp(7), dp(6), dp(7), dp(6));
+    body.setPaddingRelative(dp(compactRows ? 12 : 10), dp(6), dp(4), dp(6));
     body.setFocusable(true);
     body.setClickable(true);
     body.setBackgroundResource(R.drawable.bg_terminal_sidebar_row);
@@ -1545,51 +1544,34 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
         iconView(
             pty ? R.drawable.ic_terminal_pty : R.drawable.ic_terminal_simple,
             active ? R.color.terminal_accent : R.color.terminal_muted,
-            16);
+            17);
     glyph.setBackgroundResource(
         active
             ? R.drawable.bg_terminal_sidebar_symbol_active
             : R.drawable.bg_terminal_sidebar_symbol);
-    glyph.setPadding(dp(6), dp(6), dp(6), dp(6));
-    glyph.setVisibility(stackedSessionDetails ? View.GONE : View.VISIBLE);
-    body.addView(glyph, new LinearLayout.LayoutParams(dp(28), dp(28)));
-    LinearLayout details = new LinearLayout(this);
-    details.setOrientation(stackedSessionDetails ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
-    details.setGravity(Gravity.CENTER_VERTICAL);
-    LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(0, -2, 1);
-    detailsParams.setMarginStart(dp(stackedSessionDetails ? 0 : 8));
-    body.addView(details, detailsParams);
+    glyph.setPadding(dp(7), dp(7), dp(7), dp(7));
+    glyph.setVisibility(compactRows ? View.GONE : View.VISIBLE);
+    LinearLayout.LayoutParams glyphParams = new LinearLayout.LayoutParams(dp(32), dp(32));
+    glyphParams.setMarginEnd(dp(11));
+    body.addView(glyph, glyphParams);
     TextView name =
         panelText(
             sessionDisplayName(pty, tab),
-            12.5f,
+            15,
             getColor(active ? R.color.terminal_accent : R.color.terminal_panel_text),
-            active);
+            true);
     name.setSingleLine(true);
     name.setEllipsize(TextUtils.TruncateAt.END);
-    LinearLayout.LayoutParams nameParams =
-        stackedSessionDetails
-            ? new LinearLayout.LayoutParams(-1, -2)
-            : new LinearLayout.LayoutParams(0, -2, 1);
-    details.addView(name, nameParams);
-    TextView state =
-        panelText(
-            sessionShortState(pty, tab),
-            11,
-            getColor(active || running ? R.color.terminal_accent : R.color.terminal_muted),
-            false);
-    state.setSingleLine(true);
-    state.setGravity(Gravity.CENTER);
-    state.setMinHeight(dp(20));
-    state.setPadding(dp(7), 0, dp(7), 0);
-    state.setBackgroundResource(
-        active ? R.drawable.bg_terminal_state_pill_active : R.drawable.bg_terminal_state_pill);
-    state.setEllipsize(TextUtils.TruncateAt.END);
-    LinearLayout.LayoutParams stateParams = new LinearLayout.LayoutParams(-2, -2);
-    stateParams.setMarginStart(dp(stackedSessionDetails ? 0 : 6));
-    stateParams.topMargin = dp(stackedSessionDetails ? 3 : 0);
-    stateParams.gravity = Gravity.START;
-    details.addView(state, stateParams);
+    body.addView(name, new LinearLayout.LayoutParams(-2, -2, 0));
+    // 状态只用名称后的一个圆点表达；完整状态写进整行的无障碍描述。
+    View dot = new View(this);
+    dot.setBackground(sessionDot(pty, tab));
+    dot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(dp(7), dp(7));
+    dotParams.setMarginStart(dp(8));
+    dotParams.setMarginEnd(dp(4));
+    body.addView(dot, dotParams);
+    body.addView(new View(this), new LinearLayout.LayoutParams(0, 0, 1));
     String description = UiText.format("%s · %s", sessionLabel(pty, tab), sessionState(pty, tab));
     if (active)
       description = UiText.format(UiText.choose("当前会话 · %s", "Current session · %s"), description);
@@ -1603,6 +1585,9 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
             UiText.format(UiText.choose("重命名 %s", "Rename %s"), sessionLabel(pty, tab)),
             () -> rename(pty, tab.id),
             R.color.terminal_muted);
+    rename.setBackgroundResource(
+        active ? R.drawable.bg_terminal_icon_round_card : R.drawable.bg_terminal_icon_round);
+    rename.setPadding(dp(14), dp(14), dp(14), dp(14));
     rename.setTag(new SessionFocusKey(pty, tab.id, "rename"));
     rename.setEnabled(!tab.isClosing());
     rename.setAlpha(rename.isEnabled() ? 1f : .35f);
@@ -1620,13 +1605,16 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
                 sessionLabel(pty, tab)),
             () -> requestCloseSession(pty, tab.id),
             tab.isCloseUnconfirmed() ? R.color.terminal_warning : R.color.terminal_muted);
+    close.setBackgroundResource(
+        active ? R.drawable.bg_terminal_icon_round_card : R.drawable.bg_terminal_icon_round);
+    close.setPadding(dp(14), dp(14), dp(14), dp(14));
     close.setTag(new SessionFocusKey(pty, tab.id, "close"));
     close.setEnabled(!tab.isClosing());
     close.setAlpha(close.isEnabled() ? 1f : .35f);
     UiMotion.pressScale(close);
     row.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
     LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-    rowParams.bottomMargin = dp(3);
+    rowParams.bottomMargin = dp(4);
     sessionList.addView(row, rowParams);
     if (!tab.closeError().isEmpty()) {
       TextView error =
@@ -1917,8 +1905,10 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     if (closeAllButton != null) {
       closeAllButton.setEnabled(!closeAllRunning && !creating);
       closeAllButton.setAlpha(closeAllRunning || creating ? .55f : 1f);
-      closeAllButton.setText(
-          closeAllRunning ? UiText.choose("正在结束…", "Ending…") : UiText.choose("结束全部", "End all"));
+      closeAllButton.setContentDescription(
+          closeAllRunning
+              ? UiText.choose("正在结束…", "Ending…")
+              : UiText.choose("结束全部终端会话并核验", "End all terminal sessions and verify"));
     }
     if (newSessionButton != null) {
       newSessionButton.setEnabled(!closeAllRunning);
@@ -1936,6 +1926,15 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
   }
 
   private void createInMode(boolean pty) {
+    createPaneSession(pty, null);
+  }
+
+  /** 「DSH CLI」只改变新 PTY 的固定 argv；保护票、关闭与维护仍走原 PTY 路径。 */
+  private void createCliSession() {
+    createPaneSession(true, DshaCliPreset.guestCommand(UiText.language()));
+  }
+
+  private void createPaneSession(boolean pty, String[] guestCommand) {
     if (!allowTerminalCreation()
         || changingMode
         || getSupportFragmentManager().isStateSaved()
@@ -1947,7 +1946,11 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
     previousProcess = false;
     // 禁止模式首次自动创建与菜单新建叠加：显式新建的目标Fragment跳过默认创建。
     replacePane(pty, true);
-    if (pane() != null && pane().isPty() == pty) pane().newSession();
+    TerminalPane current = pane();
+    if (current == null || current.isPty() != pty) return;
+    if (guestCommand == null) current.newSession();
+    else if (current instanceof PtyTerminalFragment ptyPane)
+      ptyPane.newSessionWithCommand(guestCommand, DshaCliPreset.TITLE);
   }
 
   /** A close-all operation applies to its confirmed snapshot; do not start new tabs mid-close. */

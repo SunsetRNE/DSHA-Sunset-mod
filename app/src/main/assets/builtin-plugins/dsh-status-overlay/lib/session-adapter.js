@@ -77,8 +77,12 @@ export function sessionAdapter(ctx, instance = hostInstanceId, liveText = () => 
       if (typeof args.text !== 'string' || !args.text.trim() || args.text.length > 32768)
         throw new Error('PROMPT_INVALID')
       const requestId = id(args.requestId)
+      // steer splices the message into the running turn's next step; queue starts a later turn.
+      // Anything else is rejected rather than silently downgraded.
+      const mode = args.mode === undefined ? 'queue' : args.mode
+      if (mode !== 'queue' && mode !== 'steer') throw new Error('PROMPT_INVALID')
       // A receipt only means real inbox admission; never fabricated completion.
-      return await controller.prompt({ sessionId, requestId, mode: 'queue',
+      return await controller.prompt({ sessionId, requestId, mode,
         content: [{ type: 'text', text: args.text }] }, signal)
     }
     if (method === 'sessions.cancel') {

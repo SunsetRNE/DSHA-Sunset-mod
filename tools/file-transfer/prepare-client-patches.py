@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate exact rc3 file-slot and owned image actions recipes from locked npm originals."""
+"""Generate exact rc5 file-slot and owned image actions recipes from locked npm originals."""
 import argparse
 import hashlib
 import json
@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
 from source_text import write_text, matches_text
 
-VERSION = '0.2.1-rc.3'
+VERSION = '0.2.1-rc.5'
 MODULES = {
     'file-deliverables-patch.json': ('@deepseek-ai/dsh-client-ui-deliverables/lib/client.js',
         '0b786f9c89e728ac33926b452536daaea678d9e7741a579126e406a232cb03ed'),
@@ -93,7 +93,7 @@ def main():
                 raise ValueError('FILE_ACTIONS_RECIPE_STALE: ' + asset)
         else:
             write_text(destination, expected, encoding='utf8')
-        print('PASS locked rc3 file actions recipe: ' + asset)
+        print('PASS locked rc5 file actions recipe: ' + asset)
 
 
 if __name__ == '__main__':

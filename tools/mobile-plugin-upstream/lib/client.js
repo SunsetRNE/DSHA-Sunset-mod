@@ -1146,17 +1146,17 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
   }
 
   /* The host's own right sidebar IS the Files panel on phones, and the host
-     pins it as a fixed full-bleed sheet: [data-sidebar-right-panel=fullscreen]
-     carries position:fixed; inset:0 and no inset of its own (the host CSS
+     pins it as a full-bleed sheet: [data-sidebar-right-panel=fullscreen]
+     carries inset:0 (0.1.5: position:fixed; 0.2.x dockkit: position:absolute,
+     both spanning the whole viewport) and no inset of its own (the host CSS
      never mentions safe-area at all). Its top row - the tab strip holding the
      tab label, the + button and the Split / Exit-fullscreen pair at the right
      edge - therefore sat UNDER the status bar: measured at 390x844 with the
      panel open, the strip is [0,0,390,38] and the phone's status bar owns the
-     top of the screen. The frame's own safe-area padding cannot reach it: a
-     fixed element's containing block is the viewport, not the frame's padding
-     box. Taking the inset as padding keeps the panel's own --dsw-alias-bg-base
-     covering the whole viewport (no seam behind the status bar) and drops the
-     entire row below it, with the right-hand buttons still on the right edge.
+     top of the screen. The frame's own safe-area padding cannot reach it: the
+     panel starts at the viewport top regardless of the frame's padding box.
+     Taking the inset as padding pushes the whole row below the status bar,
+     with the right-hand buttons still on the right edge.
      ONLY the fullscreen form: the host's docked form (measured at 820x1180 -
      form=push, position:absolute, 365px right-anchored) has the frame's
      padding box as its containing block, so it already starts below the
@@ -1166,6 +1166,35 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
      so desktop keeps the host layout. */
   [data-sidebar-right-panel="fullscreen"] {
     padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+
+  /* 0.2.0 dockkit 重构删掉了面板本体自带的 z-index 与底色（0.1.5 是
+     .P3OORG_panel{z-index:10; background:var(--dsw-alias-bg-base)}）。下面两条
+     规则各补回一条，共用 [data-sidebar-right-open] 门控：fullscreen 形态值由
+     视口宽度推导、关态也在场，且关态面板的 rect 同样铺满视口（实测 390x844 →
+     [0,0,390,844]），漏门会给关闭态那块空面板涂色/抬层。 */
+  /* @patch
+     id: fullscreen-panel-sheet
+     for: dsh-client-ui-sidebar-right 0.2.x 的 [data-sidebar-right-panel="fullscreen"]（0.2.0 起面板本体不再自带 z-index）
+     why: 面板 z auto 而活跃会话的输入卡座是 sticky z-index:7，面板自身表面被输入卡压住；恢复 0.1.5 的 z-index:10，面板重新是一整张 sheet
+     until: 上游把 z-index 还给面板本体，或给全屏面板一个不依赖 z 的层叠接缝——届时本块删除
+     test: tests/fullscreen-panel-sheet.test.ts
+  */
+  [data-sidebar-right-open][data-sidebar-right-panel="fullscreen"] {
+    z-index: 10 !important;
+  }
+  /* @patch
+     id: wallpaper-panel-fill
+     for: deepseek-harness-background 0.6.x 的 body[data-dsh-bg]（壁纸启用时把 --dsw-alias-bg-base 置为 transparent）+ 0.2.x 全屏右侧栏面板
+     why: 面板唯一的底色就是继承来的 --dsw-alias-bg-base（浅色 = neutral-bluish-00、深色 = neutral-bluish-950）；令牌被清空后全屏面板整片透出会话正文，无壁纸时内容层自绘该令牌故不需要常驻补色
+     until: 上游给全屏面板提供不透明的填充接缝，或不再把 --dsw-alias-bg-base 置空——届时本块删除
+     test: tests/wallpaper-surface-fill.test.ts
+  */
+  body[data-dsh-bg] [data-sidebar-right-open][data-sidebar-right-panel="fullscreen"] {
+    background-color: var(--dsw-static-neutral-bluish-00, #fff);
+  }
+  body[data-ds-dark-theme][data-dsh-bg] [data-sidebar-right-open][data-sidebar-right-panel="fullscreen"] {
+    background-color: var(--dsw-static-neutral-bluish-950, #151517);
   }
 
   /* Phone chrome keeps only the collapse control. Split visibility must not
@@ -2631,6 +2660,22 @@ exports.LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND touc
     }
     [data-mobile-nav="frame"] [data-phase] header [role="tab"] {
       min-height: 26px !important;
+    }
+  }
+  /* 横屏短高度（旋转后的手机 / 横置的小平板）：宽度 ≥768 的档位在横屏里会掉进平板档
+     的 87px 头部，但可用高度只剩 375–480px —— 顶栏 + 输入区 + 统计行吃掉近一半。
+     2026-10-29 无头宽度矩阵实测 812×375：header 87 + 座位 92 = 179px，正文只剩约
+     196px（#245 的横屏场景）。
+     本轮只收行高地板（页签 32 → 24），实测 87 → 80；页签自身还挂着 9px 下内边距
+     （下一轮按真机读数再定，别在这里猜）。只按「形状」（横屏 + 高度 ≤480）收紧，
+     不按宽度分平板档：竖屏、桌面档与真正的高平板都不命中；页签 24px 也不与 ≤767
+     手机档的 26px 定稿值重复（那条手机档值由 phone-tier-gating 测试锁着）。 */
+  @media (max-height: 480px) and (orientation: landscape) {
+    [data-mobile-nav="frame"] [data-phase] header:has(> *) {
+      grid-template-rows: minmax(36px, auto) minmax(24px, auto) !important;
+    }
+    [data-mobile-nav="frame"] [data-phase] header [role="tab"] {
+      min-height: 24px !important;
     }
   }
   /* The title cluster reserves its last 44px for that empty utilities seat.
@@ -5303,19 +5348,26 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
 
   /* ---------- dsh-web-ui polish: floating pet ----------
      The whale-girl pet (dsh-pet) floats at the viewport corner with a
-     persisted, draggable position. On phones the pet is scaled down so
-     it does not dominate the screen; the plugin's own drag + persist
-     still work (the position itself is left alone — the mobile default
-     position is seeded via the pet API to just above the composer). */
-
-  body > [class*="_float"]:has([class*="_sprite"][role="button"]) {
-    transform: scale(.66);
-    transform-origin: bottom right;
-  }
-  /* While a modal dialog (settings sheet / export) owns the screen the pet
-     floats ABOVE it and covers the dialog content; modal semantics say the
-     background is inert, so hide the pet for the modal's lifetime. */
-  body:has([aria-modal="true"]) > [class*="_float"]:has([class*="_sprite"][role="button"]) {
+     persisted, draggable position. Its root is a pointer-events:auto drag
+     layer, so while a sheet owns the screen it sits on top of the sheet's own
+     content and swallows taps; hide it for that sheet's lifetime.
+     2026-10-29 (#248): 0.3.x renamed the root to .dsh-pet-root — the shipped
+     bundle carries no _float / _sprite / role=button node at all, so the old
+     descendant selector had been dead for the whole 0.3 line. Both generations
+     are listed. The mobile scale rule that used to live here is gone: it never
+     matched 0.3.x, and the pet's own size setting owns that decision. */
+  /* @patch
+     id: pet-hidden-under-sheets
+     for: dsh-pet 0.3.x 的 .dsh-pet-root（slot shell.overlay）+ 老代际 _float/_sprite 根节点
+     why: 宠物根节点是拖拽层，弹层与全屏右侧栏面板期间压住面板内容并吞点击；旧选择器打不到 0.3.x 的根节点
+     until: 宠物插件提供「背景 inert 时自行收起」的接缝，或稳定暴露一个语义标记——届时合并本块
+     test: tests/pet-overlay.test.ts
+  */
+  body:has([aria-modal="true"]) .dsh-pet-root,
+  body:has([data-sidebar-right-open][data-sidebar-right-panel="fullscreen"]) .dsh-pet-root,
+  body:has([aria-modal="true"]) > [class*="_float"]:has([class*="_sprite"][role="button"]),
+  body:has([data-sidebar-right-open][data-sidebar-right-panel="fullscreen"])
+    > [class*="_float"]:has([class*="_sprite"][role="button"]) {
     display: none !important;
   }
 
@@ -6563,6 +6615,148 @@ exports.MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   }
 }
 
+/* 宽屏触屏（≥1024，壳不生效）同样没有 hover：会话行的 ⋯ 必须常显。
+   宿主只在 :hover / menuOpen 时显示 _rowActions（dsh-client-ui-workspace），
+   而这一档没有移动壳的帧内规则兜底（手机档那条在 layout.css 的 frame 作用域里），
+   于是触屏平板点不到重命名 / 分叉 / 归档 / 删除 —— 只按指针门挂上同一条可见性
+   规则，不动行内布局（标题仍是 flex:1 + min-width:0 自己让位）。
+   与 session-delete 三件套同一门控口径：粗指针在任何宽度都成立。 */
+@media (min-width: 1024px) and (pointer: coarse) {
+  [class*="sessionRow"] [class*="_rowActions"] {
+    display: inline-flex !important;
+  }
+
+  /* ①′ 触屏平板的行内热区（2026-10-29 实测：会话行 32px 高、行距 34，
+     行内操作按钮只有 16×16、彼此相隔 31px —— 手指点不中，也点不准）。
+     做法：行抬到 44px（宿主没有行高约束，标题仍 flex:1 自己省略），
+     按钮盒 40×40、间距 4px（盒间净空 0、不重叠），图标本身仍是 16px 不放大。
+     40 而不是 44：三个按钮 + 净空在 256px 侧栏里已经占掉 128px，
+     再宽就把标题挤到 100px 以下；44 需要侧栏加宽，是产品取舍，不在本轮。 */
+  [class*="sessionRow"] {
+    min-height: 44px !important;
+  }
+  [class*="sessionRow"] [class*="_rowActions"] {
+    gap: 4px !important;
+  }
+  [class*="sessionRow"] [class*="_rowActions"] button,
+  [class*="sessionRow"] [class*="_rowActions"] [role="button"] {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    border-radius: 10px;
+  }
+
+  /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），
+     它的入口是宿主 header 里的 viewsMoreAnchor；平板这一档没有壳的帧内规则，
+     于是这颗对触屏平板毫无用处的按钮就漏了出来。只藏按钮与锚点，菜单不会再弹。 */
+  header [class*="viewsMore"],
+  header [class*="viewsMoreAnchor"] {
+    display: none !important;
+  }
+
+  /* ② 设置弹层改成手机档的「顶边贴齐、整宽、内容高」sheet（owner 2026-10-29：
+     「手机端和设置界面是分开的，平板还是原生，也改造成手机一样」）。
+     原生的 800×800 居中模态在平板上离拇指太远；手机档的几何在 layout.css 的
+     移动块里（同一条家族谓词），这里只按粗指针补同样的几何与横向页签导航，
+     不动内容列。谓词与手机档完全一致：首孩子末孩子里有 button、且不是导航树 /
+     目录选择器 / 快捷键弹层。 */
+  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) {
+    position: absolute !important;
+    left: 8px !important;
+    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: auto;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px));
+    flex-direction: column !important;
+    border-radius: 14px !important;
+  }
+  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child {
+    width: 100%;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px 8px;
+  }
+  /* 手机档隐藏的是导航标题（整宽 sheet 上冗余）；横排后页签独占一行。 */
+  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child > :first-child {
+    display: none !important;
+  }
+  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+    gap: 6px;
+    margin-right: 42px;
+  }
+  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navCell"] {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    font-size: 13px !important;
+    justify-content: flex-start !important;
+  }
+  /* ②′ 平板标题行布局（owner 2026-10-29 团队投票：其余功能居中）。
+     宿主把标题、预设、Agent Team / 子智能体 / 后台任务都塞在 titleCluster 的
+     headerActions 里，从左一个接一个排；平板宽屏上它们全挤在标题后面。
+     这里把「预设」用 order 提到最前（留在标题旁），其余状态入口用一对对称的
+     margin:auto 居中 —— 对称 margin 的好处是：后台任务 chip 出现/消失时，
+     整组的**中心点不动**，只有两翼伸缩，不会像左对齐那样把标题区推来推去。
+     只作用于 ≥1024 + 粗指针（平板原生布局档），≤1023 的壳与桌面都不命中。 */
+  [class*="titleCluster"] [class*="headerActions"] {
+    flex: 1 1 auto !important;
+  }
+  [class*="titleCluster"] [class*="headerActions"] [class*="SVAs4q_label"] {
+    order: -1 !important;
+  }
+  [class*="titleCluster"] [class*="headerActions"] [class*="VoX2oq_root"] {
+    margin-left: auto !important;
+  }
+  [class*="titleCluster"] [class*="headerActions"] > div > :last-child {
+    margin-right: auto !important;
+  }
+
+  /* ③ 一键设置齿轮放回来（owner 2026-10-29：「手机上是分开的，平板还是原生」——
+     手机档把设置从账户菜单里拆出来、给了独立齿轮，平板这一档协调器不跑，齿轮又被
+     上面的桌面隐藏块一起藏掉。这里按粗指针放回，注入逻辑见 effects/tablet-quick-settings.ts；
+     账户菜单里那份设置项的收起由 base.css 的 data-mobile-nav-quick-menu 规则负责，那条是全局的。 */
+  [data-mobile-nav="quick-settings-wrap"],
+  [data-mobile-nav="quick-settings"] {
+    display: inline-flex !important;
+  }
+
+  /* ④ 设置弹层顶部的「Open configuration file」按钮：手机档在 layout.css 的家族谓词里
+     藏了它（约 94px + 32px 关闭键会把工具栏撑到 138px，挤掉页签行）。平板照做。 */
+  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) [class*="_actions"] {
+    display: none !important;
+  }
+  /* ⑤ 关掉上面那颗按钮之后，内容列顶部的工具栏（关闭 ✕）会留在文档流里、落到页签行
+     左下方（实测 x≈38 / y≈123）。手机档的做法是把它绝对定位钉到弹层右上角
+     （layout.css 的 #105 A′：top 10 / right 12 / z-index 10 / 32px 高）；平板这里
+     补同一条，让 ✕ 与页签行右端对齐。 */
+  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 10;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 0 4px;
+    height: 32px;
+    min-height: 32px;
+  }
+}
+
 /* 手机档：「更多视图」⋯ 与侧边栏「更多」重复，而且它把页签行挤成两行
    （tablist 宽 100% → flex 换行），连带把谱系 chip 顶到 header 底边那条空行。
    只藏按钮本身：菜单以它为锚点，藏了按钮就不会再弹出。 */
@@ -6673,7 +6867,7 @@ exports.MOBILE_CSS = [base_css_ts_1.BASE_CSS, layout_css_ts_1.LAYOUT_CSS, compat
 __modules["platform/breakpoints.js"] = function (require, module, exports) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TOUCH_QUERY = exports.DESKTOP_QUERY = exports.MOBILE_QUERY = void 0;
+exports.TABLET_TOUCH_QUERY = exports.TOUCH_QUERY = exports.DESKTOP_QUERY = exports.MOBILE_QUERY = void 0;
 exports.installMobileEffect = installMobileEffect;
 /** Same width bound as the shell's SIDEBAR_AUTO_COLLAPSE (viewport < 1024),
  *  ANDed with a touch-primary pointer guard. Width alone cannot tell a phone
@@ -6695,6 +6889,10 @@ exports.DESKTOP_QUERY = '(min-width: 1024px)';
  *  layout but still gets the 「删除会话」 item. Mouse-driven or pointer-less
  *  windows never arm it, at any width. */
 exports.TOUCH_QUERY = '(pointer: coarse)';
+/** 宽屏触屏（平板 ≥1024 + 粗指针）：宿主原生布局照旧，本插件只补「触屏缺 hover /
+ *  触屏热区」这一类补丁（2026-10-29 owner 定的方向：平板走原生，不做手机壳）。
+ *  与 MOBILE_QUERY 互补但不重叠；桌面（pointer: fine）任何宽度都不命中。 */
+exports.TABLET_TOUCH_QUERY = '(min-width: 1024px) and (pointer: coarse)';
 /**
  * Re-arm a mobile-only DOM effect on every query change. Replaces the
  * repeated matchMedia + change-listener scaffold so all breakpoint strings
@@ -9316,7 +9514,9 @@ exports.openStateStartMode = openStateStartMode;
 exports.followTranslate = followTranslate;
 exports.followOpenTransform = followOpenTransform;
 exports.findHorizontalScroller = findHorizontalScroller;
+exports.filesPanelOpen = filesPanelOpen;
 exports.selectionOwnsStroke = selectionOwnsStroke;
+exports.findFloatingWidget = findFloatingWidget;
 exports.closeDrawerAnimated = closeDrawerAnimated;
 exports.installSidebarSwipe = installSidebarSwipe;
 const frame_ts_1 = require("./platform/frame.js");
@@ -9782,23 +9982,24 @@ function drawerOpen() {
     return frame !== null && !frame.hasAttribute('data-sidebar-collapsed');
 }
 /**
- * True when the host's right sidebar files panel is currently VISIBLE (any
- * form: fullscreen on phones, docked on tablets). Measured on 0.1.5: the
- * panel element is persistent — the closed fullscreen form stays in the DOM
- * at `visibility: hidden` with its rect pushed to x=viewport-width — so
- * presence alone is not the panel-state read. Detect the open state by the
- * three ways the host can hide it (visibility / display / pushed-off rect);
- * a host without this panel keeps returning false and the explorer fallback
- * applies.
+ * True when the host's right sidebar files panel is currently OPEN (any form:
+ * fullscreen on phones, docked on tablets).
+ *
+ * The host owns the authoritative marker: `data-sidebar-right-open` is present
+ * exactly while the panel is expanded (live-verified on 0.2.1-rc.2).
+ * The 0.1.5-era geometry probe (`rect.left < innerWidth` on a mounted, not
+ * visibility:hidden panel) died with the 0.2.0 dockkit refactor: the panel is
+ * now a persistent viewport-wide box whose CLOSED form hides its children
+ * instead of itself, so its own rect always spans the viewport and every
+ * closed panel read as open (measured 2026-10-29 at 390x844: closed rect
+ * [0,0,390,844] without the marker, open the same rect with it). That read
+ * killed the documented right-edge LEFTWARD entry and left an undocumented
+ * rightward one (#249). A host without this panel keeps returning false and
+ * the explorer fallback applies.
  */
 function filesPanelOpen() {
     const panel = document.querySelector('[data-sidebar-right-panel]');
-    if (panel === null)
-        return false;
-    const cs = getComputedStyle(panel);
-    if (cs.visibility === 'hidden' || cs.display === 'none')
-        return false;
-    return panel.getBoundingClientRect().left < window.innerWidth;
+    return panel !== null && panel.hasAttribute('data-sidebar-right-open');
 }
 /**
  * Map the real DOM ancestor chain (target first, root last) onto the plain
@@ -9918,11 +10119,10 @@ function dragMarkYields(event) {
         event.target.closest('[data-mobile-nav-dragging]') !== null);
 }
 /** Upper bound (px) of the "small floating widget" positional heuristic.
- * The real-world reference is dsh-pet's floating ball (kz2Bea_float,
- * position:fixed, measured 148x160 on the live profile page) — 160 would
- * sit exactly on that widget's edge; 200 leaves headroom for sibling
- * plugin widgets while a full-screen overlay (backdrop, sheets, dialogs)
- * still cannot pass. */
+ * Sized for third-party widgets that ship no nameable root: dsh-pet's 0.3.x
+ * hit box (measured 173x206 on the live profile page) already exceeds it and
+ * is claimed by name below instead, while a full-screen overlay (backdrop,
+ * sheets, dialogs) still cannot pass. */
 const FLOATING_WIDGET_MAX_PX = 200;
 /**
  * Floating-widget positional yield (2026-09-11, 悬浮窗拖动冲突 B 侧): plugins
@@ -9930,21 +10130,29 @@ const FLOATING_WIDGET_MAX_PX = 200;
  * panel shapes) that carry NO standard "draggable" DOM mark, yet the user
  * presses the widget itself — so the stroke's start target sits inside that
  * widget's layer. Draggable widgets almost always live in a SMALL
- * freely-positioned layer (position: fixed | absolute, own box ≤ 160px)
- * hovering above the page, so walk the ancestor chain from the event target:
- * the first small positioned ancestor counts as a floating widget and the
- * stroke yields (no arm, no touchmove preventDefault). Pairs with
- * dragMarkYields (cooperation mark) which needs no shape guessing.
- * Excluded: anything inside our own frame subtree — the FAB / backdrop /
+ * freely-positioned layer (position: fixed | absolute, own box under
+ * FLOATING_WIDGET_MAX_PX) hovering above the page, so walk the ancestor chain
+ * from the event target: the first small positioned ancestor counts as a
+ * floating widget and the stroke yields (no arm, no touchmove preventDefault).
+ * Pairs with dragMarkYields (cooperation mark) which needs no shape guessing.
+ * Named exception (2026-10-29, #249-1): dsh-pet 0.3.x registers its root
+ * (.dsh-pet-root) into the shell overlay slot, i.e. INSIDE our frame subtree,
+ * and its hit box is 173x206 — the frame exclusion and the size cap both miss
+ * it, so a stroke started on the pet dragged it AND armed the drawer. Known
+ * roots are claimed by name before either filter runs.
+ * Excluded: anything else inside our own frame subtree — the FAB / backdrop /
  * drawer content carry their own gesture semantics and must never be
  * misread as floating widgets (the closed-state FAB sits in the start zone).
  * ponytail: no DOM-standard draggable signal exists; shape ≈ draggable is an
  * approximation with a known ceiling — a STATIC small positioned element
  * (e.g. a message badge) also yields, costing a stroke start under a
- * ≤160px dot; a REAL widget that misses (bigger layer, static positioning)
- * upgrades via the data-mobile-nav-dragging mark or by raising the cap.
+ * FLOATING_WIDGET_MAX_PX dot; a REAL widget that misses upgrades via the
+ * data-mobile-nav-dragging mark, a named branch like the pet one, or the cap.
  */
 function findFloatingWidget(target) {
+    const pet = target.closest('.dsh-pet-root');
+    if (pet !== null)
+        return pet;
     if (target.closest('[data-mobile-nav="frame"]') !== null)
         return null;
     let el = target;
@@ -14488,6 +14696,42 @@ function installInstalledListRows(ctx) {
     }, 'dsh-web-mobile: installed-list-inline-styles');
 }
 };
+__modules["effects/tablet-quick-settings.js"] = function (require, module, exports) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.installTabletQuickSettings = installTabletQuickSettings;
+const breakpoints_ts_1 = require("./platform/breakpoints.js");
+const drawer_quick_settings_ts_1 = require("./effects/drawer-quick-settings.js");
+/** 宽屏触屏上补一颗和手机档一致的一键设置齿轮。 */
+function installTabletQuickSettings(ctx) {
+    (0, breakpoints_ts_1.installMobileEffect)(ctx, 'tablet-quick-settings', () => {
+        const task = (0, drawer_quick_settings_ts_1.createDrawerQuickSettingsTask)(ctx);
+        task.ensure();
+        let queued = false;
+        const run = () => {
+            queued = false;
+            try {
+                task.ensure();
+            }
+            catch (error) {
+                // 与协调器同口径：任务失败不拖垮其它效果，错误交给 debug 徽章可见的 console。
+                console.error('[dsh-web-mobile] tablet-quick-settings', error);
+            }
+        };
+        const observer = new MutationObserver(() => {
+            if (queued)
+                return;
+            queued = true;
+            requestAnimationFrame(run);
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        return () => {
+            observer.disconnect();
+            task.dispose();
+        };
+    }, breakpoints_ts_1.TABLET_TOUCH_QUERY);
+}
+};
 __modules["effects/session-focus-guard.js"] = function (require, module, exports) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -17027,6 +17271,7 @@ const shortcut_modal_keyboard_guard_ts_1 = require("./effects/shortcut-modal-key
 const model_menu_keyboard_guard_ts_1 = require("./effects/model-menu-keyboard-guard.js");
 const plugin_card_tap_ts_1 = require("./effects/plugin-card-tap.js");
 const installed_list_ts_1 = require("./effects/installed-list.js");
+const tablet_quick_settings_ts_1 = require("./effects/tablet-quick-settings.js");
 const session_focus_guard_ts_1 = require("./effects/session-focus-guard.js");
 const aionui_compat_ts_1 = require("./effects/aionui-compat.js");
 const composer_paste_guard_ts_1 = require("./effects/composer-paste-guard.js");
@@ -17118,6 +17363,8 @@ function apply(ctx) {
     }, 'dsh-web-mobile: styles');
     // Market「installed」列表行的内联样式：实现与全部注释见 effects/installed-list.ts。
     (0, installed_list_ts_1.installInstalledListRows)(ctx);
+    // 宽屏触屏（平板 ≥1024）：只补一颗一键设置齿轮，布局仍交给宿主原生。
+    (0, tablet_quick_settings_ts_1.installTabletQuickSettings)(ctx);
     // Leaving a sidebar panel. The host's panels replace the main area and ship
     // no way back, so every exit route (system back, re-tapping the selected
     // panel row, the FAB) shares this one action.

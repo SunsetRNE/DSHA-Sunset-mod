@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261028.0843-dsh0.2.1-rc.3 / build207
+# DSHA 0.2.1-rc.3-20261029.1500-dsh0.2.1-rc.3 / build207
 
-- Fixed the composer staying on the keyboard-height viewport after backgrounding with the keyboard up and returning: on refocus the real IME visibility is checked, and when the IME is gone the keyboard inset is released and one layout pass is forced (#190, native side).
-- The regular inset path is unchanged while the IME is visible; the web-side viewport variable handling keeps the existing upstream implementation and is not modified this round.
-- Retain dsh-web-mobile 3.2.2, DSH rc.3, local and LAN access, and ten languages. Phone acceptance remains paused.
+- Add three root command interception modes: Strict (default, allow-list only), Relaxed (any command, but irreversible operations such as formatting, flashing, reboot or clearing app data stay blocked) and Full (no command-content checks); switch them in Settings → Device permissions.
+- Relaxed and Full apply only to the root channel. The generic Shizuku/ADB executor stays strict, and SMS reads still require native authorization in all three modes.
+- Root raw commands run in the privileged process with timeout, 256 KiB output truncation and execution-identity checks. Strict mode now also blocks recursive deletion of storage roots and first-level storage directories.
+- This is the SunsetRNE test identity (not E7E3) with a fixed test signature. Verification covers this phone installation and the three root modes only; all ROMs and device models are not covered.

@@ -58,6 +58,7 @@ public final class AssistantService extends Service {
   private AssistantSessionController controller;
   private volatile AssistantWindow window;
   private AssistantConfirmationWindow confirmations;
+  static final String REPLY_KEY = "dsha_assistant_reply";
   private static volatile AssistantService live;
   private PendingIntent stopAction;
   private Notification taskNotification;
@@ -326,6 +327,12 @@ public final class AssistantService extends Service {
                   outcome.set(refused("ASSISTANT_LOCAL_RESUME_REQUIRED"));
                   return;
                 }
+                // 用户正在看展开的面板：不收走它。面板是不可聚焦的自有窗口，读屏时整窗排除，
+                // 坐标动作也不会落在它上面；几何变化已在展开/收起时要求重新观察。
+                if (service.window.keptVisibleForUser()) {
+                  outcome.set(new TaskUiResult(true, "READY"));
+                  return;
+                }
                 boolean changed = service.window.visible();
                 if (changed) coordinator.requireObservation(task);
                 service.window.hideForScreen();
@@ -347,6 +354,20 @@ public final class AssistantService extends Service {
     return refused("ASSISTANT_UI_UNAVAILABLE");
   }
 
+  /**
+   * A canceled turn may still have a user-visible local pause. Keep that exact task attached so
+   * the user can press Continue; a normal completed turn remains eligible for retirement.
+   */
+  private static boolean retainLocalTaskAfterTurnEnd(ControlTaskAuthority.Binding task) {
+    AssistantService service = live;
+    if (service == null || service.controller == null || !service.controller.ownsTask(task))
+      return false;
+    var state = service.controller.snapshot();
+    return state.paused()
+        && state.phase() != AssistantSessionState.Phase.STOPPING
+        && state.phase() != AssistantSessionState.Phase.STOPPED;
+  }
+
   /** Called only after the exact local task completion has fenced the native authority. */
   public static void finishLocalTask(Context context, ControlTaskAuthority.Binding task) {
     new android.os.Handler(android.os.Looper.getMainLooper())
@@ -356,6 +377,14 @@ public final class AssistantService extends Service {
               if (service == null
                   || service.controller == null
                   || !service.controller.ownsTask(task)) return;
+              // Recheck on the UI thread: expansion may race the turn-end callback after the
+              // worker-side decision. A user-visible pause must never be closed by stale cleanup.
+              if (retainLocalTaskAfterTurnEnd(task)) return;
+              if (service.controller.snapshot().expanded()) {
+                // 面板展开时本轮结束：等用户收起后再关窗，窗口不在手指下消失。
+                service.controller.deferFinishUntilCollapsed(() -> finishLocalTask(context, task));
+                return;
+              }
               if (service.window != null) service.window.close();
               service.controller.detachFinishedTask();
               service.stopSelf();
@@ -364,6 +393,14 @@ public final class AssistantService extends Service {
 
   public static String taskGuidance(String code) {
     return switch (code) {
+      case "USER_MESSAGE_ARRIVED" ->
+          UiText.choose(
+              "用户刚给你发来新消息，这次手机动作没有执行。先阅读这条消息，再重新观察屏幕，按用户的新要求决定下一步；不要重放刚才的动作。",
+              "The user just sent you a new message, so this phone action was not executed. Read the message first, observe the screen again, then decide the next step from the user's new request. Do not replay the previous action.");
+      case "USER_COMPOSING" ->
+          UiText.choose(
+              "用户正在给你输入消息，这次手机动作没有执行。不要继续操作手机，等待用户的消息；本轮对话没有被取消。",
+              "The user is typing a message to you, so this phone action was not executed. Do not operate the phone; wait for the user's message. This turn has not been cancelled.");
       case "ASSISTANT_STOP_NOTIFICATION_REQUIRED" ->
           UiText.choose(
               "手机操作尚未执行或已暂停。请在系统设置 → 应用 → DSHA → 通知中允许通知，并开启“手机任务状态”通知类别；该通知提供停止入口。允许后回原对话明确继续，不会自动重放。",
@@ -495,6 +532,22 @@ public final class AssistantService extends Service {
     stopAction =
         PendingIntent.getService(
             this, 1952, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    // 直接回复：悬浮窗隐藏时也能从通知栏（或系统支持时的实时活动/岛）回复当前会话。
+    Intent reply = new Intent(this, AssistantService.class).setAction("REPLY");
+    PendingIntent replyAction =
+        PendingIntent.getService(
+            this,
+            1953,
+            reply,
+            PendingIntent.FLAG_UPDATE_CURRENT
+                | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
+    Intent showOverlay = new Intent(this, AssistantService.class).setAction("SHOW_OVERLAY");
+    PendingIntent showAction =
+        PendingIntent.getService(
+            this,
+            1954,
+            showOverlay,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     Notification.Builder note =
         Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(this, STOP_CHANNEL)
@@ -507,12 +560,29 @@ public final class AssistantService extends Service {
             PendingIntent.getActivity(
                 this, 1951, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
         .addAction(
+            new Notification.Action.Builder(null, UiText.choose("回复", "Reply"), replyAction)
+                .addRemoteInput(
+                    new android.app.RemoteInput.Builder(REPLY_KEY)
+                        .setLabel(UiText.choose("回复当前会话", "Reply to this conversation"))
+                        .build())
+                .setAllowGeneratedReplies(false)
+                .build())
+        .addAction(
+            new Notification.Action.Builder(
+                    null, UiText.choose("显示悬浮窗", "Show floating window"), showAction)
+                .build())
+        .addAction(
             new Notification.Action.Builder(null, UiText.choose("停止任务", "Stop task"), stopAction)
                 .build())
         .setOngoing(true);
     if (Build.VERSION.SDK_INT >= 31)
       note.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
     taskNotification = note.build();
+    if (new com.deepseekharness.app.core.ConfigStore(this).isTaskIslandEnabled())
+      // 系统支持实时活动时把同一条通知提升为岛；同一 id、频道与停止入口，不支持时原样返回。
+      taskNotification =
+          com.deepseekharness.app.IslandSupport.enhance(
+              this, taskNotification, UiText.choose("DSH 执行中", "DSH running"), true);
     startForeground(
         com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
     confirmations = new AssistantConfirmationWindow(this);
@@ -527,6 +597,23 @@ public final class AssistantService extends Service {
     }
     if ("STOP_TASK".equals(intent.getAction())) {
       if (controller != null) controller.stop();
+      return START_NOT_STICKY;
+    }
+    if ("SHOW_OVERLAY".equals(intent.getAction())) {
+      if (window != null) window.showByUser();
+      return START_NOT_STICKY;
+    }
+    if ("REPLY".equals(intent.getAction())) {
+      var results = android.app.RemoteInput.getResultsFromIntent(intent);
+      CharSequence text = results == null ? null : results.getCharSequence(REPLY_KEY);
+      String message = text == null ? "" : text.toString().strip();
+      if (controller != null && !message.isEmpty() && message.length() <= 32768)
+        controller.send(message);
+      // 重新发出同一条通知，结束系统的“发送中”状态。
+      var manager = getSystemService(NotificationManager.class);
+      if (manager != null && taskNotification != null)
+        manager.notify(
+            com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
       return START_NOT_STICKY;
     }
     String key = intent.getStringExtra("binding");

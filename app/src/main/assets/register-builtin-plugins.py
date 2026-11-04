@@ -116,11 +116,26 @@ def ensure_relative_link(link, target):
         if not os.path.islink(link):
             return False
         current = os.readlink(link)
-        same = os.path.realpath(link) == os.path.realpath(target)
-        if not same and os.path.normpath(current) != os.path.normpath(target):
-            return False
-        if not os.path.isabs(current) and same:
-            return False
+        if os.path.isabs(target):
+            # Runtime targets are absolute. An existing relative link is always
+            # preserved by this helper, whether correct or user-owned: formerly
+            # both realpath outcomes returned False. Do not resolve its target
+            # (and all shared ancestors) again for every bundled dependency.
+            if not os.path.isabs(current):
+                return False
+            # Identical absolute spellings already name the same target. Only
+            # different absolute aliases need canonical resolution before the
+            # legacy absolute -> relative migration may replace a link.
+            if (os.path.normpath(current) != os.path.normpath(target)
+                    and os.path.realpath(link) != os.path.realpath(target)):
+                return False
+        else:
+            # Retain the historical helper contract for non-runtime callers.
+            same = os.path.realpath(link) == os.path.realpath(target)
+            if not same and os.path.normpath(current) != os.path.normpath(target):
+                return False
+            if not os.path.isabs(current) and same:
+                return False
     os.makedirs(os.path.dirname(link), exist_ok=True)
     relative = os.path.relpath(target, os.path.dirname(link))
     # 原子替换，避免中断恰好发生在删旧链接与建新链接之间。
@@ -174,8 +189,10 @@ def managed_asset_identity():
 
 def ensure_runtime_modules(force=False):
     cache = local(os.path.join(DSH_HOME, '.runtime-links-cache.json'))
+    started = time.monotonic()
     stamp = runtime_links_stamp()
     asset_identity = managed_asset_identity()
+    registration_timing('runtime-links-stamp', started, entries=len(stamp))
     if not force:
         try:
             with open(cache, encoding='utf-8') as stream:
@@ -186,7 +203,10 @@ def ensure_runtime_modules(force=False):
         except (OSError, ValueError):
             pass
     print('RUNTIME_LINKS_CHECK: 检查共享依赖链接', flush=True)
+    started = time.monotonic()
     count = repair_runtime_modules()
+    registration_timing('runtime-links-repair', started, changed=count)
+    started = time.monotonic()
     try:
         os.makedirs(os.path.dirname(cache), exist_ok=True)
         temporary = cache + '.tmp'
@@ -196,7 +216,15 @@ def ensure_runtime_modules(force=False):
         os.replace(temporary, cache)
     except OSError:
         pass
+    registration_timing('runtime-links-cache-write', started)
     return count
+
+
+def registration_timing(phase, started, **counts):
+    # Aggregate timings only: no package names, private paths or content.
+    print('REGISTER_TIMING: ' + json.dumps(dict(phase=phase,
+          elapsedMs=round((time.monotonic() - started) * 1000, 3), **counts),
+          separators=(',', ':')), flush=True)
 
 
 def repair_runtime_modules():
@@ -657,30 +685,13 @@ def selection_aliases(name):
     return AUTO_REVIEW_ALIASES if name in AUTO_REVIEW_ALIASES else (name,)
 
 
-_builtin_names_cache = None
-
-
 def builtin_names():
-    """当前签名内置清单；固定清单永远是下限，文件只能追加合法名称。"""
-    global _builtin_names_cache
-    try:
-        info = os.stat(BUILTIN_LIST)
-        stamp = (info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns, info.st_size)
-    except OSError:
-        stamp = None
-    if _builtin_names_cache is not None and _builtin_names_cache[0] == stamp:
-        return list(_builtin_names_cache[1])
-    names = list(DEFAULT_BUILTINS)
-    try:
-        with open(BUILTIN_LIST, encoding="utf-8") as f:
-            for line in f:
-                name = line.strip()
-                if name in DEFAULT_BUILTINS and name not in names:
-                    names.append(name)
-    except OSError:
-        pass
-    _builtin_names_cache = (stamp, tuple(names))
-    return names
+    """当前签名清单是唯一来源；旧文本既不能减少，也不能追加受管名称。
+
+    DEFAULT_BUILTINS 已包含所有合法签名项，重复 stat/read 旧文本不会改变
+    结果。返回副本，避免调用者修改后影响同进程的注册、删除与导出保护。
+    """
+    return list(DEFAULT_BUILTINS)
 
 
 # ================= profile 读写 =================

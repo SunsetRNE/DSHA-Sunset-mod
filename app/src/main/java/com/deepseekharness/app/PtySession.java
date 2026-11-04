@@ -65,6 +65,14 @@ public final class PtySession implements TerminalSessionClient {
   private volatile boolean maintenanceClosing;
   private volatile String cleanupError = "";
   private volatile Integer exitStatus;
+
+  /**
+   * 监听器与输入问题状态的独立锁。finishAndWait 持有会话监视器最长数秒等待进程退出；
+   * 主线程切换 / 重绘时注册监听、读取输入问题不得排在它后面，否则关闭标签即 ANR，
+   * 用户选择「关闭应用」会连同 DSH 环境一起结束。
+   */
+  private final Object inputState = new Object();
+
   private int pendingInputProblem;
   private Runnable cleanupVerified, cleanupChanged;
   private boolean prootLauncher;
@@ -74,19 +82,25 @@ public final class PtySession implements TerminalSessionClient {
 
   private PtySession() {}
 
-  public synchronized void attachListener(Listener l) {
-    listener = new WeakReference<>(l);
-    if (l != null && pendingInputProblem != 0) {
-      l.onInputProblem(pendingInputProblem);
+  public void attachListener(Listener l) {
+    int problem;
+    synchronized (inputState) {
+      listener = new WeakReference<>(l);
+      problem = pendingInputProblem;
+    }
+    if (l != null && problem != 0) l.onInputProblem(problem);
+  }
+
+  public int inputProblem() {
+    synchronized (inputState) {
+      return pendingInputProblem;
     }
   }
 
-  public synchronized int inputProblem() {
-    return pendingInputProblem;
-  }
-
-  public synchronized void acknowledgeInputProblem(int reason) {
-    if (pendingInputProblem == reason) pendingInputProblem = 0;
+  public void acknowledgeInputProblem(int reason) {
+    synchronized (inputState) {
+      if (pendingInputProblem == reason) pendingInputProblem = 0;
+    }
   }
 
   public void detachListener(Listener l) {
@@ -118,6 +132,21 @@ public final class PtySession implements TerminalSessionClient {
       Runnable cleanupChanged,
       Runnable beforeFork,
       java.util.function.Consumer<PtySession> allocated) {
+    return start(
+        proot, cols, rows, l, cleanupVerified, cleanupChanged, beforeFork, allocated, null);
+  }
+
+  /** 固定 guest command 只替换命令尾部；fork、出生身份、保护票和失败清理保持原样。 */
+  public static PtySession start(
+      ProotBootstrap proot,
+      int cols,
+      int rows,
+      Listener l,
+      Runnable cleanupVerified,
+      Runnable cleanupChanged,
+      Runnable beforeFork,
+      java.util.function.Consumer<PtySession> allocated,
+      String[] guestCommand) {
     PtySession ps = new PtySession();
     ps.cleanupVerified = cleanupVerified;
     ps.cleanupChanged = cleanupChanged;
@@ -140,7 +169,7 @@ public final class PtySession implements TerminalSessionClient {
           throw new IllegalStateException(error.getMessage(), error);
         }
         proot.ensureAndroidGroups(); // 登录 shell 的 $(groups) 依赖 /etc/group 里有 Android GID
-        ProotBootstrap.PtyLaunch launch = proot.ptyLaunch();
+        ProotBootstrap.PtyLaunch launch = proot.ptyLaunch(guestCommand);
         String[] argv = launch.argv;
         ps.prootLauncher = com.deepseekharness.app.util.ProcessIdentity.isProot(argv[0]);
         String[] env = launch.environment;
@@ -365,11 +394,16 @@ public final class PtySession implements TerminalSessionClient {
   // ==================== TerminalSessionClient ====================
 
   @Override
-  public synchronized void onInputError(TerminalSession source, int reason) {
+  public void onInputError(TerminalSession source, int reason) {
     if (source != session) return;
-    Listener l = listener();
-    pendingInputProblem = Math.max(pendingInputProblem, reason);
-    if (l != null) l.onInputProblem(pendingInputProblem);
+    Listener l;
+    int problem;
+    synchronized (inputState) {
+      l = listener();
+      pendingInputProblem = Math.max(pendingInputProblem, reason);
+      problem = pendingInputProblem;
+    }
+    if (l != null) l.onInputProblem(problem);
   }
 
   @Override

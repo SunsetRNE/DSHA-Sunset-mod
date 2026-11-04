@@ -101,6 +101,41 @@ public class ConfigStore {
         .apply();
   }
 
+  /** 调色板（与日夜正交）；未注册的旧值回到标准色。 */
+  public String getUiPalette() {
+    return com.deepseekharness.app.util.UiThemePalette.normalize(text("ui_palette", null));
+  }
+
+  public void setUiPalette(String value) {
+    prefs
+        .edit()
+        .putString("ui_palette", com.deepseekharness.app.util.UiThemePalette.normalize(value))
+        .apply();
+  }
+
+  /** 主题切换动画样式；未知值回到圆形扩散。 */
+  public String getThemeTransition() {
+    return com.deepseekharness.app.util.ThemeMotion.normalizeStyle(
+        text("ui_theme_transition", null));
+  }
+
+  public void setThemeTransition(String value) {
+    prefs
+        .edit()
+        .putString(
+            "ui_theme_transition", com.deepseekharness.app.util.ThemeMotion.normalizeStyle(value))
+        .apply();
+  }
+
+  /** 原生亮暗是否同步到内嵌 Web 的外观设置；默认开启，用户可在主题页关闭。 */
+  public boolean isWebThemeSync() {
+    return prefs.getBoolean("ui_theme_web_sync", true);
+  }
+
+  public void setWebThemeSync(boolean value) {
+    prefs.edit().putBoolean("ui_theme_web_sync", value).apply();
+  }
+
   public com.deepseekharness.app.util.PluginSort.Mode getPluginSort() {
     return com.deepseekharness.app.util.PluginSort.Mode.parse(
         text("plugin_sort_order", "NAME_ASC"));
@@ -261,6 +296,21 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_ALLOW_ROOT_SHELL, v).apply();
   }
 
+  /** root 命令拦截档位；非法或缺失一律回落严格档（fail-closed）。 */
+  public com.deepseekharness.app.util.DeviceShellPolicy.Mode rootPolicyMode() {
+    return com.deepseekharness.app.util.DeviceShellPolicy.Mode.parse(
+        text(Constants.KEY_ROOT_POLICY_MODE, "strict"));
+  }
+
+  public void setRootPolicyMode(com.deepseekharness.app.util.DeviceShellPolicy.Mode mode) {
+    prefs
+        .edit()
+        .putString(
+            Constants.KEY_ROOT_POLICY_MODE,
+            (mode == null ? com.deepseekharness.app.util.DeviceShellPolicy.Mode.STRICT : mode).id)
+        .apply();
+  }
+
   public boolean isCheckUpdate() {
     return flag(Constants.KEY_CHECK_UPDATE, true);
   }
@@ -321,6 +371,44 @@ public class ConfigStore {
             Constants.KEY_PICTURE_IN_PICTURE_LAYOUT,
             com.deepseekharness.app.util.PictureInPicturePolicy.layout(value))
         .apply();
+  }
+
+  /** 桌面图标启动后的页面；未知或缺失值一律回到主界面。不在 BACKUP_SETTING_KEYS 中。 */
+  public String getEntryTarget() {
+    return com.deepseekharness.app.util.EntryTarget.normalize(
+        text(Constants.KEY_ENTRY_TARGET, com.deepseekharness.app.util.EntryTarget.MAIN));
+  }
+
+  /** 同步提交：桥接口需要如实回报是否已写入。 */
+  public boolean setEntryTarget(String value) {
+    return prefs
+        .edit()
+        .putString(
+            Constants.KEY_ENTRY_TARGET, com.deepseekharness.app.util.EntryTarget.normalize(value))
+        .commit();
+  }
+
+  /** 最近一次已核验网页的背景色；没有记录时返回 null。 */
+  public Integer getEntryWebBackground() {
+    Object value = prefs.getAll().get(Constants.KEY_ENTRY_WEB_BACKGROUND);
+    return value instanceof Integer ? (Integer) value : null;
+  }
+
+  public void setEntryWebBackground(int color) {
+    Integer current = getEntryWebBackground();
+    if (current != null && current == color) return;
+    prefs.edit().putInt(Constants.KEY_ENTRY_WEB_BACKGROUND, color).apply();
+  }
+
+  /** 最近一次前台是否为 Web；系统回收后恢复时据此决定回到 Web 还是主界面。 */
+  public boolean isLastForegroundWeb() {
+    return flag(Constants.KEY_ENTRY_LAST_WEB, false);
+  }
+
+  /** 只在值变化时写入：Web / 主界面每次回到前台都会调用。 */
+  public void setLastForegroundWeb(boolean web) {
+    if (isLastForegroundWeb() == web) return;
+    prefs.edit().putBoolean(Constants.KEY_ENTRY_LAST_WEB, web).apply();
   }
 
   public boolean isBackupKey() {

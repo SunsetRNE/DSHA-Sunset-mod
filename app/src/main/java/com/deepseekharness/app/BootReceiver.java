@@ -28,12 +28,32 @@ public class BootReceiver extends BroadcastReceiver {
       }
       if (!Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(action))
         com.deepseekharness.app.backup.AutomaticBackups.schedule(context);
-      if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(action))
+      if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
         com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(context);
+<<<<<<< 208ea63a
       // 模块定时任务：重启后系统闹钟被清空，重新排一次（内部自兜底，绝不抛出）。
       try {
         com.deepseekharness.app.module.ModuleScheduler.rearmAll(context);
       } catch (Throwable ignored) {
+=======
+        // T38：覆盖安装后旧 root / Shizuku 服务进程是否残留，留一份快照（不论 ADB 开关）。
+        // 广播结束后进程会被冻结，必须在 goAsync 期限内写完（后台广播期限远大于 10 秒）。
+        PendingResult pending = goAsync();
+        Context app = context.getApplicationContext();
+        Thread snapshot =
+            new Thread(
+                () -> {
+                  try {
+                    com.deepseekharness.app.device.DeviceChannelDiagnostics.recordNow(
+                        app, "package-replaced", 15_000L);
+                  } finally {
+                    pending.finish();
+                  }
+                },
+                "dsha-package-replaced-snapshot");
+        snapshot.setDaemon(true);
+        snapshot.start();
+>>>>>>> sunset/main
       }
       // 用户没开 ADB 就不拉起（尊重开关）
       if (!DeviceBridgeService.isAdbEnabled(context)) return;

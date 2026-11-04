@@ -178,11 +178,14 @@ public final class WebBlobDownload implements AutoCloseable {
   public void close() {
     if (active != null) active.fail(com.deepseekharness.app.util.UiText.text("网页已关闭"));
     active = null;
-    if (port != null) {
-      port.close();
-      port = null;
+    WebMessagePort previous = port;
+    port = null;
+    try {
+      if (previous != null) previous.close();
+    } finally {
+      // Renderer loss may reject its port close, but must not leave the writer alive.
+      writer.shutdownNow();
     }
-    writer.shutdownNow();
   }
 
   private static final class Pipe {

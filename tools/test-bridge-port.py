@@ -82,14 +82,36 @@ class PortTest(unittest.TestCase):
             self.assertEqual(2, f.closes)
 
     def test_only_bounded_ascii_decimal_environment(self):
-        for raw, want in [('1', 1), ('65535', 65535), ('03091', 3091), ('', 3090),
-                          ('0', 3090), ('65536', 3090), ('0xc13', 3090), ('3e3', 3090),
-                          ('+3091', 3090), ('3091.0', 3090), (' 3091', 3090), ('3091\n', 3090),
-                          ('٣٠٩١', 3090), ('²', 3090), ('９９９９', 3090), ('9' * 100000, 3090)]:
+        for raw, want in [('1', 1), ('65535', 65535), ('03091', 3091)]:
             with self.subTest(raw=raw[:20]), Fixture(env=raw) as f:
                 f.missing = True
                 self.assertEqual(want, adb.bridge_port())
                 self.assertEqual(0, f.opens)
+
+    def test_unpublished_port_blocks_instead_of_guessing_fixed_port(self):
+        # 3090 可能属于同机另一个 DSHA 安装；文件和环境都无效时必须拦截，不能回退。
+        for raw in ['', '0', '65536', '0xc13', '3e3', '+3091', '3091.0', ' 3091', '3091\n',
+                    '٣٠٩١', '²', '９９９９', '9' * 100000]:
+            with self.subTest(raw=raw[:20]), Fixture(env=raw) as f:
+                f.missing = True
+                with self.assertRaises(adb.policy.Blocked) as caught:
+                    adb.bridge_port()
+                self.assertIn('BRIDGE_PORT_UNAVAILABLE', str(caught.exception))
+
+    def test_unpublished_port_sends_no_credential_from_any_consumer(self):
+        with Fixture(env='') as f, mock.patch('builtins.open', mock.mock_open(read_data='fixture-token')):
+            f.missing = True
+            send = mock.Mock()
+            with mock.patch.object(urllib.request, 'build_opener', return_value=SimpleNamespace(open=send)):
+                for operation in ['plan', 'start', 'commit', 'execute']:
+                    with self.subTest(operation=operation):
+                        # commit 未发送时也必须是 Blocked，不能报成「可能已执行」。
+                        with self.assertRaises(adb.policy.Blocked):
+                            if operation == 'plan': adb.request_device_plan('id')
+                            elif operation == 'start': adb.request_native_vscreen_start('fixture', 'fixture-ticket')
+                            elif operation == 'commit': adb.request_native_vscreen_commit('fixture-ticket')
+                            else: adb.request_native_execution('id')
+            self.assertEqual(0, send.call_count)
 
     def test_invalid_bytes_permissions_and_types_fall_back(self):
         for raw in [b'', b'65536', b'0', b'3091\n', b' 3091', b'309100', b'0xc13', b'3e3', b'\xb3\xb0\xb9\xb1', b'\xff']:

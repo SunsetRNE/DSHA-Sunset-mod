@@ -5,10 +5,13 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.TerminalSessionOwner;
+import com.deepseekharness.app.util.UiText;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -425,21 +428,15 @@ public class TerminalActivityLifecycleTest {
   public void shortWindowsHideSecondaryChromeAndUseDenseFooterActions() {
     var host = Robolectric.buildActivity(Host.class).create().start().resume();
     var workspace = host.get().findViewById(R.id.terminal_workspace);
-    measure(host.get(), workspace, 400, 470);
-    assertEquals(
-        View.GONE, host.get().findViewById(R.id.terminal_sessions_subtitle).getVisibility());
-    assertEquals(
-        View.GONE, host.get().findViewById(R.id.terminal_sessions_secondary).getVisibility());
+    // 640dp 窗口的平板抽屉保持 336dp，仅由高度触发短窗形态，与窄抽屉分支解耦。
+    measure(host.get(), workspace, 640, 470);
+    // 侧栏不再有副标题、会话统计与底部说明行，短窗只切换动作组。
     assertEquals(
         View.VISIBLE,
         host.get().findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
     assertEquals(
         View.GONE, host.get().findViewById(R.id.terminal_sessions_actions).getVisibility());
-    measure(host.get(), workspace, 400, 700);
-    assertEquals(
-        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_subtitle).getVisibility());
-    assertEquals(
-        View.VISIBLE, host.get().findViewById(R.id.terminal_sessions_secondary).getVisibility());
+    measure(host.get(), workspace, 640, 700);
     assertEquals(
         View.GONE, host.get().findViewById(R.id.terminal_sessions_actions_dense).getVisibility());
     assertEquals(
@@ -448,18 +445,184 @@ public class TerminalActivityLifecycleTest {
   }
 
   @Test
+  public void narrowDrawerUsesSingleLineDenseActionsAndTwelveDpGridThenRestoresWideLayout() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    var workspace = host.get().findViewById(R.id.terminal_workspace);
+    float density = density(host.get());
+    // 400dp 窗口的手机抽屉实宽 224dp（< 240dp）：即使高度充足也走 dense 短标签。
+    measure(host.get(), workspace, 400, 900);
+    host.get().openSessions();
+    settleLayout(host.get(), workspace, 400, 900);
+
+    ViewGroup wide = host.get().findViewById(R.id.terminal_sessions_actions);
+    ViewGroup dense = host.get().findViewById(R.id.terminal_sessions_actions_dense);
+    assertEquals(View.GONE, wide.getVisibility());
+    assertEquals(View.VISIBLE, dense.getVisibility());
+    // 按使用频率排列：键盘、粘贴、回到输入在前，显示、主界面、说明在后。
+    String[][] labels = {
+      {"键盘", "Keyboard"}, {"粘贴", "Paste"},
+      {"聚焦输入", "Focus"}, {"显示", "Display"},
+      {"主界面", "Home"}, {"说明", "Help"}
+    };
+    String[][] descriptions = {
+      {"显示键盘", "Keyboard"}, {"粘贴文本", "Paste"},
+      {"回到输入", "Focus input"}, {"显示设置", "Display"},
+      {"返回主界面", "Home"}, {"说明", "Help"}
+    };
+    assertEquals(3, dense.getChildCount());
+    int action = 0;
+    for (int row = 0; row < dense.getChildCount(); row++) {
+      ViewGroup line = (ViewGroup) dense.getChildAt(row);
+      assertEquals(2, line.getChildCount());
+      for (int column = 0; column < line.getChildCount(); column++) {
+        TextView button = (TextView) line.getChildAt(column);
+        assertEquals(
+            UiText.choose(labels[action][0], labels[action][1]), button.getText().toString());
+        assertEquals(
+            UiText.choose(descriptions[action][0], descriptions[action][1]),
+            button.getContentDescription().toString());
+        assertEquals(1, button.getMaxLines());
+        assertFalse(button.getText().toString().contains("\n"));
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) button.getLayoutParams();
+        int gap = Math.round(3 * density);
+        assertEquals(Math.round(48 * density), params.height);
+        assertEquals(Math.round(48 * density), button.getHeight());
+        // 首/末按钮外缘 margin 0，相邻按钮各留 3dp，上下各 3dp。
+        assertEquals(column == 0 ? 0 : gap, params.getMarginStart());
+        assertEquals(column == line.getChildCount() - 1 ? 0 : gap, params.getMarginEnd());
+        assertEquals(gap, params.topMargin);
+        assertEquals(gap, params.bottomMargin);
+        assertEquals(Math.round(3 * density), button.getPaddingLeft());
+        assertEquals(Math.round(3 * density), button.getPaddingRight());
+        action++;
+      }
+    }
+    assertEquals(6, action);
+
+    // 标题栏只剩标识、“会话”、结束全部与关闭；窄抽屉两侧贴齐 12dp 网格。
+    ViewGroup header =
+        (ViewGroup) host.get().findViewById(R.id.terminal_sessions_close).getParent();
+    assertEquals(Math.round(12 * density), header.getPaddingLeft());
+    assertEquals(Math.round(12 * density), header.getPaddingRight());
+    assertSame(header, host.get().findViewById(R.id.terminal_sessions_close_all).getParent());
+    ViewGroup footer = (ViewGroup) dense.getParent();
+    assertEquals(Math.round(12 * density), footer.getPaddingLeft());
+    assertEquals(Math.round(12 * density), footer.getPaddingRight());
+    ViewGroup scroll = host.get().findViewById(R.id.terminal_sessions_scroll);
+    ViewGroup list = (ViewGroup) scroll.getChildAt(0);
+    assertEquals(Math.round(12 * density), list.getPaddingLeft());
+    assertEquals(Math.round(12 * density), list.getPaddingRight());
+
+    // 宽度回到 336dp 平板抽屉：恢复全标签与宽侧栏边距，短标签组重新隐藏。
+    measure(host.get(), workspace, 640, 900);
+    settleLayout(host.get(), workspace, 640, 900);
+    assertEquals(View.VISIBLE, wide.getVisibility());
+    assertEquals(View.GONE, dense.getVisibility());
+    assertEquals(Math.round(16 * density), header.getPaddingLeft());
+    assertEquals(Math.round(6 * density), header.getPaddingRight());
+    assertEquals(Math.round(12 * density), footer.getPaddingLeft());
+    assertEquals(Math.round(10 * density), list.getPaddingLeft());
+    TextView denseFocus = host.get().findViewById(R.id.terminal_sessions_action_focus_dense);
+    assertEquals(2, denseFocus.getMaxLines());
+    assertEquals(
+        UiText.choose("返回主界面", "Home"),
+        ((TextView) host.get().findViewById(R.id.terminal_sessions_action_home))
+            .getText()
+            .toString());
+    host.pause().stop().destroy();
+  }
+
+  @Test
   public void focusActionClosesSidebarAndRestoresInputOnFirstClick() {
     var host = Robolectric.buildActivity(Host.class).create().start().resume();
     measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 400, 900);
     host.get().findViewById(R.id.terminal_menu_ball).performClick();
-    View focus = host.get().findViewById(R.id.terminal_sessions_action_focus);
+    // 224dp 窄抽屉只显示 dense 短标签组，“聚焦输入”在 dense 组里。
+    View focus = host.get().findViewById(R.id.terminal_sessions_action_focus_dense);
     assertNotNull(focus);
+    assertEquals(View.VISIBLE, focus.getVisibility());
     assertFalse(focus.isFocusableInTouchMode());
     focus.performClick();
     assertEquals(View.GONE, host.get().findViewById(R.id.terminal_sessions_host).getVisibility());
     org.robolectric.shadows.ShadowLooper.idleMainLooper();
     assertEquals(1, FakePane.focuses);
     host.pause().stop().destroy();
+  }
+
+  @Test
+  public void sidebarShowsOneMixedListAndHeaderStopIconOnlyWithSessions() throws Exception {
+    var owner = TerminalSessionOwner.shared();
+    var opened = new java.util.concurrent.CountDownLatch(1);
+    var tab = startFakeSimple(owner, opened, new java.util.concurrent.CountDownLatch(0));
+    assertTrue(opened.await(2, java.util.concurrent.TimeUnit.SECONDS));
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    try {
+      measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 640, 900);
+      host.get().findViewById(R.id.terminal_menu_ball).performClick();
+      View panel = host.get().findViewById(R.id.terminal_sessions_panel);
+      // 不再有分组标题与会话统计；会话直接出现在唯一的列表里，状态在整行描述中。
+      assertFalse(containsText(panel, UiText.choose("PTY · 交互会话", "PTY · interactive sessions")));
+      assertFalse(containsText(panel, UiText.choose("简易 · 按行命令", "Simple · line commands")));
+      assertTrue(
+          containsText(panel, UiText.format(UiText.choose("简易 %d", "Simple %d"), tab.number)));
+      assertFalse(containsText(panel, UiText.choose("暂无会话", "No sessions")));
+      View stop = host.get().findViewById(R.id.terminal_sessions_close_all);
+      assertEquals(View.VISIBLE, stop.getVisibility());
+      assertEquals(
+          UiText.choose("结束全部终端会话并核验", "End all terminal sessions and verify"),
+          stop.getContentDescription().toString());
+    } finally {
+      host.pause().stop().destroy();
+      owner.closeSimple(tab.id, 2000);
+    }
+  }
+
+  @Test
+  public void createAndHelpDialogsUseCardsAndKeepAllChoices() {
+    var host = Robolectric.buildActivity(Host.class).create().start().resume();
+    try {
+      measure(host.get(), host.get().findViewById(R.id.terminal_workspace), 640, 900);
+      host.get().findViewById(R.id.terminal_menu_ball).performClick();
+      host.get().findViewById(R.id.terminal_sessions_create).performClick();
+      var create =
+          (androidx.appcompat.app.AlertDialog)
+              org.robolectric.shadows.ShadowDialog.getLatestDialog();
+      assertTrue(create.isShowing());
+      for (int id :
+          new int[] {
+            R.id.terminal_create_pty, R.id.terminal_create_simple, R.id.terminal_create_cli
+          }) {
+        View option = create.findViewById(id);
+        assertNotNull(option);
+        assertTrue(option.isClickable());
+        assertTrue(option.getMinimumHeight() >= Math.round(48 * density(host.get())));
+        assertFalse(option.getContentDescription().toString().isEmpty());
+      }
+      // 卡片点击即新建：对话框关闭并走原 createInMode 路径（测试宿主中由 FakePane 计数）。
+      create.findViewById(R.id.terminal_create_simple).performClick();
+      org.robolectric.shadows.ShadowLooper.idleMainLooper();
+      assertFalse(create.isShowing());
+
+      host.get().openSessions();
+      View help =
+          host.get().findViewById(R.id.terminal_sessions_action_help).getVisibility()
+                  == View.VISIBLE
+              ? host.get().findViewById(R.id.terminal_sessions_action_help)
+              : host.get().findViewById(R.id.terminal_sessions_action_help_dense);
+      help.performClick();
+      var dialog =
+          (androidx.appcompat.app.AlertDialog)
+              org.robolectric.shadows.ShadowDialog.getLatestDialog();
+      assertTrue(dialog.isShowing());
+      View content = dialog.getWindow().getDecorView();
+      assertTrue(containsText(content, UiText.choose("返回不结束进程", "Back keeps processes")));
+      assertTrue(containsText(content, UiText.choose("结束需确认", "Ending needs confirmation")));
+      assertTrue(containsText(content, UiText.choose("运行中", "Running")));
+      assertTrue(containsText(content, UiText.choose("已退出", "Exited")));
+      dialog.dismiss();
+    } finally {
+      host.pause().stop().destroy();
+    }
   }
 
   @Test
@@ -490,12 +653,15 @@ public class TerminalActivityLifecycleTest {
       host.get().findViewById(R.id.terminal_menu_ball).performClick();
       View sessions = host.get().findViewById(R.id.terminal_sessions_panel);
       assertTrue(
-          containsText(sessions, com.deepseekharness.app.util.UiText.choose("启动中", "Starting")));
+          containsDescription(
+              sessions, com.deepseekharness.app.util.UiText.choose("启动中", "Starting")));
       finish.countDown();
       assertTrue(failed.await(2, java.util.concurrent.TimeUnit.SECONDS));
       org.robolectric.shadows.ShadowLooper.idleMainLooper();
       assertTrue(
-          containsText(sessions, com.deepseekharness.app.util.UiText.choose("失败", "Failed")));
+          containsDescription(
+              sessions,
+              com.deepseekharness.app.util.UiText.choose("失败 · 请检查", "Failed · inspect session")));
     } finally {
       finish.countDown();
       owner.removeSimpleStateObserver(observeFailure);
@@ -658,6 +824,18 @@ public class TerminalActivityLifecycleTest {
           @Override
           public void terminate(Process process, long group) {}
         });
+  }
+
+  /** 会话状态已从可见胶囊移入整行无障碍描述；按描述片段查找。 */
+  private static boolean containsDescription(View root, String fragment) {
+    CharSequence description = root.getContentDescription();
+    if (description != null && description.toString().contains(fragment)) return true;
+    if (root instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) root;
+      for (int i = 0; i < group.getChildCount(); i++)
+        if (containsDescription(group.getChildAt(i), fragment)) return true;
+    }
+    return false;
   }
 
   private static boolean containsText(View root, String expected) {
@@ -854,19 +1032,21 @@ public class TerminalActivityLifecycleTest {
     var host = Robolectric.buildActivity(Host.class).create().start().resume();
     try {
       var workspace = host.get().findViewById(R.id.terminal_workspace);
-      measure(host.get(), workspace, 320, 600);
+      // 侧栏去掉统计与说明行后更矮；用 480dp 短窗保证 2 倍字体下内容仍溢出、需要整栏滚动。
+      measure(host.get(), workspace, 320, 480);
       host.get().openSessions();
-      settleLayout(host.get(), workspace, 320, 600);
+      settleLayout(host.get(), workspace, 320, 480);
       android.widget.ScrollView scroll = host.get().findViewById(R.id.terminal_sessions_scroll);
       ViewGroup actions = host.get().findViewById(R.id.terminal_sessions_actions_dense);
       assertTrue(isDescendant(scroll, actions));
+      // 窄抽屉在 2 倍字体下仍保持单行、固定 48dp 等高；宽度不足时按策略降到 1 列 6 行。
       assertEquals(6, actions.getChildCount());
       for (int i = 0; i < actions.getChildCount(); i++) {
         ViewGroup row = (ViewGroup) actions.getChildAt(i);
         assertEquals(1, row.getChildCount());
         android.widget.TextView action = (android.widget.TextView) row.getChildAt(0);
-        assertTrue(action.getHeight() >= Math.round(48 * density(host.get())));
-        assertTrue(action.getMaxLines() >= 2);
+        assertEquals(Math.round(48 * density(host.get())), action.getHeight());
+        assertEquals(1, action.getMaxLines());
         assertNotNull(action.getContentDescription());
       }
       assertTrue(scroll.getHeight() > 0);

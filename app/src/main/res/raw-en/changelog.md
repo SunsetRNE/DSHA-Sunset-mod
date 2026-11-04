@@ -1,5 +1,4 @@
-# DSHA 0.2.1-rc.3-20261030.0006-dsh0.2.1-rc.3 / build209
+# DSHA 0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5 / build316
 
-- - Fixed 1×1 system glyph/badge windows (HyperDuo glyph, notes badge, etc.) on HyperOS-like systems triggering TARGET_WINDOW_OCCLUDED and making coordinate taps and swipes entirely unusable: windows of negligible area no longer participate in the occlusion decision (#212).
-- - When stopping an app is blocked by "app list format could not be verified", the error now carries the first unexpected line (redacted, truncated) and names the user/system list, helping pinpoint ROM-specific pm output differences (#210 follow-up).
-- - Retain dsh-web-mobile 3.2.2, DSH rc.3, local and LAN access, and ten languages. Phone acceptance remains paused.
+- Plugin dependency checks: the CAS scan fast path rechecks entry types and inodes, so swapping a file for a link and restoring its modification time within the same tick is no longer missed. The document snapshot now releases its permit when SQLite initialization fails, so later browsing no longer stalls.
+- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 316 (based on build315). The DSHA revision remains 0.2.1-rc.5 and bundled DSH remains 0.2.1-rc.5.

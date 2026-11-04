@@ -1,5 +1,6 @@
 # AGENTS.md
 
+<<<<<<< 208ea63a
 ## 项目目标（必读，先于一切历史记录）
 
 **本项目的目标与用户预想全部记录在 [`蓝图.md`](蓝图.md)**：原始表述、判定标准、现状矩阵、架构铁律（扩展点 / 能力总线 / 自绘界面）。
@@ -102,16 +103,25 @@
 已发布F12保留原身份：[原记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [原Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.1413)；F11仍为未上传本地检查点。
 
 > build190 本轮用户决定（2026-10-19）：以已发布的 build170 / `v0.2.0-rc2`（8362bba747fcf84c19e436c3dbb594a0fc388a67）为源码基座，定向迁入 build187（ac7bf8eda8b46a22f6412b17ec3574bf895b1876）的全局授权、虚拟屏、任务通知等功能。保留生产旧数据、宿主 v5 备份和迁移链，不引入实验版 fresh-only 数据/备份架构。引擎恢复 `proot + proroot`，首次安装与未显式选择时默认稳定 `proot`，显式 `proroot` 可选；不迁入 bxroot。正式身份保持 `com.dsh.client` / E7E3 / 非调试，versionCode 190，基础版本及下载文件版本 `0.2.1-rc.2`，内置官方 DSH `0.2.1-rc.2`，Ubuntu base10 不变。危险的完整格式化生产入口与擦除后端仍退休，外置工作区不能清理或重放旧事务写删。标准版优先，历史 Low172 与既有正式交付原件保留。总资产、描述符、签名打包及交付由主代理统一完成；下面 build170 数量与版本按基座历史阅读。
+=======
+
+> **当前状态**：`0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5` / build316 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
+> 主线分支 `main`；Android 11+（API 30）/ arm64；proot 默认、proroot 可选；内置 DSH 0.2.1-rc.5。
+> 上岛能力已并入正式包；旧 low/GeckoView 兼容线与独立上岛包已删除；签名使用 Mod 自有证书（见 BUILD.md）。
+>>>>>>> sunset/main
 
 DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— 读它之前先读 [README.md](README.md)。
 
-**F13当前入口**：`0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` /code190。F13冻结源码2215成员/200篇Markdown，Java adoption 1029项。分发/格式证明与JUnit执行计数分开。固定输入包738,101,893 bytes，SHA-256 `da3a87e9782469136f08d37143582fec845af1a69406b9a534f8cb7f68249ed8`，原始输入直接展开到项目路径；不是完整源码ZIP的大小或摘要。本批软件与APK见[F13记录](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。UNKNOWN保留原DOM等待同身份核验，不授ready；旧票不复活、业务不重发；guest与launcher停止仍分证。
+**仓库事实**：Java 17 / `:app` / arm64；移动 UI 3.2.2；proot 默认 + proroot 可选；固定离线输入由
+`tools/ci-assets.py` 还原。构建、签名与门禁见 [BUILD.md](BUILD.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-**仓库事实速览**：build170基座/code190，Java17/:app/arm64，DSH0.2.1-rc.2/base10，proot默认+proroot可选。固定包内启动入口及受管dsh包装继续保留。键盘动画期间不逐帧setPadding，原生有界帧通道用当前完整身份校验，网页只合成移动聚焦composer，末帧提交布局，失焦/分离/PiP清理。mobile3.2.2固定main4c798ec，保留安全服务端差异，不恢复上游撤回的#236。OneClickBackup复用NativeBackupJobs安全停止/v5/tar.gz/读回验证；Standard写Download/DSHA，Low旧系统首次选目录；不扫外置工作区、不默认导出原生密钥、不自动重启或重放。源码冻结、测试原始失败与补跑、精确APK资产及最终上传回执分开保存，不把浏览器机制回归写成手机FPS。完整源码ZIP直接展开固定输入；不能从F盘旧173构建。
+维护入口：[文档总索引](docs/documentation-index.md)、[固定构建输入](docs/fixed-build-inputs.md)、[文案长度政策](docs/i18n-length-policy.md)、[项目总手册](docs/project-architecture-handbook.md)、
+[权限](docs/device-permissions-architecture.md)、[环境/数据/插件](docs/runtime-data-plugin-architecture.md)、
+[运行引擎](docs/runtime-engines.md)、[端口](docs/ports-and-networking.md)、[虚拟屏](docs/virtual-screen-architecture.md)、
+[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)、[来源依据](docs/references-and-provenance.md)。
 
-维护入口见[文档总索引](docs/documentation-index.md)、[项目总手册](docs/project-architecture-handbook.md)、[权限](docs/device-permissions-architecture.md)、[环境/数据/插件](docs/runtime-data-plugin-architecture.md)、[运行引擎](docs/runtime-engines.md)、[端口](docs/ports-and-networking.md)、[DNS](docs/dns-configuration.md)、[虚拟屏](docs/virtual-screen-architecture.md)、[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)及[来源依据](docs/references-and-provenance.md)。
-
-**build170基座历史策略**：移动 UI 3.0.5；第三方插件检查后自动提交/启用，允许依赖生命周期脚本和 pnpmfile；新导出为无密码 tar.gz，内部自动副本及旧加密原件读取保留。两版各45项关联检查和 Android13 非破坏性正式包验收范围见[历史发布说明](docs/releases/v0.2.0-rc2-notes.md)与[build170](docs/releases/v0.2.21-build170-20261009.md)。移动UI等当前值以上方本轮决定为准，下方目录数量为历史索引。
+**历史记录**：各版本的构建与验收回执保留在 [CHANGELOG.md](CHANGELOG.md) 与 [docs/releases/](docs/releases/)；
+下方目录数量为历史索引，以实际代码为准。
 
 ---
 
@@ -155,7 +165,7 @@ Root 维护以 [权限架构](docs/device-permissions-architecture.md) 与 [固�
 
 | 层 | 关键类 | 职责 |
 |---|---|---|
-| `ui/` | MainActivity / WelcomeActivity / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | 界面与启动门禁 |
+| `ui/` | MainActivity / OnboardingActivity / ExtractActivity（维护详情） / Launch·Config·Settings·Plugin·Workspace Fragment / WebPreviewActivity | 界面与启动门禁；首次部署在引导内后台进行并以部署胶囊显示；覆盖更新进入整屏维护页 |
 | `core/` | `HarnessController`（约 57 KB，编排核心） | 启动 / 停止 dsh、鉴权链接捕获；**不要再往里塞新职责**，新逻辑写成独立协作者 |
 | `core/` | `ConfigStore` | 配置唯一读写入口（端口 / 模型 / workdir / API key） |
 | `core/` | `InstallRepository` / `MaintenanceCoordinator` / `RuntimeTasks` / `StartupDiagnostics` | 安装状态、维护屏障、运行任务锁、启动诊断 |
@@ -208,8 +218,8 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ### 版本与构建
 
-- **当前身份以本轮冻结回执及app/build.gradle为准**：code190、E7E3用于正式APK；0.1.7-rc2/147及A3F4均为历史记录，不作为本轮构建或签名输入。最新软件交付范围见上方决定。
-- `standard`：minSdk 30，系统 WebView；`low`：minSdk 23，内置 GeckoView 143。构建任务 `assembleStandardRelease` / `assembleLowRelease`。兼容版 proot / loader / 终端 JNI 以 API 23 重编（`tools/build-low-proot.py`、`tools/termux-jni/`），**不要把标准版 proot 当 Android 6 可执行文件**。
+- **当前身份以 `app/build.gradle`、`ci/release-identity.json` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build316 / DSHA 修订 `0.2.1-rc.5`（内置 DSH 0.2.1-rc.5）/ `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard；更早的 code/build 编号、旧包名 `dsh.android.client` 与历史 E7E3 签名均为历史记录，不作为当前构建或签名输入。
+- `standard`：minSdk 30（Android 11+），系统 WebView，arm64-v8a，是唯一构建线，任务为 `assembleStandardRelease`。`low`/GeckoView 兼容线已整体删除（含 `assembleLowRelease`、legacy proot/loader），**不再声明 Android 10 及以下可用**；测试变体仅通过 `-Pdsha.sunsetTest=true` 生成 `io.github.sunsetrne.dsha.test`。
 - 离线 rootfs（`assets/offline-rootfs.bin`）**不提交**，由准备脚本生成；APK 用 `offline-rootfs.layout=split-runtime-v1` 标记 Ubuntu 与 `dsh-runtime.bin` 分包，构建核验两份摘要。
 - 新 dsh 依赖由 `tools/dsh-runtime/package-lock.json` 锁定；`tools/prepare-runtime-descriptor.py` 生成独立受管契约描述，APK 版本仅作诊断来源。相同基础版本更新受管树，个人数据保持原位；**不因 UI-only APK 更新替换环境，不因普通 dsh 更新递增 Ubuntu 基础环境版本**。
 - 离线 curl / git / 证书由 `tools/ubuntu-tools/packages.lock.json` 锁定（`tools/prepare-ubuntu-tools.py` 生成 `ubuntu-tools.bin`）；网页 ES 兼容依赖锁在 `tools/web-compat/`（`node tools/prepare-web-compat.mjs`）。生成文件不提交，构建核验摘要。
@@ -252,14 +262,14 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - **麦克风**：清单同时声明 `RECORD_AUDIO` 与 `MODIFY_AUDIO_SETTINGS`；由 `BrowserMicrophone` 按网页请求申请，不能在普通启动时预授权；只放行当前本机页面的纯音频请求，摄像头 / 屏幕音频拒绝；旧回调不能批准新页。
 - **设备验收经验**：`uiautomator dump` 会抑制其他无障碍服务；截图授权绑定 DSH generation，停止 / 断连 / 撤销后失效；截图存应用私有 Pictures/DSHA，无需所有文件访问；PiP 可能盖住底部控件，自动化必须核对实际可见区域与屏幕方向；截图 / 读屏不可将敏感值写入公开取证文件。
 - Shizuku 必须注册 `rikka.shizuku.ShizukuProvider`；标准版 13.1.5 / 兼容版 12.2.0（不用 overrideLibrary 掩盖 minSdk 24）。回调严格核对管理器 UID、Binder 描述符、单次请求与超时。
-- 内置移动插件 `dsh-web-mobile` 为 3.2.2，固定上游 main `4c798ecc554009e401dc1f166b73c314cdf5273f`；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
+- 内置移动插件 `dsh-web-mobile` 为 3.2.2，固定上游 main `bb0e5e151ca549fef506e829020a5d7138074711`（2026-10-30 上游把 v3.2.2 标签重指到该提交）；`tools/apply-mobile-client-patches.mjs` 管理本地差异，不恢复上游已撤回的视口改动；上游已接管的 rc1 导航补丁不要重新套回。
 
 ---
 
 ## 启动契约（不可破坏）
 
-- `welcomed == false` → `WelcomeActivity` → 点开始 → `MainActivity`；`MainActivity` 进入前校验 `welcomed`，否则永远回 Welcome。
-- 正常运行检查 `.offline-extracted` 与完整环境身份。维护页允许进入受限主界面查看配置和日志；**此入口不能伪造就绪标记**，终端、Web 与插件执行仍须通过环境门禁。
+- `welcomed == false` → `OnboardingActivity`（欢迎 → 用途 → 授权 → 完成）→ `MainActivity`；`MainActivity` 进入前校验 `welcomed`，否则永远回引导。
+- 正常运行检查 `.offline-extracted` 与完整环境身份。覆盖更新、环境未就绪、未完成维护事务或未关闭的隔离试运行现场，都整屏进入运行环境维护页（`ExtractActivity`），同一候选只自动尝试一次；用户在维护页显式选择后才进入受限主界面，**受限入口不写就绪标记**，终端、Web 与插件执行仍须通过环境门禁。
 - 启动失败自动进入原生 `StartupRecoveryActivity`；等待鉴权本身不是故障。最近五次脱敏启动记录独立保存在私有目录。
 - 兼容重试仅在 proroot 已确认退出、鉴权前且无明确插件故障时进行一次，**不能由超时触发**。
 - 配置快照由宿主 `ConfigurationSnapshots` 执行：正文逐文件存于 rootfs 外，保留三份健康与三份修复前快照；旧日志已提交后不得覆盖后来修改的配置。
@@ -272,7 +282,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 - **停止靠 pid 文件 + 出生身份，不靠端口反查**：`/proc/net/tcp` 非 root 读不到（静默空），`/proc` 有 hidepid。启动时 `echo $$ > /root/.dsha-web.pid` 再 `exec node`；停止先写哨兵 `/root/.dsha-stopped`（看门狗见到就退出，否则「秒复活」）。旧 PID 复用按内核 `kill(pid,0)` + 出生身份二次核验，不得按裸 PID / 端口 / 名称强杀。
 - **app 私有目录禁 `link(2)`**（SELinux）：proot 必须带 `--link2symlink`；`PROOT_L2S_DIR` 在 rootfs 内的 `.l2s` 必须绑定到相同宿主绝对路径，否则 dpkg 安装对硬链接 chown/stat 会报文件不存在。
-- **两把签名钥匙各管一件事**：线上 APK 用历史发布证书（E7E3），增量更新清单用独立 keystore，绝不混用。
+- **签名身份分开管理**：Mod 正式 APK 用新建发布证书（SHA-256 见 `ci/release-identity.json`，由 `verifyPublishCertificate` 强制核对），增量更新清单若启用则用独立 keystore，绝不混用；历史 E7E3 只属于原版 `dsh.android.client`。
 - Android 的 `FileInputStream(FileDescriptor)` 不接管传入描述符：宿主备份通过 `ParcelFileDescriptor` 自动关闭流明确转移所有权。
 - 数据维护先关闭 PTY 与简易终端再取 `RuntimeTasks` 屏障；proroot 终端按本次独立会话核验并回收 guest，不能只结束启动器就释放工作锁。
 - 维护成功文案不能代替就绪检查；未就绪时留在原生页，不自动跳回循环。维护页忙状态不使用插件查询 / 终端等通用锁冒充数据维护。
@@ -281,13 +291,63 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ## 交付与验收
 
+<<<<<<< 208ea63a
 - 已发布F12保留[原记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md)与[原Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.1413)；当前F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2`继续使用既有私有维护仓库。最终软件/APK见[本批记录](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)；源码/附件/远端状态由独立回执核验，旧包不能代替本批证明。
 - 所有设备操作已暂停，不安装、启动、关闭或对话；软件检查核对实际包名、code190、E7E3及`debuggable=false`，不以检查通过授权操作手机。
 - Git保留构建必需、有notice/锁的小型JNI/vendor/解释器预编译依赖及27个必要历史构建源码、唯一website夹具；不宣称所有vendor native可从源码重现。大生成归档不入Git；Release完整源码ZIP额外含ci-assets.py逐SHA核对的原始大构建输入，配置工具链后按recipe构建，不需独立bundle，不能从APK逆恢复全部输入。6个审计JSON原路径白名单见[CONTRIBUTING](CONTRIBUTING.md)。私钥、用户数据、设备图/日志和历史现场不上传；ZIP自身摘要只写Release正文，避免自引用。
 - 验收范围如实声明：不把本机验证扩写成 Android 6/7、16 KiB 或全部外部模型服务矩阵完成；Standard/Low 与虚拟屏能力按实际设备证据声明。
 - 本轮只新增预发布范围与软件证据，历史fix2/fix3保持原样；不更新原仓库、原Release或官网清单，不部署网站。
+=======
+- 当前版本的改动见 [CHANGELOG.md](CHANGELOG.md)；各版本的构建、验收与回执归档在 [docs/releases/](docs/releases/) 与 `artifacts/`。
+- 验收范围如实声明：不把本机验证扩写成全部系统版本、机型或外部模型服务矩阵；单一 Standard 与虚拟屏能力按实际设备证据声明，Android 10 及以下不在支持范围。
+- 私钥、用户数据、设备截图与日志不进入仓库；安装、设备操作与发布按当次授权执行。
+>>>>>>> sunset/main
 
----
+## 多会话并行约定
+
+同一台机器上常有多个会话同时改本仓库。合并、发布、清理以「活跃声明」为准，不按空闲时长猜测会话是否结束。
+
+- **一会话一工作树**：新任务用 `git worktree add -b <type>/<name> .agents/worktrees/<type>/<name> origin/main` 建独立分支，基线取当时的 `origin/main`（不要基于未进 main 的侧分支）。不在主检出 `/root/DSH-A-mod` 上改代码；主检出只做只读查看。`/root/dsha-build` 是 `local-ci` 的同步镜像，不是工作区。
+- **改文件前用 `read` 读工作树路径**：DSH 的 `fs-observation-policy` 只认同一会话里 `read` 工具读过的同一绝对路径，否则 `edit` / 覆盖 `write` 报 `file has not been read`。在工作树里改文件，读和改都用 `.agents/worktrees/<type>/<name>/...`，读主检出的同名文件不算；`cat` / `sed` / `grep` 等 shell 读取不算；新会话、subagent、接手或 resume 后要重新读。授权只看版本，`read` 带 `offset`/`limit` 读一小段即可。shell 写过的文件要重新 `read` 后再 `edit`。
+- **建树即声明**：在工作树根目录写 `.ACTIVE-SESSION`。该文件已列入共享的 `.git/info/exclude`，不会被 `git add -A` 带进提交；不要改用设计 README 等会进仓库的文件做声明。字段：
+
+  ```text
+  状态：活跃（请勿合并 / 删除 / 重置本分支与工作树）
+  分支：<branch>（基于 <commit> <说明>）
+  会话：<完整 session id>
+  开始：<UTC 时间>
+  更新：<UTC 时间>
+  内容：<一句话任务>
+  当前阶段：<进行中 / 待用户确认 / 待真机核对 …>
+  占用文件：<会改动的文件或目录>
+  合并：不可合并 | 可合并（已提交 <commit>，建议版本说明 <一句话>）
+  后台任务：无 | <命令摘要> → 日志 <路径>，产物 <路径>
+  ```
+- **每轮结束更新**：每次回复用户前改「更新」「当前阶段」「合并」「后台任务」四项。等待用户确认、待真机核对仍算活跃。
+- **结束即交还**：任务完成（或放弃）后把文件改名为 `.SESSION-DONE`，状态写「已结束」，「合并」写明是否可合并及提交号；放弃时写「放弃，勿合并」。
+- **合并 / 发布会话**：只合并有 `.SESSION-DONE` 且「合并」为可合并的工作树；`.ACTIVE-SESSION` 或没有任何声明的工作树一律不动，先问用户。合并后在对方 `.SESSION-DONE` 末尾追加一行「已合入 buildNNN（<commit>）」，不改其它字段。**这一行只在推送成功、`git merge-base --is-ancestor <commit> origin/main` 为真之后写**；排队待推的写「待推送 buildNNN（<commit>）」。
+- **查看全部声明**：`for f in .agents/worktrees/*/.*SESSION* .agents/worktrees/*/*/.*SESSION* .ACTIVE-SESSION; do [ -f "$f" ] && { echo "== $f"; sed -n '1,10p' "$f"; }; done`
+
+### 本机共享环境（DSH 与所有会话同在一个 App 进程里）
+
+- **Gradle 只走 `dsha-gradle`**：proroot v1.2.8 的 `libproroot-runtime.so` 导出的 `fcntl` 把所有失败改写成 EPERM（抢锁失败本应 EAGAIN）。JDK `libnio` 用这个符号，另一个 JVM 持锁时 `FileChannel.tryLock` 抛 `IOException: Operation not permitted`，Gradle 直接失败。源码修复在 `tools/proroot-compat/stack-sysconf.c`（兼容层导出正确的 `fcntl`），装上含修复的 APK 才生效。本机在工作树内一律用：
+
+  ```bash
+  dsha-gradle :app:testStandardDebugUnitTest --tests '*XxxTest'   # 共用 /root/.gradle、--offline、固定 aapt2/Robolectric/JDK17
+  dsha-gradle --status                                            # 模式、槽位、谁在占用、日志在哪
+  dsha-gradle --stop                                              # 空闲时停掉常驻 daemon
+  ```
+
+  它启动时实测 `fcntl`：未修复时全局互斥、`--no-daemon`；已修复时按可用内存开最多 3 个并发槽位并复用常驻 daemon，内存不够就排队。Gradle JVM 的 `oom_score_adj` 设为 900，内存吃紧时先杀构建、不先杀 dsh。日志在 `/root/.cache/dsha-gradle-logs/`。不要直接跑 `./gradlew`，不要再建 `/root/.gradle-<任务>` 副本绕锁（每份约 1 GB，并多起一个 2–3 GB 堆的 JVM），不要杀别的会话的 Gradle 进程。
+- **内存即稳定性**：并发 Gradle / Robolectric 抢内存会把 dsh web 一起拖死，所有会话同时中断。一次只跑一个构建；全量单测只在合并前跑，日常跑定向 `--tests`。
+- **不在本机覆盖安装正式包**：安装 `io.github.sunsetrne.dsha` 会被系统以 PACKAGE UPDATED 结束整个 App，DSH 与全部会话随之中断。会话不得自行安装或降级正式包；测试包 `io.github.sunsetrne.dsha.test` 可装。用户要装正式包时，先让各活跃会话更新声明。
+- **本机专用覆盖放仓库外**：Conscrypt 关闭等只走 `-I /opt/dsha-x86/local-ci.init.gradle`，不往工作树写 `app/src/test/resources/robolectric.properties` 这类临时文件（已被忽略的 `local.properties` 除外），中断后才不会留下会被提交的残留。
+- **长任务写进声明**：后台 / `nohup` 任务必须输出到日志文件并登记在「后台任务」，结束时写明退出码。DSH 重启会杀掉这些任务。
+
+### 中断与接手
+
+- DSH 闪退或余额耗尽后，原会话的工作树和声明保持原样。新会话接手时把「会话」改为自己的 id，并注明「接手 <原 id>（原因）」；同一工作树同时只有一个持有者。
+- 接手第一步只读核对：`git status`、「后台任务」日志末尾与产物、临时文件残留。结果为 UNKNOWN 的命令（构建、推送、发布 dispatch）先核对实际状态，**不自动重放**；推送 / dispatch 前先查 `origin/main` 与已有 tag。
 
 ## 编码约定
 
@@ -307,36 +367,5 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 | [BUILD.md](BUILD.md) | 环境（JDK 17 / SDK 37 / NDK 26 / Python 3.9+）、构建、签名与发布交付流程 |
 | [docs/security-model.md](docs/security-model.md) | 安全模型与已知弱点 |
 | [docs/plugins.md](docs/plugins.md) | 插件安装、打包契约与验证范围 |
-| [docs/android-low.md](docs/android-low.md) | Low 版兼容差异（API 23 重编、desugaring、老系统权限） |
 | [docs/releases/](docs/releases/) | 各版本发布说明与真机验收记录（新版本验收写这里） |
 | [CHANGELOG.md](CHANGELOG.md) | 完整更新记录 |
-
-
-## build190 fix1 历史补充（2026-10-19，所列有限验收仅属当时APK）
-
-fix1当时本地日期版versionName **`0.2.1-rc.2-20261019.2352-dsh0.2.1-rc.2`**，versionCode190、`com.dsh.client`和下载文件名 `dsha-0.2.1-rc.2.apk` 不变。正式APK SHA-256 `5b1d8f5d6f71c7527f48d336013c74c6a2bf9e4f8811df6d416337deaac1ac38`，314,189,001 bytes；`fix1-dated-version-final` 91.39秒通过，两版各511项零失败/错误（Standard508pass/3skip、Low481pass/30skip），Lint0error、253/165warning，runtimeId仍为 `fa4759062b5cc65fea8bdff170fc4554083555f598d42596f57ad023d0442da8`。15:53:39 UTC正常停止后精确同签名覆盖并原名早交付，安装APK摘要匹配、UID/首次安装时间保持，f744入history。
-
-本包15:55:04 UTC实际DSH就绪/proroot/0.2.1-rc.2/环境READY，日志 **7.7秒后端鉴权就绪、无fallback**；15:55:29 UTC同一既有验收会话可读。
-
-真实DeepSeek第六轮先status STOPPED/cleanupfalse，再空portrait create（1,330ms）→同core active status→精确close（964ms），原始工具详情确认oktrue、EXITED、displayReleaseAcknowledgedtrue、STOPPED、cleanupPendingfalse。请求720×1280但接口仅orientation，实际1008×1792，不计精确分辨率通过。模型未调用其他app/input/screenshot/个人读取工具。
-
-本包16:00:51 UTC关modal后Back→Main、同会话再入；16:02:53 Home实际PiP，16:06:11真实物理启动器→Main+原PiP，16:07:51原同任务同会话恢复全屏。小窗正常Stop后16:10:17旧Web任务移除、DSH未运行/环境READY、自有UID仅宿主、HarnessService不存在、独立DeviceBridge保留；16:11:48 proroot3.2秒后端鉴权就绪、无fallback，16:12:57以不同新任务恢复同会话，全屏1440×3200/PiPfalse，无旧小屏残留。
-
-两轮网页ready日志（含人工停留）分别46.0秒/96.1秒，与后端鉴权7.7秒/3.2秒分开，不作全程启动耗时。
-
-16:18:49 UTC临时ON撤回OFF/CACHE_VERIFIED/rev3；16:21:19 DSH正常停止，无Web/Harness、仅host，独立DeviceBridge保留；16:21:31停止同SHA覆盖，UID/首次安装时间保持，16:24:09新host进程读回OFF/NONE/rev3，仍无Web/Harness。用户随后切到其他应用即停止操作，16:25该屏排除为DSHA验收判据；没有新导出最后诊断。仅本机Standard/WebView所列有限路径已验。
-
-源码zip预定 `artifacts/source/build190-fix1/dsha-build190-fix1-source.zip`，最终回执预定 `artifacts/deliveries/build190-fix1.json`，本次文档冻结时待生成核验，不声称已存在。旧SHA结果不转记本版。
-
-此前已交付f744为 `0.2.1-rc.2 / 190`、E7E3、非调试，SHA-256 `f744bbb21b5df4c5eee3e72ee8321bfb5994d852c08b98d65b9b82d65c9c3738`，314,188,808 bytes。其两版JUnit各511项：Standard508通过/3skip、Low481通过/30skip、零失败及错误；Lint0error、253/165warning；actualAPK验证通过，75 installs/147 assets/371 launchers，runtimeId `fa4759062b5cc65fea8bdff170fc4554083555f598d42596f57ad023d0442da8`。这些仅为f744历史。该包精确同签名覆盖与早交付已完成；获准真实重启及boot变化核对后，实际Main为环境READY/Web未运行，全局ON/NONE/revision2可重开、原生ADB连接验证。MCP完整功能未通过，不扩大为全部设备验收；日期版已安装并有独立proroot就绪及空虚拟屏创建/关闭实测，其所列有限路径已完成，长期/完整矩阵未覆盖。源码zip与最终回执待生成核验，未上传GitHub、网站或Release。
-
-- 本轮已修版本/注册表一致性、rc1迁移来源、wrapper兼容、BrowserOrigin私有根/官方空草稿、Harness退休、proroot入口/shim、授权XML尾LF、混合任务导航和MCP错误映射。生产数据、同代网页、未知退出保护及独立DeviceBridge保留；授权37、导航41、原生工具链21等宿主边界见[fix1报告](docs/releases/v0.2.1-rc.2-build190-fix1-20261019.md)。
-- 历史692：Android13有限OFF修复；Android16已复现9ee Back/启动器故障，692实际READY、proroot6.1秒无fallback、Back/Main/物理启动器/同会话全屏有限通过。原生恢复OFF/revision1后，同SHA覆盖重开13:10:31 UTC读回ON/NONE/revision2；真实只读模型轨迹printf、/app/device、/app/plugins（163/0/0）有结果，授权失败和CLI缺profile后的修正保留。MCP status为NOT_RUNNING，ask-user人答FAIL并提交；create随后JOURNAL_UNAVAILABLE，不能算虚拟屏通过。
-- f316修NioInstallationIdentity的FileStore拒绝，保留NOFOLLOW/CREATE_NEW/Unix0600与原身份；11项定向通过。实际第五轮已越journal，却ADB_CONNECT_FAILED→START_UNKNOWN、cleanupRequired=true、无core身份；旧屏障保留。后续原生ADB连接验证不能补成前次未执行证明；约21:20本地用户并行配对freeform→全屏片段不作单一因果归因。
-- f744四类NOT_SENT修复仅承认helper实际退出、输出完整及精确有效未commit票的原子撤销；commit/撤销同锁，已commit/丢回执/失配/过期/截断/异常仍UNKNOWN。manager仍核对epoch、状态与journal提交，不清f316旧UNKNOWN、不自动重放。代理定向131项（1skip）零失败/错误及Python8/29项通过，后两项当次输出OK但未保存原始日志；独立四类复核21/21，设备效果待验。
-- 旧UNKNOWN无core身份时，主负责人先正常停止DSH并确认无自有guest，取得用户**仅本次明确重启许可**后约15:03 UTC真实重启且确认boot变化，再覆盖f744。不能将其变成自动重启或清旧屏障的通用授权。f744最新有限Main/授权/ADB记录不代表MCP完整功能通过；当前日期版已有有限导航/停止换代、OFF跨进程及最终停止证明，未新增最后诊断导出；692局部结果和9ee115.042秒默认proot冷测各属旧SHA。Low190未验设备，未新增长时、全模型或全部ROM通过结论。本地交付以 artifacts/deliveries/build190-fix1.json 的实际生成及摘要核验为准；不发布GitHub。
-
-
-<!-- merged-sunset-ci-history -->
-> **2026-10-24 Sunset-3090-Q 分支 CI 范围**：用户取消本分支全部 Low 测试。当前所有工作流仅运行 Standard 的源码/完整输入 JUnit、Lint 与打包；宿主执行器也拒绝 Low，专用 Low 预览用例保留历史。Sunset 构建使用 rc.3 固定源码输入、`dsh.android.client.SunsetRNE` 测试签名身份，不与 E7E3 正式包混同。历史双版本回执只用于兼容读取，不视为本轮 Low 测试。
-> 本段只描述分支历史；本轮正式 E7E3 Standard 构建不启用 SunsetRNE 或额外测试 APK。

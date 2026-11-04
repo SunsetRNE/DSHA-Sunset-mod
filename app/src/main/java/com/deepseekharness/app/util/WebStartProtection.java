@@ -35,7 +35,7 @@ public final class WebStartProtection {
     private long generation;
     private Object service;
     private BooleanSupplier serviceCurrent;
-    private boolean waitingStop, admitted, claimed, closed;
+    private boolean waitingStop, admitted, claimed, closed, deferred;
     private String failure = "";
 
     private Ticket(long generation) {
@@ -74,6 +74,22 @@ public final class WebStartProtection {
     @Override
     public void close() {
       reject(this, "WEB_START_PREPARATION_CLOSED");
+    }
+
+    /**
+     * 核对旧实例期间保留本次前台保护，等恢复结论后再提交；最多续接一次。
+     * 只标记仍有效、尚未入队的票据，过期或被停止撤销的票据不会再被续接。
+     */
+    public void defer() {
+      synchronized (lifecycle) {
+        if (!closed && !admitted) deferred = true;
+      }
+    }
+
+    public boolean isDeferred() {
+      synchronized (lifecycle) {
+        return deferred && !closed;
+      }
     }
   }
 

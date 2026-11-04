@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.DshaApp;
+import com.deepseekharness.app.util.VirtualScreenObservationHint;
 import com.deepseekharness.app.util.Ids;
 import com.deepseekharness.app.util.OneShotLaunchAuthority;
 import com.deepseekharness.app.util.ScreenActionResult;
@@ -73,6 +74,10 @@ public final class VirtualScreenManager {
   private final LongSupplier clock;
   private volatile boolean starting;
   private volatile boolean launchDispatched;
+
+  /** 最近一次显示就绪或启动应用的时刻（clock 毫秒）；只用于观察失败时区分「首帧等待」与「停滞」。 */
+  private volatile long observationStartedAt = -1;
+
   private final ThreadLocal<String> BRIDGE_TARGET = new ThreadLocal<>();
   private final ThreadLocal<BooleanSupplier> BRIDGE_AUTHORITY = new ThreadLocal<>();
   private ScheduledFuture<?> heartbeat;
@@ -168,7 +173,7 @@ public final class VirtualScreenManager {
     this.bootSource = java.util.Objects.requireNonNull(bootSource);
     VirtualScreenJournal storage = null;
     try {
-      if (application != null && !BuildConfig.LOW_ANDROID && android.os.Build.VERSION.SDK_INT >= 30)
+      if (application != null && !false && android.os.Build.VERSION.SDK_INT >= 30)
         storage = Api30JournalFactory.open(application.getFilesDir());
     } catch (Exception unavailable) {
       lastError = "VSCREEN_JOURNAL_UNAVAILABLE";
@@ -181,6 +186,7 @@ public final class VirtualScreenManager {
             ? new Visuals() {
               public void present() {
                 foreground().present();
+                overlay().restore();
               }
 
               public void stopped(long fence) {
@@ -241,7 +247,7 @@ public final class VirtualScreenManager {
   }
 
   public static boolean supported(Context c) {
-    return !BuildConfig.LOW_ANDROID && android.os.Build.VERSION.SDK_INT >= 30;
+    return !false && android.os.Build.VERSION.SDK_INT >= 30;
   }
 
   public String channel() {
@@ -697,7 +703,7 @@ public final class VirtualScreenManager {
   }
 
   private JSONObject startOrdered(String orientation, VirtualScreenRequestScope scope) {
-    if (BuildConfig.LOW_ANDROID) return failure("VSCREEN_UNSUPPORTED_LOW");
+    if (false) return failure("VSCREEN_UNSUPPORTED_LOW");
     if (!supported(context)) return failure("VSCREEN_API_30_REQUIRED");
     if (!"portrait".equals(orientation) && !"landscape".equals(orientation))
       return failure("INVALID_ORIENTATION");
@@ -837,6 +843,7 @@ public final class VirtualScreenManager {
         if (committed) {
           starting = false;
           lifecycleState = VirtualScreenLifecycleState.READY;
+          observationStartedAt = clock.getAsLong();
           generation = created.optString("generation");
           frameSequence = created.optLong("frameSeq", -1);
           stateRevision++;
@@ -978,6 +985,17 @@ public final class VirtualScreenManager {
         if (currentLocked(session)) lifecycleState = VirtualScreenLifecycleState.DISCONNECTED;
       }
       stopIfCurrent(session);
+      // 通道授权已丢失（如 Shizuku 权限被收回）：识屏模式按统一钩子判定是否降为 off。
+      if (!available) modeCapabilityRevoked("CHANNEL_LOST_" + session.channel);
+    }
+  }
+
+  private void modeCapabilityRevoked(String reason) {
+    if (context == null) return;
+    try {
+      com.deepseekharness.app.screen.ScreenMode.capabilityRevoked(context, reason);
+    } catch (RuntimeException unavailable) {
+      recordDiagnostic("SCREEN_MODE_REVOKE", unavailable.getClass().getSimpleName());
     }
   }
 
@@ -1008,16 +1026,111 @@ public final class VirtualScreenManager {
         || evidence.windowId < 0
         || evidence.consentRevision < 0) {
       JSONObject image = preview(scope);
+      boolean explicit = scope.request != null;
+      boolean targeted =
+          explicit
+              && scope.request.target instanceof VscreenTargetEvidence evidence
+              && evidence.windowId >= 0;
+      boolean consented =
+          targeted && ((VscreenTargetEvidence) scope.request.target).consentRevision >= 0;
       try {
+        ObservationFacts facts =
+            image.optBoolean("ok") ? null : observationFacts(scope, image.optString("error"));
+        VirtualScreenObservationHint.Accessibility accessibility =
+            facts != null ? facts.accessibility : accessibilityState();
+        String diagnostic =
+            facts != null
+                ? facts.windowDiagnostic
+                : accessibility == VirtualScreenObservationHint.Accessibility.CONNECTED
+                    ? com.deepseekharness.app.DshaAccessibilityService.displayWindowDiagnostic(
+                        image.optInt("displayId", -1))
+                    : "ACCESSIBILITY_UNAVAILABLE";
+        String reason =
+            VirtualScreenObservationHint.anchorUnavailable(
+                accessibility, diagnostic, explicit, targeted, consented);
         image
             .put("anchoredAvailable", false)
-            .put("availabilityReason", "ANCHOR_ACCESSIBILITY_UNAVAILABLE")
+            .put("availabilityReason", reason)
             .put("sourceFrameSeq", image.optLong("frameSeq", -1));
+        if (facts != null) explainObservationFailure(image, facts);
       } catch (Exception ignored) {
       }
       return image;
     }
-    return observed("see", null, -1, "", -1, -1, scope);
+    JSONObject result = observed("see", null, -1, "", -1, -1, scope);
+    if (!result.optBoolean("ok")) {
+      try {
+        ObservationFacts facts = observationFacts(scope, result.optString("error"));
+        if (facts != null) explainObservationFailure(result, facts);
+      } catch (Exception ignored) {
+      }
+    }
+    return result;
+  }
+
+  /** 观察失败时收集的只读事实；不登记观察、不改变代次或帧号。 */
+  private static final class ObservationFacts {
+    final VirtualScreenObservationHint.Accessibility accessibility;
+    final String windowDiagnostic, foregroundPackage;
+    final long sinceStartMs;
+
+    ObservationFacts(
+        VirtualScreenObservationHint.Accessibility accessibility,
+        String windowDiagnostic,
+        String foregroundPackage,
+        long sinceStartMs) {
+      this.accessibility = accessibility;
+      this.windowDiagnostic = windowDiagnostic;
+      this.foregroundPackage = foregroundPackage;
+      this.sinceStartMs = sinceStartMs;
+    }
+  }
+
+  private VirtualScreenObservationHint.Accessibility accessibilityState() {
+    return VirtualScreenObservationHint.Accessibility.of(
+        com.deepseekharness.app.DshaAccessibilityService.isConnected(),
+        com.deepseekharness.app.DshaAccessibilityService.enabledState(context));
+  }
+
+  /** 只对 Core 的 FRAME_NOT_READY 收集事实；其它失败码原样回传。 */
+  private ObservationFacts observationFacts(VirtualScreenRequestScope scope, String error) {
+    if (!VirtualScreenObservationHint.FRAME_NOT_READY.equals(error)) return null;
+    // status 是只读查询：不登记观察，也不推进帧号（freshFrame=false）。
+    JSONObject status = targetStatus(scope);
+    int display = status.optInt("displayId", -1);
+    VirtualScreenObservationHint.Accessibility accessibility = accessibilityState();
+    String diagnostic =
+        accessibility == VirtualScreenObservationHint.Accessibility.CONNECTED && display > 0
+            ? com.deepseekharness.app.DshaAccessibilityService.displayWindowDiagnostic(display)
+            : "ACCESSIBILITY_UNAVAILABLE";
+    String foreground = status.optBoolean("packageVerified") ? status.optString("package") : "";
+    long started = observationStartedAt;
+    long since = started < 0 ? -1 : Math.max(0, clock.getAsLong() - started);
+    return new ObservationFacts(accessibility, diagnostic, foreground, since);
+  }
+
+  /** 把 FRAME_NOT_READY 细分为空屏 / 首帧等待 / 停滞，并附下一步建议；legacyError 保留原码。 */
+  private static void explainObservationFailure(JSONObject value, ObservationFacts facts)
+      throws org.json.JSONException {
+    VirtualScreenObservationHint.Hint hint =
+        VirtualScreenObservationHint.frameNotReady(
+            value.optString("error"),
+            facts.accessibility,
+            facts.windowDiagnostic,
+            facts.foregroundPackage,
+            facts.sinceStartMs);
+    if (hint == null) return;
+    value
+        .put("legacyError", VirtualScreenObservationHint.FRAME_NOT_READY)
+        .put("error", hint.error)
+        .put("windowState", hint.windowState)
+        .put("windowEvidence", hint.windowEvidence)
+        .put("windowDiagnostic", facts.windowDiagnostic)
+        .put("foregroundPackage", facts.foregroundPackage)
+        .put("retryable", hint.retryable)
+        .put("readOnly", true)
+        .put("nextAction", hint.nextAction);
+    if (facts.sinceStartMs >= 0) value.put("sinceReadyOrLaunchMs", facts.sinceStartMs);
   }
 
   private JSONObject observed(
@@ -1345,6 +1458,8 @@ public final class VirtualScreenManager {
         () -> {
           if (!scope.claim()) return failure("SCREEN_TARGET_CHANGED");
           semantics.clear();
+          // 启动已发出（结果可能未知）后重新计首帧等待期；不据此判断启动是否成功。
+          observationStartedAt = clock.getAsLong();
           return request("/vscreen/launch", "package=" + encode(pkg), scope);
         });
   }
@@ -1691,6 +1806,15 @@ public final class VirtualScreenManager {
 
   public void discardObservations() {
     semantics.clearObserved();
+  }
+
+  /**
+   * 统一撤销钩子：某项设备能力被撤销（Root / ADB 开关关闭、Shizuku 权限丢失等）。先回收虚拟屏，再由识屏模式判定是否降为
+   * off；调用方不再直调 {@link #revoke()}。
+   */
+  public void revokeFor(String reason) {
+    revoke();
+    modeCapabilityRevoked(reason == null || reason.isEmpty() ? "CAPABILITY_REVOKED" : reason);
   }
 
   public void revoke() {

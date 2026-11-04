@@ -259,7 +259,7 @@ public class TerminalSessionOwnerTest {
     var session = constructor.newInstance();
     return owner.createPty(
         ticket,
-        (verified, changed, beforeFork, allocated) -> {
+        (verified, changed, beforeFork, allocated, guestCommand) -> {
           allocated.accept(session);
           beforeFork.run();
           return session;
@@ -340,7 +340,7 @@ public class TerminalSessionOwnerTest {
           () ->
               owner.createPty(
                   ticket,
-                  (verified, changed, beforeFork, allocated) -> {
+                  (verified, changed, beforeFork, allocated, guestCommand) -> {
                     allocated.accept(pending);
                     beforeFork.run();
                     throw new IllegalStateException(
@@ -374,10 +374,39 @@ public class TerminalSessionOwnerTest {
         () ->
             owner.createPty(
                 ticket,
-                (verified, changed, beforeFork, allocated) -> {
+                (verified, changed, beforeFork, allocated, guestCommand) -> {
                   throw new IllegalStateException("environment rejected before allocating PTY");
                 }));
     assertTrue(owner.ptyTabs().snapshot().isEmpty());
+    assertFalse(protection.hasDemand());
+  }
+
+  @Test
+  public void fixedGuestCommandReachesPtyStartWithoutChangingProtectionTiming() throws Exception {
+    var protection = new TerminalRuntimeProtection(() -> 1L);
+    TerminalSessionOwner owner = new TerminalSessionOwner(protection);
+    var ticket = protection.prepare(owner.epoch(), TerminalRuntimeProtection.Kind.PTY, admission());
+    protection.promoted(ticket.id(), new Object(), () -> true);
+    String[] command = {"/bin/bash", "-c", "exec /bin/bash -l"};
+    var constructor = com.deepseekharness.app.PtySession.class.getDeclaredConstructor();
+    constructor.setAccessible(true);
+    var session = constructor.newInstance();
+    AtomicReference<String[]> seen = new AtomicReference<>();
+    var tab =
+        owner.createPty(
+            ticket,
+            command,
+            (verified, changed, beforeFork, allocated, guestCommand) -> {
+              seen.set(guestCommand);
+              allocated.accept(session);
+              // 保护票在进入 PtyStart 前已 retain；丢失会在这里失败，验证时序未变。
+              beforeFork.run();
+              return session;
+            });
+    org.junit.Assert.assertArrayEquals(command, seen.get());
+    org.junit.Assert.assertSame(session, tab.value);
+    assertEquals(1, protection.snapshot().held);
+    owner.closePty(tab.id, 1000);
     assertFalse(protection.hasDemand());
   }
 

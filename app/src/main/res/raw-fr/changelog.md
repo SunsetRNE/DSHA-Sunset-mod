@@ -1,5 +1,4 @@
-# DSHA 0.2.1-rc.3-20261030.0006-dsh0.2.1-rc.3 / build209
+# DSHA 0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5 / build316
 
-- - Correction du problème où des fenêtre système minuscule 1×1 — glyphes HyperDuo, badge de notes, etc. — déclenchaient TARGET_WINDOW_OCCLUDED sur les systèmes de type HyperOS, rendant tap et swipe par coordonnées totalement inutilisables : les fenêtres d’une aire négligeable ne participent plus à la décision d’occlusion (#212).
-- - Lorsque l’arrêt d’une application est bloqué par « format de la liste d’applications non vérifiable », l’erreur embarque désormais la première ligne inattendue (masquée, tronquée) et précise la liste utilisateur ou système, afin de cerner les différences de sortie pm propres à chaque ROM (#210 complément).
-- - Conserver dsh-web-mobile 3.2.2, DSH rc.3, l’accès local et réseau local et les dix langues. La validation sur téléphone reste suspendue.
+- Vérification des dépendances de plugins : le chemin rapide de l’analyse CAS revérifie le type et l’inode des entrées ; remplacer un fichier par un lien puis rétablir sa date de modification dans le même intervalle n’échappe plus à la détection. L’instantané de documents libère désormais son autorisation si l’initialisation de SQLite échoue, la navigation suivante ne se bloque plus.
+- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 316 (basé sur build315). La révision DSHA reste 0.2.1-rc.5 et le DSH intégré reste 0.2.1-rc.5.

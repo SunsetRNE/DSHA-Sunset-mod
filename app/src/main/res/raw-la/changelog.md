@@ -1,5 +1,4 @@
-# DSHA 0.2.1-rc.3-20261030.0006-dsh0.2.1-rc.3 / build209
+# DSHA 0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5 / build316
 
-- - Reparatum est vitium quo fenestrae systematae minimae (1×1), ut HyperDuo glyph et nota commentariorum in systematibus HyperOS similibus, TARGET_WINDOW_OCCLUDED reddebant atque ictus per coordlinatas et lationes prorsus inutiles facebant: fenestrae areae nimis parvae iudicio occultationis non iam intersunt (#212).
-- - Cum applicatio per «index applicationum confirmari non potuit» sistitur, error nunc primam lineam inopinatam (velatam, truncatam) fert et indicem utentis vel systematis distinguit, ut differentiae pm cuiusque ROM agnoscantur (#210 continuatio).
-- - dsh-web-mobile 3.2.2, DSH rc.3, accessus localis et LAN et decem linguae servantur. Probatio telephoni adhuc suspensa est.
+- Probatio dependentiarum plugin: via celeris scansionis CAS genus et inode singulorum iterum inspicit, ut fasciculus in nexum mutatus tempore mutationis restituto intra eundem ictum temporis non iam praetereatur. Imago documentorum nunc licentiam remittit si initium SQLite deficit, ne navigatio posterior haereat.
+- Ambitus probationis: solum probationes unitatum destinatae, Lint et inspectiones fontis locales; in instrumento non probatum. versionCode ad 316 auctus (in build315 fundatum). Revisio DSHA manet 0.2.1-rc.5 et DSH inclusum manet 0.2.1-rc.5.

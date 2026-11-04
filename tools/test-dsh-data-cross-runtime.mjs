@@ -233,8 +233,8 @@ if (process.argv[2] === '--worker') {
       'every historical session shape', 'business task replay', 'runtime rollback authorization'] };
   try {
     report.inputs = { old: await provenance(oldRuntime), new: await provenance(newRuntime) };
-    assert.equal(report.inputs.old.version, args['--old-version'] || '0.2.1-rc.2');
-    assert.equal(report.inputs.new.version, args['--new-version'] || '0.2.1-rc.3');
+    assert.equal(report.inputs.old.version, args['--old-version'] || '0.2.1-rc.3');
+    assert.equal(report.inputs.new.version, args['--new-version'] || '0.2.1-rc.5');
     for (const [phase, runtime] of [['old-write', oldRuntime], ['new-read', newRuntime], ['new-write', newRuntime],
       ['new-reopen', newRuntime], ['old-read-new', oldRuntime]]) {
       const before = phase.includes('read') || phase === 'new-reopen' ? await tree(root) : undefined;

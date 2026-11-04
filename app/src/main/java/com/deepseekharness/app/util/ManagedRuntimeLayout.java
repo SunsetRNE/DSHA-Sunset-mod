@@ -16,6 +16,7 @@ public final class ManagedRuntimeLayout {
     out.add("usr/local/share/dsha/dsh-runtime.version");
     out.add("usr/local/share/dsha/ca-certificates.crt");
     out.add("usr/local/share/dsha/dns-compat.cjs");
+    out.add("usr/local/share/dsha/net-epoch.cjs");
     out.add("usr/local/share/dsha/managed-assets-v2");
     out.add("etc/profile.d/dsha-runtime-env.sh");
     out.add("usr/local/lib/dsha-pnpm");

@@ -184,7 +184,7 @@ def main():
     assert sha(historical_input) == CANONICAL_SHA, 'unknown historical rc2 canonical bytes'
     historical = json.loads((HISTORY / 'session-interaction-patch.json').read_text(encoding='utf-8'))
     current = json.loads((ASSETS / 'session-interaction-patch.json').read_text(encoding='utf-8'))
-    assert historical['dshVersion'] == '0.2.1-rc.2' and current['dshVersion'] == '0.2.1-rc.3'
+    assert historical['dshVersion'] == '0.2.1-rc.2' and current['dshVersion'] == json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8'))['dependencies']['@deepseek-ai/dsh']
     assert sha(original_input) == current['sourceSha256'], 'unknown current rc3 canonical bytes'
     actual_v3 = apply_recipe(historical_input, historical, HISTORY)
     assert sha(actual_v3) == HISTORICAL_MANAGED_SHA, 'derived V3 must match the independently retained managed baseline'

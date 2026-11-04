@@ -23,6 +23,10 @@ public final class StartupHistoryStore {
 
   public static final class Entry {
     public final String id, status, stage, log, reason;
+
+    /** 中文时间线：应用自有的固定前缀不随界面语言变化，仅用于失败分类，不直接展示。 */
+    public final String zhLog;
+
     public final long started, elapsed, runElapsed, backendReadyMs, browserReadyMs;
     public final boolean safe;
 
@@ -37,6 +41,7 @@ public final class StartupHistoryStore {
       safe = Boolean.parseBoolean(p.getProperty("safe", "false"));
       stage = p.getProperty(language + "Stage", "");
       log = p.getProperty(language + "Log", "");
+      zhLog = p.getProperty("zhLog", "");
       reason = p.getProperty("reason", "");
     }
   }
