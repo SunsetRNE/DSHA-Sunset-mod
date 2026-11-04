@@ -100,6 +100,8 @@ public final class OneClickBackup extends AndroidViewModel {
             }
             submit(tree, control);
           } catch (Exception error) {
+            android.util.Log.w(
+                "DshaBackup", BackupFailureDiagnostic.describe("ONE_CLICK_PREPARING", error));
             issue = BackupErrorCode.from(error);
           } finally {
             preparing.set(false);
@@ -149,6 +151,8 @@ public final class OneClickBackup extends AndroidViewModel {
                 .commit()) throw new IOException("SAF_PERMISSION_NOT_RETAINED");
             submit(tree, control);
           } catch (Exception error) {
+            android.util.Log.w(
+                "DshaBackup", BackupFailureDiagnostic.describe("ONE_CLICK_DIRECTORY", error));
             issue = BackupErrorCode.from(error);
           } finally {
             preparing.set(false);

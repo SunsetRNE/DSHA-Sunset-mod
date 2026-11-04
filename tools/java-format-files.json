@@ -105,11 +105,13 @@
     "app/src/main/java/com/deepseekharness/app/backup/BackupControl.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupDirectoryTarget.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupErrorCode.java",
+    "app/src/main/java/com/deepseekharness/app/backup/BackupFailureDiagnostic.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupFileSystem.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupJson.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupLimits.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupPreview.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupSource.java",
+    "app/src/main/java/com/deepseekharness/app/backup/BackupTemporaryFiles.java",
     "app/src/main/java/com/deepseekharness/app/backup/BackupTree.java",
     "app/src/main/java/com/deepseekharness/app/backup/ColdInstallTransaction.java",
     "app/src/main/java/com/deepseekharness/app/backup/ColdProbeCleanup.java",
@@ -1453,6 +1455,9 @@
     "app/src/main/java/com/deepseekharness/app/util/DeviceChannelOrder.java",
     "app/src/test/java/com/deepseekharness/app/ExternalTargetConfirmationTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/AndroidBackupFileSystemReadTest.java",
+    "app/src/test/java/com/deepseekharness/app/backup/BackupFailureDiagnosticTest.java",
+    "app/src/test/java/com/deepseekharness/app/backup/BackupTemporaryFilesTest.java",
+    "app/src/test/java/com/deepseekharness/app/backup/HostSnapshotFailureRetentionTest.java",
     "app/src/test/java/com/deepseekharness/app/util/DeviceChannelOrderTest.java",
     "app/src/test/java/com/deepseekharness/app/ui/ShellNavCompactPortraitTest.java"
   ]
