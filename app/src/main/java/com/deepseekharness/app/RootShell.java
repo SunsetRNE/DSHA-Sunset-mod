@@ -187,7 +187,7 @@ public final class RootShell {
       java.util.List<String> argv,
       java.util.Map<String, String> environment,
       long timeoutMs) {
-    return execExternal(ctx, argv, environment, timeoutMs, null);
+    return execExternal(ctx, argv, environment, timeoutMs, null, () -> false);
   }
 
   public static String execExternal(
@@ -195,7 +195,8 @@ public final class RootShell {
       java.util.List<String> argv,
       java.util.Map<String, String> environment,
       long timeoutMs,
-      String expectedRoot) {
+      String expectedRoot,
+      java.util.function.BooleanSupplier dispatchCurrent) {
     if (!enabled(ctx))
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
@@ -237,7 +238,7 @@ public final class RootShell {
               .put("expectedRoot", expectedRoot)
               .put("selfPackage", ctx.getPackageName())
               .put("selfUid", ctx.getApplicationInfo().uid);
-      return runPrivilegedExternal(ctx, request, timeoutMs);
+      return runPrivilegedExternal(ctx, request, timeoutMs, dispatchCurrent);
     } catch (Exception error) {
       return "[EXECUTION_UNKNOWN] " + SensitiveData.redact(String.valueOf(error)) + "\n[EXIT=125]";
     }
@@ -250,7 +251,8 @@ public final class RootShell {
       java.util.List<String> clientArgv,
       java.util.Map<String, String> environment,
       long timeoutMs,
-      String expectedRoot) {
+      String expectedRoot,
+      java.util.function.BooleanSupplier dispatchCurrent) {
     if (!enabled(ctx))
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
@@ -295,7 +297,7 @@ public final class RootShell {
               .put("selfPackage", ctx.getPackageName())
               .put("selfUid", ctx.getApplicationInfo().uid);
       // server 就绪等待最多 15 秒，再加客户端期限与 su 启动余量。
-      return runPrivilegedExternal(ctx, request, timeoutMs + 25_000);
+      return runPrivilegedExternal(ctx, request, timeoutMs + 25_000, dispatchCurrent);
     } catch (Exception error) {
       return "[EXECUTION_UNKNOWN] " + SensitiveData.redact(String.valueOf(error)) + "\n[EXIT=125]";
     }
@@ -315,7 +317,8 @@ public final class RootShell {
       String expectedRoot,
       String importRoot,
       String nonce,
-      boolean continueOnFailure) {
+      boolean continueOnFailure,
+      java.util.function.BooleanSupplier dispatchCurrent) {
     if (!enabled(ctx))
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
@@ -367,14 +370,18 @@ public final class RootShell {
               .put("continueOnFailure", continueOnFailure)
               .put("selfPackage", ctx.getPackageName())
               .put("selfUid", ctx.getApplicationInfo().uid);
-      return runPrivilegedExternal(ctx, request, timeoutMs + 25_000);
+      return runPrivilegedExternal(ctx, request, timeoutMs + 25_000, dispatchCurrent);
     } catch (Exception error) {
       return "[EXECUTION_UNKNOWN] " + SensitiveData.redact(String.valueOf(error)) + "\n[EXIT=125]";
     }
   }
 
   private static String runPrivilegedExternal(
-      Context ctx, org.json.JSONObject request, long timeoutMs) {
+      Context ctx,
+      org.json.JSONObject request,
+      long timeoutMs,
+      java.util.function.BooleanSupplier dispatchCurrent) {
+    if (!dispatchCurrent.getAsBoolean()) return externalAuthorityChanged();
     String su = executable();
     if (su == null) return "[ROOT_UNAVAILABLE] 未找到 su\n[EXIT=124]";
     String label = request.optString("operation", "external");
@@ -385,9 +392,14 @@ public final class RootShell {
     boolean timedOut = false;
     try {
       bindOwner(request, timeoutMs);
+      byte[] payload = request.toString().getBytes(StandardCharsets.UTF_8);
       process = startHelper(ctx, su, ticket);
       try (java.io.OutputStream input = process.getOutputStream()) {
-        input.write(request.toString().getBytes(StandardCharsets.UTF_8));
+        // A helper cannot execute an external command without its request. Claim immediately
+        // before handing over the immutable argv, after potentially slow su startup and checks.
+        if (!writeExternalRequest(
+            input, payload, () -> enabled(ctx) && dispatchCurrent.getAsBoolean()))
+          return externalAuthorityChanged();
       }
       BoundedProcessRunner.Result result =
           BoundedProcessRunner.collect(process, timeoutMs, 768 * 1024, RootShell::destroyQuietly);
@@ -406,6 +418,20 @@ public final class RootShell {
     } finally {
       finish(ctx, ticket, process, label, timedOut);
     }
+  }
+
+  private static String externalAuthorityChanged() {
+    return "[POLICY_BLOCKED] EXTERNAL_AUTHORITY_CHANGED_BEFORE_DISPATCH\n[EXIT=126]";
+  }
+
+  static boolean writeExternalRequest(
+      java.io.OutputStream input,
+      byte[] payload,
+      java.util.function.BooleanSupplier dispatchCurrent)
+      throws java.io.IOException {
+    if (!dispatchCurrent.getAsBoolean()) return false;
+    input.write(payload);
+    return true;
   }
 
   /**

@@ -98,6 +98,9 @@ public final class ExternalDevicePolicy {
       case "shell":
         if (v.isEmpty()) return deny("外接 shell 命令为空");
         if (v.length() > 8192 || v.indexOf('\0') >= 0) return deny("外接 shell 命令过长或包含 NUL");
+        String rejected =
+            ExternalToolPolicy.diagnosticReadRejection(java.util.List.of(v.trim().split("\\s+")));
+        if (rejected != null) return deny(rejected);
         return new Plan(Operation.SHELL, shellRisk(v), "", v, "");
       case "reboot":
         // 只为进入 bootloader 做只读预检及返回系统；edl / sideload 不开放。

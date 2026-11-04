@@ -345,7 +345,8 @@ public final class DeviceGrantsFragment extends Fragment {
         (button, enabled) -> {
           if (updating) return;
           if (!enabled) {
-            new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).setEnabled(false);
+            if (!new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).setEnabled(false))
+              toast(com.deepseekharness.app.util.UiText.text("设置保存失败，请重试"));
             refreshExternalDeviceStatus();
             return;
           }
@@ -358,7 +359,13 @@ public final class DeviceGrantsFragment extends Fragment {
               .setPositiveButton(
                   com.deepseekharness.app.util.UiText.choose("开启", "Enable"),
                   (dialog, which) -> {
-                    new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).setEnabled(true);
+                    if (!new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx)
+                        .setEnabled(true)) {
+                      updating = true;
+                      externalDevice.setChecked(false);
+                      updating = false;
+                      toast(com.deepseekharness.app.util.UiText.text("设置保存失败，请重试"));
+                    }
                     refreshExternalDeviceStatus();
                   })
               .setNegativeButton(

@@ -2515,6 +2515,16 @@ public final class HttpShellService {
     }
   }
 
+  /** 确认前捕获本次请求的目标；请求失效、Web 代次变化或目标改动后，未派发的步骤一律拒绝。 */
+  private com.deepseekharness.app.extdev.ExternalDeviceHost externalOperation(
+      BridgeRequest request) {
+    return new com.deepseekharness.app.extdev.ExternalDeviceHost(
+        ctx,
+        () ->
+            bridgeCurrent(request.scope)
+                && request.scope.webGeneration == HarnessController.get(ctx).getWebGeneration());
+  }
+
   private String externalDeviceBind(BridgeRequest request) {
     String serial = request.param("serial", "");
     String product = request.param("product", "");
@@ -2522,6 +2532,7 @@ public final class HttpShellService {
     String epoch = request.param("epoch", "");
     try {
       long value = Long.parseLong(epoch);
+      var host = externalOperation(request);
       String summary =
           "绑定外接目标 "
               + serial
@@ -2537,9 +2548,7 @@ public final class HttpShellService {
               .put("product", product)
               .put("fingerprint", fingerprint)
               .put("epoch", value);
-      return externalDeviceHost().bind(candidate)
-          ? "{\"state\":\"BOUND\"}"
-          : "{\"state\":\"NOT_BOUND\"}";
+      return host.bind(candidate) ? "{\"state\":\"BOUND\"}" : "{\"state\":\"NOT_BOUND\"}";
     } catch (Throwable error) {
       return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
     }
@@ -2556,20 +2565,21 @@ public final class HttpShellService {
         return "{\"state\":\"BLOCKED\",\"error\":\"" + jsonEscape(plan.reason) + "\"}";
       if (plan.risk == com.deepseekharness.app.util.ExternalDevicePolicy.Risk.L3)
         return "{\"state\":\"BLOCKED\",\"error\":\"L3 操作未开放\"}";
+      var host = externalOperation(request);
       if (plan.operation == com.deepseekharness.app.util.ExternalDevicePolicy.Operation.INSTALL)
-        return externalDeviceInstall(value);
+        return externalDeviceInstall(host, value);
       if (plan.risk != com.deepseekharness.app.util.ExternalDevicePolicy.Risk.L0) {
         String summary =
             com.deepseekharness.app.util.ExternalDevicePolicy.summary(
                 plan,
-                externalDeviceHost().binding() == null ? "" : externalDeviceHost().binding().serial,
+                host.confirmationTarget() == null ? "" : host.confirmationTarget().describe(),
                 "",
                 "",
                 0);
         if (!requestUserConfirm(summary))
           return "{\"state\":\"NOT_SENT\",\"error\":\"CONFIRMATION_REQUIRED\"}";
       }
-      return externalDeviceHost().operate(operation, partition, value, true).toString();
+      return host.operate(operation, partition, value, true).toString();
     } catch (Throwable error) {
       return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
     }
@@ -2579,9 +2589,10 @@ public final class HttpShellService {
    * 安装专用确认：先只读描述（种类、风险级、SHA-256、大小、目标与代次），确认框显示这些值；确认后 install()
    * 按同一摘要与代次复核，文件或目标在确认后变化即拒绝。每次安装都确认，没有「本任务内不再询问」。
    */
-  private String externalDeviceInstall(String importName) {
+  private String externalDeviceInstall(
+      com.deepseekharness.app.extdev.ExternalDeviceHost host, String importName) {
     try {
-      org.json.JSONObject info = externalDeviceHost().describeInstall(importName);
+      org.json.JSONObject info = host.describeInstall(importName);
       String summary =
           String.format(
               java.util.Locale.ROOT,
@@ -2597,9 +2608,7 @@ public final class HttpShellService {
               "L2".equals(info.getString("level")) ? "\n模块在开机早期执行，坏模块可能导致目标无法开机" : "");
       if (!requestUserConfirm(summary))
         return "{\"state\":\"NOT_SENT\",\"error\":\"CONFIRMATION_REQUIRED\"}";
-      return externalDeviceHost()
-          .install(importName, info.getString("sha256"), info.getLong("epoch"))
-          .toString();
+      return host.install(importName, info.getString("sha256"), info.getLong("epoch")).toString();
     } catch (Throwable error) {
       return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
     }
