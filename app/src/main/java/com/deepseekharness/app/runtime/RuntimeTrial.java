@@ -19,6 +19,10 @@ public final class RuntimeTrial {
 
   public interface Renderer extends AutoCloseable {
     void check() throws IOException;
+
+    default Map<String, Object> diagnostics(String expectedNonce) {
+      return Map.of();
+    }
   }
 
   public interface BrowserProbe {
@@ -163,6 +167,7 @@ public final class RuntimeTrial {
     Process process = null;
     Renderer browser = null;
     Map<String, Object> proof = null;
+    Map<String, Object> lastRendererDiagnostic = Map.of();
     Output captured = null;
     Throwable primaryFailure = null;
     long hostStarted = System.nanoTime();
@@ -275,6 +280,13 @@ public final class RuntimeTrial {
               throw new IOException("TRIAL_BROWSER_UNAVAILABLE", error);
             }
           browser.check();
+          Map<String, Object> rendererDiagnostic = browser.diagnostics(nonce);
+          if (!rendererDiagnostic.isEmpty() && !rendererDiagnostic.equals(lastRendererDiagnostic)) {
+            lastRendererDiagnostic = rendererDiagnostic;
+            com.deepseekharness.app.core.DiagnosticLog.record(
+                context, "TRIAL_RENDERER_STATE", rendererDiagnostic.toString());
+            android.util.Log.i("DSHA", "TRIAL_RENDERER_STATE " + rendererDiagnostic);
+          }
           if (Boolean.TRUE.equals(status.get("renderer"))) {
             markHost(hostTimings, "rendererConfirmed", hostStarted);
             break;
@@ -309,6 +321,13 @@ public final class RuntimeTrial {
       detail.put("runtimeId", expected.id());
       detail.put("error", BackupErrorCode.from(failure));
       detail.put("runtimeMode", runtimeMode);
+      if (browser != null) {
+        Map<String, Object> rendererDiagnostic = browser.diagnostics(nonce);
+        detail.put("rendererDiagnostic", rendererDiagnostic);
+        com.deepseekharness.app.core.DiagnosticLog.record(
+            context, "TRIAL_RENDERER_STATE", rendererDiagnostic.toString());
+        android.util.Log.i("DSHA", "TRIAL_RENDERER_STATE " + rendererDiagnostic);
+      }
       detail.put("failedAt", System.currentTimeMillis());
       detail.put("output", captured == null ? "" : captured.diagnostics());
       detail.put(

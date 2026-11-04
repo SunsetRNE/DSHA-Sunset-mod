@@ -3232,6 +3232,17 @@
       "timeoutSeconds": 60,
       "environment": {},
       "reason": "Exact Android filesystem final-open flag expressions exercised with real Linux FIFO replacement, old blocking negative control, regular reads, directory rejection and FD balance; no phone."
+    },
+    {
+      "path": "tools/test-trial-renderer-diagnostic.mjs",
+      "stage": "fast",
+      "reason": "Exact original-versus-diagnostic trial page POST/retry trajectory; bounded safe telemetry without runtime/device or new acceptance semantics",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": [
+        "node24"
+      ],
+      "environment": {}
     }
   ]
 }
