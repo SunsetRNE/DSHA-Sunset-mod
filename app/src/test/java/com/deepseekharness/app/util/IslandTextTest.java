@@ -45,6 +45,40 @@ public class IslandTextTest {
   }
 
   @Test
+  public void quickSlotsNeverExceedThreeActionsAndKeepAnAnswerPath() {
+    for (int options = 0; options <= 5; options++)
+      for (boolean multi : new boolean[] {false, true})
+        for (boolean chosen : new boolean[] {false, true}) {
+          var slots = IslandText.quickSlots(options, multi, chosen);
+          String where = options + "/" + multi + "/" + chosen;
+          assertTrue(where, slots.count() <= IslandText.ACTION_LIMIT);
+          // 始终留有作答出口：选项、提交、自己写或打开回答至少一个。
+          assertTrue(where, slots.count() >= 1);
+          if (!multi) assertFalse(where, slots.submit());
+        }
+  }
+
+  @Test
+  public void quickSlotsMatchDocumentedLayouts() {
+    // 单选 3 个选项：2 个选项 + 自己写。
+    assertEquals(
+        new IslandText.QuickSlots(2, false, true, false), IslandText.quickSlots(3, false, false));
+    // 多选未选：2 个选项 + 自己写；已选：2 个选项 + 提交，自己写让位。
+    assertEquals(
+        new IslandText.QuickSlots(2, false, true, false), IslandText.quickSlots(2, true, false));
+    assertEquals(
+        new IslandText.QuickSlots(2, true, false, false), IslandText.quickSlots(3, true, true));
+    // 多选 1 个选项已选：选项 + 提交 + 自己写。
+    assertEquals(
+        new IslandText.QuickSlots(1, true, true, false), IslandText.quickSlots(1, true, true));
+    // 没有选项：自己写 + 打开回答。
+    assertEquals(
+        new IslandText.QuickSlots(0, false, true, true), IslandText.quickSlots(0, false, false));
+    assertEquals(
+        new IslandText.QuickSlots(0, false, true, true), IslandText.quickSlots(0, true, true));
+  }
+
+  @Test
   public void rankExcludesTerminalDismissedAndUnknownRows() {
     assertEquals(0, IslandText.rank(null));
     assertEquals(0, IslandText.rank(row("a", "waiting", false, 1, false)));

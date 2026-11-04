@@ -511,7 +511,10 @@ public final class AgentTaskNotifications {
         if (waiting && quick != null) {
           // 系统通知最多显示 3 个动作：只放 2 个选项，最后一个槽位留给提交/自己写。
           // 选项被裁剪时在展开态提示，用户仍可点通知进对话回答。
-          int shown = IslandText.quickOptionCount(quick.labels.length);
+          var slots =
+              IslandText.quickSlots(
+                  quick.labels.length, quick.multi, chosen != null && !chosen.isEmpty());
+          int shown = slots.options();
           for (int i = 0; i < shown; i++) {
             String label = actionLabel(quick.labels[i]);
             if (quick.multi && chosen.contains(quick.labels[i])) label = "✓ " + label;
@@ -522,18 +525,11 @@ public final class AgentTaskNotifications {
                     ? togglePendingIntent(row, quick.labels[i], i)
                     : answerPendingIntent(row, quick, i));
           }
-          if (quick.multi) {
-            if (!chosen.isEmpty()) {
-              notice.addAction(0, UiText.choose("提交", "Submit"), submitPendingIntent(row, quick));
-              // 1 个选项时仍有第三个槽位放“自己写”；2 个选项时已满。
-              if (shown <= 1) notice.addAction(customAnswerAction(row, quick));
-            } else {
-              notice.addAction(customAnswerAction(row, quick));
-            }
-          } else {
-            notice.addAction(customAnswerAction(row, quick));
-          }
-          if (quick.labels.length == 0)
+          // 多选已选时“提交”优先；2 个选项时槽位已满，“自己写”让位（槽位规则见 IslandText.quickSlots）。
+          if (slots.submit())
+            notice.addAction(0, UiText.choose("提交", "Submit"), submitPendingIntent(row, quick));
+          if (slots.custom()) notice.addAction(customAnswerAction(row, quick));
+          if (slots.openApp())
             notice.addAction(0, UiText.choose("打开回答", "Answer in app"), conversationPi);
         } else {
           if (row.active() && !row.stopping() && !row.phase().equals("unknown")) {
