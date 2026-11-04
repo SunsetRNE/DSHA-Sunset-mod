@@ -150,7 +150,6 @@ final class RuntimeTools {
         com.deepseekharness.app.util.DshEntrypoint.wrapper()
             .getBytes(java.nio.charset.StandardCharsets.UTF_8),
         true);
-
   }
 
   static void invalidate() {

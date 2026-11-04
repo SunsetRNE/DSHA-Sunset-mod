@@ -154,9 +154,7 @@ public final class RuntimePackageCommandsAndroidTest {
     resources.put("builtin-plugins.json", "{}");
     resources.put("runtime-tools.json", "{}");
     resources.put("bridge-token-compat.cjs", "// isolated command fixture\n");
-    resources.put(
-        "gh-wrapper.sh",
-        "#!/bin/bash\nexec /opt/gh/bin/gh \"$@\"\n");
+    resources.put("gh-wrapper.sh", "#!/bin/bash\nexec /opt/gh/bin/gh \"$@\"\n");
     resources.put("gh-proxy.mjs", "// isolated proxy fixture\n");
     try (var zip = new java.util.zip.ZipOutputStream(Files.newOutputStream(archive))) {
       for (var item : resources.entrySet()) {

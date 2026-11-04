@@ -51,8 +51,7 @@ public final class ManagedRuntimeLayout {
     for (String name :
         new String[] {
           "dsh", "npm", "npx", "gh", "dsha-plugin", "adb-shell", "install-ubuntu-tools"
-        })
-      out.add("root/dsh-bin/" + name);
+        }) out.add("root/dsh-bin/" + name);
     out.add("usr/local/share/dsha/gh-proxy.mjs");
     return out;
   }

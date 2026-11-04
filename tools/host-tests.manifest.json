@@ -2491,6 +2491,17 @@
       "cli": "No arguments; uses the verified current managed test-runtime fixture and the host git binary"
     },
     {
+      "path": "tools/test-gh-managed-shim.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Runs the managed gh CONNECT proxy and wrapper on loopback: GitHub host/port allowlist, occupied-port fallback and restart; no network egress."
+    },
+    {
       "path": "tools/test-signed-builtin-web-intent.mjs",
       "stage": "runtime",
       "reason": "Actual seven signed-wrapper Host OFF/ON and repeated native registration, manual/unknown/safe marker priority, profile isolation and serialized concurrent Native OFF; no device operations",
