@@ -5,7 +5,7 @@ plugins {
 // DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上。
 // 旧 low/GeckoView 兼容线与独立上岛包都已移除：上岛能力并入正式包。
 // 文件名独立于可诊断版本名，保持当前用户下载入口不变。
-ext.dshaApkNameVersion = '0.2.1-rc.3'
+ext.dshaApkNameVersion = '0.2.1-rc.5'
 def bundledTools = new groovy.json.JsonSlurper().parse(rootProject.file('tools/runtime-tools.lock.json'))
 if (bundledTools.schema != 1 || !(bundledTools.pnpm.version ==~ /[0-9]+\.[0-9]+\.[0-9]+/))
     throw new GradleException('随包工具身份格式错误')
@@ -63,9 +63,9 @@ android {
         // 上岛能力已并入正式包；不再有独立上岛包名或独立显示名。
         // 显示名统一为 DSH-A-Su；测试变体加后缀，便于桌面上区分两个包。
         resValue 'string', 'app_name', sunsetTest ? 'DSH-A-Su Test' : 'DSH-A-Su'
-        versionCode 307
+        versionCode 308
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5"
+        versionName "0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'

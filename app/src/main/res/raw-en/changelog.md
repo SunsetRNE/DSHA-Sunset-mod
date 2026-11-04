@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5 / build307
+# DSHA 0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5 / build308
 
-- Experimental: the Device execution channel and Screen operation sections of the device capability page are now compact two-line rows; grant logic and switch behaviour are unchanged.
-- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 307 (based on build306). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+- Experimental: island notifications fix multi-select Submit doing nothing and exceeding the system action button limit (contributor Ralsei1337); the Root read guard now checks grep pattern-file paths such as -f/-nfFILE (upstream #215); the diagnostics page enables Copy once results arrive after an early failure (upstream #213); the launch-target plugin panel no longer leaves a large gap under the label in narrow portrait layout, and the segmented control now spans the full row (experimental, not checked on a device).
+- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 308 (based on build307). The DSHA revision moves from 0.2.1-rc.3 to 0.2.1-rc.5, matching bundled DSH 0.2.1-rc.5.

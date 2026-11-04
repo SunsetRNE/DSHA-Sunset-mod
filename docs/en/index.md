@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` / build307 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build turns the Device execution channel and Screen operation sections of the device capability page into compact two-line rows; grant logic is unchanged. Local targeted tests, Lint and source gates passed; the user confirmed it on a device in portrait and landscape. See the [build307 notes](../releases/build307-changes.en.md) and the [build307 record](../releases/v0.2.1-rc.3-build307-compact-device-sections-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5` / build308 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build merges four fixes: island notification multi-select Submit and action button limit from contributor Ralsei1337; grep pattern-file path checks in the Root read guard (upstream #215); enabling Copy on the diagnostics page after an early failure (upstream #213); and the narrow portrait layout of the launch-target plugin panel (experimental). Local targeted tests and source gates passed; not yet checked on a device. See the [build308 notes](../releases/build308-changes.en.md) and the [build308 record](../releases/v0.2.1-rc.5-build308-island-grep-diagnostics-20261104.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

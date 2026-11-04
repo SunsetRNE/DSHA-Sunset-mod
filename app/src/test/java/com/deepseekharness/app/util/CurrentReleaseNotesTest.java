@@ -12,6 +12,9 @@ public final class CurrentReleaseNotesTest {
   public void subtitleUsesTheInstalledReleaseVersionWithoutTheDiagnosticTimestamp() {
     assertEquals("0.2.1-rc.3", CurrentReleaseNotes.versionLabel(VERSION));
     assertEquals("1.2.0", CurrentReleaseNotes.versionLabel("1.2.0"));
+    // build308 起 DSHA 修订号与内置 DSH 同为 rc.5；标签只取修订号前缀。
+    assertEquals(
+        "0.2.1-rc.5", CurrentReleaseNotes.versionLabel("0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5"));
   }
 
   @Test

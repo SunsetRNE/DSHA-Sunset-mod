@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` / build307 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把设备能力授权页的「设备执行通道」「屏幕操作」板块改为紧凑两行条目，授权逻辑不变。本机定向单测、Lint 与源码门禁通过，用户已在真机竖屏与横屏确认。改动说明见 [build307 更新说明](releases/build307-changes.zh.md)，验证记录见 [build307 记录](releases/v0.2.1-rc.3-build307-compact-device-sections-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5` / build308 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合入四项修复：外部贡献者 Ralsei1337 的上岛通知多选提交与动作按钮上限修复；上游 #215 的 Root 读取守卫 grep 模式文件路径校验；上游 #213 诊断页早期失败后的复制按钮启用；启动目标插件面板窄屏竖排的空白与分段控件宽度（实验性）。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build308 更新说明](releases/build308-changes.zh.md)，验证记录见 [build308 记录](releases/v0.2.1-rc.5-build308-island-grep-diagnostics-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

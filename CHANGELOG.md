@@ -1,5 +1,15 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5 / build308（实验性：上岛通知修复多选提交无反应与动作按钮超过系统上限（贡献者 Ralsei1337）；Root 读取守卫补上 grep -f/-nfFILE 模式文件路径校验（上游 #215）；诊断页早期失败时结果到达后正确启用复制（上游 #213）；启动目标插件面板窄屏竖排时去掉标签下大段空白，分段控件改为撑满整行（实验性，未真机））
+
+- 实验性：上岛通知修复多选提交无反应与动作按钮超过系统上限（贡献者 Ralsei1337）；Root 读取守卫补上 grep -f/-nfFILE 模式文件路径校验（上游 #215）；诊断页早期失败时结果到达后正确启用复制（上游 #213）；启动目标插件面板窄屏竖排时去掉标签下大段空白，分段控件改为撑满整行（实验性，未真机）。
+- 上岛（外部贡献 e4019f56，基于 build245，挑入 build307 之上无冲突）：多选「提交」补带任务标识，接收器能读到已选集合并回传；等待作答通知按系统 3 个动作槽位最多显示 2 个选项，其余由点按通知进入对话承接；运行中切换计时器立即重绘；新模型显式 colorized=false；释放已结束任务的多选集合；多选切换按选项序号区分。发布会话按当前 main 调整：36.0 旧模型 ROM 上 `canPostPromotedNotifications()` 为 false 时设置页仍显示「查不到」而不是「已关闭」；动作槽位规划抽为 `IslandText.quickSlots` 并补单测。
+- Root 读取守卫（上游 DSH-APP/DSHA#215，lzh2034855417-beep）：`grep -f FILE`、`-nfFILE` 等组合短选项中的模式文件此前被当作选项跳过，现与输入文件一并做短信库路径与规范路径核验，原生与 guest 两侧同改；运行时描述符随 `device-shell-policy.py` 重算。诊断页（上游 #213，按 build252 后的页面等效移植）：早期失败不经忙碌态时，结果卡片到达后重算反馈按钮。上游 #200 的压缩重入问题已在 build194 等效修复，未重复挑入。
+- 启动目标插件（`dsh-launch-target`，d80e2bd9，基于 build307）：容器宽度 ≤420px 竖排时标签的 180px flex 基准落到高度方向造成大段空白，改为按内容取高；分段控件显式撑满整行；宽屏横排不变。实验性，未真机。
+- 身份：DSHA 修订号由 0.2.1-rc.3 同步为 0.2.1-rc.5（versionName 前缀与 `ext.dshaApkNameVersion`，APK 下载名随之为 `dsha-0.2.1-rc.5.apk`）；修订号由 35d69fa8（build193）引入，覆盖升级按 versionCode 判定，恢复配方与数据兼容按内置 DSH 版本选择，不受影响。
+- 验证范围：发布会话在 build308 上复跑 `*IslandText*` / `*Island*` / `*DeviceShellPolicy*` / `*UpdateVersionPageTest`、`tools/test-device-shell-policy.py`、`tools/test-diagnostic-feedback.py`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 308（基于 build307）；DSHA 修订号由 0.2.1-rc.3 同步为 0.2.1-rc.5，与内置 DSH 0.2.1-rc.5 一致。
+- 十语种更新说明见 [build308 更新说明](docs/releases/build308-changes.zh.md)，验证记录见 [build308 记录](docs/releases/v0.2.1-rc.5-build308-island-grep-diagnostics-20261104.md)。
+
 ## 0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5 / build307（实验性：设备能力授权页「设备执行通道」「屏幕操作」改为紧凑两行条目）
 
 - 实验性：设备能力授权页的「设备执行通道」与「屏幕操作」两个板块改为紧凑两行条目，减少纵向占用；授权逻辑与开关行为不变（分支 `ui/compact-device-sections`，90a0f4b4，基于 build304，挑入 build306 之上无冲突；用户已在真机竖屏与横屏确认）。
