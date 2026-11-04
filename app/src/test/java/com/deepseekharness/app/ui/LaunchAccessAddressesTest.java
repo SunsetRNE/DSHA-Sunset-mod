@@ -91,6 +91,12 @@ public final class LaunchAccessAddressesTest {
     protected String getWebAuthUrl() {
       return local;
     }
+
+    @Implementation
+    protected void addReadyWebPageListener(Runnable ignored) {}
+
+    @Implementation
+    protected void removeReadyWebPageListener(Runnable ignored) {}
   }
 
   @Implements(value = LanProxyService.class, isInAndroidSdk = false)

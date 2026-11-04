@@ -31,12 +31,12 @@
 
           <TextView android:id="@+id/launch_status" style="@style/ShellLaunchMeta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:accessibilityLiveRegion="polite" android:text="" android:visibility="gone" />
 
-          <!-- 主操作 + 轻量停止 / 重启；窄屏由 LaunchFragment 改为主操作独占一行。图标为矢量资源，不再把符号写进文案。 -->
+          <!-- 主操作 + 轻量重启 / 停止；窄屏由 LaunchFragment 改为主操作独占一行。图标为矢量资源，不再把符号写进文案。 -->
           <LinearLayout android:id="@+id/launch_controls" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:gravity="center_vertical" android:orientation="horizontal">
             <com.google.android.material.button.MaterialButton android:id="@+id/launch_start" app:icon="@drawable/ic_launch_start" style="@style/ShellLaunchPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="180dp" android:paddingStart="24dp" android:paddingEnd="24dp" android:text="@string/ui2_start" />
             <LinearLayout android:id="@+id/launch_quiet_controls" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:gravity="center_vertical" android:orientation="horizontal">
-              <com.google.android.material.button.MaterialButton android:id="@+id/launch_stop" app:icon="@drawable/ic_launch_stop" style="@style/ShellLaunchQuiet" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui2_stop" />
-              <com.google.android.material.button.MaterialButton android:id="@+id/launch_open" app:icon="@drawable/ic_plugin_restart" style="@style/ShellLaunchQuiet" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:text="@string/ui2_restart" />
+              <com.google.android.material.button.MaterialButton android:id="@+id/launch_open" app:icon="@drawable/ic_plugin_restart" style="@style/ShellLaunchQuiet" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui2_restart" />
+              <com.google.android.material.button.MaterialButton android:id="@+id/launch_stop" app:icon="@drawable/ic_launch_stop" style="@style/ShellLaunchQuiet" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:text="@string/ui2_stop" />
             </LinearLayout>
           </LinearLayout>
         </LinearLayout>

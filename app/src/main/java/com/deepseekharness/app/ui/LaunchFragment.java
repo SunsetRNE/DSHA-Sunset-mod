@@ -68,16 +68,20 @@ public class LaunchFragment extends Fragment {
 
   private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
 
-  /** 通知点击进来、待自动进入 Web 的意图；由既有每秒刷新循环消费，就绪即进。 */
+  /** 通知点击进来、待自动进入 Web 的意图；就绪事件立即消费，每秒刷新兜底。 */
   private boolean pendingAutoEnter;
+
+  private final Runnable readyChanged = this::requestStateRefresh;
 
   private final Runnable refreshState =
       new Runnable() {
         @Override
         public void run() {
+          ui.removeCallbacks(this);
+          if (getView() == null || !isResumed()) return;
           refreshRunState();
           refreshLanAddr();
-          // 通知点击进来的自动进入：复用这个每秒循环等鉴权链接，不另开定时器。
+          // 通知点击进来的自动进入：就绪事件与周期兜底共用一条刷新链。
           // 判据只认「鉴权链接已出现」——它就是进入 Web 的前提，也是按钮变「进入」的
           // 同一条件。不能拿 getWebAuthFailure() 判成败：那是最近一次鉴权结果消息，
           // 初始值与成功值都非 null（成功时是"鉴权成功"），用它当成功判据会永不进入。
@@ -85,9 +89,16 @@ public class LaunchFragment extends Fragment {
             pendingAutoEnter = false;
             enterWeb();
           }
-          ui.postDelayed(this, 1000);
+          if (getView() != null && isResumed()) ui.postDelayed(this, 1000);
         }
       };
+
+  /** 合并同时到达的通知和就绪事件，不叠加永久的每秒刷新任务。 */
+  private void requestStateRefresh() {
+    if (controller == null || getView() == null || !isResumed()) return;
+    ui.removeCallbacks(refreshState);
+    ui.post(refreshState);
+  }
 
   @Nullable
   @Override
@@ -166,7 +177,7 @@ public class LaunchFragment extends Fragment {
           doStart(activity, status, start);
         });
 
-    // 通知点击进来：置待进入标记，由每秒刷新循环在鉴权链接就绪后自动进入。
+    // 通知点击进来：置待进入标记，由就绪事件或周期兜底在鉴权后自动进入。
     if (getArguments() != null && getArguments().getBoolean(ARG_OPEN_WEB, false)) {
       getArguments().remove(ARG_OPEN_WEB);
       pendingAutoEnter = true;
@@ -273,14 +284,14 @@ public class LaunchFragment extends Fragment {
   }
 
   /**
-   * 外部（通知点击）请求：下一次刷新周期自动进入 Web。
+   * 外部（通知点击）请求：立即刷新；未就绪时继续等待事件或周期兜底。
    *
    * <p>页面不可见时由 {@code onPause} 清掉，避免用户回来时被意外带走。
    */
   void requestAutoEnterWeb() {
     // Main 的入口检查可能仍挂起恢复页视图；先保留明确请求，创建视图后再等待鉴权。
     pendingAutoEnter = true;
-    if (controller != null && getView() != null) ui.post(refreshState);
+    requestStateRefresh();
   }
 
   /** 打开 WebPreviewActivity 进入 dsh WebUI。 */
@@ -436,8 +447,8 @@ public class LaunchFragment extends Fragment {
     super.onResume();
     if (controller == null) return;
     invalidateWebEntry();
-    ui.removeCallbacks(refreshState);
-    ui.post(refreshState);
+    controller.addReadyWebPageListener(readyChanged);
+    requestStateRefresh();
   }
 
   @Override
@@ -452,6 +463,7 @@ public class LaunchFragment extends Fragment {
     }
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
+    if (controller != null) controller.removeReadyWebPageListener(readyChanged);
     if (dotPulse != null) {
       dotPulse.cancel();
       dotPulse = null;
@@ -465,6 +477,7 @@ public class LaunchFragment extends Fragment {
     preparingStart = false;
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
+    if (controller != null) controller.removeReadyWebPageListener(readyChanged);
     if (accessDialog != null) accessDialog.dismiss();
     accessDialog = null;
     accessBody = null;
@@ -686,8 +699,8 @@ public class LaunchFragment extends Fragment {
    * UI v5 方案 A 启动主页的宽窄形态：按当前窗口可用宽度决定，不按设备类型。
    *
    * <ul>
-   *   <li>≥ 600dp：标题右侧显示插图；主操作与停止/重启同一行，放不下（任一按钮文字折行）时改用窄屏排列。
-   *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，停止/重启在下方等分成两枚次要按钮（带边框、
+   *   <li>≥ 600dp：标题右侧显示插图；主操作与重启/停止同一行，放不下（任一按钮文字折行）时改用窄屏排列。
+   *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，重启/停止在下方等分成两枚次要按钮（带边框、
    *       居中），不再是靠左的两段裸文字。
    *   <li>下半区「快捷入口 | 启动日志」由 AdaptiveColumns 按自身宽度（≥ 760dp）并排。
    * </ul>
@@ -717,7 +730,7 @@ public class LaunchFragment extends Fragment {
    * 避免文案变化时来回跳；旋转或换宽度时视图重建，会重新判断。
    */
   private void watchControlsFit(View root, LinearLayout controls, View start, View quiet) {
-    int[] ids = {R.id.launch_start, R.id.launch_stop, R.id.launch_open};
+    int[] ids = {R.id.launch_start, R.id.launch_open, R.id.launch_stop};
     controls.addOnLayoutChangeListener(
         new View.OnLayoutChangeListener() {
           @Override
@@ -740,7 +753,7 @@ public class LaunchFragment extends Fragment {
         });
   }
 
-  /** 主操作独占一行铺满，停止 / 重启在下方等分成两枚带边框的次要按钮。 */
+  /** 主操作独占一行铺满，重启 / 停止在下方等分成两枚带边框的次要按钮。 */
   private void stackControls(View root, LinearLayout controls, View start, View quiet) {
     controls.setOrientation(LinearLayout.VERTICAL);
     controls.setGravity(android.view.Gravity.START);
@@ -751,7 +764,7 @@ public class LaunchFragment extends Fragment {
     LinearLayout.LayoutParams secondary = new LinearLayout.LayoutParams(-1, -2);
     secondary.topMargin = Math.round(10 * density);
     quiet.setLayoutParams(secondary);
-    int[] ids = {R.id.launch_stop, R.id.launch_open};
+    int[] ids = {R.id.launch_open, R.id.launch_stop};
     for (int i = 0; i < ids.length; i++) {
       TextView button = root.findViewById(ids[i]);
       if (button == null) continue;
