@@ -8,11 +8,7 @@
 
 | 项目 | 本分支中的角色与依据 | 不能据此声称 |
 |---|---|---|
-<<<<<<< 208ea63a
-| [ym2025szz/DSHA-prerelase](https://github.com/ym2025szz/DSHA-prerelase) | 当前 README 指向的私有维护与预发布分发仓库；仓库名按实际拼写保留 | DeepSeek 官方 Android 客户端或官方认证分支 |
-=======
 | [SunsetRNE/DSHA-Sunset-mod](https://github.com/SunsetRNE/DSHA-Sunset-mod) | 当前公开维护与预发布分发仓库；原 `DSHA-Sunset-mod-3090-Q` 已合并删除 | DeepSeek 官方 Android 客户端或官方认证分支 |
->>>>>>> sunset/main
 | [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA) | DSHA 工程来源；本地 AGENTS 记录本轮从 build170 基座迁入后续改动 | 当前维护分支与该仓库每个分支、Release 或网站内容完全相同 |
 | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | DeepSeek 官方 Harness 上游；本项目将其 npm 运行时装入 Android 内的 Linux 环境 | 上游维护或批准了 DSHA 原生壳、授权策略、容器补丁或本地 APK |
 | [mexiaosqwq/dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) | 第三方移动网页插件上游；本地按精确提交引入后再应用维护差异 | DeepSeek 官方移动 UI，或完全未经修改的上游包 |

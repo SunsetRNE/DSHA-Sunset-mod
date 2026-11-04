@@ -128,14 +128,7 @@
     <string name="ui2_managed_update" formatted="false">"Mettre à jour le runtime"</string>
     <string name="ui2_management" formatted="false">"Gestion"</string>
     <string name="ui2_meet" formatted="false">"Découvrir DSHA"</string>
-<<<<<<< 208ea63a
-    <string name="ui2_module_center" formatted="false">"Centre de modules · Module center"</string>
-    <string name="ui2_module_center_sub" formatted="false">"Modules installés, architectures, capacités et activation"</string>
-    <string name="ui2_modules" formatted="false">"Centre de modules"</string>
-    <string name="ui2_network_runtime" formatted="false">"Environnement d’exécution et réseau"</string>
-=======
     <string name="ui2_network_runtime" formatted="false">"Exécution et réseau"</string>
->>>>>>> sunset/main
     <string name="ui2_offline_badge" formatted="false">"Installation hors ligne  ·  Sans root  ·  %1$s"</string>
     <string name="ui2_online_notice" formatted="false">"Les modèles en ligne reçoivent les messages et pièces jointes que vous choisissez d’envoyer."</string>
     <string name="ui2_overlay" formatted="false">"État flottant"</string>

@@ -6,15 +6,7 @@
 
 当前固定输入由 [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json) 锁定：公开预发布资产 `fixed-inputs-20261103c`，696,362,745 B，SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`，由 `tools/ci-assets.py` 还原。大归档与离线 rootfs 不入 Git；只有源码的检出不能构建完整 APK。
 
-<<<<<<< 208ea63a
-> F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190：修复目录服务依赖组合、附件resolver退休及后台临时身份失败后的恢复。Standard选定150类/952项JUnit（3跳过），Low选定150类/952项（76跳过），两版零失败/错误；Release Lint零错误、Standard/Low警告249/162，八项实际APK检查通过。原始失败、纠正及负控分开保留，不称一次连续全绿；无设备/ADB、真实账号/模型或新长时验收。[关联Release入口](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.2107) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。实际远端可得性由Release与独立回执核验。
-
-已发布F12保留原身份：[原记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [原Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.1413)；F11仍为未上传本地检查点。
-
-项目特有操作见[现行接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。退休工具与文档原件见 `tools/history` 和对应保存清单；它们不进入APK或自动测试执行。
-=======
 项目特有操作见[接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。`tools/history` 只保留退休工具与原件，不进入 APK 或自动测试。
->>>>>>> sunset/main
 
 ## 源码与工具身份
 
@@ -105,11 +97,7 @@ python3 tools/run-host-tests.py --stage runtime
 
 正式 CI 发布走 [`.github/workflows/release-production.yml`](.github/workflows/release-production.yml)：`workflow_dispatch` 绑定精确 commit，从公开预发布资产还原固定输入，跑完整单测 / Java 格式 / Lint / 文档门禁，用仓库 Secrets 中的证书签名，并创建 tag + prerelease、上传 APK、证据 zip、`build-info.json` 与 `SHA256SUMS`。触发参数与核验见 [CI 构建与发布](docs/ci-release.md)。
 
-<<<<<<< 208ea63a
-本地正式Standard路径为 `F:\DSHA_RESTART\release\0.2.1-rc.2\dsha-0.2.1-rc.2.apk`；其他历史版本与旧Low原字节保持。最终APK、源码commit/附件和软件证据精确绑定，检查选择器、缓存/增量、警告、跳过及未跑范围如实记录，不称完整冷网络已验。新私有仓库已创建，Release只附正式APK与完整源码ZIP；没有实际tag/上传结果前不声称发布完成，原仓库与dsha.cc不变。
-=======
 不上传私钥、用户数据、设备截图或原日志；不安装、不注入故障、不生成额外审计 APK，除非当次任务明确授权。最终 APK、源码 commit、附件与证据必须精确绑定；检查选择器、缓存 / 增量、警告、跳过及未跑范围如实记录。没有实际 run、tag 与上传结果前不声称发布完成。
->>>>>>> sunset/main
 
 ## 修改与评审
 

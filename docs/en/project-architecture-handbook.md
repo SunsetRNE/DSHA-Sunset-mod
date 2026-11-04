@@ -21,11 +21,7 @@ Read the [README](../../README.en.md) first, then choose references for the area
 | [Module map](module-map.md) | State ownership and collaborators across layers |
 | [Security model](security-model.md) | Actual same-UID, plugin, bridge, and authorization boundaries |
 
-<<<<<<< 208ea63a
-DSHA is an Android host and adaptation project. It embeds upstream DSH and adds installation, lifecycle, device bridges, and data protection. [DeepSeek's deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) is upstream; this maintenance branch, its private prerelease repository, and its Android changes do not represent an official DeepSeek release or certification. The DSHA project originates from [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA), with current maintenance/distribution in [DSHA-prerelase](https://github.com/ym2025szz/DSHA-prerelase). Private pages require access rights.
-=======
 DSHA is an Android host and adaptation project. It embeds upstream DSH and adds installation, lifecycle, device bridges, and data protection. [DeepSeek's deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) is upstream; this maintenance branch, its public prerelease repository, and its Android changes do not represent an official DeepSeek release or certification. The DSHA project originates from [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA), with current maintenance/distribution in [DSHA-Sunset-mod](https://github.com/SunsetRNE/DSHA-Sunset-mod).
->>>>>>> sunset/main
 
 Read the [npm manifest](../../tools/dsh-runtime/package.json) and [complete lock](../../tools/dsh-runtime/package-lock.json) to establish the embedded DSH version; do not infer it from the upstream default branch. The mobile UI is the third-party [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) plugin. Its 3.2.2 source is pinned to upstream main `bb0e5e1` (upstream has retargeted the v3.2.2 tag from `4c798ec` to this same commit), but the packaged bytes carry local patches and are not an unmodified copy of that tag; see the [upstream lock](../../tools/mobile-plugin-upstream.lock.json). Local patches, fixed archives, licenses, and reproducibility scope have separate records. “Open source” does not imply every vendor binary can be rebuilt.
 

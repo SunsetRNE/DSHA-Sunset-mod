@@ -6,19 +6,7 @@ Read [README](README.en.md), [AGENTS](AGENTS.en.md), [BUILD](BUILD.en.md) and th
 
 Current fixed inputs are pinned by [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json): public pre-release asset `fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`, restored by `tools/ci-assets.py`. Large archives and the offline rootfs are not committed; a source-only checkout cannot build a complete APK.
 
-<<<<<<< 208ea63a
-> **F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190.** Directory-service composition, attachment-resolver disposal and recovery after transient background proof failure are fixed. Standard 150 selected classes/952 JUnit cases (3 skipped); Low 150 selected classes/952 cases (76 skipped). Both have zero failures/errors. Release Lint has zero errors and Standard/Low warnings 249/162; eight actual-APK gates passed. Original failures, corrections and negative controls remain separate; this is not one continuous green run. No device/ADB, real-account/model or new endurance acceptance. [Associated Release target](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.2107) · [Scope and evidence](docs/en/releases/v0.2.1-rc.2-build190-fix13-20261021.md). Actual remote availability is established by the Release and independent receipt.
-
-Published F12 retains its original identity: [immutable English record](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
-
-Read [README](README.en.md), [AGENTS](AGENTS.en.md), and the current [release introduction](docs/en/release-introduction.md). Decisions from another conversation inside historical audit attachments do not override the user's requirements here.
-
-**Previous F11 source snapshot:** `0.2.1-rc.2-20261021.1157-dsh0.2.1-rc.2` / code190 fixed LAN, official Web login, the first-use notice, plugin provenance, and host recovery, and added 21 topic documents. Both variants ran 143 classes / 881 JUnit tests, zero failures/errors (Standard 3 skips, Low 76). Release Lint had zero errors, 249/162 warnings, and eight actual-APK gates passed. Original failures, reruns, and host-port contention limits remain separate. That work excluded device/ADB, real-account/model conversations, and endurance acceptance. The [historical F11 record](docs/releases/v0.2.1-rc.2-build190-fix11-20261021.md) preserves its local scope/evidence. F11 was not uploaded; its prepared 1157 Release URL is not proof of download availability or remote publication. F10 remains historical. Current final version/results come from README and the release introduction, not these previous numbers.
-
-Use the [current handoff guide](docs/en/handoff.md) for project-specific operations, the [module map](docs/en/module-map.md) for ownership, and the [engineering standard](docs/en/engineering-standard.md) / [ADR 0001](docs/en/adr/0001-build154-boundaries.md) for constraints. Retired tools and exact document originals live in `tools/history` with their preservation inventories; they do not enter APKs or automatic test execution.
-=======
 Use the [handoff guide](docs/en/handoff.md) for project-specific operations, the [module map](docs/en/module-map.md) for ownership, and the [engineering standard](docs/en/engineering-standard.md) / [ADR 0001](docs/en/adr/0001-build154-boundaries.md) for constraints. `tools/history` retains retired tools and exact originals only; it does not enter APKs or automatic test execution.
->>>>>>> sunset/main
 
 ## Source and tool identity
 
@@ -109,11 +97,7 @@ Only Standard is published now; the actual package must verify `io.github.sunset
 
 Formal CI publication uses [`.github/workflows/release-production.yml`](.github/workflows/release-production.yml): `workflow_dispatch` binds an exact commit, restores fixed inputs from the public pre-release asset, runs complete unit tests / Java formatting / Lint / documentation gates, signs with the repository Secrets certificate, then creates a tag + prerelease and uploads the APK, evidence ZIP, `build-info.json` and `SHA256SUMS`. See [CI build and release](docs/en/ci-release.md) for parameters and verification.
 
-<<<<<<< 208ea63a
-The local Standard release target is `F:\DSHA_RESTART\release\0.2.1-rc.2\dsha-0.2.1-rc.2.apk`; retain other historical versions and original Low bytes. Bind final APK, source commit/attachment, and software evidence exactly. Record selectors, cache/incremental reuse, warnings, skips, and unrun scope; do not claim a fully cold-network build. Use the existing private repository, attaching only the release APK and complete source ZIP. Do not claim publication until actual tag/upload results exist. Leave the original repository and dsha.cc unchanged.
-=======
 Do not upload private keys, user data, device screenshots or raw logs; do not install, inject faults or generate extra audit APKs unless that task explicitly authorizes it. Bind the final APK, source commit, attachments and evidence precisely; record selectors, cache/incremental reuse, warnings, skips and unrun scope truthfully. Do not claim publication complete before an actual run, tag and upload result.
->>>>>>> sunset/main
 
 ## Changes and review
 

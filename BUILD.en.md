@@ -6,22 +6,7 @@
 > Fixed build inputs: published as a public pre-release Release asset and pinned by SHA-256; see [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md).
 > Historical build receipts and old identity numbers remain in [CHANGELOG.md](CHANGELOG.md) and [docs/releases/](docs/releases/); they are not inputs for the current build or signing identity.
 
-<<<<<<< 208ea63a
-
-Current F13 frozen inventory: 2215 source members / 200 Markdown documents; 1029 adopted Java files. Distribution/format proofs and JUnit execution counts are separate. The fixed packet is 738,101,893 bytes, SHA-256 `da3a87e9782469136f08d37143582fec845af1a69406b9a534f8cb7f68249ed8`. Originals expand directly at project paths, not as a nested packet. These are not the complete source ZIP's size or digest.
-
-> **F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190.** Directory-service composition, attachment-resolver disposal and recovery after transient background proof failure are fixed. Standard 150 selected classes/952 JUnit cases (3 skipped); Low 150 selected classes/952 cases (76 skipped). Both have zero failures/errors. Release Lint has zero errors and Standard/Low warnings 249/162; eight actual-APK gates passed. Original failures, corrections and negative controls remain separate; this is not one continuous green run. No device/ADB, real-account/model or new endurance acceptance. [Associated Release target](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.2107) · [Scope and evidence](docs/en/releases/v0.2.1-rc.2-build190-fix13-20261021.md). Actual remote availability is established by the Release and independent receipt.
-
-Published F12 retains its original identity: [immutable English record](docs/en/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
-
-Read [README](README.en.md), [AGENTS](AGENTS.en.md), [CONTRIBUTING](CONTRIBUTING.en.md), and the [handoff guide](docs/en/handoff.md) first. `app/build.gradle` defines the application version; `tools/dsh-runtime/package.json` and its lock define DSH dependencies. The current report defines complete delivery and unverified scope. Use [README](README.en.md) and the [release introduction](docs/en/release-introduction.md) for final current identity, rather than treating the previous snapshot below as a new publication claim.
-
-**Previous F11 source snapshot:** `0.2.1-rc.2-20261021.1157-dsh0.2.1-rc.2` / code190 fixed LAN, official Web login, the first-use notice, plugin provenance, and host recovery, and added 21 topic documents. Both variants ran 143 classes / 881 JUnit tests each, with zero failures/errors (Standard 3 skips; Low 76); Release Lint had zero errors and 249/162 warnings, and eight actual-APK gates passed. Original failures, reruns, and host-port contention limits were retained separately. That work did not include device/ADB, real-account/model conversations, or endurance acceptance. The [historical F11 record](docs/releases/v0.2.1-rc.2-build190-fix11-20261021.md) preserves that checkpoint's scope and evidence. Its 1157 Release URL was prepared but F11 was not uploaded; it is not a download or remote-publication receipt. F10 remains historical too.
-
-The maintained local source is `C:\Users\18768\.codex\worktrees\build190-from170\DSHA_RESTART`. The old build173 checkout at `F:\DSHA_RESTART` is not the build source. On other machines, use the final tag/full commit in the private repository or its matching complete source attachment.
-=======
 Read [README](README.en.md), [AGENTS](AGENTS.en.md) and [CONTRIBUTING](CONTRIBUTING.en.md) first. `app/build.gradle`, `ci/release-identity.json` and `ci/sunset-inputs.lock.json` are the three authoritative sources for the current build identity.
->>>>>>> sunset/main
 
 ## Environment and variants
 
@@ -77,15 +62,7 @@ Before `assembleStandardRelease`, `packageStandardRelease` and `validateSigningS
 ./gradlew :app:assembleStandardRelease
 ```
 
-<<<<<<< 208ea63a
-The delivery scope is Standard. Software validation covers affected tests and Release Lint for both variants, plus actual Standard APK/assets/ELF, signing, licensing, plugin/emergency gates, and exact digests. Record selected JUnit classes, skips, cache reuse, and unrun scope separately, without claiming a clean whole-repository or fully cold-network build. JNI static auditing uses the matching Release APK, not an old Debug product. Preserve old Low bytes; Low software checks are not a new Low delivery or device acceptance.
-
-The local Standard release target is `F:\DSHA_RESTART\release\0.2.1-rc.2\dsha-0.2.1-rc.2.apk`; verify its digest locally and with the release record. Retain historical versions and old Low bytes, and do not present an intermediate `app/build` APK as delivery. The private repository excludes large generated archives. A Release attaches only the release APK and complete source ZIP with fixed build inputs. Put SHA-256 in the Release body; the source ZIP's own README must not contain that ZIP's digest, avoiding self-reference. Do not upload private keys, user data, device screenshots/logs, or historical forensic material. Nine necessary audit metadata files, 27 historical build sources, and one website test fixture remain under the delivery inventory; this does not distribute historical device scenes. 2054, 2330/F9, 0140/F10, and the 1157/F11 source snapshot retain their own historical identity. The linked current report, Release, and independent external receipt bind final software/APK results, source commit, attachments, and remote state. An older APK/report cannot replace that proof.
-
-An unsigned complete `ci-package` build is for software verification only, never phone installation or release. Configuration files do not prove protected environments, online signing execution, or repository protection are configured. Deployment and publication need actual evidence.
-=======
 The artifact is `app/build/outputs/apk/standard/release/dsha-<dshaApkNameVersion>.apk` and must ship with a `.sha256` computed from the actual file. Verify the real APK's package name, versionCode/versionName, `debuggable=false`, arm64 ABI, certificate SHA-256 and managed-asset/recovery-archive digests. Intermediate `app/build` packages and unsigned CI packages (`-Pdsha.unsignedPackage=true`) are never presented as releases.
->>>>>>> sunset/main
 
 ## Phones and historical scope
 

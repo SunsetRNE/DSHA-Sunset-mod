@@ -128,9 +128,6 @@
     <string name="ui2_managed_update" formatted="false">"تحديث بيئة التشغيل"</string>
     <string name="ui2_management" formatted="false">"الإدارة"</string>
     <string name="ui2_meet" formatted="false">"اكتشف DSHA"</string>
-    <string name="ui2_module_center" formatted="false">"مركز الوحدات · Module center"</string>
-    <string name="ui2_module_center_sub" formatted="false">"الوحدات المثبّتة والبِنى والقدرات والتبديل"</string>
-    <string name="ui2_modules" formatted="false">"مركز الوحدات"</string>
     <string name="ui2_network_runtime" formatted="false">"بيئة التشغيل والشبكة"</string>
     <string name="ui2_offline_badge" formatted="false">"إعداد دون اتصال  ·  دون صلاحيات الجذر  ·  %1$s"</string>
     <string name="ui2_online_notice" formatted="false">"تتلقى النماذج المتصلة بالإنترنت الرسائل والمرفقات التي تختار إرسالها."</string>

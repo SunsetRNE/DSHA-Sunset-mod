@@ -66,10 +66,6 @@ public class LaunchFragment extends Fragment {
   /** 本次启动开始时刻（显示耗时用）。 */
   private long startAtMs;
 
-<<<<<<< 208ea63a
-  private long logRevision = -1;
-  private String logUrl = "";
-
   /**
    * 上一轮真正应用到真实视图的布局签名。模块中心改完顺序／可见性只写偏好，
    * Fragment 复用时 onCreateView 不会重跑，靠这里在 onResume 比对后才重排。
@@ -88,8 +84,6 @@ public class LaunchFragment extends Fragment {
    */
   private TextView moduleIssueBanner;
 
-=======
->>>>>>> sunset/main
   private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
 
   /** 通知点击进来、待自动进入 Web 的意图；就绪事件立即消费，每秒刷新兜底。 */
@@ -136,11 +130,7 @@ public class LaunchFragment extends Fragment {
 
     // v5 主页新增的语境、活动条与日志工具；原有 id 与业务 id 全部保留。
     activityTrack = v.findViewById(R.id.launch_activity);
-<<<<<<< 208ea63a
     applyHomeProgressSkin();
-    latestLogsButton = v.findViewById(R.id.launch_latest_button);
-=======
->>>>>>> sunset/main
     ((TextView) v.findViewById(R.id.launch_terminal_row))
         .setText(UiText.choose("打开本机终端", "Open local terminal"));
     v.findViewById(R.id.launch_terminal_row)
@@ -835,11 +825,7 @@ public class LaunchFragment extends Fragment {
     launchLog = null;
     logPanel = null;
     activityTrack = null;
-<<<<<<< 208ea63a
-    latestLogsButton = null;
     moduleIssueBanner = null;
-=======
->>>>>>> sunset/main
     if (dotPulse != null) {
       dotPulse.cancel();
       dotPulse = null;
@@ -919,7 +905,6 @@ public class LaunchFragment extends Fragment {
       boolean needsRecovery = environment.recovery;
       ((TextView) root.findViewById(R.id.launch_environment))
           .setText(environment.ready ? "READY" : "—");
-<<<<<<< 208ea63a
       // 副标题反映真实启动入口：容器工作台，或容器里登记的程序。
       String launchTarget =
           com.deepseekharness.app.util.HomeLayoutStore.launchAction(requireContext());
@@ -955,6 +940,9 @@ public class LaunchFragment extends Fragment {
                     ? "proot"
                     : controller.proot().runtime().id(),
                 com.deepseekharness.app.util.Constants.DSH_VERSION);
+      } else if (!restore.notice().isEmpty()) {
+        // 恢复核对的结论是一整句说明，放在副标题；大标题只放短状态，窄屏不再撑成三行。
+        subtitleText = restore.notice();
       } else {
         subtitleText =
             com.deepseekharness.app.util.UiText.choose(
@@ -962,20 +950,7 @@ public class LaunchFragment extends Fragment {
                 "Starts the DSH workspace inside the container · shows the 127.0.0.1 port when ready");
       }
       ((TextView) root.findViewById(R.id.launch_subtitle)).setText(subtitleText);
-=======
-      ((TextView) root.findViewById(R.id.launch_subtitle))
-          .setText(
-              ready
-                  ? (controller.isWebCompatibilityFallback()
-                          ? "proot"
-                          : controller.proot().runtime().id())
-                      + " · dsh "
-                      + com.deepseekharness.app.util.Constants.DSH_VERSION
-                  // 恢复核对的结论是一整句说明，放在副标题；大标题只放短状态，窄屏不再撑成三行。
-                  : !restore.notice().isEmpty()
-                      ? restore.notice()
-                      : getString(R.string.ui2_launch_hint));
->>>>>>> sunset/main
+
       // 语境小字 / 活动条 / 工作台状态只取真实状态；不根据等待时长推算阶段。
       renderStatusChrome(
           root,
@@ -1039,7 +1014,6 @@ public class LaunchFragment extends Fragment {
         start.setText(
             enteringWeb
                 ? com.deepseekharness.app.util.UiText.text("进入中…")
-<<<<<<< 208ea63a
                 : launchProgram != null
                     ? com.deepseekharness.app.module.ContainerTools.isRunning(launchProgram.id)
                         ? com.deepseekharness.app.util.UiText.format("重启 %s", launchProgram.name)
@@ -1048,16 +1022,12 @@ public class LaunchFragment extends Fragment {
                         ? com.deepseekharness.app.util.UiText.choose(
                             "▶  进入工作台", "▶  Open workspace")
                         : getString(R.string.ui2_start));
-=======
-                : ready
-                    ? com.deepseekharness.app.util.UiText.choose("进入工作台", "Open workspace")
-                    : getString(R.string.ui2_start));
         // 已运行时主操作是导航（进入工作台），用箭头；未运行时才是启动进程的播放图标。
         if (start instanceof MaterialButton)
           ((MaterialButton) start)
               .setIconResource(
                   enteringWeb || ready ? R.drawable.ic_launch_open : R.drawable.ic_launch_start);
->>>>>>> sunset/main
+
         start.setEnabled(!enteringWeb && !starting && !stopping && !restoring);
       }
       Button restart = root.findViewById(R.id.launch_open);

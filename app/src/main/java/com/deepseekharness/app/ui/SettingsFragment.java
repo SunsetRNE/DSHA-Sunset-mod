@@ -16,16 +16,14 @@ import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.HarnessController;
-import com.deepseekharness.app.module.SettingsModuleCatalog;
-import com.deepseekharness.app.module.UiModuleDescriptor;
+
+import java.util.function.Supplier;
 
 /**
  * 设置页：模块入口（安装/配置/数据与备份）+ 其他（更新/自检/重新解压/关于）。
  */
 public class SettingsFragment extends Fragment {
 
-<<<<<<< 208ea63a
-=======
   private static final TabOption[] TAB_OPTIONS = {
     new TabOption("安装", "安装与修复运行环境", InstallFragment::new, R.drawable.ic_ui2_box),
     new TabOption("配置", "接口、显示与运行", ConfigFragment::new, R.drawable.ic_settings),
@@ -78,7 +76,6 @@ public class SettingsFragment extends Fragment {
     outState.putString(STATE_SELECTED, selectedKey);
   }
 
->>>>>>> sunset/main
   @Nullable
   @Override
   public View onCreateView(
@@ -89,21 +86,15 @@ public class SettingsFragment extends Fragment {
     selectable.clear();
 
     LinearLayout tabs = v.findViewById(R.id.settings_tabs);
-<<<<<<< 208ea63a
-    java.util.List<UiModuleDescriptor> modules =
-        SettingsModuleCatalog.visible(BuildConfig.ISLAND_EDITION);
-    for (int i = 0; i < modules.size(); i++) {
-=======
     int optionCount = TAB_OPTIONS.length;
     for (int i = 0; i < optionCount; i++) {
->>>>>>> sunset/main
       if (i > 0) {
         View line = divider();
         LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(-1, dp(1));
         lineParams.leftMargin = dp(44);
         tabs.addView(line, lineParams);
       }
-      tabs.addView(buildRow(modules.get(i)), new LinearLayout.LayoutParams(-1, -2));
+      tabs.addView(buildRow(i), new LinearLayout.LayoutParams(-1, -2));
     }
     com.deepseekharness.app.core.ConfigStore config =
         HarnessController.get(requireContext()).config();
@@ -142,24 +133,15 @@ public class SettingsFragment extends Fragment {
     TextView updateSub = v.findViewById(R.id.settings_update_sub);
     updateSub.setText(com.deepseekharness.app.util.UiText.text("稳定版与预览版更新"));
 
-<<<<<<< 208ea63a
-    v.findViewById(R.id.settings_module_center)
-        .setOnClickListener(
-            x -> startActivity(new Intent(requireContext(), ModuleCenterActivity.class)));
-    v.findViewById(R.id.settings_about)
-        .setOnClickListener(
-            x ->
-                UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-                    .replace(R.id.fragment_container, new AboutFragment())
-                    .addToBackStack("settings")
-                    .commit());
-=======
     View about = v.findViewById(R.id.settings_about);
     selectable.put(KEY_ABOUT, about);
     about.setOnClickListener(x -> select(KEY_ABOUT));
->>>>>>> sunset/main
     v.findViewById(R.id.settings_update).setOnClickListener(x -> checkUpdate());
     v.findViewById(R.id.settings_selftest).setOnClickListener(x -> runSelftest());
+    // 模块中心入口：查看已装模块、容器程序与启停（模块平台的主入口）。
+    v.findViewById(R.id.settings_module_center)
+        .setOnClickListener(
+            x -> startActivity(new Intent(requireContext(), ModuleCenterActivity.class)));
 
     // 语言入口：标题在中文界面下也带英文「Language」（只写「语言 · 简体中文」时，
     // 非中文用户根本认不出这是语言开关）；摘要直接显示当前生效语言。
@@ -357,7 +339,8 @@ public class SettingsFragment extends Fragment {
     startActivity(new Intent(requireContext(), UpdateActivity.class));
   }
 
-  private LinearLayout buildRow(final UiModuleDescriptor module) {
+  private LinearLayout buildRow(final int index) {
+    TabOption opt = TAB_OPTIONS[index];
     LinearLayout row = new LinearLayout(requireContext());
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setGravity(Gravity.CENTER_VERTICAL);
@@ -376,14 +359,19 @@ public class SettingsFragment extends Fragment {
     body.setLayoutParams(bodyParams);
 
     TextView title = new TextView(requireContext());
-    title.setText(module.title(requireContext()));
+    title.setText(
+        index == 0
+            ? getString(R.string.ui2_install_environment)
+            : index == 1
+                ? getString(R.string.ui2_runtime_config)
+                : com.deepseekharness.app.util.UiText.text(opt.title));
     title.setTextSize(14);
     title.setTextColor(requireContext().getColor(R.color.shell_text));
     title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
     title.setIncludeFontPadding(false);
 
     TextView sub = new TextView(requireContext());
-    sub.setText(com.deepseekharness.app.util.UiText.text(module.subtitle()));
+    sub.setText(com.deepseekharness.app.util.UiText.text(opt.sub));
     sub.setTextSize(12);
     sub.setTextColor(requireContext().getColor(R.color.shell_text_muted));
     sub.setIncludeFontPadding(false);
@@ -399,7 +387,7 @@ public class SettingsFragment extends Fragment {
     body.addView(sub);
 
     android.widget.ImageView icon = new android.widget.ImageView(requireContext());
-    icon.setImageResource(module.icon());
+    icon.setImageResource(opt.icon);
     icon.setImageTintList(
         android.content.res.ColorStateList.valueOf(
             requireContext().getColor(R.color.shell_accent)));
@@ -425,17 +413,10 @@ public class SettingsFragment extends Fragment {
     if (opt.activity == null) selectable.put("tab" + index, row);
     row.setOnClickListener(
         v -> {
-          if (module.destinationType() == UiModuleDescriptor.DestinationType.ACTIVITY) {
-            startActivity(new Intent(requireContext(), module.activityClass()));
+          if (opt.activity != null) {
+            startActivity(new Intent(requireContext(), opt.activity));
           } else {
-<<<<<<< 208ea63a
-            UiMotion.page(requireContext(), getParentFragmentManager().beginTransaction())
-                .replace(R.id.fragment_container, module.newFragment())
-                .addToBackStack("settings")
-                .commit();
-=======
             select("tab" + index);
->>>>>>> sunset/main
           }
         });
     return row;
@@ -449,5 +430,29 @@ public class SettingsFragment extends Fragment {
 
   private int dp(int v) {
     return Math.round(v * getResources().getDisplayMetrics().density);
+  }
+
+  private static final class TabOption {
+    final String title;
+    final String sub;
+    final Supplier<Fragment> factory;
+    final Class<? extends android.app.Activity> activity;
+    final int icon;
+
+    TabOption(String title, String sub, Supplier<Fragment> factory, int icon) {
+      this.title = title;
+      this.sub = sub;
+      this.factory = factory;
+      this.activity = null;
+      this.icon = icon;
+    }
+
+    TabOption(String title, String sub, Class<? extends android.app.Activity> activity, int icon) {
+      this.title = title;
+      this.sub = sub;
+      this.factory = null;
+      this.activity = activity;
+      this.icon = icon;
+    }
   }
 }

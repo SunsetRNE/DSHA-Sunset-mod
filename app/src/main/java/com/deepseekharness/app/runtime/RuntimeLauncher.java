@@ -30,12 +30,19 @@ final class RuntimeLauncher {
         ports.record("DNS_PREPARE", error.getClass().getSimpleName());
       }
       List<String> argv = spec.runtime.baseArgv(rootfs, spec.hardlinks, spec.dataDomain);
-<<<<<<< 208ea63a
+      var apk = context == null ? null : RuntimeApkAssets.get(context);
       File preloads = null;
       if (spec.runtime.rootMode()) {
-        argv.add(ContainerRuntime.Root.command(rootfs, command));
+        // Root 直接运行（当前 fail-closed）：argv 形态由 Root 实现给出，不走 proot 绑定。
+        // baseArgv 在隔离实现完成前必抛，因此这里只是形式上的分支，永远不会被真实走到。
+        argv = new java.util.ArrayList<>();
+        argv.add("exec /system/bin/chroot");
+        argv.add(rootfs.getAbsolutePath());
+        argv.add("/bin/bash");
+        argv.add("-c");
+        argv.add(command);
       } else {
-        preloads = context == null ? null : RuntimeLauncherAssets.prepare(context);
+        preloads = context == null ? null : RuntimeLauncherAssets.prepare(context, apk);
         bindPreloads(argv, preloads);
         for (var bind : spec.binds) {
           argv.add("-b");
@@ -44,14 +51,6 @@ final class RuntimeLauncher {
         argv.add("/bin/bash");
         argv.add("-c");
         argv.add(command);
-=======
-      var apk = context == null ? null : RuntimeApkAssets.get(context);
-      File preloads = context == null ? null : RuntimeLauncherAssets.prepare(context, apk);
-      bindPreloads(argv, preloads);
-      for (var bind : spec.binds) {
-        argv.add("-b");
-        argv.add(bind.host() + ":" + bind.guest());
->>>>>>> sunset/main
       }
       ProcessBuilder builder = new ProcessBuilder(argv).redirectErrorStream(true);
       if (!spec.isolated && !spec.pipedInput) Compat.redirectStdinDevNull(builder);
@@ -94,7 +93,7 @@ final class RuntimeLauncher {
     builder.environment().put("TMPDIR", "/tmp");
     builder.environment().put("DEBIAN_FRONTEND", "noninteractive");
     RuntimeTools.applyEnvironment(rootfs, builder.environment(), ports.settings());
-    if (context != null && !spec.runtime.rootMode()) {
+    if (context != null) {
       // builder() already checked the exact overlay it bound. Independent terminal/recovery
       // callers still prepare here; no mutable filesystem proof survives a builder invocation.
       if (preparedPreloads == null) RuntimeLauncherAssets.prepare(context, apk);
@@ -112,15 +111,8 @@ final class RuntimeLauncher {
     // Classification evidence comes from this APK, never a guest-writable JSON
     // or caller-supplied environment. Native backup independently reads the APK.
     builder.environment().remove("DSHA_MANAGED_PACKAGE_PROOFS_SHA256");
-<<<<<<< 208ea63a
-    if (context != null && !spec.runtime.rootMode())
-      builder
-          .environment()
-          .put("DSHA_MANAGED_PACKAGE_PROOFS_SHA256", managedPackageProofAssetSha256(context));
-=======
     if (context != null)
       builder.environment().put("DSHA_MANAGED_PACKAGE_PROOFS_SHA256", apk.packageProofSha256);
->>>>>>> sunset/main
   }
 
   static String managedPackageProofAssetSha256(Context context) throws IOException {

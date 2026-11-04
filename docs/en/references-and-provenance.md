@@ -6,11 +6,7 @@ This is a build316 fact index covering the current publication identity, upstrea
 
 | Project | Role and evidence in this branch | What this does not establish |
 |---|---|---|
-<<<<<<< 208ea63a
-| [ym2025szz/DSHA-prerelase](https://github.com/ym2025szz/DSHA-prerelase) | Private maintenance and prerelease distribution repository linked by the current README; the repository's actual spelling is retained | An official DeepSeek Android client or officially certified branch |
-=======
 | [SunsetRNE/DSHA-Sunset-mod](https://github.com/SunsetRNE/DSHA-Sunset-mod) | Current public maintenance and prerelease distribution repository; the former `DSHA-Sunset-mod-3090-Q` was merged and removed | An official DeepSeek Android client or officially certified branch |
->>>>>>> sunset/main
 | [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA) | Origin of the DSHA project; local AGENTS records migration of later changes onto the build170 base | Identity between this maintenance branch and every branch, Release or website of that repository |
 | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | Official DeepSeek Harness upstream; this project installs its npm runtime into a Linux environment inside Android | Upstream maintenance or approval of DSHA's native shell, authorization policy, container patches or local APK |
 | [mexiaosqwq/dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) | Third-party mobile Web-plugin upstream; imported at an exact commit, then locally adapted | An official DeepSeek mobile UI or an entirely unmodified upstream package |

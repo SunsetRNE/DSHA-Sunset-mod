@@ -54,18 +54,11 @@ final class RootfsInstaller {
         throw new IOException(com.deepseekharness.app.util.UiText.text("Ubuntu Python 运行环境不完整"));
       GuestScriptBudget.checkpoint();
       // 标准库的 C 扩展还依赖 SQLite/readline；仅有 Python 主程序并不代表它们可用。
-<<<<<<< 208ea63a
-      String machine = com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? "x86_64" : "aarch64";
-      File sqlite = new File(stage, "usr/lib/" + machine + "-linux-gnu/libsqlite3.so.0");
-      File readline = new File(stage, "usr/lib/" + machine + "-linux-gnu/libreadline.so.8");
-      if (!sqlite.isFile()
-          || sqlite.length() == 0
-          || !readline.isFile()
-          || readline.length() == 0) {
-=======
       // 与插件查询就绪共用 guest 判据：apt/dpkg 或外部 root 换成的 soname 链接只要在容器内指向非空普通文件即可用。
-      String sqlite = "usr/lib/aarch64-linux-gnu/libsqlite3.so.0";
-      String readline = "usr/lib/aarch64-linux-gnu/libreadline.so.8";
+      String machine =
+          com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? "x86_64" : "aarch64";
+      String sqlite = "usr/lib/" + machine + "-linux-gnu/libsqlite3.so.0";
+      String readline = "usr/lib/" + machine + "-linux-gnu/libreadline.so.8";
       boolean sqliteReady = supportReady(stage, sqlite),
           readlineReady = supportReady(stage, readline);
       if (!sqliteReady || !readlineReady) {
@@ -73,7 +66,6 @@ final class RootfsInstaller {
         // 已可用的一项（含 apt 的有效链接）不重写，避免另一项缺失时因链接冲突整体失败。
         if (!sqliteReady) dropBrokenLink(stage, sqlite);
         if (!readlineReady) dropBrokenLink(stage, readline);
->>>>>>> sunset/main
         try (InputStream input = ctx.getAssets().open("python-support.bin")) {
           TarGzipExtractor.extractSelected(
               input,

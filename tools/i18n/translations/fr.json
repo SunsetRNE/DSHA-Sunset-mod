@@ -3679,11 +3679,6 @@
   "m9009": "WHEELS_INJECT_FAIL: %s ; cible %s ; %s ; les entrées existantes n’ont pas été remplacées",
   "m9010": "Préparation de l’environnement ADB hors ligne…",
   "m9011": "ADB_OFFLINE_READY: Les dépendances hors ligne sont prêtes ; la connexion n’a pas été vérifiée. Activez le débogage sans fil, puis vérifiez à nouveau.",
-<<<<<<< 208ea63a
-  "ui2_module_center": "Centre de modules · Module center",
-  "ui2_module_center_sub": "Modules installés, architectures, capacités et activation",
-  "ui2_modules": "Centre de modules"
-=======
   "m9013": "Strict (par défaut)",
   "m9014": "Assoupli (opérations irréversibles toujours bloquées)",
   "m9015": "Complètement assoupli (aucun contrôle du contenu des commandes)",
@@ -3699,5 +3694,5 @@
   "rescue272_export_copy": "Exporter une copie lisible",
   "rescue272_export_desc": "Export de secours en lecture seule des données lisibles ; les écritures continuent et les originaux restent intacts",
   "rescue272_pending_hint": "L’environnement d’origine n’est pas confirmé : la sauvegarde et la restauration habituelles sont indisponibles. Exportez d’abord une copie lisible, puis reprenez la maintenance interrompue."
->>>>>>> sunset/main
+
 }

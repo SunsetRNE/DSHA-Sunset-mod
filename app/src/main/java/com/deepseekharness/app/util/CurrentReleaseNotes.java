@@ -11,11 +11,12 @@ public final class CurrentReleaseNotes {
   }
 
   private static String bundledVersion(String versionName) {
-<<<<<<< 208ea63a
     // Both editions share these notes; flavor/test suffixes are not release-source identities.
     // 所有调试/分支后缀都在这里剥掉（长后缀在前），否则 x86 模拟器包与 island 包
     // 会被误判成「本安装包未附当前版本的更新说明」。
-    String[] suffixes = {"low-SunsetTest", "-SunsetTest", "-EmulatorX64Debug", "-island", "low"};
+    String[] suffixes = {
+      "low-SunsetTest", "-SunsetTest", "-test", "-EmulatorX64Debug", "-island", "low"
+    };
     boolean changed = true;
     while (changed) {
       changed = false;
@@ -24,14 +25,6 @@ public final class CurrentReleaseNotes {
           versionName = versionName.substring(0, versionName.length() - suffix.length());
           changed = true;
         }
-=======
-    // 正式包与 -Pdsha.sunsetTest=true 测试包共用同一份更新说明；测试后缀不是发布身份。
-    // 测试变体当前用 -SunsetTest（CI 与发布脚本按此核验），历史上也出现过 -test，两者都要剥离。
-    for (String suffix : new String[] {"-SunsetTest", "-test"}) {
-      if (versionName.endsWith(suffix)) {
-        versionName = versionName.substring(0, versionName.length() - suffix.length());
-        break;
->>>>>>> sunset/main
       }
     }
     return versionName;

@@ -1,13 +1,7 @@
 # Documentation index and maintenance rules
 
-<<<<<<< 208ea63a
-Current entry (2026-10-23): [build191 Sunset merge](releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md), `0.2.1-rc.2-20261023.1640-dsh0.2.1-rc.2` /191 unchanged, **local software/exact Standard APK verified; private delivery only**. Retain16 incoming commits and all previous191 fixes. Both flavors pass44 classes/242 tests each with zero failures/errors/skips; five external fixtures per flavor actually run. All18 hosts, Lint and9 APK gates pass. No new-APK device acceptance or new Low APK. The report retains original failures/input/archive limits. Actual remote availability/source ZIP hash come from the [1640 private Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261023.1640) and independent external receipt. Older1500 entries retain history.
-
-Previous1500 entry (2026-10-23): [build191 startup revision](releases/v0.2.1-rc.2-build191-startup-20261023.md), `0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` /191, **local software/exact Standard APK verified; private delivery only**. Both flavors pass34 classes/182 JUnit tests each with zero failures/errors/skips; Release Lint has zero errors/fatal findings. Nine APK gates and12 host entries pass; no new-APK device acceptance. The report defines CAS/account/diagnostic changes and the retired DSH selector. Actual remote state and the complete source ZIP's own hash come from the [current private Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261023.1500) and independent external receipt. The2100,0243 and F13 records below retain historical attribution.
-=======
 
 Current source: `0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5` / build316 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build tightens the plugin dependency CAS scan (the fast path rechecks entry types and inodes, T48) and makes the document snapshot release its permit when SQLite initialization fails (T47). Local targeted tests and source gates passed; not yet checked on a device. See the [build316 notes](../releases/build316-changes.en.md) and the [build316 record](../releases/v0.2.1-rc.5-build316-cas-scandir-document-rows-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
->>>>>>> sunset/main
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

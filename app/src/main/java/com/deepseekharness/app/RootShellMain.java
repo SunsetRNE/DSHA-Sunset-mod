@@ -118,10 +118,6 @@ public final class RootShellMain {
       else
         shell =
             new ShellService(); // Historical ordinary reads do not require a guessed app identity.
-<<<<<<< 208ea63a
-      if (operation.equals("root-runtime-probe")) output = "uid=" + android.os.Process.myUid();
-      else if (operation.equals("virtual-screen-start")) output = shell.execVirtualScreen(command);
-=======
       active = shell;
       if (externalAdbSteps) {
         if (android.os.Process.myUid() != 0) throw new SecurityException("外接命令需要 root");
@@ -213,10 +209,11 @@ public final class RootShellMain {
           if (serverPolicy != null) throw new SecurityException(serverPolicy);
           output = shell.execExternalAdbSession(serverArgv, argv, environment, timeout);
         } else output = shell.execExternal(argv, environment, timeout);
-      } else if (operation.equals("virtual-screen-start"))
+      } else if (operation.equals("root-runtime-probe"))
+        output = "uid=" + android.os.Process.myUid();
+      else if (operation.equals("virtual-screen-start"))
         output = shell.execVirtualScreen(command);
       else if (rawShell) output = shell.execUnrestricted(command);
->>>>>>> sunset/main
       else if (operation.isEmpty())
         output = smsUser < 0 ? shell.exec(command) : shell.execAuthorizedSms(command, smsUser);
       else throw new SecurityException("未知 Root 操作");

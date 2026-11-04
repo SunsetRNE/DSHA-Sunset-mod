@@ -128,9 +128,6 @@
     <string name="ui2_managed_update" formatted="false">"更新受管執行階段"</string>
     <string name="ui2_management" formatted="false">"管理"</string>
     <string name="ui2_meet" formatted="false">"認識 DSHA"</string>
-    <string name="ui2_module_center" formatted="false">"模組中心 · Module center"</string>
-    <string name="ui2_module_center_sub" formatted="false">"查看已安裝模塊、架構、能力與啟停"</string>
-    <string name="ui2_modules" formatted="false">"模組中心"</string>
     <string name="ui2_network_runtime" formatted="false">"執行與網路"</string>
     <string name="ui2_offline_badge" formatted="false">"離線部署  ·  無需 ROOT  ·  %1$s"</string>
     <string name="ui2_online_notice" formatted="false">"使用線上模型時，訊息及你選擇的附件會傳送到所設定的模型服務。"</string>

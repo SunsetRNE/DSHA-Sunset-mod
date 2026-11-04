@@ -3679,11 +3679,6 @@
   "m9009": "WHEELS_INJECT_FAIL: %s; meta %s; %s; res exsistentes non superscriptae sunt",
   "m9010": "Ambitus ADB sine rete paratur…",
   "m9011": "ADB_OFFLINE_READY: Dependentiae sine rete paratae sunt; conexio nondum verificata est. Depurationem sine filo habilita, deinde rursus verifica.",
-<<<<<<< 208ea63a
-  "ui2_module_center": "Modulorum centrum · Module center",
-  "ui2_module_center_sub": "Modula instituta, architecturae, facultates et commutationes",
-  "ui2_modules": "Modulorum centrum"
-=======
   "m9013": "Strictus (praedefinitus)",
   "m9014": "Remissus (operationes irrevocabiles adhuc impediuntur)",
   "m9015": "Plene remissus (nulla inspectio argumenti mandati)",
@@ -3699,5 +3694,5 @@
   "rescue272_export_copy": "Exemplar legibile exporta",
   "rescue272_export_desc": "Exportatio salutaris tantum legendi datorum legibilium; scriptiones pergunt et originalia intacta manent",
   "rescue272_pending_hint": "Ambitus originalis nondum confirmatus est, ideo tutela et restitutio ordinariae non praesto sunt. Prius exemplar legibile exporta, deinde conservationem interruptam resume."
->>>>>>> sunset/main
+
 }

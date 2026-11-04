@@ -2,16 +2,12 @@ plugins {
     id 'com.android.application'
 }
 
-<<<<<<< 208ea63a
+// DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上；发布身份见下方 dsha.identity。
 // x86 调试与 ARM/全量单测隔离中间产物，避免 Windows 文件锁与混包。
 if (project.findProperty('dsha.emulatorX64') == 'true') {
     layout.buildDirectory.set(file('build/emulator-target'))
 }
-// 两版共用功能和离线环境；只有 low 携带兼容旧 Android 的 Gecko 内核。
-=======
-// DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上；发布身份见下方 dsha.identity。
 // 旧 low/GeckoView 兼容线与独立上岛包都已移除：上岛能力并入正式包。
->>>>>>> sunset/main
 // 文件名独立于可诊断版本名，保持当前用户下载入口不变。
 ext.dshaApkNameVersion = '0.2.1-rc.5'
 def bundledTools = new groovy.json.JsonSlurper().parse(rootProject.file('tools/runtime-tools.lock.json'))
@@ -50,17 +46,10 @@ def unsignedPackage = project.findProperty('dsha.unsignedPackage') == 'true'
 // 测试变体：显式开关才改包名/版本名，与正式包共存且数据完全隔离；默认构建不变。
 // 上岛版已并入正式包，不再有独立 applicationId / manifest 分支。
 def sunsetTest = project.findProperty('dsha.sunsetTest') == 'true' || System.getenv('DSHA_SUNSET_TEST') == '1'
-<<<<<<< 208ea63a
-// 独立上岛版：显式开关才换包名，与正式 DSHA 共存且数据完全隔离；默认构建不变。
-def islandEdition = project.findProperty('dsha.islandEdition') == 'true' || System.getenv('DSHA_ISLAND_EDITION') == '1'
-if (sunsetTest && islandEdition)
-    throw new GradleException('Sunset 测试版和独立上岛版不能同时启用')
 // 模拟器仅显式构建独立 x86_64 debug 包，永不覆盖 ARM 正式身份。
 def emulatorX64 = project.findProperty('dsha.emulatorX64') == 'true'
-if (emulatorX64 && (sunsetTest || islandEdition
-        || gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') || it.toLowerCase().contains('low') }))
-    throw new GradleException('x86_64 模拟器目标只允许独立 Standard Debug，不能混用发布/Low/其他身份')
-=======
+if (emulatorX64 && sunsetTest)
+    throw new GradleException('x86_64 模拟器目标与 sunsetTest 不能同时启用')
 // 发布身份：-Pdsha.identity=mod|upstream，默认 mod（io.github.sunsetrne.dsha / Mod 证书）。
 // upstream 是 ym2025szz/DSHA-prerelase 的 dsh.android.client / 历史 E7E3 证书，只在他的私有仓库发布。
 // 两套身份的包名、显示名、测试后缀、默认 key alias 与核对证书都从 ci/release-identity.<name>.json 读取；
@@ -80,7 +69,6 @@ if (releaseIdentity.schema != 1 || releaseIdentity.identity != releaseIdentityNa
         || !(releaseIdentity.appName instanceof String) || releaseIdentity.appName.trim().isEmpty())
     throw new GradleException("RELEASE_IDENTITY_INVALID: ${releaseIdentityFile}")
 ext.dshaReleaseIdentity = releaseIdentity
->>>>>>> sunset/main
 // 只有源码 CI 可显式允许缺少真实测试夹具；完整测试默认要求固定输入齐备。
 def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
 if (!(sourceOnlyTests in ['true', 'false']))
@@ -100,19 +88,11 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
-<<<<<<< 208ea63a
-        // 供界面区分「正式版 / 独立上岛版」；包名与数据目录由 applicationIdSuffix 隔离。
-        buildConfigField 'boolean', 'ISLAND_EDITION', islandEdition ? 'true' : 'false'
         buildConfigField 'boolean', 'EMULATOR_X64', emulatorX64 ? 'true' : 'false'
-        // 上岛版用独立显示名，避免桌面上与正式 DSHA 同名、误以为是同一个应用。
-        resValue 'string', 'app_name', islandEdition ? 'DSHA 上岛版' : 'DSHA'
-        versionCode 206
-=======
         // 上岛能力已并入正式包；不再有独立上岛包名或独立显示名。
         // 显示名随发布身份（DSH-A-Su / DSHA）；测试变体加后缀，便于桌面上区分两个包。
         resValue 'string', 'app_name', sunsetTest ? releaseIdentity.appName + ' Test' : releaseIdentity.appName
         versionCode 316
->>>>>>> sunset/main
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
         versionName "0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
@@ -127,20 +107,13 @@ android {
         standard {
             dimension 'androidSupport'
             minSdk 30
-<<<<<<< 208ea63a
-            buildConfigField 'boolean', 'LOW_ANDROID', 'false'
             if (emulatorX64) {
                 applicationIdSuffix '.emulator'
                 versionNameSuffix '-EmulatorX64Debug'
-                resValue 'string', 'app_name', 'DSHA x86 调试'
             } else if (sunsetTest) {
-                applicationIdSuffix '.SunsetRNE'
-=======
-            if (sunsetTest) {
                 // mod = .test，upstream = .SunsetRNE（见身份文件 testSuffix）。
                 applicationIdSuffix releaseIdentity.testSuffix
                 // 测试包身份沿用历史 `-SunsetTest` 后缀：CI 与发布脚本按此核验，不能只写 `-test`。
->>>>>>> sunset/main
                 versionNameSuffix '-SunsetTest'
             }
         }
@@ -193,9 +166,7 @@ android {
             keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so']
             // 使用 app 自带的同版本 16 KB JNI，覆盖 terminal-emulator AAR 中的旧库。
             pickFirsts += ['**/libtermux.so']
-            excludes += emulatorX64
-                    ? ['**/x86/**', '**/arm64-v8a/**', '**/armeabi/**', '**/armeabi-v7a/**']
-                    : ['**/x86/**', '**/x86_64/**', '**/armeabi/**', '**/armeabi-v7a/**']
+            excludes += ['**/x86/**', '**/x86_64/**', '**/armeabi/**', '**/armeabi-v7a/**']
         }
         resources {
             // bcprov 只被备份用到 AES-GCM / SHA-256 / PBKDF2 轻量 API；Picnic 后量子常量表与
@@ -231,7 +202,7 @@ android {
         unitTests.all {
             maxHeapSize = '2048m'
             // 使用工作区长路径，避免 Windows TEMP 的 8.3 别名混入身份/链接用例。
-            def localTemp = layout.buildDirectory.dir("tmp/${name}/jvm").get().asFile
+            def localTemp = layout.buildDirectory.dir("tmp/" + name + "/jvm").get().asFile
             systemProperty 'java.io.tmpdir', localTemp.absolutePath
             environment 'TEMP', localTemp.absolutePath
             environment 'TMP', localTemp.absolutePath
@@ -243,33 +214,10 @@ android {
         main.assets.setSrcDirs([layout.buildDirectory.dir("generated/standardAssets").get().asFile,
                 layout.buildDirectory.dir("generated/recoveryAssets").get().asFile])
         main.java.srcDir(layout.buildDirectory.dir("generated/uiLanguage").get().asFile)
-        if (emulatorX64) {
-            main.assets.setSrcDirs([rootProject.file('app/build/generated/emulatorAssets')])
-            main.jniLibs.setSrcDirs([rootProject.file('app/build/emulator-native/jniLibs')])
-        }
         // Both browser test entry points load one test-only HTML fixture.
         debug.assets.srcDir(rootProject.file("tools/fixtures/web-state"))
         androidTest.assets.srcDir(rootProject.file("tools/fixtures/web-state"))
     }
-}
-
-if (emulatorX64) {
-    androidComponents {
-        beforeVariants(selector().all()) { variant ->
-            if (variant.buildType != 'debug' || variant.productFlavors.any { it.second == 'low' })
-                variant.enable = false
-        }
-    }
-    def emulatorAssetsDir = rootProject.file('app/build/generated/emulatorAssets')
-    def emulatorNativeDir = rootProject.file('app/build/emulator-native/jniLibs')
-    def verifyEmulatorAssets = tasks.register('verifyEmulatorAssets', Exec) {
-        inputs.dir(emulatorAssetsDir)
-        inputs.file(rootProject.file('app/build/generated/emulator-assets-receipt.json'))
-        inputs.dir(emulatorNativeDir)
-        commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
-                rootProject.file('tools/verify-emulator-assets.py').absolutePath)
-    }
-    tasks.named('preBuild').configure { dependsOn(verifyEmulatorAssets) }
 }
 
 def verifyPublishCertificate = tasks.register("verifyPublishCertificate") {
@@ -314,14 +262,6 @@ def verifyBundledIdentities = tasks.register('verifyBundledIdentities', Exec) {
     commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
             rootProject.file('tools/prepare-runtime-tools.py').absolutePath, '--check')
 }
-def verifyContainerSshAssets = tasks.register("verifyContainerSshAssets", Exec) {
-    inputs.files(rootProject.files("tools/prepare-container-ssh.py", "tools/container-ssh/packages.lock.json"))
-    inputs.dir(file("src/main/assets/container-ssh"))
-    commandLine(System.getenv("DSHA_PYTHON") ?: "python3", "-B",
-            rootProject.file("tools/prepare-container-ssh.py").absolutePath, "--check")
-}
-tasks.named("preBuild").configure { dependsOn(verifyContainerSshAssets) }
-
 def verifyBuiltinRegistry = tasks.register('verifyBuiltinRegistry', Exec) {
     inputs.files(rootProject.files('tools/generate-builtin-plugins.py', 'app/src/main/assets/builtin-plugins.json',
             'app/src/main/java/com/deepseekharness/app/util/BuiltinPluginRegistry.java'))
@@ -385,7 +325,6 @@ tasks.configureEach {
 }
 
 def prepareStandardAssets = tasks.register("prepareStandardAssets", Exec) {
-    onlyIf { !emulatorX64 }
     inputs.dir("src/main/assets")
     inputs.file(rootProject.file("tools/prepare-standard-assets.py"))
     inputs.file(rootProject.file("tools/generated_asset_directory.py"))
@@ -454,7 +393,6 @@ prepareRuntimeDescriptor.configure { dependsOn(prepareBackupAssets) }
 
 // 应急运行时拥有独立锁；正式 DSH 更新不会把它隐式替换。
 def prepareRecoveryAssets = tasks.register("prepareRecoveryAssets", Exec) {
-    onlyIf { !emulatorX64 }
     dependsOn(prepareStandardAssets)
     inputs.file(rootProject.file("tools/prepare-recovery-assets.py"))
     inputs.file(rootProject.file("tools/recovery_runtime_overlay.py"))
@@ -481,13 +419,10 @@ def prepareRecoveryAssets = tasks.register("prepareRecoveryAssets", Exec) {
             "--output", layout.buildDirectory.dir("generated/recoveryAssets").get().asFile.absolutePath,
             "--shared-assets", layout.buildDirectory.dir("generated/standardAssets").get().asFile.absolutePath)
 }
-<<<<<<< 208ea63a
-=======
 tasks.configureEach {
     if (name.matches("mergeStandard.*Assets")) dependsOn(prepareRecoveryAssets)
 }
 
->>>>>>> sunset/main
 def verifyBackupDependencies = tasks.register("verifyBackupDependencies") {
     inputs.file(rootProject.file("tools/backup-dependencies.lock.json"))
     doLast {
@@ -521,14 +456,7 @@ def verifyBackupDependencies = tasks.register("verifyBackupDependencies") {
             }
             hash.digest().encodeHex().toString()
         }
-<<<<<<< 208ea63a
-        def variants = emulatorX64
-                ? ["standardDebugRuntimeClasspath"]
-                : ["standardReleaseRuntimeClasspath", "lowReleaseRuntimeClasspath"]
-        variants.each { name ->
-=======
         ["standardReleaseRuntimeClasspath"].each { name ->
->>>>>>> sunset/main
             def resolved = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts
             lock.dependencies.each { expected ->
                 def selected = resolved.findAll { it.moduleVersion.id.group == expected.group && it.name == expected.name }
@@ -593,7 +521,7 @@ dependencies {
     // 宿主凭据 YAML 仅使用 data-only SafeConstructor；来源、JAR 和许可由备份锁核验。
     implementation 'org.yaml:snakeyaml:2.4'
     testImplementation 'junit:junit:4.13.2'
-    // Android 框架自带 org.json 是桩；JVM 单测使用同版本实现解析模块清单。
+    // 模块契约解析在纯 JVM 测试里需要真实 org.json（Robolectric 之外的用例）。
     testImplementation 'org.json:json:20240303'
     testImplementation 'org.robolectric:robolectric:4.15.1'
 }

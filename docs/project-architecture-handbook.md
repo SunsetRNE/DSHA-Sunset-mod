@@ -29,11 +29,7 @@ DSHA 是 Android 宿主与适配项目，内置上游 DSH，并增加安装、�
 [DeepSeek 官方 deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 是上游项目；
 当前维护分支、公开预发布仓库及其 Android 修改，不代表 DeepSeek 官方发布或认证。
 DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维护/分发在
-<<<<<<< 208ea63a
-[DSHA-prerelase](https://github.com/ym2025szz/DSHA-prerelase)；私有页面需要相应访问权限。
-=======
 [DSHA-Sunset-mod](https://github.com/SunsetRNE/DSHA-Sunset-mod)。
->>>>>>> sunset/main
 当前使用哪个 DSH 版本，应读 [npm manifest](../tools/dsh-runtime/package.json) 与
 [完整 lock](../tools/dsh-runtime/package-lock.json)，不能根据上游默认分支推断。
 移动 UI 是 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) 第三方插件；

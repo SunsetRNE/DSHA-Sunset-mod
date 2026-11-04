@@ -1,13 +1,7 @@
 # 文档总索引与维护规则
 
-<<<<<<< 208ea63a
-当前入口（2026-10-23）：[build191 Sunset合并](releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md)，`0.2.1-rc.2-20261023.1640-dsh0.2.1-rc.2` /191不变，**本地软件与精确Standard APK已验证，仅私有交付**。新增16提交及上一191修订完整保留；两版44类各242项JUnit零失败/错误/skip、5外部夹具每版实跑、18host、Lint与APK9项通过。新APK设备未验、不新增Low包。原失败及固定输入/归档边界见报告；实际远端/源码ZIP自身SHA由[1640私有Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261023.1640)和独立外部回执核验。下方1500与更早记录保持历史归属。
-
-上一1500入口（2026-10-23）：[build191启动修订](releases/v0.2.1-rc.2-build191-startup-20261023.md)，`0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` /191，**本地软件与精确Standard APK已验证，仅私有交付**。两版34类各182项JUnit零失败/错误/skip、Release Lint零error/fatal、APK9项及host12项通过；未验新APK设备。CAS/账号/诊断及运行权限档位退休范围见报告。实际远端及完整源码ZIP自身SHA以[本轮私有Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261023.1500)和独立外部回执核验；下方2100、0243与F13均保留历史归属。
-=======
 
 当前源码：`0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5` / build316 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版收紧插件依赖 CAS 扫描（快路径复核目录项类型与 inode，T48），并让文件快照在 SQLite 初始化出错时释放许可（T47）。本机定向测试与源码门禁通过，尚未真机核对。改动说明见 [build316 更新说明](releases/build316-changes.zh.md)，验证记录见 [build316 记录](releases/v0.2.1-rc.5-build316-cas-scandir-document-rows-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
->>>>>>> sunset/main
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

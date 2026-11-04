@@ -15,35 +15,20 @@
       <TextView android:id="@+id/app_title" style="@style/DshaText.PageTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/app_name" android:textColor="@color/shell_text" android:textSize="@dimen/shell_title_text" android:letterSpacing="0.06" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" />
       <TextView android:id="@+id/app_context" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:textColor="@color/shell_text_secondary" android:textSize="@dimen/shell_context_text" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" />
     </LinearLayout>
-<<<<<<< 208ea63a
-    <FrameLayout android:id="@+id/btn_edit_layout" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:clickable="true" android:focusable="true" android:visibility="gone">
+    <LinearLayout android:id="@+id/btn_edit_layout" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:clickable="true" android:focusable="true" android:visibility="gone" android:orientation="vertical">
       <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_ui2_edit" />
-    </FrameLayout>
-    <TextView android:id="@+id/btn_theme" style="@style/Widget.DSHA.ToolbarAction" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginEnd="4dp" android:padding="12dp" android:gravity="center" android:background="?attr/selectableItemBackgroundBorderless" android:text="@string/ui_m0020" />
-=======
->>>>>>> sunset/main
+    </LinearLayout>
     <FrameLayout android:id="@+id/btn_about" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:clickable="true" android:focusable="true" android:contentDescription="@string/ui_m0067" android:visibility="gone">
       <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_about" app:tint="@color/shell_text_secondary" />
     </FrameLayout>
   </LinearLayout>
   <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/shell_line" />
-<<<<<<< 208ea63a
-  <TextView android:id="@+id/environment_recovery_banner" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:layout_marginTop="8dp" android:minHeight="44dp" android:padding="10dp" android:textColor="@color/shell_accent" android:background="@drawable/bg_chip_clickable" android:textSize="13sp" android:includeFontPadding="false" android:clickable="true" android:focusable="true" android:visibility="gone" android:gravity="center" />
-  <FrameLayout android:id="@+id/main_content_shell" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-    <FrameLayout android:id="@+id/fragment_container" android:layout_width="match_parent" android:layout_height="match_parent" />
-
-    <!-- 模块接管设置/插件页时的内容层；底栏仍在它上面，模块中心始终可进。 -->
-    <FrameLayout android:id="@+id/module_app_overlay" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
-
-    <!-- 底栏在编辑态直接拖本体，不再有上方替身条与提示条。 -->
-    <com.deepseekharness.app.ui.EditableBottomNavigationView android:id="@+id/bottom_nav" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginStart="@dimen/shell_nav_margin_horizontal" android:layout_marginEnd="@dimen/shell_nav_margin_horizontal" android:layout_marginBottom="@dimen/shell_nav_margin_bottom" android:background="@drawable/bg_shell_nav" android:minHeight="@dimen/shell_nav_height" app:itemIconSize="@dimen/shell_nav_icon_size" app:itemPaddingTop="@dimen/shell_nav_item_padding_top" app:itemPaddingBottom="@dimen/shell_nav_item_padding_bottom" app:itemIconTint="@color/shell_nav_item_tint" app:itemTextColor="@color/shell_nav_item_tint" app:itemRippleColor="@color/shell_nav_ripple" app:itemTextAppearanceActive="@style/Widget.DSHA.ShellNavLabel" app:itemTextAppearanceInactive="@style/Widget.DSHA.ShellNavLabel" app:labelVisibilityMode="labeled" app:elevation="2dp" app:menu="@menu/bottom_nav_menu" />
-=======
   <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipChildren="false" android:clipToPadding="false">
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
       <com.deepseekharness.app.ui.EnvironmentNoticeBanner android:id="@+id/environment_recovery_banner" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:layout_marginTop="8dp" android:layout_marginBottom="2dp" android:visibility="gone" />
       <FrameLayout android:id="@+id/fragment_container" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     </LinearLayout>
+    <FrameLayout android:id="@+id/module_app_overlay" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
     <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/bottom_nav" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginStart="@dimen/shell_nav_margin_horizontal" android:layout_marginEnd="@dimen/shell_nav_margin_horizontal" android:layout_marginBottom="@dimen/shell_nav_margin_bottom" android:background="@drawable/bg_shell_nav" android:backgroundTint="@null" android:elevation="8dp" android:outlineProvider="background" android:minHeight="@dimen/shell_nav_height" app:backgroundTint="@null" app:itemIconSize="@dimen/shell_nav_icon_size" app:itemPaddingTop="@dimen/shell_nav_item_padding_top" app:itemPaddingBottom="@dimen/shell_nav_item_padding_bottom" app:itemIconTint="@color/shell_nav_item_tint" app:itemTextColor="@color/shell_nav_item_tint" app:itemRippleColor="@color/shell_nav_ripple" app:itemTextAppearanceActive="@style/Widget.DSHA.ShellNavLabel" app:itemTextAppearanceInactive="@style/Widget.DSHA.ShellNavLabel" app:labelVisibilityMode="@integer/shell_nav_label_visibility" app:elevation="8dp" app:menu="@menu/bottom_nav_menu" />
->>>>>>> sunset/main
   </FrameLayout>
 </LinearLayout>

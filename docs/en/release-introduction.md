@@ -2,21 +2,11 @@
 
 Updated: 2026-11-01. This English entry describes the maintained build316 source and links historical records separately. It is not a remote-publication receipt.
 
-<<<<<<< 208ea63a
-> **F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190.** Directory-service composition, attachment-resolver disposal and recovery after transient background proof failure are fixed. Standard 150 selected classes/952 JUnit cases (3 skipped); Low 150 selected classes/952 cases (76 skipped). Both have zero failures/errors. Release Lint has zero errors and Standard/Low warnings 249/162; eight actual-APK gates passed. Original failures, corrections and negative controls remain separate; this is not one continuous green run. No device/ADB, real-account/model or new endurance acceptance. [Associated Release target](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.2107) · [Scope and evidence](releases/v0.2.1-rc.2-build190-fix13-20261021.md). Actual remote availability is established by the Release and independent receipt.
-=======
 > **build316 `0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5`.** The plugin dependency CAS scan rechecks entry types and inodes, and the document snapshot releases its permit when SQLite initialization fails. versionCode 316, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build316 notes](../releases/build316-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
->>>>>>> sunset/main
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 
-<<<<<<< 208ea63a
-Published F12 retains its original identity: [immutable English record](releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [original Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.1413). F11 remains an unpublished local checkpoint.
-
-The Android application retains version code **190**, package `dsh.android.client`, Java 17, the historical E7E3 release identity, bundled DSH **0.2.1-rc.2**, and Ubuntu base **10**, unless the final owner explicitly records a later identity. proot is default; proroot is explicitly selectable. The [README](../../README.en.md) will carry the finalized download identity. [Build and release](build-and-release.md), [BUILD](../../BUILD.en.md), and [CONTRIBUTING](../../CONTRIBUTING.en.md) explain verification and distribution steps.
-=======
 F10–F13 and build190 records retain their original identity and scope. Their package names, version codes, DSH versions, test counts and device statements are historical evidence, not this build's acceptance.
->>>>>>> sunset/main
 
 ## Confirmed behavior described by the current guides
 

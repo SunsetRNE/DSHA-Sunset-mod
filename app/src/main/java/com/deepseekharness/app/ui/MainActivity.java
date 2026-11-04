@@ -267,7 +267,6 @@ public class MainActivity extends AppCompatActivity {
     // FragmentManager可能先于后台磁盘检查恢复页面。首次就保留真实容器，
     // 后面只移除覆盖层，避免替换整个布局后恢复视图无法重新附着。
     setContentView(R.layout.activity_main);
-<<<<<<< 208ea63a
     android.widget.FrameLayout appHost = findViewById(R.id.module_app_overlay);
     if (appHost != null) moduleAppHost = new ModuleAppHost(this, appHost);
     // 每次有页面 view 建出来就补一次主题底色清除：主题要在所有页面上都成立。
@@ -284,42 +283,6 @@ public class MainActivity extends AppCompatActivity {
               }
             },
             false);
-    float density = getResources().getDisplayMetrics().density;
-    var overlay = new android.widget.FrameLayout(this);
-    overlay.setBackgroundColor(getColor(R.color.shell_bg));
-    overlay.setClickable(true);
-    overlay.setFocusable(true);
-    var card = new android.widget.LinearLayout(this);
-    card.setOrientation(android.widget.LinearLayout.VERTICAL);
-    card.setBackgroundResource(R.drawable.bg_shell_card);
-    int pad = Math.round(20 * density);
-    card.setPadding(pad, pad, pad, pad);
-
-    var brand = new android.widget.LinearLayout(this);
-    brand.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-    brand.setGravity(android.view.Gravity.CENTER_VERTICAL);
-    var mark = new android.widget.ImageView(this);
-    mark.setImageResource(R.drawable.ic_terminal);
-    mark.setBackgroundResource(R.drawable.bg_shell_brand);
-    mark.setImageTintList(
-        android.content.res.ColorStateList.valueOf(getColor(R.color.shell_accent)));
-    int markPad = Math.round(10 * density);
-    mark.setPadding(markPad, markPad, markPad, markPad);
-    mark.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    int markSize = Math.round(44 * density);
-    brand.addView(mark, new android.widget.LinearLayout.LayoutParams(markSize, markSize));
-
-    var words = new android.widget.LinearLayout(this);
-    words.setOrientation(android.widget.LinearLayout.VERTICAL);
-    TextView name = new TextView(this);
-    name.setText(R.string.app_name);
-    name.setTextSize(16);
-    name.setTextColor(getColor(R.color.shell_text));
-    name.setTypeface(null, android.graphics.Typeface.BOLD);
-    name.setIncludeFontPadding(false);
-    TextView status = new TextView(this);
-    status.setText(
-=======
     // 开机加载页：主界面路径用 shell 主题色；直启 Web 时衔接最近一次网页背景色。
     com.deepseekharness.app.util.BootPalette palette = bootPalette(directWebArmed);
     // 开场只在进程冷启动的首次入口播放；换主题 / 语言重建或系统回收后恢复都直接静态显示。
@@ -327,7 +290,8 @@ public class MainActivity extends AppCompatActivity {
     bootIntroPlayed = true;
     bootScreen = new BootScreen(this, palette, intro);
     bootScreen.setStatus(
->>>>>>> sunset/main
+
+
         com.deepseekharness.app.util.UiText.choose("正在检查运行环境…", "Checking the runtime…"));
     bootScreen.attach();
     // 加载页可见期间，ADB 后台探活有界避让，不与入口检查和 Web 启动争环境租约（T25，实验性）。
@@ -348,6 +312,48 @@ public class MainActivity extends AppCompatActivity {
     if (webCover == null) return;
     if (returningToWeb) recoveryHandler.postDelayed(releaseWebCover, WEB_COVER_GRACE_MS);
     else dropWebCover();
+  }
+
+  /**
+   * 偏好为 Web 时，从主界面启动浏览器 Activity 之前先盖一层遮罩：
+   * 主界面在 Web 首帧前不会露出，Main 回到前台时再收起。
+   */
+  @Override
+  @SuppressWarnings("deprecation") // 覆盖所有 startActivity / Fragment 启动的最终入口。
+  public void startActivityForResult(Intent intent, int requestCode, @Nullable Bundle options) {
+    boolean covered = coverBeforeWeb(intent);
+    try {
+      super.startActivityForResult(intent, requestCode, options);
+    } catch (RuntimeException error) {
+      if (covered) dropWebCover();
+      throw error;
+    }
+  }
+
+  private boolean coverBeforeWeb(Intent intent) {
+    if (!mainReady
+        || webCover != null
+        || bootScreen != null
+        || isFinishing()
+        || isDestroyed()
+        || intent == null
+        || intent.getComponent() == null
+        || !getPackageName().equals(intent.getComponent().getPackageName())
+        || !"FULL".equals(intent.getStringExtra(BrowserConversationRoute.MODE))
+        || !browserHost(intent.getComponent().getClassName())
+        || !com.deepseekharness.app.util.EntryTarget.WEB.equals(
+            new ConfigStore(this).getEntryTarget())) return false;
+    BootScreen cover = new BootScreen(this, bootPalette(true), false);
+    cover.attach();
+    cover.quiet();
+    webCover = cover;
+    return true;
+  }
+
+  private static boolean browserHost(String className) {
+    if (WebPreviewActivity.class.getName().equals(className)) return true;
+    PictureInPictureActivity owner = BrowserConversationRoute.owner();
+    return owner != null && owner.getClass().getName().equals(className);
   }
 
   private void dropWebCover() {
@@ -1095,8 +1101,7 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
-<<<<<<< 208ea63a
-  /**
+ /**
    * 顶栏「编辑布局」入口：只在主页可见时出现，点一下直接进就地编辑模式。
    *
    * <p>主页上的模块本身也能长按进入，但长按落在「启动」这类按钮上会被按钮吃掉，
@@ -1115,11 +1120,13 @@ public class MainActivity extends AppCompatActivity {
           Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
           if (current instanceof LaunchFragment) ((LaunchFragment) current).toggleEditMode();
         });
-=======
+  }
+
   /** 设置双栏详情窗格的返回栈变化：只刷新顶栏返回与标题，不参与路由。 */
   void onSettingsDetailChanged() {
     if (!isFinishing() && !isDestroyed()) updateToolbar();
->>>>>>> sunset/main
+
+
   }
 
   private void updateToolbar() {
@@ -1209,8 +1216,7 @@ public class MainActivity extends AppCompatActivity {
           com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management"));
   }
 
-<<<<<<< 208ea63a
-  private void applyNavigationOrder(BottomNavigationView nav) {
+ private void applyNavigationOrder(BottomNavigationView nav) {
     java.util.Map<String, Integer> ids = new java.util.LinkedHashMap<>();
     ids.put("module", R.id.nav_module);
     ids.put("plugins", R.id.nav_plugins);
@@ -1403,49 +1409,7 @@ public class MainActivity extends AppCompatActivity {
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     if (nav == null) return;
     applyNavigationOrder(nav);
-=======
-  /**
-   * 偏好为 Web 时，从主界面打开整屏 Web 前先盖上与直启相同的遮罩。系统为 Main 留下的最后一帧
-   * （最近任务缩略图、之后点桌面图标经 Main 返回网页时的过渡帧）因此是加载页，而不是主界面。
-   * Main 作为原生页面回到前台时照常收起。
-   */
-  @Override
-  @SuppressWarnings("deprecation") // 覆盖所有 startActivity / Fragment 启动的最终入口。
-  public void startActivityForResult(Intent intent, int requestCode, @Nullable Bundle options) {
-    boolean covered = coverBeforeWeb(intent);
-    try {
-      super.startActivityForResult(intent, requestCode, options);
-    } catch (RuntimeException error) {
-      if (covered) dropWebCover();
-      throw error;
-    }
-  }
 
-  private boolean coverBeforeWeb(Intent intent) {
-    if (!mainReady
-        || webCover != null
-        || bootScreen != null
-        || isFinishing()
-        || isDestroyed()
-        || intent == null
-        || intent.getComponent() == null
-        || !getPackageName().equals(intent.getComponent().getPackageName())
-        || !"FULL".equals(intent.getStringExtra(BrowserConversationRoute.MODE))
-        || !browserHost(intent.getComponent().getClassName())
-        || !com.deepseekharness.app.util.EntryTarget.WEB.equals(
-            new ConfigStore(this).getEntryTarget())) return false;
-    BootScreen cover = new BootScreen(this, bootPalette(true), false);
-    cover.attach();
-    cover.quiet();
-    webCover = cover;
-    return true;
-  }
-
-  private static boolean browserHost(String className) {
-    if (WebPreviewActivity.class.getName().equals(className)) return true;
-    PictureInPictureActivity owner = BrowserConversationRoute.owner();
-    return owner != null && owner.getClass().getName().equals(className);
->>>>>>> sunset/main
   }
 
   @Override

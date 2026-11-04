@@ -128,9 +128,6 @@
     <string name="ui2_managed_update" formatted="false">"Ambitum renova"</string>
     <string name="ui2_management" formatted="false">"Administratio"</string>
     <string name="ui2_meet" formatted="false">"DSHA cognosce"</string>
-    <string name="ui2_module_center" formatted="false">"Modulorum centrum · Module center"</string>
-    <string name="ui2_module_center_sub" formatted="false">"Modula instituta, architecturae, facultates et commutationes"</string>
-    <string name="ui2_modules" formatted="false">"Modulorum centrum"</string>
     <string name="ui2_network_runtime" formatted="false">"Exsecutio et rete"</string>
     <string name="ui2_offline_badge" formatted="false">"Praeparatio sine rete  ·  Sine root  ·  %1$s"</string>
     <string name="ui2_online_notice" formatted="false">"Exemplaria per rete nuntios et adiuncta accipiunt quae mittere eligis."</string>

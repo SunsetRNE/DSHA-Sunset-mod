@@ -34,20 +34,6 @@ public final class ShellActivityTrack extends View {
   /** 需要处理（原实例待确认、环境待恢复）：静态提醒色实线。 */
   public static final int ERROR = 3;
 
-<<<<<<< 208ea63a
-  /** 与设计源 activity-track 的 sweep 时长一致；模块换肤可覆盖。 */
-  private long sweepDurationMs = 2600L;
-
-  /** 光带宽度占总宽度的比例（设计源 34%）；模块换肤可覆盖。 */
-  private float bandFraction = 0.34f;
-
-  private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private int idleColor;
-  private int runningColor;
-  private int settledColor;
-  private int errorColor;
-  private int cornerRadiusPx;
-=======
   /** 波浪段从起始侧走到末端的一个周期。 */
   private static final long TRAVEL_PERIOD_MS = 2000L;
 
@@ -75,7 +61,15 @@ public final class ShellActivityTrack extends View {
   private final int runningColor;
   private final int settledColor;
   private final int errorColor;
->>>>>>> sunset/main
+
+  /** 模块换肤覆盖（ui.skin.home.progress）：0/负值表示沿用宿主默认。 */
+  private int overrideTrackColor = 0;
+  private int overrideRunningColor = 0;
+  private int overrideSettledColor = 0;
+  private int overrideErrorColor = 0;
+  private long overrideTravelPeriodMs = 0;
+  private float overrideSegmentFraction = 0f;
+  private int overrideHeightPx = 0;
 
   private int state = IDLE;
   private int previous = IDLE;
@@ -107,47 +101,7 @@ public final class ShellActivityTrack extends View {
     refreshAnimationSetting();
   }
 
-<<<<<<< 208ea63a
-  /**
-   * 应用模块换肤：模块可以改「主页原有」状态条的颜色、粗细、圆角、光带宽度和扫光速度，
-   * 而不是另画一条新的。空字段沿用宿主默认。
-   */
-  public void applySkin(com.deepseekharness.app.module.ModuleCard.Skin.Progress skin) {
-    if (skin == null) return;
-    idleColor = skinColor(skin.idle, idleColor);
-    runningColor = skinColor(skin.running, runningColor);
-    settledColor = skinColor(skin.success, settledColor);
-    errorColor = skinColor(skin.error, errorColor);
-    bandFraction = skin.bandFraction;
-    sweepDurationMs = skin.sweepMs;
-    cornerRadiusPx = dp(skin.radiusDp);
-    android.view.ViewGroup.LayoutParams params = getLayoutParams();
-    if (params != null && params.height != dp(skin.heightDp)) {
-      params.height = dp(skin.heightDp);
-      setLayoutParams(params);
-    }
-    bandShader = null;
-    bandShaderWidth = -1;
-    invalidate();
-  }
-
-  private int skinColor(String raw, int fallback) {
-    if (raw == null || raw.isEmpty()) return fallback;
-    try {
-      return android.graphics.Color.parseColor(raw);
-    } catch (RuntimeException ignored) {
-      return fallback;
-    }
-  }
-
-  private int dp(int value) {
-    return Math.round(value * getResources().getDisplayMetrics().density);
-  }
-
-  /** 设置展示状态；同一状态重复设置不会重置光带或启动新的重绘循环。 */
-=======
   /** 设置展示状态；同一状态重复设置不会重置相位或启动新的重绘循环。 */
->>>>>>> sunset/main
   public void setState(int nextState) {
     int normalized =
         nextState == RUNNING || nextState == SETTLED || nextState == ERROR ? nextState : IDLE;
@@ -161,6 +115,40 @@ public final class ShellActivityTrack extends View {
 
   public int state() {
     return state;
+  }
+
+  /**
+   * 应用模块换肤（ui.skin.home.progress）：改波浪活动条的颜色、段长、行进周期与高度。
+   * 波浪形态没有「圆角矩形」概念，radiusDp 在此形态下不适用（旧横扫光带的遗留字段）。
+   * 空字段/0 沿用宿主默认。
+   */
+  public void applySkin(com.deepseekharness.app.module.ModuleCard.Skin.Progress skin) {
+    if (skin == null) return;
+    overrideTrackColor = parseSkinColor(skin.idle, 0);
+    overrideRunningColor = parseSkinColor(skin.running, 0);
+    overrideSettledColor = parseSkinColor(skin.success, 0);
+    overrideErrorColor = parseSkinColor(skin.error, 0);
+    overrideTravelPeriodMs = skin.sweepMs > 0 ? skin.sweepMs : 0;
+    overrideSegmentFraction = skin.bandFraction > 0f ? skin.bandFraction : 0f;
+    if (skin.heightDp > 0) {
+      int target = Math.round(skin.heightDp * density);
+      overrideHeightPx = target;
+      android.view.ViewGroup.LayoutParams params = getLayoutParams();
+      if (params != null && params.height != target) {
+        params.height = target;
+        setLayoutParams(params);
+      }
+    }
+    invalidate();
+  }
+
+  private static int parseSkinColor(String raw, int fallback) {
+    if (raw == null || raw.isEmpty()) return fallback;
+    try {
+      return android.graphics.Color.parseColor(raw);
+    } catch (RuntimeException ignored) {
+      return fallback;
+    }
   }
 
   @Override
@@ -199,30 +187,6 @@ public final class ShellActivityTrack extends View {
     int width = getWidth();
     int height = getHeight();
     if (width <= 0 || height <= 0) return;
-<<<<<<< 208ea63a
-    paint.setShader(null);
-    paint.setColor(idleColor);
-    canvas.drawRoundRect(0f, 0f, width, height, cornerRadiusPx, cornerRadiusPx, paint);
-    if (state == SETTLED || state == ERROR) {
-      paint.setColor(state == SETTLED ? settledColor : errorColor);
-      canvas.drawRoundRect(0f, 0f, width, height, cornerRadiusPx, cornerRadiusPx, paint);
-      return;
-    }
-    if (state != RUNNING) return;
-    float sweepWidth = Math.max(1f, width * bandFraction);
-    if (!animationsEnabled || !windowVisible || !isShown()) {
-      // 系统关闭动画或视图不可见时保持静态强调段：仍能看出“进行中”，但不再逐帧重绘。
-      drawBand(canvas, width * 0.33f, sweepWidth, height);
-      return;
-    }
-    long now = android.os.SystemClock.uptimeMillis();
-    if (sweepStartMs <= 0) sweepStartMs = now;
-    float phase = (now - sweepStartMs) % sweepDurationMs / (float) sweepDurationMs;
-    float start = -sweepWidth + (width + sweepWidth) * phase;
-    drawBand(canvas, start, sweepWidth, height);
-    postInvalidateOnAnimation();
-  }
-=======
     float stroke = Math.min(STROKE_DP * density, height);
     trackPaint.setStrokeWidth(stroke);
     linePaint.setStrokeWidth(stroke);
@@ -235,22 +199,19 @@ public final class ShellActivityTrack extends View {
     long now = android.os.SystemClock.uptimeMillis();
     if (stateStartMs <= 0) stateStartMs = now;
     long elapsed = now - stateStartMs;
->>>>>>> sunset/main
 
     canvas.save();
-<<<<<<< 208ea63a
-    canvas.translate(start, 0f);
-    paint.setShader(bandShader);
-    canvas.drawRoundRect(0f, 0f, sweepWidth, height, cornerRadiusPx, cornerRadiusPx, paint);
-    paint.setShader(null);
-=======
     // RTL 时镜像：波浪段从阅读起始侧走向末端。
     if (getLayoutDirection() == LAYOUT_DIRECTION_RTL) canvas.scale(-1f, 1f, width / 2f, 0f);
 
+    int runningC = overrideRunningColor != 0 ? overrideRunningColor : runningColor;
+    int settledC = overrideSettledColor != 0 ? overrideSettledColor : settledColor;
+    int errorC = overrideErrorColor != 0 ? overrideErrorColor : errorColor;
+    if (overrideTrackColor != 0) trackPaint.setColor(overrideTrackColor);
     if (state == IDLE) {
       canvas.drawLine(left, mid, right, mid, trackPaint);
     } else if (state == ERROR) {
-      linePaint.setColor(errorColor);
+      linePaint.setColor(errorC);
       canvas.drawLine(left, mid, right, mid, linePaint);
     } else if (state == SETTLED) {
       float t = previous == RUNNING && live ? Math.min(1f, elapsed / (float) SETTLE_MS) : 1f;
@@ -259,14 +220,17 @@ public final class ShellActivityTrack extends View {
       float segStart = left + span * lastSegStart * (1f - eased);
       float segEnd = left + span * (lastSegEnd + (1f - lastSegEnd) * eased);
       linePaint.setColor(
-          androidx.core.graphics.ColorUtils.blendARGB(runningColor, settledColor, eased));
+          androidx.core.graphics.ColorUtils.blendARGB(runningC, settledC, eased));
       if (eased < 1f) drawTrackAround(canvas, left, right, mid, segStart, segEnd, stroke);
       drawWave(canvas, segStart, segEnd, mid, amplitude * (1f - eased), 0f);
       if (t < 1f) postInvalidateOnAnimation();
     } else {
-      linePaint.setColor(runningColor);
-      float segLength = span * SEGMENT_FRACTION;
-      float travel = live ? elapsed % TRAVEL_PERIOD_MS / (float) TRAVEL_PERIOD_MS : 0.3f;
+      linePaint.setColor(runningC);
+      long travelPeriod = overrideTravelPeriodMs > 0 ? overrideTravelPeriodMs : TRAVEL_PERIOD_MS;
+      float segmentFraction =
+          overrideSegmentFraction > 0f ? overrideSegmentFraction : SEGMENT_FRACTION;
+      float segLength = span * segmentFraction;
+      float travel = live ? elapsed % travelPeriod / (float) travelPeriod : 0.3f;
       // 波浪段从起始侧外滑入，再从末端滑出；超出轨道的部分裁掉。
       float segStart = left - segLength + (span + segLength) * travel;
       float segEnd = segStart + segLength;
@@ -281,7 +245,6 @@ public final class ShellActivityTrack extends View {
       if (drawEnd > drawStart) drawWave(canvas, drawStart, drawEnd, mid, amplitude, ripple);
       if (live) postInvalidateOnAnimation();
     }
->>>>>>> sunset/main
     canvas.restore();
   }
 

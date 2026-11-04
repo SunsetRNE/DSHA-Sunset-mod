@@ -128,9 +128,6 @@
     <string name="ui2_managed_update" formatted="false">"Atualizar ambiente"</string>
     <string name="ui2_management" formatted="false">"Gestão"</string>
     <string name="ui2_meet" formatted="false">"Descobrir DSHA"</string>
-    <string name="ui2_module_center" formatted="false">"Central de módulos · Module center"</string>
-    <string name="ui2_module_center_sub" formatted="false">"Módulos instalados, arquiteturas, capacidades e ativação"</string>
-    <string name="ui2_modules" formatted="false">"Central de módulos"</string>
     <string name="ui2_network_runtime" formatted="false">"Execução e rede"</string>
     <string name="ui2_offline_badge" formatted="false">"Configuração offline  ·  Sem root  ·  %1$s"</string>
     <string name="ui2_online_notice" formatted="false">"Os modelos online recebem as mensagens e os anexos que escolher enviar."</string>

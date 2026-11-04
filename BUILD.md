@@ -1,31 +1,17 @@
 # DSHA 现行构建说明
 
-<<<<<<< 208ea63a
-> 当前build191/1640 **本地软件与精确Standard APK已验证，仅私有交付**：`0.2.1-rc.2-20261023.1640-dsh0.2.1-rc.2`、code191不变；正式 `dsh.android.client`/E7E3/非调试Standard/`dsha-0.2.1-rc.2.apk`，292,218,461字节，SHA `ba5fd1e19c5043fe000f02a3ffb56f125939a11b87bad0988d1677c73334cb26`。两版44类各242项JUnit零失败/错误/skip、每版5完整外部夹具实跑、18host、Lint零error/fatal（warning248/161）、Standard assemble、APK9项与实际APK账号2模块Java链通过。未启用SunsetRNE或source-only跳过，不操作设备、不新增Low包；下方1500检查保持历史归属。合并/固定输入/旧断言纠正及不重打APK范围见[本轮记录](docs/releases/v0.2.1-rc.2-build191-sunset-merge-20261023.md)。新APK及完整源码只交[1640私有Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261023.1640)，远端与源码ZIP自身SHA由外部回执/实际附件证明，不公开DSHA或部署网站。
-
-> 上一191/1500交付 **本地软件与精确Standard APK已验证，仅私有交付**：`0.2.1-rc.2-20261023.1500-dsh0.2.1-rc.2` /191 / **`dsh.android.client`**，保持E7E3、非调试与常规文件名 `dsha-0.2.1-rc.2.apk`，支持当前同包同签名版本覆盖。两版所选34类各182项JUnit零失败/错误/skip，两版Release Lint零error/fatal、warning248/161；正式Standard assemble、精确APK9项和选定host12项通过。APK292,204,984字节、SHA `cbbce4efd2103ef4323a04788385dbe13ff02d94c7880537aa2bb0c7ee28a58f`。新APK及完整源码只交付[本轮私有Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261023.1500)，实际远端及源码ZIP自身SHA由该Release和独立外部回执核验，源码不自引用；不上传公开DSHA或网站。未做新APK设备验收。[本轮记录](docs/releases/v0.2.1-rc.2-build191-startup-20261023.md)保留范围与原失败；下方F13/2100数量与输入身份均属历史。
-=======
 > 当前身份（build316）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5` / versionCode 316。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。
 > 签名：Mod 自有新建证书（SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`），不再使用原版 E7E3。
 > 固定构建输入：公开仓库预发布 Release 资产，SHA-256 锁定；流程见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
 > 历史构建回执与旧身份数字保留在 [CHANGELOG.md](CHANGELOG.md) 与 [docs/releases/](docs/releases/)，不作为当前构建或签名输入。
->>>>>>> sunset/main
 
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[贡献流程](CONTRIBUTING.md) 与[接手指南](docs/接手指南.md)。应用版本以 `app/build.gradle` 为准，DSH 依赖以 `tools/dsh-runtime/package.json`/锁文件为准，完整交付和未验证范围以本轮报告为准。
 
-<<<<<<< 208ea63a
-> F13 `0.2.1-rc.2-20261021.2107-dsh0.2.1-rc.2` / code190：修复目录服务依赖组合、附件resolver退休及后台临时身份失败后的恢复。Standard选定150类/952项JUnit（3跳过），Low选定150类/952项（76跳过），两版零失败/错误；Release Lint零错误、Standard/Low警告249/162，八项实际APK检查通过。原始失败、纠正及负控分开保留，不称一次连续全绿；无设备/ADB、真实账号/模型或新长时验收。[关联Release入口](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.2107) · [范围与证据](docs/releases/v0.2.1-rc.2-build190-fix13-20261021.md)。实际远端可得性由Release与独立回执核验。
-
-已发布F12保留原身份：[原记录](docs/releases/v0.2.1-rc.2-build190-fix12-20261021.md) · [原Release](https://github.com/ym2025szz/DSHA-prerelase/releases/tag/v0.2.1-rc.2-20261021.1413)；F11仍为未上传本地检查点。
-
-本机本轮源码在 `C:\Users\18768\.codex\worktrees\build190-from170\DSHA_RESTART`；`F:\DSHA_RESTART`的旧173检出不是当前构建源。其他机器使用新私有仓库最终tag/完整commit或对应源码附件。
-=======
 > 更早的 F13/1500/1640 等回执只描述各自当时的源码、APK 与设备状态，属于历史记录；不要用旧包名 `dsh.android.client`、历史 E7E3 证书或旧版本号来构建当前 Mod。
 
 本机源码位置以实际 clone 为准；`app/build.gradle`、`ci/release-identity.json` 与 `ci/sunset-inputs.lock.json` 是当前构建身份的三个权威来源。
->>>>>>> sunset/main
 
 ## 环境与 flavor
 
@@ -107,11 +93,7 @@ python3 tools/release-identity.py --check                      # 两套身份互
 
 产物位置 `app/build/outputs/apk/standard/release/dsha-<dshaApkNameVersion>.apk`，必须同时生成并核对 `.sha256`。实际 APK 需核对包名、versionCode/versionName、`debuggable=false`、arm64、证书 SHA-256 与受管资产/恢复归档摘要。`app/build` 中间包、未签名 CI 包（`-Pdsha.unsignedPackage=true`）都不冒充正式交付。
 
-<<<<<<< 208ea63a
-本地Standard正式产物位置为 `F:\DSHA_RESTART\release\0.2.1-rc.2\dsha-0.2.1-rc.2.apk`，以常规同名文件交付本轮精确APK，旧同组原件留history；Low172保持原字节。`app/build`中间包不冒充交付。现有私有仓库Git不收大生成归档；本轮Release只附正式APK及 `DSHA-prerelase-0.2.1-rc.2-20261023.1640-source.zip`，完整源码将固定原始构建输入按项目路径展开。SHA-256写在Release及独立外部回执，源码ZIP自身README不写该ZIP摘要以免自引用。私钥、用户数据、设备截图/日志和历史取证材料不上传。必要9个显式审计元数据、历史构建源码与唯一website测试夹具按最终交付清单保留，不等于上传历史现场。2054、2330/F9、0140/F10、F13及2100均保留各自历史归属；本轮软件、精确APK、完整源码commit/附件与远端状态由build191记录和独立外部回执绑定，旧APK和历史报告不能替代。
-=======
 发布交付只包含当前 Mod 的正式 APK 与 `.sha256`（源码走 Git，固定输入走预发布资产）。SHA-256 必须由实际文件计算并写进 Release 或独立回执，源码 ZIP 不自引用自身摘要。私钥、用户数据、设备截图与历史取证材料不上传；历史构建与测试数字保留在各自回执里，不用来替代本轮结果。
->>>>>>> sunset/main
 
 `ci-package` 的未签名完整包只用于软件验证，不用于手机安装或 release。配置文件不能证明受保护环境、签名线上运行和仓库保护已配置；实际部署与发布需要相应证据。
 

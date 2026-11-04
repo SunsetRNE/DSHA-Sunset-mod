@@ -3679,11 +3679,6 @@
   "m9009": "WHEELS_INJECT_FAIL: %s; destino %s; %s; as entradas existentes não foram substituídas",
   "m9010": "Preparando o ambiente ADB offline…",
   "m9011": "ADB_OFFLINE_READY: As dependências offline estão prontas; a conexão não foi verificada. Ative a depuração Sem fio e verifique novamente.",
-<<<<<<< 208ea63a
-  "ui2_module_center": "Central de módulos · Module center",
-  "ui2_module_center_sub": "Módulos instalados, arquiteturas, capacidades e ativação",
-  "ui2_modules": "Central de módulos"
-=======
   "m9013": "Estrito (padrão)",
   "m9014": "Relaxado (operações irreversíveis continuam bloqueadas)",
   "m9015": "Totalmente relaxado (sem verificação do conteúdo dos comandos)",
@@ -3699,5 +3694,5 @@
   "rescue272_export_copy": "Exportar cópia legível",
   "rescue272_export_desc": "Exportação de resgate somente leitura dos dados legíveis; as gravações continuam e os originais ficam intactos",
   "rescue272_pending_hint": "O ambiente original não foi confirmado, então o backup e a restauração normais estão indisponíveis. Exporte primeiro uma cópia legível e depois retome a manutenção interrompida."
->>>>>>> sunset/main
+
 }

@@ -3,7 +3,6 @@ package com.deepseekharness.app.runtime;
 import android.content.Context;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,10 +23,6 @@ public interface ContainerRuntime {
 
   String id();
 
-  default boolean rootMode() {
-    return false;
-  }
-
   String displayName();
 
   boolean available();
@@ -47,10 +42,25 @@ public interface ContainerRuntime {
   /** 首次使用前的准备。抛异常表示失败，调用方应回退。 */
   void prepare() throws Exception;
 
+  /** 是否 Root 直接运行（默认否；Root 实现返回 true，调用方走 chroot argv 组装）。 */
+  default boolean rootMode() {
+    return false;
+  }
+
   // ==================================================================
 
-  /** Root 直接运行：只在 RootShell 已经验证 uid=0 后使用，不自动请求或绕过授权。 */
+  /**
+   * Root 直接运行：当前**永远不可用**（fail-closed）。
+   *
+   * <p>没有 mount/user namespace、只读系统挂载、最小 /dev 与 SELinux 验证前，
+   * 即使设备 su 授权成功也不会把容器提到整机 root。{@link #command} 保留
+   * 未来隔离实现的 chroot argv 形态（单测锁定它的转义与路径），但 {@link #available()}
+   * 恒为 false，{@link #baseArgv} 直接抛 IllegalStateException。
+   */
   final class Root implements ContainerRuntime {
+    /** 隔离实现完成前固定返回的原因码；界面与诊断按它如实显示不可用。 */
+    public static final String ISOLATION_UNAVAILABLE = "ROOT_CONTAINER_ISOLATION_UNAVAILABLE";
+
     private final Context context;
     private final File rootfs, dataDomain;
     private final String su;
@@ -72,58 +82,57 @@ public interface ContainerRuntime {
     }
 
     @Override
-    public boolean rootMode() {
-      return true;
-    }
-
-    @Override
     public String displayName() {
-      return com.deepseekharness.app.util.UiText.text("root（直接，需授权）");
+      return "Root 直接运行";
     }
 
+    /** fail-closed：设备隔离与清理保护未完成前，Root 容器一律不可用。 */
     @Override
     public boolean available() {
-      return com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()
-          && rootfs.isDirectory()
-          && su != null
-          && new File(su).canExecute();
+      return false;
     }
 
     @Override
     public String unavailableReason() {
-      return com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()
-          ? (rootfs.isDirectory() && su != null ? "" : "ROOT_RUNTIME_UNAVAILABLE")
-          : com.deepseekharness.app.util.RootRuntimePolicy.directContainerUnavailableReason();
+      return ISOLATION_UNAVAILABLE;
+    }
+
+    @Override
+    public boolean rootMode() {
+      return true;
+    }
+
+    /**
+     * 未来隔离实现的 argv 形态：{@code exec /system/bin/chroot <rootfs> /bin/bash -c <cmd>}。
+     * 参数全部走 {@link com.deepseekharness.app.util.ShellQuote} 转义。
+     */
+    static String command(File rootfsDir, String innerCommand) {
+      return "exec /system/bin/chroot "
+          + com.deepseekharness.app.util.ShellQuote.arg(rootfsDir.getAbsolutePath())
+          + " /bin/bash -c "
+          + com.deepseekharness.app.util.ShellQuote.arg(innerCommand);
     }
 
     @Override
     public List<String> baseArgv(File rootfsDir, boolean hardlinkSupported) {
-      return baseArgv(rootfsDir, hardlinkSupported, dataDomain);
+      throw new IllegalStateException(ISOLATION_UNAVAILABLE);
     }
 
     @Override
-    public List<String> baseArgv(File rootfsDir, boolean hardlinkSupported, File ignored) {
-      if (!available()) throw new IllegalStateException(unavailableReason());
-      return new java.util.ArrayList<>(java.util.List.of(su, "-c"));
-    }
-
-    static String command(File rootfs, String guestCommand) {
-      return "exec /system/bin/chroot "
-          + com.deepseekharness.app.util.ShellQuote.arg(rootfs.getAbsolutePath())
-          + " /bin/bash -c "
-          + com.deepseekharness.app.util.ShellQuote.arg(guestCommand);
+    public List<String> baseArgv(File rootfsDir, boolean hardlinkSupported, File dataDomain) {
+      throw new IllegalStateException(ISOLATION_UNAVAILABLE);
     }
 
     @Override
-    public void applyEnv(ProcessBuilder pb, File baseDir, File libDir, File tmpDir) {
-      pb.environment().put("HOME", "/root");
-    }
+    public void applyEnv(ProcessBuilder pb, File baseDir, File libDir, File tmpDir) {}
 
     @Override
-    public void prepare() throws IOException {
-      if (!available()) throw new IOException(unavailableReason());
+    public void prepare() throws Exception {
+      throw new IllegalStateException(ISOLATION_UNAVAILABLE);
     }
   }
+
+  // ==================================================================
 
   /** Termux proot，APK 内置。 */
   class Proot implements ContainerRuntime {
@@ -188,11 +197,7 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("--rootfs=" + rootfsDir.getAbsolutePath());
       argv.add("--cwd=/root");
-<<<<<<< 208ea63a
-      for (Bind b : binds(context)) {
-=======
       for (Bind b : binds(com.deepseekharness.app.StorageAccess.granted(context))) {
->>>>>>> sunset/main
         if (!new File(b.host()).exists()) {
           if (context != null)
             RuntimeHostPorts.fromOwner(context.getApplicationContext())
@@ -335,11 +340,7 @@ public interface ContainerRuntime {
       argv.add("-0");
       argv.add("-w");
       argv.add("/root");
-<<<<<<< 208ea63a
-      for (Bind b : binds(ctx)) {
-=======
       for (Bind b : binds(com.deepseekharness.app.StorageAccess.granted(ctx))) {
->>>>>>> sunset/main
         if (!new File(b.host()).exists()) {
           RuntimeHostPorts.fromOwner(ctx.getApplicationContext())
               .record("BIND_SKIPPED", b.host() + ": missing or inaccessible");
@@ -413,34 +414,6 @@ public interface ContainerRuntime {
    */
   record Bind(String host, String guest) {}
 
-<<<<<<< 208ea63a
-  static java.util.List<Bind> binds(Context context) {
-    java.util.ArrayList<Bind> result = new java.util.ArrayList<>();
-    result.add(new Bind("/dev", "/dev"));
-    result.add(new Bind("/dev/urandom", "/dev/random"));
-    result.add(new Bind("/proc", "/proc"));
-    result.add(new Bind("/sys", "/sys"));
-    result.add(new Bind("/system", "/system"));
-    result.add(new Bind("/apex", "/apex"));
-    result.add(new Bind("/proc/self/fd", "/dev/fd"));
-    if (com.deepseekharness.app.util.ExternalStorageAccess.granted(context)) {
-      result.add(new Bind("/storage/emulated/0", "/sdcard"));
-      result.add(new Bind("/storage/emulated/0", "/storage/emulated/0"));
-    }
-    return java.util.Collections.unmodifiableList(result);
-  }
-
-  /** Compatibility view for static tests; it never grants external storage access. */
-  static java.util.List<Bind> binds() {
-    return java.util.List.of(
-        new Bind("/dev", "/dev"),
-        new Bind("/dev/urandom", "/dev/random"),
-        new Bind("/proc", "/proc"),
-        new Bind("/sys", "/sys"),
-        new Bind("/system", "/system"),
-        new Bind("/apex", "/apex"),
-        new Bind("/proc/self/fd", "/dev/fd"));
-=======
   /**
    * 容器挂载清单。公共存储（{@code /storage/emulated/0}）只在用户已授权文件访问时挂载；
    * 未授权时容器只能读写自己的运行根与私有目录，不能读手机文件。
@@ -459,6 +432,5 @@ public interface ContainerRuntime {
       list.add(new Bind("/storage/emulated/0", "/storage/emulated/0"));
     }
     return java.util.List.copyOf(list);
->>>>>>> sunset/main
   }
 }

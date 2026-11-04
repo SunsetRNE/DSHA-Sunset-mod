@@ -220,8 +220,12 @@ final class RuntimeTools {
   private static final String[] QUERY_FILES = {
     "usr/bin/python3.12",
     "usr/lib/python3.12/encodings/__init__.py",
-    "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
-    "usr/lib/aarch64-linux-gnu/libreadline.so.8",
+    com.deepseekharness.app.BuildConfig.EMULATOR_X64
+        ? "usr/lib/x86_64-linux-gnu/libsqlite3.so.0"
+        : "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
+    com.deepseekharness.app.BuildConfig.EMULATOR_X64
+        ? "usr/lib/x86_64-linux-gnu/libreadline.so.8"
+        : "usr/lib/aarch64-linux-gnu/libreadline.so.8",
     "root/.dsh/plugin-manager.py",
     "root/.dsh/register-builtin-plugins.py",
     "root/.dsh/builtin-plugins.json",
@@ -251,29 +255,6 @@ final class RuntimeTools {
       var markerNode = fs.stat(marker);
       if (!markerNode.type.equals("FILE")) return "MARKER:" + markerNode.type;
       byte[] expected = com.deepseekharness.app.util.ManagedAssetVersion.bytes(identity);
-<<<<<<< 208ea63a
-      if (!Arrays.equals(expected, fs.small(marker, expected.length + 1))) return false;
-      for (String path :
-          new String[] {
-            "usr/bin/python3.12",
-            "usr/lib/python3.12/encodings/__init__.py",
-            com.deepseekharness.app.BuildConfig.EMULATOR_X64
-                ? "usr/lib/x86_64-linux-gnu/libsqlite3.so.0"
-                : "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
-            com.deepseekharness.app.BuildConfig.EMULATOR_X64
-                ? "usr/lib/x86_64-linux-gnu/libreadline.so.8"
-                : "usr/lib/aarch64-linux-gnu/libreadline.so.8",
-            "root/.dsh/plugin-manager.py",
-            "root/.dsh/register-builtin-plugins.py",
-            "root/.dsh/builtin-plugins.json",
-            "root/.dsh/plugin-lifecycle.py",
-            "root/.dsh/plugin-capabilities.py",
-            "root/.dsh/plugin-transactions.py",
-            "root/.dsh/plugin-network.py",
-            "root/.dsh/plugin-dependencies.py"
-          }) {
-        if (!fs.stat(new File(rootfs, path)).type.equals("FILE")) return false;
-=======
       if (!Arrays.equals(expected, fs.small(marker, expected.length + 1))) return "MARKER:IDENTITY";
       for (String path : QUERY_FILES) {
         stage = path;
@@ -284,7 +265,6 @@ final class RuntimeTools {
         if (!file.file.canRead()) return path + ":UNREADABLE";
         if (path.equals("usr/bin/python3.12") && (file.node.mode & 0111) != 0111)
           return path + ":MODE";
->>>>>>> sunset/main
       }
       return null;
     } catch (IOException | RuntimeException unavailable) {

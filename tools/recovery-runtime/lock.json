@@ -5,12 +5,12 @@
   "archives": [
     {
       "asset": "recovery-rootfs.bin",
-      "sha256": "b9fe8a0460bc0d0e96f1cec0d65d46c9ff71a10c6a8d05a390b732a81d30cef3",
+      "sha256": "08519e6ff58f6dbbb7679e1a95375f40f5fafb56aec367bbacbd5a3e7478e93f",
       "seed": "app/build/generated/standardAssets/offline-rootfs.bin"
     },
     {
       "asset": "recovery-dsh-runtime.bin",
-      "sha256": "5c24b1f29db8a14581b17d1692c5585e8b78a7197940c3f45040be8ffcd0aa08",
+      "sha256": "18b7201d5369ace1afcaaef0123f0746e4f05e9b18dc24c672c1d8398dc68365",
       "seed": "app/src/main/assets/dsh-runtime.bin"
     }
   ]

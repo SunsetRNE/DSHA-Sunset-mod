@@ -128,17 +128,14 @@ public class ConfigFragment extends Fragment {
     gecko.setVisibility(View.GONE);
     v.findViewById(R.id.config_gecko_hint).setVisibility(View.GONE);
     gecko.setChecked(c.isGeckoCore());
-<<<<<<< 208ea63a
     if (c.isRootRuntime()
         && !com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
       c.setContainerRuntimeMode("proot");
       c.setRootRuntimeAuthorization(false);
     }
-=======
     // 网页内核目前只有 System WebView 一项，作为桌面布局行的副文案显示，不再给出单选下拉。
     ((TextView) v.findViewById(R.id.config_core_choice))
         .setText(UiText.choose("网页内核 System WebView", "Browser engine: System WebView"));
->>>>>>> sunset/main
     proroot.setChecked(c.isProroot());
     lan.setChecked(c.isLanMode());
     TextView lanPasswordStatus = v.findViewById(R.id.config_lan_password_status);
@@ -146,81 +143,13 @@ public class ConfigFragment extends Fragment {
     v.findViewById(R.id.config_lan_password)
         .setOnClickListener(x -> showLanPasswordDialog(c, lanPasswordStatus));
     overlay.setChecked(pref(ctx, "overlay_stream", false));
-<<<<<<< 208ea63a
-    bindChoice(
-        v,
-        R.id.config_runtime_choice,
-        com.deepseekharness.app.util.UiText.choose("运行方式", "Runtime"),
-        new String[] {
-          com.deepseekharness.app.util.UiText.choose("proot（默认，稳定）", "proot (default, stable)"),
-          com.deepseekharness.app.util.UiText.choose(
-              "proroot（可选，实验）", "proroot (optional, experimental)"),
-          com.deepseekharness.app.util.UiText.choose(
-              "root（直接运行，需授权）", "root (direct, permission required)")
-        },
-        c.containerRuntimeMode().equals("proroot")
-            ? 1
-            : c.containerRuntimeMode().equals("root") ? 2 : 0,
-        index -> {
-          if (index == 2) {
-            if (!com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
-              toast(
-                  com.deepseekharness.app.util.UiText.text(
-                      "root 容器模式暂不可用：设备隔离与清理保护尚未完成，已保持 proot"));
-              c.setContainerRuntimeMode("proot");
-              c.setRootRuntimeAuthorization(false);
-              return;
-            }
-            if (!RootShell.present()) {
-              toast(com.deepseekharness.app.util.UiText.text("root 模式不可用：未找到 su/root 权限"));
-              c.setContainerRuntimeMode("proot");
-              c.setRootRuntimeAuthorization(false);
-              return;
-            }
-            if (!RootShell.verifyAuthorization(requireContext())) {
-              toast(com.deepseekharness.app.util.UiText.text("root 模式不可用：Root 管理器未授予 DSHA 权限"));
-              c.setContainerRuntimeMode("proot");
-              c.setRootRuntimeAuthorization(false);
-              return;
-            }
-            c.setRootRuntimeAuthorization(true);
-            c.setContainerRuntimeMode("root");
-            proroot.setChecked(false);
-          } else {
-            c.setContainerRuntimeMode(index == 1 ? "proroot" : "proot");
-            c.setRootRuntimeAuthorization(false);
-            proroot.setChecked(index == 1);
-          }
-        });
-    bindChoice(
-        v,
-        R.id.config_dns_choice,
-        com.deepseekharness.app.util.UiText.choose("DNS 解析策略", "DNS policy"),
-        new String[] {
-          com.deepseekharness.app.util.UiText.choose("自动（推荐）", "Automatic (recommended)"),
-          "IPv4",
-          com.deepseekharness.app.util.UiText.choose("原生", "Native")
-        },
-        "ipv4".equals(c.getDnsMode()) ? 1 : "native".equals(c.getDnsMode()) ? 2 : 0,
-        index ->
-            dns.check(index == 1 ? R.id.dns_ipv4 : index == 2 ? R.id.dns_native : R.id.dns_auto));
-    bindChoice(
-        v,
-        R.id.config_core_choice,
-        com.deepseekharness.app.util.UiText.choose("网页内核", "Browser engine"),
-        com.deepseekharness.app.BuildConfig.LOW_ANDROID
-            ? new String[] {
-              com.deepseekharness.app.util.UiText.choose("自动选择内核", "Automatic engine"), "Gecko"
-            }
-            : new String[] {"System WebView"},
-        com.deepseekharness.app.BuildConfig.LOW_ANDROID && c.isGeckoCore() ? 1 : 0,
-        index -> gecko.setChecked(index == 1));
-=======
     ((TextView) v.findViewById(R.id.config_overlay_style))
         .setText(UiText.choose("外观与行为", "Appearance"));
     ((TextView) v.findViewById(R.id.config_repo_link))
         .setText(UiText.choose("项目主页", "Project page"));
     ((TextView) v.findViewById(R.id.config_runtime_title)).setText(UiText.text("运行方式"));
+    // 用一个单元素数组让 lambda 能回写选中项（Java 闭包不能直接改局部变量）。
+    final DshaSelectView[] runtimeRef = new DshaSelectView[1];
     DshaSelectView runtime =
         bindChoice(
             v,
@@ -228,19 +157,46 @@ public class ConfigFragment extends Fragment {
             UiText.choose("运行方式", "Runtime"),
             new String[] {
               UiText.choose("proot（默认，稳定）", "proot (default, stable)"),
-              UiText.choose("proroot（可选，实验）", "proroot (optional, experimental)")
+              UiText.choose("proroot（可选，实验）", "proroot (optional, experimental)"),
+              UiText.choose("root（直接运行，需授权）", "root (direct, permission required)")
             },
-            c.isProroot() ? 1 : 0,
+            c.containerRuntimeMode().equals("proroot")
+                ? 1
+                : c.containerRuntimeMode().equals("root") ? 2 : 0,
             index -> {
-              proroot.setChecked(index == 1);
+              if (index == 2) {
+                if (!com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
+                  toast(
+                      UiText.text("root 容器模式暂不可用：设备隔离与清理保护尚未完成，已保持 proot"));
+                  c.setContainerRuntimeMode("proot");
+                  c.setRootRuntimeAuthorization(false);
+                } else if (!RootShell.present()) {
+                  toast(UiText.text("root 模式不可用：未找到 su/root 权限"));
+                  c.setContainerRuntimeMode("proot");
+                  c.setRootRuntimeAuthorization(false);
+                } else if (!RootShell.verifyAuthorization(requireContext())) {
+                  toast(UiText.text("root 模式不可用：Root 管理器未授予 DSHA 权限"));
+                  c.setContainerRuntimeMode("proot");
+                  c.setRootRuntimeAuthorization(false);
+                } else {
+                  c.setRootRuntimeAuthorization(true);
+                  c.setContainerRuntimeMode("root");
+                  proroot.setChecked(false);
+                }
+                if (runtimeRef[0] != null) runtimeRef[0].setSelection(0);
+              } else {
+                c.setContainerRuntimeMode(index == 1 ? "proroot" : "proot");
+                c.setRootRuntimeAuthorization(false);
+                proroot.setChecked(index == 1);
+              }
               renderRuntimeDescription();
             });
+    runtimeRef[0] = runtime;
     // 行内值显示：去掉下拉框底与内边距，整行点按打开同一个底部选择面板。
     runtime.setBackground(null);
     runtime.setPadding(0, 0, 0, 0);
     v.findViewById(R.id.config_runtime_row).setOnClickListener(x -> runtime.performClick());
     renderRuntimeDescription();
->>>>>>> sunset/main
 
     // 悬浮条外观与行为（照 1.1.9.1：底色预设 + 不透明度/行数/字号/停留 + 行为开关）
     v.findViewById(R.id.config_overlay_style).setOnClickListener(x -> showOverlayStyleDialog());
@@ -328,13 +284,8 @@ public class ConfigFragment extends Fragment {
                   c.setWebPort(automaticPort.isChecked() ? "auto" : "fixed", chosenPort);
                   c.setCheckUpdate(checkUpdate.isChecked());
                   c.setDesktopMode(desktop.isChecked());
-<<<<<<< 208ea63a
-                  if (com.deepseekharness.app.BuildConfig.LOW_ANDROID)
-                    c.setGeckoCore(gecko.isChecked());
-=======
-                  if (false) c.setGeckoCore(gecko.isChecked());
-                  c.setProroot(proroot.isChecked());
->>>>>>> sunset/main
+                  // 运行方式由 DshaSelectView 即时写入 containerRuntimeMode（proot/proroot/root）；
+                  // root 模式在选中时已通过授权检查，这里不重复弹窗。
                   c.setProrootStaticLoader(staticLoader.isChecked());
                   c.setProotSeccompDisabled(noSeccomp.isChecked());
                   c.setDnsMode(
@@ -825,17 +776,6 @@ public class ConfigFragment extends Fragment {
   }
 
   private void showLanPasswordDialog(ConfigStore config, TextView status) {
-<<<<<<< 208ea63a
-    LanPasswordDialog.show(
-        requireContext(),
-        config,
-        () -> {
-          status.setText(
-              config.hasLanPassword() ? R.string.lan_password_set : R.string.lan_password_missing);
-          Toast.makeText(requireContext(), R.string.lan_password_saved_check, Toast.LENGTH_LONG)
-              .show();
-        });
-=======
     if (savingLanPassword.get()) {
       Toast.makeText(requireContext(), R.string.lan_password_saving, Toast.LENGTH_SHORT).show();
       return;
@@ -909,7 +849,7 @@ public class ConfigFragment extends Fragment {
                       "dsha-lan-password")
                   .start();
             });
->>>>>>> sunset/main
+
   }
 
   // Submission is not proof of a successful asynchronous bind. The Launch page
