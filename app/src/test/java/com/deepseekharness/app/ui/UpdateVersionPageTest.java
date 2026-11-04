@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("保留环境保护"));
-      assertTrue(shown.contains("版本码提升为 310"));
+      assertTrue(shown.contains("不再被旧 PID 翻回未知"));
+      assertTrue(shown.contains("版本码提升为 311"));
+      assertFalse(shown.contains("保留环境保护"));
+      assertFalse(shown.contains("版本码提升为 310"));
       assertFalse(shown.contains("固定目标设备"));
       assertFalse(shown.contains("版本码提升为 309"));
       assertFalse(shown.contains("动作按钮超过系统上限"));
@@ -278,8 +280,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("keeps the environment guard"));
-      assertTrue(shown.contains("Raises versionCode to 310"));
+      assertTrue(shown.contains("no longer turned back to unknown"));
+      assertTrue(shown.contains("Raises versionCode to 311"));
+      assertFalse(shown.contains("keeps the environment guard"));
+      assertFalse(shown.contains("Raises versionCode to 310"));
       assertFalse(shown.contains("pins the target device"));
       assertFalse(shown.contains("Raises versionCode to 309"));
       assertFalse(shown.contains("grep pattern-file"));

@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261104.2130-dsh0.2.1-rc.5 / build311（实验性：Web 停止已证实退出后不再被旧 PID 翻回未知；环境忙时诊断改为只读宿主状态（修复挑自协作者 ym2025szz））
+
+- 实验性：Web 停止已证实退出后不再被旧 PID 翻回未知，读不到进程时阻断维护而非误判仍在运行；环境忙时诊断改为只读宿主状态采样（修复挑自协作者 ym2025szz efe03f81 快照）。
+- Web 停止证据（aa2f32f0）：`WebProcessSession.confirmStopped` 证实 guest 与启动器全部退出后，清除此前代次的旧 PID 证明，避免 PID 复用或权限变化把已完成的停止翻回 UNKNOWN；`WebProcessManager` 在环境变量不可读时只按保存的出生身份确认退出、绝不接管替换进程，扫描遇到拒读条目报 `OWNED_WEB_SCAN_UNCONFIRMED` 阻断维护；`WebSessionRecheck` 记录恢复原因与鉴权次数，新增 `LAUNCHER_UNKNOWN` 提示文案并写 `WEB_SESSION_RECHECK_STATE` 诊断。
+- 诊断（112dec64）：Web 会话未定、启动或停止中、运行任务忙、用户停止未确认或维护未完成时，普通诊断不再启动 guest 或直接失败，改为只读采样 `util/RuntimeStateDiagnostics`（固定字段、白名单取值，不能授权重启或清理记录）；诊断修复入口不变。快照中的备份操作诊断行依赖尚未挑入的 `BackupOperationDiagnostics`，本版未含。
+- 运行时描述符随 Web 生命周期源码重算（受管启动器输入）。
+- 验证范围：发布会话在 build311 上复跑 `*WebSessionExitEvidence*` / `*WebSessionRecheck*` / `*WebSessionRecovery*` / `*WebSessionRestoreText*` / `*WebSessionStorage*` / `*WebProcessSession*` / `*WebProcess*` / `*WebStop*` / `*RuntimeStateDiagnostics*` / `*UpdateVersionPageTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 311（基于 build310）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build311 更新说明](docs/releases/build311-changes.zh.md)，验证记录见 [build311 记录](docs/releases/v0.2.1-rc.5-build311-web-stop-evidence-host-diagnostics-20261104.md)。
+
 ## 0.2.1-rc.5-20261104.2030-dsh0.2.1-rc.5 / build310（实验性：后台进程退出无法确认时保留环境保护；配置快照备用目录只读；桥接 APK 安装源沿用读取入口的域边界（修复挑自协作者 ym2025szz））
 
 - 实验性：后台进程退出无法确认时保留环境保护并记录诊断；配置快照的备用目录只读；桥接 APK 安装源沿用读取入口的域边界（修复挑自协作者 ym2025szz efe03f81 快照）。
