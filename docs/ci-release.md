@@ -4,6 +4,11 @@
 目标仓库：`SunsetRNE/DSHA-Sunset-mod`（`main` 分支）。本文说明如何用 GitHub Actions 产出并发布
 **正式签名成品**（`io.github.sunsetrne.dsha`），以及需要哪些仓库 Secrets、产物如何核验。
 
+上游身份（`dsh.android.client` / 历史 E7E3）另走 [`.github/workflows/release-upstream.yml`](../.github/workflows/release-upstream.yml)：
+节点与门禁相同，构建传 `-Pdsha.identity=upstream`，只在 `ym2025szz/DSHA-prerelase` 私有仓库的
+`codex/prerelease-190` 分支运行，tag 为 `dsha-build<版本码>-YYYYMMDD-HHMMSS`，签名 Secrets 只在该仓库。
+两个工作流在对方仓库直接跳过；身份对照见 [Mod 身份与签名](mod-identity-and-signing.md)。
+
 ## 1. 边界
 
 - 只做 **Standard（Android 11+ / arm64）正式包**；不运行 low/Gecko 兼容线，不再有独立上岛包。

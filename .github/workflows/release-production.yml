@@ -3,6 +3,8 @@ name: DSH-A-Su production release
 # 公开仓库的正式成品发布：显式 workflow_dispatch、绑定精确 commit 与固定输入，
 # 用仓库 Secrets 里的 Mod 发布证书签名 io.github.sunsetrne.dsha 正式包，核验证书后
 # 创建 tag + prerelease，并上传 APK、校验和与构建/单测证据。不运行 Low，不使用测试包身份。
+# 固定 mod 身份（ci/release-identity.mod.json，构建传 -Pdsha.identity=mod）；upstream 身份
+# 只走 release-upstream.yml，且只在 ym2025szz/DSHA-prerelase 私有仓库运行。两个工作流在对方仓库直接跳过。
 #
 # 节点图（任一节点失败都不会签名或发布）：
 #   bind ─┬─► contracts ───────────┐
@@ -73,6 +75,12 @@ jobs:
           identity = json.load(open('ci/release-identity.json', encoding='utf-8'))
           if identity['packageName'] != 'io.github.sunsetrne.dsha':
               raise SystemExit('PACKAGE_IDENTITY_MISMATCH')
+          spec = importlib.util.spec_from_file_location('release_identity', 'tools/release-identity.py')
+          resolver = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(resolver)
+          selected = resolver.check()['mod']
+          if selected['packageName'] != identity['packageName'] or selected['repository'] != os.environ['GITHUB_REPOSITORY']:
+              raise SystemExit('RELEASE_IDENTITY_NOT_MOD')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write('apk_name=dsha-a-su-' + expected[:8] + '.apk\n')
           PYCODE
@@ -129,6 +137,7 @@ jobs:
         test-ci-package.py
         test-ci-handoff.py
         test-ci-workflows.py
+        test-release-identity.py
         test-sunset-ci-inputs.py
         test-release-names.py
         test-release-layout.py
@@ -231,7 +240,7 @@ jobs:
       - name: Build signed production APK
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleStandardRelease --no-daemon --max-workers=2
+          ./gradlew :app:assembleStandardRelease -Pdsha.identity=mod --no-daemon --max-workers=2
 
       - name: Verify production APK identity and signing certificate
         run: |
@@ -241,7 +250,7 @@ jobs:
           buildtools = subprocess.check_output(['python3', 'tools/ci-toolchain.py', '--field', 'buildTools'], text=True).strip()
           apksigner = str(sdk / 'build-tools' / buildtools / 'apksigner')
           aapt2 = str(sdk / 'build-tools' / buildtools / 'aapt2')
-          identity = json.load(open('ci/release-identity.json', encoding='utf-8'))
+          identity = json.load(open('ci/release-identity.mod.json', encoding='utf-8'))
           apk = pathlib.Path('app/build/outputs/apk/standard/release/app-standard-release.apk')
           if not apk.is_file():
               raise SystemExit('APK_MISSING')
@@ -269,7 +278,7 @@ jobs:
           match = re.search(r'Signer #1 certificate SHA-256 digest: ([a-f0-9]{64})', verify.stdout)
           if not match or match.group(1) != identity['certificateSha256']:
               raise SystemExit('APK_CERTIFICATE_MISMATCH')
-          if f"application-label:'DSH-A-Su'" not in badging:
+          if f"application-label:'DSH-A-Su'" not in badging or identity['appName'] != 'DSH-A-Su':
               raise SystemExit('APK_LABEL_MISMATCH')
           pathlib.Path('out').mkdir(exist_ok=True)
           pathlib.Path('out/apk-signature.txt').write_text(verify.stdout, encoding='utf-8')

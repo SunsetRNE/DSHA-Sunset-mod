@@ -1,5 +1,6 @@
 """Static contracts for the node-based GitHub Actions graph; text-only, no YAML dependency."""
 from pathlib import Path
+import json
 import re
 import subprocess
 import sys
@@ -89,9 +90,44 @@ class WorkflowGraph(unittest.TestCase):
 
 
 class ReleaseGraph(unittest.TestCase):
+    """Mod 身份正式发布；ReleaseUpstreamGraph 用同一组门禁检查上游身份工作流。"""
+    workflow = "release-production.yml"
+    identity = "mod"
+
     def setUp(self):
-        self.source = text("release-production.yml")
+        self.source = text(self.workflow)
         self.jobs = jobs(self.source)
+        self.expected = json.loads((ROOT / f"ci/release-identity.{self.identity}.json").read_text(encoding="utf-8"))
+
+    def test_repository_guard_skips_in_the_other_repository(self):
+        bind = self.jobs["bind"]
+        self.assertIn("github.event_name == 'workflow_dispatch'", bind)
+        self.assertIn(f"github.repository == '{self.expected['repository']}'", bind)
+        self.assertIn(f"github.ref == '{self.expected['ref']}'", bind)
+        self.assertEqual("github.event.repository.private" in bind, self.expected["privateRepository"])
+        other = json.loads((ROOT / f"ci/release-identity.{'upstream' if self.identity == 'mod' else 'mod'}.json")
+                           .read_text(encoding="utf-8"))
+        self.assertNotIn(other["repository"], bind)
+        # 其余节点都直接或间接依赖 bind：bind 被跳过时整条发布链跳过。
+        for name, block in self.jobs.items():
+            if name != "bind":
+                self.assertTrue(needs(block), name)
+
+    def test_build_and_verification_use_only_the_selected_identity(self):
+        signed = self.jobs["build-signed"]
+        self.assertIn(f":app:assembleStandardRelease -Pdsha.identity={self.identity} ", signed)
+        self.assertIn(f"open('ci/release-identity.{self.identity}.json'", signed)
+        self.assertIn("${KEY_ALIAS:-" + self.expected["keyAlias"] + "}", signed)
+        self.assertIn(f"application-label:'{self.expected['appName']}'", signed)
+        self.assertIn("match.group(1) != identity['certificateSha256']", signed)
+        self.assertIn("if 'application-debuggable' in badging:", signed)
+        self.assertIn("version_name.endswith(('-test', '-SunsetTest', '-island'))", signed)
+        tag = self.expected["tagPrefix"]
+        self.assertIn(f"re.fullmatch(r'{tag}[0-9]+-[0-9]{{8}}-[0-9]{{6}}', tag)", self.jobs["bind"])
+        self.assertIn(f"output.write('apk_name={self.expected['apkPrefix']}-'", self.jobs["bind"])
+        other = "upstream" if self.identity == "mod" else "mod"
+        self.assertNotIn(f"-Pdsha.identity={other}", self.source)
+        self.assertNotIn(f"release-identity.{other}.json", self.source)
 
     def test_node_set_and_gates_before_signing(self):
         self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "host-regression",
@@ -101,8 +137,6 @@ class ReleaseGraph(unittest.TestCase):
         self.assertEqual(needs(self.jobs["publish"]), {"bind", "build-signed"})
         for name in ("contracts", "java-format", "host-regression", "inputs"):
             self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
-        self.assertIn("github.repository == 'SunsetRNE/DSHA-Sunset-mod'", self.jobs["bind"])
-        self.assertIn("github.ref == 'refs/heads/main'", self.jobs["bind"])
 
     def test_every_node_checks_out_the_exact_requested_commit(self):
         for name, block in self.jobs.items():
@@ -151,6 +185,28 @@ class ReleaseGraph(unittest.TestCase):
         self.assertIn("gh release view", self.jobs["publish"])
 
 
+class ReleaseUpstreamGraph(ReleaseGraph):
+    workflow = "release-upstream.yml"
+    identity = "upstream"
+
+    def test_upstream_guard_is_private_prerelease_branch(self):
+        bind = self.jobs["bind"]
+        self.assertIn("github.repository == 'ym2025szz/DSHA-prerelase'", bind)
+        self.assertIn("github.event.repository.private", bind)
+        self.assertIn("github.ref == 'refs/heads/codex/prerelease-190'", bind)
+        self.assertIn("identity = resolver.check()['upstream']", bind)
+        self.assertNotIn("dsha-a-su", self.source)
+
+
+class ModReleaseIdentity(unittest.TestCase):
+    def test_mod_release_keeps_public_main_guard(self):
+        bind = jobs(text("release-production.yml"))["bind"]
+        self.assertIn("github.repository == 'SunsetRNE/DSHA-Sunset-mod'", bind)
+        self.assertIn("github.ref == 'refs/heads/main'", bind)
+        self.assertIn("if identity['packageName'] != 'io.github.sunsetrne.dsha':", bind)
+        self.assertIn("selected = resolver.check()['mod']", bind)
+
+
 class SourceAndServices(unittest.TestCase):
     def test_source_checks_run_contracts_format_unit_and_host_as_nodes(self):
         graph = jobs(text("ci-fast.yml"))
@@ -163,7 +219,7 @@ class SourceAndServices(unittest.TestCase):
     def test_only_test_package_and_release_sign(self):
         for path in WORKFLOWS.glob("*.yml"):
             source = path.read_text(encoding="utf-8")
-            if path.name in ("release-production.yml", "test-package.yml"):
+            if path.name in ("release-production.yml", "release-upstream.yml", "test-package.yml"):
                 continue
             with self.subTest(file=path.name):
                 self.assertNotIn("apksigner", source)
@@ -173,8 +229,13 @@ class SourceAndServices(unittest.TestCase):
     def test_test_package_identity_is_never_the_production_certificate(self):
         source = text("test-package.yml")
         self.assertIn("-Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true", source)
-        self.assertIn('test "$package" = "io.github.sunsetrne.dsha.test"', source)
+        self.assertIn('"-Pdsha.identity=$RELEASE_IDENTITY"', source)
+        self.assertIn("options: [mod, upstream]", source)
+        self.assertIn("default: mod", source)
+        self.assertIn('test "$package" = "$expected"', source)
+        self.assertIn('--field packageName)$(python3 tools/release-identity.py --identity "$RELEASE_IDENTITY" --field testSuffix)', source)
         self.assertIn('test "$cert" != "$production"', source)
+        self.assertIn('test "$cert" != "$upstream"', source)
         self.assertNotIn("gh release", source)
         cleanup = source.split("- name: Remove test private key", 1)[1].split("\n      - ", 1)[0]
         self.assertIn("if: always()", cleanup)

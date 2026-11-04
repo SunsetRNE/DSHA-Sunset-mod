@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "identity": "upstream",
+  "packageName": "dsh.android.client",
+  "certificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+  "schemes": ["v1", "v2", "v3"],
+  "appName": "DSHA",
+  "keyAlias": "androiddebugkey",
+  "testSuffix": ".SunsetRNE",
+  "tagPrefix": "dsha-build",
+  "apkPrefix": "dsha",
+  "repository": "ym2025szz/DSHA-prerelase",
+  "ref": "refs/heads/codex/prerelease-190",
+  "privateRepository": true,
+  "workflow": ".github/workflows/release-upstream.yml"
+}

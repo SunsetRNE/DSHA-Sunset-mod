@@ -74,7 +74,18 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 
 ## 正式打包与签名
 
-显式提供 `DSHA_KEYSTORE`、`DSHA_KEYSTORE_PASSWORD`、`DSHA_KEY_PASSWORD`，别名默认 `dsha-a-su`（可用 `DSHA_KEY_ALIAS` 覆盖）。签名身份以 `ci/release-identity.json` 为准：`packageName = io.github.sunsetrne.dsha`，`certificateSha256 = a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`。`verifyPublishCertificate` 会在 `assembleStandardRelease`、`packageStandardRelease`、`validateSigningStandardRelease` 之前核对 keystore 证书与 applicationId，任一不符即停止打包；不再允许历史 E7E3 或 debug 证书出正式包。私钥不进仓库，换钥会使本 Mod 已安装版本无法覆盖升级。
+显式提供 `DSHA_KEYSTORE`、`DSHA_KEYSTORE_PASSWORD`、`DSHA_KEY_PASSWORD`，别名默认 `dsha-a-su`（可用 `DSHA_KEY_ALIAS` 覆盖）。签名身份以 `ci/release-identity.json` 为准：`packageName = io.github.sunsetrne.dsha`，`certificateSha256 = a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`。`verifyPublishCertificate` 会在 `assembleStandardRelease`、`packageStandardRelease`、`validateSigningStandardRelease` 之前核对 keystore 证书与 applicationId，任一不符即停止打包；不再允许历史 E7E3 或 debug 证书出正式 Mod 包。私钥不进仓库，换钥会使本 Mod 已安装版本无法覆盖升级。
+
+### 双身份构建（`-Pdsha.identity`）
+
+`-Pdsha.identity=mod|upstream`，默认 `mod`，未知值直接配置失败。`mod` 即上文的 `io.github.sunsetrne.dsha` / DSH-A-Su / alias `dsha-a-su` / 测试后缀 `.test` / Mod 证书；`upstream` 是上游维护者的 `dsh.android.client` / DSHA / alias `androiddebugkey` / 测试后缀 `.SunsetRNE` / 历史 E7E3 证书。包名、显示名、测试后缀、默认 alias 与 `verifyPublishCertificate` 核对的证书分别来自 `ci/release-identity.mod.json` 与 `ci/release-identity.upstream.json`；versionCode / versionName 两种身份共用。完整对照表见 [Mod 身份与签名](docs/mod-identity-and-signing.md)。
+
+```bash
+./gradlew :app:printReleaseIdentity -Pdsha.identity=upstream   # 只做配置，确认解析出的身份
+python3 tools/release-identity.py --check                      # 两套身份互斥，兼容入口与 mod 一致
+```
+
+签名身份绝不混用：Mod 证书只签 mod 身份，E7E3 只签 upstream 身份。E7E3 私钥只在上游维护者私有仓库的 Secrets 中，本仓库与本机不保存，也不用 upstream 身份打正式包。
 
 ```bash
 ./gradlew :app:assembleStandardRelease
@@ -94,6 +105,15 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 签名 `io.github.sunsetrne.dsha` 正式包，核验证书 SHA-256 后创建 tag + prerelease。
 触发参数、Secrets、产物与核验命令见 [CI 构建与发布](docs/ci-release.md)；固定输入资产见
 [固定构建输入](docs/fixed-build-inputs.md)。CI 结果不替代真机安装、覆盖升级与长时间运行验收。
+
+两条发布流程互斥，各自只在自己的仓库运行，在对方仓库 `bind` 节点直接跳过、整条链随之跳过：
+
+| 工作流 | 身份 | 仓库 / 分支守卫 | tag |
+|---|---|---|---|
+| [release-production.yml](.github/workflows/release-production.yml) | `-Pdsha.identity=mod` | `SunsetRNE/DSHA-Sunset-mod` 的 `main` | `dsha-a-su-build<code>-YYYYMMDD-HHMMSS` |
+| [release-upstream.yml](.github/workflows/release-upstream.yml) | `-Pdsha.identity=upstream` | `ym2025szz/DSHA-prerelase`（私有）的 `codex/prerelease-190` | `dsha-build<code>-YYYYMMDD-HHMMSS` |
+
+两者共用同一组门禁节点（契约、格式、主机回归、固定输入、完整单测、Lint），只有 `build-signed` 读取各自仓库的签名 Secrets。[test-package.yml](.github/workflows/test-package.yml) 的 `identity` 输入（默认 `mod`）选择测试包身份，测试证书必须与两个正式证书都不同。
 
 ## 手机与历史范围
 

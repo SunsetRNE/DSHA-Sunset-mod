@@ -1,7 +1,9 @@
 name: Test package (on demand)
 
-# 手动构建可安装的测试包 io.github.sunsetrne.dsha.test（DSH-A-Su Test，-SunsetTest），
-# 用于真机核对；不创建 tag/Release，不使用 Mod 正式证书。
+# 手动构建可安装的测试包，用于真机核对；不创建 tag/Release，不使用任何正式证书。
+# identity=mod（默认）：io.github.sunsetrne.dsha.test（DSH-A-Su Test，-SunsetTest）；
+# identity=upstream：dsh.android.client.SunsetRNE（DSHA Test，-SunsetTest）。
+# 测试签名证书必须与 mod、upstream 两个正式证书都不同。
 #
 # 节点图：
 #   contracts ────────────────────────┐
@@ -18,6 +20,12 @@ on:
         required: false
         type: boolean
         default: true
+      identity:
+        description: Release identity whose test package to build (mod or upstream)
+        required: false
+        type: choice
+        options: [mod, upstream]
+        default: mod
 permissions:
   contents: read
 concurrency:
@@ -87,6 +95,7 @@ jobs:
       ASSET_SHA: ${{ needs.inputs.outputs.sha256 }}
       ASSET_FORMAT: ${{ needs.inputs.outputs.format }}
       UNIT_TESTS_RUN: ${{ inputs.run_unit_tests }}
+      RELEASE_IDENTITY: ${{ inputs.identity || 'mod' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -103,7 +112,10 @@ jobs:
       - name: Build unsigned Standard test package
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleStandardRelease -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true --no-daemon --max-workers=2
+          case "$RELEASE_IDENTITY" in mod|upstream) ;; *) echo 'unknown release identity'; exit 1 ;; esac
+          python3 tools/release-identity.py --check --identity "$RELEASE_IDENTITY" >/dev/null
+          ./gradlew :app:assembleStandardRelease -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true \
+            "-Pdsha.identity=$RELEASE_IDENTITY" --no-daemon --max-workers=2
       - name: Prepare configured or ephemeral test signing key
         env:
           CONFIGURED_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
@@ -151,17 +163,20 @@ jobs:
           "$aapt2" dump badging "$apk" > out/apk-badging.txt
           "$apksigner" verify --verbose --print-certs "$apk" > out/apk-signature.txt
           package=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" out/apk-badging.txt)
-          test "$package" = "io.github.sunsetrne.dsha.test"
+          expected=$(python3 tools/release-identity.py --identity "$RELEASE_IDENTITY" --field packageName)$(python3 tools/release-identity.py --identity "$RELEASE_IDENTITY" --field testSuffix)
+          test "$package" = "$expected"
           grep -q "versionName='.*-SunsetTest'" out/apk-badging.txt
           if grep -q 'application-debuggable' out/apk-badging.txt; then exit 1; fi
           cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
           production=$(python3 -c "import json;print(json.load(open('ci/release-identity.json'))['certificateSha256'])")
+          upstream=$(python3 tools/release-identity.py --identity upstream --field certificateSha256)
           test -n "$cert"
           test "$cert" != "$production"
+          test "$cert" != "$upstream"
           python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
           python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
           python3 tools/verify-third-party-apk.py "$apk" --output out/third-party-apk.json
-          printf 'apk=%s\ncert=%s\n' "$apk" "$cert" >> "$GITHUB_OUTPUT"
+          printf 'apk=%s\ncert=%s\npackage=%s\n' "$apk" "$cert" "$package" >> "$GITHUB_OUTPUT"
       - name: Remove test private key
         if: always()
         run: |
@@ -178,6 +193,7 @@ jobs:
         env:
           APK: ${{ steps.sign.outputs.apk }}
           CERT: ${{ steps.sign.outputs.cert }}
+          PACKAGE: ${{ steps.sign.outputs.package }}
         run: |
           python3 - <<'PYCODE'
           import hashlib, json, os
@@ -191,7 +207,8 @@ jobs:
               'ref': os.environ['GITHUB_REF'],
               'runId': os.environ['GITHUB_RUN_ID'],
               'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
-              'packageName': 'io.github.sunsetrne.dsha.test',
+              'packageName': os.environ['PACKAGE'],
+              'releaseIdentity': os.environ['RELEASE_IDENTITY'],
               'versionCode': meta['versionCode'],
               'versionName': meta['versionName'],
               'apkFile': apk.name,

@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-// DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上。
+// DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上；发布身份见下方 dsha.identity。
 // 旧 low/GeckoView 兼容线与独立上岛包都已移除：上岛能力并入正式包。
 // 文件名独立于可诊断版本名，保持当前用户下载入口不变。
 ext.dshaApkNameVersion = '0.2.1-rc.5'
@@ -42,6 +42,25 @@ def unsignedPackage = project.findProperty('dsha.unsignedPackage') == 'true'
 // 测试变体：显式开关才改包名/版本名，与正式包共存且数据完全隔离；默认构建不变。
 // 上岛版已并入正式包，不再有独立 applicationId / manifest 分支。
 def sunsetTest = project.findProperty('dsha.sunsetTest') == 'true' || System.getenv('DSHA_SUNSET_TEST') == '1'
+// 发布身份：-Pdsha.identity=mod|upstream，默认 mod（io.github.sunsetrne.dsha / Mod 证书）。
+// upstream 是 ym2025szz/DSHA-prerelase 的 dsh.android.client / 历史 E7E3 证书，只在他的私有仓库发布。
+// 两套身份的包名、显示名、测试后缀、默认 key alias 与核对证书都从 ci/release-identity.<name>.json 读取；
+// versionCode / versionName 共用。未知值直接失败，不回退到任一身份，签名身份绝不混用。
+// 解析规则与 tools/release-identity.py 一致，由 tools/test-release-identity.py 交叉核对。
+def releaseIdentityNames = ['mod', 'upstream']
+def releaseIdentityName = (project.findProperty('dsha.identity') ?: 'mod').toString()
+if (!(releaseIdentityName in releaseIdentityNames))
+    throw new GradleException("UNKNOWN_RELEASE_IDENTITY: dsha.identity 只接受 mod 或 upstream，收到 '${releaseIdentityName}'")
+def releaseIdentityFile = rootProject.file("ci/release-identity.${releaseIdentityName}.json")
+def releaseIdentity = new groovy.json.JsonSlurper().parse(releaseIdentityFile)
+if (releaseIdentity.schema != 1 || releaseIdentity.identity != releaseIdentityName
+        || !(releaseIdentity.packageName ==~ /[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+/)
+        || !(releaseIdentity.certificateSha256 ==~ /[a-f0-9]{64}/)
+        || !(releaseIdentity.testSuffix ==~ /\.[A-Za-z][A-Za-z0-9_]*/)
+        || !(releaseIdentity.keyAlias ==~ /[A-Za-z0-9._-]+/)
+        || !(releaseIdentity.appName instanceof String) || releaseIdentity.appName.trim().isEmpty())
+    throw new GradleException("RELEASE_IDENTITY_INVALID: ${releaseIdentityFile}")
+ext.dshaReleaseIdentity = releaseIdentity
 // 只有源码 CI 可显式允许缺少真实测试夹具；完整测试默认要求固定输入齐备。
 def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
 if (!(sourceOnlyTests in ['true', 'false']))
@@ -55,14 +74,15 @@ android {
     ndkVersion '26.3.11579264'
 
     defaultConfig {
-        // DSH-A-Su（Sunset Mod）正式包名：与原版 dsh.android.client 完全隔离，可并行安装。
-        applicationId "io.github.sunsetrne.dsha"
+        // 包名随发布身份：mod = io.github.sunsetrne.dsha（与原版完全隔离，可并行安装），
+        // upstream = dsh.android.client（只能用历史 E7E3 证书覆盖升级）。
+        applicationId releaseIdentity.packageName
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
         // 上岛能力已并入正式包；不再有独立上岛包名或独立显示名。
-        // 显示名统一为 DSH-A-Su；测试变体加后缀，便于桌面上区分两个包。
-        resValue 'string', 'app_name', sunsetTest ? 'DSH-A-Su Test' : 'DSH-A-Su'
+        // 显示名随发布身份（DSH-A-Su / DSHA）；测试变体加后缀，便于桌面上区分两个包。
+        resValue 'string', 'app_name', sunsetTest ? releaseIdentity.appName + ' Test' : releaseIdentity.appName
         versionCode 308
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
         versionName "0.2.1-rc.5-20261104.1830-dsh0.2.1-rc.5"
@@ -79,7 +99,8 @@ android {
             dimension 'androidSupport'
             minSdk 30
             if (sunsetTest) {
-                applicationIdSuffix '.test'
+                // mod = .test，upstream = .SunsetRNE（见身份文件 testSuffix）。
+                applicationIdSuffix releaseIdentity.testSuffix
                 // 测试包身份沿用历史 `-SunsetTest` 后缀：CI 与发布脚本按此核验，不能只写 `-test`。
                 versionNameSuffix '-SunsetTest'
             }
@@ -87,12 +108,12 @@ android {
     }
 
     signingConfigs {
-        // DSH-A-Su Mod 发布签名 = 新建的 dsha-a-su-release.jks（alias dsha-a-su，
+        // mod 身份：DSH-A-Su Mod 发布签名 = 新建的 dsha-a-su-release.jks（alias dsha-a-su，
         // 证书 SHA-256 A4:B0:41:3C:67:FA:46:DD:30:DC:7E:2B:CE:3A:D5:61:51:ED:8B:FD:E2:A3:31:5F:FF:68:5B:AF:78:6B:5D:5D）。
-        // 包名已改为 io.github.sunsetrne.dsha，与原版 dsh.android.client 不存在覆盖安装关系，
-        // 因此不再沿用历史 E7E3 证书；换钥只影响本 Mod 自己的后续覆盖升级。
-        // 期望的证书哈希记录在 ci/release-identity.json，verifyPublishCertificate 会强制核对。
-        // 正式任务必须明确提供 Mod 发布证书；单测/debug 不依赖发布密钥。
+        // io.github.sunsetrne.dsha 与原版 dsh.android.client 不存在覆盖安装关系，不使用历史 E7E3 证书。
+        // upstream 身份：历史 E7E3 证书（alias androiddebugkey），私钥只在 ym2025szz/DSHA-prerelase 的 Secrets。
+        // 期望的证书哈希记录在 ci/release-identity.<identity>.json，verifyPublishCertificate 会强制核对。
+        // 正式任务必须明确提供所选身份的发布证书；单测/debug 不依赖发布密钥。
         publish {
             def ksPath = System.getenv("DSHA_KEYSTORE") ?: project.findProperty("dsha.keystore")
             if (ksPath != null && !ksPath.toString().isEmpty() && file(ksPath).exists()) {
@@ -100,14 +121,14 @@ android {
                 storePassword System.getenv("DSHA_KEYSTORE_PASSWORD")
                         ?: project.findProperty("dsha.keystore.password")
                 keyAlias System.getenv("DSHA_KEY_ALIAS")
-                        ?: project.findProperty("dsha.key.alias") ?: "dsha-a-su"
+                        ?: project.findProperty("dsha.key.alias") ?: releaseIdentity.keyAlias
                 keyPassword System.getenv("DSHA_KEY_PASSWORD")
                         ?: project.findProperty("dsha.key.password")
                 if (!storePassword || !keyPassword)
                     throw new GradleException('必须明确提供发布密钥口令，不能使用隐式缺省值')
-                println "签名：已配置 Mod 发布证书"
+                println "签名：已配置 ${releaseIdentityName} 身份发布证书"
             } else {
-                println "签名：未配置 Mod 发布证书；正式 APK 打包将被阻止"
+                println "签名：未配置 ${releaseIdentityName} 身份发布证书；正式 APK 打包将被阻止"
             }
             enableV1Signing true
             enableV2Signing true
@@ -183,21 +204,30 @@ def verifyPublishCertificate = tasks.register("verifyPublishCertificate") {
     doLast {
         def signing = android.signingConfigs.publish
         if (signing.storeFile == null || !signing.storeFile.isFile())
-            throw new GradleException("正式 APK 缺少 Mod 发布密钥，停止打包")
+            throw new GradleException("正式 APK 缺少 ${releaseIdentityName} 身份发布密钥，停止打包")
         def store = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType())
         signing.storeFile.withInputStream { store.load(it, signing.storePassword.toCharArray()) }
         def certificate = store.getCertificate(signing.keyAlias)
-        def identity = new groovy.json.JsonSlurper().parse(rootProject.file('ci/release-identity.json'))
+        def identityFile = "ci/release-identity.${releaseIdentityName}.json"
+        def identity = new groovy.json.JsonSlurper().parse(rootProject.file(identityFile))
         def expected = identity.certificateSha256
         if (certificate == null || java.security.MessageDigest.getInstance("SHA-256")
                 .digest(certificate.encoded).encodeHex().toString() != expected)
-            throw new GradleException("发布证书与 ci/release-identity.json 记录不符，停止打包")
+            throw new GradleException("发布证书与 ${identityFile} 记录不符，停止打包")
         if (android.defaultConfig.applicationId != identity.packageName)
-            throw new GradleException("applicationId 与 ci/release-identity.json 记录不符，停止打包")
+            throw new GradleException("applicationId 与 ${identityFile} 记录不符，停止打包")
     }
 }
 tasks.configureEach {
     if (!unsignedPackage && name.matches("(package|validateSigning|assemble)StandardRelease")) dependsOn(verifyPublishCertificate)
+}
+// 只读配置检查：打印解析出的发布身份，不读取密钥、不打包。
+tasks.register('printReleaseIdentity') {
+    def summary = "releaseIdentity=${releaseIdentityName} applicationId=${android.defaultConfig.applicationId}" +
+            " appName=${releaseIdentity.appName} testSuffix=${releaseIdentity.testSuffix}" +
+            " keyAlias=${android.signingConfigs.publish.keyAlias ?: releaseIdentity.keyAlias}" +
+            " certificateSha256=${releaseIdentity.certificateSha256}"
+    doLast { println summary }
 }
 tasks.register('signPublishRelease') {
     if (!unsignedPackage) dependsOn(verifyPublishCertificate, 'assembleStandardRelease')
