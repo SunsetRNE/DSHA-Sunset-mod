@@ -92,6 +92,7 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 | Termux 终端 JNI | [Termux app](https://github.com/termux/termux-app)；[本地上游许可例外](../tools/termux-jni/LICENSE.upstream.md) | terminal 部分许可例外不能外推整个 Termux 工程 |
 | Ubuntu 包 | [Ubuntu Security Notices](https://ubuntu.com/security/notices)；本地 Ubuntu 包锁与 rootfs 内版权文件 | USN 是核对入口，不表示已证明当前归档没有漏洞 |
 | 其他原始 JNI | THIRD_PARTY_NOTICES 的“实际入库 JNI 成员与来源边界” | libandroidshmem 的原件来源/许可、部分 Standard proot/talloc 的精确版本仍有未核实项 |
+| 横屏 Dock 舞台底 | 由代码生成的深色渐变（`DockDisplayActivity.stageBackdrop()`），不使用任何图片资产 | 无第三方来源/许可问题；不涉及位图解码内存 |
 
 历史 low/API23 proot 源码 ZIP 的本地固定 SHA-256 为（build209 起不再使用）：
 `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`。

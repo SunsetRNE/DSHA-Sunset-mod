@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 横屏 DSH 显示的留边：偏冷的浅灰蓝，和网页的白底拉开，别糊成一片。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:endColor="@color/landscape_stage_gradient_end"
+        android:startColor="@color/landscape_stage_gradient_start" />
+</shape>

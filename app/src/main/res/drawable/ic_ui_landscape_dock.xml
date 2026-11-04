@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- 横屏 Dock：横向屏幕 + 底部胶囊/支架；线条风格对齐 ic_terminal（stroke 1.65，圆头）。 -->
+    <path android:pathData="M2.5,8.5 a1.5,1.5 0 0 1 1.5,-1.5 h16 a1.5,1.5 0 0 1 1.5,1.5 v6 a1.5,1.5 0 0 1 -1.5,1.5 h-16 a1.5,1.5 0 0 1 -1.5,-1.5 z"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="@color/landscape_icon_stroke" android:strokeWidth="1.65"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M8,20 h8"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="@color/landscape_icon_stroke" android:strokeWidth="1.65"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

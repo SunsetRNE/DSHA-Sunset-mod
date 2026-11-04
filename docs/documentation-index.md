@@ -18,6 +18,7 @@
 | [DNS配置](dns-configuration.md) | auto/ipv4/native的真实差异、Node窄lookup重试、glibc no-aaaa与用户选择 |
 | [切网后回收失效的外网连接（T37，实验性）](network-switch-connection-recycle.md) | 切网/切后台后模型请求卡满 300 秒的原因、网络代次与 net-epoch.cjs 回收规则、开关与范围；未真机验证 |
 | [虚拟屏架构](virtual-screen-architecture.md) | Core/Manager/工具路由、帧/节点/anchor证据、采集输入、关闭恢复与修改回归 |
+| [横屏 DSH Dock（桌面视口）](landscape-dock.md) | 启动页横屏入口、16:9 舞台与三档缩放、私有目录数据开关、与 ADR0003 虚拟屏的边界 |
 | [任务状态上岛](island-status.md) | 实时活动/胶囊两代判据、岛位选举、完成态、心跳收敛与验证范围 |
 | [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果 |
 | [资料与来源依据](references-and-provenance.md) | 官方primary入口、工程上游关系、固定版本/摘要、许可与来源限制 |

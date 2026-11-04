@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 横屏 Dock 的 XML 侧颜色：只服务「探针/兼容页背景」与矢量图标占位，不是 Java Palette 的逐项镜像。
+     - landscape_stage：探针页浅色留边，对应 LandscapePalette.STAGE
+     - landscape_stage_gradient_*：只被 bg_dsh_stage.xml（探针页）使用；Dock 舞台底是深色
+       STAGE_GRADIENT_0..3，留在 Java 常量里
+     - landscape_icon_stroke：矢量图占位描边，实际显示颜色由 ImageView tint（DOCK_ICON）决定
+     改色时对照 app/src/main/java/com/deepseekharness/app/ui/LandscapePalette.java 的注释。 -->
+<resources>
+    <color name="landscape_stage">#FFEEF1F6</color>
+    <color name="landscape_stage_gradient_start">#FFE9EEF5</color>
+    <color name="landscape_stage_gradient_end">#FFD9E1EB</color>
+    <color name="landscape_icon_stroke">#FF000000</color>
+</resources>

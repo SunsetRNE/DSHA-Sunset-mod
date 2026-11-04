@@ -64,6 +64,15 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.DeepseekHarness">
 
+        <activity android:name=".ui.LandscapeProbeActivity" android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ui.DockDisplayActivity" android:exported="false"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".assistant.AssistantActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".assistant.AssistantVoiceActivity" android:exported="false" />

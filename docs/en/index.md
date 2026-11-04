@@ -16,6 +16,7 @@ Build and acceptance records for earlier versions stay in [releases/](releases/)
 | [Runtime engines](runtime-engines.md) | Current proot/proroot, historical DSHA v1.1.6, vendor versions, loaders/shims, exit supervision, and compatibility |
 | [Ports and networking](ports-and-networking.md) | Automatic/manual ports, local fallback memory, separate bridge/ADB/LAN endpoints, and retry integration boundaries |
 | [DNS configuration](dns-configuration.md) | Actual auto/ipv4/native differences, narrow Node lookup retry, glibc no-aaaa, and user choices |
+| [Landscape dock (desktop viewport)](landscape-dock.md) | Horizontal 16:9 WebView stage, three-mode chips and capsule, data-only config, security boundaries, minimum WebView |
 | [Virtual-screen architecture](virtual-screen-architecture.md) | Core/Manager/tool routes, frame/node/anchor evidence, capture/input, closure/recovery, and regression map |
 | [ADR 0001](adr/0001-build154-boundaries.md), [ADR 0002](adr/0002-current-threat-model.md), [ADR 0003](adr/0003-virtual-screen-lifecycle-and-input.md) | Architectural choices, permission/data boundaries, virtual-screen lifecycle, and consequences |
 | [References and provenance](references-and-provenance.md) | Primary platform sources, upstream relationships, pinned versions/digests, licensing, and source limits |

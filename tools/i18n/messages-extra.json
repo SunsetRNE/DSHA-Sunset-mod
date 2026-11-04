@@ -15865,5 +15865,405 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java"
     ]
+  },
+  {
+    "id": "x1972005",
+    "zh": "正在打开…",
+    "en": "Opening…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java"
+    ]
+  },
+  {
+    "id": "x1972006",
+    "zh": "页面提示",
+    "en": "Page message",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java"
+    ]
+  },
+  {
+    "id": "x1972007",
+    "zh": "页面询问",
+    "en": "Page confirmation",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java"
+    ]
+  },
+  {
+    "id": "x1972008",
+    "zh": "页面输入",
+    "en": "Page input",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java"
+    ]
+  },
+  {
+    "id": "dock0001",
+    "zh": "模式1",
+    "en": "Mode 1",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0002",
+    "zh": "模式2",
+    "en": "Mode 2",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0003",
+    "zh": "模式3",
+    "en": "Mode 3",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0004",
+    "zh": "DSH 登录链接已失效，回启动页重新进入",
+    "en": "The DSH sign-in link has expired. Return to the start page and enter again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0005",
+    "zh": "页面加载失败，检查一下网络",
+    "en": "The page failed to load. Check your network.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0006",
+    "zh": "横屏暂不能申请麦克风，可回竖屏页面使用语音",
+    "en": "The microphone is not available in landscape. Use voice input on the portrait page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0007",
+    "zh": "横屏里暂不支持网页全屏播放，可回竖屏再看",
+    "en": "Full-screen playback is not supported in landscape. Switch back to portrait to watch.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0008",
+    "zh": "链接为空",
+    "en": "The link is empty",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0010",
+    "zh": "Web 尚未就绪，请回启动页看看服务状态",
+    "en": "Web is not ready. Return to the start page to check the service status.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0011",
+    "zh": "网页后退",
+    "en": "Back",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0012",
+    "zh": "回启动页",
+    "en": "Start page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0013",
+    "zh": "截取 16:9 视口（长按复制视口诊断）",
+    "en": "Capture the 16:9 viewport (long-press to copy viewport diagnostics)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0014",
+    "zh": "已在页面首页",
+    "en": "Already at the page top",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0015",
+    "zh": "回启动页失败",
+    "en": "Could not return to the start page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0016",
+    "zh": "还没有页面",
+    "en": "No page yet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0017",
+    "zh": "视口诊断已复制，可直接粘贴反馈",
+    "en": "Viewport diagnostics copied; paste them into your report.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0018",
+    "zh": "登录页已转到浏览器",
+    "en": "The sign-in page opened in the browser",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0019",
+    "zh": "已拦下外部页面，回到 DSH",
+    "en": "External page blocked; returned to DSH",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0020",
+    "zh": "已用系统浏览器打开登录页，完成登录后回到这里即可",
+    "en": "The sign-in page opened in your browser. Come back here after signing in.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0022",
+    "zh": "没有找到能打开该链接的应用",
+    "en": "No app can open this link",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0023",
+    "zh": "页面还没排好，稍后再试",
+    "en": "The page is not ready yet. Try again shortly.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0024",
+    "zh": "窗口还没画出来，稍后再试",
+    "en": "The window is not ready yet. Try again shortly.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0025",
+    "zh": "截图失败",
+    "en": "Screenshot failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0026",
+    "zh": "图片为空",
+    "en": "The image is empty",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0027",
+    "zh": "插入相册失败",
+    "en": "Could not add to the gallery",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0028",
+    "zh": "写入相册失败",
+    "en": "Could not write to the gallery",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0029",
+    "zh": "已截取 16:9 视口，存到相册 Pictures/DSHA",
+    "en": "Captured the 16:9 viewport to Pictures/DSHA",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0030",
+    "zh": "16:9 居中：",
+    "en": "16:9 centered:",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0031",
+    "zh": "有留边",
+    "en": "Letterboxed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0032",
+    "zh": "贴边",
+    "en": "Edge to edge",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0033",
+    "zh": "与 cutout 相交：",
+    "en": "Intersects cutout:",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0034",
+    "zh": "是 !",
+    "en": "Yes !",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0035",
+    "zh": "否 OK",
+    "en": "No OK",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock0036",
+    "zh": "下滑可临时唤出系统栏",
+    "en": "Swipe down to temporarily show system bars",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock2001",
+    "zh": "保存失败：%s",
+    "en": "Save failed: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock2003",
+    "zh": "cutout L/T/R/B = %s\nbars L/T/R/B = %s\nime bottom = %s\nstage %s @(%s,%s) scale=%s\n16:9 居中：%s\n与 cutout 相交：%s\n下滑可临时唤出系统栏",
+    "en": "cutout L/T/R/B = %s\nbars L/T/R/B = %s\nime bottom = %s\nstage %s @(%s,%s) scale=%s\n16:9 centered: %s\nIntersects cutout: %s\nSwipe down to temporarily show system bars",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/LandscapeProbeActivity.java"
+    ]
+  },
+  {
+    "id": "dock3001",
+    "zh": "连续跳转已停止，请点 ⌂ 回启动页",
+    "en": "Automatic redirects stopped. Tap ⌂ to return to the start page.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java"
+    ]
+  },
+  {
+    "id": "dock0101",
+    "zh": "横屏 DSH",
+    "en": "Landscape DSH",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "dock0102",
+    "zh": "先点「启动」，等鉴权链接就绪后再进入横屏",
+    "en": "Tap Start and wait for the authentication link before entering landscape.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "dock0103",
+    "zh": "无法打开横屏（%s）",
+    "en": "Cannot open landscape (%s)",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "dock0104",
+    "zh": "正在打开 %d%%",
+    "en": "Opening %d%%",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DockDisplayActivity.java"
+    ]
   }
 ]
