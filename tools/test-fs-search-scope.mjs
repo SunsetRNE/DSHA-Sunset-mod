@@ -162,7 +162,20 @@ try {
     assert.equal(fellBack, 3);
   });
 
-  await run('纯函数：区域判定、转义、解析、插入位置', async () => {
+  await run('纯函数：区域判定、转义、解析、插入位置和新旧工具解析', async () => {
+    const modernTool = { name: 'glob', execute() {} };
+    const modernExec = { name: 'glob', agent: {}, toolSet: { modern: true } };
+    assert.equal(
+      scope.resolveTool(
+        { executable: (name, agent, toolSet) => {
+          assert.equal(name, 'glob');
+          assert.equal(agent, modernExec.agent);
+          assert.equal(toolSet, modernExec.toolSet);
+          return modernTool;
+        } },
+        modernExec),
+      modernTool);
+    assert.equal(scope.resolveTool({ resolveExecution: () => modernTool }, modernExec), modernTool);
     assert(scope.inWorktreeZone('/r/.agents/worktrees') && scope.inWorktreeZone('/r/.agents/worktrees/a/b'));
     assert(!scope.inWorktreeZone('/r/.agents') && !scope.inWorktreeZone('/r/agents/worktrees'));
     assert.equal(scope.escapeGlob('/a [x]{y}*?!\\'), '/a \\[x\\]\\{y\\}\\*\\?\\!\\\\');

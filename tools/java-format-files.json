@@ -595,6 +595,7 @@
     "app/src/main/java/com/deepseekharness/app/util/DshAuthSession.java",
     "app/src/main/java/com/deepseekharness/app/util/DshAuthUrl.java",
     "app/src/main/java/com/deepseekharness/app/util/DshEntrypoint.java",
+    "app/src/main/java/com/deepseekharness/app/util/DshVersionPolicy.java",
     "app/src/main/java/com/deepseekharness/app/util/DshaCliPreset.java",
     "app/src/main/java/com/deepseekharness/app/util/EntryTarget.java",
     "app/src/main/java/com/deepseekharness/app/util/EnvironmentIdentity.java",

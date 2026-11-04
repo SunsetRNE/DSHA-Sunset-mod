@@ -11,7 +11,7 @@
  * 仍保留「含忽略文件、含隐藏文件」语义；结果上限、渲染、溢出保存都由上游已注册的 glob 定义负责。
  *
  * DSHA 运行时给 dsh-tools 打了必经策略补丁（DSHA_REQUIRED_POLICY_V1）：工具体执行前须过
- * verifyGlobalConsent / resolveExecution / verifyDispatch。本插件接管执行时按同一顺序调用这三步，
+ * verifyGlobalConsent / resolveExecution（rc5）或 executable（0.2.2）/ verifyDispatch。本插件接管执行时按同一顺序调用这三步，
  * 不跳过、不放宽；策略模块加载失败、上游形状不认识或无需剪枝时，一律交回 next() 走原工具。
  *
  * 停用或删除本插件（取消选中 bundle）即恢复上游 glob 原样。临时措施：撤除条件见 docs/fs-search-scope-plugin.md。
@@ -116,11 +116,22 @@ export function errorResult(error) {
   return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true, error: { message, ...code ? { info: { name: error.name, code } } : {} } };
 }
 
-/** 运行时的 dsh-tools 是否带 DSHA 必经策略补丁（带补丁时接管执行必须先过同样的三步）。 */
+/**
+ * 运行时的 dsh-tools 是否带 DSHA 必经策略补丁（带补丁时接管执行必须先过同样的三步）。
+ * rc5 把入口放在 index.js，0.2.2 把执行管线拆到 pipeline.js；两者都要带标记。
+ */
 function toolsPatched() {
   try {
-    const source = readFileSync(fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-tools')), 'utf8');
-    return source.includes('DSHA_REQUIRED_POLICY_V1') && source.includes('verifyDispatch');
+    const indexUrl = import.meta.resolve('@deepseek-ai/dsh-tools');
+    const sources = [readFileSync(fileURLToPath(indexUrl), 'utf8')];
+    try {
+      const pipelineUrl = import.meta.resolve('@deepseek-ai/dsh-tools/pipeline');
+      sources.push(readFileSync(fileURLToPath(pipelineUrl), 'utf8'));
+    } catch {
+      // rc5 不导出独立 pipeline，index.js 是完整执行入口。
+    }
+    return sources.some(
+      source => source.includes('DSHA_REQUIRED_POLICY_V1') && source.includes('verifyDispatch'));
   } catch {
     return undefined;
   }
@@ -130,6 +141,15 @@ function isUpstreamGlob(tool) {
   return tool?.name === 'glob' && typeof tool.execute === 'function'
     && String(tool.description ?? '').startsWith(UPSTREAM_GLOB_DESCRIPTION)
     && tool.output?.schema?.properties?.root !== undefined && tool.output?.schema?.properties?.paths !== undefined;
+}
+
+/** Resolve the executable definition across the rc5 and 0.2.2 tool registries. */
+export function resolveTool(tools, exec) {
+  if (typeof tools?.resolveExecution === 'function')
+    return tools.resolveExecution(exec.name, exec.agent, exec.parent !== undefined);
+  if (typeof tools?.executable === 'function')
+    return tools.executable(exec.name, exec.agent, exec.toolSet);
+  return undefined;
 }
 
 function isDirectory(path) {
@@ -161,7 +181,7 @@ export function createHandler(ctx, deps) {
     try {
       // 与带补丁的 dispatchToolBody 同序：全局同意 → 解析可执行定义 → 派发核验（一次性）。
       if (policy) await policy.verifyGlobalConsent(exec);
-      const tool = tools.resolveExecution(exec.name, exec.agent, false);
+      const tool = resolveTool(tools, exec);
       if (!isUpstreamGlob(tool)) return next();
       if (policy) policy.verifyDispatch(tools, exec, tool);
     } catch (error) {

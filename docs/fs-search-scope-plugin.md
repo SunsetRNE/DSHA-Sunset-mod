@@ -1,7 +1,7 @@
 # 内置修复插件 dsh-fs-search-scope（检索范围，临时）
 
 > 状态：临时修复包，随 DSHA 签名内置；DSH 上游 glob 自行剪掉嵌套工作树后撤除。
-> 对应 DSH：0.2.1-rc.5（`dsh-tool-fs-search`、`dsh-tools` 及 DSHA 必经策略补丁 `DSHA_REQUIRED_POLICY_V1`）。
+> 对应 DSH：0.2.1-rc.5 与 0.2.2-rc.1（`dsh-tool-fs-search`、`dsh-tools` 及 DSHA 必经策略补丁 `DSHA_REQUIRED_POLICY_V1`）。
 > 任务来源：看板 T45。
 
 ## 1. 问题
@@ -20,7 +20,7 @@ DSH 的 `glob` 固定执行 `rg --files --no-ignore --hidden --sort=modified`，
 不变的部分：
 
 - 仍含忽略文件与隐藏文件（`--no-ignore --hidden`）；参数校验、ripgrep 调用、结果上限、渲染、溢出保存全部复用上游导出函数与已注册的 glob 定义；
-- 接管前按带补丁的 `dispatchToolBody` 同序调用 `verifyGlobalConsent` → `resolveExecution` → `verifyDispatch`，不跳过、不放宽；任何一步失败即报错且不执行；
+- 接管前按带补丁的 `dispatchToolBody` 同序调用 `verifyGlobalConsent` → rc5 的 `resolveExecution` 或 0.2.2 的 `executable` → `verifyDispatch`，不跳过、不放宽；任何一步失败即报错且不执行；
 - 策略模块加载不到、上游形状不认识、无需剪枝、参数非法、检索根不是目录、嵌套调用（`run_code` 内）时一律交回 `next()` 走原工具；
 - 不改 DSH 本体（`/usr/local/lib/node_modules/@deepseek-ai/dsh`）。
 

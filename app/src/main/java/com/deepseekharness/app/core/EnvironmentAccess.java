@@ -18,6 +18,15 @@ public final class EnvironmentAccess {
     }
   }
 
+  public static com.deepseekharness.app.util.DshVersionPolicy.Status runtimeVersionStatus(
+      HarnessController controller) {
+    try {
+      return controller.proot().installedVersionStatus();
+    } catch (RuntimeException error) {
+      return com.deepseekharness.app.util.DshVersionPolicy.Status.UNKNOWN;
+    }
+  }
+
   private static long apkUpdatedAt(HarnessController controller) throws java.io.IOException {
     try {
       var context = controller.context();
@@ -49,6 +58,9 @@ public final class EnvironmentAccess {
 
   /** 返回 true 时启动前必须进入维护；新候选只自动尝试一次，健康兼容前代仍可使用。 */
   public static boolean requiresMaintenanceBeforeStart(HarnessController controller) {
+    com.deepseekharness.app.util.DshVersionPolicy.Status version = runtimeVersionStatus(controller);
+    if (version == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER
+        || version == com.deepseekharness.app.util.DshVersionPolicy.Status.UNKNOWN) return true;
     if (runtimeLatest(controller)) return false;
     try {
       String candidate = candidateAttemptKey(controller);

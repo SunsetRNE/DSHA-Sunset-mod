@@ -47,6 +47,10 @@ final class RuntimeMaintenanceStarter {
   static boolean startInitialDeploy(Context context) {
     HarnessController controller = HarnessController.get(context);
     BackupTask task = BackupTask.get(context);
+    com.deepseekharness.app.util.DshVersionPolicy.Status version =
+        EnvironmentAccess.runtimeVersionStatus(controller);
+    if (version == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER
+        || version == com.deepseekharness.app.util.DshVersionPolicy.Status.UNKNOWN) return false;
     if (task.maintenanceBusy() || task.busy() || task.pendingMaintenance()) return false;
     if (controller.isEnvironmentReady()) return false;
     return attemptOnce(context, controller, task, false) == Auto.STARTED;
@@ -61,6 +65,12 @@ final class RuntimeMaintenanceStarter {
   static Auto autoStart(Context context) {
     HarnessController controller = HarnessController.get(context);
     BackupTask task = BackupTask.get(context);
+    // 新版写出的数据不能由旧候选验证；只提示用户并停在维护页，禁止自动原位修复。
+    com.deepseekharness.app.util.DshVersionPolicy.Status version =
+        EnvironmentAccess.runtimeVersionStatus(controller);
+    if (version == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER
+        || version == com.deepseekharness.app.util.DshVersionPolicy.Status.UNKNOWN)
+      return Auto.NOT_ELIGIBLE;
     // 有未关闭的试运行现场时自动更新必然以 TRIAL_RECOVERY_REQUIRED 失败，先由用户恢复。
     if (task.maintenanceBusy() || needsRecovery(context)) return Auto.NOT_ELIGIBLE;
     if (controller.isEnvironmentReady()
@@ -70,6 +80,11 @@ final class RuntimeMaintenanceStarter {
 
   private static Auto attemptOnce(
       Context context, HarnessController controller, BackupTask task, boolean latest) {
+    com.deepseekharness.app.util.DshVersionPolicy.Status version =
+        EnvironmentAccess.runtimeVersionStatus(controller);
+    if (version == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER
+        || version == com.deepseekharness.app.util.DshVersionPolicy.Status.UNKNOWN)
+      return Auto.NOT_ELIGIBLE;
     SharedPreferences attempts =
         context.getApplicationContext().getSharedPreferences(ATTEMPTS, Context.MODE_PRIVATE);
     String attemptKey = "";

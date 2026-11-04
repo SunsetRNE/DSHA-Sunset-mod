@@ -16,6 +16,11 @@ final class RuntimeTools {
   static final String CERT_PATH = "/usr/local/share/dsha/ca-certificates.crt";
   private static final String MANAGED_MARKER = "usr/local/share/dsha/managed-assets-v2";
   private static final Object LOCK = new Object();
+
+  /** Host mirror 字节契约在 rc5 与 0.2.2-rc.1 之间不变，但代次门仍须精确识别。 */
+  private static final Map<String, String> LAN_SETTINGS_CONTRACT_VERSIONS =
+      Map.of("0.2.1-rc.5", "0.2.1-rc.5", "0.2.2-rc.1", "0.2.1-rc.5");
+
   private static String preparedRoot;
   private static String preparedApk;
   private static String preparedStamp;
@@ -622,12 +627,13 @@ final class RuntimeTools {
     try {
       File pkg = new File(rootfs, "usr/local/lib/node_modules/@deepseek-ai/dsh/package.json");
       String version = fileObject(pkg).getString("version");
-      if ("0.2.1-rc.5".equals(version)) {
-        // 0.2.1-rc.3 and 0.2.1-rc.5 expose the same Host mirror bytes; keep the
-        // signed, byte-exact contract instead of the retired text replacement.
+      String contractVersion = LAN_SETTINGS_CONTRACT_VERSIONS.get(version);
+      if (contractVersion != null) {
+        // rc5 与 0.2.2-rc.1 暴露相同 Host mirror 字节；保留签名的精确契约，
+        // 但按运行时版本表选择对应的契约族，不能让未知版本复用旧摘要。
         var contract = assetObject(context, "lan-settings-upstream-contract.json");
         if (contract.getInt("schema") != 1
-            || !version.equals(contract.getString("dshVersion"))
+            || !contractVersion.equals(contract.getString("dshVersion"))
             || !"@deepseek-ai/dsh-client-ui-settings/lib/client.js"
                 .equals(contract.getString("module")))
           throw new IOException("LAN_SETTINGS_CONTRACT");

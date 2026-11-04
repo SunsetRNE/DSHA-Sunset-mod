@@ -142,6 +142,10 @@ public class ProotBootstrap {
     return installation.needsRuntimeUpdate();
   }
 
+  public com.deepseekharness.app.util.DshVersionPolicy.Status installedVersionStatus() {
+    return installation.installedVersionStatus();
+  }
+
   public void confirmRuntimeHealth(java.util.Map<String, Object> proof) throws IOException {
     installation.confirmRuntimeHealth(proof);
   }

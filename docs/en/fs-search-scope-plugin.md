@@ -1,7 +1,7 @@
 # Built-in fix plugin dsh-fs-search-scope (search scope, temporary)
 
 > Status: temporary fix shipped as a DSHA signed built-in; remove once upstream glob prunes nested worktrees itself.
-> DSH baseline: 0.2.1-rc.5 (`dsh-tool-fs-search`, `dsh-tools` with the DSHA required-policy patch `DSHA_REQUIRED_POLICY_V1`).
+> DSH baseline: 0.2.1-rc.5 and 0.2.2-rc.1 (`dsh-tool-fs-search`, `dsh-tools` with the DSHA required-policy patch `DSHA_REQUIRED_POLICY_V1`).
 > Origin: task board T45.
 
 ## 1. Problem
@@ -17,7 +17,7 @@ The [plugin](../../app/src/main/assets/builtin-plugins/dsh-fs-search-scope/lib/i
 - no takeover when the search root itself is inside `.agents/worktrees`, so results match upstream exactly;
 - one system-prompt line: glob skips nested worktrees; pass a worktree as `path` to search it.
 
-Unchanged: hidden and ignored files are still listed; argument validation, ripgrep execution, result caps, rendering and spill reuse upstream exports and the registered glob definition. Before running, the plugin calls `verifyGlobalConsent` → `resolveExecution` → `verifyDispatch` in the same order as the patched `dispatchToolBody`; any failure is returned as an error and nothing runs. If the policy module cannot load, the upstream shape is unknown, nothing needs pruning, the arguments are invalid, the root is not a directory, or the call is nested, it defers to `next()`. DSH itself is not modified.
+Unchanged: hidden and ignored files are still listed; argument validation, ripgrep execution, result caps, rendering and spill reuse upstream exports and the registered glob definition. Before running, the plugin calls `verifyGlobalConsent` → `resolveExecution` (rc5) or `executable` (0.2.2) → `verifyDispatch` in the same order as the patched `dispatchToolBody`; any failure is returned as an error and nothing runs. If the policy module cannot load, the upstream shape is unknown, nothing needs pruning, the arguments are invalid, the root is not a directory, or the call is nested, it defers to `next()`. DSH itself is not modified.
 
 Known limits: git submodules are not pruned; outside a git repository only the `.agents/worktrees` rule applies; ripgrep matches `--glob` against the traversal path with the cwd prefix removed, so each linked worktree is excluded in both cwd-relative and `**/<absolute>` form. Two ripgrep effects seen locally are unrelated to the plugin: occasional ENOENT gaps with absolute roots under multi-threaded traversal, and ENOENT for a symlinked root.
 

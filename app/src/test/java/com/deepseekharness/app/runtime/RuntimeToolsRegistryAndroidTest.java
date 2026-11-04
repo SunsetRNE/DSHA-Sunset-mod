@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -690,6 +691,34 @@ public final class RuntimeToolsRegistryAndroidTest {
     IOException error = assertThrows(IOException.class, () -> productionChain(context, guest));
     assertEquals("LAN_SETTINGS_SOURCE_MISMATCH", error.getMessage());
     assertArrayEquals(changed, Files.readAllBytes(module));
+  }
+
+  @Test
+  public void lanHostMirrorContractSupportsRc5AndRc1FamilyOnly() throws Exception {
+    Context context = apkAssets(Map.of());
+    File guest = actualManagedModuleClosure(context);
+    Path pkg = guest.toPath().resolve(DSH + "package.json");
+    Path module = guest.toPath().resolve(DSH + "node_modules/" + LAN);
+    String originalPackage = Files.readString(pkg);
+    byte[] originalModule = Files.readAllBytes(module);
+    for (String version : List.of("0.2.1-rc.5", "0.2.2-rc.1")) {
+      Files.writeString(pkg, new JSONObject(originalPackage).put("version", version).toString());
+      RuntimeTools.patchLanSettingsPersistence(context, guest);
+      assertArrayEquals(
+          "Host mirror must remain byte-exact for " + version,
+          originalModule,
+          Files.readAllBytes(module));
+    }
+    Files.writeString(pkg, new JSONObject(originalPackage).put("version", "0.2.2-rc.1").toString());
+    Context wrongFamily =
+        apkAssets(
+            Map.of(
+                "lan-settings-upstream-contract.json",
+                json("lan-settings-upstream-contract.json").put("dshVersion", "0.2.2-rc.1")));
+    IOException family =
+        assertThrows(
+            IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(wrongFamily, guest));
+    assertEquals("LAN_SETTINGS_CONTRACT", family.getMessage());
   }
 
   @Test

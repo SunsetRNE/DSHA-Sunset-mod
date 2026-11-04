@@ -192,6 +192,8 @@ public class ExtractActivity extends AppCompatActivity {
         pending = task.pendingMaintenanceForUi() || RuntimeMaintenanceStarter.pendingTrial(this),
         executionBusy = task.busy();
     boolean ready = environmentReady(s, busy, pending);
+    com.deepseekharness.app.util.DshVersionPolicy.Status versionStatus =
+        com.deepseekharness.app.core.EnvironmentAccess.runtimeVersionStatus(controller);
     String renderKey =
         s.id
             + ":"
@@ -206,6 +208,8 @@ public class ExtractActivity extends AppCompatActivity {
             + pending
             + ":"
             + ready
+            + ":"
+            + versionStatus
             + ":"
             + taskId
             + ":"
@@ -234,7 +238,7 @@ public class ExtractActivity extends AppCompatActivity {
     boolean incomplete = mine && s.status == BackupTaskState.Status.SUCCEEDED && !ready && !busy;
     renderHeader(s, view, busy, pending);
     renderStages(view);
-    renderMessages(s, view, failed, incomplete, pending);
+    renderMessages(s, view, failed, incomplete, pending, versionStatus);
     RuntimeMaintenanceStarter.Retry kind =
         pending
             ? RuntimeMaintenanceStarter.Retry.RECOVER
@@ -305,7 +309,8 @@ public class ExtractActivity extends AppCompatActivity {
       DeployStages.View view,
       boolean failed,
       boolean incomplete,
-      boolean pending) {
+      boolean pending,
+      com.deepseekharness.app.util.DshVersionPolicy.Status versionStatus) {
     String message;
     boolean warn;
     if (failed) {
@@ -342,6 +347,20 @@ public class ExtractActivity extends AppCompatActivity {
     } else {
       message = "";
       warn = false;
+    }
+    String versionWarning =
+        versionStatus == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER
+            ? UiText.choose(
+                "检测到个人数据由更高版本 DSH 写入。为避免旧版本误读，系统不会自动覆盖或修复当前环境；请先导出可读副本，或选择能够读取该数据的版本。",
+                "Personal data was written by a newer DSH version. To avoid an unsafe downgrade, this version will not automatically overwrite or repair the environment. Export a readable copy or choose a compatible DSH version first.")
+            : versionStatus == com.deepseekharness.app.util.DshVersionPolicy.Status.UNKNOWN
+                ? UiText.choose(
+                    "无法确认已安装运行时的数据代次。系统不会自动覆盖个人数据；请导出可读副本并确认兼容版本后再维护。",
+                    "The installed runtime's data generation could not be verified. Personal data will not be overwritten automatically; export a readable copy and confirm a compatible version before maintenance.")
+                : "";
+    if (!versionWarning.isEmpty()) {
+      message = message.isEmpty() ? versionWarning : message + "\n\n" + versionWarning;
+      warn = true;
     }
     error.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE);
     // 页内不再内嵌维护记录：没有说明时整列隐藏，宽屏下阶段卡占满内容宽度。
