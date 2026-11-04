@@ -1186,6 +1186,7 @@
     "app/src/test/java/com/deepseekharness/app/util/DeviceScriptProofTest.java",
     "app/src/test/java/com/deepseekharness/app/util/DeviceShellPolicyDeleteTest.java",
     "app/src/test/java/com/deepseekharness/app/util/DeviceShellPolicyTest.java",
+    "app/src/test/java/com/deepseekharness/app/util/DshVersionPolicyTest.java",
     "app/src/test/java/com/deepseekharness/app/util/DeviceSupportReportTest.java",
     "app/src/test/java/com/deepseekharness/app/util/DiagnosticFailuresTest.java",
     "app/src/test/java/com/deepseekharness/app/util/DiagnosticOperationSummaryTest.java",

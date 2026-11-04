@@ -41,10 +41,16 @@ public final class DshVersionPolicyTest {
   }
 
   @Test
-  public void unknownAndIncompleteEvidenceFailsClosed() {
+  public void unknownAndIncompleteEvidenceIsNotTreatedAsNewerData() {
     assertEquals(
         DshVersionPolicy.Status.MISSING,
         DshVersionPolicy.assess(null, RC5, "0.2.1-rc.5", List.of(RC5)));
+    assertEquals(
+        DshVersionPolicy.Status.MISSING,
+        DshVersionPolicy.assess("", RC5, "0.2.1-rc.5", List.of(RC5)));
+    assertEquals(
+        DshVersionPolicy.Status.UNKNOWN,
+        DshVersionPolicy.assess("0.2.1-rc.5", null, "0.2.1-rc.5", List.of(RC5)));
     assertEquals(
         DshVersionPolicy.Status.UNKNOWN,
         DshVersionPolicy.assess("0.2.9", "dsh-0.2.9", "0.2.1-rc.5", List.of(RC5)));
