@@ -58,6 +58,20 @@ public class PortablePreferenceProjectionTest {
   }
 
   @Test
+  public void nativeDeviceGrantPreferencesNeverEnterPortableProjection() {
+    for (String key : List.of("clipboard_read_mode_v1", "sms_read", "dsha_device_grants")) {
+      assertTrue(PortablePreferenceProjection.nativeOnly(key));
+      assertFalse(PortablePreferenceProjection.transferable(key));
+      assertEquals(
+          Map.of("ui_language", "en"),
+          PortablePreferenceProjection.project(Map.of(key, "allow", "ui_language", "en")));
+      assertTrue(
+          PortablePreferenceProjection.mayImport(
+              Map.of(key, "allow"), Map.of("projectionVersion", 1)));
+    }
+  }
+
+  @Test
   public void retiredNativePermissionChoicesCannotMigrateFromSystemBackup() {
     for (String value : List.of("read-only", "workspace-write", "danger-full-access")) {
       assertEquals(

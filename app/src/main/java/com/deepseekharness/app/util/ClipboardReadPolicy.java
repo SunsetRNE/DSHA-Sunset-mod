@@ -20,7 +20,10 @@ public final class ClipboardReadPolicy {
     }
   }
 
+  /** 拒绝词表：待 T40 的 DeviceRefusal/AgentNextAction 实现后迁移到统一接口。 */
   public static final String ERROR_OFF = "DEVICE_CLIPBOARD_OFF";
+  public static final String NEXT_ACTION = "REPORT_TO_USER";
+  public static final String RETRY = "after_user";
   public static final String USER_ACTION = "设置 → 设备能力授权 → 读剪贴板";
 
   private ClipboardReadPolicy() {}

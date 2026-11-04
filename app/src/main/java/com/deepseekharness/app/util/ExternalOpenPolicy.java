@@ -1,6 +1,6 @@
 package com.deepseekharness.app.util;
 
-/** /app/open 的 scheme 分类；这里不执行 Uri，也不扩大桥现有白名单。 */
+/** /app/open 的 scheme 分类；拒绝词表待 T40 的 DeviceRefusal/AgentNextAction 实现后迁移到统一接口。 */
 public final class ExternalOpenPolicy {
   public enum Kind {
     SAFE,
