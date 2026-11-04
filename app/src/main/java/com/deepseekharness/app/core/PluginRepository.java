@@ -148,7 +148,7 @@ public final class PluginRepository extends AndroidViewModel {
 
   public static final class Item {
     private final JSONObject snapshot;
-    public final String name, description, version, source;
+    public final String name, description, version, source, metadataError;
     public final String stableKey, contentKey, profile, scope, sessionId, pluginId;
     public final long runtimeGeneration;
     public final boolean restartRequired, runtimeStale;
@@ -179,6 +179,7 @@ public final class PluginRepository extends AndroidViewModel {
       }
       name = json.optString("name");
       description = json.optString("description");
+      metadataError = json.optString("metadataError");
       version = json.optString("version");
       source = json.optString("source");
       location = json.optString("location");
@@ -229,6 +230,7 @@ public final class PluginRepository extends AndroidViewModel {
           key(
               name,
               description,
+              metadataError,
               version,
               source,
               location,
@@ -1849,7 +1851,12 @@ public final class PluginRepository extends AndroidViewModel {
   }
 
   public String delete(Item item) {
-    if (!item.deletable || item.dynamic) return "";
+    if (item.dynamic) {
+      selectionMessage(
+          com.deepseekharness.app.util.UiText.text("临时插件请在对应 Web 会话的 Cordis 插件管理中删除。"));
+      return "";
+    }
+    if (!item.deletable) return "";
     return submit(
         Type.DELETE,
         item,

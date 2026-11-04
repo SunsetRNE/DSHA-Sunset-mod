@@ -171,6 +171,36 @@ public final class PluginFragmentRenderingTest {
   }
 
   @Test
+  public void damagedPluginShowsRecoveryGuidanceAndKeepsDeleteAvailable() throws Exception {
+    var damaged =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "damaged-plugin")
+                .put("available", true)
+                .put("deletable", true)
+                .put("metadataError", "PLUGIN_METADATA_UNREADABLE"));
+    mount(state(catalog(List.of(damaged)), List.of(), false, "", -1));
+    assertTrue(text(rowAt(1).findViewById(R.id.pluginDesc)).contains("metadata cannot be read"));
+    assertTrue(rowStatus(1).contains("Plugin metadata unavailable"));
+    assertEquals(View.VISIBLE, rowAt(1).findViewById(R.id.pluginDelete).getVisibility());
+  }
+
+  @Test
+  public void temporaryPluginPointsToItsWebSessionAndNeverShowsPackageDeletion() throws Exception {
+    var temporary =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "temporary-plugin")
+                .put("dynamic", true)
+                .put("deletable", true)
+                .put("sessionId", "fixture-session")
+                .put("pluginId", "fixture-plugin"));
+    mount(state(catalog(List.of(temporary)), List.of(), false, "", -1));
+    assertTrue(text(rowAt(1).findViewById(R.id.pluginDesc)).contains("Cordis plugin management"));
+    assertEquals(View.GONE, rowAt(1).findViewById(R.id.pluginDelete).getVisibility());
+  }
+
+  @Test
   public void runtimeEvidenceRefreshKeepsRowsAndDistinguishesHistoryFromCurrent() throws Exception {
     var alpha = item("alpha").withRuntime("loaded", 1);
     mount(state(catalog(List.of(alpha, item("beta"))), List.of(), false, "", -1));

@@ -15778,5 +15778,39 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/util/RuntimeModeLabel.java"
     ]
+  },
+  {
+    "id": "x296plugin001",
+    "zh": "临时插件请在对应 Web 会话的 Cordis 插件管理中删除。",
+    "en": "Delete this temporary plugin in Cordis plugin management in its Web session.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "x296plugin002",
+    "uiFormat": true,
+    "zh": "%s\n\n临时插件请在对应 Web 会话的 Cordis 插件管理中删除。",
+    "en": "%s\n\nDelete this temporary plugin in Cordis plugin management in its Web session.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "x296plugin003",
+    "zh": "插件元数据无法读取；可删除加载入口，原件保留在数据页。",
+    "en": "Plugin metadata cannot be read. You can remove its load entry; the original stays in Data.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "x296plugin004",
+    "zh": "插件元数据不可用",
+    "en": "Plugin metadata unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
   }
 ]

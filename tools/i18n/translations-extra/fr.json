@@ -1944,5 +1944,9 @@
   "nh274a18": "Le téléphone a du réseau mais n’atteint pas le service de modèle. Un VPN, un proxy ou le service peut en être la cause.",
   "nh274a19": "DSHA ne s’est pas exécuté un moment en arrière-plan ; le système ou l’économie d’énergie l’a peut-être gelé.",
   "rml296a01": "proot (filtre seccomp)",
-  "rml296a02": "proot (mode compatibilité : sans seccomp)"
+  "rml296a02": "proot (mode compatibilité : sans seccomp)",
+  "x296plugin001": "Supprimez ce plugin temporaire dans la gestion des plugins Cordis de sa session Web.",
+  "x296plugin002": "%s\n\nSupprimez ce plugin temporaire dans la gestion des plugins Cordis de sa session Web.",
+  "x296plugin003": "Les métadonnées du plugin sont illisibles. Vous pouvez retirer son entrée de chargement ; l’original reste dans Données.",
+  "x296plugin004": "Métadonnées du plugin indisponibles"
 }

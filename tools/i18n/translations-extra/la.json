@@ -1944,5 +1944,9 @@
   "nh274a18": "Telephonum retem habet, sed ministerium exemplaris attingere non potest. VPN, procurator aut ministerium causa esse potest.",
   "nh274a19": "DSHA aliquamdiu in fundo non cucurrit; fortasse a systemate aut parsimonia energiae congelatum est.",
   "rml296a01": "proot (filtrum seccomp)",
-  "rml296a02": "proot (modus compatibilitatis: sine seccomp)"
+  "rml296a02": "proot (modus compatibilitatis: sine seccomp)",
+  "x296plugin001": "Hanc extensionem temporariam in administratione extensionum Cordis eius sessionis Web dele.",
+  "x296plugin002": "%s\n\nHanc extensionem temporariam in administratione extensionum Cordis eius sessionis Web dele.",
+  "x296plugin003": "Metadata extensionis legi non possunt. Indicem onerandi removere potes; exemplar originale in pagina Datorum manet.",
+  "x296plugin004": "Metadata extensionis non praesto sunt"
 }

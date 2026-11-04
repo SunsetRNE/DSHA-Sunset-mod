@@ -463,6 +463,42 @@ def plugin_package(root):
     return pkg
 
 
+def plugin_card_metadata(directory):
+    """Display/version metadata only; damaged code must remain removable.
+
+    This is not installation or loadability validation. Deletion still binds
+    every retained object with the transaction's complete NOFOLLOW fingerprint.
+    A bad user package must not hide the other cards or its own recovery action.
+    """
+    if directory is None:
+        return {}, 'PLUGIN_METADATA_MISSING'
+    path = os.path.join(directory, 'package.json')
+    try:
+        before = os.lstat(path)
+        if not stat.S_ISREG(before.st_mode) or before.st_size > 1024 * 1024:
+            raise ValueError('PLUGIN_METADATA_TYPE_OR_SIZE')
+        flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+        with os.fdopen(os.open(path, flags), 'rb') as stream:
+            opened = os.fstat(stream.fileno())
+            identity = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size, node.st_mtime_ns, node.st_ctime_ns)
+            if identity(before) != identity(opened):
+                raise ValueError('PLUGIN_METADATA_CHANGED')
+            data = stream.read(1024 * 1024 + 1)
+            if len(data) > 1024 * 1024 or identity(before) != identity(os.fstat(stream.fileno())) \
+                    or identity(before) != identity(os.lstat(path)):
+                raise ValueError('PLUGIN_METADATA_CHANGED')
+        package = json.loads(data.decode('utf-8-sig'))
+        if not isinstance(package, dict):
+            raise ValueError('PLUGIN_METADATA_INVALID')
+        # Keep native version comparisons identical to this display projection.
+        for key in ('version', 'description'):
+            if not isinstance(package.get(key), str):
+                package[key] = ''
+        return package, ''
+    except (OSError, ValueError, UnicodeError):
+        return {}, 'PLUGIN_METADATA_UNREADABLE'
+
+
 def find_plugin_roots(staging, subdir=""):
     root = staging
     children = [os.path.join(staging, p) for p in os.listdir(staging)]
@@ -827,9 +863,10 @@ def cmd_delete(name, expected_version=None):
     if runtime and directory and os.path.realpath(runtime) == os.path.realpath(directory):
         raise ValueError("随 DSH 安装提供的插件请使用禁用开关，不能删除")
     with builtin.operation_lock(check_cancel), committing('正在删除插件：' + name):
-        if expected_version:
+        if expected_version is not None:
             current_directory = resolve_plugin_dir(name)
-            if not current_directory or plugin_package(current_directory).get('version') != expected_version:
+            package, _ = plugin_card_metadata(current_directory)
+            if package.get('version', '') != expected_version:
                 raise ValueError('PLUGIN_TARGET_VERSION_CHANGED')
         doc = builtin.read_manifest()
         if doc is None:
@@ -1054,6 +1091,7 @@ def cmd_list(message="插件状态已同步"):
                                for name in names))
     items = []
     updates = lifecycle().read(lifecycle().path('plugin-updates.json'), {})
+    activations = lifecycle().activation_state()['entries']
     for name in names:
         check_cancel()
         if not builtin.valid_name(name):
@@ -1062,11 +1100,14 @@ def cmd_list(message="插件状态已同步"):
         auto_review = name in builtin.AUTO_REVIEW_ALIASES
         system_plugin = name in system_names or auto_review
         directory = builtin.runtime_bundle_dir(name) if auto_review else resolve_plugin_dir(name, discovered)
-        pkg = read_json(os.path.join(directory, "package.json"), {}) if directory else {}
+        pkg, metadata_error = plugin_card_metadata(directory)
         runtime_directory = builtin.runtime_bundle_dir(name)
         runtime_located = bool(directory and runtime_directory and os.path.realpath(directory) == os.path.realpath(runtime_directory))
+        dsh = pkg.get('dsh')
+        declared_bundle = isinstance(dsh, dict) and isinstance(dsh.get('bundle'), dict) and bool(dsh['bundle'])
+        retained_registration = name in deps and (name in disabled_names or name in sources or name in activations)
         if name not in builtin.OFFICIAL_BUNDLES and not system_plugin \
-                and name not in bundles and not (pkg.get("dsh") or {}).get("bundle"):
+                and name not in bundles and not declared_bundle and not retained_registration:
             continue
         runtime_provided = runtime_located and provenance.managed(name, directory)
         source = repository_url(pkg) if runtime_provided else sources.get(name, "") or repository_url(pkg)
@@ -1080,6 +1121,7 @@ def cmd_list(message="插件状态已同步"):
                           origin='dsha-signed' if system_plugin else 'dsh-managed' if runtime_provided else 'user',
                           official=official, available=official or directory is not None,
                           version=pkg.get("version", ""), description=pkg.get("description", ""),
+                          metadataError=metadata_error if not official and not system_plugin else '',
                           source=source, updatable=updatable,
                           exportable=not official and directory is not None,
                           deletable=not official and not system_plugin and not runtime_located
@@ -1096,7 +1138,6 @@ def cmd_list(message="插件状态已同步"):
                          if update.get('installedVersion') == str(pkg.get('version', '')) else '',
                          rollbackVersion=previous.get('version', ''), compatibility=update.get('compatibility', ''))
     mode = lifecycle().read(lifecycle().path('plugin-safe-mode.json'), {})
-    activations = lifecycle().activation_state()['entries']
     for item in items:
         activation = activations.get(item['name'], {})
         item['loadState'] = activation.get('status', '') if activation.get('version') == item.get('version') else ''
