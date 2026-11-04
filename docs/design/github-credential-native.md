@@ -422,3 +422,20 @@ password=<access token>
 - [Android Keystore system](https://developer.android.com/privacy-and-security/keystore)：Keystore 密钥不可导出、用途和平台限制；本地设备证据不能由官方文档替代。
 - [Android `Context.getNoBackupFilesDir()`](https://developer.android.com/reference/android/content/Context#getNoBackupFilesDir())：不参与自动备份的宿主目录合同；不能解释成同 UID 隔离。
 - 仓库现有 [T42 ADB 原生化设计](adb-native-20261103/README.md)：Keystore/no-backup、备份排除和同 UID 风险的既有表述；T50 不复用其 alias 或实现。
+
+## 16. 待同步文档（实现合入时）
+
+本稿当前只占用本文件；下列文件是用户确认并实现后由主会话协调的同步清单，本次不直接修改：
+
+| 文档 | 需要同步的事实 |
+|---|---|
+| `docs/security-model.md` / `docs/security-model.en.md` | GitHub access/refresh token 的 Keystore/no-backup 位置、旧 `hosts.yml` 迁移与备份排除；3090 broker 只发 access token；同 UID 代码仍可读宿主、调用桥或观察运行中环境，不能宣称沙箱或 token 不可取得；本机清除不等于 GitHub 远端撤销。 |
+| `docs/adr/0002-current-threat-model.md` | 新增 GitHub 凭据资产、OAuth scope/host 边界、bridge 暴露面和同 UID 剩余风险；区分“减少明文持久化”与“不能阻止同 UID 滥用”。 |
+| `docs/bridge-and-files.md` | 新增 `/app/github/status`、`login`、`credential`、`logout` 的方法、X-Token、generation、POST/no-store、`github.com` allowlist 和错误语义；明确 token 不可经 `readfile`/`export` 取得。 |
+| `docs/runtime-data-plugin-architecture.md` / `docs/backup-and-restore.md` | `GitHubCredentialStore` 不属于 rootfs、用户归档、自动副本、DocumentsProvider 或普通备份；旧 `hosts.yml` 的迁移、恢复隔离和维护屏障。 |
+| `docs/device-permissions-architecture.md` | 设置页 GitHub 登录、清除、重新授权和设备锁定/Keystore 暂不可用状态；不把 OAuth 账户状态当作 Root/Shizuku/ADB 能力授权。 |
+| `docs/documentation-index.md` | 增加本设计稿入口；实现完成后将“设计稿，未实现”更新为实际状态并链接验收记录。 |
+| `AGENTS.md` / `AGENTS.en.md` | 当前架构地图、`data/` 与 `bridge/` 新组件职责、凭据/备份边界、T49 wrapper 接口和同 UID 限制；不把原生化写成安全隔离。 |
+| `CHANGELOG.md` | 只记录实际交付的壳登录、迁移、桥能力和验证范围；不提前记录未实现的 OAuth App、真实设备或 GitHub 网络验收。 |
+
+以上同步必须在实现提交中按实际代码和测试结果更新；若 Q1–Q8 未确认，保留本稿的“设计稿，未实现”状态，不改共享文档。
