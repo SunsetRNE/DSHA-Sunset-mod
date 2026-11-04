@@ -440,6 +440,10 @@ public final class NativeBackupJobs {
   }
 
   private synchronized void beginFailed(Exception error) {
+    recordFailure(
+        task != null && state.busy && task.getName().equals(state.id) ? task : null,
+        "PREPARING",
+        error);
     if (task != null && state.busy && task.getName().equals(state.id)) {
       try {
         update("FAILED_RETAINED", "", code(error), "", 0, 0, false);
@@ -450,6 +454,29 @@ public final class NativeBackupJobs {
     control = null;
     State terminal = state;
     main.post(() -> changes.setValue(terminal));
+  }
+
+  /** Only fixed stages, exception types/errno and project stack locations; never messages or paths. */
+  private void recordFailure(File owned, String phase, Exception error) {
+    String diagnostic =
+        BackupFailureDiagnostic.describe(phase, error)
+            + " environmentExclusive="
+            + com.deepseekharness.app.util.EnvironmentTaskGate.isBusy()
+            + " environmentShared="
+            + com.deepseekharness.app.util.EnvironmentTaskGate.sharedCount()
+            + " maintenanceExclusive="
+            + MaintenanceCoordinator.isExclusive();
+    android.util.Log.w("DshaBackup", diagnostic);
+    if (owned == null) return;
+    try {
+      fs.atomic(
+          owned,
+          "failure.json",
+          BackupJson.write(Map.of("version", 1L, "diagnostic", diagnostic), 16384));
+    } catch (IOException | RuntimeException unavailable) {
+      android.util.Log.w(
+          "DshaBackup", BackupFailureDiagnostic.describe("DIAGNOSTIC_PERSISTENCE", unavailable));
+    }
   }
 
   private boolean launch(Runnable work, String name, char[] password) {
@@ -619,8 +646,10 @@ public final class NativeBackupJobs {
           File plain = new File(owned, "snapshot.dshdata"),
               encrypted = new File(owned, "portable.dshbak");
           BackupDirectoryTarget selectedTarget = null;
+          String[] failurePhase = {"FOREGROUND_PROTECTION"};
           try {
             if (activeProtection != null) activeProtection.await();
+            failurePhase[0] = "LOCATOR_INITIALIZATION";
             NativeDataLocations locations = new NativeDataLocations(context);
             Map<String, Object> provenance = new LinkedHashMap<>();
             provenance.put("operation", rescue ? "RESCUE" : "EXPORT");
@@ -646,11 +675,13 @@ public final class NativeBackupJobs {
             NativeDataLocations.Located[] locatedHolder = new NativeDataLocations.Located[1];
             MaintenanceCoordinator.Operation<Map<String, Object>> capture =
                 () -> {
+                  failurePhase[0] = "LOCATING_SOURCES";
                   NativeDataLocations.Located found = locations.locate(frozen, cancellation);
                   locatedHolder[0] = found;
                   provenance.put(
                       "plugins",
                       found.plugins == null ? Collections.emptyMap() : found.plugins.description());
+                  failurePhase[0] = "CAPTURING_SNAPSHOT";
                   return HostSnapshot.create(
                       fs,
                       found.sources,
@@ -662,6 +693,7 @@ public final class NativeBackupJobs {
                       found.plugins == null ? null : found.plugins::verify);
                 };
             Map<String, Object> summary;
+            failurePhase[0] = automatic ? "AUTOMATIC_BARRIER" : "MAINTENANCE_BARRIER";
             if (rescue) summary = capture.run();
             else if (automatic)
               summary =
@@ -681,6 +713,7 @@ public final class NativeBackupJobs {
             else
               summary = MaintenanceCoordinator.exclusive(HarnessController.get(context), capture);
             NativeDataLocations.Located located = locatedHolder[0];
+            failurePhase[0] = "VERIFYING_SNAPSHOT";
             try (InputStream input = fs.read(plain, fs.stat(plain))) {
               BackupArchive.read(input, null, cancellation);
             }
@@ -696,6 +729,7 @@ public final class NativeBackupJobs {
                 BackupJson.number(summary, "entries"),
                 BackupJson.number(summary, "bytes"),
                 true);
+            failurePhase[0] = "BUILDING_PORTABLE";
             if (password != null) {
               try (InputStream input = fs.read(plain, fs.stat(plain));
                   OutputStream output = fs.create(encrypted)) {
@@ -733,6 +767,7 @@ public final class NativeBackupJobs {
                   throw new IOException("PRIVATE_ARTIFACT_VERIFICATION");
               }
             }
+            failurePhase[0] = "VERIFYING_PORTABLE";
             String artifactHash;
             try (InputStream input = fs.read(encrypted, fs.stat(encrypted))) {
               artifactHash = BackupArchive.digest(input, cancellation);
@@ -740,6 +775,7 @@ public final class NativeBackupJobs {
             Map<String, Object> verification = new LinkedHashMap<>(summary);
             verification.put("encryptedSha256", artifactHash);
             verification.put("encryptedBytes", fs.stat(encrypted).size);
+            failurePhase[0] = "PERSISTING_VERIFICATION";
             fs.atomic(
                 owned, "verified.json", BackupJson.write(verification, BackupLimits.MANIFEST));
             fs.delete(plain);
@@ -751,11 +787,13 @@ public final class NativeBackupJobs {
                 BackupJson.number(summary, "entries"),
                 fs.stat(encrypted).size,
                 true);
+            failurePhase[0] = "PREPARING_EXPORT_DESTINATION";
             if (directory != null)
               selectedTarget =
                   BackupDirectoryTarget.create(
                       context.getContentResolver(), directory, expectedName, cancellation);
             Uri actualDestination = selectedTarget == null ? destination : selectedTarget.uri;
+            failurePhase[0] = downloads ? "EXPORTING_MEDIASTORE" : "EXPORTING_DOCUMENT";
             DocumentCopy exported =
                 automatic
                     ? null
@@ -763,6 +801,7 @@ public final class NativeBackupJobs {
                         ? copyToDownloads(encrypted, artifactHash, expectedName, cancellation)
                         : copyToDocument(
                             encrypted, artifactHash, actualDestination, expectedName, cancellation);
+            failurePhase[0] = "PUBLISHING_EXPORT_RESULT";
             if (selectedTarget != null) {
               selectedTarget.retain();
               fs.atomic(
@@ -839,6 +878,7 @@ public final class NativeBackupJobs {
                 fs.stat(encrypted).size,
                 false);
           } catch (Exception error) {
+            recordFailure(owned, failurePhase[0], error);
             try {
               update(
                   error instanceof InterruptedIOException
@@ -914,7 +954,7 @@ public final class NativeBackupJobs {
       throw new IOException("EXPORT_DESTINATION");
     File envelope = fs.child(task, "export.tar.gz"),
         verification = fs.child(task, "export-verified.dshbak");
-    try {
+    try (BackupTemporaryFiles cleanup = new BackupTemporaryFiles(fs, envelope, verification)) {
       try (OutputStream output = fs.create(envelope)) {
         PortableBackupEnvelope.writeUnencrypted(fs, source, expected, output, cancellation);
       }
@@ -959,9 +999,6 @@ public final class NativeBackupJobs {
                   outerHash),
               16384));
       return new DocumentCopy(true, outerHash, exported.uri, exported.displayName);
-    } finally {
-      if (fs.stat(envelope).type.equals("FILE")) fs.delete(envelope);
-      if (fs.stat(verification).type.equals("FILE")) fs.delete(verification);
     }
   }
 

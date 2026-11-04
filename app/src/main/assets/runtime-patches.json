@@ -154,6 +154,12 @@
       ]
     },
     {
+      "asset": "fs-justification-patch.json",
+      "markers": [
+        "DSHA_FS_JUSTIFICATION_V1"
+      ]
+    },
+    {
       "asset": "guard-editor-patch.json",
       "markers": [
         "DSHA_REQUIRED_POLICY_V1"
@@ -319,6 +325,107 @@
       "asset": "file-image-actions-patch.json",
       "markers": [
         "DSHA_IMAGE_ACTIONS_RC2_V1"
+      ]
+    },
+    {
+      "asset": "workspace-change-feed-bounded-patch.json",
+      "markers": [
+        "DSHA_WORKSPACE_CHANGE_FEED_BOUNDED_V1"
+      ]
+    },
+    {
+      "asset": "files-list-rejection-patch.json",
+      "markers": [
+        "DSHA_FILES_LIST_REJECTION_V1"
+      ]
+    },
+    {
+      "asset": "text-page-rejection-patch.json",
+      "markers": [
+        "DSHA_TEXT_PAGE_REJECTION_V1"
+      ]
+    },
+    {
+      "asset": "local-directory-prefix-patch.json",
+      "markers": [
+        "DSHA_DIRECTORY_PREFIX_BOUNDED_V1"
+      ]
+    },
+    {
+      "asset": "local-directory-watch-patch.json",
+      "markers": [
+        "DSHA_DIRECTORY_WATCH_BOUNDED_V1",
+        "DSHA_FILE_WATCH_BOUNDED_V1",
+        "DSHA_WATCH_ERROR_TERMINAL_V1"
+      ]
+    },
+    {
+      "asset": "workspace-directory-prefix-patch.json",
+      "markers": [
+        "DSHA_WORKSPACE_DIRECTORY_PREFIX_V1"
+      ]
+    },
+    {
+      "asset": "openai-sse-esm-patch.json",
+      "markers": [
+        "DSHA_OPENAI_SSE_FRAMING_V1",
+        "DSHA_SSE_INVALID_JSON"
+      ]
+    },
+    {
+      "asset": "openai-sse-cjs-patch.json",
+      "markers": [
+        "DSHA_OPENAI_SSE_FRAMING_V1",
+        "DSHA_SSE_INVALID_JSON"
+      ]
+    },
+    {
+      "asset": "chat-render-performance-patch.json",
+      "markers": [
+        "DSHA_CHAT_RENDER_INCREMENTAL_V1",
+        "DSHA_CHAT_FLOW_ROWS_V1"
+      ]
+    },
+    {
+      "asset": "session-status-scale-patch.json",
+      "markers": [
+        "DSHA_SESSION_STATUS_SCALE_V1"
+      ]
+    },
+    {
+      "asset": "workspace-order-scale-patch.json",
+      "markers": [
+        "DSHA_WORKSPACE_ORDER_SCALE_V1"
+      ]
+    },
+    {
+      "asset": "chat-viewport-performance-patch.json",
+      "markers": [
+        "DSHA_CHAT_ANCHOR_LOOKUP_V1"
+      ]
+    },
+    {
+      "asset": "temporary-plugin-host-remove-patch.json",
+      "markers": [
+        "DSHA_TEMPORARY_PLUGIN_REMOVE_V1"
+      ]
+    },
+    {
+      "asset": "temporary-plugin-ui-remove-patch.json",
+      "markers": [
+        "DSHA_TEMPORARY_PLUGIN_UI_REMOVE_V1"
+      ]
+    },
+    {
+      "asset": "startup-resolution-patch.json",
+      "markers": [
+        "DSHA_STARTUP_RESOLUTION_REALPATH_V1"
+      ]
+    },
+    {
+      "asset": "literal-loopback-online-patch.json",
+      "markers": [
+        "DSHA_LITERAL_LOOPBACK_ONLINE_V1"
       ]
     }
   ],

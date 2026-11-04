@@ -44,6 +44,7 @@
     "file-upload-capacity-patch.json",
     "file-upload-resolver-lifecycle-patch.json",
     "frontend-static-cache-patch.json",
+    "fs-justification-patch.json",
     "guard-bash-patch.json",
     "guard-editor-patch.json",
     "guard-fs-patch.json",
@@ -141,7 +142,23 @@
     "web-integration/session-interaction.js",
     "welcome-notice-patch.json",
     "workspace-directory-policy-patch.json",
-    "external-tool-proof.json"
+    "external-tool-proof.json",
+    "workspace-change-feed-bounded-patch.json",
+    "files-list-rejection-patch.json",
+    "text-page-rejection-patch.json",
+    "local-directory-prefix-patch.json",
+    "local-directory-watch-patch.json",
+    "workspace-directory-prefix-patch.json",
+    "openai-sse-esm-patch.json",
+    "openai-sse-cjs-patch.json",
+    "chat-render-performance-patch.json",
+    "session-status-scale-patch.json",
+    "workspace-order-scale-patch.json",
+    "chat-viewport-performance-patch.json",
+    "temporary-plugin-host-remove-patch.json",
+    "temporary-plugin-ui-remove-patch.json",
+    "startup-resolution-patch.json",
+    "literal-loopback-online-patch.json"
   ],
   "packagedTrees": [
     "app-integration",
@@ -163,7 +180,11 @@
     "adb-wheels.tar.gz"
   ],
   "sourceOnlyTrees": [
-    "runtime-python"
+    "runtime-python",
+    "builtin-plugins/dsh-web-mobile/assets/banner.png",
+    "builtin-plugins/dsh-web-mobile/assets/drawer.png",
+    "builtin-plugins/dsh-web-mobile/assets/hero.png",
+    "builtin-plugins/dsh-web-mobile/assets/settings.png"
   ],
   "generatedFiles": [
     "glibc-python.bin",

@@ -11,6 +11,7 @@ final class VirtualScreenRequestScope {
   final CapabilityRequest request;
   final BooleanSupplier authority;
   final String target;
+  final com.deepseekharness.app.util.ScreenFramePolicy.Settings frameSettings;
   private CapabilityBroker.DispatchPermit permit;
 
   VirtualScreenRequestScope(
@@ -18,9 +19,19 @@ final class VirtualScreenRequestScope {
       CapabilityRequest request,
       BooleanSupplier authority,
       String target) {
+    this(broker, request, authority, target, null);
+  }
+
+  VirtualScreenRequestScope(
+      CapabilityBroker broker,
+      CapabilityRequest request,
+      BooleanSupplier authority,
+      String target,
+      com.deepseekharness.app.util.ScreenFramePolicy.Settings frameSettings) {
     this.broker = broker;
     this.request = request;
     this.authority = authority;
+    this.frameSettings = frameSettings;
     this.target =
         request != null && request.target instanceof WindowTargetEvidence evidence
             ? evidence.packageName()

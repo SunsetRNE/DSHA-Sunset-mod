@@ -38,6 +38,7 @@ def main():
              'util/VirtualScreenExitProofPolicy', 'util/ProcStat',
              'util/VirtualScreenBootstrap', 'util/VirtualScreenFailures', 'util/SensitiveData', 'util/UiText',
              'util/UiLanguagePreference', 'util/SystemLanguage', 'util/Ids', 'util/VirtualScreenPolicy',
+             'util/ScreenFramePolicy', 'util/ScreenObservationLedger', 'util/ScreenTarget', 'util/ScreenWindowRegion',
              'util/VirtualScreenInputPolicy', 'util/VirtualScreenInputResult', 'util/VirtualScreenStroke',
              'util/AppIdentity', 'util/AppInstallIdentity', 'core/NioInstallationIdentity',
              'vscreen/VirtualScreenJournal', 'vscreen/VirtualScreenSessionJournal',

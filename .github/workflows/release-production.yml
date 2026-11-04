@@ -1,7 +1,7 @@
-name: DSH-A-Su production release
+name: DSHA production release
 
-# 公开仓库的正式成品发布：显式 workflow_dispatch、绑定精确 commit 与固定输入，
-# 用仓库 Secrets 里的 Mod 发布证书签名 io.github.sunsetrne.dsha 正式包，核验证书后
+# 私有维护仓库的正式成品发布：显式 workflow_dispatch、绑定精确 commit 与固定输入，
+# 用仓库 Secrets 里的 历史 E7E3 发布证书签名 dsh.android.client 正式包，核验证书后
 # 创建 tag + prerelease，并上传 APK、校验和与构建/单测证据。不运行 Low，不使用测试包身份。
 #
 # 节点图（任一节点失败都不会签名或发布）：
@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: New tag dsha-a-su-build<code>-YYYYMMDD-HHMMSS (created at the verified commit)
+        description: New tag dsha-build<code>-YYYYMMDD-HHMMSS (created at the verified commit)
         required: true
         type: string
       expected_sha:
@@ -28,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dsha-a-su-release-${{ inputs.release_tag }}
+  group: dsha-release-${{ inputs.release_tag }}
   cancel-in-progress: false
 
 jobs:
@@ -36,8 +36,9 @@ jobs:
     name: Bind release request to exact source
     if: >-
       github.event_name == 'workflow_dispatch'
-      && github.repository == 'SunsetRNE/DSHA-Sunset-mod'
-      && github.ref == 'refs/heads/main'
+      && github.repository == 'ym2025szz/DSHA-prerelase'
+      && github.event.repository.private
+      && github.ref == 'refs/heads/codex/prerelease-190'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -60,7 +61,7 @@ jobs:
           if expected != os.environ['GITHUB_SHA'] or not re.fullmatch(r'[a-f0-9]{40}', expected):
               raise SystemExit('RELEASE_COMMIT_MISMATCH')
           tag = os.environ['RELEASE_TAG']
-          if not re.fullmatch(r'dsha-a-su-build[0-9]+-[0-9]{8}-[0-9]{6}', tag):
+          if not re.fullmatch(r'dsha-build[0-9]+-[0-9]{8}-[0-9]{6}', tag):
               raise SystemExit('RELEASE_TAG_INVALID')
           try:
               datetime.strptime(tag.rsplit('-', 2)[1] + tag.rsplit('-', 1)[1], '%Y%m%d%H%M%S')
@@ -71,10 +72,10 @@ jobs:
           spec.loader.exec_module(helper)
           helper.resolve({})
           identity = json.load(open('ci/release-identity.json', encoding='utf-8'))
-          if identity['packageName'] != 'io.github.sunsetrne.dsha':
+          if identity['packageName'] != 'dsh.android.client':
               raise SystemExit('PACKAGE_IDENTITY_MISMATCH')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              output.write('apk_name=dsha-a-su-' + expected[:8] + '.apk\n')
+              output.write('apk_name=dsha-' + expected[:8] + '.apk\n')
           PYCODE
       # 在任何构建前拒绝已存在的 tag；publish 节点创建前会再查一次。
       - name: Refuse an existing release tag before building
@@ -168,7 +169,7 @@ jobs:
       artifact: release-lint-results
 
   build-signed:
-    name: Build and verify signed DSH-A-Su
+    name: Build and verify signed DSHA
     needs: [bind, contracts, java-format, host-regression, inputs, unit, lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -204,7 +205,7 @@ jobs:
       - name: Re-verify complete Standard unit-test results
         run: python3 tools/verify-unit-results.py --mode full --require-fixtures --output out/full-unit-tests.json
 
-      - name: Prepare Mod release signing key from secrets
+      - name: Prepare historical DSHA release signing key from secrets
         env:
           KEYSTORE_B64: ${{ secrets.DSHA_KEYSTORE_B64 }}
           STORE_PASSWORD: ${{ secrets.DSHA_KEYSTORE_PASSWORD }}
@@ -218,14 +219,14 @@ jobs:
           echo "::add-mask::${KEY_PASSWORD:-$STORE_PASSWORD}"
           case "${KEY_ALIAS:-}" in *[!A-Za-z0-9._-]* ) echo 'unsafe alias'; exit 1 ;; esac
           umask 077
-          key="$RUNNER_TEMP/dsha-a-su-release-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.jks"
+          key="$RUNNER_TEMP/dsha-release-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.jks"
           printf '%s' "$KEYSTORE_B64" | base64 -d > "$key"
           test -s "$key"
           {
             printf 'DSHA_KEYSTORE=%s\n' "$key"
             printf 'DSHA_KEYSTORE_PASSWORD=%s\n' "$STORE_PASSWORD"
             printf 'DSHA_KEY_PASSWORD=%s\n' "${KEY_PASSWORD:-$STORE_PASSWORD}"
-            printf 'DSHA_KEY_ALIAS=%s\n' "${KEY_ALIAS:-dsha-a-su}"
+            printf 'DSHA_KEY_ALIAS=%s\n' "${KEY_ALIAS:-androiddebugkey}"
           } >> "$GITHUB_ENV"
 
       - name: Build signed production APK
@@ -269,7 +270,7 @@ jobs:
           match = re.search(r'Signer #1 certificate SHA-256 digest: ([a-f0-9]{64})', verify.stdout)
           if not match or match.group(1) != identity['certificateSha256']:
               raise SystemExit('APK_CERTIFICATE_MISMATCH')
-          if f"application-label:'DSH-A-Su'" not in badging:
+          if f"application-label:'DSHA'" not in badging:
               raise SystemExit('APK_LABEL_MISMATCH')
           pathlib.Path('out').mkdir(exist_ok=True)
           pathlib.Path('out/apk-signature.txt').write_text(verify.stdout, encoding='utf-8')
@@ -302,7 +303,7 @@ jobs:
           cert = identity['certificateSha256']
           value = {
               'schema': 1,
-              'kind': 'dsha-a-su-production-release-apk',
+              'kind': 'dsha-production-release-apk',
               'commit': os.environ['GITHUB_SHA'],
               'runNumber': os.environ['GITHUB_RUN_NUMBER'],
               'runId': os.environ['GITHUB_RUN_ID'],
@@ -317,7 +318,7 @@ jobs:
               'signingSchemes': identity['schemes'],
               'assetBundleSha256': os.environ['ASSET_SHA'],
               'unitTests': json.load(open('out/full-unit-tests.json', encoding='utf-8')),
-              'note': 'Production DSH-A-Su package. Verify SHA-256 and certificate before installing.',
+              'note': 'Production DSHA package. Verify SHA-256 and certificate before installing.',
           }
           Path('out/build-info.json').write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           files = [Path('out') / name for name in ['build-info.json', 'full-unit-tests.json', 'apk-signature.txt', 'apk-badging.txt', os.environ['APK_NAME']]]
@@ -327,10 +328,10 @@ jobs:
               files.append(lint)
           if any(not path.is_file() or path.is_symlink() for path in files):
               raise SystemExit('EVIDENCE_MISSING')
-          with zipfile.ZipFile('out/dsha-a-su-build-evidence.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
+          with zipfile.ZipFile('out/dsha-build-evidence.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
               for path in sorted(set(files)):
                   archive.write(path, path.as_posix())
-          names = [os.environ['APK_NAME'], 'dsha-a-su-build-evidence.zip', 'build-info.json']
+          names = [os.environ['APK_NAME'], 'dsha-build-evidence.zip', 'build-info.json']
           Path('out/SHA256SUMS').write_text(''.join(
               hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
               encoding='utf-8')
@@ -358,7 +359,7 @@ jobs:
           import os
           from pathlib import Path
           parent = Path(os.environ['RUNNER_TEMP']).resolve()
-          key = parent / ('dsha-a-su-release-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'] + '.jks')
+          key = parent / ('dsha-release-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'] + '.jks')
           if key.is_symlink() or key.resolve().parent != parent:
               raise SystemExit('UNEXPECTED_RELEASE_KEY_PATH')
           key.unlink(missing_ok=True)
@@ -371,7 +372,7 @@ jobs:
           name: release-bundle
           path: |
             out/${{ needs.bind.outputs.apk_name }}
-            out/dsha-a-su-build-evidence.zip
+            out/dsha-build-evidence.zip
             out/build-info.json
             out/SHA256SUMS
             out/release-notes.md
@@ -420,7 +421,7 @@ jobs:
             echo 'release tag already exists'; exit 1
           fi
           gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$EXPECTED_SHA" \
-            --prerelease --title "DSH-A-Su build${BUILD_CODE} ($RELEASE_TAG)" --notes-file out/release-notes.md
+            --prerelease --title "DSHA build${BUILD_CODE} ($RELEASE_TAG)" --notes-file out/release-notes.md
           gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-            "out/$APK_NAME" out/dsha-a-su-build-evidence.zip out/build-info.json out/SHA256SUMS
+            "out/$APK_NAME" out/dsha-build-evidence.zip out/build-info.json out/SHA256SUMS
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isPrerelease,assets,url

@@ -16,6 +16,53 @@ public class ConfigStore {
   private final SharedPreferences prefs;
   private final KeyVault vault;
   private static final Object COLD_SELECTION_LOCK = new Object();
+  private static final Object SCREEN_FRAME_LOCK = new Object();
+
+  /** 只留在本机，不纳入可迁移设置；不授予任何屏幕操作权限。 */
+  public com.deepseekharness.app.util.ScreenFramePolicy.Settings screenFrameSettings() {
+    synchronized (SCREEN_FRAME_LOCK) {
+      try {
+        var image = prefs.getAll();
+        Object list = image.get("screen_animated_packages");
+        Object revision = image.get("screen_animated_packages_revision");
+        if (list != null && !(list instanceof String)
+            || revision != null && !(revision instanceof Long))
+          return new com.deepseekharness.app.util.ScreenFramePolicy.Settings("", -1);
+        String normalized =
+            com.deepseekharness.app.util.ScreenFramePolicy.normalizePackages(
+                list == null ? "" : (String) list);
+        long version = revision == null ? 0 : (Long) revision;
+        return new com.deepseekharness.app.util.ScreenFramePolicy.Settings(normalized, version);
+      } catch (RuntimeException invalid) {
+        return new com.deepseekharness.app.util.ScreenFramePolicy.Settings("", -1);
+      }
+    }
+  }
+
+  public String screenAnimatedPackages() {
+    return screenFrameSettings().configured();
+  }
+
+  public long screenAnimatedPackagesRevision() {
+    return screenFrameSettings().revision();
+  }
+
+  /** 同步保存使撤销先于后续请求生效；修订不复用，即使关闭后重新启用同一包。 */
+  public boolean setScreenAnimatedPackages(String configured) {
+    String normalized =
+        com.deepseekharness.app.util.ScreenFramePolicy.normalizePackages(configured);
+    synchronized (SCREEN_FRAME_LOCK) {
+      var previous = screenFrameSettings();
+      if (previous.configured().equals(normalized) && previous.revision() >= 0) return true;
+      if (previous.revision() == Long.MAX_VALUE) return false;
+      long next = previous.revision() < 0 ? 1 : previous.revision() + 1;
+      return prefs
+          .edit()
+          .putString("screen_animated_packages", normalized)
+          .putLong("screen_animated_packages_revision", next)
+          .commit();
+    }
+  }
 
   public ConfigStore(Context ctx) {
     this.prefs = ctx.getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);

@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "reason": "Explicitly adopt the same reviewed rc5 filesystem/file-manager hotfixes in the independently pinned rescue runtime, enabling existing exact-byte APK sharing. This is not an automatic lock update or removal of recovery.",
+  "previousArchiveSha256": "2316d6d9051455a6ed1507b887e5c30fb2ac9fe4b204d97e179ef34c5f692dc0",
+  "reviewedArchiveSha256": "b70dbf24581ac57e0fe71affe09b0bdcc4e8408dcb8855e90a82c8b3aead3934",
+  "dshVersion": "0.2.1-rc.5",
+  "sourceCommit": "a5eabe5015d6cedba6748217d2b49d17bf077040",
+  "formalMembers": 15644,
+  "recoveryMembers": 15644,
+  "differences": [
+    {
+      "path": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-workspace-files/lib/index.js",
+      "formal": {
+        "type": "0",
+        "mode": 420,
+        "size": 25709,
+        "link": "",
+        "sha256": "6a98a26ca5987793034a8a0b281cb777528e1701623649c91514f127ce2f03db"
+      },
+      "recovery": {
+        "type": "0",
+        "mode": 420,
+        "size": 25087,
+        "link": "",
+        "sha256": "1d633aaf12df42e477438738f5939273ffc139ad96299ba471f97b46b2dd256c"
+      }
+    },
+    {
+      "path": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js",
+      "formal": {
+        "type": "0",
+        "mode": 420,
+        "size": 287115,
+        "link": "",
+        "sha256": "4d74a642d9c41d9a5a6b16a4770155d0a229efae05153f979c462424e82e4bcc"
+      },
+      "recovery": {
+        "type": "0",
+        "mode": 420,
+        "size": 286715,
+        "link": "",
+        "sha256": "3c8259fed8fb6d8cf1af6ecc2c7f478df4eacab4628b91e4c9ad8defdc5fb595"
+      }
+    },
+    {
+      "path": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js",
+      "formal": {
+        "type": "0",
+        "mode": 420,
+        "size": 40692,
+        "link": "",
+        "sha256": "561fa5d5f72bbf08bc7203e9b5679cdbe7c7e3756fe96761c31720f9cdc8f21c"
+      },
+      "recovery": {
+        "type": "0",
+        "mode": 420,
+        "size": 40369,
+        "link": "",
+        "sha256": "d5974bf247e187eecf820f8ee8d5a7c9373fd66d111c6815b087ed8fe3ccc808"
+      }
+    },
+    {
+      "path": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-fs-local/lib/index.js",
+      "formal": {
+        "type": "0",
+        "mode": 420,
+        "size": 45808,
+        "link": "",
+        "sha256": "9571578faeb067b0aa2348f3b5e866377c9e6af0ba800f265940e932708bb494"
+      },
+      "recovery": {
+        "type": "0",
+        "mode": 420,
+        "size": 41394,
+        "link": "",
+        "sha256": "5dd5e0647851884ce450bcbc3aa4c429097bd04cf87ab1c129cab964c20f831e"
+      }
+    },
+    {
+      "path": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tool-fs/lib/index.js",
+      "formal": {
+        "type": "0",
+        "mode": 420,
+        "size": 50561,
+        "link": "",
+        "sha256": "f90303604714b46f8dc1009979179e1c3126ddba1b2d2cd62f154197f473091d"
+      },
+      "recovery": {
+        "type": "0",
+        "mode": 420,
+        "size": 49620,
+        "link": "",
+        "sha256": "6490fb09e9b0d5da49c90fd8350e64fa42d97aa57d2d755de05f86e29da35b50"
+      }
+    }
+  ]
+}

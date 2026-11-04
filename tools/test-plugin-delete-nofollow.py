@@ -121,6 +121,66 @@ class DeleteNoFollowTest(unittest.TestCase):
         self.assertEqual(profile_before, (manifest.read_bytes(), manifest.stat().st_ino))
         self.assertFalse((self.home / 'plugin-install-operations').exists())
 
+    def test_native_versioned_delete_retains_a_plugin_with_missing_patch(self):
+        (self.package / 'cordis.patch.yml').unlink()
+        execution = self.cli('delete', 'test-plugin', '1.0.0')
+        self.assertEqual(0, execution.returncode, execution.stdout + execution.stderr)
+        retained = list((self.home / 'plugin-install-operations/completed').glob('*/delete-link'))
+        self.assertEqual(1, len(retained))
+        self.assertEqual('original owned bytes', (retained[0] / 'index.js').read_text())
+        self.assertFalse(self.package.exists())
+
+    def test_native_versioned_delete_does_not_require_loadable_main_or_cordis_entry(self):
+        manifest = self.package / 'package.json'
+        package = json.loads(manifest.read_text())
+        package.update(main='missing-main.js', cordis={'entry': 'missing-cordis.js'})
+        manifest.write_text(json.dumps(package))
+        execution = self.cli('delete', 'test-plugin', '1.0.0')
+        self.assertEqual(0, execution.returncode, execution.stdout + execution.stderr)
+        self.assertFalse(self.package.exists())
+
+    def test_empty_expected_version_cannot_delete_a_later_valid_version(self):
+        before = (self.profile / 'package.json').read_bytes()
+        execution = self.cli('delete', 'test-plugin', '')
+        self.assertNotEqual(0, execution.returncode, execution.stdout + execution.stderr)
+        self.assertIn('PLUGIN_TARGET_VERSION_CHANGED', execution.stdout + execution.stderr)
+        self.assertTrue(self.package.exists())
+        self.assertEqual(before, (self.profile / 'package.json').read_bytes())
+
+    def test_corrupt_disabled_plugin_stays_visible_and_can_be_retained(self):
+        original = b'{broken package metadata'
+        (self.package / 'package.json').write_bytes(original)
+        (self.profile / 'node_modules/test-plugin.disabled').write_text('')
+        doc = json.loads((self.profile / 'package.json').read_text())
+        doc['dsh']['profile']['bundles'] = []
+        (self.profile / 'package.json').write_text(json.dumps(doc))
+        with patch.object(self.manager, 'result') as result:
+            self.assertEqual(0, self.manager.cmd_list())
+            row = next(row for row in result.call_args.kwargs['items'] if row['name'] == 'test-plugin')
+        self.assertTrue(row['deletable'])
+        self.assertFalse(row['enabled'])
+        self.assertEqual('', row['version'])
+        self.assertTrue(row['metadataError'])
+        execution = self.cli('delete', 'test-plugin', row['version'])
+        self.assertEqual(0, execution.returncode, execution.stdout + execution.stderr)
+        retained = list((self.home / 'plugin-install-operations/completed').glob('*/delete-link/package.json'))
+        self.assertEqual([original], [path.read_bytes() for path in retained])
+
+    def test_disabled_plugin_with_missing_metadata_stays_visible(self):
+        (self.package / 'package.json').unlink()
+        (self.profile / 'node_modules/test-plugin.disabled').write_text('')
+        doc = json.loads((self.profile / 'package.json').read_text())
+        doc['dsh']['profile']['bundles'] = []
+        (self.profile / 'package.json').write_text(json.dumps(doc))
+        with patch.object(self.manager, 'result') as result:
+            self.assertEqual(0, self.manager.cmd_list())
+            row = next(row for row in result.call_args.kwargs['items'] if row['name'] == 'test-plugin')
+        self.assertTrue(row['deletable'])
+        self.assertFalse(row['available'])
+        execution = self.cli('delete', 'test-plugin', row['version'])
+        self.assertEqual(0, execution.returncode, execution.stdout + execution.stderr)
+        self.assertFalse(self.package.exists())
+
     def test_delete_readback_rejects_unconfirmed_load_entry(self):
         with patch.object(self.transaction, 'apply_delete', return_value=None):
             with self.assertRaisesRegex(ValueError, '删除结果未确认'):

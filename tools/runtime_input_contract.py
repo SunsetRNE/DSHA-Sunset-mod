@@ -8,6 +8,24 @@ JAVA = 'app/src/main/java/com/deepseekharness/app'
 BUILTIN_RUNTIME_SUFFIXES = {'.js', '.cjs', '.mjs', '.json', '.yml', '.yaml', '.css', '.wasm',
                             '.html', '.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico',
                             '.woff', '.woff2', '.ttf', '.otf'}
+# Reviewed mobile 3.2.3 README illustrations. This is an exact leaf allowlist,
+# never a suffix/directory exemption for runtime images or future assets.
+BUILTIN_SOURCE_DOCUMENTS = frozenset(
+    'builtin-plugins/dsh-web-mobile/assets/' + name
+    for name in ('banner.png', 'drawer.png', 'hero.png', 'settings.png'))
+
+
+def source_only_builtin_documents(root):
+    deployment = Path(root) / 'tools/asset-deployment.json'
+    if not deployment.is_file():
+        return set()
+    declaration = json.loads(deployment.read_text(encoding='utf-8'))
+    declared = set(declaration.get('sourceOnlyTrees', [])) & BUILTIN_SOURCE_DOCUMENTS
+    for name in declared:
+        path = Path(root) / ASSETS / name
+        if not path.is_file() or path.is_symlink():
+            raise ValueError('BUILTIN_DOCUMENT_SOURCE_TYPE:' + name)
+    return declared
 
 
 def relative(value):
@@ -39,6 +57,9 @@ def load(root):
     if not isinstance(generators,list) or len(set(generators))!=len(generators):
         raise ValueError('RUNTIME_GENERATOR_SOURCE_LIST')
     for value in generators:relative(value)
+    documents = source_only_builtin_documents(root)
+    if documents.intersection(assets) or documents.intersection(spec['assetFiles']):
+        raise ValueError('BUILTIN_DOCUMENT_RUNTIME_INPUT')
     verify_builtin_installs(root, spec)
     return spec
 
@@ -55,6 +76,7 @@ def verify_builtin_installs(root, spec):
     if not registry.is_file():
         return  # Small isolated descriptor fixtures need not contain the plugin registry.
     rows = {row['asset']: row for row in spec['installs']}
+    documents = source_only_builtin_documents(root)
     for plugin in json.loads(registry.read_text(encoding='utf-8'))['plugins']:
         name, guest = plugin['name'], plugin['guestDirectory']
         tree = 'app-integration' if name == 'dsh-app-integration' else 'builtin-plugins/' + name
@@ -66,6 +88,10 @@ def verify_builtin_installs(root, spec):
             if not path.is_file() or suffix.startswith('src/') or path.suffix not in BUILTIN_RUNTIME_SUFFIXES:
                 continue
             asset = tree + '/' + suffix
+            if asset in documents:
+                if asset in rows:
+                    raise ValueError('BUILTIN_DOCUMENT_RUNTIME_INPUT:' + asset)
+                continue
             expected = guest.lstrip('/') + '/' + suffix
             if asset not in rows:
                 raise ValueError('BUILTIN_RUNTIME_FILE_UNINSTALLED:' + asset)
@@ -84,6 +110,7 @@ def _file(root, relative_path):
 def asset_paths(root, spec=None):
     root = Path(root)
     spec = spec or load(root)
+    documents = source_only_builtin_documents(root)
     result = {root / MANIFEST}
     for name in spec['assetFiles'] + [row['asset'] for row in spec['installs']]:
         result.add(_file(root, ASSETS + '/' + name))
@@ -93,6 +120,8 @@ def asset_paths(root, spec=None):
             raise ValueError('RUNTIME_INPUT_TREE: ' + name)
         for path in directory.rglob('*'):
             if path.is_file():
+                if path.relative_to(root / ASSETS).as_posix() in documents:
+                    continue
                 result.add(_file(root, path.relative_to(root).as_posix()))
     return sorted(result)
 

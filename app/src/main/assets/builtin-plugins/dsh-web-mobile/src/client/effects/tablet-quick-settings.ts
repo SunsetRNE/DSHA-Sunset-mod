@@ -24,9 +24,22 @@ export function installTabletQuickSettings(ctx: ClientContext): void {
       const task = createDrawerQuickSettingsTask(ctx)
       task.ensure()
 
-      let queued = false
+      // DSHA_TABLET_SETTINGS_OBSERVER_V1: streamed message/composer/session-list
+      // changes cannot replace the account row or its portal menu. Inspect only
+      // changed subtrees, never rescan the conversation merely to find a gear.
+      const relevant = '[class*="triggerRow"], [role="menu"], [data-shell-overlay]'
+      const touchesSettings = (record: MutationRecord): boolean => {
+        const target = record.target instanceof Element ? record.target : record.target.parentElement
+        if (target?.closest(relevant)) return true
+        if (target?.closest('[data-chat-flow]')) return false
+        return [...record.addedNodes, ...record.removedNodes].some((node) =>
+          node instanceof Element && (node.matches(relevant) || node.querySelector(relevant) !== null))
+      }
+      let frame = 0
+      let active = true
       const run = (): void => {
-        queued = false
+        frame = 0
+        if (!active) return
         try {
           task.ensure()
         } catch (error) {
@@ -34,14 +47,16 @@ export function installTabletQuickSettings(ctx: ClientContext): void {
           console.error('[dsh-web-mobile] tablet-quick-settings', error)
         }
       }
-      const observer = new MutationObserver(() => {
-        if (queued) return
-        queued = true
-        requestAnimationFrame(run)
+      const observer = new MutationObserver((records) => {
+        if (!active || frame !== 0 || !records.some(touchesSettings)) return
+        frame = requestAnimationFrame(run)
       })
       observer.observe(document.documentElement, { childList: true, subtree: true })
 
       return () => {
+        active = false
+        if (frame !== 0) cancelAnimationFrame(frame)
+        frame = 0
         observer.disconnect()
         task.dispose()
       }

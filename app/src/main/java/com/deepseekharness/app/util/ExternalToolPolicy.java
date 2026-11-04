@@ -216,10 +216,7 @@ public final class ExternalToolPolicy {
               && Set.of("system", "secure", "global").contains(args.get(2))
           ? null
           : "EXTERNAL_ADB_SHELL_BLOCKED";
-    if (command.equals("wm"))
-      return args.size() >= 2 && args.size() <= 3 && Set.of("size", "density").contains(args.get(1))
-          ? null
-          : "EXTERNAL_ADB_SHELL_BLOCKED";
+    if (command.equals("wm") || command.equals("logcat")) return diagnosticReadRejection(args);
     if (command.equals("cat")) {
       if (args.size() != 2) return "EXTERNAL_ADB_SHELL_ARGS";
       String path = args.get(1).toLowerCase(Locale.ROOT);
@@ -234,17 +231,64 @@ public final class ExternalToolPolicy {
           : "EXTERNAL_ADB_SHELL_ARGS";
     if (command.equals("df")) return args.size() <= 2 ? null : "EXTERNAL_ADB_SHELL_ARGS";
     if (command.equals("uname")) return args.size() <= 2 ? null : "EXTERNAL_ADB_SHELL_ARGS";
-    if (command.equals("logcat"))
-      return args.size() <= 5
-              && args.stream().allMatch(value -> value.matches("-[dtvbi]|[A-Za-z0-9_.*:-]{1,64}"))
-          ? null
-          : "EXTERNAL_ADB_SHELL_ARGS";
     if (command.equals("dumpsys"))
       return args.size() == 2
               && Set.of("battery", "display", "meminfo", "cpuinfo", "window").contains(args.get(1))
           ? null
           : "EXTERNAL_ADB_SHELL_ARGS";
     return "EXTERNAL_ADB_SHELL_BLOCKED";
+  }
+
+  /** These two executable names have both read and write forms. Use the same grammar at planning and dispatch. */
+  static String diagnosticReadRejection(List<String> argv) {
+    if (argv.get(0).equalsIgnoreCase("wm"))
+      return argv.size() == 2 && Set.of("size", "density").contains(argv.get(1))
+          ? null
+          : "EXTERNAL_ADB_SHELL_BLOCKED";
+    if (!argv.get(0).equalsIgnoreCase("logcat")) return null;
+    if (argv.size() > 12) return "EXTERNAL_ADB_SHELL_BLOCKED";
+    for (int i = 1; i < argv.size(); i++) {
+      String token = argv.get(i);
+      switch (token) {
+        case "-d", "-g", "-s" -> {}
+        case "-t" -> {
+          if (++i == argv.size() || !argv.get(i).matches("[1-9][0-9]{0,5}"))
+            return "EXTERNAL_ADB_SHELL_BLOCKED";
+        }
+        case "-b" -> {
+          if (++i == argv.size()
+              || !argv.get(i)
+                  .matches(
+                      "(?:main|system|radio|events|crash|default|all)(?:,(?:main|system|radio|events|crash|default|all))*"))
+            return "EXTERNAL_ADB_SHELL_BLOCKED";
+        }
+        case "-v" -> {
+          if (++i == argv.size()
+              || !Set.of(
+                      "brief",
+                      "process",
+                      "tag",
+                      "thread",
+                      "raw",
+                      "time",
+                      "threadtime",
+                      "long",
+                      "uid",
+                      "year",
+                      "zone",
+                      "usec",
+                      "epoch",
+                      "monotonic",
+                      "printable")
+                  .contains(argv.get(i))) return "EXTERNAL_ADB_SHELL_BLOCKED";
+        }
+        default -> {
+          if (!token.matches("[A-Za-z0-9_.][A-Za-z0-9_.-]{0,63}(?::[VDIWEFS])?"))
+            return "EXTERNAL_ADB_SHELL_BLOCKED";
+        }
+      }
+    }
+    return null;
   }
 
   private static String fastbootRejection(List<String> args) {

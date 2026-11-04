@@ -17,6 +17,10 @@ Protected assets include conversations, attachments, personal projects, plugin s
 | LAN | Separate enablement and authentication, current Web port, and bounded connections | LAN HTTP is plaintext. There is no TLS, trusted pairing, or guarantee against Android background restrictions. |
 | User archive | Full authentication/digest, scope, and bidirectional record checks before preflight | Archive claims about health or format do not become local evidence. |
 
+## Grant records and execution identity
+
+On the M367FC tablet, two ordinary Android processes with the same UID and different PIDs used the test app’s own Android Keystore key to compute matching HMACs. The primary process received `null` from `getEncoded()`. A MAC can detect changes made without the key. A user grant also depends on the native confirmation, the current target, the deadline and the applicable system permissions. An authentic older snapshot can still have a valid MAC after a restart. The test used a separate package and a disposable key. [T44 local decisions and device evidence](../design/native-grant-integrity-20261103/LOCAL-DECISIONS.md)
+
 ## Terminals and plugins
 
 Formal terminals allow repair shell commands. Link, local-package, and update installs automatically commit and enable after package-format, path, digest, and transaction checks. The old plugin-review gate is no longer required. Dependencies may resolve without a frozen lock, run lifecycle scripts, and use pnpmfile. Actual locks and directory digests are recorded to support rollback. Explicit user disablement and safe-mode intent remain effective.
@@ -57,4 +61,4 @@ Stopping depends on birth identity, session, and exit evidence. Killing by port,
 
 ## Delivery and evidence limits
 
-Release packages use `io.github.sunsetrne.dsha` and the Mod-owned certificate recorded in `ci/release-identity.json` (v1/v2/v3). Build tooling does not supply a default release password or substitute a different certificate. The build307 CI run proves only that the exact commit compiles, passes gates, unit tests, signing and publication on the hosted runner; software tests, APK/ELF/signature checks and a physical overwrite installation are separate evidence categories. This round has only local unit tests and static gates (see the [build307 record](../releases/v0.2.1-rc.3-build307-compact-device-sections-20261104.md)); neither the test package nor the release package had a device installation or overwrite-upgrade check. Earlier reports do not establish the current verification scope.
+Local releases use `dsh.android.client` and the historical E7E3 signing identity recorded in `ci/release-identity.json`. Each local delivery records the checks performed on source, the signed APK and the designated tablet. Sunset Mod has its own package identity, signing key and CI records. [Local release reports](../releases/)

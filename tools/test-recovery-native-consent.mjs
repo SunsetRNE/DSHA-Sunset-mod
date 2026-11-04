@@ -46,6 +46,12 @@ const query = async () => {
   return JSON.parse((await response.json()).result);
 };
 try {
+  const production = sdk.readConnection();
+  assert.equal(production.applicationId, 'dsh.android.client');
+  env.DSHA_BRIDGE_APPLICATION_ID = 'dsh.android.client.SunsetRNE';
+  assert.equal(sdk.readConnection().applicationId, 'dsh.android.client.SunsetRNE');
+  assert.equal(sdk.readConnection().generation, production.generation);
+  assert.equal(calls, 0, 'application identity selection does not dispatch a request');
   assert.equal((await query()).globalAllow, false);
   assert.equal((await query()).bridgeRunId, run);
   const originalPort = env.DSHA_RECOVERY_BROKER_PORT;

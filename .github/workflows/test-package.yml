@@ -1,7 +1,7 @@
 name: Test package (on demand)
 
-# 手动构建可安装的测试包 io.github.sunsetrne.dsha.test（DSH-A-Su Test，-SunsetTest），
-# 用于真机核对；不创建 tag/Release，不使用 Mod 正式证书。
+# 手动构建可安装的测试包 dsh.android.client.SunsetRNE（DSHA Test，-SunsetTest），
+# 用于独立测试；不创建 tag/Release，不使用历史 E7E3 正式证书。
 #
 # 节点图：
 #   contracts ────────────────────────┐
@@ -151,7 +151,7 @@ jobs:
           "$aapt2" dump badging "$apk" > out/apk-badging.txt
           "$apksigner" verify --verbose --print-certs "$apk" > out/apk-signature.txt
           package=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" out/apk-badging.txt)
-          test "$package" = "io.github.sunsetrne.dsha.test"
+          test "$package" = "dsh.android.client.SunsetRNE"
           grep -q "versionName='.*-SunsetTest'" out/apk-badging.txt
           if grep -q 'application-debuggable' out/apk-badging.txt; then exit 1; fi
           cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
@@ -191,7 +191,7 @@ jobs:
               'ref': os.environ['GITHUB_REF'],
               'runId': os.environ['GITHUB_RUN_ID'],
               'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
-              'packageName': 'io.github.sunsetrne.dsha.test',
+              'packageName': 'dsh.android.client.SunsetRNE',
               'versionCode': meta['versionCode'],
               'versionName': meta['versionName'],
               'apkFile': apk.name,

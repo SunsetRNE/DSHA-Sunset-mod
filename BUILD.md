@@ -1,15 +1,16 @@
+
 # DSHA 现行构建说明
 
-> 当前身份（build307）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` / versionCode 307。
+> 当前身份（build308）：`DSHA` / `dsh.android.client` / `0.2.1-rc.5-20261104.1412-dsh0.2.1-rc.5` / versionCode 308。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。
-> 签名：Mod 自有新建证书（SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`），不再使用原版 E7E3。
+> 签名：本项目历史 E7E3 证书（SHA-256 `e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5`），保持同包同签名升级身份。
 > 固定构建输入：公开仓库预发布 Release 资产，SHA-256 锁定；流程见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
 > 历史构建回执与旧身份数字保留在 [CHANGELOG.md](CHANGELOG.md) 与 [docs/releases/](docs/releases/)，不作为当前构建或签名输入。
 
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[贡献流程](CONTRIBUTING.md) 与[接手指南](docs/接手指南.md)。应用版本以 `app/build.gradle` 为准，DSH 依赖以 `tools/dsh-runtime/package.json`/锁文件为准，完整交付和未验证范围以本轮报告为准。
 
-> 更早的 F13/1500/1640 等回执只描述各自当时的源码、APK 与设备状态，属于历史记录；不要用旧包名 `dsh.android.client`、历史 E7E3 证书或旧版本号来构建当前 Mod。
+> 更早的 F13/1500/1640 等回执只描述各自当时的源码、APK 与设备状态，属于历史记录；本轮使用 dsh.android.client / E7E3；不要使用上游 Mod 证书或旧版本号。
 
 本机源码位置以实际 clone 为准；`app/build.gradle`、`ci/release-identity.json` 与 `ci/sunset-inputs.lock.json` 是当前构建身份的三个权威来源。
 
@@ -24,7 +25,7 @@
 | Python / Node | 生成器 Python 3.9+，CI 锁定版本见 `ci/toolchain.lock.json`；Node 24 |
 | Standard | minSdk 30，系统 WebView，arm64-v8a（唯一变体） |
 
-当前只有一条 Standard 构建线；测试变体仅通过 `-Pdsha.sunsetTest=true` 改包名/版本名（`io.github.sunsetrne.dsha.test`），与正式包并存、数据隔离。原 `dsh.android.client` 与更早的 `com.dsh.client` 均为独立包名，本 Mod 与之互不覆盖。
+当前只有一条 Standard 构建线；测试变体仅通过 `-Pdsha.sunsetTest=true` 改包名/版本名（`dsh.android.client.SunsetRNE`），与正式包并存、数据隔离。正式包沿用 `dsh.android.client`；更早的 `com.dsh.client` 与上游 Mod 仍是独立数据域。
 
 配置本机 `local.properties` 的 `sdk.dir`，并将 JAVA_HOME、ANDROID_SDK_ROOT/ANDROID_HOME、DSHA_PYTHON 指向已有工具。不要复制开发者的绝对工具链目录。版本与固定 APK 文件名由 `app/build.gradle` 的 `versionCode`、`versionName` 和 `dshaApkNameVersion` 定义，不在本页再维护另一组当前数字。
 
@@ -74,7 +75,7 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 
 ## 正式打包与签名
 
-显式提供 `DSHA_KEYSTORE`、`DSHA_KEYSTORE_PASSWORD`、`DSHA_KEY_PASSWORD`，别名默认 `dsha-a-su`（可用 `DSHA_KEY_ALIAS` 覆盖）。签名身份以 `ci/release-identity.json` 为准：`packageName = io.github.sunsetrne.dsha`，`certificateSha256 = a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`。`verifyPublishCertificate` 会在 `assembleStandardRelease`、`packageStandardRelease`、`validateSigningStandardRelease` 之前核对 keystore 证书与 applicationId，任一不符即停止打包；不再允许历史 E7E3 或 debug 证书出正式包。私钥不进仓库，换钥会使本 Mod 已安装版本无法覆盖升级。
+显式提供 `DSHA_KEYSTORE`、`DSHA_KEYSTORE_PASSWORD`、`DSHA_KEY_PASSWORD`，别名默认 `androiddebugkey`（可用 `DSHA_KEY_ALIAS` 覆盖）。签名身份以 `ci/release-identity.json` 为准：`packageName = dsh.android.client`，`certificateSha256 = e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5`。`verifyPublishCertificate` 会在 `assembleStandardRelease`、`packageStandardRelease`、`validateSigningStandardRelease` 之前核对 keystore 证书与 applicationId，任一不符即停止打包；不允许其他证书出正式包；历史发布密钥的文件名含 debug 不表示正式 APK 可调试。私钥不进仓库，换钥会使现有 DSHA 安装无法覆盖升级。
 
 ```bash
 ./gradlew :app:assembleStandardRelease
@@ -82,16 +83,16 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 
 产物位置 `app/build/outputs/apk/standard/release/dsha-<dshaApkNameVersion>.apk`，必须同时生成并核对 `.sha256`。实际 APK 需核对包名、versionCode/versionName、`debuggable=false`、arm64、证书 SHA-256 与受管资产/恢复归档摘要。`app/build` 中间包、未签名 CI 包（`-Pdsha.unsignedPackage=true`）都不冒充正式交付。
 
-发布交付只包含当前 Mod 的正式 APK 与 `.sha256`（源码走 Git，固定输入走预发布资产）。SHA-256 必须由实际文件计算并写进 Release 或独立回执，源码 ZIP 不自引用自身摘要。私钥、用户数据、设备截图与历史取证材料不上传；历史构建与测试数字保留在各自回执里，不用来替代本轮结果。
+本地交付使用 DSHA 的正式 APK 与 `.sha256`（源码走 Git，固定输入走预发布资产）。SHA-256 必须由实际文件计算并写进 Release 或独立回执，源码 ZIP 不自引用自身摘要。私钥、用户数据、设备截图与历史取证材料不上传；历史构建与测试数字保留在各自回执里，不用来替代本轮结果。
 
 `ci-package` 的未签名完整包只用于软件验证，不用于手机安装或 release。配置文件不能证明受保护环境、签名线上运行和仓库保护已配置；实际部署与发布需要相应证据。
 
-## CI 构建与发布（公开仓库）
+## CI 构建与发布（仅私有维护仓库）
 
-正式成品可以通过公开仓库的 Actions 工作流 [release-production.yml](.github/workflows/release-production.yml)
-在 GitHub 托管的 `ubuntu-24.04` 上构建并发布：显式 `workflow_dispatch`、绑定精确 commit、
-从公开预发布资产还原固定输入、跑完整单测/格式/Lint/文档门禁，用仓库 Secrets 里的 Mod 发布证书
-签名 `io.github.sunsetrne.dsha` 正式包，核验证书 SHA-256 后创建 tag + prerelease。
+未来获得发布授权后，正式成品可以通过私有维护仓库的 Actions 工作流 [release-production.yml](.github/workflows/release-production.yml)
+在 GitHub 托管的 `ubuntu-24.04` 上构建并发布：仅允许私有 `ym2025szz/DSHA-prerelase` 的 `codex/prerelease-190` 分支，显式 `workflow_dispatch` 并绑定精确 commit；复用 contracts / java-format / host-regression / inputs / unit / lint 节点，
+从公开预发布资产还原固定输入、跑完整单测/格式/Lint/文档门禁，用私有维护仓库 Secrets 里的历史 E7E3 发布证书
+签名 `dsh.android.client` 正式包；别名默认 `androiddebugkey`。只有 `build-signed` 读取签名 Secrets 且不写共享缓存，只有不 checkout、不签名的 `publish` 节点拥有写权限，核对同 run/commit 的交接证据后创建 tag + prerelease。
 触发参数、Secrets、产物与核验命令见 [CI 构建与发布](docs/ci-release.md)；固定输入资产见
 [固定构建输入](docs/fixed-build-inputs.md)。CI 结果不替代真机安装、覆盖升级与长时间运行验收。
 

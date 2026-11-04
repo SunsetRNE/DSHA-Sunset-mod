@@ -147,7 +147,8 @@ public final class VirtualScreenPixelsTest {
   }
 
   @Test
-  public void replacedFrameDuringEncodingCannotBePublishedOrObserved() throws Exception {
+  public void animatedEncodingPublishesTheRealSourceWithoutRelabelingOrWeakeningStrictInput()
+      throws Exception {
     var result =
         VirtualScreenPixels.preview(
             session,
@@ -161,8 +162,14 @@ public final class VirtualScreenPixelsTest {
               }
               return encoded;
             });
-    assertEquals("STALE_FRAME", result.getString("error"));
-    previousObservationRemains();
+    assertTrue(result.toString(), result.getBoolean("ok"));
+    assertEquals(3, result.getLong("frameSeq"));
+    assertEquals(3, result.getLong("sourceFrameSeq"));
+    assertEquals(4, result.getLong("currentFrameSeq"));
+    assertFalse(result.getString("previewB64").isEmpty());
+    assertEquals(3, session.observed);
+    assertEquals(3, session.encodedSequence);
+    assertEquals("FRAME_EXPIRED", VirtualScreenPolicy.inputRejection(3, 4, session.observed, 0));
   }
 
   @Test
@@ -189,5 +196,47 @@ public final class VirtualScreenPixelsTest {
             session, -1, null, () -> metadata().put("generation", "another-display-generation"));
     assertEquals("STALE_GENERATION", result.getString("error"));
     previousObservationRemains();
+  }
+
+  @Test
+  public void slowOldEncodingCannotReplaceANewerPublishedSourceWhenCurrentKeepsAdvancing()
+      throws Exception {
+    session.sequence = 10;
+    var result =
+        VirtualScreenPixels.preview(
+            session,
+            -1,
+            null,
+            this::metadata,
+            (bitmap, output) -> {
+              session.sequence = 20;
+              session.frame.eraseColor(0xff00ff00);
+              try {
+                JSONObject newer = VirtualScreenPixels.preview(session, -1, null, this::metadata);
+                assertTrue(newer.toString(), newer.optBoolean("ok"));
+                assertEquals(20, newer.getLong("sourceFrameSeq"));
+              } catch (Exception failure) {
+                throw new AssertionError(failure);
+              }
+              session.sequence = 25;
+              return bitmap.compress(Bitmap.CompressFormat.JPEG, 65, output);
+            });
+    assertEquals("STALE_FRAME", result.optString("error"));
+    assertEquals(20, session.observed);
+    assertEquals(20, session.publishedSequence);
+    assertEquals(20, session.encodedSequence);
+    JSONObject next =
+        VirtualScreenPixels.preview(
+            session,
+            -1,
+            null,
+            this::metadata,
+            (bitmap, output) -> {
+              session.sequence = 30;
+              return bitmap.compress(Bitmap.CompressFormat.JPEG, 65, output);
+            });
+    assertTrue(next.toString(), next.optBoolean("ok"));
+    assertEquals(25, next.getLong("sourceFrameSeq"));
+    assertEquals(30, next.getLong("currentFrameSeq"));
   }
 }

@@ -6,7 +6,7 @@ import static org.junit.Assert.*;
 
 public class UiStateTextTest {
   @Test
-  public void everyRegisteredTemplateRoundTripsRawUnicodePercentAndNewlines() {
+  public void everyRegisteredTemplatePreservesRawArgumentsAndUnambiguousStateTranslation() {
     assertTrue(UiMessages.FORMATS.length > 100);
     for (String[] template : UiMessages.FORMATS) {
       java.util.List<Object> arguments = new java.util.ArrayList<>();
@@ -18,10 +18,51 @@ public class UiStateTextTest {
       }
       String zh = String.format(java.util.Locale.ROOT, template[0], arguments.toArray());
       String en = String.format(java.util.Locale.ROOT, template[1], arguments.toArray());
+      // 明确模板身份时，每个模板都必须精确保留全部原文参数并双向恢复。
+      UiMessageFormat source = new UiMessageFormat(template[0]);
+      UiMessageFormat target = new UiMessageFormat(template[1]);
+      assertEquals(template[0], en, source.reformat(zh, target));
+      assertEquals(template[0], zh, target.reformat(en, source));
       UiText.setLanguage("en");
       assertEquals(template[0], en, UiStateText.render(zh));
       UiText.setLanguage("zh");
       assertEquals(template[0], zh, UiStateText.render(en));
+    }
+  }
+
+  @Test
+  public void backgroundDurationsReuseFmtWithoutDuplicateIntegerTemplates() {
+    long[] durations = {0, 59_000, 60_000, 1_493_000, 3_600_000, 7_500_000};
+    for (String source : UiLanguagePreference.LANGUAGES) {
+      var catalog = UiMessages.forLanguage(source);
+      // 上游已退休重复模板，不能为保留旧测试而重新登记同一中文输出的不同译文。
+      assertNull(source, catalog.get("%d 秒"));
+      assertNull(source, catalog.get("%d 分 %d 秒"));
+      assertNull(source, catalog.get("%d 小时 %d 分"));
+      assertNotNull(source, catalog.get("%s 秒"));
+      assertNotNull(source, catalog.get("%s 分 %s 秒"));
+      assertNotNull(source, catalog.get("%s 时 %s 分"));
+      for (long millis : durations) {
+        UiText.setLanguage(source);
+        String cached = BackgroundTaskModel.elapsed(millis, source);
+        assertEquals(source, Fmt.eta(millis / 1000), cached);
+        for (String target : UiLanguagePreference.LANGUAGES) {
+          UiText.setLanguage(target);
+          assertEquals(
+              source + " -> " + target, Fmt.eta(millis / 1000), UiStateText.render(cached));
+        }
+      }
+    }
+  }
+
+  @Test
+  public void ambiguousSecondsNeverCoerceNumericOrUserArguments() {
+    for (String value : new String[] {"+0031", "-00031", "1.5", "用户原文 العربية 100% %d %s\n第二行"}) {
+      UiText.setLanguage("en");
+      assertEquals(value + " seconds", UiStateText.render(value + " 秒"));
+      assertEquals(value + " seconds (current)", UiStateText.render(value + " 秒（当前）"));
+      UiText.setLanguage("zh");
+      assertEquals(value + " 秒", UiStateText.render(value + " seconds"));
     }
   }
 

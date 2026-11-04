@@ -18,6 +18,15 @@ final class VirtualScreenTransport {
   }
 
   JSONObject request(VirtualScreenHandshake endpoint, String route, String query) {
+    return request(endpoint, route, query, () -> null);
+  }
+
+  /** 握手可能排队或阻塞；发出业务请求的最后边界再检查，不重放已发出的请求。 */
+  JSONObject request(
+      VirtualScreenHandshake endpoint,
+      String route,
+      String query,
+      java.util.function.Supplier<String> beforeSendRejection) {
     int port = endpoint.port;
     String token = endpoint.token;
     if (token == null || token.isEmpty() || port < 1 || port > 65535)
@@ -39,7 +48,7 @@ final class VirtualScreenTransport {
       long deadline = HttpProtocol.deadline(RESPONSE_DEADLINE_MS);
       VirtualScreenPeerProof.Session peer = VirtualScreenPeerProof.client(socket, endpoint);
       OutputStream request = socket.getOutputStream();
-      request.write(
+      byte[] bytes =
           ("GET "
                   + target
                   + " HTTP/1.1\r\nHost: 127.0.0.1:"
@@ -49,7 +58,10 @@ final class VirtualScreenTransport {
                   + ": "
                   + peer.clientProof("GET", target)
                   + "\r\nConnection: close\r\n\r\n")
-              .getBytes(StandardCharsets.US_ASCII));
+              .getBytes(StandardCharsets.US_ASCII);
+      String rejected = beforeSendRejection.get();
+      if (rejected != null) return failure(rejected, false);
+      request.write(bytes);
       request.flush();
       InputStream input = socket.getInputStream();
       HttpProtocol.Head head =

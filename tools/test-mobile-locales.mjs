@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import { mobileLocaleCatalog, mobileLocaleDictionaries, mobileLocaleSourceFiles, applyMobileLocaleSourcePatch, restoreMobileLiveLocaleSource } from './mobile-locales.mjs';
+import { applyMobileLayoutSourcePatch, restoreMobileLayoutSource } from './mobile-layout-patches.mjs';
 import { applyMobileClientPatches } from './apply-mobile-client-patches.mjs';
 
 const destination = 'app/src/main/assets/builtin-plugins/dsh-web-mobile';
@@ -87,7 +88,7 @@ test('mobile source and bundle outputs are deterministic transformations of lock
   const lock = JSON.parse(readFileSync('tools/mobile-plugin-upstream.lock.json', 'utf8'));
   for (const name of mobileLocaleSourceFiles) {
     const output = readFileSync(destination + '/' + name, 'utf8');
-    let pristine = output.split('\n// DSHA_MOBILE_LOCALES_V1:')[0];
+    let pristine = restoreMobileLayoutSource(name, output).split('\n// DSHA_MOBILE_LOCALES_V1:')[0];
     if (name === 'src/client/index.tsx') pristine = pristine
       .replace("import { NS, mobileNavLocales } from './i18n/locales.ts'", "import { NS, en, zh } from './i18n/locales.ts'")
       .replace('ctx.locale.register(NS, mobileNavLocales)', 'ctx.locale.register(NS, { zh, en })');
@@ -99,7 +100,7 @@ test('mobile source and bundle outputs are deterministic transformations of lock
     if (name === 'src/client/effects/drawer-session-log.ts' || name === 'src/client/effects/drawer-quick-settings.ts')
       pristine = restoreMobileLiveLocaleSource(name, pristine);
     assert.equal(createHash('sha256').update(pristine).digest('hex'), lock.files[name].sha256, name);
-    assert.equal(output, applyMobileLocaleSourcePatch(name, pristine), name);
+    assert.equal(output, applyMobileLayoutSourcePatch(name, applyMobileLocaleSourcePatch(name, pristine)), name);
   }
   assert.match(readFileSync(destination + '/src/client/index.tsx', 'utf8'), /locale\.register\(NS, mobileNavLocales\)/);
   assert.match(readFileSync(destination + '/src/client/effects/file-share.ts', 'utf8'), /locale\.register\(FILE_SHARE_NS, fileShareLocales\)/);

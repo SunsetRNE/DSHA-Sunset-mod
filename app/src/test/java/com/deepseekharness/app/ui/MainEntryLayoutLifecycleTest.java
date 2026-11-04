@@ -61,6 +61,12 @@ public final class MainEntryLayoutLifecycleTest {
     }
 
     @Implementation
+    protected void addReadyWebPageListener(Runnable ignored) {}
+
+    @Implementation
+    protected void removeReadyWebPageListener(Runnable ignored) {}
+
+    @Implementation
     protected boolean isEnvironmentReady() {
       return false;
     }

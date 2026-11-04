@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the production Java LAN proxy on host loopback sockets; no Android/device claims."""
 import argparse
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -19,7 +20,14 @@ def main():
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     stubs = output / 'stubs'
+    identity = json.loads((ROOT / 'ci/release-identity.json').read_text(encoding='utf8'))
     sources = {
+        # AppIdentity now reads the generated Android BuildConfig. The host
+        # fixture supplies only its package constant, bound to the release pin.
+        'com/deepseekharness/app/BuildConfig.java': (
+            'package com.deepseekharness.app; public final class BuildConfig { '
+            'public static final String APPLICATION_ID = '
+            + json.dumps(identity['packageName']) + '; }'),
         'android/content/Context.java': '''package android.content;
 public class Context {
  public static final int MODE_PRIVATE = 0;

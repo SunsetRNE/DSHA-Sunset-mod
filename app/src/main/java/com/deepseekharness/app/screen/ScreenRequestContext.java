@@ -80,6 +80,10 @@ public final class ScreenRequestContext {
     return broker.nowMillis();
   }
 
+  public com.deepseekharness.app.util.ScreenFramePolicy.Settings frameSettings() {
+    return new com.deepseekharness.app.core.ConfigStore(service()).screenFrameSettings();
+  }
+
   public String ownerIdentity() {
     return request.installInstanceId
         + '\0'

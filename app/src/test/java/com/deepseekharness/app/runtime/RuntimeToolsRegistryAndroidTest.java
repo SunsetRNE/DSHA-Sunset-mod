@@ -207,8 +207,161 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(45, groups.size());
-    assertEquals(61, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(56, groups.size());
+    assertEquals(78, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(
+        "workspace-change-feed-bounded-patch.json",
+        groups.get("@deepseek-ai/dsh-api-workspace-files/lib/index.js").get(0).id());
+    assertTrue(
+        groups
+            .get("@deepseek-ai/dsh-api-workspace-files/lib/index.js")
+            .get(0)
+            .markers()
+            .contains("DSHA_WORKSPACE_CHANGE_FEED_BOUNDED_V1"));
+    assertEquals(
+        "files-list-rejection-patch.json",
+        groups.get("@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js").get(0).id());
+    assertTrue(
+        groups
+            .get("@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js")
+            .get(0)
+            .markers()
+            .contains("DSHA_FILES_LIST_REJECTION_V1"));
+    assertEquals(
+        "text-page-rejection-patch.json",
+        groups.get("@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js").get(0).id());
+    assertTrue(
+        groups
+            .get("@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js")
+            .get(0)
+            .markers()
+            .contains("DSHA_TEXT_PAGE_REJECTION_V1"));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-fs-local/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("local-directory-prefix-patch.json")
+                        && recipe.markers().contains("DSHA_DIRECTORY_PREFIX_BOUNDED_V1")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-fs-local/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("local-directory-watch-patch.json")
+                        && recipe.markers().contains("DSHA_DIRECTORY_WATCH_BOUNDED_V1")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-api-workspace-files/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("workspace-directory-prefix-patch.json")
+                        && recipe.markers().contains("DSHA_WORKSPACE_DIRECTORY_PREFIX_V1")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-fs-local/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("local-directory-watch-patch.json")
+                        && recipe.markers().contains("DSHA_FILE_WATCH_BOUNDED_V1")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-fs-local/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("local-directory-watch-patch.json")
+                        && recipe.markers().contains("DSHA_WATCH_ERROR_TERMINAL_V1")));
+    assertTrue(
+        groups.get("openai/core/streaming.mjs").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("openai-sse-esm-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(
+                                java.util.List.of(
+                                    "DSHA_OPENAI_SSE_FRAMING_V1", "DSHA_SSE_INVALID_JSON"))));
+    assertTrue(
+        groups.get("openai/core/streaming.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("openai-sse-cjs-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(
+                                java.util.List.of(
+                                    "DSHA_OPENAI_SSE_FRAMING_V1", "DSHA_SSE_INVALID_JSON"))));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-chat/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("chat-render-performance-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(
+                                java.util.List.of(
+                                    "DSHA_CHAT_RENDER_INCREMENTAL_V1", "DSHA_CHAT_FLOW_ROWS_V1"))));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-session/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("session-status-scale-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_SESSION_STATUS_SCALE_V1"))));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-workspace/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("workspace-order-scale-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_WORKSPACE_ORDER_SCALE_V1"))));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
+            .anyMatch(recipe -> recipe.id().equals("mcp-version-negotiation-patch.json")));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-chat/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("chat-viewport-performance-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_CHAT_ANCHOR_LOOKUP_V1"))));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-cordis-host-runner/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("temporary-plugin-host-remove-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_TEMPORARY_PLUGIN_REMOVE_V1"))));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-cordis/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("temporary-plugin-ui-remove-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_TEMPORARY_PLUGIN_UI_REMOVE_V1"))));
+    assertTrue(
+        groups.get("@deepseek-ai/dsh-app-boot/lib/index.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("startup-resolution-patch.json")
+                        && recipe
+                            .markers()
+                            .equals(java.util.List.of("DSHA_STARTUP_RESOLUTION_REALPATH_V1"))));
+    var loopback = groups.get("@deepseek-ai/dsh-client-connection/lib/client.browser.js");
+    assertNotNull("Production AssetManager must admit the literal-loopback chain", loopback);
+    assertEquals(1, loopback.size());
+    assertEquals("literal-loopback-online-patch.json", loopback.get(0).id());
+    assertEquals(java.util.List.of("DSHA_LITERAL_LOOPBACK_ONLINE_V1"), loopback.get(0).markers());
+    var filesystem = groups.get("@deepseek-ai/dsh-tool-fs/lib/index.js");
+    assertNotNull("Production AssetManager must admit the filesystem chain", filesystem);
+    assertEquals(2, filesystem.size());
+    assertEquals("guard-fs-patch.json", filesystem.get(0).id());
+    assertTrue(filesystem.get(0).markers().contains("DSHA_REQUIRED_POLICY_V1"));
+    assertEquals("fs-justification-patch.json", filesystem.get(1).id());
+    assertEquals(java.util.List.of("DSHA_FS_JUSTIFICATION_V1"), filesystem.get(1).markers());
+    assertTrue(
+        filesystem.get(1).patches().stream()
+            .anyMatch(patch -> patch.after().contains("DSHA_FS_JUSTIFICATION_V1")));
     assertEquals(
         "web-fetch-http-surrogate-patch.json",
         groups.get("@deepseek-ai/dsh-web-fetch-http/lib/index.js").get(0).id());
@@ -218,10 +371,6 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertTrue(
         groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
             .anyMatch(recipe -> recipe.id().equals("mcp-image-base64-patch.json")));
-    // T31：虚拟屏插件靠此补丁选择 legacy 协商；默认 auto 不变。
-    assertTrue(
-        groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
-            .anyMatch(recipe -> recipe.id().equals("mcp-version-negotiation-patch.json")));
     var locale = groups.get("@deepseek-ai/dsh-client-locale/lib/client.js");
     assertEquals(1, locale.size());
     assertEquals("language-patch.json", locale.get(0).id());
@@ -636,6 +785,10 @@ public final class RuntimeToolsRegistryAndroidTest {
       assertTrue(
           "Production preparation must retain " + addition.getValue(),
           Files.readString(modules.resolve(addition.getKey())).contains(addition.getValue()));
+    assertTrue(
+        "Production preparation must retain filesystem justification normalization",
+        Files.readString(modules.resolve("@deepseek-ai/dsh-tool-fs/lib/index.js"))
+            .contains("DSHA_FS_JUSTIFICATION_V1"));
     assertTrue(
         Files.readString(modules.resolve("@deepseek-ai/dsh-plugin-manager/lib/index.js"))
             .contains("DSHA_PLUGIN_PNPM_ARGV_V3"));

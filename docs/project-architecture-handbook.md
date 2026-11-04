@@ -1,6 +1,6 @@
 # DSHA 项目架构与功能维护总手册
 
-核验日期：2026-10-31。本文面向需要理解、修改和验证 DSHA 的维护者，按当前 build307 / DSH 0.2.1-rc.5 工作树维护。
+核验日期：2026-10-31。本文面向需要理解、修改和验证 DSHA 的维护者，按当前 build294 / DSH 0.2.1-rc.5 工作树维护。
 F10–F13、build190 等记录保留各自历史归属，不是本版交付证据；最终诊断身份、软件、APK 与附件范围见 [README](../README.md) 与本轮 CI / Release 回执，本页不预填测试总数。
 版本最终以 [app/build.gradle](../app/build.gradle) 和对应产物回执为准。
 本文是功能与代码地图，不是新的验收报告，也不改变运行权限、数据格式或 APK。
@@ -299,7 +299,7 @@ DSH 的 Android 工具通过内置适配器进入本机鉴权桥，原生终端�
 | Shizuku | 服务 Binder 可用、用户授权和 UserService 绑定有效 | 与 ADB 开关独立，不能把 binder 存在当授权完成 |
 | ADB | 实际配对/连接、端口与密钥身份、当前连接代次 | 配对端口与连接端口不同，不固定写死 |
 
-`devicePlan/deviceExecute` 与虚拟屏共用 `util/DeviceChannelOrder` 的通道顺序：Root → Shizuku → ADB，API≥37 且 ADB 已验证连接时 ADB 先于 Shizuku；设备命令先严格判据、再已授权判据各选一次；force/SMS/SHELL 等有专用规则。
+`devicePlan/deviceExecute` 的普通通道选择为 Root → Shizuku → ADB；force/SMS 等有专用规则。
 已发送后结果未知不能继续换通道重放；只有明确 NOT_SENT 才可按受控契约撤销未提交票。
 无线配对 UI 主要面向 Android11+；旧系统路径依真实 ADB TCP、Root 或 Shizuku 条件。
 App 不会凭空获得 Root，也不代替系统完成所有受保护设置授权。

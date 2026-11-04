@@ -8,7 +8,7 @@ import org.junit.Test;
 
 public class UpdateManifestTest {
   private static final String SIGNER =
-      "a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d";
+      "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5";
   private static final String APK =
       "{\"flavor\":\"standard\",\"minSdk\":30,\"abi\":\"arm64-v8a\","
           + "\"url\":\"https://dsha.cc/downloads/new.apk\",\"sha256\":\""
@@ -21,7 +21,7 @@ public class UpdateManifestTest {
           + "]}";
 
   private String feed(String releases) {
-    return "{\"schemaVersion\":1,\"packageName\":\"io.github.sunsetrne.dsha\",\"certificateSha256\":\""
+    return "{\"schemaVersion\":1,\"packageName\":\"dsh.android.client\",\"certificateSha256\":\""
         + SIGNER
         + "\",\"releases\":"
         + releases
@@ -31,7 +31,7 @@ public class UpdateManifestTest {
   private List<UpdatePolicy.Release> parse(String json) throws Exception {
     return UpdateManifest.parse(
         json.getBytes(StandardCharsets.UTF_8),
-        "io.github.sunsetrne.dsha",
+        "dsh.android.client",
         Collections.singletonList(SIGNER));
   }
 
@@ -48,8 +48,7 @@ public class UpdateManifestTest {
   @Test
   public void legacyPackageIsANormalEmptyResultEvenWithAHigherCode() throws Exception {
     assertTrue(
-        parse(feed("[" + RELEASE + "]").replace("io.github.sunsetrne.dsha", "com.dsh.client"))
-            .isEmpty());
+        parse(feed("[" + RELEASE + "]").replace("dsh.android.client", "com.dsh.client")).isEmpty());
   }
 
   @Test
@@ -61,7 +60,7 @@ public class UpdateManifestTest {
     assertTrue(
         UpdateManifest.parse(
                 feed("[" + RELEASE + "]").getBytes(StandardCharsets.UTF_8),
-                "io.github.sunsetrne.dsha",
+                "dsh.android.client",
                 Collections.emptyList())
             .isEmpty());
   }
@@ -112,7 +111,6 @@ public class UpdateManifestTest {
     assertThrows(
         UpdateFailures.InvalidManifest.class,
         () ->
-            UpdateManifest.parse(
-                new byte[1024 * 1024 + 1], "io.github.sunsetrne.dsha", List.of(SIGNER)));
+            UpdateManifest.parse(new byte[1024 * 1024 + 1], "dsh.android.client", List.of(SIGNER)));
   }
 }

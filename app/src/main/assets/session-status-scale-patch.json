@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-session/lib/client.js",
+  "sourceSha256": "c2aee5c41e606b62f845ff65bb9db8874a1ea4e21dfec8551ca70a9e36767311",
+  "packageIntegrity": "sha512-KLyAGl2NorWRRoCPe8uU6YSk013WOhbMFzm6k9pDS9eEBqEVCTJj6KhEerhPJkgQ1fHB4kgfdv0yLAOdF6zv6g==",
+  "purpose": "Batch list status reconciliation; skip duplicate remote states; preserve unchanged status entry references and immutable snapshots. Session membership, completion reminders, pending interactions, and persisted data remain authoritative.",
+  "patches": [
+    {
+      "before": "\t\t\tstatusSnapshot = /* @__PURE__ */ new Map();",
+      "after": "\t\t\tstatusSnapshot = /* @__PURE__ */ new Map();\n\t\t\tstatusListById;"
+    },
+    {
+      "before": "\t\t\tobserveRunning(sessionId, running) {\n\t\t\t\tconst previous = this.running.get(sessionId);\n\t\t\t\tconst beforeBaseline",
+      "after": "\t\t\tobserveRunning(sessionId, running, publish = true) {\n\t\t\t\t// DSHA_SESSION_STATUS_SCALE_V1: one projection per authoritative list update.\n\t\t\t\tconst previous = this.running.get(sessionId);\n\t\t\t\tif (previous === running && (!running || !this.completionUnread.has(sessionId)) && this.statusListById === this.sessions.list.getSnapshot().byId) return;\n\t\t\t\tconst beforeBaseline"
+    },
+    {
+      "before": "\t\t\t\telse if ((previous === true || previous === void 0 && beforeBaseline) && !this.isMain(sessionId)) this.completionUnread.add(sessionId);\n\t\t\t\tthis.publishStatus();",
+      "after": "\t\t\t\telse if ((previous === true || previous === void 0 && beforeBaseline) && !this.isMain(sessionId)) this.completionUnread.add(sessionId);\n\t\t\t\tif (publish) this.publishStatus(sessionId);"
+    },
+    {
+      "before": "else if (previous !== row.running) this.observeRunning(id, row.running);",
+      "after": "else if (previous !== row.running) this.observeRunning(id, row.running, false);"
+    },
+    {
+      "before": "\t\t\tpublishStatus() {\n\t\t\t\tconst ids",
+      "after": "\t\t\tpublishStatus(changedId) {\n\t\t\t\t// A remote status event changes one entry. Retain the public immutable Map\n\t\t\t\t// contract and other row identities; never mutate an earlier snapshot.\n\t\t\t\tif (changedId !== void 0 && this.statusSnapshot.has(changedId) && this.statusListById === this.sessions.list.getSnapshot().byId) {\n\t\t\t\t\tconst previous = this.statusSnapshot.get(changedId);\n\t\t\t\t\tconst status = this.statusValue(changedId, previous);\n\t\t\t\t\tif (status === previous) return;\n\t\t\t\t\tconst next = new Map(this.statusSnapshot);\n\t\t\t\t\tnext.set(changedId, status);\n\t\t\t\t\tthis.statusSnapshot = next;\n\t\t\t\t\t(0, _deepseek_ai_dsh_client_store.notifySubscribers)(this.statusListeners, \"[ui-session] Session status\");\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t\tconst ids"
+    },
+    {
+      "before": "\t\t\t\tconst ids = new Set([\n\t\t\t\t\t...Object.keys(this.sessions.list.getSnapshot().byId),",
+      "after": "\t\t\t\tconst byId = this.sessions.list.getSnapshot().byId;\n\t\t\t\tthis.statusListById = byId;\n\t\t\t\tconst ids = new Set([\n\t\t\t\t\t...Object.keys(byId),"
+    },
+    {
+      "before": "\t\t\t\tfor (const id of ids) next.set(id, {\n\t\t\t\t\trunning: this.running.get(id),\n\t\t\t\t\tpendingInteraction: this.pendingSnapshot.get(id),\n\t\t\t\t\tcompletionUnread: this.completionUnread.has(id)\n\t\t\t\t});\n\t\t\t\tif (sameSessionStatus(this.statusSnapshot, next)) return;",
+      "after": "\t\t\t\tlet changed = ids.size !== this.statusSnapshot.size;\n\t\t\t\tfor (const id of ids) {\n\t\t\t\t\tconst previous = this.statusSnapshot.get(id);\n\t\t\t\t\tconst status = this.statusValue(id, previous);\n\t\t\t\t\tnext.set(id, status);\n\t\t\t\t\tif (status !== previous) changed = true;\n\t\t\t\t}\n\t\t\t\tif (!changed) return;"
+    },
+    {
+      "before": "\t\t\tcreateMaterializedBinding(owner) {",
+      "after": "\t\t\tstatusValue(id, previous) {\n\t\t\t\tconst running = this.running.get(id);\n\t\t\t\tconst pendingInteraction = this.pendingSnapshot.get(id);\n\t\t\t\tconst completionUnread = this.completionUnread.has(id);\n\t\t\t\tif (previous !== void 0 && previous.running === running && previous.pendingInteraction === pendingInteraction && previous.completionUnread === completionUnread) return previous;\n\t\t\t\treturn { running, pendingInteraction, completionUnread };\n\t\t\t}\n\t\t\tcreateMaterializedBinding(owner) {"
+    }
+  ]
+}

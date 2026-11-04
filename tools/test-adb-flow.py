@@ -270,6 +270,19 @@ class FlowTest(unittest.TestCase):
                 self.assertEqual(2, pair.main())
         pair.ensure_key.assert_not_called()
 
+    def test_managed_wrapper_matches_exact_signed_setup_body(self):
+        # Both host deployment and explicit ADB repair publish this same target.
+        # Version/comment similarity cannot substitute for the exact byte proof.
+        setup = (ASSETS / 'adb-setup.sh').read_bytes().decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
+        anchor = "cat > /root/dsh-bin/adb-shell <<'EOF'\n"
+        self.assertEqual(1, setup.count(anchor))
+        start = setup.index(anchor) + len(anchor)
+        end = setup.find('\nEOF\n', start)
+        self.assertGreaterEqual(end, start)
+        canonical = setup[start:end + 1].encode('utf-8')
+        self.assertTrue(canonical.startswith(b'#!/bin/bash\n'))
+        self.assertEqual(canonical, (ASSETS / 'dsha-device-shell.sh').read_bytes())
+
     def test_script_and_wrapper_version_match_the_single_asset_contract(self):
         source = (ROOT / 'app/src/main/java/com/deepseekharness/app/bridge/AdbBridge.java').read_text(encoding='utf-8')
         version = (ASSETS/'adb-script-version').read_text(encoding='ascii').strip()

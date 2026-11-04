@@ -56,6 +56,18 @@ public class PluginRepositoryDiscardTest {
   }
 
   @Test
+  public void metadataRecoveryStateChangesTheCardAndSurvivesIntentReceipt() throws Exception {
+    var json = new org.json.JSONObject().put("name", "damaged-plugin").put("deletable", true);
+    PluginRepository.Item before = new PluginRepository.Item(json);
+    PluginRepository.Item damaged =
+        new PluginRepository.Item(json.put("metadataError", "PLUGIN_METADATA_UNREADABLE"));
+    assertEquals(before.stableKey, damaged.stableKey);
+    assertFalse(before.contentKey.equals(damaged.contentKey));
+    assertEquals("PLUGIN_METADATA_UNREADABLE", damaged.withIntent(false).metadataError);
+    assertTrue(damaged.withIntent(false).deletable);
+  }
+
+  @Test
   public void onlyCompletedOkResultConfirmsPreviewRemoval() throws Exception {
     PluginRepository.requireDiscardResult(result(OK, 0, 1024));
     IOException exited =

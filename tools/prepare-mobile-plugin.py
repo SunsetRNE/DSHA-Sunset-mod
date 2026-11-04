@@ -17,6 +17,8 @@ PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/ind
            'src/client/effects/attachment-mention.ts', 'src/client/index.tsx',
            'src/client/effects/file-share.ts', 'lib/types/client/i18n/locales.d.ts',
            'src/client/effects/drawer-session-log.ts', 'src/client/effects/drawer-quick-settings.ts',
+           'src/client/effects/tablet-quick-settings.ts',
+           'src/client/effects/model-menu-anchor.ts', 'src/client/effects/session-focus-guard.ts',
            'lib/types/client/components/file-share-locale.d.ts',
            'lib/types/client/effects/attachment-mention.d.ts',
            # 上游已自带 lib/file-transfer.js；DSHA 仍从 tools/file-transfer/file-transfer.js

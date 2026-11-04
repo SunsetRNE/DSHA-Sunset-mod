@@ -8,6 +8,184 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class GuestPluginScriptsTest {
+  private static final String UNCHANGED_LEGACY =
+      "PLUGIN_RESULT: {\"status\":\"ok\",\"activated\":[],\"skipped\":[],\"hostVerifiedNoop\":true}\n";
+
+  @Test
+  public void verifiedLegacyNoopSkipsOnlyTheSecondGuestAndIsReadAgainOnEveryStartup()
+      throws Exception {
+    var calls = new ArrayList<String>();
+    int[] checks = {0};
+    var scripts =
+        new GuestPluginScripts(
+            legacyPreparation(
+                calls,
+                () -> {
+                  checks[0]++;
+                  return UNCHANGED_LEGACY;
+                }),
+            (command, timeout) -> {
+              calls.add(command);
+              assertTrue(command.contains("register-builtin-plugins.py"));
+              return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                  "BUILTIN_REGISTER_OK");
+            });
+    for (int at = 0; at < 2; at++) {
+      try (var startup = scripts.startup()) {
+        assertThrows(IOException.class, startup::legacy);
+        assertEquals(at, checks[0]);
+        startup.register();
+        assertEquals(UNCHANGED_LEGACY, startup.legacy().output);
+        assertThrows(IOException.class, startup::legacy);
+      }
+    }
+    assertEquals(2, checks[0]);
+    assertEquals(2, calls.stream().filter(value -> value.contains("register-builtin")).count());
+    assertFalse(calls.stream().anyMatch(value -> value.contains("migrate-review-markers")));
+  }
+
+  @Test
+  public void uncertainLiveLegacyProofFallsBackOnceWithoutCachingTheEarlierNoop() throws Exception {
+    var calls = new ArrayList<String>();
+    int[] checks = {0};
+    var scripts =
+        new GuestPluginScripts(
+            legacyPreparation(calls, () -> ++checks[0] == 1 ? UNCHANGED_LEGACY : null),
+            (command, timeout) -> {
+              calls.add(command);
+              return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                  command.contains("register-builtin") ? "BUILTIN_REGISTER_OK" : "guest legacy");
+            });
+    try (var startup = scripts.startup()) {
+      startup.register();
+      assertEquals(UNCHANGED_LEGACY, startup.legacy().output);
+    }
+    try (var startup = scripts.startup()) {
+      startup.register();
+      assertEquals("guest legacy", startup.legacy().output);
+      assertThrows(IOException.class, startup::legacy);
+    }
+    assertEquals(2, checks[0]);
+    assertEquals(
+        1, calls.stream().filter(value -> value.contains("migrate-review-markers")).count());
+  }
+
+  @Test
+  public void uncertainHostLockReleaseCannotFallBackOrRepeatTheLegacyDispatch() throws Exception {
+    var calls = new ArrayList<String>();
+    int[] checks = {0};
+    var scripts =
+        new GuestPluginScripts(
+            legacyPreparation(
+                calls,
+                () -> {
+                  checks[0]++;
+                  throw new IOException("LOCK_RELEASE_UNCONFIRMED");
+                }),
+            (command, timeout) -> {
+              calls.add(command);
+              assertTrue(command.contains("register-builtin-plugins.py"));
+              return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                  "BUILTIN_REGISTER_OK");
+            });
+    try (var startup = scripts.startup()) {
+      startup.register();
+      IOException failure = assertThrows(IOException.class, startup::legacy);
+      assertEquals("LOCK_RELEASE_UNCONFIRMED", failure.getMessage());
+      assertThrows(IOException.class, startup::legacy);
+    }
+    assertEquals(1, checks[0]);
+    assertFalse(calls.stream().anyMatch(value -> value.contains("migrate-review-markers")));
+  }
+
+  @Test
+  public void interruptedStartupCannotEvenBeginTheHostLegacyCheck() throws Exception {
+    var scripts =
+        new GuestPluginScripts(
+            legacyPreparation(
+                new ArrayList<>(),
+                () -> {
+                  fail("interrupted legacy proof");
+                  return null;
+                }),
+            (command, timeout) ->
+                com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                    "BUILTIN_REGISTER_OK"));
+    try (var startup = scripts.startup()) {
+      startup.register();
+      try {
+        Thread.currentThread().interrupt();
+        assertThrows(InterruptedException.class, startup::legacy);
+      } finally {
+        Thread.interrupted();
+      }
+    }
+  }
+
+  @Test
+  public void interruptionDuringHostCheckCannotCompleteOrStartTheFallbackGuest() throws Exception {
+    for (String receipt : new String[] {null, UNCHANGED_LEGACY}) {
+      int[] runs = {0};
+      var scripts =
+          new GuestPluginScripts(
+              legacyPreparation(
+                  new ArrayList<>(),
+                  () -> {
+                    Thread.currentThread().interrupt();
+                    return receipt;
+                  }),
+              (command, timeout) -> {
+                runs[0]++;
+                return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                    "BUILTIN_REGISTER_OK");
+              });
+      try (var startup = scripts.startup()) {
+        startup.register();
+        try {
+          assertThrows(InterruptedException.class, startup::legacy);
+          assertEquals(1, runs[0]);
+        } finally {
+          Thread.interrupted();
+        }
+        assertThrows(IOException.class, startup::legacy);
+      }
+    }
+  }
+
+  private interface LegacyProof {
+    String read() throws IOException;
+  }
+
+  private static GuestPluginScripts.Preparation legacyPreparation(
+      List<String> calls, LegacyProof proof) {
+    GuestPluginScripts.Preparation delegate = preparation(calls, true, true);
+    return new GuestPluginScripts.Preparation() {
+      public boolean environmentReady() {
+        return delegate.environmentReady();
+      }
+
+      public boolean rootPresent() {
+        return delegate.rootPresent();
+      }
+
+      public boolean pythonReady() {
+        return delegate.pythonReady();
+      }
+
+      public void pnpm() {
+        delegate.pnpm();
+      }
+
+      public void assets() throws IOException {
+        delegate.assets();
+      }
+
+      public String legacyReviewNoop() throws IOException {
+        return proof.read();
+      }
+    };
+  }
+
   @Test
   public void startupPreparesOnceForTwoIndependentOrderedHelpersAndNextCommandPreparesAgain()
       throws Exception {

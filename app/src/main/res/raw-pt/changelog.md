@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5 / build307
+# DSHA 0.2.1-rc.5-20261104.1412-dsh0.2.1-rc.5 / build308
 
-- Experimental: as secções Canal de execução e Operações de ecrã da página de capacidades do dispositivo passam a linhas compactas de duas linhas; a lógica de autorização e os interruptores não mudam.
-- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 307 (com base no build306). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- A confirmação de uma operação em um dispositivo externo fixa o alvo selecionado. As etapas ainda não enviadas são recusadas se a solicitação perder a validade, a associação do dispositivo mudar ou o acesso externo for desativado.
+- Os comandos de diagnóstico somente leitura de dispositivos externos passam a validar os argumentos. O comando wm só consulta o tamanho e a densidade da tela. O logcat aceita opções de leitura e filtros compatíveis. Argumentos para alterar as configurações da tela, limpar registros, redimensionar buffers ou gravar arquivos são recusados.

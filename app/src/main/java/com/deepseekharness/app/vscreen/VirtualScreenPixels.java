@@ -80,6 +80,16 @@ final class VirtualScreenPixels {
       Encoder encoder)
       throws Exception {
     Bitmap copy = null;
+    // 观察从复制真实源图开始计时，不能把编码耗时排除在5秒之外。
+    long observedAt = VirtualScreenCore.elapsed();
+    JSONObject before = metadata.get();
+    if (!before.optBoolean("ok")
+        || !before.optBoolean("active")
+        || before.optInt("displayId", -1) != session.id
+        || !session.generation.equals(before.optString("generation")))
+      return VirtualScreenTransport.failure("STALE_GENERATION", false);
+    String observedPackage = before.optString("package");
+    var frameSettings = session.frameSettings;
     long sequence, captured;
     String encoded;
     boolean unchanged;
@@ -109,22 +119,42 @@ final class VirtualScreenPixels {
           metadata
               .get()
               .put("frameSeq", sequence)
+              .put("sourceFrameSeq", sequence)
               .put("frameAgeMs", VirtualScreenCore.elapsed() - captured);
       if (unchanged) value.put("unchanged", true);
       else value.put("previewWidth", width).put("previewHeight", height).put("previewB64", encoded);
       synchronized (session.lock) {
-        if (!session.active || session.frame == null || session.sequence != sequence)
+        if (!session.active || session.frame == null || session.sequence < sequence)
+          return VirtualScreenTransport.failure("STALE_FRAME", false);
+        if (sequence < session.publishedSequence)
           return VirtualScreenTransport.failure("STALE_FRAME", false);
         if (!value.optBoolean("ok")
             || !value.optBoolean("active")
             || value.optInt("displayId", -1) != session.id
             || !session.generation.equals(value.optString("generation")))
           return VirtualScreenTransport.failure("STALE_GENERATION", false);
+        if (!observedPackage.equals(value.optString("package"))
+            || !frameSettings.equals(session.frameSettings))
+          return VirtualScreenTransport.failure("SCREEN_TARGET_CHANGED", false);
         // 只在有效图片回包（或此前已发布的同帧缓存）完整生成后登记观察。
         session.encoded = encoded;
         session.encodedSequence = sequence;
+        session.publishedSequence = sequence;
         session.observed = sequence;
-        session.observedAt = VirtualScreenCore.elapsed();
+        session.observedAt = observedAt;
+        session.observedPackage = observedPackage;
+        session.observedSettings = frameSettings;
+        value
+            .put("currentFrameSeq", session.sequence)
+            .put(
+                "framePolicy",
+                frameSettings.animated(observedPackage) ? "DYNAMIC_RECENT" : "STRICT")
+            .put("observationAgeMs", VirtualScreenCore.elapsed() - observedAt)
+            .put(
+                "observationMaxAgeMs",
+                frameSettings.animated(observedPackage)
+                    ? com.deepseekharness.app.util.ScreenFramePolicy.DYNAMIC_WINDOW_MS
+                    : com.deepseekharness.app.util.VirtualScreenPolicy.OBSERVATION_WINDOW_MS);
       }
       return value;
     } finally {

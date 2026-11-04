@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -36,7 +37,16 @@ public class GuestRegularFileTest {
   private static void link(File root, String relative, String target) throws IOException {
     Path path = root.toPath().resolve(relative);
     Files.createDirectories(path.getParent());
-    Files.createSymbolicLink(path, Paths.get(target));
+    try {
+      Files.createSymbolicLink(path, Paths.get(target));
+    } catch (java.nio.file.FileSystemException denied) {
+      String reason = String.valueOf(denied.getReason()).toLowerCase(java.util.Locale.ROOT);
+      if (System.getProperty("os.name").startsWith("Windows")
+          && (reason.contains("privilege") || reason.contains("特权")))
+        Assume.assumeNoException(
+            "Windows rejected the real symlink setup; covered by the POSIX gate", denied);
+      throw denied;
+    }
   }
 
   @Test
@@ -204,8 +214,8 @@ public class GuestRegularFileTest {
     try {
       Files.setPosixFilePermissions(
           python, java.nio.file.attribute.PosixFilePermissions.fromString("rwxr-xr-x"));
-    } catch (UnsupportedOperationException windows) {
-      return;
+    } catch (UnsupportedOperationException unsupported) {
+      Assume.assumeNoException("Host does not expose POSIX mode bits", unsupported);
     }
     link(root, "usr/bin/python3", "python3.12");
     GuestRegularFile.Result result = GuestRegularFile.check(fs, root, "usr/bin/python3", null);

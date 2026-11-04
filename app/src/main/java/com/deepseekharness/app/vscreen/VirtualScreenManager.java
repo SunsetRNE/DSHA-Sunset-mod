@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.DshaApp;
-import com.deepseekharness.app.util.VirtualScreenObservationHint;
 import com.deepseekharness.app.util.Ids;
 import com.deepseekharness.app.util.OneShotLaunchAuthority;
 import com.deepseekharness.app.util.ScreenActionResult;
@@ -70,14 +69,10 @@ public final class VirtualScreenManager {
   private volatile int port;
   private final AtomicLong LIFECYCLE_EPOCH = new AtomicLong();
   private volatile long activeEpoch = -1;
-  private long stateRevision, frameSequence = -1;
+  private long stateRevision, frameSequence = -1, observedFrameSequence = -1;
   private final LongSupplier clock;
   private volatile boolean starting;
   private volatile boolean launchDispatched;
-
-  /** 最近一次显示就绪或启动应用的时刻（clock 毫秒）；只用于观察失败时区分「首帧等待」与「停滞」。 */
-  private volatile long observationStartedAt = -1;
-
   private final ThreadLocal<String> BRIDGE_TARGET = new ThreadLocal<>();
   private final ThreadLocal<BooleanSupplier> BRIDGE_AUTHORITY = new ThreadLocal<>();
   private ScheduledFuture<?> heartbeat;
@@ -276,7 +271,27 @@ public final class VirtualScreenManager {
   }
 
   private VirtualScreenRequestScope localScope() {
-    return new VirtualScreenRequestScope(null, null, BRIDGE_AUTHORITY.get(), BRIDGE_TARGET.get());
+    return new VirtualScreenRequestScope(
+        null, null, BRIDGE_AUTHORITY.get(), BRIDGE_TARGET.get(), nativeFrameSettings());
+  }
+
+  private com.deepseekharness.app.util.ScreenFramePolicy.Settings nativeFrameSettings() {
+    return context == null
+        ? new com.deepseekharness.app.util.ScreenFramePolicy.Settings("", 0)
+        : new com.deepseekharness.app.core.ConfigStore(context).screenFrameSettings();
+  }
+
+  private static boolean framePolicyRoute(String route) {
+    return java.util.Set.of(
+            "/vscreen/preview",
+            "/vscreen/observe",
+            "/vscreen/touch",
+            "/vscreen/tap",
+            "/vscreen/swipe",
+            "/vscreen/type",
+            "/vscreen/key",
+            "/vscreen/check")
+        .contains(route);
   }
 
   /** Not a bridge route: only a resumed native Activity can acquire this local owner. */
@@ -398,6 +413,13 @@ public final class VirtualScreenManager {
       Snapshot snapshot, String route, String query, boolean changeGeneration, boolean freshFrame) {
     if (snapshot == null) return missingSnapshot(null);
     if (!current(snapshot)) return failure("VSCREEN_REVOKED");
+    boolean frameBound = framePolicyRoute(route);
+    var frameSettings =
+        frameBound && snapshot.scope.frameSettings != null
+            ? snapshot.scope.frameSettings
+            : nativeFrameSettings();
+    if (frameBound && !frameSettings.equals(nativeFrameSettings()))
+      return failure("SCREEN_FRAME_POLICY_CHANGED");
     if (snapshot.target != null
         && !snapshot.target.isEmpty()
         && !route.equals("/vscreen/launch")
@@ -408,7 +430,31 @@ public final class VirtualScreenManager {
             || route.equals("/vscreen/create")
             || route.equals("/vscreen/preview"))
         && !snapshot.scope.claim()) return failure("SCREEN_TARGET_CHANGED");
-    JSONObject value = requestAt(snapshot.identity.port, snapshot.identity.token, route, query);
+    // 私有 Core 参数只由本机设置生成，并覆盖任何调用方同名参数；桥协议不接受此配置。
+    query +=
+        (query.isEmpty() ? "" : "&")
+            + "nativeFramePackages="
+            + encode(frameSettings.configured())
+            + "&nativeFrameRevision="
+            + frameSettings.revision();
+    JSONObject value =
+        requestAt(
+            snapshot.identity.port,
+            snapshot.identity.token,
+            route,
+            query,
+            () ->
+                !current(snapshot)
+                    ? "VSCREEN_REVOKED"
+                    : frameBound && !frameSettings.equals(nativeFrameSettings())
+                        ? "SCREEN_FRAME_POLICY_CHANGED"
+                        : null);
+    if (frameBound && !frameSettings.equals(nativeFrameSettings()))
+      return afterExecutionOrNotExecuted(
+          value,
+          VirtualScreenRoutes.mutatesCore(route),
+          "framePolicyChangedAfterExecution",
+          "SCREEN_FRAME_POLICY_CHANGED");
     // Grant revision and target checks may use platform calls; keep them outside LOCK too.
     if (!authorized(snapshot.authority))
       return afterExecutionOrNotExecuted(
@@ -443,8 +489,12 @@ public final class VirtualScreenManager {
           discardObserved = true;
           stateRevision++;
           frameSequence = -1;
+          observedFrameSequence = -1;
         }
-        long sequence = value.optLong("frameSeq", -1);
+        boolean hasImage = value.has("previewB64") || value.optBoolean("unchanged");
+        long sourceSequence = value.optLong("frameSeq", -1);
+        if (hasImage && sourceSequence < observedFrameSequence) return failure("STALE_FRAME");
+        long sequence = latestFrame(value);
         if (freshFrame
             && com.deepseekharness.app.util.VirtualScreenPolicy.frameRegressed(
                 frameSequence,
@@ -455,6 +505,7 @@ public final class VirtualScreenManager {
         frameSequence =
             com.deepseekharness.app.util.VirtualScreenPolicy.advanceFrameSequence(
                 frameSequence, sequence);
+        if (hasImage) observedFrameSequence = Math.max(observedFrameSequence, sourceSequence);
         tagLocked(value);
         try {
           value.put("coreInstance", snapshot.coreInstance);
@@ -465,6 +516,14 @@ public final class VirtualScreenManager {
     if (discardObserved) semantics.clearObserved();
     if (rejection != null) recordFrameRejection(rejection);
     return value;
+  }
+
+  /** 源图仍携带真实 frameSeq；最新状态只用于响应顺序，绝不替换图像帧号。 */
+  private static long latestFrame(JSONObject value) {
+    long source = value.optLong("frameSeq", -1);
+    return value.has("previewB64") || value.optBoolean("unchanged")
+        ? Math.max(source, value.optLong("currentFrameSeq", source))
+        : source;
   }
 
   /** 帧门拒绝的可诊断摘要：稳定原因码 + 实际值/期望值；不含画面、坐标或用户内容。 */
@@ -573,7 +632,8 @@ public final class VirtualScreenManager {
           && value.optLong("managerEpoch", -2) == activeEpoch
           && value.optLong("managerRevision", -2) == stateRevision
           && generation.equals(value.optString("generation"))
-          && value.optLong("frameSeq", -1) >= frameSequence;
+          && value.optLong("frameSeq", -1) >= observedFrameSequence
+          && latestFrame(value) >= frameSequence;
     }
   }
 
@@ -605,6 +665,61 @@ public final class VirtualScreenManager {
           rememberStartOutcome(outcome);
           return outcome;
         });
+  }
+
+  /** 本机旋转与重开属于同一次动作；停止/撤销仍可立即打断，不能接续到另一个显示代次。 */
+  JSONObject rotateAndRelaunch(
+      String orientation,
+      String pkg,
+      String expectedCoreInstance,
+      String expectedGeneration,
+      long expectedEpoch,
+      BooleanSupplier pageCurrent) {
+    if (pageCurrent == null) return failure("SCREEN_TARGET_CHANGED");
+    if (pkg == null || !pkg.isEmpty() && !pkg.matches("[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z0-9_]+)+"))
+      return failure("INVALID_PACKAGE");
+    VirtualScreenRequestScope local = localScope();
+    VirtualScreenRequestScope scope =
+        new VirtualScreenRequestScope(
+            null, null, () -> authorized(pageCurrent) && local.current(), "", local.frameSettings);
+    Snapshot observed = snapshot(expectedGeneration, scope);
+    return ordered(
+        () -> {
+          if (!scope.current()) return failure("SCREEN_TARGET_CHANGED");
+          if (observed == null
+              || expectedCoreInstance == null
+              || expectedCoreInstance.isEmpty()
+              || !observed.coreInstance.equals(expectedCoreInstance)
+              || observed.identity.epoch != expectedEpoch
+              || !current(observed)) return failure("VSCREEN_REVOKED");
+          JSONObject created = startOrdered(orientation, scope);
+          rememberStartOutcome(created);
+          // 创建失败或结果未知均原样返回；不尝试重开、重建或补发。
+          if (!created.optBoolean("ok") || created.optBoolean("executionUnknown") || pkg.isEmpty())
+            return created;
+          if (!scope.current()) return rotationRelaunchRefused("SCREEN_TARGET_CHANGED");
+          Snapshot rotated = snapshot(created.optString("generation"), scope);
+          if (rotated == null
+              || !current(rotated)
+              || rotated.identity.epoch != expectedEpoch
+              || !rotated.coreInstance.equals(observed.coreInstance)
+              || !rotated.coreInstance.equals(created.optString("coreInstance"))
+              || created.optLong("managerEpoch", -1) != expectedEpoch
+              || created.optLong("managerRevision", -1) != rotated.identity.revision)
+            return rotationRelaunchRefused("VSCREEN_REVOKED");
+          semantics.clear();
+          // 使用旋转回执绑定的快照；perform 在身份握手后、首业务字节前再次核对页面与代次。
+          return perform(rotated, "/vscreen/launch", "package=" + encode(pkg), false);
+        });
+  }
+
+  private static JSONObject rotationRelaunchRefused(String code) {
+    JSONObject result = failure(code);
+    try {
+      result.put("rotationCompleted", true).put("relaunchNotSent", true);
+    } catch (org.json.JSONException impossible) {
+    }
+    return result;
   }
 
   static JSONObject safeStartOutcome(JSONObject value) throws Exception {
@@ -843,9 +958,9 @@ public final class VirtualScreenManager {
         if (committed) {
           starting = false;
           lifecycleState = VirtualScreenLifecycleState.READY;
-          observationStartedAt = clock.getAsLong();
           generation = created.optString("generation");
           frameSequence = created.optLong("frameSeq", -1);
+          observedFrameSequence = -1;
           stateRevision++;
           tagLocked(created);
         }
@@ -922,6 +1037,7 @@ public final class VirtualScreenManager {
           activeEpoch = -1;
           attemptBoot = "";
           frameSequence = -1;
+          observedFrameSequence = -1;
           return CleanupCommit.COMMITTED;
         }
       }
@@ -985,17 +1101,6 @@ public final class VirtualScreenManager {
         if (currentLocked(session)) lifecycleState = VirtualScreenLifecycleState.DISCONNECTED;
       }
       stopIfCurrent(session);
-      // 通道授权已丢失（如 Shizuku 权限被收回）：识屏模式按统一钩子判定是否降为 off。
-      if (!available) modeCapabilityRevoked("CHANNEL_LOST_" + session.channel);
-    }
-  }
-
-  private void modeCapabilityRevoked(String reason) {
-    if (context == null) return;
-    try {
-      com.deepseekharness.app.screen.ScreenMode.capabilityRevoked(context, reason);
-    } catch (RuntimeException unavailable) {
-      recordDiagnostic("SCREEN_MODE_REVOKE", unavailable.getClass().getSimpleName());
     }
   }
 
@@ -1026,111 +1131,16 @@ public final class VirtualScreenManager {
         || evidence.windowId < 0
         || evidence.consentRevision < 0) {
       JSONObject image = preview(scope);
-      boolean explicit = scope.request != null;
-      boolean targeted =
-          explicit
-              && scope.request.target instanceof VscreenTargetEvidence evidence
-              && evidence.windowId >= 0;
-      boolean consented =
-          targeted && ((VscreenTargetEvidence) scope.request.target).consentRevision >= 0;
       try {
-        ObservationFacts facts =
-            image.optBoolean("ok") ? null : observationFacts(scope, image.optString("error"));
-        VirtualScreenObservationHint.Accessibility accessibility =
-            facts != null ? facts.accessibility : accessibilityState();
-        String diagnostic =
-            facts != null
-                ? facts.windowDiagnostic
-                : accessibility == VirtualScreenObservationHint.Accessibility.CONNECTED
-                    ? com.deepseekharness.app.DshaAccessibilityService.displayWindowDiagnostic(
-                        image.optInt("displayId", -1))
-                    : "ACCESSIBILITY_UNAVAILABLE";
-        String reason =
-            VirtualScreenObservationHint.anchorUnavailable(
-                accessibility, diagnostic, explicit, targeted, consented);
         image
             .put("anchoredAvailable", false)
-            .put("availabilityReason", reason)
+            .put("availabilityReason", "ANCHOR_ACCESSIBILITY_UNAVAILABLE")
             .put("sourceFrameSeq", image.optLong("frameSeq", -1));
-        if (facts != null) explainObservationFailure(image, facts);
       } catch (Exception ignored) {
       }
       return image;
     }
-    JSONObject result = observed("see", null, -1, "", -1, -1, scope);
-    if (!result.optBoolean("ok")) {
-      try {
-        ObservationFacts facts = observationFacts(scope, result.optString("error"));
-        if (facts != null) explainObservationFailure(result, facts);
-      } catch (Exception ignored) {
-      }
-    }
-    return result;
-  }
-
-  /** 观察失败时收集的只读事实；不登记观察、不改变代次或帧号。 */
-  private static final class ObservationFacts {
-    final VirtualScreenObservationHint.Accessibility accessibility;
-    final String windowDiagnostic, foregroundPackage;
-    final long sinceStartMs;
-
-    ObservationFacts(
-        VirtualScreenObservationHint.Accessibility accessibility,
-        String windowDiagnostic,
-        String foregroundPackage,
-        long sinceStartMs) {
-      this.accessibility = accessibility;
-      this.windowDiagnostic = windowDiagnostic;
-      this.foregroundPackage = foregroundPackage;
-      this.sinceStartMs = sinceStartMs;
-    }
-  }
-
-  private VirtualScreenObservationHint.Accessibility accessibilityState() {
-    return VirtualScreenObservationHint.Accessibility.of(
-        com.deepseekharness.app.DshaAccessibilityService.isConnected(),
-        com.deepseekharness.app.DshaAccessibilityService.enabledState(context));
-  }
-
-  /** 只对 Core 的 FRAME_NOT_READY 收集事实；其它失败码原样回传。 */
-  private ObservationFacts observationFacts(VirtualScreenRequestScope scope, String error) {
-    if (!VirtualScreenObservationHint.FRAME_NOT_READY.equals(error)) return null;
-    // status 是只读查询：不登记观察，也不推进帧号（freshFrame=false）。
-    JSONObject status = targetStatus(scope);
-    int display = status.optInt("displayId", -1);
-    VirtualScreenObservationHint.Accessibility accessibility = accessibilityState();
-    String diagnostic =
-        accessibility == VirtualScreenObservationHint.Accessibility.CONNECTED && display > 0
-            ? com.deepseekharness.app.DshaAccessibilityService.displayWindowDiagnostic(display)
-            : "ACCESSIBILITY_UNAVAILABLE";
-    String foreground = status.optBoolean("packageVerified") ? status.optString("package") : "";
-    long started = observationStartedAt;
-    long since = started < 0 ? -1 : Math.max(0, clock.getAsLong() - started);
-    return new ObservationFacts(accessibility, diagnostic, foreground, since);
-  }
-
-  /** 把 FRAME_NOT_READY 细分为空屏 / 首帧等待 / 停滞，并附下一步建议；legacyError 保留原码。 */
-  private static void explainObservationFailure(JSONObject value, ObservationFacts facts)
-      throws org.json.JSONException {
-    VirtualScreenObservationHint.Hint hint =
-        VirtualScreenObservationHint.frameNotReady(
-            value.optString("error"),
-            facts.accessibility,
-            facts.windowDiagnostic,
-            facts.foregroundPackage,
-            facts.sinceStartMs);
-    if (hint == null) return;
-    value
-        .put("legacyError", VirtualScreenObservationHint.FRAME_NOT_READY)
-        .put("error", hint.error)
-        .put("windowState", hint.windowState)
-        .put("windowEvidence", hint.windowEvidence)
-        .put("windowDiagnostic", facts.windowDiagnostic)
-        .put("foregroundPackage", facts.foregroundPackage)
-        .put("retryable", hint.retryable)
-        .put("readOnly", true)
-        .put("nextAction", hint.nextAction);
-    if (facts.sinceStartMs >= 0) value.put("sinceReadyOrLaunchMs", facts.sinceStartMs);
+    return observed("see", null, -1, "", -1, -1, scope);
   }
 
   private JSONObject observed(
@@ -1458,8 +1468,6 @@ public final class VirtualScreenManager {
         () -> {
           if (!scope.claim()) return failure("SCREEN_TARGET_CHANGED");
           semantics.clear();
-          // 启动已发出（结果可能未知）后重新计首帧等待期；不据此判断启动是否成功。
-          observationStartedAt = clock.getAsLong();
           return request("/vscreen/launch", "package=" + encode(pkg), scope);
         });
   }
@@ -1572,6 +1580,7 @@ public final class VirtualScreenManager {
     activeEpoch = -1;
     stateRevision++;
     frameSequence = -1;
+    observedFrameSequence = -1;
     return closed;
   }
 
@@ -1808,15 +1817,6 @@ public final class VirtualScreenManager {
     semantics.clearObserved();
   }
 
-  /**
-   * 统一撤销钩子：某项设备能力被撤销（Root / ADB 开关关闭、Shizuku 权限丢失等）。先回收虚拟屏，再由识屏模式判定是否降为
-   * off；调用方不再直调 {@link #revoke()}。
-   */
-  public void revokeFor(String reason) {
-    revoke();
-    modeCapabilityRevoked(reason == null || reason.isEmpty() ? "CAPABILITY_REVOKED" : reason);
-  }
-
   public void revoke() {
     long previous = LIFECYCLE_EPOCH.getAndIncrement();
     discardObservations();
@@ -1846,6 +1846,7 @@ public final class VirtualScreenManager {
         activeEpoch = -1;
         stateRevision++;
         frameSequence = -1;
+        observedFrameSequence = -1;
       }
     }
     saveJournal();
@@ -2051,7 +2052,9 @@ public final class VirtualScreenManager {
       if (!generation.isEmpty() && !generation.equals(evidence.generation))
         return identityFailure("VSCREEN_GENERATION_CHANGED").toString();
     }
-    return dispatch(request, new VirtualScreenRequestScope(broker, capability, current, ""));
+    return dispatch(
+        request,
+        new VirtualScreenRequestScope(broker, capability, current, "", nativeFrameSettings()));
   }
 
   private String dispatch(
@@ -2207,13 +2210,22 @@ public final class VirtualScreenManager {
   }
 
   private JSONObject requestAt(int port, String token, String route, String query) {
+    return requestAt(port, token, route, query, () -> null);
+  }
+
+  private JSONObject requestAt(
+      int port,
+      String token,
+      String route,
+      String query,
+      java.util.function.Supplier<String> beforeSendRejection) {
     VirtualScreenHandshake endpoint = core;
     ClosedSession cleanup = pendingCleanup;
     if (endpoint == null || endpoint.port != port || !endpoint.token.equals(token))
       endpoint = cleanup == null ? null : cleanup.handle;
     if (endpoint == null || endpoint.port != port || !endpoint.token.equals(token))
       return failure("VSCREEN_CORE_IDENTITY_REQUIRED");
-    return transport.request(endpoint, route, query);
+    return transport.request(endpoint, route, query, beforeSendRejection);
   }
 
   public static Bitmap previewBitmap(JSONObject value) {

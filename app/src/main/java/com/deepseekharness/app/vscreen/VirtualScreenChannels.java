@@ -5,18 +5,11 @@ import com.deepseekharness.app.DeviceBridgeService;
 import com.deepseekharness.app.RootShell;
 import com.deepseekharness.app.ShizukuShell;
 import com.deepseekharness.app.bridge.AdbBridge;
-import com.deepseekharness.app.screen.ScreenCapabilities;
-import com.deepseekharness.app.util.ScreenCapabilityGate;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 复用 DSHA 的设备能力授权；结果未知时调用方不得换通道重放。
- *
- * <p>{@link VirtualScreenChannel#available} 是「授权仍在」（心跳与退出核验用）；新启动经 {@link #choose} 走
- * {@link ScreenCapabilityGate#chooseUsable} 的严格判据（Shizuku 需已绑定、ADB 需已验证连接）。
- */
+/** 复用 DSHA 的设备能力授权；结果未知时调用方不得换通道重放。 */
 final class VirtualScreenChannels {
   private VirtualScreenChannels() {}
 
@@ -33,7 +26,7 @@ final class VirtualScreenChannels {
           }
 
           public boolean available(Context c) {
-            return ScreenCapabilityGate.channelAuthorized(id(), ScreenCapabilities.sample(c));
+            return RootShell.enabled(c) && RootShell.present();
           }
 
           public String start(Context c, String command) {
@@ -52,7 +45,7 @@ final class VirtualScreenChannels {
           }
 
           public boolean available(Context c) {
-            return ScreenCapabilityGate.channelAuthorized(id(), ScreenCapabilities.sample(c));
+            return ShizukuShell.hasPermission();
           }
 
           public String start(Context c, String command) {
@@ -71,7 +64,7 @@ final class VirtualScreenChannels {
           }
 
           public boolean available(Context c) {
-            return ScreenCapabilityGate.channelAuthorized(id(), ScreenCapabilities.sample(c));
+            return DeviceBridgeService.isAdbEnabled(c);
           }
 
           public String start(Context c, String command) {
@@ -94,10 +87,14 @@ final class VirtualScreenChannels {
                 : AdbBridge.executeVirtualScreenTyped(c, command, ticket);
           }
         };
-    // 顺序由 ScreenCapabilityGate.order 统一决定（Root 已在首位）。
-    for (String id : ScreenCapabilityGate.order(sdk, "connected".equals(adbState))) {
-      if (ScreenCapabilityGate.SHIZUKU.equals(id)) channels.add(shizuku);
-      else if (ScreenCapabilityGate.ADB.equals(id)) channels.add(adb);
+    if (sdk >= 37 && "connected".equals(adbState)) {
+      // Android 17 的 Shizuku 用户服务可能在进入 DSHA 前退出；保留 Root 优先，
+      // 其次使用已验证连接的 ADB；available() 仍要求其显式授权开关开启。
+      channels.add(adb);
+      channels.add(shizuku);
+    } else {
+      channels.add(shizuku);
+      channels.add(adb);
     }
     return channels;
   }
@@ -107,17 +104,8 @@ final class VirtualScreenChannels {
     return null;
   }
 
-  /**
-   * 新启动只选真正可用的通道。Shizuku 已授权但用户服务尚未绑定时，先在发送前等待绑定一次再重新采样
-   * （此时什么都还没发出，等待不构成重放）。
-   */
   static VirtualScreenChannel choose(Context context) {
-    ScreenCapabilityGate.Inputs inputs = ScreenCapabilities.sample(context);
-    String id = ScreenCapabilityGate.chooseUsable(inputs);
-    if (id.isEmpty() && inputs.shizuku == ScreenCapabilityGate.Shizuku.PERMITTED) {
-      ShizukuShell.awaitReady(context, 4000);
-      id = ScreenCapabilityGate.chooseUsable(ScreenCapabilities.sample(context));
-    }
-    return id.isEmpty() ? null : find(id);
+    for (VirtualScreenChannel channel : all()) if (channel.available(context)) return channel;
+    return null;
   }
 }

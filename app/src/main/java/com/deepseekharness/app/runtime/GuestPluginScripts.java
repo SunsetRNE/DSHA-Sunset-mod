@@ -40,6 +40,11 @@ final class GuestPluginScripts {
       return null;
     }
 
+    /** A live host proof may complete only an unchanged legacy-review migration. */
+    default String legacyReviewNoop() throws IOException {
+      return null;
+    }
+
     /** Query-only readiness; must not write, install, repair, migrate or register anything. */
     default boolean queryReady() {
       return false;
@@ -103,6 +108,10 @@ final class GuestPluginScripts {
             String generation = Rc1MigrationCache.generation(fs, host.files, current);
             host.verify(fs);
             return generation;
+          }
+
+          public String legacyReviewNoop() throws IOException {
+            return HostLegacyPluginCheck.check(context, root);
           }
 
           public boolean queryReady() {
@@ -174,6 +183,12 @@ final class GuestPluginScripts {
       requireOwner();
       if (!registered || migrated) throw new IOException("STARTUP_PLUGIN_MIGRATION_ORDER");
       migrated = true;
+      // The pipeline has checked the current generation after registration. Keep that
+      // boundary and both original locks; a proof is freshly read for this dispatch only.
+      // A failed lock release is not a reason to replay the operation in a guest.
+      String unchanged = preparation.legacyReviewNoop();
+      requireOwner();
+      if (unchanged != null) return BoundedProcessRunner.localCompletion(unchanged);
       return runner.run(
           "DSHA_PLUGIN_DOWNLOAD_SOURCE=auto python3 /root/.dsh/"
               + PLUGIN_MANAGER_SCRIPT

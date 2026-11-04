@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-cordis-host-runner/lib/index.js",
+  "sourceSha256": "6bb46b4b2edf2d28600c185808ad3a60393447fc675eebf7339189a37b7949da",
+  "packageIntegrity": "sha512-eMGns7W8Pdx49aKi3s7l6ntLV7L+ZCZTWqkX1thmYJvY1xyrR8TxWg0zXikKWBOmhc1+MRs+8QK/ukbb7oukMA==",
+  "targetSha256": "e7d38d79bc3f6fc75dd3a24a38f6609b21a9676042fcb1f18c28a8934d29f5fe",
+  "reason": "Preserve explicit dynamic plugin removal through asynchronous activation and stale inventory responses. Retain failed cleanup evidence; never replay activation or change persistent plugin packages.",
+  "patches": [
+    {
+      "before": "\t\tstarting = /* @__PURE__ */ new Map();",
+      "after": "\t\tstarting = /* @__PURE__ */ new Map();\n\t\tremovals = /* @__PURE__ */ new Map();"
+    },
+    {
+      "before": "\t\t\tconst wasRunning = plugin.run !== void 0;\n\t\t\tthis.cancelPending(pluginId, `dynamic plugin \"${pluginId}\" was removed before approval`);\n\t\t\tif (plugin.run !== void 0) await this.retract(plugin);\n\t\t\tthis.registry.delete(pluginId);\n\t\t\treturn {\n\t\t\t\tok: true,\n\t\t\t\twasRunning\n\t\t\t};",
+      "after": "\t\t\t// DSHA_TEMPORARY_PLUGIN_REMOVE_V1: retire before any await. A late\n\t\t\t// activation must unwind its own effects before removal can succeed.\n\t\t\tconst pendingRemoval = this.removals.get(plugin);\n\t\t\tif (pendingRemoval !== void 0) return pendingRemoval;\n\t\t\tplugin.dshaRemoving = true;\n\t\t\tconst wasRunning = plugin.run !== void 0;\n\t\t\tconst removal = (async () => {\n\t\t\t\tthis.cancelPending(pluginId, `dynamic plugin \"${pluginId}\" was removed before approval`);\n\t\t\t\tawait this.starting.get(pluginId);\n\t\t\t\tif (plugin.run !== void 0) await this.retract(plugin);\n\t\t\t\tif (this.registry.get(pluginId) === plugin) this.registry.delete(pluginId);\n\t\t\t\treturn { ok: true, wasRunning };\n\t\t\t})();\n\t\t\tthis.removals.set(plugin, removal);\n\t\t\ttry { return await removal; }\n\t\t\tfinally { this.removals.delete(plugin); }\n\t\t\t// On an unconfirmed cleanup retain the record and retirement fence.\n\t\t\t// A later explicit removal may retry cleanup, never activation."
+    },
+    {
+      "before": "\t\t\tconst definition = plugin.packages.get(packageId);\n\t\t\tif (definition === void 0) return {",
+      "after": "\t\t\tif (plugin.dshaRemoving || plugin.run?.dshaRetracting) return {\n\t\t\t\tok: false,\n\t\t\t\tresponse: { ok: false, reason: \"transition-in-flight\", message: `dynamic plugin \"${pluginId}\" is being removed` }\n\t\t\t};\n\t\t\tconst definition = plugin.packages.get(packageId);\n\t\t\tif (definition === void 0) return {"
+    },
+    {
+      "before": "\t\t\tconst { plugin, definition, mode } = plan;\n\t\t\tif (allowActiveAttach",
+      "after": "\t\t\tconst { plugin, definition, mode } = plan;\n\t\t\tif (plugin.dshaRemoving || this.registry.get(plugin.pluginId) !== plugin) return {\n\t\t\t\tok: false, message: \"the dynamic plugin was removed before activation\"\n\t\t\t};\n\t\t\tif (allowActiveAttach"
+    },
+    {
+      "before": "\t\t\tplugin.run = run;\n\t\t\tthis.ctx.emit(\"cordis/dynamic-package\", {",
+      "after": "\t\t\tplugin.run = run;\n\t\t\tif (plugin.dshaRemoving || this.registry.get(plugin.pluginId) !== plugin) {\n\t\t\t\tawait this.retract(plugin);\n\t\t\t\treturn { ok: false, message: \"the dynamic plugin was removed during activation\" };\n\t\t\t}\n\t\t\tthis.ctx.emit(\"cordis/dynamic-package\", {"
+    },
+    {
+      "before": "\t\t\tif (plugin === void 0 || plugin.run === void 0) return {",
+      "after": "\t\t\tif (plugin === void 0 || plugin.dshaRemoving || plugin.run === void 0 || plugin.run.dshaRetracting) return {"
+    },
+    {
+      "before": "\t\t\tdelete plugin.run;\n\t\t\tfor (const dispose of run.handlerDisposers.splice(0)) dispose();\n\t\t\tif (run.fiber !== void 0) await run.fiber.dispose();\n\t\t\tthis.ctx.emit(\"cordis/dynamic-retract\", {",
+      "after": "\t\t\t// Keep the exact run reachable until its cleanup has completed.\n\t\t\t// A rejected cleanup is not proof that the plugin stopped. Invocation\n\t\t\t// and fresh activation remain fenced until a later explicit cleanup.\n\t\t\trun.dshaRetracting = true;\n\t\t\tfor (const dispose of [...run.handlerDisposers]) dispose();\n\t\t\tif (run.fiber !== void 0) await run.fiber.dispose();\n\t\t\trun.handlerDisposers.length = 0;\n\t\t\tif (plugin.run === run) delete plugin.run;\n\t\t\tthis.ctx.emit(\"cordis/dynamic-retract\", {"
+    }
+  ]
+}

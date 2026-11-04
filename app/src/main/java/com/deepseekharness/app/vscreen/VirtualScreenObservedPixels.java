@@ -22,12 +22,14 @@ final class VirtualScreenObservedPixels {
     final Bitmap raw;
     final long sequence, created, bytes;
     final String generation, packageName;
+    final com.deepseekharness.app.util.ScreenFramePolicy.Settings frameSettings;
 
     Entry(Bitmap raw, VirtualScreenDisplaySession session, String packageName, long now) {
       this.raw = raw;
       sequence = session.sequence;
       generation = session.generation;
       this.packageName = packageName;
+      frameSettings = session.frameSettings;
       created = now;
       bytes = raw.getAllocationByteCount();
     }
@@ -83,11 +85,15 @@ final class VirtualScreenObservedPixels {
       synchronized (session.lock) {
         if (!session.active || !session.generation.equals(entry.generation))
           return failure("STALE_GENERATION");
-        // Keep the legacy observed/latest gate exact. An old immutable snapshot does not renew it.
-        if (session.sequence == entry.sequence) {
-          session.observed = entry.sequence;
-          session.observedAt = VirtualScreenCore.elapsed();
-        }
+        if (!entry.frameSettings.equals(session.frameSettings))
+          return failure("SCREEN_FRAME_POLICY_CHANGED");
+        if (entry.sequence < session.publishedSequence) return failure("STALE_FRAME");
+        // 源帧不改标；严格档仍在输入时要求最新，动态档按源图复制时刻限时。
+        session.observed = entry.sequence;
+        session.publishedSequence = entry.sequence;
+        session.observedAt = entry.created;
+        session.observedPackage = entry.packageName;
+        session.observedSettings = entry.frameSettings;
         entries.put(entry.id, entry);
         allocated += entry.bytes;
         published = true;

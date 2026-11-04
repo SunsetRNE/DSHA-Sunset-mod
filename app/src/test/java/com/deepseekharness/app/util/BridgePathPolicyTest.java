@@ -73,11 +73,11 @@ public class BridgePathPolicyTest {
     assertTrue(
         BridgePathPolicy.deniedHostPath(
             "/data/data/com.other.app/files/x",
-            "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu"));
+            "/data/data/dsh.android.client/files/linux/ubuntu"));
     // rootfs 内部交给 guest 视角判据，不因位于 /data/data 下一律拒绝
     assertFalse(
         BridgePathPolicy.deniedHostPath(
-            "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu/root/report.md",
-            "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu"));
+            "/data/data/dsh.android.client/files/linux/ubuntu/root/report.md",
+            "/data/data/dsh.android.client/files/linux/ubuntu"));
   }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ScreenSense 只读 state 的真机核对探针（仅测试包 io.github.sunsetrne.dsha.test）。
+"""ScreenSense 只读 state 的真机核对探针（仅测试包 dsh.android.client.SunsetRNE）。
 
 在测试包自己的 DSH 对话里运行，taskSessionId/turnId 取该对话工具环境的
 $DSH_PHONE_SESSION_ID / $DSH_PHONE_TURN_ID。每次运行读当前前台页面（或 --launch 指定的应用）：
@@ -27,7 +27,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-TEST_PACKAGE = "io.github.sunsetrne.dsha.test"
+TEST_PACKAGE = "dsh.android.client.SunsetRNE"
 HEADERS_FILE = Path("/root/.dsh/.bridge_headers")
 
 

@@ -11,6 +11,6 @@
 
 
 
-    <string name="accessibility_desc">两个用途：① 自动读取系统「无线调试」的配对码；② 让 AI 助手读屏、点按、输入、按键、截屏以操作手机。DSH-A-Su 不做后台屏幕记录，只在助手请求时读取当下屏幕。</string>
+    <string name="accessibility_desc">两个用途：① 自动读取系统「无线调试」的配对码；② 让 AI 助手读屏、点按、输入、按键、截屏以操作手机。DSHA 不做后台屏幕记录，只在助手请求时读取当下屏幕。</string>
 
 </resources>

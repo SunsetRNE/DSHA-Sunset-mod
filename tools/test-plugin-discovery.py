@@ -435,11 +435,25 @@ class DiscoveryTest(unittest.TestCase):
     def test_old_builtin_file_cannot_shrink_signed_minimum_or_enable_name_spoof(self):
         self.put('root/dsha-builtin.txt', 'dsh-web-mobile\n../../fake\n')
         names = self.builtin.builtin_names()
-        self.assertTrue(set(self.builtin.DEFAULT_BUILTINS).issubset(names))
+        self.assertEqual(list(self.builtin.DEFAULT_BUILTINS), names)
         self.assertNotIn('../../fake', names)
         spoof = self.plugin('incoming', 'dsh-web-mobile', version='999.0.0')
         with self.assertRaisesRegex(ValueError, '签名 APK'):
             self.manager.plugin_package(str(spoof))
+
+    def test_signed_builtin_names_ignore_legacy_file_io_and_return_detached_copy(self):
+        # 旧可写文本既不是签名清单，也不是缓存失效依据；缺失、损坏或不可读都不能
+        # 削弱受管插件保护。查询不得为了这个无效输入额外访问 guest 文件系统。
+        legacy = self.put('root/dsha-builtin.txt', 'dsh-web-mobile\nthird-party-spoof\n')
+        with patch.object(self.builtin.os, 'stat', side_effect=AssertionError('legacy stat')):
+            with patch('builtins.open', side_effect=AssertionError('legacy read')):
+                names = self.builtin.builtin_names()
+                names.clear()
+                self.assertEqual(list(self.builtin.DEFAULT_BUILTINS), self.builtin.builtin_names())
+        legacy.write_bytes(b'\xff\x00broken-list')
+        self.assertEqual(list(self.builtin.DEFAULT_BUILTINS), self.builtin.builtin_names())
+        legacy.unlink()
+        self.assertEqual(list(self.builtin.DEFAULT_BUILTINS), self.builtin.builtin_names())
 
     def test_old_profile_builtin_entity_is_quarantined_and_current_apk_entity_wins(self):
         old = self.plugin('root/.dsh/profiles/web/node_modules', 'dsh-web-mobile', version='1.0.0')

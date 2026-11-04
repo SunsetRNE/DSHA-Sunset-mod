@@ -19,10 +19,11 @@ const { LocalSubprocessRuntime } = await load('@deepseek-ai/dsh-subprocess-local
 const search = await load('@deepseek-ai/dsh-tool-fs-search/lib/index.js');
 
 const directory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dsha-fs-search-scope-')));
-// 按生产布局安装插件副本：插件目录内的 node_modules 指向运行时，裸导入与策略模块都从这里解析。
+// 按生产布局安装插件副本：这里只链接依赖目录，不测试文件软链接语义；Windows 用 junction。
+// 插件目录内的 node_modules 指向运行时，裸导入与策略模块都从这里解析。
 const pluginDir = path.join(directory, 'plugin');
 fs.cpSync(path.join(root, 'app/src/main/assets/builtin-plugins/dsh-fs-search-scope'), pluginDir, { recursive: true });
-fs.symlinkSync(modules, path.join(pluginDir, 'node_modules'));
+fs.symlinkSync(modules, path.join(pluginDir, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
 const scope = await import(pathToFileURL(path.join(pluginDir, 'lib/index.js')));
 
 const repo = path.join(directory, 'repo');
@@ -62,7 +63,9 @@ async function harness({ plugin = true, workdir = repo } = {}) {
   return { ctx, glob };
 }
 const text = result => result.content?.[0]?.text ?? '';
-const lines = result => text(result) === 'No files found' ? [] : text(result).split('\n\n')[0].split('\n').sort();
+// rg 在 Windows 返回宿主分隔符；仅统一比较表示，文件集合与剪枝语义仍逐项核对。
+const comparablePath = value => process.platform === 'win32' ? value.replaceAll('\\', '/') : value;
+const lines = result => text(result) === 'No files found' ? [] : text(result).split('\n\n')[0].split('\n').map(comparablePath).sort();
 async function run(name, body) {
   await body();
   cases++;
@@ -112,7 +115,7 @@ try {
     // 软链接检索根不测：本机 proroot 下 rg 以软链接为根本身就报 ENOENT（不装插件亦然），与插件无关。
     const h = await harness({ workdir: path.join(directory, 'other') });
     assert.deepEqual(lines(await h.glob({ pattern: '*.java', path: '../repo' })), OWN.map(file => '../repo/' + file).sort());
-    assert.deepEqual(lines(await h.glob({ pattern: '*.java', path: repo })), OWN.map(file => path.join(repo, file)).sort());
+    assert.deepEqual(lines(await h.glob({ pattern: '*.java', path: repo })), OWN.map(file => comparablePath(path.join(repo, file))).sort());
     await h.ctx.fiber.dispose();
   });
 
@@ -170,7 +173,7 @@ try {
     assert.deepEqual(scope.withExcludes(['--files', '--', 'p'], ['!a']), ['--files', '--glob=!a', '--', 'p']);
     assert.deepEqual(scope.withExcludes(['--files'], ['!a']), ['--files', '--glob=!a']);
     assert.deepEqual(scope.pruneGlobs({ workdir: '/w', path: '.agents/worktrees/x' }), []);
-    assert.deepEqual(scope.pruneGlobs({ workdir: '/w', linked: ['/w/n', '/elsewhere', '/w/.agents/worktrees/a'] }), ['!**/.agents/worktrees', '!n', '!**/w/n']);
+    assert.deepEqual(scope.pruneGlobs({ workdir: '/w', linked: ['/w/n', '/elsewhere', '/w/.agents/worktrees/a'] }), ['!**/.agents/worktrees', '!n', '!**' + comparablePath(path.resolve('/w/n'))]);
   });
 
   console.log(JSON.stringify({ status: 'PASS', cases, realRc5: true, runtime: managed }));

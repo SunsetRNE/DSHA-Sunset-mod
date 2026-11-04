@@ -5,7 +5,6 @@ import static org.junit.Assert.*;
 import com.deepseekharness.app.core.PluginRepository.Item;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -284,7 +283,7 @@ public final class PluginRuntimeProjectionTest {
   public void snapshotPathCanonicalizesAliasedRuntimeRootBeforeNofollowRead() throws Exception {
     File real = temporary.newFolder("files", "linux", "ubuntu");
     File alias = new File(temporary.getRoot(), "alias-root");
-    Files.createSymbolicLink(alias.toPath(), real.toPath());
+    PluginHostFiles.symlink(alias.toPath(), real.toPath());
     File snapshot = PluginRuntimeProjection.snapshotPath(alias);
     assertEquals(
         new File(real.getCanonicalFile(), "root/.dsha-web-activity.json").getPath(),

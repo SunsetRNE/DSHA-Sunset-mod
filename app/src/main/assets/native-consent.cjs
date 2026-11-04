@@ -51,7 +51,7 @@ function readConnection() {
   return Object.freeze({
     applicationId:
         (typeof process !== 'undefined' && process.env && process.env.DSHA_BRIDGE_APPLICATION_ID)
-        || 'io.github.sunsetrne.dsha',
+        || 'dsh.android.client',
     generation: credential().generation,
     port: bridgePort(),
   });

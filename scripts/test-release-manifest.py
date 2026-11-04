@@ -1,8 +1,10 @@
 """发布通道回归：新预览不能让稳定通道失去可更新版本。"""
 import importlib.util
 from pathlib import Path
+import sys
 import unittest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 spec = importlib.util.spec_from_file_location('manifest', Path(__file__).resolve().parents[1] / 'tools/generate-release-manifest.py')
 manifest = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(manifest)
@@ -13,7 +15,7 @@ def release(code, channel):
 
 
 def feed(*items):
-    return dict(schemaVersion=1, packageName='com.dsh.client', certificateSha256=manifest.PUBLISH_CERT, releases=list(items))
+    return dict(schemaVersion=1, packageName='dsh.android.client', certificateSha256=manifest.PUBLISH_CERT, releases=list(items))
 
 
 class ReleaseChannelTest(unittest.TestCase):

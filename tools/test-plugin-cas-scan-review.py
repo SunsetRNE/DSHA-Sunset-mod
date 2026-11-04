@@ -24,18 +24,18 @@ class CasScanReviewTest(unittest.TestCase):
         deep = self.package / 'a/b/c'
         deep.mkdir(parents=True)
         (deep / 'payload').write_bytes(b'ordinary deep file')
-        reader = self.transaction.cas_links.__globals__['DeleteObjects']
-        original = reader.stat
+        original = os.scandir
         listdir = os.listdir
         fired = []
 
-        def inspect(instance, parent, name):
-            if name == 'payload' and not fired:
-                # The operation really addresses the held deep directory FD.
-                self.assertEqual(Path(os.readlink('/proc/self/fd/' + str(parent))), deep)
-                fired.append(True)
-                action()
-            return original(instance, parent, name)
+        def inspect(scan, directory):
+            for entry in scan:
+                if entry.name == 'payload' and not fired:
+                    # The operation addresses the held deep directory FD.
+                    self.assertEqual(Path(os.readlink('/proc/self/fd/' + str(directory))), deep)
+                    fired.append(True)
+                    action()
+                yield entry
 
         def list_private(directory):
             actual = (Path(os.readlink('/proc/self/fd/' + str(directory)))
@@ -46,8 +46,17 @@ class CasScanReviewTest(unittest.TestCase):
             return listdir(directory)
 
         @contextlib.contextmanager
+        def scan_private(directory):
+            actual = Path(os.readlink('/proc/self/fd/' + str(directory)))
+            outside = self.root / 'outside'
+            self.assertFalse(actual == outside or outside in actual.parents,
+                             'The scanner followed a substituted external directory')
+            with original(directory) as scan:
+                yield inspect(scan, directory)
+
+        @contextlib.contextmanager
         def injected():
-            with patch.object(reader, 'stat', inspect), patch.object(os, 'listdir', list_private):
+            with patch.object(os, 'scandir', scan_private), patch.object(os, 'listdir', list_private):
                 yield
 
         return injected(), fired
@@ -125,6 +134,102 @@ class CasScanReviewTest(unittest.TestCase):
         self.assertEqual((outside / 'index.js').read_bytes(), b'external later original')
         self.assertTrue((retained / 'index.js').is_symlink())
         self.assertEqual(self.target.read_bytes(), b'export const answer=42;\n')
+
+    def test_stale_regular_dirent_replaced_by_cas_link_is_rejected(self):
+        payload = self.package / 'payload'
+        payload.write_bytes(b'ordinary original')
+        before = self.package.stat()
+        original = os.scandir
+        fired = []
+
+        class CachedEntry:
+            def __init__(entry_self, entry):
+                entry_self.entry = entry
+                entry_self.name = entry.name
+
+            def is_symlink(entry_self):
+                return entry_self.entry.is_symlink()
+
+            def is_dir(entry_self, **kwargs):
+                return entry_self.entry.is_dir(**kwargs)
+
+            def is_file(entry_self, **kwargs):
+                cached = entry_self.entry.is_file(**kwargs)
+                if entry_self.name == 'payload' and not fired:
+                    self.assertTrue(cached)
+                    payload.unlink()
+                    payload.symlink_to(self.target)
+                    # Restoring directory mtime must not hide the replacement;
+                    # its ctime and identity are independently checked.
+                    os.utime(self.package, ns=(before.st_atime_ns, before.st_mtime_ns))
+                    fired.append(True)
+                return cached
+
+        @contextlib.contextmanager
+        def cached_scan(directory):
+            with original(directory) as scan:
+                yield (CachedEntry(entry) for entry in scan)
+
+        with patch.object(os, 'scandir', cached_scan), self.assertRaisesRegex(ValueError, '变化'):
+            self.transaction.cas_links()
+        self.assertTrue(fired)
+        self.assertTrue(payload.is_symlink())
+        self.assertTrue(self.link.is_symlink())
+        self.assertEqual(self.target.read_bytes(), b'export const answer=42;\n')
+
+    def test_late_broken_cas_link_is_not_hidden_by_prior_success(self):
+        self.transaction.materialize_cas_links()
+        self.assertFalse(self.link.is_symlink())
+        deep = self.package / 'nested/deeper'
+        deep.mkdir(parents=True)
+        stamp = self.modules.stat().st_mtime_ns
+        broken, target = self.make_link(deep / 'broken.js', b'new CAS bytes')
+        target.unlink()
+        self.assertEqual(self.modules.stat().st_mtime_ns, stamp)
+        result, value = _fixture.CasMaterializeTest.cli(self)
+        self.assertEqual((result.returncode, value['status']), (1, 'error'))
+        self.assertTrue(broken.is_symlink())
+        self.assertFalse(self.link.is_symlink())
+
+    def test_cancel_during_regular_file_scan_returns_no_partial_receipt(self):
+        for index in range(100):
+            (self.package / ('plain-' + str(index))).write_bytes(b'ordinary bytes')
+        original = self.transaction.g['check_cancel']
+        cancelled = []
+        seen = []
+
+        def check():
+            seen.append(True)
+            if len(seen) == 60:
+                cancelled.append(True)
+                raise self.manager.PluginCancelled('cancel during live scan')
+            original()
+
+        with patch.dict(self.transaction.g, check_cancel=check):
+            with self.assertRaisesRegex(self.manager.PluginCancelled, 'cancel during live scan'):
+                self.transaction.cas_links()
+        self.assertTrue(cancelled)
+        self.assertTrue(self.link.is_symlink())
+        self.assertFalse((self.home / 'plugin-install-operations').exists())
+
+    def test_path_based_fallback_preserves_per_entry_checks(self):
+        reader = self.transaction.cas_links.__globals__['DeleteObjects']
+        original_init, original_stat = reader.__init__, reader.stat
+        calls = []
+
+        def path_init(instance, *args):
+            original_init(instance, *args)
+            instance.relative = False
+
+        def counted(instance, parent, name):
+            calls.append(name)
+            return original_stat(instance, parent, name)
+
+        with patch.object(reader, '__init__', path_init), patch.object(reader, 'stat', counted), \
+                patch.object(os, 'scandir', side_effect=AssertionError('path fallback cannot use dirents')):
+            found = self.transaction.cas_links()
+        self.assertEqual([entry['path'] for entry in found], ['test-plugin/index.js'])
+        self.assertIn('package.json', calls)
 
 
 if __name__ == '__main__':

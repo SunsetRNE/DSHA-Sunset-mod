@@ -19,6 +19,17 @@ FRONTEND_ENTRY = '@deepseek-ai/dsh-web-frontend/dist/assets/index-BXV-oxvX.js'
 CONVERSATION = '@deepseek-ai/dsh-client-ui-conversation/lib/client.js'
 CONVERSATION_SPECIAL_INPUTS = ('lexical-claim-patch.json', 'conversation-materialized-patch.json')
 REVIEWED_OFFICIAL_CHAINS = {
+    '@deepseek-ai/dsh-client-connection/lib/client.browser.js': ('literal-loopback-online-patch.json',),
+    '@deepseek-ai/dsh-mcp-client/lib/index.js': ('startup-mcp-timing-patch.json', 'mcp-image-base64-patch.json', 'mcp-version-negotiation-patch.json'),
+    '@deepseek-ai/dsh-cordis-host-runner/lib/index.js': ('temporary-plugin-host-remove-patch.json',),
+    '@deepseek-ai/dsh-client-ui-cordis/lib/client.js': ('temporary-plugin-ui-remove-patch.json',),
+    '@deepseek-ai/dsh-app-boot/lib/index.js': ('retired-market-optional-patch.json', 'startup-resolution-patch.json'),
+    'openai/core/streaming.mjs': ('openai-sse-esm-patch.json',),
+    'openai/core/streaming.js': ('openai-sse-cjs-patch.json',),
+    '@deepseek-ai/dsh-client-ui-chat/lib/client.js': ('chat-render-performance-patch.json', 'chat-viewport-performance-patch.json'),
+    '@deepseek-ai/dsh-client-ui-session/lib/client.js': ('session-status-scale-patch.json',),
+    '@deepseek-ai/dsh-client-ui-workspace/lib/client.js': (
+        'session-interaction-patch.json', 'workspace-order-scale-patch.json'),
     SIDEBAR_RIGHT: (SIDEBAR_RECIPE,),
     FRONTEND_ENTRY: ('tooltip-interaction-patch.json',),
     CONVERSATION: ('composer-enter-patch.json', 'queue-dock-patch.json',
@@ -29,6 +40,8 @@ REVIEWED_OFFICIAL_CHAINS = {
     '@deepseek-ai/dsh-client-file-upload/lib/client.js': ('file-upload-binary-client-patch.json',),
     '@deepseek-ai/dsh-client-ui-deliverables/lib/client.js': ('file-deliverables-patch.json',),
     '@deepseek-ai/dsh-client-ui-attachment/lib/client.js': ('file-image-actions-patch.json',),
+    '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js': ('text-page-rejection-patch.json',),
+    '@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js': ('files-list-rejection-patch.json',),
     '@deepseek-ai/dsh-plugin-manager/lib/index.js': (
         'plugin-manager-policy-patch.json', 'plugin-pnpm-argv-patch.json',
         'retired-market-catalog-patch.json', 'auto-review-native-disabled-patch.json',
@@ -262,6 +275,14 @@ def verify(path):
             module = '@deepseek-ai/' + name + '/' + entry
             feature_digests[PREFIX + '/node_modules/' + module] = official_feature_digest(
                 apk, root / 'app/src/main/assets', dsh_version, module, source.read_bytes())
+        # Verify every reviewed complete chain, including current app-boot,
+        # temporary-plugin and MCP changes. Frontend CSS must retain raw bytes:
+        # the experimental code-paint recipe is deliberately not shipped.
+        for module in (*REVIEWED_OFFICIAL_CHAINS,
+                       '@deepseek-ai/dsh-web-frontend/dist/assets/index-BNyAYEM7.css'):
+            feature_digests[PREFIX + '/node_modules/' + module] = official_feature_digest(
+                apk, root / 'app/src/main/assets', dsh_version, module,
+                (runtime / module).read_bytes())
         preserved_features = list(feature_digests)
         require(set(BUILD192_RECIPE_MODULES.values()) <= {
             name.removeprefix(PREFIX + '/node_modules/') for name in feature_digests

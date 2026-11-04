@@ -75,6 +75,7 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
   let wrap: HTMLSpanElement | null = null
   let button: HTMLButtonElement | null = null
   let pending: number | null = null
+  let menuFrame = 0
   let unsubscribeLocale: (() => void) | null = null
 
   const row = (): HTMLElement | null => {
@@ -84,6 +85,8 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
   }
 
   const clearPending = (): void => {
+    if (menuFrame !== 0) cancelAnimationFrame(menuFrame)
+    menuFrame = 0
     if (pending === null) return
     window.clearTimeout(pending)
     pending = null
@@ -98,6 +101,7 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
    * 不要求元素可见，链照旧点它；改成「点第一个可见项」会点到 Feedback。
    */
   const selectSettingsItem = (trigger: HTMLButtonElement): void => {
+    clearPending()
     const root = document.documentElement
     root.setAttribute('data-mobile-nav-quick', '')
     let settled = false
@@ -110,7 +114,8 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
     const expanded = (): boolean => trigger.getAttribute('aria-expanded') === 'true'
     if (!expanded()) trigger.click()
     // 中间帧不闪：标记在场时 CSS 让菜单不可见，`click()` 不要求元素可见。
-    requestAnimationFrame(() => {
+    menuFrame = requestAnimationFrame(() => {
+      menuFrame = 0
       const menus = document.querySelectorAll<HTMLElement>('[role="menu"]')
       const menu = expanded() && menus.length > 0 ? menus[menus.length - 1] : null
       const item = menu?.querySelector<HTMLElement>('[role="menuitem"]') ?? null
@@ -177,16 +182,22 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
    *
    * 齿轮让位（连接条在场）时不打标记：那段时间账户菜单是设置的唯一入口。
    */
+  // DSHA_SETTINGS_CLOSED_MENU_V1: the common closed state needs no document scan.
+  // Remember only our marked portal, so a closed/replaced menu loses our marker.
+  let markedMenu: HTMLElement | null = null
   const syncMenuEntry = (target: HTMLElement): void => {
-    const menus = document.querySelectorAll<HTMLElement>('[role="menu"]')
-    const menu = menus.length > 0 ? menus[menus.length - 1] ?? null : null
-    if (menu === null) return
     const trigger = target.querySelector<HTMLButtonElement>(ACCOUNT_TRIGGER_SELECTOR)
     const keep = trigger !== null && trigger.getAttribute('aria-expanded') === 'true' && gearAvailable(target)
     if (!keep) {
-      menu.removeAttribute(MENU_ENTRY_ATTR)
+      markedMenu?.removeAttribute(MENU_ENTRY_ATTR)
+      markedMenu = null
       return
     }
+    const menus = document.querySelectorAll<HTMLElement>('[role="menu"]')
+    const menu = menus.length > 0 ? menus[menus.length - 1] ?? null : null
+    if (menu !== markedMenu) markedMenu?.removeAttribute(MENU_ENTRY_ATTR)
+    markedMenu = menu
+    if (menu === null) return
     // 幂等：写过的属性不再重写，免得自己的 mutation 把任务再唤醒一轮。
     if (!menu.hasAttribute(MENU_ENTRY_ATTR)) menu.setAttribute(MENU_ENTRY_ATTR, '')
   }
@@ -217,6 +228,8 @@ export function createDrawerQuickSettingsTask(ctx: ClientContext): ReconcilerTas
       unsubscribeLocale = null
       document.documentElement.removeAttribute('data-mobile-nav-quick')
       clearMenuEntry()
+      markedMenu?.removeAttribute(MENU_ENTRY_ATTR)
+      markedMenu = null
       wrap?.remove()
       wrap = null
       button = null

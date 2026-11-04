@@ -110,12 +110,16 @@ class PackageBinding(unittest.TestCase):
             self.receipt['sourceSnapshot']['sha256']=gate.digest(snapshot)
             with self.subTest(captured=captured),self.assertRaisesRegex(ValueError,pattern):self.validate()
     def test_foreign_failed_or_wrong_workflow_run_is_rejected(self):
-        run=dict(repository=dict(full_name='DSH-APP/DSHA'),head_repository=dict(full_name='DSH-APP/DSHA'),
+        repository='ym2025szz/DSHA-prerelase'
+        run=dict(repository=dict(full_name=repository),head_repository=dict(full_name=repository),
                  head_sha='abc',status='completed',conclusion='success',event='workflow_dispatch',
                  path='.github/workflows/ci-package.yml')
-        gate.validate_run(run,'DSH-APP/DSHA','abc')
-        for key,value in [('head_sha','other'),('conclusion','failure'),('path','.github/workflows/other.yml'),('event','pull_request')]:
+        gate.validate_run(run,repository,'abc')
+        for key,value in [('repository',dict(full_name='SunsetRNE/DSHA-Sunset-mod')),
+                          ('head_repository',dict(full_name='DSH-APP/DSHA')),
+                          ('head_sha','other'),('status','in_progress'),('conclusion','failure'),
+                          ('path','.github/workflows/other.yml'),('event','pull_request')]:
             other=copy.deepcopy(run);other[key]=value
-            with self.subTest(key=key),self.assertRaises(ValueError):gate.validate_run(other,'DSH-APP/DSHA','abc')
+            with self.subTest(key=key),self.assertRaises(ValueError):gate.validate_run(other,repository,'abc')
 
 if __name__=='__main__':unittest.main()

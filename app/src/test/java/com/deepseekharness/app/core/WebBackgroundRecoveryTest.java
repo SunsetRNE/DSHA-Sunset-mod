@@ -241,6 +241,7 @@ public final class WebBackgroundRecoveryTest {
             failure == 2 ? WebSessionRecheck.Result.STALE : WebSessionRecheck.Result.UNKNOWN,
             result.result());
         assertFalse(f.apply(result));
+        assertEquals(failure == 0 ? "AUTH_UNAVAILABLE" : "IDENTITY_UNKNOWN", f.state.restoreReason);
         assertFalse(f.run.recoveredLive);
         assertTrue(f.state.restoreUnknown);
         assertNull(f.run.registration.ready(f.identity));
@@ -258,6 +259,7 @@ public final class WebBackgroundRecoveryTest {
       assertTrue(f.apply(result));
       f.revoke();
       assertTrue(f.run.confirmedWebExit);
+      assertEquals("EXIT_CONFIRMED", f.state.restoreReason);
       assertFalse(f.run.recoveredLive);
       assertEquals(0, f.requests.get());
       assertSame(f.record.proof(), f.state.retainedWebStopProof);

@@ -34,23 +34,77 @@ public final class ExternalDeviceHost {
   private static final String EPOCH = "target_epoch_v1";
   private static final long ADB_TIMEOUT_MS = 30_000;
   private static final Object IMPORT_LOCK = new Object();
+  private static final Object TARGET_LOCK = new Object();
+  private static Object targetRevision = new Object();
+  private static boolean targetWriteUnconfirmed;
   private final Context context;
   private final int adbPort = ephemeralPort();
   private final SharedPreferences prefs;
   private final File importRoot;
+  private final java.util.function.BooleanSupplier requestCurrent;
+  private final Object observedRevision;
+  private final long observedEpoch;
+  private final ExternalTargetBinding observedTarget;
 
   public ExternalDeviceHost(Context context) {
+    this(context, null);
+  }
+
+  /** A bridge operation captures one target before its confirmation dialog is shown. */
+  public ExternalDeviceHost(Context context, java.util.function.BooleanSupplier requestCurrent) {
     this.context = context.getApplicationContext();
     prefs = this.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     importRoot = new File(this.context.getFilesDir(), "external-device-import");
+    this.requestCurrent = requestCurrent;
+    synchronized (TARGET_LOCK) {
+      observedRevision = targetRevision;
+      observedEpoch = requestCurrent == null ? 0 : prefs.getLong(EPOCH, 0);
+      observedTarget = requestCurrent == null ? null : binding();
+    }
+  }
+
+  public ExternalTargetBinding confirmationTarget() {
+    return observedTarget;
+  }
+
+  private boolean dispatchCurrent() {
+    try {
+      if (requestCurrent != null && !requestCurrent.getAsBoolean()) return false;
+      synchronized (TARGET_LOCK) {
+        return targetCurrentLocked();
+      }
+    } catch (RuntimeException unreadable) {
+      return false;
+    }
+  }
+
+  private boolean targetCurrentLocked() {
+    if (!enabled()) return false;
+    if (requestCurrent == null) return true;
+    ExternalTargetBinding now = binding();
+    return observedRevision == targetRevision
+        && observedEpoch == prefs.getLong(EPOCH, 0)
+        && (observedTarget == null
+            ? now == null && !prefs.contains(SERIAL)
+            : now != null
+                && now.epoch == observedTarget.epoch
+                && now.matches(
+                    observedTarget.serial, observedTarget.product, observedTarget.fingerprint));
   }
 
   public boolean enabled() {
-    return prefs.getBoolean(ENABLED, false);
+    synchronized (TARGET_LOCK) {
+      return !targetWriteUnconfirmed && prefs.getBoolean(ENABLED, false);
+    }
   }
 
   public boolean setEnabled(boolean value) {
-    boolean saved = prefs.edit().putBoolean(ENABLED, value).commit();
+    boolean saved;
+    synchronized (TARGET_LOCK) {
+      var edit = prefs.edit().putBoolean(ENABLED, value);
+      if (targetWriteUnconfirmed) forgetBinding(edit);
+      saved = commitTargetChange(edit);
+    }
     // 关闭能力即清空一次性导入中转区；原件仍在 Download，清理失败不影响开关结果。
     if (saved && !value) {
       try {
@@ -63,26 +117,48 @@ public final class ExternalDeviceHost {
   }
 
   public ExternalTargetBinding binding() {
-    if (!prefs.contains(SERIAL)) return null;
-    try {
-      return new ExternalTargetBinding(
-          prefs.getString(SERIAL, ""),
-          prefs.getString(PRODUCT, ""),
-          prefs.getString(FINGERPRINT, ""),
-          prefs.getLong(EPOCH, 0));
-    } catch (RuntimeException invalid) {
-      return null;
+    synchronized (TARGET_LOCK) {
+      if (targetWriteUnconfirmed || !prefs.contains(SERIAL)) return null;
+      try {
+        return new ExternalTargetBinding(
+            prefs.getString(SERIAL, ""),
+            prefs.getString(PRODUCT, ""),
+            prefs.getString(FINGERPRINT, ""),
+            prefs.getLong(EPOCH, 0));
+      } catch (RuntimeException invalid) {
+        return null;
+      }
     }
   }
 
   public boolean forgetTarget() {
-    return prefs
-        .edit()
-        .remove(SERIAL)
+    synchronized (TARGET_LOCK) {
+      var edit = prefs.edit();
+      if (targetWriteUnconfirmed) edit.putBoolean(ENABLED, false);
+      forgetBinding(edit);
+      return commitTargetChange(edit);
+    }
+  }
+
+  private void forgetBinding(SharedPreferences.Editor edit) {
+    long old = prefs.getLong(EPOCH, 0);
+    edit.remove(SERIAL)
         .remove(PRODUCT)
         .remove(FINGERPRINT)
-        .putLong(EPOCH, prefs.getLong(EPOCH, 0) + 1)
-        .commit();
+        .putLong(EPOCH, old >= 0 && old < Long.MAX_VALUE ? old + 1 : Long.MAX_VALUE);
+  }
+
+  /** commit can publish new process-local preferences before it reports a disk failure. */
+  private boolean commitTargetChange(SharedPreferences.Editor edit) {
+    targetRevision = new Object();
+    targetWriteUnconfirmed = true;
+    try {
+      boolean saved = edit.commit();
+      targetWriteUnconfirmed = !saved;
+      return saved;
+    } catch (RuntimeException unavailable) {
+      return false;
+    }
   }
 
   public File importRoot() throws IOException {
@@ -347,8 +423,7 @@ public final class ExternalDeviceHost {
         && values.get("ro.product.device").equals(android.os.Build.DEVICE)
         && values.get("ro.build.fingerprint").equals(android.os.Build.FINGERPRINT))
       throw new IOException("[POLICY_BLOCKED] WIRELESS_TARGET_MAY_BE_HOST");
-    ExternalTargetBinding current = binding();
-    long epoch = Math.max(prefs.getLong(EPOCH, 0) + 1, current == null ? 1 : current.epoch + 1);
+    long epoch = nextTargetEpoch();
     ExternalTargetBinding candidate =
         new ExternalTargetBinding(
             serial, values.get("ro.product.device"), values.get("ro.build.fingerprint"), epoch);
@@ -382,6 +457,7 @@ public final class ExternalDeviceHost {
   }
 
   public boolean bind(JSONObject candidate) throws Exception {
+    requireConfirmationScope();
     requireReady();
     String serial = candidate.getString("serial");
     String product = candidate.getString("product");
@@ -391,17 +467,39 @@ public final class ExternalDeviceHost {
     if (!product.equals(current.getString("product"))
         || !fingerprint.equals(current.getString("fingerprint"))
         || epoch != current.getLong("epoch")) throw new IOException("TARGET_CHANGED_BEFORE_BIND");
-    return prefs
-        .edit()
-        .putString(SERIAL, serial)
-        .putString(PRODUCT, product)
-        .putString(FINGERPRINT, fingerprint)
-        .putLong(EPOCH, epoch)
-        .commit();
+    return commitInspectedBinding(new ExternalTargetBinding(serial, product, fingerprint, epoch));
+  }
+
+  private boolean commitInspectedBinding(ExternalTargetBinding candidate) throws IOException {
+    requireConfirmationScope();
+    synchronized (TARGET_LOCK) {
+      if (!targetCurrentLocked() || candidate.epoch != nextTargetEpoch())
+        throw new IOException("TARGET_CHANGED_BEFORE_BIND");
+      return commitTargetChange(
+          prefs
+              .edit()
+              .putString(SERIAL, candidate.serial)
+              .putString(PRODUCT, candidate.product)
+              .putString(FINGERPRINT, candidate.fingerprint)
+              .putLong(EPOCH, candidate.epoch));
+    }
+  }
+
+  private long nextTargetEpoch() throws IOException {
+    long previous = prefs.getLong(EPOCH, 0);
+    if (previous < 0 || previous == Long.MAX_VALUE)
+      throw new IOException("EXTERNAL_TARGET_EPOCH_UNAVAILABLE");
+    return previous + 1;
+  }
+
+  private void requireConfirmationScope() throws IOException {
+    if (requestCurrent == null || !dispatchCurrent())
+      throw new IOException("EXTERNAL_AUTHORITY_CHANGED_BEFORE_DISPATCH");
   }
 
   public JSONObject operate(String operation, String partition, String value, boolean confirmed)
       throws Exception {
+    requireConfirmationScope();
     requireReady();
     ExternalDevicePolicy.Plan plan = ExternalDevicePolicy.plan(operation, partition, value);
     if (!plan.allowed()) throw new IOException("[POLICY_BLOCKED] " + plan.reason);
@@ -529,6 +627,7 @@ public final class ExternalDeviceHost {
    */
   public JSONObject install(String importName, String expectedSha256, long expectedEpoch)
       throws Exception {
+    requireConfirmationScope();
     requireReady();
     ExternalTargetBinding target = requireBinding();
     if (target.epoch != expectedEpoch)
@@ -1018,7 +1117,8 @@ public final class ExternalDeviceHost {
               argv,
               tools.environment(),
               ADB_TIMEOUT_MS,
-              expectedRoot());
+              expectedRoot(),
+              this::dispatchCurrent);
     } catch (IOException error) {
       return "[POLICY_BLOCKED] " + error.getMessage() + "\n[EXIT=126]";
     }
@@ -1037,7 +1137,9 @@ public final class ExternalDeviceHost {
   private String run(List<String> argv, Map<String, String> environment, long timeout) {
     String output;
     try {
-      output = RootShell.execExternal(context, argv, environment, timeout, expectedRoot());
+      output =
+          RootShell.execExternal(
+              context, argv, environment, timeout, expectedRoot(), this::dispatchCurrent);
     } catch (IOException error) {
       return "[POLICY_BLOCKED] " + error.getMessage() + "\n[EXIT=126]";
     }
@@ -1066,7 +1168,8 @@ public final class ExternalDeviceHost {
   }
 
   private ExternalTargetBinding requireBinding() throws IOException {
-    ExternalTargetBinding target = binding();
+    if (requestCurrent != null) requireConfirmationScope();
+    ExternalTargetBinding target = requestCurrent == null ? binding() : observedTarget;
     if (target == null) throw new IOException("TARGET_NOT_BOUND");
     return target;
   }
@@ -1113,7 +1216,8 @@ public final class ExternalDeviceHost {
             expectedRoot(),
             importRoot().getPath(),
             nonce,
-            continueOnFailure);
+            continueOnFailure,
+            this::dispatchCurrent);
     List<ExternalStepOutput.Step> parsed = ExternalStepOutput.parse(output, nonce);
     if (parsed.isEmpty()) {
       String reason = SensitiveData.redact(ExternalStepOutput.preamble(output, nonce)).trim();

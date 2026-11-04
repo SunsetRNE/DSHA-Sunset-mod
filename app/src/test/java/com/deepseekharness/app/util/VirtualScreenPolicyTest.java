@@ -92,4 +92,25 @@ public class VirtualScreenPolicyTest {
     // 看过、仍是最新帧，但超过 30 秒窗口。
     assertEquals("OBSERVATION_TIMEOUT", VirtualScreenPolicy.inputRejection(5, 5, 5, 30_001));
   }
+
+  @Test
+  public void explicitAnimatedPolicyUsesElapsedTimeRatherThanNumberOfFrames() {
+    for (long framesPerSecond : new long[] {30, 60, 90, 120}) {
+      assertNull(VirtualScreenPolicy.inputRejection(5, 5 + framesPerSecond * 4, 5, 4_000, true));
+      assertEquals("OBSERVATION_TIMEOUT", VirtualScreenPolicy.inputRejection(5, 6, 5, 5_001, true));
+      assertEquals(
+          "FRAME_EXPIRED",
+          VirtualScreenPolicy.inputRejection(5, 5 + framesPerSecond, 5, 1_000, false));
+    }
+    assertNull(VirtualScreenPolicy.inputRejection(5, 605, 5, 5_000, true));
+  }
+
+  @Test
+  public void animatedPolicyCannotAuthorizeUnobservedFutureOrNegativeTimeEvidence() {
+    assertEquals("FRAME_NOT_OBSERVED", VirtualScreenPolicy.inputRejection(5, 9, -1, 10, true));
+    assertEquals("FRAME_NOT_OBSERVED", VirtualScreenPolicy.inputRejection(-1, 9, -1, 10, true));
+    assertEquals("FRAME_EXPIRED", VirtualScreenPolicy.inputRejection(9, 5, 9, 10, true));
+    assertEquals("OBSERVATION_TIMEOUT", VirtualScreenPolicy.inputRejection(5, 9, 5, -1, true));
+    assertEquals("OBSERVATION_TIMEOUT", VirtualScreenPolicy.inputRejection(5, 5, 5, -1));
+  }
 }

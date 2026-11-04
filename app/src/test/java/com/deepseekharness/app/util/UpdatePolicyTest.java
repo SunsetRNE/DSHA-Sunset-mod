@@ -25,31 +25,21 @@ public class UpdatePolicyTest {
     String hash = "a".repeat(64);
     assertTrue(
         UpdatePolicy.feedIdentityMatches(
-            "io.github.sunsetrne.dsha",
-            Arrays.asList(hash),
-            "io.github.sunsetrne.dsha",
-            hash.toUpperCase()));
+            "dsh.android.client", Arrays.asList(hash), "dsh.android.client", hash.toUpperCase()));
     assertFalse(
         UpdatePolicy.feedIdentityMatches(
-            "io.github.sunsetrne.dsha", Arrays.asList(hash), "com.dsh.client", hash));
+            "dsh.android.client", Arrays.asList(hash), "com.dsh.client", hash));
     assertFalse(
         UpdatePolicy.feedIdentityMatches(
-            "io.github.sunsetrne.dsha",
-            Arrays.asList(hash),
-            "io.github.sunsetrne.dsha",
-            "b".repeat(64)));
+            "dsh.android.client", Arrays.asList(hash), "dsh.android.client", "b".repeat(64)));
+    assertFalse(
+        UpdatePolicy.feedIdentityMatches("dsh.android.client", Arrays.asList(hash), null, hash));
     assertFalse(
         UpdatePolicy.feedIdentityMatches(
-            "io.github.sunsetrne.dsha", Arrays.asList(hash), null, hash));
+            "dsh.android.client", Arrays.asList(hash), "dsh.android.client", null));
     assertFalse(
         UpdatePolicy.feedIdentityMatches(
-            "io.github.sunsetrne.dsha", Arrays.asList(hash), "io.github.sunsetrne.dsha", null));
-    assertFalse(
-        UpdatePolicy.feedIdentityMatches(
-            "io.github.sunsetrne.dsha",
-            Arrays.asList(hash, "b".repeat(64)),
-            "io.github.sunsetrne.dsha",
-            hash));
+            "dsh.android.client", Arrays.asList(hash, "b".repeat(64)), "dsh.android.client", hash));
   }
 
   @Test

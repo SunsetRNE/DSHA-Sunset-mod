@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-workspace/lib/client.js",
+  "sourceSha256": "9c2c17a66a5c20de00ac2852cb76debb5237439e97f877403bcaa2a471086544",
+  "packageIntegrity": "sha512-T3hHWUsrOsmjhV4VIfKTNwN2UrieMxnv5W26e6aiHr7YIy9Y98xfLINe7MpSk+kb2kBKRYyup8vDRW8X435J1w==",
+  "purpose": "Preserve the complete existing manual session/fork order with local indexed links and iterative traversal. No pagination, membership changes, or persistent data changes.",
+  "patches": [
+    {
+      "before": "\t\t\tconst pending = new Set(ordinary);\n\t\t\tconst placeFork = (id) => {\n\t\t\t\tif (!pending.delete(id)) return;\n\t\t\t\tconst parentId = summaries[id]?.parentId;\n\t\t\t\tif (parentId === void 0 || parentId === id || !result.includes(parentId)) return;\n\t\t\t\tplaceFork(parentId);\n\t\t\t\tresult.splice(result.indexOf(id), 1);\n\t\t\t\tresult.splice(result.indexOf(parentId), 0, id);\n\t\t\t};\n\t\t\tfor (const id of [...ordinary].reverse()) placeFork(id);\n\t\t\treturn result;",
+      "after": "\t\t\t// DSHA_WORKSPACE_ORDER_SCALE_V1: local links preserve the exact fork-before-\n\t\t\t// parent moves without repeated full-array scans, splices or recursive depth.\n\t\t\tif (!ordinary.some((id) => summaries[id]?.parentId !== void 0 && summaries[id].parentId !== id)) return result;\n\t\t\tconst pending = new Set(ordinary);\n\t\t\tconst links = new Map(result.map((id) => [id, { id, previous: null, next: null }]));\n\t\t\tlet head = null;\n\t\t\tlet tail = null;\n\t\t\tfor (const id of result) {\n\t\t\t\tconst node = links.get(id);\n\t\t\t\tnode.previous = tail;\n\t\t\t\tif (tail === null) head = node;\n\t\t\t\telse tail.next = node;\n\t\t\t\ttail = node;\n\t\t\t}\n\t\t\tfor (let index = ordinary.length - 1; index >= 0; index--) {\n\t\t\t\tconst moves = [];\n\t\t\t\tlet id = ordinary[index];\n\t\t\t\twhile (pending.delete(id)) {\n\t\t\t\t\tconst parentId = summaries[id]?.parentId;\n\t\t\t\t\tif (parentId === void 0 || parentId === id || !links.has(parentId)) break;\n\t\t\t\t\tmoves.push([links.get(id), links.get(parentId)]);\n\t\t\t\t\tid = parentId;\n\t\t\t\t}\n\t\t\t\tfor (let move = moves.length - 1; move >= 0; move--) {\n\t\t\t\t\tconst [node, parent] = moves[move];\n\t\t\t\t\tif (node.previous === null) head = node.next;\n\t\t\t\t\telse node.previous.next = node.next;\n\t\t\t\t\tif (node.next !== null) node.next.previous = node.previous;\n\t\t\t\t\tnode.previous = parent.previous;\n\t\t\t\t\tnode.next = parent;\n\t\t\t\t\tif (parent.previous === null) head = node;\n\t\t\t\t\telse parent.previous.next = node;\n\t\t\t\t\tparent.previous = node;\n\t\t\t\t}\n\t\t\t}\n\t\t\tconst reconciled = [];\n\t\t\tfor (let node = head; node !== null; node = node.next) reconciled.push(node.id);\n\t\t\treturn reconciled;"
+    }
+  ]
+}

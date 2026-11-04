@@ -17,14 +17,14 @@ function loadModules() {
   return {modules: window.__testModules};
 }
 
-test('3.2.2 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () => {
-  assert.equal(packageJson.version, '3.2.2');
-  assert.equal(packageJson.dshaUpstream.commit, 'bb0e5e151ca549fef506e829020a5d7138074711');
-  assert.equal(packageJson.dshaUpstream.clientSha256, '3cd931bcd261e7b280398f8849a556ec1dd54edaa4147c49c808d0ea60d94173');
+test('3.2.3 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () => {
+  assert.equal(packageJson.version, '3.2.3');
+  assert.equal(packageJson.dshaUpstream.commit, '91b328c1c0217cd58cf807a22e000ee8a56b6622');
+  assert.equal(packageJson.dshaUpstream.clientSha256, 'd650b1b88be1238a1a27edcc826d6fc5ad61ba81dc044f4f2881e2c3c6140e83');
   assert.equal(packageJson.dshaUpstream.ref, 'main');
-  assert.equal(packageJson.dshaUpstream.releaseTag, 'v3.2.2');
-  assert.equal(packageJson.dshaUpstream.releaseCommit, 'bb0e5e151ca549fef506e829020a5d7138074711');
-  assert.equal(packageJson.dshaUpstream.commit, packageJson.dshaUpstream.releaseCommit); // 上游已把 v3.2.2 标签重指到当前 main 提交
+  assert.equal(packageJson.dshaUpstream.releaseTag, 'v3.2.3');
+  assert.equal(packageJson.dshaUpstream.releaseCommit, '91b328c1c0217cd58cf807a22e000ee8a56b6622');
+  assert.equal(packageJson.dshaUpstream.commit, packageJson.dshaUpstream.releaseCommit); // 本轮实际读取标签与main，均指向同一固定提交
   for (const marker of [
     'DSHA_SESSION_INPUT_V4',
     '[data-dsha-session-select]',
@@ -47,9 +47,9 @@ test('3.2.2 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () 
     'downloadMenu',
     'data-sidebar-right-open',
     '.dsh-pet-root',
-    'fullscreen-panel-sheet',
-    'wallpaper-panel-fill',
-    'pet-hidden-under-sheets',
+    '[data-sidebar-right-open][data-sidebar-right-panel="fullscreen"] {',
+    'body[data-dsh-bg] [data-sidebar-right-open][data-sidebar-right-panel="fullscreen"] {',
+    'body:has([aria-modal="true"]) .dsh-pet-root,',
     'findFloatingWidget',
   ]) assert.ok(source.includes(marker), marker);
   for (const stale of [
@@ -67,7 +67,7 @@ test('3.2.2 固定上游 bundle 保留 DSHA 移动端入口与头部让位', () 
   assert.ok(source.includes('function openFilesPanel'));
 });
 
-test('3.2.2 侧栏与文件面板手势使用同一方向/速度门槛', () => {
+test('3.2.3 侧栏与文件面板手势使用同一方向/速度门槛', () => {
   const {modules} = loadModules();
   const swipe = {};
   modules['effects/sidebar-swipe.js'](() => ({}), {}, swipe);
@@ -81,7 +81,7 @@ test('3.2.2 侧栏与文件面板手势使用同一方向/速度门槛', () => {
   assert.equal(swipe.slidingVelocity([{x: 0, t: 900}, {x: 20, t: 940}, {x: 50, t: 1000}], 60, 1000), .5);
 });
 
-test('3.2.2 拖动让位与水平滚动容器判定仍由纯函数负责', () => {
+test('3.2.3 拖动让位与水平滚动容器判定仍由纯函数负责', () => {
   const {modules} = loadModules();
   const swipe = {};
   modules['effects/sidebar-swipe.js'](() => ({}), {}, swipe);
@@ -89,7 +89,7 @@ test('3.2.2 拖动让位与水平滚动容器判定仍由纯函数负责', () =>
   assert.equal(swipe.hitTestStart(200, 390, false, {startZonePx: 176}), false);
 });
 
-test('3.2.2 DOM reconciler 按 dirty scope 合并到一帧', () => {
+test('3.2.3 DOM reconciler 按 dirty scope 合并到一帧', () => {
   const {modules} = loadModules();
   const reconciler = {};
   modules['core/reconciler-core.js'](() => ({}), {}, reconciler);
@@ -111,7 +111,7 @@ test('3.2.2 DOM reconciler 按 dirty scope 合并到一帧', () => {
 });
 
 // 验证实际部署 bundle 中的新缩放模块，不以下载到的源码代替产物。
-test('3.2.2 原图缩放保持触点锚定，缩回原尺寸必须清除平移', () => {
+test('3.2.3 原图缩放保持触点锚定，缩回原尺寸必须清除平移', () => {
   const {modules} = loadModules();
   const zoom = {};
   modules['core/image-zoom-core.js'](() => ({}), {}, zoom);
@@ -126,7 +126,7 @@ test('3.2.2 原图缩放保持触点锚定，缩回原尺寸必须清除平移',
   assert.equal(invalid.scale, before.scale); assert.equal(invalid.x, before.x); assert.equal(invalid.y, before.y);
 });
 
-test('3.2.2 缩放平移受实际可见边界限制，双击第二次返回原图', () => {
+test('3.2.3 缩放平移受实际可见边界限制，双击第二次返回原图', () => {
   const {modules} = loadModules();
   const zoom = {};
   modules['core/image-zoom-core.js'](() => ({}), {}, zoom);

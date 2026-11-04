@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-tool-fs/lib/index.js",
+  "sourceSha256": "b11d3fa50b9042019a91cc38a6abe35d74ed651374278f95e60b42734e079df1",
+  "packageIntegrity": "sha512-pbx61taI8p9vZEvKfiF8WFbg41omleod+SvOBR9c7rPRh3QNkRljkNxDm13FPR7GmLhN6hW2RA8Y0+tLBt5LxA==",
+  "purpose": "Treat absent/blank optional reasons only as non-escalating placeholders when no mode is requested or it exactly matches the live standing policy. Preserve all wider-mode validation, approval, filesystem guards and single execution.",
+  "patches": [
+    {
+      "before": "description: sandboxPermissionsDescription(\"operation\")",
+      "after": "description: sandboxPermissionsDescription(\"operation\") + \" Omit sandbox_permissions and justification for an ordinary operation using the current permissions. Do not fill them with the current mode and an empty reason.\""
+    },
+    {
+      "before": "description: \"Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request.\"",
+      "after": "description: \"Required for a strictly wider sandbox_permissions request: a non-empty sentence explaining why this exact file operation needs the wider access. Use the language of the user’s current request. Omit both escalation fields when no wider access is needed; never send an empty reason for an escalation.\""
+    },
+    {
+      "before": "* directory, or the deployment fallback when absent. Validates the escalation argument\n\t* pairing first.",
+      "after": "* directory, or the deployment fallback when absent. Normalize only empty\n\t* non-escalating placeholders; validate every actual escalation before execution."
+    },
+    {
+      "before": "\tasync resolvePolicy(toolName, args, exec) {\n\t\tvalidateEscalationArgs(args.sandbox_permissions, args.justification);\n\t\tconst standingPolicy = this.policy?.resolve({ ...exec.agent ? { session: exec.agent.session } : {} });",
+      "after": "\tasync resolvePolicy(toolName, args, exec) {\n\t\tconst standingPolicy = this.policy?.resolve({ ...exec.agent ? { session: exec.agent.session } : {} });\n\t\t// DSHA_FS_JUSTIFICATION_V1: a blank optional placeholder is not an escalation.\n\t\t// Read the effective policy for THIS call, never the composition's default.\n\t\t// The original filesystem fence, observation guards and approval flow remain.\n\t\tconst noReason = args.justification === void 0 || typeof args.justification === \"string\" && args.justification.trim().length === 0;\n\t\tconst noWidening = args.sandbox_permissions === void 0 || this.escalationModes.includes(args.sandbox_permissions) && args.sandbox_permissions === standingPolicy?.mode;\n\t\tif (noReason && noWidening) return standingPolicy;\n\t\tvalidateEscalationArgs(args.sandbox_permissions, args.justification);"
+    }
+  ]
+}

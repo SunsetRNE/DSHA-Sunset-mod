@@ -2,10 +2,10 @@ plugins {
     id 'com.android.application'
 }
 
-// DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上。
+// DSHA 单一 Standard 变体：Android 11（API 30）及以上。
 // 旧 low/GeckoView 兼容线与独立上岛包都已移除：上岛能力并入正式包。
 // 文件名独立于可诊断版本名，保持当前用户下载入口不变。
-ext.dshaApkNameVersion = '0.2.1-rc.3'
+ext.dshaApkNameVersion = '0.2.1-rc.5'
 def bundledTools = new groovy.json.JsonSlurper().parse(rootProject.file('tools/runtime-tools.lock.json'))
 if (bundledTools.schema != 1 || !(bundledTools.pnpm.version ==~ /[0-9]+\.[0-9]+\.[0-9]+/))
     throw new GradleException('随包工具身份格式错误')
@@ -55,17 +55,17 @@ android {
     ndkVersion '26.3.11579264'
 
     defaultConfig {
-        // DSH-A-Su（Sunset Mod）正式包名：与原版 dsh.android.client 完全隔离，可并行安装。
-        applicationId "io.github.sunsetrne.dsha"
+        // 保留既有 DSHA 安装身份；覆盖升级仍须历史发布证书。
+        applicationId "dsh.android.client"
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
         // 上岛能力已并入正式包；不再有独立上岛包名或独立显示名。
-        // 显示名统一为 DSH-A-Su；测试变体加后缀，便于桌面上区分两个包。
-        resValue 'string', 'app_name', sunsetTest ? 'DSH-A-Su Test' : 'DSH-A-Su'
-        versionCode 307
+        // 测试变体使用独立显示名和包名，默认构建仍为 DSHA。
+        resValue 'string', 'app_name', sunsetTest ? 'DSHA Test' : 'DSHA'
+        versionCode 308
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5"
+        versionName "0.2.1-rc.5-20261104.1412-dsh0.2.1-rc.5"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -79,7 +79,7 @@ android {
             dimension 'androidSupport'
             minSdk 30
             if (sunsetTest) {
-                applicationIdSuffix '.test'
+                applicationIdSuffix '.SunsetRNE'
                 // 测试包身份沿用历史 `-SunsetTest` 后缀：CI 与发布脚本按此核验，不能只写 `-test`。
                 versionNameSuffix '-SunsetTest'
             }
@@ -87,12 +87,11 @@ android {
     }
 
     signingConfigs {
-        // DSH-A-Su Mod 发布签名 = 新建的 dsha-a-su-release.jks（alias dsha-a-su，
-        // 证书 SHA-256 A4:B0:41:3C:67:FA:46:DD:30:DC:7E:2B:CE:3A:D5:61:51:ED:8B:FD:E2:A3:31:5F:FF:68:5B:AF:78:6B:5D:5D）。
-        // 包名已改为 io.github.sunsetrne.dsha，与原版 dsh.android.client 不存在覆盖安装关系，
-        // 因此不再沿用历史 E7E3 证书；换钥只影响本 Mod 自己的后续覆盖升级。
+        // 历史 DSHA 发布证书（alias androiddebugkey）：
+        // SHA-256 E7:E3:A3:1A:75:94:6F:26:69:19:4C:97:2B:3D:D0:C9:AE:A3:FC:7C:50:A8:B8:85:D2:DE:E7:10:B2:2A:53:F5。
+        // Android 只允许同签名覆盖安装；密钥文件的历史名称不改变 release 的非调试身份。
         // 期望的证书哈希记录在 ci/release-identity.json，verifyPublishCertificate 会强制核对。
-        // 正式任务必须明确提供 Mod 发布证书；单测/debug 不依赖发布密钥。
+        // 正式任务必须明确提供历史发布证书；单测/debug 不依赖发布密钥。
         publish {
             def ksPath = System.getenv("DSHA_KEYSTORE") ?: project.findProperty("dsha.keystore")
             if (ksPath != null && !ksPath.toString().isEmpty() && file(ksPath).exists()) {
@@ -100,14 +99,14 @@ android {
                 storePassword System.getenv("DSHA_KEYSTORE_PASSWORD")
                         ?: project.findProperty("dsha.keystore.password")
                 keyAlias System.getenv("DSHA_KEY_ALIAS")
-                        ?: project.findProperty("dsha.key.alias") ?: "dsha-a-su"
+                        ?: project.findProperty("dsha.key.alias") ?: "androiddebugkey"
                 keyPassword System.getenv("DSHA_KEY_PASSWORD")
                         ?: project.findProperty("dsha.key.password")
                 if (!storePassword || !keyPassword)
                     throw new GradleException('必须明确提供发布密钥口令，不能使用隐式缺省值')
-                println "签名：已配置 Mod 发布证书"
+                println "签名：已配置历史发布证书"
             } else {
-                println "签名：未配置 Mod 发布证书；正式 APK 打包将被阻止"
+                println "签名：未配置历史发布证书；正式 APK 打包将被阻止"
             }
             enableV1Signing true
             enableV2Signing true
@@ -120,6 +119,7 @@ android {
             debuggable true
         }
         release {
+            debuggable false
             minifyEnabled false
             if (!unsignedPackage) signingConfig signingConfigs.publish
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -183,7 +183,7 @@ def verifyPublishCertificate = tasks.register("verifyPublishCertificate") {
     doLast {
         def signing = android.signingConfigs.publish
         if (signing.storeFile == null || !signing.storeFile.isFile())
-            throw new GradleException("正式 APK 缺少 Mod 发布密钥，停止打包")
+            throw new GradleException("正式 APK 缺少历史发布密钥，停止打包")
         def store = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType())
         signing.storeFile.withInputStream { store.load(it, signing.storePassword.toCharArray()) }
         def certificate = store.getCertificate(signing.keyAlias)

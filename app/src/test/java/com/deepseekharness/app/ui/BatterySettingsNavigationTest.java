@@ -107,11 +107,11 @@ public final class BatterySettingsNavigationTest {
         new ContextWrapper(context) {
           @Override
           public String getPackageName() {
-            return "io.github.sunsetrne.dsha.fixture";
+            return "dsh.android.client.fixture";
           }
         };
     DeviceGrantsFragment.openBatterySettings(renamed, attempts::add, failures::incrementAndGet);
-    assertEquals("package:io.github.sunsetrne.dsha.fixture", attempts.get(0).getDataString());
+    assertEquals("package:dsh.android.client.fixture", attempts.get(0).getDataString());
     assertEquals(0, failures.get());
   }
 

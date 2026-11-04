@@ -75,7 +75,7 @@ public final class VirtualScreenPolicy {
    */
   public static String observationRejection(long requested, long observed, long ageMs) {
     if (requested <= 0 || observed != requested) return FRAME_NOT_OBSERVED;
-    return ageMs > OBSERVATION_WINDOW_MS ? OBSERVATION_TIMEOUT : null;
+    return ageMs < 0 || ageMs > OBSERVATION_WINDOW_MS ? OBSERVATION_TIMEOUT : null;
   }
 
   /**
@@ -98,5 +98,15 @@ public final class VirtualScreenPolicy {
   public static String inputRejection(long requested, long current, long observed, long ageMs) {
     String rejected = observationRejection(requested, observed, ageMs);
     return rejected != null ? rejected : frameRejection(requested, current);
+  }
+
+  /** 动态档只改变像素帧的新鲜度；调用方必须先验证本机配置、目标和观察的同一身份。 */
+  public static String inputRejection(
+      long requested, long current, long observed, long ageMs, boolean animated) {
+    if (!animated) return inputRejection(requested, current, observed, ageMs);
+    if (requested <= 0 || observed != requested) return FRAME_NOT_OBSERVED;
+    if (ageMs < 0 || ageMs > ScreenFramePolicy.DYNAMIC_WINDOW_MS) return OBSERVATION_TIMEOUT;
+    // 不能借动态档制造未来帧、倒退当前帧或把 status 查询伪装成观察。
+    return current >= requested ? null : FRAME_EXPIRED;
   }
 }

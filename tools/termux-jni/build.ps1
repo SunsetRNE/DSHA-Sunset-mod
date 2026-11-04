@@ -61,7 +61,7 @@ $clangArgs = @(
     # 保留 16 KB LOAD 对齐，但 RELRO 按 4 KB 收尾，避免旧 linker 对未映射空洞 mprotect 报 ENOMEM。
     '-Wl,-z,max-page-size=16384', '-Wl,-z,common-page-size=4096',
     '-I', $PSScriptRoot, $patchedSource, (Join-Path $PSScriptRoot 'dsha-process.c'),
-    (Join-Path $PSScriptRoot 'dsha-pty.c'), '-o', $output
+    (Join-Path $PSScriptRoot 'dsha-pty.c'), (Join-Path $PSScriptRoot 'dsha-plugin-lock.c'), '-o', $output
 )
 & "$toolBin/clang.exe" @clangArgs
 if ($LASTEXITCODE -ne 0) { throw 'JNI 编译失败。' }
@@ -108,6 +108,7 @@ $actual = @($symbols | ForEach-Object { ($_ -split '\s+')[0] } | Sort-Object)
 $expected = @(@('close', 'createSubprocess', 'setPtyUTF8Mode', 'setPtyWindowSize', 'waitFor') |
     ForEach-Object { "Java_com_termux_terminal_JNI_$_" }) + @('Java_com_deepseekharness_app_runtime_NativeProcess_sessionId', 'Java_com_deepseekharness_app_runtime_NativeStorage_flushFiles', 'Java_com_deepseekharness_app_runtime_NativeStorage_verifyDirectoryIdentities', 'Java_com_deepseekharness_app_runtime_NativeStorage_prepareSmallFileBytes', 'Java_com_deepseekharness_app_runtime_NativeStorage_finishSmallFileBytes', 'Java_com_deepseekharness_app_runtime_NativeStorage_closeSmallFileDescriptor', 'Java_com_deepseekharness_app_runtime_NativeStorage_statChildrenBatchBytes', 'Java_com_deepseekharness_app_runtime_NativeStorage_readSmallBatchBytes')
 $expected = @($expected | Sort-Object)
+$expected = @($expected + 'Java_com_deepseekharness_app_runtime_NativePluginLock_tryExclusive' | Sort-Object)
 if (@(Compare-Object $expected $actual).Count -ne 0) { throw 'JNI 导出集合不符合固定 PTY 与 DSHA 扩展。' }
 New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
 $sameOutput = (Test-Path -LiteralPath $destination) -and

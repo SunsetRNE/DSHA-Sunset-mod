@@ -1,13 +1,16 @@
-# CI 构建与发布（公开仓库正式成品）
+# CI 构建与发布（私有维护仓库正式成品）
 
-更新：2026-11-02 / build307（节点化）。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
-目标仓库：`SunsetRNE/DSHA-Sunset-mod`（`main` 分支）。本文说明如何用 GitHub Actions 产出并发布
-**正式签名成品**（`io.github.sunsetrne.dsha`），以及需要哪些仓库 Secrets、产物如何核验。
+
+更新：2026-11-04 / build308，版本 `0.2.1-rc.5-20261104.1412-dsh0.2.1-rc.5`。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
+目标仓库：`ym2025szz/DSHA-prerelase`（`codex/prerelease-190` 分支）。本文说明如何用 GitHub Actions 产出并发布
+**正式签名成品**（`dsh.android.client`），以及需要哪些仓库 Secrets、产物如何核验。
 
 ## 1. 边界
 
 - 只做 **Standard（Android 11+ / arm64）正式包**；不运行 low/Gecko 兼容线，不再有独立上岛包。
-- 只由 `workflow_dispatch` 显式触发；运行必须绑定精确 40 位 commit，且该 commit 就是 `main` 分支当前 HEAD。
+- 只由 `workflow_dispatch` 显式触发；运行必须绑定精确 40 位 commit，且该 commit 就是 `codex/prerelease-190` 分支当前 HEAD。
+- `bind` 节点同时检查仓库为 `ym2025szz/DSHA-prerelase`、仓库实际为 private、分支为 `refs/heads/codex/prerelease-190`；其他仓库、公开 fork 或分支不能进入签名链。
+- 普通验证节点只读且不接收签名 Secrets。只有 `build-signed` 读取历史 E7E3 私钥；只有 `publish` 拥有 `contents: write`，且不 checkout、不签名。
 - 发布目标是 **tag + GitHub prerelease**（预发布），不覆盖历史 Release，不创建正式 stable release。
 - 固定输入（约 664 MiB，11 项）不进 git，由 [固定构建输入](fixed-build-inputs.md) 的预发布资产按 SHA-256 还原。
 - 未验证范围：工作流通过只证明该 commit 在 GitHub 托管的 `ubuntu-24.04` 上编译、门禁、单测、签名与发布流程成功；
@@ -17,16 +20,16 @@
 
 | 参数 | 要求 | 示例 |
 |---|---|---|
-| `release_tag` | 新 tag，格式 `dsha-a-su-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-a-su-build307-20261101-203000` |
-| `expected_sha` | `main` 上待发布的完整 40 位 commit | `0123abcd…` |
+| `release_tag` | 新 tag，格式 `dsha-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-build308-20261103-130000` |
+| `expected_sha` | `codex/prerelease-190` 上待发布的完整 40 位 commit | `0123abcd…` |
 
 `release_tag` 对应的日历时间必须合法；tag 已存在时工作流在任何构建前失败，不会覆盖已有发布。
 
 ```bash
 gh workflow run release-production.yml \
-  --repo SunsetRNE/DSHA-Sunset-mod \
-  --ref main \
-  -f release_tag=dsha-a-su-build307-20261101-203000 \
+  --repo ym2025szz/DSHA-prerelase \
+  --ref codex/prerelease-190 \
+  -f release_tag=dsha-build308-20261103-130000 \
   -f expected_sha=<40位commit>
 ```
 
@@ -36,51 +39,43 @@ gh workflow run release-production.yml \
 
 | Secret | 内容 |
 |---|---|
-| `DSHA_KEYSTORE_B64` | Mod 发布 keystore（`dsha-a-su-release.jks`）的 base64 |
+| `DSHA_KEYSTORE_B64` | 历史 E7E3 APK 发布 keystore（不是更新清单签名密钥）的 base64 |
 | `DSHA_KEYSTORE_PASSWORD` | store password |
 | `DSHA_KEY_PASSWORD` | key password（通常与 store password 相同） |
-| `DSHA_KEY_ALIAS` | 默认 `dsha-a-su` |
+| `DSHA_KEY_ALIAS` | 默认 `androiddebugkey` |
 
 ```bash
-base64 -w0 dsha-a-su-release.jks | gh secret set DSHA_KEYSTORE_B64 \
-  --repo SunsetRNE/DSHA-Sunset-mod
-gh secret set DSHA_KEYSTORE_PASSWORD --repo SunsetRNE/DSHA-Sunset-mod --body "$PW"
-gh secret set DSHA_KEY_PASSWORD --repo SunsetRNE/DSHA-Sunset-mod --body "$PW"
-gh secret set DSHA_KEY_ALIAS --repo SunsetRNE/DSHA-Sunset-mod --body dsha-a-su
+base64 -w0 dsha-release.jks | gh secret set DSHA_KEYSTORE_B64 \
+  --repo ym2025szz/DSHA-prerelase
+gh secret set DSHA_KEYSTORE_PASSWORD --repo ym2025szz/DSHA-prerelase --body "$PW"
+gh secret set DSHA_KEY_PASSWORD --repo ym2025szz/DSHA-prerelase --body "$PW"
+gh secret set DSHA_KEY_ALIAS --repo ym2025szz/DSHA-prerelase --body androiddebugkey
 ```
 
 runner 把 keystore 解码到 `$RUNNER_TEMP`（权限 077），构建后 `if: always()` 删除；口令用 `::add-mask::` 遮蔽。
 证书的公开 SHA-256 记录在 [`ci/release-identity.json`](../ci/release-identity.json)，私钥本身不公开。
+工作流与 Gradle 均保留默认 alias `androiddebugkey`；历史别名不表示正式 APK 可调试。持有签名 Secrets 的节点通过 `gradle-cache: 'false'` 禁止写入共享 Gradle 缓存。
 
-## 4. 工作流节点
+## 4. 工作流步骤
 
-工作流拆为节点（结构与耗时依据见 [CI 节点图](ci-nodes.md)），每个节点都 checkout `expected_sha`：
+流程为 `bind → (contracts ‖ java-format ‖ host-regression ‖ inputs → (unit ‖ lint)) → build-signed → publish`。这些是工作流的执行要求；本轮没有在线运行这些节点。
 
-1. **bind**：`expected_sha == GITHUB_SHA`、tag 格式与日历时间、固定输入锁（`ci/sunset-inputs.lock.json`）解析、
-   `ci/release-identity.json` 的包名检查；tag 或 Release 已存在时在任何构建前失败。
-2. **并行门禁**（都依赖 bind）：
-   - **contracts**：固定输入/描述符/第三方声明/内置插件/凭据路径/测试清单/源码整洁/UI i18n/changelog/文档链接。
-   - **java-format**：`tools/format-java-tree.py --check`。
-   - **host-regression**：设备桥、shell 策略、虚拟屏 anchor、插件事务、发布与 CI 脚本、宿主测试清单等子集。
-   - **inputs**：按锁 URL + SHA-256 还原 11 项、按 npm lock 重建受管 DSH 运行时并重算描述符，打包为同 run 交接。
-3. **unit** 与 **lint**（依赖 inputs，二者并行）：
-   完整单测 `-Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false`，要求 0 failure / 0 error / 0 skipped，
-   且七个外部夹具用例各执行一次并通过；`:app:lintStandardRelease`。
-4. **build-signed**（依赖以上全部）：还原交接、对下载的 JUnit XML 重新核对并写出 `out/full-unit-tests.json`，
-   用 Secrets 配置 `DSHA_KEYSTORE*` 执行 `:app:assembleStandardRelease`（不带 `-Pdsha.sunsetTest`）；
-   `apksigner` 证书 SHA-256 必须等于 `ci/release-identity.json`，`aapt2 dump badging` 核对包名、
-   versionCode/versionName、minSdk 30、arm64、非 debug、标签 `DSH-A-Su`；生成证据 zip、`build-info.json`、
-   `SHA256SUMS` 与发布说明，`if: always()` 删除私钥，再以 1 天保留的 artifact 交给 publish。
-5. **publish**（唯一有 `contents: write` 的节点，不 checkout、不接触 Secrets）：核对 `SHA256SUMS` 与
-   `build-info.json` 的 commit / run / attempt，再创建 tag（指向该 commit）+ prerelease 并上传 APK、证据 zip、
-   `build-info.json`、`SHA256SUMS`。
+1. **bind**：执行上述私有仓库/分支守卫，核对 `expected_sha == GITHUB_SHA`、tag 格式及日期、固定输入锁与 `dsh.android.client` 身份；任何构建前拒绝已存在的 tag。
+2. **contracts / java-format / host-regression**：分别复用 `_node-contracts.yml`、`_node-java-format.yml`、`_node-host-tests.yml`，检查源契约、固定版本格式化及明确选择的无大输入宿主回归。
+3. **inputs**：复用 `_node-inputs.yml`，按 URL + SHA-256 还原固定输入、按锁重建受管运行时并更新描述符。`ci-handoff.py` 只打包允许的输入与证明；还原时核对 commit、成员集合和逐项摘要。
+4. **unit / lint**：依赖同一 inputs 交接并分别复用 `_node-unit-tests.yml` / `_node-lint.yml`。发布单测为 full、`require_fixtures: true`、单 fork；测试前准备锁定的 Robolectric SDK，单测离线运行。Lint 使用正式身份配置，不签名。
+5. **build-signed**：只有 bind、contracts、format、host、inputs、unit、lint 全部成功才开始。还原同 commit 的输入和测试/Lint报告，用 `verify-unit-results.py --mode full --require-fixtures` 重新核对实际 XML 后生成 `out/full-unit-tests.json`；随后才读取 Secrets、执行 `:app:assembleStandardRelease`，不带测试变体。
+6. **精确成品与证据**：`apksigner` 的证书必须等于 release identity，`aapt2` 核对包名、版本、minSdk 30、arm64、非调试及 `DSHA` 标签；生成 `build-info.json`、单测 XML、Lint、签名/badging证据 ZIP 与 `SHA256SUMS`，经仅保留一天的 `release-bundle` artifact 交接。
+7. **publish**：不 checkout、不读签名私钥；下载成品，重新核对 SHA256SUMS、commit、run ID/attempt 和版本绑定，再复查 tag 不存在，创建指向精确 commit 的 tag + prerelease 并上传四类交付资产。
+
+旧 `sunset-3090-q.yml`、`sunset-release.yml`、`terminal-regression.yml` 及其发布脚本已按上游退休，不再作为本轮发布入口。节点职责见 [CI 节点图](ci-nodes.md)；该上游说明中的历史 `main`/Mod 测试包示例不覆盖本页的私有分支守卫、`dsh.android.client.SunsetRNE` 测试身份或 E7E3 签名。
 
 ## 5. 产物与核验
 
 | 产物 | 说明 |
 |---|---|
-| `dsha-a-su-<commit8>.apk` | 正式签名成品，包名 `io.github.sunsetrne.dsha` |
-| `dsha-a-su-build-evidence.zip` | 单测 XML、Lint、签名输出、badging、`build-info.json` |
+| `dsha-<commit8>.apk` | 正式签名成品，包名 `dsh.android.client` |
+| `dsha-build-evidence.zip` | 单测 XML、Lint、签名输出、badging、`build-info.json` |
 | `build-info.json` | commit、run ID、APK/固定输入 SHA-256、证书、版本、单测汇总 |
 | `SHA256SUMS` | APK/证据/构建信息的 SHA-256 |
 
@@ -88,8 +83,8 @@ runner 把 keystore 解码到 `$RUNNER_TEMP`（权限 077），构建后 `if: al
 
 ```bash
 sha256sum -c SHA256SUMS
-apksigner verify --print-certs dsha-a-su-<commit8>.apk   # 证书 SHA-256 必须为 a4b0413c…5d5d
-aapt2 dump badging dsha-a-su-<commit8>.apk | head -3      # io.github.sunsetrne.dsha / 209
+apksigner verify --print-certs dsha-<commit8>.apk   # 证书 SHA-256 必须为 e7e3a31a…53f5
+aapt2 dump badging dsha-<commit8>.apk | head -3      # dsh.android.client / 294
 ```
 
 `build-info.json` 的 `assetBundleSha256` 必须等于 [固定构建输入](fixed-build-inputs.md) 记录的 bundle SHA-256，
@@ -100,8 +95,6 @@ aapt2 dump badging dsha-a-su-<commit8>.apk | head -3      # io.github.sunsetrne.
 - tag 已存在、`expected_sha` 与运行 commit 不符、固定输入 SHA-256 不符、证书不符、单测有失败/跳过、
   Lint/格式/文档链接失败：工作流在创建任何 tag 或 Release 前失败，现场日志与上传证据保留。
 - 失败后**不要**使用同一 tag 重跑：修正源码后换新 commit 与新 tag；旧 tag 若已创建需人工确认后再处理。
-- publish 只接受本 attempt 的 build-signed 产物：单独重跑 publish 会因 attempt 不符被拒绝（避免对结果未知的发布自动重放）。
-  先核对远端 tag/Release 实际状态，再用 Re-run all jobs 或换新 tag 重新触发。
 - 上传资产失败时 Release 可能只创建了 tag：核对 `gh release view <tag> --json assets`，不要盲目 `--clobber`。
 - 本工作流不下载/安装到手机，不做真机验收；设备侧结论必须另附实际 APK、操作与回执。
 

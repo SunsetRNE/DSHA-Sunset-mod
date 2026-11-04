@@ -383,6 +383,23 @@ public final class VirtualScreenCore {
         return ok();
       }
       if (session == null) return error("VSCREEN_NOT_CREATED");
+      if (!path.equals("/vscreen/observation-release")) {
+        var frameSettings =
+            new com.deepseekharness.app.util.ScreenFramePolicy.Settings(
+                com.deepseekharness.app.util.ScreenFramePolicy.normalizePackages(
+                    q.getOrDefault("nativeFramePackages", "")),
+                Long.parseLong(q.getOrDefault("nativeFrameRevision", "0")));
+        synchronized (session.lock) {
+          String policyRejected =
+              com.deepseekharness.app.util.ScreenFramePolicy.settingsRejection(
+                  session.frameSettings, frameSettings);
+          if (policyRejected != null) return error(policyRejected);
+          if (!frameSettings.equals(session.frameSettings)) {
+            session.frameSettings = frameSettings;
+            session.observed = -1;
+          }
+        }
+      }
       String expected = q.getOrDefault("expectedPackage", "");
       if (!expected.isEmpty()) {
         String actual = currentPackage();
@@ -424,9 +441,7 @@ public final class VirtualScreenCore {
         if (action == 0) {
           synchronized (session.lock) {
             long requested = Long.parseLong(q.getOrDefault("frameSeq", "-1"));
-            String rejection =
-                VirtualScreenPolicy.inputRejection(
-                    requested, session.sequence, session.observed, elapsed() - session.observedAt);
+            String rejection = inputRejection(requested, true);
             if (rejection != null)
               return staleFrame(rejection, requested, session.sequence, session.observed);
             session.observed = -1;
@@ -442,8 +457,7 @@ public final class VirtualScreenCore {
         if (!session.generation.equals(q.get("generation"))) return error("STALE_GENERATION");
         // 拒绝码只说"过期"是没用的：没看过这一帧、被新帧顶掉、观察超时是三种不同的自救方式。
         String rejection =
-            VirtualScreenPolicy.inputRejection(
-                observed, session.sequence, session.observed, elapsed() - session.observedAt);
+            inputRejection(observed, path.equals("/vscreen/tap") || path.equals("/vscreen/swipe"));
         if (rejection != null)
           return staleFrame(rejection, observed, session.sequence, session.observed);
         if (path.equals("/vscreen/check")) {
@@ -493,6 +507,21 @@ public final class VirtualScreenCore {
     } catch (Throwable error) {
       return failure(error);
     }
+  }
+
+  /** 动态档只适用于显式坐标动作；文字、按键和 Unicode 的检查保留严格帧门。 */
+  private static String inputRejection(long requested, boolean coordinates) {
+    boolean animated =
+        coordinates
+            && session.frameSettings.equals(session.observedSettings)
+            && session.frameSettings.animated(session.observedPackage);
+    if (animated) {
+      String actual = currentPackage();
+      if (actual.isEmpty() || !actual.equals(session.observedPackage))
+        return "OBSERVED_TARGET_CHANGED";
+    }
+    return VirtualScreenPolicy.inputRejection(
+        requested, session.sequence, session.observed, elapsed() - session.observedAt, animated);
   }
 
   private static JSONObject create(int width, int height) throws Exception {

@@ -1,5 +1,6 @@
 """Static contracts for the node-based GitHub Actions graph; text-only, no YAML dependency."""
 from pathlib import Path
+import json
 import re
 import subprocess
 import sys
@@ -101,8 +102,27 @@ class ReleaseGraph(unittest.TestCase):
         self.assertEqual(needs(self.jobs["publish"]), {"bind", "build-signed"})
         for name in ("contracts", "java-format", "host-regression", "inputs"):
             self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
-        self.assertIn("github.repository == 'SunsetRNE/DSHA-Sunset-mod'", self.jobs["bind"])
-        self.assertIn("github.ref == 'refs/heads/main'", self.jobs["bind"])
+        self.assertIn("github.repository == 'ym2025szz/DSHA-prerelase'", self.jobs["bind"])
+        self.assertIn("github.event.repository.private", self.jobs["bind"])
+        self.assertIn("github.ref == 'refs/heads/codex/prerelease-190'", self.jobs["bind"])
+        self.assertIn("github.event_name == 'workflow_dispatch'", self.jobs["bind"])
+
+    def test_local_production_identity_and_historical_alias_stay_bound(self):
+        identity = json.loads((ROOT / "ci/release-identity.json").read_text(encoding="utf-8"))
+        self.assertEqual(identity["packageName"], "dsh.android.client")
+        self.assertEqual(identity["certificateSha256"],
+                         "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5")
+        app = (ROOT / "app/build.gradle").read_text(encoding="utf-8")
+        self.assertIn('applicationId "dsh.android.client"', app)
+        self.assertIn('project.findProperty("dsha.key.alias") ?: "androiddebugkey"', app)
+        self.assertIn("if identity['packageName'] != 'dsh.android.client':", self.jobs["bind"])
+        signed = self.jobs["build-signed"]
+        self.assertIn('${KEY_ALIAS:-androiddebugkey}', signed)
+        self.assertIn("match.group(1) != identity['certificateSha256']", signed)
+        self.assertIn("package: name='{identity['packageName']}'", signed)
+        self.assertIn("application-label:'DSHA'", signed)
+        self.assertIn("if 'application-debuggable' in badging:", signed)
+        self.assertIn("version_name.endswith(('-test', '-SunsetTest', '-island'))", signed)
 
     def test_every_node_checks_out_the_exact_requested_commit(self):
         for name, block in self.jobs.items():
@@ -173,7 +193,13 @@ class SourceAndServices(unittest.TestCase):
     def test_test_package_identity_is_never_the_production_certificate(self):
         source = text("test-package.yml")
         self.assertIn("-Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true", source)
-        self.assertIn('test "$package" = "io.github.sunsetrne.dsha.test"', source)
+        self.assertIn('test "$package" = "dsh.android.client.SunsetRNE"', source)
+        self.assertIn("'packageName': 'dsh.android.client.SunsetRNE'", source)
+        self.assertNotIn("io.github.sunsetrne.dsha.test", source)
+        app = (ROOT / "app/build.gradle").read_text(encoding="utf-8")
+        self.assertIn("applicationIdSuffix '.SunsetRNE'", app)
+        self.assertIn("versionNameSuffix '-SunsetTest'", app)
+        self.assertIn("sunsetTest ? 'DSHA Test' : 'DSHA'", app)
         self.assertIn('test "$cert" != "$production"', source)
         self.assertNotIn("gh release", source)
         cleanup = source.split("- name: Remove test private key", 1)[1].split("\n      - ", 1)[0]

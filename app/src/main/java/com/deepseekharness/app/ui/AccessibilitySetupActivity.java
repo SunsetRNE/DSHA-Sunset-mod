@@ -92,7 +92,7 @@ public final class AccessibilitySetupActivity extends AppCompatActivity {
   }
 
   /**
-   * 系统无障碍列表显示的服务名就是清单里的 accessibility_service_label（「DSH-A-Su 屏幕控制」，
+   * 系统无障碍列表显示的服务名就是清单里的 accessibility_service_label（「DSHA 屏幕控制」，
    * 测试包同名；只有 app_name 在测试包不同）。按当前资源读取，步骤文案与系统列表保持一致。
    */
   static String withServiceName(Context context, String template) {
@@ -100,7 +100,7 @@ public final class AccessibilitySetupActivity extends AppCompatActivity {
     try {
       label = context.getString(R.string.accessibility_service_label);
     } catch (RuntimeException missing) {
-      label = "DSH-A-Su";
+      label = "DSHA";
     }
     return String.format(java.util.Locale.ROOT, template, label);
   }

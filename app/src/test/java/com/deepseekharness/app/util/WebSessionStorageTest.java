@@ -19,7 +19,7 @@ public final class WebSessionStorageTest {
     File destination;
 
     PlatformAlias(File destination) {
-      super("/data/user/0/io.github.sunsetrne.dsha");
+      super("/data/user/0/dsh.android.client");
       this.destination = destination;
     }
 

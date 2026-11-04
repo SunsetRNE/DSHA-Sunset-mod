@@ -233,7 +233,7 @@
 
         <!-- 无障碍声明放在 main manifest：正式包、测试包与 debug 包共享同一 service 声明，
              不使用 flavor 专属 manifest 覆盖，因此多个变体包可以各自独立启用、互不顶掉。
-             标签/描述按语言资源提供，随实际应用显示名（DSH-A-Su）区分。 -->
+             标签/描述按语言资源提供，随实际应用显示名（DSHA）区分。 -->
         <service
             android:name=".DshaAccessibilityService"
             android:exported="false"

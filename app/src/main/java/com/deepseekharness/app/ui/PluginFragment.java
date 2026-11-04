@@ -1109,7 +1109,7 @@ public class PluginFragment extends Fragment {
     if (item.updatable) actions.add(PluginAction.CHECK);
     if (item.updateAvailable) actions.add(PluginAction.UPDATE);
     if (!item.rollbackVersion.isEmpty()) actions.add(PluginAction.ROLLBACK);
-    if (item.deletable) actions.add(PluginAction.DELETE);
+    if (item.deletable && !item.dynamic) actions.add(PluginAction.DELETE);
     return actions;
   }
 
@@ -1120,9 +1120,7 @@ public class PluginFragment extends Fragment {
           .setMessage(
               com.deepseekharness.app.util.UiText.format(
                   "%s\n\n版本：%s%s%s%s%s%s",
-                  item.builtin
-                      ? com.deepseekharness.app.util.UiStateText.render(item.description)
-                      : item.description,
+                  descriptionText(item),
                   item.version,
                   (item.location.isEmpty()
                       ? ""
@@ -1553,7 +1551,7 @@ public class PluginFragment extends Fragment {
     actions.setOnClickListener(v -> itemActions(item));
     actions.setContentDescription(com.deepseekharness.app.util.UiText.format("更多操作：%s", item.name));
     android.widget.Button delete = card.findViewById(R.id.pluginDelete);
-    delete.setVisibility(item.deletable ? View.VISIBLE : View.GONE);
+    delete.setVisibility(item.deletable && !item.dynamic ? View.VISIBLE : View.GONE);
     delete.setText(com.deepseekharness.app.util.UiText.choose("删除插件", "Delete plugin"));
     delete.setOnClickListener(v -> confirmDelete(item));
     card.findViewById(R.id.pluginExpand)
@@ -1821,8 +1819,15 @@ public class PluginFragment extends Fragment {
     };
   }
 
-  /** 插件自述；为空时返回空串，由卡片显示「作者未提供说明」，来源类别改由徽标表达。 */
+  /** 插件自述及可恢复状态；坏包与会话临时插件仍给出明确的管理入口。 */
   private String descriptionText(PluginRepository.Item item) {
+    if (item.dynamic)
+      return item.description.isEmpty()
+          ? com.deepseekharness.app.util.UiText.text("临时插件请在对应 Web 会话的 Cordis 插件管理中删除。")
+          : com.deepseekharness.app.util.UiText.format(
+              "%s\n\n临时插件请在对应 Web 会话的 Cordis 插件管理中删除。", item.description);
+    if (!item.metadataError.isEmpty())
+      return com.deepseekharness.app.util.UiText.text("插件元数据无法读取；可删除加载入口，原件保留在数据页。");
     if (item.description.isEmpty()) return "";
     return item.builtin
         ? com.deepseekharness.app.util.UiStateText.render(item.description)
@@ -1886,14 +1891,16 @@ public class PluginFragment extends Fragment {
     }
     return item.dynamic
         ? com.deepseekharness.app.util.UiText.choose("临时插件", "Temporary plugin")
-        : !item.available
-            ? com.deepseekharness.app.util.UiText.text("实体缺失，请重新导入")
-            : item.enabled
-                ? com.deepseekharness.app.util.UiText.choose("配置：已启用", "Configuration: enabled")
-                : item.detected
-                    ? com.deepseekharness.app.util.UiText.text("已检测，可开启以加入 Web")
-                    : com.deepseekharness.app.util.UiText.choose(
-                        "配置：已禁用", "Configuration: disabled");
+        : !item.metadataError.isEmpty()
+            ? com.deepseekharness.app.util.UiText.text("插件元数据不可用")
+            : !item.available
+                ? com.deepseekharness.app.util.UiText.text("实体缺失，请重新导入")
+                : item.enabled
+                    ? com.deepseekharness.app.util.UiText.choose("配置：已启用", "Configuration: enabled")
+                    : item.detected
+                        ? com.deepseekharness.app.util.UiText.text("已检测，可开启以加入 Web")
+                        : com.deepseekharness.app.util.UiText.choose(
+                            "配置：已禁用", "Configuration: disabled");
   }
 
   // ---------------------------------------------------------------- 方案 A 双栏详情窗格

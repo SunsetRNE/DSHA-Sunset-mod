@@ -1,68 +1,43 @@
-# Mod 身份、包名与签名（build209 起）
+# DSHA 包名与发布签名
 
-本文记录 DSH-A-Su（Sunset Mod）与原版 DSHA 的身份分离方案，以及 `verifyPublishCertificate` 的校验来源。历史 E7E3 证书的来历见 [BUILD.md](../BUILD.md) 顶部说明与 `docs/releases/` 历史回执。
 
-## 1. 身份表
 
-| 项 | 值 | 权威来源 |
+| 项 | 当前配置 | 权威来源 |
 |---|---|---|
-| 应用显示名 | `DSH-A-Su` | `app/build.gradle` 的 `resValue app_name` |
-| 测试变体显示名 | `DSH-A-Su Test` | 同上（`-Pdsha.sunsetTest=true`） |
-| 正式包名 | `io.github.sunsetrne.dsha` | `app/build.gradle` `applicationId` + `ci/release-identity.json` `packageName` |
-| 测试包名 | `io.github.sunsetrne.dsha.test` | `applicationIdSuffix '.test'` |
-| versionCode / versionName | `307` / `0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` | `app/build.gradle` |
-| 发布证书 SHA-256 | `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d` | `ci/release-identity.json` `certificateSha256` |
-| 签名方案 | v1 + v2 + v3 | `ci/release-identity.json` `schemes` |
-| 最低系统 | Android 11（API 30）/ arm64-v8a | `app/build.gradle` `minSdk` / `abiFilters` |
+| 应用名称 | `DSHA` | `app/build.gradle` |
+| 测试名称 | `DSHA Test` | 显式 `-Pdsha.sunsetTest=true` |
+| 正式包名 | `dsh.android.client` | Gradle 与 `ci/release-identity.json` |
+| 测试包名 | `dsh.android.client.SunsetRNE` | `applicationIdSuffix` |
+| namespace | `com.deepseekharness.app` | Gradle；保持 Java/JNI 契约 |
+| versionCode | `294` | Gradle 与 release identity |
+| versionName | `0.2.1-rc.5-20261103.1300-dsh0.2.1-rc.5` | Gradle 与 release identity |
+| 正式证书 SHA-256 | `e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5` | `ci/release-identity.json` |
+| 发布配置 | Standard / 非调试 / v1+v2+v3 | Gradle 与 release identity |
+| 最低系统 | Android 11（API 30）/ arm64-v8a | Gradle |
 
-原版 DSHA 使用 `dsh.android.client` 与历史 E7E3 证书。本 Mod 的包名与原版不同，不存在覆盖安装关系，因此**不复用 E7E3**：新包名首次安装即全新数据目录，旧版应用、旧授权与旧签名链都保持原样。
+现有 `dsh.android.client` 用户继续使用同包名、同历史 E7E3 签名身份。`io.github.sunsetrne.dsha`（上游 Mod）、更早的 `com.dsh.client` 以及显式测试变体属于独立数据域，不会因为源码合并而自动共享私有目录、系统授权或 Keystore 内容。
 
-## 2. `verifyPublishCertificate` 现在校验什么
+## 发布证书门禁
 
-`app/build.gradle` 中该任务在 `assembleStandardRelease` / `packageStandardRelease` / `validateSigningStandardRelease` 之前执行，逐项检查：
+`verifyPublishCertificate` 在 Standard Release 组装、打包和签名前验证：
 
-1. 已通过 `DSHA_KEYSTORE`（或 `-Pdsha.keystore`）提供 keystore 文件；
-2. keystore 中 `DSHA_KEY_ALIAS`（默认 `dsha-a-su`）对应证书的 SHA-256 等于 `ci/release-identity.json` 的 `certificateSha256`；
-3. `android.defaultConfig.applicationId` 等于 `ci/release-identity.json` 的 `packageName`。
+1. 已通过 `DSHA_KEYSTORE` 或 `-Pdsha.keystore` 提供 keystore。
+2. `DSHA_KEY_ALIAS`（默认 `androiddebugkey`）的实际证书 SHA-256 等于 release identity 的历史 E7E3。
+3. 正式 `applicationId` 等于 release identity 的 `packageName`。
 
-任一不符直接抛 `GradleException` 并停止打包。debug 构建、单测与 Lint 不依赖该任务；未配置 keystore 时正式打包会被阻止。
+任一不符立即停止正式打包。别名名称不决定 APK 是否调试；正式 `release` 的 `debuggable` 明确为 false。单测和 Lint 不等于已验证一个实际 APK 的证书。
 
-## 3. 私钥与口令
+## 密钥与现有数据
 
-- 私钥与口令**不进入仓库**，也不写入任何文档或 CI 变量明文。
-- 本机开发环境的密钥材料保存在仓库之外（例如 `keys/` 目录，权限 600，单独备份）；文件名、口令与别名由持有者保管。
-- 构建时通过环境变量注入：
+密钥和口令保存在仓库之外，经既有受控环境注入；不把明文材料写入源码或报告。本次不生成新签名、不轮换证书、不迁移 Mod 私有数据域或导入授权。正式 bridge、应急 bridge、provider 与任务 affinity 使用实际包名。
 
-```bash
-export DSHA_KEYSTORE=/secure/path/dsha-a-su-release.jks
-export DSHA_KEYSTORE_PASSWORD=...
-export DSHA_KEY_PASSWORD=...
-export DSHA_KEY_ALIAS=dsha-a-su
-./gradlew :app:assembleStandardRelease
-```
+上游和本地应用可因不同包名并存，但系统授权各自独立。备份/恢复仍按现有格式、来源、路径与事务门禁执行，不能从包名适配推导为任意版本数据可互相导入。
 
-- 增量更新清单（若启用）使用独立 keystore，不与 APK 发布证书混用。
+本次授权本地 Standard APK 交付；手机验收仍暂停，不安装/操作设备、不运行 Low、不推送或发布 GitHub。对最终 APK 核对包名、版本、非调试状态和实际签名，结果由本轮交付报告记录，文档配置本身不代表核验通过。
 
-## 4. 轮换与覆盖升级
+未来 CI 发布仅允许私有 `ym2025szz/DSHA-prerelase` 的 `codex/prerelease-190` 分支显式触发。复用验证节点全部通过后才进入 `build-signed`；历史别名默认 `androiddebugkey`，签名 Secrets 不进入共享缓存。`publish` 只核对同 run/commit 的成品交接并发布，不 checkout、不签名；详见 [CI 构建与发布](ci-release.md)。
 
-- 同一包名的 Android 应用只允许同签名覆盖升级。一旦公开分发后更换发布证书，已安装用户必须卸载重装（数据需先导出备份），因此正常情况下**不要更换**。
-- 确需轮换时：生成新 keystore → 计算证书 SHA-256 → 更新 `ci/release-identity.json` → 更新本文与 BUILD.md 的记录 → 在 Release 说明中明确要求用户导出备份并重装。
-- 测试包（`io.github.sunsetrne.dsha.test`）可以换用独立测试证书；测试证书哈希不得等于正式证书，CI 中有对应断言。
+## 相关入口
 
-## 5. 与原版并存的后果
-
-| 项目 | 是否共享 |
-|---|---|
-| 应用数据目录 | 否（包名不同） |
-| 无障碍开关 | 否（组件名含包名，可各自启用） |
-| 通知 / 悬浮窗 / 存储等系统授权 | 否 |
-| 局域网端口 | 否；默认 3082，被占用时自动回退随机端口 |
-| 设备桥端口 | 否；`3091→3099→3090` 依次尝试 |
-| 备份文件 | 可互相导入（v5 格式），迁移用它 |
-
-## 6. 相关文件
-
-- `ci/release-identity.json`：包名 + 证书哈希 + 签名方案。
-- `ci/sunset-inputs.lock.json`：固定构建输入的公开资产地址与 SHA-256。
-- [docs/fixed-build-inputs.md](fixed-build-inputs.md)：固定输入还原与升级流程。
-- [BUILD.md](../BUILD.md)：环境、构建、签名与门禁命令。
+- [BUILD.md](../BUILD.md)：工具链、输入与打包门禁。
+- [固定输入](fixed-build-inputs.md)：上游固定资产和锁定摘要。

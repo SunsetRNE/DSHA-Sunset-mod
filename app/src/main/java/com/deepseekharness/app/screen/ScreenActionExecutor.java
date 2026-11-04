@@ -152,6 +152,8 @@ public final class ScreenActionExecutor {
             context.ownerIdentity());
     if (seen == null)
       return frameRefusal("FRAME_NOT_OBSERVED", "SCREENSHOT_OBSERVATION_ID_REQUIRED_OR_EXPIRED");
+    JSONObject policyRefusal = observationRefusal(context, seen);
+    if (policyRefusal != null) return policyRefusal;
     boolean tap = operation.equals("tap");
     String gesture = tap ? args.optString("gesture", "tap") : "swipe";
     if (tap && !java.util.Set.of("tap", "long_press", "double_tap").contains(gesture))
@@ -170,7 +172,11 @@ public final class ScreenActionExecutor {
     // 只比较已返回给调用方的画面。此处截图不发布observationId，不能替代用户已观察。
     try (var current = captures.capture(context)) {
       if (!seen.region.equals(current.region)) return geometryRefusal(seen.region, current.region);
-      if (!seen.matches(
+      if (!seen.sameGeometry(
+          current.bitmap.getWidth(), current.bitmap.getHeight(), current.rotation, current.region))
+        return frameRefusal("STALE_FRAME", "OBSERVED_IMAGE_GEOMETRY_CHANGED");
+      if (!com.deepseekharness.app.util.ScreenFramePolicy.pixelsAllowed(
+          seen,
           current.bitmap.getWidth(),
           current.bitmap.getHeight(),
           current.rotation,
@@ -205,7 +211,11 @@ public final class ScreenActionExecutor {
       GestureDescription gesture = builder.build();
       var currentRegion = context.currentRegion();
       if (!seen.region.equals(currentRegion)) return geometryRefusal(seen.region, currentRegion);
+      JSONObject policyRefusal = observationRefusal(context, seen);
+      if (policyRefusal != null) return policyRefusal;
       if (!context.claimDispatch()) return ScreenReply.refused("SCREEN_RUN_CHANGED");
+      policyRefusal = observationRefusal(context, seen);
+      if (policyRefusal != null) return policyRefusal;
       CountDownLatch done = new CountDownLatch(1);
       AtomicInteger state = new AtomicInteger();
       boolean accepted =
@@ -243,10 +253,30 @@ public final class ScreenActionExecutor {
           .put("executionMechanism", "ACCESSIBILITY_TOUCH_GESTURE")
           .put("gesture", kind)
           .put("gestureCompleted", true)
+          .put(
+              "framePolicy",
+              seen.frameSettings.animated(context.target().packageName)
+                  ? "DYNAMIC_RECENT"
+                  : "STRICT")
           .put("effectVerified", false)
           .put("nextAction", "OBSERVE_SCREEN_TO_VERIFY_EFFECT")
           .put("automaticRetry", false);
     }
+  }
+
+  private static JSONObject observationRefusal(
+      ScreenRequestContext context, ScreenObservationLedger.Observation seen)
+      throws org.json.JSONException {
+    String rejection =
+        com.deepseekharness.app.util.ScreenFramePolicy.observationRejection(
+            seen, context.frameSettings(), context.nowMillis());
+    return rejection == null
+        ? null
+        : frameRefusal(
+            rejection.equals("OBSERVATION_POLICY_REVOKED")
+                ? "SCREEN_FRAME_POLICY_CHANGED"
+                : "STALE_FRAME",
+            rejection);
   }
 
   private JSONObject semanticOutcome(ScreenRequestContext context, boolean accepted, int action)

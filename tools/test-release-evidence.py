@@ -25,7 +25,7 @@ class ReleaseEvidenceTest(unittest.TestCase):
     def setUp(self):
         self.apks=[{'flavor':'standard','versionCode':147,'sha256':'a'*64}]
         checks=['web-ready','existing-data-preserved','plugins-visible','recovery-ready','no-crash']
-        self.proof={'schema':1,'package':'io.github.sunsetrne.dsha','certificateSha256':gate.CERT,
+        self.proof={'schema':1,'package':'dsh.android.client','certificateSha256':gate.CERT,
                     'versionCode':147,'serial':'test-device','firstInstallTimePreserved':True,
                     'nonDestructive':True,'flavors':{
                         'standard':{'sha256':'a'*64,'result':'PASS','checks':checks}}}

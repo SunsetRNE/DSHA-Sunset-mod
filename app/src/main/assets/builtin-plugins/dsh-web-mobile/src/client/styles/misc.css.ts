@@ -292,7 +292,7 @@ export const MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
      composer side only the input card ([data-composer-card], host marker
      since 0.1.2) and the plugin stats row. */
   [data-mobile-nav="frame"] > :first-child,
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header,
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]),
   [data-mobile-nav="frame"] [data-composer-card],
   [data-mobile-nav="stats"],
   [data-mobile-nav="fab"],
@@ -305,7 +305,7 @@ export const MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   [data-mobile-nav="frame"] > :first-child [role="dialog"],
   [data-mobile-nav="frame"] > :first-child input,
   [data-mobile-nav="frame"] > :first-child textarea,
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header input {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) input {
     -webkit-user-select: text !important;
     user-select: text !important;
   }
@@ -436,6 +436,17 @@ export const MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
     border-radius: 10px;
   }
 
+  /* @patch
+     id: wide-touch-session-shortcuts
+     for: dsh-client-ui-workspace 的会话行 _rowActions 与归档 / 置顶快捷按钮
+     why: 宽屏触屏常显三颗 40px 按钮挤压标题；沿用手机档 #154 的精确标签收进 ⋯ 菜单（#255）
+     until: 宿主自带触屏快捷按钮收起规则，或会话行提供独立的操作区布局契约，届时删本块
+     test: tests/dsha-session-interaction.test.ts
+  */
+  [class*="sessionRow"] [class*="_rowActions"] :is([aria-label="归档会话"], [aria-label="取消归档"], [aria-label="置顶会话"], [aria-label="取消置顶"], [aria-label="Archive session"], [aria-label="Unarchive session"], [aria-label="Pin session"], [aria-label="Unpin session"]) {
+    display: none !important;
+  }
+
   /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），
      它的入口是宿主 header 里的 viewsMoreAnchor；平板这一档没有壳的帧内规则，
      于是这颗对触屏平板毫无用处的按钮就漏了出来。只藏按钮与锚点，菜单不会再弹。 */
@@ -546,8 +557,8 @@ export const MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
    （tablist 宽 100% → flex 换行），连带把谱系 chip 顶到 header 底边那条空行。
    只藏按钮本身：菜单以它为锚点，藏了按钮就不会再弹出。 */
 @media (max-width: 1023px) and (pointer: coarse) {
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header button[class*="viewsMore"],
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [class*="viewsMoreAnchor"] {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) button[class*="viewsMore"],
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="viewsMoreAnchor"] {
     display: none !important;
   }
 }
@@ -568,7 +579,7 @@ export const MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
    右侧图标簇已经没有 28px 的空位（团队 chip 的箭头与文件按钮只隔 ~39px），
    先把它从头部撤下；要保留入口就放进抽屉品牌行或文件面板。 */
 @media (max-width: 1023px) and (pointer: coarse) {
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [data-mobile-nav="downloads"] {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-mobile-nav="downloads"] {
     display: none !important;
   }
 }
@@ -624,10 +635,12 @@ export const MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
 
 /* 头部顶部留白：屏幕状态栏高 38px（152px @4x），标题原始落在 54px。
    2026-10-25 试过 -16（标题约 38），会进入 App 的顶部遮盖层，已回退到 -8
-   （标题约 46，仍在状态栏之下）；再往上需要 App 层配合，见 04-plan 交接文档。 */
+   （标题约 46，仍在状态栏之下）；再往上需要 App 层配合，见 04-plan 交接文档。
+   2026-11-03 店主截图：状态栏与标题行之间仍空一截 → -8 与已越界的 -16 取中间 -12
+   （标题约 42，离状态栏下缘仍留约 4px）。 */
 @media (max-width: 1023px) and (pointer: coarse) {
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header {
-    margin-top: -8px !important;
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) {
+    margin-top: -12px !important;
   }
 }
 

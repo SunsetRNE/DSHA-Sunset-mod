@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-api-workspace-files/lib/index.js",
+  "sourceSha256": "1d633aaf12df42e477438738f5939273ffc139ad96299ba471f97b46b2dd256c",
+  "packageIntegrity": "sha512-QdovfwBXdTgELEHYpUBcA60hxivfB2t6BZrYB+gJesji0MgHuVrn9YflsclokCo2CCSWUT7KZuZzoNtdP0ajlQ==",
+  "reason": "Filter observations by the resolved target before enqueueing and coalesce current-metadata invalidations; retain readiness, cancellation and watcher failures.",
+  "patches": [
+    {
+      "before": "\t\t\tif (target === void 0 || aborted()) return;\n\t\t\tconst stat = async () => {",
+      "after": "\t\t\tif (target === void 0 || aborted()) return;\n\t\t\t// DSHA_WORKSPACE_CHANGE_FEED_BOUNDED_V1: observations invalidate current metadata.\n\t\t\tfollower.targetKey = target.targetKey;\n\t\t\tconst stat = async () => {"
+    },
+    {
+      "before": "\tqueue = new Deque();",
+      "after": "\ttargetKey;\n\tpending;"
+    },
+    {
+      "before": "\t\tif (this.closed) return;\n\t\tthis.queue.pushBack(observed);\n\t\tthis.wake?.();",
+      "after": "\t\tif (this.closed || observed[0].targetKey !== this.targetKey) return;\n\t\t// One pending invalidation is sufficient: the consumer reads the latest stat.\n\t\tthis.pending = observed;\n\t\tthis.wake?.();"
+    },
+    {
+      "before": "\t\tthis.closed = true;\n\t\tthis.closing =",
+      "after": "\t\tthis.closed = true;\n\t\tthis.pending = void 0;\n\t\tthis.closing ="
+    },
+    {
+      "before": "\t\t\tconst observed = this.queue.popFront();",
+      "after": "\t\t\tconst observed = this.pending;\n\t\t\tthis.pending = void 0;"
+    }
+  ]
+}

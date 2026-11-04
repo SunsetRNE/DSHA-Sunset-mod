@@ -39,7 +39,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   private TextView stageTitle, stageMessage;
   private ImageView stageIcon;
   private ImageButton floatButton;
-  private Button createPortrait, createLandscape, verifyClose;
+  private Button createPortrait, createLandscape, verifyClose, rotateButton;
   private Button[] actionButtons = new Button[0];
   private ViewState shown;
   private boolean busy, creating, updating, landscapeFrame;
@@ -50,12 +50,10 @@ public final class VirtualScreenActivity extends AppCompatActivity {
   private String stageNote = "";
   // null = 尚未探测；"" = 当前没有可用通道。
   private String channelHint;
-
-  /** 当前识屏模式（只约束助手）；null 表示尚未读取。只读展示，不影响本页操作。 */
-  private com.deepseekharness.app.util.ScreenModePolicy.Mode assistantMode;
-
   // 最近一帧画面里的前台应用；旋转会重建显示，需要把它重新打开到新方向上。
   private String shownPackage = "";
+  private String shownCoreInstance = "";
+  private long shownManagerEpoch = -1;
   private VirtualScreenPreviews.Lease previewLease;
   private volatile long callbackEpoch;
   private final VirtualScreenTouchFeedback touchFeedback = new VirtualScreenTouchFeedback();
@@ -144,18 +142,6 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     state.setSingleLine(true);
     state.setEllipsize(android.text.TextUtils.TruncateAt.END);
     detail = findViewById(R.id.vscreen_detail);
-    Button assistantOpen = findViewById(R.id.vscreen_assistant_open);
-    if (assistantOpen != null) {
-      assistantOpen.setText(t("识屏模式", "Screen mode"));
-      assistantOpen.setContentDescription(
-          t("打开设备能力授权页设置识屏模式", "Open device permissions to set the screen mode"));
-      assistantOpen.setOnClickListener(
-          v ->
-              startActivity(
-                  com.deepseekharness.app.ui.MainActivity.navigationIntent(this)
-                      .putExtra(
-                          com.deepseekharness.app.ui.MainActivity.EXTRA_OPEN_DEVICE_GRANTS, true)));
-    }
     operationResult = findViewById(R.id.vscreen_result);
     expandable(operationResult);
     expandable(detail);
@@ -194,8 +180,8 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     Button keyboard =
         bind(R.id.vscreen_tool_keyboard, t("键盘", "Keyboard"), () -> toggle(textPanel));
     Button nodes = bind(R.id.vscreen_tool_nodes, t("节点操作", "Node actions"), this::showNodes);
-    Button rotate = bind(R.id.vscreen_tool_rotate, t("旋转", "Rotate"), this::rotate);
-    rotate.setContentDescription(t("切换竖屏或横屏", "Switch portrait or landscape"));
+    rotateButton = bind(R.id.vscreen_tool_rotate, t("旋转", "Rotate"), this::rotate);
+    rotateButton.setContentDescription(t("切换竖屏或横屏", "Switch portrait or landscape"));
     Button close =
         bind(R.id.vscreen_tool_close, t("关闭", "Close"), () -> run(() -> manager.close()));
     verifyClose =
@@ -208,7 +194,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
                 showStartRecords();
               else run(() -> manager.close());
             });
-    actionButtons = new Button[] {nodes, rotate, close};
+    actionButtons = new Button[] {nodes, rotateButton, close};
 
     packagePanel = findViewById(R.id.vscreen_app_panel);
     packageInput = findViewById(R.id.vscreen_package);
@@ -357,18 +343,10 @@ public final class VirtualScreenActivity extends AppCompatActivity {
               hint = "";
             }
             String out = hint;
-            com.deepseekharness.app.util.ScreenModePolicy.Mode assistant;
-            try {
-              assistant = com.deepseekharness.app.screen.ScreenMode.current(app);
-            } catch (RuntimeException unavailable) {
-              assistant = com.deepseekharness.app.util.ScreenModePolicy.Mode.OFF;
-            }
-            com.deepseekharness.app.util.ScreenModePolicy.Mode assistantOut = assistant;
             main.post(
                 () -> {
                   if (isDestroyed() || current != callbackEpoch) return;
                   channelHint = out;
-                  assistantMode = assistantOut;
                   render();
                 });
           });
@@ -401,6 +379,10 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     createLandscape.setEnabled(canCreate);
     verifyClose.setEnabled(!busy);
     for (Button b : actionButtons) b.setEnabled(!busy);
+    if (generation.isEmpty()
+        || !generation.equals(manager.generation())
+        || shownManagerEpoch != manager.epoch()) clearRotationObservation();
+    rotateButton.setEnabled(!busy && framed && !shownCoreInstance.isEmpty());
     if (next != shown) {
       if (next != ViewState.RUNNING) {
         packagePanel.setVisibility(View.GONE);
@@ -440,12 +422,11 @@ public final class VirtualScreenActivity extends AppCompatActivity {
           original.isEmpty() ? "" : String.format(t("原通道：%s", "Original channel: %s"), original));
     else if (next != ViewState.RUNNING)
       detail.setText(
-          (channelHint == null
+          channelHint == null
               ? ""
               : channelHint.isEmpty()
                   ? t("没有可用的设备通道", "No device channel available")
-                  : String.format(t("将使用通道：%s", "Channel: %s"), channelHint)));
-    renderAssistant();
+                  : String.format(t("将使用通道：%s", "Channel: %s"), channelHint));
     boolean floating = manager.overlay().enabled();
     floatButton.setImageTintList(
         android.content.res.ColorStateList.valueOf(
@@ -487,26 +468,6 @@ public final class VirtualScreenActivity extends AppCompatActivity {
             default -> t("尚未确认关闭", "Close not yet confirmed");
           };
     };
-  }
-
-  /** 操作者面板与助手授权分开：这里只说明助手能否使用本屏，以及去哪里改。 */
-  String assistantLine() {
-    if (assistantMode == null) return "";
-    return switch (assistantMode) {
-      case VIRTUAL ->
-          t("助手：可使用本屏（识屏模式 = 虚拟识屏）", "Assistant: may use this screen (screen mode = Virtual)");
-      case PHYSICAL ->
-          t("助手：不可使用本屏（识屏模式 = 实体识屏）", "Assistant: cannot use this screen (screen mode = Physical)");
-      default -> t("助手：不可使用本屏（识屏模式 = 关闭）", "Assistant: cannot use this screen (screen mode = Off)");
-    };
-  }
-
-  private void renderAssistant() {
-    View row = findViewById(R.id.vscreen_assistant_row);
-    if (row == null) return;
-    String line = assistantLine();
-    row.setVisibility(line.isEmpty() ? View.GONE : View.VISIBLE);
-    ((TextView) findViewById(R.id.vscreen_assistant)).setText(line);
   }
 
   private String stageMessage(ViewState next) {
@@ -1113,18 +1074,25 @@ public final class VirtualScreenActivity extends AppCompatActivity {
    */
   private void rotate() {
     String orientation = landscapeFrame ? "portrait" : "landscape", pkg = shownPackage;
+    String observedGeneration = generation, observedCore = shownCoreInstance;
+    long viewEpoch = callbackEpoch, runEpoch = shownManagerEpoch;
     run(
-        () -> {
-          JSONObject created = manager.start(orientation);
-          if (!created.optBoolean("ok") || pkg.isEmpty()) return created;
-          return manager.launch(pkg);
-        });
+        () ->
+            manager.rotateAndRelaunch(
+                orientation,
+                pkg,
+                observedCore,
+                observedGeneration,
+                runEpoch,
+                () -> visible && callbackEpoch == viewEpoch && !isFinishing() && !isDestroyed()));
   }
 
-  /**
-   * 操作者侧创建：只受设备能力（{@link VirtualScreenChannels#choose}）与生命周期约束，不读也不改识屏模式。识屏模式只决定助手能用哪块屏
-   * （ADR0003 决定六）；用户自己创建虚拟屏不会把助手授权切到虚拟屏。
-   */
+  private void clearRotationObservation() {
+    shownPackage = "";
+    shownCoreInstance = "";
+    shownManagerEpoch = -1;
+  }
+
   private void create(String orientation) {
     if (busy) return;
     creating = true;
@@ -1270,6 +1238,8 @@ public final class VirtualScreenActivity extends AppCompatActivity {
                     stageNote = "";
                     landscapeFrame = frame.value.optInt("width") > frame.value.optInt("height");
                     shownPackage = frame.value.optString("package");
+                    shownCoreInstance = frame.value.optString("coreInstance");
+                    shownManagerEpoch = frame.value.optLong("managerEpoch", -1);
                     generation = frame.value.optString("generation");
                     touchFeedback.generation(generation);
                     frameSeq = frame.value.optLong("frameSeq");
@@ -1298,6 +1268,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
                           message(code, frame.value.optString("reason")) + cause(frame.value);
                     if (!retained) detail.setText("");
                     generation = "";
+                    clearRotationObservation();
                     touchFeedback.generation(generation);
                     frameSeq = -1;
                     render();
@@ -1474,6 +1445,7 @@ public final class VirtualScreenActivity extends AppCompatActivity {
     closeNodePanel();
     visible = false;
     callbackEpoch++;
+    clearRotationObservation();
     touchFeedback.invalidate();
     if (previewLease != null) {
       previewLease.close();

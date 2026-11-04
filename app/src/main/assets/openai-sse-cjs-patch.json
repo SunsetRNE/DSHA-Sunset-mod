@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "openai/core/streaming.js",
+  "packageVersion": "7.19.0",
+  "sourceSha256": "9230a5e7579c7a26aaf973626ef1e90174925ee1ed9f76204ec02a4c4d07d862",
+  "packageIntegrity": "sha512-MX2s3u2L5racTO0CC/SWpCOasJQBCJrqLKXK+l82cAhdeF8mPMBEe/gxMm0ZFa2xpKpOFLRjxv5afYEZbBXmbQ==",
+  "targetSha256": "bb4a9cbd8b3d2e6e3cc32603edfca2fbfde0238f392d8ef62b31aff7c4c5ff8c",
+  "reason": "Ignore and reset only SSE blocks without a data field and release heartbeat diagnostics. Keep the SDK complete-JSON EOF compatibility; malformed or truncated JSON remains terminal without payload logging or request replay.",
+  "patches": [
+    {
+      "before": "class SSEDecoder {\n    constructor() {\n        this.event = null;\n        this.data = [];\n        this.chunks = [];\n    }\n    decode(line) {\n        if (line.endsWith('\\r')) {\n            line = line.slice(0, -1);\n        }\n        if (!line) {\n            // empty line and we didn't previously encounter any messages\n            if (!this.event && !this.data.length) {\n                return null;\n            }\n            const sse = {\n                event: this.event,\n                data: this.data.join('\\n'),\n                raw: this.chunks,\n            };\n            this.event = null;\n            this.data = [];\n            this.chunks = [];\n            return sse;\n        }\n        this.chunks.push(line);\n        if (line.startsWith(':')) {\n            return null;\n        }\n        const [fieldname, , initialValue] = partition(line, ':');\n        let value = initialValue;\n        if (value.startsWith(' ')) {\n            value = value.slice(1);\n        }\n        if (fieldname === 'event') {\n            this.event = value;\n        }\n        else if (fieldname === 'data') {\n            this.data.push(value);\n        }\n        return null;\n    }\n    /**\n     * Emits a pending event at EOF when the stream omitted the trailing blank\n     * line. Returns `null` when no event is in progress so a record that already\n     * ended with a blank line is not delivered twice.\n     */\n    flush() {\n        return this.decode('');\n    }\n}",
+      "after": "// DSHA_OPENAI_SSE_FRAMING_V1: 无 data 字段的控制块不产生 JSON 事件；数据帧仍严格解析。\nclass SSEDecoder {\n    constructor() {\n        this.event = null;\n        this.data = [];\n        this.chunks = [];\n    }\n    decode(line) {\n        if (line.endsWith('\\r')) {\n            line = line.slice(0, -1);\n        }\n        if (!line) {\n            // SSE 规范：没有 data 字段时仅复位事件类型；不能把空 JSON 送给协议层。\n            // data:（显式空值）仍会产生事件，由 JSON.parse 报错，绝不吞掉坏数据。\n            const sse = this.data.length === 0 ? null : {\n                event: this.event || null,\n                data: this.data.join('\\n'),\n                raw: this.chunks,\n            };\n            this.event = null;\n            this.data = [];\n            this.chunks = [];\n            return sse;\n        }\n        // 心跳注释不属于数据，避免长时间等待时累计无用诊断副本。\n        if (line.startsWith(':')) {\n            return null;\n        }\n        const [fieldname, , initialValue] = partition(line, ':');\n        let value = initialValue;\n        if (value.startsWith(' ')) {\n            value = value.slice(1);\n        }\n        if (fieldname === 'event') {\n            this.event = value;\n        }\n        else if (fieldname === 'data') {\n            this.data.push(value);\n        }\n        else {\n            return null;\n        }\n        this.chunks.push(line);\n        return null;\n    }\n    flush() {\n        // 保留 SDK 对缺少末尾空行的完整 JSON 的兼容；不完整 JSON 仍由协议层拒绝。\n        return this.decode('');\n    }\n}"
+    },
+    {
+      "before": "throw new SyntaxError('Error reading response: malformed server-sent event JSON.');\n                        }\n                        if (sse.event === 'error')",
+      "after": "throw new SyntaxError(`Error reading response: malformed server-sent event JSON (DSHA_SSE_INVALID_JSON; dataChars=${sse.data.length}).`);\n                        }\n                        if (sse.event === 'error')"
+    },
+    {
+      "before": "throw new SyntaxError('Error reading response: malformed server-sent event JSON.');\n                        }\n                        // SAFETY: Named SSE events",
+      "after": "throw new SyntaxError(`Error reading response: malformed server-sent event JSON (DSHA_SSE_INVALID_JSON; dataChars=${sse.data.length}).`);\n                        }\n                        // SAFETY: Named SSE events"
+    }
+  ]
+}

@@ -272,44 +272,6 @@ public final class VirtualScreenActivityLayoutTest {
   }
 
   @Test
-  public void operatorCreateNeverReadsOrWritesTheAssistantScreenMode() throws Exception {
-    var prefs =
-        activity.getSharedPreferences(
-            com.deepseekharness.app.util.Constants.PREFS, android.content.Context.MODE_PRIVATE);
-    prefs.edit().putString(com.deepseekharness.app.screen.ScreenMode.KEY, "off").commit();
-    var create = VirtualScreenActivity.class.getDeclaredMethod("create", String.class);
-    create.setAccessible(true);
-    create.invoke(activity, "portrait");
-    for (int i = 0; i < 40 && (boolean) field(activity, "busy"); i++) {
-      Thread.sleep(50);
-      drain();
-    }
-    assertEquals(false, field(activity, "busy"));
-    // 操作者自己创建虚拟屏不能顺带把助手授权切到虚拟屏（ADR0003 决定六）。
-    assertEquals("off", prefs.getString(com.deepseekharness.app.screen.ScreenMode.KEY, null));
-  }
-
-  @Test
-  public void pageExplainsWhetherTheAssistantMayUseThisScreen() throws Exception {
-    var line = VirtualScreenActivity.class.getDeclaredMethod("assistantLine");
-    line.setAccessible(true);
-    var render = VirtualScreenActivity.class.getDeclaredMethod("render");
-    render.setAccessible(true);
-    field(activity, "assistantMode", null);
-    assertEquals("", line.invoke(activity));
-    field(activity, "assistantMode", com.deepseekharness.app.util.ScreenModePolicy.Mode.OFF);
-    assertEquals("助手：不可使用本屏（识屏模式 = 关闭）", line.invoke(activity));
-    field(activity, "assistantMode", com.deepseekharness.app.util.ScreenModePolicy.Mode.PHYSICAL);
-    assertEquals("助手：不可使用本屏（识屏模式 = 实体识屏）", line.invoke(activity));
-    field(activity, "assistantMode", com.deepseekharness.app.util.ScreenModePolicy.Mode.VIRTUAL);
-    assertEquals("助手：可使用本屏（识屏模式 = 虚拟识屏）", line.invoke(activity));
-    render.invoke(activity);
-    assertEquals(View.VISIBLE, activity.findViewById(R.id.vscreen_assistant_row).getVisibility());
-    assertEquals(
-        "识屏模式", ((Button) activity.findViewById(R.id.vscreen_assistant_open)).getText().toString());
-  }
-
-  @Test
   public void startUnknownOffersDiagnosticsAndDoesNotRepeatTheCardMessage() throws Exception {
     var manager = (VirtualScreenManager) field(activity, "manager");
     var life = VirtualScreenManager.class.getDeclaredField("lifecycleState");
@@ -341,6 +303,26 @@ public final class VirtualScreenActivityLayoutTest {
     assertFalse(out.contains("RUNTIME_TRIAL"));
     assertTrue(out.indexOf("06:15:04") < out.indexOf("06:15:02"));
     assertEquals("", VirtualScreenActivity.startRecords("x [OTHER] y", 8));
+  }
+
+  @Test
+  public void newRunningDisplayWithoutAFrameCannotReusePreviousPackageForRotation()
+      throws Exception {
+    var manager = (VirtualScreenManager) field(activity, "manager");
+    field(manager, "generation", "new-display");
+    field(activity, "generation", "old-display");
+    field(activity, "shownPackage", "com.example.previous");
+    field(activity, "shownCoreInstance", "old-core");
+    field(activity, "shownManagerEpoch", manager.epoch());
+    var render = VirtualScreenActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+    render.invoke(activity);
+    assertEquals(View.VISIBLE, activity.findViewById(R.id.vscreen_tool_group).getVisibility());
+    assertFalse(activity.findViewById(R.id.vscreen_tool_rotate).isEnabled());
+    assertEquals("", field(activity, "shownPackage"));
+    assertEquals("", field(activity, "shownCoreInstance"));
+    assertEquals(-1L, field(activity, "shownManagerEpoch"));
+    field(manager, "generation", "");
   }
 
   @Test

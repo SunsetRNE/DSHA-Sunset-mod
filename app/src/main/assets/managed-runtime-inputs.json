@@ -578,7 +578,24 @@
     "file-deliverables-patch.json",
     "file-image-actions-patch.json",
     "plugin-pnpm-argv-patch.json",
-    "external-tool-proof.json"
+    "external-tool-proof.json",
+    "fs-justification-patch.json",
+    "workspace-change-feed-bounded-patch.json",
+    "files-list-rejection-patch.json",
+    "text-page-rejection-patch.json",
+    "local-directory-prefix-patch.json",
+    "local-directory-watch-patch.json",
+    "workspace-directory-prefix-patch.json",
+    "openai-sse-esm-patch.json",
+    "openai-sse-cjs-patch.json",
+    "chat-render-performance-patch.json",
+    "session-status-scale-patch.json",
+    "workspace-order-scale-patch.json",
+    "chat-viewport-performance-patch.json",
+    "temporary-plugin-host-remove-patch.json",
+    "temporary-plugin-ui-remove-patch.json",
+    "startup-resolution-patch.json",
+    "literal-loopback-online-patch.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -793,11 +810,18 @@
     "core/StartupPreparationTiming.java",
     "util/WebSessionStorage.java",
     "util/WebSessionDiagnostics.java",
+    "extdev/ExternalDeviceHost.java",
+    "extdev/ExternalDebugCommand.java",
+    "util/ExternalTargetBinding.java",
     "util/ExternalToolPolicy.java",
     "util/ExternalDevicePolicy.java",
     "util/ExternalInstallPlan.java",
     "util/ExternalStepOutput.java",
-    "util/ExternalImportQuota.java"
+    "util/ExternalImportQuota.java",
+    "util/RetainedProcessObserver.java",
+    "util/RuntimeStateDiagnostics.java",
+    "ui/RuntimeBrowserProbe.java",
+    "util/TrialRendererDiagnostic.java"
   ],
   "generatorSources": [
     "tools/mobile-server/compress.js",
@@ -848,6 +872,20 @@
     "tools/i18n/web-translations/la.json",
     "tools/i18n/web-translations/pt.json",
     "tools/i18n/web-translations/ru.json",
-    "tools/i18n/web-translations/zh-Hant.json"
+    "tools/i18n/web-translations/zh-Hant.json",
+    "tools/prepare-fs-justification-patch.py",
+    "tools/prepare-workspace-files-stability.py",
+    "tools/prepare-directory-prefix.py",
+    "tools/prepare-openai-sse-patch.py",
+    "tools/prepare-chat-render-performance-patch.py",
+    "tools/prepare-session-status-scale-patch.py",
+    "tools/prepare-workspace-order-scale-patch.py",
+    "tools/mobile-layout-patches.mjs",
+    "tools/prepare-chat-viewport-performance-patch.py",
+    "tools/prepare-temporary-plugin-remove-patch.py",
+    "tools/mobile-scroll-patches.mjs",
+    "tools/termux-jni/dsha-plugin-lock.c",
+    "tools/termux-jni/build.ps1",
+    "tools/prepare-literal-loopback-online-patch.py"
   ]
 }

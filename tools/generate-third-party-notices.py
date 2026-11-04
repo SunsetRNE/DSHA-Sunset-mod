@@ -10,7 +10,7 @@ ASSETS = ROOT / 'app/src/main/assets'
 PERMISSIVE = {'MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0',
               '(MIT OR CC0-1.0)', '(MIT OR Apache-2.0)', '0BSD', 'Unlicense'}
 NATIVE_NOTICES = {
-    'libtermux.so': ('Apache-2.0 exception', 'tools/termux-jni, v0.118.0 source plus local handshake changes'),
+    'libtermux.so': ('Apache-2.0 exception', 'tools/termux-jni, v0.118.0 source plus local handshake, storage and narrow flock changes'),
     'libdsha-session.so': ('MIT', 'tools/native-session/session-launcher.c; locked API 23 build'),
     'libdsha-proroot-compat.so': ('MIT', 'tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf and fcntl-errno proxy, locked NDK build; original proroot binaries unchanged'),
     'libdsha-proroot-linker.so': ('MIT', 'tools/proroot-compat/linker-entry.c; freestanding GNU AArch64 direct-preload adapter; original proroot binaries unchanged'),
@@ -81,7 +81,7 @@ def render():
 ## 终端与会话启动器
 
 - Termux terminal-emulator 的 `termux.c` 来自 v0.118.0；上游明确的 Apache-2.0 许可例外保存在 `tools/termux-jni/LICENSE.upstream.md`，全文为 `LICENSE-2.0.txt`。不要将该例外扩展到整个 Termux 应用。
-- 本地 PTY 身份握手和会话查询差异见 `dsha-pty.c`、`dsha-process.c` 与 `build.ps1`，目标 API 23、LOAD 16 KiB、common-page-size 4096。
+- 本地 PTY 身份握手、存储和会话查询差异见 `dsha-pty.c`、`dsha-process.c`；非阻塞文件锁适配见 `dsha-plugin-lock.c`。构建入口为 `build.ps1`，目标 API 23、LOAD 16 KiB、common-page-size 4096。
 - DSHA 独立会话启动器源码为 `tools/native-session/session-launcher.c`；跨平台构建入口 `tools/native-session/build.py`，锁定 NDK 26.3.11579264。
 
 ## proot / proroot

@@ -17,6 +17,7 @@ public final class ScreenObservationLedger {
     public final long serviceEpoch, createdAt;
     public final int width, height, rotation;
     public final ScreenWindowRegion region;
+    public final ScreenFramePolicy.Settings frameSettings;
 
     private Observation(
         String id,
@@ -28,7 +29,8 @@ public final class ScreenObservationLedger {
         int rotation,
         String fingerprint,
         long now,
-        ScreenWindowRegion region) {
+        ScreenWindowRegion region,
+        ScreenFramePolicy.Settings frameSettings) {
       this.id = id;
       this.target = target;
       this.owner = owner;
@@ -39,6 +41,7 @@ public final class ScreenObservationLedger {
       this.fingerprint = fingerprint;
       createdAt = now;
       this.region = region;
+      this.frameSettings = frameSettings;
     }
 
     public boolean matches(int width, int height, int rotation, String fingerprint) {
@@ -51,6 +54,13 @@ public final class ScreenObservationLedger {
     public boolean matches(
         int width, int height, int rotation, String fingerprint, ScreenWindowRegion region) {
       return this.region.equals(region) && matches(width, height, rotation, fingerprint);
+    }
+
+    public boolean sameGeometry(int width, int height, int rotation, ScreenWindowRegion region) {
+      return this.width == width
+          && this.height == height
+          && this.rotation == rotation
+          && this.region.equals(region);
     }
   }
 
@@ -91,6 +101,30 @@ public final class ScreenObservationLedger {
       int rotation,
       String fingerprint,
       ScreenWindowRegion region) {
+    return publish(
+        target,
+        epoch,
+        owner,
+        width,
+        height,
+        rotation,
+        fingerprint,
+        region,
+        clock.getAsLong(),
+        new ScreenFramePolicy.Settings("", 0));
+  }
+
+  public synchronized Observation publish(
+      ScreenTarget target,
+      long epoch,
+      String owner,
+      int width,
+      int height,
+      int rotation,
+      String fingerprint,
+      ScreenWindowRegion region,
+      long capturedAt,
+      ScreenFramePolicy.Settings frameSettings) {
     if (target == null
         || target.windowId < 0
         || width <= 0
@@ -98,6 +132,9 @@ public final class ScreenObservationLedger {
         || fingerprint == null
         || fingerprint.isEmpty()
         || region == null
+        || capturedAt < 0
+        || capturedAt > clock.getAsLong()
+        || frameSettings == null
         || !region.within(width, height))
       throw new IllegalArgumentException("SCREEN_OBSERVATION_INVALID");
     observations.clear(); // 一个连接只接受最近真正返回的截图。
@@ -111,8 +148,9 @@ public final class ScreenObservationLedger {
             height,
             rotation,
             fingerprint,
-            clock.getAsLong(),
-            region);
+            capturedAt,
+            region,
+            frameSettings);
     observations.put(value.id, value);
     return value;
   }

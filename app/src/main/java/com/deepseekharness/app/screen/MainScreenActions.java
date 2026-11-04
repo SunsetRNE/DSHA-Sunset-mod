@@ -317,6 +317,7 @@ public final class MainScreenActions {
       throws Exception {
     if (!format.equals("mcp") && !format.equals("path"))
       return ScreenReply.refused("SCREENSHOT_FORMAT_INVALID");
+    var frameSettings = context.frameSettings();
     try (var shot = captures.capture(context)) {
       boolean coordinatesAvailable =
           shot.region != null && shot.region.hasUnexcludedArea(shot.region.content());
@@ -384,6 +385,10 @@ public final class MainScreenActions {
         result.put("path", target.getAbsolutePath());
       }
       context.validateCurrentTarget();
+      if (!frameSettings.equals(context.frameSettings())) {
+        observations.clear();
+        return ScreenReply.refused("SCREEN_FRAME_POLICY_CHANGED");
+      }
       if (!coordinatesAvailable) {
         observations.clear();
         if (!context.current()) return ScreenReply.refused("SCREEN_RUN_CHANGED");
@@ -398,8 +403,20 @@ public final class MainScreenActions {
               shot.bitmap.getHeight(),
               shot.rotation,
               shot.fingerprint,
-              shot.region);
-      result.put("observationId", observation.id);
+              shot.region,
+              shot.capturedAt,
+              frameSettings);
+      result
+          .put("observationId", observation.id)
+          .put(
+              "framePolicy",
+              frameSettings.animated(context.target().packageName) ? "DYNAMIC_RECENT" : "STRICT")
+          .put("observationAgeMs", context.nowMillis() - shot.capturedAt)
+          .put(
+              "observationMaxAgeMs",
+              frameSettings.animated(context.target().packageName)
+                  ? com.deepseekharness.app.util.ScreenFramePolicy.DYNAMIC_WINDOW_MS
+                  : ScreenObservationLedger.TTL_MILLIS);
       if (!context.current()) {
         observations.clear();
         return ScreenReply.refused("SCREEN_RUN_CHANGED");

@@ -95,8 +95,39 @@ final class WebProcessSession {
   }
 
   boolean confirmStopped() throws IOException {
-    return manager.confirmStopped(hasLiveLaunchers());
+    // Start/Stop advances the lifecycle generation before proving the previous runtime exited.
+    // Capture only those prior objects: a later run or a replaced proof cannot inherit this result.
+    java.util.ArrayList<StoppedRun> candidates = new java.util.ArrayList<>();
+    long through;
+    synchronized (state.lifecycle) {
+      through = state.lifecycle.generation() - 1;
+      for (WebRun run : state.runs.values())
+        if (run.generation <= through && run.recovered != null)
+          candidates.add(new StoppedRun(run, run.recovered, run.launcher));
+    }
+    if (!manager.confirmStopped(hasLiveLaunchers())) return false;
+    synchronized (state.lifecycle) {
+      for (StoppedRun candidate : candidates) {
+        WebRun run = candidate.run();
+        if (run.generation > through
+            || state.runs.get(run.generation) != run
+            || run.recovered != candidate.recovered()
+            || run.launcher != null && run.launcher != candidate.launcher()) continue;
+        // Full guest + launcher exit is now proven. Keeping this old PID proof would allow its
+        // future reuse or permission changes to turn an already completed Stop back into UNKNOWN.
+        run.recovered = null;
+        run.recoveredLive = false;
+        run.confirmedWebExit = true;
+        prune(run);
+      }
+    }
+    return true;
   }
+
+  private record StoppedRun(
+      WebRun run,
+      com.deepseekharness.app.runtime.StoredWebSession.Record recovered,
+      Process launcher) {}
 
   boolean hasLiveLaunchers() {
     boolean alive = retainedLauncherPending();

@@ -64,8 +64,7 @@ final class PermissionCards {
     if (!ok && exhausted) m.tone = OnboardingKit.Tone.WARN;
     m.outside =
         settingsOnly || exhausted
-            ? UiText.choose(
-                "在系统通知设置中允许 DSH-A-Su。", "Allow DSH-A-Su in system notification settings.")
+            ? UiText.choose("在系统通知设置中允许 DSHA。", "Allow DSHA in system notification settings.")
             : UiText.choose("会弹出系统权限框。", "Android will show a permission prompt.");
     m.actions =
         new View[] {
@@ -171,7 +170,7 @@ final class PermissionCards {
                 "Read and write projects under /sdcard. Without it, only private folders work."),
             UiText.choose("读写 /sdcard", "Use /sdcard"));
     state(m, ok, UiText.choose("已开启", "On"), UiText.choose("未开启", "Off"));
-    m.outside = UiText.choose("在「所有文件访问」中允许 DSH-A-Su。", "Allow DSH-A-Su under All files access.");
+    m.outside = UiText.choose("在「所有文件访问」中允许 DSHA。", "Allow DSHA under All files access.");
     if (ok)
       m.note =
           UiText.choose(
@@ -273,8 +272,7 @@ final class PermissionCards {
                 "Shows the floating bar, command approvals and the phone-task window."),
             UiText.choose("悬浮条与状态窗", "Floating bar"));
     state(m, ok, UiText.choose("已允许", "Allowed"), UiText.choose("未允许", "Not allowed"));
-    m.outside =
-        UiText.choose("在“显示在其他应用上层”中允许 DSH-A-Su。", "Allow DSH-A-Su under Display over other apps.");
+    m.outside = UiText.choose("在“显示在其他应用上层”中允许 DSHA。", "Allow DSHA under Display over other apps.");
     m.note =
         UiText.choose(
             "悬浮条开关在 设置 → 悬浮条。", "Turn on the floating bar in Settings → Floating status.");

@@ -62,6 +62,7 @@ try {
   assert.equal(external.paddingTop,'38px','ordinary browser keeps its real status/cutout env inset');
   assert.equal(external.paddingBottom,'24px');
   assert.equal(external.probeTop,38);
+  assert.equal(external.headerMargin,'-12px','ordinary browser retains upstream header spacing');
   assert.equal(external.sheetPaddingBottom,'24px','browser file sheet keeps its navigation inset');
   await page.addScriptTag({content:safeArea});
   for (const size of [{width:360,height:754},{width:754,height:360},{width:754,height:210},{width:360,height:754}]) {

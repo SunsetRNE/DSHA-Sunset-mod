@@ -7,13 +7,16 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
@@ -408,36 +411,68 @@ public final class JvmBackupFileSystemTest {
     JvmBackupFileSystem filesystem = new JvmBackupFileSystem();
     var pool = Executors.newSingleThreadExecutor();
     AtomicBoolean running = new AtomicBoolean(true);
+    AtomicInteger replacements = new AtomicInteger();
+    CountDownLatch writerReady = new CountDownLatch(1), start = new CountDownLatch(1);
+    boolean windows = System.getProperty("os.name").startsWith("Windows");
     try {
       Future<?> writer =
           pool.submit(
               () -> {
                 int round = 1;
                 try {
+                  writerReady.countDown();
+                  start.await();
                   while (running.get()) {
                     File next = new File(temporary.getRoot(), "snapshot.next");
                     Files.writeString(next.toPath(), Integer.toString(round++ % 10).repeat(4096));
-                    Files.move(
-                        next.toPath(),
-                        target.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE);
+                    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                    while (true) {
+                      try {
+                        Files.move(
+                            next.toPath(),
+                            target.toPath(),
+                            StandardCopyOption.REPLACE_EXISTING,
+                            StandardCopyOption.ATOMIC_MOVE);
+                        break;
+                      } catch (AccessDeniedException busy) {
+                        // Windows MoveFileEx may transiently deny replacing an open target.
+                        // Only this fixture writer retries; all other failures remain failures.
+                        if (!windows || System.nanoTime() >= deadline) throw busy;
+                        Thread.sleep(2);
+                      }
+                    }
+                    replacements.incrementAndGet();
                   }
                 } catch (Exception error) {
                   throw new IllegalStateException(error);
                 }
                 return null;
               });
-      for (int i = 0; i < 100; i++) {
+      assertTrue("snapshot writer did not start", writerReady.await(10, TimeUnit.SECONDS));
+      var observed = new java.util.HashSet<Byte>();
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+      start.countDown();
+      int reads = 0;
+      do {
+        if (writer.isDone()) writer.get(10, TimeUnit.SECONDS);
         byte[] bytes = filesystem.currentSnapshot(target, 64 * 1024);
         assertEquals(4096, bytes.length);
-        assertEquals(bytes[0], bytes[4095]);
-      }
+        for (byte value : bytes) assertEquals(bytes[0], value);
+        observed.add(bytes[0]);
+        reads++;
+        assertTrue("snapshot writer made no observable progress", System.nanoTime() < deadline);
+        // Give the fixture writer an opportunity between readers on every host.
+        Thread.yield();
+      } while (reads < 100 || observed.size() < 2 || replacements.get() < 2);
       running.set(false);
       writer.get(10, TimeUnit.SECONDS);
+      assertTrue("atomic replacement did not execute", replacements.get() >= 2);
+      assertTrue("reader did not observe replacement", observed.size() >= 2);
     } finally {
       running.set(false);
+      start.countDown();
       pool.shutdownNow();
+      assertTrue("snapshot writer did not exit", pool.awaitTermination(10, TimeUnit.SECONDS));
     }
   }
 

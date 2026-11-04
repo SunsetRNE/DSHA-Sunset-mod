@@ -6,6 +6,8 @@ import path from 'node:path';
 import { applyFileTransferClient } from './file-transfer/client-mobile.mjs';
 import { applyMobileSafeArea } from './mobile-safe-area.mjs';
 import { applyMobileLocaleBundlePatch, applyMobileLocaleSourcePatch, mobileLocaleSourceFiles } from './mobile-locales.mjs';
+import { applyMobileLayoutBundlePatch, applyMobileLayoutSourcePatch, mobileLayoutSourceFiles } from './mobile-layout-patches.mjs';
+import { applyMobileScrollBundlePatch, applyMobileScrollSourcePatch, mobileScrollSourceFiles } from './mobile-scroll-patches.mjs';
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(readFileSync(path.join(project, 'tools/mobile-plugin-upstream.lock.json'), 'utf8'));
 export const upstreamCommit = lock.commit;
@@ -47,14 +49,17 @@ export function applyMobileClientPatches(bytes) {
       throw new Error('补丁模块范围缺失或不唯一: ' + startAnchor);
     source = source.slice(0, start) + after + source.slice(end);
   };
-  // 3.2.2 沿用已吸收的可见视口变量、写入去重与销毁清理；上游 main 未恢复
-  // 后续按帧合并试验。保留原 viewport-meta 与 interactive-widget=resizes-content。
+  // 3.2.3 使用上游可见带稳定发布与通知、document-scroll-lock 和选择器修复。
+  // CSS 设计注释已由上游构建剥离；本地补丁使用唯一规则锚点，不恢复整份注释。
   // 按实际鼠标/touch/pen事件分流；不能把用户点击伪造成键盘 detail=0。
   replaceRange('            // DSHA detail=0 follows the host\'s keyboard/programmatic open path.',
     '            // A touch row-tap owns the close (pointerup or the navigation observer);',
     '            // DSHA_SESSION_INPUT_V4：保留原始点击，实际打开仍由 dsha-session-open 关闭抽屉。\n');
-  replaceRange('  /* 手机档收掉搜索行', '  /* 这一层的遮罩',
-    '  /* DSHA 保留手机搜索；上游定向首轮焦点守卫不删除宿主 React 节点。 */\n');
+  replace(`  @media (max-width: 767px) {
+    [aria-modal="true"][data-shortcut-modal="shortcuts"] [class*="_searchRow"] {
+      display: none !important;
+    }
+  }`, '  /* DSHA 保留手机搜索；上游定向首轮焦点守卫不删除宿主 React 节点。 */');
   // Documentation-only: V4 opens valid touch/pen/mouse clicks through the host;
   // keep the owned-row exemption and close on the actual open event, not pointerup.
   replace('        // DSHA_SESSION_INTERACTION_V1：宿主把「单击=选中、双击=打开」拆成了两步\n'
@@ -81,7 +86,7 @@ export function applyMobileClientPatches(bytes) {
   // generic :active inset tint also paints it. On dark-theme touch taps that
   // adds #ffffff24 across the whole dim layer. Keep its own fade/close behavior
   // and ordinary button feedback; only this owned backdrop skips the tint.
-  replace('/* Floating fallback button (hero / blank phases without a session header).',
+  replace('[data-mobile-nav="fab"] {\n  position: absolute;',
     `/* DSHA_BACKDROP_PRESS_V1: a dimming surface must not become a bright pressed button. */
 @media (max-width: 1023px) and (pointer: coarse) and (hover: none) {
   [data-mobile-nav="backdrop"]:active {
@@ -89,30 +94,9 @@ export function applyMobileClientPatches(bytes) {
   }
 }
 
-/* Floating fallback button (hero / blank phases without a session header).`);
-  // 宽屏触屏档（≥1024 + 粗指针）沿用手机壳的「⋯ 常显」，又把三颗按钮放大到 40×40；
-  // 宿主只在 hover/menuOpen 隐藏 .time，触屏没有 hover，于是行尾同时常显
-  // 「时间 + ⋯ + 归档 + 置顶」，280px 侧栏里的标题只剩约 55px。按手机壳 #154 的
-  // 同一份 zh/en aria-label 名单收起归档/置顶，⋯ 仍保留 40×40 热区。
-  // 上游 PR mexiaosqwq/dsh-web-mobile#256 是同一改动；内置快照包含它后删本块。
-  replace('  /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），',
-    `  /* @patch
-     id: wide-touch-row-actions
-     for: dsh-web-mobile 3.2.2（bb0e5e15）的 (min-width: 1024px) and (pointer: coarse) 档
-     why: 40×40 的 ⋯ / 归档 / 置顶三颗按钮和常显的 .time 把 280px 侧栏的标题压到约
-          55px（实测 1024×640 / dpr 2.5）；手机壳自 #154 起已按 aria-label 收起
-          归档/置顶，宽屏触屏档缺同一条规则。上游 PR #256 合并后删本块。
-     until: 内置上游同步到包含 mexiaosqwq/dsh-web-mobile#256 的提交——届时删本块并
-            重新生成产物
-     test: tools/test-mobile-client-patches.mjs
-  */
-  /* DSHA_WIDE_TOUCH_ROW_ACTIONS_V1：只藏归档/置顶两颗快捷按钮，⋯ 与行高不动；
-     名单与手机壳 #154 完全一致，宿主换语言时静默失效、不误伤第三方按钮。 */
-  [class*="sessionRow"] [class*="_rowActions"] :is([aria-label="归档会话"], [aria-label="取消归档"], [aria-label="置顶会话"], [aria-label="取消置顶"], [aria-label="Archive session"], [aria-label="Unarchive session"], [aria-label="Pin session"], [aria-label="Unpin session"]) {
-    display: none !important;
-  }
-
-  /* ① 隐藏「更多视图」⋯（owner 2026-10-29）：手机档早就藏了（≤1023 那条在下面），`);
+[data-mobile-nav="fab"] {
+  position: absolute;`);
+  // 3.2.3 #257 已吸收宽屏触屏归档/置顶收起规则，本地重复注入退役。
   const css = `
   /* DSHA 可见区域边界：原生已消费 IME/systemBars，只读浏览器实际视口。 */
   [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]),
@@ -167,19 +151,20 @@ export function applyMobileClientPatches(bytes) {
     }
   }
 `;
-  replace('  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------',
-    css + '  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------');
-  return applyMobileSafeArea(applyFileTransferClient(applyMobileLocaleBundlePatch(source)));
+  replace('  @keyframes dsh-web-mobile-panel-in {',
+    css + '  /* DSHA_LOCAL_LAYOUT_END */\n  @keyframes dsh-web-mobile-panel-in {');
+  return applyMobileSafeArea(applyFileTransferClient(applyMobileScrollBundlePatch(applyMobileLayoutBundlePatch(applyMobileLocaleBundlePatch(source)))));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [input, action = '--check'] = process.argv.slice(2);
   if (input === '--locale-sources') {
     const [directory, localeAction = '--check'] = process.argv.slice(3);
     if (!directory || !['--check', '--write'].includes(localeAction)) throw new Error('用法: node tools/apply-mobile-client-patches.mjs --locale-sources <固定上游目录> [--check|--write]');
-    for (const name of mobileLocaleSourceFiles) {
+    for (const name of new Set([...mobileLocaleSourceFiles, ...mobileLayoutSourceFiles, ...mobileScrollSourceFiles])) {
       const bytes = readFileSync(path.join(directory, name));
       if (sha(bytes) !== lock.files[name]?.sha256) throw new Error('mobile locale source differs from fixed commit: ' + name);
-      const patched = applyMobileLocaleSourcePatch(name, bytes.toString('utf8'));
+      const localized = mobileLocaleSourceFiles.includes(name) ? applyMobileLocaleSourcePatch(name, bytes.toString('utf8')) : bytes.toString('utf8');
+      const patched = applyMobileScrollSourcePatch(name, applyMobileLayoutSourcePatch(name, localized));
       const output = path.join(project, 'app/src/main/assets/builtin-plugins/dsh-web-mobile', name);
       if (localeAction === '--write') writeFileSync(output, patched);
       else if (readFileSync(output, 'utf8') !== patched) throw new Error('移动语言源码与锁定补丁不符: ' + name);

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js",
+  "sourceSha256": "3c8259fed8fb6d8cf1af6ecc2c7f478df4eacab4628b91e4c9ad8defdc5fb595",
+  "packageIntegrity": "sha512-rzoeD9dENAl9QY9fT/qQywowxHaoY5RNkj5A9fqFU1xr6VXN6RCWCdwdpvzngK/soNw3LZwAVhdDVk70ccA3wg==",
+  "reason": "Settle rejected text-page reads exactly as complete-byte reads do, retaining generation/cancellation fencing and retry UI.",
+  "patches": [
+    {
+      "before": "\t\t\t\t\t\treads.version = result.value.version;\n\t\t\t\t\t\tactions.page(tabId, result.value);\n\t\t\t\t\t});",
+      "after": "\t\t\t\t\t\treads.version = result.value.version;\n\t\t\t\t\t\tactions.page(tabId, result.value);\n\t\t\t\t\t}, (error) => {\n\t\t\t\t\t\t// DSHA_TEXT_PAGE_REJECTION_V1: match the complete-byte failure contract.\n\t\t\t\t\t\tif (signal.aborted || reads.generation !== generation) return;\n\t\t\t\t\t\tactions.failed(tabId, Object.assign(new Error(error instanceof Error ? error.message : String(error), { cause: error }), {\n\t\t\t\t\t\t\tname: \"RemoteError\", isDSHRemoteError: true, code: \"gateway/internal\", details: {}\n\t\t\t\t\t\t}));\n\t\t\t\t\t});"
+    }
+  ]
+}

@@ -766,6 +766,24 @@ public final class PluginRepositoryQueryLifecycleTest {
   }
 
   @Test
+  public void temporaryDeletionProvidesGuidanceWithoutQueueingAPackageMutation() throws Exception {
+    seed();
+    var temporary =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "temporary-plugin")
+                .put("dynamic", true)
+                .put("deletable", true)
+                .put("sessionId", "session")
+                .put("pluginId", "temporary"));
+    assertEquals("", repository.delete(temporary));
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
+    assertTrue(repository.state().getValue().message.contains("Cordis"));
+    assertTrue(Boot.calls.isEmpty());
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
   public void confirmedDeletionSurvivesSourceReadFailureAfterReceipt() throws Exception {
     seed();
     AtomicBoolean replied = new AtomicBoolean();

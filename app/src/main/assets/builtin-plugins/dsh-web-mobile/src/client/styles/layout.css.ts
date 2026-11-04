@@ -68,9 +68,53 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      which sheet happens to be injected later. Measured before and after with
      scripts/probes/cascade-conflict-probe.mjs: no computed value moves, the
      rule only stops depending on sheet order (audit D-5 option A). */
+  /* ---------- the shell is exactly the VISIBLE band, and the document cannot
+     scroll (2026-10-31) ----------
+     Field dump, 402x684 iPhone with the keyboard up:
+
+       META     vv=402x345@325  inner=402x359  scrollY=325  doc=402x684
+       FRAME    [0,-325 402x684]
+
+     The frame is still the full 684 while the visible band is 345 tall, so the
+     document is scrollable by exactly the keyboard height — and something in the
+     host scrolls it to that maximum (the Lexical caret helper's window.scrollBy
+     is the known caller, issue #149). Once the document has scrolled 325px, the
+     whole frame — composer included — sits 325px above the band. That is the
+     real cause of 「输入框缩下去 / 跳下去」; every compensation applied downstream
+     of it (transform, container height) was fighting the symptom, and the
+     engine's numbers only looked self-inconsistent because the page had been
+     scrolled underneath us.
+
+     Fix at the source: size the shell to the visible band and take the document
+     out of the scrolling business entirely. 「--dsha-mobile-visible-vh」 is
+     maintained live by viewport-meta (min of innerHeight and the visual viewport height),
+     so this follows the keyboard without any per-engine arithmetic; the app's own
+     containers keep their scrolling. */
+  /* overflow: hidden only stops the USER; the host's caret helper calls
+     window.scrollBy, which still moves an overflow:hidden document. Field dump
+     2026-10-31 11:44:50 (keyboard up): scrollY=92 with the shell at -92 while the
+     visible band was [92, 437] — the shell's bottom edge sat at 253, so the lower
+     184px of the band showed the page background under the composer. That is the
+     owner's 「输入框被顶飞，看到底部的空白」. Locking the scroll from CSS via
+     position: fixed on html broke the whole document paint on the owner's phone
+     (2026-10-31 「炸了」), so the lock is done in JS instead — see
+     effects/document-scroll-lock.ts. */
+  html,
+  body {
+    height: 100% !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    /* The shell now ends where the visible band ends, so while the keyboard is
+       still animating there is a strip of body below it. Without this the strip
+       is the browser's default white — read as "白屏" for the 1-2s the keyboard
+       takes to rise. Paint it with the host's own page colour so the strip reads
+       as the app, and the keyboard simply slides over it. */
+    background: var(--dsw-alias-bg-base, #fff) !important;
+  }
   html [data-mobile-nav="frame"] {
     box-sizing: border-box !important;
     position: relative !important;
+    height: var(--dsha-mobile-visible-vh, 100%) !important;
     grid-template-columns: minmax(0, 1fr) 0 0 !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
     /* Bottom safe area, symmetric with the top inset above. It MUST stay in
@@ -450,7 +494,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      that live in the conversation (composer/drawer keep their chrome
      interactive); header buttons remain reachable the moment the selection
      collapses, which is also what a tap anywhere else does. */
-  html[data-mobile-nav-selecting] [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header {
+  html[data-mobile-nav-selecting] [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) {
     pointer-events: none !important;
   }
   /* A transparent header was harmless while nothing could scroll underneath it;
@@ -1229,8 +1273,8 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      浅色档宿主两头同为白、本来就没有断层，不参与；桌面档不碰。
      宿主深色标记挂在 body 上（实测设 body[data-ds-dark-theme] 即切到 #151517），
      html 上若也挂同一个标记一并覆盖。 */
-  body[data-ds-dark-theme] [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header,
-  html[data-ds-dark-theme] [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header {
+  body[data-ds-dark-theme] [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]),
+  html[data-ds-dark-theme] [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) {
     background-color: var(--dsw-alias-bg-base, #151517) !important;
   }
   /* 壁纸兼容（issue #228）：同一个插件把 --dsw-alias-bg-base 也置为 transparent
@@ -1246,7 +1290,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      until: 上游提供不透明的面板填充接缝，或不再把 --dsw-alias-bg-base 置空——届时本块删除
      test: tests/wallpaper-surface-fill.test.ts
   */
-  body[data-ds-dark-theme][data-dsh-bg] [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header {
+  body[data-ds-dark-theme][data-dsh-bg] [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) {
     background-color: var(--dsw-static-neutral-bluish-950, #151517) !important;
   }
   /* 头部 UI 的按下反馈（店主 2026-09-23："是头部 UI，没有触发反馈"）。
@@ -1343,7 +1387,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      x=100 with our rule present, matching and later in source order. The value
      is 0 because our own toggle already occupies that left seat (painted at
      x=8-36), so the host reservation is pure dead space on a phone. */
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) {
     padding-left: 0 !important;
     padding-right: 8px !important;
     position: relative !important;
@@ -1395,9 +1439,15 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
   [data-mobile-nav="frame"][data-mobile-nav-composer-tight] [class*="_composerSeat"] {
     z-index: 31 !important;
   }
-  [data-mobile-nav="frame"][data-mobile-nav-composer-tight] [class*="_composerSeat"] [data-composer-dock],
-  [data-mobile-nav="frame"][data-mobile-nav-composer-tight] [class*="_composerSeat"] [data-composer-stats] {
-    display: none !important;
+  /* 只在横屏让出次要行。竖屏里座位本来就放得下，让掉它只会让 composer 变矮 30px——
+     2026-10-30 真机逐帧（402x684 竖屏）：tight=T 时 seatH=76、tight=- 时 seatH=106，
+     42 帧对 65 帧，正好是统计行那一行的高度；店主的「输入框缩下去」就是这个。
+     z-index 那条不受影响：竖屏里它只负责让座位压过顶栏。 */
+  @media (orientation: landscape) {
+    [data-mobile-nav="frame"][data-mobile-nav-composer-tight] [class*="_composerSeat"] [data-composer-dock],
+    [data-mobile-nav="frame"][data-mobile-nav-composer-tight] [class*="_composerSeat"] [data-composer-stats] {
+      display: none !important;
+    }
   }
   /* The hero phase's empty header must stay hidden on phones. The host hides
      it via the headerHidden class at (0,1,0), but its own session-controller
@@ -1458,7 +1508,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      （仓库既有惯例，见文件末尾的 DSHA 预设块）。
      真机读数（修前 → 修后）：头部 77 → 67px、标题↔页签文字间距 22 → 15px。 */
   @media (max-width: 767px) and (pointer: coarse) {
-    [data-mobile-nav="frame"] [data-phase] header [class*="wSkVaW_tabs"] {
+    [data-mobile-nav="frame"] [data-phase] header [class*="_tabs"] {
       padding-left: 8px !important;
       /* 2026-09-23 店主："标题和下面『对话』中间的空白有点多"。
          宿主给这条页签条 margin-top:10px，页签按钮自己还带 padding-bottom:9px
@@ -1476,8 +1526,8 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
        7px（店主：「太挤了，把对话那一行移动贴近下面那条线」）。改用宿主稳定的
        data-conversation-tabs 标记 + html body 前缀把特异性拉满，把下内边距压到 3px：
        文字随之下沉 6px —— 贴近分隔线，同时标题侧的留白回来。 */
-    html body [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [data-conversation-tabs][role="tablist"] > button[role="tab"],
-    html body [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [data-conversation-tabs] > button[class*="wSkVaW_tab"] {
+    html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs][role="tablist"] > button[role="tab"],
+    html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs] > button[class*="_tab"]:not([class*="_tabs"]) {
       /* 2026-10-20：店主「先把刚刚的改动还原」——回到上一版定稿的 6 / 3
          （总高仍是 16 + 9 = 25px，文字下沉、下划线不动）。后续再按店主给的目标间距调。 */
       padding: 6px 0 3px !important;
@@ -1487,7 +1537,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
        间距 ≈ 67.5 + 3.81 × (row-gap + margin-top)；基线 margin-top 由本文件下方
        「header:has(_headerLeading) [role="tablist"] { margin-top: 4px }」 给出。
        终态 = row-gap 3.5 + margin-top −8 ⇒ 净 −4.5 ⇒ 实测 50（店主定稿）。 */
-    html body [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [data-conversation-tabs][role="tablist"],
+    html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs][role="tablist"],
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs][role="tablist"] {
       /* 必须压过本文件下方 header:has(_headerLeading) [role="tablist"] 的 4px（(0,4,1)），
          所以这里挂满 data 标记（(0,5,3)）；只写 [role="tablist"] 会输。 */
@@ -1498,7 +1548,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
        页签行整体下移、header 跟着长高 ⇒ 标题侧留白变大、对话到下方黑线的距离不变。
        实测（设备像素）：auto/0 → 37；+6px → 60；+3.5px → 50（店主定稿值）。
        页签条自身的 margin-top 被 App 表钉死，-4/-8/0/6px 四个值都无效，已放弃。 */
-    html body [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header {
+    html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) {
       grid-template-rows: auto auto !important;
       row-gap: 3.5px !important;
     }
@@ -1516,13 +1566,13 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     /* 标题行实测 40px 高，而里面最高的东西是 36px 的预设 chip（"标准模式"）——
        多出来的 4px 是死空间。让行高回到内容高度（用 auto + min-height:0，
        不写死 36：将来标题簇里出现更高的东西（子代理谱系等）也不会被裁）。 */
-    html [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [class*="wSkVaW_titleRow"] {
+    html [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="_titleRow"] {
       height: auto !important;
       min-height: 0 !important;
     }
     /* 页签按钮文字上方还有 6px 空白（按钮被容器撑到 32px 高、文字居中）：去掉上内边距，
        下内边距 5px 已在上面钉住（下划线位置不变）。 */
-    html [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [class*="wSkVaW_tab"] {
+    html [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="_tab"]:not([class*="_tabs"]) {
       padding-top: 0 !important;
       align-self: flex-end !important;
     }
@@ -1535,7 +1585,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      painted partially outside the viewport), so the reclaim lives in exactly
      one place: the header padding. */
 
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header > :first-child {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) > :first-child {
     display: flex !important;
     align-items: center;
     box-sizing: border-box;
@@ -1546,7 +1596,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
        breathing room; the host's 60px rail reservation is neutralised above. */
     padding-left: 40px;
   }
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header > :first-child > :first-child {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) > :first-child > :first-child {
     display: flex !important;
     align-items: center;
     flex: 1 1 auto;
@@ -1588,7 +1638,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
       right: 4px !important;
     }
   }
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header [class*="_headerActions"] {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="_headerActions"] {
     display: flex !important;
     align-items: center;
     box-sizing: border-box;
@@ -1707,7 +1757,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      branch and to this one cell, so desktop keeps the host layout. The section
      is hidden on mobile anyway - the drawer footer carries the same action - but
      the release stays for any plugin that registers a header dropdown here. */
-  [data-mobile-nav="frame"] [data-phase] header [class*="wSkVaW_headerUtilities"] {
+  [data-mobile-nav="frame"] [data-phase] header [class*="_headerUtilities"] {
     overflow: visible !important;
     /* The seat is empty on a phone (its only button is hidden just below) yet
        still 44px tall, which floors the whole title row — see the compact-rows
@@ -1715,7 +1765,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     height: 30px !important;
     min-height: 0 !important;
   }
-  [data-mobile-nav="frame"] [data-phase] header [class*="wSkVaW_headerUtilities"] [class*="nL4_yW_moreButton"] {
+  [data-mobile-nav="frame"] [data-phase] header [class*="_headerUtilities"] [class*="nL4_yW_moreButton"] {
     display: none !important;
   }
   [data-mobile-nav="frame"] [data-phase] header [data-mobile-nav="files"] {
@@ -1730,7 +1780,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      （2026-10-20 真机 DOM 取证：h2 computed display:none，逐条禁用本样式表内的规则定位到
      这条）。顶栏的签名类由宿主 ConversationRoot.module.css 的 .header 提供（wSkVaW_header），
      本文件其它顶栏规则同样以它/其子类作代际锚。 */
-  [data-mobile-nav="frame"] [data-phase] header.wSkVaW_header > :first-child > :last-child {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) > :first-child > :last-child {
     display: none !important;
   }
   /* View tabs strip (official [role="tablist"] under the crumbs row).
@@ -1839,7 +1889,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      ending at ~314 with the opener box at 316..352, i.e. the full 44px seat
      plus 2px of breathing room, so restore that instead of narrowing the
      opener: 46px clears the 36px box at right:8 by 2px at every width. */
-  [data-mobile-nav="frame"] [data-phase] header [class*="wSkVaW_titleCluster"] {
+  [data-mobile-nav="frame"] [data-phase] header [class*="_titleCluster"] {
     /* 本批之前的值。2026-10-12/13 那串「46 → 40 → 36 → 32 → 26 → 34」的实验
        **只针对手机档**（后台任务圆点搬进标题行后与预设 chip 的间距），已整串
        搬进下面那条手机档作用域；共用档（= 平板档）保持本批之前的 46px 不动。
@@ -1942,7 +1992,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     flex-wrap: nowrap !important;
     align-items: center !important;
     gap: 0 !important;
-    padding-left: 32px !important;
+    padding-left: 22px !important;
     padding-right: 0 !important;
     padding-top: 0 !important;
   }
@@ -1968,7 +2018,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
        toggle 8,6 28x28；真机 DOM 规则枚举确认胜出者就是本块）。
        NOTE: 本文件整体是 JS 模板字符串，注释里绝不能出现反引号。 */
     padding: 0 !important;
-    padding-left: 32px !important;
+    padding-left: 22px !important;
   }
   /* --- 0.2.0-rc.x：header 变 grid，座位从 titleRow 内部搬到了 header 自己的第一列 ---
      上面两条把「面板开关的 32px 座位」记在座位自己身上（padding-left）。在
@@ -2000,13 +2050,17 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
   [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]):has(> [data-conversation-header-leading]) [data-slot="conversation.header.leading"] {
     display: none !important;
   }
-  /* 这里用 [class*="_titleRow"] 后缀形而不是邻近两条的 [class*="wSkVaW_titleRow"]：
-     全包只有 wSkVaW_titleRow 含这个片段（无前缀重叠，且已被 header:has 门控），
-     后缀形对哈希前缀改名免疫——座位记错地方的代价是标题静默压回开关上，不值得
-     为风格统一冒这个险。 */
+  /* 这里从一开始就用 [class*="_titleRow"] 后缀形（不是 [class*="wSkVaW_titleRow"]）：
+     全包只有 titleRow 含这个片段（无前缀重叠，且已被 header:has 门控），后缀形对哈希
+     前缀改名免疫——座位记错地方的代价是标题静默压回开关上，不值得为风格统一冒这个险。
+     2026-10-30 宿主把前缀从 wSkVaW_ 换成 tlcmdG_ 时，只有这条活着，全表其余 9 条
+     前缀形选择器当天全部归零（标题簇预留、corner 去重、tabs/tab/titleRow/
+     headerUtilities 全灭），随后统一改成后缀形。 */
+  /* 2026-11-03 店主：开关与标题之间约 21px「拉近一半」→ 座位 32 → 22px（三代宿主同步，
+     上面两条老代际也改）。标题字左缘从 ≈x53 移到 ≈x43，仍在 28px 开关（8..36）右侧。 */
   [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]):has(> [data-conversation-header-leading]) [class*="_titleRow"] {
     box-sizing: border-box !important;
-    padding-left: 32px !important;
+    padding-left: 22px !important;
   }
   /* 0.1.6 的新头部里，titleRow 的第一个孩子是新增的空座位
      headerLeading（macOS 桌面控件，安卓上渲染 null）。插件按 0.1.5 老结构
@@ -2188,6 +2242,53 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     padding-left: 6px !important;
     padding-right: 6px !important;
   }
+  /* 2026-11-03 统计行收拾（店主截图二轮）：图标与组间距保持原样；环未被折进输入行时
+     （stats-line 没认出它，环仍是 [data-composer-dock] 里 ContextMeter 那个兄弟，进度圆带
+     stroke-dasharray）——只留环、隐掉「21%」，贴行尾右缘（去掉宿主 8px 内边距），与统计
+     之间只留 4px，腾出的宽度给统计条（缓存命中不再被截成「缓…」）。锚稳定属性，不依赖
+     stats 标记；已折叠的环带 data-mobile-nav，本条不碰。 */
+  /* 三轮（店主截图：两组之间 ~26px，组内「·」只有 ~4px，环 ~12px，疏密不一）：
+     组间距原是 stats gap 6 + 锚 margin 3 + 两侧药丸内边距 6+6 叠出来的，这里把药丸
+     朝向组间的那侧内边距与锚 margin 清零，组间只由 stats 的 gap 决定（12px）；环与
+     统计之间由 dock gap 决定（8px）。首组左内边距保留，行首对齐不变。 */
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock]:has([data-composer-stat]) {
+    gap: 8px !important;
+  }
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] > [data-mobile-nav="stats"] {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    gap: 12px !important;
+  }
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] [data-composer-stat] {
+    margin: 0 !important;
+  }
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] [data-composer-stat] [class*="_pill"] {
+    padding-right: 0 !important;
+  }
+  /* 四轮（店主截图：行首留白 ~11px、行尾环外 ~7px，左宽右窄）：首组药丸左内边距
+     6px 也清零，两侧都只剩容器自身的边距。 */
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] [data-composer-stat] [class*="_pill"] {
+    padding-left: 0 !important;
+  }
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] > :not([data-mobile-nav]):not(:has([data-composer-stat])):has(circle[stroke-dasharray]) {
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+  }
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] > :not([data-mobile-nav]):not(:has([data-composer-stat])):has(circle[stroke-dasharray]) button {
+    padding: 0 !important;
+    gap: 0 !important;
+    position: relative !important;
+  }
+  /* 命中区（店主：触控范围大一点点）：画出来的环不变，透明 ::after 外扩成 26×38；
+     横向 6px 小于 dock gap 8px，不会盖到「缓存命中」那颗药丸。 */
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] > :not([data-mobile-nav]):not(:has([data-composer-stat])):has(circle[stroke-dasharray]) button::after {
+    content: "";
+    position: absolute;
+    inset: -8px -6px;
+  }
+  [data-mobile-nav="frame"] [data-phase] [data-composer-dock] > :not([data-mobile-nav]):not(:has([data-composer-stat])):has(circle[stroke-dasharray]) button > span {
+    display: none !important;
+  }
   [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-mobile-nav="files"] {
     /* Keep the 36px seat the reference phone UI shows (opener box 316..352 at
        360px, icon 326..342): it is the geometry the lane's 46px reservation
@@ -2216,7 +2317,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      （2026-09-22 实测：corner [332,2 36x36]、图标 343..358 外露，被视口裁切），
      与参考图"右上角只有一个文件夹图标"不一致，也与插件自己的文件按钮重复。
      只针对标题行内的 corner，老一代宿主（corner 是唯一入口）不受影响。 */
-  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="wSkVaW_titleRow"] > [class*="_headerCorner"] {
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="_titleRow"] > [class*="_headerCorner"] {
     display: none !important;
   }
   /* 右上角换人：0.1.6 把「右侧栏展开按钮」放进了 headerCorner，而插件的
@@ -2752,8 +2853,25 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      family: data-shortcut-modal="settings" on the settings sheet,
      "shortcuts" on this one — gating on that attribute (not on a hashed
      class) keeps the official centered card, the same treatment the
-     export dialog gets. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) {
+     export dialog gets.
+
+     The gate is the host's own contract first, shape second (2026-10-30,
+     owner report 「手机上经常不显示输入框」): a pure shape guess used to
+     claim ANY aria-modal whose last child holds a button, and a third-party
+     consent dialog matched it exactly — measured at 412px, its mask was
+     forced to position:absolute / width:100vw-16 at z-index 10100 (a
+     full-screen cover) and its panel to flex-direction:row, rendering the
+     notice as six 30-130px columns of 7-glyph lines. The dialog then cannot
+     be dismissed, so the composer underneath stays invisible for the whole
+     session. Fix: gate on 「data-shortcut-modal="settings"」 — the attribute
+     the host itself stamps on SettingsRoot (verified in
+     dsh-client-ui-settings-general 0.2.0-rc.2 / 0.2.1-rc.2) — and keep one
+     shape arm only for the 0.1.7 line, which does not tag its panel. That
+     arm requires TWO adjacent buttons in the panel's last child (the
+     settings nav list is a row of tab buttons), which a consent dialog's
+     single confirm button never satisfies. No third-party class name is
+     named anywhere in this block. */
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) {
     position: absolute !important;
     left: 8px !important;
     /* Fixed top (no translateY): a transform on the panel combined with the
@@ -2796,7 +2914,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     animation: dsh-web-mobile-fade .18s var(--ds-ease-out, ease-in-out);
   }
   @media (prefers-reduced-motion: reduce) {
-    [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]),
+    [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]),
     :has(> [aria-modal="true"][data-shortcut-modal="settings"]) > [class*="_mask"] {
       animation: none !important;
     }
@@ -2847,14 +2965,14 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
   /* Nav bar: hide the "Settings" caption (redundant on a full-width sheet)
      and wrap the tab list so every tab is visible — a horizontal scroll cut
      the last tab ("Plugins") off with no affordance to scroll. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child {
     width: 100%;
     flex-direction: row !important;
     align-items: center;
     gap: 6px;
     padding: 10px 12px 8px;
   }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child > :first-child {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child > :first-child {
     display: none !important;
   }
   /* The tab strip stays clear of the toolbar: the toolbar (the close ✕ on
@@ -2881,7 +2999,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      2026-09-24) reproduces the reparent-era scroller geometry (its box
      ended 6px short of the toolbar). The strip must be anchored by its
      class. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"] {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"] {
     flex: 1 1 auto;
     min-width: 0;
     flex-direction: row !important;
@@ -2897,20 +3015,20 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      reads fat on a phone; 2px keeps the scroll affordance without the
      bulk. (Portal-aware copies of the frame-scoped rules in compat.css,
      which died with the rc.2 portal move.) */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"]::-webkit-scrollbar {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"]::-webkit-scrollbar {
     height: 2px !important;
   }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"]::-webkit-scrollbar-thumb {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"]::-webkit-scrollbar-thumb {
     background: var(--dsw-alias-border-l2, rgba(0, 0, 0, .22)) !important;
     border-radius: 1px !important;
   }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"]::-webkit-scrollbar-track {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navList"]::-webkit-scrollbar-track {
     background: transparent !important;
   }
   /* Cells stay whole inside the scroller: no shrink, no wrap, compact
      metrics. (Portal-aware copies of the frame-scoped rules in compat.css,
      which died with the rc.2 portal move.) */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navCell"] {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navCell"] {
     flex: 0 0 auto !important;
     white-space: nowrap !important;
     padding: 6px 8px !important;
@@ -2918,7 +3036,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     font-size: 13px !important;
     justify-content: flex-start !important;
   }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navCell"] svg {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :first-child [class*="_navCell"] svg {
     width: 14px !important;
     height: 14px !important;
     flex: none !important;
@@ -2952,7 +3070,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      settings-toolbar-reparent task. Card headers live deeper — inside
      the options scroll area — and match neither, so no per-plugin hash
      guards are needed. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) {
     position: absolute;
     top: 10px;
     right: 12px;
@@ -2983,11 +3101,11 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     height: 32px;
     min-height: 32px;
   }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) > * {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) > * {
     margin-left: 0 !important;
     margin-right: 0 !important;
   }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) > :last-child {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) > :last-child {
     position: relative;
     width: 32px;
     height: 32px;
@@ -3005,7 +3123,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      button starts ~13px under the ✕'s bottom edge and must keep its own
      top-right corner. Anchored to the button (position:relative above),
      so the extension travels with the pinned toolbar. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) > :last-child::after {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) > :last-child::after {
     content: "";
     position: absolute;
     inset: -6px -6px 0 -6px;
@@ -3022,7 +3140,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      Desktop keeps the button: this whole block sits inside the mobile
      media wrapper. (Portal-aware replacement for the frame-scoped rule in
      compat.css, which died with the rc.2 portal move.) */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) [class*="_actions"] {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > [class*="_header"]:not([class*="_headerActions"]) [class*="_actions"] {
     display: none !important;
   }
   /* Appearance mode cards: the official cube row renders three tall
@@ -3043,11 +3161,11 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
   }
   /* Content: the options scroll area gets bottom breathing room so the last
      row never sits flush against the sheet's rounded corner. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child {
     flex: 1 1 auto;
     min-height: 0;
   }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > :last-child {
+  [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > :last-child {
     padding: 0 12px 24px;
   }
   /* 0.1.6-alpha.2 宿主的插件管理页（dsh-client-ui-plugin-manager 渲染的
@@ -3637,15 +3755,51 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
          「问题区还是太长，再缩 1/3」→ 34vh/232px 的三分之二 ≈ 23vh/155px
          （约 6~7 行正文），问题区与选项区高度观感终于同级。
          overscroll-behavior:contain 防止滑到底后
-         把会话一起带走；touch-action 按全库约定写 pan-y pinch-zoom。 */
-      max-height: min(23vh, 155px);
-      overflow-y: auto;
+         把会话一起带走；touch-action 按全库约定写 pan-y pinch-zoom。
+         2026-11-03 owner 第四轮：封顶撤掉——全屏了问题区仍被压在 155px 里滚，
+         两个滚动区观感割裂。改为「整张卡一个滚动区」（见下方 card-single-scroll）：
+         问题正文按自然高度排，问题与选项一起滚，卡高仍由宿主 min(60vh,520px)
+         或全屏带决定。 */
+    }
+    /* @patch
+       id: question-card-single-scroll
+       for: dsh-client-ui-user-questions 的 QuestionComposer（Mbwy4a_card > header + body + footer；
+            宿主 card overflow:hidden、header flex-shrink:0、body 是唯一滚动区）
+       why: 宿主让问题正文（header 里的 h2）不参与滚动，长问题会把 body 压成一条缝；
+            插件不能改它的 DOM，只能把滚动区从 body 换成整张卡
+       until: 宿主让 header 参与滚动或自己给长问题限高
+       test: tests/question-fullscreen.test.ts
+    */
+    [data-mobile-nav="frame"] [class*="Mbwy4a_card"]:not([class*="Mbwy4a_cardMinimized"]) {
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
       overscroll-behavior: contain;
       touch-action: pan-y pinch-zoom;
       scrollbar-width: none;
     }
-    [data-mobile-nav="frame"] [class*="Mbwy4a_title"]::-webkit-scrollbar {
+    [data-mobile-nav="frame"] [class*="Mbwy4a_card"]::-webkit-scrollbar {
       display: none;
+    }
+    /* body 不再自己滚：按内容自然高度排，滚动交给卡片。两轴都必须是 visible ——
+       上面 A 节给 body 钉的 overflow-x:hidden 会让它仍是一个滚动容器（另一轴被算成
+       auto），加上宿主的 overscroll-behavior:contain，手指落在选项区时滑动停在 body
+       里、传不到卡片（owner 实测「问题区能滑、回答区动不了」）。横向裁切挪到卡片上。 */
+    [data-mobile-nav="frame"] [class*="Mbwy4a_card"]:not([class*="Mbwy4a_cardMinimized"]) > [class*="Mbwy4a_body"] {
+      flex: 0 0 auto !important;
+      overflow: visible !important;
+      overscroll-behavior: auto !important;
+    }
+    /* 提交 / 跳过按钮钉在卡片底：卡片 padding-bottom 10px，sticky 用 -10px 贴到底边，
+       底色取卡片同色并向下补 10px，滚动内容不会从按钮下面透出来。 */
+    [data-mobile-nav="frame"] [class*="Mbwy4a_card"]:not([class*="Mbwy4a_cardMinimized"]) > [class*="Mbwy4a_footer"] {
+      position: sticky;
+      bottom: -10px;
+      z-index: 1;
+      background: var(--dsw-specific-input-major);
+      padding-top: 8px !important;
+      padding-bottom: 10px !important;
+      margin-top: 4px !important;
+      margin-bottom: -10px !important;
     }
     /* 排版微调（owner 2026-10-25）：问题区与选项区之间加一条分隔线——两段内容
        同色同字重，靠留白分不开，读起来像一段连续文字。用 0.5px 光学细线
@@ -3662,17 +3816,8 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
       position: relative;
       padding-bottom: 8px;
     }
-    [data-mobile-nav="frame"] [class*="Mbwy4a_header"]:not([class*="Mbwy4a_headerActions"])::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 0.5px;
-      background: var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.14));
-      opacity: 0.55;
-      pointer-events: none;
-    }
+    /* 2026-11-03 owner 第四轮：问题与选项改成同一个滚动区后，分隔线去掉
+       （「问题区和回答区中间的细线去掉」）。header 的 padding-bottom 8 保留作留白。 */
     [data-mobile-nav="frame"] [class*="Mbwy4a_options"] {
       padding-left: 8px;
       padding-right: 8px;
@@ -3746,7 +3891,7 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
        （滚动容器的裁剪线在 padding box，padding 预留挡不住溢出，chip 会被文件按钮
        压住）。 */
   @media (max-width: 767px) and (pointer: coarse) {
-    [data-mobile-nav="frame"] [data-phase] header [class*="wSkVaW_titleCluster"] {
+    [data-mobile-nav="frame"] [data-phase] header [class*="_titleCluster"] {
       padding-right: 0 !important;
       margin-right: 34px !important;
     }

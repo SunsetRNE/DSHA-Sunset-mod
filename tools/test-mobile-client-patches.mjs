@@ -7,7 +7,7 @@ import {applyMobileClientPatches,upstreamCommit,upstreamClientHash} from './appl
 test('移动client固定预构建来源与部署产物闭环，拒绝错误版本/追加字节',()=>{
   const source=readFileSync('tools/mobile-plugin-upstream/lib/client.js');
   assert.equal(createHash('sha256').update(source).digest('hex'),upstreamClientHash);
-  assert.equal(upstreamCommit,'bb0e5e151ca549fef506e829020a5d7138074711');
+  assert.equal(upstreamCommit,'91b328c1c0217cd58cf807a22e000ee8a56b6622');
   assert.equal(readFileSync('app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js','utf8'),applyMobileClientPatches(source));
   assert.throws(()=>applyMobileClientPatches(Buffer.concat([source,Buffer.from('\n')])),/字节不匹配/);
 });
@@ -29,20 +29,23 @@ test('手机设置弹层字体族行换行，字号行/其它弹层不受影响�
   assert.ok(patched.includes('@media (max-width: 1023px) and (pointer: coarse) {'));
   // 单层 :has：仓库踩过“嵌套 :has 整条失效”的坑；字号行没有 input 也不会命中。
   const start=patched.indexOf('/* DSHA_FONT_FAMILY_ROW_V1');
-  const block=patched.slice(start,patched.indexOf('/* ---------- sidebar panel enter / exit',start));
+  const block=patched.slice(start,patched.indexOf('/* DSHA_LOCAL_LAYOUT_END */',start));
   assert.ok(block.length>500);
   assert.ok(!block.includes('data-shortcut-modal="shortcuts"'));
   for(const line of block.split('\n'))if(line.includes(':has('))
     assert.equal((line.match(/:has\(/g)||[]).length,1,'同一选择器只允许单层 :has: '+line.trim());
   assert.equal(readFileSync('app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js','utf8'),patched);
 });
-test('3.2.2 最新上游视口函数保持原字节，不复活已撤回的帧合并试验',()=>{
+test('3.2.3 上游视口稳定发布及通知保持原字节，采用可见带和document scroll lock',()=>{
   const source=readFileSync('tools/mobile-plugin-upstream/lib/client.js','utf8');
   const patched=applyMobileClientPatches(Buffer.from(source));
   const viewport=text=>text.slice(text.indexOf('function syncStableViewportHeight() {'),text.indexOf('/** iOS-only: mark documentElement'));
   assert.ok(viewport(source).length>500);
   assert.equal(viewport(patched),viewport(source));
-  assert.ok(patched.includes('interactive-widget=resizes-content'));
+  assert.ok(patched.includes("const VIEWPORT_CONTENT = 'width=device-width, initial-scale=1, viewport-fit=cover';"));
+  assert.ok(viewport(patched).includes('pendingVisibleFrames >= 2'));
+  assert.ok(viewport(patched).includes('VISIBLE_BAND_EVENT'));
+  assert.ok(patched.includes('installDocumentScrollLock(ctx)'));
 });
 test('宽屏触屏档收起归档/置顶，规则落在 ≥1024 档内且与手机壳名单一致',()=>{
   const source=readFileSync('tools/mobile-plugin-upstream/lib/client.js','utf8');
@@ -57,7 +60,7 @@ test('宽屏触屏档收起归档/置顶，规则落在 ≥1024 档内且与手�
   }
   assert.ok(end>at,'宽屏触屏档大括号不配平');
   const tablet=patched.slice(at,end+1);
-  assert.ok(tablet.includes('DSHA_WIDE_TOUCH_ROW_ACTIONS_V1'),'补丁标记缺失');
+  assert.equal(patched.includes('DSHA_WIDE_TOUCH_ROW_ACTIONS_V1'),false,'上游已吸收，不能重复注入');
   const hide=/\[class\*="sessionRow"\] \[class\*="_rowActions"\] :is\(([\s\S]*?)\) \{([\s\S]*?)\}/.exec(tablet);
   assert.ok(hide,'宽屏触屏档没有隐藏归档/置顶的规则');
   assert.match(hide[2],/display:\s*none !important/);

@@ -1,4 +1,10 @@
-# DSHA 0.2.1-rc.3-20261103.1430-dsh0.2.1-rc.5 / build295
+# DSHA 0.2.1-rc.5-20261103.1500-dsh0.2.1-rc.5 / build295
 
-- Fixes Web startup after an in-place update getting stuck at "a known Web launcher could not be confirmed as exited", which could only be cleared by force-stopping the app.
-- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 295 (based on build294). The DSHA revision remains 0.2.1-rc.3 and bundled DSH remains 0.2.1-rc.5.
+## Tablet, long conversations and streaming responses
+
+- SSE streaming compatibility: handle event blocks without data correctly. Preserve SDK compatibility for complete JSON at EOF; malformed JSON still fails explicitly.
+- Long conversations avoid repeated conversion and component construction. Incremental session status and workspace fork ordering retain existing order without deep recursion.
+- Tablet layout avoids repeated full-page scans. Native high refresh rate and theme sampling reuse unchanged inputs while retaining focus, display, settings and page-generation invalidation.
+- Startup avoids repeated APK input reads and imports optional Python modules on demand. Permission, data-directory and error boundaries remain intact.
+- The formal and independent recovery environments share identical archive bytes to retain APK size savings; running directories and lifecycles remain independent.
+- Validation scope: host regressions, browser results and device acceptance are recorded separately. The delivery report states actual results; no fixed speedup or coverage of every historical data shape is promised.

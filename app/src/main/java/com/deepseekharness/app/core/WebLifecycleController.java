@@ -492,6 +492,17 @@ final class WebLifecycleController {
               }
             });
     if (!applyRecheckedWebSession(state, run, record, outcome)) return;
+    DiagnosticLog.record(
+        ctx,
+        "WEB_SESSION_RECHECK_STATE",
+        "generation="
+            + run.generation
+            + " state="
+            + outcome.result().name()
+            + " reason="
+            + outcome.reason()
+            + " authChecks="
+            + outcome.attempts());
     finishAuthorityRevocation(
         state,
         run,
@@ -557,6 +568,8 @@ final class WebLifecycleController {
         run.recoveredLive = true;
         run.confirmedWebExit = false;
         state.restoreUnknown = false;
+        state.restoreReason = outcome.reason();
+        state.restoreAttempts = outcome.attempts();
         return true;
       }
       boolean changed =
@@ -564,6 +577,8 @@ final class WebLifecycleController {
               || !state.restoreUnknown
               || run.confirmedWebExit != (outcome.result() == WebSessionRecheck.Result.EXITED);
       applyRecoveredWebProof(state, run, false);
+      state.restoreReason = outcome.reason();
+      state.restoreAttempts = outcome.attempts();
       run.confirmedWebExit = outcome.result() == WebSessionRecheck.Result.EXITED;
       if (changed) run.authorityRevocationPending = true;
       return changed;

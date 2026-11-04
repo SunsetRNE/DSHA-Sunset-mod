@@ -45,6 +45,11 @@ final class DirectWebLaunch {
   private int idleChecks;
   private String startStatus = "";
 
+  // The controller publishes on the main thread after finishing the current start.
+  // Only readiness accelerates navigation; other state events must not advance the
+  // poll's settled checks or create another startup request.
+  private final Runnable readyChanged = this::openReadyWeb;
+
   private final Runnable poll =
       new Runnable() {
         @Override
@@ -71,6 +76,7 @@ final class DirectWebLaunch {
   void begin() {
     if (active) return;
     active = true;
+    controller.addReadyWebPageListener(readyChanged);
     screen.offerMain(this::abandon);
     screen.setStatus(UiText.choose("正在进入 Web…", "Opening Web…"));
     ui.post(poll);
@@ -91,6 +97,13 @@ final class DirectWebLaunch {
   void cancel() {
     active = false;
     ui.removeCallbacks(poll);
+    controller.removeReadyWebPageListener(readyChanged);
+  }
+
+  private void openReadyWeb() {
+    if (!active || activity.isFinishing() || activity.isDestroyed()) return;
+    String url = controller.getWebAuthUrl();
+    if (url != null && !url.isEmpty()) open(url);
   }
 
   private void step() {

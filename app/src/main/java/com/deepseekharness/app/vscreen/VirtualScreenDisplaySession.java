@@ -16,7 +16,12 @@ final class VirtualScreenDisplaySession {
   volatile boolean active = true;
   volatile long sequence;
   long observed = -1, observedAt, capturedAt, encodedSequence = -1;
+  long publishedSequence = -1;
   String packageName = "", encoded = "";
+  String observedPackage = "";
+  com.deepseekharness.app.util.ScreenFramePolicy.Settings frameSettings =
+      new com.deepseekharness.app.util.ScreenFramePolicy.Settings("", 0);
+  com.deepseekharness.app.util.ScreenFramePolicy.Settings observedSettings = frameSettings;
   Bitmap frame;
   final VirtualScreenObservedPixels observations = new VirtualScreenObservedPixels();
   final VirtualScreenInput input;

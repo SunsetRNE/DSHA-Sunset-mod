@@ -320,13 +320,15 @@
     {
       "path": "tools/test-adb-flow.py",
       "stage": "runtime",
-      "reason": "Current source/verified runtime host fixture; explicit dependencies and sandbox HOME; no Android device operations",
+      "reason": "Mocked ADB/bridge flow with explicit synthetic bridge port; exact managed/setup wrapper bytes, real source guards, no device or live network operation.",
       "args": [],
       "timeoutSeconds": 900,
       "requires": [
         "python39"
       ],
-      "environment": {},
+      "environment": {
+        "DSHA_BRIDGE_PORT": "3090"
+      },
       "cli": "no positional arguments; see explicit environment/requirements"
     },
     {
@@ -3169,6 +3171,400 @@
       "timeoutSeconds": 60,
       "environment": {},
       "reason": "Static Actions node graph: pinned external actions, read-only reusable nodes, release gates before signing, secrets only in the sign node, write permission only in publish"
+    },
+    {
+      "path": "tools/test-fs-justification-patch.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {
+        "DSHA_TEST_RUNTIME": "{raw}"
+      },
+      "reason": "Reproduce rc5 write/edit blank-justification failure, then run exact repaired tools with official schema, approval and sandboxed atomic host I/O; reject widening without a real reason and never replay unknown mutations."
+    },
+    {
+      "path": "tools/test-fs-justification-patch.mjs",
+      "stage": "support",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Invoked by test-fs-justification-patch.py with isolated exact rc5 modules and the read-only npm-ci dependency tree."
+    },
+    {
+      "path": "tools/test-workspace-files-stability.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react",
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {
+        "DSHA_TEST_RUNTIME": "{raw}",
+        "DSHA_REACT": "{reactReference}"
+      },
+      "reason": "Real locked rc5 change-feed, directory-list and text-page modules: bounded invalidations, observable read failures, generation/cancellation fencing and browser retries."
+    },
+    {
+      "path": "tools/test-file-image-lifetime.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {
+        "DSHA_TEST_RUNTIME": "{raw}",
+        "DSHA_REACT": "{reactReference}"
+      },
+      "reason": "Actual shipped mobile image controls: no duplicate whole-image JS chunks, preserve 33MiB payload and cancel delayed completion after disposal."
+    },
+    {
+      "path": "tools/test-directory-prefix.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {
+        "DSHA_TEST_RUNTIME": "{raw}"
+      },
+      "reason": "Exact local directory prefix and directory watcher: bounded sorted selection, complete API/override fallback, cancellation and real filesystem events."
+    },
+    {
+      "path": "tools/test-apk-size.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Read-only APK size and exact-SHA duplicate audit; synthetic ZIP CRC collision, shared rescue mapping and size limit negative controls."
+    },
+    {
+      "path": "tools/test-backup-read-nonblock.py",
+      "stage": "linux",
+      "platform": [
+        "linux"
+      ],
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Exact Android filesystem final-open flag expressions exercised with real Linux FIFO replacement, old blocking negative control, regular reads, directory rejection and FD balance; no phone."
+    },
+    {
+      "path": "tools/test-openai-sse-patch.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "node24",
+        "raw"
+      ],
+      "args": [
+        "--raw",
+        "{raw}",
+        "--output",
+        "app/build/host-evidence/sdk.json",
+        "--require-registered"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Both locked SDK ESM/CJS modules, exact registered recipe chain, SDK SSE compatibility, anchor drift and idempotence."
+    },
+    {
+      "path": "tools/test-openai-sse-patch.mjs",
+      "stage": "support",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [
+        "{raw}",
+        "app/build/host-evidence/sdk.json"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "SDK parser fixture called by test-openai-sse-patch.py; both actual ESM/CJS SDK implementations, no network."
+    },
+    {
+      "path": "tools/test-sse-file-integration.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "args": [],
+      "timeoutSeconds": 900,
+      "environment": {
+        "DSHA_SSE_CANDIDATE": "1",
+        "DSHA_SSE_INTEGRATION_OUTPUT": "{fixture}"
+      },
+      "reason": "Actual PiAiAdapter, OpenAI SDK and SandboxFileSystem through private HTTP/gzip byte relay; canonical tool result round-trip, no external API or device."
+    },
+    {
+      "path": "tools/test-session-status-scale.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [
+        "--runtime",
+        "{raw}",
+        "--output",
+        "app/build/host-evidence/session-status.json"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual rc5 UiSession status projection and immutable snapshots across scaled status updates; no persistence changes."
+    },
+    {
+      "path": "tools/test-workspace-order-scale.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [
+        "--runtime",
+        "{raw}",
+        "--output",
+        "app/build/host-evidence/workspace-order.json"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual rc5 workspace order differential, cycles and deep fork chains preserving exact ordering."
+    },
+    {
+      "path": "tools/test-workspace-scale-browser.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [
+        "--runtime",
+        "{raw}",
+        "--output",
+        "app/build/host-evidence/workspace-browser.json"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual workspace React browser rows, live session status, accessibility and subscription disposal."
+    },
+    {
+      "path": "tools/test-mobile-layout-performance.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Real baseline, generated bundle and TypeScript layout patches across mutation, resize and disposal races."
+    },
+    {
+      "path": "tools/test-native-theme-scheduling.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Production native presentation script with deterministic DOM scheduling, hidden state and page-generation rebinding."
+    },
+    {
+      "path": "tools/test-plugin-startup-imports.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Fresh Python interpreters exercise actual local startup commands, lazy optional I/O imports and cancellation."
+    },
+    {
+      "path": "tools/test-device-runtime-performance.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Synthetic parser, mocked subprocess and clock tests for device evidence tooling; no Android operations."
+    },
+    {
+      "path": "tools/test-plugin-runtime-links.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 30,
+      "environment": {},
+      "reason": "Actual POSIX relative/absolute link preservation, canonical migration and failure cleanup; Windows explicitly skips unsupported symlink scenarios."
+    },
+    {
+      "path": "tools/test-chat-viewport-performance.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 900,
+      "environment": {
+        "DSHA_CHAT_VIEWPORT_OUTPUT": "app/build/host-evidence/chat-viewport.json"
+      },
+      "reason": "Actual locked ChatViewport/ChatReading, full-history anchor semantics, detach/reattach and preserved scrolling policy in browser."
+    },
+    {
+      "path": "tools/test-temporary-plugin-remove.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [
+        "--raw",
+        "{raw}",
+        "--output",
+        "app/build/host-evidence/temporary-plugin-remove"
+      ],
+      "timeoutSeconds": 600,
+      "environment": {},
+      "reason": "Locked Cordis fibers and exact UI inventory; late activation, disposal failure, stale list generation and session/agent boundaries."
+    },
+    {
+      "path": "tools/test-mobile-scroll-performance.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "mobile_upstream"
+      ],
+      "args": [],
+      "timeoutSeconds": 600,
+      "environment": {
+        "DSHA_MOBILE_SCROLL_EVIDENCE": "app/build/host-evidence/mobile-scroll"
+      },
+      "reason": "Fixed mobile bundle and TypeScript source equivalence; passive history scrolling, late rows, model-menu geometry and draft focus."
+    },
+    {
+      "path": "tools/test-startup-resolution.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Actual rc5 construction over real directories and junctions/symlinks; fresh successor alias changes and exact patch rejection."
+    },
+    {
+      "path": "tools/test-plugin-host-lock.py",
+      "stage": "linux",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "platform": [
+        "linux"
+      ],
+      "reason": "Compile the production narrow flock function and verify two-way Python/native cross-process exclusion, descriptor closure and profile lock exclusivity on POSIX."
+    },
+    {
+      "path": "tools/test-reading-position-checkpoint.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Production reading-position checkpoints: scrollend/trailing fallback, node removal, page lifetime, session identity and disposal without per-frame path serialization."
+    },
+    {
+      "path": "tools/test-reading-position-browser.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual browser DOM scroll offsets and event delivery with detached/reused nodes, horizontal position, session routing and visibility; synthetic local page only."
+    },
+    {
+      "path": "tools/test-trial-renderer-diagnostic.mjs",
+      "stage": "fast",
+      "reason": "Exact original-versus-diagnostic trial page POST/retry trajectory; bounded safe telemetry without runtime/device or new acceptance semantics",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": [
+        "node24"
+      ],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-literal-loopback-online.mjs",
+      "stage": "fast",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": [
+        "node24"
+      ],
+      "environment": {},
+      "reason": "Self-contained actual official browser module bound by exact source SHA and npm lock; numeric loopback, remote and custom transport boundaries; no whole-runtime proof claimed"
+    },
+    {
+      "path": "tools/test-literal-loopback-online-browser.mjs",
+      "stage": "runtime",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": [
+        "node24",
+        "managed",
+        "browser",
+        "current_archive"
+      ],
+      "environment": {},
+      "reason": "Real DSH server/client offline positive and negative trial cases on current managed bytes; production ready/home/nonce/POST gates retained"
     }
   ]
 }

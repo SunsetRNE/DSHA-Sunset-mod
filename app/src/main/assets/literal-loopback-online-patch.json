@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-client-connection/lib/client.browser.js",
+  "sourceSha256": "dfc3544eb894c74b340a4c4c63a8c125fd2e983df9efed5885712574af994e62",
+  "packageIntegrity": "sha512-X/VUlrtACszgH2HS89MX1olAn7L62JghCit/wBVWK89C0NMSxVaqsyxwJ2OkkAhr6yf0sY9ED7erYT8G26njVw==",
+  "purpose": "Do not gate an actual default numeric loopback socket on the browser WAN hint; keep remote, custom transports and real handshake/nonce/home checks unchanged.",
+  "patches": [
+    {
+      "before": "\t\tfunction watchBrowserNetwork(controller) {\n\t\t\tconst browser = globalThis.window;",
+      "after": "\t\t// DSHA_LITERAL_LOOPBACK_ONLINE_V1: navigator.onLine describes external\n\t\t// network availability, not the default socket's numeric loopback route.\n\t\t// Admit only the exact canonical numeric authority used by that socket;\n\t\t// never change navigator, authentication, the ready stream or retry limits.\n\t\tfunction dshaUsesLiteralLoopbackSocket(transport) {\n\t\t\ttry {\n\t\t\t\tif (transport?.createWebSocket !== void 0 || transport?.openStream !== void 0 || transport?.rpc?.open !== void 0) return false;\n\t\t\t\tconst base = transport?.streamBaseUrl ?? (typeof document === \"undefined\" ? void 0 : document.baseURI);\n\t\t\t\tif (typeof base !== \"string\") return false;\n\t\t\t\tconst target = new URL(\"api/remote.mux\", base);\n\t\t\t\tif ((target.protocol !== \"http:\" && target.protocol !== \"https:\") || target.username || target.password) return false;\n\t\t\t\tconst authority = /^https?:\\/\\/(\\[[0-9a-f:.]+\\]|[^\\/?#:]+)(?::[0-9]+)?(?:[\\/?#]|$)/i.exec(base);\n\t\t\t\tif (!authority || authority[1].toLowerCase() !== target.hostname.toLowerCase()) return false;\n\t\t\t\tif (target.hostname === \"[::1]\") return true;\n\t\t\t\tconst parts = target.hostname.split(\".\");\n\t\t\t\treturn parts.length === 4 && parts[0] === \"127\" && parts.every((part) => /^[0-9]{1,3}$/.test(part) && String(Number(part)) === part && Number(part) <= 255);\n\t\t\t} catch {\n\t\t\t\treturn false;\n\t\t\t}\n\t\t}\n\t\tfunction watchBrowserNetwork(controller, transport) {\n\t\t\tconst browser = globalThis.window;"
+    },
+    {
+      "before": "\t\t\tconst offline = () => {\n\t\t\t\tcontroller.setNetworkAvailable(false);\n\t\t\t};\n\t\t\tcontroller.setNetworkAvailable(initiallyAvailable);",
+      "after": "\t\t\tconst offline = () => {\n\t\t\t\tcontroller.setNetworkAvailable(dshaUsesLiteralLoopbackSocket(transport));\n\t\t\t};\n\t\t\tcontroller.setNetworkAvailable(initiallyAvailable || dshaUsesLiteralLoopbackSocket(transport));"
+    },
+    {
+      "before": "stopNetworkWatch: watchBrowserNetwork(controller)",
+      "after": "stopNetworkWatch: watchBrowserNetwork(controller, transport)"
+    }
+  ]
+}

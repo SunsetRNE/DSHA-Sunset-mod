@@ -86,7 +86,7 @@ class DocumentLinksTest(unittest.TestCase):
         self.assertEqual(len(paths), 2)
         self.assertEqual(sum(len(row["targets"]) for row in gate.UPSTREAM_SOURCE_RELATIVE.values()), 8)
         for path, pinned in gate.UPSTREAM_SOURCE_RELATIVE.items():
-            commit = "bb0e5e151ca549fef506e829020a5d7138074711" if "dsh-web-mobile" in path else "6e2689f55295fa444be8ac8592c527c2c5ef3253"
+            commit = "91b328c1c0217cd58cf807a22e000ee8a56b6622" if "dsh-web-mobile" in path else "6e2689f55295fa444be8ac8592c527c2c5ef3253"
             for target, url in pinned["targets"].items():
                 self.assertIn("/" + commit + "/", url)
                 self.assertTrue(url.endswith("/" + target))

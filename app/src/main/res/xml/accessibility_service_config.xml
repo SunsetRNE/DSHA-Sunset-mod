@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 无障碍服务配置（DSH-A-Su / Sunset Mod）。
+<!-- 无障碍服务配置（DSHA）。
      多变体约定：本声明放在 src/main，正式包、dsha.sunsetTest 测试包与 debug 包共用同一份
      声明；不写死包名、不限定 packageNames，服务组件始终由运行时 ComponentName 生成
      （DshaAccessibilityService.enabled 用 ctx.getPackageName() 核对），因此多个变体包

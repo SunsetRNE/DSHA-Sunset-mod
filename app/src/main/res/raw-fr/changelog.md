@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5 / build307
+# DSHA 0.2.1-rc.5-20261104.1412-dsh0.2.1-rc.5 / build308
 
-- Expérimental : les sections Canal d’exécution et Opérations d’écran de la page des capacités de l’appareil deviennent des lignes compactes sur deux niveaux ; la logique d’autorisation et les interrupteurs ne changent pas.
-- Portée de la vérification : tests unitaires ciblés, Lint et contrôles de source locaux uniquement ; non vérifié sur appareil. versionCode porté à 307 (basé sur build306). La révision DSHA reste 0.2.1-rc.3 et le DSH intégré reste 0.2.1-rc.5.
+- Lors de la confirmation d’une opération sur un appareil externe, la cible sélectionnée est fixée. Les étapes qui n’ont pas encore été envoyées sont refusées si la requête devient invalide, si l’association de l’appareil change ou si l’accès externe est désactivé.
+- Les commandes de diagnostic en lecture seule pour les appareils externes vérifient leurs arguments. wm permet uniquement de consulter la taille et la densité de l’écran. logcat accepte les options de lecture et les filtres pris en charge. Les arguments qui modifient l’affichage, effacent les journaux, redimensionnent les tampons ou écrivent dans un fichier sont refusés.

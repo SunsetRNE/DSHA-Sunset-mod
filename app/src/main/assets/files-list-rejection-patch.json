@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js",
+  "sourceSha256": "d5974bf247e187eecf820f8ee8d5a7c9373fd66d111c6815b087ed8fe3ccc808",
+  "packageIntegrity": "sha512-63/4WclANtZETOKfnUJxNozPMaTIZ/i6498iG/bJ5/t/0lB/bpSY6N74AsIgwnK6N+L6DC+cbA3gJMavCmzvZg==",
+  "reason": "Settle rejected directory reads into the existing failure state behind the same tab/path generation and cancellation fence; no replay.",
+  "patches": [
+    {
+      "before": "\t\t\t\t\t\treturn result.ok ? result.value : void 0;\n\t\t\t\t\t});",
+      "after": "\t\t\t\t\t\treturn result.ok ? result.value : void 0;\n\t\t\t\t\t}, (error) => {\n\t\t\t\t\t\t// DSHA_FILES_LIST_REJECTION_V1: only the current listing may report failure.\n\t\t\t\t\t\tif (signal.aborted || generations.get(tabId)?.get(path) !== generation) return;\n\t\t\t\t\t\tactions.failed(tabId, path, new RemoteError(\"gateway/internal\", error instanceof Error ? error.message : String(error), {}));\n\t\t\t\t\t});"
+    }
+  ]
+}

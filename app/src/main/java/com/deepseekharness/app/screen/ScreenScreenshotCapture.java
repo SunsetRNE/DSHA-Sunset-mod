@@ -37,11 +37,14 @@ public final class ScreenScreenshotCapture {
     public final int rotation;
     public final String fingerprint;
     public final ScreenWindowRegion region;
+    public final long capturedAt;
 
-    private Shot(Bitmap bitmap, int rotation, ScreenWindowRegion region) throws Exception {
+    private Shot(Bitmap bitmap, int rotation, ScreenWindowRegion region, long capturedAt)
+        throws Exception {
       this.bitmap = bitmap;
       this.rotation = rotation;
       this.region = region;
+      this.capturedAt = capturedAt;
       if (region != null && !region.within(bitmap.getWidth(), bitmap.getHeight()))
         throw new IllegalStateException("SCREEN_WINDOW_GEOMETRY_UNAVAILABLE");
       fingerprint =
@@ -84,6 +87,8 @@ public final class ScreenScreenshotCapture {
                     failure,
                     true));
     var waiting = new java.util.concurrent.atomic.AtomicBoolean(true);
+    // 从采集请求开始保守计时；异步回调、编码和人工确认不能重新延长观察。
+    final long capturedAt = context.nowMillis();
     context
         .service()
         .takeScreenshot(
@@ -126,7 +131,7 @@ public final class ScreenScreenshotCapture {
                       canvas.drawRect(b.left(), b.top(), b.right(), b.bottom(), paint);
                     }
                   }
-                  shot = new Shot(software, rotation, region);
+                  shot = new Shot(software, rotation, region, capturedAt);
                   software = null;
                   pending.complete(shot);
                   shot = null;

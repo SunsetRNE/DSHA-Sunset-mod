@@ -250,9 +250,7 @@ final class PermissionChannelCard {
     toggle.setOnCheckedChangeListener(
         (button, on) -> {
           new ConfigStore(ctx).setRootShellAllowed(on);
-          if (!on)
-            com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx)
-                .revokeFor("ROOT_DISABLED");
+          if (!on) com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx).revoke();
           Context app = ctx.getApplicationContext();
           new Thread(
                   () -> {

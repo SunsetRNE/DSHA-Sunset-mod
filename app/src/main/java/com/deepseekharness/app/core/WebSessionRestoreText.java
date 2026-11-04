@@ -56,6 +56,10 @@ public final class WebSessionRestoreText {
           UiText.choose(
               "原 Web 已退出，但启动器仍在退出；为避免重复实例，暂未启动。稍后重试。",
               "The previous Web exited but its launcher is still exiting. No new instance was started; retry shortly.");
+      case "LAUNCHER_UNKNOWN" ->
+          UiText.choose(
+              "原 Web 已退出，但无法确认启动器状态；暂未启动新实例。可查看诊断，或正常停止后重试。",
+              "The previous Web exited, but its launcher's state is unknown. No new instance was started. Inspect diagnostics or stop normally before retrying.");
       case "RETIRE_UNAVAILABLE" ->
           UiText.choose(
               "已确认原 Web 与启动器退出，但旧实例记录清理失败；记录已保留，稍后重试。",

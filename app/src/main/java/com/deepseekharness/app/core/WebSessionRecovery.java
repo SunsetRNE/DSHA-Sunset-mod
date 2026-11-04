@@ -150,14 +150,14 @@ final class WebSessionRecovery {
     if (observed != SessionObservation.EXITED)
       return outcome(ports, Result.UNKNOWN, "IDENTITY_UNKNOWN", attempts);
     String stage = "LAUNCHER_EXIT";
-    String reason = "LAUNCHER_PENDING";
+    String reason = "LAUNCHER_UNKNOWN";
     try {
       if (!ports.current()) return outcome(ports, Result.STALE, "STALE", attempts);
       if (Thread.currentThread().isInterrupted())
         return outcome(ports, Result.UNKNOWN, "INTERRUPTED", attempts);
       boolean exited = ports.launcherExited(saved);
       if (!ports.current()) return outcome(ports, Result.STALE, "STALE", attempts);
-      if (!exited) return outcome(ports, Result.UNKNOWN, reason, attempts);
+      if (!exited) return outcome(ports, Result.UNKNOWN, "LAUNCHER_PENDING", attempts);
       stage = "RETIRE";
       reason = "RETIRE_UNAVAILABLE";
       if (Thread.currentThread().isInterrupted())

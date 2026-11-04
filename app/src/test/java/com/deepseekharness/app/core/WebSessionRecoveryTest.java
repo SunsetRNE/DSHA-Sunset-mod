@@ -301,7 +301,7 @@ public final class WebSessionRecoveryTest {
       f.failAt = stage;
       assertOutcome(
           WebSessionRecovery.Result.UNKNOWN,
-          stage.equals("launcher") ? "LAUNCHER_PENDING" : "RETIRE_UNAVAILABLE",
+          stage.equals("launcher") ? "LAUNCHER_UNKNOWN" : "RETIRE_UNAVAILABLE",
           0,
           WebSessionRecovery.recoverDetailed(f));
       assertEquals(stage.equals("launcher") ? 0 : 1, f.retireCalls);

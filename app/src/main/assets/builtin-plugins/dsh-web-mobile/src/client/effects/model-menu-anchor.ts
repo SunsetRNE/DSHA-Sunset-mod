@@ -64,7 +64,7 @@ const SETTLE_MS = [0, 60, 200]
 export function installModelMenuAnchor(ctx: ClientContext): void {
   installMobileEffect(ctx, 'dsh-web-mobile: model menu anchor', () => {
     let raf = 0
-    /** 本帧待跑的那一份意图。后到的请求覆盖它（见 schedule()）。 */
+    /** 本帧待跑的那一份意图。菜单发现优先于仅跟随位置（见 schedule()）。 */
     let pending: (() => void) | null = null
     /**
      * 本帧的 rect 缓存（键 = 元素）。同一趟定位里同一个元素只读一次：`findMenu()` 判定
@@ -164,15 +164,16 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
     }
 
     /**
-     * 把一次定位请求排进下一帧。**合并语义**：一帧只跑一次，槽位存的是「最新那份意图」，
-     * 后到的请求覆盖先到的（不是被丢掉）。
+     * 把一次定位请求排进下一帧。**合并语义**：一帧只跑一次，槽位保留优先级最高的意图，
+     * refresh 发现节点优先；follow 只在本帧没有发现任务时入槽。
      *
      * 旧版是「先到者胜」的 `if (raf !== 0) return`：同一帧里 `follow()` 之后来的
      * `refresh()` 会被整份吃掉 —— 用户刚点开菜单、同一帧页面又在滚（流式输出时常态）时，
      * 那次交互当帧不落位，只能等 60ms/200ms 的收尾计时器兜底。
      */
     const schedule = (run: () => void): void => {
-      pending = run
+      // DSHA_MENU_SCROLL_V1: discovery must survive a later scroll in the same frame.
+      if (pending !== refresh) pending = run
       if (raf !== 0) return
       raf = window.requestAnimationFrame(() => {
         raf = 0
@@ -220,7 +221,8 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
     }
     // 视口变化只走"零查询"的重算路径。
     const onViewportChange = (): void => {
-      schedule(follow)
+      // Closed menus need no animation frame, allocation or layout read.
+      if (active !== null) schedule(follow)
     }
 
     document.addEventListener('pointerdown', onPointerDown, true)

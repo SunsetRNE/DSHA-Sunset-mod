@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-chat/lib/client.js",
+  "sourceSha256": "181f766f2fe12ad27eed4f1c0cd4609e8d2211d397890355eb476b6a9ee311c2",
+  "packageIntegrity": "sha512-/UzmkMvOW94RtwHNbnU36+U5syK3QBRoDYzX9n6iyb+w9PrlKjUIckGqZNZnAoEG374htpvUrrT0YPSp4BDJ+A==",
+  "purpose": "Index changed chat turns and retain stable React row elements; preserve complete history, subscriptions, grouping, keyed DOM, pending input ordering and scroll behavior.",
+  "patches": [
+    {
+      "before": "\t\tvar MutableTurnNavigationIndex = class {\n\t\t\tcurrent = EMPTY_ITEMS;\n\t\t\tbyTurn = /* @__PURE__ */ new Map();",
+      "after": "\t\tvar MutableTurnNavigationIndex = class {\n\t\t\t// DSHA_CHAT_RENDER_INCREMENTAL_V1：流式尾部更新只读取受影响轮次。\n\t\t\tcurrent = EMPTY_ITEMS;\n\t\t\tbyTurn = /* @__PURE__ */ new Map();\n\t\t\tpositions = /* @__PURE__ */ new Map();"
+    },
+    {
+      "before": "\t\t\t\tthis.byTurn = byTurn;\n\t\t\t\tif (!(next.length === this.current.length && next.every((item, index) => item === this.current[index]))) this.current = next;",
+      "after": "\t\t\t\tthis.byTurn = byTurn;\n\t\t\t\tthis.positions.clear();\n\t\t\t\tfor (let index = 0; index < next.length; index++) this.positions.set(next[index].turn, index);\n\t\t\t\tif (!(next.length === this.current.length && next.every((item, index) => item === this.current[index]))) this.current = next;"
+    },
+    {
+      "before": "\t\t\ttouch(turns, locations, nodes) {\n\t\t\t\tif (turns.size === 0) return;\n\t\t\t\tconst next = this.current.map((item) => {\n\t\t\t\t\tif (!turns.has(item.turn)) return item;\n\t\t\t\t\tconst derived = turnNavigationItem(item.turn, locations, nodes);\n\t\t\t\t\tif (derived === void 0 || sameTurnNavigationItem(item, derived)) return item;\n\t\t\t\t\tthis.byTurn.set(item.turn, derived);\n\t\t\t\t\treturn derived;\n\t\t\t\t});\n\t\t\t\tif (next.some((item, index) => item !== this.current[index])) this.current = next;\n\t\t\t}",
+      "after": "\t\t\ttouch(turns, locations, nodes) {\n\t\t\t\tlet next;\n\t\t\t\tfor (const turn of turns) {\n\t\t\t\t\tconst index = this.positions.get(turn);\n\t\t\t\t\tif (index === void 0) continue;\n\t\t\t\t\tconst item = this.byTurn.get(turn);\n\t\t\t\t\tconst derived = turnNavigationItem(turn, locations, nodes);\n\t\t\t\t\tif (derived === void 0 || sameTurnNavigationItem(item, derived)) continue;\n\t\t\t\t\t// 仍发布不可变数组；摘要没有变化时不扫描或复制全部历史。\n\t\t\t\t\tnext ??= this.current.slice();\n\t\t\t\t\tnext[index] = derived;\n\t\t\t\t\tthis.byTurn.set(turn, derived);\n\t\t\t\t}\n\t\t\t\tif (next !== void 0) this.current = next;\n\t\t\t}"
+    },
+    {
+      "before": "\t\t\tconst seatProps = {\n\t\t\t\tnodeStore,\n\t\t\t\tuseChatNode,\n\t\t\t\tuseChatNodeBottom,\n\t\t\t\tuseChatNodeProcess,\n\t\t\t\tusePresentation,\n\t\t\t\tuseStore,\n\t\t\t\tactions,\n\t\t\t\trenderSlot,\n\t\t\t\tt,\n\t\t\t\tuseGroupAction,\n\t\t\t\tdeferCollapse,\n\t\t\t\tcwd,\n\t\t\t\topenFile,\n\t\t\t\tinspectCall,\n\t\t\t\tforkAt,\n\t\t\t\tloadImage,\n\t\t\t\tfileMentions\n\t\t\t};",
+      "after": "\t\t\t// DSHA_CHAT_FLOW_ROWS_V1：父级状态变化复用稳定行，不改变 DOM 层级或键。\n\t\t\tconst seatProps = (0, react.useMemo)(() => ({\n\t\t\t\tnodeStore,\n\t\t\t\tuseChatNode,\n\t\t\t\tuseChatNodeBottom,\n\t\t\t\tuseChatNodeProcess,\n\t\t\t\tusePresentation,\n\t\t\t\tuseStore,\n\t\t\t\tactions,\n\t\t\t\trenderSlot,\n\t\t\t\tt,\n\t\t\t\tuseGroupAction,\n\t\t\t\tdeferCollapse,\n\t\t\t\tcwd,\n\t\t\t\topenFile,\n\t\t\t\tinspectCall,\n\t\t\t\tforkAt,\n\t\t\t\tloadImage,\n\t\t\t\tfileMentions\n\t\t\t}), [nodeStore, useChatNode, useChatNodeBottom, useChatNodeProcess, usePresentation, useStore, actions, renderSlot, t, useGroupAction, deferCollapse, cwd, openFile, inspectCall, forkAt, loadImage, fileMentions]);"
+    },
+    {
+      "before": "\t\t\tconst rows = entries.map((entry) => {\n\t\t\t\tswitch (entry.kind) {\n\t\t\t\t\tcase \"node\": return (0, react.createElement)(ChatNodeSeat, {\n\t\t\t\t\t\t...seatProps,\n\t\t\t\t\t\tkey: chatRenderKey(entry),\n\t\t\t\t\t\tnodeKey: entry.key,\n\t\t\t\t\t\t...entry.groupPart === void 0 ? {} : { groupPart: entry.groupPart }\n\t\t\t\t\t});\n\t\t\t\t\tcase \"group\": return (0, react.createElement)(ChatGroupSeat, {\n\t\t\t\t\t\t...seatProps,\n\t\t\t\t\t\tkey: chatRenderKey(entry),\n\t\t\t\t\t\tgroupKey: entry.key,\n\t\t\t\t\t\tuseChatGroup,\n\t\t\t\t\t\tuseGroupHeaderAction\n\t\t\t\t\t});\n\t\t\t\t\tdefault: return assertNever(entry);\n\t\t\t\t}\n\t\t\t});\n",
+      "after": "\t\t\tlet rows = (0, react.useMemo)(() => entries.map((entry) => {\n\t\t\t\tswitch (entry.kind) {\n\t\t\t\t\tcase \"node\": return (0, react.createElement)(ChatNodeSeat, {\n\t\t\t\t\t\t...seatProps,\n\t\t\t\t\t\tkey: chatRenderKey(entry),\n\t\t\t\t\t\tnodeKey: entry.key,\n\t\t\t\t\t\t...entry.groupPart === void 0 ? {} : { groupPart: entry.groupPart }\n\t\t\t\t\t});\n\t\t\t\t\tcase \"group\": return (0, react.createElement)(ChatGroupSeat, {\n\t\t\t\t\t\t...seatProps,\n\t\t\t\t\t\tkey: chatRenderKey(entry),\n\t\t\t\t\t\tgroupKey: entry.key,\n\t\t\t\t\t\tuseChatGroup,\n\t\t\t\t\t\tuseGroupHeaderAction\n\t\t\t\t\t});\n\t\t\t\t\tdefault: return assertNever(entry);\n\t\t\t\t}\n\t\t\t}), [entries, seatProps, useChatGroup, useGroupHeaderAction]);\n"
+    },
+    {
+      "before": "\t\t\t\tif (index !== -1) rows.splice(rows.length - 1, 0, ...pendingRows.splice(index, 1));",
+      "after": "\t\t\t\tif (index !== -1) {\n\t\t\t\t\t// 不修改已缓存的行数组，下一次提交仍以真实历史顺序为基准。\n\t\t\t\t\trows = rows.slice();\n\t\t\t\t\trows.splice(rows.length - 1, 0, ...pendingRows.splice(index, 1));\n\t\t\t\t}"
+    }
+  ]
+}

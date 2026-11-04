@@ -1,0 +1,98 @@
+{
+  "versionName": "0.2.1-rc.5-20261104.1412-dsh0.2.1-rc.5",
+  "versionCode": 308,
+  "packageName": "dsh.android.client",
+  "source": {
+    "upstreamBase": "f5ec2520a01fc6db3ed4332aa101dd259092bacf",
+    "originalProductionCommit": "5cafe2d06492bb989bea8340949c946980a3edbe",
+    "originalDocumentedCommit": "0c14bff61c849355d86469d2f27a04fc9b08ba1f",
+    "mobileVersion": "3.2.3",
+    "mobileCommit": "91b328c1c0217cd58cf807a22e000ee8a56b6622"
+  },
+  "apk": {
+    "file": "release/0.2.1-rc.5/dsha-0.2.1-rc.5.apk",
+    "bytes": 299238103,
+    "sha256": "1deb2744d0ec29004c89186bcfe0e1f6526579e83346d19e4347385e56e9b221",
+    "previousBuild": 307,
+    "deltaBytes": 4063,
+    "certificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+    "signatures": [
+      "v1",
+      "v2",
+      "v3"
+    ],
+    "debuggable": false,
+    "profileable": false
+  },
+  "checks": {
+    "standardJunit": {
+      "tests": 169,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "classes": 28,
+    "scope": "Affected Standard JUnit tests",
+    "fullStandardReleaseLint": {
+      "Warning": 550
+    },
+    "packageGates": [
+      "exact-apk",
+      "dsh-apk",
+      "recovery-apk",
+      "licenses-apk",
+      "elf-apk",
+      "size-apk"
+    ],
+    "assets": 500,
+    "nativeLibraries": 14,
+    "apkMembersUnchanged": 1785,
+    "apkMembersChanged": 19
+  },
+  "device": {
+    "androidVersion": 17,
+    "sameSignatureUpgrade": true,
+    "installedApkSha256": "1deb2744d0ec29004c89186bcfe0e1f6526579e83346d19e4347385e56e9b221",
+    "activeRuntimeId": "f145c4f23cd62ab24e286abddc825c51cfff355d9721a521cf1f5e3e6d92edbc",
+    "originalInstallTimePreserved": true,
+    "prorootBackendAuthSeconds": {
+      "first": 3.8,
+      "hot": 3.0,
+      "firstSamples": 1,
+      "hotSamples": 1
+    },
+    "fileTests": {
+      "DeepSeek-V4.1-Flash1017Max": {
+        "valid": true,
+        "actualRows": 2,
+        "rawBytes": 98,
+        "rawSha256": "7a57e8431fa70749ed4e77ab56043c1c309bdedc2e494aaef3c0b317c81f6318"
+      },
+      "GPT-6.1 SolDefault": {
+        "valid": true,
+        "actualRows": 32,
+        "rawBytes": 2839,
+        "rawSha256": "fddc18a23394966be456932e1d495f59465de880f4d52cc59fbd36106cfd76bf"
+      }
+    },
+    "backup": {
+      "original": {
+        "events": 3791,
+        "headers": 11,
+        "attachments": 16
+      },
+      "after": {
+        "events": 3951,
+        "headers": 13,
+        "attachments": 16
+      },
+      "existingEventsChanged": 0,
+      "existingEventsRemoved": 0,
+      "existingHeadersChanged": 0,
+      "existingHeadersRemoved": 0,
+      "existingAttachmentsChanged": 0,
+      "existingAttachmentsRemoved": 0
+    },
+    "normalStopConfirmed": true
+  }
+}

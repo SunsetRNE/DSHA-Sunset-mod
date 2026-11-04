@@ -1,5 +1,6 @@
-# DSHA 0.2.1-rc.3-20261102.1430-dsh0.2.1-rc.5 / build279
+# DSHA 0.2.1-rc.5-20261103.0049-dsh0.2.1-rc.5 / build279
 
-- Experimental: a página de recuperação do arranque foi refeita; um cartão de estado no topo indica a conclusão atual e as falhas são agrupadas por causa com o passo seguinte correspondente.
-- O build278 não foi publicado separadamente: as durações da lista de tarefas em segundo plano podiam mostrar uma tradução errada após mudar de idioma. Esta versão corrige isso e inclui o resto do build278.
-- Âmbito da verificação: apenas testes unitários direcionados, Lint e verificações de código locais; não verificado num dispositivo. versionCode elevado para 279 (com base no build278). A revisão DSHA mantém-se 0.2.1-rc.3 e o DSH incluído mantém-se 0.2.1-rc.5.
+- Unificar as solicitações de taxa de atualização das telas nativas e Web, respeitando o sistema, a economia de energia e as janelas.
+- Adicionar toques em telas animadas por aplicativo, mantendo verificações de alvo, prazo, confirmação e revogação; melhorar a prévia virtual em animação contínua.
+- Limitar a memória das listas com snapshots em disco e melhorar erros, cancelamento e salvamento de imagens na Web.
+- Manter a correção de justificativa vazia. Somente APK Standard local, sem validação no telefone.

@@ -31,6 +31,7 @@ public final class WebBackgroundPageLifecycleTest {
     @Override
     public void onCreate() {
       RuntimeTasks.initialize(this);
+      uiFrameRate().install();
     }
   }
 
@@ -273,6 +274,139 @@ public final class WebBackgroundPageLifecycleTest {
     } finally {
       UiText.setLanguage(previousLanguage);
     }
+  }
+
+  static android.webkit.RenderProcessGoneDetail rendererExit(boolean crashed) {
+    return new android.webkit.RenderProcessGoneDetail() {
+      @Override
+      public boolean didCrash() {
+        return crashed;
+      }
+
+      @Override
+      public int rendererPriorityAtExit() {
+        return WebView.RENDERER_PRIORITY_IMPORTANT;
+      }
+    };
+  }
+
+  @Test
+  public void rendererDeathDuringRotationGapIsHandledAndClearsOnlyTheRetainedPage()
+      throws Exception {
+    var stored =
+        new androidx.lifecycle.ViewModelProvider(browser).get(WebPreviewActivity.Retained.class);
+    stored.view = page;
+    stored.ready = true;
+    stored.pageSession.claim(ORIGINAL);
+    // prepare() already loaded this page. A real retained ready page has also consumed
+    // its initial-navigation ticket; leaving the gate new would authorize a first load
+    // during onCreate, before the renderer-exit scenario even starts.
+    stored.navigation.begin(false);
+    assertTrue(stored.navigation.claim());
+    browser
+        .getIntent()
+        .putExtra(BrowserConversationRoute.GENERATION, ORIGINAL.generation())
+        .putExtra(BrowserConversationRoute.INSTANCE, ORIGINAL.instanceId());
+    lifecycle.create().start().resume().visible();
+    created = true;
+    assertEquals("reattaching the ready page must not navigate", 1, page.navigations);
+    var uploads = new WebUploads.Session(browser.getCacheDir());
+    stored.uploadSession = uploads;
+    lifecycle.pause().stop();
+    org.robolectric.util.ReflectionHelpers.setField(browser, "mChangingConfigurations", true);
+    lifecycle.destroy();
+    created = false;
+    assertNull(page.getParent());
+    assertSame(page, stored.view);
+    assertEquals(0, page.destroyed);
+    assertTrue(page.getWebViewClient() instanceof WebPreviewActivity.RetainedRendererClient);
+    assertTrue(page.getWebViewClient().onRenderProcessGone(page, rendererExit(true)));
+    assertNull(stored.view);
+    assertNull(stored.pageSession.identity());
+    assertFalse(stored.ready);
+    assertTrue(uploads.isClosed());
+    assertEquals(1, page.destroyed);
+    assertEquals("renderer loss is not Web-node exit", ORIGINAL, Controller.ready);
+    assertEquals(1, page.navigations);
+  }
+
+  @Test
+  public void foregroundRendererDeathCancelsOnlyItsContentReturnWithoutRestartingRuntime()
+      throws Exception {
+    BrowserTasks.rememberBackground(browser);
+    assertTrue(BrowserTasks.returnPending());
+    BrowserTasks.browserUnavailable(Robolectric.buildActivity(Browser.class).get());
+    assertTrue("another host cannot cancel the pending return", BrowserTasks.returnPending());
+    assertTrue(retained.rendererGone(page, rendererExit(false)));
+    assertFalse(BrowserTasks.returnPending());
+    assertNull(retained.view);
+    assertNull(retained.pageSession.identity());
+    assertEquals(1, page.destroyed);
+    assertEquals(1, page.navigations);
+    assertEquals(ORIGINAL, Controller.ready);
+    assertFalse(Controller.exited);
+    assertEquals(View.VISIBLE, panel.getVisibility());
+    assertEquals("The system closed the page", title.getText().toString());
+  }
+
+  @Test
+  public void lateRetainedRendererCallbackCannotDisposeAReplacementPage() {
+    var stale = new WebPreviewActivity.RetainedRendererClient(retained);
+    var replacement = new Page(new MutableContextWrapper(browser));
+    retained.view = replacement;
+    assertTrue(stale.onRenderProcessGone(page, rendererExit(true)));
+    assertSame(replacement, retained.view);
+    assertEquals(ORIGINAL, retained.pageSession.identity());
+    assertEquals(0, replacement.destroyed);
+    replacement.destroy();
+  }
+
+  @Test
+  @Config(sdk = 35)
+  public void actualWebHostBindsRetainedPageAndReleasesBothVotesWhilePaused() throws Exception {
+    android.view.Display display =
+        RuntimeEnvironment.getApplication()
+            .getSystemService(android.hardware.display.DisplayManager.class)
+            .getDisplay(android.view.Display.DEFAULT_DISPLAY);
+    android.view.Display.Mode current = display.getMode();
+    android.view.Display.Mode high =
+        org.robolectric.util.ReflectionHelpers.callConstructor(
+            android.view.Display.Mode.class,
+            org.robolectric.util.ReflectionHelpers.ClassParameter.from(
+                int.class, current.getModeId() + 1),
+            org.robolectric.util.ReflectionHelpers.ClassParameter.from(
+                int.class, current.getPhysicalWidth()),
+            org.robolectric.util.ReflectionHelpers.ClassParameter.from(
+                int.class, current.getPhysicalHeight()),
+            org.robolectric.util.ReflectionHelpers.ClassParameter.from(float.class, 120f));
+    org.robolectric.shadows.ShadowDisplayManager.setSupportedModes(
+        display.getDisplayId(), current, high);
+    android.provider.Settings.System.putFloat(
+        browser.getContentResolver(), "peak_refresh_rate", 120f);
+    var stored =
+        new androidx.lifecycle.ViewModelProvider(browser).get(WebPreviewActivity.Retained.class);
+    stored.view = page;
+    stored.ready = true;
+    stored.pageSession.claim(ORIGINAL);
+    browser
+        .getIntent()
+        .putExtra(BrowserConversationRoute.GENERATION, ORIGINAL.generation())
+        .putExtra(BrowserConversationRoute.INSTANCE, ORIGINAL.instanceId());
+    lifecycle.create();
+    created = true;
+    lifecycle.start().resume().visible();
+    assertTrue(browser.getWindow().getDecorView().isAttachedToWindow());
+    assertSame(page, stored.view);
+    assertEquals(120f, browser.getWindow().getAttributes().preferredRefreshRate, 0f);
+    assertEquals(120f, page.getRequestedFrameRate(), 0f);
+    lifecycle.pause();
+    assertEquals(0f, browser.getWindow().getAttributes().preferredRefreshRate, 0f);
+    assertEquals(
+        View.REQUESTED_FRAME_RATE_CATEGORY_NO_PREFERENCE, page.getRequestedFrameRate(), 0f);
+    lifecycle.resume();
+    assertSame(page, stored.view);
+    assertEquals(0, page.destroyed);
+    assertEquals(120f, page.getRequestedFrameRate(), 0f);
   }
 
   @Test

@@ -15,11 +15,11 @@
 
 ## 移动插件
 
-- `dsh-web-mobile` **3.2.2**，MIT，来自 `https://github.com/mexiaosqwq/dsh-web-mobile`，固定提交 `bb0e5e151ca549fef506e829020a5d7138074711`。
-- 上游 client 摘要 `3cd931bcd261e7b280398f8849a556ec1dd54edaa4147c49c808d0ea60d94173`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
+- `dsh-web-mobile` **3.2.3**，MIT，来自 `https://github.com/mexiaosqwq/dsh-web-mobile`，固定提交 `91b328c1c0217cd58cf807a22e000ee8a56b6622`。
+- 上游 client 摘要 `d650b1b88be1238a1a27edcc826d6fc5ad61ba81dc044f4f2881e2c3c6140e83`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
 - 许可全文：`app/src/main/assets/builtin-plugins/dsh-web-mobile/LICENSE`。当前产物摘要：
 
-- `client.js`：`39e984073778b922da30fbebd05ae19674af88f5338b55a3c56f3b7ea90b1d46`
+- `client.js`：`9e819c31826baa147732d4326fe7b20bbeff193aeb956504deb685c89c413361`
 - `index.js`：`dcddbce73ec1052b7c02e961bac1389d227f72f1ef49f62a2f16f692e8f930ab`
 - `compress.js`：`a7f4f7f89cc99490978ed4cbfd16ab86f71e1f7fbf2241c00c2811e7cde9aeab`
 - `delete-session.js`：`cb119ff9703716fe1111ee5a2f211d14886ab1d2310601c5787efc8d91219d51`
@@ -27,7 +27,7 @@
 ## 终端与会话启动器
 
 - Termux terminal-emulator 的 `termux.c` 来自 v0.118.0；上游明确的 Apache-2.0 许可例外保存在 `tools/termux-jni/LICENSE.upstream.md`，全文为 `LICENSE-2.0.txt`。不要将该例外扩展到整个 Termux 应用。
-- 本地 PTY 身份握手和会话查询差异见 `dsha-pty.c`、`dsha-process.c` 与 `build.ps1`，目标 API 23、LOAD 16 KiB、common-page-size 4096。
+- 本地 PTY 身份握手、存储和会话查询差异见 `dsha-pty.c`、`dsha-process.c`；非阻塞文件锁适配见 `dsha-plugin-lock.c`。构建入口为 `build.ps1`，目标 API 23、LOAD 16 KiB、common-page-size 4096。
 - DSHA 独立会话启动器源码为 `tools/native-session/session-launcher.c`；跨平台构建入口 `tools/native-session/build.py`，锁定 NDK 26.3.11579264。
 
 ## proot / proroot
@@ -75,7 +75,7 @@
 | `app/src/main/jniLibs/arm64-v8a/libproroot-stub-loader.so` | upstream proprietary | proroot v1.2.8 original binary |
 | `app/src/main/jniLibs/arm64-v8a/libproroot.so` | upstream proprietary | proroot v1.2.8 original binary; source reproducibility not asserted |
 | `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL family; exact binary revision unverified | Samba talloc; original Standard binary exact revision unverified |
-| `app/src/main/jniLibs/arm64-v8a/libtermux.so` | Apache-2.0 exception | tools/termux-jni, v0.118.0 source plus local handshake changes |
+| `app/src/main/jniLibs/arm64-v8a/libtermux.so` | Apache-2.0 exception | tools/termux-jni, v0.118.0 source plus local handshake, storage and narrow flock changes |
 
 ## npm 锁中需另核对的许可声明
 

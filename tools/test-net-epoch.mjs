@@ -112,12 +112,20 @@ test('loopback connections are never tracked without the test switch', () => {
   assert.equal(run('hang', {DSHA_NET_EPOCH_TEST_LOOPBACK: '0'}).result.pending, true);
 });
 
-test('a symlinked epoch file is ignored', () => {
-  const {result} = run('hang', {}, (dir, file) => {
-    mkdirSync(join(dir, 'real'));
-    writeFileSync(join(dir, 'real', 'epoch'), 'z');
-    symlinkSync(join(dir, 'real', 'epoch'), file);
-    return join(dir, 'real', 'epoch'); // 经真实路径改写，预加载只能经链接读到
-  });
-  assert.equal(result.pending, true);
+test('a symlinked epoch file is ignored', t => {
+  try {
+    const {result} = run('hang', {}, (dir, file) => {
+      mkdirSync(join(dir, 'real'));
+      writeFileSync(join(dir, 'real', 'epoch'), 'z');
+      symlinkSync(join(dir, 'real', 'epoch'), file);
+      return join(dir, 'real', 'epoch'); // 经真实路径改写，预加载只能经链接读到
+    });
+    assert.equal(result.pending, true);
+  } catch (error) {
+    // Windows 未获文件软链接权限时仅跳过实际创建失败；其它错误仍失败。
+    if (process.platform === 'win32' && error.code === 'EPERM' && error.syscall === 'symlink') {
+      t.diagnostic('Windows denied file symlink creation; this boundary still needs POSIX validation.');
+      t.skip('file symlink capability unavailable');
+    } else throw error;
+  }
 });

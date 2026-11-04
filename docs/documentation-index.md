@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.3-20261104.0130-dsh0.2.1-rc.5` / build307 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版把设备能力授权页的「设备执行通道」「屏幕操作」板块改为紧凑两行条目，授权逻辑不变。本机定向单测、Lint 与源码门禁通过，用户已在真机竖屏与横屏确认。改动说明见 [build307 更新说明](releases/build307-changes.zh.md)，验证记录见 [build307 记录](releases/v0.2.1-rc.3-build307-compact-device-sections-20261104.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码为 DSHA build308，包名 `dsh.android.client`。参见 [修复与实测报告](releases/v0.2.1-rc.5-build308-native-grants-20261104.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
@@ -30,6 +30,8 @@
 | [DSH Web 独立进程设计（待确认）](design/web-process-isolation-20261102/README.md) | `:web` 进程划分、IWebHost 接口、维护屏障跨进程协议、故障场景与分阶段计划；未实现 |
 | [proot 本体开销调查（T34）](design/proot-overhead-20261103/README.md) | 随包 libproot.so 对应 termux/proot v5.1.107.91、上游新修订无提速、停顿来源与 readlink 入口直答方案；未实现 |
 | [ADB 通道原生化设计（T42）](design/adb-native-20261103/README.md) | ADB 配对、私钥与客户端移到安卓壳，容器只经桥提交命令；含用户 Q1–Q9 决定与 E1–E4 取证，未实现 |
+| [原生授权状态完整性设计（T44）](design/native-grant-integrity-20261103/README.md) | 盘点同 UID 可写的授权存储，比较 Keystore MAC、内存票据、失效重确认与分级方案，列 Q1–Q7 与 E5–E11 待取证；未实现 |
+| [T44 本地决策与 E5 实测](design/native-grant-integrity-20261103/LOCAL-DECISIONS.md) | build308 的 Q1–Q7 取舍、非识屏首批范围和 M367FC 独立测试包的同 UID Keystore 实验 |
 
 ## 用户操作与开发入口
 
