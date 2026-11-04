@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.5",
+  "dshVersion": "0.2.2-rc.1",
   "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
-  "sourceSha256": "1b8bf9eb266d7b3b7f899175e3f435c89ed8baa8aabc677212759f8c6cd23132",
+  "sourceSha256": "6f0fdc6a6e4cd2bc9d969ba582636729ade450e415f0fc20bbef9da3f65823f3",
   "patches": [
     {
       "before": "async function runProfilePnpm(context, args, options) {\n\t// DSHA_PLUGIN_UNLOCKED_PNPM_V2: the user's repair/install policy permits\n\t// dependency and Git prepare hooks. pnpm 10 otherwise refuses Git builds.\n\t// Keep registry/spec/lock choices; fetch retries repeat only read requests.\n\tif (process.env.DSHA_PLUGIN_UNLOCKED === \"1\") options = {\n\t\t...options,\n\t\targs: [...options.args ?? [],\n\t\t\t\"--config.dangerously-allow-all-builds=true\", \"--config.ignore-scripts=false\",\n\t\t\t\"--config.ignore-dep-scripts=false\", \"--config.update-notifier=false\",\n\t\t\t\"--config.fetch-retries=1\", \"--config.fetch-retry-mintimeout=1000\",\n\t\t\t\"--config.fetch-retry-maxtimeout=3000\", \"--config.fetch-timeout=60000\",\n\t\t\t\"--reporter=append-only\"]\n\t};",

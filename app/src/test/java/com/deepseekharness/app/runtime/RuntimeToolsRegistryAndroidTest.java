@@ -181,7 +181,7 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     String version = registry.getString("dshVersion");
-    assertEquals("0.2.1-rc.5", version);
+    assertEquals("0.2.2-rc.1", version);
     assertEquals(version, Constants.DSH_VERSION);
     assertEquals("dsh-v" + version, Constants.DSH_RUNTIME_ID);
     try (var stream = context.getAssets().open("runtime-descriptor.json")) {
@@ -226,17 +226,12 @@ public final class RuntimeToolsRegistryAndroidTest {
     var locale = groups.get("@deepseek-ai/dsh-client-locale/lib/client.js");
     assertEquals(1, locale.size());
     assertEquals("language-patch.json", locale.get(0).id());
-    assertEquals(3, locale.get(0).previousPatches().size());
-    assertEquals(
-        "ctx.provide(\"locale\", locale);", locale.get(0).previousPatches().get(0).before());
+    // 0.2.2：V1 前代只存在于 0.2.1-rc.3 归档，新 locale 模块不声明前代形态。
+    assertTrue(locale.get(0).previousPatches().isEmpty());
+    assertEquals("ctx.provide(\"locale\", locale);", locale.get(0).patches().get(0).before());
     assertTrue(
-        locale
-            .get(0)
-            .previousPatches()
-            .get(0)
-            .after()
-            .contains("function installDshaLanguageBridge"));
-    assertTrue(locale.get(0).patches().get(0).after().contains("DSHA_UI_LANGUAGES_V2"));
+        locale.get(0).patches().get(0).after().contains("function installDshaLanguageBridge"));
+    assertTrue(locale.get(0).patches().get(0).after().contains("DSHA_UI_LANGUAGES_V3"));
     assertTrue(
         groups.get("@deepseek-ai/dsh-deepseek-account-platform/lib/index.js").stream()
             .anyMatch(
@@ -347,12 +342,10 @@ public final class RuntimeToolsRegistryAndroidTest {
         directory.get(0).markers());
     var upload = groups.get("@deepseek-ai/dsh-client-file-upload/lib/index.js");
     assertNotNull(upload);
-    assertEquals(2, upload.size());
-    assertEquals("file-upload-resolver-lifecycle-patch.json", upload.get(0).id());
-    assertEquals(
-        java.util.List.of("DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"), upload.get(0).markers());
-    assertEquals("file-upload-capacity-patch.json", upload.get(1).id());
-    assertEquals(java.util.List.of("DSHA_UPLOAD_FILE_LIMIT_V1"), upload.get(1).markers());
+    // 0.2.2-rc.1 上游自带稳定的 resolver 数据对象，resolver-lifecycle 配方已退休。
+    assertEquals(1, upload.size());
+    assertEquals("file-upload-capacity-patch.json", upload.get(0).id());
+    assertEquals(java.util.List.of("DSHA_UPLOAD_FILE_LIMIT_V1"), upload.get(0).markers());
     for (var addition : BUILD192_MODULES.entrySet()) {
       var chain = groups.get(addition.getKey());
       assertNotNull(addition.getKey(), chain);
@@ -371,7 +364,7 @@ public final class RuntimeToolsRegistryAndroidTest {
             () ->
                 RuntimeTools.readPatchRegistry(
                     apkAssets(Map.of("runtime-patches.json", registry))));
-    assertEquals("PATCH_REGISTRY_VERSION: APK=0.2.1-rc.5 registry=0.2.0-rc.2", error.getMessage());
+    assertEquals("PATCH_REGISTRY_VERSION: APK=0.2.2-rc.1 registry=0.2.0-rc.2", error.getMessage());
   }
 
   @Test
@@ -399,7 +392,7 @@ public final class RuntimeToolsRegistryAndroidTest {
                 RuntimeTools.readPatchChains(
                     context, RuntimeTools.readPatchRegistry(context), Constants.DSH_VERSION));
     assertEquals(
-        "PATCH_REGISTRY_VERSION: recipe=" + first + " expected=0.2.1-rc.5 actual=0.2.0-rc.2",
+        "PATCH_REGISTRY_VERSION: recipe=" + first + " expected=0.2.2-rc.1 actual=0.2.0-rc.2",
         error.getMessage());
   }
 
@@ -485,9 +478,8 @@ public final class RuntimeToolsRegistryAndroidTest {
           "@deepseek-ai/dsh-web-search-deepseek/lib/index.js", "DSHA_WEB_SEARCH_HEADERS_V1",
           "@deepseek-ai/dsh-client-file-upload/lib/index.js", "DSHA_UPLOAD_FILE_LIMIT_V1",
           "@deepseek-ai/dsh-client-file-upload/lib/client.js", "DSHA_UPLOAD_BINARY_ONLY_V1",
-          "@deepseek-ai/dsh-client-ui-conversation/lib/client.js", "DSHA_LARGE_IMAGE_FILE_V1",
           "@deepseek-ai/dsh-client-ui-deliverables/lib/client.js", "DSHA_FILE_DELIVERABLES_RC2_V1",
-          "@deepseek-ai/dsh-client-ui-attachment/lib/client.js", "DSHA_IMAGE_ACTIONS_RC2_V1");
+          "@deepseek-ai/dsh-client-ui-file-actions/lib/client.js", "DSHA_IMAGE_GALLERY_MENU_V1");
   private static final String LAN = "@deepseek-ai/dsh-client-ui-settings/lib/client.js";
 
   private static String sha256(Path file) throws Exception {
@@ -630,9 +622,6 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertTrue(
         Files.readString(modules.resolve("@deepseek-ai/dsh-api-workspace-controller/lib/index.js"))
             .contains("DSHA_DIRECTORY_PICKER_INDEPENDENT_LIFETIME_V1"));
-    assertTrue(
-        Files.readString(modules.resolve("@deepseek-ai/dsh-client-file-upload/lib/index.js"))
-            .contains("DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1"));
     for (var addition : BUILD192_MODULES.entrySet())
       assertTrue(
           "Production preparation must retain " + addition.getValue(),

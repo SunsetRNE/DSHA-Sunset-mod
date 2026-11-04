@@ -25,7 +25,8 @@ const assets = path.join(root, 'app/src/main/assets');
 const modules = path.join(runtime, 'node_modules');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const records = [];
-const recipes = ['file-upload-resolver-lifecycle-patch.json', 'file-upload-capacity-patch.json', 'file-upload-binary-client-patch.json', 'conversation-large-image-file-patch.json'].map(name => [name, JSON.parse(fs.readFileSync(path.join(assets,name)))]);
+// 0.2.2-rc.1: resolver-lifecycle and conversation-large-image-file are retired (upstream absorbed).
+const recipes = ['file-upload-capacity-patch.json', 'file-upload-binary-client-patch.json'].map(name => [name, JSON.parse(fs.readFileSync(path.join(assets,name)))]);
 const sources = new Map();
 for (const [name, recipe] of recipes) {
   const original = fs.readFileSync(path.join(modules,recipe.module),'utf8');
@@ -41,7 +42,7 @@ for (const [module, source] of sources) {
   const result = spawnSync(process.execPath,['--check','--input-type=module'],{input:source,encoding:'utf8',windowsHide:true});
   assert.equal(result.status,0,module+' '+result.stderr);
 }
-records.push({name:'three-raw-locked-recipes-and-191-resolver-chain',status:'PASS'});
+records.push({name:'two-raw-locked-upload-recipes',status:'PASS'});
 
 // Run the actual browser service body with browser carriers. A byte-array input
 // must become a Blob and must never invoke the remote/base64 path.
@@ -53,6 +54,8 @@ const context = vm.createContext({Blob,ReadableStream,Uint8Array,URLSearchParams
   __DSH_FILE_UPLOAD__: {fetch:async(url,init)=>{
     posts++; assert.equal(init.headers['content-type'],'application/octet-stream');
     assert(init.body instanceof Blob); assert.deepEqual(Buffer.from(await init.body.arrayBuffer()),Buffer.from([1,2,3]));
+    if (new URL(url,'http://fixture.invalid/').searchParams.has('mediaType'))
+      return new Response(JSON.stringify({ok:true,value:{receiptId:'i',image:{attachmentId:'sha256:i',mediaType:'image/png',bytes:3,width:1,height:1}}}),{status:200});
     return new Response(JSON.stringify({ok:true,value:{receiptId:'r',file:{attachmentId:'sha256:x',name:'x',bytes:3}}}),{status:200});
   }},
   window:{__ModuleLoader__:{load({factory}){client = factory(()=>({Service:class {constructor(ctx){this.ctx=ctx;}}}));}}}
@@ -63,6 +66,9 @@ assert((await browser.upload('s',new Uint8Array([1,2,3]),'x')).ok); assert.equal
 class SizedBlob extends Blob {get size(){return limit+1;}}
 const rejectedBlob = await browser.upload('s',new SizedBlob(),'too-large');
 assert.equal(rejectedBlob.ok,false); assert.equal(rejectedBlob.error.details.reason,'FILE_TOO_LARGE'); assert.equal(posts,1);
+// Upstream uploadImage() stays untouched: Blob body through postRaw, Host imageLimits bound it.
+const image = await browser.uploadImage('s',new Blob([new Uint8Array([1,2,3])]),'image/png','x.png');
+assert(image.ok); assert.equal(image.value.image.mediaType,'image/png'); assert.equal(posts,2);
 let cancelled = false;
 const chunk = new Uint8Array(65536);
 let remaining = limit+2*65536;
@@ -70,21 +76,28 @@ const counted = client.dshaBoundedUploadStream(new ReadableStream({pull(controll
 let bytes=0; const reader=counted.getReader();
 await assert.rejects(async()=>{for(;;){const item=await reader.read();if(item.done)break;bytes+=item.value.length;}},e=>e.details?.reason==='FILE_TOO_LARGE');
 assert(bytes<=limit);assert(cancelled);
-records.push({name:'actual-client-service-binary-transport-and-synthetic-unknown-5GB-plus-one',status:'PASS',transportPosts:posts,syntheticOnly:true,bytesPassed:bytes,sourceCancelled:true});
+records.push({name:'actual-client-service-binary-transport-and-synthetic-unknown-5GB-plus-one',status:'PASS',upstreamUploadImageUnchanged:true,transportPosts:posts,syntheticOnly:true,bytesPassed:bytes,sourceCancelled:true});
 
-const conversationSource = sources.get('@deepseek-ai/dsh-client-ui-conversation/lib/client.js');
-const draftStart = conversationSource.indexOf('createDrafts(sessionId, files) {');
+// conversation-large-image-file retirement proof: the raw locked composer stages
+// images through the binary upload route and intake rejects images over imageLimits.
+const conversationSource = fs.readFileSync(path.join(modules,'@deepseek-ai/dsh-client-ui-conversation/lib/client.js'),'utf8');
+assert.equal(conversationSource.includes('DSHA_LARGE_IMAGE_FILE_V1'),false);
+assert.equal(conversationSource.split('if (images.some((file) => file.size > imageLimits.maxImageBytes)) return t("image.fileTooLarge"').length,2);
+assert.equal(conversationSource.split('attachment.kind === "image" ? await this.ctx.fileUpload.uploadImage(sessionId, attachment.file,').length,2);
+const draftStart = conversationSource.indexOf('createDrafts(sessionId, files, uploadImages) {');
+assert(draftStart>0);
 const draftEnd = conversationSource.indexOf('\n\t\t\t/**',draftStart);
-let probes=0,rawUploads=0;
+let probes=0,uploadsStarted=[];
 const Drafts = vm.runInNewContext('class Drafts {'+conversationSource.slice(draftStart,draftEnd)+'}; Drafts', {
   randomUUID, browserDraftAttachment:file=>({kind:'image',id:randomUUID(),file}),
   probeDimensions(){probes++;},isImageMediaType:type=>type==='image/png'
 });
-const drafts = new Drafts(); drafts.draftAttachments=new Map();drafts.beginFileUpload=()=>rawUploads++;
-assert.equal(drafts.createDrafts('s',[{type:'image/png',size:20*1024*1024}])[0].kind,'image');
-assert.equal(drafts.createDrafts('s',[{type:'image/png',size:20*1024*1024+1}])[0].kind,'file');
-assert.equal(probes,1);assert.equal(rawUploads,1);
-records.push({name:'actual-composer-method-large-images-use-original-file',status:'PASS',imageModelPolicyUnchanged:true});
+const drafts = new Drafts(); drafts.draftAttachments=new Map();drafts.beginFileUpload=(sessionId,attachment)=>uploadsStarted.push(attachment.kind);
+assert.equal(drafts.createDrafts('s',[{type:'image/png',size:50*1024*1024}],true)[0].kind,'image');
+assert.equal(drafts.createDrafts('s',[{type:'text/plain',size:1}],true)[0].kind,'file');
+assert.equal(drafts.createDrafts('s',[{type:'image/png',size:1}],false)[0].kind,'image');
+assert.equal(probes,2);assert.deepEqual(uploadsStarted,['image','file']);
+records.push({name:'upstream-composer-binary-image-upload-retires-large-image-file',status:'PASS',imageUploadsUseBinaryRoute:true,intakeRejectsOverImageLimit:true});
 
 const serverModule = '@deepseek-ai/dsh-client-file-upload/lib/index.js';
 const serverSource = sources.get(serverModule);

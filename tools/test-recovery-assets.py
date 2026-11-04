@@ -217,7 +217,7 @@ class RecoveryAssetTests(unittest.TestCase):
             root=Path(temp);assets=root/'assets';(assets/'web-integration').mkdir(parents=True)
             (assets/'web-integration/es-compat.js').write_text('window.__ES_COMPAT__=true;',encoding='utf8')
             (assets/'web-integration/startup.js').write_text('window.__STARTUP__=true;',encoding='utf8')
-            (assets/'web-integration/language.js').write_text('function installDshaLanguageBridge(){}',encoding='utf8')
+            (assets/'web-integration/language.js').write_text('/* DSHA_UI_LANGUAGES_V3: fixture */\nfunction installDshaLanguageBridge(){}',encoding='utf8')
             (assets/browser_overlay.recipe_path(CURRENT_DSH, 'pdf-compat-patch.json')).parent.mkdir(parents=True)
             spec=dict(dshVersion=CURRENT_DSH,module=browser_overlay.TARGETS['client.pdf.js'].removeprefix(browser_overlay.PREFIX),
                       resourceModule=browser_overlay.TARGETS['client-resources.js'].removeprefix(browser_overlay.PREFIX),

@@ -338,14 +338,16 @@ try {
     assert.equal(f.effects, 0); assert.equal(f.approvals, 0);
   }), true);
   const raw = process.argv[2]; if (!portOnly) assert(raw, 'explicit locked official raw runtime is required');
-  for (const [asset, module] of [['guard-tools-patch.json', '@deepseek-ai/dsh-tools/lib/index.js'], ['guard-bash-patch.json', '@deepseek-ai/dsh-tool-bash/lib/index.js']]) {
+  // 0.2.2：attachPolicy 在 dsh-tools/lib/index.js，执行挂点在 dsh-tools/lib/pipeline.js。
+  for (const [asset, module] of [['guard-tools-patch.json', '@deepseek-ai/dsh-tools/lib/index.js'], ['guard-tools-pipeline-patch.json', '@deepseek-ai/dsh-tools/lib/pipeline.js'], ['guard-bash-patch.json', '@deepseek-ai/dsh-tool-bash/lib/index.js']]) {
     await test(asset + ' exact raw application and ESM parse without evaluation', async () => {
       const recipe = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/' + asset, import.meta.url), 'utf8'));
       let source = fs.readFileSync(path.join(raw, 'node_modules', module), 'utf8');
       assert.equal(crypto.createHash('sha256').update(source).digest('hex'), recipe.sourceSha256);
       for (const patch of recipe.patches) { assert.equal(source.split(patch.before).length - 1, 1); source = source.replace(patch.before, patch.after); }
       new vm.SourceTextModule(source);
-      if (asset === 'guard-tools-patch.json') assert(source.includes('await verifyGlobalConsent(exec);\n\t\t\tconst tool = this.resolveExecution('));
+      if (asset === 'guard-tools-patch.json') assert(source.includes('super(ctx, "tools");\n\t\tattachPolicy(this, ctx);'));
+      else if (asset === 'guard-tools-pipeline-patch.json') assert(source.includes('await verifyGlobalConsent(exec);\n\t\t\tconst tool = this.resolveExecution(exec.name, exec.agent, exec.parent !== void 0, exec.toolSet);\n\t\t\tif (!tool) throw new ToolNotFoundError(exec.name);\n\t\t\tverifyDispatch(this.tools, exec, tool);'));
       else assert(source.includes('await verifyGlobalConsent(exec);\n\t\t\t\tverifyBashRequest(exec, workdir);'));
     });
   }

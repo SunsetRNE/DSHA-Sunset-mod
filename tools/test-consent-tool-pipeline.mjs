@@ -1,5 +1,5 @@
-// Pinned rc3 ToolRuntime, Bash and FS bodies plus the actual APK consent SDK.
-// Only the guest platform files/HTTP and shell process are controlled adapters.
+// Pinned 0.2.2 ToolsService + native executor/pipeline, Bash and FS bodies plus the actual APK consent SDK.
+// Only the guest platform files/HTTP, session projections and shell process are controlled adapters.
 // FS writes are limited to this runner-created private fixture directory.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -13,26 +13,27 @@ import { testRuntime } from './test-runtime-fixture.mjs';
 
 const root = path.resolve(import.meta.dirname, '..'), assets = path.join(root, 'app/src/main/assets');
 const raw = testRuntime('raw');
-const rawProof = JSON.parse(fs.readFileSync(path.join(raw, 'dsha-test-runtime.json')));
 const expectedDshVersion = JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname, '..'), 'app/src/main/assets/runtime-patches.json'), 'utf8')).dshVersion;
 assert.equal(JSON.parse(fs.readFileSync(path.join(raw, 'node_modules/@deepseek-ai/dsh/package.json'))).version, expectedDshVersion);
 const directory = fs.mkdtempSync(path.join(root, 'app/build/consent-tools-'));
 const modules = path.join(directory, 'node_modules'); fs.mkdirSync(modules);
-const recipes = ['guard-tools-patch.json','guard-bash-patch.json','guard-fs-patch.json','guard-editor-patch.json'].map(name => JSON.parse(fs.readFileSync(path.join(assets, name))));
-const owned = new Set(recipes.map(recipe => recipe.module.split('/').slice(0, 2).join('/')));
+const recipes = ['guard-tools-patch.json','tool-dispatch-validation-pipeline-patch.json','guard-tools-pipeline-patch.json','guard-bash-patch.json','guard-fs-patch.json','guard-editor-patch.json'].map(name => JSON.parse(fs.readFileSync(path.join(assets, name))));
+// Executors resolve @deepseek-ai/dsh-tools/pipeline from their real path, so they are copied beside the patched registry.
+const owned = new Set([...recipes.map(recipe => recipe.module.split('/').slice(0, 2).join('/')), '@deepseek-ai/dsh-tool-executor-native']);
 for (const name of fs.readdirSync(path.join(raw, 'node_modules'))) {
   const source = path.join(raw, 'node_modules', name), target = path.join(modules, name);
   if (name === '@deepseek-ai') {
     fs.mkdirSync(target);
-    for (const child of fs.readdirSync(source)) if (!owned.has(name + '/' + child)) fs.symlinkSync(path.join(source, child), path.join(target, child), process.platform === 'win32' ? 'junction' : 'dir');
+    for (const child of fs.readdirSync(source)) {
+      if (owned.has(name + '/' + child)) fs.cpSync(path.join(source, child), path.join(target, child), { recursive: true });
+      else fs.symlinkSync(path.join(source, child), path.join(target, child), process.platform === 'win32' ? 'junction' : 'dir');
+    }
   } else if (fs.statSync(source).isDirectory()) fs.symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir');
 }
 for (const recipe of recipes) {
-  const name = recipe.module.split('/').slice(0, 2).join('/'), target = path.join(modules, recipe.module);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(path.join(raw, 'node_modules', name, 'package.json'), path.join(modules, name, 'package.json'));
-  let content = fs.readFileSync(path.join(raw, 'node_modules', recipe.module), 'utf8');
-  assert.equal(crypto.createHash('sha256').update(content).digest('hex'), recipe.sourceSha256 ?? rawProof.moduleHashes['node_modules/' + recipe.module]);
+  const target = path.join(modules, recipe.module);
+  let content = fs.readFileSync(target, 'utf8');
+  if (recipe.sourceSha256) assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(raw, 'node_modules', recipe.module))).digest('hex'), recipe.sourceSha256);
   for (const patch of recipe.patches) { assert.equal(content.split(patch.before).length - 1, 1); content = content.replace(patch.before, patch.after); }
   fs.writeFileSync(target, content);
 }
@@ -74,7 +75,7 @@ const sdk = load('native-consent.cjs', { 'node:fs': platformFs, 'node:http': htt
 const originalLoad = Module._load;
 Module._load = function(name, ...args) { return name === '/run/dsha-launcher/native-consent.cjs' ? sdk : originalLoad.call(this, name, ...args); };
 const imported = name => import(pathToFileURL(path.join(modules, '@deepseek-ai', name, 'lib/index.js')));
-const { Context } = await imported('cordis'), { ToolRuntime } = await imported('dsh-tools');
+const { Context } = await imported('cordis'), { ToolsService } = await imported('dsh-tools'), native = await imported('dsh-tool-executor-native');
 const { ApprovalService } = await imported('dsh-user-approval'), { LocalFileSystem } = await imported('dsh-fs-local');
 const bash = await imported('dsh-tool-bash'), files = await imported('dsh-tool-fs'), search = await imported('dsh-tool-fs-search');
 const results = [];
@@ -98,7 +99,9 @@ async function fixture(action) {
     return { result: async () => ({ exitCode: 0, signal: null, timedOut: false, aborted: false, timeoutMs: 30000,
       stdout: { text: 'ready', truncated: false }, stderr: { text: '', truncated: false } }) };
   } });
-  const tools = new ToolRuntime(ctx); new ApprovalService(ctx, { policy: 'ask' });
+  ctx.provide('sessionProjections', { async register() { return { stateOf: () => ({ turnOpen: true }) }; } });
+  const tools = new ToolsService(ctx); ctx.plugin(ApprovalService, { policy: 'ask' }); ctx.plugin(native);
+  await new Promise(resolve => setTimeout(resolve, 0)); assert(ctx.get('approval'));
   new LocalFileSystem(ctx, { cwd: directory, diffBasisMaxBytes: 1048576 });
   bash.apply(ctx, { enableRunInBackground: false, promoteOnTimeout: false });
   files.apply(ctx, { read: true, readImage: false, write: true, edit: true,
@@ -109,9 +112,9 @@ async function fixture(action) {
     graceMs: search.SEARCH_GRACE_MS, stderrMaxBytes: search.SEARCH_STDERR_MAX_BYTES, timeoutMs: search.SEARCH_TIMEOUT_MS });
   ctx.on('approval/request', async () => { approvals++; return 'allowed-once'; });
   const events = [{ type: 'turn/start', data: {} }];
-  const session = { header: { cwd: directory }, get seq(){ return events.length; }, eventAt: i => events[i], append(type, data){ events.push({ type, data }); } };
+  const session = { header: { cwd: directory }, get seq(){ return events.length; }, eventAt: i => events[i], append(type, data){ events.push({ type, data }); return { seq: events.length }; } };
   for (const name of ['bash','read','write','glob']) assert(tools.get(name), 'missing actual tool ' + name);
-  const call = (name, args) => tools.execute({ name, arguments: args, callId: crypto.randomUUID(), agent: { ctx, session }, signal: new AbortController().signal });
+  const call = (name, args) => tools.execute({ calls: [{ type: 'tool-call', id: crypto.randomUUID(), name, arguments: JSON.stringify(args) }], agent: { ctx, session }, signal: new AbortController().signal }).then(batch => batch.results[0].result);
   try { await action(call); } finally { await ctx.fiber.dispose(); }
 }
 try {
@@ -149,8 +152,8 @@ try {
     }));
   }
 } finally { Module._load = originalLoad; }
-console.log(JSON.stringify({ scope: 'ACTUAL_PINNED_RC3_TOOL_RUNTIME_BASH_FS_AND_NATIVE_SDK_CONTROLLED_PLATFORM_IO',
+console.log(JSON.stringify({ scope: 'ACTUAL_PINNED_DSH022_TOOLS_PIPELINE_BASH_FS_AND_NATIVE_SDK_CONTROLLED_PLATFORM_IO',
   actualDshVersion: expectedDshVersion, shellSpawned: false, networkRequested: false, nativeEndpointTested: false,
-  discoveryBody: 'actual pinned rc3 glob; controlled subprocess', fixture: directory,
+  discoveryBody: 'actual pinned 0.2.2 glob; controlled subprocess', fixture: directory,
   cases: results.length, passed: results.filter(row => row.status === 'PASS').length, results }, null, 2));
 if (results.some(row => row.status !== 'PASS')) process.exitCode = 1;

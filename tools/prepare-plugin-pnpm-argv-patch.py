@@ -9,7 +9,7 @@ from source_text import write_text, matches_text
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
 MODULE = '@deepseek-ai/dsh-plugin-manager/lib/index.js'
-SOURCE_SHA = '1b8bf9eb266d7b3b7f899175e3f435c89ed8baa8aabc677212759f8c6cd23132'
+SOURCE_SHA = '6f0fdc6a6e4cd2bc9d969ba582636729ade450e415f0fc20bbef9da3f65823f3'
 NAME = 'plugin-pnpm-argv-patch.json'
 
 
@@ -19,7 +19,7 @@ def generate(modules):
         raise ValueError('PLUGIN_PNPM_ARGV_OFFICIAL_SOURCE_CHANGED')
     package = json.loads((modules / '@deepseek-ai/dsh-plugin-manager/package.json').read_text(encoding='utf8'))
     lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
-    if package['version'] != '0.2.1-rc.5' or lock['packages']['node_modules/@deepseek-ai/dsh-plugin-manager']['version'] != package['version']:
+    if package['version'] != '0.2.2-rc.1' or lock['packages']['node_modules/@deepseek-ai/dsh-plugin-manager']['version'] != package['version']:
         raise ValueError('PLUGIN_PNPM_ARGV_VERSION_CHANGED')
     policy = json.loads((ASSETS / 'plugin-manager-policy-patch.json').read_text(encoding='utf8'))
     old = policy['patches'][0]['after']
@@ -47,7 +47,7 @@ def generate(modules):
 		options = { ...options, args: prefix.slice(0, -policyFlags.length) };
 		args = [...args, ...policyFlags];
 	}'''
-    return dict(version=1, dshVersion='0.2.1-rc.5', module=MODULE, sourceSha256=SOURCE_SHA,
+    return dict(version=1, dshVersion='0.2.2-rc.1', module=MODULE, sourceSha256=SOURCE_SHA,
                 patches=[dict(before=old, after=old + added)])
 
 
@@ -66,7 +66,7 @@ def main():
         write_text(target, text, encoding='utf8')
     elif not matches_text(target, text, encoding='utf8'):
         raise ValueError('PLUGIN_PNPM_ARGV_RECIPE_STALE')
-    print('PASS plugin pnpm argv recipe: exact rc5 source / preserved V2 / command-first V3')
+    print('PASS plugin pnpm argv recipe: exact 0.2.2-rc.1 source / preserved V2 / command-first V3')
 
 
 if __name__ == '__main__':

@@ -318,7 +318,7 @@ proroot 中 Git 源码 prepare 调用原生 Go 工具时，可能遇到内核可
 
 原raw/F12的`FileUploads.registerAgentResolver`把函数直接保存在Service属性；Cordis tracing读取后包装为新Proxy，使disposer的函数`===`比对失败，旧slot残留。实际Cordis及原raw/managed模块已复现registry/`SessionController`停启后重复注册错误。这是独立于目录组合的已证路径，不能由健康启动或目录专项结果覆盖，也不能推广成所有插件故障或手机截图唯一原因。
 
-[窄生命周期补丁](../app/src/main/assets/file-upload-resolver-lifecycle-patch.json)只在锁定file-upload模块使用稳定`{ resolve }`对象持有该次注册，disposer按对象身份清理，调用时解出函数。保留live重复注册拒绝、旧disposer围栏、真实上传接收与session回执检查，不重播上传、不删旧附件或工作区内容。专项已完成原CLI（不含目录补丁）重复错误负控，以及只加载附件补丁的两轮workspace停启applied、raw/typed上传实际字节落盘读回、冷进程同Session上传/列表保留；鉴权、foreignOrigin、415/400及未知Session拒绝仍保留。真实Cordis/Commands/LocalAttachmentStore核对live重复、旧disposer、owner退休与同Session回执，入口为[test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。这不是目录+附件组合或最终共享运行时/APK通过；软件范围不扩大为所有附件端到端、账号/模型或真机矩阵，最终组合门禁由负责人另跑。
+窄生命周期补丁（rc.5 起，`file-upload-resolver-lifecycle-patch.json`）（DSH 0.2.2-rc.1 上游已改用稳定的 `agentResolution={resolver}` 数据对象，该配方已退休；退休证明见 [test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。）只在锁定file-upload模块使用稳定`{ resolve }`对象持有该次注册，disposer按对象身份清理，调用时解出函数。保留live重复注册拒绝、旧disposer围栏、真实上传接收与session回执检查，不重播上传、不删旧附件或工作区内容。专项已完成原CLI（不含目录补丁）重复错误负控，以及只加载附件补丁的两轮workspace停启applied、raw/typed上传实际字节落盘读回、冷进程同Session上传/列表保留；鉴权、foreignOrigin、415/400及未知Session拒绝仍保留。真实Cordis/Commands/LocalAttachmentStore核对live重复、旧disposer、owner退休与同Session回执，入口为[test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。这不是目录+附件组合或最终共享运行时/APK通过；软件范围不扩大为所有附件端到端、账号/模型或真机矩阵，最终组合门禁由负责人另跑。
 
 ## 六、配置与凭据
 

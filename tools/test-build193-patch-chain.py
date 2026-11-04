@@ -167,7 +167,7 @@ def main():
     assets = ROOT / 'app/src/main/assets'
     manifest = json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))
     version = manifest['dependencies']['@deepseek-ai/dsh']
-    assert version == '0.2.1-rc.5', 'BUILD213_REQUIRES_REVIEWED_RC5'
+    assert version == '0.2.2-rc.1', 'S1_REQUIRES_REVIEWED_0_2_2_RC1'
     lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
     chains, _ = runtime_stable_patches.load_chains(assets, version)
     registered = {name for rows in chains.values() for name, _, _ in rows}

@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.5",
+  "dshVersion": "0.2.2-rc.1",
   "module": "@deepseek-ai/dsh-client-ui-settings-account/lib/client.js",
-  "sourceSha256": "69a3c6046acf855948e39e30802613b444307c1f32724baa99864a1a6b2ef025",
-  "packageIntegrity": "sha512-AR2EV2wdmf2oNku22WqUws/qbj0/aTls4TaMqUPvr/DJfA0RVcVjj+NZRZA8thwaNt23C5mAc82U9M6LkB5eaQ==",
+  "sourceSha256": "0482b179466e1aaae6d7ff5738f679a8a62b39a0f1c496bda64bef342eb7b7e0",
+  "packageIntegrity": "sha512-lqUd3fEaEYB9q9qCM7dXxS0VWn2Hmya0YHEdvvKc/8bcWO0HRqYncvE9MS4k734oEPMrq/K3L+BjjxCPO2aMWQ==",
   "purpose": "Keep the native authenticated DSH page alive while the host opens the exact DeepSeek authorization endpoint; preserve the official ordinary-browser popup and all state/PKCE/account protocol behavior.",
   "patches": [
     {

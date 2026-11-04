@@ -8,14 +8,14 @@ from source_text import write_text, matches_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
-VERSION = '0.2.1-rc.5'
+VERSION = '0.2.2-rc.1'
 SERVER = '@deepseek-ai/dsh-client-file-upload/lib/index.js'
 CLIENT = '@deepseek-ai/dsh-client-file-upload/lib/client.js'
-CONVERSATION = '@deepseek-ai/dsh-client-ui-conversation/lib/client.js'
+# 0.2.2-rc.1 起图片走上游二进制 uploadImage 且入口按 imageLimits 拒绝超限图片，
+# conversation-large-image-file 已退休；图片路由由上游 readAtMost 按图片上限读取。
 HASHES = {
-    SERVER: '5dd5bd2d20656a1edeb1366e6b878afb04db519d2ba400135cb020ef037912fb',
-    CLIENT: '4c09378ab7cb3dbe58253bd1fad8c4a00ebf5a93b462d96623edb7bd4e566305',
-    CONVERSATION: 'cfbd9fd95b0509f7c93a22a62a67ebc10481c8eda611704ea50c2e195b9a5a69',
+    SERVER: 'b17e3621ce127ceb4f68919acdeeac64c54cf64c5d42429be8a7a65b5d20bbfe',
+    CLIENT: 'a96d8423b318b76bdda4b138a89c72cfc5492b95b9cfaad3cbc0cb3f188ebec3',
 }
 
 
@@ -65,19 +65,20 @@ async function* dshaUploadChunks(data, state) {
     patch(SERVER, '\tconst reader = body.getReader();\n\ttry {', '\tconst reader = body.getReader();\n\tlet complete = false;\n\ttry {')
     patch(SERVER, '\t\t\tif (chunk.done) return;', '\t\t\tif (chunk.done) { complete = true; return; }')
     patch(SERVER, '\t} finally {\n\t\treader.releaseLock();', '\t} finally {\n\t\tif (!complete) await reader.cancel().catch(() => {});\n\t\treader.releaseLock();')
-    patch(SERVER, '\t\t\tsignal.throwIfAborted();\n\t\t\treturn this.commit(agent, async () => this.ctx.attachments.admitEncodedFile({', '''			signal.throwIfAborted();
+    patch(SERVER, '\t\t\tsignal.throwIfAborted();\n\t\t\tconst file = await this.store(agent, async () => this.ctx.attachments.admitEncodedFile({', '''			signal.throwIfAborted();
 			// Legacy RPC callers retain validation; browser files always use the binary route.
 			const encoded = request.data;
 			const padding = encoded.endsWith("==") ? 2 : encoded.endsWith("=") ? 1 : 0;
 			if (Math.floor(encoded.length / 4) * 3 - padding > DSHA_UPLOAD_FILE_LIMIT) throw dshaUploadTooLarge();
-			return this.commit(agent, async () => this.ctx.attachments.admitEncodedFile({''')
+			const file = await this.store(agent, async () => this.ctx.attachments.admitEncodedFile({''')
     start = sources[SERVER].index('\t\tasync uploadStream(request) {')
     end = sources[SERVER].index('\n\t\t/**', start)
     patch(SERVER, sources[SERVER][start:end], '''		async uploadStream(request) {
 			const agent = await this.resolveAgent(request.sessionId);
 			const state = { exceeded: false };
+			let file;
 			try {
-				return await this.commit(agent, async () => this.ctx.attachments.saveFileStream({
+				file = await this.store(agent, async () => this.ctx.attachments.saveFileStream({
 					data: dshaUploadChunks(request.data, state),
 					...request.signal === void 0 ? {} : { signal: request.signal },
 					...request.name === void 0 ? {} : { name: request.name }
@@ -88,6 +89,13 @@ async function* dshaUploadChunks(data, state) {
 				if (state.exceeded) throw dshaUploadTooLarge();
 				throw error;
 			}
+			return {
+				receiptId: this.stage(agent, {
+					type: "file",
+					attachment: file
+				}),
+				file
+			};
 		}''')
 
     start = sources[CLIENT].index('\t\tfunction bytesToBase64(data) {')
@@ -118,7 +126,7 @@ async function* dshaUploadChunks(data, state) {
 			});
 		}''')
     start = sources[CLIENT].index('\t\t\tasync upload(sessionId, data, name, signal, onProgress) {')
-    end = sources[CLIENT].index('\n\t\t};', start)
+    end = sources[CLIENT].index('\n\t\t\t/**', start)
     patch(CLIENT, sources[CLIENT][start:end], '''			async upload(sessionId, data, name, signal, onProgress) {
 				signal?.throwIfAborted();
 				if (data instanceof Uint8Array) data = new Blob([data]);
@@ -126,28 +134,17 @@ async function* dshaUploadChunks(data, state) {
 				if (data instanceof ReadableStream) data = dshaBoundedUploadStream(data);
 				const query = new URLSearchParams({ sessionId });
 				if (name !== void 0) query.set("name", name);
-				const response = await this.post({
-					path: `${FILE_UPLOAD_ROUTE}?${query.toString()}`,
-					body: data,
-					headers: { "content-type": "application/octet-stream" },
-					...signal === void 0 ? {} : { signal },
-					...onProgress === void 0 ? {} : { onProgress }
-				});
-				if (response.status !== 200) throw new Error(`file upload transport failed with HTTP ${String(response.status)}`);
-				return parseFileUploadResult(response.body);
+				// Prompt images keep upstream uploadImage(): Blob only, bounded by Host imageLimits.
+				return parseUploadResult(await this.postRaw(query, data, signal, onProgress), fileUploadValue);
 			}''')
     patch(CLIENT, '\t\t\t\t\tif (request.body instanceof ReadableStream) worker.postMessage(message, [request.body]);\n\t\t\t\t\telse worker.postMessage(message);', '''					try {
 						if (request.body instanceof ReadableStream) worker.postMessage(message, [request.body]);
 						else worker.postMessage(message);
 					} catch (error) { finish(() => reject(error)); }''')
-    patch(CONVERSATION, '\t\t\t\t\tif (isImageMediaType(file.type)) {', '''					// DSHA_LARGE_IMAGE_FILE_V1: retain the model's 20MiB/200MiB and pixel limits.
-					// Larger images travel as their original file, without FileReader/base64 or image decode.
-					if (isImageMediaType(file.type) && file.size <= 20 * 1024 * 1024) {''')
 
     results = {}
     for name, module in [('file-upload-capacity-patch.json', SERVER),
-                         ('file-upload-binary-client-patch.json', CLIENT),
-                         ('conversation-large-image-file-patch.json', CONVERSATION)]:
+                         ('file-upload-binary-client-patch.json', CLIENT)]:
         recipe = dict(version=1, dshVersion=VERSION, module=module,
                       sourceSha256=HASHES[module],
                       packageIntegrity=lock['packages']['node_modules/' + module.split('/lib/')[0]]['integrity'],

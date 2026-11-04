@@ -1,4 +1,4 @@
-// dsh-fs-search-scope 回归：真实 rc.5 managed 运行时（含 DSHA 必经策略补丁）的 ToolRuntime +
+// dsh-fs-search-scope 回归：真实 0.2.2 managed 运行时（含 DSHA 必经策略补丁）的 ToolsService + 原生执行器 +
 // dsh-subprocess-local + dsh-tool-fs-search 组合。夹具是系统临时目录下的 git 仓库与链接工作树：
 // 放在 app/build 下会落进本仓库自己的 .agents/worktrees，插件按设计不剪枝，测不到。
 // 「上游契约」用例失败即说明上游 glob 形状变了，按 docs/fs-search-scope-plugin.md 评估撤除插件。
@@ -14,7 +14,8 @@ const root = path.resolve(import.meta.dirname, '..');
 const managed = testRuntime('managed'), modules = path.join(managed, 'node_modules');
 const load = name => import(pathToFileURL(path.join(modules, name)));
 const { Context } = await load('@deepseek-ai/cordis/lib/index.js');
-const { ToolRuntime } = await load('@deepseek-ai/dsh-tools/lib/index.js');
+const { ToolsService } = await load('@deepseek-ai/dsh-tools/lib/index.js');
+const native = await load('@deepseek-ai/dsh-tool-executor-native/lib/index.js');
 const { LocalSubprocessRuntime } = await load('@deepseek-ai/dsh-subprocess-local/lib/index.js');
 const search = await load('@deepseek-ai/dsh-tool-fs-search/lib/index.js');
 
@@ -53,12 +54,14 @@ async function harness({ plugin = true, workdir = repo } = {}) {
   prompt.sections.length = 0;
   ctx.provide('systemPrompt', prompt);
   ctx.provide('workingDirectory', { async ensure() { return workdir; }, get() { return workdir; } });
-  new ToolRuntime(ctx);
+  new ToolsService(ctx);
+  ctx.plugin(native);
+  await new Promise(resolve => setTimeout(resolve, 0));
   new LocalSubprocessRuntime(ctx);
   await search.apply(ctx, config);
   if (plugin) await scope.apply(ctx);
   const session = { header: { cwd: workdir }, seq: 1, eventAt() { return { type: 'turn/start', data: {} }; }, append() {} };
-  const glob = args => ctx.tools.execute({ name: 'glob', arguments: args, callId: 'scope-' + calls++, agent: { ctx, session }, signal: new AbortController().signal });
+  const glob = args => ctx.tools.execute({ calls: [{ type: 'tool-call', id: 'scope-' + calls++, name: 'glob', arguments: JSON.stringify(args) }], agent: { ctx, session }, signal: new AbortController().signal }).then(batch => batch.results[0].result);
   return { ctx, glob };
 }
 const text = result => result.content?.[0]?.text ?? '';
@@ -186,7 +189,7 @@ try {
     assert.deepEqual(scope.pruneGlobs({ workdir: '/w', linked: ['/w/n', '/elsewhere', '/w/.agents/worktrees/a'] }), ['!**/.agents/worktrees', '!n', '!**/w/n']);
   });
 
-  console.log(JSON.stringify({ status: 'PASS', cases, realRc5: true, runtime: managed }));
+  console.log(JSON.stringify({ status: 'PASS', cases, realDsh022: true, runtime: managed }));
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });
 }

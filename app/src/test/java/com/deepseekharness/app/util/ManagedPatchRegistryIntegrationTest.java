@@ -13,7 +13,6 @@ public class ManagedPatchRegistryIntegrationTest {
           "deepseek-web-search-headers-patch.json",
           "file-upload-capacity-patch.json",
           "file-upload-binary-client-patch.json",
-          "conversation-large-image-file-patch.json",
           "file-deliverables-patch.json",
           "file-image-actions-patch.json");
   private static final Set<String> BUILD193_RECIPES = Set.of("plugin-pnpm-argv-patch.json");

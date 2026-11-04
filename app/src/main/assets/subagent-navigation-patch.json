@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.1-rc.5",
+  "dshVersion": "0.2.2-rc.1",
   "module": "@deepseek-ai/dsh-client-ui-subagent/lib/client.js",
   "patches": [
     {
@@ -19,6 +19,6 @@
       "after": "className: SubagentHeaderLineage_module_css_default.menu + \" dsha-lineage-menu\","
     }
   ],
-  "sourceSha256": "18dab257ed94d91d66ce0e5d90836fa9ed49349e04cee04a3e30dc7f834ccb25",
-  "packageIntegrity": "sha512-YT8NcDLbW/zRD76ix6yv6FvNoDKjXoTAYbpRiZnkYytUirDrvl8YvFZe2NKKBVJPaSJ1WV0zpccBfbt5a2ws7A=="
+  "sourceSha256": "2ed50b153fcd3333194f423851867172e2ce13fb8b2f8dd23082cca8d66b4b99",
+  "packageIntegrity": "sha512-tg9bsNiGB7VFxvYdui3Gec7qL4vRvtRdyFGTZRvMOH8CMaybJdWM2IAjrVq1GbjLwArjuxYLBbps4WrcsLL0PA=="
 }

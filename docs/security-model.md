@@ -23,6 +23,12 @@
 
 插件可以在应用 UID 下读写可访问文件并执行代码。自动安装不是独立安全认证。受管系统组件与用户插件分层；系统组件从当前签名 APK 重建，用户修改和个人依赖不得被当作缓存清掉。
 
+### AI 工具破坏性策略（DSH 0.2.2）
+
+DSH 0.2.2 把工具执行移到 `dsh-tools/lib/pipeline.js` 的 `ToolExecutionPipeline`，原生执行器与 PTC（`run_code` 及其嵌套调用）共用它。签名补丁 `guard-tools-patch.json`（`attachPolicy`）与 `guard-tools-pipeline-patch.json`（`captureExecution` / `prepareOperation` / `verifyGlobalConsent` / `verifyDispatch`）共同生效：bash 删除/不透明命令与 write/edit/str_replace_editor 覆盖已有文件，在两种执行器下都须原生全局允许、会话 danger-full-access 档位或一次性网页审批。任一挂点缺失时 bash 与文件改写一律失败，不放行。
+
+上游新增的 `apply_patch`（dsh-tool-fs，可新建、改写、删除、移动文件）**不在**此策略内：`prepareOperation` 对它不要求同意，guard-fs 也未包装它的 `fs/write|edit|delete-intent`。上游默认关闭（`Config.applyPatch=false`；dsh-base 与 web 的 standard / ptc / cordis / minimal 预设都不开启，DSHA 不改这些配置），按用户决定不加 DSHA 拒绝补丁。用户若在 profile `cordis.patch.yml` 中覆盖某预设的 `tool-fs` 行为 `config.applyPatch: true`（或由插件自行注册同名工具），该工具即可在无审批、无先读校验（0.2.2 默认停用 fs-observation-policy）、danger-full-access 下无路径边界的情况下删除或覆盖文件；DSHA 仅保留执行身份冻结、工具身份与取消核验。
+
 ## 设备与浏览器能力
 
 Root、Shizuku、ADB 在发送前选择实际通道；设备命令由原生与特权执行侧策略检查。Root 通道另有用户可选的 strict / relaxed / full 三档拦截：strict 为默认白名单；relaxed 放行任意命令但拦截格式化、刷机、写块设备、重启、清应用数据及递归删除整块用户数据等不可逆操作；full 不按命令内容拦截。三档都要求 root shell 开关与真实 su 身份，短信读取闸门在三个档位都保留；Shizuku、ADB 通用执行器与普通设备命令继续使用 strict。短信、虚拟屏、截图/读屏、录音和存储仍依赖对应原生授权与 Android 实际权限；未知命令的确认不能替代设备身份核验。结果未知时不得换通道重放。

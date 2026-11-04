@@ -279,12 +279,11 @@ tasks.named('preBuild').configure { dependsOn(verifyBundledIdentities, verifyBui
 def verifyWebLanguages = tasks.register('verifyWebLanguages', Exec) {
     inputs.files(rootProject.files('tools/prepare-web-languages.py', 'tools/web_language_catalog.py',
             'tools/source_text.py', 'tools/ui_language_catalog.py',
-            'tools/i18n/web-messages.json', 'tools/i18n/web-language-bridge.js',
-            'tools/fixtures/language-v1-patch.json'))
+            'tools/i18n/web-messages.json', 'tools/i18n/web-language-bridge.js'))
     inputs.files(rootProject.fileTree('tools/i18n/web-translations') { include '*.json' })
     inputs.files(files('src/main/assets/web-integration/language.js',
             'src/main/assets/language-patch.json',
-            'src/main/assets/recovery-recipes/0.2.1-rc.5/language-patch.json'))
+            'src/main/assets/recovery-recipes/0.2.2-rc.1/language-patch.json'))
     commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
             rootProject.file('tools/prepare-web-languages.py').absolutePath,
             '--catalog-only', '--check')

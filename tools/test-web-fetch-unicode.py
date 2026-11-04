@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the signed web-fetch patch recipes against the actual bundled rc5 code."""
+"""Exercise the signed web-fetch patch recipes against the actual bundled 0.2.2-rc.1 code."""
 import json
 from pathlib import Path
 import subprocess
@@ -57,7 +57,7 @@ def main():
             path.write_bytes(patched)
             paths.append(str(path))
         subprocess.run(['node', str(ROOT / 'tools/test-web-fetch-unicode.mjs'), *paths], check=True, cwd=ROOT)
-    print('PASS bundled rc5 exact anchors, idempotent managed recipes, drift rejection and executed Unicode boundaries')
+    print('PASS bundled 0.2.2-rc.1 exact anchors, idempotent managed recipes, drift rejection and executed Unicode boundaries')
 
 
 if __name__ == '__main__':

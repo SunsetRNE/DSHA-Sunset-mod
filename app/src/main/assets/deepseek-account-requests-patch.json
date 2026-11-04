@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.5",
+  "dshVersion": "0.2.2-rc.1",
   "module": "@deepseek-ai/dsh-deepseek-account-platform/lib/index.js",
   "sourceSha256": "3b82b41e3e94566e43105a2552c0a4804983be39e1e16ad8b0d0646c76ec0057",
-  "packageIntegrity": "sha512-Z5/IB1bu5zM6FLEaNZwNgq0J/2eM0Qt6TxNuO8a4XjPRgpU6CYXksR9ztr0iCu0TSIcpKnYPDfZ39uBI/DlXPw==",
+  "packageIntegrity": "sha512-WlaiEThGHIJt272YSS1LF/hh6b/sOmi/TDMctpzgsbNLQ22YJDoft3sAT0fm8GetOuti+RT5bFtUkZ+izcU6cQ==",
   "purpose": "Coalesce only equivalent in-flight profile reads; preserve credential and wire behavior; log bounded non-secret HTTP diagnostics as one string.",
   "patches": [
     {

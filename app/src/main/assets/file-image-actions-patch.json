@@ -1,17 +1,13 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.5",
-  "module": "@deepseek-ai/dsh-client-ui-attachment/lib/client.js",
-  "sourceSha256": "cdb497656ed0e66f011125df22791f6f579c85710d2d915020ddcfe6c0f58072",
-  "packageIntegrity": "sha512-YKxkCuNhsjixm3ni32eCb1n3TNWOjf9wT9It0Kp/kE5Wz33vvZRbEtQquMfMNLoemvPElnzFt6jmphZgJR7mrQ==",
+  "dshVersion": "0.2.2-rc.1",
+  "module": "@deepseek-ai/dsh-client-ui-file-actions/lib/client.js",
+  "sourceSha256": "437f70ba26ff1a11efc0aeb547e3a799948f55e8cabef69839dbc481e96ed40d",
+  "packageIntegrity": "sha512-S+A/paMumirh2V89M/yOrmsCJELMaooAzqNC9k6bNWv36NFskYqBlF39lFFkdsYVtZki7nwo8DSwsiVI2PU5cA==",
   "patches": [
     {
-      "before": "\t\t\t\t\"aria-busy\": loadingThumbnail || void 0,\n\t\t\t\tonClick: () => {\n\t\t\t\t\tif (src !== null) setOpen(true);\n\t\t\t\t},",
-      "after": "\t\t\t\t\"aria-busy\": loadingThumbnail || void 0,\n\t\t\t\t// DSHA_IMAGE_ACTIONS_RC2_V1: this owned image's original authorized Blob URL.\n\t\t\t\tonContextMenu: event => {\n\t\t\t\t\tif (window.DSHAFileTransfer?.imageMenu(src, label)) { event.preventDefault(); event.stopPropagation(); }\n\t\t\t\t},\n\t\t\t\tonPointerDown: event => window.DSHAFileTransfer?.imageDown(event, src, label),\n\t\t\t\tonPointerMove: event => window.DSHAFileTransfer?.imageMove(event),\n\t\t\t\tonPointerUp: () => window.DSHAFileTransfer?.imageEnd(),\n\t\t\t\tonPointerCancel: () => window.DSHAFileTransfer?.imageEnd(),\n\t\t\t\tonClick: event => {\n\t\t\t\t\tif (window.DSHAFileTransfer?.imageClick(event)) return;\n\t\t\t\t\tif (src !== null) setOpen(true);\n\t\t\t\t},"
-    },
-    {
-      "before": "\t\t\t\tonClose: close\n\t\t\t})] });",
-      "after": "\t\t\t\tonClose: close\n\t\t\t}), open && src !== null && typeof window.DSHA?.saveImage === \"function\" && (0, react_dom.createPortal)((0, react_jsx_runtime.jsx)(\"button\", {\n\t\t\t\ttype: \"button\", \"data-dsha-image-save\": true,\n\t\t\t\tonClick: () => window.DSHAFileTransfer?.imageMenu(src, label),\n\t\t\t\tchildren: document.documentElement.lang?.startsWith(\"zh\") ? \"保存到相册\" : \"Save to gallery\"\n\t\t\t}), document.body)] });"
+      "before": "\t\t\t\t\treturn [\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\tid: \"copy\",\n\t\t\t\t\t\t\ticon: { key: \"file-actions.copy\" },",
+      "after": "\t\t\t\t\treturn [\n\t\t\t\t\t\t// DSHA_IMAGE_GALLERY_MENU_V1: Android only. The native bridge saves the\n\t\t\t\t\t\t// original same-origin Blob to the system gallery; browsers keep upstream rows.\n\t\t\t\t\t\t...typeof window.DSHA?.saveImage === \"function\" && typeof window.DSHAFileTransfer?.imageMenu === \"function\" && typeof source.url === \"string\" && source.url.startsWith(\"blob:\" + location.origin + \"/\") ? [{\n\t\t\t\t\t\t\tid: \"dsha.saveToGallery\",\n\t\t\t\t\t\t\ticon: { key: \"file-actions.save\" },\n\t\t\t\t\t\t\tfailureLabel: t(\"menu.saveFailed\"),\n\t\t\t\t\t\t\tlabel: document.documentElement.lang?.startsWith(\"zh\") ? \"保存到相册\" : \"Save to gallery\",\n\t\t\t\t\t\t\trun: () => {\n\t\t\t\t\t\t\t\tif (!window.DSHAFileTransfer?.imageMenu(source.url, source.name)) throw new Error(\"Gallery save unavailable\");\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}] : [],\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\tid: \"copy\",\n\t\t\t\t\t\t\ticon: { key: \"file-actions.copy\" },"
     }
   ]
 }

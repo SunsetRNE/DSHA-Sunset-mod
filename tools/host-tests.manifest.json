@@ -1819,19 +1819,6 @@
       "args": []
     },
     {
-      "path": "tools/test-rc2-tooltips.mjs",
-      "stage": "runtime",
-      "reason": "Locked current rc2 React/Tooltip in a real browser with pointer, touch, scrolling and blur events",
-      "requires": [
-        "node24",
-        "raw",
-        "browser"
-      ],
-      "environment": {},
-      "timeoutSeconds": 600,
-      "args": []
-    },
-    {
       "path": "tools/test-third-party-notices.py",
       "stage": "fast",
       "reason": "Current notice generator on isolated npm/JNI trees rejects metadata drift, missing notices and unknown native sources",

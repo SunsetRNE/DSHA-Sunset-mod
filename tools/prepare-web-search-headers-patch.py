@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the narrow, hash-locked rc5 web-search header/preflight recipe."""
+"""Generate the narrow, hash-locked 0.2.2-rc.1 web-search header/preflight recipe."""
 import argparse
 import hashlib
 import json
@@ -7,9 +7,9 @@ from pathlib import Path
 from source_text import matches_text, write_text
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.2.1-rc.5'
+VERSION = '0.2.2-rc.1'
 MODULE = '@deepseek-ai/dsh-web-search-deepseek/lib/index.js'
-SOURCE_SHA = 'fc13dd4eaba3c9298af41a4d0559a1b8bb61614462fe18ba6e76d8c598c332bd'
+SOURCE_SHA = '6bde60f4f8a8bf807d588ae3630d7374358a417b241887716fda9deb67b79ea4'
 ASSET = 'deepseek-web-search-headers-patch.json'
 
 HELPERS = r'''// DSHA_WEB_SEARCH_HEADERS_V1: validate without normalizing or disclosing a credential.

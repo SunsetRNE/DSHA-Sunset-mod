@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate exact rc5 file-slot and owned image actions recipes from locked npm originals."""
+"""Generate exact file-slot and image gallery-menu recipes from locked npm originals."""
 import argparse
 import hashlib
 import json
@@ -10,12 +10,15 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
 from source_text import write_text, matches_text
 
-VERSION = '0.2.1-rc.5'
+VERSION = '0.2.2-rc.1'
 MODULES = {
     'file-deliverables-patch.json': ('@deepseek-ai/dsh-client-ui-deliverables/lib/client.js',
-        '0b786f9c89e728ac33926b452536daaea678d9e7741a579126e406a232cb03ed'),
-    'file-image-actions-patch.json': ('@deepseek-ai/dsh-client-ui-attachment/lib/client.js',
-        'cdb497656ed0e66f011125df22791f6f579c85710d2d915020ddcfe6c0f58072'),
+        '0aa3fc762aa1debf106a67dccfbb7a640f40de0c774a2b091a8ddc6730257da5'),
+    # 0.2.2-rc.1: images use the upstream context menu (long press = contextmenu in
+    # Android WebView). DSHA adds one "save to gallery" item to the upstream image
+    # menu instead of competing pointer handlers on the attachment button.
+    'file-image-actions-patch.json': ('@deepseek-ai/dsh-client-ui-file-actions/lib/client.js',
+        '437f70ba26ff1a11efc0aeb547e3a799948f55e8cabef69839dbc481e96ed40d'),
 }
 
 
@@ -52,28 +55,25 @@ def generate(module_root, lock_path=None):
             before = 'host === "error" && (0, react_jsx_runtime.jsxs)("div", {'
             replace(before, 'host === "error" && typeof window.DSHA?.downloadArtifact !== "function" && (0, react_jsx_runtime.jsxs)("div", {')
         else:
-            before = '\t\t\t\t"aria-busy": loadingThumbnail || void 0,\n\t\t\t\tonClick: () => {\n\t\t\t\t\tif (src !== null) setOpen(true);\n\t\t\t\t},'
-            after = '''\t\t\t\t"aria-busy": loadingThumbnail || void 0,
-\t\t\t\t// DSHA_IMAGE_ACTIONS_RC2_V1: this owned image's original authorized Blob URL.
-\t\t\t\tonContextMenu: event => {
-\t\t\t\t\tif (window.DSHAFileTransfer?.imageMenu(src, label)) { event.preventDefault(); event.stopPropagation(); }
-\t\t\t\t},
-\t\t\t\tonPointerDown: event => window.DSHAFileTransfer?.imageDown(event, src, label),
-\t\t\t\tonPointerMove: event => window.DSHAFileTransfer?.imageMove(event),
-\t\t\t\tonPointerUp: () => window.DSHAFileTransfer?.imageEnd(),
-\t\t\t\tonPointerCancel: () => window.DSHAFileTransfer?.imageEnd(),
-\t\t\t\tonClick: event => {
-\t\t\t\t\tif (window.DSHAFileTransfer?.imageClick(event)) return;
-\t\t\t\t\tif (src !== null) setOpen(true);
-\t\t\t\t},'''
-            replace(before, after)
-            before = '\t\t\t\tonClose: close\n\t\t\t})] });'
-            after = '''\t\t\t\tonClose: close
-\t\t\t}), open && src !== null && typeof window.DSHA?.saveImage === "function" && (0, react_dom.createPortal)((0, react_jsx_runtime.jsx)("button", {
-\t\t\t\ttype: "button", "data-dsha-image-save": true,
-\t\t\t\tonClick: () => window.DSHAFileTransfer?.imageMenu(src, label),
-\t\t\t\tchildren: document.documentElement.lang?.startsWith("zh") ? "保存到相册" : "Save to gallery"
-\t\t\t}), document.body)] });'''
+            before = '''\t\t\t\t\treturn [
+\t\t\t\t\t\t{
+\t\t\t\t\t\t\tid: "copy",
+\t\t\t\t\t\t\ticon: { key: "file-actions.copy" },'''
+            after = '''\t\t\t\t\treturn [
+\t\t\t\t\t\t// DSHA_IMAGE_GALLERY_MENU_V1: Android only. The native bridge saves the
+\t\t\t\t\t\t// original same-origin Blob to the system gallery; browsers keep upstream rows.
+\t\t\t\t\t\t...typeof window.DSHA?.saveImage === "function" && typeof window.DSHAFileTransfer?.imageMenu === "function" && typeof source.url === "string" && source.url.startsWith("blob:" + location.origin + "/") ? [{
+\t\t\t\t\t\t\tid: "dsha.saveToGallery",
+\t\t\t\t\t\t\ticon: { key: "file-actions.save" },
+\t\t\t\t\t\t\tfailureLabel: t("menu.saveFailed"),
+\t\t\t\t\t\t\tlabel: document.documentElement.lang?.startsWith("zh") ? "保存到相册" : "Save to gallery",
+\t\t\t\t\t\t\trun: () => {
+\t\t\t\t\t\t\t\tif (!window.DSHAFileTransfer?.imageMenu(source.url, source.name)) throw new Error("Gallery save unavailable");
+\t\t\t\t\t\t\t}
+\t\t\t\t\t\t}] : [],
+\t\t\t\t\t\t{
+\t\t\t\t\t\t\tid: "copy",
+\t\t\t\t\t\t\ticon: { key: "file-actions.copy" },'''
             replace(before, after)
         results[asset] = json.dumps(dict(version=1, dshVersion=VERSION, module=module,
             sourceSha256=digest, packageIntegrity=locked['integrity'], patches=patches), ensure_ascii=False, indent=2) + '\n'

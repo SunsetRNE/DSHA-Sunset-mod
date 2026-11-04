@@ -20,7 +20,9 @@ try {
       t:key=>key, useStore:pick=>pick(React.useSyncExternalStore(instance.subscribe,instance.getSnapshot)),
       useShortcuts:pick=>pick([]),useTabTypes:pick=>pick([]),renderSlot:()=>null,
       useTabNavigation:()=>({}),occurrence:tab=>({id:tab.id,signal:new AbortController().signal,tabActions:{}}),retainTab:noop,
-      syncPresentation:noop,measureRoom:noop,reportAutoFullscreen:noop,openTab:noop,closeTab:noop,splitPane:noop,toggleFullscreen:noop};
+      syncPresentation:noop,measureRoom:noop,reportAutoFullscreen:noop,openTab:noop,closeTab:noop,splitPane:noop,toggleFullscreen:noop,
+      // 0.2.2-rc.1 RightbarSeat also receives the context-menu hooks and flash projection.
+      useContextMenu:()=>({getTriggerProps:(target,handlers={})=>handlers}),useContextMenuTarget:()=>false,useFlash:pick=>pick(undefined)};
     window.render=()=>root.render(React.createElement(api.RightbarSeat,props)); render();
   });
   await page.locator('[data-sidebar-right-session="fixture"]').waitFor();

@@ -86,10 +86,13 @@ def source_files(archive: Path):
     return found
 
 
+LANGUAGE_MARKER = re.compile(r'/\* DSHA_UI_LANGUAGES_V[0-9]+:')
+
+
 def language_overlay(locale, language, assets):
     """Replace only a complete signed predecessor, and reject stacked helpers."""
     previous = language.get('previousPatches', [])
-    if previous and '/* DSHA_UI_LANGUAGES_V2:' not in locale:
+    if previous and not LANGUAGE_MARKER.search(locale):
         if len(previous) != 3 or any(not isinstance(row.get('before'), str)
                                      or not isinstance(row.get('after'), str) for row in previous):
             raise ValueError('RECOVERY_LANGUAGE_PREVIOUS_RECIPE')
@@ -105,8 +108,8 @@ def language_overlay(locale, language, assets):
         if 'prependAsset' in patch:
             after = (assets / patch['prependAsset']).read_text(encoding='utf8') + '\n' + after
         locale = exact(locale, before, after)
-    if previous and (locale.count('function installDshaLanguageBridge') != 1
-                     or locale.count('/* DSHA_UI_LANGUAGES_V2:') != 1):
+    # 无论是否声明前代形态，结果都必须恰好一个桥接函数与一个版本标记（V2/V3…）。
+    if locale.count('function installDshaLanguageBridge') != 1 or len(LANGUAGE_MARKER.findall(locale)) != 1:
         raise ValueError('RECOVERY_LANGUAGE_DUPLICATE_HELPER')
     return locale
 

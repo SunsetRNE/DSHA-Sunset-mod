@@ -15,20 +15,17 @@ from runtime_stable_patches import load_chains, apply as apply_stable_patches
 PREFIX = 'usr/local/lib/node_modules/@deepseek-ai/dsh'
 SIDEBAR_RIGHT = '@deepseek-ai/dsh-client-ui-sidebar-right/lib/client.js'
 SIDEBAR_RECIPE = 'sidebar-layout-recovery-patch.json'
-FRONTEND_ENTRY = '@deepseek-ai/dsh-web-frontend/dist/assets/index-BXV-oxvX.js'
 CONVERSATION = '@deepseek-ai/dsh-client-ui-conversation/lib/client.js'
 CONVERSATION_SPECIAL_INPUTS = ('lexical-claim-patch.json', 'conversation-materialized-patch.json')
 REVIEWED_OFFICIAL_CHAINS = {
     SIDEBAR_RIGHT: (SIDEBAR_RECIPE,),
-    FRONTEND_ENTRY: ('tooltip-interaction-patch.json',),
-    CONVERSATION: ('composer-enter-patch.json', 'queue-dock-patch.json',
-                   'conversation-large-image-file-patch.json'),
+    CONVERSATION: ('composer-enter-patch.json', 'queue-dock-patch.json'),
     '@deepseek-ai/dsh-web-search-deepseek/lib/index.js': ('deepseek-web-search-headers-patch.json',),
     '@deepseek-ai/dsh-client-file-upload/lib/index.js': (
-        'file-upload-resolver-lifecycle-patch.json', 'file-upload-capacity-patch.json'),
+        'file-upload-capacity-patch.json',),
     '@deepseek-ai/dsh-client-file-upload/lib/client.js': ('file-upload-binary-client-patch.json',),
     '@deepseek-ai/dsh-client-ui-deliverables/lib/client.js': ('file-deliverables-patch.json',),
-    '@deepseek-ai/dsh-client-ui-attachment/lib/client.js': ('file-image-actions-patch.json',),
+    '@deepseek-ai/dsh-client-ui-file-actions/lib/client.js': ('file-image-actions-patch.json',),
     '@deepseek-ai/dsh-plugin-manager/lib/index.js': (
         'plugin-manager-policy-patch.json', 'plugin-pnpm-argv-patch.json',
         'retired-market-catalog-patch.json', 'auto-review-native-disabled-patch.json',
@@ -38,9 +35,8 @@ BUILD192_RECIPE_MODULES = {
     'deepseek-web-search-headers-patch.json': '@deepseek-ai/dsh-web-search-deepseek/lib/index.js',
     'file-upload-capacity-patch.json': '@deepseek-ai/dsh-client-file-upload/lib/index.js',
     'file-upload-binary-client-patch.json': '@deepseek-ai/dsh-client-file-upload/lib/client.js',
-    'conversation-large-image-file-patch.json': CONVERSATION,
     'file-deliverables-patch.json': '@deepseek-ai/dsh-client-ui-deliverables/lib/client.js',
-    'file-image-actions-patch.json': '@deepseek-ai/dsh-client-ui-attachment/lib/client.js',
+    'file-image-actions-patch.json': '@deepseek-ai/dsh-client-ui-file-actions/lib/client.js',
 }
 BUILD193_RECIPE_MODULES = {
     'plugin-pnpm-argv-patch.json': '@deepseek-ai/dsh-plugin-manager/lib/index.js',
@@ -51,8 +47,9 @@ def verify_build192_recipe_coverage(assets, version):
     chains, _ = load_chains(assets, version)
     selected = {name: module for module, chain in chains.items()
                 for name, _, _ in chain if name in BUILD192_RECIPE_MODULES}
-    require(selected == BUILD192_RECIPE_MODULES and len(set(selected.values())) == 6,
-            'BUILD192_SIX_RECIPE_MODULE_COVERAGE_CHANGED')
+    # 0.2.2-rc.1: conversation-large-image-file retired (upstream binary image upload).
+    require(selected == BUILD192_RECIPE_MODULES and len(set(selected.values())) == 5,
+            'BUILD192_FIVE_RECIPE_MODULE_COVERAGE_CHANGED')
     for recipe, module in selected.items():
         require(recipe in REVIEWED_OFFICIAL_CHAINS.get(module, ()),
                 'BUILD192_MODULE_MUST_USE_COMPLETE_CHAIN_DIGEST:' + module)
@@ -203,7 +200,10 @@ def verify(path):
             # runtime package; requiring its old marker would reject a valid
             # upgrade archive before any data check could run.
             PREFIX + '/node_modules/@deepseek-ai/dsh-session-format-v3-to-v4/lib/index.js': b'sessionFormatV3ToV4',
-            PREFIX + '/node_modules/@deepseek-ai/dsh-storage-json/lib/index.js': b'DSHA_PROROOT_DIRECT_RECORD_HINTS_V1',
+            PREFIX + '/node_modules/@deepseek-ai/dsh-storage-json/lib/index.js': (
+                b'DSHA_PROROOT_DIRENT_FALLBACK_V3',
+                b'DSHA_PROROOT_DIRECT_RECORD_HINTS_V2',
+            ),
             PREFIX + '/node_modules/dsha-runtime-fs/index.js': b'publishSessionExclusive',
             PREFIX + '/node_modules/dsha-session-compat/index.js': b'wrapDshaLegacyStage',
             PREFIX + '/node_modules/@deepseek-ai/dsh-client-modules/lib/index.js': b'DSHA_COMBO_CACHE_V1',
@@ -248,6 +248,7 @@ def verify(path):
         for name, entry in [('dsh-client-ui-sidebar-documentpreview', 'lib/client.js'),
                             ('dsh-client-ui-deliverables', 'lib/client.js'),
                             ('dsh-client-ui-attachment', 'lib/client.js'),
+                            ('dsh-client-ui-file-actions', 'lib/client.js'),
                             ('dsh-client-file-upload', 'lib/client.js'),
                             ('dsh-client-file-upload', 'lib/index.js'),
                             ('dsh-web-search-deepseek', 'lib/index.js'),

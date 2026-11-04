@@ -58,7 +58,6 @@ app/src/main/assets/plugin-manager.py -text -eol
 /docs/releases/build197-changes.ar.md -text -eol
 /docs/releases/build197-changes.la.md -text -eol
 /docs/releases/build197-changes.pt.md -text -eol
-/tools/fixtures/language-v1-patch.json -text -eol
 /tools/i18n/translations-extra/ar.json -text -eol
 /tools/i18n/translations-extra/fr.json -text -eol
 /tools/i18n/translations-extra/ja.json -text -eol

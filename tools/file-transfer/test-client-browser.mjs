@@ -10,7 +10,10 @@ const recipe = name => JSON.parse(fs.readFileSync('app/src/main/assets/' + name,
 try {
   const source = fs.readFileSync('app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js', 'utf8');
   await page.addScriptTag({content: source.replace('var __cache = {};', 'window.mobileRequire=__localRequire; var __cache = {};')});
-  await fixture.load('dsh-client-ui-attachment', [recipe('file-image-actions-patch.json')], 'module.exports.audit = { MessageImage };');
+  // 0.2.2-rc.1: the attachment button only spreads upstream context-menu trigger props;
+  // DSHA's gallery item lives in the upstream file-actions image menu.
+  await fixture.load('dsh-client-ui-attachment', [], 'module.exports.audit = { MessageImage };');
+  await fixture.load('dsh-client-ui-file-actions', [recipe('file-image-actions-patch.json')], 'module.exports.audit = { registerFileMenus };');
   await fixture.load('dsh-client-ui-deliverables', [recipe('file-deliverables-patch.json')], 'module.exports.audit = { Deliverables };');
   await page.evaluate(() => {
     document.documentElement.lang = 'zh-CN';
@@ -130,6 +133,8 @@ try {
       if(!native) delete window.DSHA;
       root.render(React.createElement(Deliverables,{matched:{changes:null,presented:[{path:'/work/declared.txt',seq:1,index:0}]},
         sessionId:'declared-session',t:key=>key,openFile:path=>window.declaredPreview=path,
+        // 0.2.2-rc.1: file cards also spread upstream context-menu trigger props.
+        useContextMenu:()=>({getTriggerProps:(target,handlers={})=>handlers}),
         useShowCodeDiff:pick=>pick(false),useSessions:pick=>pick({byId:{'declared-session':{cwd:'/work'}}}),
         usePresentedOpen:pick=>pick({}),usePresentedHost:pick=>pick({name:'fixture',available:false,fileManager:null}),
         useChangesSummary:pick=>pick({}),renderSlot:(name,props)=>React.createElement(controls.FileDeliveryActions,props)}));
@@ -151,19 +156,30 @@ try {
   await page.evaluate(bytes=>{
     const React = auditModules.react.default || auditModules.react;
     const MessageImage = auditExports['@deepseek-ai/dsh-client-ui-attachment'].audit.MessageImage;
+    // Real upstream image-menu resolver with the DSHA recipe; only the menu host is a fixture.
+    const menus = [];
+    auditExports['@deepseek-ai/dsh-client-ui-file-actions'].audit.registerFileMenus({
+      effect: fn => fn(), contextMenus: {register: menu => (menus.push(menu), () => {}), notify: () => {}},
+      remote: {workspaceFiles: {}, session: {}}
+    }, {save: async () => ({status:'requested'}), copyImage: async () => {}, canSaveAs: true}, key => key);
+    window.imageMenu = menus.find(menu => menu.target === 'image');
+    window.menuRows = [];
+    const getTriggerProps = target => target === undefined ? {} : {onContextMenu: event => {
+      event.preventDefault(); window.menuRows = imageMenu.resolve(target.value);
+    }};
     window.originalImageUrl=URL.createObjectURL(new Blob([new Uint8Array(bytes)],{type:'image/png'}));
-    root.render(React.createElement(MessageImage, {image:{preview:{url:originalImageUrl,name:'original.png'}},load:()=>Promise.resolve(originalImageUrl),variant:'single',
+    root.render(React.createElement(MessageImage, {image:{preview:{url:originalImageUrl,name:'original.png'}},load:()=>Promise.resolve(originalImageUrl),variant:'single',getTriggerProps,
+      // 0.2.2-rc.1 DraggableImage prepares a desktop drag source on pointerdown.
+      fileDrag:{prepare:async()=>({release(){}}),start(){},release(){}},
       labels:{image:'image',open:'open',openNamed:name=>'open '+name,loading:'loading',loadFailed:'failed',lightbox:{close:'close'}}}));
   },original);
   const imageButton = page.getByRole('button',{name:'open original.png',exact:true});
   await imageButton.waitFor();
-  await imageButton.dispatchEvent('pointerdown',{pointerType:'touch',isPrimary:true,clientX:20,clientY:20});
-  await page.getByRole('dialog').waitFor();
-  await imageButton.dispatchEvent('pointerup',{pointerType:'touch',isPrimary:true});
-  await page.keyboard.press('Escape');
-  await imageButton.dispatchEvent('click');
-  assert.equal(await page.locator('[data-dsha-image-save]').count(),0,'Long press does not also open preview');
+  // Android WebView long press is a contextmenu event on the upstream trigger.
   await imageButton.dispatchEvent('contextmenu');
+  assert.deepEqual(await page.evaluate(()=>menuRows.map(row=>row.id)),['dsha.saveToGallery','copy','download','saveAs']);
+  assert.equal(await page.getByRole('dialog').count(),0,'Long press does not also open preview');
+  await page.evaluate(()=>menuRows[0].run());
   await page.getByRole('dialog').getByRole('button',{name:'保存到相册',exact:true}).click();
   await page.waitForFunction(()=>savedImages.length===1);
   assert.deepEqual(await page.evaluate(()=>savedImages[0]),{name:'original.png',type:'image/png',bytes:original});
@@ -176,15 +192,15 @@ try {
   await page.getByRole('dialog').getByRole('button',{name:'保存到相册',exact:true}).click();
   await page.waitForFunction(()=>window.largeImageAccepted===33*1024*1024);
   await page.evaluate(()=>URL.revokeObjectURL(largeImageUrl));
+  // Ordinary browsers (no native bridge) and non-Blob sources keep only the upstream rows.
+  assert.deepEqual(await page.evaluate(()=>imageMenu.resolve({url:'https://example.invalid/a.png',name:'a.png'}).map(row=>row.id)),['copy','download','saveAs']);
+  assert.deepEqual(await page.evaluate(()=>{const saved=window.DSHA.saveImage;delete window.DSHA.saveImage;try{return imageMenu.resolve({url:originalImageUrl,name:'x.png'}).map(row=>row.id);}finally{window.DSHA.saveImage=saved;}}),['copy','download','saveAs']);
+  // The lightbox receives the same upstream trigger props.
   await imageButton.click();
-  await page.locator('[data-dsha-image-save]').waitFor();
-  assert.equal(await page.locator('[data-dsha-image-save]').isVisible(),true,'Owned preview has save-to-gallery entry');
-  await page.evaluate(()=>{document.getElementById('root').style.cssText='transform:translateZ(0);height:100px;overflow:hidden';});
-  assert.equal(await page.locator('[data-dsha-image-save]').evaluate(node=>node.parentElement===document.body),true,'Gallery control escapes transformed message ancestors');
-  await page.locator('[data-dsha-image-save]').click();
-  await page.getByRole('dialog',{name:'original.png',exact:true}).waitFor();
+  await page.getByRole('dialog').waitFor();
+  await page.keyboard.press('Escape');
   await page.evaluate(()=>{root.unmount();disposeFiles();URL.revokeObjectURL(originalImageUrl);});
   assert.equal(await page.locator('[data-dsha-file-sheet]').count(),0);
   assert.deepEqual(fixture.errors,[]);
-  console.log('PASS native file UI: metadata-only 4GB download, saveas/share/gallery, preview, directories, records, stale session, original image bytes');
+  console.log('PASS native file UI: metadata-only 4GB download, saveas/share/gallery, preview, directories, records, stale session, upstream image menu gallery item with original bytes');
 } finally { await fixture.close(); }

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Prove the ten-language overlay upgrades the current signed rc5 archive.
+"""Prove the DSHA web language overlay builds the current signed locale form.
 
-Uses production Java patch algorithms, the verified raw rc5 fixture, the current
-signed archive, and the whole-module SHA of the pinned V1 predecessor form. The
-historical rc3 shared archive (d772) stored that predecessor form; current signed
-archives store the complete current form, so the shared-archive equality branch
-is retired and passing it fails closed. No APK, device or archive is modified.
+Uses production Java patch algorithms, the verified raw fixture and the current
+signed archive. Since DSH 0.2.2 the recipe declares no predecessor: the V1 form
+(former tools/fixtures/language-v1-patch.json, now deleted) only ever shipped in the 0.2.1-rc.3
+archive, and a DSH version change replaces the whole managed tree from the new
+archive, so no 0.2.2 module can carry it. Stacked or unknown managed sources
+fail closed. No APK, device or archive is modified.
 """
 import argparse
 import hashlib
@@ -21,10 +22,6 @@ from test_runtime_fixture import runtime
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
-# Historical 0.2.1-rc.3 archive that shared its locale module with the V1
-# predecessor form. Superseded archives are not accepted as current inputs.
-HISTORICAL_SHARED_ARCHIVE_SHA256 = 'd77261bf677a83c2440aab7a60cacf9c95876b59777b74f9de4fa6be9c2ba514'
-PREDECESSOR_MODULE_SHA256 = '13a5c7426aa5c424ddaeba7fd1ab59f148f388b96241fc43fdd6cbe71a7d5255'
 
 JAVA = r'''
 import com.deepseekharness.app.util.ManagedPatchChain;
@@ -34,32 +31,29 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 public final class LanguagePatchChainFixture {
   static void require(boolean valid,String reason){if(!valid)throw new AssertionError(reason);}
-  static List<ManagedPatchChain.Patch> parts(Path root,String prefix)throws Exception{
-    var result=new ArrayList<ManagedPatchChain.Patch>();
-    for(int i=0;i<Integer.parseInt(Files.readString(root.resolve(prefix+"-count")));i++)
-      result.add(new ManagedPatchChain.Patch(Files.readString(root.resolve(prefix+i+"-before")),Files.readString(root.resolve(prefix+i+"-after"))));
-    return result;
-  }
   public static void main(String[] args)throws Exception{
     Path root=Path.of(args[0]);
-    var recipe=new ManagedPatchChain.Recipe("language-patch.json",parts(root,"new"),List.of(),parts(root,"old"));
+    var parts=new ArrayList<ManagedPatchChain.Patch>();
+    for(int i=0;i<Integer.parseInt(Files.readString(root.resolve("new-count")));i++)
+      parts.add(new ManagedPatchChain.Patch(Files.readString(root.resolve("new"+i+"-before")),Files.readString(root.resolve("new"+i+"-after"))));
+    var recipe=new ManagedPatchChain.Recipe("language-patch.json",parts,List.of());
+    require(recipe.previousPatches().isEmpty(),"0.2.2 declares no predecessor");
     var chain=List.of(recipe);String expected=Files.readString(root.resolve("current.js"));
-    String archive=Files.readString(root.resolve("archive.js"));
-    for(String name:List.of("canonical.js","predecessor.js","archive.js","current.js")){
+    String canonical=Files.readString(root.resolve("canonical.js"));
+    for(String name:List.of("canonical.js","archive.js","current.js","partial.js")){
       String actual=ManagedPatchChain.apply(Files.readString(root.resolve(name)),chain,()->{throw new AssertionError("unexpected restore "+name);});
       require(actual.equals(expected),"direct differs "+name);
     }
     var reads=new AtomicInteger();
-    String partial=ManagedPatchChain.apply(Files.readString(root.resolve("partial.js")),chain,()->{reads.incrementAndGet();return archive;});
-    require(partial.equals(expected)&&reads.get()==1,"partial must restore pinned complete archive once");
-    String predecessor=Files.readString(root.resolve("predecessor.js"));
-    for(String source:List.of(Files.readString(root.resolve("partial.js")),predecessor+predecessor,"unknown managed source")){
+    String repaired=ManagedPatchChain.apply(expected+expected,chain,()->{reads.incrementAndGet();return canonical;});
+    require(repaired.equals(expected)&&reads.get()==1,"stacked helper must rebuild from the canonical module once");
+    for(String source:List.of(expected+expected,canonical+canonical,"unknown managed source")){
       try{ManagedPatchChain.apply(source,chain,()->null);throw new AssertionError("missing canonical accepted");}
       catch(IOException error){require(error.getMessage().equals("PATCH_CANONICAL_MISSING"),"wrong missing canonical failure");}
       try{ManagedPatchChain.apply(source,chain,()->"invalid canonical");throw new AssertionError("invalid canonical accepted");}
       catch(IOException error){require(error.getMessage().equals("PATCH_CHAIN_MISMATCH"),"wrong chain failure");}
     }
-    System.out.println("PASS real Java fresh npm/current rc5/current idempotence/partial canonical repair/duplicate and unknown fail-closed");
+    System.out.println("PASS real Java fresh npm/current archive/idempotence/partial completion/stacked canonical repair/duplicate and unknown fail-closed");
   }
 }
 '''
@@ -69,60 +63,67 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--archive', type=Path, default=ASSETS / 'dsh-runtime.bin')
-    parser.add_argument('--jdk', type=Path)
-    args = parser.parse_args()
-    canonical_root = runtime('raw')
-    recipe = json.loads((ASSETS / 'language-patch.json').read_text(encoding='utf8'))
-    canonical = (canonical_root / 'node_modules' / recipe['module']).read_bytes()
-    assert sha(canonical) == recipe['sourceSha256'], 'LOCKED_CURRENT_LOCALE_SOURCE'
-    archive_sha = sha(args.archive.read_bytes())
-    current_proof = json.loads((ASSETS / 'dsh-runtime.inputs.json').read_text(encoding='utf8'))
-    assert archive_sha == current_proof['archive_sha256'], 'CURRENT_SIGNED_ARCHIVE_IDENTITY'
-    if archive_sha == HISTORICAL_SHARED_ARCHIVE_SHA256:
-        raise AssertionError('HISTORICAL_SHARED_ARCHIVE_SUPERSEDED: use the current signed archive')
-    target = 'usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/' + recipe['module']
+def archived_module(archive, module):
+    target = 'usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/' + module
     found = []
-    with tarfile.open(args.archive, 'r|gz') as tree:
+    with tarfile.open(archive, 'r|gz') as tree:
         for member in tree:
             if member.name.removeprefix('./') == target:
                 assert member.isfile() and member.size < 8 * 1024 * 1024, 'ARCHIVE_LOCALE_MEMBER'
                 found.append(tree.extractfile(member).read())
     assert len(found) == 1, 'ARCHIVE_LOCALE_UNIQUENESS'
-    archived = found[0]
-    previous = canonical.decode('utf8')
-    for part in recipe['previousPatches']:
-        assert previous.count(part['before']) == 1
-        previous = previous.replace(part['before'], part['after'])
-    predecessor = previous.encode('utf8')
-    assert sha(predecessor) == PREDECESSOR_MODULE_SHA256, 'EXACT_D772_PREDECESSOR_MODULE_IDENTITY'
+    return found[0]
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--archive', type=Path, default=ASSETS / 'dsh-runtime.bin')
+    parser.add_argument('--skip-archive', action='store_true',
+                        help='before the signed archive is rebuilt: use the computed current form; reported as archiveChecked=false')
+    parser.add_argument('--jdk', type=Path)
+    args = parser.parse_args()
+    canonical_root = runtime('raw')
+    recipe = json.loads((ASSETS / 'language-patch.json').read_text(encoding='utf8'))
+    assert 'previousPatches' not in recipe, 'PREDECESSOR_NOT_APPLICABLE_TO_CURRENT_GENERATION'
+    canonical = (canonical_root / 'node_modules' / recipe['module']).read_bytes()
+    assert sha(canonical) == recipe['sourceSha256'], 'LOCKED_CURRENT_LOCALE_SOURCE'
     chains, _ = load_chains(ASSETS, recipe['dshVersion'])
     chain = chains[recipe['module']]
+    assert [row[0] for row in chain] == ['language-patch.json'], 'LOCALE_CHAIN_OWNER'
     expected = apply(canonical, chain)
+    if args.skip_archive:
+        archive_sha, archived = None, expected
+    else:
+        archive_sha = sha(args.archive.read_bytes())
+        current_proof = json.loads((ASSETS / 'dsh-runtime.inputs.json').read_text(encoding='utf8'))
+        assert archive_sha == current_proof['archive_sha256'], 'CURRENT_SIGNED_ARCHIVE_IDENTITY'
+        archived = archived_module(args.archive, recipe['module'])
     # Current signed archives carry the complete current locale form only.
     assert archived == expected, 'CURRENT_ARCHIVE_COMPLETE_LOCALE_FORM'
-    assert apply(predecessor, chain) == expected
     assert apply(archived, chain) == expected
     assert apply(expected, chain) == expected
-    partial = previous.replace(recipe['previousPatches'][1]['after'], recipe['previousPatches'][1]['before'])
-    try:
-        apply(partial.encode('utf8'), chain)
-    except ValueError as error:
-        assert 'STABLE_PATCH_ANCHOR' in str(error)
-    else:
-        raise AssertionError('partial predecessor accepted directly')
+    text = expected.decode('utf8')
+    assert text.count('function installDshaLanguageBridge') == 1 and text.count('/* DSHA_UI_LANGUAGES_V3:') == 1
+    # One recipe part reverted: exact patches complete it without a canonical read.
+    part = recipe['patches'][1]
+    partial = text.replace(part['after'], part['before'])
+    assert apply(partial.encode('utf8'), chain) == expected
+    for stacked in (expected + expected, canonical + canonical):
+        try:
+            apply(stacked, chain)
+        except ValueError as error:
+            assert 'STABLE_PATCH_ANCHOR' in str(error)
+        else:
+            raise AssertionError('stacked locale module accepted directly')
     output = Path(tempfile.mkdtemp(prefix='language-patch-chain-', dir=ROOT / 'app/build'))
-    for name, data in [('canonical.js', canonical), ('predecessor.js', predecessor), ('archive.js', archived), ('current.js', expected), ('partial.js', partial.encode('utf8'))]:
+    for name, data in [('canonical.js', canonical), ('archive.js', archived), ('current.js', expected), ('partial.js', partial.encode('utf8'))]:
         (output / name).write_bytes(data)
     current_parts = [(part['before'], (ASSETS / part['prependAsset']).read_text(encoding='utf8') + '\n' + part['after']
                       if 'prependAsset' in part else part['after']) for part in recipe['patches']]
-    for prefix, parts in [('new', current_parts), ('old', [(part['before'], part['after']) for part in recipe['previousPatches']])]:
-        (output / (prefix + '-count')).write_bytes(str(len(parts)).encode())
-        for index, (before, after) in enumerate(parts):
-            (output / (prefix + str(index) + '-before')).write_bytes(before.encode('utf8'))
-            (output / (prefix + str(index) + '-after')).write_bytes(after.encode('utf8'))
+    (output / 'new-count').write_bytes(str(len(current_parts)).encode())
+    for index, (before, after) in enumerate(current_parts):
+        (output / ('new' + str(index) + '-before')).write_bytes(before.encode('utf8'))
+        (output / ('new' + str(index) + '-after')).write_bytes(after.encode('utf8'))
     fixture = output / 'LanguagePatchChainFixture.java'
     fixture.write_bytes(JAVA.encode('utf8'))
     classes = output / 'classes'
@@ -143,11 +144,8 @@ def main():
     ran = subprocess.run([java, '-cp', str(classes), 'LanguagePatchChainFixture', str(output)], capture_output=True, timeout=30)
     (output / 'java.log').write_bytes(ran.stdout + ran.stderr)
     assert ran.returncode == 0, str(output / 'java.log')
-    report = dict(status='PASS', archiveSha256=archive_sha, sourceSha256=sha(canonical),
-                  predecessorModuleSha256=PREDECESSOR_MODULE_SHA256,
-                  historicalSharedArchiveSha256=HISTORICAL_SHARED_ARCHIVE_SHA256,
-                  historicalSharedArchiveStatus='superseded: stored the V1 predecessor form, not the current complete form',
-                  predecessorRecheckedFromActualArchive=False,
+    report = dict(status='PASS', archiveChecked=not args.skip_archive, archiveSha256=archive_sha, sourceSha256=sha(canonical),
+                  predecessor='not applicable: V1 form only shipped in the 0.2.1-rc.3 archive',
                   archivedModuleSha256=sha(archived), currentModuleSha256=sha(expected),
                   currentModuleBytes=len(expected), output=str(output), deviceValidation=False)
     (output / 'result.json').write_text(json.dumps(report, indent=2), encoding='utf8')

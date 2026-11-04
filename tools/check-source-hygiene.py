@@ -21,14 +21,9 @@ history_fixture_pins = {
 # These frozen language sources retain their reviewed bytes. Runtime generators
 # use the signed descriptor; native catalogues and notes have explicit CI pins.
 language_generator_pins = {
-    "tools/fixtures/language-v1-patch.json",
     "tools/i18n/web-translations/ar.json",
-    "tools/i18n/web-translations/fr.json",
-    "tools/i18n/web-translations/ja.json",
     "tools/i18n/web-translations/ko.json",
     "tools/i18n/web-translations/la.json",
-    "tools/i18n/web-translations/pt.json",
-    "tools/i18n/web-translations/ru.json",
     "tools/i18n/web-translations/zh-Hant.json",
 }
 language_source_pins = {

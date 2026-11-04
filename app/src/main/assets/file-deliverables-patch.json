@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.1-rc.5",
+  "dshVersion": "0.2.2-rc.1",
   "module": "@deepseek-ai/dsh-client-ui-deliverables/lib/client.js",
-  "sourceSha256": "0b786f9c89e728ac33926b452536daaea678d9e7741a579126e406a232cb03ed",
-  "packageIntegrity": "sha512-5PQI2DyPmUjRGsNZDiJc+ABt9VxIBHALnWfTXpXG6exoDR8UO0HK6GMpRo8VqqGl/epNEbHrlnn7BV1lVPDYOQ==",
+  "sourceSha256": "0aa3fc762aa1debf106a67dccfbb7a640f40de0c774a2b091a8ddc6730257da5",
+  "packageIntegrity": "sha512-gprlC8h1U4+Q/8X5rmw6M4JUOoi2dWoGao3QSb6gC/gQunKs6ByfzSy79VsAdFudLGoIa6RKb9/txZ3wGIVlcQ==",
   "patches": [
     {
       "before": "renderSlot(\"deliverables.file.actions\", {\n",

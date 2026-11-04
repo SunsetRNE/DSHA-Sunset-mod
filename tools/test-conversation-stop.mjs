@@ -34,6 +34,8 @@ function render({running=true,draft='',phase='plain',attachments=[],subagent=nul
   const tree=context.render({useSession:select=>select(session),useInput:select=>select(input),inputActions:{},keyboard:{editor:null,submit(){submits++;}},
     resolveDraftAttachments:()=>attachments,useBusyEnter:select=>select('queue'),useFileUploads:select=>select({}),useNotices:select=>select(null),
     useLexicon:select=>select([]),useMenuLauncher:select=>select(null),useStopShortcut:select=>select([]),useProjection:()=>undefined,
+    // 0.2.2-rc.1 InputBar gates prompt/cancel/upload by session access; undefined means allowed.
+    useAccess:()=>undefined,
     stop:stopProvided?()=>{stops++;onStop?.();}:undefined,t:key=>key,renderSlot:()=>null,sessionId:'fixture-session',variant:'composer',blocked});
   const buttons=[];
   function visit(value){if(!value||typeof value!=='object')return;if(Array.isArray(value)){value.forEach(visit);return;}if(value.type==='button')buttons.push(value);visit(value.props?.children);}

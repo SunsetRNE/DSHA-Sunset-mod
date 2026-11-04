@@ -33,6 +33,15 @@ READ_COMPATIBILITY = {
     # test passed. This is forward reading only; no rollback edge is declared.
     # See docs/runtime-data-compatibility-rc5.md. Do not infer older edges.
     '0.2.1-rc.5': ['dsh-0.2.1-rc.3'],
+    # T55 (upstream dsh-v0.2.2-rc.1): unlike rc5, 14 of the 31 reader packages
+    # changed bytes (storage-json, storage-domain, session-persistence-jsonl,
+    # settings, app-boot ...). Evidence is NOT byte identity: the real
+    # rc5-managed -> 0.2.2 (builder-patched data modules) API cross
+    # write/read/reopen test passed all five phases. Forward reading only.
+    # Known one-way writes: schedule unit v1 -> v2 on first write, app-boot
+    # profile package.json normalization. See
+    # docs/runtime-data-compatibility-0.2.2-rc.1.md. Do not infer older edges.
+    '0.2.2-rc.1': ['dsh-0.2.1-rc.5'],
 }
 
 def digest(path):

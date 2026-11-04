@@ -1,4 +1,4 @@
-// dsh-fs-read-hint 回归：真实 rc.5 的 ToolRuntime + dsh-fs-local + fs-observation-policy + dsh-tool-fs
+// dsh-fs-read-hint 回归：真实 0.2.2 的 ToolsService + 原生执行器 + dsh-fs-local + fs-observation-policy + dsh-tool-fs
 // + str_replace_editor 组合，只在 app/build 下的临时目录读写。
 // 「上游契约」用例失败即说明上游报错形状变了，按 docs/fs-read-hint-plugin.md 评估撤除插件。
 import assert from 'node:assert/strict';
@@ -12,7 +12,8 @@ const root = path.resolve(import.meta.dirname, '..');
 const raw = testRuntime('raw'), modules = path.join(raw, 'node_modules');
 const load = name => import(pathToFileURL(path.join(modules, name)));
 const { Context } = await load('@deepseek-ai/cordis/lib/index.js');
-const { ToolRuntime } = await load('@deepseek-ai/dsh-tools/lib/index.js');
+const { ToolsService } = await load('@deepseek-ai/dsh-tools/lib/index.js');
+const native = await load('@deepseek-ai/dsh-tool-executor-native/lib/index.js');
 const { LocalFileSystem } = await load('@deepseek-ai/dsh-fs-local/lib/index.js');
 const policy = await load('@deepseek-ai/dsh-fs-observation-policy/lib/index.js');
 const fsTools = await load('@deepseek-ai/dsh-tool-fs/lib/index.js');
@@ -26,12 +27,15 @@ const other = path.join(directory, 'elsewhere/X.java');
 const third = path.join(directory, 'third/X.java');
 let calls = 0, cases = 0;
 
-function harness({ plugin = true } = {}) {
+const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+async function harness({ plugin = true } = {}) {
   const ctx = new Context();
   ctx.provide('systemPrompt', { tools() {}, context() {}, getContextOrder() { return 10; }, getSectionOrder() { return 10; }, section() {} });
   // 工作目录服务只需给出临时目录；真实服务的会话 cwd 管理与本插件无关。
-  ctx.provide('workingDirectory', { async ensure() { return directory; } });
-  new ToolRuntime(ctx);
+  ctx.provide('workingDirectory', { get: () => directory, async ensure() { return directory; } });
+  // 0.2.2：执行在 ToolExecutionPipeline，由原生执行器插件挂到 tools 上。
+  new ToolsService(ctx);
+  ctx.plugin(native);
   new LocalFileSystem(ctx, { cwd: directory, diffBasisMaxBytes: 1048576 });
   policy.apply(ctx);
   fsTools.apply(ctx, { read: true, write: true, edit: true, readImage: false, readLimit: 2000, readMaxLineLength: 2000, readMaxBytes: 1048576, readStreamMinSize: 1048576 });
@@ -39,7 +43,8 @@ function harness({ plugin = true } = {}) {
   if (plugin) hint.apply(ctx);
   const session = () => ({ header: { cwd: directory }, seq: 1, eventAt() { return { type: 'turn/start', data: {} }; }, append() {} });
   const own = session();
-  const call = (name, args, s = own) => ctx.tools.execute({ name, arguments: args, callId: 'hint-' + calls++, agent: { ctx, session: s }, signal: new AbortController().signal });
+  const call = (name, args, s = own) => ctx.tools.execute({ calls: [{ type: 'tool-call', id: 'hint-' + calls++, name, arguments: JSON.stringify(args) }], agent: { ctx, session: s }, signal: new AbortController().signal }).then(batch => batch.results[0].result);
+  await settle();
   return { ctx, call, session };
 }
 function reset() {
@@ -55,7 +60,7 @@ async function run(name, body) {
 
 try {
   await run('上游契约：未装插件时报错文字与错误码为已知形状', async () => {
-    const h = harness({ plugin: false });
+    const h = await harness({ plugin: false });
     await h.call('read', { file_path: main });
     const edited = await h.call('edit', { file_path: tree, old_string: 'hello', new_string: 'world' });
     assert.equal(edited.isError, true);
@@ -72,7 +77,7 @@ try {
   });
 
   await run('读主检出、改 worktree：edit 报错附上已读的同名路径，门禁与文件不变', async () => {
-    const h = harness();
+    const h = await harness();
     await h.call('read', { file_path: main });
     const result = await h.call('edit', { file_path: tree, old_string: 'hello', new_string: 'world' });
     assert.equal(result.isError, true);
@@ -85,7 +90,7 @@ try {
   });
 
   await run('write 覆盖与 str_replace_editor 同样附提示', async () => {
-    const h = harness();
+    const h = await harness();
     await h.call('read', { file_path: main });
     for (const [name, args] of [['write', { file_path: tree, content: 'x' }], ['str_replace_editor', { command: 'str_replace', path: tree, old_str: 'hello', new_str: 'world' }]]) {
       const result = await h.call(name, args);
@@ -97,7 +102,7 @@ try {
   });
 
   await run('读对路径后照常放行：插件不影响正常修改', async () => {
-    const h = harness();
+    const h = await harness();
     await h.call('read', { file_path: main });
     await h.call('read', { file_path: tree, offset: 1, limit: 1 });
     const result = await h.call('edit', { file_path: tree, old_string: 'hello', new_string: 'world' });
@@ -107,14 +112,14 @@ try {
   });
 
   await run('没有同名已读文件：报错与上游完全一致', async () => {
-    const h = harness();
+    const h = await harness();
     const result = await h.call('edit', { file_path: tree, old_string: 'hello', new_string: 'world' });
     assert.equal(text(result), `Error: cannot modify "${tree}": file has not been read — read the file, then retry`);
     await h.ctx.fiber.dispose();
   });
 
   await run('候选按公共后缀排序；会话之间互不可见', async () => {
-    const h = harness();
+    const h = await harness();
     await h.call('read', { file_path: other });
     await h.call('read', { file_path: main });
     const stranger = h.session();
@@ -132,7 +137,7 @@ try {
   });
 
   await run('文件读后被改（FS_STALE_VERSION）不改写', async () => {
-    const h = harness();
+    const h = await harness();
     await h.call('read', { file_path: main });
     await h.call('read', { file_path: tree });
     fs.writeFileSync(tree, 'hello changed\n');
@@ -177,7 +182,7 @@ try {
     assert.equal(await handlers.get('tools/execute')({ name: 'bash' }, async () => passthrough), passthrough);
   });
 
-  console.log(JSON.stringify({ status: 'PASS', cases, realRc5: true, runtime: raw }));
+  console.log(JSON.stringify({ status: 'PASS', cases, realDsh022: true, runtime: raw }));
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });
 }

@@ -132,6 +132,48 @@ ctx.locale.register(NS,{zh,en});'''
         with self.assertRaises((KeyError, ValueError)):
             dictionaries('ctx.locale.register("fixture", dangerous());')
 
+    def test_extraction_reads_upstream_language_columns_js_escapes_and_static_references(self):
+        # 0.2.2 起上游注册 zh/en/ja/es/fr/de/ru/pt；JS 字符串转义、成员引用、
+        # 同名变量（取最近的前置定义）和静态 (locale, dict) 循环都必须精确读取。
+        from web_language_catalog import dictionaries
+        source = '''const tokens={zh:{goal:"目标"},en:{goal:"goal"}};
+const zh={"a":"中","t":tokens.zh.goal}; const en={"a":"A\\xA0x","t":tokens.en.goal}; const fr={"a":'l\\'a'};
+ctx.locale.register("one",{zh,en,fr});
+const zh$1={b:"乙"}; const en$1={b:"B"};
+ctx.locale.register("two",{zh:zh$1,en:en$1,ja:{b:"\\u30d3"}});
+const dictionaries=[["zh",{c:"丙"}],["en",{c:"C"}],["de",{}]];
+for (const [locale, dict] of dictionaries) disposers.push(ctx.locale.register("three", locale, dict));'''
+        rows = dict(dictionaries(source))
+        self.assertEqual({'a': 'A\u00a0x', 't': 'goal'}, rows['one']['en'])
+        self.assertEqual({'a': 'l\'a'}, rows['one']['fr'])
+        self.assertEqual({'b': '\u30d3'}, rows['two']['ja'])
+        self.assertEqual({'zh', 'en', 'de'}, set(rows['three']))
+        with self.assertRaisesRegex(ValueError, 'WEB_REGISTER_EXTRA_KEYS'):
+            dictionaries('const zh={a:"1"}; const en={a:"1"}; ctx.locale.register("x",{zh,en,ja:{b:"2"}});')
+
+    def test_dsha_never_registers_an_upstream_language_and_only_experimental_text_may_fall_back(self):
+        catalog = json.loads((WEB.ROOT / 'tools/i18n/web-messages.json').read_text(encoding='utf8'))
+        tags = WEB.language_tags(catalog)
+        self.assertEqual(len(tags), len(set(tags)))
+        self.assertEqual(['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt', 'zh-Hant', 'ko', 'ar', 'la'], tags)
+        for namespace in catalog['namespaces'].values():
+            self.assertFalse(set(namespace['upstreamLocales']) & {'zh-hant', 'zh-Hant', 'ko', 'ar', 'la'})
+        translations = WEB.read_translations(catalog)
+        broken = dict(translations['ko'])
+        stable = next(row['id'] for row in catalog['messages'] if not WEB.experimental(catalog, row))
+        broken[stable] = None
+        source = WEB.ROOT / 'tools/i18n/web-translations/ko.json'
+        original = source.read_bytes()
+        try:
+            source.write_text(json.dumps(broken, ensure_ascii=False), encoding='utf8')
+            with self.assertRaisesRegex(ValueError, 'WEB_TRANSLATION_FALLBACK_NOT_EXPERIMENTAL'):
+                WEB.read_translations(catalog)
+        finally:
+            source.write_bytes(original)
+        bridge = (WEB.ROOT / 'tools/i18n/web-language-bridge.js').read_text(encoding='utf8')
+        for upstream in ('ja', 'es', 'fr', 'de', 'ru', 'pt'):
+            self.assertNotIn("['" + upstream + "',", bridge)
+
     def test_all_namespaced_keys_are_complete_and_generated_assets_are_exact(self):
         from source_text import matches_text
         catalog = json.loads((WEB.ROOT / 'tools/i18n/web-messages.json').read_text(encoding='utf8'))
@@ -145,7 +187,8 @@ ctx.locale.register(NS,{zh,en});'''
         for tag, data in translations.items():
             self.assertEqual(ids, set(data), tag)
         spec = json.loads(generated['language-patch.json'])
-        self.assertEqual(3, len(spec['previousPatches']))
+        # 0.2.2：V1 前代只存在于 0.2.1-rc.3 归档，新 locale 模块上不可能出现，不再声明。
+        self.assertNotIn('previousPatches', spec)
         self.assertEqual(3, len(spec['patches']))
         # The independent rescue runtime keeps its own pinned recipe; upgrading the
         # production runtime must not silently add or replace that rescue input.
@@ -159,7 +202,9 @@ ctx.locale.register(NS,{zh,en});'''
         self.assertEqual(expected, set(generated))
         rescue = json.loads((WEB.ASSETS / rescue_name).read_text(encoding='utf8'))
         self.assertEqual(recovery['dshVersion'], rescue['dshVersion'])
-        self.assertEqual(3, len(rescue['previousPatches']))
+        # 历史应急 recipe（0.2.1-rc.5 及更早）保留原签名前代；同版本 recipe 与正式一致。
+        if recovery['dshVersion'] != WEB.VERSION:
+            self.assertEqual(3, len(rescue['previousPatches']))
         self.assertEqual(3, len(rescue['patches']))
         self.assertEqual('web-integration/language.js', rescue['patches'][0]['prependAsset'])
 

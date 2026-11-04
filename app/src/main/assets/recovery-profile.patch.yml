@@ -61,6 +61,9 @@
   disabled: true
 - id: ui-deliverables
   disabled: true
+# 0.2.2: file context-menu actions call remote.workspaceFiles, which recovery keeps disabled.
+- id: ui-file-actions
+  disabled: true
 - id: session-telemetry-otel
   disabled: true
 - insert:

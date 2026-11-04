@@ -58,6 +58,21 @@ class FileClientRecipesTest(unittest.TestCase):
         self.assertIn('absolutePath: file.path', patched)
         self.assertNotIn('isDirectory:', patched)
 
+    def test_image_gallery_item_joins_upstream_image_menu(self):
+        text = generator.generate(runtime())['file-image-actions-patch.json']
+        recipe = json.loads(text)
+        self.assertEqual(recipe['module'], '@deepseek-ai/dsh-client-ui-file-actions/lib/client.js')
+        raw = (runtime() / recipe['module']).read_bytes()
+        patched = apply(raw, [('image', [(p['before'], p['after']) for p in recipe['patches']], [])]).decode()
+        image_menu = patched[patched.index('id: "file-actions.image"'):patched.index('"file actions: image menu"')]
+        # One extra item, only with the Android bridge; upstream copy/download/save-as stay.
+        self.assertEqual(image_menu.count('DSHA_IMAGE_GALLERY_MENU_V1'), 1)
+        self.assertLess(image_menu.index('id: "dsha.saveToGallery"'), image_menu.index('id: "copy"'))
+        self.assertIn('typeof window.DSHA?.saveImage === "function"', image_menu)
+        for row in ('id: "copy"', 'id: "download"', 'id: "saveAs"'):
+            self.assertIn(row, image_menu)
+        self.assertNotIn('dsha.saveToGallery', patched[:patched.index('id: "file-actions.image"')])
+
 
 if __name__ == '__main__':
     unittest.main()

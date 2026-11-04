@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * 技能启用 / 禁用 / 最近删除的纯规则。纯逻辑，不 import Android API。
  *
- * <p>DSH 只发现技能根目录下的 {@code <名>/SKILL.md} 与 {@code <名>.md}（dsh-skill-filesystem 0.2.1-rc.5）。
+ * <p>DSH 只发现技能根目录下的 {@code <名>/SKILL.md} 与 {@code <名>.md}（dsh-skill-filesystem 0.2.2-rc.1）。
  * 禁用 = 原地追加 {@link #DISABLED_SUFFIX}，目录内的脚本与资料不动；启用再改回。
  *
  * <p>最近删除放在技能根目录之外的 {@link #TRASH_DIRECTORY}，每项一个随机槽位：{@code meta} 记录原名与删除时间，
