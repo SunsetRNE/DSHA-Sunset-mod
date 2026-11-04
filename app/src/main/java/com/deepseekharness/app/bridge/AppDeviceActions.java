@@ -94,7 +94,10 @@ public final class AppDeviceActions {
 
   /** 原生读取闸门由调用方传入；写剪贴板不经过读取授权。 */
   public static String clipboard(
-      Context ctx, Handler mainHandler, String text, java.util.function.BooleanSupplier readAllowed) {
+      Context ctx,
+      Handler mainHandler,
+      String text,
+      java.util.function.BooleanSupplier readAllowed) {
     return clipboard(ctx, mainHandler, text, !text.isEmpty(), readAllowed);
   }
 

@@ -1710,9 +1710,13 @@ public final class DeviceGrantsFragment extends Fragment {
     clipboardModes = page.findViewById(R.id.device_clipboard_modes);
     clipboardTitle.setText(UiText.choose("读剪贴板", "Read clipboard"));
     clipboardTitle.setContentDescription(
-        UiText.choose("读剪贴板：允许助手读取系统剪贴板内容", "Read clipboard: let the assistant read system clipboard content"));
+        UiText.choose(
+            "读剪贴板：允许助手读取系统剪贴板内容",
+            "Read clipboard: let the assistant read system clipboard content"));
     String[] names = {
-      UiText.choose("关闭", "Off"), UiText.choose("每次询问", "Ask each time"), UiText.choose("预授权", "Pre-authorized")
+      UiText.choose("关闭", "Off"),
+      UiText.choose("每次询问", "Ask each time"),
+      UiText.choose("预授权", "Pre-authorized")
     };
     String[] spoken = {
       UiText.choose("关闭，读取会被阻止", "Off, reads are blocked"),
@@ -1744,7 +1748,9 @@ public final class DeviceGrantsFragment extends Fragment {
               UiText.choose(
                   "助手和插件可读取当前系统剪贴板内容。DSHA 不把内容写入桥日志，但剪贴板本身可能含有密码、验证码或私人信息。之后可在此页撤销。",
                   "The assistant and plugins may read the system clipboard. DSHA does not write the content to bridge logs, but the clipboard may contain passwords, codes, or private data. Revoke this here at any time."))
-          .setPositiveButton(UiText.choose("预授权读取", "Pre-authorize reads"), (dialog, which) -> saveClipboardMode(mode))
+          .setPositiveButton(
+              UiText.choose("预授权读取", "Pre-authorize reads"),
+              (dialog, which) -> saveClipboardMode(mode))
           .setNegativeButton(UiText.choose("取消", "Cancel"), null)
           .show();
     } else saveClipboardMode(mode);
@@ -1771,8 +1777,11 @@ public final class DeviceGrantsFragment extends Fragment {
           case ALLOW -> UiText.choose("已预授权 · 可随时撤销", "Pre-authorized · revocable");
         });
     clipboardStatus.setTextColor(
-        requireContext().getColor(mode == com.deepseekharness.app.util.ClipboardReadPolicy.Mode.ALLOW
-            ? R.color.primary : R.color.text_muted));
+        requireContext()
+            .getColor(
+                mode == com.deepseekharness.app.util.ClipboardReadPolicy.Mode.ALLOW
+                    ? R.color.primary
+                    : R.color.text_muted));
   }
 
   private void saveSms(boolean enabled) {

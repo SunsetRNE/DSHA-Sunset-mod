@@ -2925,11 +2925,11 @@ public final class HttpShellService {
               "读取剪贴板（内容不会写入 DSHA 日志）",
               new com.deepseekharness.app.bridge.ClipboardTargetEvidence(),
               grants.clipboardReadRevision());
-       if (request == null) return "DEVICE_CONFIRM_UNAVAILABLE";
-       var broker = DshaApp.from(ctx).capabilityBroker();
-       if (mode == com.deepseekharness.app.util.ClipboardReadPolicy.Mode.ASK) {
-         bindActionToCurrentTask(path, scope, request, false);
-         var outcome = capabilityConfirmation(path, scope, request);
+      if (request == null) return "DEVICE_CONFIRM_UNAVAILABLE";
+      var broker = DshaApp.from(ctx).capabilityBroker();
+      if (mode == com.deepseekharness.app.util.ClipboardReadPolicy.Mode.ASK) {
+        bindActionToCurrentTask(path, scope, request, false);
+        var outcome = capabilityConfirmation(path, scope, request);
         if (outcome != ConfirmationOutcome.ALLOWED)
           return switch (outcome) {
             case DENIED -> "DEVICE_USER_REJECTED";
@@ -3631,7 +3631,7 @@ public final class HttpShellService {
           || !LIFECYCLE.isCurrent(run.generation)
           || scope.run != run
           || !(screen ? screenBridgeCurrent(scope) : bridgeCurrent(scope)))
-         return ConfirmationOutcome.UNAVAILABLE;
+        return ConfirmationOutcome.UNAVAILABLE;
       com.deepseekharness.app.control.ControlTaskAuthority.Lease taskLease = null;
       var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
       String taskIdentity =

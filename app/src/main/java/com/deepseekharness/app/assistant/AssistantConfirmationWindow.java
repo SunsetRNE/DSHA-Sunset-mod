@@ -138,8 +138,8 @@ final class AssistantConfirmationWindow implements AutoCloseable {
                 if (active == pending && sequence == stamp) finish(false);
               });
           boolean turnAllowed = target != null || "external.open".equals(request.capability);
-           Button allowTurn = new Button(context);
-           allowTurn.setVisibility(turnAllowed ? View.VISIBLE : View.GONE);
+          Button allowTurn = new Button(context);
+          allowTurn.setVisibility(turnAllowed ? View.VISIBLE : View.GONE);
           allowTurn.setText(
               target != null
                       && com.deepseekharness.app.util.SensitiveAppPolicy.sensitive(

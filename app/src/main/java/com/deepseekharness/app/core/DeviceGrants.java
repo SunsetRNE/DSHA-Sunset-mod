@@ -29,7 +29,8 @@ public final class DeviceGrants {
     Context app = context.getApplicationContext();
     invalidateScreen = () -> com.deepseekharness.app.HttpShellService.screenPolicyChanged(app);
     invalidateSms = () -> com.deepseekharness.app.HttpShellService.smsPolicyChanged(app);
-    invalidateClipboard = () -> com.deepseekharness.app.HttpShellService.clipboardPolicyChanged(app);
+    invalidateClipboard =
+        () -> com.deepseekharness.app.HttpShellService.clipboardPolicyChanged(app);
     invalidateAll = () -> com.deepseekharness.app.HttpShellService.globalConsentChanged(app);
     preferences = context.getSharedPreferences("dsha_device_grants", Context.MODE_PRIVATE);
   }
@@ -395,8 +396,7 @@ public final class DeviceGrants {
     return clipboardRevision.get();
   }
 
-  public boolean setClipboardReadMode(
-      com.deepseekharness.app.util.ClipboardReadPolicy.Mode mode) {
+  public boolean setClipboardReadMode(com.deepseekharness.app.util.ClipboardReadPolicy.Mode mode) {
     if (mode == null) return false;
     invalidateClipboard.run();
     try {
