@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261105.0030-dsh0.2.1-rc.5` / build314 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build picks three fixes from collaborator ym2025szz: plugin cards hide delete for temporary plugins and keep delete for broken metadata; recovery consent follows the installed package name; the plugin startup path does fewer imports and less metadata I/O (experimental). Local targeted tests and source gates passed; not yet checked on a device. See the [build314 notes](../releases/build314-changes.en.md) and the [build314 record](../releases/v0.2.1-rc.5-build314-plugin-cards-recovery-identity-startup-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261105.0130-dsh0.2.1-rc.5` / build315 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build picks four fixes from collaborator ym2025szz: runtime preparation caching with per-stage timing (experimental); update trials record where the renderer stalls; reading position saves when idle and original-image Blobs follow the page lifetime; the diagnostic report restores its data-and-backup row. Local targeted tests and source gates passed; not yet checked on a device. See the [build315 notes](../releases/build315-changes.en.md) and the [build315 record](../releases/v0.2.1-rc.5-build315-runtime-cache-trial-diagnostics-reading-backup-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

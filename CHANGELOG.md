@@ -1,5 +1,16 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0130-dsh0.2.1-rc.5 / build315（实验性：运行时准备缓存与分阶段计时；更新试运行记录渲染卡点；阅读位置空闲保存与原图 Blob 生命周期；诊断报告恢复数据与备份行（修复挑自协作者 ym2025szz））
+
+- 实验性：运行时准备缓存记录未命中原因并按 APK 身份缓存预载与证明摘要；更新试运行记录渲染器卡在哪一步；阅读位置改为空闲时保存、原图 Blob 随页面卸载中止；诊断报告恢复「数据与备份」只读行（修复挑自协作者 ym2025szz efe03f81 快照）。
+- 运行时准备（76c267b1）：`RuntimeTools` 记录缓存未命中原因；准备戳抽为 `RuntimeAssetStamp`，一次 lstat 判定；`RuntimeApkAssets` 预载与包证明摘要按不可变 APK 身份缓存；慢准备由 `RuntimeToolsTiming` 分阶段计时。
+- 试运行诊断（7aea87a9）：新增 `util/TrialRendererDiagnostic`，`RuntimeBrowserProbe` / `RuntimeTrial` / `runtime-trial-page.js` 记录页面加载、Cookie、视图可见、WebSocket 就绪帧与回执 POST 的进度，只作诊断，不改变试运行接受条件。
+- 页面脚本（42e3ddd0、c2680232）：阅读位置在空闲、`scrollend`、切换会话 / 路由与页面隐藏时保存，不再逐帧序列化；原图保存直接用 Blob 并随页面卸载中止。内置移动插件只按既有补丁重建，未带入 mobile 3.2.3。
+- 诊断（19784e74）：补齐 build311 剥掉的 `BackupOperationDiagnostics`，诊断报告与环境忙时的只读采样都列出备份任务、失败阶段与 errno。
+- 运行时描述符随源码重算。
+- 验证范围：发布会话在 build315 上复跑 `*RuntimeTools*` / `*RuntimeAsset*` / `*RuntimeApk*` / `*TrialRenderer*` / `*RuntimeBrowserProbe*` / `*BackupOperation*` / `*RuntimeStateDiagnostics*` / `*UpdateVersionPageTest`；主机测试 `test-trial-renderer-diagnostic` / `test-reading-position-checkpoint`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 315（基于 build314）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build315 更新说明](docs/releases/build315-changes.zh.md)，验证记录见 [build315 记录](docs/releases/v0.2.1-rc.5-build315-runtime-cache-trial-diagnostics-reading-backup-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0030-dsh0.2.1-rc.5 / build314（实验性：插件卡片不对临时插件显示删除、元数据损坏仍可删除；应急确认按实际包名；插件启动路径减少 import 与 I/O（修复挑自协作者 ym2025szz））
 
 - 实验性：插件卡片不对临时插件显示删除，元数据损坏的插件仍可删除；应急原生确认与旧源恢复广播按实际安装包名；插件管理启动路径减少 import 与元数据 I/O（修复挑自协作者 ym2025szz efe03f81 快照）。

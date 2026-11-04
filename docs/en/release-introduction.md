@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build314 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build315 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build314 `0.2.1-rc.5-20261105.0030-dsh0.2.1-rc.5`.** Experimental: safer plugin cards, recovery consent bound to the installed package, and a lighter plugin startup path (fixes from collaborator ym2025szz). versionCode 314, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build314 notes](../releases/build314-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build315 `0.2.1-rc.5-20261105.0130-dsh0.2.1-rc.5`.** Experimental: cached runtime preparation, trial renderer stall diagnostics, idle reading-position saves, and the restored backup diagnostic row (fixes from collaborator ym2025szz). versionCode 315, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build315 notes](../releases/build315-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

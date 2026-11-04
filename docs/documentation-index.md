@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.0030-dsh0.2.1-rc.5` / build314 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版挑入协作者 ym2025szz 的三项修复：插件卡片不对临时插件显示删除、元数据损坏仍可删除；应急确认按实际包名；插件启动路径减少 import 与 I/O（实验性）。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build314 更新说明](releases/build314-changes.zh.md)，验证记录见 [build314 记录](releases/v0.2.1-rc.5-build314-plugin-cards-recovery-identity-startup-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.0130-dsh0.2.1-rc.5` / build315 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版挑入协作者 ym2025szz 的四项修复：运行时准备缓存与分阶段计时（实验性）；更新试运行记录渲染卡点；阅读位置空闲保存与原图 Blob 生命周期；诊断报告恢复数据与备份行。本机定向单测与源码门禁通过，尚未真机核对。改动说明见 [build315 更新说明](releases/build315-changes.zh.md)，验证记录见 [build315 记录](releases/v0.2.1-rc.5-build315-runtime-cache-trial-diagnostics-reading-backup-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
