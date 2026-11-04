@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "1bf81df167cce1abf299a0ef0a7af1b6b8ef99c91631981fb31d71e47b549245",
+  "runtimeId": "3e45938ca13a87b0083e4499bde2ca05b00af5ec1e73e8b82a107e0f4bdce4f9",
   "baseVersion": "10",
   "dshVersion": "0.2.1-rc.5",
   "launcherContract": "DSHA_ARM64_V2",
@@ -516,7 +516,7 @@
     "builtin-plugins/dsh-fs-search-scope/package.json": "5bd1c7f1895453db35f4f3bce4fe179d9a57a4487c6837bd63cda1f903e32a2b",
     "builtin-plugins/dsh-launch-target/cordis.patch.yml": "aea5087d383a70a0a6acc6ebfbced9ada0a06e4aea3d17bdd940a66fbc5abec1",
     "builtin-plugins/dsh-launch-target/lib/bridge-port.cjs": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
-    "builtin-plugins/dsh-launch-target/lib/client.js": "e872616a5e5e419a30f2dc3ee98f4910d51a900962e7dc57f72d092460f238e7",
+    "builtin-plugins/dsh-launch-target/lib/client.js": "2a5b9af685cf9e9d8b56051b9906137c662c0ca7c4a883bf49c5c6276a9755c7",
     "builtin-plugins/dsh-launch-target/lib/index.js": "fc9145cbad5de78e50f8e13eae94557587b2fb9cb4219d1b6bcf2d5b6b706d81",
     "builtin-plugins/dsh-launch-target/package.json": "efaa9ff796952d8d6ea6ae400020e6d4e0face55d6089942ec9477db3b0174a4",
     "builtin-plugins/dsh-status-overlay/cordis.patch.yml": "b5bffe96400a2164f313f8c86b071840387015976796fdce1e3e476f233490bd",
