@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("运行时准备缓存"));
-      assertTrue(shown.contains("版本码提升为 315"));
+      assertTrue(shown.contains("CAS 扫描快路径复核"));
+      assertTrue(shown.contains("版本码提升为 316"));
+      assertFalse(shown.contains("运行时准备缓存"));
+      assertFalse(shown.contains("版本码提升为 315"));
       assertFalse(shown.contains("不对临时插件显示删除"));
       assertFalse(shown.contains("版本码提升为 314"));
       assertFalse(shown.contains("渲染进程退出后回收"));
@@ -288,8 +290,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("runtime preparation caching"));
-      assertTrue(shown.contains("Raises versionCode to 315"));
+      assertTrue(shown.contains("CAS scan fast path rechecks"));
+      assertTrue(shown.contains("Raises versionCode to 316"));
+      assertFalse(shown.contains("runtime preparation caching"));
+      assertFalse(shown.contains("Raises versionCode to 315"));
       assertFalse(shown.contains("hide delete for temporary plugins"));
       assertFalse(shown.contains("Raises versionCode to 314"));
       assertFalse(shown.contains("reclaimed after the WebView renderer exits"));

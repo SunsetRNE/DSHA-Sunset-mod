@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0230-dsh0.2.1-rc.5 / build316（插件依赖核验：CAS 扫描快路径复核目录项类型与 inode；文件快照在 SQLite 初始化出错时释放许可）
+
+- 插件依赖核验与文件快照：CAS 扫描快路径复核目录项类型与 inode，堵住同一时间刻度内的替换漏检（T48）；`DocumentRowsSnapshot` 在 SQLite 初始化抛出 Error 时也释放许可（T47）。
+- CAS 扫描（c8010c9c）：`plugin-transactions.py` 的 scandir 快路径保存初始目录项类型与 inode，子项处理完后重新读取并比对，同一 ctime 刻度内把普通文件换成符号链接并复原修改时间不再漏检；仍不对每个普通文件额外 stat。
+- 文件快照（T47）：`DocumentRowsSnapshot` 构造阶段捕获 Throwable，先清理再原样重抛，SQLite 原生库加载失败等 Error 不再泄漏 ACTIVE 许可；新增可注入 opener 的回归测试。
+- 验证范围：发布会话在 build316 上复跑 `*DocumentRowsSnapshotTest` / `*UpdateVersionPageTest`；主机测试 `test-plugin-transactions` / `test-plugin-cas-scan-review` / `test-plugin-cas-materialize`（依赖 aarch64 `renameat2` 与 Robolectric 原生 SQLite 的既有用例以 CI 为准）、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 316（基于 build315）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build316 更新说明](docs/releases/build316-changes.zh.md)，验证记录见 [build316 记录](docs/releases/v0.2.1-rc.5-build316-cas-scandir-document-rows-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0130-dsh0.2.1-rc.5 / build315（实验性：运行时准备缓存与分阶段计时；更新试运行记录渲染卡点；阅读位置空闲保存与原图 Blob 生命周期；诊断报告恢复数据与备份行（修复挑自协作者 ym2025szz））
 
 - 实验性：运行时准备缓存记录未命中原因并按 APK 身份缓存预载与证明摘要；更新试运行记录渲染器卡在哪一步；阅读位置改为空闲时保存、原图 Blob 随页面卸载中止；诊断报告恢复「数据与备份」只读行（修复挑自协作者 ym2025szz efe03f81 快照）。
