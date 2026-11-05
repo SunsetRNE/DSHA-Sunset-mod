@@ -153,7 +153,7 @@ Object.assign(failureManager, {
     packageManager:{command:process.execPath,args:[child],env:{DSHA_FIXTURE_COUNTER:counter,DSHA_FIXTURE_ARGUMENTS:argumentsFile,DSHA_FIXTURE_GIT_ENV:gitEnvironment,GIT_CONFIG_COUNT:'0'}}},
   pnpmCommand:process.execPath,outputBytes:16384,lockWaitMs:1000,inspectTimeoutMs:1000,githubConnectionTimeoutMs:1000,idleTimeoutMs:2000,
   configuredRegistries:{registry:'https://registry.npmjs.org/',fallbackRegistries:['https://registry.npmmirror.com/']},
-  ownerContext:{get:()=>undefined,emit:()=>{},logger:{warn:()=>{}}},
+  ownerContext:{get:()=>undefined,emit:()=>{},parallel:async()=>{},logger:{warn:()=>{}}},
   managementBundles:new Set(),installedFrom:new Map(),packageOperations:new Set(),installs:new Map(),abort:new AbortController()
 });
 const priorUnlocked = process.env.DSHA_PLUGIN_UNLOCKED;
@@ -222,7 +222,7 @@ try {
   fs.writeFileSync(path.join(sdk,'package.json'),JSON.stringify({name:'@deepseek-ai/dsh',version:dshVersion,dependencies:{[runtimeName]:'1.0.0'}}));
   fs.writeFileSync(path.join(profile,'package.json'),JSON.stringify({name:'isolated-provenance-profile',private:true,dependencies:Object.fromEntries([...custom,runtimeName].map(name=>[name,'1.0.0'])),dsh:{profile:{bundles:[...custom,runtimeName]}}}));
   fs.writeFileSync(path.join(profile,'cordis.patch.yml'),'[]\n');
-  const ctx={get:()=>undefined,emit:()=>{},loader:{entries:()=>[]},logger:{warn:()=>{}}},manager=Object.create(PluginManager.prototype);
+  const ctx={get:()=>undefined,emit:()=>{},parallel:async()=>{},loader:{entries:()=>[]},logger:{warn:()=>{}}},manager=Object.create(PluginManager.prototype);
   Object.defineProperty(manager,'ctx',{value:ctx});
   Object.assign(manager,{profile:{name:'web',dir:profile,home,patchPath:path.join(profile,'cordis.patch.yml'),overlays:[],startedBundles:[],installAnchor:path.join(sdk,'package.json')},ownerContext:ctx,managementBundles:new Set(),installedFrom:new Map(),packageOperations:new Set(),installs:new Map(),abort:new AbortController(),lockWaitMs:1000});
   const rows=async()=>new Map((await manager.listBundles()).map(row=>[row.name,row]));

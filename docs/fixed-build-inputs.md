@@ -1,11 +1,11 @@
 # 固定构建输入（公开仓库预发布资产）
 
-更新：2026-11-03（build297 后、签名内置插件 dsh-fs-search-scope 重建归档 / 内置 DSH 0.2.1-rc.5，独立应急 DSH 同为 rc.5）。当前资产 tag [`fixed-inputs-20261105a`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261105a)（GitHub 预发布 / prerelease），
+更新：2026-11-05（S1 切换内置与应急 DSH 到 0.2.2-rc.1；归档包含受管 pipeline 与独立 native executor 输入）。当前资产 tag [`fixed-inputs-20261105a`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261105a)（GitHub 预发布 / prerelease），
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 
 ## 为什么固定输入不放进 git
 
-7 个大型固定二进制/压缩包（`offline-rootfs.bin` 最大 304 MB）加上 2 个独立应急归档，合计约 664 MiB。
+7 个大型固定二进制/压缩包（`offline-rootfs.bin` 最大 304 MB）加上 2 个独立应急归档，合计约 671 MiB。
 放进 git 会超过仓库与 git 单文件限制、永久膨胀历史，且这些字节可由受管 recipe 重新生成、以 SHA-256 固定校验；
 它们不是手写源码，不需要随每次提交分发。因此它们只作为**GitHub Release 资产**发布：
 
@@ -24,22 +24,22 @@
 | ZIP 成员 | 字节 | 当前 pin 来源 |
 |---|---:|---|
 | `app/src/main/assets/offline-rootfs.bin` | 304037588 | `runtime-descriptor.json` |
-| `app/src/main/assets/dsh-runtime.bin` | 127674970 | `runtime-descriptor.json` |
+| `app/src/main/assets/dsh-runtime.bin` | 131054683 | `runtime-descriptor.json` |
 | `app/src/main/assets/ubuntu-tools.bin` | 29919475 | `runtime-descriptor.json` |
 | `app/src/main/assets/pnpm-runtime.bin` | 3837861 | `runtime-descriptor.json` |
 | `app/src/main/assets/python-support.bin` | 904360 | `tools/ci-build-inputs.lock.json`（大小 + 摘要） |
 | `app/src/main/assets/glibc-python.tar.gz` | 6565414 | `runtime-descriptor.json` |
 | `app/src/main/assets/adb-wheels.tar.gz` | 9951074 | `app/src/main/assets/adb-wheels.lock.json` |
-| `app/src/main/assets/dsh-runtime.inputs.json` | 11490 | provenance（不单独做二进制 pin） |
+| `app/src/main/assets/dsh-runtime.inputs.json` | 11368 | provenance（不单独做二进制 pin） |
 | `app/src/main/assets/ubuntu-tools.inputs.json` | 592 | provenance（不单独做二进制 pin） |
 | `tools/recovery-runtime/archives/recovery-rootfs.bin` | 85783057 | `tools/recovery-runtime/lock.json` |
-| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 127674970 | `tools/recovery-runtime/lock.json` |
+| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 131054683 | `tools/recovery-runtime/lock.json` |
 
 覆盖 Ubuntu 离线 rootfs、DSH runtime、ubuntu tools、pnpm runtime、Python 支持、glibc Python、ADB wheels，
-以及独立应急 DSH 的 rootfs / runtime 归档。正式归档为内置 DSH `0.2.1-rc.5`
-（127,674,970 B / SHA-256 `5c24b1f29db8a14581b17d1692c5585e8b78a7197940c3f45040be8ffcd0aa08`）；
-build215 起独立应急锁经用户授权同步到同一 `0.2.1-rc.5` 归档字节；2026-11-01 因新增签名内置插件 dsh-launch-target、2026-11-03 先后因新增运行时补丁 mcp-version-negotiation-patch.json 、签名内置插件 dsh-fs-read-hint 与 dsh-fs-search-scope 重建正式归档后，均经用户授权再次同步，APK 内两者共用一份（`recovery-asset-locations.json` 映射），
-锁与验证合同仍相互独立，正式升级不会自动改动应急锁。
+以及独立应急 DSH 的 rootfs / runtime 归档。正式归档为内置 DSH `0.2.2-rc.1`
+（131,054,683 B / SHA-256 `cdd13851109eafdd7bf3897261ac68c58e565b809cb7b83ecfda34b78a7ad460`）；
+S1 按已确定决策将独立应急锁同步到同一 `0.2.2-rc.1` 归档字节，正式与应急仍保留独立锁和解压运行根（`recovery-asset-locations.json` 只映射包内物理字节），
+锁与验证合同相互独立，后续正式升级不会自动改动应急锁。
 
 ## 锁定与还原
 

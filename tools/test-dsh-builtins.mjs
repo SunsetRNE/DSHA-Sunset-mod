@@ -50,6 +50,7 @@ test('恢复会话仅刷新旧引导，当前引导、拒绝准入、取消步�
 // Exercise the actual upstream admission policy. A signed wrapper is subject to
 // exactly the same no-exemption version gate as a third-party bundle.
 const runtimeRequire = createRequire(resolve(runtime, 'package.json'));
+const { satisfies } = runtimeRequire('semver');
 const { evaluatePluginCompatibility, getDshRuntimeVersion } = await import(
   pathToFileURL(runtimeRequire.resolve('@deepseek-ai/dsh-app-boot')));
 const builtinRegistry = JSON.parse(await readFile('app/src/main/assets/builtin-plugins.json','utf8'));
@@ -80,8 +81,8 @@ test('migrated exact peers match actual installed official modules and npm lock'
       const installed=JSON.parse(await readFile(resolve(runtime,'node_modules',peer,'package.json'),'utf8'));
       assert.equal(installed.name,peer);
       assert.equal(installed.version,runtimeVersion);
-      assert.equal(manifest.peerDependencies[peer],installed.version);
-      assert.equal(officialManifest.dependencies[peer],installed.version);
+      assert.ok(satisfies(installed.version, manifest.peerDependencies[peer]), `${name} peer ${peer} must accept ${installed.version}`);
+      assert.ok(satisfies(installed.version, officialManifest.dependencies[peer]), `official dependency ${peer} must accept ${installed.version}`);
       assert.equal(officialLock.packages['node_modules/'+peer].version,installed.version);
     }
   }
@@ -98,13 +99,14 @@ test('the upstream version gate still rejects each original stale wrapper declar
 });
 
 
-test('all eleven signed wrappers activate with real 0.2.1 services; actual MCP and Auto lifecycles dispose cleanly',async()=>{
+test('all eleven signed wrappers activate with real 0.2.2 services; actual MCP and Auto lifecycles dispose cleanly',async()=>{
   process.env.DSHA_BUILTIN_TEST_RUNTIME = runtime;
   await import('./fixtures/builtin-host-hooks.mjs');
   const load = async name => import(pathToFileURL(runtimeRequire.resolve(name)));
   const {Context} = await load('@deepseek-ai/cordis');
   const {default:SystemPrompt} = await load('@deepseek-ai/dsh-system-prompt');
   const {default:ToolRuntime} = await load('@deepseek-ai/dsh-tools');
+  const NativeExecutor = await load('@deepseek-ai/dsh-tool-executor-native');
   const {default:ComputerUse} = await load('@deepseek-ai/dsh-computer-use');
   const {default:Agents} = await load('@deepseek-ai/dsh-agent');
   const {default:Projections} = await load('@deepseek-ai/dsh-session-projection');
@@ -129,8 +131,8 @@ test('all eleven signed wrappers activate with real 0.2.1 services; actual MCP a
     ctx.provide('shell',{sandboxMode:'danger-full-access'});
     ctx.provide('approval',{config:{policy:'never'},overrideOf(){return 'never';}});
     ctx.provide('llm',{stream(){llmRequests++;throw Error('No model request is permitted by this fixture');}});
-    for (const [plugin,config] of [[SystemPrompt,{}],[ToolRuntime,{mode:'native'}],[ComputerUse,{}],
-      [Agents,{}],[Projections,{}],[LocalFS,{cwd:owned}],[WorkingDirectory,{defaultDirectory:owned}],
+    for (const [plugin,config] of [[SystemPrompt,{}],[ToolRuntime,{}],[NativeExecutor,{}],[ComputerUse,{}],
+      [Projections,{}],[Agents,{}],[LocalFS,{cwd:owned}],[WorkingDirectory,{defaultDirectory:owned}],
       [Permissions,{defaultPreset:'danger-full-access'}]]) {
       const fiber=ctx.plugin(plugin,config);await fiber;assert.equal(fiber.state,2);fibers.push(fiber);
     }

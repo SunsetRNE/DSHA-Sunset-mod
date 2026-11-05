@@ -1,7 +1,7 @@
 # 运行环境、数据与插件机制
 
 本文面向准备修改 DSHA 的开发者，说明环境从哪里来、数据归谁、插件如何进入真实启动链。
-> 核验基线：2026-10-21（原于 build190/F13 工作树核对）。当前身份为 build322 / 单一 Standard：Ubuntu base10、官方 DSH `0.2.1-rc.5`、Node 24、随包 pnpm `10.34.5`。F10–F13、build190 与 Low 相关段落属于历史记录，不代表当前构建；最终身份、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数或设备验收结论。
+> 核验基线：2026-11-05（S1 运行时切换前后的源码与固定输入核对）。当前 S1 运行时身份为单一 Standard：Ubuntu base10、官方 DSH `0.2.2-rc.1`、Node 24、随包 pnpm `10.34.5`；APK 发布版本/版本码仍以发布提交和 [README](../README.md) 为准。F10–F13、build190 与 Low 相关段落属于历史记录，不代表当前构建；本文不预填测试总数或设备验收结论。
 默认引擎是 `proot`，用户可显式选择 `proroot`；当前生产方案不使用 bxroot。
 这里的流程和约束属于 DSHA 实现，不代表 Ubuntu、Node、pnpm 或 DSH 上游对 Android 的保证。
 本文是源码导航，不是一次新的构建、设备验收或所有旧数据兼容性证明。
@@ -316,9 +316,9 @@ proroot 中 Git 源码 prepare 调用原生 Go 工具时，可能遇到内核可
 
 ### 5.7 附件resolver的注册对象与退休
 
-原raw/F12的`FileUploads.registerAgentResolver`把函数直接保存在Service属性；Cordis tracing读取后包装为新Proxy，使disposer的函数`===`比对失败，旧slot残留。实际Cordis及原raw/managed模块已复现registry/`SessionController`停启后重复注册错误。这是独立于目录组合的已证路径，不能由健康启动或目录专项结果覆盖，也不能推广成所有插件故障或手机截图唯一原因。
+原raw/F12的`FileUploads.registerAgentResolver`曾把函数直接保存在Service属性；Cordis tracing读取后包装为新Proxy，使disposer的函数`===`比对失败，旧slot残留。该历史路径已由 DSH 0.2.2-rc.1 上游改为稳定的 `agentResolution={resolver}` 数据对象，`file-upload-resolver-lifecycle-patch.json` 已退休；退休证明见 [test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。这是独立于目录组合的历史证据，不能推广成所有插件故障或手机截图唯一原因。
 
-窄生命周期补丁（rc.5 起，`file-upload-resolver-lifecycle-patch.json`）（DSH 0.2.2-rc.1 上游已改用稳定的 `agentResolution={resolver}` 数据对象，该配方已退休；退休证明见 [test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。）只在锁定file-upload模块使用稳定`{ resolve }`对象持有该次注册，disposer按对象身份清理，调用时解出函数。保留live重复注册拒绝、旧disposer围栏、真实上传接收与session回执检查，不重播上传、不删旧附件或工作区内容。专项已完成原CLI（不含目录补丁）重复错误负控，以及只加载附件补丁的两轮workspace停启applied、raw/typed上传实际字节落盘读回、冷进程同Session上传/列表保留；鉴权、foreignOrigin、415/400及未知Session拒绝仍保留。真实Cordis/Commands/LocalAttachmentStore核对live重复、旧disposer、owner退休与同Session回执，入口为[test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。这不是目录+附件组合或最终共享运行时/APK通过；软件范围不扩大为所有附件端到端、账号/模型或真机矩阵，最终组合门禁由负责人另跑。
+DSHA 不再对当前 0.2.2-rc.1 file-upload 模块套用该窄生命周期补丁；当前启动链以受管 runtime 版本和 `runtime-patches.json` 的 retired 记录为准。保留live重复注册拒绝、旧disposer围栏、真实上传接收与session回执检查，不重播上传、不删旧附件或工作区内容。专项已完成原CLI（不含目录补丁）重复错误负控，以及只加载附件补丁的两轮workspace停启applied、raw/typed上传实际字节落盘读回、冷进程同Session上传/列表保留；鉴权、foreignOrigin、415/400及未知Session拒绝仍保留。真实Cordis/Commands/LocalAttachmentStore核对live重复、旧disposer、owner退休与同Session回执，入口为[test-file-upload-resolver-lifecycle.mjs](../tools/test-file-upload-resolver-lifecycle.mjs)。这不是目录+附件组合或最终共享运行时/APK通过；软件范围不扩大为所有附件端到端、账号/模型或真机矩阵，最终组合门禁由负责人另跑。
 
 ## 六、配置与凭据
 

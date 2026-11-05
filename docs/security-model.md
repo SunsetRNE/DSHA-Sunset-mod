@@ -27,7 +27,9 @@
 
 DSH 0.2.2 把工具执行移到 `dsh-tools/lib/pipeline.js` 的 `ToolExecutionPipeline`，原生执行器与 PTC（`run_code` 及其嵌套调用）共用它。签名补丁 `guard-tools-patch.json`（`attachPolicy`）与 `guard-tools-pipeline-patch.json`（`captureExecution` / `prepareOperation` / `verifyGlobalConsent` / `verifyDispatch`）共同生效：bash 删除/不透明命令与 write/edit/str_replace_editor 覆盖已有文件，在两种执行器下都须原生全局允许、会话 danger-full-access 档位或一次性网页审批。任一挂点缺失时 bash 与文件改写一律失败，不放行。
 
-上游新增的 `apply_patch`（dsh-tool-fs，可新建、改写、删除、移动文件）**不在**此策略内：`prepareOperation` 对它不要求同意，guard-fs 也未包装它的 `fs/write|edit|delete-intent`。上游默认关闭（`Config.applyPatch=false`；dsh-base 与 web 的 standard / ptc / cordis / minimal 预设都不开启，DSHA 不改这些配置），按用户决定不加 DSHA 拒绝补丁。用户若在 profile `cordis.patch.yml` 中覆盖某预设的 `tool-fs` 行为 `config.applyPatch: true`（或由插件自行注册同名工具），该工具即可在无审批、无先读校验（0.2.2 默认停用 fs-observation-policy）、danger-full-access 下无路径边界的情况下删除或覆盖文件；DSHA 仅保留执行身份冻结、工具身份与取消核验。
+上游新增的 `apply_patch`（dsh-tool-fs，可新建、改写、删除、移动文件）**不在**此策略内：`prepareOperation` 对它不要求同意，guard-fs 也未包装它的 `fs/write|edit|delete-intent`。上游默认关闭（`Config.applyPatch=false`；dsh-base 与 web 的 standard / ptc / cordis / minimal 预设都不开启，DSHA 不改这些配置），按用户决定不加 DSHA 拒绝补丁。用户若在 profile `cordis.patch.yml` 中覆盖某预设的 `tool-fs` 行为 `config.applyPatch: true`（或由插件自行注册同名工具），该工具即可在无审批、无先读校验（0.2.2 默认停用 `fs-observation-policy`）、danger-full-access 下无路径边界的情况下删除或覆盖文件；DSHA 仅保留执行身份冻结、工具身份与取消核验。
+
+DSH 0.2.2 的默认安全取舍还包括：Web Fetch 沿用上游实现，默认不拒绝内网地址；`fs-observation-policy` 默认关闭，不能把读取前置检查写成已启用的安全边界；`apply_patch` 默认关闭，但 profile 或插件可显式打开，因此上面的未受保护删除/移动风险仍适用。
 
 ## 设备与浏览器能力
 

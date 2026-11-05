@@ -1,7 +1,5 @@
 # 独立锁定的应急 Profile；正式环境的 Profile 和用户插件不会参与。
 - id: tools
-  config:
-    mode: native
 - id: tool-working-directory
   disabled: true
 - id: agent-preset-registry

@@ -99,7 +99,7 @@ export function registerRecoveryTools(ctx, request) {
 }
 export function verifyRoster(tools, scope) {
   const names = tools.schemas(scope).map(row => row.name).sort();
-  if (JSON.stringify(names) !== JSON.stringify([...toolNames].sort()) || tools.modeFor(scope) !== 'native') throw Error('RECOVERY_TOOL_ROSTER');
+  if (JSON.stringify(names) !== JSON.stringify([...toolNames].sort())) throw Error('RECOVERY_TOOL_ROSTER');
   return names;
 }
 export function apply(ctx) {

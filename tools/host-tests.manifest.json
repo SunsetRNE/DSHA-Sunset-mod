@@ -1099,7 +1099,9 @@
         "raw",
         "managed"
       ],
-      "environment": {},
+      "environment": {
+        "NARB_DISABLE_NATIVE_CACHE": ""
+      },
       "cli": "no positional arguments; see explicit environment/requirements"
     },
     {

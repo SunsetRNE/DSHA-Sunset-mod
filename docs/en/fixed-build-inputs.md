@@ -1,12 +1,12 @@
 # Fixed build inputs (public-repository prerelease asset)
 
-Updated 2026-11-03 (after build297, archive rebuild for the signed built-in plugin dsh-fs-search-scope / bundled DSH 0.2.1-rc.5; the independent emergency DSH is also rc.5). Current asset tag: [`fixed-inputs-20261105a`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261105a)
+Updated 2026-11-05 (S1 switches the bundled and emergency DSH runtimes to 0.2.2-rc.1; the archive includes the managed pipeline and native-executor inputs). Current asset tag: [`fixed-inputs-20261105a`](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/fixed-inputs-20261105a)
 (a GitHub prerelease); the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
 
 ## Why the fixed inputs are not stored in git
 
 The 7 large fixed binaries/archives (the largest, `offline-rootfs.bin`, is 304 MB) plus the 2 independent recovery
-archives total about 664 MiB. Committing them would exceed repository and git single-file limits, permanently bloat
+archives total about 671 MiB. Committing them would exceed repository and git single-file limits, permanently bloat
 history, and duplicate bytes that managed recipes can regenerate and that are already pinned by SHA-256. They are
 therefore published only as **GitHub Release assets**:
 
@@ -28,23 +28,20 @@ rules do not apply to them, which is expected.
 | ZIP member | Bytes | Current pin source |
 |---|---:|---|
 | `app/src/main/assets/offline-rootfs.bin` | 304037588 | `runtime-descriptor.json` |
-| `app/src/main/assets/dsh-runtime.bin` | 127674970 | `runtime-descriptor.json` |
+| `app/src/main/assets/dsh-runtime.bin` | 131054683 | `runtime-descriptor.json` |
 | `app/src/main/assets/ubuntu-tools.bin` | 29919475 | `runtime-descriptor.json` |
 | `app/src/main/assets/pnpm-runtime.bin` | 3837861 | `runtime-descriptor.json` |
 | `app/src/main/assets/python-support.bin` | 904360 | `tools/ci-build-inputs.lock.json` (size + digest) |
 | `app/src/main/assets/glibc-python.tar.gz` | 6565414 | `runtime-descriptor.json` |
 | `app/src/main/assets/adb-wheels.tar.gz` | 9951074 | `app/src/main/assets/adb-wheels.lock.json` |
-| `app/src/main/assets/dsh-runtime.inputs.json` | 11490 | provenance (no separate binary pin) |
+| `app/src/main/assets/dsh-runtime.inputs.json` | 11368 | provenance (no separate binary pin) |
 | `app/src/main/assets/ubuntu-tools.inputs.json` | 592 | provenance (no separate binary pin) |
 | `tools/recovery-runtime/archives/recovery-rootfs.bin` | 85783057 | `tools/recovery-runtime/lock.json` |
-| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 127674970 | `tools/recovery-runtime/lock.json` |
+| `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 131054683 | `tools/recovery-runtime/lock.json` |
 
 The set covers the Ubuntu offline rootfs, DSH runtime, ubuntu tools, pnpm runtime, Python support, glibc Python,
-and ADB wheels, plus the independent emergency DSH rootfs/runtime archives. The normal archive is now bundled DSH
-`0.2.1-rc.5` (127,674,970 B / SHA-256 `5c24b1f29db8a14581b17d1692c5585e8b78a7197940c3f45040be8ffcd0aa08`). Since build215 the independent emergency lock was moved, with the user's authorization, to the same `0.2.1-rc.5`
-archive bytes (synchronized again, with authorization, on 2026-11-01 after the normal archive was rebuilt for the
-signed built-in plugin dsh-launch-target, and twice on 2026-11-03 after the rebuilds for the mcp-version-negotiation-patch.json runtime patch and the signed built-in plugin dsh-fs-search-scope), so the APK stores one shared copy (mapped by `recovery-asset-locations.json`). The locks and
-verification contracts remain independent; a regular upgrade never changes the emergency lock automatically.
+and ADB wheels, plus the independent emergency DSH rootfs/runtime archives. The S1 archive bundles DSH
+`0.2.2-rc.1` (131,054,683 B / SHA-256 `cdd13851109eafdd7bf3897261ac68c58e565b809cb7b83ecfda34b78a7ad460`). S1 synchronizes the independent emergency lock to the same `0.2.2-rc.1` bytes with separate locks and extracted roots; `recovery-asset-locations.json` maps only the package bytes. The locks and verification contracts remain independent; a regular upgrade never changes the emergency lock automatically.
 
 ## Lock and restoration
 

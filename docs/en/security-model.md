@@ -23,6 +23,10 @@ Formal terminals allow repair shell commands. Link, local-package, and update in
 
 Plugins run with the app UID, can read and write accessible files, and can execute code. Automatic installation is not independent security certification. Managed system components are separated from user plugins and rebuilt from the current signed APK. User modifications and personal dependencies must not be removed as though they were caches.
 
+### AI tool destructive policy (DSH 0.2.2)
+
+DSH 0.2.2 moves tool execution into `dsh-tools/lib/pipeline.js`; the native and PTC executors share that pipeline. The signed `guard-tools-patch.json` and `guard-tools-pipeline-patch.json` hooks keep destructive bash and existing-file write/edit/replace operations behind the configured consent boundary. The new `apply_patch` tool remains disabled by default (`Config.applyPatch=false`) and is not covered by that policy; a profile or plugin that enables it can create, rewrite, delete, or move files without the same approval or read-before-write checks. The 0.2.2 `fs-observation-policy` is also disabled by default, so documentation must not imply that a pre-read observation boundary is active.
+
 ## Device and browser capabilities
 
 Root, Shizuku, or ADB is selected before dispatch. Native and privileged execution policies check device commands. SMS, virtual screens, screenshots/UI reads, microphone, and storage require their respective native grants and actual Android permissions. Confirmation of an unknown command cannot replace device identity verification. Unknown execution must not be replayed through a different channel.
@@ -38,6 +42,8 @@ Accessibility can receive window events from other apps. Pairing-event scans han
 ## Credentials, networking, and logs
 
 Native API keys use Keystore ciphertext. Temporary unreadability must not be treated as an unconfigured value, and must not cause automatic ciphertext deletion or replacement decryption keys. The bridge uses the `X-Token` request header. A compatibility shim migrates known local fetch calls; it does not enable CORS or claim support for arbitrary HTTP libraries. External file access and default backups exclude machine tokens. User-selected projects may intentionally contain `.env` files, which are not silently discarded.
+
+With DSH 0.2.2, Web Fetch follows upstream behavior and does not reject private or internal network addresses by default. This is an explicit network boundary choice, not evidence that the guest is isolated from the local network.
 
 `/app/net/resolve` is gated by the same `X-Token` and only maps a domain name to numeric addresses: it rejects IP literals, `localhost` and single-label names, opens no connection, does not log host names, and is bounded in concurrency and time. The guest can already send DNS queries over the same default network, so it adds no egress capability, though queries then follow the Android private-DNS / VPN path. `/app/net` is read-only and omits local IPs, SSIDs and carrier names.
 
