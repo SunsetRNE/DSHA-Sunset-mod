@@ -18,7 +18,9 @@ MANIFEST = ROOT / "tools/java-format-files.json"
 LOCK = ROOT / "tools/java-format.lock.json"
 FORMATTER = ROOT / "tools/format-java.py"
 REPORT_DIR = ROOT / "app/build/java-format"
-MAX_BATCH = 256
+# 256 在 Windows 上会让单个 google-java-format 命令行超过 CreateProcess 的
+# 32767 字符上限（WinError 206）；128 对 Linux CI 无影响，批次数略增。
+MAX_BATCH = 128
 TOOL_SOURCE = "tools/java-format/JavaTokenFingerprint.java"
 EXCLUDED_PARTS = frozenset(("history", "upstream", "vendor", "third_party", "third-party", "generated"))
 GENERATED_OWNERS = {

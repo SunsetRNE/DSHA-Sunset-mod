@@ -179,10 +179,6 @@ public final class HomeMasonryLayoutTest {
     assertTrue(afterLeft.getTop() >= full.getBottom());
   }
 
-
-
-
-
   /**
    * 关键不变量（作者反复反馈的 bug）：**选区框必须和卡片本体完全同尺寸**。
    *

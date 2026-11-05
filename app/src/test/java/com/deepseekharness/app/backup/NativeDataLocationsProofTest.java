@@ -18,6 +18,17 @@ import org.robolectric.annotation.Config;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34, manifest = Config.NONE, application = android.app.Application.class)
 public final class NativeDataLocationsProofTest {
+  /**
+   * 「定位后用户数据被替换必须 fail-closed」依赖 POSIX 的文件身份/时间戳语义。
+   * Windows 的 inode 与精度差异会让同一条断言走另一分支；语义由 Linux CI 与真机覆盖。
+   */
+  @org.junit.Before
+  public void requirePosixFileIdentity() {
+    org.junit.Assume.assumeFalse(
+        "需要 POSIX 文件身份语义（Linux CI / Android 覆盖）",
+        System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win"));
+  }
+
   private Context context;
   private File dsh;
 

@@ -290,8 +290,6 @@ public class MainActivity extends AppCompatActivity {
     bootIntroPlayed = true;
     bootScreen = new BootScreen(this, palette, intro);
     bootScreen.setStatus(
-
-
         com.deepseekharness.app.util.UiText.choose("正在检查运行环境…", "Checking the runtime…"));
     bootScreen.attach();
     // 加载页可见期间，ADB 后台探活有界避让，不与入口检查和 Web 启动争环境租约（T25，实验性）。
@@ -1101,7 +1099,7 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
- /**
+  /**
    * 顶栏「编辑布局」入口：只在主页可见时出现，点一下直接进就地编辑模式。
    *
    * <p>主页上的模块本身也能长按进入，但长按落在「启动」这类按钮上会被按钮吃掉，
@@ -1125,8 +1123,6 @@ public class MainActivity extends AppCompatActivity {
   /** 设置双栏详情窗格的返回栈变化：只刷新顶栏返回与标题，不参与路由。 */
   void onSettingsDetailChanged() {
     if (!isFinishing() && !isDestroyed()) updateToolbar();
-
-
   }
 
   private void updateToolbar() {
@@ -1216,7 +1212,7 @@ public class MainActivity extends AppCompatActivity {
           com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management"));
   }
 
- private void applyNavigationOrder(BottomNavigationView nav) {
+  private void applyNavigationOrder(BottomNavigationView nav) {
     java.util.Map<String, Integer> ids = new java.util.LinkedHashMap<>();
     ids.put("module", R.id.nav_module);
     ids.put("plugins", R.id.nav_plugins);
@@ -1409,7 +1405,6 @@ public class MainActivity extends AppCompatActivity {
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     if (nav == null) return;
     applyNavigationOrder(nav);
-
   }
 
   @Override

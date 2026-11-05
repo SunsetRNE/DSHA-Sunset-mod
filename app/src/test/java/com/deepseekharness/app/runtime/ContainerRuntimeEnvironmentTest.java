@@ -16,7 +16,8 @@ public class ContainerRuntimeEnvironmentTest {
 
   @Test
   public void defaultBindListDoesNotExposeSharedStorageWithoutExplicitGrant() {
-    assertTrue(ContainerRuntime.binds(false).stream().noneMatch(bind -> "/sdcard".equals(bind.guest())));
+    assertTrue(
+        ContainerRuntime.binds(false).stream().noneMatch(bind -> "/sdcard".equals(bind.guest())));
     assertTrue(
         ContainerRuntime.binds(false).stream()
             .noneMatch(bind -> "/storage/emulated/0".equals(bind.guest())));

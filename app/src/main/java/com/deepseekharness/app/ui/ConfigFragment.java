@@ -166,8 +166,7 @@ public class ConfigFragment extends Fragment {
             index -> {
               if (index == 2) {
                 if (!com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
-                  toast(
-                      UiText.text("root 容器模式暂不可用：设备隔离与清理保护尚未完成，已保持 proot"));
+                  toast(UiText.text("root 容器模式暂不可用：设备隔离与清理保护尚未完成，已保持 proot"));
                   c.setContainerRuntimeMode("proot");
                   c.setRootRuntimeAuthorization(false);
                 } else if (!RootShell.present()) {
@@ -849,7 +848,6 @@ public class ConfigFragment extends Fragment {
                       "dsha-lan-password")
                   .start();
             });
-
   }
 
   // Submission is not proof of a successful asynchronous bind. The Launch page

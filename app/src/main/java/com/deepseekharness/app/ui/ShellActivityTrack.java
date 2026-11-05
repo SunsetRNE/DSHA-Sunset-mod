@@ -64,6 +64,7 @@ public final class ShellActivityTrack extends View {
 
   /** 模块换肤覆盖（ui.skin.home.progress）：0/负值表示沿用宿主默认。 */
   private int overrideTrackColor = 0;
+
   private int overrideRunningColor = 0;
   private int overrideSettledColor = 0;
   private int overrideErrorColor = 0;
@@ -219,8 +220,7 @@ public final class ShellActivityTrack extends View {
       // 从进行中最后的波浪段出发：两端向外铺满，振幅收到 0，颜色过渡到成功色。
       float segStart = left + span * lastSegStart * (1f - eased);
       float segEnd = left + span * (lastSegEnd + (1f - lastSegEnd) * eased);
-      linePaint.setColor(
-          androidx.core.graphics.ColorUtils.blendARGB(runningC, settledC, eased));
+      linePaint.setColor(androidx.core.graphics.ColorUtils.blendARGB(runningC, settledC, eased));
       if (eased < 1f) drawTrackAround(canvas, left, right, mid, segStart, segEnd, stroke);
       drawWave(canvas, segStart, segEnd, mid, amplitude * (1f - eased), 0f);
       if (t < 1f) postInvalidateOnAnimation();

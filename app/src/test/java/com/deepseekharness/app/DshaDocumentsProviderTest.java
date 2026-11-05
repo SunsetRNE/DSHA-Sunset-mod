@@ -36,6 +36,18 @@ import org.robolectric.annotation.Implements;
 public final class DshaDocumentsProviderTest {
   @Rule public TemporaryFolder temporary = new TemporaryFolder();
 
+  /**
+   * 目录快照在 Android 上用 SQLite 临时库承载；Robolectric 的 Windows 运行时没有可用的
+   * SQLite 原生库（SQLiteCantOpenDatabaseException），这块语义由 Linux CI 与真机覆盖。
+   * 本机按环境跳过，避免把平台缺失记成产品缺陷。
+   */
+  @org.junit.Before
+  public void requireAndroidSqlite() {
+    org.junit.Assume.assumeFalse(
+        "SQLite 目录快照需要 Android/Linux 的 SQLite 原生库",
+        System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win"));
+  }
+
   /** Inject replacement after File.isFile(), precisely at the OS open boundary. */
   @Implements(Os.class)
   public static final class ReplacedFile {

@@ -322,8 +322,7 @@ final class HomeCanvas {
     detachModules();
     // 编辑工具条悬浮在内容上方，编辑态给画布补一段顶部留白，避免压住第一个模块。
     int baseTop = context.getResources().getDimensionPixelSize(R.dimen.shell_launch_page_top);
-    int baseBottom =
-        context.getResources().getDimensionPixelSize(R.dimen.shell_launch_page_bottom);
+    int baseBottom = context.getResources().getDimensionPixelSize(R.dimen.shell_launch_page_bottom);
     sections.setPaddingRelative(
         sections.getPaddingStart(),
         editing ? baseTop + dp(56) : baseTop,

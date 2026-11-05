@@ -55,8 +55,7 @@ final class RootfsInstaller {
       GuestScriptBudget.checkpoint();
       // 标准库的 C 扩展还依赖 SQLite/readline；仅有 Python 主程序并不代表它们可用。
       // 与插件查询就绪共用 guest 判据：apt/dpkg 或外部 root 换成的 soname 链接只要在容器内指向非空普通文件即可用。
-      String machine =
-          com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? "x86_64" : "aarch64";
+      String machine = com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? "x86_64" : "aarch64";
       String sqlite = "usr/lib/" + machine + "-linux-gnu/libsqlite3.so.0";
       String readline = "usr/lib/" + machine + "-linux-gnu/libreadline.so.8";
       boolean sqliteReady = supportReady(stage, sqlite),
