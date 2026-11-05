@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "archiveSha256": "cdd13851109eafdd7bf3897261ac68c58e565b809cb7b83ecfda34b78a7ad460",
+  "archiveSha256": "47db13462087f3e1b82a28b728cdec9f3480aa50dcff5c55e22eb2aa434995e4",
   "packages": {
     ".bin": "a91130bb8cbd6f6e9d6b1b5beaff37e8da427219069162b7a3c0552cd72467fc",
     "@agentclientprotocol/sdk": "2ad364c17a32f29dd05f7d28a052359a893f009ff5ad283e0acb5dd621deb765",
@@ -148,7 +148,7 @@
     "@deepseek-ai/dsh-compaction-image-offload": "ea5c2e1891a3aabe4bb7c6cc1e5151820feb8eb8674977ba6cb4ad277e420045",
     "@deepseek-ai/dsh-compaction-tool-result-pruner": "b7a0c13a216a86b29847a1d7dd974e6a732fb8b9a5b1d5fcd39b52b1eb3d485f",
     "@deepseek-ai/dsh-computer-use": "33dad6916c1c241f23cdf920ca33b210a33761ba3bc70d6a2e084c1b1a01c3cc",
-    "@deepseek-ai/dsh-config-editor": "2042af052ec174a1b806f44b661d01caf03a078bcf891e460786561a35d469a0",
+    "@deepseek-ai/dsh-config-editor": "e2b4fcc5fd98ea9571de315e1890d01620681df81707235200d502ef35eda27b",
     "@deepseek-ai/dsh-cordis-client-runner": "e512270f12c94971b992f6e8c718a2fff7763b46152e83db4c32b73c7d8ccabb",
     "@deepseek-ai/dsh-cordis-host-runner": "89dc09fec462a5ba7bc048afd630dd9be23930bdb29ccb0dc79b7fb1314837d7",
     "@deepseek-ai/dsh-creation-recommendations": "f9f290dc9e5d1d2f4a264cdc8271a00c1dad6fa02351679b73dbdbbe5d143028",

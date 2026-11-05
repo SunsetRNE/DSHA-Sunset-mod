@@ -29,7 +29,7 @@
     "app/src/main/assets/agent-preset-pending-patch.json": "18a81daf2598e51d2f6dfc1c039736eb899ab80fc740c923d8cda0b61665f496",
     "app/src/main/assets/auto-review-native-disabled-patch.json": "bf9759b6ee08cb5d6cbd825f48f9fc8165c50c781066e6f2cbd6019be44b900a",
     "app/src/main/assets/composer-enter-patch.json": "1a45a9e9df7e8aae8051f146f6b7ab0600b03e201063f74bf18d716e0ccc4b3d",
-    "app/src/main/assets/config-editor-lock-order-patch.json": "bc562e7dfdc5a5854c576b84f68b72003a6a0467f49d0c41e800a310bfe38bcd",
+    "app/src/main/assets/config-editor-lock-order-patch.json": "e28e3fb32be5a593804fea841718d864f5b60c2df602dac2fb20e81c05f7c291",
     "app/src/main/assets/conversation-stream-cancel-patch.json": "d03e46489c3fa00fb6043277d88a556f3e73110b047710a71a5152b7f42c8647",
     "app/src/main/assets/deepseek-account-client-diagnostic-patch.json": "2329a816a8b61325d46e99fb3f6202e8080a33a787e7e1f731a1dafd934aeb50",
     "app/src/main/assets/deepseek-account-requests-patch.json": "531f5281370b39f63679cc06a525a5eb5bb122c5e8c43b551ef123aa8e4d61a1",
@@ -91,5 +91,5 @@
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
     "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
-  "archive_sha256": "cdd13851109eafdd7bf3897261ac68c58e565b809cb7b83ecfda34b78a7ad460"
+  "archive_sha256": "47db13462087f3e1b82a28b728cdec9f3480aa50dcff5c55e22eb2aa434995e4"
 }
