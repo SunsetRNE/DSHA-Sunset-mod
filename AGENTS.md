@@ -165,6 +165,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 - `welcomed == false` → `OnboardingActivity`（欢迎 → 用途 → 授权 → 完成）→ `MainActivity`；`MainActivity` 进入前校验 `welcomed`，否则永远回引导。
 - 正常运行检查 `.offline-extracted` 与完整环境身份。覆盖更新、环境未就绪、未完成维护事务或未关闭的隔离试运行现场，都整屏进入运行环境维护页（`ExtractActivity`），同一候选只自动尝试一次；用户在维护页显式选择后才进入受限主界面，**受限入口不写就绪标记**，终端、Web 与插件执行仍须通过环境门禁。
+- **覆盖安装后只要已装运行时不是当前候选，就必须让用户看到整屏维护页并可一键更新**：`isEnvironmentReady()`（兼容 + 健康回执）不等于「无事可做」，补丁级更新也须按 `RuntimeDescriptor.latest` 进维护；自动开始可以因未关闭的 Web 会话被拦，但入口不能消失。**客户端插件不得依赖宿主某个控件是否存在**，只能用自有属性 + 实测几何。详见[覆盖升级与维护门禁](docs/overwrite-upgrade-and-maintenance.md)。
 - 启动失败自动进入原生 `StartupRecoveryActivity`；等待鉴权本身不是故障。最近五次脱敏启动记录独立保存在私有目录。
 - 兼容重试仅在 proroot 已确认退出、鉴权前且无明确插件故障时进行一次，**不能由超时触发**。
 - 配置快照由宿主 `ConfigurationSnapshots` 执行：正文逐文件存于 rootfs 外，保留三份健康与三份修复前快照；旧日志已提交后不得覆盖后来修改的配置。

@@ -1,0 +1,220 @@
+# Over-the-top upgrades, runtime maintenance, and built-in plugin dependency contracts
+
+> Checked on 2026-11-05. Baseline: build324 (released) / build325 (T61 mobile-shell gear fit) / build326 (T60 display-layer and unresolved-Web fixes). This page turns the "white screen, no environment maintenance, duplicated sidebar" incident after an over-the-top upgrade into persistent invariants across the decision layer, display layer, auto-start safety gate, and Web start admission. It reviews source and existing regressions only; it does not replace device acceptance. Per-version scope remains in the matching [release records](releases/).
+
+## 30-second summary
+
+1. **The decision layer was already correct**: `EnvironmentAccess.requiresMaintenanceBeforeStart` and `EnvironmentIdentity.shouldBlockRuntimeStart` return "maintenance required" on both 322→323 (dsh version change) and 323→324 (same dsh, only managed patches changed). Do not modify these functions and do not attribute the incident to them.
+2. **The gap was in the display layer**: `RuntimeInstallationState.isEnvironmentReady()` answers "can the old tree still run", not "is it the current candidate". Rendering maintenance only from it misreads a patch-level overwrite as "nothing to do": the maintenance page promotes "Enter Main" and demotes update; limited entry records no limitation; the Main gate still requires maintenance, so the user is bounced back and forth.
+3. **Auto-start may be silently blocked**: if the old proot Web process survives an over-the-top upgrade, `hasUnresolvedWebSession()` is true and `shouldAutoStart` returns false. That is a **required** safety gate (never replay an unknown instance), but the user must still see the full-screen maintenance page and manually start the update.
+4. **White-screen mechanism**: `WebLifecycleController` returns `REJECTED` when `!isEnvironmentReady() || requiresMaintenanceBeforeStart()`, preventing the watchdog from starting Web on a "compatible but outdated" runtime. With "old tree + new APK", Web is never started and the Main Web area stays blank.
+5. **Client plugins must not depend on a host widget existing**: the built-in `dsh-web-mobile` sidebar gear used `:has(...)` to detect whether the host rendered `ConnectionIndicator`. When a managed patch stopped rendering that indicator, the plugin render chain broke; disabling the plugin restored the UI. The fix measures actual widths and writes an idempotent result into the plugin's own `data-mobile-nav-quick-fit` attribute.
+
+## Invariants (do not break)
+
+| # | Invariant | Check / regression |
+|---|---|---|
+| I1 | After an over-the-top upgrade, if the **installed runtime is not the current candidate** (`RuntimeDescriptor.latest` is false), maintenance is required even when the runtime is compatible, healthy, and on the same dsh version. | `OverwriteUpgradeGateTest` (`app/src/test/java/com/deepseekharness/app/backup/OverwriteUpgradeGateTest.java`, T60 / build326) covers 322→323, 323→324, and a synthetic patch-level predecessor |
+| I2 | `isEnvironmentReady()` means only "the environment can keep running" (complete install + compatible + health receipt); it does **not** mean "nothing to do". The display layer must separate "runnable" from "current candidate". | `RuntimeUpgradeState.upToDate(ready, latest)`; from build326 the maintenance page readiness check also requires `runtimeLatest` |
+| I3 | After an over-the-top upgrade the user must see the **full-screen maintenance page** with a one-tap update. Auto-start may be blocked by an unresolved old Web session, but the entry point must not disappear, and "Enter Main" must not substitute for the repair entry. | `RuntimeUpgradeState.openMaintenancePage`; `MainActivity` entry gate; `OverwriteUpgradeGateTest.unresolvedOldWebStillOpensMaintenancePageButNeverAutoStarts` |
+| I4 | An unresolved old Web session (`hasUnresolvedWebSession()`) **only blocks auto-start**, never the maintenance page; the unknown instance is not replayed automatically and is updated only by an explicit user tap. | `EnvironmentIdentity.shouldAutoStart(..., unresolvedWebSession)` still returns false; `MainActivity` no longer requires `!unresolved` to open maintenance |
+| I5 | Web start admission must reject "old tree + new APK" until maintenance completes or the user has entered the limited Main under the rules; watchdog/foreground service and Main share the same decision. | `WebLifecycleController.requestStart`'s `!isEnvironmentReady() || requiresMaintenanceBeforeStart` gate; do not weaken it just to remove a white screen |
+| I6 | A UI-only APK overwrite **must not** rebuild the environment; the same dsh version with changed managed patches or descriptor inputs **must** be treated as a patch-level update (recompute descriptor, enter maintenance, reinstall the managed tree). | `RuntimeDescriptor.latest` compares `id` and `inputs`; `OverwriteUpgradeGateTest.uiOnlyApkUpdateWithUnchangedManagedInputsNeverNeedsMaintenance` |
+| I7 | Auto-start the same candidate at most once; failures, interruptions, rotation, and process recreation never replay it. Limited entry writes no readiness marker, and terminal / Web / plugin execution still pass environment gates. | `EnvironmentIdentity.shouldAutoStart`; `MaintenanceCoordinator.pending`; `ExtractActivity.proceed()`'s `limitedEntry` |
+| I8 | Built-in plugins may depend only on **their own attributes plus measured geometry**, never on whether some host widget exists (class names, `data-*`, `role`, `:has()` are all off-limits). Host UI changes must not break the plugin render chain. | `tools/test-mobile-gear-contract.mjs` (T61 / build325); `tools/apply-mobile-client-patches.mjs`'s `DSHA_GEAR_FIT_V1` |
+
+## The four layers
+
+### 1. Decision layer: entry and Web start share one identity
+
+- [`EnvironmentAccess.requiresMaintenanceBeforeStart`](../../app/src/main/java/com/deepseekharness/app/core/EnvironmentAccess.java) first consults `DshVersionPolicy` (installed newer → maintenance required) and returns true; then compares `runtimeLatest` (already current → no maintenance); otherwise it calls [`EnvironmentIdentity.shouldBlockRuntimeStart`](../../app/src/main/java/com/deepseekharness/app/util/EnvironmentIdentity.java) with `candidateAttemptKey` (`runtime:<runtimeId>@<APK lastUpdateTime>`).
+- `shouldBlockRuntimeStart` semantics:
+  - `latest` true → allow (no maintenance).
+  - Bundled descriptor unreadable → block (never let the watchdog start Web on an unknown runtime).
+  - Otherwise return `shouldAutoStart(false,false,false,candidate,attempted)`: a **not-yet-attempted new candidate must enter maintenance**; after one attempt, the maintenance page and the healthy predecessor decide whether the old tree may still run.
+  - `busy` / `pending` decide only whether maintenance can start right now; they must **not** turn an untried new candidate into "no maintenance needed".
+- `OverwriteUpgradeGateTest` asserts for both 322→323 and 323→324 that `compatible()` is true, `latest()` is false, and `shouldBlockRuntimeStart` is true. This proves the **decision layer needs no change**.
+
+> Do not "save the user a bounce" by changing `requiresMaintenanceBeforeStart` or `shouldBlockRuntimeStart`. The fixes belong to the display layer and to whether the entry opens.
+
+### 2. Display layer: a patch-level update also counts as unfinished
+
+The real gap was rendering and limited entry:
+
+- [`RuntimeInstallationState.isEnvironmentReady()`](../../app/src/main/java/com/deepseekharness/app/runtime/RuntimeInstallationState.java) = `isEnvironmentInstalled() && rootfsVersionMatches()`.
+- `rootfsVersionMatches()` uses only [`RuntimeDescriptor.compatible()`](../../app/src/main/java/com/deepseekharness/app/backup/RuntimeDescriptor.java) (compares `baseVersion` / `launcherContract` / `bridgeProtocol` / `dataRead` containing `dataWrite`) plus a health receipt. **It ignores `runtimeId` and `inputs`.** So a same-dsh-version, patch-only overwrite looks "ready".
+- If the UI trusts that "ready":
+  - [`MaintenanceFooterPolicy.decide(..., ready=true)`](../../app/src/main/java/com/deepseekharness/app/util/MaintenanceFooterPolicy.java) returns `Primary.DEMOTED` + `Entry.PRIMARY`: **"Enter Main" becomes the primary action and update/retry is demoted**;
+  - `ExtractActivity.proceed()` does not count "not the current candidate" in `limitedEntry`, while the Main gate `requiresMaintenanceBeforeStart` still requires maintenance, so the user is sent back repeatedly;
+  - [`EnvironmentUiStatus`](../../app/src/main/java/com/deepseekharness/app/ui/EnvironmentUiStatus.java) checks only `isEnvironmentReady()`, so the limited Main has no route back to maintenance;
+  - the maintenance page has no "managed patches are not in place yet" message, so the user cannot tell whether patches were updated.
+- From build326 (T60) the pure logic `RuntimeUpgradeState` (`app/src/main/java/com/deepseekharness/app/util/RuntimeUpgradeState.java`) separates the two dimensions:
+  - `upToDate(environmentReady, installedLatest)`: only "can keep running **and** the installed runtime is the current candidate" counts as nothing to do;
+  - `maintenanceRequired(...)`: an unfinished patch-level update also requires maintenance;
+  - `limitedEntry(ready, latest, busy, pending)`: entering Main must record limited entry when the environment is unready, the runtime is not current, maintenance is busy, or a transaction is pending;
+  - `openMaintenancePage(gateFailed, maintenance, restoring)`: an unresolved old Web session does not prevent opening maintenance.
+
+> The decision layer and the display layer must share one source of truth: entry, maintenance page, Main banner, and Web admission all derive from `EnvironmentAccess` / `RuntimeUpgradeState`. Any place that substitutes `isEnvironmentReady()` for "done" will recreate this incident.
+
+### 3. Auto-start safety gate: blocks auto-start, not the entry
+
+- An over-the-top upgrade changes `StoredWebSession.appIdentity()` (it includes the APK `lastUpdateTime`). If the old proot Web process is still alive, the new package observes `LIVE` with an incompatible identity; recovery can only be UNKNOWN, so `HarnessController.hasUnresolvedWebSession()` is true.
+- The full overload of [`EnvironmentIdentity.shouldAutoStart`](../../app/src/main/java/com/deepseekharness/app/util/EnvironmentIdentity.java) explicitly includes `!unresolvedWebSession`: with an unconfirmed original instance, auto-start returns false. **This is a correct safety gate and must stay.**
+- The user's symptom is "maintenance did not start automatically". The correct product behavior is not to force auto-start, but to:
+  1. still open the full-screen maintenance page;
+  2. explain prominently that the installed runtime still belongs to the previous build and this build's managed patches are not in place;
+  3. offer "Update runtime" as the primary action, started only by an explicit tap;
+  4. allow the limited Main for logs/configuration while Web and plugin execution remain gated.
+- Failed/interrupted old candidates follow the `previousStatus` / `previousRuntimeHealthy` conditions; a repair APK upgrade does not turn an unknown scene into something safe to replay.
+
+### 4. Web start admission: the actual cause of the white screen
+
+[`WebLifecycleController`](../../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java) checks before enqueuing:
+
+```java
+if (!proot.isEnvironmentReady() || EnvironmentAccess.requiresMaintenanceBeforeStart(owner)) {
+  // "The runtime is missing or needs an update. Open installation and repair."
+  return StartAdmission.REJECTED;
+}
+```
+
+The source comment states the reason: after an over-the-top upgrade the foreground `START_STICKY` service may be recreated before `MainActivity`; allowing start would let the watchdog bring Web back on a **compatible but outdated** runtime, before this APK's patches and system plugins are in place.
+
+Therefore, with "old tree + new APK":
+
+- Web never starts and the Main Web area is blank;
+- this is not a WebView failure, a network failure, or a plugin crash: **do not** touch WebView, clear caches, reinstall the APK, or weaken the admission gate;
+- if the old proot Web process is still alive, interface evidence is UNKNOWN; combined with DSH 0.2.2 no longer rendering the first-connection indicator, the old plugin dependency fails and the user also sees a duplicated sidebar (next section).
+
+## Built-in plugins must not depend on host UI
+
+### Incident: the `dsh-web-mobile` sidebar gear
+
+- Upstream 3.2.2's `drawer-quick-settings-chip-guard` used `:has(> button[data-phase], > [role="status"])` to decide whether the footer gear must yield. That made plugin rendering **depend on a host child node existing**.
+- build324's managed patch `DSHA_FIRST_CONNECT_SILENT_V1` stops rendering `ConnectionIndicator` on first entry. The `:has()` guard then always concluded "fits", nothing measured the row's real width, the plugin render chain broke, and the user saw a duplicated sidebar footer; disabling the built-in plugin restored normal rendering.
+- Fix (T61, `DSHA_GEAR_FIT_V1`):
+  - export a pure predicate `dshaGearFits(rowWidth, usedWidth)`: the gear is shown only when `row content width − other visible children width ≥ 40px`; unusable layout (width ≤ 0 or non-finite) means "does not fit", conservatively keeping the account-menu entry;
+  - write the conclusion idempotently into the plugin's own `data-mobile-nav-quick-fit` attribute; CSS reads only that attribute;
+  - the account-menu settings entry and gear visibility share the same conclusion, so exactly one settings entry exists at any time;
+  - the product lives in [`app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js`](../../app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js); the patch is maintained by [`tools/apply-mobile-client-patches.mjs`](../../tools/apply-mobile-client-patches.mjs).
+- Contract test: `tools/test-mobile-gear-contract.mjs` (T61, merged with build325). Using the real product plus a minimal DOM it covers: gear injection without an indicator, yielding/restoring by measured width as the indicator appears/disappears, conservative yield in a narrow row, and idempotent repeated `ensure`.
+
+### Rules for plugin and host UI changes
+
+1. **Never** use host node existence — class names, `data-phase`, `role="status"`, `:has()` — to decide whether the plugin renders. One removed host child can break the whole chain.
+2. To sense layout, measure only `getBoundingClientRect()` / `getComputedStyle()` geometry and write the result into a **plugin-owned** attribute (for example `data-mobile-nav-quick-fit`).
+3. When sizes are unreadable or layout is not ready, choose **conservative degradation** (drop one entry) instead of "assume it exists and render".
+4. Every such dependency needs a Node-runnable contract test against the real product plus a minimal DOM, not just a hand-written function test.
+5. Host UI changes (adding/removing the connection indicator, update bar, and so on) must trigger a review of every built-in plugin patch's CSS selectors and DOM assumptions.
+
+## Pre-release checklist
+
+After changing managed patches, built-in plugins, managed inputs under `app/src/main/assets/**`, or Java related to upgrades/maintenance, at minimum run the following from the repository root:
+
+```bash
+# 1. Recompute the managed runtime descriptor (required after managed patch / built-in plugin product / runtime input changes)
+python3 tools/prepare-runtime-descriptor.py --write
+python3 tools/verify-runtime-descriptor-source.py
+
+# 2. Third-party notices (patch chain or built-in plugin digests change them; both 324 and 325 hit this)
+python3 tools/generate-third-party-notices.py --check
+python3 tools/check-third-party-notices.py
+# If --check fails, run the generator without --check to update THIRD_PARTY_NOTICES.md, then rerun both
+
+# 3. Whole contracts group (same as .github/workflows/_node-contracts.yml)
+python3 tools/prepare-runtime-tools.py --check
+python3 tools/verify-runtime-descriptor-source.py
+python3 tools/generate-third-party-notices.py --check
+python3 tools/check-third-party-notices.py
+python3 tools/generate-builtin-plugins.py --verify
+python3 tools/generate-credential-paths.py --check
+python3 tools/prepare-semver-reference.py
+python3 tools/run-host-tests.py --check-manifest
+python3 tools/check-source-hygiene.py
+python3 tools/check-ui-i18n.py
+python3 tools/generate-changelog.py --check
+python3 tools/check-document-links.py
+
+# 4. Direct regressions for this incident
+node tools/test-mobile-gear-contract.mjs          # built-in mobile-shell gear contract (T61 / build325)
+dsha-gradle :app:testStandardDebugUnitTest --tests '*OverwriteUpgradeGateTest'
+dsha-gradle :app:testStandardDebugUnitTest --tests '*RuntimeUpgradeStateTest'
+```
+
+Additional rules:
+
+- **Fixed inputs**: if one of the eleven fixed inputs changes (`offline-rootfs.bin`, `dsh-runtime.bin`, `ubuntu-tools.bin`, and so on), repack/upload the prerelease asset, update `ci/sunset-inputs.lock.json`, and sync related locks/docs as described in [fixed build inputs](../fixed-build-inputs.md). APK-only assets (such as the built-in plugin `client.js`) do not require repacking the fixed-input bundle, but still require recomputing the runtime descriptor and third-party notices.
+- **A UI-only APK** must not rebuild Ubuntu and must not make the maintenance page suggest a rebuild; only managed input changes enter patch-level maintenance.
+- Before reporting "mergeable / releasable", list the commands actually run and their results. If device acceptance was not performed, say so; never present host tests as device conclusions.
+
+## Device acceptance (over-the-top upgrade)
+
+Release acceptance must perform one real "**previous build → this build**" overwrite and record it in the version receipt:
+
+1. **Prepare the predecessor**: install the previous released build (same package, same signing, non-debuggable) on a dedicated acceptance device, finish onboarding, start Web once, and confirm a healthy environment; record the version, `runtimeId`, and connection state.
+2. **Overwrite with the old Web alive**: without stopping DSH/Web, install the new build over it (in-app update or same-signature APK). Then check:
+   - the **full-screen maintenance page** appears (not Main, not a blank Web);
+   - it states that the installed runtime still belongs to the previous build / managed patches are not in place;
+   - "Update runtime / Retry" is the primary action and clickable;
+   - if auto-start is blocked by an unresolved old Web session, the page still offers an explicit manual entry (this is correct behavior, not a failure).
+3. **Complete maintenance**: tap update on the maintenance page; confirm normal process shutdown, candidate preparation, trial, and commit. Then verify Web starts, plugins load, and the sidebar has exactly one settings entry. Use diagnostics/environment info to confirm `runtimeId` now matches the current APK candidate.
+4. **Cold overwrite**: normally stop DSH and terminals, overwrite the same pair, and confirm maintenance starts automatically once, then Main opens with a working Web.
+5. **Plugin regression**: inspect the sidebar footer both when no connection indicator is shown on first entry and after the indicator appears: exactly one gear, no overlap with the account button, and the account menu still opens settings.
+6. **UI-only counter-check**: a UI-only build with an unchanged descriptor must not trigger an environment rebuild or maintenance.
+7. **Receipt**: record "previous → this build, install method, whether the old Web survived, which page appeared, whether auto-start was blocked, whether the manual tap succeeded, Web/plugin results, and the before/after `runtimeId`" in the matching record under `docs/releases/`. Mark uncovered devices, ROMs, and external-model matrices honestly. Device screenshots and logs do not enter the repository.
+
+> Do **not** overwrite-install a production build on the shared build machine that hosts DSH; device acceptance happens on a dedicated device.
+
+## Counterexample: what actually happened from 323 to 324
+
+Context: build323 and build324 bundled the same dsh version `0.2.2-rc.1`; 324 added two managed patches (`DSHA_FIRST_CONNECT_SILENT_V1`, `DSHA_USER_ONLY_SKILL_APPROVAL_V1`). The patch chain was fine: 324's `dsh-runtime.bin` already contained both markers at build time, and `verify-runtime-descriptor-source` agreed. The user's impression that "patches were not updated" came from "**the environment was never updated at all**".
+
+| Layer | Behavior at the time | What the user saw |
+|---|---|---|
+| Decision | `compatible()` true (same dsh / same base contract), `latest()` false; `requiresMaintenanceBeforeStart` / `shouldBlockRuntimeStart` correctly returned "maintenance required" | Correct decision, but no usable UI |
+| Display | Maintenance page treated `isEnvironmentReady()` as "nothing to do", promoted "Enter Main", demoted update, recorded no limited-entry identity, and the Main banner had no route back | "Skip maintenance and enter Main" sat on the primary action; maintenance never started; entering Main bounced back |
+| Auto-start | Old proot Web alive → `hasUnresolvedWebSession()` true → `shouldAutoStart` false | "Maintenance did not start automatically", with no obvious manual entry |
+| Web admission | `!isEnvironmentReady() || requiresMaintenanceBeforeStart` → `REJECTED` | Blank Web area; with the old Web still alive plus the broken plugin `:has()` dependency, a duplicated sidebar appeared; disabling the built-in plugin restored it |
+
+The fix has three parts, all required:
+
+1. **Display layer (T60 / build326)**: `RuntimeUpgradeState` separates "can keep running" from "is current candidate"; maintenance `ready` also requires `runtimeLatest`; `limitedEntry` includes unfinished patch-level updates; the Main banner keeps a route back to maintenance; the maintenance page explains that managed patches are not in place.
+2. **Entry (T60 / build326)**: an unresolved old Web session only blocks auto-start and no longer prevents opening the maintenance page, so the only repair entry is always reachable.
+3. **Plugin dependency (T61 / build325)**: gear yielding is based on measured width plus a plugin-owned attribute, no longer on the host indicator existing.
+
+Common misdiagnoses:
+
+- blaming `requiresMaintenanceBeforeStart` / `shouldBlockRuntimeStart` → **wrong**, both paths decided correctly;
+- blaming the patch not being baked into `dsh-runtime.bin` → **wrong**, both markers were present at build time;
+- blaming WebView / network / a general plugin crash → **wrong**, Web was never allowed to start;
+- using "disable the built-in plugin" as a long-term fix → only hides the plugin's dependency on host-widget existence;
+- weakening the Web admission gate to remove the white screen → lets the watchdog start Web on an outdated runtime, a more severe regression.
+
+## Troubleshooting quick reference
+
+| Symptom | Check first | Do not |
+|---|---|---|
+| Main opens after an overwrite and Web is blank | whether the maintenance page opened; `EnvironmentAccess.requiresMaintenanceBeforeStart`; `RuntimeDescriptor.latest(installed, expected)` | touch WebView, clear caches, reinstall the APK, or weaken the admission gate |
+| Maintenance page shows "Enter Main" as primary and update as secondary | whether the `ready` passed in uses only `isEnvironmentReady()`; whether `RuntimeUpgradeState.upToDate` includes `latest` | change only button text or styling; the inputs are wrong |
+| Main from maintenance bounces back | whether `limitedEntry` recorded a limited identity; whether patch-level incompleteness is part of the condition | disable the Main gate; that only hides the problem |
+| "Maintenance did not start automatically" | `hasUnresolvedWebSession()`; whether the previous task FAILED/INTERRUPTED; whether this candidate was already attempted | replay an unknown old instance automatically; offer an explicit manual start |
+| Duplicated sidebar footer / gear covering the avatar | whether the plugin still uses host `:has(button[data-phase], [role="status"])`; whether `data-mobile-nav-quick-fit` is written | treat "disable the built-in plugin" as the fix |
+| "The patch was not updated" | first compare whether `runtimeId` / `inputs` equal the current candidate; then check `dsh-runtime.bin` markers and `verify-runtime-descriptor-source` | suspect the patch chain first |
+
+## Regression entries and related documents
+
+| Item | Entry |
+|---|---|
+| Upgrade gate (322→323, 323→324, synthetic patch-level predecessor, UI-only, unresolved old Web) | `app/src/test/java/com/deepseekharness/app/backup/OverwriteUpgradeGateTest.java` (T60 / build326) |
+| `RuntimeUpgradeState` pure logic | `app/src/test/java/com/deepseekharness/app/util/RuntimeUpgradeStateTest.java` (T60 / build326) |
+| Mobile-shell gear contract | `tools/test-mobile-gear-contract.mjs` (T61 / build325) |
+| Maintenance transaction and stop barriers | [`MaintenanceGateTest`](../../app/src/test/java/com/deepseekharness/app/util/MaintenanceGateTest.java) |
+| Maintenance page implementation | [`ExtractActivity`](../../app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java), [`MaintenanceFooterPolicy`](../../app/src/main/java/com/deepseekharness/app/util/MaintenanceFooterPolicy.java) |
+| Web admission and old-session recovery | [`WebLifecycleController`](../../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java), [startup and diagnostics](startup-and-diagnostics.md) |
+| Managed update transactions and trials | [`EnvironmentMaintenance`](../../app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java), [installation and maintenance](install-and-maintenance.md) |
+| Application updates and signing | [application updates](update.md), [download verification](download-verification.md) |
+| Fixed inputs and descriptor | [fixed build inputs](../fixed-build-inputs.md), [runtime, data, and plugin architecture](runtime-data-plugin-architecture.md) |
+| Mobile Web patch notes (Chinese) | [mobile Web adaptation patches](../web-mobile-patches.md) |
+| build324 first-connection record | [build324 record](../releases/v0.2.1-rc.5-build324-first-connect-indicator-20261105.md) |
+| build323 upgrade record | [build323 record](../releases/v0.2.1-rc.5-build323-dsh022-s1-connection-display-20261105.md) |
+| Whole contracts workflow | [`_node-contracts.yml`](../../.github/workflows/_node-contracts.yml) |

@@ -51,6 +51,8 @@ Android 8+ 未允许此应用安装未知来源时，页面先打开系统授权
 
 受管提交先经过[MaintenanceCoordinator](../app/src/main/java/com/deepseekharness/app/core/MaintenanceCoordinator.java)正常停止 Web/终端和退出屏障，再准备候选、记录摘要及前代、进行[RuntimeTrial](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeTrial.java)，核验真实端口/鉴权、会话与存储、网页握手和进程退出后提交。失败保留原件，未知退出不能切换、清理或重放。兼容运行时回退用当前启动器重新试运行，不回退用户对话快照；详见[安装与维护](install-and-maintenance.md)。
 
+覆盖安装后补丁级更新是否进维护页、自动开始被旧 Web 会话拦住时如何保留用户入口、以及发布前必跑清单与真机覆盖验收步骤，见[覆盖升级、运行时维护与插件依赖契约](overwrite-upgrade-and-maintenance.md)。
+
 ## 修改与验证入口
 
 选择/来源/签名规则的回归入口为[UpdatePolicyTest](../app/src/test/java/com/deepseekharness/app/util/UpdatePolicyTest.java)与[UpdateRedirectsTest](../app/src/test/java/com/deepseekharness/app/util/UpdateRedirectsTest.java)，停止和事务边界见[MaintenanceGateTest](../app/src/test/java/com/deepseekharness/app/util/MaintenanceGateTest.java)。本文未重新运行这些测试，也不宣称完整应用内安装确认/取消、远端清单、外部覆盖或各 Android 版本已经复验。

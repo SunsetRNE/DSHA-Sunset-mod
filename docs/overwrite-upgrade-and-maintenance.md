@@ -1,0 +1,220 @@
+# 覆盖安装、运行时维护与内置插件依赖契约
+
+> 核验日期：2026-11-05。基线：build324（已发布）/ build325（T61 移动壳齿轮让位）/ build326（T60 展示层与旧 Web 会话修复）。本文把“覆盖安装后白屏、不触发环境维护、侧栏重复叠加”这次事故的判定层、展示层、自动开始安全门禁和 Web 启动准入写成持久化不变式。只核对源码与已有回归，不代替真机验收；具体版本的验证范围以 [docs/releases/](releases/) 对应回执为准。
+
+## 30 秒结论
+
+1. **判定层本来就是对的**：`EnvironmentAccess.requiresMaintenanceBeforeStart` 与 `EnvironmentIdentity.shouldBlockRuntimeStart` 在 322→323（dsh 版本变化）和 323→324（同 dsh、只换受管补丁）两条路径上都返回“需要维护”。不要去改这两个函数，也不要再把事故归因到它们。
+2. **缺口在展示层**：`RuntimeInstallationState.isEnvironmentReady()` 只回答“旧树还能不能用”，不回答“是不是当前候选”。只按它渲染维护页，会把补丁级覆盖误判成“无事可做”：维护页把“进入主界面”升为主操作、更新降为次要；受限入口不记录限制身份；主界面门禁仍要求维护，于是来回跳。
+3. **自动开始可能被静默拦下**：覆盖安装后旧 proot Web 进程若仍存活，`hasUnresolvedWebSession()` 为真，`shouldAutoStart` 返回 false。这是**必须保留**的安全门禁（未知实例不自动重放），但用户必须仍能看到整屏维护页并自己点一次更新。
+4. **白屏机制**：`WebLifecycleController` 在 `!isEnvironmentReady() || requiresMaintenanceBeforeStart()` 时直接把启动判为 `REJECTED`，防止看门狗用“兼容但过期”的旧运行时拉起 Web。于是“旧树 + 新 APK”时 Web 根本不会启动，主界面 Web 区域空白。
+5. **客户端插件不得依赖宿主某个控件是否存在**：内置 `dsh-web-mobile` 的侧栏齿轮曾用 `:has(...)` 依赖宿主 `ConnectionIndicator` 是否渲染；当受管补丁让该指示灯首次不显示时，插件渲染链失效，用户禁用插件才恢复。修复为“按实测宽度让位”，结论幂等写入插件自有属性 `data-mobile-nav-quick-fit`。
+
+## 不变量（不可破坏）
+
+| # | 不变式 | 检查点 / 回归 |
+|---|---|---|
+| I1 | 覆盖安装后，只要**已装运行时不是当前候选**（`RuntimeDescriptor.latest` 为假），就必须判为“需要维护”；即使它仍兼容、仍健康、dsh 版本相同。 | `OverwriteUpgradeGateTest`（`app/src/test/java/com/deepseekharness/app/backup/OverwriteUpgradeGateTest.java`，T60 / build326）覆盖 322→323、323→324 与“只改受管输入”的合成前代 |
+| I2 | `isEnvironmentReady()` 只表示“环境可继续运行”（安装完整 + 兼容 + 健康回执），**不等于**“无事可做”。展示层必须把“可运行”和“是当前候选”分开判断。 | `RuntimeUpgradeState.upToDate(ready, latest)`；build326 起维护页就绪判定同时要求 `runtimeLatest` |
+| I3 | 覆盖安装后必须让用户看到**整屏维护页**并可一键更新。自动开始可以因未关闭的旧 Web 会话被拦，但入口不能消失，也不能用“进入主界面”代替修复入口。 | `RuntimeUpgradeState.openMaintenancePage`；`MainActivity` 入口门禁；`OverwriteUpgradeGateTest.unresolvedOldWebStillOpensMaintenancePageButNeverAutoStarts` |
+| I4 | 未确认的旧 Web 会话（`hasUnresolvedWebSession()`）**只拦自动开始**，不拦维护页；不得自动重放未知实例，只能由用户在维护页明确手点。 | `EnvironmentIdentity.shouldAutoStart(..., unresolvedWebSession)` 保持为真值时返回 false；`MainActivity` 不再把 `unresolved` 当打开维护页的前置条件 |
+| I5 | Web 启动准入必须在“旧树 + 新 APK”时拒绝，除非维护已完成或用户已按规则进入受限主界面；看门狗/前台服务与主界面共用同一判定。 | `WebLifecycleController.requestStart` 的 `!isEnvironmentReady() || requiresMaintenanceBeforeStart` 门禁；不得为“消灭白屏”放宽 |
+| I6 | 只改 UI 的 APK 覆盖**不得**重建环境；同 dsh 版本、受管补丁或描述符输入变化**必须**视为补丁级更新（重算描述符、进维护页、重装受管树）。 | `RuntimeDescriptor.latest` 比较 `id` 与 `inputs`；`OverwriteUpgradeGateTest.uiOnlyApkUpdateWithUnchangedManagedInputsNeverNeedsMaintenance` |
+| I7 | 同一候选只自动尝试一次；失败、中断、旋转、进程重建都不自动重放。受限入口不写就绪标记，终端 / Web / 插件执行仍须过环境门禁。 | `EnvironmentIdentity.shouldAutoStart`；`MaintenanceCoordinator.pending`；`ExtractActivity.proceed()` 的 `limitedEntry` |
+| I8 | 内置插件只能依赖**自己的属性 + 实测几何**，不得依赖宿主某个控件是否存在（类名、`data-*`、`role`、`:has()` 都不行）。宿主 UI 变化不得让插件渲染链崩掉。 | `tools/test-mobile-gear-contract.mjs`（T61 / build325）；`tools/apply-mobile-client-patches.mjs` 的 `DSHA_GEAR_FIT_V1` |
+
+## 四层机制
+
+### 1. 判定层：入口与 Web 启动共用同一身份
+
+- [`EnvironmentAccess.requiresMaintenanceBeforeStart`](../app/src/main/java/com/deepseekharness/app/core/EnvironmentAccess.java) 先看 `DshVersionPolicy`（已装更新 → 必须维护），并直接返回 true；再比较 `runtimeLatest`，若已是当前候选则无需维护；否则用 `candidateAttemptKey`（`runtime:<runtimeId>@<APK lastUpdateTime>`）调 [`EnvironmentIdentity.shouldBlockRuntimeStart`](../app/src/main/java/com/deepseekharness/app/util/EnvironmentIdentity.java)。
+- `shouldBlockRuntimeStart` 的语义：
+  - `latest` 为真 → 不拦（无需维护）。
+  - 包内描述符不可认证 → 必须拦（不能让看门狗用未知运行时拉起 Web）。
+  - 否则返回 `shouldAutoStart(false,false,false,candidate,attempted)`：**尚未尝试过的新候选必须维护**；同一候选已经尝试过一次后，是否继续由维护页与健康前代决定。
+  - `busy` / `pending` 只决定“维护现在能不能立刻执行”，**不能**把“尚未尝试的新候选”判成无需维护。
+- 回归夹具见 `OverwriteUpgradeGateTest`：322→323 与 323→324 都断言 `compatible()` 为真、`latest()` 为假、`shouldBlockRuntimeStart` 为真。这证明**判定层不需要改**。
+
+> 修改提醒：不要为了“让用户少跳一次”去改 `requiresMaintenanceBeforeStart` 或 `shouldBlockRuntimeStart`。事故的修复点在展示层与入口是否打开，不在判定真假。
+
+### 2. 展示层：补丁级更新也必须算“没做完”
+
+事故真正缺口在渲染与受限入口：
+
+- [`RuntimeInstallationState.isEnvironmentReady()`](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeInstallationState.java) = `isEnvironmentInstalled() && rootfsVersionMatches()`。
+- `rootfsVersionMatches()` 只用 [`RuntimeDescriptor.compatible()`](../app/src/main/java/com/deepseekharness/app/backup/RuntimeDescriptor.java)（比较 `baseVersion` / `launcherContract` / `bridgeProtocol` / `dataRead` 是否包含 `dataWrite`）加健康回执。**它不看 `runtimeId` 与 `inputs`**。所以“同 DSH 版本、只换受管补丁”的覆盖安装会被判“环境就绪”。
+- 若展示层直接用这个“就绪”：
+  - [`MaintenanceFooterPolicy.decide(..., ready=true)`](../app/src/main/java/com/deepseekharness/app/util/MaintenanceFooterPolicy.java) 返回 `Primary.DEMOTED` + `Entry.PRIMARY`：**“进入主界面”升为主操作，更新/重试降为次要按钮**；
+  - `ExtractActivity.proceed()` 不把“不是当前候选”计入 `limitedEntry`，主界面门禁 `requiresMaintenanceBeforeStart` 又要求维护，于是用户被反复送回维护页；
+  - [`EnvironmentUiStatus`](../app/src/main/java/com/deepseekharness/app/ui/EnvironmentUiStatus.java) 只看 `isEnvironmentReady()`，受限主界面里没有回维护页的入口；
+  - 维护页也没有“内置补丁尚未落地”的说明，用户无法判断补丁到底有没有更新上。
+- build326 起（T60）新增纯逻辑 `RuntimeUpgradeState`（`app/src/main/java/com/deepseekharness/app/util/RuntimeUpgradeState.java`），把两维分开：
+  - `upToDate(environmentReady, installedLatest)`：只有“可继续运行 **且** 已装运行时就是当前候选”才算无事可做；
+  - `maintenanceRequired(...)`：补丁级更新未完成也算需要维护；
+  - `limitedEntry(ready, latest, busy, pending)`：环境未就绪、不是当前候选、维护忙或 pending 时，进入主界面必须记受限身份；
+  - `openMaintenancePage(gateFailed, maintenance, restoring)`：未确认旧 Web 会话不阻止打开维护页。
+
+> 判定层与展示层必须同源：入口、维护页、主界面横幅、Web 启动准入都应从 `EnvironmentAccess` / `RuntimeUpgradeState` 取得同一结论。任何一处自行用 `isEnvironmentReady()` 代替“可以收工”，都会重新制造本事故。
+
+### 3. 自动开始安全门禁：拦自动，不拦入口
+
+- 覆盖安装会改变 `StoredWebSession.appIdentity()`（含 APK `lastUpdateTime`）。旧 proot Web 进程仍存活时，新包观察到的是 `LIVE` 但身份不兼容，恢复只能保守为 UNKNOWN，于是 `HarnessController.hasUnresolvedWebSession()` 为真。
+- [`EnvironmentIdentity.shouldAutoStart`](../app/src/main/java/com/deepseekharness/app/util/EnvironmentIdentity.java) 的完整重载明确包含 `!unresolvedWebSession`：存在未确认原实例时，自动开始返回 false。**这是正确的安全门禁，必须保留**。
+- 用户看到的现象是“维护没有自动开始”。正确产品行为不是强行自动开始，而是：
+  1. 仍然打开整屏维护页；
+  2. 用醒目文案说明“已装入的运行时仍是上一版，本次内置补丁尚未落地”；
+  3. 提供“更新运行时”作为主操作（用户明确手点）；
+  4. 允许用户进入受限主界面查看日志 / 配置，但 Web 与插件执行仍受环境门禁。
+- 失败 / 中断的旧候选按 `shouldAutoStart` 的 `previousStatus` / `previousRuntimeHealthy` 条件处理；不因一次 APK 修复包升级就把未知现场当成可重放。
+
+### 4. Web 启动准入：白屏的真正原因
+
+[`WebLifecycleController`](../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java) 的 `requestStart` 在入队前有：
+
+```java
+if (!proot.isEnvironmentReady() || EnvironmentAccess.requiresMaintenanceBeforeStart(owner)) {
+  // “运行环境缺失或需要更新，请进入安装与修复”
+  return StartAdmission.REJECTED;
+}
+```
+
+源码注释写明目的：覆盖安装后前台 `START_STICKY` 服务可能先于 `MainActivity` 被系统重建，若放行，看门狗会用**兼容但过期**的旧运行时重新拉起 Web，使本 APK 的运行补丁与系统插件尚未落地。
+
+因此“旧树 + 新 APK”时：
+
+- Web 不会启动，主界面 Web 区域就是空白；
+- 这不是 WebView 故障、网络故障或插件崩溃，**不要**去改 `WebView`、清缓存、重装 APK 或放宽启动门禁；
+- 旧的 proot Web 进程仍存活时，界面证据为 UNKNOWN；叠加 0.2.2 首次连接不再渲染指示灯，移动壳插件的旧依赖会失效，用户还会看到侧栏重复叠加层（见下一节）。
+
+## 内置插件对宿主 UI 的依赖禁令
+
+### 事故案例：`dsh-web-mobile` 侧栏齿轮
+
+- 上游 3.2.2 的 `drawer-quick-settings-chip-guard` 用 `:has(> button[data-phase], > [role="status"])` 判断连接指示灯是否在场，再决定 footer 齿轮要不要让位。这使插件渲染**依赖宿主某个子节点存在**。
+- build324 的受管补丁 `DSHA_FIRST_CONNECT_SILENT_V1` 让首次进入不再渲染 `ConnectionIndicator`。于是该 `:has()` 判据永远“放得下”，但行的真实宽度没人核对；插件渲染链失效，用户看到侧栏 footer 重复叠加，禁用内置插件后恢复正常。
+- 修复（T61，`DSHA_GEAR_FIT_V1`）：
+  - 导出纯判据 `dshaGearFits(rowWidth, usedWidth)`：`行内容宽度 − 其它可见孩子宽度 ≥ 40px` 才显示齿轮；布局未就绪（宽度 ≤ 0 / 非有限数）按“放不下”处理，保守保留账户菜单入口；
+  - 结论幂等写入插件自有属性 `data-mobile-nav-quick-fit`，CSS 只认这个属性；
+  - 账户菜单设置项与齿轮可见性共用同一结论，保证任何时刻只有一条设置入口；
+  - 产物在 [`app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js`](../app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js)，补丁由 [`tools/apply-mobile-client-patches.mjs`](../tools/apply-mobile-client-patches.mjs) 管理。
+- 契约测试：`tools/test-mobile-gear-contract.mjs`（T61，随 build325 合入）。用真实产物 + 最小 DOM 覆盖：无指示灯时齿轮正常注入、指示灯出现/消失时按实测宽度让位/恢复、行宽不足时保守让位、重复 `ensure` 幂等。
+
+### 写插件 / 改宿主 UI 时的规则
+
+1. **不要**用宿主节点的类名、`data-phase`、`role="status"`、`:has()` 等“存在性”判据决定插件是否渲染；宿主删一个子节点就可能让整条渲染链崩掉。
+2. 需要感知布局时，只量 `getBoundingClientRect()` / `getComputedStyle()` 的几何值，并把结论写进**插件自己的**属性（例如 `data-mobile-nav-quick-fit`）。
+3. 尺寸不可读、布局未就绪时选择**保守降级**（少显示一个入口），不要选择“假设存在、直接渲染”。
+4. 每个类似依赖都要有可在 Node 里跑的契约测试，用真实产物 + 最小 DOM，而不是只测手写函数。
+5. 宿主 UI 变更（例如新增/删除连接指示灯、更新条）必须同步检查所有内置插件补丁的 CSS 选择器与 DOM 假设。
+
+## 发布前必跑清单
+
+改受管补丁、内置插件、`app/src/main/assets/**` 中的受管输入，或改覆盖升级 / 维护相关 Java 后，至少完成以下检查（命令均在仓库根执行）：
+
+```bash
+# 1. 重算受管运行时描述符（受管补丁 / 内置插件产物 / runtime 输入变化后必须）
+python3 tools/prepare-runtime-descriptor.py --write
+python3 tools/verify-runtime-descriptor-source.py
+
+# 2. 第三方声明（补丁链或内置插件摘要变化会让它变；324/325 都踩过）
+python3 tools/generate-third-party-notices.py --check
+python3 tools/check-third-party-notices.py
+# 若 --check 失败，先运行不带 --check 的生成命令更新 THIRD_PARTY_NOTICES.md，再重跑上面两条
+
+# 3. 契约整组（与 .github/workflows/_node-contracts.yml 一致）
+python3 tools/prepare-runtime-tools.py --check
+python3 tools/verify-runtime-descriptor-source.py
+python3 tools/generate-third-party-notices.py --check
+python3 tools/check-third-party-notices.py
+python3 tools/generate-builtin-plugins.py --verify
+python3 tools/generate-credential-paths.py --check
+python3 tools/prepare-semver-reference.py
+python3 tools/run-host-tests.py --check-manifest
+python3 tools/check-source-hygiene.py
+python3 tools/check-ui-i18n.py
+python3 tools/generate-changelog.py --check
+python3 tools/check-document-links.py
+
+# 4. 本次事故的两条直接回归
+node tools/test-mobile-gear-contract.mjs          # 内置移动壳齿轮契约（T61 / build325）
+dsha-gradle :app:testStandardDebugUnitTest --tests '*OverwriteUpgradeGateTest'
+dsha-gradle :app:testStandardDebugUnitTest --tests '*RuntimeUpgradeStateTest'
+```
+
+补充规则：
+
+- **固定输入**：如果变化的是固定输入 11 项之一（`offline-rootfs.bin`、`dsh-runtime.bin`、`ubuntu-tools.bin` 等），必须按 [固定构建输入](fixed-build-inputs.md) 重新打包 / 上传预发布资产、更新 `ci/sunset-inputs.lock.json`，并同步相关 lock 与文档；只改 APK 资源（如内置插件 `client.js`）则不重打固定输入包，但**仍要重算 runtime-descriptor 与第三方声明**。
+- **只改 UI 的 APK** 不要重建 Ubuntu，也不要让维护页出现“需要重建”的误导；只有受管输入变化才进补丁级维护。
+- 报“可合并 / 可发布”前列出**实际跑过**的命令与结果；没跑真机就写“未真机验证”，不要把宿主测试写成设备结论。
+
+## 真机验收步骤（覆盖安装）
+
+发布验收必须做一次“**上一版 → 本版**”的真实覆盖安装，并写进版本回执：
+
+1. **准备前代**：在独立验收设备安装上一版正式包（同包名、同签名、非调试），完成欢迎流程，启动一次 Web 并确认环境健康；记录版本、`runtimeId` 与是否已连接。
+2. **覆盖安装（保留旧 Web 场景）**：不手动停止 DSH / Web，直接用应用内更新或同签名 APK 覆盖安装。打开 App 后检查：
+   - 是否出现**整屏维护页**（而不是直接停在主界面或空白 Web）；
+   - 是否显示“已装入的运行时仍是上一版 / 内置补丁尚未落地”一类说明；
+   - “更新运行时 / 重试”是否是主操作，且可点击；
+   - 自动开始若被未确认旧 Web 会话拦下，页面是否仍给出明确手点入口（这是合格行为，不是故障）。
+3. **完成维护**：在维护页手点更新，确认进程正常停止、候选准备、试运行、提交都完成；维护后 Web 是否正常启动、插件是否加载、侧栏是否只有一条设置入口。用诊断页 / 环境信息核对 `runtimeId` 已变成当前 APK 的候选。
+4. **冷覆盖场景**：先正常停止 DSH 与终端，再覆盖安装同一对版本，确认维护页自动开始一次、成功后进入主界面且 Web 正常。
+5. **插件回归**：在“首次进入无连接指示灯”和“连接后出现指示灯”两种状态下各看一次侧栏 footer：齿轮只出现一个、不覆盖账户按钮、账户菜单仍能打开设置。
+6. **UI-only 反例**：用只改 UI、描述符未变的覆盖包验证不触发环境重建、无需维护。
+7. **回执**：把“上一版 → 本版、安装方式、旧 Web 是否存活、看到的页面、自动开始是否被拦、手点后是否成功、Web / 插件结果、`runtimeId` 前后值”写进 `docs/releases/` 的版本记录；未覆盖的机型、ROM、外部模型矩阵如实标注。设备截图与日志不进入仓库。
+
+> 本机（与 DSH 共享的构建环境）**不要**覆盖安装正式包；真机验收在独立设备进行。
+
+## 反例：323 → 324 到底发生了什么
+
+背景：build323 与 build324 内置同一个 dsh 版本 `0.2.2-rc.1`；324 只新增两条受管补丁（`DSHA_FIRST_CONNECT_SILENT_V1`、`DSHA_USER_ONLY_SKILL_APPROVAL_V1`）。补丁链本身没坏：324 的 `dsh-runtime.bin` 在构建期已烘入两个标记，`verify-runtime-descriptor-source` 也一致；用户看到的“补丁没更新上”其实来自“**环境根本没更新**”。
+
+| 层 | 当时行为 | 用户可见结果 |
+|---|---|---|
+| 判定层 | `compatible()` 为真（同 dsh / 同基础契约），`latest()` 为假；`requiresMaintenanceBeforeStart` / `shouldBlockRuntimeStart` 正确返回“需要维护” | 判定正确，但没人把它变成可用界面 |
+| 展示层 | 维护页用 `isEnvironmentReady()` 当“无事可做”，把“进入主界面”升为主操作；更新降为次要；受限入口不记受限身份；主界面横幅无回维护页入口 | 用户看到“跳过维护进主界面”摆在主位，维护永不开始；进了主界面又被门禁送回，来回跳 |
+| 自动开始 | 旧 proot Web 仍存活 → `hasUnresolvedWebSession()` 为真 → `shouldAutoStart` 返回 false | “维护没有自动开始”，且没有明显的手点入口 |
+| Web 启动准入 | `!isEnvironmentReady() || requiresMaintenanceBeforeStart` → `REJECTED` | 主界面 Web 区域空白；旧 Web 残留 + 插件 `:has()` 依赖失效 → 侧栏重复叠加；禁用内置插件才恢复 |
+
+修复拆成三块，缺一不可：
+
+1. **展示层（T60 / build326）**：`RuntimeUpgradeState` 把“可继续运行”和“是当前候选”分开；维护页 `ready` 同时要求 `runtimeLatest`；`limitedEntry` 计入补丁级未完成；主界面横幅在补丁级未完成时也留回维护页入口；维护页给出“内置补丁尚未落地”的说明。
+2. **入口（T60 / build326）**：未确认旧 Web 会话只拦自动开始，不再阻止打开维护页；用户始终看得到唯一修复入口。
+3. **插件依赖（T61 / build325）**：齿轮让位改实测宽度 + 自有属性，不再依赖宿主指示灯存在。
+
+这次事故最容易被误判的点：
+
+- 以为是 `requiresMaintenanceBeforeStart` / `shouldBlockRuntimeStart` 的 bug → **不是**，两条路径都判对了；
+- 以为是补丁没打进 `dsh-runtime.bin` → **不是**，标记在构建期已烘入；
+- 以为是 WebView / 网络 / 插件整体崩溃 → **不是**，Web 根本没有被允许启动；
+- 用“禁用内置插件”当长期修复 → 只是掩盖了插件对宿主控件存在性的依赖；
+- 用“放宽 Web 启动门禁”消灭白屏 → 会让看门狗用过期运行时拉起 Web，是更严重的回归。
+
+## 排障速查
+
+| 现象 | 先查什么 | 不要做什么 |
+|---|---|---|
+| 覆盖安装后直接进主界面、Web 空白 | 维护页是否被打开；`EnvironmentAccess.requiresMaintenanceBeforeStart` 的返回值；`RuntimeDescriptor.latest(installed, expected)` | 不要改 WebView / 清缓存 / 重装 APK / 放宽启动门禁 |
+| 维护页“进入主界面”是主按钮、更新是次要 | 维护页传入的 `ready` 是否只看 `isEnvironmentReady()`；`RuntimeUpgradeState.upToDate` 是否把 `latest` 算进去 | 不要只改按钮文案或样式；根因是判定输入错了 |
+| 维护页进主界面又被弹回 | `limitedEntry` 是否记录了受限身份；补丁级未完成是否被算进限制条件 | 不要禁止主界面门禁；那只是把问题藏起来 |
+| “维护没有自动开始” | `hasUnresolvedWebSession()`；上次任务是否 FAILED / INTERRUPTED；同一候选是否已尝试过 | 不要自动重放未知旧实例；应让用户手点 |
+| 侧栏 footer 重复 / 齿轮挡住头像 | 是否仍依赖宿主 `:has(button[data-phase], [role="status"])`；`data-mobile-nav-quick-fit` 是否正常写入 | 不要把“禁用内置插件”当修复 |
+| “补丁没更新上” | 先比 `runtimeId` / `inputs` 是否变成当前候选；再看 `dsh-runtime.bin` 标记与 `verify-runtime-descriptor-source` | 不要先怀疑补丁链本身 |
+
+## 回归入口与相关文档
+
+| 内容 | 入口 |
+|---|---|
+| 覆盖升级门禁（322→323、323→324、合成补丁级前代、UI-only、未确认旧 Web） | `app/src/test/java/com/deepseekharness/app/backup/OverwriteUpgradeGateTest.java`（T60 / build326） |
+| `RuntimeUpgradeState` 纯逻辑 | `app/src/test/java/com/deepseekharness/app/util/RuntimeUpgradeStateTest.java`（T60 / build326） |
+| 移动壳齿轮契约 | `tools/test-mobile-gear-contract.mjs`（T61 / build325） |
+| 维护事务与停止屏障 | [`MaintenanceGateTest`](../app/src/test/java/com/deepseekharness/app/util/MaintenanceGateTest.java) |
+| 运行环境维护页实现 | [`ExtractActivity`](../app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java)、[`MaintenanceFooterPolicy`](../app/src/main/java/com/deepseekharness/app/util/MaintenanceFooterPolicy.java) |
+| Web 启动准入与旧会话恢复 | [`WebLifecycleController`](../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java)、[启动与诊断](startup-and-diagnostics.md) |
+| 受管更新事务与试运行 | [`EnvironmentMaintenance`](../app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java)、[安装与维护](install-and-maintenance.md) |
+| 应用更新与签名 | [应用更新](update.md)、[下载校验](download-verification.md) |
+| 固定输入与描述符 | [固定构建输入](fixed-build-inputs.md)、[环境、数据与插件机制](runtime-data-plugin-architecture.md) |
+| 移动 Web 适配补丁 | [移动 Web 适配补丁](web-mobile-patches.md) |
+| 324 首次连接静默事故记录 | [build324 记录](releases/v0.2.1-rc.5-build324-first-connect-indicator-20261105.md) |
+| 323 升级记录 | [build323 记录](releases/v0.2.1-rc.5-build323-dsh022-s1-connection-display-20261105.md) |
+| 契约整组工作流 | [`.github/workflows/_node-contracts.yml`](../.github/workflows/_node-contracts.yml) |

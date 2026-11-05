@@ -51,6 +51,8 @@ Canceling system installation leaves the original application installed; opening
 
 Managed commit first uses [MaintenanceCoordinator](../../app/src/main/java/com/deepseekharness/app/core/MaintenanceCoordinator.java) to stop Web/terminals normally and enforce the exit barrier. It prepares a candidate, records digests/predecessor, and runs [RuntimeTrial](../../app/src/main/java/com/deepseekharness/app/runtime/RuntimeTrial.java), checking actual port/authentication, sessions/storage, browser handshake, and exit before commit. Failure retains originals. Unknown exit cannot switch, clean, or replay. A compatibility rollback tries the predecessor with the current launcher and does not roll back conversation snapshots. See [installation and maintenance](install-and-maintenance.md).
 
+Whether a patch-level update enters the maintenance page after an over-the-top install, how to keep a user entry when auto-start is blocked by an old Web session, and the pre-release checklist and device overwrite acceptance steps are in [over-the-top upgrades, runtime maintenance, and plugin dependency contracts](overwrite-upgrade-and-maintenance.md).
+
 ## Change and validation entry points
 
 Selection/source/signature regressions start with [UpdatePolicyTest](../../app/src/test/java/com/deepseekharness/app/util/UpdatePolicyTest.java) and [UpdateRedirectsTest](../../app/src/test/java/com/deepseekharness/app/util/UpdateRedirectsTest.java); stop/transaction boundaries start with [MaintenanceGateTest](../../app/src/test/java/com/deepseekharness/app/util/MaintenanceGateTest.java). This page did not rerun these tests or claim revalidation of complete in-app install confirmation/cancellation, the remote feed, external replacement, or every Android version.

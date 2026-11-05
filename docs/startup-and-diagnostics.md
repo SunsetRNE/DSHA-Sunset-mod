@@ -18,6 +18,8 @@
 | 已捕获后端鉴权地址 | 后端输出提供当前本机服务地址与鉴权资料 | 不等于网页 bundle、插件或页面已经就绪 |
 | 网页已就绪 | 当前页面观察器报告 ready，写入启动状态 | 仍不证明未使用的插件、外部模型或所有设备能力成功 |
 
+覆盖安装后“旧树 + 新 APK”的展示层判定、自动开始安全门禁与 Web 启动准入见[覆盖升级、运行时维护与插件依赖契约](overwrite-upgrade-and-maintenance.md)；本页只描述启动状态分层，不替代该契约。
+
 入口为[MainActivity](../app/src/main/java/com/deepseekharness/app/ui/MainActivity.java)、[OnboardingActivity](../app/src/main/java/com/deepseekharness/app/ui/OnboardingActivity.java)、[ExtractActivity](../app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java)（维护详情）与[FirstRunWebStart](../app/src/main/java/com/deepseekharness/app/ui/FirstRunWebStart.java)。[StartupPipeline](../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java)处理正常启动准备，[StartupDiagnostics](../app/src/main/java/com/deepseekharness/app/core/StartupDiagnostics.java)整合后端与网页观察。页面事件仍校验宿主、运行代次、当前同源文档、nonce 与顺序，见[StartupPageGate](../app/src/main/java/com/deepseekharness/app/util/StartupPageGate.java)；nonce 不是同源脚本之间的安全隔离。
 
 停止与重启必须遵循真实进程身份及退出屏障；不能按端口、名字或裸 PID 强杀。proroot 鉴权前明确失败后的窄回退条件见[运行引擎](runtime-engines.md)，不能把慢启动和插件错误当成换引擎重放理由。
