@@ -86,15 +86,15 @@ everything passes. Any failure leaves existing inputs untouched and never execut
 | Item | Value |
 |---|---|
 | release tag | `fixed-inputs-20261105d` (prerelease, target `main`) |
-| release id | `pending upload` |
+| release id | `435173538` |
 | asset | `dsha-a-su-fixed-inputs-20261105d.zip` |
 | bytes | `703125540` |
 | SHA-256 | `fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70` |
 | download URL | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105d/dsha-a-su-fixed-inputs-20261105d.zip` |
 
-> The bundle was only generated and verified locally and has not been uploaded to GitHub yet; after uploading,
-> `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261105d` must confirm the asset `name`/`size`/`state`,
-> and only `size=703125540` with `state=uploaded` lets this section be marked published. The direct URL is determined by the
+> The bundle has been uploaded to GitHub and verified: `gh release view fixed-inputs-20261105d` reports
+> `dsha-a-su-fixed-inputs-20261105d.zip` with `size=703125540`, `state=uploaded`, and remote digest
+> `sha256:fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70` matching the lock. The direct URL is determined by the
 > tag plus the asset filename and does not depend on the asset id. A same-tag `--clobber` replacement keeps the filename
 > but changes the content and SHA-256, so the lock must be updated.
 

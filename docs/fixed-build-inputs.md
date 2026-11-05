@@ -83,13 +83,13 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105d.zip \
 | 项目 | 值 |
 |---|---|
 | release tag | `fixed-inputs-20261105d`（prerelease，target `main`） |
-| release id | `pending upload` |
+| release id | `435173538` |
 | asset | `dsha-a-su-fixed-inputs-20261105d.zip` |
 | bytes | `703125540` |
 | SHA-256 | `fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70` |
 | 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105d/dsha-a-su-fixed-inputs-20261105d.zip` |
 
-> 当前仅在本机生成并校验该 bundle，尚未上传 GitHub；上传后必须用 `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261105d` 核对资产 `name`/`size`/`state`，只有 `size=703125540` 且 `state=uploaded` 才能将这里的状态改为已发布。
+> 该 bundle 已上传 GitHub 并核对通过：`gh release view fixed-inputs-20261105d` 显示资产 `dsha-a-su-fixed-inputs-20261105d.zip`，`size=703125540`、`state=uploaded`、远端摘要 `sha256:fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70` 与锁一致（2026-11-05 由主会话上传并核对）。
 > 直链由 tag + 资产文件名确定，不依赖 asset id；若后续在同 tag 内 `--clobber` 替换资产，文件名不变但内容与 SHA-256 会变，必须同步更新锁。
 
 ## 升级流程（新预发布资产）
