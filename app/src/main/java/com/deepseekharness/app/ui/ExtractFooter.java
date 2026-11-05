@@ -23,27 +23,35 @@ import com.google.android.material.button.MaterialButton;
 final class ExtractFooter {
   private final Activity activity;
   private final OnboardingKit kit;
+  private final View footerRoot;
   private final LinearLayout actions;
   private final Button retry, enter, logs, copy, emergency;
   private final View busy;
   private final TextView busyLabel, busyCounter;
   private final boolean sideBySide;
   private boolean stackedLinks;
+  private boolean allowRetry = true;
   private final java.util.Map<Button, Integer> icons = new java.util.HashMap<>();
   private String lastKey;
 
   ExtractFooter(Activity activity, OnboardingKit kit) {
+    this(activity, kit, activity.findViewById(R.id.extract_footer));
+  }
+
+  /** 复用同一底栏布局的其他页面（首次引导完成页）传自己的根视图，视图 ID 仍由布局提供。 */
+  ExtractFooter(Activity activity, OnboardingKit kit, View footerRoot) {
     this.activity = activity;
     this.kit = kit;
-    actions = activity.findViewById(R.id.extract_actions);
-    retry = activity.findViewById(R.id.extract_retry);
-    enter = activity.findViewById(R.id.extract_enter);
-    busy = activity.findViewById(R.id.extract_busy);
-    busyLabel = activity.findViewById(R.id.extract_busy_label);
-    busyCounter = activity.findViewById(R.id.extract_busy_counter);
-    logs = activity.findViewById(R.id.extract_logs);
-    copy = activity.findViewById(R.id.extract_copy_support);
-    emergency = activity.findViewById(R.id.extract_emergency);
+    this.footerRoot = footerRoot;
+    actions = footerRoot.findViewById(R.id.extract_actions);
+    retry = footerRoot.findViewById(R.id.extract_retry);
+    enter = footerRoot.findViewById(R.id.extract_enter);
+    busy = footerRoot.findViewById(R.id.extract_busy);
+    busyLabel = footerRoot.findViewById(R.id.extract_busy_label);
+    busyCounter = footerRoot.findViewById(R.id.extract_busy_counter);
+    logs = footerRoot.findViewById(R.id.extract_logs);
+    copy = footerRoot.findViewById(R.id.extract_copy_support);
+    emergency = footerRoot.findViewById(R.id.extract_emergency);
     Configuration c = activity.getResources().getConfiguration();
     sideBySide = MaintenanceFooterPolicy.sideBySide(c.screenWidthDp, c.screenHeightDp);
     arrange();
@@ -88,10 +96,15 @@ final class ExtractFooter {
     enter.setMinHeight(
         activity.getResources().getDimensionPixelSize(R.dimen.extract_primary_height));
     enter.setMinimumHeight(enter.getMinHeight());
-    if (kit.shortScreen()) {
-      View footer = activity.findViewById(R.id.extract_footer);
-      footer.setPadding(footer.getPaddingLeft(), kit.dp(8), footer.getPaddingRight(), kit.dp(6));
-    }
+    if (kit.shortScreen())
+      footerRoot.setPadding(
+          footerRoot.getPaddingLeft(), kit.dp(8), footerRoot.getPaddingRight(), kit.dp(6));
+  }
+
+  /** 就绪页只需要“进入主界面”：隐藏降级的主操作，避免首次部署完成后再摆一个重建按钮。 */
+  void setAllowRetry(boolean allowRetry) {
+    this.allowRetry = allowRetry;
+    lastKey = null;
   }
 
   private void bindLinks(boolean stacked) {
@@ -178,6 +191,8 @@ final class ExtractFooter {
             + ":"
             + retryEnabled
             + ":"
+            + allowRetry
+            + ":"
             + view.completed()
             + "/"
             + view.total()
@@ -209,7 +224,7 @@ final class ExtractFooter {
       boolean retryEnabled) {
     boolean progress = model.primary == MaintenanceFooterPolicy.Primary.PROGRESS;
     busy.setVisibility(progress ? View.VISIBLE : View.GONE);
-    retry.setVisibility(progress ? View.GONE : View.VISIBLE);
+    retry.setVisibility(progress || !allowRetry ? View.GONE : View.VISIBLE);
     if (progress) {
       String label = view.visible() ? view.label() : UiText.choose("维护中", "Maintaining");
       String counter = view.counter();

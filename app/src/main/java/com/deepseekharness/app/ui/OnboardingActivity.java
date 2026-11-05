@@ -23,6 +23,7 @@ import com.deepseekharness.app.core.EnvironmentAccess;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.DeployStages;
 import com.deepseekharness.app.util.DeviceSupportReport;
+import com.deepseekharness.app.util.MaintenanceFooterPolicy;
 import com.deepseekharness.app.util.OnboardingMotionPlan;
 import com.deepseekharness.app.util.PermissionGoals;
 import com.deepseekharness.app.util.UiText;
@@ -1264,7 +1265,6 @@ public final class OnboardingActivity extends AppCompatActivity {
 
   private void buildFinish() {
     int state = finishState();
-    String limitedLabel = UiText.text("进入受限主界面 · 查看日志与配置");
     String title, lead;
     switch (state) {
       case F_RUNNING:
@@ -1306,36 +1306,48 @@ public final class OnboardingActivity extends AppCompatActivity {
     kit.add(content, kit.lead(lead), 8);
     kit.add(content, runtimeCard(state), 18);
     kit.add(content, grantsCard(), 12);
-    android.widget.Button primary, second = null, third = null, fourth = null;
-    switch (state) {
-      case F_RUNNING:
-        primary = kit.primary(UiText.choose("等待部署完成…", "Waiting for deployment…"), null);
-        primary.setEnabled(false);
-        second = kit.secondary(limitedLabel, v -> enterLimited());
-        break;
-      case F_READY:
-        primary = kit.primary(UiText.choose("进入主界面", "Open the home screen"), v -> enterMain());
-        break;
-      case F_FAILED:
-      case F_PENDING:
-        primary = kit.primary(retryLabel(), v -> retry());
-        second =
-            kit.secondary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
-        third = kit.ghost(UiText.choose("启动应急 DSH", "Start emergency DSH"), v -> openRecovery());
-        fourth = kit.ghost(limitedLabel, v -> enterLimited());
-        break;
-      case F_UNREADY:
-        primary =
-            kit.primary(UiText.choose("查看本次维护记录", "View maintenance record"), v -> openLogs());
-        second = kit.secondary(limitedLabel, v -> enterLimited());
-        third = kit.ghost(UiText.choose("启动应急 DSH", "Start emergency DSH"), v -> openRecovery());
-        break;
-      default:
-        primary = kit.primary(UiText.choose("回到第 1 步", "Back to step 1"), v -> show(WELCOME));
-        // 兜底出口：部署未被接受时不把用户困在引导里；受限入口不写就绪标记。
-        second = kit.ghost(limitedLabel, v -> enterLimited());
-    }
-    footer.addView(kit.buttonBar(primary, second, third, fourth), OnboardingKit.matchWrap());
+    buildFinishFooter(state);
+  }
+
+  /**
+   * 第 4 步底栏与运行环境维护页共用同一套紧凑两行：主操作行（进度面板 / 主按钮 + 受限入口）与一行三个
+   * 描边入口。状态映射沿用 {@link MaintenanceFooterPolicy}，点击后的门禁判断仍在本页。
+   */
+  private void buildFinishFooter(int state) {
+    boolean running = state == F_RUNNING,
+        pending = state == F_PENDING,
+        failed = state == F_FAILED,
+        incomplete = state == F_UNREADY,
+        ready = state == F_READY;
+    MaintenanceFooterPolicy.Model model =
+        MaintenanceFooterPolicy.decide(running, pending, failed, incomplete, ready);
+    String label = state == F_IDLE ? UiText.choose("回到第 1 步", "Back to step 1") : retryLabel();
+    View bar = getLayoutInflater().inflate(R.layout.view_extract_footer, footer, false);
+    // 外层 foot 已铺背景与内边距；内嵌视图只保留操作区本身，避免两套 padding 叠成 40dp。
+    bar.setBackground(null);
+    bar.setPadding(0, 0, 0, 0);
+    ExtractFooter compact = new ExtractFooter(this, kit, bar);
+    // 就绪后只有“进入主界面”，不再显示降级的主操作。
+    compact.setAllowRetry(state != F_READY);
+    compact
+        .retry()
+        .setOnClickListener(
+            v -> {
+              if (state == F_IDLE) show(WELCOME);
+              else retry();
+            });
+    compact
+        .enter()
+        .setOnClickListener(
+            v -> {
+              if (model.entry == MaintenanceFooterPolicy.Entry.PRIMARY) enterMain();
+              else enterLimited();
+            });
+    compact.logs().setOnClickListener(v -> openLogs());
+    compact.copy().setOnClickListener(v -> copySupport());
+    compact.emergency().setOnClickListener(v -> openRecovery());
+    compact.render(model, deploy, label, true);
+    footer.addView(bar, OnboardingKit.matchWrap());
   }
 
   private View runtimeCard(int state) {
@@ -1493,6 +1505,17 @@ public final class OnboardingActivity extends AppCompatActivity {
       startActivity(DiagnosticActivity.downloadLogs(this));
     } catch (RuntimeException failure) {
       record("LOGS", failure);
+    }
+  }
+
+  /** 完成页的“复制给支持”：与欢迎页共用 DeviceSupportProbe 的设备摘要。 */
+  private void copySupport() {
+    try {
+      if (support == null) support = DeviceSupportProbe.sample(this);
+      DeviceSupportProbe.copy(this, support);
+      toast(UiText.choose("已复制本机环境摘要。", "Copied the device summary."));
+    } catch (RuntimeException failure) {
+      record("COPY_SUPPORT", failure);
     }
   }
 

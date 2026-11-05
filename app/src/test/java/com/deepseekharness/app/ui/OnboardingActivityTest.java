@@ -4,12 +4,19 @@ import static org.junit.Assert.*;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.deepseekharness.app.DshaApp;
+import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
+import com.deepseekharness.app.util.DeployStages;
 import com.deepseekharness.app.util.PermissionGoals;
 import com.deepseekharness.app.util.UiText;
 import org.junit.Before;
@@ -68,9 +75,12 @@ public final class OnboardingActivityTest {
     }
   }
 
-  /** 部署监视器：不读 BackupTask、不轮询；始终“未开始、未就绪”。 */
+  /** 部署监视器：不读 BackupTask、不轮询；当前视图与就绪状态由用例设置。 */
   @Implements(value = DeployMonitor.class, isInAndroidSdk = false)
   public static final class Monitor {
+    static DeployStages.View view = DeployStages.idle();
+    static boolean ready;
+
     @Implementation
     protected void __constructor__(
         androidx.lifecycle.LifecycleOwner owner,
@@ -79,12 +89,12 @@ public final class OnboardingActivityTest {
 
     @Implementation
     protected com.deepseekharness.app.util.DeployStages.View current() {
-      return com.deepseekharness.app.util.DeployStages.idle();
+      return view;
     }
 
     @Implementation
     protected boolean environmentReady() {
-      return false;
+      return ready;
     }
 
     @Implementation
@@ -153,6 +163,8 @@ public final class OnboardingActivityTest {
         .clear()
         .commit();
     Environment.ready = false;
+    Monitor.view = DeployStages.idle();
+    Monitor.ready = false;
   }
 
   @Test
@@ -279,6 +291,143 @@ public final class OnboardingActivityTest {
     // 未推进主循环：如果重建时播放了入场，正文此刻会是透明的。
     assertEquals(1f, restored.content.getChildAt(0).getAlpha(), 0.001f);
     restoredHost.resume().pause().stop().destroy();
+  }
+
+  /** 完成页与运行环境维护页共用紧凑底栏：部署中显示“更新中 x/5”进度面板，不再用禁用主按钮。 */
+  @Test
+  @Config(qualifiers = "w393dp-h873dp-xxhdpi")
+  public void finishRunningUsesCompactProgressFooter() {
+    deployStartedOnFinish();
+    Monitor.view =
+        DeployStages.view(DeployStages.Mode.INSTALL, DeployStages.Phase.RUNNING, 1, "", "", 7);
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    assertEquals(OnboardingActivity.FINISH, page.step);
+    assertEquals(View.VISIBLE, page.findViewById(R.id.extract_busy).getVisibility());
+    assertEquals(View.GONE, page.findViewById(R.id.extract_retry).getVisibility());
+    TextView label = page.findViewById(R.id.extract_busy_label);
+    assertFalse(label.getText().toString().isEmpty());
+    assertEquals(
+        page.deploy.counter(),
+        ((TextView) page.findViewById(R.id.extract_busy_counter)).getText().toString());
+    assertEquals(
+        "进入受限主界面 · 查看日志与配置", ((Button) page.findViewById(R.id.extract_enter)).getText().toString());
+    View root = page.findViewById(android.R.id.content);
+    assertTrue(hasText(root, "维护记录"));
+    assertTrue(hasText(root, "复制给支持"));
+    assertTrue(hasText(root, "应急 DSH"));
+    host.pause().stop().destroy();
+  }
+
+  /** 中断 / 失败：主操作保持“恢复中断维护 / 重试部署”，应急入口强调可见。 */
+  @Test
+  @Config(qualifiers = "w393dp-h873dp-xxhdpi")
+  public void finishPendingShowsRecoverAndEmergencyEntry() {
+    deployStartedOnFinish();
+    Monitor.view =
+        DeployStages.view(DeployStages.Mode.INSTALL, DeployStages.Phase.PENDING, 2, "", "", 7);
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    assertEquals(View.GONE, page.findViewById(R.id.extract_busy).getVisibility());
+    Button retry = page.findViewById(R.id.extract_retry);
+    assertEquals(View.VISIBLE, retry.getVisibility());
+    assertFalse(retry.getText().toString().isEmpty());
+    assertEquals(
+        "启动应急 DSH", page.findViewById(R.id.extract_emergency).getContentDescription().toString());
+    host.pause().stop().destroy();
+  }
+
+  /** 就绪后主操作只剩“进入主界面”，不再显示降级的主操作按钮。 */
+  @Test
+  @Config(qualifiers = "w393dp-h873dp-xxhdpi")
+  public void finishReadyPromotesMainEntryAndHidesRetry() {
+    deployStartedOnFinish();
+    Monitor.ready = true;
+    Monitor.view =
+        DeployStages.view(DeployStages.Mode.INSTALL, DeployStages.Phase.SUCCEEDED, 3, "", "", 7);
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    assertEquals(View.GONE, page.findViewById(R.id.extract_retry).getVisibility());
+    assertEquals(View.GONE, page.findViewById(R.id.extract_busy).getVisibility());
+    assertEquals("进入主界面", ((Button) page.findViewById(R.id.extract_enter)).getText().toString());
+    host.pause().stop().destroy();
+  }
+
+  /** 未开始部署（兜底）：主操作回到第 1 步，受限入口仍可进入且不写就绪标记。 */
+  @Test
+  @Config(qualifiers = "w393dp-h873dp-xxhdpi")
+  public void finishIdleOffersBackToFirstStep() {
+    deployStartedOnFinish();
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    Button retry = page.findViewById(R.id.extract_retry);
+    assertEquals(View.VISIBLE, retry.getVisibility());
+    assertEquals("回到第 1 步", retry.getText().toString());
+    host.pause().stop().destroy();
+  }
+
+  /** 宽屏：受限入口在左、进度面板在右（与维护页一致）。 */
+  @Test
+  @Config(qualifiers = "w840dp-h1280dp-xxhdpi")
+  public void wideFinishFooterPutsEntryLeftOfProgress() {
+    deployStartedOnFinish();
+    Monitor.view =
+        DeployStages.view(DeployStages.Mode.INSTALL, DeployStages.Phase.RUNNING, 1, "", "", 7);
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    LinearLayout actions = page.findViewById(R.id.extract_actions);
+    assertEquals(LinearLayout.HORIZONTAL, actions.getOrientation());
+    assertEquals(0, actions.indexOfChild(page.findViewById(R.id.extract_enter)));
+    assertEquals(View.VISIBLE, page.findViewById(R.id.extract_busy).getVisibility());
+    host.pause().stop().destroy();
+  }
+
+  /** 1.3 倍字体：三个描边入口的图标移到文字上方，避免三列文字被挤成多行。 */
+  @Test
+  @Config(qualifiers = "w393dp-h873dp-xxhdpi")
+  public void largeFontPutsLinkIconsAboveLabels() {
+    Resources resources = RuntimeEnvironment.getApplication().getResources();
+    Configuration config = new Configuration(resources.getConfiguration());
+    config.fontScale = 1.3f;
+    resources.updateConfiguration(config, resources.getDisplayMetrics());
+    deployStartedOnFinish();
+    Monitor.view =
+        DeployStages.view(DeployStages.Mode.INSTALL, DeployStages.Phase.RUNNING, 1, "", "", 7);
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    Drawable[] icons =
+        ((Button) page.findViewById(R.id.extract_logs)).getCompoundDrawablesRelative();
+    assertNull(icons[0]);
+    assertNotNull(icons[1]);
+    host.pause().stop().destroy();
+  }
+
+  /** 英文界面复用同一套入口文案，不缓存语言。 */
+  @Test
+  @Config(qualifiers = "w393dp-h873dp-xxhdpi")
+  public void finishFooterFollowsLanguage() {
+    UiText.setLanguage("en");
+    deployStartedOnFinish();
+    Monitor.view =
+        DeployStages.view(DeployStages.Mode.INSTALL, DeployStages.Phase.RUNNING, 1, "", "", 7);
+    var host = Robolectric.buildActivity(OnboardingActivity.class).create().start().resume();
+    OnboardingActivity page = host.get();
+    View root = page.findViewById(android.R.id.content);
+    assertTrue(hasText(root, "Record"));
+    assertTrue(hasText(root, "Copy for support"));
+    assertEquals(
+        UiText.text("进入受限主界面 · 查看日志与配置"),
+        ((Button) page.findViewById(R.id.extract_enter)).getText().toString());
+    host.pause().stop().destroy();
+  }
+
+  private void deployStartedOnFinish() {
+    RuntimeEnvironment.getApplication()
+        .getSharedPreferences(OnboardingActivity.PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(OnboardingActivity.KEY_DEPLOY_STARTED, true)
+        .putInt("step", OnboardingActivity.FINISH)
+        .commit();
   }
 
   private static boolean hasText(View view, String text) {
