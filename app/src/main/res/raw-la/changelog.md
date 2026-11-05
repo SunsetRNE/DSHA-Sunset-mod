@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.5-20261105.1930-dsh0.2.2-rc.1 / build323
+# DSHA 0.2.1-rc.5-20261105.2020-dsh0.2.2-rc.1 / build324
 
-- DSH 0.2.2, primus gradus: DSH inclusum et DSH subitarium independens simul ad 0.2.2-rc.1 transferuntur, executore hospitis et migratione configurationis compatibilibus manentibus.
-- Inputa temporis executionis administrata ad 0.2.2 reconstruuntur et digestis fixis iterum devinciuntur; plugina, sessiones et data personalia in loco manent.
-- Nota quaestio ostensionis: pagina prima vice aperta, «reconnectio» breviter fulget deinde «connexum». Hic est mos ostensionis nuntii primae connexionis a fonte superiore; connexionem et colloquia non afficit, et correctio in proxima versione paratur.
-- Ambitus probationis: probationes hospitis, probatio descriptoriorum temporis executionis et inspectiones fontis; conclusiones in instrumento testimonium reapse confirmatum sequuntur neque ad matricem omnium generum extenduntur. versionCode ad 323 auctus (in build322 fundatum). Revisio DSHA manet 0.2.1-rc.5, DSH inclusum est 0.2.2-rc.1.
+- Confirmatio vocationis artis: cum exemplar artem «solo usuariorum approbatione» notatam vocat, fenestra rogat ut permittatur vel abnuatur; permissio ad hanc solam vocationem valet, abnutatio autem eam non transmittit.
+- Nulla iam scintillatio primo ingressu: pagina aperta, «reconnectio» deinde «connexum» breviter non iam fulgent; post veram disiunctionem nuntius restitutionis adhuc apparet.
+- Ambitus probationis: probationes hospitis, descriptoriorum temporis executionis et inspectiones fontis; conclusiones in instrumento testimonium reapse confirmatum sequuntur neque ad matricem omnium generum extenduntur. versionCode ad 324 auctus (in build323 fundatum).

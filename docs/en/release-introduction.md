@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build323 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build324 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build323 `0.2.1-rc.5-20261105.1930-dsh0.2.2-rc.1`.** First step of the DSH 0.2.2 upgrade: the bundled and standalone emergency DSH both move to 0.2.2-rc.1, with the host executor and configuration migration kept compatible and managed runtime inputs rebuilt and re-pinned. On first page entry a "reconnecting" notice can flash briefly before "connected"; this is upstream first-connection display behavior, and a fix is scheduled for the next version. versionCode 323, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.2-rc.1. See the [build323 notes](../releases/build323-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build324 `0.2.1-rc.5-20261105.2020-dsh0.2.2-rc.1`.** User-only skill calls now ask for a one-time approval, and the first page entry no longer flashes a connection notice (real disconnects still show the yellow-to-green recovery). versionCode 324, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.2-rc.1. See the [build324 notes](../releases/build324-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

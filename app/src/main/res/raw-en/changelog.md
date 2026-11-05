@@ -1,6 +1,5 @@
-# DSHA 0.2.1-rc.5-20261105.1930-dsh0.2.2-rc.1 / build323
+# DSHA 0.2.1-rc.5-20261105.2020-dsh0.2.2-rc.1 / build324
 
-- DSH 0.2.2 upgrade step one: the bundled DSH and the standalone emergency DSH both switch to 0.2.2-rc.1, with the host executor and configuration migration kept compatible.
-- Managed runtime inputs are rebuilt for 0.2.2 and pinned back to the fixed digests; plugins, sessions and personal data stay in place.
-- Known display issue: the first time a page opens, "reconnecting" flashes briefly and then so does "connected". This is how the upstream first-connection notice renders; it does not affect connections or conversations, and a fix is scheduled for the next version.
-- Verification scope: host tests, runtime descriptor checks and source gates; device conclusions follow what the corresponding record actually confirmed and are not widened into a device matrix. Raises versionCode to 323 (based on build322). The DSHA revision remains 0.2.1-rc.5 and bundled DSH is 0.2.2-rc.1.
+- Skill-call approval: when the model calls a skill marked "user-only", a dialog asks the user to allow or deny; an allow applies to that single call only, and a deny does not let the call through.
+- No more flicker on first entry: opening a page no longer briefly flashes "reconnecting" and then "connected"; after a real disconnect, the recovery notice still appears.
+- Verification scope: host tests, runtime descriptors and source gates; device conclusions follow what the corresponding record actually confirmed and are not widened into a device matrix. Raises versionCode to 324 (based on build323).
