@@ -71,7 +71,7 @@
     "app/src/main/assets/retire-guarded-preset-patch.json": "7a5b0361c97bc745a72388ee5cc9873f8eb9044d40e3758f2bdf8f51dd7ae33e",
     "app/src/main/assets/retired-market-catalog-patch.json": "49d2aef262c86bf3e74bd0d1014a3e38b5d33ae44dd862ccc7e73ae57be0ab14",
     "app/src/main/assets/retired-market-optional-patch.json": "1ee36d857b05b811cb60ed4ba80e1a4b472cc0642dc9a8f3ebca4d0a26774599",
-    "app/src/main/assets/runtime-patches.json": "d30cbe510b5eb8cc07ede8b4a1bff35fd77d9d9d049ffe79c6fecba6c1e79229",
+    "app/src/main/assets/runtime-patches.json": "048aa520810f2369568ee517679d44cbd64e0f1dd87c03b3a9328f41abbfbefd",
     "app/src/main/assets/session-interaction-patch.json": "27880ee94d3952ab697cc7d75cab69bae074d9c1d74fe6ce9e36de51432ff687",
     "app/src/main/assets/sidebar-layout-recovery-patch.json": "4e9c1d996a5f457e465288af5488dcadae60c20695a208334e52af940682d8af",
     "app/src/main/assets/startup-mcp-timing-patch.json": "6b4e85c89b6a78e037eb9687c1ff1f9661088e73a4822b133e201eafb47865f0",
@@ -82,6 +82,7 @@
     "app/src/main/assets/tool-history-display-patch.json": "cb72ee60ad1d105f2f1653a4dd157e316014b8cd55f945a8779df481c4e2a562",
     "app/src/main/assets/tool-messages-history-patch.json": "21a9f643db23533f6e98e300adda3829d8b0b68e64675753a9918d2a7d6fd2b3",
     "app/src/main/assets/tool-stream-identity-patch.json": "2f2a0131c7f8776c35c5056e6f170e31dfde2c83c24146f5ef89d1b5d63dca93",
+    "app/src/main/assets/user-only-skill-approval-patch.json": "eb47fa26cf40b5bd36e3637eaa480970d5ab74d0c9dbfd6c6800b3d5ee7bc3eb",
     "app/src/main/assets/web-fetch-http-surrogate-patch.json": "4ee19b641cae25f55593625f4e7a50df44a12710ec5ad268e8e408bc839bc3dc",
     "app/src/main/assets/web-fetch-output-surrogate-patch.json": "7c493f7c9d5d7ab8a250b2ef93266e9023c13ac4c8c3a8f21ec6a404421639e4",
     "app/src/main/assets/web-integration/language.js": "c9d7fe6afee7ec9ea300b8a3b8656756b6d6ed7a677861097c6389008aa7243f",
@@ -91,5 +92,5 @@
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
     "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
-  "archive_sha256": "47db13462087f3e1b82a28b728cdec9f3480aa50dcff5c55e22eb2aa434995e4"
+  "archive_sha256": "6172bf61769a1bfb2f2d3e8a842a1d6b9f7deae86eedc36c504e6b490b52f294"
 }
