@@ -144,9 +144,11 @@ try {
 const runtime = testRuntime('raw');
 const require = createRequire(pathToFileURL(path.join(runtime, 'package.json')));
 const load = name => import(pathToFileURL(require.resolve(name)));
+const expectedRuntimeVersion = JSON.parse(await fs.readFile(
+  path.join(root, 'tools/dsh-runtime/package.json'), 'utf8')).dependencies['@deepseek-ai/dsh'];
 for (const name of ['@deepseek-ai/dsh-skill', '@deepseek-ai/dsh-skill-filesystem', '@deepseek-ai/dsh-tool-skill'])
   assert.equal(JSON.parse(await fs.readFile(require.resolve(name + '/package.json'), 'utf8')).version,
-    '0.2.1-rc.2');
+    expectedRuntimeVersion);
 const base = await fs.readFile(path.join(runtime,
   'node_modules/@deepseek-ai/dsh-base/cordis.patch.yml'), 'utf8');
 assert(base.includes("name: '@deepseek-ai/dsh-skill-filesystem'"));
@@ -173,17 +175,66 @@ try {
   checks.push('official get returns full body and actual resource directory');
   let registered;
   const events = new Map();
-  toolSkill.apply({ skills: ctx.skills, tools: { register(tool) { registered = tool; } },
-    on(name, handler) { events.set(name, handler); } });
+  const approvalRequests = [];
+  let approvalOutcome = 'rejected';
+  const approval = {
+    async request(request) {
+      approvalRequests.push(request);
+      return approvalOutcome;
+    }
+  };
+  const agent = { session: { surface: { nodes: [] }, seq: 0, eventAt() {} } };
+  const workingDirectory = { ensure: async () => fixture };
+  const tools = {
+    register(tool) { registered = tool; },
+    get(name) { return name === 'skill' ? registered : undefined; }
+  };
+  toolSkill.apply({
+    skills: ctx.skills,
+    tools,
+    workingDirectory,
+    get(name) { return name === 'approval' ? approval : undefined; },
+    on(name, handler) {
+      const handlers = events.get(name) ?? [];
+      handlers.push(handler);
+      events.set(name, handlers);
+    }
+  });
   assert.equal(registered.name, 'skill');
-  const loaded = await registered.execute({ name: 'hello-world' }, { signal });
+  const execution = { signal, agent, callId: 'call-hello-world' };
+  const loaded = await registered.execute({ name: 'hello-world' }, execution);
   assert.equal(loaded.content, skill.content);
   assert.equal(loaded.provider, 'filesystem');
   checks.push('official model-facing skill tool reads actual imported content');
-  await assert.rejects(() => registered.execute({ name: 'user-only' }, { signal }),
-    /not available for model invocation/);
+
+  const catalogDecision = await events.get('agent/pre-step')[1]({ agent, signal },
+    async () => ({ kind: 'continue', messages: [] }));
+  const catalog = catalogDecision.messages.find(message => message.source?.kind === 'skill-catalog');
+  assert(catalog, 'user-only skill must remain visible in the model catalog');
+  assert.match(catalog.content[0].text, /user-only/);
+  assert.match(catalog.content[0].text, /requires user approval before loading/);
+  checks.push('model catalog advertises user-only skills with an approval requirement');
+
+  await assert.rejects(() => registered.execute({ name: 'user-only' }, {
+    ...execution, callId: 'call-user-only-rejected'
+  }), /user rejected loading user-only skill/);
+  assert.equal(approvalRequests.length, 1);
+  assert.equal(approvalRequests[0].toolName, 'skill');
+  assert.equal(approvalRequests[0].callId, 'call-user-only-rejected');
+  assert.equal(approvalRequests[0].reason, 'load user-only skill "user-only"');
+  assert.equal(approvalRequests[0].displayReason.zh,
+    '是否允许模型在本次调用中加载仅限用户调用的技能“user-only”？');
+  checks.push('user-only model calls ask through the approval service and reject closed outcomes');
+
+  approvalOutcome = 'allowed-once';
+  const approved = await registered.execute({ name: 'user-only' }, {
+    ...execution, callId: 'call-user-only-allowed'
+  });
+  assert.equal(approved.content, '# User body\n');
+  assert.equal(approvalRequests.length, 2);
+  assert.equal(approvalRequests[1].callId, 'call-user-only-allowed');
   assert.equal((await ctx.skills.get('user-only', { signal })).invocation.userInvocable, true);
-  checks.push('official invocation controls preserve explicit-user-only skill policy');
+  checks.push('allowed-once releases only the current user-only skill call');
   assert.equal(await fs.stat(path.join(fixture, 'should-never-exist')).catch(error => {
     if (error.code === 'ENOENT') return undefined;
     throw error;
