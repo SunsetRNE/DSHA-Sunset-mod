@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261106.0700-dsh0.2.2-rc.1 / build332（docs-only：更正 T58 归档文档事实口径）
+
+- 本版只更正 T58 归档文档的事实口径：首次连接提示补丁自 build324（`a54f9854`）起已并入并随包，build324–build332 都携带；归档 tag `archive/feat/first-connect-indicator-20261106`（`5918af63`）只是同一补丁的独立分支快照，不另行合并，也不表示补丁不在包内。`docs/design/first-connect-indicator-20261106/README.md`、文档索引与 build331 更新说明已按此更正。
+- 无新功能、无行为变化、不改运行时：不重建 fixed-inputs，不改 managed-runtime-inputs 与 runtime-descriptor（runtimeId 仍 `35e3f499`），不新增受管运行时或插件。
+- 验证范围：宿主 contracts 整组、全树格式检查（JDK17）、host-tests manifest 与定向单测（更新页）；未真机验收。版本码提升为 332（基于 build331）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
+- 十语种更新说明见 [build332 更新说明](docs/releases/build332-changes.zh.md)。
+
 ## 0.2.1-rc.5-20261106.0400-dsh0.2.2-rc.1 / build331（proroot git 大 diff 崩溃 fail-loud + 首次连接提示补丁归档）
 
 - proroot 下 git 大 diff 崩溃改为 fail-loud（T82）：build330（proroot v1.2.8）本机实测 `git show --stat`、`git diff --stat` / `--numstat` 对某些提交或 ≥8 路径组合 exit 139、stdout 0 字节、stderr 仅 `[proroot] SIGSEGV pc=… lr=…`；命令接 `| head` / `;` 时最终 rc 被吞成 0，审查与合入可能静默拿到空数据。新增 `tools/git_guard.py`（`GitSigsegvError` / `GIT_PROROOT_SIGSEGV`，不重试、不返回部分输出、给出安全替代），`check-source-hygiene` / `ci-handoff` / `format-java` / `verify-stability` / `verify-ci-package` 统一改用 `git_output`；新增 `tools/test-git-guard.py` 并登记 host-tests manifest；AGENTS 与运行引擎文档中英记录本机陷阱与审查/合入安全用法。未改 proroot 本体、固定输入、受管运行时输入与 runtime-descriptor（runtimeId 仍 `35e3f499`）。
