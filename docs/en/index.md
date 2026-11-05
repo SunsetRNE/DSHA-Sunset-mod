@@ -1,7 +1,7 @@
 # Documentation index and maintenance rules
 
 
-Current source: `0.2.1-rc.5-20261105.0830-dsh0.2.1-rc.5` / build322 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build fixes third-party plugins failing to uninstall under the proroot engine (T56). Local host tests and source gates passed, and the move and no-overwrite behavior were checked under proroot on this device; not yet checked on other devices. See the [build322 notes](../releases/build322-changes.en.md) and the [build322 record](../releases/v0.2.1-rc.5-build322-proroot-plugin-delete-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
+Current source: `0.2.1-rc.5-20261105.1930-dsh0.2.2-rc.1` / build323 / `io.github.sunsetrne.dsha` / DSH-A-Su (`main`). This build takes the first step of the DSH 0.2.2 upgrade: the bundled DSH and the standalone emergency DSH both switch to 0.2.2-rc.1, with the host executor and configuration migration kept compatible; managed runtime inputs are rebuilt for 0.2.2 and pinned back to the fixed digests, while plugins, sessions and personal data stay in place. Host tests, runtime descriptor checks and source gates passed; device conclusions follow what the corresponding record actually confirmed and are not widened into a device matrix. See the [build323 notes](../releases/build323-changes.en.md) and the [build323 record](../releases/v0.2.1-rc.5-build323-dsh022-s1-connection-display-20261105.md). Build and publication scope follow this round's CI run and Release receipt.
 
 Build and acceptance records for earlier versions stay in [releases/](releases/); each version's conclusions hold only for its own commit and point in time.
 

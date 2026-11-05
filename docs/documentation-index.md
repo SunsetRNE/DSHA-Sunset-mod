@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.0830-dsh0.2.1-rc.5` / build322 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复 proroot 引擎下第三方插件无法卸载的问题（T56）。本机主机测试与源码门禁通过，并在本机 proroot 下实测保留移动与拒绝覆盖；尚未在其他设备核对。改动说明见 [build322 更新说明](releases/build322-changes.zh.md)，验证记录见 [build322 记录](releases/v0.2.1-rc.5-build322-proroot-plugin-delete-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.1930-dsh0.2.2-rc.1` / build323 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为 DSH 0.2.2 升级第一步：内置 DSH 与独立应急 DSH 同时切换到 0.2.2-rc.1，宿主执行器与配置迁移保持兼容；受管运行时输入按 0.2.2 重建并锁回固定摘要，插件、会话与个人数据保持原位。宿主测试、运行时描述符校验与源码门禁通过；真机结论按当次实际确认记录，不扩写为全机型矩阵。改动说明见 [build323 更新说明](releases/build323-changes.zh.md)，验证记录见 [build323 记录](releases/v0.2.1-rc.5-build323-dsh022-s1-connection-display-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
