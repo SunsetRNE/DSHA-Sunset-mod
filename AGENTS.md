@@ -188,6 +188,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 ## 交付与验收
 
 - 当前版本的改动见 [CHANGELOG.md](CHANGELOG.md)；各版本的构建、验收与回执归档在 [docs/releases/](docs/releases/) 与 `artifacts/`。
+- **外部 PR / 外部合并必须专职逐行审查**：由专门的 AI 审查会话审阅**全部 diff**（不得抽样、不得只看 CI），逐项检查安全边界、逻辑缺失、测试覆盖与仓库不变式；结论只有 APPROVE / REQUEST_CHANGES，打回意见必须带 `file:line`、问题、修法、P0/P1/P2。CI 全绿不等于可合并；冲突必须 rebase 后重看生成文件差异；审查会话不得合并 PR 或 push 作者分支，合并仍需用户在主会话明确同意。流程见[外部 PR 与外部合并审查流程](docs/external-pr-review.md)。
 - 验收范围如实声明：不把本机验证扩写成全部系统版本、机型或外部模型服务矩阵；单一 Standard 与虚拟屏能力按实际设备证据声明，Android 10 及以下不在支持范围。
 - 私钥、用户数据、设备截图与日志不进入仓库；安装、设备操作与发布按当次授权执行。
 

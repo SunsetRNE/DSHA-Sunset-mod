@@ -37,6 +37,7 @@ Build and acceptance records for earlier versions stay in [releases/](releases/)
 | One-click/manual/automatic backup, restore, snapshots, independent recovery | [Backup and restore](backup-and-restore.md), [configuration snapshots](config-snapshots.md), [independent recovery](emergency-recovery.md), [v5 format](backup-format-v5.md) |
 | Plugin installation, system/user separation, protocol, permissions, restart | [Plugin operations](plugins.md), [plugin runtime and permissions](plugin-runtime-and-permissions.md) |
 | White screen after an over-the-top upgrade / maintenance not starting / built-in plugins depending on host widgets | [Over-the-top upgrades, runtime maintenance, and plugin dependency contracts](overwrite-upgrade-and-maintenance.md) |
+| External PR / external merge mandatory line-by-line review | [External PR and external merge review process](external-pr-review.md) |
 | Temporary built-in fix: read hint for "file has not been read" (upstream #11977) | [dsh-fs-read-hint](fs-read-hint-plugin.md) |
 | Temporary built-in fix: glob skips nested git worktrees (T45) | [dsh-fs-search-scope](fs-search-scope-plugin.md) |
 | PTY/simple terminals, WebView/Gecko, desktop UA, PiP | [Terminals](terminal.md), [browser engines](browser-engines.md), [picture-in-picture](picture-in-picture.md) |

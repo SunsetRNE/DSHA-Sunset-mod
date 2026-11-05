@@ -183,6 +183,7 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 ## Delivery and acceptance
 
 - Changes for the current version are in [CHANGELOG.md](CHANGELOG.md); build and acceptance receipts per version are archived in [docs/releases/](docs/releases/) and `artifacts/`.
+- **External PRs and external merges require a dedicated line-by-line review**: a dedicated AI review session reads the **entire diff** (never samples, never CI-only) and checks security boundaries, missing logic, test coverage, and repository invariants. The only outcomes are APPROVE / REQUEST_CHANGES; a rejection must include `file:line`, the problem, the fix, and P0/P1/P2. Green CI does not mean mergeable; a conflict must be rebased and generated-file differences re-reviewed. The review session must not merge the PR or push the author's branch; merging still requires explicit user approval in the main session. See [the external PR and external merge review process](docs/en/external-pr-review.md).
 - Acceptance scope is stated as measured: local verification is not stretched into "all OS versions, devices or external model services"; Standard / Low and virtual-display capabilities are claimed only against actual device evidence.
 - Signing keys, user data, device screenshots and logs never enter the repository; installs, device operations and releases follow the authorization of that round.
 

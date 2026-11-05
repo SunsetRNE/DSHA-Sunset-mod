@@ -7,7 +7,7 @@
 1. **判定层本来就是对的**：`EnvironmentAccess.requiresMaintenanceBeforeStart` 与 `EnvironmentIdentity.shouldBlockRuntimeStart` 在 322→323（dsh 版本变化）和 323→324（同 dsh、只换受管补丁）两条路径上都返回“需要维护”。不要去改这两个函数，也不要再把事故归因到它们。
 2. **缺口在展示层**：`RuntimeInstallationState.isEnvironmentReady()` 只回答“旧树还能不能用”，不回答“是不是当前候选”。只按它渲染维护页，会把补丁级覆盖误判成“无事可做”：维护页把“进入主界面”升为主操作、更新降为次要；受限入口不记录限制身份；主界面门禁仍要求维护，于是来回跳。
 3. **自动开始可能被静默拦下**：覆盖安装后旧 proot Web 进程若仍存活，`hasUnresolvedWebSession()` 为真，`shouldAutoStart` 返回 false。这是**必须保留**的安全门禁（未知实例不自动重放），但用户必须仍能看到整屏维护页并自己点一次更新。
-4. **白屏机制**：`WebLifecycleController` 在 `!isEnvironmentReady() || requiresMaintenanceBeforeStart()` 时直接把启动判为 `REJECTED`，防止看门狗用“兼容但过期”的旧运行时拉起 Web。于是“旧树 + 新 APK”时 Web 根本不会启动，主界面 Web 区域空白。
+4. **白屏机制**：`WebLifecycleController` 在 `!isEnvironmentReady() || requiresMaintenanceBeforeStart()` 时直接把启动判为 `REJECTED`，防止看门狗用“兼容但过期”的旧运行时拉起 Web。于是宿主重建 / 看门狗重新拉起时，“旧树 + 新 APK”的 Web 根本不会启动，主界面 Web 区域空白。若旧 proot Web 进程仍存活、页面已加载旧树内容，内置插件对宿主指示灯的依赖又会让内容区白屏并出现侧栏重复；T61 真机对照中只改这条插件契约后白屏消失，但直接 JS 栈未取得，见[白屏排查记录](releases/v0.2.1-rc.5-build324-blank-screen-20261105.md)。
 5. **客户端插件不得依赖宿主某个控件是否存在**：内置 `dsh-web-mobile` 的侧栏齿轮曾用 `:has(...)` 依赖宿主 `ConnectionIndicator` 是否渲染；当受管补丁让该指示灯首次不显示时，插件渲染链失效，用户禁用插件才恢复。修复为“按实测宽度让位”，结论幂等写入插件自有属性 `data-mobile-nav-quick-fit`。
 
 ## 不变量（不可破坏）
@@ -21,7 +21,7 @@
 | I5 | Web 启动准入必须在“旧树 + 新 APK”时拒绝，除非维护已完成或用户已按规则进入受限主界面；看门狗/前台服务与主界面共用同一判定。 | `WebLifecycleController.requestStart` 的 `!isEnvironmentReady() || requiresMaintenanceBeforeStart` 门禁；不得为“消灭白屏”放宽 |
 | I6 | 只改 UI 的 APK 覆盖**不得**重建环境；同 dsh 版本、受管补丁或描述符输入变化**必须**视为补丁级更新（重算描述符、进维护页、重装受管树）。 | `RuntimeDescriptor.latest` 比较 `id` 与 `inputs`；`OverwriteUpgradeGateTest.uiOnlyApkUpdateWithUnchangedManagedInputsNeverNeedsMaintenance` |
 | I7 | 同一候选只自动尝试一次；失败、中断、旋转、进程重建都不自动重放。受限入口不写就绪标记，终端 / Web / 插件执行仍须过环境门禁。 | `EnvironmentIdentity.shouldAutoStart`；`MaintenanceCoordinator.pending`；`ExtractActivity.proceed()` 的 `limitedEntry` |
-| I8 | 内置插件只能依赖**自己的属性 + 实测几何**，不得依赖宿主某个控件是否存在（类名、`data-*`、`role`、`:has()` 都不行）。宿主 UI 变化不得让插件渲染链崩掉。 | `tools/test-mobile-gear-contract.mjs`（T61 / build325）；`tools/apply-mobile-client-patches.mjs` 的 `DSHA_GEAR_FIT_V1` |
+| I8 | 内置插件只能依赖**自己的属性 + 实测几何**，不得依赖宿主某个控件是否存在（类名、`data-*`、`role`、`:has()` 都不行）。宿主 UI 变化不得让插件渲染链崩掉。 | [`tools/test-mobile-gear-contract.mjs`](../tools/test-mobile-gear-contract.mjs)（T61 / build325）；[`tools/apply-mobile-client-patches.mjs`](../tools/apply-mobile-client-patches.mjs) 的 `DSHA_GEAR_FIT_V1` |
 
 ## 四层机制
 
@@ -82,9 +82,9 @@ if (!proot.isEnvironmentReady() || EnvironmentAccess.requiresMaintenanceBeforeSt
 
 因此“旧树 + 新 APK”时：
 
-- Web 不会启动，主界面 Web 区域就是空白；
-- 这不是 WebView 故障、网络故障或插件崩溃，**不要**去改 `WebView`、清缓存、重装 APK 或放宽启动门禁；
-- 旧的 proot Web 进程仍存活时，界面证据为 UNKNOWN；叠加 0.2.2 首次连接不再渲染指示灯，移动壳插件的旧依赖会失效，用户还会看到侧栏重复叠加层（见下一节）。
+- 宿主重建或看门狗重新拉起时，Web 不会被允许启动，主界面 Web 区域就是空白；
+- 这不是 WebView 故障、网络故障或插件整体崩溃，**不要**去改 `WebView`、清缓存、重装 APK 或放宽启动门禁；
+- 若旧 proot Web 进程仍存活、页面已加载旧树内容，界面证据为 UNKNOWN；叠加 0.2.2 首次连接不再渲染指示灯，移动壳插件的旧依赖会失效，用户还会看到内容区白屏与侧栏重复叠加层（见下一节）。[白屏排查记录](releases/v0.2.1-rc.5-build324-blank-screen-20261105.md)保留了未取到的直接 JS 栈与后续取证方法；[build325 记录](releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md)记录了真机对照结果。
 
 ## 内置插件对宿主 UI 的依赖禁令
 
@@ -97,7 +97,7 @@ if (!proot.isEnvironmentReady() || EnvironmentAccess.requiresMaintenanceBeforeSt
   - 结论幂等写入插件自有属性 `data-mobile-nav-quick-fit`，CSS 只认这个属性；
   - 账户菜单设置项与齿轮可见性共用同一结论，保证任何时刻只有一条设置入口；
   - 产物在 [`app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js`](../app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js)，补丁由 [`tools/apply-mobile-client-patches.mjs`](../tools/apply-mobile-client-patches.mjs) 管理。
-- 契约测试：`tools/test-mobile-gear-contract.mjs`（T61，随 build325 合入）。用真实产物 + 最小 DOM 覆盖：无指示灯时齿轮正常注入、指示灯出现/消失时按实测宽度让位/恢复、行宽不足时保守让位、重复 `ensure` 幂等。
+- 契约测试：[`tools/test-mobile-gear-contract.mjs`](../tools/test-mobile-gear-contract.mjs)（T61，随 build325 合入）。用真实产物 + 最小 DOM 覆盖：无指示灯时齿轮正常注入、指示灯出现/消失时按实测宽度让位/恢复、行宽不足时保守让位、重复 `ensure` 幂等。
 
 ### 写插件 / 改宿主 UI 时的规则
 
@@ -145,6 +145,7 @@ dsha-gradle :app:testStandardDebugUnitTest --tests '*RuntimeUpgradeStateTest'
 
 - **固定输入**：如果变化的是固定输入 11 项之一（`offline-rootfs.bin`、`dsh-runtime.bin`、`ubuntu-tools.bin` 等），必须按 [固定构建输入](fixed-build-inputs.md) 重新打包 / 上传预发布资产、更新 `ci/sunset-inputs.lock.json`，并同步相关 lock 与文档；只改 APK 资源（如内置插件 `client.js`）则不重打固定输入包，但**仍要重算 runtime-descriptor 与第三方声明**。
 - **只改 UI 的 APK** 不要重建 Ubuntu，也不要让维护页出现“需要重建”的误导；只有受管输入变化才进补丁级维护。
+- **外部 PR / 外部合并**：先由专职 AI 审查会话逐行审阅全部 diff，按[外部 PR 与外部合并审查流程](external-pr-review.md)给出 APPROVE / REQUEST_CHANGES；CI 全绿与冲突解决都不等于可合并，审查会话不合并、不 push 作者分支。
 - 报“可合并 / 可发布”前列出**实际跑过**的命令与结果；没跑真机就写“未真机验证”，不要把宿主测试写成设备结论。
 
 ## 真机验收步骤（覆盖安装）
@@ -167,7 +168,9 @@ dsha-gradle :app:testStandardDebugUnitTest --tests '*RuntimeUpgradeStateTest'
 
 ## 反例：323 → 324 到底发生了什么
 
-背景：build323 与 build324 内置同一个 dsh 版本 `0.2.2-rc.1`；324 只新增两条受管补丁（`DSHA_FIRST_CONNECT_SILENT_V1`、`DSHA_USER_ONLY_SKILL_APPROVAL_V1`）。补丁链本身没坏：324 的 `dsh-runtime.bin` 在构建期已烘入两个标记，`verify-runtime-descriptor-source` 也一致；用户看到的“补丁没更新上”其实来自“**环境根本没更新**”。
+背景：build323 与 build324 内置同一个 dsh 版本 `0.2.2-rc.1`；324 只新增两条受管补丁（`DSHA_FIRST_CONNECT_SILENT_V1`、`DSHA_USER_ONLY_SKILL_APPROVAL_V1`）。补丁链本身没坏：324 的 `dsh-runtime.bin` 在构建期已烘入两个标记，`verify-runtime-descriptor-source` 也一致；用户看到的“补丁没更新上”其实来自“**环境根本没更新**”。补丁链侧的完整取证见 [build324 白屏排查记录](releases/v0.2.1-rc.5-build324-blank-screen-20261105.md)与 [build325 齿轮修复记录](releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md)。
+
+真机对照（2026-11-05）：把同一份 main 内容 + T61 齿轮修复的测试包装到设备后，**白屏消失、且能正常触发环境重建**；同一版其余真机项当时仍待用户补确认。T60 的展示层与入口修复随 build326 合入，**尚未真机验证**——不要因为 build325 真机通过就跳过 build326 的覆盖安装验收。
 
 | 层 | 当时行为 | 用户可见结果 |
 |---|---|---|
@@ -184,6 +187,7 @@ dsha-gradle :app:testStandardDebugUnitTest --tests '*RuntimeUpgradeStateTest'
 
 这次事故最容易被误判的点：
 
+- 以为是 WebView / 网络 / 插件整体崩溃 → **不是**：Web 可能根本没被允许启动；若旧页面已加载，可见触发点是插件对宿主控件存在性的依赖；
 - 以为是 `requiresMaintenanceBeforeStart` / `shouldBlockRuntimeStart` 的 bug → **不是**，两条路径都判对了；
 - 以为是补丁没打进 `dsh-runtime.bin` → **不是**，标记在构建期已烘入；
 - 以为是 WebView / 网络 / 插件整体崩溃 → **不是**，Web 根本没有被允许启动；
@@ -217,4 +221,7 @@ dsha-gradle :app:testStandardDebugUnitTest --tests '*RuntimeUpgradeStateTest'
 | 移动 Web 适配补丁 | [移动 Web 适配补丁](web-mobile-patches.md) |
 | 324 首次连接静默事故记录 | [build324 记录](releases/v0.2.1-rc.5-build324-first-connect-indicator-20261105.md) |
 | 323 升级记录 | [build323 记录](releases/v0.2.1-rc.5-build323-dsh022-s1-connection-display-20261105.md) |
+| 324 白屏排查记录 | [build324 白屏排查](releases/v0.2.1-rc.5-build324-blank-screen-20261105.md) |
+| 325 齿轮修复记录 | [build325 齿轮记录](releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md) |
+| 外部 PR / 外部合并审查 | [外部 PR 与外部合并审查流程](external-pr-review.md) |
 | 契约整组工作流 | [`.github/workflows/_node-contracts.yml`](../.github/workflows/_node-contracts.yml) |

@@ -7,7 +7,7 @@
 1. **The decision layer was already correct**: `EnvironmentAccess.requiresMaintenanceBeforeStart` and `EnvironmentIdentity.shouldBlockRuntimeStart` return "maintenance required" on both 322→323 (dsh version change) and 323→324 (same dsh, only managed patches changed). Do not modify these functions and do not attribute the incident to them.
 2. **The gap was in the display layer**: `RuntimeInstallationState.isEnvironmentReady()` answers "can the old tree still run", not "is it the current candidate". Rendering maintenance only from it misreads a patch-level overwrite as "nothing to do": the maintenance page promotes "Enter Main" and demotes update; limited entry records no limitation; the Main gate still requires maintenance, so the user is bounced back and forth.
 3. **Auto-start may be silently blocked**: if the old proot Web process survives an over-the-top upgrade, `hasUnresolvedWebSession()` is true and `shouldAutoStart` returns false. That is a **required** safety gate (never replay an unknown instance), but the user must still see the full-screen maintenance page and manually start the update.
-4. **White-screen mechanism**: `WebLifecycleController` returns `REJECTED` when `!isEnvironmentReady() || requiresMaintenanceBeforeStart()`, preventing the watchdog from starting Web on a "compatible but outdated" runtime. With "old tree + new APK", Web is never started and the Main Web area stays blank.
+4. **White-screen mechanism**: `WebLifecycleController` returns `REJECTED` when `!isEnvironmentReady() || requiresMaintenanceBeforeStart()`, preventing the watchdog from starting Web on a "compatible but outdated" runtime. On host recreation / a watchdog restart, "old tree + new APK" never starts Web and the Main Web area stays blank. If the old proot Web process is still alive and the page has already loaded the old tree, the plugin's dependency on the host indicator can also blank the content area and duplicate the sidebar; in the T61 device control only that plugin contract changed and the white screen disappeared, although the direct JS stack was not captured — see [the blank-screen investigation](../releases/v0.2.1-rc.5-build324-blank-screen-20261105.md).
 5. **Client plugins must not depend on a host widget existing**: the built-in `dsh-web-mobile` sidebar gear used `:has(...)` to detect whether the host rendered `ConnectionIndicator`. When a managed patch stopped rendering that indicator, the plugin render chain broke; disabling the plugin restored the UI. The fix measures actual widths and writes an idempotent result into the plugin's own `data-mobile-nav-quick-fit` attribute.
 
 ## Invariants (do not break)
@@ -21,7 +21,7 @@
 | I5 | Web start admission must reject "old tree + new APK" until maintenance completes or the user has entered the limited Main under the rules; watchdog/foreground service and Main share the same decision. | `WebLifecycleController.requestStart`'s `!isEnvironmentReady() || requiresMaintenanceBeforeStart` gate; do not weaken it just to remove a white screen |
 | I6 | A UI-only APK overwrite **must not** rebuild the environment; the same dsh version with changed managed patches or descriptor inputs **must** be treated as a patch-level update (recompute descriptor, enter maintenance, reinstall the managed tree). | `RuntimeDescriptor.latest` compares `id` and `inputs`; `OverwriteUpgradeGateTest.uiOnlyApkUpdateWithUnchangedManagedInputsNeverNeedsMaintenance` |
 | I7 | Auto-start the same candidate at most once; failures, interruptions, rotation, and process recreation never replay it. Limited entry writes no readiness marker, and terminal / Web / plugin execution still pass environment gates. | `EnvironmentIdentity.shouldAutoStart`; `MaintenanceCoordinator.pending`; `ExtractActivity.proceed()`'s `limitedEntry` |
-| I8 | Built-in plugins may depend only on **their own attributes plus measured geometry**, never on whether some host widget exists (class names, `data-*`, `role`, `:has()` are all off-limits). Host UI changes must not break the plugin render chain. | `tools/test-mobile-gear-contract.mjs` (T61 / build325); `tools/apply-mobile-client-patches.mjs`'s `DSHA_GEAR_FIT_V1` |
+| I8 | Built-in plugins may depend only on **their own attributes plus measured geometry**, never on whether some host widget exists (class names, `data-*`, `role`, `:has()` are all off-limits). Host UI changes must not break the plugin render chain. | [`tools/test-mobile-gear-contract.mjs`](../../tools/test-mobile-gear-contract.mjs) (T61 / build325); [`tools/apply-mobile-client-patches.mjs`](../../tools/apply-mobile-client-patches.mjs)'s `DSHA_GEAR_FIT_V1` |
 
 ## The four layers
 
@@ -82,9 +82,9 @@ The source comment states the reason: after an over-the-top upgrade the foregrou
 
 Therefore, with "old tree + new APK":
 
-- Web never starts and the Main Web area is blank;
-- this is not a WebView failure, a network failure, or a plugin crash: **do not** touch WebView, clear caches, reinstall the APK, or weaken the admission gate;
-- if the old proot Web process is still alive, interface evidence is UNKNOWN; combined with DSH 0.2.2 no longer rendering the first-connection indicator, the old plugin dependency fails and the user also sees a duplicated sidebar (next section).
+- on host recreation or a watchdog restart, Web is not allowed to start and the Main Web area is blank;
+- this is not a WebView failure, a network failure, or a general plugin crash: **do not** touch WebView, clear caches, reinstall the APK, or weaken the admission gate;
+- if the old proot Web process is still alive and the page has already loaded the old tree, interface evidence is UNKNOWN; combined with DSH 0.2.2 no longer rendering the first-connection indicator, the old plugin dependency fails and the user also sees a blank content area and a duplicated sidebar (next section). [The blank-screen investigation](../releases/v0.2.1-rc.5-build324-blank-screen-20261105.md) preserves the uncaptured direct JS stack and follow-up evidence steps; [the build325 record](../releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md) records the device control result.
 
 ## Built-in plugins must not depend on host UI
 
@@ -97,7 +97,7 @@ Therefore, with "old tree + new APK":
   - write the conclusion idempotently into the plugin's own `data-mobile-nav-quick-fit` attribute; CSS reads only that attribute;
   - the account-menu settings entry and gear visibility share the same conclusion, so exactly one settings entry exists at any time;
   - the product lives in [`app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js`](../../app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js); the patch is maintained by [`tools/apply-mobile-client-patches.mjs`](../../tools/apply-mobile-client-patches.mjs).
-- Contract test: `tools/test-mobile-gear-contract.mjs` (T61, merged with build325). Using the real product plus a minimal DOM it covers: gear injection without an indicator, yielding/restoring by measured width as the indicator appears/disappears, conservative yield in a narrow row, and idempotent repeated `ensure`.
+- Contract test: [`tools/test-mobile-gear-contract.mjs`](../../tools/test-mobile-gear-contract.mjs) (T61, merged with build325). Using the real product plus a minimal DOM it covers: gear injection without an indicator, yielding/restoring by measured width as the indicator appears/disappears, conservative yield in a narrow row, and idempotent repeated `ensure`.
 
 ### Rules for plugin and host UI changes
 
@@ -145,6 +145,7 @@ Additional rules:
 
 - **Fixed inputs**: if one of the eleven fixed inputs changes (`offline-rootfs.bin`, `dsh-runtime.bin`, `ubuntu-tools.bin`, and so on), repack/upload the prerelease asset, update `ci/sunset-inputs.lock.json`, and sync related locks/docs as described in [fixed build inputs](../fixed-build-inputs.md). APK-only assets (such as the built-in plugin `client.js`) do not require repacking the fixed-input bundle, but still require recomputing the runtime descriptor and third-party notices.
 - **A UI-only APK** must not rebuild Ubuntu and must not make the maintenance page suggest a rebuild; only managed input changes enter patch-level maintenance.
+- **External PR / external merge**: a dedicated AI review session must first read the entire diff line by line and give APPROVE / REQUEST_CHANGES under [the external PR and external merge review process](external-pr-review.md); green CI and a resolved conflict do not make it mergeable, and the review session neither merges nor pushes the author's branch.
 - Before reporting "mergeable / releasable", list the commands actually run and their results. If device acceptance was not performed, say so; never present host tests as device conclusions.
 
 ## Device acceptance (over-the-top upgrade)
@@ -167,7 +168,9 @@ Release acceptance must perform one real "**previous build → this build**" ove
 
 ## Counterexample: what actually happened from 323 to 324
 
-Context: build323 and build324 bundled the same dsh version `0.2.2-rc.1`; 324 added two managed patches (`DSHA_FIRST_CONNECT_SILENT_V1`, `DSHA_USER_ONLY_SKILL_APPROVAL_V1`). The patch chain was fine: 324's `dsh-runtime.bin` already contained both markers at build time, and `verify-runtime-descriptor-source` agreed. The user's impression that "patches were not updated" came from "**the environment was never updated at all**".
+Context: build323 and build324 bundled the same dsh version `0.2.2-rc.1`; 324 added two managed patches (`DSHA_FIRST_CONNECT_SILENT_V1`, `DSHA_USER_ONLY_SKILL_APPROVAL_V1`). The patch chain was fine: 324's `dsh-runtime.bin` already contained both markers at build time, and `verify-runtime-descriptor-source` agreed. The user's impression that "patches were not updated" came from "**the environment was never updated at all**". For the full patch-chain evidence see [the build324 blank-screen investigation](../releases/v0.2.1-rc.5-build324-blank-screen-20261105.md) and [the build325 gear-fit record](../releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md).
+
+Device control (2026-11-05): after installing the test package built from the same main content plus the T61 gear fix, the **white screen disappeared and environment rebuild was triggered normally**; the other device items for that build were still awaiting user confirmation. T60's display-layer and entry fixes merge with build326 and are **not yet device-verified** — do not skip build326's overwrite acceptance just because build325 passed on device.
 
 | Layer | Behavior at the time | What the user saw |
 |---|---|---|
@@ -186,7 +189,7 @@ Common misdiagnoses:
 
 - blaming `requiresMaintenanceBeforeStart` / `shouldBlockRuntimeStart` → **wrong**, both paths decided correctly;
 - blaming the patch not being baked into `dsh-runtime.bin` → **wrong**, both markers were present at build time;
-- blaming WebView / network / a general plugin crash → **wrong**, Web was never allowed to start;
+- blaming WebView / network / a general plugin crash → **wrong**: Web may never have been allowed to start, or, if the old page loaded, the visible trigger was the plugin's dependency on host-widget existence;
 - using "disable the built-in plugin" as a long-term fix → only hides the plugin's dependency on host-widget existence;
 - weakening the Web admission gate to remove the white screen → lets the watchdog start Web on an outdated runtime, a more severe regression.
 
@@ -207,7 +210,7 @@ Common misdiagnoses:
 |---|---|
 | Upgrade gate (322→323, 323→324, synthetic patch-level predecessor, UI-only, unresolved old Web) | `app/src/test/java/com/deepseekharness/app/backup/OverwriteUpgradeGateTest.java` (T60 / build326) |
 | `RuntimeUpgradeState` pure logic | `app/src/test/java/com/deepseekharness/app/util/RuntimeUpgradeStateTest.java` (T60 / build326) |
-| Mobile-shell gear contract | `tools/test-mobile-gear-contract.mjs` (T61 / build325) |
+| Mobile-shell gear contract | [`tools/test-mobile-gear-contract.mjs`](../../tools/test-mobile-gear-contract.mjs) (T61 / build325) |
 | Maintenance transaction and stop barriers | [`MaintenanceGateTest`](../../app/src/test/java/com/deepseekharness/app/util/MaintenanceGateTest.java) |
 | Maintenance page implementation | [`ExtractActivity`](../../app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java), [`MaintenanceFooterPolicy`](../../app/src/main/java/com/deepseekharness/app/util/MaintenanceFooterPolicy.java) |
 | Web admission and old-session recovery | [`WebLifecycleController`](../../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java), [startup and diagnostics](startup-and-diagnostics.md) |
@@ -217,4 +220,7 @@ Common misdiagnoses:
 | Mobile Web patch notes (Chinese) | [mobile Web adaptation patches](../web-mobile-patches.md) |
 | build324 first-connection record | [build324 record](../releases/v0.2.1-rc.5-build324-first-connect-indicator-20261105.md) |
 | build323 upgrade record | [build323 record](../releases/v0.2.1-rc.5-build323-dsh022-s1-connection-display-20261105.md) |
+| build324 blank-screen investigation | [build324 blank-screen record](../releases/v0.2.1-rc.5-build324-blank-screen-20261105.md) |
+| build325 gear-fit record | [build325 mobile gear record](../releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md) |
+| External PR / external merge review | [external PR and external merge review process](external-pr-review.md) |
 | Whole contracts workflow | [`_node-contracts.yml`](../../.github/workflows/_node-contracts.yml) |

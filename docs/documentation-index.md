@@ -44,6 +44,7 @@
 |---|---|
 | 首次安装、组件探测、按需修复、维护与中断恢复 | [安装与维护](install-and-maintenance.md)、[启动与诊断](startup-and-diagnostics.md)、[应用及受管更新](update.md) |
 | 覆盖安装后白屏 / 不触发环境维护 / 内置插件依赖宿主控件 | [覆盖升级、运行时维护与插件依赖契约](overwrite-upgrade-and-maintenance.md) |
+| 外部 PR / 外部合并的强制逐行审查 | [外部 PR 与外部合并审查流程](external-pr-review.md) |
 | 引擎/静态加载器/seccomp、DNS、端口排查 | [运行与网络选择](runtime-and-network.md)、[引擎](runtime-engines.md)、[DNS](dns-configuration.md)、[端口](ports-and-networking.md) |
 | 设备通道、3090协议、LAN、文件与系统文档入口 | [设备通道](device-channels.md)、[桥与文件](bridge-and-files.md)、[LAN](lan.md)、[Web文件](web-file-sharing.md) |
 | 一键/手动/自动备份、恢复、快照与独立应急 | [备份与恢复](backup-and-restore.md)、[配置快照](config-snapshots.md)、[独立应急](emergency-recovery.md)、[v5格式](backup-format-v5.md) |
