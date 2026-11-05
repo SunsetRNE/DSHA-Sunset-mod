@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.5-20261105.2135-dsh0.2.2-rc.1 / build325
+# DSHA 0.2.1-rc.5-20261105.2200-dsh0.2.2-rc.1 / build326
 
-- Emendatur pagina alba post institutionem super build324: denticulus in pede lateris claustri mobilis nunc cedit secundum latitudinem mensuratam, non iam pendens ab eo quod hospes indicatorem «status connexionis» ostendat; latus non iam superponitur neque tabularium album fit.
-- Renovatio superposita nunc ordinarie suscitat sustentationem/reconstructionem ambitus, nec «in tabularium principale intrare» tamquam actio principalis habetur.
-- Ambitus probationis: probationes hospitis, inspectiones fontis et descriptoriorum temporis executionis; usor in instrumento (fasciculo probationis) confirmavit paginam albam abisse et reconstructionem ambitus ordinarie suscitari; visibilitas/depressio denticuli, nuntius primae connexionis et confirmatio vocationis artis adhuc confirmationem usoris exspectant neque pro probatis scripta sunt. versionCode ad 325 auctus (in build324 fundatum).
+- Emendatur iudicium sustentationis post institutionem superpositam: institutio superposita quae eandem versionem DSH servat et solum patchella administrata inclusa substituit nunc recte paginam sustentationis ambitus aperit, et «ambitum executionis renovare» in locum actionis principalis redit; «in tabularium principale intrare» renovationem non iam superat.
+- Post institutionem superpositam, si sessio interretialis vetus non confirmata deprehenditur, solum «initium automaticum renovationis» impeditur; pagina sustentationis ostenditur et renovatio manu uno tactu fieri potest — instantiae ignotae non automatice repetuntur.
+- Ambitus probationis: probationes hospitis, grex contracts plenus, 11 classes probationum destinatarum et inspectiones fontis/descriptoriorum; conclusiones in instrumento secundum testimonium reapse confirmatum scribuntur, nec successus antea scribitur. versionCode ad 326 auctus (in build325 fundatum).

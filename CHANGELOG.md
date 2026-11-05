@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.2200-dsh0.2.2-rc.1 / build326（覆盖安装按补丁级判定是否维护：同一 DSH 版本换受管补丁也进维护页，更新回到主操作位）
+
+- 维护判定（T60）：同一 DSH 版本、只更换内置受管补丁的覆盖安装也会进入运行环境维护页；「更新运行时」回到主操作位，不再被「进入主界面」压过。新增 `util/RuntimeUpgradeState`（`upToDate` / `maintenanceRequired` / `limitedEntry` / `openMaintenancePage`），`ExtractActivity`、`EnvironmentUiStatus`、`MainActivity.checkEntry` 接入。
+- 入口放开（T60 第二笔）：未确认的旧网页会话只拦「自动开始更新」（`EnvironmentIdentity.shouldAutoStart` 未改），维护页与一键手点更新保留；未知实例不会自动重放。
+- 验证范围：宿主测试、contracts 整组、本版记录的 11 个定向测试类与源码/描述符门禁；真机覆盖安装结论待用户按记录逐项核对后补写，未预写通过。版本码提升为 326（基于 build325）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
+- 契约文档 [覆盖升级与维护门禁](docs/overwrite-upgrade-and-maintenance.md)（I1–I8）已随本版落地；十语种更新说明见 [build326 更新说明](docs/releases/build326-changes.zh.md)，验证记录见 [build326 记录](docs/releases/v0.2.1-rc.5-build326-overwrite-maintenance-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.2135-dsh0.2.2-rc.1 / build325（修复 build324 覆盖安装后的白屏：移动壳齿轮让位不再依赖连接指示灯）
 
 - 白屏修复（T61）：移动壳侧栏 footer 齿轮改按实测行宽让位（`DSHA_GEAR_FIT_V1`），不再依赖宿主是否渲染「连接状态」指示；侧栏不再叠加，工作台不再白屏。重新生成 `dsh-web-mobile` 的 `client.js` 与第三方声明摘要，`dsh-runtime.bin` 与固定输入包不变。

@@ -1,5 +1,5 @@
-# DSHA 0.2.1-rc.5-20261105.2135-dsh0.2.2-rc.1 / build325
+# DSHA 0.2.1-rc.5-20261105.2200-dsh0.2.2-rc.1 / build326
 
-- Fixes the white screen after a build324 overwrite install: the mobile shell sidebar footer gear now yields based on its measured width instead of depending on whether the host draws a "connection status" indicator; the sidebar no longer overlaps and the workbench no longer turns blank.
-- Overwrite upgrades now trigger environment maintenance and rebuild normally, instead of treating "enter the main screen" as the main action.
-- Verification scope: host tests plus source and runtime descriptor gates; the user confirmed on a device with the test package that the white screen is gone and overwrite upgrades can trigger environment rebuild normally; gear visibility/tappability, the first-connection notice and the skill approval dialog remain pending user confirmation and are not written as passed. Raises versionCode to 325 (based on build324).
+- Maintenance decision after an overwrite install: an overwrite that keeps the same DSH version and only replaces bundled managed patches now correctly opens the runtime maintenance page and puts "update runtime" back as the primary action; "enter the main screen" no longer overrides the update.
+- After an overwrite install, an unconfirmed old web session only blocks automatic update start; the maintenance page is still shown and a manual one-tap update stays available — unknown instances are not replayed automatically.
+- Verification scope: host tests, the full contracts group, 11 targeted test classes and source/descriptor gates; device conclusions follow the actual confirmation record for that run and no pass is pre-written. Raises versionCode to 326 (based on build325).

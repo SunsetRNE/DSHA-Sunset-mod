@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.2135-dsh0.2.2-rc.1` / build325 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复 build324 覆盖安装后的白屏：移动壳侧栏 footer 齿轮改按实测宽度让位，不再依赖宿主连接状态指示；侧栏不再叠加，覆盖升级能正常触发运行环境维护与重建（T61）。宿主测试、源码与运行时描述符门禁通过；用户已在测试包真机确认白屏消失、能正常触发环境重建，其余真机项待补确认，不扩写为全机型矩阵。改动说明见 [build325 更新说明](releases/build325-changes.zh.md)，验证记录见 [build325 记录](releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.2200-dsh0.2.2-rc.1` / build326 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修正覆盖安装后的维护判定：同一 DSH 版本、只更换内置受管补丁的覆盖安装也会正确进入运行环境维护页，并把「更新运行时」放回主操作位；未确认的旧网页会话只拦自动开始，维护页与手点更新保留（T60）。宿主测试、contracts 整组、11 个定向测试类与源码/描述符门禁通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build326 更新说明](releases/build326-changes.zh.md)，验证记录见 [build326 记录](releases/v0.2.1-rc.5-build326-overwrite-maintenance-20261105.md)，覆盖升级契约见 [覆盖升级与维护门禁](overwrite-upgrade-and-maintenance.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
