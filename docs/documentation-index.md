@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1` / build330 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复虚拟屏宿主自身启动：`/app/vscreen/launch` 不再接受把 DSHA 自己启动到虚拟屏——系统会复用已运行进程，已绑定默认 display 的 WebView 在副屏会以 `libmonochrome` 空指针崩溃（relay 真机证据：display 4、主线程 Looper、复用进程 14715）；bridge 授权询问前 / Manager claim 前 / Core `am start` 前三层拒绝并返回 `VSCREEN_SELF_LAUNCH_REFUSED`（state=NOT_SENT），内置插件归 pre-dispatch，原生选择器排除宿主（T76）。这是安全拒绝，不是支持副屏 self-launch。runtime-descriptor 重生成（runtimeId 6bea62f2），固定输入不重建。宿主测试、contracts 整组、全树格式与定向单测通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build330 更新说明](releases/build330-changes.zh.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1` / build330 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复虚拟屏宿主自身启动：`/app/vscreen/launch` 不再接受把 DSHA 自己启动到虚拟屏——系统会复用已运行进程，已绑定默认 display 的 WebView 在副屏会以 `libmonochrome` 空指针崩溃（relay 真机证据：display 4、主线程 Looper、复用进程 14715）；bridge 授权询问前 / Manager claim 前 / Core `am start` 前三层拒绝并返回 `VSCREEN_SELF_LAUNCH_REFUSED`（state=NOT_SENT），内置插件归 pre-dispatch，原生选择器排除宿主（T76）。这是安全拒绝，不是支持副屏 self-launch。runtime-descriptor 随受管生成器改动重生成（runtimeId 35e3f499），固定输入不重建。APK 受管 gh 资产改为按 `gh-cli.bin` 打包：官方 build328/329 因 AGP 9.1.1 对 `.gz` 自动 gunzip 只剩 `assets/gh-cli.tar`，受管安装按 `gh-cli.tar.gz` 打开必失败，build330 改名并新增 APK 受管资产发布门禁（T79）。宿主测试、contracts 整组、全树格式与定向单测通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build330 更新说明](releases/build330-changes.zh.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

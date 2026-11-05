@@ -94,7 +94,7 @@ Android 宿主、guest bash 与实际 Node 的 PID 不能混作同一个进程�
 
 **实测成本与上限**：整树重建把 `/opt` 当数据复制（本机实测 **3.5 GB、48,294 条目**）。快照受 `BackupLimits.ENTRIES = 100,000` 的硬上限约束，大 SDK/缓存会让重建失败或耗尽空间；`rebuild` 在切换旧树前做有界预检，超限时给出“用户工具目录超过环境重建快照上限”的可操作错误，而不是写到一半才失败。建议把大体积工具放在 `/opt/<tool>/…` 并定期清理；不要把用户可执行文件放到 `/usr/local/bin`（重建会丢）。
 
-**受管 gh 的供给链**：第 12 项固定输入 `gh-cli.tar.gz`（官方 linux-arm64 release 归档）由 `RuntimeTools` 只提取固定成员到受管路径 `opt/gh/bin/gh` 并二次校验摘要；包装脚本在二进制缺失/损坏时按固定 URL + 固定摘要自举兜底，失败打印确切恢复命令。gh 是静态 Go 二进制，绕过 proroot 路径翻译、只能用宿主路径读取 CA 与配置：`RuntimeTools` 用 rootfs 的 canonical 路径设置 `DSHA_GH_HOST_ROOT`（`/data/user/0` 别名视图在 guest 内不可达），包装脚本再按 `/data/user/0` 与 `/data/data` 两个数据视图依次寻找受管 CA，两处都缺时打印明确错误并退出，不再静默回退旧系统 CA。事故根因、三件套协作与手工恢复命令见 [build328 回执](releases/v0.2.1-rc.5-build328-gh-provision-20261105.md)。
+**受管 gh 的供给链**：第 12 项固定输入 `gh-cli.tar.gz`（官方 linux-arm64 release 归档）由 `RuntimeTools` 只提取固定成员到受管路径 `opt/gh/bin/gh` 并二次校验摘要；源固定输入名是 `gh-cli.tar.gz`，APK 内的成员名是 `assets/gh-cli.bin`：AGP 9.1.1 的资产合并会把 `.gz` 自动 gunzip 并去掉扩展名（build328/329 只剩 `assets/gh-cli.tar`），所以 `RuntimeTools` 按打包名打开、旧包回退源名，`tools/verify-apk-managed-assets.py` 在发布链核对实际成员。包装脚本在二进制缺失/损坏时按固定 URL + 固定摘要自举兜底，失败打印确切恢复命令。gh 是静态 Go 二进制，绕过 proroot 路径翻译、只能用宿主路径读取 CA 与配置：`RuntimeTools` 用 rootfs 的 canonical 路径设置 `DSHA_GH_HOST_ROOT`（`/data/user/0` 别名视图在 guest 内不可达），包装脚本再按 `/data/user/0` 与 `/data/data` 两个数据视图依次寻找受管 CA，两处都缺时打印明确错误并退出，不再静默回退旧系统 CA。事故根因、三件套协作与手工恢复命令见 [build328 回执](releases/v0.2.1-rc.5-build328-gh-provision-20261105.md)。
 
 ## 二、首次启动与普通启动
 

@@ -49,7 +49,6 @@
     "guard-tools-patch.json",
     "guard-tools-pipeline-patch.json",
     "gh-proxy.mjs",
-    "gh-cli.tar.gz",
     "gh-wrapper.sh",
     "install-basic-tools.sh",
     "install-ubuntu-tools.sh",
@@ -165,12 +164,14 @@
     "dsh-runtime.inputs.json",
     "ubuntu-tools.inputs.json",
     "glibc-python.tar.gz",
-    "adb-wheels.tar.gz"
+    "adb-wheels.tar.gz",
+    "gh-cli.tar.gz"
   ],
   "sourceOnlyTrees": [
     "runtime-python"
   ],
   "generatedFiles": [
+    "gh-cli.bin",
     "glibc-python.bin",
     "adb-wheels.bin",
     "offline-rootfs.bin",
@@ -305,6 +306,7 @@
   ],
   "sourceTransforms": {
     "glibc-python.tar.gz": "glibc-python.bin",
-    "adb-wheels.tar.gz": "adb-wheels.bin"
+    "adb-wheels.tar.gz": "adb-wheels.bin",
+    "gh-cli.tar.gz": "gh-cli.bin"
   }
 }

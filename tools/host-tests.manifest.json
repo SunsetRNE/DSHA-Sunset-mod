@@ -2515,6 +2515,18 @@
       "cli": "no arguments; requires app/src/main/assets/gh-cli.tar.gz restored from fixed inputs"
     },
     {
+      "path": "tools/test-verify-apk-managed-assets.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Synthetic ZIP APKs exercise the release gate for managed member names, repository byte digests, transform-source leaks, AGP gunzip survivors and the pinned gh archive member; no real APK, offline input or network.",
+      "cli": "no arguments; hand-built fixture repository root and ZIP APKs"
+    },
+    {
       "path": "tools/test-signed-builtin-web-intent.mjs",
       "stage": "runtime",
       "reason": "Actual seven signed-wrapper Host OFF/ON and repeated native registration, manual/unknown/safe marker priority, profile isolation and serialized concurrent Native OFF; no device operations",

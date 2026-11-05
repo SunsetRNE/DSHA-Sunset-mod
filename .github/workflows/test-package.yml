@@ -176,6 +176,7 @@ jobs:
           python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
           python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
           python3 tools/verify-third-party-apk.py "$apk" --output out/third-party-apk.json
+          python3 tools/verify-apk-managed-assets.py "$apk" > out/apk-managed-assets.txt
           printf 'apk=%s\ncert=%s\npackage=%s\n' "$apk" "$cert" "$package" >> "$GITHUB_OUTPUT"
       - name: Remove test private key
         if: always()
@@ -251,6 +252,7 @@ jobs:
             out/apk-runtime-verification.txt
             out/apk-recovery-verification.txt
             out/third-party-apk.json
+            out/apk-managed-assets.txt
           if-no-files-found: error
           retention-days: 14
       - name: Show commit-bound download links

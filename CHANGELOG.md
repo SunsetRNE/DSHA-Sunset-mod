@@ -1,8 +1,9 @@
 # 更新记录
 
-## 0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1 / build330（虚拟屏拒绝宿主自身启动，防副屏 WebView 崩溃）
+## 0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1 / build330（虚拟屏拒绝宿主自身启动 + APK 受管 gh 资产改名修复）
 
-- 虚拟屏 self-launch 拒绝（T76）：`/app/vscreen/launch` 不再接受把 DSHA 自身启动到虚拟屏。系统不会为副屏另起实例，而是复用正在运行的同一进程；本进程里已绑定默认 display 的 WebView 在副屏会以 `libmonochrome` 空指针崩溃（relay 真机证据：display 4、主线程 Looper 进入 WebView、复用已运行的进程 14715）。bridge 在授权询问前、Manager 在 claim 前、Core 在 `am start` 前三层用同一条判定拒绝，返回 `VSCREEN_SELF_LAUNCH_REFUSED`（state=NOT_SENT，不发出启动命令、不再崩溃）；内置插件把该码归 pre-dispatch，原生选择器不再列出宿主，结果页给中英原因。这是安全拒绝，不是支持副屏 self-launch；以后若要支持须 createDisplayContext + 独立 WebView。runtime-descriptor 重生成（runtimeId 6bea62f2），固定输入不重建。
+- 虚拟屏 self-launch 拒绝（T76）：`/app/vscreen/launch` 不再接受把 DSHA 自身启动到虚拟屏。系统不会为副屏另起实例，而是复用正在运行的同一进程；本进程里已绑定默认 display 的 WebView 在副屏会以 `libmonochrome` 空指针崩溃（relay 真机证据：display 4、主线程 Looper 进入 WebView、复用已运行的进程 14715）。bridge 在授权询问前、Manager 在 claim 前、Core 在 `am start` 前三层用同一条判定拒绝，返回 `VSCREEN_SELF_LAUNCH_REFUSED`（state=NOT_SENT，不发出启动命令、不再崩溃）；内置插件把该码归 pre-dispatch，原生选择器不再列出宿主，结果页给中英原因。这是安全拒绝，不是支持副屏 self-launch；以后若要支持须 createDisplayContext + 独立 WebView。runtime-descriptor 重生成，固定输入不重建。
+- APK 受管 gh 资产修复（T79，T78 结论 B）：官方 build328/329 的 APK 里只有 `assets/gh-cli.tar`（38,727,680 B，STORED），没有 `gh-cli.tar.gz`——AGP 9.1.1 资产合并对 `.gz` 自动 gunzip 并去掉扩展名，受管安装按 `gh-cli.tar.gz` 打开必定失败（wrapper 自举可兜底）。源固定输入名与 `runtime-descriptor.json` pin 不变、固定输入不重建；APK 打包名改为 `gh-cli.bin`（`tools/asset-deployment.json` 的 sourceTransforms 与 `tools/prepare-standard-assets.py`），`RuntimeTools` 按打包名打开并回退源名；新增 `tools/verify-apk-managed-assets.py` 发布门禁，在正式包（release-production build-signed）与测试包构建链上核对实际成员名、逐字节摘要与 gh 固定成员，防止再次静默改名。runtime-descriptor 随受管生成器改动重生成（runtimeId `35e3f499`），固定输入不重建。
 - 验证范围：宿主 contracts 整组、全树格式检查（JDK17）与定向单测（VirtualScreenPolicy / Manager ownership / 更新页）；未真机验收。版本码提升为 330（基于 build329）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
 - 十语种更新说明见 [build330 更新说明](docs/releases/build330-changes.zh.md)。
 

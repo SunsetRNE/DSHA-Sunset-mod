@@ -1,6 +1,6 @@
 # 固定构建输入（公开仓库预发布资产）
 
-更新：2026-11-05（build328 gh 根因修复：新增第 12 项固定输入 `gh-cli.tar.gz`，官方 GitHub CLI v2.103.3 linux-arm64 归档，作为受管 `opt/gh/bin/gh` 的唯一来源；S1 的 0.2.2-rc.1 运行时与应急归档保持不变）。当前为已上传并发布（prerelease）的 `fixed-inputs-20261105e` 归档（发布核验见下）；
+更新：2026-11-05（build328 gh 根因修复：新增第 12 项固定输入 `gh-cli.tar.gz`，官方 GitHub CLI v2.103.3 linux-arm64 归档，作为受管 `opt/gh/bin/gh` 的唯一来源；S1 的 0.2.2-rc.1 运行时与应急归档保持不变；build330 起 APK 内把同一字节改名为 `gh-cli.bin` 打包，源固定输入名不变、bundle 不重建）。当前为已上传并发布（prerelease）的 `fixed-inputs-20261105e` 归档（发布核验见下）；
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 
 ## 为什么固定输入不放进 git
@@ -41,6 +41,13 @@ GitHub CLI（gh）以及独立应急 DSH 的 rootfs / runtime 归档。正式归
 （131,056,363 B / SHA-256 `c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe`）；
 S1 按已确定决策将独立应急锁同步到同一 `0.2.2-rc.1` 归档字节，T54 与 T58 合并重建运行时后应急锁再次同步到同一字节；正式与应急仍保留独立锁和解压运行根（`recovery-asset-locations.json` 只映射包内物理字节），
 锁与验证合同相互独立，后续正式升级不会自动改动应急锁。**build328 新增 `gh-cli.tar.gz` 不改变应急锁**：`tools/recovery-runtime/lock.json` 与两份 recovery 归档字节均未改动，仍由本 bundle 原样携带。
+
+**APK 打包名与源名分离（build330）**：源固定输入名始终是 `app/src/main/assets/gh-cli.tar.gz`，本 bundle 与
+`runtime-descriptor.json` 的 pin 都不变；APK 内的成员名是 `assets/gh-cli.bin`。原因是 AGP 9.1.1 的资产合并会对
+`.gz` 自动 gunzip 并去掉扩展名，官方 build328/329 APK 里只剩 `assets/gh-cli.tar`，受管安装按 `gh-cli.tar.gz`
+打开必然失败。`tools/asset-deployment.json` 的 `sourceTransforms` 与 `tools/prepare-standard-assets.py` 负责改名，
+`RuntimeTools` 按打包名打开（旧包回退源名）；`tools/verify-apk-managed-assets.py` 在正式发布与测试包的构建链上
+核对实际 APK 成员的名称、逐字节摘要与 gh 固定成员，防止再次静默改名。
 
 ## 锁定与还原
 

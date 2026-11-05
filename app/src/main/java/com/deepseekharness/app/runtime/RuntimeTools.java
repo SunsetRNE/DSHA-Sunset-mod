@@ -628,6 +628,22 @@ final class RuntimeTools {
         || !sha256.matches("[a-f0-9]{64}")) throw new IOException("MANAGED_INPUT_EXTRACT");
   }
 
+  /**
+   * AGP 9.1.1 的资产合并会对 .gz 自动 gunzip 并去掉扩展名，所以受管归档在 APK 内按
+   * tools/asset-deployment.json 的 sourceTransforms 改用 .bin 打包名。旧构建入口与
+   * Robolectric 夹具仍只有源名，打不开打包名时回退，避免把兼容读法一起删掉。
+   */
+  private static InputStream openManagedArchive(Context context, String asset) throws IOException {
+    if ("gh-cli.tar.gz".equals(asset)) {
+      try {
+        return context.getAssets().open("gh-cli.bin");
+      } catch (IOException missingPackagedName) {
+        return context.getAssets().open(asset);
+      }
+    }
+    return context.getAssets().open(asset);
+  }
+
   private static void installExtracted(
       Context context,
       File rootfs,
@@ -646,7 +662,7 @@ final class RuntimeTools {
     if (!staging.mkdirs()) throw new IOException("MANAGED_INPUT_EXTRACT_STAGE");
     try {
       final boolean[] found = {false};
-      try (InputStream input = context.getAssets().open(asset)) {
+      try (InputStream input = openManagedArchive(context, asset)) {
         // ArchiveFileBoundary over the app-private filesystem: descendant writes never follow
         // links, and the extracted member is digest-checked before publication. The signed-asset
         // root-anchor variant is Android-only and cannot run in the host Robolectric tests.

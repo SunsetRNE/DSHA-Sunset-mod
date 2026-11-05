@@ -292,6 +292,9 @@ jobs:
           }, indent=2))
           PY
 
+      - name: Verify managed APK assets and pinned gh archive
+        run: python3 tools/verify-apk-managed-assets.py app/build/outputs/apk/standard/release/app-standard-release.apk
+
       - name: Package commit-bound build evidence
         run: |
           python3 - <<'PYCODE'

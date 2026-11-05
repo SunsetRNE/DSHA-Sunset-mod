@@ -49,12 +49,16 @@ def verify_reader_contracts(source,manifest,repository=ROOT):
         name=logical(name)
         if name not in deployed:raise ValueError('ASSET_READER_UNDEPLOYED:'+reader+':'+name)
     managed=json.loads((source/'managed-runtime-inputs.json').read_text(encoding='utf-8'))
-    for row in managed['installs']:require(row['asset'],'managed-runtime installs')
+    transforms=manifest.get('sourceTransforms',{})
+    def require_managed(name,reader):
+        # 受管清单保留源名（摘要与安装目标绑定它）；APK 内实际成员按 sourceTransforms 改名。
+        require(transforms.get(name,name),reader)
+        if name in transforms:
+            source_path=source/name
+            if not source_path.is_file() or source_path.is_symlink():raise ValueError('ASSET_TRANSFORM_SOURCE:'+name)
+    for row in managed['installs']:require_managed(row['asset'],'managed-runtime installs')
     for name in managed['assetFiles']:
-        if name in manifest.get('sourceTransforms',{}):
-            if not (source/name).is_file() or (source/name).is_symlink():raise ValueError('ASSET_TRANSFORM_SOURCE:'+name)
-            require(manifest['sourceTransforms'][name],'managed-runtime transformed assetFiles')
-        else:require(name,'managed-runtime assetFiles')
+        require_managed(name,'managed-runtime assetFiles')
     for tree in managed['assetTrees']:
         if tree not in manifest['packagedTrees']:raise ValueError('ASSET_READER_TREE:'+tree)
     patches=json.loads((source/'runtime-patches.json').read_text(encoding='utf-8'))

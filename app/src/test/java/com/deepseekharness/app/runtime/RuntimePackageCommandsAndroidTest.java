@@ -169,10 +169,16 @@ public final class RuntimePackageCommandsAndroidTest {
   }
 
   private android.content.res.AssetManager packageAssets() throws Exception {
-    return packageAssets(false);
+    return packageAssets(false, "gh-cli.tar.gz");
   }
 
   private android.content.res.AssetManager packageAssets(boolean corruptGhDigest) throws Exception {
+    return packageAssets(corruptGhDigest, "gh-cli.tar.gz");
+  }
+
+  /** gh 在 APK 内的打包名：build330 起为 gh-cli.bin，旧包与夹具仍是源名。 */
+  private android.content.res.AssetManager packageAssets(boolean corruptGhDigest, String ghEntry)
+      throws Exception {
     Path archive = Files.createTempFile("dsha-package-assets-", ".apk");
     archive.toFile().deleteOnExit();
     byte[] ghBinary =
@@ -209,7 +215,7 @@ public final class RuntimePackageCommandsAndroidTest {
         zip.write(item.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         zip.closeEntry();
       }
-      zip.putNextEntry(new java.util.zip.ZipEntry("assets/gh-cli.tar.gz"));
+      zip.putNextEntry(new java.util.zip.ZipEntry("assets/" + ghEntry));
       zip.write(ghTarball);
       zip.closeEntry();
     }
@@ -380,6 +386,20 @@ public final class RuntimePackageCommandsAndroidTest {
       assertEquals("#!/bin/sh\necho fixture gh\n", Files.readString(binary));
       Files.writeString(binary, "tampered");
       RuntimeTools.stage(context, root.toFile());
+      assertEquals("#!/bin/sh\necho fixture gh\n", Files.readString(binary));
+    }
+  }
+
+  @Test
+  @Config(application = OwnedApplication.class, shadows = PackageFileSystem.class)
+  public void managedReleaseArchiveReadsThePackagedBinName() throws Exception {
+    // build330 的 APK 只有 assets/gh-cli.bin：AGP 不会 gunzip 非 .gz 成员，安装必须成功。
+    try (var assets = packageAssets(false, "gh-cli.bin")) {
+      Files.writeString(
+          root.getParent().resolve(".runtime-descriptor.json"), "{\"runtimeId\":\"" + ID + "\"}");
+      RuntimeTools.prepare(context, root.toFile());
+      Path binary = root.resolve("opt/gh/bin/gh");
+      assertTrue(Files.isExecutable(binary));
       assertEquals("#!/bin/sh\necho fixture gh\n", Files.readString(binary));
     }
   }

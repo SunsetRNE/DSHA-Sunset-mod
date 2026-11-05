@@ -162,6 +162,13 @@ class ReleaseGraph(unittest.TestCase):
                     self.assertNotIn("contents: write", block)
         self.assertEqual(re.findall(r"(?m)^\s+contents:\s*(\w+)", self.source), ["read", "write"])
 
+    def test_managed_apk_asset_gate_runs_between_identity_and_build_evidence(self):
+        signed = self.jobs["build-signed"]
+        gate = signed.index("tools/verify-apk-managed-assets.py")
+        self.assertLess(
+            signed.index("Verify production APK identity and signing certificate"), gate)
+        self.assertLess(gate, signed.index("Package commit-bound build evidence"))
+
     def test_full_unit_tests_require_fixtures_with_one_fork(self):
         unit = self.jobs["unit"]
         self.assertIn("mode: full", unit)
@@ -242,6 +249,12 @@ class SourceAndServices(unittest.TestCase):
         for step in source.split("\n      - "):
             if "actions/upload-artifact@" in step:
                 self.assertNotRegex(step, r"(?i)\.(?:jks|keystore|p12|pfx)\b|RUNNER_TEMP")
+
+    def test_test_package_verifies_managed_apk_assets_and_keeps_the_receipt(self):
+        source = text("test-package.yml")
+        self.assertIn('tools/verify-apk-managed-assets.py "$apk" > out/apk-managed-assets.txt',
+                      source)
+        self.assertIn("out/apk-managed-assets.txt", source.split("Upload public package evidence", 1)[1])
 
     def test_handoff_is_short_lived_and_uncompressed(self):
         source = text("_node-inputs.yml")

@@ -67,8 +67,16 @@ class GhProvisionContract(unittest.TestCase):
 
     def test_asset_serving_and_fixed_input_restore_agree(self):
         deployment = json.loads((ROOT / 'tools/asset-deployment.json').read_text(encoding='utf-8'))
-        self.assertIn('gh-cli.tar.gz', deployment['packagedFiles'])
+        # 源固定输入名保持 gh-cli.tar.gz；APK 打包名改 gh-cli.bin，避免 AGP 9.1.1
+        # 资产合并对 .gz 自动 gunzip 并去掉扩展名（T78 结论 B）。
+        self.assertIn('gh-cli.tar.gz', deployment['sourceInputs'])
+        self.assertNotIn('gh-cli.tar.gz', deployment['packagedFiles'])
+        self.assertEqual(deployment['sourceTransforms']['gh-cli.tar.gz'], 'gh-cli.bin')
+        self.assertIn('gh-cli.bin', deployment['generatedFiles'])
         self.assertIn('gh-cli.tar.gz', module('ci-assets').NAMES)
+        runtime_tools = (ROOT / 'app/src/main/java/com/deepseekharness/app/runtime/RuntimeTools.java') \
+            .read_text(encoding='utf-8')
+        self.assertIn('context.getAssets().open("gh-cli.bin")', runtime_tools)
         layout = (ROOT / 'app/src/main/java/com/deepseekharness/app/util/ManagedRuntimeLayout.java') \
             .read_text(encoding='utf-8')
         self.assertIn('out.add("opt/gh/bin/gh")', layout)

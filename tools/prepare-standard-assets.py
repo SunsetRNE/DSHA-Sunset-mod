@@ -103,7 +103,8 @@ def main():
     verify_reader_contracts(source, deployment)
     selected = selected_assets(source, deployment)
     expected = {relative.as_posix() for _, relative in selected}
-    expected.update({"web-integration/gecko-compat.js", "glibc-python.bin", "adb-wheels.bin"})
+    expected.update({"web-integration/gecko-compat.js", "glibc-python.bin", "adb-wheels.bin",
+                     "gh-cli.bin"})
     if rootfs.is_file():
         expected.update({"offline-rootfs.bin", "offline-rootfs.bytes", "offline-rootfs.sha256",
                          "offline-rootfs.layout", "dsh-runtime.bin", "dsh-runtime.sha256"})
@@ -129,8 +130,9 @@ def main():
     # 清理旧构建生成的两个兼容版资产，不触碰输入目录。
     for name in ("python3.14", "python-runtime.tgz"):
         (output / "runtime-python" / name).unlink(missing_ok=True)
-    # 用 bin 扩展名避免 aapt 展开 gzip；读取端按 magic 判断格式。
-    for name in ("glibc-python", "adb-wheels"):
+    # 源固定输入保持 .tar.gz 原名；APK 内改用 bin 扩展名，避免 AGP 资产合并把 .gz
+    # 自动 gunzip 并去掉扩展名（AGP 9.1.1 sdk-common，aapt2 不这么做）。读取端按 magic 判断格式。
+    for name in ("glibc-python", "adb-wheels", "gh-cli"):
         shutil.copyfile(source / (name + ".tar.gz"), output / (name + ".bin"))
     if not rootfs.is_file():
         (output / "offline-rootfs.bin").unlink(missing_ok=True)

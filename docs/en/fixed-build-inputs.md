@@ -1,6 +1,6 @@
 # Fixed build inputs (public-repository prerelease asset)
 
-Updated 2026-11-05 (build328 adds the 12th fixed input, `gh-cli.tar.gz` = the official GitHub CLI v2.103.3 linux-arm64 archive, as the only source of the managed `opt/gh/bin/gh`; the 0.2.2-rc.1 runtime and emergency archives are unchanged). The `fixed-inputs-20261105e` bundle is uploaded and published as a prerelease; the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
+Updated 2026-11-05 (build328 adds the 12th fixed input, `gh-cli.tar.gz` = the official GitHub CLI v2.103.3 linux-arm64 archive, as the only source of the managed `opt/gh/bin/gh`; the 0.2.2-rc.1 runtime and emergency archives are unchanged; since build330 the APK ships the same bytes under the name `gh-cli.bin`, the source fixed-input name stays unchanged and the bundle is not rebuilt). The `fixed-inputs-20261105e` bundle is uploaded and published as a prerelease; the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
 
 ## Why the fixed inputs are not stored in git
 
@@ -42,6 +42,15 @@ rules do not apply to them, which is expected.
 The set covers the Ubuntu offline rootfs, DSH runtime, ubuntu tools, pnpm runtime, Python support, glibc Python,
 ADB wheels, the GitHub CLI (gh), plus the independent emergency DSH rootfs/runtime archives. The S1 archive bundles DSH
 `0.2.2-rc.1` (131,056,363 B / SHA-256 `c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe`). S1 synchronizes the independent emergency lock to the same `0.2.2-rc.1` bytes and the T54+T58 rebuild re-synchronizes it to the new archive bytes, with separate locks and extracted roots; `recovery-asset-locations.json` maps only the package bytes. build328 adds `gh-cli.tar.gz` without changing the emergency lock: `tools/recovery-runtime/lock.json` and both recovery archive bytes are untouched and are still carried verbatim in this bundle. The locks and verification contracts remain independent; a regular upgrade never changes the emergency lock automatically.
+
+**APK packaging name separated from the source name (build330)**: the source fixed input is always
+`app/src/main/assets/gh-cli.tar.gz`, and both this bundle and the `runtime-descriptor.json` pin keep that name; the APK
+member is `assets/gh-cli.bin`. AGP 9.1.1's asset merge automatically gunzips `.gz` files and drops the extension, so the
+official build328/329 APKs only contain `assets/gh-cli.tar` and a managed install opening `gh-cli.tar.gz` must fail. The
+`sourceTransforms` entry in `tools/asset-deployment.json` and `tools/prepare-standard-assets.py` perform the rename,
+`RuntimeTools` opens the packaged name (falling back to the source name for old packages), and
+`tools/verify-apk-managed-assets.py` checks the actual APK member names, byte digests and the pinned gh member in the
+production and test-package build chains so a silent rename cannot recur.
 
 ## Lock and restoration
 
