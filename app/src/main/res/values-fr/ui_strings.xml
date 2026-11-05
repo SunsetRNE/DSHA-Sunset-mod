@@ -99,6 +99,7 @@
     <string name="ui2_diagnostics_sub" formatted="false">"Vérifications de l’environnement et journaux de diagnostic"</string>
     <string name="ui2_display" formatted="false">"Affichage et démarrage"</string>
     <string name="ui2_dns" formatted="false">"Politique DNS"</string>
+    <string name="ui2_edit_home" formatted="false">"Modifier la mise en page de l'accueil"</string>
     <string name="ui2_environment" formatted="false">"Environnement"</string>
     <string name="ui2_environment_page" formatted="false">"Installation/exécution"</string>
     <string name="ui2_environment_recovery" formatted="false">"Réparer l'environnement"</string>

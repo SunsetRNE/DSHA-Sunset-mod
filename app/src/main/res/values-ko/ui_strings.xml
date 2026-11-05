@@ -99,6 +99,7 @@
     <string name="ui2_diagnostics_sub" formatted="false">"런타임 검사 및 진단 로그"</string>
     <string name="ui2_display" formatted="false">"표시 및 시작"</string>
     <string name="ui2_dns" formatted="false">"DNS 정책"</string>
+    <string name="ui2_edit_home" formatted="false">"홈 레이아웃 편집"</string>
     <string name="ui2_environment" formatted="false">"실행 환경"</string>
     <string name="ui2_environment_page" formatted="false">"설치 및 런타임"</string>
     <string name="ui2_environment_recovery" formatted="false">"환경 복구"</string>

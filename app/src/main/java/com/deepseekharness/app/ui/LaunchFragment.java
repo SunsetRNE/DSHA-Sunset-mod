@@ -159,6 +159,12 @@ public class LaunchFragment extends Fragment {
               }
 
               @Override
+              public void onLayoutReset() {
+                if (requireActivity() instanceof MainActivity)
+                  ((MainActivity) requireActivity()).refreshBottomNavigation();
+              }
+
+              @Override
               public void openBuiltin(String target) {
                 if (!(requireActivity() instanceof MainActivity)) return;
                 MainActivity main = (MainActivity) requireActivity();

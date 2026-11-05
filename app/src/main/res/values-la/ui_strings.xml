@@ -99,6 +99,7 @@
     <string name="ui2_diagnostics_sub" formatted="false">"Probationes ambitus et acta diagnostica"</string>
     <string name="ui2_display" formatted="false">"Ostensio et initium"</string>
     <string name="ui2_dns" formatted="false">"Regula DNS"</string>
+    <string name="ui2_edit_home" formatted="false">"Dispositionem paginæ domesticæ recensere"</string>
     <string name="ui2_environment" formatted="false">"Ambitus exsecutionis"</string>
     <string name="ui2_environment_page" formatted="false">"Installatio et exsecutio"</string>
     <string name="ui2_environment_recovery" formatted="false">"Recuperatio ambitus"</string>

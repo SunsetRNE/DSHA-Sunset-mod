@@ -32,8 +32,6 @@ final class HomeTile extends FrameLayout {
     void onResizeEnd(HomeTile tile);
   }
 
-  private static final int TOOLBAR_TOP_DP = 2;
-
   private final View content;
   private float zoom = 1f;
   private int chromeTop;
@@ -263,9 +261,12 @@ final class HomeTile extends FrameLayout {
       int barWidth = toolbar.getMeasuredWidth();
       int barHeight = toolbar.getMeasuredHeight();
       int localRight = right - left;
-      int x = Math.max(padLeft, localRight - getPaddingRight() - barWidth - dp(6));
-      toolbar.layout(
-          x, padTop + dp(TOOLBAR_TOP_DP), x + barWidth, padTop + dp(TOOLBAR_TOP_DP) + barHeight);
+      // 工具条放回「卡片上方那条 chromeTop 空带」里，但必须右对齐并夹在卡片宽度内：
+      // 之前是左对齐放的，空带比两枚胶囊窄时就从左侧溢出、盖到隔壁卡片上，
+      // 看起来像「框和卡片错位」。空带本身就是为它预留的，放进去不压业务内容。
+      int x = Math.max(padLeft, localRight - getPaddingRight() - barWidth - dp(2));
+      int y = padTop + Math.max(0, (chromeTop - barHeight) / 2);
+      toolbar.layout(x, y, x + barWidth, y + barHeight);
     }
   }
 

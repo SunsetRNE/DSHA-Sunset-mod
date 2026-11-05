@@ -9,8 +9,6 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.HomeLayoutStore;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -277,14 +275,14 @@ public class BottomNavGestureTest {
   }
 
   @Test
-  public void dragNoLongerReordersThenPinchAndPlainTapStillWork() {
-    List<String> before = new ArrayList<>(HomeLayoutStore.navOrder(activity));
+  public void dragReordersThenPinchAndPlainTapStillWork() {
     View first = ((ViewGroup) nav.getChildAt(0)).getChildAt(0);
     float start = nav.getChildAt(0).getLeft() + first.getLeft() + first.getWidth() / 2f;
     event(MotionEvent.ACTION_DOWN, start);
     event(MotionEvent.ACTION_MOVE, 970f);
     event(MotionEvent.ACTION_UP, 970f);
-    assertEquals("底栏顺序不再支持拖动换位", before, HomeLayoutStore.navOrder(activity));
+    // 单指拖动换位：把第一项拖到末端，跨格即时持久化并重建菜单。
+    assertEquals("底栏拖动应换位", "module,plugins,settings,terminal,launch", joinedOrder());
     View settings = nav.findViewById(R.id.nav_settings);
     center = nav.getChildAt(0).getLeft() + settings.getLeft() + settings.getWidth() / 2f;
     beginPinch();
@@ -309,14 +307,14 @@ public class BottomNavGestureTest {
     assertEquals("launch,module,plugins,settings,terminal", joinedOrder());
   }
 
-  /** 拖动超过阈值既不算轻点、也不再换位：底栏顺序固定。 */
+  /** 拖动超过阈值算换位，不算轻点：松手后顺序已变且不触发导航。 */
   @Test
-  public void dragBeyondSlopDoesNotReportTapOrReorder() {
+  public void dragBeyondSlopReordersAndDoesNotTap() {
     event(MotionEvent.ACTION_DOWN, center);
     event(MotionEvent.ACTION_MOVE, center + halfSpan * 2);
     event(MotionEvent.ACTION_UP, center + halfSpan * 2);
     assertEquals(0, tappedItemId);
-    assertEquals("launch,module,plugins,settings,terminal", joinedOrder());
+    assertEquals("launch,module,plugins,terminal,settings", joinedOrder());
   }
 
   private String joinedOrder() {

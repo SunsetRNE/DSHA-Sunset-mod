@@ -392,13 +392,15 @@ public final class HomeLayoutStore {
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .remove(ORDER)
+            .remove(NAV_ORDER)
             .remove(HIDDEN);
     for (String key : context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getAll().keySet()) {
       if (key.startsWith(SIZE_PREFIX)
           || key.startsWith(WIDTH_PREFIX)
           || key.startsWith(ZOOM_PREFIX)
           || key.startsWith(POS_X_PREFIX)
-          || key.startsWith(POS_Y_PREFIX)) {
+          || key.startsWith(POS_Y_PREFIX)
+          || key.startsWith(NAV_SCALE_PREFIX)) {
         editor.remove(key);
       }
     }

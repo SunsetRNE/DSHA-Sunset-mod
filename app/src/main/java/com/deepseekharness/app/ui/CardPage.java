@@ -62,6 +62,22 @@ final class CardPage {
     footer = column();
     footer.setPadding(dp(pad()), dp(8), dp(pad()), dp(compact ? 12 : 16));
     root.addView(footer);
+    // 独立 Activity 的页面（模块中心、诊断、各设置内页）此前完全没吃系统栏 inset：
+    // 手势导航条会压在页脚按钮上，点「返回」可能整片落在导航区里而看起来没反应。
+    // shell_page_bottom 只给壳内悬浮底栏留位，不能代替真实的系统 inset。
+    if (!compact) applySystemBarInsets();
+  }
+
+  /** 让页脚躲开系统导航栏；内容区顶部补上状态栏高度。 */
+  private void applySystemBarInsets() {
+    root.setOnApplyWindowInsetsListener(
+        (view, insets) -> {
+          int bottom = insets.getSystemWindowInsetBottom();
+          int top = insets.getSystemWindowInsetTop();
+          if (top > 0) scroll.setPadding(0, top, 0, 0);
+          if (bottom > 0) footer.setPadding(dp(pad()), dp(8), dp(pad()), dp(8) + bottom);
+          return insets;
+        });
   }
 
   private int pad() {

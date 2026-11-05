@@ -20,6 +20,7 @@
     <string name="nh_title" formatted="false">"Network health"</string>
     <string name="paste_text" formatted="false">"Paste"</string>
     <string name="text_selection_more" formatted="false">"More…"</string>
+    <string name="ui2_edit_home" formatted="false">"Edit home layout"</string>
     <string name="ui_m0001" formatted="false">"Download update"</string>
     <string name="ui_m0002" formatted="false">"Save settings"</string>
     <string name="ui_m0003" formatted="false">"Cancel check"</string>

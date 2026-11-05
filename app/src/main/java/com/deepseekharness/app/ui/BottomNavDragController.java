@@ -11,7 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** 底栏编辑：单指轻点交给宿主、双指捏合缩放；底栏顺序不再支持拖动换位。 */
+/** 底栏编辑：单指拖动换位、单指轻点交给宿主、双指捏合缩放。 */
 final class BottomNavDragController {
   interface Host {
     void onOrderCommitted();
@@ -37,6 +37,9 @@ final class BottomNavDragController {
   private float lastSpan;
   private String scalingKey;
 
+  /** 拖动过程中累积的目标顺序（null = 本次没有换位）。 */
+  private java.util.List<String> dragOrder;
+
   BottomNavDragController(MainActivity activity, EditableBottomNavigationView nav, Host host) {
     this.activity = activity;
     this.nav = nav;
@@ -50,10 +53,34 @@ final class BottomNavDragController {
     nav.setEditTouchListener(on ? this::onTouch : null);
   }
 
+  /**
+   * 找到真正「一个子视图对应一个菜单项」的那层容器。
+   *
+   * <p>Material3 的 BottomNavigationView 内部层级随版本变化（外面还有 NavigationBarView
+   * 包一层），直接取 getChildAt(0) 很可能拿到只含一个孩子的外层，childCount 与菜单项数量
+   * 对不上，于是整个拖动逻辑在 ACTION_DOWN 就提前返回——表现就是「编辑态底栏拖不动」。
+   * 这里按「孩子数量 == 菜单项数量」递归找，找不到就退回原来的第一层。
+   */
   private ViewGroup menuView() {
+    int expected = nav.getMenu().size();
+    ViewGroup found = findMenuContainer(nav, expected, 0);
+    if (found != null) return found;
     if (nav.getChildCount() == 0) return null;
     View first = nav.getChildAt(0);
     return first instanceof ViewGroup ? (ViewGroup) first : null;
+  }
+
+  private static ViewGroup findMenuContainer(ViewGroup parent, int expected, int depth) {
+    if (depth > 4) return null;
+    for (int i = 0; i < parent.getChildCount(); i++) {
+      View child = parent.getChildAt(i);
+      if (!(child instanceof ViewGroup)) continue;
+      ViewGroup group = (ViewGroup) child;
+      if (group.getChildCount() == expected) return group;
+      ViewGroup nested = findMenuContainer(group, expected, depth + 1);
+      if (nested != null) return nested;
+    }
+    return null;
   }
 
   private boolean onTouch(View view, MotionEvent event) {
@@ -70,7 +97,9 @@ final class BottomNavDragController {
       downX = event.getX();
       downY = event.getY();
       dragIndex = targetIndex(menu, downX);
-      // 底栏不再支持按顺序拖动；单指只用于「轻点退出编辑」，双指用于捏合缩放。
+      dragOrder = null;
+      // 单指拖动换位；没有拖动时松手仍算「轻点」交给宿主退出编辑。
+      // 双指捏合缩放在 ACTION_POINTER_DOWN 里接管，不会再走这条分支。
       return true;
     }
     if (!sameMenu(menu)) {
@@ -99,6 +128,7 @@ final class BottomNavDragController {
           float x = event.getX(pointer);
           if (Math.abs(x - downX) > dp(6) || Math.abs(event.getY(pointer) - downY) > dp(6))
             moved = true;
+          if (moved) reorderTo(targetIndex(menu, x));
         }
         return true;
       case MotionEvent.ACTION_POINTER_UP:
@@ -119,6 +149,11 @@ final class BottomNavDragController {
           for (Map.Entry<String, Float> entry : pendingScales.entrySet())
             HomeLayoutStore.setNavItemScale(activity, entry.getKey(), entry.getValue());
           finishGesture(true);
+        } else if (moved && dragOrder != null) {
+          // 拖动换位：写回偏好后重建菜单，松手即生效。
+          HomeLayoutStore.setNavOrder(activity, dragOrder);
+          finishGesture(true);
+          host.onOrderCommitted();
         } else {
           int from = dragIndex;
           int tapped = from >= 0 && !moved ? ids.get(from) : 0;
@@ -132,6 +167,41 @@ final class BottomNavDragController {
       default:
         return true;
     }
+  }
+
+  /**
+   * 单指拖动换位：把当前按住的项移动到 target 位置，并把新顺序记进 {@link #dragOrder}。
+   *
+   * <p>只重排内存中的 ids，不重建菜单——拖动过程中重建菜单会让按住的 view 被移除、
+   * 触摸流中断。菜单在松手提交时统一重建。
+   */
+  private void reorderTo(int target) {
+    if (target < 0 || target >= ids.size() || dragIndex < 0 || target == dragIndex) return;
+    int movingId = ids.remove(dragIndex);
+    ids.add(target, movingId);
+    dragIndex = target;
+    dragOrder = new ArrayList<>();
+    for (int id : ids) dragOrder.add(MainActivity.navKeyOf(id));
+    // 拖动过程中就把顺序写回并重建菜单：手势末尾的 UP 在部分 ROM/输入法手势下会被
+    // 系统截走，只靠 UP 提交会出现「拖了但没生效」。这里用 setNavOrder 的幂等写入，
+    // 每跨过一格提交一次，松手时视觉与偏好已经一致。
+    HomeLayoutStore.setNavOrder(activity, dragOrder);
+    host.onOrderCommitted();
+    // 菜单已重建：旧的 item view 全部失效，按新顺序重新抓一遍，否则后续 MOVE
+    // 会对着被移除的 view 算中心点，dragIndex 从此错位。
+    items.clear();
+    ids.clear();
+    int keptIndex = dragIndex;
+    ViewGroup rebuilt = menuView();
+    if (rebuilt != null && rebuilt.getChildCount() == nav.getMenu().size()) {
+      for (int i = 0; i < rebuilt.getChildCount(); i++) {
+        items.add(rebuilt.getChildAt(i));
+        ids.add(nav.getMenu().getItem(i).getItemId());
+        // 记住被拖那一项重建后的真实索引（顺序已变，但语义仍是同一个目的地）。
+      }
+      for (int i = 0; i < ids.size(); i++) if (ids.get(i) == movingId) keptIndex = i;
+    }
+    dragIndex = Math.max(0, Math.min(keptIndex, Math.max(0, ids.size() - 1)));
   }
 
   /** 坐标统一在底栏内计算，不受按钮自身的视觉缩放影响。 */
@@ -189,6 +259,7 @@ final class BottomNavDragController {
     ids.clear();
     dragIndex = firstPointer = secondPointer = -1;
     moved = scaling = false;
+    dragOrder = null;
     scalingKey = null;
     lastSpan = 0;
     if (releaseParent && nav.getParent() != null)
@@ -206,12 +277,25 @@ final class BottomNavDragController {
     for (View item : items) item.setAlpha(1f);
   }
 
+  /**
+   * 把「相对底栏」的 x 换成最近的第几项。
+   *
+   * <p>menu 容器在底栏里可能有自己的 left 偏移，也可能只是若干层里的一层，
+   * 所以先把 x 换算成 menu 的本地坐标（逐级减去 left），再和每个孩子的中心比。
+   */
   private int targetIndex(ViewGroup menu, float x) {
+    float local = x;
+    View cursor = menu;
+    while (cursor != null && cursor != nav) {
+      local -= cursor.getLeft();
+      Object parent = cursor.getParent();
+      cursor = parent instanceof View ? (View) parent : null;
+    }
     int best = 0;
     float distance = Float.MAX_VALUE;
     for (int i = 0; i < menu.getChildCount(); i++) {
       View child = menu.getChildAt(i);
-      float delta = Math.abs(x - menu.getLeft() - child.getLeft() - child.getWidth() / 2f);
+      float delta = Math.abs(local - (child.getLeft() + child.getWidth() / 2f));
       if (delta < distance) {
         distance = delta;
         best = i;

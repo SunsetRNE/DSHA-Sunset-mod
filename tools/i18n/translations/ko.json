@@ -3696,5 +3696,6 @@
   "rescue272_pending_hint": "원래 환경이 확인되지 않아 일반 백업과 복원을 사용할 수 없습니다. 먼저 읽을 수 있는 사본을 내보낸 다음 중단된 유지보수를 재개하세요.",
   "ui2_modules": "모듈 센터",
   "ui2_module_center": "모듈 센터 · Module center",
-  "ui2_module_center_sub": "설치된 모듈·구조·능력 및 전환"
+  "ui2_module_center_sub": "설치된 모듈·구조·능력 및 전환",
+  "ui2_edit_home": "홈 레이아웃 편집"
 }

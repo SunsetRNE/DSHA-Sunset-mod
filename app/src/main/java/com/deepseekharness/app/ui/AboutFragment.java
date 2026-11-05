@@ -45,7 +45,7 @@ public final class AboutFragment extends Fragment {
             ? UiText.choose("兼容版 · Android 6+", "Compatibility · Android 6+")
             : UiText.choose("标准版 · Android 11+", "Standard · Android 11+"));
     ui.kv(metadata, "DSH", com.deepseekharness.app.util.Constants.DSH_VERSION);
-    ui.kv(metadata, UiText.choose("架构", "Architecture"), "arm64-v8a");
+    ui.kv(metadata, UiText.choose("架构", "Architecture"), packagedAbi());
     ui.kv(metadata, UiText.choose("开源许可", "License"), "MIT");
     ui.label(UiText.choose("了解更多", "Learn more"));
     LinearLayout links = ui.card();
@@ -138,5 +138,15 @@ public final class AboutFragment extends Fragment {
             },
             "license-read")
         .start();
+  }
+
+  /**
+   * 关于页展示的架构必须是「这个包里实际打进去的 JNI」。
+   *
+   * <p>之前这里写死 arm64-v8a，x86_64 模拟器调试包也照抄，用户看到的架构与真实安装的
+   * 原生库不符。模拟器目标固定 x86_64，正式目标固定 arm64-v8a，直接跟打包开关走。
+   */
+  private static String packagedAbi() {
+    return com.deepseekharness.app.BuildConfig.EMULATOR_X64 ? "x86_64" : "arm64-v8a";
   }
 }

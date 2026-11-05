@@ -3696,5 +3696,6 @@
   "rescue272_pending_hint": "L’environnement d’origine n’est pas confirmé : la sauvegarde et la restauration habituelles sont indisponibles. Exportez d’abord une copie lisible, puis reprenez la maintenance interrompue.",
   "ui2_modules": "Centre de modules",
   "ui2_module_center": "Centre de modules · Module center",
-  "ui2_module_center_sub": "Modules installés, architectures, capacités et activation"
+  "ui2_module_center_sub": "Modules installés, architectures, capacités et activation",
+  "ui2_edit_home": "Modifier la mise en page de l'accueil"
 }

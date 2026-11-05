@@ -99,6 +99,7 @@
     <string name="ui2_diagnostics_sub" formatted="false">"فحوص بيئة التشغيل وسجلات التشخيص"</string>
     <string name="ui2_display" formatted="false">"العرض وبدء التشغيل"</string>
     <string name="ui2_dns" formatted="false">"سياسة DNS"</string>
+    <string name="ui2_edit_home" formatted="false">"تعديل تخطيط الصفحة الرئيسية"</string>
     <string name="ui2_environment" formatted="false">"بيئة التشغيل"</string>
     <string name="ui2_environment_page" formatted="false">"التثبيت وبيئة التشغيل"</string>
     <string name="ui2_environment_recovery" formatted="false">"استرداد البيئة"</string>

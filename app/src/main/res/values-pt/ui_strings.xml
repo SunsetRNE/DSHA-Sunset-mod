@@ -99,6 +99,7 @@
     <string name="ui2_diagnostics_sub" formatted="false">"Verificações de execução e registros de diagnóstico"</string>
     <string name="ui2_display" formatted="false">"Exibição e inicialização"</string>
     <string name="ui2_dns" formatted="false">"Política de DNS"</string>
+    <string name="ui2_edit_home" formatted="false">"Editar o layout da página inicial"</string>
     <string name="ui2_environment" formatted="false">"Ambiente de execução"</string>
     <string name="ui2_environment_page" formatted="false">"Instalação e execução"</string>
     <string name="ui2_environment_recovery" formatted="false">"Recuperação do ambiente"</string>

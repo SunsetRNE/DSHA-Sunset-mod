@@ -3696,5 +3696,6 @@
   "rescue272_pending_hint": "原環境尚未確認，一般備份和還原暫不可用。可先匯出可讀副本保存資料，再恢復中斷維護。",
   "ui2_modules": "模組中心",
   "ui2_module_center": "模組中心 · Module center",
-  "ui2_module_center_sub": "查看已安裝模塊、架構、能力與啟停"
+  "ui2_module_center_sub": "查看已安裝模塊、架構、能力與啟停",
+  "ui2_edit_home": "編輯主頁佈局"
 }

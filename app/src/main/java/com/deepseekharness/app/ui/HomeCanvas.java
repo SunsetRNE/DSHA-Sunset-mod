@@ -34,6 +34,9 @@ final class HomeCanvas {
   /** 画布宿主：编辑态变化 + 卡片模块要跳内置入口时交回。 */
   interface Host extends ModuleCardView.Host {
     void onEditModeChanged(boolean editing);
+
+    /** 「全部恢复」清空布局后回调：宿主顺便重建底栏菜单，避免停在旧顺序。 */
+    default void onLayoutReset() {}
   }
 
   private final Context context;
@@ -194,6 +197,9 @@ final class HomeCanvas {
         v -> {
           select(null);
           HomeLayoutStore.reset(context);
+          // 「全部恢复」同时清掉底栏顺序与缩放：只重画卡片会让底栏停在旧顺序，
+          // 用户会以为恢复没生效。宿主负责重建底栏菜单。
+          if (host != null) host.onLayoutReset();
           render();
         });
     TextView done = editBar.findViewById(R.id.launch_edit_done);

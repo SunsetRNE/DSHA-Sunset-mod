@@ -99,6 +99,7 @@
     <string name="ui2_diagnostics_sub" formatted="false">"執行狀態、錯誤記錄與記錄匯出"</string>
     <string name="ui2_display" formatted="false">"顯示與啟動"</string>
     <string name="ui2_dns" formatted="false">"DNS 解析策略"</string>
+    <string name="ui2_edit_home" formatted="false">"編輯主頁佈局"</string>
     <string name="ui2_environment" formatted="false">"執行環境"</string>
     <string name="ui2_environment_page" formatted="false">"安裝與環境"</string>
     <string name="ui2_environment_recovery" formatted="false">"環境修復與恢復"</string>

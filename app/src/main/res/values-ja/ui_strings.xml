@@ -99,6 +99,7 @@
     <string name="ui2_diagnostics_sub" formatted="false">"動作確認と診断ログ"</string>
     <string name="ui2_display" formatted="false">"表示と起動"</string>
     <string name="ui2_dns" formatted="false">"DNS の解決方針"</string>
+    <string name="ui2_edit_home" formatted="false">"ホームレイアウトを編集"</string>
     <string name="ui2_environment" formatted="false">"実行環境"</string>
     <string name="ui2_environment_page" formatted="false">"インストールと実行環境"</string>
     <string name="ui2_environment_recovery" formatted="false">"環境の修復と復旧"</string>

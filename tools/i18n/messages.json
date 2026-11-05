@@ -30274,5 +30274,13 @@
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]
+  },
+  {
+    "id": "ui2_edit_home",
+    "zh": "编辑主页布局",
+    "en": "Edit home layout",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
   }
 ]
