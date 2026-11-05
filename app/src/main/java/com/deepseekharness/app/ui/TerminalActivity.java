@@ -41,6 +41,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** 同 task 的终端工作台。页面只持有视图，结束进程必须明确指定会话并核验。 */
 public class TerminalActivity extends AppCompatActivity implements TerminalPane.Host {
+  /** 显式固定 guest 命令；只在真实启动时消费一次，旋转/进程重建不重放。 */
+  public static final String EXTRA_GUEST_COMMAND = "terminal_guest_command";
+
+  public static final String EXTRA_GUEST_TITLE = "terminal_guest_title";
+
   private static final String WORKBENCH = "terminal_workbench";
   private static final String SESSIONS_OPEN = "sessions_open";
   // v5 原型：抽屉滑入 300ms、遮罩淡入 200ms；反向滑出 220ms、遮罩淡出 180ms。
@@ -139,7 +144,25 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
               }
             });
     if (getSupportFragmentManager().findFragmentById(R.id.terminal_content) == null) {
-      Fragment fragment = createPane(PtyTerminalFragment.preferred(this), previousProcess);
+      // 显式“打开并运行固定命令”只认一次真实启动：旋转、进程重建或返回页面都不重放。
+      boolean commandLaunch = saved == null && !previousProcess;
+      String[] guestCommand =
+          commandLaunch ? getIntent().getStringArrayExtra(EXTRA_GUEST_COMMAND) : null;
+      String guestTitle = commandLaunch ? getIntent().getStringExtra(EXTRA_GUEST_TITLE) : null;
+      boolean hasGuestCommand = guestCommand != null && guestCommand.length > 0;
+      if (hasGuestCommand) {
+        getIntent().removeExtra(EXTRA_GUEST_COMMAND);
+        getIntent().removeExtra(EXTRA_GUEST_TITLE);
+      }
+      Fragment fragment =
+          createPane(PtyTerminalFragment.preferred(this), previousProcess || hasGuestCommand);
+      if (hasGuestCommand) {
+        Bundle args = fragment.getArguments() == null ? new Bundle() : fragment.getArguments();
+        args.putStringArray(PtyTerminalFragment.ARG_GUEST_COMMAND, guestCommand);
+        if (guestTitle != null && !guestTitle.isEmpty())
+          args.putString(PtyTerminalFragment.ARG_GUEST_TITLE, guestTitle);
+        fragment.setArguments(args);
+      }
       getSupportFragmentManager()
           .beginTransaction()
           .replace(R.id.terminal_content, fragment)

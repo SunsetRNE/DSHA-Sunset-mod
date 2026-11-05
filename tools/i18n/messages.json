@@ -2979,7 +2979,8 @@
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/WebDownloads.java",
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java",
-      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   },
   {
@@ -28783,7 +28784,8 @@
     "zh": "刷新",
     "en": "Refresh",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java"
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   },
   {
@@ -30249,6 +30251,434 @@
     "en": "The original environment is unconfirmed, so regular backup and restore are unavailable. Export a readable copy first, then resume the interrupted maintenance.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_01",
+    "zh": "GitHub 登录",
+    "en": "GitHub sign-in",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_02",
+    "zh": "账号 · 授权 · 登录状态",
+    "en": "Account · authorization · sign-in status",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_03",
+    "zh": "管理容器内 GitHub CLI 的登录；本页不读取或显示 token。",
+    "en": "Manage the GitHub CLI sign-in inside the container. This page never reads or displays the token.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_04",
+    "zh": "当前账号",
+    "en": "Current account",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_05",
+    "zh": "已登录",
+    "en": "Signed in",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_06",
+    "zh": "未登录",
+    "en": "Not signed in",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_07",
+    "zh": "已登录，但 hosts.yml 未保存 token",
+    "en": "Signed in, but hosts.yml stores no token",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_08",
+    "zh": "已保存 token，但无法确定账号",
+    "en": "A token is stored, but the account is unknown",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_09",
+    "zh": "只有其他 GitHub 主机登录",
+    "en": "Only other GitHub hosts are signed in",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_10",
+    "zh": "hosts.yml 结构无法识别",
+    "en": "Unsupported hosts.yml layout",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_11",
+    "zh": "无法读取 hosts.yml",
+    "en": "Could not read hosts.yml",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_12",
+    "zh": "hosts.yml 超过大小上限",
+    "en": "hosts.yml exceeds the size limit",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_13",
+    "zh": "hosts.yml 不是普通文件",
+    "en": "hosts.yml is not a regular file",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_14",
+    "zh": "正在读取…",
+    "en": "Reading…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_15",
+    "zh": "账号",
+    "en": "Account",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_16",
+    "zh": "作用域",
+    "en": "Scopes",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_17",
+    "zh": "hosts.yml 未记录作用域（gh 不写入）",
+    "en": "Scopes are not recorded in hosts.yml (gh does not store them)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_18",
+    "zh": "凭据",
+    "en": "Credential",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_19",
+    "zh": "hosts.yml 已保存（不显示内容）",
+    "en": "Stored in hosts.yml (contents not shown)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_20",
+    "zh": "hosts.yml 未保存（可能来自环境变量或钥匙串）",
+    "en": "Not stored in hosts.yml (may come from env or keychain)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_21",
+    "zh": "Git 协议",
+    "en": "Git protocol",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_22",
+    "zh": "未记录",
+    "en": "Not recorded",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_23",
+    "zh": "受管 GitHub CLI",
+    "en": "Managed GitHub CLI",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_24",
+    "zh": "缺失",
+    "en": "Missing",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_25",
+    "zh": "大小与固定输入不符",
+    "en": "Size differs from the pinned input",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_26",
+    "zh": "不是普通文件",
+    "en": "Not a regular file",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_27",
+    "zh": "无法读取",
+    "en": "Unreadable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_28",
+    "zh": "路径",
+    "en": "Path",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_29",
+    "zh": "缺失时首次运行 gh 会按固定版本自举；也可重装环境重新注入。",
+    "en": "When missing, the first gh run bootstraps the pinned version; reinstalling the environment also re-injects it.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_30",
+    "zh": "在终端核对",
+    "en": "Verify in terminal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_31",
+    "zh": "在终端核对作用域",
+    "en": "Check scopes in terminal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_32",
+    "zh": "运行 gh auth status，查看 token 的实际作用域；需要网络。",
+    "en": "Run gh auth status to see the token's actual scopes; network required.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_33",
+    "zh": "登录",
+    "en": "Sign in",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_34",
+    "zh": "重新授权",
+    "en": "Reauthorize",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_35",
+    "zh": "退出登录",
+    "en": "Sign out",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_36",
+    "zh": "登录 GitHub",
+    "en": "Sign in to GitHub",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_37",
+    "zh": "重新授权 GitHub",
+    "en": "Reauthorize GitHub",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_38",
+    "zh": "将打开终端并运行：\n%s\n\n1. 终端显示一次性验证码；用手机浏览器打开\n%s\n2. 输入验证码并按提示授权 GitHub CLI\n3. 回到本页，状态会自动刷新\n\ngh 默认申请作用域：repo、read:org、gist。",
+    "en": "The terminal will open and run:\n%s\n\n1. The terminal shows a one-time code; open this URL in your phone browser:\n%s\n2. Enter the code and authorize GitHub CLI\n3. Return to this page; the status refreshes automatically\n\nDefault scopes requested by gh: repo, read:org, gist.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_39",
+    "zh": "打开终端",
+    "en": "Open terminal",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_40",
+    "zh": "无法打开终端页面",
+    "en": "Could not open the terminal page",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_41",
+    "zh": "退出 GitHub 登录？",
+    "en": "Sign out of GitHub?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_42",
+    "zh": "将从本机 hosts.yml 删除账号 %s 的登录。只影响本机，不会撤销 GitHub 上的授权；如需撤销，请到 GitHub 设置中操作。",
+    "en": "This removes the sign-in for account %s from the local hosts.yml. It only affects this device and does not revoke access on GitHub; revoke it in GitHub settings if needed.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_43",
+    "zh": "退出",
+    "en": "Sign out",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_44",
+    "zh": "已退出 GitHub 登录（仅本机）",
+    "en": "Signed out of GitHub (this device only)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_45",
+    "zh": "退出失败",
+    "en": "Sign-out failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_46",
+    "zh": "退出失败：%s",
+    "en": "Sign-out failed: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_47",
+    "zh": "运行环境未就绪，请先在「安装」页完成安装",
+    "en": "Runtime not ready. Finish installation on the Install page first.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_48",
+    "zh": "重新授权会重新打开网页授权流程。",
+    "en": "Reauthorizing opens the web authorization flow again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_49",
+    "zh": "GitHub 授权",
+    "en": "GitHub authorization",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_50",
+    "zh": "GitHub 状态",
+    "en": "GitHub status",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_51",
+    "zh": "未写入",
+    "en": "Not written",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_52",
+    "zh": "gh 把 token 明文保存在容器 hosts.yml；本页不读取、不显示 token，也不会写入日志、备份或导出。网页与插件在容器内仍可能读取该文件。",
+    "en": "gh stores the token in plain text in the container's hosts.yml. This page never reads or shows the token, and never writes it to logs, backups, or exports. Web pages and plugins inside the container may still read that file.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_53",
+    "zh": "将从本机 hosts.yml 删除 GitHub 登录。只影响本机，不会撤销 GitHub 上的授权；如需撤销，请到 GitHub 设置中操作。",
+    "en": "This removes the GitHub sign-in from the local hosts.yml. It only affects this device and does not revoke access on GitHub; revoke it in GitHub settings if needed.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   }
 ]
