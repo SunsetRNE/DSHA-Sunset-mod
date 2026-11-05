@@ -1508,6 +1508,8 @@
     "app/src/main/java/com/deepseekharness/app/core/MaintenancePreStop.java",
     "app/src/main/java/com/deepseekharness/app/util/WebProofStop.java",
     "app/src/test/java/com/deepseekharness/app/core/MaintenancePreStopTest.java",
-    "app/src/test/java/com/deepseekharness/app/util/WebProofStopTest.java"
+    "app/src/test/java/com/deepseekharness/app/util/WebProofStopTest.java",
+    "app/src/main/java/com/deepseekharness/app/util/MaintenanceToolPaths.java",
+    "app/src/test/java/com/deepseekharness/app/util/MaintenanceToolPathsTest.java"
   ]
 }
