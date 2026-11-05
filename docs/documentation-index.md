@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261106.0400-dsh0.2.2-rc.1` / build331 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为发布准备：proroot 下 git 大 diff（`--stat` / `--numstat`）崩溃改为 fail-loud——新增 `tools/git_guard.py`，命中 rc=139 / `[proroot] SIGSEGV` 立即报错，不重试、不返回部分输出，仓库内调用 git 的工具统一走该封装，并新增 `tools/test-git-guard.py` 回归（T82）；另归档首次连接提示补丁的结论与边界（T58），补丁不进入任何 build。工具层改动不改 fixed-inputs、不改 managed-runtime-inputs 与 runtime-descriptor（runtimeId 仍 35e3f499），无新受管运行时/插件。宿主 contracts 整组、全树格式、host-tests manifest 与定向单测通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build331 更新说明](releases/build331-changes.zh.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261106.0400-dsh0.2.2-rc.1` / build331 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为发布准备：proroot 下 git 大 diff（`--stat` / `--numstat`）崩溃改为 fail-loud——新增 `tools/git_guard.py`，命中 rc=139 / `[proroot] SIGSEGV` 立即报错，不重试、不返回部分输出，仓库内调用 git 的工具统一走该封装，并新增 `tools/test-git-guard.py` 回归（T82）；另归档首次连接提示补丁的结论与边界（T58）；该补丁自 build324（`a54f9854`）起已并入并随包（build324–build331 都携带），归档分支 `5918af63` 不另行合并，本归档不新增或扩展补丁，也不回退已并入补丁。工具层改动不改 fixed-inputs、不改 managed-runtime-inputs 与 runtime-descriptor（runtimeId 仍 35e3f499），无新受管运行时/插件。宿主 contracts 整组、全树格式、host-tests manifest 与定向单测通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build331 更新说明](releases/build331-changes.zh.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
