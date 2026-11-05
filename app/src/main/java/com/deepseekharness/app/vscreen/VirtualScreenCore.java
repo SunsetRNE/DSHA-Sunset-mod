@@ -666,6 +666,11 @@ public final class VirtualScreenCore {
   private static JSONObject launchPackage(String name) throws Exception {
     if (name == null || !name.matches("[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z0-9_]+)+"))
       return error("INVALID_PACKAGE");
+    // 兜底：Manager / bridge 已拒绝宿主自身，这里保证即使有其它调用方也不会真的发出
+    // am start --display（系统会复用本进程，副屏上的 WebView 会崩，T76）。
+    String refused =
+        com.deepseekharness.app.util.VirtualScreenPolicy.selfLaunchRejection(name, selfPackage);
+    if (refused != null) return error(refused);
     Result resolved =
         exec(
             "/system/bin/cmd",

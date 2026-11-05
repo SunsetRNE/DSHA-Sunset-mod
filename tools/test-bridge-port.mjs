@@ -206,6 +206,21 @@ async function run() {
       if (mode === 'rotate' || mode === 'network') assert.equal(JSON.parse(reply.content[0].text).executionUnknown, true);
     }
   });
+  await test('VScreen self-launch refusal stays NOT_SENT and never turns into UNKNOWN', async () => {
+    // 宿主自身被原生端在 am start 之前拒绝；MCP 侧必须报未发送，不能暗示动作可能执行过。
+    const f = fixture(), sdk = loadCjs('builtin-plugins/dsh-tool-vscreen/lib/server.cjs', f), signal = new AbortController().signal;
+    f.body = JSON.stringify({ result: JSON.stringify({ ok: false, state: 'NOT_SENT', error: 'VSCREEN_SELF_LAUNCH_REFUSED', code: 'VSCREEN_SELF_LAUNCH_REFUSED' }) });
+    const reply = await sdk.call('android_vscreen_launch', { coreInstance: '11111111-2222-3333-4444-555555555555', package: 'io.github.sunsetrne.dsha' }, signal);
+    const value = JSON.parse(reply.content[0].text);
+    assert.equal(reply.isError, true);
+    assert.equal(value.state, 'NOT_SENT');
+    assert.equal(value.error, 'VSCREEN_SELF_LAUNCH_REFUSED');
+    assert.equal(value.executionUnknown, undefined);
+    assert.equal(value.noReplay, undefined);
+    assert.equal(f.requests.length, 1);
+    assert(f.requests[0].path.startsWith('/app/vscreen/launch'));
+    assert(JSON.stringify(f.requests[0]).includes('io.github.sunsetrne.dsha'));
+  });
   await test('overlay state dedup includes port and never caches unauthorized success', async () => {
     const f = fixture(), plugin = await loadPlugin('dsh-status-overlay', f), ctx = context(); let next;
     plugin.reportPluginStates(ctx, { token: () => f.token, fetch: f.fetch, setTimeout: fn => { next = fn; }, clearTimeout: () => {} });

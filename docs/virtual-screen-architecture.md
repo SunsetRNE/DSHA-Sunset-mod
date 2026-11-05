@@ -223,6 +223,8 @@ close 在存在 live/pending Core 时也必须带精确身份，不能关“当�
 失败返回 `isError:true`；不要把含 error 的 JSON 包成普通成功工具结果。
 具体未发送与未知信息必须跨 JS、HTTP、Manager、Core 四层保留。
 
+`/app/vscreen/launch` 不接受把宿主自身（`Context.getPackageName()`）启动到虚拟屏：系统不会为副屏另起实例，而是复用已在运行的同一进程，本进程里已绑定默认 display 的 WebView 在副屏会崩溃（T76 真机 tombstone：主线程 Looper → `libmonochrome` 空指针）。bridge 在授权询问前、Manager 在 claim 前、Core 在 `am start` 前都用 [VirtualScreenPolicy][policy] 的同一条判定拒绝，返回 `VSCREEN_SELF_LAUNCH_REFUSED`（`state=NOT_SENT`）；原生应用选择器也不列出宿主自己。其它应用不受这条策略影响，启动结果未知的语义照旧。
+
 物理工具 [dsh-computer-use-android][physical-plugin] 使用另一条物理屏协议。
 维护提示词时应保持两类工具的边界，不能用“active virtual”自动改物理请求含义。
 Agent preset、会话权限与宿主全局能力是不同配置层；一个设置不能证明其他层已授权。
@@ -328,6 +330,7 @@ Native `lastStartOutcome()` / `safeStartOutcome()` 提供去除秘密和图像�
 | 生命周期、关闭和 journal | Manager、Core、CoreIdentity、ExitProofPolicy | VirtualScreenLifecycleTest、CloseReconcileTest、PersistentCleanupTest、SessionJournalTest |
 | Core listener / 协议 | Core、Transport、PeerProof、Handshake | VirtualScreenCoreControlTest、TransportTest、BridgeIdentityTest、VirtualScreenHandshakeTest |
 | 启动通道与 ADB 票据 | Channels、Launcher、AdbBridge、AdbVirtualScreenStart | VirtualScreenChannelsTest、StartOutcomeTest、AdbVirtualScreenStartTest；test-adb-vscreen-bridge.py |
+| 启动目标策略（self-launch） | VirtualScreenPolicy、Manager、Core、HttpShellService、Activity 选择器、server.cjs | VirtualScreenPolicyTest、VirtualScreenManagerOwnershipTest；test-bridge-port.mjs、test-prompt-language.mjs |
 | 采集、预览与手势 | Pixels、Previews、PreviewView、PreviewInputGate | PixelsTest、PreviewContinuityTest、PreviewAdoptionTest、PreviewInputGateTest、NativeInputFrameBoundaryTest |
 | 节点与原生面板 | Accessibility、NativeControls、Activity、NativeScreenControlLease | VirtualScreenNativeControlsTest、ActivityNodeControlsTest、ActivityLayoutTest |
 | 原图锚点 | ObservedPixels、ObservedControl、AnchorProof | VirtualScreenObservedPixelsTest、VirtualScreenAnchoredChainTest；test-vscreen-anchored.mjs |

@@ -50,7 +50,7 @@ const sourcePoint={type:'integer',minimum:0,maximum:Number.MAX_SAFE_INTEGER};
 const definitions=[
  ['android_vscreen_create','创建或复用虚拟屏。对已有 Core 换方向即旋转：coreInstance 不变、generation 与 displayId 换新，原应用窗口不会跟过去；回复带 displayRecreated、previousPackage 和 nextAction=LAUNCH_APP_FIRST，需要原应用时重新 launch 后再 see。',{orientation:{type:'string',enum:['portrait','landscape']}}],
  ['android_vscreen_status','读取显示尺寸、方向、通道和最新 frameSeq。',{}],
- ['android_vscreen_launch','把已安装应用启动到虚拟屏。可选 generation 仅用于启动前状态检查；检查与启动不是原子操作，原生 launch 不校验 generation，显示代次可能在检查后变化。取消或中断（包括 SDK 抛出 AbortError）可能丢失回执，不证明启动未执行；先观察实际状态，不自动重放。',{package:{type:'string',maxLength:160},generation:{type:'string',minLength:1,maxLength:80}}],
+ ['android_vscreen_launch','把已安装应用启动到虚拟屏。可选 generation 仅用于启动前状态检查；检查与启动不是原子操作，原生 launch 不校验 generation，显示代次可能在检查后变化。取消或中断（包括 SDK 抛出 AbortError）可能丢失回执，不证明启动未执行；先观察实际状态，不自动重放。不接受把 DSHA 自身启动到虚拟屏（系统会复用本进程，副屏 WebView 崩溃），返回 VSCREEN_SELF_LAUNCH_REFUSED（state=NOT_SENT，未发送）。',{package:{type:'string',maxLength:160},generation:{type:'string',minLength:1,maxLength:80}}],
  ['android_vscreen_see','读取同次原图及观察元数据。anchoredAvailable=true 且原图中有唯一可操作按钮时，优先显式 anchor→anchored_click；保留原 coreInstance/generation/frameSeq/observationId，不用旧 tap 试探。不可锚定时根据 tree/node 或新观察明确决定。新建的虚拟屏可能没有任何窗口：失败回复的 nextAction 为 LAUNCH_APP_FIRST（error VSCREEN_NO_WINDOW）时先 launch 应用；WAIT_AND_SEE_AGAIN（FRAME_PENDING）时稍等再 see；REPORT_TO_USER（FRAME_STALLED）时告诉用户；LAUNCH_APP_OR_WAIT 表示无障碍不可用、无法区分空屏与首帧未到。这些都是只读失败，重新 see 安全；legacyError 保留旧码 FRAME_NOT_READY。',{}],
  ['android_vscreen_anchor','从 see 的原观察选择唯一可操作节点，不执行点击、不续期。须用该原观察的 coreInstance/generation/frameSeq/observationId；x/y 是原图全分辨率整数坐标（anchoredAvailable=true 时返回的就是全分辨率原图），不是归一化或缩略图坐标。ANCHOR_ALREADY_ISSUED 不会返回旧 ID；它或丢失回复都不允许自动重选或补截图。锚定不可用、Canvas 或有歧义时，明确改用 tree/node 或新观察，不自动重试。',{generation:{type:'string',maxLength:80},frameSeq:sourceFrame,observationId:coreIdentity,x:sourcePoint,y:sourcePoint}],
  ['android_vscreen_anchored_click','一次性点击原观察的 anchorId。保留原 coreInstance/generation/frameSeq，不刷新帧、不用当前 status 升级旧证据；由原生严格复核节点语义及原区域。成功或失败都消耗该锚点，UNKNOWN/noReplay 不恢复锚点、不重放，不自动换成 tap。回复的 sourceFrameSeq 保持原帧，validatedCurrentSeq 是实际复核帧。点击后先重新观察再决定下一步。',{generation:{type:'string',maxLength:80},frameSeq:sourceFrame,anchorId:coreIdentity}],
@@ -130,6 +130,7 @@ const launchPreDispatchErrors=new Set([
  'USER_REJECTED','USER_NO_ANSWER','USER_CONFIRM_UNAVAILABLE',
  'VSCREEN_CORE_IDENTITY_REQUIRED','VSCREEN_CORE_IDENTITY_CHANGED','VSCREEN_GENERATION_CHANGED',
  'CORE_EVIDENCE_REQUIRED','EXPLICIT_SCREEN_REQUEST_REQUIRED',
+ 'VSCREEN_SELF_LAUNCH_REFUSED',
  'INVALID_coreInstance','INVALID_package','UNKNOWN_ARGUMENT','VSCREEN_QUERY_LIMIT',
  'DUPLICATE_ARGUMENT','INVALID_ARGUMENT_ENCODING','METHOD_NOT_ALLOWED'
 ]);

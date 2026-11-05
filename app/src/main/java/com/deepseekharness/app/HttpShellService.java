@@ -1968,6 +1968,14 @@ public final class HttpShellService {
               : promptTarget != null
                   ? promptTarget.packageName
                   : status.optBoolean("packageVerified") ? status.optString("package") : "";
+      String selfLaunch =
+          operation.equals("launch")
+              ? com.deepseekharness.app.util.VirtualScreenPolicy.selfLaunchRejection(
+                  pkg, ctx.getPackageName())
+              : null;
+      // 宿主自身不能启动到虚拟屏（系统会复用运行中的本进程，副屏 WebView 崩溃，T76）：
+      // 连授权询问都不发起，直接回明确未发送。
+      if (selfLaunch != null) return vscreenNotSent(selfLaunch);
       var capability =
           existingCore || !callerCore.isEmpty()
               ? screenRequestEvidence(

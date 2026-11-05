@@ -1454,6 +1454,12 @@ public final class VirtualScreenManager {
   private JSONObject launch(String pkg, VirtualScreenRequestScope scope) {
     if (pkg == null || !pkg.matches("[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z0-9_]+)+"))
       return failure("INVALID_PACKAGE");
+    // 宿主自身不能启动到虚拟屏：系统会复用本进程，副屏上的 WebView 会崩（T76）。
+    // 在 claim / 清语义 / 开始首帧等待之前拒绝，调用方拿到的是明确未发送。
+    String refused =
+        com.deepseekharness.app.util.VirtualScreenPolicy.selfLaunchRejection(
+            pkg, selfPackageName());
+    if (refused != null) return notSent(refused);
     return ordered(
         () -> {
           if (!scope.claim()) return failure("SCREEN_TARGET_CHANGED");
@@ -1462,6 +1468,16 @@ public final class VirtualScreenManager {
           observationStartedAt = clock.getAsLong();
           return request("/vscreen/launch", "package=" + encode(pkg), scope);
         });
+  }
+
+  /** 宿主包名只从 Application 取；取不到时交给 Core 的兜底检查，不在这里猜。 */
+  private String selfPackageName() {
+    try {
+      Context app = context;
+      return app == null ? "" : app.getPackageName();
+    } catch (RuntimeException unavailable) {
+      return "";
+    }
   }
 
   public JSONObject action(String action, String gen, long seq, String params) {
@@ -2286,13 +2302,18 @@ public final class VirtualScreenManager {
     return failure(com.deepseekharness.app.util.VirtualScreenFailures.code(error), error);
   }
 
-  private static JSONObject identityFailure(String code) {
+  /** 请求在本机就已拒绝：动作没有派发，不能报成未知或可重试。 */
+  private static JSONObject notSent(String code) {
     JSONObject value = failure(code);
     try {
       value.put("state", "NOT_SENT").put("code", code);
     } catch (Exception ignored) {
     }
     return value;
+  }
+
+  private static JSONObject identityFailure(String code) {
+    return notSent(code);
   }
 
   private static JSONObject failure(String code, Throwable error) {

@@ -124,6 +124,7 @@ const SCREEN_CONSTRAINTS = [
   ['vscreen-tree-reasons', 'vscreen:android_vscreen_tree', 'ACCESSIBILITY_NOT_ENABLED→请用户在系统设置开启 DSHA 无障碍'],
   ['vscreen-rotate-relaunch', 'vscreen:android_vscreen_create', '原应用窗口不会跟过去'],
   ['vscreen-launch-generation', 'vscreen:android_vscreen_launch', '原生 launch 不校验 generation'],
+  ['vscreen-self-launch-refused', 'vscreen:android_vscreen_launch', '不接受把 DSHA 自身启动到虚拟屏'],
   ['vscreen-see-anchor-first', 'vscreen:android_vscreen_see', '优先显式 anchor→anchored_click'],
   ['vscreen-anchor-full-res', 'vscreen:android_vscreen_anchor', '原图全分辨率整数坐标'],
   ['vscreen-anchor-no-reselect', 'vscreen:android_vscreen_anchor', 'ANCHOR_ALREADY_ISSUED 不会返回旧 ID；它或丢失回复都不允许自动重选或补截图'],

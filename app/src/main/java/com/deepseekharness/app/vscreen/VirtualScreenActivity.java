@@ -668,7 +668,11 @@ public final class VirtualScreenActivity extends AppCompatActivity {
           var intent =
               new android.content.Intent(android.content.Intent.ACTION_MAIN)
                   .addCategory(android.content.Intent.CATEGORY_LAUNCHER);
-          var apps = getPackageManager().queryIntentActivities(intent, 0);
+          var apps =
+              new java.util.ArrayList<>(getPackageManager().queryIntentActivities(intent, 0));
+          // 宿主自身不能启动到虚拟屏（会复用本进程 WebView，T76）：选择器不提供这个目标。
+          String self = getPackageName();
+          apps.removeIf(x -> x.activityInfo != null && self.equals(x.activityInfo.packageName));
           apps.sort(
               java.util.Comparator.comparing(x -> x.loadLabel(getPackageManager()).toString()));
           String[] labels = new String[apps.size()];
@@ -1448,6 +1452,11 @@ public final class VirtualScreenActivity extends AppCompatActivity {
           "系统的显示服务中断了这次调用，请先确认虚拟屏状态再重试。",
           "The system display service interrupted this call; check the virtual screen state before"
               + " retrying.");
+    if (code.equals("VSCREEN_SELF_LAUNCH_REFUSED"))
+      return t(
+          "不能把 DSHA 自己启动到虚拟屏：系统会复用正在运行的本进程，副屏上的 WebView 会崩溃。请选择其它应用。",
+          "DSHA itself cannot be launched on the virtual screen: the system reuses this running"
+              + " process and its WebView crashes on a secondary display. Choose another app.");
     return t("未完成：", "Not completed: ") + code;
   }
 
