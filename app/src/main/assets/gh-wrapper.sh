@@ -244,12 +244,56 @@ elif [ -n "$ROOT_HOST" ] && [ "$GH_CONFIG_DIR" = "/root/.config/gh" ]; then
     export GH_CONFIG_DIR="$ROOT_HOST/root/.config/gh"
 fi
 
+# gh is a static Go binary: it bypasses the proroot path translation, so only
+# host paths reach its CA, config and file arguments. This wrapper runs
+# translated, so its -f checks only see the view proroot binds into the guest
+# (the canonical rootfs path). Android exposes one data tree through both
+# /data/user/0 and /data/data: try the alternate view before failing loudly.
+# Silently falling back to the stale system bundle would turn a host-root
+# problem into a misleading x509 error.
+alternate_host_root() {
+    local root="$1" rest
+    case "$root" in
+        /data/user/0/*)
+            rest="${root#/data/user/0/}"
+            printf '/data/data/%s' "$rest"
+            ;;
+        /data/data/*)
+            rest="${root#/data/data/}"
+            printf '/data/user/0/%s' "$rest"
+            ;;
+        *) return 1 ;;
+    esac
+}
+
 if [ -n "$ROOT_HOST" ]; then
-    CA_FILE="${DSHA_GH_CA:-$ROOT_HOST/usr/local/share/dsha/ca-certificates.crt}"
-    if [ ! -f "$CA_FILE" ]; then
-        CA_FILE="$ROOT_HOST/etc/ssl/certs/ca-certificates.crt"
+    if [ -n "${DSHA_GH_CA:-}" ]; then
+        if [ ! -f "$DSHA_GH_CA" ]; then
+            echo "gh: DSHA_GH_CA points to a missing CA bundle: $DSHA_GH_CA" >&2
+            exit 1
+        fi
+        export SSL_CERT_FILE="$DSHA_GH_CA"
+    else
+        CA_FILE="$ROOT_HOST/usr/local/share/dsha/ca-certificates.crt"
+        if [ ! -f "$CA_FILE" ]; then
+            ALT_ROOT="$(alternate_host_root "$ROOT_HOST" 2>/dev/null || true)"
+            CA_FILE=""
+            if [ -n "$ALT_ROOT" ] \
+                && [ -f "$ALT_ROOT/usr/local/share/dsha/ca-certificates.crt" ]; then
+                CA_FILE="$ALT_ROOT/usr/local/share/dsha/ca-certificates.crt"
+            fi
+        fi
+        if [ -z "$CA_FILE" ]; then
+            cat >&2 <<EOF
+gh: managed CA bundle is missing for this runtime root: $ROOT_HOST
+gh: also tried the alternate /data/user/0 <-> /data/data view.
+gh: refusing to fall back to the stale system CA bundle; api.github.com TLS would fail.
+gh: repair the runtime from the maintenance page, or set DSHA_GH_CA to a valid PEM bundle.
+EOF
+            exit 1
+        fi
+        export SSL_CERT_FILE="$CA_FILE"
     fi
-    [ -f "$CA_FILE" ] && export SSL_CERT_FILE="$CA_FILE"
 fi
 
 host_path() {

@@ -2,6 +2,7 @@ package com.deepseekharness.app.runtime;
 
 import android.content.Context;
 import com.deepseekharness.app.util.Compat;
+import com.deepseekharness.app.util.GhHostRoot;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -897,7 +898,8 @@ final class RuntimeTools {
     environment.put("DSHA_ANDROID_RUNTIME", "1");
     // The Go gh binary bypasses proroot path translation. Keep the host root explicit
     // so its config/CA and file arguments resolve to the same private runtime tree.
-    if (rootfs != null) environment.put("DSHA_GH_HOST_ROOT", rootfs.getAbsolutePath());
+    // 必须用 canonical 路径：/data/user/0 别名视图在 guest 内不可达，包装脚本的 CA 检查会失败。
+    if (rootfs != null) environment.put("DSHA_GH_HOST_ROOT", GhHostRoot.resolve(rootfs));
     environment.put("DSHA_GH_PROXY_SCRIPT", "/usr/local/share/dsha/gh-proxy.mjs");
     environment.put("DSHA_DNS_MODE", settings.dnsMode);
     // DNS 兼容与切网后回收外网连接（net-epoch.cjs，T37）；文件缺失（旧环境）时不加。

@@ -1510,6 +1510,8 @@
     "app/src/test/java/com/deepseekharness/app/core/MaintenancePreStopTest.java",
     "app/src/test/java/com/deepseekharness/app/util/WebProofStopTest.java",
     "app/src/main/java/com/deepseekharness/app/util/MaintenanceToolPaths.java",
-    "app/src/test/java/com/deepseekharness/app/util/MaintenanceToolPathsTest.java"
+    "app/src/test/java/com/deepseekharness/app/util/MaintenanceToolPathsTest.java",
+    "app/src/main/java/com/deepseekharness/app/util/GhHostRoot.java",
+    "app/src/test/java/com/deepseekharness/app/util/GhHostRootTest.java"
   ]
 }

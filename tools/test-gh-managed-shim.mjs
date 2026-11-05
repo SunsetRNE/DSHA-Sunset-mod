@@ -134,6 +134,13 @@ test('wrapper keeps the managed binary and proxy paths explicit', async () => {
   assert.match(source, /DSHA_GH_RAW/)
   assert.match(source, /prorot adapter|proroot adapter/)
   assert.match(source, /^DEFAULT_GH="\/opt\/gh\/bin\/gh"$/m)
+  // Android 的两个数据视图都要试；缺 CA 时不得静默回退旧系统 CA（T73）。
+  assert.match(source, /\/data\/user\/0\/\*/)
+  assert.match(source, /\/data\/data\/\*/)
+  assert.ok(
+    !source.includes('CA_FILE="$ROOT_HOST/etc/ssl/certs/ca-certificates.crt"'),
+    'silent stale system CA fallback must be gone'
+  )
 })
 
 // ---------------------------------------------------------------------------
@@ -374,6 +381,73 @@ test('DSHA_GH_BOOTSTRAP=0 disables the automatic install', async () => {
     assert.match(result.stderr, /DSHA_GH_BOOTSTRAP/)
     assert.equal(await context.calls(), 0)
     await assert.rejects(stat(context.defaultPath))
+  } finally {
+    await rm(context.dir, { recursive: true, force: true })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// CA resolution (T73): use the managed bundle from whichever Android data view
+// the guest can see; never silently reuse the stale system bundle.
+// ---------------------------------------------------------------------------
+
+const installCaProbe = async dir => {
+  const binary = join(dir, 'custom/gh')
+  await mkdir(join(dir, 'custom'), { recursive: true })
+  await writeFile(binary, '#!/bin/sh\nprintf "SSL_CERT_FILE=%s\\n" "${SSL_CERT_FILE-<unset>}"\n')
+  await chmod(binary, 0o755)
+  return binary
+}
+
+const caEnvironment = async (dir, root, extra = {}) =>
+  environment(dir, { DSHA_GH_HOST_ROOT: root, DSHA_GH_BIN: await installCaProbe(dir), ...extra })
+
+const runWithCa = async (context, root, extra = {}) =>
+  run('bash', [context.wrapperCopy], { env: await caEnvironment(context.dir, root, extra) })
+
+test('the managed CA bundle under the runtime root is exported to gh', async () => {
+  const context = await setup()
+  try {
+    const root = join(context.dir, 'runtime/linux/ubuntu')
+    const ca = join(root, 'usr/local/share/dsha/ca-certificates.crt')
+    await mkdir(join(root, 'usr/local/share/dsha'), { recursive: true })
+    await writeFile(ca, 'PEM')
+    const result = await runWithCa(context, root)
+    assert.equal(result.code, 0, result.stderr)
+    assert.equal(result.stdout.trim(), `SSL_CERT_FILE=${ca}`)
+  } finally {
+    await rm(context.dir, { recursive: true, force: true })
+  }
+})
+
+test('a missing managed CA bundle is a hard error instead of a stale fallback', async () => {
+  const context = await setup()
+  try {
+    const root = join(context.dir, 'runtime/linux/ubuntu')
+    await mkdir(root, { recursive: true })
+    const result = await runWithCa(context, root)
+    assert.equal(result.code, 1)
+    assert.match(result.stderr, /managed CA bundle is missing for this runtime root/)
+    assert.match(result.stderr, /refusing to fall back to the stale system CA bundle/)
+    assert.equal(result.stdout.trim(), '')
+  } finally {
+    await rm(context.dir, { recursive: true, force: true })
+  }
+})
+
+test('an explicit DSHA_GH_CA wins and is never silently ignored', async () => {
+  const context = await setup()
+  try {
+    const root = join(context.dir, 'runtime/linux/ubuntu')
+    await mkdir(root, { recursive: true })
+    const custom = join(context.dir, 'custom-ca.pem')
+    await writeFile(custom, 'PEM')
+    const used = await runWithCa(context, root, { DSHA_GH_CA: custom })
+    assert.equal(used.code, 0, used.stderr)
+    assert.equal(used.stdout.trim(), `SSL_CERT_FILE=${custom}`)
+    const missing = await runWithCa(context, root, { DSHA_GH_CA: join(context.dir, 'gone.pem') })
+    assert.equal(missing.code, 1)
+    assert.match(missing.stderr, /DSHA_GH_CA points to a missing CA bundle/)
   } finally {
     await rm(context.dir, { recursive: true, force: true })
   }
