@@ -42,6 +42,7 @@
     "app/src/main/assets/file-image-actions-patch.json": "73051382ed03e41178958e04e92dedc52ab79c12c552897fc9249a5f46bb051b",
     "app/src/main/assets/file-upload-binary-client-patch.json": "1a47d08126cd2ab88b12b79a8ffb011d5b91c6d00a7e279258a4cbe019408983",
     "app/src/main/assets/file-upload-capacity-patch.json": "47b00ef485b65dd6f1771e696aba8f6aee62b228788763880b06766528068a67",
+    "app/src/main/assets/first-connect-indicator-patch.json": "2efde42388500114f15e2e197dc4a35b08583789101a605042273d7ece0a470d",
     "app/src/main/assets/frontend-static-cache-patch.json": "05cfebc826cfcd5e70e58a4b4909747fc08bdae387fa313ae2a088c792c86437",
     "app/src/main/assets/guard-bash-patch.json": "10c8604b27685f1ced8b0bf6bf76ed05462006037710e16a56f0c4a0e71aeb2c",
     "app/src/main/assets/guard-editor-patch.json": "eb06ec6e2e4e48ad76ff8f90533e85e7a033589c790dee11a54510e952467979",
@@ -71,7 +72,7 @@
     "app/src/main/assets/retire-guarded-preset-patch.json": "7a5b0361c97bc745a72388ee5cc9873f8eb9044d40e3758f2bdf8f51dd7ae33e",
     "app/src/main/assets/retired-market-catalog-patch.json": "49d2aef262c86bf3e74bd0d1014a3e38b5d33ae44dd862ccc7e73ae57be0ab14",
     "app/src/main/assets/retired-market-optional-patch.json": "1ee36d857b05b811cb60ed4ba80e1a4b472cc0642dc9a8f3ebca4d0a26774599",
-    "app/src/main/assets/runtime-patches.json": "048aa520810f2369568ee517679d44cbd64e0f1dd87c03b3a9328f41abbfbefd",
+    "app/src/main/assets/runtime-patches.json": "625fcf127e30b993932dc2f31248cc0fa9cc8b565eb1d0dfbbedb19c4f59177e",
     "app/src/main/assets/session-interaction-patch.json": "27880ee94d3952ab697cc7d75cab69bae074d9c1d74fe6ce9e36de51432ff687",
     "app/src/main/assets/sidebar-layout-recovery-patch.json": "4e9c1d996a5f457e465288af5488dcadae60c20695a208334e52af940682d8af",
     "app/src/main/assets/startup-mcp-timing-patch.json": "6b4e85c89b6a78e037eb9687c1ff1f9661088e73a4822b133e201eafb47865f0",
@@ -92,5 +93,5 @@
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
     "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
-  "archive_sha256": "6172bf61769a1bfb2f2d3e8a842a1d6b9f7deae86eedc36c504e6b490b52f294"
+  "archive_sha256": "c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe"
 }

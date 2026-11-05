@@ -314,6 +314,13 @@
       "markers": [
         "DSHA_USER_ONLY_SKILL_APPROVAL_V1"
       ]
+    },
+    {
+      "asset": "first-connect-indicator-patch.json",
+      "module": "@deepseek-ai/dsh-client-ui-settings-general/lib/client.js",
+      "markers": [
+        "DSHA_FIRST_CONNECT_SILENT_V1"
+      ]
     }
   ],
   "specialized": [

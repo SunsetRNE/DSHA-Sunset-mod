@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "archiveSha256": "47db13462087f3e1b82a28b728cdec9f3480aa50dcff5c55e22eb2aa434995e4",
+  "archiveSha256": "c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe",
   "packages": {
     ".bin": "a91130bb8cbd6f6e9d6b1b5beaff37e8da427219069162b7a3c0552cd72467fc",
     "@agentclientprotocol/sdk": "2ad364c17a32f29dd05f7d28a052359a893f009ff5ad283e0acb5dd621deb765",
@@ -114,7 +114,7 @@
     "@deepseek-ai/dsh-client-ui-settings": "df9c9d77b897a072ace71085736c9dd47ce0bf4d069135f0d47d3116e514449f",
     "@deepseek-ai/dsh-client-ui-settings-account": "181a75cfd31be519b4bca7347ac2dba1b40f6d7cc927aa7f4e4de13b1c2f0ec8",
     "@deepseek-ai/dsh-client-ui-settings-agent-loop": "d072c6708ab0ee6d3529445791bf854c232643d07593ef8375011d11f71c0f77",
-    "@deepseek-ai/dsh-client-ui-settings-general": "8ef587dff47a28da7844a053a694c3b2e649e625ee4ebd7b1ec8d91fe9f57ded",
+    "@deepseek-ai/dsh-client-ui-settings-general": "1a829da179d162724de32db9bb201d1dda959f598a281d646ad1439edfa025aa",
     "@deepseek-ai/dsh-client-ui-settings-models": "43ef1ef3ca9fcedba875f43b3e5442ee212c6ca3bd93e1e4eb706ce17a4c93f8",
     "@deepseek-ai/dsh-client-ui-settings-plugin-inventory": "24040d6ff61386cf8eaf3be50fce14cb47bfc9ee0845f9e677023803152b9e15",
     "@deepseek-ai/dsh-client-ui-settings-plugins": "8dcab019bc95c10afb8e7554c81396693795496738ace24ec8bb366ac54e59e0",
@@ -338,7 +338,7 @@
     "@deepseek-ai/dsh-tool-ralph": "57f84688907b3d29e927e72f465f503b7d48089ffebd2cb6b3ad67b48afb9313",
     "@deepseek-ai/dsh-tool-schedule": "557edbeeb17409e91175d85a1b00bca3276690470d4c9614db5013590d2643e2",
     "@deepseek-ai/dsh-tool-session-query": "4671dea83c18ae0df748b03b935647e1530971aaaca133ad7b5ec90c3a323832",
-    "@deepseek-ai/dsh-tool-skill": "176b5d3a5da82c5f542d4aca5c9d216965db403ff1c98dc2f45978fe862a6baf",
+    "@deepseek-ai/dsh-tool-skill": "e487ec718745a546b7035274d776493456dfbcd39f29827e78cba503bc819c40",
     "@deepseek-ai/dsh-tool-str-replace-editor": "64422119fddcc1d6b589d86d94f684b0202cb4fd1183a7bb8df212888487aa51",
     "@deepseek-ai/dsh-tool-subagent": "35a4149d3201f939f1c39ce56106446ea1aee6adee760ad262e5e3446613f545",
     "@deepseek-ai/dsh-tool-subagent-control": "153890944debb586460536c51ef9f9812faba42515a12322fae514fd4ceddfca",

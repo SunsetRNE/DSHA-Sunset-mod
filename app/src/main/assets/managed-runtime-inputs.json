@@ -586,6 +586,7 @@
     "file-deliverables-patch.json",
     "file-image-actions-patch.json",
     "user-only-skill-approval-patch.json",
+    "first-connect-indicator-patch.json",
     "plugin-pnpm-argv-patch.json",
     "external-tool-proof.json"
   ],
