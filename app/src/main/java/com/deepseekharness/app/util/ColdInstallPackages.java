@@ -23,7 +23,7 @@ public final class ColdInstallPackages {
       files = privateFiles(fs, appData, providedFiles);
       declaredData = appData;
       declaredFiles = providedFiles;
-      authority = appData.getCanonicalFile();
+      authority = canonicalOrAbsolute(appData);
       authorityIdentity = fs.stat(authority);
       filesIdentity = fs.stat(files);
       verify(fs);
@@ -39,8 +39,8 @@ public final class ColdInstallPackages {
 
     public void verify(BackupFileSystem fs) throws IOException {
       if (!authority.equals(files.getParentFile())
-          || !authority.equals(declaredData.getCanonicalFile())
-          || !authority.equals(declaredFiles.getParentFile().getCanonicalFile())
+          || !authority.equals(canonicalOrAbsolute(declaredData))
+          || !authority.equals(canonicalOrAbsolute(declaredFiles.getParentFile()))
           || !sameDirectory(authorityIdentity, fs.stat(authority))
           || !sameDirectory(filesIdentity, fs.stat(files)))
         throw new IOException("COLD_PACKAGE_HOST_ROOT_CHANGED");
@@ -61,10 +61,14 @@ public final class ColdInstallPackages {
         || !providedFiles.isAbsolute()
         || !"files".equals(providedFiles.getName()))
       throw new IOException("COLD_PACKAGE_HOST_ROOT");
-    File authority = appData.getCanonicalFile();
+    // /data/data 在多数设备是 /data/user/0 的符号链接，canonical 解析能对上；
+    // 但也有 ROM / 模拟器把 /data/data 做成真实目录且 SELinux 禁止逐级打开父目录，
+    // canonical 解析会以 EINVAL 失败。此时按绝对路径比较——两条路径都指向同一目录，
+    // 仍然只信任框架给出的 app data 权威路径，不放宽任何 NOFOLLOW 检查。
+    File authority = canonicalOrAbsolute(appData);
     File parent = providedFiles.getParentFile();
     if (parent == null
-        || !authority.equals(parent.getCanonicalFile())
+        || !authority.equals(canonicalOrAbsolute(parent))
         || !fs.stat(authority).type.equals("DIRECTORY"))
       throw new IOException("COLD_PACKAGE_HOST_ROOT");
     // /data/data <-> /data/user/0 belongs to Android. files/linux/... belongs
@@ -73,6 +77,15 @@ public final class ColdInstallPackages {
     if (!fs.stat(files).type.equals("DIRECTORY"))
       throw new IOException("COLD_PACKAGE_FILES_LINK_OR_MISSING");
     return files;
+  }
+
+  /** 规范化路径；父目录不可遍历时退回绝对路径（不改变指向的目录）。 */
+  private static File canonicalOrAbsolute(File file) {
+    try {
+      return file.getCanonicalFile();
+    } catch (java.io.IOException | RuntimeException error) {
+      return file.getAbsoluteFile();
+    }
   }
 
   public static File ownedSlot(BackupFileSystem fs, File privateFiles, String name)

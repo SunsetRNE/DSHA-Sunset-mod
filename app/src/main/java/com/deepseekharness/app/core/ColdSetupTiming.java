@@ -22,12 +22,16 @@ public final class ColdSetupTiming {
     return MaintenanceCoordinator.exclusive(
         HarnessController.get(app),
         () -> {
-          File parent = new File(app.getFilesDir().getCanonicalFile(), "cold-install-probes");
+          File parent =
+              new File(
+                  com.deepseekharness.app.util.HostPaths.normalize(app.getFilesDir()),
+                  "cold-install-probes");
           if (!parent.isDirectory() && !parent.mkdir()) throw new IOException("COLD_TIMING_ROOT");
           File owned = new File(parent, UUID.randomUUID().toString());
           if (!owned.mkdir()) throw new IOException("COLD_TIMING_OWNED_ROOT");
           ColdProbeCleanup cleanup =
-              ColdProbeCleanup.capture(app.getFilesDir().getCanonicalFile(), owned);
+              ColdProbeCleanup.capture(
+                  com.deepseekharness.app.util.HostPaths.normalize(app.getFilesDir()), owned);
           long started = android.os.SystemClock.elapsedRealtime();
           List<Map<String, Object>> stages = new ArrayList<>();
           Consumer<String> timedProgress =
@@ -104,7 +108,7 @@ public final class ColdSetupTiming {
       var fs = new AndroidBackupFileSystem();
       File path =
           new File(
-              context.getFilesDir().getCanonicalFile(),
+              com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
               "cold-install-probes/" + (success ? "latest.json" : "latest-failure.json"));
       Map<String, Object> row = BackupJson.read(fs.small(path, 65536), 65536);
       StringBuilder text = new StringBuilder();

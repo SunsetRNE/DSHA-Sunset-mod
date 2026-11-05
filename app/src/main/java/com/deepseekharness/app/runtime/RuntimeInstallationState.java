@@ -84,7 +84,7 @@ final class RuntimeInstallationState {
       var layout =
           new com.deepseekharness.app.backup.UserDataLayout(
               new com.deepseekharness.app.backup.AndroidBackupFileSystem(),
-              ctx.getFilesDir().getCanonicalFile());
+              com.deepseekharness.app.util.HostPaths.normalize(ctx.getFilesDir()));
       if (!layout.current().isDirectory()) return false;
     } catch (IOException unavailable) {
       return false;

@@ -14,7 +14,7 @@ public final class CurrentManagedPackages {
     root =
         new File(
             com.deepseekharness.app.util.GuestPaths.rootfs(
-                context.getFilesDir().getCanonicalFile()),
+                com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir())),
             "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules");
     try (InputStream input = context.getAssets().open("managed-package-proofs.json");
         ByteArrayOutputStream output = new ByteArrayOutputStream()) {

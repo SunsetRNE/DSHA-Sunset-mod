@@ -24,7 +24,7 @@ public final class ProfileSettingsTransaction implements HostDataTransaction.Tar
   private ProfileSettingsTransaction(Context context, File task) throws IOException {
     this.context = context.getApplicationContext();
     fs = new AndroidBackupFileSystem();
-    files = context.getFilesDir().getCanonicalFile();
+    files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     this.task = task;
     if (!task.getParentFile().equals(HostOperationArchive.root(files))
             && !task.getParentFile().equals(HostOperationArchive.completedRoot(files))
@@ -112,7 +112,7 @@ public final class ProfileSettingsTransaction implements HostDataTransaction.Tar
         HarnessController.get(context),
         () -> {
           var fs = new AndroidBackupFileSystem();
-          File files = context.getFilesDir().getCanonicalFile();
+          File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
           RetainedCatalogue catalog =
               new RetainedCatalogue(fs, files, new UserDataLayout(fs, files).current());
           var entry = catalog.resolve(retainedKey);
@@ -136,7 +136,7 @@ public final class ProfileSettingsTransaction implements HostDataTransaction.Tar
       BackupControl control)
       throws IOException {
     var fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile(),
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
         parent = HostOperationArchive.reserve(fs, files);
     String id = UUID.randomUUID().toString();
     File task = new File(parent, id);
@@ -293,7 +293,7 @@ public final class ProfileSettingsTransaction implements HostDataTransaction.Tar
     if (id == null || !id.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN))
       throw new IOException("SETTINGS_TRANSACTION_ID");
     var fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     return new ProfileSettingsTransaction(
         context, HostOperationArchive.locate(fs, HostOperationArchive.root(files), id));
   }
@@ -315,7 +315,7 @@ public final class ProfileSettingsTransaction implements HostDataTransaction.Tar
         };
     return NativeConfigurationReset.reset(
         new AndroidBackupFileSystem(),
-        context.getFilesDir().getCanonicalFile(),
+        com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
         workspace,
         environment,
         settings,

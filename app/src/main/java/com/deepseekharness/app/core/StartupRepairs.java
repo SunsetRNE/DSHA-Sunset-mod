@@ -11,7 +11,8 @@ public final class StartupRepairs {
 
   public static String prepareSafeProfile(HarnessController controller) throws IOException {
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
-    File root = controller.context().getFilesDir().getCanonicalFile();
+    File root =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     // 声明根若被替换为链接则保留原物，交给原生数据救援处理，不能按空目录新建。
     File dsh = new com.deepseekharness.app.backup.UserDataLayout(fs, root).current();
     return com.deepseekharness.app.backup.NativeSafeProfile.create(
@@ -24,7 +25,7 @@ public final class StartupRepairs {
 
   public static com.deepseekharness.app.backup.ConfigurationSnapshots snapshots(Context context)
       throws IOException {
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
     return new com.deepseekharness.app.backup.ConfigurationSnapshots(
         fs, files, new com.deepseekharness.app.backup.UserDataLayout(fs, files).current());

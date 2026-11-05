@@ -172,7 +172,7 @@ public final class OneClickBackup extends AndroidViewModel {
         selection(
             fs,
             com.deepseekharness.app.util.GuestPaths.rootfs(
-                context.getFilesDir().getCanonicalFile()),
+                com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir())),
             android.os.Environment.getExternalStorageDirectory().getCanonicalFile(),
             NativeDataLocations.workdir(context));
     control.check();
@@ -237,7 +237,8 @@ public final class OneClickBackup extends AndroidViewModel {
               File op =
                   HostOperationArchive.locate(
                       fs,
-                      HostOperationArchive.root(context.getFilesDir().getCanonicalFile()),
+                      com.deepseekharness.app.util.HostPaths.normalize(
+                          HostOperationArchive.root(context.getFilesDir())),
                       next.id);
               File record = fs.child(op, "exported.json");
               if (fs.stat(record).type.equals("FILE")) {

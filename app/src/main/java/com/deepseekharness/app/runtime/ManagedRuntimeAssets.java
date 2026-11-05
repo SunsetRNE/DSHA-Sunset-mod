@@ -60,7 +60,7 @@ final class ManagedRuntimeAssets {
 
   RuntimeDescriptor installedDescriptor() throws IOException {
     AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     File linux = fs.child(files, "linux");
     if (fs.stat(linux).type.equals("MISSING")) return null;
     File file = fs.child(linux, ".runtime-descriptor.json");
@@ -72,7 +72,10 @@ final class ManagedRuntimeAssets {
     RuntimeDescriptor descriptor = installedDescriptor();
     if (descriptor == null) return null;
     AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
-    File home = new File(context.getFilesDir().getCanonicalFile(), "runtime-health");
+    File home =
+        new File(
+            com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+            "runtime-health");
     File file = new File(home, descriptor.id() + ".json");
     if (fs.stat(home).type.equals("MISSING") || fs.stat(file).type.equals("MISSING")) return null;
     return BackupJson.read(fs.small(file, 512 * 1024), 512 * 1024);
@@ -83,7 +86,7 @@ final class ManagedRuntimeAssets {
     if (descriptor == null || !RuntimeDescriptor.healthy(proof, descriptor.id()))
       throw new IOException("RUNTIME_HEALTH_INCOMPLETE");
     AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     File home = new File(files, "runtime-health");
     if (fs.stat(home).type.equals("MISSING")) fs.directory(home);
     Map<String, String> hashes = new LinkedHashMap<>();

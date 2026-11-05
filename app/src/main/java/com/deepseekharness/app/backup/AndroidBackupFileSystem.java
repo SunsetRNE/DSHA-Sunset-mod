@@ -10,9 +10,10 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   private static final int O_PATH = 0x200000; // Linux UAPI；仅持有目录，不要求列出 /data 等父目录。
   // NDK r26 asm-generic/fcntl.h: 02000000；内核早已支持，Android Java 字段到 API 27 才公开。
   private static final int O_CLOEXEC = 0x80000;
-  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
-  // asm-generic/x86 uses 00200000 instead. Public OsConstants has no O_DIRECTORY.
-  private static final int O_DIRECTORY = 040000;
+  // asm-generic/fcntl.h（arm64 与 x86_64 共用）: O_DIRECTORY = 00200000 = 0x10000。
+  // 040000 是 arm32 的 O_DIRECTORY；在 64 位 ABI 上它是 O_DIRECT，用 O_DIRECT 打开目录
+  // 会被内核以 EINVAL 拒绝（曾把整条部署链路卡在 FILESYSTEM_22）。Public OsConstants 没有 O_DIRECTORY。
+  private static final int O_DIRECTORY = 0x10000;
 
   private static FileDescriptor anchored(File file, int flags, int mode)
       throws IOException, ErrnoException {
@@ -28,11 +29,22 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
         if (parts[i].isEmpty() || parts[i].equals(".")) throw new IOException("UNSAFE_HOST_PATH");
         FileDescriptor next;
         try (ParcelFileDescriptor handle = ParcelFileDescriptor.dup(directory)) {
-          next =
-              Os.open(
-                  "/proc/self/fd/" + handle.getFd() + "/" + parts[i],
-                  i == parts.length - 1 ? flags : O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW,
-                  i == parts.length - 1 ? mode : 0);
+          int stepFlags =
+              i == parts.length - 1 ? flags : O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW;
+          int stepMode = i == parts.length - 1 ? mode : 0;
+          try {
+            next = Os.open("/proc/self/fd/" + handle.getFd() + "/" + parts[i], stepFlags, stepMode);
+          } catch (ErrnoException procFailure) {
+            // 部分 ROM / 模拟器把 /proc 挂成 hidepid 或限制 magic-link 解析，
+            // 通过 /proc/self/fd/<fd>/<name> 打开会返回 EINVAL/ENOENT，而直接按绝对路径
+            // 打开同一个路径是可行的。回退后仍保留逐级 NOFOLLOW 校验（下一段 fstat 检查
+            // 每个中间项必须真是目录），所以按名字跨目录跳转依旧被拒。
+            if (procFailure.errno != OsConstants.EINVAL && procFailure.errno != OsConstants.ENOENT)
+              throw procFailure;
+            StringBuilder rebuilt = new StringBuilder();
+            for (int k = 0; k <= i; k++) rebuilt.append('/').append(parts[k]);
+            next = Os.open(rebuilt.toString(), stepFlags, stepMode);
+          }
         }
         if (i < parts.length - 1 && !OsConstants.S_ISDIR(Os.fstat(next).st_mode)) {
           Os.close(next);
@@ -50,11 +62,15 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   }
 
   static IOException failure(ErrnoException error) {
-    return new IOException(
+    // 带上 syscall 名与路径，便于区分「权限」与「路径/内核不支持」两类 EINVAL。
+    String detail =
+        (error.getMessage() == null ? "" : error.getMessage())
+            + (error.getCause() == null ? "" : " / " + error.getCause());
+    String code =
         error.errno == OsConstants.EACCES || error.errno == OsConstants.EPERM
             ? "PERMISSION_DENIED"
-            : error.errno == OsConstants.ENOSPC ? "NO_SPACE" : "FILESYSTEM_" + error.errno,
-        error);
+            : error.errno == OsConstants.ENOSPC ? "NO_SPACE" : "FILESYSTEM_" + error.errno;
+    return new IOException(code + (detail.isEmpty() ? "" : " [" + detail + "]"), error);
   }
 
   /** Android 的 FileInput/OutputStream(FileDescriptor) 不拥有传入的描述符。明确转交给自动关闭流。 */
@@ -137,7 +153,11 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
               0);
       try (ParcelFileDescriptor handle = ParcelFileDescriptor.dup(fd)) {
         if (!before.same(node(Os.fstat(fd)))) throw new IOException("SOURCE_CHANGED");
+        // 通过已打开的目录 fd 列出条目，避免路径在 stat 之后被换成符号链接。
+        // 部分模拟器 / ROM 的 /proc 不提供 magic-link 目录读取（EINVAL），
+        // 此时退回按名字列目录；身份仍由上下两次 fstat + stat(file) 比对守住。
         String[] names = new File("/proc/self/fd/" + handle.getFd()).list();
+        if (names == null) names = file.list();
         if (names == null) throw new IOException("DIRECTORY_UNREADABLE");
         if (names.length > BackupLimits.ENTRIES) throw new IOException("ENTRY_LIMIT");
         if (!before.same(node(Os.fstat(fd))) || !before.same(stat(file)))

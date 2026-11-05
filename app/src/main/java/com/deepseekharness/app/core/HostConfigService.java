@@ -21,7 +21,7 @@ final class HostConfigService {
 
   String reset() throws IOException {
     if (!MaintenanceCoordinator.isOwner()) throw new IOException("RESET_REQUIRES_MAINTENANCE");
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     File saved =
         NativeConfigurationReset.reset(
             new AndroidBackupFileSystem(),

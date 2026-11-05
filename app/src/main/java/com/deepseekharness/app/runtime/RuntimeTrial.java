@@ -91,7 +91,8 @@ public final class RuntimeTrial {
     RuntimeDescriptor expected = proot.installedRuntimeDescriptor();
     if (expected == null) throw new IOException("RUNTIME_DESCRIPTOR_MISSING");
     BackupFileSystem fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile(), records = fs.child(files, HOME);
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+        records = fs.child(files, HOME);
     if (fs.stat(records).type.equals("MISSING")) fs.directory(records);
     RuntimeTrialRecords.prepareForNew(fs, records);
     String id = UUID.randomUUID().toString(),
@@ -542,7 +543,8 @@ public final class RuntimeTrial {
   public static String latestFailure(Context context) {
     try {
       BackupFileSystem fs = new AndroidBackupFileSystem();
-      File home = fs.child(context.getFilesDir().getCanonicalFile(), HOME);
+      File home =
+          fs.child(com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()), HOME);
       RuntimeTrialRecords.FailureDiagnostic diagnostic =
           RuntimeTrialRecords.latestDiagnostic(fs, home);
       if (diagnostic == null) return "";
@@ -578,7 +580,8 @@ public final class RuntimeTrial {
 
   public static void recoverPending(Context context, ProotBootstrap proot) throws IOException {
     BackupFileSystem fs = new AndroidBackupFileSystem();
-    File home = fs.child(context.getFilesDir().getCanonicalFile(), HOME);
+    File home =
+        fs.child(com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()), HOME);
     TrialRecovery.recover(
         fs,
         home,

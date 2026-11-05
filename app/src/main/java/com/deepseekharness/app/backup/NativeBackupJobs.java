@@ -114,7 +114,7 @@ public final class NativeBackupJobs {
 
   private void loadLastState() {
     try {
-      File files = context.getFilesDir().getCanonicalFile(),
+      File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
           root = HostOperationArchive.root(files);
       if (fs.stat(root).type.equals("MISSING")) return;
       HostOperationArchive.verifyCompleted(fs, files);
@@ -217,7 +217,9 @@ public final class NativeBackupJobs {
     try {
       File parent = operations();
       source = VerifiedBackupCopy.inspect(fs, parent, sourceId);
-      parent = HostOperationArchive.reserve(fs, context.getFilesDir().getCanonicalFile());
+      parent =
+          HostOperationArchive.reserve(
+              fs, com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()));
       task = new File(parent, UUID.randomUUID().toString());
       fs.directory(task);
       control = new BackupControl(this::progress);
@@ -257,7 +259,9 @@ public final class NativeBackupJobs {
             String result = source.result(exported.readback);
             if (result.equals("COMPLETE")) {
               File catalogue =
-                  new File(context.getFilesDir().getCanonicalFile(), "host-backup-catalogue");
+                  new File(
+                      com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+                      "host-backup-catalogue");
               if (fs.stat(catalogue).type.equals("MISSING")) fs.directory(catalogue);
               fs.atomic(
                   catalogue,
@@ -293,7 +297,9 @@ public final class NativeBackupJobs {
             }
             try {
               HostOperationArchive.archiveIfTerminal(
-                  fs, context.getFilesDir().getCanonicalFile(), owned);
+                  fs,
+                  com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+                  owned);
             } catch (IOException ignored) {
             }
             synchronized (this) {
@@ -379,7 +385,7 @@ public final class NativeBackupJobs {
   }
 
   private File operations() throws IOException {
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     File directory = fs.child(files, "host-backup-operations");
     if (fs.stat(directory).type.equals("MISSING")) fs.directory(directory);
     if (!fs.stat(directory).type.equals("DIRECTORY")) throw new IOException("OPERATION_DIRECTORY");
@@ -420,7 +426,7 @@ public final class NativeBackupJobs {
       fs.atomic(task, "operation.json", BackupJson.write(record, 16384));
       if (!next.id.equals(state.id))
         fs.atomic(
-            context.getFilesDir().getCanonicalFile(),
+            com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
             LAST_TASK,
             BackupJson.write(Map.of("version", 1L, "id", next.id), 1024));
     }
@@ -627,7 +633,9 @@ public final class NativeBackupJobs {
     }
     DataProtectionService.StartTicket protection = null;
     try {
-      File parent = HostOperationArchive.reserve(fs, context.getFilesDir().getCanonicalFile());
+      File parent =
+          HostOperationArchive.reserve(
+              fs, com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()));
       task = new File(parent, UUID.randomUUID().toString());
       fs.directory(task);
       control = new BackupControl(this::progress);
@@ -837,7 +845,9 @@ public final class NativeBackupJobs {
               result = "DATA_SAVED_PLUGIN_WARNINGS";
             if (!automatic && result.equals("COMPLETE")) {
               File catalogue =
-                  new File(context.getFilesDir().getCanonicalFile(), "host-backup-catalogue");
+                  new File(
+                      com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+                      "host-backup-catalogue");
               if (fs.stat(catalogue).type.equals("MISSING")) fs.directory(catalogue);
               fs.atomic(
                   catalogue,
@@ -918,7 +928,9 @@ public final class NativeBackupJobs {
             }
             try {
               HostOperationArchive.archiveIfTerminal(
-                  fs, context.getFilesDir().getCanonicalFile(), owned);
+                  fs,
+                  com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+                  owned);
             } catch (IOException ignored) {
             }
             synchronized (this) {
@@ -1117,7 +1129,7 @@ public final class NativeBackupJobs {
   public synchronized boolean prepareRestoreTree(
       String key, Set<String> selected, String projects) {
     try {
-      File files = context.getFilesDir().getCanonicalFile();
+      File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
       var catalogue = new RetainedCatalogue(fs, files, new UserDataLayout(fs, files).current());
       var source = catalogue.resolve(key);
       if (source.source == null || source.part.equals("encrypted")) return false;
@@ -1149,7 +1161,9 @@ public final class NativeBackupJobs {
     Set<String> scopes = new HashSet<>(selected);
     final DataProtectionService.StartTicket protection;
     try {
-      File parent = HostOperationArchive.reserve(fs, context.getFilesDir().getCanonicalFile());
+      File parent =
+          HostOperationArchive.reserve(
+              fs, com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()));
       task = new File(parent, UUID.randomUUID().toString());
       fs.directory(task);
       control = new BackupControl(this::progress);
@@ -1169,7 +1183,7 @@ public final class NativeBackupJobs {
           try {
             protection.await();
             if (retainedTree != null) {
-              File files = context.getFilesDir().getCanonicalFile();
+              File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
               var catalogue =
                   new RetainedCatalogue(fs, files, new UserDataLayout(fs, files).current());
               Map<String, Object> provenance = new LinkedHashMap<>();
@@ -1327,7 +1341,8 @@ public final class NativeBackupJobs {
                             new File(owned, "candidate/plugin-store"),
                             new CurrentManagedPackages(context)::verified,
                             com.deepseekharness.app.util.GuestPaths.rootfs(
-                                context.getFilesDir().getCanonicalFile()))
+                                com.deepseekharness.app.util.HostPaths.normalize(
+                                    context.getFilesDir())))
                         .rebuild(graph, cancellation);
                     // 系统插件源码仍留在当前签名 APK；这里只把用户的启停选择
                     // 合入活跃 profile 的独立事务候选。提交后首次启动会由严格
@@ -1394,7 +1409,9 @@ public final class NativeBackupJobs {
               }
             try {
               HostOperationArchive.archiveIfTerminal(
-                  fs, context.getFilesDir().getCanonicalFile(), owned);
+                  fs,
+                  com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+                  owned);
             } catch (IOException ignored) {
             }
             synchronized (this) {
@@ -1412,7 +1429,9 @@ public final class NativeBackupJobs {
     final DataProtectionService.StartTicket protection;
     List<File> pending;
     try {
-      pending = HostPendingTransactions.pending(fs, context.getFilesDir().getCanonicalFile());
+      pending =
+          HostPendingTransactions.pending(
+              fs, com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()));
       if (pending.isEmpty() && !state.stage.equals("INTERRUPTED")) return false;
       if (pending.size() > 1) throw new IOException("MULTIPLE_TRANSACTIONS");
       if (!pending.isEmpty()) task = pending.get(0);
@@ -1443,7 +1462,9 @@ public final class NativeBackupJobs {
           } finally {
             try {
               HostOperationArchive.archiveIfTerminal(
-                  fs, context.getFilesDir().getCanonicalFile(), owned);
+                  fs,
+                  com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+                  owned);
             } catch (IOException ignored) {
             }
             synchronized (this) {

@@ -133,7 +133,9 @@ final class TransferPublisher {
       Object gate,
       Journal journal)
       throws Exception {
-    File root = TransferFiles.directory(context.getFilesDir().getCanonicalFile(), "transfers");
+    File root =
+        TransferFiles.directory(
+            com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()), "transfers");
     File dir = TransferFiles.directory(TransferFiles.directory(root, "share"), taskId);
     File staged = TransferFiles.FS.child(TransferFiles.directory(root, taskId), "share-pending");
     File target = new File(dir, artifact.name);

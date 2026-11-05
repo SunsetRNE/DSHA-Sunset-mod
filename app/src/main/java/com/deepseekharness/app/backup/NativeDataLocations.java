@@ -56,7 +56,7 @@ public final class NativeDataLocations {
   NativeDataLocations(Context context, BackupFileSystem fs) throws IOException {
     this.context = context.getApplicationContext();
     this.fs = fs;
-    files = context.getFilesDir().getCanonicalFile();
+    files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     rootfs = com.deepseekharness.app.util.GuestPaths.rootfs(files);
     publicStorage = Environment.getExternalStorageDirectory().getCanonicalFile();
     publicData = new File(publicStorage, "Documents/dshdata");

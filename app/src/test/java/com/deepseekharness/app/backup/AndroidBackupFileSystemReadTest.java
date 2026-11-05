@@ -31,8 +31,9 @@ import org.robolectric.shadow.api.Shadow;
       AndroidBackupFileSystemReadTest.OwnedDescriptor.class
     })
 public final class AndroidBackupFileSystemReadTest {
-  // This shadow models the production arm64 ABI; host syscalls use os.O_DIRECTORY.
-  private static final int ARM64_O_DIRECTORY = 040000;
+  // asm-generic（arm64 与 x86_64）: O_DIRECTORY = 00200000 = 0x10000。
+  // 040000 是 arm32 的值，在 64 位 ABI 上是 O_DIRECT —— 用它打开目录会 EINVAL。
+  private static final int ARM64_O_DIRECTORY = 0x10000;
   // Exercise the final-open branch on Windows too, without inheriting its drive paths.
   private static final File LEAF =
       new File("/") {

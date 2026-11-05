@@ -650,7 +650,8 @@ public final class SkillsFragment extends Fragment {
 
   private static SkillImports repository(Context context) throws IOException {
     return new SkillImports(
-        new AndroidBackupFileSystem(), context.getFilesDir().getCanonicalFile());
+        new AndroidBackupFileSystem(),
+        com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()));
   }
 
   private static byte[] read(Context context, Uri uri, BackupControl control) throws IOException {

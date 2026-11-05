@@ -89,13 +89,8 @@ public final class DownloadEngine {
 
   private DownloadEngine(Context context) {
     this.context = context;
-    File trusted;
-    try {
-      trusted = context.getFilesDir().getCanonicalFile();
-    } catch (IOException failure) {
-      trusted = context.getFilesDir().getAbsoluteFile();
-    }
-    privateFiles = trusted;
+    // normalize 内部已处理 canonical 不可用的情况，这里不再需要额外 try。
+    privateFiles = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     root = new File(privateFiles, "transfers");
     try {
       TransferFiles.directory(privateFiles, "transfers");

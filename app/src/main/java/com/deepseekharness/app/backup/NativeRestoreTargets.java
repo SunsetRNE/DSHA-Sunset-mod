@@ -31,7 +31,7 @@ public final class NativeRestoreTargets
     this.context = context.getApplicationContext();
     this.task = task;
     fs = new AndroidBackupFileSystem();
-    files = context.getFilesDir().getCanonicalFile();
+    files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     rootfs = com.deepseekharness.app.util.GuestPaths.rootfs(files);
     File publicRoot = Environment.getExternalStorageDirectory().getCanonicalFile(),
         publicData = new File(publicRoot, "Documents/dshdata"),

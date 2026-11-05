@@ -44,7 +44,7 @@ public final class RecoveryRepairBroker implements AutoCloseable {
     if (instanceId == null || !instanceId.matches("[a-f0-9]{32}") || generation < 1)
       throw new IOException("REPAIR_SESSION_INVALID");
     this.context = context.getApplicationContext();
-    files = context.getFilesDir().getCanonicalFile();
+    files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     this.instanceId = instanceId;
     this.generation = generation;
     byte[] secret = new byte[32];

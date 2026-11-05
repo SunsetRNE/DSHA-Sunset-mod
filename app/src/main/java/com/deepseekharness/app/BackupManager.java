@@ -96,7 +96,8 @@ public final class BackupManager {
       throws Exception {
     if (!isDataTaskOwner()) throw new IOException("BACKUP_REQUIRES_MAINTENANCE");
     var fs = files();
-    File privateFiles = controller.context().getFilesDir().getCanonicalFile();
+    File privateFiles =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     if (!com.deepseekharness.app.util.DocumentPaths.within(
             privateFiles, destination.getAbsoluteFile())
         || com.deepseekharness.app.util.DocumentPaths.within(
@@ -230,7 +231,8 @@ public final class BackupManager {
   private static void restoreHostSnapshot(HarnessController controller, File archive)
       throws Exception {
     var fs = files();
-    File privateFiles = controller.context().getFilesDir().getCanonicalFile();
+    File privateFiles =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     File home = com.deepseekharness.app.backup.HostOperationArchive.reserve(fs, privateFiles);
     File operation = fs.child(home, UUID.randomUUID().toString());
     fs.directory(operation);
@@ -307,7 +309,7 @@ public final class BackupManager {
           com.deepseekharness.app.backup.HostOperationArchive.locate(
               fs,
               com.deepseekharness.app.backup.HostOperationArchive.root(
-                  ctx.getFilesDir().getCanonicalFile()),
+                  com.deepseekharness.app.util.HostPaths.normalize(ctx.getFilesDir())),
               operation);
       var published =
           com.deepseekharness.app.backup.BackupJson.read(

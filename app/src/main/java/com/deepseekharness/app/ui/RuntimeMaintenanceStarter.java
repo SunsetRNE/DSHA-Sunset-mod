@@ -134,7 +134,9 @@ final class RuntimeMaintenanceStarter {
   private static boolean scanPendingTrial(Context context) {
     try {
       java.io.File home =
-          new java.io.File(context.getFilesDir().getCanonicalFile(), "runtime-trials");
+          new java.io.File(
+              com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
+              "runtime-trials");
       String[] entries = home.list();
       if (entries == null) return false;
       for (String id : entries) {
@@ -143,7 +145,7 @@ final class RuntimeMaintenanceStarter {
         if (operation.isDirectory() && !new java.io.File(operation, "closed").exists()) return true;
       }
       return false;
-    } catch (java.io.IOException | RuntimeException unreadable) {
+    } catch (RuntimeException unreadable) {
       return false;
     }
   }

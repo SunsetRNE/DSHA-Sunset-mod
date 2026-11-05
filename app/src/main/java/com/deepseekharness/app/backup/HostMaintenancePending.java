@@ -87,7 +87,8 @@ public final class HostMaintenancePending {
               "cold-install",
               root ->
                   ColdInstallTransaction.pending(
-                      new AndroidBackupFileSystem(), root.getCanonicalFile()),
+                      new AndroidBackupFileSystem(),
+                      com.deepseekharness.app.util.HostPaths.normalize(root)),
               false),
           new Domain(
               "legacy-maintenance",
@@ -111,7 +112,8 @@ public final class HostMaintenancePending {
                 List<String> ids = new ArrayList<>();
                 for (ManagedRuntimeTransaction tx :
                     ManagedRuntimeTransaction.pending(
-                        new AndroidBackupFileSystem(), root.getCanonicalFile()))
+                        new AndroidBackupFileSystem(),
+                        com.deepseekharness.app.util.HostPaths.normalize(root)))
                   ids.add(tx.directory().getName());
                 return ids;
               },
@@ -119,7 +121,7 @@ public final class HostMaintenancePending {
           new Domain(
               "startup-configuration",
               root -> {
-                File files = root.getCanonicalFile();
+                File files = com.deepseekharness.app.util.HostPaths.normalize(root);
                 AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
                 ConfigurationSnapshots snapshots =
                     new ConfigurationSnapshots(fs, files, new UserDataLayout(fs, files).current());
@@ -129,7 +131,7 @@ public final class HostMaintenancePending {
           new Domain(
               "plugin-install",
               root -> {
-                File files = root.getCanonicalFile();
+                File files = com.deepseekharness.app.util.HostPaths.normalize(root);
                 AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
                 return names(
                     PluginInstallJournals.pending(fs, new UserDataLayout(fs, files).current()));
@@ -140,7 +142,8 @@ public final class HostMaintenancePending {
               root -> {
                 EnvironmentRebuildTransaction tx =
                     EnvironmentRebuildTransaction.pending(
-                        new AndroidBackupFileSystem(), root.getCanonicalFile());
+                        new AndroidBackupFileSystem(),
+                        com.deepseekharness.app.util.HostPaths.normalize(root));
                 return tx == null ? List.of() : List.of(tx.directory().getName());
               },
               false),
@@ -149,7 +152,8 @@ public final class HostMaintenancePending {
               root ->
                   names(
                       HostPendingTransactions.pending(
-                          new AndroidBackupFileSystem(), root.getCanonicalFile())),
+                          new AndroidBackupFileSystem(),
+                          com.deepseekharness.app.util.HostPaths.normalize(root))),
               true));
 
   private static Check check(Domain domain, File filesDir) {
@@ -157,7 +161,30 @@ public final class HostMaintenancePending {
       List<String> operations = domain.probe.pendingOperations(filesDir);
       return operations.isEmpty() ? Check.clear() : Check.pending(domain.name, operations.get(0));
     } catch (IOException failure) {
-      return Check.unreadable(domain.name, failure);
+      // 诊断：把真实的失败码与 cause 链带进 detail，便于在设备上分辨 syscall/errno 类别，
+      // 不再把一切非纯大写消息都归成笼统的 UNREADABLE。
+      String raw = String.valueOf(failure.getMessage());
+      String detail =
+          SensitiveData.redact(
+              domain.name
+                  + " probe="
+                  + failure.getClass().getSimpleName()
+                  + " raw="
+                  + raw
+                  + " cause="
+                  + (failure.getCause() == null
+                      ? "none"
+                      : failure.getCause().getClass().getSimpleName()
+                          + ":"
+                          + failure.getCause().getMessage())
+                  + " at="
+                  + java.util.Arrays.stream(failure.getStackTrace())
+                      .limit(4)
+                      .map(StackTraceElement::toString)
+                      .reduce((a, b) -> a + " <- " + b)
+                      .orElse(""));
+      String code = raw.matches("[A-Z][A-Z0-9_]{2,63}") ? raw : "UNREADABLE";
+      return new Check(State.UNREADABLE, domain.name, "unknown", detail, code);
     } catch (RuntimeException failure) {
       // 探测中的意外异常同样视为记录不可读（fail closed），不能让门禁本身崩溃。
       return Check.unreadable(domain.name, new IOException("UNREADABLE_PROBE", failure));

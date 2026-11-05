@@ -25,7 +25,7 @@ public final class EnvironmentMaintenance {
       throw new IOException("ENVIRONMENT_REQUIRES_MAINTENANCE");
     if (com.deepseekharness.app.backup.ColdInstallTransaction.eligibleFresh(
         new com.deepseekharness.app.backup.AndroidBackupFileSystem(),
-        controller.context().getFilesDir().getCanonicalFile()))
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir())))
       return initializeFresh(controller.context(), controller.proot(), progress);
     return rebuild(controller, progress, controller.proot()::extractOfflineBundle);
   }
@@ -69,7 +69,8 @@ public final class EnvironmentMaintenance {
   public static String rollbackRuntime(
       HarnessController controller, String operation, Consumer<String> progress) throws Exception {
     if (!MaintenanceCoordinator.isOwner()) throw new IOException("RUNTIME_REQUIRES_MAINTENANCE");
-    File files = controller.context().getFilesDir().getCanonicalFile();
+    File files =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     if (MaintenanceCoordinator.pending(files)) throw new IOException("RUNTIME_RECOVERY_REQUIRED");
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
     var control = maintenanceControl(progress);
@@ -109,7 +110,8 @@ public final class EnvironmentMaintenance {
     if (!controller.proot().canUpdateManagedRuntime()) return rebuild(controller, progress);
     if (!MaintenanceCoordinator.isOwner())
       throw new IOException(com.deepseekharness.app.util.UiText.text("运行时更新必须持有停止屏障与数据任务锁"));
-    File files = controller.context().getFilesDir().getCanonicalFile();
+    File files =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     if (MaintenanceCoordinator.pending(files))
       throw new IOException(com.deepseekharness.app.util.UiText.text("请先恢复中断的环境维护"));
     requireSpace(files, 512L * 1024 * 1024);
@@ -185,7 +187,8 @@ public final class EnvironmentMaintenance {
       throws Exception {
     if (!MaintenanceCoordinator.isOwner())
       throw new IOException("ENVIRONMENT_REQUIRES_MAINTENANCE");
-    File files = controller.context().getFilesDir().getCanonicalFile();
+    File files =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     if (MaintenanceCoordinator.pending(files))
       throw new IOException("ENVIRONMENT_RECOVERY_REQUIRED");
     if (!controller.hasOfflineBundle())
@@ -498,7 +501,8 @@ public final class EnvironmentMaintenance {
   public static String recover(HarnessController controller) throws Exception {
     if (!MaintenanceCoordinator.isOwner())
       throw new IOException(com.deepseekharness.app.util.UiText.text("维护回滚必须经过停止屏障与全局数据任务锁"));
-    File files = controller.context().getFilesDir().getCanonicalFile();
+    File files =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     // 先做不抛异常的全域检查：记录读不了时给出可读原因与出口，不让后续探测把原始错误码
     // 冒充为「恢复失败」，也不对读不了的域重复执行必然失败的批量扫描。
     requireReadable(files);
@@ -616,7 +620,8 @@ public final class EnvironmentMaintenance {
   }
 
   public static void ensureSingleRecovery(HarnessController controller) throws IOException {
-    File files = controller.context().getFilesDir().getCanonicalFile();
+    File files =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     if (com.deepseekharness.app.backup.HostMaintenancePending.moreThanOneRecoverable(files))
       throw new IOException("MULTIPLE_TRANSACTIONS");
   }

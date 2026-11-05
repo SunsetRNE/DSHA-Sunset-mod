@@ -20,7 +20,7 @@ public final class QuarantinedPluginReview {
   public static String[] preparePreset(Context context, String key, BackupControl control)
       throws IOException {
     var fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     RetainedCatalogue catalog =
         new RetainedCatalogue(fs, files, new UserDataLayout(fs, files).current());
     var entry = catalog.resolve(key);
@@ -121,7 +121,7 @@ public final class QuarantinedPluginReview {
     var managed = new CurrentManagedPackages(context);
     File yaml = managed.verifiedCurrent("yaml");
     if (yaml == null) throw new IOException("PRESET_YAML_RUNTIME_UNVERIFIED");
-    File files = context.getFilesDir().getCanonicalFile(),
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
         root = com.deepseekharness.app.util.GuestPaths.rootfs(files);
     File input = new File(slot, "preset-convert-input.json");
     fs.atomic(
@@ -169,7 +169,7 @@ public final class QuarantinedPluginReview {
     if (!operation.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN)
         || !node.matches("package-[a-f0-9]{20}")) throw new IOException("PLUGIN_QUARANTINE_ID");
     var fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile(),
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
         source = fs.child(files, "plugin-imports/" + operation);
     if (!fs.stat(fs.child(source, "packages/" + node + "/package.json")).type.equals("FILE"))
       throw new IOException("PLUGIN_QUARANTINE_SOURCE");

@@ -371,7 +371,7 @@ public final class BackupTask {
         id -> {
           // 此动作只选择已有目录，不复制、清空或修复其中的数据。
           var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
-          java.io.File files = app.getFilesDir().getCanonicalFile();
+          java.io.File files = com.deepseekharness.app.util.HostPaths.normalize(app.getFilesDir());
           // 数据根无法确定（DATA_LOCATION_*）时各域探测都会读不了；选择目录正是这一状态的出口，
           // 不能被它自己挡住。其余待恢复或读不了的记录仍须先处理。
           var blocking =

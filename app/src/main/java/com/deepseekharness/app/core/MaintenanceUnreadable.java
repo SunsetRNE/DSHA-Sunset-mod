@@ -35,8 +35,8 @@ public final class MaintenanceUnreadable extends IOException {
       default:
         message =
             UiText.format(
-                "维护记录无法读取（%s / %s），恢复已停止，原件未改动。这类记录可能处于半完成状态，不提供自动隔离；请导出诊断并联系支持。",
-                check.domain, check.code);
+                "维护记录无法读取（%s / %s / %s），恢复已停止，原件未改动。这类记录可能处于半完成状态，不提供自动隔离；请导出诊断并联系支持。",
+                check.domain, check.code, check.error);
         break;
     }
     return new MaintenanceUnreadable(check.domain, check.code, exit, message);

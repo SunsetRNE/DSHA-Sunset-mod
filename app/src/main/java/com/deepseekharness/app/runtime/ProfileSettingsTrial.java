@@ -36,7 +36,7 @@ public final class ProfileSettingsTrial {
       throw new IOException("SETTINGS_REQUIRES_MAINTENANCE");
     if (!ProfileConfigPath.profile(profile)) throw new IOException("PROFILE_NAME");
     var fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile(),
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir()),
         records = new File(files, "runtime-trials");
     if (fs.stat(records).type.equals("MISSING")) fs.directory(records);
     RuntimeTrialRecords.prepareForNew(fs, records);

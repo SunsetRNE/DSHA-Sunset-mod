@@ -166,7 +166,12 @@ android {
             keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so']
             // 使用 app 自带的同版本 16 KB JNI，覆盖 terminal-emulator AAR 中的旧库。
             pickFirsts += ['**/libtermux.so']
-            excludes += ['**/x86/**', '**/x86_64/**', '**/armeabi/**', '**/armeabi-v7a/**']
+            // 模拟器目标只带 x86_64（tools/prepare-emulator-assets.py 生成），正式目标只带 arm64。
+            // 两边都排除其它 ABI，但绝不能把当前目标自己的目录也排除掉：曾经这里无条件排除
+            // x86_64，导致模拟器包完全没有 JNI，启动时 dlopen("libtermux.so") 直接崩在数据线程。
+            excludes += emulatorX64
+                    ? ['**/arm64-v8a/**', '**/x86/**', '**/armeabi/**', '**/armeabi-v7a/**']
+                    : ['**/x86/**', '**/x86_64/**', '**/armeabi/**', '**/armeabi-v7a/**']
         }
         resources {
             // bcprov 只被备份用到 AES-GCM / SHA-256 / PBKDF2 轻量 API；Picnic 后量子常量表与
@@ -214,10 +219,36 @@ android {
         main.assets.setSrcDirs([layout.buildDirectory.dir("generated/standardAssets").get().asFile,
                 layout.buildDirectory.dir("generated/recoveryAssets").get().asFile])
         main.java.srcDir(layout.buildDirectory.dir("generated/uiLanguage").get().asFile)
+        // 模拟器目标使用独立的 x86_64 资产与原生库（tools/prepare-emulator-assets.py 生成，
+        // tools/build-emulator-native.py 编译）。这两行曾在合入作者新仓库时丢失，导致模拟器包
+        // 既没有 x86_64 JNI 也没有对应资产，装上去第一次部署就 dlopen 失败。
+        if (emulatorX64) {
+            main.assets.setSrcDirs([rootProject.file('app/build/generated/emulatorAssets')])
+            main.jniLibs.setSrcDirs([rootProject.file('app/build/emulator-native/jniLibs')])
+        }
         // Both browser test entry points load one test-only HTML fixture.
         debug.assets.srcDir(rootProject.file("tools/fixtures/web-state"))
         androidTest.assets.srcDir(rootProject.file("tools/fixtures/web-state"))
     }
+}
+
+if (emulatorX64) {
+    androidComponents {
+        beforeVariants(selector().all()) { variant ->
+            if (variant.buildType != 'debug' || variant.productFlavors.any { it.second == 'low' })
+                variant.enable = false
+        }
+    }
+    def emulatorAssetsDir = rootProject.file('app/build/generated/emulatorAssets')
+    def emulatorNativeDir = rootProject.file('app/build/emulator-native/jniLibs')
+    def verifyEmulatorAssets = tasks.register('verifyEmulatorAssets', Exec) {
+        inputs.dir(emulatorAssetsDir)
+        inputs.file(rootProject.file('app/build/generated/emulator-assets-receipt.json'))
+        inputs.dir(emulatorNativeDir)
+        commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
+                rootProject.file('tools/verify-emulator-assets.py').absolutePath)
+    }
+    tasks.named('preBuild').configure { dependsOn(verifyEmulatorAssets) }
 }
 
 def verifyPublishCertificate = tasks.register("verifyPublishCertificate") {
@@ -456,7 +487,9 @@ def verifyBackupDependencies = tasks.register("verifyBackupDependencies") {
             }
             hash.digest().encodeHex().toString()
         }
-        ["standardReleaseRuntimeClasspath"].each { name ->
+        // 模拟器目标把 release 变体整体停用了，这个配置在那种构建下不存在；
+        // 依赖锁只约束正式发布线，缺配置时跳过而不是让模拟器构建失败。
+        ["standardReleaseRuntimeClasspath"].findAll { configurations.findByName(it) != null }.each { name ->
             def resolved = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts
             lock.dependencies.each { expected ->
                 def selected = resolved.findAll { it.moduleVersion.id.group == expected.group && it.name == expected.name }

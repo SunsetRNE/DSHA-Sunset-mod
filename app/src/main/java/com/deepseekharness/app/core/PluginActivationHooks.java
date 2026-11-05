@@ -27,7 +27,8 @@ public final class PluginActivationHooks {
 
   private static boolean present(HarnessController controller, String startup) throws IOException {
     var fs = new AndroidBackupFileSystem();
-    File files = controller.context().getFilesDir().getCanonicalFile();
+    File files =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     File ledger = new File(new UserDataLayout(fs, files).current(), "plugin-activations.json");
     if (fs.stat(ledger).type.equals("MISSING")) return false;
     var value = BackupJson.read(fs.small(ledger, 1024 * 1024), 1024 * 1024);

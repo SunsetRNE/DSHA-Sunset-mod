@@ -45,7 +45,8 @@ public final class PluginJournalIsolation {
       throws IOException {
     if (!MaintenanceCoordinator.isOwner() || RuntimeTasks.hasOtherTasks())
       throw new IOException("PLUGIN_QUARANTINE_REQUIRES_MAINTENANCE");
-    File files = controller.context().getFilesDir().getCanonicalFile();
+    File files =
+        com.deepseekharness.app.util.HostPaths.normalize(controller.context().getFilesDir());
     var fs = new AndroidBackupFileSystem();
     File home = new UserDataLayout(fs, files).current();
     var result = PluginJournalQuarantine.apply(fs, home, expectedDigest);

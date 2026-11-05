@@ -690,6 +690,7 @@
     "app/src/main/java/com/deepseekharness/app/util/HomeLayoutStore.java",
     "app/src/main/java/com/deepseekharness/app/util/HostDeviceCommandGuard.java",
     "app/src/main/java/com/deepseekharness/app/util/HostLookup.java",
+    "app/src/main/java/com/deepseekharness/app/util/HostPaths.java",
     "app/src/main/java/com/deepseekharness/app/util/HtmlBootstrapPatch.java",
     "app/src/main/java/com/deepseekharness/app/util/HttpProtocol.java",
     "app/src/main/java/com/deepseekharness/app/util/Ids.java",

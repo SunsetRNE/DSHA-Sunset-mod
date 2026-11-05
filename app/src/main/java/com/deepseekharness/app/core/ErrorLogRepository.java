@@ -186,7 +186,7 @@ public final class ErrorLogRepository extends AndroidViewModel {
       throws java.io.IOException {
     if (note.length() > 32768) throw new java.io.IOException("ADDITIONAL_CONTEXT_LIMIT");
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
-    File root = context.getFilesDir().getCanonicalFile();
+    File root = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     File folder = fs.child(root, "diagnostic-exports");
     if (fs.stat(folder).type.equals("MISSING")) fs.directory(folder);
     File archive = fs.child(folder, java.util.UUID.randomUUID() + ".tar.gz");

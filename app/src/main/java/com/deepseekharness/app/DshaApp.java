@@ -356,7 +356,9 @@ public class DshaApp extends Application
   private static String checkedColdRuntimeIdentity(android.content.Context app, java.io.File rootfs)
       throws java.io.IOException {
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
-    java.io.File current = fs.child(app.getFilesDir().getCanonicalFile(), "linux/ubuntu");
+    java.io.File current =
+        fs.child(
+            com.deepseekharness.app.util.HostPaths.normalize(app.getFilesDir()), "linux/ubuntu");
     var node = fs.stat(current);
     if (!node.type.equals("DIRECTORY")
         || !current.getCanonicalFile().equals(rootfs.getCanonicalFile()))

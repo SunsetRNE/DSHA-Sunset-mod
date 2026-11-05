@@ -27,7 +27,7 @@ public final class StorageMaintenance {
 
   public static Map<String, Size> inspect(Context context) throws IOException {
     var fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile();
+    File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
     Map<String, Size> result = new LinkedHashMap<>();
     for (String name :
         List.of(
@@ -119,10 +119,12 @@ public final class StorageMaintenance {
           for (String path : com.deepseekharness.app.util.RegenerableCachePaths.rootfs())
             regenerated += removeCache(fs, rootfs, path);
           // WebView 的 Cookie、Local Storage 和 IndexedDB 位于其它目录；这里只删可重建的渲染/HTTP 缓存。
-          File data = context.getFilesDir().getCanonicalFile().getParentFile();
+          File data =
+              com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir())
+                  .getParentFile();
           for (String path : com.deepseekharness.app.util.RegenerableCachePaths.webViewData())
             regenerated += removeCache(fs, data, path);
-          File files = context.getFilesDir().getCanonicalFile();
+          File files = com.deepseekharness.app.util.HostPaths.normalize(context.getFilesDir());
           long old = size(fs, new File(files, "host-runtime-operations")).bytes;
           ManagedRuntimeTransaction.trimOlder(
               fs,

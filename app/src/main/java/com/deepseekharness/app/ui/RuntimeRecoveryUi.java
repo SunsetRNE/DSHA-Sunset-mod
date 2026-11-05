@@ -17,7 +17,7 @@ final class RuntimeRecoveryUi {
                 var options =
                     ManagedRuntimeTransaction.rollbackOptions(
                         new AndroidBackupFileSystem(),
-                        activity.getFilesDir().getCanonicalFile(),
+                        com.deepseekharness.app.util.HostPaths.normalize(activity.getFilesDir()),
                         controller.proot().expectedRuntimeDescriptor(),
                         controller.proot().installedRuntimeDescriptor());
                 activity.runOnUiThread(

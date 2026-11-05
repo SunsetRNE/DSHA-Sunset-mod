@@ -19,9 +19,10 @@ import java.util.List;
 public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
   private static final int O_PATH = 0x200000;
   private static final int O_CLOEXEC = 0x80000;
-  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
-  // asm-generic/x86 00200000 is arm64 O_DIRECT, not its directory flag.
-  private static final int O_DIRECTORY = 040000;
+  // asm-generic/fcntl.h（arm64 与 x86_64 共用）: O_DIRECTORY = 00200000 = 0x10000。
+  // 040000 是 arm32 的值，在 64 位 ABI 上等于 O_DIRECT；O_PATH 会忽略它，所以这里
+  // 一直没暴露，但常量本身仍然是错的。
+  private static final int O_DIRECTORY = 0x10000;
 
   private static IOException failure(ErrnoException error) {
     return new IOException("DEVICE_FILESYSTEM_" + error.errno, error);
