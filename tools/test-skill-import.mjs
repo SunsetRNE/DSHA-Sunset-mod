@@ -165,9 +165,9 @@ try {
   await ctx.plugin(filesystem, { dshHome: home, agentsHome: path.join(fixture, 'agents'), watch: false });
   const signal = new AbortController().signal;
   const skills = await ctx.skills.list({ signal });
-  assert.deepEqual(skills.map(skill => skill.name), ['hello-world', 'user-only']);
+  assert.deepEqual(skills.map(skill => skill.name), ['fully-disabled', 'hello-world', 'user-only']);
   assert(skills.every(skill => skill.source === 'user-dsh' && skill.provider === 'filesystem'));
-  checks.push('official default $DSH_HOME/skills provider discovers both JVM imports');
+  checks.push('official default $DSH_HOME/skills provider discovers invocation policy variants');
   const skill = await ctx.skills.get('hello-world', { signal });
   assert.equal(skill.description, 'A real imported skill\n用于验证实际发现\n');
   assert.equal(skill.content, '# Body\nDo not run: touch should-never-exist');
@@ -213,7 +213,13 @@ try {
   assert(catalog, 'user-only skill must remain visible in the model catalog');
   assert.match(catalog.content[0].text, /user-only/);
   assert.match(catalog.content[0].text, /\[approval required\]/);
-  checks.push('model catalog advertises user-only skills with an approval requirement');
+  assert.doesNotMatch(catalog.content[0].text, /fully-disabled/);
+  checks.push('model catalog advertises user-only skills with an approval requirement and hides fully-disabled skills');
+
+  await assert.rejects(() => registered.execute({ name: 'fully-disabled' }, execution),
+    /not available for model invocation/);
+  assert.equal(approvalRequests.length, 0);
+  checks.push('fully-disabled skills cannot bypass invocation policy through approval');
 
   await assert.rejects(() => registered.execute({ name: 'user-only' }, {
     ...execution, callId: 'call-user-only-rejected'
