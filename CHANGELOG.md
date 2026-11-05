@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.2310-dsh0.2.2-rc.1 / build327（维护页一步完成覆盖更新；内置竖屏适配插件默认禁用并覆盖更新收敛）
+
+- 维护页自行停止（T67）：点「更新运行时」会先按出生身份核验（boot/pid/启动时间/命令行/nonce）把旧网页进程完全停止，再取维护屏障执行更新；不必先进受限主界面点「停止」再回维护页；核验不过不杀，给出提示与重试入口，自动开始路径仍不强杀。
+- 竖屏插件默认禁用（T68）：内置 `dsh-web-mobile` 默认禁用，覆盖更新同样收敛为禁用；只有当前版本内从原生插件页显式启用才生效，下一次 APK 覆盖更新再次收敛。原因：大量代码未适配 build324 起的新页面与新逻辑（曾造成白屏与侧栏重复）。恢复默认启用须满足 `docs/plugins.md` 的硬门槛并附真机证据。
+- 验证范围：宿主测试、contracts 整组与源码/描述符门禁；真机结论按当次实际确认记录填写，未预写通过。版本码提升为 327（基于 build326）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
+- 十语种更新说明见 [build327 更新说明](docs/releases/build327-changes.zh.md)；验证记录见 [build327 维护自停记录](docs/releases/v0.2.1-rc.5-build327-maintenance-self-stop-20261105.md) 与 [build327 竖屏插件默认禁用记录](docs/releases/v0.2.1-rc.5-build327-web-mobile-default-disabled-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.2200-dsh0.2.2-rc.1 / build326（覆盖安装按补丁级判定是否维护：同一 DSH 版本换受管补丁也进维护页，更新回到主操作位）
 
 - 维护判定（T60）：同一 DSH 版本、只更换内置受管补丁的覆盖安装也会进入运行环境维护页；「更新运行时」回到主操作位，不再被「进入主界面」压过。新增 `util/RuntimeUpgradeState`（`upToDate` / `maintenanceRequired` / `limitedEntry` / `openMaintenancePage`），`ExtractActivity`、`EnvironmentUiStatus`、`MainActivity.checkEntry` 接入。

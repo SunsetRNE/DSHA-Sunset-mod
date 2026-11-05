@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.2200-dsh0.2.2-rc.1` / build326 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修正覆盖安装后的维护判定：同一 DSH 版本、只更换内置受管补丁的覆盖安装也会正确进入运行环境维护页，并把「更新运行时」放回主操作位；未确认的旧网页会话只拦自动开始，维护页与手点更新保留（T60）。宿主测试、contracts 整组、11 个定向测试类与源码/描述符门禁通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build326 更新说明](releases/build326-changes.zh.md)，验证记录见 [build326 记录](releases/v0.2.1-rc.5-build326-overwrite-maintenance-20261105.md)，覆盖升级契约见 [覆盖升级与维护门禁](overwrite-upgrade-and-maintenance.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.2310-dsh0.2.2-rc.1` / build327 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合并两项：维护页点「更新运行时」会自行按出生身份核验完全停止旧网页进程，覆盖更新一步完成（T67）；内置竖屏适配插件 `dsh-web-mobile` 默认禁用、覆盖更新后仍禁用，仅当前版本内从原生插件页显式启用才生效，恢复默认启用须满足 [docs/plugins.md](plugins.md) 的硬门槛（T68）。宿主测试、contracts 整组与源码/描述符门禁通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build327 更新说明](releases/build327-changes.zh.md)，验证记录见 [build327 维护自停记录](releases/v0.2.1-rc.5-build327-maintenance-self-stop-20261105.md) 与 [竖屏插件默认禁用记录](releases/v0.2.1-rc.5-build327-web-mobile-default-disabled-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
