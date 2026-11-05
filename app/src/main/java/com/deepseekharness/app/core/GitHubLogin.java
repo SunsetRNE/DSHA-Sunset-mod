@@ -5,6 +5,7 @@ import com.deepseekharness.app.runtime.ProotBootstrap;
 import com.deepseekharness.app.util.BoundedProcessRunner;
 import com.deepseekharness.app.util.Compat;
 import com.deepseekharness.app.util.GhAuthCommands;
+import com.deepseekharness.app.util.GhAuthProbe;
 import com.deepseekharness.app.util.GhHostsFile;
 import com.deepseekharness.app.util.GhLoginState;
 import com.deepseekharness.app.util.GhManagedInstall;
@@ -89,6 +90,7 @@ public final class GitHubLogin {
 
   private static final int MAX_LOGOUT_DETAIL = 320;
   private static final long LOGOUT_TIMEOUT_MS = 60_000;
+  private static final long PROBE_TIMEOUT_MS = 45_000;
 
   private GitHubLogin() {}
 
@@ -148,6 +150,41 @@ public final class GitHubLogin {
     }
     GhLoginState.Login login = GhLoginState.classify(hostsPresent, hosts);
     return new Snapshot(environmentReady, managed, hostsPresent, problem, login, hosts);
+  }
+
+  /**
+   * 只读在线校验 gh 与 token：{@code gh api -i /user}。
+   *
+   * <p>能区分 CA/TLS 失败、401 token 失效、未登录与网络错误，并在成功时取回作用域。
+   * 受管 gh 不可用时直接返回二进制状态，**不触发自举**；运行环境未就绪时不做容器调用。
+   * 必须由后台线程调用。
+   */
+  public static GhAuthProbe.Result probe(Context context) {
+    Snapshot snapshot = load(context);
+    if (!snapshot.environmentReady) return GhAuthProbe.Result.skippedEnvironment();
+    if (snapshot.managed != GhManagedInstall.State.AVAILABLE)
+      return GhAuthProbe.Result.binaryUnavailable();
+    ProotBootstrap proot;
+    try {
+      proot = HarnessController.get(context).proot();
+    } catch (RuntimeException error) {
+      return GhAuthProbe.Result.skippedEnvironment();
+    }
+    try (RuntimeWorkPort.Work work = RuntimeWorkPort.begin("GitHub 在线校验")) {
+      Process process = proot.execRootfs(GhAuthCommands.probe());
+      BoundedProcessRunner.Result result =
+          BoundedProcessRunner.collect(process, PROBE_TIMEOUT_MS, 64 * 1024, Compat::destroy);
+      String output =
+          result.tail == null || result.tail.isEmpty()
+              ? result.output
+              : result.output + "\n" + result.tail;
+      return GhAuthProbe.classify(result.exitCode, result.timedOut, output);
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      return GhAuthProbe.classify(-1, true, "");
+    } catch (IOException | RuntimeException error) {
+      return GhAuthProbe.Result.error(SensitiveData.redact(String.valueOf(error)));
+    }
   }
 
   /**

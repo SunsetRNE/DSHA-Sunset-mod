@@ -16,6 +16,7 @@ import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.GitHubLogin;
 import com.deepseekharness.app.util.GhAuthCommands;
+import com.deepseekharness.app.util.GhAuthProbe;
 import com.deepseekharness.app.util.GhHostsFile;
 import com.deepseekharness.app.util.GhLoginState;
 import com.deepseekharness.app.util.GhManagedInstall;
@@ -40,6 +41,8 @@ public final class GitHubLoginFragment extends Fragment {
   private TextView credentialValue;
   private TextView protocolValue;
   private TextView sourceValue;
+  private TextView onlineValue;
+  private TextView onlineDetail;
   private TextView managedValue;
   private TextView managedVersionValue;
   private TextView managedHint;
@@ -47,6 +50,8 @@ public final class GitHubLoginFragment extends Fragment {
   private android.widget.Button logoutButton;
   private android.widget.Button refreshButton;
   private GitHubLogin.Snapshot snapshot;
+  private GhAuthProbe.Result probe;
+  private boolean probing;
   private boolean loading;
   private final AtomicInteger loadGeneration = new AtomicInteger();
 
@@ -69,6 +74,12 @@ public final class GitHubLoginFragment extends Fragment {
     credentialValue = kv(account, UiText.text("凭据"));
     protocolValue = kv(account, UiText.text("Git 协议"));
     sourceValue = kv(account, UiText.text("来源"));
+    onlineValue = kv(account, UiText.text("在线校验"));
+    onlineDetail = ui.text("", 11, R.color.shell_text_muted);
+    onlineDetail.setPadding(0, ui.dp(4), 0, ui.dp(2));
+    onlineDetail.setLineSpacing(ui.dp(2), 1);
+    onlineDetail.setVisibility(View.GONE);
+    account.addView(onlineDetail);
 
     ui.label(UiText.text("受管 GitHub CLI"));
     LinearLayout managed = ui.card();
@@ -144,13 +155,27 @@ public final class GitHubLoginFragment extends Fragment {
         new Thread(
             () -> {
               GitHubLogin.Snapshot loaded = GitHubLogin.load(app);
+              final boolean shouldProbe =
+                  loaded.environmentReady && loaded.managed == GhManagedInstall.State.AVAILABLE;
               MAIN.post(
                   () -> {
                     if (!isAdded() || getView() == null || ui == null) return;
                     if (generation != loadGeneration.get()) return;
                     snapshot = loaded;
+                    probe = null;
+                    probing = shouldProbe;
                     setLoading(false);
                     render();
+                  });
+              if (!shouldProbe) return;
+              GhAuthProbe.Result checked = GitHubLogin.probe(app);
+              MAIN.post(
+                  () -> {
+                    if (!isAdded() || getView() == null || ui == null) return;
+                    if (generation != loadGeneration.get()) return;
+                    probe = checked;
+                    probing = false;
+                    renderOnline();
                   });
             },
             "dsha-github-login-" + TASKS.incrementAndGet());
@@ -170,10 +195,7 @@ public final class GitHubLoginFragment extends Fragment {
             : !hosts.accounts.isEmpty()
                 ? UiText.raw(String.join(", ", hosts.accounts))
                 : UiText.text("未登录"));
-    scopesValue.setText(
-        hosts.scopes.isEmpty()
-            ? UiText.text("hosts.yml 未记录作用域（gh 不写入）")
-            : UiText.raw(String.join(", ", hosts.scopes)));
+    scopesValue.setText(scopesText(current, hosts));
     credentialValue.setText(
         hosts.credentialStored
             ? UiText.text("hosts.yml 已保存（不显示内容）")
@@ -205,6 +227,67 @@ public final class GitHubLoginFragment extends Fragment {
     logoutButton.setEnabled(canLogout);
     logoutButton.setAlpha(canLogout ? 1f : .55f);
     refreshButton.setEnabled(!loading);
+    renderOnline();
+  }
+
+  /** 在线校验只在环境与受管二进制都可用时执行；其余状态明确说明跳过原因。 */
+  private void renderOnline() {
+    GitHubLogin.Snapshot current = snapshot;
+    if (current == null || onlineValue == null) return;
+    String value;
+    String detail = "";
+    if (!current.environmentReady) {
+      value = UiText.text("跳过：运行环境未就绪");
+    } else if (current.managed != GhManagedInstall.State.AVAILABLE) {
+      value = UiText.text("跳过：受管 gh 不可用");
+    } else if (probing) {
+      value = UiText.text("校验中…");
+    } else if (probe == null) {
+      value = UiText.text("—");
+    } else {
+      switch (probe.state) {
+        case VALID:
+          value = UiText.text("已登录（在线校验通过）");
+          break;
+        case NOT_LOGGED_IN:
+          value = UiText.text("未登录");
+          break;
+        case TOKEN_INVALID:
+          value = UiText.text("token 已失效，需要重新登录");
+          break;
+        case TLS_CA_FAILURE:
+          value = UiText.text("TLS 证书校验失败（CA 路径失效）");
+          break;
+        case NETWORK_ERROR:
+          value = UiText.text("网络不可用");
+          break;
+        case TIMEOUT:
+          value = UiText.text("校验超时");
+          break;
+        case BINARY_UNAVAILABLE:
+          value = UiText.text("跳过：受管 gh 不可用");
+          break;
+        case SKIPPED_ENV:
+          value = UiText.text("跳过：运行环境未就绪");
+          break;
+        default:
+          value = UiText.text("无法完成校验");
+          break;
+      }
+      detail = probe.detail;
+    }
+    onlineValue.setText(value);
+    onlineDetail.setText(detail == null || detail.isEmpty() ? "" : UiText.raw(detail));
+    onlineDetail.setVisibility(detail == null || detail.isEmpty() ? View.GONE : View.VISIBLE);
+  }
+
+  /** 作用域优先用在线校验结果；失败时说明未取得，而不是把 hosts.yml 缺省当成没有权限。 */
+  private String scopesText(GitHubLogin.Snapshot current, GhHostsFile.Result hosts) {
+    if (probe != null && probe.state == GhAuthProbe.State.VALID && !probe.scopes.isEmpty())
+      return UiText.raw(String.join(", ", probe.scopes));
+    if (!hosts.scopes.isEmpty()) return UiText.raw(String.join(", ", hosts.scopes));
+    if (probe != null && probe.state != GhAuthProbe.State.VALID) return UiText.text("未取得（在线校验未通过）");
+    return UiText.text("hosts.yml 未记录作用域（gh 不写入）");
   }
 
   private String stateText(GitHubLogin.Snapshot current) {
@@ -267,6 +350,8 @@ public final class GitHubLoginFragment extends Fragment {
       if (sourceValue != null) sourceValue.setText("—");
       if (managedValue != null) managedValue.setText("—");
       if (managedVersionValue != null) managedVersionValue.setText("—");
+      if (onlineValue != null) onlineValue.setText("—");
+      if (onlineDetail != null) onlineDetail.setVisibility(View.GONE);
       if (loginButton != null) loginButton.setEnabled(false);
       if (logoutButton != null) logoutButton.setEnabled(false);
       if (refreshButton != null) refreshButton.setEnabled(false);
@@ -294,6 +379,9 @@ public final class GitHubLoginFragment extends Fragment {
             "将打开终端并运行：\n%s\n\n1. 终端显示一次性验证码；用手机浏览器打开\n%s\n2. 输入验证码并按提示授权 GitHub CLI\n3. 回到本页，状态会自动刷新\n\ngh 默认申请作用域：repo、read:org、gist。",
             command, GhAuthCommands.BROWSER_URL);
     if (refresh) message = message + "\n\n" + UiText.text("重新授权会重新打开网页授权流程。");
+    if (probe != null && probe.state == GhAuthProbe.State.TLS_CA_FAILURE)
+      message =
+          message + "\n\n" + UiText.text("注意：当前 gh 无法完成 TLS 校验（CA 路径失效），终端会显示真实错误；修复运行环境后再试。");
     final boolean reauthorize = refresh;
     new DshaDialogBuilder(requireContext())
         .setTitle(UiText.text(reauthorize ? "重新授权 GitHub" : "登录 GitHub"))

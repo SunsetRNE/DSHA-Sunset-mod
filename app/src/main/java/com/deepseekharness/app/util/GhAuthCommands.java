@@ -30,6 +30,17 @@ public final class GhAuthCommands {
   }
 
   /**
+   * 只读在线校验：带响应头请求 {@code /user}。
+   *
+   * <p>比 {@code gh auth status} 更能区分失败原因：TLS/CA 失败会打印 x509 错误，401 会打印
+   * Bad credentials；成功时响应头 {@code X-OAuth-Scopes} 给出 token 实际作用域。命令只读，
+   * 不修改 hosts.yml 或远端状态。
+   */
+  public static String probe() {
+    return "gh api -i /user";
+  }
+
+  /**
    * 构造退出命令；账号来自 hosts.yml，只接受 GitHub 允许的字符集，再用 POSIX 引号包裹。
    * 账号为空时由 gh 在唯一账号场景下自行选择。
    */

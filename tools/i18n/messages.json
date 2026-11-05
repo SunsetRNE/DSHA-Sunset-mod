@@ -30680,5 +30680,101 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
+  },
+  {
+    "id": "ghlog_54",
+    "zh": "在线校验",
+    "en": "Online check",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_55",
+    "zh": "跳过：运行环境未就绪",
+    "en": "Skipped: runtime not ready",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_56",
+    "zh": "跳过：受管 gh 不可用",
+    "en": "Skipped: managed gh unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_57",
+    "zh": "校验中…",
+    "en": "Checking…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_58",
+    "zh": "已登录（在线校验通过）",
+    "en": "Signed in (online check passed)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_59",
+    "zh": "token 已失效，需要重新登录",
+    "en": "The token is invalid; sign in again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_60",
+    "zh": "TLS 证书校验失败（CA 路径失效）",
+    "en": "TLS verification failed (CA path issue)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_61",
+    "zh": "网络不可用",
+    "en": "Network unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_62",
+    "zh": "校验超时",
+    "en": "Check timed out",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_63",
+    "zh": "无法完成校验",
+    "en": "Check could not complete",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_64",
+    "zh": "未取得（在线校验未通过）",
+    "en": "Not available (online check failed)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
+  },
+  {
+    "id": "ghlog_65",
+    "zh": "注意：当前 gh 无法完成 TLS 校验（CA 路径失效），终端会显示真实错误；修复运行环境后再试。",
+    "en": "Note: gh cannot complete TLS verification right now (CA path issue); the terminal will show the real error. Fix the runtime and try again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
+    ]
   }
 ]
