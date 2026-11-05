@@ -165,7 +165,7 @@ dsha-gradle :app:testStandardDebugUnitTest --tests '*WebProofStopTest'         #
 
 补充规则：
 
-- **固定输入**：如果变化的是固定输入 11 项之一（`offline-rootfs.bin`、`dsh-runtime.bin`、`ubuntu-tools.bin` 等），必须按 [固定构建输入](fixed-build-inputs.md) 重新打包 / 上传预发布资产、更新 `ci/sunset-inputs.lock.json`，并同步相关 lock 与文档；只改 APK 资源（如内置插件 `client.js`）则不重打固定输入包，但**仍要重算 runtime-descriptor 与第三方声明**。
+- **固定输入**：如果变化的是固定输入 12 项之一（`offline-rootfs.bin`、`dsh-runtime.bin`、`ubuntu-tools.bin` 等），必须按 [固定构建输入](fixed-build-inputs.md) 重新打包 / 上传预发布资产、更新 `ci/sunset-inputs.lock.json`，并同步相关 lock 与文档；只改 APK 资源（如内置插件 `client.js`）则不重打固定输入包，但**仍要重算 runtime-descriptor 与第三方声明**。
 - **只改 UI 的 APK** 不要重建 Ubuntu，也不要让维护页出现“需要重建”的误导；只有受管输入变化才进补丁级维护。
 - **外部 PR / 外部合并**：先由专职 AI 审查会话逐行审阅全部 diff，按[外部 PR 与外部合并审查流程](external-pr-review.md)给出 APPROVE / REQUEST_CHANGES；CI 全绿与冲突解决都不等于可合并，审查会话不合并、不 push 作者分支。
 - 报“可合并 / 可发布”前列出**实际跑过**的命令与结果；没跑真机就写“未真机验证”，不要把宿主测试写成设备结论。

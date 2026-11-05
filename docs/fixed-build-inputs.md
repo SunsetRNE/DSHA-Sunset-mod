@@ -1,6 +1,6 @@
 # 固定构建输入（公开仓库预发布资产）
 
-更新：2026-11-05（build328 gh 根因修复：新增第 12 项固定输入 `gh-cli.tar.gz`，官方 GitHub CLI v2.103.3 linux-arm64 归档，作为受管 `opt/gh/bin/gh` 的唯一来源；S1 的 0.2.2-rc.1 运行时与应急归档保持不变）。当前为本机生成、等待主会话上传的 `fixed-inputs-20261105e` 候选归档（上传核验：pending upload）；
+更新：2026-11-05（build328 gh 根因修复：新增第 12 项固定输入 `gh-cli.tar.gz`，官方 GitHub CLI v2.103.3 linux-arm64 归档，作为受管 `opt/gh/bin/gh` 的唯一来源；S1 的 0.2.2-rc.1 运行时与应急归档保持不变）。当前为已上传并发布（prerelease）的 `fixed-inputs-20261105e` 归档（发布核验见下）；
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 
 ## 为什么固定输入不放进 git
@@ -83,17 +83,17 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105e.zip \
 
 | 项目 | 值 |
 |---|---|
-| release tag | `fixed-inputs-20261105e`（待上传的 prerelease，target `main`） |
-| release id | pending upload（主会话上传后回填） |
+| release tag | `fixed-inputs-20261105e`（prerelease，target `main`，2026-11-05 16:07:48Z 发布） |
+| release id | `435405154` |
 | asset | `dsha-a-su-fixed-inputs-20261105e.zip` |
 | bytes | `716787167` |
 | SHA-256 | `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5` |
 | 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105e/dsha-a-su-fixed-inputs-20261105e.zip` |
 
-> **上传核验：pending upload。** 本 bundle 由 build328 会话在本机以 `tools/ci-assets.py --pack` 生成（成员 12 项、STORED），
-> 尚未上传；主会话上传后必须核对远端资产名 / `size=716787167` / `state=uploaded` / 远端 SHA-256
-> `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5`，再回填 release id 与本行。
-> 直链由 tag + 资产文件名确定，不依赖 asset id；若后续在同 tag 内 `--clobber` 替换资产，文件名不变但内容与 SHA-256 会变，必须同步更新锁。
+> **上传与发布核验：已上传并发布（prerelease）。** 本 bundle 由 build328 会话在本机以 `tools/ci-assets.py --pack` 生成（成员 12 项、STORED），
+> 远端核对：release id `435405154`，asset id `713925229`（仅审计），资产名 `dsha-a-su-fixed-inputs-20261105e.zip`，`size=716787167`，`state=uploaded`，
+> digest `sha256:be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5`；2026-11-05T16:07:48Z 由 Draft 发布为公开 prerelease，
+> 随后匿名直链实测 HTTP 200。直链由 tag + 资产文件名确定，不依赖 asset id；若后续在同 tag 内 `--clobber` 替换资产，文件名不变但内容与 SHA-256 会变，必须同步更新锁。
 > 重打包可复现性：同一输入集合重跑 `--pack` 必须得到同一 SHA-256（build328 已实测；`--pack` 前会按 pin 逐项校验）。
 
 ## 升级流程（新预发布资产）

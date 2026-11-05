@@ -1,6 +1,6 @@
 # CI 构建与发布（公开仓库正式成品）
 
-更新：2026-11-02 / build327（节点化）。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
+更新：2026-11-05 / build328（节点化）。工作流：[`.github/workflows/release-production.yml`](../.github/workflows/release-production.yml)。
 目标仓库：`SunsetRNE/DSHA-Sunset-mod`（`main` 分支）。本文说明如何用 GitHub Actions 产出并发布
 **正式签名成品**（`io.github.sunsetrne.dsha`），以及需要哪些仓库 Secrets、产物如何核验。
 
@@ -14,7 +14,7 @@
 - 只做 **Standard（Android 11+ / arm64）正式包**；不运行 low/Gecko 兼容线，不再有独立上岛包。
 - 只由 `workflow_dispatch` 显式触发；运行必须绑定精确 40 位 commit，且该 commit 就是 `main` 分支当前 HEAD。
 - 发布目标是 **tag + GitHub prerelease**（预发布），不覆盖历史 Release，不创建正式 stable release。
-- 固定输入（约 664 MiB，11 项）不进 git，由 [固定构建输入](fixed-build-inputs.md) 的预发布资产按 SHA-256 还原。
+- 固定输入（约 684 MiB，12 项）不进 git，由 [固定构建输入](fixed-build-inputs.md) 的预发布资产按 SHA-256 还原。
 - 未验证范围：工作流通过只证明该 commit 在 GitHub 托管的 `ubuntu-24.04` 上编译、门禁、单测、签名与发布流程成功；
   不证明真机安装、覆盖升级、厂商 ROM 兼容、功耗或外部模型服务。
 
@@ -22,7 +22,7 @@
 
 | 参数 | 要求 | 示例 |
 |---|---|---|
-| `release_tag` | 新 tag，格式 `dsha-a-su-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-a-su-build327-20261101-203000` |
+| `release_tag` | 新 tag，格式 `dsha-a-su-build<版本码>-YYYYMMDD-HHMMSS` | `dsha-a-su-build328-20261106-001000` |
 | `expected_sha` | `main` 上待发布的完整 40 位 commit | `0123abcd…` |
 
 `release_tag` 对应的日历时间必须合法；tag 已存在时工作流在任何构建前失败，不会覆盖已有发布。
@@ -31,7 +31,7 @@
 gh workflow run release-production.yml \
   --repo SunsetRNE/DSHA-Sunset-mod \
   --ref main \
-  -f release_tag=dsha-a-su-build327-20261101-203000 \
+  -f release_tag=dsha-a-su-build328-20261106-001000 \
   -f expected_sha=<40位commit>
 ```
 
@@ -67,7 +67,7 @@ runner 把 keystore 解码到 `$RUNNER_TEMP`（权限 077），构建后 `if: al
    - **contracts**：固定输入/描述符/第三方声明/内置插件/凭据路径/测试清单/源码整洁/UI i18n/changelog/文档链接。
    - **java-format**：`tools/format-java-tree.py --check`。
    - **host-regression**：设备桥、shell 策略、虚拟屏 anchor、插件事务、发布与 CI 脚本、宿主测试清单等子集。
-   - **inputs**：按锁 URL + SHA-256 还原 11 项、按 npm lock 重建受管 DSH 运行时并重算描述符，打包为同 run 交接。
+   - **inputs**：按锁 URL + SHA-256 还原 12 项、按 npm lock 重建受管 DSH 运行时并重算描述符，打包为同 run 交接。
 3. **unit** 与 **lint**（依赖 inputs，二者并行）：
    完整单测 `-Pdsha.sunsetTest=true -Pdsha.sourceOnlyTests=false`，要求 0 failure / 0 error / 0 skipped，
    且七个外部夹具用例各执行一次并通过；`:app:lintStandardRelease`。
