@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.2310-dsh0.2.2-rc.1` / build327 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合并两项：维护页点「更新运行时」会自行按出生身份核验完全停止旧网页进程，覆盖更新一步完成（T67）；内置竖屏适配插件 `dsh-web-mobile` 默认禁用、覆盖更新后仍禁用，仅当前版本内从原生插件页显式启用才生效，恢复默认启用须满足 [docs/plugins.md](plugins.md) 的硬门槛（T68）。宿主测试、contracts 整组与源码/描述符门禁通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build327 更新说明](releases/build327-changes.zh.md)，验证记录见 [build327 维护自停记录](releases/v0.2.1-rc.5-build327-maintenance-self-stop-20261105.md) 与 [竖屏插件默认禁用记录](releases/v0.2.1-rc.5-build327-web-mobile-default-disabled-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261106.0010-dsh0.2.2-rc.1` / build328 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复 0.2.2 环境的 gh 不可用：官方 GitHub CLI v2.103.3 作为第 12 项固定输入纳入受管资产并安装到 `/opt/gh/bin/gh`，包装脚本按固定 URL/摘要自举兜底，新增 `util/MaintenanceToolPaths` 与重建前 `/opt` 有界预检（T69）。宿主测试、contracts 整组与源码/描述符/第三方声明门禁通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build328 更新说明](releases/build328-changes.zh.md)，验证记录见 [build328 gh 固定输入与 /opt 契约记录](releases/v0.2.1-rc.5-build328-gh-provision-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

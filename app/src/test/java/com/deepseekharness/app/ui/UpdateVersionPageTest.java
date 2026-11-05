@@ -133,11 +133,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("维护"));
-      assertTrue(shown.contains("默认禁用"));
-      assertTrue(shown.contains("版本码提升为 327"));
+      assertTrue(shown.contains("受管资产"));
+      assertTrue(shown.contains("版本码提升为 328"));
+      assertFalse(shown.contains("默认禁用"));
       assertFalse(shown.contains("同一 DSH 版本"));
-      assertFalse(shown.contains("版本码提升为 326"));
+      assertFalse(shown.contains("版本码提升为 327"));
       assertFalse(shown.contains("技能调用确认"));
       assertFalse(shown.contains("版本码提升为 324"));
       assertFalse(shown.contains("DSH 0.2.2 升级第一步"));
@@ -311,11 +311,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("maintenance"));
-      assertTrue(shown.contains("disabled by default"));
-      assertTrue(shown.contains("Raises versionCode to 327"));
+      assertTrue(shown.contains("managed asset"));
+      assertTrue(shown.contains("Raises versionCode to 328"));
+      assertFalse(shown.contains("disabled by default"));
       assertFalse(shown.contains("the same DSH version"));
-      assertFalse(shown.contains("Raises versionCode to 326"));
+      assertFalse(shown.contains("Raises versionCode to 327"));
       assertFalse(shown.contains("Skill-call approval"));
       assertFalse(shown.contains("Raises versionCode to 324"));
       assertFalse(shown.contains("DSH 0.2.2 upgrade step one"));

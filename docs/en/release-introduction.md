@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build327 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build328 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build327 `0.2.1-rc.5-20261105.2310-dsh0.2.2-rc.1`.** Combines two changes: "update runtime" on the maintenance page fully stops the old web process after birth-identity verification, so overwrite maintenance takes one step (T67); and the built-in portrait-adaptation plugin `dsh-web-mobile` is disabled by default, including after overwrite updates, taking effect only when explicitly enabled in the current version and requiring the hard gate in [docs/plugins.md](../en/plugins.md) to restore the default (T68). versionCode 327, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.2-rc.1. See the [build327 notes](../releases/build327-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build328 `0.2.1-rc.5-20261106.0010-dsh0.2.2-rc.1`.** Fixes `gh` failing with "managed GitHub CLI is unavailable" in the 0.2.2 environment: the official GitHub CLI v2.103.3 becomes the 12th fixed input and a managed asset installed at `/opt/gh/bin/gh`, with a fixed-URL/digest bootstrap fallback in the wrapper, plus the explicit `util/MaintenanceToolPaths` contract and a bounded `/opt` pre-check (T69). versionCode 328, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.2-rc.1. See the [build328 notes](../releases/build328-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261105e`, 716,787,167 B, SHA-256 `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

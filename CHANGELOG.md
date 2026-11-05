@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261106.0010-dsh0.2.2-rc.1 / build328（gh 纳入受管资产 + 自举兜底 + /opt 跨重建契约）
+
+- gh 不可用根因修复（T69）：官方 GitHub CLI v2.103.3 作为第 12 项固定输入 `gh-cli.tar.gz` 进入受管资产，安装时只提取固定成员、二次校验并原子发布到 `/opt/gh/bin/gh`；整树重建按受管注入。包装脚本在缺失/损坏时按固定 URL + 摘要自举，失败 fail-closed 并打印恢复命令；删除「bundled」误导文案。
+- 新增 `util/MaintenanceToolPaths` 明文契约与重建前有界预检：`/opt` 保留为用户工具，`/usr/local/bin` 不保留，`usr/local/share/dsha` 受管注入；`/opt` 超过 10 万条在移动旧树前拒绝重建。
+- 固定输入 11→12 项，bundle 716,787,167 B / sha256 be97d9f0…f08f5（fixed-inputs-20261105e，已发布 prerelease）；APK 增大约 13.0 MiB。宿主测试、contracts 整组与源码/描述符/第三方声明门禁通过；未真机验证。版本码提升为 328（基于 build327）。
+- 十语种更新说明见 [build328 更新说明](docs/releases/build328-changes.zh.md)；验证记录见 [build328 gh 固定输入与 /opt 契约记录](docs/releases/v0.2.1-rc.5-build328-gh-provision-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.2310-dsh0.2.2-rc.1 / build327（维护页一步完成覆盖更新；内置竖屏适配插件默认禁用并覆盖更新收敛）
 
 - 维护页自行停止（T67）：点「更新运行时」会先按出生身份核验（boot/pid/启动时间/命令行/nonce）把旧网页进程完全停止，再取维护屏障执行更新；不必先进受限主界面点「停止」再回维护页；核验不过不杀，给出提示与重试入口，自动开始路径仍不强杀。
