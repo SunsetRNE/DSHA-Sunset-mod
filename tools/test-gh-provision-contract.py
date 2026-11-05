@@ -87,6 +87,28 @@ class GhProvisionContract(unittest.TestCase):
         self.assertIn('DSHA_GH_BOOTSTRAP', source)
         self.assertNotIn('install the bundled gh binary first', source)
 
+    def test_native_login_page_pins_match_the_lock(self):
+        source = (ROOT / 'app/src/main/java/com/deepseekharness/app/util/GhManagedInstall.java') \
+            .read_text(encoding='utf-8')
+        for name, value in (
+            ('VERSION', self.lock['version']),
+            ('BINARY_BYTES', str(self.lock['binaryBytes'])),
+            ('BINARY_SHA256', self.lock['binarySha256']),
+        ):
+            match = re.search(r'%s\s*=\s*"([^"]*)"' % name, source)
+            if value[0].isdigit() and name == 'BINARY_BYTES':
+                match = re.search(r'%s\s*=\s*([0-9_]+)L' % name, source)
+                self.assertIsNotNone(match, name)
+                self.assertEqual(match.group(1).replace('_', ''), value)
+                continue
+            self.assertIsNotNone(match, name)
+            self.assertEqual(match.group(1), value)
+        for needle in ('"opt/gh/bin/gh"', '"root/.config/gh/hosts.yml"', '"github.com"'):
+            self.assertIn(needle, source)
+        # 页面只消费锁定的同一版本；包装脚本仍负责缺失/损坏时的自举与拒绝执行。
+        wrapper = WRAPPER.read_text(encoding='utf-8')
+        self.assertIn('GH_VERSION="%s"' % self.lock['version'], wrapper)
+
     def test_rebuild_contract_classification_is_explicit(self):
         source = (ROOT / 'app/src/main/java/com/deepseekharness/app/util/MaintenanceToolPaths.java') \
             .read_text(encoding='utf-8')

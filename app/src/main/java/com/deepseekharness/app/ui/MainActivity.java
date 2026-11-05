@@ -828,6 +828,28 @@ public class MainActivity extends AppCompatActivity {
 
   /** 所有本机终端入口共用门禁；不替换Main页面，也不把导航当新建命令。 */
   public void openTerminal() {
+    launchTerminal(null);
+  }
+
+  /**
+   * 打开终端并先运行一条固定 guest 命令（GitHub 登录引导）。
+   *
+   * <p>门禁、页面切换与普通终端完全一致；固定命令只作为新 PTY 的初始 argv，不携带 token，
+   * 也不改变会话关闭、维护屏障或保护票的既有路径。
+   */
+  public void openTerminalWithCommand(String[] guestCommand, String title) {
+    if (guestCommand == null || guestCommand.length == 0) {
+      openTerminal();
+      return;
+    }
+    Intent intent = new Intent(this, TerminalActivity.class);
+    intent.putExtra(TerminalActivity.EXTRA_GUEST_COMMAND, guestCommand);
+    if (title != null && !title.isEmpty())
+      intent.putExtra(TerminalActivity.EXTRA_GUEST_TITLE, title);
+    launchTerminal(intent);
+  }
+
+  private void launchTerminal(Intent prepared) {
     if (!mainReady
         || terminalPageInFlight
         || isFinishing()
@@ -841,7 +863,7 @@ public class MainActivity extends AppCompatActivity {
     // 打开页面、查看和切换已有会话不依赖插件列表；新建会话在页面内单独做维护/环境准入。
     terminalPageInFlight = true;
     try {
-      terminalPage.launch(new Intent(this, TerminalActivity.class));
+      terminalPage.launch(prepared == null ? new Intent(this, TerminalActivity.class) : prepared);
     } catch (RuntimeException error) {
       terminalPageInFlight = false;
       android.widget.Toast.makeText(

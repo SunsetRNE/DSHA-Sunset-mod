@@ -43,6 +43,12 @@ import com.termux.view.TerminalViewClient;
 public final class PtyTerminalFragment extends Fragment
     implements TerminalPane, TerminalViewClient, PtySession.Listener {
   public static final String KEY_PTY = "term_pty";
+
+  /** 打开终端时显式指定的初始 guest 命令；只消费一次，不随旋转或进程重建重放。 */
+  public static final String ARG_GUEST_COMMAND = "terminal_guest_command";
+
+  public static final String ARG_GUEST_TITLE = "terminal_guest_title";
+
   private static final String KEY_FONT_PX = "term_font_px";
   private static final int FONT_MIN_SP = 8, FONT_MAX_SP = 24, FONT_DEF_SP = 13;
   private static final TerminalSessionOwner OWNER = TerminalSessionOwner.shared();
@@ -133,6 +139,28 @@ public final class PtyTerminalFragment extends Fragment
   @Override
   public void newSession() {
     newSessionWithCommand(null, null);
+  }
+
+  /**
+   * 消费打开终端时传入的固定命令并创建新会话；命令只执行一次，创建失败不自动重放。
+   *
+   * <p>参数在调用前移除，旋转重建的 Fragment 不会再次拿到同一条命令；真正的进程生命周期与
+   * 关闭核验仍由 PTY owner 负责。
+   */
+  private boolean startInitialGuestCommand() {
+    Bundle args = getArguments();
+    if (args == null) return false;
+    String[] command = args.getStringArray(ARG_GUEST_COMMAND);
+    if (command == null || command.length == 0) {
+      args.remove(ARG_GUEST_COMMAND);
+      args.remove(ARG_GUEST_TITLE);
+      return false;
+    }
+    String guestTitle = args.getString(ARG_GUEST_TITLE, "");
+    args.remove(ARG_GUEST_COMMAND);
+    args.remove(ARG_GUEST_TITLE);
+    newSessionWithCommand(command, guestTitle == null || guestTitle.isEmpty() ? null : guestTitle);
+    return true;
   }
 
   /** 固定 guest command 只影响新会话 argv；保护票与默认新建共用同一条创建时序。 */
@@ -806,13 +834,13 @@ public final class PtyTerminalFragment extends Fragment
     attachSelected();
     main.post(
         () -> {
-          if (isResumed()
-              && view != null
-              && !creationPending
-              && startError.isEmpty()
-              && com.deepseekharness.app.ForegroundActivity.isResumed(getActivity())
-              && (getArguments() == null
-                  || !getArguments().getBoolean("terminal_skip_initial_create"))
+          if (!isResumed()
+              || view == null
+              || creationPending
+              || !startError.isEmpty()
+              || !com.deepseekharness.app.ForegroundActivity.isResumed(getActivity())) return;
+          if (startInitialGuestCommand()) return;
+          if ((getArguments() == null || !getArguments().getBoolean("terminal_skip_initial_create"))
               && OWNER.claimPtyInitialCreation()) newSession();
         });
   }

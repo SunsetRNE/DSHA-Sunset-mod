@@ -2460,7 +2460,8 @@
     "zh": "可用",
     "en": "Available",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
+      "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   },
   {
@@ -10685,7 +10686,8 @@
     "zh": "版本",
     "en": "Version",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   },
   {
@@ -10701,7 +10703,8 @@
     "zh": "来源",
     "en": "Source",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   },
   {
@@ -10982,7 +10985,8 @@
     "zh": "状态",
     "en": "Status",
     "files": [
-      "app/src/main/res/values/diagnostics_strings.xml"
+      "app/src/main/res/values/diagnostics_strings.xml",
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   },
   {
@@ -12824,7 +12828,8 @@
     "zh": "运行环境未就绪",
     "en": "Runtime not ready",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java"
+      "app/src/main/java/com/deepseekharness/app/ui/TransferText.java",
+      "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
   },
   {
