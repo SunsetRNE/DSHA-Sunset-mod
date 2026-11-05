@@ -3308,6 +3308,17 @@
       "timeoutSeconds": 120,
       "environment": {},
       "reason": "Current signed first-connect recipe applies to the locked settings client and executes the production transition helpers: first connect stays silent (no yellow or green), real disconnect/recovery keeps yellow→green, including remount while disconnected; no device or browser."
+    },
+    {
+      "path": "tools/test-builtin-plugin-default-off.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Execute the guest builtin-registry default-off policy in an isolated fake root: clean install and over-the-top APK generations disable dsh-web-mobile, only an explicit enable recorded for the current generation survives restarts, older-generation enables are reset, explicit disable wins and re-enable round-trips; no device or Web."
     }
   ]
 }

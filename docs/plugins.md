@@ -59,6 +59,76 @@ dsha-plugin install @作者/插件@1.0.0
 
 普通 `npm install` 不自动修改 DSH 启用列表；`dsha-plugin` 通过当前插件入口处理实际候选。不要用裸 shell 修改事务现场来绕过维护屏障。
 
+## 内置竖屏适配插件 `dsh-web-mobile` 当前默认禁用（build327 起，覆盖更新也禁用）
+
+> 决策：2026-11-05 用户批准**暂时默认禁用**，同日把口径收紧为：**竖屏适配没有回归修复之前，
+> 默认禁用；覆盖更新也禁用；只有明确回归之后才能默认启用。** 这是停用一项可选适配插件，
+> 不删除插件、不改插件字节；插件仍随 APK 重建。
+
+### 为什么禁用
+
+- `dsh-web-mobile` 是竖屏 / 移动端界面的适配层（上游 3.2.2 + DSHA 本地补丁）。build324 起
+  宿主新增或改动了主界面、维护页、首次连接提示、技能调用确认、插件页、设置项、会话与侧栏
+  导航等页面与逻辑，插件侧大量渲染代码没有同步做竖屏适配。
+- 已经造成用户可见事故：build324 覆盖安装后主界面白屏 + 侧栏 footer 重复。插件用 `:has()`
+  依赖宿主 `ConnectionIndicator` 是否存在，宿主改变首连渲染后整条渲染链失效；build325 只修了
+  齿轮这一处契约（`DSHA_GEAR_FIT_V1`），同类「依赖宿主结构」的隐患仍在。
+- 在适配补齐前继续启用，会让新装和升级用户都暴露在同类界面上；因此**全新安装与覆盖更新
+  都收敛为禁用**，先保证主界面与维护流程可用。
+
+### 禁用范围：默认值 + 覆盖更新迁移
+
+- 全新安装 / 干净 profile：默认禁用。注册器写入与原生禁用一致的 `.disabled` 标记，插件不进入
+  `dsh.profile.bundles`，不建立 `node_modules` 入口。
+- **覆盖更新（APK 安装代次变化）同样禁用**，不保留旧版本「已启用」状态。宿主在插件注册前把
+  当前 APK 代次写到 `/usr/local/share/dsha/apk-generation`；注册器没有发现本代次的显式启用
+  记录时，写 `.disabled` 标记并把插件移出 `bundles`。
+- 唯一例外：用户**在当前安装里**从原生「插件」页显式重新启用。启用会在
+  `node_modules/dsh-web-mobile.enabled` 记录当前代次，同一安装内跨 Web 重启保持启用；
+  **下一次 APK 覆盖更新会再次收敛为禁用**，需要重新显式启用。
+- 用户显式禁用始终优先：`.disabled` 标记存在时注册器只清理旧启用记录，不会改回启用。
+- 禁用状态在原生「插件」页可见、可重新启用；备份只记录启停意图，插件字节仍由当前 APK 的
+  受管证明重建。本策略只作用于 `builtin-plugins.json` 中声明 `defaultDisabled: true` 的条目，
+  目前只有 `dsh-web-mobile`。
+
+### 机制（沿用现有注册 / 标记，不新增第二套开关）
+
+- [`builtin-plugins.json`](../app/src/main/assets/builtin-plugins.json) 的 `defaultDisabled` 是唯一
+  默认值来源；
+- [`register-builtin-plugins.py`](../app/src/main/assets/register-builtin-plugins.py) 的
+  `apply_default_disabled` 在每次 Web 启动前收敛默认禁用状态，沿用
+  `node_modules/<name>.disabled` 用户禁用标记；
+- 原生插件页 `enable-state` / `disable-state` 仍是唯一启停入口；
+- `apk-generation`（宿主写）与 `<name>.enabled`（guest 在显式启用时写）只用于判断
+  「当前安装内显式启用」，APK 更新即失效。
+
+### 临时启用做回归
+
+1. 原生「插件」页 → `dsh-web-mobile` → 打开开关；
+2. 按页面提示重启 Web（插件在 Web 启动时加载）；
+3. 回归结束关闭开关并再次重启 Web，恢复默认禁用。
+
+显式启用只对**本次安装**有效，换 APK（包括覆盖安装同类修复包）后会重新禁用。不要手改
+profile、删除 `.disabled` 或直接改 `node_modules` 来绕过插件页；那是注册器与用户意图的边界。
+容器内也可用 `python3 /root/.dsh/register-builtin-plugins.py --enable dsh-web-mobile` /
+`--disable dsh-web-mobile`，它与插件页写同一套状态，仍需重启 Web。
+
+### 何时可以恢复默认启用（硬门槛）
+
+必须**同时**满足，任一项不满足不得改回默认启用：
+
+1. 新页面 / 新逻辑的竖屏适配补齐，并通过**真机覆盖升级验收**（至少覆盖 build324 起的主界面、
+   维护页、首次连接提示、技能调用确认、插件页、设置项、会话与侧栏导航）；
+2. `tools/test-mobile-gear-contract.mjs`（build325 齿轮契约）与 build324 白屏路径回归全绿；
+3. 真机覆盖安装后白屏、侧栏重复、footer 设置入口重复等事故不再出现，并验证「升级后默认启用」
+   本身；
+4. 移除 `builtin-plugins.json` 中 `dsh-web-mobile` 的 `defaultDisabled`（或改为 `false`），重跑
+   `tools/generate-builtin-plugins.py`、`tools/prepare-runtime-descriptor.py --write` 与发布前门禁。
+
+只凭 CI 或单测通过不构成恢复条件。**恢复到默认启用的提交必须引用本节判据并附真机证据**
+（版本记录写清覆盖升级路径、`runtimeId` 前后值与逐项结果）。本次默认禁用与后续回归要求也
+记录在 [build327 记录](releases/v0.2.1-rc.5-build327-web-mobile-default-disabled-20261105.md)。
+
 ## 工作区目录选择器与服务注册
 
 网页工作区目录选择器报告 `active Service directoryPickerController unavailable`，表示该次请求所需的Remote服务没有处于活动状态，不等于目录不存在、文件已丢失或需要重装环境。它与Android系统文件选择器、原生备份的SAF目录授权是不同入口；更换备份保存位置不能代替修复这个Web服务。

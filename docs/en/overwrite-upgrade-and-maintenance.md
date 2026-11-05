@@ -123,6 +123,7 @@ After the user taps "Update runtime", the maintenance task must complete the sto
 3. When sizes are unreadable or layout is not ready, choose **conservative degradation** (drop one entry) instead of "assume it exists and render".
 4. Every such dependency needs a Node-runnable contract test against the real product plus a minimal DOM, not just a hand-written function test.
 5. Host UI changes (adding/removing the connection indicator, update bar, and so on) must trigger a review of every built-in plugin patch's CSS selectors and DOM assumptions.
+6. **`dsh-web-mobile` is disabled by default from build327, and every over-the-top update converges it to disabled again**: the reason (much of its code is not adapted to the new pages and flows introduced in build324, and it has already caused blank screens and a duplicated sidebar) and the scope are on the [plugins page](plugins.md). Only an explicit enable in the current install takes effect; restoring the default requires its hard gate — portrait adaptation complete with device acceptance on an over-the-top upgrade, and both the build325 gear contract and the build324 blank-screen path regressions green. CI or unit tests alone do not justify restoring it. **A commit that restores the default-enabled state must cite that gate and attach device evidence.**
 
 ## Pre-release checklist
 

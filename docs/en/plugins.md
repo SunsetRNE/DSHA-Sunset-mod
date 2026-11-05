@@ -57,6 +57,96 @@ dsha-plugin install @author/plugin@1.0.0
 
 An ordinary `npm install` does not automatically edit the DSH enabled-plugin list. `dsha-plugin` handles the actual candidate through the current plugin entry point. Do not modify a transaction scene with a bare shell to bypass the maintenance barrier.
 
+## The built-in portrait-adaptation plugin `dsh-web-mobile` is disabled by default (from build327, including over-the-top upgrades)
+
+> Decision: on 2026-11-05 the user approved **temporarily disabling it by default**, then tightened the
+> policy the same day: **until the portrait adaptation is fixed and verified, it stays disabled by
+> default; over-the-top updates also disable it; only an explicit regression pass may restore the
+> default.** This stops an optional adaptation plugin; it does not delete the plugin or change its
+> bytes, and the plugin is still rebuilt from the APK.
+
+### Why it is disabled
+
+- `dsh-web-mobile` is the portrait / mobile-interface adaptation layer (upstream 3.2.2 plus DSHA local
+  patches). Since build324 the host added or changed the main screen, maintenance page, first-connect
+  indicator, skill-approval dialog, plugin page, settings items, sessions, and sidebar navigation,
+  while much of the plugin's rendering code has not been adapted to those new pages and flows.
+- It has already caused user-visible incidents: after the build324 over-the-top install the main screen
+  was blank and the sidebar footer was duplicated. The plugin used `:has()` to depend on whether the
+  host rendered `ConnectionIndicator`; when the host changed first-connect rendering, the render chain
+  broke. build325 fixed only the gear contract (`DSHA_GEAR_FIT_V1`); other host-structure dependencies
+  remain.
+- Until the adaptation is complete, keeping it enabled would expose both clean installs and upgraded
+  users to similar breakage. It is therefore **converged to disabled for clean installs and for
+  over-the-top updates**, so the main screen and maintenance flow stay usable.
+
+### Scope: default value plus upgrade migration
+
+- Clean install / clean profile: disabled by default. The registrar writes the same `.disabled` marker
+  as a native disable, the plugin is not added to `dsh.profile.bundles`, and no `node_modules` entry is
+  created.
+- **Over-the-top updates (APK install generation changes) also disable it**; an enabled state from an
+  older version is not preserved. Before plugin registration the host writes the current APK generation
+  to `/usr/local/share/dsha/apk-generation`; when the registrar finds no explicit-enable record for
+  that generation, it writes the `.disabled` marker and removes the plugin from `bundles`.
+- The only exception: the user **explicitly re-enables it in the current install** from the native
+  Plugins page. Enabling records the current generation in
+  `node_modules/dsh-web-mobile.enabled`, and the plugin stays enabled across Web restarts within that
+  install; **the next APK over-the-top update converges it to disabled again**, requiring another
+  explicit enable.
+- An explicit user disable always wins: when the `.disabled` marker exists the registrar only clears a
+  stale enable record and never re-enables the plugin.
+- The disabled state is visible on the native Plugins page and can be re-enabled; backups record only
+  the enable/disable intent, while plugin bytes are still rebuilt from the current APK's managed proof.
+  This policy applies only to entries with `defaultDisabled: true` in `builtin-plugins.json`; currently
+  only `dsh-web-mobile`.
+
+### Mechanism (the existing registrar/markers, no second switch)
+
+- [`builtin-plugins.json`](../../app/src/main/assets/builtin-plugins.json) `defaultDisabled` is the only
+  source of the default value;
+- [`register-builtin-plugins.py`](../../app/src/main/assets/register-builtin-plugins.py)
+  `apply_default_disabled` converges the default-disabled state before each Web start and keeps using
+  the existing `node_modules/<name>.disabled` user-disable marker;
+- native Plugins page `enable-state` / `disable-state` remain the only enable/disable entry;
+- `apk-generation` (written by the host) and `<name>.enabled` (written by the guest on explicit
+  enable) only prove "explicitly enabled in the current install"; an APK update invalidates them.
+
+### Temporarily enabling it for regression
+
+1. Native Plugins page → `dsh-web-mobile` → turn the switch on;
+2. Restart Web as prompted (the plugin loads when Web starts);
+3. After the regression, turn the switch off and restart Web again to return to the default.
+
+The explicit enable is valid only for **this install**; another APK (including an over-the-top install
+of a similar fix) disables it again. Do not hand-edit the profile, delete the `.disabled` marker, or
+edit `node_modules` to bypass the Plugins page; that is the boundary between the registrar and user
+intent. Inside the container,
+`python3 /root/.dsh/register-builtin-plugins.py --enable dsh-web-mobile` / `--disable dsh-web-mobile`
+writes the same state and still requires a Web restart.
+
+### When the default may be restored to enabled (hard gate)
+
+All of the following must hold; if any is missing, the default must not be changed back:
+
+1. Portrait adaptation for the new pages and flows is complete and passes **device acceptance on an
+   over-the-top upgrade** (at least the main screen, maintenance page, first-connect indicator,
+   skill-approval dialog, plugin page, settings items, sessions, and sidebar navigation from build324
+   onward);
+2. `tools/test-mobile-gear-contract.mjs` (the build325 gear contract) and the build324 blank-screen
+   path regressions are green;
+3. In a device over-the-top-install regression, blank screens, duplicated sidebars, and duplicated
+   footer settings entries no longer occur, and "default enabled after upgrade" itself is verified;
+4. Remove `defaultDisabled` from `dsh-web-mobile` in `builtin-plugins.json` (or set it to `false`),
+   rerun `tools/generate-builtin-plugins.py`, `tools/prepare-runtime-descriptor.py --write`, and the
+   pre-release gates.
+
+CI or unit tests alone are not sufficient. **A commit that restores the default-enabled state must
+cite this section's criteria and attach device evidence** (the release record states the upgrade path,
+the `runtimeId` before/after values, and each item's result). This decision and the later regression
+requirements are also recorded in the
+[build327 record](releases/v0.2.1-rc.5-build327-web-mobile-default-disabled-20261105.md).
+
 ## Workspace directory picker and service registration
 
 The Web workspace picker message `active Service directoryPickerController unavailable` means that the Remote service required by that request is not active. It does not establish a missing directory, lost files, or a need to reinstall the environment. This is separate from Android's system file picker and native backup's SAF directory grant; changing a backup destination does not repair this Web service.

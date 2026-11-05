@@ -1,5 +1,10 @@
 # 内置移动插件 dsh-web-mobile 的 DSHA 本地补丁
 
+> **当前状态（build327 起）**：该插件默认禁用，**覆盖更新后也会再次收敛为禁用**（只有当前安装内
+> 从原生插件页显式启用才生效），原因是大量代码不适配新页面与新逻辑、已造成 build324 白屏 /
+> 侧栏重复事故。原因、临时启用方法与恢复默认启用的硬门槛见[插件页的默认禁用一节](plugins.md)。
+> 本页记录的补丁仍然保留，启用插件后照常生效；在恢复默认启用前不要删除本页所述的修复。
+
 本文记录 [`tools/apply-mobile-client-patches.mjs`](../tools/apply-mobile-client-patches.mjs) 对固定上游
 `dsh-web-mobile` 3.2.2（[`bb0e5e151ca549fef506e829020a5d7138074711`](https://github.com/mexiaosqwq/dsh-web-mobile/commit/bb0e5e151ca549fef506e829020a5d7138074711)，
 2026-10-31 同步；上游已把 v3.2.2 标签重指到该提交）

@@ -15,6 +15,10 @@ import java.util.zip.ZipFile;
 final class RuntimeTools {
   static final String CERT_PATH = "/usr/local/share/dsha/ca-certificates.crt";
   private static final String MANAGED_MARKER = "usr/local/share/dsha/managed-assets-v2";
+
+  /** 覆盖安装代次；guest 内置插件默认禁用策略用它区分「本安装内显式启用」与旧版本状态。 */
+  private static final String APK_GENERATION = "usr/local/share/dsha/apk-generation";
+
   private static final Object LOCK = new Object();
 
   /** Host mirror 字节契约在 rc5 与 0.2.2-rc.1 之间不变，但代次门仍须精确识别。 */
@@ -82,6 +86,7 @@ final class RuntimeTools {
               preparedInvalidation = "preparation-incomplete";
               preparedStamp = null;
               prepareManagedOverlay(context, rootfs, expected);
+              writeApkGeneration(context, rootfs);
               preparedFiles.add(installedDescriptor);
               preparedFiles.add(new File(rootfs, MANAGED_MARKER));
               preparedRoot = root;
@@ -108,6 +113,7 @@ final class RuntimeTools {
               new File(rootfs, MANAGED_MARKER),
               com.deepseekharness.app.util.ManagedAssetVersion.bytes(managedIdentity),
               false);
+          writeApkGeneration(context, rootfs);
           preparedRoot = root;
           preparedApk = identity;
           preparedWithNpm = requireNpm;
@@ -1087,5 +1093,15 @@ final class RuntimeTools {
     GuestScriptBudget.checkpoint();
     preparedFiles.add(file);
     RuntimeAssetFiles.write(context, file, content, executable);
+  }
+
+  /** 每次 APK 覆盖更新更新代次；只重建受管资产的维护不改变代次。 */
+  private static void writeApkGeneration(Context context, File rootfs) throws IOException {
+    writeIfChanged(
+        context,
+        new File(rootfs, APK_GENERATION),
+        com.deepseekharness.app.util.ApkGeneration.bytes(
+            com.deepseekharness.app.BuildConfig.VERSION_CODE),
+        false);
   }
 }
