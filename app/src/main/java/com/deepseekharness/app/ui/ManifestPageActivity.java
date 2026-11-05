@@ -122,7 +122,11 @@ public final class ManifestPageActivity extends AppCompatActivity {
       startActivity(new Intent(this, DiagnosticActivity.class));
       return;
     }
-    toast(UiText.choose("宿主未实现这个系统入口：", "Host has not wired this system target: ") + target);
+    toast(
+        com.deepseekharness.app.util.UiText.format(
+            com.deepseekharness.app.util.UiText.choose(
+                "宿主未实现这个系统入口：%s", "Host has not wired this system target: %s"),
+            target));
   }
 
   private void toast(String text) {

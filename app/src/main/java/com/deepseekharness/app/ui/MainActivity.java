@@ -147,11 +147,11 @@ public class MainActivity extends AppCompatActivity {
           com.deepseekharness.app.module.ModuleCrashGuard.labelOf(this, recoveredModule);
       android.widget.Toast.makeText(
               this,
-              com.deepseekharness.app.util.UiText.choose(
-                  "已自动停用疑似导致崩溃的模块：" + recoveredLabel + "。可在模块中心重新启用。",
-                  "Disabled a module that likely crashed the app: "
-                      + recoveredLabel
-                      + ". Re-enable it in Module center."),
+              com.deepseekharness.app.util.UiText.format(
+                  com.deepseekharness.app.util.UiText.choose(
+                      "已自动停用疑似导致崩溃的模块：%s。可在模块中心重新启用。",
+                      "Disabled a module that likely crashed the app: %s. Re-enable it in Module center."),
+                  recoveredLabel),
               android.widget.Toast.LENGTH_LONG)
           .show();
     }

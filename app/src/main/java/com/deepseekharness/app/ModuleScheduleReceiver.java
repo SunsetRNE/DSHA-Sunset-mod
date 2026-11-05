@@ -48,8 +48,9 @@ public class ModuleScheduleReceiver extends BroadcastReceiver {
                     app,
                     entry,
                     false,
-                    UiText.choose("执行出错：", "Task failed: ")
-                        + (error.getMessage() == null ? error.toString() : error.getMessage()));
+                    UiText.format(
+                        UiText.choose("执行出错：%s", "Task failed: %s"),
+                        error.getMessage() == null ? error.toString() : error.getMessage()));
               } finally {
                 result.finish();
                 releaseWakeLock(wakeLock);
@@ -145,11 +146,15 @@ public class ModuleScheduleReceiver extends BroadcastReceiver {
             context,
             entry,
             true,
-            UiText.choose("容器停止请求已提交。", "Container stop request submitted. ") + status);
+            UiText.format(
+                UiText.choose("容器停止请求已提交。%s", "Container stop request submitted. %s"), status));
       }
       default ->
           notifyResult(
-              context, entry, false, UiText.choose("未知任务类型：", "Unknown task kind: ") + entry.kind);
+              context,
+              entry,
+              false,
+              UiText.format(UiText.choose("未知任务类型：%s", "Unknown task kind: %s"), entry.kind));
     }
   }
 
@@ -183,7 +188,8 @@ public class ModuleScheduleReceiver extends BroadcastReceiver {
               + "）";
       builder
           .setSmallIcon(android.R.drawable.stat_notify_more)
-          .setContentTitle(UiText.choose("定时任务 · ", "Scheduled task · ") + identity)
+          .setContentTitle(
+              UiText.format(UiText.choose("定时任务 · %s", "Scheduled task · %s"), identity))
           .setContentText(text)
           .setStyle(new Notification.BigTextStyle().bigText(text))
           .setAutoCancel(true);

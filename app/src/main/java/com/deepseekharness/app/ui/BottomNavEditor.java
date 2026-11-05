@@ -170,9 +170,10 @@ final class BottomNavEditor {
           android.content.res.ColorStateList.valueOf(activity.getColor(R.color.shell_accent)));
       holder.title.setText(label(key));
       holder.row.setContentDescription(
-          UiText.choose(
-              "底栏第 " + (position + 1) + " 位：" + label(key),
-              "Bottom bar position " + (position + 1) + ": " + label(key)));
+          UiText.format(
+              UiText.choose("底栏第 %s 位：%s", "Bottom bar position %s: %s"),
+              String.valueOf(position + 1),
+              label(key)));
       // 整块 chip 都可拖：这条只在编辑态出现，五项一屏放得下，不需要横向滚动。
       holder.row.setOnTouchListener(
           (v, event) -> {

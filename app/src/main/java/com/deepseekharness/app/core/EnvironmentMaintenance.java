@@ -311,10 +311,11 @@ public final class EnvironmentMaintenance {
                 com.deepseekharness.app.backup.NativeBackupJobs.code(retained));
       }
       space.sample(Stage.RETIRED_CLEANUP, 0);
-      return com.deepseekharness.app.util.UiText.choose(
-              "环境重建完成，数据逐文件核验与运行试验通过。\n",
-              "Environment rebuilt; data verification and the runtime trial passed.\n")
-          + cleanup;
+      return com.deepseekharness.app.util.UiText.format(
+          com.deepseekharness.app.util.UiText.choose(
+              "环境重建完成，数据逐文件核验与运行试验通过。\n%s",
+              "Environment rebuilt; data verification and the runtime trial passed.\n%s"),
+          cleanup);
     } catch (Exception failure) {
       space.sample(Stage.FAILED, 0);
       if (began && !RuntimeTasks.hasOtherTasks())

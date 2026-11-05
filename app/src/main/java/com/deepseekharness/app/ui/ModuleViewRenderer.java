@@ -442,7 +442,11 @@ final class ModuleViewRenderer {
     String src = node.optString("src", card.web == null ? "" : card.web.entry).trim();
     if (card.web == null || !card.isWebAsset(src)) {
       TextView missing = new TextView(context);
-      missing.setText("模块网页资源缺失：" + src);
+      missing.setText(
+          com.deepseekharness.app.util.UiText.format(
+              com.deepseekharness.app.util.UiText.choose(
+                  "模块网页资源缺失：%s", "Missing module web assets: %s"),
+              src));
       missing.setTextSize(11);
       missing.setTextColor(context.getColor(R.color.shell_bad));
       return missing;
@@ -561,7 +565,7 @@ final class ModuleViewRenderer {
   /** 文字链接：下划线 + 强调色，点开宿主动作（page / toast / url 等）。 */
   private static View link(Context context, ModuleCard card, JSONObject node, ActionSink sink) {
     TextView link = new TextView(context);
-    link.setText(node.optString("text", "链接"));
+    link.setText(node.optString("text", com.deepseekharness.app.util.UiText.choose("链接", "Link")));
     link.setTextSize(clamp(node.optInt("size", 13), 9, 20));
     int accent = accent(context, card);
     link.setTextColor(colorToken(context, node.optString("color", ""), accent));

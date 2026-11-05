@@ -249,13 +249,13 @@ public final class ModulePageActivity extends AppCompatActivity {
   private void requestPermission(String preview, Runnable onAllowed) {
     String shown = preview.length() > 700 ? preview.substring(0, 700) + "…" : preview;
     new DshaDialogBuilder(this)
-        .setTitle(UiText.choose("允许「" + card.name + "」运行？", "Allow \"" + card.name + "\" to run?"))
+        .setTitle(UiText.format(UiText.choose("允许「%s」运行？", "Allow \"%s\" to run?"), card.name))
         .setMessage(
-            UiText.choose(
-                "这个页面将执行：\n\n" + shown + "\n\n命令在你的容器里运行，脚本在隔离的 JS 环境里运行。只对这张卡片生效，随时可在模块中心撤销。",
-                "This page will run:\n\n"
-                    + shown
-                    + "\n\nCommands run inside your container, scripts in an isolated JS sandbox. Applies to this card only."))
+            UiText.format(
+                UiText.choose(
+                    "这个页面将执行：\n\n%s\n\n命令在你的容器里运行，脚本在隔离的 JS 环境里运行。只对这张卡片生效，随时可在模块中心撤销。",
+                    "This page will run:\n\n%s\n\nCommands run inside your container, scripts in an isolated JS sandbox. Applies to this card only."),
+                shown))
         .setNegativeButton(UiText.choose("取消", "Cancel"), null)
         .setPositiveButton(
             UiText.choose("允许", "Allow"),

@@ -764,7 +764,7 @@ public class LaunchFragment extends Fragment {
                       message = UiText.format("%s 已执行完成；输出见容器内 %s", tool.name, logPath);
                     }
                     if (restart && launchFailure == null)
-                      message = UiText.choose("已重启：", "Restarted: ") + message;
+                      message = UiText.format(UiText.choose("已重启：%s", "Restarted: %s"), message);
                     Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
                   });
             },
@@ -932,8 +932,9 @@ public class LaunchFragment extends Fragment {
                       "启动后运行容器程序：%s%s", "Starts the container program: %s%s"),
                   targetTool.name,
                   targetTool.port > 0
-                      ? UiText.choose(" · 容器内 127.0.0.1:", " · in-container 127.0.0.1:")
-                          + targetTool.port
+                      ? UiText.format(
+                          UiText.choose(" · 容器内 127.0.0.1:%s", " · in-container 127.0.0.1:%s"),
+                          targetTool.port)
                       : "");
         }
       } else if (ready) {

@@ -55,9 +55,9 @@ public final class ModuleCenterActivity extends AppCompatActivity {
                             if (failureText != null) {
                               android.widget.Toast.makeText(
                                       this,
-                                      UiText.choose(
-                                          "模块包无效：" + failureText,
-                                          "Invalid module package: " + failureText),
+                                      UiText.format(
+                                          UiText.choose("模块包无效：%s", "Invalid module package: %s"),
+                                          failureText),
                                       android.widget.Toast.LENGTH_LONG)
                                   .show();
                               return;
@@ -67,15 +67,10 @@ public final class ModuleCenterActivity extends AppCompatActivity {
                             android.widget.Toast.makeText(
                                     this,
                                     finalResult.card
-                                        ? UiText.choose(
-                                            "已加入主页："
-                                                + finalResult.detail
-                                                + "\n"
-                                                + finalResult.identitySummary(true),
-                                            "Added to home: "
-                                                + finalResult.detail
-                                                + "\n"
-                                                + finalResult.identitySummary(false))
+                                        ? UiText.format(
+                                            UiText.choose("已加入主页：%s\n%s", "Added to home: %s\n%s"),
+                                            finalResult.detail,
+                                            finalResult.identitySummary(true))
                                         : UiText.choose("已导入模块清单", "Manifest imported"),
                                     android.widget.Toast.LENGTH_LONG)
                                 .show();
@@ -94,15 +89,11 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     if (!recoveredModule.isEmpty())
       android.widget.Toast.makeText(
               this,
-              UiText.choose(
-                  "已自动停用疑似导致崩溃的模块："
-                      + com.deepseekharness.app.module.ModuleCrashGuard.labelOf(
-                          this, recoveredModule)
-                      + "。确认没问题后可再次开启。",
-                  "Disabled a module that likely crashed the app: "
-                      + com.deepseekharness.app.module.ModuleCrashGuard.labelOf(
-                          this, recoveredModule)
-                      + ". Enable it again once you're sure it's safe."),
+              com.deepseekharness.app.util.UiText.format(
+                  com.deepseekharness.app.util.UiText.choose(
+                      "已自动停用疑似导致崩溃的模块：%s。确认没问题后可再次开启。",
+                      "Disabled a module that likely crashed the app: %s. Enable it again once you're sure it's safe."),
+                  com.deepseekharness.app.module.ModuleCrashGuard.labelOf(this, recoveredModule)),
               android.widget.Toast.LENGTH_LONG)
           .show();
     CardPage page =
@@ -125,10 +116,11 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     if (!catalog.issues().isEmpty()) {
       TextView issues = new TextView(this);
       issues.setText(
-          UiText.choose("模块问题：\n", "Module issues:\n")
-              + catalog.issues().stream()
+          UiText.format(
+              UiText.choose("模块问题：\n%s", "Module issues:\n%s"),
+              catalog.issues().stream()
                   .map(issue -> issue.source + " · " + issue.message)
-                  .collect(java.util.stream.Collectors.joining("\n")));
+                  .collect(java.util.stream.Collectors.joining("\n"))));
       issues.setTextColor(getColor(R.color.shell_bad));
       issues.setTextSize(12);
       list.addView(issues, new LinearLayout.LayoutParams(-1, -2));
@@ -214,7 +206,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
 
       com.google.android.material.materialswitch.MaterialSwitch on =
           new com.google.android.material.materialswitch.MaterialSwitch(this);
-      on.setContentDescription(UiText.choose("启用 " + item.name, "Enable " + item.name));
+      on.setContentDescription(UiText.format(UiText.choose("启用 %s", "Enable %s"), item.name));
       on.setChecked(enabled);
       on.setOnCheckedChangeListener(
           (button, checked) -> {
@@ -265,7 +257,8 @@ public final class ModuleCenterActivity extends AppCompatActivity {
       moreChip.setGravity(android.view.Gravity.CENTER);
       moreChip.setBackgroundResource(R.drawable.bg_shell_pill);
       moreChip.setPadding(dp(12), dp(8), dp(12), dp(8));
-      moreChip.setContentDescription(UiText.choose("更多操作：" + item.name, "More: " + item.name));
+      moreChip.setContentDescription(
+          UiText.format(UiText.choose("更多操作：%s", "More: %s"), item.name));
       UiMotion.pressScale(moreChip);
       LinearLayout.LayoutParams moreChipParams = new LinearLayout.LayoutParams(-2, -2);
       moreChipParams.leftMargin = dp(8);
@@ -319,15 +312,11 @@ public final class ModuleCenterActivity extends AppCompatActivity {
                     new DshaDialogBuilder(this)
                         .setTitle(UiText.choose("信任这把签名公钥？", "Trust this signing key?"))
                         .setMessage(
-                            UiText.choose(
-                                "keyId："
-                                    + item.trustKeyId
-                                    + "\n\n信任后，凡是用这把私钥签名的模块都会显示「已验证」。"
-                                    + "只有当你确认指纹来自作者本人时才信任。",
-                                "keyId: "
-                                    + item.trustKeyId
-                                    + "\n\nAfter trusting, modules signed by this private key show as verified. "
-                                    + "Only trust a fingerprint you verified with the author."))
+                            UiText.format(
+                                UiText.choose(
+                                    "keyId：%s\n\n信任后，凡是用这把私钥签名的模块都会显示「已验证」。只有当你确认指纹来自作者本人时才信任。",
+                                    "keyId: %s\n\nAfter trusting, modules signed by this private key show as verified. Only trust a fingerprint you verified with the author."),
+                                item.trustKeyId))
                         .setNegativeButton(UiText.choose("取消", "Cancel"), null)
                         .setPositiveButton(
                             UiText.choose("信任", "Trust"),
@@ -648,9 +637,9 @@ public final class ModuleCenterActivity extends AppCompatActivity {
                 onChanged.run();
               });
       delete.setContentDescription(
-          UiText.choose(
-              "删除定时任务：" + SchedulePresenter.displayLabel(entry.label),
-              "Delete schedule: " + SchedulePresenter.displayLabel(entry.label)));
+          UiText.format(
+              UiText.choose("删除定时任务：%s", "Delete schedule: %s"),
+              SchedulePresenter.displayLabel(entry.label)));
       LinearLayout.LayoutParams deleteParams = new LinearLayout.LayoutParams(-2, -2);
       deleteParams.leftMargin = dpOf(context, 6);
       entryRow.addView(delete, deleteParams);
@@ -699,8 +688,9 @@ public final class ModuleCenterActivity extends AppCompatActivity {
 
     TextView header = new TextView(context);
     header.setText(
-        UiText.choose(
-            "受管程序 · " + card.programs.size() + " 个", "Managed programs · " + card.programs.size()));
+        UiText.format(
+            UiText.choose("受管程序 · %s 个", "Managed programs · %s"),
+            String.valueOf(card.programs.size())));
     header.setTextColor(context.getColor(R.color.shell_text));
     header.setTextSize(12);
     header.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -711,8 +701,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     note.setText(
         UiText.choose(
             "程序只随模块包导入；运行前重算 SHA-256 与 ELF ABI。程序授权与命令授权分开，可单独撤销。",
-            "Programs come only from module packages; SHA-256 and ELF ABI are rechecked before every run. "
-                + "Program permission is separate from shell permission and can be revoked."));
+            "Programs come only from module packages; SHA-256 and ELF ABI are rechecked before every run. Program permission is separate from shell permission and can be revoked."));
     note.setTextSize(10);
     note.setTextColor(context.getColor(R.color.shell_text_muted));
     note.setPadding(0, dpOf(context, 2), 0, dpOf(context, 4));
@@ -746,7 +735,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
           com.deepseekharness.app.module.ModuleProgramAuth.isAllowed(context, card.id, program.id);
       auth.setText(
           validation != null
-              ? UiText.choose("不可运行：", "Cannot run: ") + validation
+              ? UiText.format(UiText.choose("不可运行：%s", "Cannot run: %s"), validation)
               : allowed
                   ? UiText.choose("已授权运行这个程序", "Program run allowed")
                   : UiText.choose("未授权运行这个程序", "Program run blocked"));
@@ -824,31 +813,17 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     }
     new DshaDialogBuilder((android.app.Activity) context)
         .setTitle(
-            UiText.choose(
-                "允许「" + card.name + "」运行原生程序？",
-                "Allow \"" + card.name + "\" to run a native program?"))
+            UiText.format(
+                UiText.choose("允许「%s」运行原生程序？", "Allow \"%s\" to run a native program?"), card.name))
         .setMessage(
-            UiText.choose(
-                "程序："
-                    + program.id
-                    + "\n文件："
-                    + program.file
-                    + "\n架构："
-                    + program.abi
-                    + "\nSHA-256："
-                    + program.sha256
-                    + "\n\n它会在你的容器里执行，拥有该容器内的权限。只对这张卡片的这个程序生效，"
-                    + "随时可在模块中心撤销。",
-                "Program: "
-                    + program.id
-                    + "\nFile: "
-                    + program.file
-                    + "\nABI: "
-                    + program.abi
-                    + "\nSHA-256: "
-                    + program.sha256
-                    + "\n\nIt runs inside your container with that container's privileges. "
-                    + "Applies only to this program of this card, revocable in module center."))
+            UiText.format(
+                UiText.choose(
+                    "程序：%s\n文件：%s\n架构：%s\nSHA-256：%s\n\n它会在你的容器里执行，拥有该容器内的权限。只对这张卡片的这个程序生效，随时可在模块中心撤销。",
+                    "Program: %s\nFile: %s\nABI: %s\nSHA-256: %s\n\nIt runs inside your container with that container's privileges. Applies only to this program of this card, revocable in module center."),
+                program.id,
+                program.file,
+                program.abi,
+                program.sha256))
         .setNegativeButton(UiText.choose("取消", "Cancel"), null)
         .setPositiveButton(UiText.choose("允许并运行", "Allow and run"), (d, w) -> onAllowed.run())
         .show();
@@ -860,7 +835,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
       com.deepseekharness.app.module.ModuleCard.Program program) {
     android.widget.Toast.makeText(
             context,
-            UiText.choose("正在运行 " + program.id + "…", "Running " + program.id + "…"),
+            UiText.format(UiText.choose("正在运行 %s…", "Running %s…"), program.id),
             android.widget.Toast.LENGTH_SHORT)
         .show();
     final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -952,7 +927,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
 
     /** 分区标题：写明条数，0 条也要能看出这一区是干什么的。 */
     public static String sectionHeader(int count) {
-      return UiText.choose("定时任务 · " + count + " 条", "Schedules · " + count);
+      return UiText.format(UiText.choose("定时任务 · %s 条", "Schedules · %s"), String.valueOf(count));
     }
 
     /** 授权状态行：定时执行沿用每卡运行授权，未授权时到点只通知跳过。 */
@@ -970,8 +945,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     public static String delayNote() {
       return UiText.choose(
           "闹钟是非精确的：系统省电（Doze）可能把触发推迟几分钟。若之后撤销运行授权，任务到点会被跳过。",
-          "Alarms are inexact: Doze may postpone triggers by minutes. "
-              + "If run permission is revoked later, tasks are skipped at trigger time.");
+          "Alarms are inexact: Doze may postpone triggers by minutes. If run permission is revoked later, tasks are skipped at trigger time.");
     }
 
     /** 电池优化状态：只描述事实，不代替用户改系统设置。 */
@@ -999,19 +973,18 @@ public final class ModuleCenterActivity extends AppCompatActivity {
       } catch (RuntimeException ignored) {
         time = "";
       }
-      return UiText.choose("最近 ", "last ")
-          + time
-          + " · "
-          + state
-          + (body.isEmpty() ? "" : " · " + body);
+      return UiText.format(
+          UiText.choose("最近 %s · %s%s", "last %s · %s%s"),
+          time,
+          state,
+          body.isEmpty() ? "" : " · " + body);
     }
 
     /** 空列表状态：说明这一区是什么、任务从哪来。 */
     public static String emptyNote() {
       return UiText.choose(
           "这张卡片还没有定时任务。容器里的脚本可用 schedule.set 登记，每天定时跑命令或启停容器。",
-          "No schedules for this card yet. Scripts in the container can register one "
-              + "with schedule.set to run a command or start/stop the container daily.");
+          "No schedules for this card yet. Scripts in the container can register one with schedule.set to run a command or start/stop the container daily.");
     }
   }
 
@@ -1068,11 +1041,9 @@ public final class ModuleCenterActivity extends AppCompatActivity {
 
     TextView launchBody = new TextView(this);
     launchBody.setText(
-        UiText.choose(
-            launchSummary(com.deepseekharness.app.util.HomeLayoutStore.launchAction(this))
-                + " · 点按修改",
-            launchSummary(com.deepseekharness.app.util.HomeLayoutStore.launchAction(this))
-                + " · tap to change"));
+        UiText.format(
+            UiText.choose("%s · 点按修改", "%s · tap to change"),
+            launchSummary(com.deepseekharness.app.util.HomeLayoutStore.launchAction(this))));
     launchBody.setTextColor(getColor(R.color.shell_accent));
     launchBody.setTextSize(12);
     launchBody.setPadding(0, dp(4), 0, dp(2));
@@ -1121,9 +1092,10 @@ public final class ModuleCenterActivity extends AppCompatActivity {
       com.deepseekharness.app.module.ContainerTools.Tool tool =
           com.deepseekharness.app.module.ContainerTools.byId(this, id);
       return tool != null
-          ? UiText.choose("容器程序 · ", "Container program · ")
-              + tool.name
-              + (tool.port > 0 ? " · :" + tool.port : "")
+          ? UiText.format(
+              UiText.choose("容器程序 · %s%s", "Container program · %s%s"),
+              tool.name,
+              tool.port > 0 ? " · :" + tool.port : "")
           : UiText.format("容器程序 · %s", id);
     }
     int port = com.deepseekharness.app.core.HarnessController.get(this).getWebPort();
@@ -1175,9 +1147,8 @@ public final class ModuleCenterActivity extends AppCompatActivity {
       TextView empty = new TextView(this);
       empty.setText(
           UiText.choose(
-              "还没有登记容器程序。点下面的「新建容器程序」，或在容器里写 " + "~/.dsha-launch/<id>.json。",
-              "No container programs registered yet. Tap \"New container program\" below, or "
-                  + "write ~/.dsha-launch/<id>.json in the container."));
+              "还没有登记容器程序。点下面的「新建容器程序」，或在容器里写 ~/.dsha-launch/<id>.json。",
+              "No container programs registered yet. Tap \"New container program\" below, or write ~/.dsha-launch/<id>.json in the container."));
       empty.setTextColor(getColor(R.color.shell_text_muted));
       empty.setTextSize(12);
       empty.setPadding(dp(8), dp(2), dp(8), dp(6));
@@ -1190,7 +1161,9 @@ public final class ModuleCenterActivity extends AppCompatActivity {
         String sub =
             state
                 + (tool.note.isEmpty() ? "" : tool.note + (tool.port > 0 ? " · " : ""))
-                + (tool.port > 0 ? UiText.choose("端口 ", "port ") + tool.port : "");
+                + (tool.port > 0
+                    ? UiText.format(UiText.choose("端口 %s", "port %s"), tool.port)
+                    : "");
         android.view.View row =
             pickerRow(
                 tool.name,
@@ -1240,9 +1213,8 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     TextView footer = new TextView(this);
     footer.setText(
         UiText.choose(
-            "程序命令在乌班图容器里执行，输出落容器 /tmp/dsha-tool-<id>.log。" + "长按程序可编辑或删除；运行中的程序在主页按启动键会先停旧实例再重启。",
-            "Program commands run in the Ubuntu container (output: /tmp/dsha-tool-<id>.log). "
-                + "Long-press a program to edit or delete it; pressing start again restarts it."));
+            "程序命令在乌班图容器里执行，输出落容器 /tmp/dsha-tool-<id>.log。长按程序可编辑或删除；运行中的程序在主页按启动键会先停旧实例再重启。",
+            "Program commands run in the Ubuntu container (output: /tmp/dsha-tool-<id>.log). Long-press a program to edit or delete it; pressing start again restarts it."));
     footer.setTextColor(getColor(R.color.shell_text_muted));
     footer.setTextSize(11);
     footer.setPadding(dp(8), dp(6), dp(8), dp(2));
@@ -1346,7 +1318,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
           } catch (IllegalArgumentException error) {
             android.widget.Toast.makeText(
                     this,
-                    UiText.choose("没有保存：" + error.getMessage(), "Not saved: " + error.getMessage()),
+                    UiText.format(UiText.choose("没有保存：%s", "Not saved: %s"), error.getMessage()),
                     android.widget.Toast.LENGTH_LONG)
                 .show();
             // 保存失败就重新打开表单，用用户刚输入的值回填——真的不丢输入。
@@ -1374,11 +1346,11 @@ public final class ModuleCenterActivity extends AppCompatActivity {
               new DshaDialogBuilder(this)
                   .setTitle(UiText.choose("删除这条容器程序？", "Delete this container program?"))
                   .setMessage(
-                      UiText.choose(
-                          "会删除容器里的 ~/.dsha-launch/" + existing.id + ".json；如果它正在运行也会被停止。",
-                          "This removes ~/.dsha-launch/"
-                              + existing.id
-                              + ".json from the container and stops it if running."))
+                      UiText.format(
+                          UiText.choose(
+                              "会删除容器里的 ~/.dsha-launch/%s.json；如果它正在运行也会被停止。",
+                              "This removes ~/.dsha-launch/%s.json from the container and stops it if running."),
+                          existing.id))
                   .setNegativeButton(UiText.choose("取消", "Cancel"), null)
                   .setPositiveButton(
                       UiText.choose("删除", "Delete"),
@@ -1495,13 +1467,12 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     new DshaDialogBuilder(this)
         .setTitle(
             enabled
-                ? UiText.choose("已启用 · " + name, "Enabled · " + name)
-                : UiText.choose("已停用 · " + name, "Disabled · " + name))
+                ? UiText.format(UiText.choose("已启用 · %s", "Enabled · %s"), name)
+                : UiText.format(UiText.choose("已停用 · %s", "Disabled · %s"), name))
         .setMessage(
             UiText.choose(
                 "主页卡片会立即更新；运行环境、底栏以及已经打开的模块页面需要重启 App 才能完全切换。",
-                "Home cards update immediately. The runtime, bottom bar and already-open module pages "
-                    + "switch completely after restarting the app."))
+                "Home cards update immediately. The runtime, bottom bar and already-open module pages switch completely after restarting the app."))
         .setNegativeButton(UiText.choose("稍后", "Later"), null)
         .setPositiveButton(UiText.choose("立即重启", "Restart now"), (d, w) -> restartApp())
         .show();
@@ -1573,7 +1544,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     if (card.view != null) caps.add(UiText.choose("自绘界面", "custom view"));
     for (String surface : card.provides.keySet()) {
       if (!KNOWN_SURFACES.contains(surface))
-        caps.add(UiText.choose("未支持:" + surface, "unsupported:" + surface));
+        caps.add(UiText.format(UiText.choose("未支持:%s", "unsupported:%s"), surface));
     }
     if (script) caps.add(UiText.choose("脚本", "script"));
     if (run) caps.add(UiText.choose("执行命令", "shell"));
