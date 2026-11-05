@@ -1219,7 +1219,7 @@ public class MainActivity extends AppCompatActivity {
     ids.put("launch", R.id.nav_launch);
     ids.put("settings", R.id.nav_settings);
     ids.put("terminal", R.id.nav_terminal);
-    java.util.List<String> order = com.deepseekharness.app.util.HomeLayoutStore.navOrder(this);
+    java.util.List<String> order = com.deepseekharness.app.HomeLayoutStore.navOrder(this);
     android.view.Menu menu = nav.getMenu();
     int selectedId = nav.getSelectedItemId();
     Fragment restored = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
@@ -1300,7 +1300,7 @@ public class MainActivity extends AppCompatActivity {
             if (key == null) continue;
             android.view.View item = nav.findViewById(id);
             if (item == null) continue;
-            float scale = com.deepseekharness.app.util.HomeLayoutStore.navItemScale(this, key);
+            float scale = com.deepseekharness.app.HomeLayoutStore.navItemScale(this, key);
             item.setPivotX(item.getWidth() / 2f);
             item.setPivotY(item.getHeight() / 2f);
             item.setScaleX(scale);

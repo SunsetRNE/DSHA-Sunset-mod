@@ -9,7 +9,7 @@ import android.widget.Toast;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.ui.MainActivity;
 import com.deepseekharness.app.ui.ModulePageActivity;
-import com.deepseekharness.app.util.HomeLayoutStore;
+import com.deepseekharness.app.HomeLayoutStore;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

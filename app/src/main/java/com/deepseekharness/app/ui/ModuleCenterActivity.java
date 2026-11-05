@@ -1043,7 +1043,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     launchBody.setText(
         UiText.format(
             UiText.choose("%s · 点按修改", "%s · tap to change"),
-            launchSummary(com.deepseekharness.app.util.HomeLayoutStore.launchAction(this))));
+            launchSummary(com.deepseekharness.app.HomeLayoutStore.launchAction(this))));
     launchBody.setTextColor(getColor(R.color.shell_accent));
     launchBody.setTextSize(12);
     launchBody.setPadding(0, dp(4), 0, dp(2));
@@ -1058,9 +1058,9 @@ public final class ModuleCenterActivity extends AppCompatActivity {
     UiMotion.pressScale(reset);
     reset.setOnClickListener(
         v -> {
-          com.deepseekharness.app.util.HomeLayoutStore.reset(this);
-          com.deepseekharness.app.util.HomeLayoutStore.resetNav(this);
-          com.deepseekharness.app.util.HomeLayoutStore.resetNavItemScale(this);
+          com.deepseekharness.app.HomeLayoutStore.reset(this);
+          com.deepseekharness.app.HomeLayoutStore.resetNav(this);
+          com.deepseekharness.app.HomeLayoutStore.resetNavItemScale(this);
           if (com.deepseekharness.app.ui.MainActivity.active() != null)
             com.deepseekharness.app.ui.MainActivity.active().applyNavItemScales();
           android.widget.Toast.makeText(
@@ -1086,8 +1086,8 @@ public final class ModuleCenterActivity extends AppCompatActivity {
 
   /** 启动入口在列表里显示的人话：只有容器工作台和容器里登记的程序。 */
   private String launchSummary(String action) {
-    if (com.deepseekharness.app.util.HomeLayoutStore.isToolAction(action)) {
-      String id = com.deepseekharness.app.util.HomeLayoutStore.toolIdOf(action);
+    if (com.deepseekharness.app.HomeLayoutStore.isToolAction(action)) {
+      String id = com.deepseekharness.app.HomeLayoutStore.toolIdOf(action);
       com.deepseekharness.app.module.ContainerTools.refresh(this);
       com.deepseekharness.app.module.ContainerTools.Tool tool =
           com.deepseekharness.app.module.ContainerTools.byId(this, id);
@@ -1116,7 +1116,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
   private void showLaunchTargetPicker() {
     java.util.concurrent.atomic.AtomicReference<androidx.appcompat.app.AlertDialog> dialogRef =
         new java.util.concurrent.atomic.AtomicReference<>();
-    String current = com.deepseekharness.app.util.HomeLayoutStore.launchAction(this);
+    String current = com.deepseekharness.app.HomeLayoutStore.launchAction(this);
     com.deepseekharness.app.module.ContainerTools.refresh(this);
     java.util.List<com.deepseekharness.app.module.ContainerTools.Tool> tools =
         com.deepseekharness.app.module.ContainerTools.load(this);
@@ -1135,9 +1135,9 @@ public final class ModuleCenterActivity extends AppCompatActivity {
             UiText.choose(
                 "启动容器里的 DSH Web，就绪后进工作台",
                 "Start the DSH web inside the container, then open the workspace"),
-            com.deepseekharness.app.util.HomeLayoutStore.ACTION_WEB.equals(current),
+            com.deepseekharness.app.HomeLayoutStore.ACTION_WEB.equals(current),
             () -> {
-              applyLaunchTarget(com.deepseekharness.app.util.HomeLayoutStore.ACTION_WEB);
+              applyLaunchTarget(com.deepseekharness.app.HomeLayoutStore.ACTION_WEB);
               androidx.appcompat.app.AlertDialog open = dialogRef.get();
               if (open != null) open.dismiss();
             }));
@@ -1155,7 +1155,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
       list.addView(empty);
     } else {
       for (com.deepseekharness.app.module.ContainerTools.Tool tool : tools) {
-        String action = com.deepseekharness.app.util.HomeLayoutStore.ACTION_TOOL_PREFIX + tool.id;
+        String action = com.deepseekharness.app.HomeLayoutStore.ACTION_TOOL_PREFIX + tool.id;
         boolean running = com.deepseekharness.app.module.ContainerTools.isRunning(tool.id);
         String state = running ? UiText.choose("运行中 · ", "Running · ") : "";
         String sub =
@@ -1356,13 +1356,13 @@ public final class ModuleCenterActivity extends AppCompatActivity {
                       UiText.choose("删除", "Delete"),
                       (d, w) -> {
                         com.deepseekharness.app.module.ContainerTools.delete(this, existing.id);
-                        if (com.deepseekharness.app.util.HomeLayoutStore.isToolAction(
-                            com.deepseekharness.app.util.HomeLayoutStore.launchAction(this)))
-                          if (com.deepseekharness.app.util.HomeLayoutStore.toolIdOf(
-                                  com.deepseekharness.app.util.HomeLayoutStore.launchAction(this))
+                        if (com.deepseekharness.app.HomeLayoutStore.isToolAction(
+                            com.deepseekharness.app.HomeLayoutStore.launchAction(this)))
+                          if (com.deepseekharness.app.HomeLayoutStore.toolIdOf(
+                                  com.deepseekharness.app.HomeLayoutStore.launchAction(this))
                               .equals(existing.id))
                             applyLaunchTarget(
-                                com.deepseekharness.app.util.HomeLayoutStore.ACTION_WEB);
+                                com.deepseekharness.app.HomeLayoutStore.ACTION_WEB);
                         render();
                         onSaved.run();
                       })
@@ -1388,7 +1388,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
 
   private void applyLaunchTarget(String action) {
     try {
-      com.deepseekharness.app.util.HomeLayoutStore.setLaunchAction(this, action);
+      com.deepseekharness.app.HomeLayoutStore.setLaunchAction(this, action);
       moduleDirty();
       render();
     } catch (IllegalArgumentException ignored) {

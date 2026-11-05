@@ -26,6 +26,7 @@ final class RuntimeExecution {
   private final RuntimeNativeFiles nativeFiles;
   private final RuntimeHardlinks hardlinks;
   private final RuntimeLauncher launcher;
+  private final RuntimeModePolicy modePolicy;
 
   RuntimeExecution(
       Context context,
@@ -37,7 +38,8 @@ final class RuntimeExecution {
       RuntimeHostPorts ports,
       Readiness readiness,
       RuntimeNativeFiles nativeFiles,
-      RuntimeLauncher launcher) {
+      RuntimeLauncher launcher,
+      RuntimeModePolicy modePolicy) {
     this.context = context;
     this.rootfs = rootfs;
     this.base = base;
@@ -48,21 +50,20 @@ final class RuntimeExecution {
     this.readiness = readiness;
     this.nativeFiles = nativeFiles;
     this.launcher = launcher;
+    this.modePolicy = modePolicy;
     hardlinks = new RuntimeHardlinks(context, rootfs, ports);
   }
 
   ContainerRuntime runtime() {
     RuntimeHostPorts.Settings settings = ports.settings();
     try {
-      String configured =
-          new com.deepseekharness.app.core.ConfigStore(context).containerRuntimeMode();
+      String configured = modePolicy.containerRuntimeMode();
       if ("root".equals(configured)) {
         if (!com.deepseekharness.app.util.RootRuntimePolicy.directContainerAllowed()) {
           ports.record(
               "RUNTIME_ROOT_BLOCKED",
               com.deepseekharness.app.util.RootRuntimePolicy.directContainerUnavailableReason());
-          new com.deepseekharness.app.core.ConfigStore(context).setRootRuntimeAuthorization(false);
-          new com.deepseekharness.app.core.ConfigStore(context).setContainerRuntimeMode("proot");
+          modePolicy.resetToProot();
           return proot();
         }
         if (com.deepseekharness.app.RootShell.verifyAuthorization(context)) {
@@ -70,8 +71,7 @@ final class RuntimeExecution {
           return new ContainerRuntime.Root(context, rootfs, context.getFilesDir());
         }
         ports.record("RUNTIME_ROOT_FALLBACK", "root authorization unavailable; using proot");
-        new com.deepseekharness.app.core.ConfigStore(context).setRootRuntimeAuthorization(false);
-        new com.deepseekharness.app.core.ConfigStore(context).setContainerRuntimeMode("proot");
+        modePolicy.resetToProot();
         return proot();
       }
       if (!forceProot && android.os.Build.VERSION.SDK_INT >= 26 && settings.proroot) {
@@ -130,7 +130,7 @@ final class RuntimeExecution {
     }
     File home = new File(rootfs, "root"), link = new File(home, "手机存储");
     if (home.isDirectory()
-        && com.deepseekharness.app.util.ExternalStorageAccess.granted(context)
+        && com.deepseekharness.app.runtime.ExternalStorageAccess.granted(context)
         && !link.exists()
         && !Compat.isSymbolicLink(link))
       try {

@@ -113,7 +113,7 @@
         <activity android:name=".ui.ManifestPageActivity" android:exported="false" />
         <activity android:name=".ui.ContainerSshActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-        <service android:name=".runtime.ContainerSshService" android:exported="false"
+        <service android:name=".ContainerSshService" android:exported="false"
             android:stopWithTask="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-enabled container SSH debugging with password authentication and explicit stop." />

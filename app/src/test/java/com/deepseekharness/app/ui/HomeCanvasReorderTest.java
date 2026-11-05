@@ -15,7 +15,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import com.deepseekharness.app.R;
-import com.deepseekharness.app.util.HomeLayoutStore;
+import com.deepseekharness.app.HomeLayoutStore;
 import java.time.Duration;
 import java.util.List;
 import org.junit.After;

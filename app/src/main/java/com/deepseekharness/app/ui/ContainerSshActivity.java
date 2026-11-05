@@ -12,7 +12,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
-import com.deepseekharness.app.runtime.ContainerSshService;
+import com.deepseekharness.app.ContainerSshService;
 import com.deepseekharness.app.util.ContainerSshPolicy;
 import com.deepseekharness.app.util.LanAddressPolicy;
 import com.deepseekharness.app.util.UiText;

@@ -1,4 +1,4 @@
-package com.deepseekharness.app.util;
+package com.deepseekharness.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;

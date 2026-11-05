@@ -1,4 +1,4 @@
-package com.deepseekharness.app.runtime;
+package com.deepseekharness.app;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -15,6 +15,8 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.core.RuntimeTasks;
+import com.deepseekharness.app.runtime.IsolatedInstallProcess;
+import com.deepseekharness.app.runtime.ContainerSshAssets;
 import com.deepseekharness.app.util.ContainerSshPolicy;
 import com.deepseekharness.app.util.UiText;
 import java.io.BufferedReader;

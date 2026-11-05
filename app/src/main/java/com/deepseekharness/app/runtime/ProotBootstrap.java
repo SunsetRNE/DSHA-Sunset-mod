@@ -32,6 +32,7 @@ public class ProotBootstrap {
   private final RuntimeHostPorts hostPorts;
   private final RuntimeNativeFiles nativeFiles;
   private final RuntimeExecution execution;
+  private final RuntimeModePolicy modePolicy;
   private final TerminalRuntime terminal;
   private final RecoveryToolchain recovery;
   final ColdInstallTransaction.Candidate coldCandidate;
@@ -43,10 +44,15 @@ public class ProotBootstrap {
 
   /** 本次兼容重试使用 proot，不改用户保存的运行方式。 */
   public ProotBootstrap(Context c, boolean forceProot) {
-    this(c, forceProot, null);
+    this(c, forceProot, null, new com.deepseekharness.app.core.DefaultRuntimeModePolicy(c));
   }
 
+  /** 同包安装管线用：不带策略时回落到默认适配器。 */
   ProotBootstrap(Context c, boolean forceProot, ColdInstallTransaction.Candidate candidate) {
+    this(c, forceProot, candidate, new com.deepseekharness.app.core.DefaultRuntimeModePolicy(c));
+  }
+
+  ProotBootstrap(Context c, boolean forceProot, ColdInstallTransaction.Candidate candidate, RuntimeModePolicy modePolicy) {
     this.forceProot = forceProot;
     this.coldCandidate = candidate;
     ctx = c.getApplicationContext();
@@ -59,6 +65,7 @@ public class ProotBootstrap {
     transfers = new RuntimeDataTransfers(ctx, rootfsDir);
     launcher = new RuntimeLauncher(ctx, rootfsDir, baseDir, libDir, tmpDir, hostPorts);
     nativeFiles = new RuntimeNativeFiles(ctx, baseDir, libDir, tmpDir);
+    this.modePolicy = modePolicy;
     execution =
         new RuntimeExecution(
             ctx,
@@ -70,7 +77,8 @@ public class ProotBootstrap {
             hostPorts,
             this::requireUserRuntime,
             nativeFiles,
-            launcher);
+            launcher,
+            modePolicy);
     terminal = new TerminalRuntime(ctx, rootfsDir, execution, hostPorts);
     recovery =
         new RecoveryToolchain(
@@ -307,7 +315,7 @@ public class ProotBootstrap {
   }
 
   /** 用户显式启动的 SSH 独立进程组；正常门禁、原生握手及持久退出证据不省略。 */
-  IsolatedInstallProcess startSsh(String command) throws IOException {
+  public IsolatedInstallProcess startSsh(String command) throws IOException {
     requireUserRuntime();
     ensureRuntimeFiles();
     prepareRuntimeTools();

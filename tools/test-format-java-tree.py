@@ -60,9 +60,14 @@ class FormatTreeTests(unittest.TestCase):
         names += ["app/src/test/java/com/deepseekharness/app/util/QueryTest.java",
                   "app/src/main/java/com/deepseekharness/app/HttpShellService.java"]
         batches = tree.package_batches(names)
-        self.assertEqual([1, 256, 44, 1], [len(files) for _, files in batches])
-        self.assertEqual([("main", "(root)"), ("main", "util"),
-                          ("main", "util"), ("test", "util")],
+        # 批大小上限随平台取自实现本身（Windows 命令行长度把上限压到 128；
+        # Linux CI 保持 256）。这里按同一常量推导期望，两边都锁住分组不跨包、
+        # 不超限、不丢文件这三条不变量。
+        limit = tree.MAX_BATCH
+        util_counts = [limit] * (300 // limit) + ([300 % limit] if 300 % limit else [])
+        self.assertEqual([1] + util_counts + [1], [len(files) for _, files in batches])
+        self.assertEqual([("main", "(root)")] + [("main", "util")] * len(util_counts)
+                         + [("test", "util")],
                          [key for key, _ in batches])
         self.assertEqual(set(names), {name for _, files in batches for name in files})
 

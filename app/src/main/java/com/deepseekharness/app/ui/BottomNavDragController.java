@@ -5,7 +5,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import com.deepseekharness.app.R;
-import com.deepseekharness.app.util.HomeLayoutStore;
+import com.deepseekharness.app.HomeLayoutStore;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -30282,5 +30282,173 @@
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]
+  },
+  {
+    "id": "launch_tool_not_found",
+    "zh": "找不到登记的工具 %s，可能已被删除",
+    "en": "Registered tool %s not found; it may have been deleted",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_starting",
+    "zh": "正在启动 %s…",
+    "en": "Starting %s…",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_start_failed",
+    "zh": "%s 启动失败：%s",
+    "en": "%s failed to start: %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_started_listening",
+    "zh": "%s 已启动 · 端口 %s 已监听（容器内 127.0.0.1:%s）",
+    "en": "%s started · port %s listening (in-container 127.0.0.1:%s)",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_running_log",
+    "zh": "%s 运行中；日志见容器内 %s",
+    "en": "%s running; log in container at %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_exited",
+    "zh": "%s 已退出，端口 %s 未监听；日志见容器内 %s",
+    "en": "%s exited; port %s not listening; log in container at %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_finished",
+    "zh": "%s 已执行完成；输出见容器内 %s",
+    "en": "%s finished; output in container at %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_restarted",
+    "zh": "已重启：%s",
+    "en": "Restarted: %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_tool_restart",
+    "zh": "重启 %s",
+    "en": "Restart %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_subtitle_port_piece",
+    "zh": " · 容器内 127.0.0.1:%s",
+    "en": " · in-container 127.0.0.1:%s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_status_web_port",
+    "zh": "127.0.0.1:%s · %s · dsh %s",
+    "en": "127.0.0.1:%s · %s · dsh %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_ssh_title",
+    "zh": "启动 SSH 调试",
+    "en": "SSH debugging",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_ssh_sub",
+    "zh": "连接 Ubuntu 容器进行调试",
+    "en": "Connect to the Ubuntu container",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_ssh_note",
+    "zh": "SSH 调试设置；默认关闭，不会自动开放连接",
+    "en": "SSH debugging settings; off by default, no listener starts automatically",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_enter_workspace",
+    "zh": "▶  进入工作台",
+    "en": "▶  Open workspace",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_start_tool",
+    "zh": "启动 %s",
+    "en": "Start %s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_target_gone",
+    "zh": "启动入口指向的容器程序已不存在，请在模块中心重新选择",
+    "en": "The registered container program is gone; pick another in the module center",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_subtitle_tool",
+    "zh": "启动后运行容器程序：%s%s",
+    "en": "Starts the container program: %s%s",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_subtitle_web",
+    "zh": "启动后运行容器里的 DSH 工作台 · 就绪后显示 127.0.0.1 端口",
+    "en": "Starts the DSH workspace inside the container · shows the 127.0.0.1 port when ready",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_not_ready",
+    "zh": "容器环境还没就绪，先完成运行环境安装",
+    "en": "Container is not ready; install the runtime first",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "launch_module_issue_banner",
+    "zh": "有 %s 个模块文件无效或安装失败，点击查看详情",
+    "en": "%s module files are invalid or failed to install; tap for details",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
   }
 ]

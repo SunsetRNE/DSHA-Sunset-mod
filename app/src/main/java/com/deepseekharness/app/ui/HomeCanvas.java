@@ -12,7 +12,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.module.HomeModule;
-import com.deepseekharness.app.util.HomeLayoutStore;
+import com.deepseekharness.app.HomeLayoutStore;
 import com.deepseekharness.app.util.UiText;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

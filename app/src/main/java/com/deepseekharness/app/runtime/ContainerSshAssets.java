@@ -13,13 +13,13 @@ import java.util.Map;
 import org.json.JSONObject;
 
 /** SSH 按需资产与本机主机密钥独立于可重建 rootfs，私有路径逐级拒绝链接。 */
-final class ContainerSshAssets {
+public final class ContainerSshAssets {
   static final String HOME = "/run/dsha-container-ssh";
   private static final String ASSET_PREFIX = "container-ssh/";
 
   private ContainerSshAssets() {}
 
-  static boolean supported(Context context) {
+  public static boolean supported(Context context) {
     if (context == null) return false;
     try (InputStream input = context.getAssets().open("container-ssh/manifest.json")) {
       return input.read() == '{';

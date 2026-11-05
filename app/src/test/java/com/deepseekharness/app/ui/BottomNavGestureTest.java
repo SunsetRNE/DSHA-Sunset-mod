@@ -8,7 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.deepseekharness.app.R;
-import com.deepseekharness.app.util.HomeLayoutStore;
+import com.deepseekharness.app.HomeLayoutStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

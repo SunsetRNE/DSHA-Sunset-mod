@@ -1,4 +1,4 @@
-package com.deepseekharness.app.util;
+package com.deepseekharness.app.runtime;
 
 import android.content.Context;
 import android.os.Build;

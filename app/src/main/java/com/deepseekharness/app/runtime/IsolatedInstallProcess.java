@@ -14,7 +14,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 
 /** 冷安装及有界 proroot 命令的独立会话监督器；关闭前核验本次整组退出。 */
-final class IsolatedInstallProcess extends Process implements AutoCloseable {
+final public class IsolatedInstallProcess extends Process implements AutoCloseable {
   private final Process supervisor;
   private final ProcessIdentity identity;
   private final File status;

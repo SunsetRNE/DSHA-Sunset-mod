@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.deepseekharness.app.R;
-import com.deepseekharness.app.util.HomeLayoutStore;
+import com.deepseekharness.app.HomeLayoutStore;
 import com.deepseekharness.app.util.UiText;
 import java.util.ArrayList;
 import java.util.Arrays;
