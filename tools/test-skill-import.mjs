@@ -212,7 +212,7 @@ try {
   const catalog = catalogDecision.messages.find(message => message.source?.kind === 'skill-catalog');
   assert(catalog, 'user-only skill must remain visible in the model catalog');
   assert.match(catalog.content[0].text, /user-only/);
-  assert.match(catalog.content[0].text, /requires user approval before loading/);
+  assert.match(catalog.content[0].text, /\[approval required\]/);
   checks.push('model catalog advertises user-only skills with an approval requirement');
 
   await assert.rejects(() => registered.execute({ name: 'user-only' }, {
