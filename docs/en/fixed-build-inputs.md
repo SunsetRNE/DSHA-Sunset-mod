@@ -1,6 +1,6 @@
 # Fixed build inputs (public-repository prerelease asset)
 
-Updated 2026-11-05 (S1 switches the bundled and emergency DSH runtimes to 0.2.2-rc.1; the archive includes the managed pipeline and native-executor inputs). The current `fixed-inputs-20261105b` bundle is a locally generated candidate pending upload; the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
+Updated 2026-11-05 (S1 switches the bundled and emergency DSH runtimes to 0.2.2-rc.1; the archive includes the managed pipeline and native-executor inputs). The current `fixed-inputs-20261105b` bundle is an uploaded GitHub prerelease; the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
 
 ## Why the fixed inputs are not stored in git
 
@@ -86,17 +86,16 @@ everything passes. Any failure leaves existing inputs untouched and never execut
 | Item | Value |
 |---|---|
 | release tag | `fixed-inputs-20261105b` (prerelease, target `main`) |
-| release id | `pending upload` |
+| release id | `434775273` |
 | asset | `dsha-a-su-fixed-inputs-20261105b.zip` |
 | bytes | `703122033` |
 | SHA-256 | `978b31dfa11dc24064bd9db3f63347aa534aebb55e7e49d9e617b145458456fa` |
 | download URL | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105b/dsha-a-su-fixed-inputs-20261105b.zip` |
 
-> This bundle is currently generated and verified locally only; it has not been uploaded to GitHub. After upload,
-> verify the asset `name`/`size`/`state` with `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261105b`;
-> only `size=703122033` and `state=uploaded` mean publication is complete. The direct URL is determined by the tag plus
-> the asset filename and does not depend on the asset id. A same-tag `--clobber` replacement keeps the filename but
-> changes the content and SHA-256, so the lock must be updated.
+> Upload status was verified with `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261105b`:
+> the asset is `703122033` bytes with `state=uploaded`, and release id `434775273`. The direct URL is determined by the
+> tag plus the asset filename and does not depend on the asset id. A same-tag `--clobber` replacement keeps the filename
+> but changes the content and SHA-256, so the lock must be updated.
 
 ## Upgrade flow (new prerelease asset)
 

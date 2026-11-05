@@ -1,6 +1,6 @@
 # 固定构建输入（公开仓库预发布资产）
 
-更新：2026-11-05（S1 切换内置与应急 DSH 到 0.2.2-rc.1；归档包含受管 pipeline 与独立 native executor 输入）。当前为本机生成、待上传的 `fixed-inputs-20261105b` 候选归档；
+更新：2026-11-05（S1 切换内置与应急 DSH 到 0.2.2-rc.1；归档包含受管 pipeline 与独立 native executor 输入）。当前资产为已上传的 `fixed-inputs-20261105b` GitHub 预发布；
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 
 ## 为什么固定输入不放进 git
@@ -83,13 +83,13 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105b.zip \
 | 项目 | 值 |
 |---|---|
 | release tag | `fixed-inputs-20261105b`（prerelease，target `main`） |
-| release id | `pending upload` |
+| release id | `434775273` |
 | asset | `dsha-a-su-fixed-inputs-20261105b.zip` |
 | bytes | `703122033` |
 | SHA-256 | `978b31dfa11dc24064bd9db3f63347aa534aebb55e7e49d9e617b145458456fa` |
 | 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105b/dsha-a-su-fixed-inputs-20261105b.zip` |
 
-> 当前仅在本机生成并校验该 bundle，尚未上传 GitHub；上传后必须用 `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261105b` 核对资产 `name`/`size`/`state`，只有 `size=703122033` 且 `state=uploaded` 才能将这里的状态改为已发布。
+> 上传状态已由 `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/tags/fixed-inputs-20261105b` 核对：资产 `size=703122033`、`state=uploaded`，release id 为 `434775273`。
 > 直链由 tag + 资产文件名确定，不依赖 asset id；若后续在同 tag 内 `--clobber` 替换资产，文件名不变但内容与 SHA-256 会变，必须同步更新锁。
 
 ## 升级流程（新预发布资产）
