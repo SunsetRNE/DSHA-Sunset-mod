@@ -1,6 +1,6 @@
 # 覆盖安装、运行时维护与内置插件依赖契约
 
-> English: [Overwrite install, runtime maintenance and stop-before-maintenance contract](overwrite-upgrade-and-maintenance.en.md)
+> English: [Over-the-top upgrades, runtime maintenance, and built-in plugin dependency contracts](en/overwrite-upgrade-and-maintenance.md)
 >
 > 核验日期：2026-11-05。基线：build324（已发布）/ build325（T61 移动壳齿轮让位）/ build326（T60 展示层与旧 Web 会话修复）/ build327（T67 维护前自行完成完全停止）。本文把“覆盖安装后白屏、不触发环境维护、侧栏重复叠加、维护页要求用户绕道停止 Web”这次事故的判定层、展示层、自动开始安全门禁、维护前停止与 Web 启动准入写成持久化不变式。只核对源码与已有回归，不代替真机验收；具体版本的验证范围以 [docs/releases/](releases/) 对应回执为准。
 
@@ -252,6 +252,6 @@ dsha-gradle :app:testStandardDebugUnitTest --tests '*WebProofStopTest'         #
 | 325 齿轮修复记录 | [build325 齿轮记录](releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md) |
 | 326 覆盖安装维护判定记录 | [build326 记录](releases/v0.2.1-rc.5-build326-overwrite-maintenance-20261105.md) |
 | 327 维护前自行完全停止记录 | [build327 记录](releases/v0.2.1-rc.5-build327-maintenance-self-stop-20261105.md) |
-| 英文契约 | [English contract](overwrite-upgrade-and-maintenance.en.md) |
+| 英文契约 | [English contract](en/overwrite-upgrade-and-maintenance.md) |
 | 外部 PR / 外部合并审查 | [外部 PR 与外部合并审查流程](external-pr-review.md) |
 | 契约整组工作流 | [`.github/workflows/_node-contracts.yml`](../.github/workflows/_node-contracts.yml) |

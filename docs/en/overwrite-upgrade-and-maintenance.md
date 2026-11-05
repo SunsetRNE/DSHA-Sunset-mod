@@ -1,6 +1,6 @@
 # Over-the-top upgrades, runtime maintenance, and built-in plugin dependency contracts
 
-> Checked on 2026-11-05. Baseline: build324 (released) / build325 (T61 mobile-shell gear fit) / build326 (T60 display-layer and unresolved-Web fixes). This page turns the "white screen, no environment maintenance, duplicated sidebar" incident after an over-the-top upgrade into persistent invariants across the decision layer, display layer, auto-start safety gate, and Web start admission. It reviews source and existing regressions only; it does not replace device acceptance. Per-version scope remains in the matching [release records](releases/).
+> Checked on 2026-11-05. Baseline: build324 (released) / build325 (T61 mobile-shell gear fit) / build326 (T60 display-layer and unresolved-Web fixes) / build327 (T67 maintenance performs the full stop itself). This page turns the "white screen, no environment maintenance, duplicated sidebar, and maintenance telling the user to stop Web by hand" incident after an over-the-top upgrade into persistent invariants across the decision layer, display layer, auto-start safety gate, stop-before-maintenance, and Web start admission. It reviews source and existing regressions only; it does not replace device acceptance. Per-version scope remains in the matching [release records](releases/).
 
 ## 30-second summary
 
@@ -9,6 +9,7 @@
 3. **Auto-start may be silently blocked**: if the old proot Web process survives an over-the-top upgrade, `hasUnresolvedWebSession()` is true and `shouldAutoStart` returns false. That is a **required** safety gate (never replay an unknown instance), but the user must still see the full-screen maintenance page and manually start the update.
 4. **White-screen mechanism**: `WebLifecycleController` returns `REJECTED` when `!isEnvironmentReady() || requiresMaintenanceBeforeStart()`, preventing the watchdog from starting Web on a "compatible but outdated" runtime. On host recreation / a watchdog restart, "old tree + new APK" never starts Web and the Main Web area stays blank. If the old proot Web process is still alive and the page has already loaded the old tree, the plugin's dependency on the host indicator can also blank the content area and duplicate the sidebar; in the T61 device control only that plugin contract changed and the white screen disappeared, although the direct JS stack was not captured — see [the blank-screen investigation](../releases/v0.2.1-rc.5-build324-blank-screen-20261105.md).
 5. **Client plugins must not depend on a host widget existing**: the built-in `dsh-web-mobile` sidebar gear used `:has(...)` to detect whether the host rendered `ConnectionIndicator`. When a managed patch stopped rendering that indicator, the plugin render chain broke; disabling the plugin restored the UI. The fix measures actual widths and writes an idempotent result into the plugin's own `data-mobile-nav-quick-fit` attribute.
+6. **The maintenance action must complete the full stop by itself** (build327): after the user taps "Update runtime", the maintenance task stops the old Web using the existing design (sentinel → PID record + birth identity), then takes the barrier and runs the update. If the ordinary stop is unconfirmed, it escalates exactly once to the identity-verified force stop. The user no longer has to detour through "limited Main → Stop → back to maintenance". If the stop cannot be confirmed, the original environment is retained and the page shows an actionable retry message.
 
 ## Invariants (do not break)
 
@@ -22,6 +23,7 @@
 | I6 | A UI-only APK overwrite **must not** rebuild the environment; the same dsh version with changed managed patches or descriptor inputs **must** be treated as a patch-level update (recompute descriptor, enter maintenance, reinstall the managed tree). | `RuntimeDescriptor.latest` compares `id` and `inputs`; `OverwriteUpgradeGateTest.uiOnlyApkUpdateWithUnchangedManagedInputsNeverNeedsMaintenance` |
 | I7 | Auto-start the same candidate at most once; failures, interruptions, rotation, and process recreation never replay it. Limited entry writes no readiness marker, and terminal / Web / plugin execution still pass environment gates. | `EnvironmentIdentity.shouldAutoStart`; `MaintenanceCoordinator.pending`; `ExtractActivity.proceed()`'s `limitedEntry` |
 | I8 | Built-in plugins may depend only on **their own attributes plus measured geometry**, never on whether some host widget exists (class names, `data-*`, `role`, `:has()` are all off-limits). Host UI changes must not break the plugin render chain. | [`tools/test-mobile-gear-contract.mjs`](../../tools/test-mobile-gear-contract.mjs) (T61 / build325); [`tools/apply-mobile-client-patches.mjs`](../../tools/apply-mobile-client-patches.mjs)'s `DSHA_GEAR_FIT_V1` |
+| I9 | After the user explicitly confirms maintenance, the maintenance action **performs the full stop itself** before taking the barrier and running the update. If the ordinary stop is unconfirmed, it may escalate exactly once to an **identity-verified** force stop (PID, birth time, command line, generation; never port / name / process group). If verification fails or the process still cannot be confirmed exited, the original environment is retained and the failure message offers a retry. An unconfirmed old Web still only blocks auto-start, never the manual tap. | `MaintenancePreStop` (`core/`) and `WebProofStop` (`util/`); `MaintenancePreStopTest`, `WebProofStopTest`, `WebRecordedStopTest`, `WebForceStopTest`, `WebSessionProofTest` (T67 / build327) |
 
 ## The four layers
 
@@ -66,6 +68,7 @@ The real gap was rendering and limited entry:
   3. offer "Update runtime" as the primary action, started only by an explicit tap;
   4. allow the limited Main for logs/configuration while Web and plugin execution remain gated.
 - Failed/interrupted old candidates follow the `previousStatus` / `previousRuntimeHealthy` conditions; a repair APK upgrade does not turn an unknown scene into something safe to replay.
+- This gate only decides whether to start **automatically**. A user tap on the maintenance page is not blocked by it; the maintenance action then performs the full stop itself (next section).
 
 ### 4. Web start admission: the actual cause of the white screen
 
@@ -85,6 +88,20 @@ Therefore, with "old tree + new APK":
 - on host recreation or a watchdog restart, Web is not allowed to start and the Main Web area is blank;
 - this is not a WebView failure, a network failure, or a general plugin crash: **do not** touch WebView, clear caches, reinstall the APK, or weaken the admission gate;
 - if the old proot Web process is still alive and the page has already loaded the old tree, interface evidence is UNKNOWN; combined with DSH 0.2.2 no longer rendering the first-connection indicator, the old plugin dependency fails and the user also sees a blank content area and a duplicated sidebar (next section). [The blank-screen investigation](../releases/v0.2.1-rc.5-build324-blank-screen-20261105.md) preserves the uncaptured direct JS stack and follow-up evidence steps; [the build325 record](../releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md) records the device control result.
+
+### 5. Stop before maintenance: the maintenance action does the full stop
+
+After the user taps "Update runtime", the maintenance task must complete the stop itself before taking the barrier; the stop is no longer handed back to the user:
+
+- **Entry**: the confirmation button in [`RuntimeMaintenanceStarter.showRetryDialog`](../../app/src/main/java/com/deepseekharness/app/ui/RuntimeMaintenanceStarter.java) calls `BackupTask.updateEnvironment(true)` / `rebuild()` / `recoverMaintenance()`. Only after the user taps "Continue" in the confirmation dialog does the task carry `allowForceStop=true`.
+- **Stop order**: `MaintenanceCoordinator.exclusiveUserConfirmed` → close terminals → [`MaintenancePreStop`](../../app/src/main/java/com/deepseekharness/app/core/MaintenancePreStop.java):
+  1. request the ordinary stop (the stop queue writes the sentinel first, then verifies the PID record and birth identity; only the same verified process is signalled);
+  2. wait for the existing exit proof from `WebProcessManager` / `WebProcessSession` (guest **and** launcher);
+  3. only if the ordinary stop is unconfirmed, call `HarnessController.prepareForceStop()` to prepare an **identity-verified** candidate (PID, birth time, command line, UID, generation) and `forceStop` the same guest;
+  4. if the guest still cannot be confirmed exited, fail with a message that states the original environment was not changed and asks the user to tap "Retry runtime update".
+- **Residual process after an over-the-top install**: the app may have been killed while the guest kept running, and `/root/.dsha-web.pid` / `.dsha-web.identity` may be missing. The session record already persists the birth identity (`StoredWebSession.Record.proof`: boot, generation, instance, nonce, guest and launcher PID + birth time + command line). [`WebProofStop`](../../app/src/main/java/com/deepseekharness/app/util/WebProofStop.java) uses it as a fallback: it signals only after two full identity checks agree, SIGTERM first, and (when force is allowed) a second verification before SIGKILL. PID reuse, changed birth time/command line, or an unreadable record means **no signal at all**. The container launcher is never signalled.
+- **Automatic paths never force**: auto-start after an overwrite and post-upgrade cleanup still call `MaintenanceCoordinator.exclusive` without `allowForceStop`; the unconfirmed old Web only blocks auto-start (I4), and only the manual tap may force.
+- **The three-step detour is obsolete**: a failure message no longer tells the user to "stop in the limited Main first". The Main → Stop button remains the existing manual stop / force-stop entry, but it is no longer a mandatory step for finishing runtime maintenance.
 
 ## Built-in plugins must not depend on host UI
 
@@ -139,6 +156,8 @@ python3 tools/check-document-links.py
 node tools/test-mobile-gear-contract.mjs          # built-in mobile-shell gear contract (T61 / build325)
 dsha-gradle :app:testStandardDebugUnitTest --tests '*OverwriteUpgradeGateTest'
 dsha-gradle :app:testStandardDebugUnitTest --tests '*RuntimeUpgradeStateTest'
+dsha-gradle :app:testStandardDebugUnitTest --tests '*MaintenancePreStopTest'   # build327: stop before maintenance
+dsha-gradle :app:testStandardDebugUnitTest --tests '*WebProofStopTest'         # build327: residual-process identity
 ```
 
 Additional rules:
@@ -157,8 +176,9 @@ Release acceptance must perform one real "**previous build → this build**" ove
    - the **full-screen maintenance page** appears (not Main, not a blank Web);
    - it states that the installed runtime still belongs to the previous build / managed patches are not in place;
    - "Update runtime / Retry" is the primary action and clickable;
-   - if auto-start is blocked by an unresolved old Web session, the page still offers an explicit manual entry (this is correct behavior, not a failure).
-3. **Complete maintenance**: tap update on the maintenance page; confirm normal process shutdown, candidate preparation, trial, and commit. Then verify Web starts, plugins load, and the sidebar has exactly one settings entry. Use diagnostics/environment info to confirm `runtimeId` now matches the current APK candidate.
+   - if auto-start is blocked by an unresolved old Web session, the page still offers an explicit manual entry (this is correct behavior, not a failure);
+   - after tapping "Update runtime", the maintenance task stops the old Web **by itself** and continues, instead of requiring the user to enter the limited Main and press Stop.
+3. **Complete maintenance**: tap update on the maintenance page; **you do not need to enter the limited Main and press Stop first**. Confirm that the maintenance task stops the old Web itself (escalating once to the identity-verified force stop when the ordinary stop is unconfirmed), then prepares the candidate, runs the trial, and commits. Then verify Web starts, plugins load, and the sidebar has exactly one settings entry. Use diagnostics/environment info to confirm `runtimeId` now matches the current APK candidate. If the stop stage fails, confirm the page shows the reason plus "Retry runtime update", and that the original environment was not changed.
 4. **Cold overwrite**: normally stop DSH and terminals, overwrite the same pair, and confirm maintenance starts automatically once, then Main opens with a working Web.
 5. **Plugin regression**: inspect the sidebar footer both when no connection indicator is shown on first entry and after the indicator appears: exactly one gear, no overlap with the account button, and the account menu still opens settings.
 6. **UI-only counter-check**: a UI-only build with an unchanged descriptor must not trigger an environment rebuild or maintenance.
@@ -179,11 +199,12 @@ Device control (2026-11-05): after installing the test package built from the sa
 | Auto-start | Old proot Web alive → `hasUnresolvedWebSession()` true → `shouldAutoStart` false | "Maintenance did not start automatically", with no obvious manual entry |
 | Web admission | `!isEnvironmentReady() || requiresMaintenanceBeforeStart` → `REJECTED` | Blank Web area; with the old Web still alive plus the broken plugin `:has()` dependency, a duplicated sidebar appeared; disabling the built-in plugin restored it |
 
-The fix has three parts, all required:
+The fix has four parts, all required:
 
 1. **Display layer (T60 / build326)**: `RuntimeUpgradeState` separates "can keep running" from "is current candidate"; maintenance `ready` also requires `runtimeLatest`; `limitedEntry` includes unfinished patch-level updates; the Main banner keeps a route back to maintenance; the maintenance page explains that managed patches are not in place.
 2. **Entry (T60 / build326)**: an unresolved old Web session only blocks auto-start and no longer prevents opening the maintenance page, so the only repair entry is always reachable.
 3. **Plugin dependency (T61 / build325)**: gear yielding is based on measured width plus a plugin-owned attribute, no longer on the host indicator existing.
+4. **Stop before maintenance (T67 / build327)**: after the manual tap the maintenance action performs the full stop itself; an unconfirmed ordinary stop escalates once to the identity-verified force stop, a failure keeps the original environment and offers a retry, and the user no longer needs to detour through the limited Main (I9).
 
 Common misdiagnoses:
 
@@ -201,6 +222,7 @@ Common misdiagnoses:
 | Maintenance page shows "Enter Main" as primary and update as secondary | whether the `ready` passed in uses only `isEnvironmentReady()`; whether `RuntimeUpgradeState.upToDate` includes `latest` | change only button text or styling; the inputs are wrong |
 | Main from maintenance bounces back | whether `limitedEntry` recorded a limited identity; whether patch-level incompleteness is part of the condition | disable the Main gate; that only hides the problem |
 | "Maintenance did not start automatically" | `hasUnresolvedWebSession()`; whether the previous task FAILED/INTERRUPTED; whether this candidate was already attempted | replay an unknown old instance automatically; offer an explicit manual start |
+| Maintenance fails saying Web did not stop / user is forced to stop in the Main first | whether the maintenance action goes through `MaintenanceCoordinator.exclusiveUserConfirmed`; whether `MaintenancePreStop` escalated; the stop error code and `WebProofStop` verification result | treat "Main → Stop" as a mandatory maintenance step; weaken identity checks or kill by port/name |
 | Duplicated sidebar footer / gear covering the avatar | whether the plugin still uses host `:has(button[data-phase], [role="status"])`; whether `data-mobile-nav-quick-fit` is written | treat "disable the built-in plugin" as the fix |
 | "The patch was not updated" | first compare whether `runtimeId` / `inputs` equal the current candidate; then check `dsh-runtime.bin` markers and `verify-runtime-descriptor-source` | suspect the patch chain first |
 
@@ -210,6 +232,9 @@ Common misdiagnoses:
 |---|---|
 | Upgrade gate (322→323, 323→324, synthetic patch-level predecessor, UI-only, unresolved old Web) | `app/src/test/java/com/deepseekharness/app/backup/OverwriteUpgradeGateTest.java` (T60 / build326) |
 | `RuntimeUpgradeState` pure logic | `app/src/test/java/com/deepseekharness/app/util/RuntimeUpgradeStateTest.java` (T60 / build326) |
+| Stop-before-maintenance and force escalation order | `app/src/test/java/com/deepseekharness/app/core/MaintenancePreStopTest.java` (T67 / build327) |
+| Residual Web recovered by birth identity (PID reuse / missing record never signals) | `app/src/test/java/com/deepseekharness/app/util/WebProofStopTest.java` (T67 / build327), `WebSessionProofTest` |
+| Stop algorithm and force-stop identity gate | `app/src/test/java/com/deepseekharness/app/runtime/WebRecordedStopTest.java`, `app/src/test/java/com/deepseekharness/app/util/WebForceStopTest.java`, `app/src/test/java/com/deepseekharness/app/core/WebForceStopGateTest.java` |
 | Mobile-shell gear contract | [`tools/test-mobile-gear-contract.mjs`](../../tools/test-mobile-gear-contract.mjs) (T61 / build325) |
 | Maintenance transaction and stop barriers | [`MaintenanceGateTest`](../../app/src/test/java/com/deepseekharness/app/util/MaintenanceGateTest.java) |
 | Maintenance page implementation | [`ExtractActivity`](../../app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java), [`MaintenanceFooterPolicy`](../../app/src/main/java/com/deepseekharness/app/util/MaintenanceFooterPolicy.java) |
@@ -222,5 +247,7 @@ Common misdiagnoses:
 | build323 upgrade record | [build323 record](../releases/v0.2.1-rc.5-build323-dsh022-s1-connection-display-20261105.md) |
 | build324 blank-screen investigation | [build324 blank-screen record](../releases/v0.2.1-rc.5-build324-blank-screen-20261105.md) |
 | build325 gear-fit record | [build325 mobile gear record](../releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md) |
+| build326 overwrite-maintenance record | [build326 record](../releases/v0.2.1-rc.5-build326-overwrite-maintenance-20261105.md) |
+| build327 stop-before-maintenance record | [build327 record](../releases/v0.2.1-rc.5-build327-maintenance-self-stop-20261105.md) |
 | External PR / external merge review | [external PR and external merge review process](external-pr-review.md) |
 | Whole contracts workflow | [`_node-contracts.yml`](../../.github/workflows/_node-contracts.yml) |
