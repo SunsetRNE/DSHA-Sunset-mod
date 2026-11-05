@@ -302,7 +302,7 @@ class CiAssetsTests(unittest.TestCase):
                 with patch.object(zipfile.ZipFile, 'open', track_open):
                     self.restore(package, source=True)
                 self.assertEqual(set(opened), {prefix + name for name in originals})
-                self.assertEqual(len(opened), 11)
+                self.assertEqual(len(opened), len(assets.allowed()))
                 self.assertEqual(source.read_bytes(), b'checkout source stays')
                 self.assertFalse((self.root / 'source-release').exists())
                 for name, data in originals.items():

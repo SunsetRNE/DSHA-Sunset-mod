@@ -15,7 +15,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 NAMES = ["offline-rootfs.bin", "dsh-runtime.bin", "dsh-runtime.inputs.json",
          "ubuntu-tools.bin", "ubuntu-tools.inputs.json", "pnpm-runtime.bin",
-         "python-support.bin", "glibc-python.tar.gz", "adb-wheels.tar.gz"]
+         "python-support.bin", "glibc-python.tar.gz", "adb-wheels.tar.gz",
+         "gh-cli.tar.gz"]
 
 
 def check_name(name):

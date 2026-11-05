@@ -77,6 +77,10 @@
 | `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL family; exact binary revision unverified | Samba talloc; original Standard binary exact revision unverified |
 | `app/src/main/jniLibs/arm64-v8a/libtermux.so` | Apache-2.0 exception | tools/termux-jni, v0.118.0 source plus local handshake changes |
 
+## 受管命令行工具
+
+- GitHub CLI（gh）v2.103.3：MIT，官方 `https://github.com/cli/cli` release 的 linux-arm64 归档，固定输入 `app/src/main/assets/gh-cli.tar.gz` 的版本、URL、归档与成员摘要见 `tools/gh-cli/packages.lock.json`；许可全文 `assets/licenses/gh-MIT.txt`（SHA-256 `6da4adc42392c8485e40b4251c7e332fc3352df1947c9ffade71dd60b14a7a4f`）。受管安装只提取固定成员并二次校验摘要，不执行归档中的其它内容。
+
 ## npm 锁中需另核对的许可声明
 
 此表来自当前锁，包含其它平台可选包。`check-third-party-notices.py --archive` 再核对实际运行归档中的包版本和声明；两者都不代替源码提供、嵌入库或法律来源核验。

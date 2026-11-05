@@ -55,6 +55,10 @@ def render():
                        for path in native_members())
     hashes = '\n'.join(f'- `{name}`：`{hashlib.sha256((ASSETS / "builtin-plugins/dsh-web-mobile/lib" / name).read_bytes()).hexdigest()}`'
                        for name in ('client.js', 'index.js', 'compress.js', 'delete-session.js'))
+    gh_lock = json.loads((ROOT / 'tools/gh-cli/packages.lock.json').read_text(encoding='utf-8'))
+    gh_license = (ASSETS / 'licenses/gh-MIT.txt').read_bytes()
+    if hashlib.sha256(gh_license).hexdigest() != gh_lock.get('licenseSha256'):
+        raise ValueError('GH_CLI_LICENSE_NOTICE: assets/licenses/gh-MIT.txt 与 tools/gh-cli/packages.lock.json 不一致')
     return f'''# 第三方组件声明
 
 此文由 `python tools/generate-third-party-notices.py` 从当前锁和实际资产生成。DSHA 自有代码采用 MIT；随包第三方组件分别遵循其许可，不因 APK 顶层许可变成 MIT。
@@ -109,6 +113,10 @@ def render():
 | 资产 | 许可声明 | 来源 / 可核验范围 |
 |---|---|---|
 {native}
+
+## 受管命令行工具
+
+- GitHub CLI（gh）v{gh_lock['version']}：MIT，官方 `https://github.com/cli/cli` release 的 linux-arm64 归档，固定输入 `app/src/main/assets/gh-cli.tar.gz` 的版本、URL、归档与成员摘要见 `tools/gh-cli/packages.lock.json`；许可全文 `assets/licenses/gh-MIT.txt`（SHA-256 `{gh_lock['licenseSha256']}`）。受管安装只提取固定成员并二次校验摘要，不执行归档中的其它内容。
 
 ## npm 锁中需另核对的许可声明
 

@@ -49,6 +49,7 @@
     "guard-tools-patch.json",
     "guard-tools-pipeline-patch.json",
     "gh-proxy.mjs",
+    "gh-cli.tar.gz",
     "gh-wrapper.sh",
     "install-basic-tools.sh",
     "install-ubuntu-tools.sh",

@@ -15,6 +15,8 @@ import importlib.util
 from generated_asset_directory import prune as prune_generated
 from asset_deployment import load_manifest, selected_assets, verify_reader_contracts, MANIFEST as DEPLOYMENT_MANIFEST
 
+GH_CLI_LOCK = Path(__file__).with_name('gh-cli') / 'packages.lock.json'
+
 GLOBAL_PACKAGE_ALIASES = {
     '@deepseek-ai/dsh-workflow-worker-thread': '@deepseek-ai/dsh-workflow-ptc',
 }
@@ -158,6 +160,19 @@ def main():
     tools_metadata = json.loads((source / 'ubuntu-tools.inputs.json').read_text())
     if tools_metadata.get('inputs') != tools_builder.inputs() or tools_metadata.get('archive_sha256') != sha256(tools_archive):
         raise ValueError('Ubuntu 离线基础工具与依赖锁不一致，请运行 tools/prepare-ubuntu-tools.py')
+    # gh 的固定输入、受管安装项与自举 pin 共用同一份摘要：任一漂移都必须在打包前失败。
+    gh_lock = json.loads(GH_CLI_LOCK.read_text(encoding='utf-8'))
+    gh_asset = source / 'gh-cli.tar.gz'
+    if not gh_asset.is_file() or sha256(gh_asset) != gh_lock.get('sha256') \
+            or gh_asset.stat().st_size != gh_lock.get('bytes'):
+        raise ValueError('gh 固定输入与 tools/gh-cli/packages.lock.json 不一致，请运行 tools/prepare-gh-cli.py')
+    managed_rows = json.loads((source / 'managed-runtime-inputs.json').read_text(encoding='utf-8'))['installs']
+    gh_rows = [row for row in managed_rows if row.get('asset') == 'gh-cli.tar.gz']
+    if len(gh_rows) != 1 \
+            or gh_rows[0].get('target') != 'opt/gh/bin/gh' \
+            or gh_rows[0].get('extract', {}).get('member') != gh_lock.get('member') \
+            or gh_rows[0].get('extract', {}).get('sha256') != gh_lock.get('binarySha256'):
+        raise ValueError('受管 gh 安装项与 tools/gh-cli/packages.lock.json 不一致')
     with tarfile.open(rootfs, 'r:gz') as original:
         status = next(item for item in original if item.name.removeprefix('./') == 'var/lib/dpkg/status')
         if hashlib.sha256(original.extractfile(status).read()).hexdigest() != tools_metadata.get('base_status_sha256'):

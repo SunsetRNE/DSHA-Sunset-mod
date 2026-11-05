@@ -75,6 +75,27 @@ Android 宿主、guest bash 与实际 Node 的 PID 不能混作同一个进程�
 当前 proroot vendor 为 `v1.2.8`，受[本地 ABI 锁](../tools/proroot-compat/abi.lock.json)约束；它与历史 DSHA 应用版本号无关。
 厂商二进制、兼容适配器和可从源码生成的部分需分别看来源说明，不能承诺全部 vendor 可源码重建。
 
+### 1.3 环境更新与整树重建会动哪些目录（明文契约）
+
+覆盖升级有两条路径，替换范围不同：
+
+1. **受管运行时更新**（[`EnvironmentMaintenance.update`](../app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java)）：`.offline-identity` 的 Ubuntu 基础版本未变时走这条，只替换 [`ManagedRuntimeLayout.paths()`](../app/src/main/java/com/deepseekharness/app/util/ManagedRuntimeLayout.java) 列出的受管路径。versionCode 或内置 DSH 版本变化本身不会把 `/opt`、工作区或其它数据当作重建目标。
+2. **整树重建**（`EnvironmentMaintenance.rebuild`）：首次部署、Ubuntu 基础环境版本变化、用户显式“重建环境”或恢复指定现场时，整个 `files/linux` 先移为 `previous-linux`，再解压新 rootfs；随后 (a) 受管资产重新注入，(b) 数据快照恢复。
+
+| 目录 | 受管更新 | 整树重建 | 归属 |
+|---|---|---|---|
+| `ManagedRuntimeLayout.paths()`（如 `root/dsh-bin/gh`、`usr/local/share/dsha/gh-proxy.mjs`、`opt/gh/bin/gh`） | 替换 | 由受管注入重建 | 受管 |
+| `/usr/local/share/dsha/**` | 同受管路径 | 受管注入 | 受管；不要放用户文件 |
+| `/opt/**`（`opt/gh/bin/gh` 受管路径除外） | 不动 | 作为用户工具数据复制并恢复 | 用户工具 |
+| `/usr/**`（含 `/usr/local/bin`） | 不动（受管子路径除外） | 新系统树整段替换，**不保留** | 系统 |
+| `/root/**`、`/data/**`、工作区等 | 不动 | 数据快照逐项恢复（机器状态/凭据按现有规则排除） | 数据 |
+
+判定单点是 [`util/MaintenanceToolPaths`](../app/src/main/java/com/deepseekharness/app/util/MaintenanceToolPaths.java)（`SYSTEM_ROOTS` / `USER_TOOL_ROOTS` / `managed()`），回归见 `MaintenanceToolPathsTest` 与 `NativeEnvironmentRebuildTest`。
+
+**实测成本与上限**：整树重建把 `/opt` 当数据复制（本机实测 **3.5 GB、48,294 条目**）。快照受 `BackupLimits.ENTRIES = 100,000` 的硬上限约束，大 SDK/缓存会让重建失败或耗尽空间；`rebuild` 在切换旧树前做有界预检，超限时给出“用户工具目录超过环境重建快照上限”的可操作错误，而不是写到一半才失败。建议把大体积工具放在 `/opt/<tool>/…` 并定期清理；不要把用户可执行文件放到 `/usr/local/bin`（重建会丢）。
+
+**受管 gh 的供给链**：第 12 项固定输入 `gh-cli.tar.gz`（官方 linux-arm64 release 归档）由 `RuntimeTools` 只提取固定成员到受管路径 `opt/gh/bin/gh` 并二次校验摘要；包装脚本在二进制缺失/损坏时按固定 URL + 固定摘要自举兜底，失败打印确切恢复命令。事故根因、三件套协作与手工恢复命令见 [build328 回执](releases/v0.2.1-rc.5-build328-gh-provision-20261105.md)。
+
 ## 二、首次启动与普通启动
 
 首次解压完成后直接进入 Main，Web 在后台启动；模型与 API Key 在网页中配置。

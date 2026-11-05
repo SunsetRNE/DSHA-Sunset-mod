@@ -2498,9 +2498,21 @@
         "node24"
       ],
       "args": [],
-      "timeoutSeconds": 120,
+      "timeoutSeconds": 180,
       "environment": {},
-      "reason": "Runs the managed gh CONNECT proxy and wrapper on loopback: GitHub host/port allowlist, occupied-port fallback and restart; no network egress."
+      "reason": "Runs the managed gh CONNECT proxy and wrapper on loopback, then exercises the pinned bootstrap with a fake curl and local fixture archive: install success, no re-download, checksum failures install nothing, custom DSHA_GH_BIN is never written, and the exact recovery command is printed; no network egress."
+    },
+    {
+      "path": "tools/test-gh-provision-contract.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Read-only contract check: pinned gh tarball/license bytes, managed install member digest, asset deployment and fixed-input restore lists, wrapper pins, and the explicit /opt rebuild classification with its measured 100k-entry risk; no network or device operations.",
+      "cli": "no arguments; requires app/src/main/assets/gh-cli.tar.gz restored from fixed inputs"
     },
     {
       "path": "tools/test-signed-builtin-web-intent.mjs",

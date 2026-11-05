@@ -318,6 +318,15 @@
       "executable": false
     },
     {
+      "asset": "gh-cli.tar.gz",
+      "target": "opt/gh/bin/gh",
+      "executable": true,
+      "extract": {
+        "member": "gh_2.103.3_linux_arm64/bin/gh",
+        "sha256": "a82a52e1bbe05bcd485f8cbbd5aa67e11a76fce6bdad394a2d179e1c24cfe367"
+      }
+    },
+    {
       "asset": "install-ubuntu-tools.sh",
       "target": "root/dsh-bin/install-ubuntu-tools",
       "executable": true

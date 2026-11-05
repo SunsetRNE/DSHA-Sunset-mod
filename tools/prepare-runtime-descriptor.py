@@ -4,8 +4,9 @@ from source_text import write_text as write_source_text, matches_text
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
-from runtime_input_contract import load, asset_paths, launcher_paths
+from runtime_input_contract import load, asset_paths, launcher_paths, relative
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -51,10 +52,31 @@ def digest(path):
             value.update(data)
     return value.hexdigest()
 
+def validate_installs(root, spec):
+    """Managed release archives may install exactly one pinned, digested member.
+
+    This stays here (not in runtime_input_contract.load) because that module is a
+    recipe input of the fixed dsh-runtime archive; a gh-only rule must not force a
+    dsh runtime rebuild. The installer repeats the same checks natively.
+    """
+    for row in spec['installs']:
+        extract = row.get('extract')
+        if extract is None:
+            continue
+        if not isinstance(extract, dict) or set(extract) != {'member', 'sha256'}:
+            raise ValueError('RUNTIME_INSTALL_EXTRACT')
+        if not relative(row['asset']).endswith('.tar.gz'):
+            raise ValueError('RUNTIME_INSTALL_EXTRACT')
+        relative(extract['member'])
+        if not isinstance(extract['sha256'], str) or not re.fullmatch(r'[a-f0-9]{64}', extract['sha256']):
+            raise ValueError('RUNTIME_INSTALL_EXTRACT')
+
+
 def build_descriptor(root):
     root = Path(root)
     assets = root / 'app/src/main/assets'
     spec = load(root)
+    validate_installs(root, spec)
     inputs = {p.relative_to(assets).as_posix(): digest(p) for p in asset_paths(root, spec)}
     launchers = {name: digest(path) for name, path in launcher_paths(root, spec).items()}
     version = json.loads((root / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))['dependencies']['@deepseek-ai/dsh']

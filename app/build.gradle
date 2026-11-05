@@ -315,6 +315,8 @@ def prepareStandardAssets = tasks.register("prepareStandardAssets", Exec) {
     inputs.dir(rootProject.file("tools/dsh-runtime"))
     inputs.file(rootProject.file("tools/prepare-ubuntu-tools.py"))
     inputs.dir(rootProject.file("tools/ubuntu-tools"))
+    inputs.file(rootProject.file("tools/prepare-gh-cli.py"))
+    inputs.files(rootProject.files("tools/gh-cli/packages.lock.json"))
     outputs.dir(layout.buildDirectory.dir("generated/standardAssets"))
     outputs.file(layout.buildDirectory.file("generated/standard-assets-report.json"))
     commandLine(System.getenv("DSHA_PYTHON") ?: "python3", "-B",

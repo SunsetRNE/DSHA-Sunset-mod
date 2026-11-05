@@ -4,6 +4,7 @@ import android.content.Context;
 import com.deepseekharness.app.util.Compat;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -592,6 +593,8 @@ final class RuntimeTools {
             || !targets.add(target)
             || !(entry.get("executable") instanceof Boolean))
           throw new IOException("MANAGED_INPUT_PATH");
+        org.json.JSONObject extract = entry.optJSONObject("extract");
+        if (extract != null) validateExtract(asset, extract);
       }
       for (int i = 0; i < entries.length(); i++) {
         org.json.JSONObject entry = entries.getJSONObject(i);
@@ -600,13 +603,94 @@ final class RuntimeTools {
             rootfs,
             entry.getString("asset"),
             entry.getString("target"),
-            entry.getBoolean("executable"));
+            entry.getBoolean("executable"),
+            entry.optJSONObject("extract"));
       }
       for (String name :
           new String[] {"builtin-plugins.json", "runtime-tools.json", "bridge-token-compat.cjs"})
         install(context, rootfs, name, "root/.dsh/" + name, false);
     } catch (org.json.JSONException error) {
       throw new IOException("MANAGED_INPUT_MANIFEST", error);
+    }
+  }
+
+  /**
+   * Managed release archive: exactly one pinned member with an exact digest, published
+   * atomically below the runtime root. The archive bytes are already covered by the signed
+   * descriptor; this second check keeps a mismatched member from ever being executed.
+   */
+  private static void validateExtract(String asset, org.json.JSONObject extract)
+      throws IOException {
+    String member = extract.optString("member", ""), sha256 = extract.optString("sha256", "");
+    if (!asset.endsWith(".tar.gz")
+        || !com.deepseekharness.app.util.ManagedInstallPath.valid(member)
+        || !sha256.matches("[a-f0-9]{64}")) throw new IOException("MANAGED_INPUT_EXTRACT");
+  }
+
+  private static void installExtracted(
+      Context context,
+      File rootfs,
+      String asset,
+      String path,
+      boolean executable,
+      org.json.JSONObject extract)
+      throws IOException {
+    String member = extract.optString("member", ""), expected = extract.optString("sha256", "");
+    validateExtract(asset, extract);
+    File staging =
+        new File(
+            rootfs,
+            ".dsha-managed-extract-" + Integer.toHexString((asset + ":" + path).hashCode()));
+    if (staging.exists()) deleteTemporary(staging);
+    if (!staging.mkdirs()) throw new IOException("MANAGED_INPUT_EXTRACT_STAGE");
+    try {
+      final boolean[] found = {false};
+      try (InputStream input = context.getAssets().open(asset)) {
+        // ArchiveFileBoundary over the app-private filesystem: descendant writes never follow
+        // links, and the extracted member is digest-checked before publication. The signed-asset
+        // root-anchor variant is Android-only and cannot run in the host Robolectric tests.
+        TarGzipExtractor.extractSelected(
+            input,
+            staging,
+            0,
+            name -> {
+              if (!name.equals(member)) return false;
+              found[0] = true;
+              return true;
+            },
+            new com.deepseekharness.app.backup.AndroidBackupFileSystem());
+      }
+      if (!found[0]) throw new IOException("MANAGED_INPUT_EXTRACT_MEMBER");
+      File extracted = new File(staging, member);
+      if (!extracted.isFile() || Compat.isSymbolicLink(extracted))
+        throw new IOException("MANAGED_INPUT_EXTRACT_TYPE");
+      com.deepseekharness.app.util.FileIntegrity.Result proof;
+      try (InputStream input = new FileInputStream(extracted)) {
+        proof = com.deepseekharness.app.util.FileIntegrity.copy(input, null, 64L * 1024 * 1024);
+      }
+      if (!proof.sha256.equals(expected)) throw new IOException("MANAGED_INPUT_EXTRACT_DIGEST");
+      var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+      fs.parents(rootfs, path);
+      File target = fs.child(rootfs, path);
+      var current = fs.stat(target);
+      if (!current.type.equals("MISSING") && !current.type.equals("FILE"))
+        throw new IOException("MANAGED_INPUT_EXTRACT_TARGET");
+      try {
+        java.nio.file.Files.move(
+            extracted.toPath(),
+            target.toPath(),
+            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+      } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+        java.nio.file.Files.move(
+            extracted.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+      }
+      fs.mode(target, executable ? 0755 : 0600);
+      fs.syncDirectory(target.getParentFile());
+      preparedFiles.add(target);
+      GuestScriptBudget.checkpoint();
+    } finally {
+      deleteTemporary(staging);
     }
   }
 
@@ -1069,6 +1153,21 @@ final class RuntimeTools {
   private static void install(
       Context context, File rootfs, String asset, String path, boolean executable)
       throws IOException {
+    install(context, rootfs, asset, path, executable, null);
+  }
+
+  private static void install(
+      Context context,
+      File rootfs,
+      String asset,
+      String path,
+      boolean executable,
+      org.json.JSONObject extract)
+      throws IOException {
+    if (extract != null) {
+      installExtracted(context, rootfs, asset, path, executable, extract);
+      return;
+    }
     try (InputStream input = context.getAssets().open(asset);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
       byte[] buffer = new byte[8192];

@@ -1,11 +1,11 @@
 # 固定构建输入（公开仓库预发布资产）
 
-更新：2026-11-05（S1 切换内置与应急 DSH 到 0.2.2-rc.1；归档包含受管 pipeline 与独立 native executor 输入；T54 的 user-only 技能审批与 T58 的首次连接提示静默合并到同一棵树后按 npm 锁重建运行时）。当前为本机生成、待上传的 `fixed-inputs-20261105d` 候选归档；
+更新：2026-11-05（build328 gh 根因修复：新增第 12 项固定输入 `gh-cli.tar.gz`，官方 GitHub CLI v2.103.3 linux-arm64 归档，作为受管 `opt/gh/bin/gh` 的唯一来源；S1 的 0.2.2-rc.1 运行时与应急归档保持不变）。当前为本机生成、等待主会话上传的 `fixed-inputs-20261105e` 候选归档（上传核验：pending upload）；
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 
 ## 为什么固定输入不放进 git
 
-7 个大型固定二进制/压缩包（`offline-rootfs.bin` 最大 304 MB）加上 2 个独立应急归档，合计约 671 MiB。
+8 个大型固定二进制/压缩包（`offline-rootfs.bin` 最大 304 MB，`gh-cli.tar.gz` 13.7 MB）加上 2 个独立应急归档，加上 2 个 provenance JSON，合计约 684 MiB（bundle 实测 716,787,167 B）。
 放进 git 会超过仓库与 git 单文件限制、永久膨胀历史，且这些字节可由受管 recipe 重新生成、以 SHA-256 固定校验；
 它们不是手写源码，不需要随每次提交分发。因此它们只作为**GitHub Release 资产**发布：
 
@@ -15,11 +15,11 @@
 - 大文件本体放在预发布资产里，克隆后按锁还原，任何字节不一致都会在任何写入前拒绝。
 
 2 个 provenance `*.inputs.json` 是小文本，仍以 tracked 文件形式保留在仓库中；它们同时也被打进资产包，
-使恢复集合保持 11 项、单一来源。还原后的字节与仓库内文件一致（`--source-archive` 恢复同样受 pin 流程约束）。
+使恢复集合保持 12 项、单一来源。还原后的字节与仓库内文件一致（`--source-archive` 恢复同样受 pin 流程约束）。
 
-`.gitignore` 仍列出 9 个不入库输入；两个 `*.inputs.json` 因为已被 git 跟踪，`.gitignore` 不会生效，属于预期状态。
+`.gitignore` 仍列出 10 个不入库输入；两个 `*.inputs.json` 因为已被 git 跟踪，`.gitignore` 不会生效，属于预期状态。
 
-## 资产内容（11 项，STORED zip）
+## 资产内容（12 项，STORED zip）
 
 | ZIP 成员 | 字节 | 当前 pin 来源 |
 |---|---:|---|
@@ -30,16 +30,17 @@
 | `app/src/main/assets/python-support.bin` | 904360 | `tools/ci-build-inputs.lock.json`（大小 + 摘要） |
 | `app/src/main/assets/glibc-python.tar.gz` | 6565414 | `runtime-descriptor.json` |
 | `app/src/main/assets/adb-wheels.tar.gz` | 9951074 | `app/src/main/assets/adb-wheels.lock.json` |
+| `app/src/main/assets/gh-cli.tar.gz` | 13661485 | [`tools/gh-cli/packages.lock.json`](../tools/gh-cli/packages.lock.json)（归档 + 成员 + 许可摘要） |
 | `app/src/main/assets/dsh-runtime.inputs.json` | 11629 | provenance（不单独做二进制 pin） |
 | `app/src/main/assets/ubuntu-tools.inputs.json` | 592 | provenance（不单独做二进制 pin） |
 | `tools/recovery-runtime/archives/recovery-rootfs.bin` | 85783057 | `tools/recovery-runtime/lock.json` |
 | `tools/recovery-runtime/archives/recovery-dsh-runtime.bin` | 131056363 | `tools/recovery-runtime/lock.json` |
 
-覆盖 Ubuntu 离线 rootfs、DSH runtime、ubuntu tools、pnpm runtime、Python 支持、glibc Python、ADB wheels，
-以及独立应急 DSH 的 rootfs / runtime 归档。正式归档为内置 DSH `0.2.2-rc.1`
+覆盖 Ubuntu 离线 rootfs、DSH runtime、ubuntu tools、pnpm runtime、Python 支持、glibc Python、ADB wheels、
+GitHub CLI（gh）以及独立应急 DSH 的 rootfs / runtime 归档。正式归档为内置 DSH `0.2.2-rc.1`
 （131,056,363 B / SHA-256 `c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe`）；
 S1 按已确定决策将独立应急锁同步到同一 `0.2.2-rc.1` 归档字节，T54 与 T58 合并重建运行时后应急锁再次同步到同一字节；正式与应急仍保留独立锁和解压运行根（`recovery-asset-locations.json` 只映射包内物理字节），
-锁与验证合同相互独立，后续正式升级不会自动改动应急锁。
+锁与验证合同相互独立，后续正式升级不会自动改动应急锁。**build328 新增 `gh-cli.tar.gz` 不改变应急锁**：`tools/recovery-runtime/lock.json` 与两份 recovery 归档字节均未改动，仍由本 bundle 原样携带。
 
 ## 锁定与还原
 
@@ -48,18 +49,18 @@ S1 按已确定决策将独立应急锁同步到同一 `0.2.2-rc.1` 归档字节
 ```json
 {
   "schema": 1,
-  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105d/dsha-a-su-fixed-inputs-20261105d.zip",
-  "sha256": "fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70",
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105e/dsha-a-su-fixed-inputs-20261105e.zip",
+  "sha256": "be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5",
   "format": "bundle",
-  "release": "fixed-inputs-20261105d",
-  "asset": "dsha-a-su-fixed-inputs-20261105d.zip",
-  "bytes": 703125540
+  "release": "fixed-inputs-20261105e",
+  "asset": "dsha-a-su-fixed-inputs-20261105e.zip",
+  "bytes": 716787167
 }
 ```
 
 [`tools/sunset-ci-inputs.py`](../tools/sunset-ci-inputs.py) 在没有显式 `SUNSET_DISPATCH_*` / `SUNSET_REPOSITORY_*` 成对覆盖时读取该锁，
 输出 `url` / `sha256` / `format`；CI 只在 `format == "source-archive"` 时给 [`tools/ci-assets.py`](../tools/ci-assets.py) 加 `--source-archive`，
-`bundle` 直接按 11 项固定成员集合恢复。手动覆盖必须 URL + SHA 成对，半对即失败。
+`bundle` 直接按 12 项固定成员集合恢复。手动覆盖必须 URL + SHA 成对，半对即失败。
 
 还原命令（由锁下载，CI 使用的路径）：
 
@@ -70,8 +71,8 @@ python3 tools/ci-assets.py --url "<lock.url>" --sha256 "<lock.sha256>"
 已有本地归档时：
 
 ```bash
-python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105d.zip \
-  --sha256 fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70
+python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105e.zip \
+  --sha256 be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5
 ```
 
 `ci-assets.py` 的校验顺序：整包 SHA-256 → 成员白名单/路径/类型/重复与总大小 → 解压到暂存目录后逐项对照
@@ -82,15 +83,18 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105d.zip \
 
 | 项目 | 值 |
 |---|---|
-| release tag | `fixed-inputs-20261105d`（prerelease，target `main`） |
-| release id | `435173538` |
-| asset | `dsha-a-su-fixed-inputs-20261105d.zip` |
-| bytes | `703125540` |
-| SHA-256 | `fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70` |
-| 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105d/dsha-a-su-fixed-inputs-20261105d.zip` |
+| release tag | `fixed-inputs-20261105e`（待上传的 prerelease，target `main`） |
+| release id | pending upload（主会话上传后回填） |
+| asset | `dsha-a-su-fixed-inputs-20261105e.zip` |
+| bytes | `716787167` |
+| SHA-256 | `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5` |
+| 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105e/dsha-a-su-fixed-inputs-20261105e.zip` |
 
-> 该 bundle 已上传 GitHub 并核对通过：`gh release view fixed-inputs-20261105d` 显示资产 `dsha-a-su-fixed-inputs-20261105d.zip`，`size=703125540`、`state=uploaded`、远端摘要 `sha256:fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70` 与锁一致（2026-11-05 由主会话上传并核对）。
+> **上传核验：pending upload。** 本 bundle 由 build328 会话在本机以 `tools/ci-assets.py --pack` 生成（成员 12 项、STORED），
+> 尚未上传；主会话上传后必须核对远端资产名 / `size=716787167` / `state=uploaded` / 远端 SHA-256
+> `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5`，再回填 release id 与本行。
 > 直链由 tag + 资产文件名确定，不依赖 asset id；若后续在同 tag 内 `--clobber` 替换资产，文件名不变但内容与 SHA-256 会变，必须同步更新锁。
+> 重打包可复现性：同一输入集合重跑 `--pack` 必须得到同一 SHA-256（build328 已实测；`--pack` 前会按 pin 逐项校验）。
 
 ## 升级流程（新预发布资产）
 
@@ -100,7 +104,7 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105d.zip \
    python3 tools/ci-assets.py --pack /root/DSHA/build-inputs/dsha-a-su-fixed-inputs-YYYYMMDD.zip
    ```
 
-   记录输出的 `sha256` 与 `bytes`；`--pack` 会先按当前 pin 校验 11 项输入，失败则不生成资产。
+   记录输出的 `sha256` 与 `bytes`；`--pack` 会先按当前 pin 校验 12 项输入，失败则不生成资产。
 2. 在公开仓库新建预发布（tag 用新日期，例如 `fixed-inputs-YYYYMMDD`），notes 写明成员清单、bytes、SHA-256 与用途；
    上传 STORED bundle：
 

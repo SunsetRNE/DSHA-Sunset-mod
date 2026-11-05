@@ -33,6 +33,9 @@ public class NativeEnvironmentRebuildTest {
         "linux/ubuntu/usr/local/lib/node_modules/user-plugin/node_modules/dep/value",
         "dependency");
     put(files, "linux/ubuntu/data/personal/value", "real data under data");
+    put(files, "linux/ubuntu/opt/user-tool/bin/tool", "user installed tool");
+    put(files, "linux/ubuntu/opt/gh/bin/gh", "old managed gh");
+    put(files, "linux/ubuntu/usr/local/bin/user-entry", "user file in system tree");
     put(files, "native-state", "same encrypted credentials and device grants");
   }
 
@@ -232,6 +235,38 @@ public class NativeEnvironmentRebuildTest {
     assertEquals(
         "conversation",
         Files.readString(new File(files, "linux/ubuntu/root/.dsh/sessions/a").toPath()));
+  }
+
+  @Test
+  public void rebuildPreservesUserToolRootAndReinjectsManagedPaths() throws Exception {
+    File files = temp.newFolder();
+    fixture(files);
+    var transaction = prepared(files);
+    transaction.begin();
+    // 新 rootfs 只带受管注入内容；用户工具目录应来自数据快照，/opt/gh 由受管资产负责。
+    put(files, "linux/ubuntu/opt/gh/bin/gh", "new managed gh");
+    new MaintenanceDataSnapshot(FS, files, transaction.directory(), new File(files, "public"))
+        .restore(new File(files, "linux/ubuntu"), new BackupControl(null));
+    assertEquals(
+        "user installed tool",
+        Files.readString(new File(files, "linux/ubuntu/opt/user-tool/bin/tool").toPath()));
+    assertEquals(
+        "new managed gh", Files.readString(new File(files, "linux/ubuntu/opt/gh/bin/gh").toPath()));
+    assertFalse(new File(files, "linux/ubuntu/usr/local/bin/user-entry").exists());
+  }
+
+  @Test
+  public void toolRootPreflightIsBoundedAndReportsTheOverflow() throws Exception {
+    File files = temp.newFolder();
+    fixture(files);
+    File rootfs = new File(files, "linux/ubuntu");
+    var usage = MaintenanceDataSnapshot.inspectToolRoots(FS, rootfs, 1000);
+    assertFalse(usage.overflowed);
+    assertTrue("expected /opt entries, got " + usage.entries, usage.entries >= 7);
+    assertTrue(usage.bytes > 0);
+    var limited = MaintenanceDataSnapshot.inspectToolRoots(FS, rootfs, 3);
+    assertTrue(limited.overflowed);
+    assertTrue(limited.entries > 3);
   }
 
   private void kill(File files, String id, String phase, boolean rollback) throws Exception {

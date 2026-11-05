@@ -191,6 +191,22 @@ public final class EnvironmentMaintenance {
     if (!controller.hasOfflineBundle())
       throw new IOException(com.deepseekharness.app.util.UiText.text("APK 缺少内置环境包，原环境保持原位"));
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+    // 用户工具目录（/opt）会随整树重建被复制进快照；先做有界预检，超限时在切换旧树前失败。
+    var toolUsage =
+        com.deepseekharness.app.backup.MaintenanceDataSnapshot.inspectToolRoots(
+            fs,
+            com.deepseekharness.app.util.GuestPaths.rootfs(files),
+            com.deepseekharness.app.backup.BackupLimits.ENTRIES);
+    if (toolUsage.overflowed)
+      throw new IOException(
+          com.deepseekharness.app.util.UiText.format(
+              "用户工具目录 %s 的条目超过环境重建快照上限（%s 条）；请清理或移出大 SDK/缓存后再重建，原环境保持原位",
+              "/opt", com.deepseekharness.app.backup.BackupLimits.ENTRIES));
+    if (toolUsage.bytes > 1024L * 1024 * 1024)
+      progress.accept(
+          com.deepseekharness.app.util.UiText.format(
+              "提示：用户工具目录 %s 有 %s 个条目、%s 字节，会随环境重建复制；大目录建议先移出",
+              "/opt", toolUsage.entries, toolUsage.bytes));
     var layout = new com.deepseekharness.app.backup.UserDataLayout(fs, files);
     if (layout.selected() == com.deepseekharness.app.backup.UserDataLayout.Home.STABLE)
       layout.choose(com.deepseekharness.app.backup.UserDataLayout.Home.STABLE);

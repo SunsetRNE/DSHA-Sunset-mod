@@ -6,7 +6,8 @@
 set -u
 
 ROOT_HOST="${DSHA_GH_HOST_ROOT:-}"
-REAL_GH="${DSHA_GH_BIN:-/opt/gh/bin/gh}"
+DEFAULT_GH="/opt/gh/bin/gh"
+REAL_GH="${DSHA_GH_BIN:-$DEFAULT_GH}"
 PROXY_JS="${DSHA_GH_PROXY_SCRIPT:-/usr/local/share/dsha/gh-proxy.mjs}"
 STATE_DIR="${DSHA_GH_PROXY_STATE_DIR:-/tmp/dsha-gh-proxy}"
 REQUESTED_PORT="${DSHA_GH_PROXY_PORT:-7891}"
@@ -15,10 +16,17 @@ PORT_FILE="$STATE_DIR/port"
 LOG_FILE="$STATE_DIR/proxy.log"
 LOCK_DIR="$STATE_DIR/lock"
 
-if [ ! -x "$REAL_GH" ]; then
-    echo "gh: managed GitHub CLI is unavailable ($REAL_GH); install the bundled gh binary first" >&2
-    exit 127
-fi
+# Managed gh release pin. This block must stay identical to
+# tools/gh-cli/packages.lock.json; tools/test-gh-managed-shim.mjs fails when the
+# two copies drift. Bump both together, never fetch a version outside this pin.
+GH_VERSION="2.103.3"
+GH_TARBALL_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_arm64.tar.gz"
+GH_TARBALL_SHA256="ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306ce63"
+GH_BINARY_SHA256="a82a52e1bbe05bcd485f8cbbd5aa67e11a76fce6bdad394a2d179e1c24cfe367"
+GH_BINARY_BYTES="38142112"
+GH_MEMBER="gh_${GH_VERSION}_linux_arm64/bin/gh"
+GH_INSTALL_LOCK="${DSHA_GH_BOOTSTRAP_LOCK:-${TMPDIR:-/tmp}/dsha-gh-bootstrap.lock}"
+GH_BOOTSTRAP="${DSHA_GH_BOOTSTRAP:-1}"
 
 if [ "${DSHA_GH_IDENTITY_NOTICE:-1}" = "1" ]; then
     echo "gh: requests use the SunsetRNE GitHub identity configured in this DSHA environment" >&2
@@ -104,6 +112,115 @@ ensure_proxy() {
     release_lock
     return 1
 }
+
+sha256_of() {
+    [ -f "$1" ] || return 1
+    command -v sha256sum >/dev/null 2>&1 || return 1
+    sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1
+}
+
+# The managed default binary is the only path this wrapper may install into.
+# A custom DSHA_GH_BIN is user-owned: report it and never write there.
+binary_ready() {
+    [ -x "$REAL_GH" ] || return 1
+    [ "$REAL_GH" = "$DEFAULT_GH" ] || return 0
+    [ "$(stat -c %s -- "$REAL_GH" 2>/dev/null)" = "$GH_BINARY_BYTES" ] || return 1
+    if [ "${DSHA_GH_VERIFY:-0}" = "1" ]; then
+        [ "$(sha256_of "$REAL_GH")" = "$GH_BINARY_SHA256" ] || return 1
+    fi
+    return 0
+}
+
+manual_recovery() {
+    local tarball_name="gh_${GH_VERSION}_linux_arm64.tar.gz"
+    cat >&2 <<EOF
+gh: managed GitHub CLI is missing or damaged: $REAL_GH
+gh: nothing was executed and nothing was installed.
+gh: install the pinned release (linux-arm64) with:
+  curl -fsSLO --proto '=https' $GH_TARBALL_URL
+  echo "$GH_TARBALL_SHA256  $tarball_name" | sha256sum -c -
+  tar -xzf $tarball_name $GH_MEMBER
+  install -D -m 0755 $GH_MEMBER $REAL_GH
+gh: or set DSHA_GH_BIN to an existing gh binary.
+gh: automatic bootstrap is controlled by DSHA_GH_BOOTSTRAP (1=on, 0=off).
+EOF
+}
+
+release_install_lock() {
+    rmdir "$GH_INSTALL_LOCK" 2>/dev/null || true
+}
+
+# Fetch only the pinned tarball, verify it, extract only the pinned member,
+# verify that member, then publish atomically. ANY mismatch installs nothing.
+bootstrap_gh() {
+    if ! command -v curl >/dev/null 2>&1 \
+        || ! command -v tar >/dev/null 2>&1 \
+        || ! command -v sha256sum >/dev/null 2>&1 \
+        || ! command -v install >/dev/null 2>&1; then
+        echo "gh: curl, tar, sha256sum and install are required to bootstrap gh; nothing was installed" >&2
+        return 1
+    fi
+    local waited=0
+    mkdir -p "$(dirname "$REAL_GH")" 2>/dev/null || return 1
+    mkdir -p "$(dirname "$GH_INSTALL_LOCK")" 2>/dev/null || true
+    while ! mkdir "$GH_INSTALL_LOCK" 2>/dev/null; do
+        waited=$((waited + 1))
+        [ "$waited" -lt 600 ] || return 1
+        sleep 0.05
+    done
+    # Another gh invocation may have finished the install while we waited.
+    if binary_ready; then
+        release_install_lock
+        return 0
+    fi
+    local tmp tarball src actual rc=1
+    tmp="$(mktemp -d "${TMPDIR:-/tmp}/dsha-gh-install.XXXXXX")" || {
+        release_install_lock
+        return 1
+    }
+    tarball="$tmp/gh.tar.gz"
+    echo "gh: installing pinned GitHub CLI v${GH_VERSION} into $REAL_GH" >&2
+    if ! curl -fsSL --proto '=https' --tlsv1.2 -o "$tarball" "$GH_TARBALL_URL"; then
+        echo "gh: could not download $GH_TARBALL_URL; nothing was installed" >&2
+    elif [ "$(sha256_of "$tarball")" != "$GH_TARBALL_SHA256" ]; then
+        echo "gh: downloaded archive checksum mismatch; nothing was installed" >&2
+    elif ! tar -xzf "$tarball" -C "$tmp" --no-same-owner "$GH_MEMBER" 2>/dev/null; then
+        echo "gh: pinned archive does not contain $GH_MEMBER; nothing was installed" >&2
+    else
+        src="$tmp/$GH_MEMBER"
+        actual="$(sha256_of "$src")"
+        if [ "$actual" != "$GH_BINARY_SHA256" ] \
+            || [ "$(stat -c %s -- "$src" 2>/dev/null)" != "$GH_BINARY_BYTES" ]; then
+            echo "gh: extracted binary checksum mismatch; nothing was installed" >&2
+        elif install -m 0755 "$src" "$REAL_GH.tmp.$$" && mv -f "$REAL_GH.tmp.$$" "$REAL_GH"; then
+            rc=0
+        else
+            rm -f "$REAL_GH.tmp.$$"
+            echo "gh: could not publish $REAL_GH; nothing was installed" >&2
+        fi
+    fi
+    rm -rf "$tmp"
+    release_install_lock
+    if [ "$rc" = "0" ]; then
+        echo "gh: installed pinned GitHub CLI v${GH_VERSION} ($GH_BINARY_SHA256)" >&2
+    fi
+    return "$rc"
+}
+
+ensure_binary() {
+    binary_ready && return 0
+    if [ "$REAL_GH" != "$DEFAULT_GH" ] || [ "$GH_BOOTSTRAP" = "0" ]; then
+        manual_recovery
+        return 1
+    fi
+    if bootstrap_gh && binary_ready; then return 0; fi
+    manual_recovery
+    return 1
+}
+
+if ! ensure_binary; then
+    exit 127
+fi
 
 if ensure_proxy; then
     PROXY_PORT="$(tr -dc '0-9' < "$PORT_FILE")"
