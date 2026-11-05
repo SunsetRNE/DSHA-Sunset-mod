@@ -128,6 +128,9 @@
     <string name="ui2_managed_update" formatted="false">"管理対象ランタイムを更新"</string>
     <string name="ui2_management" formatted="false">"管理"</string>
     <string name="ui2_meet" formatted="false">"DSHA を知る"</string>
+    <string name="ui2_module_center" formatted="false">"モジュールセンター · Module center"</string>
+    <string name="ui2_module_center_sub" formatted="false">"インストール済みモジュール・構成・能力と切替"</string>
+    <string name="ui2_modules" formatted="false">"モジュールセンター"</string>
     <string name="ui2_network_runtime" formatted="false">"実行環境とネットワーク"</string>
     <string name="ui2_offline_badge" formatted="false">"オフライン設定  ·  root 不要  ·  %1$s"</string>
     <string name="ui2_online_notice" formatted="false">"オンラインモデルを使うと、メッセージと選択した添付ファイルが設定済みのモデルサービスに送信されます。"</string>

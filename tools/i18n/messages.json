@@ -30249,7 +30249,30 @@
     "en": "The original environment is unconfirmed, so regular backup and restore are unavailable. Export a readable copy first, then resume the interrupted maintenance.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
-
+    ]
+  },
+  {
+    "id": "ui2_modules",
+    "zh": "模块中心",
+    "en": "Module center",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "ui2_module_center",
+    "zh": "模块中心 · Module center",
+    "en": "Module center",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
+    ]
+  },
+  {
+    "id": "ui2_module_center_sub",
+    "zh": "查看已安装模块、架构、能力与启停",
+    "en": "Installed modules, architectures, capabilities and toggles",
+    "files": [
+      "app/src/main/res/values/ui_iteration.xml"
     ]
   }
 ]

@@ -128,6 +128,9 @@
     <string name="ui2_managed_update" formatted="false">"Обновить среду"</string>
     <string name="ui2_management" formatted="false">"Управление"</string>
     <string name="ui2_meet" formatted="false">"Знакомство с DSHA"</string>
+    <string name="ui2_module_center" formatted="false">"Центр модулей · Module center"</string>
+    <string name="ui2_module_center_sub" formatted="false">"Установленные модули, архитектуры, возможности и переключение"</string>
+    <string name="ui2_modules" formatted="false">"Центр модулей"</string>
     <string name="ui2_network_runtime" formatted="false">"Среда и сеть"</string>
     <string name="ui2_offline_badge" formatted="false">"Автономная установка  ·  Без root  ·  %1$s"</string>
     <string name="ui2_online_notice" formatted="false">"Онлайн-модели получают сообщения и вложения, которые вы решаете отправить."</string>

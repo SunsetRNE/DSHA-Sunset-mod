@@ -3693,6 +3693,8 @@
   "m9024": "Mutare",
   "rescue272_export_copy": "Exemplar legibile exporta",
   "rescue272_export_desc": "Exportatio salutaris tantum legendi datorum legibilium; scriptiones pergunt et originalia intacta manent",
-  "rescue272_pending_hint": "Ambitus originalis nondum confirmatus est, ideo tutela et restitutio ordinariae non praesto sunt. Prius exemplar legibile exporta, deinde conservationem interruptam resume."
-
+  "rescue272_pending_hint": "Ambitus originalis nondum confirmatus est, ideo tutela et restitutio ordinariae non praesto sunt. Prius exemplar legibile exporta, deinde conservationem interruptam resume.",
+  "ui2_modules": "Modulorum centrum",
+  "ui2_module_center": "Modulorum centrum · Module center",
+  "ui2_module_center_sub": "Modula instituta, architecturae, facultates et commutationes"
 }
