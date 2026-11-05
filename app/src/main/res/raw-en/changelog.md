@@ -1,4 +1,4 @@
-# DSHA 0.2.1-rc.5-20261105.0730-dsh0.2.1-rc.5 / build321
+# DSHA 0.2.1-rc.5-20261105.0830-dsh0.2.1-rc.5 / build322
 
-- DSH 0.2.2 upgrade preparation: the host and bundled plugins now work with both 0.2.1-rc.5 and 0.2.2. When data has been written by a newer DSH, the maintenance page only shows a notice instead of repairing automatically. Bundled DSH remains 0.2.1-rc.5 in this build.
-- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 321 (based on build320). The DSHA revision remains 0.2.1-rc.5 and bundled DSH remains 0.2.1-rc.5.
+- Plugin uninstall: fixes third-party plugins failing to uninstall with a file-not-found error under the proroot engine. A failed uninstall still rolls back completely and never leaves a half-removed plugin.
+- Verification scope: local targeted unit tests, Lint and source gates only; not checked on a device. Raises versionCode to 322 (based on build321). The DSHA revision remains 0.2.1-rc.5 and bundled DSH remains 0.2.1-rc.5.

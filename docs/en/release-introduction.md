@@ -1,8 +1,8 @@
 # Current delivery and historical evidence
 
-Updated: 2026-11-01. This English entry describes the maintained build321 source and links historical records separately. It is not a remote-publication receipt.
+Updated: 2026-11-01. This English entry describes the maintained build322 source and links historical records separately. It is not a remote-publication receipt.
 
-> **build321 `0.2.1-rc.5-20261105.0730-dsh0.2.1-rc.5`.** Preparation for DSH 0.2.2: the host and bundled plugins support both 0.2.1-rc.5 and 0.2.2. versionCode 321, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build321 notes](../releases/build321-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
+> **build322 `0.2.1-rc.5-20261105.0830-dsh0.2.1-rc.5`.** Third-party plugins can be uninstalled again under proroot. versionCode 322, package `io.github.sunsetrne.dsha`, single Standard, Mod-owned release certificate, bundled DSH 0.2.1-rc.5. See the [build322 notes](../releases/build322-changes.en.md) and [CHANGELOG](../../CHANGELOG.md).
 
 Current fixed inputs are pinned by `ci/sunset-inputs.lock.json` (`fixed-inputs-20261103c`, 696,362,745 B, SHA-256 `f8bad93baab2ddfda9e096ffccb6a89743701e48c10d9bb88b4de6d3529218f2`). The signed APK, complete source ZIP, unit-test evidence and release assets are produced and bound by the CI release flow; no test totals or publication state are prefilled here.
 

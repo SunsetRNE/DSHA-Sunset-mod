@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261105.0830-dsh0.2.1-rc.5 / build322（修复 proroot 下第三方插件无法卸载）
+
+- 插件卸载（T56）：修复 proroot 引擎下第三方插件一律卸不掉、报「No such file or directory」的问题；卸载仍按原有事务执行，失败时完整回滚。
+- 实现（fa5b03ea）：proroot v1.2.8 预加载的 libc `renameat2` 忽略目录描述符、按当前目录解析名称；`plugin-transactions.py` 的保留移动改为直接发 `renameat2` 系统调用（RENAME_NOREPLACE），保留按目录描述符遍历与 NOFOLLOW 防护，不支持时仍拒绝执行；新增回归测试。
+- 验证范围：发布会话在 build322 上复跑 主机测试 `test-plugin-delete-nofollow.py`、`test-plugin-transactions.py`；`*UpdateVersionPageTest` / `*RuntimeToolsRegistryAndroidTest` / `*WebLifecycleTest`、`lintStandardRelease` 与源码门禁。未上真机。版本码提升为 322（基于 build321）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.1-rc.5。
+- 十语种更新说明见 [build322 更新说明](docs/releases/build322-changes.zh.md)，验证记录见 [build322 记录](docs/releases/v0.2.1-rc.5-build322-proroot-plugin-delete-20261105.md)。
+
 ## 0.2.1-rc.5-20261105.0730-dsh0.2.1-rc.5 / build321（DSH 0.2.2 升级预备：宿主与内置插件同时兼容 0.2.1-rc.5 与 0.2.2，发现数据被更高版本写过时只提示不自动修复）
 
 - DSH 0.2.2 升级预备（S0，T51）：宿主与内置插件同时兼容当前 0.2.1-rc.5 与即将切换的 0.2.2；内置 DSH 仍是 0.2.1-rc.5，本版不换运行时。

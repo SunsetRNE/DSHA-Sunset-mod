@@ -229,7 +229,7 @@ class BackupTest(unittest.TestCase):
         self.assertEqual('restored-session',(self.root/'.dsh/sessions/restored.jsonl').read_text())
 
     def test_historical_archive_adb_keys_are_not_restored(self):
-        # build321 及以前的完整备份带 .dsh/adbkeys；恢复时跳过归档里的密钥，保留本机现有配对。
+        # build322 及以前的完整备份带 .dsh/adbkeys；恢复时跳过归档里的密钥，保留本机现有配对。
         self.put('.dsh/adbkeys/adbkey','current-device-key')
         self.pack([('.dsh/sessions/restored.jsonl','restored-session'),('.dsh/adbkeys/adbkey','archive-key'),('.dsh/adbkeys/adbkey.pub','archive-pub'),('.dsh/adbkeys/connect_port','5555')])
         engine.restore_archive(self.root,self.archive,'full')
