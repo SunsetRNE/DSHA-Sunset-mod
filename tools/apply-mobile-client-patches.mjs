@@ -169,6 +169,99 @@ export function applyMobileClientPatches(bytes) {
 `;
   replace('  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------',
     css + '  /* ---------- sidebar panel enter / exit (see effects/panel-exit.ts) ----------');
+  // DSHA_GEAR_FIT_V1（T61）：footer 齿轮的让位判据改成**只量几何**，不再读宿主
+  // ConnectionIndicator 是否存在。DSH 0.2.2 首次连接不再渲染指示灯后，上游
+  // `:has(> button[data-phase], > [role="status"])` 判据永远「放得下」，手机上这条
+  // 行第一次走进「没有指示灯」分支；让位口径改成实测行内剩余宽度，宿主以后增删任何
+  // 孩子（指示灯、更新条、新按钮）都自动计入。
+  replace(`/* @patch
+   id: drawer-quick-settings-chip-guard
+   for: dsh-client-ui-primitives 的 ConnectionIndicator（connecting/disconnected 渲染 button[data-phase]，recovered 渲染 div[role="status"]）与账户 launcher 同处 settingsArea 的 triggerRow
+   why: 该行只有 260px；连接条 flex:none（中文约 136px、英文约 190px），齿轮常驻会在英文下把账户按钮挤到约 26px、头像被裁
+   until: 宿主给该行提供独立的次要动作位，或连接条不再占用行宽——届时删本块
+   test: tests/drawer-quick-settings.test.ts
+*/
+[data-mobile-nav="frame"] [class*="sidebarCol"] [class*="triggerRow"]:has(> button[data-phase], > [role="status"]) [data-mobile-nav="quick-settings-wrap"] {
+  display: none !important;
+}`,
+    `/* @patch
+   id: drawer-quick-settings-fit-guard
+   for: 侧栏 footer 的 triggerRow（账户 launcher + 宿主连接条 / 更新条 / 以后新增的孩子）
+   why: 该行只有 260px；连接条 flex:none（中文约 136px、英文约 190px），齿轮常驻会在英文下把账户按钮挤到约 26px、头像被裁。旧守卫用 :has(> button[data-phase], > [role="status"]) 依赖宿主指示灯**存在**：DSH 0.2.2 首次连接不再渲染指示灯后判据失灵。改为由 effects/drawer-quick-settings.ts 实测行内剩余宽度，把结论写在本插件自己的属性上——齿轮可见性不再依赖宿主任何子节点的存在。
+   until: 宿主给 settings.launcher 提供独立的次要动作位——届时删本块
+   test: tools/test-mobile-gear-contract.mjs
+*/
+[data-mobile-nav="frame"] [class*="sidebarCol"] [class*="triggerRow"] [data-mobile-nav="quick-settings-wrap"][data-mobile-nav-quick-fit="0"] {
+  display: none !important;
+}`);
+  // DSHA_GEAR_FIT_V1：纯几何判据（导出给宿主测试，见 tools/test-mobile-gear-contract.mjs）。
+  replace('function createDrawerQuickSettingsTask(ctx) {',
+    `/** DSHA_GEAR_FIT_V1：齿轮占位＝按钮 30px + 右外边距 6px + 4px 余量（见上方 CSS）。 */
+const GEAR_SLOT_PX = 40;
+/**
+ * DSHA_GEAR_FIT_V1：齿轮此刻放不放得下。
+ *
+ * 旧判据读「行的直接孩子里有没有宿主的连接条（button[data-phase] / [role="status"]）」，
+ * 于是插件的渲染依赖宿主那个节点**存在**：宿主改了首次连接的渲染（DSH 0.2.2 首连不再
+ * 显示指示灯）之后，判据永远得到「放得下」，行的真实宽度却没人核对。这里只核对几何：
+ * 行内容宽度 − 其它可见孩子宽度 ≥ 齿轮占位；宿主以后增删任何孩子都自动被计入。
+ *
+ * @param rowWidth 行内容宽度（已扣左右 padding，CSS px）
+ * @param usedWidth 其它可见孩子的宽度和（含外边距，CSS px）
+ * @returns 放得下为 true；宽度不可用（≤ 0 或非有限数）按「放不下」处理，保守保留账户菜单入口
+ */
+function dshaGearFits(rowWidth, usedWidth) {
+  return Number.isFinite(rowWidth) && Number.isFinite(usedWidth)
+    && rowWidth > 0 && usedWidth >= 0 && rowWidth - usedWidth >= GEAR_SLOT_PX;
+}
+exports.dshaGearFits = dshaGearFits;
+exports.GEAR_SLOT_PX = GEAR_SLOT_PX;
+function createDrawerQuickSettingsTask(ctx) {`);
+  replace(`    /**
+     * 齿轮此刻在不在场：唯一会隐藏它的是连接条守卫（\`drawer-quick-settings-chip-guard\`），
+     * 条件就是行的**直接孩子**里有连接条（\`button[data-phase]\` / \`[role="status"]\`）。
+     * 这里镜像同一判据而不是读计算样式——两处口径必须一致，改守卫时一起改。
+     */
+    const gearAvailable = (target) => ![...target.children].some((child) => child.getAttribute('data-phase') !== null || child.getAttribute('role') === 'status');`,
+    `    /**
+     * DSHA_GEAR_FIT_V1：实测这一行还剩多少宽度。
+     *
+     * 只量几何、不看宿主节点的身份：连接条、更新条、以后新增的任何孩子都按宽度计入。
+     * 布局还没就绪（行宽 ≈ 0）时 dshaGearFits 返回 false，即保守地保留账户菜单入口。
+     */
+    const gearAvailable = (target) => {
+        const style = getComputedStyle(target);
+        const rowWidth = target.getBoundingClientRect().width
+            - (Number.parseFloat(style.paddingLeft) || 0)
+            - (Number.parseFloat(style.paddingRight) || 0);
+        let usedWidth = 0;
+        for (const child of target.children) {
+            if (child === wrap) continue;
+            const childStyle = getComputedStyle(child);
+            if (childStyle.display === 'none' || childStyle.visibility === 'hidden') continue;
+            usedWidth += child.getBoundingClientRect().width
+                + (Number.parseFloat(childStyle.marginLeft) || 0)
+                + (Number.parseFloat(childStyle.marginRight) || 0);
+        }
+        return dshaGearFits(rowWidth, usedWidth);
+    };`);
+  replace('    const syncMenuEntry = (target) => {',
+    '    const syncMenuEntry = (target, gearVisible) => {');
+  replace("        const keep = trigger !== null && trigger.getAttribute('aria-expanded') === 'true' && gearAvailable(target);",
+    "        const keep = trigger !== null && trigger.getAttribute('aria-expanded') === 'true' && gearVisible;");
+  replace(`            if (wrap !== null && wrap.parentElement !== target)
+                target.appendChild(wrap);
+            syncMenuEntry(target);`,
+    `            if (wrap !== null && wrap.parentElement !== target)
+                target.appendChild(wrap);
+            // DSHA_GEAR_FIT_V1：可见性只由实测宽度决定，结论写在插件自己的属性上；
+            // 幂等写入（值没变就不写），避免自己的 mutation 再把任务唤醒一轮。
+            const gearVisible = gearAvailable(target);
+            if (wrap !== null) {
+                const fit = gearVisible ? '1' : '0';
+                if (wrap.dataset.mobileNavQuickFit !== fit) wrap.dataset.mobileNavQuickFit = fit;
+            }
+            syncMenuEntry(target, gearVisible);`);
   return applyMobileSafeArea(applyFileTransferClient(applyMobileLocaleBundlePatch(source)));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

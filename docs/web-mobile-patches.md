@@ -163,3 +163,56 @@ python3 tools/check-source-hygiene.py
 
 内置上游同步到包含 PR #256 的提交后：删除 `wide-touch-row-actions` 整块、对应测试分支与
 本文件该段，重新生成 `lib/client.js` 并核验。
+
+## 2026-11-05：侧栏 footer 齿轮让位改实测宽度（`DSHA_GEAR_FIT_V1`）
+
+### 现象与根因
+
+build324 真机覆盖安装后主界面白屏、侧栏 footer 出现「重复叠加」观感；禁用内置
+`dsh-web-mobile` 后两个现象都消失。补丁链侧取证（[build324 白屏排查](releases/v0.2.1-rc.5-build324-blank-screen-20261105.md)）
+确认 323→324 的运行树只差两条补丁，而手机上唯一可见差异是：手机是 drawer 模式
+（`viewport < 768`），`wide` 因此为真，宿主 `ConnectionIndicator` 本来真实渲染；T58
+（`first-connect-indicator-patch.json`）让首次连接不再渲染指示灯。
+
+上游 `dsh-web-mobile` 3.2.2 的 `drawer-quick-settings-chip-guard` 恰好用
+`:has(> button[data-phase], > [role="status"])` 判断「这一行里有没有指示灯」来决定是否
+让出 footer 齿轮（该行只有 260px，连接条中文约 136px、英文约 190px）。指示灯消失后
+判据永远得到「放得下」：插件的渲染因此**依赖宿主某个子节点存在**，宿主一改首次连接的
+渲染方式，让位口径就失准。
+
+### 补丁位置与规则
+
+[apply-mobile-client-patches.mjs](../tools/apply-mobile-client-patches.mjs) 用四处锚点替换：
+
+- 守卫规则改为只认插件自己的属性，不再 `:has()` 宿主节点：
+  `[data-mobile-nav="quick-settings-wrap"][data-mobile-nav-quick-fit="0"] { display: none !important; }`
+- 新增纯判据 `dshaGearFits(rowWidth, usedWidth)`（导出给宿主测试）：行内容宽度 − 其它
+  可见孩子宽度 ≥ `GEAR_SLOT_PX`（40 = 按钮 30 + 右外边距 6 + 4 余量）才放得下；行宽
+  不可用（≤ 0 / 非有限数）按「放不下」处理，保守保留账户菜单里的设置项。
+- `effects/drawer-quick-settings` 的 `gearAvailable()` 改为实测行宽与其它可见孩子的
+  宽度和（含外边距，跳过 `display:none` / `visibility:hidden`），结论幂等写入
+  `data-mobile-nav-quick-fit`；`syncMenuEntry` 用同一个结论决定是否收起账户菜单设置项，
+  保证任何时刻只有一条设置入口。
+
+产物标记 `DSHA_GEAR_FIT_V1`，位于 `lib/client.js` 的
+`effects/drawer-quick-settings.js` 模块与 CSS；上游文件本身不改。
+
+### 验证
+
+```bash
+node tools/apply-mobile-client-patches.mjs tools/mobile-plugin-upstream/lib/client.js --check
+node tools/test-mobile-client-patches.mjs
+node --test tools/test-mobile-gear-contract.mjs
+python3 tools/generate-builtin-plugins.py --verify
+python3 tools/check-source-hygiene.py
+```
+
+`test-mobile-gear-contract.mjs` 用最小 DOM 语义跑真实产物：**没有指示灯时**齿轮正常注入并
+标记放得下；指示灯出现后按实测宽度让位、消失后恢复；行宽不足时保守让位；重复 `ensure`
+不重复注入。真机验收（build325 覆盖安装）由主会话装测试包后按实际结果补写。
+
+### 退出条件
+
+宿主 `settings.launcher` 槽位提供独立的次要动作位（或连接条不再占用该行宽度）后，删除
+`drawer-quick-settings-fit-guard` 整块与 `DSHA_GEAR_FIT_V1` 判据，重新生成 `lib/client.js`
+并核验；届时本段一并删除。

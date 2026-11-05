@@ -2142,6 +2142,18 @@
       "cli": "no positional arguments; explicit current fixture requirements"
     },
     {
+      "path": "tools/test-mobile-gear-contract.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 300,
+      "reason": "Shipped mobile bundle in a minimal DOM harness: the sidebar-footer gear yields only by measured row width, so the contract holds when the host ConnectionIndicator is not rendered; no device, model or user data",
+      "environment": {},
+      "cli": "no positional arguments; reads the deployed builtin plugin asset"
+    },
+    {
       "path": "tools/test-mobile-locales.mjs",
       "stage": "fast",
       "requires": [
