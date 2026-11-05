@@ -230,7 +230,7 @@ try {
   const approved = await registered.execute({ name: 'user-only' }, {
     ...execution, callId: 'call-user-only-allowed'
   });
-  assert.equal(approved.content, '# User body\n');
+  assert.equal(approved.content, 'User body');
   assert.equal(approvalRequests.length, 2);
   assert.equal(approvalRequests[1].callId, 'call-user-only-allowed');
   assert.equal((await ctx.skills.get('user-only', { signal })).invocation.userInvocable, true);
