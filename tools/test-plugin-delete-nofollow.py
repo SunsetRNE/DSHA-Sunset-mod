@@ -267,9 +267,10 @@ class DeleteNoFollowTest(unittest.TestCase):
                 scanner = self.scanner(); wanted = scanner.state(str(source))
                 actual_library = ctypes.CDLL
                 library = actual_library(None, use_errno=True)
-                actual_rename = library.renameat2
-                actual_rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-                actual_rename.restype = ctypes.c_int
+                # 生产代码直接发 renameat2 系统调用（proroot 的 libc 符号忽略目录描述符）。
+                actual_rename = library.syscall
+                actual_rename.argtypes = [ctypes.c_long, ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+                actual_rename.restype = ctypes.c_long
                 class Rename:
                     def __call__(self, *args):
                         if replace_parent:
@@ -280,7 +281,7 @@ class DeleteNoFollowTest(unittest.TestCase):
                             source.mkdir(); (source / 'owned').write_text('selected object')
                         return actual_rename(*args)
                 class Library:
-                    renameat2 = Rename()
+                    syscall = Rename()
                 self_home, store = self.home, self.store
                 with patch.object(ctypes, 'CDLL', return_value=Library()), self.assertRaises((ValueError, OSError)):
                     scanner.move(str(source), str(destination), wanted)
@@ -288,6 +289,39 @@ class DeleteNoFollowTest(unittest.TestCase):
                 if replace_parent:
                     self.home.unlink(); self.home.with_name('original-dsh-parent').rename(self.home)
                 self.assertTrue(destination.exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux descriptor-relative renameat2 syscall')
+    def test_retained_move_uses_descriptor_syscall_not_libc_renameat2(self):
+        # proroot v1.2.8 的 libc renameat2 忽略目录描述符、按 cwd 解析名字：返回 ENOENT，
+        # 或把 cwd 下同名对象改名。生产路径必须绕开该符号，且仍拒绝覆盖已有目标。
+        rename = self.transaction.object_state.__globals__['rename_noreplace']
+        real = ctypes.CDLL(None, use_errno=True)
+        class Library:
+            syscall = real.syscall
+            @property
+            def renameat2(self):
+                raise AssertionError('libc renameat2 must not be used')
+        decoy = self.root / 'cwd'; decoy.mkdir(); (decoy / 'object').write_text('cwd decoy')
+        source_dir, target_dir = self.root / 'source', self.root / 'target'
+        source_dir.mkdir(); target_dir.mkdir(); (source_dir / 'object').write_text('selected')
+        descriptors = [os.open(str(path), os.O_RDONLY | os.O_DIRECTORY) for path in (source_dir, target_dir)]
+        previous = os.getcwd(); os.chdir(str(decoy))
+        try:
+            with patch.object(ctypes, 'CDLL', return_value=Library()):
+                rename(descriptors[0], 'object', descriptors[1], 'retained')
+                (source_dir / 'object').write_text('second')
+                with self.assertRaises(FileExistsError):
+                    rename(descriptors[0], 'object', descriptors[1], 'retained')
+                with self.assertRaisesRegex(ValueError, '名称无效'):
+                    rename(descriptors[0], '../object', descriptors[1], 'other')
+        finally:
+            os.chdir(previous)
+            for descriptor in descriptors:
+                os.close(descriptor)
+        self.assertEqual((target_dir / 'retained').read_text(), 'selected')
+        self.assertEqual((source_dir / 'object').read_text(), 'second')
+        self.assertEqual(sorted(p.name for p in decoy.iterdir()), ['object'])
+        self.assertEqual((decoy / 'object').read_text(), 'cwd decoy')
 
     def test_cancellation_is_propagated_before_any_move(self):
         class Cancelled(Exception):

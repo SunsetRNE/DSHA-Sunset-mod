@@ -326,9 +326,9 @@ print('FORBIDDEN_IMPORTS: ' + ','.join(sorted(set(sys.modules) & {'urllib.reques
 
     def test_link_swap_inside_rename_is_retained_and_cannot_reuse_held_inode(self):
         real_library = ctypes.CDLL(None, use_errno=True)
-        real_rename = real_library.renameat2
-        real_rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-        real_rename.restype = ctypes.c_int
+        real_rename = real_library.syscall
+        real_rename.argtypes = [ctypes.c_long, ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+        real_rename.restype = ctypes.c_long
         old_inode = self.link.lstat().st_ino
         replacement = []
         class Library:
@@ -338,7 +338,7 @@ print('FORBIDDEN_IMPORTS: ' + ','.join(sorted(set(sys.modules) & {'urllib.reques
                 self.link.unlink(); self.link.symlink_to(self.target)
                 replacement.append(self.link.lstat().st_ino)
             return real_rename(*args)
-        library = Library(); library.renameat2 = rename
+        library = Library(); library.syscall = rename
         with patch.object(ctypes, 'CDLL', return_value=library):
             with self.assertRaisesRegex(ValueError, '移动期间变化'):
                 self.transaction.materialize_cas_links()

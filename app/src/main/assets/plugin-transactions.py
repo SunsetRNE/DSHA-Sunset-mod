@@ -41,6 +41,39 @@ def journal_name_kind(name):
     return 'FOREIGN'
 
 
+# Linux UAPI renameat2 numbers (asm-generic for arm64, x86_64 table for host tests).
+RENAMEAT2_SYSCALL = {'aarch64': 276, 'arm64': 276, 'x86_64': 316, 'amd64': 316}
+RENAME_NOREPLACE = 1
+
+
+def rename_noreplace(source_dir, source_name, target_dir, target_name):
+    """Atomic descriptor-relative rename that refuses an existing target.
+
+    Calls the kernel syscall directly instead of the libc renameat2 symbol:
+    proroot v1.2.8 preloads its own renameat2 that ignores both directory
+    descriptors and resolves the names against the current directory, so it
+    returns ENOENT or, worse, renames an unrelated cwd object. Single-component
+    names under real descriptors need no guest path translation, and proot
+    (ptrace) translates the raw syscall exactly like the libc wrapper. There is
+    no non-atomic renameat fallback; unsupported systems fail closed.
+    """
+    import ctypes
+    import platform
+    for name in (source_name, target_name):
+        if not name or '/' in name or name in ('.', '..'):
+            raise ValueError('插件保留移动名称无效，全部现场保留')
+    number = RENAMEAT2_SYSCALL.get(platform.machine().lower())
+    library = ctypes.CDLL(None, use_errno=True)
+    call = getattr(library, 'syscall', None)
+    if number is None or call is None:
+        raise ValueError('系统缺少原子保留移动能力，全部现场保留')
+    call.argtypes = [ctypes.c_long, ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    call.restype = ctypes.c_long
+    if call(number, source_dir, os.fsencode(source_name), target_dir, os.fsencode(target_name), RENAME_NOREPLACE) != 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error))
+
+
 class DeleteObjects:
     """Fingerprint retained objects, never resolving a link's contents.
 
@@ -239,16 +272,7 @@ class DeleteObjects:
                         raise ValueError('旧 pnpm 链接在保留身份期间变化，全部现场保留')
             self.check(); original[2](); retained[2]()
             if self.relative:
-                import ctypes
-                library = ctypes.CDLL(None, use_errno=True)
-                rename = getattr(library, 'renameat2', None)
-                if rename is None:
-                    raise ValueError('系统缺少原子保留移动能力，全部现场保留')
-                rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-                rename.restype = ctypes.c_int
-                if rename(original[0], os.fsencode(original[1]), retained[0], os.fsencode(retained[1]), 1) != 0:
-                    number = ctypes.get_errno()
-                    raise OSError(number, os.strerror(number))
+                rename_noreplace(original[0], original[1], retained[0], retained[1])
                 os.fsync(original[0]); os.fsync(retained[0])
             else:
                 os.rename(source, target)

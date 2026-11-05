@@ -117,6 +117,24 @@ failures keep the vendor's EPERM. `tools/test-proroot-fcntl.py` reproduces the
 defect with a fake vendor and checks the proxy-first order (native LD_PRELOAD
 on GNU/Linux, dynamic `qemu-aarch64` inside a proroot guest).
 
+## renameat2 directory descriptors (2026-11-05, T56)
+
+The locked v1.2.8 runtime also exports `renameat2`. It passes both names through
+`do_translate` and, observably, ignores both directory descriptors: a relative
+name is resolved against the current directory. Measured in a proroot guest,
+descriptor-relative `renameat2(dirA, "f", dirB, "g", flags)` returns ENOENT, or
+renames `<cwd>/f` to `<cwd>/g` and reports success. `AT_FDCWD` names (absolute
+or cwd-relative) work. `renameat`, `linkat`, `unlinkat`, `mkdirat`, `symlinkat`, `openat` and
+`fstatat` resolve descriptors correctly. With `PROROOT_NO_SECCOMP=1` a raw
+`syscall(SYS_renameat2)` reaches the kernel unchanged, so descriptor-relative
+single-component names are correct (EEXIST under `RENAME_NOREPLACE` included).
+
+`plugin-transactions.py` therefore calls the raw syscall for its NOREPLACE
+retained moves, with no non-atomic fallback. `runtime-fs` publishes with
+`AT_FDCWD` and absolute paths and is unaffected. This shim does **not** override
+`renameat2` yet: a correct override needs guest path translation for mixed
+descriptor/absolute cases and a locked NDK 26.3 rebuild plus device checks.
+
 Build note: a Linux-host NDK 26.3.11579264 differs from the Windows-host build
 only in the `.comment` toolchain banner (`+pgo, +bolt, +lto, -mlgo`). The locked
 output was reproduced byte-for-byte from the previous source by compiling,
