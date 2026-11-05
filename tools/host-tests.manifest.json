@@ -1935,7 +1935,7 @@
     {
       "path": "tools/test-skill-import.mjs",
       "stage": "runtime",
-      "reason": "Generate two real JVM SkillImports fixtures with JDK17 and SHA-verified SnakeYAML/Gson from the existing backup dependency lock, then read with the pinned rc2 provider/tool; no Android, JUnit, phone or user-data operations.",
+      "reason": "Generate three real JVM SkillImports fixtures with JDK17 and SHA-verified SnakeYAML/Gson from the existing backup dependency lock, then exercise the current locked skill provider/tool: ordinary, user-only approval, and fully-disabled invocation policies; no Android, JUnit, phone or user-data operations.",
       "args": [
         "--jdk",
         "{jdk}",
