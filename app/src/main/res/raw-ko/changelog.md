@@ -1,6 +1,4 @@
-# DSHA 0.2.1-rc.5-20261106.0130-dsh0.2.2-rc.1 / build329
+# DSHA 0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1 / build330
 
-- GitHub 로그인 네이티브 페이지 추가(T71): 컨테이너 `hosts.yml`의 계정·범위·출처를 표시하고 관리형 `gh` 사용 가능 여부를 알려 주며, 읽기 전용 `gh api -i /user`로 CA/TLS 실패·token 401·미로그인·네트워크·시간 초과를 구분합니다. 로그인·재승인·로그아웃을 지원합니다. 페이지 자체는 token을 표시하지 않습니다. 알려진 격차: token은 여전히 컨테이너 `hosts.yml`에 저장되어 동일 UID의 웹 페이지와 플러그인이 읽을 수 있으며, 격리는 T50으로 별도 진행되고 이번 배치에는 포함되지 않습니다.
-- `gh`의 CA 조회 수정(T73): `RuntimeTools`가 canonical 호스트 루트로 `DSHA_GH_HOST_ROOT`를 설정하고, `gh` 래퍼는 `/data/user/0`과 `/data/data` 두 데이터 뷰에서 관리형 CA를 찾습니다. 둘 다 없거나 `DSHA_GH_CA`가 없는 파일을 가리키면 명시적 오류로 종료하며, 새 루트 인증서가 없는 이전 시스템 CA로 조용히 대체하지 않습니다. 고정 입력은 재구성하지 않습니다.
-- 온보딩 4단계 하단 표시줄 통일(T72): 환영 완료 페이지가 실행 환경 유지보수 페이지와 동일한 `ExtractFooter` 2줄 압축 레이아웃을 사용하며, 업데이트 중에는 x/5를 표시하고 기본 동작을 복원하며 준비되면 메인 화면으로 들어갑니다.
-- 검증 범위: 호스트 테스트, contracts 전체 그룹, 전체 트리 포맷 검사, 대상 지정 단위 테스트(업데이트 페이지, GitHub 로그인, gh 호스트 루트, 온보딩). 이 기기에서 실제 기기 검증은 하지 않았습니다. 버전 코드를 329로 올립니다(build328 기준). DSHA 개정 번호는 0.2.1-rc.5, 내장 DSH는 0.2.2-rc.1입니다.
+- 가상 화면에서 호스트 자체를 실행 대상으로 거부(T76): `/app/vscreen/launch`는 DSHA 자신을 가상 화면으로 실행하는 요청을 더 이상 받지 않습니다. 시스템은 보조 디스플레이용 별도 인스턴스를 만들지 않고 실행 중인 같은 프로세스를 재사용합니다. 기본 display에 이미 바인딩된 WebView는 보조 디스플레이에서 `libmonochrome` 널 포인터로 충돌합니다(relay 실기기 증거: display 4, 메인 스레드 Looper가 WebView로 진입, 실행 중 프로세스 14715 재사용). bridge는 승인 질문 전에, Manager는 claim 전에, Core는 `am start` 발행 전에 같은 판정으로 거부하며 `VSCREEN_SELF_LAUNCH_REFUSED`(`state=NOT_SENT`, 실행 명령을 보내지 않고 충돌하지 않음)를 반환합니다. 내장 플러그인은 이 코드를 pre-dispatch로 분류하고, 네이티브 앱 선택기는 호스트를 나열하지 않으며, 결과 페이지는 중국어/영어 사유를 보여 줍니다. 이는 안전 거부이며 보조 디스플레이 self-launch 지원이 아닙니다. 나중에 지원하려면 `createDisplayContext`와 별도 WebView 인스턴스가 필요합니다. runtime-descriptor는 재생성(runtimeId `6bea62f2`), 고정 입력은 재구성하지 않습니다.
+- 검증 범위: 호스트 contracts 전체 그룹, 전체 트리 포맷 검사(JDK 17), 대상 지정 단위 테스트(VirtualScreenPolicy, VirtualScreenManager ownership, 업데이트 페이지). 이 기기에서 실제 기기 검증은 하지 않았습니다. 버전 코드를 330으로 올립니다(build329 기준). DSHA 개정 번호는 0.2.1-rc.5, 내장 DSH는 0.2.2-rc.1입니다.

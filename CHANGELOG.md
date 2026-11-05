@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1 / build330（虚拟屏拒绝宿主自身启动，防副屏 WebView 崩溃）
+
+- 虚拟屏 self-launch 拒绝（T76）：`/app/vscreen/launch` 不再接受把 DSHA 自身启动到虚拟屏。系统不会为副屏另起实例，而是复用正在运行的同一进程；本进程里已绑定默认 display 的 WebView 在副屏会以 `libmonochrome` 空指针崩溃（relay 真机证据：display 4、主线程 Looper 进入 WebView、复用已运行的进程 14715）。bridge 在授权询问前、Manager 在 claim 前、Core 在 `am start` 前三层用同一条判定拒绝，返回 `VSCREEN_SELF_LAUNCH_REFUSED`（state=NOT_SENT，不发出启动命令、不再崩溃）；内置插件把该码归 pre-dispatch，原生选择器不再列出宿主，结果页给中英原因。这是安全拒绝，不是支持副屏 self-launch；以后若要支持须 createDisplayContext + 独立 WebView。runtime-descriptor 重生成（runtimeId 6bea62f2），固定输入不重建。
+- 验证范围：宿主 contracts 整组、全树格式检查（JDK17）与定向单测（VirtualScreenPolicy / Manager ownership / 更新页）；未真机验收。版本码提升为 330（基于 build329）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
+- 十语种更新说明见 [build330 更新说明](docs/releases/build330-changes.zh.md)。
+
 ## 0.2.1-rc.5-20261106.0130-dsh0.2.2-rc.1 / build329（GitHub 登录原生页 + gh CA 双视图修复 + 引导底栏统一）
 
 - GitHub 登录原生页（T71）：显示容器 `hosts.yml` 的账号、作用域与来源，标明受管 `gh` 是否可用，并用只读 `gh api -i /user` 区分 CA/TLS 失败、token 401、未登录、网络与超时；提供登录、重新授权与退出。页面不显示 token；已知缺口是本机 token 仍存于容器 `hosts.yml`，同 UID 的网页与插件可读（隔离另立 T50，本批不处理）。

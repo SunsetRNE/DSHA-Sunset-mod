@@ -133,11 +133,13 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("GitHub 登录"));
-      assertTrue(shown.contains("受管 CA"));
-      assertTrue(shown.contains("版本码提升为 329"));
+      assertTrue(shown.contains("虚拟屏"));
+      assertTrue(shown.contains("VSCREEN_SELF_LAUNCH_REFUSED"));
+      assertTrue(shown.contains("版本码提升为 330"));
+      assertFalse(shown.contains("GitHub 登录"));
+      assertFalse(shown.contains("受管 CA"));
+      assertFalse(shown.contains("版本码提升为 329"));
       assertFalse(shown.contains("受管资产"));
-      assertFalse(shown.contains("版本码提升为 328"));
       assertFalse(shown.contains("默认禁用"));
       assertFalse(shown.contains("同一 DSH 版本"));
       assertFalse(shown.contains("版本码提升为 327"));
@@ -314,11 +316,13 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("GitHub login"));
-      assertTrue(shown.contains("managed CA"));
-      assertTrue(shown.contains("Raises versionCode to 329"));
+      assertTrue(shown.contains("virtual screen"));
+      assertTrue(shown.contains("VSCREEN_SELF_LAUNCH_REFUSED"));
+      assertTrue(shown.contains("Raises versionCode to 330"));
+      assertFalse(shown.contains("GitHub login"));
+      assertFalse(shown.contains("managed CA"));
+      assertFalse(shown.contains("Raises versionCode to 329"));
       assertFalse(shown.contains("managed asset"));
-      assertFalse(shown.contains("Raises versionCode to 328"));
       assertFalse(shown.contains("disabled by default"));
       assertFalse(shown.contains("the same DSH version"));
       assertFalse(shown.contains("Raises versionCode to 327"));

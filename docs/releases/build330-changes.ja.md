@@ -1,0 +1,4 @@
+# DSHA 0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1 / build330
+
+- 仮想スクリーンへのホスト自身の起動を拒否（T76）：`/app/vscreen/launch` は DSHA 自身を仮想スクリーンに起動する要求を受け付けなくなりました。システムはセカンダリディスプレイ用の別インスタンスを作らず、実行中の同じプロセスを再利用します。既定の display に既にバインドされた WebView は、セカンダリディスプレイ上で `libmonochrome` の NULL ポインタでクラッシュします（relay の実機証拠：display 4、メインスレッドの Looper が WebView に入る、実行中プロセス 14715 の再利用）。bridge は認可確認の前、Manager は claim の前、Core は `am start` の発行前に、同じ判定で拒否し、`VSCREEN_SELF_LAUNCH_REFUSED`（`state=NOT_SENT`、起動コマンドを発行せず、クラッシュしない）を返します。組み込みプラグインはこのコードを pre-dispatch に分類し、ネイティブのアプリ選択画面はホストを一覧に表示せず、結果ページは中国語/英語の理由を示します。これは安全のための拒否であり、セカンダリディスプレイへの self-launch をサポートするものではありません。将来サポートするには `createDisplayContext` と独立した WebView インスタンスが必要です。runtime-descriptor は再生成（runtimeId `6bea62f2`）、固定入力は再構築しません。
+- 検証範囲：ホストの contracts 全体、ツリー全体のフォーマット検査（JDK 17）、対象を絞った単体テスト（VirtualScreenPolicy、VirtualScreenManager ownership、更新ページ）。本機での実機検証は未実施です。バージョンコードを 330 に更新（build329 ベース）。DSHA リビジョンは 0.2.1-rc.5 のまま、内蔵 DSH は 0.2.2-rc.1 です。

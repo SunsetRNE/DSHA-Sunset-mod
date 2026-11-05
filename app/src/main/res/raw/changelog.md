@@ -1,6 +1,4 @@
-# DSHA 0.2.1-rc.5-20261106.0130-dsh0.2.2-rc.1 / build329
+# DSHA 0.2.1-rc.5-20261106.0230-dsh0.2.2-rc.1 / build330
 
-- 新增 GitHub 登录原生页（T71）：显示容器 `hosts.yml` 里的账号、作用域与来源，标明受管 `gh` 是否可用，并用只读 `gh api -i /user` 区分 CA/TLS 失败、token 401、未登录、网络与超时；提供登录、重新授权与退出。页面本身不显示 token。已知缺口：token 仍保存在容器 `hosts.yml`，同 UID 的网页与插件可读，隔离另立 T50，不在本批。
-- 修复 `gh` 的 CA 查找（T73）：`RuntimeTools` 改用 canonical 宿主根设置 `DSHA_GH_HOST_ROOT`，`gh` 包装脚本在 `/data/user/0` 与 `/data/data` 两个数据视图查找受管 CA；两处都缺或 `DSHA_GH_CA` 指向缺失文件时明确报错退出，不再静默回退到缺新根证书的旧系统 CA。固定输入不重建。
-- 引导第 4 步底栏统一（T72）：欢迎流程完成页改用与运行环境维护页相同的 `ExtractFooter` 紧凑两行布局，更新中显示 x/5，恢复主操作位，就绪后进入主界面。
-- 验证范围：宿主测试、contracts 整组、全树格式检查与定向单测（更新页、GitHub 登录、gh 宿主根、引导页）；本机未做真机验收。版本码提升为 329（基于 build328），DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
+- 虚拟屏拒绝把宿主自身作为启动目标（T76）：`/app/vscreen/launch` 不再接受把 DSHA 自己启动到虚拟屏。系统不会为副屏另起实例，而是复用正在运行的同一进程；本进程里已绑定默认 display 的 WebView 在副屏会以 `libmonochrome` 空指针崩溃（relay 真机证据：display 4、主线程 Looper 进入 WebView、复用已运行的进程 14715）。bridge 在授权询问前、Manager 在 claim 前、Core 在发出 `am start` 前三层用同一条判定拒绝，返回 `VSCREEN_SELF_LAUNCH_REFUSED`（`state=NOT_SENT`，不发出启动命令、不再崩溃）；内置插件把该码归入 pre-dispatch，原生应用选择器不再列出宿主，结果页给出中英原因。这是安全拒绝，不是支持副屏 self-launch；以后若要支持须用 `createDisplayContext` + 独立 WebView 实例。runtime-descriptor 重生成（runtimeId `6bea62f2`），固定输入不重建。
+- 验证范围：宿主 contracts 整组、全树格式检查（JDK17）与定向单测（VirtualScreenPolicy、VirtualScreenManager ownership、更新页）；本机未做真机验收。版本码提升为 330（基于 build329），DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
