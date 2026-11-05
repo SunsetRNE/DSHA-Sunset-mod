@@ -247,7 +247,7 @@ try {
 } finally {
   await ctx.fiber.dispose();
 }
-console.log(JSON.stringify({ status: 'PASS', dshVersion: '0.2.1-rc.2', checks,
+console.log(JSON.stringify({ status: 'PASS', dshVersion: expectedRuntimeVersion, checks,
   ...(importerProof === undefined ? {} : { importer: importerProof }) }, null, 2));
 } finally {
   await removeOwnedFixture();
