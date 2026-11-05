@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261105.2020-dsh0.2.2-rc.1` / build324 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合并两项：user-only 技能调用改为一次性审批（T54），首次进入页面不再闪烁连接提示（T58，真实断开恢复仍提示）。宿主测试、运行时描述符与源码门禁通过；真机结论按当次实际确认记录，不扩写为全机型矩阵。改动说明见 [build324 更新说明](releases/build324-changes.zh.md)，验证记录见 [build324 记录](releases/v0.2.1-rc.5-build324-first-connect-indicator-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261105.2135-dsh0.2.2-rc.1` / build325 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复 build324 覆盖安装后的白屏：移动壳侧栏 footer 齿轮改按实测宽度让位，不再依赖宿主连接状态指示；侧栏不再叠加，覆盖升级能正常触发运行环境维护与重建（T61）。宿主测试、源码与运行时描述符门禁通过；用户已在测试包真机确认白屏消失、能正常触发环境重建，其余真机项待补确认，不扩写为全机型矩阵。改动说明见 [build325 更新说明](releases/build325-changes.zh.md)，验证记录见 [build325 记录](releases/v0.2.1-rc.5-build325-mobile-gear-fit-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

@@ -133,8 +133,10 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("技能调用确认"));
-      assertTrue(shown.contains("版本码提升为 324"));
+      assertTrue(shown.contains("白屏"));
+      assertTrue(shown.contains("版本码提升为 325"));
+      assertFalse(shown.contains("技能调用确认"));
+      assertFalse(shown.contains("版本码提升为 324"));
       assertFalse(shown.contains("DSH 0.2.2 升级第一步"));
       assertFalse(shown.contains("版本码提升为 323"));
       assertFalse(shown.contains("插件卸载：修复"));
@@ -306,8 +308,10 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("Skill-call approval"));
-      assertTrue(shown.contains("Raises versionCode to 324"));
+      assertTrue(shown.contains("white screen"));
+      assertTrue(shown.contains("Raises versionCode to 325"));
+      assertFalse(shown.contains("Skill-call approval"));
+      assertFalse(shown.contains("Raises versionCode to 324"));
       assertFalse(shown.contains("DSH 0.2.2 upgrade step one"));
       assertFalse(shown.contains("Raises versionCode to 323"));
       assertFalse(shown.contains("Plugin uninstall: fixes"));
