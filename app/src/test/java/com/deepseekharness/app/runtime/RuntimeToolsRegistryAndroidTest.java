@@ -208,14 +208,19 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(44, groups.size());
-    assertEquals(59, groups.values().stream().mapToInt(java.util.List::size).sum());
+    assertEquals(45, groups.size());
+    assertEquals(60, groups.values().stream().mapToInt(java.util.List::size).sum());
     assertEquals(
         "web-fetch-http-surrogate-patch.json",
         groups.get("@deepseek-ai/dsh-web-fetch-http/lib/index.js").get(0).id());
     assertEquals(
         "web-fetch-output-surrogate-patch.json",
         groups.get("@deepseek-ai/dsh-tool-web/lib/index.js").get(0).id());
+    // T58：首次进入页面的首个连接不显示黄色/绿色提示；真实断开恢复仍提示。
+    var firstConnect = groups.get("@deepseek-ai/dsh-client-ui-settings-general/lib/client.js");
+    assertEquals(1, firstConnect.size());
+    assertEquals("first-connect-indicator-patch.json", firstConnect.get(0).id());
+    assertEquals(java.util.List.of("DSHA_FIRST_CONNECT_SILENT_V1"), firstConnect.get(0).markers());
     assertTrue(
         groups.get("@deepseek-ai/dsh-mcp-client/lib/index.js").stream()
             .anyMatch(recipe -> recipe.id().equals("mcp-image-base64-patch.json")));

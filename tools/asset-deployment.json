@@ -41,6 +41,7 @@
     "file-image-actions-patch.json",
     "file-upload-binary-client-patch.json",
     "file-upload-capacity-patch.json",
+    "first-connect-indicator-patch.json",
     "frontend-static-cache-patch.json",
     "guard-bash-patch.json",
     "guard-editor-patch.json",

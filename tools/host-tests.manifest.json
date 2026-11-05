@@ -3283,6 +3283,19 @@
         "DSHA_REACT": "{reactReference}"
       },
       "reason": "Actual shipped mobile image controls: no duplicate whole-image JS chunks, preserve 33MiB payload and cancel delayed completion after disposal."
+    },
+    {
+      "path": "tools/test-first-connect-indicator.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "python39",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Current signed first-connect recipe applies to the locked settings client and executes the production transition helpers: first connect stays silent (no yellow or green), real disconnect/recovery keeps yellow→green, including remount while disconnected; no device or browser."
     }
   ]
 }
