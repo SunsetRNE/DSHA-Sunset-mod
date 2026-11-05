@@ -15,20 +15,20 @@ class SunsetInputsTests(unittest.TestCase):
         result = inputs.resolve({})
         lock = json.loads((inputs.ROOT / "ci/sunset-inputs.lock.json").read_text(encoding="utf-8"))
         self.assertEqual(lock["schema"], 1)
-        self.assertEqual(lock["release"], "fixed-inputs-20261105c")
-        self.assertEqual(lock["asset"], "dsha-a-su-fixed-inputs-20261105c.zip")
+        self.assertEqual(lock["release"], "fixed-inputs-20261105d")
+        self.assertEqual(lock["asset"], "dsha-a-su-fixed-inputs-20261105d.zip")
         self.assertEqual(lock["format"], "bundle")
-        self.assertEqual(lock["bytes"], 703123210)
+        self.assertEqual(lock["bytes"], 703125540)
         for key in ("url", "sha256", "format"):
             self.assertEqual(result[key], lock[key])
         self.assertEqual(result["source"], "source-lock")
         self.assertEqual(result["format"], "bundle")
         self.assertEqual(result["url"],
                          "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/"
-                         "fixed-inputs-20261105c/dsha-a-su-fixed-inputs-20261105c.zip")
+                         "fixed-inputs-20261105d/dsha-a-su-fixed-inputs-20261105d.zip")
         self.assertTrue(result["url"].endswith("/" + lock["asset"]))
         self.assertEqual(result["sha256"],
-                         "7d773e6d767fdf976ed5bbf6af7cb65d6ceab46851810994fbc16c90800f0b72")
+                         "fd96a52389a2b518fe5d3381c965c8881b247d83817ad993bef1741d77dc4b70")
 
     def test_dispatch_pair_wins_as_one_unit(self):
         result = inputs.resolve({"SUNSET_DISPATCH_URL": "https://example.invalid/new.zip",
