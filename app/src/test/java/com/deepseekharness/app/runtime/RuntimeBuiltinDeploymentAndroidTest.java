@@ -11,6 +11,7 @@ import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.zip.*;
 import org.json.*;
@@ -127,6 +128,16 @@ public final class RuntimeBuiltinDeploymentAndroidTest {
         Files.readAllBytes(entity.resolve("lib/" + file)));
   }
 
+  private static String sha256(Path file) throws Exception {
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    try (var input = Files.newInputStream(file)) {
+      byte[] buffer = new byte[8192];
+      int read;
+      while ((read = input.read(buffer)) > 0) digest.update(buffer, 0, read);
+    }
+    return HexFormat.of().formatHex(digest.digest());
+  }
+
   @Test
   public void actualInstallerCopiesEverySignedRowAndBothImportedHelperModules() throws Exception {
     Path root = files.resolve("linux/ubuntu");
@@ -135,6 +146,13 @@ public final class RuntimeBuiltinDeploymentAndroidTest {
     for (int index = 0; index < installs.length(); index++) {
       JSONObject row = installs.getJSONObject(index);
       String asset = row.getString("asset");
+      Path target = root.resolve(row.getString("target"));
+      JSONObject extract = row.optJSONObject("extract");
+      if (extract != null) {
+        // 单成员提取行发布的是成员字节，不是归档字节。
+        assertEquals(asset, extract.getString("sha256"), sha256(target));
+        continue;
+      }
       byte[] expected = Files.readAllBytes(source.resolve(asset));
       // The production installer deliberately normalizes shell/Python line endings.
       // All JS, including the two imported helpers below, still requires exact bytes.
@@ -143,7 +161,7 @@ public final class RuntimeBuiltinDeploymentAndroidTest {
             new String(expected, StandardCharsets.UTF_8)
                 .replace("\r\n", "\n")
                 .getBytes(StandardCharsets.UTF_8);
-      assertArrayEquals(asset, expected, Files.readAllBytes(root.resolve(row.getString("target"))));
+      assertArrayEquals(asset, expected, Files.readAllBytes(target));
     }
     helper(root.resolve("root/dsha-status-overlay"), "dsh-status-overlay", "session-adapter.js");
     helper(
