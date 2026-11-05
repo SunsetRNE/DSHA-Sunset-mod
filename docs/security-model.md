@@ -23,6 +23,8 @@
 
 插件可以在应用 UID 下读写可访问文件并执行代码。自动安装不是独立安全认证。受管系统组件与用户插件分层；系统组件从当前签名 APK 重建，用户修改和个人依赖不得被当作缓存清掉。
 
+模型技能工具对 `disable-model-invocation: true` 的 user-only 技能保留模型目录可见性，但目录条目标记 `[approval required]`。模型加载正文前必须经过 `dsh-user-approval`，只有精确的 `allowed-once` 放行本次调用；拒绝、取消、审批服务缺失、审批异常或加载前后策略变成不可调用都会 fail-closed。`modelInvocable` 与 `userInvocable` 均为 false 的技能不进入模型目录，也不能通过审批绕过。用户消息中的显式 `/name` 仍走 user-invocable 注入路径，不代替模型审批，也不授予模型跨调用权限。
+
 ### AI 工具破坏性策略（DSH 0.2.2）
 
 DSH 0.2.2 把工具执行移到 `dsh-tools/lib/pipeline.js` 的 `ToolExecutionPipeline`，原生执行器与 PTC（`run_code` 及其嵌套调用）共用它。签名补丁 `guard-tools-patch.json`（`attachPolicy`）与 `guard-tools-pipeline-patch.json`（`captureExecution` / `prepareOperation` / `verifyGlobalConsent` / `verifyDispatch`）共同生效：bash 删除/不透明命令与 write/edit/str_replace_editor 覆盖已有文件，在两种执行器下都须原生全局允许、会话 danger-full-access 档位或一次性网页审批。任一挂点缺失时 bash 与文件改写一律失败，不放行。

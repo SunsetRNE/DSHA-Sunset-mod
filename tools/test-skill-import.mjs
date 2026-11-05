@@ -105,20 +105,36 @@ async function generateFixture() {
   });
   const artifacts = await Promise.all(dependencies.map(dependency => lockedJar(dependency, jars)));
   const generated = path.join(ownedFixture, 'generated');
+  // Keep this JVM fixture independent from AndroidBackupFileSystem. The production
+  // UserDataLayout is Android-adjacent through its wider source closure; this
+  // minimal host-only facade exercises the same stable data root used by imports.
+  const hostLayout = path.join(generated, 'com/deepseekharness/app/backup/UserDataLayout.java');
+  await fs.mkdir(path.dirname(hostLayout), { recursive: true });
+  await fs.writeFile(hostLayout, [
+    'package com.deepseekharness.app.backup;',
+    'import java.io.File;',
+    'import java.io.IOException;',
+    'public final class UserDataLayout {',
+    '  private final File files;',
+    '  public UserDataLayout(BackupFileSystem fs, File files) { this.files = files.getAbsoluteFile(); }',
+    '  public File current() throws IOException { return new File(files, "user-data-v5/dsh"); }',
+    '}',
+    ''
+  ].join('\n'), 'utf8');
   execFileSync(process.env.DSHA_PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3'),
     ['-B', path.join(root, 'tools/prepare-ui-languages.py'), '--output', generated], subprocess);
   const driver = path.join(root, 'tools/fixtures/skill-import/SkillImportFixture.java');
   const classpath = artifacts.join(path.delimiter);
   execFileSync(executable('javac'), ['-J-Dfile.encoding=UTF-8', '-J-Duser.language=en',
     '-J-Duser.country=US', '-encoding', 'UTF-8', '-source', '17', '-target', '17',
-    '-cp', classpath, '-sourcepath', [path.join(root, 'app/src/main/java'),
-      path.join(root, 'app/src/test/java'), generated].join(path.delimiter), '-d', classes, driver], subprocess);
+    '-cp', classpath, '-sourcepath', [generated, path.join(root, 'app/src/main/java'),
+      path.join(root, 'app/src/test/java')].join(path.delimiter), '-d', classes, driver], subprocess);
   fixture = path.join(ownedFixture, 'app-files');
   assert.equal(execFileSync(executable('java'), ['-Dfile.encoding=UTF-8', '-cp',
     [classes, ...artifacts].join(path.delimiter), 'SkillImportFixture', fixture], subprocess).trim(),
     'PASS_JVM_SKILL_IMPORT');
   importerProof = { mechanism: 'portable JDK17 actual SkillImports + JVM file layer',
-    importedFiles: 2, dependencies: dependencies.map(({ name, version, sha256 }) => ({ name, version, sha256 })),
+    importedFiles: 3, dependencies: dependencies.map(({ name, version, sha256 }) => ({ name, version, sha256 })),
     sourceSha256: Object.fromEntries(await Promise.all([
       'app/src/main/java/com/deepseekharness/app/skills/SkillImports.java',
       'app/src/main/java/com/deepseekharness/app/util/SkillDocument.java',
@@ -141,7 +157,7 @@ if (args.length === 1 && !args[0].startsWith('--')) {
   }
 }
 try {
-const runtime = testRuntime('raw');
+const runtime = testRuntime('managed');
 const require = createRequire(pathToFileURL(path.join(runtime, 'package.json')));
 const load = name => import(pathToFileURL(require.resolve(name)));
 const expectedRuntimeVersion = JSON.parse(await fs.readFile(

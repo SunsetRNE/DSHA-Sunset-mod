@@ -143,6 +143,7 @@
     "web-integration/session-interaction.js",
     "welcome-notice-patch.json",
     "workspace-directory-policy-patch.json",
+    "user-only-skill-approval-patch.json",
     "external-tool-proof.json"
   ],
   "packagedTrees": [

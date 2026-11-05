@@ -307,6 +307,13 @@
       "markers": [
         "DSHA_IMAGE_GALLERY_MENU_V1"
       ]
+    },
+    {
+      "asset": "user-only-skill-approval-patch.json",
+      "module": "@deepseek-ai/dsh-tool-skill/lib/index.js",
+      "markers": [
+        "DSHA_USER_ONLY_SKILL_APPROVAL_V1"
+      ]
     }
   ],
   "specialized": [
