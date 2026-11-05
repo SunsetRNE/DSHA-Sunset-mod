@@ -605,8 +605,7 @@ public class ConfigStore {
   }
 
   public void setSshEnabled(boolean enabled) {
-    if (!enabled && context != null)
-      com.deepseekharness.app.ContainerSshService.stop(context);
+    if (!enabled && context != null) com.deepseekharness.app.ContainerSshService.stop(context);
     prefs.edit().putBoolean("container_ssh_enabled", enabled).apply();
   }
 

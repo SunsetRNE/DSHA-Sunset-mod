@@ -52,7 +52,11 @@ public class ProotBootstrap {
     this(c, forceProot, candidate, new com.deepseekharness.app.core.DefaultRuntimeModePolicy(c));
   }
 
-  ProotBootstrap(Context c, boolean forceProot, ColdInstallTransaction.Candidate candidate, RuntimeModePolicy modePolicy) {
+  ProotBootstrap(
+      Context c,
+      boolean forceProot,
+      ColdInstallTransaction.Candidate candidate,
+      RuntimeModePolicy modePolicy) {
     this.forceProot = forceProot;
     this.coldCandidate = candidate;
     ctx = c.getApplicationContext();

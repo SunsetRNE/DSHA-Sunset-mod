@@ -258,8 +258,7 @@ public class LaunchFragment extends Fragment {
     // 终端/设置/模块中心都在底栏，不能把主页主按钮变成第二个导航按钮。
     start.setOnClickListener(
         x -> {
-          String action =
-              com.deepseekharness.app.HomeLayoutStore.launchAction(requireContext());
+          String action = com.deepseekharness.app.HomeLayoutStore.launchAction(requireContext());
           if (com.deepseekharness.app.HomeLayoutStore.isToolAction(action)) {
             runContainerTool(com.deepseekharness.app.HomeLayoutStore.toolIdOf(action), start);
             return;
@@ -439,9 +438,7 @@ public class LaunchFragment extends Fragment {
       builder
           .append(id)
           .append(
-              com.deepseekharness.app.HomeLayoutStore.isHidden(requireContext(), id)
-                  ? '-'
-                  : '+');
+              com.deepseekharness.app.HomeLayoutStore.isHidden(requireContext(), id) ? '-' : '+');
     }
     return builder.toString();
   }
@@ -687,14 +684,23 @@ public class LaunchFragment extends Fragment {
         com.deepseekharness.app.module.ContainerTools.byId(requireContext(), toolId);
     if (tool == null) {
       Toast.makeText(
-              requireContext(), UiText.format(UiText.choose("找不到登记的工具 %s，可能已被删除", "Registered tool %s not found; it may have been deleted"), toolId), Toast.LENGTH_SHORT)
+              requireContext(),
+              UiText.format(
+                  UiText.choose(
+                      "找不到登记的工具 %s，可能已被删除",
+                      "Registered tool %s not found; it may have been deleted"),
+                  toolId),
+              Toast.LENGTH_SHORT)
           .show();
       return;
     }
     if (start != null) start.setEnabled(false);
     boolean wasRunning = com.deepseekharness.app.module.ContainerTools.isRunning(tool.id);
     com.deepseekharness.app.module.ContainerTools.stopRunning(tool.id);
-    Toast.makeText(requireContext(), UiText.format(UiText.choose("正在启动 %s…", "Starting %s…"), tool.name), Toast.LENGTH_SHORT)
+    Toast.makeText(
+            requireContext(),
+            UiText.format(UiText.choose("正在启动 %s…", "Starting %s…"), tool.name),
+            Toast.LENGTH_SHORT)
         .show();
     final String logPath = "/tmp/dsha-tool-" + tool.id + ".log";
     final String wrapped =
@@ -747,9 +753,11 @@ public class LaunchFragment extends Fragment {
                     if (start != null) start.setEnabled(true);
                     String message;
                     if (launchFailure != null) {
-                      message = UiText.format(
-                      UiText.choose("%s 启动失败：%s", "%s failed to start: %s"),
-                      tool.name, launchFailure);
+                      message =
+                          UiText.format(
+                              UiText.choose("%s 启动失败：%s", "%s failed to start: %s"),
+                              tool.name,
+                              launchFailure);
                     } else if (tool.port > 0 && ready) {
                       message =
                           UiText.format(
@@ -760,9 +768,12 @@ public class LaunchFragment extends Fragment {
                               String.valueOf(tool.port),
                               String.valueOf(tool.port));
                     } else if (stillRunning) {
-                      message = UiText.format(
-                      UiText.choose("%s 运行中；日志见容器内 %s", "%s running; log in container at %s"),
-                      tool.name, logPath);
+                      message =
+                          UiText.format(
+                              UiText.choose(
+                                  "%s 运行中；日志见容器内 %s", "%s running; log in container at %s"),
+                              tool.name,
+                              logPath);
                     } else if (tool.port > 0) {
                       message =
                           UiText.format(
@@ -773,9 +784,12 @@ public class LaunchFragment extends Fragment {
                               String.valueOf(tool.port),
                               logPath);
                     } else {
-                      message = UiText.format(
-                      UiText.choose("%s 已执行完成；输出见容器内 %s", "%s finished; output in container at %s"),
-                      tool.name, logPath);
+                      message =
+                          UiText.format(
+                              UiText.choose(
+                                  "%s 已执行完成；输出见容器内 %s", "%s finished; output in container at %s"),
+                              tool.name,
+                              logPath);
                     }
                     if (restart && launchFailure == null)
                       message = UiText.format(UiText.choose("已重启：%s", "Restarted: %s"), message);
@@ -926,14 +940,12 @@ public class LaunchFragment extends Fragment {
       ((TextView) root.findViewById(R.id.launch_environment))
           .setText(environment.ready ? "READY" : "—");
       // 副标题反映真实启动入口：容器工作台，或容器里登记的程序。
-      String launchTarget =
-          com.deepseekharness.app.HomeLayoutStore.launchAction(requireContext());
+      String launchTarget = com.deepseekharness.app.HomeLayoutStore.launchAction(requireContext());
       CharSequence subtitleText;
       if (com.deepseekharness.app.HomeLayoutStore.isToolAction(launchTarget)) {
         com.deepseekharness.app.module.ContainerTools.Tool targetTool =
             com.deepseekharness.app.module.ContainerTools.byId(
-                requireContext(),
-                com.deepseekharness.app.HomeLayoutStore.toolIdOf(launchTarget));
+                requireContext(), com.deepseekharness.app.HomeLayoutStore.toolIdOf(launchTarget));
         if (targetTool == null) {
           subtitleText =
               com.deepseekharness.app.util.UiText.choose(
@@ -1037,7 +1049,8 @@ public class LaunchFragment extends Fragment {
                 ? com.deepseekharness.app.util.UiText.text("进入中…")
                 : launchProgram != null
                     ? com.deepseekharness.app.module.ContainerTools.isRunning(launchProgram.id)
-                        ? com.deepseekharness.app.util.UiText.format(UiText.choose("重启 %s", "Restart %s"), launchProgram.name)
+                        ? com.deepseekharness.app.util.UiText.format(
+                            UiText.choose("重启 %s", "Restart %s"), launchProgram.name)
                         : com.deepseekharness.app.util.UiText.format("启动 %s", launchProgram.name)
                     : ready
                         ? com.deepseekharness.app.util.UiText.choose(

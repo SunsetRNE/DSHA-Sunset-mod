@@ -1361,8 +1361,7 @@ public final class ModuleCenterActivity extends AppCompatActivity {
                           if (com.deepseekharness.app.HomeLayoutStore.toolIdOf(
                                   com.deepseekharness.app.HomeLayoutStore.launchAction(this))
                               .equals(existing.id))
-                            applyLaunchTarget(
-                                com.deepseekharness.app.HomeLayoutStore.ACTION_WEB);
+                            applyLaunchTarget(com.deepseekharness.app.HomeLayoutStore.ACTION_WEB);
                         render();
                         onSaved.run();
                       })
