@@ -22,7 +22,7 @@
 
 入口为[MainActivity](../app/src/main/java/com/deepseekharness/app/ui/MainActivity.java)、[OnboardingActivity](../app/src/main/java/com/deepseekharness/app/ui/OnboardingActivity.java)、[ExtractActivity](../app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java)（维护详情）与[FirstRunWebStart](../app/src/main/java/com/deepseekharness/app/ui/FirstRunWebStart.java)。[StartupPipeline](../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java)处理正常启动准备，[StartupDiagnostics](../app/src/main/java/com/deepseekharness/app/core/StartupDiagnostics.java)整合后端与网页观察。页面事件仍校验宿主、运行代次、当前同源文档、nonce 与顺序，见[StartupPageGate](../app/src/main/java/com/deepseekharness/app/util/StartupPageGate.java)；nonce 不是同源脚本之间的安全隔离。
 
-停止与重启必须遵循真实进程身份及退出屏障；不能按端口、名字或裸 PID 强杀。proroot 鉴权前明确失败后的窄回退条件见[运行引擎](runtime-engines.md)，不能把慢启动和插件错误当成换引擎重放理由。
+停止与重启必须遵循真实进程身份及退出屏障；不能按端口、名字或裸 PID 强杀。proroot 鉴权前明确失败后的窄回退条件见[运行引擎](runtime-engines.md)，不能把慢启动和插件错误当成换引擎重放理由。用户手点维护时由维护动作自行完成停止（普通停止未确认时按身份核验升级一次强制结束，见契约 I9），**不需要**用户先进入受限主界面手动停止再回来更新。
 
 ## 宿主重建与网页首次说明
 

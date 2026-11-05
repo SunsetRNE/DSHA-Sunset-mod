@@ -300,7 +300,7 @@ final class RuntimeMaintenanceStarter {
               boolean started =
                   kind == Retry.RECOVER
                       ? task.recoverMaintenance()
-                      : rebuildRequested ? task.rebuild() : task.updateEnvironment();
+                      : rebuildRequested ? task.rebuild() : task.updateEnvironment(true);
               if (started) {
                 DeployMonitor.noteStarted(activity, task.snapshot().id, installed);
                 if (afterStart != null) afterStart.run();

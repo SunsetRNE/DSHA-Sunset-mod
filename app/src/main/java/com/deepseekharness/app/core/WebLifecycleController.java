@@ -1499,7 +1499,13 @@ final class WebLifecycleController {
         throw new com.deepseekharness.app.util.WebStopException(
             com.deepseekharness.app.util.WebStopDiagnostic.Code.FORCE_REQUIRES_UNCONFIRMED_STOP);
     }
-    WebProcessManager.ForceCandidate candidate = webProc.prepareForceStop();
+    WebProcessManager.ForceCandidate candidate;
+    try {
+      candidate = webProc.prepareForceStop();
+    } catch (IOException fileEvidenceUnavailable) {
+      // 覆盖安装会换掉进程：PID/身份文件可能缺失，但会话记录里的出生身份仍可核验同一 guest。
+      candidate = recordedForceCandidate(fileEvidenceUnavailable);
+    }
     synchronized (lifecycle) {
       if (!forceStopAllowed(lifecycle, state.lastStopResult, generation))
         throw new com.deepseekharness.app.util.WebStopException(
@@ -1508,6 +1514,35 @@ final class WebLifecycleController {
           ? null
           : new HarnessController.ForceStopRequest(generation, candidate);
     }
+  }
+
+  /** 只用已保存且完整匹配的出生身份准备候选；读不到或任一字段不符都不杀。 */
+  private WebProcessManager.ForceCandidate recordedForceCandidate(
+      IOException fileEvidenceUnavailable) throws IOException {
+    com.deepseekharness.app.runtime.StoredWebSession.Record record;
+    try {
+      record = storedSession.read();
+    } catch (Exception unreadable) {
+      throw combinedForceFailure(fileEvidenceUnavailable, unreadable);
+    }
+    if (record == null) throw combinedForceFailure(fileEvidenceUnavailable, null);
+    try {
+      return webProc.prepareRecordedForceStop(record.proof());
+    } catch (IOException recordedUnavailable) {
+      throw combinedForceFailure(fileEvidenceUnavailable, recordedUnavailable);
+    }
+  }
+
+  private static IOException combinedForceFailure(IOException first, Exception second) {
+    java.util.List<Object> facts = new java.util.ArrayList<>();
+    facts.add("PID/身份文件不可用");
+    if (first != null && first.getMessage() != null) facts.add(first.getMessage());
+    if (second != null && second.getMessage() != null) facts.add(second.getMessage());
+    return new com.deepseekharness.app.util.WebStopException(
+        com.deepseekharness.app.util.WebStopDiagnostic.of(
+            com.deepseekharness.app.util.WebStopDiagnostic.Code.FORCE_EVIDENCE_UNCONFIRMED,
+            facts.toArray()),
+        null);
   }
 
   boolean forceStop(HarnessController.ForceStopRequest request, Consumer<String> status) {

@@ -1502,6 +1502,10 @@
     "app/src/test/java/com/deepseekharness/app/backup/BackupTemporaryFilesTest.java",
     "app/src/test/java/com/deepseekharness/app/backup/HostSnapshotFailureRetentionTest.java",
     "app/src/test/java/com/deepseekharness/app/util/DeviceChannelOrderTest.java",
-    "app/src/test/java/com/deepseekharness/app/ui/ShellNavCompactPortraitTest.java"
+    "app/src/test/java/com/deepseekharness/app/ui/ShellNavCompactPortraitTest.java",
+    "app/src/main/java/com/deepseekharness/app/core/MaintenancePreStop.java",
+    "app/src/main/java/com/deepseekharness/app/util/WebProofStop.java",
+    "app/src/test/java/com/deepseekharness/app/core/MaintenancePreStopTest.java",
+    "app/src/test/java/com/deepseekharness/app/util/WebProofStopTest.java"
   ]
 }

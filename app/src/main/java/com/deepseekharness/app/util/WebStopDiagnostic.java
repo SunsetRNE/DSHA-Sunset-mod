@@ -44,6 +44,7 @@ public record WebStopDiagnostic(Code code, List<String> arguments) {
     OWNED_WEB_REMAINS,
     OWNED_WEB_SCAN_UNCONFIRMED,
     FORCE_EVIDENCE_UNCONFIRMED,
+    RECORDED_SESSION_UNCONFIRMED,
     LEGACY_DETAIL
   }
 

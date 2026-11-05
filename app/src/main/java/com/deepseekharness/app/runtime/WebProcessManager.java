@@ -110,17 +110,24 @@ public class WebProcessManager {
 
   public static final class ForceCandidate {
     private final com.deepseekharness.app.util.WebForceStop.Candidate proof;
+    private final com.deepseekharness.app.util.WebSessionProof.Saved recorded;
 
     private ForceCandidate(com.deepseekharness.app.util.WebForceStop.Candidate proof) {
       this.proof = proof;
+      this.recorded = null;
+    }
+
+    private ForceCandidate(com.deepseekharness.app.util.WebSessionProof.Saved recorded) {
+      this.proof = null;
+      this.recorded = recorded;
     }
 
     public int pid() {
-      return proof.pid();
+      return recorded != null ? recorded.webPid() : proof.pid();
     }
 
     public String generation() {
-      return proof.generation();
+      return recorded != null ? Long.toString(recorded.generation()) : proof.generation();
     }
   }
 
@@ -142,9 +149,52 @@ public class WebProcessManager {
     return forceStopResult(candidate).detail();
   }
 
+  /**
+   * 覆盖安装后 App 已被结束、PID/身份文件不可用时，按会话记录里的出生身份准备候选。
+   *
+   * <p>只有记录与当前进程完全一致（同一 boot、PID、出生时间、命令行、代次/实例/nonce）才返回候选；
+   * 记录缺失、PID 复用或任一项不匹配都拒绝，不发送任何信号。
+   */
+  public ForceCandidate prepareRecordedForceStop(
+      com.deepseekharness.app.util.WebSessionProof.Saved saved) throws IOException {
+    if (records != null)
+      throw new WebStopException(Code.FORCE_EVIDENCE_UNCONFIRMED, "TRIAL_FORBIDDEN");
+    if (saved == null) return null;
+    if (observeRecordedSession(saved) != SessionObservation.LIVE)
+      throw new WebStopException(Code.RECORDED_SESSION_UNCONFIRMED);
+    return new ForceCandidate(saved);
+  }
+
+  /**
+   * 只读核对会话记录里的 Web 是否仍是当前进程。与 {@link #verifySession} 的区别是不再要求
+   * `/root/.dsha-web.identity` 文件存在：覆盖安装后文件可能缺失，但完整出生身份仍可自证。
+   */
+  public SessionObservation observeRecordedSession(
+      com.deepseekharness.app.util.WebSessionProof.Saved saved) {
+    if (saved == null || records != null) return SessionObservation.UNKNOWN;
+    try {
+      String boot = recoveryBoot();
+      if (!saved.boot().equals(boot)) return SessionObservation.EXITED;
+      var web = recoveryProcess(saved.webPid());
+      if (!web.alive() || web.started() != saved.webStarted()) return SessionObservation.EXITED;
+      var launcher = recoveryProcess(saved.launcherPid());
+      return com.deepseekharness.app.util.WebSessionProof.matches(
+              saved, boot, android.os.Process.myUid(), web, launcher)
+          ? SessionObservation.LIVE
+          : SessionObservation.UNKNOWN;
+    } catch (IOException | RuntimeException unavailable) {
+      // 读写错误不等于退出；只有内核身份已变化才可作为退出证明。
+      if (recordedProcessExited(saved.webPid(), saved.webStarted()))
+        return SessionObservation.EXITED;
+      return SessionObservation.UNKNOWN;
+    }
+  }
+
   public StopResult forceStopResult(ForceCandidate candidate) throws IOException {
     if (records != null)
       throw new WebStopException(Code.FORCE_EVIDENCE_UNCONFIRMED, "TRIAL_FORBIDDEN");
+    if (candidate != null && candidate.recorded != null)
+      return forceRecordedStop(candidate.recorded);
     try {
       sentinel();
       com.deepseekharness.app.util.WebForceStop.signal(
@@ -161,6 +211,44 @@ public class WebProcessManager {
       // Reuse the ordinary retirement/global guest proof. A sent signal alone never releases a
       // barrier.
       return result(stopAll());
+    } catch (IOException failure) {
+      throw new WebStopException(
+          WebStopDiagnostic.failure(Code.FORCE_EVIDENCE_UNCONFIRMED, failure), failure);
+    }
+  }
+
+  /** 按会话记录里的出生身份结束同一 guest；核验不过不发送信号，启动器始终保留。 */
+  private StopResult forceRecordedStop(com.deepseekharness.app.util.WebSessionProof.Saved saved)
+      throws IOException {
+    try {
+      sentinel();
+      var outcome =
+          com.deepseekharness.app.util.WebProofStop.run(
+              true,
+              () ->
+                  switch (observeRecordedSession(saved)) {
+                    case LIVE -> com.deepseekharness.app.util.WebProofStop.Observation.LIVE;
+                    case EXITED -> com.deepseekharness.app.util.WebProofStop.Observation.EXITED;
+                    case UNKNOWN -> com.deepseekharness.app.util.WebProofStop.Observation.UNKNOWN;
+                  },
+              () -> signalProofTerm(saved.webPid()),
+              () -> signalKill(saved.webPid()),
+              new com.deepseekharness.app.util.WebProofStop.Clock() {
+                public long now() {
+                  return android.os.SystemClock.elapsedRealtime();
+                }
+
+                public void pause(long millis) throws InterruptedException {
+                  Thread.sleep(millis);
+                }
+              });
+      StopResult barrier = result(stopAll());
+      if (outcome.stopped() || barrier.stopped()) return barrier;
+      java.util.List<WebStopDiagnostic> facts = new java.util.ArrayList<>();
+      if (outcome.diagnostic() != null) facts.add(outcome.diagnostic());
+      facts.addAll(barrier.diagnostics());
+      return new StopResult(
+          StopStatus.UNCONFIRMED, "WEB_RECORDED_STOP_UNCONFIRMED", facts, proot.hostPorts());
     } catch (IOException failure) {
       throw new WebStopException(
           WebStopDiagnostic.failure(Code.FORCE_EVIDENCE_UNCONFIRMED, failure), failure);
@@ -935,8 +1023,31 @@ public class WebProcessManager {
   }
 
   private WebRecordedStop.Signal signalTerm(int pid) throws IOException {
+    return signal(pid, OsConstants.SIGTERM);
+  }
+
+  private com.deepseekharness.app.util.WebProofStop.Signal signalProofTerm(int pid)
+      throws IOException {
+    return proofSignal(pid, OsConstants.SIGTERM);
+  }
+
+  private com.deepseekharness.app.util.WebProofStop.Signal signalKill(int pid) throws IOException {
+    return proofSignal(pid, OsConstants.SIGKILL);
+  }
+
+  private com.deepseekharness.app.util.WebProofStop.Signal proofSignal(int pid, int signal)
+      throws IOException {
+    return switch (signal(pid, signal)) {
+      case SENT -> com.deepseekharness.app.util.WebProofStop.Signal.SENT;
+      case GONE -> com.deepseekharness.app.util.WebProofStop.Signal.GONE;
+      case FOREIGN_UID -> com.deepseekharness.app.util.WebProofStop.Signal.FOREIGN_UID;
+      case DENIED -> com.deepseekharness.app.util.WebProofStop.Signal.DENIED;
+    };
+  }
+
+  private WebRecordedStop.Signal signal(int pid, int signal) throws IOException {
     try {
-      Os.kill(pid, OsConstants.SIGTERM);
+      Os.kill(pid, signal);
       return WebRecordedStop.Signal.SENT;
     } catch (ErrnoException denied) {
       if (denied.errno == OsConstants.ESRCH) return WebRecordedStop.Signal.GONE;
