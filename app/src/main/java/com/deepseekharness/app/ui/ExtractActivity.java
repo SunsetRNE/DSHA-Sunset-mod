@@ -48,7 +48,7 @@ public class ExtractActivity extends AppCompatActivity {
   private BackupTaskState.Status cachedReadyStatus;
   private boolean cachedReadyBusy, cachedReadyPending;
   private long cachedReadyAt;
-  private boolean cachedInstalled, cachedCanUpdate;
+  private boolean cachedInstalled, cachedCanUpdate, cachedLatest;
   private DeviceSupportReport support;
 
   @Override
@@ -191,7 +191,9 @@ public class ExtractActivity extends AppCompatActivity {
         // 未关闭的隔离试运行现场也须先“恢复中断维护”（再次更新会以 TRIAL_RECOVERY_REQUIRED 拒绝）。
         pending = task.pendingMaintenanceForUi() || RuntimeMaintenanceStarter.pendingTrial(this),
         executionBusy = task.busy();
-    boolean ready = environmentReady(s, busy, pending);
+    // 环境可继续运行（兼容 + 健康回执）且已装运行时就是当前候选，才算真正无事可做；
+    // 只有前者的补丁级覆盖会把“进入主界面”错摆到主操作位。
+    boolean ready = environmentReady(s, busy, pending) && cachedLatest;
     com.deepseekharness.app.util.DshVersionPolicy.Status versionStatus =
         com.deepseekharness.app.core.EnvironmentAccess.runtimeVersionStatus(controller);
     String renderKey =
@@ -238,7 +240,15 @@ public class ExtractActivity extends AppCompatActivity {
     boolean incomplete = mine && s.status == BackupTaskState.Status.SUCCEEDED && !ready && !busy;
     renderHeader(s, view, busy, pending);
     renderStages(view);
-    renderMessages(s, view, failed, incomplete, pending, versionStatus);
+    renderMessages(
+        s,
+        view,
+        failed,
+        incomplete,
+        pending,
+        versionStatus,
+        // 只有“已安装、兼容可用、但不是当前候选”才是补丁级陈旧；首次部署不走这段文案。
+        !busy && !pending && !failed && !incomplete && cachedInstalled && !ready);
     RuntimeMaintenanceStarter.Retry kind =
         pending
             ? RuntimeMaintenanceStarter.Retry.RECOVER
@@ -310,7 +320,8 @@ public class ExtractActivity extends AppCompatActivity {
       boolean failed,
       boolean incomplete,
       boolean pending,
-      com.deepseekharness.app.util.DshVersionPolicy.Status versionStatus) {
+      com.deepseekharness.app.util.DshVersionPolicy.Status versionStatus,
+      boolean staleRuntime) {
     String message;
     boolean warn;
     if (failed) {
@@ -344,6 +355,13 @@ public class ExtractActivity extends AppCompatActivity {
     } else if (pending) {
       message = DeployTaskSheet.message(view);
       warn = false;
+    } else if (staleRuntime) {
+      // 同一 dsh 版本、只有受管补丁与描述符变化时环境仍“兼容”，但旧树没有本 APK 的补丁。
+      message =
+          UiText.choose(
+              "已安装的运行环境仍是上一版的受管运行时，本次内置补丁尚未落地。请先完成这次维护；也可以进入受限主界面查看日志与配置。",
+              "The installed runtime still belongs to the previous build, so this build's managed patches are not in place yet. Finish this maintenance first, or enter the limited interface to review logs and settings.");
+      warn = true;
     } else {
       message = "";
       warn = false;
@@ -396,6 +414,8 @@ public class ExtractActivity extends AppCompatActivity {
       cachedReady = controller.isEnvironmentReady();
       cachedInstalled = controller.proot().isEnvironmentInstalled();
       cachedCanUpdate = controller.proot().canUpdateManagedRuntime();
+      // 兼容且健康只说明旧树还能跑；补丁级覆盖还要看已装描述符是否就是当前候选。
+      cachedLatest = com.deepseekharness.app.core.EnvironmentAccess.runtimeLatest(controller);
       cachedReadyTaskId = snapshot.id;
       cachedReadyStatus = snapshot.status;
       cachedReadyBusy = busy;
@@ -407,7 +427,11 @@ public class ExtractActivity extends AppCompatActivity {
 
   private void proceed() {
     boolean limited =
-        task.maintenanceBusy() || task.pendingMaintenance() || !controller.isEnvironmentReady();
+        com.deepseekharness.app.util.RuntimeUpgradeState.limitedEntry(
+            controller.isEnvironmentReady(),
+            com.deepseekharness.app.core.EnvironmentAccess.runtimeLatest(controller),
+            task.maintenanceBusy(),
+            task.pendingMaintenance());
     if (limited)
       controller
           .config()
