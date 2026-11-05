@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+from git_guard import git_output
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "tools/java-format.lock.json"
@@ -70,11 +71,11 @@ def checked_path(name, root=ROOT, protected=()):
 
 def changed_files(root=ROOT):
     """Tracked staged/unstaged changes and new unignored files, never a source-tree scan."""
-    tracked = subprocess.check_output(
-        ["git", "diff", "--name-only", "-z", "--diff-filter=ACMRT", "HEAD", "--", "*.java"], cwd=root
+    tracked = git_output(
+        ["diff", "--name-only", "-z", "--diff-filter=ACMRT", "HEAD", "--", "*.java"], cwd=root
     )
-    untracked = subprocess.check_output(
-        ["git", "ls-files", "--others", "--exclude-standard", "-z", "--", "*.java"], cwd=root
+    untracked = git_output(
+        ["ls-files", "--others", "--exclude-standard", "-z", "--", "*.java"], cwd=root
     )
     return sorted(set(item for item in (tracked + untracked).decode("utf-8").split("\0") if item))
 

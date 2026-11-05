@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
-import subprocess
+from git_guard import git_output
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_CHECKS = {
@@ -55,8 +55,8 @@ def one_member(artifacts, filename):
 
 
 def source_names(source):
-    names = subprocess.check_output(
-        ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=source
+    names = git_output(
+        ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=source
     ).decode('utf-8').split('\0')
     selected = set()
     for name in names:
@@ -159,7 +159,7 @@ def main():
     args = parser.parse_args()
     # Sunset-3090-Q 只有 Standard 变体；不再接受 both/low 包范围。
     flavors = ('standard',)
-    commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    commit = git_output(['rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     validate_run(json.loads(args.run.read_text()), os.environ['GITHUB_REPOSITORY'], commit)
     manifest = select_manifest(args.artifacts)
     selected = validate_receipt(json.loads(manifest.read_text(encoding='utf-8')),

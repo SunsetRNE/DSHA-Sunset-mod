@@ -228,6 +228,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
   ```
 
   它启动时实测 `fcntl`：未修复时全局互斥、`--no-daemon`；已修复时按可用内存开最多 3 个并发槽位并复用常驻 daemon，内存不够就排队。Gradle JVM 的 `oom_score_adj` 设为 900，内存吃紧时先杀构建、不先杀 dsh。日志在 `/root/.cache/dsha-gradle-logs/`。不要直接跑 `./gradlew`，不要再建 `/root/.gradle-<任务>` 副本绕锁（每份约 1 GB，并多起一个 2–3 GB 堆的 JVM），不要杀别的会话的 Gradle 进程。
+- **proroot 下 git 大 diff 会 SIGSEGV**：build330（proroot v1.2.8）实测 `git show --stat`、`git diff --stat` / `--numstat` 对某些提交或 ≥8 路径组合 exit 139、stdout 0 字节、stderr 为 `[proroot] SIGSEGV`；`--name-status` / `--dirstat`、`git log` 与拆成 ≤7 路径的分片不崩，GitHub Linux CI 不受影响。审查 / 合入不要用 `--stat` 大范围输出，也不要让 `| head` 或 `;` 吞掉 rc；需要统计时用 `python3 tools/git_guard.py -- <git 参数>`（命中签名立即报错、不重试、不返回部分输出），仓库工具已统一走该封装。细节见[运行引擎](docs/runtime-engines.md)。
 - **内存即稳定性**：并发 Gradle / Robolectric 抢内存会把 dsh web 一起拖死，所有会话同时中断。一次只跑一个构建；全量单测只在合并前跑，日常跑定向 `--tests`。
 - **不在本机覆盖安装正式包**：安装 `io.github.sunsetrne.dsha` 会被系统以 PACKAGE UPDATED 结束整个 App，DSH 与全部会话随之中断。会话不得自行安装或降级正式包；测试包 `io.github.sunsetrne.dsha.test` 可装。用户要装正式包时，先让各活跃会话更新声明。
 - **本机专用覆盖放仓库外**：Conscrypt 关闭等只走 `-I /opt/dsha-x86/local-ci.init.gradle`，不往工作树写 `app/src/test/resources/robolectric.properties` 这类临时文件（已被忽略的 `local.properties` 除外），中断后才不会留下会被提交的残留。

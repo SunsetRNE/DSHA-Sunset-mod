@@ -13,9 +13,9 @@ import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import tarfile
 import tempfile
+from git_guard import git_output
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = 1
@@ -67,12 +67,12 @@ def bounded(name, root):
 
 
 def head(root):
-    return subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+    return git_output(["-C", str(root), "rev-parse", "HEAD"], text=True).strip()
 
 
 def changed_tracked(root):
-    output = subprocess.check_output(
-        ["git", "-C", str(root), "status", "--porcelain=v1", "-z", "--untracked-files=no"])
+    output = git_output(
+        ["-C", str(root), "status", "--porcelain=v1", "-z", "--untracked-files=no"])
     rows = [row for row in output.decode("utf-8", "surrogateescape").split("\0") if row]
     result = set()
     skip = False

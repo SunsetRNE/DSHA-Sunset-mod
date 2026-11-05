@@ -134,6 +134,20 @@ The ABI lock pins source/output and all five vendor hashes. Constants and formul
 - [bridge-token-compat.cjs](../../app/src/main/assets/bridge-token-compat.cjs): fixed managed launch preload, separate from GNU loader shims, granting no extra native-bridge permission.
 - PTY birth handshake and browser ES/PDF compatibility have independent implementations and evidence. Browser compatibility does not prove guest native loading.
 
+### 5.4 Host large-diff git SIGSEGV (tooling guard)
+
+On build330 (Android 14 / 6.1.124, proroot v1.2.8 plus `libdsha-proroot-compat.so`), `git show --stat`, `git diff --stat` and `--numstat` deterministically crash for some commits or sets of ≥8 paths: exit 139, empty stdout, and only `[proroot] SIGSEGV pc=… lr=…` on stderr. In the same environment `git diff --name-status`, `--dirstat`, `git log` and ≤7-path chunks do not crash; GitHub Linux runners are unaffected. T81 and @main each reproduced it 2/2 on this device, and session logs from 2026-10-31 to 11-05 contain 94 records with the same signature (14 of them exit 139), the latest in an external-PR review session.
+
+The danger is the failure mode: the crash emits no output, while historical commands often looked like `git show --stat … | head` or `git diff --stat …; …`, where the pipe or semicolon turns the final rc into 0 and review or merge silently proceeds with empty data. This repository therefore does not treat that crash as an ordinary retryable failure:
+
+- The shared guard [tools/git_guard.py](../../tools/git_guard.py) captures stdout/stderr through `subprocess`; on `rc=139`/`-11` or `[proroot] SIGSEGV` in stderr it raises `GitSigsegvError` immediately. It never retries, degrades, or returns partial output; the error includes the command, cwd, the first stderr line and safe replacement commands.
+- Every repository tool that invokes git now goes through `git_output(...)`: [check-source-hygiene.py](../../tools/check-source-hygiene.py), [ci-handoff.py](../../tools/ci-handoff.py), [format-java.py](../../tools/format-java.py), [verify-stability.py](../../tools/verify-stability.py) and [verify-ci-package.py](../../tools/verify-ci-package.py). Behavior on Linux CI is unchanged.
+- For ad-hoc large-diff statistics use `python3 tools/git_guard.py -- <git args...>`; a matching crash exits 139 with a clear stderr message instead of quietly producing empty output.
+- Prefer `git --no-pager show --name-status --oneline <commit>`, `git --no-pager diff --name-status <a> <b>` and `git --no-pager diff --dirstat=files <a> <b>` for review/merge; chunk large diffs into ≤7 paths. If it still crashes, restart the environment or switch to proot rather than rerunning the same command.
+- The regression test [tools/test-git-guard.py](../../tools/test-git-guard.py) covers `rc=139`, the stderr signature (including the defensive rc=0 branch), a normal `rc=0`, ordinary failures that keep their rc, exactly one execution (no retry) and the CLI exit code; it is registered in [host-tests.manifest.json](../../tools/host-tests.manifest.json).
+
+The root cause is in the closed-source proroot runtime (stable crash pc/lr offsets), not in git; this page only records the tooling guard. A separate task (T83) evaluates the proroot root cause and upgrades, and this repository does not modify proroot.
+
 ## 6. Stopping without --kill-on-exit
 
 proot receives `--kill-on-exit`. proroot integration has no such option or equivalent guarantee; do not pass proot-specific flags to it. `Process.destroy()` affects the owned launcher and does not prove Node or guest descendants exited. Comments about stopping by PID must be read with identity verification, not as permission for arbitrary PID kills.

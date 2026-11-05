@@ -14,7 +14,7 @@
 ## 流程
 
 1. **固定审查对象**：记录 PR 号、head sha、base sha、提交范围与作者；核对 base 是否为当前 `origin/main`。若已落后，先要求作者 rebase，或在审查会话的临时 worktree 中 rebase 后重看**全部生成文件差异**（不 push 作者分支）。
-2. **获取完整 diff**：`git diff <base>...<head>`（含重命名、删除、二进制与生成文件）。禁止只看 GitHub 的默认折叠视图或 `--stat`。
+2. **获取完整 diff**：`git diff <base>...<head>`（含重命名、删除、二进制与生成文件）。禁止只看 GitHub 的默认折叠视图或 `--stat`。本机 proroot 下 `git show/diff --stat` / `--numstat` 对某些提交或 ≥8 路径组合会 exit 139 且 stdout 为空（`[proroot] SIGSEGV`）；必须检查 rc / stderr，不要用 `| head` 吞 rc，改用 `--name-status` / `--dirstat` / ≤7 路径分片，或 `python3 tools/git_guard.py -- <git 参数>`，详见[运行引擎](runtime-engines.md)。
 3. **逐行审阅**：对每一处改动说明“改了什么、为什么、边界在哪、失败会怎样”。生成文件（`runtime-descriptor.json`、`*.inputs.json`、`managed-package-proofs.json`、`THIRD_PARTY_NOTICES.md`、`ci/sunset-inputs.lock.json`、`tools/host-tests.manifest.json`、`CHANGELOG.md`、i18n、`docs/**` 索引）必须**按仓库脚本重算并对比**，不能接受手改结果。
 4. **跑门禁**：至少运行 `python3 tools/run-host-tests.py --check-manifest`、`python3 tools/check-source-hygiene.py`、`python3 tools/generate-changelog.py --check`、`python3 tools/check-document-links.py`；涉及 Java 时加 `python3 tools/format-java.py --check --files changed` 与定向单测；涉及受管补丁 / 内置插件时按[覆盖升级与维护契约](overwrite-upgrade-and-maintenance.md)的发布前清单完整执行。门禁结果只是审查输入，不能替代逐行判断。
 5. **按清单检查**（见下节），把每个问题定位到 `file:line`。

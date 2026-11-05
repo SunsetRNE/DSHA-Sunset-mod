@@ -3,10 +3,10 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import subprocess
+from git_guard import git_output
 
 ROOT = Path(__file__).resolve().parents[1]
-names = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode("utf-8").split("\0")
+names = git_output(["ls-files", "-z"], cwd=ROOT).decode("utf-8").split("\0")
 errors = []
 byte_pinned = {'app/src/main/assets/ubuntu-tools.manifest.json', 'app/src/main/assets/builtin-plugins/dsh-auto-review/package.json', 'app/src/main/assets/builtin-plugins/dsh-device-shell-guide/package.json', 'app/src/main/assets/lan-settings-upstream-contract.json', 'app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/index.js', 'app/src/main/assets/builtin-plugins/dsh-computer-use-android/package.json', 'app/src/main/assets/ubuntu-tools.layout', 'app/src/main/assets/startup-mcp-timing-patch.json', 'app/src/main/assets/managed-runtime-inputs.json'}
 byte_pinned.add("tools/mobile-server/index.js")
@@ -79,8 +79,8 @@ for name, expected in history_fixture_pins.items():
     path = ROOT / name
     if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
         errors.append("HISTORICAL_FIXTURE_BYTES: " + name)
-attributes = subprocess.check_output(
-    ["git", "check-attr", "-z", "text", "eol", "--", *history_paths], cwd=ROOT
+attributes = git_output(
+    ["check-attr", "-z", "text", "eol", "--", *history_paths], cwd=ROOT
 ).rstrip(b"\0").split(b"\0")
 for at in range(0, len(attributes), 3):
     if attributes[at + 2] != b"unset":

@@ -136,6 +136,20 @@ ABI、源码及输出摘要、五件 vendor 原件摘要均由 `abi.lock.json` �
 - [bridge-token-compat.cjs](../app/src/main/assets/bridge-token-compat.cjs)：固定受管启动预加载的一部分，与 GNU loader shim 分属不同层；其职责不授予本机桥的额外权限。
 - PTY JNI 的出生握手、网页 ES/PDF 兼容分别有独立实现和验证；网页浏览器兼容成功不能证明 guest 原生加载成功。
 
+### 5.4 本机 git 大 diff 的 SIGSEGV（工具层保护）
+
+build330（Android 14 / 6.1.124，proroot v1.2.8 + `libdsha-proroot-compat.so`）下，`git show --stat`、`git diff --stat` / `--numstat` 对某些提交或一次 ≥8 个路径的组合会确定性崩溃：exit 139、stdout 0 字节，stderr 只有 `[proroot] SIGSEGV pc=… lr=…`。同一环境里 `git diff --name-status`、`--dirstat`、`git log` 与拆成 ≤7 个路径的分片不崩；GitHub Linux runner 不受影响。T81 只读排查与 @main 均在本机复现 2/2，2026-10-31 至 11-05 的会话日志里有 94 条同签名记录（其中 14 条 exit 139），最新出现在外部 PR 复审会话。
+
+危险在于失败方式：崩溃时输出为空，而历史命令常写成 `git show --stat … | head` 或 `git diff --stat …; …`，管道 / 分号让最终 rc 变成 0，审查或合入会静默拿到空数据。因此这里不把该崩溃当成可重试的普通失败：
+
+- 共享封装 [tools/git_guard.py](../tools/git_guard.py) 用 `subprocess` 捕获 stdout / stderr；命中 `rc=139` / `-11` 或 stderr 含 `[proroot] SIGSEGV` 时立即抛 `GitSigsegvError`。它不重试、不降级、不返回部分输出，错误里带命令、cwd、stderr 首行以及安全替代命令。
+- 仓库内所有调用 git 的工具统一走 `git_output(...)`：[check-source-hygiene.py](../tools/check-source-hygiene.py)、[ci-handoff.py](../tools/ci-handoff.py)、[format-java.py](../tools/format-java.py)、[verify-stability.py](../tools/verify-stability.py)、[verify-ci-package.py](../tools/verify-ci-package.py)。Linux CI 上的行为不变。
+- 需要临时统计大 diff 时用 `python3 tools/git_guard.py -- <git 参数...>`；命中签名会以 rc 139 和清晰 stderr 失败，而不是安静地给出空输出。
+- 审查 / 合入优先 `git --no-pager show --name-status --oneline <commit>`、`git --no-pager diff --name-status <a> <b>`、`git --no-pager diff --dirstat=files <a> <b>`；大范围 diff 按 ≤7 个路径分片。仍失败时重启环境或改用 proot，而不是反复重试同一条命令。
+- 回归测试 [tools/test-git-guard.py](../tools/test-git-guard.py) 覆盖 `rc=139`、stderr 带签名（含 rc=0 的防御性分支）、正常 `rc=0`、普通失败不吞 rc、崩溃只执行一次（不重试）与 CLI 退出码，已登记 [host-tests.manifest.json](../tools/host-tests.manifest.json)。
+
+根因在 proroot 闭源 runtime（崩溃 pc / lr offset 稳定），不在 git；本页只记录工具层保护，proroot 本体与升级评估另见 T83，本仓库未修改 proroot。
+
 ## 6. 没有 --kill-on-exit 时，停止怎么成立
 
 proot 的实际 argv 包含 `--kill-on-exit`；proroot 当前集成没有这一选项或等价保证，不能给它硬塞 proot 参数。`Process.destroy()` 只作用于持有的 launcher，不足以证明 Node 或其他 guest 后代已经停止。`ContainerRuntime` 顶部关于“按 pid 停”的注释要连同以下身份校验实现阅读，不能理解为任意裸 PID kill。

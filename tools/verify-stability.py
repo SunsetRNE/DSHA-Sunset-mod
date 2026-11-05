@@ -17,6 +17,7 @@ from test_runtime_fixture import runtime as verified_runtime
 from release_acceptance import requirements as acceptance_requirements, validate as validate_acceptance, baseline_from_receipt
 from release_names import apk_delivery_path, delivery_receipt_path, source_directory, release_staging_directory
 from release_layout import checked_path, source_snapshot_path
+from git_guard import git_output
 
 ROOT=Path(__file__).resolve().parents[1]
 CERT=json.loads((ROOT/'ci/release-identity.json').read_text(encoding='utf-8'))['certificateSha256']
@@ -29,7 +30,7 @@ def digest(path):
     return value.hexdigest()
 
 def source_snapshot():
-    names=subprocess.check_output(['git','ls-files','--cached','--others','--exclude-standard','-z'],cwd=ROOT).decode().split('\0')
+    names=git_output(['ls-files','--cached','--others','--exclude-standard','-z'],cwd=ROOT).decode().split('\0')
     selected={}
     for name in sorted(set(names)-{''}):
         path=ROOT/name
@@ -198,8 +199,8 @@ def main():
         parser.error('--deliver 需要 --baseline-receipt，不能用固定五项代替本轮变更验收')
     report_dir=ROOT/'app/build/stability-acceptance'/str(uuid.uuid4());report_dir.mkdir(parents=True)
     report={'schema':1,'verificationSchema':2,'startedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'RUNNING','commands':[],
-        'commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        'dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT)),
+        'commit':git_output(['rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+        'dirty':bool(git_output(['status','--porcelain'],cwd=ROOT)),
         'device':{'status':'EXTERNAL_EVIDENCE_REQUIRED','package':'io.github.sunsetrne.dsha'},
         'notVerified':['Android 6/7 physical devices','minimum standard API 30 physical device','reported Android 16 tablet','physical 16 KiB kernel','power loss durability'],
         'githubUploaded':False,'productionInstallationModified':False,'junitForksPerFlavor':args.test_forks,'flavors':list(flavors)}
@@ -333,11 +334,11 @@ def main():
         if built_source!=final_source:raise RuntimeError('Source or assets changed after verification; rerun affected checks')
         source_file=report_dir/'source-sha256.json';source_file.write_text(json.dumps(final_source,ensure_ascii=False,sort_keys=True,indent=2),encoding='utf8')
         report['sourceSnapshot']={'path':str(source_file),'sha256':digest(source_file)}
-        patch_file=report_dir/'workspace.patch';patch_file.write_bytes(subprocess.check_output([
-            'git','diff','--binary','--','.',':(exclude)tools/history/**',
+        patch_file=report_dir/'workspace.patch';patch_file.write_bytes(git_output([
+            'diff','--binary','--','.',':(exclude)tools/history/**',
             ':(exclude)docs/history/**',':(exclude)tools/**/private-device-audits/**'],cwd=ROOT))
         report['patch']={'path':str(patch_file),'sha256':digest(patch_file)}
-        changed=set(subprocess.check_output(['git','diff','--name-only','-z'],cwd=ROOT).decode().split('\0')+subprocess.check_output(['git','ls-files','--others','--exclude-standard','-z'],cwd=ROOT).decode().split('\0'))-{''}
+        changed=set(git_output(['diff','--name-only','-z'],cwd=ROOT).decode().split('\0')+git_output(['ls-files','--others','--exclude-standard','-z'],cwd=ROOT).decode().split('\0'))-{''}
         snapshot=report_dir/'source-changes.zip'
         with zipfile.ZipFile(snapshot,'x',zipfile.ZIP_DEFLATED) as archive:
             for name in sorted(changed):
