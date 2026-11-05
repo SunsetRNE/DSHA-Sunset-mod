@@ -133,8 +133,11 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("受管资产"));
-      assertTrue(shown.contains("版本码提升为 328"));
+      assertTrue(shown.contains("GitHub 登录"));
+      assertTrue(shown.contains("受管 CA"));
+      assertTrue(shown.contains("版本码提升为 329"));
+      assertFalse(shown.contains("受管资产"));
+      assertFalse(shown.contains("版本码提升为 328"));
       assertFalse(shown.contains("默认禁用"));
       assertFalse(shown.contains("同一 DSH 版本"));
       assertFalse(shown.contains("版本码提升为 327"));
@@ -311,8 +314,11 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("managed asset"));
-      assertTrue(shown.contains("Raises versionCode to 328"));
+      assertTrue(shown.contains("GitHub login"));
+      assertTrue(shown.contains("managed CA"));
+      assertTrue(shown.contains("Raises versionCode to 329"));
+      assertFalse(shown.contains("managed asset"));
+      assertFalse(shown.contains("Raises versionCode to 328"));
       assertFalse(shown.contains("disabled by default"));
       assertFalse(shown.contains("the same DSH version"));
       assertFalse(shown.contains("Raises versionCode to 327"));

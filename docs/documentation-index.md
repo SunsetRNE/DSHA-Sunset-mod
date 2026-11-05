@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261106.0010-dsh0.2.2-rc.1` / build328 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版修复 0.2.2 环境的 gh 不可用：官方 GitHub CLI v2.103.3 作为第 12 项固定输入纳入受管资产并安装到 `/opt/gh/bin/gh`，包装脚本按固定 URL/摘要自举兜底，新增 `util/MaintenanceToolPaths` 与重建前 `/opt` 有界预检（T69）。宿主测试、contracts 整组与源码/描述符/第三方声明门禁通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build328 更新说明](releases/build328-changes.zh.md)，验证记录见 [build328 gh 固定输入与 /opt 契约记录](releases/v0.2.1-rc.5-build328-gh-provision-20261105.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
+当前源码：`0.2.1-rc.5-20261106.0130-dsh0.2.2-rc.1` / build329 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版合并三项：新增 GitHub 登录原生页，显示 `hosts.yml` 账号/作用域/来源并用只读 `gh api -i /user` 区分 CA-TLS、token 401、未登录、网络与超时（T71）；`RuntimeTools` 改用 canonical 宿主根，`gh` 包装脚本在 `/data/user/0` 与 `/data/data` 双视图查找受管 CA，两处都缺时明确失败（T73）；引导第 4 步底栏统一为紧凑两行（T72）。宿主测试、contracts 整组、全树格式与定向单测通过；真机结论按当次实际确认记录填写，未预写通过。改动说明见 [build329 更新说明](releases/build329-changes.zh.md)。构建与发布范围以本轮 CI run 与 Release 回执为准。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

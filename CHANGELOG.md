@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.2.1-rc.5-20261106.0130-dsh0.2.2-rc.1 / build329（GitHub 登录原生页 + gh CA 双视图修复 + 引导底栏统一）
+
+- GitHub 登录原生页（T71）：显示容器 `hosts.yml` 的账号、作用域与来源，标明受管 `gh` 是否可用，并用只读 `gh api -i /user` 区分 CA/TLS 失败、token 401、未登录、网络与超时；提供登录、重新授权与退出。页面不显示 token；已知缺口是本机 token 仍存于容器 `hosts.yml`，同 UID 的网页与插件可读（隔离另立 T50，本批不处理）。
+- gh 的 CA 路径修复（T73）：`RuntimeTools` 改用 canonical 宿主根设置 `DSHA_GH_HOST_ROOT`；`gh` 包装脚本在 `/data/user/0` 与 `/data/data` 两个视图查找受管 CA，两处都缺或 `DSHA_GH_CA` 指向缺失文件时明确报错退出，不再静默回退到缺新根证书的旧系统 CA。固定输入不重建，runtime-descriptor 重生成（runtimeId 10e8595e）。
+- 引导第 4 步底栏统一（T72）：欢迎流程完成页改用与运行环境维护页相同的 `ExtractFooter` 紧凑两行布局，更新中显示 x/5、恢复主操作，就绪后进入主界面。
+- 验证范围：宿主 contracts 整组、全树格式检查（JDK17）与定向单测（更新页、GitHub 登录、gh 宿主根、引导页）；未真机验收。版本码提升为 329（基于 build328）；DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
+- 十语种更新说明见 [build329 更新说明](docs/releases/build329-changes.zh.md)。
+
 ## 0.2.1-rc.5-20261106.0010-dsh0.2.2-rc.1 / build328（gh 纳入受管资产 + 自举兜底 + /opt 跨重建契约）
 
 - gh 不可用根因修复（T69）：官方 GitHub CLI v2.103.3 作为第 12 项固定输入 `gh-cli.tar.gz` 进入受管资产，安装时只提取固定成员、二次校验并原子发布到 `/opt/gh/bin/gh`；整树重建按受管注入。包装脚本在缺失/损坏时按固定 URL + 摘要自举，失败 fail-closed 并打印恢复命令；删除「bundled」误导文案。

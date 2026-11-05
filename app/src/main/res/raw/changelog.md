@@ -1,6 +1,6 @@
-# DSHA 0.2.1-rc.5-20261106.0010-dsh0.2.2-rc.1 / build328
+# DSHA 0.2.1-rc.5-20261106.0130-dsh0.2.2-rc.1 / build329
 
-- 修复 0.2.2 环境执行 `gh` 报「managed GitHub CLI is unavailable」：官方 GitHub CLI v2.103.3（linux-arm64）作为第 12 项固定输入 `gh-cli.tar.gz` 纳入受管资产，安装时只提取固定成员、二次校验 SHA-256 并原子发布到 `/opt/gh/bin/gh`；整树环境重建按受管注入，不再依赖用户手工安装。
-- gh 包装脚本在二进制缺失或损坏时按固定 URL 与固定摘要自举安装，任一步失败都 fail-closed 并打印可复制的恢复命令；删除了声称「bundled」但实际不存在的误导文案。
-- 新增 `util/MaintenanceToolPaths` 明文契约与重建前有界预检：`/opt` 作为用户工具目录保留，`/usr/local/bin` 属系统树不保留，`usr/local/share/dsha` 由受管注入；`/opt` 条目超过 10 万时在移动旧树前拒绝重建。
-- 验证范围：宿主测试、contracts 整组与源码/描述符/第三方声明门禁；本机未做真机验证。版本码提升为 328（基于 build327）；APK 因内置 gh 归档增大约 13.0 MiB。
+- 新增 GitHub 登录原生页（T71）：显示容器 `hosts.yml` 里的账号、作用域与来源，标明受管 `gh` 是否可用，并用只读 `gh api -i /user` 区分 CA/TLS 失败、token 401、未登录、网络与超时；提供登录、重新授权与退出。页面本身不显示 token。已知缺口：token 仍保存在容器 `hosts.yml`，同 UID 的网页与插件可读，隔离另立 T50，不在本批。
+- 修复 `gh` 的 CA 查找（T73）：`RuntimeTools` 改用 canonical 宿主根设置 `DSHA_GH_HOST_ROOT`，`gh` 包装脚本在 `/data/user/0` 与 `/data/data` 两个数据视图查找受管 CA；两处都缺或 `DSHA_GH_CA` 指向缺失文件时明确报错退出，不再静默回退到缺新根证书的旧系统 CA。固定输入不重建。
+- 引导第 4 步底栏统一（T72）：欢迎流程完成页改用与运行环境维护页相同的 `ExtractFooter` 紧凑两行布局，更新中显示 x/5，恢复主操作位，就绪后进入主界面。
+- 验证范围：宿主测试、contracts 整组、全树格式检查与定向单测（更新页、GitHub 登录、gh 宿主根、引导页）；本机未做真机验收。版本码提升为 329（基于 build328），DSHA 修订号保持 0.2.1-rc.5，内置 DSH 为 0.2.2-rc.1。
