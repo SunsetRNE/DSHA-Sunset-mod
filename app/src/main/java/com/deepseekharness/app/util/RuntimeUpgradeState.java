@@ -24,6 +24,18 @@ public final class RuntimeUpgradeState {
     return !upToDate(environmentReady, installedLatest);
   }
 
+  /**
+   * 入口门禁是否打开整屏维护页。
+   *
+   * <p>未确认的原实例（unresolved）不再阻止打开维护页：它只拦自动开始
+   * （{@link EnvironmentIdentity#shouldAutoStart} 的 unresolved 条件）。否则覆盖安装后旧 Web 仍存活时，
+   * 环境需要维护的用户会被留在主界面，看不到唯一的修复入口。
+   */
+  public static boolean openMaintenancePage(
+      boolean gateFailed, boolean maintenance, boolean restoring) {
+    return !gateFailed && maintenance && !restoring;
+  }
+
   /** 进入主界面时必须按受限入口记录：环境未就绪、仍有未完成的维护，或维护任务占着锁。 */
   public static boolean limitedEntry(
       boolean environmentReady, boolean installedLatest, boolean busy, boolean pending) {

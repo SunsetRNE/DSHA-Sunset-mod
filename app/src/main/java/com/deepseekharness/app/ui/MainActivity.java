@@ -335,6 +335,9 @@ public class MainActivity extends AppCompatActivity {
    * 入口门禁：覆盖更新、环境未就绪、未完成的维护事务或未关闭的试运行现场，都整屏进入运行环境维护页
    * （ExtractActivity），由维护页按原有一次性规则自动开始更新或给出恢复入口。只有用户在维护页显式选择
    * “进入受限主界面”后，同一安装身份才留在受限主界面；这里不写任何就绪标记。
+   *
+   * <p>未确认的原实例（unresolved）只拦自动开始（维护页的 shouldAutoStart 判定），不再阻止打开维护页：
+   * 覆盖安装后旧 Web 仍存活时，用户必须能看到唯一的修复入口并自己点更新。
    */
   private void checkEntry(
       Bundle saved, ConfigStore config, HarnessController controller, boolean skipExtract) {
@@ -388,7 +391,8 @@ public class MainActivity extends AppCompatActivity {
                   + restoring
                   + " restored="
                   + (saved != null));
-          if (!failed && maintenance && !unresolved && !restoring) {
+          if (com.deepseekharness.app.util.RuntimeUpgradeState.openMaintenancePage(
+              failed, maintenance, restoring)) {
             // 覆盖更新与中断恢复都走整屏维护页：自动开始仍只按同一候选一次的规则。
             startActivity(new Intent(this, ExtractActivity.class));
             finish();

@@ -201,6 +201,28 @@ public class OverwriteUpgradeGateTest {
   }
 
   @Test
+  public void unresolvedOldWebStillOpensMaintenancePageButNeverAutoStarts() throws Exception {
+    RuntimeDescriptor installed = build323(), expected = build324();
+    String candidate = attemptKey(expected, 5_000L);
+    // 覆盖安装后旧 Web 仍存活时 hasUnresolvedWebSession() 为 true：环境仍需维护，页面必须打开。
+    boolean maintenance =
+        EnvironmentIdentity.shouldBlockRuntimeStart(false, true, false, false, candidate, "");
+    assertTrue(RuntimeUpgradeState.openMaintenancePage(false, maintenance, false));
+    // 但自动开始必须被安全门禁拦住，等用户在维护页手点更新。
+    assertFalse(
+        EnvironmentIdentity.shouldAutoStart(
+            false, false, false, candidate, "", BackupTaskState.Status.SUCCEEDED, true, true));
+    // 没有未确认原实例时仍按“同一候选只自动尝试一次”自动开始。
+    assertTrue(
+        EnvironmentIdentity.shouldAutoStart(
+            false, false, false, candidate, "", BackupTaskState.Status.SUCCEEDED, true, false));
+    // 已是最新候选时不需要维护页。
+    // 已是最新候选：门禁不要求维护，维护页也就不该打开。
+    assertFalse(
+        RuntimeUpgradeState.openMaintenancePage(false, !installed.latest(installed), false));
+  }
+
+  @Test
   public void maintenancePageMustNotPromoteEntryWhileManagedPatchIsPending() throws Exception {
     RuntimeDescriptor installed = build323(), expected = build324();
     // 旧判定用 isEnvironmentReady()（只看 compatible）→ 误判“就绪”，把“进入主界面”升为主操作。

@@ -24,6 +24,15 @@ public class RuntimeUpgradeStateTest {
   }
 
   @Test
+  public void maintenancePageOpensEvenWithAnUnconfirmedOldSession() {
+    // 覆盖更新 + 旧 Web 未确认：页面必须能打开（unresolved 只拦自动开始），否则用户看不到修复入口。
+    assertTrue(RuntimeUpgradeState.openMaintenancePage(false, true, false));
+    assertFalse(RuntimeUpgradeState.openMaintenancePage(true, true, false));
+    assertFalse(RuntimeUpgradeState.openMaintenancePage(false, true, true));
+    assertFalse(RuntimeUpgradeState.openMaintenancePage(false, false, false));
+  }
+
+  @Test
   public void pendingPatchMakesLimitedEntry() {
     // 补丁级未完成必须按受限身份进入主界面，否则主界面门禁会立刻送回维护页。
     assertTrue(RuntimeUpgradeState.limitedEntry(true, false, false, false));
