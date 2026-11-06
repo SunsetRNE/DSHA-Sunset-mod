@@ -55,7 +55,7 @@
     <string name="ui2_w2_0">对话与文件</string>
     <string name="ui2_ws2_0">保存在本机，可手动导出。</string>
     <string name="ui2_w2_1">模型与凭据</string>
-    <string name="ui2_ws2_1">模型与 API Key 在 Web UI 中配置；原有本机凭据保留。</string>
+    <string name="ui2_ws2_1">原有本机凭据保留；模型与 API Key 在 Web UI 配置。</string>
     <string name="ui2_w2_2">设备操作</string>
     <string name="ui2_ws2_2">Root、Shizuku、ADB 与短信单独授权。</string>
     <string name="ui2_online_notice">使用在线模型时，消息及你选择的附件会发送到所配置的模型服务。</string>
@@ -66,7 +66,7 @@
     <string name="ui2_runtime_config">运行配置</string>
     <string name="ui2_resolve">解析安装</string>
     <string name="ui2_data_title">数据与备份</string>
-    <string name="ui2_data_sub">导出、恢复与文件共享。</string>
+    <string name="ui2_data_sub">导出、恢复与共享。</string>
     <string name="ui2_data_ops">备份与恢复</string>
 
 
@@ -109,7 +109,7 @@
     <string name="ui2_environment_recovery">环境修复与恢复</string>
     <string name="ui2_environment_recovery_sub">查看启动依赖与中断维护</string>
     <string name="ui2_installation_log">检查与安装日志</string>
-    <string name="ui2_config_sub">模型和 API Key 在 Web UI 中配置。这里的端口与运行方式在下次启动生效。</string>
+    <string name="ui2_config_sub">端口与运行方式下次启动生效；模型与 API Key 在 Web UI 配置。</string>
     <string name="ui2_network_runtime">运行与网络</string>
     <string name="ui2_port_preferred">首选 Web 端口</string>
     <string name="ui2_port_hint">端口占用时保留首选设置，自动使用可用端口。</string>

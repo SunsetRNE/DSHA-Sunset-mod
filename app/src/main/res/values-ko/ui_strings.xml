@@ -22,7 +22,7 @@
     <string name="diag248_idle_title" formatted="false">"확인 안 함"</string>
     <string name="diag248_plugins" formatted="false">"플러그인 관리자"</string>
     <string name="diag248_plugins_sub" formatted="false">"플러그인으로 인한 시작 문제 해결"</string>
-    <string name="diag248_repair_sub" formatted="false">"인증서, Python, npm, pnpm 다시 준비"</string>
+    <string name="diag248_repair_sub" formatted="false">"인증서, Python, npm, pnpm 재설치"</string>
     <string name="diag248_start" formatted="false">"검사"</string>
     <string name="diag248_status" formatted="false">"상태"</string>
     <string name="diag248_tools" formatted="false">"도구"</string>
@@ -49,7 +49,7 @@
     <string name="plugin_sort_updates" formatted="false">"업데이트 우선"</string>
     <string name="plugin_sort_za" formatted="false">"이름 Z–A"</string>
     <string name="text_selection_more" formatted="false">"더보기…"</string>
-    <string name="ui134_adb_hint" formatted="false">"Android 11 이상: 같은 Wi-Fi에서 무선 디버깅을 페어링하세요. 루팅은 필요하지 않습니다. 네트워크가 변경되면 연결을 확인하거나 다시 페어링하세요."</string>
+    <string name="ui134_adb_hint" formatted="false">"Android 11 이상: 같은 Wi-Fi에서 무선 디버깅을 페어링하세요. 루팅은 필요하지 않습니다. 네트워크가 바뀌면 확인하거나 다시 페어링하세요."</string>
     <string name="ui134_candidate" formatted="false">"후보 출시 버전 보기"</string>
     <string name="ui134_candidate_sub" formatted="false">"출시 정보, 크기 및 설치"</string>
     <string name="ui134_changelog" formatted="false">"이번 출시 버전"</string>
@@ -63,7 +63,7 @@
     <string name="ui134_results" formatted="false">"확인 결과"</string>
     <string name="ui134_root_hint" formatted="false">"루팅된 기기에서는 ADB 페어링 없이 su를 바로 사용할 수 있습니다. 처음 실행할 때 root 관리자에서 DSHA를 허용하세요. 아래에서 명령 차단 단계를 선택할 수 있으며, SMS 읽기 같은 네이티브 차단은 세 단계 모두에서 적용됩니다."</string>
     <string name="ui134_screen_setup" formatted="false">"화면 제어 설정 · 두 단계"</string>
-    <string name="ui134_shizuku_hint" formatted="false">"Shizuku 관리자에서 서비스를 시작한 후 여기에서 DSHA를 허용하세요. 보통 재부팅 후 서비스를 다시 시작해야 합니다."</string>
+    <string name="ui134_shizuku_hint" formatted="false">"Shizuku 관리자에서 서비스를 시작한 뒤 여기에서 허용하세요. 보통 재부팅 후 서비스를 다시 시작해야 합니다."</string>
     <string name="ui134_start_records" formatted="false">"시작 기록"</string>
     <string name="ui134_startup_recovery" formatted="false">"시작 복구"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"문제 및 복구 옵션 확인"</string>
@@ -87,10 +87,10 @@
     <string name="ui2_component5" formatted="false">"DeepSeek Harness"</string>
     <string name="ui2_component6" formatted="false">"시작 및 런타임 검사"</string>
     <string name="ui2_component_hint" formatted="false">"결과 및 복구 옵션 확인"</string>
-    <string name="ui2_config_sub" formatted="false">"웹 UI에서 모델과 API 키를 설정하세요. 포트 및 런타임 변경은 다음 시작 시 적용됩니다."</string>
+    <string name="ui2_config_sub" formatted="false">"포트와 실행 방식 변경은 다음 시작 시 적용됩니다. 모델과 API 키는 Web UI에서 설정하세요."</string>
     <string name="ui2_connection" formatted="false">"연결 상태"</string>
     <string name="ui2_data_ops" formatted="false">"백업 및 복원"</string>
-    <string name="ui2_data_sub" formatted="false">"내보내기, 복구 및 파일 공유."</string>
+    <string name="ui2_data_sub" formatted="false">"내보내기, 복구 및 공유."</string>
     <string name="ui2_data_title" formatted="false">"백업 및 데이터"</string>
     <string name="ui2_device_channels" formatted="false">"기기 명령 채널"</string>
     <string name="ui2_device_grants" formatted="false">"기기 권한"</string>
@@ -182,7 +182,7 @@
     <string name="ui2_ws1_1" formatted="false">"Ubuntu 명령과 독립 세션."</string>
     <string name="ui2_ws1_2" formatted="false">"플러그인을 추가하고 기기 기능을 켜세요."</string>
     <string name="ui2_ws2_0" formatted="false">"로컬에 저장하고 직접 내보낼 수 있습니다."</string>
-    <string name="ui2_ws2_1" formatted="false">"웹 UI에서 모델과 API 키를 설정하세요. 기존 네이티브 인증 정보는 보관합니다."</string>
+    <string name="ui2_ws2_1" formatted="false">"기존 네이티브 인증 정보는 유지됩니다. 모델과 API 키는 Web UI에서 설정하세요."</string>
     <string name="ui2_ws2_2" formatted="false">"Root, Shizuku, ADB 및 SMS에는 각각 별도의 권한이 필요합니다."</string>
     <string name="ui_adb_code_label" formatted="false">"페어링 코드 (6자리)"</string>
     <string name="ui_adb_host_label" formatted="false">"기기 주소 (비워두면 검색)"</string>
@@ -239,7 +239,7 @@
     <string name="ui_m0106" formatted="false">"플러그인 설치"</string>
     <string name="ui_m0107" formatted="false">"업데이트 설치"</string>
     <string name="ui_m0109" formatted="false">"보고서 내보내기"</string>
-    <string name="ui_m0118" formatted="false">"시스템 브라우저에 빈 화면이 표시되거나 호환되지 않으면 내장 Gecko 브라우저를 강제로 사용합니다. 그 외에는 앱이 호환되는 엔진을 자동으로 선택합니다. 저장 후 대화를 다시 열면 적용됩니다."</string>
+    <string name="ui_m0118" formatted="false">"시스템 브라우저에 빈 화면이 표시되거나 호환되지 않으면 내장 Gecko를 강제로 사용합니다. 끄면 호환되는 엔진을 자동으로 선택합니다. 저장 후 대화를 다시 열면 적용됩니다."</string>
     <string name="ui_m0121" formatted="false">"AI 출력을 오버레이로 표시"</string>
     <string name="ui_m0125" formatted="false">"Shizuku 관리자 열기"</string>
     <string name="ui_m0126" formatted="false">"백업 및 데이터 열기"</string>

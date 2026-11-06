@@ -22,7 +22,7 @@
     <string name="diag248_idle_title" formatted="false">"لم يُفحص"</string>
     <string name="diag248_plugins" formatted="false">"مدير الإضافات"</string>
     <string name="diag248_plugins_sub" formatted="false">"تشخيص مشكلات البدء بسبب الإضافات"</string>
-    <string name="diag248_repair_sub" formatted="false">"أعد تجهيز الشهادات وPython وnpm وpnpm"</string>
+    <string name="diag248_repair_sub" formatted="false">"أعد تثبيت الشهادات وPython وnpm وpnpm"</string>
     <string name="diag248_start" formatted="false">"فحص"</string>
     <string name="diag248_status" formatted="false">"الحالة"</string>
     <string name="diag248_tools" formatted="false">"الأدوات"</string>
@@ -49,7 +49,7 @@
     <string name="plugin_sort_updates" formatted="false">"التحديثات أولًا"</string>
     <string name="plugin_sort_za" formatted="false">"الاسم Z–A"</string>
     <string name="text_selection_more" formatted="false">"المزيد…"</string>
-    <string name="ui134_adb_hint" formatted="false">"Android 11 أو أحدث: اقتران تصحيح الأخطاء اللاسلكي على شبكة Wi-Fi نفسها. لا حاجة إلى صلاحيات الجذر. تحقّق أو أعد الاقتران بعد تغيير الشبكة."</string>
+    <string name="ui134_adb_hint" formatted="false">"Android 11 أو أحدث: اقترن بتصحيح الأخطاء اللاسلكي على شبكة Wi-Fi نفسها، دون حاجة إلى صلاحيات الجذر. تحقّق أو أعد الاقتران بعد تغيير الشبكة."</string>
     <string name="ui134_candidate" formatted="false">"عرض الإصدار المرشّح"</string>
     <string name="ui134_candidate_sub" formatted="false">"ملاحظات الإصدار والحجم والتثبيت"</string>
     <string name="ui134_changelog" formatted="false">"هذا الإصدار"</string>
@@ -63,7 +63,7 @@
     <string name="ui134_results" formatted="false">"نتائج الفحص"</string>
     <string name="ui134_root_hint" formatted="false">"عندما يكون الهاتف بصلاحيات root، يمكن استخدام su مباشرة دون اقتران ADB. فوّض DSHA في مدير root عند أول تنفيذ. اختر مستوى اعتراض الأوامر أدناه؛ تظل البوابات الأصلية مثل قراءة الرسائل سارية في المستويات الثلاثة."</string>
     <string name="ui134_screen_setup" formatted="false">"إعداد التحكم في الشاشة · خطوتان"</string>
-    <string name="ui134_shizuku_hint" formatted="false">"شغّل Shizuku في مديره، ثم فوّض DSHA هنا. تحتاج الخدمة عادةً إلى إعادة التشغيل بعد إقلاع الجهاز."</string>
+    <string name="ui134_shizuku_hint" formatted="false">"ابدأ خدمة Shizuku في مديرها ثم ارجع وامنح الإذن؛ تحتاج الخدمة عادةً إلى إعادة التشغيل بعد إقلاع الجهاز."</string>
     <string name="ui134_start_records" formatted="false">"سجلات بدء التشغيل"</string>
     <string name="ui134_startup_recovery" formatted="false">"استرداد بدء التشغيل"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"المشكلات وخيارات الاسترداد"</string>
@@ -87,10 +87,10 @@
     <string name="ui2_component5" formatted="false">"DeepSeek Harness"</string>
     <string name="ui2_component6" formatted="false">"فحص بدء التشغيل"</string>
     <string name="ui2_component_hint" formatted="false">"فحص النتائج وخيارات الإصلاح"</string>
-    <string name="ui2_config_sub" formatted="false">"اضبط النماذج ومفاتيح API في واجهة الويب. تُطبّق تغييرات المنفذ وبيئة التشغيل عند التشغيل التالي."</string>
+    <string name="ui2_config_sub" formatted="false">"تُطبَّق تغييرات المنفذ وطريقة التشغيل عند التشغيل التالي؛ تُضبط النماذج ومفاتيح API في واجهة الويب."</string>
     <string name="ui2_connection" formatted="false">"حالة الاتصال"</string>
     <string name="ui2_data_ops" formatted="false">"نسخ احتياطي واستعادة"</string>
-    <string name="ui2_data_sub" formatted="false">"التصدير والاسترداد ومشاركة الملفات."</string>
+    <string name="ui2_data_sub" formatted="false">"التصدير والاسترداد والمشاركة."</string>
     <string name="ui2_data_title" formatted="false">"بيانات ونسخ احتياطي"</string>
     <string name="ui2_device_channels" formatted="false">"قنوات أوامر الجهاز"</string>
     <string name="ui2_device_grants" formatted="false">"أذونات الجهاز"</string>
@@ -182,7 +182,7 @@
     <string name="ui2_ws1_1" formatted="false">"أوامر Ubuntu وجلسات مستقلة."</string>
     <string name="ui2_ws1_2" formatted="false">"أضف الإضافات وفعّل إمكانات الجهاز."</string>
     <string name="ui2_ws2_0" formatted="false">"تُخزّن محليًا مع تصدير يدوي."</string>
-    <string name="ui2_ws2_1" formatted="false">"اضبط النماذج ومفاتيح API في واجهة الويب. يتم الاحتفاظ ببيانات الاعتماد الأصلية الموجودة."</string>
+    <string name="ui2_ws2_1" formatted="false">"يُحتفظ ببيانات الاعتماد الأصلية الموجودة؛ تُضبط النماذج ومفاتيح API في واجهة الويب."</string>
     <string name="ui2_ws2_2" formatted="false">"لصلاحيات الجذر وShizuku وADB والرسائل النصية أذونات منفصلة."</string>
     <string name="ui_adb_code_label" formatted="false">"رمز الاقتران (6 أرقام)"</string>
     <string name="ui_adb_host_label" formatted="false">"عنوان الجهاز (فارغ = اكتشاف)"</string>
@@ -239,7 +239,7 @@
     <string name="ui_m0106" formatted="false">"تثبيت إضافة"</string>
     <string name="ui_m0107" formatted="false">"تثبيت التحديث"</string>
     <string name="ui_m0109" formatted="false">"تصدير التقرير"</string>
-    <string name="ui_m0118" formatted="false">"فرض استخدام متصفح Gecko المضمّن إذا أظهر متصفح النظام صفحة فارغة أو كان غير متوافق. بخلاف ذلك، يختار التطبيق محركًا متوافقًا تلقائيًا. احفظ ثم أعد فتح المحادثة للتطبيق."</string>
+    <string name="ui_m0118" formatted="false">"فرض استخدام Gecko المضمّن إذا أظهر متصفح النظام صفحة فارغة أو كان غير متوافق؛ عند الإيقاف يُختار محرك متوافق تلقائيًا. احفظ ثم أعد فتح المحادثة للتطبيق."</string>
     <string name="ui_m0121" formatted="false">"عرض مخرجات الذكاء الاصطناعي"</string>
     <string name="ui_m0125" formatted="false">"فتح مدير Shizuku"</string>
     <string name="ui_m0126" formatted="false">"بيانات ونسخ احتياطي"</string>

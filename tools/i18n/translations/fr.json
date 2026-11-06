@@ -116,7 +116,7 @@
   "m0115": "Mises à jour de l'application",
   "m0116": "Appliquer le chemin",
   "m0117": "Activer l'accès à l'appareil",
-  "m0118": "Forcez l'utilisation du navigateur Gecko intégré si le navigateur système affiche une page vide ou est incompatible. Sinon, l'application choisit automatiquement un moteur compatible. Enregistrez et rouvrez la conversation pour appliquer la modification.",
+  "m0118": "Forcez Gecko intégré si le navigateur système affiche une page vide ou est incompatible ; désactivé, un moteur compatible est choisi automatiquement. Enregistrez et rouvrez la conversation pour appliquer.",
   "m0119": "Version actuelle",
   "m0120": "Cette version ne propose pas de paramètre distinct de traduction des plugins. L'installation et l'utilisation des plugins ne sont pas affectées.",
   "m0121": "Afficher l'IA en superposition",
@@ -2970,7 +2970,7 @@
   "ui2_install_environment": "Installation/exécution",
   "ui2_runtime_config": "Fournisseurs et environnement d’exécution",
   "ui2_resolve": "Résoudre et installer",
-  "ui2_data_sub": "Exports, récupération et partage de fichiers.",
+  "ui2_data_sub": "Export, récupération et partage.",
   "ui2_encrypted_hint": "Choisir les données à inclure et les protéger par mot de passe",
   "ui2_restore_hint": "Vérifier le contenu et la compatibilité avant de restaurer",
   "ui2_retained": "Copies conservées",

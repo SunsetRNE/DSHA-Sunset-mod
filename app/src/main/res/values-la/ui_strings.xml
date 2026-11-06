@@ -22,7 +22,7 @@
     <string name="diag248_idle_title" formatted="false">"Nondum examinatum"</string>
     <string name="diag248_plugins" formatted="false">"Additamenta administra"</string>
     <string name="diag248_plugins_sub" formatted="false">"Initium a plugins impeditum"</string>
-    <string name="diag248_repair_sub" formatted="false">"Rursus para certificata, Python, npm et pnpm"</string>
+    <string name="diag248_repair_sub" formatted="false">"Certificata, Python, npm et pnpm iterum institue"</string>
     <string name="diag248_start" formatted="false">"Inspice"</string>
     <string name="diag248_status" formatted="false">"Status"</string>
     <string name="diag248_tools" formatted="false">"Instrumenta"</string>
@@ -49,7 +49,7 @@
     <string name="plugin_sort_updates" formatted="false">"Renovationes priores"</string>
     <string name="plugin_sort_za" formatted="false">"Nomen Z–A"</string>
     <string name="text_selection_more" formatted="false">"Plura…"</string>
-    <string name="ui134_adb_hint" formatted="false">"Android 11+: depurationem sine filo in eodem Wi-Fi copula. Root non requiritur. Post mutationes retis verifica aut rursus copula."</string>
+    <string name="ui134_adb_hint" formatted="false">"Android 11+: depurationem sine filo in eodem Wi-Fi copula, Root non requiritur. Post mutationes retis verifica aut rursus copula."</string>
     <string name="ui134_candidate" formatted="false">"Editionem candidati vide"</string>
     <string name="ui134_candidate_sub" formatted="false">"Notae, magnitudo, installatio"</string>
     <string name="ui134_changelog" formatted="false">"Haec editio"</string>
@@ -63,7 +63,7 @@
     <string name="ui134_results" formatted="false">"Eventus examinis"</string>
     <string name="ui134_root_hint" formatted="false">"In apparatu cum root, su directe sine coniunctione ADB uti potes. Primo exsecutione DSHA in administro root auctoriza. Gradum interceptionis mandatorum infra elige; claustra nativa ut lectio nuntiorum SMS in omnibus tribus gradibus valent."</string>
     <string name="ui134_screen_setup" formatted="false">"Moderationem veli para · Duo gradus"</string>
-    <string name="ui134_shizuku_hint" formatted="false">"Shizuku in administratore eius initia, deinde DSHA hic auctoriza. Plerumque ministerium post reinitiationem rursus initia."</string>
+    <string name="ui134_shizuku_hint" formatted="false">"Ministerium Shizuku in administratore eius initia, deinde hic auctoriza; plerumque ministerium post reinitiationem rursus initiandum est."</string>
     <string name="ui134_start_records" formatted="false">"Acta initii"</string>
     <string name="ui134_startup_recovery" formatted="false">"Recuperatio initii"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"Difficultates et optiones"</string>
@@ -87,10 +87,10 @@
     <string name="ui2_component5" formatted="false">"DeepSeek Harness"</string>
     <string name="ui2_component6" formatted="false">"Probationes initii"</string>
     <string name="ui2_component_hint" formatted="false">"Exitus et optiones inspice"</string>
-    <string name="ui2_config_sub" formatted="false">"Exemplaria et claves API in interfacie Web constitue. Mutationes portus et ambitus proximo initio adhibentur."</string>
+    <string name="ui2_config_sub" formatted="false">"Mutationes portus et modi currendi proximo initio adhibentur; exemplaria et claves API in interfacie Web constitue."</string>
     <string name="ui2_connection" formatted="false">"Status conexionis"</string>
     <string name="ui2_data_ops" formatted="false">"Copia et restitutio"</string>
-    <string name="ui2_data_sub" formatted="false">"Exportationes, recuperatio et communicatio fasciculorum."</string>
+    <string name="ui2_data_sub" formatted="false">"Exportatio, recuperatio et communicatio."</string>
     <string name="ui2_data_title" formatted="false">"Data et copia"</string>
     <string name="ui2_device_channels" formatted="false">"Canales mandatorum"</string>
     <string name="ui2_device_grants" formatted="false">"Facultates apparatus"</string>
@@ -182,7 +182,7 @@
     <string name="ui2_ws1_1" formatted="false">"Mandata Ubuntu et sessiones independentes."</string>
     <string name="ui2_ws1_2" formatted="false">"Additamenta adde et facultates instrumenti habilita."</string>
     <string name="ui2_ws2_0" formatted="false">"Localiter servantur, manu exportantur."</string>
-    <string name="ui2_ws2_1" formatted="false">"Exemplaria et claves API in interfacie Web constitue. Documenta identitatis nativa exsistentia retinentur."</string>
+    <string name="ui2_ws2_1" formatted="false">"Documenta identitatis nativa exsistentia retinentur; exemplaria et claves API in interfacie Web constitue."</string>
     <string name="ui2_ws2_2" formatted="false">"Root, Shizuku, ADB et SMS potestates separatas habent."</string>
     <string name="ui_adb_code_label" formatted="false">"Codex copulationis (6 digiti)"</string>
     <string name="ui_adb_host_label" formatted="false">"Inscriptio (vacua = inventio)"</string>
@@ -239,7 +239,7 @@
     <string name="ui_m0106" formatted="false">"Additamentum instrue"</string>
     <string name="ui_m0107" formatted="false">"Renovationem instrue"</string>
     <string name="ui_m0109" formatted="false">"Relationem exporta"</string>
-    <string name="ui_m0118" formatted="false">"Navigatrum Gecko inclusum coge, si navigatrum systematis paginam vacuam ostendit aut incompatibile est. Alioquin applicatio machinam compatibilem automatice eligit. Serva et colloquium iterum aperi ad mutationem adhibendam."</string>
+    <string name="ui_m0118" formatted="false">"Gecko inclusum coge, si navigatrum systematis paginam vacuam ostendit aut incompatibile est; inactivo, machina compatibilis automatice eligitur. Serva et colloquium iterum aperi ut mutationem adhibeas."</string>
     <string name="ui_m0121" formatted="false">"Exitum IA superpone"</string>
     <string name="ui_m0125" formatted="false">"Administratorem Shizuku aperi"</string>
     <string name="ui_m0126" formatted="false">"Data et exemplaria"</string>

@@ -22,7 +22,7 @@
     <string name="diag248_idle_title" formatted="false">"Não verificado"</string>
     <string name="diag248_plugins" formatted="false">"Gerenciador de plugins"</string>
     <string name="diag248_plugins_sub" formatted="false">"Início falha por plugins"</string>
-    <string name="diag248_repair_sub" formatted="false">"Preparar de novo certificados, Python, npm e pnpm"</string>
+    <string name="diag248_repair_sub" formatted="false">"Reinstalar certificados, Python, npm e pnpm"</string>
     <string name="diag248_start" formatted="false">"Inspecionar"</string>
     <string name="diag248_status" formatted="false">"Estado"</string>
     <string name="diag248_tools" formatted="false">"Ferramentas"</string>
@@ -49,7 +49,7 @@
     <string name="plugin_sort_updates" formatted="false">"Atualizações primeiro"</string>
     <string name="plugin_sort_za" formatted="false">"Nome Z–A"</string>
     <string name="text_selection_more" formatted="false">"Mais…"</string>
-    <string name="ui134_adb_hint" formatted="false">"Android 11+: pareie a depuração Sem fio na mesma rede Wi-Fi. Não precisa de root. Verifique ou pareie novamente após alterações de rede."</string>
+    <string name="ui134_adb_hint" formatted="false">"Android 11+: emparelhe a depuração sem fio na mesma rede Wi-Fi, sem root. Verifique ou emparelhe novamente após alterações de rede."</string>
     <string name="ui134_candidate" formatted="false">"Ver versão candidata"</string>
     <string name="ui134_candidate_sub" formatted="false">"Notas, tamanho e instalação"</string>
     <string name="ui134_changelog" formatted="false">"Esta versão"</string>
@@ -63,7 +63,7 @@
     <string name="ui134_results" formatted="false">"Resultados dos testes"</string>
     <string name="ui134_root_hint" formatted="false">"Num telefone com root, use su diretamente sem emparelhamento ADB. Autorize o DSHA no gestor de root na primeira execução. Escolha abaixo o nível de interceptação de comandos; as proteções nativas, como a leitura de SMS, aplicam-se aos três níveis."</string>
     <string name="ui134_screen_setup" formatted="false">"Configurar controle da tela · Dois passos"</string>
-    <string name="ui134_shizuku_hint" formatted="false">"Inicie o Shizuku no respetivo gerenciador e autorize o DSHA aqui. Normalmente é necessário reiniciar o serviço após reiniciar o dispositivo."</string>
+    <string name="ui134_shizuku_hint" formatted="false">"Inicie o serviço Shizuku no respetivo gestor e autorize aqui; normalmente é necessário reiniciar o serviço após reiniciar o dispositivo."</string>
     <string name="ui134_start_records" formatted="false">"Logs de inicialização"</string>
     <string name="ui134_startup_recovery" formatted="false">"Recuperação da inicialização"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"Problemas e recuperação"</string>
@@ -87,10 +87,10 @@
     <string name="ui2_component5" formatted="false">"DeepSeek Harness"</string>
     <string name="ui2_component6" formatted="false">"Início e ambiente"</string>
     <string name="ui2_component_hint" formatted="false">"Resultados e reparos"</string>
-    <string name="ui2_config_sub" formatted="false">"Configure modelos e chaves da API na interface Web. As alterações de porta e execução são aplicadas na próxima inicialização."</string>
+    <string name="ui2_config_sub" formatted="false">"As alterações de porta e modo de execução aplicam-se na próxima inicialização; configure modelos e chaves API na interface Web."</string>
     <string name="ui2_connection" formatted="false">"Estado da conexão"</string>
     <string name="ui2_data_ops" formatted="false">"Backup e restauração"</string>
-    <string name="ui2_data_sub" formatted="false">"Exportações, recuperação e compartilhamento de arquivos."</string>
+    <string name="ui2_data_sub" formatted="false">"Exportação, recuperação e partilha."</string>
     <string name="ui2_data_title" formatted="false">"Backup e dados"</string>
     <string name="ui2_device_channels" formatted="false">"Canais do aparelho"</string>
     <string name="ui2_device_grants" formatted="false">"Permissões do aparelho"</string>
@@ -182,7 +182,7 @@
     <string name="ui2_ws1_1" formatted="false">"Comandos Ubuntu e sessões independentes."</string>
     <string name="ui2_ws1_2" formatted="false">"Adicione plugins e ative capacidades do dispositivo."</string>
     <string name="ui2_ws2_0" formatted="false">"Salvos localmente, com exportações manuais."</string>
-    <string name="ui2_ws2_1" formatted="false">"Configure modelos e chaves da API na interface Web. As credenciais nativas existentes são preservadas."</string>
+    <string name="ui2_ws2_1" formatted="false">"As credenciais nativas existentes são preservadas; configure modelos e chaves API na interface Web."</string>
     <string name="ui2_ws2_2" formatted="false">"Root, Shizuku, ADB e SMS têm permissões separadas."</string>
     <string name="ui_adb_code_label" formatted="false">"Código de pareamento (6 dígitos)"</string>
     <string name="ui_adb_host_label" formatted="false">"Endereço (vazio = descoberta)"</string>
@@ -239,7 +239,7 @@
     <string name="ui_m0106" formatted="false">"Instalar plugin"</string>
     <string name="ui_m0107" formatted="false">"Instalar atualização"</string>
     <string name="ui_m0109" formatted="false">"Exportar relatório"</string>
-    <string name="ui_m0118" formatted="false">"Force o navegador Gecko incluído se o navegador do sistema exibir uma página em branco ou for incompatível. Caso contrário, o aplicativo seleciona automaticamente um mecanismo compatível. Salve e reabra a conversa para aplicar."</string>
+    <string name="ui_m0118" formatted="false">"Force o Gecko incluído se o navegador do sistema exibir uma página em branco ou for incompatível; ao desativar, é escolhido automaticamente um mecanismo compatível. Guarde e reabra a conversa para aplicar."</string>
     <string name="ui_m0121" formatted="false">"Mostrar saída da IA flutuante"</string>
     <string name="ui_m0125" formatted="false">"Abrir gerenciador Shizuku"</string>
     <string name="ui_m0126" formatted="false">"Abrir backup e dados"</string>

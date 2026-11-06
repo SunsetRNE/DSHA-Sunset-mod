@@ -992,8 +992,8 @@
   },
   {
     "id": "m0118",
-    "zh": "强制使用内置 Gecko，适合系统网页白屏或不兼容时；关闭后由 App 自动选择可用内核。保存后重新进入对话生效。",
-    "en": "Force the bundled Gecko browser if the system browser shows a blank page or is incompatible. Otherwise, the app selects a compatible engine automatically. Save and reopen the conversation to apply.",
+    "zh": "强制使用内置 Gecko，适合系统网页白屏或不兼容时；关闭后自动选择可用内核。保存后重进对话生效。",
+    "en": "Force the bundled Gecko browser if the system browser shows a blank page or is incompatible; when off, a compatible engine is chosen automatically. Save and reopen the conversation to apply.",
     "files": [
       "app/src/main/res/layout/fragment_config.xml"
     ]
@@ -24018,8 +24018,8 @@
   },
   {
     "id": "ui2_data_sub",
-    "zh": "导出、恢复与文件共享。",
-    "en": "Exports, recovery and file sharing.",
+    "zh": "导出、恢复与共享。",
+    "en": "Export, recovery and sharing.",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]

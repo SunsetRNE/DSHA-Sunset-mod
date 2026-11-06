@@ -14,6 +14,6 @@
     <string name="diag248_export">导出故障包</string>
     <string name="diag248_plugins">插件管理</string>
     <string name="diag248_export_sub">结构化日志包，可附复现步骤</string>
-    <string name="diag248_repair_sub">重新准备证书、Python、npm 与 pnpm</string>
+    <string name="diag248_repair_sub">重装证书、Python、npm 与 pnpm</string>
     <string name="diag248_plugins_sub">排查插件导致的启动问题</string>
 </resources>

@@ -22,7 +22,7 @@
     <string name="diag248_idle_title" formatted="false">"未檢查"</string>
     <string name="diag248_plugins" formatted="false">"外掛管理"</string>
     <string name="diag248_plugins_sub" formatted="false">"排查外掛導致的啟動問題"</string>
-    <string name="diag248_repair_sub" formatted="false">"重新準備憑證、Python、npm 與 pnpm"</string>
+    <string name="diag248_repair_sub" formatted="false">"重裝憑證、Python、npm 與 pnpm"</string>
     <string name="diag248_start" formatted="false">"開始檢查"</string>
     <string name="diag248_status" formatted="false">"狀態"</string>
     <string name="diag248_tools" formatted="false">"工具"</string>
@@ -49,7 +49,7 @@
     <string name="plugin_sort_updates" formatted="false">"可更新優先"</string>
     <string name="plugin_sort_za" formatted="false">"名稱 Z–A"</string>
     <string name="text_selection_more" formatted="false">"更多…"</string>
-    <string name="ui134_adb_hint" formatted="false">"Android 11+：在同一 Wi-Fi 下配對無線除錯。無需 Root；網路變化後可驗證或重新配對。"</string>
+    <string name="ui134_adb_hint" formatted="false">"Android 11+：同一 Wi-Fi 配對無線除錯，無需 Root；換網後可驗證或重新配對。"</string>
     <string name="ui134_candidate" formatted="false">"檢視候選版本"</string>
     <string name="ui134_candidate_sub" formatted="false">"更新記錄、大小與安裝方式"</string>
     <string name="ui134_changelog" formatted="false">"本版本更新記錄"</string>
@@ -63,7 +63,7 @@
     <string name="ui134_results" formatted="false">"檢查結果"</string>
     <string name="ui134_root_hint" formatted="false">"手機已 root 時可直接使用 su，無需 ADB 配對。首次執行請在 root 管理器中授權 DSHA；指令攔截等級可在下方選擇，簡訊等原生閘門在三個等級都生效。"</string>
     <string name="ui134_screen_setup" formatted="false">"設定螢幕操作 · 兩步完成"</string>
-    <string name="ui134_shizuku_hint" formatted="false">"先在 Shizuku 管理器啟動服務，再返回授權。手機重新啟動後通常需要重新啟動服務。"</string>
+    <string name="ui134_shizuku_hint" formatted="false">"先在 Shizuku 管理器啟動服務並授權；手機重新啟動後通常需重新啟動服務。"</string>
     <string name="ui134_start_records" formatted="false">"啟動記錄"</string>
     <string name="ui134_startup_recovery" formatted="false">"啟動恢復"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"檢視問題與恢復方式"</string>
@@ -87,10 +87,10 @@
     <string name="ui2_component5" formatted="false">"DeepSeek Harness"</string>
     <string name="ui2_component6" formatted="false">"啟動與環境檢查"</string>
     <string name="ui2_component_hint" formatted="false">"檢視檢查結果與修復選項"</string>
-    <string name="ui2_config_sub" formatted="false">"模型和 API Key 在 Web UI 中設定。這裡的連接埠與執行方式在下次啟動生效。"</string>
+    <string name="ui2_config_sub" formatted="false">"連接埠與執行方式下次啟動生效；模型與 API Key 在 Web UI 設定。"</string>
     <string name="ui2_connection" formatted="false">"連線狀態"</string>
     <string name="ui2_data_ops" formatted="false">"備份與還原"</string>
-    <string name="ui2_data_sub" formatted="false">"匯出、恢復與檔案共用。"</string>
+    <string name="ui2_data_sub" formatted="false">"匯出、恢復與分享。"</string>
     <string name="ui2_data_title" formatted="false">"資料與備份"</string>
     <string name="ui2_device_channels" formatted="false">"裝置執行通道"</string>
     <string name="ui2_device_grants" formatted="false">"裝置能力授權"</string>
@@ -182,7 +182,7 @@
     <string name="ui2_ws1_1" formatted="false">"保留熟悉的 Ubuntu 命令與多工作階段。"</string>
     <string name="ui2_ws1_2" formatted="false">"按需安裝外掛，連線手機能力。"</string>
     <string name="ui2_ws2_0" formatted="false">"儲存在本機，可手動匯出。"</string>
-    <string name="ui2_ws2_1" formatted="false">"模型與 API Key 在 Web UI 中設定；原有本機認證資訊保留。"</string>
+    <string name="ui2_ws2_1" formatted="false">"原有本機認證資訊保留；模型與 API Key 在 Web UI 設定。"</string>
     <string name="ui2_ws2_2" formatted="false">"Root、Shizuku、ADB 與簡訊單獨授權。"</string>
     <string name="ui_adb_code_label" formatted="false">"配對碼（6 位數字）"</string>
     <string name="ui_adb_host_label" formatted="false">"裝置位址（留空自動發現）"</string>
@@ -239,7 +239,7 @@
     <string name="ui_m0106" formatted="false">"安裝外掛"</string>
     <string name="ui_m0107" formatted="false">"安裝更新"</string>
     <string name="ui_m0109" formatted="false">"匯出報告"</string>
-    <string name="ui_m0118" formatted="false">"強制使用內建 Gecko，適合系統網頁白畫面或不相容時；關閉後由 App 自動選擇可用核心。儲存後重新進入對話生效。"</string>
+    <string name="ui_m0118" formatted="false">"強制使用內建 Gecko，適合系統網頁白畫面或不相容時；關閉後自動選擇可用核心。儲存後重進對話生效。"</string>
     <string name="ui_m0121" formatted="false">"浮動顯示 AI 輸出"</string>
     <string name="ui_m0125" formatted="false">"開啟 Shizuku 管理器"</string>
     <string name="ui_m0126" formatted="false">"開啟資料與備份"</string>

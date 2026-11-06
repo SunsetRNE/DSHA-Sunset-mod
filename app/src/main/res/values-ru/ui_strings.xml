@@ -22,7 +22,7 @@
     <string name="diag248_idle_title" formatted="false">"Не проверено"</string>
     <string name="diag248_plugins" formatted="false">"Менеджер плагинов"</string>
     <string name="diag248_plugins_sub" formatted="false">"Сбой запуска из-за плагинов"</string>
-    <string name="diag248_repair_sub" formatted="false">"Заново подготовить сертификаты, Python, npm и pnpm"</string>
+    <string name="diag248_repair_sub" formatted="false">"Переустановить сертификаты, Python, npm и pnpm"</string>
     <string name="diag248_start" formatted="false">"Проверить"</string>
     <string name="diag248_status" formatted="false">"Состояние"</string>
     <string name="diag248_tools" formatted="false">"Инструменты"</string>
@@ -49,7 +49,7 @@
     <string name="plugin_sort_updates" formatted="false">"Сначала обновления"</string>
     <string name="plugin_sort_za" formatted="false">"Имя Z–A"</string>
     <string name="text_selection_more" formatted="false">"Ещё…"</string>
-    <string name="ui134_adb_hint" formatted="false">"Android 11+: выполните сопряжение беспроводной отладки в той же сети Wi-Fi. Root не нужен. После смены сети проверьте подключение или повторите сопряжение."</string>
+    <string name="ui134_adb_hint" formatted="false">"Android 11+: сопряжение беспроводной отладки в той же сети Wi-Fi, root не нужен. После смены сети проверьте или повторите сопряжение."</string>
     <string name="ui134_candidate" formatted="false">"Версия-кандидат"</string>
     <string name="ui134_candidate_sub" formatted="false">"Изменения, размер и установка"</string>
     <string name="ui134_changelog" formatted="false">"Этот выпуск"</string>
@@ -63,7 +63,7 @@
     <string name="ui134_results" formatted="false">"Результаты проверки"</string>
     <string name="ui134_root_hint" formatted="false">"На телефоне с root можно напрямую использовать su без сопряжения ADB. При первом запуске разрешите DSHA в менеджере root. Выберите уровень перехвата команд ниже; нативные проверки, например чтение SMS, действуют на всех трёх уровнях."</string>
     <string name="ui134_screen_setup" formatted="false">"Настроить управление экраном · два шага"</string>
-    <string name="ui134_shizuku_hint" formatted="false">"Запустите службу в менеджере Shizuku, затем разрешите DSHA здесь. После перезагрузки устройства службу обычно нужно запускать снова."</string>
+    <string name="ui134_shizuku_hint" formatted="false">"Запустите службу в менеджере Shizuku, затем вернитесь и авторизуйте. После перезагрузки службу обычно нужно запустить снова."</string>
     <string name="ui134_start_records" formatted="false">"Записи о запусках"</string>
     <string name="ui134_startup_recovery" formatted="false">"Восстановление запуска"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"Проблемы и восстановление"</string>
@@ -87,10 +87,10 @@
     <string name="ui2_component5" formatted="false">"DeepSeek Harness"</string>
     <string name="ui2_component6" formatted="false">"Проверки запуска и среды"</string>
     <string name="ui2_component_hint" formatted="false">"Результаты и варианты ремонта"</string>
-    <string name="ui2_config_sub" formatted="false">"Настраивайте модели и ключи API в Web UI. Изменения порта и среды вступают в силу при следующем запуске."</string>
+    <string name="ui2_config_sub" formatted="false">"Изменения порта и режима запуска вступят в силу при следующем запуске; модели и ключи API настраиваются в Web UI."</string>
     <string name="ui2_connection" formatted="false">"Состояние подключения"</string>
     <string name="ui2_data_ops" formatted="false">"Копия и восстановление"</string>
-    <string name="ui2_data_sub" formatted="false">"Экспорт, восстановление и обмен файлами."</string>
+    <string name="ui2_data_sub" formatted="false">"Экспорт, восстановление и обмен."</string>
     <string name="ui2_data_title" formatted="false">"Резервные копии и данные"</string>
     <string name="ui2_device_channels" formatted="false">"Каналы команд устройства"</string>
     <string name="ui2_device_grants" formatted="false">"Разрешения устройства"</string>
@@ -182,7 +182,7 @@
     <string name="ui2_ws1_1" formatted="false">"Команды Ubuntu и независимые сессии."</string>
     <string name="ui2_ws1_2" formatted="false">"Добавляйте плагины и включайте функции устройства."</string>
     <string name="ui2_ws2_0" formatted="false">"Хранятся локально, экспортируются вручную."</string>
-    <string name="ui2_ws2_1" formatted="false">"Настраивайте модели и ключи API в Web UI. Имеющиеся нативные учётные данные сохраняются."</string>
+    <string name="ui2_ws2_1" formatted="false">"Имеющиеся нативные учётные данные сохраняются; модели и ключи API настраиваются в Web UI."</string>
     <string name="ui2_ws2_2" formatted="false">"Root, Shizuku, ADB и SMS имеют отдельные разрешения."</string>
     <string name="ui_adb_code_label" formatted="false">"Код сопряжения (6 цифр)"</string>
     <string name="ui_adb_host_label" formatted="false">"Адрес (пусто = автопоиск)"</string>
@@ -239,7 +239,7 @@
     <string name="ui_m0106" formatted="false">"Установить плагин"</string>
     <string name="ui_m0107" formatted="false">"Установить обновление"</string>
     <string name="ui_m0109" formatted="false">"Экспорт отчёта"</string>
-    <string name="ui_m0118" formatted="false">"Принудительно использовать встроенный Gecko, если системный браузер показывает пустую страницу или несовместим. Иначе приложение автоматически выберет подходящий движок. Сохраните и заново откройте переписку для применения."</string>
+    <string name="ui_m0118" formatted="false">"Принудительно использовать встроенный Gecko, если системный браузер показывает пустую страницу или несовместим; после отключения подходящий движок выбирается автоматически. Сохраните и заново откройте переписку для применения."</string>
     <string name="ui_m0121" formatted="false">"Показывать ответы ИИ поверх"</string>
     <string name="ui_m0125" formatted="false">"Открыть менеджер Shizuku"</string>
     <string name="ui_m0126" formatted="false">"Данные и бэкапы"</string>

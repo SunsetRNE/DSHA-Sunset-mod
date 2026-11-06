@@ -116,7 +116,7 @@
   "m0115": "Atualizações do aplicativo",
   "m0116": "Aplicar caminho",
   "m0117": "Ativar acesso ao dispositivo",
-  "m0118": "Force o navegador Gecko incluído se o navegador do sistema exibir uma página em branco ou for incompatível. Caso contrário, o aplicativo seleciona automaticamente um mecanismo compatível. Salve e reabra a conversa para aplicar.",
+  "m0118": "Force o Gecko incluído se o navegador do sistema exibir uma página em branco ou for incompatível; ao desativar, é escolhido automaticamente um mecanismo compatível. Guarde e reabra a conversa para aplicar.",
   "m0119": "Versão atual",
   "m0120": "Esta versão não possui uma configuração separada de tradução de plugins. A instalação e o uso dos plugins não são afetados.",
   "m0121": "Mostrar saída da IA flutuante",
@@ -2970,7 +2970,7 @@
   "ui2_install_environment": "Instalação e execução",
   "ui2_runtime_config": "Fornecedores e execução",
   "ui2_resolve": "Resolver e instalar",
-  "ui2_data_sub": "Exportações, recuperação e compartilhamento de arquivos.",
+  "ui2_data_sub": "Exportação, recuperação e partilha.",
   "ui2_encrypted_hint": "Escolha os dados a incluir e proteja-os com senha",
   "ui2_restore_hint": "Verifique o conteúdo e a compatibilidade antes de restaurar",
   "ui2_retained": "Cópias preservadas",

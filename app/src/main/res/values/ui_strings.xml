@@ -50,7 +50,7 @@
     <string name="ui_m0106" formatted="false">"安装插件"</string>
     <string name="ui_m0107" formatted="false">"安装更新"</string>
     <string name="ui_m0109" formatted="false">"导出报告"</string>
-    <string name="ui_m0118" formatted="false">"强制使用内置 Gecko，适合系统网页白屏或不兼容时；关闭后由 App 自动选择可用内核。保存后重新进入对话生效。"</string>
+    <string name="ui_m0118" formatted="false">"强制使用内置 Gecko，适合系统网页白屏或不兼容时；关闭后自动选择可用内核。保存后重进对话生效。"</string>
     <string name="ui_m0121" formatted="false">"悬浮显示 AI 输出"</string>
     <string name="ui_m0125" formatted="false">"打开 Shizuku 管理器"</string>
     <string name="ui_m0126" formatted="false">"打开数据与备份"</string>

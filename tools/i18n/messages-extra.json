@@ -3911,8 +3911,8 @@
   },
   {
     "id": "x1970554",
-    "zh": "模型与 API Key 在 Web UI 中配置；原有本机凭据保留。",
-    "en": "Configure models and API keys in Web UI. Existing native credentials are retained.",
+    "zh": "原有本机凭据保留；模型与 API Key 在 Web UI 配置。",
+    "en": "Existing local credentials are kept; configure models and API keys in Web UI.",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]
@@ -3927,8 +3927,8 @@
   },
   {
     "id": "x1970556",
-    "zh": "模型和 API Key 在 Web UI 中配置。这里的端口与运行方式在下次启动生效。",
-    "en": "Configure models and API keys in Web UI. Port and runtime changes apply on the next start.",
+    "zh": "端口与运行方式下次启动生效；模型与 API Key 在 Web UI 配置。",
+    "en": "Port and runtime changes apply on the next start; configure models and API keys in Web UI.",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]
@@ -4055,16 +4055,16 @@
   },
   {
     "id": "x1970573",
-    "zh": "先在 Shizuku 管理器启动服务，再返回授权。手机重启后通常需要重新启动服务。",
-    "en": "Start Shizuku in its manager, then authorize DSHA here. Usually restart the service after reboot.",
+    "zh": "先在 Shizuku 管理器启动服务并授权；手机重启后通常需重启服务。",
+    "en": "Start the Shizuku service in its manager, then authorize here; usually restart it after a reboot.",
     "files": [
       "app/src/main/res/values/ui_refinement.xml"
     ]
   },
   {
     "id": "x1970574",
-    "zh": "Android 11+：在同一 Wi-Fi 下配对无线调试。无需 Root；网络变化后可验证或重新配对。",
-    "en": "Android 11+: pair wireless debugging on the same Wi-Fi. No root needed. Verify or re-pair after network changes.",
+    "zh": "Android 11+：同一 Wi-Fi 配对无线调试，无需 Root；换网后可验证或重新配对。",
+    "en": "Android 11+: pair wireless debugging on the same Wi-Fi, no root needed. Verify or re-pair after network changes.",
     "files": [
       "app/src/main/res/values/ui_refinement.xml"
     ]
@@ -10999,8 +10999,8 @@
   },
   {
     "id": "diag248a27",
-    "zh": "重新准备证书、Python、npm 与 pnpm",
-    "en": "Re-prepare certificates, Python, npm and pnpm",
+    "zh": "重装证书、Python、npm 与 pnpm",
+    "en": "Reinstall certificates, Python, npm and pnpm",
     "files": [
       "app/src/main/res/values/diagnostics_strings.xml"
     ]

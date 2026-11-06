@@ -22,7 +22,7 @@
     <string name="diag248_idle_title" formatted="false">"Non vérifié"</string>
     <string name="diag248_plugins" formatted="false">"Gestionnaire de plugins"</string>
     <string name="diag248_plugins_sub" formatted="false">"Démarrage bloqué par plugin"</string>
-    <string name="diag248_repair_sub" formatted="false">"Préparer à nouveau certificats, Python, npm et pnpm"</string>
+    <string name="diag248_repair_sub" formatted="false">"Réinstaller les certificats, Python, npm et pnpm"</string>
     <string name="diag248_start" formatted="false">"Examiner"</string>
     <string name="diag248_status" formatted="false">"État"</string>
     <string name="diag248_tools" formatted="false">"Outils"</string>
@@ -49,7 +49,7 @@
     <string name="plugin_sort_updates" formatted="false">"Mises à jour en premier"</string>
     <string name="plugin_sort_za" formatted="false">"Nom de Z à A"</string>
     <string name="text_selection_more" formatted="false">"Plus…"</string>
-    <string name="ui134_adb_hint" formatted="false">"Android 11+ : associez le débogage sans fil sur le même Wi-Fi. Root non requis. Vérifiez ou recommencez l’association après un changement de réseau."</string>
+    <string name="ui134_adb_hint" formatted="false">"Android 11+ : associez le débogage sans fil sur le même Wi-Fi, sans root. Vérifiez ou réassociez après un changement de réseau."</string>
     <string name="ui134_candidate" formatted="false">"Version candidate"</string>
     <string name="ui134_candidate_sub" formatted="false">"Notes, taille et installation"</string>
     <string name="ui134_changelog" formatted="false">"Cette version"</string>
@@ -63,7 +63,7 @@
     <string name="ui134_results" formatted="false">"Résultats des contrôles"</string>
     <string name="ui134_root_hint" formatted="false">"Sur un téléphone rooté, utilisez su directement sans appairage ADB. Autorisez DSHA dans le gestionnaire root lors de la première exécution. Choisissez ci-dessous le niveau d’interception des commandes ; les contrôles natifs comme la lecture des SMS s’appliquent dans les trois modes."</string>
     <string name="ui134_screen_setup" formatted="false">"Configurer le contrôle de l’écran · Deux étapes"</string>
-    <string name="ui134_shizuku_hint" formatted="false">"Démarrez Shizuku dans son gestionnaire, puis autorisez DSHA ici. Il faut généralement redémarrer le service après un redémarrage de l’appareil."</string>
+    <string name="ui134_shizuku_hint" formatted="false">"Démarrez le service Shizuku dans son gestionnaire, puis autorisez ici ; il faut généralement relancer le service après un redémarrage."</string>
     <string name="ui134_start_records" formatted="false">"Historique de démarrage"</string>
     <string name="ui134_startup_recovery" formatted="false">"Récupération du démarrage"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"Problèmes et récupération"</string>
@@ -87,10 +87,10 @@
     <string name="ui2_component5" formatted="false">"DeepSeek Harness"</string>
     <string name="ui2_component6" formatted="false">"Démarrage et exécution"</string>
     <string name="ui2_component_hint" formatted="false">"Résultats et réparations"</string>
-    <string name="ui2_config_sub" formatted="false">"Configurez les modèles et clés API dans l’interface Web. Les changements de port et d’environnement s’appliquent au prochain démarrage."</string>
+    <string name="ui2_config_sub" formatted="false">"Les changements de port et de mode d’exécution s’appliquent au prochain démarrage ; configurez les modèles et clés API dans l’interface Web."</string>
     <string name="ui2_connection" formatted="false">"État de la connexion"</string>
     <string name="ui2_data_ops" formatted="false">"Sauvegarde/restauration"</string>
-    <string name="ui2_data_sub" formatted="false">"Exports, récupération et partage de fichiers."</string>
+    <string name="ui2_data_sub" formatted="false">"Export, récupération et partage."</string>
     <string name="ui2_data_title" formatted="false">"Sauvegarde et données"</string>
     <string name="ui2_device_channels" formatted="false">"Canaux de l'appareil"</string>
     <string name="ui2_device_grants" formatted="false">"Autorisations appareil"</string>
@@ -182,7 +182,7 @@
     <string name="ui2_ws1_1" formatted="false">"Commandes Ubuntu et sessions indépendantes."</string>
     <string name="ui2_ws1_2" formatted="false">"Ajoutez des plugins et activez les fonctions de l’appareil."</string>
     <string name="ui2_ws2_0" formatted="false">"Stockés localement, avec exports manuels."</string>
-    <string name="ui2_ws2_1" formatted="false">"Configurez les modèles et clés API dans l’interface Web. Les identifiants natifs existants sont conservés."</string>
+    <string name="ui2_ws2_1" formatted="false">"Les identifiants natifs existants sont conservés ; configurez les modèles et clés API dans l’interface Web."</string>
     <string name="ui2_ws2_2" formatted="false">"Root, Shizuku, ADB et SMS ont des autorisations distinctes."</string>
     <string name="ui_adb_code_label" formatted="false">"Code d'association (6 chiffres)"</string>
     <string name="ui_adb_host_label" formatted="false">"Adresse (vide = détection auto)"</string>
@@ -239,7 +239,7 @@
     <string name="ui_m0106" formatted="false">"Installer un plugin"</string>
     <string name="ui_m0107" formatted="false">"Installer la mise à jour"</string>
     <string name="ui_m0109" formatted="false">"Exporter le rapport"</string>
-    <string name="ui_m0118" formatted="false">"Forcez l'utilisation du navigateur Gecko intégré si le navigateur système affiche une page vide ou est incompatible. Sinon, l'application choisit automatiquement un moteur compatible. Enregistrez et rouvrez la conversation pour appliquer la modification."</string>
+    <string name="ui_m0118" formatted="false">"Forcez Gecko intégré si le navigateur système affiche une page vide ou est incompatible ; désactivé, un moteur compatible est choisi automatiquement. Enregistrez et rouvrez la conversation pour appliquer."</string>
     <string name="ui_m0121" formatted="false">"Afficher l'IA en superposition"</string>
     <string name="ui_m0125" formatted="false">"Ouvrir le gestionnaire Shizuku"</string>
     <string name="ui_m0126" formatted="false">"Données et sauvegarde"</string>

@@ -12,7 +12,7 @@
     <string name="diag248_idle_title" formatted="false">"Not checked"</string>
     <string name="diag248_plugins" formatted="false">"Plugin manager"</string>
     <string name="diag248_plugins_sub" formatted="false">"Troubleshoot startup problems caused by plugins"</string>
-    <string name="diag248_repair_sub" formatted="false">"Re-prepare certificates, Python, npm and pnpm"</string>
+    <string name="diag248_repair_sub" formatted="false">"Reinstall certificates, Python, npm and pnpm"</string>
     <string name="diag248_start" formatted="false">"Inspect"</string>
     <string name="diag248_status" formatted="false">"Status"</string>
     <string name="diag248_tools" formatted="false">"Tools"</string>
@@ -70,7 +70,7 @@
     <string name="ui_m0106" formatted="false">"Install plugin"</string>
     <string name="ui_m0107" formatted="false">"Install update"</string>
     <string name="ui_m0109" formatted="false">"Export report"</string>
-    <string name="ui_m0118" formatted="false">"Force the bundled Gecko browser if the system browser shows a blank page or is incompatible. Otherwise, the app selects a compatible engine automatically. Save and reopen the conversation to apply."</string>
+    <string name="ui_m0118" formatted="false">"Force the bundled Gecko browser if the system browser shows a blank page or is incompatible; when off, a compatible engine is chosen automatically. Save and reopen the conversation to apply."</string>
     <string name="ui_m0121" formatted="false">"Show AI output in an overlay"</string>
     <string name="ui_m0125" formatted="false">"Open Shizuku manager"</string>
     <string name="ui_m0126" formatted="false">"Open backup &amp; data"</string>
