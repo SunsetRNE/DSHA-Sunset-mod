@@ -27,6 +27,15 @@ public final class BridgeRoutes {
     CONSENT_POLICY(false),
     TOAST(false),
     READ_FILE(false),
+    SAF_TREES(false),
+    SAF_LS(false),
+    SAF_STAT(false),
+    SAF_READ(false),
+    SAF_WRITE(false),
+    SAF_MKDIR(false),
+    SAF_RM(false),
+    SAF_PULL(false),
+    SAF_PUSH(false),
     HEALTH(false),
     UI(false),
     SENSE(false),
@@ -94,6 +103,15 @@ public final class BridgeRoutes {
     add(routes, "/device/consent", Route.CONSENT_POLICY);
     add(routes, "/app/toast", Route.TOAST);
     add(routes, "/app/readfile", Route.READ_FILE);
+    add(routes, "/app/saf/trees", Route.SAF_TREES);
+    add(routes, "/app/saf/ls", Route.SAF_LS);
+    add(routes, "/app/saf/stat", Route.SAF_STAT);
+    add(routes, "/app/saf/read", Route.SAF_READ);
+    add(routes, "/app/saf/write", Route.SAF_WRITE);
+    add(routes, "/app/saf/mkdir", Route.SAF_MKDIR);
+    add(routes, "/app/saf/rm", Route.SAF_RM);
+    add(routes, "/app/saf/pull", Route.SAF_PULL);
+    add(routes, "/app/saf/push", Route.SAF_PUSH);
     add(routes, "/health", Route.HEALTH);
     add(routes, "/app/device", Route.DEVICE);
     add(routes, "/app/net", Route.NET);

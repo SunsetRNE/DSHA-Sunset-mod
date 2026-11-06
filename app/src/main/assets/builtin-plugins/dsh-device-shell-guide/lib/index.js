@@ -80,6 +80,7 @@ export function promptText(language = fallbackLanguage()) {
   '设备 shell 依次使用用户已开启并经 root 管理器授权的 su、已授权的 Shizuku、已启用的 ADB；用 id 核验实际身份，' +
   '不假设 uid=2000 或 root；--su 只在明确需要 root 时用，仍须原生授权。不要用 /root/dsh-bin/adb 或裸 adb（守卫包装，会失败）。',
 
+  '■ 跨应用文件（SAF）：用户授权过的目录用 /app/saf/* 读写（trees 拿 id；写完回读；writable=false 时 READ_ONLY）。',
   '■ 两块屏（用户在 设置 → 设备能力授权 → 识屏 选：关闭 / 实体 / 虚拟，互斥），按用户要求选，工具互不转发：',
   '  | 屏 | 工具 | begin/finish | 依赖 |',
   '  | 实体主屏 display 0 | mcp__dsha-android__* 或 /app/ui/* | 需要 | 无障碍；坐标触控另需截屏授权 |',

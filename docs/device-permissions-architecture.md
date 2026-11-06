@@ -58,6 +58,12 @@ Shizuku官方同时说明UID、Linux capabilities和SELinux都会影响可用操
 权限可能被用户撤销，也可能已允许但实际服务未连接；应在使用点重新取事实。
 涉及系统对话框的选择仍由用户完成，不能用全局确认自动回答。
 
+### 2.1 跨应用文件访问（SAF）
+
+「设置 → 设备能力授权 → 跨应用文件访问」使用系统 `ACTION_OPEN_DOCUMENT_TREE` 选择器让用户逐目录授权，不申请 `MANAGE_EXTERNAL_STORAGE`，也不扩大容器或 rootfs 的路径范围。授权页只显示 `SafGrants` 记录的短 id、应用标签、同目录的读/写位与本功能新增位；「允许写入」是本地二次开关，关闭时桥对写/删返回 `READ_ONLY`。只给写权限的树在添加时拒绝（`WRITE_ONLY`），避免出现「系统给了写位但读端点永远不可用」的半可用授权。
+
+权限查询（`getPersistedUriPermissions`、目录名）只在后台 executor 执行；`/app/saf/trees` 的轻量列表不查询 Provider。撤销时只释放本功能新拿到的读/写位，add 前的待确认记录与失效授权下次访问重试清理。SAF 不改变 Root/Shizuku/ADB 的授权状态，也不借用它们扩大目标范围；Provider 拒绝或挂起时按桥错误码失败，不自动切换通道。
+
 ## 3. Root：发现su、用户允许和真实执行是三步
 
 ### 3.1 不在探测时索取Root

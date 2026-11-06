@@ -32,6 +32,20 @@
       "reason": "Execute the pinned SDK stdio transport and exact-patched image projection with an 8 MiB PNG and canonical Base64 boundaries; no device access."
     },
     {
+      "path": "tools/test-saf-local-files.py",
+      "stage": "fast",
+      "platform": [
+        "linux"
+      ],
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Real Linux syscall negative controls for SAF container-path anchoring: plain O_NOFOLLOW still follows a swapped ancestor and reads credentials, opened-fd readlink mismatch is the rejection signal, per-level O_PATH|O_NOFOLLOW traversal rejects the swapped ancestor, and publishing through an already-open parent fd stays in that directory after rename."
+    },
+    {
       "path": "tools/test-web-fetch-unicode.mjs",
       "stage": "support",
       "requires": [

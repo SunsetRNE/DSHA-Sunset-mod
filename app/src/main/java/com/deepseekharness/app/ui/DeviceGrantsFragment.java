@@ -52,6 +52,9 @@ public final class DeviceGrantsFragment extends Fragment {
   private boolean updating;
   private int adbStatusRequest;
   private FullPermissionControls fullPermissions;
+  private java.util.concurrent.ExecutorService safExecutor;
+  private int safStatusGeneration;
+
   private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
   private final Runnable refreshConnections =
       new Runnable() {
@@ -68,6 +71,7 @@ public final class DeviceGrantsFragment extends Fragment {
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle saved) {
     View view = inflater.inflate(R.layout.fragment_device_grants, container, false);
+    safExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     Context ctx = requireContext();
     columns = 1;
     ((TextView) view.findViewById(R.id.grants_global_label))
@@ -266,6 +270,14 @@ public final class DeviceGrantsFragment extends Fragment {
           } else startActivity(new Intent(ctx, AdbPairActivity.class));
         });
     view.findViewById(R.id.config_all_files).setOnClickListener(button -> openAllFilesAccess(ctx));
+    // 跨应用文件访问：授权管理在子页，行上只报数量与失效数。
+    ((TextView) view.findViewById(R.id.config_saf_access_title))
+        .setText(com.deepseekharness.app.util.UiText.choose("跨应用文件访问", "Cross-app files"));
+    view.findViewById(R.id.config_saf_access)
+        .setOnClickListener(
+            button ->
+                SettingsPanes.open(
+                    this, new com.deepseekharness.app.ui.SafAccessFragment(), "saf-access"));
     view.findViewById(R.id.config_battery_opt).setOnClickListener(button -> openBatteryOpt(ctx));
     sms = view.findViewById(R.id.device_sms);
     smsStatus = view.findViewById(R.id.device_sms_status);
@@ -1851,6 +1863,59 @@ public final class DeviceGrantsFragment extends Fragment {
     }
   }
 
+  /**
+   * 跨应用文件访问：副标题只报数量；具体目录、可写开关与撤销都在子页。
+   *
+   * <p>每个授权都可能要跨进程问目标 Provider 的目录名，必须在后台线程查：慢/离线应用
+   * 不能把设置页主线程拖成 ANR。只有最新一代结果能落到界面上。
+   */
+  private void refreshSafAccessStatus(TextView view) {
+    if (view == null) return;
+    java.util.concurrent.ExecutorService running = safExecutor;
+    if (running == null) return;
+    int generation = ++safStatusGeneration;
+    android.content.Context app = requireContext().getApplicationContext();
+    running.execute(
+        () -> {
+          var grants = com.deepseekharness.app.saf.SafGrants.list(app);
+          String text;
+          if (grants.isEmpty()) {
+            text =
+                com.deepseekharness.app.util.UiText.choose(
+                    "未授权：选一个应用文件夹，助手即可读写", "Not granted: pick a folder for the assistant");
+          } else {
+            int valid = 0, writable = 0, stale = 0;
+            for (var grant : grants) {
+              if (!grant.valid) {
+                stale++;
+                continue;
+              }
+              valid++;
+              if (grant.writable) writable++;
+            }
+            text =
+                stale > 0
+                    ? com.deepseekharness.app.util.UiText.format(
+                        com.deepseekharness.app.util.UiText.choose(
+                            "已授权 %d 个，%d 个已失效：点此处理", "%d granted, %d expired: tap to review"),
+                        valid,
+                        stale)
+                    : com.deepseekharness.app.util.UiText.format(
+                        com.deepseekharness.app.util.UiText.choose(
+                            "已授权 %d 个文件夹（可写 %d 个）：点此管理",
+                            "%d folders granted (%d writable): tap to manage"),
+                        valid,
+                        writable);
+          }
+          String result = text;
+          main.post(
+              () -> {
+                if (generation != safStatusGeneration || getView() == null) return;
+                view.setText(result);
+              });
+        });
+  }
+
   @Override
   public void onResume() {
     super.onResume();
@@ -1864,6 +1929,7 @@ public final class DeviceGrantsFragment extends Fragment {
     refreshExternalDeviceStatus();
     if (page != null) {
       refreshAllFilesStatus(page.findViewById(R.id.config_all_files_status));
+      refreshSafAccessStatus(page.findViewById(R.id.config_saf_access_status));
       refreshA11yStatus(page.findViewById(R.id.config_a11y_status));
       refreshAdbStatus(page.findViewById(R.id.config_adb_status));
     }
@@ -1900,6 +1966,10 @@ public final class DeviceGrantsFragment extends Fragment {
     pillValues = null;
     externalDevice = null;
     externalDeviceStatus = null;
+    safStatusGeneration++;
+    java.util.concurrent.ExecutorService running = safExecutor;
+    safExecutor = null;
+    if (running != null) running.shutdownNow();
     super.onDestroyView();
   }
 

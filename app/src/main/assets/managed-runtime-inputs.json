@@ -614,7 +614,8 @@
     "app/src/main/java/com/deepseekharness/app/vscreen",
     "app/src/main/java/com/deepseekharness/app/device",
     "app/src/main/java/com/deepseekharness/app/diagnostics",
-    "app/src/main/java/com/deepseekharness/app/plugins"
+    "app/src/main/java/com/deepseekharness/app/plugins",
+    "app/src/main/java/com/deepseekharness/app/saf"
   ],
   "launcherSources": [
     "util/ComposeGate.java",

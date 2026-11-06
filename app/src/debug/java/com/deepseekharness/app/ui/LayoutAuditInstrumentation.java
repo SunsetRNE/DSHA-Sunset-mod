@@ -477,7 +477,9 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
         "activity_diagnostics",
         "activity_plugin_install",
         "fragment_pty_terminal",
-        "fragment_terminal"
+        "fragment_terminal",
+        "fragment_saf_access",
+        "fragment_saf_browse"
       };
       if (devices)
         scenes =
@@ -504,6 +506,8 @@ public final class LayoutAuditInstrumentation extends Instrumentation {
               "activity_plugin_install",
               "fragment_pty_terminal",
               "fragment_terminal",
+              "fragment_saf_access",
+              "fragment_saf_browse",
               "fragment_device_grants",
               "activity_adb_pair",
               "activity_extract"

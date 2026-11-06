@@ -44,6 +44,12 @@ The current Manifest declares capabilities including recording, location, networ
 
 The API37 gate comes from current source. It does not imply identical behavior across Android versions, settings pages or ROMs. A user may revoke permission; permission may also be allowed while the actual service is disconnected. Obtain fresh facts at the use point. Choices in system dialogs still belong to the user; global confirmation cannot answer them automatically.
 
+### 2.1 Cross-app file access (SAF)
+
+Settings → Device permissions → Cross-app files uses the system `ACTION_OPEN_DOCUMENT_TREE` picker so the user grants folders one by one. It does not request `MANAGE_EXTERNAL_STORAGE` and does not widen container or rootfs path scope. The grants page shows only the short id, app label, read/write bits for the folder and the bits newly acquired by this feature recorded by `SafGrants`; "allow assistant writes" is a second local switch, and writes/deletes return `READ_ONLY` when it is off. A write-only tree is rejected when added (`WRITE_ONLY`) so the user does not end up with a half-usable grant whose read endpoints can never work.
+
+Permission queries (`getPersistedUriPermissions`, display names) run only on a background executor; the lightweight `/app/saf/trees` list never queries the Provider. Revocation releases only the read/write bits newly acquired by this feature; pending records are retried on the next access. SAF does not change Root/Shizuku/ADB authorization and never borrows them to widen the target scope; Provider denials or hangs fail with the bridge error code and do not trigger a channel fallback.
+
 ## 3. Root: finding su, user approval and execution are three steps
 
 ### 3.1 Discovery does not request Root

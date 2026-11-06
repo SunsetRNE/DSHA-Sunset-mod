@@ -1950,5 +1950,9 @@
   "x296plugin003": "Les métadonnées du plugin sont illisibles. Vous pouvez retirer son entrée de chargement ; l’original reste dans Données.",
   "x296plugin004": "Métadonnées du plugin indisponibles",
   "x319keep001": "Garder l’écran allumé",
-  "x319keep002": "Empêche l’extinction automatique ; s’applique au Web et au terminal."
+  "x319keep002": "Empêche l’extinction automatique ; s’applique au Web et au terminal.",
+  "x1972001": "Plus de 500 éléments dans le dossier ; cible introuvable. Indiquez un chemin plus court dans le navigateur/l'assistant.",
+  "x1972002": "L'application cible a expiré : réessayez plus tard ou ouvrez-la d'abord en arrière-plan.",
+  "x1972003": "Ce dossier n'accorde que l'écriture ; autorisez à nouveau en incluant la lecture.",
+  "x1972004": "Ce dossier n'accorde que l'écriture et le système ne l'a pas libérée ; le nettoyage sera réessayé plus tard."
 }

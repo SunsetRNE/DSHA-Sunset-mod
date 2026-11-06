@@ -15833,5 +15833,37 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
     ]
+  },
+  {
+    "id": "x1972001",
+    "zh": "目录项超过 500，无法定位目标；请在浏览器/助手里直接指定更短路径。",
+    "en": "More than 500 entries; the target cannot be located. Use a shorter path.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "x1972002",
+    "zh": "目标应用超时：稍后重试或先在后台打开那个应用。",
+    "en": "The target app timed out. Retry later or open that app in the background.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "x1972003",
+    "zh": "该文件夹只给了写权限，请重新授权并允许读写",
+    "en": "That folder only grants write access; grant it again and allow reading",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java"
+    ]
+  },
+  {
+    "id": "x1972004",
+    "zh": "该文件夹只给了写权限，且系统未释放写授权；已记录，稍后会自动重试清理",
+    "en": "The folder only grants write access and the system did not release it; cleanup will be retried later",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java"
+    ]
   }
 ]
