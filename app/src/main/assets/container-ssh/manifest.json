@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "architecture": "aarch64",
+  "files": [
+    {
+      "asset": "payload-0.bin",
+      "target": "sshd",
+      "sha256": "092b9a55c07b9f8c3b089e0461d00d375e8f8dac4ac7754e2363361a3b7846b0",
+      "bytes": 921184,
+      "mode": 493
+    },
+    {
+      "asset": "payload-1.bin",
+      "target": "ssh-keygen",
+      "sha256": "904261e7005342e9706b4e1dda9dab60266b988f768f62233844bdbcf2f3dcf0",
+      "bytes": 461152,
+      "mode": 493
+    },
+    {
+      "asset": "payload-2.bin",
+      "target": "lib/libwrap.so.0",
+      "sha256": "5a1ed5422b08a855848076146942b65d0de3909c488af39dda50ac5f8fdec6aa",
+      "bytes": 68352,
+      "mode": 493
+    }
+  ]
+}
