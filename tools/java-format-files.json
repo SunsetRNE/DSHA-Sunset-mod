@@ -1037,6 +1037,7 @@
     "app/src/test/java/com/deepseekharness/app/module/ModuleCardStoreLogicTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleCardTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleCatalogTest.java",
+    "app/src/test/java/com/deepseekharness/app/module/ModuleExecTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleGrantDigestTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleImportTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleManifestTest.java",

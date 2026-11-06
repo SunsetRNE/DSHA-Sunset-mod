@@ -114,6 +114,9 @@ public final class ModuleStoreHardeningTest {
     File hostTarget = new File(context.getCacheDir(), "host-outside");
     assertTrue(hostTarget.mkdirs());
     assertTrue(rootfs.mkdirs());
+    // CONTAINER_DIR 是 root/.dsha-modules：父目录必须存在，否则建链接会抛 NoSuchFileException
+    // 而被 assume 吞掉，这个用例等于没跑（上一轮就是这样漏掉的）。
+    assertTrue(new File(rootfs, "root").mkdirs());
     Path inbox = new File(rootfs, ModuleCardStore.CONTAINER_DIR).toPath();
     try {
       Files.createSymbolicLink(inbox, hostTarget.toPath());
@@ -147,5 +150,24 @@ public final class ModuleStoreHardeningTest {
     // 内容一变，旧授权不再放行。
     write(new File(dir, "extra.png"), "x");
     assertNull(ModuleCardStore.appCard(context, "home"));
+  }
+
+  @Test
+  public void intermediateDirectorySymlinkIsRefusedToo() throws Exception {
+    File rootfs = new File(context.getCacheDir(), "rootfs-mid");
+    File outside = new File(context.getCacheDir(), "outside-root");
+    assertTrue(outside.mkdirs());
+    assertTrue(rootfs.mkdirs());
+    try {
+      Files.createSymbolicLink(new File(rootfs, "root").toPath(), outside.toPath());
+    } catch (Exception unsupported) {
+      assumeNoException("本机不能创建符号链接", unsupported);
+      return;
+    }
+
+    // root 本身是链接：收件箱当作不存在，宿主既不读也不往里写技能文件。
+    assertEquals(0, ModuleCardStore.scanContainerInbox(context, rootfs));
+    ModuleCardStore.ensureSkill(rootfs);
+    assertEquals(0, outside.list() == null ? 0 : outside.list().length);
   }
 }
