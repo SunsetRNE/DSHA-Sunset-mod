@@ -118,10 +118,17 @@ public final class ModuleGrantDigestTest {
         (java.util.Map<String, byte[]>) null,
         ModuleCard.SOURCE_CONTAINER);
     ModuleCardStore.importCard(
+        context,
+        "{\"schema\":1,\"id\":\"from.gallery\",\"name\":\"广场\",\"actions\":[]}",
+        (java.util.Map<String, byte[]>) null,
+        ModuleCard.SOURCE_GALLERY);
+    ModuleCardStore.importCard(
         context, "{\"schema\":1,\"id\":\"from.local\",\"name\":\"本地\",\"actions\":[]}");
 
     // 容器投递来的内容默认不加载，等用户确认。
     assertFalse(ModuleState.isEnabled(context, ModuleState.SCOPE_CARD, "from.container"));
+    // 广场同样是从别人那里来的：默认关闭，只有本地导入立即生效。
+    assertFalse(ModuleState.isEnabled(context, ModuleState.SCOPE_CARD, "from.gallery"));
     // 用户自己挑的文件立即生效。
     assertTrue(ModuleState.isEnabled(context, ModuleState.SCOPE_CARD, "from.local"));
   }

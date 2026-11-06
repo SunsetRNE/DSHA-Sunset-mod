@@ -110,7 +110,7 @@ public final class ModuleImportTest {
         ModuleCard.parse(
             "{\"schema\":1,\"id\":\"zip.unsigned\",\"name\":\"无签名\",\"actions\":[]}",
             ModuleCard.SOURCE_LOCAL);
-    String summary = ModuleImport.identitySummary(card, true);
+    String summary = ModuleImport.identitySummary(context, card, true);
     assertTrue(summary.contains("未验证"));
     assertFalse(summary.contains("已验证"));
   }

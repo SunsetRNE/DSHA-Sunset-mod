@@ -49,7 +49,11 @@ public final class ModuleScript {
     void set(String slot, String text);
   }
 
-  private static final long TIMEOUT_MS = 6000;
+  /**
+   * 单次脚本上限。必须大于 {@link ModuleExec} 的 8 秒执行上限：dsha.exec 在 JS 线程上是
+   * 同步的，脚本超时若先到，会把还在跑的容器命令连同 WebView 一起销毁。
+   */
+  private static final long TIMEOUT_MS = 10000;
 
   /** 一次最多排队 4 个请求，再多就拒绝，避免用户连点堆一串。 */
   private static final int MAX_QUEUE = 4;
@@ -67,6 +71,12 @@ public final class ModuleScript {
     final Slots slots;
     final Callback callback;
 
+    /** 脚本启动时取到的目录内容摘要：exec 的授权用它，启动后目录被换掉也只按这份判。 */
+    final String digest;
+
+    /** 本次的 console 输出；每个请求一份，不再跨线程共用一个静态缓冲。 */
+    final StringBuilder console = new StringBuilder();
+
     Request(
         Context host,
         Context context,
@@ -76,7 +86,8 @@ public final class ModuleScript {
         String code,
         Map<String, String> values,
         Slots slots,
-        Callback callback) {
+        Callback callback,
+        String digest) {
       this.host = host;
       this.context = context;
       this.card = card;
@@ -86,6 +97,7 @@ public final class ModuleScript {
       this.values = values;
       this.slots = slots;
       this.callback = callback;
+      this.digest = digest;
     }
   }
 
@@ -94,10 +106,9 @@ public final class ModuleScript {
   private static boolean loading;
   private static boolean ready;
   private static final ArrayDeque<Request> queue = new ArrayDeque<>();
-  private static Request running;
+  private static volatile Request running;
   private static String runningId;
   private static int counter;
-  private static final StringBuilder console = new StringBuilder();
 
   /** 空闲 15 秒就销毁隐藏 WebView：它持有宿主上下文，长期不释放等于泄漏一个 Activity。 */
   private static final long IDLE_SHUTDOWN_MS = 15000;
@@ -112,7 +123,7 @@ public final class ModuleScript {
       () -> {
         if (running == null) return;
         Request request = running;
-        String partial = console.toString().trim();
+        String partial = request.console.toString().trim();
         destroy();
         finish(
             false,
@@ -161,6 +172,12 @@ public final class ModuleScript {
       return;
     }
     handler().removeCallbacks(idleShutdown);
+    // 摘要在脚本启动时取一次：命令来自此刻解析的卡片，授权也按此刻的内容判。
+    // 容器在这之后换目录，exec 仍按这份摘要校验 —— 新内容没有批准就不会被放行。
+    String digest =
+        card == null
+            ? ""
+            : ModuleCardStore.contentDigest(ModuleCardStore.directoryOf(context, card));
     queue.add(
         new Request(
             context,
@@ -171,7 +188,8 @@ public final class ModuleScript {
             code,
             values,
             slots,
-            callback));
+            callback,
+            digest));
     pump();
   }
 
@@ -197,7 +215,6 @@ public final class ModuleScript {
     if (!ready || loading) return;
     running = queue.poll();
     if (running == null) return;
-    console.setLength(0);
     runningId = "s" + (++counter);
     String payload =
         "__dsha_run("
@@ -258,8 +275,9 @@ public final class ModuleScript {
         new WebChromeClient() {
           @Override
           public boolean onConsoleMessage(android.webkit.ConsoleMessage message) {
-            if (message != null && console.length() < 2000)
-              console.append(message.message()).append('\n');
+            Request request = running;
+            if (message != null && request != null && request.console.length() < 2000)
+              request.console.append(message.message()).append('\n');
             return true;
           }
         });
@@ -345,9 +363,9 @@ public final class ModuleScript {
       Request request = running;
       if (request == null) return "脚本已结束";
       String cmd = String.valueOf(command == null ? "" : command);
-      // 授权绑当前内容摘要：卡片被更新过，旧批准不再生效。
-      String digest =
-          ModuleCardStore.contentDigest(ModuleCardStore.directoryOf(request.context, request.card));
+      // 授权绑「脚本启动时」的内容摘要：命令来自启动时解析的卡片，摘要也取同一时刻。
+      // 容器事后换目录再换回来想借道放行新命令，对不上这份摘要就拒绝。
+      String digest = request.digest;
       if (ModuleTrust.EXEC_REQUIRES_VERIFIED
           && !ModuleTrust.VERIFIED.equals(ModuleTrust.statusOf(request.context, request.card)))
         return "[未授权] 这张卡片的签名没有通过校验。";
@@ -427,7 +445,10 @@ public final class ModuleScript {
 
     @JavascriptInterface
     public void log(String text) {
-      if (console.length() < 2000) console.append(String.valueOf(text)).append('\n');
+      Request request = running;
+      if (request == null) return;
+      if (request.console.length() < 2000)
+        request.console.append(String.valueOf(text == null ? "" : text)).append('\n');
     }
 
     @JavascriptInterface
@@ -439,7 +460,7 @@ public final class ModuleScript {
               () -> {
                 if (expected == null || !expected.equals(String.valueOf(id))) return;
                 if (running == null) return;
-                String extra = console.toString().trim();
+                String extra = running.console.toString().trim();
                 String body = value;
                 if (ok && !extra.isEmpty()) body = (body.isEmpty() ? "" : body + "\n\n") + extra;
                 finish(ok, body);

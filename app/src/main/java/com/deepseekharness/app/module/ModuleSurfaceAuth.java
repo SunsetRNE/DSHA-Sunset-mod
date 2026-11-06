@@ -32,7 +32,7 @@ public final class ModuleSurfaceAuth {
         context
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getAll()
-            .get(surface + "." + cardId);
+            .get(key(cardId, surface));
     if (!(stored instanceof String)) {
       if (stored != null) revoke(context, cardId, surface);
       return false;
@@ -46,7 +46,7 @@ public final class ModuleSurfaceAuth {
     context
         .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         .edit()
-        .putString(surface + "." + cardId, digest)
+        .putString(key(cardId, surface), digest)
         .apply();
   }
 
@@ -55,7 +55,7 @@ public final class ModuleSurfaceAuth {
     context
         .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         .edit()
-        .remove(surface + "." + cardId)
+        .remove(key(cardId, surface))
         .apply();
   }
 
@@ -65,8 +65,13 @@ public final class ModuleSurfaceAuth {
     android.content.SharedPreferences preferences =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     android.content.SharedPreferences.Editor editor = preferences.edit();
-    String suffix = "." + cardId;
-    for (String key : preferences.getAll().keySet()) if (key.endsWith(suffix)) editor.remove(key);
+    // 键是 <cardId>|<surface>，| 是 id 不允许的字符：按前缀清不会命中 a.b 之类的兄弟模块。
+    String prefix = cardId + "|";
+    for (String key : preferences.getAll().keySet()) if (key.startsWith(prefix)) editor.remove(key);
     editor.apply();
+  }
+
+  private static String key(String cardId, String surface) {
+    return (cardId == null ? "" : cardId) + "|" + (surface == null ? "" : surface);
   }
 }

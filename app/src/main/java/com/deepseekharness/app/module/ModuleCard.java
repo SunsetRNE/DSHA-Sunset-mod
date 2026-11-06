@@ -10,12 +10,12 @@ import org.json.JSONObject;
 /**
  * 用户自己往主页加的卡片模块（第一版模块契约）。
  *
- * <p>只接受声明式数据：一段标题、一行副标题、一个 emoji、一个强调色和最多 4 个按钮。
- * 不执行脚本、不加载 Java/JS、不访问网络、不读文件 —— 能力全部由宿主实现，
- * 模块只能从白名单里挑动作。这是「万物皆模块」的第一步，先把路走通再谈扩展。
+ * <p>纯声明式卡片（标题/副标题/emoji/强调色/按钮）能力全部由宿主实现，模块只能从
+ * 白名单里挑动作；另有带 {@code script} 的卡片走 {@link ModuleScript} 的 WebView 沙箱
+ * （断网、断文件、执行仍要逐卡授权）。两种卡片都不加载 Java，也不直接访问网络与文件。
  *
- * <p>典型来源有两个：用户在模块中心选一个 card.json；或者容器里的 dsh 把同样的
- * JSON 写到 {@code ~/.dsha-modules/}，宿主下次回主页时自动收进来。
+ * <p>典型来源有三个：用户在模块中心选一个 card.json；或者容器里的 dsh 把同样的
+ * JSON 写到 {@code ~/.dsha-modules/}，宿主下次回主页时自动收进来；以及广场（gallery）。
  */
 public final class ModuleCard {
   public static final int SCHEMA = 1;
@@ -1210,6 +1210,11 @@ public final class ModuleCard {
       """
       # DSHA 主页模块
 
+      > **当前状态（宿主版本说明）**：本页描述的 `dsha.call` / `dsha.services` 能力总线、
+      > `schedule.set` 定时任务与 `~/.dsha-launch` 启动器属于模块平台的后续阶段，当前宿主
+      > **尚未接线**——调用只会得到「尚未开放」。已经能用的是：声明式卡片、脚本沙箱
+      > （`dsha.value/slot/toast/copy/open/log`）、以及逐卡授权后的 `dsha.exec` 与受管程序。
+
       用户想给 DSHA 主页加一个自己的功能时，你只要在容器里写一个 JSON 文件，宿主会自动收进来。
       这是真能用的东西：卡片会出现在主页，能拖动、改大小、收起，按钮能跑脚本和容器命令。
 
@@ -1619,8 +1624,9 @@ public final class ModuleCard {
   /**
    * 原始 card.json 的 SHA-256（小写十六进制）。
    *
-   * <p>只用于「同一份内容」的一致性识别（更新/回滚对得上号），不是作者签名：
-   * 宿主没有签名机制，摘要无法证明作者身份，见 {@code ModuleTrust}。
+   * <p>只用于「同一份内容」的一致性识别（更新/回滚对得上号）。作者身份验证走
+   * {@link ModuleSignature} + {@link ModuleTrustStore}（ed25519 验签 + 信任库），
+   * 摘要本身无法证明作者身份，见 {@code ModuleTrust}。
    */
   static String digestOf(String value) {
     try {

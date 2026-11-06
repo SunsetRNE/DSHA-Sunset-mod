@@ -35,8 +35,8 @@ public final class ModuleImport {
     }
 
     /** 人话身份串：作者/版本/来源/摘要短形/信任状态，给导入反馈用。 */
-    public String identitySummary(boolean zh) {
-      return ModuleImport.identitySummary(identity, zh);
+    public String identitySummary(Context context, boolean zh) {
+      return ModuleImport.identitySummary(context, identity, zh);
     }
   }
 
@@ -47,14 +47,16 @@ public final class ModuleImport {
    * 只有签名验签通过且公钥已被信任时才显示「已验证」，其余状态按
    * {@link ModuleTrust#statusLabel} 原样展示（未验证 / 未受信 / 无效）。
    */
-  public static String identitySummary(ModuleCard card, boolean zh) {
+  public static String identitySummary(Context context, ModuleCard card, boolean zh) {
     if (card == null) return "";
     StringBuilder builder = new StringBuilder();
     builder.append(zh ? "作者 " : "author ").append(card.author);
     builder.append(" · v").append(card.version);
     builder.append(zh ? " · 来源 " : " · source ").append(sourceLabel(card.source, zh));
     builder.append(" · SHA-256 ").append(card.digestShort());
-    builder.append(" · ").append(ModuleTrust.statusLabel(ModuleTrust.statusOf(card), zh));
+    // 带上下文走真实验签（ModuleSignature + 信任库）；无上下文的旧口径恒显示「未验证」，
+    // 已验证的卡片会被错标，所以这里必须传 Context。
+    builder.append(" · ").append(ModuleTrust.statusLabel(ModuleTrust.statusOf(context, card), zh));
     return builder.toString();
   }
 
