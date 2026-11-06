@@ -49,3 +49,7 @@ scr_backup.png
 # 本机工具状态与服务器取证，不进入公开仓库
 .zcode/
 website-evidence/
+
+# 构建缓存：曾被误跟踪（208ea63a / a1867b5f），永不入库
+.gradle-verification/
+tools/dsh-runtime/.npm-cache/
