@@ -19,9 +19,11 @@ import java.util.List;
 public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
   private static final int O_PATH = 0x200000;
   private static final int O_CLOEXEC = 0x80000;
-  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
-  // asm-generic/x86 00200000 is arm64 O_DIRECT, not its directory flag.
-  private static final int O_DIRECTORY = 040000;
+  // Per-ABI, same as AndroidBackupFileSystem: arm/arm64 040000, x86/x86_64 00200000.
+  // These opens also carry O_PATH, which drops O_DIRECT but keeps O_DIRECTORY, so the wrong
+  // value here would silently lose the "must be a directory" constraint instead of failing.
+  private static final int O_DIRECTORY =
+      com.deepseekharness.app.util.DirectoryFlags.directoryOf(android.os.Build.SUPPORTED_ABIS);
 
   private static IOException failure(ErrnoException error) {
     return new IOException("DEVICE_FILESYSTEM_" + error.errno, error);
