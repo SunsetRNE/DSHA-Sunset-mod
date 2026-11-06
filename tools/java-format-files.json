@@ -963,6 +963,7 @@
     "app/src/test/java/com/deepseekharness/app/control/ScreenAuthorityBindingsTest.java",
     "app/src/test/java/com/deepseekharness/app/core/AccessibilityLifecycleExportTest.java",
     "app/src/test/java/com/deepseekharness/app/core/BackupTaskScopeTest.java",
+    "app/src/test/java/com/deepseekharness/app/core/ConfigStoreHideFromRecentsTest.java",
     "app/src/test/java/com/deepseekharness/app/core/ConfigStoreKeepScreenOnTest.java",
     "app/src/test/java/com/deepseekharness/app/core/ConfigStoreRuntimeSettingsTest.java",
     "app/src/test/java/com/deepseekharness/app/core/CoreUiStateContractTest.java",

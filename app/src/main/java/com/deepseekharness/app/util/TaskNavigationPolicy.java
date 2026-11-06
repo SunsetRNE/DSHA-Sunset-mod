@@ -21,7 +21,17 @@ public final class TaskNavigationPolicy {
 
   public static Recents recents(
       int taskId, boolean mainRoot, boolean browserRoot, int selectedMainTask) {
+    return recents(taskId, mainRoot, browserRoot, selectedMainTask, false);
+  }
+
+  /**
+   * {@code hideAll} 是用户显式的「隐藏后台」偏好：隐藏本应用全部有效任务，优先于单张主卡分类；
+   * 无效任务仍不碰，避免把系统占位或未知任务写坏。
+   */
+  public static Recents recents(
+      int taskId, boolean mainRoot, boolean browserRoot, int selectedMainTask, boolean hideAll) {
     if (taskId < 0) return Recents.KEEP;
+    if (hideAll) return Recents.HIDE;
     if (mainRoot) {
       // Without an identified Main, do not hide the user's last route back into the app.
       if (selectedMainTask < 0) return Recents.KEEP;

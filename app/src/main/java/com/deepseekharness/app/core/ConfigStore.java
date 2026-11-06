@@ -325,6 +325,15 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_KEEP_SCREEN_ON, value).apply();
   }
 
+  /** 隐藏后台：从最近任务隐藏本应用任务；默认关闭，只影响任务可见性，不随备份恢复。 */
+  public boolean isHideFromRecents() {
+    return flag(Constants.KEY_HIDE_FROM_RECENTS, false);
+  }
+
+  public void setHideFromRecents(boolean value) {
+    prefs.edit().putBoolean(Constants.KEY_HIDE_FROM_RECENTS, value).apply();
+  }
+
   /** 任务状态上岛默认开启：它只是给已有通知补充短文本与提升请求，失败会静默降级。 */
   public boolean isTaskIslandEnabled() {
     return flag(Constants.KEY_TASK_ISLAND, true);

@@ -3758,5 +3758,9 @@
   "ghlog_62": "Tempo de verificação esgotado",
   "ghlog_63": "Não foi possível concluir a verificação",
   "ghlog_64": "Não obtido (verificação online falhou)",
-  "ghlog_65": "Observação: o gh não consegue concluir a verificação TLS agora (caminho da CA); o terminal mostrará o erro real. Corrija o ambiente e tente novamente."
+  "ghlog_65": "Observação: o gh não consegue concluir a verificação TLS agora (caminho da CA); o terminal mostrará o erro real. Corrija o ambiente e tente novamente.",
+  "m9025": "Masquer en arrière-plan",
+  "m9026": "Masquer DSHA des applications récentes",
+  "m9027": "Masqué des applications récentes ; la notification permanente et le service en arrière-plan ne changent pas.",
+  "m9028": "Réglage enregistré, mais le système n'a pas autorisé le masquage immédiat ; nouvelle tentative à la prochaine ouverture."
 }

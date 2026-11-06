@@ -3758,5 +3758,9 @@
   "ghlog_62": "Probatio tempus excessit",
   "ghlog_63": "Probatio perfici non potuit",
   "ghlog_64": "Non impetrata (probatio interretialis defecit)",
-  "ghlog_65": "Nota: gh nunc probationem TLS perficere non potest (via CA); terminulus errorem verum ostendet. Ambitum repara et iterum conare."
+  "ghlog_65": "Nota: gh nunc probationem TLS perficere non potest (via CA); terminulus errorem verum ostendet. Ambitum repara et iterum conare.",
+  "m9025": "In fundo celare",
+  "m9026": "DSHA e recentibus operibus celare",
+  "m9027": "E recentibus operibus celatum; nuntius permanens et ministerium in fundo non mutantur.",
+  "m9028": "Configuratio servata est, sed systema celare nunc non permisit; proximo initio retemptabitur."
 }

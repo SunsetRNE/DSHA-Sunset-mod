@@ -135,6 +135,27 @@ public class SettingsFragment extends Fragment {
           if (activity != null) ModernAndroidUi.applyKeepScreenOn(activity);
         });
 
+    // 隐藏后台：只改最近任务可见性，不动常驻通知、前台服务与 ADB 保活。
+    TextView hiddenTitle = v.findViewById(R.id.settings_hidden_recents_title);
+    hiddenTitle.setText(com.deepseekharness.app.util.UiText.text("隐藏后台"));
+    TextView hiddenHint = v.findViewById(R.id.settings_hidden_recents_hint);
+    hiddenHint.setText(com.deepseekharness.app.util.UiText.text("从最近任务中隐藏 DSHA"));
+    com.google.android.material.materialswitch.MaterialSwitch hiddenSwitch =
+        v.findViewById(R.id.settings_hidden_recents_switch);
+    hiddenSwitch.setContentDescription(com.deepseekharness.app.util.UiText.text("隐藏后台"));
+    hiddenSwitch.setChecked(config.isHideFromRecents());
+    hiddenSwitch.setOnCheckedChangeListener(
+        (button, checked) -> {
+          config.setHideFromRecents(checked);
+          if (!BrowserTasks.applyRecentsPreference(requireContext()))
+            android.widget.Toast.makeText(
+                    requireContext(),
+                    com.deepseekharness.app.util.UiText.text("设置已保存，但系统未允许立即隐藏；下次打开 App 时重试"),
+                    android.widget.Toast.LENGTH_LONG)
+                .show();
+        });
+    v.findViewById(R.id.settings_hidden_recents).setOnClickListener(x -> hiddenSwitch.toggle());
+
     String version = "unknown";
     try {
       version =

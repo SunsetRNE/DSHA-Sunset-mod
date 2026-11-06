@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.Bundle;
+import com.deepseekharness.app.core.ConfigStore;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,19 @@ public final class BrowserTasksTest {
     @Override
     public void startActivity(Intent intent, Bundle options) {
       starts.add(intent);
+    }
+  }
+
+  private static final class ExplodingContext extends ContextWrapper {
+    ExplodingContext() {
+      super(RuntimeEnvironment.getApplication());
+    }
+
+    @Override
+    public Object getSystemService(String name) {
+      if (Context.ACTIVITY_SERVICE.equals(name))
+        throw new IllegalStateException("activity service unavailable");
+      return super.getSystemService(name);
     }
   }
 
@@ -184,6 +198,7 @@ public final class BrowserTasksTest {
   @Before
   public void isolateTaskRegistry() throws Exception {
     context = new RecordingContext();
+    new ConfigStore(context).setHideFromRecents(false);
     manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
     Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of());
     var nativeMain = BrowserTasks.class.getDeclaredField("nativeMain");
@@ -514,5 +529,51 @@ public final class BrowserTasksTest {
     var orphan = new Browser();
     assertFalse(BrowserTasks.forwardToLiveBrowser(orphan));
     assertTrue(orphan.starts.isEmpty());
+  }
+
+  @Test
+  public void hidePreferenceHidesEveryAppTaskEvenTheSelectedMain() {
+    new ConfigStore(context).setHideFromRecents(true);
+    var currentMain = task(8, MainActivity.class, 1);
+    var browser = task(7, WebPreviewActivity.class, 1);
+    var otherPage = task(9, DiagnosticActivity.class, 1);
+    Shadow.<ShadowActivityManager>extract(manager)
+        .setAppTasks(List.of(currentMain, browser, otherPage));
+    assertTrue(BrowserTasks.reconcileRecents(context, 8));
+    for (ActivityManager.AppTask hidden : List.of(currentMain, browser, otherPage))
+      assertTrue(Shadow.<ShadowAppTask>extract(hidden).isExcludedFromRecents());
+  }
+
+  @Test
+  public void applyingTheHidePreferenceImmediatelyHidesAllTasks() {
+    new ConfigStore(context).setHideFromRecents(true);
+    var currentMain = task(8, MainActivity.class, 1);
+    var browser = task(7, WebPreviewActivity.class, 1);
+    Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(currentMain, browser));
+    assertTrue(BrowserTasks.applyRecentsPreference(context));
+    assertTrue(Shadow.<ShadowAppTask>extract(currentMain).isExcludedFromRecents());
+    assertTrue(Shadow.<ShadowAppTask>extract(browser).isExcludedFromRecents());
+  }
+
+  @Test
+  public void disablingThePreferenceRestoresTheSingleMainCard() throws Exception {
+    new ConfigStore(context).setHideFromRecents(false);
+    liveMainIn(8);
+    var oldMain = task(3, MainActivity.class, 4);
+    var currentMain = task(8, MainActivity.class, 1);
+    var browser = task(7, WebPreviewActivity.class, 1);
+    Shadow.<ShadowActivityManager>extract(manager)
+        .setAppTasks(List.of(oldMain, currentMain, browser));
+    assertTrue(BrowserTasks.applyRecentsPreference(context));
+    assertTrue(Shadow.<ShadowAppTask>extract(oldMain).isExcludedFromRecents());
+    assertFalse(Shadow.<ShadowAppTask>extract(currentMain).isExcludedFromRecents());
+    assertTrue(Shadow.<ShadowAppTask>extract(browser).isExcludedFromRecents());
+  }
+
+  @Test
+  public void failedApplyKeepsTheSavedPreferenceAndDoesNotCrash() {
+    new ConfigStore(context).setHideFromRecents(true);
+    assertFalse(BrowserTasks.applyRecentsPreference(new ExplodingContext()));
+    assertTrue(new ConfigStore(context).isHideFromRecents());
   }
 }
