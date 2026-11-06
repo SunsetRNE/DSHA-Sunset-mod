@@ -264,6 +264,7 @@ public final class ModuleCatalog {
     if (entry == null) return false;
     ModuleExec.revoke(context, entry.id);
     ModuleProgramAuth.revokeAll(context, entry.id);
+    ModuleLifecycleAuth.revoke(context, entry.id);
     boolean removed;
     if (entry.card != null) {
       ModuleCardStore.remove(context, entry.id);

@@ -137,4 +137,33 @@ public final class ModuleGrantDigestTest {
     assertTrue(ModuleState.isEnabled(context, ModuleState.SCOPE_CARD, "same.id"));
     assertFalse(ModuleState.isEnabled(context, ModuleState.SCOPE_MANIFEST, "same.id"));
   }
+
+  @Test
+  public void execRefusesToRunWithoutAGrantForThisContent() throws Exception {
+    // 未授权时执行入口必须自己拒绝：不依赖调用方是否记得先问。
+    String digest = ModuleCardStore.contentDigest(cardDir);
+    ModuleExec.Result refused = ModuleExec.run(context, "probe", digest, "echo hi");
+    assertFalse(refused.ok);
+    assertTrue(refused.output.contains("未授权"));
+
+    // 授权的是旧内容，换了内容之后同样拒绝。
+    ModuleExec.setAllowed(context, "probe", digest);
+    write(new File(cardDir, "card.json"), "{\"schema\":1,\"id\":\"probe\",\"name\":\"v2\"}");
+    String updated = ModuleCardStore.contentDigest(cardDir);
+    ModuleExec.Result stale = ModuleExec.run(context, "probe", updated, "echo hi");
+    assertFalse(stale.ok);
+    assertTrue(stale.output.contains("未授权"));
+  }
+
+  @Test
+  public void lifecycleHooksNeedTheirOwnDigestBoundGrant() throws Exception {
+    String digest = ModuleCardStore.contentDigest(cardDir);
+    assertFalse(ModuleLifecycleAuth.isAllowed(context, "probe", digest));
+    ModuleLifecycleAuth.setAllowed(context, "probe", digest);
+    assertTrue(ModuleLifecycleAuth.isAllowed(context, "probe", digest));
+
+    write(new File(cardDir, "card.json"), "{\"schema\":1,\"id\":\"probe\",\"name\":\"v3\"}");
+    String updated = ModuleCardStore.contentDigest(cardDir);
+    assertFalse(ModuleLifecycleAuth.isAllowed(context, "probe", updated));
+  }
 }

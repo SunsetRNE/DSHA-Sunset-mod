@@ -30,6 +30,19 @@ public final class ModuleTrust {
   /** 签名有效且公钥受信。 */
   public static final String VERIFIED = "verified";
 
+  /**
+   * 「能做事」的能力（执行命令 / 运行程序 / 打开网页）是否要求已验证签名。
+   *
+   * <p>当前为 {@code false}，理由写在这里免得被误读成疏漏：信任库为空时强制
+   * {@link #VERIFIED} 会让所有卡片（包括用户自己手写的）都无法执行，等于用一个还没
+   * 就绪的密钥体系废掉功能。所以签名在本版是<b>来源标注</b>，真正的准入是逐卡内容
+   * 摘要授权（{@code ModuleExec} / {@code ModuleProgramAuth} / {@code ModuleLifecycleAuth}）。
+   *
+   * <p>密钥体系接通（信任库有公钥、模块中心能核对指纹）后把它翻成 {@code true}，
+   * 执行链随即只接受 {@link #VERIFIED}，不需要改别的代码。
+   */
+  public static final boolean EXEC_REQUIRES_VERIFIED = false;
+
   private ModuleTrust() {}
 
   /**
