@@ -8,6 +8,7 @@ import com.deepseekharness.app.util.WebSessionStorage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.json.JSONObject;
@@ -21,11 +22,35 @@ public final class ContainerSshAssets {
 
   public static boolean supported(Context context) {
     if (context == null) return false;
-    try (InputStream input = context.getAssets().open("container-ssh/manifest.json")) {
-      return input.read() == '{';
+    try {
+      readManifest(context);
+      return true;
     } catch (IOException unavailable) {
       return false;
     }
+  }
+
+  /** 完整读取并校验随包清单：schema、目标架构；缺失或不匹配都视为不支持。 */
+  private static JSONObject readManifest(Context context) throws IOException {
+    JSONObject manifest;
+    try {
+      manifest = new JSONObject(new String(manifestBytes(context), StandardCharsets.UTF_8));
+    } catch (org.json.JSONException invalid) {
+      throw new IOException("SSH_MANIFEST_INVALID", invalid);
+    }
+    String architecture = x86() ? "x86_64" : "aarch64";
+    if (manifest.optInt("schema") != 1 || !architecture.equals(manifest.optString("architecture")))
+      throw new IOException("SSH_ASSET_ARCHITECTURE");
+    return manifest;
+  }
+
+  private static byte[] manifestBytes(Context context) throws IOException {
+    byte[] metadata;
+    try (InputStream input = context.getAssets().open(ASSET_PREFIX + "manifest.json")) {
+      metadata = bounded(input, 16384);
+    }
+    if (metadata.length > 16384) throw new IOException("SSH_MANIFEST_LIMIT");
+    return metadata;
   }
 
   static synchronized void bind(Context context, LaunchSpec.Builder launch) throws IOException {
@@ -61,22 +86,13 @@ public final class ContainerSshAssets {
       Context context, AndroidBackupFileSystem fs, File parent, LaunchSpec.Builder launch)
       throws IOException {
     try {
-      byte[] metadata;
-      try (InputStream input = context.getAssets().open("container-ssh/manifest.json")) {
-        metadata = bounded(input, 16384);
-      }
-      if (metadata.length > 16384) throw new IOException("SSH_MANIFEST_LIMIT");
-      JSONObject manifest =
-          new JSONObject(new String(metadata, java.nio.charset.StandardCharsets.UTF_8));
-      String architecture = x86() ? "x86_64" : "aarch64";
-      if (manifest.getInt("schema") != 1
-          || !manifest.getString("architecture").equals(architecture))
-        throw new IOException("SSH_ASSET_ARCHITECTURE");
+      JSONObject manifest = readManifest(context);
       var digest = BackupArchive.sha();
-      String identity = BackupArchive.hex(digest.digest(metadata));
+      String identity = BackupArchive.hex(digest.digest(manifestBytes(context)));
       File target = fs.child(parent, identity);
       if (fs.stat(target).type.equals("MISSING")) fs.directory(target);
       if (!fs.stat(target).type.equals("DIRECTORY")) throw new IOException("SSH_ASSET_DIRECTORY");
+      String architecture = x86() ? "x86_64" : "aarch64";
       Map<String, String> destinations = new LinkedHashMap<>();
       destinations.put("sshd", "/usr/sbin/sshd");
       destinations.put("ssh-keygen", "/usr/bin/ssh-keygen");
@@ -105,6 +121,9 @@ public final class ContainerSshAssets {
             || bytes[1] != 'E'
             || bytes[2] != 'L'
             || bytes[3] != 'F'
+            || bytes[4] != 2 // ELFCLASS64
+            || bytes[5] != 1 // 小端
+            || (eType(bytes) != 2 && eType(bytes) != 3) // EXEC 或 DYN（PIE）
             || (bytes[18] & 255) != (x86() ? 62 : 183)
             || bytes[19] != 0) throw new IOException("SSH_ASSET_BYTES");
         File file = fs.child(target, asset);
@@ -117,6 +136,11 @@ public final class ContainerSshAssets {
     } catch (org.json.JSONException invalid) {
       throw new IOException("SSH_MANIFEST_INVALID", invalid);
     }
+  }
+
+  /** ELF 头 e_type（小端 16 位，偏移 0x10）。 */
+  private static int eType(byte[] elf) {
+    return (elf[16] & 255) | ((elf[17] & 255) << 8);
   }
 
   /** 目标 ABI 是否是 x86 家族；模拟器调试包才可能为真。 */

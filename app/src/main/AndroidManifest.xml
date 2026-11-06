@@ -108,6 +108,13 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-started interactive terminal sessions and pending verified process cleanup" />
         </service>
+        <!-- 容器 SSH：用户显式开启后由前台服务监督 sshd，通知含停止动作；
+             stopWithTask=false 让 SSH 在 App 任务被划掉后继续运行，直到用户显式停止。 -->
+        <service android:name=".runtime.ContainerSshService" android:exported="false"
+            android:stopWithTask="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started container SSH server supervision with an ongoing notification and explicit stop action" />
+        </service>
 
         <activity android:name=".ui.UpdateActivity" android:exported="false" />
         <activity android:name=".ui.DiagnosticActivity" android:exported="false" />

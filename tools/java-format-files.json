@@ -1554,6 +1554,9 @@
     "app/src/main/java/com/deepseekharness/app/core/GitHubLogin.java",
     "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java",
     "app/src/main/java/com/deepseekharness/app/util/GhAuthProbe.java",
-    "app/src/test/java/com/deepseekharness/app/util/GhAuthProbeTest.java"
+    "app/src/test/java/com/deepseekharness/app/util/GhAuthProbeTest.java",
+    "app/src/test/java/com/deepseekharness/app/runtime/ContainerSshAssetsTest.java",
+    "app/src/test/java/com/deepseekharness/app/runtime/ContainerSshSettingsTest.java",
+    "app/src/test/java/com/deepseekharness/app/runtime/ContainerSshWiringTest.java"
   ]
 }

@@ -92,6 +92,7 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 | Termux 终端 JNI | [Termux app](https://github.com/termux/termux-app)；[本地上游许可例外](../tools/termux-jni/LICENSE.upstream.md) | terminal 部分许可例外不能外推整个 Termux 工程 |
 | Ubuntu 包 | [Ubuntu Security Notices](https://ubuntu.com/security/notices)；本地 Ubuntu 包锁与 rootfs 内版权文件 | USN 是核对入口，不表示已证明当前归档没有漏洞 |
 | 其他原始 JNI | THIRD_PARTY_NOTICES 的“实际入库 JNI 成员与来源边界” | libandroidshmem 的原件来源/许可、部分 Standard proot/talloc 的精确版本仍有未核实项 |
+| 容器 SSH 载荷（sshd/ssh-keygen/libwrap） | [随包清单](../app/src/main/assets/container-ssh/manifest.json)（逐字节 SHA-256）+ [OpenSSH 版权](../app/src/main/assets/container-ssh/openssh-client-copyright.txt)、[libwrap 版权](../app/src/main/assets/container-ssh/libwrap0-copyright.txt) | 二进制取自 Ubuntu 24.04 (noble) 仓库的 openssh 1:9.6p1 与 libwrap0（二进制内嵌版本串 `OpenSSH_9.6p1`）；精确 Ubuntu 修订号与可复现构建配方仍未闭合，仅以清单摘要约束未篡改 |
 
 历史 low/API23 proot 源码 ZIP 的本地固定 SHA-256 为（build209 起不再使用）：
 `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`。
