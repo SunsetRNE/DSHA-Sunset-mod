@@ -348,9 +348,11 @@ public final class ModuleScript {
       // 授权绑当前内容摘要：卡片被更新过，旧批准不再生效。
       String digest =
           ModuleCardStore.contentDigest(ModuleCardStore.directoryOf(request.context, request.card));
-      if (!ModuleExec.isAllowed(request.context, request.cardId, digest))
-        return "[未授权] 这张卡片还没有运行命令的权限，先在卡片上点一次执行类按钮并确认。";
-      ModuleExec.Result result = ModuleExec.run(request.context, cmd);
+      if (ModuleTrust.EXEC_REQUIRES_VERIFIED
+          && !ModuleTrust.VERIFIED.equals(ModuleTrust.statusOf(request.context, request.card)))
+        return "[未授权] 这张卡片的签名没有通过校验。";
+      // 授权门在执行入口内部（ModuleExec.run），这里不再自行判断，避免出现两条不一致的规则。
+      ModuleExec.Result result = ModuleExec.run(request.context, request.cardId, digest, cmd);
       return (result.ok ? "" : "[失败] ") + result.output;
     }
 

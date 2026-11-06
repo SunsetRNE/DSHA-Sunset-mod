@@ -81,8 +81,19 @@ public final class ModuleExec {
         .apply();
   }
 
-  /** 同步执行；调用方必须放在后台线程。 */
-  public static Result run(Context context, String command) {
+  /**
+   * 执行入口：先以「当前内容摘要」校验授权，再真正执行。
+   *
+   * <p>门放在这里而不是只放调用方，是因为执行是整套模块体系里唯一能真的做事的地方；
+   * 任何新增调用点（脚本、UI、未来的能力总线）都必须经过同一道检查。
+   */
+  public static Result run(Context context, String cardId, String digest, String command) {
+    if (!isAllowed(context, cardId, digest)) return new Result(false, "未授权：这张卡片没有当前内容的执行授权");
+    return execute(context, command);
+  }
+
+  /** 同步执行；调用方必须放在后台线程，且必须已经过 {@link #run(Context,String,String,String)}。 */
+  private static Result execute(Context context, String command) {
     String trimmed = command == null ? "" : command.trim();
     if (trimmed.isEmpty()) return new Result(false, "命令为空");
     if (trimmed.length() > MAX_COMMAND) return new Result(false, "命令太长");

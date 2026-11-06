@@ -279,6 +279,7 @@
     "app/src/main/java/com/deepseekharness/app/module/ModuleData.java",
     "app/src/main/java/com/deepseekharness/app/module/ModuleExec.java",
     "app/src/main/java/com/deepseekharness/app/module/ModuleImport.java",
+    "app/src/main/java/com/deepseekharness/app/module/ModuleLifecycleAuth.java",
     "app/src/main/java/com/deepseekharness/app/module/ModuleManifest.java",
     "app/src/main/java/com/deepseekharness/app/module/ModuleProgram.java",
     "app/src/main/java/com/deepseekharness/app/module/ModuleProgramAuth.java",
