@@ -213,7 +213,8 @@ public final class DeviceGrantsLayoutTest {
         page.findViewById(R.id.screen_virtual_group).getParent());
     int channels = page.findViewById(R.id.grants_section_channels).getHeight();
     int screen = page.findViewById(R.id.grants_section_screen).getHeight();
-    assertTrue("channels too tall: " + channels, channels <= 460);
+    // 容器 SSH（实验性）并入通道卡：主行 + 局域网单行开关，实测 578；预算按一行余量放宽。
+    assertTrue("channels too tall: " + channels, channels <= 590);
     // T96 的虚拟屏预览档位行并入屏幕卡：实测 464，预算按一行余量放宽到 470。
     assertTrue("screen too tall: " + screen, screen <= 470);
   }

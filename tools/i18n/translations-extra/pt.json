@@ -1965,8 +1965,7 @@
   "m9050": "Definir a senha do SSH do contêiner",
   "m9051": "Ativado · escuta não confirmada; veja a notificação",
   "m9052": "Em execução · porta %d",
-  "m9053": "Inicia um servidor OpenSSH dentro do contêiner (porta 22222) para que clientes SSH entrem como usuário dsha e depurem o ambiente. A senha é guardada neste dispositivo com criptografia de chave do dispositivo e entregue ao script de inicialização apenas pela entrada padrão, nunca em argv ou logs. Por padrão escuta apenas em 127.0.0.1; ao ativar o acesso à rede local, escuta em 0.0.0.0 e exige a permissão de rede local do sistema. Isso expõe a linha de comando do contêiner — use uma senha forte.",
+  "m9053": "Inicia um servidor OpenSSH dentro do contêiner (porta 22222) para que clientes SSH entrem como usuário dsha e depurem o ambiente. A senha é guardada neste dispositivo com criptografia de chave do dispositivo e entregue ao script de inicialização apenas pela entrada padrão, nunca em argv ou logs. Por padrão escuta apenas em 127.0.0.1; ao ativar o acesso à rede local, escuta em 0.0.0.0, exige a permissão de rede local do sistema e as mudanças valem após reiniciar o SSH. Isso expõe a linha de comando do contêiner — use uma senha forte.",
   "m9054": "Iniciará o OpenSSH dentro do contêiner (porta 22222) e manterá uma notificação em primeiro plano. A senha é entregue ao script de inicialização apenas pela entrada padrão; desligue a chave ou toque em \"Parar\" na notificação para encerrar.",
-  "m9055": "Usada para entrar como usuário dsha por SSH; pelo menos 8 caracteres. A senha é guardada criptografada com uma chave do dispositivo neste aparelho; os backups contêm apenas o texto cifrado, impossível de decifrar em outro dispositivo.",
-  "m9056": "Quando ativada, escuta em 0.0.0.0 e exige a permissão de rede local; as mudanças valem após reiniciar o SSH. O padrão é escutar apenas em 127.0.0.1."
+  "m9055": "Usada para entrar como usuário dsha por SSH; pelo menos 8 caracteres. A senha é guardada criptografada com uma chave do dispositivo neste aparelho; os backups contêm apenas o texto cifrado, impossível de decifrar em outro dispositivo."
 }
