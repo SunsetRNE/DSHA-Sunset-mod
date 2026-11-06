@@ -10,6 +10,10 @@
     <dimen name="grants_column_gap">12dp</dimen>
     <dimen name="grants_segment_height">40dp</dimen>
     <dimen name="grants_pill_min_height">44dp</dimen>
+    <dimen name="grants_pill_min_width">56dp</dimen>
+    <!-- 胶囊文字：标题 12sp 粗 + 状态 12sp；原先 Java 写死的 11sp/12sp 收进资源。 -->
+    <dimen name="grants_pill_title">12sp</dimen>
+    <dimen name="grants_pill_value">12sp</dimen>
     <!-- 通道 / 屏幕卡的标题行：标题 + 短动作 + 开关同一行，保持 44dp 触控下限 -->
     <dimen name="grants_channel_row">46dp</dimen>
 </resources>

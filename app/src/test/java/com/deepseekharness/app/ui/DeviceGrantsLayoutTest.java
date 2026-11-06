@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -16,6 +17,7 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.util.Constants;
 import com.deepseekharness.app.util.DeviceShellPolicy;
+import com.deepseekharness.app.util.GrantSummary;
 import com.deepseekharness.app.util.UiText;
 import java.util.ArrayList;
 import java.util.List;
@@ -138,14 +140,19 @@ public final class DeviceGrantsLayoutTest {
     collectOverflow(page, 0, 360, overflow);
     assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
 
-    // 概览头部在滚动区之外，滚动内容时保持可见。
+    // 概览头部在滚动区之外，滚动内容时保持可见；胶囊放进 PluginFlowRow 按内容自适应宽度。
     View header = page.findViewById(R.id.grants_header);
     View scroll = page.findViewById(R.id.grants_scroll);
     assertSame(page, header.getParent());
     assertSame(page, scroll.getParent());
     assertTrue(header.getBottom() <= scroll.getTop());
-    // 4 个概览胶囊 + 页面说明 ⓘ。
-    assertEquals(5, ((ViewGroup) header).getChildCount());
+    // 头部 = 胶囊流式区 + 固定在行尾的页面说明 ⓘ。
+    assertEquals(2, ((ViewGroup) header).getChildCount());
+    ViewGroup pills = page.findViewById(R.id.grants_pills);
+    assertTrue(pills instanceof PluginFlowRow);
+    assertEquals(4, pills.getChildCount());
+    assertTrue(((ViewGroup) header).getChildAt(1) instanceof ImageButton);
+    assertSummaryPillsFit(pills, "zh");
 
     assertEquals(
         List.of(
@@ -226,5 +233,117 @@ public final class DeviceGrantsLayoutTest {
     assertEquals(DeviceShellPolicy.Mode.STRICT, new ConfigStore(context).rootPolicyMode());
     assertTrue(((RadioButton) root.getChildAt(0)).isChecked());
     assertFalse(((RadioButton) root.getChildAt(1)).isChecked());
+  }
+
+  /**
+   * 十语种状态词：中文保留「关闭 / 關閉」，其余语种用「已关闭」译条（x1970619），
+   * 不能复用「关闭按钮」词条，否则会得到 Close / Fermer / Закрыть 这类动词译法。
+   */
+  @Test
+  public void offStateWordUsesOffTranslationsInEveryLanguage() {
+    java.util.Map<String, String> expected =
+        java.util.Map.of(
+            "zh", "关闭",
+            "zh-Hant", "關閉",
+            "en", "Off",
+            "ru", "Выключено",
+            "ja", "無効",
+            "ko", "꺼짐",
+            "ar", "معطّل",
+            "pt", "Desativado",
+            "la", "Inactivum",
+            "fr", "Désactivé");
+    for (var entry : expected.entrySet()) {
+      UiText.setLanguage(entry.getKey());
+      assertEquals(
+          entry.getKey(),
+          entry.getValue(),
+          DeviceGrantsFragment.summaryText(GrantSummary.Label.GLOBAL_OFF));
+    }
+  }
+
+  /** 长译文语种（fr / ru / pt）在 320dp 窄屏下胶囊自适应宽度，状态词不出现省略号。 */
+  @Test
+  @Config(qualifiers = "zh-rCN-w320dp-h740dp-mdpi")
+  public void summaryPillsFitLongTranslationsAtNarrowWidth() {
+    for (String language : new String[] {"fr", "ru", "pt"}) {
+      UiText.setLanguage(language);
+      View page = start(320);
+      List<String> overflow = new ArrayList<>();
+      collectOverflow(page, 0, 320, overflow);
+      assertTrue(language + " horizontal overflow: " + overflow, overflow.isEmpty());
+      assertSummaryPillsFit((ViewGroup) page.findViewById(R.id.grants_pills), language);
+      host.pause().stop().destroy();
+      host = null;
+    }
+  }
+
+  /** 1.3 倍字体 + 320dp + 最长译文（ru）也不截断。 */
+  @Test
+  @Config(qualifiers = "zh-rCN-w320dp-h740dp-mdpi")
+  public void summaryPillsFitAtLargeFontScale() {
+    org.robolectric.RuntimeEnvironment.setFontScale(1.3f);
+    try {
+      UiText.setLanguage("ru");
+      View page = start(320);
+      assertSummaryPillsFit((ViewGroup) page.findViewById(R.id.grants_pills), "ru@1.3");
+    } finally {
+      org.robolectric.RuntimeEnvironment.setFontScale(1f);
+    }
+  }
+
+  /** 短屏（≤480dp）概览条并入滚动区：不再吸顶，避免固定头部挤占正文。 */
+  @Test
+  @Config(qualifiers = "zh-rCN-w360dp-h400dp-mdpi")
+  public void shortScreenPutsSummaryHeaderIntoScroll() {
+    View page = start(360);
+    View header = page.findViewById(R.id.grants_header);
+    ViewGroup content = page.findViewById(R.id.grants_content);
+    ViewGroup scroll = page.findViewById(R.id.grants_scroll);
+    assertNotSame(page, header.getParent());
+    assertSame(content, header.getParent());
+    assertEquals(0, content.indexOfChild(header));
+    assertSame(scroll, content.getParent());
+    assertEquals(2, ((ViewGroup) header).getChildCount());
+    List<String> overflow = new ArrayList<>();
+    collectOverflow(page, 0, 360, overflow);
+    assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
+    assertSummaryPillsFit((ViewGroup) page.findViewById(R.id.grants_pills), "short");
+  }
+
+  /**
+   * 每个胶囊按内容自适应宽度（不再是等分权重），状态允许换行且与标题左对齐，文本无省略号。
+   *
+   * <p>Robolectric 默认（LEGACY）字体宽度是近似值，这里主要锁定结构契约；像素级十语种是否截断仍需
+   * 真机 LayoutAuditInstrumentation 或截图核对（本次未跑真机）。
+   */
+  private static void assertSummaryPillsFit(ViewGroup header, String language) {
+    for (int i = 0; i < 4; i++) {
+      ViewGroup pill = (ViewGroup) header.getChildAt(i);
+      TextView title = (TextView) ((ViewGroup) pill.getChildAt(0)).getChildAt(1);
+      TextView value = (TextView) pill.getChildAt(1);
+      assertEquals(
+          language + " pill " + i + " must wrap content",
+          ViewGroup.LayoutParams.WRAP_CONTENT,
+          pill.getLayoutParams().width);
+      assertTrue(language + " value " + i + " must wrap lines", value.getMaxLines() >= 2);
+      assertEquals(
+          language + " value " + i + " must not indent",
+          0,
+          ((ViewGroup.MarginLayoutParams) value.getLayoutParams()).getMarginStart());
+      assertEquals(language + " title " + i, 0, ellipsisCount(title));
+      assertEquals(language + " value " + i + ": " + value.getText(), 0, ellipsisCount(value));
+      assertTrue(
+          language + " pill " + i + " clipped",
+          pill.getLeft() >= 0 && pill.getRight() <= header.getWidth());
+    }
+  }
+
+  private static int ellipsisCount(TextView view) {
+    android.text.Layout layout = view.getLayout();
+    assertNotNull(String.valueOf(view.getText()), layout);
+    int total = 0;
+    for (int line = 0; line < layout.getLineCount(); line++) total += layout.getEllipsisCount(line);
+    return total;
   }
 }
