@@ -174,7 +174,10 @@ public final class ModuleSignature {
   }
 
   private static String read(File file) throws Exception {
-    byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+    java.nio.file.Path path = file.toPath();
+    // card.sig 指向宿主任意文件时，验签等于把别人的字节当签名读：拒绝符号链接本身。
+    if (java.nio.file.Files.isSymbolicLink(path)) throw new java.io.IOException("签名文件是符号链接");
+    byte[] bytes = java.nio.file.Files.readAllBytes(path);
     if (bytes.length > 4096) throw new java.io.IOException("签名文件过大");
     return new String(bytes, StandardCharsets.UTF_8);
   }

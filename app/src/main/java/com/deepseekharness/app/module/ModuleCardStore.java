@@ -350,10 +350,10 @@ public final class ModuleCardStore {
       }
       // 4. 成功：记录安装来源，只留刚换下来的这一份旧版备份。
       recordSource(context, card.id, source);
-      // 5. 开关初值按来源定：用户自己挑文件导入的立即生效；容器投递来的默认关闭，
-      //    等用户在宿主上显式确认再加载 —— 否则容器写一个 JSON 就能改宿主界面。
+      // 5. 开关初值按来源定：只有用户自己挑文件导入的立即生效；容器与广场投递来的默认
+      //    关闭，等用户在宿主上显式确认再加载 —— 否则一条转发链就能改宿主界面。
       ModuleState.setEnabled(
-          context, ModuleState.SCOPE_CARD, card.id, !ModuleCard.SOURCE_CONTAINER.equals(source));
+          context, ModuleState.SCOPE_CARD, card.id, ModuleCard.SOURCE_LOCAL.equals(source));
       retireBackups(context, card.id, KEEP_BACKUPS);
       bump();
       return card.layoutId();
@@ -543,24 +543,29 @@ public final class ModuleCardStore {
    */
   public static void remove(Context context, String cardId) {
     File dir = new File(new File(context.getFilesDir(), DIR), cardId);
-    File card = new File(dir, FILE);
-    java.util.List<String> assets = new java.util.ArrayList<>();
-    if (card.isFile() && !isSymlink(card)) {
-      try {
-        assets.addAll(ModuleCard.parse(read(card)).assetNames());
-      } catch (RuntimeException | IOException ignored) {
-        // 坏卡片也要能移除；素材清单拿不到就只按目录处理。
-      }
-      card.delete();
-    }
-    if (new File(dir, MANIFEST_FILE).isFile()) {
-      for (String name : assets) {
-        if (!ModuleCard.isAssetFileName(name)) continue;
-        File asset = new File(dir, name);
-        if (asset.isFile() && !isSymlink(asset)) asset.delete();
-      }
+    if (isSymlink(dir)) {
+      // 目录本身是链接：只摘掉链接，不追进目标目录删宿主文件，也不读里面的卡片。
+      dir.delete();
     } else {
-      deleteTree(dir);
+      File card = new File(dir, FILE);
+      java.util.List<String> assets = new java.util.ArrayList<>();
+      if (card.isFile() && !isSymlink(card)) {
+        try {
+          assets.addAll(ModuleCard.parse(read(card)).assetNames());
+        } catch (RuntimeException | IOException ignored) {
+          // 坏卡片也要能移除；素材清单拿不到就只按目录处理。
+        }
+        card.delete();
+      }
+      if (new File(dir, MANIFEST_FILE).isFile()) {
+        for (String name : assets) {
+          if (!ModuleCard.isAssetFileName(name)) continue;
+          File asset = new File(dir, name);
+          if (asset.isFile() && !isSymlink(asset)) asset.delete();
+        }
+      } else {
+        deleteTree(dir);
+      }
     }
     // 来源记录和旧版备份跟着模块一起清，不留孤儿数据。
     context

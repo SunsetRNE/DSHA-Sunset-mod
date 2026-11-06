@@ -248,12 +248,12 @@ public final class ModuleCatalog {
 
   public static void setEnabled(Context context, Entry entry, boolean enabled) {
     if (entry == null) return;
+    // ModuleState.setEnabled 自己会 bump，这里不要再来一次。
     ModuleState.setEnabled(
         context,
         entry.kind == Kind.MANIFEST ? ModuleState.SCOPE_MANIFEST : ModuleState.SCOPE_CARD,
         entry.id,
         enabled);
-    ModuleCardStore.bump();
   }
 
   /**

@@ -1045,6 +1045,7 @@
     "app/src/test/java/com/deepseekharness/app/module/ModuleSignatureTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleSkillCoverageTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleSkillScheduleDocTest.java",
+    "app/src/test/java/com/deepseekharness/app/module/ModuleStateKeyIsolationTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleStoreHardeningTest.java",
     "app/src/test/java/com/deepseekharness/app/module/ModuleTrustTest.java",
     "app/src/test/java/com/deepseekharness/app/plugins/PluginBackendAdapterTest.java",
