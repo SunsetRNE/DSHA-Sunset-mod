@@ -102,7 +102,8 @@ public final class ContainerSshService extends Service {
   @Override
   public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
     if (intent == null || STOP.equals(intent.getAction())) {
-      ContainerSshSettings.setEnabled(this, false);
+      // 系统重启投递的 null intent 只代表上次进程被杀：停掉监督但不改用户设置，
+      // 用户重新打开开关即可再启动（开关状态保留，不静默永久关闭能力）。
       requestStop();
     } else if (START.equals(intent.getAction())) {
       worker.execute(this::launch);
@@ -125,15 +126,20 @@ public final class ContainerSshService extends Service {
         throw new IOException("SSH_PASSWORD_UNAVAILABLE");
       password = secret.toCharArray();
       lease = RuntimeWorkPort.beginDetached("容器 SSH");
-      // 监督器先完成原生出生身份握手，然后才接收密码所在的第二行 stdin。
+      // pipedInput 让 RuntimeLauncher 保留默认 PIPE 标准输入（不再重定向 /dev/null）；
+      // 脚本从 stdin 第一行读密码，密码只进本管道，不拼接进 argv 或日志。
       process =
           controller
               .proot()
-              .execRootfs(
+              .execRootfsWithSpec(
                   "bash -lc "
                       + com.deepseekharness.app.util.ShellQuote.arg(
-                          ContainerSshPolicy.script(ContainerSshSettings.lanEnabled(this))));
-      byte[] bytes = (new String(password) + "\n").getBytes(StandardCharsets.UTF_8);
+                          ContainerSshPolicy.script(ContainerSshSettings.lanEnabled(this))),
+                  builder -> {
+                    ContainerSshAssets.bind(this, builder);
+                    builder.pipedInput(true);
+                  });
+      byte[] bytes = utf8WithNewline(password);
       try {
         process.getOutputStream().write(bytes);
         process.getOutputStream().flush();
@@ -171,6 +177,17 @@ public final class ContainerSshService extends Service {
     }
   }
 
+  /** char[] 直接编码为「密码+\n」的 UTF-8 字节；不经过 String，调用方用后清零。 */
+  private static byte[] utf8WithNewline(char[] password) {
+    java.nio.ByteBuffer encoded = StandardCharsets.UTF_8.encode(java.nio.CharBuffer.wrap(password));
+    byte[] bytes = new byte[encoded.remaining() + 1];
+    encoded.get(bytes, 0, encoded.remaining());
+    bytes[bytes.length - 1] = '\n';
+    encoded.rewind();
+    while (encoded.hasRemaining()) encoded.put((byte) 0);
+    return bytes;
+  }
+
   private void read(Process child, String address, CountDownLatch listening) {
     try (BufferedReader reader =
         new BufferedReader(new InputStreamReader(child.getInputStream(), StandardCharsets.UTF_8))) {
@@ -199,10 +216,15 @@ public final class ContainerSshService extends Service {
           // 流已经结束
         }
         process.destroyForcibly();
+        // destroyForcibly 只作用于 proot 启动器；容器内 sshd/会话可能仍在退出中。
+        // 交给退出监听持有租约，确认退出后才释放维护屏障；不能提前 close()。
+        lease.retainUntilExit(process);
+        process = null;
+        lease = null;
+      } else if (lease != null) {
+        lease.close();
+        lease = null;
       }
-      process = null;
-      if (lease != null) lease.close();
-      lease = null;
       if (cancelled || "running".equals(state)) state = "stopped";
       stopForeground(STOP_FOREGROUND_REMOVE);
       stopSelf();

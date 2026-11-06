@@ -306,8 +306,8 @@
     },
     {
       "source": "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshAssets.java",
-      "method": "manifest()/install(context, fs)",
-      "contract": "container-ssh ships sshd plus its runtime libraries as one signed-by-digest manifest; each payload-*.bin is verified against the sha256/bytes recorded in manifest.json before it is written into the guest, so the tree is read as a unit and never partially installed.",
+      "method": "supported(context)/bind(context, builder)",
+      "contract": "container-ssh ships sshd plus its runtime libraries as one signed-by-digest manifest; each payload-*.bin is checked against the sha256/bytes and ELF headers recorded in manifest.json before the bind into the guest via LaunchSpec, so the tree is read as a unit and never partially installed.",
       "assets": [
         "container-ssh/manifest.json",
         "container-ssh/payload-0.bin",

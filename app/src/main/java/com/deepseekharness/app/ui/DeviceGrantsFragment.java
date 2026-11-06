@@ -87,6 +87,7 @@ public final class DeviceGrantsFragment extends Fragment {
         public void run() {
           if (!isResumed() || getView() == null) return;
           refreshChannelLabels();
+          refreshContainerSshStatus();
           // refreshChannelLabels → refreshRootPolicy 已同步刷新概览。
           if (fullPermissions != null) fullPermissions.refresh();
           main.postDelayed(this, 1000);
@@ -128,6 +129,7 @@ public final class DeviceGrantsFragment extends Fragment {
     resetup.setText(com.deepseekharness.app.util.UiText.choose("重新设置", "Set up again"));
     resetup.setOnClickListener(setup);
     addExternalDeviceControls(ctx, view);
+    addContainerSshControls(ctx, view);
     addScreenModeControls(ctx, view);
     addScreenPolicyControls(ctx, view);
     // 虚拟屏是另一项能力：单独一行，点进虚拟屏页（页内有创建与使用说明）。
@@ -438,6 +440,264 @@ public final class DeviceGrantsFragment extends Fragment {
             },
             "external-device-status")
         .start();
+  }
+
+  // ===== 容器 SSH（实验性）=====
+
+  private MaterialSwitch containerSsh, containerSshLan;
+  private TextView containerSshStatus;
+  private boolean pendingContainerSshStart;
+
+  /**
+   * 容器 SSH：设备通道卡的末行，与外接设备同一行式。开关只改本能力偏好并启动/停止前台监督
+   * 服务；密码经独立对话框写入（Keystore 加密），不经 argv、不进日志。默认只监听 127.0.0.1，
+   * 局域网访问作为单独的子开关，开启时要求系统局域网授权。
+   */
+  private void addContainerSshControls(Context ctx, View page) {
+    boolean supported = com.deepseekharness.app.runtime.ContainerSshService.supported(ctx);
+    android.widget.LinearLayout card = page.findViewById(R.id.channels_card);
+    View divider = new View(ctx);
+    android.widget.LinearLayout.LayoutParams dividerParams =
+        new android.widget.LinearLayout.LayoutParams(-1, dp(1));
+    dividerParams.topMargin = dp(6);
+    divider.setBackgroundColor(ctx.getColor(R.color.shell_line));
+    card.addView(divider, dividerParams);
+    android.widget.LinearLayout row = new android.widget.LinearLayout(ctx);
+    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    row.setMinimumHeight(getResources().getDimensionPixelSize(R.dimen.grants_channel_row));
+    android.widget.LinearLayout text = new android.widget.LinearLayout(ctx);
+    text.setOrientation(android.widget.LinearLayout.VERTICAL);
+    text.setPadding(0, dp(6), 0, dp(6));
+    TextView title = new TextView(ctx, null, 0, R.style.ShellRowTitle);
+    String titleText = UiText.choose("容器 SSH（实验性）", "Container SSH (experimental)");
+    title.setText(titleText);
+    title.setMaxLines(1);
+    text.addView(title, new android.widget.LinearLayout.LayoutParams(-2, -2));
+    bindLabelInfo(
+        ctx,
+        title,
+        titleText,
+        () ->
+            UiText.choose(
+                "在容器内启动 OpenSSH 服务器（端口 22222），供 SSH 客户端以 dsha 用户登录调试环境。密码在本机用设备密钥加密保存，只通过标准输入交给启动脚本，不进命令行或日志。默认只监听 127.0.0.1；开启局域网访问后监听 0.0.0.0，并要求系统局域网授权。这会暴露容器命令行，请设置强密码。",
+                "Starts an OpenSSH server inside the container (port 22222) so SSH clients can sign in as user dsha to debug the environment. The password is stored on this device with a device-key-encrypted vault and is handed to the launch script through standard input only, never argv or logs. It listens on 127.0.0.1 by default; enabling LAN access listens on 0.0.0.0 and requires the system local-network permission. This exposes the container command line, so use a strong password."));
+    title.setMinHeight(0);
+    containerSshStatus = new TextView(ctx, null, 0, R.style.ShellRowSub);
+    android.widget.LinearLayout.LayoutParams statusParams =
+        new android.widget.LinearLayout.LayoutParams(-1, -2);
+    statusParams.topMargin = dp(3);
+    text.addView(containerSshStatus, statusParams);
+    row.addView(text, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
+    TextView passwordButton = new TextView(ctx, null, 0, R.style.ConfigChip);
+    passwordButton.setText(UiText.choose("设密码", "Set password"));
+    passwordButton.setContentDescription(
+        UiText.format("%s · %s", titleText, UiText.choose("设密码", "Set password")));
+    android.widget.LinearLayout.LayoutParams chipParams =
+        new android.widget.LinearLayout.LayoutParams(-2, -2);
+    chipParams.setMarginStart(dp(4));
+    row.addView(passwordButton, chipParams);
+    containerSsh = new MaterialSwitch(ctx);
+    containerSsh.setContentDescription(UiText.choose("允许容器 SSH", "Allow container SSH"));
+    android.widget.LinearLayout.LayoutParams switchParams =
+        new android.widget.LinearLayout.LayoutParams(-2, -2);
+    switchParams.setMarginStart(dp(4));
+    row.addView(containerSsh, switchParams);
+    card.addView(row, new android.widget.LinearLayout.LayoutParams(-1, -2));
+    // 局域网子开关：与 config 页的子行一致，缩进并与主开关同步禁用。
+    android.widget.LinearLayout lanRow = new android.widget.LinearLayout(ctx);
+    lanRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    lanRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    lanRow.setMinimumHeight(getResources().getDimensionPixelSize(R.dimen.grants_channel_row));
+    lanRow.setPadding(dp(16), 0, 0, 0);
+    android.widget.LinearLayout lanText = new android.widget.LinearLayout(ctx);
+    lanText.setOrientation(android.widget.LinearLayout.VERTICAL);
+    lanText.setPadding(0, dp(2), 0, dp(2));
+    TextView lanTitle = new TextView(ctx, null, 0, R.style.ShellRowTitle);
+    lanTitle.setText(getString(R.string.ui_m0063));
+    lanText.addView(lanTitle, new android.widget.LinearLayout.LayoutParams(-2, -2));
+    TextView lanSub = new TextView(ctx, null, 0, R.style.ShellRowSub);
+    lanSub.setText(
+        UiText.choose(
+            "开启后监听 0.0.0.0 并要求局域网授权；改动在重启 SSH 后生效。默认只监听 127.0.0.1。",
+            "Listens on 0.0.0.0 when enabled and requires the local-network permission; changes apply after SSH restarts. The default is 127.0.0.1 only."));
+    android.widget.LinearLayout.LayoutParams lanSubParams =
+        new android.widget.LinearLayout.LayoutParams(-1, -2);
+    lanSubParams.topMargin = dp(3);
+    lanText.addView(lanSub, lanSubParams);
+    lanRow.addView(lanText, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
+    containerSshLan = new MaterialSwitch(ctx);
+    containerSshLan.setContentDescription(getString(R.string.ui_m0063));
+    android.widget.LinearLayout.LayoutParams lanSwitchParams =
+        new android.widget.LinearLayout.LayoutParams(-2, -2);
+    lanSwitchParams.setMarginStart(dp(4));
+    lanRow.addView(containerSshLan, lanSwitchParams);
+    card.addView(lanRow, new android.widget.LinearLayout.LayoutParams(-1, -2));
+    if (!supported) {
+      // 没有随包 SSH 资产（或架构不符）时整块保留但不可用，说明原因而不是悄悄消失。
+      containerSsh.setEnabled(false);
+      containerSshLan.setEnabled(false);
+      passwordButton.setEnabled(false);
+    }
+    passwordButton.setOnClickListener(x -> showContainerSshPasswordDialog(ctx));
+    containerSsh.setOnCheckedChangeListener((button, enabled) -> toggleContainerSsh(enabled));
+    containerSshLan.setOnCheckedChangeListener(
+        (button, on) -> {
+          if (updating) return;
+          if (on
+              && !com.deepseekharness.app.bridge.LocalNetworkAccess.granted(ctx)
+              && getActivity() instanceof MainActivity) {
+            updating = true;
+            containerSshLan.setChecked(false);
+            updating = false;
+            ((MainActivity) getActivity()).requestLocalNetwork();
+            toast(UiText.text("授予局域网权限后重新开启"));
+            return;
+          }
+          com.deepseekharness.app.runtime.ContainerSshSettings.setLanEnabled(ctx, on);
+          refreshContainerSshStatus();
+        });
+    refreshContainerSshStatus();
+  }
+
+  /** 开启 = 设置开关并启动监督服务；条件不满足时回弹并说明原因。关闭立即生效。 */
+  private void toggleContainerSsh(boolean enabled) {
+    if (updating) return;
+    Context ctx = requireContext().getApplicationContext();
+    if (!enabled) {
+      com.deepseekharness.app.runtime.ContainerSshSettings.setEnabled(ctx, false);
+      com.deepseekharness.app.runtime.ContainerSshService.stop(ctx);
+      refreshContainerSshStatus();
+      return;
+    }
+    if (!com.deepseekharness.app.runtime.ContainerSshService.supported(ctx)) {
+      revertContainerSshSwitch();
+      toast(UiText.text("此构建没有容器 SSH 资产"));
+      return;
+    }
+    if (!com.deepseekharness.app.runtime.ContainerSshSettings.hasPassword(ctx)) {
+      revertContainerSshSwitch();
+      pendingContainerSshStart = true;
+      showContainerSshPasswordDialog(ctx);
+      return;
+    }
+    new DshaDialogBuilder(ctx)
+        .setTitle(UiText.text("开启容器 SSH？"))
+        .setMessage(
+            UiText.text("将在容器内启动 OpenSSH（端口 22222）并保持前台通知。密码只通过标准输入交给启动脚本；关闭开关或通知里的停止按钮即可结束。"))
+        .setPositiveButton(
+            UiText.text("开启"),
+            (dialog, which) -> {
+              Context app = requireContext().getApplicationContext();
+              if (com.deepseekharness.app.runtime.ContainerSshSettings.lanEnabled(app)
+                  && !com.deepseekharness.app.bridge.LocalNetworkAccess.granted(app)) {
+                revertContainerSshSwitch();
+                toast(UiText.text("需要局域网权限：请先授予局域网授权或关闭「允许局域网访问」"));
+                return;
+              }
+              if (!com.deepseekharness.app.core.HarnessController.get(app).isEnvironmentReady()) {
+                revertContainerSshSwitch();
+                toast(UiText.text("运行环境未就绪，请完成安装或维护后再试"));
+                return;
+              }
+              com.deepseekharness.app.runtime.ContainerSshSettings.setEnabled(app, true);
+              if (!com.deepseekharness.app.runtime.ContainerSshService.start(app)) {
+                com.deepseekharness.app.runtime.ContainerSshSettings.setEnabled(app, false);
+                revertContainerSshSwitch();
+                toast(UiText.text("启动失败，详见通知"));
+              }
+              refreshContainerSshStatus();
+            })
+        .setNegativeButton(UiText.text("取消"), (dialog, which) -> revertContainerSshSwitch())
+        .show();
+  }
+
+  private void revertContainerSshSwitch() {
+    updating = true;
+    containerSsh.setChecked(false);
+    updating = false;
+  }
+
+  /** 密码对话框：两次输入 + 策略校验；保存成功后若来自开启流程则继续开启。 */
+  private void showContainerSshPasswordDialog(Context ctx) {
+    android.widget.LinearLayout fields = new android.widget.LinearLayout(ctx);
+    fields.setOrientation(android.widget.LinearLayout.VERTICAL);
+    int padding = (int) (20 * getResources().getDisplayMetrics().density);
+    fields.setPadding(padding, 0, padding, 0);
+    android.widget.EditText password = new android.widget.EditText(ctx);
+    password.setHint(UiText.text("密码"));
+    password.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT
+            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    password.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+    android.widget.EditText confirmation = new android.widget.EditText(ctx);
+    confirmation.setHint(UiText.text("再次输入密码"));
+    confirmation.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT
+            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    confirmation.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+    fields.addView(password);
+    fields.addView(confirmation);
+    var dialog =
+        new DshaDialogBuilder(ctx)
+            .setTitle(UiText.text("设置容器 SSH 密码"))
+            .setMessage(UiText.text("用于 SSH 登录用户 dsha，至少 8 个字符。密码在本机用设备密钥加密保存；备份里只有密文，无法在其他设备解密。"))
+            .setView(fields)
+            .setNegativeButton(UiText.text("取消"), null)
+            .setPositiveButton(UiText.text("保存"), null)
+            .create();
+    dialog.show();
+    dialog
+        .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+        .setOnClickListener(
+            ignored -> {
+              String value = password.getText().toString();
+              if (!com.deepseekharness.app.util.ContainerSshPolicy.validPassword(value)) {
+                password.setError(UiText.text("密码无效：至少 8 个字符，最多 128 个字符"));
+                return;
+              }
+              if (!value.equals(confirmation.getText().toString())) {
+                confirmation.setError(UiText.text("两次输入不一致"));
+                return;
+              }
+              if (!com.deepseekharness.app.runtime.ContainerSshSettings.setPassword(ctx, value)) {
+                toast(UiText.text("保存失败：设备凭据库不可用"));
+                return;
+              }
+              dialog.dismiss();
+              toast(UiText.text("密码已保存"));
+              refreshContainerSshStatus();
+              if (pendingContainerSshStart) {
+                pendingContainerSshStart = false;
+                containerSsh.setChecked(true);
+              }
+            });
+  }
+
+  /** 状态行：关闭 / 未设置密码 / 运行中端口 / 启停过渡；onResume 与 1 秒循环都会刷新。 */
+  private void refreshContainerSshStatus() {
+    if (containerSshStatus == null || containerSsh == null || !isAdded()) return;
+    Context ctx = requireContext().getApplicationContext();
+    boolean enabled = com.deepseekharness.app.runtime.ContainerSshSettings.enabled(ctx);
+    boolean lan = com.deepseekharness.app.runtime.ContainerSshSettings.lanEnabled(ctx);
+    String text;
+    if (!enabled) text = UiText.text("已关闭");
+    else if (!com.deepseekharness.app.runtime.ContainerSshSettings.hasPassword(ctx))
+      text = UiText.text("未设置密码");
+    else if (com.deepseekharness.app.runtime.ContainerSshService.isRunning())
+      text = UiText.format("运行中 · 端口 %d", com.deepseekharness.app.runtime.ContainerSshService.PORT);
+    else {
+      String state = com.deepseekharness.app.runtime.ContainerSshService.status();
+      text =
+          "starting".equals(state)
+              ? UiText.text("启动中…")
+              : "stopping".equals(state) ? UiText.text("停止中…") : UiText.text("已开启 · 监听未确认，详见通知");
+    }
+    containerSshStatus.setText(text);
+    updating = true;
+    containerSsh.setChecked(enabled);
+    containerSshLan.setChecked(lan);
+    updating = false;
   }
 
   private static final com.deepseekharness.app.util.ScreenConfirmationPolicy.Mode[] SCREEN_MODES =
@@ -2121,6 +2381,7 @@ public final class DeviceGrantsFragment extends Fragment {
     main.post(refreshConnections);
     View page = getView();
     refreshExternalDeviceStatus();
+    refreshContainerSshStatus();
     if (page != null) {
       refreshAllFilesStatus(page.findViewById(R.id.config_all_files_status));
       refreshSafAccessStatus(page.findViewById(R.id.config_saf_access_status));

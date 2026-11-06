@@ -818,7 +818,8 @@
     "util/ExternalDevicePolicy.java",
     "util/ExternalInstallPlan.java",
     "util/ExternalStepOutput.java",
-    "util/ExternalImportQuota.java"
+    "util/ExternalImportQuota.java",
+    "util/ContainerSshPolicy.java"
   ],
   "generatorSources": [
     "tools/mobile-server/compress.js",
