@@ -660,10 +660,11 @@ public final class ModuleCardStore {
           }
           importCard(context, raw, assets, ModuleCard.SOURCE_CONTAINER);
           imported++;
-          // 导入成功后把原件移走，避免每次启动重复导入；移动失败则删除原件，
-          // 都失败也只是下次重装一遍（同内容整目录替换，幂等），不影响已装模块。
+          // 导入成功后把原件移走，避免每次启动重复导入；目录被换成链接时不能碰
+          // 任何文件（delete 会落到链接目标里的同名文件），跳过即可。
+          if (!plainPath(inbox, rootfsDir, false)) continue;
           File done = new File(inbox, name + ".done");
-          if (!plainPath(inbox, rootfsDir, false) || !file.renameTo(done)) file.delete();
+          if (!file.renameTo(done)) file.delete();
         } catch (Exception error) {
           // 无效文件留在原地，用户或模型可以自己改；错误可见，不静默丢。
           found.add(new Issue(name, message(error)));
