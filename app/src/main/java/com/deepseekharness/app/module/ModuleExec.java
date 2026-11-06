@@ -3,6 +3,7 @@ package com.deepseekharness.app.module;
 import android.content.Context;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.ShellQuote;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
@@ -100,8 +101,6 @@ public final class ModuleExec {
 
     HarnessController controller = HarnessController.get(context);
     if (!controller.isEnvironmentReady()) return new Result(false, "容器环境还没就绪");
-    if (!controller.isWebRunning() && !controller.isEnvironmentReady())
-      return new Result(false, "容器未运行");
 
     Process process = null;
     ExecutorService reader = Executors.newSingleThreadExecutor();
@@ -140,6 +139,21 @@ public final class ModuleExec {
       return new Result(false, "执行失败：" + error.getMessage());
     } finally {
       reader.shutdownNow();
+      // 输出超过上限时读取会提前结束，进程可能仍在跑；超时与异常路径同样要收尾。
+      // 只保证「直接子进程退出」：Android 的 Process 没有 descendants()，孙进程靠内核在
+      // bash 退出后回收，文档里不要再写「杀进程树」。
+      if (process != null) {
+        try {
+          if (process.isAlive()) process.destroyForcibly();
+        } catch (RuntimeException ignored) {
+          // 已经退出
+        }
+        try {
+          process.getInputStream().close();
+        } catch (IOException | RuntimeException ignored) {
+          // 流已经关掉
+        }
+      }
     }
   }
 
@@ -147,7 +161,7 @@ public final class ModuleExec {
     if (process == null) return;
     try {
       // Android 的 Process 没有 descendants()，只能强杀当前进程；
-      // bash -lc 包了一层，正常情况下内核会随 shell 退出回收。
+      // bash -lc 包了一层，孙进程由内核在 shell 退出后回收 —— 不承诺「杀进程树」。
       process.destroyForcibly();
     } catch (RuntimeException ignored) {
       // 已经退出
