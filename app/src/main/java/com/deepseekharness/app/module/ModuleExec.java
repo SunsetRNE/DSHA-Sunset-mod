@@ -24,12 +24,15 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>注意：容器本身是 danger-full-access，所以这里挡的是「未授权模块静默执行」，
  * 不是给容器加沙箱 —— 别把这条当安全隔离写进文档。
+ *
+ * <p>超时或输出超限时强杀的是<b>直接子进程</b>（bash），孙进程由内核在 shell 退出后回收：
+ * Android 的 {@link Process} 没有 descendants()，这里不承诺「杀进程树」。
  */
 public final class ModuleExec {
 
   private static final String PREFS = "dsha_module_exec";
   private static final int MAX_COMMAND = 500;
-  private static final int MAX_OUTPUT = 8 * 1024;
+  static final int MAX_OUTPUT = 8 * 1024;
   private static final long TIMEOUT_MS = 8000;
 
   public static final class Result {
@@ -99,13 +102,12 @@ public final class ModuleExec {
     if (trimmed.isEmpty()) return new Result(false, "命令为空");
     if (trimmed.length() > MAX_COMMAND) return new Result(false, "命令太长");
 
-    HarnessController controller = HarnessController.get(context);
-    if (!controller.isEnvironmentReady()) return new Result(false, "容器环境还没就绪");
-
     Process process = null;
     ExecutorService reader = Executors.newSingleThreadExecutor();
     try {
-      process = controller.proot().execRootfs("bash -lc " + ShellQuote.arg(trimmed));
+      process = launcher.start(context, "bash -lc " + ShellQuote.arg(trimmed));
+      // 启动器返回 null 表示容器环境没就绪；测试注入假启动器时不经过 HarnessController。
+      if (process == null) return new Result(false, "容器环境还没就绪");
       final Process running = process;
       Future<String> output =
           reader.submit(
@@ -125,12 +127,15 @@ public final class ModuleExec {
       long deadline = System.currentTimeMillis() + TIMEOUT_MS;
       String text =
           output.get(Math.max(1, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
-      int code =
-          process.waitFor(Math.max(1, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS)
-              ? process.exitValue()
-              : -1;
+      boolean exited =
+          process.waitFor(
+              Math.max(1, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
+      if (!exited) {
+        // 读完输出还没退出：算超时，由 finally 强杀，不让它在后台继续跑。
+        return new Result(false, "执行超时（" + TIMEOUT_MS / 1000 + " 秒）");
+      }
       if (text.length() > MAX_OUTPUT) text = text.substring(0, MAX_OUTPUT) + "…";
-      return new Result(code == 0, text.isEmpty() ? "（无输出）" : text.trim());
+      return new Result(process.exitValue() == 0, text.isEmpty() ? "（无输出）" : text.trim());
     } catch (java.util.concurrent.TimeoutException timeout) {
       destroy(process);
       return new Result(false, "执行超时（" + TIMEOUT_MS / 1000 + " 秒）");
@@ -155,6 +160,23 @@ public final class ModuleExec {
         }
       }
     }
+  }
+
+  /** 启动容器命令；{@code null} 表示环境未就绪。测试可整体替换，便于验证超时与截断。 */
+  interface ContainerLauncher {
+    Process start(Context context, String command) throws Exception;
+  }
+
+  private static volatile ContainerLauncher launcher = ModuleExec::launchInContainer;
+
+  static void setLauncher(ContainerLauncher replacement) {
+    launcher = replacement == null ? ModuleExec::launchInContainer : replacement;
+  }
+
+  private static Process launchInContainer(Context context, String command) throws Exception {
+    HarnessController controller = HarnessController.get(context);
+    if (!controller.isEnvironmentReady()) return null;
+    return controller.proot().execRootfs(command);
   }
 
   private static void destroy(Process process) {

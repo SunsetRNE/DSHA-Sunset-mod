@@ -1739,7 +1739,11 @@ public final class ModuleCard {
   }
 
   /**
-   * 素材文件名的唯一合法形态：不含分隔符、不含 {@code ..}、非绝对路径、扩展名受控。
+   * 素材名的<b>路径安全</b>判断：不含分隔符、不含 {@code ..}、非绝对、非隐藏、长度受限、不是保留名。
+   *
+   * <p>扩展名限制属于各类型自己的事（{@link #isImageName}、{@code requireWebName}、
+   * {@code requireProgramName}）—— 统一在这里限制会把文档支持的 program（无扩展名 "file":"hello"）
+   * 和 web（svg/mjs/woff2）一起拒掉，那是一次真实回归。
    *
    * <p>导入、读取、删除三条路径都必须走这个判断：卡片 JSON 来自容器，一个 {@code ../}
    * 就能让宿主把文件写进别的模块目录（甚至宿主私有目录）。
@@ -1758,8 +1762,12 @@ public final class ModuleCard {
     if (value.indexOf('/') >= 0 || value.indexOf('\\') >= 0) return false;
     if (value.contains("..")) return false;
     if (value.startsWith(".")) return false;
-    return value.matches(
-        "(?i)[a-z0-9][a-z0-9._-]{0,60}\\.(png|jpg|jpeg|webp|html|css|js|json|sh|bin|sig)");
+    // 宿主自己的文件不能被声明成素材：导入会覆盖它们，移除会顺手删掉。
+    // card.sig 除外 —— 它是卡片目录里的成员，需要跟着素材一起写。
+    return !value.equalsIgnoreCase("card.json")
+        && !value.equalsIgnoreCase("module.json")
+        && !value.equalsIgnoreCase("HOW-TO.md")
+        && !value.equalsIgnoreCase("SKILL.md");
   }
 
   private static void collectViewImages(JSONArray nodes, java.util.Set<String> into) {

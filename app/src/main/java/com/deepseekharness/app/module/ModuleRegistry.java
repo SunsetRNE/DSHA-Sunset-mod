@@ -93,7 +93,8 @@ public final class ModuleRegistry {
   public static void clearEnabledState(Context context, String id) {
     if (context == null) throw new NullPointerException("context");
     if (!isId(id)) throw new IllegalArgumentException("模块 id 无效");
-    ModuleState.clear(context, id);
+    // 只清清单这一侧：同 id 的卡片可能还在，它的开关与页面输入不属于这次卸载。
+    ModuleState.clearScope(context, ModuleState.SCOPE_MANIFEST, id);
     context
         .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         .edit()

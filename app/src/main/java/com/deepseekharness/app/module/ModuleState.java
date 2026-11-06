@@ -81,6 +81,21 @@ public final class ModuleState {
     prefs(context).edit().putBoolean("app.dismissed." + key, true).apply();
   }
 
+  /**
+   * 只清某个作用域下的状态。
+   *
+   * <p>清单卸载必须走这里：{@link #clear} 会把 {@code card:<id>.enabled} 和页面里的
+   * {@code <id>.slot.* / <id>.field.*} 一起删掉，而同 id 的卡片是可以并存的，用户数据不该被连带清空。
+   */
+  public static void clearScope(Context context, String scope, String id) {
+    if (context == null || scope == null || id == null) return;
+    SharedPreferences preferences = prefs(context);
+    SharedPreferences.Editor editor = preferences.edit();
+    String prefix = scope + ":" + id + ".";
+    for (String key : preferences.getAll().keySet()) if (key.startsWith(prefix)) editor.remove(key);
+    editor.apply();
+  }
+
   /** 卡片被移除或重新导入时清掉它自己的状态（两种作用域一起清）。 */
   public static void clear(Context context, String cardId) {
     SharedPreferences preferences = prefs(context);

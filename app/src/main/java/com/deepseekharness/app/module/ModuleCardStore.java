@@ -591,6 +591,9 @@ public final class ModuleCardStore {
 
   private static void writeIfChanged(File target, String content) {
     try {
+      // 目标父目录必须在写之前仍是真实目录：ensureSkill 建完目录到这里之间还有窗口。
+      File parent = target.getParentFile();
+      if (parent == null || Files.isSymbolicLink(parent.toPath())) return;
       if (target.isFile() && read(target).equals(content)) return;
       writeAtomically(target, content);
     } catch (IOException | IllegalArgumentException ignored) {
@@ -621,6 +624,8 @@ public final class ModuleCardStore {
     File[] files = inbox.listFiles();
     if (files != null) {
       for (File file : files) {
+        // 目录在 listFiles 之后可能已被换成链接：每个条目都重新过一遍逐级检查。
+        if (!plainPath(inbox, rootfsDir, false)) break;
         if (file == null || !file.isFile() || isSymlink(file)) continue;
         String name = file.getName();
         if (!name.endsWith(".json")) continue;
@@ -653,7 +658,7 @@ public final class ModuleCardStore {
           // 导入成功后把原件移走，避免每次启动重复导入；移动失败则删除原件，
           // 都失败也只是下次重装一遍（同内容整目录替换，幂等），不影响已装模块。
           File done = new File(inbox, name + ".done");
-          if (!file.renameTo(done)) file.delete();
+          if (!plainPath(inbox, rootfsDir, false) || !file.renameTo(done)) file.delete();
         } catch (Exception error) {
           // 无效文件留在原地，用户或模型可以自己改；错误可见，不静默丢。
           found.add(new Issue(name, message(error)));
@@ -717,7 +722,8 @@ public final class ModuleCardStore {
     BasicFileAttributes before =
         Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
     if (!before.isRegularFile()) throw new IOException("NOT_A_REGULAR_FILE");
-    byte[] buffer = new byte[(int) Math.min(before.size(), limit)];
+    if (before.size() > limit) throw new IOException("ASSET_TOO_LARGE");
+    byte[] buffer = new byte[(int) before.size()];
     int read = 0;
     try (java.io.InputStream input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
       while (read < buffer.length) {
