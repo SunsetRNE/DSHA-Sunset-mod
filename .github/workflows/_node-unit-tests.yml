@@ -118,15 +118,29 @@ jobs:
         if: failure()
         run: |
           python3 - <<'PYCODE'
-          import glob, re
-          shown = 0
+          import glob, os, re
+          # 审查 P2-7：annotation 每步约 10 条上限，超出截断；完整清单进 $GITHUB_STEP_SUMMARY。
+          # 名称先转义 % 与换行，避免被当成 workflow command 语法。
+          def escape(value):
+              return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          rows, shown = [], 0
           for path in sorted(glob.glob('app/build/test-results/**/*.xml', recursive=True)):
               text = open(path, encoding='utf-8', errors='replace').read()
               for match in re.finditer(
                       r'<testcase name="([^"]+)" classname="([^"]+)"[^>]*>\s*<failure', text):
-                  print('::error::FAIL ' + match.group(2) + '.' + match.group(1))
-                  shown += 1
-          print('::error::failing test count: ' + str(shown))
+                  rows.append(match.group(2) + '.' + match.group(1))
+          summary = []
+          for name in rows[:10]:
+              print('::error::FAIL ' + escape(name))
+              summary.append('- ' + name)
+          if not rows:
+              print('::error::failing test count: 0（没有 XML 结果——大概率编译失败，看上方日志）')
+          else:
+              summary.append('')
+              summary.append('共 ' + str(len(rows)) + ' 个失败用例')
+          summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary_path:
+              open(summary_path, 'a', encoding='utf-8').write('\n'.join(summary) + '\n')
           PYCODE
 
       - name: Verify unit-test results
