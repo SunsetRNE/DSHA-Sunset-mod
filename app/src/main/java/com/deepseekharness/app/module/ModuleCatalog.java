@@ -258,13 +258,13 @@ public final class ModuleCatalog {
 
   /**
    * 移除一条统一模块。卡片走整目录事务清理；清单只删 module.json，不碰同目录卡片素材。
-   * 移除同时撤销执行授权，避免留下指向不存在模块的授权。
+   *
+   * <p>撤销授权必须放在<b>确认移除成功之后</b>，而且只清卡片自己的：原先在判断前无条件
+   * revoke，同 id 卡片与清单并存时（{@code load} 明确允许），删清单会把卡片的执行/程序/
+   * 生命周期/界面授权一起清掉。
    */
   public static boolean remove(Context context, Entry entry) {
     if (entry == null) return false;
-    ModuleExec.revoke(context, entry.id);
-    ModuleProgramAuth.revokeAll(context, entry.id);
-    ModuleLifecycleAuth.revoke(context, entry.id);
     boolean removed;
     if (entry.card != null) {
       ModuleCardStore.remove(context, entry.id);
@@ -275,6 +275,13 @@ public final class ModuleCatalog {
       } catch (java.io.IOException error) {
         removed = false;
       }
+    }
+    if (removed && entry.card != null) {
+      // 卡片类授权跟着卡片走；清单没有这些授权，别顺手清掉同 id 卡片的。
+      ModuleExec.revoke(context, entry.id);
+      ModuleProgramAuth.revokeAll(context, entry.id);
+      ModuleLifecycleAuth.revoke(context, entry.id);
+      ModuleSurfaceAuth.revokeAll(context, entry.id);
     }
     // 只有确定没有另一条同 id 模块时才清状态；否则会把另一个模块的开关一起清掉。
     if (removed) {

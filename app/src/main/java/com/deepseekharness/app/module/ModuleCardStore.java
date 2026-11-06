@@ -17,6 +17,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Objects;
 
 /**
  * 用户卡片模块的落盘与来源。
@@ -34,6 +38,9 @@ import java.util.UUID;
 public final class ModuleCardStore {
   private static final String DIR = "modules";
   private static final String FILE = "card.json";
+
+  /** 同目录可能并存声明式清单；移除卡片时要保留它。 */
+  private static final String MANIFEST_FILE = "module.json";
 
   /** 宿主落盘的卡片文件名；签名/校验和诊断共用。 */
   public static final String CARD_FILE = FILE;
@@ -154,10 +161,19 @@ public final class ModuleCardStore {
     return null;
   }
 
-  /** 指定宿主页面（home/settings/plugins）的接管模块；按模块 id 稳定取第一个。 */
+  /**
+   * 指定宿主页面（home/settings/plugins）的接管模块；按模块 id 稳定取第一个。
+   *
+   * <p>接管宿主界面必须有一次针对当前内容的显式授权（{@link ModuleSurfaceAuth#APP}）：
+   * 只看通用启用开关的话，用户为了试皮肤点一次启用，就等于允许模块替换主页内容区。
+   * 未授权就当作没有这个模块，渲染层拿到 null 就渲染原生界面。
+   */
   public static ModuleCard appCard(Context context, String surface) {
-    for (ModuleCard card : load(context))
-      if (card.app != null && card.app.targets.contains(surface)) return card;
+    for (ModuleCard card : load(context)) {
+      if (card.app == null || !card.app.targets.contains(surface)) continue;
+      String digest = contentDigest(directoryOf(context, card));
+      if (ModuleSurfaceAuth.isAllowed(context, card.id, ModuleSurfaceAuth.APP, digest)) return card;
+    }
     return null;
   }
 
@@ -277,6 +293,10 @@ public final class ModuleCardStore {
       // 1. 新内容整体先进暂存：card.json + 新素材 + 旧目录里同名沿用的素材。
       writeAtomically(new File(staging, FILE), raw);
       for (String name : card.assetNames()) {
+        // 卡片 JSON 来自容器，名字必须在这里再断言一次：../ 或绝对路径会让下面的
+        // new File(dir, name) / new File(staging, name) 写到模块目录之外。
+        if (!ModuleCard.isAssetFileName(name))
+          throw new IllegalArgumentException("模块素材名非法：" + name);
         int limit =
             card.isProgramAsset(name)
                 ? ModuleProgram.MAX_BYTES
@@ -488,7 +508,8 @@ public final class ModuleCardStore {
 
   /** 模块目录里某张图片的宿主路径；文件名不在本模块声明范围内或不存在时返回 null。 */
   public static File assetOf(Context context, ModuleCard card, String name) {
-    if (name == null || name.isEmpty() || !card.assetNames().contains(name)) return null;
+    if (name == null || name.isEmpty() || !ModuleCard.isAssetFileName(name)) return null;
+    if (!card.assetNames().contains(name)) return null;
     File dir = new File(new File(context.getFilesDir(), DIR), card.id);
     if (isSymlink(dir)) return null;
     File file = new File(dir, name);
@@ -512,11 +533,35 @@ public final class ModuleCardStore {
         .apply();
   }
 
+  /**
+   * 移除一张卡片。
+   *
+   * <p>同目录可能还放着同 id 的清单（{@code module.json}，{@code ModuleCatalog} 明确允许）：
+   * 那种情况只删卡片与它声明的素材，目录留给清单；没有清单就把整目录按 NOFOLLOW 清掉 ——
+   * 原先的 {@code dir.delete()} 在目录非空时直接失败，图片/网页/程序会一直留在
+   * {@code files/modules/<id>} 里，同 id 再次导入还会沿用这些旧字节。
+   */
   public static void remove(Context context, String cardId) {
     File dir = new File(new File(context.getFilesDir(), DIR), cardId);
     File card = new File(dir, FILE);
-    if (card.isFile()) card.delete();
-    dir.delete();
+    java.util.List<String> assets = new java.util.ArrayList<>();
+    if (card.isFile() && !isSymlink(card)) {
+      try {
+        assets.addAll(ModuleCard.parse(read(card)).assetNames());
+      } catch (RuntimeException | IOException ignored) {
+        // 坏卡片也要能移除；素材清单拿不到就只按目录处理。
+      }
+      card.delete();
+    }
+    if (new File(dir, MANIFEST_FILE).isFile()) {
+      for (String name : assets) {
+        if (!ModuleCard.isAssetFileName(name)) continue;
+        File asset = new File(dir, name);
+        if (asset.isFile() && !isSymlink(asset)) asset.delete();
+      }
+    } else {
+      deleteTree(dir);
+    }
     // 来源记录和旧版备份跟着模块一起清，不留孤儿数据。
     context
         .getSharedPreferences(INSTALL_PREFS, Context.MODE_PRIVATE)
@@ -537,10 +582,10 @@ public final class ModuleCardStore {
   public static void ensureSkill(File rootfsDir) {
     if (rootfsDir == null) return;
     File inbox = new File(rootfsDir, CONTAINER_DIR);
-    if (inbox.isDirectory() || inbox.mkdirs())
+    if (plainPath(inbox, rootfsDir, true))
       writeIfChanged(new File(inbox, "HOW-TO.md"), ModuleCard.SKILL);
     File skills = new File(rootfsDir, "root/.agents/skills/home-module");
-    if (skills.isDirectory() || skills.mkdirs())
+    if (plainPath(skills, rootfsDir, true))
       writeIfChanged(new File(skills, "SKILL.md"), ModuleCard.SKILL);
   }
 
@@ -566,9 +611,14 @@ public final class ModuleCardStore {
   public static int scanContainerInbox(Context context, File rootfsDir) {
     if (rootfsDir == null) return 0;
     File inbox = new File(rootfsDir, CONTAINER_DIR);
-    File[] files = inbox.listFiles();
     List<Issue> found = new ArrayList<>();
     int imported = 0;
+    // 投放目录本身必须是非链接的真实目录；是链接就当作「没有收件箱」，不读也不写。
+    if (!plainPath(inbox, rootfsDir, false)) {
+      publishInboxIssues(found);
+      return 0;
+    }
+    File[] files = inbox.listFiles();
     if (files != null) {
       for (File file : files) {
         if (file == null || !file.isFile() || isSymlink(file)) continue;
@@ -579,7 +629,7 @@ public final class ModuleCardStore {
           continue;
         }
         try {
-          String raw = read(file);
+          String raw = new String(readBytesNoFollow(file, MAX_BYTES), StandardCharsets.UTF_8);
           ModuleCard parsed = ModuleCard.parse(raw, ModuleCard.SOURCE_CONTAINER);
           java.util.Map<String, byte[]> assets = new java.util.LinkedHashMap<>();
           for (String assetName : parsed.assetNames()) {
@@ -595,7 +645,7 @@ public final class ModuleCardStore {
                 && !isSymlink(asset)
                 && asset.length() > 0
                 && asset.length() <= limit) {
-              assets.put(assetName, readBytes(asset));
+              assets.put(assetName, readBytesNoFollow(asset, limit));
             }
           }
           importCard(context, raw, assets, ModuleCard.SOURCE_CONTAINER);
@@ -612,6 +662,75 @@ public final class ModuleCardStore {
     }
     publishInboxIssues(found);
     return imported;
+  }
+
+  /**
+   * 目录存在且不是符号链接；{@code create} 为真时按需创建并复检。
+   *
+   * <p>容器可以把 {@code root/.dsha-modules} 换成指向宿主目录的软链，宿主若照旧
+   * {@code mkdirs()}+写入，就等于替攻击者往别处写文件。这里只接受真实目录。
+   */
+  private static boolean plainDirectory(File dir, boolean create) {
+    if (dir == null) return false;
+    java.nio.file.Path path = dir.toPath();
+    try {
+      if (Files.isSymbolicLink(path)) return false;
+      if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) return true;
+      if (!create) return false;
+      if (!dir.mkdirs()) return false;
+      return Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(path);
+    } catch (RuntimeException error) {
+      return false;
+    }
+  }
+
+  /**
+   * 从 {@code base} 到 {@code dir} 逐级确认是真实目录（不跟随符号链接），必要时逐级创建。
+   *
+   * <p>只检查最后一级不够：把 {@code root} 或 {@code root/.agents} 换成链接，后面的
+   * {@code mkdirs()} 就会替容器把目录建到别处。
+   */
+  private static boolean plainPath(File dir, File base, boolean create) {
+    if (dir == null || base == null) return false;
+    java.nio.file.Path basePath = base.getAbsoluteFile().toPath();
+    java.nio.file.Path target = dir.getAbsoluteFile().toPath();
+    if (!target.startsWith(basePath)) return false;
+    java.nio.file.Path current = basePath;
+    for (java.nio.file.Path part : basePath.relativize(target)) {
+      current = current.resolve(part);
+      try {
+        if (Files.isSymbolicLink(current)) return false;
+        if (Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS)) continue;
+        if (!create) return false;
+        Files.createDirectory(current);
+        if (!Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS)) return false;
+      } catch (java.io.IOException | RuntimeException error) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** 读普通文件：open 带 NOFOLLOW，读完比对 fileKey 与长度，读到一半被换掉就失败。 */
+  private static byte[] readBytesNoFollow(File file, int limit) throws IOException {
+    java.nio.file.Path path = file.toPath();
+    BasicFileAttributes before =
+        Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+    if (!before.isRegularFile()) throw new IOException("NOT_A_REGULAR_FILE");
+    byte[] buffer = new byte[(int) Math.min(before.size(), limit)];
+    int read = 0;
+    try (java.io.InputStream input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
+      while (read < buffer.length) {
+        int count = input.read(buffer, read, buffer.length - read);
+        if (count < 0) break;
+        read += count;
+      }
+    }
+    BasicFileAttributes after =
+        Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+    if (!Objects.equals(before.fileKey(), after.fileKey()) || before.size() != after.size())
+      throw new IOException("INBOX_FILE_CHANGED");
+    return java.util.Arrays.copyOf(buffer, read);
   }
 
   private static String read(File file) throws IOException {

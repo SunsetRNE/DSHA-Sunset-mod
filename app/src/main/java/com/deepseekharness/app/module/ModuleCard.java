@@ -997,8 +997,8 @@ public final class ModuleCard {
           String sub = skinColor(tokensJson, "sub", prefix);
           String iconTint = skinColor(tokensJson, "iconTint", prefix);
           String cardImage = tokensJson.optString("image", "").trim();
-          if (!cardImage.isEmpty()
-              && !image.matches("(?i)[a-z0-9][a-z0-9._-]{0,60}\\.(png|jpg|jpeg|webp)"))
+          // 校验的是 cardImage 自己：漏掉这一步会让 ../ 与绝对路径混进 assetNames()。
+          if (!cardImage.isEmpty() && !isImageName(cardImage))
             throw new IllegalArgumentException(prefix + ".image 必须是模块目录里的图片文件名");
           double imageOpacity = tokensJson.optDouble("opacity", 1.0);
           if (Double.isNaN(imageOpacity) || imageOpacity < 0 || imageOpacity > 1)
@@ -1006,8 +1006,9 @@ public final class ModuleCard {
           int cardRadius = tokensJson.optInt("radius", -1);
           if (cardRadius < -1 || cardRadius > 32)
             throw new IllegalArgumentException(prefix + ".radius 要在 0-32 之间");
+          // 这里同样要用 cardImage：用顶层 image 会把"只配了皮肤图"的合法条目判成空条目。
           if (bg.isEmpty()
-              && image.isEmpty()
+              && cardImage.isEmpty()
               && text.isEmpty()
               && sub.isEmpty()
               && iconTint.isEmpty()
@@ -1735,6 +1736,30 @@ public final class ModuleCard {
     for (Page page : pages.values()) if (page.view != null) collectViewImages(page.view, names);
     for (Program program : programs.values()) names.add(program.file);
     return new ArrayList<>(names);
+  }
+
+  /**
+   * 素材文件名的唯一合法形态：不含分隔符、不含 {@code ..}、非绝对路径、扩展名受控。
+   *
+   * <p>导入、读取、删除三条路径都必须走这个判断：卡片 JSON 来自容器，一个 {@code ../}
+   * 就能让宿主把文件写进别的模块目录（甚至宿主私有目录）。
+   */
+  static boolean isImageName(String name) {
+    return isAssetFileName(name)
+        && name.trim()
+            .toLowerCase(java.util.Locale.ROOT)
+            .matches("(?i)[a-z0-9][a-z0-9._-]{0,60}\\.(png|jpg|jpeg|webp)");
+  }
+
+  static boolean isAssetFileName(String name) {
+    if (name == null) return false;
+    String value = name.trim();
+    if (value.isEmpty() || value.length() > 64) return false;
+    if (value.indexOf('/') >= 0 || value.indexOf('\\') >= 0) return false;
+    if (value.contains("..")) return false;
+    if (value.startsWith(".")) return false;
+    return value.matches(
+        "(?i)[a-z0-9][a-z0-9._-]{0,60}\\.(png|jpg|jpeg|webp|html|css|js|json|sh|bin|sig)");
   }
 
   private static void collectViewImages(JSONArray nodes, java.util.Set<String> into) {
