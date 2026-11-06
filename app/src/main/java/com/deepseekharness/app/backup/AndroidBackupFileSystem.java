@@ -10,9 +10,12 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   private static final int O_PATH = 0x200000; // Linux UAPI；仅持有目录，不要求列出 /data 等父目录。
   // NDK r26 asm-generic/fcntl.h: 02000000；内核早已支持，Android Java 字段到 API 27 才公开。
   private static final int O_CLOEXEC = 0x80000;
-  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
-  // asm-generic/x86 uses 00200000 instead. Public OsConstants has no O_DIRECTORY.
-  private static final int O_DIRECTORY = 040000;
+  // O_DIRECTORY is per-ABI: arm/arm64 use 040000, x86/x86_64 (asm-generic) use 00200000.
+  // Using one for the other opens the directory with O_DIRECT, which the kernel rejects with
+  // EINVAL (that is the FILESYSTEM_22 stall on x86_64 emulators); on f2fs the same mistake is
+  // silently tolerated, which is why it is easy to ship. See util/DirectoryFlags.
+  private static final int O_DIRECTORY =
+      com.deepseekharness.app.util.DirectoryFlags.directoryOf(android.os.Build.SUPPORTED_ABIS);
 
   private static FileDescriptor anchored(File file, int flags, int mode)
       throws IOException, ErrnoException {

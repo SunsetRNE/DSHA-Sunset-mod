@@ -31,8 +31,10 @@ import org.robolectric.shadow.api.Shadow;
       AndroidBackupFileSystemReadTest.OwnedDescriptor.class
     })
 public final class AndroidBackupFileSystemReadTest {
-  // This shadow models the production arm64 ABI; host syscalls use os.O_DIRECTORY.
-  private static final int ARM64_O_DIRECTORY = 040000;
+  // 生产常量按 ABI 取值，这里用同一个函数，避免"测试与生产各写一个数"的自证式断言；
+  // 真实 ABI 语义（arm64 上 0x10000 是 O_DIRECT、目录 open 会 EINVAL）由 DirectoryFlagsTest 锁住。
+  private static final int EXPECTED_O_DIRECTORY =
+      com.deepseekharness.app.util.DirectoryFlags.directoryOf(android.os.Build.SUPPORTED_ABIS);
   // Exercise the final-open branch on Windows too, without inheriting its drive paths.
   private static final File LEAF =
       new File("/") {
@@ -68,7 +70,7 @@ public final class AndroidBackupFileSystemReadTest {
       assertTrue("Final links must remain forbidden", (flags & OsConstants.O_NOFOLLOW) != 0);
       if (directory) {
         assertTrue(
-            "Directory reads must demand an arm64 directory", (flags & ARM64_O_DIRECTORY) != 0);
+            "Directory reads must carry the ABI's O_DIRECTORY", (flags & EXPECTED_O_DIRECTORY) != 0);
         if (type != OsConstants.S_IFDIR) throw new ErrnoException("open", OsConstants.ENOTDIR);
       }
       if (symlink) throw new ErrnoException("open", OsConstants.ELOOP);
