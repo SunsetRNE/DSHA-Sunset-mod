@@ -12,9 +12,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import com.deepseekharness.app.R;
-import com.deepseekharness.app.util.ContainerSshSettings;
 import com.deepseekharness.app.core.HarnessController;
-import com.deepseekharness.app.core.RuntimeTasks;
+import com.deepseekharness.app.util.RuntimeWorkPort;
 import com.deepseekharness.app.util.ContainerSshPolicy;
 import com.deepseekharness.app.util.UiText;
 import java.io.BufferedReader;
@@ -44,7 +43,7 @@ public final class ContainerSshService extends Service {
           });
   private volatile boolean cancelled;
   private Process process;
-  private RuntimeTasks lease;
+  private RuntimeWorkPort.Work lease;
 
   public static boolean supported(Context context) {
     return ContainerSshAssets.supported(context);
@@ -125,7 +124,7 @@ public final class ContainerSshService extends Service {
       if (!ContainerSshPolicy.validPassword(secret))
         throw new IOException("SSH_PASSWORD_UNAVAILABLE");
       password = secret.toCharArray();
-      lease = RuntimeTasks.beginDetached("容器 SSH");
+      lease = RuntimeWorkPort.beginDetached("容器 SSH");
       // 监督器先完成原生出生身份握手，然后才接收密码所在的第二行 stdin。
       process =
           controller

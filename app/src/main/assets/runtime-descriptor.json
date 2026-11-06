@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "274c6b382684edd4cc6c919046e47d8ce5e1fff2d31cc701227470e1d98013c8",
+  "runtimeId": "71c867351abb578937f6877cc08e6ce7d24a4f193c3bc1565b2a2be5f9380a43",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -475,7 +475,8 @@
     "vscreen/VirtualScreenTransport.java": "bfff8f77d1cceacdad0a86f2423e366909fcd0424628f639457d53c8ed8e5d18",
     "vscreen/VscreenTargetEvidence.java": "69ed1429c81dd5169fd89d312511b463959e06318f5e87bfde8cc64c071f0bf3",
     "runtime/ContainerSshAssets.java": "5a45e4da783874e3397f59a4fd46f1c6a12faf74b33c19a3712768d9e854b482",
-    "runtime/ContainerSshService.java": "701eb5f891c5a45fc1cd90317ea516894145dd8b3a9710bda2dc1bc23d1e5d81"
+    "runtime/ContainerSshService.java": "c20ca39361d2c695ab739df4e6374ab09e7e78da6829781bb6c1f4d599b37eb0",
+    "runtime/ContainerSshSettings.java": "fcbc12df69dbc9a50c5edbdb4c5fbb5305075d32967e5af8b9aebfb5edad6b3c"
   },
   "bridgeProtocol": 3,
   "dataRead": [
