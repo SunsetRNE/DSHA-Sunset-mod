@@ -22,6 +22,16 @@ public final class BridgeRoutesTest {
     assertEquals(BridgeRoutes.Route.CONSENT_POLICY, BridgeRoutes.match("/app/native-policy"));
     assertEquals(BridgeRoutes.Route.CONSENT_POLICY, BridgeRoutes.match("/device/consent"));
     assertEquals(BridgeRoutes.Route.ENTRY_TARGET, BridgeRoutes.match("/app/entry-target"));
+    assertEquals(BridgeRoutes.Route.SAF_TREES, BridgeRoutes.match("/app/saf/trees"));
+    assertEquals(BridgeRoutes.Route.SAF_LS, BridgeRoutes.match("/app/saf/ls"));
+    assertEquals(BridgeRoutes.Route.SAF_STAT, BridgeRoutes.match("/app/saf/stat"));
+    assertEquals(BridgeRoutes.Route.SAF_READ, BridgeRoutes.match("/app/saf/read"));
+    assertEquals(BridgeRoutes.Route.SAF_WRITE, BridgeRoutes.match("/app/saf/write"));
+    assertEquals(BridgeRoutes.Route.SAF_MKDIR, BridgeRoutes.match("/app/saf/mkdir"));
+    assertEquals(BridgeRoutes.Route.SAF_RM, BridgeRoutes.match("/app/saf/rm"));
+    assertEquals(BridgeRoutes.Route.SAF_PULL, BridgeRoutes.match("/app/saf/pull"));
+    assertEquals(BridgeRoutes.Route.SAF_PUSH, BridgeRoutes.match("/app/saf/push"));
+    assertEquals(BridgeRoutes.Route.UNKNOWN, BridgeRoutes.match("/app/saf/unknown"));
     assertEquals(BridgeRoutes.Route.NET, BridgeRoutes.match("/app/net"));
     assertEquals(BridgeRoutes.Route.NET_RESOLVE, BridgeRoutes.match("/app/net/resolve"));
     assertEquals(BridgeRoutes.Route.EXTDEV_STATUS, BridgeRoutes.match("/app/extdev/status"));

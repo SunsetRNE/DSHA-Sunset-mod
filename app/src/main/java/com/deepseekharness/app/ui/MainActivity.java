@@ -973,6 +973,10 @@ public class MainActivity extends AppCompatActivity {
     else if (shown instanceof ConfigFragment) title.setText(R.string.ui2_runtime_config);
     else if (shown instanceof DeviceGrantsFragment)
       title.setText(com.deepseekharness.app.util.UiText.text("设备能力授权"));
+    else if (shown instanceof SafAccessFragment)
+      title.setText(com.deepseekharness.app.util.UiText.choose("跨应用文件访问", "Cross-app files"));
+    else if (shown instanceof SafBrowseFragment)
+      title.setText(com.deepseekharness.app.util.UiText.choose("浏览文件夹", "Browse folder"));
     else if (shown instanceof SkillsFragment)
       title.setText(com.deepseekharness.app.util.UiText.choose("技能", "Skills"));
     else if (shown instanceof WorkspaceFragment)

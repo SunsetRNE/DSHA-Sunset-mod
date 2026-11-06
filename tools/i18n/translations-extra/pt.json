@@ -1950,5 +1950,9 @@
   "x296plugin003": "Não é possível ler os metadados do plugin. Você pode remover a entrada de carregamento; o original permanece em Dados.",
   "x296plugin004": "Metadados do plugin indisponíveis",
   "x319keep001": "Manter a tela ligada",
-  "x319keep002": "Evita o apagamento automático; aplica-se à Web e ao terminal."
+  "x319keep002": "Evita o apagamento automático; aplica-se à Web e ao terminal.",
+  "x1972001": "Mais de 500 itens na pasta; não foi possível localizar o destino. Use um caminho mais curto no navegador/assistente.",
+  "x1972002": "O app de destino atingiu o tempo limite: tente mais tarde ou abra-o em segundo plano primeiro.",
+  "x1972003": "Esta pasta só concedeu gravação; autorize novamente permitindo leitura e gravação.",
+  "x1972004": "Esta pasta só concedeu gravação e o sistema não liberou o acesso; a limpeza será tentada novamente depois."
 }

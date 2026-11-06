@@ -17,6 +17,17 @@
 | LAN | 独立启用和鉴权、当前 Web 端口与有界连接 | LAN HTTP 是明文；不提供 TLS、受信配对或不受 Android 后台策略影响的承诺 |
 | 用户归档 | 完整认证/摘要、范围与双向记录核验，再预检 | 归档自述的健康或格式不成为本机证明 |
 
+## 跨应用文件访问（SAF）
+
+用户在「设置 → 设备能力授权 → 跨应用文件访问」通过系统文档选择器逐个目录授权，助手经 `/app/saf/*` 读写。授权记录只包含用户选中的树 URI、应用标签、读/写位与「本次新拿到的位」；撤销时只释放本次新增位，不误伤备份等其它功能已持有的授权。桥不接受直接 URI/authority，只接受 `/app/saf/trees` 里的短 id。
+
+- **Provider 是信任边界**：目录名、大小、子项与写入结果都来自目标 Provider；DSHA 只做路径/大小上限、URI 归属和本地策略校验，不能替代 Provider 自身的权限判断。Provider 挂起、忽略取消或返回异常时按 `TIMEOUT`/`PROVIDER_ERROR`/`SCAN_LIMIT` 失败关闭，不用本地猜测继续。
+- **容器侧固定身份**：容器路径使用 `O_NOFOLLOW|O_NONBLOCK`、`lstat/fstat` 身份与 `readlink /proc/self/fd/<fd>` 真实路径复核；目录逐级 `O_PATH|O_NOFOLLOW` 锚定，pull 经父目录 fd 原子发布，`AnchoredDirectory` 持有 dup 的 PFD 并在 close 时释放。拒绝 `nlink>1` 硬链接与 proot `.l2s` 实体；祖先目录被换链时失败关闭。
+- **流拥有 fd**：`openRead`/`openWrite`/`createInDirectory` 返回的流在 `close()` 中负责关闭底层 fd；写入先校验身份/真实路径再 `ftruncate`，避免预置硬链接或非预期文件被截断。
+- **写与删**：写/删要求该目录在本地开关里打开「允许写入」；只给写权限的树在添加时拒绝（`WRITE_ONLY`），旧只写记录读端点不可用，需用户移除后重新授权。`rm` 是两段式 + 一次性 token：首次只返回 `NEEDS_CONFIRM`（目标 + 子项数 + 60 秒 token，绑定 tree/path/目标身份），第二次必须带 `confirm=<token>` 且消费即删；`confirm=1` 一律返回 `CONFIRM_REQUIRED`，未知 token 同样拒绝，单条请求不能绕过确认。目录内容递归删除前先逐层只读预检，任何一层超过 500 子项直接 `SCAN_LIMIT`、不先删任何项（分页递归删除留待后续）。不再用「先列目录判空/非空」分支，避免检查与删除之间的竞态。
+- **上限与并发**：单次读 256 KiB、单次写/push/pull ≤32 MiB；同时最多 2 个 SAF 传输；每次公开操作一个独立的 15 秒截止时间（`CancelledSignal` + 看门狗），不可中断的 Provider 调用返回后再复核截止并映射 `TIMEOUT`。
+- **已知限制**：`cp/mv` 会新建 inode，DSHA 无法按 inode 识别「复制凭据内容」；本功能的边界是防误用/防直接读取，不是内容级防复制。`push` 覆盖已有文件时先 `"wt"` 截断，Provider 超时/取消/长度不符可能留下半截目标；写后长度的 `COLUMN_SIZE` 未知时只能验证写调用成功。`saf/` 目录已纳入 `managed-runtime-inputs.json` 的 `launcherTrees`（launchers 465→469）；它属于桥/安全层，必须被 `runtime-descriptor.json` pin 住。
+
 ## 终端与插件
 
 正式终端允许修复 shell；链接、本地包和更新通过包格式、路径、摘要与事务检查后自动安装启用，不再要求插件审阅。依赖允许未锁定重解析、生命周期脚本和 pnpmfile，并记录实际锁与目录摘要以支持回切。用户主动禁用及安全模式意图仍保持。
