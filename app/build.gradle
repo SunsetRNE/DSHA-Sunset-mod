@@ -481,7 +481,12 @@ def verifyBackupDependencies = tasks.register("verifyBackupDependencies") {
         }
         // 模拟器目标把 release 变体整体停用了，这个配置在那种构建下不存在；
         // 依赖锁只约束正式发布线，缺配置时跳过而不是让模拟器构建失败。
-        ["standardReleaseRuntimeClasspath"].findAll { configurations.findByName(it) != null }.each { name ->
+        // 审查 P2-10：非模拟器构建遇到缺配置必须照常失败，不能静默跳过。
+        def emulatorSkipped = project.findProperty('dsha.emulatorX64') == 'true'
+        def present = ["standardReleaseRuntimeClasspath"].findAll { configurations.findByName(it) != null }
+        if (present.isEmpty() && !emulatorSkipped)
+            throw new GradleException("备份依赖锁无法校验：standardReleaseRuntimeClasspath 缺失（非模拟器构建不应走到这里）")
+        present.each { name ->
             def resolved = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts
             lock.dependencies.each { expected ->
                 def selected = resolved.findAll { it.moduleVersion.id.group == expected.group && it.name == expected.name }

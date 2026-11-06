@@ -118,8 +118,12 @@ def add_configured_base(configured, archive):
                     if not target.issym() or not target.linkname.startswith(host_prefix):
                         raise ValueError('EMULATOR_L2S_TARGET_TYPE:' + name)
                     resolved = target.linkname[len(host_prefix):]
-            elif item.isdir() or item.issym():
+            elif item.isdir():
                 archive.addfile(item)
+            elif item.issym():
+                # 审查 P2-11：走出 /data/local/tmp 白名单的软链在此前分支未接住时，
+                # 生成阶段直接拒绝（应用端解包会按 guest 根解析，这里不再兜底放行）。
+                raise ValueError('EMULATOR_ROOTFS_LINK:' + name + ' -> ' + item.linkname)
             else:
                 raise ValueError('EMULATOR_ROOTFS_TYPE:' + name)
     if status is None:
@@ -411,7 +415,10 @@ def main():
             add_bytes(archive, 'var/lib/dpkg/status', status)
             add_bytes(archive, 'root/.dsha-ubuntu-tools-version', (package_lock + chr(10)).encode())
     tools_tmp.replace(tools_path)
-    write_json(OUTPUT / 'ubuntu-tools.manifest.json', {'schema': 1, 'archiveSha256': digest(tools_path), 'statusSha256': package_lock, 'packageLockSha256': package_lock, 'packages': sum(1 for paragraph in status.split(b'\n\n') if paragraph.startswith(b'Package:'))})
+    # 审查 P2-3：configured-overlay 契约里 packageLockSha256 承载的是 dpkg status
+    # 摘要（ColdToolsInstaller 把它当版本标记自洽使用），不是标准 ubuntu-tools
+    # 锁摘要——与标准 APK 的审计口径不同；调试包不进升级审计，字段附 note 声明。
+    write_json(OUTPUT / 'ubuntu-tools.manifest.json', {'schema': 1, 'archiveSha256': digest(tools_path), 'statusSha256': package_lock, 'packageLockSha256': package_lock, 'contract': 'configured-overlay-v1', 'fieldNote': 'packageLockSha256 here is the dpkg status digest (self-consistent version marker), not the standard ubuntu-tools lock digest', 'packages': sum(1 for paragraph in status.split(b'\n\n') if paragraph.startswith(b'Package:'))})
     (OUTPUT / 'ubuntu-tools.layout').write_text('configured-overlay-v1\n', encoding='ascii')
     for name in ('glibc-python.bin', 'python-support.bin'):
         # 空归档哨兵：表示「本 ABI 不随包 Python，rootfs 必须自带」。同样固定 mtime。
