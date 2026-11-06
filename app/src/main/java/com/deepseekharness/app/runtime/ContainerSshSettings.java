@@ -1,7 +1,8 @@
-package com.deepseekharness.app.util;
+package com.deepseekharness.app.runtime;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.deepseekharness.app.util.ContainerSshPolicy;
 
 /**
  * 容器 SSH 的开关与密码（默认关闭）。
