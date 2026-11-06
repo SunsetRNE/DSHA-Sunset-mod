@@ -70,7 +70,8 @@ public final class AndroidBackupFileSystemReadTest {
       assertTrue("Final links must remain forbidden", (flags & OsConstants.O_NOFOLLOW) != 0);
       if (directory) {
         assertTrue(
-            "Directory reads must carry the ABI's O_DIRECTORY", (flags & EXPECTED_O_DIRECTORY) != 0);
+            "Directory reads must carry the ABI's O_DIRECTORY",
+            (flags & EXPECTED_O_DIRECTORY) != 0);
         if (type != OsConstants.S_IFDIR) throw new ErrnoException("open", OsConstants.ENOTDIR);
       }
       if (symlink) throw new ErrnoException("open", OsConstants.ELOOP);
