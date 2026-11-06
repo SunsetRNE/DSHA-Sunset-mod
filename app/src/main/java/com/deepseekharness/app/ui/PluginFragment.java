@@ -1200,7 +1200,7 @@ public class PluginFragment extends Fragment {
       case DETAIL -> com.deepseekharness.app.util.UiText.text("查看详情");
       case COPY_NAME -> com.deepseekharness.app.util.UiText.text("复制插件名称");
       case COPY_SOURCE -> com.deepseekharness.app.util.UiText.text("复制来源链接");
-      case EXPORT -> com.deepseekharness.app.util.UiText.text("导出插件包");
+      case EXPORT -> com.deepseekharness.app.util.UiText.text("导出插件");
       case CHECK -> com.deepseekharness.app.util.UiText.text("检查插件更新");
       case UPDATE -> com.deepseekharness.app.util.UiText.format("更新至 %s", item.latestVersion);
       case ROLLBACK -> com.deepseekharness.app.util.UiText.format("回退至 %s", item.rollbackVersion);

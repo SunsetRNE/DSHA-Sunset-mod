@@ -340,7 +340,7 @@ public class ExtractActivity extends AppCompatActivity {
     if (failed) {
       message =
           UiText.format(
-                  "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可先点“导出可读副本”保存数据。",
+                  "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用「恢复中断维护」；也可先点「导出可读副本」保存数据。",
                   com.deepseekharness.app.util.UiStateText.render(s.kind),
                   s.lastStage.isEmpty()
                       ? UiText.choose(

@@ -1944,7 +1944,7 @@
   },
   {
     "id": "x1970254",
-    "zh": "旧端口正被占用，草稿仍保留。请待端口释放后从“恢复旧端口草稿”重试。",
+    "zh": "旧端口正被占用，草稿仍保留。请待端口释放后从「恢复旧端口草稿」重试。",
     "en": "The previous port is occupied. Drafts were retained. Retry after the port is released.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/BrowserOriginRestoreActivity.java"
@@ -2250,14 +2250,6 @@
     "id": "x1970292",
     "zh": "请选择",
     "en": "Choose an option",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/DshaSelectView.java"
-    ]
-  },
-  {
-    "id": "x1970293",
-    "zh": "已选择",
-    "en": "Selected",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DshaSelectView.java"
     ]
@@ -3374,7 +3366,7 @@
   },
   {
     "id": "x1970437",
-    "zh": "当前步骤被系统拒绝访问，尚不能判断是文件权限还是进程核验失败。请保持 DSHA 在前台，先点“恢复中断维护”重试；应用会保留原件，不会把失败显示成已恢复。\nPermission denied",
+    "zh": "当前步骤被系统拒绝访问，尚不能判断是文件权限还是进程核验失败。请保持 DSHA 在前台，先点「恢复中断维护」重试；应用会保留原件，不会把失败显示成已恢复。\nPermission denied",
     "en": "The system denied access during this step. Keep DSHA in the foreground and retry Recover interrupted maintenance; originals stay protected and a failed recovery is never shown as complete.\nPermission denied",
     "files": [
       "app/src/main/java/com/deepseekharness/app/util/MaintenanceErrorText.java"
@@ -3382,7 +3374,7 @@
   },
   {
     "id": "x1970438",
-    "zh": "维护历史记录已达到安全上限；原件和失败候选均未删除。请打开“保留数据”检查后再重试。",
+    "zh": "维护历史记录已达到安全上限；原件和失败候选均未删除。请打开「保留数据」检查后再重试。",
     "en": "The safe maintenance-history limit was reached. Originals and failed candidates were retained. Review Retained data, then retry.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/util/MaintenanceErrorText.java"
@@ -3390,7 +3382,7 @@
   },
   {
     "id": "x1970439",
-    "zh": "检测到未完成的维护事务；请先选择“恢复中断维护”，确认原环境回切后再继续。",
+    "zh": "检测到未完成的维护事务；请先选择「恢复中断维护」，确认原环境回切后再继续。",
     "en": "An interrupted maintenance transaction was found. Recover interrupted maintenance and confirm the original environment before continuing.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/util/MaintenanceErrorText.java"
@@ -3406,7 +3398,7 @@
   },
   {
     "id": "x1970441",
-    "zh": "系统拒绝了旧 Web 进程信号。应用会保留原环境；请保持 DSHA 前台并再次点“恢复中断维护”，系统将只对本次已登记的 Web 启动器执行优雅退出。",
+    "zh": "系统拒绝了旧 Web 进程信号。应用会保留原环境；请保持 DSHA 前台并再次点「恢复中断维护」，系统将只对本次已登记的 Web 启动器执行优雅退出。",
     "en": "The system denied the signal to the old Web process. The original environment is retained. Keep DSHA in the foreground and retry Recover interrupted maintenance; only this run's registered Web launcher will be asked to exit gracefully.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/util/MaintenanceErrorText.java"
@@ -4038,14 +4030,6 @@
     ]
   },
   {
-    "id": "x1970569",
-    "zh": "启动故障处理",
-    "en": "Startup recovery",
-    "files": [
-      "app/src/main/res/values/ui_refinement.xml"
-    ]
-  },
-  {
     "id": "x1970570",
     "zh": "查看问题与恢复方式",
     "en": "Review issues and recovery options",
@@ -4176,7 +4160,7 @@
   },
   {
     "id": "x1970586",
-    "zh": "在 DSH 对话中发送：\n“请打开系统设置，查看当前的显示设置。”\n\n首次操作按应用提示确认。你可以随时在系统无障碍设置中关闭服务。读屏与点按无需 Root、Shizuku 或 ADB；如果已完成 ADB 配对，后台保活会在部分系统掉线后请求重新绑定。截屏需要 Android 11+。",
+    "zh": "在 DSH 对话中发送：\n「请打开系统设置，查看当前的显示设置。」\n\n首次操作按应用提示确认。你可以随时在系统无障碍设置中关闭服务。读屏与点按无需 Root、Shizuku 或 ADB；如果已完成 ADB 配对，后台保活会在部分系统掉线后请求重新绑定。截屏需要 Android 11+。",
     "en": "In a DSH conversation, ask:\n“Open system settings and inspect the display settings.”\n\nConfirm the app prompt when requested. You can disable the service in Accessibility settings at any time. Observation and taps do not require Root, Shizuku or ADB. If ADB pairing is enabled, the watchdog can request a rebind after some ROMs disconnect the service. Screenshots require Android 11+.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/AccessibilitySetupActivity.java"
@@ -4208,7 +4192,7 @@
   },
   {
     "id": "x1970590",
-    "zh": "部分手机路径是：设置 → 更多设置 → 无障碍 → 已下载的服务。\n\nAndroid 13+ 若提示“受限设置”，在系统应用详情右上角菜单允许受限设置，再返回无障碍页面。只有你确认信任已安装的 DSHA 时才启用。\n\n开启后仍未连接，可关闭再开启服务，并允许 DSHA 后台运行。",
+    "zh": "部分手机路径是：设置 → 更多设置 → 无障碍 → 已下载的服务。\n\nAndroid 13+ 若提示「受限设置」，在系统应用详情右上角菜单允许受限设置，再返回无障碍页面。只有你确认信任已安装的 DSHA 时才启用。\n\n开启后仍未连接，可关闭再开启服务，并允许 DSHA 后台运行。",
     "en": "Some devices use Settings → Additional settings → Accessibility → Downloaded services.\n\nOn Android 13+, if the system reports restricted settings, use the app-info menu to allow restricted settings, then return to Accessibility. Enable only for your trusted DSHA installation.\n\nIf disconnected after enabling, toggle the service off and on and allow DSHA to run in the background.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/AccessibilitySetupActivity.java"
@@ -6181,7 +6165,7 @@
   },
   {
     "id": "x1970836",
-    "zh": "在文件管理器中添加本地存储，选择 DocumentsProvider → DSHA。找不到 DSHA 时，先打开本 App 后重试。",
+    "zh": "在文件管理器中添加本地存储，选择 DocumentsProvider → DSHA。找不到 DSHA 时，先打开本应用后重试。",
     "en": "Add local storage in your file manager and select DocumentsProvider → DSHA. Open this app first if DSHA is missing.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/StorageActivity.java"
@@ -7596,7 +7580,7 @@
   },
   {
     "id": "x1971029",
-    "zh": "手机操作尚未执行或已暂停。请在系统设置 → 应用 → DSHA → 通知中允许通知，并开启“手机任务状态”通知类别；该通知提供停止入口。允许后回原对话明确继续，不会自动重放。",
+    "zh": "手机操作尚未执行或已暂停。请在系统设置 → 应用 → DSHA → 通知中允许通知，并开启「手机任务状态」通知类别；该通知提供停止入口。允许后回原对话明确继续，不会自动重放。",
     "en": "Phone actions have not started or are paused. In Android Settings → Apps → DSHA → Notifications, allow notifications and enable the Phone task status category, which provides Stop. Then explicitly continue in the original conversation; nothing is replayed automatically.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/assistant/AssistantService.java"
@@ -8222,14 +8206,6 @@
     "id": "term1970010",
     "zh": "启动中",
     "en": "Starting",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
-    ]
-  },
-  {
-    "id": "term1970011",
-    "zh": "停止中",
-    "en": "Stopping",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/TerminalActivity.java"
     ]
@@ -9127,25 +9103,9 @@
     ]
   },
   {
-    "id": "termhome0059",
-    "zh": "运行环境 · 需要恢复",
-    "en": "Runtime environment · needs recovery",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
-    ]
-  },
-  {
     "id": "termhome0060",
     "zh": "Web 实例 · 待确认",
     "en": "Web instance · unconfirmed",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
-    ]
-  },
-  {
-    "id": "termhome0061",
-    "zh": "自动重启 · 已暂停",
-    "en": "Automatic restart · paused",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
@@ -9202,14 +9162,6 @@
     "id": "termhome0068",
     "zh": "需恢复",
     "en": "Repair",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
-    ]
-  },
-  {
-    "id": "termhome0069",
-    "zh": "进入中",
-    "en": "Opening",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
@@ -12294,14 +12246,6 @@
     ]
   },
   {
-    "id": "grt264a17",
-    "zh": "未启用",
-    "en": "Off",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
-    ]
-  },
-  {
     "id": "grt264a18",
     "zh": "未找到 su",
     "en": "No su",
@@ -14929,7 +14873,7 @@
   },
   {
     "id": "srec271a87",
-    "zh": "配置修复未完成，请使用“回滚未完成的修复”。",
+    "zh": "配置修复未完成，请使用「回滚未完成的修复」。",
     "en": "Configuration repair is incomplete. Select Roll back the unfinished repair.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java"
@@ -15245,14 +15189,6 @@
     ]
   },
   {
-    "id": "wcrash272a30",
-    "zh": "需要更新系统 WebView",
-    "en": "System WebView needs an update",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
-    ]
-  },
-  {
     "id": "wcrash272a31",
     "zh": "当前内核缺少对话页需要的能力。更新后重试，或先用系统浏览器打开。",
     "en": "The engine lacks features this page needs. Update it, or open in a browser for now.",
@@ -15423,14 +15359,6 @@
     ]
   },
   {
-    "id": "wcrash272a52",
-    "zh": "正在核对",
-    "en": "Verifying",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
-    ]
-  },
-  {
     "id": "wcrash272a53",
     "zh": "保活中",
     "en": "Watching",
@@ -15548,14 +15476,6 @@
     "id": "wcrash272a67",
     "zh": "凭据刷新失败",
     "en": "Credential refresh failed",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
-    ]
-  },
-  {
-    "id": "wcrash272a68",
-    "zh": "未检测",
-    "en": "Not checked",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/WebCrashPanel.java"
     ]

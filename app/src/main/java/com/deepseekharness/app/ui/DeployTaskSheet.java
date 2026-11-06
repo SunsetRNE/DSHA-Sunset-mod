@@ -219,7 +219,7 @@ final class DeployTaskSheet {
             "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the reason or enter the limited interface.");
       case PENDING:
         return UiText.choose(
-            "检测到未完成的维护事务；请先选择“恢复中断维护”，确认原环境回切后再继续。",
+            "检测到未完成的维护事务；请先选择「恢复中断维护」，确认原环境回切后再继续。",
             "An interrupted maintenance transaction was found. Recover interrupted maintenance and confirm the original environment before continuing.");
       default:
         return "";

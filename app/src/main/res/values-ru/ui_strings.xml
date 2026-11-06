@@ -15,11 +15,11 @@
     <string name="diag248_copy" formatted="false">"Копировать отчёт"</string>
     <string name="diag248_copy_sub" formatted="false">"Обезличенный текст для отзыва"</string>
     <string name="diag248_empty" formatted="false">"Результатов пока нет. Проверка только читает локальное состояние и не меняет среду."</string>
-    <string name="diag248_export" formatted="false">"Экспортировать диагностику"</string>
+    <string name="diag248_export" formatted="false">"Экспорт диагностики"</string>
     <string name="diag248_export_sub" formatted="false">"Пакет журналов; шаги по желанию"</string>
     <string name="diag248_feedback" formatted="false">"Отзыв"</string>
     <string name="diag248_idle_sub" formatted="false">"Проверка компонентов, хранилища и служб с обезличенным отчётом"</string>
-    <string name="diag248_idle_title" formatted="false">"Ещё не проверено"</string>
+    <string name="diag248_idle_title" formatted="false">"Не проверено"</string>
     <string name="diag248_plugins" formatted="false">"Менеджер плагинов"</string>
     <string name="diag248_plugins_sub" formatted="false">"Сбой запуска из-за плагинов"</string>
     <string name="diag248_repair_sub" formatted="false">"Заново подготовить сертификаты, Python, npm и pnpm"</string>

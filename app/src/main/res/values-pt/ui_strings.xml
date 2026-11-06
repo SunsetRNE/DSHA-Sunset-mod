@@ -65,7 +65,7 @@
     <string name="ui134_screen_setup" formatted="false">"Configurar controle da tela · Dois passos"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Inicie o Shizuku no respetivo gerenciador e autorize o DSHA aqui. Normalmente é necessário reiniciar o serviço após reiniciar o dispositivo."</string>
     <string name="ui134_start_records" formatted="false">"Logs de inicialização"</string>
-    <string name="ui134_startup_recovery" formatted="false">"Recuperar inicialização"</string>
+    <string name="ui134_startup_recovery" formatted="false">"Recuperação da inicialização"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"Problemas e recuperação"</string>
     <string name="ui2_about" formatted="false">"Sobre o DSHA"</string>
     <string name="ui2_about_sub" formatted="false">"Versão, licenças e comentários"</string>

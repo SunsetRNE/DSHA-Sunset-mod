@@ -48,8 +48,8 @@ public final class StorageHelpActivity extends AppCompatActivity {
         export, "导出选择「应用数据」可保存对话、附件、配置和用户插件，不会复制完整 Ubuntu。个人项目要另选目录；原生 API Key 默认不包含，需要时在导出页主动勾选。");
     paragraph(
         export,
-        "新导出文件为 DSHA-data-v5-….tar.gz，无需备份密码。请用系统保存窗口存到 App 外的文档、下载或云盘，并另留一份。导出完成后可先做恢复预检，确认范围和文件可读；预检不会立即覆盖当前数据。");
-    paragraph(export, "本机自动备份和重建保护副本仍在 App 内，不保证清除全部存储或卸载后可用。历史加密备份仍需保存原密码。");
+        "新导出文件为 DSHA-data-v5-….tar.gz，无需备份密码。请用系统保存窗口存到应用外的文档、下载或云盘，并另留一份。导出完成后可先做恢复预检，确认范围和文件可读；预检不会立即覆盖当前数据。");
+    paragraph(export, "本机自动备份和重建保护副本仍在应用内，不保证清除全部存储或卸载后可用。历史加密备份仍需保存原密码。");
     page.button(export, UiText.text("去导出重要数据"), true, () -> data("export"));
     page.entry(
         export,
@@ -65,7 +65,7 @@ public final class StorageHelpActivity extends AppCompatActivity {
     paragraph(
         rebuild,
         "影响：会停止 DSH、终端和正在执行的任务，需要时间和额外空间。额外安装的系统软件留在旧环境中，可能要在新环境重新安装。保护副本和旧环境按核验规则保留，不能保证重建后立刻腾出空间。");
-    paragraph(rebuild, "保护失败时不切换环境，后续失败会尝试回切原环境。建议先把重要数据导出到 App 外；只想腾空间时先用存储页的清理选项。");
+    paragraph(rebuild, "保护失败时不切换环境，后续失败会尝试回切原环境。建议先把重要数据导出到应用外；只想腾空间时先用存储页的清理选项。");
     page.entry(
         rebuild,
         UiText.text("打开安装与环境"),
@@ -86,10 +86,10 @@ public final class StorageHelpActivity extends AppCompatActivity {
 
     LinearLayout erase = section("Android 系统「清除全部存储／清除数据」");
     paragraph(
-        erase, "会删除 App 私有目录中的对话、附件、插件、配置、API Key、本机备份和 Ubuntu 环境。下次打开需要重新解压和设置。卸载应用也会删除这些私有数据。");
+        erase, "会删除应用私有目录中的对话、附件、插件、配置、API Key、本机备份和 Ubuntu 环境。下次打开需要重新解压和设置。卸载应用也会删除这些私有数据。");
     paragraph(
         erase,
-        "本机副本会随私有数据一起删除，不能依赖它救回数据。只有事先存到 App 外且可读的导出文件，才可在重新初始化后手动导入其中的数据范围。未导出的私有数据，App 无法恢复。");
+        "本机副本会随私有数据一起删除，不能依赖它救回数据。只有事先存到应用外且可读的导出文件，才可在重新初始化后手动导入其中的数据范围。未导出的私有数据，应用无法恢复。");
 
     LinearLayout growth = section("为什么占用会增长");
     paragraph(

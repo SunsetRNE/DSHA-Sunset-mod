@@ -52,7 +52,7 @@ public final class StorageActivity extends AppCompatActivity {
                 this,
                 t("文件共享", "File sharing"),
                 t(
-                    "在文件管理器中添加本地存储，选择 DocumentsProvider → DSHA。找不到 DSHA 时，先打开本 App 后重试。",
+                    "在文件管理器中添加本地存储，选择 DocumentsProvider → DSHA。找不到 DSHA 时，先打开本应用后重试。",
                     "Add local storage in your file manager and select DocumentsProvider → DSHA. Open this app first if DSHA is missing.")));
     LinearLayout overview = page.card();
     total = page.text("", 22, R.color.shell_text);

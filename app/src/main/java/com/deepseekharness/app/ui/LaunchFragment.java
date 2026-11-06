@@ -795,13 +795,13 @@ public class LaunchFragment extends Fragment {
     int tone;
     String context;
     if (needsRecovery) {
-      context = UiText.choose("运行环境 · 需要恢复", "Runtime environment · needs recovery");
+      context = UiText.choose("运行环境需要恢复", "Runtime environment · needs recovery");
       tone = R.color.shell_bad;
     } else if (unresolved) {
       context = UiText.choose("Web 实例 · 待确认", "Web instance · unconfirmed");
       tone = R.color.shell_bad;
     } else if (restartBlocked) {
-      context = UiText.choose("自动重启 · 已暂停", "Automatic restart · paused");
+      context = UiText.choose("自动重启已暂停", "Automatic restart · paused");
       tone = R.color.shell_warn;
     } else if (entering) {
       context = UiText.choose("本机工作台 · 正在进入", "Local workspace · opening");
@@ -846,13 +846,13 @@ public class LaunchFragment extends Fragment {
         value = UiText.choose("待确认", "Pending");
         valueTone = R.color.shell_bad;
       } else if (entering) {
-        value = UiText.choose("进入中", "Opening");
+        value = UiText.choose("进入中…", "Opening");
         valueTone = R.color.shell_good;
       } else if (restoring) {
         value = UiText.choose("核对中", "Check");
         valueTone = R.color.shell_accent;
       } else if (stopping) {
-        value = UiText.choose("停止中", "Stop");
+        value = UiText.choose("停止中…", "Stop");
         valueTone = R.color.shell_accent;
       } else if (starting) {
         value = UiText.choose("启动中", "Start");

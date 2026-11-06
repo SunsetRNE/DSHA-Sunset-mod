@@ -4,7 +4,7 @@
     <string name="diag248_status">状态</string>
     <string name="diag248_feedback">反馈</string>
     <string name="diag248_tools">工具</string>
-    <string name="diag248_idle_title">尚未检查</string>
+    <string name="diag248_idle_title">未检查</string>
     <string name="diag248_idle_sub">检查组件、存储与服务，生成脱敏报告</string>
     <string name="diag248_empty">还没有结果。检查只读取本机状态，不修改环境。</string>
     <string name="diag248_copy">复制诊断报告</string>

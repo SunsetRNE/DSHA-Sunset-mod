@@ -271,7 +271,7 @@ final class PermissionPanel {
       case PermissionGoals.STORAGE:
         return UiText.choose("存储读写", "Storage");
       case PermissionGoals.CHANNEL:
-        return UiText.choose("设备命令通道", "Device command channel");
+        return UiText.choose("设备执行通道", "Device command channel");
       case PermissionGoals.A11Y:
         return UiText.choose("无障碍", "Accessibility");
       case PermissionGoals.NOTIFY:

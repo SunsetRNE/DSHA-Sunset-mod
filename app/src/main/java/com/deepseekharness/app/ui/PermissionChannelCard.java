@@ -57,7 +57,7 @@ final class PermissionChannelCard {
     m.icon = R.drawable.ic_terminal;
     boolean stellar = com.deepseekharness.app.ShizukuManagerCompat.isStellar(ctx);
     boolean hasManager = com.deepseekharness.app.ShizukuManagerCompat.manager(ctx) != null;
-    m.title = UiText.choose("设备命令通道", "Device command channel");
+    m.title = UiText.choose("设备执行通道", "Device command channel");
     m.why =
         UiText.choose(
             "通过 Stellar 的 Shizuku 兼容层执行设备命令。Root 与 ADB 在设置中配置。",

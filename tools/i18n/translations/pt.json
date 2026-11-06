@@ -8,7 +8,6 @@
   "m0006": "Backup e reconstruir",
   "m0007": "Início seguro",
   "m0008": "Instalar e reparar",
-  "m0009": "Exportar plugins",
   "m0010": "Iniciar pareamento",
   "m0011": "Opções de recuperação",
   "m0012": "Endereço e porta manuais",
@@ -602,7 +601,6 @@
   "m0601": "Tarefa do ambiente em execução",
   "m0602": "Uma tarefa do ambiente está em execução. As verificações ADB estão pausadas e serão repetidas automaticamente depois.",
   "m0603": "Tarefa do ambiente em execução: ",
-  "m0604": "Ambiente não pronto. Conclua primeiro a instalação na página Instalar.",
   "m0605": "Ambiente não pronto. Conclua primeiro a instalação na página Instalar.",
   "m0606": "Ambiente não pronto. Conclua a instalação primeiro.",
   "m0607": "A manutenção do ambiente está incompleta. Retome a recuperação antes de abrir um terminal.",
@@ -1364,7 +1362,6 @@
   "m1363": "Falha na verificação da soma de verificação da exportação",
   "m1364": "Não iniciado",
   "m1365": "O Shizuku não está instalado. Instale e inicie, depois autorize aqui.",
-  "m1366": "Não verificado",
   "m1367": "Atualizações ainda não verificadas",
   "m1368": "Não pareado. Conclua primeiro o pareamento sem fio em Permissões do dispositivo.",
   "m1369": "Autorização root ainda não verificada",
@@ -2123,7 +2120,6 @@
   "device_checking": "Verificando autorização…",
   "device_files_title": "Acesso a todos os arquivos",
   "device_permissions": "Acesso a permissões",
-  "device_channels": "Canais de comandos do dispositivo",
   "plugin_sort_title": "Ordenar plugins",
   "plugin_sort_az": "Nome A–Z",
   "plugin_sort_za": "Nome Z–A",
@@ -2925,7 +2921,7 @@
   "ui2_address_sub": "Endereços locais e da LAN",
   "ui2_logs": "Log de inicialização",
   "ui2_expand": "Expandir",
-  "ui2_download": "Salvar",
+  "ui2_download": "Baixar",
   "ui2_shortcuts": "Acesso rápido",
   "ui2_settings_hint": "Dê um toque pessoal à sua espaço de trabalho.",
   "ui2_workspace": "Espaço de trabalho",
@@ -3519,7 +3515,6 @@
   "build158_14": "Compartilhar arquivo de trabalho",
   "build158_15": "Lendo pasta…",
   "build158_16": "Esta pasta não tem arquivos legíveis.",
-  "build158_17": "Operação de arquivo cancelada.",
   "build158_18": "O aplicativo reiniciou durante a escolha do destino. Selecione o arquivo novamente.",
   "build158_19": "O seletor de compartilhamento está aberto. Conclua a compartilhamento no aplicativo de destino.",
   "build158_20": "Toque em uma pasta para explorar ou em um arquivo para salvar ou compartilhar.",

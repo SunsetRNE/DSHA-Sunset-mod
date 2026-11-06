@@ -179,14 +179,14 @@ public final class PermissionPanelTest {
     assertTrue(texts.contains("悬浮窗"));
     // 未推荐的项收进“更多授权”，默认不显示。
     assertFalse(texts.contains("存储读写"));
-    assertFalse(texts.contains("设备命令通道"));
+    assertFalse(texts.contains("设备执行通道"));
     assertTrue(texts.contains("更多授权 · 3 项"));
     // 面板持有宿主的同一个 Set：就地增删后重绘即按新用途重排。
     goals.add(PermissionGoals.SHELL);
     panel.refresh();
     texts = texts(panel.view());
     assertTrue(texts.contains("推荐 0 / 4"));
-    assertTrue(texts.contains("设备命令通道"));
+    assertTrue(texts.contains("设备执行通道"));
     assertTrue(texts.contains("更多授权 · 2 项"));
     // 展开后未推荐的项才出现。
     View toggle = find(panel.view(), "更多授权 · 2 项");
@@ -206,7 +206,7 @@ public final class PermissionPanelTest {
     assertEquals(0, count(texts, "按你的用途推荐"));
     // 没有推荐项时全部直接列出，不再折叠。
     assertTrue(texts.contains("存储读写"));
-    assertTrue(texts.contains("设备命令通道"));
+    assertTrue(texts.contains("设备执行通道"));
     assertFalse(texts.stream().anyMatch(t -> t.startsWith("更多授权")));
     assertEquals(0, panel.recommendedTotal());
   }

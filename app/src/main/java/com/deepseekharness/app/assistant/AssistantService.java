@@ -403,7 +403,7 @@ public final class AssistantService extends Service {
               "The user is typing a message to you, so this phone action was not executed. Do not operate the phone; wait for the user's message. This turn has not been cancelled.");
       case "ASSISTANT_STOP_NOTIFICATION_REQUIRED" ->
           UiText.choose(
-              "手机操作尚未执行或已暂停。请在系统设置 → 应用 → DSHA → 通知中允许通知，并开启“手机任务状态”通知类别；该通知提供停止入口。允许后回原对话明确继续，不会自动重放。",
+              "手机操作尚未执行或已暂停。请在系统设置 → 应用 → DSHA → 通知中允许通知，并开启「手机任务状态」通知类别；该通知提供停止入口。允许后回原对话明确继续，不会自动重放。",
               "Phone actions have not started or are paused. In Android Settings → Apps → DSHA → Notifications, allow notifications and enable the Phone task status category, which provides Stop. Then explicitly continue in the original conversation; nothing is replayed automatically.");
       case "ASSISTANT_OVERLAY_PERMISSION_REQUIRED" ->
           UiText.choose(

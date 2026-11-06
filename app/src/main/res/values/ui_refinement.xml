@@ -12,7 +12,7 @@
   <string name="ui134_start_records">启动记录</string>
   <string name="ui134_recent_startups">最近五次启动</string>
   <string name="ui134_recent_startups_sub">阶段、实际错误与退出码</string>
-  <string name="ui134_startup_recovery">启动故障处理</string>
+  <string name="ui134_startup_recovery">启动恢复</string>
   <string name="ui134_startup_recovery_sub">查看问题与恢复方式</string>
   <string name="ui134_disconnect">断开 ADB 连接</string>
   <string name="ui134_root_hint">手机已 root 时可直接使用 su，无需 ADB 配对。首次执行请在 root 管理器中授权 DSHA；命令拦截档位可在下方选择，短信等原生闸门在三档都生效。</string>

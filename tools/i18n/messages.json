@@ -90,15 +90,6 @@
     ]
   },
   {
-    "id": "m0009",
-    "zh": "导出插件包",
-    "en": "Export plugins",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
-      "app/src/main/res/layout/fragment_plugins.xml"
-    ]
-  },
-  {
     "id": "m0010",
     "zh": "开始配对",
     "en": "Start pairing",
@@ -4471,7 +4462,7 @@
   },
   {
     "id": "m0546",
-    "zh": "未开启：仅能访问 App 私有目录；去系统设置开启后可访问全部文件",
+    "zh": "未开启：仅能访问应用私有目录；去系统设置开启后可访问全部文件",
     "en": "Disabled: only app-private storage is accessible. Enable all files access in system settings for other files.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
@@ -4936,14 +4927,6 @@
     "en": "Environment task running: ",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/InstallFragment.java"
-    ]
-  },
-  {
-    "id": "m0604",
-    "zh": "环境未就绪 —— 先到「安装」页装完再回来",
-    "en": "Environment not ready. Complete installation on the Install page first.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/PtyTerminalFragment.java"
     ]
   },
   {
@@ -11063,14 +11046,6 @@
     ]
   },
   {
-    "id": "m1366",
-    "zh": "尚未检查",
-    "en": "Not checked",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/util/InstallTask.java"
-    ]
-  },
-  {
     "id": "m1367",
     "zh": "尚未检查更新",
     "en": "Updates not yet checked",
@@ -17169,14 +17144,6 @@
     "id": "device_permissions",
     "zh": "权限访问",
     "en": "Permission access",
-    "files": [
-      "app/src/main/res/layout/fragment_device_grants.xml"
-    ]
-  },
-  {
-    "id": "device_channels",
-    "zh": "设备命令通道",
-    "en": "Device command channels",
     "files": [
       "app/src/main/res/layout/fragment_device_grants.xml"
     ]
@@ -23659,7 +23626,7 @@
   {
     "id": "ui2_download",
     "zh": "下载",
-    "en": "Save",
+    "en": "Download",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]
@@ -28471,7 +28438,7 @@
     "id": "build156_d343d0af604d"
   },
   {
-    "zh": "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用“恢复中断维护”；也可先点“导出可读副本”保存数据。",
+    "zh": "未完成的操作：%s\n最后记录阶段：%s\n\n%s\n\n原件状态：尚未确认恢复完成。请查看记录后使用「恢复中断维护」；也可先点「导出可读副本」保存数据。",
     "en": "Incomplete operation: %s\nLast recorded stage: %s\n\n%s\n\nOriginal state: recovery has not been confirmed. Inspect the record and use Recover interrupted maintenance, or first save your data with Export readable copy.",
     "uiFormat": true,
     "files": [
@@ -28845,14 +28812,6 @@
     ]
   },
   {
-    "id": "build158_17",
-    "zh": "已取消文件操作。",
-    "en": "File operation cancelled.",
-    "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java"
-    ]
-  },
-  {
     "id": "build158_18",
     "zh": "应用在选择保存位置期间重新启动，请重新选择文件导出。",
     "en": "The app restarted while choosing a destination. Select the file again.",
@@ -29030,7 +28989,7 @@
   },
   {
     "id": "issue88_storage_export_location",
-    "zh": "新导出文件为 DSHA-data-v5-….tar.gz，无需备份密码。请用系统保存窗口存到 App 外的文档、下载或云盘，并另留一份。导出完成后可先做恢复预检，确认范围和文件可读；预检不会立即覆盖当前数据。",
+    "zh": "新导出文件为 DSHA-data-v5-….tar.gz，无需备份密码。请用系统保存窗口存到应用外的文档、下载或云盘，并另留一份。导出完成后可先做恢复预检，确认范围和文件可读；预检不会立即覆盖当前数据。",
     "en": "New exports are DSHA-data-v5-….tar.gz files and need no backup password. Use the system save dialog to store the file outside the app, in Documents, Downloads or cloud storage, and keep another copy. Then inspect it before restoring to check its scope and readability. Inspection does not immediately overwrite current data.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
@@ -29038,7 +28997,7 @@
   },
   {
     "id": "issue88_storage_local_copies",
-    "zh": "本机自动备份和重建保护副本仍在 App 内，不保证清除全部存储或卸载后可用。历史加密备份仍需保存原密码。",
+    "zh": "本机自动备份和重建保护副本仍在应用内，不保证清除全部存储或卸载后可用。历史加密备份仍需保存原密码。",
     "en": "Local automatic backups and rebuild protection copies stay inside the app and are not guaranteed to survive clearing app storage or uninstalling. Keep the original passwords for older encrypted backups.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
@@ -29086,7 +29045,7 @@
   },
   {
     "id": "issue88_storage_rebuild_failure",
-    "zh": "保护失败时不切换环境，后续失败会尝试回切原环境。建议先把重要数据导出到 App 外；只想腾空间时先用存储页的清理选项。",
+    "zh": "保护失败时不切换环境，后续失败会尝试回切原环境。建议先把重要数据导出到应用外；只想腾空间时先用存储页的清理选项。",
     "en": "If data protection fails, the environment is not switched. Later failures attempt to return to the original environment. Export important data outside the app first. To free space, start with cleanup on the storage page.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
@@ -29158,7 +29117,7 @@
   },
   {
     "id": "issue88_storage_android_erase_scope",
-    "zh": "会删除 App 私有目录中的对话、附件、插件、配置、API Key、本机备份和 Ubuntu 环境。下次打开需要重新解压和设置。卸载应用也会删除这些私有数据。",
+    "zh": "会删除应用私有目录中的对话、附件、插件、配置、API Key、本机备份和 Ubuntu 环境。下次打开需要重新解压和设置。卸载应用也会删除这些私有数据。",
     "en": "This deletes conversations, attachments, plugins, settings, API keys, local backups and Ubuntu from the app's private directory. The next launch needs fresh extraction and setup. Uninstalling also deletes these private data.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
@@ -29166,7 +29125,7 @@
   },
   {
     "id": "issue88_storage_android_erase_recovery",
-    "zh": "本机副本会随私有数据一起删除，不能依赖它救回数据。只有事先存到 App 外且可读的导出文件，才可在重新初始化后手动导入其中的数据范围。未导出的私有数据，App 无法恢复。",
+    "zh": "本机副本会随私有数据一起删除，不能依赖它救回数据。只有事先存到应用外且可读的导出文件，才可在重新初始化后手动导入其中的数据范围。未导出的私有数据，应用无法恢复。",
     "en": "Local copies are deleted along with private data and cannot be relied on for recovery. Only a readable export saved outside the app beforehand can be imported manually after fresh setup, within its exported scope. The app cannot recover private data that was never exported.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/StorageHelpActivity.java"
@@ -30803,7 +30762,7 @@
   },
   {
     "id": "m9028",
-    "zh": "设置已保存，但系统未允许立即隐藏；下次打开 App 时重试",
+    "zh": "设置已保存，但系统未允许立即隐藏；下次打开应用时重试",
     "en": "Saved, but the system did not allow hiding now; it will retry next launch.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"

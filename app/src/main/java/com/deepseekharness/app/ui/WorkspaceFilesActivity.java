@@ -486,7 +486,7 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
         message = UiText.format("已保存文件：%s", notice.detail);
         break;
       case CANCELLED:
-        message = UiText.choose("已取消文件操作。", "File operation cancelled.");
+        message = UiText.choose("文件操作已取消。", "File operation cancelled.");
         break;
       case ERROR:
         message = UiText.format("文件操作未完成：%s\n可刷新目录，或返回上一级查找作品文件。", errorText(notice.detail));

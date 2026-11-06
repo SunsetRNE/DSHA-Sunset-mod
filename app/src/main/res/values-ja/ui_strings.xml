@@ -19,7 +19,7 @@
     <string name="diag248_export_sub" formatted="false">"構造化ログパッケージ。再現手順を添付可能"</string>
     <string name="diag248_feedback" formatted="false">"フィードバック"</string>
     <string name="diag248_idle_sub" formatted="false">"コンポーネント・ストレージ・サービスを確認し、マスク済みレポートを作成"</string>
-    <string name="diag248_idle_title" formatted="false">"未検査"</string>
+    <string name="diag248_idle_title" formatted="false">"未確認"</string>
     <string name="diag248_plugins" formatted="false">"プラグインマネージャー"</string>
     <string name="diag248_plugins_sub" formatted="false">"プラグインによる起動の問題を調べる"</string>
     <string name="diag248_repair_sub" formatted="false">"証明書・Python・npm・pnpm を再準備"</string>
@@ -65,7 +65,7 @@
     <string name="ui134_screen_setup" formatted="false">"画面操作を設定 · 2 つの手順"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Shizuku の管理アプリでサービスを起動してから、ここで DSHA を許可してください。通常は端末を再起動するたびにサービスの再起動が必要です。"</string>
     <string name="ui134_start_records" formatted="false">"起動記録"</string>
-    <string name="ui134_startup_recovery" formatted="false">"起動時の復旧"</string>
+    <string name="ui134_startup_recovery" formatted="false">"起動の復旧"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"問題と復旧方法を確認"</string>
     <string name="ui2_about" formatted="false">"DSHA について"</string>
     <string name="ui2_about_sub" formatted="false">"バージョン、ライセンス、フィードバック"</string>

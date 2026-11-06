@@ -1419,7 +1419,7 @@ public class TerminalActivity extends AppCompatActivity implements TerminalPane.
       case STARTING -> UiText.choose("启动中", "Starting");
       case READY -> UiText.choose("就绪", "Ready");
       case BUSY -> UiText.choose("执行中", "Busy");
-      case STOPPING -> UiText.choose("停止中", "Stopping");
+      case STOPPING -> UiText.choose("停止中…", "Stopping");
       case FAILED -> UiText.choose("失败 · 请检查", "Failed · inspect session");
       default -> UiText.choose("未运行", "Not running");
     };

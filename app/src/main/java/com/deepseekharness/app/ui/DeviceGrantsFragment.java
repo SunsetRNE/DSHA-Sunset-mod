@@ -1578,7 +1578,7 @@ public final class DeviceGrantsFragment extends Fragment {
       case GLOBAL_OFF -> offStateText();
       case GLOBAL_ATTENTION -> UiText.choose("需处理", "Check");
       case GLOBAL_UPDATING -> UiText.choose("更新中", "Updating");
-      case ROOT_OFF -> UiText.choose("未启用", "Off");
+      case ROOT_OFF -> UiText.choose("已关闭", "Off");
       case ROOT_NO_SU -> UiText.choose("未找到 su", "No su");
       case ROOT_STRICT -> UiText.choose("严格", "Strict");
       case ROOT_RELAXED -> UiText.choose("放宽", "Relaxed");
@@ -2244,7 +2244,7 @@ public final class DeviceGrantsFragment extends Fragment {
             ? com.deepseekharness.app.util.UiText.choose(
                 "已开启：可读写系统允许的共享存储；其他应用私有目录仍受系统限制",
                 "Allowed: shared storage permitted by Android; other apps' private directories remain restricted")
-            : com.deepseekharness.app.util.UiText.text("未开启：仅能访问 App 私有目录；去系统设置开启后可访问全部文件"));
+            : com.deepseekharness.app.util.UiText.text("未开启：仅能访问应用私有目录；去系统设置开启后可访问全部文件"));
     try {
       status.setTextColor(
           granted

@@ -65,7 +65,7 @@
     <string name="ui134_screen_setup" formatted="false">"Configurer le contrôle de l’écran · Deux étapes"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Démarrez Shizuku dans son gestionnaire, puis autorisez DSHA ici. Il faut généralement redémarrer le service après un redémarrage de l’appareil."</string>
     <string name="ui134_start_records" formatted="false">"Historique de démarrage"</string>
-    <string name="ui134_startup_recovery" formatted="false">"Réparer le démarrage"</string>
+    <string name="ui134_startup_recovery" formatted="false">"Récupération du démarrage"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"Problèmes et récupération"</string>
     <string name="ui2_about" formatted="false">"À propos de DSHA"</string>
     <string name="ui2_about_sub" formatted="false">"Version, licences et avis"</string>

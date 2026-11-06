@@ -885,7 +885,7 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
   private String readable(String value) {
     if (value.contains("RECOVERY_PENDING"))
       return t(
-          "配置修复未完成，请使用“回滚未完成的修复”。",
+          "配置修复未完成，请使用「回滚未完成的修复」。",
           "Configuration repair is incomplete. Select Roll back the unfinished repair.");
     if (value.contains("RECOVERY_BUSY"))
       return t("环境任务正在执行，完成后刷新即可。", "An environment task is running. Refresh when it finishes.");

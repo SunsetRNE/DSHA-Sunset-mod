@@ -133,7 +133,7 @@ public final class BrowserOriginRestoreActivity extends AppCompatActivity {
                             UiText.format(
                                 "%s\n%s · %s",
                                 UiText.choose(
-                                    "旧端口正被占用，草稿仍保留。请待端口释放后从“恢复旧端口草稿”重试。",
+                                    "旧端口正被占用，草稿仍保留。请待端口释放后从「恢复旧端口草稿」重试。",
                                     "The previous port is occupied. Drafts were retained. Retry after the port is released."),
                                 phase,
                                 code)));

@@ -150,7 +150,7 @@ public class SettingsFragment extends Fragment {
           if (!BrowserTasks.applyRecentsPreference(requireContext()))
             android.widget.Toast.makeText(
                     requireContext(),
-                    com.deepseekharness.app.util.UiText.text("设置已保存，但系统未允许立即隐藏；下次打开 App 时重试"),
+                    com.deepseekharness.app.util.UiText.text("设置已保存，但系统未允许立即隐藏；下次打开应用时重试"),
                     android.widget.Toast.LENGTH_LONG)
                 .show();
         });

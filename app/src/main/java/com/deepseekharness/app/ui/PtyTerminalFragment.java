@@ -303,7 +303,7 @@ public final class PtyTerminalFragment extends Fragment
         .setVisibility(selected == null ? View.VISIBLE : View.GONE);
     getView().findViewById(R.id.terminal_new).setEnabled(!creationPending);
     String status = "";
-    if (readiness != null && !readiness.ready()) status = UiText.text("环境未就绪 —— 先到「安装」页装完再回来");
+    if (readiness != null && !readiness.ready()) status = UiText.text("环境未就绪，请先到「安装」页完成安装");
     else if (!startError.isEmpty()) status = UiText.format("终端启动失败：%s", startError);
     else if (creationPending) status = UiText.choose("正在准备终端保护…", "Preparing terminal protection…");
     else if (tab != null && tab.isClosing()) status = UiText.text("正在关闭此终端…");

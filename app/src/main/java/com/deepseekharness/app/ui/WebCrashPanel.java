@@ -526,7 +526,7 @@ final class WebCrashPanel {
         };
       case WEBVIEW_OUTDATED:
         return new String[] {
-          UiText.choose("需要更新系统 WebView", "System WebView needs an update"),
+          UiText.choose("系统 WebView 需要更新", "System WebView needs an update"),
           UiText.choose(
               "当前内核缺少对话页需要的能力。更新后重试，或先用系统浏览器打开。",
               "The engine lacks features this page needs. Update it, or open in a browser for now.")
@@ -610,7 +610,7 @@ final class WebCrashPanel {
       case AUTO_WAITING_CHECKS:
         return UiText.choose("保活检查中", "Health checks running");
       case AUTO_VERIFYING:
-        return UiText.choose("正在核对", "Verifying");
+        return UiText.choose("正在校验", "Verifying");
       case AUTO_WATCHING:
         return UiText.choose("保活中", "Watching");
       case AUTO_OFF:
@@ -648,7 +648,7 @@ final class WebCrashPanel {
         return UiText.choose("凭据刷新失败", "Credential refresh failed");
       case CONNECTION_UNKNOWN:
       default:
-        return UiText.choose("未检测", "Not checked");
+        return UiText.choose("未检查", "Not checked");
     }
   }
 

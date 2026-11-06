@@ -19,7 +19,7 @@
     <string name="diag248_export_sub" formatted="false">"結構化日誌包，可附重現步驟"</string>
     <string name="diag248_feedback" formatted="false">"回饋"</string>
     <string name="diag248_idle_sub" formatted="false">"檢查元件、儲存與服務，生成脫敏報告"</string>
-    <string name="diag248_idle_title" formatted="false">"尚未檢查"</string>
+    <string name="diag248_idle_title" formatted="false">"未檢查"</string>
     <string name="diag248_plugins" formatted="false">"外掛管理"</string>
     <string name="diag248_plugins_sub" formatted="false">"排查外掛導致的啟動問題"</string>
     <string name="diag248_repair_sub" formatted="false">"重新準備憑證、Python、npm 與 pnpm"</string>
@@ -65,7 +65,7 @@
     <string name="ui134_screen_setup" formatted="false">"設定螢幕操作 · 兩步完成"</string>
     <string name="ui134_shizuku_hint" formatted="false">"先在 Shizuku 管理器啟動服務，再返回授權。手機重新啟動後通常需要重新啟動服務。"</string>
     <string name="ui134_start_records" formatted="false">"啟動記錄"</string>
-    <string name="ui134_startup_recovery" formatted="false">"啟動故障處理"</string>
+    <string name="ui134_startup_recovery" formatted="false">"啟動恢復"</string>
     <string name="ui134_startup_recovery_sub" formatted="false">"檢視問題與恢復方式"</string>
     <string name="ui2_about" formatted="false">"關於 DSHA"</string>
     <string name="ui2_about_sub" formatted="false">"版本、開源許可與回報"</string>

@@ -8,7 +8,6 @@
   "m0006": "Sauver et reconstruire",
   "m0007": "Démarrage sécurisé",
   "m0008": "Installer et réparer",
-  "m0009": "Exporter les plugins",
   "m0010": "Lancer l'association",
   "m0011": "Options de récupération",
   "m0012": "Adresse et port manuels",
@@ -602,7 +601,6 @@
   "m0601": "Tâche d'environnement en cours",
   "m0602": "Une tâche d'environnement est en cours. Les vérifications ADB sont suspendues et reprendront automatiquement ensuite.",
   "m0603": "Tâche d'environnement en cours : ",
-  "m0604": "Environnement non prêt. Terminez d'abord l'installation sur la page Installer.",
   "m0605": "Environnement non prêt. Terminez d'abord l'installation sur la page Installer.",
   "m0606": "Environnement non prêt. Terminez d'abord son installation.",
   "m0607": "La maintenance de l'environnement est incomplète. Reprenez la récupération avant d'ouvrir un terminal.",
@@ -1364,7 +1362,6 @@
   "m1363": "Échec de la vérification de la somme de contrôle de l'exportation",
   "m1364": "Non démarré",
   "m1365": "Shizuku n'est pas installé. Installez-le et démarrez-le, puis autorisez-le ici.",
-  "m1366": "Non vérifié",
   "m1367": "Mises à jour pas encore vérifiées",
   "m1368": "Non associé. Terminez d'abord l'association sans fil dans Autorisations de l'appareil.",
   "m1369": "Autorisation root pas encore vérifiée",
@@ -2123,7 +2120,6 @@
   "device_checking": "Vérification de l’autorisation…",
   "device_files_title": "Accès à tous les fichiers",
   "device_permissions": "Autorisations d’accès",
-  "device_channels": "Canaux de commande de l’appareil",
   "plugin_sort_title": "Trier les plugins",
   "plugin_sort_az": "Nom de A à Z",
   "plugin_sort_za": "Nom de Z à A",
@@ -2925,7 +2921,7 @@
   "ui2_address_sub": "Adresses locales et LAN",
   "ui2_logs": "Journal de démarrage",
   "ui2_expand": "Développer",
-  "ui2_download": "Enregistrer",
+  "ui2_download": "Télécharger",
   "ui2_shortcuts": "Accès rapide",
   "ui2_settings_hint": "Un espace de travail à votre image.",
   "ui2_workspace": "Espace de travail",
@@ -3519,7 +3515,6 @@
   "build158_14": "Partager le fichier de travail",
   "build158_15": "Lecture du dossier…",
   "build158_16": "Ce dossier ne contient aucun fichier lisible.",
-  "build158_17": "Opération sur le fichier annulée.",
   "build158_18": "L’application a redémarré pendant le choix d’une destination. Sélectionnez à nouveau le fichier.",
   "build158_19": "Le sélecteur de partage est ouvert. Terminez le partage dans l’application destinataire.",
   "build158_20": "Appuyez sur un dossier pour le parcourir, ou sur un fichier pour l’enregistrer ou le partager.",
