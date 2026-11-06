@@ -156,7 +156,8 @@
     "runtime-fs",
     "session-compat",
     "web-integration",
-    "destructive-policy"
+    "destructive-policy",
+    "container-ssh"
   ],
   "sourceInputs": [
     "offline-rootfs.bin",
@@ -301,6 +302,19 @@
         "licenses/gson-LICENSE.txt",
         "licenses/proot-COPYING.txt",
         "licenses/snakeyaml-LICENSE.txt"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshAssets.java",
+      "method": "manifest()/install(context, fs)",
+      "contract": "container-ssh ships sshd plus its runtime libraries as one signed-by-digest manifest; each payload-*.bin is verified against the sha256/bytes recorded in manifest.json before it is written into the guest, so the tree is read as a unit and never partially installed.",
+      "assets": [
+        "container-ssh/manifest.json",
+        "container-ssh/payload-0.bin",
+        "container-ssh/payload-1.bin",
+        "container-ssh/payload-2.bin",
+        "container-ssh/openssh-client-copyright.txt",
+        "container-ssh/libwrap0-copyright.txt"
       ]
     }
   ],
