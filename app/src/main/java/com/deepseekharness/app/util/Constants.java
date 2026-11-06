@@ -76,6 +76,9 @@ public final class Constants {
   /** 屏幕常亮：仅本机 UI 行为，默认关闭，不进入备份。 */
   public static final String KEY_KEEP_SCREEN_ON = "ui_keep_screen_on";
 
+  /** 隐藏后台：从最近任务隐藏本应用任务；仅本机 UI 行为，默认关闭，不进入备份。 */
+  public static final String KEY_HIDE_FROM_RECENTS = "hide_from_recents";
+
   /** 任务状态上岛（Android 16 实时活动 / promoted ongoing），默认开启。 */
   public static final String KEY_TASK_ISLAND = "task_island";
 

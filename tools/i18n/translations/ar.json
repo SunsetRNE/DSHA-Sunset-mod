@@ -3758,5 +3758,9 @@
   "ghlog_62": "Délai de vérification dépassé",
   "ghlog_63": "La vérification n'a pas abouti",
   "ghlog_64": "Non obtenues (vérification en ligne échouée)",
-  "ghlog_65": "Remarque : gh ne peut pas terminer la vérification TLS pour l'instant (chemin CA) ; le terminal affichera l'erreur réelle. Réparez l'environnement puis réessayez."
+  "ghlog_65": "Remarque : gh ne peut pas terminer la vérification TLS pour l'instant (chemin CA) ; le terminal affichera l'erreur réelle. Réparez l'environnement puis réessayez.",
+  "m9025": "إخفاء في الخلفية",
+  "m9026": "إخفاء DSHA من المهام الأخيرة",
+  "m9027": "تم الإخفاء من المهام الأخيرة؛ لا يتأثر الإشعار المستمر والخدمة في الخلفية.",
+  "m9028": "تم حفظ الإعداد، لكن النظام لم يسمح بالإخفاء الآن؛ ستتم إعادة المحاولة عند الفتح التالي."
 }

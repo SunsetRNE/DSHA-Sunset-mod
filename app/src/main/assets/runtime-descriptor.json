@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "cb2d3553577da7bc0ddb2306fcd198f31626bc9741b6c52b086732890ecfd3da",
+  "runtimeId": "04b24571d013bf1659803056c9328867a768fd277e5f7adb3d66bfbf634f1102",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -128,7 +128,7 @@
     "capabilities/WindowTargetEvidence.java": "b2785023fe3c6c41113e139c69d3f18d5013ae070e4bd2d65f0ab7177700265b",
     "core/BackupTask.java": "51011c77a504a46deb6b80fa1ac38cb1559e43b8ab8fa5bee9854cc387999b29",
     "core/ColdSetupTiming.java": "97a4cfca074bcc24552ee56343b562a7335099032e2f0eaf1099f2c7cd6026f1",
-    "core/ConfigStore.java": "252231dacdb703e3d0617da6ecaea1fa1df836cb4760a954227b377a7183a845",
+    "core/ConfigStore.java": "24c87568aa0ea172de62db301f8e5dc6fa2559bae4b65eb0946bb42b9b2d2356",
     "core/DeviceGrants.java": "b05c8398f6af538f4943eebed10f05c485fc7350a0122f087de272f933b12678",
     "core/DiagnosticHistory.java": "fe88fcc19be89c55ad47389f00e3848f18662eaff437e8141d9df7135e0877ee",
     "core/DiagnosticLog.java": "5cf3f9e261ca1d07658981b7e51e34ba00fbad1d06da97dc270cf3e1cbff620b",

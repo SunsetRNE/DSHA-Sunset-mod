@@ -30776,5 +30776,37 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/GitHubLoginFragment.java"
     ]
+  },
+  {
+    "id": "m9025",
+    "zh": "隐藏后台",
+    "en": "Hide in background",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "m9026",
+    "zh": "从最近任务中隐藏 DSHA",
+    "en": "Hide DSHA from Recents",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "m9027",
+    "zh": "已从最近任务隐藏；常驻通知与后台服务不受影响",
+    "en": "Hidden from Recents; the ongoing notification and background service are unaffected.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
+  },
+  {
+    "id": "m9028",
+    "zh": "设置已保存，但系统未允许立即隐藏；下次打开 App 时重试",
+    "en": "Saved, but the system did not allow hiding now; it will retry next launch.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
+    ]
   }
 ]

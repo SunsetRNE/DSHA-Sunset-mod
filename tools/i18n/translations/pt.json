@@ -3758,5 +3758,9 @@
   "ghlog_62": "確認がタイムアウトしました",
   "ghlog_63": "確認を完了できませんでした",
   "ghlog_64": "取得できません（オンライン確認失敗）",
-  "ghlog_65": "注意：現在 gh は TLS 検証を完了できません（CA パス）。ターミナルに実際のエラーが表示されます。環境を修復してから再試行してください。"
+  "ghlog_65": "注意：現在 gh は TLS 検証を完了できません（CA パス）。ターミナルに実際のエラーが表示されます。環境を修復してから再試行してください。",
+  "m9025": "Ocultar em segundo plano",
+  "m9026": "Ocultar o DSHA dos recentes",
+  "m9027": "Ocultado dos recentes; a notificação permanente e o serviço em segundo plano não são afetados.",
+  "m9028": "Configuração salva, mas o sistema não permitiu ocultar agora; tentaremos novamente na próxima abertura."
 }

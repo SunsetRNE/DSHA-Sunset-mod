@@ -318,11 +318,13 @@ final class BrowserTasks {
   }
 
   /** One Main card represents the app; browser/PiP hosts and old Main shells stay retained. */
-  static void reconcileRecents(Context context, int preferredMainTask) {
+  static boolean reconcileRecents(Context context, int preferredMainTask) {
+    boolean hideAll = false;
     try {
       ActivityManager manager =
           (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-      if (manager == null) return;
+      if (manager == null) return false;
+      hideAll = new com.deepseekharness.app.core.ConfigStore(context).isHideFromRecents();
       List<ActivityManager.AppTask> appTasks = manager.getAppTasks();
       List<BrowserTaskPolicy.Task> choices = new ArrayList<>();
       for (ActivityManager.AppTask task : appTasks) {
@@ -340,12 +342,40 @@ final class BrowserTasks {
                 info.id,
                 nativeHost,
                 !nativeHost && browserRoot(context, info.baseActivity),
-                selected);
+                selected,
+                hideAll);
         if (visibility != TaskNavigationPolicy.Recents.KEEP)
           task.setExcludeFromRecents(visibility == TaskNavigationPolicy.Recents.HIDE);
       }
+      return true;
     } catch (RuntimeException unavailable) {
       android.util.Log.w("DSHA", "TASK_RECENTS_ROUTE: " + unavailable.getClass().getSimpleName());
+      if (hideAll)
+        com.deepseekharness.app.core.DiagnosticLog.record(
+            context, "RECENTS_HIDE_APPLY", unavailable.toString());
+      return false;
+    }
+  }
+
+  /**
+   * 把「隐藏后台」偏好立即应用到本应用全部任务：开启时全部隐藏；关闭时先恢复显示，再按现有的
+   * 单张主卡规则重新分类。偏好由调用方先保存；系统拒绝时返回 false，由界面提示并在下次 Main
+   * 恢复时自动重试，不崩溃也不重放。
+   */
+  static boolean applyRecentsPreference(Context context) {
+    try {
+      ActivityManager manager =
+          (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+      if (manager == null) return false;
+      List<ActivityManager.AppTask> appTasks = manager.getAppTasks();
+      boolean hide = new com.deepseekharness.app.core.ConfigStore(context).isHideFromRecents();
+      for (ActivityManager.AppTask task : appTasks) task.setExcludeFromRecents(hide);
+      return hide || reconcileRecents(context, liveMainTask());
+    } catch (RuntimeException unavailable) {
+      android.util.Log.w("DSHA", "TASK_RECENTS_HIDE: " + unavailable.getClass().getSimpleName());
+      com.deepseekharness.app.core.DiagnosticLog.record(
+          context, "RECENTS_HIDE_APPLY", unavailable.toString());
+      return false;
     }
   }
 
