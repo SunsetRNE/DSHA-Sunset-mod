@@ -67,6 +67,70 @@
 - 容器写 `~/.dsha-modules/*.json` → 宿主自动收取 → 主页出现原生卡片 → 按钮执行脚本返回结果，全链路打通；
 - 运行时受管更新（runtimeId 变化触发）后，容器内模块与工具登记完整保留。
 
+### 2.4 怎么用：在自己的机器上重建 x86 包
+
+代码全在仓库里，产物和构建输入不在（`app/build/` 下，按设计不入 Git）。照着下面三步即可重建。
+
+**第 0 步：备四样输入**
+
+| 输入 | 要求 | 放哪 |
+|---|---|---|
+| NDK | **r26d / 26.3.11579264**（脚本会读 `source.properties` 校验） | 任意路径，传 `--ndk` |
+| 三个源码归档 | `proot.zip`、`talloc.tar.gz`、`shmem.tar.gz`；上游分别是 termux/proot 5.1.107.92、samba talloc、termux libandroid-shmem。脚本按 `SOURCES` 表里的 SHA-256 校验（`29385d1d…` / `dc46c40b…` / `1e5ff845…`），对不上会报 `EMULATOR_SOURCE_HASH` | 每个归档单独一个目录，**目录下必须有解包一层后的 `source/`**，如 `app/build/emulator-src/proot/{proot.zip, source/…}` |
+| x86_64 Ubuntu 根 | 一份 x86_64 Ubuntu 根目录的 tar 包，且：① 有 `var/lib/dpkg/status`（脚本拿它算 package_lock）；② 有 `usr/sbin/sshd`、`usr/bin/ssh-keygen`、`usr/lib/x86_64-linux-gnu/libwrap.so.0`；③ 里面所有 ELF 都必须是 x86_64（否则 `EMULATOR_FOREIGN_ELF`）；④ 绝对软链只能指向 `/data/local/tmp/dsha-x86-20261031/rootfs/`（否则 `EMULATOR_HOST_LINK`）。**路径必须在 `app/build/` 下面**（脚本强制 `relative_to`） | 例如 `app/build/x86-rootfs.tar.gz` |
+| 模块树 | `npm ci --prefix tools/dsh-runtime` 之后，用 `prepare-emulator-platform-packages.py` 补 linux-x64 可选包 | `tools/dsh-runtime/node_modules` |
+
+> 自建 x86_64 Ubuntu 根：拿官方 `ubuntu-base-*-amd64.tar.gz` 解开，在 x86_64 机器上 chroot 进去
+> `apt install openssh-server libwrap0`，再 `tar czf` 打包。脚本会自动剔除 `etc/ssh/ssh_host_*`、
+> `var/cache/apt`、`root/.ssh`、`etc/machine-id` 以及 `node_modules` 里除 npm 外的包，所以不用手工清理。
+
+**第 1 步：编 x86_64 原生库**（7 个 ELF → `app/build/emulator-native/jniLibs/x86_64/`）
+
+```bash
+python3 tools/build-emulator-native.py \
+  --ndk   /path/to/android-ndk-r26d \
+  --proot  app/build/emulator-src/proot \
+  --talloc app/build/emulator-src/talloc \
+  --shmem  app/build/emulator-src/shmem
+```
+
+**第 2 步：生成模拟器资产**（479 项 → `app/build/generated/emulatorAssets/`）
+
+```bash
+python3 tools/prepare-emulator-platform-packages.py --node-modules tools/dsh-runtime/node_modules
+python3 tools/prepare-emulator-assets.py \
+  --configured-rootfs app/build/x86-rootfs.tar.gz \
+  --node-modules tools/dsh-runtime/node_modules
+```
+
+**第 3 步：构建 x86 调试包**
+
+```bash
+# Linux/macOS
+./gradlew :app:assembleStandardDebug -Pdsha.emulatorX64=true
+# Windows PowerShell：-P 参数必须加引号
+.\gradlew.bat :app:assembleStandardDebug "-Pdsha.emulatorX64=true"
+```
+
+产物在 `app/build/emulator-target/outputs/apk/standard/debug/`。开关效果：`abiFilters=x86_64`、
+`applicationIdSuffix=.emulator`、`versionNameSuffix=-EmulatorX64Debug`、`BuildConfig.EMULATOR_X64=true`，
+构建目录与 ARM 线完全隔离（`app/build/emulator-target`），不加开关时产物与上游一致。
+
+**第 4 步：装到模拟器**
+
+```bash
+adb install -r app/build/emulator-target/outputs/apk/standard/debug/app-standard-debug.apk
+```
+
+包名是正式身份 + `.emulator`（如 `dsh.android.client.emulator`）；`tools/configure-user-emulator.cmd`
+是给 `emulator-5580` 做中文/1080x1920/120Hz 配置并拉起主页的辅助脚本，按需改端口与设备号。
+
+**三点边界**：
+
+1. `verifyEmulatorAssets` 挂在 `preBuild`，缺资产或回执会当场失败（不会静默打出没有 x86_64 JNI 的坏包）。
+2. 五个 CI job **都不带** `-Pdsha.emulatorX64=true`，x86 这条线在 CI 里没有编译覆盖，改完必须本地跑一遍。
+3. 这个目标只用于调试模拟器，不要用它出正式包；ARM 正式线不受任何影响。
+
 ## 三、顺带修复的上游相关 bug
 
 1. **`O_DIRECTORY` 跨架构常量错误**（`AndroidBackupFileSystem` / `AndroidDeviceFiles`）：原值 `040000` 是 arm32 的 `O_DIRECTORY`，在 64 位 ABI（arm64 与 x86_64 共用 asm-generic）上是 `O_DIRECT`——用 `O_DIRECT` 打开目录内核必返 `EINVAL`。x86_64 上表现为部署中断 `FILESYSTEM_22`；**对 ARM 真机这是同一个潜伏 bug**，已改为 `0x10000`（含测试常量同步）。
