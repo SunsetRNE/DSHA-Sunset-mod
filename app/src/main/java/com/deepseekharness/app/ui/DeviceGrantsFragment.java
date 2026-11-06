@@ -480,7 +480,7 @@ public final class DeviceGrantsFragment extends Fragment {
         titleText,
         () ->
             UiText.choose(
-                "在容器内启动 OpenSSH 服务器（端口 22222），供 SSH 客户端以 dsha 用户登录调试环境。密码在本机用设备密钥加密保存，只通过标准输入交给启动脚本，不进命令行或日志。默认只监听 127.0.0.1；开启局域网访问后监听 0.0.0.0，并要求系统局域网授权。这会暴露容器命令行，请设置强密码。",
+                "在容器内启动 OpenSSH 服务器（端口 22222），供 SSH 客户端以 dsha 用户登录调试环境。密码在本机用设备密钥加密保存，只通过标准输入交给启动脚本，不进命令行或日志。默认只监听 127.0.0.1；开启局域网访问后监听 0.0.0.0，并要求系统局域网授权，改动在重启 SSH 后生效。这会暴露容器命令行，请设置强密码。",
                 "Starts an OpenSSH server inside the container (port 22222) so SSH clients can sign in as user dsha to debug the environment. The password is stored on this device with a device-key-encrypted vault and is handed to the launch script through standard input only, never argv or logs. It listens on 127.0.0.1 by default; enabling LAN access listens on 0.0.0.0 and requires the system local-network permission. This exposes the container command line, so use a strong password."));
     title.setMinHeight(0);
     containerSshStatus = new TextView(ctx, null, 0, R.style.ShellRowSub);
@@ -504,35 +504,22 @@ public final class DeviceGrantsFragment extends Fragment {
     switchParams.setMarginStart(dp(4));
     row.addView(containerSsh, switchParams);
     card.addView(row, new android.widget.LinearLayout.LayoutParams(-1, -2));
-    // 局域网子开关：与 config 页的子行一致，缩进并与主开关同步禁用。
-    android.widget.LinearLayout lanRow = new android.widget.LinearLayout(ctx);
-    lanRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-    lanRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-    lanRow.setMinimumHeight(getResources().getDimensionPixelSize(R.dimen.grants_channel_row));
-    lanRow.setPadding(dp(16), 0, 0, 0);
-    android.widget.LinearLayout lanText = new android.widget.LinearLayout(ctx);
-    lanText.setOrientation(android.widget.LinearLayout.VERTICAL);
-    lanText.setPadding(0, dp(2), 0, dp(2));
-    TextView lanTitle = new TextView(ctx, null, 0, R.style.ShellRowTitle);
-    lanTitle.setText(getString(R.string.ui_m0063));
-    lanText.addView(lanTitle, new android.widget.LinearLayout.LayoutParams(-2, -2));
-    TextView lanSub = new TextView(ctx, null, 0, R.style.ShellRowSub);
-    lanSub.setText(
-        UiText.choose(
-            "开启后监听 0.0.0.0 并要求局域网授权；改动在重启 SSH 后生效。默认只监听 127.0.0.1。",
-            "Listens on 0.0.0.0 when enabled and requires the local-network permission; changes apply after SSH restarts. The default is 127.0.0.1 only."));
-    android.widget.LinearLayout.LayoutParams lanSubParams =
-        new android.widget.LinearLayout.LayoutParams(-1, -2);
-    lanSubParams.topMargin = dp(3);
-    lanText.addView(lanSub, lanSubParams);
-    lanRow.addView(lanText, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
+    // 局域网子开关：单行紧凑开关（ConfigSwitchRow 的尺寸属性手动套用——MaterialSwitch
+    // 没有 defStyleRes 构造器），语义（0.0.0.0/重启生效/需授权）在主行 ⓘ 里，不另占副行。
     containerSshLan = new MaterialSwitch(ctx);
+    containerSshLan.setTextAppearance(ctx, R.style.ConfigSwitchRow);
+    containerSshLan.setText(getString(R.string.ui_m0063));
     containerSshLan.setContentDescription(getString(R.string.ui_m0063));
-    android.widget.LinearLayout.LayoutParams lanSwitchParams =
-        new android.widget.LinearLayout.LayoutParams(-2, -2);
-    lanSwitchParams.setMarginStart(dp(4));
-    lanRow.addView(containerSshLan, lanSwitchParams);
-    card.addView(lanRow, new android.widget.LinearLayout.LayoutParams(-1, -2));
+    containerSshLan.setMinHeight(getResources().getDimensionPixelSize(R.dimen.config_row_min));
+    containerSshLan.setPadding(
+        getResources().getDimensionPixelSize(R.dimen.config_row_pad_start),
+        0,
+        getResources().getDimensionPixelSize(R.dimen.config_row_pad_end),
+        0);
+    card.addView(
+        containerSshLan,
+        new android.widget.LinearLayout.LayoutParams(
+            -1, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
     if (!supported) {
       // 没有随包 SSH 资产（或架构不符）时整块保留但不可用，说明原因而不是悄悄消失。
       containerSsh.setEnabled(false);

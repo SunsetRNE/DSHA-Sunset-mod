@@ -224,8 +224,9 @@ public final class DeviceGrantsLayoutTest {
         page.findViewById(R.id.screen_virtual_group).getParent());
     int channels = page.findViewById(R.id.grants_section_channels).getHeight();
     int screen = page.findViewById(R.id.grants_section_screen).getHeight();
-    // T125 起通道状态在标题左列下方独立一行（允许长句换行），四行通道实测 462；预算按一行余量放宽到 500。
-    assertTrue("channels too tall: " + channels, channels <= 500);
+    // T125 起通道状态在标题左列下方独立一行（允许长句换行），四行通道实测 462；
+    // 本分支再并入容器 SSH（实验性）主行 + 局域网单行开关，实测 578；预算按一行余量放宽到 590。
+    assertTrue("channels too tall: " + channels, channels <= 590);
     // T96 的虚拟屏预览档位行并入屏幕卡；T120 起确认方式说明改折叠卡，收起态多保留一行
     // 安全后果（实测 504），预算按一行余量放宽到 520。
     assertTrue("screen too tall: " + screen, screen <= 520);
