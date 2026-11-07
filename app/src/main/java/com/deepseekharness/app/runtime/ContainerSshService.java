@@ -44,6 +44,7 @@ public final class ContainerSshService extends Service {
   private volatile boolean cancelled;
   private Process process;
   private RuntimeWorkPort.Work lease;
+  private volatile java.io.File keysDirectory;
 
   public static boolean supported(Context context) {
     return ContainerSshAssets.supported(context);
@@ -136,7 +137,7 @@ public final class ContainerSshService extends Service {
                       + com.deepseekharness.app.util.ShellQuote.arg(
                           ContainerSshPolicy.script(ContainerSshSettings.lanEnabled(this))),
                   builder -> {
-                    ContainerSshAssets.bind(this, builder);
+                    keysDirectory = ContainerSshAssets.bind(this, builder);
                     builder.pipedInput(true);
                   });
       byte[] bytes = utf8WithNewline(password);
@@ -217,8 +218,18 @@ public final class ContainerSshService extends Service {
         }
         process.destroyForcibly();
         // destroyForcibly 只作用于 proot 启动器；容器内 sshd/会话可能仍在退出中。
-        // 交给退出监听持有租约，确认退出后才释放维护屏障；不能提前 close()。
+        // 交给退出监听持有租约，确认启动器退出；不能提前 close()。
         lease.retainUntilExit(process);
+        // 再核脚本自己记录的 sshd pid（/proc 出生身份逐字一致）：
+        // proroot 下容器内 sshd 可能比启动器活得久，未确认就报 stopped 是 fail-open。
+        java.nio.file.Path pidFile =
+            keysDirectory == null ? null : keysDirectory.toPath().resolve("sshd.pid");
+        if (!com.deepseekharness.app.util.ContainerSshExitProof.awaitPidExit(pidFile, 10_000)) {
+          // 未确认 guest 退出：保持租约与通知，不改写为 stopped。
+          state = "SSH_CLEANUP_UNCONFIRMED";
+          notifyState();
+          return;
+        }
         process = null;
         lease = null;
       } else if (lease != null) {
@@ -235,6 +246,17 @@ public final class ContainerSshService extends Service {
     }
   }
 
+  /** 通知里的状态用可读文案；未知状态码（诊断用）保持原样不翻译。 */
+  private static String displayState(String raw) {
+    if (raw == null) return "";
+    return switch (raw) {
+      case "running" -> UiText.text("运行中");
+      case "starting" -> UiText.text("启动中…");
+      case "stopping" -> UiText.text("停止中…");
+      default -> raw;
+    };
+  }
+
   private Notification notification() {
     Intent stop = new Intent(this, ContainerSshService.class).setAction(STOP);
     PendingIntent action =
@@ -243,7 +265,7 @@ public final class ContainerSshService extends Service {
     return new NotificationCompat.Builder(this, CHANNEL)
         .setSmallIcon(R.drawable.ic_terminal)
         .setContentTitle(UiText.choose("容器 SSH", "Container SSH"))
-        .setContentText(state + " · dsha · " + PORT)
+        .setContentText(displayState(state) + " · dsha · " + PORT)
         .setOngoing(true)
         .addAction(0, UiText.choose("停止", "Stop"), action)
         .setCategory(Notification.CATEGORY_SERVICE)

@@ -3,7 +3,9 @@ package com.deepseekharness.app.util;
 /** 容器 OpenSSH 的固定脚本；密码只由 stdin 读入，不拼接进 argv 或日志。 */
 public final class ContainerSshPolicy {
   public static final int PORT = 22222;
-  private static final String HOME = "/run/dsha-container-ssh";
+
+  /** 容器内密钥/配置根；runtime 侧 {@code ContainerSshAssets} 引用同一常量。 */
+  public static final String HOME = "/run/dsha-container-ssh";
 
   private ContainerSshPolicy() {}
 
