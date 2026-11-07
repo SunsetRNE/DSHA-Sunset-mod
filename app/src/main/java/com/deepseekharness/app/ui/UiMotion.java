@@ -190,7 +190,7 @@ public final class UiMotion {
   }
 
   /**
-   * 按下轻微缩放；返回 false 不吞触摸，点击与无障碍仍由原控件处理。
+   * 按下轻微缩放与触觉反馈；返回 false 不吞触摸，点击与无障碍仍由原控件处理。
    *
    * <p>只给没有自定义 OnTouchListener 的按钮使用，避免覆盖业务手势。
    */
@@ -198,27 +198,64 @@ public final class UiMotion {
     if (view == null) return;
     view.setOnTouchListener(
         (target, event) -> {
+          int action = event.getActionMasked();
+          if (action == MotionEvent.ACTION_DOWN && target.isEnabled()) {
+            try {
+              target.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+            } catch (RuntimeException ignored) {
+              /* 单元测试或无震动器设备忽略。 */
+            }
+          }
           if (!animationsEnabled(target.getContext())) return false;
-          switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN ->
+          switch (action) {
+            case MotionEvent.ACTION_DOWN -> {
+              if (target.isEnabled()) {
                 target
                     .animate()
-                    .scaleX(0.985f)
-                    .scaleY(0.985f)
-                    .setDuration(90L)
+                    .scaleX(0.965f)
+                    .scaleY(0.965f)
+                    .alpha(0.92f)
+                    .setDuration(80L)
                     .setInterpolator(STANDARD)
                     .start();
+              }
+            }
             case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
                 target
                     .animate()
                     .scaleX(1f)
                     .scaleY(1f)
-                    .setDuration(140L)
+                    .alpha(1f)
+                    .setDuration(150L)
                     .setInterpolator(STANDARD)
                     .start();
             default -> {}
           }
           return false;
         });
+  }
+
+  static void pressScaleAll(View... views) {
+    if (views == null) return;
+    for (View view : views) pressScale(view);
+  }
+
+  /**
+   * 递归扫描视图树，为所有普通 Button（不含 CheckBox/Switch/RadioButton）和 ImageButton 挂载按压缩放与触觉反馈。
+   */
+  static void attachHierarchyPressScale(View root) {
+    if (root == null) return;
+    if (root instanceof android.widget.ImageButton) {
+      pressScale(root);
+    } else if (root instanceof android.widget.Button
+        && !(root instanceof android.widget.CompoundButton)) {
+      pressScale(root);
+    }
+    if (root instanceof ViewGroup group) {
+      int count = group.getChildCount();
+      for (int i = 0; i < count; i++) {
+        attachHierarchyPressScale(group.getChildAt(i));
+      }
+    }
   }
 }

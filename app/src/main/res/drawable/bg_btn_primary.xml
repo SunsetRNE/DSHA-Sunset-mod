@@ -19,6 +19,12 @@
                     <corners android:radius="@dimen/radius_control" />
                 </shape>
             </item>
+            <item android:state_pressed="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/primary_dark" />
+                    <corners android:radius="@dimen/radius_control" />
+                </shape>
+            </item>
             <item>
                 <shape android:shape="rectangle">
                     <solid android:color="@color/primary" />

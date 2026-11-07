@@ -146,6 +146,31 @@ public class LaunchFragment extends Fragment {
     v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
     restart.setText(R.string.ui2_restart);
     applySchemeALayout(v);
+    View metricsView = v.findViewById(R.id.launch_metrics);
+    if (metricsView instanceof ViewGroup metrics && metrics.getChildCount() >= 3) {
+      View portBadgeView = metrics.getChildAt(2);
+      if (portBadgeView instanceof ViewGroup portBadge && portBadge.getChildCount() > 0) {
+        View portLabelView = portBadge.getChildAt(0);
+        if (portLabelView instanceof TextView portLabel) {
+          bindDualText(portLabel, "Web 端口", "Web port");
+        }
+      }
+    }
+    UiMotion.pressScaleAll(
+        start,
+        restart,
+        stop,
+        v.findViewById(R.id.launch_safe),
+        v.findViewById(R.id.launch_recovery),
+        v.findViewById(R.id.launch_terminal_row),
+        v.findViewById(R.id.launch_environment_row),
+        v.findViewById(R.id.launch_address),
+        v.findViewById(R.id.launch_copy_logs),
+        v.findViewById(R.id.launch_download_logs),
+        v.findViewById(R.id.launch_log_tab_overview),
+        v.findViewById(R.id.launch_log_tab_raw),
+        v.findViewById(R.id.launch_log_expand),
+        v.findViewById(R.id.launch_latest_button));
     v.findViewById(R.id.launch_recovery).setOnClickListener(x -> showRecovery());
     v.findViewById(R.id.launch_safe)
         .setOnClickListener(
@@ -1018,6 +1043,17 @@ public class LaunchFragment extends Fragment {
     accessCopyButton = content.findViewById(R.id.access_copy);
     Button closeButton = content.findViewById(R.id.access_close);
     closeButton.setText(UiText.choose("关闭", "Close"));
+    bindDualText(
+        content.findViewWithTag("access_subtitle"),
+        "通过本机浏览器调试，或在同一可信局域网内共享工作台",
+        "Connect locally or share workspace on a trusted LAN");
+    bindDualText(content.findViewWithTag("local_title"), "本机访问", "On this phone");
+    bindDualText(
+        content.findViewWithTag("local_meta"),
+        "仅本机可访问 · 链接已附带本轮一次性认证凭据",
+        "Localhost only · Includes single-run auth token");
+    bindDualText(content.findViewWithTag("lan_title"), "局域网访问", "LAN access");
+    UiMotion.pressScaleAll(accessCopyButton, accessLanButton, closeButton);
     var dialog =
         new DshaDialogBuilder(requireContext())
             .setTitle(R.string.ui2_address)
@@ -1043,14 +1079,79 @@ public class LaunchFragment extends Fragment {
   private void renderAccessAddresses(LanAccessPresentation access) {
     var dialog = accessDialog;
     if (dialog == null || !dialog.isShowing() || !isAdded() || accessBody == null) return;
+    Context ctx = requireContext();
     String local = webEntryUrl();
-    accessBody.setText(
-        UiText.format(
-            UiText.choose("本机访问\n%s\n\n%s", "On this phone\n%s\n\n%s"),
-            local.isEmpty()
-                ? UiText.choose("启动 DSH 并等待就绪后显示本机地址。", "Start DSH and wait for its local URL.")
-                : local,
-            lanStatusForDisplay(access)));
+    View root = accessBody.getRootView();
+
+    TextView localBadge = root != null ? root.findViewWithTag("local_badge") : null;
+    if (localBadge != null) {
+      if (!local.isEmpty()) {
+        bindDualText(localBadge, "● 已就绪", "● Ready");
+        localBadge.setTextColor(ctx.getColor(R.color.shell_good));
+        localBadge.setBackgroundResource(R.drawable.bg_onb_pill_good);
+      } else {
+        bindDualText(localBadge, "● 未就绪", "● Offline");
+        localBadge.setTextColor(ctx.getColor(R.color.shell_text_muted));
+        localBadge.setBackgroundResource(R.drawable.bg_onb_pill_neutral);
+      }
+    }
+
+    if (local.isEmpty()) {
+      accessBody.setText(
+          UiText.choose("启动 DSH 并等待就绪后显示本机地址。", "Start DSH and wait for its local URL."));
+      accessBody.setTextColor(ctx.getColor(R.color.shell_text_muted));
+    } else {
+      accessBody.setTextColor(ctx.getColor(R.color.shell_text));
+      int qIdx = local.indexOf('?');
+      if (qIdx > 0) {
+        int tokenColor = ctx.getColor(R.color.shell_text_secondary);
+        android.text.SpannableStringBuilder ssb = new android.text.SpannableStringBuilder(local);
+        ssb.setSpan(
+            new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+            0,
+            qIdx,
+            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(
+            new android.text.style.ForegroundColorSpan(tokenColor),
+            qIdx,
+            local.length(),
+            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        accessBody.setText(ssb);
+      } else {
+        accessBody.setText(local);
+      }
+    }
+
+    TextView lanBadge = root != null ? root.findViewWithTag("lan_badge") : null;
+    if (lanBadge != null) {
+      if (access.state == LanAccessPresentation.State.DISABLED) {
+        bindDualText(lanBadge, "● 未开启", "● Disabled");
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_text_muted));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_neutral);
+      } else if (needsLanPassword(access)) {
+        bindDualText(lanBadge, "● 需设口令", "● Password needed");
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else if (access.state == LanAccessPresentation.State.READY) {
+        bindDualText(lanBadge, "● 已开启", "● Active");
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_good));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_good);
+      } else if (access.state == LanAccessPresentation.State.WAITING_AUTH) {
+        bindDualText(lanBadge, "● 等待就绪", "● Waiting");
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_accent));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_accent);
+      } else {
+        bindDualText(lanBadge, "● 需处理", "● Attention");
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      }
+    }
+
+    TextView lanBody = root != null ? root.findViewWithTag("lan_body") : null;
+    if (lanBody != null) {
+      lanBody.setText(lanStatusForDisplay(access));
+    }
+
     if (accessLanButton != null)
       accessLanButton.setText(
           controller.config().isLanMode()
@@ -1275,6 +1376,10 @@ public class LaunchFragment extends Fragment {
                   "连接已变化，请重新查看链接。", "The connection changed. View its current link again."),
               Toast.LENGTH_LONG)
           .show();
+  }
+
+  private static void bindDualText(TextView view, String zh, String en) {
+    if (view != null) view.setText(UiText.choose(zh, en));
   }
 
   private void copyAddr(String label, String addr) {

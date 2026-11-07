@@ -203,7 +203,9 @@ public final class LaunchAccessAddressesTest {
   private static String body(AlertDialog dialog) {
     TextView view = dialog.findViewById(R.id.access_body);
     assertNotNull("the access dialog must carry its custom body", view);
-    return view.getText().toString();
+    android.view.View root = view.getRootView();
+    TextView lan = root != null ? root.findViewWithTag("lan_body") : null;
+    return lan != null ? view.getText() + "\n" + lan.getText() : view.getText().toString();
   }
 
   private static Button lanButton(AlertDialog dialog) {

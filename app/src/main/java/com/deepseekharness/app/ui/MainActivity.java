@@ -505,24 +505,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     TextView title = findViewById(R.id.app_title);
-    findViewById(R.id.sub_back)
-        .setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+    android.view.View subBack = findViewById(R.id.sub_back);
+    subBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+    UiMotion.pressScale(subBack);
+    UiMotion.attachHierarchyPressScale(findViewById(android.R.id.content));
     getSupportFragmentManager().addOnBackStackChangedListener(this::updateToolbar);
     getSupportFragmentManager()
         .registerFragmentLifecycleCallbacks(
             new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+              @Override
+              public void onFragmentViewCreated(
+                  androidx.fragment.app.FragmentManager manager,
+                  Fragment fragment,
+                  android.view.View v,
+                  @Nullable Bundle savedInstanceState) {
+                UiMotion.attachHierarchyPressScale(v);
+              }
+
               @Override
               public void onFragmentResumed(
                   androidx.fragment.app.FragmentManager manager, Fragment fragment) {
                 updateToolbar();
               }
             },
-            false);
+            true);
     android.view.ViewGroup quickEntries = findViewById(R.id.btn_about);
     quickEntries.setVisibility(android.view.View.VISIBLE);
     quickEntries.setContentDescription(com.deepseekharness.app.util.UiText.text("关于 DSHA"));
     ((android.widget.ImageView) quickEntries.getChildAt(0)).setImageResource(R.drawable.ic_about);
     quickEntries.setOnClickListener(v -> AboutDialog.show(this));
+    UiMotion.pressScale(quickEntries);
 
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     shellRail = findViewById(R.id.shell_rail);

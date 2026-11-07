@@ -118,15 +118,14 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
     if (dialog.getWindow() != null) {
       android.view.Window window = dialog.getWindow();
       window.setWindowAnimations(R.style.Animation_DSHA_Dialog);
-      if (keepWindowSize) return dialog;
-      // 只在窗口第一次真正显示后设置尺寸。持续监听布局会在动画、输入法和
-      // CardSheet 的底部测量期间反复调用 setLayout，导致 Language 首帧停顿。
       window
           .getDecorView()
           .post(
               () -> {
-                if (dialog.isShowing() && window.getDecorView().getWindowToken() != null)
-                  sizeOnce(window, window.getDecorView());
+                if (dialog.isShowing() && window.getDecorView().getWindowToken() != null) {
+                  UiMotion.attachHierarchyPressScale(window.getDecorView());
+                  if (!keepWindowSize) sizeOnce(window, window.getDecorView());
+                }
               });
     }
     return dialog;
