@@ -1040,6 +1040,21 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
             } catch (IllegalStateException ignored) {
             }
           });
+      androidx.webkit.WebViewCompat.removeWebMessageListener(view, "DshaHaptic");
+      androidx.webkit.WebViewCompat.addWebMessageListener(
+          view,
+          "DshaHaptic",
+          java.util.Collections.singleton(baseUrl.substring(0, baseUrl.length() - 1)),
+          (source, message, origin, mainFrame, reply) -> {
+            if (!isCurrentPage(source)) return;
+            try {
+              source.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+            } catch (RuntimeException ignored) {
+            }
+          });
+    }
+    if (retained != null && retained.ready) {
+      view.evaluateJavascript(WebPageScripts.touchFeedback(), null);
     }
     view.setWebViewClient(new PreviewClient());
     view.setWebChromeClient(new PreviewChromeClient(view, microphoneRequests));

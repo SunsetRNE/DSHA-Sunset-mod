@@ -20,6 +20,8 @@ public final class WebPageScripts {
     return "window.__DSHA_NATIVE_PLUGINS__=true;\n"
         + read(context, "web-integration/safe-area.js")
         + "\n"
+        + touchFeedback()
+        + "\n"
         + language(context)
         + "\n"
         + theme(context)
@@ -33,6 +35,92 @@ public final class WebPageScripts {
         + read(context, "bridge-token-compat.cjs")
         + "\n"
         + read(context, "web-integration/startup.js");
+  }
+
+  /**
+   * DSH Web 内部触控与按键反馈：
+   * 1. 彻底清除 Android WebView 默认的淡蓝点击高亮框 (-webkit-tap-highlight-color: transparent)；
+   * 2. 兼容连接虚拟鼠标 (scrcpy) 或外设时的 pointer:coarse / hover:none 媒体查询；
+   * 3. 为所有按钮、胶囊、菜单项、会话行提供至少 120ms 的按压微弹簧缩放 + 表面染色 + 原生触觉震动反馈。
+   */
+  public static String touchFeedback() {
+    return "(function(){\n"
+        + "  if(window.top!==window)return;\n"
+        + "  var CSS='*,*::before,*::after,html,body{-webkit-tap-highlight-color:transparent!important;}'\n"
+        + "    +'button,[role=\"button\"],[role=\"menuitem\"],[role=\"menuitemradio\"],[role=\"menuitemcheckbox\"],[role=\"option\"],[role=\"tab\"],[role=\"treeitem\"],[role=\"combobox\"],[role=\"switch\"],[aria-haspopup],[data-trigger-menu],[data-mobile-nav]:not([data-mobile-nav=\"frame\"]):not([data-mobile-nav=\"backdrop\"]),a[href]{transition:transform .14s cubic-bezier(.22,1,.36,1),filter .14s ease,opacity .14s ease,background-color .14s ease,box-shadow .14s ease!important;}'\n"
+        + "    +'[data-dsha-press-round=\"1\"]{border-radius:8px!important;}'\n"
+        + "    +'[data-dsha-press=\"icon\"]{transform:scale(.91)!important;opacity:.85!important;filter:brightness(.92)!important;}'\n"
+        + "    +'[data-dsha-press=\"chip\"]{transform:scale(.955)!important;opacity:.88!important;filter:brightness(.94)!important;box-shadow:inset 0 0 0 100vmax var(--dsw-alias-interactive-bg-active,rgba(120,128,140,.11))!important;}'\n"
+        + "    +'[data-dsha-press=\"row\"]{transform:scale(.984)!important;opacity:.90!important;box-shadow:inset 0 0 0 100vmax var(--dsw-alias-interactive-bg-active,rgba(120,128,140,.10))!important;}'\n"
+        + "    +'body[data-ds-dark-theme] [data-dsha-press=\"icon\"],html[data-ds-dark-theme] [data-dsha-press=\"icon\"],body[data-ds-dark-theme] [data-dsha-press=\"chip\"],html[data-ds-dark-theme] [data-dsha-press=\"chip\"]{filter:brightness(1.18)!important;}';\n"
+        + "  function fixStyleTag(s){\n"
+        + "    if(!s||s.__dshaMediaFixed)return;\n"
+        + "    var t=s.textContent||'';\n"
+        + "    if(t.indexOf('pointer:')>=0||t.indexOf('hover:')>=0){\n"
+        + "      s.textContent=t.replace(/\\(\\s*pointer\\s*:\\s*coarse\\s*\\)/g,'(any-pointer: coarse)').replace(/\\(\\s*hover\\s*:\\s*none\\s*\\)/g,'(any-hover: none)');\n"
+        + "      s.__dshaMediaFixed=true;\n"
+        + "    }\n"
+        + "  }\n"
+        + "  function ensureStyle(){\n"
+        + "    var root=document.head||document.documentElement;\n"
+        + "    if(!root)return;\n"
+        + "    if(!document.getElementById('dsha-touch-feedback-style')){\n"
+        + "      var st=document.createElement('style');\n"
+        + "      st.id='dsha-touch-feedback-style';\n"
+        + "      st.textContent=CSS;\n"
+        + "      root.appendChild(st);\n"
+        + "    }\n"
+        + "    var styles=document.querySelectorAll('style');\n"
+        + "    for(var i=0;i<styles.length;i++)fixStyleTag(styles[i]);\n"
+        + "  }\n"
+        + "  if(window.matchMedia&&!window.matchMedia.__dshaPatched){\n"
+        + "    var origMM=window.matchMedia.bind(window);\n"
+        + "    var patchedMM=function(q){\n"
+        + "      if(typeof q==='string'){\n"
+        + "        q=q.replace(/\\(\\s*pointer\\s*:\\s*coarse\\s*\\)/g,'(any-pointer: coarse)').replace(/\\(\\s*hover\\s*:\\s*none\\s*\\)/g,'(any-hover: none)');\n"
+        + "      }\n"
+        + "      return origMM(q);\n"
+        + "    };\n"
+        + "    patchedMM.__dshaPatched=true;\n"
+        + "    window.matchMedia=patchedMM;\n"
+        + "  }\n"
+        + "  ensureStyle();\n"
+        + "  if(window.__dshaTouchFeedbackInstalled)return;\n"
+        + "  window.__dshaTouchFeedbackInstalled=true;\n"
+        + "  new MutationObserver(ensureStyle).observe(document,{childList:true,subtree:true});\n"
+        + "  var SEL='button,[role=\"button\"],[role=\"menuitem\"],[role=\"menuitemradio\"],[role=\"menuitemcheckbox\"],[role=\"option\"],[role=\"tab\"],[role=\"treeitem\"],[role=\"combobox\"],[role=\"switch\"],[aria-haspopup],[data-trigger-menu],[data-mobile-nav]:not([data-mobile-nav=\"frame\"]):not([data-mobile-nav=\"backdrop\"]),[data-session-id],a[href],[tabindex]:not(textarea):not(input):not([contenteditable=\"true\"]):not([tabindex=\"-1\"])';\n"
+        + "  var activeEl=null,activeAt=0,clearTimer=0;\n"
+        + "  function clearPress(immediate){\n"
+        + "    if(!activeEl)return;\n"
+        + "    var el=activeEl;\n"
+        + "    var delay=immediate?0:Math.max(0,120-(performance.now()-activeAt));\n"
+        + "    activeEl=null;\n"
+        + "    clearTimeout(clearTimer);\n"
+        + "    clearTimer=setTimeout(function(){\n"
+        + "      el.removeAttribute('data-dsha-press');\n"
+        + "      el.removeAttribute('data-dsha-press-round');\n"
+        + "    },delay);\n"
+        + "  }\n"
+        + "  window.addEventListener('pointerdown',function(e){\n"
+        + "    ensureStyle();\n"
+        + "    var t=e.target;\n"
+        + "    if(!t||typeof t.closest!=='function')return;\n"
+        + "    var el=t.closest(SEL);\n"
+        + "    if(!el||el===document.body||el===document.documentElement||el.disabled||el.getAttribute('aria-disabled')==='true'||el.hasAttribute('data-composer-card'))return;\n"
+        + "    var r=el.getBoundingClientRect();\n"
+        + "    if(r.width<12||r.height<12||r.height>160)return;\n"
+        + "    clearPress(true);\n"
+        + "    var kind=(r.width<=52&&r.height<=52)?'icon':(r.width<220?'chip':'row');\n"
+        + "    el.setAttribute('data-dsha-press',kind);\n"
+        + "    var br=getComputedStyle(el).borderRadius;\n"
+        + "    if(!br||br==='0px'||br==='0')el.setAttribute('data-dsha-press-round','1');\n"
+        + "    activeEl=el;activeAt=performance.now();\n"
+        + "    try{window.DshaHaptic?.postMessage('tap');}catch(_){}\n"
+        + "  },{capture:true,passive:true});\n"
+        + "  window.addEventListener('pointerup',function(){clearPress(false);},{capture:true,passive:true});\n"
+        + "  window.addEventListener('pointercancel',function(){clearPress(true);},{capture:true,passive:true});\n"
+        + "  window.addEventListener('scroll',function(){clearPress(true);},{capture:true,passive:true});\n"
+        + "})();";
   }
 
   public static String compatibility(
@@ -108,7 +196,9 @@ public final class WebPageScripts {
 
   public static String presentation(
       Context context, com.deepseekharness.app.util.BrowserThemeGate gate) {
-    return read(context, "web-integration/ime.js")
+    return touchFeedback()
+        + "\n"
+        + read(context, "web-integration/ime.js")
         + "\n"
         + read(context, "web-integration/page.js")
         + "\nwindow.__dshaNativePresentation.install("

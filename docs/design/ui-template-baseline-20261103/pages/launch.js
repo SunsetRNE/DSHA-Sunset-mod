@@ -29,11 +29,13 @@
   .ln-art{flex:none;width:116px;height:140px;margin-left:24px;position:relative;display:grid;place-items:center}
   .ln-art .ring{position:absolute;width:98px;height:93px;border-radius:34px;border:1.5px dashed var(--line-strong);transform:rotate(13deg)}
   .ln-art .core{width:65px;height:65px;border-radius:20px;background:var(--accent-soft);border:1px solid var(--line-strong);display:grid;place-items:center;color:var(--accent);font-size:34px}
-  .ln-metrics{display:flex;gap:8px;margin-top:var(--launch-gap)}
-  .ln-metric{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
-  .ln-metric .tile{width:31px;height:31px;background:var(--accent-soft);font-size:16px}
-  .ln-metric .k{margin-top:10px;font-size:11px;color:var(--muted)}
-  .ln-metric .v{margin-top:5px;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ln-metrics{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}
+  .ln-metric{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--line);font-size:11px;line-height:1.35;color:var(--text-2)}
+  [data-theme="dark"] .ln-metric{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.06)}
+  .ln-metric .k{color:var(--muted)}
+  .ln-metric .v{font-weight:600;color:var(--text);white-space:nowrap}
+  .ln-metric .v.mono{font-family:var(--mono)}
+  .ln-metric .v.good{font-weight:500;color:var(--good)}
   .ln-bottom{margin-top:var(--launch-gap)}
   .ln-bottom.split{display:flex;gap:32px;align-items:flex-start}
   .ln-bottom.split>.a{flex:1;min-width:0}.ln-bottom.split>.b{flex:1.3;min-width:0}
@@ -71,7 +73,7 @@
   .ln.cmp .ln-sub{display:none}
   .ln.cmp .ln-track{margin-top:8px}
   .ln.cmp .ln-ctrl{margin-top:10px}
-  .ln.cmp .ln-metrics{margin-top:16px}
+  .ln.cmp .ln-metrics{margin-top:8px}
   `;
   const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
 
@@ -106,15 +108,15 @@
         <div class="ln-eyebrow"><span class="dot ${ready ? 'good' : ''}"></span>本机工作台 · ${ready ? '已就绪' : '未运行'}</div>
         <div class="ln-hero"><div class="acts">
           <h1 class="ln-title">${ready ? 'DSH 已就绪，可进入' : 'DSH 未运行'}</h1>
-          <p class="ln-sub">${ready ? '下方实时显示启动输出；等待不会自动终止。' : '随时开始你的下一项任务。'}</p>
+          <p class="ln-sub">${ready ? 'proot · dsh v1.32.23' : '随时开始你的下一项任务。'}</p>
+          <div class="ln-metrics">
+            <span class="ln-metric"><span class="k">运行环境</span><span class="v mono">${ready ? 'READY' : '—'}</span></span>
+            <span class="ln-metric"><span class="k">工作台</span><span class="v${ready ? ' good' : ''}">${ready ? '可进入' : '未运行'}</span></span>
+            <span class="ln-metric"><span class="k">Web 端口</span><span class="v mono">${ready ? '46667' : '—'}</span></span>
+          </div>
           <div class="ln-track">${track(ready)}</div>
           ${controls}
         </div>${env.w600 && !cmp ? `<div class="ln-art"><span class="ring"></span><span class="core">${h.icon('terminal')}</span></div>` : ''}</div>
-        <div class="ln-metrics">
-          <div class="ln-metric"><span class="tile">${h.icon('ui2_box')}</span><div class="k">运行环境</div><div class="v">${ready ? 'Ubuntu 24.04' : '—'}</div></div>
-          <div class="ln-metric"><span class="tile">${h.icon('terminal')}</span><div class="k">工作台</div><div class="v">${ready ? '已连接' : '—'}</div></div>
-          <div class="ln-metric"><span class="tile">${h.icon('ui_link')}</span><div class="k">实际 Web 端口</div><div class="v mono">${ready ? '41237' : '—'}</div></div>
-        </div>
         <div class="ln-bottom${split ? ' split' : ''}">
           <div class="a"><div class="ln-sec">快捷入口</div>
             <div class="ln-row">${h.icon('terminal')}<div class="w">打开本机终端</div>${h.icon('ui2_chevron', 'chev')}</div>

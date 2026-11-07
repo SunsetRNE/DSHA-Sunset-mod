@@ -16,6 +16,7 @@ public final class PluginFlowRow extends ViewGroup {
   private final int gapHorizontal;
   private final int gapVertical;
   private final boolean stretchWrapped;
+  private final boolean packStart;
 
   public PluginFlowRow(Context context) {
     this(context, null);
@@ -38,6 +39,7 @@ public final class PluginFlowRow extends ViewGroup {
       stretchWrapped =
           values.getBoolean(
               com.deepseekharness.app.R.styleable.PluginFlowRow_flowStretchWrapped, false);
+      packStart = !stretchWrapped && getId() != View.NO_ID;
     } finally {
       values.recycle();
     }
@@ -149,8 +151,8 @@ public final class PluginFlowRow extends ViewGroup {
         if (params.line != line) break;
         int width = child.getMeasuredWidth();
         int start = x + params.leftMargin;
-        // 末项与其他项同行时贴行尾，例如分段在标题右侧、下载源在筛选右侧。
-        if (i == lastIndex && x > 0) start = inner - width - params.rightMargin;
+        // 末项与其他项同行时贴行尾，例如分段在标题右侧、下载源在筛选右侧；flowPackStart 时保持左对齐紧凑排列。
+        if (!packStart && i == lastIndex && x > 0) start = inner - width - params.rightMargin;
         int y =
             top
                 + params.topMargin

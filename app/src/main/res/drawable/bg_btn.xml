@@ -19,6 +19,15 @@
                     <corners android:radius="@dimen/radius_control" />
                 </shape>
             </item>
+            <item android:state_pressed="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/raised" />
+                    <corners android:radius="@dimen/radius_control" />
+                    <stroke
+                        android:width="@dimen/stroke"
+                        android:color="@color/shell_line_strong" />
+                </shape>
+            </item>
             <item>
                 <shape android:shape="rectangle">
                     <solid android:color="@color/card" />

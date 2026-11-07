@@ -15,6 +15,7 @@
     <dimen name="shell_launch_activity_height">16dp</dimen>
     <dimen name="shell_launch_radius_card">18dp</dimen>
     <dimen name="shell_launch_radius_status">16dp</dimen>
+    <dimen name="shell_launch_radius_badge">6dp</dimen>
     <dimen name="shell_launch_radius_pill">999dp</dimen>
     <dimen name="shell_launch_row_height">54dp</dimen>
     <dimen name="shell_launch_pill_height">44dp</dimen>
@@ -83,12 +84,15 @@
         <item name="android:lineSpacingExtra">3dp</item>
     </style>
 
-    <!-- ========== 三格状态 ========== -->
+    <!-- ========== 只读状态胶囊组（置于 Hero 版本号下方） ========== -->
     <style name="ShellLaunchMetric" parent="">
         <item name="android:background">@drawable/bg_shell_status</item>
-        <item name="android:orientation">vertical</item>
-        <item name="android:padding">@dimen/shell_launch_metric_pad</item>
-        <item name="android:gravity">start</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:gravity">center_vertical</item>
     </style>
 
     <!-- 三格很窄：数值单行按可用宽度缩放，标签允许换行；都不伪造内容。 -->
@@ -238,15 +242,14 @@
         <item name="android:textSize">@dimen/shell_launch_caption</item>
         <item name="android:textColor">@color/shell_text_muted</item>
         <item name="android:includeFontPadding">false</item>
-        <item name="android:layout_marginTop">10dp</item>
     </style>
 
     <style name="ShellLaunchRailValue" parent="">
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">@dimen/shell_launch_caption</item>
         <item name="android:textColor">@color/shell_text</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
-        <item name="android:layout_marginTop">5dp</item>
+        <item name="android:layout_marginStart">6dp</item>
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">end</item>
     </style>
