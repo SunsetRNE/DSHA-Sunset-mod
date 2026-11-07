@@ -1961,12 +1961,12 @@
   "modui014": "superpositio",
   "modui015": "thema",
   "modui016": "conspectus proprius",
-  "modui017": "non sustentatum:",
+  "modui017": "non sustentatum:%s",
   "modui018": "scriptum",
   "modui019": "shell",
   "modui020": "imago",
   "modui021": "exhibitio",
-  "modui022": "paginae ",
-  "modui023": "navigatio ",
+  "modui022": "paginae %d",
+  "modui023": "navigatio %d",
   "modui024": "declaratio"
 }

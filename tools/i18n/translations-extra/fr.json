@@ -1961,12 +1961,12 @@
   "modui014": "superposition",
   "modui015": "thème",
   "modui016": "vue personnalisée",
-  "modui017": "non pris en charge :",
+  "modui017": "non pris en charge :%s",
   "modui018": "script",
   "modui019": "shell",
   "modui020": "illustration",
   "modui021": "affichage",
-  "modui022": "pages ",
-  "modui023": "navigation ",
+  "modui022": "pages %d",
+  "modui023": "navigation %d",
   "modui024": "déclaration"
 }
