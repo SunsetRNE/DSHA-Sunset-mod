@@ -30924,8 +30924,8 @@
   },
   {
     "id": "m9048",
-    "zh": "密码无效：至少 8 个字符，最多 128 个字符",
-    "en": "Invalid password: 8 to 128 characters",
+    "zh": "密码无效：至少 12 个字符，最多 128 个字符",
+    "en": "Invalid password: 12 to 128 characters",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
@@ -30981,8 +30981,8 @@
   },
   {
     "id": "m9055",
-    "zh": "用于 SSH 登录用户 dsha，至少 8 个字符。密码在本机用设备密钥加密保存；备份里只有密文，无法在其他设备解密。",
-    "en": "Used to sign in as user dsha over SSH; at least 8 characters. The password is stored encrypted with a device key on this device; backups contain only ciphertext that cannot be decrypted on another device.",
+    "zh": "用于 SSH 登录用户 dsha，至少 12 个字符。密码在本机用设备密钥加密保存；备份里只有密文，无法在其他设备解密。",
+    "en": "Used to sign in as user dsha over SSH; at least 12 characters. The password is stored encrypted with a device key on this device; backups contain only ciphertext that cannot be decrypted on another device.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]

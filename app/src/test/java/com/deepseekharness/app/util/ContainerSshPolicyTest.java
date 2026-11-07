@@ -62,9 +62,9 @@ public final class ContainerSshPolicyTest {
   public void passwordRulesRejectTrivialSecrets() {
     assertFalse(ContainerSshPolicy.validPassword(null));
     assertFalse(ContainerSshPolicy.validPassword("short"));
-    assertFalse(ContainerSshPolicy.validPassword("1234567"));
+    assertFalse(ContainerSshPolicy.validPassword("12345678901"));
     assertFalse(ContainerSshPolicy.validPassword("has\u0000control"));
     assertFalse(ContainerSshPolicy.validPassword("a".repeat(129)));
-    assertTrue(ContainerSshPolicy.validPassword("12345678"));
+    assertTrue(ContainerSshPolicy.validPassword("123456789012"));
   }
 }

@@ -78,10 +78,10 @@ public final class ContainerSshSettingsTest {
   public void keystoreFailureRefusesToStorePlaintext() {
     Context context = context();
     // Robolectric 没有 AndroidKeyStore：encrypt 返回空串，setPassword 必须整体失败。
-    boolean accepted = ContainerSshSettings.setPassword(context, "12345678");
+    boolean accepted = ContainerSshSettings.setPassword(context, "123456789012");
     assertFalse("Keystore 不可用时不得假装保存成功", accepted);
     String stored = prefs(context).getString("password", null);
-    assertTrue("偏好里出现明文密码", stored == null || !stored.equals("12345678"));
+    assertTrue("偏好里出现明文密码", stored == null || !stored.equals("123456789012"));
     assertFalse(ContainerSshSettings.hasPassword(context));
     assertNull(ContainerSshSettings.password(context));
   }
