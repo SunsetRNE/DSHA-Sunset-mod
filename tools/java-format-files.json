@@ -1128,6 +1128,7 @@
     "app/src/test/java/com/deepseekharness/app/runtime/ContainerRuntimeSelfMirrorTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/ContainerSshAssetsTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/ContainerSshSettingsTest.java",
+    "app/src/test/java/com/deepseekharness/app/runtime/ContainerSshTeardownTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/ContainerSshWiringTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/GuestPluginScriptsTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/GuestScriptQueueTest.java",

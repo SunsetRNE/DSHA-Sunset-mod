@@ -91,7 +91,7 @@
     "app/src/main/assets/web-integration/session-interaction.js": "6dac58b61d0523376aa514d17019344f56e25da62e7b2530c40b45b02b50a280",
     "app/src/main/assets/welcome-notice-patch.json": "d81ac1acbb44c6628df88887d8d87fa0fb36982972bfda82e59630df0e8d5126",
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
-    "tools/runtime_input_contract.py": "a5260572fb23b5c70786c9d2ae7be48f5606ac0386114e430d73b6d7484b6c49"
+    "tools/runtime_input_contract.py": "1924d38cc7c6e7a26cbaeee1cab66d36f983a82588a7408b2acb17b25eebe3aa"
   },
   "archive_sha256": "c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe"
 }

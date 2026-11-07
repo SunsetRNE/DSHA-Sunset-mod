@@ -138,6 +138,9 @@ public final class ContainerSshService extends Service {
                           ContainerSshPolicy.script(ContainerSshSettings.lanEnabled(this))),
                   builder -> {
                     keysDirectory = ContainerSshAssets.bind(this, builder);
+                    // 上一次运行留下的 sshd.pid 可能是陈旧文件（pid 已被复用）：启动前删掉，
+                    // 否则停止时会拿别人/旧进程的 pid 等超时或误判成未确认。
+                    new java.io.File(keysDirectory, "sshd.pid").delete();
                     builder.pipedInput(true);
                   });
       byte[] bytes = utf8WithNewline(password);
@@ -207,24 +210,42 @@ public final class ContainerSshService extends Service {
     if (!worker.isShutdown()) worker.execute(this::closeOwned);
   }
 
+  /**
+   * 停止时的收尾顺序（抽成静态方法是为了能用 fake Process / fake 租约测）。
+   *
+   * <p>先确认 guest 退出，再把启动器退出交给租约 watcher：{@code retainUntilExit} 会把
+   * token detach 给 watcher，watcher 在启动器退出时就 close；proroot 下启动器死得比 guest
+   * 早，先 attach 就等于提前释放维护屏障。
+   *
+   * @return true 表示已确认 guest 退出；false 表示超时未确认，调用方必须保持租约与通知。
+   */
+  static boolean teardownGuestFirst(
+      Process process,
+      com.deepseekharness.app.util.RuntimeWorkPort.Work lease,
+      java.nio.file.Path pidFile,
+      long timeoutMs) {
+    if (process == null) {
+      if (lease != null) lease.close();
+      return true;
+    }
+    try {
+      process.getInputStream().close();
+    } catch (java.io.IOException | RuntimeException ignored) {
+      // 流已经结束
+    }
+    process.destroyForcibly();
+    if (!com.deepseekharness.app.util.ContainerSshExitProof.awaitPidExit(pidFile, timeoutMs))
+      return false;
+    if (lease != null) lease.retainUntilExit(process);
+    return true;
+  }
+
   private void closeOwned() {
     try {
       if (process != null) {
-        // proot 交回的是普通 Process（没有 AutoCloseable）：关流再强杀，别留僵尸。
-        try {
-          process.getInputStream().close();
-        } catch (java.io.IOException | RuntimeException ignored) {
-          // 流已经结束
-        }
-        process.destroyForcibly();
-        // destroyForcibly 只作用于 proot 启动器；容器内 sshd/会话可能仍在退出中。
-        // 交给退出监听持有租约，确认启动器退出；不能提前 close()。
-        lease.retainUntilExit(process);
-        // 再核脚本自己记录的 sshd pid（/proc 出生身份逐字一致）：
-        // proroot 下容器内 sshd 可能比启动器活得久，未确认就报 stopped 是 fail-open。
         java.nio.file.Path pidFile =
             keysDirectory == null ? null : keysDirectory.toPath().resolve("sshd.pid");
-        if (!com.deepseekharness.app.util.ContainerSshExitProof.awaitPidExit(pidFile, 10_000)) {
+        if (!teardownGuestFirst(process, lease, pidFile, 10_000)) {
           // 未确认 guest 退出：保持租约与通知，不改写为 stopped。
           state = "SSH_CLEANUP_UNCONFIRMED";
           notifyState();
