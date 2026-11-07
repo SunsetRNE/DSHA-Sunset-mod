@@ -1,0 +1,43 @@
+{
+ "schema": 1,
+ "tool": "openssh-container-ssh",
+ "upstream": {
+  "name": "OpenSSH",
+  "version": "9.6p1",
+  "debianRevision": "3ubuntu13.20",
+  "source": "https://www.openssh.com/portable.html",
+  "ubuntuPackage": "openssh-server 1:9.6p1-3ubuntu13.20 (Ubuntu 24.04 noble, aarch64)",
+  "provenance": "二进制内嵌版本串 OpenSSH_9.6p1；精确 Ubuntu 修订号取自二进制 strings（openssh-server 套件）。逐字节重建配方仍未闭合，见 docs/references-and-provenance.md 第 4 节。"
+ },
+ "members": [
+  {
+   "asset": "payload-0.bin",
+   "target": "sshd",
+   "upstreamPackage": "openssh-server 1:9.6p1-3ubuntu13.20",
+   "sha256": "092b9a55c07b9f8c3b089e0461d00d375e8f8dac4ac7754e2363361a3b7846b0",
+   "bytes": 921184
+  },
+  {
+   "asset": "payload-1.bin",
+   "target": "ssh-keygen",
+   "upstreamPackage": "openssh-client 1:9.6p1-3ubuntu13.20",
+   "sha256": "904261e7005342e9706b4e1dda9dab60266b988f768f62233844bdbcf2f3dcf0",
+   "bytes": 461152
+  },
+  {
+   "asset": "payload-2.bin",
+   "target": "lib/libwrap.so.0",
+   "upstreamPackage": "libwrap0 7.6.q-33 (Ubuntu 24.04 noble, aarch64)",
+   "sha256": "5a1ed5422b08a855848076146942b65d0de3909c488af39dda50ac5f8fdec6aa",
+   "bytes": 68352
+  }
+ ],
+ "runtimeDependencies": {
+  "note": "readelf -d 实测 sshd NEEDED：libcrypt.so.1, libwrap.so.0(随包), libaudit.so.1, libpam.so.0, libselinux.so.1, libgssapi_krb5.so.2, libkrb5.so.3, libcom_err.so.2, libcrypto.so.3, libz.so.1, libc.so.6, ld-linux-aarch64.so.1；其余依赖 rootfs 内 Ubuntu 库，缺失时 sshd 报 error while loading shared libraries。",
+  "providedByRootfs": ["libcrypt.so.1", "libaudit.so.1", "libpam.so.0", "libselinux.so.1", "libgssapi_krb5.so.2", "libkrb5.so.3", "libcom_err.so.2", "libcrypto.so.3", "libz.so.1", "libc.so.6", "ld-linux-aarch64.so.1"]
+ },
+ "licenses": {
+  "openssh": "BSD-3-clause（含此处不列的其他宽松许可与附加约束），全文随包 app/src/main/assets/container-ssh/openssh-client-copyright.txt",
+  "libwrap": "libwrap0 版权（debian 打包），全文随包 app/src/main/assets/container-ssh/libwrap0-copyright.txt"
+ }
+}

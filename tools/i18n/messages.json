@@ -30792,5 +30792,191 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
+  },
+  {
+    "id": "m9030",
+    "zh": "容器 SSH",
+    "en": "Container SSH",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9031",
+    "zh": "容器 SSH（实验性）",
+    "en": "Container SSH (experimental)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9033",
+    "zh": "允许容器 SSH",
+    "en": "Allow container SSH",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9035",
+    "zh": "未设置密码",
+    "en": "No password set",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9036",
+    "zh": "启动中…",
+    "en": "Starting…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9038",
+    "zh": "密码",
+    "en": "Password",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9039",
+    "zh": "再次输入密码",
+    "en": "Re-enter password",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9040",
+    "zh": "开启容器 SSH？",
+    "en": "Enable container SSH?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9041",
+    "zh": "密码已保存",
+    "en": "Password saved",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9042",
+    "zh": "此构建没有容器 SSH 资产",
+    "en": "This build has no container SSH assets",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9043",
+    "zh": "启动失败，详见通知",
+    "en": "Start failed; see the notification",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9044",
+    "zh": "需要局域网权限：请先授予局域网授权或关闭「允许局域网访问」",
+    "en": "Local-network permission required: grant it first, or turn off \"Allow LAN access\"",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9045",
+    "zh": "运行环境未就绪，请完成安装或维护后再试",
+    "en": "The runtime is not ready; finish installation or maintenance and try again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9046",
+    "zh": "授予局域网权限后重新开启",
+    "en": "Re-enable after granting the local-network permission",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9047",
+    "zh": "保存失败：设备凭据库不可用",
+    "en": "Save failed: the device credential store is unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9048",
+    "zh": "密码无效：至少 12 个字符，最多 128 个字符",
+    "en": "Invalid password: 12 to 128 characters",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9049",
+    "zh": "两次输入不一致",
+    "en": "The two entries do not match",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9050",
+    "zh": "设置容器 SSH 密码",
+    "en": "Set container SSH password",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9051",
+    "zh": "已开启 · 监听未确认，详见通知",
+    "en": "On · listener unconfirmed; see the notification",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9052",
+    "zh": "运行中 · 端口 %d",
+    "en": "Running · port %d",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "m9053",
+    "zh": "在容器内启动 OpenSSH 服务器（端口 22222），供 SSH 客户端以 dsha 用户登录调试环境。密码在本机用设备密钥加密保存，只通过标准输入交给启动脚本，不进命令行或日志。默认只监听 127.0.0.1；开启局域网访问后监听 0.0.0.0，并要求系统局域网授权，改动在重启 SSH 后生效。这会暴露容器命令行，请设置强密码。",
+    "en": "Starts an OpenSSH server inside the container (port 22222) so SSH clients can sign in as user dsha to debug the environment. The password is stored on this device with a device-key-encrypted vault and is handed to the launch script through standard input only, never argv or logs. It listens on 127.0.0.1 by default; enabling LAN access listens on 0.0.0.0, requires the system local-network permission, and applies after SSH restarts. This exposes the container command line, so use a strong password.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9054",
+    "zh": "将在容器内启动 OpenSSH（端口 22222）并保持前台通知。密码只通过标准输入交给启动脚本；关闭开关或通知里的停止按钮即可结束。",
+    "en": "Starts OpenSSH inside the container (port 22222) and keeps a foreground notification. The password is handed to the launch script through standard input only; turn off the switch or tap Stop in the notification to end it.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9055",
+    "zh": "用于 SSH 登录用户 dsha，至少 12 个字符。密码在本机用设备密钥加密保存；备份里只有密文，无法在其他设备解密。",
+    "en": "Used to sign in as user dsha over SSH; at least 12 characters. The password is stored encrypted with a device key on this device; backups contain only ciphertext that cannot be decrypted on another device.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
   }
 ]
