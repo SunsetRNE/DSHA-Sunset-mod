@@ -25,6 +25,8 @@ public final class ContainerSshStatus {
       case "stopping" -> UiText.text("停止中…");
       case "stopped" -> UiText.text("已停止");
       case "SSH_CLEANUP_UNCONFIRMED" -> UiText.text("监听未确认");
+        // 上次会话残留：进程还在，但已经被身份校验（pid+starttime）确认过。
+      case "SSH_ORPHAN_RUNNING", "SSH_ORPHAN_UNVERIFIED" -> UiText.text("残留会话");
       default -> UiText.text("启动失败");
     };
   }
@@ -41,6 +43,8 @@ public final class ContainerSshStatus {
       case "SSH_PASSWORD_UNAVAILABLE" -> UiText.text("密码未设置或不合规；SSH 不会启动；先设置 12 位以上密码");
       case "SSH_LISTENER_UNCONFIRMED" -> UiText.text("端口未确认在监听；外部连不上；查看日志后重试");
       case "SSH_CLEANUP_UNCONFIRMED" -> UiText.text("上次会话可能未退出；维护被推迟；稍后重试停止");
+      case "SSH_ORPHAN_RUNNING" -> UiText.text("上次的 SSH 未退出，终止失败；端口可能仍在监听；重启设备后再试");
+      case "SSH_ORPHAN_UNVERIFIED" -> UiText.text("发现残留进程但无法确认身份；为避免误杀没有启动；重启设备后再试");
       case "stopped" -> UiText.text("已停止");
       default -> UiText.text("启动时出错；SSH 未运行；查看日志后重试");
     };

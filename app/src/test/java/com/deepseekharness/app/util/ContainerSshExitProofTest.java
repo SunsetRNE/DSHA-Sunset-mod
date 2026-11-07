@@ -1,6 +1,7 @@
 package com.deepseekharness.app.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -77,6 +78,17 @@ public final class ContainerSshExitProofTest {
     assertEquals(
         ContainerSshExitProof.State.UNKNOWN,
         ContainerSshExitProof.observeStat("4242 (sshd) S 1 2 3", birth));
+  }
+
+  @Test
+  public void missingPidFileIsAnExitOnlyWhenNoProofIsRequired() {
+    // 启动失败路径（sshd 没起来）：pid 文件本来就不存在，可以收尾。
+    // 但服务正在运行/停止时必须要求证据，见下一条——这是原先的 fail-open 所在。
+    assertTrue(
+        ContainerSshExitProof.awaitPidExit(temp.getRoot().toPath().resolve("missing.pid"), 50));
+    assertFalse(
+        ContainerSshExitProof.awaitPidExit(
+            temp.getRoot().toPath().resolve("missing.pid"), 50, true));
   }
 
   @Test

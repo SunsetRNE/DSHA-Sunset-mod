@@ -103,7 +103,8 @@ public final class ContainerSshTeardownTest {
     FakeLease lease = new FakeLease();
     Path missingPid = temp.getRoot().toPath().resolve("sshd.pid");
 
-    assertTrue(ContainerSshService.teardownGuestFirst(process, lease, missingPid, 50));
+    // 启动失败路径（没有 pid 证据）不需要证明，「从没起来」就是正常收尾。
+    assertTrue(ContainerSshService.teardownGuestFirst(process, lease, missingPid, 50, false, null));
     assertEquals("启动器要被强杀", 1, process.destroyed);
     assertEquals("确认 guest 退出后才交租约", 1, lease.retains);
     assertEquals("交出去之后不能自己 close", 0, lease.closes);
@@ -123,10 +124,15 @@ public final class ContainerSshTeardownTest {
       java.nio.file.Files.writeString(pidFile, reader.readLine().trim());
 
       // guest 还活着：150ms 内不可能确认退出。
-      assertFalse(ContainerSshService.teardownGuestFirst(process, lease, pidFile, 150));
+      java.util.concurrent.atomic.AtomicInteger killed =
+          new java.util.concurrent.atomic.AtomicInteger();
+      assertFalse(
+          ContainerSshService.teardownGuestFirst(process, lease, pidFile, 150, true, killed::set));
       assertEquals("未确认时不能 retain（那会提前释放维护屏障）", 0, lease.retains);
       assertEquals("未确认时也不能 close", 0, lease.closes);
       assertTrue("启动器仍应被强杀", process.destroyed >= 1);
+      // proroot 下 destroyForcibly 只杀启动器：确认不了就要按精确 pid 再杀一次。
+      assertTrue("超时后应按 pid 再终止一次 guest", killed.get() > 0);
     } finally {
       live.destroyForcibly();
       live.waitFor(5, TimeUnit.SECONDS);
@@ -136,7 +142,7 @@ public final class ContainerSshTeardownTest {
   @Test
   public void noProcessClosesTheLease() {
     FakeLease lease = new FakeLease();
-    assertTrue(ContainerSshService.teardownGuestFirst(null, lease, null, 0));
+    assertTrue(ContainerSshService.teardownGuestFirst(null, lease, null, 0, false, null));
     assertEquals(1, lease.closes);
     assertEquals(0, lease.retains);
   }
@@ -149,7 +155,20 @@ public final class ContainerSshTeardownTest {
     Path pidFile = temp.newFile("exited.pid").toPath();
     java.nio.file.Files.writeString(pidFile, "999999");
 
-    assertTrue(ContainerSshService.teardownGuestFirst(process, lease, pidFile, 1_000));
+    assertTrue(ContainerSshService.teardownGuestFirst(process, lease, pidFile, 1_000, true, null));
     assertEquals(1, lease.retains);
+  }
+
+  @Test
+  public void missingPidFileWithProofRequiredIsNotAnExit() {
+    // 运行中（或正在停止）拿不到 pid 证据，只能是「未确认」：pid 文件是 sshd bind 之后
+    // 才写的，启动过程中读不到很正常，把它当成已退出等于提前释放维护屏障。
+    FakeProcess process = new FakeProcess();
+    FakeLease lease = new FakeLease();
+    Path missingPid = temp.getRoot().toPath().resolve("absent.pid");
+
+    assertFalse(ContainerSshService.teardownGuestFirst(process, lease, missingPid, 50, true, null));
+    assertEquals(0, lease.retains);
+    assertEquals(0, lease.closes);
   }
 }

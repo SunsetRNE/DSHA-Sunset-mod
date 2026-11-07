@@ -106,9 +106,17 @@ public final class ContainerSshExitProof {
    *
    * <p>{@link State#UNKNOWN} 不算退出：继续等，直到超时后如实返回未确认。
    */
-  public static boolean awaitPidExit(Path pidFile, long timeoutMs) {
+  /**
+   * 等 guest 退出。
+   *
+   * @param requireEvidence 启动器确实跑过时必须为 {@code true}：此时 pid 文件缺失/不可读
+   *     意味着「无法确认」，不能当成已退出。原先无条件 {@code return true} 是 fail-open——
+   *     pid 文件是在 sshd bind 之后才写的，启动过程中被读会得到 null，于是维护屏障被提前
+   *     释放、状态写成「已停止」，而 sshd 可能正在起来。
+   */
+  public static boolean awaitPidExit(Path pidFile, long timeoutMs, boolean requireEvidence) {
     Integer pid = readPid(pidFile);
-    if (pid == null) return true; // 没有可观察证据时不阻塞收尾（sshd 可能没起来）。
+    if (pid == null) return !requireEvidence;
     StringBuilder birth = new StringBuilder();
     long deadline = System.currentTimeMillis() + Math.max(0, timeoutMs);
     while (true) {
@@ -121,5 +129,10 @@ public final class ContainerSshExitProof {
         return false;
       }
     }
+  }
+
+  /** 兼容入口：启动失败路径上「从没写过 pid」是正常收尾，不需要证据。 */
+  public static boolean awaitPidExit(Path pidFile, long timeoutMs) {
+    return awaitPidExit(pidFile, timeoutMs, false);
   }
 }

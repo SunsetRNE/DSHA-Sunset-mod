@@ -40,6 +40,28 @@ public final class ContainerSshAssets {
         WebSessionStorage.bind(
             fs, new File(context.getApplicationInfo().dataDir), context.getNoBackupFilesDir());
     File directory = fs.child(home.directory, "container-ssh");
+    File keys = keysDirectory(fs, directory);
+    launch.bind(keys.getAbsolutePath(), HOME);
+    bindPayloads(context, fs, directory, launch);
+    home.verify(fs);
+    return keys;
+  }
+
+  /**
+   * 密钥目录（sshd.pid 也写在这里），供启动前的孤儿对账使用。
+   *
+   * <p>对账必须在创建容器进程之前做：{@code bind} 需要 LaunchSpec，而 spec 由
+   * {@code execRootfsWithSpec} 在启动过程中创建，所以在 customizer 里对账会变成递归启动。
+   */
+  static File keysDirectory(Context context) throws IOException {
+    var fs = new AndroidBackupFileSystem();
+    var home =
+        WebSessionStorage.bind(
+            fs, new File(context.getApplicationInfo().dataDir), context.getNoBackupFilesDir());
+    return keysDirectory(fs, fs.child(home.directory, "container-ssh"));
+  }
+
+  private static File keysDirectory(AndroidBackupFileSystem fs, File directory) throws IOException {
     if (fs.stat(directory).type.equals("MISSING")) fs.directory(directory);
     if (!fs.stat(directory).type.equals("DIRECTORY"))
       throw new IOException("SSH_PRIVATE_DIRECTORY");
@@ -48,9 +70,6 @@ public final class ContainerSshAssets {
     if (fs.stat(keys).type.equals("MISSING")) fs.directory(keys);
     if (!fs.stat(keys).type.equals("DIRECTORY")) throw new IOException("SSH_PRIVATE_KEYS");
     fs.mode(keys, 0700);
-    launch.bind(keys.getAbsolutePath(), HOME);
-    bindPayloads(context, fs, directory, launch);
-    home.verify(fs);
     return keys;
   }
 

@@ -33,6 +33,8 @@ public final class ContainerSshService extends Service {
   private static final String CHANNEL = "dsha_container_ssh";
   private static final int NOTICE = 9071;
   public static final int PORT = ContainerSshPolicy.PORT;
+  private static final long GUEST_EXIT_TIMEOUT_MS = 10_000;
+  private static final int MAX_TAIL_LINES = 12;
   private static volatile String state = "stopped";
   private static volatile ContainerSshService instance;
   private final ExecutorService worker =
@@ -46,6 +48,12 @@ public final class ContainerSshService extends Service {
   private Process process;
   private RuntimeWorkPort.Work lease;
   private volatile java.io.File keysDirectory;
+
+  /** 本次实际确认的监听地址；状态与通知按它渲染，不按偏好推导。 */
+  private volatile String listeningAddress;
+
+  /** 子进程输出的最后若干行（脱敏后只用于失败诊断，不落用户可见文本）。 */
+  private final java.util.ArrayDeque<String> tail = new java.util.ArrayDeque<>();
 
   public static boolean supported(Context context) {
     return ContainerSshAssets.supported(context);
@@ -61,6 +69,37 @@ public final class ContainerSshService extends Service {
 
   public static String status() {
     return state;
+  }
+
+  /**
+   * 实际监听范围，而不是偏好里的开关。
+   *
+   * <p>切换「允许局域网」目前不停服务，若状态行按偏好渲染，就会出现 sshd 仍在 0.0.0.0 上监听、
+   * 界面却写「仅本机」——对一个以「默认只听回环」为卖点的暴露面，这是安全相关的错误陈述。
+   */
+  public static boolean activeLan() {
+    ContainerSshService owner = instance;
+    if (owner != null && owner.listeningAddress != null)
+      return "0.0.0.0".equals(owner.listeningAddress);
+    return false;
+  }
+
+  /**
+   * 用户改了监听范围但服务还在按旧地址跑。切换目前不自动重启（重启要等 guest 退出，
+   * 期间再次 start 会被拒绝），所以状态里必须明确说「需重启生效」，不能假装已生效。
+   */
+  public static boolean needsRestart(Context context) {
+    ContainerSshService owner = instance;
+    if (owner == null || owner.listeningAddress == null) return false;
+    boolean want = ContainerSshSettings.lanEnabled(context);
+    return want != "0.0.0.0".equals(owner.listeningAddress);
+  }
+
+  public static boolean activeLan(Context context) {
+    ContainerSshService owner = instance;
+    if (owner != null && owner.listeningAddress != null)
+      return "0.0.0.0".equals(owner.listeningAddress);
+    return ContainerSshSettings.lanEnabled(context);
   }
 
   public static boolean start(Context context) {
@@ -123,6 +162,10 @@ public final class ContainerSshService extends Service {
         throw new IOException("SSH_LAN_PERMISSION_REQUIRED");
       HarnessController controller = HarnessController.get(this);
       if (!controller.isEnvironmentReady()) throw new IOException("SSH_RUNTIME_NOT_READY");
+      // 对账必须在起新进程之前：App 被系统杀掉时 proot+sshd 会被 reparent 到 init 继续跑，
+      // 通知随进程消失，端口在没有任何提示的情况下继续开放。
+      keysDirectory = ContainerSshAssets.keysDirectory(this);
+      reconcilePrevious(keysDirectory);
       String secret = ContainerSshSettings.password(this);
       if (!ContainerSshPolicy.validPassword(secret))
         throw new IOException("SSH_PASSWORD_UNAVAILABLE");
@@ -138,10 +181,9 @@ public final class ContainerSshService extends Service {
                       + com.deepseekharness.app.util.ShellQuote.arg(
                           ContainerSshPolicy.script(ContainerSshSettings.lanEnabled(this))),
                   builder -> {
+                    // pid 文件不再无条件删除：它是判断「上次的 sshd 是否还在」的唯一证据。
+                    // 清除/终止在 reconcilePrevious 里按身份完成。
                     keysDirectory = ContainerSshAssets.bind(this, builder);
-                    // 上一次运行留下的 sshd.pid 可能是陈旧文件（pid 已被复用）：启动前删掉，
-                    // 否则停止时会拿别人/旧进程的 pid 等超时或误判成未确认。
-                    new java.io.File(keysDirectory, "sshd.pid").delete();
                     builder.pipedInput(true);
                   });
       byte[] bytes = utf8WithNewline(password);
@@ -159,6 +201,8 @@ public final class ContainerSshService extends Service {
       reader.start();
       if (!listening.await(15, TimeUnit.SECONDS) || !child.isAlive() || cancelled)
         throw new IOException("SSH_LISTENER_UNCONFIRMED");
+      listeningAddress = expectedAddress;
+      recordGuestIdentity(keysDirectory);
       state = "running";
       notifyState();
       Thread watcher =
@@ -176,6 +220,7 @@ public final class ContainerSshService extends Service {
       watcher.start();
     } catch (Exception failure) {
       state = failure instanceof IOException ? failure.getMessage() : "SSH_START_FAILED";
+      recordFailure(failure);
       closeOwned();
     } finally {
       if (password != null) java.util.Arrays.fill(password, '\0');
@@ -197,9 +242,15 @@ public final class ContainerSshService extends Service {
     try (BufferedReader reader =
         new BufferedReader(new InputStreamReader(child.getInputStream(), StandardCharsets.UTF_8))) {
       for (String line; (line = reader.readLine()) != null; ) {
-        if (line.equals("Server listening on " + address + " port " + PORT + "."))
+        if (line.equals("Server listening on " + address + " port " + PORT + ".")) {
           listening.countDown();
-        // 只消费输出，不保存用户名、客户端地址、会话命令或密码。
+          continue;
+        }
+        // 只留最后若干行用于失败诊断（脚本不会输出密码；客户端地址与用户名不记录）。
+        synchronized (tail) {
+          if (!line.isBlank()) tail.addLast(line.length() > 200 ? line.substring(0, 200) : line);
+          while (tail.size() > MAX_TAIL_LINES) tail.removeFirst();
+        }
       }
     } catch (IOException ignored) {
     }
@@ -209,6 +260,82 @@ public final class ContainerSshService extends Service {
     cancelled = true;
     state = "stopping";
     if (!worker.isShutdown()) worker.execute(this::closeOwned);
+  }
+
+  private static java.nio.file.Path pidFile(java.io.File keysDirectory) {
+    return keysDirectory == null ? null : keysDirectory.toPath().resolve("sshd.pid");
+  }
+
+  private static java.nio.file.Path identityFile(java.io.File keysDirectory) {
+    return keysDirectory == null ? null : keysDirectory.toPath().resolve("sshd.identity");
+  }
+
+  /**
+   * 启动前对账：上一次的 sshd 可能还在跑。
+   *
+   * <p>App 被系统杀掉（force stop / OOM / 崩溃）时，Android 只杀 App 的 pid，proot 与 sshd
+   * 被 reparent 到 init 继续运行，前台通知随进程消失。局域网模式下这意味着端口在没有任何
+   * 提示的情况下持续开放。pid 文件是唯一证据，所以不再像以前那样一进来就 delete()。
+   *
+   * <p>身份（pid + starttime）一致才终止；不一致或没有身份记录说明无法确认这是我们的 sshd，
+   * 拒绝启动而不是误杀别人的进程。
+   */
+  private void reconcilePrevious(java.io.File keysDirectory) throws IOException {
+    java.nio.file.Path pidFile = pidFile(keysDirectory);
+    if (pidFile == null || !java.nio.file.Files.isRegularFile(pidFile)) return;
+    Integer pid = com.deepseekharness.app.util.ContainerSshExitProof.readPid(pidFile);
+    if (pid == null || pid <= 0) return;
+    StringBuilder live = new StringBuilder();
+    if (com.deepseekharness.app.util.ContainerSshExitProof.observe(pid, live)
+        != com.deepseekharness.app.util.ContainerSshExitProof.State.ALIVE) return;
+    String recorded = "";
+    java.nio.file.Path identity = identityFile(keysDirectory);
+    try {
+      recorded =
+          new String(java.nio.file.Files.readAllBytes(identity), StandardCharsets.UTF_8).trim();
+    } catch (IOException | RuntimeException unreadable) {
+      // 没有身份记录：不能确认这是上一次的 sshd（pid 可能已被复用）
+    }
+    if (recorded.isEmpty() || !recorded.equals(live.toString()))
+      throw new IOException("SSH_ORPHAN_UNVERIFIED");
+    terminate(pid);
+    if (!com.deepseekharness.app.util.ContainerSshExitProof.awaitPidExit(pidFile, 4_000, true))
+      throw new IOException("SSH_ORPHAN_RUNNING");
+  }
+
+  /** 记录本次 sshd 的出生身份，供下次启动对账；写不进去不影响本次运行。 */
+  private static void recordGuestIdentity(java.io.File keysDirectory) {
+    java.nio.file.Path pidFile = pidFile(keysDirectory);
+    java.nio.file.Path identity = identityFile(keysDirectory);
+    if (pidFile == null || identity == null) return;
+    Integer pid = com.deepseekharness.app.util.ContainerSshExitProof.readPid(pidFile);
+    if (pid == null) return;
+    StringBuilder live = new StringBuilder();
+    if (com.deepseekharness.app.util.ContainerSshExitProof.observe(pid, live)
+        != com.deepseekharness.app.util.ContainerSshExitProof.State.ALIVE) return;
+    try {
+      java.nio.file.Files.writeString(identity, live.toString(), StandardCharsets.UTF_8);
+    } catch (IOException ignored) {
+      // 只影响下次对账的精度，不影响本次
+    }
+  }
+
+  /** 按 pid 精确终止（调用方已用 starttime 校验过身份）。 */
+  private static void terminate(int pid) {
+    try {
+      android.system.Os.kill(pid, android.system.OsConstants.SIGTERM);
+    } catch (Exception ignored) {
+      // 权限或进程已退出：交给随后的等待判定
+    }
+  }
+
+  /** 启动失败时把原因与最后几行输出写进诊断日志；不写进用户可见文本。 */
+  private void recordFailure(Exception failure) {
+    StringBuilder detail = new StringBuilder(String.valueOf(failure.getMessage()));
+    synchronized (tail) {
+      for (String line : tail) detail.append('\n').append(line);
+    }
+    com.deepseekharness.app.core.DiagnosticLog.record(this, "container-ssh", detail.toString());
   }
 
   /**
@@ -224,7 +351,9 @@ public final class ContainerSshService extends Service {
       Process process,
       com.deepseekharness.app.util.RuntimeWorkPort.Work lease,
       java.nio.file.Path pidFile,
-      long timeoutMs) {
+      long timeoutMs,
+      boolean requireGuestProof,
+      java.util.function.IntConsumer terminator) {
     if (process == null) {
       if (lease != null) lease.close();
       return true;
@@ -235,8 +364,18 @@ public final class ContainerSshService extends Service {
       // 流已经结束
     }
     process.destroyForcibly();
-    if (!com.deepseekharness.app.util.ContainerSshExitProof.awaitPidExit(pidFile, timeoutMs))
-      return false;
+    boolean exited =
+        com.deepseekharness.app.util.ContainerSshExitProof.awaitPidExit(
+            pidFile, timeoutMs, requireGuestProof);
+    if (!exited && requireGuestProof) {
+      // proroot 的 argv 里没有 --kill-on-exit：destroyForcibly 只杀启动器，guest 会变孤儿。
+      // 已经解析出精确 pid，就按身份再杀一次，而不是等满超时后永远报「未确认」。
+      Integer pid = com.deepseekharness.app.util.ContainerSshExitProof.readPid(pidFile);
+      if (pid != null && terminator != null) terminator.accept(pid);
+      exited =
+          com.deepseekharness.app.util.ContainerSshExitProof.awaitPidExit(pidFile, 3_000, true);
+    }
+    if (!exited) return false;
     if (lease != null) lease.retainUntilExit(process);
     return true;
   }
@@ -244,9 +383,14 @@ public final class ContainerSshService extends Service {
   private void closeOwned() {
     try {
       if (process != null) {
-        java.nio.file.Path pidFile =
-            keysDirectory == null ? null : keysDirectory.toPath().resolve("sshd.pid");
-        if (!teardownGuestFirst(process, lease, pidFile, 10_000)) {
+        boolean requireProof = "running".equals(state) || "stopping".equals(state);
+        if (!teardownGuestFirst(
+            process,
+            lease,
+            pidFile(keysDirectory),
+            GUEST_EXIT_TIMEOUT_MS,
+            requireProof,
+            ContainerSshService::terminate)) {
           // 未确认 guest 退出：保持租约与通知，不改写为 stopped。
           state = "SSH_CLEANUP_UNCONFIRMED";
           notifyState();
@@ -258,8 +402,10 @@ public final class ContainerSshService extends Service {
         lease.close();
         lease = null;
       }
-      boolean failure = ContainerSshStatus.isFailure(state);
+      // 先归一化再判失败：否则「启动中按停止」会带着旧失败态走 DETACH，
+      // 留下一条 ongoing、写着「已停止」、不可滑掉的通知。
       if (cancelled || "running".equals(state)) state = "stopped";
+      boolean failure = ContainerSshStatus.isFailure(state);
       if (failure) {
         // 失败/未确认：把结论与三要素留在通知里，服务退出但通知不撤。
         notifyState();
@@ -294,7 +440,7 @@ public final class ContainerSshService extends Service {
             .setContentText(
                 ContainerSshStatus.label(state)
                     + " · "
-                    + ContainerSshStatus.detail(state, PORT, ContainerSshSettings.lanEnabled(this)))
+                    + ContainerSshStatus.detail(state, PORT, activeLan(this)))
             .setOngoing(!failure)
             .setCategory(Notification.CATEGORY_SERVICE);
     // 失败态没有「停止」可点：服务已经退出，留一个能读原因的通知即可。

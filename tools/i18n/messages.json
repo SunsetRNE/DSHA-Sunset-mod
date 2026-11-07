@@ -31087,5 +31087,32 @@
       "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
+  },
+  {
+    "id": "m9067",
+    "zh": "残留会话",
+    "en": "Leftover session",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/ContainerSshStatus.java",
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java"
+    ]
+  },
+  {
+    "id": "m9068",
+    "zh": "上次的 SSH 未退出，终止失败；端口可能仍在监听；重启设备后再试",
+    "en": "A previous SSH session is still running and could not be stopped; the port may still be listening; restart the device and try again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/ContainerSshStatus.java",
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java"
+    ]
+  },
+  {
+    "id": "m9069",
+    "zh": "发现残留进程但无法确认身份；为避免误杀没有启动；重启设备后再试",
+    "en": "A leftover process was found but its identity could not be confirmed; SSH was not started to avoid killing an unrelated process; restart the device and try again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/ContainerSshStatus.java",
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java"
+    ]
   }
 ]

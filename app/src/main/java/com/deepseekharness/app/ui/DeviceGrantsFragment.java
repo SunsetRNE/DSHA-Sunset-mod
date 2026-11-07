@@ -690,7 +690,10 @@ public final class DeviceGrantsFragment extends Fragment {
     if (containerSshStatus == null || containerSsh == null || !isAdded()) return;
     Context ctx = requireContext().getApplicationContext();
     boolean enabled = com.deepseekharness.app.runtime.ContainerSshSettings.enabled(ctx);
-    boolean lan = com.deepseekharness.app.runtime.ContainerSshSettings.lanEnabled(ctx);
+    // 状态文案用实际监听地址，开关用偏好（开关代表意图）：两者不一致时提示需重启，
+    // 否则 sshd 还在 0.0.0.0 上监听，界面却写「仅本机」。
+    boolean lan = com.deepseekharness.app.runtime.ContainerSshService.activeLan(ctx);
+    boolean wantLan = com.deepseekharness.app.runtime.ContainerSshSettings.lanEnabled(ctx);
     // 首屏只给 ≤5 字结论；端口、原因、下一步进 InfoHint（UI 基准线 ⑩/⑬）。
     int port = com.deepseekharness.app.runtime.ContainerSshService.PORT;
     String state = com.deepseekharness.app.runtime.ContainerSshService.status();
@@ -711,11 +714,13 @@ public final class DeviceGrantsFragment extends Fragment {
       label = com.deepseekharness.app.util.ContainerSshStatus.label(state);
       detail = com.deepseekharness.app.util.ContainerSshStatus.detail(state, port, lan);
     }
+    if (com.deepseekharness.app.runtime.ContainerSshService.needsRestart(ctx))
+      detail = detail + " · " + UiText.text("改动在重启 SSH 后生效");
     containerSshStatus.setText(label);
     InfoHint.attach(containerSshStatus, detail);
     updating = true;
     containerSsh.setChecked(enabled);
-    containerSshLan.setChecked(lan);
+    containerSshLan.setChecked(wantLan);
     updating = false;
   }
 
