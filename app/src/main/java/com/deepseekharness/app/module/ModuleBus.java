@@ -25,25 +25,26 @@ public final class ModuleBus {
   public static String send(Context context, String from, String to, String event, String payload) {
     if (context == null) return "[失败] 缺少上下文";
     if (to == null || to.isEmpty()) return "[参数] 需要 to（目标模块 id）";
-    boolean exists = false;
+    ModuleCard target = null;
     for (ModuleCard card : ModuleCardStore.load(context)) {
       if (card.id.equals(to)) {
-        exists = true;
+        target = card;
         break;
       }
     }
-    if (!exists) return "[没有这个模块] " + to;
-    append(context, to, from, event, payload);
-    return "ok";
+    if (target == null) return "[没有这个模块] " + to;
+    if (!ModuleState.isEnabled(context, ModuleState.SCOPE_CARD, to))
+      return "[模块已停用] " + to + " —— 先在模块中心启用再发消息";
+    return append(context, to, from, event, payload) ? "ok" : "[失败] 事件名不合法或写入被拒";
   }
 
-  /** 广播给所有启用模块；返回投递数量。 */
+  /** 广播给所有启用模块；返回实际写入的数量（事件名非法/写入被拒不计入）。 */
   public static int emit(Context context, String from, String event, String payload) {
     if (context == null) return 0;
     int delivered = 0;
     for (ModuleCard card : ModuleCardStore.load(context)) {
-      append(context, card.id, from, event, payload);
-      delivered++;
+      if (!ModuleState.isEnabled(context, ModuleState.SCOPE_CARD, card.id)) continue;
+      if (append(context, card.id, from, event, payload)) delivered++;
     }
     return delivered;
   }
@@ -61,10 +62,11 @@ public final class ModuleBus {
     preferences(context).edit().remove(KEY_PREFIX + cardId).apply();
   }
 
-  private static void append(
+  /** 返回是否真正写入（事件名合法且偏好写入成功）；调用方据此计数或报错。 */
+  private static boolean append(
       Context context, String to, String from, String event, String payload) {
     String name = event == null ? "" : event.trim();
-    if (!name.matches("[a-z][a-z0-9._-]{0,31}")) return;
+    if (!name.matches("[a-z][a-z0-9._-]{0,31}")) return false;
     String body = payload == null ? "" : payload;
     if (body.length() > MAX_PAYLOAD) body = body.substring(0, MAX_PAYLOAD) + "…";
     String raw = preferences(context).getString(KEY_PREFIX + to, null);
@@ -84,9 +86,10 @@ public final class ModuleBus {
       // 满了丢最旧的：模块不能被别的模块用消息撑爆存储。
       while (queue.length() > MAX_EVENTS) queue.remove(0);
     } catch (Exception ignored) {
-      return;
+      return false;
     }
     preferences(context).edit().putString(KEY_PREFIX + to, queue.toString()).apply();
+    return true;
   }
 
   private static SharedPreferences preferences(Context context) {

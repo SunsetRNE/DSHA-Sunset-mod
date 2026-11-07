@@ -9,7 +9,9 @@ import android.content.SharedPreferences;
  * <p>没有这个，卡片就是「一次性的」——切个页面回来输入框空了、脚本写的字也没了，
  * 用户会觉得这玩意没记忆。存在 SharedPreferences 里，进程重启也还在。
  *
- * <p>键格式统一 {@code kind|id|名字}，分隔符是 {@code |}：模块 id 的规则
+ * <p>键格式统一 {@code kind|id|名字}，分隔符是 {@code |}。旧开发安装用的
+ * {@code <id>.slot} / {@code card:<id>.enabled} 等旧键**作废不迁移**（功能尚未发布，
+ * 重新设置一次即可）。模块 id 的规则
  * （{@code [a-z0-9][a-z0-9._-]{0,47}}）不允许它出现，所以按 id 精确清理不会误伤
  * {@code a.b} 这类只是共享前缀的兄弟模块 —— 旧版用 {@code .} 连接，{@code clear("a")}
  * 会把 {@code a.b} 的状态一起清掉。
