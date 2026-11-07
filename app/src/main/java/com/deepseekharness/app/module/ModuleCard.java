@@ -1303,7 +1303,7 @@ public final class ModuleCard {
       | `dsha.log('调试')` | 输出到结果里 |
 
       `return` 的字符串会显示在结果弹窗里；抛异常会显示错误原文。
-      脚本最长跑 6 秒，死循环会被销毁重来。
+      脚本最长跑 10 秒（ModuleScript.TIMEOUT_MS），死循环会被销毁重来。
 
       ## 编一串动作：sequence
 
@@ -1549,7 +1549,10 @@ public final class ModuleCard {
       `track`/`fill`/`gradient`/`glow` 颜色、`glow`（bool）、`showValue`、`segments`（2-20）、
       `duration`（200-5000 ms）、`state`（`success`/`error`）。所有值都有上限，非法值安全回退。
 
-      ## 能力总线：dsha.call
+      ## 能力总线：dsha.call（后续阶段，当前宿主尚未接线）
+
+      > 本节与下面的 `schedule.set`、`~/.dsha-launch` 属于模块平台后续阶段；
+      > 现在调用只会得到「尚未开放」。当前可用能力见上一节与「当前状态」注记。
 
       比动作更开放的一层：直接调宿主服务，宿主加能力不用改契约。
 

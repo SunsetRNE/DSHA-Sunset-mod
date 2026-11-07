@@ -27,7 +27,9 @@ import org.json.JSONObject;
  *
  * <p>沙箱边界（逐条都真的在代码里挡）：
  * <ul>
- *   <li>脚本只能看到注入的 {@code dsha} 对象，拿不到 Java 类，也拿不到 {@code DshaBridge} 之外的东西；</li>
+ *   <li>脚本经注入的 {@code dsha} 门面干活；{@code addJavascriptInterface} 注册的
+ *       {@code DshaBridge} 本身也是页面全局对象（卡片代码可直接调它），但没有超出
+ *       {@code dsha} 之外的新能力，也没有暴露任何 Java 类；</li>
  *   <li>断网：{@code setBlockNetworkLoads(true)} + 覆盖 {@code fetch/XHR/WebSocket/Worker}；</li>
  *   <li>断文件：{@code setAllowFileAccess(false)}、{@code setAllowContentAccess(false)}；</li>
  *   <li>{@code dsha.exec} 仍受这张卡片自己的执行授权约束，没有授权直接返回拒绝文案；</li>
@@ -107,7 +109,8 @@ public final class ModuleScript {
   private static boolean ready;
   private static final ArrayDeque<Request> queue = new ArrayDeque<>();
   private static volatile Request running;
-  private static String runningId;
+  // JS bridge 线程的 done() 会读、主线程会写：volatile 保证可见性。
+  private static volatile String runningId;
   private static int counter;
 
   /** 空闲 15 秒就销毁隐藏 WebView：它持有宿主上下文，长期不释放等于泄漏一个 Activity。 */

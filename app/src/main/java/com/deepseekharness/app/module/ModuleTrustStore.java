@@ -19,6 +19,8 @@ public final class ModuleTrustStore {
 
   private static final String PREFS = "dsha_module_trust";
   private static final String KEY_PREFIX = "key.";
+  // 内置公钥资产（module-trust/keys.json）当前不存在于随包 assets：builtin 会是空表，
+  // 「已验证」只能来自测试或未来 UI 写入 dsha_module_trust。补资产前，文档不宣称内置信任。
   private static final String ASSET = "module-trust/keys.json";
 
   private final Map<String, String> builtin;

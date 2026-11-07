@@ -38,12 +38,13 @@ public final class HomeModule {
     this.detailEn = detailEn;
   }
 
+  /** 词库统一出文案：zh 键进目录，十语言一致；english 参数保留给既有调用方。 */
   public String title(boolean english) {
-    return english ? titleEn : titleZh;
+    return com.deepseekharness.app.util.UiText.text(titleZh);
   }
 
   public String detail(boolean english) {
-    return english ? detailEn : detailZh;
+    return com.deepseekharness.app.util.UiText.text(detailZh);
   }
 
   private static final Map<String, HomeModule> MODULES;

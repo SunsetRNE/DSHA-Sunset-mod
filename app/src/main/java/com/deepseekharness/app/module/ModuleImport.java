@@ -71,6 +71,9 @@ public final class ModuleImport {
   private ModuleImport() {}
 
   public static Result importAny(Context context, String raw) {
+    // 与容器收件箱同一上限：card.json 是解析进内存的文本，超大输入先挡掉。
+    if (raw != null && raw.length() > ModuleCardStore.MAX_BYTES)
+      throw new IllegalArgumentException("卡片文件超过 32KB 上限");
     ModuleCard card;
     try {
       card = ModuleCard.parse(raw, ModuleCard.SOURCE_LOCAL);
@@ -133,6 +136,8 @@ public final class ModuleImport {
       }
     }
     String cardRaw = textOf(entries.get("card.json"));
+    if (cardRaw != null && cardRaw.length() > ModuleCardStore.MAX_BYTES)
+      throw new IllegalArgumentException("card.json 超过 32KB 上限");
     if (cardRaw == null) {
       String manifestRaw = textOf(entries.get("module.json"));
       if (manifestRaw == null) throw new IllegalArgumentException("模块包缺少 card.json 或 module.json");

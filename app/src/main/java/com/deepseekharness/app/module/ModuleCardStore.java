@@ -48,7 +48,7 @@ public final class ModuleCardStore {
   private static final String STAGING_DIR = "module-staging";
   private static final String BACKUP_DIR = "module-backup";
   private static final String INSTALL_PREFS = "dsha_module_install";
-  private static final int MAX_BYTES = 32 * 1024;
+  static final int MAX_BYTES = 32 * 1024;
   private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
   /** 模块自带网页单文件上限；HTML/CSS/JS 比图片大，但仍是有限值。 */
@@ -254,6 +254,12 @@ public final class ModuleCardStore {
       Context context, String raw, java.util.Map<String, byte[]> assets, String source)
       throws IllegalArgumentException {
     ModuleCard card = ModuleCard.parse(raw, source);
+    // 归档失败等原因会让同一份卡片反复进 importCard：先记下旧装的 digest 与来源，
+    // 完全一致的重导入不重置开关（否则用户已启用的卡片会被静默关掉）。
+    String previousDigest = installedDigest(context, card.id);
+    boolean sameContentReimport =
+        previousDigest.equals(ModuleCard.digestOf(raw))
+            && source.equals(sourceOf(context, card.id));
     // 素材校验全部前置：任何超限都在动旧模块之前失败，更新不会半途而废。
     Map<String, byte[]> accepted = new LinkedHashMap<>();
     if (assets != null) {
@@ -352,14 +358,28 @@ public final class ModuleCardStore {
       recordSource(context, card.id, source);
       // 5. 开关初值按来源定：只有用户自己挑文件导入的立即生效；容器与广场投递来的默认
       //    关闭，等用户在宿主上显式确认再加载 —— 否则一条转发链就能改宿主界面。
-      ModuleState.setEnabled(
-          context, ModuleState.SCOPE_CARD, card.id, ModuleCard.SOURCE_LOCAL.equals(source));
+      //    例外：归档失败等原因让原件留在收件箱时，下次扫描会重复导入同内容；
+      //    digest 与来源都没变的重导入不重置开关，避免把用户已启用的卡片静默关掉。
+      if (!sameContentReimport)
+        ModuleState.setEnabled(
+            context, ModuleState.SCOPE_CARD, card.id, ModuleCard.SOURCE_LOCAL.equals(source));
       retireBackups(context, card.id, KEEP_BACKUPS);
       bump();
       return card.layoutId();
     } finally {
       deleteTree(staging);
       deleteTree(junk);
+    }
+  }
+
+  /** 已装卡片内容的 SHA-256；目录/卡片缺失或不可读时返回不可能相等的占位。 */
+  private static String installedDigest(Context context, String cardId) {
+    File card = new File(new File(new File(context.getFilesDir(), DIR), cardId), FILE);
+    if (!card.isFile() || isSymlink(card)) return "<absent>";
+    try {
+      return ModuleCard.digestOf(read(card));
+    } catch (Exception error) {
+      return "<unreadable>";
     }
   }
 

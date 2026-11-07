@@ -100,9 +100,9 @@ public final class ModuleCatalog {
     /** 一行给用户看的身份：作者/版本/来源/摘要/信任。 */
     public String identitySummary(boolean zh) {
       StringBuilder builder = new StringBuilder();
-      builder.append(zh ? "作者 " : "author ").append(author);
+      builder.append(com.deepseekharness.app.util.UiText.text("作者 ")).append(author);
       builder.append(" · v").append(version);
-      builder.append(zh ? " · 来源 " : " · source ").append(sourceLabel(zh));
+      builder.append(com.deepseekharness.app.util.UiText.text(" · 来源 ")).append(sourceLabel(zh));
       builder.append(" · SHA-256 ").append(digestShort());
       builder.append(" · ").append(ModuleTrust.statusLabel(trustStatus, zh));
       return builder.toString();
@@ -112,8 +112,8 @@ public final class ModuleCatalog {
     public String capabilities(boolean zh) {
       List<String> caps = new ArrayList<>();
       if (card != null) {
-        if (!card.bind.isEmpty()) caps.add(zh ? "读状态" : "live data");
-        if (!card.fields.isEmpty()) caps.add(zh ? "输入" : "input");
+        if (!card.bind.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("读状态"));
+        if (!card.fields.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("输入"));
         boolean script = false;
         boolean run = false;
         for (ModuleCard.Action action : card.actions) {
@@ -124,26 +124,26 @@ public final class ModuleCatalog {
             if (action.value.contains("exec:")) run = true;
           }
         }
-        if (card.overlay != null) caps.add(zh ? "悬浮层" : "overlay");
-        if (card.theme != null) caps.add(zh ? "主题" : "theme");
-        if (card.view != null) caps.add(zh ? "自绘界面" : "custom view");
+        if (card.overlay != null) caps.add(com.deepseekharness.app.util.UiText.text("悬浮层"));
+        if (card.theme != null) caps.add(com.deepseekharness.app.util.UiText.text("主题"));
+        if (card.view != null) caps.add(com.deepseekharness.app.util.UiText.text("自绘界面"));
         for (String surface : card.provides.keySet())
           if (!ModuleCard.KNOWN_SURFACES.contains(surface))
-            caps.add((zh ? "未支持:" : "unsupported:") + surface);
-        if (script) caps.add(zh ? "脚本" : "script");
-        if (run) caps.add(zh ? "执行命令" : "shell");
-        if (!card.image.isEmpty()) caps.add(zh ? "立绘" : "art");
-        if (caps.isEmpty()) caps.add(zh ? "展示" : "display");
+            caps.add(com.deepseekharness.app.util.UiText.text("未支持:") + surface);
+        if (script) caps.add(com.deepseekharness.app.util.UiText.text("脚本"));
+        if (run) caps.add(com.deepseekharness.app.util.UiText.text("执行命令"));
+        if (!card.image.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("立绘"));
+        if (caps.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("展示"));
       }
       if (manifest != null) {
         caps.add(manifest.type().wireValue());
         if (manifest.architecture() != null) caps.add(manifest.architecture());
         if (!manifest.pages().isEmpty())
-          caps.add((zh ? "页面 " : "pages ") + manifest.pages().size());
+          caps.add(com.deepseekharness.app.util.UiText.text("页面 ") + manifest.pages().size());
         if (!manifest.navigation().isEmpty())
-          caps.add((zh ? "导航 " : "nav ") + manifest.navigation().size());
+          caps.add(com.deepseekharness.app.util.UiText.text("导航 ") + manifest.navigation().size());
         for (String capability : manifest.capabilities()) caps.add(capability);
-        if (caps.isEmpty()) caps.add(zh ? "声明" : "declaration");
+        if (caps.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("声明"));
       }
       return String.join(" · ", caps);
     }
