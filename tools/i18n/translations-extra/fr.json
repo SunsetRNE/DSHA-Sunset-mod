@@ -1960,12 +1960,12 @@
   "m9045": "L'environnement d'exécution n'est pas prêt ; terminez l'installation ou la maintenance, puis réessayez",
   "m9046": "Réactivez après avoir accordé l'autorisation réseau local",
   "m9047": "Échec de l'enregistrement : le magasin d'identifiants de l'appareil est indisponible",
-  "m9048": "Mot de passe invalide : de 8 à 128 caractères",
+  "m9048": "Mot de passe invalide : de 12 à 128 caractères",
   "m9049": "Les deux saisies ne correspondent pas",
   "m9050": "Définir le mot de passe SSH du conteneur",
   "m9051": "Activé · écoute non confirmée ; voir la notification",
   "m9052": "En cours · port %d",
   "m9053": "Démarre un serveur OpenSSH dans le conteneur (port 22222) afin que des clients SSH se connectent comme utilisateur dsha pour déboguer l'environnement. Le mot de passe est stocké sur cet appareil chiffré par une clé de l'appareil et remis au script de lancement uniquement via l'entrée standard, jamais en argv ni dans les journaux. Par défaut, écoute uniquement sur 127.0.0.1 ; avec l'accès LAN activé, écoute sur 0.0.0.0, exige l'autorisation réseau local du système et les changements s'appliquent au redémarrage du SSH. Cela expose la ligne de commande du conteneur — choisissez un mot de passe fort.",
   "m9054": "Démarrera OpenSSH dans le conteneur (port 22222) et conservera une notification au premier plan. Le mot de passe est remis au script de lancement uniquement via l'entrée standard ; désactivez l'interrupteur ou touchez « Arrêter » dans la notification pour terminer.",
-  "m9055": "Sert à se connecter comme utilisateur dsha via SSH ; au moins 8 caractères. Le mot de passe est stocké chiffré avec une clé de l'appareil ; les sauvegardes ne contiennent que le chiffré, indéchiffrable sur un autre appareil."
+  "m9055": "Sert à se connecter comme utilisateur dsha via SSH ; au moins 12 caractères. Le mot de passe est stocké chiffré avec une clé de l'appareil ; les sauvegardes ne contiennent que le chiffré, indéchiffrable sur un autre appareil."
 }

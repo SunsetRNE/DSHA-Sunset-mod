@@ -538,8 +538,32 @@ public final class DeviceGrantsFragment extends Fragment {
             toast(UiText.text("授予局域网权限后重新开启"));
             return;
           }
-          com.deepseekharness.app.runtime.ContainerSshSettings.setLanEnabled(ctx, on);
-          refreshContainerSshStatus();
+          if (!on) {
+            com.deepseekharness.app.runtime.ContainerSshSettings.setLanEnabled(ctx, false);
+            refreshContainerSshStatus();
+            return;
+          }
+          // 审查 P2-5：LAN 暴露把端口暴露给同一 WiFi 的所有人，开启要有一次显式确认。
+          new DshaDialogBuilder(ctx)
+              .setTitle(UiText.text("允许局域网访问？"))
+              .setMessage(
+                  UiText.text(
+                      "开启后 SSH 监听 0.0.0.0，同一 WiFi 下的任何设备都能连到这个端口（仍需密码）。"
+                          + "不要在公共 WiFi 下开启。改动在重启 SSH 后生效。"))
+              .setPositiveButton(
+                  UiText.text("允许"),
+                  (dialog, which) -> {
+                    com.deepseekharness.app.runtime.ContainerSshSettings.setLanEnabled(ctx, true);
+                    refreshContainerSshStatus();
+                  })
+              .setNegativeButton(
+                  UiText.text("取消"),
+                  (dialog, which) -> {
+                    updating = true;
+                    containerSshLan.setChecked(false);
+                    updating = false;
+                  })
+              .show();
         });
     refreshContainerSshStatus();
   }
@@ -625,7 +649,7 @@ public final class DeviceGrantsFragment extends Fragment {
     var dialog =
         new DshaDialogBuilder(ctx)
             .setTitle(UiText.text("设置容器 SSH 密码"))
-            .setMessage(UiText.text("用于 SSH 登录用户 dsha，至少 8 个字符。密码在本机用设备密钥加密保存；备份里只有密文，无法在其他设备解密。"))
+            .setMessage(UiText.text("用于 SSH 登录用户 dsha，至少 12 个字符。密码在本机用设备密钥加密保存；备份里只有密文，无法在其他设备解密。"))
             .setView(fields)
             .setNegativeButton(UiText.text("取消"), null)
             .setPositiveButton(UiText.text("保存"), null)
@@ -637,7 +661,7 @@ public final class DeviceGrantsFragment extends Fragment {
             ignored -> {
               String value = password.getText().toString();
               if (!com.deepseekharness.app.util.ContainerSshPolicy.validPassword(value)) {
-                password.setError(UiText.text("密码无效：至少 8 个字符，最多 128 个字符"));
+                password.setError(UiText.text("密码无效：至少 12 个字符，最多 128 个字符"));
                 return;
               }
               if (!value.equals(confirmation.getText().toString())) {

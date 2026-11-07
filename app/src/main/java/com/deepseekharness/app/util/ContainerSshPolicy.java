@@ -10,7 +10,9 @@ public final class ContainerSshPolicy {
   private ContainerSshPolicy() {}
 
   public static boolean validPassword(String value) {
-    if (value == null || value.length() < 8 || value.length() > 128) return false;
+    // 审查 P2-1：LAN 暴露下密码是唯一边界，下限 12 位（此前 8 位被 12345678 这类
+    // 纯数字轻易满足）；上限 128 不变。发布前修改无需迁移——能力尚未发布。
+    if (value == null || value.length() < 12 || value.length() > 128) return false;
     for (int i = 0; i < value.length(); i++)
       if (Character.isISOControl(value.charAt(i))) return false;
     return true;
