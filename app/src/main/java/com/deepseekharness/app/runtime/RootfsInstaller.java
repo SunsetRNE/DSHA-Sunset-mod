@@ -50,13 +50,18 @@ final class RootfsInstaller {
           TarGzipExtractor.extractAuto(input, stage, 0);
         }
       }
-      if (!py.isFile() || !enc.isFile())
-        throw new IOException(com.deepseekharness.app.util.UiText.text("Ubuntu Python 运行环境不完整"));
+      if (!py.isFile() || !enc.isFile()) {
+        // 模拟器 x86 目标可能不带随包 Python（空归档哨兵）：rootfs 自带完整
+        // Python 3.12 时按「rootfs 提供」放行，否则维持原失败。
+        if (!rootfsProvidesPython(stage))
+          throw new IOException(com.deepseekharness.app.util.UiText.text("Ubuntu Python 运行环境不完整"));
+      }
       GuestScriptBudget.checkpoint();
       // 标准库的 C 扩展还依赖 SQLite/readline；仅有 Python 主程序并不代表它们可用。
       // 与插件查询就绪共用 guest 判据：apt/dpkg 或外部 root 换成的 soname 链接只要在容器内指向非空普通文件即可用。
-      String sqlite = "usr/lib/aarch64-linux-gnu/libsqlite3.so.0";
-      String readline = "usr/lib/aarch64-linux-gnu/libreadline.so.8";
+      String triplet = com.deepseekharness.app.util.TargetAbi.linuxTriplet();
+      String sqlite = "usr/lib/" + triplet + "/libsqlite3.so.0";
+      String readline = "usr/lib/" + triplet + "/libreadline.so.8";
       boolean sqliteReady = supportReady(stage, sqlite),
           readlineReady = supportReady(stage, readline);
       if (!sqliteReady || !readlineReady) {
@@ -92,9 +97,21 @@ final class RootfsInstaller {
       RuntimeAssetFiles.write(
           ctx,
           new File(stage, "root/.dsha-python-version"),
-          "3.12-glibc-arm64\n".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+          com.deepseekharness.app.util.TargetAbi.pythonMarker()
+              .trim()
+              .getBytes(java.nio.charset.StandardCharsets.UTF_8),
           false);
     }
+  }
+
+  /**
+   * 随包 Python 资产缺失（x86 空归档哨兵）时，rootfs 自带的 Python 也能满足部署：
+   * 主程序与 encodings 齐全即视为 rootfs 提供，动态库仍按下方判据校验。
+   */
+  private static boolean rootfsProvidesPython(File stage) {
+    File py = new File(stage, "usr/bin/python3.12");
+    File enc = new File(stage, "usr/lib/python3.12/encodings/__init__.py");
+    return py.isFile() && py.length() > 0 && enc.isFile();
   }
 
   /** 与 RuntimeTools.queryReady 同一判据（rootfs 内按 guest 语义解析出的本 UID 可读普通文件），动态库另要求非空。 */

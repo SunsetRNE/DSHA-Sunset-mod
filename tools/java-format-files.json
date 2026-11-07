@@ -812,6 +812,7 @@
     "app/src/main/java/com/deepseekharness/app/util/StorageUsage.java",
     "app/src/main/java/com/deepseekharness/app/util/SummaryText.java",
     "app/src/main/java/com/deepseekharness/app/util/SystemLanguage.java",
+    "app/src/main/java/com/deepseekharness/app/util/TargetAbi.java",
     "app/src/main/java/com/deepseekharness/app/util/TaskNavigationPolicy.java",
     "app/src/main/java/com/deepseekharness/app/util/TerminalExtraKeys.java",
     "app/src/main/java/com/deepseekharness/app/util/TerminalInput.java",

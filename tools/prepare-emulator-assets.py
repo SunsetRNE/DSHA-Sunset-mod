@@ -129,7 +129,12 @@ def add_configured_base(configured, archive):
 
 def add_dsh_overlay(source, output, dsh_builder, version):
     source = source.resolve()
-    source.relative_to(ROOT / 'app/build')
+    try:
+        source.relative_to(ROOT / 'app/build')
+    except ValueError:
+        # 文档允许直接传 tools/dsh-runtime/node_modules（npm install 的原树）；
+        # 只要是仓库内受管路径即可，不再强制放 app/build 下。
+        source.relative_to(ROOT / 'tools/dsh-runtime')
     metadata = json.loads((source / '@deepseek-ai/dsh/package.json').read_text(encoding='utf-8'))
     if metadata.get('version') != version:
         raise ValueError('EMULATOR_DSH_VERSION')
@@ -282,7 +287,10 @@ def recovery(output, version):
     contract = {
         'schema': 1,
         'dshVersion': version,
-        'baseVersion': '10',
+        'baseVersion': (ROOT / 'app/src/main/assets/offline-rootfs.version').read_text(encoding='utf-8').strip(),
+        # 调试专用：这里的 recovery 契约由模拟器归档生成，未经 tools/recovery-runtime/lock.json
+        # 的独立应急锁校验；不能当作独立应急 DSH 的受管契约分发。
+        'debugOnly': True,
         'archives': [
             {'asset': 'recovery-rootfs.bin', 'sha256': digest(archives[0])},
             {'asset': 'recovery-dsh-runtime.bin', 'sha256': digest(archives[1])},
@@ -323,34 +331,73 @@ def main():
         raise ValueError('EMULATOR_NATIVE_RECEIPT_MISSING')
     OUTPUT.mkdir(parents=True, exist_ok=True)
     assets = ROOT / 'app/build/generated/standardAssets'
+    if not assets.is_dir():
+        # emulator 模式把 buildDirectory 改到 app/build/emulator-target，
+        # prepareStandardAssets 的输出也会跟着过去；两处都找不到时给出可执行指引。
+        fallback = ROOT / 'app/build/emulator-target/generated/standardAssets'
+        if fallback.is_dir():
+            assets = fallback
+        else:
+            raise ValueError(
+                'EMULATOR_STANDARD_ASSETS_MISSING: 先跑一次不带 -Pdsha.emulatorX64 的'
+                ' :app:prepareStandardAssets（或完整 Gradle 构建），再把生成的'
+                ' app/build/generated/standardAssets 交给本脚本')
     shutil.copytree(assets, OUTPUT, dirs_exist_ok=True)
     # x86 调试资产逐项替换为本架构 ELF，禁止把 ARM SSH 工具混入调试包。
+    # container-ssh 资产来自 PR #9：它还没合入时 standardAssets 里没有这棵树，
+    # 此处显式跳过并说明，而不是 FileNotFoundError。
     ssh_directory = OUTPUT / 'container-ssh'
-    ssh_manifest = json.loads((ssh_directory / 'manifest.json').read_text(encoding='utf-8'))
-    ssh_manifest['architecture'] = 'x86_64'
+    ssh_manifest_path = ssh_directory / 'manifest.json'
+    if not ssh_manifest_path.is_file():
+        print('EMULATOR_CONTAINER_SSH_ASSETS_MISSING: standardAssets 里没有 container-ssh'
+              '（来自 PR #9）；跳过 x86 SSH 三件套替换，调试包内不会带 sshd。')
+    else:
+        ssh_manifest = json.loads(ssh_manifest_path.read_text(encoding='utf-8'))
+        ssh_manifest['architecture'] = 'x86_64'
+        with tarfile.open(configured) as configured_archive:
+            members = {safe_name(item.name): item for item in configured_archive}
+            ssh_paths = {'sshd': 'usr/sbin/sshd', 'ssh-keygen': 'usr/bin/ssh-keygen',
+                         'lib/libwrap.so.0': 'usr/lib/x86_64-linux-gnu/libwrap.so.0'}
+            for row in ssh_manifest['files']:
+                name = ssh_paths[row['target']]
+                seen = set()
+                while not members[name].isfile():
+                    if name in seen or not members[name].issym():
+                        raise ValueError('EMULATOR_SSH_LINK:' + name)
+                    seen.add(name)
+                    name = posixpath.normpath(posixpath.join(posixpath.dirname(name), members[name].linkname))
+                data = configured_archive.extractfile(members[name]).read()
+                check_elf(data[:20], name)
+                (ssh_directory / row['asset']).write_bytes(data)
+                row['sha256'], row['bytes'] = hashlib.sha256(data).hexdigest(), len(data)
+        write_json(ssh_directory / 'manifest.json', ssh_manifest)
+    # P1-8：DSH 运行时依赖 rootfs 内 /usr/local/bin/node（x86_64 ELF）。
+    # 文档自建的 x86 rootfs 若没有 node，装到模拟器才会在启动时报错；这里提前拒绝。
     with tarfile.open(configured) as configured_archive:
         members = {safe_name(item.name): item for item in configured_archive}
-        ssh_paths = {'sshd': 'usr/sbin/sshd', 'ssh-keygen': 'usr/bin/ssh-keygen',
-                     'lib/libwrap.so.0': 'usr/lib/x86_64-linux-gnu/libwrap.so.0'}
-        for row in ssh_manifest['files']:
-            name = ssh_paths[row['target']]
-            seen = set()
-            while not members[name].isfile():
-                if name in seen or not members[name].issym():
-                    raise ValueError('EMULATOR_SSH_LINK:' + name)
-                seen.add(name)
-                name = posixpath.normpath(posixpath.join(posixpath.dirname(name), members[name].linkname))
-            data = configured_archive.extractfile(members[name]).read()
-            check_elf(data[:20], name)
-            (ssh_directory / row['asset']).write_bytes(data)
-            row['sha256'], row['bytes'] = hashlib.sha256(data).hexdigest(), len(data)
-    write_json(ssh_directory / 'manifest.json', ssh_manifest)
+        node = members.get('usr/local/bin/node')
+        if node is None:
+            raise ValueError(
+                'EMULATOR_NODE_MISSING: x86 rootfs 缺 usr/local/bin/node —— 从 Node 官方'
+                ' linux-x64 包解出后放入 rootfs，或 apt install nodejs 后重建归档')
+        if not node.isfile():
+            raise ValueError('EMULATOR_NODE_TYPE: usr/local/bin/node 不是常规文件')
+        check_elf(configured_archive.extractfile(node).read()[:20], 'usr/local/bin/node')
+        # 随包 Python 资产在 x86 线是空归档哨兵：rootfs 必须自带 python3.12，
+        # 否则部署会在「安装 Python 与 pnpm」阶段失败——提前到这里拒绝。
+        python = members.get('usr/bin/python3.12')
+        encodings = members.get('usr/lib/python3.12/encodings/__init__.py')
+        if python is None or not python.isfile() or encodings is None:
+            raise ValueError(
+                'EMULATOR_PYTHON_MISSING: x86 rootfs 缺 usr/bin/python3.12（或 encodings）'
+                ' —— x86 线不随包 Python，rootfs 必须自带（apt install python3.12）')
     dsh_builder = load_module('emulator_dsh_builder', ROOT / 'tools/build-dsh-runtime.py')
     version = json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8'))['dependencies']['@deepseek-ai/dsh']
     rootfs_output = OUTPUT / 'offline-rootfs.bin'
     temporary = rootfs_output.with_suffix('.tmp')
-    with tarfile.open(temporary, 'w:gz', compresslevel=1) as archive:
-        status = add_configured_base(configured, archive)
+    with gzip.GzipFile(filename=str(temporary), mode='wb', compresslevel=1, mtime=0) as raw:
+        with tarfile.open(fileobj=raw, mode='w') as archive:
+            status = add_configured_base(configured, archive)
     temporary.replace(rootfs_output)
     dsh_output = OUTPUT / 'dsh-runtime.bin'
     add_dsh_overlay(args.node_modules, OUTPUT, dsh_builder, version)
@@ -358,14 +405,21 @@ def main():
     write_json(OUTPUT / 'managed-package-proofs.json', package_proofs(dsh_output))
     package_lock = hashlib.sha256(status).hexdigest()
     tools_path = OUTPUT / 'ubuntu-tools.bin'
-    with tarfile.open(tools_path, 'w:gz') as archive:
-        add_bytes(archive, 'var/lib/dpkg/status', status)
-        add_bytes(archive, 'root/.dsha-ubuntu-tools-version', (package_lock + '\n').encode())
+    tools_tmp = tools_path.with_suffix('.tmp')
+    with gzip.GzipFile(filename=str(tools_tmp), mode='wb', mtime=0) as raw:
+        with tarfile.open(fileobj=raw, mode='w') as archive:
+            add_bytes(archive, 'var/lib/dpkg/status', status)
+            add_bytes(archive, 'root/.dsha-ubuntu-tools-version', (package_lock + chr(10)).encode())
+    tools_tmp.replace(tools_path)
     write_json(OUTPUT / 'ubuntu-tools.manifest.json', {'schema': 1, 'archiveSha256': digest(tools_path), 'statusSha256': package_lock, 'packageLockSha256': package_lock, 'packages': sum(1 for paragraph in status.split(b'\n\n') if paragraph.startswith(b'Package:'))})
     (OUTPUT / 'ubuntu-tools.layout').write_text('configured-overlay-v1\n', encoding='ascii')
     for name in ('glibc-python.bin', 'python-support.bin'):
-        with tarfile.open(OUTPUT / name, 'w:gz'):
-            pass
+        # 空归档哨兵：表示「本 ABI 不随包 Python，rootfs 必须自带」。同样固定 mtime。
+        sentinel_tmp = (OUTPUT / name).with_suffix('.tmp')
+        with gzip.GzipFile(filename=str(sentinel_tmp), mode='wb', mtime=0) as raw:
+            with tarfile.open(fileobj=raw, mode='w'):
+                pass
+        sentinel_tmp.replace(OUTPUT / name)
     for name in ('glibc-python.tar.gz', 'python-support.tar.gz'):
         (OUTPUT / name).unlink(missing_ok=True)
     (OUTPUT / 'offline-rootfs.layout').write_text('split-runtime-v1\n', encoding='ascii')
