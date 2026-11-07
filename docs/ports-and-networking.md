@@ -16,6 +16,7 @@ DNS 策略另见 [DNS 配置](dns-configuration.md)。
 | DSH Web 后端 | `127.0.0.1:<本次实际端口>` | 配置页的自动／手动 Web 端口 |
 | DeepSeek OAuth 回调 | 发起登录时页面 origin 的 `/oauth/callback`；由当前 DSH WebServer 临时注册路由，LAN 访问经代理转发 | 官方账号登录状态机 |
 | Android 能力桥 | 当前应用优先`127.0.0.1:3091`，随后3092–3099，最后3090；同端口另尝试`::1`，guest按本安装状态发现 | `HttpShellService` |
+| 容器 SSH（可选，默认关） | `127.0.0.1:22222`；开启「允许局域网访问」后 `0.0.0.0:22222` | `ContainerSshService`（见 docs/container-ssh.md） |
 | LAN 网页代理 | 当前应用优先`0.0.0.0:3082`，占用时直接绑定操作系统分配端口；旧应用3081 | 配置页的局域网访问开关 |
 | 无线 ADB 配对 | Android 配对弹窗给出的临时端口 | 设备能力授权／ADB 配对页 |
 | 无线 ADB 连接 | Android 无线调试页及发现结果 | ADB 连接管理 |

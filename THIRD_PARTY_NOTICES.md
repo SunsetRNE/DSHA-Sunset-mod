@@ -80,6 +80,7 @@
 ## 受管命令行工具
 
 - GitHub CLI（gh）v2.103.3：MIT，官方 `https://github.com/cli/cli` release 的 linux-arm64 归档，固定输入 `app/src/main/assets/gh-cli.tar.gz` 的版本、URL、归档与成员摘要见 `tools/gh-cli/packages.lock.json`；许可全文 `assets/licenses/gh-MIT.txt`（SHA-256 `6da4adc42392c8485e40b4251c7e332fc3352df1947c9ffade71dd60b14a7a4f`）。受管安装只提取固定成员并二次校验摘要，不执行归档中的其它内容。
+- 容器 SSH（OpenSSH 9.6p1 3ubuntu13.20，Ubuntu 24.04 noble aarch64；libwrap0 7.6.q-33）：BSD-3-clause 及相关许可，随包版权全文 `container-ssh/openssh-client-copyright.txt`、`container-ssh/libwrap0-copyright.txt`。三个随包成员（sshd / ssh-keygen / libwrap.so.0）的逐字节摘要与来源见 `tools/container-ssh/packages.lock.json`；其余共享库依赖 rootfs 内 Ubuntu 库（清单见锁）。逐字节重建配方仍未闭合，见 docs/references-and-provenance.md。
 
 ## npm 锁中需另核对的许可声明
 

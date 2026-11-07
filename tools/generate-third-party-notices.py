@@ -56,6 +56,13 @@ def render():
     hashes = '\n'.join(f'- `{name}`：`{hashlib.sha256((ASSETS / "builtin-plugins/dsh-web-mobile/lib" / name).read_bytes()).hexdigest()}`'
                        for name in ('client.js', 'index.js', 'compress.js', 'delete-session.js'))
     gh_lock = json.loads((ROOT / 'tools/gh-cli/packages.lock.json').read_text(encoding='utf-8'))
+    ssh_lock = json.loads((ROOT / 'tools/container-ssh/packages.lock.json').read_text(encoding='utf-8'))
+    ssh_members = {row['asset']: row for row in ssh_lock['members']}
+    ssh_manifest = json.loads((ROOT / 'app/src/main/assets/container-ssh/manifest.json').read_text(encoding='utf-8'))
+    for row in ssh_manifest['files']:
+        lock_row = ssh_members.get(row['asset'])
+        if lock_row is None or lock_row['sha256'] != row['sha256'] or lock_row['bytes'] != row['bytes']:
+            raise ValueError('CONTAINER_SSH_LOCK: manifest.json 与 tools/container-ssh/packages.lock.json 不一致: ' + row['asset'])
     gh_license = (ASSETS / 'licenses/gh-MIT.txt').read_bytes()
     if hashlib.sha256(gh_license).hexdigest() != gh_lock.get('licenseSha256'):
         raise ValueError('GH_CLI_LICENSE_NOTICE: assets/licenses/gh-MIT.txt 与 tools/gh-cli/packages.lock.json 不一致')
@@ -117,6 +124,7 @@ def render():
 ## 受管命令行工具
 
 - GitHub CLI（gh）v{gh_lock['version']}：MIT，官方 `https://github.com/cli/cli` release 的 linux-arm64 归档，固定输入 `app/src/main/assets/gh-cli.tar.gz` 的版本、URL、归档与成员摘要见 `tools/gh-cli/packages.lock.json`；许可全文 `assets/licenses/gh-MIT.txt`（SHA-256 `{gh_lock['licenseSha256']}`）。受管安装只提取固定成员并二次校验摘要，不执行归档中的其它内容。
+- 容器 SSH（OpenSSH {ssh_lock['upstream']['version']} {ssh_lock['upstream']['debianRevision']}，Ubuntu 24.04 noble aarch64；libwrap0 7.6.q-33）：BSD-3-clause 及相关许可，随包版权全文 `container-ssh/openssh-client-copyright.txt`、`container-ssh/libwrap0-copyright.txt`。三个随包成员（sshd / ssh-keygen / libwrap.so.0）的逐字节摘要与来源见 `tools/container-ssh/packages.lock.json`；其余共享库依赖 rootfs 内 Ubuntu 库（清单见锁）。逐字节重建配方仍未闭合，见 docs/references-and-provenance.md。
 
 ## npm 锁中需另核对的许可声明
 
