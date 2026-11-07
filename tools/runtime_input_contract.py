@@ -94,8 +94,7 @@ def asset_paths(root, spec=None):
         for path in directory.rglob('*'):
             if path.is_file():
                 result.add(_file(root, path.relative_to(root).as_posix()))
-    # 按路径字符串码点排序：pathlib 在 Windows 上大小写不敏感地比较 Path，会让同一棵树在两个平台写出不同字节（build336 新增 LICENSE 后首次触发）。
-    return sorted(result, key=lambda p: p.as_posix())
+    return sorted(result)
 
 
 def launcher_paths(root, spec=None):

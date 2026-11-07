@@ -33,7 +33,8 @@ import org.json.JSONObject;
  *   <li>断网：{@code setBlockNetworkLoads(true)} + 覆盖 {@code fetch/XHR/WebSocket/Worker}；</li>
  *   <li>断文件：{@code setAllowFileAccess(false)}、{@code setAllowContentAccess(false)}；</li>
  *   <li>{@code dsha.exec} 仍受这张卡片自己的执行授权约束，没有授权直接返回拒绝文案；</li>
- *   <li>单次执行 6 秒上限，超时销毁实例重来（JS 死循环不会拖死宿主主线程）。</li>
+ *   <li>单次执行 10 秒上限（大于 {@link ModuleExec} 的 8 秒，避免 dsha.exec 还没返回就销毁引擎），
+ *       超时销毁实例重来（JS 死循环不会拖死宿主主线程）。</li>
  * </ul>
  *
  * <p>能力真相：这里挡的是「模块偷偷联网/读文件/执行命令」，不是给容器加隔离。
@@ -59,6 +60,43 @@ public final class ModuleScript {
 
   /** 一次最多排队 4 个请求，再多就拒绝，避免用户连点堆一串。 */
   private static final int MAX_QUEUE = 4;
+
+  /** 单次脚本的 console 上限，防止脚本刷爆内存。 */
+  static final int CONSOLE_LIMIT = 2000;
+
+  /**
+   * 结算判定：只有「当前正在跑的那个 id」能结束本次请求。
+   *
+   * <p>抽出来是为了能在不建 WebView 的情况下测：迟到的 done、旧 id、并发两个脚本时
+   * 先跑完的那个都不能把后一个提前结算掉。
+   */
+  static boolean acceptsDone(String expectedId, String id, boolean running) {
+    return running && expectedId != null && expectedId.equals(String.valueOf(id));
+  }
+
+  /** 队列上限判定：连点/批量触发时不无限堆积。 */
+  static boolean canEnqueue(int queued) {
+    return queued < MAX_QUEUE;
+  }
+
+  /** console 追加：到上限就丢弃，null 安全。 */
+  static void appendConsole(StringBuilder buffer, String text) {
+    if (buffer == null) return;
+    if (text == null) return;
+    if (buffer.length() >= CONSOLE_LIMIT) return;
+    buffer.append(text).append('\n');
+  }
+
+  /**
+   * {@code dsha.exec} 的前置策略：返回 {@code null} 表示放行，返回字符串则是回给脚本的拒绝文案。
+   *
+   * <p>执行授权本身在 {@link ModuleExec#run} 内部再判一次（门只有一处），这里只负责
+   * 「签名是否被要求」这条策略，避免调用方各写一份。
+   */
+  static String execRefusal(boolean requireVerified, String trustStatus) {
+    if (requireVerified && !ModuleTrust.VERIFIED.equals(trustStatus)) return "[未授权] 这张卡片的签名没有通过校验。";
+    return null;
+  }
 
   private static final class Request {
     /** 建 WebView 用宿主上下文（带主题），取数据用应用上下文。 */
@@ -170,7 +208,7 @@ public final class ModuleScript {
       callback.onResult(false, "脚本太长（上限 " + ModuleCard.MAX_SCRIPT + " 字符）");
       return;
     }
-    if (queue.size() >= MAX_QUEUE) {
+    if (!canEnqueue(queue.size())) {
       callback.onResult(false, "脚本排满了，等一下再试");
       return;
     }
@@ -279,8 +317,8 @@ public final class ModuleScript {
           @Override
           public boolean onConsoleMessage(android.webkit.ConsoleMessage message) {
             Request request = running;
-            if (message != null && request != null && request.console.length() < 2000)
-              request.console.append(message.message()).append('\n');
+            if (message != null && request != null)
+              appendConsole(request.console, message.message());
             return true;
           }
         });
@@ -369,9 +407,11 @@ public final class ModuleScript {
       // 授权绑「脚本启动时」的内容摘要：命令来自启动时解析的卡片，摘要也取同一时刻。
       // 容器事后换目录再换回来想借道放行新命令，对不上这份摘要就拒绝。
       String digest = request.digest;
-      if (ModuleTrust.EXEC_REQUIRES_VERIFIED
-          && !ModuleTrust.VERIFIED.equals(ModuleTrust.statusOf(request.context, request.card)))
-        return "[未授权] 这张卡片的签名没有通过校验。";
+      String refusal =
+          execRefusal(
+              ModuleTrust.EXEC_REQUIRES_VERIFIED,
+              ModuleTrust.statusOf(request.context, request.card));
+      if (refusal != null) return refusal;
       // 授权门在执行入口内部（ModuleExec.run），这里不再自行判断，避免出现两条不一致的规则。
       ModuleExec.Result result = ModuleExec.run(request.context, request.cardId, digest, cmd);
       return (result.ok ? "" : "[失败] ") + result.output;
@@ -450,8 +490,7 @@ public final class ModuleScript {
     public void log(String text) {
       Request request = running;
       if (request == null) return;
-      if (request.console.length() < 2000)
-        request.console.append(String.valueOf(text == null ? "" : text)).append('\n');
+      appendConsole(request.console, String.valueOf(text == null ? "" : text));
     }
 
     @JavascriptInterface
@@ -461,8 +500,7 @@ public final class ModuleScript {
       handler()
           .post(
               () -> {
-                if (expected == null || !expected.equals(String.valueOf(id))) return;
-                if (running == null) return;
+                if (!acceptsDone(expected, id, running != null)) return;
                 String extra = running.console.toString().trim();
                 String body = value;
                 if (ok && !extra.isEmpty()) body = (body.isEmpty() ? "" : body + "\n\n") + extra;

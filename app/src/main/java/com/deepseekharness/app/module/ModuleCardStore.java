@@ -331,17 +331,34 @@ public final class ModuleCardStore {
           if (program != null) staged.setExecutable(true, false);
         }
       }
-      // 2. 残缺旧目录（没有 card.json，装到一半的残留）整体挪走，不挡新安装。
-      if (dir.isDirectory() && !new File(dir, FILE).isFile() && !dir.renameTo(junk))
-        throw new IllegalArgumentException("无法清理残缺的旧模块目录");
+      // 2. 残缺旧目录（既没有 card.json 也没有 module.json，装到一半的残留）整体挪走。
+      //    只有 module.json 的目录是合法的「同 id 清单」，绝不能当垃圾清掉：ModuleCatalog
+      //    明确允许同 id 卡片与清单并存，容器投递一张同 id 卡片就能顺带删掉用户装的清单。
+      if (dir.isDirectory()
+          && !new File(dir, FILE).isFile()
+          && !new File(dir, MANIFEST_FILE).isFile()
+          && !dir.renameTo(junk)) throw new IllegalArgumentException("无法清理残缺的旧模块目录");
       // 3. 提交：旧版整目录搬进备份区，再让暂存顶上；顶不上就把旧版搬回来。
       File backup = null;
-      if (new File(dir, FILE).isFile()) {
+      // 有 card.json 是「更新旧卡片」；只有 module.json 是「同 id 清单占着目录」——
+      // 两种情况都得把旧目录挪开，暂存目录才顶得上去（清单已在上面拷进暂存）。
+      if (new File(dir, FILE).isFile() || new File(dir, MANIFEST_FILE).isFile()) {
         File backupRoot = new File(context.getFilesDir(), BACKUP_DIR);
         if (!backupRoot.isDirectory() && !backupRoot.mkdirs())
           throw new IllegalArgumentException("无法创建备份目录");
         if (isSymlink(backupRoot)) throw new IllegalArgumentException("备份目录非法");
         backup = new File(backupRoot, backupDirName(card.id));
+        // 同目录的清单不属于这张卡片：整目录换掉之前先把它带进暂存，否则清单只留在备份区，
+        // retireBackups 之后连那份也会被淘汰（ModuleRegistry 从此读不到清单）。
+        File siblingManifest = new File(dir, MANIFEST_FILE);
+        if (siblingManifest.isFile() && !isSymlink(siblingManifest)) {
+          try {
+            writeBytesAtomically(
+                new File(staging, MANIFEST_FILE), readBytesNoFollow(siblingManifest, MAX_BYTES));
+          } catch (IOException error) {
+            throw new IllegalArgumentException("无法保留同目录清单，本次更新已取消", error);
+          }
+        }
         if (!dir.renameTo(backup)) throw new IllegalArgumentException("无法备份旧版模块，本次更新已取消");
       }
       try {
@@ -584,7 +601,10 @@ public final class ModuleCardStore {
           File asset = new File(dir, name);
           if (asset.isFile() && !isSymlink(asset)) asset.delete();
         }
-        cleared = !dir.exists();
+        // 成功条件只能是「卡片没了」，不能是「整个目录没了」：同目录的清单是另一个实体，
+        // 它会一直留在这里。用目录做判据会让 remove 永远返回 false，ModuleCatalog 于是
+        // 不撤销执行/程序/生命周期/界面授权 —— 删卡重导后旧摘要授权直接复用。
+        cleared = !new File(dir, FILE).exists();
       } else {
         deleteTree(dir);
         cleared = !dir.exists();
