@@ -30931,11 +30931,12 @@
   },
   {
     "id": "modui017",
-    "zh": "未支持:",
-    "en": "unsupported:",
+    "zh": "未支持:%s",
+    "en": "unsupported:%s",
     "files": [
       "app/src/main/java/com/deepseekharness/app/module/ModuleCatalog.java"
-    ]
+    ],
+    "uiFormat": true
   },
   {
     "id": "modui018",
@@ -30971,19 +30972,21 @@
   },
   {
     "id": "modui022",
-    "zh": "页面 ",
-    "en": "pages ",
+    "zh": "页面 %d",
+    "en": "pages %d",
     "files": [
       "app/src/main/java/com/deepseekharness/app/module/ModuleCatalog.java"
-    ]
+    ],
+    "uiFormat": true
   },
   {
     "id": "modui023",
-    "zh": "导航 ",
-    "en": "nav ",
+    "zh": "导航 %d",
+    "en": "nav %d",
     "files": [
       "app/src/main/java/com/deepseekharness/app/module/ModuleCatalog.java"
-    ]
+    ],
+    "uiFormat": true
   },
   {
     "id": "modui024",

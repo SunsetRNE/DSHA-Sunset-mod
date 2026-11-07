@@ -129,7 +129,7 @@ public final class ModuleCatalog {
         if (card.view != null) caps.add(com.deepseekharness.app.util.UiText.text("自绘界面"));
         for (String surface : card.provides.keySet())
           if (!ModuleCard.KNOWN_SURFACES.contains(surface))
-            caps.add(com.deepseekharness.app.util.UiText.text("未支持:") + surface);
+            caps.add(com.deepseekharness.app.util.UiText.format("未支持:%s", surface));
         if (script) caps.add(com.deepseekharness.app.util.UiText.text("脚本"));
         if (run) caps.add(com.deepseekharness.app.util.UiText.text("执行命令"));
         if (!card.image.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("立绘"));
@@ -139,9 +139,9 @@ public final class ModuleCatalog {
         caps.add(manifest.type().wireValue());
         if (manifest.architecture() != null) caps.add(manifest.architecture());
         if (!manifest.pages().isEmpty())
-          caps.add(com.deepseekharness.app.util.UiText.text("页面 ") + manifest.pages().size());
+          caps.add(com.deepseekharness.app.util.UiText.format("页面 %d", manifest.pages().size()));
         if (!manifest.navigation().isEmpty())
-          caps.add(com.deepseekharness.app.util.UiText.text("导航 ") + manifest.navigation().size());
+          caps.add(com.deepseekharness.app.util.UiText.format("导航 %d", manifest.navigation().size()));
         for (String capability : manifest.capabilities()) caps.add(capability);
         if (caps.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("声明"));
       }
