@@ -541,11 +541,11 @@ public final class ModuleCardStore {
    * 原先的 {@code dir.delete()} 在目录非空时直接失败，图片/网页/程序会一直留在
    * {@code files/modules/<id>} 里，同 id 再次导入还会沿用这些旧字节。
    */
-  public static void remove(Context context, String cardId) {
+  public static boolean remove(Context context, String cardId) {
     File dir = new File(new File(context.getFilesDir(), DIR), cardId);
     if (isSymlink(dir)) {
       // 目录本身是链接：只摘掉链接，不追进目标目录删宿主文件，也不读里面的卡片。
-      dir.delete();
+      return dir.delete();
     } else {
       File card = new File(dir, FILE);
       java.util.List<String> assets = new java.util.ArrayList<>();
@@ -557,15 +557,19 @@ public final class ModuleCardStore {
         }
         card.delete();
       }
+      boolean cleared;
       if (new File(dir, MANIFEST_FILE).isFile()) {
         for (String name : assets) {
           if (!ModuleCard.isAssetFileName(name)) continue;
           File asset = new File(dir, name);
           if (asset.isFile() && !isSymlink(asset)) asset.delete();
         }
+        cleared = !dir.exists();
       } else {
         deleteTree(dir);
+        cleared = !dir.exists();
       }
+      if (!cleared) return false;
     }
     // 来源记录和旧版备份跟着模块一起清，不留孤儿数据。
     context
@@ -576,6 +580,7 @@ public final class ModuleCardStore {
     File[] entries = new File(context.getFilesDir(), BACKUP_DIR).listFiles();
     for (File stale : backupsToRetire(entries, cardId, 0)) deleteTree(stale);
     bump();
+    return true;
   }
 
   /**
@@ -662,9 +667,7 @@ public final class ModuleCardStore {
           imported++;
           // 导入成功后把原件移走，避免每次启动重复导入；目录被换成链接时不能碰
           // 任何文件（delete 会落到链接目标里的同名文件），跳过即可。
-          if (!plainPath(inbox, rootfsDir, false)) continue;
-          File done = new File(inbox, name + ".done");
-          if (!file.renameTo(done)) file.delete();
+          archiveInboxFile(inbox, rootfsDir, file, name);
         } catch (Exception error) {
           // 无效文件留在原地，用户或模型可以自己改；错误可见，不静默丢。
           found.add(new Issue(name, message(error)));
@@ -673,6 +676,22 @@ public final class ModuleCardStore {
     }
     publishInboxIssues(found);
     return imported;
+  }
+
+  /**
+   * 导入成功后的归档：原件改名 {@code .done}，改名失败才退回删除。
+   * inbox 在这一刻必须仍是真实目录——被换成链接时返回 false 且不碰任何文件
+   * （{@code delete} 会落到链接目标里的同名文件）。package-private 供回归测试
+   * 直接构造「归档瞬间目录被换」的确定性场景，不依赖真实竞态。
+   */
+  static boolean archiveInboxFile(File inbox, File rootfsDir, File file, String name) {
+    if (!plainPath(inbox, rootfsDir, false)) return false;
+    File done = new File(inbox, name + ".done");
+    if (!file.renameTo(done)) {
+      file.delete();
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -771,8 +790,25 @@ public final class ModuleCardStore {
     return buffer;
   }
 
+  /**
+   * 随机命名的临时文件：固定 {@code <name>.tmp} 可被容器预置同名链接，
+   * 写入会落到链接目标。 {@link java.io.Files#createFile} 语义下已存在即失败，
+   * 先建后写，rename 前再核一次不是链接。
+   */
+  private static File newTempFile(File target) {
+    File temp =
+        new File(
+            target.getParentFile(), target.getName() + "." + java.util.UUID.randomUUID() + ".tmp");
+    try {
+      java.nio.file.Files.createFile(temp.toPath());
+    } catch (IOException error) {
+      throw new IllegalArgumentException("无法创建临时文件：" + error.getMessage(), error);
+    }
+    return temp;
+  }
+
   private static void writeBytesAtomically(File target, byte[] content) {
-    File temp = new File(target.getParentFile(), target.getName() + ".tmp");
+    File temp = newTempFile(target);
     try (FileOutputStream output = new FileOutputStream(temp)) {
       output.write(content);
       output.getFD().sync();
@@ -780,14 +816,14 @@ public final class ModuleCardStore {
       temp.delete();
       throw new IllegalArgumentException("写入立绘失败：" + error.getMessage());
     }
-    if (!temp.renameTo(target)) {
+    if (isSymlink(temp) || !temp.renameTo(target)) {
       temp.delete();
       throw new IllegalArgumentException("无法保存立绘");
     }
   }
 
   private static void writeAtomically(File target, String content) {
-    File temp = new File(target.getParentFile(), target.getName() + ".tmp");
+    File temp = newTempFile(target);
     try (FileOutputStream output = new FileOutputStream(temp)) {
       output.write(content.getBytes(StandardCharsets.UTF_8));
       output.getFD().sync();

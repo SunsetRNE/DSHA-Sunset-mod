@@ -267,8 +267,9 @@ public final class ModuleCatalog {
     if (entry == null) return false;
     boolean removed;
     if (entry.card != null) {
-      ModuleCardStore.remove(context, entry.id);
-      removed = true;
+      // 删除失败（权限、异常目录项）时不得撤销授权或清状态：卡片还在，
+      // 撤销会让用户以为已移除而卡片仍可执行。
+      removed = ModuleCardStore.remove(context, entry.id);
     } else {
       try {
         removed = ModuleRegistry.uninstallUserManifest(context, entry.id);
