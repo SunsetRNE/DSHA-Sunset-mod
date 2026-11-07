@@ -42,6 +42,26 @@ def verify():
         if header[:4] != b'\x7fELF' or struct.unpack_from('<H', header, 18)[0] != machine:
             raise ValueError('EMULATOR_ELF_ARCHITECTURE:' + name)
     descriptor = json.loads((ASSETS / 'runtime-descriptor.json').read_text(encoding='utf-8'))
+    # P1-5：资产生成自旧 dsh/插件配方时必须拒绝——receipt 只能自证一致，
+    # 不能证明不是旧配方产物。对比当前 dsh 版本与当前 build 配方。
+    current_dsh = json.loads(
+        (ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8')
+    )['dependencies']['@deepseek-ai/dsh']
+    if descriptor.get('dshVersion') != current_dsh:
+        raise ValueError(
+            'EMULATOR_STALE_DSH: 资产生成于 ' + str(descriptor.get('dshVersion'))
+            + '，当前锁为 ' + current_dsh + ' —— 重新运行 prepare-emulator-assets.py')
+    dsh_builder = importlib.util.spec_from_file_location(
+        'verify_dsh_builder', ROOT / 'tools/build-dsh-runtime.py')
+    builder_module = importlib.util.module_from_spec(dsh_builder)
+    dsh_builder.loader.exec_module(builder_module)
+    receipt_recipe = (ASSETS.parent / 'emulator-assets-receipt.json')
+    if receipt_recipe.is_file():
+        recorded = json.loads(receipt_recipe.read_text(encoding='utf-8')).get('dshRecipe')
+        if recorded is not None and recorded != builder_module.recipe_inputs():
+            raise ValueError(
+                'EMULATOR_STALE_RECIPE: build-dsh-runtime 的输入（补丁/工具源）在资产生成后有变化'
+                ' —— 重新运行 prepare-emulator-assets.py')
     fields = ('baseVersion', 'dshVersion', 'launcherContract', 'launcherInputs', 'bridgeProtocol', 'dataRead', 'dataWrite', 'inputs')
     identity = hashlib.sha256(json.dumps({key: descriptor[key] for key in fields}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     if descriptor['launcherContract'] != 'DSHA_X86_64_DEBUG_V1' or descriptor['runtimeId'] != identity or identity != receipt['runtimeId']:

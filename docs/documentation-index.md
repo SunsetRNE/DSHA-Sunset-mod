@@ -22,6 +22,7 @@
 | [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果 |
 | [资料与来源依据](references-and-provenance.md) | 官方primary入口、工程上游关系、固定版本/摘要、许可与来源限制 |
 | [固定构建输入](fixed-build-inputs.md) | 公开仓库预发布资产、12 项输入、SHA-256 锁定与还原流程 |
+| [模拟器 x86_64 调试线](sunset-emulator-x64.md) | 独立包名/构建目录的桌面模拟器调试目标：rootfs 准备、资产生成、x86 运行时边界与未覆盖声明 |
 | [CI 构建与发布](ci-release.md) | 公开仓库 Actions 正式成品：触发参数、Secrets、门禁、签名核验与 Release 产物 |
 | [CI 节点图](ci-nodes.md) | Actions 可复用节点、入口工作流、交接与耗时依据 |
 | [Mod 身份与签名](mod-identity-and-signing.md) | DSH-A-Su 包名、证书、verifyPublishCertificate 与覆盖升级边界 |
