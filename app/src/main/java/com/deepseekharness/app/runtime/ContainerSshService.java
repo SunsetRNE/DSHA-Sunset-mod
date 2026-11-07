@@ -15,6 +15,7 @@ import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.RuntimeWorkPort;
 import com.deepseekharness.app.util.ContainerSshPolicy;
+import com.deepseekharness.app.util.ContainerSshStatus;
 import com.deepseekharness.app.util.UiText;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -257,8 +258,15 @@ public final class ContainerSshService extends Service {
         lease.close();
         lease = null;
       }
+      boolean failure = ContainerSshStatus.isFailure(state);
       if (cancelled || "running".equals(state)) state = "stopped";
-      stopForeground(STOP_FOREGROUND_REMOVE);
+      if (failure) {
+        // 失败/未确认：把结论与三要素留在通知里，服务退出但通知不撤。
+        notifyState();
+        stopForeground(STOP_FOREGROUND_DETACH);
+      } else {
+        stopForeground(STOP_FOREGROUND_REMOVE);
+      }
       stopSelf();
     } catch (RuntimeException uncertain) {
       state = "SSH_CLEANUP_UNCONFIRMED";
@@ -269,13 +277,7 @@ public final class ContainerSshService extends Service {
 
   /** 通知里的状态用可读文案；未知状态码（诊断用）保持原样不翻译。 */
   private static String displayState(String raw) {
-    if (raw == null) return "";
-    return switch (raw) {
-      case "running" -> UiText.text("运行中");
-      case "starting" -> UiText.text("启动中…");
-      case "stopping" -> UiText.text("停止中…");
-      default -> raw;
-    };
+    return ContainerSshStatus.label(raw);
   }
 
   private Notification notification() {
@@ -283,14 +285,21 @@ public final class ContainerSshService extends Service {
     PendingIntent action =
         PendingIntent.getService(
             this, NOTICE, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    return new NotificationCompat.Builder(this, CHANNEL)
-        .setSmallIcon(R.drawable.ic_terminal)
-        .setContentTitle(UiText.choose("容器 SSH", "Container SSH"))
-        .setContentText(displayState(state) + " · dsha · " + PORT)
-        .setOngoing(true)
-        .addAction(0, UiText.choose("停止", "Stop"), action)
-        .setCategory(Notification.CATEGORY_SERVICE)
-        .build();
+    boolean failure = ContainerSshStatus.isFailure(state);
+    NotificationCompat.Builder builder =
+        new NotificationCompat.Builder(this, CHANNEL)
+            .setSmallIcon(R.drawable.ic_terminal)
+            .setContentTitle(UiText.choose("容器 SSH", "Container SSH"))
+            // 正文只放短标签 + 明细：诊断码不进用户可见文本。
+            .setContentText(
+                ContainerSshStatus.label(state)
+                    + " · "
+                    + ContainerSshStatus.detail(state, PORT, ContainerSshSettings.lanEnabled(this)))
+            .setOngoing(!failure)
+            .setCategory(Notification.CATEGORY_SERVICE);
+    // 失败态没有「停止」可点：服务已经退出，留一个能读原因的通知即可。
+    if (!failure) builder.addAction(0, UiText.choose("停止", "Stop"), action);
+    return builder.build();
   }
 
   private void notifyState() {

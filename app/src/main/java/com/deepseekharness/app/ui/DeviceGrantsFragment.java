@@ -691,20 +691,28 @@ public final class DeviceGrantsFragment extends Fragment {
     Context ctx = requireContext().getApplicationContext();
     boolean enabled = com.deepseekharness.app.runtime.ContainerSshSettings.enabled(ctx);
     boolean lan = com.deepseekharness.app.runtime.ContainerSshSettings.lanEnabled(ctx);
-    String text;
-    if (!enabled) text = UiText.text("已关闭");
-    else if (!com.deepseekharness.app.runtime.ContainerSshSettings.hasPassword(ctx))
-      text = UiText.text("未设置密码");
-    else if (com.deepseekharness.app.runtime.ContainerSshService.isRunning())
-      text = UiText.format("运行中 · 端口 %d", com.deepseekharness.app.runtime.ContainerSshService.PORT);
-    else {
-      String state = com.deepseekharness.app.runtime.ContainerSshService.status();
-      text =
-          "starting".equals(state)
-              ? UiText.text("启动中…")
-              : "stopping".equals(state) ? UiText.text("停止中…") : UiText.text("已开启 · 监听未确认，详见通知");
+    // 首屏只给 ≤5 字结论；端口、原因、下一步进 InfoHint（UI 基准线 ⑩/⑬）。
+    int port = com.deepseekharness.app.runtime.ContainerSshService.PORT;
+    String state = com.deepseekharness.app.runtime.ContainerSshService.status();
+    String label;
+    String detail;
+    if (!enabled) {
+      label = UiText.text("已关闭");
+      detail = com.deepseekharness.app.util.ContainerSshStatus.detail("SSH_DISABLED", port, lan);
+    } else if (!com.deepseekharness.app.runtime.ContainerSshSettings.hasPassword(ctx)) {
+      label = UiText.text("未设置密码");
+      detail =
+          com.deepseekharness.app.util.ContainerSshStatus.detail(
+              "SSH_PASSWORD_UNAVAILABLE", port, lan);
+    } else if (com.deepseekharness.app.runtime.ContainerSshService.isRunning()) {
+      label = UiText.text("运行中");
+      detail = com.deepseekharness.app.util.ContainerSshStatus.detail("running", port, lan);
+    } else {
+      label = com.deepseekharness.app.util.ContainerSshStatus.label(state);
+      detail = com.deepseekharness.app.util.ContainerSshStatus.detail(state, port, lan);
     }
-    containerSshStatus.setText(text);
+    containerSshStatus.setText(label);
+    InfoHint.attach(containerSshStatus, detail);
     updating = true;
     containerSsh.setChecked(enabled);
     containerSshLan.setChecked(lan);

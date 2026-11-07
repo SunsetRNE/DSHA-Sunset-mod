@@ -30986,5 +30986,106 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
+  },
+  {
+    "id": "m9056",
+    "zh": "监听未确认",
+    "en": "Not confirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9057",
+    "zh": "启动失败",
+    "en": "Start failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9058",
+    "zh": "端口 %s · 仅本机",
+    "en": "Port %s · loopback",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "m9059",
+    "zh": "端口 %s · 局域网",
+    "en": "Port %s · LAN",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "m9060",
+    "zh": "开关已关闭；SSH 没有启动；重新开启后再试",
+    "en": "Switch is off; SSH did not start; turn it back on and retry",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9061",
+    "zh": "缺少局域网权限；只有本机能连；先授予局域网权限",
+    "en": "LAN permission missing; only this device can connect; grant LAN access first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9062",
+    "zh": "容器环境未就绪；SSH 无法启动；先完成部署再试",
+    "en": "Runtime not ready; SSH cannot start; finish deployment first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9063",
+    "zh": "密码未设置或不合规；SSH 不会启动；先设置 12 位以上密码",
+    "en": "Password missing or too weak; SSH will not start; set a password of 12+ characters",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9064",
+    "zh": "端口未确认在监听；外部连不上；查看日志后重试",
+    "en": "Listener not confirmed; outside clients cannot connect; check the log and retry",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9065",
+    "zh": "上次会话可能未退出；维护被推迟；稍后重试停止",
+    "en": "Previous session may still run; maintenance is deferred; retry stop later",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "m9066",
+    "zh": "启动时出错；SSH 未运行；查看日志后重试",
+    "en": "Start failed; SSH is not running; check the log and retry",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
   }
 ]
