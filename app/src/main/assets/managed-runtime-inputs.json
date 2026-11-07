@@ -619,11 +619,13 @@
   ],
   "launcherSources": [
     "util/ComposeGate.java",
+    "util/DirectoryFlags.java",
     "util/IsolatedCommand.java",
     "util/OverlayPlacement.java",
     "util/OverlayTouchGuard.java",
     "util/PluginDownloadSource.java",
     "backup/RuntimeTrialRecords.java",
+    "util/TargetAbi.java",
     "util/TurnScreenGrants.java",
     "util/WebProcSel.java",
     "util/WebPidIdentity.java",

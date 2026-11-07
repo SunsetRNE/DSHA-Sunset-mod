@@ -98,7 +98,6 @@ final class RootfsInstaller {
           ctx,
           new File(stage, "root/.dsha-python-version"),
           com.deepseekharness.app.util.TargetAbi.pythonMarker()
-              .trim()
               .getBytes(java.nio.charset.StandardCharsets.UTF_8),
           false);
     }
@@ -108,7 +107,7 @@ final class RootfsInstaller {
    * 随包 Python 资产缺失（x86 空归档哨兵）时，rootfs 自带的 Python 也能满足部署：
    * 主程序与 encodings 齐全即视为 rootfs 提供，动态库仍按下方判据校验。
    */
-  private static boolean rootfsProvidesPython(File stage) {
+  static boolean rootfsProvidesPython(File stage) {
     File py = new File(stage, "usr/bin/python3.12");
     File enc = new File(stage, "usr/lib/python3.12/encodings/__init__.py");
     return py.isFile() && py.length() > 0 && enc.isFile();

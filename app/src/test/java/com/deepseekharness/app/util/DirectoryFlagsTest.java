@@ -7,9 +7,9 @@ import org.junit.Test;
 /**
  * {@code O_DIRECTORY} 的 ABI 映射，锁住“两个 ABI 家族不是同一个数”。
  *
- * <p>这组断言来自 arm64 真机实测：{@code open(file, O_RDONLY | 040000)} 返回 ENOTDIR
- * （040000 是目录位），{@code open("/system", O_RDONLY | 0x10000)} 返回 EINVAL
- * （0x10000 在 arm64 上是 O_DIRECT）。两者互相印证，不能靠“看着像”来猜。
+ * <p>数值依据是审查会话（review 5800077381）的 arm64 真机探针：{@code open(file, O_RDONLY | 040000)}
+ * 返回 ENOTDIR（040000 是目录位），{@code open("/system", O_RDONLY | 0x10000)} 返回 EINVAL
+ * （0x10000 在 arm64 上是 O_DIRECT）。该探针不是本分支跑的，本分支只锁映射。
  */
 public final class DirectoryFlagsTest {
 
@@ -29,13 +29,23 @@ public final class DirectoryFlagsTest {
   }
 
   @Test
-  public void unknownOrMissingAbiFallsBackToArm() {
-    assertEquals(DirectoryFlags.ARM_O_DIRECTORY, DirectoryFlags.directory(null));
-    assertEquals(DirectoryFlags.ARM_O_DIRECTORY, DirectoryFlags.directory(""));
-    assertEquals(DirectoryFlags.ARM_O_DIRECTORY, DirectoryFlags.directory("  "));
-    assertEquals(DirectoryFlags.ARM_O_DIRECTORY, DirectoryFlags.directory("riscv64"));
-    assertEquals(DirectoryFlags.ARM_O_DIRECTORY, DirectoryFlags.directoryOf(null));
-    assertEquals(DirectoryFlags.ARM_O_DIRECTORY, DirectoryFlags.directoryOf(new String[0]));
+  public void unknownOrMissingAbiIsFailClosed() {
+    // riscv64 等 asm-generic ABI 拿 arm 的 040000 会把 O_DIRECT 当目录位；
+    // 与其静默写错标志，不如 fail-closed 让支持范围显式化。
+    for (String bad : new String[] {null, "", "  ", "riscv64", "mips64"}) {
+      try {
+        DirectoryFlags.directory(bad);
+        throw new AssertionError("expected IllegalArgumentException for " + bad);
+      } catch (IllegalArgumentException expected) {
+      }
+    }
+    for (String[] bad : new String[][] {null, new String[0]}) {
+      try {
+        DirectoryFlags.directoryOf(bad);
+        throw new AssertionError("expected IllegalArgumentException for empty ABIs");
+      } catch (IllegalArgumentException expected) {
+      }
+    }
   }
 
   @Test

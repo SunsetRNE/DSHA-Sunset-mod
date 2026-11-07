@@ -1,7 +1,12 @@
 # x86_64 模拟器适配（独立调试线）
 
 > 目标：在一台普通电脑的 Android 模拟器上跑通完整容器链路（部署 → DSH 启动 → 工作台 → 容器工具 → 容器投放模块），
-> 用于没有 arm64 真机时的功能验证。**不加开关时构建产物与上游完全一致**，正式线不受任何影响。
+> 用于没有 arm64 真机时的功能验证。
+>
+> **不加开关时 ARM 行为不变，但不是"产物完全一致"**：本分支新增 `util/TargetAbi.java`、`util/DirectoryFlags.java`
+> 两个 launcher 源，`runtime-descriptor.json` 的 `launcherInputs` 与 `runtimeId` 因此变化。
+> 下一次带这条改动的正式包，已装 build337 的设备会进入一次运行时维护（行为不变，只是摘要变了）。
+> 如果不接受这次维护，应把 launcher 相关改动拆成单独的发布批次。
 
 ## 一、隔离原则
 
@@ -30,12 +35,21 @@
 |---|---|
 | NDK | **r26d / 26.3.11579264**（脚本读 `source.properties` 校验） |
 | 三个源码归档 | `proot.zip`、`talloc.tar.gz`、`shmem.tar.gz`，上游分别是 termux/proot 5.1.107.92、samba talloc、termux libandroid-shmem；脚本按 `SOURCES` 表里的 SHA-256 校验。每个归档单独一个目录，**目录下必须有解包一层后的 `source/`** |
-| x86_64 Ubuntu 根 | 一份 x86_64 Ubuntu 根的 tar 包，且：① 有 `var/lib/dpkg/status`；② 有 `usr/sbin/sshd`、`usr/bin/ssh-keygen`、`usr/lib/x86_64-linux-gnu/libwrap.so.0`；③ 里面所有 ELF 都必须是 x86_64；④ 绝对软链只能指向 `/data/local/tmp/dsha-x86-20261031/rootfs/`。**路径必须在 `app/build/` 下面** |
+| x86_64 Ubuntu 根 | 一份 x86_64 Ubuntu 根的 tar 包，且：① 有 `var/lib/dpkg/status`；② 有 `usr/sbin/sshd`、`usr/bin/ssh-keygen`、`usr/lib/x86_64-linux-gnu/libwrap.so.0`；③ 里面所有 ELF 都必须是 x86_64；④ 有 `/usr/local/bin/node`（x86_64 ELF）；⑤ 有 `usr/bin/python3.12` 与 `usr/lib/python3.12/encodings/`，且 `usr/lib/x86_64-linux-gnu/libsqlite3.so.0`、`libreadline.so.8` 存在（软链可以，成员必须有）；⑥ 软链：相对链接与根内绝对链接原样保留，逃出 guest 根、目标缺失、成环、指回 `/data/local/tmp/` 的一律拒绝。**路径必须在 `app/build/` 下面** |
 | 模块树 | `npm ci --prefix tools/dsh-runtime` 之后，用 `prepare-emulator-platform-packages.py` 补 linux-x64 可选包 |
 
 > 自建 x86_64 Ubuntu 根：拿官方 `ubuntu-base-*-amd64.tar.gz` 解开，在 x86_64 机器上 chroot 进去
-> `apt install openssh-server libwrap0`，再 `tar czf` 打包。脚本会自动剔除 `etc/ssh/ssh_host_*`、
-> `var/cache/apt`、`root/.ssh`、`etc/machine-id` 以及 `node_modules` 里除 npm 外的包。
+> `apt install openssh-server libwrap0 python3.12 libsqlite3-0 libreadline8`。
+> **node 不能靠 apt**：`apt install nodejs` 装在 `/usr/bin/node`，而 DSH 运行时找的是 `/usr/local/bin/node`。
+> 用官方 linux-x64 tarball：
+>
+> ```bash
+> curl -fsSL https://nodejs.org/dist/latest-v22.x/node-v22.*-linux-x64.tar.xz -o /tmp/node.tar.xz
+> mkdir -p /usr/local && tar -xJf /tmp/node.tar.xz --strip-components=1 -C /usr/local
+> ```
+>
+> 再 `tar czf` 打包。脚本会自动剔除 `etc/ssh/ssh_host_*`、`var/cache/apt`、`root/.ssh`、`etc/machine-id`
+> 以及 `node_modules` 里除 npm 外的包。
 
 ### 第 1 步：编 x86_64 原生库
 
@@ -48,6 +62,12 @@ python3 tools/build-emulator-native.py \
 ```
 
 ### 第 2 步：生成模拟器资产
+
+前置：先产出标准资产（脚本以 `app/build/generated/standardAssets` 为底，缺了会直接报错）：
+
+```bash
+./gradlew :app:prepareStandardAssets
+```
 
 ```bash
 python3 tools/prepare-emulator-platform-packages.py --node-modules tools/dsh-runtime/node_modules
@@ -71,12 +91,17 @@ adb install -r app/build/emulator-target/outputs/apk/standard/debug/app-standard
 
 ## 四、边界（必须知道）
 
-1. **产物与输入都不入库**：7 个 ELF、479 项资产、四个输入归档全在 `app/build/` 下，由脚本现场生成。
+1. **产物与输入都不入库**：7 个 ELF、资产（数量以脚本回执为准，不要按文档里的数字核对）、四个输入归档全在 `app/build/` 下，由脚本现场生成。
    别人 clone 后要重建，必须自己备齐上面四样 —— 仓库里没有，也不应该有。
 2. **`verifyEmulatorAssets` 挂 `preBuild`**：缺资产或回执会当场失败，不会静默打出坏包。
-3. **CI 不覆盖这条线**：Source checks 的五个 job 都不带 `-Pdsha.emulatorX64=true`，
-   x86 的 Gradle 接线、原生库编译、资产打包在 CI 里没有编译验证，改完必须本地跑一遍。
-4. **只用于调试**：不要用它出正式包；arm64 正式线的产物、资产摘要、包名与签名都不受影响。
+3. **CI 只覆盖纯逻辑部分**：`test-emulator-platform-packages.py`、`test-emulator-rootfs-links.py`、
+   `test-emulator-verify-assets.py` 已登记进 host-tests（fast 阶段），CI 会跑；
+   但五个 job 都不带 `-Pdsha.emulatorX64=true`，x86 的 Gradle 接线、原生库编译、资产打包
+   在 CI 里仍没有编译验证，改完必须本地跑一遍。
+4. **只用于调试**：不要用它出正式包；arm64 正式线的运行行为、包名与签名不变
+   （但 launcher 摘要与 `runtimeId` 会变一次，见开头的维护说明）。
+5. **模拟器不支持 proroot**：`build-emulator-native.py` 只产出 7 个 x86_64 库，没有 `libproroot*`，
+   运行时回退到 proot；配置页里的 proroot 选项在模拟器目标上不可用。
 
 ## 五、验证记录（2026-11-05，Android 15 x86_64 模拟器）
 

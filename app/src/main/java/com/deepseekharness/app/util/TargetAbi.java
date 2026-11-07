@@ -19,11 +19,23 @@ public final class TargetAbi {
 
   /** glibc 多架构库目录名（如 libsqlite3.so.0 所在）。 */
   public static String linuxTriplet() {
-    return emulatorX64() ? "x86_64-linux-gnu" : "aarch64-linux-gnu";
+    return linuxTriplet(emulatorX64());
   }
 
-  /** rootfs 里的 Python 版本标记。 */
+  /**
+   * 显式指定目标的版本：单测里 {@code BuildConfig.EMULATOR_X64} 恒为 false，
+   * 只有走这个重载才能覆盖 x86_64 分支。
+   */
+  public static String linuxTriplet(boolean x64) {
+    return x64 ? "x86_64-linux-gnu" : "aarch64-linux-gnu";
+  }
+
+  /** rootfs 里的 Python 版本标记（带换行，写文件时不要 trim）。 */
   public static String pythonMarker() {
-    return emulatorX64() ? "3.12-glibc-x86_64\n" : "3.12-glibc-arm64\n";
+    return pythonMarker(emulatorX64());
+  }
+
+  public static String pythonMarker(boolean x64) {
+    return x64 ? "3.12-glibc-x86_64\n" : "3.12-glibc-arm64\n";
   }
 }

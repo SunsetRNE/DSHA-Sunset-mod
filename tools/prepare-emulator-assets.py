@@ -71,6 +71,43 @@ def check_elf(data, name):
         raise ValueError('EMULATOR_FOREIGN_ELF:' + name)
 
 
+def resolve_link(name, link, members):
+    """把 rootfs 里的软链解析到归档成员名；越界/缺失/循环直接抛错。
+
+    标准 Ubuntu rootfs 必然带相对软链（bin -> usr/bin、
+    usr/bin/awk -> ../../etc/alternatives/awk 共 220 个），上一版只放行
+    /data/local/tmp/ 开头的宿主链接，等于按文档做出来的 x86 rootfs 无法进入
+    资产生成。这里改成：相对链接按所在目录解析、绝对链接按 guest 根解析，
+    只拒绝真的逃出根、目标缺失或成环的情况。
+    """
+
+    def normalize(base, target):
+        if target.startswith('/'):
+            return posixpath.normpath(target.lstrip('/'))
+        return posixpath.normpath(posixpath.join(base, target))
+
+    if link.startswith('/data/local/tmp/'):
+        raise ValueError('EMULATOR_HOST_LINK: ' + name)
+    current = normalize(posixpath.dirname(name), link)
+    seen = {name}
+    for _ in range(40):
+        if current == '..' or current.startswith('../'):
+            raise ValueError('EMULATOR_ROOTFS_LINK_ESCAPE: ' + name + ' -> ' + link)
+        current = current.removeprefix('./')
+        target = members.get(current)
+        if target is None:
+            raise ValueError('EMULATOR_ROOTFS_LINK_MISSING: ' + name + ' -> ' + link)
+        if not target.issym():
+            return current
+        if current in seen:
+            raise ValueError('EMULATOR_LINK_CYCLE: ' + name + ' -> ' + link)
+        seen.add(current)
+        link = target.linkname
+        if link.startswith('/data/local/tmp/'):
+            raise ValueError('EMULATOR_HOST_LINK: ' + name)
+        current = normalize(posixpath.dirname(current), link)
+    raise ValueError('EMULATOR_LINK_CYCLE: ' + name + ' -> ' + link)
+
 def add_configured_base(configured, archive):
     status = None
     host_prefix = '/data/local/tmp/dsha-x86-20261031/rootfs/'
@@ -121,9 +158,10 @@ def add_configured_base(configured, archive):
             elif item.isdir():
                 archive.addfile(item)
             elif item.issym():
-                # 审查 P2-11：走出 /data/local/tmp 白名单的软链在此前分支未接住时，
-                # 生成阶段直接拒绝（应用端解包会按 guest 根解析，这里不再兜底放行）。
-                raise ValueError('EMULATOR_ROOTFS_LINK:' + name + ' -> ' + item.linkname)
+                # 相对软链与根内绝对链接原样保留（应用端按 guest 根解析）；
+                # 逃出根、目标缺失、成环或指回宿主路径的一律拒绝。
+                resolve_link(name, item.linkname, members)
+                archive.addfile(item)
             else:
                 raise ValueError('EMULATOR_ROOTFS_TYPE:' + name)
     if status is None:
@@ -382,8 +420,11 @@ def main():
         node = members.get('usr/local/bin/node')
         if node is None:
             raise ValueError(
-                'EMULATOR_NODE_MISSING: x86 rootfs 缺 usr/local/bin/node —— 从 Node 官方'
-                ' linux-x64 包解出后放入 rootfs，或 apt install nodejs 后重建归档')
+                'EMULATOR_NODE_MISSING: x86 rootfs 缺 usr/local/bin/node —— '
+                '从 Node 官方 linux-x64 tarball 解到 /usr/local'
+                '（curl -fsSL https://nodejs.org/dist/latest-v22.x/ 取 linux-x64.tar.xz，'
+                'tar -xJ --strip-components=1 -C /usr/local）。'
+                'apt 的 nodejs 装在 /usr/bin/node，不满足这里的路径')
         if not node.isfile():
             raise ValueError('EMULATOR_NODE_TYPE: usr/local/bin/node 不是常规文件')
         check_elf(configured_archive.extractfile(node).read()[:20], 'usr/local/bin/node')
@@ -394,7 +435,18 @@ def main():
         if python is None or not python.isfile() or encodings is None:
             raise ValueError(
                 'EMULATOR_PYTHON_MISSING: x86 rootfs 缺 usr/bin/python3.12（或 encodings）'
-                ' —— x86 线不随包 Python，rootfs 必须自带（apt install python3.12）')
+                ' —— x86 线不随包 Python，rootfs 必须自带'
+                '（apt install python3.12 libsqlite3-0 libreadline8）')
+        # 光有文件还不够：架构不对的 Python 装进去照样起不来。
+        check_elf(configured_archive.extractfile(python).read()[:20], 'usr/bin/python3.12')
+        # 与 RootfsInstaller 的就绪判据同源：标准库 C 扩展依赖 sqlite/readline。
+        # 允许软链（apt 的 soname 链接），但成员必须存在。
+        for name in ('usr/lib/x86_64-linux-gnu/libsqlite3.so.0',
+                     'usr/lib/x86_64-linux-gnu/libreadline.so.8'):
+            if name not in members:
+                raise ValueError(
+                    'EMULATOR_PYTHON_DEPENDENCY_MISSING: x86 rootfs 缺 ' + name
+                    + ' —— 部署到「安装 Python 与 pnpm」阶段会失败（apt install libsqlite3-0 libreadline8）')
     dsh_builder = load_module('emulator_dsh_builder', ROOT / 'tools/build-dsh-runtime.py')
     version = json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8'))['dependencies']['@deepseek-ai/dsh']
     rootfs_output = OUTPUT / 'offline-rootfs.bin'

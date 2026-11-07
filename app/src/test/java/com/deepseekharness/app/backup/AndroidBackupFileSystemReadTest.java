@@ -31,10 +31,13 @@ import org.robolectric.shadow.api.Shadow;
       AndroidBackupFileSystemReadTest.OwnedDescriptor.class
     })
 public final class AndroidBackupFileSystemReadTest {
-  // 生产常量按 ABI 取值，这里用同一个函数，避免"测试与生产各写一个数"的自证式断言；
-  // 真实 ABI 语义（arm64 上 0x10000 是 O_DIRECT、目录 open 会 EINVAL）由 DirectoryFlagsTest 锁住。
-  private static final int EXPECTED_O_DIRECTORY =
-      com.deepseekharness.app.util.DirectoryFlags.directoryOf(android.os.Build.SUPPORTED_ABIS);
+  // 独立字面量，不引用生产函数：生产若取错 ABI 常量，这里仍然红。
+  // 040000 是 arm64 的 O_DIRECTORY —— 依据审查会话（review 5800077381）在 arm64 真机上用
+  // app_process 直接 open：O_RDONLY|040000 得 ENOTDIR、O_RDONLY|0x10000 得 EINVAL；
+  // 该探针不是本分支跑的。bionic aarch64 asm/fcntl.h 同样是 O_DIRECTORY 040000。
+  // tools/test-backup-read-nonblock.py 会被 CI 执行，但它对 NDK 头文件的独立复核需要
+  // DSHA_NDK_SYSROOT，CI 未设置，所以那一段在 CI 里是 skip，只有本地手工跑过。
+  private static final int EXPECTED_O_DIRECTORY = 040000;
   // Exercise the final-open branch on Windows too, without inheriting its drive paths.
   private static final File LEAF =
       new File("/") {

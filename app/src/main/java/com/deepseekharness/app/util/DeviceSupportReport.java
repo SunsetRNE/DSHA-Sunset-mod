@@ -67,6 +67,36 @@ public final class DeviceSupportReport {
       String webViewVersion,
       String appVersion,
       int appCode) {
+    return from(
+        sdk,
+        abis,
+        manufacturer,
+        brand,
+        model,
+        display,
+        webViewPackage,
+        webViewVersion,
+        appVersion,
+        appCode,
+        TargetAbi.emulatorX64());
+  }
+
+  /**
+   * 显式指定「本构建是否面向 x86_64 模拟器」：单测里 {@code BuildConfig.EMULATOR_X64} 恒为
+   * false，只有走这个重载才能覆盖模拟器放行分支。
+   */
+  static DeviceSupportReport from(
+      int sdk,
+      String[] abis,
+      String manufacturer,
+      String brand,
+      String model,
+      String display,
+      String webViewPackage,
+      String webViewVersion,
+      String appVersion,
+      int appCode,
+      boolean emulatorBuild) {
     boolean arm64 = hasArm64(abis);
     String abi = primaryAbi(abis);
     String vendor = firstNonBlank(manufacturer, brand);
@@ -105,8 +135,9 @@ public final class DeviceSupportReport {
           identity,
           false);
     }
-    boolean emulatorX64 =
-        com.deepseekharness.app.util.TargetAbi.emulatorX64() && abi.startsWith("x86");
+    // APK 只带 x86_64：32 位 x86 即使来自模拟器也不能放行（装了也起不来）。
+    String normalizedAbi = abi == null ? "" : abi.trim().toLowerCase(java.util.Locale.ROOT);
+    boolean emulatorX64 = emulatorBuild && "x86_64".equals(normalizedAbi);
     if (!arm64 && !emulatorX64) {
       return new DeviceSupportReport(
           Gate.BLOCK,

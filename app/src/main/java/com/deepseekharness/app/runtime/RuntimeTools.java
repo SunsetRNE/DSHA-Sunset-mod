@@ -231,7 +231,11 @@ final class RuntimeTools {
   }
 
   private static String[] queryFiles() {
-    String triplet = com.deepseekharness.app.util.TargetAbi.linuxTriplet();
+    return queryFiles(com.deepseekharness.app.util.TargetAbi.linuxTriplet());
+  }
+
+  /** 探测清单按 triplet 生成，单独可测：写死 aarch64 会让 x86 目标查错目录。 */
+  static String[] queryFiles(String triplet) {
     return new String[] {
       "usr/bin/python3.12",
       "usr/lib/python3.12/encodings/__init__.py",
