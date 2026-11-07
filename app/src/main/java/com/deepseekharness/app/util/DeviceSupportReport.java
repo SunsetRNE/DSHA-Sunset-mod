@@ -105,7 +105,9 @@ public final class DeviceSupportReport {
           identity,
           false);
     }
-    if (!arm64) {
+    boolean emulatorX64 =
+        com.deepseekharness.app.util.TargetAbi.emulatorX64() && abi.startsWith("x86");
+    if (!arm64 && !emulatorX64) {
       return new DeviceSupportReport(
           Gate.BLOCK,
           "不是 64 位 ARM，无法部署",
