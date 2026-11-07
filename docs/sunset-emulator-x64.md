@@ -63,7 +63,12 @@ python3 tools/build-emulator-native.py \
 
 ### 第 2 步：生成模拟器资产
 
-前置：先产出标准资产（脚本以 `app/build/generated/standardAssets` 为底，缺了会直接报错）：
+前置一：**标准固定输入已还原**（见 `docs/fixed-build-inputs.md`）。
+`prepare-standard-assets.py` 会无条件复制 `glibc-python.tar.gz` / `adb-wheels.tar.gz` / `gh-cli.tar.gz`，
+并在打包 `offline-rootfs.bin` 时需要原始 rootfs；这些文件都不入库，缺任一项会直接
+`FileNotFoundError` 而不是给出可读提示。
+
+前置二：先产出标准资产（脚本以 `app/build/generated/standardAssets` 为底，缺了会直接报错）：
 
 ```bash
 ./gradlew :app:prepareStandardAssets
@@ -100,7 +105,12 @@ adb install -r app/build/emulator-target/outputs/apk/standard/debug/app-standard
    在 CI 里仍没有编译验证，改完必须本地跑一遍。
 4. **只用于调试**：不要用它出正式包；arm64 正式线的运行行为、包名与签名不变
    （但 launcher 摘要与 `runtimeId` 会变一次，见开头的维护说明）。
-5. **模拟器不支持 proroot**：`build-emulator-native.py` 只产出 7 个 x86_64 库，没有 `libproroot*`，
+5. **模拟器上 adb 配对不可用**：`app/src/main/assets/adb-wheels.lock.json` 里全是
+   `manylinux2014_aarch64` 轮子，本线只把归档改名搬进包，guest 里的 pip 看不到可用轮子，
+   `adb` 配对/无线调试会软失败（返回 `WHEELS_INJECT_FAIL`，不中断部署）。
+   `prepare-emulator-assets.py` 会在日志里打印这条，并在回执里记 `adbWheels`；
+   要支持得按 `prepare-emulator-platform-packages.py` 同样的「锁版本 + integrity」流程重打 linux-x64 轮子。
+6. **模拟器不支持 proroot**：`build-emulator-native.py` 只产出 7 个 x86_64 库，没有 `libproroot*`，
    运行时回退到 proot；配置页里的 proroot 选项在模拟器目标上不可用。
 
 ## 五、验证记录（2026-11-05，Android 15 x86_64 模拟器）

@@ -51,9 +51,11 @@ final class RootfsInstaller {
         }
       }
       if (!py.isFile() || !enc.isFile()) {
-        // 模拟器 x86 目标可能不带随包 Python（空归档哨兵）：rootfs 自带完整
-        // Python 3.12 时按「rootfs 提供」放行，否则维持原失败。
-        if (!rootfsProvidesPython(stage))
+        // 只有模拟器 x86 目标可能不带随包 Python（空归档哨兵）：rootfs 自带完整
+        // Python 3.12 时按「rootfs 提供」放行。正式 ARM 线的随包 Python 是签名资产，
+        // 解包失败必须报错 —— 否则资产一坏，rootfs 里恰好有 python3.12 就静默通过。
+        boolean emulatorTarget = com.deepseekharness.app.util.TargetAbi.emulatorX64();
+        if (!(emulatorTarget && rootfsProvidesPython(stage)))
           throw new IOException(com.deepseekharness.app.util.UiText.text("Ubuntu Python 运行环境不完整"));
       }
       GuestScriptBudget.checkpoint();

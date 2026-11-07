@@ -37,7 +37,9 @@ public final class TargetAbiTest {
 
   @Test
   public void productionBuildIsNotTheEmulatorTarget() {
-    // 单测构建不带 -Pdsha.emulatorX64=true，两个重载默认值必须与 ARM 一致。
+    // 这条断言只在正式目标成立：带 -Pdsha.emulatorX64=true 跑单测时 BuildConfig 为 true，
+    // 直接失败会让人误以为是本改动的问题。
+    org.junit.Assume.assumeFalse("模拟器目标不出单测", com.deepseekharness.app.BuildConfig.EMULATOR_X64);
     assertFalse(TargetAbi.emulatorX64());
     assertEquals(TargetAbi.linuxTriplet(false), TargetAbi.linuxTriplet());
     assertEquals(TargetAbi.pythonMarker(false), TargetAbi.pythonMarker());

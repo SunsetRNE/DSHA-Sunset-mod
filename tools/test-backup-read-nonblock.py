@@ -42,7 +42,8 @@ def directory_flags():
         raise AssertionError('DirectoryFlags constants were not found: '
                              + FLAGS_SOURCE.name)
     arm_value, generic_value = int(arm[1], 8), int(generic[1], 8)
-    self.assertNotEqual(arm_value, generic_value, 'O_DIRECTORY constants collapsed to one value')
+    if arm_value == generic_value:
+        raise AssertionError('O_DIRECTORY constants collapsed to one value')
     return arm_value, generic_value
 
 
@@ -57,6 +58,12 @@ def read_flags(method):
     flags = 0
     for term in found[1].split('|'):
         name = term.strip().removeprefix('OsConstants.')
+        if name == 'directoryFlag()':
+            # 生产按 ABI 从 util/DirectoryFlags 取值；这个探针跑在 Linux 宿主上，
+            # 验证的是「必须要求目录」这个语义，所以用宿主自己的 O_DIRECTORY。
+            # 常量本身（arm 040000 / asm-generic 00200000）由 DirectoryFlagSourceTest 锁。
+            flags |= os.O_DIRECTORY
+            continue
         if not re.fullmatch(r'O_[A-Z_]+', name):
             raise AssertionError('Unsupported production flag expression: ' + name)
         # This is a semantic host mapping, not an assertion of cross-ABI equality.
@@ -64,13 +71,24 @@ def read_flags(method):
     return flags
 
 
+class DirectoryFlagSourceTest(unittest.TestCase):
+    """不依赖 NDK 头的那部分：常量必须两个值，且两处生产代码都引用同一个来源。"""
+
+    def test_constants_differ_and_readers_share_one_source(self):
+        arm_value, generic_value = directory_flags()
+        self.assertNotEqual(arm_value, generic_value)
+        for source in (SOURCE, DEVICE_SOURCE):
+            with self.subTest(source=source.name):
+                self.assertIn('DirectoryFlags.directoryOf', source.read_text(encoding='utf-8'))
+                self.assertIsNone(re.search(
+                    r'private static final int O_DIRECTORY = (0[0-7]+);',
+                    source.read_text(encoding='utf-8')))
+
+
 class Arm64DirectoryAbiTest(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('DSHA_NDK_SYSROOT'), 'Locked NDK header path not supplied')
     def test_both_production_directory_flags_match_aarch64_ndk_header(self):
-        # util/DirectoryFlags.java is the single source; the two constants must
-        # differ (one family's O_DIRECTORY is the other's O_DIRECT).
         arm_value, generic_value = directory_flags()
-        self.assertNotEqual(arm_value, generic_value)
         headers = Path(os.environ['DSHA_NDK_SYSROOT']) / 'usr/include'
         arm_header = (headers / 'aarch64-linux-android/asm/fcntl.h').read_text(encoding='utf-8')
         value = re.search(r'^#define O_DIRECTORY (0[0-7]+)\s*$', arm_header, re.M)
@@ -83,13 +101,7 @@ class Arm64DirectoryAbiTest(unittest.TestCase):
                               generic_header.read_text(encoding='utf-8'), re.M)
             self.assertIsNotNone(value)
             self.assertEqual(generic_value, int(value[1], 8))
-        # Both production readers must reference the shared class instead of a local literal.
-        for source in (SOURCE, DEVICE_SOURCE):
-            with self.subTest(source=source.name):
-                self.assertIn('DirectoryFlags.directoryOf', source.read_text(encoding='utf-8'))
-                self.assertIsNone(re.search(
-                    r'private static final int O_DIRECTORY = (0[0-7]+);',
-                    source.read_text(encoding='utf-8')))
+        # 「两处读者都引用共享类」不依赖 NDK，已移到 DirectoryFlagSourceTest 无条件执行。
 
 
 PROBE = r'''

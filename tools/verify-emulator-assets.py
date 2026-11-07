@@ -19,6 +19,24 @@ def digest(path):
     return value.hexdigest()
 
 
+def tree_digest(root):
+    value = hashlib.sha256()
+    for path in sorted(p for p in root.rglob('*') if p.is_file()):
+        value.update(path.relative_to(root).as_posix().encode('utf-8'))
+        value.update(b'\0')
+        value.update(digest(path).encode('ascii'))
+        value.update(b'\n')
+    return value.hexdigest()
+
+
+def standard_assets():
+    for candidate in (ROOT / 'app/build/generated/standardAssets',
+                      ROOT / 'app/build/emulator-target/generated/standardAssets'):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
 def verify():
     receipt_path = ASSETS.parent / 'emulator-assets-receipt.json'
     if not receipt_path.is_file():
@@ -26,6 +44,12 @@ def verify():
     receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     if receipt.get('schema') != 1 or receipt.get('abi') != 'x86_64' or receipt.get('debugOnly') is not True:
         raise ValueError('EMULATOR_RECEIPT_TARGET')
+    # 来源校验：emulatorAssets 是 standardAssets 的一次性拷贝，判定它是否过期必须看源。
+    source = standard_assets()
+    if source is not None and receipt.get('standardAssetsDigest'):
+        if tree_digest(source) != receipt['standardAssetsDigest']:
+            raise ValueError(
+                'EMULATOR_STALE_STANDARD_ASSETS: 标准资产已更新，重新运行 tools/prepare-emulator-assets.py')
     actual = {path.relative_to(ASSETS).as_posix() for path in ASSETS.rglob('*') if path.is_file()}
     if actual != set(receipt['files']):
         raise ValueError('EMULATOR_ASSET_MEMBER_SET')

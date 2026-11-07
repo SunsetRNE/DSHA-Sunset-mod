@@ -37,6 +37,22 @@ def digest(path):
     return hasher.hexdigest()
 
 
+def tree_digest(root):
+    """目录内容的稳定摘要：按相对路径排序，累积「路径 + 单文件 sha256」。
+
+    receipt 只记录生成结果，说明不了它是从哪一版标准资产拷来的：改完
+    app/src/main/assets/** 后忘了重跑本脚本，verify 会因为「结果没变」而通过，
+    APK 里带的是旧资产。用这个摘要把来源也钉进回执。
+    """
+    value = hashlib.sha256()
+    for path in sorted(p for p in root.rglob('*') if p.is_file()):
+        value.update(path.relative_to(root).as_posix().encode('utf-8'))
+        value.update(b'\0')
+        value.update(digest(path).encode('ascii'))
+        value.update(b'\n')
+    return value.hexdigest()
+
+
 def load_module(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
@@ -136,7 +152,11 @@ def add_configured_base(configured, archive):
                 archive.addfile(item, io.BytesIO(data))
             elif item.islnk():
                 target = members[safe_name(item.linkname)]
-                add_bytes(archive, name, source.extractfile(target).read(), item.mode)
+                data = source.extractfile(target).read()
+                # 硬链接与常规文件走同一条架构校验：Ubuntu base 里 awk/busybox 一类
+                # 硬链接不少，只查常规文件等于留了一条绕过「所有 ELF 必须 x86_64」的路。
+                check_elf(data[:20], name)
+                add_bytes(archive, name, data, item.mode)
             elif item.issym() and item.linkname.startswith('/data/local/tmp/'):
                 if not item.linkname.startswith(host_prefix):
                     raise ValueError('EMULATOR_HOST_LINK:' + name)
@@ -338,7 +358,7 @@ def recovery(output, version):
             {'asset': 'recovery-dsh-runtime.bin', 'sha256': digest(archives[1])},
         ],
         'expandedBytes': sum(row['bytes'] for row in files),
-        'files': files,
+        'standardAssetsDigest': tree_digest(assets), 'adbWheels': 'aarch64-wheels-not-runnable-on-x86', 'files': files,
         'links': links,
         'overlays': overlays,
         'overlayInputs': {name: digest(output / name) for name in builder.input_assets(version)},
@@ -522,6 +542,8 @@ def main():
     files = {path.relative_to(OUTPUT).as_posix(): digest(path) for path in sorted(OUTPUT.rglob('*')) if path.is_file()}
     receipt = {'schema': 1, 'abi': 'x86_64', 'debugOnly': True, 'runtimeId': descriptor['runtimeId'], 'configuredRootfsSha256': digest(configured), 'dshRecipe': dsh_builder.recipe_inputs(), 'files': files, 'native': json.loads(native_receipt.read_text())}
     write_json(OUTPUT.parent / 'emulator-assets-receipt.json', receipt)
+    print('NOTE adb-wheels: 随包的 adb 轮子是 aarch64（app/src/main/assets/adb-wheels.lock.json），'
+          '本目标不注入可用轮子，adb 配对在模拟器上不可用（见 docs/sunset-emulator-x64.md）')
     print('PASS x86_64 emulator assets', descriptor['runtimeId'], len(files), expanded)
 
 

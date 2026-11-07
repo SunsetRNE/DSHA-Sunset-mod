@@ -45,7 +45,11 @@ public final class AboutFragment extends Fragment {
             ? UiText.choose("兼容版 · Android 6+", "Compatibility · Android 6+")
             : UiText.choose("标准版 · Android 11+", "Standard · Android 11+"));
     ui.kv(metadata, "DSH", com.deepseekharness.app.util.Constants.DSH_VERSION);
-    ui.kv(metadata, UiText.choose("架构", "Architecture"), "arm64-v8a");
+    // 模拟器调试包是 x86_64；写死 arm64-v8a 会让「关于」页给出错误信息。
+    ui.kv(
+        metadata,
+        UiText.choose("架构", "Architecture"),
+        com.deepseekharness.app.util.TargetAbi.emulatorX64() ? "x86_64" : "arm64-v8a");
     ui.kv(metadata, UiText.choose("开源许可", "License"), "MIT");
     ui.label(UiText.choose("了解更多", "Learn more"));
     LinearLayout links = ui.card();
