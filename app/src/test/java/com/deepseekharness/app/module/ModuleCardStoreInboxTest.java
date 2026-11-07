@@ -61,6 +61,39 @@ public final class ModuleCardStoreInboxTest {
   }
 
   @Test
+  public void archiveRefusesWhenInboxBecomesSymlinkAndNeverTouchesTheTarget() throws Exception {
+    // 审查 P1-2 的确定性回归：归档瞬间收件箱被换成指向外部目录的链接。
+    // 旧实现（plainPath 失败仍走 file.delete()）会把链接目标里的同名文件删掉。
+    File outside = new File(context.getCacheDir(), "inbox-link-target");
+    assertTrue(outside.mkdirs());
+    // 先把收件箱换成链接（setUp 建的是空目录），再经链接路径写卡片文件，
+    // 这样 file 与 victim 走的是同一条路径，删除会落到外部目录。
+    File link = new File(rootfs, ModuleCardStore.CONTAINER_DIR);
+    assertTrue(link.delete());
+    Files.createSymbolicLink(link.toPath(), outside.toPath());
+    File victim = new File(outside, "pet.json");
+    File original = card("pet.json", "pet.inbox", "");
+    assertTrue(victim.isFile());
+    assertTrue(original.isFile());
+    assertFalse(ModuleCardStore.archiveInboxFile(link, rootfs, original, "pet.json"));
+    assertTrue("链接目标里的同名文件必须原样保留", victim.isFile());
+    assertEquals(
+        "未被删除或改名，内容原样",
+        new String(Files.readAllBytes(original.toPath()), StandardCharsets.UTF_8),
+        new String(Files.readAllBytes(victim.toPath()), StandardCharsets.UTF_8));
+    assertFalse(new File(link, "pet.json.done").exists());
+    assertTrue("原件仍在（经由链接路径）", original.isFile());
+  }
+
+  @Test
+  public void archiveRenamesToDoneInsideARealDirectory() throws Exception {
+    File original = card("pet.json", "pet.inbox", "");
+    assertTrue(ModuleCardStore.archiveInboxFile(inbox, rootfs, original, "pet.json"));
+    assertFalse(original.exists());
+    assertTrue(new File(inbox, "pet.json.done").isFile());
+  }
+
+  @Test
   public void successImportsArchivesAndRecordsContainerSource() throws Exception {
     File original = card("pet.json", "pet.inbox", "");
     assertEquals(1, ModuleCardStore.scanContainerInbox(context, rootfs));
