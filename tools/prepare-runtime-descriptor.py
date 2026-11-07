@@ -77,7 +77,12 @@ def build_descriptor(root):
     assets = root / 'app/src/main/assets'
     spec = load(root)
     validate_installs(root, spec)
-    inputs = {p.relative_to(assets).as_posix(): digest(p) for p in asset_paths(root, spec)}
+    # 排序在这里完成，而不是改 runtime_input_contract.asset_paths()：那个文件是
+    # dsh-runtime 的配方输入（钉在 dsh-runtime.inputs.json / 固定输入 bundle 里），
+    # 改一个字节就要重打并重发 bundle。生成器自己按 posix 路径码点排序，两个平台
+    # 写出的描述符就一致（pathlib 在 Windows 上大小写不敏感地比较 Path）。
+    inputs = {p.relative_to(assets).as_posix(): digest(p)
+              for p in sorted(asset_paths(root, spec), key=lambda p: p.as_posix())}
     launchers = {name: digest(path) for name, path in launcher_paths(root, spec).items()}
     version = json.loads((root / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))['dependencies']['@deepseek-ai/dsh']
     previous = READ_COMPATIBILITY.get(version, [])
