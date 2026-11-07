@@ -113,14 +113,23 @@ public final class ModuleExec {
           reader.submit(
               () -> {
                 StringBuilder builder = new StringBuilder();
+                boolean truncated = false;
                 try (InputStream input = running.getInputStream()) {
                   byte[] buffer = new byte[4096];
                   for (int count; (count = input.read(buffer)) != -1; ) {
+                    // 到上限后继续读到 EOF，只是不再追加。
+                    // 提前 break 会连同 try-with-resources 关掉子进程的 stdout：还在写输出的
+                    // 命令会吃 SIGPIPE（退出码 141）或卡在满管道上，于是「输出多的命令」
+                    // 被判成失败/超时，即使它其实成功。测试里用 ByteArrayInputStream 不会
+                    // 复现这一点，所以这里必须自己读干净。
+                    if (truncated) continue;
                     builder.append(new String(buffer, 0, count, StandardCharsets.UTF_8));
-                    if (builder.length() > MAX_OUTPUT) break;
+                    if (builder.length() > MAX_OUTPUT) truncated = true;
                   }
                 }
-                return builder.toString();
+                return truncated
+                    ? builder.substring(0, Math.min(builder.length(), MAX_OUTPUT)) + "…"
+                    : builder.toString();
               });
       // 8 秒是整条命令的总上限：读输出和等退出共享同一个 deadline，
       // 不然读输出花掉几秒后再等满 8 秒，实际最长能拖到 16 秒。

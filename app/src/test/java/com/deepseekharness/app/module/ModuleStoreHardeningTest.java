@@ -170,4 +170,52 @@ public final class ModuleStoreHardeningTest {
     ModuleCardStore.ensureSkill(rootfs);
     assertEquals(0, outside.list() == null ? 0 : outside.list().length);
   }
+
+  @Test
+  public void cardSizeLimitIsCountedInBytesNotCharacters() {
+    // 11000 个汉字只有 1.1 万字符、却占 3.3 万字节：按字符判会放行，落盘后被截断，
+    // 卡片「导入成功」却永远解析失败，用户只会看到「不是合法 JSON」。
+    StringBuilder name = new StringBuilder();
+    for (int i = 0; i < 11000; i++) name.append('字');
+    String raw = "{\"schema\":1,\"id\":\"cjk.big\",\"name\":\"" + name + "\",\"actions\":[]}";
+    assertTrue("构造前提：字符数没超", raw.length() < ModuleCardStore.MAX_BYTES);
+    assertTrue(
+        "构造前提：字节数已超", raw.getBytes(StandardCharsets.UTF_8).length > ModuleCardStore.MAX_BYTES);
+    try {
+      ModuleImport.importAny(context, raw);
+      throw new AssertionError("应当按字节拒绝超限卡片");
+    } catch (IllegalArgumentException expected) {
+      assertTrue(expected.getMessage(), expected.getMessage().contains("32KB"));
+    }
+  }
+
+  @Test
+  public void topLevelImageAndSkinImageShareOneNameRule() {
+    // "_bg.png" 以前顶层合法、皮肤图被拒；现在两处走同一个 isImageName。
+    String top =
+        "{\"schema\":1,\"id\":\"img.top\",\"name\":\"图\",\"image\":\"_bg.png\",\"actions\":[]}";
+    assertTrue(ModuleCard.parse(top).assetNames().contains("_bg.png"));
+    String skin =
+        "{\"schema\":1,\"id\":\"img.skin\",\"name\":\"皮肤\",\"actions\":[],"
+            + "\"provides\":{\"ui.skin\":{\"home.cards\":{\"*\":{\"image\":\"_bg.png\"}}}}}";
+    assertTrue(ModuleCard.parse(skin).assetNames().contains("_bg.png"));
+  }
+
+  @Test
+  public void removesBusInboxWithTheCard() {
+    String raw = "{\"schema\":1,\"id\":\"removed.card\",\"name\":\"待删\",\"actions\":[]}";
+    ModuleCardStore.importCard(context, raw, (java.util.Map<String, byte[]>) null);
+    assertTrue(ModuleState.isEnabled(context, ModuleState.SCOPE_CARD, "removed.card"));
+    assertEquals("ok", ModuleBus.send(context, "other.card", "removed.card", "ping", "{}"));
+
+    // 走统一移除入口（ModuleCardStore.remove 是底层实现，不负责撤销授权与状态）。
+    ModuleCatalog.Entry entry =
+        ModuleCatalog.load(context).byId("removed.card", ModuleCatalog.Kind.CARD);
+    assertNotNull(entry);
+    assertTrue(ModuleCatalog.remove(context, entry));
+
+    // 同 id 重装：不能收到上一份安装的消息（含别人的 from），否则是跨安装串话。
+    ModuleCardStore.importCard(context, raw, (java.util.Map<String, byte[]>) null);
+    assertEquals("[]", ModuleBus.poll(context, "removed.card"));
+  }
 }

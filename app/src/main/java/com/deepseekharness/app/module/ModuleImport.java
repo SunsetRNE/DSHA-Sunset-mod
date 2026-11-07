@@ -71,8 +71,11 @@ public final class ModuleImport {
   private ModuleImport() {}
 
   public static Result importAny(Context context, String raw) {
-    // 与容器收件箱同一上限：card.json 是解析进内存的文本，超大输入先挡掉。
-    if (raw != null && raw.length() > ModuleCardStore.MAX_BYTES)
+    // 与容器收件箱同一上限，且必须按**字节**算：raw.length() 是字符数，一万一千个
+    // 汉字只有 1.1 万字符却占 3.3 万字节，按字符判会放行、按字节落盘再被截断，
+    // 结果卡片「导入成功」却永远解析失败。
+    if (raw != null
+        && raw.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > ModuleCardStore.MAX_BYTES)
       throw new IllegalArgumentException("卡片文件超过 32KB 上限");
     ModuleCard card;
     try {

@@ -48,12 +48,23 @@ public final class ModuleExecTest {
     private final byte[] output;
     private final int exit;
     private final boolean hang;
+    private final java.util.concurrent.atomic.AtomicLong counter;
     volatile boolean killed;
 
     FakeProcess(String output, int exit, boolean hang) {
-      this.output = output.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+      this(output.getBytes(java.nio.charset.StandardCharsets.UTF_8), exit, hang, null);
+    }
+
+    FakeProcess(byte[] output, int exit, java.util.concurrent.atomic.AtomicLong counter) {
+      this(output, exit, false, counter);
+    }
+
+    FakeProcess(
+        byte[] output, int exit, boolean hang, java.util.concurrent.atomic.AtomicLong counter) {
+      this.output = output;
       this.exit = exit;
       this.hang = hang;
+      this.counter = counter;
     }
 
     @Override
@@ -63,7 +74,16 @@ public final class ModuleExecTest {
 
     @Override
     public InputStream getInputStream() {
-      return new ByteArrayInputStream(output);
+      ByteArrayInputStream base = new ByteArrayInputStream(output);
+      if (counter == null) return base;
+      return new java.io.FilterInputStream(base) {
+        @Override
+        public int read(byte[] buffer, int offset, int length) throws java.io.IOException {
+          int count = super.read(buffer, offset, length);
+          if (count > 0) counter.addAndGet(count);
+          return count;
+        }
+      };
     }
 
     @Override
@@ -132,6 +152,24 @@ public final class ModuleExecTest {
     assertTrue(result.ok);
     assertTrue(result.output, result.output.endsWith("…"));
     assertTrue(result.output.length() <= ModuleExec.MAX_OUTPUT + 1);
+  }
+
+  @Test
+  public void truncationDrainsTheStreamInsteadOfClosingItEarly() {
+    StringBuilder big = new StringBuilder();
+    for (int i = 0; i < 4000; i++) big.append("0123456789"); // 40KB，远超 8KB 上限
+    byte[] bytes = big.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    java.util.concurrent.atomic.AtomicLong read = new java.util.concurrent.atomic.AtomicLong();
+    ModuleExec.setLauncher((ctx, command) -> new FakeProcess(bytes, 0, read));
+
+    ModuleExec.Result result = ModuleExec.run(context, CARD, DIGEST, "seq 1 4000");
+
+    assertTrue("输出超限本身不该让命令算失败", result.ok);
+    assertTrue(result.output, result.output.endsWith("…"));
+    // 到上限后必须继续读到 EOF：提前 break 会连同 try-with-resources 关掉子进程 stdout，
+    // 真实管道里的命令下一次写就吃 SIGPIPE（退出码 141）或卡在满管道上，
+    // 于是「输出多的命令」被判成失败/超时——尽管它其实已经成功。
+    assertEquals("读线程没有读完输出（提前关流会让真实子进程 SIGPIPE）", bytes.length, read.get());
   }
 
   @Test

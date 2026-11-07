@@ -371,7 +371,9 @@ public final class ModuleManifest {
       only(contributes, "pages", "nav", "sections", "tokens");
       List<Page> pages = parsePages(contributes.optJSONArray("pages"), id);
       List<Navigation> navigation = parseNavigation(contributes.optJSONArray("nav"), id);
-      List<Section> sections = parseSections(contributes.optJSONArray("sections"), id);
+      Set<String> pageIds = new HashSet<>();
+      for (Page page : pages) pageIds.add(page.id());
+      List<Section> sections = parseSections(contributes.optJSONArray("sections"), id, pageIds);
       Map<String, String> tokens = parseTokens(contributes.optJSONObject("tokens"));
       if (pages.isEmpty() && navigation.isEmpty() && sections.isEmpty() && tokens.isEmpty()) {
         throw invalid("contributes 不能为空");
@@ -558,7 +560,7 @@ public final class ModuleManifest {
     return result;
   }
 
-  private static List<Section> parseSections(JSONArray array, String moduleId)
+  private static List<Section> parseSections(JSONArray array, String moduleId, Set<String> pageIds)
       throws JSONException {
     List<Section> result = new ArrayList<>();
     if (array == null) return result;
@@ -571,7 +573,8 @@ public final class ModuleManifest {
       checkId(id, "sections[" + i + "].id");
       if (!ids.add(id)) throw invalid("sections 中 id 重复：" + id);
       String title = optionalText(value, "title", "sections[" + i + "].title", 128);
-      String page = optionalPageReference(value, "page", "sections[" + i + "].page");
+      String page =
+          optionalPageReference(value, "page", "sections[" + i + "].page", moduleId, pageIds);
       JSONArray rowsArray = requiredArray(value, "rows");
       if (rowsArray.length() > 24) throw invalid("每个 section 的 rows 数量不能超过 24");
       List<Row> rows = new ArrayList<>();
@@ -689,12 +692,32 @@ public final class ModuleManifest {
     return value;
   }
 
-  private static String optionalPageReference(JSONObject object, String key, String path)
+  /**
+   * sections[].page 的归属校验。
+   *
+   * <p>{@code ModuleRegistry.Snapshot.sections(page)} 是对所有启用模块按 page 字符串
+   * 合并的，所以只要允许引用别人的页面，任何清单都能往别人页面上注入行、图标和跳转。
+   * {@code parseAction} 早就挡了 {@code open} 的跨模块 target，但这条平行路径原本没人管。
+   *
+   * <p>两种写法都收紧：{@code moduleId/pageId} 必须前缀本模块且页面已在本模块声明；
+   * 纯 id 必须出现在本模块的 {@code contributes.pages} 里。
+   */
+  private static String optionalPageReference(
+      JSONObject object, String key, String path, String moduleId, Set<String> pageIds)
       throws JSONException {
     String value = optionalText(object, key, path, 128);
     if (value == null) return null;
     if (!PAGE_TARGET.matcher("page:" + value).matches() && !ID.matcher(value).matches()) {
       throw invalid(path + " 不是合法页面引用");
+    }
+    int slash = value.indexOf('/');
+    // 不带模块前缀时表示「本模块的页面 id」，归属隐式为当前模块。
+    if (slash >= 0 && !value.substring(0, slash).equals(moduleId)) {
+      throw invalid(path + " 不能引用其他模块的页面：" + value);
+    }
+    String pageId = slash < 0 ? value : value.substring(slash + 1);
+    if (!pageIds.contains(pageId)) {
+      throw invalid(path + " 引用了本模块未声明的页面：" + value);
     }
     return value;
   }

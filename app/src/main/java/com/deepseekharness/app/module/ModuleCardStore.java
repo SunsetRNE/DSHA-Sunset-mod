@@ -49,6 +49,15 @@ public final class ModuleCardStore {
   private static final String BACKUP_DIR = "module-backup";
   private static final String INSTALL_PREFS = "dsha_module_install";
   static final int MAX_BYTES = 32 * 1024;
+
+  /**
+   * 声明式清单的读取上限，与 {@code ModuleRegistry.readStream} 保持一致（512KB）。
+   *
+   * <p>卡片更新时要把同目录的 {@code module.json} 带进暂存；用 32KB 的卡片上限去读，
+   * 一份经 ZIP 装进来的 32KB–512KB 清单会让这张卡以后每次更新都失败。
+   */
+  static final int MANIFEST_MAX_BYTES = 512 * 1024;
+
   private static final int MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
   /** 模块自带网页单文件上限；HTML/CSS/JS 比图片大，但仍是有限值。 */
@@ -354,7 +363,8 @@ public final class ModuleCardStore {
         if (siblingManifest.isFile() && !isSymlink(siblingManifest)) {
           try {
             writeBytesAtomically(
-                new File(staging, MANIFEST_FILE), readBytesNoFollow(siblingManifest, MAX_BYTES));
+                new File(staging, MANIFEST_FILE),
+                readBytesNoFollow(siblingManifest, MANIFEST_MAX_BYTES));
           } catch (IOException error) {
             throw new IllegalArgumentException("无法保留同目录清单，本次更新已取消", error);
           }
@@ -687,6 +697,12 @@ public final class ModuleCardStore {
           String raw = new String(readBytesNoFollow(file, MAX_BYTES), StandardCharsets.UTF_8);
           ModuleCard parsed = ModuleCard.parse(raw, ModuleCard.SOURCE_CONTAINER);
           java.util.Map<String, byte[]> assets = new java.util.LinkedHashMap<>();
+          // 单文件各有上限（程序 64MB / 网页 8MB / 图片 4MB），但一张卡最多声明
+          // 4 个程序 + 32 个网页，全读进内存就是 ~512MB；OOM 是 Error，下面的
+          // catch (Exception) 接不住，宿主进程会直接崩。所以与 ZIP 路径用同一个
+          // 「一个模块包」总量上限，超了就整卡放弃。
+          long totalBytes = 0;
+          boolean oversized = false;
           for (String assetName : parsed.assetNames()) {
             // 上限三档必须和 importCard 一致：program / web / image。
             // 之前容器路径漏了 web 档，>4MB 的 module.web 文件在容器投放会被误拒，
@@ -700,8 +716,17 @@ public final class ModuleCardStore {
                 && !isSymlink(asset)
                 && asset.length() > 0
                 && asset.length() <= limit) {
+              totalBytes += asset.length();
+              if (totalBytes > ModuleProgram.MAX_BYTES) {
+                oversized = true;
+                break;
+              }
               assets.put(assetName, readBytesNoFollow(asset, limit));
             }
+          }
+          if (oversized) {
+            found.add(new Issue(name, "素材总量超过 64MB 上限"));
+            continue;
           }
           importCard(context, raw, assets, ModuleCard.SOURCE_CONTAINER);
           imported++;
@@ -805,7 +830,11 @@ public final class ModuleCardStore {
   }
 
   private static String read(File file) throws IOException {
-    byte[] buffer = new byte[(int) Math.min(file.length(), MAX_BYTES)];
+    long length = file.length();
+    // 超限必须报错，不能按 MAX_BYTES 截断：截断后的 JSON 是残的，解析必然失败，
+    // 卡片会永久停在「导入成功但加载不出来」，用户看到的却只是「不是合法 JSON」。
+    if (length > MAX_BYTES) throw new IOException("CARD_TOO_LARGE");
+    byte[] buffer = new byte[(int) length];
     try (java.io.FileInputStream input = new java.io.FileInputStream(file)) {
       int read = 0;
       while (read < buffer.length) {

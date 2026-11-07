@@ -1211,18 +1211,22 @@ public final class ModuleCard {
       # DSHA 主页模块
 
       > **当前状态（宿主版本说明）**：本页描述的 `dsha.call` / `dsha.services` 能力总线、
-      > `schedule.set` 定时任务与 `~/.dsha-launch` 启动器属于模块平台的后续阶段，当前宿主
-      > **尚未接线**——调用只会得到「尚未开放」。已经能用的是：声明式卡片、脚本沙箱
+      > `schedule.set` 定时任务、`~/.dsha-launch` 启动器，以及下面「落盘位置」里的
+      > **容器投递自动收取**，都属于模块平台的后续阶段，当前宿主**尚未接线**——调用只会
+      > 得到「尚未开放」，投递到 `~/.dsha-modules/` 的文件也不会被自动导入。
+      > 已经能用的是：声明式卡片的解析与存储、脚本沙箱
       > （`dsha.value/slot/toast/copy/open/log`）、以及逐卡授权后的 `dsha.exec` 与受管程序。
+      > 主页渲染与模块中心属于 UI 阶段，同样尚未接线。
 
-      用户想给 DSHA 主页加一个自己的功能时，你只要在容器里写一个 JSON 文件，宿主会自动收进来。
-      这是真能用的东西：卡片会出现在主页，能拖动、改大小、收起，按钮能跑脚本和容器命令。
+      用户想给 DSHA 主页加一个自己的功能时，可以写一份卡片 JSON：当前版本由用户从模块中心
+      手动导入；宿主接线后的版本会自动收取容器里的投递。
 
       ## 落盘位置
 
       把文件写到 `~/.dsha-modules/<任意名字>.json`（目录不存在就建）。
       立绘图片放同一目录，文件名写进 `image`。
-      写完告诉用户"退出到 DSHA 主页就能看到"。宿主按 `id` 去重，同 id 再写一次就是更新。
+      写完告诉用户"把这份 JSON 从模块中心导入"；宿主接线容器收取后，退出到主页即会自动导入。
+      宿主按 `id` 去重，同 id 再写一次就是更新。
 
       ## 身份与更新
 
@@ -1437,10 +1441,8 @@ public final class ModuleCard {
       | 网页调用 | 作用 |
       |---|---|
       | `dsha.value('dsh.status')` | 读真实数据（与 bind 数据源相同） |
-      | `dsha.call('data.get',{source:'dsh.runs'})` | 能力总线，权限与脚本一致 |
       | `dsha.toast(text)` / `dsha.copy(text)` / `dsha.open(url)` | 宿主交互 |
-      | `dsha.page('detail')` | 打开本模块声明过的二级页面 |
-      | `dsha.services()` | 当前能力名列表 |
+      | `dsha.call(...)` / `dsha.services()` / `dsha.page(...)` | **尚未开放**：能力总线与二级页面跳转属于后续阶段，调用返回「尚未开放」 |
 
       页面之间用普通相对链接即可（如 `detail.html`）；`web` 节点可放在卡片、二级页或 `ui.app` 里，
       `src` 必须在 `module.web.files` 中声明。
@@ -1672,9 +1674,16 @@ public final class ModuleCard {
     return raw;
   }
 
-  /** 图片字段统一校验：只能是 png/jpg/jpeg/webp 的文件名，不能带路径。 */
+  /**
+   * 图片字段统一校验：只能是 png/jpg/jpeg/webp 的文件名，不能带路径。
+   *
+   * <p>这里不再写第二套正则：顶层 {@code image}、{@code ui.skin.*.image} 与
+   * {@code assetNames()} 收集原本各有一套规则，导致 {@code "_bg.png"} 顶层合法、
+   * 皮肤图被拒，或者 61 字符的名字通过校验却永远进不了素材表（卡片装上、图静默丢失）。
+   * 全部走 {@link #isImageName}，它也只比 {@link #isAssetFileName} 多一个扩展名判断。
+   */
   private static void requireImageName(String name, String field) {
-    if (!name.matches("(?i)[A-Za-z0-9._-]{1,60}\\.(png|jpg|jpeg|webp)"))
+    if (!isImageName(name))
       throw new IllegalArgumentException(field + " 只能是 png/jpg/webp 文件名，不能带路径");
   }
 
@@ -1730,7 +1739,10 @@ public final class ModuleCard {
     // 任何扩展点配置里的 image 字段都算素材，不限于宿主认识的两种。
     for (JSONObject config : provides.values()) {
       String art = config.optString("image", "").trim();
-      if (art.matches("(?i)[A-Za-z0-9._-]{1,60}\\.(png|jpg|jpeg|webp)")) names.add(art);
+      // 走同一个判断：这里原本自己写了一条正则（名字部分最多 60），与
+      // requireImageName（最多 64）不一致 —— 61 字符的图能通过校验却进不了素材表，
+      // 卡片装上了但图片静默丢失。
+      if (isImageName(art)) names.add(art);
     }
     if (nav != null) {
       for (NavItem item : nav.items.values()) if (!item.image.isEmpty()) names.add(item.image);
@@ -1758,10 +1770,12 @@ public final class ModuleCard {
    * 就能让宿主把文件写进别的模块目录（甚至宿主私有目录）。
    */
   static boolean isImageName(String name) {
-    return isAssetFileName(name)
-        && name.trim()
-            .toLowerCase(java.util.Locale.ROOT)
-            .matches("(?i)[a-z0-9][a-z0-9._-]{0,60}\\.(png|jpg|jpeg|webp)");
+    if (!isAssetFileName(name)) return false;
+    String lower = name.trim().toLowerCase(java.util.Locale.ROOT);
+    return lower.endsWith(".png")
+        || lower.endsWith(".jpg")
+        || lower.endsWith(".jpeg")
+        || lower.endsWith(".webp");
   }
 
   static boolean isAssetFileName(String name) {

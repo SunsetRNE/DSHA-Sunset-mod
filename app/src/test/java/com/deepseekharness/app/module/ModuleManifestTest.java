@@ -144,6 +144,19 @@ public class ModuleManifestTest {
     assertInvalid(validManifest().replace("\"schema\":1", "\"schema\":1,\"script\":\"run\""));
   }
 
+  @Test
+  public void sectionPageCannotPointAtAnotherModule() {
+    assertInvalid(
+        validManifest().replace("\"page\":\"diagnostics\"", "\"page\":\"other.module/general\""));
+  }
+
+  @Test
+  public void sectionPageMustBeDeclaredByTheSameModule() {
+    // 纯 id 也要落到本模块的 contributes.pages：Snapshot.sections(page) 是按 page 字符串
+    // 跨模块合并的，允许悬空 id 就等于允许挂到别人的同名页面上。
+    assertInvalid(validManifest().replace("\"page\":\"diagnostics\"", "\"page\":\"ghost\""));
+  }
+
   private static void assertInvalid(String source) {
     assertThrows(IllegalArgumentException.class, () -> ModuleManifest.parse(source, true));
   }

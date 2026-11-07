@@ -292,7 +292,12 @@ public final class ModuleCatalog {
               ? ModuleRegistry.load(context).modules().containsKey(entry.id)
               : ModuleCardStore.loadAll(context).stream()
                   .anyMatch(card -> card.id.equals(entry.id));
-      if (!otherKind) ModuleState.clear(context, entry.id);
+      if (!otherKind) {
+        ModuleState.clear(context, entry.id);
+        // 总线收件箱也要清：同 id 重装后旧消息会被当成新模块的，含别人的 from，
+        // 等于跨安装串话。只有确认没有同 id 另一条模块时才清。
+        ModuleBus.clear(context, entry.id);
+      }
     }
     ModuleCardStore.bump();
     return removed;
