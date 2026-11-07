@@ -141,7 +141,8 @@ public final class ModuleCatalog {
         if (!manifest.pages().isEmpty())
           caps.add(com.deepseekharness.app.util.UiText.format("页面 %d", manifest.pages().size()));
         if (!manifest.navigation().isEmpty())
-          caps.add(com.deepseekharness.app.util.UiText.format("导航 %d", manifest.navigation().size()));
+          caps.add(
+              com.deepseekharness.app.util.UiText.format("导航 %d", manifest.navigation().size()));
         for (String capability : manifest.capabilities()) caps.add(capability);
         if (caps.isEmpty()) caps.add(com.deepseekharness.app.util.UiText.text("声明"));
       }
