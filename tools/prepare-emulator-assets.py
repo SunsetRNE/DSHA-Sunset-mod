@@ -358,7 +358,7 @@ def recovery(output, version):
             {'asset': 'recovery-dsh-runtime.bin', 'sha256': digest(archives[1])},
         ],
         'expandedBytes': sum(row['bytes'] for row in files),
-        'standardAssetsDigest': tree_digest(assets), 'adbWheels': 'aarch64-wheels-not-runnable-on-x86', 'files': files,
+        'files': files,
         'links': links,
         'overlays': overlays,
         'overlayInputs': {name: digest(output / name) for name in builder.input_assets(version)},
@@ -540,7 +540,21 @@ def main():
     write_json(OUTPUT / 'runtime-descriptor.json', descriptor)
     recovery(OUTPUT, version)
     files = {path.relative_to(OUTPUT).as_posix(): digest(path) for path in sorted(OUTPUT.rglob('*')) if path.is_file()}
-    receipt = {'schema': 1, 'abi': 'x86_64', 'debugOnly': True, 'runtimeId': descriptor['runtimeId'], 'configuredRootfsSha256': digest(configured), 'dshRecipe': dsh_builder.recipe_inputs(), 'files': files, 'native': json.loads(native_receipt.read_text())}
+    # 来源与限制记在顶层回执里：verify-emulator-assets.py 读的是这一份。
+    # standardAssetsDigest 让「改完资产但没重跑本脚本」可被发现；
+    # adbWheels 如实记录随包轮子是 aarch64、本目标不可用。
+    receipt = {
+        'schema': 1,
+        'abi': 'x86_64',
+        'debugOnly': True,
+        'runtimeId': descriptor['runtimeId'],
+        'configuredRootfsSha256': digest(configured),
+        'dshRecipe': dsh_builder.recipe_inputs(),
+        'standardAssetsDigest': tree_digest(assets),
+        'adbWheels': 'aarch64-wheels-not-runnable-on-x86',
+        'files': files,
+        'native': json.loads(native_receipt.read_text()),
+    }
     write_json(OUTPUT.parent / 'emulator-assets-receipt.json', receipt)
     print('NOTE adb-wheels: 随包的 adb 轮子是 aarch64（app/src/main/assets/adb-wheels.lock.json），'
           '本目标不注入可用轮子，adb 配对在模拟器上不可用（见 docs/sunset-emulator-x64.md）')

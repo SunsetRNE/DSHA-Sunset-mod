@@ -3374,6 +3374,17 @@
       "args": [],
       "timeoutSeconds": 60,
       "environment": {}
+    },
+    {
+      "reason": "模拟器工具脚本的作用域静态检查：函数里读取未定义的全局名（例如把 main() 的局部变量写进 recovery()）只会在运行时 NameError，CI 只 import 不执行 main()，所以必须静态拦。已用「注入错误」反向验证过能检出。",
+      "path": "tools/test-emulator-script-scope.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {}
     }
   ]
 }
