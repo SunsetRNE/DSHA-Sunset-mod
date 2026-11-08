@@ -475,13 +475,12 @@ public final class DeviceGrantsFragment extends Fragment {
     title.setMaxLines(1);
     text.addView(title, new android.widget.LinearLayout.LayoutParams(-2, -2));
     bindLabelInfo(
-        ctx,
         title,
         titleText,
-        () ->
-            UiText.choose(
-                "在容器内启动 OpenSSH 服务器（端口 22222），供 SSH 客户端以 dsha 用户登录调试环境。密码在本机用设备密钥加密保存，只通过标准输入交给启动脚本，不进命令行或日志。默认只监听 127.0.0.1；开启局域网访问后监听 0.0.0.0，并要求系统局域网授权，改动在重启 SSH 后生效。这会暴露容器命令行，请设置强密码。",
-                "Starts an OpenSSH server inside the container (port 22222) so SSH clients can sign in as user dsha to debug the environment. The password is stored on this device with a device-key-encrypted vault and is handed to the launch script through standard input only, never argv or logs. It listens on 127.0.0.1 by default; enabling LAN access listens on 0.0.0.0 and requires the system local-network permission. This exposes the container command line, so use a strong password."));
+        UiText.choose(
+            "在容器内启动 OpenSSH 服务器（端口 22222），供 SSH 客户端以 dsha 用户登录调试环境。密码在本机用设备密钥加密保存，只通过标准输入交给启动脚本，不进命令行或日志。默认只监听 127.0.0.1；开启局域网访问后监听 0.0.0.0，并要求系统局域网授权，改动在重启 SSH 后生效。这会暴露容器命令行，请设置强密码。",
+            "Starts an OpenSSH server inside the container (port 22222) so SSH clients can sign in as user dsha to debug the environment. The password is stored on this device with a device-key-encrypted vault and is handed to the launch script through standard input only, never argv or logs. It listens on 127.0.0.1 by default; enabling LAN access listens on 0.0.0.0 and requires the system local-network permission. This exposes the container command line, so use a strong password."),
+        false);
     title.setMinHeight(0);
     containerSshStatus = new TextView(ctx, null, 0, R.style.ShellRowSub);
     android.widget.LinearLayout.LayoutParams statusParams =
