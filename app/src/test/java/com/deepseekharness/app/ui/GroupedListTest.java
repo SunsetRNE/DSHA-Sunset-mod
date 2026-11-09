@@ -10,6 +10,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.util.UiText;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +39,8 @@ public final class GroupedListTest {
 
   @Before
   public void setUp() {
+    // 读屏状态文案跟随进程级界面语言；本类断言中文，先钉住，避免被同 sandbox 其它测试遗留的语言影响。
+    UiText.setLanguage("zh");
     context =
         new ContextThemeWrapper(RuntimeEnvironment.getApplication(), R.style.Theme_DeepseekHarness);
     scroll = new ScrollView(context);
