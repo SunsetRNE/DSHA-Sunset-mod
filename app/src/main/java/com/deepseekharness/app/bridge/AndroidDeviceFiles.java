@@ -19,9 +19,14 @@ import java.util.List;
 public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
   private static final int O_PATH = 0x200000;
   private static final int O_CLOEXEC = 0x80000;
-  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
-  // asm-generic/x86 00200000 is arm64 O_DIRECT, not its directory flag.
-  private static final int O_DIRECTORY = 040000;
+
+  // Per-ABI, same as AndroidBackupFileSystem: arm/arm64 040000, x86/x86_64 00200000.
+  // These opens also carry O_PATH, which drops O_DIRECT but keeps O_DIRECTORY, so the wrong
+  // value here would silently lose the "must be a directory" constraint instead of failing.
+  // 同 AndroidBackupFileSystem：按调用取值，未知 ABI 得到可诊断的异常而不是类初始化崩溃。
+  private static int directoryFlag() {
+    return com.deepseekharness.app.util.DirectoryFlags.directoryOf(android.os.Build.SUPPORTED_ABIS);
+  }
 
   private static IOException failure(ErrnoException error) {
     return new IOException("DEVICE_FILESYSTEM_" + error.errno, error);
@@ -52,7 +57,7 @@ public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
     Pinned at = null;
     try {
       FileDescriptor fd =
-          Os.open(actualRoot, O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW | O_DIRECTORY, 0);
+          Os.open(actualRoot, O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW | directoryFlag(), 0);
       ParcelFileDescriptor rootHandle = null;
       try {
         rootHandle = ParcelFileDescriptor.dup(fd);
@@ -175,7 +180,7 @@ public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
 
     void pinDirectory() throws ErrnoException, IOException {
       FileDescriptor fd =
-          Os.open(at(), O_PATH | O_CLOEXEC | O_DIRECTORY | OsConstants.O_NOFOLLOW, 0);
+          Os.open(at(), O_PATH | O_CLOEXEC | directoryFlag() | OsConstants.O_NOFOLLOW, 0);
       try {
         if (!same(expected, Os.fstat(fd))) throw new IOException("DIRECTORY_TARGET_CHANGED");
         directory = ParcelFileDescriptor.dup(fd);
