@@ -13,7 +13,9 @@ public final class CurrentReleaseNotes {
   private static String bundledVersion(String versionName) {
     // 正式包与 -Pdsha.sunsetTest=true 测试包共用同一份更新说明；测试后缀不是发布身份。
     // 测试变体当前用 -SunsetTest（CI 与发布脚本按此核验），历史上也出现过 -test，两者都要剥离。
-    for (String suffix : new String[] {"-SunsetTest", "-test"}) {
+    // -EmulatorX64Debug 是 x86 调试目标的 versionNameSuffix（见 app/build.gradle）；
+    // 不剥离的话，模拟器包里的「更新说明」恒为空，并写一条 changelog 诊断。
+    for (String suffix : new String[] {"-SunsetTest", "-test", "-EmulatorX64Debug"}) {
       if (versionName.endsWith(suffix)) {
         versionName = versionName.substring(0, versionName.length() - suffix.length());
         break;

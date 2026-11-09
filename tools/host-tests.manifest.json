@@ -3340,6 +3340,51 @@
       "timeoutSeconds": 60,
       "environment": {},
       "reason": "proroot git SIGSEGV guard: rc=139 and '[proroot] SIGSEGV' stderr fail loudly with empty stdout, one execution and no retry; normal rc=0 and ordinary failures keep their behavior; module API, CLI and process exit are exercised with a simulated git and no device."
+    },
+    {
+      "reason": "模拟器 rootfs 软链规则负控：相对/根内绝对链接放行，逃出 guest 根、目标缺失、成环、指回宿主路径一律拒绝。纯逻辑，无 tar 依赖。",
+      "path": "tools/test-emulator-rootfs-links.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {}
+    },
+    {
+      "reason": "模拟器资产校验负控：receipt 缺失、目标不匹配、成员集不符、字节被改、目录里混入 ARM ELF 五种情况必须分别拒绝。临时目录夹具，无外部输入。",
+      "path": "tools/test-emulator-verify-assets.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {}
+    },
+    {
+      "reason": "模拟器 linux-x64 平台包补齐的纯逻辑负控：锁定版本+integrity 必须来自 dsh-runtime 锁，tar 成员越界/链接拒绝，缓存损坏不复用。无下载、无联网。",
+      "path": "tools/test-emulator-platform-packages.py",
+      "stage": "fast",
+      "requires": [
+        "python39",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {}
+    },
+    {
+      "reason": "模拟器工具脚本的作用域静态检查：函数里读取未定义的全局名（例如把 main() 的局部变量写进 recovery()）只会在运行时 NameError，CI 只 import 不执行 main()，所以必须静态拦。已用「注入错误」反向验证过能检出。",
+      "path": "tools/test-emulator-script-scope.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {}
     }
   ]
 }

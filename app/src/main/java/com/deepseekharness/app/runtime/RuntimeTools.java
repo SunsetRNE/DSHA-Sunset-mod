@@ -230,20 +230,28 @@ final class RuntimeTools {
     return failure == null;
   }
 
-  private static final String[] QUERY_FILES = {
-    "usr/bin/python3.12",
-    "usr/lib/python3.12/encodings/__init__.py",
-    "usr/lib/aarch64-linux-gnu/libsqlite3.so.0",
-    "usr/lib/aarch64-linux-gnu/libreadline.so.8",
-    "root/.dsh/plugin-manager.py",
-    "root/.dsh/register-builtin-plugins.py",
-    "root/.dsh/builtin-plugins.json",
-    "root/.dsh/plugin-lifecycle.py",
-    "root/.dsh/plugin-capabilities.py",
-    "root/.dsh/plugin-transactions.py",
-    "root/.dsh/plugin-network.py",
-    "root/.dsh/plugin-dependencies.py"
-  };
+  private static String[] queryFiles() {
+    return queryFiles(com.deepseekharness.app.util.TargetAbi.linuxTriplet());
+  }
+
+  /** 探测清单按 triplet 生成，单独可测：写死 aarch64 会让 x86 目标查错目录。 */
+  static String[] queryFiles(String triplet) {
+    return new String[] {
+      "usr/bin/python3.12",
+      "usr/lib/python3.12/encodings/__init__.py",
+      "usr/lib/" + triplet + "/libsqlite3.so.0",
+      "usr/lib/" + triplet + "/libreadline.so.8",
+      "root/.dsh/plugin-manager.py",
+      "root/.dsh/register-builtin-plugins.py",
+      "root/.dsh/builtin-plugins.json",
+      "root/.dsh/plugin-lifecycle.py",
+      "root/.dsh/plugin-capabilities.py",
+      "root/.dsh/plugin-transactions.py",
+      "root/.dsh/plugin-network.py",
+      "root/.dsh/plugin-dependencies.py"
+    };
+  }
+
   private static final Object QUERY_REPORT_LOCK = new Object();
   private static String lastQueryFailure;
 
@@ -265,7 +273,7 @@ final class RuntimeTools {
       if (!markerNode.type.equals("FILE")) return "MARKER:" + markerNode.type;
       byte[] expected = com.deepseekharness.app.util.ManagedAssetVersion.bytes(identity);
       if (!Arrays.equals(expected, fs.small(marker, expected.length + 1))) return "MARKER:IDENTITY";
-      for (String path : QUERY_FILES) {
+      for (String path : queryFiles()) {
         stage = path;
         // apt/dpkg 或外部 root 会把 soname 换成链接；按容器内实际可见的目标判断，不再只认 lstat 普通文件。
         var file = guestFile(fs, rootfs, path);

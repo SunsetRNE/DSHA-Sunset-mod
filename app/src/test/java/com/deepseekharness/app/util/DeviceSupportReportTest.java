@@ -144,4 +144,61 @@ public class DeviceSupportReportTest {
             1);
     assertEquals(DeviceSupportReport.Gate.RISK, r.gate);
   }
+
+  /** 模拟器构建 + x86_64：放行（这是 x86 线唯一的放行入口）。 */
+  @Test
+  public void emulatorBuildAllowsX8664() {
+    DeviceSupportReport r =
+        DeviceSupportReport.from(
+            34,
+            new String[] {"x86_64"},
+            "Google",
+            "",
+            "sdk_gphone64_x86_64",
+            "",
+            "com.google.android.webview",
+            "141.0.0.0",
+            "0.2.1-rc.3",
+            336,
+            true);
+    assertEquals(DeviceSupportReport.Gate.OK, r.gate);
+  }
+
+  /** 模拟器构建但 ABI 是 32 位 x86：APK 只带 x86_64，必须继续拦。 */
+  @Test
+  public void emulatorBuildStillBlocks32BitX86() {
+    DeviceSupportReport r =
+        DeviceSupportReport.from(
+            34,
+            new String[] {"x86"},
+            "Google",
+            "",
+            "sdk_gphone_x86",
+            "",
+            "com.google.android.webview",
+            "141.0.0.0",
+            "0.2.1-rc.3",
+            336,
+            true);
+    assertEquals(DeviceSupportReport.Gate.BLOCK, r.gate);
+  }
+
+  /** 模拟器构建也不该把 32 位 ARM 放进来。 */
+  @Test
+  public void emulatorBuildStillBlocksArm32() {
+    DeviceSupportReport r =
+        DeviceSupportReport.from(
+            34,
+            new String[] {"armeabi-v7a"},
+            "Google",
+            "",
+            "device",
+            "",
+            "com.google.android.webview",
+            "141.0.0.0",
+            "0.2.1-rc.3",
+            336,
+            true);
+    assertEquals(DeviceSupportReport.Gate.BLOCK, r.gate);
+  }
 }
