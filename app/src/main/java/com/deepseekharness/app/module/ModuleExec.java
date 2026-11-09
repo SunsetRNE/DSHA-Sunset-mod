@@ -1,0 +1,201 @@
+package com.deepseekharness.app.module;
+
+import android.content.Context;
+import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.util.ShellQuote;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 卡片执行容器命令的唯一入口。
+ *
+ * <p>这是整套模块体系里唯一能「真的做事」的动作，所以门开得很窄：
+ * <ul>
+ *   <li>用户必须对<b>这一张卡片</b>单独授权，不是一个总开关；</li>
+ *   <li>环境没就绪直接拒绝，不排队不重试；</li>
+ *   <li>命令长度、执行时长、输出长度都有上限；</li>
+ *   <li>超时只保证直接子进程退出（Android 没有进程树 API），不让启动器挂在后台。</li>
+ * </ul>
+ *
+ * <p>注意：容器本身是 danger-full-access，所以这里挡的是「未授权模块静默执行」，
+ * 不是给容器加沙箱 —— 别把这条当安全隔离写进文档。
+ *
+ * <p>超时或输出超限时强杀的是<b>直接子进程</b>（bash），孙进程由内核在 shell 退出后回收：
+ * Android 的 {@link Process} 没有 descendants()，这里不承诺「杀进程树」。
+ */
+public final class ModuleExec {
+
+  private static final String PREFS = "dsha_module_exec";
+  private static final int MAX_COMMAND = 500;
+  static final int MAX_OUTPUT = 8 * 1024;
+  private static final long TIMEOUT_MS = 8000;
+
+  public static final class Result {
+    public final boolean ok;
+    public final String output;
+
+    public Result(boolean ok, String output) {
+      this.ok = ok;
+      this.output = output;
+    }
+  }
+
+  private ModuleExec() {}
+
+  /**
+   * 授权与<b>内容摘要</b>绑定，不是与卡片 id 绑定。
+   *
+   * <p>同一 id 的卡片会被自动更新（容器投放、重新导入），只按 id 记授权的话，
+   * 用户批准过的旧脚本被替换成新脚本后仍然放行 —— 等于用户零感知执行了没同意过的内容。
+   * 所以这里存的是「这次批准时的 {@link ModuleCardStore#contentDigest}」，内容一变
+   * 摘要就变，旧授权自动失效，必须重新确认。
+   */
+  public static boolean isAllowed(Context context, String cardId, String digest) {
+    if (cardId == null || digest == null || digest.isEmpty()) return false;
+    Object stored =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getAll().get("allow_" + cardId);
+    // 旧版本存的是 boolean 总开关，无法判断它批准的是哪一版内容 → 视为未授权并清掉。
+    if (!(stored instanceof String)) {
+      if (stored != null) revoke(context, cardId);
+      return false;
+    }
+    return digest.equals(stored);
+  }
+
+  /** 记录一次针对当前内容摘要的授权。 */
+  public static void setAllowed(Context context, String cardId, String digest) {
+    if (cardId == null || digest == null || digest.isEmpty()) return;
+    context
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putString("allow_" + cardId, digest)
+        .apply();
+  }
+
+  public static void revoke(Context context, String cardId) {
+    context
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .remove("allow_" + cardId)
+        .apply();
+  }
+
+  /**
+   * 执行入口：先以「当前内容摘要」校验授权，再真正执行。
+   *
+   * <p>门放在这里而不是只放调用方，是因为执行是整套模块体系里唯一能真的做事的地方；
+   * 任何新增调用点（脚本、UI、未来的能力总线）都必须经过同一道检查。
+   */
+  public static Result run(Context context, String cardId, String digest, String command) {
+    if (!isAllowed(context, cardId, digest)) return new Result(false, "未授权：这张卡片没有当前内容的执行授权");
+    return execute(context, command);
+  }
+
+  /** 同步执行；调用方必须放在后台线程，且必须已经过 {@link #run(Context,String,String,String)}。 */
+  private static Result execute(Context context, String command) {
+    String trimmed = command == null ? "" : command.trim();
+    if (trimmed.isEmpty()) return new Result(false, "命令为空");
+    if (trimmed.length() > MAX_COMMAND) return new Result(false, "命令太长");
+
+    Process process = null;
+    ExecutorService reader = Executors.newSingleThreadExecutor();
+    try {
+      process = launcher.start(context, "bash -lc " + ShellQuote.arg(trimmed));
+      // 启动器返回 null 表示容器环境没就绪；测试注入假启动器时不经过 HarnessController。
+      if (process == null) return new Result(false, "容器环境还没就绪");
+      final Process running = process;
+      Future<String> output =
+          reader.submit(
+              () -> {
+                StringBuilder builder = new StringBuilder();
+                boolean truncated = false;
+                try (InputStream input = running.getInputStream()) {
+                  byte[] buffer = new byte[4096];
+                  for (int count; (count = input.read(buffer)) != -1; ) {
+                    // 到上限后继续读到 EOF，只是不再追加。
+                    // 提前 break 会连同 try-with-resources 关掉子进程的 stdout：还在写输出的
+                    // 命令会吃 SIGPIPE（退出码 141）或卡在满管道上，于是「输出多的命令」
+                    // 被判成失败/超时，即使它其实成功。测试里用 ByteArrayInputStream 不会
+                    // 复现这一点，所以这里必须自己读干净。
+                    if (truncated) continue;
+                    builder.append(new String(buffer, 0, count, StandardCharsets.UTF_8));
+                    if (builder.length() > MAX_OUTPUT) truncated = true;
+                  }
+                }
+                return truncated
+                    ? builder.substring(0, Math.min(builder.length(), MAX_OUTPUT)) + "…"
+                    : builder.toString();
+              });
+      // 8 秒是整条命令的总上限：读输出和等退出共享同一个 deadline，
+      // 不然读输出花掉几秒后再等满 8 秒，实际最长能拖到 16 秒。
+      long deadline = System.currentTimeMillis() + TIMEOUT_MS;
+      String text =
+          output.get(Math.max(1, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
+      boolean exited =
+          process.waitFor(
+              Math.max(1, deadline - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
+      if (!exited) {
+        // 读完输出还没退出：算超时，由 finally 强杀，不让它在后台继续跑。
+        return new Result(false, "执行超时（" + TIMEOUT_MS / 1000 + " 秒）");
+      }
+      if (text.length() > MAX_OUTPUT) text = text.substring(0, MAX_OUTPUT) + "…";
+      return new Result(process.exitValue() == 0, text.isEmpty() ? "（无输出）" : text.trim());
+    } catch (java.util.concurrent.TimeoutException timeout) {
+      destroy(process);
+      return new Result(false, "执行超时（" + TIMEOUT_MS / 1000 + " 秒）");
+    } catch (Exception error) {
+      destroy(process);
+      return new Result(false, "执行失败：" + error.getMessage());
+    } finally {
+      reader.shutdownNow();
+      // 输出超过上限时读取会提前结束，进程可能仍在跑；超时与异常路径同样要收尾。
+      // 只保证「直接子进程退出」：Android 的 Process 没有 descendants()，孙进程靠内核在
+      // bash 退出后回收，文档里不要再写「杀进程树」。
+      if (process != null) {
+        try {
+          if (process.isAlive()) process.destroyForcibly();
+        } catch (RuntimeException ignored) {
+          // 已经退出
+        }
+        try {
+          process.getInputStream().close();
+        } catch (IOException | RuntimeException ignored) {
+          // 流已经关掉
+        }
+      }
+    }
+  }
+
+  /** 启动容器命令；{@code null} 表示环境未就绪。测试可整体替换，便于验证超时与截断。 */
+  interface ContainerLauncher {
+    Process start(Context context, String command) throws Exception;
+  }
+
+  private static volatile ContainerLauncher launcher = ModuleExec::launchInContainer;
+
+  static void setLauncher(ContainerLauncher replacement) {
+    launcher = replacement == null ? ModuleExec::launchInContainer : replacement;
+  }
+
+  private static Process launchInContainer(Context context, String command) throws Exception {
+    HarnessController controller = HarnessController.get(context);
+    if (!controller.isEnvironmentReady()) return null;
+    return controller.proot().execRootfs(command);
+  }
+
+  private static void destroy(Process process) {
+    if (process == null) return;
+    try {
+      // Android 的 Process 没有 descendants()，只能强杀当前进程；
+      // bash -lc 包了一层，孙进程由内核在 shell 退出后回收 —— 不承诺「杀进程树」。
+      process.destroyForcibly();
+    } catch (RuntimeException ignored) {
+      // 已经退出
+    }
+  }
+}
