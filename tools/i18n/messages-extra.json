@@ -15979,6 +15979,33 @@
     ]
   },
   {
+    "id": "m9049",
+    "zh": "残留会话",
+    "en": "Leftover session",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/ContainerSshStatus.java",
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java"
+    ]
+  },
+  {
+    "id": "m9050",
+    "zh": "上次的 SSH 未退出，终止失败；端口可能仍在监听；重启设备后再试",
+    "en": "A previous SSH session is still running and could not be stopped; the port may still be listening; restart the device and try again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/ContainerSshStatus.java",
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java"
+    ]
+  },
+  {
+    "id": "m9051",
+    "zh": "发现残留进程但无法确认身份；为避免误杀没有启动；重启设备后再试",
+    "en": "A leftover process was found but its identity could not be confirmed; SSH was not started to avoid killing an unrelated process; restart the device and try again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/ContainerSshStatus.java",
+      "app/src/main/java/com/deepseekharness/app/runtime/ContainerSshService.java"
+    ]
+  },
+  {
     "id": "x2100106",
     "zh": "系统当前默认用「%s」打开文件夹选择，它可能看不到 SD 卡、U 盘等存储挂载点。建议改用系统文件选择器；也可以在它的应用信息里清除默认设置。",
     "en": "Your system currently opens folder selection with \"%s\", which may not show storage mounts such as SD cards or USB drives. Use the system file picker instead, or clear that app's default in its app info.",
