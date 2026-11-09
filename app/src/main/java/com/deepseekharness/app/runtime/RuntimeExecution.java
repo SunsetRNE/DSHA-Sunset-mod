@@ -179,6 +179,24 @@ final class RuntimeExecution {
     }
   }
 
+  /** 调用方对 LaunchSpec 的定制（bind、pipedInput 等），允许抛出 IOException。 */
+  interface SpecCustomizer {
+    void customize(LaunchSpec.Builder builder) throws IOException;
+  }
+
+  /** 带自定义 LaunchSpec 的执行路径：调用方通过 customizer 设置 binds、pipedInput 等。 */
+  Process execWithSpec(String command, SpecCustomizer customizer) throws IOException {
+    try (RuntimeHostPorts.Scope ignored = ports.open()) {
+      requireReady();
+      ContainerRuntime runtime = runtime();
+      boolean links = hardlinks();
+      prepareTools();
+      LaunchSpec.Builder builder = launch(runtime).hardlinks(links);
+      customizer.customize(builder);
+      return start(command, builder.build());
+    }
+  }
+
   private Process bounded(String command, ContainerRuntime selected) throws IOException {
     try (RuntimeHostPorts.Scope ignored = ports.open()) {
       requireReady();

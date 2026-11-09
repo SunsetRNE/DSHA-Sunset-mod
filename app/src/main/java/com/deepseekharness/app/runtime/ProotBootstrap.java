@@ -303,6 +303,12 @@ public class ProotBootstrap {
     return execution.exec(command, environment);
   }
 
+  /** 带自定义 LaunchSpec 的执行路径：调用方通过 customizer 设置 binds、pipedInput 等。 */
+  public Process execRootfsWithSpec(String command, RuntimeExecution.SpecCustomizer customizer)
+      throws IOException {
+    return execution.execWithSpec(command, customizer);
+  }
+
   public Process execRootfsForInstall(String command) throws IOException {
     return execution.install(command, false);
   }

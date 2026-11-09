@@ -80,4 +80,23 @@ public class BridgePathPolicyTest {
             "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu/root/report.md",
             "/data/data/io.github.sunsetrne.dsha/files/linux/ubuntu"));
   }
+
+  @Test
+  public void containerSshCredentialTreeIsNeverReadableThroughTheBridge() {
+    // 审查 P2-3：容器 SSH 的主机私钥与密码偏好必须被桥读取路径显式拒绝。
+    // 现状是「/data/data 绝对路径被拒」这条规则恰好挡住——把该树钉进测试，
+    // 防止后续规则改动时静默放行。
+    String data = "/data/data/io.github.sunsetrne.dsha";
+    String rootfs = data + "/files/linux/ubuntu";
+    for (String path :
+        new String[] {
+          data + "/no_backup/container-ssh/keys/host_ed25519",
+          data + "/no_backup/container-ssh/keys/sshd_config",
+          data + "/no_backup/container-ssh/keys",
+          data + "/shared_prefs/dsha_container_ssh.xml",
+        }) {
+      assertTrue("凭据树必须拒绝: " + path, BridgePathPolicy.deniedReadRaw(path));
+      assertTrue("凭据树必须拒绝: " + path, BridgePathPolicy.deniedHostPath(path, rootfs));
+    }
+  }
 }

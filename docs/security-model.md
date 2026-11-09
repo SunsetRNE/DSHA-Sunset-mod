@@ -80,6 +80,17 @@ ADB 配对密钥目录 `.dsh/adbkeys` 按本机状态处理：备份与导出不
 
 停止以出生身份、会话及退出证据为准，禁止按端口、名称或裸 PID 强杀。安装、迁移和回切由宿主事务记录；结果未知时保留现场及运行任务屏障，不让用户清数据脱困。
 
+## 可选能力的新增监听面：容器 SSH
+
+「设备能力授权 → 容器 SSH（实验性）」默认关闭，开启后在容器内启动 OpenSSH，默认只听
+`127.0.0.1:22222`，单账号 `dsha` + 密码；转发/隧道/root 登录一律关闭，单连接 3 次与
+并发未认证连接双限。密码经设备 Keystore（专用 alias）加密后才进偏好，备份里只有密文；
+已 root 且已解锁的宿主进程仍能在本机解出明文，这是应用沙箱边界。这**不是**内核隔离：
+容器本身是 `danger-full-access`，SSH 密码泄露等于交出容器 shell；LAN 模式（监听
+`0.0.0.0`，需系统局域网授权）下同一 WiFi 的任何人可达该端口。威胁模型与操作边界见
+[docs/container-ssh.md](container-ssh.md)；端口登记见
+[docs/ports-and-networking.md](ports-and-networking.md)。
+
 ## 交付与验证限度
 
 正式包使用 `io.github.sunsetrne.dsha` 与 `ci/release-identity.json` 记录的 Mod 发布证书（v1/v2/v3）。构建不缺省发布口令，不替换为其它证书。build349 的 CI 只证明该 commit 在托管 runner 上的编译、门禁、单测、签名与发布流程；软件测试、APK/ELF/签名核验和手机覆盖安装是不同证据。发布准备的本地范围为本机宿主 contracts 整组、全树格式检查、全量单测（含 10 例 aarch64 环境基线）、lint、`test-vscreen-help` 与 `test-diagnostic-feedback`（见 [build349 更新说明](releases/build349-changes.zh.md)）；真机结论待用户按当次记录核对后补写，未预写通过，不能继承旧报告的通过范围。
