@@ -239,7 +239,7 @@ export class TaskReporter {
       if (event.type !== 'turn/start' && (projected?.lastTurn !== turn || projected.openTurnStartSeq === null)) return
       if (row) this.controls.delete(row.owner)
       if ([...this.rows.values()].filter(value => value.active).length >= 32 && !this.rows.has(id)) return
-      row = { session: id, turn, phase: 'running', reason: '', detail: '', question: '', questionSeen: false, title: this.titleOf(session),
+      row = { session: id, turn, phase: 'running', reason: '', detail: '', question: '', questionCallId: '', questionSeen: false, title: this.titleOf(session),
         active: true, agent, sessionObject: session, surface, startSeq: projected?.openTurnStartSeq,
         owner: randomBytes(16).toString('hex') }
       this.rows.set(id, row)
@@ -247,11 +247,11 @@ export class TaskReporter {
     if (!row.active || row.sessionObject !== session || row.agent !== current) return
     switch (event.type) {
       case 'turn/start':
-        row.phase = 'running'; row.detail = ''; row.reason = ''; row.question = ''; row.questionSeen = false
+        row.phase = 'running'; row.detail = ''; row.reason = ''; row.question = ''; row.questionCallId = ''; row.questionSeen = false
         break
       case 'assistant/chunk':
         // 只上报阶段，不把对话正文带出网页。
-        row.phase = 'reply'; row.detail = ''; row.reason = ''; row.question = ''; row.questionSeen = false
+        row.phase = 'reply'; row.detail = ''; row.reason = ''; row.question = ''; row.questionCallId = ''; row.questionSeen = false
         break
       case 'tool/call': {
         const questions = argumentsQuestions(data)
@@ -260,13 +260,15 @@ export class TaskReporter {
         row.detail = asking ? this.questionText(questions) : toolDetail(data)
         row.reason = ''
         row.question = asking ? this.questionPayload(data?.callId, questions) : ''
+        // legacy 模式没有 request.wait.callId；通知按钮必须能找回这次 tool/call 的 callId。
+        row.questionCallId = asking && typeof data?.callId === 'string' ? data.callId : ''
         row.questionSeen = false
         break
       }
       case 'tool/result':
         // 问题已被网页端回答：立刻撤掉“等你确认”，不等下一次投影刷新。
         if (row.phase !== 'waiting') return
-        row.phase = 'running'; row.detail = ''; row.reason = ''; row.question = ''; row.questionSeen = false
+        row.phase = 'running'; row.detail = ''; row.reason = ''; row.question = ''; row.questionCallId = ''; row.questionSeen = false
         break
       case 'turn/end':
         row.phase = 'ended'
@@ -313,7 +315,7 @@ export class TaskReporter {
             // 只有投影里确实见过这个问题，才用“投影已清空”撤掉等待；
             // 事件先到、投影后到时不能把刚出现的“等你确认”立刻抹掉。
             if (row.phase === 'waiting' && row.questionSeen) {
-              row.phase = 'running'; row.detail = ''; row.question = ''; row.questionSeen = false
+              row.phase = 'running'; row.detail = ''; row.question = ''; row.questionCallId = ''; row.questionSeen = false
             }
             return
           }
@@ -321,6 +323,7 @@ export class TaskReporter {
           row.phase = 'waiting'
           row.detail = this.questionText(openQuestion.questions)
           row.question = this.questionPayload(openQuestion.callId, openQuestion.questions)
+          row.questionCallId = typeof openQuestion.callId === 'string' ? openQuestion.callId : ''
         }
         if (rooted && agent.status === 'running') {
           // 任务还活着：无条件心跳。边界投影暂时不可用时也不能判死，宁可少领一次停止。
@@ -460,7 +463,10 @@ export function apply(ctx) {
   }
   ctx.on('user-questions/request', (request, next) => {
     if (reporter.disposed) return next()
-    const callId = request?.wait?.callId
+    const sessionId = request?.agent?.session?.id
+    const row = typeof sessionId === 'string' ? reporter.rows.get(sessionId) : undefined
+    // timed ask 用 request.wait.callId；legacy ask 没有 wait，退回本次 tool/call 的 callId。
+    const callId = request?.wait?.callId ?? row?.questionCallId
     if (typeof callId !== 'string' || callId === '' || !Array.isArray(request.questions) || request.questions.length === 0) return next()
     const web = next()
     const native = new Promise(resolve => {
