@@ -9,7 +9,7 @@
   - FullPermissionControls 追加到 grants_global_slot；其余既有 id / 点击 / 二次确认 / 状态绑定保持。
   - 页面大标题交给顶栏。
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/grants_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:orientation="vertical">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/grants_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@android:color/transparent" android:orientation="vertical">
 
   <ScrollView android:id="@+id/grants_scroll" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:fillViewport="true">
     <LinearLayout android:id="@+id/grants_content" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/grants_page_pad" android:paddingTop="@dimen/grants_page_top" android:paddingEnd="@dimen/grants_page_pad" android:paddingBottom="@dimen/shell_page_bottom">

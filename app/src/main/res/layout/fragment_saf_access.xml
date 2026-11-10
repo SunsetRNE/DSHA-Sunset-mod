@@ -8,7 +8,7 @@
     android:id="@+id/saf_scroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/shell_bg"
+    android:background="@android:color/transparent"
     android:clipToPadding="false"
     android:fillViewport="true">
 

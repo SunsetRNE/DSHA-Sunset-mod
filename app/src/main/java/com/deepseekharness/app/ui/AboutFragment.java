@@ -11,7 +11,7 @@ import com.deepseekharness.app.util.UiText;
 public final class AboutFragment extends Fragment {
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle saved) {
-    CardPage ui = new CardPage(requireContext(), UiText.choose("关于 DSHA", "About DSHA"), "");
+    CardPage ui = new CardPage(requireContext(), UiText.choose("关于 DSHA", "About DSHA"), "").transparentRoot();
     android.widget.FrameLayout emblem = new android.widget.FrameLayout(requireContext());
     android.widget.ImageView mark = new android.widget.ImageView(requireContext());
     mark.setImageResource(R.drawable.ic_ui2_prompt);

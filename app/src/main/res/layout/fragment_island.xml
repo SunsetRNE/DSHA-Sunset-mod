@@ -7,7 +7,7 @@
   - 页底余量用 shell_page_bottom：手机让出悬浮胶囊，平板（左栏导航）回到普通余量；
   - 文字全部由 IslandFragment 经 UiText 设置；偏好仍只走 ConfigStore 的两个键。
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/island_scroll" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:fillViewport="true" android:background="@color/shell_bg">
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/island_scroll" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:fillViewport="true" android:background="@android:color/transparent">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingTop="@dimen/config_page_top" android:paddingBottom="@dimen/shell_page_bottom">
 
         <TextView android:id="@+id/island_intro" style="@style/ShellStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="@dimen/config_page_pad_h" android:layout_marginEnd="@dimen/config_page_pad_h" android:layout_marginTop="6dp" />

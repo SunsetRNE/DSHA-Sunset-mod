@@ -93,8 +93,8 @@ public class AppearanceActivity extends AppCompatActivity {
         new CardPage(
             this,
             "外观背景",
-            "竖屏原生界面（启动页/设置/插件/数据/终端）与横屏 DSH 舞台各一张，可分开设置；"
-                + "竖屏 DSH 网页不铺壁纸")
+            "铺在启动页/设置/插件/数据/终端等原生界面上，可换图、可调遮罩；"
+                + "DSH 网页不铺壁纸")
             .transparentRoot();
     LinearLayout header = UiNavigation.addHeader(this, page.root, "外观背景", this::finish);
     page.content.removeViewAt(0);
@@ -177,51 +177,53 @@ public class AppearanceActivity extends AppCompatActivity {
           recreate();
         });
 
-    // ② 横屏 DSH 舞台
-    page.label("横屏 DSH 舞台");
-    LinearLayout landscapeCard = page.card();
-    landscapeStatus = page.text("", 13, R.color.text);
-    landscapeStatus.setLineSpacing(0, 1.3f);
-    landscapeCard.addView(landscapeStatus);
-    page.entry(
-        landscapeCard,
-        "选一张横屏图…",
-        "只铺在 16:9 视口外那圈背景上，不影响视口内的网页",
-        R.drawable.ic_ui_camera,
-        () -> launchPicker("landscape"));
-    landscapeScrimLabel = page.text("横屏遮罩", 12, R.color.text_secondary);
-    LinearLayout.LayoutParams landscapeLabelLp = new LinearLayout.LayoutParams(-1, -2);
-    landscapeLabelLp.topMargin = dp(14);
-    landscapeCard.addView(landscapeScrimLabel, landscapeLabelLp);
-    landscapeScrimBar = new SeekBar(this);
-    landscapeScrimBar.setMax(90);
-    landscapeScrimBar.setProgress(
-        Math.round(DshAppearance.currentLandscapeScrim(this) * 100f));
-    landscapeScrimBar.setOnSeekBarChangeListener(
-        new SeekBar.OnSeekBarChangeListener() {
-          @Override
-          public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-            landscapeScrimLabel.setText("横屏遮罩：" + progress + "%");
-          }
+    // ② 横屏 DSH 舞台 —— 补丁 0004（横屏 Dock）尚未移植，没有任何界面消费
+    // landscape 区域的图，这一栏只能是空按钮。先隐藏，等 0004 落地再恢复；
+    // DshAppearance 里的 landscape 键与刷新逻辑保留，数据不丢。
+//     page.label("横屏 DSH 舞台");
+//     LinearLayout landscapeCard = page.card();
+//     landscapeStatus = page.text("", 13, R.color.text);
+//     landscapeStatus.setLineSpacing(0, 1.3f);
+//     landscapeCard.addView(landscapeStatus);
+//     page.entry(
+//         landscapeCard,
+//         "选一张横屏图…",
+//         "只铺在 16:9 视口外那圈背景上，不影响视口内的网页",
+//         R.drawable.ic_ui_camera,
+//         () -> launchPicker("landscape"));
+//     landscapeScrimLabel = page.text("横屏遮罩", 12, R.color.text_secondary);
+//     LinearLayout.LayoutParams landscapeLabelLp = new LinearLayout.LayoutParams(-1, -2);
+//     landscapeLabelLp.topMargin = dp(14);
+//     landscapeCard.addView(landscapeScrimLabel, landscapeLabelLp);
+//     landscapeScrimBar = new SeekBar(this);
+//     landscapeScrimBar.setMax(90);
+//     landscapeScrimBar.setProgress(
+//         Math.round(DshAppearance.currentLandscapeScrim(this) * 100f));
+//     landscapeScrimBar.setOnSeekBarChangeListener(
+//         new SeekBar.OnSeekBarChangeListener() {
+//           @Override
+//           public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+//             landscapeScrimLabel.setText("横屏遮罩：" + progress + "%");
+//           }
 
-          @Override
-          public void onStartTrackingTouch(SeekBar bar) {}
+//           @Override
+//           public void onStartTrackingTouch(SeekBar bar) {}
 
-          @Override
-          public void onStopTrackingTouch(SeekBar bar) {
-            DshAppearance.setScrimArea(
-                AppearanceActivity.this, "landscape", bar.getProgress() / 100f);
-          }
-        });
-    landscapeCard.addView(landscapeScrimBar, new LinearLayout.LayoutParams(-1, -2));
-    page.button(
-        landscapeCard,
-        "清除横屏壁纸",
-        false,
-        () -> {
-          DshAppearance.clearImageArea(this, "landscape");
-          recreate();
-        });
+//           @Override
+//           public void onStopTrackingTouch(SeekBar bar) {
+//             DshAppearance.setScrimArea(
+//                 AppearanceActivity.this, "landscape", bar.getProgress() / 100f);
+//           }
+//         });
+//     landscapeCard.addView(landscapeScrimBar, new LinearLayout.LayoutParams(-1, -2));
+//     page.button(
+//         landscapeCard,
+//         "清除横屏壁纸",
+//         false,
+//         () -> {
+//           DshAppearance.clearImageArea(this, "landscape");
+//           recreate();
+//         });
 
     shell.addView(
         page.root,

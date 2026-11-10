@@ -6,7 +6,7 @@
   - Root 档位分段与风险提示紧跟 Root 行；外接设备由 Fragment 作为第四行追加到 channels_card。
   - 页面大标题交给顶栏，页内只保留带折叠说明的分区标签。
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/channels_page_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:orientation="vertical">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/channels_page_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@android:color/transparent" android:orientation="vertical">
 
   <ScrollView android:id="@+id/channels_scroll" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:fillViewport="true">
     <LinearLayout android:id="@+id/channels_content" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/grants_page_pad" android:paddingTop="@dimen/grants_page_top" android:paddingEnd="@dimen/grants_page_pad" android:paddingBottom="@dimen/shell_page_bottom">

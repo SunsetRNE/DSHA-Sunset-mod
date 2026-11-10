@@ -61,7 +61,7 @@ public final class GitHubLoginFragment extends Fragment {
       @NonNull LayoutInflater inflater,
       @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
-    ui = new CardPage(requireContext(), UiText.text("GitHub 登录"), UiText.text("管理 GitHub CLI 登录"));
+    ui = new CardPage(requireContext(), UiText.text("GitHub 登录"), UiText.text("管理 GitHub CLI 登录")).transparentRoot();
     ui.label(UiText.text("当前账号"));
     LinearLayout account = ui.card();
     statusValue = kv(account, UiText.text("状态"));

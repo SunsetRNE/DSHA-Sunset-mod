@@ -174,8 +174,13 @@ final class GroupedList {
   private void applyStickySkin(Group group, boolean sticky) {
     TextView header = group.header;
     if (sticky) {
+      // 页面改成透壁纸后，吸顶标题不能再刷不透明 shell_bg（会在玻璃页面上留一条灰蓝）。
+      // 用同色的 92% 版本：正文透不出来，但底下的壁纸仍然过得去。
       if (!(header.getBackground() instanceof ColorDrawable))
-        header.setBackground(new ColorDrawable(header.getContext().getColor(R.color.shell_bg)));
+        header.setBackground(
+            new ColorDrawable(
+                androidx.core.graphics.ColorUtils.setAlphaComponent(
+                    header.getContext().getColor(R.color.shell_bg), 235)));
     } else if (header.getBackground() instanceof ColorDrawable) {
       if (group.originalBackground != null) header.setBackground(group.originalBackground);
       else header.setBackgroundResource(R.drawable.bg_action_plain);

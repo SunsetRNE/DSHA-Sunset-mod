@@ -13,10 +13,11 @@ public final class EnvironmentRecoveryFragment extends Fragment {
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle saved) {
     CardPage ui =
         new CardPage(
-            requireContext(),
-            com.deepseekharness.app.util.UiText.text("运行环境需要恢复"),
-            com.deepseekharness.app.util.UiText.text(
-                "可以在设置中修改配置、查看数据维护记录和下载日志。环境恢复完成后，再使用插件和终端。个人数据与原环境继续保留。"));
+                requireContext(),
+                com.deepseekharness.app.util.UiText.text("运行环境需要恢复"),
+                com.deepseekharness.app.util.UiText.text(
+                    "可以在设置中修改配置、查看数据维护记录和下载日志。环境恢复完成后，再使用插件和终端。个人数据与原环境继续保留。"))
+            .transparentRoot();
     // 页副标题只留首句（还能在设置里做什么）；恢复后才能用的组件与数据保留在 ⓘ 里。
     InfoHint.attach(ui.subtitle, com.deepseekharness.app.util.UiText.text("运行环境需要恢复"));
     ui.button(
