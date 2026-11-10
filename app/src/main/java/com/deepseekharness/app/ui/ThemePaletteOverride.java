@@ -1,7 +1,6 @@
 package com.deepseekharness.app.ui;
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
 import android.content.res.Resources;
 import android.content.res.loader.ResourcesLoader;
 import android.content.res.loader.ResourcesProvider;
@@ -64,10 +63,10 @@ public final class ThemePaletteOverride {
       Files.write(file.toPath(), table);
       ParcelFileDescriptor descriptor =
           ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
-      // 描述符交给 ResourcesProvider 持有到进程结束，不能在这里 close：表是懒加载的。
-      AssetFileDescriptor assetFile =
-          new AssetFileDescriptor(descriptor, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
-      ResourcesProvider provider = ResourcesProvider.loadFromTable(assetFile, null);
+      // loadFromTable 收的是 ParcelFileDescriptor（不是 AssetFileDescriptor，这是 API 30 的真实签名，
+      // 用 javap 核对过 android.content.res.loader.ResourcesProvider）。描述符由 Provider 持有到
+      // 进程结束，这里不能 close —— 表是按需加载的，提前关掉会让后续解析拿到已关闭的 fd。
+      ResourcesProvider provider = ResourcesProvider.loadFromTable(descriptor, null);
       ResourcesLoader next = new ResourcesLoader();
       next.addProvider(provider);
       context.getResources().addLoaders(next);
