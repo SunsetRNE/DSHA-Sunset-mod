@@ -6,13 +6,16 @@ import com.deepseekharness.app.RootShell;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.ExternalDevicePolicy;
 import com.deepseekharness.app.util.ExternalFastbootFacts;
+import com.deepseekharness.app.util.ExternalFocusEvents;
 import com.deepseekharness.app.util.ExternalImageProof;
 import com.deepseekharness.app.util.ExternalImportQuota;
 import com.deepseekharness.app.util.ExternalInstallPlan;
+import com.deepseekharness.app.util.ExternalRateLimit;
 import com.deepseekharness.app.util.ExternalStepOutput;
 import com.deepseekharness.app.util.ExternalUsbModes;
 import com.deepseekharness.app.util.ExternalPreflight;
 import com.deepseekharness.app.util.ExternalTargetBinding;
+import com.deepseekharness.app.util.ExternalWatchPolicy;
 import com.deepseekharness.app.util.SensitiveData;
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +36,13 @@ public final class ExternalDeviceHost {
   private static final String FINGERPRINT = "target_fingerprint_v1";
   private static final String EPOCH = "target_epoch_v1";
   private static final long ADB_TIMEOUT_MS = 30_000;
+  private static final long OBSERVE_TIMEOUT_MS = 30_000;
+
+  /** 外接观察的进程内限速：每次 watch 会拉起一次专属 adb server，连续高频调用会占用 root helper 槽位。 */
+  private static final ExternalRateLimit WATCH_RATE_LIMIT = new ExternalRateLimit(250);
+
+  private static final java.util.concurrent.atomic.AtomicLong OBSERVE_SEQUENCE =
+      new java.util.concurrent.atomic.AtomicLong();
   private static final Object IMPORT_LOCK = new Object();
   private static final Object TARGET_LOCK = new Object();
   private static Object targetRevision = new Object();
@@ -161,12 +171,12 @@ public final class ExternalDeviceHost {
     }
   }
 
+  /**
+   * 导入中转目录。Android 16 的 getFilesDir() 可能返回 /data/user/0 别名（指向 /data/data 的系统链接）：祖先别名
+   * 允许，只拒绝叶子自身是符号链接；返回 canonical，供后续 startsWith 比较与 root shell 使用。
+   */
   public File importRoot() throws IOException {
-    if (!importRoot.isDirectory() && !importRoot.mkdirs())
-      throw new IOException("IMPORT_DIRECTORY");
-    File canonical = importRoot.getCanonicalFile();
-    if (!canonical.equals(importRoot.getAbsoluteFile())) throw new IOException("IMPORT_PATH_ALIAS");
-    return canonical;
+    return com.deepseekharness.app.util.ExternalImportRoot.resolve(importRoot);
   }
 
   /** 列出导入槽位（NOFOLLOW 判定普通文件），all=true 回收全部，否则只回收过期条目；返回剩余条目。 */
@@ -1035,6 +1045,318 @@ public final class ExternalDeviceHost {
     tail[0] = "shell";
     for (int i = 0; i < args.size(); i++) tail[i + 1] = args.get(i);
     return runAdbResult(target, tail);
+  }
+
+  // ================= 外接设备只读观察（watch / 动作后 settle） =================
+
+  /**
+   * 只读观察：在同一个专属 adb 会话里连续采样目标的 events 缓冲区（采样之间不再启动 adb server），拿不到变化就返回
+   * UNCHANGED。不修改目标、不需要原生确认；UNCERTAIN 只代表本次没拿到可用样本，可直接重新观察，不是动作的
+   * UNKNOWN。真机测量（OnePlus PJD110 / Android 16）见 docs/design/extdev-observation-20261110.md。
+   */
+  public JSONObject watch(String mode, String since, int samples, int quietSamples)
+      throws Exception {
+    return observe(mode, since, samples, quietSamples, true);
+  }
+
+  /** 动作执行后附带观察（observe=1）：不参与 watch 限速；失败只写 observationUnavailable，不改动作状态。 */
+  public void attachObservation(JSONObject actionResult, int samples) {
+    try {
+      JSONObject observation =
+          observe(
+              "events",
+              "",
+              samples,
+              Math.min(ExternalWatchPolicy.DEFAULT_QUIET_SAMPLES, Math.max(1, samples - 1)),
+              false);
+      String state = observation.optString("state");
+      if ("CHANGED".equals(state) || "UNCHANGED".equals(state)) {
+        actionResult.put("observation", observation);
+        if (observation.has("settle"))
+          actionResult.put("settle", observation.optJSONObject("settle"));
+        return;
+      }
+      observationUnavailable(actionResult, observation.optString("error", "OBSERVE_UNCERTAIN"));
+    } catch (Throwable error) {
+      observationUnavailable(actionResult, SensitiveData.redact(String.valueOf(error)));
+    }
+  }
+
+  private static void observationUnavailable(JSONObject result, String code) {
+    try {
+      result.put("observationUnavailable", code);
+      result.put("nextAction", "OBSERVE_WITH_WATCH");
+      result.put("automaticRetry", false);
+    } catch (org.json.JSONException ignored) {
+      // 回执本身是 JSONObject；写失败不能影响动作结果。
+    }
+  }
+
+  private JSONObject observe(
+      String mode, String since, int samples, int quietSamples, boolean throttle) throws Exception {
+    String normalizedMode =
+        mode == null ? "events" : mode.trim().toLowerCase(java.util.Locale.ROOT);
+    if (!normalizedMode.equals("events") && !normalizedMode.equals("window"))
+      throw new IOException("OBSERVE_MODE");
+    if (samples < ExternalWatchPolicy.MIN_SAMPLES || samples > ExternalWatchPolicy.MAX_SAMPLES)
+      throw new IOException("OBSERVE_SAMPLES_RANGE");
+    String cursor = since == null ? "" : since.trim();
+    if (!ExternalWatchPolicy.validSince(cursor)) throw new IOException("OBSERVE_SINCE");
+    int quiet =
+        quietSamples < 1 || quietSamples > samples
+            ? ExternalWatchPolicy.DEFAULT_QUIET_SAMPLES
+            : quietSamples;
+    quiet = Math.min(quiet, Math.max(1, samples - 1));
+    if (throttle) {
+      long wait = WATCH_RATE_LIMIT.acquire(android.os.SystemClock.elapsedRealtime());
+      if (wait > 0) {
+        return new JSONObject()
+            .put("state", "NOT_SENT")
+            .put("error", "RATE_LIMITED")
+            .put("retryAfterMs", wait)
+            .put("automaticRetry", false)
+            .put("note", "上一次观察刚结束；本次未发送任何目标命令，稍后再调用。");
+      }
+    }
+    requireConfirmationScope();
+    requireReady();
+    ExternalTargetBinding target = requireBinding();
+    int planned = normalizedMode.equals("window") ? 1 : samples;
+    List<List<String>> steps = new ArrayList<>();
+    steps.add(List.of("shell", "getprop", "ro.product.device"));
+    steps.add(List.of("shell", "getprop", "ro.build.fingerprint"));
+    for (int i = 0; i < planned; i++)
+      steps.add(
+          normalizedMode.equals("window")
+              ? List.of("shell", "dumpsys", "window")
+              : focusSampleStep());
+    long started = android.os.SystemClock.elapsedRealtime();
+    List<ExternalStepOutput.Step> results;
+    try {
+      results = runAdbSteps(target.serial, steps, OBSERVE_TIMEOUT_MS, false);
+    } catch (IOException error) {
+      String message = String.valueOf(error.getMessage());
+      if (message.contains("[EXECUTION_UNKNOWN]"))
+        return uncertain(target, normalizedMode, samples, "OBSERVE_SESSION_UNKNOWN", cursor);
+      throw error;
+    }
+    if (results.size() < 2)
+      return uncertain(target, normalizedMode, samples, "TARGET_READ_INCOMPLETE", cursor);
+    ExternalStepOutput.Step device = results.get(0);
+    ExternalStepOutput.Step fingerprint = results.get(1);
+    if (device.unknown() || fingerprint.unknown())
+      return uncertain(target, normalizedMode, samples, "TARGET_READ_UNKNOWN", cursor);
+    if (!device.ok() || !fingerprint.ok()) throw new IOException("TARGET_READ_FAILED");
+    if (!target.product.equals(device.body().trim())
+        || !target.fingerprint.equals(fingerprint.body().trim()))
+      throw new IOException("TARGET_IDENTITY_CHANGED");
+    boolean partial = results.size() < steps.size();
+    JSONObject observation =
+        normalizedMode.equals("window")
+            ? windowObservation(target, cursor, results, started, partial)
+            : eventObservation(target, cursor, samples, quiet, results, started, partial);
+    ExternalTargetBinding current = binding();
+    if (current == null
+        || current.epoch != target.epoch
+        || !current.matches(target.serial, target.product, target.fingerprint))
+      throw new IOException("TARGET_BINDING_CHANGED");
+    return observation;
+  }
+
+  /**
+   * 单次事件采样。刻意不带 {@code -t}：真机实测（Android 16）logcat 的 {@code -t} 先截取原始缓冲区尾部再过滤，
+   * 带它会得到空结果；不带时过滤只返回匹配标签的事件，输出约 16 KB。
+   */
+  private static List<String> focusSampleStep() {
+    return List.of(
+        "shell",
+        "logcat",
+        "-d",
+        "-b",
+        "events",
+        "-s",
+        "wm_resume_activity:V",
+        "wm_set_resumed_activity:V",
+        "am_focused_activity:V",
+        "am_resume_activity:V",
+        "-v",
+        "epoch");
+  }
+
+  private JSONObject eventObservation(
+      ExternalTargetBinding target,
+      String since,
+      int samples,
+      int quiet,
+      List<ExternalStepOutput.Step> results,
+      long started,
+      boolean partial)
+      throws Exception {
+    List<List<ExternalFocusEvents.Event>> parsed = new ArrayList<>();
+    boolean sampleUnknown = false;
+    for (int i = 0; i < samples; i++) {
+      int index = 2 + i;
+      if (index >= results.size()) {
+        parsed.add(null);
+        partial = true;
+        continue;
+      }
+      ExternalStepOutput.Step step = results.get(index);
+      if (step.unknown()) sampleUnknown = true;
+      if (!step.ok()) {
+        parsed.add(null);
+        partial = true;
+        continue;
+      }
+      parsed.add(ExternalFocusEvents.parse(step.body()));
+    }
+    ExternalWatchPolicy.Outcome outcome =
+        ExternalWatchPolicy.analyze(parsed, target.epoch, "events", since, quiet);
+    JSONObject result = baseObservation(target, "events");
+    result.put("state", outcome.state().name());
+    result.put("changed", outcome.state() == ExternalWatchPolicy.State.CHANGED);
+    result.put("sawChange", outcome.sawChange());
+    result.put("partial", partial || outcome.partial());
+    result.put("sampleUnknown", sampleUnknown);
+    result.put("samples", outcome.samples());
+    result.put("plannedSamples", samples);
+    result.put("changedAtSample", outcome.changedAtSample());
+    result.put("newEvents", outcome.newEvents());
+    result.put("elapsedMs", android.os.SystemClock.elapsedRealtime() - started);
+    if (!since.isEmpty()) result.put("sinceDigest", since);
+    putSnapshot(result, outcome.foreground());
+    result.put("digest", outcome.digest());
+    if (outcome.state() == ExternalWatchPolicy.State.UNCERTAIN) {
+      result.put("error", sampleUnknown ? "OBSERVE_SAMPLE_UNKNOWN" : "FOCUS_EVENTS_UNAVAILABLE");
+      result.put("nextAction", "USE_MODE_WINDOW");
+      result.put("automaticRetry", false);
+      result.put("note", "只读观察未拿到可用事件样本；没有修改目标，可直接重新观察，不要据此重放任何动作。");
+      return result;
+    }
+    result.put("settle", settle(outcome, quiet));
+    result.put(
+        "nextAction",
+        outcome.state() == ExternalWatchPolicy.State.CHANGED ? "READ_STATE_OR_ACT" : "WATCH_AGAIN");
+    result.put("note", "只读观察；digest 是前台包/Activity 的不可逆摘要，不含屏幕文本。UNCHANGED 只代表本窗口内没看到变化。");
+    return result;
+  }
+
+  private static JSONObject settle(ExternalWatchPolicy.Outcome outcome, int quiet)
+      throws Exception {
+    return new JSONObject()
+        .put("settled", outcome.settled())
+        .put("sawChange", outcome.sawChange())
+        .put("newEvents", outcome.newEvents())
+        .put("samples", outcome.samples())
+        .put("changedAtSample", outcome.changedAtSample())
+        .put("quietRun", outcome.quietRun())
+        .put("quietSamples", quiet)
+        .put("source", "logcat-event");
+  }
+
+  private JSONObject windowObservation(
+      ExternalTargetBinding target,
+      String since,
+      List<ExternalStepOutput.Step> results,
+      long started,
+      boolean partial)
+      throws Exception {
+    JSONObject result = baseObservation(target, "window");
+    ExternalStepOutput.Step step = results.size() > 2 ? results.get(2) : null;
+    if (step == null || !step.ok()) {
+      result.put("state", "UNCERTAIN");
+      result.put("changed", false);
+      result.put("sawChange", false);
+      result.put("partial", true);
+      result.put(
+          "error", step != null && step.unknown() ? "WINDOW_READ_UNKNOWN" : "WINDOW_READ_FAILED");
+      result.put("nextAction", "REPORT_TO_USER");
+      result.put("automaticRetry", false);
+      result.put("note", "只读窗口采样失败；没有修改目标。");
+      return result;
+    }
+    ExternalFocusEvents.Snapshot snapshot = ExternalFocusEvents.parseWindowDump(step.body());
+    if (snapshot == null) {
+      result.put("state", "UNCERTAIN");
+      result.put("changed", false);
+      result.put("sawChange", false);
+      result.put("partial", partial);
+      result.put("error", "WINDOW_STATE_UNAVAILABLE");
+      result.put("nextAction", "REPORT_TO_USER");
+      result.put("automaticRetry", false);
+      result.put("note", "dumpsys window 未给出 mCurrentFocus / mFocusedApp；没有修改目标。");
+      return result;
+    }
+    String digest =
+        ExternalFocusEvents.digest(
+            target.epoch, "window", snapshot.packageName(), snapshot.activity());
+    String state = since.isEmpty() ? "OBSERVED" : digest.equals(since) ? "UNCHANGED" : "CHANGED";
+    result.put("state", state);
+    result.put("changed", "CHANGED".equals(state));
+    result.put("sawChange", false);
+    result.put("partial", partial);
+    result.put("samples", 1);
+    result.put("plannedSamples", 1);
+    result.put("elapsedMs", android.os.SystemClock.elapsedRealtime() - started);
+    putSnapshot(result, snapshot);
+    result.put("digest", digest);
+    if (!since.isEmpty()) result.put("sinceDigest", since);
+    result.put(
+        "settle",
+        new JSONObject()
+            .put("settled", false)
+            .put("samples", 1)
+            .put("source", "dumpsys-window")
+            .put("note", "单次权威采样，不判断稳定；需要等待页面变化请用 mode=events。"));
+    result.put(
+        "nextAction",
+        since.isEmpty()
+            ? "STORE_DIGEST_THEN_WATCH"
+            : "CHANGED".equals(state) ? "READ_STATE_OR_ACT" : "WATCH_AGAIN");
+    result.put("note", "只读窗口采样；digest 是前台包/Activity 的不可逆摘要，不含屏幕文本。");
+    return result;
+  }
+
+  private JSONObject uncertain(
+      ExternalTargetBinding target, String mode, int samples, String error, String since)
+      throws Exception {
+    JSONObject result = baseObservation(target, mode);
+    result.put("state", "UNCERTAIN");
+    result.put("changed", false);
+    result.put("sawChange", false);
+    result.put("samples", 0);
+    result.put("plannedSamples", mode.equals("window") ? 1 : samples);
+    result.put("error", error);
+    result.put("nextAction", mode.equals("window") ? "REPORT_TO_USER" : "USE_MODE_WINDOW");
+    result.put("automaticRetry", false);
+    if (!since.isEmpty()) result.put("sinceDigest", since);
+    result.put("note", "只读观察没有拿到可用样本；没有修改目标，也没有动作需要重放。");
+    return result;
+  }
+
+  private JSONObject baseObservation(ExternalTargetBinding target, String mode) throws Exception {
+    return new JSONObject()
+        .put("kind", "dsha-extdev-observation-v1")
+        .put("mode", mode)
+        .put("serial", target.serial)
+        .put("product", target.product)
+        .put("epoch", target.epoch)
+        .put("sequence", OBSERVE_SEQUENCE.incrementAndGet())
+        .put("timestampMs", System.currentTimeMillis());
+  }
+
+  private static void putSnapshot(JSONObject result, ExternalFocusEvents.Snapshot snapshot)
+      throws Exception {
+    if (snapshot == null || !snapshot.known()) {
+      result.put("foregroundPackage", "");
+      result.put("foregroundActivity", "");
+      result.put("component", "");
+      return;
+    }
+    result.put("foregroundPackage", snapshot.packageName());
+    result.put("foregroundActivity", snapshot.activity());
+    result.put("component", snapshot.component());
+    if (snapshot.deviceTimeMs() > 0) result.put("deviceTimeMs", snapshot.deviceTimeMs());
   }
 
   private JSONObject runAdbResult(ExternalTargetBinding target, String... args) throws Exception {

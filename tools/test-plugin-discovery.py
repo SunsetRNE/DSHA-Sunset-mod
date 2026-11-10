@@ -155,6 +155,17 @@ class DiscoveryTest(unittest.TestCase):
                 self.assertEqual(before, lock.read_bytes(), 'read query must leave the existing writer lock alone')
                 result.assert_not_called()
 
+    def test_list_names_a_stale_profile_lock_without_waiting(self):
+        lock = Path(self.builtin.local(self.builtin.MANIFEST) + '.lock')
+        lock.write_text('2147483647\n', encoding='ascii')
+        with self.assertRaisesRegex(ValueError, 'PLUGIN_PROFILE_LOCK_STALE'):
+            self.manager.list_state_revision()
+        lock.write_text(str(os.getpid()) + '\n', encoding='ascii')
+        with self.assertRaisesRegex(ValueError, '配置正在修改'):
+            self.manager.list_state_revision()
+        lock.unlink()
+        self.assertGreater(len(self.manager.list_state_revision()), 0)
+
     def test_short_state_commands_read_back_intent_without_scan_or_content_proof(self):
         name = '@deepseek-ai/dsh-experimental-voice-input-bundle'
         self.plugin('usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules', name)

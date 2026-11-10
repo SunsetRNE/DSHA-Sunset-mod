@@ -1,6 +1,6 @@
 # 构建、验证与提交
 
-> 当前发布身份：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261110.0400-dsh0.2.2-rc.1` / versionCode 351 / 单一 Standard；使用 Mod 自有发布证书。完整身份与签名入口见 [README](README.md)、[AGENTS](AGENTS.md) 与 [ci/release-identity.json](ci/release-identity.json)。
+> 当前发布身份：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261110.0900-dsh0.2.2-rc.1` / versionCode 353 / 单一 Standard；使用 Mod 自有发布证书。完整身份与签名入口见 [README](README.md)、[AGENTS](AGENTS.md) 与 [ci/release-identity.json](ci/release-identity.json)。
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[BUILD](BUILD.md) 与[文档总索引](docs/documentation-index.md)。F10–F13、build190 等记录只描述各自当时的源码、APK、测试与设备状态，不能覆盖当前要求，也不能当作本版证据。
 
@@ -95,7 +95,7 @@ python3 tools/run-host-tests.py --stage runtime
 
 当前只发布 Standard，实际包必须核对 `io.github.sunsetrne.dsha`、versionCode 219、`debuggable=false`、minSdk 30、arm64、资产、许可、ELF、插件与独立应急门禁。Low 已删除，不再构建、发布或声明 Android 10 及以下可用。
 
-正式 CI 发布走 [`.github/workflows/release-production.yml`](.github/workflows/release-production.yml)：`workflow_dispatch` 绑定精确 commit，从公开预发布资产还原固定输入，跑完整单测 / Java 格式 / Lint / 文档门禁，用仓库 Secrets 中的证书签名，并创建 tag + prerelease、上传 APK、证据 zip、`build-info.json` 与 `SHA256SUMS`。触发参数与核验见 [CI 构建与发布](docs/ci-release.md)。
+正式 CI 发布走 [`.github/workflows/release-production.yml`](.github/workflows/release-production.yml)：`workflow_dispatch` 绑定精确 commit，从公开预发布资产还原固定输入，跑完整单测 / Java 格式 / Lint / 文档门禁，用仓库 Secrets 中的证书签名，并创建 tag + prerelease、上传 APK、证据 zip、`build-info.json` 与 `SHA256SUMS`；默认同 run 另附 `.debug` / `.dev` 共存测试包与公开测试证书（`test_packages=none` 时不附），`dry_run=true` 只构建校验、不建 tag/Release。触发参数与核验见 [CI 构建与发布](docs/ci-release.md)。
 
 不上传私钥、用户数据、设备截图或原日志；不安装、不注入故障、不生成额外审计 APK，除非当次任务明确授权。最终 APK、源码 commit、附件与证据必须精确绑定；检查选择器、缓存 / 增量、警告、跳过及未跑范围如实记录。没有实际 run、tag 与上传结果前不声称发布完成。
 

@@ -64,9 +64,18 @@ class WorkflowGraph(unittest.TestCase):
                 trigger = source.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
                 self.assertRegex(trigger, r"^  workflow_call:")
                 self.assertEqual(re.findall(r"(?m)^\s+contents:\s*(\w+)", source), ["read"])
-                self.assertNotIn("secrets.", source)
                 self.assertNotIn("concurrency:", source)
                 self.assertIn("persist-credentials: false", source)
+                if path.name == "_node-test-packages.yml":
+                    # 测试包节点需要测试证书（SUNSET_TEST_*）；正式签名 Secrets 绝不进入，
+                    # 且与正式签名节点同策略，不写 Gradle 共享缓存。
+                    self.assertIn("SUNSET_TEST_KEYSTORE_B64", trigger)
+                    self.assertIn("SUNSET_TEST_STORE_PASSWORD", trigger)
+                    self.assertNotRegex(source, r"secrets\.DSHA_")
+                    self.assertIn("gradle-cache: 'false'", source)
+                    self.assertNotIn("gradle-cache: 'true'", source)
+                else:
+                    self.assertNotIn("secrets.", source)
 
     def test_standard_scope_only(self):
         for path in WORKFLOWS.glob("*.yml"):
@@ -130,13 +139,26 @@ class ReleaseGraph(unittest.TestCase):
         self.assertNotIn(f"release-identity.{other}.json", self.source)
 
     def test_node_set_and_gates_before_signing(self):
-        self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "host-regression",
-                                          "inputs", "unit", "lint", "build-signed", "publish"})
-        self.assertEqual(needs(self.jobs["build-signed"]),
-                         {"bind", "contracts", "java-format", "host-regression", "inputs", "unit", "lint"})
-        self.assertEqual(needs(self.jobs["publish"]), {"bind", "build-signed"})
-        for name in ("contracts", "java-format", "host-regression", "inputs"):
-            self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
+        if self.workflow == "release-production.yml":
+            # 正式发布在同 run 附带 .debug / .dev 共存测试包（可 none），dry_run 时只出报告。
+            self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "host-regression",
+                                              "inputs", "unit", "lint", "build-signed",
+                                              "test-packages", "publish", "dry-run-summary"})
+            gates = {"bind", "contracts", "java-format", "host-regression", "inputs", "unit", "lint"}
+            self.assertEqual(needs(self.jobs["build-signed"]), gates)
+            self.assertEqual(needs(self.jobs["test-packages"]), gates)
+            self.assertEqual(needs(self.jobs["publish"]), {"bind", "build-signed", "test-packages"})
+            self.assertEqual(needs(self.jobs["dry-run-summary"]), {"bind", "build-signed", "test-packages"})
+            for name in ("contracts", "java-format", "host-regression", "inputs"):
+                self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
+        else:
+            self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "host-regression",
+                                              "inputs", "unit", "lint", "build-signed", "publish"})
+            self.assertEqual(needs(self.jobs["build-signed"]),
+                             {"bind", "contracts", "java-format", "host-regression", "inputs", "unit", "lint"})
+            self.assertEqual(needs(self.jobs["publish"]), {"bind", "build-signed"})
+            for name in ("contracts", "java-format", "host-regression", "inputs"):
+                self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
 
     def test_every_node_checks_out_the_exact_requested_commit(self):
         for name, block in self.jobs.items():
@@ -152,6 +174,12 @@ class ReleaseGraph(unittest.TestCase):
                     self.assertIn("secrets.DSHA_KEYSTORE_B64", block)
                     self.assertNotIn("contents: write", block)
                     self.assertIn("gradle-cache: 'false'", block)
+                elif name == "test-packages":
+                    # 正式 Release 的测试包只拿独立测试证书；正式签名 Secrets 不进入该节点。
+                    self.assertIn("secrets.SUNSET_TEST_KEYSTORE_B64", block)
+                    self.assertIn("secrets.SUNSET_TEST_STORE_PASSWORD", block)
+                    self.assertNotIn("secrets.DSHA_", block)
+                    self.assertNotIn("contents: write", block)
                 elif name == "publish":
                     self.assertIn("contents: write", block)
                     self.assertNotIn("secrets.", block)
@@ -214,6 +242,65 @@ class ModReleaseIdentity(unittest.TestCase):
         self.assertIn("selected = resolver.check()['mod']", bind)
 
 
+class ProductionTestPackageAttachments(unittest.TestCase):
+    """正式 Release 同 run 附带共存测试包（.debug / .dev）与 dry_run；upstream 工作流不涉及。"""
+
+    def setUp(self):
+        self.source = text("release-production.yml")
+        self.jobs = jobs(self.source)
+
+    def test_inputs_choose_test_packages_and_dry_run(self):
+        self.assertIn("      test_packages:\n", self.source)
+        self.assertIn("options: [debug+dev, debug, none]", self.source)
+        self.assertIn("default: debug+dev", self.source)
+        self.assertIn("      dry_run:\n", self.source)
+        self.assertIn("type: boolean", self.source)
+        self.assertRegex(self.source, r"(?m)^        default: false$")
+
+    def test_test_packages_job_reuses_the_shared_node(self):
+        block = self.jobs["test-packages"]
+        self.assertIn("uses: ./.github/workflows/_node-test-packages.yml", block)
+        self.assertIn("inputs.test_packages != 'none'", block)
+        self.assertIn("ref: ${{ inputs.expected_sha }}", block)
+        self.assertIn("require_configured_key: true", block)
+        self.assertIn("artifact_prefix: release-test-package", block)
+        self.assertIn("apk_name_prefix: dsha-a-su", block)
+        self.assertIn("retention_days: 1", block)
+        self.assertIn("secrets.SUNSET_TEST_KEYSTORE_B64", block)
+        self.assertNotIn("secrets.DSHA_", block)
+        self.assertNotIn("contents: write", block)
+
+    def test_publish_skips_dry_run_and_merges_test_package_evidence(self):
+        publish = self.jobs["publish"]
+        self.assertIn("!inputs.dry_run", publish)
+        self.assertIn("(needs.test-packages.result == 'success' || needs.test-packages.result == 'skipped')", publish)
+        self.assertIn("pattern: release-test-package-evidence-*", publish)
+        self.assertIn("release-test-packages.py merge", publish)
+        self.assertIn('--requested "$TEST_PACKAGES"', publish)
+        self.assertIn("test-package-assets.txt", publish)
+        self.assertIn("Re-verify merged release bundle checksums", publish)
+        self.assertNotIn("actions/checkout@", publish)
+
+    def test_dry_run_summary_merges_and_prints_without_write_permission(self):
+        summary = self.jobs["dry-run-summary"]
+        self.assertIn("!cancelled()", summary)
+        self.assertIn("inputs.dry_run", summary)
+        self.assertIn("release-test-packages.py merge", summary)
+        self.assertIn("GITHUB_STEP_SUMMARY", summary)
+        self.assertIn("gh release create", summary)
+        self.assertNotIn("contents: write", summary)
+        self.assertNotIn("secrets.", summary)
+
+    def test_test_package_evidence_tool_is_commit_bound_before_execution(self):
+        signed = self.jobs["build-signed"]
+        self.assertIn("testPackageEvidenceToolSha256", signed)
+        self.assertIn("out/release-test-packages.py", signed)
+        publish = self.jobs["publish"]
+        self.assertIn("TEST_PACKAGE_TOOL_TAMPERED", publish)
+        self.assertLess(publish.index("TEST_PACKAGE_TOOL_TAMPERED"),
+                        publish.index("Re-verify merged release bundle checksums"))
+
+
 class SourceAndServices(unittest.TestCase):
     def test_source_checks_run_contracts_format_unit_and_host_as_nodes(self):
         graph = jobs(text("ci-fast.yml"))
@@ -227,15 +314,36 @@ class SourceAndServices(unittest.TestCase):
         for path in WORKFLOWS.glob("*.yml"):
             source = path.read_text(encoding="utf-8")
             if path.name in ("release-production.yml", "release-upstream.yml", "test-package.yml",
-                             "test-package-variants.yml"):
+                             "test-package-variants.yml", "_node-test-packages.yml"):
                 continue
             with self.subTest(file=path.name):
                 self.assertNotIn("apksigner", source)
                 self.assertNotIn("secrets.", source)
                 self.assertNotIn("contents: write", source)
 
-    def test_test_package_variants_signs_only_test_packages(self):
+    def test_test_package_variants_reuses_the_shared_signing_node(self):
         source = text("test-package-variants.yml")
+        graph = jobs(source)
+        self.assertEqual(set(graph), {"contracts", "inputs", "patch-chains", "unit", "lint",
+                                      "package-tests", "package-prod-unsigned"})
+        package_tests = graph["package-tests"]
+        self.assertIn("uses: ./.github/workflows/_node-test-packages.yml", package_tests)
+        self.assertIn("variants: ${{ inputs.targets == 'all' && 'debug+dev' || inputs.targets }}", package_tests)
+        self.assertIn("require_configured_key: false", package_tests)
+        self.assertIn("SUNSET_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}", package_tests)
+        self.assertNotIn('"$apksigner" sign', source)
+        self.assertNotIn("DSHA_KEYSTORE", source)
+        self.assertNotIn("gh release", source)
+        self.assertNotIn("contents: write", source)
+        self.assertIn("permissions:\n  contents: read", source)
+        prod = graph["package-prod-unsigned"]
+        self.assertIn("-Pdsha.unsignedPackage=true", prod)
+        self.assertNotIn('"$apksigner" sign', prod)
+        self.assertNotIn("SUNSET_TEST_KEYSTORE_B64", prod)
+        self.assertIn("UNSIGNED_PACKAGE_MUST_NOT_VERIFY", prod)
+
+    def test_shared_test_package_node_signs_only_with_the_test_certificate(self):
+        source = text("_node-test-packages.yml")
         self.assertIn("-Pdsha.debugPackage=true -Pdsha.unsignedPackage=true", source)
         self.assertIn("-Pdsha.devPackage=true -Pdsha.unsignedPackage=true", source)
         self.assertIn("SUNSET_TEST_KEYSTORE_B64", source)
@@ -244,14 +352,18 @@ class SourceAndServices(unittest.TestCase):
         self.assertIn('test "$cert" != "$upstream"', source)
         self.assertIn("application-debuggable", source)
         self.assertEqual(source.count('"$apksigner" sign'), 1)
+        self.assertIn("gradle-cache: 'false'", source)
+        self.assertIn("require_configured_key", source)
+        self.assertIn("SUNSET_TEST_KEYSTORE_B64 is required", source)
         self.assertNotIn("gh release", source)
         self.assertNotIn("contents: write", source)
         self.assertIn("permissions:\n  contents: read", source)
-        prod = jobs(source)["package-prod-unsigned"]
-        self.assertIn("-Pdsha.unsignedPackage=true", prod)
-        self.assertNotIn('"$apksigner" sign', prod)
-        self.assertNotIn("SUNSET_TEST_KEYSTORE_B64", prod)
-        self.assertIn("UNSIGNED_PACKAGE_MUST_NOT_VERIFY", prod)
+        cleanup = source.split("- name: Remove test private key", 1)[1].split("\n      - ", 1)[0]
+        self.assertIn("if: always()", cleanup)
+        self.assertIn("key.unlink(missing_ok=True)", cleanup)
+        for step in source.split("\n      - "):
+            if "actions/upload-artifact@" in step:
+                self.assertNotRegex(step, r"(?i)\.(?:jks|keystore|p12|pfx)\b|RUNNER_TEMP")
 
     def test_test_package_identity_is_never_the_production_certificate(self):
         source = text("test-package.yml")

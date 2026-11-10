@@ -38,6 +38,7 @@ public final class BridgeRoutesTest {
     assertEquals(BridgeRoutes.Route.EXTDEV_DISCOVER, BridgeRoutes.match("/app/extdev/discover"));
     assertEquals(BridgeRoutes.Route.EXTDEV_INSPECT, BridgeRoutes.match("/app/extdev/inspect"));
     assertEquals(BridgeRoutes.Route.EXTDEV_OPERATE, BridgeRoutes.match("/app/extdev/operate"));
+    assertEquals(BridgeRoutes.Route.EXTDEV_WATCH, BridgeRoutes.match("/app/extdev/watch"));
     assertEquals(BridgeRoutes.Route.EXTDEV_PREFLIGHT, BridgeRoutes.match("/app/extdev/preflight"));
     assertEquals(BridgeRoutes.Route.EXTDEV_IMPORT, BridgeRoutes.match("/app/extdev/import"));
     for (String invalid :
@@ -63,7 +64,9 @@ public final class BridgeRoutesTest {
           "/app/net/resolve/child",
           "/app/netXXX",
           "/app/entry-targetXXX",
-          "/app/entry%2dtarget"
+          "/app/entry%2dtarget",
+          "/app/extdev/watch/child",
+          "/app/extdev/watchXXX"
         }) {
       assertEquals(invalid, BridgeRoutes.Route.UNKNOWN, BridgeRoutes.match(invalid));
     }

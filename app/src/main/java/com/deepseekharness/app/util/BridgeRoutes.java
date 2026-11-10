@@ -16,6 +16,7 @@ public final class BridgeRoutes {
     EXTDEV_INSPECT(false),
     EXTDEV_BIND(false),
     EXTDEV_OPERATE(false),
+    EXTDEV_WATCH(false),
     EXTDEV_PREFLIGHT(false),
     EXTDEV_IMPORT(false),
     EXTDEV_FORGET(false),
@@ -92,6 +93,7 @@ public final class BridgeRoutes {
     add(routes, "/app/extdev/inspect", Route.EXTDEV_INSPECT);
     add(routes, "/app/extdev/bind", Route.EXTDEV_BIND);
     add(routes, "/app/extdev/operate", Route.EXTDEV_OPERATE);
+    add(routes, "/app/extdev/watch", Route.EXTDEV_WATCH);
     add(routes, "/app/extdev/preflight", Route.EXTDEV_PREFLIGHT);
     add(routes, "/app/extdev/import", Route.EXTDEV_IMPORT);
     add(routes, "/app/extdev/forget", Route.EXTDEV_FORGET);

@@ -30,6 +30,7 @@ public final class StartupRecoveryState {
     STOPPED(Tone.IDLE, ""),
     PORT(Tone.BAD, "WEB_PORT_IN_USE"),
     PLUGIN(Tone.BAD, "PLUGIN_LOAD_FAILED"),
+    REGISTER(Tone.BAD, "PLUGIN_REGISTER_FAILED"),
     PAGE(Tone.BAD, "WEB_PAGE_FATAL"),
     CONFIG(Tone.BAD, "CONFIG_CHECK_FAILED"),
     EXIT(Tone.BAD, "PROCESS_EXITED"),
@@ -92,6 +93,8 @@ public final class StartupRecoveryState {
     if (anyLanguage(why, HEALTH_REASON)) return new Failure(Kind.HEALTH, "", "", why);
     for (String credential : CREDENTIAL_REASONS)
       if (anyLanguage(why, credential)) return new Failure(Kind.CREDENTIAL, "", "", why);
+    Failure register = registerFailure(why);
+    if (register != null) return register;
     Matcher plugin = PLUGIN_LINE.matcher(log);
     String name = "";
     while (plugin.find()) name = plugin.group(1).trim();
@@ -99,6 +102,20 @@ public final class StartupRecoveryState {
     if (CONFIG_LINE.matcher(log).find() || CONFIG_LINE.matcher(why).find())
       return new Failure(Kind.CONFIG, "", "", why);
     return new Failure(Kind.FAILED, "", "", why);
+  }
+
+  /** 注册失败的可行动分类；只认应用自己写下的固定标记，不猜 guest 输出正文。 */
+  private static Failure registerFailure(String why) {
+    if (why.contains("PLUGIN_PROFILE_LOCK_STALE") || why.contains("PLUGIN_PROFILE_LOCK_TIMEOUT"))
+      return new Failure(Kind.REGISTER, "", "PLUGIN_REGISTER_LOCK", why);
+    if (why.contains("BUILTIN_REGISTER_TIMEOUT"))
+      return new Failure(Kind.REGISTER, "", "PLUGIN_REGISTER_TIMEOUT", why);
+    if (why.contains("BUILTIN_REGISTER_EXIT_")
+        || why.contains("BUILTIN_REGISTER_RECEIPT_MISSING")
+        || why.contains("BUILTIN_REGISTER_NO_RESULT")
+        || why.contains("BUILTIN_REGISTER_FAIL"))
+      return new Failure(Kind.REGISTER, "", "PLUGIN_REGISTER_FAILED", why);
+    return null;
   }
 
   /** 返回 {运行时, 退出码}；只认应用自己的退出模板（任意界面语言）。 */
@@ -197,6 +214,8 @@ public final class StartupRecoveryState {
         return UiText.choose("端口被占用", "Port in use");
       case PLUGIN:
         return UiText.choose("插件出错", "Plugin error");
+      case REGISTER:
+        return UiText.choose("插件注册未完成", "Plugin registration incomplete");
       case PAGE:
         return UiText.choose("网页加载失败", "Web page failed");
       case CONFIG:
@@ -309,6 +328,17 @@ public final class StartupRecoveryState {
             : UiText.format("启动失败：端口 %s 被占用", s);
       case PLUGIN:
         return UiText.format("启动失败：插件 %s 加载出错", s);
+      case REGISTER:
+        if ("PLUGIN_REGISTER_TIMEOUT".equals(code))
+          return UiText.choose(
+              "启动失败：插件注册超时（可直接重试）", "Start failed: plugin registration timed out (retry directly)");
+        if ("PLUGIN_REGISTER_LOCK".equals(code))
+          return UiText.choose(
+              "启动失败：插件配置有待确认的锁（可直接重试）",
+              "Start failed: a plugin configuration lock needs confirmation (retry directly)");
+        return UiText.choose(
+            "启动失败：插件注册未完成（可直接重试）",
+            "Start failed: plugin registration did not complete (retry directly)");
       case PAGE:
         return UiText.format("网页加载失败：%s 初始化出错", s);
       case CONFIG:
@@ -355,6 +385,10 @@ public final class StartupRecoveryState {
         return UiText.choose(
             "只有这个插件报错。卸载它，或先安全启动再到插件页处理。",
             "Only this plugin reported an error. Remove it, or start in safe mode and fix it on the Plugins page.");
+      case REGISTER:
+        return UiText.choose(
+            "插件注册没有完成。已经写好的共享依赖链接与插件登记会被下一次启动复用；直接重试通常可以继续，不需要清除数据。若上一次注册被超时结束，重试会接管已退出进程留下的锁。",
+            "Plugin registration did not complete. Shared runtime links and plugin records already written are reused on the next start; retry directly and do not clear data. If the previous attempt was ended by a timeout, the retry takes over the lock left by the exited process.");
       case PAGE:
         return UiText.choose(
             "后端已启动，网页插件初始化失败。安全启动只加载官方基础界面。",

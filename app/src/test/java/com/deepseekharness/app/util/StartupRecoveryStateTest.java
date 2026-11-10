@@ -85,6 +85,47 @@ public class StartupRecoveryStateTest {
     assertEquals(Kind.FAILED, StartupRecoveryState.classify("启动配置或插件加载失败", "", false).kind);
   }
 
+  @Test
+  public void pluginRegistrationFailuresAreActionableInsteadOfUnclassified() {
+    Failure timeout =
+        StartupRecoveryState.classify(
+            "插件注册失败：BUILTIN_REGISTER_TIMEOUT: exit=-1 timedOut=true truncated=false"
+                + " output=REGISTER_TIMING: {\"phase\":\"runtime-links-check\",\"elapsedMs\":479409}"
+                + " hostElapsedMs=90012 GUEST_TIMING_MISMATCH",
+            "",
+            false);
+    assertEquals(Kind.REGISTER, timeout.kind);
+    assertEquals("PLUGIN_REGISTER_TIMEOUT", timeout.code);
+    assertEquals(
+        "启动失败：插件注册超时（可直接重试）",
+        StartupRecoveryState.title(timeout.kind, timeout.subject, timeout.code));
+    assertFalse(StartupRecoveryState.detail(Kind.REGISTER).contains("exit="));
+
+    Failure exit =
+        StartupRecoveryState.classify(
+            "插件注册失败：BUILTIN_REGISTER_EXIT_1: exit=1 timedOut=false"
+                + " output=BUILTIN_REGISTER_FAIL: 无法读取包清单",
+            "",
+            false);
+    assertEquals(Kind.REGISTER, exit.kind);
+    assertEquals("PLUGIN_REGISTER_FAILED", exit.code);
+    assertEquals(
+        "启动失败：插件注册未完成（可直接重试）", StartupRecoveryState.title(exit.kind, exit.subject, exit.code));
+
+    Failure lock =
+        StartupRecoveryState.classify(
+            "STARTUP_PLUGIN_EXIT_1: exit=1 timedOut=false truncated=false"
+                + " output=PLUGIN_RESULT: {\"status\":\"error\",\"message\":"
+                + "\"PLUGIN_PROFILE_LOCK_STALE: 上一次插件写入未完成\"}",
+            "",
+            false);
+    assertEquals(Kind.REGISTER, lock.kind);
+    assertEquals("PLUGIN_REGISTER_LOCK", lock.code);
+    assertEquals(
+        "启动失败：插件配置有待确认的锁（可直接重试）", StartupRecoveryState.title(lock.kind, lock.subject, lock.code));
+    assertFalse(StartupRecoveryState.detail(Kind.REGISTER).isEmpty());
+  }
+
   // ---------------------------------------------------------------- 记录结论
 
   @Test

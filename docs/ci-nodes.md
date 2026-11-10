@@ -1,7 +1,7 @@
 # CI 节点图（GitHub Actions）
 
-更新：2026-11-02 / build274 基线。本文说明 `.github/workflows/` 的节点拆分、复用方式与耗时依据；
-正式发布的参数、Secrets 与产物核验仍以 [CI 构建与发布](ci-release.md) 为准。
+更新：2026-11-10 / build353（正式 Release 附带共存测试包）。本文说明 `.github/workflows/` 的节点拆分、
+复用方式与耗时依据；正式发布的参数、Secrets 与产物核验仍以 [CI 构建与发布](ci-release.md) 为准。
 
 ## 1. 结构
 
@@ -15,6 +15,11 @@
 | `_node-unit-tests.yml` | 先按 `tools/robolectric-sdk.lock.json` 准备 android-all（缓存 + 逐个 sha256 核对 + 有界重试），再以 `robolectric.offline` 跑 `:app:testStandardDebugUnitTest`，`full` / `source-only`，可选 `--tests` 与 fork 数 | JUnit XML + `out/unit-tests.json` |
 | `_node-lint.yml` | `:app:lintStandardRelease`（未签名模式） | lint 报告 |
 | `_node-host-tests.yml` | `run-host-tests.py` 的一个阶段或 `--only` 子集；可选夹具、toolchains、Playwright | `app/build/host-tests` |
+| `_node-test-packages.yml` | matrix 构建 `.debug` / `.dev` 共存测试包，用独立测试证书签名并逐项核对身份、签名与受管资产 | 每个 variant 的 APK + 证据 artifact（含公开测试证书） |
+
+`_node-*.yml` 默认只读、不读 Secrets；唯一例外是 `_node-test-packages.yml`：它需要测试证书 Secrets
+（`SUNSET_TEST_KEYSTORE_B64` / `SUNSET_TEST_STORE_PASSWORD`），正式签名 Secrets 仍然绝不进入，
+持证书的节点也不写 Gradle 共享缓存（与 `build-signed` 同策略）。
 
 组合 action（`.github/actions/`）：`setup-toolchain`（锁定 JDK/Node + 可选 Gradle 依赖缓存）、
 `android-sdk`（锁定 platform/build-tools，可选 NDK）、`restore-handoff`（下载交接、核对后写入、可选准备 raw/managed 夹具）。
@@ -28,7 +33,7 @@
 | 工作流 | 触发 | 节点 |
 |---|---|---|
 | `ci-fast.yml`（Source checks） | push / PR / 手动 | contracts ‖ java-format ‖ inputs → (unit-source ‖ host-fast) |
-| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ host-regression ‖ inputs → (unit ‖ lint)) → build-signed → publish |
+| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ host-regression ‖ inputs → (unit ‖ lint)) → (build-signed ‖ test-packages) → publish；`dry_run=true` 时 publish 跳过、由 dry-run-summary 出报告 |
 | `ci-package.yml` | 手动，显式输入包 | inputs → (native-repro ‖ package) |
 | `unit-tests.yml` | 手动 | inputs → unit（可选 `--tests`、`source-only`、fork 数） |
 | `host-tests.yml` | 手动 | inputs → host（`fast` / `runtime`，可选 `--only`、Playwright） |
@@ -36,9 +41,11 @@
 | `docs-check.yml` | 文档路径 push / PR / 手动 | links ‖ changelog ‖ i18n |
 | `inputs-health.yml` | 每周一 03:17 UTC / 手动 | 下载并核对锁定的固定输入，不写任何东西 |
 
-发布链的安全边界：签名 Secrets 只出现在 `build-signed`，该节点不写 Gradle 缓存；`contents: write` 只在
-`publish`，它不 checkout、不签名，只核对 `SHA256SUMS` 与 `build-info.json` 的 commit/run 绑定后创建 tag 与
-prerelease。任一前置节点失败都不会签名。签名包经 1 天保留的 artifact 交给 `publish`，正式交付物以 Release 资产为准。
+发布链的安全边界：正式签名 Secrets 只出现在 `build-signed`，测试证书 Secrets 只出现在 `test-packages`；
+两个节点都不写 Gradle 共享缓存。`contents: write` 只在 `publish`，它不 checkout、不签名，只核对
+`SHA256SUMS` 与 `build-info.json` 的 commit/run 绑定，合并（可选）测试包证据后创建 tag 与 prerelease。
+任一前置节点失败都不会签名。签名包与测试包证据经 1 天保留的 artifact 交给 `publish`，正式交付物以 Release
+资产为准；`dry_run=true` 时 `dry-run-summary` 用同一套证据合并与校验并打印发布计划，不写仓库。
 
 `test-package.yml` 产出 `io.github.sunsetrne.dsha.test`（`-SunsetTest`）。配置 `SUNSET_TEST_KEYSTORE_B64`
 （可选 `SUNSET_TEST_STORE_PASSWORD`）时使用该测试证书，便于覆盖升级；否则每次生成一次性密钥。证书不得等于正式证书。

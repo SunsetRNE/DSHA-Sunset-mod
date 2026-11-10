@@ -13,8 +13,10 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.DiagnosticRepository;
+import com.deepseekharness.app.core.TestPackageFeedbackExporter;
 import com.deepseekharness.app.util.DiagnosticSummary;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.UiText;
@@ -27,6 +29,9 @@ public final class DiagnosticActivity extends AppCompatActivity {
   private DiagnosticResultList resultList;
   private CardTabs toolsTabs;
   private PendingLogExport pendingLogExport;
+
+  /** 测试包反馈导出只允许一次一个；按钮通过 card.enabled 与 alpha 反馈忙状态。 */
+  private boolean feedbackBusy;
 
   /** 本页输入的补充说明：仅内存，不持久化，不随页面重建恢复。 */
   private String note = "";
@@ -84,12 +89,21 @@ public final class DiagnosticActivity extends AppCompatActivity {
                 .start();
           });
 
+  /** 测试包反馈日志：系统文件选择器只选位置；采集、打包与回读校验都在后台线程完成。 */
+  private final ActivityResultLauncher<String> feedbackExporter =
+      registerForActivityResult(
+          new ActivityResultContracts.CreateDocument("application/gzip"),
+          uri -> {
+            if (uri != null) exportFeedback(uri);
+          });
+
   @Override
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     setContentView(R.layout.activity_diagnostics);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     bindToolTabs(saved);
+    bindFeedbackExport();
     repository = new ViewModelProvider(this).get(DiagnosticRepository.class);
     logs = new ViewModelProvider(this).get(com.deepseekharness.app.core.ErrorLogRepository.class);
     resultList =
@@ -174,6 +188,168 @@ public final class DiagnosticActivity extends AppCompatActivity {
                     com.deepseekharness.app.util.UiText.choose("网络与插件", "Network and plugins"),
                     network)),
             saved == null ? null : saved.getString(STATE_TOOLS_TAB));
+  }
+
+  // ---------- 测试包反馈导出：入口只在 TEST_PACKAGE 构建出现，正式包行为不变 ----------
+
+  /**
+   * 反馈日志卡由 build.gradle 的 TEST_PACKAGE 唯一决定：正式包与普通 debug 构建整行隐藏，
+   * 不改变既有复制 / 故障包导出。测试包内标题与说明走应用语言，不新增 XML 文案资源。
+   */
+  private void bindFeedbackExport() {
+    View card = findViewById(R.id.diagnostic_feedback_export);
+    View divider = findViewById(R.id.diagnostic_feedback_export_divider);
+    if (card == null || divider == null) return;
+    if (!BuildConfig.TEST_PACKAGE) {
+      card.setVisibility(View.GONE);
+      divider.setVisibility(View.GONE);
+      return;
+    }
+    card.setVisibility(View.VISIBLE);
+    divider.setVisibility(View.VISIBLE);
+    TextView title = findViewById(R.id.diagnostic_feedback_title);
+    TextView subtitle = findViewById(R.id.diagnostic_feedback_sub);
+    if (title != null)
+      title.setText(UiText.choose("导出反馈日志（测试包）", "Export feedback logs (test build)"));
+    if (subtitle != null)
+      subtitle.setText(
+          UiText.choose(
+              "本应用与 DSH 日志、启动与维护记录、设备信息；有界、脱敏",
+              "This app and DSH logs, startup and maintenance records, device info; bounded and redacted"));
+    card.setOnClickListener(v -> showFeedbackSheet());
+  }
+
+  private void showFeedbackSheet() {
+    if (feedbackBusy) return;
+    CardPage page =
+        new CardPage(
+            this, UiText.choose("导出反馈日志（测试包）", "Export feedback logs (test build)"), "", true);
+    var dialog = CardSheet.create(this, page);
+    TextView scope =
+        page.text(
+            UiText.choose(
+                "一次性采集本进程 logcat（仅自己的 pid）、本应用与 DSH 日志尾部、最近启动 / 维护 / 运行时健康 / 插件安装记录与设备环境信息。单文件 ≤256 KB、总量 ≤8 MB，所有文本按现有规则脱敏；不采集账号、设备标识或 API Key，不自动上传。日志仍可能包含个人信息，分享前请检查。",
+                "Collects this process's logcat (own pid only), this app's and DSH log tails, recent startup, maintenance, runtime-health and plugin-install records, and device environment. Each file ≤256 KB and ≤8 MB in total; all text is redacted with existing rules. No account, device identifiers or API keys are collected and nothing is uploaded. Logs may still contain personal information; review before sharing."),
+            12,
+            R.color.shell_text_secondary);
+    scope.setLineSpacing(page.dp(3), 1);
+    scope.setPadding(0, 0, 0, page.dp(14));
+    page.content.addView(scope);
+
+    LinearLayout buttons = new LinearLayout(this);
+    buttons.setOrientation(LinearLayout.HORIZONTAL);
+    page.footer.addView(buttons, new LinearLayout.LayoutParams(-1, -2));
+    Button saveAs =
+        page.button(
+            buttons,
+            UiText.choose("另存为…", "Save as…"),
+            true,
+            () -> {
+              dialog.dismiss();
+              try {
+                RecentsPrivacyGuard.launch(
+                    feedbackExporter, TestPackageFeedbackExporter.filename());
+              } catch (RuntimeException error) {
+                Toast.makeText(this, UiText.text("无法打开文件管理器，请稍后重试"), Toast.LENGTH_LONG).show();
+              }
+            });
+    Button share =
+        page.button(
+            buttons,
+            UiText.choose("分享…", "Share…"),
+            false,
+            () -> {
+              dialog.dismiss();
+              shareFeedback();
+            });
+    LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, -2, 1);
+    left.topMargin = page.dp(10);
+    saveAs.setLayoutParams(left);
+    LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(0, -2, 1);
+    right.topMargin = page.dp(10);
+    right.setMarginStart(page.dp(8));
+    share.setLayoutParams(right);
+    page.button(page.footer, UiText.choose("取消", "Cancel"), false, dialog::dismiss)
+        .setBackgroundResource(android.R.color.transparent);
+    CardSheet.show(dialog, this);
+  }
+
+  /** SAF 目标已选：后台采集、打包并回读校验；失败只更新卡片状态，不中断页面。 */
+  private void exportFeedback(android.net.Uri uri) {
+    if (feedbackBusy) return;
+    setFeedbackState(UiText.text("正在收集并保存反馈日志…"), true);
+    new Thread(
+            () -> {
+              String message;
+              java.io.File staged = null;
+              try {
+                staged = TestPackageFeedbackExporter.stage(this);
+                TestPackageFeedbackExporter.writeTo(this, uri, staged);
+                message = UiText.text("反馈日志已保存到所选位置");
+              } catch (Exception error) {
+                message =
+                    UiText.format(
+                        "导出失败：%s", SensitiveData.redact(String.valueOf(error.getMessage())));
+              } finally {
+                if (staged != null) staged.delete();
+              }
+              String done = message;
+              runOnUiThread(
+                  () -> {
+                    if (!isFinishing() && !isDestroyed()) setFeedbackState(done, false);
+                  });
+            },
+            "feedback-export")
+        .start();
+  }
+
+  /** 本地分享：生成缓存归档后交给系统分享目标；不经过网络、不自动上传。 */
+  private void shareFeedback() {
+    if (feedbackBusy) return;
+    setFeedbackState(UiText.text("正在收集反馈日志…"), true);
+    new Thread(
+            () -> {
+              String failure = "";
+              android.content.Intent chooser = null;
+              try {
+                java.io.File staged = TestPackageFeedbackExporter.stage(this);
+                chooser = TestPackageFeedbackExporter.shareIntent(this, staged);
+              } catch (Exception error) {
+                failure =
+                    UiText.format(
+                        "收集失败：%s", SensitiveData.redact(String.valueOf(error.getMessage())));
+              }
+              String message = failure;
+              android.content.Intent share = chooser;
+              runOnUiThread(
+                  () -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    setFeedbackState(message.isEmpty() ? UiText.text("请选择分享目标") : message, false);
+                    if (share != null) {
+                      try {
+                        startActivity(share);
+                      } catch (RuntimeException unavailable) {
+                        setFeedbackState(UiText.text("没有可用的分享目标"), false);
+                      }
+                    }
+                  });
+            },
+            "feedback-share")
+        .start();
+  }
+
+  private void setFeedbackState(String message, boolean busy) {
+    feedbackBusy = busy;
+    View card = findViewById(R.id.diagnostic_feedback_export);
+    if (card != null) {
+      card.setEnabled(!busy);
+      card.setAlpha(busy ? 0.55f : 1f);
+    }
+    TextView status = findViewById(R.id.diagnostic_feedback_status);
+    if (status == null) return;
+    boolean show = message != null && !message.isEmpty();
+    status.setVisibility(show ? View.VISIBLE : View.GONE);
+    if (show) status.setText(message);
   }
 
   // ---------- 状态卡：图标 + 一句结论 + 唯一主按钮 ----------

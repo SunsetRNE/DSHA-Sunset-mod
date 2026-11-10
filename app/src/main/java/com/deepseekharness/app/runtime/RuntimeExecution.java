@@ -251,13 +251,19 @@ final class RuntimeExecution {
 
   BoundedProcessRunner.Result collect(String command, long timeoutMs, boolean proot)
       throws IOException, InterruptedException {
-    return collect(command, timeoutMs, proot, null);
+    return collect(command, timeoutMs, proot, (ContainerRuntime) null);
   }
 
   BoundedProcessRunner.Result collect(
       String command, long timeoutMs, boolean proot, ContainerRuntime selected)
       throws IOException, InterruptedException {
     return collect(command, timeoutMs, proot, selected, null);
+  }
+
+  BoundedProcessRunner.Result collect(
+      String command, long timeoutMs, boolean proot, java.util.function.Consumer<String> onLine)
+      throws IOException, InterruptedException {
+    return collect(command, timeoutMs, proot, null, null, onLine);
   }
 
   BoundedProcessRunner.Result collectCasLinks(java.util.function.Consumer<String> timing)
@@ -271,7 +277,8 @@ final class RuntimeExecution {
         900_000,
         true,
         null,
-        new RuntimeCommandTiming(timing));
+        new RuntimeCommandTiming(timing),
+        null);
   }
 
   private BoundedProcessRunner.Result collect(
@@ -281,13 +288,24 @@ final class RuntimeExecution {
       ContainerRuntime selected,
       RuntimeCommandTiming timing)
       throws IOException, InterruptedException {
+    return collect(command, timeoutMs, proot, selected, timing, null);
+  }
+
+  private BoundedProcessRunner.Result collect(
+      String command,
+      long timeoutMs,
+      boolean proot,
+      ContainerRuntime selected,
+      RuntimeCommandTiming timing,
+      java.util.function.Consumer<String> onLine)
+      throws IOException, InterruptedException {
     RuntimeWorkPort.Work work = RuntimeWorkPort.begin("容器命令");
     Process process = null;
     Throwable original = null;
     try {
       process = proot ? install(command, false, timing) : bounded(command, selected);
       BoundedProcessRunner.Result result =
-          BoundedProcessRunner.collect(process, timeoutMs, 256 * 1024, Compat::destroy);
+          BoundedProcessRunner.collect(process, timeoutMs, 256 * 1024, Compat::destroy, onLine);
       if (timing != null) timing.mark("process-collect");
       return result;
     } catch (IOException | InterruptedException | RuntimeException | Error failure) {

@@ -16,6 +16,7 @@ dsh-web-mobile）的实体随离线 rootfs 烘焙在 /root/dsha-*，但 dsh 只�
   python3 register-builtin-plugins.py                # 注册：把未禁用的内置插件并进 profile
   python3 register-builtin-plugins.py --enable 名字   # 启用：加回 bundles + 建链
   python3 register-builtin-plugins.py --disable 名字  # 禁用：移出 bundles + 摘链 + 写禁用标记
+  python3 register-builtin-plugins.py --clear-stale-profile-lock  # 宿主超时后清理已退出持有者的 profile 锁
 
 注册名单与实体路径由签名 builtin-plugins.json 唯一声明；注册契约为：
   1. profiles/web/package.json 的 dsh.profile.bundles 含插件名；
@@ -112,6 +113,8 @@ def local(path):
 BUILTIN_LIST = local("/root/dsha-builtin.txt")
 MANAGED_ASSET_MARKER = local("/usr/local/share/dsha/managed-assets-v2")
 APK_GENERATION_MARKER = local("/usr/local/share/dsha/apk-generation")
+# 上一次成功注册对应的受管资产身份；宿主只读它来选择注册预算，不参与完成判定。
+REGISTER_ASSET_IDENTITY = local("/usr/local/share/dsha/register-managed-asset-id")
 APK_GENERATION_HEADER = "DSHA_APK_GENERATION_V1"
 DEFAULT_DISABLED_ENABLED_HEADER = "DSHA_DEFAULT_OFF_ENABLED_V1"
 
@@ -215,6 +218,25 @@ def apk_generation():
     return 'runtime:' + identity if identity else 'unmanaged'
 
 
+def write_register_identity():
+    """记录本次成功注册对应的受管资产身份（只给宿主选择下一次注册预算）。
+
+    覆盖更新会换成新的受管资产身份：宿主读到旧身份就用宽预算；若本次注册被超时
+    结束则这里不会执行，下一次仍按宽预算重试。写失败只影响预算，不影响注册结果。
+    """
+    identity = managed_asset_identity()
+    if not identity:
+        return
+    try:
+        os.makedirs(os.path.dirname(REGISTER_ASSET_IDENTITY), exist_ok=True)
+        temporary = REGISTER_ASSET_IDENTITY + '.tmp'
+        with open(temporary, 'w', encoding='ascii') as stream:
+            stream.write(identity + '\n')
+        os.replace(temporary, REGISTER_ASSET_IDENTITY)
+    except OSError:
+        pass
+
+
 def ensure_runtime_modules(force=False):
     cache = local(os.path.join(DSH_HOME, '.runtime-links-cache.json'))
     started = time.monotonic()
@@ -290,6 +312,109 @@ def repair_runtime_modules():
     return count
 
 
+def read_profile_lock_record(lock_path):
+    try:
+        with open(lock_path, encoding='ascii') as stream:
+            return stream.read(128)
+    except (OSError, UnicodeError):
+        return None
+
+
+def profile_lock_state(lock_path):
+    """profile 写入锁的持有者状态：missing / live / stale / unknown。
+
+    只有能证明记录里的 PID 已退出才返回 stale；格式不完整、权限被拒或 Windows
+    句柄无法确认时一律 unknown。宿主超时清理与恢复页提示都只按这个结论行动。
+    """
+    value = read_profile_lock_record(lock_path)
+    if value is None:
+        return 'unknown' if os.path.lexists(lock_path) else 'missing'
+    if not re.fullmatch(r'[0-9]+\n', value):
+        return 'unknown'
+    pid = int(value)
+    if pid <= 0 or pid > 2147483647:
+        return 'unknown'
+    if pid == os.getpid():
+        return 'live'
+    if os.name == 'nt':
+        # Python os.kill(pid, 0) can terminate on Windows. Only observe a
+        # SYNCHRONIZE handle; denied/unknown states never authorize takeover.
+        try:
+            import ctypes
+            from ctypes import wintypes
+            kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+            kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+            kernel.OpenProcess.restype = wintypes.HANDLE
+            kernel.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+            kernel.WaitForSingleObject.restype = wintypes.DWORD
+            kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+            kernel.CloseHandle.restype = wintypes.BOOL
+            process_handle = kernel.OpenProcess(0x00100000, False, pid)
+            if not process_handle:
+                return 'stale' if ctypes.get_last_error() == 87 else 'unknown'
+            try:
+                return 'stale' if kernel.WaitForSingleObject(process_handle, 0) == 0 else 'live'
+            finally:
+                kernel.CloseHandle(process_handle)
+        except (OSError, AttributeError):
+            return 'unknown'
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return 'stale'
+    except OSError:
+        return 'unknown'
+    return 'live'
+
+
+def take_over_dead_profile_lock(lock_path, record):
+    """只接管已确认退出持有者的锁；与 Node 的 dsh-atomic-write 使用同一种 claim。"""
+    previous = read_profile_lock_record(lock_path)
+    if previous is None or profile_lock_state(lock_path) != 'stale':
+        return False
+    claim = lock_path + '.takeover-' + hashlib.sha256(previous.encode('ascii')).hexdigest()[:16]
+    try:
+        fd = os.open(claim, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return False
+    try:
+        with os.fdopen(fd, 'w', encoding='ascii') as stream:
+            stream.write(record)
+        if read_profile_lock_record(lock_path) != previous or profile_lock_state(lock_path) != 'stale':
+            return False
+        try:
+            os.unlink(lock_path)
+            return True
+        except OSError:
+            return False
+    finally:
+        try:
+            os.unlink(claim)
+        except OSError:
+            pass
+
+
+def clear_stale_profile_lock():
+    """宿主超时后由短命令调用：只清理已退出进程留下的 profile 写入锁。
+
+    该入口不走 operation_lock：要清理的锁正是它要处理的同一路径。记录不完整、
+    持有者仍存活或无法确认时一律保留，绝不为了「看起来干净」删除别人的锁。
+    """
+    lock_path = local(MANIFEST) + '.lock'
+    state = profile_lock_state(lock_path)
+    if state == 'missing':
+        print('PROFILE_LOCK_ABSENT')
+        return 0
+    if state != 'stale':
+        print('PROFILE_LOCK_RETAINED: ' + state)
+        return 0
+    if take_over_dead_profile_lock(lock_path, str(os.getpid()) + '\n'):
+        print('PROFILE_LOCK_CLEARED')
+        return 0
+    print('PROFILE_LOCK_RETAINED: ' + profile_lock_state(lock_path))
+    return 0
+
+
 @contextmanager
 def profile_writer_lock(check_cancel=None, timeout=120, timing=None):
     """Match dsh-atomic-write's package.json.lock; always after the data lock.
@@ -302,72 +427,6 @@ def profile_writer_lock(check_cancel=None, timeout=120, timing=None):
     os.makedirs(local(PROFILE), exist_ok=True)
     lock_path = local(MANIFEST) + '.lock'
     record = str(os.getpid()) + '\n'
-
-    def read_record(path):
-        try:
-            with open(path, encoding='ascii') as stream:
-                return stream.read(128)
-        except (OSError, UnicodeError):
-            return None
-
-    def holder_exited(value):
-        if not isinstance(value, str) or not re.fullmatch(r'[0-9]+\n', value):
-            return False
-        pid = int(value)
-        if pid <= 0 or pid > 2147483647 or pid == os.getpid():
-            return False
-        if os.name == 'nt':
-            # Python os.kill(pid, 0) can terminate on Windows. Only observe a
-            # SYNCHRONIZE handle; denied/unknown states never authorize takeover.
-            try:
-                import ctypes
-                from ctypes import wintypes
-                kernel = ctypes.WinDLL('kernel32', use_last_error=True)
-                kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
-                kernel.OpenProcess.restype = wintypes.HANDLE
-                kernel.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
-                kernel.WaitForSingleObject.restype = wintypes.DWORD
-                kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
-                kernel.CloseHandle.restype = wintypes.BOOL
-                process_handle = kernel.OpenProcess(0x00100000, False, pid)
-                if not process_handle:
-                    return ctypes.get_last_error() == 87  # invalid PID
-                try:
-                    return kernel.WaitForSingleObject(process_handle, 0) == 0
-                finally:
-                    kernel.CloseHandle(process_handle)
-            except (OSError, AttributeError):
-                return False
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return True
-        except OSError:
-            pass
-        return False
-
-    def take_over():
-        previous = read_record(lock_path)
-        if not holder_exited(previous):
-            return False
-        claim = lock_path + '.takeover-' + hashlib.sha256(previous.encode('ascii')).hexdigest()[:16]
-        try:
-            fd = os.open(claim, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            return False
-        try:
-            with os.fdopen(fd, 'w', encoding='ascii') as stream:
-                stream.write(record)
-            if read_record(lock_path) != previous or not holder_exited(previous):
-                return False
-            try:
-                os.unlink(lock_path)
-                return True
-            except OSError:
-                return False
-        finally:
-            os.unlink(claim)
-
     deadline = time.monotonic() + max(0, timeout)
     delay = 0.02
     while True:
@@ -379,7 +438,7 @@ def profile_writer_lock(check_cancel=None, timeout=120, timing=None):
                 stream.write(record)
             break
         except FileExistsError:
-            if take_over():
+            if take_over_dead_profile_lock(lock_path, record):
                 continue
         if time.monotonic() >= deadline:
             raise TimeoutError('PLUGIN_PROFILE_LOCK_TIMEOUT；未更改插件或终止其他进程')
@@ -1201,6 +1260,8 @@ def register():
     if not present:
         lines.append("内置插件均已禁用，无需注册")
         _write_log(lines, ok=not missing)
+        if not missing:
+            write_register_identity()
         print(("BUILTIN_REGISTER_PARTIAL" if missing else "BUILTIN_REGISTER_OK") + ": 无待注册内置插件（已禁用 %s）" % ", ".join(skipped))
         return 1 if missing else 0
 
@@ -1257,6 +1318,8 @@ def register():
         lines.append("内置插件注册均已就绪，无需改动")
 
     _write_log(lines, ok=not missing)
+    if not missing:
+        write_register_identity()
     print(("BUILTIN_REGISTER_PARTIAL" if missing else "BUILTIN_REGISTER_OK") + ": %d 个内置插件注册就绪" % len(present))
     return 1 if missing else 0
 
@@ -1280,5 +1343,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # 宿主超时清理入口不进入 operation_lock：它要处理的就是 profile 写入锁本身。
+    if sys.argv[1:] == ["--clear-stale-profile-lock"]:
+        sys.exit(clear_stale_profile_lock())
     with operation_lock():
         sys.exit(main())

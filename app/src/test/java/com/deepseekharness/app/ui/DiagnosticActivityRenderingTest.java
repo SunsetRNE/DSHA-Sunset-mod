@@ -174,6 +174,24 @@ public final class DiagnosticActivityRenderingTest {
     assertEquals(View.GONE, findByText(sheet, "Save to Downloads").getVisibility());
   }
 
+  @Test
+  @Config(qualifiers = "en-rUS-w360dp-h740dp-mdpi")
+  public void feedbackExportEntryFollowsTestPackageBuildFlag() {
+    DiagnosticActivity page = open();
+    // 入口只由构建标志决定：CI 全量单测用 -Pdsha.sunsetTest=true（TEST_PACKAGE=true），
+    // 本机普通构建为 false；不能按包名或运行时状态猜测。
+    int expected = com.deepseekharness.app.BuildConfig.TEST_PACKAGE ? View.VISIBLE : View.GONE;
+    assertEquals(expected, page.findViewById(R.id.diagnostic_feedback_export).getVisibility());
+    assertEquals(
+        expected, page.findViewById(R.id.diagnostic_feedback_export_divider).getVisibility());
+    assertEquals(View.GONE, page.findViewById(R.id.diagnostic_feedback_status).getVisibility());
+    if (expected == View.VISIBLE) {
+      android.widget.TextView title = page.findViewById(R.id.diagnostic_feedback_title);
+      assertNotNull(title);
+      assertTrue(title.getText().length() > 0);
+    }
+  }
+
   // ---------- helpers ----------
 
   private DiagnosticActivity open() {

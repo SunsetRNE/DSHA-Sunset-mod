@@ -11,8 +11,11 @@ name: Test package variants (on demand)
 # 节点图：
 #   contracts ────────────────────────────┐
 #   inputs ─┬─► patch-chains（quick 跳过）┤
-#           ├─► unit（quick 或关闭时跳过）┼─► package-tests（matrix: debug/dev）
+#           ├─► unit（quick 或关闭时跳过）┼─► package-tests → _node-test-packages.yml（matrix: debug/dev）
 #           └─► lint ─────────────────────┘─► package-prod-unsigned
+#
+# package-tests 复用正式 Release 同款的 _node-test-packages.yml（构建 + 测试证书签名 + 逐项校验）；
+# 本工作流只负责按 target 选择变体，未配置测试证书时允许一次性密钥（正式 Release 不允许）。
 on:
   workflow_dispatch:
     inputs:
@@ -94,7 +97,7 @@ jobs:
       handoff: ${{ needs.inputs.outputs.artifact }}
       artifact: test-package-variants-lint-results
   package-tests:
-    name: Build, sign and verify ${{ matrix.variant }} test APK
+    name: Build, sign and verify co-installable test packages
     needs: [contracts, inputs, patch-chains, unit, lint]
     # quick 会跳过 patch-chains / unit；其余节点必须成功。
     if: >-
@@ -104,223 +107,23 @@ jobs:
       && needs.lint.result == 'success'
       && (needs.patch-chains.result == 'success' || needs.patch-chains.result == 'skipped')
       && (needs.unit.result == 'success' || needs.unit.result == 'skipped')
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: ${{ fromJSON((inputs.targets == 'all' && '["debug","dev"]') || (inputs.targets == 'dev' && '["dev"]') || '["debug"]') }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    env:
-      ASSET_SHA: ${{ needs.inputs.outputs.sha256 }}
-      ASSET_FORMAT: ${{ needs.inputs.outputs.format }}
-      UNIT_TESTS_RUN: ${{ inputs.run_unit_tests && !inputs.quick }}
-      PATCH_CHAINS_RUN: ${{ !inputs.quick }}
-      RELEASE_IDENTITY: ${{ inputs.identity || 'mod' }}
-      VARIANT: ${{ matrix.variant }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          gradle-cache: 'true'
-      - uses: ./.github/actions/android-sdk
-        with:
-          ndk: 'true'
-      - uses: ./.github/actions/restore-handoff
-        with:
-          artifact: ${{ needs.inputs.outputs.artifact }}
-          fixture: 'true'
-      - name: Build unsigned ${{ matrix.variant }} package
-        run: |
-          set -eu
-          chmod +x gradlew
-          case "$VARIANT" in debug|dev) ;; *) echo 'unknown variant'; exit 1 ;; esac
-          python3 tools/release-identity.py --check --identity "$RELEASE_IDENTITY" >/dev/null
-          if [ "$VARIANT" = debug ]; then
-            ./gradlew :app:assembleStandardDebug -Pdsha.debugPackage=true -Pdsha.unsignedPackage=true \
-              "-Pdsha.identity=$RELEASE_IDENTITY" --no-daemon --max-workers=2
-          else
-            ./gradlew :app:assembleStandardRelease -Pdsha.devPackage=true -Pdsha.unsignedPackage=true \
-              "-Pdsha.identity=$RELEASE_IDENTITY" --no-daemon --max-workers=2
-          fi
-      - name: Prepare configured or ephemeral test signing key
-        env:
-          CONFIGURED_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
-          CONFIGURED_TEST_PASSWORD: ${{ secrets.SUNSET_TEST_STORE_PASSWORD }}
-        run: |
-          set -eu
-          umask 077
-          key="$RUNNER_TEMP/test-package-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.jks"
-          if [ -n "$CONFIGURED_TEST_KEYSTORE_B64" ]; then
-            password="${CONFIGURED_TEST_PASSWORD:-sunset-test-only}"
-            printf '%s' "$CONFIGURED_TEST_KEYSTORE_B64" | base64 -d > "$key"
-            source=configured-secret
-          else
-            password=$(python3 -c 'import secrets; print(secrets.token_hex(24))')
-            source=ephemeral
-          fi
-          echo "::add-mask::$password"
-          if [ "$source" = ephemeral ]; then
-            echo "::warning::未配置 SUNSET_TEST_KEYSTORE_B64，本次测试包使用一次性证书，不能覆盖升级"
-          fi
-          export TEST_STORE_PASSWORD="$password"
-          if [ "$source" = ephemeral ]; then
-            keytool -genkeypair -keystore "$key" -storetype PKCS12 -alias sunset-test \
-              -keyalg RSA -keysize 3072 -validity 3650 \
-              -dname 'CN=DSHA Test Package (NOT FOR RELEASE), O=SunsetRNE, C=CN' \
-              -storepass:env TEST_STORE_PASSWORD -keypass:env TEST_STORE_PASSWORD
-          fi
-          mkdir -p out
-          keytool -exportcert -rfc -keystore "$key" -alias sunset-test \
-            -storepass:env TEST_STORE_PASSWORD > out/test-cert.pem
-          printf 'TEST_KEY=%s\nTEST_STORE_PASSWORD=%s\nSIGNING_KEY_SOURCE=%s\n' \
-            "$key" "$password" "$source" >> "$GITHUB_ENV"
-      - name: Sign ${{ matrix.variant }} APK and verify identity
-        id: sign
-        run: |
-          set -eu
-          buildtools=$(python3 tools/ci-toolchain.py --field buildTools)
-          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          apksigner="$sdk_root/build-tools/$buildtools/apksigner"
-          aapt2="$sdk_root/build-tools/$buildtools/aapt2"
-          shopt -s nullglob
-          if [ "$VARIANT" = debug ]; then
-            candidates=(app/build/outputs/apk/standard/debug/*-unsigned.apk)
-            metadata=app/build/outputs/apk/standard/debug/output-metadata.json
-            version_suffix='-SunsetDebug'
-            expected_suffix='.debug'
-            expect_debuggable=1
-          else
-            candidates=(app/build/outputs/apk/standard/release/*-unsigned.apk)
-            metadata=app/build/outputs/apk/standard/release/output-metadata.json
-            version_suffix='-SunsetDev'
-            expected_suffix=$(python3 tools/release-identity.py --identity "$RELEASE_IDENTITY" --field devSuffix)
-            expect_debuggable=0
-          fi
-          test "${#candidates[@]}" -eq 1
-          apk="out/dsha-${VARIANT}-${GITHUB_SHA:0:8}.apk"
-          "$apksigner" sign --ks "$TEST_KEY" --ks-key-alias sunset-test \
-            --ks-pass env:TEST_STORE_PASSWORD --key-pass env:TEST_STORE_PASSWORD \
-            --out "$apk" "${candidates[0]}"
-          "$aapt2" dump badging "$apk" > out/apk-badging.txt
-          "$apksigner" verify --verbose --print-certs "$apk" > out/apk-signature.txt
-          package=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" out/apk-badging.txt)
-          expected="$(python3 tools/release-identity.py --identity "$RELEASE_IDENTITY" --field packageName)$expected_suffix"
-          test "$package" = "$expected"
-          grep -q "versionName='.*${version_suffix}'" out/apk-badging.txt
-          if [ "$expect_debuggable" = 1 ]; then
-            grep -q 'application-debuggable' out/apk-badging.txt
-          else
-            if grep -q 'application-debuggable' out/apk-badging.txt; then exit 1; fi
-          fi
-          cert=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' out/apk-signature.txt | head -1)
-          production=$(python3 -c "import json;print(json.load(open('ci/release-identity.json'))['certificateSha256'])")
-          upstream=$(python3 tools/release-identity.py --identity upstream --field certificateSha256)
-          test -n "$cert"
-          test "$cert" != "$production"
-          test "$cert" != "$upstream"
-          python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
-          python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
-          python3 tools/verify-third-party-apk.py "$apk" --output out/third-party-apk.json
-          python3 tools/verify-apk-managed-assets.py "$apk" > out/apk-managed-assets.txt
-          printf 'apk=%s\ncert=%s\npackage=%s\nmetadata=%s\n' \
-            "$apk" "$cert" "$package" "$metadata" >> "$GITHUB_OUTPUT"
-      - name: Remove test private key
-        if: always()
-        run: |
-          python3 - <<'PYCODE'
-          import os
-          from pathlib import Path
-          parent = Path(os.environ['RUNNER_TEMP']).resolve()
-          key = parent / ('test-package-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'] + '.jks')
-          if key.is_symlink() or key.resolve().parent != parent:
-              raise SystemExit('UNEXPECTED_TEST_KEY_PATH')
-          key.unlink(missing_ok=True)
-          PYCODE
-      - name: Write commit-bound build receipt
-        env:
-          APK: ${{ steps.sign.outputs.apk }}
-          CERT: ${{ steps.sign.outputs.cert }}
-          PACKAGE: ${{ steps.sign.outputs.package }}
-          METADATA: ${{ steps.sign.outputs.metadata }}
-        run: |
-          python3 - <<'PYCODE'
-          import hashlib, json, os
-          from pathlib import Path
-          apk = Path(os.environ['APK'])
-          meta = json.load(open(os.environ['METADATA'], encoding='utf-8'))['elements'][0]
-          variant = os.environ['VARIANT']
-          value = {
-              'schema': 1,
-              'kind': 'dsha-a-su-test-package-variant',
-              'commit': os.environ['GITHUB_SHA'],
-              'ref': os.environ['GITHUB_REF'],
-              'runId': os.environ['GITHUB_RUN_ID'],
-              'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
-              'packageName': os.environ['PACKAGE'],
-              'variant': variant,
-              'debuggable': variant == 'debug',
-              'releaseIdentity': os.environ['RELEASE_IDENTITY'],
-              'versionCode': meta['versionCode'],
-              'versionName': meta['versionName'],
-              'apkFile': apk.name,
-              'apkSize': apk.stat().st_size,
-              'apkSha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
-              'certificateSha256': os.environ['CERT'],
-              'signingKeySource': os.environ['SIGNING_KEY_SOURCE'],
-              'assetBundleSha256': os.environ['ASSET_SHA'],
-              'inputArchiveFormat': os.environ['ASSET_FORMAT'],
-              'unitTestsRun': os.environ['UNIT_TESTS_RUN'] == 'true',
-              'patchChainsRun': os.environ['PATCH_CHAINS_RUN'] == 'true',
-              'note': 'TEST ONLY - NOT FOR RELEASE',
-          }
-          Path('out/build-info.json').write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-          names = [apk.name, 'build-info.json', 'test-cert.pem']
-          Path('out/SHA256SUMS').write_text(''.join(
-              hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
-              encoding='utf-8')
-          print(json.dumps(value, indent=2))
-          PYCODE
-      # archive:false 只接受单文件，artifact 名使用实际文件名。
-      - name: Upload signed APK without archiving
-        id: upload_apk
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          archive: false
-          path: ${{ steps.sign.outputs.apk }}
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload public package evidence
-        id: upload_evidence
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: test-package-evidence-${{ matrix.variant }}
-          path: |
-            out/SHA256SUMS
-            out/test-cert.pem
-            out/build-info.json
-            out/apk-signature.txt
-            out/apk-badging.txt
-            out/apk-runtime-verification.txt
-            out/apk-recovery-verification.txt
-            out/third-party-apk.json
-            out/apk-managed-assets.txt
-          if-no-files-found: error
-          retention-days: 14
-      - name: Show commit-bound download links
-        env:
-          APK_URL: ${{ steps.upload_apk.outputs.artifact-url }}
-          EVIDENCE_URL: ${{ steps.upload_evidence.outputs.artifact-url }}
-          PACKAGE: ${{ steps.sign.outputs.package }}
-        run: |
-          {
-            echo "### $VARIANT 测试包（非正式发布、未安装）"
-            echo
-            echo "Commit \`$GITHUB_SHA\` · package \`$PACKAGE\`"
-            echo
-            echo "[APK]($APK_URL) · [证书、固定输入与校验回执]($EVIDENCE_URL)"
-          } >> "$GITHUB_STEP_SUMMARY"
+    uses: ./.github/workflows/_node-test-packages.yml
+    with:
+      variants: ${{ inputs.targets == 'all' && 'debug+dev' || inputs.targets }}
+      release_identity: ${{ inputs.identity || 'mod' }}
+      handoff: ${{ needs.inputs.outputs.artifact }}
+      fixture: true
+      asset_sha: ${{ needs.inputs.outputs.sha256 }}
+      asset_format: ${{ needs.inputs.outputs.format }}
+      unit_tests_run: ${{ inputs.run_unit_tests && !inputs.quick }}
+      patch_chains_run: ${{ !inputs.quick }}
+      require_configured_key: false
+      artifact_prefix: test-package
+      apk_name_prefix: dsha
+      retention_days: 14
+    secrets:
+      SUNSET_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
+      SUNSET_TEST_STORE_PASSWORD: ${{ secrets.SUNSET_TEST_STORE_PASSWORD }}
   package-prod-unsigned:
     name: Build unsigned production-named APK (verification only)
     needs: [contracts, inputs, patch-chains, unit, lint]
