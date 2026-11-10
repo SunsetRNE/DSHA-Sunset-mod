@@ -11,8 +11,18 @@ import org.robolectric.annotation.Config;
 
 /** 头部流式行的折行、贴尾、拉满与 RTL；固定尺寸子项，不依赖文字测量。 */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 34, qualifiers = "mdpi")
+@Config(sdk = 34, qualifiers = "mdpi", application = PluginFlowRowTest.App.class)
 public final class PluginFlowRowTest {
+  /**
+   * 挡住真实 {@link com.deepseekharness.app.DshaApp#onCreate()}：它会按系统语言初始化界面语言
+   * （{@code UiText} 是 JVM 级静态，Robolectric 重建 Application 也不会重置），把同一 fork 里
+   * 后续断言中文文案的测试类污染成英文。ui 包其余测试类都用同样的空 onCreate 写法。
+   */
+  public static final class App extends com.deepseekharness.app.DshaApp {
+    @Override
+    public void onCreate() {}
+  }
+
   private PluginFlowRow row(boolean stretch) {
     android.util.AttributeSet attrs =
         org.robolectric.Robolectric.buildAttributeSet()

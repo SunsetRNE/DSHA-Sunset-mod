@@ -17,9 +17,11 @@ import android.widget.TextView;
 import androidx.appcompat.widget.AppCompatButton;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.util.UiText;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,12 +51,28 @@ public final class WaveBComponentsTest {
   private ContentResolver resolver;
   private ContextThemeWrapper context;
 
+  /** 进入本类之前的界面语言，退出时还原，避免把语言状态漏给同一 JVM fork 里的后续测试类。 */
+  private String previousLanguage;
+
+  /**
+   * 断言的是中文文案，但 {@code UiText.language} 是 JVM 级静态：同一 fork 里先跑过真实
+   * {@code DshaApp.onCreate} 的测试类（例如没写 {@code application=} 的那几个）会把它设成
+   * 系统语言（英文），Robolectric 重建 Application 也不会重置它。所以这里显式钉住中文，
+   * 并在 @After 还原 —— 与 ui 包其余断言中文的测试类保持同一约定。
+   */
   @Before
   public void setUp() {
+    previousLanguage = UiText.language();
+    UiText.setLanguage("zh");
     resolver = RuntimeEnvironment.getApplication().getContentResolver();
     animationScales(1f);
     context =
         new ContextThemeWrapper(RuntimeEnvironment.getApplication(), R.style.Theme_DeepseekHarness);
+  }
+
+  @After
+  public void tearDown() {
+    UiText.setLanguage(previousLanguage);
   }
 
   private void animationScales(float value) {
