@@ -25,7 +25,7 @@ public final class UiThemePaletteTest {
       assertEquals(id, UiThemePalette.normalize(id));
       assertEquals(!UiThemePalette.STANDARD.equals(id), UiThemePalette.needsOverlay(id));
     }
-    assertEquals(5, seen.size());
+    assertEquals(6, seen.size());
   }
 
   @Test
