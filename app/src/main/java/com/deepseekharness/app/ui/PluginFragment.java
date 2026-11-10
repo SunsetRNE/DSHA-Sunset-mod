@@ -178,7 +178,9 @@ public class PluginFragment extends Fragment {
     // 方案 A：左侧沿用原插件列表（含页头与页脚），右侧固定宽度详情窗格。
     LinearLayout shell = new LinearLayout(requireContext());
     shell.setOrientation(LinearLayout.HORIZONTAL);
-    shell.setBackgroundColor(requireContext().getColor(R.color.shell_bg));
+    // DSHA-Mod：双栏外壳原来刷不透明 shell_bg，壁纸被整块挡住（卡片 71% 白压在它上面
+    // 实测 253，和背景完全同色）。这里改成透明，壁纸才透得上来。
+    shell.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     shell.addView(list, new LinearLayout.LayoutParams(0, -1, 1f));
     View line = new View(requireContext());
     line.setId(R.id.plugin_detail_divider);

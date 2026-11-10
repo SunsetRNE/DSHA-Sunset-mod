@@ -333,7 +333,9 @@ public class SettingsFragment extends Fragment {
     }
     LinearLayout shell = new LinearLayout(context);
     shell.setOrientation(LinearLayout.HORIZONTAL);
-    shell.setBackgroundColor(context.getColor(R.color.shell_bg));
+    // DSHA-Mod：双栏外壳原来刷不透明 shell_bg，壁纸被整块挡住（卡片 71% 白压在它上面
+    // 实测 253，和背景完全同色）。这里改成透明，壁纸才透得上来。
+    shell.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     shell.addView(list, new LinearLayout.LayoutParams(dp(LIST_PANE_DP), -1));
     View line = divider();
     shell.addView(line, new LinearLayout.LayoutParams(dp(1), -1));
