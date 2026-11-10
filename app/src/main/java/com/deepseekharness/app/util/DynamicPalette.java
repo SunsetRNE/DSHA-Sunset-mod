@@ -130,8 +130,18 @@ public final class DynamicPalette {
 
   private DynamicPalette() {}
 
-  /** 推导不可达（该色相/饱和度下找不到满足对比度的亮度档）时返回 null，绝不放宽门槛。 */
+  /**
+   * 推导不可达（该色相/饱和度下找不到满足对比度的亮度档）时返回 null，绝不放宽门槛。
+   *
+   * <p>搜索范围与生成器逐字一致：日间 {@code range(600,199,-5)} 即 600→200、夜间 400→900。
+   * 终止用比较而不是 {@code !=} 哨兵 —— 5 的步长永远撞不上 199/901，写成哨兵会让循环越过
+   * 声明边界继续跑（历史上真的越到 tone=185），靠端点 clamp 出图才碰巧终止；那时「不可达
+   * 返回 null」的契约整条失效，门禁一收紧就变主线程死循环。
+   */
   public static String[][] derive(double hue, double saturation) {
+    // NaN 会污染 hsl 的每个分量（出 #000000），对比度恒不达标；Infinity 同理。直接按不可达处理，
+    // 不给调用方一个看起来合法实则全黑的表。
+    if (!Double.isFinite(hue) || !Double.isFinite(saturation)) return null;
     String[][] values = new String[NAMES.length][2];
     for (int index = 0; index < NAMES.length; index++) {
       values[index][0] = rehue(STANDARD[index][0], hue);
@@ -140,11 +150,8 @@ public final class DynamicPalette {
     for (int mode = 0; mode < 2; mode++) {
       boolean dark = mode == 1;
       String on = dark ? hsl(hue, 0.6, 0.08) : "#FFFFFF";
-      int from = dark ? 400 : 600;
-      int to = dark ? 901 : 199;
-      int step = dark ? 5 : -5;
       String[][] chosen = null;
-      for (int tone = from; tone != to; tone += step) {
+      for (int tone = dark ? 400 : 600; dark ? tone <= 900 : tone >= 200; tone += dark ? 5 : -5) {
         double light = tone / 1000.0;
         String accent = hsl(hue, saturation, light);
         String terminal = hsl(hue, saturation, Math.min(light + (dark ? 0.07 : 0), 0.9));
@@ -171,27 +178,39 @@ public final class DynamicPalette {
       }
       if (chosen == null) return null;
       double accentLightness = rgbToHls(rgba(chosen[PRIMARY][mode]))[1];
+      // 用 clamp 后的饱和度：裸调 derive(hue, 2) 时 2×0.9 在 hsl 里才被夹回 1，
+      // 算出的 primary_dark 与 derive(hue, 1) 不同；先夹让入参等价性成立。
+      double clamped = Math.max(0, Math.min(1, saturation));
       chosen[PRIMARY_DARK][mode] =
-          hsl(hue, saturation * (dark ? 0.7 : 0.9), accentLightness - (dark ? 0.15 : 0.05));
+          hsl(hue, clamped * (dark ? 0.7 : 0.9), accentLightness - (dark ? 0.15 : 0.05));
       values = chosen;
     }
     return values;
   }
 
   /**
-   * 运行时入口：推导失败时逐档降饱和重试，仍失败则返回 null。
+   * 运行时入口：推导失败时向邻近饱和度逐档退让，仍失败则返回 null。
    *
-   * <p>取色得到的饱和度可能落在生成器从未覆盖的极端区间；构建期遇到不可达直接让 CI 失败，
-   * 运行期不能崩，只能退让，退让顺序对用户可见（配色会变淡），不能静默走标准色。
+   * <p>退让顺序是「离请求值最近优先」，交替向上、向下各试一档：请求 0.95 不可达时先试 1.0 再试
+   * 0.9，而不是跳到 0.2 —— 后者会让主题突然变淡到几乎认不出，用户以为功能坏了。每档 0.05、
+   * 最多各 16 步覆盖 [0.05, 1]，与生成器 MARGIN 下的实际可达域比足够宽。
    */
   public static String[][] deriveWithinReach(double hue, double saturation) {
+    if (!Double.isFinite(hue) || !Double.isFinite(saturation)) return null;
     double start = Math.max(0, Math.min(1, saturation));
     String[][] values = derive(hue, start);
     if (values != null) return values;
-    for (double attempt = 0.2; attempt <= 1 + 1e-9; attempt += 0.05) {
-      if (Math.abs(attempt - start) < 1e-9) continue;
-      values = derive(hue, attempt);
-      if (values != null) return values;
+    for (int step = 1; step <= 16; step++) {
+      double up = start + step * 0.05;
+      double down = start - step * 0.05;
+      if (up <= 1 + 1e-9) {
+        values = derive(hue, Math.min(1, up));
+        if (values != null) return values;
+      }
+      if (down >= -1e-9) {
+        values = derive(hue, Math.max(0, down));
+        if (values != null) return values;
+      }
     }
     return null;
   }

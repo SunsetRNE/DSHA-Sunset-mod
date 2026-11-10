@@ -105,6 +105,32 @@ public final class ResourcesTableTest {
     expectRejected(new int[] {}, new int[] {});
   }
 
+  /** typeId=0 会让类型名池索引成 -1；>255 会在 u8 写入时被截断成另一张表。 */
+  @Test
+  public void rejectsIllegalTypeIdInsteadOfThrowingIndexOutOfBounds() {
+    for (int bad : new int[] {0, -1, 256, 0x100}) {
+      try {
+        ResourcesTable.build(
+            PACKAGE_NAME, PACKAGE_ID, bad, new int[] {id(1)}, new int[] {0xFF000000});
+        fail("typeId=" + bad + " 必须以 IAE 拒绝");
+      } catch (IllegalArgumentException expected) {
+        // 预期
+      }
+    }
+  }
+
+  /** entry=0xFFFF 会把表撑到 500+ KB / 4 MiB 堆；真实 R.color 不会这样，出现即传错。 */
+  @Test
+  public void rejectsUnreasonablySparseEntryIds() {
+    try {
+      ResourcesTable.build(
+          PACKAGE_NAME, PACKAGE_ID, TYPE_ID, new int[] {0x7f03FFFF}, new int[] {0xFF000000});
+      fail("entry=0xFFFF 必须以 IAE 拒绝");
+    } catch (IllegalArgumentException expected) {
+      // 预期
+    }
+  }
+
   private static void expectRejected(int[] ids, int[] argb) {
     try {
       ResourcesTable.build(PACKAGE_NAME, PACKAGE_ID, TYPE_ID, ids, argb);

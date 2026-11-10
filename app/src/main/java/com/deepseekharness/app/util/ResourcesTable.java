@@ -53,10 +53,19 @@ public final class ResourcesTable {
    * @param resourceIds 要覆盖的资源 id，取自 {@code R.color.pal_monet_*} 常量
    * @param argb 与 {@code resourceIds} 一一对应的颜色（0xAARRGGBB）
    */
+  /** entry 槽位数上限：真实调用只覆盖 33 个 color，给两个数量级的余量；超出说明调用方传错了 id。 */
+  private static final int MAX_ENTRY_COUNT = 4096;
+
   public static byte[] build(
       String packageName, int packageId, int typeId, int[] resourceIds, int[] argb) {
     if (resourceIds.length != argb.length) throw new IllegalArgumentException("RES_TABLE_ARITY");
     if (resourceIds.length == 0) throw new IllegalArgumentException("RES_TABLE_EMPTY");
+    // typeId=0 会让类型名池索引成 -1（IndexOutOfBoundsException 而不是可读的入参错误）；
+    // >0xFF 则 u8 写入时被截断，生成一张与请求不符的表。
+    if (packageName == null) throw new IllegalArgumentException("RES_TABLE_PACKAGE_NAME");
+    if (typeId < 1 || typeId > 0xFF) {
+      throw new IllegalArgumentException("RES_TABLE_TYPE_ID: " + typeId);
+    }
     int maxEntry = -1;
     for (int id : resourceIds) {
       if ((id >>> 24) != packageId || ((id >>> 16) & 0xFF) != typeId) {
@@ -65,6 +74,11 @@ public final class ResourcesTable {
       maxEntry = Math.max(maxEntry, id & 0xFFFF);
     }
     int entryCount = maxEntry + 1;
+    // entry=0xFFFF 会让 entryCount=65536：表 500+ KB、4 MiB 堆。结构虽然自洽，但真实调用
+    // （R.color 常量）不可能出现这种 id，出现即说明调用方把非 color 资源传了进来。
+    if (entryCount > MAX_ENTRY_COUNT) {
+      throw new IllegalArgumentException("RES_TABLE_SPARSE: " + entryCount);
+    }
     int[] slotToSource = new int[entryCount];
     java.util.Arrays.fill(slotToSource, -1);
     for (int index = 0; index < resourceIds.length; index++) {

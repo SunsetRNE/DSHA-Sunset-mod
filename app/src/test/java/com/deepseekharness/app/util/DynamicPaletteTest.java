@@ -1,6 +1,7 @@
 package com.deepseekharness.app.util;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -150,6 +151,32 @@ public class DynamicPaletteTest {
     for (int hue = 0; hue < 360; hue += 30) {
       assertNotNull("hue " + hue, DynamicPalette.deriveWithinReach(hue, 1.0));
       assertNotNull("hue " + hue, DynamicPalette.deriveWithinReach(hue, 0.0));
+    }
+  }
+
+  /**
+   * 生成器在黄绿色相高饱和的日间判为不可达（PALETTE_ACCENT_UNREACHABLE），Java 侧必须同样返回
+   * null 并由 deriveWithinReach 降档 —— 历史上档位循环用 {@code !=} 哨兵永不终止，越界搜到
+   * 声明边界之外靠端点 clamp 出图，把不可达静默变成了「能出图但越界」。
+   */
+  @Test
+  public void generatorUnreachableCombinationsStayUnreachable() {
+    for (double saturation : new double[] {0.90, 0.95, 1.00}) {
+      assertNull("hue 60 sat " + saturation, DynamicPalette.derive(60, saturation));
+      assertNotNull("hue 60 sat " + saturation, DynamicPalette.deriveWithinReach(60, saturation));
+    }
+    assertNull(DynamicPalette.derive(65, 0.95));
+    assertNull(DynamicPalette.derive(55, 1.00));
+  }
+
+  /** NaN / 无穷大按不可达处理：返回 null 而不是一张全黑的表，更不能挂死。 */
+  @Test
+  public void nonFiniteInputsReturnNull() {
+    for (double bad :
+        new double[] {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+      assertNull("saturation " + bad, DynamicPalette.derive(205, bad));
+      assertNull("hue " + bad, DynamicPalette.derive(bad, 0.7));
+      assertNull("withinReach " + bad, DynamicPalette.deriveWithinReach(205, bad));
     }
   }
 
