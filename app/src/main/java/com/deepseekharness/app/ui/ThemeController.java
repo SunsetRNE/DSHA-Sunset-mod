@@ -80,6 +80,8 @@ public final class ThemeController {
       case UiThemePalette.SAKURA -> R.style.ThemeOverlay_DSHA_Palette_Sakura;
       case UiThemePalette.CYBER -> R.style.ThemeOverlay_DSHA_Palette_Cyber;
       case UiThemePalette.AMBER -> R.style.ThemeOverlay_DSHA_Palette_Amber;
+        // 莫奈：overlay 指向 pal_monet_*，运行时取色成功后由 ThemePaletteOverride 覆盖这批色值。
+      case UiThemePalette.MONET -> R.style.ThemeOverlay_DSHA_Palette_Monet;
       default -> 0;
     };
   }
@@ -91,6 +93,7 @@ public final class ThemeController {
       case UiThemePalette.SAKURA -> R.color.pal_sakura_primary;
       case UiThemePalette.CYBER -> R.color.pal_cyber_primary;
       case UiThemePalette.AMBER -> R.color.pal_amber_primary;
+      case UiThemePalette.MONET -> R.color.pal_monet_primary;
       default -> R.color.pal_standard_primary;
     };
   }

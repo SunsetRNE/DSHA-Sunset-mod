@@ -29,6 +29,11 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
   private final java.util.Map<String, Tile> tiles = new java.util.LinkedHashMap<>();
   private float touchX = -1f, touchY = -1f;
 
+  /** 莫奈取色结果（本页只解码一次壁纸）；null 表示没取到色，色块退回兜底色。 */
+  private String[][] monet;
+
+  private boolean monetLoaded;
+
   static void open(Context context) {
     context.startActivity(new Intent(context, ThemeActivity.class));
   }
@@ -142,7 +147,7 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
     View dot = new View(this);
     GradientDrawable fill = new GradientDrawable();
     fill.setShape(GradientDrawable.OVAL);
-    fill.setColor(getColor(ThemeController.paletteSwatch(id)));
+    fill.setColor(swatchColor(id));
     // 选中：外圈留一道底色缝再描强调色，和参考稿的选中圆点一致。
     fill.setStroke(page.dp(selected ? 3 : 0), getColor(R.color.shell_surface));
     dot.setBackground(fill);
@@ -184,8 +189,36 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
       case com.deepseekharness.app.util.UiThemePalette.SAKURA -> UiText.text("樱花");
       case com.deepseekharness.app.util.UiThemePalette.CYBER -> UiText.text("赛博");
       case com.deepseekharness.app.util.UiThemePalette.AMBER -> UiText.text("琥珀");
+      case com.deepseekharness.app.util.UiThemePalette.MONET -> UiText.text("莫奈");
       default -> UiText.text("经典蓝");
     };
+  }
+
+  /**
+   * 色块主色：莫奈优先用壁纸真实取色结果，取不到才退回资源兜底色。
+   *
+   * <p>这里是「取色准不准」唯一能当场看到的地方，所以宁可多解一次壁纸，也不能只画兜底色 ——
+   * 否则莫奈色块和经典蓝永远一模一样，用户无法判断功能是否生效。
+   */
+  private int swatchColor(String id) {
+    if (!com.deepseekharness.app.util.UiThemePalette.MONET.equals(
+        com.deepseekharness.app.util.UiThemePalette.normalize(id))) {
+      return getColor(ThemeController.paletteSwatch(id));
+    }
+    if (!monetLoaded) {
+      monet = MonetPalette.palette(this);
+      monetLoaded = true;
+    }
+    if (monet != null) {
+      try {
+        return android.graphics.Color.parseColor(
+            com.deepseekharness.app.util.DynamicPalette.accent(
+                monet, ThemeController.isDark(this)));
+      } catch (IllegalArgumentException malformed) {
+        // 推导结果异常：落到资源兜底色，不让主题页崩。
+      }
+    }
+    return getColor(ThemeController.paletteSwatch(id));
   }
 
   /** 触摸落在来源卡片上时取触点，否则取卡片中心；均换算为窗口坐标。 */

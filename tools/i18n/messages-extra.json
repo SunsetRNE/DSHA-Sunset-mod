@@ -15818,7 +15818,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java"
     ]
   },
-{
+  {
     "id": "m9029",
     "zh": "恢复已取消",
     "en": "Restore cancelled",
@@ -15826,7 +15826,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
     ]
   },
-{
+  {
     "id": "m9030",
     "zh": "正在取消…",
     "en": "Cancelling…",
@@ -15834,7 +15834,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/DeterminateProgress.java"
     ]
   },
-{
+  {
     "id": "m9031",
     "zh": "等待当前作业收尾",
     "en": "Waiting for the task to stop",
@@ -15842,7 +15842,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/DeterminateProgress.java"
     ]
   },
-{
+  {
     "id": "m9032",
     "zh": "未选中",
     "en": "Not selected",
@@ -15850,7 +15850,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/CardTabs.java"
     ]
   },
-{
+  {
     "id": "m9033",
     "zh": "技术说明",
     "en": "Technical notes",
@@ -15858,7 +15858,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/TechNote.java"
     ]
   },
-{
+  {
     "id": "m9034",
     "zh": "技术说明 · DSHA v%s",
     "en": "Technical notes · DSHA v%s",
@@ -15866,7 +15866,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/SettingsFragment.java"
     ]
   },
-{
+  {
     "id": "m9035",
     "zh": "启动与恢复",
     "en": "Startup and recovery",
@@ -15874,7 +15874,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
     ]
   },
-{
+  {
     "id": "m9036",
     "zh": "网络与插件",
     "en": "Network and plugins",
@@ -15882,7 +15882,7 @@
       "app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java"
     ]
   },
-{
+  {
     "id": "m9037",
     "zh": "运行方式：%s · 端口：%s\nDNS：%s\n配置保存在应用私有目录，本机 API Key 默认不参与导出。",
     "en": "Runtime: %s · Port: %s\nDNS: %s\nSettings live in app-private storage; the native API key is excluded from exports by default.",
@@ -16017,6 +16017,14 @@
     "en": "Cannot open system settings",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java"
+    ]
+  },
+  {
+    "id": "thm267c08",
+    "zh": "莫奈",
+    "en": "Monet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
     ]
   }
 ]
