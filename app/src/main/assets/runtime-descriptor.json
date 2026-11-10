@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "8e54085cc01917587422184d6ca7afa2d6eb901173af02adf611afbab8124a0a",
+  "runtimeId": "fd574e2c9f33fce7802e88361bbadb4c7b7159c09f1daf327c82dac5c06ceab5",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -543,7 +543,7 @@
     "builtin-plugins/dsh-status-overlay/package.json": "85d452eb38380a4fe60e92b800f8ea6409926e351fe264b3f01d9113b796dc15",
     "builtin-plugins/dsh-task-notifier/cordis.patch.yml": "bdfd53321389b451a91a077aa12c07533a983f0534dccb63ff48979d8f07ee92",
     "builtin-plugins/dsh-task-notifier/lib/bridge-port.cjs": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
-    "builtin-plugins/dsh-task-notifier/lib/index.js": "b87ecc4daccd6f504fe35d2bb8ee0011c1e7e86cd475902083be5de27b0afc7d",
+    "builtin-plugins/dsh-task-notifier/lib/index.js": "048498e41e25a4cfe6da2938c7371826a2fd057be6da29779326ca22e14ac74a",
     "builtin-plugins/dsh-task-notifier/package.json": "2c173ccd4653b6751bc140bcadcdbfc2db7ce0c03f96aa431b82e03219d2eb7b",
     "builtin-plugins/dsh-tool-vscreen/cordis.patch.yml": "48658efef5374dc8a9b52ae028e4f27b2ab3dd59991402706e356623335a66a2",
     "builtin-plugins/dsh-tool-vscreen/lib/bridge-port.cjs": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
