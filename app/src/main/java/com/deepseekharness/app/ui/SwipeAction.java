@@ -166,7 +166,14 @@ final class SwipeAction {
     return true;
   }
 
-  /** 行 + 行尾动作条。行内容包在一层不透明底里整体平移，避免拖动时透出后面的动作条。 */
+  /**
+   * 行 + 行尾动作条。行内容整体平移露出后面的动作条。
+   *
+   * <p>内容层**不再垫不透明底**：那层 {@code shell_surface} 就在行卡片底下，会把它上面的玻璃卡
+   * 变成一块死白（真机「插件列表永远纯白、卡片不透明度怎么调都不动」的最后一层）。卡片自己的
+   * 玻璃底已经承担了承载面；拖动时 content 与 strip 只在右边缘短暂重叠，重叠处显示的是 strip
+   * 本身，收起后两者不再重叠。
+   */
   static final class Host extends FrameLayout {
     private final FrameLayout content;
     private final LinearLayout strip;
@@ -196,7 +203,8 @@ final class SwipeAction {
           new FrameLayout.LayoutParams(
               LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT, Gravity.END));
       content = new FrameLayout(context);
-      content.setBackgroundColor(context.getColor(R.color.shell_surface));
+      // 不再垫不透明底（原来填的是 shell_surface）：那一层白正好压在行卡片下面，
+      // 玻璃卡无论怎么调不透明度都只能透出这块白，看起来永远是实心纯白。
       addView(
           content,
           new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
