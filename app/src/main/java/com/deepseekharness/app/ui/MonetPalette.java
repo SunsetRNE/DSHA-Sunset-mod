@@ -74,13 +74,23 @@ public final class MonetPalette {
   public static String[][] palette(Context context) {
     int wallpaperId = currentWallpaperId(context);
     if (cacheKnown && wallpaperId == cachedWallpaperId) return cached;
-    cacheKnown = true;
+    // 先算完再写缓存：原实现把 cacheKnown 置位放在解码之前，一旦解码或推导中途失败，
+    // 就会留下「已缓存 = true 但值是 null」的永久空缓存（壁纸 id 不变就再也不会重试），
+    // 表现为取色功能对该张壁纸彻底失效。现在失败也照常写入（null 是合法结果），
+    // 但绝不会出现「标志已置位、值还没算出来」的中间态。
+    String[][] computed;
+    try {
+      PaletteSeedExtractor.Seed seed = readSeed(context);
+      computed =
+          seed == null || !seed.found
+              ? null
+              : DynamicPalette.deriveWithinReach(seed.hue, seed.saturation);
+    } catch (Throwable error) {
+      computed = null;
+    }
+    cached = computed;
     cachedWallpaperId = wallpaperId;
-    PaletteSeedExtractor.Seed seed = readSeed(context);
-    cached =
-        seed == null || !seed.found
-            ? null
-            : DynamicPalette.deriveWithinReach(seed.hue, seed.saturation);
+    cacheKnown = true;
     return cached;
   }
 
