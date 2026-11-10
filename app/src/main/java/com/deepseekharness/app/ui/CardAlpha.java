@@ -159,7 +159,7 @@ public final class CardAlpha {
    * 默认 68%：内置浅色壁纸下半段是淡蓝紫，50% 的白卡压不住它，整片看着发灰发青
    * （build354 真机实测）；68% 仍能透出壁纸渐层，但卡片读起来是白的。
    */
-  private static final float DEFAULT_ALPHA = 0.85f;
+  private static final float DEFAULT_ALPHA = 0.55f;
 
   /** 1 = 完全不透明；默认 0.27，超出 0.2~1.0 一律回落默认。 */
   public static float cardAlpha(Context context) {
