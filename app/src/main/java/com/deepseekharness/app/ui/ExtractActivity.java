@@ -59,6 +59,7 @@ public class ExtractActivity extends AppCompatActivity {
   protected void onCreate(@Nullable Bundle saved) {
     super.onCreate(saved);
     setContentView(R.layout.activity_extract);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     controller = HarnessController.get(this);
     task = BackupTask.get(this);
@@ -499,6 +500,7 @@ public class ExtractActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    DshAppearance.apply(this, "app", null);
     cachedReady = null;
     // 从应急 DSH 的「恢复中断维护」返回时，外部恢复不会经过本页的 BackupTask；立即丢弃
     // 维护记录的 UI 缓存，避免恢复完成后仍沿用恢复前的结果把页面停在“中断维护”。

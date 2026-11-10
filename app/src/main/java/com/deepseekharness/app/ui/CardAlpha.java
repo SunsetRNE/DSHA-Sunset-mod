@@ -62,7 +62,7 @@ import com.deepseekharness.app.R;
  * 资源启发式必然认不出。所以这两条 bar 由 {@link #paintChrome} 显式装背景、逐层下发 alpha。
  *
  * <p>调用点：{@link ModernAndroidUi}（每个 Activity 建好/回到前台）、
- * {@code MainActivity} 的 Fragment 回调（切 tab）、{@link AppearanceActivity}（拖动实时预览）、
+ * {@code MainActivity} 的 Fragment 回调（切 tab）、{@link ThemeActivity}（拖动实时预览）、
  * {@link CardPage#card()}、{@code CardSheet}、{@code DshaSelectView}、
  * {@code VirtualScreenForeground}（悬浮面板不在 Activity 树里）。
  */

@@ -31,6 +31,7 @@ public final class UpdateActivity extends AppCompatActivity {
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     setContentView(R.layout.activity_update);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     repository = new ViewModelProvider(this).get(UpdateRepository.class);
     resumeInstall = saved != null && saved.getBoolean("resumeInstall");
@@ -431,6 +432,7 @@ public final class UpdateActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    DshAppearance.apply(this, "app", null);
     if (resumeInstall) {
       resumeInstall = false;
       if (android.os.Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls())

@@ -101,6 +101,7 @@ public final class DiagnosticActivity extends AppCompatActivity {
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     setContentView(R.layout.activity_diagnostics);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     bindToolTabs(saved);
     bindFeedbackExport();

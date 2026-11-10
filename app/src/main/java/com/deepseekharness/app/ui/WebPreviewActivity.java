@@ -433,6 +433,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
     restoreIdentity = savedPageIdentity(savedInstanceState);
     if (restoreIdentity == null) restoreState = null;
     setContentView(R.layout.activity_web_preview);
+    DshAppearance.apply(this, "app", null);
     WebFullscreenUi.install(this);
     container = findViewById(R.id.web_container);
     errorPanel = findViewById(R.id.web_error_panel);
@@ -1888,6 +1889,7 @@ public class WebPreviewActivity extends PictureInPictureActivity implements WebF
   @Override
   protected void onResume() {
     super.onResume();
+    DshAppearance.apply(this, "app", null);
     browserResumed = true;
     // 预览宿主回到前台时再重放一次：新任务可能晚于上次策略才进入系统任务列表
     // （ColorOS 16 会把网页宿主作为独立卡片留下），这里补上 exclude 标记。

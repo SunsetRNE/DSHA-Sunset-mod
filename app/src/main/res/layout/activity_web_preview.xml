@@ -20,7 +20,7 @@
             android:id="@+id/web_error_panel"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/shell_bg"
+            android:background="@android:color/transparent"
             android:orientation="vertical"
             android:visibility="gone">
 

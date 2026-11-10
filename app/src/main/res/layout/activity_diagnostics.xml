@@ -6,7 +6,7 @@
   - 导出格式、保存位置与补充复现步骤移入导出弹层；平板两栏见 layout-sw600dp。
   - DiagnosticPtyAudit / LayoutPreviewActivity 依赖的 diagnostic_status / diagnostic_report / diagnostic_repair 保持不变。
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/shell_bg">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@android:color/transparent">
   <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingStart="8dp" android:paddingEnd="12dp" android:gravity="center_vertical">
     <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/diagnostic_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_ui_back" android:contentDescription="@string/ui_m0201" app:tint="@color/shell_text" />
     <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:accessibilityHeading="true" android:includeFontPadding="false" android:text="@string/ui2_diagnostics" android:textColor="@color/shell_text" android:textSize="@dimen/shell_title_text" android:textStyle="bold" />

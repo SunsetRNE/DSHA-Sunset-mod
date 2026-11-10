@@ -24,6 +24,7 @@ public final class PluginInstallActivity extends AppCompatActivity {
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
     setContentView(R.layout.activity_plugin_install);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     status = findViewById(R.id.link_install_status);
     details = findViewById(R.id.link_install_details);

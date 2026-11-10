@@ -4,7 +4,7 @@
   左栏 主卡 + 候选摘要行 + 管理；右栏 “候选版本 / 本版本” 两个标签页显示完整更新记录。
   点左栏候选行或“本版本更新记录”只切换右栏，不弹层。与手机布局共用 update_hero / update_manage 与全部 id。
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:orientation="vertical">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@android:color/transparent" android:orientation="vertical">
   <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:minHeight="@dimen/shell_header_min_height" android:orientation="horizontal" android:paddingStart="16dp" android:paddingEnd="24dp">
     <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/update_back" android:layout_width="48dp" android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/ui_m0201" android:padding="12dp" android:src="@drawable/ic_ui_back" app:tint="@color/shell_text" />
     <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:accessibilityHeading="true" android:includeFontPadding="false" android:text="@string/ui2_updates" android:textColor="@color/shell_text" android:textSize="@dimen/shell_title_text" android:textStyle="bold" />

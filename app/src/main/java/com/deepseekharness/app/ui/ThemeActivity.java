@@ -7,13 +7,21 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.util.ThemeMotion;
@@ -29,15 +37,76 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
   private final java.util.Map<String, Tile> tiles = new java.util.LinkedHashMap<>();
   private float touchX = -1f, touchY = -1f;
 
+  /** 选图：先系统相册，打不开时退到文件选择器（与外观背景页同一套兜底）。 */
+  private final ActivityResultLauncher<String> picker =
+      registerForActivityResult(new ActivityResultContracts.GetContent(), this::onPicked);
+
+  private final ActivityResultLauncher<String[]> docPicker =
+      registerForActivityResult(
+          new ActivityResultContracts.OpenDocument(),
+          uri -> {
+            if (uri != null) onPicked(uri);
+            else toast(UiText.text("没有选图"));
+          });
+
+  /** 选图后进裁剪页；裁剪页自己写图与配置，这里只负责刷新。 */
+  private final ActivityResultLauncher<Intent> cropLauncher =
+      registerForActivityResult(
+          new ActivityResultContracts.StartActivityForResult(),
+          result -> {
+            if (result.getResultCode() == RESULT_OK) {
+              toast(UiText.text("图片已应用"));
+              recreate();
+            }
+          });
+
+  /** 壁纸三明治的外壳（app_shell）与背景区控件。 */
+  private FrameLayout shell;
+
+  private TextView wallpaperStatus;
+  private TextView scrimLabel;
+  private SeekBar scrimBar;
+
   static void open(Context context) {
     context.startActivity(new Intent(context, ThemeActivity.class));
   }
 
   @Override
   protected void onCreate(Bundle saved) {
+    // 背景壁纸合并进本页后也要能透出壁纸：卡片调透明时底下不能还是整块不透明页面。
+    if (DshAppearance.isTransparent(this, "app"))
+      setTheme(R.style.Theme_DeepseekHarness_Translucent);
     super.onCreate(saved);
-    CardPage page = new CardPage(this, UiText.text("主题与外观"), UiText.text("选择应用的明暗外观，切换会立即生效。"));
-    setContentView(page.root);
+
+    shell = new FrameLayout(this);
+    shell.setId(R.id.app_shell);
+    ImageView background = new ImageView(this);
+    background.setId(R.id.app_background);
+    background.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    background.setContentDescription(null);
+    background.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    shell.addView(
+        background,
+        new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    View scrim = new View(this);
+    scrim.setId(R.id.app_scrim);
+    shell.addView(
+        scrim,
+        new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+    CardPage page =
+        new CardPage(
+                this,
+                UiText.text("主题与外观"),
+                UiText.text("选择应用的明暗外观与背景壁纸，切换会立即生效。"))
+            .transparentRoot();
+    LinearLayout header =
+        UiNavigation.addHeader(this, page.root, UiText.text("主题与外观"), this::finish);
+    page.content.removeViewAt(0);
+    // 本页 edge-to-edge（壁纸铺到状态栏下），页头自己吃状态栏留白。
+    UiInsets.top(header);
 
     page.label(UiText.text("外观模式"));
     LinearLayout row = new LinearLayout(this);
@@ -74,9 +143,24 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
     for (String style : ThemeMotion.STYLES) styles.addView(styleRow(page, styles, style));
     renderStyle(styles);
 
+    page.label(UiText.text("背景壁纸"));
+    // CardPage#card() 已经把它挂到 content 上，这里不能再 addView（会抛
+    // IllegalStateException: child already has a parent）。
+    wallpaperCard(page);
+
     page.label(UiText.text("同步"));
     LinearLayout sync = page.card();
     sync.addView(webSyncRow(page));
+
+    shell.addView(
+        page.root,
+        new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    setContentView(shell);
+    DshAppearance.applyEdgeToEdge(this);
+    UiInsets.scroll(page.scroll);
+    refreshWallpaper();
+    DshAppearance.apply(this, "app", null);
 
     // 发起切换的就是本页：重建后领取切换前的截图并扩散。
     ThemeReveal.consume(this);
@@ -281,6 +365,163 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
       case ThemeMotion.NONE -> UiText.text("不做过渡，立即换成新外观");
       default -> UiText.text("从点按处向外铺开，不回缩");
     };
+  }
+
+  /**
+   * 背景壁纸：原「外观背景」独立页的内容，合并进本页后不再单独入口。
+   *
+   * <p>四件事：<b>卡片不透明度 · 选图 · 遮罩 · 清除</b>。横屏 DSH 舞台那套依赖补丁 0004
+   * （横屏 Dock），未移植前没有任何界面消费，所以这里不提供入口。
+   */
+  private LinearLayout wallpaperCard(CardPage page) {
+    LinearLayout card = page.card();
+
+    TextView alphaLabel =
+        page.text(
+            UiText.text("卡片不透明度：") + Math.round(CardAlpha.cardAlpha(this) * 100f) + "%",
+            12,
+            R.color.text_secondary);
+    card.addView(alphaLabel);
+    SeekBar alphaBar = new SeekBar(this);
+    alphaBar.setMax(80);
+    alphaBar.setProgress(Math.round((CardAlpha.cardAlpha(this) - 0.2f) * 100f));
+    alphaBar.setContentDescription(UiText.text("卡片不透明度"));
+    alphaBar.setOnSeekBarChangeListener(
+        new SeekBar.OnSeekBarChangeListener() {
+          @Override
+          public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+            float alpha = 0.2f + progress / 100f;
+            alphaLabel.setText(UiText.text("卡片不透明度：") + Math.round(alpha * 100f) + "%");
+            // 拖动只预览本页；松手才写库（其它页面回到前台时统一补刷）。
+            CardAlpha.apply(shell, alpha);
+          }
+
+          @Override
+          public void onStartTrackingTouch(SeekBar bar) {}
+
+          @Override
+          public void onStopTrackingTouch(SeekBar bar) {
+            CardAlpha.setCardAlpha(ThemeActivity.this, 0.2f + bar.getProgress() / 100f);
+          }
+        });
+    card.addView(alphaBar, new LinearLayout.LayoutParams(-1, -2));
+
+    wallpaperStatus = page.text("", 13, R.color.text);
+    wallpaperStatus.setLineSpacing(page.dp(3), 1);
+    wallpaperStatus.setPadding(0, page.dp(12), 0, page.dp(4));
+    card.addView(wallpaperStatus);
+    page.entry(
+        card,
+        UiText.text("选一张图…"),
+        UiText.text("从相册挑，铺满启动页与设置等原生界面"),
+        R.drawable.ic_ui_camera,
+        this::launchPicker);
+
+    scrimLabel = page.text(UiText.text("遮罩"), 12, R.color.text_secondary);
+    LinearLayout.LayoutParams scrimLabelLp = new LinearLayout.LayoutParams(-1, -2);
+    scrimLabelLp.topMargin = page.dp(14);
+    card.addView(scrimLabel, scrimLabelLp);
+    scrimBar = new SeekBar(this);
+    scrimBar.setMax(90);
+    scrimBar.setProgress(Math.round(DshAppearance.currentScrim(this) * 100f));
+    scrimBar.setContentDescription(UiText.text("遮罩强度"));
+    scrimBar.setOnSeekBarChangeListener(
+        new SeekBar.OnSeekBarChangeListener() {
+          @Override
+          public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+            scrimLabel.setText(UiText.text("遮罩：") + progress + "%");
+          }
+
+          @Override
+          public void onStartTrackingTouch(SeekBar bar) {}
+
+          @Override
+          public void onStopTrackingTouch(SeekBar bar) {
+            DshAppearance.setScrim(ThemeActivity.this, bar.getProgress() / 100f);
+            DshAppearance.apply(ThemeActivity.this, "app", null);
+          }
+        });
+    card.addView(scrimBar, new LinearLayout.LayoutParams(-1, -2));
+
+    page.button(
+        card,
+        UiText.text("清除，回到默认"),
+        false,
+        () -> {
+          DshAppearance.clearImage(this);
+          recreate();
+        });
+    return card;
+  }
+
+  private void launchPicker() {
+    if (wallpaperStatus != null) wallpaperStatus.setText(UiText.text("正在打开相册…"));
+    try {
+      picker.launch("image/*");
+    } catch (Throwable error) {
+      try {
+        docPicker.launch(new String[] {"image/*"});
+      } catch (Throwable again) {
+        new DshaDialogBuilder(this)
+            .setTitle(UiText.text("相册打不开"))
+            .setMessage(UiText.text("两个选择器都没能启动：") + again.getClass().getSimpleName())
+            .setPositiveButton(UiText.text("知道了"), null)
+            .show();
+      }
+    }
+  }
+
+  private void onPicked(Uri uri) {
+    if (uri == null) {
+      toast(UiText.text("没有选图"));
+      return;
+    }
+    // 先复制到缓存再进裁剪页：跨 Activity 传文件路径比传 content:// 稳。
+    java.io.File picked = DshAppearance.copyPickToCache(this, uri);
+    if (picked != null) {
+      try {
+        Intent intent = new Intent(this, ImageCropActivity.class);
+        intent.putExtra(ImageCropActivity.EXTRA_PATH, picked.getAbsolutePath());
+        intent.putExtra(ImageCropActivity.EXTRA_AREA, "app");
+        cropLauncher.launch(intent);
+        return;
+      } catch (Throwable ignored) {
+        // 裁剪页起不来就退回「直接导入」，不能让选图整个失败。
+      }
+    }
+    DshAppearance.ImportResult result = DshAppearance.importImageDetailed(this, uri);
+    if (result.ok) {
+      toast(UiText.text("图片已应用"));
+      recreate();
+    } else {
+      new DshaDialogBuilder(this)
+          .setTitle(UiText.text("选图没成功"))
+          .setMessage(result.message)
+          .setPositiveButton(UiText.text("知道了"), null)
+          .show();
+    }
+  }
+
+  private void refreshWallpaper() {
+    if (wallpaperStatus == null) return;
+    if (DshAppearance.read(this).missing) {
+      wallpaperStatus.setText(UiText.text("图片文件已不在（可能被清理或换机丢失），请重新选一张。"));
+    } else {
+      wallpaperStatus.setText(
+          UiText.text("当前：") + DshAppearance.presetLabel(this));
+    }
+    boolean image = DshAppearance.read(this).isImage();
+    if (scrimLabel != null)
+      scrimLabel.setText(
+          UiText.text("遮罩：") + Math.round(DshAppearance.currentScrim(this) * 100f) + "%");
+    if (scrimBar != null) {
+      scrimBar.setEnabled(image);
+      scrimBar.setAlpha(image ? 1f : 0.45f);
+    }
+  }
+
+  private void toast(String text) {
+    Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
   }
 
   private View webSyncRow(CardPage page) {
