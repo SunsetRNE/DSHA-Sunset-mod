@@ -5,6 +5,6 @@
     <item><selector>
         <item android:state_checked="true"><shape android:shape="rectangle"><solid android:color="@color/shell_accent_soft" /><corners android:radius="@dimen/onb_radius_card" /><stroke android:width="1.5dp" android:color="@color/shell_accent" /></shape></item>
         <item android:state_selected="true"><shape android:shape="rectangle"><solid android:color="@color/shell_accent_soft" /><corners android:radius="@dimen/onb_radius_card" /><stroke android:width="1.5dp" android:color="@color/shell_accent" /></shape></item>
-        <item><shape android:shape="rectangle"><solid android:color="@color/shell_surface" /><corners android:radius="@dimen/onb_radius_card" /><stroke android:width="1.5dp" android:color="@color/shell_line_strong" /></shape></item>
+        <item><shape android:shape="rectangle"><solid android:color="@color/card_glass" /><corners android:radius="@dimen/onb_radius_card" /><stroke android:width="1.5dp" android:color="@color/shell_line_strong" /></shape></item>
     </selector></item>
 </ripple>

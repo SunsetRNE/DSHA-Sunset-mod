@@ -103,6 +103,8 @@ public final class OnboardingActivity extends AppCompatActivity {
     if (!config.isWelcomed() && !deployStarted()) step = WELCOME;
     getOnBackPressedDispatcher().addCallback(this, backStep);
     setContentView(buildShell());
+    // 引导页也铺壁纸：根布局透明，app_background/app_scrim 由 DshAppearance 补。
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     panel = new PermissionPanel(this, goals, false);
     monitor = new DeployMonitor(this, this, view -> runOnUiThread(() -> onDeploy(view)));
@@ -115,6 +117,7 @@ public final class OnboardingActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    DshAppearance.apply(this, "app", null);
     if (panel != null) panel.refresh();
     // 从系统设置返回后授权数可能变化：授权页底栏与完成页芯片重新读取。
     if (content != null && (step == PERMS || step == FINISH)) render(false);
@@ -133,7 +136,7 @@ public final class OnboardingActivity extends AppCompatActivity {
     boolean wide = kit.wide(), compact = kit.shortScreen();
     int pad = kit.dp(wide ? 28 : 20);
     LinearLayout main = kit.column();
-    main.setBackgroundColor(kit.color(R.color.shell_bg));
+    main.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     LinearLayout head = kit.row();
     head.setMinimumHeight(kit.dp(compact ? 40 : 52));
     head.setPadding(
@@ -186,7 +189,7 @@ public final class OnboardingActivity extends AppCompatActivity {
     main.addView(foot, OnboardingKit.matchWrap());
     if (!wide) return main;
     LinearLayout root = kit.row();
-    root.setBackgroundColor(kit.color(R.color.shell_bg));
+    root.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     root.addView(buildSide(), new LinearLayout.LayoutParams(sideWidth(), -1));
     View rule = new View(this);
     rule.setBackgroundColor(kit.color(R.color.shell_line));
@@ -212,7 +215,7 @@ public final class OnboardingActivity extends AppCompatActivity {
     boolean compact = kit.shortScreen();
     ScrollView holder = new ScrollView(this);
     holder.setFillViewport(true);
-    holder.setBackgroundColor(kit.color(R.color.shell_surface));
+    holder.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     LinearLayout side = kit.column();
     side.setPadding(kit.dp(18), kit.dp(compact ? 14 : 22), kit.dp(18), kit.dp(18));
     int gap = compact ? 12 : 18;
