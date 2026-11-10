@@ -134,12 +134,16 @@ public final class CardAlpha {
    * 重装 —— UI-only 的改动不该动运行时。这里用独立的偏好文件，与外观配置分开。
    */
   private static final String PREFS = "dsh-appearance";
-  private static final String KEY_ALPHA = "card_alpha";
+  /**
+   * 键名带 v2：旧键存过 0.27/0.5 这类历史默认值，沿用会让新默认永远看不到。
+   * 本设置还没随任何版本发布，不存在用户数据迁移问题。
+   */
+  private static final String KEY_ALPHA = "card_alpha_v2";
   /**
    * 默认 68%：内置浅色壁纸下半段是淡蓝紫，50% 的白卡压不住它，整片看着发灰发青
    * （build354 真机实测）；68% 仍能透出壁纸渐层，但卡片读起来是白的。
    */
-  private static final float DEFAULT_ALPHA = 0.68f;
+  private static final float DEFAULT_ALPHA = 0.85f;
 
   /** 1 = 完全不透明；默认 0.27，超出 0.2~1.0 一律回落默认。 */
   public static float cardAlpha(Context context) {
