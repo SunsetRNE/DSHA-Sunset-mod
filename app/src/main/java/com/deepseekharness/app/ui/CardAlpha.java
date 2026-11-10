@@ -93,6 +93,18 @@ public final class CardAlpha {
     // 既不是玻璃也不跟随不透明度 —— 用户说的「设置列表一直没变」就是它们。
     R.drawable.bg_settings_group,
     R.drawable.bg_plugin_card_selectable,
+    R.drawable.bg_shell_card_filled,
+    R.drawable.bg_launch_log_box,
+    R.drawable.bg_data_stat,
+    R.drawable.bg_plugin_details,
+    R.drawable.bg_plugin_empty,
+    R.drawable.bg_plugin_note,
+    R.drawable.bg_plugin_strip,
+    R.drawable.bg_update_inset,
+    R.drawable.bg_web_crash_card,
+    R.drawable.bg_web_crash_tech,
+    R.drawable.bg_island_notice,
+    R.drawable.bg_island_strip,
     R.drawable.bg_shell_launch_card,
     R.drawable.bg_shell_status
   };
