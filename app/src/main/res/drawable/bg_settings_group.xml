@@ -4,6 +4,6 @@
   透明底 + 1dp shell_line 细边 + 小圆角，行之间仍用 ShellDivider。
 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/shell_raised" />
+    <solid android:color="@color/card_glass" />
     <corners android:radius="14dp" />
 </shape>

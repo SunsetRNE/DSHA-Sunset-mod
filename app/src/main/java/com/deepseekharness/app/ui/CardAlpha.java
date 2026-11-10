@@ -89,6 +89,10 @@ public final class CardAlpha {
     // H1 的 FILLED 层级用的是 shell_raised 底（蓝灰），之前漏在集合外：既不透、颜色也和
     // 其它卡片不是一套。补进来让三级皮肤走同一个不透明度与同一套卡面色。
     R.drawable.bg_shell_card_filled,
+    // 设置分组与插件卡片原来各写一种实心底（shell_raised 蓝灰 / shell_surface 死白），
+    // 既不是玻璃也不跟随不透明度 —— 用户说的「设置列表一直没变」就是它们。
+    R.drawable.bg_settings_group,
+    R.drawable.bg_plugin_card_selectable,
     R.drawable.bg_shell_launch_card,
     R.drawable.bg_shell_status
   };

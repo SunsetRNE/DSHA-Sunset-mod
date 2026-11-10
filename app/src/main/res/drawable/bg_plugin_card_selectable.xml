@@ -3,7 +3,7 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/shell_surface" />
+            <solid android:color="@color/card_glass" />
             <corners android:radius="@dimen/shell_launch_radius_card" />
             <stroke android:width="2dp" android:color="@color/shell_accent" />
         </shape>
