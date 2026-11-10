@@ -5,8 +5,12 @@
   底栏仍必须是 BottomNavigationView（单元测试与 debug 工具会强转）。
   平板形态见 layout-sw600dp/activity_main.xml（左栏 + 隐藏底栏）。
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:orientation="vertical">
-  <LinearLayout android:id="@+id/app_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/shell_header_min_height" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="18dp" android:paddingEnd="12dp">
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/app_shell" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/page_bg">
+  <!-- DSHA-Mod 壁纸三明治：底图 → 遮罩 → 内容。顺序由 DshAppearance.apply() 负责，别调换。 -->
+  <ImageView android:id="@+id/app_background" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:contentDescription="@null" android:importantForAccessibility="no" />
+  <View android:id="@+id/app_scrim" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
+  <LinearLayout android:id="@+id/app_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@android:color/transparent" android:orientation="vertical">
+  <LinearLayout android:id="@+id/app_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/shell_header_min_height" android:gravity="center_vertical" android:orientation="horizontal" android:background="@drawable/bg_appbar_glass" android:paddingStart="18dp" android:paddingEnd="12dp">
     <FrameLayout android:id="@+id/app_logo" android:layout_width="@dimen/shell_brand_size" android:layout_height="@dimen/shell_brand_size" android:background="@drawable/bg_shell_brand">
       <ImageView android:layout_width="@dimen/shell_brand_icon_size" android:layout_height="@dimen/shell_brand_icon_size" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_terminal" app:tint="@color/shell_accent" />
     </FrameLayout>
@@ -27,4 +31,5 @@
     </LinearLayout>
     <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/bottom_nav" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginStart="@dimen/shell_nav_margin_horizontal" android:layout_marginEnd="@dimen/shell_nav_margin_horizontal" android:layout_marginBottom="@dimen/shell_nav_margin_bottom" android:background="@drawable/bg_shell_nav" android:backgroundTint="@null" android:elevation="8dp" android:outlineProvider="background" android:minHeight="@dimen/shell_nav_height" app:backgroundTint="@null" app:itemIconSize="@dimen/shell_nav_icon_size" app:itemPaddingTop="@dimen/shell_nav_item_padding_top" app:itemPaddingBottom="@dimen/shell_nav_item_padding_bottom" app:itemIconTint="@color/shell_nav_item_tint" app:itemTextColor="@color/shell_nav_item_tint" app:itemRippleColor="@color/shell_nav_ripple" app:itemTextAppearanceActive="@style/Widget.DSHA.ShellNavLabel" app:itemTextAppearanceInactive="@style/Widget.DSHA.ShellNavLabel" app:labelVisibilityMode="@integer/shell_nav_label_visibility" app:elevation="8dp" app:menu="@menu/bottom_nav_menu" />
   </FrameLayout>
-</LinearLayout>
+  </LinearLayout>
+</FrameLayout>

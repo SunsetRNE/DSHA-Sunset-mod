@@ -34,4 +34,7 @@
     <attr name="dsha_pal_terminal_raised" format="color" />
     <attr name="dsha_pal_terminal_tile" format="color" />
     <attr name="dsha_pal_terminal_tile_pressed" format="color" />
+    <attr name="dsha_pal_page_bg" format="color" />
+    <attr name="dsha_pal_card_glass" format="color" />
+    <attr name="dsha_pal_appbar_glass" format="color" />
 </resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 214：次级按钮 = 白底 + 1px 边（去内框、去阴影）。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/card" />
+    <corners android:radius="@dimen/radius_control" />
+    <stroke android:width="@dimen/stroke" android:color="@color/line" />
+</shape>

@@ -36,6 +36,9 @@
         <item name="dsha_pal_terminal_raised">@color/pal_standard_terminal_raised</item>
         <item name="dsha_pal_terminal_tile">@color/pal_standard_terminal_tile</item>
         <item name="dsha_pal_terminal_tile_pressed">@color/pal_standard_terminal_tile_pressed</item>
+        <item name="dsha_pal_page_bg">@color/pal_standard_page_bg</item>
+        <item name="dsha_pal_card_glass">@color/pal_standard_card_glass</item>
+        <item name="dsha_pal_appbar_glass">@color/pal_standard_appbar_glass</item>
     </style>
     <style name="ThemeOverlay.DSHA.Palette.Standard" parent="">
         <item name="dsha_pal_primary">@color/pal_standard_primary</item>
@@ -71,6 +74,9 @@
         <item name="dsha_pal_terminal_raised">@color/pal_standard_terminal_raised</item>
         <item name="dsha_pal_terminal_tile">@color/pal_standard_terminal_tile</item>
         <item name="dsha_pal_terminal_tile_pressed">@color/pal_standard_terminal_tile_pressed</item>
+        <item name="dsha_pal_page_bg">@color/pal_standard_page_bg</item>
+        <item name="dsha_pal_card_glass">@color/pal_standard_card_glass</item>
+        <item name="dsha_pal_appbar_glass">@color/pal_standard_appbar_glass</item>
     </style>
     <style name="ThemeOverlay.DSHA.Palette.Aurora" parent="">
         <item name="dsha_pal_primary">@color/pal_aurora_primary</item>
@@ -106,6 +112,9 @@
         <item name="dsha_pal_terminal_raised">@color/pal_aurora_terminal_raised</item>
         <item name="dsha_pal_terminal_tile">@color/pal_aurora_terminal_tile</item>
         <item name="dsha_pal_terminal_tile_pressed">@color/pal_aurora_terminal_tile_pressed</item>
+        <item name="dsha_pal_page_bg">@color/pal_aurora_page_bg</item>
+        <item name="dsha_pal_card_glass">@color/pal_aurora_card_glass</item>
+        <item name="dsha_pal_appbar_glass">@color/pal_aurora_appbar_glass</item>
     </style>
     <style name="ThemeOverlay.DSHA.Palette.Sakura" parent="">
         <item name="dsha_pal_primary">@color/pal_sakura_primary</item>
@@ -141,6 +150,9 @@
         <item name="dsha_pal_terminal_raised">@color/pal_sakura_terminal_raised</item>
         <item name="dsha_pal_terminal_tile">@color/pal_sakura_terminal_tile</item>
         <item name="dsha_pal_terminal_tile_pressed">@color/pal_sakura_terminal_tile_pressed</item>
+        <item name="dsha_pal_page_bg">@color/pal_sakura_page_bg</item>
+        <item name="dsha_pal_card_glass">@color/pal_sakura_card_glass</item>
+        <item name="dsha_pal_appbar_glass">@color/pal_sakura_appbar_glass</item>
     </style>
     <style name="ThemeOverlay.DSHA.Palette.Cyber" parent="">
         <item name="dsha_pal_primary">@color/pal_cyber_primary</item>
@@ -176,6 +188,9 @@
         <item name="dsha_pal_terminal_raised">@color/pal_cyber_terminal_raised</item>
         <item name="dsha_pal_terminal_tile">@color/pal_cyber_terminal_tile</item>
         <item name="dsha_pal_terminal_tile_pressed">@color/pal_cyber_terminal_tile_pressed</item>
+        <item name="dsha_pal_page_bg">@color/pal_cyber_page_bg</item>
+        <item name="dsha_pal_card_glass">@color/pal_cyber_card_glass</item>
+        <item name="dsha_pal_appbar_glass">@color/pal_cyber_appbar_glass</item>
     </style>
     <style name="ThemeOverlay.DSHA.Palette.Amber" parent="">
         <item name="dsha_pal_primary">@color/pal_amber_primary</item>
@@ -211,5 +226,8 @@
         <item name="dsha_pal_terminal_raised">@color/pal_amber_terminal_raised</item>
         <item name="dsha_pal_terminal_tile">@color/pal_amber_terminal_tile</item>
         <item name="dsha_pal_terminal_tile_pressed">@color/pal_amber_terminal_tile_pressed</item>
+        <item name="dsha_pal_page_bg">@color/pal_amber_page_bg</item>
+        <item name="dsha_pal_card_glass">@color/pal_amber_card_glass</item>
+        <item name="dsha_pal_appbar_glass">@color/pal_amber_appbar_glass</item>
     </style>
 </resources>

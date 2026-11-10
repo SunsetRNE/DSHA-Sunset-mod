@@ -19,4 +19,18 @@
     <item name="vscreen_preview_panel" type="id" />
     <!-- Wave D（F2）：行尾滑动动作条的读屏「显示操作」自定义动作。 -->
     <item name="swipe_action_open" type="id" />
+    <!-- 外观背景：标记这个 TextView 已加过文字光晕，切回默认时用它恢复。 -->
+    <item name="tag_text_shadow" type="id" />
+    <!-- 这棵 View 树当前是否已按「有图/无图」处理过文字光晕，状态没变就不重复遍历。 -->
+    <item name="tag_text_shadow_protect" type="id" />
+    <!-- 窗口 format/背景色的上次设置值，值没变就不重复 set（避免整窗重绘）。 -->
+    <item name="tag_appearance_window" type="id" />
+    <!-- 这张 View 已被识别成卡片（背景 mutate 后 ConstantState 会分叉，靠这个 tag 记账）。 -->
+    <item name="tag_card_alpha" type="id" />
+    <!-- 这张卡片上一次刷的不透明度（0~255），值没变就不重复 setAlpha。 -->
+    <item name="tag_card_alpha_value" type="id" />
+    <!-- 这个 ViewGroup 已挂过「子 View 加入时补刷卡片」的监听，避免重复注册。 -->
+    <item name="tag_card_watch" type="id" />
+    <!-- 顶栏/底栏背景是按 id 装上去的那一份，记 Drawable 实例以便组件换背景时重装。 -->
+    <item name="tag_bar_surface" type="id" />
 </resources>

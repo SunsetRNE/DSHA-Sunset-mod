@@ -133,6 +133,19 @@ public class SettingsFragment extends Fragment {
     keepOn.setContentDescription(com.deepseekharness.app.util.UiText.text("屏幕常亮"));
     keepOn.setChecked(config.isKeepScreenOn());
 
+    // 外观背景：壁纸 / 遮罩 / 卡片不透明度（独立页面，见 AppearanceActivity）。
+    View backgroundRow = v.findViewById(R.id.settings_background);
+    if (backgroundRow != null) {
+      TextView backgroundTitle = v.findViewById(R.id.settings_background_title);
+      backgroundTitle.setText(com.deepseekharness.app.util.UiText.text("外观背景"));
+      TextView backgroundSummary = v.findViewById(R.id.settings_background_summary);
+      backgroundSummary.setText(DshAppearance.presetLabel(requireContext()));
+      backgroundRow.setOnClickListener(
+          x ->
+              startActivity(
+                  new android.content.Intent(requireContext(), AppearanceActivity.class)));
+    }
+
     // 两个开关硬互斥：开启任一边都会强制关闭另一边；关闭只改自己，不误伤另一边。
     eco.setOnCheckedChangeListener(
         (button, checked) -> {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 214：保留名字兼容旧引用，视觉与 bg_card 一致（白卡 + 1px 边）。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/card" />
+    <corners android:radius="@dimen/radius_card" />
+    <stroke android:width="@dimen/stroke" android:color="@color/line" />
+</shape>

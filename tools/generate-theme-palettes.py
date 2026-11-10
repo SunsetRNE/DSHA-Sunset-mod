@@ -25,9 +25,12 @@ ACCENT = ['primary', 'primary_dark', 'accent_on', 'ripple', 'logo_top',
           'terminal_on_accent', 'terminal_ripple', 'terminal_state_idle',
           'shell_accent', 'shell_accent_soft', 'shell_accent_tonal', 'shell_on_accent', 'shell_nav_ripple', 'onb_accent_line']
 # 底色族：标准色是微蓝灰，其他调色板换成各自色相的微色调。
+# page_bg / card_glass / appbar_glass 是壁纸三明治的外壳层（无壁纸时的页面兜底、
+# 卡片面板、顶栏面板），带 alpha，rehue 会保持透明度只换色相。
 SURFACE = ['surface', 'card', 'raised', 'disabled', 'preview',
            'shell_bg', 'shell_surface', 'shell_raised', 'shell_nav_bg', 'shell_glass',
-           'terminal_panel', 'terminal_panel_card', 'terminal_raised', 'terminal_tile', 'terminal_tile_pressed']
+           'terminal_panel', 'terminal_panel_card', 'terminal_raised', 'terminal_tile', 'terminal_tile_pressed',
+           'page_bg', 'card_glass', 'appbar_glass']
 PALETTE_NAMES = ACCENT + SURFACE
 
 # 标准色：迁移前 values(-night) 中的原值，逐字保留（日, 夜）。
@@ -50,6 +53,10 @@ STANDARD = {
     'shell_glass': ('#E0FAFCFF', '#DB192230'), 'terminal_panel': ('#FFFFFF', '#0B0F16'),
     'terminal_panel_card': ('#F7F9FD', '#10151E'), 'terminal_raised': ('#EAEFF7', '#151C27'),
     'terminal_tile': ('#F1F4F9', '#141B25'), 'terminal_tile_pressed': ('#E6EBF3', '#1B2431'),
+    # 壁纸三明治：页面兜底底色（无壁纸时的最底层）、卡片玻璃、顶栏/底栏玻璃。
+    # alpha 是「字要读得清」定下来的：71% / 86%，与 DSHA-Mod UI 补丁 rc3 一致。
+    'page_bg': ('#F2F5FA', '#0B0E13'), 'card_glass': ('#B5F6F7F9', '#B5111214'),
+    'appbar_glass': ('#DBFFFFFF', '#DB000000'),
 }
 
 # 不随调色板变化的中性色（用于对比度校验），与 values(-night) 中的定义一致。

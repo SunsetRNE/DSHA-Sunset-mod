@@ -4,6 +4,13 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
+    <!-- 外观背景页用：window 背景透明，壁纸才能铺到状态栏下（不参与横屏视口配置）。 -->
+    <style name="Theme.DeepseekHarness.Translucent" parent="Theme.DeepseekHarness">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
     <style name="Theme.DSHA.Base" parent="Theme.DSHA.PaletteDefaults">
         <item name="colorPrimary">?attr/dsha_pal_primary</item>
         <item name="colorOnPrimary">?attr/dsha_pal_accent_on</item>

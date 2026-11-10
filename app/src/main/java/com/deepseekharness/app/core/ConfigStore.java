@@ -325,6 +325,22 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_KEEP_SCREEN_ON, value).apply();
   }
 
+  /**
+   * 页面卡片不透明度：1 = 完全不透明。
+   *
+   * <p>默认 <b>0.27（27%）</b> —— 真机调出来的最佳值：底图和描边都还看得见，正文仍然清晰；
+   * 再低字开始发飘，再高壁纸又被白卡吃掉。用户可在 20%~100% 之间自己调。
+   */
+  public float getCardAlpha() {
+    float value = prefs.getFloat(Constants.KEY_CARD_ALPHA, 0.27f);
+    return value < 0.2f || value > 1f ? 0.27f : value;
+  }
+
+  public void setCardAlpha(float v) {
+    float clamped = v < 0.2f ? 0.2f : Math.min(v, 1f);
+    prefs.edit().putFloat(Constants.KEY_CARD_ALPHA, clamped).apply();
+  }
+
   /** 隐藏后台：从最近任务隐藏本应用任务；默认关闭，只影响任务可见性，不随备份恢复。 */
   public boolean isHideFromRecents() {
     return flag(Constants.KEY_HIDE_FROM_RECENTS, false);

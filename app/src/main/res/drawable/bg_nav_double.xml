@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 214：底栏 = 白底 + 顶部 1px 边（去双线、去阴影）。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle"><solid android:color="@color/surface" /></shape>
+    </item>
+    <item android:top="0dp" android:height="1dp">
+        <shape android:shape="rectangle"><solid android:color="@color/line" /></shape>
+    </item>
+</layer-list>

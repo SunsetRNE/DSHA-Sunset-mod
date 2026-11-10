@@ -34,6 +34,9 @@
     <color name="pal_standard_terminal_raised">#151C27</color>
     <color name="pal_standard_terminal_tile">#141B25</color>
     <color name="pal_standard_terminal_tile_pressed">#1B2431</color>
+    <color name="pal_standard_page_bg">#0B0E13</color>
+    <color name="pal_standard_card_glass">#B5111214</color>
+    <color name="pal_standard_appbar_glass">#DB000000</color>
     <color name="pal_aurora_primary">#16B0C8</color>
     <color name="pal_aurora_primary_dark">#206771</color>
     <color name="pal_aurora_accent_on">#081D21</color>
@@ -67,6 +70,9 @@
     <color name="pal_aurora_terminal_raised">#111E1F</color>
     <color name="pal_aurora_terminal_tile">#101D1E</color>
     <color name="pal_aurora_terminal_tile_pressed">#162629</color>
+    <color name="pal_aurora_page_bg">#090F0F</color>
+    <color name="pal_aurora_card_glass">#B5101213</color>
+    <color name="pal_aurora_appbar_glass">#DB000000</color>
     <color name="pal_sakura_primary">#EA7EAB</color>
     <color name="pal_sakura_primary_dark">#C75584</color>
     <color name="pal_sakura_accent_on">#210812</color>
@@ -100,6 +106,9 @@
     <color name="pal_sakura_terminal_raised">#29161E</color>
     <color name="pal_sakura_terminal_tile">#27151D</color>
     <color name="pal_sakura_terminal_tile_pressed">#341C26</color>
+    <color name="pal_sakura_page_bg">#140B0F</color>
+    <color name="pal_sakura_card_glass">#B5151113</color>
+    <color name="pal_sakura_appbar_glass">#DB000000</color>
     <color name="pal_cyber_primary">#BA8EEB</color>
     <color name="pal_cyber_primary_dark">#9363CA</color>
     <color name="pal_cyber_accent_on">#140821</color>
@@ -133,6 +142,9 @@
     <color name="pal_cyber_terminal_raised">#21172C</color>
     <color name="pal_cyber_terminal_tile">#1F172A</color>
     <color name="pal_cyber_terminal_tile_pressed">#2A1E37</color>
+    <color name="pal_cyber_page_bg">#110C15</color>
+    <color name="pal_cyber_card_glass">#B5131115</color>
+    <color name="pal_cyber_appbar_glass">#DB000000</color>
     <color name="pal_amber_primary">#EC8713</color>
     <color name="pal_amber_primary_dark">#8E5D24</color>
     <color name="pal_amber_accent_on">#211508</color>
@@ -166,4 +178,7 @@
     <color name="pal_amber_terminal_raised">#221A12</color>
     <color name="pal_amber_terminal_tile">#201912</color>
     <color name="pal_amber_terminal_tile_pressed">#2B2217</color>
+    <color name="pal_amber_page_bg">#110D0A</color>
+    <color name="pal_amber_card_glass">#B5131210</color>
+    <color name="pal_amber_appbar_glass">#DB000000</color>
 </resources>

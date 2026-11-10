@@ -24,6 +24,7 @@ final class CardPage {
   final java.util.Set<View> primaryButtons = new java.util.HashSet<>();
 
   private final boolean compact;
+  /** DSHA-Mod：外观背景页要在页面下面铺壁纸，root 不能有实心底色。 */
 
   CardPage(Context context, String title, String subtitle) {
     this(context, title, subtitle, false);
@@ -62,6 +63,12 @@ final class CardPage {
     footer = column();
     footer.setPadding(dp(pad()), dp(8), dp(pad()), dp(compact ? 12 : 16));
     root.addView(footer);
+  }
+
+  /** DSHA-Mod：关掉 root 的实心底色，让调用方自己铺壁纸（外观背景页用）。 */
+  CardPage transparentRoot() {
+    root.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+    return this;
   }
 
   private int pad() {

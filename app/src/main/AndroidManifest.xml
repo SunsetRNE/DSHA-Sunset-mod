@@ -123,6 +123,8 @@
                 android:value="User-started emergency AI recovery workspace with an isolated runtime, foreground progress, and explicit stop action." />
         </service>
         <activity android:name=".ui.BackgroundTasksActivity" android:exported="false" />
+        <activity android:name=".ui.AppearanceActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/Theme.DeepseekHarness" />
+        <activity android:name=".ui.ImageCropActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/Theme.DeepseekHarness" />
         <activity android:name=".ui.AgentTasksActivity" android:exported="false" />
         <receiver android:name=".AgentTaskStopReceiver" android:exported="false" />
         <receiver android:name=".AgentTaskAnswerReceiver" android:exported="false" />

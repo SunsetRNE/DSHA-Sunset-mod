@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 238：顶栏玻璃底从「@color/appbar_glass 直接当背景」改成 shape drawable。
+     原因：颜色当背景时是 ColorDrawable，CardAlpha 认不出来（ConstantState 不匹配），
+     所以顶栏永远不跟卡片透明度。改成 GradientDrawable 之后才能被识别；
+     而且 GradientDrawable#setAlpha 与 solid 自带 alpha (#DBFFFFFF) 是**相乘**的，
+     所以调低不透明度时玻璃感保留、拖回 100% 也能精确回到 #DBFFFFFF。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/appbar_glass" />
+</shape>

@@ -198,6 +198,7 @@ public class MainActivity extends AppCompatActivity {
         savedInstanceState != null)) {
       android.util.Log.i("DSHA", "MAIN_ENTRY_GATE recreate=same-process");
       setContentView(R.layout.activity_main);
+      applyAppearanceLayers();
       showMain(savedInstanceState, config, HarnessController.get(this));
       return;
     }
@@ -257,6 +258,8 @@ public class MainActivity extends AppCompatActivity {
     // FragmentManager可能先于后台磁盘检查恢复页面。首次就保留真实容器，
     // 后面只移除覆盖层，避免替换整个布局后恢复视图无法重新附着。
     setContentView(R.layout.activity_main);
+    // 壁纸要铺满整屏：先切 edge-to-edge，再铺底图（顺序反了会先按旧 insets 排版）。
+    applyAppearanceLayers();
     // 开机加载页：主界面路径用 shell 主题色；直启 Web 时衔接最近一次网页背景色。
     com.deepseekharness.app.util.BootPalette palette = bootPalette(directWebArmed);
     // 开场只在进程冷启动的首次入口播放；换主题 / 语言重建或系统回收后恢复都直接静态显示。
@@ -1133,10 +1136,28 @@ public class MainActivity extends AppCompatActivity {
     return owner != null && owner.getClass().getName().equals(className);
   }
 
+  /**
+   * 外观背景：把壁纸底图 / 遮罩铺到 app_shell 上，再按当前设置重刷卡片与上下栏的不透明度。
+   *
+   * <p>必须晚于 {@code setContentView}（要有 app_shell/app_background/app_scrim 三层），
+   * 且先切 edge-to-edge 再铺图 —— 反了会先按旧 insets 排一次版，壁纸顶部留一条空白。
+   */
+  private void applyAppearanceLayers() {
+    try {
+      DshAppearance.applyEdgeToEdge(this);
+      DshAppearance.apply(this, "app", findViewById(R.id.app_root));
+      CardAlpha.apply(getWindow().getDecorView());
+    } catch (Throwable error) {
+      android.util.Log.w("DSHA", "appearance: " + error, error);
+    }
+  }
+
   @Override
   protected void onResume() {
     super.onResume();
     if (discardedLauncherEntry) return;
+    // 外观背景：从外观页返回、或系统回收后恢复时补刷一次；值没变时内部按 tag 跳过。
+    applyAppearanceLayers();
     leavingUi = false;
     BrowserTasks.entry("RESUME", getIntent());
     // 已核验的同代网页先恢复，避免入口检查完成后遗漏唯一一次 onResume。

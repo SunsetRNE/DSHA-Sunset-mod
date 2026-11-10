@@ -91,6 +91,13 @@ public final class ModernAndroidUi implements Application.ActivityLifecycleCallb
   @Override
   public void onActivityResumed(Activity activity) {
     applyKeepScreenOn(activity);
+    // 外观背景：卡片不透明度对所有 Activity 生效（含弹层宿主）。值没变时内部按 tag 跳过，
+    // 所以每次 resume 扫一遍几乎零开销 —— 这也是「外观页拖完返回，主界面还是老样子」的修法。
+    try {
+      CardAlpha.apply(activity.getWindow().getDecorView());
+    } catch (Throwable ignored) {
+      // 纯装饰：刷失败不影响页面。
+    }
   }
 
   @Override
