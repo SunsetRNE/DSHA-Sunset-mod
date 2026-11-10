@@ -387,7 +387,7 @@ public final class UiMotion {
   }
 
   /**
-   * 按下轻微缩放；返回 false 不吞触摸，点击与无障碍仍由原控件处理。
+   * 按下轻微缩放并触发触觉反馈；返回 false 不吞触摸，点击与无障碍仍由原控件处理。
    *
    * <p>只给没有自定义 OnTouchListener 的按钮使用，避免覆盖业务手势。
    */
@@ -397,14 +397,16 @@ public final class UiMotion {
         (target, event) -> {
           if (!animationsEnabled(target.getContext()) || !target.isEnabled()) return false;
           switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN ->
-                target
-                    .animate()
-                    .scaleX(0.985f)
-                    .scaleY(0.985f)
-                    .setDuration(90L)
-                    .setInterpolator(STANDARD)
-                    .start();
+            case MotionEvent.ACTION_DOWN -> {
+              target.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+              target
+                  .animate()
+                  .scaleX(0.985f)
+                  .scaleY(0.985f)
+                  .setDuration(120L)
+                  .setInterpolator(STANDARD)
+                  .start();
+            }
             case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
                 target
                     .animate()
@@ -417,5 +419,10 @@ public final class UiMotion {
           }
           return false;
         });
+  }
+
+  static void pressScaleAll(View... views) {
+    if (views == null) return;
+    for (View v : views) pressScale(v);
   }
 }

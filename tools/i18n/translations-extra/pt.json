@@ -1978,5 +1978,15 @@
   "x2100201": "Permitir entrada?",
   "x2100202": "Permitir entrada",
   "x2100203": "O assistente de tela física pode ignorar a acessibilidade, capturar a tela e injetar toques, gestos e teclas durante a tarefa de telefone atual — para jogos e outras interfaces desenhadas pelo app.\n\nDesativado por padrão e revogável a qualquer momento. As ações ainda exigem permissão de controle de tela para o app alvo; telas de senha, pagamento e segurança do sistema são sempre recusadas. A fase experimental garante apenas o canal root.",
-  "x2100204": "Falha ao salvar a configuração"
+  "x2100204": "Falha ao salvar a configuração",
+  "x2100211": "Depure no navegador local ou compartilhe o espaço em uma LAN confiável",
+  "x2100212": "Apenas localmente · O link inclui credenciais desta execução",
+  "x2100213": "Não pronto",
+  "x2100214": "Senha necessária",
+  "x2100215": "Aguardando",
+  "x2100216": "Não escutando",
+  "x2100217": "Endereço restrito",
+  "x2100218": "Falha na interface",
+  "x2100219": "Apenas IPv6",
+  "x2100220": "Sem rede local"
 }

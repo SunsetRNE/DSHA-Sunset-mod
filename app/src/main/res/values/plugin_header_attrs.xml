@@ -5,5 +5,6 @@
         <attr name="flowGapHorizontal" format="dimension" />
         <attr name="flowGapVertical" format="dimension" />
         <attr name="flowStretchWrapped" format="boolean" />
+        <attr name="flowPackStart" format="boolean" />
     </declare-styleable>
 </resources>

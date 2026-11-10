@@ -268,10 +268,12 @@ public final class MainEntryLayoutLifecycleTest {
       showMain(restored);
       View page = restored.page.requireView();
       ViewGroup actions = page.findViewById(R.id.launch_actions);
+      View metrics = page.findViewById(R.id.launch_metrics);
       View track = page.findViewById(R.id.launch_activity);
       assertEquals(
           actions.indexOfChild(page.findViewById(R.id.launch_subtitle)) + 1,
-          actions.indexOfChild(track));
+          actions.indexOfChild(metrics));
+      assertEquals(actions.indexOfChild(metrics) + 1, actions.indexOfChild(track));
       for (int i = 0; i < actions.getChildCount(); i++) {
         assertFalse(actions.getChildAt(i) instanceof android.widget.ProgressBar);
       }

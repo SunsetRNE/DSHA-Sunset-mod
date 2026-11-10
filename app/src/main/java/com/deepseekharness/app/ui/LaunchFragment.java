@@ -1054,7 +1054,24 @@ public class LaunchFragment extends Fragment {
     accessLanButton = content.findViewById(R.id.access_lan_toggle);
     accessCopyButton = content.findViewById(R.id.access_copy);
     Button closeButton = content.findViewById(R.id.access_close);
-    closeButton.setText(UiText.choose("关闭", "Close"));
+    closeButton.setText(UiText.text("关闭"));
+    TextView accessSubtitle = content.findViewWithTag("access_subtitle");
+    if (accessSubtitle != null) {
+      accessSubtitle.setText(UiText.text("通过本机浏览器调试，或在同一可信局域网内共享工作台"));
+    }
+    TextView localTitle = content.findViewWithTag("local_title");
+    if (localTitle != null) {
+      localTitle.setText(UiText.text("本机访问"));
+    }
+    TextView localMeta = content.findViewWithTag("local_meta");
+    if (localMeta != null) {
+      localMeta.setText(UiText.text("仅本机可访问 · 链接已附带本轮认证凭据"));
+    }
+    TextView lanTitle = content.findViewWithTag("lan_title");
+    if (lanTitle != null) {
+      lanTitle.setText(UiText.text("局域网访问"));
+    }
+    UiMotion.pressScaleAll(accessCopyButton, accessLanButton, closeButton);
     var dialog =
         new DshaDialogBuilder(requireContext())
             .setTitle(R.string.ui2_address)
@@ -1080,14 +1097,102 @@ public class LaunchFragment extends Fragment {
   private void renderAccessAddresses(LanAccessPresentation access) {
     var dialog = accessDialog;
     if (dialog == null || !dialog.isShowing() || !isAdded() || accessBody == null) return;
+    Context ctx = requireContext();
     String local = webEntryUrl();
-    accessBody.setText(
-        UiText.format(
-            UiText.choose("本机访问\n%s\n\n%s", "On this phone\n%s\n\n%s"),
-            local.isEmpty()
-                ? UiText.choose("启动就绪后显示本机地址", "Start DSH and wait for its local URL.")
-                : local,
-            lanStatusForDisplay(access)));
+    View root = accessBody.getRootView();
+
+    TextView localBadge = root != null ? root.findViewWithTag("local_badge") : null;
+    if (localBadge != null) {
+      if (!local.isEmpty()) {
+        localBadge.setText("● " + UiText.text("已就绪"));
+        localBadge.setTextColor(ctx.getColor(R.color.shell_good));
+        localBadge.setBackgroundResource(R.drawable.bg_onb_pill_good);
+      } else {
+        localBadge.setText("● " + UiText.text("未就绪"));
+        localBadge.setTextColor(ctx.getColor(R.color.shell_text_muted));
+        localBadge.setBackgroundResource(R.drawable.bg_onb_pill_neutral);
+      }
+    }
+
+    if (local.isEmpty()) {
+      accessBody.setText(UiText.text("启动就绪后显示本机地址"));
+      accessBody.setTextColor(ctx.getColor(R.color.shell_text_muted));
+    } else {
+      accessBody.setTextColor(ctx.getColor(R.color.shell_text));
+      int qIdx = local.indexOf('?');
+      if (qIdx > 0) {
+        int tokenColor = ctx.getColor(R.color.shell_text_secondary);
+        android.text.SpannableStringBuilder ssb = new android.text.SpannableStringBuilder(local);
+        ssb.setSpan(
+            new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+            0,
+            qIdx,
+            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(
+            new android.text.style.ForegroundColorSpan(tokenColor),
+            qIdx,
+            local.length(),
+            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        accessBody.setText(ssb);
+      } else {
+        accessBody.setText(local);
+      }
+    }
+
+    TextView lanBadge = root != null ? root.findViewWithTag("lan_badge") : null;
+    if (lanBadge != null) {
+      if (access.state == LanAccessPresentation.State.DISABLED) {
+        lanBadge.setText("● " + UiText.text("未开启"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_text_muted));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_neutral);
+      } else if (needsLanPassword(access)) {
+        lanBadge.setText("● " + UiText.text("需设口令"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else if (access.state == LanAccessPresentation.State.READY) {
+        lanBadge.setText("● " + UiText.text("已开启"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_good));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_good);
+      } else if (access.state == LanAccessPresentation.State.WAITING_AUTH) {
+        lanBadge.setText("● " + UiText.text("等待就绪"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_accent));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_accent);
+      } else if (access.state == LanAccessPresentation.State.PERMISSION_REQUIRED) {
+        lanBadge.setText("● " + UiText.text("未授权"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else if (access.state == LanAccessPresentation.State.LISTENER_UNAVAILABLE) {
+        lanBadge.setText("● " + UiText.text("未监听"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else if (access.state == LanAccessPresentation.State.DISCOVERY_DENIED) {
+        lanBadge.setText("● " + UiText.text("地址受限"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else if (access.state == LanAccessPresentation.State.DISCOVERY_FAILED) {
+        lanBadge.setText("● " + UiText.text("接口异常"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else if (access.state == LanAccessPresentation.State.IPV6_ONLY) {
+        lanBadge.setText("● " + UiText.text("仅 IPv6"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else if (access.state == LanAccessPresentation.State.NO_ADDRESS) {
+        lanBadge.setText("● " + UiText.text("无局域网"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      } else {
+        lanBadge.setText("● " + UiText.text("需处理"));
+        lanBadge.setTextColor(ctx.getColor(R.color.shell_warn));
+        lanBadge.setBackgroundResource(R.drawable.bg_onb_pill_warn);
+      }
+    }
+
+    TextView lanBody = root != null ? root.findViewWithTag("lan_body") : null;
+    if (lanBody != null) {
+      lanBody.setText(lanStatusForDisplay(access));
+    }
+
     if (accessLanButton != null)
       accessLanButton.setText(
           controller.config().isLanMode()

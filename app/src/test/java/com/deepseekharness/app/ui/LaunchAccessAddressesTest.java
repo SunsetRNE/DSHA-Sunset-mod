@@ -203,7 +203,24 @@ public final class LaunchAccessAddressesTest {
   private static String body(AlertDialog dialog) {
     TextView view = dialog.findViewById(R.id.access_body);
     assertNotNull("the access dialog must carry its custom body", view);
-    return view.getText().toString();
+    TextView lan = view.getRootView().findViewWithTag("lan_body");
+    return view.getText().toString() + (lan != null ? "\n" + lan.getText().toString() : "");
+  }
+
+  private static TextView localBadge(AlertDialog dialog) {
+    TextView body = dialog.findViewById(R.id.access_body);
+    assertNotNull("access_body must be present", body);
+    TextView view = body.getRootView().findViewWithTag("local_badge");
+    assertNotNull("local badge must be present", view);
+    return view;
+  }
+
+  private static TextView lanBadge(AlertDialog dialog) {
+    TextView body = dialog.findViewById(R.id.access_body);
+    assertNotNull("access_body must be present", body);
+    TextView view = body.getRootView().findViewWithTag("lan_badge");
+    assertNotNull("lan badge must be present", view);
+    return view;
   }
 
   private static Button lanButton(AlertDialog dialog) {
@@ -345,5 +362,137 @@ public final class LaunchAccessAddressesTest {
     assertFalse(copyButton(second).isEnabled());
     click(copyButton(second));
     assertFalse(clipboard().hasPrimaryClip());
+  }
+
+  @Test
+  public void localBadgeReflectsReadyAndOfflineStates() {
+    AlertDialog dialog = open();
+    assertEquals("● " + UiText.text("已就绪"), localBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    Controller.local = "";
+    AlertDialog dialogOffline = open();
+    assertEquals("● " + UiText.text("未就绪"), localBadge(dialogOffline).getText().toString());
+    assertTrue(body(dialogOffline).contains("The local address appears once started"));
+    dialogOffline.dismiss();
+  }
+
+  @Test
+  public void lanBadgeReflectsStateMatrix() {
+    // 1. DISABLED
+    AlertDialog dialog = open();
+    assertEquals("● " + UiText.text("未开启"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 2. Needs password
+    RuntimeEnvironment.getApplication()
+        .getSharedPreferences(com.deepseekharness.app.util.Constants.PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .remove(com.deepseekharness.app.util.LanPassword.PREF_KEY)
+        .commit();
+    entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
+    dialog = open();
+    assertEquals("● " + UiText.text("需设口令"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // Restore password
+    RuntimeEnvironment.getApplication()
+        .getSharedPreferences(com.deepseekharness.app.util.Constants.PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putString(com.deepseekharness.app.util.LanPassword.PREF_KEY, "synthetic-verifier")
+        .commit();
+
+    // 3. READY
+    Controller.config.setLanMode(true);
+    entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
+    dialog = open();
+    assertEquals("● " + UiText.text("已开启"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 4. PERMISSION_REQUIRED
+    entry.snapshot = snapshot(true, false, List.of("192.168.1.2"));
+    dialog = open();
+    assertEquals("● " + UiText.text("未授权"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 5. WAITING_AUTH
+    entry.snapshot =
+        LanAccessPresentation.capture(
+            true,
+            true,
+            Controller.generation,
+            false,
+            49231,
+            new LanAddressPolicy.Discovery(
+                List.of("192.168.1.2"), false, LanAddressPolicy.Failure.NONE));
+    dialog = open();
+    assertEquals("● " + UiText.text("等待就绪"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 6. LISTENER_UNAVAILABLE
+    entry.snapshot =
+        LanAccessPresentation.capture(
+            true,
+            true,
+            Controller.generation,
+            true,
+            -1,
+            new LanAddressPolicy.Discovery(
+                List.of("192.168.1.2"), false, LanAddressPolicy.Failure.NONE));
+    dialog = open();
+    assertEquals("● " + UiText.text("未监听"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 7. DISCOVERY_DENIED
+    entry.snapshot =
+        LanAccessPresentation.capture(
+            true,
+            true,
+            Controller.generation,
+            true,
+            49231,
+            new LanAddressPolicy.Discovery(List.of(), false, LanAddressPolicy.Failure.PERMISSION));
+    dialog = open();
+    assertEquals("● " + UiText.text("地址受限"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 8. DISCOVERY_FAILED
+    entry.snapshot =
+        LanAccessPresentation.capture(
+            true,
+            true,
+            Controller.generation,
+            true,
+            49231,
+            new LanAddressPolicy.Discovery(List.of(), false, LanAddressPolicy.Failure.INTERFACES));
+    dialog = open();
+    assertEquals("● " + UiText.text("接口异常"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 9. IPV6_ONLY
+    entry.snapshot =
+        LanAccessPresentation.capture(
+            true,
+            true,
+            Controller.generation,
+            true,
+            49231,
+            new LanAddressPolicy.Discovery(List.of(), true, LanAddressPolicy.Failure.NONE));
+    dialog = open();
+    assertEquals("● " + UiText.text("仅 IPv6"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
+
+    // 10. NO_ADDRESS
+    entry.snapshot =
+        LanAccessPresentation.capture(
+            true,
+            true,
+            Controller.generation,
+            true,
+            49231,
+            new LanAddressPolicy.Discovery(List.of(), false, LanAddressPolicy.Failure.NONE));
+    dialog = open();
+    assertEquals("● " + UiText.text("无局域网"), lanBadge(dialog).getText().toString());
+    dialog.dismiss();
   }
 }

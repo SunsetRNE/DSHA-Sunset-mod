@@ -16058,5 +16058,85 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
+  },
+  {
+    "id": "x2100211",
+    "zh": "通过本机浏览器调试，或在同一可信局域网内共享工作台",
+    "en": "Connect locally or share workspace on a trusted LAN",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100212",
+    "zh": "仅本机可访问 · 链接已附带本轮认证凭据",
+    "en": "Localhost only · Includes auth token for this run",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100213",
+    "zh": "未就绪",
+    "en": "Offline",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100214",
+    "zh": "需设口令",
+    "en": "Password needed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100215",
+    "zh": "等待就绪",
+    "en": "Waiting",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100216",
+    "zh": "未监听",
+    "en": "No listener",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100217",
+    "zh": "地址受限",
+    "en": "Denied",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100218",
+    "zh": "接口异常",
+    "en": "Failed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100219",
+    "zh": "仅 IPv6",
+    "en": "IPv6 only",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
+  },
+  {
+    "id": "x2100220",
+    "zh": "无局域网",
+    "en": "No LAN",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
+    ]
   }
 ]
