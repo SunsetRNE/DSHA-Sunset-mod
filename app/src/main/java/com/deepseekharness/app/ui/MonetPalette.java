@@ -33,6 +33,12 @@ public final class MonetPalette {
 
   private static boolean cacheKnown;
 
+  /**
+   * 缓存对应的系统壁纸 id：每次设置新壁纸 id 必变，是比广播可靠得多的自动失效信号
+   * （各 ROM 广播时机不一，很多国产 ROM 根本不发），见 {@link #palette}。
+   */
+  private static int cachedWallpaperId;
+
   private MonetPalette() {}
 
   /** 读壁纸并取色；无壁纸、无彩色或 ROM 拒绝访问时返回 null。 */
@@ -50,6 +56,8 @@ public final class MonetPalette {
       // OEM 实现可能抛 SecurityException / OutOfMemoryError / 空 Drawable，一律降级。
       return null;
     } finally {
+      // 能走到这里的 sample 一定是本类自己造出来的（缩放副本 / copy 副本 / Canvas 位图），
+      // recycle 不会碰 WallpaperManager 拥有的原壁纸位图。
       if (sample != null && !sample.isRecycled()) sample.recycle();
     }
   }
@@ -58,10 +66,16 @@ public final class MonetPalette {
    * 直接拿到可用的整套配色；取不到色或推导不可达时返回 null（调用方回退标准色）。
    *
    * <p>推导用的是与构建期生成器同一套算法，所以结果一定满足对比度门禁，不需要二次校正。
+   *
+   * <p>缓存键带系统壁纸 id（{@code getWallpaperId} 是 API 24+，minSdk 30 可直接用）：id 由
+   * WallpaperManagerService 分配，换一次壁纸必变一次。每次调用先查 id，变了自动作废重取 ——
+   * 用户换完壁纸回到应用就能看到新配色，不必点「重新取色」，也不依赖时机不一的壁纸变更广播。
    */
   public static String[][] palette(Context context) {
-    if (cacheKnown) return cached;
+    int wallpaperId = currentWallpaperId(context);
+    if (cacheKnown && wallpaperId == cachedWallpaperId) return cached;
     cacheKnown = true;
+    cachedWallpaperId = wallpaperId;
     PaletteSeedExtractor.Seed seed = readSeed(context);
     cached =
         seed == null || !seed.found
@@ -73,8 +87,8 @@ public final class MonetPalette {
   /**
    * 丢掉缓存：换壁纸或用户手动「重新取色」后，必须让下一次应用真的重新解码。
    *
-   * <p>壁纸变化在 Android 上没有可靠的全局回调（不同 ROM 广播时机不一），所以在应用回到前台
-   * 或用户点重取时显式失效，比监听广播更可控。
+   * <p>换壁纸的自动失效已由 {@link #palette} 里的壁纸 id 检查兜住；这里保留给用户手动触发，
+   * 清掉后下一次 palette 必然重新解码壁纸。
    */
   static void invalidate() {
     cacheKnown = false;
@@ -82,11 +96,28 @@ public final class MonetPalette {
     ThemePaletteOverride.invalidate();
   }
 
+  /**
+   * 系统壁纸的当前 id；读不到（个别 ROM 限制或服务异常）返回 0。返回 0 只损失自动失效
+   * （缓存沿用到最后一次成功取色或手动重取），不影响取色本身，所以吞掉异常。
+   */
+  private static int currentWallpaperId(Context context) {
+    try {
+      return WallpaperManager.getInstance(context).getWallpaperId(WallpaperManager.FLAG_SYSTEM);
+    } catch (Throwable error) {
+      return 0;
+    }
+  }
+
   private static Bitmap toSample(Drawable wallpaper) {
     if (wallpaper instanceof BitmapDrawable) {
       Bitmap source = ((BitmapDrawable) wallpaper).getBitmap();
       if (source == null || source.isRecycled()) return null;
-      return Bitmap.createScaledBitmap(source, SAMPLE_SIZE, SAMPLE_SIZE, true);
+      // createScaledBitmap 在源图尺寸恰好等于目标尺寸时按 Android 文档约定原样返回入参（不是副本）。
+      // 直接把返回值交给调用方，readSeed 的 finally 会把 WallpaperManager 拥有的壁纸位图 recycle 掉，
+      // 之后系统再画壁纸就崩。所以相等时先 copy 出自己的副本再参与后续；copy 失败返回 null 走回退。
+      Bitmap scaled = Bitmap.createScaledBitmap(source, SAMPLE_SIZE, SAMPLE_SIZE, true);
+      if (scaled == source) return source.copy(Bitmap.Config.ARGB_8888, false);
+      return scaled;
     }
     Bitmap bitmap = Bitmap.createBitmap(SAMPLE_SIZE, SAMPLE_SIZE, Bitmap.Config.ARGB_8888);
     Canvas canvas = new Canvas(bitmap);

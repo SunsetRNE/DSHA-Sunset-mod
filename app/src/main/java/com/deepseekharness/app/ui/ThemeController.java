@@ -110,8 +110,17 @@ public final class ThemeController {
    * <p>悬浮窗、配置上下文直接取 {@code R.color.primary} 等调色板色时必须先经过这里。
    */
   public static Context themed(Context base) {
+    String palette = palette(base);
+    // 莫奈：这类上下文同样要解析 pal_monet_*，必须先把取色结果覆盖进 base 的 Resources，
+    // 否则悬浮条等拿到的仍是构建期兜底色（等同标准蓝），表现为悬浮条不跟壁纸变色。
+    // apply 对同一 Resources 按指纹幂等，重复调用只是一次查询；palette() 有进程内缓存，
+    // 首次之后 O(1)，主线程高频路径（悬浮条绘制）不会因此新增阻塞调用；
+    // 灰壁纸取不到色时 palette() 返回 null，apply 收 null 直接返回 false，安全回退兜底色。
+    if (UiThemePalette.MONET.equals(palette)) {
+      ThemePaletteOverride.apply(base, MonetPalette.palette(base));
+    }
     ContextThemeWrapper wrapper = new ContextThemeWrapper(base, R.style.Theme_DeepseekHarness);
-    applyPalette(wrapper.getTheme(), palette(base));
+    applyPalette(wrapper.getTheme(), palette);
     return wrapper;
   }
 
