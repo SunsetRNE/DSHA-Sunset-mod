@@ -3,6 +3,7 @@ package com.deepseekharness.app.ui;
 import static org.junit.Assert.*;
 
 import android.view.View;
+import com.deepseekharness.app.DshaApp;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -14,11 +15,10 @@ import org.robolectric.annotation.Config;
 @Config(sdk = 34, qualifiers = "mdpi", application = PluginFlowRowTest.App.class)
 public final class PluginFlowRowTest {
   /**
-   * 挡住真实 {@link com.deepseekharness.app.DshaApp#onCreate()}：它会按系统语言初始化界面语言
-   * （{@code UiText} 是 JVM 级静态，Robolectric 重建 Application 也不会重置），把同一 fork 里
-   * 后续断言中文文案的测试类污染成英文。ui 包其余测试类都用同样的空 onCreate 写法。
+   * 不执行真实 {@code DshaApp.onCreate}：那会按系统语言改写 {@code UiText} 全局静态并在测试 JVM
+   * 内跨类泄漏（en_US 的 CI 上会让随后依赖中文默认值的用例失败）。与其余界面测试保持同一约定。
    */
-  public static final class App extends com.deepseekharness.app.DshaApp {
+  public static final class App extends DshaApp {
     @Override
     public void onCreate() {}
   }

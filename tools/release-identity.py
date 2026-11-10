@@ -2,7 +2,7 @@
 """发布身份解析：mod（默认）与 upstream 两套身份互斥，绝不混用。
 
 身份文件 ci/release-identity.<name>.json 保存包名、证书 SHA-256、显示名、默认 key alias、
-测试后缀、tag 前缀和允许发布的仓库/分支。versionCode/versionName 两种身份共用，只写在
+测试/开发后缀、tag 前缀和允许发布的仓库/分支。versionCode/versionName 两种身份共用，只写在
 app/build.gradle。ci/release-identity.json 仍是 Mod 身份的兼容入口（旧脚本与门禁读取它），
 必须与 ci/release-identity.mod.json 的包名、证书和签名方案一致。
 
@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 IDENTITIES = ("mod", "upstream")
 DEFAULT = "mod"
 FIELDS = ("schema", "identity", "packageName", "certificateSha256", "schemes", "appName", "keyAlias",
-          "testSuffix", "tagPrefix", "apkPrefix", "repository", "ref", "privateRepository", "workflow")
+          "testSuffix", "devSuffix", "tagPrefix", "apkPrefix", "repository", "ref", "privateRepository",
+          "workflow")
 SHARED = ("packageName", "certificateSha256", "schemes")
 
 
@@ -44,6 +45,8 @@ def validate(name, value):
         raise ValueError(f"RELEASE_IDENTITY_SCHEMES: {name}")
     if not re.fullmatch(r"\.[A-Za-z][A-Za-z0-9_]*", value["testSuffix"]):
         raise ValueError(f"RELEASE_IDENTITY_TEST_SUFFIX: {name}")
+    if not re.fullmatch(r"\.[A-Za-z][A-Za-z0-9_]*", value["devSuffix"]):
+        raise ValueError(f"RELEASE_IDENTITY_DEV_SUFFIX: {name}")
     if not re.fullmatch(r"[A-Za-z0-9._-]+", value["keyAlias"]) or not value["appName"].strip():
         raise ValueError(f"RELEASE_IDENTITY_ALIAS_OR_NAME: {name}")
     if not re.fullmatch(r"[a-z0-9-]+-build", value["tagPrefix"]) or not re.fullmatch(r"[a-z0-9-]+", value["apkPrefix"]):
@@ -67,8 +70,8 @@ def check(root=None):
     """两套身份互不相同，且 Mod 兼容入口与 mod 身份一致。"""
     base = Path(root) if root is not None else ROOT
     loaded = {name: load(name, base) for name in IDENTITIES}
-    for key in ("packageName", "certificateSha256", "appName", "keyAlias", "testSuffix", "tagPrefix",
-                "repository", "workflow"):
+    for key in ("packageName", "certificateSha256", "appName", "keyAlias", "testSuffix", "devSuffix",
+                "tagPrefix", "repository", "workflow"):
         if loaded["mod"][key] == loaded["upstream"][key]:
             raise ValueError(f"RELEASE_IDENTITIES_SHARE_{key}")
     legacy = json.loads((base / "ci/release-identity.json").read_text(encoding="utf-8"))

@@ -152,13 +152,6 @@ public final class OnboardingActivityTest {
     }
   }
 
-  /**
-   * 进入本类之前的界面语言，退出时还原。
-   *
-   * <p>本类里有测试会显式切到英文（验证引导页随语言切换重绘），而 {@code UiText.language} 是
-   * JVM 级静态，Robolectric 重建 Application/Resources 不会重置它；不还原就会把英文漏给同一
-   * fork 里后续断言中文文案的测试类（WaveBComponents 曾因此在整包跑时红）。
-   */
   private String previousLanguage;
 
   @Before

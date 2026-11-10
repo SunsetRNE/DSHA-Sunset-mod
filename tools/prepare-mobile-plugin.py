@@ -19,7 +19,7 @@ PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/ind
            'src/client/effects/drawer-session-log.ts', 'src/client/effects/drawer-quick-settings.ts',
            'lib/types/client/components/file-share-locale.d.ts',
            'lib/types/client/effects/attachment-mention.d.ts'}
-# 上游 3.3.1 删掉了 lib/file-transfer.js（b52b2cb「清 lib 残留」）；DSHA 的移动服务入口
+# 上游 3.3.1 起删掉了 lib/file-transfer.js（b52b2cb「清 lib 残留」）；DSHA 的移动服务入口
 # tools/mobile-server/index.js 仍 import 该模块，改由 tools/file-transfer/file-transfer.js
 # 生成为仅本地追加成员，字节核验与 source map 规则不变。
 ADDITIONAL = {'lib/file-transfer.js', 'lib/file-transfer.js.map'}

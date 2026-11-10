@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """内置插件默认启停机制：注册器收敛、显式启用与覆盖更新代次。
 
-build336 起 `dsh-web-mobile` 不再默认禁用（上游 3.3.1 适配宿主 0.2.2），
+build336 起 `dsh-web-mobile` 不再默认禁用（上游 3.3.1 起适配宿主 0.2.2；当前随包 3.3.5），
 `builtin-plugins.json` 里当前没有任何 `defaultDisabled: true` 条目；本测试仍用
 **合成的** `DEFAULT_DISABLED=('dsh-web-mobile',)` 覆盖注册器
 （register-builtin-plugins.py）的真实文件系统流程，不启动 Web / DSH：

@@ -42,6 +42,10 @@ public final class VirtualScreenCore {
   private static ServerSocket server;
   private static String startupStage = "CONTEXT";
   private static String missingDisplayFlags = "";
+
+  /** --physical：同一受管入口承载实体屏（display 0）镜像抓帧与固定动词注入（T130 Phase A）。 */
+  private static boolean physical;
+
   // 最近一次创建实际使用的 dpi 与白名单 id（legacy/非白名单尺寸记为 custom），只用于 status 回读。
   private static int displayDensity = VirtualScreenDisplayPreset.defaultPreset().density;
   private static String displayPreset = "";
@@ -135,6 +139,16 @@ public final class VirtualScreenCore {
     return clock.getAsLong();
   }
 
+  /** 特权 Core 的随机实例 id；实体屏回执用它识别"同一个 Core"，不是持久身份。 */
+  static String coreInstanceId() {
+    return identity == null ? "" : identity.instance;
+  }
+
+  /** 实体屏抓帧/注入需要的系统上下文；只有特权 Core 进程有值。 */
+  static android.content.Context privilegedContext() {
+    return context;
+  }
+
   private static void startAcceptLoop(ServerSocket bound, VirtualScreenHandshake endpoint) {
     Thread accept =
         new Thread(
@@ -169,6 +183,7 @@ public final class VirtualScreenCore {
       selfPackage = arg(args, "--package", "");
       if (!com.deepseekharness.app.util.SelfPackageIdentity.validName(selfPackage))
         throw new SecurityException("SELF_PACKAGE_UNVERIFIED");
+      physical = Arrays.asList(args).contains("--physical");
       int port = Integer.parseInt(arg(args, "--port", "0"));
       if (port != 0) throw new IllegalArgumentException("DYNAMIC_PORT_REQUIRED");
       String classPath = System.getProperty("java.class.path", "");
@@ -181,7 +196,7 @@ public final class VirtualScreenCore {
       }
       if (Arrays.asList(args).contains("--launch")) {
         startupStage = "LAUNCH";
-        launch(port);
+        launch(port, physical);
         // ROM 可能留下非守护线程；一次性启动父进程必须明确结束，常驻服务由子进程承担。
         System.exit(0);
         return;
@@ -209,6 +224,7 @@ public final class VirtualScreenCore {
                   }
                   VirtualScreenDisplaySession current = session;
                   if (current != null) current.input.expire();
+                  PhysicalScreenCore.expire();
                   if (elapsed() - lastRequest > 60_000) shutdown();
                 }
               },
@@ -233,24 +249,26 @@ public final class VirtualScreenCore {
     }
   }
 
-  private static void launch(int port) throws Exception {
+  private static void launch(int port, boolean physicalMode) throws Exception {
     String path = System.getProperty("java.class.path", "");
     if (!path.equals(installedDshaApkPath()))
       throw new IllegalArgumentException("INVALID_CLASSPATH");
-    Process child =
-        new ProcessBuilder(
-                // ADB shell v1 关闭会清理所属进程组，核心需拥有独立会话。
-                // 不使用 setsid -d：保持直接子进程及 bootstrap 管道的生命周期可核验。
+    // ADB shell v1 关闭会清理所属进程组，核心需拥有独立会话。
+    // 不使用 setsid -d：保持直接子进程及 bootstrap 管道的生命周期可核验。
+    List<String> argv =
+        new ArrayList<>(
+            List.of(
                 "/system/bin/setsid",
                 "/system/bin/app_process",
                 "-Djava.class.path=" + path,
                 "/system/bin",
                 CLASS,
-                "--server",
-                "--port",
-                String.valueOf(port),
-                "--package",
-                selfPackage)
+                "--server"));
+    // 实体屏与虚拟屏共用同一受管入口；--physical 决定子进程走 display 0 镜像路由。
+    if (physicalMode) argv.add("--physical");
+    argv.addAll(List.of("--port", String.valueOf(port), "--package", selfPackage));
+    Process child =
+        new ProcessBuilder(argv)
             .redirectInput(new File("/dev/null"))
             .redirectErrorStream(true)
             .start();
@@ -264,7 +282,8 @@ public final class VirtualScreenCore {
       startupStage = "REACHABILITY";
       while (elapsed() < deadline) {
         if (!child.isAlive()) throw new IOException("CORE_EXITED");
-        if (new VirtualScreenTransport().request(handshake, "/vscreen/ping", "").optBoolean("ok")) {
+        String ping = physicalMode ? "/priv/ping" : "/vscreen/ping";
+        if (new VirtualScreenTransport().request(handshake, ping, "").optBoolean("ok")) {
           System.out.println("DSHA_VSCREEN_STARTED " + handshake.payload());
           System.out.flush();
           started = true;
@@ -354,7 +373,7 @@ public final class VirtualScreenCore {
           if (!running || server != bound) return;
           lastRequest = elapsed();
           result = route(path, query(parts[1]));
-          close = path.equals("/vscreen/close");
+          close = path.equals("/vscreen/close") || (physical && path.equals("/priv/close"));
         }
       }
       byte[] body = result.toString().getBytes(StandardCharsets.UTF_8);
@@ -376,6 +395,8 @@ public final class VirtualScreenCore {
 
   private static synchronized JSONObject route(String path, Map<String, String> q) {
     try {
+      // 实体屏模式只接受 /priv/* typed 路由；虚拟屏路由在这里不可达，避免两套授权混用。
+      if (physical) return PhysicalScreenCore.route(path, q);
       if (path.equals("/vscreen/ping")) return ok();
       if (path.equals("/vscreen/create"))
         return create(
@@ -687,6 +708,11 @@ public final class VirtualScreenCore {
   }
 
   private static String currentPackage() {
+    return currentPackage(session == null ? 0 : session.id);
+  }
+
+  /** 目标窗口事实按显示查询；实体屏（display 0）与虚拟屏共用同一读取口径。 */
+  static String currentPackage(int displayId) {
     try {
       if (hostPackageObserver != null) {
         String value = hostPackageObserver.get();
@@ -695,7 +721,7 @@ public final class VirtualScreenCore {
       android.app.ActivityManager manager =
           (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
       for (var task : manager.getRunningTasks(100))
-        if (task.getClass().getField("displayId").getInt(task) == session.id
+        if (task.getClass().getField("displayId").getInt(task) == displayId
             && task.topActivity != null) return task.topActivity.getPackageName();
     } catch (Throwable unavailable) {
     }
@@ -804,6 +830,11 @@ public final class VirtualScreenCore {
   private static synchronized void shutdown() {
     if (!running) return;
     running = false;
+    try {
+      PhysicalScreenCore.release();
+    } catch (Throwable physicalCleanup) {
+      // 实体屏镜像释放失败不能阻止进程退出；退出身份核验由调用方负责。
+    }
     try {
       release();
     } catch (Throwable cleanup) {

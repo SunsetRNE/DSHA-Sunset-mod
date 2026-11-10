@@ -126,6 +126,23 @@ public final class ExternalToolPolicyTest {
   }
 
   @Test
+  public void externalObservationCommandsStayReadOnly() {
+    // T134：watch 采样命令与动作后观察固定使用下面两种形状；改动它们前先看真机测量结论。
+    assertNull(
+        rejection(
+            adb(
+                ("-s serial shell logcat -d -b events -s wm_resume_activity:V"
+                        + " wm_set_resumed_activity:V am_focused_activity:V am_resume_activity:V"
+                        + " -v epoch")
+                    .split(" "))));
+    assertNull(rejection(adb(("-s serial shell dumpsys window").split(" "))));
+    assertNull(rejection(adb(("-s serial shell getprop ro.product.device").split(" "))));
+    assertEquals(
+        "EXTERNAL_ADB_SHELL_BLOCKED",
+        rejection(adb(("-s serial shell logcat -d -b events -c").split(" "))));
+  }
+
+  @Test
   public void onlyReadOnlyAdbShellCommandsPass() {
     assertNull(rejection(adb("devices", "-l")));
     assertNull(rejection(adb("-s", "serial", "shell", "getprop", "ro.product.device")));

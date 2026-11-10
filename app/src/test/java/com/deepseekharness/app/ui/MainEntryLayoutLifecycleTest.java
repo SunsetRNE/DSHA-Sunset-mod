@@ -284,18 +284,24 @@ public final class MainEntryLayoutLifecycleTest {
   }
 
   @Test
-  public void terminalEntriesUseLocalRecoveryGateWithoutReplacingLaunchPage() throws Exception {
+  public void quickEntryRowsMoveToMoreBubbleAndTerminalNavigationStillGated() throws Exception {
     var restored = restoreLaunch(false);
     try {
       showMain(restored);
       View page = restored.page.requireView();
       assertNotNull(page.findViewById(R.id.launch_activity));
-      assertNotNull(page.findViewById(R.id.launch_environment_row));
-      assertNotNull(page.findViewById(R.id.launch_address));
-      int retired =
-          page.getResources()
-              .getIdentifier("launch_workspaces", "id", restored.main.getPackageName());
-      if (retired != 0) assertNull(page.findViewById(retired));
+      // T145：快捷入口卡片收进顶栏「+」气泡，启动页不再有终端 / 环境 / 地址行。
+      var resources = page.getResources();
+      for (String retiredId :
+          new String[] {
+            "launch_shortcuts", "launch_terminal_row", "launch_environment_row", "launch_address"
+          }) {
+        int retired = resources.getIdentifier(retiredId, "id", restored.main.getPackageName());
+        if (retired != 0) assertNull(page.findViewById(retired));
+      }
+      View more = restored.main.findViewById(R.id.btn_more);
+      assertNotNull(more);
+      assertEquals(View.VISIBLE, more.getVisibility());
       var nav =
           (com.google.android.material.bottomnavigation.BottomNavigationView)
               restored.main.findViewById(R.id.bottom_nav);
@@ -309,10 +315,6 @@ public final class MainEntryLayoutLifecycleTest {
       assertSame(
           restored.page,
           restored.main.getSupportFragmentManager().findFragmentById(R.id.fragment_container));
-      assertTrue(page.findViewById(R.id.launch_terminal_row).performClick());
-      recovery = nextActivity(restored.main);
-      assertNotNull(recovery);
-      assertEquals(StartupRecoveryActivity.class.getName(), recovery.getComponent().getClassName());
       assertSame(page, restored.page.requireView());
     } finally {
       restored.host.pause().stop().destroy();

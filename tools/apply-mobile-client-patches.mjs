@@ -41,19 +41,20 @@ export function applyMobileClientPatches(bytes) {
     if (source.split(before).length !== 2) throw new Error('补丁锚点缺失或不唯一: ' + before.slice(0, 100));
     source = source.replace(before, after);
   };
-  // build336（T101 重做，用户选 C）：以上游 3.3.1 为基座，client 只保留四类本地差异：
-  //   1) 宿主集成 DSHA_GEAR_FIT_V1：footer 齿轮按实测行宽让位（上游 3.3.1 仍是旧的
+  // build336（T101 重做，用户选 C）+ build351（2026-11-09 同步上游 3.3.5）：以上游为基座，
+  // client 只保留四类本地差异：
+  //   1) 宿主集成 DSHA_GEAR_FIT_V1：footer 齿轮按实测行宽让位（上游 3.3.5 仍是旧的
   //      「连接条 :has() 存在性」判据，DSH 0.2.2 首连不渲染指示灯时会判错）；
   //   2) 安全区：applyMobileSafeArea 把 env(safe-area-inset-*) 包成 DSHA 原生发布的变量；
   //   3) 文件传输：applyFileTransferClient（原生 share / save-as / 下载记录与 32 MiB 限制）；
   //   4) 多语言：applyMobileLocaleBundlePatch（zh-Hant/ru/ja/ko/ar/pt/la/fr + live-locale）。
   // 会话输入 V4、手机搜索、快捷键弹层可见带、字体族行换行、遮罩按压染色按「完全追随上游」
-  // 删除；残留问题、上游覆盖情况与测试变更见 docs/web-mobile-patches.md 与 build336 记录。
+  // 删除；残留问题、上游覆盖情况与测试变更见 docs/web-mobile-patches.md 与 build336/build351 记录。
   // DSHA_GEAR_FIT_V1（T61）：footer 齿轮的让位判据改成**只量几何**，不再读宿主
   // ConnectionIndicator 是否存在。DSH 0.2.2 首次连接不再渲染指示灯后，上游
   // `:has(> button[data-phase], > [role="status"])` 判据永远「放得下」，手机上这条
   // 行第一次走进「没有指示灯」分支；让位口径改成实测行内剩余宽度，宿主以后增删任何
-  // 孩子（指示灯、更新条、新按钮）都自动计入。3.3.1 构建剥了 CSS 注释，锚点改为规则本体。
+  // 孩子（指示灯、更新条、新按钮）都自动计入。3.3.1/3.3.5 构建剥了 CSS 注释，锚点改为规则本体。
   const gearGuardRule = `[data-mobile-nav="frame"] [class*="sidebarCol"] [class*="triggerRow"]:has(> button[data-phase], > [role="status"]) [data-mobile-nav="quick-settings-wrap"] {
   display: none !important;
 }`;

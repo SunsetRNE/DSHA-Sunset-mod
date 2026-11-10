@@ -1,6 +1,6 @@
 # 资料依据、上游来源与可验证范围
 
-本文是 build348 的事实索引，覆盖当前发布身份、上游来源与固定输入；F10/F11/build190 等历史记录按原文保留，不能作为本版证据。
+本文是 build356 的事实索引，覆盖当前发布身份、上游来源与固定输入；F10/F11/build190 等历史记录按原文保留，不能作为本版证据。
 用途是让维护者找到原始资料、版本锁和校验入口，不是官方背书或安全认证。
 文档更正本身不重跑构建、不操作 su 设备或发布流程；本版软件、APK 与发布结果以本轮 CI run 与 Release 回执为准。
 
@@ -42,7 +42,7 @@ F11当时暂停设备验收，不应把历史包或软件结果转记为F11手�
 | 组件 | 当前本地选择 | 原始锁或配置 |
 |---|---|---|
 | DSH 主包 | `@deepseek-ai/dsh` `0.2.1-rc.5` | [package.json](../tools/dsh-runtime/package.json)、[package-lock.json](../tools/dsh-runtime/package-lock.json) |
-| 移动插件 | `3.3.1`；实际引入 main 提交见下文 | [mobile-plugin-upstream.lock.json](../tools/mobile-plugin-upstream.lock.json) |
+| 移动插件 | `3.3.5`；实际引入 main 提交见下文 | [mobile-plugin-upstream.lock.json](../tools/mobile-plugin-upstream.lock.json) |
 | 受管环境 | Ubuntu 24.04 arm64；DSHA `baseVersion=10` | [runtime-descriptor.json](../app/src/main/assets/runtime-descriptor.json)、[Ubuntu 包锁](../tools/ubuntu-tools/packages.lock.json) |
 | 运行时工具 | pnpm `10.34.5`，certifi `2026.7.22` | [runtime-tools.lock.json](../tools/runtime-tools.lock.json) |
 | 默认 / 可选引擎 | proot / proroot；后者本地声明 v1.2.8 | [AGENTS](../AGENTS.md)、[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
@@ -67,12 +67,13 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 
 当前锁区分发布标签和后续 main 输入：
 
-- 当前固定提交为 [`4e71eb67de7dac9d8b2572757c81e47aa32a32fb`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/4e71eb67de7dac9d8b2572757c81e47aa32a32fb)，v3.3.1 标签与 releaseCommit 同为此值（2026-11-06）。上游把适配宿主 0.2.2 的 3.4.0 内容重编号为 3.3.1 发布，3.3.2 的 `react` 可选 peer 打包修复也并入本版；`lib/client.js` 摘要 `7f82fac2100d70daf34c9c68cc402f6adb2302bf9913122d3402ab0926773c75`。
-- 本次引入提交相对上一固定 `bb0e5e151ca549fef506e829020a5d7138074711`（v3.2.2）有 87 个提交（含合并提交），集中在宿主 0.2.2 适配（整页白屏、顶栏开关被裁、文件键消失、页签叠字、文件面板标签条被盖住）、键盘 / 输入、插件页与抽屉反馈；同版本删除了 `lib/file-transfer.js`，DSHA 改由本地 `tools/file-transfer/file-transfer.js` 继续提供。
-- 锁内上游源码归档 SHA-256 为 `80973622839452e52e586b4f7a87eb5a81a9fc26460d76c84d027c7ce6773e2c`（3,284,160 B）。
+- 当前固定提交为 [`646fe837440f9939228bdba0024d407eaac01128`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/646fe837440f9939228bdba0024d407eaac01128)，发布标签 v3.3.5 指向 `14ecfccf5a6acb69e3a84229dee328d31801306f`（2026-11-08）；标签之后还有 README、插件页交还宿主排版等 3 个修复提交，实际取用 main 提交。`lib/client.js` 摘要 `8a17dd03b5de35f1aea52c93d6e3352fcd43c781de380639f60a93bf6040a26a`。
+- 本次引入提交相对上一固定 `4e71eb67de7dac9d8b2572757c81e47aa32a32fb`（v3.3.1）有 37 个提交（含合并提交）：插件页图标与中英文标题描述、手机档「更多视图」入口、子代理 chip 让位、抽屉暗层改 frame 伪元素、全屏手势按方向定族（左右 45% 起点区退役）、hero 工作树行排版、插件页交还宿主排版、测试门禁空转加固；服务端三模块（`lib/index.js` / `compress.js` / `delete-session.js`）本次未改，本地替换仍逐字节核验上游固定提交与锚点。
+- 新增成员 `locale/en.json`、`locale/zh.json`、`assets/icon.png`（宿主插件卡片读 `package.json#icon` 与 `locale/<lang>.json` 的 `meta.title` / `meta.description`），三者都进受管安装表；上游把 `overlay-backdrop-fab` 改名为 `drawer-layer`，旧名 3 个成员登记在锁的 `retiredFiles`。
+- 锁内上游源码归档 SHA-256 为 `15a51f4018485d930e66b5734b4421da2a32fbca59e20219b68f4c7fe34c7515`（3,291,698 B）。
 - 上游 client 与本地最终 client 分开记载；最终成员摘要见当前 THIRD_PARTY_NOTICES 与 descriptor。
 
-不要把“包内版本 3.3.1”解释为“只包含该标签原件”。
+不要把“包内版本 3.3.5”解释为“只包含该标签原件”。
 本地差异由 [apply-mobile-client-patches.mjs](../tools/apply-mobile-client-patches.mjs) 及 [mobile-server](../tools/mobile-server) 管理。
 上游升级是否吸收本地补丁，需要逐项核对，不能整批叠加旧补丁。
 

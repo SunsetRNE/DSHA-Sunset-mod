@@ -1,6 +1,6 @@
 # DSHA 现行构建说明
 
-> 当前身份（build348）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261109.1100-dsh0.2.2-rc.1` / versionCode 348。
+> 当前身份（build356）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261110.1700-dsh0.2.2-rc.1` / versionCode 356。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。
 > 签名：Mod 自有新建证书（SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`），不再使用原版 E7E3。
 > 固定构建输入：公开仓库预发布 Release 资产，SHA-256 锁定；流程见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
@@ -24,7 +24,7 @@
 | Python / Node | 生成器 Python 3.9+，CI 锁定版本见 `ci/toolchain.lock.json`；Node 24 |
 | Standard | minSdk 30，系统 WebView，arm64-v8a（唯一变体） |
 
-当前只有一条 Standard 构建线；测试变体仅通过 `-Pdsha.sunsetTest=true` 改包名/版本名（`io.github.sunsetrne.dsha.test`），与正式包并存、数据隔离。原 `dsh.android.client` 与更早的 `com.dsh.client` 均为独立包名，本 Mod 与之互不覆盖。
+当前只有一条 Standard 构建线；测试变体通过 `-Pdsha.sunsetTest=true`（`.test`）、`-Pdsha.debugPackage=true`（`.debug`，debuggable 的 debug 构建）或 `-Pdsha.devPackage=true`（`.dev`，release 构建）改包名/版本名，与正式包并存、数据隔离；三个变体互斥，且必须配合 `-Pdsha.unsignedPackage=true` 由测试证书签名。原 `dsh.android.client` 与更早的 `com.dsh.client` 均为独立包名，本 Mod 与之互不覆盖。
 
 配置本机 `local.properties` 的 `sdk.dir`，并将 JAVA_HOME、ANDROID_SDK_ROOT/ANDROID_HOME、DSHA_PYTHON 指向已有工具。不要复制开发者的绝对工具链目录。版本与固定 APK 文件名由 `app/build.gradle` 的 `versionCode`、`versionName` 和 `dshaApkNameVersion` 定义，不在本页再维护另一组当前数字。
 
@@ -113,7 +113,7 @@ python3 tools/release-identity.py --check                      # 两套身份互
 | [release-production.yml](.github/workflows/release-production.yml) | `-Pdsha.identity=mod` | `SunsetRNE/DSHA-Sunset-mod` 的 `main` | `dsha-a-su-build<code>-YYYYMMDD-HHMMSS` |
 | [release-upstream.yml](.github/workflows/release-upstream.yml) | `-Pdsha.identity=upstream` | `ym2025szz/DSHA-prerelase`（私有）的 `codex/prerelease-190` | `dsha-build<code>-YYYYMMDD-HHMMSS` |
 
-两者共用同一组门禁节点（契约、格式、主机回归、固定输入、完整单测、Lint），只有 `build-signed` 读取各自仓库的签名 Secrets。[test-package.yml](.github/workflows/test-package.yml) 的 `identity` 输入（默认 `mod`）选择测试包身份，测试证书必须与两个正式证书都不同。
+两者共用同一组门禁节点（契约、格式、主机回归、固定输入、完整单测、Lint），正式签名 Secrets 只由 `build-signed` 读取；测试证书 Secrets 只由共享节点 [_node-test-packages.yml](.github/workflows/_node-test-packages.yml) 读取。正式发布默认在同一 run 内附带 `.debug`（debuggable）与 `.dev`（非 debug）两个共存测试包，作为 Release 资产发布（`test_packages=debug+dev|debug|none`，`dry_run=true` 可只构建校验、不建 tag/Release）。[test-package.yml](.github/workflows/test-package.yml) 的 `identity` 输入（默认 `mod`）选择历史 `.test` 测试包身份；[test-package-variants.yml](.github/workflows/test-package-variants.yml) 复用同一测试包节点按需构建 `.debug` / `.dev`，并额外产出正式包名的 unsigned 验证包，只上传 Actions artifact、不创建 tag/Release。测试证书必须与两个正式证书都不同，正式发布的测试包必须来自固定测试证书（不能覆盖升级的一次性证书会被拒绝）。
 
 ## 手机与历史范围
 

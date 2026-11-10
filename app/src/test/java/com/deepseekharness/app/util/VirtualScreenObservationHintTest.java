@@ -7,6 +7,7 @@ import static com.deepseekharness.app.util.VirtualScreenObservationHint.Accessib
 import static org.junit.Assert.*;
 
 import com.deepseekharness.app.util.VirtualScreenObservationHint.Hint;
+import java.util.List;
 import org.junit.Test;
 
 public class VirtualScreenObservationHintTest {
@@ -145,6 +146,85 @@ public class VirtualScreenObservationHintTest {
     assertEquals(
         "VSCREEN_WINDOW_UNREADABLE",
         VirtualScreenObservationHint.semanticReason(CONNECTED, "WINDOW_ID_MISMATCH"));
+  }
+
+  @Test
+  public void ambiguousOrEmptyApplicationWindowsGetDistinctNextSteps() {
+    var ambiguous =
+        VirtualScreenWindowEvidence.of(
+            8,
+            List.of(
+                new VirtualScreenWindowEvidence.Window(
+                    8,
+                    2,
+                    VirtualScreenWindowPolicy.TYPE_APPLICATION,
+                    1,
+                    0,
+                    0,
+                    100,
+                    100,
+                    true,
+                    false,
+                    "A"),
+                new VirtualScreenWindowEvidence.Window(
+                    8,
+                    3,
+                    VirtualScreenWindowPolicy.TYPE_APPLICATION,
+                    1,
+                    0,
+                    0,
+                    100,
+                    100,
+                    true,
+                    false,
+                    "B")));
+    assertEquals(
+        "ASK_USER_TO_CLOSE_SPLIT_SCREEN",
+        VirtualScreenObservationHint.semanticNextAction(
+            CONNECTED, "NO_UNIQUE_APPLICATION_WINDOW", ambiguous));
+    assertEquals(
+        "VSCREEN_WINDOW_AMBIGUOUS",
+        VirtualScreenObservationHint.semanticReason(
+            CONNECTED, "NO_UNIQUE_APPLICATION_WINDOW", ambiguous));
+    var onlyIme =
+        VirtualScreenWindowEvidence.of(
+            8,
+            List.of(
+                new VirtualScreenWindowEvidence.Window(
+                    8,
+                    4,
+                    VirtualScreenWindowPolicy.TYPE_INPUT_METHOD,
+                    1,
+                    0,
+                    0,
+                    100,
+                    100,
+                    true,
+                    true,
+                    "Keyboard")));
+    assertEquals(
+        "LAUNCH_APP_FIRST",
+        VirtualScreenObservationHint.semanticNextAction(
+            CONNECTED, "NO_UNIQUE_APPLICATION_WINDOW", onlyIme));
+    assertEquals(
+        "VSCREEN_NO_WINDOW",
+        VirtualScreenObservationHint.semanticReason(
+            CONNECTED, "NO_UNIQUE_APPLICATION_WINDOW", onlyIme));
+    // 没有证据时保持旧的「重新观察」，不会凭空让用户去关分屏。
+    assertEquals(
+        "SEE_AGAIN",
+        VirtualScreenObservationHint.semanticNextAction(
+            CONNECTED, "NO_UNIQUE_APPLICATION_WINDOW", null));
+    // 窗口证据不改变其它诊断的行为。
+    assertEquals(
+        "SEE_AGAIN",
+        VirtualScreenObservationHint.semanticNextAction(
+            CONNECTED, "WINDOW_ID_MISMATCH", ambiguous));
+    assertEquals(
+        "ACCESSIBILITY", VirtualScreenObservationHint.windowEvidence(CONNECTED, "READABLE"));
+    assertEquals(
+        "CORE_TASKS",
+        VirtualScreenObservationHint.windowEvidence(CONNECTED, "ACCESSIBILITY_UNAVAILABLE"));
   }
 
   @Test

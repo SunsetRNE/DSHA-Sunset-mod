@@ -2,7 +2,7 @@
 
 > 2026-10-23 build191修订：CAS改专用轻入口与FD安全扫描，仍固定proot并完整扫描；分段计时只作诊断，不替代唯一回执和退出证明。`backendReadyMs`记录实际官方鉴权接受，`browserReadyMs`记录首次有效网页ready；`elapsedMs`在ready/失败/停止后冻结，`runElapsedMs`另记运行代次时长。ready后的真实错误保留为运行期记录，不复制关键词推测的`RELATED_PLUGIN_LOG`或触发已就绪代次的启动失败。准入/排队另有观察，trace仍从`diagnostics.begin`开始；接入旧Web的0ms不是新启动测速。[本轮实现、模块检查与最终待验范围](releases/v0.2.1-rc.2-build191-startup-20261023.md)优先于下方F13说明。
 
-> 核验基线：2026-10-21（原于 build190/F13 入口与数据流核对）。当前身份为 build348 / DSH 0.2.2-rc.1 / 单一 Standard；F10–F13 记录属于历史，不代表本版。本页更新只核对源码，未运行设备、模型对话或长时验收；最终版本、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数。
+> 核验基线：2026-10-21（原于 build190/F13 入口与数据流核对）。当前身份为 build356 / DSH 0.2.2-rc.1 / 单一 Standard；F10–F13 记录属于历史，不代表本版。本页更新只核对源码，未运行设备、模型对话或长时验收；最终版本、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数。
 
 先在 Main 判断失败发生在哪一层，再选择检查、恢复或导出。环境就绪、后端鉴权、网页就绪分别有自己的证据；某一层完成不能替代后一层。安装操作见[安装与维护](install-and-maintenance.md)，配置修复见[配置快照](config-snapshots.md)。
 
@@ -95,7 +95,22 @@ F12对应的两网页内核真实Host负控覆盖了失败响应先到、后台�
 | 仅本次附加说明 | 当前动作勾选后，仅包含用户主动填写的文本 | 不持久化或恢复该选择；上限 32768 字符；不自动捕获业务正文 |
 | 复制/导出文本诊断 | 用户主动选择后输出当前报告及说明 | 脱敏是有限格式规则，公开反馈前仍应查看内容 |
 
-默认故障包不采集原始进程输出、对话正文、凭据或完整异常链；已经轮换的历史不能重建。[DiagnosticExportArchive](../app/src/main/java/com/deepseekharness/app/backup/DiagnosticExportArchive.java)限制最多 32 项、单项 256 KiB、总内容预算 1 MiB，标准 tar/gzip 封装并含逐项 SHA-256。当前没有自动上传报告。
+默认故障包不采集原始进程输出、对话正文、凭据或完整异常链；已经轮换的历史不能重建。[DiagnosticExportArchive](../app/src/main/java/com/deepseekharness/app/backup/DiagnosticExportArchive.java)限制最多 32 项、单项 256 KiB、总内容预算 1 MiB，标准 tar/gzip 封装并含逐项 SHA-256。当前没有自动上传报告。测试包另有一个更宽上限的反馈导出（见下节），正式故障包的 1 MiB 路径保持不放宽。
+
+### 测试包反馈导出（.test / .debug / .dev）
+
+测试包（`-Pdsha.sunsetTest=true`、`-Pdsha.debugPackage=true` 或 `-Pdsha.devPackage=true`）在自检页「反馈」卡内额外显示「导出反馈日志（测试包）」；正式包 `BuildConfig.TEST_PACKAGE=false`，该行与分隔线保持隐藏，正式故障包的数量、单文件与总量上限都不变。入口只由构建变体开关决定，不按包名或运行时状态猜测。
+
+导出的 `DSHA-feedback-…tar.gz` 由[TestPackageFeedbackExporter](../app/src/main/java/com/deepseekharness/app/core/TestPackageFeedbackExporter.java)在本机一次性生成，可「另存为…」（SAF `ACTION_CREATE_DOCUMENT`，写后回读字节校验）或「分享…」（只交给系统分享目标，不经过网络、不自动上传）：
+
+| 来源 | 内容 | 边界 |
+|---|---|---|
+| 本进程 logcat | `logcat -d --pid=<自己的 pid> -v threadtime`；只读本进程 | 失败或无权限时降级为空，原因写入 manifest；最多最近 256 KiB |
+| 本应用私有记录 | `last-startup-failure.log`、`diagnostic-events*.txt`、`cold-install-diagnostics.txt`、`startup-history/` 最近 5 条、`maintenance/<uuid>` 最近 3 条、`runtime-health/` 最近 3 条 | 逐文件 ≤256 KiB（小型记录 64 KiB） |
+| DSH / 宿主 | rootfs 内 `root/dsh-web.log`、`root/dsh-lan.log`、`repair-builtin.log`，插件事务 `plugin-install-operations/` 最近 3 条与完成证明 | 逐文件尾部有界；只读现有路径，不新建日志来源 |
+| 设备与环境 | `device.json`：机型/品牌/ABI/系统版本/安全补丁、locale、包名与版本、`TEST_PACKAGE`、已装或随包 runtime descriptor 的 `runtimeId`、运行方式、uptime、启动/维护/应急状态 | 不采集 IMEI、序列号、账号或 API key |
+
+收集器 [FeedbackCapture](../app/src/main/java/com/deepseekharness/app/util/FeedbackCapture.java) 与[DiagnosticExportArchive](../app/src/main/java/com/deepseekharness/app/backup/DiagnosticExportArchive.java)的参数化上限为最多 48 项、单项 ≤256 KiB、总量 ≤8 MiB；来源不存在、越出私有根、软链或读取失败只记入 manifest 的 `capture` 段，不阻断整包。所有文本统一经 [SensitiveData](../app/src/main/java/com/deepseekharness/app/util/SensitiveData.java) 规则脱敏，包内 `README.txt` 与 `manifest.json` 的 `capture` 段写明来源、边界与「可能仍含个人信息，请自行决定是否上传」。自由格式日志和自定义头字段仍可能包含脱敏规则覆盖不到的信息，分享前应人工检查；应用本身不建立上传连接。
 
 ## 记录的限额与解读
 
@@ -110,4 +125,4 @@ F12对应的两网页内核真实Host负控覆盖了失败响应先到、后台�
 
 ## 修改与验证入口
 
-关联测试为[FirstRunWebStartTest](../app/src/test/java/com/deepseekharness/app/ui/FirstRunWebStartTest.java)、[WebLifecycleResponsivenessTest](../app/src/test/java/com/deepseekharness/app/core/WebLifecycleResponsivenessTest.java)、[StartupRecoveryLifecycleTest](../app/src/test/java/com/deepseekharness/app/core/StartupRecoveryLifecycleTest.java)、[StartupDiagnosticsTest](../app/src/test/java/com/deepseekharness/app/core/StartupDiagnosticsTest.java)、[DiagnosticHistoryTest](../app/src/test/java/com/deepseekharness/app/core/DiagnosticHistoryTest.java)、[DiagnosticExportArchiveTest](../app/src/test/java/com/deepseekharness/app/backup/DiagnosticExportArchiveTest.java)。本文仅核对链接与实现，未重新运行这些测试。
+关联测试为[FirstRunWebStartTest](../app/src/test/java/com/deepseekharness/app/ui/FirstRunWebStartTest.java)、[WebLifecycleResponsivenessTest](../app/src/test/java/com/deepseekharness/app/core/WebLifecycleResponsivenessTest.java)、[StartupRecoveryLifecycleTest](../app/src/test/java/com/deepseekharness/app/core/StartupRecoveryLifecycleTest.java)、[StartupDiagnosticsTest](../app/src/test/java/com/deepseekharness/app/core/StartupDiagnosticsTest.java)、[DiagnosticHistoryTest](../app/src/test/java/com/deepseekharness/app/core/DiagnosticHistoryTest.java)、[DiagnosticExportArchiveTest](../app/src/test/java/com/deepseekharness/app/backup/DiagnosticExportArchiveTest.java)、[DiagnosticExportArchiveLimitsTest](../app/src/test/java/com/deepseekharness/app/backup/DiagnosticExportArchiveLimitsTest.java)、[FeedbackCaptureTest](../app/src/test/java/com/deepseekharness/app/util/FeedbackCaptureTest.java)、[BoundedByteTailTest](../app/src/test/java/com/deepseekharness/app/util/BoundedByteTailTest.java)、[DiagnosticActivityRenderingTest](../app/src/test/java/com/deepseekharness/app/ui/DiagnosticActivityRenderingTest.java)。本文仅核对链接与实现，未重新运行这些测试。

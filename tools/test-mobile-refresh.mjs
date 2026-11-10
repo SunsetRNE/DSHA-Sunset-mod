@@ -71,7 +71,9 @@ try {
     swapTest.restoreConversationScroll();
   });
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
-  assert.equal(await page.locator('#scroller').evaluate(el=>el.scrollTop),0,'new DOM never inherits the old scroller position');
+  // 上游 3.3.1 起恢复改为跨节点：热换重建滚动区后按 window.__dshaMobileLastScroll 回填
+  // （见 dsh-web-mobile src/client/index.tsx 的 remounted-tree 分支），不再要求新 DOM 停在 0。
+  assert.equal(await page.locator('#scroller').evaluate(el=>el.scrollTop),100,'remounted scroller restores the remembered position');
   const sessionLog=await page.evaluate(()=>{
     const frame=document.querySelector('[data-mobile-nav="frame"]');
     const column=document.createElement('div');column.className='fixture_sidebarCol';

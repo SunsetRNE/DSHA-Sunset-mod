@@ -561,6 +561,20 @@ public final class VirtualScreenAnchoredChainTest {
   }
 
   @Test
+  public void duplicateTargetWindowIdentityRefusesAnchorInsteadOfPickingOne() throws Exception {
+    // 同一 window id 出现两次：锚点证明只能拒绝（ANCHOR_WINDOW_AMBIGUOUS），不能按 id 任选一个。
+    try (Fixture f = new Fixture()) {
+      FreshWindows.originals.put(DISPLAY, List.of(f.window, f.window));
+      JSONObject seen = f.see();
+      assertTrue(seen.toString(), seen.optBoolean("ok"));
+      assertFalse(seen.optBoolean("anchoredAvailable"));
+      assertEquals("ANCHOR_WINDOW_AMBIGUOUS", seen.getString("availabilityReason"));
+      assertFalse(seen.has("observationId"));
+      f.drain();
+    }
+  }
+
+  @Test
   public void thirdAgentSeeEvictsOldObservationAndClearingSemanticOwnerReleasesRawCopies()
       throws Exception {
     try (Fixture f = new Fixture()) {

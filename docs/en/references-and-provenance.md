@@ -1,6 +1,6 @@
 # References, upstream provenance and verifiable scope
 
-This is a build348 fact index covering the current publication identity, upstream sources and fixed inputs. F10/F11/build190 and other historical records stay as written and cannot serve as evidence for this build. Its purpose is to locate primary references, version locks and verification entry points, not imply official endorsement or security certification. Documentation corrections do not rerun builds, operate a su device or publish artifacts; this build's software, APK and release results are bound by the CI run and Release receipt.
+This is a build356 fact index covering the current publication identity, upstream sources and fixed inputs. F10/F11/build190 and other historical records stay as written and cannot serve as evidence for this build. Its purpose is to locate primary references, version locks and verification entry points, not imply official endorsement or security certification. Documentation corrections do not rerun builds, operate a su device or publish artifacts; this build's software, APK and release results are bound by the CI run and Release receipt.
 
 ## 1. Project and upstream relationships
 
@@ -30,7 +30,7 @@ The following values come from current files. Update the lock before this page w
 | Component | Current local selection | Original lock/configuration |
 |---|---|---|
 | Main DSH package | `@deepseek-ai/dsh` `0.2.1-rc.5` | [package.json](../../tools/dsh-runtime/package.json), [package-lock.json](../../tools/dsh-runtime/package-lock.json) |
-| Mobile plugin | `3.3.1`; actual main input commit below | [mobile-plugin-upstream.lock.json](../../tools/mobile-plugin-upstream.lock.json) |
+| Mobile plugin | `3.3.5`; actual main input commit below | [mobile-plugin-upstream.lock.json](../../tools/mobile-plugin-upstream.lock.json) |
 | Managed environment | Ubuntu 24.04 arm64; DSHA `baseVersion=10` | [runtime-descriptor.json](../../app/src/main/assets/runtime-descriptor.json), [Ubuntu package lock](../../tools/ubuntu-tools/packages.lock.json) |
 | Runtime tools | pnpm `10.34.5`, certifi `2026.7.22` | [runtime-tools.lock.json](../../tools/runtime-tools.lock.json) |
 | Default/optional engine | proot/proroot; the latter locally declared v1.2.8 | [AGENTS](../../AGENTS.en.md), [THIRD_PARTY_NOTICES](../../THIRD_PARTY_NOTICES.md) |
@@ -51,12 +51,13 @@ The lock also retains resolved URLs, integrity and declared licenses throughout 
 
 The current lock distinguishes the release tag from later main inputs:
 
-- The current fixed commit is [`4e71eb67de7dac9d8b2572757c81e47aa32a32fb`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/4e71eb67de7dac9d8b2572757c81e47aa32a32fb); the v3.3.1 tag and releaseCommit are the same value (2026-11-06). Upstream renumbered the host-0.2.2 adaptation (3.4.0 content) as 3.3.1, and the 3.3.2 packaging fix that made `react` an optional peer is included; `lib/client.js` digest `7f82fac2100d70daf34c9c68cc402f6adb2302bf9913122d3402ab0926773c75`.
-- This import has 87 commits (merge commits included) beyond the previous pin `bb0e5e151ca549fef506e829020a5d7138074711` (v3.2.2), focused on host 0.2.2 adaptation (full-page blank screen, clipped header toggle, missing file button, overlapping tabs, file-panel tab strip covered by the header), keyboard/input, plugin page and drawer feedback; the same release removed `lib/file-transfer.js`, which DSHA now keeps providing from `tools/file-transfer/file-transfer.js`.
-- The upstream source-archive SHA-256 in the lock is `80973622839452e52e586b4f7a87eb5a81a9fc26460d76c84d027c7ce6773e2c` (3,284,160 B).
+- The current fixed commit is [`646fe837440f9939228bdba0024d407eaac01128`](https://github.com/mexiaosqwq/dsh-web-mobile/tree/646fe837440f9939228bdba0024d407eaac01128); release tag v3.3.5 points to `14ecfccf5a6acb69e3a84229dee328d31801306f` (2026-11-08), with three post-tag README / plugin-page-layout fixes also taken from main. `lib/client.js` digest `8a17dd03b5de35f1aea52c93d6e3352fcd43c781de380639f60a93bf6040a26a`.
+- This import has 37 commits (merge commits included) beyond the previous pin `4e71eb67de7dac9d8b2572757c81e47aa32a32fb` (v3.3.1): plugin-page icon and localized title/description, the phone "more views" entry, subagent-chip yielding, the drawer dim layer painted by a frame pseudo-element, full-screen gestures classified by direction (the 45% edge zones are retired), the hero worktree row, plugin-page host layout restored, and hardened test gates. The three server modules (`lib/index.js` / `compress.js` / `delete-session.js`) did not change upstream, so the local replacements still pass the exact upstream digest and anchor checks.
+- New members `locale/en.json`, `locale/zh.json` and `assets/icon.png` are installed through the managed table (the host plugin card reads `package.json#icon` and `meta.title` / `meta.description` from `locale/<lang>.json`); upstream renamed `overlay-backdrop-fab` to `drawer-layer`, and the three old members are recorded in the lock's `retiredFiles`.
+- The upstream source-archive SHA-256 in the lock is `15a51f4018485d930e66b5734b4421da2a32fbca59e20219b68f4c7fe34c7515` (3,291,698 B).
 - Upstream client and final local client are recorded separately; final member digests are in the current THIRD_PARTY_NOTICES and descriptor.
 
-An internal package version of 3.3.1 does not mean it contains only that tag's original bytes. [apply-mobile-client-patches.mjs](../../tools/apply-mobile-client-patches.mjs) and [mobile-server](../../tools/mobile-server) manage local differences. Check individually whether an upstream upgrade absorbed local patches; do not apply the entire old patch set again.
+An internal package version of 3.3.5 does not mean it contains only that tag's original bytes. [apply-mobile-client-patches.mjs](../../tools/apply-mobile-client-patches.mjs) and [mobile-server](../../tools/mobile-server) manage local differences. Check individually whether an upstream upgrade absorbed local patches; do not apply the entire old patch set again.
 
 ## 4. Licenses and unresolved provenance boundaries
 

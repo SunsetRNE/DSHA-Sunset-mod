@@ -9,11 +9,11 @@ const upstreamSource=()=>readFileSync('tools/mobile-plugin-upstream/lib/client.j
 test('移动 client 固定预构建来源与部署产物闭环，拒绝错误版本/追加字节',()=>{
   const source=upstreamSource();
   assert.equal(createHash('sha256').update(source).digest('hex'),upstreamClientHash);
-  assert.equal(upstreamCommit,'4e71eb67de7dac9d8b2572757c81e47aa32a32fb');
+  assert.equal(upstreamCommit,'646fe837440f9939228bdba0024d407eaac01128');
   assert.equal(readFileSync(asset,'utf8'),applyMobileClientPatches(source));
   assert.throws(()=>applyMobileClientPatches(Buffer.concat([Buffer.from(source),Buffer.from('\n')])),/字节不匹配/);
 });
-test('C 基线只保留齿轮几何让位，上游 3.3.1 的旧 :has 连接条判据被替换',()=>{
+test('C 基线只保留齿轮几何让位，上游 3.3.5 的旧 :has 连接条判据被替换',()=>{
   const patched=applyMobileClientPatches(upstreamSource());
   assert.ok(patched.includes('DSHA_GEAR_FIT_V1'));
   assert.ok(patched.includes('data-mobile-nav-quick-fit="0"'));
@@ -41,7 +41,7 @@ test('文件传输与多语言补丁仍在，部署产物逐字节一致',()=>{
   assert.ok(patched.includes('DSHAFileTransfer') || patched.includes('FileDeliveryActions'));
   assert.equal(readFileSync(asset,'utf8'),patched);
 });
-test('3.3.1 上游视口函数保持原字节，不复活已撤回的帧合并试验',()=>{
+test('3.3.5 上游视口函数保持原字节，不复活已撤回的帧合并试验',()=>{
   const source=upstreamSource();
   const patched=applyMobileClientPatches(Buffer.from(source));
   const viewport=text=>text.slice(text.indexOf('function syncStableViewportHeight() {'),text.indexOf('/** iOS-only: mark documentElement'));
@@ -49,7 +49,7 @@ test('3.3.1 上游视口函数保持原字节，不复活已撤回的帧合并�
   assert.equal(viewport(patched),viewport(source));
   assert.ok(patched.includes('interactive-widget=resizes-content'));
 });
-test('3.3.1 已接管的宽屏触屏档不重放，规则与手机壳名单一致',()=>{
+test('3.3.5 已接管的宽屏触屏档不重放，规则与手机壳名单一致',()=>{
   const source=upstreamSource();
   const patched=applyMobileClientPatches(Buffer.from(source));
   assert.equal(patched.includes('DSHA_WIDE_TOUCH_ROW_ACTIONS_V1'),false,'上游已接管，不得重放旧补丁');

@@ -1,6 +1,6 @@
 # DSHA 项目架构与功能维护总手册
 
-核验日期：2026-10-31。本文面向需要理解、修改和验证 DSHA 的维护者，按当前 build348 / DSH 0.2.2-rc.1 工作树维护。
+核验日期：2026-10-31。本文面向需要理解、修改和验证 DSHA 的维护者，按当前 build356 / DSH 0.2.2-rc.1 工作树维护。
 F10–F13、build190 等记录保留各自历史归属，不是本版交付证据；最终诊断身份、软件、APK 与附件范围见 [README](../README.md) 与本轮 CI / Release 回执，本页不预填测试总数。
 版本最终以 [app/build.gradle](../app/build.gradle) 和对应产物回执为准。
 本文是功能与代码地图，不是新的验收报告，也不改变运行权限、数据格式或 APK。
@@ -33,7 +33,7 @@ DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维
 当前使用哪个 DSH 版本，应读 [npm manifest](../tools/dsh-runtime/package.json) 与
 [完整 lock](../tools/dsh-runtime/package-lock.json)，不能根据上游默认分支推断。
 移动 UI 是 [dsh-web-mobile](https://github.com/mexiaosqwq/dsh-web-mobile) 第三方插件；
-当前 3.3.1 锁定上游 main `4e71eb67`（上游把适配宿主 0.2.2 的 3.4.0 内容重编号为 3.3.1），但包内产物含本地补丁、不等于同名标签原件，详见 [上游锁](../tools/mobile-plugin-upstream.lock.json)。
+当前 3.3.5 锁定上游 main `646fe837`（发布标签 v3.3.5 = `14ecfccf`，标签后 3 个修复提交一并取用；对应宿主 0.2.2），但包内产物含本地补丁、不等于同名标签原件，详见 [上游锁](../tools/mobile-plugin-upstream.lock.json)。
 本地补丁、固定归档、第三方许可与可复现范围分别记录，不能由“开源”推导所有 vendor 均可重编。
 
 | 当前生产选择 | 维护含义 |

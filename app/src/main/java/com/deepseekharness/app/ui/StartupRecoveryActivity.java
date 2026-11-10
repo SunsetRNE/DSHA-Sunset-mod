@@ -377,6 +377,8 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
         return List.of(openConfig(t("修改 Web 端口", "Change Web port")), retry());
       case PLUGIN:
         return removable(subject) ? List.of(uninstall(subject), safe()) : List.of(safe(), logs());
+      case REGISTER:
+        return List.of(retry(), logs());
       case PAGE:
       case FAILED:
         return List.of(safe(), logs());

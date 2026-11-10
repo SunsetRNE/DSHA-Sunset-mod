@@ -241,6 +241,50 @@ Core 消费观察后复位；不能把同一 `frameSeq` 当作可无限连点的
 限制：这是宿主侧最佳努力检查，不是内核沙箱；检查与 Core 注入之间存在时间窗，自定义控件不暴露
 `isPassword()` 时只能按不可读处理；无障碍关闭时保护降级；同 UID 的插件/终端可以绕开受管入口（见安全模型）。
 
+### 6.2 敏感界面分档与交接（T119）
+
+在 6.1 的密码焦点硬守卫之外，宿主对虚拟屏的**整屏**做一次保守分类：命中密码框、验证码关键词、金融应用或
+支付关键词、系统安全页面关键词，或已知敏感应用但树读不出来时，按类别交给
+`util/SensitiveScreenPolicy`（纯逻辑）与 `util/SensitiveScreenClassifier`（纯逻辑）决策。分类只读当前显示的
+无障碍树，预算 600 个节点 / 40 层，只保留类别与依据码，不把界面文本写进回执或日志。
+
+| 类别 | 默认 | 说明 |
+|---|---|---|
+| `PASSWORD` | 整屏 `ASK`；文本读写**硬阻断不变** | 密码框存在即整屏按密码界面处理；6.1 的输入层拒绝不因确认而解除 |
+| `OTP` | `ASK` | 可编辑控件出现验证码/动态码/OTP 等关键词 |
+| `PAYMENT` | `ASK` | 金融类应用包名，或任意应用页面出现支付/收银台/转账等关键词（微信等通用应用只按关键词判） |
+| `SYSTEM_SECURITY` | `ASK` | 设置/权限/系统界面 + 无障碍、开发者、账户、锁屏、安全等页面关键词 |
+| `SECURE_UNKNOWN` | `ASK` | 已知敏感应用但窗口树读不出来；空屏/取不到包名不做无目标分类 |
+
+- **存储与修订**：独立键 `sensitive_screen_v1`（`DeviceGrants`），严格解码、损坏回默认 ASK；应用名单精确包名、
+  各自上限 64、默认空，两名单互斥。保存先失效旧请求/旧弹窗，再提交并回读。屏幕授权的 `policyRevision`
+  使用 `screen_confirmation_v1` 与 `sensitive_screen_v1` 两个修订号之和，任一保存都让旧确认与在途请求失效；
+  进程内还有单调下限，记录损坏被解码成默认值也不会把修订号退回旧值。
+- **`ASK` 强制确认**：`ScreenConfirmationPolicy.ALLOW_ALL`、按应用 `ALLOW`、以及「本轮允许此应用」的 5 次内存
+  都不能跳过敏感类别的确认；只有显式的信任名单才放行。敏感确认一次一授权，不写入本轮记忆。
+- **`OFF` 只关闭整屏分档**：该类别回到普通屏幕确认策略（`全部手动` / `按应用` / `全部允许` 按原语义生效），
+  不进入敏感分类的强制确认或交接；密码文本读写仍由输入层硬阻断，与 `OFF` 无关。默认所有类别 `ASK`，
+  `OFF` 需要用户显式选择。
+- **`HANDOFF` 交接**：在派发任何输入前暂停助手（`PhoneControlCoordinator.pause("SENSITIVE_SCREEN_<类别>")`），
+  撤销在途请求并丢弃观察，返回 `ok:false`、`state=NOT_SENT`、`error=SENSITIVE_SCREEN_HANDOFF`、
+  `sensitivity=<类别>`、`readOnly:true`、`retryable:false`、`nextAction=HANDOFF_TO_USER`。
+  不改屏幕模式、不关闭 Core；用户恢复后助手必须重新 `see`，**不自动重放**上一动作（ADR0003 的 UNKNOWN 不重放
+  同样适用于策略拒绝）。
+- **确认后复核**：会注入输入的端点（`tap/swipe/touch/key/type/node/edit/submit/anchored-click`）在确认结束后、
+  真正派发前再读一次分类；读不出返回 `SENSITIVE_SCREEN_UNVERIFIED`，类别变化返回 `SENSITIVE_SCREEN_CHANGED`，
+  两者都是未发送、`retryable=true`、`nextAction=SEE_AGAIN`。读端点（`see/tree/editor/anchor`）与写端点都参与
+  分类；生命周期端点（`status/close/create/launch/preview`）不分类。
+- **密码文本路径**：`PASSWORD` 的 `type`/`edit`/`node set_text` 不先弹确认，直接交给 6.1/无障碍层的
+  `PASSWORD_INPUT_UNAVAILABLE` 硬拒绝；密码页上的点按、按键等非文本动作仍按策略 `ASK`/`HANDOFF`。
+- **设置入口**：设置 → 设备能力授权 → 识屏 → 敏感界面交接；逐类别选择询问/交接/不启用，维护强制交接与信任应用名单。
+  文案明确「全部允许不解除密码文本阻断」「交接后不会重放」。
+
+误伤与限制：包名子串与关键词会命中测试应用或无关页面；方向是「多问一次 / 交给用户」，不是永久拒绝，用户可把
+应用加入信任名单或暂停助手。无障碍关闭时没有语义证据通道，不做分类（保护降级，不宣称安全）；自定义控件、
+Canvas、语言与 ROM 差异可能漏判；检查与注入之间存在时间窗；同 UID 的插件/终端可以绕开受管入口 —— 这不是
+内核沙箱，与 `docs/security-model.md` 的边界一致。真机验收需覆盖：正常页面不误弹、密码页只硬阻断文本、
+支付/验证码默认多问一次、交接后暂停且恢复后必须重看、名单两向生效、短屏/大字体下设置页可滚动。
+
 ## 7. 三种显式语义操作
 
 ### 7.1 DSH tree / node / editor
@@ -383,6 +427,7 @@ Manager `closeExpected()` 核对 Core UUID，`detachLocked()` 先令旧请求失
 | CLOSE_UNKNOWN | release ACK、出生 proof、journal commit 和 cleanup reason | 仅因画面消失就宣布 STOPPED |
 | FRAME_NOT_READY / STALE_FRAME | generation、最新帧、是否刚从无帧恢复、采用回调 | 保图同时继续开放触摸 |
 | 助手 see：VSCREEN_NO_WINDOW / FRAME_PENDING / FRAME_STALLED | windowState、windowEvidence、foregroundPackage、sinceReadyOrLaunchMs、nextAction | 空屏时等待或重建；无障碍不可用时把 UNKNOWN 当成空屏 |
+| 助手 tree：NO_UNIQUE_APPLICATION_WINDOW | applicationWindowCount、windowAmbiguous、focusedWindowId、windowDiagnostic | 自动选一个应用窗口继续；对同一歧义屏反复重看 |
 | FRAME_NOT_OBSERVED / FRAME_EXPIRED | requested/current/observed frame 字段及 TTL | 用 status 的新帧号替换旧图帧号 |
 | STALE_TREE / STALE_NODE | 实际窗口/包、服务状态和树期限 | 自动刷新并补发旧业务动作 |
 | NATIVE_CONTROL_REVOKED | 页面是否已暂停、面板是否已取消、Core 是否变更 | 重新激活旧 owner |
@@ -396,6 +441,28 @@ Manager `closeExpected()` 核对 Core UUID，`detachLocked()` 先令旧请求失
 Native `lastStartOutcome()` / `safeStartOutcome()` 提供去除秘密和图像的启动技术摘要。
 读日志前先确定它对应的源码、APK、flavor 与运行阶段；不要把另一包的 PASS 移植过来。
 
+### 12.1 最小窗口证据与多窗口可行动提示（T98）
+
+失败回复只做纯增量，不改变 `windowState` / `windowEvidence` / `windowDiagnostic` 既有语义，也不新增授权面
+（`util/VirtualScreenWindowEvidence`，纯逻辑）：
+
+- `see` 的 `FRAME_NOT_READY` 细分、tree/node/editor/anchor 的窗口不可用回复，在无障碍可读时附
+  `applicationWindowCount` / `systemWindowCount` / `inputMethodWindowCount`、`focusedWindowId` /
+  `activeWindowId`、`windowAmbiguous`；窗口唯一时再附 `targetWindowDisplayId` / `targetWindowId` /
+  `targetWindowType` / `targetWindowLayer` / `targetWindowBounds` / `targetWindowFocused` /
+  `targetWindowActive` / `targetWindowTitle` / `targetWindowPackage`。
+- 字段只来自无障碍窗口清单：标题去掉控制字符、折叠空白并截断到 64 码点，包名按包名格式校验后保留，其余
+  不合格值直接省略；不含节点文本、控件内容、截图或完整窗口清单。窗口 id 会复用，不能当长期身份。
+- `NO_UNIQUE_APPLICATION_WINDOW` 用计数区分两种原因：多个应用窗口并列（分屏/悬浮窗）→
+  `reason=VSCREEN_WINDOW_AMBIGUOUS`、`nextAction=ASK_USER_TO_CLOSE_SPLIT_SCREEN`；只有系统/输入法窗口、
+  没有应用窗口 → `reason=VSCREEN_NO_WINDOW`、`nextAction=LAUNCH_APP_FIRST`。拿不到证据时仍回
+  `SEE_AGAIN`，不凭空提示用户去关分屏。
+- 证据只用于解释失败与下一步，不参与授权、选择或重试：语义路径仍然只认
+  `VirtualScreenWindowPolicy.selectDetailed` 的唯一结果，锚点路径只认原观察携带的 windowId（同 id 重复
+  按 `ANCHOR_WINDOW_AMBIGUOUS` 拒绝），不会因为“多窗口”自动换一个窗口。
+- 真机验收：多窗口/分屏（应提示收起分屏而不是自动选窗）、IME 存在（只进 `inputMethodWindowCount`，不误判
+  为应用窗口）、FLAG_SECURE 页面（截图失败时窗口证据仍只含元数据，不泄露内容）。
+
 ## 13. 修改指南与回归定位
 
 | 修改范围 | 必须一起检查的实现 | 首选回归类或脚本 |
@@ -407,6 +474,7 @@ Native `lastStartOutcome()` / `safeStartOutcome()` 提供去除秘密和图像�
 | 采集、预览与手势 | Pixels、Previews、PreviewView、PreviewInputGate | PixelsTest、PreviewContinuityTest、PreviewAdoptionTest、PreviewInputGateTest、NativeInputFrameBoundaryTest |
 | 节点与原生面板 | Accessibility、NativeControls、Activity、NativeScreenControlLease | VirtualScreenNativeControlsTest、ActivityNodeControlsTest、ActivityLayoutTest |
 | 原图锚点 | ObservedPixels、ObservedControl、AnchorProof | VirtualScreenObservedPixelsTest、VirtualScreenAnchoredChainTest；test-vscreen-anchored.mjs |
+| 窗口证据与多窗口提示 | WindowPolicy、WindowEvidence、ScreenTargetResolver、ObservationHint、Manager/HttpShellService | VirtualScreenWindowPolicyTest、VirtualScreenWindowEvidenceTest、VirtualScreenObservationHintTest、ScreenTargetResolverEvidenceTest |
 | DSH 工具/bridge | server.cjs、VscreenBridgeRequest、HttpShellService | VscreenBridgeRequestTest、VscreenAnchoredGrammarTest；test-vscreen-bundle.mjs、test-vscreen-manager-http.py |
 
 表中省略共同前缀的测试类，位于 [vscreen 测试目录][tests] 或 [util 测试目录][util-tests]。

@@ -42,7 +42,7 @@ public final class BrowserConversationRoute {
         .putExtra(REQUEST, java.util.UUID.randomUUID().toString());
   }
 
-  /** 同一个会话入口，额外要求页面就绪后把待答问题滚进可视区并聚焦回答框。 */
+  /** 同一个会话入口，额外要求页面就绪后把待答问题滚进可视区，并在没有选项时聚焦回答框。 */
   public static Intent question(Context context, long generation, String instance, String session) {
     return conversation(context, generation, instance, session).putExtra(QUESTION, true);
   }

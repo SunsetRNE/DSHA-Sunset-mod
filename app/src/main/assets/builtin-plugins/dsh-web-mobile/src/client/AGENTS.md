@@ -40,7 +40,7 @@
   树键因为它的槽随树重建，文本键因为 TPS 更新可能以原地 `nodeValue` 改写到达。**加键安全；删掉树键
   正是这行要防的失效模式**。
 - 已注册任务：`frame-marker`、`header-metrics`、`preview-fullscreen-toggle`、`preview-close-sync`、
-  `sheet-rise-replay`、`file-viewer-open-marker`、`stats-line`、`overlay-backdrop-fab`、`panel-back-exit`、
+  `sheet-rise-replay`、`file-viewer-open-marker`、`stats-line`、`drawer-layer`、`panel-back-exit`、
   `drawer-session-log`、`image-lightbox-zoom`、`question-fullscreen`（后两个由各自效果在移动档自注册）。
 
 ## 分层与依赖
@@ -72,13 +72,21 @@ CSS 写在 `styles/`，不写进组件文件；保留拼接顺序与完整 CSS �
 会静默漏匹配（全库迁移时实测）。选择器要限定到它自己的区域，前缀重叠的片段用 `:not` 防误伤；树行用
 `[class*="_treeRow"]`，区分目录/文件时排除 `[class*="_treeArrowEmpty"]`。
 
-DOM 标记即跨模块状态契约：`data-mobile-nav="frame"`、`data-sidebar-collapsed`、
+DOM 标记即跨模块状态契约：`data-mobile-nav="frame"`、`data-mobile-nav="hit"`（常驻透明命中层：
+点空白关闭 + 弹层 z 门控，`[data-active]` 是门控信号）、`data-sidebar-collapsed`、
 `data-aionui-explorer-open`、`data-aionui-preview-open`、`data-mobile-preview-full`、
 `data-mobile-nav="stats"`、`data-mobile-nav="stats-ring"` + overlay 体系五标记（`stats-ring-reserve` /
 `stats-tps-reserve` / `stats-tps` / `stats-ring-dock` / `stats-tps-row`，#104）、`data-file-viewer-open`
 （dsh-file-viewer 兼容布局的 frame 级门，锚 `.dsfv-panel`）、`data-mobile-nav="session-delete"`
-（菜单项探针键）、`delete-dialog-backdrop` + `delete-dialog`（确认弹层）、`data-mobile-nav-ios`
+（菜单项探针键）、`delete-dialog-backdrop` + `delete-dialog`（确认弹层）、`data-mobile-nav-dim`
+（frame 级暗层开关，`1`/`0`，画 frame 的 `::after`）、`data-mobile-nav-ios`
 （挂 `<html>`，iOS 专属 CSS 门）。
+
+**读标记要让静态检查看得见**：一律用选择器字符串 `querySelector('[data-mobile-nav="x"]')` 或
+`dataset.mobileNavXxx` 比较，**不要写** `getAttribute('data-mobile-nav') === 'x'`——属性名与值分开写时
+没有任何扫描能认出这个读点（`scripts/css-structure-check.mjs` 的「CSS 消费的标记必须有产出」检查也看不见），
+日后改名会静默失配。新增标记必须同时有消费者（CSS 选择器或代码里的 `querySelector`）；**只有生产者的标记是
+死重量，别留**（2026-11-08 审计实测：报出来的「零引用」标记里真实死重量只有 1 个，其余全是扫描没认出读法）。
 
 ## 效果与资源纪律
 

@@ -1289,6 +1289,21 @@ public class PluginFragment extends Fragment {
     if (isAdded()) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
   }
 
+  /** 当前 Web 胶囊的短文案：加载状态压成一个词，完整记录放 contentDescription。 */
+  static String runtimeBadgeText(PluginRepository.Item item) {
+    if (item.runtimeStale) return com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
+    return switch (item.runtimeState) {
+      case "loaded", "running", "active" ->
+          com.deepseekharness.app.util.UiText.choose("已加载", "Loaded");
+      case "failed" -> com.deepseekharness.app.util.UiText.choose("加载失败", "Failed");
+      case "pending", "waiting" -> com.deepseekharness.app.util.UiText.choose("等待服务", "Waiting");
+      case "loading" -> com.deepseekharness.app.util.UiText.choose("加载中", "Loading");
+      case "stopped", "unloaded", "disabled", "inactive" ->
+          com.deepseekharness.app.util.UiText.choose("未加载", "Not loaded");
+      default -> com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
+    };
+  }
+
   static String runtimeText(PluginRepository.Item item) {
     String state =
         switch (item.runtimeState) {
@@ -1528,10 +1543,7 @@ public class PluginFragment extends Fragment {
     return itemView instanceof SwipeAction.Host host ? host.row() : itemView;
   }
 
-  /**
-   * F2：插件列表左滑露出「删除」，破坏性动作只弹既有确认弹窗；对话 / 终端等横向内容列表不挂滑动。
-   * 平板双栏用点选切换详情，不启用左滑；不可删除与临时插件也没有可滑动作。
-   */
+  /** F2：插件列表左滑露出「删除」，破坏性动作只弹既有确认弹窗；对话 / 终端等横向内容列表不挂滑动。 平板双栏用点选切换详情，不启用左滑；不可删除与临时插件也没有可滑动作。 */
   private void bindSwipe(View itemView, PluginRepository.Item item) {
     if (!(itemView instanceof SwipeAction.Host host)) return;
     SwipeAction.Model model = new SwipeAction.Model();
@@ -1661,14 +1673,18 @@ public class PluginFragment extends Fragment {
   private void bindCardStatus(
       View card, PluginListPresenter.Row<PluginRepository.Item> row, CardDensity density) {
     PluginRepository.Item item = row.entry.value;
+    // 首屏只放短结论（≤4 字）；完整状态经 contentDescription 给无障碍，明细不裸露在胶囊里。
     String configured = configuredText(row);
     String runtime = runtimeText(item);
     TextView state = card.findViewById(R.id.pluginStatus);
-    state.setText(configured);
+    state.setText(configuredBadgeText(row));
+    state.setContentDescription(configured);
     applyBadge(state, configBadgeTone(row));
     TextView runtimeView = card.findViewById(R.id.pluginRuntime);
-    runtimeView.setText(runtime);
-    runtimeView.setVisibility(runtime.isEmpty() ? View.GONE : View.VISIBLE);
+    String runtimeBadge = runtimeBadgeText(item);
+    runtimeView.setText(runtimeBadge);
+    runtimeView.setContentDescription(runtime);
+    runtimeView.setVisibility(runtimeBadge.isEmpty() ? View.GONE : View.VISIBLE);
     applyBadge(
         runtimeView,
         com.deepseekharness.app.util.PluginCardState.runtimeTone(
@@ -1694,17 +1710,37 @@ public class PluginFragment extends Fragment {
         !item.metadataError.isEmpty());
   }
 
+  /** 小胶囊的底色透明度：8% 的 shell_*_soft 在白卡上几乎不可见，看着就像只改了文字颜色。 */
+  private static final int BADGE_FILL_ALPHA = 0x2E;
+
   /**
-   * 徽章统一着色入口：背景取 shell_*_soft（中性用 raised），文字取对应语义色。
+   * 徽章统一着色入口：底色用同语义色 18% 填充（中性用 raised），文字取对应语义色。
    *
    * <p>配置徽章的圆点是 TextView 的 compound drawable，随文字色一起 tint，不会单独进入无障碍焦点。
    */
   private void applyBadge(TextView view, com.deepseekharness.app.util.PluginCardState.Tone tone) {
     int text = requireContext().getColor(badgeTextColor(tone));
+    int fill =
+        tone == com.deepseekharness.app.util.PluginCardState.Tone.MUTED
+            ? requireContext().getColor(R.color.shell_raised)
+            : badgeFill(toneColor(tone));
     view.setTextColor(text);
-    view.setBackgroundTintList(
-        android.content.res.ColorStateList.valueOf(requireContext().getColor(toneSoftColor(tone))));
+    view.setBackgroundTintList(android.content.res.ColorStateList.valueOf(fill));
     view.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(text));
+  }
+
+  private int badgeFill(int toneColor) {
+    return (requireContext().getColor(toneColor) & 0x00FFFFFF) | (BADGE_FILL_ALPHA << 24);
+  }
+
+  private static int toneSoftColor(com.deepseekharness.app.util.PluginCardState.Tone tone) {
+    return switch (tone) {
+      case GOOD -> R.color.shell_good_soft;
+      case ACCENT -> R.color.shell_accent_soft;
+      case WARN -> R.color.shell_warn_soft;
+      case BAD -> R.color.shell_bad_soft;
+      case MUTED -> R.color.shell_raised;
+    };
   }
 
   /** 中性徽章文字用 secondary 而不是 muted：raised 底上 muted 的对比度偏弱。 */
@@ -1724,16 +1760,6 @@ public class PluginFragment extends Fragment {
     };
   }
 
-  private static int toneSoftColor(com.deepseekharness.app.util.PluginCardState.Tone tone) {
-    return switch (tone) {
-      case GOOD -> R.color.shell_good_soft;
-      case ACCENT -> R.color.shell_accent_soft;
-      case WARN -> R.color.shell_warn_soft;
-      case BAD -> R.color.shell_bad_soft;
-      case MUTED -> R.color.shell_raised;
-    };
-  }
-
   /** 提示条：重启生效 → 可更新（带更新动作）→ 最近一次操作消息；平板左栏只显示首条。 */
   private void bindCardNotes(
       View card, PluginListPresenter.Row<PluginRepository.Item> row, CardDensity density) {
@@ -1748,6 +1774,7 @@ public class PluginFragment extends Fragment {
     if (density == CardDensity.COMPACT && notes.size() > 1) notes = notes.subList(0, 1);
     LinearLayout container = card.findViewById(R.id.pluginNotes);
     // 进度每次刷新都会走到这里：提示内容不变时不重建子视图。
+    // 不再把 identityHashCode 放进签名：列表每次刷新都会产生新 Item，旧签名会重建提示条造成闪烁。
     String signature =
         notes
             + "\u0000"
@@ -1755,9 +1782,7 @@ public class PluginFragment extends Fragment {
             + "\u0000"
             + item.latestVersion
             + "\u0000"
-            + com.deepseekharness.app.util.UiText.language()
-            + "\u0000"
-            + System.identityHashCode(item);
+            + com.deepseekharness.app.util.UiText.language();
     if (signature.equals(container.getTag())) return;
     container.setTag(signature);
     container.removeAllViews();
@@ -1824,8 +1849,7 @@ public class PluginFragment extends Fragment {
     icon.setImageResource(R.drawable.ic_plugin_restart);
     icon.setImageTintList(android.content.res.ColorStateList.valueOf(textColor));
     chip.setBackgroundTintList(
-        android.content.res.ColorStateList.valueOf(
-            requireContext().getColor(R.color.shell_warn_soft)));
+        android.content.res.ColorStateList.valueOf(badgeFill(R.color.shell_warn)));
     LinearLayout.LayoutParams params =
         new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -1954,6 +1978,26 @@ public class PluginFragment extends Fragment {
   }
 
   /** 左侧主状态：排队中显示意图与百分比，平时显示配置。当前 Web 单独写在右侧。 */
+  /** 配置胶囊的短文案：首屏只留一个结论词，完整状态放 contentDescription。 */
+  private String configuredBadgeText(PluginListPresenter.Row<PluginRepository.Item> row) {
+    PluginRepository.Item item = row.entry.value;
+    if (row.pending()) {
+      String working = com.deepseekharness.app.util.UiText.choose("处理中", "Working");
+      return row.operation.percent >= 0 ? working + " " + row.operation.percent + "%" : working;
+    }
+    return item.dynamic
+        ? com.deepseekharness.app.util.UiText.choose("临时", "Temporary")
+        : !item.metadataError.isEmpty()
+            ? com.deepseekharness.app.util.UiText.choose("异常", "Error")
+            : !item.available
+                ? com.deepseekharness.app.util.UiText.choose("缺失", "Missing")
+                : item.enabled
+                    ? com.deepseekharness.app.util.UiText.choose("已启用", "Enabled")
+                    : item.detected
+                        ? com.deepseekharness.app.util.UiText.choose("可开启", "Enable")
+                        : com.deepseekharness.app.util.UiText.choose("已禁用", "Disabled");
+  }
+
   private String configuredText(PluginListPresenter.Row<PluginRepository.Item> row) {
     PluginRepository.Item item = row.entry.value;
     if (row.pending()) {

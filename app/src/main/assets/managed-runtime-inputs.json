@@ -218,6 +218,21 @@
       "executable": false
     },
     {
+      "asset": "builtin-plugins/dsh-web-mobile/assets/icon.png",
+      "target": "root/dsha-web-mobile/assets/icon.png",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-web-mobile/locale/en.json",
+      "target": "root/dsha-web-mobile/locale/en.json",
+      "executable": false
+    },
+    {
+      "asset": "builtin-plugins/dsh-web-mobile/locale/zh.json",
+      "target": "root/dsha-web-mobile/locale/zh.json",
+      "executable": false
+    },
+    {
       "asset": "builtin-plugins/dsh-web-mobile/lib/index.js",
       "target": "root/dsha-web-mobile/lib/index.js",
       "executable": false

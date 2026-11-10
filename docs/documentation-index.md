@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261109.1100-dsh0.2.2-rc.1` / build348 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版为三条线：贴底动作抽屉（`BottomSheetCard`，例如插件「更多操作」的入口列表）首屏高度上限收紧为 0.72×可用高（可用高 = 屏高 − 悬浮胶囊抬高量），超出在抽屉内滚动、页脚常驻，不再被内容撑到屏幕上半区；`CardSheet` 的 BOTTOM 档保持 0.9（说明 / 选择 / 长表单调用面广，长表单也需要正文高度），两者由 `SheetGeometry.bottomDrawerMaxHeight` 与 `maxHeight` 分开，短屏（<480dp）行为不变。插件运行证据对 Auto review 兼容壳跳过版本相等检查：profile 默认的签名壳 `dsh-auto-review@0.1.0` 只由 patch 插入官方包 `@deepseek-ai/dsh-experimental-auto-review@0.2.2-rc.1`，运行快照记录的是壳版本、卡片版本取官方包版本，`PluginIdentity.legacyShim()` 只认「canonical 卡片 + alias 运行行」这一条路径，按加载状态确认后不再长期误报「加载状态未确认 / 重启 Web 后生效」；非 alias 的版本不等仍判 unknown + 重启待办，旧模块冒充新版的保护不变。插件卡片来源 / 版本 / 配置 / 当前 Web 改为语义色胶囊徽章，重启待办从整条提示改为警示胶囊；配置与当前 Web 的语气映射抽到 `PluginCardState` 纯逻辑并配单测，仅改展示层、不动状态判定，圆点并入配置徽章不单独进无障碍焦点，窄屏与 1.3 倍字体整枚换行、不省略关键状态词。本版含受管运行时更新：`PluginIdentity` / `PluginRuntimeProjection` 属 launcherSources，`runtime-descriptor` 重算为 `5fec6de5`，fixed-inputs 冻结（使用锁定 20261105e），内置 `dsh-web-mobile` 保持上游 3.3.1 与默认启用。**build348 尚未真机验收**，验收项是 347→348 首次覆盖安装成功、数据完整、READY、受管运行时更新与上述三项功能在真机上的行为；build344–build348 正式包真机覆盖安装验收仍待用户；build338–build347 已发布版本的真机验收按各自记录。宿主 contracts 整组、全量单测、lint 与全树格式 / 文档检查由本轮发布准备执行（结果见工作树声明）。改动说明见 [build348 更新说明](releases/build348-changes.zh.md)。
+当前源码：`0.2.1-rc.5-20261110.1700-dsh0.2.2-rc.1` / build356 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是 build355 之后的布局 hotfix：build355 正式包内实际是 T143 首版布局（单卡片并排、设置页旧间距），本版改成用户在 353 `.debug` 预览包上确认的 v3——设置页去掉页内「设置」大标题后顶部空白同样收紧（容器 `paddingTop` 改为 `shell_section_margin` 10dp，首组不再叠 24dp），插件页「导入插件包 / 导出插件」改为两个独立圆角包裹框（各自 `ShellCard` 背景与 `selectableItemBackground` 按压前景，间隔 12dp），不再是单卡片并排；副标题与箭头保持移除，点击行为不变。改动只涉及 `fragment_settings.xml` 与 `plugin_list_footer.xml` 两个布局。受管运行时不变，`runtimeId` 仍为 **`8e54085c`**（205 个输入），fixed-inputs 冻结沿用锁定 20261105e，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。**build356 尚未真机验收**：v3 形态已在 353 `.debug` 预览包由用户确认，平板横竖屏、短屏与 1.3× 字体仍待核对；验收项是 354→356 覆盖安装成功、数据完好、READY。宿主 contracts 整组、全量单测、lint 与全树格式 / 文档检查由本轮发布准备执行（结果见工作树声明）。改动说明见 [build356 更新说明](releases/build356-changes.zh.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
@@ -18,6 +18,7 @@
 | [DNS配置](dns-configuration.md) | auto/ipv4/native的真实差异、Node窄lookup重试、glibc no-aaaa与用户选择 |
 | [切网后回收失效的外网连接（T37，实验性）](network-switch-connection-recycle.md) | 切网/切后台后模型请求卡满 300 秒的原因、网络代次与 net-epoch.cjs 回收规则、开关与范围；未真机验证 |
 | [虚拟屏架构](virtual-screen-architecture.md) | Core/Manager/工具路由、帧/节点/anchor证据、采集输入、关闭恢复与修改回归 |
+| [实体屏特权执行核心（T130 Phase A，实验）](privileged-screen-core.md) | display 0 镜像抓帧 + 固定动词注入、一次性帧/动作凭据、能力/任务/确认三道门、低延迟 benchmark、无无障碍依赖与未真机验收边界 |
 | [任务状态上岛](island-status.md) | 实时活动/胶囊两代判据、岛位选举、完成态、心跳收敛与验证范围 |
 | [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果 |
 | [资料与来源依据](references-and-provenance.md) | 官方primary入口、工程上游关系、固定版本/摘要、许可与来源限制 |
@@ -31,9 +32,12 @@
 | [proot 本体开销调查（T34）](design/proot-overhead-20261103/README.md) | 随包 libproot.so 对应 termux/proot v5.1.107.91、上游新修订无提速、停顿来源与 readlink 入口直答方案；未实现 |
 | [跨应用文件访问（SAF）](design/cross-app-files-20261104/README.md) | 设备能力授权里的 SAF 授权簿、`/app/saf/*` 九个桥接端点、取消与超时、TOCTOU 固定身份、内置提示插件；已随本 PR 实现 |
 | [物理屏动作提速（T105）](design/physical-screen-speed-20261107/README.md) | 事件驱动 settle、动作即观察（`observe=1`，含 MCP 默认开启）、紧凑识屏 `mode=delta/same`；动作凭据规则不变，未真机测量 |
+| [外接设备页面变化观察（T134）](design/extdev-observation-20261110.md) | 外接 USB-ADB 目标的 logcat events / `dumpsys window` / 画面通道真机测量，`/app/extdev/watch` 事件采样 + `operate observe=1` settle，摘要绑定目标代次、只读不落盘 |
+| [build352 覆盖升级维护页死锁（T139）](design/build352-maintenance-register-deadlock-20261110.md) | 维护事务内注册与 runtime-health 写入顺序冲突导致 ENV_NOT_READY 回滚的真机证据与 build353 修复（注册移到事务完成后、失败不回滚运行时）；含教训与验证清单 |
 | [ADB 通道原生化设计（T42）](design/adb-native-20261103/README.md) | ADB 配对、私钥与客户端移到安卓壳，容器只经桥提交命令；含用户 Q1–Q9 决定与 E1–E4 取证，未实现 |
 | [GitHub 凭据原生化设计（T50）](design/github-credential-native.md) | 壳内 OAuth Device Flow 登录、token 存 Keystore、容器经桥按需取 access token；待确认，未实现 |
 | [物理屏两套观察路径设计（T107）](design/physical-screen-observation-20261107.md) | 无障碍动作 + 特权镜像读屏 + evdev 用户操作检测；A/B/C 对比、接口/授权/兼容/回退与 M1–M3 计划；未实现 |
+| [build351 覆盖升级首启失败排查（T133）](design/build351-first-start-registration-20261110.md) | 插件注册 90s 超时 + 残留 profile 锁 + 「原因未分类」的源码级归因（③ 机制为主、① 锁生命周期与首启重复覆盖层加重、② 语义不足），含最小修复与复现/取证清单；只排查未改代码 |
 
 ## 用户操作与开发入口
 
@@ -54,7 +58,7 @@
 | 插件安装、系统/用户分层、协议、权限与重启 | [插件操作](plugins.md)、[插件运行与权限](plugin-runtime-and-permissions.md) |
 | 临时内置修复：`file has not been read` 读取提示（上游 #11977）与撤除条件 | [dsh-fs-read-hint](fs-read-hint-plugin.md) |
 | 临时内置修复：glob 跳过嵌套 git 工作树（T45）与撤除条件 | [dsh-fs-search-scope](fs-search-scope-plugin.md) |
-| 内置移动 Web 适配、dsh-web-mobile 上游 3.3.1 与宿主集成最小集（服务端鉴权 / 安全区 / 齿轮几何让位 / 文件传输 / 多语言）；宽屏触屏会话行挤压（上游 3.3.1 已接管） | [移动 Web 适配补丁](web-mobile-patches.md)、[平板会话行挤压（上游 #255）](web-mobile-tablet-rows-20261031.md) |
+| 内置移动 Web 适配、dsh-web-mobile 上游 3.3.5 与宿主集成最小集（服务端鉴权 / 安全区 / 齿轮几何让位 / 文件传输 / 多语言）；宽屏触屏会话行挤压（上游 3.3.1 已接管） | [移动 Web 适配补丁](web-mobile-patches.md)、[平板会话行挤压（上游 #255）](web-mobile-tablet-rows-20261031.md) |
 | 首次连接提示补丁（T58）：为什么归档、不合并；切页返回黄标的真实行为与再修边界 | [T58 首次连接提示归档](design/first-connect-indicator-20261106/README.md) |
 | PTY/简易终端、WebView/Gecko、桌面UA、PiP | [终端](terminal.md)、[浏览器内核](browser-engines.md)、[画中画](picture-in-picture.md) |
 | 语言锁存、悬浮条、审批和任务通知 | [语言](i18n.md)、[悬浮与通知](overlay-and-notifications.md) |
@@ -97,7 +101,7 @@ F11以实际分发stage检查引用，而非用开发机全树存在替代交付
 | [build155架构副本](../tools/history/documents/docs/audits/build155/architecture-assessment.md) | [原文](audits/build155/architecture-assessment.md) |
 | [build155发布页副本](../tools/history/documents/docs/releases/v0.2.6-build155-20261003.md) | [原文](releases/v0.2.6-build155-20261003.md) |
 
-两份固定上游原文另有8条**上游相对引用**，不代表这些目标存在于APK本地：mobile README（SHA `a1c401a59c4cc2b08dc0b3371c41e54692c552122059598f1c073dda9421ceae`）的4图及AGENTS映射到上游固定commit `4e71eb67de7dac9d8b2572757c81e47aa32a32fb`；Termux原许可证（SHA `a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304`）的2目录及共享许可证映射到commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`。门禁输出精确上游URL并标`upstream-source-relative`警告；`--strict-history`仍失败。源路径、源摘要或目标任一变化都不能沿用例外，其他缺失目标继续失败。没有改动这两份上游原文或APK资产。
+两份固定上游原文另有8条**上游相对引用**，不代表这些目标存在于APK本地：mobile README（SHA `f6b8cf532640b096e07ceee33061b3ee63eff9d228369d36de5e98a278c14b93`）的4图及AGENTS映射到上游固定commit `646fe837440f9939228bdba0024d407eaac01128`；Termux原许可证（SHA `a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304`）的2目录及共享许可证映射到commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`。门禁输出精确上游URL并标`upstream-source-relative`警告；`--strict-history`仍失败。源路径、源摘要或目标任一变化都不能沿用例外，其他缺失目标继续失败。没有改动这两份上游原文或APK资产。
 
 1. 改默认值、设置项、环境变量、授权或端口时，先核ConfigStore/配置入口与实际调用链，补用户可见作用层、下次生效时机及迁移规则。
 2. 同步专页、总手册、README和CHANGELOG；历史条目保留时间归属，不用新状态重写旧结果。

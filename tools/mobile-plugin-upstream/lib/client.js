@@ -553,7 +553,7 @@ html[data-mobile-nav-quick-pending] [role="menu"] > [role="presentation"] > :fir
   body:has([data-mobile-nav="frame"]:not([data-sidebar-collapsed])) [role="menu"] {
     z-index: 1400 !important;
   }
-  body:has([data-mobile-nav="backdrop"])
+  body:has([data-mobile-nav="hit"][data-active])
     > div:has(> [role="dialog"][aria-modal="true"]) {
     z-index: 1400 !important;
   }
@@ -647,25 +647,36 @@ html[data-mobile-nav-quick-pending] [role="menu"] > [role="presentation"] > :fir
   outline: 2px solid var(--dsw-alias-state-business-primary, #4f6ef7);
   outline-offset: 2px;
 }
-[data-mobile-nav="backdrop"] {
+html [data-mobile-nav="frame"]::after {
+  content: "";
   position: absolute;
   inset: 0;
   z-index: 1250;
   background: rgba(0, 0, 0, .45);
-  cursor: pointer;
-  animation: dsh-web-mobile-fade .28s var(--ds-ease-in-out, ease-in-out);
+  opacity: 0;
   transition: opacity .28s var(--ds-ease-in-out, ease-in-out);
+  pointer-events: none;
+}
+html [data-mobile-nav="frame"][data-mobile-nav-dim="1"]::after {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  html [data-mobile-nav="frame"]::after {
+    transition: none;
+  }
+}
+[data-mobile-nav="hit"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1250;
+  background: transparent;
+  cursor: pointer;
+  transition: none;
   -webkit-tap-highlight-color: transparent;
 }
 @keyframes dsh-web-mobile-fade {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-mobile-nav="backdrop"] {
-    animation: none !important;
-    transition: none !important;
-  }
 }
 @keyframes dsh-web-mobile-sheet-in {
   from {
@@ -850,6 +861,23 @@ exports.LAYOUT_CSS = `
     box-sizing: border-box;
     width: fit-content;
     max-width: 100%;
+  }
+  @media (max-width: 767px) and (pointer: coarse) {
+    [class*="heroWorkspaceRow"]:has([data-forge-worktree]) {
+      flex-wrap: wrap !important;
+      row-gap: 4px !important;
+    }
+    [class*="heroWorkspaceRow"]:has([data-forge-worktree]) > [class*="heroOptions"] {
+      flex: 0 0 100% !important;
+      order: -1 !important;
+      justify-content: flex-end !important;
+      margin-left: 0 !important;
+    }
+    [class*="heroWorkspaceRow"]:has([data-forge-worktree]) [data-forge-worktree] {
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
   }
   [data-phase] [class*="_card"]:has(textarea, [data-composer-input]) [class*="_row"]:has([class*="_trailing"]) {
     box-sizing: border-box;
@@ -1429,6 +1457,9 @@ exports.LAYOUT_CSS = `
     transform: none !important;
     z-index: 3 !important;
   }
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]):has([role="tablist"]):has([class*="viewsMoreAnchor"]) [class*="ZKlsPq_root"]:not([class*="_switcherRoot"]) {
+    right: 34px !important;
+  }
   [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="ZKlsPq_root"] span {
     display: block !important;
     overflow: hidden !important;
@@ -1514,6 +1545,8 @@ exports.LAYOUT_CSS = `
     }
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="_tabs"] {
       overflow: visible !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
     }
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs][role="tablist"] {
       height: auto !important;
@@ -1521,6 +1554,11 @@ exports.LAYOUT_CSS = `
       margin-top: 0 !important;
       overflow: visible !important;
       align-items: flex-end !important;
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+    }
+    [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="viewsMoreAnchor"] {
+      flex: 0 0 auto !important;
     }
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs][role="tablist"] > button[role="tab"],
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs] > button[class*="_tab"]:not([class*="_tabs"]) {
@@ -1758,67 +1796,6 @@ exports.LAYOUT_CSS = `
   }
   [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > :last-child {
     padding: 0 12px 24px;
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] {
-    --dsh-web-mobile-panel-clearance: calc(56px - clamp(24px, 4vw, 48px));
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageHead"] {
-    margin-left: var(--dsh-web-mobile-panel-clearance) !important;
-    width: calc(100% - var(--dsh-web-mobile-panel-clearance)) !important;
-    padding-top: 12px !important;
-    align-items: center !important;
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageBody"] {
-    padding-top: 12px !important;
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-detail] [class*="_detailHead"] {
-    margin-top: 12px !important;
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-detail] [class*="_detailMain"] {
-    margin-top: 12px !important;
-  }
-  [data-mobile-nav="frame"] [data-global-panel] {
-    padding-top: 0 !important;
-  }
-  [data-mobile-nav="frame"] [data-plugin-bar][data-natural] {
-    position: static !important;
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] header[data-window-drag] {
-    padding-top: 32px !important;
-    padding-left: 0 !important;
-    margin-left: 0 !important;
-    box-sizing: border-box !important;
-    flex-wrap: nowrap !important;
-    background: var(--dsw-alias-bg-layer-1, #fff) !important;
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-detail] button[class*="_crumb"],
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-item-detail] button[class*="_crumb"],
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-row-detail] button[class*="_crumb"] {
-    margin-left: 0 !important;
-  }
-  [data-mobile-nav="frame"] [class*="_pageHeading"] > h1 {
-    margin-left: var(--dsh-web-mobile-panel-clearance, calc(56px - clamp(24px, 4vw, 48px))) !important;
-  }
-  @media (max-width: 767px) and (pointer: coarse) {
-    [data-mobile-nav="frame"] section[data-plugin-panel] > [class*="_pageHead"] {
-      --dsh-web-mobile-panel-clearance: calc(60px - clamp(24px, 4vw, 48px));
-      flex-wrap: nowrap !important;
-      align-items: flex-start !important;
-      gap: 8px !important;
-    }
-    [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageHeading"] {
-      flex: 1 1 auto !important;
-      min-width: 0 !important;
-      margin-left: 0 !important;
-      width: auto !important;
-    }
-    [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_toolbar"] {
-      flex: 0 0 auto !important;
-      margin-left: auto !important;
-    }
-    [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageHeading"] > h1 {
-      margin-left: 0 !important;
-    }
   }
   [aria-modal="true"][data-shortcut-modal="shortcuts"] {
     position: absolute !important;
@@ -2352,9 +2329,14 @@ exports.COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   }
   html[data-dsh-taskboard-active] [data-mobile-nav="fab"],
   html[data-dsh-ssh-active] [data-mobile-nav="fab"],
-  html[data-dsh-taskboard-active] [data-mobile-nav="backdrop"],
-  html[data-dsh-ssh-active] [data-mobile-nav="backdrop"] {
+  html[data-dsh-taskboard-active] [data-mobile-nav="hit"],
+  html[data-dsh-ssh-active] [data-mobile-nav="hit"] {
     display: none !important;
+  }
+  html[data-dsh-taskboard-active] [data-mobile-nav="frame"]::after,
+  html[data-dsh-ssh-active] [data-mobile-nav="frame"]::after {
+    opacity: 0;
+    transition: none;
   }
   [data-dsh-taskboard-board] > [class*="_boardHeader"] [class*="_search"] {
     flex: 1 1 auto !important;
@@ -3125,7 +3107,7 @@ exports.MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   [data-mobile-nav="frame"] [data-composer-card],
   [data-mobile-nav="stats"],
   [data-mobile-nav="fab"],
-  [data-mobile-nav="backdrop"] {
+  [data-mobile-nav="hit"] {
     -webkit-user-select: none !important;
     user-select: none !important;
   }
@@ -3167,7 +3149,7 @@ exports.MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
   [data-mobile-nav="files"],
   [data-mobile-nav="file-upload"],
   [data-mobile-nav="fab"],
-  [data-mobile-nav="backdrop"],
+  [data-mobile-nav="hit"],
   [data-mobile-nav="session-log"],
   [data-mobile-nav="session-log-wrap"],
   [data-mobile-nav="quick-settings"],
@@ -3301,12 +3283,6 @@ exports.MISC_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
     cursor: default;
   }
   [data-composer-card]:not(:has(input[type=file])) [data-mobile-nav="file-upload"] {
-    display: none !important;
-  }
-}
-@media (max-width: 1023px) and (pointer: coarse) {
-  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) button[class*="viewsMore"],
-  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="viewsMoreAnchor"] {
     display: none !important;
   }
 }
@@ -3477,7 +3453,7 @@ exports.createHeaderMetricsTask = createHeaderMetricsTask;
 // Reconciler task: phone conversation header height → CSS variable.
 //
 // 2026-10-12 P1 拆分第二片：由 effects/phone-chrome.ts 逐字搬出（纯搬运，不改行为）。
-// 拆出的形状沿用本仓既有的 task 工厂模式（preview-fullscreen / overlay-backdrop-fab /
+// 拆出的形状沿用本仓既有的 task 工厂模式（preview-fullscreen / drawer-layer /
 // panel-exit 同型）：模块导出 create<X>Task()，组装处只 addReconcilerTask(工厂())。
 const frame_ts_1 = require("./platform/frame.js");
 /**
@@ -3761,7 +3737,6 @@ exports.NS = 'dshWebMobileNav';
 /** Simplified Chinese dictionary (the key-set source of truth). */
 exports.zh = {
     'open': '打开目录',
-    'backdrop': '点击关闭目录',
     'back': '返回',
     'backToConversation': '返回会话',
     'sessionLog': '导出会话日志',
@@ -3790,7 +3765,6 @@ exports.zh = {
 /** English dictionary, key-identical to the Chinese source of truth. */
 exports.en = {
     'open': 'Open directory',
-    'backdrop': 'Click to close directory',
     'back': 'Back',
     'backToConversation': 'Back to conversation',
     'sessionLog': 'Session log',
@@ -4754,7 +4728,7 @@ __modules["platform/drawer-open.js"] = function (require, module, exports) {
 // Why it lives here and not in an effect: the openers are drawer-close.ts
 // (toggleDrawer: header toggle, FAB) and sidebar-swipe.ts (the gesture's arm
 // step), and the thing that must run before them belongs to a third effect
-// (the backdrop in overlay-backdrop-fab.ts). Wiring them to each other would add
+// (the backdrop in drawer-layer.ts). Wiring them to each other would add
 // effects → effects edges (the architecture ledger only shrinks); a neutral hook
 // slot plus a focus helper keeps all three on platform/ instead. Nothing here
 // knows what the hook paints.
@@ -4876,28 +4850,32 @@ function openDrawerAfterKeyboard(open) {
     window.addEventListener('resize', onResize);
 }
 };
-__modules["effects/overlay-backdrop-fab.js"] = function (require, module, exports) {
+__modules["effects/drawer-layer.js"] = function (require, module, exports) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fadeOverlayOut = fadeOverlayOut;
-exports.createOverlayTask = createOverlayTask;
+exports.fadeDimOut = fadeDimOut;
+exports.createDrawerLayerTask = createDrawerLayerTask;
 const frame_ts_1 = require("./platform/frame.js");
 const drawer_open_ts_1 = require("./platform/drawer-open.js");
-/** Fade the CURRENT backdrop out (pointer-events off + opacity 0). Called by
- * the gesture layer when a close commit starts animating, so the dimming
- * fades WITH the drawer's slide-out instead of vanishing after it. The
- * element itself is removed later by the task's normal remove path (the
- * marker flip schedules it). */
-function fadeOverlayOut() {
+/** Start the dim's fade-out and disable the hit target early. Called by the
+ * gesture layer when a close commit starts animating, so the dimming fades
+ * WITH the drawer's slide-out instead of vanishing after it. The dim itself is
+ * painted by the frame's ::after (data-mobile-nav-dim); the catcher element is
+ * persistent and only re-arms when the marker flips. */
+function fadeDimOut() {
     fadeHook?.();
 }
 let fadeHook = null;
-/** Removal is deferred by one fade so the dimming eases out instead of
- * snapping (user request 2026-08-29 「背景黑色遮罩进行渐变动画」; the fade-IN
- * already existed as a mount animation). */
-const BACKDROP_FADE_MS = 280;
-/** How long an optimistically mounted backdrop (see showNow) waits for the
- * host's open commit before the closed-state fade is allowed to take it back. */
+/** The dim's opacity transition, shared with the drawer column's .28s slide
+ * (user request 2026-08-29 「背景黑色遮罩进行渐变动画」). */
+const DIM_FADE_MS = 280;
+/** How long the presence-gated band outlives the marker flip: one fade plus
+ * the 60ms slack the old removal timer carried. The slack is load-bearing for
+ * the 快捷键弹层 z band (2026-09-25): the raised modal root must outlive the
+ * host's pane-subtree swap, measured at ~200-280ms after the flip. */
+const BAND_RELEASE_MS = DIM_FADE_MS + 60;
+/** How long an optimistically started dim (see showNow) waits for the host's
+ * open commit before the closed-state fade is allowed to take it back. */
 const OPEN_CONFIRM_MS = 120;
 /** The FAB's second face: an arrow, shown while a sidebar panel owns the main
  * area — both the subpage 「返回」 and the panel-root 「返回会话」 modes. */
@@ -4916,19 +4894,66 @@ const FAB_DRAWER_ICON = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
  *   level on a panel subpage, out of the panel at its root. Null on a host that
  *   cannot select panels (rc.6), where it stays a plain drawer button.
  */
-function createOverlayTask(t, toggleSidebar, panelExit) {
-    let backdrop = null;
+function createDrawerLayerTask(t, toggleSidebar, panelExit) {
     let fab = null;
-    let backdropRemoveTimer = null;
-    /** True while the backdrop carries our inline faded state. Guards the
-     * restore branch: while a late close commit is animating, the marker is
-     * STILL open, so a plain open-branch restore would undo the pre-fade. */
-    let faded = false;
-    /** Pending confirm of an optimistic mount (showNow); while armed the
-     * closed branch leaves the backdrop alone — the host commit may simply not
-     * have landed yet. Cleared when the open state is seen or the timer fires. */
+    /**
+     * Persistent click catcher (`hitLayer`). It paints nothing and carries no interactive
+     * role/aria on purpose: the dim is painted by the frame's own ::after (same
+     * paint tree as the conversation, no separate full-screen layer). When this
+     * element carried role="button", the device browser treated the full-screen
+     * surface as a pressed button — the "tap the blank area → the right side
+     * flashes bright" report (2026-11-08, device-only).
+     */
+    let hitLayer = null;
+    /** Pending confirm of an optimistic dim (showNow); while armed the closed
+     * branch leaves the dim alone — the host commit may simply not have landed. */
     let openConfirmTimer = null;
+    /** Releases [data-active] after the close fade so presence-gated CSS never
+     * flips in the same recalculation that starts the dim change. */
+    let activeReleaseTimer = null;
+    /** True while a close commit has pre-faded the dim but the marker is still
+     * open (late commit). The open branch must not re-light the dim in that
+     * window: a tree mutation from anywhere in the document runs this task
+     * (`scopes` carries the tree key), and restoring there would undo the
+     * pre-fade and hand the screen a second dark step — the bug the removed
+     * mount-based guard used to prevent (2026-11-08 review). Cleared by the
+     * marker flip. */
+    let dimHeldOff = false;
     let removeOpeningHook = null;
+    const ensureHitLayer = (frame) => {
+        if (hitLayer === null) {
+            hitLayer = document.createElement('div');
+            hitLayer.dataset.mobileNav = 'hit';
+            hitLayer.setAttribute('aria-hidden', 'true');
+            hitLayer.style.pointerEvents = 'none';
+            frame.appendChild(hitLayer);
+        }
+        return hitLayer;
+    };
+    const setDim = (frame, on) => {
+        frame.setAttribute('data-mobile-nav-dim', on ? '1' : '0');
+    };
+    /** Cancel the optimistic-open confirm window (armed by showNow). */
+    const cancelOpenConfirm = () => {
+        if (openConfirmTimer === null)
+            return;
+        window.clearTimeout(openConfirmTimer);
+        openConfirmTimer = null;
+    };
+    /** Cancel the pending band release ([data-active] removal). */
+    const cancelActiveRelease = () => {
+        if (activeReleaseTimer === null)
+            return;
+        window.clearTimeout(activeReleaseTimer);
+        activeReleaseTimer = null;
+    };
+    const releaseActiveAfter = (ms) => {
+        cancelActiveRelease();
+        activeReleaseTimer = window.setTimeout(() => {
+            activeReleaseTimer = null;
+            delete hitLayer?.dataset.active;
+        }, ms);
+    };
     const drawerOpen = () => {
         const frame = (0, frame_ts_1.getFrame)();
         if (frame === null)
@@ -4938,7 +4963,7 @@ function createOverlayTask(t, toggleSidebar, panelExit) {
         // 321px wide with z-index:1100 and, notably, NO full-screen backdrop at all
         // (measured: the conversation stays hit-testable beside it), which is the
         // behaviour the phone owner rejected as unusable. So the legacy column
-        // rules stay armed and this backdrop keeps being created.
+        // rules stay armed and the drawer keeps our own dim and hit target.
         return !frame.hasAttribute('data-sidebar-collapsed');
     };
     const heroPhase = () => document.querySelector('[data-phase="active"]') === null;
@@ -4985,44 +5010,23 @@ function createOverlayTask(t, toggleSidebar, panelExit) {
         fab.title = label;
         fab.innerHTML = onPanel ? FAB_BACK_ICON : FAB_DRAWER_ICON;
     };
-    const mountBackdrop = (frame) => {
-        if (backdrop === null) {
-            backdrop = document.createElement('div');
-            backdrop.dataset.mobileNav = 'backdrop';
-            backdrop.setAttribute('role', 'button');
-            backdrop.setAttribute('aria-label', t('backdrop'));
-            // No element-level click listener: phone-chrome's capture-phase click
-            // handler owns the backdrop tap. The third-party mobile shim stops
-            // click propagation at the frame for anything outside the drawer, so
-            // a listener down here never sees the tap (2026-09-14).
-            frame.appendChild(backdrop);
-            faded = false;
-        }
-        else if (faded && backdropRemoveTimer !== null) {
-            // Quick close→reopen inside the fade window: cancel the pending
-            // removal and let the CSS transition ease the dimming back in.
-            window.clearTimeout(backdropRemoveTimer);
-            backdropRemoveTimer = null;
-            faded = false;
-            backdrop.style.removeProperty('pointer-events');
-            backdrop.style.removeProperty('opacity');
-        }
-    };
     /**
      * Opening hook (platform/drawer-open.ts, drawer-jank R3): every opener calls
-     * it right before flipping the host, so the backdrop is appended in the same
-     * task as the open commit — one mutation batch, one reconciler flush, and the
-     * dim starts on the drawer's first frame instead of one rAF later. The next
-     * ensure() stays the source of truth: it keeps the backdrop once the frame
-     * reads open, and fades it (after OPEN_CONFIRM_MS) if the open never landed.
+     * it right before flipping the host, so the dim starts on the drawer's first
+     * frame. Unlike the old optimistic mount this only flips the frame marker —
+     * no element is inserted and no full-screen layer is created on the open
+     * frame (that insertion was the device flash). The next ensure() stays the
+     * source of truth and fades the dim back if the open never landed.
      */
     const showNow = () => {
         const frame = (0, frame_ts_1.getFrame)();
         if (frame === null || !frame.hasAttribute('data-sidebar-collapsed'))
             return;
-        mountBackdrop(frame);
-        if (openConfirmTimer !== null)
-            window.clearTimeout(openConfirmTimer);
+        // A fresh open cancels any pending pre-fade from a close still in flight.
+        dimHeldOff = false;
+        ensureHitLayer(frame);
+        setDim(frame, true);
+        cancelOpenConfirm();
         openConfirmTimer = window.setTimeout(() => {
             openConfirmTimer = null;
             sync();
@@ -5033,35 +5037,40 @@ function createOverlayTask(t, toggleSidebar, panelExit) {
         // runs dispose() on every MOBILE_QUERY flip (reconciler-core.ts), and
         // reactivation only re-runs ensure() - a hook assigned in the factory
         // body stayed null from the first breakpoint flip onwards, silently
-        // killing the backdrop fade.
+        // killing the dim fade.
         fadeHook = () => {
-            if (backdrop === null)
-                return;
-            faded = true;
-            backdrop.style.pointerEvents = 'none';
-            backdrop.style.opacity = '0';
+            const frame = (0, frame_ts_1.getFrame)();
+            dimHeldOff = true;
+            if (frame !== null)
+                setDim(frame, false);
+            if (hitLayer !== null)
+                hitLayer.style.pointerEvents = 'none';
+            releaseActiveAfter(BAND_RELEASE_MS);
         };
         removeOpeningHook ??= (0, drawer_open_ts_1.onDrawerOpening)(showNow);
         const frame = (0, frame_ts_1.getFrame)();
         if (frame === null)
             return;
+        const hit = ensureHitLayer(frame);
         if (drawerOpen()) {
-            if (openConfirmTimer !== null) {
-                window.clearTimeout(openConfirmTimer);
-                openConfirmTimer = null;
+            cancelOpenConfirm();
+            // A close commit may still be animating (marker not flipped yet): the
+            // pre-fade owns the dim until that flip, so restoring here is a no-op.
+            if (!dimHeldOff) {
+                cancelActiveRelease();
+                setDim(frame, true);
+                hit.dataset.active = '';
+                hit.style.pointerEvents = 'auto';
             }
-            mountBackdrop(frame);
         }
-        else if (backdrop !== null && openConfirmTimer === null) {
-            backdrop.style.pointerEvents = 'none';
-            backdrop.style.opacity = '0';
-            faded = true;
-            if (backdropRemoveTimer === null) {
-                backdropRemoveTimer = window.setTimeout(() => {
-                    backdropRemoveTimer = null;
-                    backdrop?.remove();
-                    backdrop = null;
-                }, BACKDROP_FADE_MS + 60);
+        else if (openConfirmTimer === null) {
+            // Fade the dim out (geometry-static opacity transition on the frame's
+            // ::after) and release the presence-gated band once it has landed.
+            dimHeldOff = false;
+            setDim(frame, false);
+            if (hit.style.pointerEvents !== 'none') {
+                hit.style.pointerEvents = 'none';
+                releaseActiveAfter(BAND_RELEASE_MS);
             }
         }
         /**
@@ -5086,23 +5095,18 @@ function createOverlayTask(t, toggleSidebar, panelExit) {
         syncFab();
     };
     return {
-        name: 'overlay-backdrop-fab',
+        name: 'drawer-layer',
         scopes: ['*', 'data-sidebar-collapsed', 'data-phase'],
         ensure: sync,
         dispose: () => {
-            if (backdropRemoveTimer !== null) {
-                window.clearTimeout(backdropRemoveTimer);
-                backdropRemoveTimer = null;
-            }
-            if (openConfirmTimer !== null) {
-                window.clearTimeout(openConfirmTimer);
-                openConfirmTimer = null;
-            }
+            cancelOpenConfirm();
+            cancelActiveRelease();
             removeOpeningHook?.();
             removeOpeningHook = null;
             fadeHook = null;
-            backdrop?.remove();
-            backdrop = null;
+            (0, frame_ts_1.getFrame)()?.removeAttribute('data-mobile-nav-dim');
+            hitLayer?.remove();
+            hitLayer = null;
             fab?.remove();
             fab = null;
         },
@@ -6427,13 +6431,11 @@ function isTapWithinSlop(from, to, slopPx) {
 __modules["effects/sidebar-swipe.js"] = function (require, module, exports) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.startZonePxFor = startZonePxFor;
 exports.classifySwipe = classifySwipe;
 exports.classifyFilesSwipe = classifyFilesSwipe;
 exports.slidingVelocity = slidingVelocity;
-exports.hitTestStart = hitTestStart;
-exports.filesZoneHit = filesZoneHit;
 exports.openStateStartMode = openStateStartMode;
+exports.closedStateStrokeMode = closedStateStrokeMode;
 exports.followTranslate = followTranslate;
 exports.followOpenTransform = followOpenTransform;
 exports.findHorizontalScroller = findHorizontalScroller;
@@ -6446,14 +6448,14 @@ const frame_ts_1 = require("./platform/frame.js");
 const breakpoints_ts_1 = require("./platform/breakpoints.js");
 const drawer_open_ts_1 = require("./platform/drawer-open.js");
 const gesture_guard_ts_1 = require("./effects/gesture-guard.js");
-const overlay_backdrop_fab_ts_1 = require("./effects/overlay-backdrop-fab.js");
+const drawer_layer_ts_1 = require("./effects/drawer-layer.js");
 /**
  * Sidebar drawer swipe gestures (B 档 hybrid follow, per the 2026-08-29
  * controlled upgrade of docs/specs/2026-08-27-sidebar-swipe-gestures.md).
  *
  * Three gestures:
- * - edge swipe-in: the pointer goes down within the start zone (45% of the
- *   left edge) and the drawer is closed → the host state is flipped AT
+ * - edge swipe-in: the pointer goes down anywhere in the frame and drags
+ *   rightward (LTR) while the drawer is closed → the host state is flipped AT
  *   AXIS-LOCK (early commit) while the drawer is pinned in its closed slot,
  *   so the REAL open subtree mounts off-screen and then follows the finger
  *   out of the slot (see startFollow for why the flip has to come first);
@@ -6494,40 +6496,6 @@ const overlay_backdrop_fab_ts_1 = require("./effects/overlay-backdrop-fab.js");
  * a row.
  */
 /**
- * Start-zone width as a FRACTION of the viewport width: the pointer counts
- * as "from the left edge" anywhere inside the left (RTL: right) strip this
- * wide. The zone STAYS at 45% (2026-09-11 user decision): a brief seventh
- * pass shrank it to 0.25 for the draggable-widget conflict and was rolled
- * back the same day — the user keeps the "anywhere in the left half" feel
- * and the conflict is handled by yield signals instead (the
- * data-mobile-nav-dragging cooperation mark + the floating-widget positional
- * heuristic, see dragMarkYields/findFloatingWidget).
- * History of the constant: 24px (hotspot era) → 48px (third pass, fixed
- * "识别成对话内容滚动") → 96px (fourth pass — at that point the zone also
- * finally cleared Chrome Android's EDGE_WIDTH_DP=48dp history-navigation
- * trigger strip, whose strokes the browser claims and pointercancels; the
- * browser gesture itself is suppressed by the root overscroll-behavior-x:
- * none rule in layout.css.ts) → 0.45×viewport (fifth pass; brief 0.25
- * experiment rolled back) — this value.
- * Safety at this width: the release classification (0.16×w travel OR
- * 0.45px/ms velocity) still gates the commit, so widening cannot open on a
- * tap; vertical strokes never reach the touchmove preventDefault, so their
- * native scroll is untouched (see onTouchMove — the cancel is only allowed
- * after the horizontal axis lock); strokes beginning inside genuinely
- * horizontally scrollable containers are excluded from the zone entirely —
- * see findHorizontalScroller (at 45% the stats line / message code blocks
- * sit well inside the strip, so that guard is load-bearing).
- */
-const START_ZONE_RATIO = 0.45;
-/**
- * The zone in pixels for a given viewport width (pure, exported for the
- * decision-table tests). Rounded so the probe boundary assertions stay
- * integral (390px → Math.round(175.5) = 176).
- */
-function startZonePxFor(viewportWidthPx, ratio = START_ZONE_RATIO) {
-    return Math.round(viewportWidthPx * ratio);
-}
-/**
  * Axis-lock threshold: once the stroke's dominant axis has moved this far,
  * the axis is decided. Horizontal-dominant (|dx| > |dy|) locks the stroke
  * to X (a swipe); vertical-dominant abandons it to native scrolling.
@@ -6562,9 +6530,9 @@ const CONSUME_WINDOW_MS = 300;
 /**
  * Rightward travel (from the stroke start) that arms the OPEN follow, i.e.
  * flips the host state early so the real drawer subtree mounts. Slightly
- * above LOCK_PX so an 8px horizontal twitch inside the wide start zone does
- * not mount-and-unmount 389 nodes; small enough that the dead zone before
- * the drawer's edge appears is imperceptible.
+ * above LOCK_PX so an 8px horizontal twitch during the first move does not
+ * mount-and-unmount 389 nodes; small enough that the dead zone before the
+ * drawer's edge appears is imperceptible.
  */
 /** The open follow arms at the AXIS LOCK itself: tryLock already demanded
  * 8px of horizontal-dominant travel, so no extra twitch margin is needed —
@@ -6597,15 +6565,13 @@ const COMMIT_ANIM_MS = 280;
  * where CLOSED_SLOT_PCT is used verbatim. */
 const OPEN_FOLLOW_BASE_PCT = 101;
 /**
- * Files-panel (host right sidebar) gesture constants — the right-edge mirror
- * of the drawer layer (spec 2026-09-13-files-swipe-gesture-design.md).
+ * Files-panel (host right sidebar) gesture constants (spec
+ * 2026-09-13-files-swipe-gesture-design.md).
  *
- * FILES_ZONE_RATIO mirrors the drawer's START_ZONE_RATIO: a narrow strip
- * cannot be used because Chrome Android's history-nav edge strip (~48dp)
- * pointercancels strokes starting inside it — the same reason the drawer
- * zone grew to 45% of the viewport.
+ * The right-edge START ZONE is gone with issue #268: the panel is full-screen
+ * and opens/closes from anywhere, so there is no geometric strip left to
+ * describe.
  */
-const FILES_ZONE_RATIO = 0.45;
 /**
  * Distance threshold as a fraction of the viewport width for BOTH files
  * directions (≈62px on a 390px phone). The drawer's separate close ratio
@@ -6740,11 +6706,11 @@ function classifyFilesSwipe(t, m, rtl) {
     if (t.drawerOpen) {
         // Same gates as the drawer family's close (classifySwipe), including its
         // CLOSE_DISTANCE_RATIO: this cell IS the drawer-close commit path, so the
-        // two families must judge one physical stroke alike. Without the gate the
-        // files zone's 45% reaches ~66px into the open drawer column at 390px,
-        // where a thumb resting on a row drifts ~8px sideways while scrolling —
-        // that closed the drawer AND consumed the tap. The leftward cell beside the
-        // drawer is already 'none', so this is what makes the families agree.
+        // two families must judge one physical stroke alike. Without the gate a
+        // thumb resting on a row drifts ~8px sideways while scrolling — that
+        // closed the drawer AND consumed the tap, and since issue #268 any start
+        // point can close it. The leftward cell beside the drawer is already
+        // 'none', so this is what makes the families agree.
         const closeRatio = t.drawerCloseDistanceRatio ?? t.distanceRatio;
         if (dx / t.viewportWidthPx >= closeRatio)
             return 'close';
@@ -6780,34 +6746,34 @@ function slidingVelocity(samples, windowMs, now) {
         return 0;
     return (b.x - a.x) / dt;
 }
-/**
- * Geometric start-hit test: the pointer went down in the left edge start
- * zone (when the drawer is closed) or inside the drawer content area (when
- * open). Pure and viewport-relative so it is unit-testable; the runtime
- * variant additionally checks the drawer geometry via the DOM.
- */
-function hitTestStart(clientX, viewportWidthPx, rtl, t) {
-    const edge = rtl ? viewportWidthPx - clientX : clientX;
-    return edge >= 0 && edge <= t.startZonePx;
+/** Which gesture family owns a stroke that begins while a panel is OPEN.
+ *
+ * The TOP-most open panel owns it: the drawer's column is painted above the
+ * files panel, so a drawer sitting on top still owns the stroke. The panels
+ * are mutually exclusive (classifyFilesSwipe's leftward cell answers 'none'
+ * while `drawerOpen`), so no second family ever competes for it.
+ *
+ * The drawer's own rect is deliberately NOT consulted — a stale rect
+ * mid-animation would hand the stroke to a family that can open the wrong
+ * panel. Issue #268 (2026-11-07) removed the last geometric gate here; see
+ * docs/specs/2026-08-27-sidebar-swipe-gestures.md 第十四轮. */
+function openStateStartMode(drawerOpen, panelOpen) {
+    return !drawerOpen && panelOpen ? 'files' : 'drawer';
 }
-/**
- * Geometric start-hit test for the FILES gesture: the pointer went down in
- * the RIGHT edge zone (RTL: LEFT) — the exact mirror of hitTestStart. Pure
- * and viewport-relative.
- */
-function filesZoneHit(clientX, viewportWidthPx, rtl, zonePx) {
-    const edge = rtl ? clientX : viewportWidthPx - clientX;
-    return edge >= 0 && edge <= zonePx;
-}
-/** Which gesture family owns a stroke that begins while the drawer is OPEN.
- * Inside the drawer body the drawer family always wins (owner's rule
- * 2026-09-17: the drawer's own surface must answer a leftward drag, whether or
- * not the viewport-ratio files zone overlaps it — at 390px that zone starts at
- * x=214, inside the 280px drawer); outside the body the right zone keeps its
- * files routing and its deliberate leftward 'none' verdict (2026-09-13
- * narrowing). */
-function openStateStartMode(insideDrawer, inFilesZone) {
-    return insideDrawer || !inFilesZone ? 'drawer' : 'files';
+/** Which gesture family a stroke belongs to when BOTH panels were shut at
+ * pointerdown — the whole-viewport start rule (issue #268, 2026-11-07).
+ *
+ * Direction is the only gate: each classifier already refuses strokes that
+ * disagree with its own family's direction, so the retired left/right 45%
+ * zones were a redundant second gate (and left a 38px dead strip at 390px).
+ *
+ *   rightward-logical (toward the drawer's edge) → drawer
+ *   leftward-logical  (toward the files edge)    → files
+ *
+ * RTL mirrors the axis exactly like the classifiers: `rightward` arrives
+ * already normalized, so no `rtl` parameter is needed. */
+function closedStateStrokeMode(rightward) {
+    return rightward ? 'drawer' : 'files';
 }
 /**
  * Pure follow mapping (B 档): the translateX (px) to paint for a stroke
@@ -6875,9 +6841,8 @@ function followOpenTransform(travelPx, rtl) {
  * scroller: the browser claims the horizontal pan (pointercancel on real
  * devices) and the release classification must neither compete with it nor
  * preventDefault it away — prevention is what would break the strip's native
- * scrolling near the left edge once the start zone grew to 45% of the
- * viewport (the stats
- * line spans the full width; message code blocks are overflow-x:auto too).
+ * scrolling (the stats line spans the full width; message code blocks are
+ * overflow-x:auto too).
  * CDP failure scenario C1 pins this contract. overflow-x:hidden/clip never
  * match: clipped content cannot pan, so a horizontal stroke there stays free
  * for the gesture layer.
@@ -6952,7 +6917,7 @@ function modalOpen() {
  *  `data-conversation-composer-overlay` attribute on their root) is open.
  *  In both cases the drawer edge-swipe gestures yield so horizontal content
  *  scrolling (kanban columns, trajectory tables, CSV/code panes) wins the
- *  left-edge start zone; the FAB still opens the drawer. This reads the
+ *  stroke; the FAB still opens the drawer. This reads the
  *  generic overlay attribute directly — deliberately decoupled from the
  *  file-viewer marker, which keys on `.dsfv-panel` only (design
  *  2026-09-06-conversation-overlay-takeover-design.md §4.2). */
@@ -7063,7 +7028,7 @@ const FLOATING_WIDGET_MAX_PX = 200;
  * roots are claimed by name before either filter runs.
  * Excluded: anything else inside our own frame subtree — the FAB / backdrop /
  * drawer content carry their own gesture semantics and must never be
- * misread as floating widgets (the closed-state FAB sits in the start zone).
+ * misread as floating widgets (the closed-state FAB sits near the left edge).
  * ponytail: no DOM-standard draggable signal exists; shape ≈ draggable is an
  * approximation with a known ceiling — a STATIC small positioned element
  * (e.g. a message badge) also yields, costing a stroke start under a
@@ -7340,7 +7305,7 @@ function commitWithAnimation(ctx, el, targetTx) {
     // gesture-close path reaches here without a reduce check (issue #86). Land
     // the exact same guarded commit, just without the animation beat.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        (0, overlay_backdrop_fab_ts_1.fadeOverlayOut)();
+        (0, drawer_layer_ts_1.fadeDimOut)();
         cooldownUntil = performance.now() + COOLDOWN_MS;
         pendingCommit = { el, ctx, timer: 0, target: targetTx };
         finishPendingCommit();
@@ -7361,7 +7326,7 @@ function commitWithAnimation(ctx, el, targetTx) {
     // Fade the dimming in step with the slide-out: the marker flips only when
     // the drawer lands, so without this the screen would go drawer-then-dark
     // (backdrop snapping away ~260ms AFTER the drawer already left).
-    (0, overlay_backdrop_fab_ts_1.fadeOverlayOut)();
+    (0, drawer_layer_ts_1.fadeDimOut)();
     cooldownUntil = performance.now() + COOLDOWN_MS;
     pendingCommit = {
         el,
@@ -7449,7 +7414,7 @@ function abortStroke(ctx, immediate = false) {
     }
 }
 /** Start a stroke; returns true when it may be tracked. */
-function beginStroke(event, rtl, viewportWidthPx) {
+function beginStroke(event) {
     if (onCooldown())
         return false;
     if (modalOpen())
@@ -7466,7 +7431,7 @@ function beginStroke(event, rtl, viewportWidthPx) {
         return false;
     // A live draggable (data-mobile-nav-dragging, see dragMarkYields) owns the
     // stroke: yield before any geometric test so the drawer cannot arm for a
-    // drag that starts inside the start zone.
+    // drag on the element itself.
     if (dragMarkYields(event))
         return false;
     // Plugin-shipped draggable floating widgets (pet / floating-ball shapes
@@ -7478,39 +7443,25 @@ function beginStroke(event, rtl, viewportWidthPx) {
         return false;
     // A stroke beginning inside a genuinely horizontally scrollable container
     // belongs to that scroller (the stats line, a message code block, any
-    // carousel): yield it so its native horizontal pan survives — and so the
-    // wide 45%-of-viewport start zone cannot turn a strip scroll into a
-    // drawer open (failure scenario C1). Applies to both branches: inside the
-    // drawer the same "scroller owns horizontal" semantics should hold.
+    // carousel): yield it so its native horizontal pan survives instead of
+    // turning into a drawer/panel open (failure scenario C1). Applies to both
+    // branches: inside the drawer the same "scroller owns horizontal"
+    // semantics hold.
     if (findHorizontalScroller(chainFrom(event.target)) !== null)
         return false;
     const open = drawerOpen();
-    const filesZonePx = startZonePxFor(viewportWidthPx, FILES_ZONE_RATIO);
-    if (open) {
-        // Close strokes may start ANYWHERE over the frame (2026-08-29 sixth
-        // round, user report 「希望打开抽屉之后以外的部分可以进行左滑」). The
-        // previous gate required the start point inside the drawer's own
-        // geometry and explicitly rejected the backdrop, so the ~28% of the
-        // screen beside the drawer swallowed every swipe — combined with the
-        // leftward verdict being refused, closing felt impossible. Nothing else
-        // owns a horizontal stroke while the drawer is open (the conversation is
-        // behind the backdrop), so the whole frame is fair game.
-        //
-        // 2026-09-13 narrowing (user decision): the RIGHT zone beside the drawer
-        // now belongs to the files gesture. Its leftward stroke must NOT close
-        // the drawer (the files panel would mount UNDER the drawer — z-1100 —
-        // and be invisible); its rightward stroke keeps the animated close via
-        // classifyFilesSwipe's 'close' verdict. The left zone / drawer content
-        // keeps every pre-existing drawer behavior. Drawer-mode follow painting
-        // only ever maps LEFTWARD (followTranslate's close branch), which is
-        // exactly the direction the narrowing removes from this zone — no close
-        // follow is lost by the routing (probe swipe.close-follow-reaches-slot
-        // was relocated into the drawer family accordingly).
-        //
-        // Tap-to-close on the backdrop is unaffected: a tap never reaches
-        // tryLock, so endStroke returns on !wasTracking without writing a
-        // consume mark, and the document-capture click handler passes backdrop /
-        // FAB clicks through unconditionally anyway.
+    // The files panel is full-screen and mutually exclusive with the drawer, so
+    // it opens the SAME close-stroke surface (issue #268): while either one is
+    // up, the whole frame may start the stroke that closes it.
+    const panelOpen = filesPanelOpen();
+    if (open || panelOpen) {
+        // An open drawer or panel owns every stroke over the frame (2026-08-29
+        // sixth round, user report 「希望打开抽屉之后以外的部分可以进行左滑」;
+        // issue #268 replaced the 2026-09-13 narrowing's "inside the drawer body"
+        // gate with the whole viewport). Nothing else competes for a horizontal
+        // stroke while the backdrop covers the conversation. Tap-to-close on the
+        // backdrop is unaffected: a tap never reaches tryLock, so no consume mark
+        // is written.
         const frame = (0, frame_ts_1.getFrame)();
         if (frame === null)
             return false;
@@ -7522,29 +7473,15 @@ function beginStroke(event, rtl, viewportWidthPx) {
         // A session-row action menu (kebab) owns its own tap.
         if (event.target.closest('[class*="sessionRow"] button') !== null)
             return false;
-        //
-        // 2026-09-17 (owner: the judgment zone must end at the drawer's right
-        // edge): inside the drawer BODY the drawer family always wins. The files
-        // zone is viewport-relative (0.45 from the right edge = x >= 214 at 390px)
-        // and overlaps the 280px drawer by 66px, so that sliver of the drawer's own
-        // surface used to answer 'none' to a leftward drag - touching the drawer and
-        // dragging left did nothing. Routing on the drawer's live rect (not a
-        // hardcoded width) keeps the rule true at every viewport: at >= 509px the
-        // 0.45 zone starts right of the drawer and nothing changes. Outside the
-        // body the files routing, including its leftward no-op, is untouched.
-        const drawer = findDrawer();
-        const drawerRect = drawer === null ? null : drawer.getBoundingClientRect();
-        const insideDrawer = drawerRect !== null && event.clientX >= drawerRect.left && event.clientX <= drawerRect.right;
-        strokeMode = openStateStartMode(insideDrawer, filesZoneHit(event.clientX, viewportWidthPx, rtl, filesZonePx));
-    }
-    else if (hitTestStart(event.clientX, viewportWidthPx, rtl, { startZonePx: startZonePxFor(viewportWidthPx) })) {
-        strokeMode = 'drawer';
-    }
-    else if (filesZoneHit(event.clientX, viewportWidthPx, rtl, filesZonePx)) {
-        strokeMode = 'files';
+        // Who is open owns the stroke — no rect test, no viewport split.
+        strokeMode = openStateStartMode(open, panelOpen);
     }
     else {
-        return false;
+        // Closed state: the whole viewport starts a stroke and the family is
+        // decided at the axis lock, where the direction exists (issue #268).
+        // Vertical strokes still belong to native scrolling — they fail the axis
+        // lock exactly as before, and a tap never reaches tryLock.
+        strokeMode = 'pending';
     }
     trackingPointer = event.pointerId;
     tracking = false;
@@ -7560,7 +7497,7 @@ function beginStroke(event, rtl, viewportWidthPx) {
  * further preventDefault). Once locked the axis never re-decides — matching
  * MUI's UNCERTAINTY_THRESHOLD semantics.
  */
-function tryLock(event) {
+function tryLock(event, rtl) {
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
     if (Math.max(Math.abs(dx), Math.abs(dy)) < LOCK_PX)
@@ -7580,6 +7517,18 @@ function tryLock(event) {
     }
     tracking = true;
     lockDrawerOpen = drawerOpen();
+    // Closed-state strokes were never routed to a family (issue #268): the
+    // direction that decides it is known only here. RTL mirrors the raw delta
+    // exactly like both classifiers do, so the family and the verdict always
+    // agree about which way the finger went. beginStroke routes the OPEN state
+    // itself (openStateStartMode), so 'pending' can only mean "both panels were
+    // shut at pointerdown" — re-read the panel anyway: the two events are
+    // separate, and a tap that opens the panel in between must not be judged by
+    // the closed-state rule.
+    if (strokeMode === 'pending') {
+        const rightward = rtl ? dx < 0 : dx > 0;
+        strokeMode = closedStateStrokeMode(rightward);
+    }
     if (strokeMode === 'files') {
         lockFilesOpen = filesPanelOpen();
         // An OPEN drawer shares this stroke (the right-edge rightward close):
@@ -7721,7 +7670,7 @@ function endStroke(ctx, event, rtl, viewportWidthPx) {
         // Mark the stroke consumed so the tap's synthetic click cannot
         // double-toggle or navigate a row. The mark walks the ancestor chain up
         // to the DRAWER (not the frame): the synthetic click always lands on the
-        // stroke's own start target (left-edge start zone / drawer content), never
+        // stroke's own start target (the frame or the drawer content), never
         // on the backdrop — but the backdrop is a frame child, so marking up to
         // the frame would make the host treat a genuine backdrop tap within the
         // 300ms window as consumed and swallow the close (the "tap twice to close"
@@ -7769,8 +7718,8 @@ function endStroke(ctx, event, rtl, viewportWidthPx) {
  * inside it: the backdrop is a frame child, so stopping at the frame would
  * make the host treat a genuine backdrop tap within the window as consumed
  * and swallow the close (the "tap twice to close" bug). A stroke that started
- * OUTSIDE the drawer (the left-edge start zone, or — since closing accepts
- * the whole frame — the backdrop itself) has no drawer in its chain, so the
+ * OUTSIDE the drawer (since #268 anywhere over the frame, the backdrop
+ * included) has no drawer in its chain, so the
  * walk would otherwise run all the way to the document root and briefly
  * shadow every tap on the page; the frame is the tightest correct stop for
  * those, and it is what must be marked anyway, because a backdrop-started
@@ -7822,7 +7771,7 @@ function installSidebarSwipe(ctx, filesToggle) {
                 abortStroke(ctx);
                 return;
             }
-            beginStroke(event, frameRtl(), viewportWidth());
+            beginStroke(event);
         };
         const onPointerMove = (event) => {
             if (event.pointerId !== trackingPointer)
@@ -7844,7 +7793,7 @@ function installSidebarSwipe(ctx, filesToggle) {
                     reset();
                     return;
                 }
-                if (tryLock(event)) {
+                if (tryLock(event, frameRtl())) {
                     pushSample(event);
                     applyFollow(ctx, event.clientX - startX);
                 }
@@ -7870,28 +7819,21 @@ function installSidebarSwipe(ctx, filesToggle) {
         // a swipe can never toggle twice or navigate a row. Non-gesture taps
         // (no live mark) pass through untouched.
         //
-        // A click whose target is (or is inside) the backdrop or the FAB is
-        // NEVER a gesture's synthetic click: the stroke start is always the
-        // left-edge start zone or the drawer content, never the backdrop (outside
-        // the drawer, on the right) or the FAB. The mark chain can reach them
-        // in degenerate hit-test cases (e.g. a stroke starting on a point where
-        // the empty drawer does not register as the event target), and
-        // swallowing that click would break the "tap the backdrop to close"
-        // path — the "tap twice to close" bug. Let those clicks through.
+        // A genuine backdrop / FAB tap is never a synthetic click of OURS, and the
+        // mark chain can reach the overlay in degenerate hit-test cases — swallow
+        // it and the user needs two taps to close ("tap twice to close"). So those
+        // clicks pass. The one exception is handled below: an overlay click that
+        // STARTED the just-committed stroke (issue #268 lets a close stroke begin
+        // anywhere, the backdrop included) must not re-toggle the drawer.
         const onClick = (event) => {
             if (consumedEl === null)
                 return;
             if (!(event.target instanceof Element))
                 return;
-            // A genuine backdrop / FAB tap is always let through: their own click
-            // listeners toggle the drawer, and a consume mark that walked to the
-            // document root would otherwise swallow it ("tap twice to close").
-            // The one exception is a click on the overlay element that STARTED the
-            // just-committed stroke — since close strokes may begin anywhere over
-            // the frame, the backdrop can now be the stroke's own start target,
-            // and letting its synthetic click through would re-toggle the drawer
-            // straight back open.
-            const overlay = event.target.closest('[data-mobile-nav="backdrop"], [data-mobile-nav="fab"]');
+            // Let a genuine overlay tap through (see above), but never the click
+            // whose overlay IS the element this stroke started on: re-toggling the
+            // drawer straight back open is exactly what that would do.
+            const overlay = event.target.closest('[data-mobile-nav="hit"], [data-mobile-nav="fab"]');
             if (overlay !== null && !overlay.contains(consumedEl))
                 return;
             if (!(0, gesture_guard_ts_1.consumeIfGestured)(event))
@@ -7911,8 +7853,8 @@ function installSidebarSwipe(ctx, filesToggle) {
         // must stay out of the way entirely: canceling a touchmove suppresses the
         // touch point's default action for the WHOLE gesture (Touch Events
         // cancelability), and WebKit does not resume scrolling after reset() —
-        // preventing here made both 45% start zones dead for scrolling on iOS
-        // (#222). Multi-touch is never prevented: two fingers mean a pinch, and
+        // preventing here killed native scrolling on iOS for every stroke that
+        // began in the old start areas (#222). Multi-touch is never prevented: two fingers mean a pinch, and
         // the pointerdown guard above plus this check hand it back (#46).
         const onTouchMove = (event) => {
             if (trackingPointer === 0)
@@ -8174,7 +8116,7 @@ function installOverlayInteractions(ctx) {
             // stops click propagation at the frame for anything outside the drawer
             // (its own dismiss path), so that listener never sees the tap. Decide
             // here instead — before both the shim and the element handler.
-            if (target instanceof Element && target.closest('[data-mobile-nav="backdrop"]') !== null) {
+            if (target instanceof Element && target.closest('[data-mobile-nav="hit"]') !== null) {
                 if (drawerOpen())
                     toggleSidebar();
                 return;
@@ -8280,7 +8222,7 @@ const locales_ts_1 = require("./i18n/locales.js");
 const aionui_compat_ts_1 = require("./effects/aionui-compat.js");
 const stats_line_ts_1 = require("./effects/stats-line.js");
 const preview_fullscreen_ts_1 = require("./effects/preview-fullscreen.js");
-const overlay_backdrop_fab_ts_1 = require("./effects/overlay-backdrop-fab.js");
+const drawer_layer_ts_1 = require("./effects/drawer-layer.js");
 const file_viewer_compat_ts_1 = require("./effects/file-viewer-compat.js");
 const drawer_session_log_ts_1 = require("./effects/drawer-session-log.js");
 const drawer_quick_settings_ts_1 = require("./effects/drawer-quick-settings.js");
@@ -8399,7 +8341,7 @@ function registerReconcileTasks(ctx, panelExit) {
         addReconcilerTask((0, aionui_compat_ts_1.createPreviewCloseTask)()),
         addReconcilerTask((0, aionui_compat_ts_1.createSheetRiseTask)()),
         addReconcilerTask((0, stats_line_ts_1.createStatsLineTask)()),
-        addReconcilerTask((0, overlay_backdrop_fab_ts_1.createOverlayTask)(t, () => (0, drawer_close_ts_1.toggleDrawer)(ctx), panelExit)),
+        addReconcilerTask((0, drawer_layer_ts_1.createDrawerLayerTask)(t, () => (0, drawer_close_ts_1.toggleDrawer)(ctx), panelExit)),
         addReconcilerTask(panelExit.task),
         addReconcilerTask((0, file_viewer_compat_ts_1.createFileViewerMarkerTask)()),
         addReconcilerTask((0, drawer_session_log_ts_1.createDrawerSessionLogTask)(ctx)),
@@ -8957,7 +8899,21 @@ const SWALLOW_WINDOW_MS = 800;
  * user's next deliberate tap.
  */
 const CLICK_GRACE_MS = 1000;
-const SWALLOWED_TYPES = ['mouseover', 'mouseout', 'mouseenter', 'mouseleave'];
+const SWALLOWED_TYPES = [
+    'mouseover',
+    'mouseout',
+    'mouseenter',
+    'mouseleave',
+    // 2026-11-08 (#281): the same hover timers moved to the POINTER channel —
+    // the lineage root and the menu container now carry onPointerLeave →
+    // scheduleHoverClose (120 ms). Swallowing only the mouse family leaves the
+    // tap's own pointerout/pointerleave untouched, and because the keyboard path
+    // never sets the component's pinnedRef, that timer closes the card we just
+    // opened (CDP: expanded is true right after pointerup, still true at 60 ms,
+    // false by 150 ms; blocking these two events keeps it open).
+    'pointerout',
+    'pointerleave',
+];
 function installSubagentChipTouch(ctx) {
     (0, breakpoints_ts_1.installMobileEffect)(ctx, 'dsh-web-mobile: lineage chip touch toggle', () => {
         if (typeof PointerEvent === 'undefined')
@@ -13698,8 +13654,8 @@ const breakpoints_ts_1 = require("./platform/breakpoints.js");
  *  1. the system back key / back gesture (popstate) — the returned task
  *  2. tapping the already-selected panel row again — installPanelRowExit
  *  3. the top-left FAB, which reads as 「返回会话」 at the panel root and as
- *     「返回」 on a panel subpage — see createOverlayTask in
- *     overlay-backdrop-fab.ts
+ *     「返回」 on a panel subpage — see createDrawerLayerTask in
+ *     drawer-layer.ts
  *
  * All three funnel through the same `exit`, so they cannot drift apart.
  *

@@ -297,6 +297,14 @@ flowchart LR
 原生虚拟屏节点面板另有[NativeScreenControlLease](../app/src/main/java/com/deepseekharness/app/screen/NativeScreenControlLease.java)，绑定真实RESUMED Activity；pause/stop/destroy撤销。
 该本机用户入口不能通过null broker变成助手绕过，也不能把旧帧/节点换标签作用于新屏。
 
+敏感界面分档是屏幕策略的**子策略**，不是新的系统授权，也不新增capability：`DeviceGrants` 另存
+`sensitive_screen_v1`（逐类别ASK/HANDOFF、精确包名的强制交接/信任名单，默认全ASK、名单空、损坏回默认）。
+它的修订号与 `screen_confirmation_v1` 的修订号一起构成屏幕请求的policyRevision（见8.2），任一保存都先失效旧确认与
+在途请求；进程内保留修订号下限，避免损坏记录把围栏退回旧值。`ScreenConfirmationPolicy.ALLOW_ALL` 只省普通确认，
+不能跳过敏感类别的ASK、不能关闭已配置的HANDOFF，也不能解除密码文本读写硬阻断；`OFF`（逐类别显式选择）只关闭整屏
+分档并回到普通确认策略，不影响密码文本硬阻断；密码文本的硬拒绝由输入层执行，
+与确认结果无关。HANDOFF不改屏幕模式：暂停助手、撤销在途请求并丢弃观察，用户恢复后必须重新观察，不自动重放。
+
 ## 9. 审批不等于回答，工具策略不等于生命周期证明
 
 [BridgeAskDialog](../app/src/main/java/com/deepseekharness/app/BridgeAskDialog.java)处理业务提问，不标记为可自动跳过的安全确认。

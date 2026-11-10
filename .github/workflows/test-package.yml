@@ -1,6 +1,7 @@
 name: Test package (on demand)
 
 # 手动构建可安装的测试包，用于真机核对；不创建 tag/Release，不使用任何正式证书。
+# 本工作流保留历史 .test 变体；.debug / .dev 共存变体见 test-package-variants.yml。
 # identity=mod（默认）：io.github.sunsetrne.dsha.test（DSH-A-Su Test，-SunsetTest）；
 # identity=upstream：dsh.android.client.SunsetRNE（DSHA Test，-SunsetTest）。
 # 测试签名证书必须与 mod、upstream 两个正式证书都不同。

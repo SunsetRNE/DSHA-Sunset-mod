@@ -120,13 +120,6 @@ public class LaunchFragment extends Fragment {
 
     // v5 主页新增的语境、活动条与日志工具；原有 id 与业务 id 全部保留。
     activityTrack = v.findViewById(R.id.launch_activity);
-    ((TextView) v.findViewById(R.id.launch_terminal_row))
-        .setText(UiText.choose("打开本机终端", "Open local terminal"));
-    v.findViewById(R.id.launch_terminal_row)
-        .setContentDescription(
-            UiText.choose("打开本机终端，直接处理文件与命令", "Open the local terminal for files and commands"));
-    ((TextView) v.findViewById(R.id.launch_environment_row))
-        .setText(UiText.choose("运行环境 · 检查与维护", "Runtime environment · inspect and repair"));
 
     controller = HarnessController.get(requireContext());
     final Activity activity = requireActivity();
@@ -141,9 +134,7 @@ public class LaunchFragment extends Fragment {
     v.findViewById(R.id.launch_download_logs)
         .setOnClickListener(x -> startActivity(DiagnosticActivity.downloadLogs(requireContext())));
 
-    // v5 快捷行与日志工具：终端走 MainActivity 的既有门禁，环境行复用恢复入口。
-    v.findViewById(R.id.launch_terminal_row).setOnClickListener(x -> openLocalTerminal());
-    v.findViewById(R.id.launch_environment_row).setOnClickListener(x -> openEnvironment());
+    // 日志工具：概览 / 原始、复制与下载都直接作用于完整原文。
     v.findViewById(R.id.launch_copy_logs).setOnClickListener(x -> copyLogs());
     v.findViewById(R.id.launch_copy_logs)
         .setContentDescription(UiText.choose("复制完整启动日志", "Copy the full startup log"));
@@ -153,7 +144,6 @@ public class LaunchFragment extends Fragment {
     v.findViewById(R.id.launch_download_logs)
         .setTooltipText(UiText.choose("下载日志", "Download logs"));
 
-    v.findViewById(R.id.launch_address).setOnClickListener(x -> showAccessAddresses());
     restart.setText(R.string.ui2_restart);
     applySchemeALayout(v);
     v.findViewById(R.id.launch_recovery).setOnClickListener(x -> showRecovery());
@@ -433,22 +423,8 @@ public class LaunchFragment extends Fragment {
     }
   }
 
-  /** 打开本机终端：终端门禁仍由 MainActivity.openTerminal() 统一判断。 */
-  private void openLocalTerminal() {
-    Activity host = getActivity();
-    if (host instanceof MainActivity) {
-      ((MainActivity) host).openTerminal();
-      return;
-    }
-    Toast.makeText(
-            requireContext(),
-            UiText.choose("请在主界面打开本机终端", "Open the local terminal from the main screen"),
-            Toast.LENGTH_SHORT)
-        .show();
-  }
-
-  /** 运行环境行复用现有恢复入口：需要恢复时进入环境维护，否则打开启动恢复页。 */
-  private void openEnvironment() {
+  /** 运行环境入口（顶栏「+」气泡调用）：需要恢复时进入环境维护，否则打开启动恢复页。 */
+  void openEnvironment() {
     if (!isAdded()) return;
     if (EnvironmentUiStatus.get(requireContext()).recovery) {
       startActivity(
@@ -751,7 +727,7 @@ public class LaunchFragment extends Fragment {
    *   <li>≥ 600dp：标题右侧显示插图；主操作与重启/停止同一行，放不下（任一按钮文字折行）时改用窄屏排列。
    *   <li>&lt; 600dp：隐藏插图；主操作独占一行铺满，重启/停止在下方等分成两枚次要按钮（带边框、
    *       居中），不再是靠左的两段裸文字。
-   *   <li>下半区「快捷入口 | 启动日志」由 AdaptiveColumns 按自身宽度（≥ 760dp）并排。
+   *   <li>快捷入口已收进顶栏「+」气泡；启动日志独占下半区，不再按宽度分栏。
    * </ul>
    */
   private void applySchemeALayout(View root) {
@@ -764,12 +740,6 @@ public class LaunchFragment extends Fragment {
     if (controls != null && start != null && quiet != null) {
       if (!wide) stackControls(root, controls, start, quiet);
       else watchControlsFit(root, controls, start, quiet);
-    }
-    AdaptiveColumns bottom = root.findViewById(R.id.launch_bottom);
-    if (bottom != null) {
-      bottom.setSplitWidthDp(760);
-      bottom.setGutterDp(32);
-      bottom.setWeights(1f, 1.3f);
     }
   }
 

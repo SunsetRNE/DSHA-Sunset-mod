@@ -16,6 +16,7 @@ public final class BridgeRoutes {
     EXTDEV_INSPECT(false),
     EXTDEV_BIND(false),
     EXTDEV_OPERATE(false),
+    EXTDEV_WATCH(false),
     EXTDEV_PREFLIGHT(false),
     EXTDEV_IMPORT(false),
     EXTDEV_FORGET(false),
@@ -40,6 +41,7 @@ public final class BridgeRoutes {
     UI(false),
     SENSE(false),
     VSCREEN(false),
+    PRIV(false),
     DEVICE(false),
     NET(false),
     NET_RESOLVE(false),
@@ -91,6 +93,7 @@ public final class BridgeRoutes {
     add(routes, "/app/extdev/inspect", Route.EXTDEV_INSPECT);
     add(routes, "/app/extdev/bind", Route.EXTDEV_BIND);
     add(routes, "/app/extdev/operate", Route.EXTDEV_OPERATE);
+    add(routes, "/app/extdev/watch", Route.EXTDEV_WATCH);
     add(routes, "/app/extdev/preflight", Route.EXTDEV_PREFLIGHT);
     add(routes, "/app/extdev/import", Route.EXTDEV_IMPORT);
     add(routes, "/app/extdev/forget", Route.EXTDEV_FORGET);
@@ -150,6 +153,8 @@ public final class BridgeRoutes {
     if (path.startsWith("/app/ui/")) return Route.UI;
     if (path.equals("/app/sense/state")) return Route.SENSE;
     if (path.startsWith("/app/vscreen/")) return Route.VSCREEN;
+    // T130：实体屏特权执行固定端点；未知子路径由 appPriv 再拒绝一次。
+    if (path.startsWith("/app/priv/")) return Route.PRIV;
     return Route.UNKNOWN;
   }
 }

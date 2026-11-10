@@ -13,7 +13,6 @@ export const NS = 'dshWebMobileNav'
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'open': '打开目录',
-  'backdrop': '点击关闭目录',
   'back': '返回',
   'backToConversation': '返回会话',
   'sessionLog': '导出会话日志',
@@ -43,7 +42,6 @@ export const zh = {
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<MobileNavKey, string> = {
   'open': 'Open directory',
-  'backdrop': 'Click to close directory',
   'back': 'Back',
   'backToConversation': 'Back to conversation',
   'sessionLog': 'Session log',
@@ -77,7 +75,6 @@ export type MobileNavKey = keyof typeof zh
 export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { zh: zh, en: en, ...{
   "zh-Hant": {
     "open": "開啟目錄",
-    "backdrop": "點擊關閉目錄",
     "back": "返回",
     "backToConversation": "返回對話",
     "sessionLog": "匯出對話記錄",
@@ -105,7 +102,6 @@ export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { 
   },
   "ru": {
     "open": "Открыть каталог",
-    "backdrop": "Нажмите, чтобы закрыть каталог",
     "back": "Назад",
     "backToConversation": "Назад к беседе",
     "sessionLog": "Экспорт журнала беседы",
@@ -133,7 +129,6 @@ export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { 
   },
   "ja": {
     "open": "ディレクトリを開く",
-    "backdrop": "タップしてディレクトリを閉じる",
     "back": "戻る",
     "backToConversation": "会話に戻る",
     "sessionLog": "会話ログを書き出す",
@@ -161,7 +156,6 @@ export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { 
   },
   "ko": {
     "open": "디렉터리 열기",
-    "backdrop": "눌러서 디렉터리 닫기",
     "back": "뒤로",
     "backToConversation": "대화로 돌아가기",
     "sessionLog": "대화 기록 내보내기",
@@ -189,7 +183,6 @@ export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { 
   },
   "ar": {
     "open": "فتح المجلد",
-    "backdrop": "اضغط لإغلاق المجلد",
     "back": "رجوع",
     "backToConversation": "العودة إلى المحادثة",
     "sessionLog": "تصدير سجل المحادثة",
@@ -217,7 +210,6 @@ export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { 
   },
   "pt": {
     "open": "Abrir diretório",
-    "backdrop": "Toque para fechar o diretório",
     "back": "Voltar",
     "backToConversation": "Voltar à conversa",
     "sessionLog": "Exportar registro da conversa",
@@ -245,7 +237,6 @@ export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { 
   },
   "la": {
     "open": "Aperi directorium",
-    "backdrop": "Tange ut directorium claudatur",
     "back": "Retro",
     "backToConversation": "Redi ad colloquium",
     "sessionLog": "Exporta acta colloquii",
@@ -273,7 +264,6 @@ export const mobileNavLocales: Record<string, Record<MobileNavKey, string>> = { 
   },
   "fr": {
     "open": "Ouvrir le dossier",
-    "backdrop": "Appuyez pour fermer le dossier",
     "back": "Retour",
     "backToConversation": "Retour à la conversation",
     "sessionLog": "Exporter le journal de conversation",

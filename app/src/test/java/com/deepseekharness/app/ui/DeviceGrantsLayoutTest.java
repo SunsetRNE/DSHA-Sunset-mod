@@ -9,11 +9,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
@@ -40,8 +40,9 @@ import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadows.ShadowLooper;
 
 /**
- * 设备能力授权页压缩版：手机单栏不横向溢出、概览头部固定在滚动区之外、档位与确认方式为三段选择；
- * 内容宽 ≥640dp 时屏幕操作与敏感能力移到右栏。Root 未启用时点放宽档不会保存。
+ * 设备能力授权页：首页只保留全局 / 入口 / 系统 / 敏感四段，顶部不再有概览胶囊；
+ * 设备执行通道与屏幕操作各自独立成页，通道与屏幕的紧凑行、档位与确认方式仍在子页验证。
+ * 内容宽 ≥640dp 时敏感能力移到右栏。Root 未启用时点放宽档不会保存。
  *
  * <p>mdpi 下 1dp = 1px。只验证布局与本地状态，不验证真机渲染。
  */
@@ -94,11 +95,23 @@ public final class DeviceGrantsLayoutTest {
   }
 
   private View start(int width) {
+    return startPage(width, new DeviceGrantsFragment());
+  }
+
+  private View startChannels(int width) {
+    return startPage(width, new DeviceChannelsFragment());
+  }
+
+  private View startScreen(int width) {
+    return startPage(width, new ScreenOperationFragment());
+  }
+
+  private View startPage(int width, Fragment fragment) {
     host = Robolectric.buildActivity(Host.class).setup().visible();
     host.get()
         .getSupportFragmentManager()
         .beginTransaction()
-        .replace(R.id.fragment_container, new DeviceGrantsFragment())
+        .replace(R.id.fragment_container, fragment)
         .commitNow();
     ShadowLooper.shadowMainLooper().idle();
     View page =
@@ -132,6 +145,10 @@ public final class DeviceGrantsLayoutTest {
         collectOverflow(group.getChildAt(i), start - view.getScrollX(), width, out);
   }
 
+  private static int idOf(View page, String name) {
+    return page.getResources().getIdentifier(name, "id", page.getContext().getPackageName());
+  }
+
   private static List<Integer> sectionOrder(ViewGroup column) {
     List<Integer> ids = new ArrayList<>();
     for (int i = 0; i < column.getChildCount(); i++) ids.add(column.getChildAt(i).getId());
@@ -139,68 +156,89 @@ public final class DeviceGrantsLayoutTest {
   }
 
   @Test
-  public void phoneIsOneColumnWithPinnedSummaryAndSegments() {
+  public void phoneShowsEntryRowsWithoutSummaryHeader() {
     View page = start(360);
     List<String> overflow = new ArrayList<>();
     collectOverflow(page, 0, 360, overflow);
     assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
 
-    // 概览头部在滚动区之外，滚动内容时保持可见；胶囊放进 PluginFlowRow 按内容自适应宽度。
-    View header = page.findViewById(R.id.grants_header);
-    View scroll = page.findViewById(R.id.grants_scroll);
-    assertSame(page, header.getParent());
-    assertSame(page, scroll.getParent());
-    assertTrue(header.getBottom() <= scroll.getTop());
-    // 头部只保留胶囊流式区；页面说明已删除。
-    assertEquals(1, ((ViewGroup) header).getChildCount());
-    ViewGroup pills = page.findViewById(R.id.grants_pills);
-    assertTrue(pills instanceof PluginFlowRow);
-    assertEquals(4, pills.getChildCount());
-    assertSummaryPillsFit(pills, "zh");
+    // 顶部四个概览胶囊与固定头部已移除，页面直接从滚动内容开始（编译期资源 id 已不存在）。
+    assertEquals("概览头部必须移除", 0, idOf(page, "grants_header"));
+    assertEquals("概览胶囊必须移除", 0, idOf(page, "grants_pills"));
 
     assertEquals(
         List.of(
             R.id.grants_section_global,
-            R.id.grants_section_channels,
-            R.id.grants_section_screen,
+            R.id.grants_section_entries,
             R.id.grants_section_system,
             R.id.grants_section_sensitive),
         sectionOrder(page.findViewById(R.id.grants_col_start)));
     assertEquals(View.GONE, page.findViewById(R.id.grants_col_end).getVisibility());
 
-    RadioGroup root = page.findViewById(R.id.device_root_modes);
-    assertEquals(3, root.getChildCount());
-    assertTrue(((RadioButton) root.getChildAt(0)).isChecked());
+    // 两个入口行：可点、带状态摘要；卡片内容已迁到独立页面。
+    View channels = page.findViewById(R.id.channels_entry);
+    View screen = page.findViewById(R.id.screen_entry);
+    assertTrue(channels.isClickable());
+    assertTrue(screen.isClickable());
+    TextView channelsStatus = page.findViewById(R.id.channels_entry_status);
+    TextView screenStatus = page.findViewById(R.id.screen_entry_status);
+    assertFalse(channelsStatus.getText().toString().isEmpty());
+    assertFalse(screenStatus.getText().toString().isEmpty());
+    assertEquals(0, ellipsisCount(channelsStatus));
+    assertEquals(0, ellipsisCount(screenStatus));
+    assertNull("通道卡必须移除", page.findViewById(R.id.channels_card));
+    assertNull("屏幕卡必须移除", page.findViewById(R.id.screen_card));
+    assertNull("Root 档位已移到通道页", page.findViewById(R.id.device_root_modes));
+    assertNull("确认方式已移到屏幕页", page.findViewById(R.id.screen_policy_status));
+
     // 全局权限卡追加到槽位里，不再按页面下标插入。
     assertEquals(1, ((ViewGroup) page.findViewById(R.id.grants_global_slot)).getChildCount());
   }
 
   @Test
   @Config(qualifiers = "zh-rCN-w900dp-h1200dp-mdpi")
-  public void wideContentMovesScreenAndSensitiveToSecondColumn() {
+  public void wideContentMovesSensitiveToSecondColumn() {
     View page = start(900);
     ViewGroup end = page.findViewById(R.id.grants_col_end);
     assertEquals(View.VISIBLE, end.getVisibility());
-    assertEquals(
-        List.of(R.id.grants_section_screen, R.id.grants_section_sensitive), sectionOrder(end));
+    assertEquals(List.of(R.id.grants_section_sensitive), sectionOrder(end));
     assertEquals(
         List.of(
-            R.id.grants_section_global, R.id.grants_section_channels, R.id.grants_section_system),
+            R.id.grants_section_global, R.id.grants_section_entries, R.id.grants_section_system),
         sectionOrder(page.findViewById(R.id.grants_col_start)));
     List<String> overflow = new ArrayList<>();
     collectOverflow(page, 0, 900, overflow);
     assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
   }
 
+  @Test
+  public void entriesOpenTheirOwnPages() {
+    View page = start(360);
+    page.findViewById(R.id.channels_entry).performClick();
+    ShadowLooper.shadowMainLooper().idle();
+    assertTrue(
+        "通道入口必须打开独立页面",
+        host.get().getSupportFragmentManager().findFragmentById(R.id.fragment_container)
+            instanceof DeviceChannelsFragment);
+    host.get().getSupportFragmentManager().popBackStackImmediate();
+    ShadowLooper.shadowMainLooper().idle();
+
+    page =
+        host.get().getSupportFragmentManager().findFragmentById(R.id.fragment_container).getView();
+    page.findViewById(R.id.screen_entry).performClick();
+    ShadowLooper.shadowMainLooper().idle();
+    assertTrue(
+        "屏幕入口必须打开独立页面",
+        host.get().getSupportFragmentManager().findFragmentById(R.id.fragment_container)
+            instanceof ScreenOperationFragment);
+  }
+
   /**
-   * 紧凑行式：Root / ADB 的开关与标题同一行；屏幕设置入口是状态行行尾的短按钮，虚拟识屏并入屏幕卡。
-   * 高度预算按 mdpi、360dp 宽、全部未开启的默认状态；Robolectric 字体行高偏大，预算按其实测值加余量。
+   * 通道页紧凑行式：Root / ADB 的开关与标题同一行；状态在标题左列按权重换行。
    */
   @Test
-  public void channelAndScreenSectionsUseCompactRows() {
-    View page = start(360);
-    // 通道行：标题与状态叠成左列（文本块按权重拿到剩余宽度），动作按钮与开关留在外层行右侧；
-    // 文本块先让出按钮宽度，长状态只在左列里换行，不会再挤掉按钮（T125）。
+  public void channelPageUsesCompactRows() {
+    View page = startChannels(360);
     ViewGroup rootText = (ViewGroup) page.findViewById(R.id.device_root_text);
     View rootSwitch = page.findViewById(R.id.config_root_shell);
     assertSame(rootText, page.findViewById(R.id.device_root_title).getParent());
@@ -216,19 +254,30 @@ public final class DeviceGrantsLayoutTest {
     assertSame(adbText, page.findViewById(R.id.config_adb_status).getParent());
     assertSame(adbText.getParent(), page.findViewById(R.id.config_adb_pair).getParent());
     assertSame(adbText.getParent(), page.findViewById(R.id.config_adb_enable).getParent());
+    int channels = page.findViewById(R.id.grants_section_channels).getHeight();
+    // 四行通道（含外接设备）含状态换行与外接设备说明，预算与原页一致。
+    assertTrue("channels too tall: " + channels, channels <= 560);
+    List<String> overflow = new ArrayList<>();
+    collectOverflow(page, 0, 360, overflow);
+    assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
+  }
+
+  /** 屏幕页紧凑行式：状态行 + 设置按钮同一行，虚拟识屏并入屏幕卡。 */
+  @Test
+  public void screenPageUsesCompactRows() {
+    View page = startScreen(360);
     assertSame(
         page.findViewById(R.id.config_a11y_status).getParent(),
         page.findViewById(R.id.computer_use_accessibility).getParent());
     assertSame(
         page.findViewById(R.id.screen_card),
         page.findViewById(R.id.screen_virtual_group).getParent());
-    int channels = page.findViewById(R.id.grants_section_channels).getHeight();
     int screen = page.findViewById(R.id.grants_section_screen).getHeight();
-    // T125 起通道状态在标题左列下方独立一行（允许长句换行），四行通道实测 462；预算按一行余量放宽到 500。
-    assertTrue("channels too tall: " + channels, channels <= 500);
-    // T96 的虚拟屏预览档位行并入屏幕卡；T120 起确认方式说明改折叠卡，收起态多保留一行
-    // 安全后果（实测 504），预算按一行余量放宽到 520。
-    assertTrue("screen too tall: " + screen, screen <= 520);
+    // 虚拟屏预览档位行与确认方式说明都在同一页；收起态多保留一行安全后果。
+    assertTrue("screen too tall: " + screen, screen <= 560);
+    List<String> overflow = new ArrayList<>();
+    collectOverflow(page, 0, 360, overflow);
+    assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
   }
 
   /**
@@ -241,12 +290,12 @@ public final class DeviceGrantsLayoutTest {
     String[][] samples = {
       {"zh", "尚未配对：点「配对」，配对后还会验证连接。"},
       {"en", "Not paired: tap Pair; the connection is verified after pairing."},
-      {"zh", "连接已验证 · 端口 5555\nkey=YES port=5555"},
+      {"zh", "连接已验证 · 端口 5555\\nkey=YES port=5555"},
       {"zh", LONG_ADB_STATUS}
     };
     for (String[] sample : samples) {
       UiText.setLanguage(sample[0]);
-      View page = start(320);
+      View page = startChannels(320);
       TextView pill = page.findViewById(R.id.config_adb_status);
       pill.setText(sample[1]);
       relayout(page, 320);
@@ -272,7 +321,7 @@ public final class DeviceGrantsLayoutTest {
   @Config(qualifiers = "zh-rCN-w320dp-h740dp-mdpi")
   public void channelStatusAllowsWrappingWithoutEllipsis() {
     UiText.setLanguage("zh");
-    View page = start(320);
+    View page = startChannels(320);
     TextView pill = page.findViewById(R.id.config_adb_status);
     pill.setText(LONG_ADB_STATUS);
     relayout(page, 320);
@@ -290,7 +339,7 @@ public final class DeviceGrantsLayoutTest {
     org.robolectric.RuntimeEnvironment.setFontScale(1.3f);
     try {
       UiText.setLanguage("en");
-      View page = start(320);
+      View page = startChannels(320);
       TextView pill = page.findViewById(R.id.config_adb_status);
       pill.setText(
           "Not paired: tap Pair; the connection is verified after pairing. "
@@ -382,7 +431,7 @@ public final class DeviceGrantsLayoutTest {
         .putBoolean(Constants.KEY_ALLOW_ROOT_SHELL, false)
         .commit();
     new ConfigStore(context).setRootPolicyMode(DeviceShellPolicy.Mode.STRICT);
-    View page = start(360);
+    View page = startChannels(360);
     RadioGroup root = page.findViewById(R.id.device_root_modes);
     root.getChildAt(1).performClick();
     ShadowLooper.shadowMainLooper().idle();
@@ -418,17 +467,17 @@ public final class DeviceGrantsLayoutTest {
     }
   }
 
-  /** 长译文语种（fr / ru / pt）在 320dp 窄屏下胶囊自适应宽度，状态词不出现省略号。 */
+  /** 长译文语种（fr / ru / pt）在 320dp 窄屏下入口状态不溢出、不省略。 */
   @Test
   @Config(qualifiers = "zh-rCN-w320dp-h740dp-mdpi")
-  public void summaryPillsFitLongTranslationsAtNarrowWidth() {
+  public void entryStatusFitsLongTranslationsAtNarrowWidth() {
     for (String language : new String[] {"fr", "ru", "pt"}) {
       UiText.setLanguage(language);
       View page = start(320);
       List<String> overflow = new ArrayList<>();
       collectOverflow(page, 0, 320, overflow);
       assertTrue(language + " horizontal overflow: " + overflow, overflow.isEmpty());
-      assertSummaryPillsFit((ViewGroup) page.findViewById(R.id.grants_pills), language);
+      assertEntryStatusNotClipped(page, language);
       host.pause().stop().destroy();
       host = null;
     }
@@ -437,40 +486,34 @@ public final class DeviceGrantsLayoutTest {
   /** 1.3 倍字体 + 320dp + 最长译文（ru）也不截断。 */
   @Test
   @Config(qualifiers = "zh-rCN-w320dp-h740dp-mdpi")
-  public void summaryPillsFitAtLargeFontScale() {
+  public void entryStatusFitsAtLargeFontScale() {
     org.robolectric.RuntimeEnvironment.setFontScale(1.3f);
     try {
       UiText.setLanguage("ru");
       View page = start(320);
-      assertSummaryPillsFit((ViewGroup) page.findViewById(R.id.grants_pills), "ru@1.3");
+      assertEntryStatusNotClipped(page, "ru@1.3");
     } finally {
       org.robolectric.RuntimeEnvironment.setFontScale(1f);
     }
   }
 
-  /** 短屏（≤480dp）概览条并入滚动区：不再吸顶，避免固定头部挤占正文。 */
-  @Test
-  @Config(qualifiers = "zh-rCN-w360dp-h400dp-mdpi")
-  public void shortScreenPutsSummaryHeaderIntoScroll() {
-    View page = start(360);
-    View header = page.findViewById(R.id.grants_header);
-    ViewGroup content = page.findViewById(R.id.grants_content);
-    ViewGroup scroll = page.findViewById(R.id.grants_scroll);
-    assertNotSame(page, header.getParent());
-    assertSame(content, header.getParent());
-    assertEquals(0, content.indexOfChild(header));
-    assertSame(scroll, content.getParent());
-    assertEquals(1, ((ViewGroup) header).getChildCount());
-    List<String> overflow = new ArrayList<>();
-    collectOverflow(page, 0, 360, overflow);
-    assertTrue("horizontal overflow: " + overflow, overflow.isEmpty());
-    assertSummaryPillsFit((ViewGroup) page.findViewById(R.id.grants_pills), "short");
+  /** 入口状态摘要允许换行、不使用省略号；整行仍在页宽内。 */
+  private static void assertEntryStatusNotClipped(View page, String language) {
+    for (int id : new int[] {R.id.channels_entry_status, R.id.screen_entry_status}) {
+      TextView status = page.findViewById(id);
+      assertNull(language + " 入口状态不能用省略号截断", status.getEllipsize());
+      assertEquals(language + " 入口状态不能出现省略号", 0, ellipsisCount(status));
+      assertTrue(language + " 入口状态被截断", status.getText().length() > 0);
+      assertTrue(
+          language + " 入口状态越界",
+          absoluteLeft(status) >= 0 && absoluteLeft(status) + status.getWidth() <= page.getWidth());
+    }
   }
 
   /** 开关关闭态轨道用近白底（不能与浅灰卡片同色），开启态仍是主题主色。 */
   @Test
   public void switchesUseContrastingTrackTint() {
-    View page = start(360);
+    View page = startScreen(360);
     MaterialSwitch pause = page.findViewById(R.id.screen_pause);
     ColorStateList tint = pause.getTrackTintList();
     assertNotNull("开关必须带显式轨道填充", tint);
@@ -513,7 +556,7 @@ public final class DeviceGrantsLayoutTest {
   /** 屏幕确认方式：收起态保留一行安全后果；「全部允许」放宽档位默认展开完整规则。 */
   @Test
   public void screenPolicyDisclosureKeepsConsequenceAndExpandsWhenRelaxed() {
-    View page = start(360);
+    View page = startScreen(360);
     TextView status = page.findViewById(R.id.screen_policy_status);
     assertTrue(status.isClickable());
     assertFalse(DisclosureCard.expanded(status));
@@ -522,7 +565,9 @@ public final class DeviceGrantsLayoutTest {
     status.performClick();
     assertTrue(DisclosureCard.expanded(status));
     assertNotNull(
-        findText(page, "仅设置 DSHA 的屏幕确认；不会授予系统权限。全部允许包含敏感界面；自定义中未配置的应用仍询问。规则保存在本机，不随备份迁移。"));
+        findText(
+            page,
+            "仅设置 DSHA 的屏幕确认；不会授予系统权限。全部允许只省普通确认，敏感界面仍按「敏感界面交接」询问或交接，密码文本读写始终阻断。自定义中未配置的应用仍询问。规则保存在本机，不随备份迁移。"));
   }
 
   private static String findText(View view, String target) {
@@ -533,34 +578,6 @@ public final class DeviceGrantsLayoutTest {
         if (found != null) return found;
       }
     return null;
-  }
-
-  /**
-   * 每个胶囊按内容自适应宽度（不再是等分权重），状态允许换行且与标题左对齐，文本无省略号。
-   *
-   * <p>Robolectric 默认（LEGACY）字体宽度是近似值，这里主要锁定结构契约；像素级十语种是否截断仍需
-   * 真机 LayoutAuditInstrumentation 或截图核对（本次未跑真机）。
-   */
-  private static void assertSummaryPillsFit(ViewGroup header, String language) {
-    for (int i = 0; i < 4; i++) {
-      ViewGroup pill = (ViewGroup) header.getChildAt(i);
-      TextView title = (TextView) ((ViewGroup) pill.getChildAt(0)).getChildAt(1);
-      TextView value = (TextView) pill.getChildAt(1);
-      assertEquals(
-          language + " pill " + i + " must wrap content",
-          ViewGroup.LayoutParams.WRAP_CONTENT,
-          pill.getLayoutParams().width);
-      assertTrue(language + " value " + i + " must wrap lines", value.getMaxLines() >= 2);
-      assertEquals(
-          language + " value " + i + " must not indent",
-          0,
-          ((ViewGroup.MarginLayoutParams) value.getLayoutParams()).getMarginStart());
-      assertEquals(language + " title " + i, 0, ellipsisCount(title));
-      assertEquals(language + " value " + i + ": " + value.getText(), 0, ellipsisCount(value));
-      assertTrue(
-          language + " pill " + i + " clipped",
-          pill.getLeft() >= 0 && pill.getRight() <= header.getWidth());
-    }
   }
 
   private static int ellipsisCount(TextView view) {

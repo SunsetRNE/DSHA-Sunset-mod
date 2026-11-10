@@ -46,7 +46,7 @@ DSH 0.2.2 的默认安全取舍还包括：Web Fetch 沿用上游实现，默认
 
 ## 设备与浏览器能力
 
-Root、Shizuku、ADB 在发送前选择实际通道；设备命令由原生与特权执行侧策略检查。Root 通道另有用户可选的 strict / relaxed / full 三档拦截：strict 为默认白名单；relaxed 放行任意命令但拦截格式化、刷机、写块设备、重启、清应用数据及递归删除整块用户数据等不可逆操作；full 不按命令内容拦截。三档都要求 root shell 开关与真实 su 身份，短信读取闸门在三个档位都保留；Shizuku、ADB 通用执行器与普通设备命令继续使用 strict。短信、虚拟屏、截图/读屏、录音和存储仍依赖对应原生授权与 Android 实际权限；未知命令的确认不能替代设备身份核验。结果未知时不得换通道重放。
+Root、Shizuku、ADB 在发送前选择实际通道；设备命令由原生与特权执行侧策略检查。Root 通道另有用户可选的 strict / relaxed / full 三档拦截：strict 为默认白名单；relaxed 放行任意命令但拦截格式化、刷机、写块设备、重启、清应用数据及递归删除整块用户数据等不可逆操作；full 不按命令内容拦截。三档都要求 root shell 开关与真实 su 身份，短信读取闸门在三个档位都保留；Shizuku、ADB 通用执行器与普通设备命令继续使用 strict。短信、虚拟屏、截图/读屏、录音和存储仍依赖对应原生授权与 Android 实际权限；未知命令的确认不能替代设备身份核验。结果未知时不得换通道重放。实体屏特权执行（T130 Phase A，实验）是独立原生能力：默认关闭、可撤销、仅当前手机任务期间有效，复用同一受管 `app_process` 入口并逐项核验启动参数；它不需要无障碍，但已知敏感应用、未允许的目标应用与目标不明的窗口一律 fail-closed 拒绝，帧与动作凭据一次性、30 秒、绑定显示代次，UNKNOWN 不重放。详见[实体屏特权执行核心](privileged-screen-core.md)。
 
 root 原始命令仅在 uid 0 的特权子进程内执行，保留 65 秒结果收集上限、256 KiB 输出截断和执行身份校验；严格档的受管 argv 路径与文件适配器不变。放宽档的不可逆操作判定是文本级黑名单，不能宣称覆盖所有等价写法；用户选择 full 即接受该边界。
 
@@ -82,4 +82,4 @@ ADB 配对密钥目录 `.dsh/adbkeys` 按本机状态处理：备份与导出不
 
 ## 交付与验证限度
 
-正式包使用 `io.github.sunsetrne.dsha` 与 `ci/release-identity.json` 记录的 Mod 发布证书（v1/v2/v3）。构建不缺省发布口令，不替换为其它证书。build348 的 CI 只证明该 commit 在托管 runner 上的编译、门禁、单测、签名与发布流程；软件测试、APK/ELF/签名核验和手机覆盖安装是不同证据。发布准备的本地范围为本机宿主 contracts 整组、全树格式检查、全量单测（含 10 例 aarch64 环境基线）、lint、`test-vscreen-help` 与 `test-diagnostic-feedback`（见 [build348 更新说明](releases/build348-changes.zh.md)）；真机结论待用户按当次记录核对后补写，未预写通过，不能继承旧报告的通过范围。
+正式包使用 `io.github.sunsetrne.dsha` 与 `ci/release-identity.json` 记录的 Mod 发布证书（v1/v2/v3）。构建不缺省发布口令，不替换为其它证书。build356 的 CI 只证明该 commit 在托管 runner 上的编译、门禁、单测、签名与发布流程；软件测试、APK/ELF/签名核验和手机覆盖安装是不同证据。发布准备的本地范围为本机宿主 contracts 整组、全树格式检查、全量单测（含 10 例 aarch64 环境基线）、lint、T145 的 `QuickActionsTest` / `QuickActionsBubbleTest` / 启动入口布局回归与 T146 的 `DeviceGrantsLayoutTest` / `GrantsAccordionTest` / 识屏与敏感界面测试 / 布局资源编译，以及 `UpdateVersionPageTest`（见 [build356 更新说明](releases/build356-changes.zh.md)）；真机结论待用户按当次记录核对后补写，未预写通过，不能继承旧报告的通过范围。

@@ -3,19 +3,28 @@ package com.deepseekharness.app.runtime;
 import android.content.Context;
 import android.util.Log;
 import com.deepseekharness.app.util.BoundedProcessRunner;
+import com.deepseekharness.app.util.GuestTimingEvidence;
 import com.deepseekharness.app.util.PluginDownloadSource;
+import com.deepseekharness.app.util.RegisterBudget;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.ShellQuote;
 import com.deepseekharness.app.util.UiText;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /** 通过固定 proot 入口准备并运行插件与 profile 脚本。 */
 final class GuestPluginScripts {
   static final String BUILTIN_REGISTER_SCRIPT = "register-builtin-plugins.py";
   static final String RC1_MIGRATION_SCRIPT = "rc1-migration.py";
   static final String PLUGIN_MANAGER_SCRIPT = "plugin-manager.py";
+
+  /** 上一次成功注册写下的受管资产身份；只用于选择注册预算，不参与完成判定。 */
+  static final String REGISTER_IDENTITY = "usr/local/share/dsha/register-managed-asset-id";
+
   private static final GuestScriptQueue SCRIPT_QUEUE = new GuestScriptQueue(64);
   static final long MANAGER_TIMEOUT_MS = 3_000_000;
   static final long QUERY_TIMEOUT_MS = GuestScriptBudget.QUERY_TIMEOUT_MS;
@@ -23,6 +32,12 @@ final class GuestPluginScripts {
   interface Runner {
     BoundedProcessRunner.Result run(String command, long timeoutMs)
         throws IOException, InterruptedException;
+
+    /** 默认忽略进度行；真实 proot runner 覆写它，把 guest 的 REGISTER_TIMING 带进诊断。 */
+    default BoundedProcessRunner.Result run(String command, long timeoutMs, Consumer<String> onLine)
+        throws IOException, InterruptedException {
+      return run(command, timeoutMs);
+    }
   }
 
   interface Preparation {
@@ -47,6 +62,16 @@ final class GuestPluginScripts {
 
     default boolean cancelled(String taskId) {
       return false;
+    }
+
+    /** 当前 APK 的受管资产身份；null 表示未知，注册按首启预算处理。 */
+    default String managedAssetId() {
+      return null;
+    }
+
+    /** 上一次成功注册绑定的受管资产身份；null 表示从未成功或未知。 */
+    default String lastRegisteredAssetId() {
+      return null;
     }
   }
 
@@ -114,6 +139,14 @@ final class GuestPluginScripts {
                 && taskId.matches("[a-f0-9]{32}")
                 && new File(root, "root/.dsha-plugin-task-" + taskId + ".cancel").exists();
           }
+
+          public String managedAssetId() {
+            return RuntimeTools.managedAssetId(context);
+          }
+
+          public String lastRegisteredAssetId() {
+            return RuntimeTools.lastRegisteredAssetId(context, root);
+          }
         },
         runner);
   }
@@ -159,13 +192,7 @@ final class GuestPluginScripts {
         throw new IOException("STARTUP_PLUGIN_REGISTER_ALREADY_ATTEMPTED");
       // Mark before dispatch: UNKNOWN or failed commands never gain an implicit retry here.
       registerAttempted = true;
-      BoundedProcessRunner.Result result =
-          runner.run("python3 -u /root/.dsh/" + BUILTIN_REGISTER_SCRIPT + " 2>&1", 90_000);
-      String output =
-          com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
-              result, "BUILTIN_REGISTER");
-      if (!output.contains("BUILTIN_REGISTER_OK"))
-        throw new IOException("BUILTIN_REGISTER_RECEIPT_MISSING");
+      BoundedProcessRunner.Result result = runRegister("", true);
       registered = true;
       return result;
     }
@@ -193,12 +220,11 @@ final class GuestPluginScripts {
         SCRIPT_QUEUE.enter(
             new GuestScriptBudget(35_000, () -> false, "PLUGIN_STARTUP_QUEUE"), true)) {
       preparePlugins();
-      return runner.run(
-          "python3 -u /root/.dsh/"
-              + BUILTIN_REGISTER_SCRIPT
-              + (extraArgs.isEmpty() ? "" : " " + extraArgs)
-              + " 2>&1",
-          90_000);
+      if (extraArgs.isEmpty()) return runRegister("", true);
+      BoundedProcessRunner.Result result =
+          runner.run(registerCommand(extraArgs), registerTimeoutMs());
+      if (result != null && result.timedOut) clearStaleProfileLock();
+      return result;
     }
   }
 
@@ -213,7 +239,7 @@ final class GuestPluginScripts {
 
   private String builtinText(String args) {
     try {
-      return GuestCommandOutput.legacy(builtin(args), 90_000);
+      return GuestCommandOutput.legacy(builtin(args), registerTimeoutMs());
     } catch (IOException | InterruptedException | RuntimeException error) {
       return failure(error, "内置插件脚本执行失败: %s", "ERROR: ");
     }
@@ -387,6 +413,94 @@ final class GuestPluginScripts {
     if (budget != null) budget.remainingMillis();
     preparation.assets();
     if (budget != null) budget.remainingMillis();
+  }
+
+  /** 覆盖升级后首启或上次注册不完整时使用宽预算；常规启动保持 90 秒。 */
+  long registerTimeoutMs() {
+    return RegisterBudget.timeoutMs(
+        preparation.lastRegisteredAssetId(), preparation.managedAssetId());
+  }
+
+  private static String registerCommand(String extraArgs) {
+    return "python3 -u /root/.dsh/"
+        + BUILTIN_REGISTER_SCRIPT
+        + (extraArgs.isEmpty() ? "" : " " + extraArgs)
+        + " 2>&1";
+  }
+
+  /**
+   * 启动注册的唯一执行路径：分级预算 + guest 阶段证据 + 超时清锁 + 完成回执。
+   *
+   * <p>失败消息只追加宿主与 guest 的分段数字，不把 guest 自报时间当成完成、失败或重试依据。
+   */
+  private BoundedProcessRunner.Result runRegister(String extraArgs, boolean requireReceipt)
+      throws IOException, InterruptedException {
+    RegisterTiming timing = new RegisterTiming();
+    BoundedProcessRunner.Result result =
+        runner.run(registerCommand(extraArgs), registerTimeoutMs(), timing);
+    if (result == null) throw new IOException("BUILTIN_REGISTER_NO_RESULT");
+    if (result.timedOut) clearStaleProfileLock();
+    try {
+      String output =
+          com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
+              result, "BUILTIN_REGISTER");
+      if (requireReceipt && !output.contains("BUILTIN_REGISTER_OK"))
+        throw new IOException("BUILTIN_REGISTER_RECEIPT_MISSING");
+      return result;
+    } catch (IOException incomplete) {
+      throw new IOException(incomplete.getMessage() + " " + timing.evidence(), incomplete);
+    }
+  }
+
+  /** 宿主杀进程后 guest 的 finally 不会执行；只清理由已退出持有者留下的 profile 锁。 */
+  private void clearStaleProfileLock() {
+    try {
+      BoundedProcessRunner.Result cleared =
+          runner.run(
+              "python3 /root/.dsh/" + BUILTIN_REGISTER_SCRIPT + " --clear-stale-profile-lock 2>&1",
+              10_000);
+      if (cleared != null && cleared.output.contains("PROFILE_LOCK_CLEARED"))
+        Log.i("DSHA", "PROFILE_LOCK_CLEARED after register timeout");
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    } catch (IOException | RuntimeException ignored) {
+      // 清理失败不改变超时结论；恢复页列表会提示待确认的锁。
+    }
+  }
+
+  /** 上一次成功注册写下的受管资产身份；只读 rootfs 内的固定标记。 */
+  static String readRegisterIdentity(File root) {
+    if (root == null) return null;
+    File marker = new File(root, REGISTER_IDENTITY);
+    try {
+      if (!marker.isFile() || com.deepseekharness.app.util.Compat.isSymbolicLink(marker))
+        return null;
+      byte[] bytes = java.nio.file.Files.readAllBytes(marker.toPath());
+      if (bytes.length > 128) return null;
+      return RegisterBudget.identity(new String(bytes, java.nio.charset.StandardCharsets.US_ASCII));
+    } catch (IOException | RuntimeException unavailable) {
+      return null;
+    }
+  }
+
+  /** 只收集应用自己的 REGISTER_TIMING 行；数量有界，最后一行用于失败诊断。 */
+  private static final class RegisterTiming implements Consumer<String> {
+    private static final int LIMIT = 24;
+    private final long started = System.nanoTime();
+    private final List<GuestTimingEvidence.Phase> phases = new ArrayList<>();
+
+    public void accept(String line) {
+      GuestTimingEvidence.Phase phase = GuestTimingEvidence.parse(line);
+      if (phase == null) return;
+      if (phases.size() >= LIMIT) phases.remove(0);
+      phases.add(phase);
+    }
+
+    String evidence() {
+      long elapsed = Math.max(0, System.nanoTime() - started) / 1_000_000;
+      return GuestTimingEvidence.evidence(
+          elapsed, phases.isEmpty() ? null : phases.get(phases.size() - 1));
+    }
   }
 
   private static String failure(Exception error, String context, String prefix) {

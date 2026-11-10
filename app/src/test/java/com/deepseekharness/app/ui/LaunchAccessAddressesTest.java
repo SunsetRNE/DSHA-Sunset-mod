@@ -194,7 +194,8 @@ public final class LaunchAccessAddressesTest {
   }
 
   private AlertDialog open() {
-    entry.requireView().findViewById(R.id.launch_address).performClick();
+    // 访问地址入口已从启动页快捷卡片移到顶栏「+」气泡；气泡调用的是同一个 showAccessAddresses()。
+    entry.showAccessAddresses();
     AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
     assertNotNull("the access dialog must be shown", dialog);
     return dialog;

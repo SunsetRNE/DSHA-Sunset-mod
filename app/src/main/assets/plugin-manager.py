@@ -1021,8 +1021,15 @@ def list_state_revision():
     """
     # Do not enter, remove, or wait on another writer's lock. Its manifest and
     # markers may be between atomic steps even when two quick reads look equal.
-    if os.path.lexists(local(builtin.MANIFEST) + '.lock'):
-        raise ValueError('插件配置正在修改或有待确认的锁；保留上次列表，请稍后刷新')
+    # A dead holder is still a pending lock, but name it so the recovery page can
+    # offer the actionable retry instead of reporting an active modification.
+    lock_path = local(builtin.MANIFEST) + '.lock'
+    if os.path.lexists(lock_path):
+        state = builtin.profile_lock_state(lock_path)
+        if state == 'stale':
+            raise ValueError('PLUGIN_PROFILE_LOCK_STALE: 上一次插件写入未完成（持有进程已退出）；可直接重试注册，或清理该锁后刷新列表')
+        if state != 'missing':
+            raise ValueError('插件配置正在修改或有待确认的锁；保留上次列表，请稍后刷新')
     if os.path.isfile(os.path.join(os.path.dirname(local(DSH_HOME)), '.dsha-restore-journal.json')):
         raise ValueError('恢复事务尚未完成；保留上次列表，请先完成恢复')
     state = []

@@ -16020,6 +16020,46 @@
     ]
   },
   {
+    "id": "x2100200",
+    "zh": "特权执行",
+    "en": "Privileged input",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "x2100201",
+    "zh": "允许特权执行？",
+    "en": "Allow privileged input?",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "x2100202",
+    "zh": "允许特权执行",
+    "en": "Allow privileged input",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "x2100203",
+    "zh": "实体屏助手可以绕过无障碍，直接抓取屏幕并在当前手机任务期间注入点击、滑动和按键，用于游戏等自绘界面。\n\n默认关闭、可随时关闭；动作还要求屏幕操作确认已允许目标应用，密码、支付和系统安全界面一律拒绝。实验阶段只保证 root 通道。",
+    "en": "The physical-screen assistant can bypass accessibility, capture the screen and inject taps, swipes and keys while a phone task is active — for games and other self-drawn UIs.\n\nOff by default and revocable at any time. Actions still need screen-control permission for the target app; password, payment and system-security screens are always refused. The experimental phase only guarantees the root channel.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
+    "id": "x2100204",
+    "zh": "保存特权执行设置失败",
+    "en": "Could not save the privileged input setting",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+    ]
+  },
+  {
     "id": "thm267c08",
     "zh": "莫奈",
     "en": "Monet",

@@ -23,7 +23,7 @@
 
 | 共用项 | 当前值 | 权威来源 |
 |---|---|---|
-| versionCode / versionName | `348` / `0.2.1-rc.5-20261109.1100-dsh0.2.2-rc.1` | `app/build.gradle` |
+| versionCode / versionName | `356` / `0.2.1-rc.5-20261110.1700-dsh0.2.2-rc.1` | `app/build.gradle` |
 | 签名方案 | v1 + v2 + v3 | 身份文件 `schemes`（兼容入口 `ci/release-identity.json` 一致） |
 | 最低系统 | Android 11（API 30）/ arm64-v8a | `app/build.gradle` `minSdk` / `abiFilters` |
 

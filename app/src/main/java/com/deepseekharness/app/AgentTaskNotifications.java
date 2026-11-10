@@ -437,10 +437,11 @@ public final class AgentTaskNotifications {
                           UiText.choose("已选 %d 项：%s", "Selected %d: %s"),
                           chosen.size(),
                           selectionText))
-              + "\n"
+              // 轮次已由 subText 展示，展开态不再重复；运行中不写秒数，避免每秒重绘替换
+              // PendingIntent 吞掉按钮点击（内容签名由 collapsed/subText/chronometer 保持稳定）。
               + (row.active()
-                  ? UiText.format(UiText.choose("第 %d 轮", "Turn %d"), row.key().turn())
-                  : UiText.format(UiText.choose("总耗时 %s", "Total %s"), total));
+                  ? ""
+                  : "\n" + UiText.format(UiText.choose("总耗时 %s", "Total %s"), total));
       boolean promoted = islandEnabled && tag.equals(islandTag);
       String shortText = promoted ? islandShortText(row) : "";
       String signature =

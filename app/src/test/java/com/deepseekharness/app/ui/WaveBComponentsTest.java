@@ -50,18 +50,12 @@ public final class WaveBComponentsTest {
 
   private ContentResolver resolver;
   private ContextThemeWrapper context;
-
-  /** 进入本类之前的界面语言，退出时还原，避免把语言状态漏给同一 JVM fork 里的后续测试类。 */
   private String previousLanguage;
 
-  /**
-   * 断言的是中文文案，但 {@code UiText.language} 是 JVM 级静态：同一 fork 里先跑过真实
-   * {@code DshaApp.onCreate} 的测试类（例如没写 {@code application=} 的那几个）会把它设成
-   * 系统语言（英文），Robolectric 重建 Application 也不会重置它。所以这里显式钉住中文，
-   * 并在 @After 还原 —— 与 ui 包其余断言中文的测试类保持同一约定。
-   */
   @Before
   public void setUp() {
+    // UiText 是测试 JVM 内的全局静态：其他类（含启动真实 DshaApp 的类）可能把语言留成系统
+    // 语言（CI 为 en），这里固定中文断言环境并在 @After 还原，避免依赖执行顺序。
     previousLanguage = UiText.language();
     UiText.setLanguage("zh");
     resolver = RuntimeEnvironment.getApplication().getContentResolver();

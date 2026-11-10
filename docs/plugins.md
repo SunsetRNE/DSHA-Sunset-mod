@@ -1,6 +1,6 @@
 # 插件安装、更新与分享
 
-> 核验基线：2026-10-21（原于 build190/F13 源码核对）。当前发布身份为 build348 / DSH `0.2.2-rc.1` / 单一 Standard；F10–F13、build190 记录属于历史，不代表本版。本文描述 DSH 0.2.2-rc.1 的 DSHA 入口；最终应用身份、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数或设备验收结论。
+> 核验基线：2026-10-21（原于 build190/F13 源码核对）。当前发布身份为 build356 / DSH `0.2.2-rc.1` / 单一 Standard；F10–F13、build190 记录属于历史，不代表本版。本文描述 DSH 0.2.2-rc.1 的 DSHA 入口；最终应用身份、软件与 APK 结果见 [README](../README.md) 与本轮 CI / Release 回执，本文不预填测试总数或设备验收结论。
 
 在插件市场粘贴链接、从系统文件选择器导入本地包，或使用网站提供的 DSHA 唤起链接。应用解析实际包，核对格式、路径、包名/版本、实际依赖与摘要，再由插件事务提交并启用。现行正式插件无需原生审阅确认。网站浏览本身不会安装插件；只有用户主动打开安装入口才会继续安装。启停和更新后按应用提示重启 Web。
 
@@ -65,6 +65,8 @@ dsha-plugin install @作者/插件@1.0.0
 > build336 起上游同步到 3.3.1（适配宿主 0.2.2）并恢复默认启用；build327 的默认禁用、事故原因与
 > 覆盖更新迁移保留在 [build327 记录](releases/v0.2.1-rc.5-build327-web-mobile-default-disabled-20261105.md)，
 > 本次替换、补丁取舍与验证见 [build336 记录](releases/v0.2.1-rc.5-build336-web-mobile-3.3.1-20261106.md)。
+> 2026-11-09 已再同步到上游 3.3.5（main `646fe837`，标签 v3.3.5 = `14ecfccf`），补丁策略不变；
+> 本次差异、退役成员与验收边界见 [build351 记录](releases/v0.2.1-rc.5-build351-web-mobile-3.3.5-20261109.md)。
 
 ### 为什么可以恢复
 
@@ -87,6 +89,21 @@ dsha-plugin install @作者/插件@1.0.0
   原生「插件」页仍是唯一启停入口。
 - 默认禁用机制本身保留（`register-builtin-plugins.py` 的 `apply_default_disabled`、
   `apk-generation` 与 `<name>.enabled` 代次记录），当前注册表没有任何 `defaultDisabled: true` 条目。
+
+### 上游 3.3.5 同步（2026-11-09，build351 候选）
+
+- 从 3.3.1（`4e71eb67`）同步到上游 main `646fe837440f9939228bdba0024d407eaac01128`
+  （2026-11-08；v3.3.5 标签 `14ecfccf5a6acb69e3a84229dee328d31801306f`，标签后 3 个修复提交一并取用），
+  共 37 个提交。用户可见变化：插件页图标与中英文标题 / 描述、手机档「更多视图」入口、子代理 chip
+  让位、抽屉暗层改 frame 伪元素、全屏手势按方向定族（左右 45% 起点区退役）、hero 工作树行排版、
+  插件页交还宿主排版、测试门禁空转加固。
+- 补丁最小集不变：服务端鉴权 / 安全区 / `DSHA_GEAR_FIT_V1` 齿轮几何让位 / 文件传输 / 多语言；
+  **不重放** build336 已删除的会话输入 V4、手机搜索、快捷键可见带、字体族行、遮罩按压染色等旧补丁。
+  上游把 `overlay-backdrop-fab` 改名为 `drawer-layer`（3 个成员），旧名进入锁的 `retiredFiles`。
+- 新增 `assets/icon.png` 与 `locale/{en,zh}.json` 并加入受管安装表：宿主插件卡片按 `package.json#icon`
+  与 `locale/<lang>.json` 的 `meta.title` / `meta.description` 显示图标和标题描述；`lib/file-transfer.js`
+  仍由 `tools/file-transfer/file-transfer.js` 作为仅本地追加成员生成。
+- `runtime-descriptor` 在含 T130（`4e8c80e0e`）的合并树上重算为 **`6f31f111`**（205 个输入）。
 
 ### 仍需完成的真机验收（发布前）
 

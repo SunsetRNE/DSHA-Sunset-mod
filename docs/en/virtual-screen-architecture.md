@@ -221,6 +221,7 @@ Manager `closeExpected()` verifies Core UUID, and `detachLocked()` invalidates o
 | CLOSE_UNKNOWN | Release ACK, birth proof, journal commit and cleanup reason | Declare STOPPED just because the picture disappeared |
 | FRAME_NOT_READY / STALE_FRAME | Generation, latest frame, recent recovery from no-frame state and adoption callback | Retain an image while leaving touch enabled |
 | Assistant see: VSCREEN_NO_WINDOW / FRAME_PENDING / FRAME_STALLED | windowState, windowEvidence, foregroundPackage, sinceReadyOrLaunchMs, nextAction | Wait or recreate on an empty display; treat UNKNOWN as empty when accessibility is unavailable |
+| Assistant tree: NO_UNIQUE_APPLICATION_WINDOW | applicationWindowCount, windowAmbiguous, focusedWindowId, windowDiagnostic | Continue with a self-chosen application window; re-read the same ambiguous screen |
 | FRAME_NOT_OBSERVED / FRAME_EXPIRED | requested/current/observed frame fields and TTL | Replace the old image's frame number with a new status frame |
 | STALE_TREE / STALE_NODE | Actual window/package, service state and tree lifetime | Refresh automatically and resend the old business action |
 | NATIVE_CONTROL_REVOKED | Paused page, cancelled panel or changed Core | Reactivate the old owner |
@@ -230,6 +231,34 @@ Manager `closeExpected()` verifies Core UUID, and `detachLocked()` invalidates o
 Assistant-side `see` refines Core `FRAME_NOT_READY` (`util/VirtualScreenObservationHint`; `legacyError` keeps the original code): no window on the display and no foreground package from Core → `VSCREEN_NO_WINDOW` / `LAUNCH_APP_FIRST`; a window less than 10 seconds after ready or the latest launch → `FRAME_PENDING` / `WAIT_AND_SEE_AGAIN`; still no frame after 10 seconds → `FRAME_STALLED` / `REPORT_TO_USER`; without accessibility and without a Core foreground package the cases cannot be separated, so `FRAME_NOT_READY` / `LAUNCH_APP_OR_WAIT` remains. When see degrades to an image only, `availabilityReason` is split into `ANCHOR_ACCESSIBILITY_NOT_ENABLED` / `_NOT_CONNECTED`, `ANCHOR_NO_WINDOW`, `ANCHOR_TARGET_EVIDENCE_UNAVAILABLE`, `ANCHOR_CONSENT_EVIDENCE_UNAVAILABLE` and `ANCHOR_REQUEST_EVIDENCE_REQUIRED`; tree/node/editor without a window keep `error` `ACCESSIBILITY_UNAVAILABLE` and add `reason` and `nextAction`. All of these are read-only failures; no gate is relaxed, nothing is replayed and no display is switched. The virtual-screen page still reads the Core preview directly, so `FRAME_NOT_READY` keeps its waiting meaning there.
 
 Collect redacted technical fields first: error code, phase, orientation/dimensions, state, frame relationships, backend type and proof classification. Do not publish real tokens, handshakes, cleanup handles, user input, tree contents or personal data in screenshots. Native `lastStartOutcome()` / `safeStartOutcome()` supply a startup technical summary without secrets/images. Before reading logs, identify their source, APK, flavor and runtime phase. A PASS from another package cannot be reassigned.
+
+### 12.1 Minimal window evidence and actionable multi-window hints (T98)
+
+Failure replies are purely additive: the existing `windowState` / `windowEvidence` / `windowDiagnostic`
+semantics do not change and no authorization surface is added (`util/VirtualScreenWindowEvidence`, pure logic).
+
+- The refined `see` `FRAME_NOT_READY` reply and the tree/node/editor/anchor window-unavailable reply include
+  `applicationWindowCount` / `systemWindowCount` / `inputMethodWindowCount`, `focusedWindowId` /
+  `activeWindowId` and `windowAmbiguous` when accessibility is readable. When exactly one window is selectable
+  they also carry `targetWindowDisplayId` / `targetWindowId` / `targetWindowType` / `targetWindowLayer` /
+  `targetWindowBounds` / `targetWindowFocused` / `targetWindowActive` / `targetWindowTitle` /
+  `targetWindowPackage`.
+- Fields come only from the accessibility window inventory: titles drop control characters, collapse
+  whitespace and are truncated to 64 code points; package names are kept only when they match the
+  package-name alphabet, and invalid values are omitted. No node text, control content, screenshot or complete
+  window list is included. Window ids are reused and are not long-term identities.
+- `NO_UNIQUE_APPLICATION_WINDOW` is separated by counts: multiple application windows side by side (split
+  screen/floating window) → `reason=VSCREEN_WINDOW_AMBIGUOUS`,
+  `nextAction=ASK_USER_TO_CLOSE_SPLIT_SCREEN`; only system/IME windows and no application window →
+  `reason=VSCREEN_NO_WINDOW`, `nextAction=LAUNCH_APP_FIRST`. Without evidence the reply stays `SEE_AGAIN`, so
+  the assistant does not tell the user to close split screen without proof.
+- Evidence only explains failures and next steps; it never participates in authorization, selection or retry.
+  The semantic path still accepts only the unique result of `VirtualScreenWindowPolicy.selectDetailed`, and the
+  anchor path only accepts the windowId carried by the original observation (duplicate ids are refused with
+  `ANCHOR_WINDOW_AMBIGUOUS`). Multi-window never causes an automatic window switch.
+- Real-device acceptance: multiple windows/split screen (ask the user to close split screen instead of choosing
+  a window), IME present (only `inputMethodWindowCount`; never counted as an application window) and
+  FLAG_SECURE pages (when screenshots fail, window evidence still carries metadata only and no content).
 
 ## 13. Modification guide and regression entry points
 
@@ -241,6 +270,7 @@ Collect redacted technical fields first: error code, phase, orientation/dimensio
 | Capture, preview and gestures | Pixels, Previews, PreviewView, PreviewInputGate | PixelsTest, PreviewContinuityTest, PreviewAdoptionTest, PreviewInputGateTest, NativeInputFrameBoundaryTest |
 | Nodes and native panel | Accessibility, NativeControls, Activity, NativeScreenControlLease | VirtualScreenNativeControlsTest, ActivityNodeControlsTest, ActivityLayoutTest |
 | Original-image anchors | ObservedPixels, ObservedControl, AnchorProof | VirtualScreenObservedPixelsTest, VirtualScreenAnchoredChainTest; test-vscreen-anchored.mjs |
+| Window evidence and multi-window hints | WindowPolicy, WindowEvidence, ScreenTargetResolver, ObservationHint, Manager/HttpShellService | VirtualScreenWindowPolicyTest, VirtualScreenWindowEvidenceTest, VirtualScreenObservationHintTest, ScreenTargetResolverEvidenceTest |
 | DSH tools/bridge | server.cjs, VscreenBridgeRequest, HttpShellService | VscreenBridgeRequestTest, VscreenAnchoredGrammarTest; test-vscreen-bundle.mjs, test-vscreen-manager-http.py |
 
 Test names in the table omit shared prefixes where applicable. They live in [vscreen tests][tests] or [util tests][util-tests]. `AdbVirtualScreenStartTest` lives in bridge tests; scripts are under [tools](../../tools). Do not test only a copied helper: layout/node-panel checks should cover the real Activity, and chain tests should cross real orchestration and transport boundaries. A resource-owning fixture that fails during construction must still release its own Core to prevent later CORE_ALREADY_BOUND contamination. Before changing input, identify raw, semantic or anchored mode; removing identity checks is not a usability fix. UI changes must cover long errors, both orientations, keyboard safe areas, panel cancellation, background revocation and complete submission of long fields. Prompt changes should inspect real assembled tool instructions and retain image content and isError, rather than only searching for a string. After asset changes, the single build owner regenerates descriptor/plugin metadata and verifies actual APK members. Do not edit aggregate assets in parallel.

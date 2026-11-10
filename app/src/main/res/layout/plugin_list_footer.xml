@@ -6,26 +6,16 @@
 
     <TextView android:id="@+id/pluginLocalTitle" style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="10dp" android:text="@string/ui2_local_plugins" />
 
-    <LinearLayout android:id="@+id/pluginLocalCard" style="@style/ShellCard" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <LinearLayout android:id="@+id/pluginLocalCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:baselineAligned="false" android:orientation="horizontal">
 
-        <LinearLayout android:id="@+id/btnImport" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:id="@+id/btnImport" style="@style/ShellCard" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginEnd="6dp" android:layout_weight="1" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center" android:minHeight="@dimen/shell_row_min_height" android:orientation="horizontal" android:paddingStart="@dimen/shell_row_pad_h" android:paddingTop="@dimen/shell_row_pad_v" android:paddingEnd="@dimen/shell_row_pad_h" android:paddingBottom="@dimen/shell_row_pad_v">
             <ImageView style="@style/ShellRowIcon" android:layout_width="@dimen/shell_row_icon" android:layout_height="@dimen/shell_row_icon" android:contentDescription="@null" android:src="@drawable/ic_ui_import" />
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
-                <TextView style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_import" />
-                <TextView style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/ui2_import_sub" />
-            </LinearLayout>
-            <ImageView android:layout_width="@dimen/shell_row_chevron" android:layout_height="@dimen/shell_row_chevron" android:contentDescription="@null" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
+            <TextView style="@style/ShellRowTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="@string/ui2_import" />
         </LinearLayout>
 
-        <View style="@style/ShellDivider" />
-
-        <LinearLayout android:id="@+id/btnExport" style="@style/ShellRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:id="@+id/btnExport" style="@style/ShellCard" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:layout_weight="1" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center" android:minHeight="@dimen/shell_row_min_height" android:orientation="horizontal" android:paddingStart="@dimen/shell_row_pad_h" android:paddingTop="@dimen/shell_row_pad_v" android:paddingEnd="@dimen/shell_row_pad_h" android:paddingBottom="@dimen/shell_row_pad_v">
             <ImageView style="@style/ShellRowIcon" android:layout_width="@dimen/shell_row_icon" android:layout_height="@dimen/shell_row_icon" android:contentDescription="@null" android:src="@drawable/ic_ui_export" />
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
-                <TextView style="@style/ShellRowTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_export" />
-                <TextView style="@style/ShellRowSub" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/ui2_export_sub" />
-            </LinearLayout>
-            <ImageView android:layout_width="@dimen/shell_row_chevron" android:layout_height="@dimen/shell_row_chevron" android:contentDescription="@null" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
+            <TextView style="@style/ShellRowTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="@string/ui2_export" />
         </LinearLayout>
     </LinearLayout>
 

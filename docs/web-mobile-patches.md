@@ -1,18 +1,68 @@
 # 内置移动插件 dsh-web-mobile 的 DSHA 本地补丁
 
-> **当前状态（build336，T101 重做，用户选 C）**：以上游 3.3.1（适配宿主 0.2.2）为基座，
-> **完全追随上游**；只保留「宿主集成必需且上游不覆盖」的最小集（服务端鉴权 / 安全区 /
-> 齿轮几何让位）与两项用户可见能力（原生文件传输、多语言/live-locale）。会话输入 V4、手机
-> 搜索、快捷键弹层可见带、字体族行换行、遮罩按压染色已按上游优先策略删除；对应可信触摸
-> 回归（`test-mobile-backdrop-press`）与弹层行为回归（`test-mobile-modal-behavior`）随补丁
-> 退役一并删除。真机覆盖升级验收仍须在 build336 发布前补写，见[插件页](plugins.md)与
-> [build336 记录](releases/v0.2.1-rc.5-build336-web-mobile-3.3.1-20261106.md)。
+> **当前状态（build351 候选，2026-11-09 同步上游 3.3.5）**：以上游 3.3.5（适配宿主 0.2.2，
+> main `646fe837`）为基座，**完全追随上游**；只保留「宿主集成必需且上游不覆盖」的最小集
+> （服务端鉴权 / 安全区 / 齿轮几何让位）与两项用户可见能力（原生文件传输、多语言/live-locale）。
+> 会话输入 V4、手机搜索、快捷键弹层可见带、字体族行换行、遮罩按压染色仍不重放；本次上游
+> 37 个提交的差异见下方「2026-11-09」小节。真机覆盖升级验收仍须在 build351 发布前补写，见
+> [插件页](plugins.md)与 [build351 记录](releases/v0.2.1-rc.5-build351-web-mobile-3.3.5-20261109.md)。
 
 本文记录 [`tools/apply-mobile-client-patches.mjs`](../tools/apply-mobile-client-patches.mjs) 对固定上游
-`dsh-web-mobile` 3.3.1（[`4e71eb67de7dac9d8b2572757c81e47aa32a32fb`](https://github.com/mexiaosqwq/dsh-web-mobile/commit/4e71eb67de7dac9d8b2572757c81e47aa32a32fb)，
-2026-11-06；上游把适配宿主 0.2.2 的 3.4.0 内容重编号为 3.3.1）
+`dsh-web-mobile` 3.3.5（[`646fe837440f9939228bdba0024d407eaac01128`](https://github.com/mexiaosqwq/dsh-web-mobile/commit/646fe837440f9939228bdba0024d407eaac01128)，
+2026-11-08；发布标签 v3.3.5 = `14ecfccf`，标签后 3 个修复提交一并取用）
 的本地差异。上游产物不手改；改动写进补丁脚本，再生成
 [`app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js`](../app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js)。
+
+## 2026-11-09：同步上游 3.3.5 与补丁锚点复核
+
+### 上游事实（只读核对）
+
+- 固定提交 `646fe837…`（main，2026-11-08）；`v3.3.5` 标签 `14ecfccf` 之后还有 3 个提交
+  （`7e08d6a` README 只留近三版、`1402ca8` 插件页交还宿主排版、`646fe83` 合并 PR #292）。
+  相对 `4e71eb67`（v3.3.1）共 37 个提交。
+- 主要变化：插件页图标与中英文标题描述（`assets/icon.png`、`locale/{en,zh}.json`、
+  `package.json#icon` / `exports ./locale/*.json`）、手机档「更多视图」入口、子代理 chip 让位、
+  抽屉暗层收敛到 frame 伪元素、`overlay-backdrop-fab` 改名 `drawer-layer`、全屏手势按方向定族
+  （左右 45% 起点区退役，`startZonePxFor` / `hitTestStart` / `filesZoneHit` 删除）、hero 工作树行
+  排版、插件页交还宿主排版、测试门禁空转加固。
+- 服务端三模块 `lib/{index,compress,delete-session}.js` 本次未变，上游摘要与锚点继续命中，
+  DSHA 的完整替换不需要跟着改。
+- `lib/client.js` 摘要变为 `8a17dd03b5de35f1aea52c93d6e3352fcd43c781de380639f60a93bf6040a26a`；
+  上游源码归档 SHA-256 `15a51f4018485d930e66b5734b4421da2a32fbca59e20219b68f4c7fe34c7515`
+  （3,291,698 B）。
+
+### 补丁复核
+
+- `DSHA_GEAR_FIT_V1`：上游仍保留旧的 `:has(> button[data-phase], > [role="status"])` 守卫，
+  齿轮几何让位补丁照旧命中并替换；`test-mobile-gear-contract.mjs` 6 项通过。
+- 安全区：上游仍只有 frame 顶部使用 DSHA 变量，其余 `env()` 处继续由单层包装覆盖，未产生嵌套。
+- 文件传输 / 多语言：`applyFileTransferClient`、`applyMobileLocaleBundlePatch` 与
+  `--locale-sources` 的锚点全部命中；多语言键集删除了上游 3.3.5 移除的 nav `backdrop`
+  （抽屉暗层改名后不再有该文案），其余键与插值占位符不变。
+- 服务端：`tools/mobile-server/` 三个替换文件继续按上游固定摘要与唯一锚点核验，未改内容。
+- 退役成员：`overlay-backdrop-fab` 的 3 个成员（`.d.ts` / `.d.ts.map` / `.ts`）进入
+  `mobile-plugin-upstream.lock.json#retiredFiles`，`prepare-mobile-plugin.py --write` 删除旧产物。
+- 纯上游 3.3.5 = **241** 个上游成员（`lib/**` + `src/**` + `locale/*.json` + `assets/icon.png` +
+  4 个根文件）；部署产物 243 个 = 241 + `lib/file-transfer.js` 与其 `.map`。
+  `locale/*.json` 与 `assets/icon.png` 已加入 `managed-runtime-inputs.json` 的安装表，
+  宿主插件卡片可读取图标与本地化标题 / 描述。
+
+### 验证
+
+```bash
+python3 tools/prepare-mobile-plugin.py --upstream-dir <fixed-3.3.5-tree> --check
+python3 tools/prepare-mobile-plugin.py --upstream-dir <fixed-3.3.5-tree> --write
+node tools/test-mobile-client-patches.mjs
+node tools/test-mobile-update.mjs
+node tools/test-mobile-gear-contract.mjs
+node tools/test-mobile-locales.mjs
+node tools/test-mobile-server-patches.mjs
+node tools/test-mobile-server-streams.mjs
+node tools/test-mobile-reasoning-defaults.mjs
+python3 tools/generate-builtin-plugins.py --verify
+python3 tools/prepare-runtime-descriptor.py --write
+python3 tools/verify-runtime-descriptor-source.py
+```
 
 ## 2026-11-06：同步上游 3.3.1（宿主 0.2.2）与补丁取舍
 

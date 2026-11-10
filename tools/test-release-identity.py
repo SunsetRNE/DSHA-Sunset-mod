@@ -32,16 +32,16 @@ class Resolution(unittest.TestCase):
             self.assertEqual(value["identity"], "mod")
             self.assertEqual(value["packageName"], "io.github.sunsetrne.dsha")
             self.assertEqual(value["certificateSha256"], MOD_CERT)
-            self.assertEqual((value["appName"], value["keyAlias"], value["testSuffix"]),
-                             ("DSH-A-Su", "dsha-a-su", ".test"))
+            self.assertEqual((value["appName"], value["keyAlias"], value["testSuffix"], value["devSuffix"]),
+                             ("DSH-A-Su", "dsha-a-su", ".test", ".dev"))
         self.assertEqual(run("--field", "packageName"), (0, "io.github.sunsetrne.dsha", ""))
 
     def test_upstream_branch(self):
         value = identity.load("upstream")
         self.assertEqual(value["packageName"], "dsh.android.client")
         self.assertEqual(value["certificateSha256"], UPSTREAM_CERT)
-        self.assertEqual((value["appName"], value["keyAlias"], value["testSuffix"], value["tagPrefix"]),
-                         ("DSHA", "androiddebugkey", ".SunsetRNE", "dsha-build"))
+        self.assertEqual((value["appName"], value["keyAlias"], value["testSuffix"], value["devSuffix"], value["tagPrefix"]),
+                         ("DSHA", "androiddebugkey", ".SunsetRNE", ".SunsetDev", "dsha-build"))
         self.assertEqual((value["repository"], value["ref"], value["privateRepository"]),
                          ("ym2025szz/DSHA-prerelase", "refs/heads/codex/prerelease-190", True))
         self.assertEqual(run("--identity", "upstream", "--field", "keyAlias"), (0, "androiddebugkey", ""))
@@ -102,7 +102,11 @@ class GradleContract(unittest.TestCase):
     def test_identity_fields_drive_package_name_suffix_alias_and_certificate(self):
         self.assertIn("applicationId releaseIdentity.packageName", self.gradle)
         self.assertIn("applicationIdSuffix releaseIdentity.testSuffix", self.gradle)
-        self.assertIn("releaseIdentity.appName + ' Test' : releaseIdentity.appName", self.gradle)
+        self.assertIn("applicationIdSuffix releaseIdentity.devSuffix", self.gradle)
+        self.assertIn("applicationIdSuffix '.debug'", self.gradle)
+        self.assertIn("testVariantLabel ? releaseIdentity.appName + ' ' + testVariantLabel : releaseIdentity.appName", self.gradle)
+        self.assertIn("versionNameSuffix '-SunsetDev'", self.gradle)
+        self.assertIn("versionNameSuffix '-SunsetDebug'", self.gradle)
         self.assertIn('project.findProperty("dsha.key.alias") ?: releaseIdentity.keyAlias', self.gradle)
         self.assertIn('def identityFile = "ci/release-identity.${releaseIdentityName}.json"', self.gradle)
         self.assertIn("android.defaultConfig.applicationId != identity.packageName", self.gradle)

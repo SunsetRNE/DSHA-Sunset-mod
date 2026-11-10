@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <!--
   启动主页（UI v5 方案 A）：顶部语境 → 大标题 + 说明 + 主操作（右侧插图，仅 ≥600dp）→
-  三段就绪轨道（无卡片，上下分隔线）→ 快捷入口 / 启动日志（内容宽度 ≥760dp 时左右并排）。
+  三段就绪轨道（无卡片，上下分隔线）→ 启动日志。快捷入口已收进顶栏「+」气泡（T145）。
   启动日志区按 docs/design/launch-log-20261101 压缩：概览分阶段 + 原始视图。
   - 所有状态文案与可见性仍由 LaunchFragment 按真实运行状态写入；保留全部既有 id。
   - launch_activity 必须紧跟 launch_subtitle、位于 launch_actions 内（单测锁定）。
@@ -78,41 +78,9 @@
         </LinearLayout>
       </LinearLayout>
 
-      <!-- 下半区：快捷入口 | 启动日志；内容宽度 ≥760dp 时并排（AdaptiveColumns）。 -->
-      <com.deepseekharness.app.ui.AdaptiveColumns android:id="@+id/launch_bottom" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap">
-
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-          <TextView android:id="@+id/launch_shortcuts_title" style="@style/ShellLaunchSectionTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" android:gravity="center_vertical" android:minHeight="@dimen/shell_launch_pill_height" android:text="@string/ui2_shortcuts" />
-
-          <LinearLayout android:id="@+id/launch_shortcuts" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-
-            <TextView android:id="@+id/launch_terminal_row" style="@style/ShellLaunchRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:drawableStart="@drawable/ic_terminal" android:drawableEnd="@drawable/ic_ui2_chevron" android:drawablePadding="14dp" android:paddingStart="4dp" android:paddingEnd="4dp" android:text="" />
-
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/shell_line" />
-
-            <TextView android:id="@+id/launch_environment_row" style="@style/ShellLaunchRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:drawableStart="@drawable/ic_ui2_box" android:drawableEnd="@drawable/ic_ui2_chevron" android:drawablePadding="14dp" android:paddingStart="4dp" android:paddingEnd="4dp" android:text="" />
-
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/shell_line" />
-
-            <LinearLayout android:id="@+id/launch_address" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:minHeight="@dimen/shell_launch_row_height" android:orientation="horizontal" android:paddingStart="4dp" android:paddingTop="10dp" android:paddingEnd="4dp" android:paddingBottom="10dp">
-              <ImageView android:layout_width="20dp" android:layout_height="20dp" android:contentDescription="@null" android:src="@drawable/ic_ui_link" app:tint="@color/shell_text_muted" />
-              <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:layout_weight="1" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:includeFontPadding="false" android:text="@string/ui2_address" android:textColor="@color/shell_text" android:textSize="14sp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:includeFontPadding="false" android:text="@string/ui2_address_sub" android:textColor="@color/shell_text_muted" android:textSize="11sp" />
-              </LinearLayout>
-              <ImageView android:layout_width="16dp" android:layout_height="16dp" android:contentDescription="@null" android:src="@drawable/ic_ui2_chevron" app:tint="@color/shell_text_muted" />
-            </LinearLayout>
-
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/shell_line" />
-          </LinearLayout>
-        </LinearLayout>
-
-        <!--
-          启动日志（docs/design/launch-log-20261101）：标题行（状态小字 + 复制 / 下载图标钮）→
-          概览 / 原始分段 → 日志框（原始工具条 + 滚动内容 + 「回到最新」浮标 + 底栏）→ 安全启动 / 恢复。
-          概览行由 LaunchLogPanel 按 StartupTrace 结构化行生成；复制 / 下载始终是完整原文。
-        -->
-        <LinearLayout android:id="@+id/launch_log_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:orientation="vertical">
+      <!-- 下半区：启动日志。快捷入口（终端 / 检查与维护 / 访问地址）已收进顶栏「+」气泡（T145），
+           终端本身仍由底部导航进入；不再按宽度分栏。 -->
+      <LinearLayout android:id="@+id/launch_log_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:orientation="vertical">
 
           <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:minHeight="@dimen/shell_launch_log_ibtn" android:orientation="horizontal">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
@@ -171,8 +139,7 @@
             <androidx.appcompat.widget.AppCompatButton android:id="@+id/launch_safe" style="@style/ShellLaunchSecondary" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/ui_m0007" />
             <androidx.appcompat.widget.AppCompatButton android:id="@+id/launch_recovery" style="@style/ShellLaunchSecondary" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="@dimen/shell_launch_control_gap" android:layout_weight="1" android:text="@string/ui_m0011" />
           </LinearLayout>
-        </LinearLayout>
-      </com.deepseekharness.app.ui.AdaptiveColumns>
+      </LinearLayout>
     </LinearLayout>
   </ScrollView>
 

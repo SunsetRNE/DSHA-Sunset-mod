@@ -16,7 +16,7 @@ import com.deepseekharness.app.util.PowerModePolicy;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 /**
- * 主界面外壳：启动门禁 + 底部导航（启动 / 插件 / 设置 / 终端）+ 顶栏标题 + 关于入口。
+ * 主界面外壳：启动门禁 + 底部导航（启动 / 插件 / 设置 / 终端）+ 顶栏标题 + 「+」更多气泡入口。
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -475,27 +475,11 @@ public class MainActivity extends AppCompatActivity {
         && getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
       markNativeForeground();
     android.view.ViewGroup appBar = findViewById(R.id.app_bar);
-    var downloads = new androidx.appcompat.widget.AppCompatImageButton(this);
-    downloads.setImageResource(R.drawable.ic_ui_downloads);
-    downloads.setImageTintList(getColorStateList(R.color.text_secondary));
-    downloads.setContentDescription(
-        com.deepseekharness.app.util.UiText.choose("下载记录", "Downloads"));
-    android.util.TypedValue downloadsBackground = new android.util.TypedValue();
-    getTheme()
-        .resolveAttribute(
-            android.R.attr.selectableItemBackgroundBorderless, downloadsBackground, true);
-    downloads.setBackgroundResource(downloadsBackground.resourceId);
-    int downloadButtonSize = Math.round(44 * getResources().getDisplayMetrics().density);
-    int downloadButtonPadding = Math.round(11 * getResources().getDisplayMetrics().density);
-    downloads.setPadding(
-        downloadButtonPadding, downloadButtonPadding, downloadButtonPadding, downloadButtonPadding);
-    downloads.setOnClickListener(v -> FileTransfersActivity.open(this));
-    appBar.addView(
-        downloads,
-        // 主题切换已移到设置 › 主题与外观；下载入口占用原主题按钮的位置。
-        appBar.indexOfChild(findViewById(R.id.btn_about)),
-        new android.widget.LinearLayout.LayoutParams(downloadButtonSize, downloadButtonSize));
-    installDeployCapsule(appBar, appBar.indexOfChild(downloads));
+    // 顶栏只保留一个「+」气泡入口：下载记录、关于与启动页的检查/地址都收进气泡。
+    android.view.View quickActionsAnchor = findViewById(R.id.btn_more);
+    quickActionsAnchor.setVisibility(android.view.View.VISIBLE);
+    quickActionsAnchor.setOnClickListener(this::toggleQuickActions);
+    installDeployCapsule(appBar, appBar.indexOfChild(quickActionsAnchor));
     android.view.View recovery = findViewById(R.id.environment_recovery_banner);
     recovery.setOnClickListener(
         v -> {
@@ -536,11 +520,6 @@ public class MainActivity extends AppCompatActivity {
               }
             },
             false);
-    android.view.ViewGroup quickEntries = findViewById(R.id.btn_about);
-    quickEntries.setVisibility(android.view.View.VISIBLE);
-    quickEntries.setContentDescription(com.deepseekharness.app.util.UiText.text("关于 DSHA"));
-    ((android.widget.ImageView) quickEntries.getChildAt(0)).setImageResource(R.drawable.ic_about);
-    quickEntries.setOnClickListener(v -> AboutDialog.show(this));
 
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     shellRail = findViewById(R.id.shell_rail);
@@ -657,10 +636,53 @@ public class MainActivity extends AppCompatActivity {
 
   // ---------------------------------------------------------------- 顶栏部署胶囊
 
+  /** 顶栏「+」气泡：下载记录、关于，以及启动页专属的运行环境与访问地址。 */
+  private void toggleQuickActions(android.view.View anchor) {
+    if (quickActions != null) {
+      quickActions.dismiss();
+      quickActions = null;
+      return;
+    }
+    Fragment shown = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    final LaunchFragment launch = shown instanceof LaunchFragment ? (LaunchFragment) shown : null;
+    quickActions =
+        QuickActionsBubble.show(
+            this,
+            anchor,
+            launch != null,
+            new QuickActionsBubble.Listener() {
+              @Override
+              public void onAction(com.deepseekharness.app.util.QuickActions.Action action) {
+                switch (action) {
+                  case DOWNLOADS:
+                    FileTransfersActivity.open(MainActivity.this);
+                    break;
+                  case ABOUT:
+                    AboutDialog.show(MainActivity.this);
+                    break;
+                  case ENVIRONMENT:
+                    if (launch != null) launch.openEnvironment();
+                    break;
+                  case ADDRESS:
+                    if (launch != null) launch.showAccessAddresses();
+                    break;
+                }
+              }
+
+              @Override
+              public void onDismissed() {
+                quickActions = null;
+              }
+            });
+  }
+
   /** 覆盖更新 / 首次部署的进度胶囊；只显示环境维护任务，点按打开阶段与维护记录面板。 */
   private DeployMonitor deployMonitor;
 
   private DeployCapsule deployCapsule;
+
+  /** 顶栏「+」气泡弹窗；显示期间保留引用，关闭后由 onDismissed 置空。 */
+  private QuickActionsBubble quickActions;
 
   private final Runnable deployCollapseCheck =
       () -> {
@@ -796,6 +818,10 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onPause() {
     if (!mainReady) entryGate.cancel();
+    if (quickActions != null) {
+      quickActions.dismiss();
+      quickActions = null;
+    }
     recoveryHandler.removeCallbacks(releaseWebCover);
     recoveryHandler.removeCallbacks(refreshRecovery);
     if (updateNotice != null) {
@@ -994,6 +1020,10 @@ public class MainActivity extends AppCompatActivity {
     else if (shown instanceof ConfigFragment) title.setText(R.string.ui2_runtime_config);
     else if (shown instanceof DeviceGrantsFragment)
       title.setText(com.deepseekharness.app.util.UiText.text("设备能力授权"));
+    else if (shown instanceof DeviceChannelsFragment)
+      title.setText(com.deepseekharness.app.util.UiText.text("设备执行通道"));
+    else if (shown instanceof ScreenOperationFragment)
+      title.setText(com.deepseekharness.app.util.UiText.text("屏幕操作"));
     else if (shown instanceof SafAccessFragment)
       title.setText(com.deepseekharness.app.util.UiText.choose("跨应用文件访问", "Cross-app files"));
     else if (shown instanceof SafBrowseFragment)

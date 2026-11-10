@@ -77,7 +77,21 @@ public class ProotBootstrap {
             ctx, rootfsDir, baseDir, libDir, tmpDir, nativeFiles, launcher, hostPorts);
     pluginScripts =
         new GuestPluginScripts(
-            ctx, rootfsDir, this::isEnvironmentReady, this::execAndReadWithProotResult);
+            ctx,
+            rootfsDir,
+            this::isEnvironmentReady,
+            new GuestPluginScripts.Runner() {
+              public BoundedProcessRunner.Result run(String command, long timeoutMs)
+                  throws IOException, InterruptedException {
+                return execution.collect(command, timeoutMs, true);
+              }
+
+              public BoundedProcessRunner.Result run(
+                  String command, long timeoutMs, java.util.function.Consumer<String> onLine)
+                  throws IOException, InterruptedException {
+                return execution.collect(command, timeoutMs, true, onLine);
+              }
+            });
   }
 
   public RuntimeHostPorts hostPorts() {
@@ -339,6 +353,13 @@ public class ProotBootstrap {
   public BoundedProcessRunner.Result execAndReadWithProotResult(String command, long timeoutMs)
       throws IOException, InterruptedException {
     return execution.collect(command, timeoutMs, true);
+  }
+
+  /** 带完整行回调的 proot 命令；用于把固定 guest 阶段行带进宿主诊断。 */
+  public BoundedProcessRunner.Result execAndReadWithProotResult(
+      String command, long timeoutMs, java.util.function.Consumer<String> onLine)
+      throws IOException, InterruptedException {
+    return execution.collect(command, timeoutMs, true, onLine);
   }
 
   /** 旧 CAS 迁移仍使用固定 proot，诊断只记录本次宿主阶段。 */

@@ -181,7 +181,9 @@ public final class PluginFragmentRenderingTest {
                 .put("metadataError", "PLUGIN_METADATA_UNREADABLE"));
     mount(state(catalog(List.of(damaged)), List.of(), false, "", -1));
     assertTrue(text(rowAt(1).findViewById(R.id.pluginDesc)).contains("Metadata read failed"));
-    assertTrue(rowStatus(1).contains("Plugin metadata unavailable"));
+    assertTrue(
+        String.valueOf(rowAt(1).findViewById(R.id.pluginStatus).getContentDescription())
+            .contains("Plugin metadata unavailable"));
     assertEquals(View.VISIBLE, rowAt(1).findViewById(R.id.pluginDelete).getVisibility());
   }
 
@@ -204,7 +206,7 @@ public final class PluginFragmentRenderingTest {
   public void runtimeEvidenceRefreshKeepsRowsAndDistinguishesHistoryFromCurrent() throws Exception {
     var alpha = item("alpha").withRuntime("loaded", 1);
     mount(state(catalog(List.of(alpha, item("beta"))), List.of(), false, "", -1));
-    assertTrue(text(rowAt(1).findViewById(R.id.pluginRuntime)).contains("Current Web: loaded"));
+    assertEquals("Loaded", text(rowAt(1).findViewById(R.id.pluginRuntime)));
     publish(
         state(
             catalog(List.of(alpha.withRuntime("loaded", 1, true), item("beta"))),
@@ -212,9 +214,10 @@ public final class PluginFragmentRenderingTest {
             false,
             "",
             -1));
-    String stale = text(rowAt(1).findViewById(R.id.pluginRuntime));
-    assertTrue(stale.contains("awaiting verification; last state: loaded"));
-    assertFalse(stale.contains("Current Web: loaded"));
+    assertEquals("Unverified", text(rowAt(1).findViewById(R.id.pluginRuntime)));
+    String staleDetail =
+        String.valueOf(rowAt(1).findViewById(R.id.pluginRuntime).getContentDescription());
+    assertTrue(staleDetail.contains("awaiting verification; last state: loaded"));
     for (String runtime : List.of("pending", "failed", "loaded")) {
       publish(
           state(
@@ -223,12 +226,9 @@ public final class PluginFragmentRenderingTest {
               false,
               "",
               -1));
-      assertTrue(
-          text(rowAt(1).findViewById(R.id.pluginRuntime))
-              .contains(
-                  runtime.equals("pending")
-                      ? "waiting for services"
-                      : runtime.equals("failed") ? "load failed" : "Current Web: loaded"));
+      assertEquals(
+          runtime.equals("pending") ? "Waiting" : runtime.equals("failed") ? "Failed" : "Loaded",
+          text(rowAt(1).findViewById(R.id.pluginRuntime)));
       assertEquals(List.of("alpha", "beta"), renderedNames());
     }
     var historical =
@@ -240,10 +240,11 @@ public final class PluginFragmentRenderingTest {
                 .put("version", "1.0")
                 .put("loadState", "loaded"));
     publish(state(catalog(List.of(historical)), List.of(), false, "", -1));
-    String history = text(rowAt(1).findViewById(R.id.pluginRuntime));
+    assertEquals("Unverified", text(rowAt(1).findViewById(R.id.pluginRuntime)));
+    String history =
+        String.valueOf(rowAt(1).findViewById(R.id.pluginRuntime).getContentDescription());
     assertTrue(history.contains("Current Web: load unconfirmed"));
     assertTrue(history.contains("Last activation record: loaded"));
-    assertFalse(history.contains("Current Web: loaded"));
   }
 
   @Test
@@ -282,23 +283,23 @@ public final class PluginFragmentRenderingTest {
         R.id.pluginBadge,
         "Provided by DSH",
         R.color.shell_text_secondary,
-        R.color.shell_raised);
+        page.requireContext().getColor(R.color.shell_raised));
     assertBadge(
         loadedRow,
         R.id.pluginVersion,
         "0.2.2-rc.1",
         R.color.shell_text_secondary,
-        R.color.shell_raised);
+        page.requireContext().getColor(R.color.shell_raised));
+    assertBadge(
+        loadedRow, R.id.pluginStatus, "Enabled", R.color.shell_good, badgeFill(R.color.shell_good));
+    String loadedRuntime = text(loadedRow.findViewById(R.id.pluginRuntime));
+    assertEquals("Loaded", loadedRuntime);
     assertBadge(
         loadedRow,
-        R.id.pluginStatus,
-        "Configuration: enabled",
+        R.id.pluginRuntime,
+        loadedRuntime,
         R.color.shell_good,
-        R.color.shell_good_soft);
-    String loadedRuntime = text(loadedRow.findViewById(R.id.pluginRuntime));
-    assertTrue(loadedRuntime.contains("Current Web: loaded"));
-    assertBadge(
-        loadedRow, R.id.pluginRuntime, loadedRuntime, R.color.shell_good, R.color.shell_good_soft);
+        badgeFill(R.color.shell_good));
 
     View disabledRow = rowAt(2);
     assertBadge(
@@ -306,37 +307,37 @@ public final class PluginFragmentRenderingTest {
         R.id.pluginBadge,
         "Third-party",
         R.color.shell_text_secondary,
-        R.color.shell_raised);
+        page.requireContext().getColor(R.color.shell_raised));
     assertBadge(
         disabledRow,
         R.id.pluginStatus,
-        "Configuration: disabled",
+        "Disabled",
         R.color.shell_text_secondary,
-        R.color.shell_raised);
+        page.requireContext().getColor(R.color.shell_raised));
     String unloadedRuntime = text(disabledRow.findViewById(R.id.pluginRuntime));
-    assertTrue(unloadedRuntime.contains("Current Web: not loaded"));
+    assertEquals("Not loaded", unloadedRuntime);
     assertBadge(
         disabledRow,
         R.id.pluginRuntime,
         unloadedRuntime,
         R.color.shell_text_secondary,
-        R.color.shell_raised);
+        page.requireContext().getColor(R.color.shell_raised));
 
     View unconfirmedRow = rowAt(3);
     assertBadge(
         unconfirmedRow,
         R.id.pluginStatus,
-        "Configuration: enabled",
+        "Enabled",
         R.color.shell_good,
-        R.color.shell_good_soft);
+        badgeFill(R.color.shell_good));
     String unconfirmedRuntime = text(unconfirmedRow.findViewById(R.id.pluginRuntime));
-    assertTrue(unconfirmedRuntime.contains("Current Web: load unconfirmed"));
+    assertEquals("Unverified", unconfirmedRuntime);
     assertBadge(
         unconfirmedRow,
         R.id.pluginRuntime,
         unconfirmedRuntime,
         R.color.shell_warn,
-        R.color.shell_warn_soft);
+        badgeFill(R.color.shell_warn));
   }
 
   @Test
@@ -365,9 +366,7 @@ public final class PluginFragmentRenderingTest {
         page.requireContext().getColor(R.color.shell_warn), chipText.getCurrentTextColor());
     View chip = (View) chipText.getParent();
     assertNotNull(chip.getBackgroundTintList());
-    assertEquals(
-        page.requireContext().getColor(R.color.shell_warn_soft),
-        chip.getBackgroundTintList().getDefaultColor());
+    assertEquals(badgeFill(R.color.shell_warn), chip.getBackgroundTintList().getDefaultColor());
   }
 
   @Test
@@ -866,6 +865,11 @@ public final class PluginFragmentRenderingTest {
         + text(row.findViewById(R.id.pluginRuntime));
   }
 
+  /** 与生产一致的胶囊底色：同一语义色 18% 填充（中性用 raised）。 */
+  private int badgeFill(int toneColor) {
+    return (page.requireContext().getColor(toneColor) & 0x00FFFFFF) | (0x2E << 24);
+  }
+
   /** 徽章必须可见、文字完整、文字色与底色都取自声明的 shell_* 语义 token。 */
   private void assertBadge(View row, int id, String expectedText, int textColor, int background) {
     TextView badge = row.findViewById(id);
@@ -874,9 +878,7 @@ public final class PluginFragmentRenderingTest {
     assertEquals(page.requireContext().getColor(textColor), badge.getCurrentTextColor());
     assertNotNull("徽章必须有胶囊背景", badge.getBackground());
     assertNotNull("徽章底色必须由语义 token tint", badge.getBackgroundTintList());
-    assertEquals(
-        page.requireContext().getColor(background),
-        badge.getBackgroundTintList().getDefaultColor());
+    assertEquals(background, badge.getBackgroundTintList().getDefaultColor());
   }
 
   private Notifications observe() {

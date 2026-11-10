@@ -74,9 +74,9 @@ public final class DeviceGrantsScreenModeTest {
 
   private ActivityController<Host> host;
   private String previousLanguage;
-  private DeviceGrantsFragment.ScreenModeSwitch previousSwitch;
+  private ScreenOperationFragment.ScreenModeSwitch previousSwitch;
   private java.util.concurrent.Executor previousExecutor;
-  private DeviceGrantsFragment.SwitchOutcome nextOutcome;
+  private ScreenOperationFragment.SwitchOutcome nextOutcome;
   private int switchCalls;
   private Mode requestedTarget;
 
@@ -84,11 +84,11 @@ public final class DeviceGrantsScreenModeTest {
   public void setUp() {
     previousLanguage = UiText.language();
     UiText.setLanguage("zh");
-    previousSwitch = DeviceGrantsFragment.screenModeSwitch;
-    previousExecutor = DeviceGrantsFragment.screenModeExecutor;
+    previousSwitch = ScreenOperationFragment.screenModeSwitch;
+    previousExecutor = ScreenOperationFragment.screenModeExecutor;
     // 直接执行，避免测试依赖后台线程时序；请求本身仍由测试注入。
-    DeviceGrantsFragment.screenModeExecutor = Runnable::run;
-    DeviceGrantsFragment.screenModeSwitch =
+    ScreenOperationFragment.screenModeExecutor = Runnable::run;
+    ScreenOperationFragment.screenModeSwitch =
         (app, target, orientation) -> {
           switchCalls++;
           requestedTarget = target;
@@ -100,8 +100,8 @@ public final class DeviceGrantsScreenModeTest {
   @After
   public void tearDown() {
     if (host != null) host.pause().stop().destroy();
-    DeviceGrantsFragment.screenModeSwitch = previousSwitch;
-    DeviceGrantsFragment.screenModeExecutor = previousExecutor;
+    ScreenOperationFragment.screenModeSwitch = previousSwitch;
+    ScreenOperationFragment.screenModeExecutor = previousExecutor;
     UiText.setLanguage(previousLanguage);
   }
 
@@ -115,7 +115,7 @@ public final class DeviceGrantsScreenModeTest {
     host.get()
         .getSupportFragmentManager()
         .beginTransaction()
-        .replace(R.id.fragment_container, new DeviceGrantsFragment())
+        .replace(R.id.fragment_container, new ScreenOperationFragment())
         .commitNow();
     ShadowLooper.shadowMainLooper().idle();
   }
@@ -211,7 +211,7 @@ public final class DeviceGrantsScreenModeTest {
 
   @Test
   public void confirmingPhysicalSwitchShowsSuccess() {
-    nextOutcome = new DeviceGrantsFragment.SwitchOutcome(Switch.ALLOWED, "");
+    nextOutcome = new ScreenOperationFragment.SwitchOutcome(Switch.ALLOWED, "");
     start();
     openPicker();
     chooseMode(Mode.PHYSICAL);
@@ -229,7 +229,7 @@ public final class DeviceGrantsScreenModeTest {
 
   @Test
   public void failedSwitchShowsFailureInsteadOfSilence() {
-    nextOutcome = new DeviceGrantsFragment.SwitchOutcome(Switch.NOT_ADMITTED, "NOT_ADMITTED");
+    nextOutcome = new ScreenOperationFragment.SwitchOutcome(Switch.NOT_ADMITTED, "NOT_ADMITTED");
     start();
     openPicker();
     chooseMode(Mode.PHYSICAL);
@@ -248,7 +248,8 @@ public final class DeviceGrantsScreenModeTest {
   @Test
   public void cleanupPendingExitSharesVirtualScreenWording() {
     prefs().edit().putString(ScreenMode.KEY, "virtual").commit();
-    nextOutcome = new DeviceGrantsFragment.SwitchOutcome(Switch.CLEANUP_PENDING, "VSCREEN_CLOSING");
+    nextOutcome =
+        new ScreenOperationFragment.SwitchOutcome(Switch.CLEANUP_PENDING, "VSCREEN_CLOSING");
     start();
     openPicker();
     chooseMode(Mode.OFF);
@@ -264,7 +265,7 @@ public final class DeviceGrantsScreenModeTest {
   @Test
   public void repeatedSelectionReportsCurrentMode() {
     prefs().edit().putString(ScreenMode.KEY, "physical").commit();
-    nextOutcome = new DeviceGrantsFragment.SwitchOutcome(Switch.UNCHANGED, "");
+    nextOutcome = new ScreenOperationFragment.SwitchOutcome(Switch.UNCHANGED, "");
     start();
     openPicker();
     chooseMode(Mode.PHYSICAL);

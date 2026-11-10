@@ -269,6 +269,7 @@ public final class HttpShellService {
         (s, r) -> s.externalDeviceInspect(r.param("serial", "")));
     routes.put(BridgeRoutes.Route.EXTDEV_BIND, (s, r) -> s.externalDeviceBind(r));
     routes.put(BridgeRoutes.Route.EXTDEV_OPERATE, (s, r) -> s.externalDeviceOperate(r));
+    routes.put(BridgeRoutes.Route.EXTDEV_WATCH, (s, r) -> s.externalDeviceWatch(r));
     routes.put(BridgeRoutes.Route.EXTDEV_PREFLIGHT, (s, r) -> s.externalDevicePreflight(r));
     routes.put(BridgeRoutes.Route.EXTDEV_IMPORT, (s, r) -> s.externalDeviceImport(r));
     routes.put(BridgeRoutes.Route.EXTDEV_FORGET, (s, r) -> s.externalDeviceForget());
@@ -294,6 +295,7 @@ public final class HttpShellService {
     routes.put(BridgeRoutes.Route.UI, (s, r) -> s.appUi(r.path, r.scope));
     routes.put(BridgeRoutes.Route.SENSE, (s, r) -> s.appSense(r.path, r.scope));
     routes.put(BridgeRoutes.Route.VSCREEN, (s, r) -> s.handleVscreen(r));
+    routes.put(BridgeRoutes.Route.PRIV, (s, r) -> s.appPriv(r.path, r.scope));
     routes.put(BridgeRoutes.Route.DEVICE, (s, r) -> s.appDevice());
     routes.put(BridgeRoutes.Route.NET, (s, r) -> s.appNet());
     routes.put(
@@ -1547,7 +1549,7 @@ public final class HttpShellService {
             DshaApp.from(ctx).installationId(),
             scope.run.runId,
             evidence,
-            new com.deepseekharness.app.core.DeviceGrants(ctx).screenPolicy().revision,
+            new com.deepseekharness.app.core.DeviceGrants(ctx).screenAuthorityRevision(),
             broker.epoch("screen"),
             android.os.SystemClock.elapsedRealtime() + 65000);
     scope.capability = request;
@@ -1581,10 +1583,27 @@ public final class HttpShellService {
       String pkg,
       com.deepseekharness.app.util.ScreenTarget target,
       com.deepseekharness.app.capabilities.CapabilityRequest capability) {
+    return screenAuthorization(scope, action, pkg, target, capability, null, false);
+  }
+
+  /**
+   * 屏幕授权。{@code sensitivity} 是已识别的敏感界面类别（虚拟屏），{@code sensitiveAsk} 表示该类别策略为
+   * ASK：跳过「全部允许」与本轮应用记忆，本次动作必须再确认；密码文本读写不走这里（输入层硬阻断）。
+   */
+  private ScreenAuthorization screenAuthorization(
+      RequestScope scope,
+      String action,
+      String pkg,
+      com.deepseekharness.app.util.ScreenTarget target,
+      com.deepseekharness.app.capabilities.CapabilityRequest capability,
+      com.deepseekharness.app.util.SensitiveScreenPolicy.Category sensitivity,
+      boolean sensitiveAsk) {
     boolean sensitive = isSensitiveApp(pkg);
     var controller = com.deepseekharness.app.core.HarnessController.get(ctx);
     var grants = new com.deepseekharness.app.core.DeviceGrants(ctx);
     long generation = controller.getWebGeneration(), revision = uiGrant.revision();
+    // 合并修订号：确认方式或敏感界面策略任一保存都会让旧确认/旧请求失效。
+    long policyRevision = grants.screenAuthorityRevision();
     if (!screenBridgeCurrent(scope)
         || uiGrant.paused()
         || !controller.isWebRunning()
@@ -1593,7 +1612,7 @@ public final class HttpShellService {
         || controller.isUserStopped()
         || generation <= 0) return ScreenAuthorization.UNAVAILABLE;
     var policy = grants.effectiveScreenPolicy();
-    if (policy.allows(pkg)) {
+    if (!sensitiveAsk && policy.allows(pkg)) {
       boolean granted =
           uiGrant.completeConfirmation(
               true,
@@ -1601,7 +1620,7 @@ public final class HttpShellService {
               com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx),
               scope.run.runId,
               revision,
-              policy.revision,
+              policyRevision,
               screenBridgeCurrent(scope)
                   && controller.isWebRunning()
                   && !controller.isStarting()
@@ -1619,8 +1638,8 @@ public final class HttpShellService {
         com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx).snapshot().binding();
     String turnKey = turnTask == null ? null : turnTask.identity();
     var turnGrants = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx).turnGrants();
-    long confirmRevision = grants.screenPolicy().revision;
-    if (turnGrants.allows(turnKey, pkg, sensitive, confirmRevision)) {
+    long confirmRevision = policyRevision;
+    if (!sensitiveAsk && turnGrants.allows(turnKey, pkg, sensitive, confirmRevision)) {
       boolean remembered =
           uiGrant.completeConfirmation(
               true,
@@ -1638,11 +1657,19 @@ public final class HttpShellService {
         return ScreenAuthorization.ALLOWED;
     }
     String where = pkg.isEmpty() ? com.deepseekharness.app.util.UiText.text("当前界面") : pkg;
-    String why =
-        sensitive
-            ? com.deepseekharness.app.util.UiText.format(
-                "在【%s】里：%s  # 当前确认策略要求你确认，界面可能涉及支付或隐私", where, action)
-            : com.deepseekharness.app.util.UiText.format("%s  # 仅批准本次操作；可在设备能力授权中设置确认策略", action);
+    String why;
+    if (sensitiveAsk) {
+      // 敏感类别：说明这是「识别到的类别」，仍是一次性确认；密码文本硬阻断不因确认而解除。
+      why =
+          com.deepseekharness.app.util.UiText.format(
+              "在【%s】里：%s  # 已识别为%s；本次仍需你确认。密码文本读写始终阻断", where, action, sensitiveLabel(sensitivity));
+    } else {
+      why =
+          sensitive
+              ? com.deepseekharness.app.util.UiText.format(
+                  "在【%s】里：%s  # 当前确认策略要求你确认，界面可能涉及支付或隐私", where, action)
+              : com.deepseekharness.app.util.UiText.format("%s  # 仅批准本次操作；可在设备能力授权中设置确认策略", action);
+    }
     boolean[] rememberTurn = new boolean[1];
     ConfirmationOutcome outcome =
         confirmOutcome(scope, capability, why, true, target, rememberTurn);
@@ -1655,14 +1682,14 @@ public final class HttpShellService {
             com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx),
             scope.run.runId,
             revision,
-            grants.screenPolicy().revision,
+            policyRevision,
             screenBridgeCurrent(scope)
                 && !controller.isStopping()
                 && !controller.isUserStopped()
                 && DshaApp.from(ctx).capabilityBroker().current(capability),
             false);
     if (granted && DshaApp.from(ctx).capabilityBroker().authorize(capability)) {
-      if (rememberTurn[0]) {
+      if (!sensitiveAsk && rememberTurn[0]) {
         turnGrants.remember(turnKey, pkg, confirmRevision);
         // 敏感应用：这一次已用掉一次额度。
         if (sensitive) turnGrants.allows(turnKey, pkg, true, confirmRevision);
@@ -1672,6 +1699,27 @@ public final class HttpShellService {
     if (outcome == ConfirmationOutcome.DENIED) return ScreenAuthorization.DENIED;
     if (outcome == ConfirmationOutcome.NO_ANSWER) return ScreenAuthorization.NO_ANSWER;
     return ScreenAuthorization.UNAVAILABLE;
+  }
+
+  /** 敏感类别的人类可读名称；只用于已本地化的确认文案。 */
+  private static String sensitiveLabel(
+      com.deepseekharness.app.util.SensitiveScreenPolicy.Category category) {
+    if (category == null)
+      return com.deepseekharness.app.util.UiText.choose("敏感界面", "sensitive screen");
+    switch (category) {
+      case PASSWORD:
+        return com.deepseekharness.app.util.UiText.choose("密码界面", "password screen");
+      case OTP:
+        return com.deepseekharness.app.util.UiText.choose("验证码界面", "one-time code screen");
+      case PAYMENT:
+        return com.deepseekharness.app.util.UiText.choose("支付界面", "payment screen");
+      case SYSTEM_SECURITY:
+        return com.deepseekharness.app.util.UiText.choose("系统安全界面", "system security screen");
+      case SECURE_UNKNOWN:
+      default:
+        return com.deepseekharness.app.util.UiText.choose(
+            "无法确认的敏感界面", "unverified sensitive screen");
+    }
   }
 
   private static String shortText(String s) {
@@ -1686,6 +1734,159 @@ public final class HttpShellService {
     if (!route.equals("/app/sense/state")) return "[ERR] UNKNOWN_ROUTE";
     String query = queryOf(path);
     return appUi("/app/ui/sense/state" + (query.isEmpty() ? "" : "?" + query), scope);
+  }
+
+  /**
+   * T130：实体屏特权执行桥。{@code /app/priv/*} 只接受完整端点；能力开关、当前手机任务、
+   * 屏幕确认策略与目标窗口都在这里先判，再交给 {@code PhysicalScreenManager}。
+   *
+   * <p>Phase A 不发原生逐动作确认窗：屏幕确认策略未允许该应用时一律 NOT_SENT（fail-closed），
+   * 只放行「全部允许」或该应用显式 ALLOW。整条路径不需要无障碍：抓帧与注入由受管特权 Core 完成。
+   */
+  private String appPriv(String path, RequestScope scope) {
+    String route = path.split("\\?", 2)[0];
+    String operation = com.deepseekharness.app.util.PrivilegedScreenRoutes.operation(route);
+    if (operation.isEmpty())
+      return privRefused("PRIV_UNKNOWN_ROUTE", "USE_A_DOCUMENTED_PRIV_ENDPOINT", null);
+    try {
+      org.json.JSONObject arguments = new org.json.JSONObject();
+      for (String pair : queryOf(path).split("&")) {
+        if (pair.isEmpty()) continue;
+        String[] item = pair.split("=", 2);
+        String key = java.net.URLDecoder.decode(item[0], "UTF-8");
+        if (arguments.has(key))
+          return privRefused("PRIV_DUPLICATE_ARGUMENT", "FIX_THE_REQUEST", null);
+        arguments.put(key, java.net.URLDecoder.decode(item.length == 2 ? item[1] : "", "UTF-8"));
+      }
+      if (!new com.deepseekharness.app.core.DeviceGrants(ctx).privilegedExecutionAllowed()) {
+        com.deepseekharness.app.vscreen.PhysicalScreenManager.from(ctx).revoke();
+        return privRefused(
+            "PRIVILEGED_EXECUTION_DISABLED", "ENABLE_PRIVILEGED_EXECUTION_IN_DEVICE_GRANTS", null);
+      }
+      if (!arguments.has("taskSessionId") || !arguments.has("turnId"))
+        return privRefused("SCREEN_TASK_IDENTITY_REQUIRED", "CALL_app_ui_task_begin_FIRST", null);
+      if (!screenBridgeCurrent(scope)) return "[ERR] BRIDGE_RUN_CHANGED";
+      var runtime = com.deepseekharness.app.core.ScreenRuntimeIdentity.epoch(ctx);
+      var binding =
+          new com.deepseekharness.app.control.ControlTaskAuthority.Binding(
+              com.deepseekharness.app.control.ControlTaskAuthority.Owner.LOCAL_DSH,
+              scope.run.runId + ":" + runtime.instanceId,
+              arguments.getString("taskSessionId"),
+              arguments.getString("turnId"));
+      var state = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx).snapshot();
+      if (state.binding() == null || !state.binding().equals(binding))
+        return privRefused("PRIV_SCREEN_TASK_REQUIRED", "BEGIN_THE_PHONE_TASK_FIRST", null);
+      if (state.paused())
+        return privRefused("PRIV_SCREEN_TASK_PAUSED", "ASK_USER_TO_RESUME_OR_STOP_THE_TASK", null);
+
+      var manager = com.deepseekharness.app.vscreen.PhysicalScreenManager.from(ctx);
+      if (operation.equals("info") || operation.equals("frame")) {
+        org.json.JSONObject receipt = operation.equals("info") ? manager.info() : manager.frame();
+        if (receipt.optBoolean("ok")) {
+          String rejected =
+              privTargetGate(
+                  receipt.optString("package", ""), receipt.optBoolean("packageVerified", false));
+          if (rejected != null) return rejected;
+        }
+        return receipt.toString();
+      }
+      if (operation.equals("config")) {
+        Integer maxWidth = arguments.has("maxWidth") ? privInt(arguments, "maxWidth") : null;
+        Integer quality = arguments.has("jpegQuality") ? privInt(arguments, "jpegQuality") : null;
+        Integer fps = arguments.has("maxFps") ? privInt(arguments, "maxFps") : null;
+        return manager.configure(maxWidth, quality, fps).toString();
+      }
+      if (operation.equals("close")) return manager.close().toString();
+      // 动作与 benchmark 必须先有过一次成功观察：Phase A 不做"没看屏就点"。
+      String target = manager.targetPackage();
+      if (!manager.targetVerified() || target.isEmpty())
+        return privRefused("PRIV_OBSERVE_FIRST", "CALL_app_priv_frame_FIRST", null);
+      String rejected = privTargetGate(target, true);
+      if (rejected != null) return rejected;
+      int waitMs =
+          arguments.has("waitMs")
+              ? privInt(arguments, "waitMs")
+              : com.deepseekharness.app.util.PrivilegedScreenPolicy.DEFAULT_FRAME_WAIT_MS;
+      switch (operation) {
+        case "tap":
+          return manager
+              .tap(privFloat(arguments, "x"), privFloat(arguments, "y"), waitMs)
+              .toString();
+        case "swipe":
+          return manager
+              .swipe(
+                  privFloat(arguments, "x1"),
+                  privFloat(arguments, "y1"),
+                  privFloat(arguments, "x2"),
+                  privFloat(arguments, "y2"),
+                  arguments.has("ms") ? privInt(arguments, "ms") : 300,
+                  waitMs)
+              .toString();
+        case "key":
+          return manager.key(privInt(arguments, "keycode"), waitMs).toString();
+        case "benchmark":
+          return manager
+              .benchmark(
+                  privInt(arguments, "n"),
+                  privFloat(arguments, "x"),
+                  privFloat(arguments, "y"),
+                  waitMs)
+              .toString();
+        default:
+          return privRefused("PRIV_UNKNOWN_ROUTE", "USE_A_DOCUMENTED_PRIV_ENDPOINT", null);
+      }
+    } catch (IllegalArgumentException invalid) {
+      return privRefused("PRIV_INVALID_ARGUMENT", "FIX_THE_REQUEST", null);
+    } catch (Exception error) {
+      return "[ERR] " + safeError(error);
+    }
+  }
+
+  /** 目标窗口与屏幕确认门禁：目标不明、敏感应用或未允许都 fail-closed。 */
+  private String privTargetGate(String pkg, boolean verified) {
+    if (!verified || pkg.isEmpty())
+      return privRefused("PRIV_TARGET_UNVERIFIABLE", "OBSERVE_THE_PHYSICAL_SCREEN_AGAIN", pkg);
+    if (com.deepseekharness.app.util.SensitiveAppPolicy.sensitive(pkg))
+      return privRefused(
+          "PRIV_SENSITIVE_TARGET_UNSUPPORTED", "BRING_A_SUPPORTED_APP_TO_THE_FOREGROUND", pkg);
+    var policy = new com.deepseekharness.app.core.DeviceGrants(ctx).effectiveScreenPolicy();
+    if (!policy.allows(pkg))
+      return privRefused(
+          "SCREEN_CONFIRMATION_REQUIRED",
+          "ALLOW_SCREEN_CONTROL_FOR_THIS_APP_IN_DEVICE_GRANTS",
+          pkg);
+    return null;
+  }
+
+  private static int privInt(org.json.JSONObject arguments, String key) {
+    String value = arguments.optString(key, "");
+    if (!value.matches("-?[0-9]{1,6}")) throw new IllegalArgumentException("PRIV_INVALID_ARGUMENT");
+    return Integer.parseInt(value);
+  }
+
+  private static float privFloat(org.json.JSONObject arguments, String key) {
+    String value = arguments.optString(key, "");
+    if (!value.matches("-?[0-9]{1,6}(\\.[0-9]{1,4})?"))
+      throw new IllegalArgumentException("PRIV_INVALID_ARGUMENT");
+    return Float.parseFloat(value);
+  }
+
+  private static String privRefused(String code, String nextAction, String detail) {
+    org.json.JSONObject value = new org.json.JSONObject();
+    try {
+      value
+          .put("ok", false)
+          .put("state", "NOT_SENT")
+          .put("error", code)
+          .put("retryable", false)
+          .put("automaticRetry", false)
+          .put("accessibilityRequired", false)
+          .put("nextAction", nextAction);
+      if (detail != null && !detail.isEmpty()) value.put("package", detail);
+    } catch (Exception ignored) {
+      // 结构固定的回执不会编码失败；失败也不能让桥返回未处理的异常。
+    }
+    return value.toString();
   }
 
   /** Main-screen adapter receives an explicit request and the caller's observation evidence. */
@@ -1925,12 +2126,19 @@ public final class HttpShellService {
   /**
    * 虚拟屏语义动作拿不到窗口目标时的只读失败：error 保留 ACCESSIBILITY_UNAVAILABLE 兼容旧调用方，
    * reason / nextAction 区分无障碍未开启、未连接、显示里没有窗口和窗口不可读。请求未发送，可安全重新观察。
+   *
+   * <p>T98：额外附最小窗口证据（目标窗口字段、应用/系统/输入法窗口计数、歧义标记）。多应用窗口并列时
+   * reason=VSCREEN_WINDOW_AMBIGUOUS、nextAction=ASK_USER_TO_CLOSE_SPLIT_SCREEN；证据只用于解释，不参与授权。
    */
   private String vscreenSemanticUnavailable(int display, boolean notSent)
       throws org.json.JSONException {
     // 没有可用显示时本次请求不会解析窗口，线程局部诊断可能残留上一次请求的值，不能当成空屏证据。
-    String diagnostic =
-        display > 0 ? DshaAccessibilityService.windowDiagnostic() : "DISPLAY_UNAVAILABLE";
+    var window =
+        display > 0
+            ? DshaAccessibilityService.displayWindowSnapshot(display)
+            : new com.deepseekharness.app.screen.ScreenTargetResolver.Diagnostics(
+                "DISPLAY_UNAVAILABLE", null);
+    String diagnostic = window.diagnostic;
     var accessibility =
         com.deepseekharness.app.util.VirtualScreenObservationHint.Accessibility.of(
             DshaAccessibilityService.isConnected(), DshaAccessibilityService.enabledState(ctx));
@@ -1939,15 +2147,23 @@ public final class HttpShellService {
             .put("ok", false)
             .put("error", "ACCESSIBILITY_UNAVAILABLE")
             .put("treeUnavailable", diagnostic)
+            .put("windowDiagnostic", diagnostic)
+            .put(
+                "windowEvidence",
+                com.deepseekharness.app.util.VirtualScreenObservationHint.windowEvidence(
+                    accessibility, diagnostic))
             .put(
                 "reason",
                 com.deepseekharness.app.util.VirtualScreenObservationHint.semanticReason(
-                    accessibility, diagnostic))
+                    accessibility, diagnostic, window.evidence))
             .put(
                 "nextAction",
                 com.deepseekharness.app.util.VirtualScreenObservationHint.semanticNextAction(
-                    accessibility, diagnostic))
+                    accessibility, diagnostic, window.evidence))
             .put("retryable", true);
+    if (window.evidence != null)
+      for (var field : window.evidence.fields().entrySet())
+        value.put(field.getKey(), field.getValue());
     if (notSent) value.put("state", "NOT_SENT");
     return value.toString();
   }
@@ -2023,6 +2239,34 @@ public final class HttpShellService {
       // 宿主自身不能启动到虚拟屏（系统会复用运行中的本进程，副屏 WebView 崩溃，T76）：
       // 连授权询问都不发起，直接回明确未发送。
       if (selfLaunch != null) return vscreenNotSent(selfLaunch);
+      // 敏感界面分档（T119）：只读分类绑定当前显示；HANDOFF 在派发任何输入前暂停助手。
+      // 分类失败不宣称安全：无障碍关闭时不做分类（保护降级），已知敏感应用读不出树时按 ASK 处理。
+      com.deepseekharness.app.util.SensitiveScreenPolicy.Category sensitivity = null;
+      String sensitivityBasis = "";
+      boolean sensitiveAsk = false;
+      if (com.deepseekharness.app.util.VirtualScreenRoutes.classified(operation) && display > 0) {
+        var evidence =
+            com.deepseekharness.app.vscreen.VirtualScreenSensitiveProbe.read(display, pkg);
+        if (evidence.targetChanged) return vscreenNotSent("SCREEN_TARGET_CHANGED");
+        sensitivity = evidence.category;
+        sensitivityBasis = evidence.basis;
+        if (sensitivity != null) {
+          var sensitivePolicy =
+              new com.deepseekharness.app.core.DeviceGrants(ctx).sensitiveScreenPolicy();
+          var decision = sensitivePolicy.decide(sensitivity, pkg);
+          if (decision == com.deepseekharness.app.util.SensitiveScreenPolicy.Decision.HANDOFF)
+            return sensitiveScreenHandoff(sensitivity, sensitivityBasis);
+          if (decision == com.deepseekharness.app.util.SensitiveScreenPolicy.Decision.ASK)
+            sensitiveAsk = true;
+        }
+        // 密码界面的文本写入由输入层硬阻断；不先弹一个注定会被拒绝的确认。
+        if (sensitivity == com.deepseekharness.app.util.SensitiveScreenPolicy.Category.PASSWORD
+            && writesText(request, operation)) sensitiveAsk = false;
+      }
+      final com.deepseekharness.app.util.SensitiveScreenPolicy.Category sensitivityForResult =
+          sensitivity;
+      final String sensitivityBasisForResult = sensitivityBasis;
+      final boolean sensitiveAskForResult = sensitiveAsk;
       var capability =
           existingCore || !callerCore.isEmpty()
               ? screenRequestEvidence(
@@ -2043,7 +2287,9 @@ public final class HttpShellService {
               com.deepseekharness.app.util.UiText.format("操作独立虚拟屏：%s", route),
               pkg,
               promptTarget,
-              capability);
+              capability,
+              sensitivityForResult,
+              sensitiveAskForResult);
       if (authorization != ScreenAuthorization.ALLOWED)
         // "用户还没点允许"与"用户拒绝了"必须给不同的码：前者调用方应等一会儿再问，
         // 后者不该重试（issue #123 的 60 秒挂起）。
@@ -2106,6 +2352,16 @@ public final class HttpShellService {
             if (!live.getAsBoolean()
                 || bindWindow && !DshaAccessibilityService.matchesTarget(target))
               return "{\"ok\":false,\"error\":\"SCREEN_TARGET_CHANGED\"}";
+            // 确认期间页面可能已换到另一个敏感类别：执行前再读一次证据。读不出就不派发（可能已换屏）。
+            if (sensitivityForResult != null && VirtualScreenRoutes.mutates(operation)) {
+              var fresh =
+                  com.deepseekharness.app.vscreen.VirtualScreenSensitiveProbe.read(
+                      confirmedDisplay, confirmedPackage);
+              if (fresh.targetChanged || !fresh.readable)
+                return vscreenSensitivityNotSent("SENSITIVE_SCREEN_UNVERIFIED");
+              if (fresh.category != sensitivityForResult)
+                return vscreenSensitivityNotSent("SENSITIVE_SCREEN_CHANGED");
+            }
             dispatched[0] = true;
             String result =
                 com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx)
@@ -2116,6 +2372,8 @@ public final class HttpShellService {
                         () ->
                             live.getAsBoolean()
                                 && (!bindWindow || DshaAccessibilityService.matchesTarget(target)));
+            if (sensitivityForResult != null)
+              result = annotateSensitivity(result, sensitivityForResult, sensitivityBasisForResult);
             receipt[0] = result;
             boolean targetChanged = bindWindow && !DshaAccessibilityService.matchesTarget(target);
             boolean runChanged = !live.getAsBoolean();
@@ -2220,6 +2478,76 @@ public final class HttpShellService {
     } catch (org.json.JSONException invalid) {
       return result;
     }
+  }
+
+  /**
+   * 敏感界面交接（T119）：暂停助手并把界面交给用户，不派发任何输入。沿用现有暂停语义（清本轮授权、
+   * 撤销在途请求、取消当前轮），并丢弃虚拟屏观察，用户恢复后必须重新 see，不自动重放。
+   */
+  private String sensitiveScreenHandoff(
+      com.deepseekharness.app.util.SensitiveScreenPolicy.Category category, String basis) {
+    com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx)
+        .pause("SENSITIVE_SCREEN_" + category.name());
+    com.deepseekharness.app.vscreen.VirtualScreenManager.from(ctx).discardObservations();
+    try {
+      return new org.json.JSONObject()
+          .put("ok", false)
+          .put("state", "NOT_SENT")
+          .put("error", "SENSITIVE_SCREEN_HANDOFF")
+          .put("code", "SENSITIVE_SCREEN_HANDOFF")
+          .put("sensitivity", category.name())
+          .put("sensitivityBasis", basis == null ? "" : basis)
+          .put("readOnly", true)
+          .put("retryable", false)
+          .put("actionExecuted", false)
+          .put(
+              "nextAction",
+              com.deepseekharness.app.util.VirtualScreenObservationHint.HANDOFF_TO_USER)
+          .toString();
+    } catch (org.json.JSONException invalid) {
+      return vscreenNotSent("SENSITIVE_SCREEN_HANDOFF");
+    }
+  }
+
+  /** 敏感证据在确认后失效或类别变化：动作未派发，重新观察后可安全重试。 */
+  private static String vscreenSensitivityNotSent(String code) {
+    try {
+      return new org.json.JSONObject()
+          .put("ok", false)
+          .put("state", "NOT_SENT")
+          .put("error", code)
+          .put("code", code)
+          .put("retryable", true)
+          .put("actionExecuted", false)
+          .put("nextAction", com.deepseekharness.app.util.VirtualScreenObservationHint.SEE_AGAIN)
+          .toString();
+    } catch (org.json.JSONException invalid) {
+      return "{\"ok\":false,\"state\":\"NOT_SENT\",\"error\":\"SENSITIVE_SCREEN_UNVERIFIED\"}";
+    }
+  }
+
+  /** 只回类别与依据码，绝不回界面文本；成功/失败回执都不改变原有字段。 */
+  private static String annotateSensitivity(
+      String json,
+      com.deepseekharness.app.util.SensitiveScreenPolicy.Category category,
+      String basis) {
+    if (json == null || category == null) return json;
+    try {
+      var value = new org.json.JSONObject(json);
+      value.put("sensitivity", category.name());
+      if (basis != null && !basis.isEmpty()) value.put("sensitivityBasis", basis);
+      return value.toString();
+    } catch (org.json.JSONException invalid) {
+      return json;
+    }
+  }
+
+  /** 该请求是否会写入文本（含 node 的 set_text）；密码界面的这类请求交给输入层硬阻断。 */
+  private static boolean writesText(
+      com.deepseekharness.app.util.VscreenBridgeRequest request, String operation) {
+    if (com.deepseekharness.app.util.VirtualScreenRoutes.writesText(operation)) return true;
+    return operation.equals("node")
+        && "set_text".equals(request.parameters.getOrDefault("action", ""));
   }
 
   private static String vscreenNotSent(String code) {
@@ -2348,6 +2676,14 @@ public final class HttpShellService {
         com.deepseekharness.app.util.UiText.choose(
             "\n== 识屏模式（实体 / 虚拟互斥） ==\n用户在 设置 → 设备能力授权 → 识屏 选择：关闭、实体识屏或虚拟识屏，两者不能同时开启。\n实体识屏：/app/ui/* 与 dsha-android 工具可用；需要无障碍。虚拟识屏：/app/vscreen/* 与 dsha-vscreen 工具可用；需要 Root / Shizuku / ADB 任一可用通道；只在设置里切换到虚拟识屏、或已开启但虚拟屏未运行（STOPPED）时再次选择，才尝试创建；App 启动/恢复、崩溃或关闭后不会自动重建，创建失败会在设置页提示错误码；无障碍只增强节点与中文输入。\n模式关闭返回 SCREEN_MODE_OFF；实体模式下调虚拟屏返回 SCREEN_MODE_VIRTUAL_OFF，虚拟模式下调实体主屏返回 SCREEN_MODE_PHYSICAL_OFF。这表示容器没有拿到这块屏的授权：照原话告诉用户去哪里切换，不要改用另一块屏，也不要重试。/app/ui/task-end 收尾不受模式限制。\n",
             "\n== Screen mode (physical / virtual, mutually exclusive) ==\nThe user chooses Off, Physical screen or Virtual screen in Settings → Device permissions → Screen; both cannot be on at once.\nPhysical: /app/ui/* and the dsha-android tools work; requires accessibility. Virtual: /app/vscreen/* and the dsha-vscreen tools work; requires a usable Root / Shizuku / ADB channel; creation is attempted only when switching the mode to Virtual, or re-selecting while the mode is on but the screen is stopped (STOPPED); it is not recreated after app start, recovery or close, and a failed creation shows an error code in Settings; accessibility only adds nodes and Unicode input.\nOff returns SCREEN_MODE_OFF; virtual-screen calls in physical mode return SCREEN_MODE_VIRTUAL_OFF and main-screen calls in virtual mode return SCREEN_MODE_PHYSICAL_OFF. This means the container has no authorization for that screen: tell the user where to switch, never use the other screen instead and do not retry. /app/ui/task-end cleanup is not restricted by the mode.\n");
+    String privHelp =
+        com.deepseekharness.app.util.UiText.choose(
+            "\n== 实体屏特权执行（实验；设置→设备能力授权→特权执行，默认关闭）==\n不依赖无障碍：受管特权 Core 镜像 display 0 并注入 tap/swipe/key。只在当前手机任务期间可用（先 /app/ui/task-begin，并带真实 taskSessionId/turnId）；权限要求：能力开关 + 目标应用屏幕确认允许；敏感应用与无法核验的目标一律 NOT_SENT。\n/app/priv/info  状态：displayId=0、generation、frameSeq、目标包、输入后端、frameConfig\n/app/priv/frame?since=  取帧并签发一次性 observationId；同帧只回 unchanged\n/app/priv/config?maxWidth=320..1920&jpegQuality=30..90&maxFps=1..10\n/app/priv/tap?x=&y=&frameSeq=&observationId=&generation=&waitMs=0..500\n/app/priv/swipe?x1=&y1=&x2=&y2=&ms=1..3000&frameSeq=&observationId=&generation=\n/app/priv/key?keycode=3|4|66|67&frameSeq=&observationId=&generation=\n/app/priv/benchmark?n=1..20&x=&y=&waitMs=  连续动作，返回 roundTripMs/inputMs/frameWaitMs 的 p50/p95/max 与 frameConfig\n/app/priv/close  关闭 Core\n坐标使用回执 width×height 图像空间。动作回执带新帧与新 observation，可直接做下一步，不要每步重新取帧。凭据 30 秒、一次性、绑定 generation/目标包；EXECUTION_UNKNOWN 不自动重放；失败不回退无障碍。默认帧配置 maxWidth=1280 / jpegQuality=60 / maxFps=6。\n",
+            "\n== Physical-screen privileged input (experimental; Settings → Device permissions → Privileged input, off by default) ==\nNo accessibility dependency: the managed privileged Core mirrors display 0 and injects tap/swipe/key. It only works during the current phone task (call /app/ui/task-begin first and pass the real taskSessionId/turnId); gates: capability switch + screen-control permission for the target app; sensitive apps and unverifiable targets are always NOT_SENT.\n/app/priv/info  status: displayId=0, generation, frameSeq, target package, input backend, frameConfig\n/app/priv/frame?since=  capture a frame and issue a one-use observationId; the same frame returns unchanged only\n/app/priv/config?maxWidth=320..1920&jpegQuality=30..90&maxFps=1..10\n/app/priv/tap?x=&y=&frameSeq=&observationId=&generation=&waitMs=0..500\n/app/priv/swipe?x1=&y1=&x2=&y2=&ms=1..3000&frameSeq=&observationId=&generation=\n/app/priv/key?keycode=3|4|66|67&frameSeq=&observationId=&generation=\n/app/priv/benchmark?n=1..20&x=&y=&waitMs=  repeated actions; returns p50/p95/max of roundTripMs/inputMs/frameWaitMs plus frameConfig\n/app/priv/close  close the Core\nCoordinates are in the receipt image space (width x height). An action receipt carries a new frame and a new observation, so the next action can follow directly without re-capturing. Credentials last 30 s, are single-use and bound to generation/target package; EXECUTION_UNKNOWN is never replayed and failures never fall back to accessibility. Defaults: maxWidth=1280 / jpegQuality=60 / maxFps=6.\n");
+    String extdevHelp =
+        com.deepseekharness.app.util.UiText.choose(
+            "\n== 外接设备（USB-ADB 主机，实验性） ==\n先在 设置 → 设备能力授权 打开「外接设备（实验性）」开关并启用「允许 Root Shell」；没有 su 时明确不可用，不会改用本机 shell。这是对另一台 Android 设备的独立通道，与本机 su / Shizuku / ADB 三通道语义无关。\n/app/extdev/status   能力开关 / root 状态 / transport（usb-root 或 wireless-root）/ 是否已绑定目标\n/app/extdev/discover  列出宿主 USB 主机口设备（含 9008 等非 adb 模式）与本次会话 adb 设备；adb 不可用时返回 adbUnavailable 原因\n/app/extdev/inspect?serial=…   只读读取目标 product / fingerprint / epoch，作为 bind 的输入\n/app/extdev/bind?serial=…&product=…&fingerprint=…&epoch=…   绑定唯一目标；必须经用户原生确认，之后每次操作仍校验目标代次\n/app/extdev/import?path=/sdcard/Download/xxx.apk   从共享 Download 复制到 App 私有导入槽（≤4 GiB），返回 file / name / size / sha256 / imageType\n/app/extdev/preflight?file=导入返回的file&partition=boot   只读预检与刷写计划（dry-run），不写目标\n/app/extdev/operate?operation=…&partition=…&value=…   已开放：status / devices / shell（只读诊断命令）/ reboot / connect / pair / getvar；screenshot 与 flash / sideload / set_active 未开放；L1 及以上需原生确认，L3 直接拒绝；加 observe=1 时动作执行后在同一请求内附 settle 与 observation（事件采样，UNKNOWN 不附）\n安装  operation=install&value=导入返回的file   专用确认先显示摘要、大小与目标代次，确认后才安装；文件或目标在确认后变化即拒绝\n/app/extdev/watch?mode=events&since=<digest>&samples=6   只读观察/等待页面变化：在同一个 adb 会话里连续采样目标事件，返回 state（CHANGED / UNCHANGED / UNCERTAIN / OBSERVED）、sequence、timestampMs、foregroundPackage / foregroundActivity、digest 与 settle；mode=window 用 dumpsys window 做单次权威采样（state=OBSERVED），samples 2–12 默认 6，quiet 默认 2；启动后 250ms 内重复调用返回 NOT_SENT / RATE_LIMITED。只读、不需要确认、不写目标，digest 不含屏幕文本。\n/app/extdev/forget   清除绑定\n失败返回 NOT_SENT / CONFIRMATION_REQUIRED / [POLICY_BLOCKED] / [EXECUTION_UNKNOWN]：未发送的不重试，UNKNOWN 先核对目标实际状态，不切换通道、不自动重放。\n",
+            "\n== External device (USB-ADB host, experimental) ==\nTurn on External device (experimental) and Allow Root Shell in Settings → Device permissions first; without su it is explicitly unavailable and never falls back to the host shell. This is an independent channel to another Android device and does not change the host su / Shizuku / ADB channel semantics.\n/app/extdev/status   capability switch / root state / transport (usb-root or wireless-root) / whether a target is bound\n/app/extdev/discover  list host USB-port devices (including non-adb modes such as 9008) and adb devices for this session; adbUnavailable carries the reason when adb cannot start\n/app/extdev/inspect?serial=…   read target product / fingerprint / epoch (read-only) as bind input\n/app/extdev/bind?serial=…&product=…&fingerprint=…&epoch=…   bind the single target; requires the user native confirmation, and every later operation still re-checks the target epoch\n/app/extdev/import?path=/sdcard/Download/x.apk   copy from shared Download into the app-private import slot (≤4 GiB); returns file / name / size / sha256 / imageType\n/app/extdev/preflight?file=returned-file&partition=boot   read-only preflight and flash plan (dry-run); never writes the target\n/app/extdev/operate?operation=…&partition=…&value=…   available: status / devices / shell (read-only diagnostics) / reboot / connect / pair / getvar; screenshot and flash / sideload / set_active are not open; L1 and above require native confirmation, L3 is rejected; observe=1 attaches settle and an observation after the action inside the same request (event sampling; never attached for UNKNOWN)\ninstall  operation=install&value=returned-file   the dedicated confirmation shows digest, size and target epoch first; it installs only after confirmation, and refuses when the file or target changed meanwhile\n/app/extdev/watch?mode=events&since=<digest>&samples=6   read-only watch for page changes: samples the target event buffer several times inside one adb session and returns state (CHANGED / UNCHANGED / UNCERTAIN / OBSERVED), sequence, timestampMs, foregroundPackage / foregroundActivity, digest and settle; mode=window takes one authoritative dumpsys window sample (state=OBSERVED), samples 2–12 (default 6), quiet default 2; a repeat call within 250 ms returns NOT_SENT / RATE_LIMITED. Read-only, no confirmation, never writes the target, and digest carries no screen text.\n/app/extdev/forget   clear the binding\nFailures return NOT_SENT / CONFIRMATION_REQUIRED / [POLICY_BLOCKED] / [EXECUTION_UNKNOWN]: never retry what was not sent, and for UNKNOWN check the target actual state instead of switching channels or replaying.\n");
     String senseHelp =
         com.deepseekharness.app.util.UiText.choose(
             "\n== 紧凑识屏预览（ScreenSense） ==\n/app/sense/state?taskSessionId=...&turnId=...&geom=0|1&max=200&full=1\n该端点复用手机任务、无障碍授权、窗口代次和 owner 围栏，只返回紧凑树状态：连续观察默认回增量——mode=delta 只列变化行，mode=same 表示与上次相同，变化超过三分之一、窗口/尺寸/焦点/来源变化或加 full=1 时回全量 mode=full；encodedState 的内容由 mode 决定（全量或 D 开头的差异）。返回的 k*** 是阅读顺序位置编号，只用于预览与差异展示，不是动作凭据。每行为 `id 角色 \"标签\" [标志+动作]`，标志 !不可用 *已选 %焦点 ~密码，动作 c点击 l长按 f/b滚动 o聚焦 t输入，无标志无动作时省略。回复另含 source、quality（ok/partial/empty）、partial、readMs、ageMs（-1 为未知）；ageMs 只表示快照采集后经过的时间，不证明界面未变。动作仍使用最新 /app/ui/tree 或 dump 返回的 treeId/nodeId；Android 接受动作不等于业务状态已变化，不自动重放 UNKNOWN。\n",
@@ -2369,9 +2705,11 @@ public final class HttpShellService {
                 BRIDGE_PROTOCOL)
             .replace("3090", Integer.toString(bridgePort))
         + modeHelp
+        + privHelp
         + taskHelp
         + historyHelp
         + installHelp
+        + extdevHelp
         + senseHelp
         + netHelp
         + safHelp
@@ -2586,6 +2924,9 @@ public final class HttpShellService {
 
   // ================= 外接设备（独立授权、独立目标、结构化操作） =================
 
+  /** 动作后观察固定 4 个样本：够判断末尾 2 个样本稳定，又不把动作回执拖太久。 */
+  private static final int EXTERNAL_OBSERVE_ACTION_SAMPLES = 4;
+
   private com.deepseekharness.app.extdev.ExternalDeviceHost externalDeviceHost() {
     return new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx);
   }
@@ -2657,6 +2998,7 @@ public final class HttpShellService {
     String operation = request.param("operation", "");
     String partition = request.param("partition", "");
     String value = request.param("value", "");
+    boolean observe = wantsObserve(request);
     try {
       var plan =
           com.deepseekharness.app.util.ExternalDevicePolicy.plan(operation, partition, value);
@@ -2666,7 +3008,7 @@ public final class HttpShellService {
         return "{\"state\":\"BLOCKED\",\"error\":\"L3 操作未开放\"}";
       var host = externalOperation(request);
       if (plan.operation == com.deepseekharness.app.util.ExternalDevicePolicy.Operation.INSTALL)
-        return externalDeviceInstall(host, value);
+        return externalDeviceInstall(host, value, observe);
       if (plan.risk != com.deepseekharness.app.util.ExternalDevicePolicy.Risk.L0) {
         String summary =
             com.deepseekharness.app.util.ExternalDevicePolicy.summary(
@@ -2678,10 +3020,49 @@ public final class HttpShellService {
         if (!requestUserConfirm(summary))
           return "{\"state\":\"NOT_SENT\",\"error\":\"CONFIRMATION_REQUIRED\"}";
       }
-      return host.operate(operation, partition, value, true).toString();
+      org.json.JSONObject result = host.operate(operation, partition, value, true);
+      // observe=1：动作已派发（非 UNKNOWN）时附动作后的新观察；观察失败只写 observationUnavailable。
+      if (observe && !"UNKNOWN".equals(result.optString("state")) && !result.has("error"))
+        host.attachObservation(result, EXTERNAL_OBSERVE_ACTION_SAMPLES);
+      return result.toString();
     } catch (Throwable error) {
       return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
     }
+  }
+
+  /** 只读观察通道：不改目标、不需要确认；since 是上次返回的 digest，用来等待下一次页面变化。 */
+  private String externalDeviceWatch(BridgeRequest request) {
+    try {
+      int samples =
+          observationInt(
+              request.param("samples", ""),
+              com.deepseekharness.app.util.ExternalWatchPolicy.DEFAULT_SAMPLES);
+      int quiet =
+          observationInt(
+              request.param("quiet", ""),
+              com.deepseekharness.app.util.ExternalWatchPolicy.DEFAULT_QUIET_SAMPLES);
+      return externalOperation(request)
+          .watch(request.param("mode", "events"), request.param("since", ""), samples, quiet)
+          .toString();
+    } catch (Throwable error) {
+      return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
+    }
+  }
+
+  /** 空串/缺省用 fallback；非法数字返回 -1，交给 watch 的区间校验拒绝。 */
+  private static int observationInt(String raw, int fallback) {
+    String value = raw == null ? "" : raw.trim();
+    if (value.isEmpty()) return fallback;
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException invalid) {
+      return -1;
+    }
+  }
+
+  private static boolean wantsObserve(BridgeRequest request) {
+    String value = request.param("observe", "0");
+    return "1".equals(value) || "true".equalsIgnoreCase(value);
   }
 
   /**
@@ -2689,7 +3070,7 @@ public final class HttpShellService {
    * 按同一摘要与代次复核，文件或目标在确认后变化即拒绝。每次安装都确认，没有「本任务内不再询问」。
    */
   private String externalDeviceInstall(
-      com.deepseekharness.app.extdev.ExternalDeviceHost host, String importName) {
+      com.deepseekharness.app.extdev.ExternalDeviceHost host, String importName, boolean observe) {
     try {
       org.json.JSONObject info = host.describeInstall(importName);
       String summary =
@@ -2707,7 +3088,12 @@ public final class HttpShellService {
               "L2".equals(info.getString("level")) ? "\n模块在开机早期执行，坏模块可能导致目标无法开机" : "");
       if (!requestUserConfirm(summary))
         return "{\"state\":\"NOT_SENT\",\"error\":\"CONFIRMATION_REQUIRED\"}";
-      return host.install(importName, info.getString("sha256"), info.getLong("epoch")).toString();
+      org.json.JSONObject installed =
+          host.install(importName, info.getString("sha256"), info.getLong("epoch"));
+      // 结果未知时不附观察，避免把“可能已执行”当成可继续操作的状态。
+      if (observe && !"UNKNOWN".equals(installed.optString("state")))
+        host.attachObservation(installed, EXTERNAL_OBSERVE_ACTION_SAMPLES);
+      return installed.toString();
     } catch (Throwable error) {
       return "{\"state\":\"ERROR\",\"error\":\"" + jsonEscape(safeError(error)) + "\"}";
     }

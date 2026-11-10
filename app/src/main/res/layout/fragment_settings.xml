@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  设置页（UI v5）：页面大标题 + 三组卡片行。
+  设置页（UI v5）：不再有页内大标题，首组直接接外壳页头；三组卡片行。
   - settings_tabs 仍由 SettingsFragment 注入四个模块入口，保留原有 id 与点击语义；
   - 语言 / 悬浮条 / 省电 / 更新 / 自检 / 关于全部沿用真实功能，不新增伪状态。
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/settings_scroll" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg" android:clipToPadding="false" android:fillViewport="true">
 
-  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/shell_page_pad" android:paddingTop="@dimen/shell_page_top" android:paddingEnd="@dimen/shell_page_pad" android:paddingBottom="@dimen/shell_page_bottom">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/shell_page_pad" android:paddingTop="@dimen/shell_section_margin" android:paddingEnd="@dimen/shell_page_pad" android:paddingBottom="@dimen/shell_page_bottom">
 
-    <TextView style="@style/ShellPageTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_settings" />
-
-    <TextView android:id="@+id/settings_section_environment" style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_section_gap" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_environment" />
+    <TextView android:id="@+id/settings_section_environment" style="@style/ShellSectionLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/shell_section_margin" android:text="@string/ui2_environment" />
 
     <LinearLayout android:id="@+id/settings_tabs" style="@style/ShellGroup" android:layout_width="match_parent" android:layout_height="wrap_content" />
 

@@ -5,7 +5,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.DshaApp;
+import com.deepseekharness.app.screen.ScreenTargetResolver;
 import com.deepseekharness.app.util.VirtualScreenObservationHint;
+import com.deepseekharness.app.util.VirtualScreenWindowEvidence;
 import com.deepseekharness.app.util.VirtualScreenDisplayPreset;
 import com.deepseekharness.app.util.VirtualScreenTextInputPolicy;
 import com.deepseekharness.app.util.Ids;
@@ -1092,15 +1094,18 @@ public final class VirtualScreenManager {
   private static final class ObservationFacts {
     final VirtualScreenObservationHint.Accessibility accessibility;
     final String windowDiagnostic, foregroundPackage;
+    final VirtualScreenWindowEvidence.Snapshot evidence;
     final long sinceStartMs;
 
     ObservationFacts(
         VirtualScreenObservationHint.Accessibility accessibility,
         String windowDiagnostic,
+        VirtualScreenWindowEvidence.Snapshot evidence,
         String foregroundPackage,
         long sinceStartMs) {
       this.accessibility = accessibility;
       this.windowDiagnostic = windowDiagnostic;
+      this.evidence = evidence;
       this.foregroundPackage = foregroundPackage;
       this.sinceStartMs = sinceStartMs;
     }
@@ -1119,14 +1124,15 @@ public final class VirtualScreenManager {
     JSONObject status = targetStatus(scope);
     int display = status.optInt("displayId", -1);
     VirtualScreenObservationHint.Accessibility accessibility = accessibilityState();
-    String diagnostic =
+    ScreenTargetResolver.Diagnostics window =
         accessibility == VirtualScreenObservationHint.Accessibility.CONNECTED && display > 0
-            ? com.deepseekharness.app.DshaAccessibilityService.displayWindowDiagnostic(display)
-            : "ACCESSIBILITY_UNAVAILABLE";
+            ? com.deepseekharness.app.DshaAccessibilityService.displayWindowSnapshot(display)
+            : new ScreenTargetResolver.Diagnostics("ACCESSIBILITY_UNAVAILABLE", null);
     String foreground = status.optBoolean("packageVerified") ? status.optString("package") : "";
     long started = observationStartedAt;
     long since = started < 0 ? -1 : Math.max(0, clock.getAsLong() - started);
-    return new ObservationFacts(accessibility, diagnostic, foreground, since);
+    return new ObservationFacts(
+        accessibility, window.diagnostic, window.evidence, foreground, since);
   }
 
   /** 把 FRAME_NOT_READY 细分为空屏 / 首帧等待 / 停滞，并附下一步建议；legacyError 保留原码。 */
@@ -1151,6 +1157,10 @@ public final class VirtualScreenManager {
         .put("readOnly", true)
         .put("nextAction", hint.nextAction);
     if (facts.sinceStartMs >= 0) value.put("sinceReadyOrLaunchMs", facts.sinceStartMs);
+    // 最小窗口证据（T98）：目标窗口身份与计数；不影响 windowState/windowEvidence 既有语义。
+    if (facts.evidence != null)
+      for (var field : facts.evidence.fields().entrySet())
+        value.put(field.getKey(), field.getValue());
   }
 
   private JSONObject observed(

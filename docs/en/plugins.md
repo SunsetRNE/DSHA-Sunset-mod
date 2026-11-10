@@ -1,6 +1,6 @@
 # Installing, updating, and sharing plugins
 
-> Baseline reviewed on 2026-10-21 against the build190/F13 source. Current publication identity is build348 / DSH `0.2.2-rc.1` / single Standard; F10–F13 and build190 records are historical and not this build's evidence. This page describes DSHA entry points for DSH 0.2.2-rc.1; final identity, software and APK results are in the [English README](../../README.en.md) and this CI / Release receipt. It does not prefill test totals or device acceptance.
+> Baseline reviewed on 2026-10-21 against the build190/F13 source. Current publication identity is build356 / DSH `0.2.2-rc.1` / single Standard; F10–F13 and build190 records are historical and not this build's evidence. This page describes DSHA entry points for DSH 0.2.2-rc.1; final identity, software and APK results are in the [English README](../../README.en.md) and this CI / Release receipt. It does not prefill test totals or device acceptance.
 
 Paste a link into plugin management, import a local package through the system file picker, or open a DSHA installation link supplied by a website. The app resolves the actual package and checks its format, paths, name/version, actual dependencies, and digests before the plugin transaction commits and enables it. The current production plugin flow does not require a native review confirmation. Browsing a website does not install a plugin: installation continues only after the user opens its installation entry point. Restart Web normally when the app requests it after an update or a toggle.
 
@@ -66,6 +66,9 @@ An ordinary `npm install` does not automatically edit the DSH enabled-plugin lis
 > [build327 record](releases/v0.2.1-rc.5-build327-web-mobile-default-disabled-20261105.md); the sync,
 > patch selection and verification are recorded in the
 > [build336 record](releases/v0.2.1-rc.5-build336-web-mobile-3.3.1-20261106.md).
+> On 2026-11-09 it was synced again to upstream 3.3.5 (main `646fe837`, tag v3.3.5 = `14ecfccf`) with
+> the same patch policy; the delta, retired members and acceptance boundary are recorded in the
+> [build351 record](releases/v0.2.1-rc.5-build351-web-mobile-3.3.5-20261109.md).
 
 ### Why it can be restored
 
@@ -84,6 +87,25 @@ An ordinary `npm install` does not automatically edit the DSH enabled-plugin lis
 - The build324 blank-screen root cause (the plugin depending on the mere existence of a host node) is
   still covered by DSHA_GEAR_FIT_V1; the 3.3.1 host-0.2.2 adaptation does not restore any withdrawn
   viewport experiment, and the local patch set does not replay the upstream-absorbed wide-touch rules.
+
+### Upstream 3.3.5 sync (2026-11-09, build351 candidate)
+
+- Synced from 3.3.1 (`4e71eb67`) to upstream main `646fe837440f9939228bdba0024d407eaac01128`
+  (2026-11-08; tag v3.3.5 = `14ecfccf5a6acb69e3a84229dee328d31801306f` plus three post-tag fixes),
+  37 commits. User-visible changes: plugin-page icon and localized title/description, the phone
+  "more views" entry, subagent-chip yielding, the drawer dim layer now painted by a frame
+  pseudo-element, full-screen gestures classified by direction (the 45% edge zones are gone), the
+  hero worktree row, plugin-page host layout restored, and hardened test gates.
+- The patch minimum is unchanged: server auth / safe area / `DSHA_GEAR_FIT_V1` gear geometry /
+  native file transfer / locales. The removed build336 patches (session-input V4, phone search,
+  shortcuts visible band, font-family row, backdrop press tint) are **not** replayed. Upstream
+  renamed `overlay-backdrop-fab` to `drawer-layer` (3 members); the old names are in the lock's
+  `retiredFiles`.
+- New `assets/icon.png` and `locale/{en,zh}.json` are installed through the managed table so the host
+  plugin card can read `package.json#icon` and `meta.title` / `meta.description` from
+  `locale/<lang>.json`; `lib/file-transfer.js` is still generated from
+  `tools/file-transfer/file-transfer.js` as a local-only additional member.
+- `runtime-descriptor` was recomputed to **`6f31f111`** on the merge tree with T130 (`4e8c80e0e`), 205 inputs.
 
 ### Restore scope
 

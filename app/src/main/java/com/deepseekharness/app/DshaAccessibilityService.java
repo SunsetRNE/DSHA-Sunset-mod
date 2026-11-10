@@ -443,18 +443,28 @@ public class DshaAccessibilityService extends AccessibilityService {
   }
 
   /**
-   * 只读诊断：该显示当前的窗口解析结果（READABLE / NO_WINDOWS / …）。不返回节点、不登记目标证据，
-   * 只用于在失败回复里说明原因；不替代授权链使用的 observeTarget。
+   * 只读诊断：该显示当前的窗口解析结果（READABLE / NO_WINDOWS / …）与最小窗口证据（T98）。不返回节点、
+   * 不登记目标证据、不改变任何门控；只用于在失败回复里说明原因和下一步。
    */
-  public static String displayWindowDiagnostic(int display) {
+  public static com.deepseekharness.app.screen.ScreenTargetResolver.Diagnostics
+      displayWindowSnapshot(int display) {
     var lease = CONNECTION.snapshot();
-    if (lease == null || display < 0) return "ACCESSIBILITY_UNAVAILABLE";
+    if (lease == null || display < 0)
+      return new com.deepseekharness.app.screen.ScreenTargetResolver.Diagnostics(
+          "ACCESSIBILITY_UNAVAILABLE", null);
     try (var result =
         com.deepseekharness.app.screen.ScreenTargetResolver.resolve(lease.service, display)) {
-      return CONNECTION.current(lease) ? result.diagnostic : "ACCESSIBILITY_UNAVAILABLE";
+      return new com.deepseekharness.app.screen.ScreenTargetResolver.Diagnostics(
+          CONNECTION.current(lease) ? result.diagnostic : "ACCESSIBILITY_UNAVAILABLE",
+          result.evidence);
     } catch (RuntimeException unavailable) {
-      return "ACCESSIBILITY_UNAVAILABLE";
+      return new com.deepseekharness.app.screen.ScreenTargetResolver.Diagnostics(
+          "ACCESSIBILITY_UNAVAILABLE", null);
     }
+  }
+
+  public static String displayWindowDiagnostic(int display) {
+    return displayWindowSnapshot(display).diagnostic;
   }
 
   private static AccessibilityNodeInfo displayRoot(DshaAccessibilityService service, int display) {

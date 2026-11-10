@@ -28,6 +28,16 @@ The choice only applies to the **next create or rotate**. A running display is n
 
 Target-app layout, IME behavior, screenshot size and multi-window behavior at 720×1600 are not yet verified on a real device. The default keeps the existing baseline.
 
+### When the assistant sees multiple windows or split screen
+
+When the virtual screen shows more than one application window (split screen or floating windows), the
+assistant does not pick one and continue. Semantic reads return `NO_UNIQUE_APPLICATION_WINDOW` with
+`ASK_USER_TO_CLOSE_SPLIT_SCREEN`; close split screen or keep a single application, then let the assistant
+observe again. When there is no application window (only system/IME windows), the hint is
+`LAUNCH_APP_FIRST`: start the application first. Failure diagnostics carry only controlled window fields such
+as type, bounds, title and package name, never control text, and a window id is not treated as a long-term
+identity.
+
 If `VSCREEN_NOT_RUNNING` appears, first confirm that the device channel remains connected, then tap the creation button. After closing the screen, losing the channel or revoking authorization, reconnect and create it again. Clearing application data or extracting the environment again is unnecessary.
 
 If the creation button reports another error, open **Settings → Self-check and diagnostics**, inspect the records and export logs. Enabling accessibility cannot replace the device channel or remove vendor-system compatibility limitations.

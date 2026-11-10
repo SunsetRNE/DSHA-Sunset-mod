@@ -15,11 +15,11 @@
 
 ## 移动插件
 
-- `dsh-web-mobile` **3.3.1**，MIT，来自 `https://github.com/mexiaosqwq/dsh-web-mobile`，固定提交 `4e71eb67de7dac9d8b2572757c81e47aa32a32fb`。
-- 上游 client 摘要 `7f82fac2100d70daf34c9c68cc402f6adb2302bf9913122d3402ab0926773c75`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
+- `dsh-web-mobile` **3.3.5**，MIT，来自 `https://github.com/mexiaosqwq/dsh-web-mobile`，固定提交 `646fe837440f9939228bdba0024d407eaac01128`。
+- 上游 client 摘要 `8a17dd03b5de35f1aea52c93d6e3352fcd43c781de380639f60a93bf6040a26a`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
 - 许可全文：`app/src/main/assets/builtin-plugins/dsh-web-mobile/LICENSE`。当前产物摘要：
 
-- `client.js`：`3483fac4cce8a376f041a2fb3c7c06ac72fb0a53c98fc3c31cb5d12af296f85d`
+- `client.js`：`bccd077f36731190f2419c4ef4493aa2313b12231631498032e77b2f6e042d52`
 - `index.js`：`dcddbce73ec1052b7c02e961bac1389d227f72f1ef49f62a2f16f692e8f930ab`
 - `compress.js`：`a7f4f7f89cc99490978ed4cbfd16ab86f71e1f7fbf2241c00c2811e7cde9aeab`
 - `delete-session.js`：`cb119ff9703716fe1111ee5a2f211d14886ab1d2310601c5787efc8d91219d51`

@@ -316,6 +316,52 @@
         <item name="android:maxLines">1</item>
     </style>
 
+    <!-- ========== 顶栏「+」气泡弹窗（T145） ========== -->
+    <dimen name="shell_quick_action_width">252dp</dimen>
+    <dimen name="shell_quick_action_shadow">8dp</dimen>
+    <dimen name="shell_quick_action_row">46dp</dimen>
+    <dimen name="shell_quick_action_row_icon">20dp</dimen>
+
+    <style name="ShellQuickActionRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:minHeight">@dimen/shell_quick_action_row</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingBottom">10dp</item>
+    </style>
+
+    <style name="ShellQuickActionIcon" parent="">
+        <item name="android:layout_width">@dimen/shell_quick_action_row_icon</item>
+        <item name="android:layout_height">@dimen/shell_quick_action_row_icon</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="ShellQuickActionLabel" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">13dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/shell_text</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="ShellQuickActionSub" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">3dp</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/shell_text_muted</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
     <style name="ShellLaunchLogFollow" parent="">
         <item name="android:background">@drawable/bg_launch_log_follow</item>
         <item name="android:clickable">true</item>

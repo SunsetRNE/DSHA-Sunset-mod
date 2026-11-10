@@ -8,6 +8,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.UiText;
@@ -24,7 +25,11 @@ import org.robolectric.annotation.Implements;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadows.ShadowLooper;
 
-/** B2 接入：设备能力授权页的多段说明同一时刻只展开一段，收起后摘要仍可点。 */
+/**
+ * B2 接入：设备能力授权拆分后的页面各自保持「多段说明同一时刻只展开一段」，收起后摘要仍可点。
+ *
+ * <p>屏幕操作页有「屏幕操作」标签与「确认方式」两段，通道页有「设备执行通道」一段。
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(
     sdk = 34,
@@ -65,13 +70,6 @@ public final class GrantsAccordionTest {
   public void setUp() {
     previousLanguage = UiText.language();
     UiText.setLanguage("zh");
-    host = Robolectric.buildActivity(Host.class).setup().visible();
-    host.get()
-        .getSupportFragmentManager()
-        .beginTransaction()
-        .replace(R.id.fragment_container, new DeviceGrantsFragment())
-        .commitNow();
-    settle();
   }
 
   @After
@@ -80,49 +78,14 @@ public final class GrantsAccordionTest {
     UiText.setLanguage(previousLanguage);
   }
 
-  @Test
-  public void openingOneNoteClosesTheOther() {
-    View page = page();
-    TextView channels = page.findViewById(R.id.grants_channels_label);
-    TextView policy = page.findViewById(R.id.screen_policy_status);
-    assertNotNull(channels);
-    assertNotNull(policy);
-
-    channels.performClick();
+  private void start(Fragment fragment) {
+    host = Robolectric.buildActivity(Host.class).setup().visible();
+    host.get()
+        .getSupportFragmentManager()
+        .beginTransaction()
+        .replace(R.id.fragment_container, fragment)
+        .commitNow();
     settle();
-    assertEquals(View.VISIBLE, detailVisibility(channels));
-    assertEquals("已展开", channels.getStateDescription().toString());
-
-    policy.performClick();
-    settle();
-    assertEquals(View.VISIBLE, detailVisibility(policy));
-    assertEquals(View.GONE, detailVisibility(channels));
-    assertEquals("已收起", channels.getStateDescription().toString());
-  }
-
-  @Test
-  public void collapsingTheOpenNoteDoesNotOpenAnother() {
-    View page = page();
-    TextView policy = page.findViewById(R.id.screen_policy_status);
-    TextView channels = page.findViewById(R.id.grants_channels_label);
-    policy.performClick();
-    settle();
-    assertEquals(View.VISIBLE, detailVisibility(policy));
-    policy.performClick();
-    settle();
-    assertEquals(View.GONE, detailVisibility(policy));
-    assertEquals(View.GONE, detailVisibility(channels));
-  }
-
-  @Test
-  public void disclosureSummariesStayClickableInTheAccordion() {
-    View page = page();
-    TextView channels = page.findViewById(R.id.grants_channels_label);
-    TextView screenLabel = page.findViewById(R.id.grants_screen_label);
-    assertTrue(channels.isClickable());
-    assertTrue(screenLabel.isClickable());
-    assertNotNull(channels.getCompoundDrawablesRelative()[2]);
-    assertNotNull(screenLabel.getCompoundDrawablesRelative()[2]);
   }
 
   private View page() {
@@ -141,6 +104,56 @@ public final class GrantsAccordionTest {
           View.MeasureSpec.makeMeasureSpec(1600, View.MeasureSpec.EXACTLY));
       root.layout(0, 0, 360, root.getMeasuredHeight());
     }
+  }
+
+  @Test
+  public void screenNotesAreMutuallyExclusive() {
+    start(new ScreenOperationFragment());
+    View page = page();
+    TextView help = page.findViewById(R.id.grants_screen_label);
+    TextView policy = page.findViewById(R.id.screen_policy_status);
+    assertNotNull(help);
+    assertNotNull(policy);
+
+    help.performClick();
+    settle();
+    assertEquals(View.VISIBLE, detailVisibility(help));
+    assertEquals("已展开", help.getStateDescription().toString());
+
+    policy.performClick();
+    settle();
+    assertEquals(View.VISIBLE, detailVisibility(policy));
+    assertEquals(View.GONE, detailVisibility(help));
+    assertEquals("已收起", help.getStateDescription().toString());
+  }
+
+  @Test
+  public void collapsingTheOpenNoteDoesNotOpenAnother() {
+    start(new ScreenOperationFragment());
+    View page = page();
+    TextView policy = page.findViewById(R.id.screen_policy_status);
+    TextView help = page.findViewById(R.id.grants_screen_label);
+    policy.performClick();
+    settle();
+    assertEquals(View.VISIBLE, detailVisibility(policy));
+    policy.performClick();
+    settle();
+    assertEquals(View.GONE, detailVisibility(policy));
+    assertEquals(View.GONE, detailVisibility(help));
+  }
+
+  @Test
+  public void channelNoteExpandsAndCollapses() {
+    start(new DeviceChannelsFragment());
+    TextView channels = page().findViewById(R.id.grants_channels_label);
+    assertTrue(channels.isClickable());
+    assertNotNull(channels.getCompoundDrawablesRelative()[2]);
+    channels.performClick();
+    settle();
+    assertEquals(View.VISIBLE, detailVisibility(channels));
+    channels.performClick();
+    settle();
+    assertEquals(View.GONE, detailVisibility(channels));
   }
 
   /** 摘要后面由 DisclosureCard 插入的详情容器第二格是详情本体。 */

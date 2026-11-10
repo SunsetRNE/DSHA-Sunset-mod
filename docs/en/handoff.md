@@ -73,7 +73,7 @@ Release APKs use the original package name, historical E7E3 certificate, an incr
 ./gradlew :app:assembleStandardRelease
 ```
 
-After the relevant software, asset, plugin, emergency, ELF, and signature gates, publish the signed APK through the current `release-production.yml` flow: the Release attaches the APK, evidence ZIP, `build-info.json` and `SHA256SUMS`. The delivery scope is Standard only; Low historical bytes remain archival and are never republished. Bind source commit, run, APK and verification records to the final bytes.
+After the relevant software, asset, plugin, emergency, ELF, and signature gates, publish the signed APK through the current `release-production.yml` flow: the Release attaches the APK, evidence ZIP, `build-info.json` and `SHA256SUMS`, and — unless `test_packages=none` — the co-installable `.debug` / `.dev` test APKs and their public test certificate; `dry_run=true` builds and verifies everything, including those test packages, without creating the tag or Release. The delivery scope is Standard only; Low historical bytes remain archival and are never republished. Bind source commit, run, APK and verification records to the final bytes.
 
 Phone operations are paused. Do not generate extra debug/audit APKs or inject failures into production data. If future device acceptance is authorized, use only the same-signature release APK for an in-place upgrade and retain user data. Android 6/7, real 16 KiB devices, FUSE, vendor `/proc` restrictions, and external model services require their own real evidence.
 

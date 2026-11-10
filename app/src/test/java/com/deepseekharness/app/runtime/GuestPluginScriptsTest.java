@@ -134,6 +134,129 @@ public class GuestPluginScriptsTest {
     assertTrue(completed.get());
   }
 
+  @Test
+  public void registerBudgetFollowsManagedAssetIdentity() throws Exception {
+    for (boolean same : new boolean[] {true, false}) {
+      var timeouts = new ArrayList<Long>();
+      var scripts =
+          new GuestPluginScripts(
+              new GuestPluginScripts.Preparation() {
+                public boolean environmentReady() {
+                  return true;
+                }
+
+                public boolean rootPresent() {
+                  return true;
+                }
+
+                public boolean pythonReady() {
+                  return true;
+                }
+
+                public void pnpm() {}
+
+                public void assets() {}
+
+                public String managedAssetId() {
+                  return ASSET;
+                }
+
+                public String lastRegisteredAssetId() {
+                  return same ? ASSET : OTHER;
+                }
+              },
+              (command, timeout) -> {
+                timeouts.add(timeout);
+                return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                    "BUILTIN_REGISTER_OK");
+              });
+      try (var startup = scripts.startup()) {
+        startup.register();
+      }
+      assertEquals(1, timeouts.size());
+      assertEquals(same ? 90_000L : 240_000L, timeouts.get(0).longValue());
+    }
+  }
+
+  @Test
+  public void registerTimeoutReportsHostAndGuestTimingAndClearsStaleLock() throws Exception {
+    var calls = new ArrayList<String>();
+    GuestPluginScripts.Runner runner =
+        new GuestPluginScripts.Runner() {
+          public com.deepseekharness.app.util.BoundedProcessRunner.Result run(
+              String command, long timeoutMs) {
+            calls.add(command);
+            return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                "PROFILE_LOCK_CLEARED");
+          }
+
+          public com.deepseekharness.app.util.BoundedProcessRunner.Result run(
+              String command, long timeoutMs, java.util.function.Consumer<String> onLine)
+              throws IOException, InterruptedException {
+            calls.add(command);
+            if (command.startsWith("python3 -u /root/.dsh/register-builtin-plugins.py")) {
+              onLine.accept(
+                  "REGISTER_TIMING: {\"phase\":\"runtime-links-check\",\"elapsedMs\":479409}");
+              return timeoutResult();
+            }
+            return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                "PROFILE_LOCK_CLEARED");
+          }
+        };
+    var scripts = new GuestPluginScripts(preparation(new ArrayList<>(), true, true), runner);
+    var failure = new java.util.concurrent.atomic.AtomicReference<IOException>();
+    try (var startup = scripts.startup()) {
+      failure.set(assertThrows(IOException.class, startup::register));
+    }
+    String message = failure.get().getMessage();
+    assertTrue(message, message.startsWith("BUILTIN_REGISTER_TIMEOUT"));
+    assertTrue(message, message.contains("hostElapsedMs="));
+    assertTrue(message, message.contains("lastGuestPhase=runtime-links-check"));
+    assertTrue(message, message.contains("guestElapsedMs=479409"));
+    assertTrue(message, message.contains("GUEST_TIMING_MISMATCH"));
+    assertEquals(2, calls.size());
+    assertTrue(calls.get(1), calls.get(1).contains("--clear-stale-profile-lock"));
+  }
+
+  @Test
+  public void missingRegistrationReceiptFailsWithTimingEvidenceAndNoCleanup() throws Exception {
+    var calls = new ArrayList<String>();
+    var scripts =
+        new GuestPluginScripts(
+            preparation(new ArrayList<>(), true, true),
+            (command, timeout) -> {
+              calls.add(command);
+              return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                  "diagnostic only");
+            });
+    try (var startup = scripts.startup()) {
+      IOException error = assertThrows(IOException.class, startup::register);
+      assertTrue(
+          error.getMessage(), error.getMessage().startsWith("BUILTIN_REGISTER_RECEIPT_MISSING"));
+      assertTrue(error.getMessage(), error.getMessage().contains("hostElapsedMs="));
+      assertTrue(error.getMessage(), error.getMessage().contains("lastGuestPhase=none"));
+    }
+    assertEquals("非超时失败不做锁清理，也不隐式重试", 1, calls.size());
+  }
+
+  private static final String ASSET = "a".repeat(64);
+  private static final String OTHER = "b".repeat(64);
+
+  private static com.deepseekharness.app.util.BoundedProcessRunner.Result timeoutResult()
+      throws IOException, InterruptedException {
+    Process process =
+        new ProcessBuilder(
+                "sh",
+                "-c",
+                "printf 'REGISTER_TIMING: {\"phase\":\"runtime-links-check\",\"elapsedMs\":479409}\\n'; sleep 5")
+            .start();
+    com.deepseekharness.app.util.BoundedProcessRunner.Result result =
+        com.deepseekharness.app.util.BoundedProcessRunner.collect(
+            process, 300, 65536, Process::destroy);
+    assertTrue("fixture must time out", result.timedOut);
+    return result;
+  }
+
   private static GuestPluginScripts.Preparation preparation(
       List<String> calls, boolean ready, boolean python) {
     return new GuestPluginScripts.Preparation() {

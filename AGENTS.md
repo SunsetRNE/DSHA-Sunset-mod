@@ -1,13 +1,13 @@
 # AGENTS.md
 
 
-> **当前状态**：`0.2.1-rc.5-20261109.1100-dsh0.2.2-rc.1` / build348 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
+> **当前状态**：`0.2.1-rc.5-20261110.1700-dsh0.2.2-rc.1` / build356 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
 > 主线分支 `main`；Android 11+（API 30）/ arm64；proot 默认、proroot 可选；内置 DSH 0.2.2-rc.1。
 > 上岛能力已并入正式包；旧 low/GeckoView 兼容线与独立上岛包已删除；签名使用 Mod 自有证书（见 BUILD.md）。
 
 DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— 读它之前先读 [README.md](README.md)。
 
-**仓库事实**：Java 17 / `:app` / arm64；移动 UI 3.3.1；proot 默认 + proroot 可选；固定离线输入由
+**仓库事实**：Java 17 / `:app` / arm64；移动 UI 3.3.5；proot 默认 + proroot 可选；固定离线输入由
 `tools/ci-assets.py` 还原。构建、签名与门禁见 [BUILD.md](BUILD.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 维护入口：[文档总索引](docs/documentation-index.md)、[固定构建输入](docs/fixed-build-inputs.md)、[文案长度政策](docs/i18n-length-policy.md)、[项目总手册](docs/project-architecture-handbook.md)、
@@ -113,8 +113,8 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 ### 版本与构建
 
-- **当前身份以 `app/build.gradle`、`ci/release-identity.json` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build348 / DSHA 修订 `0.2.1-rc.5`（内置 DSH 0.2.2-rc.1）/ `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard；更早的 code/build 编号、旧包名 `dsh.android.client` 与历史 E7E3 签名均为历史记录，不作为当前构建或签名输入。
-- `standard`：minSdk 30（Android 11+），系统 WebView，arm64-v8a，是唯一构建线，任务为 `assembleStandardRelease`。`low`/GeckoView 兼容线已整体删除（含 `assembleLowRelease`、legacy proot/loader），**不再声明 Android 10 及以下可用**；测试变体仅通过 `-Pdsha.sunsetTest=true` 生成 `io.github.sunsetrne.dsha.test`。
+- **当前身份以 `app/build.gradle`、`ci/release-identity.json` 与 [CHANGELOG.md](CHANGELOG.md) 为准**：build356 / DSHA 修订 `0.2.1-rc.5`（内置 DSH 0.2.2-rc.1）/ `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard；更早的 code/build 编号、旧包名 `dsh.android.client` 与历史 E7E3 签名均为历史记录，不作为当前构建或签名输入。
+- `standard`：minSdk 30（Android 11+），系统 WebView，arm64-v8a，是唯一构建线，任务为 `assembleStandardRelease`。`low`/GeckoView 兼容线已整体删除（含 `assembleLowRelease`、legacy proot/loader），**不再声明 Android 10 及以下可用**；测试变体通过 `-Pdsha.sunsetTest=true`（`.test`）、`-Pdsha.debugPackage=true`（`.debug`，debuggable 的 debug 构建）或 `-Pdsha.devPackage=true`（`.dev`，release 构建）生成，三者互斥，且必须用 `-Pdsha.unsignedPackage=true` 由测试证书签名。
 - 离线 rootfs（`assets/offline-rootfs.bin`）**不提交**，由准备脚本生成；APK 用 `offline-rootfs.layout=split-runtime-v1` 标记 Ubuntu 与 `dsh-runtime.bin` 分包，构建核验两份摘要。
 - 新 dsh 依赖由 `tools/dsh-runtime/package-lock.json` 锁定；`tools/prepare-runtime-descriptor.py` 生成独立受管契约描述，APK 版本仅作诊断来源。相同基础版本更新受管树，个人数据保持原位；**不因 UI-only APK 更新替换环境，不因普通 dsh 更新递增 Ubuntu 基础环境版本**。
 - 离线 curl / git / 证书由 `tools/ubuntu-tools/packages.lock.json` 锁定（`tools/prepare-ubuntu-tools.py` 生成 `ubuntu-tools.bin`）；网页 ES 兼容依赖锁在 `tools/web-compat/`（`node tools/prepare-web-compat.mjs`）。生成文件不提交，构建核验摘要。
@@ -157,7 +157,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - **麦克风**：清单同时声明 `RECORD_AUDIO` 与 `MODIFY_AUDIO_SETTINGS`；由 `BrowserMicrophone` 按网页请求申请，不能在普通启动时预授权；只放行当前本机页面的纯音频请求，摄像头 / 屏幕音频拒绝；旧回调不能批准新页。
 - **设备验收经验**：`uiautomator dump` 会抑制其他无障碍服务；截图授权绑定 DSH generation，停止 / 断连 / 撤销后失效；截图存应用私有 Pictures/DSHA，无需所有文件访问；PiP 可能盖住底部控件，自动化必须核对实际可见区域与屏幕方向；截图 / 读屏不可将敏感值写入公开取证文件。
 - Shizuku 必须注册 `rikka.shizuku.ShizukuProvider`；标准版 13.1.5 / 兼容版 12.2.0（不用 overrideLibrary 掩盖 minSdk 24）。回调严格核对管理器 UID、Binder 描述符、单次请求与超时。
-- 内置移动插件 `dsh-web-mobile` 为 3.3.1（适配宿主 0.2.2），固定上游 main `4e71eb67de7dac9d8b2572757c81e47aa32a32fb`（2026-11-06；v3.4.0 内容重编号为 3.3.1）；**完全追随上游**，`tools/apply-mobile-client-patches.mjs` 只保留宿主集成必需的最小集（服务端鉴权 / 安全区 / `DSHA_GEAR_FIT_V1`）与文件传输、多语言；会话输入 V4、手机搜索、快捷键弹层可见带、字体族行、遮罩按压染色等 UI/行为补丁已删除，不要重新套回；build336 起默认启用（真机覆盖升级验收待补）。
+- 内置移动插件 `dsh-web-mobile` 为 3.3.5（适配宿主 0.2.2），固定上游 main `646fe837440f9939228bdba0024d407eaac01128`（2026-11-08；发布标签 v3.3.5 = `14ecfccf5a6acb69e3a84229dee328d31801306f`，标签后还有 README 与插件页交还宿主排版 3 个修复提交）；**完全追随上游**，`tools/apply-mobile-client-patches.mjs` 只保留宿主集成必需的最小集（服务端鉴权 / 安全区 / `DSHA_GEAR_FIT_V1`）与文件传输、多语言；会话输入 V4、手机搜索、快捷键弹层可见带、字体族行、遮罩按压染色等 UI/行为补丁已删除，不要重新套回；build336 起默认启用（真机覆盖升级验收待补）。
 
 ---
 
@@ -230,7 +230,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
   它启动时实测 `fcntl`：未修复时全局互斥、`--no-daemon`；已修复时按可用内存开最多 3 个并发槽位并复用常驻 daemon，内存不够就排队。Gradle JVM 的 `oom_score_adj` 设为 900，内存吃紧时先杀构建、不先杀 dsh。日志在 `/root/.cache/dsha-gradle-logs/`。不要直接跑 `./gradlew`，不要再建 `/root/.gradle-<任务>` 副本绕锁（每份约 1 GB，并多起一个 2–3 GB 堆的 JVM），不要杀别的会话的 Gradle 进程。
 - **proroot 下 git 大 diff 会 SIGSEGV**：build330（proroot v1.2.8）实测 `git show --stat`、`git diff --stat` / `--numstat` 对某些提交或 ≥8 路径组合 exit 139、stdout 0 字节、stderr 为 `[proroot] SIGSEGV`；`--name-status` / `--dirstat`、`git log` 与拆成 ≤7 路径的分片不崩，GitHub Linux CI 不受影响。审查 / 合入不要用 `--stat` 大范围输出，也不要让 `| head` 或 `;` 吞掉 rc；需要统计时用 `python3 tools/git_guard.py -- <git 参数>`（命中签名立即报错、不重试、不返回部分输出），仓库工具已统一走该封装。细节见[运行引擎](docs/runtime-engines.md)。
 - **内存即稳定性**：并发 Gradle / Robolectric 抢内存会把 dsh web 一起拖死，所有会话同时中断。一次只跑一个构建；全量单测只在合并前跑，日常跑定向 `--tests`。
-- **不在本机覆盖安装正式包**：安装 `io.github.sunsetrne.dsha` 会被系统以 PACKAGE UPDATED 结束整个 App，DSH 与全部会话随之中断。会话不得自行安装或降级正式包；测试包 `io.github.sunsetrne.dsha.test` 可装。用户要装正式包时，先让各活跃会话更新声明。
+- **不在本机覆盖安装正式包**：安装 `io.github.sunsetrne.dsha` 会被系统以 PACKAGE UPDATED 结束整个 App，DSH 与全部会话随之中断。会话不得自行安装或降级正式包；测试包 `io.github.sunsetrne.dsha.test` / `.debug` / `.dev` 可装。用户要装正式包时，先让各活跃会话更新声明。
 - **本机专用覆盖放仓库外**：Conscrypt 关闭等只走 `-I /opt/dsha-x86/local-ci.init.gradle`，不往工作树写 `app/src/test/resources/robolectric.properties` 这类临时文件（已被忽略的 `local.properties` 除外），中断后才不会留下会被提交的残留。
 - **长任务写进声明**：后台 / `nohup` 任务必须输出到日志文件并登记在「后台任务」，结束时写明退出码。DSH 重启会杀掉这些任务。
 

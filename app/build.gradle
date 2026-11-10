@@ -39,9 +39,15 @@ def verifyBundledDshVersion = tasks.register('verifyBundledDshVersion') {
 // END DSHA_BUNDLED_DSH_VERSION_GATE
 // CI 只生成未签名完整包；该产物不得进入 release 或覆盖安装。
 def unsignedPackage = project.findProperty('dsha.unsignedPackage') == 'true'
-// 测试变体：显式开关才改包名/版本名，与正式包共存且数据完全隔离；默认构建不变。
-// 上岛版已并入正式包，不再有独立 applicationId / manifest 分支。
+// 测试包变体：显式开关才改包名/版本名，与正式包共存且数据完全隔离；默认构建不变。
+// .test 保留历史路径；.debug 是可调试的 debug 构建；.dev 是 release 构建的测试签名包。
+// 三者互斥；正式包名仍只由 release-production 用正式证书构建。
 def sunsetTest = project.findProperty('dsha.sunsetTest') == 'true' || System.getenv('DSHA_SUNSET_TEST') == '1'
+def debugPackage = project.findProperty('dsha.debugPackage') == 'true' || System.getenv('DSHA_DEBUG_PACKAGE') == '1'
+def devPackage = project.findProperty('dsha.devPackage') == 'true' || System.getenv('DSHA_DEV_PACKAGE') == '1'
+if ((sunsetTest ? 1 : 0) + (debugPackage ? 1 : 0) + (devPackage ? 1 : 0) > 1)
+    throw new GradleException('TEST_PACKAGE_VARIANT_CONFLICT: .test / .debug / .dev 只能选一个')
+def testVariantLabel = debugPackage ? 'Debug' : devPackage ? 'Dev' : sunsetTest ? 'Test' : ''
 // 发布身份：-Pdsha.identity=mod|upstream，默认 mod（io.github.sunsetrne.dsha / Mod 证书）。
 // upstream 是 ym2025szz/DSHA-prerelase 的 dsh.android.client / 历史 E7E3 证书，只在他的私有仓库发布。
 // 两套身份的包名、显示名、测试后缀、默认 key alias 与核对证书都从 ci/release-identity.<name>.json 读取；
@@ -57,6 +63,7 @@ if (releaseIdentity.schema != 1 || releaseIdentity.identity != releaseIdentityNa
         || !(releaseIdentity.packageName ==~ /[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+/)
         || !(releaseIdentity.certificateSha256 ==~ /[a-f0-9]{64}/)
         || !(releaseIdentity.testSuffix ==~ /\.[A-Za-z][A-Za-z0-9_]*/)
+        || !(releaseIdentity.devSuffix ==~ /\.[A-Za-z][A-Za-z0-9_]*/)
         || !(releaseIdentity.keyAlias ==~ /[A-Za-z0-9._-]+/)
         || !(releaseIdentity.appName instanceof String) || releaseIdentity.appName.trim().isEmpty())
     throw new GradleException("RELEASE_IDENTITY_INVALID: ${releaseIdentityFile}")
@@ -80,12 +87,15 @@ android {
         minSdk 30
         targetSdk 37
         buildConfigField 'String', 'BUNDLED_PNPM_VERSION', '"' + bundledTools.pnpm.version + '"'
+        // 测试包标记：只有显式测试变体（.test/.debug/.dev）为 true。正式包恒为 false，
+        // 用于只在测试包显示「反馈与诊断」导出入口；不得改为运行时猜测包名。
+        buildConfigField 'boolean', 'TEST_PACKAGE', (sunsetTest || debugPackage || devPackage) ? 'true' : 'false'
         // 上岛能力已并入正式包；不再有独立上岛包名或独立显示名。
         // 显示名随发布身份（DSH-A-Su / DSHA）；测试变体加后缀，便于桌面上区分两个包。
-        resValue 'string', 'app_name', sunsetTest ? releaseIdentity.appName + ' Test' : releaseIdentity.appName
-        versionCode 348
+        resValue 'string', 'app_name', testVariantLabel ? releaseIdentity.appName + ' ' + testVariantLabel : releaseIdentity.appName
+        versionCode 356
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.5-20261109.1100-dsh0.2.2-rc.1"
+        versionName "0.2.1-rc.5-20261110.1700-dsh0.2.2-rc.1"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -103,6 +113,10 @@ android {
                 applicationIdSuffix releaseIdentity.testSuffix
                 // 测试包身份沿用历史 `-SunsetTest` 后缀：CI 与发布脚本按此核验，不能只写 `-test`。
                 versionNameSuffix '-SunsetTest'
+            } else if (devPackage) {
+                // 开发环境测试包：mod = .dev，upstream = .SunsetDev（见身份文件 devSuffix）。
+                applicationIdSuffix releaseIdentity.devSuffix
+                versionNameSuffix '-SunsetDev'
             }
         }
     }
@@ -139,6 +153,13 @@ android {
     buildTypes {
         debug {
             debuggable true
+            if (debugPackage) {
+                // 可调试的共存包：包名 .debug；CI 用测试证书签名，产物仅用于开发环境。
+                applicationIdSuffix '.debug'
+                versionNameSuffix '-SunsetDebug'
+                // 统一先出 unsigned APK，再由 CI 用测试证书签名，避免 runner 一次性 debug 证书。
+                if (unsignedPackage) signingConfig null
+            }
         }
         release {
             minifyEnabled false
@@ -202,6 +223,8 @@ android {
 
 def verifyPublishCertificate = tasks.register("verifyPublishCertificate") {
     doLast {
+        if (sunsetTest || debugPackage || devPackage)
+            throw new GradleException('TEST_PACKAGE_REQUIRES_UNSIGNED: 测试包不能使用正式发布证书；请用 -Pdsha.unsignedPackage=true 由测试证书签名')
         def signing = android.signingConfigs.publish
         if (signing.storeFile == null || !signing.storeFile.isFile())
             throw new GradleException("正式 APK 缺少 ${releaseIdentityName} 身份发布密钥，停止打包")
@@ -224,7 +247,8 @@ tasks.configureEach {
 // 只读配置检查：打印解析出的发布身份，不读取密钥、不打包。
 tasks.register('printReleaseIdentity') {
     def summary = "releaseIdentity=${releaseIdentityName} applicationId=${android.defaultConfig.applicationId}" +
-            " appName=${releaseIdentity.appName} testSuffix=${releaseIdentity.testSuffix}" +
+            " appName=${releaseIdentity.appName} testSuffix=${releaseIdentity.testSuffix} devSuffix=${releaseIdentity.devSuffix}" +
+            " testVariant=${testVariantLabel.isEmpty() ? 'release' : testVariantLabel.toLowerCase()}" +
             " keyAlias=${android.signingConfigs.publish.keyAlias ?: releaseIdentity.keyAlias}" +
             " certificateSha256=${releaseIdentity.certificateSha256}"
     doLast { println summary }

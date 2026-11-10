@@ -243,9 +243,17 @@ export const COMPAT_CSS = `@media (max-width: 1023px) and (pointer: coarse) {
      ssh own the center column while active). */
   html[data-dsh-taskboard-active] [data-mobile-nav="fab"],
   html[data-dsh-ssh-active] [data-mobile-nav="fab"],
-  html[data-dsh-taskboard-active] [data-mobile-nav="backdrop"],
-  html[data-dsh-ssh-active] [data-mobile-nav="backdrop"] {
+  html[data-dsh-taskboard-active] [data-mobile-nav="hit"],
+  html[data-dsh-ssh-active] [data-mobile-nav="hit"] {
     display: none !important;
+  }
+  /* The dim is painted by the frame's ::after since 2026-11-08, so hiding the
+     catcher no longer hides the paint: a takeover must clear the dim too, or a
+     dim from a close in flight covers the panel and cannot be tapped away. */
+  html[data-dsh-taskboard-active] [data-mobile-nav="frame"]::after,
+  html[data-dsh-ssh-active] [data-mobile-nav="frame"]::after {
+    opacity: 0;
+    transition: none;
   }
   /* Board header: let the search field take the slack instead of squeezing
      the action buttons. */

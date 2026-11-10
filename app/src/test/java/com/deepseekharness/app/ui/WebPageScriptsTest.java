@@ -16,4 +16,18 @@ public class WebPageScriptsTest {
     assertFalse(script.contains("question-expand"));
     assertFalse(script.contains("dataset.mobileNavQuestionFull"));
   }
+
+  @Test
+  public void focusQuestionChecksOptionRowsInsteadOfTheOptionsContainer() {
+    String script = WebPageScripts.focusQuestion();
+    // Mbwy4a_options 是宿主为每张提问卡无条件渲染的选项容器，查询它恒为真，
+    // 会让 focus() 永远不执行；判据必须是真实的选项行 Mbwy4a_optionRow。
+    assertTrue(script.contains("Mbwy4a_optionRow"));
+    assertFalse(script.contains("Mbwy4a_options"));
+    // 聚焦仍受“没有选项行”保护，且发生在滚进可视区之后。
+    int scroll = script.indexOf("scrollIntoView");
+    int guard = script.indexOf("Mbwy4a_optionRow");
+    int focus = script.indexOf(".focus(");
+    assertTrue(scroll >= 0 && guard > scroll && focus > guard);
+  }
 }

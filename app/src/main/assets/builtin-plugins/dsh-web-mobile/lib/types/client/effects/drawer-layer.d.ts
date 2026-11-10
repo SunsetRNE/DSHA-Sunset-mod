@@ -2,12 +2,12 @@ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots';
 import type { ReconcilerTask } from '../core/reconciler-core.ts';
 import { NS } from '../i18n/locales.ts';
 import type { PanelExit } from './panel-exit.ts';
-/** Fade the CURRENT backdrop out (pointer-events off + opacity 0). Called by
- * the gesture layer when a close commit starts animating, so the dimming
- * fades WITH the drawer's slide-out instead of vanishing after it. The
- * element itself is removed later by the task's normal remove path (the
- * marker flip schedules it). */
-export declare function fadeOverlayOut(): void;
+/** Start the dim's fade-out and disable the hit target early. Called by the
+ * gesture layer when a close commit starts animating, so the dimming fades
+ * WITH the drawer's slide-out instead of vanishing after it. The dim itself is
+ * painted by the frame's ::after (data-mobile-nav-dim); the catcher element is
+ * persistent and only re-arms when the marker flips. */
+export declare function fadeDimOut(): void;
 /**
  * @param t - our dictionary (the `NS` locale namespace, i18n/locales.ts).
  * @param toggleSidebar - opens/closes the drawer.
@@ -17,5 +17,5 @@ export declare function fadeOverlayOut(): void;
  *   level on a panel subpage, out of the panel at its root. Null on a host that
  *   cannot select panels (rc.6), where it stays a plain drawer button.
  */
-export declare function createOverlayTask(t: TranslateNS<typeof NS>, toggleSidebar: () => void, panelExit: PanelExit | null): ReconcilerTask;
-//# sourceMappingURL=overlay-backdrop-fab.d.ts.map
+export declare function createDrawerLayerTask(t: TranslateNS<typeof NS>, toggleSidebar: () => void, panelExit: PanelExit | null): ReconcilerTask;
+//# sourceMappingURL=drawer-layer.d.ts.map

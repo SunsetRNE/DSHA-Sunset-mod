@@ -89,7 +89,7 @@ function createHarness() {
     querySelector: (selector) => (selector === '[data-mobile-nav="frame"]' ? frame : null),
     querySelectorAll: () => [],
     createElement: (tag) => new FakeElement(tag),
-    // 3.3.1 的 drawer-quick-settings 首次 ensure 会挂行内按下态监听（bindRowHook）；
+    // 3.3.1/3.3.5 的 drawer-quick-settings 首次 ensure 会挂行内按下态监听（bindRowHook）；
     // 本契约只关心几何让位，监听本身用 no-op 桩即可。
     addEventListener: () => {},
     removeEventListener: () => {},

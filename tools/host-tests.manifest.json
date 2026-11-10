@@ -1933,6 +1933,18 @@
       "cli": "no positional arguments; see explicit environment/requirements"
     },
     {
+      "path": "tools/test-release-test-packages.py",
+      "stage": "fast",
+      "reason": "Merges release-attached .debug/.dev test package evidence (build-info.json, SHA256SUMS, release notes) with temporary fixtures; no APK build, no real certificate, Secret or phone access.",
+      "args": [],
+      "timeoutSeconds": 60,
+      "requires": [
+        "python39"
+      ],
+      "environment": {},
+      "cli": "no positional arguments; see explicit environment/requirements"
+    },
+    {
       "path": "tools/test-skill-import.mjs",
       "stage": "runtime",
       "reason": "Generate three real JVM SkillImports fixtures with JDK17 and SHA-verified SnakeYAML/Gson from the existing backup dependency lock, then exercise the current locked skill provider/tool: ordinary, user-only approval, and fully-disabled invocation policies; no Android, JUnit, phone or user-data operations.",

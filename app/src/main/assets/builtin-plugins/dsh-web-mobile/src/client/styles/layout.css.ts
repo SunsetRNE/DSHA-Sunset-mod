@@ -29,9 +29,10 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
        opens the drawer ("页面直接返回上一页", 2026-08-29 user report). Only
        html/body count for this (Chromium issue 41483088: inner containers
        are ignored by the navigation path). iOS Safari's edge back-swipe has
-       no CSS opt-out (WebKit bug 240183) — there the widened gesture start
-       zone (START_ZONE_RATIO 0.45 of the viewport width, ~176px at 390px,
-       past every browser's edge-claim strip) is the mitigation.
+       no CSS opt-out (WebKit bug 240183) — there the mitigation is the
+       gesture layer's own rule: a drawer stroke is a RIGHTWARD drag, the
+       opposite direction of the edge-back swipe, and since issue #268 a
+       stroke may start at any x (no start zone to dodge the edge strip).
      - With the client's viewport-fit=cover, env(safe-area-inset-top) is the
        status bar / notch height; the rules below push the app content below
        it so the status bar never covers anything. Off notched phones (or in
@@ -259,10 +260,10 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      drawer lets horizontal pointermove events reach the gesture code —
      WITHOUT it the browser treats a horizontal stroke as a pan, fires
      pointercancel and the gesture never classifies (vertical panning stays
-     intact). Start-hit is decided purely by geometry on the document
-     capture listener (START_ZONE_RATIO = 0.45 of the viewport width, ~176px
-     at 390px); there is no hotspot element (removed per audit C2,
-     2026-08-27). pinch-zoom rides along with the
+     intact). Start-hit lives in the gesture layer alone — no hotspot element
+     (removed per audit C2, 2026-08-27) and, since issue #268, no geometric
+     start zone either: the closed state may start a stroke anywhere and the
+     DIRECTION picks the family. pinch-zoom rides along with the
      root value so a browser-applied zoom stays undoable inside the drawer
      too (#45); touch-action intersects down the ancestor chain, so a bare
      pan-y here would cancel the root's pinch permission. */
@@ -619,6 +620,56 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     box-sizing: border-box;
     width: fit-content;
     max-width: 100%;
+  }
+
+  /* --- Hero 工作区行上的「工作树」块（2026-11-07，店主拍板方案 E）---
+     默认布局：heroWorkspaceRow 是一条 nowrap 的 flex 行（宿主 padding 0 16 0 20、
+     gap 2px、align-items:center），里面依次是工作区 chip、directoryFlow / 预设两个
+     槽、以及 margin-left:auto 的 heroOptions。forge 插件（开源版 0.2.2-rc.1 的
+     WorktreeToggle）把自己的「分支」按钮 + 「新建工作树」复选挂进 heroOptions，并在
+     自己的 @media (width<=600px) 里把根盒改成 flex-direction:column —— 两行 28px
+     叠成 56px 高。390px 真机实测：heroOptions 126.1×56，把同一行的模式 chip 压到
+     67.3px（「标准模式」只剩两个字宽），右侧同时留下一条竖直空白。
+     店主否决了「只加高不换行」（A）与「砍文字」（其它分支），要的是**工作树块自己
+     占一行、且分支与新建工作树横向排开**。三条规则配套：
+       ① 行允许换行并给 4px 行距；
+       ② heroOptions 撑满整行（basis 100% 必折行）+ order:-1 排到工作区 chip 之上
+          + 右对齐（保留宿主本来 margin-left:auto 的观感）；
+       ③ 工作树根盒改回横排，间距 8px（比宿主 2px 松，两颗控件各自有 28px 高度，
+          贴太近容易误触）。
+     实测（390×844，触摸仿真）：行高 56→60（多出的一行被工作树块自己 56→28 抵掉），
+     工作树块 126.1×56→202.6×28，模式 chip 67.3→143.5px，doc scrollWidth 恒 390、
+     无横向溢出，composer 卡顶 425.4→427.4（+2px，挤进 hero 相位本来就富余的留白）。
+     全部规则用 :has([data-forge-worktree]) 门控：没装 forge 的 profile 上 hero 行
+     一个像素都不变，也不给空 heroOptions 留出空行。 */
+  /* @patch
+     id: hero-forge-worktree-row
+     for: @deepseek-ai/dsh-experimental-client-ui-forge 的 WorktreeToggle（heroOptions 槽内的 [data-forge-worktree]）
+     why: 插件自带的 @media (width<=600px) 把根盒改成纵向两行 56px，同一条 nowrap 的 hero 行里把模式 chip 压窄并留下竖直空白
+     until: forge 自己给出窄屏横排形态，或宿主把 heroOptions 挪出 heroWorkspaceRow，届时删本块
+     test: tests/css-rules.test.ts
+  */
+  @media (max-width: 767px) and (pointer: coarse) {
+    /* 只在手机档折行。平板（768–1023）原本就放得下：实测 768 时行宽 744、
+       工作区 chip 152.6 + 预设 chip ≈120 + 工作树块 202.6 加起来远小于可用宽，
+       forge 自己的媒体查询（视口 600px 起效）在那一档也还没把根盒改成竖直，
+       所以那里一个像素都不该动。（2026-11-07 首版写在顶层移动块里，768 上
+       实测多折出一行 60px 高——属于加料，收窄到此档。） */
+    [class*="heroWorkspaceRow"]:has([data-forge-worktree]) {
+      flex-wrap: wrap !important;
+      row-gap: 4px !important;
+    }
+    [class*="heroWorkspaceRow"]:has([data-forge-worktree]) > [class*="heroOptions"] {
+      flex: 0 0 100% !important;
+      order: -1 !important;
+      justify-content: flex-end !important;
+      margin-left: 0 !important;
+    }
+    [class*="heroWorkspaceRow"]:has([data-forge-worktree]) [data-forge-worktree] {
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
   }
 
   /* --- Composer bottom row on mobile ---
@@ -1769,6 +1820,18 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     transform: none !important;
     z-index: 3 !important;
   }
+  /* @patch
+     id: lineage-chip-views-more-yield
+     for: 页签行右缘的「更多视图」⋯（宿主 ViewsMoreMenu 的 anchor，[class*=viewsMoreAnchor]）与谱系 chip 的同一落点
+     why: chip 按 lineage-chip-pinned 钉在 right:8px，⋯ 也在 right:8px —— 390px 实测 chip 盒 282–382、⋯ 盒 360–382（22×19 完全重合），chip 的 z-index:3 又压在上面，于是 ⋯ 点不到、chip 右端也被自己的省略号窗吃掉（#281）。只能由 CSS 让位：⋯ 的宽度与边距都宿主所有，我们不能改
+     until: 宿主把 ⋯ 移出页签行，或给谱系 chip 一个不与之共享的稳定槽——届时删本块
+     test: tests/a2-header-gating.test.ts
+  */
+  /* 让位量 = 宿主右边距 8 + ⋯ 宽 22 + 间距 4。⋯ 是第三方 conversation.view 的唯一入口，
+     不许靠藏它来避开（pitfalls「更多视图入口」）。 */
+  [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]):has([role="tablist"]):has([class*="viewsMoreAnchor"]) [class*="ZKlsPq_root"]:not([class*="_switcherRoot"]) {
+    right: 34px !important;
+  }
   /* 谱系 chip 里的文字（子代理标题 /「N 个子代理」）给一个规矩的省略号窗口。 */
   [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="ZKlsPq_root"] span {
     display: block !important;
@@ -1902,8 +1965,18 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
       margin-top: 0 !important;
       margin-bottom: 0 !important;
     }
+    /* 页签行恒单行：宿主在窄屏按宽度折页签（visibleViewLimit），放不下的第三方 conversation.view
+       只出现在「更多视图」⋯ 菜单里（misc 的手机档隐藏规则 2026-11-07 已删）——一旦换行（宿主
+       tabs 是 wrap 容器，tablist 满宽 + ⋯ 22px 必然超宽），⋯ 掉到第二行（行高 16 → 51）。
+       两处都关换行；tablist 保持满宽吃掉剩余（收成内容宽会让 ⋯ 悬在页签右侧、右边空一大片，
+       真机 2026-11-07 报「位置非常奇怪」），⋯ 因此落在页签行右缘，与桌面同一位置。
+       **不许给 tablist 加 overflow 裁剪**：宿主 tab 靠 margin-top:-10px 把热区撑出 16px 高的
+       tablist 盒（按钮 23..49 / 文字 30..46 / tablist 33..49），任何非 visible 的 overflow 都会
+       把标签顶部裁掉（真机 2026-11-07 实测截字）。 */
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="_tabs"] {
       overflow: visible !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
     }
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs][role="tablist"] {
       height: auto !important;
@@ -1911,6 +1984,11 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
       margin-top: 0 !important;
       overflow: visible !important;
       align-items: flex-end !important;
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+    }
+    [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [class*="viewsMoreAnchor"] {
+      flex: 0 0 auto !important;
     }
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs][role="tablist"] > button[role="tab"],
     html body [data-mobile-nav="frame"] [data-phase] header:has([class*="_headerLeading"]) [data-conversation-tabs] > button[class*="_tab"]:not([class*="_tabs"]) {
@@ -2435,177 +2513,6 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
   [aria-modal="true"]:is([data-shortcut-modal="settings"], :has(> :first-child > :last-child > button + button)):not(:has([role="navigation"])):not(:has([class*="ZuhsRW"])):not([data-shortcut-modal="shortcuts"]) > :last-child > :last-child {
     padding: 0 12px 24px;
   }
-  /* 0.1.6-alpha.2 宿主的插件管理页（dsh-client-ui-plugin-manager 渲染的
-     section[data-plugin-panel]）。FAB 是全站恒定的左上角控件（用户明确
-     要求：右下角不对，就放左上角），所以规则不做的是挪 FAB，做的是给
-     面板自己的左上角内容让位。两个页面都要让，偏移量同一个：
-     - 列表页：**有**内容在左上角 —— H1「插件」实测 [24,28,91,28]，与 FAB 盒
-       [10,12,38,38] 重叠 24×22；点标题左缘命中的是 FAB 而不是标题
-       （2026-09-19 报障）。上一版这里记的是「热区为空、零规则」，实测不成立。
-     - 详情页（DetailTop 组件）：宿主返回键「返回插件列表」crumb，文字实测
-       [24,28,70,19]，同样压在 FAB 左半——点它会触发开抽屉而不是返回。
-       详情根的 data-* 标记有三种：内置插件详情 data-plugin-item-detail、市场
-       插件详情 data-plugin-row-detail、builtin 详情 data-plugin-detail
-       （实测「智能体团队」卡走的就是第三种），三条选择器并列全覆盖。
-     让位量 = FAB 右缘（10 + 38 = 48）+ 8px 间距 = 56px，**写成相对量**：
-     减掉宿主自己的 padding（clamp(24px,4vw,48px)），这样它跟着视口走，而不是
-     把 390px 上量到的 32px 钉死（768px 平板上宿主 padding 是 30.7px，钉死的
-     32px 会过量）。在 390px 上它算出来正好还是 32px，与上一版行为一致。
-     锚点全部是宿主 data-* 标记，比 css-module 哈希类（X_2TxG_）稳定；
-     pre-alpha.2 宿主没有这些标记，规则天然不命中（代际门控）。 */
-  [data-mobile-nav="frame"] section[data-plugin-panel] {
-    --dsh-web-mobile-panel-clearance: calc(56px - clamp(24px, 4vw, 48px));
-  }
-  /* 页首是宿主滚动盒的直接子元素，宿主给它 width:100%（.X_2TxG_page>*）。
-     这种盒子上用 margin 会把整行顶出右缘、给面板加出一条横向滚动条，所以
-     这里用 margin + 等量收窄：margin 盒仍是 100%，左缘让开 FAB，右缘不再
-     外扩。0.2.1-rc.2 起工具栏已换行且按 flex-start 排布，「添加插件」不再
-     贴右，旧注释里那个「保持贴右」的右缘假设已不成立；规则本身的行为
-     （左缘让位、右缘不越界）不变。 */
-  [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageHead"] {
-    margin-left: var(--dsh-web-mobile-panel-clearance) !important;
-    width: calc(100% - var(--dsh-web-mobile-panel-clearance)) !important;
-    /* 2026-11-05 店主真机（插件页）：「整体上移、插件两个字应该在返回键右边」。
-       返回键是本插件的 FAB（top 12、38px 盒），宿主页首自带
-       padding-top: calc(28px + --dsh-frame-top-clearance) 且 align-items:flex-start，
-       标题被顶到 FAB 下面一行。这里把页首内边距压到与 FAB 同高（12px）并改成
-       纵向居中：标题行与 FAB 同一行、与它同心，副标题跟在标题下面。 */
-    padding-top: 12px !important;
-    align-items: center !important;
-  }
-  /* 列表 / 详情共用滚动体：宿主 padding-top 32 → 12，整页上移一档。 */
-  [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageBody"] {
-    padding-top: 12px !important;
-  }
-  /* 二级（插件详情）：宿主细节头 margin-top 32、正文 20，一起收。 */
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-detail] [class*="_detailHead"] {
-    margin-top: 12px !important;
-  }
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-detail] [class*="_detailMain"] {
-    margin-top: 12px !important;
-  }
-  /* 详情 crumb 是被拉伸的 flex item（没有 width:100%），margin 就是对的工具。
-     **0.1.7-rc.2 起「直子」形态落空**：宿主把 crumb 套进了 DetailTop 的根盒
-     （实测链 [data-plugin-detail] > div.X_2TxG_detailTop > button.X_2TxG_crumb），
-     于是上面三条「> button:first-child」在详情页全部 matches()=false ——
-     crumb 的 margin-left 计算值 0px，停在宿主 padding 上：盒 [24,28,342,14]、
-     自带箭头图标 [24,28,14,14]、文字 span x=44，整条压在 FAB 盒
-     [10,12,38,38]（右缘 48）里 —— 图标 14px 全遮、文字首字压 4px；
-     elementFromPoint 在图标中心与文字首字处都命中 FAB，点「返回插件列表」
-     实际触发的是 FAB 的 exit-panel（2026-09-25 报障截图同形）。
-     直子三条在 0.2.2 永不命中（详情根的首子恒为 DetailTop 的 div），已于 2026-11-05 删除，只留按
-     crumb 自己的哈希片段写的三条后代选择器。片段取「_crumb」：同前缀的 svg.crumbIcon 不是 button 天然排除，
-     本子树里也没有别的 crumb 家族（文件面板 ZuhsRW_crumb* 在另一棵树）。
-     实测让位后 crumb 变 [56,28,310,14] —— flex 拉伸项自己收窄 32px，无横向
-     溢出（面板 scrollWidth 恒 390），点文字可正常返回列表。 */
-  /* （2026-11-06 审计 C1）这里原本有一条给详情 crumb 让位的 margin-left；
-     同一组三条选择器在下方手机档里已用「margin-left: 0 !important」明确覆盖它
-     （二级页去掉了悬浮返回键，不再需要让位），那条永远不生效，已删。 */
-  /* 插件页顶部那一大截空白，根因找到了（2026-11-05）：
-     宿主给「全局面板」留了 48px 顶部内边距 ——
-       .pI_x6G_frame[data-sidebar-drawer] .pI_x6G_mainPanel[data-global-panel]{
-         padding-top: max(0px, calc(48px - var(--dsh-frame-top-clearance,0px))) }
-     那 48 是给 macOS / Windows 标题栏让位的：那两处 clearance 也是 48，减完正好 0。
-     Android 没有标题栏、变量没定义（=0），于是 48px 成了纯空白。
-     **前几版把它当「清零变量」来改，方向正好反了**：变量清零只会让减完更大
-     （max(0,48-0) = 48），所以怎么改都没变化。这里直接把这个内边距归零。
-     再往上收的是插件页自己的页首：宿主 padding-top = calc(28px + clearance)，压到
-     12px，与左上那颗悬浮返回键（本插件的 FAB，top:12、38px 盒）同一行；左内边距
-     56px 给返回键让位。锚点只用宿主写在标签上的 data-global-panel / data-window-drag，
-     外层仍受移动档 @media 约束，桌面不受影响。 */
-  [data-mobile-nav="frame"] [data-global-panel] {
-    padding-top: 0 !important;
-  }
-  /* 手机档：插件页页首不要再 sticky（owner 2026-11-05：「插件不应该和返回键一起，
-     应该跟整个界面一起走」）。宿主 data-natural 态是 position:sticky; top:0;
-     z-index:2 —— 页首钉在顶上、正文从它底下滑过，看起来就像它和悬浮返回键组成一条
-     固定栏。改成 static 后页首回到正常流里，滚动随正文一起走；子项仍是相对页首的
-     绝对定位（宿主用 --plugin-part-* 量好后写死），坐标不变。 */
-  [data-mobile-nav="frame"] [data-plugin-bar][data-natural] {
-    position: static !important;
-  }
-  /* 2026-11-05 店主定稿方向：标题回到返回键**下方**、与页面对齐（不再右侧并排）。
-     垂直让 32px：悬浮键占 top 12 + 38 高，标题从它下沿开始；水平把早先那条
-     panel-clearance 的 margin-left 一并清零，标题与正文左缘对齐。选择器带上
-     [data-mobile-nav="frame"] 前缀，特异性与那条老规则相同、写在后面，压得住它。 */
-  [data-mobile-nav="frame"] section[data-plugin-panel] header[data-window-drag] {
-    padding-top: 32px !important;
-    padding-left: 0 !important;
-    margin-left: 0 !important;
-    box-sizing: border-box !important;
-    /* 页首是 flex-wrap 容器：若允许换行，工具栏会被挤到第二行（第三版翻车点）。 */
-    flex-wrap: nowrap !important;
-    /* 滚动时页首要有实底，正文从它底下滑过时不至于透出来像浮层。 */
-    background: var(--dsw-alias-bg-layer-1, #fff) !important;
-  }
-  /* 二级页的返回 crumb 不再需要给返回键让位（悬浮键在二级页已去掉），居左对齐正文。
-     覆盖上面手机档那条带 panel-clearance 的 margin-left。 */
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-detail] button[class*="_crumb"],
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-item-detail] button[class*="_crumb"],
-  [data-mobile-nav="frame"] section[data-plugin-panel] [data-plugin-row-detail] button[class*="_crumb"] {
-    margin-left: 0 !important;
-  }
-  /* 自动化任务面板（@deepseek-ai/dsh-client-ui-schedule，0.2.0-rc.2 随实验性
-     bundle 提供）不是 section[data-plugin-panel]：该 bundle 里
-     「data-plugin-panel」命中 0 次，页头是 t-XoWW_pageHeading(display:flex)，
-     标题是 h1{flex:1;min-width:0;margin:0}。盒模型取自宿主自己的 CSS：
-     pageContent padding = clamp(24px,4vw,48px)（390px 视口取 24px），
-     于是标题左缘 24px 落进 FAB 盒 [10,12,38,38]（右缘 48）——20px 字号的
-     首字被整颗压住（2026-10-06 报障截图）。让位量沿用同一口径
-     （56px − 宿主自身 padding）；作用对象取 h1：它是 margin:0 的 flex item，
-     margin-left 只吃 flex 自由空间，不需要 width 补偿，也不会像整宽盒那样
-     顶出横向滚动条。0.2.1-rc.2 起插件管理页的标题 h1 也命中「_pageHeading」
-     片段（旧注释「全部宿主 bundle 只有这一个渲染者」的假设已不成立），本页
-     会被一起串到；下方嵌套的手机档块把 section[data-plugin-panel] 里的两级
-     margin-left 归零，自动化任务面板仍用本条让位。 */
-  [data-mobile-nav="frame"] [class*="_pageHeading"] > h1 {
-    margin-left: var(--dsh-web-mobile-panel-clearance, calc(56px - clamp(24px, 4vw, 48px))) !important;
-  }
-  /* 插件管理页页首左对齐（2026-10-20 实测）：插件管理页的页头同时被上面两条
-     「给 FAB 让位」的规则命中 —— 一条给 [class*="_pageHead"] 加 margin-left，
-     另一条给 [class*="_pageHeading"] > h1 加 margin-left。两个片段互为子串，
-     页首容器与标题各自被让位一次，页首于是离左缘远、与左上角浮起的 ← 之间
-     空出一大截。手机档只对 section[data-plugin-panel] 收口：先把 clearance
-     改成 60px 口径（FAB 右缘 48 + 12 间距；390px 视口上算出 36px），再归零被
-     「_pageHead」子串误伤的两级 margin。只影响本页；自动化任务面板与详情
-     crumb 的让位规则照旧。
-     同日按店主参考图再落一档：页首必须「一行内排」——标题+说明在左、刷新键与
-     添加插件按钮在右。宿主 pageHead 是 flex-wrap:wrap，这一步直接禁止换行、让
-     heading 可收缩（min-width:0），工具栏 flex:0 0 auto + margin-left:auto 贴右；
-     说明文字过长时在左列内换行，不再把工具栏挤到第二行。 */
-  /* @patch
-     id: plugin-panel-head-left-align
-     for: dsh-client-ui-plugin-manager 0.2.1-rc.2 的 section[data-plugin-panel] 页首（_pageHead / _pageHeading / h1 三层）
-     why: 两条让位规则靠子串同时命中页首容器与页首标题，叠加后页首离左缘过远；宿主没有区分「页头容器」与「页首标题」的稳定标记
-     until: 宿主给页首容器独立标记，或页首不再需要给 FAB 让位，届时删本块
-     test: tests/css-rules.test.ts
-  */
-  @media (max-width: 767px) and (pointer: coarse) {
-    /* 一行内排：标题 + 说明在左、工具栏（刷新 + 添加插件）在右（2026-10-20 店主参考图）。
-       宿主 pageHead 自己是 flex-wrap:wrap + space-between；内容宽 300 出头时
-       heading(≈154) + gap16 + toolbar(≈172) 放不下一行，就折成三行堆叠。
-       这里禁止换行、把 heading 让成可收缩的 flex 项（min-width:0 才能压到内容宽），
-       toolbar 保持自身宽度贴右；说明过长时在左列内换行，不再把工具栏挤下去。 */
-    [data-mobile-nav="frame"] section[data-plugin-panel] > [class*="_pageHead"] {
-      --dsh-web-mobile-panel-clearance: calc(60px - clamp(24px, 4vw, 48px));
-      flex-wrap: nowrap !important;
-      align-items: flex-start !important;
-      gap: 8px !important;
-    }
-    [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageHeading"] {
-      flex: 1 1 auto !important;
-      min-width: 0 !important;
-      margin-left: 0 !important;
-      width: auto !important;
-    }
-    [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_toolbar"] {
-      flex: 0 0 auto !important;
-      margin-left: auto !important;
-    }
-    [data-mobile-nav="frame"] section[data-plugin-panel] [class*="_pageHeading"] > h1 {
-      margin-left: 0 !important;
-    }
-  }
   /* 快捷键弹层在手机上的落地形态。上面那条 :not([data-shortcut-modal="shortcuts"])
      只是把它从设置面板家族里摘出来、还它官方的内部排版（2026-09-25 实测：纵向列
      回来了、标题「快捷键」回来了、列表 441px 可滚、无横向溢出、docScrollWidth
@@ -2725,9 +2632,10 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
      not the whole exit: since 2026-10-12 the reveal side compares Animation
      objects (panel-exit.ts finishMain reads event.animationName only for the
      ghost), and the ghost cleanup still listens on animationend BY NAME
-     (panel-exit.ts ghostEnd). dsh-web-mobile-fade also runs on the backdrop and
-     the dialogs, which are frame descendants too — reusing it would end the
-     ghost early. Comment corrected 2026-10-13 (was claiming the whole exit
+     (panel-exit.ts ghostEnd). dsh-web-mobile-fade also runs on the dialogs,
+     which are frame descendants too — reusing it would end the ghost early.
+     (The backdrop carried it until 2026-11-08; the dialogs alone still block
+     the reuse.) Comment corrected 2026-10-13 (was claiming the whole exit
      listens by name; the code had moved on). */
   @keyframes dsh-web-mobile-panel-reveal {
     from { opacity: 0; transform: translateX(-14px); }
