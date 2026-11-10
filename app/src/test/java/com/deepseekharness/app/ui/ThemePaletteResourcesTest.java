@@ -84,11 +84,16 @@ public final class ThemePaletteResourcesTest {
     assertEquals(0xFF1E50D0, standard);
     assertEquals(0xFF6AA4FF, themed(true, UiThemePalette.STANDARD).getColor(R.color.primary));
     for (String palette : UiThemePalette.REGISTERED) {
-      if (UiThemePalette.STANDARD.equals(palette)) continue;
+      // 莫奈是唯一例外：它的构建期色值就是标准色，运行时才由壁纸主色覆盖，
+      // 所以「各套静态调色板必须彼此不同」对它不成立；它只需要有独立 overlay，
+      // 让运行时的资源覆盖有确定的落点（见下面的 overlay 断言）。
+      if (UiThemePalette.STANDARD.equals(palette) || UiThemePalette.MONET.equals(palette)) continue;
       assertNotEquals(palette, standard, themed(false, palette).getColor(R.color.primary));
       assertNotEquals(0, ThemeController.paletteOverlay(palette));
     }
     assertEquals(0, ThemeController.paletteOverlay(UiThemePalette.STANDARD));
+    // 莫奈必须有独立 overlay：运行时资源覆盖靠它把 dsha_pal_* 指向 pal_monet_*，没有 overlay 就没有落点。
+    assertNotEquals(0, ThemeController.paletteOverlay(UiThemePalette.MONET));
   }
 
   @Test
