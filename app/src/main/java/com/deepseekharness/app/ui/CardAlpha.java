@@ -15,7 +15,6 @@ import java.util.concurrent.Executors;
 import androidx.core.content.ContextCompat;
 
 import com.deepseekharness.app.R;
-import com.deepseekharness.app.core.ConfigStore;
 
 /**
  * 卡片不透明度：把「外观背景 → 不透明度」应用到**每一个**内容卡片上（全 App，不只是二级页）。
@@ -123,10 +122,36 @@ public final class CardAlpha {
   private static final String PROBE_NAME = "card-alpha.txt";
   private static final ExecutorService PROBE_IO = Executors.newSingleThreadExecutor();
 
+  /**
+   * 卡片不透明度的存取。
+   *
+   * <p><b>故意不放在 {@code core/ConfigStore}</b>：那个文件属于受管启动器输入
+   * （{@code runtime-descriptor.json} 的 {@code launcherInputs} 按字节校验），改一个字节
+   * 就会换 {@code runtimeId}，让已经装好的环境被判成「不是当前候选」，触发 1.4 GB 全量
+   * 重装 —— UI-only 的改动不该动运行时。这里用独立的偏好文件，与外观配置分开。
+   */
+  private static final String PREFS = "dsh-appearance";
+  private static final String KEY_ALPHA = "card_alpha";
+  private static final float DEFAULT_ALPHA = 0.27f;
+
+  /** 1 = 完全不透明；默认 0.27，超出 0.2~1.0 一律回落默认。 */
+  public static float cardAlpha(Context context) {
+    if (context == null) return DEFAULT_ALPHA;
+    float value =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat(KEY_ALPHA, DEFAULT_ALPHA);
+    return value < 0.2f || value > 1f ? DEFAULT_ALPHA : value;
+  }
+
+  public static void setCardAlpha(Context context, float value) {
+    if (context == null) return;
+    float clamped = value < 0.2f ? 0.2f : Math.min(value, 1f);
+    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putFloat(KEY_ALPHA, clamped).apply();
+  }
+
   /** 按当前设置刷整棵树，并给每个 ViewGroup 挂「新子 View 补刷」监听。 */
   public static void apply(View root) {
     if (root == null) return;
-    int value = Math.round(clamp(new ConfigStore(root.getContext()).getCardAlpha()) * 255f);
+    int value = Math.round(clamp(cardAlpha(root.getContext())) * 255f);
     walk(root, value, cardStates(root.getContext()));
     watch(root);
     probeChrome(root, value);

@@ -76,9 +76,6 @@ public final class Constants {
   /** 屏幕常亮：仅本机 UI 行为，默认关闭，不进入备份。 */
   public static final String KEY_KEEP_SCREEN_ON = "ui_keep_screen_on";
 
-  /** 页面卡片不透明度（1 = 完全不透明）：外观背景页可调，让壁纸从卡片后面透出来。 */
-  public static final String KEY_CARD_ALPHA = "card_alpha";
-
   /** 隐藏后台：从最近任务隐藏本应用任务；仅本机 UI 行为，默认关闭，不进入备份。 */
   public static final String KEY_HIDE_FROM_RECENTS = "hide_from_recents";
 

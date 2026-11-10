@@ -105,14 +105,14 @@ public class AppearanceActivity extends AppCompatActivity {
     // ① 卡片外观：白卡默认全不透明会盖住壁纸，这里让用户把卡片调透一点
     page.label("页面卡片");
     LinearLayout lookCard = page.card();
-    float currentAlpha = new com.deepseekharness.app.core.ConfigStore(this).getCardAlpha();
+    float currentAlpha = CardAlpha.cardAlpha(this);
     TextView cardAlphaLabel =
         page.text("不透明度：" + Math.round(currentAlpha * 100f) + "%", 12, R.color.text_secondary);
     lookCard.addView(cardAlphaLabel);
     SeekBar cardAlphaBar = new SeekBar(this);
     cardAlphaBar.setMax(80);
     cardAlphaBar.setProgress(
-        Math.round((new com.deepseekharness.app.core.ConfigStore(this).getCardAlpha() - 0.2f) * 100f));
+        Math.round((CardAlpha.cardAlpha(this) - 0.2f) * 100f));
     cardAlphaBar.setOnSeekBarChangeListener(
         new SeekBar.OnSeekBarChangeListener() {
           @Override
@@ -127,8 +127,7 @@ public class AppearanceActivity extends AppCompatActivity {
 
           @Override
           public void onStopTrackingTouch(SeekBar bar) {
-            new com.deepseekharness.app.core.ConfigStore(AppearanceActivity.this)
-                .setCardAlpha(0.2f + bar.getProgress() / 100f);
+            CardAlpha.setCardAlpha(AppearanceActivity.this, 0.2f + bar.getProgress() / 100f);
           }
         });
     lookCard.addView(cardAlphaBar, new LinearLayout.LayoutParams(-1, -2));
