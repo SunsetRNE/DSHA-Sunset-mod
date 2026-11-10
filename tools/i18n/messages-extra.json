@@ -16026,5 +16026,37 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
     ]
+  },
+  {
+    "id": "thm267c09",
+    "zh": "莫奈：已从壁纸取色",
+    "en": "Monet: colors picked from the wallpaper",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c10",
+    "zh": "莫奈：这张壁纸没有足够彩色，暂用经典蓝",
+    "en": "Monet: this wallpaper has too little color; using Classic blue for now",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c11",
+    "zh": "重新取色",
+    "en": "Pick colors again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
+  },
+  {
+    "id": "thm267c12",
+    "zh": "已重新取色",
+    "en": "Colors picked again",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ThemeActivity.java"
+    ]
   }
 ]

@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.util.ThemeMotion;
@@ -72,6 +73,13 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
       note.setLineSpacing(page.dp(2), 1);
       note.setPadding(0, page.dp(10), 0, page.dp(4));
       palettes.addView(note);
+      // 莫奈的两个交互点只在选中莫奈时出现：取色结果与重取入口对别的配色都没有意义。
+      if (monetSelected()) {
+        TextView state = page.text(monetState(), 12, R.color.shell_text_muted);
+        state.setLineSpacing(page.dp(2), 1);
+        palettes.addView(state);
+        page.button(palettes, UiText.text("重新取色"), false, this::repickColors);
+      }
     }
 
     page.label(UiText.text("切换动画"));
@@ -194,6 +202,46 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
     };
   }
 
+  /** 当前配色是否为莫奈；两个莫奈专属交互点都按它决定是否出现在配色卡片里。 */
+  private boolean monetSelected() {
+    return com.deepseekharness.app.util.UiThemePalette.MONET.equals(
+        com.deepseekharness.app.util.UiThemePalette.normalize(ThemeController.palette(this)));
+  }
+
+  /**
+   * 莫奈状态说明：取到色与没取到色是两种完全不同的结果，必须当场说清楚。
+   *
+   * <p>没说清时用户只能看到色块颜色，分不出「取色生效」和「退回经典蓝兜底」。
+   */
+  private String monetState() {
+    return monetPicked() ? UiText.text("莫奈：已从壁纸取色") : UiText.text("莫奈：这张壁纸没有足够彩色，暂用经典蓝");
+  }
+
+  /**
+   * 本页只解码一次壁纸，状态说明与色块共用同一份结果。
+   *
+   * <p>分开各取一次的话，同一页里可能一边说「已从壁纸取色」一边画兜底色。
+   */
+  private boolean monetPicked() {
+    if (!monetLoaded) {
+      monet = MonetPalette.palette(this);
+      monetLoaded = true;
+    }
+    return monet != null;
+  }
+
+  /**
+   * 重新取色：壁纸换了但系统没有可靠的全局通知，只能让用户手动触发一次。
+   *
+   * <p>反馈用 Toast 而不是 announceForAccessibility：本页紧接着 recreate()，
+   * 挂在即将销毁的视图上的无障碍播报会被一起丢掉，Toast 属于系统窗口，能活到新页面出来。
+   */
+  private void repickColors() {
+    MonetPalette.invalidate();
+    Toast.makeText(this, UiText.text("已重新取色"), Toast.LENGTH_SHORT).show();
+    recreate();
+  }
+
   /**
    * 色块主色：莫奈优先用壁纸真实取色结果，取不到才退回资源兜底色。
    *
@@ -205,11 +253,7 @@ public final class ThemeActivity extends androidx.appcompat.app.AppCompatActivit
         com.deepseekharness.app.util.UiThemePalette.normalize(id))) {
       return getColor(ThemeController.paletteSwatch(id));
     }
-    if (!monetLoaded) {
-      monet = MonetPalette.palette(this);
-      monetLoaded = true;
-    }
-    if (monet != null) {
+    if (monetPicked()) {
       try {
         return android.graphics.Color.parseColor(
             com.deepseekharness.app.util.DynamicPalette.accent(

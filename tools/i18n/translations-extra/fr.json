@@ -1974,5 +1974,9 @@
   "x2100108": "Changer l'app par défaut",
   "x2100109": "Garder le défaut",
   "x2100110": "Réglages inaccessibles",
-  "thm267c08": "Monet"
+  "thm267c08": "Monet",
+  "thm267c09": "Monet : couleurs prises sur le fond d’écran",
+  "thm267c10": "Monet : ce fond d’écran manque de couleurs ; bleu classique utilisé pour l’instant",
+  "thm267c11": "Reprendre les couleurs",
+  "thm267c12": "Couleurs reprises"
 }
