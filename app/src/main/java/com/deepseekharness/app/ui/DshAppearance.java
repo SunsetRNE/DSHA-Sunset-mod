@@ -68,7 +68,8 @@ public final class DshAppearance {
   /** v2 = 只作用原生界面 + 显式背景层 + 遮罩；没有该字段的是 191~200 的旧配置。 */
   private static final int CONFIG_VERSION = 2;
 
-  private static final float DEFAULT_SCRIM = 0.35f;
+  /** 默认 45%：35% 在白底照片上几乎看不出遮罩（真机实测）。 */
+  private static final float DEFAULT_SCRIM = 0.45f;
   private static final float MAX_SCRIM = 0.9f;
 
   private static SoftReference<Bitmap> cachedBitmap;
@@ -177,7 +178,7 @@ public final class DshAppearance {
         spec = new Spec();
         spec.type = "image";
         spec.path = old.getAbsolutePath();
-        spec.scrim = 0.35f;
+        spec.scrim = DEFAULT_SCRIM;
       } else if (spec.isTransparent()) {
         Log.i(TAG, "legacy transparent config -> default");
         spec = new Spec();

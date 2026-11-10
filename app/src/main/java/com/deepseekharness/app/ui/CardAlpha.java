@@ -132,7 +132,8 @@ public final class CardAlpha {
    */
   private static final String PREFS = "dsh-appearance";
   private static final String KEY_ALPHA = "card_alpha";
-  private static final float DEFAULT_ALPHA = 0.27f;
+  /** 默认 50%：内置壁纸比补丁作者的淡得多，27% 时卡片只剩一道描边（build354 真机实测）。 */
+  private static final float DEFAULT_ALPHA = 0.50f;
 
   /** 1 = 完全不透明；默认 0.27，超出 0.2~1.0 一律回落默认。 */
   public static float cardAlpha(Context context) {
