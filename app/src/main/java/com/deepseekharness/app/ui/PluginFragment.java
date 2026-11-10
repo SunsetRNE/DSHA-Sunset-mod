@@ -1486,7 +1486,11 @@ public class PluginFragment extends Fragment {
       SwipeAction.Host host = SwipeAction.host(parent.getContext());
       View card =
           LayoutInflater.from(parent.getContext()).inflate(R.layout.item_plugin, host, false);
-      if (twoPane) card.setBackgroundResource(R.drawable.bg_plugin_card_selectable);
+      if (twoPane) {
+        card.setBackgroundResource(R.drawable.bg_plugin_card_selectable);
+        // 双栏卡片是代码里换的背景，ConstantState 认不出来，显式登记。
+        CardAlpha.markCard(card);
+      }
       host.setRow(card);
       host.setLayoutParams(
           new RecyclerView.LayoutParams(

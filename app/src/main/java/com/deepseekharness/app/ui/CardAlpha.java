@@ -175,6 +175,18 @@ public final class CardAlpha {
     context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putFloat(KEY_ALPHA, clamped).apply();
   }
 
+  /**
+   * 显式把一张卡登记进来（在代码里 setBackgroundResource 出来的卡片，ConstantState 常对不上，
+   * 靠这个 tag 才认得出）：打标 + 立刻按当前设置刷一次。
+   */
+  public static void markCard(View view) {
+    if (view == null) return;
+    view.setTag(R.id.tag_card_alpha, Boolean.TRUE);
+    int value = Math.round(clamp(cardAlpha(view.getContext())) * 255f);
+    paint(view, value);
+    watch(view);
+  }
+
   /** 按当前设置刷整棵树，并给每个 ViewGroup 挂「新子 View 补刷」监听。 */
   public static void apply(View root) {
     if (root == null) return;
