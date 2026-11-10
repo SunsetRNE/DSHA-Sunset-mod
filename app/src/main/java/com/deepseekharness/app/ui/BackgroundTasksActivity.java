@@ -74,9 +74,10 @@ public final class BackgroundTasksActivity extends AppCompatActivity {
     super.onCreate(saved);
     String pageTitle = t("后台任务", "Background tasks");
     LinearLayout root = TransferUi.vertical(this);
-    root.setBackgroundColor(getColor(R.color.shell_bg));
+    root.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     androidx.core.view.ViewCompat.setAccessibilityPaneTitle(root, pageTitle);
     setContentView(root);
+    DshAppearance.apply(this, "app", null);
 
     LinearLayout header = TransferUi.horizontal(this);
     header.setMinimumHeight(dp(60));
@@ -444,6 +445,7 @@ public final class BackgroundTasksActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    DshAppearance.apply(this, "app", null);
     handler.removeCallbacks(refresh);
     handler.post(refresh);
   }

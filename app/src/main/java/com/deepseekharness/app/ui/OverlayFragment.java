@@ -48,7 +48,8 @@ public final class OverlayFragment extends Fragment {
         new CardPage(
             requireContext(),
             UiText.choose("悬浮条", "Floating status"),
-            UiText.choose("在其他应用中，轻量查看任务进展。", "Follow progress while using other apps."));
+            UiText.choose("在其他应用中，轻量查看任务进展。", "Follow progress while using other apps."))
+            .transparentRoot();
 
     // 1. 总开关 + 权限状态（未授权时可点去开启）。
     LinearLayout top = ui.card();

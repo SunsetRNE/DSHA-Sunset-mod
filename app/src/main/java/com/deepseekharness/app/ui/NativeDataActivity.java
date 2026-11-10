@@ -199,7 +199,7 @@ public final class NativeDataActivity extends AppCompatActivity {
                             "Verify backup contents before confirming what to restore.")
                         : t(
                             "运行环境不可用时，也能检查并保护可读取的数据。",
-                            "Inspect and protect readable data even when the runtime is unavailable."));
+                            "Inspect and protect readable data even when the runtime is unavailable.")).transparentRoot();
     UiNavigation.addHeader(this, page.root, title, this::finish);
 
     // 恢复向导：恢复页常驻；其他页在选中备份后出现，与原弹窗流程共用同一组作业。
@@ -253,6 +253,7 @@ public final class NativeDataActivity extends AppCompatActivity {
             page.footer, t("取消当前作业", "Cancel current operation"), false, () -> jobs.cancel());
     cancelOperation.setVisibility(View.GONE);
     setContentView(page.root);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     renderWizard();
 

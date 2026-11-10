@@ -31,7 +31,7 @@ public final class AgentTasksActivity extends AppCompatActivity {
   @Override
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
-    page = new CardPage(this, UiText.choose("Agent 任务", "Agent tasks"), UiText.text("查看与停止任务"));
+    page = new CardPage(this, UiText.choose("Agent 任务", "Agent tasks"), UiText.text("查看与停止任务")).transparentRoot();
     // 摘要进页首，完整说明点开 ⓘ（审计 D-06）。
     InfoHint.bind(
         page.subtitle,
@@ -44,6 +44,7 @@ public final class AgentTasksActivity extends AppCompatActivity {
     page.content.removeViewAt(0);
     tasks = page.content;
     setContentView(page.root);
+    DshAppearance.apply(this, "app", null);
   }
 
   @Override

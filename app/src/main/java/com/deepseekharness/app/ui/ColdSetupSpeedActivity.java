@@ -30,8 +30,9 @@ public final class ColdSetupSpeedActivity extends androidx.appcompat.app.AppComp
               }
             });
     // 2026-11-01 压缩：长说明拆成三条要点，结果单独成卡（原型见 docs/design/install-env-20261101）。
-    CardPage page = new CardPage(this, UiText.choose("首次安装测速", "First-install timing"), null);
+    CardPage page = new CardPage(this, UiText.choose("首次安装测速", "First-install timing"), null).transparentRoot();
     setContentView(page.root);
+    DshAppearance.apply(this, "app", null);
     LinearLayout facts = page.card();
     fact(page, facts, R.drawable.ic_ui2_box, UiText.text("在独立目录执行首次安装，现有环境不变"));
     fact(page, facts, R.drawable.ic_onb_info, UiText.text("开始时会正常停止 DSH 和终端"));

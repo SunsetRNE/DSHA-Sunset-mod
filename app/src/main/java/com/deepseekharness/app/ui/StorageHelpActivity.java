@@ -25,7 +25,7 @@ public final class StorageHelpActivity extends AppCompatActivity {
     super.onCreate(saved);
     page =
         new CardPage(
-            this, UiText.text("存储、备份与重建说明"), UiText.text("先看保留范围，再选择操作。打开本页不会修改文件或停止 DSH。"));
+            this, UiText.text("存储、备份与重建说明"), UiText.text("先看保留范围，再选择操作。打开本页不会修改文件或停止 DSH。")).transparentRoot();
     UiNavigation.addHeader(this, page.root, UiText.text("存储、备份与重建说明"), this::finish);
     page.content.removeViewAt(0);
     page.root.removeView(page.footer);
@@ -113,6 +113,7 @@ public final class StorageHelpActivity extends AppCompatActivity {
     // 问答式：默认只展开第一组，其余点标题展开；内容与原说明逐字相同。
     for (int i = 1; i < sections.size(); i++) setExpanded(sections.get(i), false);
     setContentView(page.root);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
   }
 

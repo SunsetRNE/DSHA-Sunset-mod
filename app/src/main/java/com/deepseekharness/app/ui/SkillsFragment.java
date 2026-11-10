@@ -189,7 +189,7 @@ public final class SkillsFragment extends Fragment {
     model = new ViewModelProvider(this).get(Model.class);
     if (saved != null) selected = saved.getString(STATE_SELECTED);
     Context ctx = requireContext();
-    ui = new CardPage(ctx, t("技能", "Skills"), "");
+    ui = new CardPage(ctx, t("技能", "Skills"), "").transparentRoot();
     // 页首一句话，导入规则与存放位置收进 ⓘ。
     TextView hint = ui.text("", 13, R.color.shell_text_secondary);
     hint.setPadding(0, 0, 0, ui.dp(14));

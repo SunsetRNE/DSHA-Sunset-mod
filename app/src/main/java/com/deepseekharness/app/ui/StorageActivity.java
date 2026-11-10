@@ -31,7 +31,7 @@ public final class StorageActivity extends AppCompatActivity {
     super.onCreate(saved);
     page =
         new CardPage(
-            this, t("存储与文件", "Storage and files"), t("空间占用与清理", "Storage usage and cleanup"));
+            this, t("存储与文件", "Storage and files"), t("空间占用与清理", "Storage usage and cleanup")).transparentRoot();
     // 摘要进页首，完整说明点开 ⓘ（审计 D-06）。
     InfoHint.bind(
         page.subtitle,
@@ -94,6 +94,7 @@ public final class StorageActivity extends AppCompatActivity {
                     .show());
     refresh = page.button(page.footer, t("重新统计", "Refresh sizes"), false, () -> load(false));
     setContentView(page.root);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     load(false);
   }

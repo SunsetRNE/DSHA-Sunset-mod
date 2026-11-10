@@ -63,7 +63,7 @@ public final class RetainedDataActivity extends AppCompatActivity {
         new CardPage(
             this,
             t("保留副本与旧环境", "Retained copies and old environments"),
-            t("只读副本与旧环境", "Read-only copies"));
+            t("只读副本与旧环境", "Read-only copies")).transparentRoot();
     // 摘要进页首，完整说明展开后创建（替代 ⓘ，审计 D-06）。
     DisclosureCard.Model disclosureModel = new DisclosureCard.Model();
     disclosureModel.key = "retained-subtitle";
@@ -109,6 +109,7 @@ public final class RetainedDataActivity extends AppCompatActivity {
       selectionBar.update(model.selected.size());
     }
     setContentView(shell.root);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     report = new TextView(this);
     report.setTextColor(getColor(R.color.shell_text_secondary));

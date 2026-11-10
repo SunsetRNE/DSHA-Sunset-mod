@@ -58,7 +58,7 @@ public final class AutomaticBackupActivity extends AppCompatActivity {
             t("自动备份", "Automatic backups"),
             t(
                 "默认开启。备份对话、附件、配置和插件；不重复备份 Ubuntu。个人项目请使用手动备份。",
-                "On by default. Saves conversations, attachments, settings and plugins, without copying Ubuntu. Use manual backup for personal projects."));
+                "On by default. Saves conversations, attachments, settings and plugins, without copying Ubuntu. Use manual backup for personal projects.")).transparentRoot();
     UiNavigation.addHeader(this, page.root, t("自动备份", "Automatic backups"), this::finish);
     // 页首只留「默认开启」这一句；备份范围、不重复 Ubuntu 与手动备份建议收进 ⓘ。
     InfoHint.attach(page.subtitle, t("自动备份", "Automatic backups"));
@@ -198,6 +198,7 @@ public final class AutomaticBackupActivity extends AppCompatActivity {
         });
     page.button(page.footer, t("刷新备份记录", "Refresh backup records"), false, this::refresh);
     setContentView(page.root);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     refresh();
   }

@@ -242,8 +242,9 @@ public final class FileTransfersActivity extends AppCompatActivity
 
   private void buildLayout() {
     LinearLayout root = TransferUi.vertical(this);
-    root.setBackgroundColor(getColor(R.color.shell_bg));
+    root.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     setContentView(root);
+    DshAppearance.apply(this, "app", null);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     LinearLayout header = TransferUi.horizontal(this);
     header.setMinimumHeight(dp(60));
