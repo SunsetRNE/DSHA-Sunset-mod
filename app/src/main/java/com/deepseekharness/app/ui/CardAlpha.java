@@ -86,6 +86,9 @@ public final class CardAlpha {
     // 245：rc.3 的 v5 外壳（shell_* token）也要跟同一个不透明度走，
     // 否则新 UI 的卡片是实心白，壁纸只能在页边露一条，看着像没生效。
     R.drawable.bg_shell_card,
+    // H1 的 FILLED 层级用的是 shell_raised 底（蓝灰），之前漏在集合外：既不透、颜色也和
+    // 其它卡片不是一套。补进来让三级皮肤走同一个不透明度与同一套卡面色。
+    R.drawable.bg_shell_card_filled,
     R.drawable.bg_shell_launch_card,
     R.drawable.bg_shell_status
   };
@@ -132,8 +135,11 @@ public final class CardAlpha {
    */
   private static final String PREFS = "dsh-appearance";
   private static final String KEY_ALPHA = "card_alpha";
-  /** 默认 50%：内置壁纸比补丁作者的淡得多，27% 时卡片只剩一道描边（build354 真机实测）。 */
-  private static final float DEFAULT_ALPHA = 0.50f;
+  /**
+   * 默认 68%：内置浅色壁纸下半段是淡蓝紫，50% 的白卡压不住它，整片看着发灰发青
+   * （build354 真机实测）；68% 仍能透出壁纸渐层，但卡片读起来是白的。
+   */
+  private static final float DEFAULT_ALPHA = 0.68f;
 
   /** 1 = 完全不透明；默认 0.27，超出 0.2~1.0 一律回落默认。 */
   public static float cardAlpha(Context context) {

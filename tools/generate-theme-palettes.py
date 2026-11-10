@@ -55,7 +55,10 @@ STANDARD = {
     'terminal_tile': ('#F1F4F9', '#141B25'), 'terminal_tile_pressed': ('#E6EBF3', '#1B2431'),
     # 壁纸三明治：页面兜底底色（无壁纸时的最底层）、卡片玻璃、顶栏/底栏玻璃。
     # alpha 是「字要读得清」定下来的：71% / 86%，与 DSHA-Mod UI 补丁 rc3 一致。
-    'page_bg': ('#F2F5FA', '#0B0E13'), 'card_glass': ('#B5F6F7F9', '#B5111214'),
+    'page_bg': ('#F2F5FA', '#0B0E13'),
+    # 卡片玻璃 = 调色板的 card 色 + 71% alpha：和实心卡片（@color/card）同色，不再出现
+    # 「一种死白 + 一种灰青」；rehue 会跟着 5 套调色板走。
+    'card_glass': ('#B5FCFDFF', '#B5131923'),
     'appbar_glass': ('#DBFFFFFF', '#DB000000'),
 }
 
