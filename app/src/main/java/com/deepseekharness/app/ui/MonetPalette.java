@@ -28,6 +28,11 @@ public final class MonetPalette {
   /** 采样边长：够稳定又够快，见类注释。 */
   private static final int SAMPLE_SIZE = 48;
 
+  /** 进程内缓存：每个 Activity 创建都解一次壁纸会让冷启动明显变慢，而壁纸几乎不变。 */
+  private static String[][] cached;
+
+  private static boolean cacheKnown;
+
   private MonetPalette() {}
 
   /** 读壁纸并取色；无壁纸、无彩色或 ROM 拒绝访问时返回 null。 */
@@ -55,9 +60,26 @@ public final class MonetPalette {
    * <p>推导用的是与构建期生成器同一套算法，所以结果一定满足对比度门禁，不需要二次校正。
    */
   public static String[][] palette(Context context) {
+    if (cacheKnown) return cached;
+    cacheKnown = true;
     PaletteSeedExtractor.Seed seed = readSeed(context);
-    if (seed == null || !seed.found) return null;
-    return DynamicPalette.deriveWithinReach(seed.hue, seed.saturation);
+    cached =
+        seed == null || !seed.found
+            ? null
+            : DynamicPalette.deriveWithinReach(seed.hue, seed.saturation);
+    return cached;
+  }
+
+  /**
+   * 丢掉缓存：换壁纸或用户手动「重新取色」后，必须让下一次应用真的重新解码。
+   *
+   * <p>壁纸变化在 Android 上没有可靠的全局回调（不同 ROM 广播时机不一），所以在应用回到前台
+   * 或用户点重取时显式失效，比监听广播更可控。
+   */
+  static void invalidate() {
+    cacheKnown = false;
+    cached = null;
+    ThemePaletteOverride.invalidate();
   }
 
   private static Bitmap toSample(Drawable wallpaper) {

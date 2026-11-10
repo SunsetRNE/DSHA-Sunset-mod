@@ -127,6 +127,11 @@ public final class ThemeController {
     public void onActivityPreCreated(Activity activity, Bundle saved) {
       String palette = palette(activity);
       applied.put(activity, palette);
+      // 莫奈：先把取色结果写进 pal_monet_*，再叠加 overlay。顺序反了，attr 会先解析到兜底色，
+      // 本页就停在标准蓝上直到下次重建。
+      if (UiThemePalette.MONET.equals(palette)) {
+        ThemePaletteOverride.apply(activity, MonetPalette.palette(activity));
+      }
       applyPalette(activity.getTheme(), palette);
     }
 
