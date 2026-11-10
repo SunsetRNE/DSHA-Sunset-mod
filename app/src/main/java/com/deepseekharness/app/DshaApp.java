@@ -261,8 +261,11 @@ public class DshaApp extends Application
     // happens-before 保证（可能长期读到旧值或看见半写入状态），而该文件不在本任务改动范围内，
     // 所以取「主线程延迟预热」这个折中：慢一点但零竞态，2 秒后首屏已画完，这点耗时不构成 jank。
     // 预热只是优化不是功能路径：任何异常静默放弃，真正使用时照常取色；非莫奈调色板不付解码开销。
-    if (com.deepseekharness.app.util.UiThemePalette.MONET.equals(
-        com.deepseekharness.app.ui.ThemeController.palette(this))) {
+    // 单元测试环境（Robolectric，FINGERPRINT 固定为 robolectric）不排这个延迟任务：它会跨测试
+    // 留一个 pending 的 Handler 消息，而这些测试并非为「启动后有延迟任务」设计的。
+    if (!android.os.Build.FINGERPRINT.startsWith("robolectric")
+        && com.deepseekharness.app.util.UiThemePalette.MONET.equals(
+            com.deepseekharness.app.ui.ThemeController.palette(this))) {
       new android.os.Handler(android.os.Looper.getMainLooper())
           .postDelayed(
               () -> {

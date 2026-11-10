@@ -182,6 +182,24 @@ public final class ThemePaletteOverride {
    */
   static void invalidate() {}
 
+  /**
+   * 清空进程级覆盖登记，主要给测试用。
+   *
+   * <p>登记表是 static，Robolectric 在同一 sandbox 内跨测试类共享它；上一个测试留下的
+   * 「某 Resources 已装某份配色」会被下一个测试当成事实，测试之间就不再独立。生产代码
+   * 不需要调用（覆盖按 Resources 实例自动失效，旧实例被回收后登记由 WeakHashMap 清掉）。
+   */
+  static void resetForTest() {
+    for (Installed entry : installed.values()) {
+      try {
+        entry.provider.close();
+      } catch (Throwable ignored) {
+        // 清理阶段的关闭失败不影响测试判定。
+      }
+    }
+    installed.clear();
+  }
+
   private static int[] colorIds() throws IllegalAccessException, NoSuchFieldException {
     int[] ids = new int[DynamicPalette.NAMES.length];
     for (int index = 0; index < ids.length; index++) {

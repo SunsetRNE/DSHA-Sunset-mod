@@ -39,6 +39,20 @@ public final class MonetPalette {
    */
   private static int cachedWallpaperId;
 
+  /**
+   * 丢掉全部进程级缓存，主要给测试用。
+   *
+   * <p>为什么需要它：缓存是 static，Robolectric 在同一 sandbox 内跨测试类共享这些字段，
+   * 一个测试留下的「已缓存 = 某张壁纸的结果」会被下一个测试当成自己的缓存命中，测试之间
+   * 就不再互相独立。生产代码不需要调用它。
+   */
+  static void resetCacheForTest() {
+    cached = null;
+    cacheKnown = false;
+    cachedWallpaperId = 0;
+    ThemePaletteOverride.resetForTest();
+  }
+
   private MonetPalette() {}
 
   /** 读壁纸并取色；无壁纸、无彩色或 ROM 拒绝访问时返回 null。 */
