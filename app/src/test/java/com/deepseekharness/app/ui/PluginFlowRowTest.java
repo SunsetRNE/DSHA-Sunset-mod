@@ -100,4 +100,25 @@ public final class PluginFlowRowTest {
     assertEquals("RTL：首项靠右", 200, a.getLeft());
     assertEquals("RTL：末项贴行尾（左侧）", 0, b.getLeft());
   }
+
+  private PluginFlowRow rowWithPackStart(boolean packStart) {
+    android.util.AttributeSet attrs =
+        org.robolectric.Robolectric.buildAttributeSet()
+            .addAttribute(com.deepseekharness.app.R.attr.flowGapHorizontal, "8dp")
+            .addAttribute(com.deepseekharness.app.R.attr.flowGapVertical, "6dp")
+            .addAttribute(com.deepseekharness.app.R.attr.flowPackStart, String.valueOf(packStart))
+            .build();
+    return new PluginFlowRow(RuntimeEnvironment.getApplication(), attrs);
+  }
+
+  @Test
+  public void flowPackStartKeepsLastChildCompactInsteadOfPinningToEnd() {
+    PluginFlowRow row = rowWithPackStart(true);
+    assertTrue(row.isPackStart());
+    View a = child(row, 60, 30);
+    View b = child(row, 60, 30);
+    layout(row, 320);
+    assertEquals(0, a.getLeft());
+    assertEquals("packStart 下末项紧跟上一项，不贴行尾", 68, b.getLeft());
+  }
 }

@@ -174,4 +174,44 @@ public final class UiMotionTest {
     UiMotion.crossFadeTextColor(view, target);
     assertEquals(target, view.getCurrentTextColor());
   }
+
+  @Test
+  public void pressScaleAnimatesAndRestoresOnRelease() {
+    TextView view = view("按钮");
+    UiMotion.pressScale(view);
+    android.view.MotionEvent down =
+        android.view.MotionEvent.obtain(0, 0, android.view.MotionEvent.ACTION_DOWN, 0f, 0f, 0);
+    assertFalse("pressScale 不吞触摸事件", view.dispatchTouchEvent(down));
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idleFor(Duration.ofMillis(200));
+    assertEquals(0.985f, view.getScaleX(), 0.001f);
+    assertEquals(0.985f, view.getScaleY(), 0.001f);
+    android.view.MotionEvent up =
+        android.view.MotionEvent.obtain(0, 0, android.view.MotionEvent.ACTION_UP, 0f, 0f, 0);
+    assertFalse(view.dispatchTouchEvent(up));
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idleFor(Duration.ofMillis(200));
+    assertEquals(1f, view.getScaleX(), 0.001f);
+    assertEquals(1f, view.getScaleY(), 0.001f);
+  }
+
+  @Test
+  public void pressScaleFallsBackToStaticWhenAnimationsDisabled() {
+    animationScales(0f);
+    TextView view = view("按钮");
+    UiMotion.pressScale(view);
+    android.view.MotionEvent down =
+        android.view.MotionEvent.obtain(0, 0, android.view.MotionEvent.ACTION_DOWN, 0f, 0f, 0);
+    assertFalse(view.dispatchTouchEvent(down));
+    assertEquals(1f, view.getScaleX(), 0.001f);
+  }
+
+  @Test
+  public void pressScaleDoesNotAnimateWhenViewDisabled() {
+    TextView view = view("禁用按钮");
+    view.setEnabled(false);
+    UiMotion.pressScale(view);
+    android.view.MotionEvent down =
+        android.view.MotionEvent.obtain(0, 0, android.view.MotionEvent.ACTION_DOWN, 0f, 0f, 0);
+    assertFalse(view.dispatchTouchEvent(down));
+    assertEquals(1f, view.getScaleX(), 0.001f);
+  }
 }

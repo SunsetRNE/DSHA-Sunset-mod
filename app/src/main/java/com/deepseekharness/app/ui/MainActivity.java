@@ -523,8 +523,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     TextView title = findViewById(R.id.app_title);
-    findViewById(R.id.sub_back)
-        .setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+    android.view.View subBack = findViewById(R.id.sub_back);
+    subBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+    UiMotion.pressScale(subBack);
     getSupportFragmentManager().addOnBackStackChangedListener(this::updateToolbar);
     getSupportFragmentManager()
         .registerFragmentLifecycleCallbacks(
@@ -541,6 +542,7 @@ public class MainActivity extends AppCompatActivity {
     quickEntries.setContentDescription(com.deepseekharness.app.util.UiText.text("关于 DSHA"));
     ((android.widget.ImageView) quickEntries.getChildAt(0)).setImageResource(R.drawable.ic_about);
     quickEntries.setOnClickListener(v -> AboutDialog.show(this));
+    UiMotion.pressScale(quickEntries);
 
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     shellRail = findViewById(R.id.shell_rail);

@@ -1,57 +1,224 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 访问地址弹窗：正文可选中，三个操作按钮横向平铺、关闭固定在最右。 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 访问地址弹窗：采用双卡片分区（本机访问 + 局域网访问）与双层防折行操作按钮。
+     外层由 BoundedDialogLayout 约束最大高度并在短屏/大字体下通过 ScrollView 滚动内容，
+     底部三个操作按钮固定在滚动区之外，确保始终完整可见可点。 -->
+<com.deepseekharness.app.ui.BoundedDialogLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingStart="20dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="20dp"
-    android:paddingBottom="4dp">
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/access_body"
+    <ScrollView
+        android:id="@+id/access_scroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:includeFontPadding="false"
-        android:lineSpacingExtra="3dp"
-        android:textIsSelectable="true"
-        android:textSize="13sp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="false"
+        android:overScrollMode="ifContentScrolls">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="12dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:lineSpacingExtra="2dp"
+                android:tag="access_subtitle"
+                android:textColor="@color/shell_text_muted"
+                android:textSize="12sp" />
+
+            <!-- 卡片 1：本机访问 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_onb_tile"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_ui_link"
+                        app:tint="@color/shell_accent" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:includeFontPadding="false"
+                        android:tag="local_title"
+                        android:textColor="@color/shell_text"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_onb_pill_good"
+                        android:includeFontPadding="false"
+                        android:paddingStart="8dp"
+                        android:paddingTop="3dp"
+                        android:paddingEnd="8dp"
+                        android:paddingBottom="3dp"
+                        android:tag="local_badge"
+                        android:textColor="@color/shell_good"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_onb_status_box"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="10dp">
+
+                    <TextView
+                        android:id="@+id/access_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:includeFontPadding="false"
+                        android:lineSpacingExtra="3dp"
+                        android:textColor="@color/shell_text"
+                        android:textIsSelectable="true"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:includeFontPadding="false"
+                    android:tag="local_meta"
+                    android:textColor="@color/shell_text_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- 卡片 2：局域网访问 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_onb_tile"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_section_network"
+                        app:tint="@color/shell_text_secondary" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:includeFontPadding="false"
+                        android:tag="lan_title"
+                        android:textColor="@color/shell_text"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_onb_pill_neutral"
+                        android:includeFontPadding="false"
+                        android:paddingStart="8dp"
+                        android:paddingTop="3dp"
+                        android:paddingEnd="8dp"
+                        android:paddingBottom="3dp"
+                        android:tag="lan_badge"
+                        android:textColor="@color/shell_text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:includeFontPadding="false"
+                    android:lineSpacingExtra="3dp"
+                    android:tag="lan_body"
+                    android:textColor="@color/shell_text_secondary"
+                    android:textIsSelectable="true"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 底部操作区：固定在滚动容器外部，按钮尺寸引用主题阶梯，不折行 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:baselineAligned="false"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/access_lan_toggle"
-            style="@style/ShellLaunchPillButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:textSize="12sp" />
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="16dp">
 
         <Button
             android:id="@+id/access_copy"
-            style="@style/ShellLaunchPillButton"
-            android:layout_width="0dp"
+            style="@style/ShellLaunchPrimary"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:textSize="12sp" />
+            android:minHeight="@dimen/shell_launch_primary_height"
+            android:singleLine="true" />
 
-        <Button
-            android:id="@+id/access_close"
-            style="@style/ShellLaunchPillButton"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:textSize="12sp" />
+            android:layout_marginTop="10dp"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/access_lan_toggle"
+                style="@style/ShellLaunchSecondary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/shell_launch_secondary_height"
+                android:layout_weight="1"
+                android:singleLine="true" />
+
+            <Button
+                android:id="@+id/access_close"
+                style="@style/ShellLaunchSecondary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/shell_launch_secondary_height"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:singleLine="true" />
+        </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+</com.deepseekharness.app.ui.BoundedDialogLayout>

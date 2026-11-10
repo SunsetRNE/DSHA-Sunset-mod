@@ -1978,5 +1978,15 @@
   "x2100201": "Autoriser l'entrée ?",
   "x2100202": "Autoriser l'entrée",
   "x2100203": "L'assistant d'écran physique peut contourner l'accessibilité, capturer l'écran et injecter des appuis, balayages et touches pendant la tâche de téléphone en cours — pour les jeux et autres interfaces dessinées par l'application.\n\nDésactivé par défaut et révocable à tout moment. Les actions exigent aussi l'autorisation de contrôle d'écran pour l'application cible ; les écrans de mot de passe, de paiement et de sécurité système sont toujours refusés. La phase expérimentale ne garantit que le canal root.",
-  "x2100204": "Échec de l'enregistrement"
+  "x2100204": "Échec de l'enregistrement",
+  "x2100211": "Déboguer dans le navigateur local ou partager l’espace de travail sur un réseau local approuvé",
+  "x2100212": "Accessible uniquement en local · Le lien contient les identifiants de cette session",
+  "x2100213": "Pas prêt",
+  "x2100214": "Mot de passe requis",
+  "x2100215": "En attente",
+  "x2100216": "Non écouté",
+  "x2100217": "Adresse restreinte",
+  "x2100218": "Échec de l’interface",
+  "x2100219": "IPv6 uniquement",
+  "x2100220": "Pas de réseau local"
 }

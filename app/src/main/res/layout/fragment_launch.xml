@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <!--
-  启动主页（UI v5 方案 A）：顶部语境 → 大标题 + 说明 + 主操作（右侧插图，仅 ≥600dp）→
-  三段就绪轨道（无卡片，上下分隔线）→ 快捷入口 / 启动日志（内容宽度 ≥760dp 时左右并排）。
+  启动主页（UI v5 方案 A）：顶部语境 → 大标题 + 说明 + 状态胶囊组 + 活动轨道 + 主操作（右侧插图，仅 ≥600dp）→
+  快捷入口 / 启动日志（内容宽度 ≥760dp 时左右并排）。
   启动日志区按 docs/design/launch-log-20261101 压缩：概览分阶段 + 原始视图。
   - 所有状态文案与可见性仍由 LaunchFragment 按真实运行状态写入；保留全部既有 id。
-  - launch_activity 必须紧跟 launch_subtitle、位于 launch_actions 内（单测锁定）。
+  - launch_activity 必须紧跟 launch_metrics、位于 launch_actions 内（subtitle → launch_metrics → launch_activity，单测锁定）。
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/shell_bg">
 
@@ -25,14 +25,33 @@
 
           <TextView android:id="@+id/launch_run_state" style="@style/ShellLaunchTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityHeading="true" android:accessibilityLiveRegion="polite" android:text="@string/ui2_stopped" />
 
-          <TextView android:id="@+id/launch_subtitle" style="@style/ShellLaunchDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="@string/ui2_launch_hint" />
+          <TextView android:id="@+id/launch_subtitle" style="@style/ShellLaunchDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/ui2_launch_hint" />
+
+          <!-- 方案 A：置于 Hero 版本号下方的只读状态胶囊组（运行环境 / 工作台 / 端口）。 -->
+          <com.deepseekharness.app.ui.PluginFlowRow android:id="@+id/launch_metrics" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" app:flowGapHorizontal="6dp" app:flowGapVertical="6dp" app:flowPackStart="true">
+
+            <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="wrap_content" android:layout_height="wrap_content">
+              <TextView style="@style/ShellLaunchRailLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui2_environment" />
+              <TextView android:id="@+id/launch_environment" style="@style/ShellLaunchRailValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_status_unavailable" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="wrap_content" android:layout_height="wrap_content">
+              <TextView style="@style/ShellLaunchRailLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui2_workspace" />
+              <TextView android:id="@+id/launch_workbench" style="@style/ShellLaunchRailValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_status_unavailable" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="wrap_content" android:layout_height="wrap_content">
+              <TextView style="@style/ShellLaunchRailLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui2_port" />
+              <TextView android:id="@+id/launch_port" style="@style/ShellLaunchRailValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_status_unavailable" />
+            </LinearLayout>
+          </com.deepseekharness.app.ui.PluginFlowRow>
 
           <com.deepseekharness.app.ui.ShellActivityTrack android:id="@+id/launch_activity" android:layout_width="match_parent" android:layout_height="@dimen/shell_launch_activity_height" android:layout_marginTop="14dp" android:importantForAccessibility="no" />
 
           <TextView android:id="@+id/launch_status" style="@style/ShellLaunchMeta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:accessibilityLiveRegion="polite" android:text="" android:visibility="gone" />
 
           <!-- 主操作 + 轻量重启 / 停止；窄屏由 LaunchFragment 改为主操作独占一行。图标为矢量资源，不再把符号写进文案。 -->
-          <LinearLayout android:id="@+id/launch_controls" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:gravity="center_vertical" android:orientation="horizontal">
+          <LinearLayout android:id="@+id/launch_controls" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:gravity="center_vertical" android:orientation="horizontal">
             <com.google.android.material.button.MaterialButton android:id="@+id/launch_start" app:icon="@drawable/ic_launch_start" style="@style/ShellLaunchPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="180dp" android:paddingStart="24dp" android:paddingEnd="24dp" android:text="@string/ui2_start" />
             <LinearLayout android:id="@+id/launch_quiet_controls" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:gravity="center_vertical" android:orientation="horizontal">
               <com.google.android.material.button.MaterialButton android:id="@+id/launch_open" app:icon="@drawable/ic_plugin_restart" style="@style/ShellLaunchQuiet" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui2_restart" />
@@ -48,34 +67,6 @@
             <ImageView android:layout_width="34dp" android:layout_height="34dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_terminal" app:tint="@color/shell_accent" />
           </FrameLayout>
         </FrameLayout>
-      </LinearLayout>
-
-      <!-- 三段就绪轨道：运行环境 / 工作台 / 实际端口。每项独立描边卡片，保留原设计。 -->
-      <LinearLayout android:id="@+id/launch_metrics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/shell_launch_section_gap" android:orientation="horizontal">
-
-        <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
-          <FrameLayout android:layout_width="31dp" android:layout_height="31dp" android:background="@drawable/bg_launch_tile">
-            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui2_box" app:tint="@color/shell_accent" />
-          </FrameLayout>
-          <TextView style="@style/ShellLaunchRailLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_environment" />
-          <TextView android:id="@+id/launch_environment" style="@style/ShellLaunchRailValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_status_unavailable" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1">
-          <FrameLayout android:layout_width="31dp" android:layout_height="31dp" android:background="@drawable/bg_launch_tile">
-            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_terminal" app:tint="@color/shell_accent" />
-          </FrameLayout>
-          <TextView style="@style/ShellLaunchRailLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_workspace" />
-          <TextView android:id="@+id/launch_workbench" style="@style/ShellLaunchRailValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_status_unavailable" />
-        </LinearLayout>
-
-        <LinearLayout style="@style/ShellLaunchMetric" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1">
-          <FrameLayout android:layout_width="31dp" android:layout_height="31dp" android:background="@drawable/bg_launch_tile">
-            <ImageView android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_ui_link" app:tint="@color/shell_accent" />
-          </FrameLayout>
-          <TextView style="@style/ShellLaunchRailLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui2_port" />
-          <TextView android:id="@+id/launch_port" style="@style/ShellLaunchRailValue" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="monospace" android:text="@string/ui_status_unavailable" />
-        </LinearLayout>
       </LinearLayout>
 
       <!-- 下半区：快捷入口 | 启动日志；内容宽度 ≥760dp 时并排（AdaptiveColumns）。 -->

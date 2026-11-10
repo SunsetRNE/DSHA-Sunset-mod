@@ -10,12 +10,14 @@ import android.view.ViewGroup;
  * 插件页头部的单行优先流式容器：放得下时同一行、末项贴行尾；放不下时换行，不压缩子项、不竖排。
  *
  * <p>用于「标题 + 分段」与「筛选 / 排序 / 下载源」两行：中文 1.0 倍字体时一行，英文或 1.3 倍字体时自然换行。 {@code stretchWrapped}
- * 打开后，独占一行的末项拉满整行（分段换到标题下方时铺满宽度）。子项在行内垂直居中； RTL 镜像排列。
+ * 打开后，独占一行的末项拉满整行（分段换到标题下方时铺满宽度）。{@code flowPackStart} 为 true 时末项与其他项同行时不贴行尾，紧凑靠左对齐。子项在行内垂直居中；
+ * RTL 镜像排列。
  */
 public final class PluginFlowRow extends ViewGroup {
   private final int gapHorizontal;
   private final int gapVertical;
   private final boolean stretchWrapped;
+  private final boolean packStart;
 
   public PluginFlowRow(Context context) {
     this(context, null);
@@ -38,6 +40,8 @@ public final class PluginFlowRow extends ViewGroup {
       stretchWrapped =
           values.getBoolean(
               com.deepseekharness.app.R.styleable.PluginFlowRow_flowStretchWrapped, false);
+      packStart =
+          values.getBoolean(com.deepseekharness.app.R.styleable.PluginFlowRow_flowPackStart, false);
     } finally {
       values.recycle();
     }
@@ -149,8 +153,8 @@ public final class PluginFlowRow extends ViewGroup {
         if (params.line != line) break;
         int width = child.getMeasuredWidth();
         int start = x + params.leftMargin;
-        // 末项与其他项同行时贴行尾，例如分段在标题右侧、下载源在筛选右侧。
-        if (i == lastIndex && x > 0) start = inner - width - params.rightMargin;
+        // 末项与其他项同行时贴行尾，例如分段在标题右侧、下载源在筛选右侧；启用 flowPackStart 时紧凑靠左。
+        if (!packStart && i == lastIndex && x > 0) start = inner - width - params.rightMargin;
         int y =
             top
                 + params.topMargin
@@ -163,6 +167,10 @@ public final class PluginFlowRow extends ViewGroup {
       top += height + gapVertical;
       line++;
     }
+  }
+
+  public boolean isPackStart() {
+    return packStart;
   }
 
   @Override
