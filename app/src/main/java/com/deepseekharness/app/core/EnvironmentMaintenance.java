@@ -247,11 +247,27 @@ public final class EnvironmentMaintenance {
       String hint = maintenanceFailureHint(unreadable);
       throw new IOException(hint.isEmpty() ? unreadable.getMessage() : hint, unreadable);
     }
-    requireSpace(
-        space.sample(
-            Stage.PREFLIGHT,
-            com.deepseekharness.app.util.MaintenanceSpaceRequirement.preflight(
-                expanded, estimated)));
+    // 诊断现场：开始标记 + 解压子阶段 + 失败事实；只写操作记录，不改事务、不影响失败路径。
+    // 预检失败（最常见的是空间不足）也要落一条事实，否则报告只剩阶段名。
+    RebuildFailureRecord.begin(
+        controller.context(),
+        com.deepseekharness.app.BuildConfig.VERSION_NAME,
+        files,
+        files.getUsableSpace());
+    final String[] substage = {""};
+    final long[] readBytes = {0};
+    final long[] totalBytes = {0};
+    try {
+      requireSpace(
+          space.sample(
+              Stage.PREFLIGHT,
+              com.deepseekharness.app.util.MaintenanceSpaceRequirement.preflight(
+                  expanded, estimated)));
+    } catch (Exception preflightFailure) {
+      RebuildFailureRecord.record(
+          controller.context(), preflightFailure, transaction.directory(), "", 0, 0);
+      throw preflightFailure;
+    }
     boolean began = false;
     long startedAt = android.os.SystemClock.elapsedRealtime();
     progressAt[0] = startedAt;
@@ -293,11 +309,17 @@ public final class EnvironmentMaintenance {
           new com.deepseekharness.app.runtime.ProotBootstrap.ExtractionProgress() {
             @Override
             public void onStage(String stage) {
+              // 子阶段「准备解压 / 解压 Ubuntu 与 Node / 安装 Python 与 pnpm…」逐条落记录：
+              // 失败时界面只剩大阶段，报告要能指出卡在哪一步。
+              substage[0] = stage;
+              RebuildFailureRecord.stage(controller.context(), stage);
               progress.accept(stage + "…");
             }
 
             @Override
             public void accept(Long done, Long total) {
+              if (done != null) readBytes[0] = done;
+              if (total != null && total > 0) totalBytes[0] = total;
               long now = android.os.SystemClock.elapsedRealtime();
               if (now - last[0] >= 500) {
                 last[0] = now;
@@ -359,6 +381,14 @@ public final class EnvironmentMaintenance {
           + cleanup;
     } catch (Exception failure) {
       space.sample(Stage.FAILED, 0);
+      // 在回滚之前采集：回滚可能改动目录，且失败原因只在异常链里存在一次。
+      RebuildFailureRecord.record(
+          controller.context(),
+          failure,
+          transaction.directory(),
+          substage[0],
+          readBytes[0],
+          totalBytes[0]);
       if (began && !RuntimeTasks.hasOtherTasks())
         try {
           transaction.rollback();

@@ -54,6 +54,12 @@ public class ExtractActivity extends AppCompatActivity {
   private long cachedReadyAt;
   private boolean cachedInstalled, cachedCanUpdate, cachedLatest;
   private DeviceSupportReport support;
+  private Button diagnosis;
+  private boolean collecting;
+
+  /** 报告采集只读本地小文件；单线程避免连续点击叠加，采集失败不影响维护主流程。 */
+  private final java.util.concurrent.ExecutorService collector =
+      java.util.concurrent.Executors.newSingleThreadExecutor();
 
   @Override
   protected void onCreate(@Nullable Bundle saved) {
@@ -161,6 +167,12 @@ public class ExtractActivity extends AppCompatActivity {
             startActivity(
                 new Intent(this, NativeDataActivity.class)
                     .putExtra("data_mode", NativeDataActivity.MODE_RESCUE)));
+    // 诊断报告：失败 / 未就绪时给出可整段复制或分享成 txt 的只读取证；不写就绪标记、不重跑重建。
+    diagnosis = findViewById(R.id.extract_diagnosis);
+    diagnosis.setText(UiText.choose("诊断报告", "Diagnostic report"));
+    diagnosis.setContentDescription(
+        UiText.choose("查看环境重建诊断报告", "Open the environment rebuild diagnostic report"));
+    diagnosis.setOnClickListener(v -> showDiagnosis());
     // 方案 A：内容宽度 ≥ 720dp 且有失败/未就绪说明时，阶段卡与说明两列并排（容器按自身宽度判定）。
     AdaptiveColumns columns = findViewById(R.id.extract_columns);
     columns.setSplitWidthDp(720);
@@ -283,6 +295,8 @@ public class ExtractActivity extends AppCompatActivity {
     // 兑现说明里的“导出可读副本”：入口在说明上方；没有说明文字时也保留说明列显示入口。
     rescue.setVisibility(footerModel.rescue ? View.VISIBLE : View.GONE);
     rescue.setEnabled(!executionBusy);
+    diagnosis.setVisibility(footerModel.rescue ? View.VISIBLE : View.GONE);
+    diagnosis.setEnabled(!executionBusy && !collecting);
     if (footerModel.rescue) findViewById(R.id.extract_focus).setVisibility(View.VISIBLE);
     if (com.deepseekharness.app.util.EnvironmentIdentity.mayAdvanceAfterMaintenance(
         automaticEntry, mine, s.status == BackupTaskState.Status.SUCCEEDED, busy, pending, ready)) {
@@ -466,6 +480,119 @@ public class ExtractActivity extends AppCompatActivity {
     return cachedReady;
   }
 
+  /** 采集只读诊断报告：放在后台线程（读 APK 目录与日志尾部），完成后再弹窗。 */
+  private void showDiagnosis() {
+    if (collecting) return;
+    collecting = true;
+    diagnosis.setEnabled(false);
+    Toast.makeText(
+            this,
+            UiText.choose("正在收集诊断报告…", "Collecting the diagnostic report…"),
+            Toast.LENGTH_SHORT)
+        .show();
+    collector.execute(
+        () -> {
+          String report;
+          try {
+            report = com.deepseekharness.app.core.RebuildDiagnosis.build(this);
+          } catch (RuntimeException | LinkageError unavailable) {
+            report =
+                UiText.choose(
+                    "无法读取诊断信息；请改用底栏「维护记录」导出日志。",
+                    "Diagnostic data is unavailable; export logs from Record instead.");
+          }
+          String text = report;
+          main.post(
+              () -> {
+                collecting = false;
+                if (isFinishing() || isDestroyed()) return;
+                diagnosis.setEnabled(true);
+                showReportDialog(text);
+              });
+        });
+  }
+
+  /** 报告弹窗：可选中的等宽正文 + 复制 / 分享；关闭不改变任何维护状态。 */
+  private void showReportDialog(String report) {
+    int pad = kit.dp(16);
+    TextView body = new TextView(this);
+    body.setText(report);
+    body.setTextIsSelectable(true);
+    body.setTypeface(android.graphics.Typeface.MONOSPACE);
+    body.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f);
+    body.setTextColor(getColor(R.color.shell_text));
+    body.setLineSpacing(0f, 1.15f);
+    body.setPadding(pad, pad, pad, pad);
+    android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+    scroll.addView(
+        body,
+        new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    androidx.appcompat.app.AlertDialog dialog =
+        new DshaDialogBuilder(this)
+            .setTitle(UiText.choose("环境重建诊断报告", "Environment rebuild diagnostics"))
+            .setView(scroll)
+            .setPositiveButton(UiText.text("复制"), (d, which) -> copyReport(report))
+            .setNeutralButton(UiText.text("分享"), (d, which) -> shareReport(report))
+            .setNegativeButton(UiText.text("关闭"), null)
+            .show();
+    // 短屏与大字体下也能滚动：窗口高度按屏幕取一半，最多 420dp；宽度沿用弹窗主题。
+    android.view.Window window = dialog.getWindow();
+    if (window != null) {
+      int height =
+          Math.min(kit.dp(420), (int) (getResources().getDisplayMetrics().heightPixels * 0.45f));
+      window.setLayout(window.getAttributes().width, height);
+    }
+  }
+
+  private void copyReport(String report) {
+    try {
+      android.content.ClipboardManager clipboard =
+          (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+      if (clipboard == null) throw new IllegalStateException("CLIPBOARD_UNAVAILABLE");
+      clipboard.setPrimaryClip(
+          com.deepseekharness.app.bridge.SensitiveClipboard.text(
+              UiText.choose("环境重建诊断报告", "Environment rebuild diagnostics"), report));
+      Toast.makeText(this, UiText.text("报告已复制，请在公开分享前查看内容"), Toast.LENGTH_LONG).show();
+    } catch (RuntimeException unavailable) {
+      Toast.makeText(
+              this,
+              UiText.choose("复制失败，可尝试分享成文件", "Copy failed; share the report as a file"),
+              Toast.LENGTH_LONG)
+          .show();
+    }
+  }
+
+  /** 分享成 txt：写在缓存 diagnostic-exports（已有 FileProvider 路径），不落到用户可见目录。 */
+  private void shareReport(String report) {
+    try {
+      java.io.File folder = new java.io.File(getCacheDir(), "diagnostic-exports");
+      if (!folder.exists() && !folder.mkdirs()) throw new java.io.IOException("SHARE_DIR");
+      String stamp =
+          new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.ROOT)
+              .format(new java.util.Date());
+      java.io.File file = new java.io.File(folder, "DSHA-rebuild-" + stamp + ".txt");
+      try (java.io.FileOutputStream out = new java.io.FileOutputStream(file)) {
+        out.write(report.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      }
+      android.net.Uri uri =
+          androidx.core.content.FileProvider.getUriForFile(
+              this, getPackageName() + ".updates", file);
+      startActivity(
+          NativeFileShare.chooser(
+              uri,
+              file.getName(),
+              "text/plain",
+              UiText.choose("分享诊断报告", "Share diagnostic report")));
+    } catch (Exception | LinkageError unavailable) {
+      Toast.makeText(
+              this,
+              UiText.choose("没有可用的分享目标，请改用复制", "No share target available; use Copy"),
+              Toast.LENGTH_LONG)
+          .show();
+    }
+  }
+
   private void proceed() {
     boolean limited =
         com.deepseekharness.app.util.RuntimeUpgradeState.limitedEntry(
@@ -504,6 +631,12 @@ public class ExtractActivity extends AppCompatActivity {
     // 维护记录的 UI 缓存，避免恢复完成后仍沿用恢复前的结果把页面停在“中断维护”。
     task.refreshPendingForUi();
     main.post(refresh);
+  }
+
+  @Override
+  protected void onDestroy() {
+    collector.shutdownNow();
+    super.onDestroy();
   }
 
   @Override

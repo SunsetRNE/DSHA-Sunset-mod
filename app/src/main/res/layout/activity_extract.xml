@@ -153,6 +153,16 @@
                         android:minHeight="@dimen/touch_min"
                         android:visibility="gone" />
 
+                    <!-- 诊断报告入口：失败 / 未就绪时给出可复制、可分享的只读取证；不改事务状态、不触发重建。 -->
+                    <Button
+                        android:id="@+id/extract_diagnosis"
+                        style="@style/ShellSecondaryButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="@dimen/touch_min"
+                        android:visibility="gone" />
+
                     <TextView
                         android:id="@+id/extract_error"
                         android:layout_width="match_parent"
