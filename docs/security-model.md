@@ -82,4 +82,4 @@ ADB 配对密钥目录 `.dsh/adbkeys` 按本机状态处理：备份与导出不
 
 ## 交付与验证限度
 
-正式包使用 `io.github.sunsetrne.dsha` 与 `ci/release-identity.json` 记录的 Mod 发布证书（v1/v2/v3）。构建不缺省发布口令，不替换为其它证书。build356 的 CI 只证明该 commit 在托管 runner 上的编译、门禁、单测、签名与发布流程；软件测试、APK/ELF/签名核验和手机覆盖安装是不同证据。发布准备的本地范围为本机宿主 contracts 整组、全树格式检查、全量单测（含 10 例 aarch64 环境基线）、lint、T145 的 `QuickActionsTest` / `QuickActionsBubbleTest` / 启动入口布局回归与 T146 的 `DeviceGrantsLayoutTest` / `GrantsAccordionTest` / 识屏与敏感界面测试 / 布局资源编译，以及 `UpdateVersionPageTest`（见 [build356 更新说明](releases/build356-changes.zh.md)）；真机结论待用户按当次记录核对后补写，未预写通过，不能继承旧报告的通过范围。
+正式包使用 `io.github.sunsetrne.dsha` 与 `ci/release-identity.json` 记录的 Mod 发布证书（v1/v2/v3）。构建不缺省发布口令，不替换为其它证书。build357 的 CI 只证明该 commit 在托管 runner 上的编译、门禁、单测、签名与发布流程；软件测试、APK/ELF/签名核验和手机覆盖安装是不同证据。发布准备的本地范围为本机宿主 contracts 整组、全树格式检查、全量单测（含 10 例 aarch64 环境基线）、lint、T145 的 `QuickActionsTest` / `QuickActionsBubbleTest` / 启动入口布局回归与 T146 的 `DeviceGrantsLayoutTest` / `GrantsAccordionTest` / 识屏与敏感界面测试 / 布局资源编译，以及 `UpdateVersionPageTest`（见 [build357 更新说明](releases/build357-changes.zh.md)）；真机结论待用户按当次记录核对后补写，未预写通过，不能继承旧报告的通过范围。

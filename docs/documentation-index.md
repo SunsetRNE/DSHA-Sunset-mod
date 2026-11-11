@@ -1,7 +1,7 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261110.1700-dsh0.2.2-rc.1` / build356 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是 build355 之后的布局 hotfix：build355 正式包内实际是 T143 首版布局（单卡片并排、设置页旧间距），本版改成用户在 353 `.debug` 预览包上确认的 v3——设置页去掉页内「设置」大标题后顶部空白同样收紧（容器 `paddingTop` 改为 `shell_section_margin` 10dp，首组不再叠 24dp），插件页「导入插件包 / 导出插件」改为两个独立圆角包裹框（各自 `ShellCard` 背景与 `selectableItemBackground` 按压前景，间隔 12dp），不再是单卡片并排；副标题与箭头保持移除，点击行为不变。改动只涉及 `fragment_settings.xml` 与 `plugin_list_footer.xml` 两个布局。受管运行时不变，`runtimeId` 仍为 **`8e54085c`**（205 个输入），fixed-inputs 冻结沿用锁定 20261105e，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。**build356 尚未真机验收**：v3 形态已在 353 `.debug` 预览包由用户确认，平板横竖屏、短屏与 1.3× 字体仍待核对；验收项是 354→356 覆盖安装成功、数据完好、READY。宿主 contracts 整组、全量单测、lint 与全树格式 / 文档检查由本轮发布准备执行（结果见工作树声明）。改动说明见 [build356 更新说明](releases/build356-changes.zh.md)。
+当前源码：`0.2.1-rc.5-20261111.0600-dsh0.2.2-rc.1` / build357 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是 build356 之后的停止 / 重启语义补齐（T150）：停止等待预算由 3s 提升到 6.5s，覆盖内置 dsh 自身 5s 的强制退出上限，正常关闭不再被判「未确认」；启动前置停止在同一 8s 窗口内只读复核旧实例退出，旧实例正在退出时不再 10ms 报「启动失败：本应用仍有未退出的 Web」；恢复核对新增 STOPPED_PENDING，把「用户已停止（停止哨兵）」从「版本不兼容」拆出，并新增 STOP_IN_PROGRESS / USER_STOPPED_EXIT_UNCONFIRMED 原因码；强停证据不足时显示三要素、已核验 PID / 命令摘要与 15 秒后重试入口，仍只对内核出生身份核验通过的 PID 发信号；重复停止合并为一次结论与一次强停候选，停止中显示阶段与已等待秒数。另有 T150 后续门禁修正（`bedaa5deb`）：HarnessController 恢复 300 行 facade 上限、LaunchFragment 强停失败按钮复用既有「重试」文案、受管 descriptor 重算为 **`c780bc22`**。 受管运行时身份随 launcherInputs 变化：`runtimeId` 由 **`8e54085c`** 变为 **`c780bc22`**（205 个输入），**356→357 覆盖升级后首次启动会进入运行环境维护页并执行受管运行时试运行，这是预期行为**；build352 仍不要用于升级（历史坏路径），升级路径为 356→357。fixed-inputs 冻结沿用锁定 20261105e，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。**build357 尚未真机验收**：T150 只通过单测与门禁，真机项（停止等待、启动、恢复原因、强停降级、去抖）待用户窗口；验收项是 356→357 覆盖安装成功、数据完好、READY。宿主 contracts 整组、全量单测、lint 与全树格式 / 文档检查由本轮发布准备执行（结果见工作树声明）。改动说明见 [build357 更新说明](releases/build357-changes.zh.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
@@ -34,6 +34,7 @@
 | [物理屏动作提速（T105）](design/physical-screen-speed-20261107/README.md) | 事件驱动 settle、动作即观察（`observe=1`，含 MCP 默认开启）、紧凑识屏 `mode=delta/same`；动作凭据规则不变，未真机测量 |
 | [外接设备页面变化观察（T134）](design/extdev-observation-20261110.md) | 外接 USB-ADB 目标的 logcat events / `dumpsys window` / 画面通道真机测量，`/app/extdev/watch` 事件采样 + `operate observe=1` settle，摘要绑定目标代次、只读不落盘 |
 | [build352 覆盖升级维护页死锁（T139）](design/build352-maintenance-register-deadlock-20261110.md) | 维护事务内注册与 runtime-health 写入顺序冲突导致 ENV_NOT_READY 回滚的真机证据与 build353 修复（注册移到事务完成后、失败不回滚运行时）；含教训与验证清单 |
+| [发布流水线耗时压缩（T141）](design/t141-release-pipeline-speed-20261110.md) | 逐 job 实测基线（build356 15:05）、build-unsigned / sign-verify 拆分、测试包两段式、npm 与 Gradle 缓存、SDK 预装检测与超时、证据包 298 MB→13 MB、预计 −27% 与回退方案 |
 | [ADB 通道原生化设计（T42）](design/adb-native-20261103/README.md) | ADB 配对、私钥与客户端移到安卓壳，容器只经桥提交命令；含用户 Q1–Q9 决定与 E1–E4 取证，未实现 |
 | [GitHub 凭据原生化设计（T50）](design/github-credential-native.md) | 壳内 OAuth Device Flow 登录、token 存 Keystore、容器经桥按需取 access token；待确认，未实现 |
 | [物理屏两套观察路径设计（T107）](design/physical-screen-observation-20261107.md) | 无障碍动作 + 特权镜像读屏 + evdev 用户操作检测；A/B/C 对比、接口/授权/兼容/回退与 M1–M3 计划；未实现 |
