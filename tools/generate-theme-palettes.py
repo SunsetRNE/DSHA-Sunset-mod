@@ -62,13 +62,17 @@ NEUTRAL = {
     'terminal_muted': ('#59657A', '#9DA8BB'), 'primary_ripple': ('#1FFFFFFF', '#20FFFFFF'),
 }
 
-# id, 资源后缀, 色相（度）, 强调色饱和度。标准色不推导。
+# id, 资源后缀, 色相（度）, 强调色饱和度。色相为 None 表示不推导，直接沿用标准色：
+# standard 是默认值本身；monet 是「莫奈取色」的构建期兜底 —— 构建时与标准色一致，
+# 运行时由 util/DynamicPalette 按壁纸主色算出新值，再覆盖 pal_monet_*（见 ThemeController）。
+# 兜底必须是能过对比度校验的真实配色，而不是空值，否则未取到色时界面会闪一帧无主题色。
 PALETTES = [
     ('standard', 'Standard', None, None),
     ('aurora', 'Aurora', 188, 0.80),
     ('sakura', 'Sakura', 335, 0.72),
     ('cyber', 'Cyber', 268, 0.70),
     ('amber', 'Amber', 32, 0.85),
+    ('monet', 'Monet', None, None),
 ]
 MARGIN = 4.6
 REQUIRED = 4.5

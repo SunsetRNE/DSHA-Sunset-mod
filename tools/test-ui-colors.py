@@ -62,6 +62,6 @@ class ColorsTest(unittest.TestCase):
                 for name,fg,bg in pairs:
                     value=contrast(fg,bg); minimum=min(minimum,value)
                     with self.subTest(palette=pid,night=night,pair=name): self.assertGreaterEqual(value,4.5)
-        self.assertEqual({'standard','aurora','sakura','cyber','amber'},found)
+        self.assertEqual({'standard','aurora','sakura','cyber','amber','monet'},found)
         print('Minimum palette contrast: %.3f:1'%minimum)
 if __name__=='__main__': unittest.main()

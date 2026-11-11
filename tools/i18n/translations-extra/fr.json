@@ -1978,5 +1978,10 @@
   "x2100201": "Autoriser l'entrée ?",
   "x2100202": "Autoriser l'entrée",
   "x2100203": "L'assistant d'écran physique peut contourner l'accessibilité, capturer l'écran et injecter des appuis, balayages et touches pendant la tâche de téléphone en cours — pour les jeux et autres interfaces dessinées par l'application.\n\nDésactivé par défaut et révocable à tout moment. Les actions exigent aussi l'autorisation de contrôle d'écran pour l'application cible ; les écrans de mot de passe, de paiement et de sécurité système sont toujours refusés. La phase expérimentale ne garantit que le canal root.",
-  "x2100204": "Échec de l'enregistrement"
+  "x2100204": "Échec de l'enregistrement",
+  "thm267c08": "Monet",
+  "thm267c09": "Monet : couleurs prises sur le fond d’écran",
+  "thm267c10": "Monet : ce fond d’écran manque de couleurs ; bleu classique utilisé pour l’instant",
+  "thm267c11": "Reprendre les couleurs",
+  "thm267c12": "Couleurs reprises"
 }

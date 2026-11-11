@@ -12,10 +12,12 @@ public final class UiThemePalette {
       AURORA = "aurora",
       SAKURA = "sakura",
       CYBER = "cyber",
-      AMBER = "amber";
+      AMBER = "amber",
+      /** 跟随壁纸取色：构建期值等同标准色，运行时由壁纸主色覆盖（见 DynamicPalette / ThemeController）。 */
+      MONET = "monet";
 
   /** 已注册的调色板，按主题页展示顺序；与生成器 PALETTES 顺序一致。 */
-  public static final String[] REGISTERED = {STANDARD, AURORA, SAKURA, CYBER, AMBER};
+  public static final String[] REGISTERED = {STANDARD, AURORA, SAKURA, CYBER, AMBER, MONET};
 
   private UiThemePalette() {}
 

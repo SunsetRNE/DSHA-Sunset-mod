@@ -80,6 +80,8 @@ public final class ThemeController {
       case UiThemePalette.SAKURA -> R.style.ThemeOverlay_DSHA_Palette_Sakura;
       case UiThemePalette.CYBER -> R.style.ThemeOverlay_DSHA_Palette_Cyber;
       case UiThemePalette.AMBER -> R.style.ThemeOverlay_DSHA_Palette_Amber;
+        // 莫奈：overlay 指向 pal_monet_*，运行时取色成功后由 ThemePaletteOverride 覆盖这批色值。
+      case UiThemePalette.MONET -> R.style.ThemeOverlay_DSHA_Palette_Monet;
       default -> 0;
     };
   }
@@ -91,6 +93,7 @@ public final class ThemeController {
       case UiThemePalette.SAKURA -> R.color.pal_sakura_primary;
       case UiThemePalette.CYBER -> R.color.pal_cyber_primary;
       case UiThemePalette.AMBER -> R.color.pal_amber_primary;
+      case UiThemePalette.MONET -> R.color.pal_monet_primary;
       default -> R.color.pal_standard_primary;
     };
   }
@@ -107,8 +110,17 @@ public final class ThemeController {
    * <p>悬浮窗、配置上下文直接取 {@code R.color.primary} 等调色板色时必须先经过这里。
    */
   public static Context themed(Context base) {
+    String palette = palette(base);
+    // 莫奈：这类上下文同样要解析 pal_monet_*，必须先把取色结果覆盖进 base 的 Resources，
+    // 否则悬浮条等拿到的仍是构建期兜底色（等同标准蓝），表现为悬浮条不跟壁纸变色。
+    // apply 对同一 Resources 按指纹幂等，重复调用只是一次查询；palette() 有进程内缓存，
+    // 首次之后 O(1)，主线程高频路径（悬浮条绘制）不会因此新增阻塞调用；
+    // 灰壁纸取不到色时 palette() 返回 null，apply 收 null 直接返回 false，安全回退兜底色。
+    if (UiThemePalette.MONET.equals(palette)) {
+      ThemePaletteOverride.apply(base, MonetPalette.palette(base));
+    }
     ContextThemeWrapper wrapper = new ContextThemeWrapper(base, R.style.Theme_DeepseekHarness);
-    applyPalette(wrapper.getTheme(), palette(base));
+    applyPalette(wrapper.getTheme(), palette);
     return wrapper;
   }
 
@@ -124,6 +136,11 @@ public final class ThemeController {
     public void onActivityPreCreated(Activity activity, Bundle saved) {
       String palette = palette(activity);
       applied.put(activity, palette);
+      // 莫奈：先把取色结果写进 pal_monet_*，再叠加 overlay。顺序反了，attr 会先解析到兜底色，
+      // 本页就停在标准蓝上直到下次重建。
+      if (UiThemePalette.MONET.equals(palette)) {
+        ThemePaletteOverride.apply(activity, MonetPalette.palette(activity));
+      }
       applyPalette(activity.getTheme(), palette);
     }
 

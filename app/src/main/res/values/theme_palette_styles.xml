@@ -212,4 +212,39 @@
         <item name="dsha_pal_terminal_tile">@color/pal_amber_terminal_tile</item>
         <item name="dsha_pal_terminal_tile_pressed">@color/pal_amber_terminal_tile_pressed</item>
     </style>
+    <style name="ThemeOverlay.DSHA.Palette.Monet" parent="">
+        <item name="dsha_pal_primary">@color/pal_monet_primary</item>
+        <item name="dsha_pal_primary_dark">@color/pal_monet_primary_dark</item>
+        <item name="dsha_pal_accent_on">@color/pal_monet_accent_on</item>
+        <item name="dsha_pal_ripple">@color/pal_monet_ripple</item>
+        <item name="dsha_pal_logo_top">@color/pal_monet_logo_top</item>
+        <item name="dsha_pal_terminal_accent">@color/pal_monet_terminal_accent</item>
+        <item name="dsha_pal_terminal_accent_bg">@color/pal_monet_terminal_accent_bg</item>
+        <item name="dsha_pal_terminal_accent_soft_2">@color/pal_monet_terminal_accent_soft_2</item>
+        <item name="dsha_pal_terminal_accent_line">@color/pal_monet_terminal_accent_line</item>
+        <item name="dsha_pal_terminal_on_accent">@color/pal_monet_terminal_on_accent</item>
+        <item name="dsha_pal_terminal_ripple">@color/pal_monet_terminal_ripple</item>
+        <item name="dsha_pal_terminal_state_idle">@color/pal_monet_terminal_state_idle</item>
+        <item name="dsha_pal_shell_accent">@color/pal_monet_shell_accent</item>
+        <item name="dsha_pal_shell_accent_soft">@color/pal_monet_shell_accent_soft</item>
+        <item name="dsha_pal_shell_accent_tonal">@color/pal_monet_shell_accent_tonal</item>
+        <item name="dsha_pal_shell_on_accent">@color/pal_monet_shell_on_accent</item>
+        <item name="dsha_pal_shell_nav_ripple">@color/pal_monet_shell_nav_ripple</item>
+        <item name="dsha_pal_onb_accent_line">@color/pal_monet_onb_accent_line</item>
+        <item name="dsha_pal_surface">@color/pal_monet_surface</item>
+        <item name="dsha_pal_card">@color/pal_monet_card</item>
+        <item name="dsha_pal_raised">@color/pal_monet_raised</item>
+        <item name="dsha_pal_disabled">@color/pal_monet_disabled</item>
+        <item name="dsha_pal_preview">@color/pal_monet_preview</item>
+        <item name="dsha_pal_shell_bg">@color/pal_monet_shell_bg</item>
+        <item name="dsha_pal_shell_surface">@color/pal_monet_shell_surface</item>
+        <item name="dsha_pal_shell_raised">@color/pal_monet_shell_raised</item>
+        <item name="dsha_pal_shell_nav_bg">@color/pal_monet_shell_nav_bg</item>
+        <item name="dsha_pal_shell_glass">@color/pal_monet_shell_glass</item>
+        <item name="dsha_pal_terminal_panel">@color/pal_monet_terminal_panel</item>
+        <item name="dsha_pal_terminal_panel_card">@color/pal_monet_terminal_panel_card</item>
+        <item name="dsha_pal_terminal_raised">@color/pal_monet_terminal_raised</item>
+        <item name="dsha_pal_terminal_tile">@color/pal_monet_terminal_tile</item>
+        <item name="dsha_pal_terminal_tile_pressed">@color/pal_monet_terminal_tile_pressed</item>
+    </style>
 </resources>

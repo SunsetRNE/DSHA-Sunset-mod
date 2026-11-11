@@ -254,6 +254,29 @@ public class DshaApp extends Application
     // 调色板叠加须早于各页 onCreate 解析主题属性。
     registerActivityLifecycleCallbacks(
         new com.deepseekharness.app.ui.ThemeController.PaletteHook());
+    // 莫奈预热：首次取色要解码壁纸并推导 33 色（约 7–25 ms），压在第一个 Activity 创建的
+    // 主线程上就是可感知的卡顿。这里把它推迟到启动关键路径之后执行，既不与 onActivityPreCreated
+    // 抢首次调用，也不引入数据竞争 —— 为什么不用后台线程：MonetPalette 的 cached / cacheKnown /
+    // cachedWallpaperId 三个静态字段既非 volatile 也无同步，后台线程的写入对主线程没有
+    // happens-before 保证（可能长期读到旧值或看见半写入状态），而该文件不在本任务改动范围内，
+    // 所以取「主线程延迟预热」这个折中：慢一点但零竞态，2 秒后首屏已画完，这点耗时不构成 jank。
+    // 预热只是优化不是功能路径：任何异常静默放弃，真正使用时照常取色；非莫奈调色板不付解码开销。
+    // 单元测试环境（Robolectric，FINGERPRINT 固定为 robolectric）不排这个延迟任务：它会跨测试
+    // 留一个 pending 的 Handler 消息，而这些测试并非为「启动后有延迟任务」设计的。
+    if (!android.os.Build.FINGERPRINT.startsWith("robolectric")
+        && com.deepseekharness.app.util.UiThemePalette.MONET.equals(
+            com.deepseekharness.app.ui.ThemeController.palette(this))) {
+      new android.os.Handler(android.os.Looper.getMainLooper())
+          .postDelayed(
+              () -> {
+                try {
+                  com.deepseekharness.app.ui.MonetPalette.palette(getApplicationContext());
+                } catch (Throwable error) {
+                  // 预热失败等同没预热，不打扰用户。
+                }
+              },
+              2000L);
+    }
     registerActivityLifecycleCallbacks(new com.deepseekharness.app.ui.ModernAndroidUi());
     registerActivityLifecycleCallbacks(new ForegroundActivity());
     // 「隐藏后台」截图守卫与实验性严格模式：所有界面都要重放，不能只靠设置页开关。
