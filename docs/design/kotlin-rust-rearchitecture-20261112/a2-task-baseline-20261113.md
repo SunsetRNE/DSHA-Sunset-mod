@@ -1,7 +1,7 @@
 # A2 任务基线（G2）：存储与文件（SAF 授权簿 + 文件工作台）
 
 > 版本：v0.2　日期：2026-11-13　基线：`faab36c5`（build361 发布准备；A1 已合入）
-> 状态：**slice 1 已推送 CI 全绿（run 43322817926）**；**slice 2（账本接入+旧命名空间只读迁移）已实现、待 CI 与本机复验**；slice 3–4 未开始。
+> 状态：**slice 1 CI 全绿（run 43322817926）**；**slice 2（账本接入+旧命名空间只读迁移+回退反例）CI 全绿（run 43328387842）**；slice 3–4 未开始。
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A2、[A1 任务基线](a1-task-baseline-20261113.md) 模板与已知 P2、[A1 契约草案](a1-contract-draft-20261112.md)（形状内部冻结）、[安全模型](../../security-model.md) SAF 一节。
 > 注意：build361 发布准备（`faab36c5`）与本轮写范围不重叠；分支已 rebase 到它，合入由 Lead 处理。
 
@@ -57,7 +57,7 @@
 
 **已跑/未跑如实记录**：
 - slice 1：5 个纯 JVM 测试类 + `ModuleRegistryTest` 共 61 项本机 `javac`/JUnitCore 通过；`Source checks` run 43322817926 全绿（含 unit-source/host-fast）。
-- slice 2：纯 JVM 68 项（新增账本 Previous/RELEASING/metadata 用例）与 `saf` 包 Robolectric 68 项（`SafGrantsTest`/`SafBridgeTest`/`SafLocalFilesTest`/`SafPathsTest`/`SafTreeTest`）在本机通过；Robolectric 使用本机专用 `-Drobolectric.conscryptMode=OFF --add-opens=java.base/java.io=ALL-UNNAMED`，仅为 aarch64 本机绕开 Conscrypt/反射限制，**不替代 CI 默认配置**。
+- slice 2：纯 JVM 68 项（新增账本 Previous/RELEASING/metadata 用例）与 `saf` 包 Robolectric 68 项（`SafGrantsTest`/`SafBridgeTest`/`SafLocalFilesTest`/`SafPathsTest`/`SafTreeTest`）在本机通过；Robolectric 使用本机专用 `-Drobolectric.conscryptMode=OFF --add-opens=java.base/java.io=ALL-UNNAMED`，仅为 aarch64 本机绕开 Conscrypt/反射限制，**不替代 CI 默认配置**。回退反例（迁移写失败）只在本机 `javac` 编译，由 CI unit-source 执行（run 43328387842）。
 - 未跑：`AboutFragmentTest`（Robolectric，交 CI）、Gradle 资源链/全量单测（本机 aapt2 为 x86_64）；Lead 已要求本机暂停 Robolectric/全量，后续以 CI 为准。
 
 ## 5. 回退点
@@ -90,7 +90,7 @@
 `app/src/main/assets/managed-runtime-inputs.json` 的 `launcherTrees` 已包含 `app/src/main/java/com/deepseekharness/app/saf`。slice 1 新增 7 个主类 → `launcherInputs` 481→488，**`runtimeId` 必变**：
 
 - 基线 `4d55973d407c171909e76d07f0b681de4069613944fb05e29cd38908e0984a26` → slice 1 `cf279a36dc72b608c95d352673b86115324b308defb57dbaaac46bee1c8d352f`（已推送，CI run 43322817926 全绿）。
-- slice 2 改 `SafGrants`/`SafTree` 并新增记录状态字段 → 现行 `8a5b56d769d0ed2d68f7be7e0f700d75b63a4e76f84df56ed44593b1e6c929be`（本地按固定输入 `--write`；后续 slice 每次改 `saf/` 都要重算）。
+- slice 2 改 `SafGrants`/`SafTree` 并新增记录状态字段 → 现行 `63f946ac620638fc980dda18929b73f33a288500cd3c93f0ddbda2553f1d3b57`（本地按固定输入 `--write`；后续 slice 每次改 `saf/` 都要重算）。
 - 覆盖安装后按设计进**一次**整屏维护页（I1/I6）；数据格式不变、桥协议 `3` 不变；回退不需要清数据。
 - `app/src/main/assets/runtime-descriptor.json` 是生成物，随批次提交；不得手改摘要。
 
@@ -107,7 +107,7 @@
 | # | 内容 | 依赖 | 状态 |
 |---|---|---|---|
 | 1 | 授权簿能力层（账本/编解码/存储/句柄/限额/边界）+ 单测；A1 P2 | — | ✅ 已推送，CI 全绿（run 43322817926） |
-| 2 | `SafGrants` 迁移到账本（旧 `saf_grants` 只读兼容、迁移失败回退旧路径）；桥 lookup 走账本；撤销后旧 id/URI 失效；`SafTree` 常量单一来源；反例测试 | 1 | ✅ 已实现（本轮提交，待 CI） |
+| 2 | `SafGrants` 迁移到账本（旧 `saf_grants` 只读兼容、迁移失败回退旧路径）；桥 lookup 走账本；撤销后旧 id/URI 失效；`SafTree` 常量单一来源；反例测试 | 1 | ✅ 已推送，CI 全绿（run 43328387842） |
 | 3 | 跨应用文件工作台：授权页状态、浏览/导入/导出、传输记录（复用 `transfer/`，不重写下载引擎）；长生命周期能力句柄在 workspace 操作层接入 | 2 | 待排期 |
 | 4 | 受控流/限额收口、端点与凭据区反例、descriptor 重算、真机与出口证据 | 2、3 | 待排期 |
 
