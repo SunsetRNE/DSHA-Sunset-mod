@@ -99,7 +99,12 @@
 - **身份矩阵**：`candidate-valid` 通过并输出 `releaseIdentity=rebirth` / `applicationId=dsh.android.client.rebirth` / `versionCode=359` / `versionName=0.2.1-rc.5-20261111.1200-dsh0.2.2-rc.1` / `certificateStatus=unset`；7 组负控（identity=mod/upstream、缺候选开关、`sunsetTest`/`debugPackage`/`devPackage`、缺 `unsignedPackage`）全部以预期 `REBIRTH_*` 标记失败。
 - **unsigned 候选**：`dsha-rebirth-NOT_FOR_INSTALLATION-73890983.apk`，316,563,780 B，SHA-256 `7f9702cd0a4d642a7101fefe7b3a92c9115685bf900f2a4a3a276849b91f93b3`；12 项核验全部 PASS（包名/versionCode/versionName/非 debuggable/min30/target37/仅 arm64/显示名/无测试后缀/authorities/确实未签名/证书 unset）。
 - **产物**：artifact `rebirth-candidate-NOT_FOR_INSTALLATION-73890983…`（约 298 MB），只标 `UNSIGNED_NOT_FOR_INSTALLATION`，不可安装、不是发布验收。
-- **未验证**：证书未创建、无 signed 候选、无真机安装与同线覆盖证据；G0 门禁不因工程装配或 CI 而关闭。
+- **2026-11-13 进展**：Rebirth 固定测试证书已创建（SHA-256 `912ca1c1483904ce340a29c1b101d32bcce3f3545524fb3b087abd39629faec0`，私钥只进 GitHub Secrets 与本机仓库外目录，公钥 `ci/rebirth-test-cert.pem` 入库）；signed 测试候选已产出（run 43294241607，`dsha-rebirth-69c235e0.apk`，SHA-256 `a5cd7ddc708a4a0d0af1eca1fb4d97ce14b500d94f23e105c4b36e605c09560d`，v1+v2+v3，testOnly，非发布）。**仍未真机安装/覆盖**，G0 门禁未通过。
+
+### 4.2 Rebirth signed 测试候选与 host runtime 回执（2026-11-13）
+
+- **signed 测试候选**：[run 43294241607](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43294241607) 全部 job 成功：build-unsigned 12 项核验 PASS（`--allow-unsigned` 中间产物）→ sign-candidate 用 Rebirth 测试证书签 v1+v2+v3 并复验。产物 316,704,415 B，证书 `912ca1c1…9faec0`，`testOnly=true`、非发布；**尚未真机安装/覆盖**。
+- **本仓 host runtime（标准 Linux）**：[run 43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 在 `ubuntu-24.04` x86_64、固定输入与 raw/managed 夹具下：**128 项 94 PASS / 34 FAILED**。失败集中在浏览器/网络/仅设备或需历史 APK 的夹具（如 `test-build193-patch-chain.py` 要求 `--previous-runtime-apk`、`test-web-search-patch-chain.py` rc=3 为已记录语义阻塞），与 A1 代码无关；**不是全绿，G1-B 仍不通过**，但本仓首次有标准 Linux runtime 回执。
 
 ---
 

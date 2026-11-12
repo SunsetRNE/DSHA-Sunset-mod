@@ -36,8 +36,8 @@
 
 | 门禁 | 状态 | 当前事实 |
 |---|---|---|
-| G0 Rebirth 身份 | 🟡 证书已建、签名在落 | 身份文件、`rebirthCandidate` 开关、独立签名配置、核验器、CI 变体已落盘；unsigned 候选 12 项核验 PASS；**2026-11-13 固定测试证书已创建**（SHA-256 `912ca1c1…9faec0`，私钥只进 GitHub Secrets 与本机仓库外目录），签名 job 在落；**仍无 signed 候选、无真机**，G0 门禁未通过 |
-| G1 首包门禁清单 | ⛔ 未通过 | 五层清单已并入；对方 runtime 95/128 未绿（不阻塞我方）；本仓已触发 [host runtime 43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074)，回执待出 |
+| G0 Rebirth 身份 | 🟡 证书已建、签名在落 | 身份文件、`rebirthCandidate` 开关、独立签名配置、核验器、CI 变体已落盘；unsigned 候选 12 项核验 PASS；**2026-11-13 固定测试证书已创建**（SHA-256 `912ca1c1…9faec0`，私钥只进 GitHub Secrets 与本机本仓 host runtime [43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 回执 **94/128 PASS、34 FAILED**（浏览器/网络/仅设备或历史 APK 夹具），未全绿库外目录），签名 job 在落；**signed 测试候选已产出**（run 43294241607，APK SHA-256 `a5cd7ddc…`，测试证书 v1+v2+v3，非发布）；**尚未真机安装**，G0 门禁未通过 |
+| G1 首包门禁清单 | ⛔ 未通过 | 五层清单已并入；对方 runtime 95/128 未绿（不阻塞我方）；本本仓 host runtime [43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 回执 **94/128 PASS、34 FAILED**（浏览器/网络/仅设备或历史 APK 夹具），未全绿已触发 [host runtime 43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074)，回执待出 |
 | G2 A1 任务基线 | ✅ | [A1 任务基线](a1-task-baseline-20261113.md)：范围/文件/验证/回退/owner，零维护判据 |
 | G3 契约草案 | ✅ 内部冻结 | v0.1 于 2026-11-13 自冻结为我方基线（O1–O5 挂起待对方追认），不再阻塞 A1 |
 | G4 数据与授权边界 | ⬜ | 跨线不继承/系统授权不随导入已定，待写入首包验收 |
@@ -382,7 +382,7 @@ graph LR
 | D8 | Java↔Kotlin/Rust 差分回归 | **列为 P0 硬门槛**，6 类身份夹具必须一致 | A1 出口起 |
 | D9 | 短信递归 READ 缺口 | **先单独修**（`security-model.md` 已声明缺口），不等架构迁移 | P0 收尾 |
 
-**仍需对方回应/确认的 2 件事**（阻塞 G0 的首包产出，不阻塞文档准备）：① **首发候选由哪个仓库/分支产出**（Rebirth 同一 `applicationId` 只能有一个签名身份；两个仓各自签名会互相拒绝覆盖安装）；② **测试证书由谁创建与保管**，另一仓若构建必须共用同一证书或只产 unsigned。已确认：命名空间有意选定（`dsh.android.client.rebirth`，不改 Mod 命名空间）、五层门禁清单、产品形态拆分、Gecko 方向、收敛表 6 列。
+**仍需对方回应/确认的 2 件事**（阻塞 G0 的首包产出，不阻塞文档准备）：① **首发候选由哪个本仓 host runtime [43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 回执 **94/128 PASS、34 FAILED**（浏览器/网络/仅设备或历史 APK 夹具），未全绿库/分支产出**（Rebirth 同一 `applicationId` 只能有一个签名身份；两个本仓 host runtime [43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 回执 **94/128 PASS、34 FAILED**（浏览器/网络/仅设备或历史 APK 夹具），未全绿各自签名会互相拒绝覆盖安装）；② **测试证书由谁创建与保管**，另一本仓 host runtime [43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 回执 **94/128 PASS、34 FAILED**（浏览器/网络/仅设备或历史 APK 夹具），未全绿若构建必须共用同一证书或只产 unsigned。已确认：命名空间有意选定（`dsh.android.client.rebirth`，不改 Mod 命名空间）、五层门禁清单、产品形态拆分、Gecko 方向、收敛表 6 列。
 
 ### 11.1 A1 开工条件（Gate，缺一不开工）
 
@@ -413,10 +413,10 @@ graph LR
 | v0.3 | 2026-11-12 | 采纳对方四点技术意见：Rust 首期去掉执行入口/`argv`；HMAC 定位更正；结果态改正交五字段；补失败域矩阵 |
 | v0.4 | 2026-11-12 | 采纳对方三点澄清：Rebirth=隔离实验发行线、Gecko=单包新增适配（非恢复 low）、不接 feed≠取消覆盖安装；新增 Q8（`applicationId` 待定） |
 | v0.5 | 2026-11-12 | Q8 已定（`dsh.android.client.rebirth` + 独立测试证书）；发布目标改为 Rebirth 线；新增 §11.1 A1 开工条件 G0–G5 |
-| v0.6 | 2026-11-12 | 对方确认命名空间有意选定并给出五层门禁；G0–G5 改为"缺一不开工"，删除"不阻塞编码"冲突表述；新增可先行范围与两仓签名唯一性约束 |
+| v0.6 | 2026-11-12 | 对方确认命名空间有意选定并给出五层门禁；G0–G5 改为"缺一不开工"，删除"不阻塞编码"冲突表述；新增可先行范围与两本仓 host runtime [43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 回执 **94/128 PASS、34 FAILED**（浏览器/网络/仅设备或历史 APK 夹具），未全绿签名唯一性约束 |
 | v0.7 | 2026-11-12 | 对方未交收敛表两列草稿，我方自拟 v0.2；G0 工程装配落盘（Rebirth 身份文件、`rebirthCandidate` 开关、独立签名占位、核验器、CI 变体，unsigned only）；G3 契约草案 v0.1 成稿；新增 §0.1.1 门禁状态表 |
 | v0.8 | 2026-11-12 | G0 工程装配 CI 回执：identity-matrix 7 组负控通过，unsigned 候选 12 项核验 PASS（APK SHA-256 `7f9702cd…`）；证书未创建、无 signed 候选、无真机，G0 门禁仍未通过 |
-| v0.9 | 2026-11-13 | Rebirth 固定测试证书创建（SHA-256 `912ca1c1…`，私钥只进 GitHub Secrets/仓库外）；G3 内部冻结、G2 任务基线成稿、G5 以 build360 回执关闭；A1 开工（契约底座 + 关于/许可） |
+| v0.9 | 2026-11-13 | Rebirth 固定测试证书创建（SHA-256 `912ca1c1…`，私钥只进 GitHub Secrets/本仓 host runtime [43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 回执 **94/128 PASS、34 FAILED**（浏览器/网络/仅设备或历史 APK 夹具），未全绿库外）；G3 内部冻结、G2 任务基线成稿、G5 以 build360 回执关闭；A1 开工（契约底座 + 关于/许可） |
 
 ---
 
