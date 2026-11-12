@@ -57,11 +57,15 @@
 
 | 角色 | owner |
 |---|---|
-| 契约层实现 | a1-core（子任务；A1 出口复审已 REQUEST_CHANGES，修复轮） |
+| 契约层实现 | a1-core（子任务；A1 出口复审 **APPROVE**） |
 | 关于/许可 UI | a1-ui（子任务） |
 | 集成、文档、CI、发布 | Lead |
-| A1 出口非实现者评审 | 待指派（不得由上述实现者兼任） |
+| A1 出口非实现者评审 | contract（只写草案、未参与实现）— **APPROVE 2026-11-13** |
+
+**A1 出口证据（2026-11-13）**：实现提交 `017dd008`，非实现者复审 **APPROVE**（P1-1/P1-2/P1-3 关闭，剩余 P2 非阻塞）；full 门禁 [dry run 43304710980](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43304710980) 全部成功——`unit (full)` 固定输入 0 skipped，含 contract 35 项与 AboutFragmentTest 15 项；contracts/java-format/host-fast/lint/build-unsigned/sign 全 PASS。非实现者复审在途（第一轮 REQUEST_CHANGES 已修复）。
 
 **A1 收敛口径（2026-11-13 评审后）**：契约形状中 `contractVersion`、`describe()`、`ModuleHost` scope、`setEnabled` 持久化、AboutLicense 聚合五项**明确 deferred 到 A2/A8**；A1 只保证现有实现的 7 步闭环、安全模式与清理语义。卡片/排序/页面渲染接线归 A2（首个真实模块）/A8（宿主工程化）。
+
+**A1 已知 P2（转 A2/A8 跟进，不影响出口）**：① registry→lease 与 lease→registry 反向锁序（A1 无生产 callback，latent）；② close 的 finally 中二次异常可能中断剩余清理；③ `hiddenAboutCardKeepsHostLicenseRows` 写隐藏态未在 finally 恢复（测试隔离）；④ `contractVersion`/`describe()`/`ModuleHost`/`AboutLicense` 聚合 deferred。
 
 *本任务基线可评审；不含未定契约。契约一旦在 A1 出口冻结，A2 不得再改形状。*

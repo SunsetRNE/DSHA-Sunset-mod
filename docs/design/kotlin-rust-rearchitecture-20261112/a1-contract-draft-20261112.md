@@ -6,6 +6,8 @@
 > 用途：一页接口表供评审；冻结后作为 A1 任务单的契约依据，并作为反例测试向量的来源。
 > 配套：[ADR-0004](../../adr/0004-kotlin-rust-direction.md) · [A1–A8 迭代路径](iteration-roadmap-20261112.md) · [对 18 模块方案的回复](reply-to-18-modules-20261112.md) · [修订建议](18-modules-revision-notes-20261112.md) · [G0–G1 合并回执](g0-g1-merge-receipt-20261112.md) · [可行性评审主稿](README.md)
 
+> **A1 收敛（2026-11-13）**：A1 实现已按本草案收敛并通过出口评审；`contractVersion`、`describe()`、`ModuleHost` scope、`setEnabled` 持久化、AboutLicense 聚合五项明确 **deferred 到 A2/A8**，以 [A1 任务基线](a1-task-baseline-20261113.md) 为准。
+
 本草案沿用对方 18 模块方案的编号：**C01 = 模块协议，C02 = 宿主核心，C03 = 授权核心**。这些编号是职责编号，不是模块计数；21 状态模块 / 9 Gradle 模块 / 1 Rust crate 的口径见 ADR-0004 决定二，三者只做映射、禁止相减（[路线图 §2](iteration-roadmap-20261112.md)）。
 
 ---
