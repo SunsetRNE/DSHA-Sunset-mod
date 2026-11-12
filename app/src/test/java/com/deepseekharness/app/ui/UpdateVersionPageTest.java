@@ -455,8 +455,8 @@ public final class UpdateVersionPageTest {
           englishBody);
       assertTrue(shown.contains("dsh-web-mobile"));
       assertTrue(shown.contains("3.3.5"));
-      assertTrue(shown.contains("versionCode raised to 359"));
-      assertFalse(shown.contains("versionCode raised to 358"));
+      assertTrue(shown.contains("versionCode raised to 360"));
+      assertFalse(shown.contains("versionCode raised to 359"));
       assertFalse(shown.contains("versionCode raised to 357"));
       assertFalse(shown.contains("versionCode raised to 356"));
       assertFalse(shown.contains("versionCode raised to 355"));
