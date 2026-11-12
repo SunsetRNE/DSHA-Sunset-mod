@@ -211,7 +211,12 @@ public final class AboutFragmentTest {
    */
   private static List<AboutLicenses.Entry> bundledLicenses() {
     var assets = RuntimeEnvironment.getApplication().getAssets();
-    List<AboutLicenses.Entry> entries = AboutLicenses.list(assets);
+    List<AboutLicenses.Entry> entries;
+    try {
+      entries = AboutLicenses.list(assets);
+    } catch (java.io.IOException error) {
+      throw new AssertionError("无法读取随包许可清单", error);
+    }
     if ("true".equals(System.getProperty("dsha.sourceOnlyTests")) && entries.isEmpty())
       org.junit.Assume.assumeTrue("source-only: 未生成随包 assets/licenses；由完整构建验证", false);
     return entries;
