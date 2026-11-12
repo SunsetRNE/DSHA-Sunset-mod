@@ -104,6 +104,14 @@
 ### 4.2 Rebirth signed 测试候选与 host runtime 回执（2026-11-13）
 
 - **signed 测试候选**：[run 43294241607](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43294241607) 全部 job 成功：build-unsigned 12 项核验 PASS（`--allow-unsigned` 中间产物）→ sign-candidate 用 Rebirth 测试证书签 v1+v2+v3 并复验。产物 316,704,415 B，证书 `912ca1c1…9faec0`，`testOnly=true`、非发布；**尚未真机安装/覆盖**。
+- **G0-E 真机安装（2026-11-13，G0 关闸）**：一加 12（PJD110，Android 16 / API 36，arm64）通过 USB 主机连接本机，root 下用 Termux android-tools adb（37.0.0p1，仅本机诊断，不替代平台工具链）执行：
+  - `adb install -r dsha-rebirth-69c235e0.apk` → **Success**；安装后 `versionCode=360`、`versionName=0.2.1-rc.5-20261112.1800-dsh0.2.2-rc.1`；
+  - 冷启动进入 `OnboardingActivity`（welcomed=false 的预期首启），`mCurrentFocus` 为该 Activity，`logcat -b crash` 无该包记录；
+  - 同包同证书 `adb install -r` 再次 **Success**（签名连续性）；若换证书会 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`；
+  - 共存：`io.github.sunsetrne.dsha`（正式 build358）、`io.github.sunsetrne.dsha.debug`、`dsh.android.client.rebirth` 三者并存；数据目录独立，Rebirth uid=10515；
+  - **E05**：一加无前代 Rebirth 包，按约定标"无前代，待下一包演练"；首包安装/共存/首启证据见本机公共区截图 `/storage/emulated/0/Download/DSHA/rebirth-first.png`（不入库）。
+- **G0 门禁结论**：D 固定测试签名已真实签名并通过，C unsigned 候选与 E 首包安装/共存已完成，**G0 ✅ 通过**（E05 无前代豁免，下一包演练同线覆盖）。
+
 - **本仓 host runtime（标准 Linux）**：[run 43292602074](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43292602074) 在 `ubuntu-24.04` x86_64、固定输入与 raw/managed 夹具下：**128 项 94 PASS / 34 FAILED**。失败集中在浏览器/网络/仅设备或需历史 APK 的夹具（如 `test-build193-patch-chain.py` 要求 `--previous-runtime-apk`、`test-web-search-patch-chain.py` rc=3 为已记录语义阻塞），与 A1 代码无关；**不是全绿，G1-B 仍不通过**，但本仓首次有标准 Linux runtime 回执。
 
 ---
