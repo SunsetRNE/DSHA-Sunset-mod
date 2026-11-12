@@ -151,26 +151,29 @@ class ReleaseGraph(unittest.TestCase):
         if self.workflow == "release-production.yml":
             # 正式发布：先无 Secrets 构建（与门禁并行），全部门禁通过后再签名；
             # 同 run 附带 .debug / .dev 共存测试包（可 none），dry_run 时只出报告。
-            self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "host-regression",
-                                              "inputs", "unit", "lint", "build-unsigned",
-                                              "sign-verify", "test-packages-unsigned",
-                                              "test-packages", "publish", "dry-run-summary"})
-            gates = {"bind", "contracts", "java-format", "host-regression", "inputs", "unit", "lint"}
+            self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "kotlin-format",
+                                              "host-regression", "inputs", "unit", "lint",
+                                              "build-unsigned", "sign-verify",
+                                              "test-packages-unsigned", "test-packages", "publish",
+                                              "dry-run-summary"})
+            gates = {"bind", "contracts", "java-format", "kotlin-format", "host-regression", "inputs", "unit", "lint"}
             self.assertEqual(needs(self.jobs["build-unsigned"]), {"bind", "inputs"})
             self.assertEqual(needs(self.jobs["test-packages-unsigned"]), {"bind", "inputs"})
             self.assertEqual(needs(self.jobs["sign-verify"]), gates | {"build-unsigned"})
             self.assertEqual(needs(self.jobs["test-packages"]), gates | {"test-packages-unsigned"})
             self.assertEqual(needs(self.jobs["publish"]), {"bind", "sign-verify", "test-packages"})
             self.assertEqual(needs(self.jobs["dry-run-summary"]), {"bind", "sign-verify", "test-packages"})
-            for name in ("contracts", "java-format", "host-regression", "inputs"):
+            for name in ("contracts", "java-format", "kotlin-format", "host-regression", "inputs"):
                 self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
         else:
-            self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "host-regression",
-                                              "inputs", "unit", "lint", "build-signed", "publish"})
+            self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "kotlin-format",
+                                              "host-regression", "inputs", "unit", "lint",
+                                              "build-signed", "publish"})
             self.assertEqual(needs(self.jobs["build-signed"]),
-                             {"bind", "contracts", "java-format", "host-regression", "inputs", "unit", "lint"})
+                             {"bind", "contracts", "java-format", "kotlin-format", "host-regression",
+                              "inputs", "unit", "lint"})
             self.assertEqual(needs(self.jobs["publish"]), {"bind", "build-signed"})
-            for name in ("contracts", "java-format", "host-regression", "inputs"):
+            for name in ("contracts", "java-format", "kotlin-format", "host-regression", "inputs"):
                 self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
 
     def test_every_node_checks_out_the_exact_requested_commit(self):
@@ -343,7 +346,8 @@ class ProductionTestPackageAttachments(unittest.TestCase):
 class SourceAndServices(unittest.TestCase):
     def test_source_checks_run_contracts_format_unit_and_host_as_nodes(self):
         graph = jobs(text("ci-fast.yml"))
-        self.assertEqual(set(graph), {"contracts", "java-format", "inputs", "unit-source", "host-fast"})
+        self.assertEqual(set(graph), {"contracts", "java-format", "kotlin-format", "inputs",
+                                      "unit-source", "host-fast"})
         self.assertEqual(needs(graph["unit-source"]), {"inputs"})
         self.assertEqual(needs(graph["host-fast"]), {"inputs"})
         self.assertIn("mode: source-only", graph["unit-source"])

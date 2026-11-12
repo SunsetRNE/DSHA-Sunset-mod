@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "tool": "ktfmt",
+  "version": "0.64",
+  "javaMajor": 17,
+  "style": "kotlinlang",
+  "artifact": "ktfmt-0.64-with-dependencies.jar",
+  "size": 71428314,
+  "sha256": "b8fbb814808d8da33f74a7bbacb6d1748cef81c0202a7f829b87139520b51273",
+  "releaseUrl": "https://github.com/Kotlin/ktfmt/releases/tag/v0.64",
+  "artifactUrl": "https://github.com/Kotlin/ktfmt/releases/download/v0.64/ktfmt-0.64-with-dependencies.jar",
+  "thinArtifact": "ktfmt-0.64.jar",
+  "thinSize": 257140,
+  "mavenUrl": "https://repo.maven.apache.org/maven2/com/facebook/ktfmt/0.64/ktfmt-0.64.jar",
+  "publishedSha1": "c1fc6a92ed4fe0eaf02f7999c44193c5955a34af",
+  "verification": "Official GitHub release v0.64 fat jar (71428314 bytes) was downloaded from Kotlin/ktfmt and its SHA-256 calculated; the release publishes no digest. The Maven Central com.facebook:ktfmt:0.64 thin jar (257140 bytes) was downloaded independently, its bytes hash to the entry above and match the published Maven .sha1. The GitHub release thin jar has the same size but different bytes, so it is not claimed to be byte-identical; the CLI artifact is the GitHub fat jar. JDK 17 was used to run --help and the format fixtures.",
+  "license": "Apache-2.0",
+  "flags": [
+    "--kotlinlang-style",
+    "--do-not-remove-unused-imports"
+  ],
+  "protectedFiles": [],
+  "generatedFiles": []
+}

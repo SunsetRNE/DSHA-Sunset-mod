@@ -10,6 +10,7 @@ name: DSHA upstream-identity release
 # 节点图（任一节点失败都不会签名或发布）：
 #   bind ─┬─► contracts ───────────┐
 #         ├─► java-format ─────────┤
+#         ├─► kotlin-format ───────┤
 #         ├─► host-regression ─────┤
 #         └─► inputs ─┬─► unit ────┼─► build-signed ─► publish
 #                     └─► lint ────┘
@@ -109,6 +110,12 @@ jobs:
     with:
       ref: ${{ inputs.expected_sha }}
 
+  kotlin-format:
+    needs: bind
+    uses: ./.github/workflows/_node-kotlin-format.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+
   host-regression:
     name: Branch regression without fixed-input dependencies
     needs: bind
@@ -180,7 +187,7 @@ jobs:
 
   build-signed:
     name: Build and verify signed DSHA (upstream identity)
-    needs: [bind, contracts, java-format, host-regression, inputs, unit, lint]
+    needs: [bind, contracts, java-format, kotlin-format, host-regression, inputs, unit, lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:

@@ -9,6 +9,7 @@ name: DSH-A-Su production release
 # 节点图（任一节点失败都不会签名或发布）：
 #   bind ─┬─► contracts ────────────────┐
 #         ├─► java-format ──────────────┤
+#         ├─► kotlin-format ────────────┤
 #         ├─► host-regression ──────────┤
 #         └─► inputs ─┬─► unit ─────────┤
 #                     ├─► lint ─────────┤
@@ -122,6 +123,12 @@ jobs:
   java-format:
     needs: bind
     uses: ./.github/workflows/_node-java-format.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+
+  kotlin-format:
+    needs: bind
+    uses: ./.github/workflows/_node-kotlin-format.yml
     with:
       ref: ${{ inputs.expected_sha }}
 
@@ -283,7 +290,7 @@ jobs:
   sign-verify:
     name: Sign and verify DSH-A-Su release
     # 持正式签名 Secrets 的节点：不读也不写共享缓存，也不运行 Gradle（只用 build-tools + JDK）。
-    needs: [bind, contracts, java-format, host-regression, inputs, unit, lint, build-unsigned]
+    needs: [bind, contracts, java-format, kotlin-format, host-regression, inputs, unit, lint, build-unsigned]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -511,7 +518,7 @@ jobs:
   test-packages:
     name: Sign and verify co-installable test packages
     # 签名仍在全部门禁通过之后；只下载未签名产物，不再运行 Gradle。
-    needs: [bind, contracts, java-format, host-regression, inputs, unit, lint, test-packages-unsigned]
+    needs: [bind, contracts, java-format, kotlin-format, host-regression, inputs, unit, lint, test-packages-unsigned]
     if: ${{ inputs.test_packages != 'none' }}
     uses: ./.github/workflows/_node-test-packages.yml
     with:

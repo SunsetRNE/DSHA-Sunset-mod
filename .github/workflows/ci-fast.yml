@@ -3,6 +3,7 @@ name: Source checks
 # 节点图：
 #   contracts ─┐
 #   java-format┤  （互不依赖，立即并行）
+#   kotlin-format┤
 #   inputs ────┼─► unit-source（源码模式单测，最多五个外部夹具跳过）
 #              └─► host-fast（fast 阶段宿主回归，含 raw 夹具与 toolchains）
 on:
@@ -19,6 +20,8 @@ jobs:
     uses: ./.github/workflows/_node-contracts.yml
   java-format:
     uses: ./.github/workflows/_node-java-format.yml
+  kotlin-format:
+    uses: ./.github/workflows/_node-kotlin-format.yml
   inputs:
     uses: ./.github/workflows/_node-inputs.yml
     with:
