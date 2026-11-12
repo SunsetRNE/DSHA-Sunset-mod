@@ -1,7 +1,9 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261112.1800-dsh0.2.2-rc.1` / build360 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是 build359 之后的发布工程维护版：只含 Rebirth 独立发行身份工程装配（`dsh.android.client.rebirth` 身份文件、`-Pdsha.rebirthCandidate=true` 未签名候选开关、独立 `signingConfigs.rebirth`、候选核验器与 CI 变体；证书未创建，只产 `UNSIGNED_NOT_FOR_INSTALLATION` 候选，不签名、不可安装）、模块化线文档（收敛表 v0.2、A1 契约草案、ADR-0004/G0–G5 状态）与 CI host-tests 清单，**没有应用源码 / 资源 / 文案改动**，用户可见功能与 build359 完全相同。受管运行时不变：`runtimeId` 仍为 **`4d55973d`**（205 个输入），**359→360 覆盖升级不会进入运行环境维护页**；fixed-inputs 沿用锁定 20261105e，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。**build360 尚未真机验收，G0 门禁未通过**（Rebirth 证书未创建、无 signed 候选、无真机安装与同线覆盖证据）；验收项是 359→360 覆盖安装成功、数据完好、READY。宿主 contracts 整组、全量单测、lint 与格式／文档检查由本轮发布工作流执行。改动说明见 [build360 更新说明](releases/build360-changes.zh.md)。
+当前源码：`0.2.1-rc.5-20261113.0000-dsh0.2.2-rc.1` / build361 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是 build360 之后的 A1「契约底座 + 关于与许可」版：设置里的「关于与许可」新增随包第三方许可列表与逐项正文查看，并提供仓库内 `THIRD_PARTY_NOTICES` 在线入口；版本、包身份与既有链接不变。工程侧落地编译期模块协议与最小运行时登记（ModuleId / Descriptor / Factory / Contribution / generation、ModuleRegistry、ContributionCatalog、RouteTable、LayoutStore、SafeModeGate、DiagnosticsSink、BuiltinModules），契约 18 类 / 35 项与 About 15 项随全量单测执行；`ui/` 与新增 `contract/` 不在 `launcherInputs` 内，仍是零维护。受管运行时不变：`runtimeId` 实测仍为 **`4d55973d`**（205 个输入），**360→361 覆盖升级不会进入运行环境维护页**；fixed-inputs 沿用锁定 20261105e，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。**build361 尚未真机覆盖安装验收**：只通过单测、lint 与仓库门禁；验收项是 360→361 覆盖安装成功、数据完好、「关于与许可」可进入并查看许可、READY。宿主 contracts 整组、全量单测、lint 与格式／文档检查由本轮发布工作流执行。改动说明见 [build361 更新说明](releases/build361-changes.zh.md)。
+
+build361 十语更新说明：[中文](releases/build361-changes.zh.md) · [繁體中文](releases/build361-changes.zh-Hant.md) · [English](releases/build361-changes.en.md) · [日本語](releases/build361-changes.ja.md) · [한국어](releases/build361-changes.ko.md) · [Français](releases/build361-changes.fr.md) · [Português](releases/build361-changes.pt.md) · [Русский](releases/build361-changes.ru.md) · [العربية](releases/build361-changes.ar.md) · [Latina](releases/build361-changes.la.md)。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 

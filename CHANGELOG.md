@@ -1,3 +1,15 @@
+## 0.2.1-rc.5-20261113.0000-dsh0.2.2-rc.1 / build361（A1 契约底座 + 关于与许可进入正式包；受管运行时不变 runtimeId 4d55973d）
+
+- A1「契约底座 + 关于与许可」进入正式包（`017dd008`，出口回执 `ce2fa448`）：build361 把 A1 的用户可见部分带到 `io.github.sunsetrne.dsha` 正式线——设置 →「关于与许可」新增随包第三方许可列表与逐项正文查看，并提供仓库内 `THIRD_PARTY_NOTICES.md` 在线入口；工程侧落地编译期模块协议与最小运行时登记。A1 用 Java 17，不引入 Kotlin/Compose、第三方动态加载/模块市场、新敏感能力或数据格式改动。
+- 关于与许可（用户可见）：保留版本号、versionCode、包名、架构与 MIT 许可等既有信息；「第三方许可」区块逐项列出随包许可文件并可在对话框内滚动查看全文（单文件上限 256 KiB、严格 UTF-8、失败给出类型化提示），另给 `THIRD_PARTY_NOTICES.md` 在线入口。区块与入口由宿主固定渲染，不依赖模块卡片是否可见；没有新增系统权限、授权或隐私行为。
+- 契约底座（工程）：新增 `app/src/main/java/com/deepseekharness/app/contract/` 共 18 个类（ModuleId / ModuleDescriptor / ModuleFactory / Contribution / generation、ModuleRegistry、ContributionCatalog、RouteTable、LayoutStore、SafeModeGate、DiagnosticsSink、BuiltinModules）：只登记编译期已存在的内置类型，ALWAYS_ON 不可停用，停用后贡献与路由撤销、旧 generation 回调失效；安全模式只保留宿主兜底（含法定许可与恢复入口）。卡片/排序接线归 A2/A8，A1 不做。
+- A1 出口证据：实现提交 `017dd008`，出口回执 `ce2fa448`；非实现者逐条评审 APPROVE；full 门禁 dry run 43304710980 全部成功，`unit (full)` 固定输入 0 skipped（含 contract 35 项、About 15 项）。
+- 受管运行时不变（零维护）：A1 只改 `ui/` 与新增 `contract/`，两者都不在 `runtime-descriptor` 的 `launcherInputs` 内；`prepare-runtime-descriptor.py --check` 实测 `runtimeId` 仍为 **`4d55973d`**（205 个输入）。**360→361 覆盖升级不会进入运行环境维护页**；fixed-inputs 沿用锁定 `fixed-inputs-20261105e`，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。
+- 版本与范围：版本码提升为 361（基于已发布的 build360，tag `dsha-a-su-build360-20261112-180000` @ `f053b02f`）；DSHA 修订号保持 `0.2.1-rc.5`，内置 DSH 为 `0.2.2-rc.1`；包名 `io.github.sunsetrne.dsha`、Mod 自有证书与签名方案不变。设备 shell 白名单与执行期护栏不放宽，授权 fail-closed 语义、密码文本硬阻断与敏感界面策略不变。目标 tag `dsha-a-su-build361-20261113-000000` 由 release 工作流在用户确认后创建。
+- **未验证 / 未验收**：build361 只通过单测、lint 与仓库门禁，**未做真机覆盖安装验收**；验收项是 360→361 覆盖安装成功、数据完好、「关于与许可」可进入并逐项查看许可、到达 READY。验收窗口待用户安排，只允许 `.debug` / `.dev` 包，本机不装正式包、不动正式数据。
+- 验证范围：发布身份与前置检查（versionCode 361 / versionName 与 `ci/release-identity.json` 一致；`check-release-prerequisites.py` PASS）、三身份交叉核对（`test-release-identity.py`）、`generate-changelog.py --check`（十语 raw changelog 与 build361 说明一致）、`UpdateVersionPageTest` 断言更新（`versionCode raised to 361` / A1 关于与许可标记，旧 build360/G0 标记不再出现）、`prepare-runtime-descriptor.py --check`（`4d55973d`，205 个输入）、全树 Java 格式、源卫生、UI i18n 与文档链接检查；全量单测、lint、未签名构建与正式签名由本轮 release 工作流执行，结果以 CI / Release 回执为准。正式签名 assemble 不在本机执行（无发布 keystore）。
+- 十语种更新说明见 [build361 更新说明](docs/releases/build361-changes.zh.md)。
+
 ## 0.2.1-rc.5-20261112.1800-dsh0.2.2-rc.1 / build360（发布工程维护版：G0 Rebirth 发行身份工程装配 + 模块化线文档；无应用功能变化，受管运行时不变 runtimeId 4d55973d）
 
 - 发布工程维护版（G0，`130c6019`…`4c0834ca`）：build359 之后 `main` 上只有 Rebirth 发行身份工程装配、模块化线文档与 CI 变体，**没有应用源码 / 资源 / 文案改动**。build360 与 build359 的用户可见功能完全相同，升级只是版本身份与发布工程变化。
