@@ -38,6 +38,7 @@ build361 十语更新说明：[中文](releases/build361-changes.zh.md) · [繁�
 | [build352 覆盖升级维护页死锁（T139）](design/build352-maintenance-register-deadlock-20261110.md) | 维护事务内注册与 runtime-health 写入顺序冲突导致 ENV_NOT_READY 回滚的真机证据与 build353 修复（注册移到事务完成后、失败不回滚运行时）；含教训与验证清单 |
 | [发布流水线耗时压缩（T141）](design/t141-release-pipeline-speed-20261110.md) | 逐 job 实测基线（build356 15:05）、build-unsigned / sign-verify 拆分、测试包两段式、npm 与 Gradle 缓存、SDK 预装检测与超时、证据包 298 MB→13 MB、预计 −27% 与回退方案 |
 | [ADB 通道原生化设计（T42）](design/adb-native-20261103/README.md) | ADB 配对、私钥与客户端移到安卓壳，容器只经桥提交命令；含用户 Q1–Q9 决定与 E1–E4 取证，未实现 |
+| [A7 设备能力设计核查：Root 权限映射与内置 ADB 客户端](design/a7-root-adb-design-check-20261113.md) | 对照 build361 代码核查：Root 链路与三档成立，但无 A7/F07 可执行设计、授权无单一 owner、ADB+su 不核验身份、R2/R5 无 owner；T42 稿有 4 处事实漂移（备份 P0 已修、协议已是 3 等）与 E5–E8 未做；含 A7-a/A7-b 拆分建议；只读核查，未操作设备 |
 | [GitHub 凭据原生化设计（T50）](design/github-credential-native.md) | 壳内 OAuth Device Flow 登录、token 存 Keystore、容器经桥按需取 access token；待确认，未实现 |
 | [物理屏两套观察路径设计（T107）](design/physical-screen-observation-20261107.md) | 无障碍动作 + 特权镜像读屏 + evdev 用户操作检测；A/B/C 对比、接口/授权/兼容/回退与 M1–M3 计划；未实现 |
 | [build351 覆盖升级首启失败排查（T133）](design/build351-first-start-registration-20261110.md) | 插件注册 90s 超时 + 残留 profile 锁 + 「原因未分类」的源码级归因（③ 机制为主、① 锁生命周期与首启重复覆盖层加重、② 语义不足），含最小修复与复现/取证清单；只排查未改代码 |
