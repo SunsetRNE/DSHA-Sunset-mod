@@ -34,7 +34,7 @@ def source_snapshot():
     selected={}
     for name in sorted(set(names)-{''}):
         path=ROOT/name
-        if path.is_file() and public_source_path(name) and (name.startswith(('app/src/','tools/','gradle/','ci/','.github/','agent-skills/','website/')) or name in ('app/build.gradle','build.gradle','settings.gradle','gradle.properties','build.sh','gradlew','gradlew.bat')):
+        if path.is_file() and public_source_path(name) and (name.startswith(('app/src/','tools/','rust/','gradle/','ci/','.github/','agent-skills/','website/')) or name in ('app/build.gradle','build.gradle','settings.gradle','gradle.properties','build.sh','gradlew','gradlew.bat')):
             selected[name]=digest(path)
     for pattern in ('*.bin','*.sha256','*.version','*.layout'):
         for path in (ROOT/'app/src/main/assets').glob(pattern):selected[path.relative_to(ROOT).as_posix()]=digest(path)

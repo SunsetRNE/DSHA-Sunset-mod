@@ -2,6 +2,8 @@ name: Complete unsigned package checks
 
 # 节点图：
 #   inputs（只还原、不重建运行时）─┬─► native-repro（描述符字节、第三方声明、原生可复现）
+#                                  ├─► rust-repro（vendor 重生成 + 主机字节复现）
+#                                  ├─► rust-native（arm64 .so + receipt；R0 不接 APK 打包）
 #                                  └─► package（verify-stability --stage package 的单一回执）
 # package 节点保持一次完整回执：单测 / Lint / 资产 / 包检查共享同一源码快照，
 # 由 tools/verify-ci-package.py 按 run 路径与 commit 复核。
@@ -56,6 +58,20 @@ jobs:
           python3 tools/generate-third-party-notices.py --check
           python3 tools/check-third-party-notices.py --archive app/src/main/assets/dsh-runtime.bin
           python3 tools/native-session/build.py --ndk "$ANDROID_HOME/ndk/$ndk" --check
+  rust-repro:
+    name: Rust vendor regeneration and host byte reproducibility
+    needs: inputs
+    uses: ./.github/workflows/_node-rust.yml
+    with:
+      mode: repro
+      artifact: package-rust-repro
+  rust-native:
+    name: Rust arm64 native artifact and byte reproduction (R0 evidence only)
+    needs: inputs
+    uses: ./.github/workflows/_node-rust.yml
+    with:
+      mode: native
+      artifact: package-rust-native
   package:
     name: Complete Standard unit, lint, assets and package checks
     needs: inputs

@@ -1,7 +1,8 @@
 # CI 节点图（GitHub Actions）
 
-更新：2026-11-11 / T141（build-unsigned / sign-verify 拆分 + 测试包两段式）。本文说明 `.github/workflows/` 的节点拆分、
-复用方式与耗时依据；正式发布的参数、Secrets 与产物核验仍以 [CI 构建与发布](ci-release.md) 为准。
+更新：2026-11-13 / R0（Rust 工具链与 CI 骨架，`_node-rust.yml` 四种模式）。本文说明 `.github/workflows/` 的节点拆分、
+复用方式与耗时依据；正式发布的参数、Secrets 与产物核验仍以 [CI 构建与发布](ci-release.md) 为准、Rust 设计与冻结决定见
+[R1 Rust 工具链与首期旁路接入方案](design/kotlin-rust-rearchitecture-20261112/r1-rust-toolchain-plan-20261113.md)。
 
 ## 1. 结构
 
@@ -16,6 +17,7 @@
 | `_node-unit-tests.yml` | 先按 `tools/robolectric-sdk.lock.json` 准备 android-all（缓存 + 逐个 sha256 核对 + 有界重试），再以 `robolectric.offline` 跑 `:app:testStandardDebugUnitTest`，`full` / `source-only`，可选 `--tests` 与 fork 数 | JUnit XML + `out/unit-tests.json` |
 | `_node-lint.yml` | `:app:lintStandardRelease`（未签名模式） | lint 报告 |
 | `_node-host-tests.yml` | `run-host-tests.py` 的一个阶段或 `--only` 子集；可选夹具、toolchains、Playwright | `app/build/host-tests` |
+| `_node-rust.yml` | 单一 job、按 `mode` 切换（R0）：`check` 源码门禁与主机 `.so` 符号；`repro` 有网重生成 vendor + 不同目录字节复现；`native` NDK 26.3 交叉编译 arm64 `.so` + 同 run 两次构建比对 + ELF/16K/体积/receipt；`differential` 主机 `.so` + JDK17 JVM 探针（`-Xcheck:jni`） | `native` 上传 `.so` + `rust-receipt.json`；`differential` 上传差分回执（均 14 天） |
 | `_node-test-packages.yml` | 三种模式：默认（构建 + 测试证书签名 + 逐项核对）；`unsigned_only`（无 Secrets 编译、核验未签名身份 / 受管资产并交接）；`unsigned_artifact_prefix`（下载同 run 未签名产物，只签名与核对，不跑 Gradle） | 每个 variant 的 APK + 证据 artifact（含公开测试证书），或未签名交接 artifact |
 
 `_node-*.yml` 默认只读、不读 Secrets；唯一例外是 `_node-test-packages.yml`：证书模式需要测试证书 Secrets
@@ -36,9 +38,9 @@
 
 | 工作流 | 触发 | 节点 |
 |---|---|---|
-| `ci-fast.yml`（Source checks） | push / PR / 手动 | contracts ‖ java-format ‖ kotlin-format ‖ inputs → (unit-source ‖ host-fast) |
-| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ kotlin-format ‖ host-regression ‖ inputs → (unit ‖ lint ‖ build-unsigned ‖ test-packages-unsigned)) → (sign-verify ‖ test-packages) → publish；`dry_run=true` 时 publish 跳过、由 dry-run-summary 出报告 |
-| `ci-package.yml` | 手动，显式输入包 | inputs → (native-repro ‖ package) |
+| `ci-fast.yml`（Source checks） | push / PR / 手动 | contracts ‖ java-format ‖ kotlin-format ‖ rust-check ‖ inputs → (unit-source ‖ host-fast) |
+| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ kotlin-format ‖ host-regression ‖ inputs → (unit ‖ lint ‖ rust-native ‖ build-unsigned ‖ test-packages-unsigned) → rust-differential) → (sign-verify ‖ test-packages) → publish；`dry_run=true` 时 publish 跳过、由 dry-run-summary 出报告；R0 的 `rust-native` 不进入 `build-unsigned` |
+| `ci-package.yml` | 手动，显式输入包 | inputs → (native-repro ‖ rust-repro ‖ rust-native ‖ package) |
 | `unit-tests.yml` | 手动 | inputs → unit（可选 `--tests`、`source-only`、fork 数） |
 | `host-tests.yml` | 手动 | inputs → host（`fast` / `runtime`，可选 `--only`、Playwright） |
 | `test-package.yml` | 手动 | contracts ‖ inputs → (patch-chains ‖ unit ‖ lint) → package-sign |
@@ -53,6 +55,29 @@
 任一前置节点失败都不会签名；未签名产物以 `unsigned-receipt.json` 绑定 commit/run/摘要，签名节点复核后才签名，
 签名后再逐成员证明载荷未被改动。签名包与测试包证据经 1 天保留的 artifact 交给 `publish`，正式交付物以 Release
 资产为准；`dry_run=true` 时 `dry-run-summary` 用同一套证据合并与校验并打印发布计划，不写仓库。
+
+### Rust 工具链节点（R0）
+
+`_node-rust.yml` 是一个 job、四种 `mode`；调用方 job id 分别是 `rust-check` / `rust-repro` / `rust-native` /
+`rust-differential`。四者都只读源码、无 Secrets、不写仓库，`.so` 只作为 artifact 上传：
+
+| mode | 网络 | 做什么 | 产物 |
+|---|---|---|---|
+| `check` | 否（vendor 离线） | `cargo fmt --check`、`clippy -D warnings`（含 `unwrap_used`/`expect_used`）、`cargo test --offline --locked`、边界扫描 + 主机 `.so` 符号白名单 | 无（仅日志） |
+| `repro` | 是 | `cargo vendor --locked --versioned-dirs` 从 crates.io 重生成后与入库树逐字节比对；主机目标两次构建（不同源码目录 + 固定 `--remap-path-prefix`）字节一致 | receipts（日志） |
+| `native` | 是（NDK 26.3） | 交叉构建 `aarch64-linux-android` 的 `libdsha_rs.so`；同一 run 内两次构建字节比对；ELF AArch64/16 KB/RELRO/DT_NEEDED/体积/receipt | `libdsha_rs.so` + `rust-receipt.json` |
+| `differential` | 是（JDK17 已由 setup-toolchain 提供） | 主机目标 `.so` + `tools/rust/host-jvm-differential.py`（`-Xcheck:jni`）；R0 只证明 `System.load`、`abiVersion=1` 与占位返回码 | `rust-differential.json` |
+
+边界：**R0 不把 `rust-native` artifact 接进 `build-unsigned`**，`build-unsigned` 的 `needs` 仍是 `[bind, inputs]`，
+APK 内没有 `libdsha_rs.so`；`tools/check-rust-native-apk.py` 只作为 APK 级门禁骨架（R0 只跑预算配置或显式
+`--rust-optional`）。Gradle 侧只在 `app/build.gradle` 增加 `main.jniLibs.srcDir(build/rust-jniLibs)` 注入目录，
+目录不存在时 APK 内容不变；`abiFilters`/`ndkVersion`/签名/版本不动。
+
+离线边界（如实）：工具链与 NDK **不在仓库**，`cargo build --offline --locked` 只保证 crate 来源是入库 vendor；
+从零、完全断网的新机器不能构建。CI 的 `native`/`repro`/`differential` 模式需要网络安装工具链/NDK。
+
+稳定性：所有 cargo 命令设 `CARGO_BUILD_JOBS=2` 且各 job 串行构建；本机验证时同样一次只跑一个目标
+（host 与 aarch64 不并行），构建结束不残留 cargo/Gradle daemon（Gradle 走 `dsha-gradle`）。
 
 `test-package.yml` 产出 `io.github.sunsetrne.dsha.test`（`-SunsetTest`）。配置 `SUNSET_TEST_KEYSTORE_B64`
 （可选 `SUNSET_TEST_STORE_PASSWORD`）时使用该测试证书，便于覆盖升级；否则每次生成一次性密钥。证书不得等于正式证书。
@@ -113,5 +138,5 @@ Robolectric android-all 不经 Gradle 依赖解析，原先在单测中途从 Ma
 
 ## 5. 契约测试
 
-- [test-ci-workflows.py](../tools/test-ci-workflows.py)：节点集合与依赖、Secrets/写权限隔离、外部 action 固定、Standard 范围。
+- [test-ci-workflows.py](../tools/test-ci-workflows.py)：节点集合与依赖、Secrets/写权限隔离、外部 action 固定、Standard 范围；R0 断言四个 Rust 模式、`build-unsigned` 不被接入、Rust 节点无 Secrets。
 - [test-ci-handoff.py](../tools/test-ci-handoff.py)：交接白名单、commit 绑定、篡改与路径穿越拒绝；单测回执的七夹具与计数核对。

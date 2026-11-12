@@ -13,6 +13,8 @@ name: DSH-A-Su production release
 #         ├─► host-regression ──────────┤
 #         └─► inputs ─┬─► unit ─────────┤
 #                     ├─► lint ─────────┤
+#                     ├─► rust-native（arm64 Rust artifact；R0 只作证据，不接 build-unsigned）
+#                     ├─► rust-differential（主机 .so + JDK17 JVM 探针，依赖 rust-native）
 #                     ├─► build-unsigned（无 Secrets，可读写共享缓存）
 #                     └─► test-packages-unsigned（无 Secrets，可读写共享缓存）
 #   门禁与两个 unsigned 构建并行 →（全部门禁通过后）sign-verify / test-packages 用各自的
@@ -202,6 +204,25 @@ jobs:
       handoff: ${{ needs.inputs.outputs.artifact }}
       sunset_test: false
       artifact: release-lint-results
+
+  rust-native:
+    name: Rust arm64 native artifact and byte reproduction (no secrets)
+    # R0 只产出可核验 artifact 与 receipt，不接 build-unsigned；R1 起由发布链显式消费。
+    needs: bind
+    uses: ./.github/workflows/_node-rust.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+      mode: native
+      artifact: release-rust-native
+
+  rust-differential:
+    name: Host JVM differential probe (R0 load/call chain)
+    needs: [bind, inputs, rust-native]
+    uses: ./.github/workflows/_node-rust.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+      mode: differential
+      artifact: release-rust-differential
 
   build-unsigned:
     name: Build unsigned DSH-A-Su (no secrets)

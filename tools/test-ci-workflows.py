@@ -153,6 +153,7 @@ class ReleaseGraph(unittest.TestCase):
             # 同 run 附带 .debug / .dev 共存测试包（可 none），dry_run 时只出报告。
             self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "kotlin-format",
                                               "host-regression", "inputs", "unit", "lint",
+                                              "rust-native", "rust-differential",
                                               "build-unsigned", "sign-verify",
                                               "test-packages-unsigned", "test-packages", "publish",
                                               "dry-run-summary"})
@@ -165,6 +166,12 @@ class ReleaseGraph(unittest.TestCase):
             self.assertEqual(needs(self.jobs["dry-run-summary"]), {"bind", "sign-verify", "test-packages"})
             for name in ("contracts", "java-format", "kotlin-format", "host-regression", "inputs"):
                 self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
+            # R0：Rust 节点只产证据，尚未接入 build-unsigned（APK 内容不变）。
+            self.assertEqual(needs(self.jobs["rust-native"]), {"bind"})
+            self.assertEqual(needs(self.jobs["rust-differential"]),
+                             {"bind", "inputs", "rust-native"})
+            self.assertEqual(needs(self.jobs["build-unsigned"]), {"bind", "inputs"})
+            self.assertNotIn("rust-native", self.jobs["build-unsigned"])
         else:
             self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "kotlin-format",
                                               "host-regression", "inputs", "unit", "lint",
@@ -346,8 +353,10 @@ class ProductionTestPackageAttachments(unittest.TestCase):
 class SourceAndServices(unittest.TestCase):
     def test_source_checks_run_contracts_format_unit_and_host_as_nodes(self):
         graph = jobs(text("ci-fast.yml"))
-        self.assertEqual(set(graph), {"contracts", "java-format", "kotlin-format", "inputs",
-                                      "unit-source", "host-fast"})
+        self.assertEqual(set(graph), {"contracts", "java-format", "kotlin-format", "rust-check",
+                                      "inputs", "unit-source", "host-fast"})
+        self.assertEqual(needs(graph["rust-check"]), set())
+        self.assertIn("mode: check", graph["rust-check"])
         self.assertEqual(needs(graph["unit-source"]), {"inputs"})
         self.assertEqual(needs(graph["host-fast"]), {"inputs"})
         self.assertIn("mode: source-only", graph["unit-source"])
@@ -452,6 +461,52 @@ class SourceAndServices(unittest.TestCase):
         self.assertIn("schedule:", source)
         self.assertIn("tools/ci-assets.py", source)
         self.assertNotIn("upload-artifact", source)
+
+
+class RustR0Graph(unittest.TestCase):
+    """R0：Rust 工具链节点只读、无 Secrets、产证据；不接入 build-unsigned。"""
+
+    def test_shared_node_has_all_four_modes_and_no_secrets(self):
+        source = text("_node-rust.yml")
+        for fragment in ("mode == 'check'", "mode == 'repro'", "mode == 'native'",
+                         "mode == 'differential'",
+                         "check-rust-toolchain.py --verify-installed",
+                         "check-rust-vendor.py --regenerate",
+                         "tools/rust/build.py --host --check",
+                         "tools/rust/build.py --android",
+                         "tools/rust/host-jvm-differential.py",
+                         "check-rust-boundaries.py", "check-rust-native-apk.py"):
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, source)
+        self.assertNotIn("secrets.", source)
+        self.assertNotIn("apksigner", source)
+        self.assertIn("CARGO_BUILD_JOBS: '2'", source)
+
+    def test_package_and_fast_workflows_call_the_rust_nodes(self):
+        fast = jobs(text("ci-fast.yml"))
+        self.assertIn("mode: check", fast["rust-check"])
+        package = jobs(text("ci-package.yml"))
+        self.assertEqual(needs(package["rust-repro"]), {"inputs"})
+        self.assertEqual(needs(package["rust-native"]), {"inputs"})
+        self.assertIn("mode: repro", package["rust-repro"])
+        self.assertIn("mode: native", package["rust-native"])
+
+    def test_release_rust_evidence_is_not_consumed_by_the_apk_yet(self):
+        self.assertIn("mode: native", self.graph["rust-native"])
+        self.assertIn("mode: differential", self.graph["rust-differential"])
+        for name in ("rust-native", "rust-differential"):
+            with self.subTest(job=name):
+                self.assertNotIn("secrets.", self.graph[name])
+                self.assertNotIn("contents: write", self.graph[name])
+        for consumer in ("build-unsigned", "sign-verify", "test-packages-unsigned"):
+            with self.subTest(consumer=consumer):
+                self.assertNotIn("rust-native", self.graph[consumer])
+                self.assertNotIn("rust-receipt", self.graph[consumer])
+
+    @classmethod
+    def setUpClass(cls):
+        source = text("release-production.yml")
+        cls.graph = jobs(source)
 
 
 class ProductionSplitRelease(unittest.TestCase):

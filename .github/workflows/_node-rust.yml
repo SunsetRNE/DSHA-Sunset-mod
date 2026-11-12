@@ -1,0 +1,127 @@
+name: "Node: Rust toolchain and native artifact"
+
+# 可复用节点（R0）：单一 job、按 mode 切换职责；调用方的 job id 决定显示名。
+#   check        源码只读：工具链锁/vendor/格式/clippy/单测/边界 + 主机 .so 符号（无 NDK）
+#   repro        有网：cargo vendor --locked 重生成比对 + 不同目录字节复现 + 依赖白名单
+#   native       安装 NDK 26.3：交叉编译 arm64 .so，本 run 内两次构建字节比对 + ELF/16K/体积/receipt
+#   differential 主机 .so + JDK17 JVM 探针（-Xcheck:jni；R0 只证明加载与调用链）
+# 全部模式只读源码、没有 Secrets、不写仓库；R0 的 .so 只作为 artifact，不接 build-unsigned。
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact commit to check out (defaults to the caller's commit)
+        required: false
+        type: string
+        default: ''
+      mode:
+        description: check / repro / native / differential
+        required: true
+        type: string
+      artifact:
+        description: Name of the uploaded artifact (native/differential)
+        required: false
+        type: string
+        default: rust-artifact
+    outputs:
+      artifact:
+        description: Uploaded artifact name
+        value: ${{ inputs.artifact }}
+permissions:
+  contents: read
+jobs:
+  rust:
+    name: Rust (${{ inputs.mode }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # 本机与 CI 都串行、最多 2 个编译单元：整机内存紧张时避免 cargo 并行抢内存。
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - name: Restore pinned Rust toolchain cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.rustup
+          key: rustup-1.100.0-${{ runner.os }}-${{ hashFiles('ci/rust-toolchain.lock.json') }}
+      - name: Install pinned Rust toolchain and verify against the lock
+        run: |
+          set -eu
+          channel=$(python3 -c "import json;print(json.load(open('ci/rust-toolchain.lock.json'))['channel'])")
+          rustup toolchain install "$channel" --profile minimal \
+            --component rustfmt --component clippy --target aarch64-linux-android
+          python3 tools/check-rust-toolchain.py --verify-installed
+      - name: Static toolchain, vendor, budget and dependency gates
+        run: |
+          set -eu
+          python3 tools/check-rust-toolchain.py
+          python3 tools/check-rust-vendor.py
+          python3 tools/check-rust-boundaries.py
+          python3 tools/check-rust-native-apk.py
+      - name: Rust source checks (format, clippy, unit tests, ABI boundaries)
+        if: inputs.mode == 'check'
+        run: |
+          set -eu
+          cd rust
+          cargo fmt --check
+          cargo clippy --locked --offline --all-targets -- \
+            -D warnings -D clippy::unwrap_used -D clippy::expect_used
+          cargo test --locked --offline
+          cd ..
+          python3 tools/rust/build.py --host --out out/rust-host-check \
+            --receipt out/rust-host-check/receipt.json
+          python3 tools/check-rust-boundaries.py --artifact out/rust-host-check/libdsha_rs.so
+      - name: Vendor regeneration and host byte reproducibility
+        if: inputs.mode == 'repro'
+        run: |
+          set -eu
+          python3 tools/check-rust-vendor.py --regenerate
+          python3 tools/rust/build.py --host --check \
+            --receipt out/rust-repro/rust-receipt.json
+      - uses: ./.github/actions/android-sdk
+        if: inputs.mode == 'native'
+        with:
+          ndk: 'true'
+      - name: Cross-compile arm64 artifact and reproduce it in this run
+        if: inputs.mode == 'native'
+        run: |
+          set -eu
+          ndk=$(python3 tools/ci-toolchain.py --field ndk)
+          python3 tools/rust/build.py --android --ndk "$ANDROID_HOME/ndk/$ndk" --check \
+            --out out/rust-native --receipt out/rust-native/rust-receipt.json
+          python3 tools/check-rust-boundaries.py --artifact out/rust-native/libdsha_rs.so
+      - uses: ./.github/actions/setup-toolchain
+        if: inputs.mode == 'differential'
+        with:
+          gradle-cache: 'false'
+      - name: Host JVM differential probe (JDK17, -Xcheck:jni)
+        if: inputs.mode == 'differential'
+        run: |
+          set -eu
+          python3 tools/rust/build.py --host --out out/rust-host \
+            --receipt out/rust-host/receipt.json
+          python3 tools/rust/host-jvm-differential.py \
+            --lib out/rust-host/libdsha_rs.so --report out/rust-differential.json
+      - name: Upload native artifact and receipt
+        if: always() && inputs.mode == 'native'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact }}
+          path: |
+            out/rust-native/libdsha_rs.so
+            out/rust-native/rust-receipt.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload host differential receipt
+        if: always() && inputs.mode == 'differential'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact }}
+          path: |
+            out/rust-differential.json
+            out/rust-host/receipt.json
+          if-no-files-found: error
+          retention-days: 14
