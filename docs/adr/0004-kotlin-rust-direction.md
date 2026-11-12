@@ -107,7 +107,8 @@ C01/C02 先落为编译期接口 + 最小登记表；"可安装模块"若将来�
 - `verifyPublishCertificate` 的候选分支：占位证书 → 拒绝；复用 Mod/upstream 证书 → 拒绝；applicationId 或指纹不符 → 拒绝。
 - 候选核验器与 CI 变体只产出 `UNSIGNED_NOT_FOR_INSTALLATION`，不上传正式 Secrets、不创建 tag/Release；核验器不替代真机安装与覆盖验证。
 - 以上只关闭 G0 的“工程装配”；**证书创建/保管方与首发产包仓仍未定**（见 G0–G1 合并回执 §7），G0 门禁未通过。
-- 2026-11-12 工程装配 CI 回执（[run 43188205334](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43188205334)）：identity-matrix 的 7 组负控全部按预期失败；unsigned 候选 12 项核验 PASS，APK SHA-256 `7f9702cd0a4d642a7101fefe7b3a92c9115685bf900f2a4a3a276849b91f93b3`，产物只标 `UNSIGNED_NOT_FOR_INSTALLATION`。证书仍未创建、无 signed 候选、无真机安装。
+- 2026-11-12 工程装配 CI 回执（[run 43188205334](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43188205334)）：identity-matrix 的 7 组负控全部按预期失败；unsigned 候选 12 项核验 PASS，APK SHA-256 `7f9702cd0a4d642a7101fefe7b3a92c9115685bf900f2a4a3a276849b91f93b3`，产物只标 `UNSIGNED_NOT_FOR_INSTALLATION`。
+- 2026-11-13 **Rebirth 固定测试证书已创建**：SHA-256 `912ca1c1483904ce340a29c1b101d32bcce3f3545524fb3b087abd39629faec0`（别名 `dsha-rebirth`，RSA 4096，有效期至 2054-03-30）；私钥只存 GitHub Secrets（`REBIRTH_KEYSTORE_B64` / `REBIRTH_KEYSTORE_PASSWORD` / `REBIRTH_KEY_PASSWORD`）与本机仓库外 `/root/.dsha-rebirth/`，公钥 `ci/rebirth-test-cert.pem` 入库；证书创建方为本仓。仍无 signed 候选、无真机安装，G0 门禁未通过。
 
 ## 后果
 

@@ -2,7 +2,7 @@
   "schema": 1,
   "identity": "rebirth",
   "packageName": "dsh.android.client.rebirth",
-  "certificateSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "certificateSha256": "912ca1c1483904ce340a29c1b101d32bcce3f3545524fb3b087abd39629faec0",
   "schemes": ["v1", "v2", "v3"],
   "versionCode": 360,
   "versionName": "0.2.1-rc.5-20261112.1800-dsh0.2.2-rc.1",

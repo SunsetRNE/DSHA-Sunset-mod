@@ -17,6 +17,7 @@ spec.loader.exec_module(identity)
 MOD_CERT = "a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d"
 UPSTREAM_CERT = "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5"
 REBIRTH_CERT_PLACEHOLDER = "0" * 64
+REBIRTH_CERT = "912ca1c1483904ce340a29c1b101d32bcce3f3545524fb3b087abd39629faec0"
 
 
 def run(*argv):
@@ -50,7 +51,7 @@ class Resolution(unittest.TestCase):
     def test_rebirth_branch_is_isolated_candidate_identity(self):
         value = identity.load("rebirth")
         self.assertEqual(value["packageName"], "dsh.android.client.rebirth")
-        self.assertEqual(value["certificateSha256"], REBIRTH_CERT_PLACEHOLDER)
+        self.assertEqual(value["certificateSha256"], REBIRTH_CERT)
         self.assertEqual((value["appName"], value["keyAlias"], value["testSuffix"], value["devSuffix"],
                           value["tagPrefix"], value["apkPrefix"]),
                          ("DSHA 新生", "dsha-rebirth", ".rebirthtest", ".rebirthdev",
@@ -80,6 +81,14 @@ class Resolution(unittest.TestCase):
                 mod["certificateSha256"] = REBIRTH_CERT_PLACEHOLDER
                 (base / "ci/release-identity.mod.json").write_text(json.dumps(mod), encoding="utf-8")
                 identity.check(base)
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            shutil.copytree(ROOT / "ci", base / "ci")
+            rebirth = json.loads((base / "ci/release-identity.rebirth.json").read_text(encoding="utf-8"))
+            rebirth["certificateSha256"] = REBIRTH_CERT_PLACEHOLDER
+            (base / "ci/release-identity.rebirth.json").write_text(json.dumps(rebirth), encoding="utf-8")
+            loaded = identity.check(base)
+            self.assertEqual(loaded["rebirth"]["certificateSha256"], REBIRTH_CERT_PLACEHOLDER)
         legacy = json.loads((ROOT / "ci/release-identity.json").read_text(encoding="utf-8"))
         for key in ("packageName", "certificateSha256", "schemes"):
             self.assertEqual(legacy[key], loaded["mod"][key], key)

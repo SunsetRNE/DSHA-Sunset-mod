@@ -78,7 +78,7 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 
 ### 三身份构建（`-Pdsha.identity`）
 
-`-Pdsha.identity=mod|upstream|rebirth`，默认 `mod`，未知值直接配置失败。`mod` 即上文的 `io.github.sunsetrne.dsha` / DSH-A-Su / alias `dsha-a-su` / 测试后缀 `.test` / Mod 证书；`upstream` 是上游维护者的 `dsh.android.client` / DSHA / alias `androiddebugkey` / 测试后缀 `.SunsetRNE` / 历史 E7E3 证书；`rebirth` 是隔离实验发行线 `dsh.android.client.rebirth` / DSHA 新生 / alias `dsha-rebirth` / 测试后缀 `.rebirthtest`，使用独立候选测试证书（**尚未创建**，指纹占位为 64 个 0）。包名、显示名、测试后缀、默认 alias、versionCode / versionName 与 `verifyPublishCertificate` 核对的证书分别来自 `ci/release-identity.<identity>.json`。完整对照表见 [Mod 身份与签名](docs/mod-identity-and-signing.md)。
+`-Pdsha.identity=mod|upstream|rebirth`，默认 `mod`，未知值直接配置失败。`mod` 即上文的 `io.github.sunsetrne.dsha` / DSH-A-Su / alias `dsha-a-su` / 测试后缀 `.test` / Mod 证书；`upstream` 是上游维护者的 `dsh.android.client` / DSHA / alias `androiddebugkey` / 测试后缀 `.SunsetRNE` / 历史 E7E3 证书；`rebirth` 是隔离实验发行线 `dsh.android.client.rebirth` / DSHA 新生 / alias `dsha-rebirth` / 测试后缀 `.rebirthtest`，使用独立固定候选测试证书（**2026-11-13 已创建**，SHA-256 `912ca1c1…9faec0`，别名 `dsha-rebirth`；私钥只进 GitHub Secrets 与本机仓库外目录，公钥见 `ci/rebirth-test-cert.pem`）。包名、显示名、测试后缀、默认 alias、versionCode / versionName 与 `verifyPublishCertificate` 核对的证书分别来自 `ci/release-identity.<identity>.json`。完整对照表见 [Mod 身份与签名](docs/mod-identity-and-signing.md)。
 
 ```bash
 ./gradlew :app:printReleaseIdentity -Pdsha.identity=upstream   # 只做配置，确认解析出的身份
@@ -86,7 +86,7 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 python3 tools/release-identity.py --check                      # 三套身份互斥，兼容入口与 mod 一致
 ```
 
-Rebirth 身份只能经 `-Pdsha.rebirthCandidate=true` 进入；与 `.test/.debug/.dev` 测试变体或 `-Pdsha.identity=mod|upstream` 混用会在配置阶段失败。候选证书固定前只允许 unsigned 候选：
+Rebirth 身份只能经 `-Pdsha.rebirthCandidate=true` 进入；与 `.test/.debug/.dev` 测试变体或 `-Pdsha.identity=mod|upstream` 混用会在配置阶段失败。unsigned 候选与签名候选分开：
 
 ```bash
 ./gradlew :app:assembleStandardRelease -Pdsha.rebirthCandidate=true -Pdsha.unsignedPackage=true
