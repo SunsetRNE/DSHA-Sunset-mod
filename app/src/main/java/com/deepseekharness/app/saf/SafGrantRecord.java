@@ -28,7 +28,8 @@ public record SafGrantRecord(
     long epoch,
     long takenAt,
     int pendingBefore,
-    int pendingIntent) {
+    int pendingIntent,
+    Previous previous) {
 
   /** 系统读位。 */
   public static final int READ = 1;
@@ -44,10 +45,22 @@ public record SafGrantRecord(
   private static final java.util.regex.Pattern ID_PATTERN =
       java.util.regex.Pattern.compile("[0-9a-f]{" + ID_LENGTH + "}");
 
-  /** 授权生命周期：待确认（take 之前/之后、remember 之前）与已登记。 */
+  /** 授权生命周期：待确认、已登记、撤销时系统拒绝释放（保留 acquired 供下次重试）。 */
   public enum State {
     PENDING,
-    ACTIVE
+    ACTIVE,
+    RELEASING
+  }
+
+  /**
+   * 重新授权（take 覆盖旧记录）时的旧状态快照；只出现在 PENDING 记录上。
+   * 崩溃清理成功或 abortTake 时恢复成 ACTIVE，避免一次失败的重新授权把旧 grant 弄丢。
+   */
+  public record Previous(boolean readable, boolean writable, int acquired, long takenAt) {
+    public Previous {
+      if ((acquired & ~FLAGS) != 0) throw new IllegalArgumentException("GRANT_FLAGS_INVALID");
+      if (takenAt < 0) throw new IllegalArgumentException("GRANT_TIME_INVALID");
+    }
   }
 
   public SafGrantRecord {
@@ -63,8 +76,15 @@ public record SafGrantRecord(
     if ((acquired & ~FLAGS) != 0) throw new IllegalArgumentException("GRANT_FLAGS_INVALID");
     if ((pendingBefore & ~FLAGS) != 0 || (pendingIntent & ~FLAGS) != 0)
       throw new IllegalArgumentException("GRANT_PENDING_FLAGS_INVALID");
+    if (previous != null && state != State.PENDING)
+      throw new IllegalArgumentException("GRANT_PREVIOUS_WITHOUT_PENDING");
     app = clip(app);
     label = clip(label);
+  }
+
+  /** 重新授权的旧状态快照是否存在；存在时 abort/cleanup 恢复旧 ACTIVE 而不是删除记录。 */
+  public boolean hasPrevious() {
+    return previous != null;
   }
 
   /** 系统读位是否仍可用；同时要求记录已登记。 */

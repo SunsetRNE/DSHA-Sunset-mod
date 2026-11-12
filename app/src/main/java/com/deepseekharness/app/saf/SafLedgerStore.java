@@ -52,6 +52,18 @@ public final class SafLedgerStore {
   }
 
   /**
+   * 是否已完成初始化/迁移。用 {@code schema} 键做标记：账本可以为空（用户移除全部授权），
+   * 不能按「记录为空」判断，否则会把旧命名空间里的历史授权反复迁移回来。
+   */
+  public boolean initialized() {
+    try {
+      return preferences.contains(SafLedgerCodec.PREF_SCHEMA);
+    } catch (RuntimeException unreadable) {
+      return false;
+    }
+  }
+
+  /**
    * 原子保存整份授权簿。
    *
    * @return {@code false} 表示读取或提交失败；磁盘上保持旧状态，调用方不得假装已保存。

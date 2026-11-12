@@ -1,9 +1,9 @@
 # A2 任务基线（G2）：存储与文件（SAF 授权簿 + 文件工作台）
 
-> 版本：v0.1　日期：2026-11-13　基线：`2c879f1b`（A1 已合入 main；build360 已发布）
-> 状态：**A2 slice 1 已开工**（Lead 指派 owner `a2-storage`）；slice 2–4 待 slice 1 评审后推进。
+> 版本：v0.2　日期：2026-11-13　基线：`faab36c5`（build361 发布准备；A1 已合入）
+> 状态：**slice 1 已推送 CI 全绿（run 43322817926）**；**slice 2（账本接入+旧命名空间只读迁移）已实现、待 CI 与本机复验**；slice 3–4 未开始。
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A2、[A1 任务基线](a1-task-baseline-20261113.md) 模板与已知 P2、[A1 契约草案](a1-contract-draft-20261112.md)（形状内部冻结）、[安全模型](../../security-model.md) SAF 一节。
-> 注意：调研期间 main 已出现 build361 发布准备提交（`faab36c5`）；本工作树仍以 `2c879f1b` 为基线，写范围与 build361 的版本/说明/构建文件不重叠，合入由 Lead 处理。
+> 注意：build361 发布准备（`faab36c5`）与本轮写范围不重叠；分支已 rebase 到它，合入由 Lead 处理。
 
 ## 1. 范围
 
@@ -25,8 +25,8 @@
 | slice 1 | `tools/java-format-files.json` | 登记新增 Java（格式门禁要求显式清单） |
 | slice 1 | `app/src/main/assets/runtime-descriptor.json` | 生成物：`saf/` 在 `launcherTrees`，新增 7 个类后重算 `runtimeId`（见 §8） |
 | 首提交（A1 P2） | `app/src/main/java/com/deepseekharness/app/contract/ModuleRegistry.java`、`app/src/test/java/com/deepseekharness/app/contract/ModuleRegistryTest.java`、`app/src/test/java/com/deepseekharness/app/ui/AboutFragmentTest.java` | 只做 §7 三条 P2 修复，不改契约形状 |
-| slice 2 | `app/src/main/java/com/deepseekharness/app/saf/SafGrants.java`（迁移到账本；旧 `saf_grants` 只读兼容）、`app/src/test/java/com/deepseekharness/app/saf/SafGrantsTest.java` / `SafBridgeTest.java` | 接入与迁移 |
-| slice 2 | `app/src/main/java/com/deepseekharness/app/HttpShellService.java`（SAF 查找/句柄校验；`/app/saf/*` 行为保持）、`app/src/main/java/com/deepseekharness/app/util/BridgeRoutes.java`（仅在新增端点时；不加协议号） | 桥面 |
+| slice 2 | `app/src/main/java/com/deepseekharness/app/saf/SafGrants.java`（迁移到账本；旧 `saf_grants` 只读兼容）、`SafTree.java`（限额常量单一来源），以及 slice 1 账本的扩展（`Previous`/`RELEASING`/metadata；仍在上述 7 个文件内）；`app/src/test/.../saf/SafGrantsTest.java` / `SafBridgeTest.java` | 接入与迁移 |
+| slice 2 | `HttpShellService.java` / `util/BridgeRoutes.java` **本轮未改**：`/app/saf/*` 端点与协议号保持；桥只消费新的 `SafGrants.lookup/listLight` 语义 | 桥面（行为保持） |
 | slice 3 | `app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java` / `SafBrowseFragment.java` / `WorkspaceFilesActivity.java`、必要的新增 UI 类与 `app/src/main/res/layout/` 布局；文案走 `UiText`（不新增 raw changelog） | 工作台/授权页 |
 | slice 4 | 本文件、`app/src/main/assets/runtime-descriptor.json`（最终重算）、必要的文档与验收证据（新文档索引入口报告 Lead，由 Lead 统一加） | 收口 |
 
@@ -55,7 +55,10 @@
 | 真机 | DocumentsUI 逐目录授权；移除后旧访问失败；系统设置撤销后条目降级；Provider 离线/超时返回类型化错误；限额拒绝；传输记录正确 | 用户/Lead |
 | 安全回归 | `/app/export`、`/app/readfile` 凭据区反例（既有测试）+ 未授权树/软链接/凭据区/限额反例（本轮新增） | 实现者 + 评审 |
 
-**已跑/未跑如实记录**：slice 1 的 5 个纯 JVM 测试类 + `ModuleRegistryTest` 共 61 项已在本机 `javac`/JUnitCore 通过；Robolectric 类（`AboutFragmentTest`）与 Gradle 资源链本机不可跑（aapt2 架构限制），交 CI；full 全量未跑。
+**已跑/未跑如实记录**：
+- slice 1：5 个纯 JVM 测试类 + `ModuleRegistryTest` 共 61 项本机 `javac`/JUnitCore 通过；`Source checks` run 43322817926 全绿（含 unit-source/host-fast）。
+- slice 2：纯 JVM 68 项（新增账本 Previous/RELEASING/metadata 用例）与 `saf` 包 Robolectric 68 项（`SafGrantsTest`/`SafBridgeTest`/`SafLocalFilesTest`/`SafPathsTest`/`SafTreeTest`）在本机通过；Robolectric 使用本机专用 `-Drobolectric.conscryptMode=OFF --add-opens=java.base/java.io=ALL-UNNAMED`，仅为 aarch64 本机绕开 Conscrypt/反射限制，**不替代 CI 默认配置**。
+- 未跑：`AboutFragmentTest`（Robolectric，交 CI）、Gradle 资源链/全量单测（本机 aapt2 为 x86_64）；Lead 已要求本机暂停 Robolectric/全量，后续以 CI 为准。
 
 ## 5. 回退点
 
@@ -86,14 +89,15 @@
 
 `app/src/main/assets/managed-runtime-inputs.json` 的 `launcherTrees` 已包含 `app/src/main/java/com/deepseekharness/app/saf`。slice 1 新增 7 个主类 → `launcherInputs` 481→488，**`runtimeId` 必变**：
 
-- 基线 `4d55973d407c171909e76d07f0b681de4069613944fb05e29cd38908e0984a26` → slice 1 实测 `cf279a36dc72b608c95d352673b86115324b308defb57dbaaac46bee1c8d352f`（本地按固定输入重算并 `--write`；后续 slice 每次改 `saf/` 都要重算）。
+- 基线 `4d55973d407c171909e76d07f0b681de4069613944fb05e29cd38908e0984a26` → slice 1 `cf279a36dc72b608c95d352673b86115324b308defb57dbaaac46bee1c8d352f`（已推送，CI run 43322817926 全绿）。
+- slice 2 改 `SafGrants`/`SafTree` 并新增记录状态字段 → 现行 `8a5b56d769d0ed2d68f7be7e0f700d75b63a4e76f84df56ed44593b1e6c929be`（本地按固定输入 `--write`；后续 slice 每次改 `saf/` 都要重算）。
 - 覆盖安装后按设计进**一次**整屏维护页（I1/I6）；数据格式不变、桥协议 `3` 不变；回退不需要清数据。
 - `app/src/main/assets/runtime-descriptor.json` 是生成物，随批次提交；不得手改摘要。
 
 ## 9. 出口判据（A2）
 
 1. 能力层正/反例由单测证明：PENDING→ACTIVE、满 8 树、撤销/重授后旧句柄失效、系统撤销降级、一次性消费、TTL、未知条目保留、坏值回默认、未授权目录/软链接/凭据区/限额反例。
-2. 接入后：撤销后旧句柄/旧 URI 立即失效；`/app/saf/*` 行为保持；`/app/export`、`/app/readfile` 边界用例通过；`BRIDGE_PROTOCOL` 仍为 3。
+2. 接入后：撤销后旧 id/旧 tree URI 立即失效；`/app/saf/*` 行为保持；`/app/export`、`/app/readfile` 边界用例通过；`BRIDGE_PROTOCOL` 仍为 3。
 3. 无新增敏感能力；默认关闭/可撤销语义不放松；文档不把 Provider 边界写成内容级安全。
 4. full 固定输入全量单测 0 skipped 绿；`test-core-boundaries.py` 基线只减不增；格式/文档链接 PASS；覆盖安装真机证据（一次维护页、数据完好、无白屏）。
 5. 非实现者逐行评审 **APPROVE**；`CHANGELOG`/版本号/说明由 Lead 统一处理。
@@ -102,10 +106,17 @@
 
 | # | 内容 | 依赖 | 状态 |
 |---|---|---|---|
-| 1 | 授权簿能力层（账本/编解码/存储/句柄/限额/边界）+ 单测；A1 P2 | — | ✅ 本轮实现（未合并） |
-| 2 | `SafGrants` 迁移到账本（旧 `saf_grants` 只读兼容）；桥查找走账本+句柄；撤销后旧句柄失效接入 | 1 | 待排期 |
-| 3 | 跨应用文件工作台：授权页状态、浏览/导入/导出、传输记录（复用 `transfer/`，不重写下载引擎） | 2 | 待排期 |
+| 1 | 授权簿能力层（账本/编解码/存储/句柄/限额/边界）+ 单测；A1 P2 | — | ✅ 已推送，CI 全绿（run 43322817926） |
+| 2 | `SafGrants` 迁移到账本（旧 `saf_grants` 只读兼容、迁移失败回退旧路径）；桥 lookup 走账本；撤销后旧 id/URI 失效；`SafTree` 常量单一来源；反例测试 | 1 | ✅ 已实现（本轮提交，待 CI） |
+| 3 | 跨应用文件工作台：授权页状态、浏览/导入/导出、传输记录（复用 `transfer/`，不重写下载引擎）；长生命周期能力句柄在 workspace 操作层接入 | 2 | 待排期 |
 | 4 | 受控流/限额收口、端点与凭据区反例、descriptor 重算、真机与出口证据 | 2、3 | 待排期 |
+
+**slice 2 接入语义（已实现）**
+
+- **迁移**：`SafGrants` 首次访问时把旧 `saf_grants` 一次性只读导入账本（saved/pending/acquired/writable/label）；旧键此后不再写回，降级版仍能读到自己那份。初始化用 `schema` 标记，不用「记录为空」判断，避免移除全部授权后旧记录被反复迁移回来。迁移 `store.save` 失败 → 本次调用回退旧路径，授权不丢。
+- **生命周期**：add 先落 PENDING；take/remember 成功后 ACTIVE；崩溃残留在下次 `cleanupPending` 按 before/intent 释放新增位后再删除或恢复旧 ACTIVE（`Previous` 快照）。撤销时系统拒绝释放 → `RELEASING`（列表/桥不可见），下次重试成功后删除。
+- **桥**：`/app/saf/*` 的每次 lookup 都从账本按 ACTIVE 记录解析，并现场读系统系统券；撤销/重授权后旧 id 与旧 tree URI 立即 `NO_GRANT`。桥协议没有长生命周期 handle 字段，故长生命周期能力句柄留给 slice 3 工作台操作层；桥侧等价保证是「每请求重新解析 + epoch 校验」。
+- **限额单一来源**：`SafGrants.MAX_TREES` 与 `SafTree.MAX_ENTRIES/MAX_READ/MAX_WRITE/DEADLINE_MS` 都引用 `SafCapabilityLimits`。
 
 ## 11. Deferred / 不做
 

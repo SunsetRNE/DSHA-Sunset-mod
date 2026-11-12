@@ -41,19 +41,19 @@ public final class SafTree {
   private static final String COLUMN_PARENT_DOCUMENT_ID = "parent_document_id";
 
   /** 单次列目录上限；超过只给前 limit 条，并报告被截断。 */
-  public static final int MAX_ENTRIES = 500;
+  public static final int MAX_ENTRIES = SafCapabilityLimits.MAX_ENTRIES;
 
   /** 单次读取上限（与 /app/readfile 的 256 KiB 对齐）。 */
-  public static final int MAX_READ = 256 * 1024;
+  public static final int MAX_READ = SafCapabilityLimits.MAX_READ_BYTES;
 
   /** 单次写入上限。 */
-  public static final long MAX_WRITE = 32L * 1024 * 1024;
+  public static final long MAX_WRITE = SafCapabilityLimits.MAX_WRITE_BYTES;
 
   /**
    * 跨进程调用的统一截止时间：可中断调用在截止时取消并返回 TIMEOUT；createDocument 等不可中断
    * 调用只能在返回后复核截止，Provider 完全忽略取消时后台线程仍会被占用到它返回为止。
    */
-  public static final long DEADLINE_MS = 15000L;
+  public static final long DEADLINE_MS = SafCapabilityLimits.DEADLINE_MS;
 
   /** 删除确认 token 登记：一次性、绑定 treeId/规范化路径/探测时的目标身份与 60 秒有效期。 */
   private static final java.util.concurrent.ConcurrentHashMap<String, Pending> PENDING_DELETES =

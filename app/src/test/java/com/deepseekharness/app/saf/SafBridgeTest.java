@@ -111,6 +111,10 @@ public final class SafBridgeTest {
     SafTestOs.reset();
     SafLocalFiles.setDirectoryListerForTests(fd -> new String[0]);
     app.getSharedPreferences("saf_grants", Context.MODE_PRIVATE).edit().clear().commit();
+    app.getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE)
+        .edit()
+        .clear()
+        .commit();
     tree = Uri.parse(TREE);
     rootfs = Files.createTempDirectory("dsha-saf-bridge-").toFile();
     Files.createDirectories(new File(rootfs, "root").toPath());
@@ -150,15 +154,16 @@ public final class SafBridgeTest {
   private String register(boolean writablePref, int flags) {
     ContentResolver resolver = app.getContentResolver();
     resolver.takePersistableUriPermission(tree, flags);
-    Set<String> saved = new HashSet<>();
-    saved.add(tree.toString());
-    app.getSharedPreferences("saf_grants", Context.MODE_PRIVATE)
-        .edit()
-        .putStringSet("uris", saved)
-        .putBoolean("writable:" + tree, writablePref)
-        .putString("acquired:" + tree, "rw")
-        .putString(SafGrants.KEY_LABEL + tree, "Folder")
-        .commit();
+    SafLedgerStore store =
+        new SafLedgerStore(
+            app.getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE));
+    SafGrantLedger ledger = store.load();
+    long now = System.currentTimeMillis();
+    SafGrantLedger begun =
+        ledger.beginTake(tree.toString(), "test", "Folder", flags, flags, now).ledger;
+    SafGrantLedger committed =
+        begun.commitTake(tree.toString(), flags, flags, writablePref, now).ledger;
+    assertTrue(store.save(committed));
     return SafGrants.id(tree);
   }
 
@@ -272,6 +277,52 @@ public final class SafBridgeTest {
             SafTree.Failure.class,
             () -> bridge.safTree("/app/saf/push?tree=" + id + "&path=x&src=/root/x", true));
     assertEquals("READ_ONLY", disabled.code);
+  }
+
+  @Test
+  public void revokingGrantInvalidatesOldIdAndPreviouslyResolvedTree() throws Exception {
+    String id =
+        register(
+            true, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+    assertNotNull("撤销前旧 id 可用", bridge.safTree("/app/saf/ls?tree=" + id + "&path=", false));
+
+    SafGrants.forget(app, tree);
+
+    SafTree.Failure revoked =
+        assertThrows(
+            SafTree.Failure.class,
+            () -> bridge.safTree("/app/saf/ls?tree=" + id + "&path=", false));
+    assertEquals("NO_GRANT", revoked.code);
+    String json = (String) invoke(bridge.trees, bridge.service);
+    assertFalse("撤销后旧 id 不得再出现在 trees 列表里", json.contains(id));
+  }
+
+  @Test
+  public void legacyRegistrationIsMigratedForBridgeLookupsAndLegacyKeysStayReadOnly()
+      throws Exception {
+    app.getContentResolver()
+        .takePersistableUriPermission(
+            tree, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+    Set<String> saved = new HashSet<>();
+    saved.add(tree.toString());
+    app.getSharedPreferences("saf_grants", Context.MODE_PRIVATE)
+        .edit()
+        .putStringSet("uris", saved)
+        .putBoolean("writable:" + tree, true)
+        .putString("acquired:" + tree, "rw")
+        .putString(SafGrants.KEY_LABEL + tree, "LegacyFolder")
+        .commit();
+    String id = SafGrants.id(tree);
+
+    assertNotNull(bridge.safTree("/app/saf/ls?tree=" + id + "&path=", false));
+    String json = (String) invoke(bridge.trees, bridge.service);
+    assertTrue(json, json.contains(id));
+    assertTrue(json, json.contains("LegacyFolder"));
+    assertTrue(
+        "旧命名空间保持只读兼容",
+        app.getSharedPreferences("saf_grants", Context.MODE_PRIVATE)
+            .getStringSet("uris", new HashSet<>())
+            .contains(tree.toString()));
   }
 
   @Test

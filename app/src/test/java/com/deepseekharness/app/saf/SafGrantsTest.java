@@ -141,6 +141,11 @@ public final class SafGrantsTest {
   public void setUp() {
     context = RuntimeEnvironment.getApplication();
     prefs().edit().clear().commit();
+    context
+        .getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE)
+        .edit()
+        .clear()
+        .commit();
     labelProvider = new LabelProvider();
     ProviderInfo info = new ProviderInfo();
     info.authority = LABEL_AUTH;
@@ -254,8 +259,11 @@ public final class SafGrantsTest {
     SafGrants.cleanupPending(context);
 
     assertEquals("清理只还本次新拿到的写位，原有读授权保留", SafGrants.READ, flags(shared));
-    assertTrue(prefs().getStringSet(SafGrants.KEY_PENDING, new HashSet<>()).isEmpty());
-    assertFalse(prefs().contains(SafGrants.KEY_PENDING_BEFORE + shared));
+    assertTrue(SafGrants.list(context).isEmpty());
+    // 旧命名空间只读兼容：迁移后不再改写它（降级版仍能读到自己那份记录）。
+    assertTrue(
+        prefs().getStringSet(SafGrants.KEY_PENDING, new HashSet<>()).contains(shared.toString()));
+    assertTrue(prefs().contains(SafGrants.KEY_PENDING_BEFORE + shared));
   }
 
   @Test
@@ -326,7 +334,12 @@ public final class SafGrantsTest {
   }
 
   private String cachedLabel(Uri tree) {
-    return prefs().getString(SafGrants.KEY_LABEL + tree, "");
+    SafGrantRecord record =
+        new SafLedgerStore(
+                context.getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE))
+            .load()
+            .findByUri(tree.toString());
+    return record == null ? "" : record.label();
   }
 
   @Test
@@ -343,7 +356,40 @@ public final class SafGrantsTest {
 
     SafGrants.cleanupPending(context);
 
-    assertTrue(prefs().getStringSet(SafGrants.KEY_PENDING, new HashSet<>()).isEmpty());
+    assertTrue(SafGrants.list(context).isEmpty());
     assertEquals(0, flags(never));
+    // 旧命名空间保持原样（只读兼容）；账本已初始化，不会再次迁移出可用授权。
+    assertTrue(
+        prefs().getStringSet(SafGrants.KEY_PENDING, new HashSet<>()).contains(never.toString()));
+  }
+
+  @Test
+  public void legacyGrantsAreMigratedOnceAndLegacyKeysStayReadOnly() {
+    Uri shared = tree("migrated");
+    take(shared, true, true);
+    Set<String> saved = new HashSet<>();
+    saved.add(shared.toString());
+    prefs()
+        .edit()
+        .putStringSet("uris", saved)
+        .putString(SafGrants.KEY_ACQUIRED + shared, "rw")
+        .putBoolean("writable:" + shared, false)
+        .putString(SafGrants.KEY_LABEL + shared, "旧目录")
+        .commit();
+
+    java.util.List<SafGrants.Grant> grants = SafGrants.list(context);
+    assertEquals(1, grants.size());
+    assertEquals("旧目录", grants.get(0).label);
+    assertFalse("用户写入偏好应随迁移保留", grants.get(0).writable);
+    assertTrue(
+        "旧命名空间不得被迁移改写", prefs().getStringSet("uris", new HashSet<>()).contains(shared.toString()));
+
+    SafGrants.forget(context, shared);
+
+    assertEquals(0, flags(shared));
+    assertTrue(SafGrants.list(context).isEmpty());
+    assertTrue(
+        "初始化标记存在时旧记录不得被再次迁移回来",
+        prefs().getStringSet("uris", new HashSet<>()).contains(shared.toString()));
   }
 }

@@ -40,7 +40,8 @@ final class SafTestSupport {
         epoch,
         1_000L,
         0,
-        SafGrantRecord.READ);
+        SafGrantRecord.READ,
+        null);
   }
 
   static SafGrantRecord pending(String uri, long epoch) {
@@ -57,7 +58,8 @@ final class SafTestSupport {
         epoch,
         1_000L,
         SafGrantRecord.READ,
-        SafGrantRecord.READ | SafGrantRecord.WRITE);
+        SafGrantRecord.READ | SafGrantRecord.WRITE,
+        null);
   }
 
   static SafGrantLedger ledger(SafGrantRecord... records) {

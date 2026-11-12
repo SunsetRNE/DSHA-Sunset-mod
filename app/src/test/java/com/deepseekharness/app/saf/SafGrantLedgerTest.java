@@ -166,6 +166,82 @@ public class SafGrantLedgerTest {
   }
 
   @Test
+  public void abortingRetakeRestoresPreviousActiveGrant() {
+    SafGrantLedger ledger = SafTestSupport.single(URI, SafGrantRecord.READ | SafGrantRecord.WRITE);
+
+    SafGrantLedger retaken =
+        ledger.beginTake(URI, "app", "label", SafGrantRecord.READ, SafGrantRecord.READ, 2_000L)
+            .ledger;
+    assertTrue(retaken.findByUri(URI).hasPrevious());
+
+    SafGrantLedger restored = retaken.abortTake(URI).ledger;
+
+    SafGrantRecord record = restored.findByUri(URI);
+    assertNotNull(record);
+    assertEquals(SafGrantRecord.State.ACTIVE, record.state());
+    assertTrue(record.canRead());
+    assertTrue(record.canWrite());
+    assertEquals(SafGrantRecord.READ | SafGrantRecord.WRITE, record.acquired());
+    assertEquals(record.epoch(), retaken.findByUri(URI).epoch());
+    assertFalse(record.hasPrevious());
+  }
+
+  @Test
+  public void abortingFirstTakeRemovesRecordWithoutPrevious() {
+    SafGrantLedger pending =
+        SafGrantLedger.empty()
+            .beginTake(URI, "app", "label", 0, SafGrantRecord.READ, 1_000L)
+            .ledger;
+
+    assertTrue(pending.abortTake(URI).accepted());
+    assertNull(pending.abortTake(URI).ledger.findByUri(URI));
+  }
+
+  @Test
+  public void releasingStateHidesGrantUntilReleaseRetryFinishes() {
+    SafGrantLedger ledger = SafTestSupport.single(URI, SafGrantRecord.READ);
+
+    SafGrantLedger releasing = ledger.beginRelease(URI).ledger;
+    assertEquals(SafGrantRecord.State.RELEASING, releasing.findByUri(URI).state());
+    assertFalse(releasing.findByUri(URI).valid());
+    assertTrue(releasing.beginRelease(URI).accepted());
+    assertEquals(releasing.revision(), releasing.beginRelease(URI).ledger.revision());
+
+    SafGrantLedger finished = releasing.finishRelease(URI).ledger;
+    assertNull(finished.findByUri(URI));
+    assertTrue(finished.finishRelease(URI).accepted());
+  }
+
+  @Test
+  public void beginTakeOnReleasingGrantIsRejectedToAvoidLosingReleaseRetry() {
+    SafGrantLedger releasing =
+        SafTestSupport.single(URI, SafGrantRecord.READ).beginRelease(URI).ledger;
+
+    SafGrantLedger.Change retake =
+        releasing.beginTake(URI, "app", "label", 0, SafGrantRecord.READ, 1_000L);
+
+    assertEquals(SafGrantLedger.BAD_STATE, retake.failure);
+  }
+
+  @Test
+  public void metadataUpdateDoesNotChangeFlagsOrEpoch() {
+    SafGrantLedger ledger = SafTestSupport.single(URI, SafGrantRecord.READ);
+    SafGrantRecord before = ledger.findByUri(URI);
+
+    SafGrantLedger updated = ledger.setMetadata(URI, "Files", "Downloads").ledger;
+
+    SafGrantRecord after = updated.findByUri(URI);
+    assertEquals("Files", after.app());
+    assertEquals("Downloads", after.label());
+    assertEquals(before.epoch(), after.epoch());
+    assertEquals(before.readable(), after.readable());
+    assertEquals(before.acquired(), after.acquired());
+    assertTrue(after.canRead());
+    assertEquals(
+        updated.revision(), updated.setMetadata(URI, "Files", "Downloads").ledger.revision());
+  }
+
+  @Test
   public void userWritePreferenceIsScopedToTheGrant() {
     SafGrantLedger ledger =
         SafTestSupport.ledger(

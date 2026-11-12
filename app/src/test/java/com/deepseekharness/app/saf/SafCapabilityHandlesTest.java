@@ -57,7 +57,8 @@ public class SafCapabilityHandlesTest {
             3,
             1_000L,
             0,
-            1);
+            1,
+            null);
     assertEquals(
         SafCapabilityHandles.Result.NOT_PERMITTED,
         handles.issue(

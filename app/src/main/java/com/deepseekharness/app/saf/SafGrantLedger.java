@@ -100,7 +100,11 @@ public final class SafGrantLedger {
     return byUri.size();
   }
 
-  /** 开始一次系统 take：先落 PENDING 记录；同一 URI 重选时换新代次并保留写入偏好。 */
+  /**
+   * 开始一次系统 take：先落 PENDING 记录；同一 URI 重选时换新代次并保留写入偏好。
+   * 旧 ACTIVE 状态放进 {@link SafGrantRecord#previous()}，崩溃清理或 abort 时恢复，
+   * 避免一次失败的重新授权把用户已有 grant 弄丢。
+   */
   public Change beginTake(
       String uri, String app, String label, int beforeFlags, int intentFlags, long now) {
     if (SafCapabilityPolicy.treeUriProblem(uri, null) != SafCapabilityPolicy.TreeUri.OK)
@@ -109,9 +113,23 @@ public final class SafGrantLedger {
         || (intentFlags & ~(SafGrantRecord.READ | SafGrantRecord.WRITE)) != 0
         || intentFlags == 0) return fail(INVALID_ARGUMENT);
     SafGrantRecord existing = byUri.get(uri);
+    if (existing != null && existing.state() == SafGrantRecord.State.RELEASING)
+      return fail(BAD_STATE);
     if (existing == null && byUri.size() >= SafCapabilityLimits.MAX_TREES) return fail(LIMIT);
     long epoch = nextEpoch;
     boolean userWritable = existing == null || existing.userWritable();
+    SafGrantRecord.Previous previous = null;
+    if (existing != null) {
+      SafGrantRecord.Previous prior =
+          existing.state() == SafGrantRecord.State.PENDING ? existing.previous() : null;
+      if (prior != null) {
+        previous = prior;
+      } else if (existing.state() == SafGrantRecord.State.ACTIVE) {
+        previous =
+            new SafGrantRecord.Previous(
+                existing.readable(), existing.writable(), existing.acquired(), existing.takenAt());
+      }
+    }
     SafGrantRecord pending =
         new SafGrantRecord(
             SafGrantRecord.idOf(uri),
@@ -126,7 +144,8 @@ public final class SafGrantLedger {
             epoch,
             Math.max(0, now),
             beforeFlags,
-            intentFlags);
+            intentFlags,
+            previous);
     Map<String, SafGrantRecord> copy = new LinkedHashMap<>(byUri);
     copy.put(uri, pending);
     return new Change(new SafGrantLedger(copy, revision + 1, epoch + 1), null);
@@ -154,16 +173,101 @@ public final class SafGrantLedger {
             record.epoch(),
             now >= 0 ? now : record.takenAt(),
             0,
-            0);
+            0,
+            null);
     return replace(active);
   }
 
-  /** 放弃 take（含进程在 take/remember 之间死亡后的清理）；对不存在记录幂等。 */
+  /**
+   * 放弃 take（含进程在 take/remember 之间死亡后的清理）；对不存在记录幂等。
+   * 重新授权失败时恢复旧 ACTIVE 状态，而不是删除用户已有的 grant。
+   */
   public Change abortTake(String uri) {
     SafGrantRecord record = uri == null ? null : byUri.get(uri);
     if (record == null) return new Change(this, null);
     if (record.state() != SafGrantRecord.State.PENDING) return fail(BAD_STATE);
+    SafGrantRecord.Previous previous = record.previous();
+    if (previous == null) return remove(uri);
+    SafGrantRecord restored =
+        new SafGrantRecord(
+            record.id(),
+            record.uri(),
+            record.app(),
+            record.label(),
+            previous.readable(),
+            previous.writable(),
+            record.userWritable(),
+            previous.acquired(),
+            SafGrantRecord.State.ACTIVE,
+            record.epoch(),
+            previous.takenAt(),
+            0,
+            0,
+            null);
+    return replace(restored);
+  }
+
+  /**
+   * 撤销时系统拒绝释放新增权限：保留记录为 RELEASING，供下次清理重试释放。
+   * RELEASING 记录不再出现在列表/桥 lookup 里（不可用），也不签发能力句柄。
+   */
+  public Change beginRelease(String uri) {
+    SafGrantRecord record = uri == null ? null : byUri.get(uri);
+    if (record == null) return new Change(this, null);
+    if (record.state() == SafGrantRecord.State.RELEASING) return new Change(this, null);
+    if (record.state() != SafGrantRecord.State.ACTIVE) return fail(BAD_STATE);
+    SafGrantRecord releasing =
+        new SafGrantRecord(
+            record.id(),
+            record.uri(),
+            record.app(),
+            record.label(),
+            false,
+            false,
+            record.userWritable(),
+            record.acquired(),
+            SafGrantRecord.State.RELEASING,
+            record.epoch(),
+            record.takenAt(),
+            0,
+            0,
+            null);
+    return replace(releasing);
+  }
+
+  /** 释放重试成功后删除 RELEASING 记录；对不存在/已删除记录幂等。 */
+  public Change finishRelease(String uri) {
+    SafGrantRecord record = uri == null ? null : byUri.get(uri);
+    if (record == null) return new Change(this, null);
+    if (record.state() != SafGrantRecord.State.RELEASING) return fail(BAD_STATE);
     return remove(uri);
+  }
+
+  /** 更新显示名缓存（应用名/目录名）；与授权状态、系统位、代次无关。 */
+  public Change setMetadata(String uri, String app, String label) {
+    SafGrantRecord record = uri == null ? null : byUri.get(uri);
+    if (record == null) return fail(UNKNOWN_GRANT);
+    String nextApp = app == null ? "" : app.trim();
+    String nextLabel = label == null ? "" : label.trim();
+    if (record.app().equals(nextApp) && record.label().equals(nextLabel))
+      return new Change(this, null);
+    SafGrantRecord updated =
+        new SafGrantRecord(
+            record.id(),
+            record.uri(),
+            nextApp,
+            nextLabel,
+            record.readable(),
+            record.writable(),
+            record.userWritable(),
+            record.acquired(),
+            record.state(),
+            record.epoch(),
+            record.takenAt(),
+            record.pendingBefore(),
+            record.pendingIntent(),
+            record.previous());
+    return replace(updated);
   }
 
   /** 撤销授权：删除记录即让旧 id/旧 URI/旧 epoch 句柄全部失效；对不存在记录幂等。 */
@@ -191,7 +295,8 @@ public final class SafGrantLedger {
             record.epoch(),
             record.takenAt(),
             record.pendingBefore(),
-            record.pendingIntent());
+            record.pendingIntent(),
+            record.previous());
     return replace(updated);
   }
 
@@ -223,7 +328,8 @@ public final class SafGrantLedger {
             record.epoch(),
             record.takenAt(),
             record.pendingBefore(),
-            record.pendingIntent());
+            record.pendingIntent(),
+            null);
     return replace(updated);
   }
 

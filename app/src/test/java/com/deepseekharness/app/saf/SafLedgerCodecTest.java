@@ -67,6 +67,39 @@ public class SafLedgerCodecTest {
   }
 
   @Test
+  public void previousSnapshotOfRetakeRoundTrips() {
+    SafGrantLedger active = oneGrant(SafGrantRecord.READ | SafGrantRecord.WRITE);
+    SafGrantLedger pending =
+        active.beginTake(URI, "app", "label", SafGrantRecord.READ, SafGrantRecord.READ, 2_000L)
+            .ledger;
+
+    SafLedgerCodec.Decoded decoded = SafLedgerCodec.decode(SafLedgerCodec.encode(pending));
+
+    SafGrantRecord record = decoded.ledger.findByUri(URI);
+    assertNotNull(record);
+    assertTrue(record.hasPrevious());
+    assertTrue(record.previous().readable());
+    assertTrue(record.previous().writable());
+    assertTrue(decoded.warnings.isEmpty());
+  }
+
+  @Test
+  public void releasingStateRoundTripsAndStaysWithoutPendingFields() {
+    SafGrantLedger releasing =
+        SafTestSupport.single(URI, SafGrantRecord.READ | SafGrantRecord.WRITE)
+            .beginRelease(URI)
+            .ledger;
+
+    SafLedgerCodec.Decoded decoded = SafLedgerCodec.decode(SafLedgerCodec.encode(releasing));
+
+    SafGrantRecord record = decoded.ledger.findByUri(URI);
+    assertNotNull(record);
+    assertEquals(SafGrantRecord.State.RELEASING, record.state());
+    assertEquals(SafGrantRecord.READ | SafGrantRecord.WRITE, record.acquired());
+    assertFalse(record.valid());
+  }
+
+  @Test
   public void unknownKeysAndFutureFieldsArePreserved() {
     Map<String, Object> raw =
         new LinkedHashMap<>(SafLedgerCodec.encode(oneGrant(SafGrantRecord.READ)));

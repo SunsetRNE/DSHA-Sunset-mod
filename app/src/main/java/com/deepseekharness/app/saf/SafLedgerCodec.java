@@ -48,6 +48,11 @@ public final class SafLedgerCodec {
   public static final String FIELD_TAKEN_AT = "takenAt";
   public static final String FIELD_PENDING_BEFORE = "pendingBefore";
   public static final String FIELD_PENDING_INTENT = "pendingIntent";
+  public static final String FIELD_PREVIOUS = "prev";
+  public static final String FIELD_PREV_READ = "prevRead";
+  public static final String FIELD_PREV_WRITE = "prevWrite";
+  public static final String FIELD_PREV_ACQUIRED = "prevAcquired";
+  public static final String FIELD_PREV_TAKEN_AT = "prevTakenAt";
 
   private static final Set<String> TOP_LEVEL =
       Set.of(PREF_SCHEMA, PREF_REVISION, PREF_NEXT_EPOCH, PREF_IDS);
@@ -64,7 +69,12 @@ public final class SafLedgerCodec {
           FIELD_EPOCH,
           FIELD_TAKEN_AT,
           FIELD_PENDING_BEFORE,
-          FIELD_PENDING_INTENT);
+          FIELD_PENDING_INTENT,
+          FIELD_PREVIOUS,
+          FIELD_PREV_READ,
+          FIELD_PREV_WRITE,
+          FIELD_PREV_ACQUIRED,
+          FIELD_PREV_TAKEN_AT);
 
   private SafLedgerCodec() {}
 
@@ -176,6 +186,14 @@ public final class SafLedgerCodec {
       out.put(prefix + FIELD_TAKEN_AT, Long.toString(record.takenAt()));
       out.put(prefix + FIELD_PENDING_BEFORE, Integer.toString(record.pendingBefore()));
       out.put(prefix + FIELD_PENDING_INTENT, Integer.toString(record.pendingIntent()));
+      SafGrantRecord.Previous previous = record.previous();
+      if (previous != null) {
+        out.put(prefix + FIELD_PREVIOUS, "1");
+        out.put(prefix + FIELD_PREV_READ, previous.readable() ? "1" : "0");
+        out.put(prefix + FIELD_PREV_WRITE, previous.writable() ? "1" : "0");
+        out.put(prefix + FIELD_PREV_ACQUIRED, flags(previous.acquired()));
+        out.put(prefix + FIELD_PREV_TAKEN_AT, Long.toString(previous.takenAt()));
+      }
     }
     out.put(PREF_IDS, ids);
     return out;
@@ -222,6 +240,15 @@ public final class SafLedgerCodec {
     int pendingBefore = mask(number(raw.get(prefix + FIELD_PENDING_BEFORE), 0L));
     int pendingIntent = mask(number(raw.get(prefix + FIELD_PENDING_INTENT), SafGrantRecord.READ));
     if (pendingIntent == 0) pendingIntent = SafGrantRecord.READ;
+    SafGrantRecord.Previous previous = null;
+    if (bool(raw.get(prefix + FIELD_PREVIOUS), false)) {
+      previous =
+          new SafGrantRecord.Previous(
+              bool(raw.get(prefix + FIELD_PREV_READ), false),
+              bool(raw.get(prefix + FIELD_PREV_WRITE), false),
+              acquired(raw.get(prefix + FIELD_PREV_ACQUIRED)),
+              Math.max(0, number(raw.get(prefix + FIELD_PREV_TAKEN_AT), 0L)));
+    }
     try {
       return new SafGrantRecord(
           id,
@@ -236,7 +263,8 @@ public final class SafLedgerCodec {
           epoch,
           takenAt,
           pendingBefore,
-          pendingIntent);
+          pendingIntent,
+          previous);
     } catch (IllegalArgumentException invalid) {
       // 记录级不变量（id/URI/flags）在该版本里被破坏：整组保留，不激活。
       warnings.add("RECORD_INVALID:" + id);
@@ -284,6 +312,7 @@ public final class SafLedgerCodec {
   private static SafGrantRecord.State state(String value) {
     if (SafGrantRecord.State.ACTIVE.name().equals(value)) return SafGrantRecord.State.ACTIVE;
     if (SafGrantRecord.State.PENDING.name().equals(value)) return SafGrantRecord.State.PENDING;
+    if (SafGrantRecord.State.RELEASING.name().equals(value)) return SafGrantRecord.State.RELEASING;
     return null;
   }
 
