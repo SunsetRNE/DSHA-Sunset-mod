@@ -56,9 +56,7 @@ built-in Kotlin 自动为模块添加一次 `kotlin-stdlib`（2.2.10）。`app/b
 
 ## 2. 依赖校验（`gradle/verification-metadata.xml`）
 
-仓库开启依赖校验（`verify-metadata=true`、`verify-signatures=false`）。本批次只**新增**
-Kotlin 工具链相关组件与 artifact 的 SHA-256，不删除旧条目、不重排已有条目；人工复核新增项
-只来自 KGP / Kotlin 编译器 / stdlib 及其构建期依赖。
+仓库开启依赖校验（`verify-metadata=true`、`verify-signatures=false`）。Kotlin 2.2.10 的 KGP / stdlib / 编译器组件自 build190 起已在基线中由 AGP 运行时 classpath 记录，因此本批次**未新增** `verification-metadata.xml` 条目：`--write-verification-metadata sha256` 只会重排既有条目，已恢复原文件；严格校验下 Kotlin 编译通过。后续升级 KGP 时如需新增组件，只做增量补入，不删除、不重排旧条目，并注明来源。
 
 生成/复核方式：
 
