@@ -283,6 +283,17 @@ android {
     }
 }
 
+// built-in Kotlin（AGP 9.1.1）：AGP 自动注册 Kotlin 编译任务并添加 kotlin-stdlib 依赖，
+// 版本由 settings.gradle 的 gradle.ext.kotlinVersion / AGP 运行时依赖固定为 2.2.10。
+// 不在这里重复声明 stdlib，避免同一模块出现两条 stdlib 依赖坐标。
+// Java 与 Kotlin 统一产出 17 字节码；jvmTarget 默认跟随 compileOptions.targetCompatibility，
+// 这里显式写死，防止将来改 compileOptions 时 javac/kotlinc 目标静默漂移。
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
 // 版本号仍以 build.gradle 为构建基准；所选身份文件必须记录同一值，防止身份文件与源码漂移。
 if (android.defaultConfig.versionCode != releaseIdentity.versionCode
         || android.defaultConfig.versionName != releaseIdentity.versionName)
