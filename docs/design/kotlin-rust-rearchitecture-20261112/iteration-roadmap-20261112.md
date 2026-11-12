@@ -201,6 +201,7 @@ graph LR
 - **吸收对方的优点**：数据操作沿用受管事务、完整性验证与维护屏障；APK 回退 ≠ 数据恢复。
 - **覆盖模块**：F05；M12、M20（v1–v4 读）、M01（配置快照）＋ **Rust 首次旁路**。
 - **交付物**：一键备份（无密码 v5）、恢复与迁移、自动计划、保留数据管理；**Rust 旁路**：三类封闭纯函数（`archive_pack/archive_unpack`、`digest`、`verify_plan`），与 JVM 实现差分对拍，可一键回退；`cargo vendor` + 锁文件 + 字节复现门禁 + 16 KB 页对齐。**不含 `execute`/`argv`/fd 执行/进程操作。**
+- **Rust 接入方案**：工具链、vendor/许可、CI 产物与 Gradle 注入、ABI 与差分测试的详细设计见 [R1 方案](r1-rust-toolchain-plan-20261113.md)（R0 待 Kotlin 工具链批次合入 main 后开工；R1–R3 与 A3 备份契约/夹具同步）。
 - **出口判据**：v5 备份跨版本可恢复；"双读单写"验证；Rust/JVM 解压后字节、摘要、清单 100% 一致；体积增量在 1.10 MiB 基线预算内；旧格式（v1–v4）导入路径有测试。
 - **覆盖更新影响**：改 `backup/`（83 类全部在 `launcherInputs` 内）→ `runtimeId` 变 → 一次维护页；**数据格式不升级**（`dataWrite` 保持 `dsh-0.2.2-rc.1`）。
 - **回退点**：Rust 开关回 JVM；tag。
