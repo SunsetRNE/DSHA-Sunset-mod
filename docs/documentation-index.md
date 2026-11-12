@@ -20,7 +20,7 @@
 | [虚拟屏架构](virtual-screen-architecture.md) | Core/Manager/工具路由、帧/节点/anchor证据、采集输入、关闭恢复与修改回归 |
 | [实体屏特权执行核心（T130 Phase A，实验）](privileged-screen-core.md) | display 0 镜像抓帧 + 固定动词注入、一次性帧/动作凭据、能力/任务/确认三道门、低延迟 benchmark、无无障碍依赖与未真机验收边界 |
 | [任务状态上岛](island-status.md) | 实时活动/胶囊两代判据、岛位选举、完成态、心跳收敛与验证范围 |
-| [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果 |
+| [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) / [ADR0004](adr/0004-kotlin-rust-direction.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果、Kotlin 引入与 Rust 引擎方向（Accepted 2026-11-12） |
 | [资料与来源依据](references-and-provenance.md) | 官方primary入口、工程上游关系、固定版本/摘要、许可与来源限制 |
 | [固定构建输入](fixed-build-inputs.md) | 公开仓库预发布资产、12 项输入、SHA-256 锁定与还原流程 |
 | [CI 构建与发布](ci-release.md) | 公开仓库 Actions 正式成品：触发参数、Secrets、门禁、签名核验与 Release 产物 |
@@ -39,6 +39,13 @@
 | [GitHub 凭据原生化设计（T50）](design/github-credential-native.md) | 壳内 OAuth Device Flow 登录、token 存 Keystore、容器经桥按需取 access token；待确认，未实现 |
 | [物理屏两套观察路径设计（T107）](design/physical-screen-observation-20261107.md) | 无障碍动作 + 特权镜像读屏 + evdev 用户操作检测；A/B/C 对比、接口/授权/兼容/回退与 M1–M3 计划；未实现 |
 | [build351 覆盖升级首启失败排查（T133）](design/build351-first-start-registration-20261110.md) | 插件注册 90s 超时 + 残留 profile 锁 + 「原因未分类」的源码级归因（③ 机制为主、① 锁生命周期与首启重复覆盖层加重、② 语义不足），含最小修复与复现/取证清单；只排查未改代码 |
+| [外壳 Kotlin 模块化 + Rust 引擎可行性评审](design/kotlin-rust-rearchitecture-20261112/README.md) | 五条并行评审线：21 个状态模块 / 9 个 Gradle 模块 / 1 个 Rust crate；用户 10 模块重切 4 处、拆 15 个、再补 6 个净新增；I1–I10 覆盖更新兼容与三段灰度；D1–D9 已于 2026-11-12 全部裁定；未实现 |
+| [DSHA 新生迭代路径（A1–A8）](design/kotlin-rust-rearchitecture-20261112/iteration-roadmap-20261112.md) | 8 轮纵向闭环 + 顶部进度看板（唯一进度事实源）；18/21/9 口径映射、每轮出口判据、覆盖更新检查表、质量门槛与协作约定；P0 已完成、A1 待启动（开工条件 G0–G5）；发布目标 Rebirth 隔离实验线（`dsh.android.client.rebirth`） |
+| [历史补丁夹具测试报告（复现与修复建议）](design/kotlin-rust-rearchitecture-20261112/patch-fixture-test-report-20261112.md) | 恢复固定输入后实跑三个 patch-chain 测试：welcome/plugin/web-search 各 rc=1，失败点均为跨代次断言；npm 校验 rc.2 真实字节；生产链 46/46 健康；附修法与证据 |
+| [历史补丁夹具与 build359 host runtime 证据](design/kotlin-rust-rearchitecture-20261112/historical-fixtures-and-host-runtime-20261112.md) | welcome-notice / plugin-management pre-worker·V1 / web-search 旧模块的真实字节、摘要、代次与引入提交；两处夹具失配定位；build359 无 host runtime 回执（最近 build357 72/128）与本机固定输入缺失清单 |
+| [G0–G1 合并回执与门禁对齐 v0.1](design/kotlin-rust-rearchitecture-20261112/g0-g1-merge-receipt-20261112.md) | 对方五层门禁（A–E）并入 G0–G5 的逐层回执、我方 G0 七项工程装配、可先行/不可开工边界、两仓签名唯一性与证书保管两个待决问题 |
+| [收敛表 v0.1（职责/状态 owner/编译模块/测试恢复/覆盖更新）](design/kotlin-rust-rearchitecture-20261112/convergence-table-20261112.md) | 21 个状态模块六列对照；11 个模块改动必触发维护页、4 个可零维护；测试覆盖与模块权重不匹配的实测；初稿待评审 |
+| [18 模块方案修订建议（对方 v0.1）](design/kotlin-rust-rearchitecture-20261112/18-modules-revision-notes-20261112.md) | 对对方文档的 6 项必改 + 3 项顺手改：Rebirth 定位、C03 结果态自相矛盾、计数口径、三块失败域、Gecko/自更新、布局恢复；可直接转发 |
 
 ## 用户操作与开发入口
 

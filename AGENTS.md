@@ -13,7 +13,7 @@ DSHA 的 AI / 新贡献者入口。本文让你不扫全库就能上手 —— �
 维护入口：[文档总索引](docs/documentation-index.md)、[固定构建输入](docs/fixed-build-inputs.md)、[文案长度政策](docs/i18n-length-policy.md)、[项目总手册](docs/project-architecture-handbook.md)、
 [权限](docs/device-permissions-architecture.md)、[环境/数据/插件](docs/runtime-data-plugin-architecture.md)、
 [运行引擎](docs/runtime-engines.md)、[端口](docs/ports-and-networking.md)、[虚拟屏](docs/virtual-screen-architecture.md)、
-[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)、[来源依据](docs/references-and-provenance.md)。
+[ADR0003](docs/adr/0003-virtual-screen-lifecycle-and-input.md)、[ADR0004](docs/adr/0004-kotlin-rust-direction.md)、[来源依据](docs/references-and-provenance.md)。
 
 **历史记录**：各版本的构建与验收回执保留在 [CHANGELOG.md](CHANGELOG.md) 与 [docs/releases/](docs/releases/)；
 下方目录数量为历史索引，以实际代码为准。
@@ -31,7 +31,7 @@ app/src/main/java/com/deepseekharness/app/
 ├── backup/  （62 个）         数据：v5 加密备份、恢复、迁移、格式化、自动备份（最大的包）
 ├── vscreen/ （10 个）         独立虚拟屏：通道 / 预览 / 输入 / 无障碍桥
 ├── recovery/(4 个)            独立应急 DSH：与正式环境完全分开的生命周期
-├── bridge/  （3 个）          AppBridge 契约、AdbBridge、LAN 访问
+├── bridge/  （12 个）         桥契约与 ADB 通道、LAN 访问
 ├── data/    （3 个）          KeyVault（Keystore）、便携设置、导出
 └── util/    （118 个）        纯逻辑：不 import 任何 Android API，必须配单测
 ```
@@ -69,7 +69,7 @@ Root 维护以 [权限架构](docs/device-permissions-architecture.md) 与 [固�
 | `backup/` | `NativeBackupJobs` / `BackupArchive` / `HostDataTransaction` / `AutomaticBackups` / `FactoryReset` | v5 加密备份 / 恢复 / 数据事务 / 自动计划 / 格式化 |
 | `recovery/` | `RecoveryController` / `RecoveryRuntime` / `RecoveryRepairBroker` | 独立应急 DSH，不经正式环境的迁移与启动锁 |
 | `vscreen/` | `VirtualScreenManager` / `VirtualScreenAccessibility` / `VirtualScreenPreviewView` | App 持有认证连接与心跳；输入必须带最新帧号 |
-| `bridge/` | `AppBridge`（契约）/ `AdbBridge`（无线配对 TLS1.3-PSK + SPAKE2）/ `LocalNetworkAccess` | 桥接缝与设备通道 |
+| `bridge/` | `HttpShellService` + `util/BridgeRoutes`（桥契约本体）/ `AdbBridge`（ADB 通道，当前经 guest Python 执行，原生化见 T42）/ `LocalNetworkAccess` | 桥接缝与设备通道 |
 | `data/` | `KeyVault` | Keystore AES/GCM 加密 API key |
 | `util/` | `Constants` / `ShellQuote` / `Query` / `WebProcSel` / `DeviceShellPolicy` / `HttpProtocol` / `BackupScope` 等 118 个 | 纯逻辑，全包零 Android import，**必须配单测** |
 
@@ -145,7 +145,7 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 - 主Web从当前受管dsh包装和固定包内入口启动，加载共享RuntimeTools环境。默认自动端口`--port 0`，成功鉴权后记录实际端口；显式手动配置按当前选择策略处理。完整环境与入口见[运行机制](docs/runtime-data-plugin-architecture.md)，不复制旧固定3080命令。proot从nativeLibraryDir执行，不能移到filesDir绕过Android W^X。
 - `WebPortPolicy.choose`在启动前选择固定/本机备用/动态端口；备用记忆仅本机，不跨设备迁移。当前生产未接入`retryBindRace`，不得把helper及单测写成已实现的绑定竞态自动重试。鉴权、保活与LAN使用实际端口，不按端口猜PID终止，见[端口专页](docs/ports-and-networking.md)。
 - Web 启动等待鉴权不设强制终止时限（60 秒仅提示）；停止与维护必须共用 `WebProcessManager` 的 PID 身份 / 出生身份核验。
-- 3090 桥协议版本做特性检测（`/app/version`，`BRIDGE_PROTOCOL=2`）；插件判版本用 `>=` 而不是 `==`。命令查询串预算不得缩到低于 8192 字符需求。
+- 3090 桥协议版本做特性检测（`/app/version`，`BRIDGE_PROTOCOL=3`）；插件判版本用 `>=` 而不是 `==`。命令查询串预算不得缩到低于 8192 字符需求。
 - LAN 正文由方法、状态码和明确传输边界决定；只有真正验证过的 101 WebSocket 握手可切隧道；不把 hop-by-hop 头移除后继续发送不匹配的编码体。
 - PTY 出生身份在原生 fork/exec 握手中登记：子进程自读 stat，父进程确认后才 exec；不得退回 Java 启动后单次读取。PTY 与简易终端独立标签和会话，跨切页 / 旋转 / 语言切换保持进程；关闭单个标签必须核验该会话退出后再移除。终端会话 ID 永久递增，显示编号独立复用最小空缺。
 

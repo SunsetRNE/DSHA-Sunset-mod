@@ -38,7 +38,7 @@ DSHA 工程来源为 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA)，当前维
 
 | 当前生产选择 | 维护含义 |
 |---|---|
-| Java 17、Material3、单 `:app` 模块 | 原生页面与平台桥使用 Java，不新增 Kotlin 旁路 |
+| Java 17、Material3、单 `:app` 模块 | 现行仍是 Java；Kotlin 按 [ADR-0004](adr/0004-kotlin-rust-direction.md) 分批引入（按模块切换），模块化路径见[迭代路径](design/kotlin-rust-rearchitecture-20261112/iteration-roadmap-20261112.md) |
 | `io.github.sunsetrne.dsha`、Mod 自有证书（见 `ci/release-identity.json`）、非调试正式包 | 实际包名 / 证书检查决定升级兼容性；换签名不是升级 |
 | Standard：minSdk 30、系统 WebView、arm64 | 唯一构建线；Low/GeckoView 已整体删除，不再声明 Android 10 及以下可用。系统 WebView 版本仍受设备影响 |
 | Ubuntu base10、DSH 0.2.1-rc.5 | 基础环境、DSH、APK 与数据格式是不同身份 |
