@@ -4,7 +4,8 @@
 > 环境：Linux aarch64（proot）；Temurin JDK 17.0.21；Node 24.19.0；npm 11.17.0
 > 前置：固定输入已按 `fixed-inputs-20261105e` 恢复（`ci-assets.py --archive … --sha256` → PASS）；`prepare-test-runtime.py --platform host` 已生成 raw/managed（`archiveCurrent: true`）。
 > 结论：**三个历史夹具测试最初全部失败，失败点都是"跨代次假设"，不是生产补丁链坏了**。生产链在 0.2.2-rc.1 上 46/46 模块全部可应用。
-> **v2 更新（2026-11-12）**：按 §3 修法只改测试断言（不改夹具摘要、不改生产链）后，三个测试**全部 PASS**，见 §7。
+> **v2 更新（2026-11-12）**：按 §3 修法只改测试断言（不改夹具摘要、不改生产链）后，三个测试最初全部 PASS，见 §7。
+> **v3/v4 更新（2026-11-12，回应增量审查）**：plugin 补回"正确 canonical 恢复恰一次"断言（PASS）；web-search 让 Java 实际消费 rc.2 旧模块，发现"锚点可匹配但输出不等于当前 expected（restores=0）"，按审查要求记为 **BLOCKED_SEMANTIC_DIFF（exit 3）**，不再返回 PASS。见 §9。
 
 ---
 
@@ -210,6 +211,17 @@ modules 46 / ok 46 / bad 0
 - 逐 case 报告输入/输出摘要、恢复次数、拒绝负控与未覆盖范围（构建/真机未做）。
 
 **仍未覆盖**：跨代"恢复 canonical 恰一次并产出当前 expected"无法在不改变单步链语义的前提下断言；如需支持，应作为跨代迁移的独立设计评审，而不是测试修补。
+
+## 9. 增量审查（v2）回应与 v4 结果
+
+| 审查点 | 修复 | 结果 |
+|---|---|---|
+| plugin：缺"正确当前 canonical 恢复且恰读一次"的成功断言 | Java 恢复原路径：`ManagedPatchChain.apply(oldV1, currentChain, ()->expected)` → 返回 expected，`restores==1`；同时保留历史重建、历史链重复拒绝、坏 canonical 拒绝 | **PASS**，`restores=1` |
+| web-search：`APPLIED_BUT_DIFFERS` 不是失败关闭，Java 未消费 old-rc2 | Java 新增 `old-rc2.js` 路径：`apply(rc2Old, currentChain, ()->expected)`；实测 `differs=true restores=0`，即锚点匹配但输出非当前字节 | **BLOCKED_SEMANTIC_DIFF（exit 3）**，不再整体 PASS |
+| 验收范围不能由修测试自动更换 | web-search 保持阻塞，需对"跨代当前结果准入 / 外层 generation-archive 证明"单独评审；本包不把它计为通过 | 未关闭 |
+| 建议拆三笔 | 交付拆成 `0001-welcome.patch`、`0002-plugin.patch`、`0003-web-search.patch`，可单独吸收 welcome | 见附件 |
+
+**结论**：welcome 可独立吸收；plugin 当前代 + 历史重建 + canonical 恢复均通过；web-search 保留为语义阻塞（如实报告，不冒充通过）。
 
 ## 附录：本次环境与产物
 

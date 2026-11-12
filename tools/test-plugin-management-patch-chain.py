@@ -104,8 +104,11 @@ public final class PluginManagementChainFixture {
         var historical=chain(module,"historical-chain");
         require(ManagedPatchChain.apply(hc,historical,()->{throw new AssertionError("historical canonical unexpectedly restored");}).equals(ho),"historical V1 module identity");
         mustFail(ho,historical,ho,"PATCH_CHAIN_MISMATCH");
+        restores.set(0);
+        require(ManagedPatchChain.apply(ho,chain,()->{restores.incrementAndGet();return expected;}).equals(expected),"historical V1 canonical recovery differs");
+        require(restores.get()==1,"historical V1 must read canonical exactly once");
         mustFail(ho,chain,ho,"PATCH_CHAIN_MISMATCH");
-        System.out.println("PASS_HISTORICAL_RECONSTRUCTION negative-failclosed; cross-generation upgrade intentionally not asserted");
+        System.out.println("PASS_HISTORICAL_RECONSTRUCTION recovery-once negative-failclosed");
       }
       System.out.println("PASS_CHAIN fresh/repeat/managed-canonical/failclosed "+name);
     }

@@ -25,6 +25,7 @@ import com.deepseekharness.app.util.ManagedPatchChain;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 public final class WebSearchChainFixture {
   static void require(boolean condition,String reason) {if(!condition)throw new AssertionError(reason);}
   static List<ManagedPatchChain.Recipe> chain(Path root) throws Exception {
@@ -51,6 +52,14 @@ public final class WebSearchChainFixture {
       catch(IOException error) {require(error.getMessage().contains(canonical==null?"PATCH_CANONICAL_MISSING":"PATCH_CHAIN_MISMATCH"),"wrong guarded error");}
     }
     System.out.println("PASS_WEB_SEARCH_CHAIN missing and invalid canonical fail closed");
+    if(Files.exists(root.resolve("old-rc2.js"))) {
+      String old=Files.readString(root.resolve("old-rc2.js"));
+      AtomicInteger restores=new AtomicInteger();
+      String crossed=ManagedPatchChain.apply(old,chain,()->{restores.incrementAndGet();return expected;});
+      boolean differs=!crossed.equals(expected);
+      System.out.println("HISTORICAL_RC2 differs="+differs+" restores="+restores.get());
+      if(!differs && restores.get()==0) throw new AssertionError("rc2 silently produced current expected");
+    }
     if(Files.exists(root.resolve("apk.js"))) {
       String exact=Files.readString(root.resolve("apk.js"));require(exact.equals(expected),"exact APK module differs");
       require(ManagedPatchChain.apply(exact,chain,()->{throw new AssertionError("exact APK restore");}).equals(expected),"exact APK repeat differs");
@@ -151,13 +160,23 @@ def main():
     assert compiled.returncode == 0, 'JAVA_COMPILE_FAILED: ' + str(owned)
     ran = subprocess.run([java, '-cp', str(classes), 'WebSearchChainFixture', str(owned)], capture_output=True, timeout=60)
     (owned / 'java.log').write_bytes(ran.stdout + ran.stderr)
-    result = dict(status='PASS' if ran.returncode == 0 else 'FAIL', exitCode=ran.returncode, module=MODULE,
+    java_text = (ran.stdout + ran.stderr).decode('utf8', errors='replace')
+    historical_status = 'NOT_RUN'
+    for line in java_text.splitlines():
+        if line.startswith('HISTORICAL_RC2 '):
+            parts = dict(item.split('=', 1) for item in line.split()[1:])
+            differs = parts.get('differs') == 'true'
+            restores = int(parts.get('restores', '-1'))
+            historical_status = 'BLOCKED_SEMANTIC_DIFF' if differs else ('PASS_RECOVERY_ONCE' if restores == 1 else 'BLOCKED_NO_RECOVERY')
+    overall = 'PASS' if ran.returncode == 0 and historical_status in ('PASS_RECOVERY_ONCE', 'NOT_RUN') else ('FAIL' if ran.returncode else 'BLOCKED')
+    result = dict(status=overall, exitCode=ran.returncode if overall == 'FAIL' else (3 if overall == 'BLOCKED' else 0), module=MODULE,
                   sourceSha256=sha(canonical), patchedSha256=sha(expected),
                   currentPreSha256=sha(current_pre),
                   historicalOldModuleSha256=sha(old),
                   historicalOldSource=old_source,
                   historicalOldAcceptedByCurrentChain=(cross_result == 'SILENT_ACCEPT'),
                   crossGenerationResult=cross_result,
+                  historicalJavaStatus=historical_status,
                   old191ApkSha256=OLD_APK_SHA if args.old_apk else None,
                   apkSha256=sha(args.apk.read_bytes()) if args.apk else None,
                   recipes=[name for name, _, _ in chain], productionAlgorithmSha256={name:sha((production / name).read_bytes()) for name in ['ManagedPatchChain.java','ExactTextPatch.java']},
@@ -165,8 +184,11 @@ def main():
     (owned / 'result.json').write_bytes((json.dumps(result, indent=2) + '\n').encode())
     print(json.dumps(result))
     if ran.returncode:
-        print((ran.stdout + ran.stderr).decode('utf8', errors='replace'))
+        print(java_text)
         raise SystemExit(ran.returncode)
+    if overall != 'PASS':
+        print(java_text)
+        raise SystemExit(result['exitCode'])
 
 
 if __name__ == '__main__':
