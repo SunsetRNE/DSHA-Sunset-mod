@@ -74,8 +74,7 @@ public final class AboutFragmentTest {
 
   @Test
   public void bundledLicensesAreListedAndRenderedWithReadableNames() throws Exception {
-    var assets = RuntimeEnvironment.getApplication().getAssets();
-    List<AboutLicenses.Entry> entries = AboutLicenses.list(assets);
+    List<AboutLicenses.Entry> entries = bundledLicenses();
     assertFalse("随包许可清单不能为空", entries.isEmpty());
 
     AboutLicenses.Entry gpl =
@@ -102,6 +101,7 @@ public final class AboutFragmentTest {
 
   @Test
   public void clickingLicenseShowsDialogWithTitleAndBody() {
+    bundledLicenses(); // source-only 模式未生成随包 assets 时跳过，完整构建验证
     AboutFragment fragment = showAbout();
     View row = clickableAncestor(findByText(fragment.requireView(), "GNU GPL v3.0"));
     assertNotNull("GPL 许可行应可点击", row);
@@ -138,7 +138,7 @@ public final class AboutFragmentTest {
   @Test
   public void everyBundledLicenseReadsAsUtf8WithinTheLimit() throws Exception {
     var assets = RuntimeEnvironment.getApplication().getAssets();
-    for (AboutLicenses.Entry entry : AboutLicenses.list(assets)) {
+    for (AboutLicenses.Entry entry : bundledLicenses()) {
       AboutLicenses.ReadResult result = AboutLicenses.read(assets, entry.assetName());
       assertNull("许可读取失败：" + entry.assetName(), result.failure());
       assertFalse("许可正文不能为空：" + entry.assetName(), result.text().isBlank());
@@ -203,6 +203,18 @@ public final class AboutFragmentTest {
       current = parent instanceof View ? (View) parent : null;
     }
     return current;
+  }
+
+  /**
+   * 随包 licenses 只在完整构建（prepareStandardAssets）后存在；source-only 单测跳过，
+   * 由完整构建/发布门禁执行。真实模式仍要求清单非空。
+   */
+  private static List<AboutLicenses.Entry> bundledLicenses() {
+    var assets = RuntimeEnvironment.getApplication().getAssets();
+    List<AboutLicenses.Entry> entries = AboutLicenses.list(assets);
+    if ("true".equals(System.getProperty("dsha.sourceOnlyTests")) && entries.isEmpty())
+      org.junit.Assume.assumeTrue("source-only: 未生成随包 assets/licenses；由完整构建验证", false);
+    return entries;
   }
 
   private static String allText(View view) {
