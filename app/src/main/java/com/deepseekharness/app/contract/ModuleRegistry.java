@@ -14,6 +14,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>本类不加载外部代码、不做模块市场/签名/网络下载；只接受编译期已存在的 {@link ModuleFactory}。
  * 停用或关闭会提升 generation，旧租约立即失效；布局记录由 {@link ContributionCatalog} 保留。
+ *
+ * <p>DEFERRED(A1)：{@code contractVersion}/{@code describe()} 生命周期校验、{@code setEnabled} 意图持久化
+ * （归 M01）、ModuleHost 资源 scope 不在本轮；本类只做进程内最小登记。
  */
 public final class ModuleRegistry {
   private final DiagnosticsSink diagnostics;
@@ -103,7 +106,7 @@ public final class ModuleRegistry {
     }
 
     long nextGeneration = GENERATION.incrementAndGet();
-    GenerationLease lease = new GenerationLease(id, nextGeneration);
+    GenerationLease lease = new GenerationLease(id, nextGeneration, diagnostics);
     List<String> addedKeys = new ArrayList<>(contributions.size());
     for (Contribution contribution : contributions) {
       ContractResult added = catalog.add(contribution, nextGeneration);
@@ -178,21 +181,25 @@ public final class ModuleRegistry {
 
     ModuleInstance.CloseReason actualReason =
         reason == null ? ModuleInstance.CloseReason.HOST_CLOSE : reason;
+    Throwable closeFailure = null;
     try {
       instance.close(actualReason);
-    } catch (RuntimeException error) {
+    } catch (Throwable error) {
+      closeFailure = error;
       diagnostics.report(
           ContractCodes.MODULE_CLOSE_FAILED,
           "module close failed: " + id + " (" + error.getClass().getSimpleName() + ")");
+    } finally {
+      // 清理不可逃避：close 抛异常/Error 也必须撤销贡献与路由。
+      revokeContributions(entry.contributions);
+      entry.contributions = List.of();
+      diagnostics.report(
+          ContractCodes.MODULE_DISABLED, "module closed: " + id + " (" + actualReason + ")");
     }
-    for (Contribution contribution : entry.contributions) {
-      if (catalog.contains(contribution.globalKey())) catalog.revoke(contribution.globalKey());
-      if (routes.contains(contribution.globalKey())) routes.revoke(contribution.globalKey());
-    }
-    entry.contributions = List.of();
-    diagnostics.report(
-        ContractCodes.MODULE_DISABLED, "module closed: " + id + " (" + actualReason + ")");
-    return ContractResult.ok();
+    if (closeFailure instanceof Error error) throw error;
+    return closeFailure == null
+        ? ContractResult.ok()
+        : ContractResult.rejected(ContractCodes.MODULE_CLOSE_FAILED);
   }
 
   /** 进入安全模式：关闭全部 OPTIONAL_USER 模块，仅保留 ALWAYS_ON 贡献与宿主兜底入口。 */
@@ -250,7 +257,28 @@ public final class ModuleRegistry {
   }
 
   public synchronized RouteTable.Target resolveRoute(String routeKey) {
+    if (safeMode.forcedSafeMode()) {
+      ModuleId owner = routeOwner(routeKey);
+      Entry entry = owner == null ? null : modules.get(owner);
+      if (entry == null || !entry.descriptor.alwaysOn()) {
+        diagnostics.report(
+            ContractCodes.SAFE_MODE_RESTRICTED,
+            "safe mode route fallback: " + (routeKey == null ? "" : routeKey));
+        return RouteTable.Target.host();
+      }
+    }
     return routes.resolve(routeKey);
+  }
+
+  private static ModuleId routeOwner(String routeKey) {
+    if (routeKey == null) return null;
+    int separator = routeKey.indexOf('#');
+    if (separator <= 0) return null;
+    try {
+      return new ModuleId(routeKey.substring(0, separator));
+    } catch (IllegalArgumentException ignored) {
+      return null;
+    }
   }
 
   public synchronized GenerationLease lease(ModuleId id) {
@@ -282,15 +310,17 @@ public final class ModuleRegistry {
           "stale callback generation for " + id + ": " + callbackGeneration);
       return ContractResult.rejected(ContractCodes.STALE_GENERATION);
     }
-    try {
-      callback.run();
-      return ContractResult.ok();
-    } catch (RuntimeException error) {
-      diagnostics.report(
-          ContractCodes.MODULE_CALLBACK_FAILED,
-          "module callback failed: " + id + " (" + error.getClass().getSimpleName() + ")");
+    if (!lease.runIfActive(callback)) {
+      if (!lease.active()) {
+        diagnostics.report(
+            ContractCodes.STALE_GENERATION,
+            "stale callback generation for " + id + ": " + callbackGeneration);
+        return ContractResult.rejected(ContractCodes.STALE_GENERATION);
+      }
+      // runIfActive 已把回调 RuntimeException 写入诊断。
       return ContractResult.rejected(ContractCodes.MODULE_CALLBACK_FAILED);
     }
+    return ContractResult.ok();
   }
 
   public synchronized boolean isRegistered(ModuleId id) {
@@ -309,6 +339,14 @@ public final class ModuleRegistry {
 
   public SafeModeGate safeModeGate() {
     return safeMode;
+  }
+
+  private void revokeContributions(List<Contribution> contributions) {
+    for (Contribution contribution : contributions) {
+      String key = contribution.globalKey();
+      if (catalog.contains(key)) catalog.revoke(key);
+      if (routes.contains(key)) routes.revoke(key);
+    }
   }
 
   private void revokeKeys(List<String> keys) {

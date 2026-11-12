@@ -171,4 +171,26 @@ public class ContributionCatalogTest {
     assertTrue(catalog.find("demo.a#visible").hidden());
     assertTrue(catalog.visibleContributions().isEmpty());
   }
+
+  @Test
+  public void setOrderIgnoresUnknownKeysButKeepsOldUnknownEntries() {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    preferences.putRaw(SharedPreferencesLayoutStore.PREF_ORDER, "v1:legacy#old\ndemo.a#first");
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    ContributionCatalog catalog = catalog(preferences, events);
+    assertTrue(catalog.add(card("first", 1), 1).accepted());
+    assertTrue(catalog.add(card("second", 2), 1).accepted());
+
+    ContractResult result = catalog.setOrder(List.of("demo.a#second", "legacy#new"));
+
+    assertTrue(result.accepted());
+    assertEquals(List.of("demo.a#second", "legacy#old", "demo.a#first"), catalog.layout().order());
+    assertFalse(catalog.layout().order().contains("legacy#new"));
+    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.UNKNOWN_CONTRIBUTION));
+
+    LayoutSnapshot reloaded =
+        new SharedPreferencesLayoutStore(preferences, ContractTestSupport.sink(events)).load();
+    assertEquals(List.of("demo.a#second", "legacy#old", "demo.a#first"), reloaded.order());
+  }
 }

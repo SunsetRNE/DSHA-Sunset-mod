@@ -6,12 +6,15 @@ import android.widget.*;
 import android.content.Intent;
 import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.*;
+import com.deepseekharness.app.contract.BuiltinModules;
+import com.deepseekharness.app.contract.ContributionView;
+import com.deepseekharness.app.contract.ModuleRegistry;
 import com.deepseekharness.app.util.UiText;
 
 public final class AboutFragment extends Fragment {
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle saved) {
-    CardPage ui = new CardPage(requireContext(), UiText.choose("关于 DSHA", "About DSHA"), "");
+    CardPage ui = new CardPage(requireContext(), builtinAboutTitle(requireContext()), "");
     android.widget.FrameLayout emblem = new android.widget.FrameLayout(requireContext());
     android.widget.ImageView mark = new android.widget.ImageView(requireContext());
     mark.setImageResource(R.drawable.ic_ui2_prompt);
@@ -79,6 +82,23 @@ public final class AboutFragment extends Fragment {
     addLicenses(ui);
     ui.footer.setVisibility(View.GONE);
     return ui.root;
+  }
+
+  /**
+   * 页标题来自内置 about 模块贡献（经 {@link BuiltinModules#ensureRegistered}），让 contract/ 有真实
+   * 宿主消费者；契约层异常时回退固定标题。许可清单与入口始终由宿主固定渲染，不依赖卡片是否可见。
+   */
+  static String builtinAboutTitle(android.content.Context context) {
+    try {
+      ModuleRegistry registry = BuiltinModules.ensureRegistered(context);
+      for (ContributionView contribution : registry.contributions()) {
+        if (BuiltinModules.ABOUT_CONTRIBUTION_KEY.equals(contribution.key()))
+          return UiText.choose(contribution.title(), contribution.titleEn());
+      }
+    } catch (RuntimeException unavailable) {
+      // 契约层不能挡住法定许可入口；回退固定标题继续渲染。
+    }
+    return UiText.choose(BuiltinModules.ABOUT_TITLE, BuiltinModules.ABOUT_TITLE_EN);
   }
 
   /** 第三方许可区块：随包全文逐项可点，另给仓库内完整声明的在线入口。 */

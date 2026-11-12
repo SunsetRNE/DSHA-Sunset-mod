@@ -12,7 +12,13 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.contract.BuiltinModules;
+import com.deepseekharness.app.contract.ContributionView;
+import com.deepseekharness.app.contract.ModuleRegistry;
 import com.deepseekharness.app.util.UiText;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.After;
@@ -93,10 +99,50 @@ public final class AboutFragmentTest {
         entries.stream().anyMatch(entry -> "MPL-2.0.txt".equals(entry.assetName())));
 
     View root = showAbout().requireView();
-    for (AboutLicenses.Entry entry : entries)
-      assertNotNull("缺少许可行：" + entry.assetName(), findByText(root, entry.displayName()));
+    for (AboutLicenses.Entry entry : entries) {
+      View label = findByText(root, entry.displayName());
+      assertNotNull("缺少许可行：" + entry.assetName(), label);
+      assertNotNull("许可行必须可点击：" + entry.assetName(), clickableAncestor(label));
+    }
     assertNotNull(findByText(root, "第三方许可"));
     assertNotNull(findByText(root, "许可声明全文（在线）"));
+  }
+
+  @Test
+  public void pageTitleComesFromBuiltinAboutContribution() {
+    var application = RuntimeEnvironment.getApplication();
+    String title = AboutFragment.builtinAboutTitle(application);
+    assertEquals(BuiltinModules.ABOUT_TITLE, title);
+
+    ModuleRegistry registry = BuiltinModules.ensureRegistered(application);
+    ContributionView about =
+        registry.contributions().stream()
+            .filter(
+                contribution -> BuiltinModules.ABOUT_CONTRIBUTION_KEY.equals(contribution.key()))
+            .findFirst()
+            .orElse(null);
+    assertNotNull("内置 about 贡献必须登记", about);
+    assertEquals(BuiltinModules.ABOUT_TITLE, about.title());
+    assertEquals(BuiltinModules.ABOUT_TITLE_EN, about.titleEn());
+    View root = showAbout().requireView();
+    assertNotNull("页标题应渲染模块贡献标题", findByText(root, title));
+    assertNull("页标题不应再使用旧的固定文案", findByText(root, "关于 DSHA"));
+  }
+
+  @Test
+  public void hiddenAboutCardKeepsHostLicenseRows() throws Exception {
+    List<AboutLicenses.Entry> entries = bundledLicenses();
+    ModuleRegistry registry = BuiltinModules.ensureRegistered(RuntimeEnvironment.getApplication());
+    assertTrue(
+        "隐藏内置卡片失败",
+        registry.setContributionHidden(BuiltinModules.ABOUT_CONTRIBUTION_KEY, true).accepted());
+
+    View root = showAbout().requireView();
+    for (AboutLicenses.Entry entry : entries) {
+      View label = findByText(root, entry.displayName());
+      assertNotNull("卡片隐藏后仍应渲染法定许可行：" + entry.assetName(), label);
+      assertNotNull("卡片隐藏后许可行仍应可点击：" + entry.assetName(), clickableAncestor(label));
+    }
   }
 
   @Test
@@ -156,6 +202,73 @@ public final class AboutFragmentTest {
         AboutLicenses.read(assets, "../AndroidManifest.xml").failure());
     assertEquals(
         AboutLicenses.Failure.MISSING, AboutLicenses.read(assets, "nested/GPL-3.0.txt").failure());
+  }
+
+  @Test
+  public void decodedLicenseRejectsOversizedPayloadAsTooLarge() {
+    byte[] oversized = new byte[AboutLicenses.MAX_BYTES + 1];
+    assertEquals(AboutLicenses.Failure.TOO_LARGE, AboutLicenses.decode(oversized).failure());
+    assertEquals(
+        AboutLicenses.Failure.TOO_LARGE,
+        AboutLicenses.read(new ByteArrayInputStream(oversized)).failure());
+  }
+
+  @Test
+  public void decodedLicenseRejectsEmptyPayload() {
+    assertEquals(AboutLicenses.Failure.EMPTY, AboutLicenses.decode(new byte[0]).failure());
+    assertEquals(
+        AboutLicenses.Failure.EMPTY,
+        AboutLicenses.read(new ByteArrayInputStream(new byte[0])).failure());
+  }
+
+  @Test
+  public void decodedLicenseRejectsInvalidUtf8() {
+    byte[] invalid = {(byte) 0xFF};
+    assertEquals(AboutLicenses.Failure.INVALID_UTF8, AboutLicenses.decode(invalid).failure());
+    assertEquals(
+        AboutLicenses.Failure.INVALID_UTF8,
+        AboutLicenses.read(new ByteArrayInputStream(invalid)).failure());
+  }
+
+  @Test
+  public void unreadableStreamReturnsTypedFailure() {
+    InputStream broken =
+        new InputStream() {
+          @Override
+          public int read() throws IOException {
+            throw new IOException("read failed");
+          }
+        };
+    assertEquals(AboutLicenses.Failure.UNREADABLE, AboutLicenses.read(broken).failure());
+  }
+
+  @Test
+  public void licenseIndexRejectsUnreadableOrOversizedListings() {
+    assertThrows(IOException.class, () -> AboutLicenses.index(null));
+    String[] oversized = new String[AboutLicenses.MAX_ENTRIES + 1];
+    for (int index = 0; index < oversized.length; index++)
+      oversized[index] = "license-" + index + ".txt";
+    assertThrows(IOException.class, () -> AboutLicenses.index(oversized));
+  }
+
+  @Test
+  public void licenseIndexKeepsOnlyTxtNames() throws Exception {
+    List<AboutLicenses.Entry> entries =
+        AboutLicenses.index(new String[] {"GPL-3.0.txt", "../escape.txt", "nested", "notes.md"});
+    assertEquals(1, entries.size());
+    assertEquals("GPL-3.0.txt", entries.get(0).assetName());
+  }
+
+  @Test
+  public void decodedLicenseAcceptsUtf8AndStripsBom() {
+    byte[] bytes = ("\uFEFF" + "GPL text").getBytes(StandardCharsets.UTF_8);
+    AboutLicenses.ReadResult decoded = AboutLicenses.decode(bytes);
+    assertTrue(decoded.ok());
+    assertEquals("GPL text", decoded.text());
+    assertEquals(
+        "GPL text",
+        AboutLicenses.read(new ByteArrayInputStream("GPL text".getBytes(StandardCharsets.UTF_8)))
+            .text());
   }
 
   @Test

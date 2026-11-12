@@ -14,11 +14,15 @@ public final class SafeModeGate {
     return forced;
   }
 
-  public void enterSafeMode() {
+  /**
+   * 仅宿主 {@link ModuleRegistry#enterSafeMode()} 可调用；不公开以避免绕过模块清理与路由过滤。
+   */
+  void enterSafeMode() {
     forced = true;
   }
 
-  public void exitSafeMode() {
+  /** 仅宿主 {@link ModuleRegistry#exitSafeMode()} 可调用。 */
+  void exitSafeMode() {
     forced = false;
   }
 

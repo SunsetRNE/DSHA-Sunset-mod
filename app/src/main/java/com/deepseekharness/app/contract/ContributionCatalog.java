@@ -12,6 +12,8 @@ import java.util.Objects;
  *
  * <p>顺序先看布局记录；未记录的键按 {@code sortOrder}、全局键字典序兜底，绝不依赖注册顺序。
  * 未知但仍合法的布局键原样保留，未知 contribution 查询/撤销则 fail-closed 并诊断。
+ *
+ * <p>DEFERRED(A1)：法定许可聚合（AboutLicense）不在本目录；A1 只登记 about CARD 与宿主兜底入口。
  */
 public final class ContributionCatalog {
   private final LayoutStore layoutStore;
@@ -125,9 +127,23 @@ public final class ContributionCatalog {
       diagnostics.report(ContractCodes.INVALID_LAYOUT, "setOrder requires keys");
       return ContractResult.rejected(ContractCodes.INVALID_LAYOUT);
     }
+    List<String> knownKeys = new ArrayList<>(contributionKeys.size());
+    for (String key : contributionKeys) {
+      if (!LayoutSnapshot.validKey(key)) {
+        diagnostics.report(ContractCodes.INVALID_LAYOUT, "setOrder rejected invalid key");
+        return ContractResult.rejected(ContractCodes.INVALID_LAYOUT);
+      }
+      if (!entries.containsKey(key)) {
+        // 只接受已知 contribution；未知 key 不进入新顺序，旧未知 key 仍由 mergedOrder 保留。
+        diagnostics.report(
+            ContractCodes.UNKNOWN_CONTRIBUTION, "setOrder ignores unknown key: " + key);
+        continue;
+      }
+      knownKeys.add(key);
+    }
     LayoutSnapshot next;
     try {
-      next = layout.mergedOrder(contributionKeys);
+      next = layout.mergedOrder(knownKeys);
     } catch (IllegalArgumentException error) {
       diagnostics.report(ContractCodes.INVALID_LAYOUT, "setOrder rejected: " + error.getMessage());
       return ContractResult.rejected(ContractCodes.INVALID_LAYOUT);

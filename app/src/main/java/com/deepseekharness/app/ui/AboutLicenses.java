@@ -45,7 +45,11 @@ final class AboutLicenses {
   }
 
   static List<Entry> list(AssetManager assets) throws IOException {
-    String[] listed = assets == null ? null : assets.list(DIRECTORY);
+    return index(assets == null ? null : assets.list(DIRECTORY));
+  }
+
+  /** 包内可见的索引注入点：目录不可读或条目超限直接抛出，由宿主降级展示。 */
+  static List<Entry> index(String[] listed) throws IOException {
     if (listed == null) throw new IOException("LICENSE_LIST");
     List<Entry> entries = new ArrayList<>();
     for (String name : listed) {
@@ -63,30 +67,49 @@ final class AboutLicenses {
   static ReadResult read(AssetManager assets, String assetName) {
     if (assets == null || assetName == null || !SAFE_NAME.matcher(assetName).matches())
       return new ReadResult(null, Failure.MISSING);
-    try (InputStream input = assets.open(DIRECTORY + "/" + assetName)) {
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
+    try {
+      return read(assets.open(DIRECTORY + "/" + assetName));
+    } catch (FileNotFoundException missing) {
+      return new ReadResult(null, Failure.MISSING);
+    } catch (IOException unreadable) {
+      return new ReadResult(null, Failure.UNREADABLE);
+    }
+  }
+
+  /** 包内可见的流注入点：负分支测试可直接喂入超限/空/坏流；读取结束后关闭流。 */
+  static ReadResult read(InputStream input) {
+    if (input == null) return new ReadResult(null, Failure.UNREADABLE);
+    try (InputStream source = input;
+        ByteArrayOutputStream output = new ByteArrayOutputStream()) {
       byte[] buffer = new byte[8192];
       int count;
-      while ((count = input.read(buffer)) != -1) {
+      while ((count = source.read(buffer)) != -1) {
         if (output.size() + count > MAX_BYTES) return new ReadResult(null, Failure.TOO_LARGE);
         output.write(buffer, 0, count);
       }
-      if (output.size() == 0) return new ReadResult(null, Failure.EMPTY);
+      return decode(output.toByteArray());
+    } catch (IOException unreadable) {
+      return new ReadResult(null, Failure.UNREADABLE);
+    }
+  }
+
+  /** 包内可见的解析注入点：空、超限、非法 UTF-8 都按类型返回；成功时去掉 UTF-8 BOM。 */
+  static ReadResult decode(byte[] bytes) {
+    if (bytes == null) return new ReadResult(null, Failure.UNREADABLE);
+    if (bytes.length == 0) return new ReadResult(null, Failure.EMPTY);
+    if (bytes.length > MAX_BYTES) return new ReadResult(null, Failure.TOO_LARGE);
+    try {
       String text =
           StandardCharsets.UTF_8
               .newDecoder()
               .onMalformedInput(CodingErrorAction.REPORT)
               .onUnmappableCharacter(CodingErrorAction.REPORT)
-              .decode(ByteBuffer.wrap(output.toByteArray()))
+              .decode(ByteBuffer.wrap(bytes))
               .toString();
       if (text.startsWith("\uFEFF")) text = text.substring(1);
-      return new ReadResult(text, null);
-    } catch (FileNotFoundException missing) {
-      return new ReadResult(null, Failure.MISSING);
+      return text.isEmpty() ? new ReadResult(null, Failure.EMPTY) : new ReadResult(text, null);
     } catch (CharacterCodingException invalid) {
       return new ReadResult(null, Failure.INVALID_UTF8);
-    } catch (IOException unreadable) {
-      return new ReadResult(null, Failure.UNREADABLE);
     }
   }
 

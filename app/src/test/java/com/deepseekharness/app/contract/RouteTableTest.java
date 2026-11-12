@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.deepseekharness.app.contract.ModuleInstance.CloseReason;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -12,6 +13,25 @@ import org.junit.Test;
 /** C02 路由：命中返回模块目标，任何未命中都只回宿主 fallback。 */
 public class RouteTableTest {
   private static final ModuleId ROUTE_ID = new ModuleId("demo.route");
+  private static final String ROUTE_KEY = "demo.route#page";
+
+  private static ModuleDescriptor routeDescriptor() {
+    return new ModuleDescriptor(
+        ROUTE_ID, 1, "路由模块", Set.of(), ModuleDescriptor.Enablement.OPTIONAL_USER);
+  }
+
+  private static ModuleFactory routeFactory() {
+    return () ->
+        new ModuleInstance() {
+          private final List<Contribution> contributions =
+              List.of(Contribution.route(ROUTE_ID, "page", "页面", "Page", 1, "app.page"));
+
+          @Override
+          public List<Contribution> contributions() {
+            return contributions;
+          }
+        };
+  }
 
   @Test
   public void missingRouteFallsBackToHostAndDiagnoses() {
@@ -48,35 +68,62 @@ public class RouteTableTest {
   }
 
   @Test
-  public void registryRemovesRouteWithDisabledContribution() {
+  public void registryRemovesRouteWithDisabledOrClosedContribution() {
     ContractTestSupport.FakeSharedPreferences preferences =
         new ContractTestSupport.FakeSharedPreferences();
     List<DiagnosticsSink.Event> events = new ArrayList<>();
     ModuleRegistry registry = ContractTestSupport.registry(preferences, new SafeModeGate(), events);
-    ModuleDescriptor descriptor =
-        new ModuleDescriptor(
-            ROUTE_ID, 1, "路由模块", Set.of(), ModuleDescriptor.Enablement.OPTIONAL_USER);
-    ModuleFactory factory =
-        () ->
-            new ModuleInstance() {
-              private final List<Contribution> contributions =
-                  List.of(Contribution.route(ROUTE_ID, "page", "页面", "Page", 1, "app.page"));
 
-              @Override
-              public List<Contribution> contributions() {
-                return contributions;
-              }
-            };
-
-    assertTrue(registry.register(descriptor, factory).accepted());
+    assertTrue(registry.register(routeDescriptor(), routeFactory()).accepted());
     assertTrue(registry.install(ROUTE_ID).accepted());
-    RouteTable.Target registered = registry.resolveRoute("demo.route#page");
+    RouteTable.Target registered = registry.resolveRoute(ROUTE_KEY);
     assertFalse(registered.hostFallback());
     assertEquals("app.page", registered.key());
 
     assertTrue(registry.setEnabled(ROUTE_ID, false).accepted());
-    RouteTable.Target fallback = registry.resolveRoute("demo.route#page");
-    assertTrue(fallback.hostFallback());
-    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.ROUTE_MISSING));
+    assertTrue(registry.resolveRoute(ROUTE_KEY).hostFallback());
+
+    assertTrue(registry.setEnabled(ROUTE_ID, true).accepted());
+    assertFalse(registry.resolveRoute(ROUTE_KEY).hostFallback());
+
+    assertTrue(registry.close(ROUTE_ID, CloseReason.HOST_CLOSE).accepted());
+    assertTrue(registry.resolveRoute(ROUTE_KEY).hostFallback());
+  }
+
+  @Test
+  public void safeModeEntryRevokesOptionalRouteAndFallsBack() {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    SafeModeGate gate = new SafeModeGate();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, gate, events);
+    assertTrue(registry.register(routeDescriptor(), routeFactory()).accepted());
+    assertTrue(registry.install(ROUTE_ID).accepted());
+    assertFalse(registry.resolveRoute(ROUTE_KEY).hostFallback());
+
+    assertTrue(registry.enterSafeMode().accepted());
+
+    assertTrue(registry.resolveRoute(ROUTE_KEY).hostFallback());
+    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.SAFE_MODE_RESTRICTED));
+  }
+
+  @Test
+  public void safeModeFallbackFiltersOptionalRouteEvenBeforeCleanup() {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    SafeModeGate gate = new SafeModeGate();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, gate, events);
+    assertTrue(registry.register(routeDescriptor(), routeFactory()).accepted());
+    assertTrue(registry.install(ROUTE_ID).accepted());
+    assertFalse(registry.resolveRoute(ROUTE_KEY).hostFallback());
+
+    gate.enterSafeMode();
+
+    assertTrue(registry.resolveRoute(ROUTE_KEY).hostFallback());
+    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.SAFE_MODE_RESTRICTED));
+
+    registry.exitSafeMode();
+    assertFalse(registry.resolveRoute(ROUTE_KEY).hostFallback());
   }
 }

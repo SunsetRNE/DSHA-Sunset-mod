@@ -11,6 +11,8 @@ import com.deepseekharness.app.contract.ModuleInstance.CloseReason;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
@@ -280,5 +282,191 @@ public class ModuleRegistryTest {
     assertTrue(registry.contributions().isEmpty());
     assertNull(registry.lease(CARDS_ID));
     assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.MODULE_INSTALL_FAILED));
+  }
+
+  @Test
+  public void closeRevokesContributionsAndRoutesWhenInstanceCloseThrows() {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, new SafeModeGate(), events);
+    AtomicBoolean closeCalled = new AtomicBoolean();
+    ModuleFactory factory =
+        () ->
+            new ModuleInstance() {
+              private final List<Contribution> contributions =
+                  List.of(
+                      Contribution.card(CARDS_ID, "beta", "卡片 B", "Card B", 10),
+                      Contribution.route(CARDS_ID, "page", "页面", "Page", 20, "app.page"));
+
+              @Override
+              public List<Contribution> contributions() {
+                return contributions;
+              }
+
+              @Override
+              public void close(CloseReason reason) {
+                closeCalled.set(true);
+                throw new IllegalStateException("close boom");
+              }
+            };
+
+    assertTrue(registry.register(cardsDescriptor(), factory).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease lease = registry.lease(CARDS_ID);
+    assertNotNull(lease);
+
+    ContractResult closed = registry.close(CARDS_ID, CloseReason.HOST_CLOSE);
+
+    assertTrue(closeCalled.get());
+    assertTrue(closed.rejected());
+    assertEquals(ContractCodes.MODULE_CLOSE_FAILED, closed.code());
+    assertFalse(lease.active());
+    assertTrue(registry.contributions().isEmpty());
+    assertTrue(registry.resolveRoute("demo.cards#page").hostFallback());
+    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.MODULE_CLOSE_FAILED));
+    assertTrue(registry.close(CARDS_ID, CloseReason.HOST_CLOSE).accepted());
+  }
+
+  @Test
+  public void closeCleansUpThenRethrowsErrorFromInstanceClose() {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, new SafeModeGate(), events);
+    AtomicBoolean closeCalled = new AtomicBoolean();
+    ModuleFactory factory =
+        () ->
+            new ModuleInstance() {
+              private final List<Contribution> contributions =
+                  List.of(Contribution.card(CARDS_ID, "beta", "卡片 B", "Card B", 10));
+
+              @Override
+              public List<Contribution> contributions() {
+                return contributions;
+              }
+
+              @Override
+              public void close(CloseReason reason) {
+                closeCalled.set(true);
+                throw new AssertionError("module close error");
+              }
+            };
+
+    assertTrue(registry.register(cardsDescriptor(), factory).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease lease = registry.lease(CARDS_ID);
+    assertNotNull(lease);
+
+    AssertionError thrown = null;
+    try {
+      registry.close(CARDS_ID, CloseReason.HOST_CLOSE);
+    } catch (AssertionError error) {
+      thrown = error;
+    }
+
+    assertNotNull(thrown);
+    assertTrue(closeCalled.get());
+    assertFalse(lease.active());
+    assertTrue(registry.contributions().isEmpty());
+    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.MODULE_CLOSE_FAILED));
+  }
+
+  @Test
+  public void leaseCallbackRuntimeExceptionIsDiagnosedAndDoesNotEscape() {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, new SafeModeGate(), events);
+    assertTrue(registry.register(cardsDescriptor(), cardsFactory(new AtomicBoolean())).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease lease = registry.lease(CARDS_ID);
+    assertNotNull(lease);
+
+    AtomicBoolean ran = new AtomicBoolean();
+    boolean delivered =
+        lease.runIfActive(
+            () -> {
+              ran.set(true);
+              throw new IllegalStateException("callback boom");
+            });
+
+    assertTrue(ran.get());
+    assertFalse(delivered);
+    assertTrue(lease.active());
+    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.MODULE_CALLBACK_FAILED));
+
+    ContractResult dispatched =
+        registry.dispatch(
+            CARDS_ID,
+            lease.generation(),
+            () -> {
+              throw new IllegalStateException("dispatch boom");
+            });
+    assertTrue(dispatched.rejected());
+    assertEquals(ContractCodes.MODULE_CALLBACK_FAILED, dispatched.code());
+  }
+
+  @Test
+  public void leaseInvalidationWaitsForRunningCallbackAndStaleCallbacksAreDropped()
+      throws Exception {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, new SafeModeGate(), events);
+    assertTrue(registry.register(cardsDescriptor(), cardsFactory(new AtomicBoolean())).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease lease = registry.lease(CARDS_ID);
+    assertNotNull(lease);
+
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    CountDownLatch invalidatorStarted = new CountDownLatch(1);
+    CountDownLatch invalidated = new CountDownLatch(1);
+    AtomicBoolean callbackRan = new AtomicBoolean();
+    Thread runner =
+        new Thread(
+            () ->
+                lease.runIfActive(
+                    () -> {
+                      callbackRan.set(true);
+                      entered.countDown();
+                      await(release);
+                    }));
+    runner.start();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+
+    Thread invalidator =
+        new Thread(
+            () -> {
+              invalidatorStarted.countDown();
+              lease.invalidate();
+              invalidated.countDown();
+            });
+    invalidator.start();
+    assertTrue(invalidatorStarted.await(2, TimeUnit.SECONDS));
+    assertFalse(invalidated.await(100, TimeUnit.MILLISECONDS));
+
+    release.countDown();
+    runner.join(2_000);
+    assertTrue(invalidated.await(2, TimeUnit.SECONDS));
+    invalidator.join(2_000);
+
+    assertTrue(callbackRan.get());
+    assertFalse(lease.active());
+    assertFalse(runner.isAlive());
+    assertFalse(invalidator.isAlive());
+    AtomicBoolean staleRan = new AtomicBoolean();
+    assertFalse(lease.runIfActive(() -> staleRan.set(true)));
+    assertFalse(staleRan.get());
+  }
+
+  private static void await(CountDownLatch latch) {
+    try {
+      latch.await();
+    } catch (InterruptedException error) {
+      Thread.currentThread().interrupt();
+      throw new AssertionError("interrupted", error);
+    }
   }
 }

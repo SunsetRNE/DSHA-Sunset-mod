@@ -2,6 +2,8 @@ package com.deepseekharness.app.contract;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -48,9 +50,15 @@ public class BuiltinModulesTest {
     assertTrue(first.setContributionHidden(BuiltinModules.ABOUT_CONTRIBUTION_KEY, true).accepted());
 
     ModuleRegistry second = BuiltinModules.ensureRegistered(preferences);
+    assertSame(first, second);
+    assertSame(first.safeModeGate(), second.safeModeGate());
     assertEquals(1, second.contributions().size());
     assertTrue(second.contributions().get(0).hidden());
     assertTrue(BuiltinModules.ensureRegistered(second).accepted());
     assertEquals(1, second.contributions().size());
+
+    ModuleRegistry other =
+        BuiltinModules.ensureRegistered(new ContractTestSupport.FakeSharedPreferences());
+    assertNotSame(first, other);
   }
 }

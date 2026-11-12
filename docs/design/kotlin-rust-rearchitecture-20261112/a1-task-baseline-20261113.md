@@ -39,7 +39,7 @@
 | 本地静态 | `format-java-tree.py --check`、`check-source-hygiene.py`、`check-ui-i18n.py`、`check-document-links.py` | 实现者 |
 | Java 测试 | 新增 contract 单测（7 步闭环 + 反例）、AboutFragment Robolectric 测试；CI `unit-source`/full unit 执行 | CI |
 | 覆盖更新 | 构建后 `prepare-runtime-descriptor.py --check` 仍为 `4d55973d`；359/360→A1 覆盖安装**不应**进维护页（若进，按 A1 出口缺陷处理） | CI + 真机 |
-| A1 出口 | 7 步闭环全过；停用卡片后法定许可入口仍可达；无新增敏感能力；全量单测绿；边界脚本 PASS；文档链接 PASS；**非实现者逐条评审** | Lead + 独立评审 |
+| A1 出口 | 契约层 7 步闭环由单测证明；**宿主固定 About/许可入口不依赖卡片渲染**（卡片隐藏/停用后入口仍可达）；无新增敏感能力；全量单测绿（full 固定输入 0 skipped）；边界脚本 PASS；文档链接 PASS；**非实现者逐条评审 APPROVE**。卡片/排序/页面接线归 A2/A8 | Lead + 独立评审 |
 
 ## 5. 回退点
 
@@ -57,9 +57,11 @@
 
 | 角色 | owner |
 |---|---|
-| 契约层实现 | a1-core（子任务） |
+| 契约层实现 | a1-core（子任务；A1 出口复审已 REQUEST_CHANGES，修复轮） |
 | 关于/许可 UI | a1-ui（子任务） |
 | 集成、文档、CI、发布 | Lead |
 | A1 出口非实现者评审 | 待指派（不得由上述实现者兼任） |
+
+**A1 收敛口径（2026-11-13 评审后）**：契约形状中 `contractVersion`、`describe()`、`ModuleHost` scope、`setEnabled` 持久化、AboutLicense 聚合五项**明确 deferred 到 A2/A8**；A1 只保证现有实现的 7 步闭环、安全模式与清理语义。卡片/排序/页面渲染接线归 A2（首个真实模块）/A8（宿主工程化）。
 
 *本任务基线可评审；不含未定契约。契约一旦在 A1 出口冻结，A2 不得再改形状。*

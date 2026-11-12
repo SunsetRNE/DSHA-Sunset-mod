@@ -7,6 +7,9 @@ import java.util.Set;
  * 模块声明：纯数据，不读文件/网络/配置。
  *
  * <p>{@code capabilities} 只是“会请求”的声明，授权派发仍由宿主能力层判定；本类不提供权限。
+ *
+ * <p>DEFERRED(A1)：{@code contractVersion} 与 {@code describe()} 生命周期校验不在本轮；
+ * 声明字段只覆盖编译期清单所需的最小集合。
  */
 public record ModuleDescriptor(
     ModuleId id, int version, String name, Set<String> capabilities, Enablement enablement) {

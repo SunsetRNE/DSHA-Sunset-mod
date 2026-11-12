@@ -16,11 +16,11 @@
 
 | # | 契约面 | 最小形状（一屏可读完） | 详细 | 状态 |
 |---|---|---|---|---|
-| C01 | 模块协议 | `describe()` 声明 → `register()` 注册 → `install()` 贡献 → `setEnabled()` 可选启停 → `close()` / `revoke()` 停用清理；旧代次回调一律失效 | §2 | 待冻结 |
-| C02 | 宿主核心 | `ModuleRegistry`（注册/快照/启停）、`ContributionCatalog`（贡献登记/撤销/稳定排序）、`RouteTable`（路由 + fallback）、`LayoutStore`（布局保存恢复）、`SafeModeGate`（安全模式/恢复入口）、`AboutLicense`（法定许可聚合）、`DiagnosticsSink`（唯一脱敏出口） | §3 | 待冻结 |
-| R1 | 结果 wire | 五个**必填**正交字段 `dispatched` / `executed` / `partial` / `effect` / `retry` + `resultVersion` + `reasonCode`；`events[]` 记录取消等事件，**不参与事实判定** | §4.2–§4.4 | 待冻结 |
-| P1 | 投影表 | 五字段（+ `reasonCode` 归类）→ 旧五态 `NOT_SENT / REJECTED / COMPLETED / PARTIAL / UNKNOWN`；只用于日志/界面；默认 **UNKNOWN** | §4.6 | 待冻结 |
-| X | 反例 | 未知 tag、取消后可能已执行、panic/原生崩溃逃逸、UNKNOWN 却断言远端已退出 | §5 | 待冻结 |
+| C01 | 模块协议 | `describe()` 声明 → `register()` 注册 → `install()` 贡献 → `setEnabled()` 可选启停 → `close()` / `revoke()` 停用清理；旧代次回调一律失效 | §2 | 内部冻结（A1 实现按此收敛） |
+| C02 | 宿主核心 | `ModuleRegistry`（注册/快照/启停）、`ContributionCatalog`（贡献登记/撤销/稳定排序）、`RouteTable`（路由 + fallback）、`LayoutStore`（布局保存恢复）、`SafeModeGate`（安全模式/恢复入口）、`AboutLicense`（法定许可聚合）、`DiagnosticsSink`（唯一脱敏出口） | §3 | 内部冻结（A1 实现按此收敛） |
+| R1 | 结果 wire | 五个**必填**正交字段 `dispatched` / `executed` / `partial` / `effect` / `retry` + `resultVersion` + `reasonCode`；`events[]` 记录取消等事件，**不参与事实判定** | §4.2–§4.4 | 内部冻结（A1 实现按此收敛） |
+| P1 | 投影表 | 五字段（+ `reasonCode` 归类）→ 旧五态 `NOT_SENT / REJECTED / COMPLETED / PARTIAL / UNKNOWN`；只用于日志/界面；默认 **UNKNOWN** | §4.6 | 内部冻结（A1 实现按此收敛） |
+| X | 反例 | 未知 tag、取消后可能已执行、panic/原生崩溃逃逸、UNKNOWN 却断言远端已退出 | §5 | 内部冻结（A1 实现按此收敛） |
 | B | Rust 边界 | 首期只有 `archive_pack/archive_unpack`、`digest`、`verify_plan` 三类只读/有界纯函数；**无 `execute`/`argv`/路径字符串**；`PlanEnvelope`/`permitMac` 仅类型占位、不进 ABI | §6 | 已定（ADR-0004 决定四/七） |
 
 ### 0.2 五条结论
