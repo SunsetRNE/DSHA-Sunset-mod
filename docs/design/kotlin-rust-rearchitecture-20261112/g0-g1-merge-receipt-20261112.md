@@ -59,7 +59,7 @@
 |---|---|---|---|---|---|
 | A 源码与输入 | 双方各自仓 | **接受** | 无（只读仓库） | 我方：待建 Rebirth 分支；对方：`feat/rebirth-identity` @ `0a86c652…` | 对方代码已落地；我方未开始 |
 | B 自动软件 | 双方各自仓 | **接受，但要求同提交同输入** | 无 | 对方：fast 97/97、unit 4496 通过、**runtime 95/128（33 失败）**、第六轮 CI failure；我方：**build359 无 host runtime 回执**（最近 build357 fast 90/95、runtime 72/128，均为本机环境/夹具失败），见《[历史夹具与 host runtime 证据](historical-fixtures-and-host-runtime-20261112.md)》 | **未通过**（runtime 未绿） |
-| C unsigned 候选 | 产包方 | **接受**；需补 `-Pdsha.rebirthCandidate` 等价入口 | 无（不签名） | 对方：无 APK；我方：无 | 未开始 |
+| C unsigned 候选 | 产包方 | **接受**；本仓已补 `-Pdsha.rebirthCandidate` 等价入口 | 无（不签名） | 我方：身份文件/构建开关/核验器/CI 变体（2026-11-12 工程装配）；产物未生成 | 🟡 工程装配中（证书未创建，仅 unsigned） |
 | D 固定测试签名 | **待定唯一持有方** | **接受**；见 §7 | 证书创建与私钥保管授权 | 无 | 未开始（证书未创建） |
 | E 真机与覆盖 | 产包方执行，双方复核 | **接受**；首包无前代时 E05 标"无前代，待下一包演练" | 安装/操作授权 | 无 | 未开始（未安装） |
 
@@ -82,6 +82,15 @@
 | G0-7 | 文档：ADR-0004 决定八、路线图 G0、收敛表覆盖更新影响保持不变 | 链接检查通过 |
 
 > 上述 7 项可先行实现（不产出可安装包）；完成后只关闭 G0 的"工程装配"，不关闭 A–E 证据。
+
+**2026-11-12 落地状态（v0.2 增量）**：
+
+- G0-1：`ci/release-identity.rebirth.json` 已建，含包名/显示名/versionCode 359/versionName/证书占位（64 个 0）与独立后缀、tag/APK 前缀；`tools/release-identity.py --check` 覆盖三身份。
+- G0-2：`-Pdsha.rebirthCandidate=true` 已实现；与 `dsha.identity=mod|upstream`、`.test/.debug/.dev` 互斥；`printReleaseIdentity` 输出 `candidate/unsigned/versionCode/certificateStatus`。
+- G0-3：`signingConfigs.rebirth` 只读 `DSHA_REBIRTH_KEYSTORE` / `DSHA_REBIRTH_KEYSTORE_PASSWORD` / `DSHA_REBIRTH_KEY_ALIAS` / `DSHA_REBIRTH_KEY_PASSWORD`，不回落 `DSHA_KEYSTORE`；证书未固定前签名候选在配置阶段被 `REBIRTH_CERTIFICATE_UNSET` 拒绝。
+- G0-4/5/6：候选核验器与 CI 变体已落盘（`tools/verify-rebirth-candidate.py` 35 项单测、`tools/test-verify-rebirth-candidate.py`、`.github/workflows/rebirth-candidate.yml` 仅 workflow_dispatch、不接签名凭据）；身份矩阵 7 组负控与单测由 CI 实跑。本机为 aarch64，构建工具链的 aapt2 是 x86_64 ELF，**真 APK 的 aapt2/apksigner E2E 未在本机验证，也未产出 unsigned APK**。
+- G0-7：ADR-0004 决定八、路线图 §0.1.1、BUILD.md 已同步；链接检查 0 error。
+- **仍未通过**：证书未创建、无 unsigned/signed APK、无真机安装与覆盖证据；G0 门禁不因工程装配而关闭。
 
 ---
 

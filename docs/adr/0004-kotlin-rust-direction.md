@@ -100,6 +100,14 @@ C01/C02 先落为编译期接口 + 最小登记表；"可安装模块"若将来�
 - 跨线数据**默认不继承、不自动迁移**；正式数据不直接交给实验线。若需导入，另行验证备份格式、内容范围、密钥与授权边界；不预承诺 v5 可完整迁移所有会话；系统授权不随导入继承。
 - 因此：A1–A8 以 **Rebirth 线**为发布目标；正式 Mod 线在本路径内不动；I1–I10 分别约束各线**内部**的覆盖安装。
 
+**G0 工程装配（2026-11-12，unsigned only，不等于 G0 通过）**：
+
+- `ci/release-identity.rebirth.json` 记录包名 `dsh.android.client.rebirth`、显示名、`versionCode` / `versionName`、测试/开发后缀、tag/APK 前缀与证书指纹。**证书指纹 64 个 0 = 未固定**；Mod/upstream 身份出现占位视为损坏，Rebirth 出现占位时任何签名门禁必须失败。
+- 构建入口 `-Pdsha.rebirthCandidate=true`：只能与 `-Pdsha.unsignedPackage=true` 组合（证书未固定前），与 `-Pdsha.identity=mod|upstream`、`.test/.debug/.dev` 互斥；`signingConfigs.rebirth` 只读取 `DSHA_REBIRTH_*`，绝不回落到 `DSHA_KEYSTORE`。
+- `verifyPublishCertificate` 的候选分支：占位证书 → 拒绝；复用 Mod/upstream 证书 → 拒绝；applicationId 或指纹不符 → 拒绝。
+- 候选核验器与 CI 变体只产出 `UNSIGNED_NOT_FOR_INSTALLATION`，不上传正式 Secrets、不创建 tag/Release；核验器不替代真机安装与覆盖验证。
+- 以上只关闭 G0 的“工程装配”；**证书创建/保管方与首发产包仓仍未定**（见 G0–G1 合并回执 §7），G0 门禁未通过。
+
 ## 后果
 
 **正面**：模块边界与状态所有权先于语言切换落地；每轮可发布、可回退；覆盖更新路径不被重构打断；Rust 以可差分验证的方式引入，失败可一键回退。
