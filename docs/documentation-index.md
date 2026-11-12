@@ -1,9 +1,11 @@
 # 文档总索引与维护规则
 
 
-当前源码：`0.2.1-rc.5-20261113.0000-dsh0.2.2-rc.1` / build361 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是 build360 之后的 A1「契约底座 + 关于与许可」版：设置里的「关于与许可」新增随包第三方许可列表与逐项正文查看，并提供仓库内 `THIRD_PARTY_NOTICES` 在线入口；版本、包身份与既有链接不变。工程侧落地编译期模块协议与最小运行时登记（ModuleId / Descriptor / Factory / Contribution / generation、ModuleRegistry、ContributionCatalog、RouteTable、LayoutStore、SafeModeGate、DiagnosticsSink、BuiltinModules），契约 18 类 / 35 项与 About 15 项随全量单测执行；`ui/` 与新增 `contract/` 不在 `launcherInputs` 内，仍是零维护。受管运行时不变：`runtimeId` 实测仍为 **`4d55973d`**（205 个输入），**360→361 覆盖升级不会进入运行环境维护页**；fixed-inputs 沿用锁定 20261105e，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。**build361 尚未真机覆盖安装验收**：只通过单测、lint 与仓库门禁；验收项是 360→361 覆盖安装成功、数据完好、「关于与许可」可进入并查看许可、READY。宿主 contracts 整组、全量单测、lint 与格式／文档检查由本轮发布工作流执行。改动说明见 [build361 更新说明](releases/build361-changes.zh.md)。
+当前源码：`0.2.1-rc.5-20261113.0000-dsh0.2.2-rc.1` / build361 / `io.github.sunsetrne.dsha` / DSH-A-Su（`main`）。本版是 build360 之后的 A1「契约底座 + 关于与许可」版：设置里的「关于与许可」新增随包第三方许可列表与逐项正文查看，并提供仓库内 `THIRD_PARTY_NOTICES` 在线入口；版本、包身份与既有链接不变。工程侧落地编译期模块协议与最小运行时登记（ModuleId / Descriptor / Factory / Contribution / generation、ModuleRegistry、ContributionCatalog、RouteTable、LayoutStore、SafeModeGate、DiagnosticsSink、BuiltinModules），契约 18 类 / 35 项与 About 15 项随全量单测执行；`ui/` 与新增 `contract/` 不在 `launcherInputs` 内，仍是零维护。受管运行时不变：`runtimeId` 实测仍为 **`4d55973d`**（205 个输入），**360→361 覆盖升级不会进入运行环境维护页**；fixed-inputs 沿用锁定 20261105e，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。**build361 已于 2026-11-13 补一加 12 真机覆盖验收（通过）**：官方包 358→360 首启进入一次受管运行时维护并完成，360→361 首启直接进入主界面（零维护）、READY，「关于与许可」与第三方许可列表 / 正文 / 在线声明可用；详见 [验收回执](releases/build361-acceptance-20261113.md)。宿主 contracts 整组、全量单测、lint 与格式／文档检查由本轮发布工作流执行。改动说明见 [build361 更新说明](releases/build361-changes.zh.md)。
 
 build361 十语更新说明：[中文](releases/build361-changes.zh.md) · [繁體中文](releases/build361-changes.zh-Hant.md) · [English](releases/build361-changes.en.md) · [日本語](releases/build361-changes.ja.md) · [한국어](releases/build361-changes.ko.md) · [Français](releases/build361-changes.fr.md) · [Português](releases/build361-changes.pt.md) · [Русский](releases/build361-changes.ru.md) · [العربية](releases/build361-changes.ar.md) · [Latina](releases/build361-changes.la.md)。
+
+build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)（一加 12，官方包 358→360→361；360→361 零维护、「关于与许可」与第三方许可实测通过）。
 
 历史版本的构建与验收记录保留在 [releases/](releases/)；各版本结论只在其对应提交与时点成立，不替代当前版本。
 
