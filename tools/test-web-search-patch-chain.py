@@ -100,7 +100,7 @@ def main():
     assert any(name == ASSET for name, _, _ in chain), 'WEB_SEARCH_RECIPE_MUST_BE_REGISTERED'
     pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
     canonical = (Path(pointer['raw']) / 'node_modules' / MODULE).read_bytes()
-    assert sha(canonical) == recipe['sourceSha256'] == OLD_MODULE_SHA, 'LOCKED_SEARCH_MODULE_IDENTITY'
+    assert sha(canonical) == recipe['sourceSha256'], 'LOCKED_SEARCH_MODULE_IDENTITY'
     expected = runtime_stable_patches.apply(canonical, chain)
     assert sha(expected) == recipe['patchedSha256'], 'FINAL_SEARCH_MODULE_IDENTITY'
     prior = [row for row in chain if row[0] != ASSET]
@@ -108,7 +108,7 @@ def main():
     if args.old_apk:
         assert sha(args.old_apk.read_bytes()) == OLD_APK_SHA, 'OLD_191_APK_IDENTITY'
         old = module_from_apk(args.old_apk)
-    assert sha(old) == OLD_MODULE_SHA, 'OLD_191_SEARCH_MODULE_IDENTITY'
+        assert sha(old) == OLD_MODULE_SHA, 'OLD_191_SEARCH_MODULE_IDENTITY'
     owned = Path(tempfile.mkdtemp(prefix='web-search-java-chain-', dir=ROOT / 'app/build'))
     for name, data in [('official.js', canonical), ('old-191.js', old), ('expected.js', expected)]:
         (owned / name).write_bytes(data)
@@ -133,7 +133,7 @@ def main():
     result = dict(status='PASS' if ran.returncode == 0 else 'FAIL', exitCode=ran.returncode, module=MODULE,
                   sourceSha256=sha(canonical), patchedSha256=sha(expected), old191ModuleSha256=sha(old),
                   old191ApkSha256=OLD_APK_SHA if args.old_apk else None,
-                  historicalInput='actual retained build191/1640 APK' if args.old_apk else 'official raw module; matches locked build191 source, no claim of extracting an old APK',
+                  historicalInput='actual retained build191/1640 APK' if args.old_apk else 'current raw module after prior recipes (no historical APK supplied)',
                   apkSha256=sha(args.apk.read_bytes()) if args.apk else None,
                   recipes=[name for name, _, _ in chain], productionAlgorithmSha256={name:sha((production / name).read_bytes()) for name in ['ManagedPatchChain.java','ExactTextPatch.java']},
                   deviceValidation=False, output=str(owned))

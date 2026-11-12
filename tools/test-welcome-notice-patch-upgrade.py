@@ -92,7 +92,9 @@ def apply_recipe(data, recipe):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--module', type=Path, help='locked original rc2 lib/client.js')
+    parser.add_argument('--module', type=Path, help='current locked lib/client.js')
+    parser.add_argument('--historical-module', type=Path, default=ROOT / 'tools/fixtures/rc2-upgrade-source/dsh-client-ui-settings-models.js',
+                        help='pinned rc2 lib/client.js used for the historical side')
     parser.add_argument('--jdk', type=Path, help='JDK 17 home (otherwise JAVA_HOME/PATH)')
     args = parser.parse_args()
     if sys.flags.optimize:
@@ -109,12 +111,15 @@ def main():
     historical = json.loads(historical_bytes)
     current = json.loads((ASSETS / 'welcome-notice-patch.json').read_text(encoding='utf-8'))
     canonical = module.read_bytes()
+    historical_canonical = args.historical_module.read_bytes()
+    assert sha(historical_canonical) == historical['sourceSha256'], 'historical rc2 module identity'
     assert historical['module'] == current['module']
-    assert historical['sourceSha256'] == current['sourceSha256'] == sha(canonical)
-    # rc3 repackages this byte-identical JS; historical recipe bytes remain SHA pinned.
+    assert sha(canonical) == current['sourceSha256'], 'current canonical identity'
+    # The module changed between rc2 and the current generation: historical and current
+    # sides each use their own canonical; do not compare the two source hashes.
     assert historical['dshVersion'] == '0.2.1-rc.2'
     assert current['dshVersion'] == json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf-8'))['dependencies']['@deepseek-ai/dsh']
-    old = apply_recipe(canonical, historical)
+    old = apply_recipe(historical_canonical, historical)
     expected = apply_recipe(canonical, current)
     assert old != expected
     assert all(marker.encode() in old for marker in OLD_MARKERS)

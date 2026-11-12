@@ -20,6 +20,14 @@
       "packageVersion": "0.2.1-rc.2",
       "packageIntegrity": "sha512-Tp3CI/LpwykU3ttjG7MfLHk+5jep/qgwL982MAyYuoRHItuj/zvGLH/fXX0X8VAWW9OtRyv7gs/yFffkfXZ5dQ==",
       "packageResolved": "https://registry.npmjs.org/@deepseek-ai/dsh-client-ui-agent-preset/-/dsh-client-ui-agent-preset-0.2.1-rc.2.tgz"
+    },
+    {
+      "file": "dsh-client-ui-settings-models.js",
+      "module": "@deepseek-ai/dsh-client-ui-settings-models/lib/client.js",
+      "sha256": "190498e15358bcd3fe6810fe6368023a20b0403e3ea493bc979eca9bdb593b28",
+      "packageVersion": "0.2.1-rc.2",
+      "packageIntegrity": "sha512-tjxvP66xh+i3h4Qf7h1tv7cEWVVtNAONDEN2ZM+Sv7Z2Z6P+hnr+mlXIjQdC+ovfsYQdg6TMXRle3cRr9x3Vug==",
+      "packageResolved": "https://registry.npmjs.org/@deepseek-ai/dsh-client-ui-settings-models/-/dsh-client-ui-settings-models-0.2.1-rc.2.tgz"
     }
   ]
 }
