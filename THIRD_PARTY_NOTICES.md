@@ -58,6 +58,31 @@
 - `org.bouncycastle:bcprov-jdk15to18:1.85.2`
 - `org.yaml:snakeyaml:2.4`
 
+## Rust vendor 依赖（首期旁路纯函数）
+
+Rust 旁路 crate `rust/crates/dsha-core` 只做 ADR-0004 决定四的三类封闭纯函数（单成员 gzip 编解码、只读摘要、计划只读校验）；R0 只含 ABI 探针与模块骨架，**尚未接入任何生产路径，R0 的 APK 不含 `libdsha_rs.so`**。依赖集由 `rust/Cargo.lock` 与入库 `rust/vendor/` 锁定（`cargo vendor --locked --versioned-dirs`，16 个 crate / 782 文件 / 7384177 B）；构建脚本与间接构建依赖的字节登记在 `ci/rust-toolchain.lock.json`，由 CI 逐字节核对，`version_check` 的 `MIT/Apache-2.0` 写法按 `MIT OR Apache-2.0` 归一化进白名单。许可全文按 crate 保存在 `app/src/main/assets/licenses/rust/<crate>-<version>/`；下表版本与声明来自 vendor 元数据。
+
+| crate | 版本 | 上游声明 | 许可全文 |
+|---|---|---|---|
+| `adler2` | 2.0.1 | 0BSD OR MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/adler2-2.0.1/` |
+| `block-buffer` | 0.10.4 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/block-buffer-0.10.4/` |
+| `cfg-if` | 1.0.5 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/cfg-if-1.0.5/` |
+| `cpufeatures` | 0.2.17 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/cpufeatures-0.2.17/` |
+| `crc32fast` | 1.5.5 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/crc32fast-1.5.5/` |
+| `crypto-common` | 0.1.7 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/crypto-common-0.1.7/` |
+| `digest` | 0.10.7 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/digest-0.10.7/` |
+| `flate2` | 1.1.11 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/flate2-1.1.11/` |
+| `generic-array` | 0.14.7 | MIT | `app/src/main/assets/licenses/rust/generic-array-0.14.7/` |
+| `libc` | 0.2.191 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/libc-0.2.191/` |
+| `miniz_oxide` | 0.9.1 | MIT OR Zlib OR Apache-2.0 | `app/src/main/assets/licenses/rust/miniz_oxide-0.9.1/` |
+| `sha1` | 0.10.7 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/sha1-0.10.7/` |
+| `sha2` | 0.10.9 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/sha2-0.10.9/` |
+| `simd-adler32` | 0.3.10 | MIT | `app/src/main/assets/licenses/rust/simd-adler32-0.3.10/` |
+| `typenum` | 1.20.1 | MIT OR Apache-2.0 | `app/src/main/assets/licenses/rust/typenum-1.20.1/` |
+| `version_check` | 0.9.5 | `MIT OR Apache-2.0`（上游写作 `MIT/Apache-2.0`） | `app/src/main/assets/licenses/rust/version_check-0.9.5/` |
+
+`libdsha_rs.so` 的许可为 MIT（本仓库 `rust/crates/dsha-core`）；该 `.so` 只由 CI `rust-native` 构建并注入 `app/build/rust-jniLibs/`，不入库。R1–R3 接入 APK 后由 `tools/check-rust-native-apk.py` 核对 APK 内成员、体积预算与构建回执；R0 只验证工具链、字节复现与门禁本身。
+
 ## 实际入库 JNI 成员与来源边界
 
 | 资产 | 许可声明 | 来源 / 可核验范围 |

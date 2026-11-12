@@ -27,6 +27,72 @@ NATIVE_NOTICES = {
 }
 
 
+RUST_LOCK = ROOT / 'ci/rust-toolchain.lock.json'
+RUST_LICENSE_ROOT = ASSETS / 'licenses/rust'
+RUST_LICENSE_NAME = re.compile(r'(?i)^(licen[cs]e|copying|notice)([.-].*)?$')
+
+
+def rust_lock(root=ROOT):
+    return json.loads((root / 'ci/rust-toolchain.lock.json').read_text(encoding='utf-8'))
+
+
+def rust_license_plan(root=ROOT):
+    """Rust vendor 许可全文 → `assets/licenses/rust/<crate>-<version>/` 的精确字节计划。"""
+    lock = rust_lock(root)
+    vendor = root / 'rust/vendor'
+    plan = {}
+    for row in lock['dependencies']:
+        directory = vendor / ('%s-%s' % (row['name'], row['version']))
+        for name in row['licenseFiles']:
+            source = directory / name
+            if not source.is_file():
+                raise ValueError('RUST_LICENSE_SOURCE_MISSING: ' + str(source))
+            target = 'app/src/main/assets/licenses/rust/%s-%s/%s' % (
+                row['name'], row['version'], name)
+            plan[target] = source.read_bytes()
+        present = sorted(p.name for p in directory.iterdir()
+                         if p.is_file() and RUST_LICENSE_NAME.match(p.name))
+        if present != list(row['licenseFiles']):
+            raise ValueError('RUST_LICENSE_SET: %s %s != lock %s'
+                             % (row['name'], present, row['licenseFiles']))
+    return plan
+
+
+def rust_license_files(root=ROOT):
+    base = root / 'app/src/main/assets/licenses/rust'
+    if not base.is_dir():
+        return {}
+    return {p.relative_to(root).as_posix(): p.read_bytes()
+            for p in base.rglob('*') if p.is_file()}
+
+
+def verify_rust_licenses(root=ROOT):
+    plan, actual = rust_license_plan(root), rust_license_files(root)
+    if set(actual) != set(plan):
+        raise ValueError('RUST_LICENSE_TREE: 缺失 %s 多余 %s；运行 generators 同步'
+                         % (sorted(set(plan) - set(actual))[:5],
+                            sorted(set(actual) - set(plan))[:5]))
+    for name, expected in plan.items():
+        if actual[name] != expected:
+            raise ValueError('RUST_LICENSE_BYTES: ' + name)
+
+
+def sync_rust_licenses(root=ROOT):
+    """写入/清理 `assets/licenses/rust/**`（只动该子树；字节与 vendor 一致）。"""
+    plan = rust_license_plan(root)
+    for name, data in plan.items():
+        target = root / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.is_file() or target.read_bytes() != data:
+            target.write_bytes(data)
+    base = root / 'app/src/main/assets/licenses/rust'
+    for path in sorted(base.rglob('*'), key=lambda p: len(p.parts), reverse=True):
+        if path.is_file() and path.relative_to(root).as_posix() not in plan:
+            path.unlink()
+        elif path.is_dir() and path != base and not any(path.iterdir()):
+            path.rmdir()
+
+
 def gradle_coordinates(root=ROOT):
     build = (root / 'app/build.gradle').read_text(encoding='utf-8')
     return sorted(set(re.findall(r"^\s*(?:implementation|standardImplementation|coreLibraryDesugaring)\s+'([^']+)'", build, re.M)))
@@ -59,6 +125,14 @@ def render():
     gh_license = (ASSETS / 'licenses/gh-MIT.txt').read_bytes()
     if hashlib.sha256(gh_license).hexdigest() != gh_lock.get('licenseSha256'):
         raise ValueError('GH_CLI_LICENSE_NOTICE: assets/licenses/gh-MIT.txt 与 tools/gh-cli/packages.lock.json 不一致')
+    rust = rust_lock()
+    rust_rows = '\n'.join(
+        '| `%s` | %s | %s | `app/src/main/assets/licenses/rust/%s-%s/` |' % (
+            row['name'], row['version'],
+            row['license'] if row['upstreamLicense'] == row['license']
+            else '`%s`（上游写作 `%s`）' % (row['license'], row['upstreamLicense']),
+            row['name'], row['version'])
+        for row in sorted(rust['dependencies'], key=lambda item: item['name']))
     return f'''# 第三方组件声明
 
 此文由 `python tools/generate-third-party-notices.py` 从当前锁和实际资产生成。DSHA 自有代码采用 MIT；随包第三方组件分别遵循其许可，不因 APK 顶层许可变成 MIT。
@@ -108,6 +182,16 @@ def render():
 
 {android}
 
+## Rust vendor 依赖（首期旁路纯函数）
+
+Rust 旁路 crate `rust/crates/dsha-core` 只做 ADR-0004 决定四的三类封闭纯函数（单成员 gzip 编解码、只读摘要、计划只读校验）；R0 只含 ABI 探针与模块骨架，**尚未接入任何生产路径，R0 的 APK 不含 `libdsha_rs.so`**。依赖集由 `rust/Cargo.lock` 与入库 `rust/vendor/` 锁定（`cargo vendor --locked --versioned-dirs`，{rust['vendor']['crates']} 个 crate / {rust['vendor']['files']} 文件 / {rust['vendor']['bytes']} B）；构建脚本与间接构建依赖的字节登记在 `ci/rust-toolchain.lock.json`，由 CI 逐字节核对，`version_check` 的 `MIT/Apache-2.0` 写法按 `MIT OR Apache-2.0` 归一化进白名单。许可全文按 crate 保存在 `app/src/main/assets/licenses/rust/<crate>-<version>/`；下表版本与声明来自 vendor 元数据。
+
+| crate | 版本 | 上游声明 | 许可全文 |
+|---|---|---|---|
+{rust_rows}
+
+`libdsha_rs.so` 的许可为 MIT（本仓库 `rust/crates/dsha-core`）；该 `.so` 只由 CI `rust-native` 构建并注入 `app/build/rust-jniLibs/`，不入库。R1–R3 接入 APK 后由 `tools/check-rust-native-apk.py` 核对 APK 内成员、体积预算与构建回执；R0 只验证工具链、字节复现与门禁本身。
+
 ## 实际入库 JNI 成员与来源边界
 
 | 资产 | 许可声明 | 来源 / 可核验范围 |
@@ -139,6 +223,10 @@ if __name__ == '__main__':
     if args.check:
         if path.read_text(encoding='utf-8') != content:
             raise SystemExit('THIRD_PARTY_NOTICES_STALE')
+        verify_rust_licenses()
+        print('PASS current locked third-party identities and Rust vendor license bytes')
     else:
+        sync_rust_licenses()
         path.write_text(content, encoding='utf-8', newline='\n')
-    print('PASS current locked third-party identities')
+        verify_rust_licenses()
+        print('PASS regenerated third-party notices and Rust vendor licenses')

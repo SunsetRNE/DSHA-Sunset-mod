@@ -89,6 +89,7 @@ def main():
     if notices != generator.render():
         raise ValueError('THIRD_PARTY_NOTICES_STALE')
     verify_licenses()
+    generator.verify_rust_licenses()
     native = verify_native_members()
     for coordinate in generator.gradle_coordinates():
         if '`' + coordinate + '`' not in notices:
@@ -96,7 +97,12 @@ def main():
     packages = inventory(args.archive,
                          json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf-8')),
                          notices) if args.archive else []
+    rust = generator.rust_lock()
     report = {'schema': 1, 'nativeMembers': native, 'verifiedLicenseFiles': REQUIRED_LICENSES,
+              'rustVendor': {'crates': len(rust['dependencies']),
+                             'licenseFiles': sum(len(row['licenseFiles'])
+                                                 for row in rust['dependencies']),
+                             'vendorBytes': rust['vendor']['bytes']},
               'actualPackageDeclarations': packages,
               'legalOrigin': 'unknown_for_unproven_originals',
               'scope': 'Declarations, source-notice consistency and actual license text bytes; not complete redistribution/source-offer or transitive Gradle license compliance.'}
@@ -105,7 +111,8 @@ def main():
         args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n',
                                encoding='utf-8', newline='\n')
     print('PASS current notices,', len(native), 'JNI identities,', len(packages),
-          'actual npm declarations; original binary provenance and redistribution review remain separate')
+          'actual npm declarations and', len(rust['dependencies']),
+          'Rust vendor licenses; original binary provenance and redistribution review remain separate')
 
 
 if __name__ == '__main__':

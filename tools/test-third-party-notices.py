@@ -50,6 +50,24 @@ class ThirdPartyNoticesTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'NEW_NATIVE'):
             gate.verify_native_members(self.root)
 
+    def test_rust_vendor_license_bytes_are_bound_to_the_vendor_tree(self):
+        gate.generator.verify_rust_licenses()
+        lock_dir = self.root / 'ci'
+        lock_dir.mkdir()
+        (lock_dir / 'rust-toolchain.lock.json').write_text(json.dumps({
+            'dependencies': [{'name': 'demo', 'version': '1.0.0', 'licenseFiles': ['LICENSE']}],
+            'vendor': {'bytes': 0, 'files': 0}}), encoding='utf-8')
+        vendor = self.root / 'rust/vendor/demo-1.0.0'
+        vendor.mkdir(parents=True)
+        (vendor / 'LICENSE').write_bytes(b'fixture license')
+        target = self.root / 'app/src/main/assets/licenses/rust/demo-1.0.0/LICENSE'
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b'fixture license')
+        gate.generator.verify_rust_licenses(self.root)
+        target.write_bytes(b'changed')
+        with self.assertRaisesRegex(ValueError, 'RUST_LICENSE_BYTES'):
+            gate.generator.verify_rust_licenses(self.root)
+
     def test_source_license_bytes_and_required_missing_file_are_rejected(self):
         gate.verify_licenses()
         licenses = self.root / 'app/src/main/assets/licenses'

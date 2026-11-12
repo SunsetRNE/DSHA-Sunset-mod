@@ -36,8 +36,10 @@
 tools/history/** -text -eol
 
 # Rust vendor 树按上游字节入库（.cargo-checksum.json 记录逐文件 SHA-256），
-# 禁止 Git 行尾规范化；重新 vendor 后必须逐字节一致。
+# 禁止 Git 行尾规范化；重新 vendor 后必须逐字节一致。许可副本按 vendor 精确字节
+# 保存（generic-array 的 LICENSE 本身是 CRLF），同样禁止行尾改写。
 rust/vendor/** -text -eol
+app/src/main/assets/licenses/rust/** -text -eol
 
 # Existing managed text is hash-bound to the signed runtime; keep exact bytes.
 app/src/main/assets/builtin-plugins/dsh-auto-review/package.json -text -eol
