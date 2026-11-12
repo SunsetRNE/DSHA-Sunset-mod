@@ -9,7 +9,7 @@
 
 ## 0. 进度看板（每轮结束更新这一节）
 
-**当前阶段：P0 ✅ 已完成（2026-11-12，全部决策按推荐批准，ADR-0004 已落地）；G0 工程装配 🟡 待 CI 与证书验证；G3 草案 v0.1 待双方冻结；A1 未启动。**
+**当前阶段：P0 ✅ 已完成（2026-11-12，全部决策按推荐批准，ADR-0004 已落地）；G0 工程装配 ✅（[CI 43188205334](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43188205334)，unsigned only，证书未创建，G0 门禁未通过）；G3 草案 v0.1 待双方冻结；A1 未启动。**
 **完成度：0 / 8 轮**（前置 P0 已完成；G0 只做工程装配，不等于 G0 通过）
 **下一里程碑：G0 工程装配收口（unsigned 候选可构建）→ G3 契约草案评审 → A1 开工评审**
 **发布目标：Rebirth 隔离实验线**（`dsh.android.client.rebirth`，独立测试证书，与正式包/Mod 包共存；见 §11 Q8 与 ADR-0004 决定八）。
@@ -36,7 +36,7 @@
 
 | 门禁 | 状态 | 当前事实 |
 |---|---|---|
-| G0 Rebirth 身份 | 🟡 工程装配 | 身份文件、`rebirthCandidate` 开关、独立签名配置、核验器、CI 变体已落盘；**证书未创建、无 APK、CI 未跑**，只产 unsigned，不称可安装 |
+| G0 Rebirth 身份 | 🟡 工程装配完成 | 身份文件、`rebirthCandidate` 开关、独立签名配置、核验器、CI 变体已落盘；[CI 43188205334](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43188205334) 身份矩阵与 unsigned 候选 12 项核验 PASS；**证书未创建、无 signed 候选、无真机**，只产 unsigned，不称可安装，G0 门禁未通过 |
 | G1 首包门禁清单 | ⛔ 未通过 | 五层清单已并入；对方 runtime 95/128（33 失败）未绿，本仓 build359 无 host runtime 回执 |
 | G2 A1 任务基线 | ⬜ | 待 G0/G3 收口后给范围、改动文件、验证、回退、owner |
 | G3 契约草案 | 🟡 草案 v0.1 | C01/C02 + 结果五字段 + 投影表 + 4 个反例已成稿（`a1-contract-draft-20261112.md`），未与对方冻结 |
@@ -414,7 +414,8 @@ graph LR
 | v0.4 | 2026-11-12 | 采纳对方三点澄清：Rebirth=隔离实验发行线、Gecko=单包新增适配（非恢复 low）、不接 feed≠取消覆盖安装；新增 Q8（`applicationId` 待定） |
 | v0.5 | 2026-11-12 | Q8 已定（`dsh.android.client.rebirth` + 独立测试证书）；发布目标改为 Rebirth 线；新增 §11.1 A1 开工条件 G0–G5 |
 | v0.6 | 2026-11-12 | 对方确认命名空间有意选定并给出五层门禁；G0–G5 改为"缺一不开工"，删除"不阻塞编码"冲突表述；新增可先行范围与两仓签名唯一性约束 |
-| v0.7 | 2026-11-12 | 对方未交收敛表两列草稿，我方自拟 v0.2；G0 工程装配落盘（Rebirth 身份文件、`rebirthCandidate` 开关、独立签名占位、核验器、CI 变体，unsigned only，待 CI/证书验证）；G3 契约草案 v0.1 成稿；新增 §0.1.1 门禁状态表 |
+| v0.7 | 2026-11-12 | 对方未交收敛表两列草稿，我方自拟 v0.2；G0 工程装配落盘（Rebirth 身份文件、`rebirthCandidate` 开关、独立签名占位、核验器、CI 变体，unsigned only）；G3 契约草案 v0.1 成稿；新增 §0.1.1 门禁状态表 |
+| v0.8 | 2026-11-12 | G0 工程装配 CI 回执：identity-matrix 7 组负控通过，unsigned 候选 12 项核验 PASS（APK SHA-256 `7f9702cd…`）；证书未创建、无 signed 候选、无真机，G0 门禁仍未通过 |
 
 ---
 

@@ -92,6 +92,15 @@
 - G0-7：ADR-0004 决定八、路线图 §0.1.1、BUILD.md 已同步；链接检查 0 error。
 - **仍未通过**：证书未创建、无 unsigned/signed APK、无真机安装与覆盖证据；G0 门禁不因工程装配而关闭。
 
+### 4.1 G0 工程装配 CI 回执（2026-11-12）
+
+[run 43188205334](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43188205334)，commit `73890983`，全部 job 成功：
+
+- **身份矩阵**：`candidate-valid` 通过并输出 `releaseIdentity=rebirth` / `applicationId=dsh.android.client.rebirth` / `versionCode=359` / `versionName=0.2.1-rc.5-20261111.1200-dsh0.2.2-rc.1` / `certificateStatus=unset`；7 组负控（identity=mod/upstream、缺候选开关、`sunsetTest`/`debugPackage`/`devPackage`、缺 `unsignedPackage`）全部以预期 `REBIRTH_*` 标记失败。
+- **unsigned 候选**：`dsha-rebirth-NOT_FOR_INSTALLATION-73890983.apk`，316,563,780 B，SHA-256 `7f9702cd0a4d642a7101fefe7b3a92c9115685bf900f2a4a3a276849b91f93b3`；12 项核验全部 PASS（包名/versionCode/versionName/非 debuggable/min30/target37/仅 arm64/显示名/无测试后缀/authorities/确实未签名/证书 unset）。
+- **产物**：artifact `rebirth-candidate-NOT_FOR_INSTALLATION-73890983…`（约 298 MB），只标 `UNSIGNED_NOT_FOR_INSTALLATION`，不可安装、不是发布验收。
+- **未验证**：证书未创建、无 signed 候选、无真机安装与同线覆盖证据；G0 门禁不因工程装配或 CI 而关闭。
+
 ---
 
 ## 5. 可先行 vs 不可开工（对齐对方最后一段）
