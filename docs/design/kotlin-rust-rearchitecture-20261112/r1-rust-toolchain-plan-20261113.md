@@ -1,9 +1,103 @@
 # R1 Rust 工具链与首期旁路接入方案（A3 前期设计）
 
-> 状态：**设计稿（未开工，仅文档）**。日期：2026-11-13。
+> 状态：**设计稿（评审完成，Q1–Q6 已决；R0 未解锁，仅文档）**。日期：2026-11-13（Lead 决定 2026-11-13，见 §0）。
 > 基线：`origin/main` = `2c879f1b`（build360）；起草期间主线已推进到 `faab36c5`（build361），差异仅为版本号与 A1 文档，`app/build.gradle` 的 NDK/ABI/jniLibs 段无变化（本文件所有实测数字仍以 `2c879f1b` 为准）。
 > 依据：[ADR-0004 决定四/决定二/失败域矩阵](../../adr/0004-kotlin-rust-direction.md)、[可行性评审主稿 §6](README.md)、[评审 B 草稿](drafts/02-rust-core.md)、[迭代路径 §4/§5/§8/§9](iteration-roadmap-20261112.md)、[AGENTS 技术约束](../../../AGENTS.md)、[BUILD](../../../BUILD.md)、[CI 发布](../../ci-release.md)、[固定构建输入](../../fixed-build-inputs.md)。
 > 边界：本文只写设计与实测依据。**不修改构建文件、代码、CI、版本文件、文档索引**；索引与看板条目在回报里交给 Lead 统一添加（避开 build361 冲突）。本文件**不等同于 A3 开工或 A3 出口**。
+
+---
+
+## 0. 先决决定与 R0 解锁条件（2026-11-13 Lead 答复后冻结）
+
+> 本节优先于正文里“待 Lead 决定”的占位。正文保留理由、实测与实施细节；若两者冲突，以本节为准。
+
+### 0.1 决定表（Q1–Q6，Lead 2026-11-13）
+
+| # | 决定 | 结论 | 对本文的影响 |
+|---|---|---|---|
+| Q1 | 产物边界 | **接受**：`.so` 走 `app/build/rust-jniLibs` 注入 + 独立 APK receipt/体积/字节门禁；**摘要不进 `runtime-descriptor`**，不让每次 Rust 变更触发维护页。理由：既有边界是“原生库随 APK 走、受管运行时只管启动树” | §3.3 的推荐方案成为定稿；备选“摘要进描述符”不采用 |
+| Q2 | 本机交叉链 | **接受**：R0 证据 = CI 构建 + 本机 `cargo check --target aarch64-linux-android` + 主机 JVM 差分 + 真机加载签名 `.dev` 冒烟；**暂不做** rust-lld/qemu spike（1 人日留给 A3 真实缺口时再评估） | §2.6 路径 A 为默认；B/C 暂缓，不在 R0 范围 |
+| Q3 | vendor/许可 | **有条件批准**：16 crate / 7.4 MB 可入库；条件见 §0.2；R0 提交由 Lead 逐行评审 `rust/` 与 CI diff | §0.2 新增 vendor 清单、build.rs 审查结论、profile/ABI 锁 |
+| Q4 | 默认开关 | **按建议**：R0/R1/R2 默认关；R3 灰度验证后 A3 出口转 on | §5.4 定稿 |
+| Q5 | 真机冒烟 | **按建议**：R3 用签名 `.dev` 包；用户已授权手机操作（一加 12 已连接），由 Lead 执行 | §6 R3 验收、§5.1 设备层定稿 |
+| Q6 | `verify_plan` 范围 | **按建议**：首期绑定 A3 恢复计划（`NativeRestorePlan` 的规范化投影） | §4.6/§6 R2 定稿 |
+
+### 0.2 Q3 条件的落地内容
+
+#### 0.2.1 vendor 清单与许可摘要（2026-11-12 按 `cargo vendor --locked` 实测）
+
+依赖集：`flate2`（`rust_backend`）+ `sha2` + `sha1`，解析出 16 个 registry crate；vendor 树 **782 文件 / 7,384,177 B**（约 7.0 MiB；`du -sh` 磁盘占用约 11 MiB）。R0 必须在 `Cargo.lock` 中锁定同一版本集；若解析结果变化，重新走本节审查，不得直接放行。
+
+| crate | 版本 | 上游许可（`cargo metadata`） | vendor 内许可文件 |
+|---|---|---|---|
+| `adler2` | 2.0.1 | `0BSD OR MIT OR Apache-2.0` | `LICENSE-0BSD`、`LICENSE-APACHE`、`LICENSE-MIT` |
+| `block-buffer` | 0.10.4 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `cfg-if` | 1.0.5 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `cpufeatures` | 0.2.17 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `crc32fast` | 1.5.5 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `crypto-common` | 0.1.7 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `digest` | 0.10.7 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `flate2` | 1.1.11 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `generic-array` | 0.14.7 | `MIT` | `LICENSE` |
+| `libc` | 0.2.191 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `miniz_oxide` | 0.9.1 | `MIT OR Zlib OR Apache-2.0` | `LICENSE`、`LICENSE-APACHE.md`、`LICENSE-MIT.md`、`LICENSE-ZLIB.md` |
+| `sha1` | 0.10.7 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `sha2` | 0.10.9 | `MIT OR Apache-2.0` | `LICENSE-APACHE`、`LICENSE-MIT` |
+| `simd-adler32` | 0.3.10 | `MIT` | `LICENSE.md` |
+| `typenum` | 1.20.1 | `MIT OR Apache-2.0` | `LICENSE`、`LICENSE-APACHE`、`LICENSE-MIT` |
+| `version_check` | 0.9.5 | `MIT/Apache-2.0`（写法需规范化） | `LICENSE-APACHE`、`LICENSE-MIT` |
+
+落地要求：
+- `THIRD_PARTY_NOTICES.md` 增加“Rust vendor”段：上表逐 crate 的版本/许可/来源（crates.io + 版本）+ 指向 `app/src/main/assets/licenses/rust/**` 的许可全文；`tools/generate-third-party-notices.py` 从 `Cargo.lock` + vendor 元数据生成，`--check` 必须能复现。
+- 许可全文按 crate 目录保存到 `app/src/main/assets/licenses/rust/<crate>-<version>/`（Apache-2.0 的 `NOTICE` 若上游有则一并保留）；`verify-third-party-apk.py` 增加“APK 内 `lib/arm64-v8a/libdsha_rs.so` 必须在上表/notice 中有条目”的核验。
+- `version_check` 的 `MIT/Apache-2.0` 归一化为 `MIT OR Apache-2.0` 后再进白名单；不许把“宽松许可”扩写成“可删许可文本”。
+
+#### 0.2.2 三个 `build.rs` 的逐项审查（结论：可用）
+
+审查对象是 R0 拟入库的 16 crate 中全部 `build.rs`（另有 `version_check` 被间接调用，其一并审查）。行为审查只覆盖构建期，不涉及运行时 ABI。
+
+| 文件（crate/版本） | SHA-256（2026-11-12 解析版本） | 构建期行为 | 结论 |
+|---|---|---|---|
+| `crc32fast/build.rs`（1.5.5） | `deb6052c4a586e8875ef677fe2d9e9dcfafebfa949803455ea8eff6e7dbde436` | 读 `RUSTC`；执行 `rustc --version` 探测 minor；按版本输出 `cargo:rustc-cfg`/`check-cfg` | 无网络、无文件写、无凭据读取；仅探测编译器版本 |
+| `generic-array/build.rs`（0.14.7） | `08fa30c4a2c1ad24fe5f987e721dfb20131f45ea5b5dc3e836dcf88a8e33248c` | 调 `version_check::is_min_version("1.41.0")`，后者执行 `rustc --version --verbose`；输出一个 cfg | 同上；间接命令为 `RUSTC`（见下） |
+| `libc/build.rs`（0.2.191） | `e70593206df4d2a3138eab463567e0ae8f91c1bea565da4ab5370ea8986840ac` | 读 `RUSTC`/`RUSTC_WRAPPER`、`CARGO_CFG_*`、`CARGO_FEATURE_*`、`RUST_LIBC_UNSTABLE_*`；执行 `rustc --version`；FreeBSD 目标才执行 `freebsd-version`，Emscripten 目标才执行 `emcc`；仅输出 cfg | 无网络、无文件写、无凭据读取；Android 目标不触达 FreeBSD/Emscripten 分支 |
+| `version_check/src/lib.rs`（0.9.5，间接） | `01bb86088ba281d511ae002aa939bb30b747f47ace5ea13a46de554a3117806e` | 构建期只执行 `rustc --verbose --version`；`File::open`/`fs::metadata` 位于 `#[cfg(test)] mod tests`，不进入构建 | 同上；测试代码不参与 R0 构建产物 |
+
+审查结论与 R0 约束：
+1. **不得网络**：三个 `build.rs` 与 `version_check` 未使用 `std::net`/HTTP 客户端/URL 请求（仅有文档注释里的链接）。
+2. **不得写仓库外**：未发现 `File::create`/`fs::write`/`OpenOptions`/目录创建；只向 stdout 输出 `cargo:` 指令，cargo 自身写 `target/` 与指纹（`target` 位置由构建入口指定，CI 仍在工作区内）。
+3. **不得读凭据**：只读 `RUSTC`/`RUSTC_WRAPPER`/`CARGO_CFG_*`/`CARGO_FEATURE_*`/`RUST_LIBC_UNSTABLE_*`/`WIND_RELEASE_ID` 等构建变量，未读取 `HOME`、token、keystore、SSH 等凭据路径。
+4. **`RUSTC_WRAPPER` 是唯一外部命令入口**：由构建环境提供；R0 的 `tools/rust/build.py` 显式设置 `RUSTC` 为锁定 rustc，并在 CI 清除 `RUSTC_WRAPPER`（不设置或置空），`tools/check-rust-boundaries.py` 把“vendor build.rs 清单 + SHA-256 + 环境变量集合”写入 gate；出签名节点不跑 Rust、不暴露任何签名 Secrets。
+5. **R0 提交给 Lead 逐行评审**：`rust/` 与 CI diff；审查不通过不得进入 R1。
+
+#### 0.2.3 R0 即锁定的构建约束（R3 前不改 ABI）
+
+R0 必须在 crate 里锁定以下内容，并写进 `tools/rust/build.py` 与 `tools/check-rust-boundaries.py`：
+
+```toml
+# rust/Cargo.toml（workspace）
+[profile.dev]
+panic = "unwind"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "unwind"          # 禁止 abort：Android 上 abort 会杀整个 App 进程
+strip = "symbols"
+```
+
+- **ABI 冻结**：`ABI_VERSION = 1`、§4.2 的 Java 方法名/参数/返回类型、错误码表、§4.6 `PlanView` v1 布局、§4.5 gzip 语义在 R0 锁定；R1/R2/R3 不得改；任何变化 = 新 ABI 版本 + 新评审（不是“顺手加参数”）。
+- **16 KB 页对齐**：链接参数固定为 `-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=4096 -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack`；`audit-standard-apk.py` + 新 APK 门禁逐 `PT_LOAD` 校验；参数改动必须评审。
+- **工具链**：`rust-toolchain.toml` 固定 1.100.0；R0 不升级；升级另立评审并重跑复现/差分。
+- **构建回执**：receipt 记录 profile 值、链接参数摘要、vendor/Cargo.lock 摘要、导出的符号集合；CI 和 APK 门禁比对。
+
+### 0.3 R0 解锁条件（当前锁定）
+
+- **Kotlin 工具链批次合入 `main` 后解锁**：`feat/kotlin-toolchain` 正在同批修改 `.github/workflows/*` 与 `app/build.gradle`；Rust R0 现在开工会与之撞车，因此**R0 暂不开工**。
+- 解锁动作：Kotlin 批次合入且 CI 绿 → Lead 另派**新的**工作树实施 R0（不复用本设计工作树）；R0 先 rebase 到最新 `main`，重读 §2.5/§3.2 的集成点与 `tools/test-ci-workflows.py` 期望集合。
+- 解锁前本批次不产生 `rust/` 目录、不提交 vendor、不改 workflow、不改 `app/build.gradle`；本文件只作为 R0 的施工单。
+- 本设计工作树在本次交付后改为 `.SESSION-DONE`，状态写明“设计稿完成，其余结论已定，不可合并，待 Lead 在 Kotlin 合入后统一安排 R0 实施”。
 
 ---
 
@@ -12,10 +106,10 @@
 ### 1.1 结论
 
 1. **Rust 可以按 ADR-0004 决定四开工准备（R0），但不能把 R0 当成 A3 开工。** R0 只新增 `rust/` 源码树、vendor、工具链锁与 CI 节点，不改变 APK 运行行为、不进入数据路径；R1–R3 必须与 A3 的备份契约、夹具和 A2 文件事务排序，R3 是 A3 的最后一个增量。
-2. **本机（aarch64 手机容器）能跑 Rust 主机工具链，也能做主机侧 JNI 差分测试；但官方 NDK r26 只有 `linux-x86_64` 预编译工具链，本机没有 qemu/binfmt，原生 Android 交叉链接在本机跑不起来。** 证据与三条备选路径见 §2.6 与 §7。**CI（ubuntu-24.04 x86_64）是当前唯一确定的 arm64 `.so` 构建环境**；在 R0 用一次 spike 决定“本机交叉链接是否必须”，不阻塞设计开工。
+2. **本机（aarch64 手机容器）能跑 Rust 主机工具链，也能做主机侧 JNI 差分测试；但官方 NDK r26 只有 `linux-x86_64` 预编译工具链，本机没有 qemu/binfmt，原生 Android 交叉链接在本机跑不起来。** 证据与三条备选路径见 §2.6 与 §7。**CI（ubuntu-24.04 x86_64）是当前唯一确定的 arm64 `.so` 构建环境**；Lead 2026-11-13 已决定暂不做 rust-lld/qemu spike（§0.1 Q2），本机交叉链接不作为 R0 门禁。
 3. **首期只做三类封闭纯函数，没有 `execute(...)`、没有 `argv`、Rust 不接收路径字符串、不自行 `open`、不碰进程/信号/Android API。** `PlanEnvelope`/`permitMac` 是将来执行路径的占位，**不进入首期 ABI**；[安全评审草稿](drafts/05-safety-permissions.md)里的 `execute(PlanEnvelope)` 形状与 ADR 决定四冲突，以 ADR 为准，将来若要做必须另立 ADR。
 4. **构建按 ADR 决定四执行**：NDK `26.3.11579264`（r26）+ Rust stable `1.100.0` + `aarch64-linux-android`；`cargo vendor` 入库、`Cargo.lock` 入库、字节复现 `--check`、`max-page-size=16384`、`.so` 只作 CI 产物不入库。
-5. **`.so` 不进 `app/src/main/jniLibs`（已跟踪树），改由 `app/build/rust-jniLibs/` 注入 Gradle。** 现有 `managed-runtime-inputs.json` 把 `app/src/main/jniLibs` 整棵树列为 `launcherInputs`；把未跟踪的 `.so` 放进去会让干净检出无法通过 `prepare-runtime-descriptor.py --check`，且违反 D6。代价是 Rust 产物不进入 `runtimeId`，由**独立的 APK 级 receipt + 体积/字节门禁**绑定（§3.3、R8 风险的处理）。这是需要 Lead 确认的第一个决定。
+5. **`.so` 不进 `app/src/main/jniLibs`（已跟踪树），改由 `app/build/rust-jniLibs/` 注入 Gradle。** 现有 `managed-runtime-inputs.json` 把 `app/src/main/jniLibs` 整棵树列为 `launcherInputs`；把未跟踪的 `.so` 放进去会让干净检出无法通过 `prepare-runtime-descriptor.py --check`，且违反 D6。代价是 Rust 产物不进入 `runtimeId`，由**独立的 APK 级 receipt + 体积/字节门禁**绑定（§3.3、R8 风险的处理）。Lead 2026-11-13 已接受该边界（§0.1 Q1）。
 6. **差分测试放在主机 JVM（不是设备）**：同一 crate 同时产出 `aarch64-linux-android`（进 APK）与主机目标（进 JVM 单测）；本机已实测“Rust 主机 `.so` + JDK 17 JVM”可加载并调用 JNI。设备侧只做 R3 的签名 `.dev` 包冒烟与 16 KB 页真机验证。
 7. **构建与签名节点不受 Rust 影响**：Rust 交叉编译在独立 `rust-native` job 里完成并上传 artifact；`build-unsigned` 下载 artifact 后连同来源 receipt 一并核验；`sign-verify` 只做签名与二次核对（不跑 Rust/Gradle）；Gradle 的 `verification-metadata.xml` **不需要**改动。
 
@@ -23,9 +117,9 @@
 
 | 门禁 | 内容 | 当前状态 | 谁批准 |
 |---|---|---|---|
-| G-R0-A | 接受“`.so` 走 `app/build/` 注入、不进 `launcherInputs`/`runtimeId`”的边界，以及由此产生的 R8 补偿门禁 | 待 Lead 决定（本文推荐接受） | Lead |
-| G-R0-B | 接受“本地 aarch64 不做强制 Android 链接”，CI 交叉构建 + 设备加载作为 R0 证据；本机只要求 `cargo check --target` + 主机 JNI 差分 | 待 Lead 决定（本文推荐接受，另开时间盒 spike） | Lead |
-| G-R0-C | 接受新增离线依赖面：`rust/vendor/` 约 7.4 MB、16 个 crate、3 个 `build.rs` 审查；调整 `THIRD_PARTY_NOTICES`/APK 原生成员门禁 | 待 Lead 决定 | Lead + 用户 |
+| G-R0-A | 接受“`.so` 走 `app/build/` 注入、不进 `launcherInputs`/`runtimeId`”的边界，以及由此产生的 R8 补偿门禁 | **已接受**（§0.1 Q1） | Lead |
+| G-R0-B | 接受“本地 aarch64 不做强制 Android 链接”，CI 交叉构建 + 设备加载作为 R0 证据；本机只要求 `cargo check --target` + 主机 JNI 差分 | **已接受**（§0.1 Q2；不做 rust-lld/qemu spike） | Lead |
+| G-R0-C | 接受新增离线依赖面：`rust/vendor/` 约 7.4 MB、16 个 crate、3 个 `build.rs` 审查；调整 `THIRD_PARTY_NOTICES`/APK 原生成员门禁 | **有条件批准**（§0.1 Q3；vendor 清单/build.rs 审查/profile 锁见 §0.2） | Lead + 用户 |
 | G-R1/R2/R3 | A2 文件事务完成、A3 备份格式/夹具冻结、A3 的 `backup/` 改动进入主线后再动调用点 | 未满足（A2 未开始） | Lead |
 | G7/G8 | CI 边界脚本证明“无执行入口/无裸 `exec`/无 `argv`/Rust 不写 logcat”；FFI 评审由非实现者执行 | 本文件给出方案，R0 落地 | 独立评审 |
 
@@ -43,7 +137,7 @@
 
 - 不加 `execute`/`exec`/`system`/`spawn`/`fork`/`kill`/信号/PTY/进程身份/停止证明/3090 桥/proot 启动器/日志脱敏/guest 插件事务。
 - Rust 不解密、不读 Keystore/SharedPreferences/Binder/Android API、不联网、不写 logcat/stdout/stderr（G8）、不安装信号处理器、不创建线程、不做异步回调。
-- 不提交 `.so`、不在 APK 外分发 `.so`、不把 Rust 放进 `runtimeId`（本文件推荐），不改数据格式/`dataWrite`/包名/签名。
+- 不提交 `.so`、不在 APK 外分发 `.so`、不把 Rust 放进 `runtimeId`（Lead 已接受，§0.1 Q1），不改数据格式/`dataWrite`/包名/签名。
 - 不做引擎进程化（另立 ADR）、不承诺性能倍数、不为“引擎”扩大范围。
 - 不在本机覆盖安装正式包（测试包 `.dev`/`.debug` 才可装；设备验收需用户授权）。
 
@@ -180,7 +274,7 @@ CI 实现细节：
 | 主机 JNI | Rust cdylib（`extern "system"`）经 `System.load(absPath)` 在 JDK 17 aarch64 加载并调用成功（`JNI_OK 42 1234`） | **主机差分 harness 可行** |
 | vendor/离线 | 16 crate / 7,384,177 B / 782 文件；空 `CARGO_HOME` + `--offline` 构建成功；3 个 `build.rs`（`crc32fast`、`generic-array`、`libc`）只用 `rustc --version` 探测，无网络 | **vendor 方案可行**；`build.rs` 入审查清单 |
 
-三条备选路径（R0 spike 决策，见 §7 Q1）：
+三条备选路径（已决：A 为默认、B/C 暂缓；见 §0.1 Q2）：
 
 - **A（推荐，CI 为主）**：本机只做 `cargo check --target` + 主机 JNI 差分；Android `.so` 由 CI 产出，设备通过 R3 签名 `.dev` 包加载。R0 出口用“CI 产物 + 静态门禁 + 真机加载”证明，不宣称本机交叉链接。
 - **B（本机 rust-lld + NDK sysroot）**：不执行 NDK 的 x86_64 clang，用 Rust 自带的 aarch64 `rust-lld` + NDK 的 sysroot/crt/builtins 直接链接；需要写 linker wrapper 并验证 panic/unwind、`libgcc`/`builtins`、`DT_NEEDED`。技术可行但高风险，限定 1 人日 spike；失败即回 A。
@@ -223,12 +317,12 @@ android {
   - `build`：调用 `tools/rust/build.py --android` 后打包（需要本机 NDK + Rust；本机 aarch64 只在路径 A/B 成立时可用）。
 - `build.gradle` 只增加 `sourceSets` 与一个 `Exec`/`Copy` 任务；**不修改** `ndkVersion`/`minSdk`/`abiFilters`/签名/身份。
 
-### 3.3 `launcherInputs` / `runtimeId` 的边界（需 Lead 决定）
+### 3.3 `launcherInputs` / `runtimeId` 的边界（Lead 已接受，2026-11-13）
 
 现状：`managed-runtime-inputs.json` 的 `launcherTrees` 包含 `app/src/main/jniLibs`，`prepare-runtime-descriptor.py` 会遍历该树的全部 `.so` 生成 `launcherInputs`（481 项），任何缺失都会让 `--check` 失败。因此：
 
 - 若把 Rust `.so` 放进 `src/main/jniLibs`（已跟踪树）：干净检出（不含 `.so`）无法运行 `prepare-runtime-descriptor --check`/Gradle 构建，除非全仓所有人都装 NDK+Rust；且违反 D6“`.so` 走 CI 不入库”。**不采用。**
-- 若放在 `app/build/rust-jniLibs`（本文件推荐）：`launcherInputs` 不含 Rust 产物，`runtimeId` 不因 Rust 改动而变化；`runtimeId` 仍只会因 A3 的 `backup/` Java 改动而变化（I6 的一次维护页，符合 roadmap A3 预期）。
+- 若放在 `app/build/rust-jniLibs`（Lead 2026-11-13 接受；理由：既有边界是“原生库随 APK 走、受管运行时只管启动树”）：`launcherInputs` 不含 Rust 产物，`runtimeId` 不因 Rust 改动而变化；`runtimeId` 仍只会因 A3 的 `backup/` Java 改动而变化（I6 的一次维护页，符合 roadmap A3 预期）。
 - R0/R1 的 Java 端口（`util/RustNative`、`util/RustDigest`、`util/RustBackends`、`util/RustGzip*`）放 `util/` 且不加入 `launcherSources`，因此 R0/R1 不改变 `runtimeId`；只有 R3/A3 在 `backup/` 的调用点（或 A3 自身改动）才触发那一次维护页。
 - 补偿：Rust 产物由**发布回执 + APK 级门禁**绑定（`rust/artifact.lock.json`、`rust-receipt.json`、`check-rust-native-apk.py`、`THIRD_PARTY_NOTICES`、`audit-standard-apk` 16 KB 检查）。这与评审主稿 R8“`.so` 未进锁文件”的目标一致，只是把“摘要进描述符”换成“摘要进 release 证据 + 审查过的 artifact lock”。
 - 备选（不推荐）：给描述符加 `rustNative` 字段并从 `rust/artifact.lock.json` 读取摘要——可把摘要放进描述符且干净检出可校验，但会让每次 Rust 变更触发一次维护页（R8 的“摘要/体积”要求与 I6 的“运行时身份”语义混叠）。若 Lead 坚持“摘要必须在描述符里”，需要单独决定并接受这个维护页代价。
@@ -594,7 +688,7 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_digest(
 
 ## 6. 任务拆分 R0 → R1 → R2 → R3
 
-每一步都必须满足：可独立回退、不动数据格式、不扩 Android 权限、CI 全绿、非实现者评审。R0 可在 A2/A3 之前做；R1–R3 与 A3 排序（见 §8）。
+每一步都必须满足：可独立回退、不动数据格式、不扩 Android 权限、CI 全绿、非实现者评审。R0 可在 A2/A3 之前做，但**必须等 Kotlin 工具链批次合入 main 后才解锁**（§0.3）；R1–R3 与 A3 排序（见 §8）。
 
 ### R0 工具链骨架（无运行行为）
 
@@ -603,7 +697,7 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_digest(
 | 目标 | 证明“离线 vendor + 固定工具链 + CI arm64 `.so` + 主机 JNI 差分 + 静态门禁”闭环；**不接入任何生产路径** |
 | 改动文件（预计） | `rust/**`（骨架、vendor、Cargo.lock、rust-toolchain.toml、.cargo/config.toml）、`ci/rust-toolchain.lock.json`、`tools/rust/build.py`、`tools/check-rust-toolchain.py`、`tools/check-rust-boundaries.py`、`tools/check-rust-native-apk.py`（stub）、`rust/native-budget.json`、`.github/workflows/_node-rust.yml` + `ci-fast.yml`/`ci-package.yml`/`release-production.yml`（仅 rust-native job，不接 build-unsigned）、`tools/test-ci-workflows.py`、`tools/check-source-hygiene.py`（vendor 白名单）、`.gitattributes`（vendor `-text`）、`tools/generate-third-party-notices.py`（Rust 段）、`THIRD_PARTY_NOTICES.md`（生成）、`app/src/main/assets/licenses/rust/**` |
 | 验收 | ① `cargo vendor --locked` 重生成与入库树一致；② `cargo test --locked --offline` 通过；③ CI `rust-native` 产出 arm64 `.so` + receipt，ELF/16K/边界/体积 PASS；④ 本机 `cargo check --target aarch64-linux-android` + 主机 JNI smoke PASS；⑤ 全量单测/文档/边界/格式不回归；⑥ **APK 与用户可见行为完全不变**（Rust artifact 尚未接入 build-unsigned） |
-| 依赖 | 无（不需要 A3/A2）；需 Lead 批准 G-R0-A/B/C |
+| 依赖 | 无（不需要 A3/A2）；G-R0-A/B/C 已由 Lead 决定（§0）；**R0 解锁需等 Kotlin 工具链批次合入 main**（§0.3） |
 | 回退点 | 删除 `rust/` 与新增 CI job/tools，恢复 `check-source-hygiene`/`.gitattributes`/notices 生成器；无数据/版本变化 |
 
 ### R1 digest
@@ -632,7 +726,7 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_digest(
 |---|---|
 | 目标 | gzip 编解码接入 `PortableBackupEnvelope`（pack）与 `StrictGzipInputStream` 的替代/包装（unpack），差分 + 设备冒烟 + release 证据 |
 | 改动文件（预计） | `rust/crates/dsha-core/src/{gzip.rs,jni.rs}`、`app/src/main/java/com/deepseekharness/app/util/{RustGzipOutputStream.java,RustGzipInputStream.java,RustArchiveCodec.java}`（纯 Java、零 Android import）、`app/src/main/java/com/deepseekharness/app/backup/PortableBackupEnvelope.java`、`StrictGzipInputStream.java`（或并存选择器；**这两个是 A3 分支的调用点，R3 只改端口，不与 A3 抢写**）、`app/src/test/java/.../RustArchiveDifferentialTest.java`、`release-production.yml`（test-packages 接 rust artifact）、`_node-test-packages.yml`（可选输入）、`docs/releases/*`（A3 证据）、`THIRD_PARTY_NOTICES.md`（最终 Rust 段） |
-| 验收 | ① Rust pack 输出被 JVM `StrictGzipInputStream` 与 Rust unpack 都接受；② 同一语料 JVM/Rust 解压字节、摘要、清单 100% 一致；③ v5 备份/恢复/导出闭环在开关两种模式下都通过；④ 签名 `.dev` 包真机加载 `.so`，强制 Rust 模式完成一次备份+恢复（非破坏性、用户授权）；⑤ 16 KB 页设备（若有）加载与运行；⑥ 体积 ≤ 预算；⑦ 回退开关一键回 JVM，数据不变 |
+| 验收 | ① Rust pack 输出被 JVM `StrictGzipInputStream` 与 Rust unpack 都接受；② 同一语料 JVM/Rust 解压字节、摘要、清单 100% 一致；③ v5 备份/恢复/导出闭环在开关两种模式下都通过；④ 签名 `.dev` 包真机加载 `.so`，强制 Rust 模式完成一次备份+恢复（非破坏性；用户已授权，Lead 执行，§0.1 Q5）；⑤ 16 KB 页设备（若有）加载与运行；⑥ 体积 ≤ 预算；⑦ 回退开关一键回 JVM，数据不变 |
 | 依赖 | R0/R1；A3 备份核心、A2 文件事务、A3 夹具冻结；设备验收授权 |
 | 回退点 | 运行层开关回 JVM + tag；`.so` 可在下一版 build 中移除（构建层 off）；数据不变 |
 
@@ -644,12 +738,12 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_digest(
 
 | # | 风险/未决 | 证据/现状 | 缓解 | 止损 |
 |---|---|---|---|---|
-| Q1 | **本机 aarch64 无法直接跑 NDK clang**（官方 `linux-x86_64` 工具链；无 qemu/binfmt） | §2.6 实测；`tools/native-session/build.py`/`proroot-compat` 同样映射 `linux-x86_64` | 路径 A（CI 交叉 + 设备加载）为默认；B（rust-lld+sysroot）/C（qemu）各 1 人日 spike | 本机不做强制交叉；R0 出口改为“CI 产物 + 主机差分 + 设备加载” |
+| Q1 | **本机 aarch64 无法直接跑 NDK clang**（官方 `linux-x86_64` 工具链；无 qemu/binfmt） | §2.6 实测；`tools/native-session/build.py`/`proroot-compat` 同样映射 `linux-x86_64` | **已决（§0.1 Q2）**：路径 A 为默认，暂不做 B/C spike（1 人日留给 A3 真实缺口） | 本机不做强制交叉；R0 出口为“CI 产物 + 主机差分 + 设备加载” |
 | Q2 | **CI runner**：`ubuntu-24.04` 预装 NDK 27/29/30，26.3 需 `sdkmanager` 下载 668 MB；10 分钟超时/2 次重试 | `.github/actions/android-sdk/action.yml` 已实现“缺才装 + 超时重试” | 复用该 action；`rust-native` 与 `build-unsigned` 并行，不阻塞门禁；必要时缓存 NDK 目录（注意缓存体积） | 安装失败即 job 失败；不用“跳过 Rust”发布 |
-| Q3 | **vendor 体积/许可审计**：7,384,177 B / 16 crate；3 个 `build.rs`（`crc32fast`/`generic-array`/`libc`，均有 `Command` 探测 rustc）；`check-source-hygiene` 会误报 13 个 CRLF 文件 | 本机 `cargo vendor`/`cargo metadata` 实测；全部 crate 许可为 MIT/Apache-2.0/0BSD/Zlib（`version_check` 写作 `MIT/Apache-2.0`，需规范化） | `.gitattributes` `rust/vendor/** -text`；hygiene 白名单；vendor 字节哈希门禁；`generate-third-party-notices.py` 增加“Rust vendor”段（crate/版本/许可/来源/许可全文 `assets/licenses/rust/`）；`verify-third-party-apk.py` 增加 APK `lib/` 成员核验；`build.rs` 逐条审查并锁 `crateSha256` | 超 8 MiB 或出现非宽松许可即回退该 crate/放弃 Rust 旁路（保留 JVM） |
+| Q3 | **vendor 体积/许可审计**：7,384,177 B / 16 crate；3 个 `build.rs`（`crc32fast`/`generic-array`/`libc`，均有 `Command` 探测 rustc）；`check-source-hygiene` 会误报 13 个 CRLF 文件 | 本机 `cargo vendor`/`cargo metadata` 实测；全部 crate 许可为 MIT/Apache-2.0/0BSD/Zlib（`version_check` 写作 `MIT/Apache-2.0`，需规范化） | **Lead 有条件批准（§0.2）**：vendor 清单/许可摘要已写入；3 个 `build.rs` 与 `version_check` 审查结论=无网络/无仓库外写/不读凭据；R0 锁 profile+16KB；`check-source-hygiene`/notices/APK `lib/` 门禁按原计划 | 超 8 MiB 或出现非宽松许可即回退该 crate/放弃 Rust 旁路（保留 JVM） |
 | Q4 | **16 KB 页对齐**：静态对齐检查不等于真机装载 | `audit-standard-apk.py` 已逐 ELF 检查；`docs/runtime-engines.md` 明确边界 | 链接参数 + CI 静态门禁 + R3 真机（有 16 KB 设备才声明）；不把静态检查写成真机通过 | 真机失败 → 回退 JVM；不发布声称支持 |
 | Q5 | **APK 体积**：主机等效 332,424 B；Android 未知 | §2.3/§3.5 实测 | 512 KiB 硬上限 + 384 KiB 警戒；超限优化（size/LTO/asm off）或评审；`check-rust-native-apk.py` 阻断 | 回退 `.so`（构建层 off） |
-| Q6 | **与 A3 的排序**：A3 未开始（A2 未开始）；`backup/` 是 A3 最大改区 | roadmap §0.1/§5 A3；A3 预计 8–12 人日 | R0 现在可做；R1 只落桥+测试，调用点等 A3 分支；R2 等 A3 计划契约冻结；R3 是 A3 最后增量 | 若 A3 延期，Rust 停在 R0/R1，不影响 A3 出口 |
+| Q6 | **与 A3 的排序**：A3 未开始（A2 未开始）；`backup/` 是 A3 最大改区 | roadmap §0.1/§5 A3；A3 预计 8–12 人日 | **R0 待 Kotlin 批次合入后开工（§0.3）**；R1 只落桥+测试，调用点等 A3 分支；R2 等 A3 计划契约冻结；R3 是 A3 最后增量 | 若 A3 延期，Rust 停在 R0/R1，不影响 A3 出口 |
 | Q7 | **数据格式/维护页**：Rust 不进 `runtimeId`，但 A3 改 `backup/` 会触发一次维护页 | 描述符 launcherInputs 481 项含 `backup` 树；§3.3 | 明确 A3 那一次维护页是 I6 设计，不是 Rust 引入；Rust 产物本身不改变 `runtimeId` | 若误判为“Rust 导致维护页”，以 `prepare-runtime-descriptor --check` 的 runtimeId 对比澄清 |
 | Q8 | **Gradle 依赖验证/供应链**：新 Rust 依赖不走 Gradle verification | `gradle/verification-metadata.xml` 仅 Maven | 四条独立锁（Cargo.lock/vendor/toolchain lock/artifact lock）；不把 crates 塞进 Gradle | 供应链审计失败 → 移除对应 crate |
 | Q9 | **性能未知**：Rust deflate 可能不优于 Java zlib；禁止预设倍数 | 评审主稿明确 UNKNOWN | 只承诺可验证性，不承诺速度；benchmark 只记录不回退（除非正确性/体积问题） | 不因慢而放宽正确性；不因“快”跳过差分 |
@@ -699,12 +793,12 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_digest(
 - `iteration-roadmap-20261112.md` §5 A3 的「覆盖模块/交付物」末尾加一句：`Rust 旁路施工准备见 [R1 方案](r1-rust-toolchain-plan-20261113.md)（R0 可先行，R1–R3 随本轮落地）`；§0.1 看板**不要**为 Rust 增加轮次行（Rust 不是 A 轮），在 A3 行证据列引用即可。
 - 若 Lead 决定把 `.so` 摘要放进 `runtime-descriptor`（§3.3 备选），需在 A3 契约里单列一条决策并接受每次 Rust 变更触发维护页；本文件推荐不采用。
 
-## 附录 C：待 Lead 决定的问题清单
+## 附录 C：先决决定清单（2026-11-13 Lead 已决，见 §0）
 
-1. **Q1 产物边界**：接受 `app/build/rust-jniLibs` + 独立 APK receipt 门禁（推荐），还是要求“摘要进 `runtime-descriptor`”？
-2. **Q2 本机交叉链**：接受“CI 构建 + 本机 check/主机差分 + 设备加载”为 R0 证据（推荐），还是要求先做 rust-lld+sysroot / qemu spike？时间盒多少？
-3. **Q3 vendor 与许可**：批准 7.4 MB vendor、16 crate、3 个 `build.rs` 审查与 `assets/licenses/rust/**` 新许可文本；`THIRD_PARTY_NOTICES` 生成器改动由谁评审？
-4. **Q4 默认开关**：R1–R2 默认 JVM；R3 灰度默认 JVM、A3 出口后翻 true，是否接受？回退 key 放 `ConfigStore` 还是内部诊断开关？
-5. **Q5 设备验收载体**：R3 用签名 `.dev` 包（可装、非正式）做 Rust 真机冒烟，需要用户授权与时点；是否纳入 A3 出口证据？
-6. **Q6 范围确认**：`verify_plan` 首期绑定 A3 恢复计划（`NativeRestorePlan` 的规范化投影），还是保持“通用 PlanView”、A3 只接一种？推荐前者（有真实第二实现与差分价值）。
-7. **Q7 版本/维护**：Rust `.so` 进 APK 但不进 `runtimeId`，A3 仍按一次维护页；确认这与“覆盖更新零丢失”的解释一致（不额外增加维护页）。
+1. **Q1 产物边界**：已接受 `app/build/rust-jniLibs` + 独立 APK receipt 门禁；摘要不进 `runtime-descriptor`（§0.1）。
+2. **Q2 本机交叉链**：已接受“CI 构建 + 本机 check/主机差分 + 设备加载”为 R0 证据；暂不做 rust-lld/qemu spike（§0.1）。
+3. **Q3 vendor 与许可**：有条件批准；vendor 清单/license 摘要/build.rs 结论/profile 与 ABI 锁见 §0.2；R0 提交由 Lead 逐行评审。
+4. **Q4 默认开关**：已按建议接受：R0/R1/R2 默认关；R3 灰度验证后 A3 出口转 on（§0.1）。
+5. **Q5 设备验收载体**：已接受：R3 用签名 `.dev` 包；用户已授权手机操作（一加 12 已连接），由 Lead 执行（§0.1）。
+6. **Q6 范围确认**：已接受：`verify_plan` 首期绑定 A3 恢复计划（`NativeRestorePlan` 的规范化投影）（§0.1）。
+7. **Q7 版本/维护**：确认 Rust `.so` 进 APK 但不进 `runtimeId`，A3 仍按一次维护页；与“覆盖更新零丢失”一致，不额外增加维护页。
