@@ -76,67 +76,111 @@ public final class AboutFragment extends Fragment {
                             requireContext(), AboutDialog.GITHUB_URL + "/issues");
                     })
                 .show());
-    ui.entry(
-        links,
-        UiText.choose("开源许可", "Open-source licenses"),
-        UiText.choose("DSHA 与随包第三方组件", "DSHA and bundled components"),
-        R.drawable.ic_recovery_document,
-        this::showLicenses);
+    addLicenses(ui);
     ui.footer.setVisibility(View.GONE);
     return ui.root;
   }
 
-  private void showLicenses() {
+  /** 第三方许可区块：随包全文逐项可点，另给仓库内完整声明的在线入口。 */
+  private void addLicenses(CardPage ui) {
+    ui.label(UiText.choose("第三方许可", "Third-party licenses"));
+    LinearLayout licenses = ui.card();
+    java.util.List<AboutLicenses.Entry> entries;
     try {
-      String[] listed = requireContext().getAssets().list("licenses");
-      if (listed == null || listed.length > 128) throw new java.io.IOException("LICENSE_INDEX");
-      String[] names =
-          java.util.Arrays.stream(listed)
-              .filter(name -> name.matches("[A-Za-z0-9_.-]+\\.txt"))
-              .sorted()
-              .toArray(String[]::new);
-      new DshaDialogBuilder(requireContext())
-          .setTitle(UiText.choose("随包许可全文", "Bundled license texts"))
-          .setItems(names, (dialog, index) -> showLicense(names[index]))
-          .setNegativeButton(android.R.string.cancel, null)
-          .show();
+      entries = AboutLicenses.list(requireContext().getAssets());
     } catch (java.io.IOException failure) {
-      Toast.makeText(
-              requireContext(),
-              UiText.choose("无法读取随包许可清单。", "Unable to read the bundled license list."),
-              Toast.LENGTH_LONG)
-          .show();
+      entries = java.util.List.of();
+      TextView unavailable =
+          ui.text(
+              UiText.choose(
+                  "无法读取随包许可清单，可在线查看完整声明。",
+                  "Unable to read the bundled license list. The full notices are available online."),
+              12,
+              R.color.shell_text_muted);
+      unavailable.setPadding(0, ui.dp(6), 0, ui.dp(8));
+      licenses.addView(unavailable);
     }
+    for (AboutLicenses.Entry entry : entries) {
+      ui.entry(
+          licenses,
+          entry.displayName(),
+          entry.assetName(),
+          R.drawable.ic_recovery_document,
+          () -> showLicense(entry));
+    }
+    ui.entry(
+        licenses,
+        UiText.choose("许可声明全文（在线）", "Full license notices (online)"),
+        "THIRD_PARTY_NOTICES.md",
+        R.drawable.ic_ui_link,
+        () -> AboutDialog.openBrowser(requireContext(), AboutDialog.THIRD_PARTY_NOTICES_URL));
   }
 
-  private void showLicense(String name) {
-    final View owner = getView();
-    final android.content.res.AssetManager assets = requireContext().getAssets();
-    new Thread(
-            () -> {
-              String content;
-              try (var in = assets.open("licenses/" + name);
-                  var out = new java.io.ByteArrayOutputStream()) {
-                byte[] bytes = new byte[8192];
-                int count;
-                while ((count = in.read(bytes)) != -1) {
-                  if (out.size() + count > 1024 * 1024)
-                    throw new java.io.IOException("LICENSE_SIZE");
-                  out.write(bytes, 0, count);
-                }
-                content = out.toString("UTF-8");
-              } catch (java.io.IOException failure) {
-                content = UiText.choose("无法读取此许可全文。", "Unable to read this license text.");
-              }
-              final String text = content;
-              new android.os.Handler(android.os.Looper.getMainLooper())
-                  .post(
-                      () -> {
-                        if (!isAdded() || getView() != owner) return;
-                        CardSheet.show(requireContext(), name, text);
-                      });
-            },
-            "license-read")
-        .start();
+  /**
+   * 点击许可行：同步读取一次（上限 256 KiB，毫秒级），正文在对话框内滚动；失败显示类型化提示。
+   * 包内既有的许可正文都在上限内，因此正常情况下不会阻塞输入。
+   */
+  void showLicense(AboutLicenses.Entry entry) {
+    if (entry == null || !isAdded()) return;
+    AboutLicenses.ReadResult result =
+        AboutLicenses.read(requireContext().getAssets(), entry.assetName());
+    String body = result.ok() ? result.text() : failureText(result.failure());
+    showLicenseDialog(entry.displayName(), body);
+  }
+
+  private void showLicenseDialog(String title, String body) {
+    android.content.Context context = requireContext();
+    float density = context.getResources().getDisplayMetrics().density;
+    LinearLayout content = new LinearLayout(context);
+    content.setOrientation(LinearLayout.VERTICAL);
+    content.setPadding(dp(density, 20), dp(density, 4), dp(density, 20), 0);
+    TextView text = new TextView(context);
+    text.setText(body);
+    text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
+    text.setTextColor(context.getColor(R.color.shell_text_secondary));
+    text.setTextIsSelectable(true);
+    text.setLineSpacing(dp(density, 4), 1);
+    ScrollView scroll = new ScrollView(context);
+    scroll.setFillViewport(false);
+    scroll.addView(text, new LinearLayout.LayoutParams(-1, -2));
+    // 固定 50% 屏高（160–420dp）保证长许可可滚动，短屏与 1.3 倍字体下也不压住按钮。
+    int cap =
+        Math.round(
+            Math.min(
+                420f,
+                Math.max(160f, context.getResources().getConfiguration().screenHeightDp * 0.5f)));
+    content.addView(scroll, new LinearLayout.LayoutParams(-1, dp(density, cap)));
+    new DshaDialogBuilder(context)
+        .setTitle(title)
+        .setView(content)
+        .setPositiveButton(android.R.string.ok, null)
+        .show();
+  }
+
+  private static int dp(float density, int value) {
+    return Math.round(value * density);
+  }
+
+  /** 类型化失败提示：不包含资产路径或底层异常文本。 */
+  static String failureText(AboutLicenses.Failure failure) {
+    if (failure == null) return "";
+    switch (failure) {
+      case MISSING:
+        return UiText.choose(
+            "此许可文件不在此构建中（可能已被裁剪），无法显示全文。",
+            "This license file is not in this build (it may have been trimmed), so the full text cannot be shown.");
+      case TOO_LARGE:
+        return UiText.choose(
+            "许可正文超过 256 KiB 上限，已停止读取。",
+            "The license text exceeds the 256 KiB limit and was not read.");
+      case INVALID_UTF8:
+        return UiText.choose("许可正文不是有效的 UTF-8 文本。", "The license text is not valid UTF-8.");
+      case EMPTY:
+        return UiText.choose("许可文件为空。", "The license file is empty.");
+      case UNREADABLE:
+      default:
+        return UiText.choose(
+            "无法读取此许可全文，请稍后重试。", "Unable to read this license text. Try again later.");
+    }
   }
 }

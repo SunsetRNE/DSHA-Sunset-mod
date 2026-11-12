@@ -13,6 +13,10 @@ public final class AboutDialog {
   public static final String GITHUB_URL = com.deepseekharness.app.util.Constants.REPOSITORY_URL;
   public static final String QQ_GROUP = "975836806";
 
+  /** 随包许可的完整第三方声明；关于页的在线入口在此打开。 */
+  public static final String THIRD_PARTY_NOTICES_URL =
+      "https://github.com/SunsetRNE/DSHA-Sunset-mod/blob/main/THIRD_PARTY_NOTICES.md";
+
   private AboutDialog() {}
 
   public static AlertDialog show(Context ctx) {
