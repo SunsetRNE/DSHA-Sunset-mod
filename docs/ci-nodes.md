@@ -11,6 +11,7 @@
 |---|---|---|
 | `_node-contracts.yml` | 描述符、声明、内置插件、凭据路径、测试清单、源码整洁、i18n、changelog、文档链接 | — |
 | `_node-java-format.yml` | `tools/format-java-tree.py --check`（失败时列出文件并上传报告） | `java-format-reports`（仅失败） |
+| `_node-kotlin-format.yml` | `tools/format-kotlin-tree.py --check`（固定 ktfmt 0.64；失败时列出文件并上传报告） | `kotlin-format-reports`（仅失败） |
 | `_node-inputs.yml` | 成对解析固定输入 → `ci-assets.py` 按 SHA-256 还原 → 可选重建受管运行时并重算描述符 → `ci-handoff.py pack` | 交接 artifact（无压缩、1 天） |
 | `_node-unit-tests.yml` | 先按 `tools/robolectric-sdk.lock.json` 准备 android-all（缓存 + 逐个 sha256 核对 + 有界重试），再以 `robolectric.offline` 跑 `:app:testStandardDebugUnitTest`，`full` / `source-only`，可选 `--tests` 与 fork 数 | JUnit XML + `out/unit-tests.json` |
 | `_node-lint.yml` | `:app:lintStandardRelease`（未签名模式） | lint 报告 |
@@ -35,8 +36,8 @@
 
 | 工作流 | 触发 | 节点 |
 |---|---|---|
-| `ci-fast.yml`（Source checks） | push / PR / 手动 | contracts ‖ java-format ‖ inputs → (unit-source ‖ host-fast) |
-| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ host-regression ‖ inputs → (unit ‖ lint ‖ build-unsigned ‖ test-packages-unsigned)) → (sign-verify ‖ test-packages) → publish；`dry_run=true` 时 publish 跳过、由 dry-run-summary 出报告 |
+| `ci-fast.yml`（Source checks） | push / PR / 手动 | contracts ‖ java-format ‖ kotlin-format ‖ inputs → (unit-source ‖ host-fast) |
+| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ kotlin-format ‖ host-regression ‖ inputs → (unit ‖ lint ‖ build-unsigned ‖ test-packages-unsigned)) → (sign-verify ‖ test-packages) → publish；`dry_run=true` 时 publish 跳过、由 dry-run-summary 出报告 |
 | `ci-package.yml` | 手动，显式输入包 | inputs → (native-repro ‖ package) |
 | `unit-tests.yml` | 手动 | inputs → unit（可选 `--tests`、`source-only`、fork 数） |
 | `host-tests.yml` | 手动 | inputs → host（`fast` / `runtime`，可选 `--only`、Playwright） |
@@ -78,6 +79,7 @@
 | bind | 10 s | tag / commit / 输入锁核验 |
 | inputs | 97 s | 固定输入还原 6 s、受管运行时重建 65 s、打包与上传 9 s |
 | contracts / host-fast / java-format | 23 s / 38 s / 124 s | 与 inputs 并行 |
+| kotlin-format | 未在本机 CI 实测 | 首次含约 71 MB ktfmt 下载，命中 actions/cache 后只跑格式化；失败列出文件 |
 | unit（full） | 7:02 | NDK 安装 24 s、交接还原 41 s、测试本体 5:35，要求 0 failure / 0 skip |
 | lint | 3:41 | SDK 24 s、交接 45 s、lint 2:09 |
 | build-signed | 5:29 | assemble 4:13（含 Gradle 冷依赖 + v1/v2/v3 签名）、证据打包 11 s、artifact 上传 20 s |

@@ -243,6 +243,11 @@ bash build.sh :app:testStandardDebugUnitTest   # 全量单测
 
 - 注释与 UI 串用中文；提交信息用中文 + `type:` 前缀说明原因。
 - 每个协作者单一职责；纯逻辑抽到 `util/` 并配测试；不改历史 SharedPreferences 键名。
+- Kotlin 工具链（ADR-0004 决定一）：AGP 9.1.1 built-in Kotlin，KGP 版本固定 2.2.10（`settings.gradle`
+  的 `gradle.ext.kotlinVersion`），不应用 `org.jetbrains.kotlin.android`；按模块切换、不按文件混写。
+  新增/迁移规则、依赖校验与格式命令见 [Kotlin 工具链](docs/kotlin-toolchain.md)。Kotlin 文件改动后必须跑
+  `python3 tools/format-kotlin-tree.py --check`，与 Java 格式门禁同批必跑；Kotlin 编译任务为
+  `dsha-gradle :app:compileStandardDebugKotlin`。
 - 匹配现有风格：try/catch 包住有风险操作、优雅降级、失败 toast 给用户。
 - 原生按钮和选项统一居中与字体边距；普通卡片、主按钮及文字状态共用主题资源，不用独立渐变或硬编码颜色制造同类框色差。布局修订跑 `LayoutAuditInstrumentation` 的 style 中英文验收（日夜、短屏、1.3 倍字体）。
 - 应用弹窗统一 `DshaDialogBuilder`，自定义内容必须能在短屏和大字体下滚动；应用状态经 `UiStateText` 按显示边界重新渲染，不缓存语言。

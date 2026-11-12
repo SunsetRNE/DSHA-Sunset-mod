@@ -43,6 +43,18 @@
 | G4 数据与授权边界 | ⬜ | 跨线不继承/系统授权不随导入已定，待写入首包验收 |
 | G5 代码基线 | ✅ | build360 release [run 43199896721](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43199896721)：全量 4495/0/0/0、签名构建、干净工作树 |
 
+### 0.1.2 Kotlin 工具链工程批次（2026-11-12）
+
+| 项 | 状态 | 事实 / 证据 |
+|---|---|---|
+| 工具链 | ✅ 已接入（本机实测） | AGP 9.1.1 built-in Kotlin；KGP **2.2.10 固定**（`settings.gradle` 唯一版本 + 根 buildscript classpath pin，禁动态版本）；jvmTarget=17；不应用 `org.jetbrains.kotlin.android` |
+| 依赖校验 | ✅ 只增不改 | `gradle/verification-metadata.xml` 人工复核新增 Kotlin 组件；严格校验下 `:app:compileStandardDebugKotlin` 已重跑（结果见批次报告） |
+| 格式门禁 | ✅ 本机 + CI | ktfmt 0.64（`tools/ktfmt.lock.json`，SHA-256/许可/来源）；`tools/format-kotlin-tree.py --check`；`_node-kotlin-format.yml` 接入 `ci-fast` 与两条 release 链 |
+| 试点迁移 | ✅ 待复核 | `util/ShellQuote.java` → `ShellQuote.kt`（`object` + `@JvmStatic`），删原 `.java`；`ShellQuoteTest` 与新增 `ShellQuoteKotlinTest` 覆盖 null/空串/单引号/换行/非 ASCII/golden 字节 |
+| 行为影响 | 无用户可见变化 | 不改编包名/签名/versionCode/versionName/数据格式/权限；Kotlin stdlib 进入 APK 的体积影响另记 |
+| 工作树 / 合并 | 🟡 待 lead 复核 | `.agents/worktrees/feat/kotlin-toolchain`，分支 `feat/kotlin-toolchain`（基线 2c879f1b）；**不可合并，待非实现者评审与用户授权**；不触碰 A2 的 `saf/` 与 `contract/` |
+
+
 ### 0.2 怎么读这份文档
 
 1. **只想看进度**：看完本节即可，`0.1` 表 + 「当前阶段」两行。
@@ -307,7 +319,7 @@ graph LR
 | 全量单测 | `dsha-gradle :app:testStandardDebugUnitTest`（共用 `/root/.gradle`，离线） |
 | 架构边界 | `python3 tools/test-core-boundaries.py`，基线 JSON 只减不增 |
 | 文档链接 | `python3 tools/check-document-links.py` |
-| 格式 | 现存 Java 格式门禁；Kotlin 启用后同批加锁 |
+| 格式 | Java：`python3 tools/format-java-tree.py --check`；Kotlin：`python3 tools/format-kotlin-tree.py --check`（ktfmt 0.64，同批锁定） |
 | 覆盖更新 | 真机覆盖安装：数据完好、进一次维护页（或零维护）、无白屏、无侧栏重复 |
 | 安全回归 | 每轮涉及的能力对应测试类（白名单/凭据区/授权/识屏凭据/脱敏） |
 | 用户可见 | 只限本轮回环；变化写进该轮证据 |

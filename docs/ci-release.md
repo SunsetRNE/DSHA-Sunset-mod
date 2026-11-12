@@ -91,6 +91,7 @@ Secrets：未配置时使用一次性证书（只能全新安装，不能覆盖�
 2. **并行门禁**（都依赖 bind）：
    - **contracts**：固定输入/描述符/第三方声明/内置插件/凭据路径/测试清单/源码整洁/UI i18n/changelog/文档链接。
    - **java-format**：`tools/format-java-tree.py --check`。
+   - **kotlin-format**：`tools/format-kotlin-tree.py --check`（固定 ktfmt 0.64，ADR-0004 决定一）。
    - **host-regression**：设备桥、shell 策略、虚拟屏 anchor、插件事务、发布与 CI 脚本、宿主测试清单等子集。
    - **inputs**：按锁 URL + SHA-256 还原 12 项、按 npm lock 重建受管 DSH 运行时（复用按
      `tools/dsh-runtime/package-lock.json` 哈希键控的 npm 缓存）并重算描述符，打包为同 run 交接。

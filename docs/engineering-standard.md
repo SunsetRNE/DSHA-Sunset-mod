@@ -10,7 +10,7 @@
 
 `util` 的纯逻辑不得导入 Android。平台文件与进程操作使用已有安全文件层和身份检查；不能只换包名就声称依赖环消失。组合根可以装配平台及界面适配器，runtime 不得直接查找 Activity 或核心维护权威。
 
-Java 17；Kotlin 自 [ADR-0004](adr/0004-kotlin-rust-direction.md)（2026-11-12 Accepted）起分批引入：按模块切换、不按文件混写、同一文件禁止 Java/Kotlin 互改，格式与静态检查同批加锁。截至本修订，源码仍全部是 Java。新类按具体职责命名，优先显式 import、不可变值和有界集合。现有公开组件名、偏好键、协议文本和存盘格式保持读取兼容；大范围格式化、重命名和协议变更分别评审。
+Java 17；Kotlin 自 [ADR-0004](adr/0004-kotlin-rust-direction.md)（2026-11-12 Accepted）起分批引入：按模块切换、不按文件混写、同一文件禁止 Java/Kotlin 互改，格式与静态检查同批加锁。截至本修订，源码仍以 Java 为主，`util/ShellQuote` 为首个整文件 Kotlin 试点；Kotlin 版本（AGP 9.1.1 built-in Kotlin + 固定 KGP 2.2.10）、依赖校验与 ktfmt 门禁见 [Kotlin 工具链](kotlin-toolchain.md)。新类按具体职责命名，优先显式 import、不可变值和有界集合。现有公开组件名、偏好键、协议文本和存盘格式保持读取兼容；大范围格式化、重命名和协议变更分别评审。
 
 ## 文件、事务与进程
 

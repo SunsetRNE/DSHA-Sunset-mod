@@ -68,6 +68,18 @@ python3 tools/run-host-tests.py --stage runtime
 python3 tools/verify-stability.py --stage software
 ```
 
+Kotlin 工具链（AGP 9.1.1 built-in Kotlin，固定 KGP 2.2.10）与 ktfmt 格式门禁见
+[Kotlin 工具链](docs/kotlin-toolchain.md)。本机定向验证：
+
+```bash
+dsha-gradle :app:compileStandardDebugKotlin
+python3 tools/format-kotlin-tree.py --check
+JAVA_HOME=/opt/jdk17 python3 tools/format-java-tree.py --check
+```
+
+`assemble` 在 aarch64 上可能受 aapt2 / 原生工具限制；受限时如实记录为「未跑 / 受限」，
+不把编译通过写成 APK 或真机验证通过。
+
 Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可用的系统别名。无法运行 AGP/aapt2 时，`tools/run-unit-tests.py` 是纯逻辑后备，不替代 Android 全编译、APK 或完整资源门禁。平台跳过、未运行项与 Lint 警告如实分类，不写成通过。
 
 `tools/verify-plugin-upgrade-gate.py` 检查当前自动提交/启用、用户禁用与安全模式、实际依赖、插件事务及受管资产。正式插件允许未锁定解析、生命周期脚本和 pnpmfile；不能把历史“原生审阅/依赖冻结”的测试口径复活为当前要求。

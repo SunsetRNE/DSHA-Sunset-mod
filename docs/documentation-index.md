@@ -23,6 +23,7 @@ build361 十语更新说明：[中文](releases/build361-changes.zh.md) · [繁�
 | [实体屏特权执行核心（T130 Phase A，实验）](privileged-screen-core.md) | display 0 镜像抓帧 + 固定动词注入、一次性帧/动作凭据、能力/任务/确认三道门、低延迟 benchmark、无无障碍依赖与未真机验收边界 |
 | [任务状态上岛](island-status.md) | 实时活动/胶囊两代判据、岛位选举、完成态、心跳收敛与验证范围 |
 | [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) / [ADR0004](adr/0004-kotlin-rust-direction.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果、Kotlin 引入与 Rust 引擎方向（Accepted 2026-11-12） |
+| [Kotlin 工具链](kotlin-toolchain.md) | AGP 9.1.1 built-in Kotlin + 固定 KGP 2.2.10、依赖校验增量、ktfmt 0.64 格式门禁、迁移规则与回退；首批 `util/ShellQuote` 试点 |
 | [资料与来源依据](references-and-provenance.md) | 官方primary入口、工程上游关系、固定版本/摘要、许可与来源限制 |
 | [固定构建输入](fixed-build-inputs.md) | 公开仓库预发布资产、12 项输入、SHA-256 锁定与还原流程 |
 | [CI 构建与发布](ci-release.md) | 公开仓库 Actions 正式成品：触发参数、Secrets、门禁、签名核验与 Release 产物 |
