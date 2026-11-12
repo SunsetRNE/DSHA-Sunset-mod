@@ -48,26 +48,62 @@ def devPackage = project.findProperty('dsha.devPackage') == 'true' || System.get
 if ((sunsetTest ? 1 : 0) + (debugPackage ? 1 : 0) + (devPackage ? 1 : 0) > 1)
     throw new GradleException('TEST_PACKAGE_VARIANT_CONFLICT: .test / .debug / .dev 只能选一个')
 def testVariantLabel = debugPackage ? 'Debug' : devPackage ? 'Dev' : sunsetTest ? 'Test' : ''
-// 发布身份：-Pdsha.identity=mod|upstream，默认 mod（io.github.sunsetrne.dsha / Mod 证书）。
+// Rebirth 候选开关：只用于隔离实验发行线 dsh.android.client.rebirth 的 unsigned 候选。
+// 不读取 Mod/upstream 正式证书；与 .test/.debug/.dev 测试变体、显式正式身份选择互斥。
+// 签名候选要等 Rebirth 测试证书固定后再开放（届时去掉 unsigned 要求并走 verifyPublishCertificate）。
+def rebirthCandidate = project.findProperty('dsha.rebirthCandidate') == 'true'
+if (rebirthCandidate && (sunsetTest || debugPackage || devPackage))
+    throw new GradleException('REBIRTH_CANDIDATE_VARIANT_CONFLICT: Rebirth 候选不能与 .test / .debug / .dev 测试变体混用')
+// 发布身份：-Pdsha.identity=mod|upstream|rebirth，默认 mod（io.github.sunsetrne.dsha / Mod 证书）。
 // upstream 是 ym2025szz/DSHA-prerelase 的 dsh.android.client / 历史 E7E3 证书，只在他的私有仓库发布。
-// 两套身份的包名、显示名、测试后缀、默认 key alias 与核对证书都从 ci/release-identity.<name>.json 读取；
-// versionCode / versionName 共用。未知值直接失败，不回退到任一身份，签名身份绝不混用。
-// 解析规则与 tools/release-identity.py 一致，由 tools/test-release-identity.py 交叉核对。
-def releaseIdentityNames = ['mod', 'upstream']
-def releaseIdentityName = (project.findProperty('dsha.identity') ?: 'mod').toString()
+// rebirth 是隔离实验发行线 dsh.android.client.rebirth，只能经 -Pdsha.rebirthCandidate=true 进入，
+// 使用独立候选测试证书（未创建前指纹为 64 个 0，签名门禁必须失败）。
+// 三套身份的包名、显示名、测试后缀、默认 key alias、versionCode / versionName 与核对证书都从
+// ci/release-identity.<name>.json 读取；三条发行线当前同值（Rebirth 首包沿用 359），后续各自递增。
+// 未知值直接失败，不回退到任一身份。解析规则与 tools/release-identity.py 一致，由 test-release-identity.py 交叉核对。
+def releaseIdentityNames = ['mod', 'upstream', 'rebirth']
+def requestedIdentity = project.findProperty('dsha.identity')
+if (rebirthCandidate && requestedIdentity && requestedIdentity.toString() != 'rebirth')
+    throw new GradleException("REBIRTH_CANDIDATE_IDENTITY_CONFLICT: 候选开关不能与 dsha.identity=${requestedIdentity} 混用")
+def releaseIdentityName = (requestedIdentity ?: (rebirthCandidate ? 'rebirth' : 'mod')).toString()
 if (!(releaseIdentityName in releaseIdentityNames))
-    throw new GradleException("UNKNOWN_RELEASE_IDENTITY: dsha.identity 只接受 mod 或 upstream，收到 '${releaseIdentityName}'")
+    throw new GradleException("UNKNOWN_RELEASE_IDENTITY: dsha.identity 只接受 mod / upstream / rebirth，收到 '${releaseIdentityName}'")
+if (releaseIdentityName == 'rebirth' && !rebirthCandidate)
+    throw new GradleException('REBIRTH_IDENTITY_REQUIRES_CANDIDATE_SWITCH: Rebirth 身份只能经 -Pdsha.rebirthCandidate=true 进入')
+def certificatePlaceholder = "0".repeat(64)
 def releaseIdentityFile = rootProject.file("ci/release-identity.${releaseIdentityName}.json")
 def releaseIdentity = new groovy.json.JsonSlurper().parse(releaseIdentityFile)
 if (releaseIdentity.schema != 1 || releaseIdentity.identity != releaseIdentityName
         || !(releaseIdentity.packageName ==~ /[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+/)
         || !(releaseIdentity.certificateSha256 ==~ /[a-f0-9]{64}/)
+        || (releaseIdentity.certificateSha256 == certificatePlaceholder && releaseIdentityName != 'rebirth')
+        || !(releaseIdentity.versionCode instanceof Integer) || releaseIdentity.versionCode <= 0
+        || !(releaseIdentity.versionName instanceof String)
+        || !(releaseIdentity.versionName ==~ /[0-9A-Za-z][0-9A-Za-z._+-]*/)
         || !(releaseIdentity.testSuffix ==~ /\.[A-Za-z][A-Za-z0-9_]*/)
         || !(releaseIdentity.devSuffix ==~ /\.[A-Za-z][A-Za-z0-9_]*/)
         || !(releaseIdentity.keyAlias ==~ /[A-Za-z0-9._-]+/)
         || !(releaseIdentity.appName instanceof String) || releaseIdentity.appName.trim().isEmpty())
     throw new GradleException("RELEASE_IDENTITY_INVALID: ${releaseIdentityFile}")
+if (rebirthCandidate && !unsignedPackage && releaseIdentity.certificateSha256 == certificatePlaceholder)
+    throw new GradleException('REBIRTH_CERTIFICATE_UNSET: Rebirth 测试证书尚未固定；只允许 -Pdsha.unsignedPackage=true 的未签名候选')
 ext.dshaReleaseIdentity = releaseIdentity
+// Rebirth 身份独立解析并做基本校验：即使本次构建 Mod/upstream，也不允许损坏的候选身份潜伏到首包。
+def rebirthIdentityFile = rootProject.file('ci/release-identity.rebirth.json')
+def rebirthIdentity = new groovy.json.JsonSlurper().parse(rebirthIdentityFile)
+if (rebirthIdentity.schema != 1 || rebirthIdentity.identity != 'rebirth'
+        || !(rebirthIdentity.packageName ==~ /[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+/)
+        || !(rebirthIdentity.certificateSha256 ==~ /[a-f0-9]{64}/)
+        || !(rebirthIdentity.keyAlias ==~ /[A-Za-z0-9._-]+/)
+        || !(rebirthIdentity.appName instanceof String) || rebirthIdentity.appName.trim().isEmpty())
+    throw new GradleException("REBIRTH_IDENTITY_INVALID: ${rebirthIdentityFile}")
+// Mod 兼容入口 ci/release-identity.json 必须与 mod 身份同版本号，防止两条记录漂移后发错版本。
+if (releaseIdentityName == 'mod') {
+    def legacyIdentity = new groovy.json.JsonSlurper().parse(rootProject.file('ci/release-identity.json'))
+    if (legacyIdentity.versionCode != releaseIdentity.versionCode
+            || legacyIdentity.versionName != releaseIdentity.versionName)
+        throw new GradleException('LEGACY_IDENTITY_VERSION_MISMATCH: ci/release-identity.json 与 mod 身份版本号不一致')
+}
 // 只有源码 CI 可显式允许缺少真实测试夹具；完整测试默认要求固定输入齐备。
 def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
 if (!(sourceOnlyTests in ['true', 'false']))
@@ -91,8 +127,11 @@ android {
         // 用于只在测试包显示「反馈与诊断」导出入口；不得改为运行时猜测包名。
         buildConfigField 'boolean', 'TEST_PACKAGE', (sunsetTest || debugPackage || devPackage) ? 'true' : 'false'
         // 上岛能力已并入正式包；不再有独立上岛包名或独立显示名。
-        // 显示名随发布身份（DSH-A-Su / DSHA）；测试变体加后缀，便于桌面上区分两个包。
+        // 显示名随发布身份（DSH-A-Su / DSHA / DSHA 新生），测试变体加后缀，便于桌面上区分两个包。
         resValue 'string', 'app_name', testVariantLabel ? releaseIdentity.appName + ' ' + testVariantLabel : releaseIdentity.appName
+        // versionCode / versionName 的构建基准仍写在 build.gradle；三条身份文件必须记录同一值，
+        // 由 android 块之后的一致性检查兜底。Rebirth 将来同线递增时须同时改本文件、身份文件与
+        // tools/generate-changelog.py / release_names.py / sign-release-apks.py 的解析（G1 另立）。
         versionCode 359
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
         versionName "0.2.1-rc.5-20261111.1200-dsh0.2.2-rc.1"
@@ -148,6 +187,28 @@ android {
             enableV2Signing true
             enableV3Signing true
         }
+        // Rebirth 隔离实验发行线：独立、固定的候选测试证书，绝不读取 DSHA_* 正式私钥。
+        // 证书尚未创建时只打印“未配置”；签名门禁由 verifyPublishCertificate 的占位检查阻止。
+        rebirth {
+            def ksPath = System.getenv("DSHA_REBIRTH_KEYSTORE") ?: project.findProperty("dsha.rebirth.keystore")
+            if (ksPath != null && !ksPath.toString().isEmpty() && file(ksPath).exists()) {
+                storeFile file(ksPath)
+                storePassword System.getenv("DSHA_REBIRTH_KEYSTORE_PASSWORD")
+                        ?: project.findProperty("dsha.rebirth.keystore.password")
+                keyAlias System.getenv("DSHA_REBIRTH_KEY_ALIAS")
+                        ?: project.findProperty("dsha.rebirth.key.alias") ?: rebirthIdentity.keyAlias
+                keyPassword System.getenv("DSHA_REBIRTH_KEY_PASSWORD")
+                        ?: project.findProperty("dsha.rebirth.key.password")
+                if (!storePassword || !keyPassword)
+                    throw new GradleException('Rebirth 候选证书口令必须显式提供，不能使用隐式缺省值')
+                println "签名：已配置 rebirth 身份候选测试证书（独立于 Mod/upstream 正式证书）"
+            } else {
+                println "签名：未配置 rebirth 身份候选测试证书；证书固定前只允许 unsigned 候选"
+            }
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
+        }
     }
 
     buildTypes {
@@ -163,7 +224,8 @@ android {
         }
         release {
             minifyEnabled false
-            if (!unsignedPackage) signingConfig signingConfigs.publish
+            // 正式任务按所选发行身份使用各自的签名配置；Rebirth 候选证书与 Mod/upstream 完全分开。
+            if (!unsignedPackage) signingConfig (releaseIdentityName == 'rebirth' ? signingConfigs.rebirth : signingConfigs.publish)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -221,22 +283,38 @@ android {
     }
 }
 
+// 版本号仍以 build.gradle 为构建基准；所选身份文件必须记录同一值，防止身份文件与源码漂移。
+if (android.defaultConfig.versionCode != releaseIdentity.versionCode
+        || android.defaultConfig.versionName != releaseIdentity.versionName)
+    throw new GradleException("RELEASE_IDENTITY_VERSION_MISMATCH: build.gradle 与 ci/release-identity.${releaseIdentityName}.json 记录的版本不一致")
+
 def verifyPublishCertificate = tasks.register("verifyPublishCertificate") {
     doLast {
         if (sunsetTest || debugPackage || devPackage)
             throw new GradleException('TEST_PACKAGE_REQUIRES_UNSIGNED: 测试包不能使用正式发布证书；请用 -Pdsha.unsignedPackage=true 由测试证书签名')
-        def signing = android.signingConfigs.publish
+        def identityFile = "ci/release-identity.${releaseIdentityName}.json"
+        def identity = new groovy.json.JsonSlurper().parse(rootProject.file(identityFile))
+        if (identity.certificateSha256 == certificatePlaceholder)
+            throw new GradleException("REBIRTH_CERTIFICATE_UNSET: ${identityFile} 的证书指纹仍为占位；Rebirth 候选证书固定前不得签名")
+        def signing = releaseIdentityName == 'rebirth' ? android.signingConfigs.rebirth : android.signingConfigs.publish
         if (signing.storeFile == null || !signing.storeFile.isFile())
             throw new GradleException("正式 APK 缺少 ${releaseIdentityName} 身份发布密钥，停止打包")
         def store = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType())
         signing.storeFile.withInputStream { store.load(it, signing.storePassword.toCharArray()) }
         def certificate = store.getCertificate(signing.keyAlias)
-        def identityFile = "ci/release-identity.${releaseIdentityName}.json"
-        def identity = new groovy.json.JsonSlurper().parse(rootProject.file(identityFile))
-        def expected = identity.certificateSha256
-        if (certificate == null || java.security.MessageDigest.getInstance("SHA-256")
-                .digest(certificate.encoded).encodeHex().toString() != expected)
+        if (certificate == null)
+            throw new GradleException("${identityFile} 指定的 key alias 在 keystore 中不存在，停止打包")
+        def digest = java.security.MessageDigest.getInstance("SHA-256").digest(certificate.encoded).encodeHex().toString()
+        if (digest != identity.certificateSha256)
             throw new GradleException("发布证书与 ${identityFile} 记录不符，停止打包")
+        if (releaseIdentityName == 'rebirth') {
+            // 负控：候选测试证书不得复用 Mod / upstream 的正式证书。
+            ['mod', 'upstream'].each { other ->
+                def otherIdentity = new groovy.json.JsonSlurper().parse(rootProject.file("ci/release-identity.${other}.json"))
+                if (digest == otherIdentity.certificateSha256)
+                    throw new GradleException("REBIRTH_CERT_REUSES_${other.toUpperCase()}: Rebirth 候选测试证书不得复用 ${other} 身份证书，停止打包")
+            }
+        }
         if (android.defaultConfig.applicationId != identity.packageName)
             throw new GradleException("applicationId 与 ${identityFile} 记录不符，停止打包")
     }
@@ -246,11 +324,18 @@ tasks.configureEach {
 }
 // 只读配置检查：打印解析出的发布身份，不读取密钥、不打包。
 tasks.register('printReleaseIdentity') {
+    def selectedSigning = releaseIdentityName == 'rebirth' ? 'rebirth' : 'publish'
+    def selectedAlias = (releaseIdentityName == 'rebirth' ? rebirthIdentity.keyAlias : releaseIdentity.keyAlias)
+    if (android.signingConfigs[selectedSigning].keyAlias)
+        selectedAlias = android.signingConfigs[selectedSigning].keyAlias
+    def certificateStatus = releaseIdentity.certificateSha256 == certificatePlaceholder ? 'unset' : 'fixed'
     def summary = "releaseIdentity=${releaseIdentityName} applicationId=${android.defaultConfig.applicationId}" +
             " appName=${releaseIdentity.appName} testSuffix=${releaseIdentity.testSuffix} devSuffix=${releaseIdentity.devSuffix}" +
+            " versionCode=${android.defaultConfig.versionCode} versionName=${android.defaultConfig.versionName}" +
             " testVariant=${testVariantLabel.isEmpty() ? 'release' : testVariantLabel.toLowerCase()}" +
-            " keyAlias=${android.signingConfigs.publish.keyAlias ?: releaseIdentity.keyAlias}" +
-            " certificateSha256=${releaseIdentity.certificateSha256}"
+            " candidate=${rebirthCandidate} unsigned=${unsignedPackage} signingConfig=${selectedSigning}" +
+            " keyAlias=${selectedAlias}" +
+            " certificateSha256=${releaseIdentity.certificateSha256} certificateStatus=${certificateStatus}"
     doLast { println summary }
 }
 tasks.register('signPublishRelease') {

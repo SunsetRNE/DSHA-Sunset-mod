@@ -76,16 +76,25 @@ Windows 使用 `gradlew.bat`，并以真实 Python 可执行文件代替不可�
 
 显式提供 `DSHA_KEYSTORE`、`DSHA_KEYSTORE_PASSWORD`、`DSHA_KEY_PASSWORD`，别名默认 `dsha-a-su`（可用 `DSHA_KEY_ALIAS` 覆盖）。签名身份以 `ci/release-identity.json` 为准：`packageName = io.github.sunsetrne.dsha`，`certificateSha256 = a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`。`verifyPublishCertificate` 会在 `assembleStandardRelease`、`packageStandardRelease`、`validateSigningStandardRelease` 之前核对 keystore 证书与 applicationId，任一不符即停止打包；不再允许历史 E7E3 或 debug 证书出正式 Mod 包。私钥不进仓库，换钥会使本 Mod 已安装版本无法覆盖升级。
 
-### 双身份构建（`-Pdsha.identity`）
+### 三身份构建（`-Pdsha.identity`）
 
-`-Pdsha.identity=mod|upstream`，默认 `mod`，未知值直接配置失败。`mod` 即上文的 `io.github.sunsetrne.dsha` / DSH-A-Su / alias `dsha-a-su` / 测试后缀 `.test` / Mod 证书；`upstream` 是上游维护者的 `dsh.android.client` / DSHA / alias `androiddebugkey` / 测试后缀 `.SunsetRNE` / 历史 E7E3 证书。包名、显示名、测试后缀、默认 alias 与 `verifyPublishCertificate` 核对的证书分别来自 `ci/release-identity.mod.json` 与 `ci/release-identity.upstream.json`；versionCode / versionName 两种身份共用。完整对照表见 [Mod 身份与签名](docs/mod-identity-and-signing.md)。
+`-Pdsha.identity=mod|upstream|rebirth`，默认 `mod`，未知值直接配置失败。`mod` 即上文的 `io.github.sunsetrne.dsha` / DSH-A-Su / alias `dsha-a-su` / 测试后缀 `.test` / Mod 证书；`upstream` 是上游维护者的 `dsh.android.client` / DSHA / alias `androiddebugkey` / 测试后缀 `.SunsetRNE` / 历史 E7E3 证书；`rebirth` 是隔离实验发行线 `dsh.android.client.rebirth` / DSHA 新生 / alias `dsha-rebirth` / 测试后缀 `.rebirthtest`，使用独立候选测试证书（**尚未创建**，指纹占位为 64 个 0）。包名、显示名、测试后缀、默认 alias、versionCode / versionName 与 `verifyPublishCertificate` 核对的证书分别来自 `ci/release-identity.<identity>.json`。完整对照表见 [Mod 身份与签名](docs/mod-identity-and-signing.md)。
 
 ```bash
 ./gradlew :app:printReleaseIdentity -Pdsha.identity=upstream   # 只做配置，确认解析出的身份
-python3 tools/release-identity.py --check                      # 两套身份互斥，兼容入口与 mod 一致
+./gradlew :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.unsignedPackage=true
+python3 tools/release-identity.py --check                      # 三套身份互斥，兼容入口与 mod 一致
 ```
 
-签名身份绝不混用：Mod 证书只签 mod 身份，E7E3 只签 upstream 身份。E7E3 私钥只在上游维护者私有仓库的 Secrets 中，本仓库与本机不保存，也不用 upstream 身份打正式包。
+Rebirth 身份只能经 `-Pdsha.rebirthCandidate=true` 进入；与 `.test/.debug/.dev` 测试变体或 `-Pdsha.identity=mod|upstream` 混用会在配置阶段失败。候选证书固定前只允许 unsigned 候选：
+
+```bash
+./gradlew :app:assembleStandardRelease -Pdsha.rebirthCandidate=true -Pdsha.unsignedPackage=true
+```
+
+产物标 `UNSIGNED_NOT_FOR_INSTALLATION`，**不得称可安装**；证书固定后 `verifyPublishCertificate` 还会拒绝复用 Mod/upstream 证书、applicationId 不符或指纹不符的签名候选。versionCode / versionName 仍以 `app/build.gradle` 为构建基准，三份身份文件记录同一值并在配置阶段交叉核对（当前 359 / `0.2.1-rc.5-20261111.1200-dsh0.2.2-rc.1`）；Rebirth 将来同线递增时须同时更新 build.gradle、身份文件与 `generate-changelog.py` / `release_names.py` / `sign-release-apks.py` 的版本解析，属 G1 版本源迁移。
+
+签名身份绝不混用：Mod 证书只签 mod 身份，E7E3 只签 upstream 身份，Rebirth 候选测试证书只签 rebirth 身份。E7E3 私钥只在上游维护者私有仓库的 Secrets 中，本仓库与本机不保存，也不用 upstream 身份打正式包。
 
 ```bash
 ./gradlew :app:assembleStandardRelease
