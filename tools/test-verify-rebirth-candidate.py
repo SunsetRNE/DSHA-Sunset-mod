@@ -112,9 +112,11 @@ def verdict(**changes):
     badging_text = changes.pop("badging_text", badging())
     xmltree_text = changes.pop("xmltree_text", xmltree("dsh.android.client.rebirth.documents"))
     probe_value = changes.pop("probe_value", clean_probe())
+    allow_unsigned = changes.pop("allow_unsigned", False)
     if changes:
         raise TypeError("unexpected fixture overrides: " + ", ".join(sorted(changes)))
-    return VERIFY.evaluate(identity_value, badging_text, xmltree_text, probe_value)
+    return VERIFY.evaluate(identity_value, badging_text, xmltree_text, probe_value,
+                           allow_unsigned=allow_unsigned)
 
 
 def named(evaluated, name):
@@ -267,12 +269,35 @@ class CandidateVerdict(unittest.TestCase):
                 self.assertEqual(named(result, "unsigned")["status"], "FAIL")
 
     def test_fixed_certificate_still_rejects_unsigned_candidate(self):
-        # G0-4 负控：证书固定后，未签名产物仍不可交付；但产物本身确实是未签名候选。
+        # G0-4 负控：默认（不带 --allow-unsigned）时证书固定后仍未签名 → 拒绝。
         result = verdict(identity_value=identity(certificateSha256=FIXED_CERT))
         self.assertEqual(result["exitCode"], 1)
         self.assertTrue(result["unsignedConfirmed"])
         self.assertIn("UNSIGNED_WITH_FIXED_CERTIFICATE", failure_codes(result))
         self.assertEqual(named(result, "certificateStatus")["status"], "FAIL")
+
+    def test_fixed_certificate_allows_explicit_unsigned_intermediate(self):
+        # CI unsigned 构建阶段：显式 --allow-unsigned 才放行 fixed+未签名，并明确是中间产物。
+        result = verdict(identity_value=identity(certificateSha256=FIXED_CERT), allow_unsigned=True)
+        self.assertEqual(result["exitCode"], 0)
+        self.assertEqual(result["result"], "PASS")
+        self.assertTrue(result["unsignedConfirmed"])
+        status = named(result, "certificateStatus")
+        self.assertEqual(status["status"], "PASS")
+        self.assertIn("中间未签名产物", status["detail"])
+        self.assertIn("不可安装", status["detail"])
+        self.assertNotIn("UNSIGNED_WITH_FIXED_CERTIFICATE", failure_codes(result))
+
+    def test_allow_unsigned_never_accepts_a_signed_apk(self):
+        # fail-closed：--allow-unsigned 只放行“未签名”，绝不放行已签名产物。
+        result = verdict(identity_value=identity(certificateSha256=FIXED_CERT), allow_unsigned=True,
+                         probe_value=probe(returncode=0, certificates=(SIGNED_CERT,)))
+        self.assertEqual(result["exitCode"], 1)
+        self.assertIn("APK_IS_SIGNED", failure_codes(result))
+        self.assertFalse(result["unsignedConfirmed"])
+
+    def test_allow_unsigned_keeps_unset_identity_passing(self):
+        self.assertEqual(verdict(allow_unsigned=True)["exitCode"], 0)
 
     def test_ambiguous_verify_failure_is_rejected(self):
         # 非 0 不一定是“未签名”：工具错误不能冒充通过。
@@ -353,13 +378,13 @@ class IdentityFile(unittest.TestCase):
         self.assertIn("IDENTITY_FIELDS", str(raised.exception))
 
     def test_repository_identity_file_is_accepted(self):
-        # 真实身份文件必须与冻结结构一致；版本号由身份文件持有，不在测试里写死。
+        # 真实身份文件必须与冻结结构一致；证书已由 G0-3 固定为真实指纹。
         value = VERIFY.load_identity()
         self.assertEqual(value["identity"], "rebirth")
         self.assertEqual(value["packageName"], "dsh.android.client.rebirth")
         self.assertEqual(value["appName"], "DSHA 新生")
         self.assertIsInstance(value["versionCode"], int)
-        self.assertEqual(VERIFY.certificate_status(value), "unset")
+        self.assertEqual(VERIFY.certificate_status(value), "fixed")
 
 
 class Report(unittest.TestCase):
@@ -391,6 +416,19 @@ class Report(unittest.TestCase):
                                      {"file": "candidate.apk", "size": 1, "sha256": "0" * 64}, evaluated)
         self.assertEqual(report["exitCode"], 1)
         self.assertEqual(report["marker"], "UNSIGNED_NOT_FOR_INSTALLATION")
+
+    def test_allowed_unsigned_report_is_marked_intermediate(self):
+        fixed = identity(certificateSha256=FIXED_CERT)
+        evaluated = verdict(identity_value=fixed, allow_unsigned=True)
+        report = VERIFY.build_report(fixed, "ci/release-identity.rebirth.json",
+                                     {"file": "candidate.apk", "size": 1, "sha256": "0" * 64}, evaluated)
+        self.assertEqual(report["result"], "PASS")
+        self.assertEqual(report["marker"], "UNSIGNED_NOT_FOR_INSTALLATION")
+        self.assertIs(report["intermediate"], True)
+        self.assertIs(report["requiresSigning"], True)
+        self.assertIs(report["installable"], False)
+        self.assertIn("中间未签名产物", report["note"])
+        self.assertIn("不可安装", report["note"])
 
 
 class SignatureMaterial(unittest.TestCase):

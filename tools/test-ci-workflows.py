@@ -353,7 +353,8 @@ class SourceAndServices(unittest.TestCase):
         for path in WORKFLOWS.glob("*.yml"):
             source = path.read_text(encoding="utf-8")
             if path.name in ("release-production.yml", "release-upstream.yml", "test-package.yml",
-                             "test-package-variants.yml", "_node-test-packages.yml"):
+                             "test-package-variants.yml", "_node-test-packages.yml",
+                             "rebirth-candidate.yml"):
                 continue
             with self.subTest(file=path.name):
                 self.assertNotIn("apksigner", source)
@@ -515,6 +516,93 @@ class ProductionSplitRelease(unittest.TestCase):
         self.assertIn("ONLY_UNSIGNED_INPUT", tool)
         self.assertIn("RELEASE_SIGNING_ENV_MISSING", tool)
         self.assertIn("VERIFY_MIN_SDK", tool)
+
+
+class RebirthCandidateSigning(unittest.TestCase):
+    """G0-3：Rebirth 候选只允许独立测试证书；正式、upstream 与测试包凭据都不进入本工作流。"""
+
+    def setUp(self):
+        self.source = text("rebirth-candidate.yml")
+        self.jobs = jobs(self.source)
+
+    def test_only_the_rebirth_test_certificate_reaches_the_signing_node(self):
+        self.assertEqual(set(self.jobs), {"bind", "contracts", "inputs", "identity-matrix",
+                                          "build-unsigned", "sign-candidate"})
+        sign = self.jobs["sign-candidate"]
+        for name in ("REBIRTH_KEYSTORE_B64", "REBIRTH_KEYSTORE_PASSWORD", "REBIRTH_KEY_PASSWORD"):
+            with self.subTest(secret=name):
+                self.assertIn("secrets." + name, sign)
+        # 签名凭据只能出现在 sign-candidate；unsigned 构建与配置矩阵保持零 Secrets。
+        for name, block in self.jobs.items():
+            if name != "sign-candidate":
+                with self.subTest(job=name):
+                    self.assertNotIn("secrets.", block)
+        for forbidden in ("secrets.DSHA_", "secrets.SUNSET_TEST_", "contents: write", "apksigner"):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, self.source)
+        self.assertIn("permissions:\n  contents: read", self.source)
+        self.assertNotIn("gh release", self.source)
+
+    def test_sign_candidate_consumes_the_unsigned_handoff_from_this_run(self):
+        sign = self.jobs["sign-candidate"]
+        self.assertIn("needs: [bind, build-unsigned]", sign)
+        self.assertIn("${{ inputs.expected_sha }}", sign)
+        self.assertIn("actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333", sign)
+        self.assertIn("name: rebirth-candidate-NOT_FOR_INSTALLATION-${{ inputs.expected_sha }}", sign)
+        self.assertIn("REBIRTH_UNSIGNED_HANDOFF_INVALID", sign)
+        self.assertIn("REBIRTH_UNSIGNED_HANDOFF_NOT_THIS_RUN", sign)
+        self.assertIn("REBIRTH_UNSIGNED_HANDOFF_APK_MISMATCH", sign)
+        # 签名工具只接受 *-unsigned.apk 输入；下载到的证据被复制改名，不原地冒充。
+        self.assertIn("-unsigned.apk", sign)
+
+    def test_sign_candidate_uses_only_the_rebirth_test_certificate(self):
+        sign = self.jobs["sign-candidate"]
+        self.assertIn("tools/sign-release-apks.py", sign)
+        self.assertIn("--identity rebirth", sign)
+        self.assertIn('--name "dsha-rebirth-${short}.apk"', sign)
+        self.assertIn("--output-dir out/signed", sign)
+        self.assertIn("--receipt out/signed/receipt.json", sign)
+        self.assertIn("DSHA_KEY_ALIAS=dsha-rebirth", sign)
+        self.assertIn("chmod 600", sign)
+        self.assertIn("REBIRTH_TEST_CERTIFICATE_MISMATCH", sign)
+        self.assertIn("REBIRTH_SIGNED_RECEIPT_APK_MISMATCH", sign)
+        self.assertIn("REBIRTH_SIGNED_LABEL_MISMATCH", sign)
+        self.assertIn("REBIRTH SIGNED TEST CANDIDATE - NOT A RELEASE", sign)
+        self.assertIn("测试证书签名候选，非发布", sign)
+        self.assertIn("gradle-cache: 'false'", sign)
+
+    def test_unsigned_stage_is_an_explicit_intermediate(self):
+        build = self.jobs["build-unsigned"]
+        # 证书已固定：只有显式 --allow-unsigned 才能把 unsigned 中间产物判为通过；
+        # 回执与 summary 必须同时声明不可安装、交付前必须签名。
+        self.assertEqual(build.count("verify-rebirth-candidate.py"), 1)
+        self.assertIn("--allow-unsigned", build)
+        self.assertIn("'intermediateUnsigned': True", build)
+        self.assertIn("'requiresSigning': True", build)
+        self.assertIn("中间未签名产物", build)
+        self.assertIn("不可安装", build)
+        self.assertIn("交付前必须签名", build)
+
+    def test_signing_failure_is_never_downgraded_to_unsigned(self):
+        sign = self.jobs["sign-candidate"]
+        self.assertNotIn("continue-on-error", sign)
+        self.assertNotIn("|| true", sign)
+        self.assertIn("set -eu", sign)
+        cleanup = sign.split("- name: Remove Rebirth test private keystore", 1)[1]
+        self.assertIn("if: always()", cleanup)
+        self.assertIn("key.unlink(missing_ok=True)", cleanup)
+        self.assertIn("UNEXPECTED_REBIRTH_KEY_PATH", cleanup)
+        upload = sign.split("- name: Upload signed test candidate and evidence", 1)[1].split("\n      - ", 1)[0]
+        self.assertIn("name: rebirth-candidate-SIGNED-TEST-${{ inputs.expected_sha }}", upload)
+        self.assertNotRegex(upload, r"(?i)\.(?:jks|keystore|p12|pfx)\b|RUNNER_TEMP")
+
+    def test_identity_matrix_uses_the_fixed_certificate_negative_control(self):
+        # 证书固定后，REBIRTH_CERTIFICATE_UNSET 占位负控已不成立；改为断言 CI 没有
+        # Gradle 签名密钥时 verifyPublishCertificate 必须拒绝签名候选。
+        matrix = self.jobs["identity-matrix"]
+        self.assertIn(":app:verifyPublishCertificate", matrix)
+        self.assertIn("缺少 rebirth 身份发布密钥", matrix)
+        self.assertNotIn("REBIRTH_CERTIFICATE_UNSET", self.source)
 
 
 class AndroidSdkAction(unittest.TestCase):

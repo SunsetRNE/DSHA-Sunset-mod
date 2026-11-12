@@ -1,13 +1,16 @@
-name: Rebirth unsigned candidate (NOT FOR INSTALLATION)
+name: Rebirth candidate (unsigned inspection + signed test package)
 
-# G0-6：Rebirth（dsh.android.client.rebirth）只产未签名候选，不签名、不发布、不安装。
-# 仅 workflow_dispatch；不读取任何签名凭据，固定输入与工具链复用仓库节点。
-# 产物 artifact 名与文件名都带 NOT_FOR_INSTALLATION；清单与“确实未签名”的核验逻辑在
-# tools/verify-rebirth-candidate.py 内完成（本工作流不持有任何签名材料）。
+# G0-3 / G0-6：Rebirth（dsh.android.client.rebirth）隔离实验发行线。
+# 仅 workflow_dispatch；固定输入与工具链复用仓库节点。
+#   build-unsigned：不读取任何签名凭据，产未签名候选与 NOT_FOR_INSTALLATION 证据；
+#   sign-candidate：只用独立 Rebirth 测试证书 Secrets（REBIRTH_*）给同一 run 的 unsigned
+#                   候选签名，产物标 SIGNED-TEST —— 测试候选，不是正式发布，不可当正式包。
+# 工作流内不出现签名工具字面量（签名与证书核验在 tools/ 内完成），也不读取 Mod / upstream
+# 的正式凭据或测试包凭据。
 #
 # 节点图：
 #   bind ─┬─► contracts ──────────────────┐
-#         ├─► inputs ─┬─► identity-matrix ─┼─► build-unsigned（未签名 + 核验 + 证据）
+#         ├─► inputs ─┬─► identity-matrix ─┼─► build-unsigned ─► sign-candidate
 #         │           └───────────────────┘
 # identity-matrix 先跑合法配置并核对 printReleaseIdentity 的 identity / package / versionCode /
 # certificateStatus，再逐个断言负控命令必须失败（不是只打印结论）。
@@ -175,9 +178,10 @@ jobs:
             :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.debugPackage=true -Pdsha.unsignedPackage=true
           run_case negative-dev-package failure REBIRTH_CANDIDATE_VARIANT_CONFLICT \
             :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.devPackage=true -Pdsha.unsignedPackage=true
-          # 负控 G：证书未固定时，不带 unsignedPackage 的签名候选必须失败（配置阶段即拒绝）。
-          run_case negative-unsigned-required failure REBIRTH_CERTIFICATE_UNSET \
-            :app:printReleaseIdentity -Pdsha.rebirthCandidate=true
+          # 负控 G：证书已固定。本工作流不提供 Gradle 签名密钥 DSHA_REBIRTH_KEYSTORE，
+          # 因此任何非 unsigned 的 Rebirth 签名候选都必须被 verifyPublishCertificate 拒绝。
+          run_case negative-signing-key-required failure '缺少 rebirth 身份发布密钥' \
+            :app:verifyPublishCertificate -Pdsha.rebirthCandidate=true
 
           {
             echo "### Rebirth identity matrix (G0-2 / G0-4)"
@@ -232,8 +236,10 @@ jobs:
           mkdir -p out
           apk="out/dsha-rebirth-NOT_FOR_INSTALLATION-${GITHUB_SHA:0:8}.apk"
           cp "${candidates[0]}" "$apk"
+          # 证书已固定；--allow-unsigned 只放行“仍确实未签名”的中间产物，交付前必须由
+          # sign-candidate 签名。已签名 APK 或身份/清单违规仍然失败。
           set +e
-          python3 tools/verify-rebirth-candidate.py --apk "$apk" --json > out/rebirth-candidate.json
+          python3 tools/verify-rebirth-candidate.py --apk "$apk" --allow-unsigned --json > out/rebirth-candidate.json
           verify_code=$?
           set -e
           cat out/rebirth-candidate.json
@@ -266,8 +272,10 @@ jobs:
               'signed': False,
               'marker': 'UNSIGNED_NOT_FOR_INSTALLATION',
               'installable': False,
+              'intermediateUnsigned': True,
+              'requiresSigning': True,
               'checks': verified['checks'],
-              'note': 'UNSIGNED REBIRTH CANDIDATE - NOT FOR INSTALLATION / NOT A RELEASE ACCEPTANCE',
+              'note': '中间未签名产物（INTERMEDIATE UNSIGNED ARTIFACT）：不可安装，交付前必须签名；不是发布验收 / NOT A RELEASE',
           }
           Path('out/build-info.json').write_text(
               json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
@@ -292,11 +300,223 @@ jobs:
           VERSION_CODE: ${{ steps.verify.outputs.version_code }}
         run: |
           {
-            echo "### Rebirth 未签名候选（UNSIGNED_NOT_FOR_INSTALLATION）"
+            echo "### Rebirth 未签名中间产物（UNSIGNED_NOT_FOR_INSTALLATION）"
             echo
             echo "Commit \`$GITHUB_SHA\` · package \`$PACKAGE\` · versionCode \`$VERSION_CODE\`"
             echo
-            echo "该产物未签名、不可安装、不是发布验收，只用于 G0 / G1-C 构建核验。"
+            echo "中间产物、未签名、不可安装；交付前必须由 sign-candidate 用 Rebirth 测试证书签名。不是发布验收。"
             echo
             echo "[未签名 APK、核验回执与 SHA256SUMS]($ARTIFACT_URL)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  sign-candidate:
+    name: Sign Rebirth test candidate (NOT A RELEASE)
+    # G0-3：只使用独立 Rebirth 测试证书 Secrets（REBIRTH_*）。不跑 Gradle、不写共享缓存，
+    # 不读取 Mod / upstream 正式凭据，也不使用 SUNSET_TEST_* 测试包证书。
+    # 签名失败或证书指纹不符必须让整个 run 失败，绝不退化为 unsigned 通过。
+    needs: [bind, build-unsigned]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          gradle-cache: 'false'
+      - uses: ./.github/actions/android-sdk
+        with:
+          ndk: 'false'
+      - name: Download unsigned candidate from this run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: rebirth-candidate-NOT_FOR_INSTALLATION-${{ inputs.expected_sha }}
+          path: unsigned
+      - name: Verify unsigned handoff binding and prepare signing input
+        env:
+          UNSIGNED_DIR: unsigned
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib, json, os
+          from pathlib import Path
+
+          root = Path(os.environ['UNSIGNED_DIR'])
+          receipt = json.loads((root / 'build-info.json').read_text(encoding='utf-8'))
+          apks = sorted(root.glob('dsha-rebirth-NOT_FOR_INSTALLATION-*.apk'))
+          if len(apks) != 1 or receipt.get('schema') != 1 or receipt.get('signed') is not False:
+              raise SystemExit('REBIRTH_UNSIGNED_HANDOFF_INVALID')
+          apk = apks[0]
+          if receipt.get('commit') != os.environ['GITHUB_SHA'] \
+                  or receipt.get('runId') != os.environ['GITHUB_RUN_ID'] \
+                  or receipt.get('runAttempt') != os.environ['GITHUB_RUN_ATTEMPT']:
+              raise SystemExit('REBIRTH_UNSIGNED_HANDOFF_NOT_THIS_RUN')
+          if receipt.get('marker') != 'UNSIGNED_NOT_FOR_INSTALLATION' \
+                  or receipt.get('apkFile') != apk.name \
+                  or receipt.get('apkSize') != apk.stat().st_size \
+                  or receipt.get('apkSha256') != hashlib.sha256(apk.read_bytes()).hexdigest():
+              raise SystemExit('REBIRTH_UNSIGNED_HANDOFF_APK_MISMATCH')
+          # 签名工具只接受 *-unsigned.apk；改名复制而不是原地移动下载到的证据。
+          target = Path('out/sign-input') / ('dsha-rebirth-' + os.environ['GITHUB_SHA'][:8] + '-unsigned.apk')
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_bytes(apk.read_bytes())
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8', newline='\n') as env:
+              env.write('UNSIGNED_APK=' + str(target) + '\n')
+          print(json.dumps({'unsignedApk': str(target), 'sha256': receipt['apkSha256']}, ensure_ascii=False))
+          PYCODE
+      - name: Prepare Rebirth test signing key
+        env:
+          REBIRTH_KEYSTORE_B64: ${{ secrets.REBIRTH_KEYSTORE_B64 }}
+          REBIRTH_KEYSTORE_PASSWORD: ${{ secrets.REBIRTH_KEYSTORE_PASSWORD }}
+          REBIRTH_KEY_PASSWORD: ${{ secrets.REBIRTH_KEY_PASSWORD }}
+        run: |
+          set -eu
+          umask 077
+          key="$RUNNER_TEMP/rebirth-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.p12"
+          # 先登记路径，后续任何步骤失败时 always() 清理仍能找到候选文件。
+          printf 'REBIRTH_KEY_PATH=%s\n' "$key" >> "$GITHUB_ENV"
+          test -n "$REBIRTH_KEYSTORE_B64" || { echo 'REBIRTH_KEYSTORE_B64 secret is required'; exit 1; }
+          test -n "$REBIRTH_KEYSTORE_PASSWORD" || { echo 'REBIRTH_KEYSTORE_PASSWORD secret is required'; exit 1; }
+          test -n "$REBIRTH_KEY_PASSWORD" || { echo 'REBIRTH_KEY_PASSWORD secret is required'; exit 1; }
+          echo "::add-mask::$REBIRTH_KEYSTORE_PASSWORD"
+          echo "::add-mask::$REBIRTH_KEY_PASSWORD"
+          printf '%s' "$REBIRTH_KEYSTORE_B64" | base64 -d > "$key"
+          test -s "$key"
+          chmod 600 "$key"
+          {
+            printf 'DSHA_KEYSTORE=%s\n' "$key"
+            printf 'DSHA_KEYSTORE_PASSWORD=%s\n' "$REBIRTH_KEYSTORE_PASSWORD"
+            printf 'DSHA_KEY_PASSWORD=%s\n' "$REBIRTH_KEY_PASSWORD"
+            printf 'DSHA_KEY_ALIAS=dsha-rebirth\n'
+          } >> "$GITHUB_ENV"
+      - name: Sign and verify Rebirth test candidate
+        run: |
+          set -eu
+          short="${GITHUB_SHA:0:8}"
+          python3 tools/sign-release-apks.py \
+            --apk "$UNSIGNED_APK" \
+            --identity rebirth \
+            --name "dsha-rebirth-${short}.apk" \
+            --output-dir out/signed \
+            --sdk "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}" \
+            --receipt out/signed/receipt.json
+          signed="out/signed/dsha-rebirth-${short}.apk"
+          test -s "$signed"
+          # 签名模式把回执写在 apk-signing.json；按任务约定再固定一份 receipt.json 名字。
+          cp out/signed/apk-signing.json out/signed/receipt.json
+          printf 'SIGNED_APK=%s\n' "$signed" >> "$GITHUB_ENV"
+      - name: Write signed test candidate receipt
+        run: |
+          python3 - <<'PYCODE'
+          import base64, hashlib, json, os, re
+          from pathlib import Path
+
+          def digest(path):
+              value = hashlib.sha256()
+              with Path(path).open('rb') as stream:
+                  for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                      value.update(chunk)
+              return value.hexdigest()
+
+          identity = json.loads(Path('ci/release-identity.rebirth.json').read_text(encoding='utf-8'))
+          signing = json.loads(Path('out/signed/apk-signing.json').read_text(encoding='utf-8'))
+          unsigned = Path(os.environ['UNSIGNED_APK'])
+          signed = Path(os.environ['SIGNED_APK'])
+          pem = Path('ci/rebirth-test-cert.pem').read_text(encoding='ascii')
+          body = ''.join(re.findall(r'-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----', pem, re.S))
+          certificate = hashlib.sha256(base64.b64decode(''.join(body.split()))).hexdigest()
+          if certificate != identity['certificateSha256'] or signing.get('certificateSha256') != certificate:
+              raise SystemExit('REBIRTH_TEST_CERTIFICATE_MISMATCH')
+          if signing.get('packageName') != identity['packageName'] \
+                  or signing.get('versionCode') != identity['versionCode'] \
+                  or signing.get('versionName') != identity['versionName']:
+              raise SystemExit('REBIRTH_SIGNED_RECEIPT_IDENTITY_MISMATCH')
+          badging = Path('out/signed/apk-badging.txt').read_text(encoding='utf-8')
+          label = re.search(r"^application-label:'([^']*)'", badging, re.M)
+          if not label or label.group(1) != identity['appName']:
+              raise SystemExit('REBIRTH_SIGNED_LABEL_MISMATCH')
+          unsigned_sha = digest(unsigned)
+          signed_sha = digest(signed)
+          if signing.get('unsignedSha256') != unsigned_sha or signing.get('apkSha256') != signed_sha:
+              raise SystemExit('REBIRTH_SIGNED_RECEIPT_APK_MISMATCH')
+          Path('out/signed/rebirth-test-cert.pem').write_bytes(Path('ci/rebirth-test-cert.pem').read_bytes())
+          value = {
+              'schema': 1,
+              'kind': 'dsha-rebirth-signed-test-candidate',
+              'commit': os.environ['GITHUB_SHA'],
+              'ref': os.environ['GITHUB_REF'],
+              'runId': os.environ['GITHUB_RUN_ID'],
+              'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'identity': identity['identity'],
+              'packageName': identity['packageName'],
+              'versionCode': identity['versionCode'],
+              'versionName': identity['versionName'],
+              'unsignedApk': {'file': unsigned.name, 'size': unsigned.stat().st_size, 'sha256': unsigned_sha},
+              'signedApk': {'file': signed.name, 'size': signed.stat().st_size, 'sha256': signed_sha},
+              'certificateSha256': certificate,
+              'signingSchemes': signing.get('schemes'),
+              'payloadMembers': signing.get('payloadMembers'),
+              'signed': True,
+              'testOnly': True,
+              'signedWith': 'rebirth-test-certificate',
+              'note': 'REBIRTH SIGNED TEST CANDIDATE - NOT A RELEASE / 测试证书签名候选，非发布',
+          }
+          Path('out/signed/build-info.json').write_text(
+              json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          names = [signed.name, 'build-info.json', 'receipt.json', 'apk-signing.json',
+                   'apk-badging.txt', 'apk-signature.txt', 'rebirth-test-cert.pem']
+          for name in names:
+              if not (Path('out/signed') / name).is_file():
+                  raise SystemExit('REBIRTH_SIGNED_EVIDENCE_MISSING: ' + name)
+          Path('out/signed/SHA256SUMS').write_text(''.join(
+              digest(Path('out/signed') / name) + '  ' + name + '\n' for name in names), encoding='utf-8')
+          print(json.dumps(value, ensure_ascii=False, indent=2))
+          PYCODE
+      - name: Upload signed test candidate and evidence (NOT A RELEASE)
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rebirth-candidate-SIGNED-TEST-${{ inputs.expected_sha }}
+          path: out/signed
+          if-no-files-found: error
+          retention-days: 14
+      - name: Show signed test candidate summary
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          python3 - out/signed/build-info.json <<'PYCODE'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+          value = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          lines = [
+              '### Rebirth SIGNED TEST 候选（NOT A RELEASE）',
+              '',
+              'Commit `%s` · package `%s` · versionCode `%s`' % (
+                  value['commit'][:12], value['packageName'], value['versionCode']),
+              '',
+              '独立 Rebirth 测试证书：`%s`' % value['certificateSha256'],
+              '',
+              '仅用于共存安装 / 覆盖升级等真机验证；测试证书签名候选，非发布，不可当正式包分发。',
+              '',
+              '[签名测试 APK、回执与 SHA256SUMS](%s)' % os.environ.get('ARTIFACT_URL', ''),
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8', newline='\n') as summary:
+              summary.write('\n'.join(lines) + '\n')
+          PYCODE
+      - name: Remove Rebirth test private keystore
+        if: always()
+        run: |
+          python3 - <<'PYCODE'
+          import os
+          from pathlib import Path
+          parent = Path(os.environ['RUNNER_TEMP']).resolve()
+          raw = os.environ.get('REBIRTH_KEY_PATH', '')
+          if not raw:
+              raise SystemExit(0)
+          key = Path(raw)
+          if key.is_symlink() or key.resolve().parent != parent:
+              raise SystemExit('UNEXPECTED_REBIRTH_KEY_PATH')
+          key.unlink(missing_ok=True)
+          PYCODE

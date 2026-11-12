@@ -9,15 +9,19 @@
     仅 arm64-v8a、显示名、测试/开发后缀与提供 authorities 的组件；
   * apksigner verify 必须非 0，且不得存在任何证书签名材料（v1 的 META-INF/*.RSA|DSA|EC、
     APK Signing Block 或 apksigner 能打印出的证书）；被任何证书签名即违规并打印证书摘要；
-  * certificateStatus=fixed 时未签名候选仍拒绝：候选阶段只接受 unset 身份下的未签名产物。
+  * certificateStatus=fixed 时默认仍拒绝未签名候选（UNSIGNED_WITH_FIXED_CERTIFICATE）。
+    CI 的 unsigned 构建阶段显式传 --allow-unsigned 才把 fixed + 未签名作为“中间产物”放行：
+    仍标 UNSIGNED_NOT_FOR_INSTALLATION、不可安装、交付前必须签名；已签名 APK 永不放行。
 
 用法：
 
   python3 tools/verify-rebirth-candidate.py --apk out/dsha-rebirth-unsigned.apk
   python3 tools/verify-rebirth-candidate.py --apk out/dsha-rebirth-unsigned.apk --json > out/rebirth-candidate.json
+  # CI build-unsigned 的中间未签名产物（证书已固定时也必须显式声明）：
+  python3 tools/verify-rebirth-candidate.py --apk out/candidate-unsigned.apk --allow-unsigned --json
 
 退出码：0=符合未签名候选（仍不可安装）；1=身份/格式违规；2=aapt2/apksigner 找不到。
-固定标记：UNSIGNED_NOT_FOR_INSTALLATION —— 未签名候选不可安装，也不是发布验收。
+固定标记：UNSIGNED_NOT_FOR_INSTALLATION —— 未签名中间产物不可安装，也不是发布验收。
 """
 import argparse
 import hashlib
@@ -253,7 +257,7 @@ def signature_material(path):
     return {"metaInfSignatureFiles": files, "apkSigningBlock": apk_signing_block(path)}
 
 
-def unsigned_checks(identity, probe):
+def unsigned_checks(identity, probe, allow_unsigned=False):
     """apksigner 非 0 只证明“当前不可验证”，还必须排除残留的签名材料。"""
     checks = []
     signed = probe.get("returncode") == 0
@@ -289,10 +293,16 @@ def unsigned_checks(identity, probe):
                           and not (certificates or files or block))
     status = certificate_status(identity)
     if status == "fixed":
-        checks.append(_check(
-            "certificateStatus", False,
-            "身份已固定证书（certificateStatus=fixed）；未签名候选不可交付，必须签名后另行核验",
-            "UNSIGNED_WITH_FIXED_CERTIFICATE"))
+        if allow_unsigned:
+            # CI unsigned 构建阶段：证书已固定，但该产物只是交给签名 job 的中间输入。
+            checks.append(_check(
+                "certificateStatus", True,
+                "证书已固定（certificateStatus=fixed）；这是中间未签名产物，交付前必须签名，不可安装"))
+        else:
+            checks.append(_check(
+                "certificateStatus", False,
+                "身份已固定证书（certificateStatus=fixed）；未签名候选不可交付，必须签名后另行核验",
+                "UNSIGNED_WITH_FIXED_CERTIFICATE"))
     else:
         checks.append(_check(
             "certificateStatus", True,
@@ -300,10 +310,10 @@ def unsigned_checks(identity, probe):
     return checks, unsigned_confirmed, signed
 
 
-def evaluate(identity, badging_text, xmltree_text, probe):
+def evaluate(identity, badging_text, xmltree_text, probe, allow_unsigned=False):
     """纯判定入口：不做文件 / 子进程 I/O，便于用 fixture 字符串回归。"""
     checks = manifest_checks(identity, badging_text, xmltree_text)
-    unsigned, unsigned_confirmed, signed = unsigned_checks(identity, probe)
+    unsigned, unsigned_confirmed, signed = unsigned_checks(identity, probe, allow_unsigned)
     checks += unsigned
     result = "PASS" if all(row["status"] == "PASS" for row in checks) else "FAIL"
     return {
@@ -312,6 +322,7 @@ def evaluate(identity, badging_text, xmltree_text, probe):
         "checks": checks,
         "unsignedConfirmed": unsigned_confirmed,
         "signed": signed,
+        "allowUnsigned": bool(allow_unsigned),
     }
 
 
@@ -345,8 +356,13 @@ def build_report(identity, identity_path, apk_info, evaluated):
         },
         "apk": apk_info,
         "checks": evaluated["checks"],
-        "note": "未签名候选仅用于构建核验；不可安装，也不是发布验收。",
+        "note": ("中间未签名产物：不签名、不可安装，交付前必须由签名步骤完成；不是发布验收。"
+                 if evaluated.get("allowUnsigned") else
+                 "未签名候选仅用于构建核验；不可安装，也不是发布验收。"),
     }
+    if evaluated.get("allowUnsigned") and evaluated["unsignedConfirmed"]:
+        report["intermediate"] = True
+        report["requiresSigning"] = True
     if evaluated["unsignedConfirmed"]:
         report["marker"] = MARKER
     elif evaluated["signed"]:
@@ -376,7 +392,7 @@ def emit(report, json_output):
         print(f"{row['status']} {row['name']}: {row['detail']}")
     print("RESULT: " + report["result"])
     if report.get("marker") == MARKER:
-        print(MARKER + ": 未签名候选，不可安装，也不是发布验收。")
+        print(MARKER + ": 未签名中间产物，不可安装，交付前必须签名；也不是发布验收。")
     elif report.get("marker"):
         print(str(report["marker"]) + ": 候选链拒绝已签名或身份不符的产物。")
 
@@ -451,6 +467,8 @@ def main(argv=None):
     parser.add_argument("--identity", type=Path, default=DEFAULT_IDENTITY,
                         help="候选身份文件（默认 ci/release-identity.rebirth.json）")
     parser.add_argument("--json", action="store_true", help="输出机器可读 JSON")
+    parser.add_argument("--allow-unsigned", action="store_true",
+                        help="CI unsigned 构建阶段：允许已固定证书身份下的未签名中间产物通过（仍不可安装）")
     parser.add_argument("--sdk", type=Path, help="Android SDK 根目录（默认 ANDROID_HOME / android-sdk 安装位置）")
     parser.add_argument("--build-tools", type=Path, help="直接指定 build-tools 目录，跳过 ci-toolchain.py 定位")
     args = parser.parse_args(argv)
@@ -485,7 +503,7 @@ def main(argv=None):
         report = _failure_report("tools", str(error), 2, "TOOLS_MISSING")
         emit(report, args.json)
         return 2
-    evaluated = evaluate(identity, badging, xmltree, probe)
+    evaluated = evaluate(identity, badging, xmltree, probe, allow_unsigned=args.allow_unsigned)
     report = build_report(identity, args.identity,
                           {"file": apk.name, "size": apk.stat().st_size, "sha256": sha256(apk)},
                           evaluated)
