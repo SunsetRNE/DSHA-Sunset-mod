@@ -171,7 +171,7 @@ dsha-gradle :app:assembleStandardDebug          # 若 aarch64/aapt2 受限则见
 | 依赖校验 | `--write-verification-metadata sha256` 后恢复原文件再严格编译 | **增量 0 条**：Kotlin 2.2.10 的 KGP/stdlib/编译器组件在基线中已由 build190 起的 AGP 运行时 classpath 记录；自动写入只做了重排，未采用，原文件字节未变 |
 | stdlib | `:app:dependencies --configuration standardDebugCompileClasspath` / `standardDebugRuntimeClasspath` | **单一解析版本 2.2.10**；`app/build.gradle` 未声明 stdlib |
 | Kotlin 格式 | `JAVA_HOME=/opt/jdk17 python3 tools/format-kotlin-tree.py --check` | **PASS 0 changed**（2 个 Kotlin 文件，2 个包批次） |
-| Java 格式 | `JAVA_HOME=/opt/jdk17 python3 tools/format-java-tree.py --check` | 结果见提交说明；删除的 `ShellQuote.java` 已从 adoption manifest 移除 |
+| Java 格式 | `JAVA_HOME=/opt/jdk17 python3 tools/format-java-tree.py --check` | **PASS 1740 files, 0 changed**（移除已删除的 `ShellQuote.java` 后 adoption manifest 完整） |
 
 未运行 / 未覆盖：Gradle 完整单测、Robolectric 测试、Lint、APK 打包与安装、真机行为；这些需要
 x86_64 CI 或真机环境，不写成本批次通过。

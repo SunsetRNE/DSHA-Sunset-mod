@@ -35,6 +35,7 @@ CURRENT = (
     "docs/fixed-build-inputs.md", "docs/ci-release.md", "docs/i18n-length-policy.md",
     "docs/mod-identity-and-signing.md",
     "docs/security-model.en.md", "docs/engineering-standard.md", "docs/module-map.md",
+    "docs/kotlin-toolchain.md",
     "docs/source-provenance.md", "docs/download-verification.md", "docs/download-verification.en.md",
     "docs/接手指南.md", "docs/agents/domain.md", "docs/agents/issue-tracker.md",
     "docs/agents/triage-labels.md", "docs/adr/0001-build154-boundaries.md",
