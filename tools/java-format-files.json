@@ -879,7 +879,6 @@
     "app/src/main/java/com/deepseekharness/app/util/SensitiveScreenPolicy.java",
     "app/src/main/java/com/deepseekharness/app/util/SharedServiceLeases.java",
     "app/src/main/java/com/deepseekharness/app/util/SheetGeometry.java",
-    "app/src/main/java/com/deepseekharness/app/util/ShellQuote.java",
     "app/src/main/java/com/deepseekharness/app/util/ShizukuChannelStatus.java",
     "app/src/main/java/com/deepseekharness/app/util/ShizukuManagers.java",
     "app/src/main/java/com/deepseekharness/app/util/SkeletonTiming.java",
