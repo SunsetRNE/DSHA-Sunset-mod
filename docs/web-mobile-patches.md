@@ -1,11 +1,28 @@
 # 内置移动插件 dsh-web-mobile 的 DSHA 本地补丁
 
-> **当前状态（build351 候选，2026-11-09 同步上游 3.3.5）**：以上游 3.3.5（适配宿主 0.2.2，
+> **当前状态（build351 候选，2026-11-09 同步上游 3.3.5；2026-11-12 追加齿轮单实例守卫）**：以上游 3.3.5（适配宿主 0.2.2，
 > main `646fe837`）为基座，**完全追随上游**；只保留「宿主集成必需且上游不覆盖」的最小集
-> （服务端鉴权 / 安全区 / 齿轮几何让位）与两项用户可见能力（原生文件传输、多语言/live-locale）。
+> （服务端鉴权 / 安全区 / 齿轮几何让位与单实例）与两项用户可见能力（原生文件传输、多语言/live-locale）。
 > 会话输入 V4、手机搜索、快捷键弹层可见带、字体族行换行、遮罩按压染色仍不重放；本次上游
 > 37 个提交的差异见下方「2026-11-09」小节。真机覆盖升级验收仍须在 build351 发布前补写，见
 > [插件页](plugins.md)与 [build351 记录](releases/v0.2.1-rc.5-build351-web-mobile-3.3.5-20261109.md)。
+
+## 2026-11-12：项目还原后的 3 颗设置齿轮与单实例守卫
+
+真机（Lenovo TB321FU，1024×640 CSS、2.5×）在项目还原 / 页面热重载后侧栏 footer 出现 3 颗
+设置齿轮；同版本重新加载页面只有 1 颗。核对结论：**仓库里没有三份齿轮补丁**——固定上游 3.3.5
+自带 `drawer-quick-settings` 与 `tablet-quick-settings` 两个安装器（同一宽度断点只武装一个），
+DSHA 只有一份 `DSHA_GEAR_FIT_V1`；3 颗来自同一页面里同时存活的多个插件任务实例，每个实例
+各 append 一颗 `data-mobile-nav="quick-settings-wrap"`。还原 / 热重载 / 运行时 profile 短暂
+重复登记都可能造成这种多实例现场。
+
+最小修复：`DSHA_GEAR_SINGLETON_V1` 在每次 `ensure()` 挂载前清掉同一 `triggerRow` 里其它实例
+的 wrap，只保留本实例这一颗；晚到的实例接管，页面上始终最多一颗。守卫只动插件自己的节点，
+不碰宿主控件；齿轮可见性仍由 `DSHA_GEAR_FIT_V1` 的实测宽度决定。
+
+- 新增回归：`tools/test-mobile-gear-contract.mjs` 的「多个实例同时存活时同一行只保留一颗齿轮」。
+- 约定与排查步骤见 [移动壳侧栏设置齿轮：单实例不变式](mobile-sidebar-settings-gear.md)。
+- 当前已打开页面若仍是 3 颗，刷新 / 重进主界面即可；不要用禁用内置插件掩盖。
 
 本文记录 [`tools/apply-mobile-client-patches.mjs`](../tools/apply-mobile-client-patches.mjs) 对固定上游
 `dsh-web-mobile` 3.3.5（[`646fe837440f9939228bdba0024d407eaac01128`](https://github.com/mexiaosqwq/dsh-web-mobile/commit/646fe837440f9939228bdba0024d407eaac01128)，
@@ -34,7 +51,8 @@
 ### 补丁复核
 
 - `DSHA_GEAR_FIT_V1`：上游仍保留旧的 `:has(> button[data-phase], > [role="status"])` 守卫，
-  齿轮几何让位补丁照旧命中并替换；`test-mobile-gear-contract.mjs` 6 项通过。
+  齿轮几何让位补丁照旧命中并替换；`test-mobile-gear-contract.mjs` 7 项通过（2026-11-12 追加
+  `DSHA_GEAR_SINGLETON_V1` 后从 6 项增加到 7 项）。
 - 安全区：上游仍只有 frame 顶部使用 DSHA 变量，其余 `env()` 处继续由单层包装覆盖，未产生嵌套。
 - 文件传输 / 多语言：`applyFileTransferClient`、`applyMobileLocaleBundlePatch` 与
   `--locale-sources` 的锚点全部命中；多语言键集删除了上游 3.3.5 移除的 nav `backdrop`
@@ -80,7 +98,7 @@ python3 tools/verify-runtime-descriptor-source.py
 
 | 类别 | 具体差异 | 上游 3.3.1 是否覆盖 | 保留理由 | 回归 |
 |---|---|---|---|---|
-| 宿主集成 | `DSHA_GEAR_FIT_V1`：footer 齿轮按实测行宽让位（`dshaGearFits`，写 `data-mobile-nav-quick-fit`） | 否：上游仍是旧的 `:has(> button[data-phase], > [role="status"])` 存在性判据；DSH 0.2.2 首连不渲染指示灯时判错 | build324 白屏/侧栏重复事故的同类「依赖宿主节点存在」根因；本修复只看几何 | `tools/test-mobile-gear-contract.mjs`（6 项） |
+| 宿主集成 | `DSHA_GEAR_FIT_V1` + `DSHA_GEAR_SINGLETON_V1`：footer 齿轮按实测行宽让位（`dshaGearFits`，写 `data-mobile-nav-quick-fit`），且同一 `triggerRow` 只保留一颗齿轮 | 否：上游仍是旧的 `:has(> button[data-phase], > [role="status"])` 存在性判据；同一页面多实例时会各 append 一颗齿轮 | build324 白屏/侧栏重复事故的同类「依赖宿主节点存在」根因；本修复只看几何，并防止还原 / 热重载留下多颗齿轮 | `tools/test-mobile-gear-contract.mjs`（7 项） |
 | 宿主集成 | 安全区变量：`env(safe-area-inset-*)` → `var(--dsha-safe-area-inset-*, env(...))`（跳过上游已包好的一处，不嵌套） | 部分：仅 frame 顶部用了 DSHA 变量，其余约 20 处仍是 `env()` | Android WebView 不向网页报告系统栏 inset；由原生发布实际值 | `tools/test-mobile-client-patches.mjs`（安全区单层包装） |
 | 安全 | `tools/mobile-server/{index,compress,delete-session}.js` 替换上游服务端入口 | 否：上游删除路由无 `connection.requestRejection`（仅同源校验）、压缩 patch 是进程级全局、删除生命周期无 AgentHandle 捕获 | 删除会话必须经宿主鉴权；压缩只作用于当前 webServer 端口；live-session 经公开句柄安全删除 | `tools/test-mobile-server-patches.mjs`、`test-mobile-auth/delete/streams`、`test-mobile-reasoning-defaults` |
 | 用户可见 | 原生文件传输：`lib/file-transfer.js`（上游 3.3.1 已删该成员）+ 客户端 `FileDeliveryActions` / `installNativeFileActions` + `/api/dsha/files/{prepare,release}` | 否：上游只剩浏览器分享/下载 | DSHA 原生「保存到 / 分享 / 下载记录 / 图片保存」通道；32 MiB 分享限制与失败回退 | `tools/test-mobile-file-delivery.mjs`（浏览器）、`test-mobile-reasoning-defaults`（服务端闭包） |
@@ -107,8 +125,8 @@ python3 tools/verify-runtime-descriptor-source.py
 ### C 相对纯上游多出的范围（一句话）
 
 纯上游 3.3.1 = 238 个上游文件；C 只多出：服务端 3 模块 + `lib/file-transfer.js`（DSHA 服务端闭包）、
-安全区变量包装、`DSHA_GEAR_FIT_V1`（CSS + JS）、多语言/live-locale 字典与源码补丁、文件传输
-客户端动作。共五处差异，全部有上方理由与回归；其余全部回到上游字节。
+安全区变量包装、`DSHA_GEAR_FIT_V1` + `DSHA_GEAR_SINGLETON_V1`（CSS + JS）、多语言/live-locale
+字典与源码补丁、文件传输客户端动作。共五处差异，全部有上方理由与回归；其余全部回到上游字节。
 
 ### 验证
 

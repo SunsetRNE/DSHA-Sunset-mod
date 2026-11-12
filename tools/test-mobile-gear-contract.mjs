@@ -70,7 +70,12 @@ class FakeElement {
   querySelector() {
     return null;
   }
-  querySelectorAll() {
+  querySelectorAll(selector) {
+    // 目前只有 DSHA_GEAR_SINGLETON_V1 的同行去重会查这个选择器；返回静态数组，
+    // 与真实 DOM 的静态 NodeList 语义一致，删除元素不会打乱遍历。
+    if (selector === '[data-mobile-nav="quick-settings-wrap"]') {
+      return this.children.filter((child) => child.dataset.mobileNav === 'quick-settings-wrap');
+    }
     return [];
   }
   get isConnected() {
@@ -95,7 +100,13 @@ function createHarness() {
     removeEventListener: () => {},
   };
   const sandbox = {console, document, getComputedStyle: (element) => element.computed};
-  sandbox.window = {__ModuleLoader__: {load: ({factory}) => { sandbox.loaded = factory(() => ({})); }}};
+  sandbox.window = {
+    __ModuleLoader__: {load: ({factory}) => { sandbox.loaded = factory(() => ({})); }},
+    setTimeout,
+    clearTimeout,
+    requestAnimationFrame: (run) => setTimeout(run, 0),
+    cancelAnimationFrame: clearTimeout,
+  };
   sandbox.globalThis = sandbox;
   sandbox.setTimeout = setTimeout;
   sandbox.clearTimeout = clearTimeout;
@@ -113,8 +124,9 @@ function createHarness() {
     bind: () => (key) => key,
     subscribe: () => () => {},
   };
-  const task = mod.createDrawerQuickSettingsTask({locale});
-  return {row, task, document, mod, sandbox};
+  const ctx = {locale};
+  const task = mod.createDrawerQuickSettingsTask(ctx);
+  return {row, task, document, mod, sandbox, ctx};
 }
 
 const ROW_SELECTOR = '[class*="sidebarCol"] [class*="triggerRow"]';
@@ -142,6 +154,7 @@ test('产物不再按宿主指示灯是否存在决定齿轮让位', () => {
   assert.ok(!source.includes('[class*="triggerRow"]:has('), '旧的 :has() 连接条守卫仍在产物里');
   assert.match(source, /data-mobile-nav-quick-fit="0"/);
   assert.match(source, /exports\.dshaGearFits = dshaGearFits;/);
+  assert.match(source, /DSHA_GEAR_SINGLETON_V1/);
   assert.match(source, /const keep = trigger !== null && trigger\.getAttribute\('aria-expanded'\) === 'true' && gearVisible;/);
 });
 
@@ -204,4 +217,31 @@ test('重复 ensure 幂等：同一结论不重写属性', () => {
   task.ensure();
   assert.equal(row.children.filter((child) => child === wrap).length, 1, '齿轮被重复注入');
   assert.equal(Object.keys(wrap.dataset).length, before);
+});
+
+test('多个实例同时存活时同一行只保留一颗齿轮（DSHA_GEAR_SINGLETON_V1）', () => {
+  // 2026-11-12 还原后真机出现三颗设置齿轮：页面里同时存活着多个插件任务实例，
+  // 每个实例都有自己的 wrap；这里用同一模块创建两个任务，验证 ensure 会清掉另一颗。
+  const {row, mod, ctx} = createHarness();
+  row.width = 260;
+  row.appendChild(launcher(110));
+  const first = mod.createDrawerQuickSettingsTask(ctx);
+  const second = mod.createDrawerQuickSettingsTask(ctx);
+  const wraps = () => row.children.filter((child) => child.dataset.mobileNav === 'quick-settings-wrap');
+
+  first.ensure();
+  assert.equal(wraps().length, 1);
+  second.ensure();
+  assert.equal(wraps().length, 1, '第二个实例注入后同一行出现了多颗设置齿轮');
+  assert.equal(wraps()[0].parentElement, row);
+
+  // 两个实例交替 ensure 也只能留下一颗（晚到的实例接管）。
+  first.ensure();
+  second.ensure();
+  assert.equal(wraps().length, 1, '交替 ensure 后同一行出现了多颗设置齿轮');
+  assert.equal(wraps()[0].dataset.mobileNavQuickFit, '1');
+
+  first.dispose();
+  second.dispose();
+  assert.equal(wraps().length, 0, 'dispose 后齿轮应清空');
 });

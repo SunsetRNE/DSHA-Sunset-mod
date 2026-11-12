@@ -6061,8 +6061,14 @@ function createDrawerQuickSettingsTask(ctx) {
                     button.title = label;
                 }) ?? null;
             }
-            if (wrap !== null && wrap.parentElement !== target)
-                target.appendChild(wrap);
+            if (wrap !== null) {
+                // DSHA_GEAR_SINGLETON_V1：清掉同一行里其它实例遗留的齿轮。
+                for (const stale of target.querySelectorAll('[data-mobile-nav="quick-settings-wrap"]')) {
+                    if (stale !== wrap) stale.remove();
+                }
+                if (wrap.parentElement !== target)
+                    target.appendChild(wrap);
+            }
             bindRowHook();
             // DSHA_GEAR_FIT_V1：可见性只由实测宽度决定，结论写在插件自己的属性上；
             // 幂等写入（值没变就不写），避免自己的 mutation 再把任务唤醒一轮。

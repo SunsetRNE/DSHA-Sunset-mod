@@ -43,8 +43,9 @@ export function applyMobileClientPatches(bytes) {
   };
   // build336（T101 重做，用户选 C）+ build351（2026-11-09 同步上游 3.3.5）：以上游为基座，
   // client 只保留四类本地差异：
-  //   1) 宿主集成 DSHA_GEAR_FIT_V1：footer 齿轮按实测行宽让位（上游 3.3.5 仍是旧的
-  //      「连接条 :has() 存在性」判据，DSH 0.2.2 首连不渲染指示灯时会判错）；
+  //   1) 宿主集成 DSHA_GEAR_FIT_V1 + DSHA_GEAR_SINGLETON_V1：footer 齿轮按实测行宽让位
+  //      （上游 3.3.5 仍是旧的「连接条 :has() 存在性」判据，DSH 0.2.2 首连不渲染指示灯时会判错），
+  //      并且同一行只保留一颗齿轮（还原 / 热重载 / 重复注册可能让插件同时存在多个实例）；
   //   2) 安全区：applyMobileSafeArea 把 env(safe-area-inset-*) 包成 DSHA 原生发布的变量；
   //   3) 文件传输：applyFileTransferClient（原生 share / save-as / 下载记录与 32 MiB 限制）；
   //   4) 多语言：applyMobileLocaleBundlePatch（zh-Hant/ru/ja/ko/ar/pt/la/fr + live-locale）。
@@ -139,6 +140,24 @@ function createDrawerQuickSettingsTask(ctx) {`);
                 if (wrap.dataset.mobileNavQuickFit !== fit) wrap.dataset.mobileNavQuickFit = fit;
             }
             syncMenuEntry(target, gearVisible);`);
+  // DSHA_GEAR_SINGLETON_V1：同一 triggerRow 只保留一颗齿轮。
+  // 插件可能因页面在还原后热重载、运行时 profile 暂时重复登记或同一模块被重复应用而
+  // 同时存在多个任务实例；每个实例各自持有一个 wrap，全都 append 到同一行时就会看到
+  // 两颗、三颗设置齿轮。这里在每次 ensure 挂载前清掉同一行里其它实例的 wrap，只保留
+  // 本实例这一颗；晚到的实例会接管，页面上始终最多一颗。只动插件自己的
+  // [data-mobile-nav="quick-settings-wrap"]，不碰宿主节点。
+  replace(`            if (wrap !== null && wrap.parentElement !== target)
+                target.appendChild(wrap);
+            bindRowHook();`,
+    `            if (wrap !== null) {
+                // DSHA_GEAR_SINGLETON_V1：清掉同一行里其它实例遗留的齿轮。
+                for (const stale of target.querySelectorAll('[data-mobile-nav="quick-settings-wrap"]')) {
+                    if (stale !== wrap) stale.remove();
+                }
+                if (wrap.parentElement !== target)
+                    target.appendChild(wrap);
+            }
+            bindRowHook();`);
   return applyMobileSafeArea(applyFileTransferClient(applyMobileLocaleBundlePatch(source)));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

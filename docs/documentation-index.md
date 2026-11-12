@@ -79,7 +79,7 @@ build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)
 | 插件安装、系统/用户分层、协议、权限与重启 | [插件操作](plugins.md)、[插件运行与权限](plugin-runtime-and-permissions.md) |
 | 临时内置修复：`file has not been read` 读取提示（上游 #11977）与撤除条件 | [dsh-fs-read-hint](fs-read-hint-plugin.md) |
 | 临时内置修复：glob 跳过嵌套 git 工作树（T45）与撤除条件 | [dsh-fs-search-scope](fs-search-scope-plugin.md) |
-| 内置移动 Web 适配、dsh-web-mobile 上游 3.3.5 与宿主集成最小集（服务端鉴权 / 安全区 / 齿轮几何让位 / 文件传输 / 多语言）；宽屏触屏会话行挤压（上游 3.3.1 已接管） | [移动 Web 适配补丁](web-mobile-patches.md)、[平板会话行挤压（上游 #255）](web-mobile-tablet-rows-20261031.md) |
+| 内置移动 Web 适配、dsh-web-mobile 上游 3.3.5 与宿主集成最小集（服务端鉴权 / 安全区 / 齿轮几何让位 / 齿轮单实例 / 文件传输 / 多语言）；宽屏触屏会话行挤压（上游 3.3.1 已接管） | [移动 Web 适配补丁](web-mobile-patches.md)、[侧栏设置齿轮单实例不变式](mobile-sidebar-settings-gear.md)、[平板会话行挤压（上游 #255）](web-mobile-tablet-rows-20261031.md) |
 | 首次连接提示补丁（T58）：为什么归档、不合并；切页返回黄标的真实行为与再修边界 | [T58 首次连接提示归档](design/first-connect-indicator-20261106/README.md) |
 | PTY/简易终端、WebView/Gecko、桌面UA、PiP | [终端](terminal.md)、[浏览器内核](browser-engines.md)、[画中画](picture-in-picture.md) |
 | 语言锁存、悬浮条、审批和任务通知 | [语言](i18n.md)、[悬浮与通知](overlay-and-notifications.md) |
