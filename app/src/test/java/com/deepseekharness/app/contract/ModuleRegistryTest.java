@@ -12,6 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -459,6 +462,127 @@ public class ModuleRegistryTest {
     AtomicBoolean staleRan = new AtomicBoolean();
     assertFalse(lease.runIfActive(() -> staleRan.set(true)));
     assertFalse(staleRan.get());
+  }
+
+  @Test
+  public void dispatchDoesNotHoldRegistryLockWhileEnteringLease() throws Exception {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    CountDownLatch saving = new CountDownLatch(1);
+    CountDownLatch releaseSave = new CountDownLatch(1);
+    LayoutStore blockingLayout =
+        new LayoutStore() {
+          @Override
+          public LayoutSnapshot load() {
+            return LayoutSnapshot.empty();
+          }
+
+          @Override
+          public void save(LayoutSnapshot snapshot) {
+            saving.countDown();
+            await(releaseSave);
+          }
+        };
+    DiagnosticsSink sink = DiagnosticsSink.forwarding(events::add);
+    ModuleRegistry registry = new ModuleRegistry(blockingLayout, new SafeModeGate(), sink);
+    assertTrue(registry.register(cardsDescriptor(), cardsFactory(new AtomicBoolean())).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease lease = registry.lease(CARDS_ID);
+    assertNotNull(lease);
+    long generation = lease.generation();
+
+    ExecutorService pool = Executors.newCachedThreadPool();
+    CountDownLatch callbackHoldsLease = new CountDownLatch(1);
+    CountDownLatch dispatchStarted = new CountDownLatch(1);
+    try {
+      // 线程 C：持 registry 锁阻塞在布局保存（setContributionHidden 是 synchronized）。
+      Future<?> holder =
+          pool.submit(
+              () -> registry.setContributionHidden("demo.cards#beta", true));
+      assertTrue(saving.await(2, TimeUnit.SECONDS));
+
+      // 线程 B 先排队等 registry 锁。
+      Future<?> dispatcher =
+          pool.submit(
+              () -> {
+                dispatchStarted.countDown();
+                return registry.dispatch(CARDS_ID, generation, () -> {});
+              });
+      assertTrue(dispatchStarted.await(2, TimeUnit.SECONDS));
+      Thread.sleep(150);
+      assertFalse(dispatcher.isDone());
+
+      // 线程 A：拿到租约（空闲）后在回调里回头调用 registry，被 C 的锁挡住。
+      // 旧实现（dispatch 持 registry 锁再等 lease）在派发者拿到锁后会与 A 形成死锁。
+      Future<?> callback =
+          pool.submit(
+              () ->
+                  lease.runIfActive(
+                      () -> {
+                        callbackHoldsLease.countDown();
+                        registry.contributions();
+                      }));
+      assertTrue(callbackHoldsLease.await(2, TimeUnit.SECONDS));
+
+      releaseSave.countDown();
+      holder.get(5, TimeUnit.SECONDS);
+      dispatcher.get(5, TimeUnit.SECONDS);
+      callback.get(5, TimeUnit.SECONDS);
+      assertTrue(lease.active());
+    } finally {
+      releaseSave.countDown();
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void closeCleanupContinuesWhenDiagnosticsThrowsDuringCloseFailure() {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    DiagnosticsSink throwing =
+        DiagnosticsSink.forwarding(
+            event -> {
+              if (ContractCodes.MODULE_CLOSE_FAILED.equals(event.code()))
+                throw new AssertionError("diagnostic downstream boom");
+              events.add(event);
+            });
+    ModuleRegistry registry =
+        new ModuleRegistry(
+            new SharedPreferencesLayoutStore(preferences, DiagnosticsSink.discarding()),
+            new SafeModeGate(),
+            throwing);
+    ModuleFactory factory =
+        () ->
+            new ModuleInstance() {
+              private final List<Contribution> contributions =
+                  List.of(
+                      Contribution.card(CARDS_ID, "beta", "卡片 B", "Card B", 10),
+                      Contribution.route(CARDS_ID, "page", "页面", "Page", 20, "app.page"));
+
+              @Override
+              public List<Contribution> contributions() {
+                return contributions;
+              }
+
+              @Override
+              public void close(CloseReason reason) {
+                throw new IllegalStateException("close boom");
+              }
+            };
+
+    assertTrue(registry.register(cardsDescriptor(), factory).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+
+    // 诊断下游的二次异常不得中断贡献/路由撤销，也不得掩盖 close 的类型化结果。
+    ContractResult closed = registry.close(CARDS_ID, CloseReason.HOST_CLOSE);
+    assertTrue(closed.rejected());
+    assertEquals(ContractCodes.MODULE_CLOSE_FAILED, closed.code());
+    assertTrue(registry.contributions().isEmpty());
+    assertTrue(registry.resolveRoute("demo.cards#page").hostFallback());
+    assertTrue(ContractTestSupport.hasEvent(events, ContractCodes.MODULE_DISABLED));
+    assertTrue(registry.close(CARDS_ID, CloseReason.HOST_CLOSE).accepted());
   }
 
   private static void await(CountDownLatch latch) {

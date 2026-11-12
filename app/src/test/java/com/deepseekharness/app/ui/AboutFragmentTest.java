@@ -133,15 +133,27 @@ public final class AboutFragmentTest {
   public void hiddenAboutCardKeepsHostLicenseRows() throws Exception {
     List<AboutLicenses.Entry> entries = bundledLicenses();
     ModuleRegistry registry = BuiltinModules.ensureRegistered(RuntimeEnvironment.getApplication());
-    assertTrue(
-        "隐藏内置卡片失败",
-        registry.setContributionHidden(BuiltinModules.ABOUT_CONTRIBUTION_KEY, true).accepted());
+    boolean wasHidden =
+        registry.contributions().stream()
+            .anyMatch(
+                contribution ->
+                    BuiltinModules.ABOUT_CONTRIBUTION_KEY.equals(contribution.key())
+                        && contribution.hidden());
+    // 注册表按 Application 的 SharedPreferences 实例缓存；隐藏态属于持久布局，测试必须恢复，
+    // 否则同一 JVM 内后续用例会继承「卡片已隐藏」，把测试隔离问题误报成页面缺陷。
+    try {
+      assertTrue(
+          "隐藏内置卡片失败",
+          registry.setContributionHidden(BuiltinModules.ABOUT_CONTRIBUTION_KEY, true).accepted());
 
-    View root = showAbout().requireView();
-    for (AboutLicenses.Entry entry : entries) {
-      View label = findByText(root, entry.displayName());
-      assertNotNull("卡片隐藏后仍应渲染法定许可行：" + entry.assetName(), label);
-      assertNotNull("卡片隐藏后许可行仍应可点击：" + entry.assetName(), clickableAncestor(label));
+      View root = showAbout().requireView();
+      for (AboutLicenses.Entry entry : entries) {
+        View label = findByText(root, entry.displayName());
+        assertNotNull("卡片隐藏后仍应渲染法定许可行：" + entry.assetName(), label);
+        assertNotNull("卡片隐藏后许可行仍应可点击：" + entry.assetName(), clickableAncestor(label));
+      }
+    } finally {
+      registry.setContributionHidden(BuiltinModules.ABOUT_CONTRIBUTION_KEY, wasHidden);
     }
   }
 

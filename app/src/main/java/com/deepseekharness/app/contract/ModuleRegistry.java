@@ -181,23 +181,36 @@ public final class ModuleRegistry {
 
     ModuleInstance.CloseReason actualReason =
         reason == null ? ModuleInstance.CloseReason.HOST_CLOSE : reason;
-    Throwable closeFailure = null;
+    // 清理不可逃避：close 抛异常/Error、或某个贡献撤销失败，都必须继续撤销其余贡献。
+    // 每个失败各自捕获并保留第一个；诊断是尽力而为，不得中断清理。
+    Throwable failure = null;
     try {
       instance.close(actualReason);
     } catch (Throwable error) {
-      closeFailure = error;
-      diagnostics.report(
+      failure = error;
+      reportQuietly(
           ContractCodes.MODULE_CLOSE_FAILED,
           "module close failed: " + id + " (" + error.getClass().getSimpleName() + ")");
-    } finally {
-      // 清理不可逃避：close 抛异常/Error 也必须撤销贡献与路由。
-      revokeContributions(entry.contributions);
-      entry.contributions = List.of();
-      diagnostics.report(
-          ContractCodes.MODULE_DISABLED, "module closed: " + id + " (" + actualReason + ")");
     }
-    if (closeFailure instanceof Error error) throw error;
-    return closeFailure == null
+    for (Contribution contribution : entry.contributions) {
+      try {
+        revokeContribution(contribution);
+      } catch (Throwable error) {
+        if (failure == null) failure = error;
+        reportQuietly(
+            ContractCodes.MODULE_CLOSE_FAILED,
+            "module contribution cleanup failed: "
+                + id
+                + " ("
+                + error.getClass().getSimpleName()
+                + ")");
+      }
+    }
+    entry.contributions = List.of();
+    reportQuietly(
+        ContractCodes.MODULE_DISABLED, "module closed: " + id + " (" + actualReason + ")");
+    if (failure instanceof Error error) throw error;
+    return failure == null
         ? ContractResult.ok()
         : ContractResult.rejected(ContractCodes.MODULE_CLOSE_FAILED);
   }
@@ -292,24 +305,29 @@ public final class ModuleRegistry {
   }
 
   /** 宿主回调入口；旧 generation 一律丢弃并诊断，不补发、不重放。 */
-  public synchronized ContractResult dispatch(
-      ModuleId id, long callbackGeneration, Runnable callback) {
-    Entry entry = modules.get(id);
-    if (entry == null) {
-      diagnostics.report(ContractCodes.MODULE_UNKNOWN, "dispatch unknown module: " + id);
-      return ContractResult.rejected(ContractCodes.MODULE_UNKNOWN);
+  public ContractResult dispatch(ModuleId id, long callbackGeneration, Runnable callback) {
+    GenerationLease lease;
+    synchronized (this) {
+      Entry entry = modules.get(id);
+      if (entry == null) {
+        diagnostics.report(ContractCodes.MODULE_UNKNOWN, "dispatch unknown module: " + id);
+        return ContractResult.rejected(ContractCodes.MODULE_UNKNOWN);
+      }
+      if (callback == null) {
+        diagnostics.report(ContractCodes.INVALID_CALLBACK, "dispatch requires callback: " + id);
+        return ContractResult.rejected(ContractCodes.INVALID_CALLBACK);
+      }
+      lease = entry.lease;
+      if (lease == null || !lease.active() || lease.generation() != callbackGeneration) {
+        diagnostics.report(
+            ContractCodes.STALE_GENERATION,
+            "stale callback generation for " + id + ": " + callbackGeneration);
+        return ContractResult.rejected(ContractCodes.STALE_GENERATION);
+      }
     }
-    if (callback == null) {
-      diagnostics.report(ContractCodes.INVALID_CALLBACK, "dispatch requires callback: " + id);
-      return ContractResult.rejected(ContractCodes.INVALID_CALLBACK);
-    }
-    GenerationLease lease = entry.lease;
-    if (lease == null || !lease.active() || lease.generation() != callbackGeneration) {
-      diagnostics.report(
-          ContractCodes.STALE_GENERATION,
-          "stale callback generation for " + id + ": " + callbackGeneration);
-      return ContractResult.rejected(ContractCodes.STALE_GENERATION);
-    }
+    // 必须在 registry 锁外进入租约：runIfActive 会拿 lease 锁并执行模块回调，而回调可能
+    // 回头调用 registry。若持 registry 锁等待 lease，就与「lease→registry」的路径形成环。
+    // 释放锁后 close 可能已使租约失效，runIfActive 的 active 复检会把这次回调按旧代次拒绝。
     if (!lease.runIfActive(callback)) {
       if (!lease.active()) {
         diagnostics.report(
@@ -342,17 +360,31 @@ public final class ModuleRegistry {
   }
 
   private void revokeContributions(List<Contribution> contributions) {
-    for (Contribution contribution : contributions) {
-      String key = contribution.globalKey();
-      if (catalog.contains(key)) catalog.revoke(key);
-      if (routes.contains(key)) routes.revoke(key);
-    }
+    for (Contribution contribution : contributions) revokeContribution(contribution);
+  }
+
+  private void revokeContribution(Contribution contribution) {
+    String key = contribution.globalKey();
+    if (catalog.contains(key)) catalog.revoke(key);
+    if (routes.contains(key)) routes.revoke(key);
   }
 
   private void revokeKeys(List<String> keys) {
     for (String key : keys) {
       if (catalog.contains(key)) catalog.revoke(key);
       if (routes.contains(key)) routes.revoke(key);
+    }
+  }
+
+  /**
+   * 诊断是脱敏出口，不是生命周期步骤：下游故障（含 Error）不得中断关闭清理。
+   * 这里吞掉所有异常；调用方仍保留并上报真正的 close/cleanup 失败。
+   */
+  private void reportQuietly(String code, String detail) {
+    try {
+      diagnostics.report(code, detail);
+    } catch (Throwable ignored) {
+      // DiagnosticsSink 已自行吞掉下游 RuntimeException；这里只兜住 Error。
     }
   }
 
