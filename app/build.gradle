@@ -277,6 +277,10 @@ android {
         main.assets.setSrcDirs([layout.buildDirectory.dir("generated/standardAssets").get().asFile,
                 layout.buildDirectory.dir("generated/recoveryAssets").get().asFile])
         main.java.srcDir(layout.buildDirectory.dir("generated/uiLanguage").get().asFile)
+        // Rust 旁路产物只从注入目录打包（CI 的 rust-native 或本地 prebuilt），.so 不入库；
+        // 该目录不存在时 APK 内容与之前一致，R0 不接 build-unsigned 的 APK 打包。
+        // 目录结构固定为 app/build/rust-jniLibs/arm64-v8a/libdsha_rs.so。
+        main.jniLibs.srcDir(layout.buildDirectory.dir("rust-jniLibs").get().asFile)
         // Both browser test entry points load one test-only HTML fixture.
         debug.assets.srcDir(rootProject.file("tools/fixtures/web-state"))
         androidTest.assets.srcDir(rootProject.file("tools/fixtures/web-state"))
