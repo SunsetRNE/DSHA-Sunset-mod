@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "dshVersion": "0.2.1-rc.5",
+  "active": [
+    {
+      "asset": "plugin-manager-policy-patch.json"
+    },
+    {
+      "asset": "plugin-pnpm-argv-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_PNPM_ARGV_V3"
+      ]
+    },
+    {
+      "asset": "retired-market-catalog-patch.json",
+      "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
+      "markers": [
+        "DSHA_RETIRED_MARKET_CATALOG_V1"
+      ]
+    },
+    {
+      "asset": "auto-review-native-disabled-patch.json",
+      "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
+      "markers": [
+        "DSHA_AUTO_REVIEW_NATIVE_DISABLED_V1"
+      ]
+    },
+    {
+      "asset": "plugin-manager-entries-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_LIST_ENTRIES_ONLY_V1"
+      ]
+    },
+    {
+      "asset": "plugin-bundle-proof-workers-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"
+      ]
+    }
+  ],
+  "specialized": [],
+  "retired": []
+}

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "kind": "retained-official-npm-canonical-source",
+  "description": "Exact official 0.2.1-rc.2 web-search module retained for historical input checks. Not a runtime input.",
+  "dshVersion": "0.2.1-rc.2",
+  "module": "@deepseek-ai/dsh-web-search-deepseek/lib/index.js",
+  "sha256": "fc13dd4eaba3c9298af41a4d0559a1b8bb61614462fe18ba6e76d8c598c332bd",
+  "packageVersion": "0.2.1-rc.2",
+  "packageIntegrity": "sha512-1RkLY8uYawWOOrEWPCg7eemvA7T/bPXDJOdHsqhsDwejjZdv496G01hKf/W+T8twdUt8gnx5G19h06R499DoGA==",
+  "packageResolved": "https://registry.npmjs.org/@deepseek-ai/dsh-web-search-deepseek/-/dsh-web-search-deepseek-0.2.1-rc.2.tgz"
+}

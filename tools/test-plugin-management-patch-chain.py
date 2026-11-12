@@ -29,6 +29,11 @@ PRE_WORKER_SHA = '1eb661c0f36bcc5dcf47570f0c09ae26215bcf449031f218bc32bf6dc98a3d
 # Canonical-dependent: the earlier value above was derived on 0.2.1-rc.5. Pin the
 # current generation separately instead of asserting one hash across generations.
 CURRENT_PRE_WORKER_SHA = '69ec30f2e69553b2ee3010af80d9d4887b90812588af7abbf8b13f2a1a3aa0ba'
+# Retained 0.2.1-rc.5 generation: canonical module + that generation's recipe set,
+# so the historical V1 negative control runs on real bytes instead of being skipped.
+HISTORICAL_VERSION = '0.2.1-rc.5'
+HISTORICAL_CANONICAL_SHA = '1b8bf9eb266d7b3b7f899175e3f435c89ed8baa8aabc677212759f8c6cd23132'
+DEFAULT_HISTORICAL_ROOT = ROOT / 'tools/fixtures/plugin-management-rc5-historical'
 MANAGER = '@deepseek-ai/dsh-plugin-manager/lib/index.js'
 NEW_RECIPES = {WORKER, 'plugin-inventory-management-patch.json',
                'plugin-manager-management-probe-patch.json',
@@ -94,19 +99,13 @@ public final class PluginManagementChainFixture {
         restores.set(0);
         require(ManagedPatchChain.apply(pre,chain,()->{restores.incrementAndGet();return expected;}).equals(expected),"pre-worker upgrade differs");
         require(restores.get()==0,"pre-worker unexpectedly needed canonical");
-        if (Files.exists(module.resolve("old-worker.js"))) {
-          String old=Files.readString(module.resolve("old-worker.js"));
-          var historical=chain(module,"historical-chain");
-          require(ManagedPatchChain.apply(canonical,historical,()->{throw new AssertionError("old fresh restored");}).equals(old),"historical V1 module identity");
-          mustFail(old,historical,old,"PATCH_CHAIN_MISMATCH");
-          restores.set(0);
-          require(ManagedPatchChain.apply(old,chain,()->{restores.incrementAndGet();return expected;}).equals(expected),"broken V1 upgrade differs");
-          require(restores.get()==1,"broken V1 must restore whole current managed canonical once");
-          mustFail(old,chain,old,"PATCH_CHAIN_MISMATCH");
-          System.out.println("PASS_WORKER_UPGRADE historical-negative/pre-worker/V1/canonical-failclosed");
-        } else {
-          System.out.println("HISTORICAL_REPLAY_SKIPPED pre-worker-only; archived rc.x chain/canonical not provided");
-        }
+        String hc=Files.readString(module.resolve("historical-canonical.js"));
+        String ho=Files.readString(module.resolve("historical-old.js"));
+        var historical=chain(module,"historical-chain");
+        require(ManagedPatchChain.apply(hc,historical,()->{throw new AssertionError("historical canonical unexpectedly restored");}).equals(ho),"historical V1 module identity");
+        mustFail(ho,historical,ho,"PATCH_CHAIN_MISMATCH");
+        mustFail(ho,chain,ho,"PATCH_CHAIN_MISMATCH");
+        System.out.println("PASS_HISTORICAL_RECONSTRUCTION negative-failclosed; cross-generation upgrade intentionally not asserted");
       }
       System.out.println("PASS_CHAIN fresh/repeat/managed-canonical/failclosed "+name);
     }
@@ -140,6 +139,8 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--expect-broken-current', action='store_true')
     parser.add_argument('--apk', type=Path, help='add exact APK managed archive admission (read only)')
+    parser.add_argument('--historical-root', type=Path, default=DEFAULT_HISTORICAL_ROOT,
+                        help='retained 0.2.1-rc.5 canonical + recipe set for historical V1 replay')
     args = parser.parse_args()
     if sys.flags.optimize:
         raise RuntimeError('TEST_ASSERTIONS_REQUIRE_UNOPTIMIZED_PYTHON')
@@ -191,12 +192,42 @@ def main():
             pre_chain = [row for row in chain if row[0] not in {WORKER, 'plugin-pnpm-argv-patch.json'}]
             pre = runtime_stable_patches.apply(canonical, pre_chain)
             assert sha(pre) == CURRENT_PRE_WORKER_SHA, 'pre-worker current-generation identity'
-            # Historical V1 replay needs the archived chain of that generation; the
-            # rc2 V1 recipe cannot be applied to the current canonical (anchors differ).
-            historical_row = (WORKER, [(item['before'], item['after']) for item in historical['patches']], ['DSHA_PLUGIN_BUNDLE_READ_WORKERS_V1'])
-            write_chain(directory / 'historical-chain', pre_chain + [historical_row])
             (directory / 'pre-worker.js').write_bytes(pre)
-        records.append({'module': module, 'canonicalSha256': sha(canonical), 'currentSha256': sha(expected), 'recipes': [row[0] for row in chain]})
+            hroot = args.historical_root
+            if not (hroot / 'assets' / 'runtime-patches.json').is_file() or not (hroot / 'canonical.js').is_file():
+                print(json.dumps({'status': 'BLOCKED', 'reason': 'HISTORICAL_BUNDLE_MISSING', 'root': str(hroot)}))
+                return 2
+            historical_chains, _ = runtime_stable_patches.load_chains(hroot / 'assets', HISTORICAL_VERSION)
+            historical_chain = historical_chains[MANAGER]
+            historical_canonical = (hroot / 'canonical.js').read_bytes()
+            assert sha(historical_canonical) == HISTORICAL_CANONICAL_SHA, 'historical canonical identity'
+            historical_pre_chain = [row for row in historical_chain if row[0] not in {WORKER, 'plugin-pnpm-argv-patch.json'}]
+            historical_pre = runtime_stable_patches.apply(historical_canonical, historical_pre_chain)
+            assert sha(historical_pre) == PRE_WORKER_SHA, 'historical pre-worker identity'
+            historical_row = (WORKER, [(item['before'], item['after']) for item in historical['patches']], ['DSHA_PLUGIN_BUNDLE_READ_WORKERS_V1'])
+            historical_old = runtime_stable_patches.apply(historical_canonical, historical_pre_chain + [historical_row])
+            assert sha(historical_old) == OLD_MODULE_SHA, 'historical V1 module identity'
+            try:
+                runtime_stable_patches.apply(historical_old, historical_chain)
+                raise AssertionError('historical chain reapplied to old V1')
+            except ValueError:
+                pass
+            try:
+                runtime_stable_patches.apply(historical_old, chain)
+                raise AssertionError('current chain silently accepted rc5 V1')
+            except ValueError:
+                pass
+            (directory / 'historical-canonical.js').write_bytes(historical_canonical)
+            (directory / 'historical-old.js').write_bytes(historical_old)
+            write_chain(directory / 'historical-chain', historical_pre_chain + [historical_row])
+            records_extra = {'historicalVersion': HISTORICAL_VERSION,
+                             'historicalReconstruction': 'PASS',
+                             'historicalReapply': 'REJECTED',
+                             'crossGenerationUpgrade': 'REJECTED_BY_DESIGN'}
+        record = {'module': module, 'canonicalSha256': sha(canonical), 'currentSha256': sha(expected), 'recipes': [row[0] for row in chain]}
+        if module == MANAGER:
+            record.update(records_extra)
+        records.append(record)
     if archive:
         archive.close()
     assert len(names) == 6

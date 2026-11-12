@@ -193,6 +193,24 @@ modules 46 / ok 46 / bad 0
 
 **仍未做**：历史 V1 的完整 replay 需要该代次（rc.2/rc.5）的**存档链 + canonical**；目前仓库只有 rc.2 的 V1 配方，没有当时的完整前序链。要真正 replay，需要按 §6 第 2 条补历史 canonical 与链快照。
 
+## 8. 对审查意见的逐条修复（v3，REQUEST_CHANGES 回应）
+
+| 审查意见 | 修复 | 验证 |
+|---|---|---|
+| plugin：删除 old-worker 生成、历史断言必跳，不能以 PASS 计数 | 新增 `tools/fixtures/plugin-management-rc5-historical/`：0.2.1-rc.5 canonical（sha256 `1b8bf9eb…`，npm integrity `sha512-VRfu…`）+ 该代 recipe 子集（`00c3821d` 提取）+ provenance。测试真实重建 pre/old（`1eb661c0…`/`8043321a…`），Java 执行历史重建、重复应用拒绝、当前链跨代检查 | 重建 PASS；`historicalReapply: REJECTED`；`crossGenerationUpgrade: REJECTED_BY_DESIGN` |
+| web-search：无 APK 时把当前 pre 标成 old191 | 新增 `tools/fixtures/web-search-rc2/index.js`（`fc13dd4e…`，rc.2 npm integrity `sha512-1RkLY8…`）；默认作为历史输入；`official.js / current-pre.js / expected.js` 与 `old-rc2.js` 分开命名、分开报告 | `historicalOldModuleSha256: fc13dd4e…`；`historicalOldAcceptedByCurrentChain: false`；`crossGenerationResult: APPLIED_BUT_DIFFERS` |
+| welcome：新增文件未进补丁、cp 后文件名不对 | 补丁改为 `92acaa04..HEAD` 的 `git diff --binary`，包含全部新增文件；README 不再要求手工复制改名 | 在 `92acaa04` 干净工作树 `git apply --check` → APPLY_CHECK_OK，应用后三个夹具文件存在且摘要正确 |
+
+**验收口径（与审查一致）**：
+
+- `46/46` 只是**当前代次**生产链可应用证据，不是历史升级链全部通过。
+- plugin 历史用例现在**真实执行**（不再 SKIPPED）；`cross-generation upgrade` 明确为 `REJECTED_BY_DESIGN`（当前链只做单步准入，rc.5 旧模块不会被静默接受）。
+- web-search 跨代应用若成功但与 expected 不同，记 `APPLIED_BUT_DIFFERS`，不按 PASS 接受。
+- 缺历史输入时测试以退出码 2 返回 `BLOCKED`，不会计 PASS。
+- 逐 case 报告输入/输出摘要、恢复次数、拒绝负控与未覆盖范围（构建/真机未做）。
+
+**仍未覆盖**：跨代"恢复 canonical 恰一次并产出当前 expected"无法在不改变单步链语义的前提下断言；如需支持，应作为跨代迁移的独立设计评审，而不是测试修补。
+
 ## 附录：本次环境与产物
 
 | 项 | 值 |

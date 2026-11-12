@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "kind": "retained-historical-generation",
+  "description": "0.2.1-rc.5 canonical plugin-manager module plus that generation's plugin-manager recipe chain, retained only for historical V1 reconstruction. Not a runtime input.",
+  "dshVersion": "0.2.1-rc.5",
+  "generationCommit": "00c3821d5d84b9ae1b9845167bcc01d4e441062d",
+  "canonical": {
+    "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
+    "sha256": "1b8bf9eb266d7b3b7f899175e3f435c89ed8baa8aabc677212759f8c6cd23132",
+    "packageVersion": "0.2.1-rc.5",
+    "packageIntegrity": "sha512-VRfuEhPcZLh+ASO8WLEulShvNKZ0GvZquiO8/AzfFNnublSiEGKdZZU7j7R4+on16IbJtoUthYz1Re6QpoBepw==",
+    "packageResolved": "https://registry.npmjs.org/@deepseek-ai/dsh-plugin-manager/-/dsh-plugin-manager-0.2.1-rc.5.tgz"
+  },
+  "expected": {
+    "preWorkerSha256": "1eb661c0f36bcc5dcf47570f0c09ae26215bcf449031f218bc32bf6dc98a3d85",
+    "oldV1ModuleSha256": "8043321a15a77b0559a03165b253bf366ea04abc4397a808828d083e9c5d87ea"
+  },
+  "assets": "assets/runtime-patches.json + 6 plugin-manager recipes, extracted from app/src/main/assets at generationCommit"
+}
