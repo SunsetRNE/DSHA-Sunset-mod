@@ -68,7 +68,8 @@ public class SafLedgerCodecTest {
 
   @Test
   public void unknownKeysAndFutureFieldsArePreserved() {
-    Map<String, Object> raw = new LinkedHashMap<>(SafLedgerCodec.encode(oneGrant(SafGrantRecord.READ)));
+    Map<String, Object> raw =
+        new LinkedHashMap<>(SafLedgerCodec.encode(oneGrant(SafGrantRecord.READ)));
     raw.put("future.top", "value");
     String id = SafGrantRecord.idOf(URI);
     raw.put("grant." + id + ".futureField", "value2");
@@ -98,7 +99,8 @@ public class SafLedgerCodecTest {
 
   @Test
   public void corruptScalarsFallBackToSafeDefaults() {
-    Map<String, Object> raw = new LinkedHashMap<>(SafLedgerCodec.encode(oneGrant(SafGrantRecord.READ)));
+    Map<String, Object> raw =
+        new LinkedHashMap<>(SafLedgerCodec.encode(oneGrant(SafGrantRecord.READ)));
     raw.put(SafLedgerCodec.PREF_REVISION, "not-a-number");
     raw.put(SafLedgerCodec.PREF_NEXT_EPOCH, "-5");
     String prefix = SafLedgerCodec.PREF_GRANT_PREFIX + SafGrantRecord.idOf(URI) + ".";
@@ -134,19 +136,18 @@ public class SafLedgerCodecTest {
     raw.put(SafLedgerCodec.PREF_SCHEMA, "1");
     raw.put(
         SafLedgerCodec.PREF_IDS,
-        new LinkedHashSet<>(List.of(invalidUri, mismatched, documentsId, badState, "cccccccccccc")));
+        new LinkedHashSet<>(
+            List.of(invalidUri, mismatched, documentsId, badState, "cccccccccccc")));
     raw.put(
         SafLedgerCodec.PREF_GRANT_PREFIX + invalidUri + "." + SafLedgerCodec.FIELD_URI,
         "https://example.com/tree/x");
     raw.put(
-        SafLedgerCodec.PREF_GRANT_PREFIX + invalidUri + "." + SafLedgerCodec.FIELD_STATE,
-        "ACTIVE");
+        SafLedgerCodec.PREF_GRANT_PREFIX + invalidUri + "." + SafLedgerCodec.FIELD_STATE, "ACTIVE");
     raw.put(
         SafLedgerCodec.PREF_GRANT_PREFIX + mismatched + "." + SafLedgerCodec.FIELD_URI,
         SafTestSupport.DOCUMENTS);
     raw.put(
-        SafLedgerCodec.PREF_GRANT_PREFIX + mismatched + "." + SafLedgerCodec.FIELD_STATE,
-        "ACTIVE");
+        SafLedgerCodec.PREF_GRANT_PREFIX + mismatched + "." + SafLedgerCodec.FIELD_STATE, "ACTIVE");
     raw.put(
         SafLedgerCodec.PREF_GRANT_PREFIX + documentsId + "." + SafLedgerCodec.FIELD_URI,
         SafTestSupport.DOCUMENTS);
@@ -157,8 +158,7 @@ public class SafLedgerCodecTest {
         SafLedgerCodec.PREF_GRANT_PREFIX + badState + "." + SafLedgerCodec.FIELD_URI,
         "content://x.documents/tree/badstate");
     raw.put(
-        SafLedgerCodec.PREF_GRANT_PREFIX + badState + "." + SafLedgerCodec.FIELD_STATE,
-        "ACTIVE");
+        SafLedgerCodec.PREF_GRANT_PREFIX + badState + "." + SafLedgerCodec.FIELD_STATE, "ACTIVE");
 
     SafLedgerCodec.Decoded decoded = SafLedgerCodec.decode(raw);
 
@@ -172,7 +172,8 @@ public class SafLedgerCodecTest {
 
   @Test
   public void invalidIdsIndexIsRecoveredFromRecordKeys() {
-    Map<String, Object> raw = new LinkedHashMap<>(SafLedgerCodec.encode(oneGrant(SafGrantRecord.READ)));
+    Map<String, Object> raw =
+        new LinkedHashMap<>(SafLedgerCodec.encode(oneGrant(SafGrantRecord.READ)));
     raw.put(SafLedgerCodec.PREF_IDS, 42);
 
     SafLedgerCodec.Decoded decoded = SafLedgerCodec.decode(raw);

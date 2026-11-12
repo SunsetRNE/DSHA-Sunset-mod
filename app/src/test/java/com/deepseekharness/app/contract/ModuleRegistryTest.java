@@ -497,9 +497,7 @@ public class ModuleRegistryTest {
     CountDownLatch dispatchStarted = new CountDownLatch(1);
     try {
       // 线程 C：持 registry 锁阻塞在布局保存（setContributionHidden 是 synchronized）。
-      Future<?> holder =
-          pool.submit(
-              () -> registry.setContributionHidden("demo.cards#beta", true));
+      Future<?> holder = pool.submit(() -> registry.setContributionHidden("demo.cards#beta", true));
       assertTrue(saving.await(2, TimeUnit.SECONDS));
 
       // 线程 B 先排队等 registry 锁。

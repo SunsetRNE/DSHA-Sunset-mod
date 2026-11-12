@@ -22,8 +22,7 @@ import java.util.regex.Pattern;
  * 授权的文件夹里存在凭据副本。见 docs/security-model.md。
  */
 public final class SafCapabilityPolicy {
-  private static final Pattern AUTHORITY =
-      Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,254}");
+  private static final Pattern AUTHORITY = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,254}");
 
   public static final String LOCAL_NOT_ABSOLUTE = "LOCAL_NOT_ABSOLUTE";
   public static final String LOCAL_CREDENTIAL = "LOCAL_CREDENTIAL";

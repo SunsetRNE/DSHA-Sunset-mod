@@ -24,11 +24,9 @@ public class SafCapabilityPolicyTest {
         SafCapabilityPolicy.treeUriProblem(
             SafTestSupport.OWN_PROVIDER, SafTestSupport.OWN_AUTHORITY));
     assertEquals(
-        SafCapabilityPolicy.TreeUri.MISSING,
-        SafCapabilityPolicy.treeUriProblem(null, null));
+        SafCapabilityPolicy.TreeUri.MISSING, SafCapabilityPolicy.treeUriProblem(null, null));
     assertEquals(
-        SafCapabilityPolicy.TreeUri.MISSING,
-        SafCapabilityPolicy.treeUriProblem("   ", null));
+        SafCapabilityPolicy.TreeUri.MISSING, SafCapabilityPolicy.treeUriProblem("   ", null));
     assertEquals(
         SafCapabilityPolicy.TreeUri.NOT_CONTENT,
         SafCapabilityPolicy.treeUriProblem("https://example.com/tree/x", null));
@@ -124,8 +122,7 @@ public class SafCapabilityPolicyTest {
   @Test
   public void limitsAreInclusiveAtTheDocumentedBoundary() {
     assertNull(SafCapabilityLimits.readProblem(0, SafCapabilityLimits.MAX_READ_BYTES));
-    assertEquals(
-        SafCapabilityLimits.OFFSET_INVALID, SafCapabilityLimits.readProblem(-1, 1));
+    assertEquals(SafCapabilityLimits.OFFSET_INVALID, SafCapabilityLimits.readProblem(-1, 1));
     assertEquals(SafCapabilityLimits.MAX_INVALID, SafCapabilityLimits.readProblem(0, 0));
     assertEquals(
         SafCapabilityLimits.MAX_TOO_LARGE,
@@ -153,8 +150,7 @@ public class SafCapabilityPolicyTest {
         SafCapabilityLimits.PATH_TOO_DEEP,
         SafCapabilityLimits.pathSegmentProblem(SafCapabilityLimits.MAX_PATH_SEGMENTS + 1));
 
-    assertNull(
-        SafCapabilityLimits.uriProblem("a".repeat(SafCapabilityLimits.MAX_URI_LENGTH)));
+    assertNull(SafCapabilityLimits.uriProblem("a".repeat(SafCapabilityLimits.MAX_URI_LENGTH)));
     assertEquals(
         SafCapabilityLimits.URI_TOO_LONG,
         SafCapabilityLimits.uriProblem("a".repeat(SafCapabilityLimits.MAX_URI_LENGTH + 1)));

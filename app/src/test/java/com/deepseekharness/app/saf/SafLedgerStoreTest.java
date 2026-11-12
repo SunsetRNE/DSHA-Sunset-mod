@@ -35,7 +35,8 @@ public class SafLedgerStoreTest {
                 SafGrantRecord.READ | SafGrantRecord.WRITE,
                 1_000L)
             .ledger
-            .commitTake(URI, SafGrantRecord.READ | SafGrantRecord.WRITE, SafGrantRecord.WRITE, true, 2_000L)
+            .commitTake(
+                URI, SafGrantRecord.READ | SafGrantRecord.WRITE, SafGrantRecord.WRITE, true, 2_000L)
             .ledger;
 
     assertTrue(store.save(ledger));

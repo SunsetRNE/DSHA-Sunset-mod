@@ -32,8 +32,10 @@ public record SafGrantRecord(
 
   /** 系统读位。 */
   public static final int READ = 1;
+
   /** 系统写位。 */
   public static final int WRITE = 2;
+
   /** 短 id 的十六进制长度；与桥 {@code /app/saf/trees} 的 id 保持一致。 */
   public static final int ID_LENGTH = 12;
 
@@ -97,8 +99,7 @@ public record SafGrantRecord(
     if (uri == null) return "";
     try {
       byte[] hash =
-          MessageDigest.getInstance("SHA-256")
-              .digest(uri.getBytes(StandardCharsets.UTF_8));
+          MessageDigest.getInstance("SHA-256").digest(uri.getBytes(StandardCharsets.UTF_8));
       StringBuilder out = new StringBuilder(ID_LENGTH);
       for (int i = 0; i < ID_LENGTH / 2; i++)
         out.append(String.format(Locale.ROOT, "%02x", hash[i]));

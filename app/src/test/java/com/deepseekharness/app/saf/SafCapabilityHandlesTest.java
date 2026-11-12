@@ -28,13 +28,11 @@ public class SafCapabilityHandlesTest {
         handles.issue(null, ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).result);
     assertEquals(
         SafCapabilityHandles.Result.UNKNOWN,
-        handles
-            .issue(SafGrantLedger.empty(), ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L)
+        handles.issue(SafGrantLedger.empty(), ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L)
             .result);
     assertEquals(
         SafCapabilityHandles.Result.REVOKED,
-        handles
-            .issue(
+        handles.issue(
                 SafTestSupport.ledger(SafTestSupport.pending(URI, 1)),
                 ID,
                 SafCapabilityHandles.Operation.READ,
@@ -62,8 +60,7 @@ public class SafCapabilityHandlesTest {
             1);
     assertEquals(
         SafCapabilityHandles.Result.NOT_PERMITTED,
-        handles
-            .issue(
+        handles.issue(
                 SafTestSupport.ledger(noUserWrite),
                 ID,
                 SafCapabilityHandles.Operation.DELETE,
@@ -72,8 +69,7 @@ public class SafCapabilityHandlesTest {
             .result);
     assertEquals(
         SafCapabilityHandles.Result.REVOKED,
-        handles
-            .issue(
+        handles.issue(
                 SafTestSupport.ledger(SafTestSupport.active(URI, 1, 0)),
                 ID,
                 SafCapabilityHandles.Operation.READ,
@@ -112,8 +108,7 @@ public class SafCapabilityHandlesTest {
     SafCapabilityHandles handles = SafTestSupport.fixedHandles();
     SafGrantLedger ledger = ledger(SafGrantRecord.READ);
     String token =
-        handles
-            .issue(ledger, ID, SafCapabilityHandles.Operation.READ, "files/report.txt", 1_000L)
+        handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, "files/report.txt", 1_000L)
             .token;
 
     assertEquals(
@@ -159,7 +154,8 @@ public class SafCapabilityHandlesTest {
   public void userWritePreferenceAndSystemFlagsAreRecheckedAtUseTime() {
     SafCapabilityHandles handles = SafTestSupport.fixedHandles();
     SafGrantLedger ledger = ledger(SafGrantRecord.READ | SafGrantRecord.WRITE);
-    String read = handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).token;
+    String read =
+        handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).token;
     String write =
         handles.issue(ledger, ID, SafCapabilityHandles.Operation.WRITE, PATH, 1_000L).token;
 
@@ -223,8 +219,7 @@ public class SafCapabilityHandlesTest {
             ledger, token, SafCapabilityHandles.Operation.READ, PATH, 1_000L + 60_000L - 1));
     assertEquals(
         SafCapabilityHandles.Result.EXPIRED,
-        handles.check(
-            ledger, token, SafCapabilityHandles.Operation.READ, PATH, 1_000L + 60_000L));
+        handles.check(ledger, token, SafCapabilityHandles.Operation.READ, PATH, 1_000L + 60_000L));
     assertEquals(1, handles.size());
     assertEquals(1, handles.purgeExpired(1_000L + 60_000L));
     assertEquals(0, handles.size());
@@ -235,8 +230,7 @@ public class SafCapabilityHandlesTest {
     SafCapabilityHandles handles = SafTestSupport.fixedHandles();
     SafGrantLedger ledger = ledger(SafGrantRecord.READ);
     for (int index = 0; index < SafCapabilityLimits.MAX_HANDLES_PER_TREE; index++) {
-      assertTrue(
-          handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).ok());
+      assertTrue(handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).ok());
     }
     assertEquals(
         SafCapabilityHandles.Result.LIMIT,
@@ -258,13 +252,8 @@ public class SafCapabilityHandlesTest {
                 .ok());
     assertEquals(
         SafCapabilityHandles.Result.LIMIT,
-        handles
-            .issue(
-                many,
-                many.records().get(0).id(),
-                SafCapabilityHandles.Operation.READ,
-                PATH,
-                1_000L)
+        handles.issue(
+                many, many.records().get(0).id(), SafCapabilityHandles.Operation.READ, PATH, 1_000L)
             .result);
   }
 
@@ -272,7 +261,8 @@ public class SafCapabilityHandlesTest {
   public void revokeTreeRemovesOnlyMatchingHandles() {
     SafCapabilityHandles handles = SafTestSupport.fixedHandles();
     SafGrantLedger ledger = ledger(SafGrantRecord.READ);
-    String mine = handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).token;
+    String mine =
+        handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).token;
     String other =
         handles.issue(ledger, OTHER_ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L).token;
 
@@ -307,7 +297,8 @@ public class SafCapabilityHandlesTest {
               throw new IllegalStateException("token source down");
             });
     SafCapabilityHandles.Issued issued =
-        handles.issue(ledger(SafGrantRecord.READ), ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L);
+        handles.issue(
+            ledger(SafGrantRecord.READ), ID, SafCapabilityHandles.Operation.READ, PATH, 1_000L);
 
     assertFalse(issued.ok());
     assertEquals(SafCapabilityHandles.Result.UNAVAILABLE, issued.result);

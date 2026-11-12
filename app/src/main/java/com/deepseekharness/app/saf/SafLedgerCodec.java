@@ -74,8 +74,7 @@ public final class SafLedgerCodec {
     public final Map<String, Object> preserved;
     public final List<String> warnings;
 
-    Decoded(
-        SafGrantLedger ledger, Map<String, Object> preserved, List<String> warnings) {
+    Decoded(SafGrantLedger ledger, Map<String, Object> preserved, List<String> warnings) {
       this.ledger = ledger;
       this.preserved = Map.copyOf(preserved);
       this.warnings = List.copyOf(warnings);
@@ -220,10 +219,8 @@ public final class SafLedgerCodec {
     boolean userWritable = bool(raw.get(prefix + FIELD_USER_WRITE), true);
     int acquired = acquired(raw.get(prefix + FIELD_ACQUIRED));
     long takenAt = Math.max(0, number(raw.get(prefix + FIELD_TAKEN_AT), 0L));
-    int pendingBefore =
-        mask(number(raw.get(prefix + FIELD_PENDING_BEFORE), 0L));
-    int pendingIntent =
-        mask(number(raw.get(prefix + FIELD_PENDING_INTENT), SafGrantRecord.READ));
+    int pendingBefore = mask(number(raw.get(prefix + FIELD_PENDING_BEFORE), 0L));
+    int pendingIntent = mask(number(raw.get(prefix + FIELD_PENDING_INTENT), SafGrantRecord.READ));
     if (pendingIntent == 0) pendingIntent = SafGrantRecord.READ;
     try {
       return new SafGrantRecord(

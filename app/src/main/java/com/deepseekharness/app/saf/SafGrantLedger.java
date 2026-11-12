@@ -54,8 +54,7 @@ public final class SafGrantLedger {
    * <p>调用方负责把坏值挡在外面：重复 URI、超过上限、epoch &lt; 1 的记录一律拒绝，
    * 不做静默丢弃（静默丢弃会把持久化损坏伪装成空授权簿）。
    */
-  public static SafGrantLedger of(
-      List<SafGrantRecord> records, long revision, long nextEpoch) {
+  public static SafGrantLedger of(List<SafGrantRecord> records, long revision, long nextEpoch) {
     Objects.requireNonNull(records, "records");
     Map<String, SafGrantRecord> map = new LinkedHashMap<>();
     long maxEpoch = 0;

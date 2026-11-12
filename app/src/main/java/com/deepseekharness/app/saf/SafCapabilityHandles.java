@@ -183,11 +183,7 @@ public final class SafCapabilityHandles {
   }
 
   private Result validate(
-      Entry entry,
-      SafGrantLedger ledger,
-      Operation operation,
-      String normalizedPath,
-      long now) {
+      Entry entry, SafGrantLedger ledger, Operation operation, String normalizedPath, long now) {
     if (entry.expiresAt <= now) return Result.EXPIRED;
     SafGrantRecord record = ledger == null ? null : ledger.findById(entry.treeId);
     if (record == null

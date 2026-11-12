@@ -33,8 +33,7 @@ public final class SafLedgerStore {
 
   public static SafLedgerStore open(Context context) {
     if (context == null) throw new IllegalArgumentException("CONTEXT_REQUIRED");
-    return new SafLedgerStore(
-        context.getSharedPreferences(NAMESPACE, Context.MODE_PRIVATE));
+    return new SafLedgerStore(context.getSharedPreferences(NAMESPACE, Context.MODE_PRIVATE));
   }
 
   /** 读取授权簿；prefs 不可读或全为坏值时返回空簿，不抛异常、不误删磁盘内容。 */

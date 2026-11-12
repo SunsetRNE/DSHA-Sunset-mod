@@ -16,8 +16,7 @@ final class SafTestSupport {
       "content://com.android.externalstorage.documents/tree/primary%3ADownload";
   static final String DOCUMENTS =
       "content://com.android.externalstorage.documents/tree/primary%3ADocuments";
-  static final String OWN_PROVIDER =
-      "content://com.deepseekharness.app.documents/tree/root";
+  static final String OWN_PROVIDER = "content://com.deepseekharness.app.documents/tree/root";
   static final String OWN_AUTHORITY = "com.deepseekharness.app.documents";
   static final String ROOTFS = "/data/user/0/com.deepseekharness.app/files/linux/ubuntu";
 

@@ -54,7 +54,8 @@ public class SafGrantLedgerTest {
             .ledger;
 
     SafGrantLedger.Change committed =
-        ledger.commitTake(URI, SafGrantRecord.READ | SafGrantRecord.WRITE, SafGrantRecord.WRITE, true, 2_000L);
+        ledger.commitTake(
+            URI, SafGrantRecord.READ | SafGrantRecord.WRITE, SafGrantRecord.WRITE, true, 2_000L);
 
     assertTrue(committed.accepted());
     SafGrantRecord record = committed.ledger.findByUri(URI);
@@ -78,8 +79,7 @@ public class SafGrantLedgerTest {
     assertEquals(0, unknown.ledger.revision());
 
     SafGrantLedger ledger = SafTestSupport.single(URI, SafGrantRecord.READ);
-    SafGrantLedger.Change committed =
-        ledger.commitTake(URI, SafGrantRecord.READ, 0, true, 2_000L);
+    SafGrantLedger.Change committed = ledger.commitTake(URI, SafGrantRecord.READ, 0, true, 2_000L);
     assertEquals(SafGrantLedger.BAD_STATE, committed.failure);
     assertEquals(ledger.revision(), committed.ledger.revision());
     assertEquals(SafGrantRecord.State.ACTIVE, committed.ledger.findByUri(URI).state());
@@ -158,8 +158,7 @@ public class SafGrantLedgerTest {
     SafGrantLedger retaken =
         first.beginTake(URI, "app", "label", SafGrantRecord.READ, SafGrantRecord.READ, 2_000L)
             .ledger;
-    SafGrantLedger activated =
-        retaken.commitTake(URI, SafGrantRecord.READ, 0, true, 3_000L).ledger;
+    SafGrantLedger activated = retaken.commitTake(URI, SafGrantRecord.READ, 0, true, 3_000L).ledger;
 
     long newEpoch = activated.findByUri(URI).epoch();
     assertTrue("重新授权必须换新代次", newEpoch > oldEpoch);
@@ -168,10 +167,11 @@ public class SafGrantLedgerTest {
 
   @Test
   public void userWritePreferenceIsScopedToTheGrant() {
-    SafGrantLedger ledger = SafTestSupport.ledger(
-        SafTestSupport.active(URI, SafGrantRecord.READ | SafGrantRecord.WRITE, 1),
-        SafTestSupport.active(
-            SafTestSupport.DOCUMENTS, SafGrantRecord.READ | SafGrantRecord.WRITE, 2));
+    SafGrantLedger ledger =
+        SafTestSupport.ledger(
+            SafTestSupport.active(URI, SafGrantRecord.READ | SafGrantRecord.WRITE, 1),
+            SafTestSupport.active(
+                SafTestSupport.DOCUMENTS, SafGrantRecord.READ | SafGrantRecord.WRITE, 2));
 
     SafGrantLedger.Change disabled = ledger.setUserWritable(URI, false);
 
@@ -214,11 +214,9 @@ public class SafGrantLedgerTest {
         SafGrantLedger.INVALID_URI,
         ledger.beginTake("https://example.com/tree/x", "app", "label", 0, 1, 1L).failure);
     assertEquals(
-        SafGrantLedger.INVALID_ARGUMENT,
-        ledger.beginTake(URI, "app", "label", 0, 0, 1L).failure);
+        SafGrantLedger.INVALID_ARGUMENT, ledger.beginTake(URI, "app", "label", 0, 0, 1L).failure);
     assertEquals(
-        SafGrantLedger.INVALID_ARGUMENT,
-        ledger.beginTake(URI, "app", "label", 0, 8, 1L).failure);
+        SafGrantLedger.INVALID_ARGUMENT, ledger.beginTake(URI, "app", "label", 0, 8, 1L).failure);
     assertEquals(SafGrantLedger.BAD_STATE, ledger.commitTake(URI, 1, 0, true, 1L).failure);
     assertEquals(SafGrantLedger.INVALID_ARGUMENT, ledger.refreshSystemFlags(URI, 8).failure);
 
