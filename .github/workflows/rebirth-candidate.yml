@@ -1,0 +1,302 @@
+name: Rebirth unsigned candidate (NOT FOR INSTALLATION)
+
+# G0-6：Rebirth（dsh.android.client.rebirth）只产未签名候选，不签名、不发布、不安装。
+# 仅 workflow_dispatch；不读取任何签名凭据，固定输入与工具链复用仓库节点。
+# 产物 artifact 名与文件名都带 NOT_FOR_INSTALLATION；清单与“确实未签名”的核验逻辑在
+# tools/verify-rebirth-candidate.py 内完成（本工作流不持有任何签名材料）。
+#
+# 节点图：
+#   bind ─┬─► contracts ──────────────────┐
+#         ├─► inputs ─┬─► identity-matrix ─┼─► build-unsigned（未签名 + 核验 + 证据）
+#         │           └───────────────────┘
+# identity-matrix 先跑合法配置并核对 printReleaseIdentity 的 identity / package / versionCode /
+# certificateStatus，再逐个断言负控命令必须失败（不是只打印结论）。
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact 40-character source commit to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rebirth-candidate-${{ inputs.expected_sha }}
+  cancel-in-progress: false
+
+jobs:
+  bind:
+    name: Bind candidate request to exact source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - name: Verify expected commit is this dispatch
+        run: |
+          python3 - <<'PYCODE'
+          import os
+          import re
+          sha = os.environ['EXPECTED_SHA']
+          if not re.fullmatch(r'[0-9a-f]{40}', sha) or sha != os.environ['GITHUB_SHA']:
+              raise SystemExit('REBIRTH_CANDIDATE_COMMIT_MISMATCH')
+          print('bound candidate to commit:', sha)
+          PYCODE
+
+  contracts:
+    needs: bind
+    uses: ./.github/workflows/_node-contracts.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+
+  inputs:
+    needs: bind
+    uses: ./.github/workflows/_node-inputs.yml
+    with:
+      ref: ${{ inputs.expected_sha }}
+      rebuild_runtime: true
+      artifact: rebirth-candidate-inputs
+
+  identity-matrix:
+    name: Gradle identity and candidate configuration matrix
+    needs: [bind, contracts]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          gradle-cache: 'true'
+      - uses: ./.github/actions/android-sdk
+        with:
+          ndk: 'false'
+      - name: Run Rebirth verifier unit tests
+        run: python3 tools/test-verify-rebirth-candidate.py
+      - name: Verify Gradle configuration matrix
+        run: |
+          set -eu
+          chmod +x gradlew
+          mkdir -p out/identity-matrix
+          negatives=0
+
+          # 每个用例：name expect marker gradle-task [properties...]
+          # 合法用例要求退出码 0；负控要求非 0 且日志包含预期失败标记。
+          run_case() {
+            name=$1
+            expect=$2
+            marker=$3
+            shift 3
+            log="out/identity-matrix/${name}.log"
+            set +e
+            ./gradlew "$@" --no-daemon --max-workers=2 >"$log" 2>&1
+            code=$?
+            set -e
+            echo "== ${name}: exit ${code} (expected ${expect})"
+            if [ "$expect" = success ]; then
+              if [ "$code" -ne 0 ]; then
+                cat "$log"
+                echo "REBIRTH_MATRIX_EXPECTED_SUCCESS: ${name}"
+                exit 1
+              fi
+              echo "accepted as required: ${name}"
+              return 0
+            fi
+            if [ "$code" -eq 0 ]; then
+              cat "$log"
+              echo "REBIRTH_MATRIX_EXPECTED_FAILURE: ${name}"
+              exit 1
+            fi
+            if [ -n "$marker" ] && ! grep -q "$marker" "$log"; then
+              cat "$log"
+              echo "REBIRTH_MATRIX_FAILURE_MARKER_MISSING: ${name} -> ${marker}"
+              exit 1
+            fi
+            negatives=$((negatives + 1))
+            echo "rejected as required: ${name} (${marker})"
+          }
+
+          # 合法基线：默认 mod 身份配置仍可解析（候选开关不得影响默认身份）。
+          run_case baseline-mod success '' :app:printReleaseIdentity
+          # 合法候选：只有 rebirthCandidate + unsignedPackage 组合被接受。
+          run_case candidate-valid success '' :app:printReleaseIdentity \
+            -Pdsha.rebirthCandidate=true -Pdsha.unsignedPackage=true
+
+          # 合法候选的身份四项必须与 ci/release-identity.rebirth.json 一致，供 G0-1 回执引用。
+          python3 - out/identity-matrix/candidate-valid.log <<'PYCODE'
+          import json
+          import sys
+          from pathlib import Path
+          log = Path(sys.argv[1]).read_text(encoding='utf-8')
+          fields = {}
+          for token in log.split():
+              if '=' in token:
+                  key, _, value = token.partition('=')
+                  fields[key] = value
+          identity = json.loads(Path('ci/release-identity.rebirth.json').read_text(encoding='utf-8'))
+          status = 'unset' if identity['certificateSha256'] == '0' * 64 else 'fixed'
+          expected = {
+              'releaseIdentity': 'rebirth',
+              'applicationId': identity['packageName'],
+              'versionCode': str(identity['versionCode']),
+              'versionName': identity['versionName'],
+              'certificateStatus': status,
+          }
+          for key, value in expected.items():
+              if fields.get(key) != value:
+                  raise SystemExit('REBIRTH_MATRIX_IDENTITY_FIELD: %s expected %r actual %r'
+                                   % (key, value, fields.get(key)))
+          Path('out/identity-matrix/identity.txt').write_text(
+              ''.join('%s=%s\n' % (key, fields[key]) for key in expected), encoding='utf-8')
+          print('identity-matrix identity:', json.dumps(
+              {key: fields[key] for key in expected}, ensure_ascii=False))
+          PYCODE
+
+          # 负控 A/B：候选开关与显式正式身份混用必须配置失败。
+          run_case negative-identity-mod failure REBIRTH_CANDIDATE_IDENTITY_CONFLICT \
+            :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.identity=mod -Pdsha.unsignedPackage=true
+          run_case negative-identity-upstream failure REBIRTH_CANDIDATE_IDENTITY_CONFLICT \
+            :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.identity=upstream -Pdsha.unsignedPackage=true
+          # 负控 C：候选身份必须经候选开关进入。
+          run_case negative-candidate-switch-required failure REBIRTH_IDENTITY_REQUIRES_CANDIDATE_SWITCH \
+            :app:printReleaseIdentity -Pdsha.identity=rebirth -Pdsha.unsignedPackage=true
+          # 负控 D/E/F：候选开关不得与 .test / .debug / .dev 测试变体混用。
+          run_case negative-sunset-test failure REBIRTH_CANDIDATE_VARIANT_CONFLICT \
+            :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.sunsetTest=true -Pdsha.unsignedPackage=true
+          run_case negative-debug-package failure REBIRTH_CANDIDATE_VARIANT_CONFLICT \
+            :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.debugPackage=true -Pdsha.unsignedPackage=true
+          run_case negative-dev-package failure REBIRTH_CANDIDATE_VARIANT_CONFLICT \
+            :app:printReleaseIdentity -Pdsha.rebirthCandidate=true -Pdsha.devPackage=true -Pdsha.unsignedPackage=true
+          # 负控 G：证书未固定时，不带 unsignedPackage 的签名候选必须失败（配置阶段即拒绝）。
+          run_case negative-unsigned-required failure REBIRTH_CERTIFICATE_UNSET \
+            :app:printReleaseIdentity -Pdsha.rebirthCandidate=true
+
+          {
+            echo "### Rebirth identity matrix (G0-2 / G0-4)"
+            echo
+            echo '```'
+            cat out/identity-matrix/identity.txt
+            echo '```'
+            echo
+            echo "合法组合通过；${negatives} 组负控均由 shell 断言命令失败。"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload identity matrix evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rebirth-identity-matrix-${{ inputs.expected_sha }}
+          path: out/identity-matrix
+          if-no-files-found: error
+          retention-days: 14
+
+  build-unsigned:
+    name: Build and verify unsigned Rebirth candidate (NOT FOR INSTALLATION)
+    needs: [bind, contracts, inputs, identity-matrix]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          gradle-cache: 'true'
+      - uses: ./.github/actions/android-sdk
+        with:
+          ndk: 'true'
+      - uses: ./.github/actions/restore-handoff
+        with:
+          artifact: ${{ needs.inputs.outputs.artifact }}
+      - name: Build unsigned Rebirth candidate
+        run: |
+          python3 tools/release-identity.py --identity rebirth --field packageName >/dev/null
+          chmod +x gradlew
+          ./gradlew :app:assembleStandardRelease -Pdsha.rebirthCandidate=true \
+            -Pdsha.unsignedPackage=true --no-daemon --max-workers=2
+      - name: Verify unsigned Rebirth candidate
+        id: verify
+        run: |
+          set -eu
+          shopt -s nullglob
+          candidates=(app/build/outputs/apk/standard/release/*-unsigned.apk)
+          test "${#candidates[@]}" -eq 1
+          mkdir -p out
+          apk="out/dsha-rebirth-NOT_FOR_INSTALLATION-${GITHUB_SHA:0:8}.apk"
+          cp "${candidates[0]}" "$apk"
+          set +e
+          python3 tools/verify-rebirth-candidate.py --apk "$apk" --json > out/rebirth-candidate.json
+          verify_code=$?
+          set -e
+          cat out/rebirth-candidate.json
+          test "$verify_code" -eq 0
+          package=$(python3 -c "import json;print(json.load(open('out/rebirth-candidate.json', encoding='utf-8'))['identity']['packageName'])")
+          code=$(python3 -c "import json;print(json.load(open('out/rebirth-candidate.json', encoding='utf-8'))['identity']['versionCode'])")
+          printf 'apk=%s\npackage_name=%s\nversion_code=%s\n' "$apk" "$package" "$code" >> "$GITHUB_OUTPUT"
+      - name: Write commit-bound build receipt
+        env:
+          APK: ${{ steps.verify.outputs.apk }}
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib, json, os
+          from pathlib import Path
+          apk = Path(os.environ['APK'])
+          verified = json.load(open('out/rebirth-candidate.json', encoding='utf-8'))
+          if verified.get('exitCode') != 0 or verified.get('marker') != 'UNSIGNED_NOT_FOR_INSTALLATION':
+              raise SystemExit('REBIRTH_CANDIDATE_VERIFICATION_NOT_PASSED')
+          value = {
+              'schema': 1,
+              'kind': 'dsha-rebirth-unsigned-candidate-receipt',
+              'commit': os.environ['GITHUB_SHA'],
+              'ref': os.environ['GITHUB_REF'],
+              'runId': os.environ['GITHUB_RUN_ID'],
+              'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'identity': verified['identity'],
+              'apkFile': apk.name,
+              'apkSize': apk.stat().st_size,
+              'apkSha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
+              'signed': False,
+              'marker': 'UNSIGNED_NOT_FOR_INSTALLATION',
+              'installable': False,
+              'checks': verified['checks'],
+              'note': 'UNSIGNED REBIRTH CANDIDATE - NOT FOR INSTALLATION / NOT A RELEASE ACCEPTANCE',
+          }
+          Path('out/build-info.json').write_text(
+              json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          names = [apk.name, 'build-info.json', 'rebirth-candidate.json']
+          Path('out/SHA256SUMS').write_text(''.join(
+              hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n'
+              for name in names), encoding='utf-8')
+          print(json.dumps(value, ensure_ascii=False, indent=2))
+          PYCODE
+      - name: Upload unsigned candidate and evidence (NOT FOR INSTALLATION)
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rebirth-candidate-NOT_FOR_INSTALLATION-${{ inputs.expected_sha }}
+          path: out
+          if-no-files-found: error
+          retention-days: 14
+      - name: Show NOT_FOR_INSTALLATION summary
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          PACKAGE: ${{ steps.verify.outputs.package_name }}
+          VERSION_CODE: ${{ steps.verify.outputs.version_code }}
+        run: |
+          {
+            echo "### Rebirth 未签名候选（UNSIGNED_NOT_FOR_INSTALLATION）"
+            echo
+            echo "Commit \`$GITHUB_SHA\` · package \`$PACKAGE\` · versionCode \`$VERSION_CODE\`"
+            echo
+            echo "该产物未签名、不可安装、不是发布验收，只用于 G0 / G1-C 构建核验。"
+            echo
+            echo "[未签名 APK、核验回执与 SHA256SUMS]($ARTIFACT_URL)"
+          } >> "$GITHUB_STEP_SUMMARY"
