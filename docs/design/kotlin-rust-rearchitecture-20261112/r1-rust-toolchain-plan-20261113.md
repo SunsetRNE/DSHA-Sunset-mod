@@ -1,6 +1,6 @@
 # R1 Rust 工具链与首期旁路接入方案（A3 前期设计）
 
-> 状态：**设计稿（评审完成，Q1–Q6 已决；R0 未解锁，仅文档）**。日期：2026-11-13（Lead 决定 2026-11-13，见 §0）。
+> 状态：**R0 已实施（`feat/rust-r0`：工具链/vendor/CI 骨架，未接入 APK；不可合并，待逐行评审与用户授权）**。设计评审完成，Q1–Q6 已决。日期：2026-11-13（Lead 决定 2026-11-13，见 §0；R0 回执见 §0.4）。
 > 基线：`origin/main` = `2c879f1b`（build360）；起草期间主线已推进到 `faab36c5`（build361），差异仅为版本号与 A1 文档，`app/build.gradle` 的 NDK/ABI/jniLibs 段无变化（本文件所有实测数字仍以 `2c879f1b` 为准）。
 > 依据：[ADR-0004 决定四/决定二/失败域矩阵](../../adr/0004-kotlin-rust-direction.md)、[可行性评审主稿 §6](README.md)、[评审 B 草稿](drafts/02-rust-core.md)、[迭代路径 §4/§5/§8/§9](iteration-roadmap-20261112.md)、[AGENTS 技术约束](../../../AGENTS.md)、[BUILD](../../../BUILD.md)、[CI 发布](../../ci-release.md)、[固定构建输入](../../fixed-build-inputs.md)。
 > 边界：本文只写设计与实测依据。**不修改构建文件、代码、CI、版本文件、文档索引**；索引与看板条目在回报里交给 Lead 统一添加（避开 build361 冲突）。本文件**不等同于 A3 开工或 A3 出口**。
@@ -98,6 +98,42 @@ strip = "symbols"
 - 解锁动作：Kotlin 批次合入且 CI 绿 → Lead 另派**新的**工作树实施 R0（不复用本设计工作树）；R0 先 rebase 到最新 `main`，重读 §2.5/§3.2 的集成点与 `tools/test-ci-workflows.py` 期望集合。
 - 解锁前本批次不产生 `rust/` 目录、不提交 vendor、不改 workflow、不改 `app/build.gradle`；本文件只作为 R0 的施工单。
 - 本设计工作树在本次交付后改为 `.SESSION-DONE`，状态写明“设计稿完成，其余结论已定，不可合并，待 Lead 在 Kotlin 合入后统一安排 R0 实施”。
+
+### 0.4 R0 实施回执（2026-11-13，`feat/rust-r0`）
+
+> 工作树：`.agents/worktrees/feat/rust-r0`（基线 `1fbdff34`）。提交：`07ad83a7`（crate/vendor/工具链锁）、
+> `33af13c3`（构建/复现/边界/APK 门禁 + JVM 探针）、`6b472d31`（许可全文与 notices）、
+> `7f54608e`（CI 节点/接线 + docs/ci-nodes）；末尾文档提交记录 CI 回执。**不可合并**：待 Lead 逐行评审、
+> 非实现者评审与用户授权；未 push main、未打 tag、未安装。
+
+已完成的本地证据（2026-11-12/13，本机 aarch64 Android 容器）：
+
+| 项 | 结果 |
+|---|---|
+| vendor | 16 crate / 782 文件 / `7,384,177 B`（`du -sb`），与 §0.2.1 清单逐版本一致；3 个 `build.rs` + `version_check` 的 SHA-256 与 §0.2.2 一致 |
+| 工具链 | rustc/cargo `1.100.0`（commit `0ef1bc386` / `3acc79c0c`），`--target aarch64-linux-android` 已装；`cargo check --target aarch64-linux-android` PASS |
+| 构建 | `tools/rust/build.py --host` PASS；`cargo build/test/fmt/clippy` PASS（6 个单元测试，0 failed） |
+| 离线 vendor | 空 `CARGO_HOME` + `--offline --locked` 全量构建 PASS（仅依赖入库 vendor） |
+| 字节复现 | `--check`：仓库目录与仓库外副本（不同源码目录）各构建一次，`--remap-path-prefix` 后 **逐字节一致**；宿主 `.so` 250,384 B / SHA-256 `c3dea827936f69dcd4aab179c9f9d21ac03a554964a03fabf9085c974150f81a` |
+| 主机 JVM | JDK 17.0.21 + `-Xcheck:jni`：`System.load` → `abiVersion()=1`、`archivePackCreate(6)=-26`（NOT_IMPLEMENTED），3 项 PASS |
+| 边界 | 源码禁区/unsafe 白名单/依赖白名单/构建输入字节与 env 集合/产物 11 个导出符号白名单 PASS |
+| 许可 | `assets/licenses/rust/**` 34 文件 / 170,896 B，字节与 vendor 一致；`generate-third-party-notices.py --check` 与 `check-third-party-notices.py` PASS |
+| Gradle | 仅 `sourceSets.main.jniLibs.srcDir(build/rust-jniLibs)`；`dsha-gradle :app:help` BUILD SUCCESSFUL（配置校验，未打包），随后停 daemon |
+| 仓库门禁 | `check-source-hygiene.py`、`test-ci-workflows.py`（55）、`check-document-links.py` PASS |
+
+CI（主题分支 push）：Source checks run
+[`43326450467`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43326450467)（commit `7f54608e`）
+7 个 job 全绿：contracts / java-format / kotlin-format / rust-check / inputs / unit-source / host-fast；
+rust-check 的工具链安装、静态门禁、源码门禁（fmt/clippy/test/边界 + 主机 `.so` 符号）均为 success。
+Documentation checks run
+[`43326450435`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43326450435) 3 job 全绿。
+
+**明确未跑（不得当作通过）**：① 本机交叉链接（官方 NDK 仅 linux-x86_64，本机无 qemu/binfmt，按 §0.1 Q2 不强制）；
+② CI 的 `rust-native`/`rust-differential` 只在 `ci-package`/`release-production` 手动流程运行，本次 push 未触发，
+arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK 内成员核验仍待首次完整包/发布运行；
+③ 签名 `.dev` 包真机加载与 16 KB 真机页验证（R3）；④ APK 体积（`check-rust-native-apk.py` 骨架用合成 APK 自测，
+真实 APK 未含 `.so`）。R1 开工前建议 Lead 先跑一次 `ci-package` 或发布 dry-run，把 `rust-native` 的
+`androidNeededAllowed` 按实际 `DT_NEEDED` 锁定，再宣布“交叉链接端到端通过”。
 
 ---
 
