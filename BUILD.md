@@ -1,6 +1,6 @@
 # DSHA 现行构建说明
 
-> 当前身份（build359）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261111.1200-dsh0.2.2-rc.1` / versionCode 359。
+> 当前身份（build360）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261112.1800-dsh0.2.2-rc.1` / versionCode 360。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。
 > 签名：Mod 自有新建证书（SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`），不再使用原版 E7E3。
 > 固定构建输入：公开仓库预发布 Release 资产，SHA-256 锁定；流程见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
@@ -92,7 +92,7 @@ Rebirth 身份只能经 `-Pdsha.rebirthCandidate=true` 进入；与 `.test/.debu
 ./gradlew :app:assembleStandardRelease -Pdsha.rebirthCandidate=true -Pdsha.unsignedPackage=true
 ```
 
-产物标 `UNSIGNED_NOT_FOR_INSTALLATION`，**不得称可安装**；证书固定后 `verifyPublishCertificate` 还会拒绝复用 Mod/upstream 证书、applicationId 不符或指纹不符的签名候选。versionCode / versionName 仍以 `app/build.gradle` 为构建基准，三份身份文件记录同一值并在配置阶段交叉核对（当前 359 / `0.2.1-rc.5-20261111.1200-dsh0.2.2-rc.1`）；Rebirth 将来同线递增时须同时更新 build.gradle、身份文件与 `generate-changelog.py` / `release_names.py` / `sign-release-apks.py` 的版本解析，属 G1 版本源迁移。
+产物标 `UNSIGNED_NOT_FOR_INSTALLATION`，**不得称可安装**；证书固定后 `verifyPublishCertificate` 还会拒绝复用 Mod/upstream 证书、applicationId 不符或指纹不符的签名候选。versionCode / versionName 仍以 `app/build.gradle` 为构建基准，三份身份文件记录同一值并在配置阶段交叉核对（当前 359 / `0.2.1-rc.5-20261112.1800-dsh0.2.2-rc.1`）；Rebirth 将来同线递增时须同时更新 build.gradle、身份文件与 `generate-changelog.py` / `release_names.py` / `sign-release-apks.py` 的版本解析，属 G1 版本源迁移。
 
 签名身份绝不混用：Mod 证书只签 mod 身份，E7E3 只签 upstream 身份，Rebirth 候选测试证书只签 rebirth 身份。E7E3 私钥只在上游维护者私有仓库的 Secrets 中，本仓库与本机不保存，也不用 upstream 身份打正式包。
 
