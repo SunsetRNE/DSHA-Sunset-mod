@@ -226,7 +226,9 @@ def main():
             records_extra = {'historicalVersion': HISTORICAL_VERSION,
                              'historicalReconstruction': 'PASS',
                              'historicalReapply': 'REJECTED',
-                             'crossGenerationUpgrade': 'REJECTED_BY_DESIGN'}
+                             'historicalCanonicalRecovery': 'PASS',
+                             'canonicalReads': 1,
+                             'directHistoricalApply': 'REJECTED'}
         record = {'module': module, 'canonicalSha256': sha(canonical), 'currentSha256': sha(expected), 'recipes': [row[0] for row in chain]}
         if module == MANAGER:
             record.update(records_extra)

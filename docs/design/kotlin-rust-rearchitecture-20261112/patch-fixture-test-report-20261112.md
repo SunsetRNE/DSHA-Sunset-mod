@@ -5,6 +5,7 @@
 > 前置：固定输入已按 `fixed-inputs-20261105e` 恢复（`ci-assets.py --archive … --sha256` → PASS）；`prepare-test-runtime.py --platform host` 已生成 raw/managed（`archiveCurrent: true`）。
 > 结论：**三个历史夹具测试最初全部失败，失败点都是"跨代次假设"，不是生产补丁链坏了**。生产链在 0.2.2-rc.1 上 46/46 模块全部可应用。
 > **v2 更新（2026-11-12）**：按 §3 修法只改测试断言（不改夹具摘要、不改生产链）后，三个测试最初全部 PASS，见 §7。
+> **v4 更新（2026-11-12，v3 审查结论）**：v3 可按单项吸收，welcome/plugin 可先接入；web-search 保留 `BLOCKED_SEMANTIC_DIFF`，不计通过。plugin 结果字段按审查改名：`directHistoricalApply=REJECTED`、`historicalCanonicalRecovery=PASS`、`canonicalReads=1`（不再用 `crossGenerationUpgrade=REJECTED_BY_DESIGN` 概括）。§7 为 v2 阶段历史记录，最新分 case 结果以 §9 为准。
 > **v3/v4 更新（2026-11-12，回应增量审查）**：plugin 补回"正确 canonical 恢复恰一次"断言（PASS）；web-search 让 Java 实际消费 rc.2 旧模块，发现"锚点可匹配但输出不等于当前 expected（restores=0）"，按审查要求记为 **BLOCKED_SEMANTIC_DIFF（exit 3）**，不再返回 PASS。见 §9。
 
 ---
@@ -176,7 +177,7 @@ modules 46 / ok 46 / bad 0
 
 ---
 
-## 7. 修复后复跑结果（v2，三绿）
+## 7. 修复后复跑结果（v2 阶段历史记录；最新以 §9 为准）
 
 只改测试断言与一个 rc.2 夹具文件（`tools/fixtures/rc2-upgrade-source/dsh-client-ui-settings-models.js`，sha256 `190498e1…`），生产补丁链与既有夹具摘要未动。
 
@@ -222,6 +223,8 @@ modules 46 / ok 46 / bad 0
 | 建议拆三笔 | 交付拆成 `0001-welcome.patch`、`0002-plugin.patch`、`0003-web-search.patch`，可单独吸收 welcome | 见附件 |
 
 **结论**：welcome 可独立吸收；plugin 当前代 + 历史重建 + canonical 恢复均通过；web-search 保留为语义阻塞（如实报告，不冒充通过）。
+
+**v3 审查结论（2026-11-12）**：三项可按单项吸收（welcome、plugin 先接入复跑）；web-search 的语义阻塞与对方独立复验一致，保留待另评外层 generation/archive 准入。plugin 字段按审查改为 `directHistoricalApply: REJECTED`（仅指无 canonical 直接套旧字节）、`historicalCanonicalRecovery: PASS`、`canonicalReads: 1`，避免与恢复成功混淆。
 
 ## 附录：本次环境与产物
 
