@@ -6,7 +6,9 @@ import android.app.Application;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.UriPermission;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
@@ -18,6 +20,7 @@ import android.os.OperationCanceledException;
 import android.provider.DocumentsContract;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -391,5 +394,162 @@ public final class SafGrantsTest {
     assertTrue(
         "初始化标记存在时旧记录不得被再次迁移回来",
         prefs().getStringSet("uris", new HashSet<>()).contains(shared.toString()));
+  }
+
+  @Test
+  public void ledgerStoreWriteFailureFallsBackToLegacyAndKeepsGrants() {
+    Uri shared = tree("fallback");
+    take(shared, true, true);
+    Set<String> saved = new HashSet<>();
+    saved.add(shared.toString());
+    prefs()
+        .edit()
+        .putStringSet("uris", saved)
+        .putString(SafGrants.KEY_ACQUIRED + shared, "rw")
+        .putBoolean("writable:" + shared, true)
+        .putString(SafGrants.KEY_LABEL + shared, "回退目录")
+        .commit();
+    Context failing = new FailingLedgerContext(context);
+
+    List<SafGrants.Grant> grants = SafGrants.list(failing);
+    assertEquals("账本写失败时必须回退旧路径，授权不丢", 1, grants.size());
+    assertFalse(
+        "写失败时不得留下半份账本初始化",
+        new SafLedgerStore(
+                context.getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE))
+            .initialized());
+
+    Uri another = tree("fallback-add");
+    assertTrue("回退旧路径仍能新增授权", SafGrants.add(failing, another, true).added);
+    assertTrue(
+        "回退新增必须写进旧命名空间",
+        prefs().getStringSet("uris", new HashSet<>()).contains(another.toString()));
+  }
+
+  /** 只让账本命名空间写失败的 Context；其它命名空间（旧 saf_grants）保持真实读写。 */
+  private static final class FailingLedgerContext extends ContextWrapper {
+    private final SharedPreferences realLedger;
+
+    FailingLedgerContext(Context base) {
+      super(base);
+      realLedger = base.getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE);
+    }
+
+    @Override
+    public SharedPreferences getSharedPreferences(String name, int mode) {
+      if (SafLedgerStore.NAMESPACE.equals(name)) return new ReadOnlyPreferences(realLedger);
+      return super.getSharedPreferences(name, mode);
+    }
+  }
+
+  private static final class ReadOnlyPreferences implements SharedPreferences {
+    private final SharedPreferences delegate;
+
+    ReadOnlyPreferences(SharedPreferences delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public Map<String, ?> getAll() {
+      return delegate.getAll();
+    }
+
+    @Override
+    public String getString(String key, String defValue) {
+      return delegate.getString(key, defValue);
+    }
+
+    @Override
+    public Set<String> getStringSet(String key, Set<String> defValues) {
+      return delegate.getStringSet(key, defValues);
+    }
+
+    @Override
+    public int getInt(String key, int defValue) {
+      return delegate.getInt(key, defValue);
+    }
+
+    @Override
+    public long getLong(String key, long defValue) {
+      return delegate.getLong(key, defValue);
+    }
+
+    @Override
+    public float getFloat(String key, float defValue) {
+      return delegate.getFloat(key, defValue);
+    }
+
+    @Override
+    public boolean getBoolean(String key, boolean defValue) {
+      return delegate.getBoolean(key, defValue);
+    }
+
+    @Override
+    public boolean contains(String key) {
+      return delegate.contains(key);
+    }
+
+    @Override
+    public Editor edit() {
+      return new FailingEditor();
+    }
+
+    @Override
+    public void registerOnSharedPreferenceChangeListener(
+        OnSharedPreferenceChangeListener listener) {}
+
+    @Override
+    public void unregisterOnSharedPreferenceChangeListener(
+        OnSharedPreferenceChangeListener listener) {}
+  }
+
+  private static final class FailingEditor implements SharedPreferences.Editor {
+    @Override
+    public SharedPreferences.Editor putString(String key, String value) {
+      return this;
+    }
+
+    @Override
+    public SharedPreferences.Editor putStringSet(String key, Set<String> values) {
+      return this;
+    }
+
+    @Override
+    public SharedPreferences.Editor putInt(String key, int value) {
+      return this;
+    }
+
+    @Override
+    public SharedPreferences.Editor putLong(String key, long value) {
+      return this;
+    }
+
+    @Override
+    public SharedPreferences.Editor putFloat(String key, float value) {
+      return this;
+    }
+
+    @Override
+    public SharedPreferences.Editor putBoolean(String key, boolean value) {
+      return this;
+    }
+
+    @Override
+    public SharedPreferences.Editor remove(String key) {
+      return this;
+    }
+
+    @Override
+    public SharedPreferences.Editor clear() {
+      return this;
+    }
+
+    @Override
+    public boolean commit() {
+      return false;
+    }
+
+    @Override
+    public void apply() {}
   }
 }

@@ -770,16 +770,9 @@ public final class SafGrants {
   }
 
   /**
-   * 清理进程在 take 与 remember 之间死亡、或释放失败留下的待确认授权：只释放「当前有、
-   * take 之前没有、且本次尝试可能拿到」的位，其它功能原有的位保持不动。释放失败的记录
-   * 保留到下次访问继续重试。
+   * 旧路径的清理逻辑（回退模式专用）：只释放「当前有、take 之前没有、且本次尝试可能拿到」的位，
+   * 其它功能原有的位保持不动。释放失败的记录保留到下次访问继续重试。
    */
-  private static void legacyCleanupPending(Context context) {
-    synchronized (LOCK) {
-      legacyCleanupPendingLocked(context);
-    }
-  }
-
   private static void legacyCleanupPendingLocked(Context context) {
     SharedPreferences prefs = prefs(context);
     Set<String> pending = new HashSet<>(prefs.getStringSet(KEY_PENDING, new HashSet<>()));
