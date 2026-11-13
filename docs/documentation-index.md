@@ -24,6 +24,7 @@ build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)
 | [启动链路压缩与 Kotlin 模块接替评估](startup-kotlin-modularization-assessment.md) | 三条启动入口与实际串行链、已确认压缩候选（停止重复事务、准备复用、插件按职责接替、CAS 证据要求）、必须保留的约束、测量与反例设计；只读评估，未实施 |
 | [启动链路压缩实施方案（K0/S0/S1–S4）](startup-kotlin-implementation-plan.md) | 二次代码核验的四个前置条件（Kotlin 身份/边界缺口、StopProof 范围、共享租约、guest 锁不可重入）；K0 输入与边界门禁、S0 观测基线、S1a/S1b 退出契约、S3 写锁顺序、S4 条件快照；仅方案，未改生产行为 |
 | [环境、数据与插件机制](runtime-data-plugin-architecture.md) | 解压启动、正常/安全/应急、受管更新、pnpm/插件事务、凭据、备份与恢复 |
+| [RC1 迁移问题吸收：内容副本、历史复用与本次核验](design/rc1-migration-20261113/README.md) | 对照 build363 核对外部暂停草稿与本仓 Python/Java/CJS；内容副本与对象身份 unknown、历史 cache/result 最小语义、四项需修 P1 与两项 P2、P0/P1/P2 切片及对外回复草稿；docs-only，未实施 |
 | [运行引擎与运行态](runtime-engines.md) | 当前proot/proroot、DSHA v1.1.6历史、vendor版本、loader/shim、退出监督与兼容边界 |
 | [端口与网络](ports-and-networking.md) | 自动/手动Web端口、备用本机记忆、3090桥/ADB/LAN分域、当前重试接入边界 |
 | [DNS配置](dns-configuration.md) | auto/ipv4/native的真实差异、Node窄lookup重试、glibc no-aaaa与用户选择 |
