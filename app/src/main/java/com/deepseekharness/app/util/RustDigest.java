@@ -148,6 +148,15 @@ public final class RustDigest {
     private Result explain(String reason, boolean didFallBack) {
       return new Result(backend, digest, bytesRead, errorCode, failure, didFallBack, reason);
     }
+
+    /**
+     * 测试专用：构造“Rust 后端失败”结果，用于验证 §5.4 的 JVM 重做投影。
+     *
+     * <p>包内可见，不参与生产路径；不需要故意制造原生故障。
+     */
+    static Result simulatedFailure(Failure failure, int errorCode) {
+      return new Result(Backend.RUST, null, 0, errorCode, failure, false, "");
+    }
   }
 
   /**
@@ -181,6 +190,19 @@ public final class RustDigest {
       return digestJvm(channel, offset, length, algorithm).explain(selection.reasonCode(), false);
     }
     Result rust = digestRust(fd, offset, length, algorithm);
+    return settleRustResult(rust, channel, offset, length, algorithm);
+  }
+
+  /**
+   * 处理 Rust 后端结果：成功原样返回；仅 {@link Failure#INTERNAL}/{@link Failure#PANIC}
+   * 允许按 §5.4 用 JVM 重做一次并标 {@code fellBack=true}；其余确定性错误不重试。
+   *
+   * <p>包内可见的纯逻辑入口：测试可直接注入 {@link Result#simulatedFailure} 验证
+   * “Rust 失败 → JVM 重做”的完整投影（{@code backend=JVM, fellBack=true,
+   * fallbackReason=RUST_*}），不需要故意制造原生故障。
+   */
+  static Result settleRustResult(
+      Result rust, FileChannel channel, long offset, long length, int algorithm) {
     if (rust.ok()) return rust;
     if (shouldRedoOnJvm(rust.failure())) {
       // §5.4：纯函数可重算，JVM 重做一次并标记；不得写成 Rust 成功。
@@ -211,7 +233,12 @@ public final class RustDigest {
       return new Result(
           Backend.RUST, null, 0, 0, statusFailure(RustNative.status()), false, "NOT_LOADED");
     }
+    // 哨兵填充：成功时校验 native 只写 [0, digest_len)、且确实写了摘要、返回的 bytesRead
+    // 与请求长度一致。摘要整段恰好等于 0x5a 的概率可忽略，因此“未写入”可检测；
+    // 任何不变量不满足都按 INTERNAL（ABI 违约）fail-closed，不把坏数据当摘要返回。
+    final byte sentinel = 0x5a;
     ByteBuffer out = ByteBuffer.allocateDirect(32);
+    for (int index = 0; index < 32; index++) out.put(index, sentinel);
     long value;
     try {
       value = RustNative.digest(fd, offset, length, algorithm, out);
@@ -224,11 +251,34 @@ public final class RustDigest {
       int code = (int) value;
       return new Result(Backend.RUST, null, 0, code, mapFailure(code), false, "");
     }
+    if (value != length) {
+      // 成功路径必须返回请求长度；否则 ABI/实现违约，不能使用该缓冲。
+      return new Result(
+          Backend.RUST, null, 0, INTERNAL, Failure.INTERNAL, false, "RUST_BYTES_READ_MISMATCH");
+    }
     int size = digestBytes(algorithm);
     if (size < 0) {
       // 不会发生（未知算法已在 Rust 侧返回错误码），保持 fail-closed。
       return new Result(
           Backend.RUST, null, 0, UNSUPPORTED_ALGORITHM, Failure.UNSUPPORTED_ALGORITHM, false, "");
+    }
+    boolean untouchedTail = true;
+    for (int index = size; index < 32; index++) {
+      if (out.get(index) != sentinel) {
+        untouchedTail = false;
+        break;
+      }
+    }
+    boolean wroteDigest = false;
+    for (int index = 0; index < size; index++) {
+      if (out.get(index) != sentinel) {
+        wroteDigest = true;
+        break;
+      }
+    }
+    if (!untouchedTail || !wroteDigest) {
+      return new Result(
+          Backend.RUST, null, 0, INTERNAL, Failure.INTERNAL, false, "RUST_OUTPUT_ABI_MISMATCH");
     }
     byte[] digest = new byte[size];
     out.position(0);

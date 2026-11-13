@@ -10,6 +10,14 @@
 //! 视为调用方错误（`ERR_INVALID_ARGUMENT`）；其它 I/O 错误为 `ERR_INTERNAL`。
 //! 读到少于请求字节（含提前 EOF）不算错误，由 `digest` 循环判为
 //! `ERR_SHORT_READ`。
+//!
+//! # 调用方契约（重要，ABI 的既有假设而不是隔离边界）
+//!
+//! - **fd 在本次调用期间必须保持打开**：Kotlin 在调用返回前不得 close/duplicate 后关闭；
+//! - **Rust 不接管所有权**：返回后 fd 仍归调用方；Rust 不 close、不 dup、不 stat；
+//! - fd 是进程级整数：若调用方在调用期间 close 后号码被复用，`pread` 会读到另一个
+//!   对象，Rust **无法区分**。防止这一点是 Kotlin 侧（文件事务层）的责任，不是本模块。
+//!   无效/已关闭 fd 的安全结果是 `EBADF` → `ERR_INVALID_ARGUMENT`（不 UB）。
 
 use std::fs::File;
 use std::io;
@@ -29,8 +37,9 @@ const E_OVERFLOW: i32 = 75;
 
 /// 从 `offset` 起把最多 `buffer.len()` 字节读入 `buffer`，返回实际字节数。
 ///
-/// `fd` 必须由调用方在本次调用期间保持打开（方案 §4.3 输入契约）；本函数
-/// 不接管、不关闭 fd。调用方负责把 `(Ok(n), n < buffer.len())` 解释为短读。
+/// `fd` 必须由调用方在本次调用期间保持打开且不被复用（方案 §4.3 输入契约；
+/// 见模块文档的“调用方契约”）；本函数不接管、不关闭 fd。调用方负责把
+/// `(Ok(n), n < buffer.len())` 解释为短读。
 pub(crate) fn read_into(fd: i32, offset: u64, buffer: &mut [u8]) -> Result<usize, i32> {
     if fd < 0 {
         return Err(ERR_INVALID_ARGUMENT);

@@ -2,9 +2,10 @@
 members = ["crates/dsha-core"]
 resolver = "2"
 
-# R0 只锁定首期依赖集与 vendor 字节，deposit 到模块骨架；R1–R3 才调用业务实现。
-# Cargo 1.100 的 manifest lint 会把“已声明未使用”当警告；这里显式 allow 并在评审中
-# 记录理由，而不是删掉依赖让 Cargo.lock/vendor 与冻结清单漂移。R1 引入真实调用后应移除。
+# R0 冻结首期依赖集与 vendor 字节；R1 已真实使用 sha2/sha1（flate2 仍留给 R3 gzip）。
+# Cargo 1.100 的 manifest lint 会把“已声明未使用”当警告；flate2 在 R3 前仍未被调用，
+# 因此暂时保留 allow 并记录理由，而不是删掉依赖让 Cargo.lock/vendor 与冻结清单漂移。
+# R3 接入 archive_pack/unpack 后应移除本 allow，让未使用依赖重新成为硬告警。
 [workspace.lints.cargo]
 unused_dependencies = "allow"
 

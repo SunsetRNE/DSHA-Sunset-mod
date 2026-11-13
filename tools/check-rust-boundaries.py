@@ -143,7 +143,9 @@ FORBIDDEN_ALLOW = {
     ("crates/dsha-core/src/fd.rs", r"std::io::"): "只读 fd 边界需要 std::io::ErrorKind 做 EINTR/短读分类；测试用 Write 建临时文件，不写 stdout/stderr",
     ("crates/dsha-core/src/fd.rs", r"\bopen\s*\("): "仅测试代码重新只读打开临时文件；非测试行由 verify_fd_boundary 的 File::open/OpenOptions/write/close 负向检查兜住",
 }
-# fd.rs 的非测试行必须满足：只用 read_at 读、绝不 open/create/write/close/打日志。
+# fd.rs 的非测试行必须满足：只用 read_at 读、绝不 open/create/write/drop/重读全文件/打日志。
+# 评审 P2-5：ManuallyDrop 所有权必须被锁死——生产行必须出现 `ManuallyDrop::new`，
+# 且显式 `drop(...)`、`fs::read/read_to_string/read_dir/metadata/...` 等通用文件 API 全部拒绝。
 FD_PRODUCTION_FORBIDDEN = [
     (r"File::open", "生产 fd 边界不得 open"),
     (r"File::create", "生产 fd 边界不得 create"),
@@ -153,6 +155,20 @@ FD_PRODUCTION_FORBIDDEN = [
     (r"write_all", "生产 fd 边界只读"),
     (r"set_len", "生产 fd 边界不得改长度"),
     (r"truncate", "生产 fd 边界不得截断"),
+    (r"\bdrop\s*\(", "生产 fd 边界不得显式 drop（所有权由 ManuallyDrop 视图隔离）"),
+    (r"\bfs::read\b", "生产 fd 边界只允许经由已核验 fd 的 read_at"),
+    (r"\bfs::read_to_string\b", "生产 fd 边界只允许经由已核验 fd 的 read_at"),
+    (r"\bfs::read_dir\b", "生产 fd 边界不得遍历目录"),
+    (r"\bfs::metadata\b", "生产 fd 边界不得 stat"),
+    (r"\bfs::symlink_metadata\b", "生产 fd 边界不得 stat"),
+    (r"\bfs::canonicalize\b", "生产 fd 边界不得解析路径"),
+    (r"\bfs::copy\b", "生产 fd 边界不得复制文件"),
+    (r"\bfs::rename\b", "生产 fd 边界不得重命名"),
+    (r"\bfs::set_permissions\b", "生产 fd 边界不得改权限"),
+    (r"\bfs::hard_link\b", "生产 fd 边界不得建硬链接"),
+    (r"\bfs::create_dir\b", "生产 fd 边界不得建目录"),
+    (r"\bfs::remove_dir\b", "生产 fd 边界不得删目录"),
+    (r"\bfs::write\b", "生产 fd 边界只读"),
     (r"stdout", "G8：不得写 stdout"),
     (r"stderr", "G8：不得写 stderr"),
     (r"\bprint!|\bprintln!|\beprintln!", "G8：不得打印"),
@@ -232,6 +248,8 @@ def verify_fd_boundary() -> None:
     tests = test_line_ranges(lines)
     production = [(number, line) for number, line in enumerate(lines) if number not in tests]
     joined = "\n".join(line for _, line in production)
+    if "ManuallyDrop::new" not in joined:
+        raise GateError("RUST_FD_BOUNDARY: fd.rs 必须用 ManuallyDrop::new 隔离所有权（不得 close 调用方 fd）")
     if "from_raw_fd" not in joined:
         raise GateError("RUST_FD_BOUNDARY: fd.rs 必须用 File::from_raw_fd 构造 ManuallyDrop 视图")
     if "read_at" not in joined:

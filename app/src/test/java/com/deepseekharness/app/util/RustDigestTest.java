@@ -229,20 +229,90 @@ public class RustDigestTest {
   }
 
   @Test
-  public void directBufferSizeAndTypeAreRejectedWithoutNativeCode() {
-    // 未加载 .so 时 digestRust 不触碰 JNI，只返回类型化状态；这里同时守住
-    // “失败不会被伪装成成功”。
+  public void rustInternalAndPanicAreRedoneByJvmAndMarkedAsFallback()
+      throws IOException, NoSuchAlgorithmException {
+    // §5.4 的端到端投影：Rust 失败结果 → JVM 重做一次 → backend=JVM、fellBack=true、
+    // fallbackReason=RUST_*；确定性错误不重试；无 channel 时不能伪装成功。
+    Path file = temporaryFile("0123456789".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    MessageDigest expected = MessageDigest.getInstance("SHA-1");
+    expected.update("0123456789".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    // MessageDigest.digest() 会重置状态：只取一次十六进制，供循环内两次比较。
+    String expectedHex = RustDigest.hex(expected.digest());
+    try (FileChannel channel = openRead(file)) {
+      for (RustDigest.Failure failure :
+          new RustDigest.Failure[] {RustDigest.Failure.INTERNAL, RustDigest.Failure.PANIC}) {
+        RustDigest.Result settled =
+            RustDigest.settleRustResult(
+                RustDigest.Result.simulatedFailure(
+                    failure, failure == RustDigest.Failure.INTERNAL ? -6 : -7),
+                channel,
+                0,
+                10,
+                RustDigest.ALGORITHM_SHA1);
+        assertTrue(failure.name(), settled.ok());
+        assertEquals(RustDigest.Backend.JVM, settled.backend());
+        assertTrue(settled.fellBack());
+        assertEquals("RUST_" + failure.name(), settled.fallbackReason());
+        assertEquals(expectedHex, settled.digestHex());
+        assertEquals(10, settled.bytesRead());
+      }
+      RustDigest.Result deterministic =
+          RustDigest.settleRustResult(
+              RustDigest.Result.simulatedFailure(RustDigest.Failure.INVALID_ARGUMENT, -1),
+              channel,
+              0,
+              10,
+              RustDigest.ALGORITHM_SHA1);
+      assertFalse(deterministic.ok());
+      assertEquals(RustDigest.Backend.RUST, deterministic.backend());
+      assertFalse(deterministic.fellBack());
+      assertEquals(RustDigest.INVALID_ARGUMENT, deterministic.errorCode());
+      RustDigest.Result withoutChannel =
+          RustDigest.settleRustResult(
+              RustDigest.Result.simulatedFailure(RustDigest.Failure.INTERNAL, -6),
+              null,
+              0,
+              10,
+              RustDigest.ALGORITHM_SHA1);
+      assertFalse(withoutChannel.ok());
+      assertFalse(withoutChannel.fellBack());
+      assertEquals("JVM_SOURCE_UNAVAILABLE", withoutChannel.fallbackReason());
+      RustDigest.Result jvmAlsoFails =
+          RustDigest.settleRustResult(
+              RustDigest.Result.simulatedFailure(RustDigest.Failure.INTERNAL, -6),
+              channel,
+              100,
+              5,
+              RustDigest.ALGORITHM_SHA1);
+      assertFalse(jvmAlsoFails.ok());
+      assertTrue(jvmAlsoFails.fellBack());
+      assertEquals(RustDigest.SHORT_READ, jvmAlsoFails.errorCode());
+    }
+  }
+
+  @Test
+  public void digestRustFailureIsTypedWithOrWithoutANativeLibrary() {
+    // 本测试不假设 native 是否已加载：JUnit 运行顺序可能先跑 RustDigestDifferentialTest
+    // （加载 host .so 后这里得到 INVALID_ARGUMENT），也可能先跑 RustBackendsTest
+    // （ensureLoaded 失败后这里是类型化加载失败，errorCode=0）。两种都必须 fail-closed。
     RustDigest.Result result = RustDigest.digestRust(-1, 0, 1, RustDigest.ALGORITHM_SHA256);
     assertFalse(result.ok());
-    assertTrue(
-        "failure=" + result.failure(),
-        result.failure() == RustDigest.Failure.NOT_LOADED
-            || result.failure() == RustDigest.Failure.LIBRARY_MISSING
-            || result.failure() == RustDigest.Failure.LIBRARY_LOAD_FAILED
-            || result.failure() == RustDigest.Failure.ABI_MISMATCH);
     assertNull(result.digest());
-    assertEquals(0, result.errorCode());
     assertEquals(RustDigest.Backend.RUST, result.backend());
+    if (RustNative.isAvailable()) {
+      // 已加载：非法 fd 由 Rust 侧返回冻结错误码 -1。
+      assertEquals(RustDigest.INVALID_ARGUMENT, result.errorCode());
+      assertEquals(RustDigest.Failure.INVALID_ARGUMENT, result.failure());
+    } else {
+      // 未加载：不触碰 JNI，只有类型化加载失败，没有 ABI 错误码。
+      assertEquals(0, result.errorCode());
+      assertTrue(
+          "failure=" + result.failure(),
+          result.failure() == RustDigest.Failure.NOT_LOADED
+              || result.failure() == RustDigest.Failure.LIBRARY_MISSING
+              || result.failure() == RustDigest.Failure.LIBRARY_LOAD_FAILED
+              || result.failure() == RustDigest.Failure.ABI_MISMATCH);
+    }
     // 非 direct / 过小缓冲的映射由 Rust 侧返回；这里只验证 Java 常量与分配形状。
     assertEquals(32, ByteBuffer.allocateDirect(32).capacity());
   }

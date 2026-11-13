@@ -307,6 +307,25 @@ public class RustDigestDifferentialTest {
   }
 
   @Test
+  public void shortReadDoesNotWriteTheOutputBuffer() throws IOException {
+    // 评审 P2-3：空文件 length=1 → SHORT_READ，且 direct 输出缓冲必须保持原样
+    // （native 只在成功时一次写入，错误路径零写入）。
+    Path empty = temporaryFile(new byte[0]);
+    try (FileInputStream stream = new FileInputStream(empty.toFile())) {
+      ByteBuffer out = ByteBuffer.allocateDirect(32);
+      for (int index = 0; index < 32; index++) {
+        out.put(index, (byte) 0xAA);
+      }
+      long result =
+          RustNative.digest(rawFd(stream.getFD()), 0, 1, RustDigest.ALGORITHM_SHA256, out);
+      assertEquals(RustDigest.SHORT_READ, result);
+      for (int index = 0; index < 32; index++) {
+        assertEquals("byte " + index, 0xAA, out.get(index) & 0xff);
+      }
+    }
+  }
+
+  @Test
   public void jvmReferenceMatchesMessageDigestForTheSameFile()
       throws IOException, NoSuchAlgorithmException {
     byte[] payload = patterned(1000);

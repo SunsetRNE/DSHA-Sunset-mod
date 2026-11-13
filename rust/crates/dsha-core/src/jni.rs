@@ -5,8 +5,8 @@
 //!
 //! - 只调用 JNI 的 `GetDirectBufferAddress` / `GetDirectBufferCapacity` 与
 //!   `ExceptionCheck`（不抛 Java 异常、不做反射、不取字段 id）；
-//! - 每次 JNI 调用后立刻 `ExceptionCheck`，pending 即返回 `ERR_JNI_PENDING`，
-//!   不再调用任何 JNI 函数；
+//! - 每次 JNI 调用后立刻 `ExceptionCheck`；若 pending，先 `ExceptionClear` 恢复
+//!   JVM 状态（评审 P2-1），再返回 `ERR_JNI_PENDING` 且不再调用业务 JNI；
 //! - 摘要先算到本地定长数组，成功后才 `copy_nonoverlapping` 写入 direct
 //!   `ByteBuffer`；任何错误都不写输出（无半成品）；
 //! - 输出缓冲不足返回 `ERR_OUTPUT_BOUND`（调用方换更大缓冲重试）。
@@ -39,7 +39,11 @@ type JObject = *mut c_void;
 struct JniNativeInterface {
     reserved: [*const c_void; 4],
     get_version: *const c_void,
-    skip: [*const c_void; 223],
+    // 5..=16：DefineClass/FindClass/.../ExceptionDescribe（本 crate 不使用）。
+    skip_to_exception_clear: [*const c_void; 12],
+    exception_clear: Option<unsafe extern "system" fn(*mut c_void)>,
+    // 18..=227：其余 JNI 函数（本 crate 不使用）。
+    skip_to_exception_check: [*const c_void; 210],
     exception_check: Option<unsafe extern "system" fn(*mut c_void) -> u8>,
     new_direct_byte_buffer: *const c_void,
     get_direct_buffer_address:
@@ -50,6 +54,10 @@ struct JniNativeInterface {
 /// 函数表共 232 个指针槽位（0..=231）。
 const _: [(); 232] =
     [(); core::mem::size_of::<JniNativeInterface>() / core::mem::size_of::<*const c_void>()];
+const _: () = assert!(
+    core::mem::offset_of!(JniNativeInterface, exception_clear)
+        == 17 * core::mem::size_of::<*const c_void>()
+);
 const _: () = assert!(
     core::mem::offset_of!(JniNativeInterface, exception_check)
         == 228 * core::mem::size_of::<*const c_void>()
@@ -97,15 +105,29 @@ fn jni_table(env: JniEnv) -> Option<&'static JniNativeInterface> {
     }
 }
 
-/// 每次 JNI 调用后立刻检查 pending 异常（方案 §4.7）。
+/// 每次 JNI 调用后立刻检查 pending 异常；若存在则 `ExceptionClear` 后再复核。
 ///
-/// 函数表缺槽位时按“pending”处理（fail-closed），绝不继续调用 JNI。
+/// 本入口仍返回 `ERR_JNI_PENDING` 并且**不再调用业务 JNI**；清除只是把 JVM 恢复成
+/// 无 pending 状态，避免“native 返回后 JVM 带着未处理异常继续跑”被后续 Java 代码
+/// 误当成业务异常（评审 P2-1）。函数表缺槽位时按“pending”处理（fail-closed）。
 fn exception_pending(table: &JniNativeInterface, env: JniEnv) -> bool {
-    match table.exception_check {
+    let pending = match table.exception_check {
         // SAFETY: ExceptionCheck 是 JNI 规范规定的只读查询，不抛 Java 异常。
         Some(check) => unsafe { check(env) != 0 },
-        None => true,
+        None => return true,
+    };
+    if !pending {
+        return false;
     }
+    if let Some(clear) = table.exception_clear {
+        // SAFETY: ExceptionClear 是 JNI 规范规定的异常清理，无参数错误、不抛异常。
+        unsafe { clear(env) };
+        if let Some(check) = table.exception_check {
+            // SAFETY: 清除后复核，确认 JVM 已无 pending 异常（结果不改变本次返回码）。
+            let _ = unsafe { check(env) };
+        }
+    }
+    true
 }
 
 /// 取 direct `ByteBuffer` 的地址与容量；非 direct / null / 调用抛异常均失败。

@@ -30,6 +30,16 @@ public final class RustNative {
 
   private static Status status = Status.NOT_LOADED;
 
+  /**
+   * 是否已有 .so 被 {@code System.load/loadLibrary} 接受（进入过 JVM 动态库注册）。
+   *
+   * <p>生产 {@link #ensureLoaded()} 失败一次后**不重试**；测试专用 {@link #loadFromPath(String)}
+   * 用本标志区分「加载失败但从未真正装过库」（可换指定路径重试）与「已经装过库」
+   * （{@link Status#LOADED}/{@link Status#ABI_MISMATCH}，拒绝再次加载）。否则测试执行顺序会
+   * 把 {@code RustBackendsTest} 先触发的 {@code LIBRARY_MISSING} 粘滞到后续主机差分测试。
+   */
+  private static boolean libraryLoaded = false;
+
   private RustNative() {}
 
   /**
@@ -54,6 +64,7 @@ public final class RustNative {
       status = Status.LOAD_FAILED;
       return false;
     }
+    libraryLoaded = true;
     return verifyAbi();
   }
 
@@ -62,12 +73,17 @@ public final class RustNative {
    *
    * <p>包内可见：生产代码不调用；APK 只走 {@link #ensureLoaded()} 的 {@code loadLibrary}。
    *
+   * <p>顺序约定：只要还没有任何 .so 被真正加载过（{@link #libraryLoaded} 为 false），即使
+   * {@code ensureLoaded()} 或本方法先前失败（{@code LIBRARY_MISSING}/{@code LOAD_FAILED}），
+   * 也允许换指定路径重试一次；已经加载过库（{@link Status#LOADED}/{@link Status#ABI_MISMATCH}）
+   * 则拒绝，避免换库掩盖 ABI 问题。生产入口不受此放宽影响。
+   *
    * @param absolutePath 已存在的宿主目标 .so 绝对路径
    * @return 是否加载成功且 ABI 匹配
    */
   static synchronized boolean loadFromPath(String absolutePath) {
     if (status == Status.LOADED) return true;
-    if (status != Status.NOT_LOADED) return false;
+    if (libraryLoaded) return false;
     if (absolutePath == null || absolutePath.isEmpty()) {
       status = Status.LOAD_FAILED;
       return false;
@@ -81,6 +97,7 @@ public final class RustNative {
       status = Status.LOAD_FAILED;
       return false;
     }
+    libraryLoaded = true;
     return verifyAbi();
   }
 

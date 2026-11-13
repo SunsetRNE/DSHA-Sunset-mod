@@ -35,6 +35,44 @@ BRIDGE_SOURCES = (
 )
 PROBE_CLASS = "com.deepseekharness.app.util.RustHostProbe"
 
+# 固定的检查名称集合（评审 P2-7）：探针新增/删除检查必须同步改这里，避免
+# “碰巧少跑了几项但整体仍 PASS”。loadLibrary 在源码失败/成功两个分支同名，只算一次。
+EXPECTED_CHECKS = {
+    "abiVersion",
+    "chunkBoundaryPair",
+    "classPinned",
+    "closedFd",
+    "crossChunk",
+    "eofShortRead",
+    "errorZeroWrite",
+    "heapBufferRejected",
+    "hugeFd",
+    "invalidLengthTooLarge",
+    "invalidLengthZero",
+    "invalidOffset",
+    "loadLibrary",
+    "maxLength32MiB",
+    "messageDigestReference",
+    "negativeFd",
+    "notImplementedStub",
+    "nullBufferRejected",
+    "offsetMiddle",
+    "offsetOverflow",
+    "oneKeyRollback",
+    "outputBound",
+    "outputBoundNoPartialWrite",
+    "sha1Hex",
+    "sha1KnownVector",
+    "sha256Hex",
+    "sha256KnownVector",
+    "switchDigestEqual",
+    "switchOffUsesJvm",
+    "switchOnUsesRust",
+    "unknownAlgorithm",
+    "writeOnlyFd",
+    "zeroLengthRejected",
+}
+
 
 class ProbeError(RuntimeError):
     pass
@@ -91,6 +129,12 @@ def main(argv: list[str]) -> int:
     checks = [row for row in rows if "check" in row]
     summary = next((row for row in rows if "status" in row and "check" not in row), {})
     failed = [row for row in checks if row.get("status") != "PASS"]
+    names = {row.get("check") for row in checks}
+    missing = sorted(EXPECTED_CHECKS - names)
+    unexpected = sorted(names - EXPECTED_CHECKS)
+    if missing or unexpected or len(checks) != len(EXPECTED_CHECKS):
+        raise ProbeError("RUST_HOST_PROBE_CHECKS: missing=%s unexpected=%s count=%d expected=%d"
+                         % (missing, unexpected, len(checks), len(EXPECTED_CHECKS)))
     status = "PASS" if checks and not failed and summary.get("failures", 1) == 0 else "FAIL"
     if status != "PASS":
         raise ProbeError("RUST_HOST_PROBE_FAILED:\n" + output)

@@ -153,6 +153,21 @@ public final class RustHostProbe {
           "eofShortRead",
           RustDigest.digestRust(fd, 0, 1, RustDigest.ALGORITHM_SHA256),
           RustDigest.SHORT_READ);
+      // 错误零写入：空文件 length=1 → SHORT_READ，direct 缓冲必须保持哨兵值。
+      ByteBuffer noWrite = ByteBuffer.allocateDirect(32);
+      for (int index = 0; index < 32; index++) {
+        noWrite.put(index, (byte) 0xAA);
+      }
+      long noWriteResult =
+          RustNative.digest(fd, 0, 1, RustDigest.ALGORITHM_SHA256, noWrite);
+      boolean unchanged = noWriteResult == RustDigest.SHORT_READ;
+      for (int index = 0; index < 32 && unchanged; index++) {
+        unchanged = (noWrite.get(index) & 0xff) == 0xAA;
+      }
+      check(
+          "errorZeroWrite",
+          unchanged,
+          "return=" + noWriteResult + " buffer=" + (unchanged ? "unchanged" : "modified"));
     }
 
     // 偏移/跨块/32 MiB 单次上限。
