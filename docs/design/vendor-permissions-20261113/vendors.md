@@ -2,7 +2,24 @@
 
 > 范围：Android 基础上的 OEM 定制（MIUI/HyperOS、ColorOS、OriginOS/Funtouch、MagicOS、One UI）。**原生鸿蒙 HarmonyOS NEXT 与 iOS 明确不纳入**；若 DSHA 在鸿蒙的 Android 兼容环境（卓易通/出境易）中运行，只按「未知 Android 兼容环境」降级，不建立厂商模块。
 > 核对日期：2026-11-13。方法：网络公开资料 + 当前仓库源码交叉核对；**未在五家真机上执行**。所有设置页路径、菜单名、Intent 组件与版本对应都可能随 ROM 更新变化。
-> 结论先行：**这五家都没有把「自启动 / 后台弹出页面 / 后台本地通知 / 后台运行 / 应用休眠」开放为 Android 标准权限或公开申请 API。** 厂商官方文档本身也写「默认拒绝 + 白名单」。应用侧只能做「检测系统类型 → 解释路径 → 打开系统页 → 返回后按 AOSP 可读事实复查 → 能力使用点降级」，不能把打开设置页当成授权成功，也不应使用隐藏 API 读取私有权限状态。
+> 结论先行：**这五家都没有把「自启动 / 后台弹出页面 / 后台本地通知 / 后台运行 / 应用休眠」开放为 Android 标准权限或公开申请 API。** 厂商官方文档本身也写「默认拒绝 + 白名单」。应用侧的基础路径是「检测系统类型 → 解释路径 → 打开系统页 → 返回后按 AOSP 可读事实复查 → 能力使用点降级」；按用户 2026-11-13 裁定的**开发性基准线**，允许在隔离桥接层中使用厂商隐藏 API/反射读取或修改这些私有状态，但必须版本门控、用户可见、可回退、有证据，且不能替代 DSHA 自有授权。
+
+### 基准线调整（2026-11-13 用户裁定）
+
+> 「当前项目为开发性产物，一切行为均为开发性属性，非生产性属性。」
+
+本文中「隐藏 API」不再整体禁止，但使用范围仅限开发/实验代码，并须满足：
+
+1. 集中封装（建议 `permission/vendor/hidden/`），不在 UI/业务层散落；
+2. 版本/机型门控；未知 ROM 版本直接 UNKNOWN，不猜字段；
+3. 用户可见（实验开关/明确提示），默认关，不静默改系统状态；
+4. 失败回退官方设置页/文字说明，不重试、不崩溃；
+5. 只做可逆项（权限/后台白名单等）；不删除数据、不改分区、不刷机；
+6. 记录 API/字段、ROM 版本、调用结果，作为开发性证据；
+7. 隐藏 API 结果不能替代 `DeviceGrants`/`CapabilityBroker`/设备通道状态机；
+8. 正式发布前另评估 Google Play 隐藏 API 政策与厂商条款。
+
+本文仍会标注哪些条目需要真机验证、哪些是社区来源；允许使用不等于已经验证。
 
 ## 0. 检测与字段
 
@@ -20,15 +37,15 @@
 
 ### 0.2 DSHA 现状
 
-当前源码没有厂商检测：只在 `DeviceSupportReport`、`ExternalUsbModes`、`IslandSupport` 等少数位置使用 `Build`/厂商字符串；权限页也没有厂商设置入口。后续模块建议新增纯逻辑 `util/VendorOs`（品牌 + ROM 家族 + 版本 + 置信度），ROM 结果只影响「显示哪组帮助路径与回退顺序」，不影响任何授权判定。
+当前源码没有厂商检测：只在 `DeviceSupportReport`、`ExternalUsbModes`、`IslandSupport` 等少数位置使用 `Build`/厂商字符串；权限页也没有厂商设置入口。后续模块建议新增纯逻辑 `util/VendorOs`（品牌 + ROM 家族 + 版本 + 置信度），ROM 结果用于「显示哪组帮助路径与回退顺序」以及「是否允许调用已登记的开发性隐藏 API」，不单独决定任何授权判定。
 
-### 0.3 通用红线
+### 0.3 通用红线（开发性基准线下仍保留）
 
-1. **不把 ROM 私有权限建模为已授权状态**：没有公开 API 可查询，读不到就是 UNKNOWN；不得用隐藏 API、反射、`appops` 或 root 读取来伪造「已开启」。
-2. **不用 root/ADB 绕过厂商限制**：厂商白名单/拦截是系统行为，绕过会破坏「最小权限、可撤销、用户可见」边界。
+1. **不把 ROM 私有权限建模为「已授权」生产承诺**：没有公开 API；隐藏 API 读到可按 `DEV_ONLY` 显示，但读不到就是 UNKNOWN，不得用默认值、猜测或缓存伪造「已开启」。
+2. **隐藏 API 不得静默、破坏性或越权使用**：只允许集中桥接层、版本门控、用户可见、默认关、可回退、可追溯；不做删除数据、改分区、刷机、替用户点掉系统门禁等操作。root/ADB 仅作为开发性实验通道，不能把失败包装成成功。
 3. **跳转 intent 必须可失败**：先 `resolveActivity`，再显式 component 启动；失败按「应用详情 → 对应 AOSP 特殊访问页 → 文案说明」回退。所有候选组件都要真机核对，失败时不重试、不猜第二个。
 4. **一次点击只跳一次**：用户从系统页返回后由 `onResume` 重读 AOSP 可读事实，不自动再次跳转。
-5. **Android 13+ 侧载受限设置是横向前置**：侧载的 DSHA 在开启无障碍/通知监听前，可能需要先在应用详情菜单允许「受限设置」；各厂商入口名称不同，不能跳过。参见 Google 支持页《了解受限制的设置》与社区步骤说明（[Google 支持](https://support.google.com/android/answer/12623953)、[Kvaesitso 社区说明](https://github.com/mm2-0/kvaesitso/blob/c4805f3f18d5bcf071c5287f81466efd79169b20/docs/docs/user-guide/troubleshooting/restricted-settings.md)）。
+5. **Android 13+ 侧载受限设置是横向前置**：侧载的 DSHA 在开启无障碍/通知监听前，可能需要先在应用详情菜单允许「受限设置」；各厂商入口名称不同，不能跳过。参见 Google 支持页《了解受限制的设置》与社区步骤说明（[Google 支持](https://support.google.com/android/answer/12623953)、[Kvaesitso 社区说明](https://github.com/mm2-0/kvaesitso/blob/c4805f3f18d5bcf071c5287f81466efd79169b20/docs/docs/user-guide/troubleshooting/restricted-settings.md)）。开发性隐藏 API 可以探测/辅助，但需满足上文「基准线调整」的 8 条。
 
 ### 0.4 通用 AOSP 基线（先按官方规则处理，再叠加厂商差异）
 
@@ -75,19 +92,20 @@
 
 ### 1.4 已知风险
 
-- **无公开 API**：`MIUI-autostart` 等库通过隐藏 API 读自启动状态，README 明确提示可能违反 Google Play 对隐藏 API 的政策（[MIUI-autostart](https://github.com/XomaDev/MIUI-autostart)）。DSHA 不应采用。`HyperOS-a11y` 另用 Shizuku 看门狗约 1 秒恢复无障碍（10 分钟 3 次），并声称绕过「十秒盾」与受限设置（<https://github.com/Insouciant21/HyperOS-a11y>）；这是**绕过**思路，DSHA 明确不采用，只能把它当作「系统会关闭服务」的证据。
+- **隐藏 API 读取（开发性可用）**：`MIUI-autostart` 等库通过隐藏 API 读自启动状态，README 明确提示可能违反 Google Play 对隐藏 API 的政策（[MIUI-autostart](https://github.com/XomaDev/MIUI-autostart)）。按上文「基准线调整」，可作为开发性只读实现参考，但必须集中封装、版本门控、实验开关、失败回退，并记录证据。`HyperOS-a11y` 另用 Shizuku 看门狗约 1 秒恢复无障碍（10 分钟 3 次），并声称绕过「十秒盾」与受限设置（<https://github.com/Insouciant21/HyperOS-a11y>）；**只能作为系统会关闭服务的证据与开发性实验参考**，不得静默替用户开启、不得把绕过结果包装成普通授权成功。
 - **受限设置**：侧载 DSHA 在 MIUI/HyperOS 上开启无障碍时可能先遇到「受限设置」；社区路径为应用信息 → 高级设置 → 允许受限制的设置（GKD FAQ：<https://gkd.li/guide/faq>），官方入口名称随版本变化，需真机核对。
 - **后台通知**：小米官方文档说明默认拒绝，DSHA 的「停止按钮/部署进度/下载进度」在后台可能被拦；只能在用户主动打开应用时发，或引导用户白名单。
 - **Android 17 AAPM**：小米 Android 17 适配文档写明 AAPM 开启后禁止侧载、强制 Play Protect、非工具型 AccessibilityService 被强制禁用；开发者验证框架 2026-09 起分地区执行，ADB 安装始终绕过（pId=2297）。DSHA 是侧载 Mod 包，目标设备一旦开 AAPM，安装/无障碍/更新都会受阻；只能提示用户关闭 AAPM 或改用 ADB 安装，不能绕过。
 - **MIUI 无线调试**：部分 MIUI 没有独立的 `android.settings.WIRELESS_DEBUGGING_SETTINGS` Activity，需要从开发者选项进入；仓库已有回退（`ui/AdbPairActivity.java:208-215`）。
 - **版本对应**：HyperOS 2 基于 Android 15（[Mashable 报道](https://in.mashable.com/tech/85438/xiaomi-begins-hyperos-2-rollout-android-15-update-to-hit-these-devices)）；HyperOS 3 媒体称有 Android 15/16 双基座（[CNMO](https://phone.cnmo.com/news/791042.html)）；维基/社区整理为 HyperOS 1=13–15、2=14–16、3=15–16、3.1=16–17、4=17（[Wikipedia HyperOS](https://en.wikipedia.org/wiki/Xiaomi_HyperOS)），仓库 `docs/island-status.md` 记录「澎湃 OS 3.0.300+/4 = Android 16/17」。**同代覆盖多基线，以真机 `Build.VERSION.SDK_INT` 为准，不按营销版本猜。**
 
-### 1.5 Intent 候选（开源/社区；必须真机解析，禁止直接用于生产）
+### 1.5 Intent 与隐藏 API 候选（开发性可用；必须真机解析，不得直接用于正式发布）
 
 - 自启动：`com.miui.securitycenter/com.miui.permcenter.autostart.AutoStartManagementActivity`（AutoStarter 源码：<https://github.com/judemanutd/AutoStarter/blob/master/autostarter/src/main/java/com/judemanutd/autostarter/AutoStartPermissionHelper.kt>；该库年代较早，未在 HyperOS 3/4 验证）。
 - 权限编辑：`miui.intent.action.APP_PERM_EDITOR` + `extra_pkgname`，或组件 `...permcenter.permissions.AppPermissionsEditorActivity`（XXPermissions `PermissionSettingPage.java`：<https://github.com/getActivity/XXPermissions/blob/master/library/src/main/java/com/hjq/permissions/tools/PermissionSettingPage.java>）。
 - 手机管家：`miui.intent.action.APP_MANAGER` / `miui.intent.action.SECURITY_CENTER`（同上来源）。
-- 省电页（PowerKeeper）组件名本次未找到可靠来源；不要猜。
+- 省电页（PowerKeeper）组件名本次未找到可靠来源；不要猜。可按上文「基准线调整」用隐藏 API/服务名探测，但必须记录实际字段并做版本门控。
+- 隐藏 API 只读候选：MIUI-autostart 库读取自启动状态的实现（<https://github.com/XomaDev/MIUI-autostart>，实测 MIUI 10–14）；具体 provider/字段名需从其源码逐项核对，**本次未在 HyperOS 3/4 验证**。开发性写入（如自启动/后台白名单）只能走可逆项、写前记录原值、失败恢复。
 - 显式组件可能未导出或被包可见性拦截（XXPermissions 源码注释记录了 OPPO 同类组件的 `SecurityException`）；必须 `resolveActivity` + try/catch + 回退，失败不重试。
 
 ## 2. OPPO / 一加 / realme（ColorOS、OxygenOS）
@@ -125,7 +143,7 @@
 
 - **OppoGuardElf 名单**：即使应用自己没做错，也可能被系统按名单 force-stop；只能引导用户关闭电池限制/锁定后台，无法保证。
 - **无障碍服务被结束**：dontkillmyapp 明确提到息屏后无障碍服务可能被结束，需要重新开启；DSHA 的 `AccessibilityRepairOwner` 只在已鉴权 ADB 探测后做窄修复，不能承诺覆盖 ColorOS。
-- **ColorOS 冻结/Athena 类机制**：开源项目 Monik 记录 ColorOS 16 上系统可能在重启/更新后改写白名单与 standby bucket（<https://github.com/vovaxa55/Monik>）；这是社区证据，说明「用户开过限制」不等于长期有效。DSHA 不采用 Shizuku 改 AppOps/Doze/standby 的绕过方案。
+- **ColorOS 冻结/Athena 类机制**：开源项目 Monik 记录 ColorOS 16 上系统可能在重启/更新后改写白名单与 standby bucket（<https://github.com/vovaxa55/Monik>）；这是社区证据，说明「用户开过限制」不等于长期有效。按上文「基准线调整」，Shizuku/隐藏 API 改 AppOps/Doze/standby 只能作为开发性实验（默认关、版本门控、只改可逆项、记录原值），不得静默替用户改状态或承诺长期有效。
 - **SAF 被厂商文件管理器接管**：跨应用文件访问要接受「选中的不是 DocumentsUI」的情况，不能按 AOSP 目录结构假设。
 - **版本对应**：ColorOS 14=Android 14、15=15、16=16、16.5=17、17=17（Wikipedia/社区整理：<https://en.wikipedia.org/wiki/ColorOS>）；ColorOS 16 官方发布稿见 [Smartprix](https://us.smartprix.com/bytes/oppo-launches-coloros-16-officially-check-out-new-features-and-rollout-plan/)。以真机 `Build.VERSION.SDK_INT` 为准。
 
@@ -142,7 +160,7 @@
 | 仓库文档 | OriginOS 6 = Android 16、OriginOS 7 = Android 17（`docs/island-status.md` 的公开资料归纳；未上机）。 | `docs/island-status.md` |
 | 版本对应（维基） | OriginOS 1.0=Android 11、2.0(Ocean)=12、3=13、4=14、5=15、6=16、7=17；Funtouch 4.5/9.x=9、10=10、11=11、12=11/12、13=13、14=14、15=15；OriginOS 6 起全球统一、Funtouch 不再维护。 | <https://zh.wikipedia.org/zh-hans/Origin_OS>、<https://zh.wikipedia.org/zh-hans/Funtouch_OS> |
 
-**对 DSHA 的直接含义**：在 vivo Android 15+ 上，侧载包第一次请求悬浮窗/无障碍/通知使用权时会出现厂商二次确认框；这不是崩溃也不是权限拒绝，不能按普通失败处理。DSHA 不使用通知使用权（NotificationListener），但悬浮窗与无障碍都在该清单内；「解除限制」只在用户侧完成，模块只能解释与等待返回后复查。**不能尝试跳过该提示或改用 root/ADB 修改。**
+**对 DSHA 的直接含义**：在 vivo Android 15+ 上，侧载包第一次请求悬浮窗/无障碍/通知使用权时会出现厂商二次确认框；这不是崩溃也不是权限拒绝，不能按普通失败处理。DSHA 不使用通知使用权（NotificationListener），但悬浮窗与无障碍都在该清单内；「解除限制」只在用户侧完成，模块应解释并等待返回后复查。按上文「基准线调整」，可用开发性隐藏 API 读取/探测门禁状态，但不得静默替用户点掉门禁、不得把隐藏 API 结果当成普通系统权限已授予。
 
 ### 3.2 用户侧路径（社区汇总）
 
@@ -224,7 +242,7 @@
 
 ### 5.3 已知风险
 
-- **Auto Blocker 默认开启**：DSHA 是侧载/Mod 包，One UI 6+ 上安装更新可能被直接拦截；「安装未知应用」允许还不够，需要用户关闭自动拦截器。不能尝试用 root/ADB 绕过；只能解释与回退。关闭自动拦截器后，系统仍可能要求重新确认安装来源。
+- **Auto Blocker 默认开启**：DSHA 是侧载/Mod 包，One UI 6+ 上安装更新可能被直接拦截；「安装未知应用」允许还不够，需要用户关闭自动拦截器。按上文「基准线调整」可开发性探测其状态，但不做静默绕过；只能解释与回退。关闭自动拦截器后，系统仍可能要求重新确认安装来源。
 - **深度休眠**：应用被加入 `Deep sleeping apps` 后无法被普通唤醒；即使电池优化已关闭也可能被休眠名单覆盖。
 - **休眠后权限重置**：Android 官方 app hibernation 会重置 runtime 权限；三星「Remove permissions if app is unused」是同类行为。权限模块必须在每次使用点复查，不缓存「曾经授予」。
 - **USB/ADB 被 Auto Blocker 拦**：Knox 文档写明阻止 USB 数据线发送命令；DSHA 的无线 ADB 通道是否受影响未真机验证，不能假设「配对成功」等于「命令一定能执行」。
@@ -254,8 +272,10 @@ VendorOs { family: AOSP|MIUI_HYPEROS|COLOROS|ORIGINOS|MAGICOS|ONE_UI|UNKNOWN,
 VendorCapability { key: AUTOSTART|BACKGROUND_POPUP|BACKGROUND_NOTIFICATION|
                         BATTERY_UNRESTRICTED|APP_SLEEP|SIDELOAD_BLOCK|
                         RESTRICTED_SETTINGS|ACCESSIBILITY_KEEPALIVE,
-                   readable: boolean,   // 本模块能否读取真实状态
+                   readable: boolean,   // 有公开判据或已登记隐藏 API
                    state: GRANTED|DENIED|UNKNOWN|UNSUPPORTED|NEEDS_SETTINGS,
+                   evidence: OFFICIAL|AOSP_READ|HIDDEN_API_DEV|COMMUNITY,
+                   hiddenApi: optional { field/component, romRange, readOnly },
                    settingsIntents: ordered list of IntentSpec,
                    rationaleKey, helpUrl, evidenceLevel }
 IntentSpec { explicitComponent?, action?, data?, extras?, resolveRequired=true,
@@ -264,18 +284,18 @@ IntentSpec { explicitComponent?, action?, data?, extras?, resolveRequired=true,
 
 关键原则：
 
-- `state` 对厂商私有能力默认 `UNKNOWN`，**不要**用 `GRANTED`；只有 AOSP 可读事实才能返回确定状态。
+- `state` 对厂商私有能力默认 `UNKNOWN`；只有 AOSP 可读事实或**已登记的开发性隐藏 API** 才能返回确定状态，且必须带 `HIDDEN_API_DEV` 证据；隐藏 API 结果不得替代 DSHA 授权。
 - `settingsIntents` 按「显式组件 → 官方 action → 应用详情」排序，每项都要能 `resolveActivity`；全部失败时显示帮助文案，不循环重试。
-- `evidenceLevel` 与 `verifiedOn` 是数据的一部分；未核实组件不得进入生产列表。
-- 版本字段只影响解释文案和候选顺序，不参与授权判定。
+- `evidenceLevel` 与 `verifiedOn` 是数据的一部分；未核实组件/隐藏 API 不得进入正式发布列表，只能用于开发性实验。
+- 版本字段决定隐藏 API 是否可用；未识别版本直接 UNKNOWN，不猜字段。
 
 ### 7.2 建议的流程
 
 1. **识别**：`VendorOs.detect()` 只读 `Build` + 系统属性，失败返回 UNKNOWN。
-2. **解释**：卡片显示厂商名、能力名、为什么需要、当前 AOSP 可读状态（如电池优化）+ 明确「厂商私有开关无法读取」。
+2. **解释**：卡片显示厂商名、能力名、为什么需要、当前 AOSP 可读状态（如电池优化）+ 明确「厂商私有开关默认不可读；开发性隐藏 API 读取会标实验」。
 3. **跳转**：用户点击后按候选顺序启动；`ActivityNotFound`/`SecurityException` 立即回退；不自动重试。
-4. **返回复查**：`onResume` 重新读 AOSP 事实；厂商私有项保持 UNKNOWN，除非用户明确确认（用户勾选「我已在系统设置中开启」也只能作为本地提示，不能作为执行门禁）。
-5. **使用点降级**：即使 UNKNOWN，能力使用点仍按现有安全策略执行；厂商限制导致的失败记录为「环境限制」，不冒充权限失败，也不触发 root 绕过。
+4. **返回复查**：`onResume` 重新读 AOSP 事实；开发性隐藏 API 可重读私有状态并标 `DEV_ONLY`，失败回 UNKNOWN；用户勾选「我已在系统设置中开启」只能作为本地提示，不能作为执行门禁。
+5. **使用点降级**：即使 UNKNOWN，能力使用点仍按现有安全策略执行；厂商限制导致的失败记录为「环境限制」，不冒充权限失败，也不因隐藏 API 可用就跳过 DSHA 自有授权。
 
 ### 7.3 各厂商首批要登记的资料
 
@@ -289,10 +309,10 @@ IntentSpec { explicitComponent?, action?, data?, extras?, resolveRequired=true,
 
 ## 8. 验证边界与后续
 
-- 本文所有厂商路径与 Intent 均为「资料候选」，**没有一条经过本仓库真机验收**；`source` 标注见各节。
+- 本文所有厂商路径、Intent 与隐藏 API 均为「资料候选」，**没有一条经过本仓库真机验收**；`source` 标注见各节。
 - 官方页面可能随版本更新；引用日期为 2026-11-13，正文抓取失败的支持页只记录了标题与链接。
-- 建议的验收顺序：AOSP 基线（Pixel/模拟器）→ 小米 HyperOS 3 → OPPO ColorOS 16 → vivo OriginOS 7 → 荣耀 MagicOS 10 → 三星 One UI 8；每台记录 `Build` 指纹、系统页截图、`adb shell dumpsys package` 的权限/组件解析结果、后台 30 分钟存活与无障碍连接状态。
-- 不允许在验收中获取或绕过厂商白名单；不允许使用隐藏 API、反射或 root 修改厂商数据库。
+- 建议的验收顺序：AOSP 基线（Pixel/模拟器）→ 小米 HyperOS 3 → OPPO ColorOS 16 → vivo OriginOS 7 → 荣耀 MagicOS 10 → 三星 One UI 8；每台记录 `Build` 指纹、系统页截图、`adb shell dumpsys package` 的权限/组件解析结果、隐藏 API 调用结果（字段名/返回/异常）、后台 30 分钟存活与无障碍连接状态。
+- 按上文「基准线调整」：允许在开发/实验中使用隐藏 API/反射与 root/ADB 实验通道，但必须集中封装、版本门控、用户可见、默认关、可回退、记录证据；不得删除数据、改分区、刷机或静默替用户做选择。正式发布前另评估。**验收记录必须区分「官方可选路径」与「开发性隐藏 API」。**
 
 ## 9. 来源分级
 
@@ -308,8 +328,8 @@ IntentSpec { explicitComponent?, action?, data?, extras?, resolveRequired=true,
   - XXPermissions：<https://github.com/getActivity/XXPermissions>，厂商设置页映射源码见 `library/src/main/java/com/hjq/permissions/tools/PermissionSettingPage.java`；README 声称第三方厂商兼容性优化但未给明细，不能作为厂商行为证据。
   - DeviceCompat：<https://github.com/getActivity/DeviceCompat>（系统识别思路，不是授权状态来源）。
   - MIUI-autostart：<https://github.com/XomaDev/MIUI-autostart>（隐藏 API 读取自启动状态的风险示例）。
-  - HyperOS-a11y：<https://github.com/Insouciant21/HyperOS-a11y>（Shizuku 看门狗恢复无障碍，含受限设置绕过；**仅作系统行为证据，不采用**）。
-  - Monik：<https://github.com/vovaxa55/Monik>（Shizuku 控制 AppOps/Doze/standby；**仅作 ColorOS 行为证据，不采用**）。
+  - HyperOS-a11y：<https://github.com/Insouciant21/HyperOS-a11y>（Shizuku 看门狗恢复无障碍，含受限设置绕过；按上文「基准线调整」可作开发性参考，但必须隔离、可见、可回退，不采用其静默/绕过式默认行为）。
+  - Monik：<https://github.com/vovaxa55/Monik>（Shizuku 控制 AppOps/Doze/standby；按上文「基准线调整」可作开发性实验参考，只改可逆项、记录原值、默认关）。
   - Shizuku：<https://shizuku.rikka.app/guide/setup/>（ADB 级授权与 `pm grant` 能力边界）。
 - **社区/媒体**
   - dontkillmyapp：<https://dontkillmyapp.com/xiaomi>、<https://dontkillmyapp.com/oppo>、<https://dontkillmyapp.com/oneplus>、<https://dontkillmyapp.com/vivo>、<https://dontkillmyapp.com/huawei>、<https://dontkillmyapp.com/samsung>（用户路径与后台限制；非官方、随版本失效）。
@@ -321,7 +341,8 @@ IntentSpec { explicitComponent?, action?, data?, extras?, resolveRequired=true,
 
 ## 10. 明确的缺口（不得在实现时假装已解决）
 
-- 五家的厂商私有开关都没有可查询状态；本模块只能返回 UNKNOWN，并让用户自行确认。
+- 五家的厂商私有开关都没有**公开**可查询状态；开发性隐藏 API 可以尝试读取，但字段名、版本范围与成功/失败行为均未逐项核实，失败时必须回 UNKNOWN。
+- 隐藏 API 的写入路径（自启动/后台白名单/AppOps）在五家 ROM 上的可逆性、权限要求与副作用未验证；不得默认开启或静默执行。
 - OPPO/vivo/荣耀的 Intent 组件名只有社区/开源清单，且 AutoStarter 明确标注部分未测试；必须逐机型采集。
 - 荣耀 MagicOS 7+ 的系统管家组件未找到可靠公开来源；`com.hihonor.systemmanager` 目前只是猜测。
 - vivo Android 15+ 二次门禁的弹框时序、返回判定、与 DSHA `AccessibilitySetupActivity` 的交互未真机验证；不能据此新增自动重试。

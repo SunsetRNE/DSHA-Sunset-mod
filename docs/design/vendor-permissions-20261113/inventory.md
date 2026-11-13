@@ -3,6 +3,7 @@
 > 核对基线：`75924add`（build362，`0.2.1-rc.5-20261113.1000-dsh0.2.2-rc.1`）。
 > 核对日期：2026-11-13。范围：仅 Android 原生（`minSdk 30` / `targetSdk 37`），不含原生鸿蒙与 iOS。
 > 方法：只读当前源码、Manifest、布局、资源与单测；**未安装 APK、未操作真机、未运行构建**。文中「未验证」项须按目标机型补设备证据。
+> **开发性基准线（2026-11-13 用户裁定）**：本项目为开发性产物，允许使用相关隐藏 API 字段；本文只记录现状与字段，**尚未加入任何隐藏 API 调用**。使用时的工程约束见 [README 的基准线调整](README.md)。
 > 相关文档：[设备权限与执行通道架构](../../device-permissions-architecture.md)、[设备通道与失败语义](../../device-channels.md)、[首次引导应用外授权（build216 历史）](../onboarding-20261031/external-authorizations.md)、[安全模型](../../security-model.md)。
 
 本文是**现状底稿**，不是新权限设计本身。厂商差异与模块准备见同目录 [README](README.md) 与 [vendors](vendors.md)。
@@ -195,16 +196,17 @@
 ## 8. 现状缺口与风险（按影响排序）
 
 1. **通知没有设置页入口**：设备能力授权页没有通知行；通知只在引导、更新下载、助手拒绝路径出现。后续模块需统一。
-2. **电池/后台只有两个 AOSP 可读事实**：`isIgnoringBatteryOptimizations` 与 `isBackgroundRestricted`；厂商「自启动/允许后台运行/后台弹出界面」无法读取，当前也未登记任何厂商设置 Intent。
+2. **电池/后台只有两个 AOSP 可读事实**：`isIgnoringBatteryOptimizations` 与 `isBackgroundRestricted`；厂商「自启动/允许后台运行/后台弹出界面」当前实现无法读取。按开发性基准线可新增隐藏 API 桥，但须版本门控、用户可见、失败回退，不能替代 AOSP 判据。
 3. **Android 13+ 受限设置没有独立状态字段**：只在文案里提示；无法区分「服务被系统禁用」与「用户未开」；UNKNOWN 三态只在无障碍有。
 4. **特殊访问回退不一致**：`PermissionActions`/`OverlayFragment`/`ConfigFragment`/`AssistantActivity`/`VirtualScreenOverlayController` 各自写 `ACTION_MANAGE_OVERLAY_PERMISSION` 与回退；`VirtualScreenOverlayController` 该处无 try/catch 且 `show()` 生产路径未见调用方。
 5. **`WRITE_SECURE_SETTINGS` 无撤销 UI**：只能由系统/ADB 侧收回；源码未见主动撤销。
 6. **安装未知应用的后台路径需要重新请求**：`/app/install` 发通知打开设置，返回后不自动重试（正确），但没有统一的「返回后继续」状态机。
-7. **厂商私有管理未建模**：没有 `Build.MANUFACTURER/BRAND`/系统属性检测，也没有厂商设置页 Intent 候选表；后续模块需要新增纯逻辑 + 真机证据。
+7. **厂商私有管理未建模**：没有 `Build.MANUFACTURER/BRAND`/系统属性检测，也没有厂商设置页 Intent 候选表；后续模块需要新增纯逻辑 + 真机证据，隐藏 API 桥按开发性基准线另行设计。
 8. **请求身份分散**：裸请求码 104/195/37/501 与动态字符串并存；新增能力若继续复用裸码，容易冲突。
 9. **历史分支与注释漂移**：`READ/WRITE_EXTERNAL_STORAGE` 分支在 minSdk 30 不可达；`config_battery_opt_hint` 被隐藏；`AssistantService.notificationPermissionIntent` 源码未见调用方（历史文档已指出，仍需复核）。
 10. **权限成功≠能力可用**：无障碍常见「已开启未连接」；Shizuku 常见「已授权未绑定」；ADB 常见「已配对未鉴权」；通知渠道可被单独关闭。
 11. **厂商横向门禁未建模**：Android 13+ 受限设置、vivo Android 15+ 侧载敏感权限二次门禁、三星 One UI 6+ Auto Blocker、Android 17 AAPM 都会在 AOSP 权限之外增加前置条件。详见同目录 [vendors.md](vendors.md)；本清单的现有实现均未读取/识别这些状态。
+12. **隐藏 API 尚未落地**：开发性基准线允许使用，但当前仓库没有统一的厂商隐藏 API 桥、版本门控表或实验开关；在正式实现前，本文所有厂商私有状态仍只能视为 UNKNOWN。
 
 ## 9. 测试与核对入口
 
@@ -219,6 +221,7 @@
 | Shizuku 状态机 | `util/ShizukuChannelStatusTest.java`、`util/ShizukuManagersTest.java` |
 | 麦克风 | `util/MicrophonePolicyTest.java`、`util/MicrophoneRequestGate` 相关（若存在） |
 | Broker/一次性 dispatch | `capabilities/CapabilityBrokerTest.java` |
+| 隐藏 API 桥（未来，开发性） | 版本门控/字段解析/失败回退纯逻辑单测；实验开关默认关；每机型证据归档到 `docs/releases/` |
 | 布局/文案 | `LayoutAuditInstrumentation`（style 中英文、日夜、短屏、1.3 倍字体）；`docs/releases/` 真机回执 |
 
-修改任何权限卡片时至少同步：Manifest、请求入口、状态判据、失败文案、`PermissionGoals`/`PermissionCards`、`DeviceGrantsFragment`（若新增设置页入口）、单测与 `documentation-index.md`。系统弹窗、厂商页与实际授权仍须独立真机证据。
+修改任何权限卡片时至少同步：Manifest、请求入口、状态判据、失败文案、`PermissionGoals`/`PermissionCards`、`DeviceGrantsFragment`（若新增设置页入口）、单测与 `documentation-index.md`。系统弹窗、厂商页与实际授权仍须独立真机证据。隐藏 API 另需同步：字段/组件名、ROM 版本范围、实验开关、回退路径与证据记录。
