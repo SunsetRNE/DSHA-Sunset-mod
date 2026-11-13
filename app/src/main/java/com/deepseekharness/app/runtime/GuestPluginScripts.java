@@ -49,6 +49,11 @@ final class GuestPluginScripts {
 
     void assets() throws IOException;
 
+    /** 启动观测版；默认按原入口执行，生产实现把准备命中/失效带进启动诊断。 */
+    default void assets(Consumer<String> output) throws IOException {
+      assets();
+    }
+
     boolean rootPresent();
 
     default String reusableGeneration() throws IOException {
@@ -118,6 +123,10 @@ final class GuestPluginScripts {
             RuntimeTools.prepare(context, root);
           }
 
+          public void assets(Consumer<String> output) throws IOException {
+            RuntimeTools.prepare(context, root, output);
+          }
+
           public String reusableGeneration() throws IOException {
             var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
             var host =
@@ -158,11 +167,16 @@ final class GuestPluginScripts {
 
   /** One preparation for the two ordered startup helpers, without caching mutable root proof. */
   Startup startup() throws IOException, InterruptedException {
+    return startup(null);
+  }
+
+  /** 启动观测版：只把共享准备与 helper 调用诊断透传，不缓存任何退出/写入证明。 */
+  Startup startup(Consumer<String> output) throws IOException, InterruptedException {
     GuestScriptQueue.Lease lease =
         SCRIPT_QUEUE.enter(
             new GuestScriptBudget(35_000, () -> false, "PLUGIN_STARTUP_QUEUE"), true);
     try {
-      preparePlugins(null);
+      preparePlugins(null, output);
       return new Startup(lease);
     } catch (IOException | InterruptedException | RuntimeException | Error failure) {
       lease.close();
@@ -399,6 +413,11 @@ final class GuestPluginScripts {
   }
 
   private void preparePlugins(GuestScriptBudget budget) throws IOException, InterruptedException {
+    preparePlugins(budget, null);
+  }
+
+  private void preparePlugins(GuestScriptBudget budget, Consumer<String> output)
+      throws IOException, InterruptedException {
     if (budget != null) budget.remainingMillis();
     if (!preparation.environmentReady())
       throw new GuestPreparationFailure(GuestPreparationFailure.Code.ENV_NOT_READY);
@@ -411,7 +430,7 @@ final class GuestPluginScripts {
     // pnpm 失败不阻断列表、开关和删除；依赖安装单独报告其失败。
     preparation.pnpm();
     if (budget != null) budget.remainingMillis();
-    preparation.assets();
+    preparation.assets(output);
     if (budget != null) budget.remainingMillis();
   }
 

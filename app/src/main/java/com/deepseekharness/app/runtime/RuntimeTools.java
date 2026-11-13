@@ -38,15 +38,25 @@ final class RuntimeTools {
   private static final java.util.Set<File> preparedFiles = new java.util.LinkedHashSet<>();
 
   static void prepare(Context context, File rootfs) throws IOException {
-    prepare(context, rootfs, true);
+    prepare(context, rootfs, true, null);
   }
 
   static void stage(Context context, File rootfs) throws IOException {
-    prepare(context, rootfs, false);
+    prepare(context, rootfs, false, null);
   }
 
-  private static void prepare(Context context, File rootfs, boolean requireNpm) throws IOException {
+  /** 启动观测入口：准备结果经 output 进入既有启动诊断；null 时保留原 logcat 行为。 */
+  static void prepare(Context context, File rootfs, java.util.function.Consumer<String> output)
+      throws IOException {
+    prepare(context, rootfs, true, output);
+  }
+
+  private static void prepare(
+      Context context, File rootfs, boolean requireNpm, java.util.function.Consumer<String> output)
+      throws IOException {
     RuntimeToolsTiming timing = new RuntimeToolsTiming();
+    String outcome = "not-prepared", missCode = "";
+    long files = -1;
     try {
       GuestScriptBudget.checkpoint();
       rootfs = RuntimeAssetFiles.root(context, rootfs);
@@ -86,12 +96,19 @@ final class RuntimeTools {
             if (expected.equals(descriptorRuntimeId(installedDescriptor))) {
               String miss = cacheMiss(rootfs, root, identity, true);
               timing.mark(5);
-              if (miss == null) return;
+              if (miss == null) {
+                outcome = "hit-in-process";
+                files = preparedFiles.size();
+                return;
+              }
               if (reusePreparedProof(context, rootfs, root, identity)) {
+                outcome = "hit-prepared-proof";
+                files = preparedFiles.size();
                 timing.mark(6);
                 return;
               }
               reportCacheMiss(miss);
+              missCode = cacheMissCode(miss);
               preparedInvalidation = "preparation-incomplete";
               preparedStamp = null;
               prepareManagedOverlay(context, rootfs, expected);
@@ -103,18 +120,29 @@ final class RuntimeTools {
               preparedWithNpm = true;
               preparedStamp = stamp(rootfs);
               persistPreparedProof(context, rootfs, identity);
+              outcome = "prepared";
+              files = preparedFiles.size();
               timing.mark(6);
+            } else {
+              outcome = "skipped-identity";
             }
             return;
           }
           String miss = cacheMiss(rootfs, root, identity, requireNpm);
           timing.mark(5);
-          if (miss == null) return;
+          if (miss == null) {
+            outcome = "hit-in-process";
+            files = preparedFiles.size();
+            return;
+          }
           if (requireNpm && reusePreparedProof(context, rootfs, root, identity)) {
+            outcome = "hit-prepared-proof";
+            files = preparedFiles.size();
             timing.mark(6);
             return;
           }
           reportCacheMiss(miss);
+          missCode = cacheMissCode(miss);
           preparedInvalidation = "preparation-incomplete";
           preparedStamp = null;
           preparedFiles.clear();
@@ -133,11 +161,48 @@ final class RuntimeTools {
           preparedWithNpm = requireNpm;
           preparedStamp = stamp(rootfs);
           if (requireNpm) persistPreparedProof(context, rootfs, identity);
+          outcome = "prepared";
+          files = preparedFiles.size();
           timing.mark(6);
         }
       }
+    } catch (IOException | RuntimeException | Error failure) {
+      outcome = "failed";
+      throw failure;
     } finally {
-      timing.finish(line -> android.util.Log.i("DSHA", line));
+      timing.finish(line -> emit(output, line));
+      if (output != null) emit(output, preparationLine(outcome, files, missCode));
+    }
+  }
+
+  /** 失效原因只保留固定 reason 记号；asset/entry 等细节不进入启动诊断。 */
+  static String cacheMissCode(String reason) {
+    java.util.regex.Matcher matcher =
+        java.util.regex.Pattern.compile("reason=([a-z-]{1,32})").matcher(String.valueOf(reason));
+    return matcher.find() ? matcher.group(1) : "unknown";
+  }
+
+  /** 准备命中/失效与固定受管文件数；files 未知时显式写 unknown，不伪造 0。 */
+  static String preparationLine(String outcome, long files, String missCode) {
+    return "RUNTIME_TOOLS_PREPARATION: outcome="
+        + outcome
+        + " files="
+        + (files < 0 ? "unknown" : files)
+        + " miss="
+        + (missCode == null || missCode.isEmpty() ? "none" : missCode);
+  }
+
+  private static void emit(java.util.function.Consumer<String> output, String line) {
+    try {
+      android.util.Log.i("DSHA", line);
+    } catch (RuntimeException ignored) {
+      // 诊断不得改变准备结果。
+    }
+    if (output == null) return;
+    try {
+      output.accept(line);
+    } catch (RuntimeException ignored) {
+      // 启动诊断不可用只是少一行观测，不能影响准备或启动。
     }
   }
 

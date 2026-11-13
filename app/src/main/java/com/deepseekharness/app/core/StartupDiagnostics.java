@@ -209,6 +209,12 @@ public final class StartupDiagnostics {
       historyGate.execute(historyIo, () -> onHealthy.accept(generation));
   }
 
+  /** 记录一次真实 Web 进程创建；只作观测，鉴权与启动判定仍由既有链路负责。 */
+  public synchronized void nodeLaunched(long generation) {
+    if (!trace.isCurrent(generation)) return;
+    trace.nodeLaunched(generation, now());
+  }
+
   /** Called only after the current run's official authentication URL has been accepted. */
   public synchronized void backendReady(long generation) {
     if (!trace.isCurrent(generation) || snapshot().backendReady) return;
