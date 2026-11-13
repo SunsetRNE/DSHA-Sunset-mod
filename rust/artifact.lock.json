@@ -13,10 +13,10 @@
     },
     "x86_64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
-      "status": "pending-cross-run",
-      "size": null,
-      "sha256": null,
-      "evidence": "R2 改了 crate 源码（plan.rs 的 verify_plan 校验器 + jni.rs 入口 + 大量单测），宿主 .so 字节必然变化，R1 的 size=284992 / sha256 5af9ebc1… 已作废（不得沿用旧 pin）。按方案 §2.3，本分支提交后由 CI 的 rust-check / rust-differential 在 3 个不同 runner 实例上重新收集 size/sha256，一致后另提一次 pin 提交；收集期间保持 pending-cross-run（--expect-lock 只告警不失败）。"
+      "status": "pinned",
+      "size": 288448,
+      "sha256": "9c3b1a21ea7253f6e9f1b3f7abfa6cbfa1d71a5bc80cf591d9bf211970af047c",
+      "evidence": "R2 源码（plan.rs/jni.rs + 单测）后重新累计跨 runner：Source checks run 43391238720（head 37013f1f）的 rust-check job 131771384515 与两次 job 重跑 131775353356 / 131775954289（三次不同 runner 实例）各自从零构建，build.py --host --expect-lock 均输出 size=288448 / sha256=9c3b1a21…。据此重新 pin；pin 的 --expect-lock 验证由 pin 提交后的 Source checks 执行。"
     },
     "aarch64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
