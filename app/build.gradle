@@ -270,7 +270,23 @@ android {
         // 完整 Standard 套件在同一测试 JVM 内运行 2500+ 项，并包含 25MB 位图边界和
         // 多组 Robolectric 界面沙箱；默认堆上限会在与断言无关的位图分配处 OOM。
         // 这里只提高测试进程内存上限，不放宽或跳过任何用例。
-        unitTests.all { it.maxHeapSize = '2048m' }
+        unitTests.all { it ->
+            it.maxHeapSize = '2048m'
+            // R1 主机差分测试：-Pdsha.rust.hostLib=<host .so> 时把库路径与 required 传入
+            // 测试 JVM，并开放 java.io 反射（只用于读 FileDescriptor.fd 构造真实 fd）。
+            // 未提供 hostLib 时该测试按 Assume 跳过（-Pdsha.rust.required=true 则直接失败，
+            // 供 CI rust-differential 证明 0 skipped）；普通单测行为不变。
+            def rustHostLib = project.findProperty('dsha.rust.hostLib')
+            def rustRequired = project.findProperty('dsha.rust.required') ?: 'false'
+            if (rustHostLib) {
+                it.systemProperty 'dsha.rust.hostLib', rustHostLib.toString()
+                it.systemProperty 'dsha.rust.required', rustRequired.toString()
+                it.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
+            } else if (rustRequired.toString() == 'true') {
+                it.systemProperty 'dsha.rust.required', 'true'
+                it.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
+            }
+        }
     }
 
     sourceSets {
