@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "f0b1952d8c2e813e1e30ab2a8fa95149c466aca83ded064c9b30e780ff90278c",
+  "runtimeId": "204355ea687606c1454dd8e0b72fc10ba3b09e94a2aacaf9cf364b9fc8e345a5",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -252,7 +252,7 @@
     "runtime/NetworkEpochPublisher.java": "e9cee2f862b33a21a51240a27a86eae033f3d6ce1a7a4fbc304b32790cd32917",
     "runtime/PrivilegedPackageContext.java": "7e9d1e48da09a82b68ab09ca03b8d453abea99437e9d28466218c369a2e60b76",
     "runtime/ProfileSettingsTrial.java": "b3553e7b6975b014e888b2054b5ffb6d36e1910fe89fccc408319f17894b2b4e",
-    "runtime/ProotBootstrap.java": "1e7187fde9dbba9729ca3ef46f211dccf626f9701484c70420ec99a701475420",
+    "runtime/ProotBootstrap.java": "395140a1a5b8a372f7e9fc516116879547227dd89e14fe55c7b482042664519f",
     "runtime/Rc1MigrationCache.java": "5285bbf8a96e17e02a0438578fa2b7d5a9fe8ded43091e95c42633139ad7d85f",
     "runtime/RecoveryToolchain.java": "17a5ae00229b91e851e6602c97361ae3e617b0546d7b9ba236c9441a1c69a015",
     "runtime/ResolverRefresher.java": "0a8d2d03d5846b41f36c9903fafa91843132f5ac21d03b0d6aee0b36d3249f96",

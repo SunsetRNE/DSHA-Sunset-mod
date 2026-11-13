@@ -22,9 +22,15 @@ def method_body(source, signature):
 
 
 def validate(bootstrap, native, recovery):
-    ensure = method_body(bootstrap, 'public void ensureRuntimeFiles()')
-    require('nativeFiles.prepare();' in ensure, 'BOOTSTRAP_NATIVE_OWNER_NOT_CALLED')
-    require(ensure.index('nativeFiles.prepare();') < ensure.index('ensureDshRuntimePatches();'),
+    ensure = ''
+    for signature in ('public void ensureRuntimeFiles()',
+                      'public void ensureRuntimeFiles(java.util.function.Consumer<String> output)'):
+        body = method_body(bootstrap, signature)
+        if 'nativeFiles.prepare();' in body:
+            ensure = body
+            break
+    require(ensure, 'BOOTSTRAP_NATIVE_OWNER_NOT_CALLED')
+    require(ensure.index('nativeFiles.prepare();') < ensure.index('ensureDshRuntimePatches('),
             'BOOTSTRAP_NATIVE_PREPARATION_ORDER')
     preparation = method_body(native, 'void prepare()')
     require(not re.search(r'runtime\(|getContainerRuntime|"proot"|"proroot"', preparation),
