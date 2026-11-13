@@ -9,21 +9,21 @@
       "status": "pending-cross-run",
       "size": null,
       "sha256": null,
-      "evidence": "本会话手机容器出网只允许 GitHub 端点，CI job 日志/artifact 经 blob.core.windows.net 被拒，无法读回跨 run 的 size/sha256；机制已接线（--expect-lock 已实测 PENDING/比较分支），pin 需在有可读日志的环境按同一口径补 3 次不同 runner 实例证据。 Android 产物另需触发 rust-native（ci-package/发布 dry-run）。"
+      "evidence": "R2 未产出 Android 产物：本机 aarch64 容器没有 x86_64 NDK 26.3 工具链，交叉链接只能在 CI 的 rust-native job（ci-package / 发布 dry-run）进行；保持 pending-cross-run，不伪造 Android 摘要。"
     },
     "x86_64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
-      "status": "pinned",
-      "size": 284992,
-      "sha256": "5af9ebc1a6f7304e5138d77fc659a944cffeb366137d6b4eaf4934d8186c725a",
-      "evidence": "评审修复轮：Source checks 的 rust-check 及其两次 job 重跑（三次不同 runner 实例）均产出 size=284992 / sha256 5af9ebc1…；逐 run 回执见方案 §0.5.7。"
+      "status": "pending-cross-run",
+      "size": null,
+      "sha256": null,
+      "evidence": "R2 改了 crate 源码（plan.rs 的 verify_plan 校验器 + jni.rs 入口 + 大量单测），宿主 .so 字节必然变化，R1 的 size=284992 / sha256 5af9ebc1… 已作废（不得沿用旧 pin）。按方案 §2.3，本分支提交后由 CI 的 rust-check / rust-differential 在 3 个不同 runner 实例上重新收集 size/sha256，一致后另提一次 pin 提交；收集期间保持 pending-cross-run（--expect-lock 只告警不失败）。"
     },
     "aarch64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
       "status": "pending-cross-run",
       "size": null,
       "sha256": null,
-      "evidence": "本机 aarch64 容器主机构建：build.py --host --check 已证明不同源码目录字节一致（size 266768 / sha256 675fcac09ec03fb1404499c154408ea218146796d7821c9bb09069739462721c），但单机不算不同 runner 实例；跨 runner 证据与日志读取同左。"
+      "evidence": "R2 本机 aarch64 容器主机构建：tools/rust/build.py --host --check 已证明不同源码目录两次构建字节一致（size 266768 / sha256 713d1c8ff7698df938f823d04f1e88b2c696e4aff0e400cac45e8d273952ac83，R2 verify_plan 实现后的产物）；单机不算不同 runner 实例，保持 pending-cross-run。"
     }
   }
 }
