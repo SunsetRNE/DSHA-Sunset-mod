@@ -203,25 +203,26 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 | `cargo test --locked --offline` | **17 passed / 0 failed**（R0 6 → R1 17；新增 digest 已知向量/空输入/分块/边界 + fd 真实 offset/EOF/负 fd + 1 个 offset 回归测试） |
 | `cargo build --release --locked --offline`（host） | PASS（直接构建 `target/release/libdsha_rs.so` 266,768 B） |
 | `cargo check --locked --offline --target aarch64-linux-android` | PASS（仅类型检查；本机无 NDK，链接按 §0.1 Q2 交 CI） |
-| `tools/rust/build.py --host --check --expect-lock --jobs 1` | PASS：不同源码目录两次构建**逐字节一致**；宿主 `libdsha_rs.so` 266,768 B / SHA-256 `675fcac09ec03fb1404499c154408ea218146796d7821c9bb09069739462721c`；体积 PASS；`--expect-lock` 按设计告警 `PENDING`（aarch64 宿主未跨 runner 固定） |
-| `tools/rust/host-jvm-differential.py --lib out/rust-host/libdsha_rs.so` | **PASS 32/32 checks**（-Xcheck:jni；SHA-256/SHA-1 已知向量、offset/跨块/单次 32 MiB、空内容拒绝、EOF 短读、非法 offset/length/algorithm、负 fd/巨大 fd/只写 fd/关闭 fd、非 direct/过小/null 输出、switch on/off/一键回退、MessageDigest 参照） |
+| `tools/rust/build.py --host --check --expect-lock --jobs 1` | PASS：不同源码目录两次构建**逐字节一致**；宿主 `libdsha_rs.so` 266,768 B / SHA-256 `2ec92afdc92ba35b3d5c298726b2222f724893306e72892a21da6f5130c3d2e1`（评审修复后的新值）；体积 PASS；`--expect-lock` 按设计告警 `PENDING`（aarch64 宿主未跨 runner 固定） |
+| `tools/rust/host-jvm-differential.py --lib out/rust-host/libdsha_rs.so` | **PASS 33/33 checks**（-Xcheck:jni；新增 `errorZeroWrite`；工具现在固定 expected check 名称集合，漏跑/多跑都失败；SHA-256/SHA-1 已知向量、offset/跨块/单次 32 MiB、空内容拒绝、EOF 短读、非法 offset/length/algorithm、负 fd/巨大 fd/只写 fd/关闭 fd、非 direct/过小/null 输出、开关 on/off/一键回退、MessageDigest 参照） |
 | `tools/check-rust-boundaries.py` | PASS（7 源 / 11 符号 / 16 依赖 / 4 构建输入；fd.rs 允许清单只含 `std::fs`/`File::`/`std::io::`/测试 `open(`，非测试行严格禁 open/create/write/close/日志） |
 | `tools/check-rust-toolchain.py` / `tools/check-rust-vendor.py` | PASS（16 crate / 7,384,177 B / 782 文件） |
 | `tools/test-ci-workflows.py` | **57 tests PASS**（新增 rust_host 接线、ci-fast rust-differential、artifact.lock 口径） |
-| `tools/format-java-tree.py --check --jobs 1` | 首轮 FAIL（新增 6 个 Java 文件不在显式 adoption 清单；已补 `tools/java-format-files.json` 并用固定格式化器写回 3 个文件），复跑 PASS（0 need formatting） |
-| `javac` 编译 + `JUnitCore`（代替 Gradle，见下） | PASS：6 个 Java 文件编译通过；纯 JVM 套件 **14 tests OK**；带宿主 `.so` 的 `RustDigestDifferentialTest` **9 tests OK（0 skipped）**（`-Ddsha.rust.hostLib` + `--add-opens java.base/java.io`；同一批测试类、同一 host `.so`，只是不经过 Gradle 运行器） |
+| `tools/format-java-tree.py --check --jobs 1` | 首轮 FAIL（新增 6 个 Java 文件不在显式 adoption 清单；已补 `tools/java-format-files.json` 并写回需要格式化的文件），复跑 PASS（0 need formatting）；评审后已把清单恢复为原顺序，只新增 6 行 |
+| `javac` 编译 + `JUnitCore`（代替 Gradle，见下） | PASS：6 个 Java 文件编译通过；分开跑纯 JVM 套件 **14 tests OK**、带宿主 `.so` 的 `RustDigestDifferentialTest` **9 tests OK（0 skipped）**；评审修复后再按 **合并顺序 B→D→T = 25 tests OK**、**D→T = 21 tests OK**、T 单独 11、B 单独 4（`-Ddsha.rust.hostLib` + `-Ddsha.rust.required=true` + `--add-opens java.base/java.io`；不是 Gradle 任务级回执） |
 | `tools/generate-third-party-notices.py --check` | PASS（Rust vendor 许可字节未变；无新增 crate） |
 | `tools/check-source-hygiene.py` / `tools/check-document-links.py` | PASS（LF/钉住 action/依赖身份；56 文档 / 1295 链接 / 0 error） |
 | `docs-check` CI | run `43363307113` success（本机推送后） |
 
-**本机首轮差分发现并修复的真实缺陷**：`digest_fd` 曾把 `digest_range` 给的区间内相对偏移直接传给 `pread`，`offset > 0` 时会从 0 开始读。主机差分 offset/中间区间用例捕获（JVM `MessageDigest` 对照不一致），已改为 `offset + position`（checked_add）并补 `fd.rs` 真实 fd 回归测试；修复后 32/32 checks 全 PASS。同时修掉 `RustHostProbe` 的 `MessageDigest.digest()` 重置导致的 detail 误报（预期摘要显示为空哈希，实际比对值正确）。
+**本机首轮差分发现并修复的真实缺陷**：`digest_fd` 曾把 `digest_range` 给的区间内相对偏移直接传给 `pread`，`offset > 0` 时会从 0 开始读。主机差分 offset/中间区间用例捕获（JVM `MessageDigest` 对照不一致），已改为 `offset + position`（checked_add）并补 `fd.rs` 真实 fd 回归测试；修复后差分全 PASS（评审修复后为 **33/33 checks**，含 `errorZeroWrite`）。同时修掉 `RustHostProbe` 的 `MessageDigest.digest()` 重置导致的 detail 误报（预期摘要显示为空哈希，实际比对值正确）。
 
 #### 0.5.6 未跑 / 受限（不得当作通过）
 
-- **本机 Gradle**：按 Lead 2026-11-13 内存紧急要求未跑本仓库的 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；改用仓库已有的固定 JDK 17 直接 `javac` + `org.junit.runner.JUnitCore` 跑同一批测试类（14 + 9 tests OK），因此编译/运行语义已覆盖，但**没有本仓库 Gradle 任务级回执**。为定位 CI 脚本编译失败，只在 `/tmp` 建了**与仓库无关的最小 Gradle 9.3.1 工程**（无 Android 插件、独立 `GRADLE_USER_HOME`）复现 Groovy 编译器缺陷，未运行仓库构建、未触碰共享 Gradle 缓存。Gradle 侧的 CI 执行路径为 `_node-unit-tests.yml` 的 `rust_host`（release/package/full 调用方）与 `ci-fast` 的 `rust-differential`（Python 探针）。
-- **CI job 日志/artifact 不可取**：本会话手机容器出网策略只允许 GitHub 端点，`gh run view --log` / artifact 下载被重定向到 `blob.core.windows.net` 并拒绝；因此无法读回 CI 内 `build.py` 的 size/SHA-256 输出来完成 `rust/artifact.lock.json` 的跨 run pin。机制已接线且 `pending-cross-run` 行为已实测，但 **pin 数值未取得，不得声称跨 runner 复现已验证**；需在有可读日志的环境按同一口径补 3 次证据。
+- **本机 Gradle**：按 Lead 要求未跑本仓库的 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；改用仓库锁定的 JDK 17 直接 `javac` + `org.junit.runner.JUnitCore`：先分开跑 14 / 9，评审修复后再按合并顺序 B→D→T（25）与 D→T（21）各跑一次全 OK。因此编译/运行语义已覆盖，但**没有本仓库 Gradle 任务级回执**。为定位 CI 脚本编译失败，只在 `/tmp` 建了**与仓库无关的最小 Gradle 9.3.1 工程**（无 Android 插件、独立 `GRADLE_USER_HOME`）复现 Groovy 编译器缺陷，未运行仓库构建、未触碰共享 Gradle 缓存。
+- **CI job 日志读取方式（已解决，修正旧描述）**：`gh run view --log` / `gh run download` 会被重定向到 `blob.core.windows.net` 且被本机出网策略拒绝；但可先用 `gh api repos/.../actions/jobs/<id>/logs` 拿到**当次签名 URL**，再在容器内 `curl` 直接读取（HTTP 200 已验证）。§0.5.7 的 3 次/4 次 runner 产物摘要即由此读回；未用签名 URL 以外的绕过手段。
 - **本机 Android 链接**：无 NDK（`/opt/android-sdk/ndk` 不存在），`tools/rust/build.py --android` 未跑；arm64 `.so` 首次链接/`DT_NEEDED`/APK 成员核验仍交 `ci-package`/发布 dry-run（与 R0 相同）。
-- **跨 run 产物 pin**：`rust/artifact.lock.json` 仍为 `pending-cross-run`；需要连续 3 次不同 runner 实例的 size/SHA-256 一致后才 pin（x86_64 宿主与 Android 产物分别等待 CI 证据）。
+- **非实现者评审修复后的跨 run pin（当前状态）**：评审修复修改了 crate 源码（`jni.rs` 的 `ExceptionClear` 等），原 3 次 x86_64 pin（284816 / `d57d8130…`）**已失效**，`rust/artifact.lock.json` 的 x86_64 条目已回到 `pending-cross-run`；修复轮按 §2.3 重新累计 3 次不同 runner 实例一致后再 pin（本轮报告给出新 run 证据）。Android（`aarch64-linux-android`）与本地 aarch64 宿主条目仍 pending：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
+- **Gradle rust_host 路径**：`_node-unit-tests.yml` 的 `rust_host`（release/package/full 单测）不在 push 触发的 Source checks 路径内，仍需 `ci-package` 或发布 dry-run/正式发布验证；本机与 push CI 均未声称已覆盖。
 - **真机/16 KB 页**：R3 签名 `.dev` 包范围，R1 不声明。
 - **format-kotlin-tree**：本批无 `.kt` 变更，未在本机跑；CI `kotlin-format` 仍会执行。
 
@@ -245,18 +246,36 @@ run 43366337116 → size=284816  sha256=d57d8130136f529945e91184bb7577ba42f6716b
 run 43367282088 → size=284816  sha256=d57d8130136f529945e91184bb7577ba42f6716b037e4a524736db21d098aa15  expectation=PENDING
 ```
 
-按 §2.3 满足“连续 3 次不同 runner 实例字节一致”，因此 `rust/artifact.lock.json` 的
-`x86_64-unknown-linux-gnu` 条目从 `pending-cross-run` 改为 **pinned**（仍是 strip 后整文件
-size/SHA-256 口径；runId/路径/时间不入锁）。**pin 后验证**：commit `b2694fcd` 的 run
-`43368460040`（第 4 个 runner 实例）在 `rust-check` 日志里输出
-`"expectation": "PASS"`，证明 pinned 摘要门禁真实生效（比较分支不是空跑）。Android（`aarch64-linux-android`）与本地 aarch64 宿主条目
-**仍为 pending**：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
+按 §2.3 满足“连续 3 次不同 runner 实例字节一致”，曾把 `rust/artifact.lock.json` 的
+`x86_64-unknown-linux-gnu` 条目从 `pending-cross-run` 改为 **pinned**；commit `b2694fcd` 的 run
+`43368460040`（第 4 个 runner 实例）日志输出 `"expectation": "PASS"`，证明 pinned 比较门禁真实生效。
+
+**但非实现者评审修复修改了 crate 源码**（`jni.rs` ExceptionClear 等），上述 pin 摘要（284816 /
+`d57d8130…`）对新源码不再成立，已按 §2.3 回到 `pending-cross-run`；修复轮的 3 次不同 runner
+一致证据与重新 pin 在下方“评审修复轮”记录。Android（`aarch64-linux-android`）与本地 aarch64
+宿主条目始终 pending：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
 
 **仍未覆盖**：`rust-native` 的 arm64 交叉链接 / APK 成员门禁 / 真机与 16 KB 页（R3）；Gradle 的
 `rust_host` 路径（release/package/full 单测）尚未在本轮 push CI 中运行，需 `ci-package` 或发布
 dry-run/正式发布流程验证；`rust/artifact.lock.json` 的 Android 摘要 pin 同缺该证据。
 
-#### 0.5.8 风险与 R2 建议
+#### 0.5.8 非实现者评审修复记录（REQUEST_CHANGES → 修复）
+
+> 2026-11-13 非实现者评审结论 REQUEST_CHANGES（2×P1 + 6×P2，均判为真实问题）。逐条修复与证据：
+
+| # | 问题 | 修复（file:line） | 证据 |
+|---|---|---|---|
+| P1-1 | `loadFromPath` 在 `status!=NOT_LOADED` 时直接 false，测试顺序粘滞（B 先失败后 D 无法加载） | `RustNative.java` 增加 `libraryLoaded` 标志；`loadFromPath` 只在“从未真正装过库”时允许换路径重试，`LOADED/ABI_MISMATCH` 仍拒绝；生产 `ensureLoaded` 保持失败不重试 | `JUnitCore` B→D→T **25 tests OK**、D→T **21 tests OK** |
+| P1-2 | `RustDigestTest` 假定 native 未加载，D→T 顺序失败 | 测试改为按 `RustNative.isAvailable()` 分支断言（已加载：`INVALID_ARGUMENT=-1`；未加载：类型化加载失败且 `errorCode=0`），改名并去掉全局假设 | 同上两种顺序 + T 单独 11 tests OK |
+| P2-1 | JNI pending 异常未清 | `jni.rs`：`JniNativeInterface` 增加 `ExceptionClear` 槽（索引 17，编译期 offset 断言），pending 时先 `ExceptionClear` 再复核，仍返回 `ERR_JNI_PENDING` 且不调业务 JNI | `-Xcheck:jni` 差分 33/33 PASS |
+| P2-2 | `digestRust` 成功不变量不足 | `RustDigest.java`：成功要求 `value==length`；direct 缓冲用 0x5a 哨兵校验只写 `[0,digest_len)` 且确有写入；不满足→`INTERNAL`/`RUST_OUTPUT_ABI_MISMATCH`/`RUST_BYTES_READ_MISMATCH` | 差分 33/33 + JUnit |
+| P2-3 | 缺“错误零写入”回归 | `RustDigestDifferentialTest` 与 `RustHostProbe` 各加用例：空文件 length=1 预填 0xAA → `SHORT_READ` 且 32 B 缓冲不变 | 差分 33/33（`errorZeroWrite`）；JUnit 9 tests OK |
+| P2-4 | 证据文档 stale（日志不可取/pin 未取得等） | 重写 §0.5.5/§0.5.6/§0.5.7；把“同一批测试类”改为分开跑 14+9、并补合并顺序 25/21；说明签名 URL + `curl` 读取方式与 pin 失效/重 pin 状态 | 本节与 §0.5.6/§0.5.7 |
+| P2-5 | 边界脚本未锁 `ManuallyDrop` 所有权 | `check-rust-boundaries.py`：生产行必须含 `ManuallyDrop::new`；`FD_PRODUCTION_FORBIDDEN` 增 `\bdrop\(`、`fs::read/read_to_string/read_dir/metadata/...` 等负例 | 边界门禁 PASS（7 源/11 符号/16 依赖） |
+| P2-6 | 缺 fellBack 端到端测试 | `RustDigest.java` 抽出包内纯逻辑 `settleRustResult` + `Result.simulatedFailure`（仅测试用，不参与生产路径）；测试断言 INTERNAL/PANIC→JVM 重做且 `backend=JVM/fellBack=true/fallbackReason=RUST_*`；确定性错误不重试；无 channel 不伪装成功；JVM 也失败时如实失败 | `RustDigestTest` 合并顺序用例全 OK |
+| P2-7 | 低优先级杂项 | `Cargo.toml` 注释更新（flate2 留待 R3）；`host-jvm-differential.py` 固定 33 项 expected check 名称集合（漏/多即失败）；`java-format-files.json` 恢复原顺序只新增 6 行；`fd.rs` 文档补“fd 调用期间保持打开/不得复用、Rust 不接管所有权”的调用方契约 | 边界/差分/格式门禁 PASS |
+
+#### 0.5.9 风险与 R2 建议
 
 - **长尾风险**：`catch_unwind` 不覆盖 abort/SIGSEGV/OOM；`pread` 在特殊文件类型上的错误码集合依赖内核，已按“调用方错误/内部错误”分裂，真机异常文件类型仍需 R3 证据。
 - **JVM 回退的双读成本**：`digest` 的 JVM 重做只对 `INTERNAL/PANIC` 开放；A3 接线时应保证区间可重读、目标可丢弃（本函数无输出目标）。
