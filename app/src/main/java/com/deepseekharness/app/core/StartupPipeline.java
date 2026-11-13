@@ -309,7 +309,7 @@ final class StartupPipeline {
     if (!com.deepseekharness.app.util.Rc1MigrationResult.allowsStart(migrationState)) {
       throw new java.io.IOException(
           com.deepseekharness.app.util.UiText.format(
-              "rc1 迁移快照未完成，已阻止导入；原件保留。请检查存储权限和空间后重试：%s",
+              "rc1 迁移未完成或结果未知，已阻止导入；原件保留，不会自动重放。请在保留数据中检查迁移记录：%s",
               com.deepseekharness.app.util.SensitiveData.redact(migration)));
     }
     if (!actions.current()) return null;

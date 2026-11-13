@@ -273,7 +273,11 @@ public final class RetainedDataActivity extends AppCompatActivity {
     String state =
         switch (entry.status) {
           case "COMMITTED" -> t("原操作已提交", "Original operation committed");
-          case "PENDING_RETRY" -> t("迁移待重试或待处理", "Migration pending retry or review");
+          case "HISTORICAL_COMMITTED" ->
+              t("原时点已提交（历史，非本次核验）", "Committed at original time (historical, not re-verified now)");
+          case "PENDING_RETRY" -> t("迁移待处理（不会自动重试）", "Migration needs review (no automatic retry)");
+          case "UNKNOWN" ->
+              t("写入或记录终态未知，仅只读保留", "Write or record outcome unknown; read-only retention");
           case "ROLLED_BACK" -> t("原操作已回切", "Original operation rolled back");
           case "RECOVERY_REQUIRED" -> t("需要恢复中断操作", "Interrupted operation needs recovery");
           case "DUPLICATE" -> t("同 ID 重复原件；操作拒绝", "Duplicate ID; actions blocked");

@@ -59,16 +59,21 @@ final class WebReadyTasks {
       String result = ports.finalizeMigration();
       if (!ports.current()) return;
       Map<String, Object> receipt = Rc1MigrationResult.parse(result);
-      if (!Rc1MigrationResult.isRoutineReceipt(receipt)) ports.migrationLog(result);
-      boolean committed =
-          "committed".equals(receipt.get("status"))
-              && Boolean.TRUE.equals(receipt.get("sourcePreserved"))
-              && Boolean.TRUE.equals(receipt.get("settingsImported"));
-      if (!committed && ports.current()) ports.migrationNeedsAttention();
+      // 历史完成只是无迁移写入的普通启动；pending/unknown 不得静默，也不能被当成
+      // 本次核验或自动重试许可。
+      if (!Rc1MigrationResult.isRoutineReceipt(receipt)) {
+        ports.migrationLog(result);
+        if (ports.current()) ports.migrationNeedsAttention();
+      }
     } catch (InterruptedException error) {
       Thread.currentThread().interrupt();
     } catch (Exception error) {
-      if (ports.current()) ports.migrationLog("RC1_MIGRATION_VERIFICATION_UNAVAILABLE");
+      // 解析失败、重复回执或进程结果不完整也是未知终态：记录并让用户可见，
+      // 不当作“没有迁移”或“下次启动会再试”。
+      if (ports.current()) {
+        ports.migrationLog("RC1_MIGRATION_VERIFICATION_UNAVAILABLE");
+        ports.migrationNeedsAttention();
+      }
     }
   }
 }

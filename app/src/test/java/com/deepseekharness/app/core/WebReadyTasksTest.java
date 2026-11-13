@@ -8,7 +8,9 @@ public class WebReadyTasksTest {
     boolean current = true, bound, cancelOnCookie, cancelOnDelay;
     int exchanges, notices, ready;
     String result =
-        "DSHA_RC1_MIGRATION={\"status\":\"committed\",\"sourcePreserved\":true,\"settingsImported\":true}";
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"historical-complete\","
+            + "\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\","
+            + "\"settingsImportStatus\":\"verified-historical\"}";
     Runnable async;
     java.util.List<String> logs = new java.util.ArrayList<>();
     java.util.List<Long> delays = new java.util.ArrayList<>();
@@ -63,11 +65,50 @@ public class WebReadyTasksTest {
     assertTrue(ok.logs.isEmpty());
     Fake bad = new Fake();
     bad.result =
-        "DSHA_RC1_MIGRATION={\"status\":\"committed\",\"sourcePreserved\":false,\"settingsImported\":true}";
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"pending\","
+            + "\"verificationScope\":\"current\",\"contentCopyStatus\":\"verified\","
+            + "\"settingsImportStatus\":\"pending\"}";
     WebReadyTasks.run(false, false, bad);
     bad.async.run();
     assertEquals(1, bad.notices);
     assertEquals(1, bad.logs.size());
+  }
+
+  @Test
+  public void unknownOrHistoricalGapIsVisibleAndNotRetried() {
+    Fake unknown = new Fake();
+    unknown.result =
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"phase\":\"finalize\","
+            + "\"status\":\"unknown\",\"reason\":\"STALE_STARTUP_BINDING\","
+            + "\"verificationScope\":\"none\",\"contentCopyStatus\":\"unknown\"}";
+    WebReadyTasks.run(false, false, unknown);
+    unknown.async.run();
+    assertEquals(1, unknown.notices);
+    assertEquals(1, unknown.logs.size());
+    // historical 完成但设置账本未知：可见待处理，不能静默。
+    Fake gap = new Fake();
+    gap.result =
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"historical-complete\","
+            + "\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\","
+            + "\"settingsImportStatus\":\"unknown\"}";
+    WebReadyTasks.run(false, false, gap);
+    gap.async.run();
+    assertEquals(1, gap.notices);
+    assertEquals(1, gap.logs.size());
+  }
+
+  @Test
+  public void unparseableOrDuplicateReceiptIsVisibleUnknownNotSilent() {
+    for (String broken :
+        java.util.List.of(
+            "RC1_MIGRATION_ERROR: timeout", "DSHA_RC1_MIGRATION={}\nDSHA_RC1_MIGRATION={}")) {
+      Fake fake = new Fake();
+      fake.result = broken;
+      WebReadyTasks.run(false, false, fake);
+      fake.async.run();
+      assertEquals(broken, 1, fake.logs.size());
+      assertEquals(broken, 1, fake.notices);
+    }
   }
 
   @Test

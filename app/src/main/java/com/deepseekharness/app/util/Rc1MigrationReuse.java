@@ -79,7 +79,41 @@ public final class Rc1MigrationReuse {
     return true;
   }
 
-  private static boolean sameInputs(Object value, Map<String, String> inputs) {
+  /**
+   * 私有 settings 完成账本必须绑定当前代次与同一 sourceSha256；缺字段或未知分节状态
+   * 一律 unknown，不能借旧 committed receipt 授予缓存命中。settingsSha256 为 null
+   * 表示该代次没有 settings 来源（not-required）。
+   */
+  public static boolean ledgerBinding(
+      String generation, String settingsSha256, Map<String, Object> ledger) {
+    if (settingsSha256 == null) return true;
+    if (generation == null || ledger == null) return false;
+    if (!generation.equals(ledger.get("generation"))) return false;
+    if (!settingsSha256.equals(ledger.get("sourceSha256"))) return false;
+    return !"unknown".equals(ledgerState(ledger));
+  }
+
+  /** 逐节状态投影：verified / pending / unknown；写入中或未知终态不能当 pending。 */
+  public static String ledgerState(Map<String, Object> ledger) {
+    if (ledger == null) return "unknown";
+    Object sections = ledger.get("sections");
+    if (!(sections instanceof Map)) return "unknown";
+    boolean allVerified = true;
+    for (Object value : ((Map<?, ?>) sections).values()) {
+      if (!(value instanceof Map)) return "unknown";
+      Object status = ((Map<?, ?>) value).get("status");
+      if (!(status instanceof String)) return "unknown";
+      if (Set.of("writing", "unknown").contains(status)) return "unknown";
+      if (!Set.of("verified", "pending", "conflict").contains(status)) return "unknown";
+      if (!"verified".equals(status)) allVerified = false;
+    }
+    Object overall = ledger.get("status");
+    if ("unknown".equals(overall)) return "unknown";
+    return allVerified && "verified".equals(overall) ? "verified" : "pending";
+  }
+
+  /** settings.yaml → settings.yaml.imported 的合法 rename 视为同一内容输入。 */
+  public static boolean sameInputs(Object value, Map<String, String> inputs) {
     if (!validInputs(value)) return false;
     Map<?, ?> old = (Map<?, ?>) value;
     if (!Objects.equals(old.get("restore"), inputs.get("restore"))) return false;

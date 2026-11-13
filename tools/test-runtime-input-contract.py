@@ -109,6 +109,16 @@ class RuntimeInputContractTest(unittest.TestCase):
         for name in ('util/ColdInstallPlan.java', 'util/ColdInstallPackages.java'):
             self.assertIn(name, selected, 'Cold compatibility and package policy must invalidate old runtime proofs')
             self.assertEqual(selected[name], ROOT / JAVA / name)
+    def test_rc1_result_semantics_are_identified(self):
+        selected = launcher_paths(ROOT)
+        for name in ('util/Rc1MigrationResult.java', 'util/Rc1MigrationReuse.java'):
+            self.assertIn(
+                name, selected,
+                'RC1 result/reuse semantics must invalidate old runtime proofs: ' + name)
+            self.assertEqual(selected[name], ROOT / JAVA / name)
+        self.assertIn('runtime/Rc1MigrationCache.java', selected)
+        self.assertIn('runtime/GuestPluginScripts.java', selected)
+
     def test_all_production_active_recipes_and_helpers_are_identified(self):
         from runtime_stable_patches import load_chains
         production = load(ROOT)

@@ -273,6 +273,16 @@ public class ProotBootstrap {
     return pluginScripts.migration("finalize", startupId);
   }
 
+  /** P1b 最小只读核对入口：同代读回既有副本与账本，不授予恢复/删除。 */
+  public String verifyExistingRc1Migration(String startupId) {
+    return pluginScripts.migrationText("verify-existing", startupId);
+  }
+
+  public BoundedProcessRunner.Result verifyExistingRc1MigrationResult(String startupId)
+      throws IOException, InterruptedException {
+    return pluginScripts.migration("verify-existing", startupId);
+  }
+
   public String setPluginEnabled(String name, boolean enable) {
     return pluginScripts.enable(name, enable);
   }

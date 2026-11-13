@@ -753,6 +753,7 @@
     "core/InstallRepository.java",
     "util/ApplicationServiceSlot.java",
     "util/Rc1MigrationReuse.java",
+    "util/Rc1MigrationResult.java",
     "util/RootShellCandidates.java",
     "DeviceFileCore.java",
     "bridge/AndroidDeviceFiles.java",

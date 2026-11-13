@@ -18,8 +18,16 @@ class Migration(unittest.TestCase):
     def folder(self):return self.state/'generations'/json.loads((self.state/'current.json').read_text())['generation']
     def doc(self):return json.loads((self.folder()/'prepare.json').read_text())
     def result(self):return json.loads((self.folder()/'receipt.json').read_text())
-    def verified(self):
-        doc=self.doc();(self.folder()/'settings-result.json').write_text(json.dumps({'generation':doc['generation'],'status':'verified'}))
+    def verified(self, startup_id=None):
+        doc=self.doc();current=json.loads((self.state/'current.json').read_text());source=next((row for row in doc.get('sources',[]) if row.get('kind')=='settings'),None)
+        (self.folder()/'settings-result.json').write_text(json.dumps({'version':2,'generation':doc['generation'],'sourceSha256':source['sha256'] if source else None,'startupId':startup_id or current.get('startupId'),'status':'verified','sections':{'first':{'status':'verified'}}}))
+    def capture(self,fn,*args):
+        import contextlib,io
+        buffer=io.StringIO()
+        with contextlib.redirect_stdout(buffer):code=fn(*args)
+        lines=[line for line in buffer.getvalue().splitlines() if line.startswith('DSHA_RC1_MIGRATION=')]
+        self.assertEqual(len(lines),1,buffer.getvalue())
+        return code,json.loads(lines[0][len('DSHA_RC1_MIGRATION='):])
     def test_new_records_and_host_checkpoint_use_deployed_runtime_version(self):
         self.assertEqual(self.prepare(),0);self.verified();self.assertEqual(self.finalize(),0)
         self.assertEqual(self.doc()['dshVersion'],self.runtime_version)
@@ -88,10 +96,12 @@ class Migration(unittest.TestCase):
         self.verified();self.finalize();checkpoint=json.loads((self.folder()/'reuse.json').read_text())
         self.assertEqual(checkpoint['inputs'],self.doc()['inputs']);self.assertEqual(checkpoint['generation'],self.result()['generation'])
         self.assertEqual(checkpoint['status'],'prepared');self.assertTrue(checkpoint['protectionComplete']);self.assertNotIn('sources',checkpoint)
+        self.assertEqual(checkpoint['settingsSha256'],next(row for row in self.doc()['sources'] if row['kind']=='settings')['sha256'])
         self.assertLess((self.folder()/'reuse.json').stat().st_size,4096)
         (self.folder()/'reuse.json').unlink();self.finalize();self.assertTrue((self.folder()/'reuse.json').is_file())
         (self.folder()/'reuse.json').write_text('{broken')
-        self.assertEqual(self.finalize(),0);self.assertEqual(json.loads((self.folder()/'reuse.json').read_text()),checkpoint)
+        code,payload=self.capture(self.finalize);self.assertEqual(code,0);self.assertEqual(payload['status'],'historical-complete')
+        self.assertEqual(json.loads((self.folder()/'reuse.json').read_text()),checkpoint)
         bad=dict(self.result(),sourcePreserved=False)
         (self.folder()/'receipt.json').write_text(json.dumps(bad));(self.folder()/'reuse.json').unlink()
         self.assertFalse(mod.publish_reuse(self.folder(),self.doc(),json.loads((self.state/'current.json').read_text()),bad,self.runtime_version))
@@ -101,13 +111,20 @@ class Migration(unittest.TestCase):
         receipt=self.result();receipt['version']=1;(self.folder()/'receipt.json').write_text(json.dumps(receipt))
         (self.folder()/self.doc()['sources'][0]['snapshot']).write_text('damaged')
         self.assertEqual(self.finalize(),1);self.assertFalse((self.folder()/'reuse.json').exists())
-    def test_missing_source_and_changed_session_do_not_claim_preserved(self):
+    def test_missing_source_and_changed_session_are_source_clues_not_copy_failure(self):
         self.prepare();(self.dsh/'settings.yaml').unlink();(self.dsh/'sessions/session.v3.jsonl').write_text('changed')
-        self.assertEqual(self.finalize(),1);self.assertFalse(self.result()['sourcePreserved'])
+        code,payload=self.capture(self.finalize);self.assertEqual(code,0)
+        self.assertEqual(payload['contentCopyStatus'],'verified');self.assertEqual(payload['settingsImportStatus'],'unknown')
+        self.assertTrue(any(x.startswith('SOURCE_MISSING_OR_CHANGED:') for x in payload['warnings']))
+        self.assertEqual(self.result()['status'],'pending')
     def test_snapshot_modified_detected_even_source_unchanged(self):
         self.prepare();(self.folder()/self.doc()['sources'][0]['snapshot']).write_text('changed');self.assertEqual(self.finalize(),1)
-    def test_source_replaced_with_same_bytes_is_unknown_not_preserved(self):
-        self.prepare();source=self.dsh/'settings.yaml';value=source.read_text();source.unlink();source.write_text(value);self.assertEqual(self.finalize(),1);self.assertFalse(self.result()['sourcePreserved'])
+    def test_source_replaced_with_same_bytes_keeps_content_copy_and_unknown_object_identity(self):
+        self.prepare();self.verified();source=self.dsh/'settings.yaml';value=source.read_text();source.unlink();source.write_text(value)
+        code,payload=self.capture(self.finalize);self.assertEqual(code,0)
+        self.assertEqual(payload['contentCopyStatus'],'verified');self.assertEqual(payload['sourceObjectIdentity'],'unknown')
+        self.assertNotIn('sourcePreserved',payload);self.assertTrue(any(x.startswith('SOURCE_IDENTITY_CHANGED:') for x in payload['warnings']))
+        self.assertEqual(self.result()['status'],'committed');self.assertEqual(self.result()['sourcePreserved'],True)
     def test_snapshot_io_error_blocks_prepared_and_never_creates_current(self):
         with patch.object(mod,'snapshot_row',side_effect=OSError('disk full')):self.assertEqual(self.prepare(),1)
         self.assertFalse((self.state/'current.json').exists());self.assertTrue((self.dsh/'settings.yaml').is_file())
@@ -139,7 +156,9 @@ class Migration(unittest.TestCase):
         preset=self.dsh/'.agent-presets/crew';preset.mkdir(parents=True);(preset/'agent.cordis.yml').write_text('- id: old\n')
         self.prepare();candidate=self.dsh/self.doc()['presets'][0]['candidate'];self.assertFalse((candidate/'bundle').exists());(preset/'agent.cordis.yml').write_text('changed')
         self.assertIsNone(self.doc()['presets'][0]['bundle']);self.assertFalse(self.doc()['presets'][0]['activated'])
-        self.assertEqual((candidate/'agent.cordis.yml').read_text(),'- id: old\n');self.assertEqual(self.finalize(),1)
+        self.assertEqual((candidate/'agent.cordis.yml').read_text(),'- id: old\n')
+        code,payload=self.capture(self.finalize);self.assertEqual(code,0)
+        self.assertTrue(any(x.startswith('SOURCE_CHANGED:') for x in payload['warnings']));self.assertEqual(payload['contentCopyStatus'],'verified')
     def test_preset_yaml_remains_raw_for_explicit_native_ast_conversion(self):
         preset=self.dsh/'.agent-presets/crew';preset.mkdir(parents=True)
         original='---\n# preserved comment\n- id: old\n  name: plugin\n  config: &shared\n    prompt: |\n      user: prompt\n- id: next\n  name: plugin\n  config: *shared\n'
@@ -184,6 +203,74 @@ class Migration(unittest.TestCase):
         self.assertFalse((folder/'snapshots/0').exists())
     def test_stale_finalize_cannot_commit_new_startup(self):
         self.prepare();self.assertEqual(mod.finalize(str(self.root),str(self.state),'old-boot'),1);self.assertFalse((self.folder()/'receipt.json').exists())
+    def test_historical_prepare_is_explicit_scope_without_current_claims(self):
+        self.prepare();self.verified();self.finalize()
+        with patch.object(mod.Resolver,'files',side_effect=AssertionError('ordinary startup must not enumerate')):
+            code,payload=self.capture(self.prepare)
+        self.assertEqual(code,0);self.assertEqual(payload['resultVersion'],3);self.assertEqual(payload['phase'],'prepare')
+        self.assertEqual(payload['status'],'historical-complete');self.assertEqual(payload['verificationScope'],'historical')
+        self.assertEqual(payload['contentCopyStatus'],'verified');self.assertEqual(payload['sourceObjectIdentity'],'unknown')
+        self.assertEqual(payload['settingsImportStatus'],'verified-historical');self.assertTrue(payload['cached'])
+        self.assertEqual(payload['executionState'],'NOT_SENT');self.assertNotIn('protectionComplete',payload)
+        self.assertNotIn('sourcePreserved',payload)
+    def test_historical_finalize_after_committed_receipt_reports_history_and_single_receipt(self):
+        self.prepare();self.verified();self.finalize();(self.folder()/'reuse.json').write_text('{broken')
+        code,payload=self.capture(self.finalize)
+        self.assertEqual(code,0);self.assertEqual(payload['status'],'historical-complete');self.assertEqual(payload['phase'],'finalize')
+        self.assertEqual(payload['verificationScope'],'historical');self.assertEqual(payload['settingsImportStatus'],'verified-historical')
+        self.assertNotIn('protectionComplete',payload);self.assertNotIn('sourcePreserved',payload)
+        self.assertTrue(any('REUSE_CHECKPOINT_FORMAT' in line for line in payload.get('warnings',[])))
+    def test_missing_settings_ledger_cannot_be_historical_success(self):
+        self.prepare();self.verified();self.finalize();(self.folder()/'settings-result.json').unlink()
+        code,payload=self.capture(self.finalize)
+        self.assertEqual(code,0);self.assertEqual(payload['status'],'historical-complete')
+        self.assertEqual(payload['settingsImportStatus'],'unknown');self.assertTrue(any('SETTINGS_LEDGER_MISSING' in line for line in payload['warnings']))
+    def test_writing_or_unknown_ledger_never_commits(self):
+        self.prepare()
+        doc=self.doc();current=json.loads((self.state/'current.json').read_text());source=next(row for row in doc['sources'] if row['kind']=='settings')
+        ledger=dict(version=2,generation=doc['generation'],sourceSha256=source['sha256'],startupId=current['startupId'],status='pending',sections={'first':{'status':'writing'}})
+        (self.folder()/'settings-result.json').write_text(json.dumps(ledger))
+        code,payload=self.capture(self.finalize);self.assertEqual(code,0)
+        self.assertEqual(payload['status'],'pending');self.assertEqual(payload['settingsImportStatus'],'unknown')
+        self.assertEqual(payload['verificationScope'],'current');self.assertEqual(self.result()['settingsStatus'],'unknown')
+        self.assertNotEqual(self.result()['status'],'committed')
+    def test_lost_current_index_with_completed_generation_is_unknown_not_new_migration(self):
+        self.prepare();self.verified();self.finalize();generations=list((self.state/'generations').iterdir())
+        (self.state/'current.json').unlink()
+        code,payload=self.capture(self.prepare)
+        self.assertEqual(code,1);self.assertEqual(payload['status'],'unknown');self.assertEqual(payload['reason'],'HOST_STATE_MISSING')
+        self.assertEqual(generations,list((self.state/'generations').iterdir()));self.assertFalse((self.state/'current.json').exists())
+    def test_incomplete_generation_retries_same_generation_without_relabeling(self):
+        with patch.object(mod,'snapshot_row',side_effect=OSError('disk full')):self.assertEqual(self.prepare(),1)
+        self.assertTrue((self.state/'pending.json').is_file());folder=next((self.state/'generations').iterdir())
+        self.assertEqual(self.prepare(),0);self.assertEqual(folder,self.folder())
+    def test_verify_existing_reads_copies_in_current_scope_without_writes(self):
+        self.prepare();self.verified();self.finalize()
+        before={path.name:path.read_bytes() for path in (self.folder()).iterdir() if path.is_file()}
+        current_before=(self.state/'current.json').read_bytes()
+        code,payload=self.capture(mod.verify_existing,str(self.root),str(self.state),'audit')
+        self.assertEqual(code,0);self.assertEqual(payload['phase'],'verify-existing');self.assertEqual(payload['status'],'historical-complete')
+        self.assertEqual(payload['verificationScope'],'current');self.assertEqual(payload['contentCopyStatus'],'verified')
+        self.assertEqual(payload['sourceObjectIdentity'],'unknown');self.assertEqual(payload['settingsImportStatus'],'verified-historical')
+        self.assertEqual(current_before,(self.state/'current.json').read_bytes())
+        for name,value in before.items():self.assertEqual(value,(self.folder()/name).read_bytes())
+        snapshot=next(row for row in self.doc()['sources'] if row['kind']=='settings')['snapshot']
+        (self.folder()/snapshot).write_text('damaged')
+        code,payload=self.capture(mod.verify_existing,str(self.root),str(self.state),'audit')
+        self.assertEqual(code,1);self.assertEqual(payload['contentCopyStatus'],'failed');self.assertNotEqual(payload['status'],'historical-complete')
+    def test_stale_startup_binding_is_unknown_and_no_receipt(self):
+        self.prepare()
+        code,payload=self.capture(mod.finalize,str(self.root),str(self.state),'old-boot')
+        self.assertEqual(code,1);self.assertEqual(payload['status'],'unknown');self.assertEqual(payload['reason'],'STALE_STARTUP_BINDING')
+        self.assertEqual(payload['executionState'],'COMPLETED');self.assertFalse((self.folder()/'receipt.json').exists())
+    def test_no_second_protocol_receipt_on_any_path(self):
+        self.prepare();self.verified();self.finalize()
+        import contextlib,io
+        for fn,args in [(self.prepare,()),(self.finalize,()),(mod.verify_existing,(str(self.root),str(self.state),'audit'))]:
+            buffer=io.StringIO()
+            with contextlib.redirect_stdout(buffer):fn(*args)
+            lines=[line for line in buffer.getvalue().splitlines() if line.startswith('DSHA_RC1_MIGRATION=')]
+            self.assertEqual(len(lines),1,buffer.getvalue())
     def link(self,target,link,directory=False):
         try:os.symlink(target,link,target_is_directory=directory)
         except OSError as error:self.skipTest('host cannot create symlink: '+str(error.winerror if hasattr(error,'winerror') else error.errno))

@@ -93,6 +93,50 @@ test('runtime升级保留旧committed代与用户后改值，旧记录不提升�
   assert.equal(JSON.parse(await readFile(join(state,'current.json'),'utf8')).generation,current.generation);
 },'0.2.0-rc.2'));
 
+test('账本缺失的普通重启只返回unknown，不新建账本也不重导旧值',()=>fixture('first: {model: old1}\n',async(api,state,ledger,root)=>{
+  api.add('first');
+  // 普通重启：Python 历史快路径只写 history-only 交接，不重新保护。
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const p=spawnSync(process.env.DSHA_PYTHON || 'python',['app/src/main/assets/rc1-migration.py','prepare','--root',root,'--state-root',state,'--startup-id',current.startupId],{encoding:'utf8'});
+  assert.equal(p.status,0,p.stderr+p.stdout);
+  await rm(ledger,{force:true});
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'unknown');assert.equal(returned.reason,'DSHA_MIGRATION_LEDGER_MISSING');
+  assert.equal(api.writes,0);await assert.rejects(readFile(ledger),/ENOENT/);
+}));
+test('update已派发但回执丢失时保持unknown且不再自动update',()=>fixture('first: {model: old1}\n',async(api,state,ledger)=>{
+  api.add('first');
+  const original=api.settings.update.bind(api.settings);
+  let dispatches=0;
+  api.settings.update=async(...args)=>{dispatches++;await original(...args);throw new Error('connection lost');};
+  await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(dispatches,1);const first=JSON.parse(await readFile(ledger));
+  assert.equal(first.sections.first.status,'unknown');
+  api.settings.update=original;
+  await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(dispatches,1);assert.equal(JSON.parse(await readFile(ledger)).status,'unknown');
+}));
+test('崩溃残留writing不恢复为可写pending，不自动再写',()=>fixture('first: {model: old1}\n',async(api,state,ledger)=>{
+  api.add('first');
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  await writeFile(ledger,JSON.stringify({version:2,generation:current.generation,sourceSha256:source.sha256,
+    startupId:current.startupId,status:'pending',sections:{first:{status:'writing',before:{model:'initial',temperature:1}}}}));
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+  const after=JSON.parse(await readFile(ledger));assert.equal(after.sections.first.status,'unknown');
+  await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,0);
+}));
+test('启动上下文缺失时的旧账本只读核对，不新建账本',()=>fixture('first: {model: old1}\n',async(api,state,ledger)=>{
+  api.add('first');
+  const currentPath=join(state,'current.json');const current=JSON.parse(await readFile(currentPath,'utf8'));
+  delete current.startupContext;await writeFile(currentPath,JSON.stringify(current));
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'unknown');assert.equal(returned.reason,'DSHA_MIGRATION_LEDGER_MISSING');
+  assert.equal(api.writes,0);await assert.rejects(readFile(ledger),/ENOENT/);
+}));
 test('runtime升级接续旧pending代仅补未完成节，不重写已完成节或抬升证明版本',()=>fixture('first: {model: old1}\nmissing: {model: old2}\n',async(api,state,ledger,root)=>{
   const run=command=>spawnSync(process.env.DSHA_PYTHON || 'python',['app/src/main/assets/rc1-migration.py',command,'--root',root,'--state-root',state,'--startup-id','test'],{encoding:'utf8'});
   const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));

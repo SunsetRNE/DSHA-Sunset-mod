@@ -37,6 +37,34 @@ function redactBySchema(value, schema) {
 const reason = error => /No configurable plugin entry/.test(String(error)) ? 'SECTION_UNAVAILABLE' :
   /volatile|schema|invalid/i.test(String(error)) ? 'SECTION_SCHEMA_REJECTED' : 'SECTION_WRITE_UNVERIFIED';
 
+// 同次 prepare 的导入模式必须是 startupId/generation/输入指纹绑定的票据；
+// 缺失、过期或摘要不符时只能只读核对旧账本，不能新建账本或重新写入。
+function importContext(current, prepared, sourceSha) {
+  const context = current.startupContext;
+  const valid = context && typeof context === 'object'
+    && context.version === 3
+    && context.generation === current.generation
+    && context.startupId === current.startupId
+    && typeof context.inputFingerprint === 'string'
+    && (context.settingsSha256 === sourceSha || context.settingsSha256 === null)
+    && typeof context.proofDigest === 'string';
+  if (!valid) return { mode: 'history-only', reason: 'STARTUP_CONTEXT_MISSING' };
+  const expected = hash(JSON.stringify({
+    generation: current.generation,
+    inputDigest: prepared.inputDigest,
+    settingsSha256: sourceSha,
+  }));
+  if (context.proofDigest !== expected)
+    return { mode: 'history-only', reason: 'STARTUP_CONTEXT_MISMATCH' };
+  return { mode: context.mode === 'write-allowed' ? 'write-allowed' : 'history-only', reason: null };
+}
+
+function sectionState(sections) {
+  const states = Object.values(sections).map(row => row?.status);
+  if (states.some(state => state === 'unknown' || state === 'writing')) return 'unknown';
+  return states.every(state => state === 'verified') ? 'verified' : 'pending';
+}
+
 async function migrate(settings, parse, aliases, options = {}) {
   const home = settings.ownerContext.profileContext.home;
   const state = options.stateRoot || '/run/dsha-rc1-state';
@@ -64,6 +92,8 @@ async function migrate(settings, parse, aliases, options = {}) {
   if (!/^snapshots\/[0-9]+$/.test(source.snapshot)) throw new Error('DSHA_MIGRATION_SNAPSHOT_PATH');
   const bytes = await fs.readFile(path.join(folder, source.snapshot));
   if (hash(bytes) !== source.sha256) throw new Error('DSHA_MIGRATION_SNAPSHOT_CHANGED');
+  const context = importContext(current, prepared, source.sha256);
+  const writeAllowed = context.mode === 'write-allowed';
   const activePath = path.join(home, 'settings.yaml');
   const importedPath = activePath + '.imported';
   let sourcePath;
@@ -77,14 +107,36 @@ async function migrate(settings, parse, aliases, options = {}) {
   const ledgerFile = path.join(folder, 'settings-result.json');
   let result;
   try { result = await read(ledgerFile); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  if (result && (result.generation !== current.generation || result.sourceSha256 !== source.sha256)) throw new Error('DSHA_MIGRATION_RESULT_IDENTITY');
-  result ||= { version: 2, generation: current.generation, sourceSha256: source.sha256, targetVersion: '0.1.7-rc.2', sections: {} };
+  if (result && (result.generation !== current.generation || result.sourceSha256 !== source.sha256)) {
+    // 历史只读模式不得把旧账本重写成新代次，也不得据此写入配置。
+    if (!writeAllowed) return { status: 'unknown', reason: 'DSHA_MIGRATION_RESULT_IDENTITY', generation: current.generation };
+    throw new Error('DSHA_MIGRATION_RESULT_IDENTITY');
+  }
+  if (!result) {
+    if (!writeAllowed) {
+      // 权威账本缺失：旧 Java 缓存命中或证据票据过期时只能返回 unknown，不能新建账本后重导。
+      return { status: 'unknown', reason: 'DSHA_MIGRATION_LEDGER_MISSING', generation: current.generation };
+    }
+    result = { version: 2, generation: current.generation, sourceSha256: source.sha256, targetVersion: '0.1.7-rc.2', sections: {} };
+  }
+  if (!result.sections || typeof result.sections !== 'object' || Array.isArray(result.sections)) {
+    if (!writeAllowed) return { status: 'unknown', reason: 'DSHA_MIGRATION_RESULT_FORMAT', generation: current.generation };
+    throw new Error('DSHA_MIGRATION_RESULT_FORMAT');
+  }
   result.startupId = current.startupId;
   for (const [name, values] of Object.entries(sections)) {
     const ns = Object.hasOwn(aliases, name) ? aliases[name] : name;
     const descriptor = settings.describe().find(row => row.ns === ns);
     let section = Object.hasOwn(result.sections, name) ? result.sections[name] : undefined;
     if (section?.status === 'verified') continue; // 已完成节从不在普通重启覆盖后来用户修改。
+    if (section?.status === 'unknown') continue; // 已派发但终态未知：不自动再写一次。
+    if (section?.status === 'writing') {
+      // 崩溃留下的 writing 不能恢复成可写 pending；只读对账后保留待处理。
+      section.status = 'unknown';
+      section.reason = 'WRITE_OUTCOME_UNKNOWN';
+      await atomic(ledgerFile, result);
+      continue;
+    }
     if (!section) {
       section = { ns, status: 'pending' };
       Object.defineProperty(result.sections, name, { value: section, enumerable: true, configurable: true, writable: true });
@@ -106,17 +158,25 @@ async function migrate(settings, parse, aliases, options = {}) {
       const safeAfter = after && redactBySchema(after.value, after.schema);
       if (!after || !contains(safeAfter, safeValues)) throw new Error('SETTINGS_READBACK_MISMATCH');
       section.status = 'verified'; section.verified = clone(safeAfter); delete section.reason;
-    } catch (error) { section.status = 'pending'; section.reason = reason(error); }
+    } catch (error) {
+      const why = reason(error);
+      // 明确未派发（schema 拒绝 / 无目标节）才保留可重试 pending；
+      // 其余 update 后的异常/读回不符都可能是“已写入但终态未知”，不得自动重试。
+      section.status = (why === 'SECTION_UNAVAILABLE' || why === 'SECTION_SCHEMA_REJECTED') ? 'pending' : 'unknown';
+      section.reason = section.status === 'unknown' ? 'WRITE_OUTCOME_UNKNOWN' : why;
+    }
     await atomic(ledgerFile, result);
   }
-  result.status = Object.values(result.sections).every(row => row.status === 'verified') ? 'verified' : 'pending';
+  result.status = sectionState(result.sections);
+  if (result.status === 'unknown') result.reason = 'SETTINGS_WRITE_OUTCOME_UNKNOWN';
+  else delete result.reason;
   result.verifiedAt = Date.now();
   await atomic(ledgerFile, result);
   // 不再把整份 settings 放回给上游。合法 rename 仅在正文未变、目标未冲突时完成。
   const active = activePath, imported = importedPath;
   try {
     if (hash(await fs.readFile(active)) === source.sha256) {
-      try { if (hash(await fs.readFile(imported)) !== source.sha256) return; }
+      try { if (hash(await fs.readFile(imported)) !== source.sha256) return result; }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
       await fs.rename(active, imported);
     }
