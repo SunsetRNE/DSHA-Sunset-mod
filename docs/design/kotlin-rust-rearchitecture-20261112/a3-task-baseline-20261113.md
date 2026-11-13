@@ -441,7 +441,7 @@ public final class PlanViewValidator {
 
 ### 4.4 Rust `plan.rs` 实现要求（R2）
 
-- 在 `plan.rs` 补：`TYPE_*` 常量、字段 id 常量、枚举码常量、`validate(&[u8], now_ms) -> Result<(), Reasons>`；`MAX_*` 常量沿用（`1-23` 已有 5 个）。
+- 在 `plan.rs` 补：`TYPE_*` 常量、字段 id 常量、枚举码常量、`validate(&[u8], now_ms) -> Result<(), Reasons>`；`MAX_*` 常量沿用（R0 原文件已有六个常量：`MAGIC`/`VIEW_VERSION`/`MAX_VIEW_BYTES`/`MAX_FIELDS`/`MAX_FIELD_BYTES`/`MAX_REASONS`）。
 - `jni.rs::verifyPlan` 由 `ERR_NOT_IMPLEMENTED` 改为真实实现，遵守 §3.8（返回 0/1/负码；`reasons` 只在 0/1 时写；JNI 每次调用后 `ExceptionCheck`；`catch_unwind`）。
 - 边界：`#![forbid(unsafe_code)]` 保持（`plan.rs:5`）；不新增 crate；`f64`/浮点不参与；所有长度用 `checked_*` 运算。
 - `tools/check-rust-boundaries.py` 的源清单/导出符号/依赖白名单必须保持 PASS（R2 只实现已冻结符号，不新增导出）。
