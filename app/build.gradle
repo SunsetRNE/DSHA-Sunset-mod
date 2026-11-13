@@ -109,6 +109,14 @@ def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('f
 if (!(sourceOnlyTests in ['true', 'false']))
     throw new GradleException('dsha.sourceOnlyTests 只接受 true 或 false')
 
+// R1 主机差分测试：主机目标 .so 路径与 required 开关在配置期解析，供 unitTests.all 注入
+// 测试 JVM；不把 def 放进嵌套闭包（Gradle 9.3.1 的 Groovy 4 脚本编译器在嵌套闭包里出现
+// 变量作用域冲突时会抛 “BUG! exception in phase 'semantic analysis'”，难定位）。
+def rustHostLibProperty = providers.gradleProperty('dsha.rust.hostLib').orNull
+def rustRequiredProperty = providers.gradleProperty('dsha.rust.required').orElse('false').get()
+if (!(rustRequiredProperty in ['true', 'false']))
+    throw new GradleException('dsha.rust.required 只接受 true 或 false')
+
 android {
     namespace 'com.deepseekharness.app'
     compileSdk {
@@ -270,21 +278,19 @@ android {
         // 完整 Standard 套件在同一测试 JVM 内运行 2500+ 项，并包含 25MB 位图边界和
         // 多组 Robolectric 界面沙箱；默认堆上限会在与断言无关的位图分配处 OOM。
         // 这里只提高测试进程内存上限，不放宽或跳过任何用例。
-        unitTests.all { it ->
-            it.maxHeapSize = '2048m'
+        unitTests.all { testTask ->
+            testTask.maxHeapSize = '2048m'
             // R1 主机差分测试：-Pdsha.rust.hostLib=<host .so> 时把库路径与 required 传入
             // 测试 JVM，并开放 java.io 反射（只用于读 FileDescriptor.fd 构造真实 fd）。
             // 未提供 hostLib 时该测试按 Assume 跳过（-Pdsha.rust.required=true 则直接失败，
             // 供 CI rust-differential 证明 0 skipped）；普通单测行为不变。
-            def rustHostLib = project.findProperty('dsha.rust.hostLib')
-            def rustRequired = project.findProperty('dsha.rust.required') ?: 'false'
-            if (rustHostLib) {
-                it.systemProperty 'dsha.rust.hostLib', rustHostLib.toString()
-                it.systemProperty 'dsha.rust.required', rustRequired.toString()
-                it.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
-            } else if (rustRequired.toString() == 'true') {
-                it.systemProperty 'dsha.rust.required', 'true'
-                it.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
+            if (rustHostLibProperty) {
+                testTask.systemProperty 'dsha.rust.hostLib', rustHostLibProperty.toString()
+                testTask.systemProperty 'dsha.rust.required', rustRequiredProperty
+                testTask.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
+            } else if (rustRequiredProperty == 'true') {
+                testTask.systemProperty 'dsha.rust.required', 'true'
+                testTask.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
             }
         }
     }

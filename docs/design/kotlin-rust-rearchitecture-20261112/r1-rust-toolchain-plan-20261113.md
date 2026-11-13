@@ -188,6 +188,13 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 > 内存紧张期间按 Lead 要求 `CARGO_BUILD_JOBS=1 nice -n 10` 串行、一次一个构建，**本机不跑 Gradle**。
 > CI 首轮（`43363307125`，commit `5f3190f8`）暴露并已修复两处真实失败：① `format-java-tree` 的显式 adoption 清单缺 6 个新文件（exit 2）；
 > ② Java 测试漏声明受检异常（`MessageDigest.getInstance` 的 `NoSuchAlgorithmException`、`FileInputStream.getFD()` 的 `IOException`）→ CI 编译失败。修复后用 `javac` 直接复现/验证通过，见下表。
+> CI 第二轮（`43366337116`，commit `0e15a157`）仍失败：`host-fast` / `unit-source` 在 Gradle **脚本编译**阶段报
+> `BUG! exception in phase 'semantic analysis' … SourceUnit.getErrorCollector() … source is null`。根因是 R1 在
+> `app/build.gradle` 的 `unitTests.all { it -> … }` **嵌套闭包**里显式把参数命名为 `it`、并在闭包内 `def` 局部变量，
+> 触发 Gradle 9.3.1 + Groovy 4 脚本编译器的变量作用域缺陷（与 [gradle/gradle#39581](https://github.com/gradle/gradle/issues/39581) 同形：
+> 作用域错误被 NPE 吞掉）。已用 Gradle 9.3.1 最小工程复现原形（嵌套闭包 + `it ->` + `def` → 同一 BUG），
+> 修复为：参数改名 `testTask ->`、属性在脚本顶层用 `providers.gradleProperty(...)` 解析、闭包内不再 `def`；
+> 最小工程验证新形状可正常编译/求值。
 
 | 项 | 结果 |
 |---|---|
@@ -211,7 +218,7 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 
 #### 0.5.6 未跑 / 受限（不得当作通过）
 
-- **本机 Gradle**：按 Lead 2026-11-13 内存紧急要求未跑 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；改用仓库已有的固定 JDK 17 直接 `javac` + `org.junit.runner.JUnitCore` 跑同一批测试类（14 + 9 tests OK），因此编译/运行语义已覆盖，但**没有 Gradle 任务级回执**。Gradle 侧的 CI 执行路径为 `_node-unit-tests.yml` 的 `rust_host`（release/package/full 调用方）与 `ci-fast` 的 `rust-differential`（Python 探针）。
+- **本机 Gradle**：按 Lead 2026-11-13 内存紧急要求未跑本仓库的 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；改用仓库已有的固定 JDK 17 直接 `javac` + `org.junit.runner.JUnitCore` 跑同一批测试类（14 + 9 tests OK），因此编译/运行语义已覆盖，但**没有本仓库 Gradle 任务级回执**。为定位 CI 脚本编译失败，只在 `/tmp` 建了**与仓库无关的最小 Gradle 9.3.1 工程**（无 Android 插件、独立 `GRADLE_USER_HOME`）复现 Groovy 编译器缺陷，未运行仓库构建、未触碰共享 Gradle 缓存。Gradle 侧的 CI 执行路径为 `_node-unit-tests.yml` 的 `rust_host`（release/package/full 调用方）与 `ci-fast` 的 `rust-differential`（Python 探针）。
 - **CI job 日志/artifact 不可取**：本会话手机容器出网策略只允许 GitHub 端点，`gh run view --log` / artifact 下载被重定向到 `blob.core.windows.net` 并拒绝；因此无法读回 CI 内 `build.py` 的 size/SHA-256 输出来完成 `rust/artifact.lock.json` 的跨 run pin。机制已接线且 `pending-cross-run` 行为已实测，但 **pin 数值未取得，不得声称跨 runner 复现已验证**；需在有可读日志的环境按同一口径补 3 次证据。
 - **本机 Android 链接**：无 NDK（`/opt/android-sdk/ndk` 不存在），`tools/rust/build.py --android` 未跑；arm64 `.so` 首次链接/`DT_NEEDED`/APK 成员核验仍交 `ci-package`/发布 dry-run（与 R0 相同）。
 - **跨 run 产物 pin**：`rust/artifact.lock.json` 仍为 `pending-cross-run`；需要连续 3 次不同 runner 实例的 size/SHA-256 一致后才 pin（x86_64 宿主与 Android 产物分别等待 CI 证据）。
