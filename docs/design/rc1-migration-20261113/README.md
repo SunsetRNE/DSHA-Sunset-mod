@@ -232,3 +232,10 @@ P0/P1/P2 是落地顺序；§6 的 P1 是缺陷优先级，两者不要混淆。
 - 未验证：完整外部草稿、对方仓库全部 diff、mock 在本仓的执行日志、Android inode 复用、设备安装/覆盖、真实进程中断恢复、当前 APK 全链回执、任何生产数据事故。
 - 待 Lead 裁决：接受 Q1 的范围及 §8 历史普通启动规则；确认 P1a/P1b 同批发布以控制一次维护；排定 CJS unknown 不重试与现有“pending 自动补节”行为的产品变更。默认建议均按本文收敛，不能把本记录状态写为已经获准实施。
 - 与 build363 发布独立：本文固定核对其发布源码 d0bc1b0b，不追随其它会话随后合入的文档重写证据基线。本轮不改 main、不推送、不合并、不安装、不操作手机；这些缺口应进入后续修复评审，不能把尚未验证的问题描述成已发布修复或用户数据损坏通报。
+
+## 11. 实现状态（2026-11-13，分支 feat/rc1-fix）
+
+- P1a/P1b 已实现并以 `resultVersion=3` 落地：Java/Python 统一历史/当前作用域、settings 账本绑定（generation + sourceSha256 + 期望分节集合）、prepare/finalize 同次票据与 startupId 绑定、单条协议回执、CJS history-only 只读核对、`RetainedCatalogue` 真实 current 投影、`verify-existing` 内部只读入口。分支提交与最终 runtimeId 见该分支 `.SESSION-DONE` 与合并回执。
+- 非实现者评审 REQUEST_CHANGES 的吸收：① CJS 在 history-only 下禁止创建/更新分节、禁止写 `startupId`/`verifiedAt`/atomic 与 rename，账本缺节或 pending/writing/unknown 只返回 unknown/pending；② Python prepare 历史快路径必须已有 committed receipt 且 settings 账本 verified/not-required，`protectionComplete` 不再代替完成回执；③ 重复 finalize 返回原失败或 unknown，不再本地报告成功；④ warnings 严格 32 条；⑤ current 缺失投影为 UNKNOWN，账本 sourceSha256 绑定 current 输入摘要。
+- Lead 裁决：Q1 接受保守 unknown（不自动补导入，需显式意图）；Q2 维持仅“明确未派发”的 schema/目标缺失节可在新票据下重试，writing/派发后异常冻结 unknown；Q3 `verify-existing` 暂只作内部只读入口，UI 入口另派单。
+- 测试边界：CI Source 阶段不执行 `tools/test-rc1-migration.py` / `tools/test-rc1-settings-migration.mjs`；合并前须在 release/runtime 或等价的宿主夹具阶段补跑这两套（含本目录评审补的 history-only 只读与历史完成门槛回归）。

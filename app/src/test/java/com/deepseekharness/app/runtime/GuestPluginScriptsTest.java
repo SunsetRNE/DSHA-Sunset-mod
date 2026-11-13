@@ -513,6 +513,33 @@ public class GuestPluginScriptsTest {
   }
 
   @Test
+  public void failedGuestFinalizeRepeatsTheOriginalFailureWithoutRedispatch() throws Exception {
+    var preparation = new MutablePreparation();
+    var calls = new ArrayList<String>();
+    var scripts =
+        new GuestPluginScripts(
+            preparation,
+            (command, timeout) -> {
+              calls.add(command);
+              return failedResult();
+            });
+    var first = scripts.migration("finalize", "startup");
+    assertNotNull(first);
+    assertEquals(2, first.exitCode);
+    var repeated = scripts.migration("finalize", "startup");
+    assertNotNull("重复 finalize 必须返回原失败而不是本地成功", repeated);
+    assertEquals(2, repeated.exitCode);
+    assertEquals(1, calls.size());
+  }
+
+  private static com.deepseekharness.app.util.BoundedProcessRunner.Result failedResult()
+      throws IOException, InterruptedException {
+    Process process = new ProcessBuilder("sh", "-c", "exit 2").start();
+    return com.deepseekharness.app.util.BoundedProcessRunner.collect(
+        process, 10_000, 4096, Process::destroy);
+  }
+
+  @Test
   public void verifyExistingDispatchesReadOnlyMigrationCommand() throws Exception {
     var preparation = new MutablePreparation();
     var calls = new ArrayList<String>();

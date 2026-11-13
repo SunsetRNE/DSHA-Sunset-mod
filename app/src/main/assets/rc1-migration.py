@@ -65,6 +65,12 @@ def read_json(path):
 
 
 _STARTUP_ID = None
+WARNINGS_LIMIT = 32
+
+
+def bounded_warnings(values):
+    """协议回执严格有界：超过 32 条时保留 31 条 + 截断标记（总数仍为 32）。"""
+    return values if len(values) <= WARNINGS_LIMIT else values[:WARNINGS_LIMIT - 1] + ['WARNINGS_TRUNCATED']
 
 
 def emit(phase, status, **data):
@@ -76,8 +82,8 @@ def emit(phase, status, **data):
     payload = dict(resultVersion=RESULT_VERSION, phase=phase, status=status,
                    sourceObjectIdentity='unknown', **data)
     warnings = payload.get('warnings')
-    if isinstance(warnings, list) and len(warnings) > 32:
-        payload['warnings'] = warnings[:32] + ['WARNINGS_TRUNCATED']
+    if isinstance(warnings, list):
+        payload['warnings'] = bounded_warnings(warnings)
     if _STARTUP_ID: payload.setdefault('startupId', _STARTUP_ID)
     payload.setdefault('verificationScope', 'none')
     payload.setdefault('contentCopyStatus', 'unknown')
@@ -137,8 +143,16 @@ def ledger_state(folder, doc, startup_id=None):
         if state not in SECTION_STATES: return 'unknown', 'SETTINGS_LEDGER_SECTION'
         states.append(state)
     overall = result.get('status')
-    if 'unknown' in states or 'writing' in states or overall == 'unknown':
+    if 'unknown' in states or 'writing' in states or overall in ('unknown', 'writing'):
         return 'unknown', 'SETTINGS_WRITE_OUTCOME_UNKNOWN'
+    expected = result.get('expectedSections')
+    if isinstance(expected, list):
+        # 新账本记录期望分节集合；部分 verified 但集合不全时不能判 verified。
+        if (not all(isinstance(name, str) for name in expected)
+                or len(set(expected)) != len(expected)):
+            return 'unknown', 'SETTINGS_LEDGER_SECTION'
+        if set(sections) != set(expected):
+            return 'unknown', 'SETTINGS_SECTION_MISSING'
     if overall == 'verified' and all(state == 'verified' for state in states):
         return 'verified', None
     return 'pending', None
@@ -401,17 +415,49 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
             # 历史完成的普通启动：只重读小输入与账本身份，不重扫或重新复制历史来源。
             settings_state, settings_reason = ledger_state(folder, prepared)
             sha = settings_sha256(prepared)
+            # 无论本次是否完成，都把 durable 交接降为 history-only：崩溃残留的
+            # write-allowed 票据不能在下一次普通启动继续写配置。
             current['startupId'] = startup_id
             current['startupContext'] = startup_context(current['generation'], startup_id,
                 prepared.get('inputDigest'), sha, 'history-only')
             write_json(state/'current.json', current)
-            extra = {} if settings_reason is None else {'reason': settings_reason}
+            receipt = None
+            try:
+                if (folder/'receipt.json').is_file() and not (folder/'receipt.json').is_symlink():
+                    receipt = read_json(folder/'receipt.json')
+            except (OSError, ValueError, UnicodeError):
+                receipt = None
+            committed = (isinstance(receipt, dict) and receipt.get('version') == 2
+                         and receipt.get('generation') == current['generation']
+                         and receipt.get('status') == 'committed'
+                         and all(receipt.get(key) is True for key in
+                                 ('sourcePreserved', 'settingsImported', 'protectionComplete')))
+            # protectionComplete 只证明内容副本已建立，不能代替完成回执。
+            if not committed:
+                emit('prepare', 'pending', generation=current['generation'], cached=True,
+                     verificationScope='historical', contentCopyStatus='verified',
+                     settingsImportStatus=import_status(settings_state, 'historical'),
+                     executionState='NOT_SENT', dshVersion=prepared.get('dshVersion'),
+                     runtimeDshVersion=active_version,
+                     reason=settings_reason or 'LEGACY_COMPLETION_RECEIPT_MISSING',
+                     continuation='旧代尚未提交完成回执，保留现场；不自动补导入')
+                return 0
+            if settings_state not in ('verified', 'not-required'):
+                emit('prepare', 'unknown' if settings_state == 'unknown' else 'pending',
+                     generation=current['generation'], cached=True,
+                     verificationScope='historical', contentCopyStatus='verified',
+                     settingsImportStatus=import_status(settings_state, 'historical'),
+                     executionState='NOT_SENT', dshVersion=prepared.get('dshVersion'),
+                     runtimeDshVersion=active_version,
+                     reason=settings_reason or 'SETTINGS_PENDING_READBACK_OR_REVIEW',
+                     continuation='旧代设置尚未完成核验，保留现场；不自动补导入')
+                return 0
             emit('prepare', 'historical-complete', generation=current['generation'], cached=True,
                  verificationScope='historical', contentCopyStatus='verified',
                  settingsImportStatus=import_status(settings_state, 'historical'),
                  executionState='NOT_SENT', dshVersion=prepared.get('dshVersion'),
                  runtimeDshVersion=active_version,
-                 continuation='保留数据 → rc1 迁移记录（历史作用域，本次未重读全部副本）', **extra)
+                 continuation='保留数据 → rc1 迁移记录（历史作用域，本次未重读全部副本）')
             return 0
     # Full inventory only for a new/incomplete migration. Completed ordinary startup remains a small read.
     try:
@@ -536,8 +582,18 @@ def publish_reuse(folder, prepared, current, receipt, active_version):
     if receipt.get('status') != 'committed' or any(receipt.get(key) is not True for key in ('sourcePreserved','settingsImported','protectionComplete')): return None
     sha = settings_sha256(prepared)
     checkpoint = {key:prepared[key] for key in ('version','generation','dshVersion','dshHome','dataRoot','inputs','status','protectionComplete','inputDigest')}
-    # 只读核对 Java 缓存需要的最小业务绑定：账本 generation/sourceSha256。
+    # 只读核对 Java 缓存需要的最小业务绑定：账本 generation/sourceSha256 与期望分节集合。
     checkpoint['settingsSha256'] = sha
+    try:
+        ledger = read_json(folder/'settings-result.json') if (folder/'settings-result.json').is_file() else None
+    except (OSError, ValueError, UnicodeError):
+        ledger = None
+    if isinstance(ledger, dict):
+        expected = ledger.get('expectedSections')
+        if isinstance(expected, list) and all(isinstance(name, str) for name in expected):
+            checkpoint['settingsSections'] = sorted(expected)
+        elif isinstance(ledger.get('sections'), dict):
+            checkpoint['settingsSections'] = sorted(ledger['sections'])
     target = folder/'reuse.json'
     if os.path.lexists(target):
         if target.is_symlink() or not target.is_file(): raise ValueError('REUSE_CHECKPOINT_TYPE')

@@ -271,6 +271,41 @@ class Migration(unittest.TestCase):
             with contextlib.redirect_stdout(buffer):fn(*args)
             lines=[line for line in buffer.getvalue().splitlines() if line.startswith('DSHA_RC1_MIGRATION=')]
             self.assertEqual(len(lines),1,buffer.getvalue())
+    def test_historical_prepare_requires_committed_receipt(self):
+        self.prepare()  # 首次 prepare 后、CJS/finalize 前崩溃：只有 prepared。
+        code,payload=self.capture(self.prepare)
+        self.assertEqual(code,0);self.assertNotEqual(payload['status'],'historical-complete')
+        self.assertEqual(payload['status'],'pending');self.assertIn(payload['reason'],('LEGACY_COMPLETION_RECEIPT_MISSING','SETTINGS_LEDGER_MISSING'))
+        self.assertFalse((self.folder()/'receipt.json').exists())
+    def test_pending_receipt_is_not_historical_complete(self):
+        self.prepare();self.finalize();self.assertEqual(self.result()['status'],'pending')
+        code,payload=self.capture(self.prepare)
+        self.assertEqual(code,0);self.assertNotEqual(payload['status'],'historical-complete')
+        self.assertIn(payload['status'],('pending','unknown'))
+    def test_committed_receipt_without_ledger_is_unknown_not_historical(self):
+        self.prepare();self.verified();self.finalize();(self.folder()/'settings-result.json').unlink()
+        code,payload=self.capture(self.prepare)
+        self.assertEqual(code,0);self.assertEqual(payload['status'],'unknown');self.assertEqual(payload['reason'],'SETTINGS_LEDGER_MISSING')
+    def test_history_only_rewrites_crashed_write_allowed_context(self):
+        self.prepare()
+        current=json.loads((self.state/'current.json').read_text());self.assertEqual(current['startupContext']['mode'],'write-allowed')
+        self.capture(self.prepare)
+        current=json.loads((self.state/'current.json').read_text());self.assertEqual(current['startupContext']['mode'],'history-only')
+    def test_warnings_are_strictly_bounded(self):
+        self.assertEqual(len(mod.bounded_warnings([str(i) for i in range(32)])),32)
+        bounded=mod.bounded_warnings([str(i) for i in range(40)])
+        self.assertEqual(len(bounded),32);self.assertEqual(bounded[-1],'WARNINGS_TRUNCATED')
+    def test_ledger_expected_sections_and_writing_are_unknown(self):
+        folder=self.root/'ledger-check';folder.mkdir()
+        sha='a'*64
+        doc=dict(generation='g',sources=[{'kind':'settings','sha256':sha}])
+        def write(ledger):(folder/'settings-result.json').write_text(json.dumps(ledger))
+        write({'generation':'g','sourceSha256':sha,'status':'verified','expectedSections':['a','b'],'sections':{'a':{'status':'verified'}}})
+        self.assertEqual(mod.ledger_state(folder,doc)[0],'unknown')
+        write({'generation':'g','sourceSha256':sha,'status':'verified','sections':{'a':{'status':'verified'}}})
+        self.assertEqual(mod.ledger_state(folder,doc)[0],'verified')
+        write({'generation':'g','sourceSha256':sha,'status':'writing','sections':{'a':{'status':'verified'}}})
+        self.assertEqual(mod.ledger_state(folder,doc)[0],'unknown')
     def link(self,target,link,directory=False):
         try:os.symlink(target,link,target_is_directory=directory)
         except OSError as error:self.skipTest('host cannot create symlink: '+str(error.winerror if hasattr(error,'winerror') else error.errno))

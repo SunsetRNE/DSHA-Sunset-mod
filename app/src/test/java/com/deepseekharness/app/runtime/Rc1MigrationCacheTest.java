@@ -62,6 +62,7 @@ public class Rc1MigrationCacheTest {
     prepared.put("protectionComplete", true);
     prepared.put("inputDigest", "d".repeat(64));
     prepared.put("settingsSha256", settingsSha);
+    prepared.put("settingsSections", java.util.List.of("first"));
     fs.atomic(recorded, "reuse.json", BackupJson.write(prepared, 65536));
     var receipt =
         Map.of(
@@ -154,6 +155,56 @@ public class Rc1MigrationCacheTest {
     var unknown = Rc1MigrationCache.reuse(fs, files, home);
     assertEquals(Rc1MigrationCache.Reuse.Status.UNAVAILABLE, unknown.status);
     assertEquals("SETTINGS_LEDGER_UNKNOWN", unknown.reason);
+  }
+
+  @Test
+  public void pendingOrPartialLedgerCannotBeHistoricalCompletion() throws Exception {
+    fixture();
+    File folder = fs.child(state, "generations/" + generation);
+    fs.atomic(
+        folder,
+        "settings-result.json",
+        BackupJson.write(
+            Map.of(
+                "version",
+                2,
+                "generation",
+                generation,
+                "sourceSha256",
+                settingsSha,
+                "expectedSections",
+                java.util.List.of("first"),
+                "status",
+                "pending",
+                "sections",
+                Map.of("first", Map.of("status", "pending"))),
+            65536));
+    var pending = Rc1MigrationCache.reuse(fs, files, home);
+    assertEquals(
+        "pending:" + pending.reason, Rc1MigrationCache.Reuse.Status.UNAVAILABLE, pending.status);
+    assertEquals("SETTINGS_LEDGER_INCOMPLETE", pending.reason);
+    fs.atomic(
+        folder,
+        "settings-result.json",
+        BackupJson.write(
+            Map.of(
+                "version",
+                2,
+                "generation",
+                generation,
+                "sourceSha256",
+                settingsSha,
+                "expectedSections",
+                java.util.List.of("first", "second"),
+                "status",
+                "verified",
+                "sections",
+                Map.of("first", Map.of("status", "verified"))),
+            65536));
+    var partial = Rc1MigrationCache.reuse(fs, files, home);
+    assertEquals(
+        "partial:" + partial.reason, Rc1MigrationCache.Reuse.Status.UNAVAILABLE, partial.status);
+    assertEquals("SETTINGS_LEDGER_INCOMPLETE", partial.reason);
   }
 
   @Test

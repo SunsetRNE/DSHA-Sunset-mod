@@ -123,7 +123,26 @@ async function migrate(settings, parse, aliases, options = {}) {
     if (!writeAllowed) return { status: 'unknown', reason: 'DSHA_MIGRATION_RESULT_FORMAT', generation: current.generation };
     throw new Error('DSHA_MIGRATION_RESULT_FORMAT');
   }
+  // history-only 只读核对既有账本：不得创建/更新节、写 startupId/verifiedAt/atomic，
+  // 也不得做 settings.yaml -> imported 的 rename。源分节缺失或未完成一律不写并返回
+  // unknown/pending，避免把用户后来改的当前值覆盖回旧快照值。
+  if (!writeAllowed) {
+    const expected = Object.keys(sections);
+    const missing = expected.filter(name => !Object.hasOwn(result.sections, name));
+    if (missing.length)
+      return { status: 'unknown', reason: 'SETTINGS_SECTION_MISSING', generation: current.generation, missing: missing.slice(0, 8) };
+    const states = expected.map(name => result.sections[name]?.status);
+    if (states.some(state => state === 'writing' || state === 'unknown'))
+      return { status: 'unknown', reason: 'SETTINGS_WRITE_OUTCOME_UNKNOWN', generation: current.generation };
+    if (states.some(state => state === 'pending' || state === 'conflict'))
+      return { status: 'pending', reason: 'SETTINGS_READ_ONLY_INCOMPLETE', generation: current.generation };
+    if (states.some(state => state !== 'verified'))
+      return { status: 'unknown', reason: 'SETTINGS_LEDGER_SECTION', generation: current.generation };
+    return { status: 'verified', generation: current.generation };
+  }
   result.startupId = current.startupId;
+  // 记录本代次期望分节集合；后续只读方据此判断“部分 verified + overall=verified”的不完整账本。
+  result.expectedSections = Object.keys(sections).sort();
   for (const [name, values] of Object.entries(sections)) {
     const ns = Object.hasOwn(aliases, name) ? aliases[name] : name;
     const descriptor = settings.describe().find(row => row.ns === ns);

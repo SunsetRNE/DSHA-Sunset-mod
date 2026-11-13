@@ -95,11 +95,21 @@ public final class Rc1MigrationReuse {
 
   /** 逐节状态投影：verified / pending / unknown；写入中或未知终态不能当 pending。 */
   public static String ledgerState(Map<String, Object> ledger) {
+    return ledgerState(ledger, null);
+  }
+
+  /**
+   * expected 非空时要求分节集合完全一致：新账本记录期望分节数组，避免
+   * “只含部分 verified 分节但 overall=verified”被当成完成。
+   */
+  public static String ledgerState(Map<String, Object> ledger, java.util.Set<String> expected) {
     if (ledger == null) return "unknown";
     Object sections = ledger.get("sections");
     if (!(sections instanceof Map)) return "unknown";
     boolean allVerified = true;
-    for (Object value : ((Map<?, ?>) sections).values()) {
+    for (Map.Entry<?, ?> entry : ((Map<?, ?>) sections).entrySet()) {
+      if (!(entry.getKey() instanceof String)) return "unknown";
+      Object value = entry.getValue();
       if (!(value instanceof Map)) return "unknown";
       Object status = ((Map<?, ?>) value).get("status");
       if (!(status instanceof String)) return "unknown";
@@ -107,8 +117,9 @@ public final class Rc1MigrationReuse {
       if (!Set.of("verified", "pending", "conflict").contains(status)) return "unknown";
       if (!"verified".equals(status)) allVerified = false;
     }
+    if (expected != null && !expected.equals(((Map<?, ?>) sections).keySet())) return "unknown";
     Object overall = ledger.get("status");
-    if ("unknown".equals(overall)) return "unknown";
+    if ("unknown".equals(overall) || "writing".equals(overall)) return "unknown";
     return allVerified && "verified".equals(overall) ? "verified" : "pending";
   }
 

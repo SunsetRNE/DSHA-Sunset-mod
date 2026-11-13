@@ -53,14 +53,13 @@ public final class Rc1MigrationResult {
         && "verified".equals(text(value, "contentCopyStatus"));
   }
 
-  /** 普通启动门禁：历史完成只授予无迁移写入的启动。 */
+  /** 普通启动门禁：历史完成只授予无迁移写入的启动，且旧设置导入必须已完成。 */
   public static boolean allowsStart(Map<String, Object> value) {
     if (!versionThree(value)) return false;
     String status = text(value, "status");
     if ("skipped".equals(status) && "DSH_MISSING".equals(text(value, "reason"))) return true;
-    boolean currentVerified = currentCopyVerified(value);
-    if ("prepared".equals(status)) return currentVerified;
-    return isHistorical(value);
+    if ("prepared".equals(status)) return currentCopyVerified(value);
+    return isHistorical(value) && historicalSettingsComplete(value);
   }
 
   /** 常规回执保持静默；历史完成没有本次核验、或设置/写入未知时必须可见。 */
@@ -74,8 +73,15 @@ public final class Rc1MigrationResult {
             || "verified-historical".equals(settings)
             || "not-required".equals(settings);
     if ("prepared".equals(status)) return currentCopyVerified(value);
+    // committed 允许 verified-historical：设置由更早启动完成导入、本次只重读内容副本；
+    // 字段本身仍明确标注历史，不能当成本次写入。其余历史结果必须是历史/not-required。
     if ("committed".equals(status)) return currentCopyVerified(value) && settingsOk;
-    return isHistorical(value) && settingsOk;
+    return isHistorical(value) && historicalSettingsComplete(value);
+  }
+
+  private static boolean historicalSettingsComplete(Map<String, Object> value) {
+    String settings = text(value, "settingsImportStatus");
+    return "verified-historical".equals(settings) || "not-required".equals(settings);
   }
 
   public static boolean needsAttention(Map<String, Object> value) {

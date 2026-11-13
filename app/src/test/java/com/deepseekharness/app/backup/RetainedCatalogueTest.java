@@ -314,6 +314,11 @@ public class RetainedCatalogueTest {
     return fixture;
   }
 
+  private static String json(Map<String, Object> value) throws Exception {
+    return new String(
+        BackupJson.write(value, BackupLimits.MANIFEST), java.nio.charset.StandardCharsets.UTF_8);
+  }
+
   private static Map<String, Object> backupJson(File file) throws Exception {
     return BackupJson.read(Files.readAllBytes(file.toPath()), BackupLimits.MANIFEST);
   }
@@ -348,6 +353,26 @@ public class RetainedCatalogueTest {
         new String(
             process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
     assertEquals(output, 0, process.exitValue());
+  }
+
+  @Test
+  public void missingHostCurrentIndexIsUnknownNotRetained() throws Exception {
+    put(
+        "rc1-migration-state/generations/01234567-89ab-cdef-0123-456789abcdef/prepare.json",
+        "{\"version\":2,\"status\":\"prepared\",\"protectionComplete\":true}");
+    var catalog = new RetainedCatalogue(fs, temp.getRoot(), new File(temp.getRoot(), "home"));
+    var entry = migration(catalog, "rc1-migration-state");
+    assertEquals("UNKNOWN", entry.status);
+  }
+
+  @Test
+  public void realPythonLedgerMustBindCurrentSourceSha() throws Exception {
+    Rc1Fixture fixture = rc1Fixture(true);
+    Map<String, Object> ledger = backupJson(fixture.ledger);
+    ledger.put("sourceSha256", "b".repeat(64));
+    Files.writeString(fixture.ledger.toPath(), json(ledger));
+    var catalog = new RetainedCatalogue(fs, temp.getRoot(), fixture.home);
+    assertEquals("UNKNOWN", migration(catalog, "rc1-migration-state").status);
   }
 
   @Test

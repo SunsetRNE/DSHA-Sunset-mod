@@ -37,7 +37,8 @@ public class Rc1MigrationResultTest {
         Rc1MigrationResult.allowsStart(
             Rc1MigrationResult.parse(
                 "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"historical-complete\","
-                    + "\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\"}\n")));
+                    + "\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\","
+                    + "\"settingsImportStatus\":\"verified-historical\"}\n")));
   }
 
   @Test
@@ -99,6 +100,21 @@ public class Rc1MigrationResultTest {
   }
 
   @Test
+  public void historicalCompletionRequiresVerifiedHistoricalSettings() {
+    Map<String, Object> pending =
+        Map.of(
+            "resultVersion", 3L,
+            "status", "historical-complete",
+            "verificationScope", "historical",
+            "contentCopyStatus", "verified",
+            "settingsImportStatus", "pending");
+    assertFalse(Rc1MigrationResult.allowsStart(pending));
+    Map<String, Object> unknown = new java.util.HashMap<>(pending);
+    unknown.put("settingsImportStatus", "unknown");
+    assertFalse(Rc1MigrationResult.allowsStart(unknown));
+  }
+
+  @Test
   public void historicalCompletionAllowsOnlyOrdinaryStartWithoutMigrationWrites() {
     assertTrue(Rc1MigrationResult.allowsStart(historical()));
     // 历史完成不是本次核验，缺 scope/copy 或字段类型不对都不能授予启动。
@@ -134,6 +150,15 @@ public class Rc1MigrationResultTest {
                 "verificationScope", "current",
                 "contentCopyStatus", "verified",
                 "settingsImportStatus", "verified-current")));
+    // 明确例外：设置由更早启动完成导入、本次只重读内容副本；字段仍标 historical。
+    assertTrue(
+        Rc1MigrationResult.isRoutineReceipt(
+            Map.of(
+                "resultVersion", 3L,
+                "status", "committed",
+                "verificationScope", "current",
+                "contentCopyStatus", "verified",
+                "settingsImportStatus", "verified-historical")));
     assertFalse(
         Rc1MigrationResult.isRoutineReceipt(
             Map.of(

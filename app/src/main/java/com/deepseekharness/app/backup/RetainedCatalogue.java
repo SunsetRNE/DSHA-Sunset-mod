@@ -577,7 +577,8 @@ public final class RetainedCatalogue {
   /** 真实 Python 产物的宿主索引：current 不写 status，须按 generation→receipt/账本投影。 */
   private MigrationReport hostMigrationReport(File root) throws IOException {
     File current = new File(root, "current.json");
-    if (!fs.stat(current).type.equals("FILE")) return new MigrationReport("RETAINED", "");
+    // 宿主状态根缺 current：权威索引不可判，不能当作“原件保留”健康态。
+    if (!fs.stat(current).type.equals("FILE")) return new MigrationReport("UNKNOWN", "");
     Map<String, Object> index;
     try {
       index = BackupJson.read(fs.small(current, BackupLimits.MANIFEST), BackupLimits.MANIFEST);
@@ -677,6 +678,13 @@ public final class RetainedCatalogue {
     Object generation = index.get("generation"), ledgerGeneration = value.get("generation");
     if (!(ledgerGeneration instanceof String)
         || !((String) ledgerGeneration).equals(String.valueOf(generation))) return "unknown";
+    // 账本必须绑定 current 记录中的 settings 输入摘要，不能只比对 generation。
+    Object expectedSha =
+        ((Map<?, ?>) inputs).containsKey("settings.yaml")
+            ? ((Map<?, ?>) inputs).get("settings.yaml")
+            : ((Map<?, ?>) inputs).get("settings.yaml.imported");
+    if (!(expectedSha instanceof String) || !expectedSha.equals(value.get("sourceSha256")))
+      return "unknown";
     Object sections = value.get("sections");
     if (!(sections instanceof Map)) return "unknown";
     boolean allVerified = true;
@@ -688,7 +696,7 @@ public final class RetainedCatalogue {
       if (!"verified".equals(status)) allVerified = false;
     }
     Object overall = value.get("status");
-    if ("unknown".equals(overall)) return "unknown";
+    if ("unknown".equals(overall) || "writing".equals(overall)) return "unknown";
     return allVerified && "verified".equals(overall) ? "verified" : "pending";
   }
 

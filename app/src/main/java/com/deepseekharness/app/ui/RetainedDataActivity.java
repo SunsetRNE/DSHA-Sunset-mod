@@ -275,7 +275,10 @@ public final class RetainedDataActivity extends AppCompatActivity {
           case "COMMITTED" -> t("原操作已提交", "Original operation committed");
           case "HISTORICAL_COMMITTED" ->
               t("原时点已提交（历史，非本次核验）", "Committed at original time (historical, not re-verified now)");
-          case "PENDING_RETRY" -> t("迁移待处理（不会自动重试）", "Migration needs review (no automatic retry)");
+          case "PENDING_RETRY" ->
+              t(
+                  "迁移待处理（普通启动不会自动重试）",
+                  "Migration needs review (no automatic retry on ordinary startup)");
           case "UNKNOWN" ->
               t("写入或记录终态未知，仅只读保留", "Write or record outcome unknown; read-only retention");
           case "ROLLED_BACK" -> t("原操作已回切", "Original operation rolled back");

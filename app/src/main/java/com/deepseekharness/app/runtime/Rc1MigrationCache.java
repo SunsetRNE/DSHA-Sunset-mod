@@ -187,11 +187,12 @@ final class Rc1MigrationCache {
       }
       if (!Rc1MigrationReuse.ledgerBinding(generation, settingsSha256, ledger))
         return Reuse.unavailable("SETTINGS_LEDGER_UNKNOWN");
-      String ledgerState = Rc1MigrationReuse.ledgerState(ledger);
-      settingsImportStatus =
-          "verified".equals(ledgerState)
-              ? "verified-historical"
-              : ("pending".equals(ledgerState) ? "pending" : "unknown");
+      // 历史命中必须同时具备完成回执与完整账本：pending/部分分节都不是“历史完成”。
+      java.util.Set<String> expected = ledgerExpectedSections(ledger);
+      if (expected == null) expected = expectedSections(prepared);
+      String ledgerState = Rc1MigrationReuse.ledgerState(ledger, expected);
+      if (!"verified".equals(ledgerState)) return Reuse.unavailable("SETTINGS_LEDGER_INCOMPLETE");
+      settingsImportStatus = "verified-historical";
       ledgerDigest = digest(ledgerDigestMaterial(generation, settingsSha256, ledgerState, ledger));
     }
     return Reuse.history(
@@ -202,6 +203,24 @@ final class Rc1MigrationCache {
         ledgerDigest,
         (String) prepared.get("dshVersion"),
         inputs);
+  }
+
+  private static java.util.Set<String> ledgerExpectedSections(Map<String, Object> ledger) {
+    return sectionNames(ledger.get("expectedSections"));
+  }
+
+  private static java.util.Set<String> expectedSections(Map<String, Object> prepared) {
+    return sectionNames(prepared.get("settingsSections"));
+  }
+
+  private static java.util.Set<String> sectionNames(Object value) {
+    if (!(value instanceof java.util.List)) return null;
+    java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+    for (Object name : (java.util.List<?>) value) {
+      if (!(name instanceof String)) return null;
+      if (!names.add((String) name)) return null;
+    }
+    return names;
   }
 
   private static boolean completedGeneration(BackupFileSystem fs, File state) throws IOException {

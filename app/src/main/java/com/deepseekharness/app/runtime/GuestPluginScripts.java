@@ -111,7 +111,9 @@ final class GuestPluginScripts {
   private final Runner runner;
   private final java.util.LinkedHashMap<String, Ticket> preparedReuse =
       new java.util.LinkedHashMap<>();
-  private final java.util.LinkedHashMap<String, String> finalizedReuse =
+
+  /** 已消费的 finalize 终态；保存原始 Result（含失败/超时），重复调用不再派 guest。 */
+  private final java.util.LinkedHashMap<String, BoundedProcessRunner.Result> finalizedReuse =
       new java.util.LinkedHashMap<>();
 
   GuestPluginScripts(Context context, File root, BooleanSupplier ready, Runner runner) {
@@ -303,9 +305,9 @@ final class GuestPluginScripts {
     }
     synchronized (preparedReuse) {
       if ("finalize".equals(command)) {
-        String recorded = finalizedReuse.get(startupId);
-        // 重复 finalize 不再派 guest；返回本进程已记录的终态或明确 UNKNOWN。
-        if (recorded != null) return BoundedProcessRunner.localCompletion(recorded);
+        BoundedProcessRunner.Result recorded = finalizedReuse.get(startupId);
+        // 重复 finalize 不再派 guest；成功返回同一结果，失败返回原失败或明确 UNKNOWN。
+        if (recorded != null) return recorded;
       }
     }
     Rc1MigrationCache.Reuse reuse;
@@ -333,13 +335,15 @@ final class GuestPluginScripts {
       if (ticket != null) {
         // prepare 命中而 finalize 证据失效/不可用：本地明确 unknown，不补派 prepare，
         // 也不让 guest 用旧 durable startupId 冒充本次完成。
-        String output =
+        BoundedProcessRunner.Result outcome =
             ticket.matches(reuse)
-                ? Rc1MigrationCache.output(reuse, true, startupId)
-                : Rc1MigrationCache.unknown(
-                    "finalize", startupId, "FINALIZE_EVIDENCE_UNAVAILABLE", ticket.generation);
-        recordFinalized(startupId, output);
-        return BoundedProcessRunner.localCompletion(output);
+                ? BoundedProcessRunner.localCompletion(
+                    Rc1MigrationCache.output(reuse, true, startupId))
+                : BoundedProcessRunner.localCompletion(
+                    Rc1MigrationCache.unknown(
+                        "finalize", startupId, "FINALIZE_EVIDENCE_UNAVAILABLE", ticket.generation));
+        recordFinalized(startupId, outcome);
+        return outcome;
       }
     }
     try {
@@ -347,27 +351,26 @@ final class GuestPluginScripts {
       BoundedProcessRunner.Result result =
           runner.run(migrationCommand(command, startupId), 600_000);
       if ("finalize".equals(command)) {
-        recordFinalized(
-            startupId,
-            result == null
-                ? Rc1MigrationCache.unknown(
-                    "finalize", startupId, "FINALIZE_NO_RESULT", reuse.generation)
-                : result.output);
+        // 失败/超时/截断也保留原始 Result：重复调用必须重复原失败，不能伪装成本地成功。
+        recordFinalized(startupId, result == null ? unknownFinalize(startupId, reuse) : result);
       }
       return result;
     } catch (IOException | InterruptedException | RuntimeException failure) {
-      if ("finalize".equals(command))
-        recordFinalized(
-            startupId,
-            Rc1MigrationCache.unknown(
-                "finalize", startupId, "FINALIZE_DISPATCH_UNKNOWN", reuse.generation));
+      if ("finalize".equals(command)) recordFinalized(startupId, unknownFinalize(startupId, reuse));
       throw failure;
     }
   }
 
-  private void recordFinalized(String startupId, String output) {
+  private static BoundedProcessRunner.Result unknownFinalize(
+      String startupId, Rc1MigrationCache.Reuse reuse) {
+    return BoundedProcessRunner.localCompletion(
+        Rc1MigrationCache.unknown(
+            "finalize", startupId, "FINALIZE_DISPATCH_UNKNOWN", reuse.generation));
+  }
+
+  private void recordFinalized(String startupId, BoundedProcessRunner.Result outcome) {
     synchronized (preparedReuse) {
-      finalizedReuse.put(startupId, output);
+      finalizedReuse.put(startupId, outcome);
       trim(finalizedReuse);
     }
   }

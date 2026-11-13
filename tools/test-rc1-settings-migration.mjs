@@ -137,7 +137,57 @@ test('启动上下文缺失时的旧账本只读核对，不新建账本',()=>fi
   assert.equal(returned.status,'unknown');assert.equal(returned.reason,'DSHA_MIGRATION_LEDGER_MISSING');
   assert.equal(api.writes,0);await assert.rejects(readFile(ledger),/ENOENT/);
 }));
-test('runtime升级接续旧pending代仅补未完成节，不重写已完成节或抬升证明版本',()=>fixture('first: {model: old1}\nmissing: {model: old2}\n',async(api,state,ledger,root)=>{
+test('history-only账本缺节时只读对账，不写配置也不重写账本',()=>fixture('first: {model: old1}\nsecond: {model: old2}\n',async(api,state,ledger)=>{
+  api.add('first');api.add('second',{model:'user-later'});
+  const currentPath=join(state,'current.json');const current=JSON.parse(await readFile(currentPath,'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  delete current.startupContext;await writeFile(currentPath,JSON.stringify(current)); // history-only
+  const partial={version:2,generation:current.generation,sourceSha256:source.sha256,
+    expectedSections:['first','second'],startupId:current.startupId,status:'verified',
+    sections:{first:{status:'verified'}}};
+  await writeFile(ledger,JSON.stringify(partial));const before=await readFile(ledger,'utf8');
+  const writes=api.writes;
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'unknown');assert.equal(returned.reason,'SETTINGS_SECTION_MISSING');
+  assert.equal(api.writes,writes);
+  assert.equal(api.settings.describe().find(x=>x.ns==='second').value.model,'user-later');
+  assert.equal(await readFile(ledger,'utf8'),before);
+}));
+test('history-only账本pending节不重试，用户当前值保持不变',()=>fixture('first: {model: old1}\nsecond: {model: old2}\n',async(api,state,ledger)=>{
+  api.add('first');api.add('second',{model:'user-later'});
+  const currentPath=join(state,'current.json');const current=JSON.parse(await readFile(currentPath,'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  delete current.startupContext;await writeFile(currentPath,JSON.stringify(current));
+  const partial={version:2,generation:current.generation,sourceSha256:source.sha256,
+    expectedSections:['first','second'],startupId:current.startupId,status:'pending',
+    sections:{first:{status:'verified'},second:{status:'pending',reason:'SECTION_UNAVAILABLE'}}};
+  await writeFile(ledger,JSON.stringify(partial));const before=await readFile(ledger,'utf8');
+  const writes=api.writes;
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'pending');assert.equal(api.writes,writes);
+  assert.equal(api.settings.describe().find(x=>x.ns==='second').value.model,'user-later');
+  assert.equal(await readFile(ledger,'utf8'),before);
+}));
+test('write-allowed新票据仍可重试明确未派发的分节',()=>fixture('first: {model: old1}\nsecond: {model: old2}\n',async(api,state,ledger)=>{
+  api.add('first');api.add('second');
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  // 明确未派发（schema/目标缺失）的 pending 节：新迁移票据下允许重试。
+  await writeFile(ledger,JSON.stringify({version:2,generation:current.generation,
+    sourceSha256:source.sha256,expectedSections:['first','second'],startupId:current.startupId,
+    status:'pending',sections:{first:{status:'verified'},second:{status:'pending',reason:'SECTION_SCHEMA_REJECTED'}}}));
+  const writes=api.writes;
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,writes+1);
+  assert.equal(api.settings.describe().find(x=>x.ns==='second').value.model,'old2');
+}));
+test('runtime升级后的旧pending代按history-only只读，不自动补节也不抬升证明',()=>fixture('first: {model: old1}\nmissing: {model: old2}\n',async(api,state,ledger,root)=>{
   const run=command=>spawnSync(process.env.DSHA_PYTHON || 'python',['app/src/main/assets/rc1-migration.py',command,'--root',root,'--state-root',state,'--startup-id','test'],{encoding:'utf8'});
   const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
   const folder=join(state,'generations',current.generation);
@@ -147,12 +197,16 @@ test('runtime升级接续旧pending代仅补未完成节，不重写已完成节
   api.change('first',{model:'user-later'});api.add('missing');
   await writeFile(join(root,'.dsh','runtime-patches.json'),JSON.stringify({schema:1,dshVersion:expectedVersion}));
   result=run('prepare');assert.equal(result.status,0,result.stderr+result.stdout);
-  await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,2);
+  const ledgerBefore=await readFile(ledger,'utf8');
+  // 普通重启只有 history-only 票据：不得重试 pending 节、不得改写用户当前值或账本。
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.notEqual(returned.status,'verified');assert.equal(api.writes,1);
   assert.equal(api.settings.describe().find(x=>x.ns==='first').value.model,'user-later');
-  assert.equal(api.settings.describe().find(x=>x.ns==='missing').value.model,'old2');
+  assert.notEqual(api.settings.describe().find(x=>x.ns==='missing').value.model,'old2');
+  assert.equal(await readFile(ledger,'utf8'),ledgerBefore);
   result=run('finalize');assert.equal(result.status,0,result.stderr+result.stdout);
   const receipt=JSON.parse(await readFile(join(folder,'receipt.json'),'utf8'));
-  assert.equal(receipt.status,'committed');assert.equal(receipt.dshVersion,'0.2.0-rc.2');assert.equal(receipt.runtimeDshVersion,expectedVersion);
+  assert.equal(receipt.status,'pending');assert.equal(receipt.dshVersion,'0.2.0-rc.2');
   await assert.rejects(readFile(join(folder,'reuse.json')),/ENOENT/);
   assert.equal(JSON.parse(await readFile(join(state,'current.json'),'utf8')).generation,current.generation);
 },'0.2.0-rc.2'));
