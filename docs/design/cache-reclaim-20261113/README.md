@@ -106,21 +106,29 @@
 
 | 机制 | 触发/阈值 | 应用可用性 | 对 DSHA 的含义 |
 |---|---|---|---|
-| `CacheQuotaStrategy`（AOSP `frameworks/base/services/core/java/com/android/server/storage/`） | 系统按 UsageStats（前台时长由系统 `CacheQuotaService` 计算）为近一年使用过的应用算磁盘缓存配额，经 `Installer.setAppQuota` 落盘；不是普通应用可调用的清理器 | **系统进程**；普通应用不能替别的应用设配额或清缓存 | 说明「按配额管理缓存」是 OS 职责；应用侧只能管理自己的目录 |
-| `DeviceStorageMonitorService` / `StorageManagerService` | 每分钟检查私有卷；可用空间低于 `1.5× lowBytes` 时调用 `PackageManagerInternal.freeStorage(2× lowBytes)` 自动清缓存，并广播/通知 LOW/FULL；`lowBytes` 由系统按卷计算 | 普通应用只能读 `StatFs` 或收低存储提示；`freeStorage`/`freeCache` 是系统/特权路径 | **水位 + 自动清**有系统级先例，但普通应用不能调用；我们只能在私有目录做同样思想 |
-| `StorageStatsManager` | 查询自身/其他应用缓存与数据统计 | 查询其他应用通常受 `PACKAGE_USAGE_STATS`/系统权限限制；**不能**据此删除 | 统计自身目录用 `File`/`lstat` 即可，无需该 API |
-| `Context.getCacheDir()` | 系统可在空间不足时删除缓存目录内容 | 应用可随时删自己的 cache | 适合放「可丢」文件；但不能把用户数据放这里 |
-| `ComponentCallbacks2.onTrimMemory` | 系统内存压力分级（`RUNNING_LOW`/`RUNNING_CRITICAL`/`COMPLETE` 等） | 所有应用 | 只释放自有对象；不是「回收别的进程内存」 |
+| `CacheQuotaStrategy` + `StorageStatsService`（AOSP `frameworks/base/services/core/java/com/android/server/storage/`、`services/usage/`） | 统计近一年使用；由系统 shared-library 包的 `CacheQuotaService` 计算，经 `Installer.setAppQuota` 写 installd；可用空间变化超总量 5%/2% 约 30 秒重算、每 10 小时、包卸载时重算；`ENABLE_CACHE_QUOTA_CALCULATION` 开关；无记录默认 **64 MiB** | **系统进程**；普通应用不能提供该服务、不能 `setAppQuota`，只能读自己 | 配额是系统优先级参考，不是硬上限；应用侧只能管理自己的目录 |
+| `DeviceStorageMonitorService` | low = `min(总量 5%, 500 MiB)`，full = 1 MiB；每 1 分钟检查；可用 < `1.5×low` 时 `PackageManagerInternal.freeStorage(2×low)`；每 10 小时可用 <20% 时清超额缓存 | 系统专属；普通应用只能读 `StatFs` 或收低存储提示 | **水位 + 自动清**有系统级先例，但普通应用不能调用；我们只能在私有目录做同样思想 |
+| `StorageManagerService.freeStorage` / `allocateBytes` | `allocateBytes` 请求系统为写入删缓存（可能含他人超额缓存）；AGGRESSIVE 需 signature；`freeCache` 是外部存储会话回调，不是应用缓存入口 | 普通应用可用 `allocateBytes(UUID,long)` 请求借空间，但不能定向清某个应用，也不保证成功 | 只适合大写入前「借空间」，不能作为清理策略 |
+| `StorageManager.getCacheSizeBytes/getCacheQuotaBytes(UUID)`（API 26） | 读本 UID 的缓存总量/配额；内部 cache + code cache，同卷时含 external cache | **可读自己**；不能读他人、不能设配额、不能删除 | 可直接用来定预算和验收；默认配额 64 MiB 只作参考 |
+| `StorageStatsManager.queryStatsForUid` | 有 Usage Access 时读任意 uid 的 cache 大小 | 无授权只能看自己；**不能**据此删除 | 跨应用统计才需要；本模块不需要 |
+| `Context.getCacheDir()` / `getExternalCacheDir()` | 系统低存储时可删；应用可随时删 | 自己的目录无需权限 | 只放可丢文件；不能被当持久数据 |
+| `ACTION_CLEAR_APP_CACHE` / `CLEAR_APP_CACHE` / `pm trim-caches` | 公开 action 拉起系统确认框，仅清**外部**缓存；`CLEAR_APP_CACHE` 是 `signature\|privileged`；`pm trim-caches` 仅 shell/root | 普通应用不能静默、不能清内部 cache、不能自动 | 不能作为「后台静默清理」的入口 |
+| `ComponentCallbacks2.onTrimMemory` / `getMemoryInfo` / `isLowRamDevice` | 系统内存压力回调/快照 | 所有应用；只能释放本进程资源 | 只用于 RAM 侧，不触发磁盘清理 |
 | `ActivityManager.getHistoricalProcessExitReasons` / `ApplicationExitInfo`（API 30+） | 读取本包历史退出原因（LMK、崩溃、ANR、用户强杀等） | 本包可用 | **Phase 0 最有价值的证据来源**；当前仓库未使用 |
 | JobScheduler / Doze | 周期下限 15 分钟；Doze 维护窗口延后；`setPersisted` 需开机广播权限 | 所有应用 | 适合「日级检查 + 延迟执行」，不适合秒级常驻 |
+| idle maintenance（`MountServiceIdler` / `SmartStorageMaintIdler`） | job 808 每天约 3:00，要求 idle+charging+battery not low，执行 `performIdleMaintenance`+fstrim；job 2808 由 `smart_idle_maint_enabled` 控制（API 34 默认 false） | 系统 JobScheduler；只做块层 GC/fstrim | 不清应用缓存，不能替代清理器 |
 
-结论：Android 平台没有「让普通应用在后台静默清别的应用缓存」的公开能力；系统自己也只做配额与低存储回收。**本模块应严格限定在应用私有目录**。若引入 root/Shizuku 清 `/data/data/*/cache`，那是另一类高风险能力，不属于「应用内缓存回收」。
+结论：Android 平台没有「让普通应用在后台静默清别的应用缓存」的公开能力；系统自己也只做配额、低存储回收与 fstrim/GC，不清应用缓存。**本模块应严格限定在应用私有目录**。若引入 root/Shizuku 清 `/data/data/*/cache`，那是另一类高风险能力，不属于「应用内缓存回收」。
 
 ### 3.2 开源 Android 应用：可借鉴权限模型与调度，不可直接嵌入
 
 - **SD Maid 2/SE**（`d4rken-org/sdmaid-se`，GPLv3）：AppCleaner 清理应用缓存，CorpseFinder 清已卸载应用残留，SystemCleaner 用用户过滤器清任意文件，Scheduler 做定时动作；跨应用清理依赖 root/ADB/Shizuku 之一（[README](https://github.com/d4rken-org/sdmaid-se)）。它的价值是**功能分层与权限声明**，不是可直接复制的代码：GPLv3 与「清理别的应用」都不适合 DSHA 的开发属性模块。
 - **SD Maid 的定时实现**（可核对）：`app-tool-scheduler/src/main/java/eu/darken/sdmse/scheduler/core/SchedulerWorker.kt` 是 `CoroutineWorker`，运行时 `setForeground(...)` 声明前台信息，结束/失败/取消都在 `finally` 里 `SchedulerManager.reschedule(...)` 续上下一次；`runAttemptCount > 0` 时返回 `Result.success` 而不是 `failure`，避免 WorkManager 把后续链一起判失败；`Schedule.kt`/`ScheduleStorage.kt` 持久化计划，`SchedulerManager.kt` 管理下一次。清理动作经 `TaskSubmitter` 交给 `AppCleaner`/`CorpseFinder`/`SystemCleaner` 模块；跨应用路径经 `app-common-root`/`app-common-adb`/`app-common-shell` 选择 root/ADB/Shizuku（[scheduler 目录](https://github.com/d4rken-org/sdmaid-se/tree/main/app-tool-scheduler/src/main/java/eu/darken/sdmse/scheduler/core)、[appcleaner 模块](https://github.com/d4rken-org/sdmaid-se/tree/main/app-tool-appcleaner)）。
-- **对 DSHA 的启示**：连专门做清理的应用也没有用「永不退出的常驻守护线程」；它用 WorkManager 的持久任务 + 前台信息 + `finally` 续链。DSHA 对应的是 JobScheduler + `jobFinished(retry)`，比新造常驻服务更稳。
+- **SD Maid 的跨应用清理边界**（可核对）：AppCleaner 用 `StorageStatsManager2` 读各应用 cache 大小；可访问文件直接删，不可访问的走无障碍点「清除缓存」，或 root/ADB 特权 host 调 `deleteApplicationCacheFiles`/`freeStorageAndNotify`（[`PkgOpsHost.kt`](https://github.com/d4rken-org/sdmaid-se/blob/main/app-common-io/src/main/java/eu/darken/sdmse/common/pkgs/pkgops/ipc/PkgOpsHost.kt)）；官方文档承认系统可能阻止调度、无障碍清理在锁屏/调度中不可用，且没有静默常驻线程。
+- **LTE Cleaner FOSS**（`MDP43140/LTECleanerFOSS`，GPL-3.0，2026-05 更新）：WorkManager `PeriodicWorkRequest`（小时级）+ `CleanupService` 前台 `dataSync` + `BootReceiver` 开机补跑；按路径删日志/临时/公共缓存；需 `MANAGE_EXTERNAL_STORAGE`，无 root 清不了其他应用私有 cache。
+- **bmx666 Cache Cleaner**（AGPL-3.0，维护模式）：仅用无障碍服务模拟进设置点「清除缓存」（`AccessibilityClearManager.kt`）；屏幕需亮/解锁、受 OEM 界面差异影响，无周期调度。
+- 未找到可靠且活跃的独立 Tidy/AppCleaner 仓库（未核实）；以上为可核对源码的样本。
+- **对 DSHA 的启示**：连专门做清理的应用也没有用「永不退出的常驻守护线程」；它们用 WorkManager 持久任务 + 前台信息 + `finally` 续链，或干脆只做手动/无障碍。DSHA 对应的是 JobScheduler + `jobFinished(retry)`，比新造常驻服务更稳。
 - 其他 Android 清理类项目大多同为 root/Shizuku 系统级工具；没有公开 API 时只能做「本应用缓存 + 用户显式选择」。本评估不把未核实的仓库写成依据。
 
 对 DSHA 的可迁移点：
@@ -202,6 +210,8 @@
 
 滞回与节流：进入阈值后，至少 6 小时不再重复重扫；释放后需回到阈值的 1.2 倍以上才重置「低空间」状态；连续失败 3 次后指数退避（30 分钟 → 2 小时 → 6 小时），并在诊断里保留最后错误。
 
+AOSP 的系统低阈值（API 34 为 `min(5%, 500 MiB)`）只作参考；应用侧阈值应高于系统阈值，用于**提前**清理，避免和系统 `freeStorage` 同时抖动。
+
 ### 4.4 执行模型
 
 ```
@@ -219,7 +229,7 @@ CacheReclaimService (JobService)
    └─ jobFinished(params, retry)
 ```
 
-- **不新增前台服务**：已有 `HarnessService` 的前台通知足够；把重活放进 JobService，避免 keepalive 线程被 IO 拖慢。
+- **不新增前台服务**：已有 `HarnessService` 的前台通知足够；把重活放进 JobService，避免 keepalive 线程被 IO 拖慢。targetSdk 37 下新增 `dataSync` FGS 还受「每 24 小时最多 6 小时」限制，反而更难用。
 - **不自动停 Web**：L1/L2 只在 `AutomaticBackups.idle`/维护屏障已成立时执行；否则跳过并重试。自动路径永远不调用 `exclusiveUserConfirmed`，也不升级为强制停止。
 - **不重放**：删除中途进程死亡，下一次只按「仍存在且仍满足条件」重新判定；不依赖上次「删到哪」的日志。
 - **有界**：单次最多 20,000 个 entry / 60 秒扫描 / 10 分钟总预算；超过就提交已完成部分并安排下次，不无限遍历。
@@ -239,7 +249,7 @@ CacheReclaimService (JobService)
 | 自动备份/试运行/快照 | 维持现有数量上限 | 已有专门轮换，不并入字节预算 |
 | 重扫间隔 | 6 小时 | 防止抖动与 IO 放大 |
 
-数值统一放在纯逻辑 `util/CacheReclaimPolicy` 的 `static final` 常量里，不在 UI/服务里散落；测试用固定时钟与假文件树验证边界。
+数值统一放在纯逻辑 `util/CacheReclaimPolicy` 的 `static final` 常量里，不在 UI/服务里散落；测试用固定时钟与假文件树验证边界。`StorageManager.getCacheQuotaBytes` 返回的系统配额（无记录默认 64 MiB）只作参考，不是硬上限；上面的自定预算仍要用 `getCacheSizeBytes` 与真机体积校准。
 
 ### 4.6 与现有维护屏障的关系
 
@@ -265,7 +275,7 @@ CacheReclaimService (JobService)
 2. **释放自有对象**：扩展 `onTrimMemory` 处理，除已摘挂 WebView 外，释放可重建的 Bitmap/截图环形/文档快照缓存；可见页面仍不静默销毁。
 3. **约束源头**：评估给 Node 设 `--max-old-space-size`（当前 `NODE_OPTIONS` 主要用于 DNS/net-epoch/启动观察预加载，未设堆上限，[RuntimeTools.java:1027](../../../app/src/main/java/com/deepseekharness/app/runtime/RuntimeTools.java)）；值必须按设备内存实测，不能拍脑袋。上限过低会让 dsh 在重会话下 OOM，属于新的稳定性风险。
 4. **不自动重启 Web**：重启会中断 Agent 会话；只能作为用户可见的「低内存，建议重启」提示，或由现有 Web 看门狗按健康失败处理，不能归入缓存回收。
-5. **不调用 `System.gc()`、不杀后台进程**：对 ART/Node 无可靠收益，且会制造卡顿与误杀。
+5. **不调用 `System.gc()`、不杀后台进程**：对 ART/Node 无可靠收益，且会制造卡顿与误杀。Android 14+ 第三方 `killBackgroundProcesses` 只能杀自己；清磁盘缓存也不会释放其他应用的 RAM。
 
 ### 4.9 编译/构建属性方案对比
 
@@ -431,11 +441,15 @@ CacheReclaimService (JobService)
 **外部（本轮已核对/引用）**
 
 - [Android `ApplicationExitInfo`](https://developer.android.com/reference/android/app/ApplicationExitInfo)
+- [Android `StorageManager`（getCacheSizeBytes/getCacheQuotaBytes/allocateBytes/ACTION_CLEAR_APP_CACHE）](https://developer.android.com/reference/android/os/storage/StorageManager)
 - [Android `StorageStatsManager`](https://developer.android.com/reference/android/app/usage/StorageStatsManager)
 - [Android 构建变体](https://developer.android.com/build/build-variants)
 - [Android 收缩代码（R8）](https://developer.android.com/build/shrink-code)
-- [AOSP `CacheQuotaStrategy`](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/core/java/com/android/server/storage/CacheQuotaStrategy.java)
-- [AOSP `DeviceStorageMonitorService`](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/core/java/com/android/server/storage/DeviceStorageMonitorService.java)
+- [AOSP `CacheQuotaStrategy`](https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-14.0.0_r1/services/core/java/com/android/server/storage/CacheQuotaStrategy.java)
+- [AOSP `StorageStatsService`](https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-14.0.0_r1/services/usage/java/com/android/server/usage/StorageStatsService.java)
+- [AOSP `DeviceStorageMonitorService`](https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-14.0.0_r1/services/core/java/com/android/server/storage/DeviceStorageMonitorService.java)
+- [AOSP `StorageManagerService`](https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-14.0.0_r1/services/core/java/com/android/server/StorageManagerService.java)
+- [AOSP `MountServiceIdler`](https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-14.0.0_r1/services/core/java/com/android/server/MountServiceIdler.java) / [`SmartStorageMaintIdler`](https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-14.0.0_r1/services/core/java/com/android/server/SmartStorageMaintIdler.java)
 - [npm/cacache `verify.js`](https://github.com/npm/cacache/blob/main/lib/verify.js)
 - [pnpm `store`（prune/status）](https://pnpm.io/cli/store)
 - [Chromium `cache_util.cc`](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/net/disk_cache/cache_util.cc)
@@ -443,9 +457,12 @@ CacheReclaimService (JobService)
 - [Gradle 构建缓存清理](https://docs.gradle.org/current/userguide/build_cache.html)
 - [Rust 条件编译](https://doc.rust-lang.org/reference/conditional-compilation.html)
 - [SD Maid 2/SE](https://github.com/d4rken-org/sdmaid-se)
+- [SD Maid `SchedulerWorker.kt`](https://github.com/d4rken-org/sdmaid-se/blob/main/app-tool-scheduler/src/main/java/eu/darken/sdmse/scheduler/core/SchedulerWorker.kt)
+- [LTE Cleaner FOSS](https://github.com/MDP43140/LTECleanerFOSS)
+- [bmx666 Cache Cleaner](https://github.com/bmx666/android-appcachecleaner)
 
 **未核实/保留**
 
-- `StorageStatsManager.getCacheQuotaBytes` 在目标 API 级别是否为公开 API、是否受 `PACKAGE_USAGE_STATS` 限制，需按编译 SDK 37 的参考文档再核；本方案不依赖它。
-- `DeviceStorageMonitorService` 的具体低存储百分比随版本/厂商变化，本文不写死；应用侧只用 `StatFs` 与自身阈值。
-- 其他 Android 清理类开源项目的具体实现未逐行核对，不写成依据。
+- `StorageManager.getCacheQuotaBytes/getCacheSizeBytes` 是 API 26 公开 API，只读自己 UID；本文只依赖 `getCacheSizeBytes`/`getCacheQuotaBytes` 做预算与验收，不依赖 `StorageStatsManager.getCacheQuotaBytes`（后者是否公开未核实）。
+- `DeviceStorageMonitorService` 的阈值在 API 34 为 `min(5%, 500 MiB)`；其他版本/厂商可能不同，本文不把该百分比写死为应用侧阈值。
+- LTE Cleaner 与 bmx666 Cache Cleaner 只核对到 README/源码入口，未逐行审计；不把其实现细节当作已验证。
