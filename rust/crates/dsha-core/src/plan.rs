@@ -365,7 +365,12 @@ fn check_utf8_field(id: u16, value: &[u8], length: u32, reasons: &mut Reasons) {
     }
 }
 
-/// 校验一份 `PlanView` 字节；`now_ms` 是调用方给定的“当前时间”（Rust 不读系统时钟）。
+/// 校验一份 `PlanView` 字节。
+///
+/// `verify_plan` 的 `nowMs` 唯一来源是**视图内嵌值**：JNI 入口读取头部 `nowMs` 后传入，
+/// JVM `PlanViewValidator` 也只读内嵌值；两侧必须对同一份已编码字节对拍。`now_ms` 参数
+/// 仅供 crate 内单测直接注入（验证冻结的纯函数签名），生产路径不得用它制造“同一字节
+/// 两种口径”的有效期绕过；需要新的当前时刻时由调用方重新编码视图（含重算 `planDigest`）。
 ///
 /// 通过返回 `Ok(())`；否则返回去重升序的原因集合。硬上限（`< 48` 字节、
 /// `> 2 MiB`）在该层提前拒绝：前者无法解析头部，后者按 §3.7 只记 `PLAN_LIMIT`
