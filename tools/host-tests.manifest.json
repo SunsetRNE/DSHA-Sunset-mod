@@ -272,6 +272,16 @@
       "timeoutSeconds": 60
     },
     {
+      "path": "tools/test-runtime-trial-readdir.mjs",
+      "stage": "fast",
+      "reason": "试运行预加载的 proroot scandir 回退：模拟供应商 scandir 对 payload 内路径报 ENOENT，验证只对本次 payload 内真实存在的目录改用 opendir、payload 外与递归枚举保留原错误、缺少 DSH_HOME 或 PROROOT_LIB_PATH 时不安装；不启动容器或设备",
+      "args": [],
+      "requires": [
+        "node24"
+      ],
+      "timeoutSeconds": 120
+    },
+    {
       "path": "tools/test-bridge-port.py",
       "stage": "fast",
       "reason": "Python设备shell端口解析的ASCII、NOFOLLOW和文件身份变更回归；不执行设备命令",

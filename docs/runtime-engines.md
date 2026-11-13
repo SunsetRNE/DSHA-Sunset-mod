@@ -172,7 +172,7 @@ proot 的实际 argv 包含 `--kill-on-exit`；proroot 当前集成没有这一�
 | 本轮 proroot 在鉴权前明确退出 | [WebRuntimeFallback.shouldRetry()](../app/src/main/java/com/deepseekharness/app/util/WebRuntimeFallback.java) 要求当前代次、未重试、没有鉴权、没有命名插件/启动故障且有实际退出码。`retryWithProot()` 取得环境任务 lease；新 `startWeb()` 仍经过 `StartupPipeline` 和 `releasePrior()` 的 launcher/guest 退出屏障。只重试本轮一次，不改用户保存的引擎选择。 |
 | 鉴权后、插件故障、用户停止、代次过期 | 不触发上述兼容重试。不得借 fallback 重新执行用户业务提交。 |
 | 有界命令超时或读取结果不完整 | 请求停止不等于确认完成；以 [GuestCommandOutcome](../app/src/main/java/com/deepseekharness/app/util/GuestCommandOutcome.java)、真实退出证明和保留现场判断。未知执行结果不能当“什么也没做”重放。 |
-| 受管更新的隔离试运行 | [RuntimeTrial.verify()](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeTrial.java) 只接收已闭合退出的 `TrialExit`；没有其他运行任务才尝试 proot，并记录 `fallbackFrom/fallbackExitCode`。兼容成功不能标为 proroot 成功。 |
+| 受管更新的隔离试运行 | [RuntimeTrial.verify()](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeTrial.java) 只接收已闭合退出的 `TrialExit`；没有其他运行任务才尝试 proot，并记录 `fallbackFrom/fallbackExitCode`。兼容成功不能标为 proroot 成功。试运行预加载（`app/src/main/assets/runtime-trial-entry.js`）在 proroot 下只为本次 payload 内**确实存在**的目录提供 `opendir` 枚举回退：proroot v1.2.8 的路径钩子不覆盖 glibc 内部的 `scandir`，Node `readdir*` 会对 `-b` 模拟绑定的新目录报 `ENOENT`（stat/直接读写正常），dsh 0.2.2-rc.1 的 profile 解析在鉴权前枚举 `node_modules`，不回退时首次试运行必然 exit 1。回退不改变试运行接受条件；proot 与非试运行 Node 进程不安装。 |
 | 冷安装能力选择 | [ColdToolsInstaller.modes()](../app/src/main/java/com/deepseekharness/app/runtime/ColdToolsInstaller.java) 与 [ColdInstallPlan](../app/src/main/java/com/deepseekharness/app/util/ColdInstallPlan.java) 先在受控私有候选上探针；当前自动偏好关闭，通常从 proot 到关闭 seccomp 的兼容 proot。显式 proroot 可在可用且支持独立会话时列入候选。 |
 | 探针与真实包写入 | `ColdInstallPlan.run()` 最多三种探针，选定后真实包安装只执行一次；安装后检查失败或退出未确认不会换引擎重装一遍。成功选择持久化后才发布就绪。预配置签名包的 `runConfigured()` 做检查，不再次 dpkg。 |
 

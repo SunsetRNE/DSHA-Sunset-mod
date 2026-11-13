@@ -1,6 +1,7 @@
 // 在同一个 Node 中完成原生模块检查并启动真实 DSH，避免先启动多轮 Node 再重复加载。
-import {readFileSync,openSync,closeSync,unlinkSync,lstatSync} from 'node:fs';
-import {createRequire,Module} from 'node:module';
+import fs,{readFileSync,openSync,closeSync,unlinkSync,lstatSync} from 'node:fs';
+import path from 'node:path';
+import {createRequire,Module,syncBuiltinESMExports} from 'node:module';
 import {Script} from 'node:vm';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 // Node has already selected this preload. Consume only its exact first option,
@@ -17,6 +18,52 @@ const stage=value=>{
  process.stdout.write('DSHA_TRIAL_NATIVE_STAGE '+value+'\n');
  process.stdout.write('DSHA_TRIAL_TIME '+value+' '+Math.floor(performance.now())+'\n');
 };
+// proroot v1.2.8 的路径钩子没有覆盖 glibc 内部的 scandir：Node 的 readdir*
+// 对本轮 payload（proroot -b 模拟绑定、宿主刚物化）里的目录报 ENOENT，而同一
+// 路径的 stat / 直接读写正常。dsh 0.2.2-rc.1 的 profile 解析在鉴权前枚举
+// node_modules（dsh-app-boot 的 linkedProfileRoots -> symlinksUnder），首次
+// proroot 试运行因此以 exit 1 崩溃。仅在 proroot 试运行、路径属于本次 payload
+// 且目录确实存在时，改用受路径钩子翻译的 opendir 重列；不改变试运行的任何
+// 接受条件，也不影响 proot 或非试运行的 Node 进程。
+const trialRoot=(()=>{const home=process.env.DSH_HOME;return typeof home==='string'&&path.isAbsolute(home)?path.dirname(home):''})();
+function readdirFallback(error,value,options){
+ if(!error||error.code!=='ENOENT'||typeof value!=='string'||!trialRoot)throw error;
+ const target=path.resolve(value);
+ if(target!==trialRoot&&!target.startsWith(trialRoot+path.sep))throw error;
+ const settings=typeof options==='string'?{encoding:options}:options&&typeof options==='object'?options:{};
+ if(settings.recursive)throw error;
+ let info;
+ try{info=fs.statSync(value)}catch{throw error}
+ if(!info.isDirectory())throw error;
+ const encoding=settings.encoding||'utf8';
+ const directory=fs.opendirSync(value,{encoding});
+ const entries=[];
+ let entry;
+ try{while((entry=directory.readSync({encoding}))!==null)entries.push(entry)}
+ finally{directory.closeSync()}
+ return settings.withFileTypes?entries:entries.map(item=>item.name);
+}
+function installReaddirFallback(){
+ if(!trialRoot||!process.env.PROROOT_LIB_PATH)return;
+ const readdirSync=fs.readdirSync,readdir=fs.readdir,readdirPromises=fs.promises.readdir;
+ fs.readdirSync=function(value,options){
+  try{return readdirSync.call(this,value,options)}catch(error){return readdirFallback(error,value,options)}
+ };
+ fs.readdir=function(value,options,callback){
+  if(typeof options==='function'){callback=options;options=undefined}
+  return readdir.call(this,value,options,(error,entries)=>{
+   if(!error||error.code!=='ENOENT'){callback(error,entries);return}
+   let recovered;
+   try{recovered=readdirFallback(error,value,options)}catch(failed){callback(failed);return}
+   callback(null,recovered);
+  });
+ };
+ fs.promises.readdir=async function(value,options){
+  try{return await readdirPromises.call(this,value,options)}catch(error){return readdirFallback(error,value,options)}
+ };
+ syncBuiltinESMExports();
+}
+installReaddirFallback();
 try {
  stage('pnpm');
  // The installer owns these signed files. Validate the actual locked manager
