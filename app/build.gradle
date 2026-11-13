@@ -498,7 +498,13 @@ def prepareRuntimeDescriptor = tasks.register("prepareRuntimeDescriptor", Exec) 
     }
     runtimeInputContract.assetTrees.each { inputs.files(fileTree("src/main/assets/${it}")) }
     runtimeInputContract.launcherTrees.each { path ->
-        inputs.files(fileTree(rootProject.file(path)) { include path.contains('/java/') ? '**/*.java' : '**/*.so' })
+        // Java 源根同时收录 .kt；Python 的 launcher_paths 使用同一源根与同一组后缀，
+        // 避免「Gradle 认为没变、Python 认为变了」或相反的分歧。其他 launcherTrees 是 .so。
+        def sourceRoot = path == 'app/src/main/java/com/deepseekharness/app' \
+                || path.startsWith('app/src/main/java/com/deepseekharness/app/')
+        inputs.files(fileTree(rootProject.file(path)) {
+            include sourceRoot ? ['**/*.java', '**/*.kt'] : '**/*.so'
+        })
     }
     runtimeInputContract.launcherSources.each { inputs.file(file("src/main/java/com/deepseekharness/app/${it}")) }
     (runtimeInputContract.generatorSources ?: []).each { inputs.file(rootProject.file(it)) }

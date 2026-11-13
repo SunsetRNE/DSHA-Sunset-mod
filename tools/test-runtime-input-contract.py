@@ -42,6 +42,45 @@ class RuntimeInputContractTest(unittest.TestCase):
         before = self.identity()
         (self.root / ASSETS / 'web/compat.js').unlink()
         self.assertNotEqual(before, self.identity())
+    def test_nested_kotlin_launcher_add_edit_delete_changes_identity(self):
+        kotlin = JAVA + '/runtime/Guard.kt'
+        before = self.identity()
+        self.write(kotlin, 'package com.deepseekharness.app.runtime\nclass Guard\n')
+        after_add = self.identity()
+        self.assertNotEqual(before, after_add)
+        selected = launcher_paths(self.root)
+        self.assertIn('runtime/Guard.kt', selected)
+        self.assertEqual(selected['runtime/Guard.kt'], self.root / kotlin)
+        self.write(kotlin, 'package com.deepseekharness.app.runtime\nclass Guard2\n')
+        after_edit = self.identity()
+        self.assertNotEqual(after_add, after_edit)
+        (self.root / kotlin).unlink()
+        self.assertEqual(before, self.identity())
+    def test_launcher_keys_are_sorted_and_include_both_kotlin_and_java(self):
+        self.write(JAVA + '/runtime/BGuard.kt', 'class BGuard\n')
+        self.write(JAVA + '/runtime/AGuard.kt', 'class AGuard\n')
+        selected = launcher_paths(self.root)
+        self.assertEqual(sorted(selected), list(selected))
+        for key in ('runtime/AGuard.kt', 'runtime/BGuard.kt', 'runtime/Runner.java'):
+            self.assertIn(key, selected)
+    def test_explicit_kotlin_source_is_identified_without_tree_enumeration(self):
+        self.spec['launcherSources'] = ['util/Policy.kt']
+        self.write(JAVA + '/util/Policy.kt', 'package com.deepseekharness.app.util\nclass Policy\n')
+        self.write(MANIFEST, json.dumps(self.spec))
+        self.assertIn('util/Policy.kt', launcher_paths(self.root))
+        before = self.identity()
+        self.write(JAVA + '/util/Policy.kt', 'package com.deepseekharness.app.util\nclass Policy2\n')
+        self.assertNotEqual(before, self.identity())
+    def test_kotlin_outside_managed_launcher_trees_does_not_change_identity(self):
+        before = self.identity()
+        self.write(JAVA + '/ui/Page.kt', 'package com.deepseekharness.app.ui\nclass Page\n')
+        self.assertEqual(before, self.identity())
+    def test_unknown_kotlin_source_root_fails_closed_instead_of_becoming_native(self):
+        self.spec['launcherTrees'].append('app/src/main/kotlin/com/deepseekharness/app/runtime')
+        self.write('app/src/main/kotlin/com/deepseekharness/app/runtime/Guard.kt', 'class Guard\n')
+        self.write(MANIFEST, json.dumps(self.spec))
+        with self.assertRaisesRegex(ValueError, 'RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED'):
+            launcher_paths(self.root)
     def test_missing_installed_asset_fails_closed(self):
         (self.root / ASSETS / 'plugin.py').unlink()
         with self.assertRaises(ValueError):

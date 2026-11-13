@@ -35,7 +35,9 @@ for row in spec['installs']:
             raise SystemExit('内置插件安装目标与既有实体契约不同')
 gradle = (ROOT / 'app/build.gradle').read_text(encoding='utf8')
 task = gradle.split('def prepareRuntimeDescriptor = tasks.register("prepareRuntimeDescriptor", Exec) {', 1)[1].split('def verifyRuntimeDescriptorInputs', 1)[0]
-for required in ['inputs.file(runtimeInputContractFile)', 'runtimeInputContract.assetFiles', 'runtimeInputContract.installs', 'runtimeInputContract.assetTrees', 'runtimeInputContract.launcherTrees', 'runtimeInputContract.launcherSources', 'tools/runtime_input_contract.py', 'tools/dsh-runtime/package.json']:
+for required in ['inputs.file(runtimeInputContractFile)', 'runtimeInputContract.assetFiles', 'runtimeInputContract.installs', 'runtimeInputContract.assetTrees', 'runtimeInputContract.launcherTrees', 'runtimeInputContract.launcherSources', 'tools/runtime_input_contract.py', 'tools/dsh-runtime/package.json', "['**/*.java', '**/*.kt']"]:
     if required not in task:
         raise SystemExit('Gradle 未消费完整输入契约: ' + required)
+if "'**/*.so'" not in task:
+    raise SystemExit('Gradle 未消费 .so 启动输入: **/*.so')
 print(f'单源运行时输入契约通过：{len(spec["installs"])} 安装项、{len(identified)} 资产、{len(launchers)} 启动输入；缺失离线归档待完整 package 核验：{source_proof["deferredArchives"]}')

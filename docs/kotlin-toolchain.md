@@ -150,6 +150,17 @@ dsha-gradle :app:assembleStandardDebug          # 若 aarch64/aapt2 受限则见
 
 - 本批次只迁移 `util/ShellQuote` 一个纯逻辑类，不代表其他模块已 Kotlin 化；`core` / `ui` /
   `runtime` 等仍在 Java，按 ADR-0004 的模块顺序推进。
+- **受管运行时输入**：`tools/runtime_input_contract.py` 的 `launcherTrees` 枚举只承诺
+  `app/src/main/java` 源根——该源根下同时收录 `.java` 与 `.kt`（键为相对源根路径、保留扩展名，
+  排序稳定）；显式 `launcherSources` 与扩展名无关。当前 `util/ShellQuote.kt` 不在
+  `launcherSources`/`launcherTrees`，因此不改变 `runtimeId`；迁移受管类时按原 Java 文件名
+  换成 `.kt` 即可继续被身份覆盖。若将来新增 `app/src/main/kotlin` 源根，必须同批扩展
+  `runtime_input_contract.py` 的键映射/重名处理与 `app/build.gradle` 的 Gradle inputs；
+  未知源码根现在直接失败（`RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED`），不会被当作 `.so` 静默漏掉。
+- 架构边界门禁 `tools/test-core-boundaries.py` 对 `.java`/`.kt` 共用规则：tree 级依赖、
+  共享 owner、可变静态状态与引用扫描同时覆盖两种后缀；Kotlin 以 `internal` 作为最接近
+  package-private 的可见性，真正阻止 `ui` 访问 core 协作者的仍是引用扫描。Kotlin 语法检查
+  是保守近似，拿不准的共享可变状态按违规报告，不用格式通过代替边界通过。
 - Kotlin 格式门禁首版没有独立 token 指纹；若将来要得到与 Java 同等级的「格式前后 token 完全一致」
   证明，需要补一个基于 Kotlin 编译器的 lexer 指纹工具并单独评审。
 - 本机 aarch64 的完整 `assemble` / aapt2 能力有限；APK 体积影响（stdlib）与真机行为需在可运行

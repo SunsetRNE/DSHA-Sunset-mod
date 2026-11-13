@@ -97,7 +97,20 @@ def asset_paths(root, spec=None):
     return sorted(result)
 
 
+def _launcher(key, path, result):
+    """同一 key 只能映射一个文件；父/子 tree 重叠或将来多源根映射必须显式处理。"""
+    if key in result and result[key] != path:
+        raise ValueError('RUNTIME_LAUNCHER_DUPLICATE_KEY: ' + key)
+    result[key] = path
+
+
 def launcher_paths(root, spec=None):
+    """受管启动输入：显式源码不限扩展名，launcherTrees 内 Java 源根同时枚举 .java/.kt。
+
+    本函数只承诺 app/src/main/java 源根。若将来新增 main/kotlin 源根，键映射、
+    重名处理与 Gradle 输入必须同批扩展；未知源码根按 .so 树处理会静默漏掉身份，
+    因此这里直接失败。键是相对 Java 源根的路径（保留扩展名），字典按键排序。
+    """
     root = Path(root)
     spec = spec or load(root)
     result = {}
@@ -107,10 +120,18 @@ def launcher_paths(root, spec=None):
         directory = root / name
         if not directory.is_dir():
             raise ValueError('RUNTIME_LAUNCHER_TREE: ' + name)
-        suffix = '.java' if name.startswith(JAVA + '/') else '.so'
-        for path in directory.rglob('*' + suffix):
-            key = path.relative_to(root / JAVA).as_posix() if suffix == '.java' else path.relative_to(root).as_posix()
-            result[key] = _file(root, path.relative_to(root).as_posix())
+        if name == JAVA or name.startswith(JAVA + '/'):
+            for path in sorted(directory.rglob('*')):
+                if path.suffix not in ('.java', '.kt'):
+                    continue
+                key = path.relative_to(root / JAVA).as_posix()
+                _launcher(key, _file(root, path.relative_to(root).as_posix()), result)
+        else:
+            if '/java/' in name or '/kotlin/' in name:
+                raise ValueError('RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED: ' + name)
+            for path in sorted(directory.rglob('*.so')):
+                key = path.relative_to(root).as_posix()
+                _launcher(key, _file(root, path.relative_to(root).as_posix()), result)
     for name in spec.get('generatorSources', []):
         result['generator:'+name]=_file(root,name)
     return dict(sorted(result.items()))
