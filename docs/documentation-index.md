@@ -18,6 +18,7 @@ build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)
 |---|---|
 | [项目维护总手册](project-architecture-handbook.md) | 全部主要功能、框架分层、入口类与修改/测试地图 |
 | [ADB / Root / Shizuku 权限架构](device-permissions-architecture.md) | 系统权限、特权通道、无障碍、自有审批、服务与撤销、故障排查 |
+| [安卓授权申请现状与厂商扩展准备](design/vendor-permissions-20261113/README.md) | 现有权限字段/流程清单、AOSP 与小米/OPPO/vivo/荣耀/三星差异、模块化字段与验证计划；2026-11 资料整理，未真机 |
 | [环境、数据与插件机制](runtime-data-plugin-architecture.md) | 解压启动、正常/安全/应急、受管更新、pnpm/插件事务、凭据、备份与恢复 |
 | [运行引擎与运行态](runtime-engines.md) | 当前proot/proroot、DSHA v1.1.6历史、vendor版本、loader/shim、退出监督与兼容边界 |
 | [端口与网络](ports-and-networking.md) | 自动/手动Web端口、备用本机记忆、3090桥/ADB/LAN分域、当前重试接入边界 |
