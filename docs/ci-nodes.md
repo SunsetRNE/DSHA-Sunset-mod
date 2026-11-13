@@ -1,6 +1,6 @@
 # CI 节点图（GitHub Actions）
 
-更新：2026-11-13 / R0（Rust 工具链与 CI 骨架，`_node-rust.yml` 四种模式）。本文说明 `.github/workflows/` 的节点拆分、
+更新：2026-11-13 / R1（Rust `digest` 旁路 + 真实 JVM 差分；`_node-rust.yml` 四种模式与 `--expect-lock`）。本文说明 `.github/workflows/` 的节点拆分、
 复用方式与耗时依据；正式发布的参数、Secrets 与产物核验仍以 [CI 构建与发布](ci-release.md) 为准、Rust 设计与冻结决定见
 [R1 Rust 工具链与首期旁路接入方案](design/kotlin-rust-rearchitecture-20261112/r1-rust-toolchain-plan-20261113.md)。
 
@@ -14,10 +14,10 @@
 | `_node-java-format.yml` | `tools/format-java-tree.py --check`（失败时列出文件并上传报告） | `java-format-reports`（仅失败） |
 | `_node-kotlin-format.yml` | `tools/format-kotlin-tree.py --check`（固定 ktfmt 0.64；失败时列出文件并上传报告） | `kotlin-format-reports`（仅失败） |
 | `_node-inputs.yml` | 成对解析固定输入 → `ci-assets.py` 按 SHA-256 还原 → 可选重建受管运行时并重算描述符 → `ci-handoff.py pack` | 交接 artifact（无压缩、1 天） |
-| `_node-unit-tests.yml` | 先按 `tools/robolectric-sdk.lock.json` 准备 android-all（缓存 + 逐个 sha256 核对 + 有界重试），再以 `robolectric.offline` 跑 `:app:testStandardDebugUnitTest`，`full` / `source-only`，可选 `--tests` 与 fork 数 | JUnit XML + `out/unit-tests.json` |
+| `_node-unit-tests.yml` | 先按 `tools/robolectric-sdk.lock.json` 准备 android-all（缓存 + 逐个 sha256 核对 + 有界重试），再以 `robolectric.offline` 跑 `:app:testStandardDebugUnitTest`，`full` / `source-only`，可选 `--tests` 与 fork 数；R1 新增 `rust_host`：`full` 调用方先构建主机目标 `.so`，再以 `-Pdsha.rust.hostLib` + `-Pdsha.rust.required=true` 让 Rust 差分测试真实执行（0 skipped） | JUnit XML + `out/unit-tests.json` |
 | `_node-lint.yml` | `:app:lintStandardRelease`（未签名模式） | lint 报告 |
 | `_node-host-tests.yml` | `run-host-tests.py` 的一个阶段或 `--only` 子集；可选夹具、toolchains、Playwright | `app/build/host-tests` |
-| `_node-rust.yml` | 单一 job、按 `mode` 切换（R0）：`check` 源码门禁与主机 `.so` 符号；`repro` 有网重生成 vendor + 不同目录字节复现；`native` NDK 26.3 交叉编译 arm64 `.so` + 同 run 两次构建比对 + ELF/16K/体积/receipt；`differential` 主机 `.so` + JDK17 JVM 探针（`-Xcheck:jni`） | `native` 上传 `.so` + `rust-receipt.json`；`differential` 上传差分回执（均 14 天） |
+| `_node-rust.yml` | 单一 job、按 `mode` 切换（R1）：`check` 源码门禁 + 主机 `.so` 符号 + `--expect-lock`；`repro` 有网重生成 vendor + 不同目录字节复现；`native` NDK 26.3 交叉编译 arm64 `.so` + 同 run 两次构建比对 + ELF/16K/体积/receipt + `--expect-lock`；`differential` 主机 `.so` + JDK17 JVM 真实 digest 对拍（`-Xcheck:jni`） | `native` 上传 `.so` + `rust-receipt.json`；`differential` 上传差分回执（均 14 天） |
 | `_node-test-packages.yml` | 三种模式：默认（构建 + 测试证书签名 + 逐项核对）；`unsigned_only`（无 Secrets 编译、核验未签名身份 / 受管资产并交接）；`unsigned_artifact_prefix`（下载同 run 未签名产物，只签名与核对，不跑 Gradle） | 每个 variant 的 APK + 证据 artifact（含公开测试证书），或未签名交接 artifact |
 
 `_node-*.yml` 默认只读、不读 Secrets；唯一例外是 `_node-test-packages.yml`：证书模式需要测试证书 Secrets
@@ -38,8 +38,8 @@
 
 | 工作流 | 触发 | 节点 |
 |---|---|---|
-| `ci-fast.yml`（Source checks） | push / PR / 手动 | contracts ‖ java-format ‖ kotlin-format ‖ rust-check ‖ inputs → (unit-source ‖ host-fast) |
-| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ kotlin-format ‖ host-regression ‖ inputs → (unit ‖ lint ‖ rust-native ‖ build-unsigned ‖ test-packages-unsigned) → rust-differential) → (sign-verify ‖ test-packages) → publish；`dry_run=true` 时 publish 跳过、由 dry-run-summary 出报告；R0 的 `rust-native` 不进入 `build-unsigned` |
+| `ci-fast.yml`（Source checks） | push / PR / 手动 | contracts ‖ java-format ‖ kotlin-format ‖ rust-check ‖ rust-differential ‖ inputs → (unit-source ‖ host-fast) |
+| `release-production.yml` | 手动，`main` | bind → (contracts ‖ java-format ‖ kotlin-format ‖ host-regression ‖ inputs → (unit ‖ lint ‖ rust-native ‖ build-unsigned ‖ test-packages-unsigned) → rust-differential) → (sign-verify ‖ test-packages) → publish；`dry_run=true` 时 publish 跳过、由 dry-run-summary 出报告；R1 的 `rust-native` 仍不进入 `build-unsigned`（R1 只接桥与差分，不接 APK/生产调用点） |
 | `ci-package.yml` | 手动，显式输入包 | inputs → (native-repro ‖ rust-repro ‖ rust-native ‖ package) |
 | `unit-tests.yml` | 手动 | inputs → unit（可选 `--tests`、`source-only`、fork 数） |
 | `host-tests.yml` | 手动 | inputs → host（`fast` / `runtime`，可选 `--only`、Playwright） |
@@ -56,7 +56,7 @@
 签名后再逐成员证明载荷未被改动。签名包与测试包证据经 1 天保留的 artifact 交给 `publish`，正式交付物以 Release
 资产为准；`dry_run=true` 时 `dry-run-summary` 用同一套证据合并与校验并打印发布计划，不写仓库。
 
-### Rust 工具链节点（R0）
+### Rust 工具链节点（R1）
 
 `_node-rust.yml` 是一个 job、四种 `mode`；调用方 job id 分别是 `rust-check` / `rust-repro` / `rust-native` /
 `rust-differential`。四者都只读源码、无 Secrets、不写仓库，`.so` 只作为 artifact 上传：
@@ -66,12 +66,23 @@
 | `check` | 否（vendor 离线） | `cargo fmt --check`、`clippy -D warnings`（含 `unwrap_used`/`expect_used`）、`cargo test --offline --locked`、边界扫描 + 主机 `.so` 符号白名单 | 无（仅日志） |
 | `repro` | 是 | `cargo vendor --locked --versioned-dirs` 从 crates.io 重生成后与入库树逐字节比对；主机目标两次构建（不同源码目录 + 固定 `--remap-path-prefix`）字节一致 | receipts（日志） |
 | `native` | 是（NDK 26.3） | 交叉构建 `aarch64-linux-android` 的 `libdsha_rs.so`；同一 run 内两次构建字节比对；ELF AArch64/16 KB/RELRO/DT_NEEDED/体积/receipt | `libdsha_rs.so` + `rust-receipt.json` |
-| `differential` | 是（JDK17 已由 setup-toolchain 提供） | 主机目标 `.so` + `tools/rust/host-jvm-differential.py`（`-Xcheck:jni`）；R0 只证明 `System.load`、`abiVersion=1` 与占位返回码 | `rust-differential.json` |
+| `differential` | 是（JDK17 已由 setup-toolchain 提供） | 主机目标 `.so` + `tools/rust/host-jvm-differential.py`（`-Xcheck:jni`）；**R1 起直接编译生产桥 `RustNative`/`RustDigest`/`RustBackends` 并与 JDK `MessageDigest` 对拍**：SHA-256/SHA-1、offset/跨块/32 MiB、空内容拒绝、EOF 短读、非法 offset/length/algorithm、负 fd/巨大 fd/只写 fd/关闭 fd、非 direct/过小 direct 输出、运行层开关默认 off 与一键回退。CI `rust-differential` 现在每次 push 都真实执行（不再只在发布链手动运行） | `rust-differential.json`（含逐项 check + 0 skipped/failures 计数） |
 
-边界：**R0 不把 `rust-native` artifact 接进 `build-unsigned`**，`build-unsigned` 的 `needs` 仍是 `[bind, inputs]`，
-APK 内没有 `libdsha_rs.so`；`tools/check-rust-native-apk.py` 只作为 APK 级门禁骨架（R0 只跑预算配置或显式
+边界：**R1 仍不把 `rust-native` artifact 接进 `build-unsigned`**，`build-unsigned` 的 `needs` 仍是 `[bind, inputs]`，
+APK 内没有 `libdsha_rs.so`；`tools/check-rust-native-apk.py` 只作为 APK 级门禁骨架（只跑预算配置或显式
 `--rust-optional`）。Gradle 侧只在 `app/build.gradle` 增加 `main.jniLibs.srcDir(build/rust-jniLibs)` 注入目录，
 目录不存在时 APK 内容不变；`abiFilters`/`ndkVersion`/签名/版本不动。
+
+`_node-unit-tests.yml` 的 `rust_host`：`release-production` / `release-upstream` / `test-package` / `test-package-variants`
+的 full 单测与手动 `unit-tests.yml`（mode=full）先构建主机 `.so` 并传 `-Pdsha.rust.hostLib` +
+`-Pdsha.rust.required=true`；source-only 的 `unit-source` 不构建，差分用例按 `Assume` 跳过（source-only
+模式允许跳过）。这样 full 的 0 skipped 门禁不需要放宽。
+
+`rust/artifact.lock.json`（R1 新增）：只登记可由 (源码 + `Cargo.lock` + vendor + rustc + target + linker +
+linkArgs + profile) 重现的 `libdsha_rs.so` 大小/SHA-256；commit/runId/路径/mtime 等跨 runner 不可复现字段
+不入锁。target 键是三元组：Android 固定 `aarch64-linux-android`，宿主按 `rustc -vV` 的 host 分开登记。
+按方案 §2.3，`status=pending-cross-run` 时 `--expect-lock` 只告警；连续 3 次不同 runner 实例一致后改为
+`pinned` 并写入数值，此后不一致即构建失败（R1 首轮 CI 证据出来前不写死数值）。
 
 离线边界（如实）：工具链与 NDK **不在仓库**，`cargo build --offline --locked` 只保证 crate 来源是入库 vendor；
 从零、完全断网的新机器不能构建。CI 的 `native`/`repro`/`differential` 模式需要网络安装工具链/NDK。
@@ -138,5 +149,5 @@ Robolectric android-all 不经 Gradle 依赖解析，原先在单测中途从 Ma
 
 ## 5. 契约测试
 
-- [test-ci-workflows.py](../tools/test-ci-workflows.py)：节点集合与依赖、Secrets/写权限隔离、外部 action 固定、Standard 范围；R0 断言四个 Rust 模式、`build-unsigned` 不被接入、Rust 节点无 Secrets。
+- [test-ci-workflows.py](../tools/test-ci-workflows.py)：节点集合与依赖、Secrets/写权限隔离、外部 action 固定、Standard 范围；R1 断言四个 Rust 模式、`--expect-lock` 接线、`rust-differential` 进入 Source checks、`artifact.lock.json` 口径（target 键/状态/不写不可复现字段）、`build-unsigned` 不被接入、Rust 节点无 Secrets。
 - [test-ci-handoff.py](../tools/test-ci-handoff.py)：交接白名单、commit 绑定、篡改与路径穿越拒绝；单测回执的七夹具与计数核对。

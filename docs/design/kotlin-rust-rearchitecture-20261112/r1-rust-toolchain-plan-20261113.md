@@ -1,6 +1,6 @@
 # R1 Rust 工具链与首期旁路接入方案（A3 前期设计）
 
-> 状态：**R0 已实施（`feat/rust-r0`：工具链/vendor/CI 骨架，未接入 APK；不可合并，待逐行评审与用户授权）**。设计评审完成，Q1–Q6 已决。日期：2026-11-13（Lead 决定 2026-11-13，见 §0；R0 回执见 §0.4）。
+> 状态：**R0 已合入 `main`（`75924add`，build362）；R1 已实施（`feat/rust-r1`：`digest` 只读摘要 + JVM 桥/差分/一键回退，默认关闭、不接生产调用点；不可合并，待 Lead 逐行评审、非实现者评审与用户授权）**。设计评审完成，Q1–Q6 已决。日期：2026-11-13（Lead 决定 2026-11-13，见 §0；R0 回执见 §0.4、R1 回执见 §0.5）。
 > 基线：`origin/main` = `2c879f1b`（build360）；起草期间主线已推进到 `faab36c5`（build361），差异仅为版本号与 A1 文档，`app/build.gradle` 的 NDK/ABI/jniLibs 段无变化（本文件所有实测数字仍以 `2c879f1b` 为准）。
 > 依据：[ADR-0004 决定四/决定二/失败域矩阵](../../adr/0004-kotlin-rust-direction.md)、[可行性评审主稿 §6](README.md)、[评审 B 草稿](drafts/02-rust-core.md)、[迭代路径 §4/§5/§8/§9](iteration-roadmap-20261112.md)、[AGENTS 技术约束](../../../AGENTS.md)、[BUILD](../../../BUILD.md)、[CI 发布](../../ci-release.md)、[固定构建输入](../../fixed-build-inputs.md)。
 > 边界：本文只写设计与实测依据。**不修改构建文件、代码、CI、版本文件、文档索引**；索引与看板条目在回报里交给 Lead 统一添加（避开 build361 冲突）。本文件**不等同于 A3 开工或 A3 出口**。
@@ -134,6 +134,59 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 ③ 签名 `.dev` 包真机加载与 16 KB 真机页验证（R3）；④ APK 体积（`check-rust-native-apk.py` 骨架用合成 APK 自测，
 真实 APK 未含 `.so`）。R1 开工前建议 Lead 先跑一次 `ci-package` 或发布 dry-run，把 `rust-native` 的
 `androidNeededAllowed` 按实际 `DT_NEEDED` 锁定，再宣布“交叉链接端到端通过”。
+
+### 0.5 R1 实施回执（2026-11-13，`feat/rust-r1`）
+
+> 工作树：`.agents/worktrees/feat/rust-r1`（基线 `origin/main` = `75924add`，build362，Kotlin/Rust R0/A2 slice1+2 已合入）。
+> 默认关闭、不接生产调用点；**不可合并**：待 Lead 逐行评审、非实现者评审与用户授权；未 push main、未打 tag、未安装。
+
+#### 0.5.1 已实现（范围严格限定在 R1）
+
+| 项 | 位置 | 说明 |
+|---|---|---|
+| 只读 fd 边界 | `rust/crates/dsha-core/src/fd.rs` | 唯一新 `unsafe` 点：`ManuallyDrop<File>::from_raw_fd` + `FileExt::read_at`（pread）。不 open/stat/close、不接收路径、不创建进程/线程；EINTR 重试；EBADF/EINVAL/ENXIO/EOVERFLOW/EISDIR → `INVALID_ARGUMENT`，其它 I/O → `INTERNAL`；无效 fd 不 UB。 |
+| 摘要实现 | `rust/crates/dsha-core/src/digest.rs` | SHA-256/SHA-1 有界只读摘要。固定 256 KiB 分块循环（`digest_range` 与 fd 解耦，便于无文件系统单测）；`length` 1..=32 MiB、offset 非负且 `offset+length` 不溢出 `off_t`；短读/提前 EOF → `ERR_SHORT_READ`（不写半成品）；未知算法 → `ERR_UNSUPPORTED_ALGORITHM`；超上限按 §4.2 的 `INVALID_ARGUMENT` 行（不借用归档会话的 `INPUT_BOUND`）。 |
+| JNI 入口 | `rust/crates/dsha-core/src/jni.rs` | 按 R0 冻结符号实现 `Java_..._digest`：`GetDirectBufferAddress` + `GetDirectBufferCapacity`，每次 JNI 调用后 `ExceptionCheck`（pending → `ERR_JNI_PENDING`，不再调 JNI）；非 direct/null → `INVALID_ARGUMENT`，容量 < 摘要长度 → `OUTPUT_BOUND`；摘要先算到本地定长数组，成功后才一次写入，任何错误不写 `out`；`catch_unwind` + panic → `ERR_PANIC`；`panic="unwind"`；不写 stdout/stderr/logcat、不保存 JNI 引用。JNI 函数表按标准布局只声明到 231 槽，并在编译期用 `size_of`/`offset_of!` 断言槽位。 |
+| JVM 桥 | `app/src/main/java/com/deepseekharness/app/util/{RustNative,RustDigest,RustBackends}.java` | 纯 Java、零 Android import，不在类初始化自动加载：`RustNative.ensureLoaded()` 安全 `System.loadLibrary("dsha_rs")`，失败类型化为 `LIBRARY_MISSING`/`LOAD_FAILED`/`ABI_MISMATCH`，不重试、不抛给调用方；包内 `loadFromPath` 仅供主机差分。`RustDigest` 提供 Rust 后端、JVM `MessageDigest` 后端与错误码映射；只有 `INTERNAL/PANIC` 允许 JVM 重做一次并标 `fellBack=true`，输入非法/短读/JNI pending 不重试；`RustBackends` 默认 **off**，`setEnabled(false)` 即一键回 JVM。 |
+| Rust 单测 | `digest.rs`/`fd.rs` 的 `#[cfg(test)]` | SHA-256/SHA-1 已知向量、空输入（分块层）、CHUNK±1/跨块与 sha2 一次性摘要对照、短读/读取错误、参数边界（负 fd/负 offset/0/超限/溢出/未知算法）；`fd.rs` 真实临时 fd 的 offset/EOF/部分读/负 fd/巨大 fd 测试。EINTR 分支无法在不注入信号的前提下单测，按代码审查 + JVM 差分覆盖其余路径。 |
+| JVM 测试 | `app/src/test/java/com/deepseekharness/app/util/{RustDigestTest,RustBackendsTest,RustDigestDifferentialTest}.java` | 纯 JVM 测试覆盖 JVM 后端/共享契约/默认关闭；差分测试用 host `.so` 对拍 JVM `MessageDigest`：SHA-256/SHA-1、0 字节拒绝、EOF 短读、offset/中间区间、跨块、单次 32 MiB、非法 offset/length/algorithm、负 fd/巨大 fd/只写 fd/关闭 fd、非 direct/过小 direct 缓冲、开关 on/off 与一键回退。`app/build.gradle` 新增 `-Pdsha.rust.hostLib` / `-Pdsha.rust.required` 测试属性；缺库默认跳过，`required=true` 直接失败（CI 0 skipped 口径）。 |
+| 主机差分 | `tools/rust/host-jvm-differential.py` + `tools/rust/host-jvm/RustHostProbe.java` | 直接编译**生产桥**（不再是 R0 的探针副本）并与 JDK `MessageDigest` 对拍；`-Xcheck:jni`；探针路径改 `com.deepseekharness.app.util.RustHostProbe`，`--add-opens java.base/java.io` 只用于宿主测试读取 `FileDescriptor.fd`。 |
+| 构建/门禁 | `tools/rust/build.py`、`rust/artifact.lock.json`、`tools/check-rust-boundaries.py`、`ci/rust-toolchain.lock.json` | `build.py` 新增 `--expect-lock`：按 target 三元组比较可复现的 size/SHA-256；`pending-cross-run` 只告警，`pinned` 不一致即失败（方案 §2.3）。`artifact.lock.json` 只登记 Android + 两种宿主三元组，不写 runId/commit/路径/mtime。边界脚本为 `fd.rs` 增加逐条允许命中（`std::fs`/`File::`/`std::io::`，附理由）并新增**非测试行**严格负向检查（禁 open/create/OpenOptions/write/close/日志）。`unsafe` 白名单仍是 `jni.rs` + `fd.rs`，依赖集不变（sha2/sha1 已在 R0 vendor，无新增 crate），因此 `ci/rust-toolchain.lock.json` 无需改字段。 |
+| CI | `.github/workflows/{ci-fast,_node-rust,_node-unit-tests}.yml` 与 full 单测调用方 | `ci-fast` 新增 `rust-differential` job（每次 push 真实跑主机 JVM 差分）；`_node-rust` 的 host/android 构建加 `--expect-lock`；`_node-unit-tests.yml` 新增 `rust_host`，full 调用方（release-production / release-upstream / test-package / test-package-variants / 手动 unit-tests mode=full）先构建主机 `.so` 并用 `-Pdsha.rust.hostLib` + `-Pdsha.rust.required=true` 跑差分，避免 full 的 0-skip 门禁被放宽。R1 仍不接 `build-unsigned`：APK 内容与用户可见行为不变。 |
+| 测试契约 | `tools/test-ci-workflows.py` | 更新 Source checks 节点集合/依赖，新增 `artifact.lock.json` 口径断言（target 键、pending/pinned 字段、不得写不可复现字段）。 |
+
+#### 0.5.2 失败域（与 ADR-0004 矩阵一致）
+
+| 域 | R1 处理 |
+|---|---|
+| 可展开 panic | 每个 JNI 入口 `catch_unwind` → `ERR_PANIC`；不跨 FFI unwind；静默 panic hook（G8 不写 stderr）。 |
+| abort/OOM | 不可捕获；`panic="unwind"`、固定 256 KiB 分块、无按输入长度的无界分配、单次调用只分配 32 B 输出缓冲。 |
+| SIGSEGV/UB | `unsafe` 只有 JNI 胶水与 fd 边界；`from_raw_parts` 前校验 null；不缓存裸指针；无效 fd 由 `pread` 返回 EBADF。 |
+| JNI 异常 pending | 每次 JNI 调用后 `ExceptionCheck`；pending → `JNI_PENDING` 并立即返回。 |
+| 内存生命周期 | 不保存 `JNIEnv`/引用；每次调用独立帧；不缓存 direct buffer 地址（只在该次调用内使用）。 |
+| fd 生命周期 | Rust 不 close；Kotlin 提前 close → `EBADF` → `INVALID_ARGUMENT`（不 UB）；JVM 差分包“关闭的 fd”用例。 |
+| 回退失败 | 开关关闭/库不可用 → JVM 并记录类型化原因；Rust `INTERNAL/PANIC` 才允许 JVM 重做一次（`fellBack=true`）；输入非法不重试；JVM 也失败则整体失败。 |
+
+#### 0.5.3 默认关闭与回退
+
+- `RustBackends.enabled` 进程内默认 `false`；只有显式 `setEnabled(true)` 才尝试 Rust，且必须 `RustNative.ensureLoaded()` 成功（`abiVersion()==1`）才真正使用。
+- 一键回退 = `setEnabled(false)`；不需要清数据、不改变已写数据格式；R1 无生产调用点，回退不影响任何现有路径。
+- 加载失败/ABI 不符不重试、不抛异常，回退原因写入结果 `fallbackReason`（类型化，不含路径）；成功时 `backend` 字段如实标注 JVM/Rust，Rust 失败不得写成“Rust 成功”。
+
+#### 0.5.4 未做 / 未跑（不得当作通过）
+
+- 未接任何生产调用点（`backup/` 等不动）；未接 `build-unsigned`、未把 `.so` 放进 APK、未改 `runtimeId`/版本/签名/数据格式。
+- Rust `archive_pack/unpack`、`verify_plan` 仍是 `NOT_IMPLEMENTED`（R2/R3）；`PlanView` 与 gzip 未实现。
+- 本机交叉链接未跑（NDK 仅 linux-x86_64，按 §0.1 Q2 仍由 CI `rust-native` 负责）；arm64 `.so` 的首次真实链接/`DT_NEEDED`/APK 成员核验仍待 `ci-package` 或发布 dry-run。
+- Android 真机加载/16 KB 页验证属 R3（签名 `.dev` 包），R1 不声明。
+- Gradle `:app:testStandardDebugUnitTest --tests '*Rust*'` 的带 host `.so` 运行、`tools/rust/build.py --check`、`cargo test/fmt/clippy` 等本机证据以实际回执为准（本机内存紧张时按 Lead 要求交给 CI；失败/受限项逐条记录）。
+- `rust/artifact.lock.json` 的跨 run pin：R1 首轮先保持 `pending-cross-run`；只有连续 3 次不同 runner 实例一致才 pin（方案 §2.3）。Android 条目需 `rust-native` 手动流程证据。
+
+#### 0.5.5 风险与 R2 建议
+
+- **长尾风险**：`catch_unwind` 不覆盖 abort/SIGSEGV/OOM；`pread` 在特殊文件类型上的错误码集合依赖内核，已按“调用方错误/内部错误”分裂，真机异常文件类型仍需 R3 证据。
+- **JVM 回退的双读成本**：`digest` 的 JVM 重做只对 `INTERNAL/PANIC` 开放；A3 接线时应保证区间可重读、目标可丢弃（本函数无输出目标）。
+- **R2 建议**：`verify_plan` 走同一套“纯 Rust 实现 + JVM 第二实现 + 集合差分”骨架，但 `PlanView` 契约需 A3 冻结后再动；不得复用本批的 fd/JNI 模板去加执行路径。
 
 ---
 
