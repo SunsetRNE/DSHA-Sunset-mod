@@ -45,6 +45,11 @@ public class StartupPipelineTest {
       step("tools");
     }
 
+    public void tools(java.util.function.Consumer<String> output) throws Exception {
+      step("tools");
+      output.accept("RUNTIME_TOOLS_PREPARATION: outcome=hit-prepared-proof files=5 miss=none");
+    }
+
     public boolean ready() {
       return true;
     }
@@ -241,6 +246,56 @@ public class StartupPipelineTest {
     f.current = false;
     assertNull(new StartupPipeline(f, f).prepare(1, false, f));
     assertTrue(f.calls.isEmpty());
+  }
+
+  @Test
+  public void startupObservationLinesAreBoundedCountsAndCannotChangePreparationOrder()
+      throws Exception {
+    Fixture f = new Fixture();
+    f.stopFacts =
+        List.of(
+            com.deepseekharness.app.util.WebStopDiagnostic.of(
+                com.deepseekharness.app.util.WebStopDiagnostic.Code.OWNED_WEB_REMAINS));
+    f.priorFacts =
+        List.of(
+            com.deepseekharness.app.util.WebStopDiagnostic.of(
+                com.deepseekharness.app.util.WebStopDiagnostic.Code.OWNED_LAUNCHER_PENDING));
+    f.awaitPriorExit = true;
+    assertEquals("web", new StartupPipeline(f, f).prepare(9, false, f));
+    assertTrue(f.messages.contains("9:STARTUP_PREP_OBSERVATION: phase=stop-web facts=1"));
+    assertTrue(
+        f.messages.contains("9:STARTUP_PREP_OBSERVATION: phase=retire-prior-launchers facts=1"));
+    for (String helper :
+        List.of(
+            "rc-one-migration", "legacy-cas-links", "register-builtins", "legacy-plugin-reviews"))
+      assertTrue(
+          helper,
+          f.messages.contains("9:STARTUP_PREP_OBSERVATION: phase=guest-helper " + helper + "=1"));
+    assertTrue(
+        f.messages.contains(
+            "9:RUNTIME_TOOLS_PREPARATION: outcome=hit-prepared-proof files=5 miss=none"));
+    assertEquals(
+        List.of(
+            "credentials",
+            "lan-stop",
+            "stop",
+            "release-prior",
+            "tools",
+            "recover",
+            "cleanup",
+            "migration",
+            "cas-copy",
+            "register",
+            "legacy",
+            "activate",
+            "unlock",
+            "checkpoint"),
+        f.calls);
+    for (String line : f.messages)
+      if (line.contains("STARTUP_PREP_OBSERVATION"))
+        assertTrue(
+            line,
+            line.matches("9:STARTUP_PREP_OBSERVATION: phase=[a-z][a-z-]* [a-z][a-z0-9-]*=\\d+"));
   }
 
   private static String receipt(boolean changed, int count, String operation) {

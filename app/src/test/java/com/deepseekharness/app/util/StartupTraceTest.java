@@ -106,6 +106,45 @@ public class StartupTraceTest {
   }
 
   @Test
+  public void nodeLaunchToAuthenticationIsObservedWithoutChangingReadiness() {
+    StartupTrace trace = new StartupTrace();
+    trace.begin(1, 1000, false);
+    trace.nodeLaunched(1, 1500);
+    trace.nodeLaunched(2, 1600);
+    trace.backendReady(1, 3500);
+    StartupTrace.Snapshot snapshot = trace.snapshot(4000, "en");
+    assertTrue(snapshot.backendReady);
+    assertEquals(2500, snapshot.backendReadyMs);
+    assertTrue(snapshot.log.contains("BACKEND_AUTH_READY: 2.5s"));
+    assertTrue(snapshot.log.contains("STARTUP_AUTH_TIMING: nodeToAuthMs=2000"));
+    // 鉴权后不再接受新的 Node 零点，也不能把最后一次启动时间倒推成更短耗时。
+    trace.nodeLaunched(1, 9000);
+    trace.backendReady(1, 9500);
+    String stable = trace.snapshot(10_000, "en").log;
+    assertEquals(stable, snapshot.log);
+  }
+
+  @Test
+  public void missingNodeLaunchKeepsAuthenticationLineAndOmitsSyntheticDuration() {
+    StartupTrace trace = new StartupTrace();
+    trace.begin(1, 1000, false);
+    trace.backendReady(1, 2000);
+    String log = trace.snapshot(3000, "en").log;
+    assertTrue(log.contains("BACKEND_AUTH_READY: 1.0s"));
+    assertFalse(log.contains("STARTUP_AUTH_TIMING"));
+  }
+
+  @Test
+  public void retriedLaunchBeforeAuthenticationUsesTheLatestRealLaunch() {
+    StartupTrace trace = new StartupTrace();
+    trace.begin(1, 1000, false);
+    trace.nodeLaunched(1, 2000);
+    trace.nodeLaunched(1, 4000);
+    trace.backendReady(1, 5500);
+    assertTrue(trace.snapshot(6000, "en").log.contains("STARTUP_AUTH_TIMING: nodeToAuthMs=1500"));
+  }
+
+  @Test
   public void exitedBeforeReadyFreezesDurationAndRetainsOutput() {
     StartupTrace trace = new StartupTrace();
     trace.begin(1, 1000, false);

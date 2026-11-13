@@ -1218,6 +1218,7 @@
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeLauncherTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimePackageCommandsAndroidTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeTemporaryDirectoriesTest.java",
+    "app/src/test/java/com/deepseekharness/app/runtime/RuntimeToolsPreparationTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeToolsRegistryAndroidTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeToolsTimingTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/SourceOnlyTestInputs.java",

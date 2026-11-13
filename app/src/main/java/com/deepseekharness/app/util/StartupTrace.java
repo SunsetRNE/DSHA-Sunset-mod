@@ -11,7 +11,7 @@ public final class StartupTrace {
   private final ArrayDeque<Line> lines = new ArrayDeque<>();
   private final LinkedHashMap<String, String> issues = new LinkedHashMap<>();
   private long generation, began, stageBegan, revision;
-  private long backendReadyAt = -1, browserReadyAt = -1, endedAt = -1;
+  private long nodeLaunchedAt = -1, backendReadyAt = -1, browserReadyAt = -1, endedAt = -1;
   private String stage = com.deepseekharness.app.util.UiText.text("尚未启动");
   private int length;
 
@@ -155,7 +155,7 @@ public final class StartupTrace {
     stage = com.deepseekharness.app.util.UiText.text("排队启动");
     safe = safeMode;
     browserReady = false;
-    backendReadyAt = browserReadyAt = endedAt = -1;
+    nodeLaunchedAt = backendReadyAt = browserReadyAt = endedAt = -1;
     lines.clear();
     issues.clear();
     length = 0;
@@ -259,10 +259,21 @@ public final class StartupTrace {
     }
   }
 
+  /**
+   * 记录本次 Web 进程创建时刻，只用于计算 Node→鉴权耗时；不改变鉴权、等待或重试判定。
+   * 同一代次的重试以最后一次真实创建为准；鉴权完成后不再接受新的时间零点。
+   */
+  public synchronized void nodeLaunched(long expected, long now) {
+    if (expected != generation || backendReadyAt >= 0) return;
+    nodeLaunchedAt = now;
+  }
+
   public synchronized void backendReady(long expected, long now) {
     if (expected != generation || backendReadyAt >= 0) return;
     backendReadyAt = now;
     add(expected, now, "BACKEND_AUTH_READY: " + format(now - began));
+    if (nodeLaunchedAt >= 0)
+      add(expected, now, "STARTUP_AUTH_TIMING: nodeToAuthMs=" + Math.max(0, now - nodeLaunchedAt));
     revision++;
   }
 

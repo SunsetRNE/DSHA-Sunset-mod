@@ -1197,6 +1197,8 @@ final class WebLifecycleController {
           boot.execRootfs(
               runCoreCommand(startupProfile, ports.listen, generation), launchEnvironment);
       run.launcher = p;
+      // 只记录本次真实进程创建时刻，鉴权到达时输出 Node→鉴权耗时；不参与等待或重试。
+      state.diagnostics.nodeLaunched(generation);
       setWebStage(generation, com.deepseekharness.app.util.UiText.text("等待鉴权链接"));
       // 3090 桥就绪：agent 在容器里调设备能力（/exec /confirm /status）走这条通道。
       // 本代 Web 持有自己的需求；其它服务退出不能关闭仍在使用的桥。

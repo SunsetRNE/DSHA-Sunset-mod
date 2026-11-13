@@ -60,6 +60,86 @@ public class StartupPreparationTimingTest {
   }
 
   @Test
+  public void observationsAreBoundedSensitiveFreeAndMissingDataStaysAbsent() throws Exception {
+    var messages = new ArrayList<String>();
+    var timing = new StartupPreparationTiming(messages::add, () -> 0L);
+    assertEquals(List.of(), messages);
+    assertFalse(messages.stream().anyMatch(line -> line.startsWith("STARTUP_PREP_TIMING:")));
+    timing.observe("stop-web", "facts", 3);
+    timing.observe("guest-helper", "register-builtins", 1);
+    timing.observe("runtime-tools", "files", 0);
+    assertEquals(
+        List.of(
+            "STARTUP_PREP_OBSERVATION: phase=stop-web facts=3",
+            "STARTUP_PREP_OBSERVATION: phase=guest-helper register-builtins=1",
+            "STARTUP_PREP_OBSERVATION: phase=runtime-tools files=0"),
+        messages);
+    // 非固定 token 或缺失值（负数）不进入诊断，避免把用户路径 / 凭据 / 异常消息拼进来。
+    timing.observe("user path /secret", "facts", 1);
+    timing.observe("stop-web", "token sk-private", 1);
+    timing.observe("stop-web", "facts", -1);
+    timing.observe(null, "facts", 1);
+    assertEquals(3, messages.size());
+    timing.observe("stop-web", "facts", Long.MAX_VALUE);
+    assertTrue(messages.get(3).endsWith("facts=1000000000"));
+    String observed = messages.toString();
+    assertFalse(observed.contains("secret"));
+    assertFalse(observed.contains("/"));
+  }
+
+  @Test
+  public void concurrentAndRepeatedCallsProduceIndependentWellFormedLines() throws Exception {
+    var messages = java.util.Collections.synchronizedList(new ArrayList<String>());
+    var timing = new StartupPreparationTiming(messages::add, System::nanoTime);
+    String[] phases = {"stop-web", "retire-prior", "recover-data", "runtime-tools"};
+    var pool = java.util.concurrent.Executors.newFixedThreadPool(4);
+    try {
+      var tasks = new ArrayList<java.util.concurrent.Callable<Void>>();
+      for (int index = 0; index < 40; index++) {
+        final String phase = phases[index % phases.length];
+        tasks.add(
+            () -> {
+              timing.run(
+                  phase,
+                  () -> {
+                    timing.observe("guest-helper", "register-builtins", 1);
+                    return null;
+                  });
+              return null;
+            });
+      }
+      for (var future : pool.invokeAll(tasks)) future.get();
+    } finally {
+      pool.shutdownNow();
+    }
+    var timingLines =
+        messages.stream().filter(line -> line.startsWith("STARTUP_PREP_TIMING:")).toList();
+    var observationLines =
+        messages.stream().filter(line -> line.startsWith("STARTUP_PREP_OBSERVATION:")).toList();
+    assertEquals(40, timingLines.size());
+    assertEquals(40, observationLines.size());
+    for (String line : timingLines) {
+      assertTrue(
+          line,
+          line.matches(
+              "STARTUP_PREP_TIMING: phase=[a-z-]+ durationMs=\\d+ elapsedMs=\\d+ outcome=returned"));
+    }
+    for (String line : observationLines)
+      assertEquals("STARTUP_PREP_OBSERVATION: phase=guest-helper register-builtins=1", line);
+  }
+
+  @Test
+  public void brokenObserverCannotEscapeFromObservationOrBreakRepeatedRuns() throws Exception {
+    var timing =
+        new StartupPreparationTiming(
+            line -> {
+              throw new IllegalStateException("observer");
+            });
+    timing.observe("stop-web", "facts", 2);
+    assertEquals(7, (int) timing.run("runtime-tools", () -> 7));
+  }
+
+  @Test
   public void failureIsObservedWithoutBeingConvertedIntoSuccessAndInvalidPhasesNeverRun()
       throws Exception {
     var messages = new ArrayList<String>();

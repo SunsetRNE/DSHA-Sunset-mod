@@ -230,4 +230,20 @@ public class StartupDiagnosticsTest {
       assertTrue(fixture.diagnostics.hasExplicitStartupFailure(3));
     }
   }
+
+  @Test
+  public void nodeLaunchObservationReachesTraceWithoutChangingReadinessOrDuration()
+      throws Exception {
+    try (Fixture fixture = new Fixture()) {
+      fixture.clock.set(12_000);
+      fixture.diagnostics.nodeLaunched(1);
+      fixture.clock.set(15_000);
+      fixture.diagnostics.backendReady(1);
+      String log = fixture.diagnostics.snapshot().log;
+      assertTrue(log.contains("BACKEND_AUTH_READY: 5.0s"));
+      assertTrue(log.contains("STARTUP_AUTH_TIMING: nodeToAuthMs=3000"));
+      assertEquals(5000, fixture.diagnostics.snapshot().backendReadyMs);
+      assertFalse(log.contains("/data/user/"));
+    }
+  }
 }

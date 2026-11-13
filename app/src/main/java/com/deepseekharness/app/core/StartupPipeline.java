@@ -53,6 +53,11 @@ final class StartupPipeline {
 
     void tools() throws Exception;
 
+    /** 启动观测版：准备命中/失效与固定受管文件数进入启动诊断；默认退回原入口。 */
+    default void tools(java.util.function.Consumer<String> output) throws Exception {
+      tools();
+    }
+
     boolean ready();
 
     boolean offlineBundle();
@@ -77,6 +82,11 @@ final class StartupPipeline {
 
         public void close() {}
       };
+    }
+
+    /** 启动观测版：共享 helper 准备诊断透传；默认退回原入口。 */
+    default Plugins startupPlugins(java.util.function.Consumer<String> output) throws Exception {
+      return startupPlugins();
     }
 
     com.deepseekharness.app.util.BoundedProcessRunner.Result materializeCasLinks(
@@ -132,6 +142,10 @@ final class StartupPipeline {
             boot.ensureRuntimeFiles();
           }
 
+          public void tools(java.util.function.Consumer<String> output) throws Exception {
+            boot.ensureRuntimeFiles(output);
+          }
+
           public boolean ready() {
             return stable.isEnvironmentReady();
           }
@@ -161,7 +175,12 @@ final class StartupPipeline {
           }
 
           public Plugins startupPlugins() throws Exception {
-            var scripts = boot.prepareStartupPlugins();
+            return startupPlugins(null);
+          }
+
+          public Plugins startupPlugins(java.util.function.Consumer<String> output)
+              throws Exception {
+            var scripts = boot.prepareStartupPlugins(output);
             return new Plugins() {
               public String register() throws Exception {
                 return com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
@@ -218,10 +237,12 @@ final class StartupPipeline {
         actions.now() + com.deepseekharness.app.util.WebStopBudget.STARTUP_EXIT_MILLIS;
     java.util.List<com.deepseekharness.app.util.WebStopDiagnostic> stopFacts =
         timing.run("stop-web", runtime::stopWeb);
+    timing.observe("stop-web", "facts", stopFacts.size());
     // 旧 guest 报告“正在退出”时，已知启动器仍要先拿到同样的优雅退出窗口；旧实现一旦
     // stop-web 非空就立刻抛出，导致 10ms 的扫描把一次正常退出判成启动失败。
     java.util.List<com.deepseekharness.app.util.WebStopDiagnostic> priorFacts =
         timing.run("retire-prior-launchers", actions::releasePrior);
+    timing.observe("retire-prior-launchers", "facts", priorFacts.size());
     if (!stopFacts.isEmpty() || !priorFacts.isEmpty()) {
       // 已被新的停止/启动意图取代时不再等待：等待只属于仍然有效的这一代启动。
       if (!actions.current()) return null;
@@ -238,7 +259,7 @@ final class StartupPipeline {
     timing.run(
         "runtime-tools",
         () -> {
-          runtime.tools();
+          runtime.tools(line -> diagnostics.message(generation, line));
           return null;
         });
     if (!runtime.ready()) {
@@ -280,6 +301,7 @@ final class StartupPipeline {
     // settings.yaml 后因插件 pending 造成不可重试的导入。
     String migration =
         timing.run("rc-one-migration", () -> runtime.migration(diagnostics.recordId()));
+    timing.observe("guest-helper", "rc-one-migration", 1);
     Map<String, Object> migrationState =
         com.deepseekharness.app.util.Rc1MigrationResult.parse(migration);
     if (!com.deepseekharness.app.util.Rc1MigrationResult.isRoutineReceipt(migrationState))
@@ -301,6 +323,7 @@ final class StartupPipeline {
           timing.run(
               "legacy-cas-links",
               () -> runtime.materializeCasLinks(line -> diagnostics.message(generation, line)));
+      timing.observe("guest-helper", "legacy-cas-links", 1);
       relayCasTiming(outcome.output, generation);
       long copied =
           requireCasCopyReceipt(
@@ -312,13 +335,17 @@ final class StartupPipeline {
             com.deepseekharness.app.util.UiText.format("已修复 %s 个旧包文件链接，原链接已保留。", copied));
       if (!actions.current()) return null;
       actions.stage(com.deepseekharness.app.util.UiText.text("注册插件"));
-      try (Plugins plugins = timing.run("prepare-plugin-helpers", runtime::startupPlugins)) {
+      try (Plugins plugins =
+          timing.run(
+              "prepare-plugin-helpers",
+              () -> runtime.startupPlugins(line -> diagnostics.message(generation, line)))) {
         // 内置插件注册：rootfs 烘焙的实体要登记进 web profile 才会被 dsh 加载。
         // 覆盖安装（rootfs 保留）与全新安装（rootfs 重新解压）都靠这一步补齐；
         // 注册失败时停止在原生恢复页，不能带着一半旧插件继续启动 Web。
         String r;
         try {
           r = timing.run("register-builtins", plugins::register);
+          timing.observe("guest-helper", "register-builtins", 1);
           diagnostics.message(generation, r);
         } catch (IOException incomplete) {
           diagnostics.issue(
@@ -340,6 +367,7 @@ final class StartupPipeline {
         // 覆盖升级时只解除旧版自动生成的待审阅标记；尊重用户主动禁用。
         if (!actions.current()) return null;
         String migratedPlugins = timing.run("legacy-plugin-reviews", plugins::legacy);
+        timing.observe("guest-helper", "legacy-plugin-reviews", 1);
         diagnostics.message(generation, migratedPlugins);
       }
     }

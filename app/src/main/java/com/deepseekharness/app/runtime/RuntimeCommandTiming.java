@@ -5,6 +5,9 @@ import java.util.function.LongSupplier;
 
 /** 单次受控命令的宿主分段时钟；不记录命令、路径或用户内容，也不影响执行结果。 */
 final class RuntimeCommandTiming {
+  private static final java.util.regex.Pattern PHASE =
+      java.util.regex.Pattern.compile("[a-z][a-z-]{0,31}");
+
   private final Consumer<String> output;
   private final LongSupplier nanos;
   private final long started;
@@ -20,7 +23,9 @@ final class RuntimeCommandTiming {
     started = previous = nanos.getAsLong();
   }
 
-  void mark(String phase) {
+  /** 并发或重复标记各自成行；阶段名只接受固定 token，非法值不写诊断。 */
+  synchronized void mark(String phase) {
+    if (phase == null || !PHASE.matcher(phase).matches()) return;
     long now = nanos.getAsLong();
     long elapsed = Math.max(0, now - started) / 1_000_000;
     long duration = Math.max(0, now - previous) / 1_000_000;
