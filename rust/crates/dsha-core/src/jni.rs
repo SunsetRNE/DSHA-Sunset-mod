@@ -11,6 +11,10 @@
 //!   `ByteBuffer`；任何错误都不写输出（无半成品）；
 //! - 输出缓冲不足返回 `ERR_OUTPUT_BOUND`（调用方换更大缓冲重试）。
 //!
+//! R2 把 `verifyPlan` 接上真实实现（A3 §3.8）：`view`/`reasons` 都是 direct
+//! `ByteBuffer`，原因只在返回 0/1 时写入（`u32 count` + `count` 个小端 u32）；
+//! `OUTPUT_BOUND` 不写半成品，参数/缓冲契约错误返回 `INVALID_ARGUMENT`。
+//!
 //! 本文件不接收路径字符串、不打开文件、不创建进程/线程、不安装信号处理器、
 //! 不写 stdout/stderr。`digest` 的 fd 读取在 `crate::fd`（另一个 `unsafe` 边界）。
 //!
@@ -291,16 +295,99 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archiveUnpac
     ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED)) as i32
 }
 
+/// `verify_plan` 的真实实现（A3 §3.8）：结构/范围/策略版本/有效期只读校验。
+///
+/// 返回 `0` = VALID、`1` = INVALID（原因已写入 `reasons`）、负数 = 错误码。
+/// 参数/缓冲契约错误返回 `INVALID_ARGUMENT`；原因条数超过 `maxReasons` 返回
+/// `OUTPUT_BOUND` 且不写任何字节（调用方放大缓冲重试，不产生半成品）。
+fn verify_plan_inner(
+    env: JniEnv,
+    view: JObject,
+    view_length: i32,
+    reasons: JObject,
+    max_reasons: i32,
+) -> Result<i32, i32> {
+    // 标量参数先于 JNI 调用校验：null env 时也能安全返回冻结错误码。
+    if view.is_null() || reasons.is_null() || view_length < 0 || max_reasons < 0 {
+        return Err(ERR_INVALID_ARGUMENT);
+    }
+    let table = jni_table(env).ok_or(ERR_INVALID_ARGUMENT)?;
+    let (view_address, view_capacity) = direct_buffer(table, env, view)?;
+    if view_capacity < i64::from(view_length) {
+        return Err(ERR_INVALID_ARGUMENT);
+    }
+    let (reasons_address, reasons_capacity) = direct_buffer(table, env, reasons)?;
+    // 调用约定：reasons 容量 >= 4 + 4*maxReasons（§3.8）；不足属调用方契约错误。
+    let required_capacity = 4i64
+        .checked_add(4i64.saturating_mul(i64::from(max_reasons)))
+        .ok_or(ERR_INVALID_ARGUMENT)?;
+    if reasons_capacity < required_capacity {
+        return Err(ERR_INVALID_ARGUMENT);
+    }
+    let view_bytes: &[u8] = if view_length == 0 {
+        // 0 长度视图不构造空切片指针（避免对 null 指针做 from_raw_parts）。
+        &[]
+    } else {
+        // SAFETY: direct_buffer 已核验地址非空且容量 >= view_length；JVM 在本次
+        // native 调用期间保持 ByteBuffer 强引用、不做并发修改。视图长度上限由
+        // `plan::validate` 的 2 MiB 规则处理，此处不越界读取。
+        unsafe { core::slice::from_raw_parts(view_address, view_length as usize) }
+    };
+    // JNI 入口没有 nowMs 参数（ABI 冻结）：使用视图内嵌时间，保持纯函数语义。
+    let now_ms = crate::plan::embedded_now_ms(view_bytes).unwrap_or(0);
+    match crate::plan::validate(view_bytes, now_ms) {
+        Ok(()) => {
+            // SAFETY: reasons 容量 >= 4（max_reasons >= 0），写入 u32 count=0。
+            unsafe { write_u32_le(reasons_address, 0) };
+            Ok(0)
+        }
+        Err(found) => {
+            let count = found.len();
+            if count > max_reasons as usize {
+                // 不产生半成品：此时一个字节都不写。
+                return Err(ERR_OUTPUT_BOUND);
+            }
+            // SAFETY: 容量已校验为 >= 4 + 4*count；只在本调用内写入，不跨调用保存指针。
+            unsafe {
+                write_u32_le(reasons_address, count as u32);
+                for (index, code) in found.codes().iter().enumerate() {
+                    let offset = 4 + index * 4;
+                    write_u32_le(reasons_address.add(offset), *code);
+                }
+            }
+            Ok(1)
+        }
+    }
+}
+
+/// 把 `value` 以小端写入 direct buffer 的指定地址。
+///
+/// # Safety
+/// `address` 必须指向至少 4 字节的可写 direct buffer 区域，且该缓冲在本次 native
+/// 调用期间由 JVM 保持强引用、不做并发修改；调用方必须先核验容量。
+unsafe fn write_u32_le(address: *mut u8, value: u32) {
+    let bytes = value.to_le_bytes();
+    // SAFETY: 由调用方按上面的契约保证目标区域可写且足够长。
+    unsafe {
+        core::ptr::copy_nonoverlapping(bytes.as_ptr(), address, bytes.len());
+    }
+}
+
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_verifyPlan(
-    _env: JniEnv,
+    env: JniEnv,
     _class: JClass,
-    _view: JObject,
-    _view_length: i32,
-    _reasons: JObject,
-    _max_reasons: i32,
+    view: JObject,
+    view_length: i32,
+    reasons: JObject,
+    max_reasons: i32,
 ) -> i32 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED)) as i32
+    ffi_guard(
+        || match verify_plan_inner(env, view, view_length, reasons, max_reasons) {
+            Ok(value) => i64::from(value),
+            Err(code) => i64::from(code),
+        },
+    ) as i32
 }
 
 // `ERR_OK` 目前只用于文档/冻结；显式引用避免 clippy 把它当成未使用模块项。
