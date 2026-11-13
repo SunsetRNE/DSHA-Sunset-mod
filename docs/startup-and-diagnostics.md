@@ -82,6 +82,16 @@ F12对应的两网页内核真实Host负控覆盖了失败响应先到、后台�
 
 ## 诊断与日志是不同操作
 
+### CAS 扫描统计的完成状态
+
+`CAS_TIMING` 中 `phase=scan` 的行包含 `scanStatus`、`countsComplete` 与 `errorCode`：
+
+- `completed / true / NONE`：本次扫描正常结束（包括确认目录不存在）；计数属于完整扫描。
+- `failed / false / …`：扫描失败，计数仅表示已观察的部分；原因固定为 `PERMISSION_DENIED`、`IO_ERROR`、`VALIDATION_FAILED` 或 `UNEXPECTED_ERROR`。
+- `cancelled / false / CANCELLED`：扫描被取消，计数同样不完整。
+
+失败或取消时，即使 `candidates=0` 也不能推断没有待处理项；旧日志缺少完成字段时，不应只凭计数推断扫描完成。新字段不包含条目路径、文件内容或异常正文，不改变扫描规则、原异常和退出码；`completed` 也不是修复成功或启动许可，后续仍需唯一的 `PLUGIN_RESULT` 完成回执与真实进程退出证明。
+
 “生成诊断报告”由[DiagnosticRepository](../app/src/main/java/com/deepseekharness/app/core/DiagnosticRepository.java)取得环境票据后执行有限探针：设备/版本、Bash 与加载器、工具文件、所选运行方式 smoke、Node/npm/Python 实际响应、受管身份、最近试运行、可用空间、当前鉴权/插件观察和宿主资源。它不遍历对话或个人文件，不读取完整 logcat，不在打开诊断页时自动运行耗时探针。
 
 “修复证书与 npm”是明确写操作，只修该范围并再次收集结果；维护 pending 或环境竞争时拒绝。修复失败会保留失败结果，不能因为后续只读报告能生成就显示整体修复成功。宿主 FD/PSS/线程样本仅覆盖当前原生进程，排除 Ubuntu 和独立浏览器子进程；比较同种操作后的多个样本才有意义。
