@@ -354,9 +354,12 @@ class SourceAndServices(unittest.TestCase):
     def test_source_checks_run_contracts_format_unit_and_host_as_nodes(self):
         graph = jobs(text("ci-fast.yml"))
         self.assertEqual(set(graph), {"contracts", "java-format", "kotlin-format", "rust-check",
-                                      "inputs", "unit-source", "host-fast"})
+                                      "rust-differential", "inputs", "unit-source", "host-fast"})
         self.assertEqual(needs(graph["rust-check"]), set())
         self.assertIn("mode: check", graph["rust-check"])
+        # R1：源码门禁同时真实跑主机 JVM digest 差分（-Xcheck:jni），不再只等手动发布流程。
+        self.assertEqual(needs(graph["rust-differential"]), set())
+        self.assertIn("mode: differential", graph["rust-differential"])
         self.assertEqual(needs(graph["unit-source"]), {"inputs"})
         self.assertEqual(needs(graph["host-fast"]), {"inputs"})
         self.assertIn("mode: source-only", graph["unit-source"])
@@ -463,8 +466,8 @@ class SourceAndServices(unittest.TestCase):
         self.assertNotIn("upload-artifact", source)
 
 
-class RustR0Graph(unittest.TestCase):
-    """R0：Rust 工具链节点只读、无 Secrets、产证据；不接入 build-unsigned。"""
+class RustGraph(unittest.TestCase):
+    """R1：Rust 工具链节点只读、无 Secrets、产证据；不接入 build-unsigned。"""
 
     def test_shared_node_has_all_four_modes_and_no_secrets(self):
         source = text("_node-rust.yml")
@@ -472,7 +475,8 @@ class RustR0Graph(unittest.TestCase):
                          "mode == 'differential'",
                          "check-rust-toolchain.py --verify-installed",
                          "check-rust-vendor.py --regenerate",
-                         "tools/rust/build.py --host --check",
+                         "tools/rust/build.py --host --check --expect-lock",
+                         "tools/rust/build.py --host --expect-lock",
                          "tools/rust/build.py --android",
                          "tools/rust/host-jvm-differential.py",
                          "check-rust-boundaries.py", "check-rust-native-apk.py"):
@@ -485,11 +489,51 @@ class RustR0Graph(unittest.TestCase):
     def test_package_and_fast_workflows_call_the_rust_nodes(self):
         fast = jobs(text("ci-fast.yml"))
         self.assertIn("mode: check", fast["rust-check"])
+        self.assertIn("mode: differential", fast["rust-differential"])
         package = jobs(text("ci-package.yml"))
         self.assertEqual(needs(package["rust-repro"]), {"inputs"})
         self.assertEqual(needs(package["rust-native"]), {"inputs"})
         self.assertIn("mode: repro", package["rust-repro"])
         self.assertIn("mode: native", package["rust-native"])
+
+    def test_full_unit_runs_build_the_host_library_for_rust_differential(self):
+        # R1：full 单测要求 0 skipped；RustDigestDifferentialTest 需要主机目标 .so，
+        # 所有 full 调用方都必须传 rust_host=true（source-only 的 unit-source 不传）。
+        node = text("_node-unit-tests.yml")
+        for fragment in ("rust_host:", "tools/rust/build.py --host --expect-lock",
+                         "-Pdsha.rust.hostLib=$PWD/out/rust-host/libdsha_rs.so",
+                         "-Pdsha.rust.required=true"):
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, node)
+        for name in ("release-production.yml", "release-upstream.yml", "test-package.yml",
+                     "test-package-variants.yml"):
+            with self.subTest(workflow=name):
+                self.assertIn("rust_host: true", text(name))
+        self.assertIn("rust_host: ${{ inputs.mode == 'full' }}", text("unit-tests.yml"))
+        self.assertNotIn("rust_host: true", text("ci-fast.yml"))
+
+    def test_artifact_lock_is_registered_for_every_build_target(self):
+        # R1：产物摘要口径固定；跨 run 复现证据不足时保持 pending，不得写死不可复现字段。
+        lock = json.loads((ROOT / "rust/artifact.lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(lock["schema"], 1)
+        self.assertEqual(lock["kind"], "dsha-rust-artifact-lock")
+        self.assertEqual(set(lock["artifacts"]),
+                         {"aarch64-linux-android", "x86_64-unknown-linux-gnu",
+                          "aarch64-unknown-linux-gnu"})
+        for name, entry in lock["artifacts"].items():
+            with self.subTest(target=name):
+                self.assertEqual(entry["file"], "libdsha_rs.so")
+                self.assertIn(entry["status"], {"pending-cross-run", "pinned"})
+                if entry["status"] == "pinned":
+                    self.assertIsInstance(entry["size"], int)
+                    self.assertRegex(entry["sha256"], r"^[0-9a-f]{64}$")
+                else:
+                    self.assertIsNone(entry["size"])
+                    self.assertIsNone(entry["sha256"])
+                # 跨 runner 不可复现字段不得写进锁。
+                serialized = json.dumps(entry)
+                for field in ("runId", "runAttempt", "commit", "mtime", "timestamp"):
+                    self.assertNotIn(field, serialized)
 
     def test_release_rust_evidence_is_not_consumed_by_the_apk_yet(self):
         self.assertIn("mode: native", self.graph["rust-native"])

@@ -43,6 +43,11 @@ on:
         required: false
         type: number
         default: 1
+      rust_host:
+        description: Build the host Rust .so and pass -Pdsha.rust.hostLib (full runs need 0 skipped)
+        required: false
+        type: boolean
+        default: false
       artifact:
         description: Name of the uploaded JUnit/receipt artifact
         required: false
@@ -65,6 +70,28 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
+      # R1：full 单测要求 0 skipped，RustDigestDifferentialTest 需要主机目标 .so。
+      # rust_host=true 时用锁定工具链构建主机 .so 并把路径传给测试 JVM；source-only 不构建。
+      - name: Restore pinned Rust toolchain cache (host differential)
+        if: inputs.rust_host
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.rustup
+          key: rustup-1.100.0-${{ runner.os }}-${{ hashFiles('ci/rust-toolchain.lock.json') }}
+      - name: Install pinned Rust toolchain (host differential)
+        if: inputs.rust_host
+        run: |
+          set -eu
+          channel=$(python3 -c "import json;print(json.load(open('ci/rust-toolchain.lock.json'))['channel'])")
+          rustup toolchain install "$channel" --profile minimal
+      - name: Build host Rust .so for differential tests
+        if: inputs.rust_host
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: |
+          set -eu
+          python3 tools/rust/build.py --host --expect-lock \
+            --out out/rust-host --receipt out/rust-host/receipt.json
       - uses: ./.github/actions/android-sdk
         with:
           ndk: ${{ inputs.mode == 'full' }}
@@ -90,6 +117,7 @@ jobs:
           RERUN: ${{ inputs.rerun }}
           SUNSET_TEST: ${{ inputs.sunset_test }}
           FORKS: ${{ inputs.forks }}
+          RUST_HOST: ${{ inputs.rust_host }}
         run: |
           set -euf
           args=(:app:testStandardDebugUnitTest --no-daemon --max-workers=2)
@@ -99,6 +127,10 @@ jobs:
             *) echo "unknown mode: $MODE"; exit 2 ;;
           esac
           if [ "$SUNSET_TEST" = true ]; then args+=(-Pdsha.sunsetTest=true); fi
+          if [ "$RUST_HOST" = true ]; then
+            args+=("-Pdsha.rust.hostLib=$PWD/out/rust-host/libdsha_rs.so")
+            args+=(-Pdsha.rust.required=true)
+          fi
           if [ "$RERUN" = true ]; then args+=(--rerun-tasks); fi
           case "$FORKS" in 1|2|3|4) ;; *) echo "forks must be 1-4"; exit 2 ;; esac
           if [ "$FORKS" != 1 ]; then

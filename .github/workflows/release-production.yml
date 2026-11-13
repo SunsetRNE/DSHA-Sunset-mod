@@ -194,6 +194,7 @@ jobs:
       handoff: ${{ needs.inputs.outputs.artifact }}
       require_fixtures: true
       forks: 1
+      rust_host: true
       artifact: release-unit-results
 
   lint:

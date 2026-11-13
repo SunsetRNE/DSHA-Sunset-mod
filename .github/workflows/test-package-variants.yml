@@ -89,6 +89,7 @@ jobs:
       mode: full
       handoff: ${{ needs.inputs.outputs.artifact }}
       require_fixtures: true
+      rust_host: true
       artifact: test-package-variants-unit-results
   lint:
     needs: inputs

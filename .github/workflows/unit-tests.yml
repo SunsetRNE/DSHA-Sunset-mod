@@ -46,4 +46,5 @@ jobs:
       tests: ${{ inputs.tests }}
       rerun: ${{ inputs.rerun }}
       require_fixtures: ${{ inputs.mode == 'full' && inputs.tests == '' }}
+      rust_host: ${{ inputs.mode == 'full' }}
       forks: ${{ fromJSON(inputs.forks) }}

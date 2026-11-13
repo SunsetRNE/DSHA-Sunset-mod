@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""主机 JVM 差分探针骨架：用 JDK17 编译并运行 host-jvm/，加载主机目标 .so。
+"""主机 JVM 差分探针：用 JDK17 编译生产桥 + host-jvm/，加载主机目标 .so 对拍 digest。
 
-R0 只证明“Rust host 库 + JDK17 JVM”的 System.load 与 JNI 调用链（abiVersion 与
-NOT_IMPLEMENTED 占位返回码）。R1 起在同一骨架上扩展 digest / gzip / verify_plan 的
-JVM↔Rust 对拍；探针不经 Gradle、不依赖 Robolectric、不接入 Android 单测。
+R0 只证明“Rust host 库 + JDK17 JVM”的 System.load 与 JNI 调用链；R1 起直接编译
+`app/src/main/java/com/deepseekharness/app/util/{RustNative,RustDigest,RustBackends}.java`
+（纯 Java、零 Android import），在同一进程里对比 Rust 后端与 JDK `MessageDigest`：
+
+- SHA-256 / SHA-1 已知向量、offset/中间区间、CHUNK 边界、单次 32 MiB 上限；
+- 空内容（length=0 按 ABI 拒绝）、EOF 短读、非法 offset/length/algorithm、负 fd/巨大 fd、
+  只写 fd、关闭的 fd、非 direct / 过小 direct 输出缓冲、null 输出缓冲；
+- 运行层开关默认 off / 显式 on / 一键回退，摘要不变。
+
+`-Xcheck:jni` 全程开启；探针不经 Gradle、不依赖 Robolectric、不接入 Android 单测，也不
+证明 Android `.so` 已加载（后者由 R3 签名 `.dev` 包与 APK 静态门禁覆盖）。
 """
 from __future__ import annotations
 
@@ -18,7 +26,14 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-JAVA_SOURCE = ROOT / "tools/rust/host-jvm"
+PROBE_SOURCE = ROOT / "tools/rust/host-jvm"
+APP_SOURCE = ROOT / "app/src/main/java/com/deepseekharness/app/util"
+BRIDGE_SOURCES = (
+    "RustNative.java",
+    "RustDigest.java",
+    "RustBackends.java",
+)
+PROBE_CLASS = "com.deepseekharness.app.util.RustHostProbe"
 
 
 class ProbeError(RuntimeError):
@@ -55,35 +70,44 @@ def main(argv: list[str]) -> int:
     library = args.lib.resolve()
     if not library.is_file():
         raise ProbeError("RUST_HOST_LIB_MISSING: " + str(library))
+    sources = [PROBE_SOURCE / "RustHostProbe.java"]
+    for name in BRIDGE_SOURCES:
+        source = APP_SOURCE / name
+        if not source.is_file():
+            raise ProbeError("RUST_BRIDGE_SOURCE_MISSING: " + str(source))
+        sources.append(source)
     home = java_home()
     env = dict(os.environ)
     env.pop("PYTHONOPTIMIZE", None)
     with tempfile.TemporaryDirectory(prefix="dsha-rust-jvm-") as temporary:
         classes = Path(temporary) / "classes"
         classes.mkdir()
-        sources = sorted(str(path) for path in JAVA_SOURCE.rglob("*.java"))
         run([str(home / "bin/javac"), "-encoding", "UTF-8", "-Xlint:all", "-Werror",
-             "-d", str(classes), *sources], cwd=ROOT, env=env)
-        output = run([str(home / "bin/java"), "-Xcheck:jni", "-cp", str(classes), "RustHostProbe",
-                      str(library)], cwd=ROOT, env=env)
+             "-d", str(classes), *[str(path) for path in sources]], cwd=ROOT, env=env)
+        output = run([str(home / "bin/java"), "-Xcheck:jni",
+                      "--add-opens", "java.base/java.io=ALL-UNNAMED",
+                      "-cp", str(classes), PROBE_CLASS, str(library)], cwd=ROOT, env=env)
     rows = [json.loads(line) for line in output.splitlines() if line.startswith("{")]
     checks = [row for row in rows if "check" in row]
-    status = "PASS" if checks and all(row.get("status") == "PASS" for row in checks) else "FAIL"
+    summary = next((row for row in rows if "status" in row and "check" not in row), {})
+    failed = [row for row in checks if row.get("status") != "PASS"]
+    status = "PASS" if checks and not failed and summary.get("failures", 1) == 0 else "FAIL"
     if status != "PASS":
         raise ProbeError("RUST_HOST_PROBE_FAILED:\n" + output)
     report = {
         "schema": 1,
         "kind": "dsha-rust-host-differential",
         "status": "PASS",
-        "scope": "R0 加载与调用链（abiVersion / NOT_IMPLEMENTED）；不证明 Android .so 已加载，"
-                 "真机证据由 R3 签名 .dev 包单独记录",
+        "scope": "R1 digest 主机 JVM 差分：SHA-256/SHA-1、offset/跨块/32 MiB、短读、非法参数、"
+                 "fd 生命周期、direct buffer 契约、运行层开关与回退；-Xcheck:jni 全程开启。"
+                 "不证明 Android .so 已加载（R3 设备证据单独记录）",
         "library": {"file": library.name, "size": library.stat().st_size,
                     "sha256": hashlib.sha256(library.read_bytes()).hexdigest()},
         "java": {"home": str(home),
                  "version": next((row.get("javaVersion") for row in rows
                                   if row.get("javaVersion")), None)},
         "checks": checks,
-        "tests": {"probeChecks": len(checks), "failures": 0, "skipped": 0},
+        "tests": {"probeChecks": len(checks), "failures": len(failed), "skipped": 0},
     }
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
