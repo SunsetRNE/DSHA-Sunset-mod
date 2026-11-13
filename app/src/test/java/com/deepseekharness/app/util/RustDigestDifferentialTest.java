@@ -112,7 +112,8 @@ public class RustDigestDifferentialTest {
   private static void assertSameDigest(
       FileInputStream stream, FileChannel channel, long offset, long length, int algorithm) {
     RustDigest.Result jvm = RustDigest.digestJvm(channel, offset, length, algorithm);
-    RustDigest.Result rust = RustDigest.digestRust(rawFd(stream.getFD()), offset, length, algorithm);
+    RustDigest.Result rust =
+        RustDigest.digestRust(rawFd(stream.getFD()), offset, length, algorithm);
     assertTrue("jvm failure: " + jvm.failure(), jvm.ok());
     assertTrue("rust failure: " + rust.failure() + " code=" + rust.errorCode(), rust.ok());
     assertEquals(RustDigest.Backend.RUST, rust.backend());
@@ -130,8 +131,7 @@ public class RustDigestDifferentialTest {
           RustDigest.digestRust(rawFd(stream.getFD()), 0, 3, RustDigest.ALGORITHM_SHA256);
       assertTrue(sha256.ok());
       assertEquals(
-          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-          sha256.digestHex());
+          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", sha256.digestHex());
       assertEquals(32, sha256.digest().length);
       RustDigest.Result sha1 =
           RustDigest.digestRust(rawFd(stream.getFD()), 0, 3, RustDigest.ALGORITHM_SHA1);
@@ -149,8 +149,7 @@ public class RustDigestDifferentialTest {
     try (FileInputStream stream = new FileInputStream(file.toFile())) {
       int fd = rawFd(stream.getFD());
       // ABI 冻结的 length 下限是 1：0 字节不是“空内容摘要”，两侧都必须拒绝。
-      RustDigest.Result zero =
-          RustDigest.digestRust(fd, 0, 0, RustDigest.ALGORITHM_SHA256);
+      RustDigest.Result zero = RustDigest.digestRust(fd, 0, 0, RustDigest.ALGORITHM_SHA256);
       assertFalse(zero.ok());
       assertEquals(RustDigest.INVALID_ARGUMENT, zero.errorCode());
       // offset 落在 EOF、length >= 1：Rust pread 读到 0 字节 → SHORT_READ。
@@ -170,11 +169,7 @@ public class RustDigestDifferentialTest {
       assertSameDigest(stream, channel, 0, payload.length, RustDigest.ALGORITHM_SHA1);
       assertSameDigest(stream, channel, 17, 333, RustDigest.ALGORITHM_SHA256);
       assertSameDigest(
-          stream,
-          channel,
-          RustDigest.CHUNK - 1,
-          RustDigest.CHUNK + 2,
-          RustDigest.ALGORITHM_SHA1);
+          stream, channel, RustDigest.CHUNK - 1, RustDigest.CHUNK + 2, RustDigest.ALGORITHM_SHA1);
     }
   }
 
@@ -194,8 +189,7 @@ public class RustDigestDifferentialTest {
     }
     try (FileInputStream stream = new FileInputStream(file.toFile());
         FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
-      assertSameDigest(
-          stream, channel, 0, RustDigest.MAX_LENGTH, RustDigest.ALGORITHM_SHA256);
+      assertSameDigest(stream, channel, 0, RustDigest.MAX_LENGTH, RustDigest.ALGORITHM_SHA256);
       assertSameDigest(stream, channel, 0, RustDigest.MAX_LENGTH, RustDigest.ALGORITHM_SHA1);
     }
   }
@@ -252,8 +246,7 @@ public class RustDigestDifferentialTest {
       // 关闭的 fd：Rust 不 close 调用方 fd，但读到已关闭 fd 必须安全失败。
       int closedFd = fd;
       stream.close();
-      RustDigest.Result closed =
-          RustDigest.digestRust(closedFd, 0, 1, RustDigest.ALGORITHM_SHA256);
+      RustDigest.Result closed = RustDigest.digestRust(closedFd, 0, 1, RustDigest.ALGORITHM_SHA256);
       assertFalse(closed.ok());
       assertEquals(RustDigest.INVALID_ARGUMENT, closed.errorCode());
     } finally {

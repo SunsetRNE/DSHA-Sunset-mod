@@ -30,11 +30,13 @@ import java.security.NoSuchAlgorithmException;
 public final class RustDigest {
   /** `algorithm` 取值：SHA-256（与 Rust/ABI 一致）。 */
   public static final int ALGORITHM_SHA256 = 1;
+
   /** `algorithm` 取值：SHA-1。 */
   public static final int ALGORITHM_SHA1 = 2;
 
   /** 单次调用允许的最大长度（32 MiB）；大文件由调用方分段循环。 */
   public static final long MAX_LENGTH = 33_554_432L;
+
   /** 与 Rust 一致的流式读取块（256 KiB）。 */
   public static final int CHUNK = 262_144;
 
@@ -241,14 +243,14 @@ public final class RustDigest {
    * 共享 position。读到 0 字节视为内部错误（避免无进展死循环）；提前 EOF 为
    * {@link Failure#SHORT_READ}。
    */
-  public static Result digestJvm(
-      FileChannel channel, long offset, long length, int algorithm) {
+  public static Result digestJvm(FileChannel channel, long offset, long length, int algorithm) {
     int validation = validate(offset, length, algorithm);
     if (validation != OK) {
       return new Result(Backend.JVM, null, 0, validation, mapFailure(validation), false, "");
     }
     if (channel == null) {
-      return new Result(Backend.JVM, null, 0, INVALID_ARGUMENT, Failure.INVALID_ARGUMENT, false, "");
+      return new Result(
+          Backend.JVM, null, 0, INVALID_ARGUMENT, Failure.INVALID_ARGUMENT, false, "");
     }
     MessageDigest hasher = newMessageDigest(algorithm);
     if (hasher == null) {

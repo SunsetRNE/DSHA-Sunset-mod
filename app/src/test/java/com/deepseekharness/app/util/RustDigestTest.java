@@ -64,12 +64,10 @@ public class RustDigestTest {
   public void knownVectorsMatchMessageDigest() throws IOException {
     Path file = temporaryFile("abc".getBytes(StandardCharsets.US_ASCII));
     try (FileChannel channel = openRead(file)) {
-      RustDigest.Result sha256 =
-          RustDigest.digestJvm(channel, 0, 3, RustDigest.ALGORITHM_SHA256);
+      RustDigest.Result sha256 = RustDigest.digestJvm(channel, 0, 3, RustDigest.ALGORITHM_SHA256);
       assertTrue(sha256.ok());
       assertEquals(
-          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-          sha256.digestHex());
+          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", sha256.digestHex());
       assertEquals(3, sha256.bytesRead());
       assertEquals(RustDigest.Backend.JVM, sha256.backend());
       RustDigest.Result sha1 = RustDigest.digestJvm(channel, 0, 3, RustDigest.ALGORITHM_SHA1);
@@ -130,8 +128,7 @@ public class RustDigestTest {
       assertFalse(shortRead.ok());
       assertEquals(RustDigest.SHORT_READ, shortRead.errorCode());
       assertEquals(RustDigest.Failure.SHORT_READ, shortRead.failure());
-      RustDigest.Result atEnd =
-          RustDigest.digestJvm(channel, 3, 1, RustDigest.ALGORITHM_SHA1);
+      RustDigest.Result atEnd = RustDigest.digestJvm(channel, 3, 1, RustDigest.ALGORITHM_SHA1);
       assertEquals(RustDigest.SHORT_READ, atEnd.errorCode());
     }
   }
@@ -152,10 +149,8 @@ public class RustDigestTest {
     assertEquals(
         RustDigest.INVALID_ARGUMENT,
         RustDigest.validate(Long.MAX_VALUE, 1, RustDigest.ALGORITHM_SHA256));
-    assertEquals(
-        RustDigest.UNSUPPORTED_ALGORITHM, RustDigest.validate(0, 1, 0));
-    assertEquals(
-        RustDigest.UNSUPPORTED_ALGORITHM, RustDigest.validate(0, 1, 99));
+    assertEquals(RustDigest.UNSUPPORTED_ALGORITHM, RustDigest.validate(0, 1, 0));
+    assertEquals(RustDigest.UNSUPPORTED_ALGORITHM, RustDigest.validate(0, 1, 99));
     // 常量与 ABI 冻结值一致（方案 §4.2/§4.3）。
     assertEquals(1, RustDigest.ALGORITHM_SHA256);
     assertEquals(2, RustDigest.ALGORITHM_SHA1);
@@ -165,8 +160,7 @@ public class RustDigestTest {
 
   @Test
   public void nullChannelAndInvalidArgumentsFailClosed() {
-    RustDigest.Result nullChannel =
-        RustDigest.digestJvm(null, 0, 1, RustDigest.ALGORITHM_SHA256);
+    RustDigest.Result nullChannel = RustDigest.digestJvm(null, 0, 1, RustDigest.ALGORITHM_SHA256);
     assertFalse(nullChannel.ok());
     assertEquals(RustDigest.INVALID_ARGUMENT, nullChannel.errorCode());
     assertNull(nullChannel.digest());

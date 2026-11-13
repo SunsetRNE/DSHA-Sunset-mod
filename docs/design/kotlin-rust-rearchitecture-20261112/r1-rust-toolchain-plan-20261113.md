@@ -179,10 +179,42 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 - Rust `archive_pack/unpack`、`verify_plan` 仍是 `NOT_IMPLEMENTED`（R2/R3）；`PlanView` 与 gzip 未实现。
 - 本机交叉链接未跑（NDK 仅 linux-x86_64，按 §0.1 Q2 仍由 CI `rust-native` 负责）；arm64 `.so` 的首次真实链接/`DT_NEEDED`/APK 成员核验仍待 `ci-package` 或发布 dry-run。
 - Android 真机加载/16 KB 页验证属 R3（签名 `.dev` 包），R1 不声明。
-- Gradle `:app:testStandardDebugUnitTest --tests '*Rust*'` 的带 host `.so` 运行、`tools/rust/build.py --check`、`cargo test/fmt/clippy` 等本机证据以实际回执为准（本机内存紧张时按 Lead 要求交给 CI；失败/受限项逐条记录）。
+- 本机证据见 §0.5.5，未跑/受限项见 §0.5.6。
 - `rust/artifact.lock.json` 的跨 run pin：R1 首轮先保持 `pending-cross-run`；只有连续 3 次不同 runner 实例一致才 pin（方案 §2.3）。Android 条目需 `rust-native` 手动流程证据。
 
-#### 0.5.5 风险与 R2 建议
+#### 0.5.5 本机证据（2026-11-13，真实回执；未跑项见下）
+
+> 宿主：Android 14 / Ubuntu 24.04 aarch64 容器（PRoot），rustc/cargo 1.100.0，JDK 17.0.21；
+> 内存紧张期间按 Lead 要求 `CARGO_BUILD_JOBS=1 nice -n 10` 串行、一次一个构建，**本机不跑 Gradle**。
+
+| 项 | 结果 |
+|---|---|
+| `cargo fmt --check` | PASS（0 diff） |
+| `cargo clippy --locked --offline --all-targets -- -D warnings -D clippy::unwrap_used -D clippy::expect_used` | PASS（0 warning；期间修掉 `duplicated_attributes`：fd.rs 内层 allow 与 lib.rs 模块 allow 重复） |
+| `cargo test --locked --offline` | **17 passed / 0 failed**（R0 6 → R1 17；新增 digest 已知向量/空输入/分块/边界 + fd 真实 offset/EOF/负 fd + 1 个 offset 回归测试） |
+| `cargo build --release --locked --offline`（host） | PASS（直接构建 `target/release/libdsha_rs.so` 266,768 B） |
+| `cargo check --locked --offline --target aarch64-linux-android` | PASS（仅类型检查；本机无 NDK，链接按 §0.1 Q2 交 CI） |
+| `tools/rust/build.py --host --check --expect-lock --jobs 1` | PASS：不同源码目录两次构建**逐字节一致**；宿主 `libdsha_rs.so` 266,768 B / SHA-256 `675fcac09ec03fb1404499c154408ea218146796d7821c9bb09069739462721c`；体积 PASS；`--expect-lock` 按设计告警 `PENDING`（aarch64 宿主未跨 runner 固定） |
+| `tools/rust/host-jvm-differential.py --lib out/rust-host/libdsha_rs.so` | **PASS 32/32 checks**（-Xcheck:jni；SHA-256/SHA-1 已知向量、offset/跨块/单次 32 MiB、空内容拒绝、EOF 短读、非法 offset/length/algorithm、负 fd/巨大 fd/只写 fd/关闭 fd、非 direct/过小/null 输出、switch on/off/一键回退、MessageDigest 参照） |
+| `tools/check-rust-boundaries.py` | PASS（7 源 / 11 符号 / 16 依赖 / 4 构建输入；fd.rs 允许清单只含 `std::fs`/`File::`/`std::io::`/测试 `open(`，非测试行严格禁 open/create/write/close/日志） |
+| `tools/check-rust-toolchain.py` / `tools/check-rust-vendor.py` | PASS（16 crate / 7,384,177 B / 782 文件） |
+| `tools/test-ci-workflows.py` | **57 tests PASS**（新增 rust_host 接线、ci-fast rust-differential、artifact.lock 口径） |
+| `tools/format-java-tree.py --check --jobs 1` | 首轮 FAIL（新增 6 个 Java 文件不在显式 adoption 清单；已补 `tools/java-format-files.json` 并用固定格式化器写回 3 个文件），复跑 PASS（0 need formatting） |
+| `tools/generate-third-party-notices.py --check` | PASS（Rust vendor 许可字节未变；无新增 crate） |
+| `tools/check-source-hygiene.py` / `tools/check-document-links.py` | PASS（LF/钉住 action/依赖身份；56 文档 / 1295 链接 / 0 error） |
+| `docs-check` CI | run `43363307113` success（本机推送后） |
+
+**本机首轮差分发现并修复的真实缺陷**：`digest_fd` 曾把 `digest_range` 给的区间内相对偏移直接传给 `pread`，`offset > 0` 时会从 0 开始读。主机差分 offset/中间区间用例捕获（JVM `MessageDigest` 对照不一致），已改为 `offset + position`（checked_add）并补 `fd.rs` 真实 fd 回归测试；修复后 32/32 checks 全 PASS。同时修掉 `RustHostProbe` 的 `MessageDigest.digest()` 重置导致的 detail 误报（预期摘要显示为空哈希，实际比对值正确）。
+
+#### 0.5.6 未跑 / 受限（不得当作通过）
+
+- **本机 Gradle**：按 Lead 2026-11-13 内存紧急要求未跑 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；该差分用例的 CI 执行路径为 `_node-unit-tests.yml` 的 `rust_host`（release/package/full 调用方）与 `ci-fast` 的 `rust-differential`（Python 探针）。Gradle 编译/单测结果以 CI 回执为准。
+- **本机 Android 链接**：无 NDK（`/opt/android-sdk/ndk` 不存在），`tools/rust/build.py --android` 未跑；arm64 `.so` 首次链接/`DT_NEEDED`/APK 成员核验仍交 `ci-package`/发布 dry-run（与 R0 相同）。
+- **跨 run 产物 pin**：`rust/artifact.lock.json` 仍为 `pending-cross-run`；需要连续 3 次不同 runner 实例的 size/SHA-256 一致后才 pin（x86_64 宿主与 Android 产物分别等待 CI 证据）。
+- **真机/16 KB 页**：R3 签名 `.dev` 包范围，R1 不声明。
+- **format-kotlin-tree**：本批无 `.kt` 变更，未在本机跑；CI `kotlin-format` 仍会执行。
+
+#### 0.5.7 风险与 R2 建议
 
 - **长尾风险**：`catch_unwind` 不覆盖 abort/SIGSEGV/OOM；`pread` 在特殊文件类型上的错误码集合依赖内核，已按“调用方错误/内部错误”分裂，真机异常文件类型仍需 R3 证据。
 - **JVM 回退的双读成本**：`digest` 的 JVM 重做只对 `INTERNAL/PANIC` 开放；A3 接线时应保证区间可重读、目标可丢弃（本函数无输出目标）。
