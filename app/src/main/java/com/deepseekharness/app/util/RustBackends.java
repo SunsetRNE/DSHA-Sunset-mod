@@ -70,6 +70,19 @@ public final class RustBackends {
     return new Selection(true, SelectionReason.RUST_ENABLED);
   }
 
+  /**
+   * 解析 {@code verify_plan} 的后端（A3 §5.4）：与 {@link #digestSelection()} 同构。
+   *
+   * <p>默认关闭；R2 只提供选择函数，不接生产调用点。注意语义差别：digest 的 Rust 内部错误
+   * 允许用 JVM 重做一次，而 {@code verify_plan} 的两实现分歧**禁止**回退（fail-closed，
+   * 见 A3 §3.9 P-5），本方法只负责“这次走哪个实现”。
+   */
+  public static Selection planSelection() {
+    if (!enabled) return new Selection(false, SelectionReason.SWITCH_OFF);
+    if (!RustNative.ensureLoaded()) return new Selection(false, nativeReason(RustNative.status()));
+    return new Selection(true, SelectionReason.RUST_ENABLED);
+  }
+
   private static SelectionReason nativeReason(RustNative.Status status) {
     switch (status) {
       case LIBRARY_MISSING:
