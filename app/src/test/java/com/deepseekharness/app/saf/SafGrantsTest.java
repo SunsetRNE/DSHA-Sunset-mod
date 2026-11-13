@@ -559,7 +559,7 @@ public final class SafGrantsTest {
   @Test
   public void forgetOnPendingWithReleaseFailureKeepsPendingForCleanup() {
     Uri tree = tree("pending-release-fail");
-    seedPendingRetake(tree, 0, SafGrantRecord.READ, SafGrantRecord.READ);
+    seedPendingRetake(tree, 0, 0, SafGrantRecord.READ);
     take(tree, true, false);
     ControlledContext failing = new ControlledContext(context);
     failing.resolver.failRelease = true;
