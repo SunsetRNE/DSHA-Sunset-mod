@@ -1,3 +1,16 @@
+## 0.2.1-rc.5-20261113.1000-dsh0.2.2-rc.1 / build362（Kotlin 工具链 + Rust 旁路 R0 + A2 存储与文件 slice1+2；Kotlin/Rust 为基础设施变化、A2 为能力层/账本替换；受管运行时 runtimeId 待 A2 合入后实测）
+
+- 工程基础设施版（无新用户界面）：build362 在 build361 之后合入 Kotlin 工具链批次、Rust 旁路 R0、A2 存储与文件 slice1+2，以及 A7 / R1 设计文档与 build361 真机验收回执。**Kotlin 与 Rust 两批是构建 / 格式 / 原生旁路基础设施，不改变用户可见功能**；A2 是能力层 / 账本替换，也不新增用户界面。
+- Kotlin 工具链（工程）：AGP 9.1.1 built-in Kotlin，KGP 固定 2.2.10（不应用 `org.jetbrains.kotlin.android`），jvmTarget 17；ktfmt 0.64 `--kotlinlang-style` 纳入格式门禁与 CI（`tools/format-kotlin-tree.py --check`）；`util/ShellQuote` 整文件迁移为 Kotlin，行为等价、Java 调用形态不变。
+- Rust 旁路 R0（工程，不随包）：新增 `rust/` crate、16 个 crate 的离线 vendor（782 文件 / 7,384,177 B）与工具链锁；`tools/rust/build.py` 覆盖构建与字节复现，ELF / 边界 / APK 门禁与 CI 四模式（check / repro / native / differential）就位。**R0 不接 APK 打包、`.so` 不随包**，APK 只新增随包许可全文（34 个文件 / 170,896 B，约 171 KB，按未压缩文本计）。
+- 存储与文件 A2 slice1+2（能力层，无新 UI）：SAF 授权簿改用独立账本，旧 `saf_grants` 以只读方式迁移，`SafGrants` 统一走账本；撤销、代次与限额语义由账本承担，A1 出口移交的三个 P2 一并修复。`/app/saf/*` 端点与 `BRIDGE_PROTOCOL=3` 不变，工作台 UI 归 slice3。
+- 覆盖升级影响：A2 改 `saf/`，位于 `runtime-descriptor` 的 `launcherInputs` 内，`runtimeId` 随之更新；**361→362 覆盖升级后首次启动会进入一次运行环境维护页**并执行受管运行时试运行，属预期，个人数据保留。runtimeId 以 A2 合入后 `prepare-runtime-descriptor.py --check` 实测为准（发布准备时先占位，待最终 head 填入）；fixed-inputs 沿用锁定 `fixed-inputs-20261105e`，内置 `dsh-web-mobile` 3.3.5 与默认启用不变。
+- 设计与验收文档（仅文档）：A7 设备能力设计核查（Root 权限映射与内置 ADB 客户端，只读对照 build361 代码、未操作设备）与 R1 Rust 方案（工具链、vendor、许可、CI 四模式与 16 KB 页对齐）纳入文档索引；build361 真机覆盖验收回执（一加 12，358→360→361，360→361 零维护、READY、「关于与许可」实测通过）留档。
+- 版本与范围：版本码提升为 362（基于已发布的 build361，tag `dsha-a-su-build361-20261113-000000` @ `faab36c5`）；DSHA 修订号保持 `0.2.1-rc.5`，内置 DSH 为 `0.2.2-rc.1`；包名 `io.github.sunsetrne.dsha`、Mod 自有证书与签名方案不变。设备 shell 白名单与执行期护栏不放宽，授权 fail-closed 语义、密码文本硬阻断与敏感界面策略不变。目标 tag `dsha-a-su-build362-20261113-100000` 由 release 工作流在用户确认后创建。
+- **未验证 / 未验收**：build362 发布准备只通过仓库静态门禁；全量单测、lint 与发布构建由本轮 release 工作流执行，结果以 CI / Release 回执为准；**未做真机覆盖安装验收**。验收项是 361→362 覆盖安装成功、首次启动进入一次受管运行时维护并完成、数据完好、`/app/saf/*` 基本读写正常、到达 READY。验收窗口待用户安排，只允许 `.debug` / `.dev` 包，本机不装正式包、不动正式数据。
+- 验证范围：发布身份与前置检查（versionCode 362 / versionName 与 `ci/release-identity.json` 一致；`check-release-prerequisites.py` PASS）、三身份交叉核对（`test-release-identity.py`）、`generate-changelog.py --check`（十语 raw changelog 与 build362 说明一致）、`UpdateVersionPageTest` 断言更新（`版本码提升为 362`，旧 `版本码提升为 361` 不再出现）、`prepare-runtime-descriptor.py --check`（A2 合入后实测）、全树 Java 与 Kotlin 格式、源卫生、UI i18n、文档链接、`test-ci-workflows.py` 与 `test-release-signing.py`；全量单测、lint、未签名构建与正式签名由本轮 release 工作流执行，结果以 CI / Release 回执为准。正式签名 assemble 不在本机执行（无发布 keystore）。
+- 十语种更新说明见 [build362 更新说明](docs/releases/build362-changes.zh.md)。
+
 ## 0.2.1-rc.5-20261113.0000-dsh0.2.2-rc.1 / build361（A1 契约底座 + 关于与许可进入正式包；受管运行时不变 runtimeId 4d55973d）
 
 - A1「契约底座 + 关于与许可」进入正式包（`017dd008`，出口回执 `ce2fa448`）：build361 把 A1 的用户可见部分带到 `io.github.sunsetrne.dsha` 正式线——设置 →「关于与许可」新增随包第三方许可列表与逐项正文查看，并提供仓库内 `THIRD_PARTY_NOTICES.md` 在线入口；工程侧落地编译期模块协议与最小运行时登记。A1 用 Java 17，不引入 Kotlin/Compose、第三方动态加载/模块市场、新敏感能力或数据格式改动。
