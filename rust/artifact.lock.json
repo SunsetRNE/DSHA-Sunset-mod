@@ -13,10 +13,10 @@
     },
     "x86_64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
-      "status": "pending-cross-run",
-      "size": null,
-      "sha256": null,
-      "evidence": "本会话手机容器出网只允许 GitHub 端点，CI job 日志/artifact 经 blob.core.windows.net 被拒，无法读回跨 run 的 size/sha256；机制已接线（--expect-lock 已实测 PENDING/比较分支），pin 需在有可读日志的环境按同一口径补 3 次不同 runner 实例证据。"
+      "status": "pinned",
+      "size": 284816,
+      "sha256": "d57d8130136f529945e91184bb7577ba42f6716b037e4a524736db21d098aa15",
+      "evidence": "CI Source checks 的 rust-check 在 2026-11-13 的 3 次不同 runner 实例（run 43363307125 / 43366337116 / 43367282088）产出逐字节一致（size=284816，sha256 相同）；逐 run 回执见方案 §0.5.7。"
     },
     "aarch64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",

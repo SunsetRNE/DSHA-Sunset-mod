@@ -225,7 +225,35 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 - **真机/16 KB 页**：R3 签名 `.dev` 包范围，R1 不声明。
 - **format-kotlin-tree**：本批无 `.kt` 变更，未在本机跑；CI `kotlin-format` 仍会执行。
 
-#### 0.5.7 风险与 R2 建议
+#### 0.5.7 CI 证据（主题分支 `feat/rust-r1`，push 触发）
+
+> 全部为 GitHub Actions 真实回执；本会话通过 `gh api` 取签名 URL 后在容器内 `curl` 读回 job 日志（见 §0.5.6 的限制说明）。
+
+| run | commit | 结果 | 说明 |
+|---|---|---|---|
+| [Source checks `43363307125`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43363307125) | `5f3190f8` | **failure** | `rust-check` / `rust-differential` / `contracts` / `kotlin-format` / `inputs` 成功；`java-format` 失败（新文件未进 adoption 清单）、`host-fast` / `unit-source` 失败（Java 测试漏声明受检异常 → 编译失败）；均已修复 |
+| [Source checks `43366337116`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43366337116) | `0e15a157` | **failure** | Java 编译已修复；`host-fast` / `unit-source` 改为 Gradle **脚本编译**失败（Groovy 4 嵌套闭包 `it ->` 缺陷，见 §0.5.5 引言）；其余 6 job 成功 |
+| [Source checks `43367282088`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43367282088) | `5c988bf5` | **success（8/8 jobs）** | `contracts` / `java-format` / `kotlin-format` / `rust-check` / `rust-differential` / `inputs` / `unit-source` / `host-fast` 全绿；`unit-source` 为 source-only（差分用例按 `Assume` 跳过，符合该模式）；Rust 差分在 CI 真实执行 32/32 checks |
+
+**rust-check 的主机产物跨 runner 一致性（3 次不同 runner 实例）**：三次 run 的 `rust-check` 各自从零构建
+宿主目标 `.so`，`tools/rust/build.py --host --expect-lock` 输出完全一致：
+
+```text
+run 43363307125 → size=284816  sha256=d57d8130136f529945e91184bb7577ba42f6716b037e4a524736db21d098aa15  expectation=PENDING
+run 43366337116 → size=284816  sha256=d57d8130136f529945e91184bb7577ba42f6716b037e4a524736db21d098aa15  expectation=PENDING
+run 43367282088 → size=284816  sha256=d57d8130136f529945e91184bb7577ba42f6716b037e4a524736db21d098aa15  expectation=PENDING
+```
+
+按 §2.3 满足“连续 3 次不同 runner 实例字节一致”，因此 `rust/artifact.lock.json` 的
+`x86_64-unknown-linux-gnu` 条目从 `pending-cross-run` 改为 **pinned**（仍是 strip 后整文件
+size/SHA-256 口径；runId/路径/时间不入锁）。Android（`aarch64-linux-android`）与本地 aarch64 宿主条目
+**仍为 pending**：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
+
+**仍未覆盖**：`rust-native` 的 arm64 交叉链接 / APK 成员门禁 / 真机与 16 KB 页（R3）；Gradle 的
+`rust_host` 路径（release/package/full 单测）尚未在本轮 push CI 中运行，需 `ci-package` 或发布
+dry-run/正式发布流程验证；`rust/artifact.lock.json` 的 Android 摘要 pin 同缺该证据。
+
+#### 0.5.8 风险与 R2 建议
 
 - **长尾风险**：`catch_unwind` 不覆盖 abort/SIGSEGV/OOM；`pread` 在特殊文件类型上的错误码集合依赖内核，已按“调用方错误/内部错误”分裂，真机异常文件类型仍需 R3 证据。
 - **JVM 回退的双读成本**：`digest` 的 JVM 重做只对 `INTERNAL/PANIC` 开放；A3 接线时应保证区间可重读、目标可丢弃（本函数无输出目标）。
