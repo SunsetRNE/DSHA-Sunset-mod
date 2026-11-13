@@ -58,6 +58,7 @@ build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)
 | [收敛表 v0.2（职责/状态 owner/编译模块/测试恢复/失败域/覆盖更新）](design/kotlin-rust-rearchitecture-20261112/convergence-table-20261112.md) | 21 个状态模块六列对照；对方未交「职责/失败域」草稿，t我方按评审主稿与当前代码自拟补全待确认；11 个模块改动必触发维护页、4 个可零维护；测试覆盖与模块权重不匹配的实测 |
 | [A1 契约草案（C01/C02 + 结果五字段 + 投影表）](design/kotlin-rust-rearchitecture-20261112/a1-contract-draft-20261112.md) | G3 草案：C01 模块协议 / C02 宿主核心最小接口、结果五字段 wire 与五态投影表、4 个反例（未知 tag/取消后可能已执行/panic 逃逸/UNKNOWN 冒充已退出）、Rust 首期只读纯函数边界；内部冻结（A1 收敛，五项差异 deferred 到 A2/A8） |
 | [A1 任务基线（G2）](design/kotlin-rust-rearchitecture-20261112/a1-task-baseline-20261113.md) | A1 范围/改动文件/验证/回退/owner；零维护判据（`ui/`+新 `contract/` 不在 launcherInputs）、Java 17 先行、7 步闭环与非实现者评审要求 |
+| [A3 任务基线（G2）：数据保护受管事务 + 恢复计划契约冻结 v1](design/kotlin-rust-rearchitecture-20261112/a3-task-baseline-20261113.md) | A3 现状核对（v5 容器/`validateSummary`/`NativeRestorePlan`/旧格式导入/自动保留/配置快照/宿主事务，逐条 `file:line`）；PlanView v1 冻结（字段 id/类型码/枚举/`selectedMask`/`targetMappingKind`/摘要口径/原因码去重，补齐 §4.6 未定义的编码）；JVM 校验器与 Rust 第二实现差分；R2 零维护页、A3 一次维护页；5 项待 Lead 裁决（`rootCount` 64 vs 512 等）；docs-only，未实现 |
 | [18 模块方案修订建议（对方 v0.1）](design/kotlin-rust-rearchitecture-20261112/18-modules-revision-notes-20261112.md) | 对对方文档的 6 项必改 + 3 项顺手改：Rebirth 定位、C03 结果态自相矛盾、计数口径、三块失败域、Gecko/自更新、布局恢复；可直接转发 |
 
 ## 用户操作与开发入口
