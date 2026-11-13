@@ -67,6 +67,27 @@ public final class ExternalToolPolicyTest {
         "EXTERNAL_LIBRARY_OUTSIDE_ROOT", ExternalToolPolicy.rejection(library, toolRoot.getPath()));
   }
 
+  @Test
+  public void androidLibrariesSubdirectoryRemainsInsideTheManagedRoot() throws Exception {
+    // 外接 adb 的 libbase.so.0 等位于 usr/lib/aarch64-linux-gnu/android，必须与主库目录、
+    // 兼容 lib 目录一起出现在 --library-path；三段都在受管 rootfs 内时策略照常放行。
+    var argv = toolPaths(adb("devices"));
+    argv.set(
+        2,
+        toolPath
+            + "/usr/lib/aarch64-linux-gnu"
+            + ":"
+            + toolPath
+            + "/usr/lib/aarch64-linux-gnu/android"
+            + ":"
+            + toolPath
+            + "/lib/aarch64-linux-gnu");
+    assertNull(ExternalToolPolicy.rejection(argv, toolRoot.getPath()));
+    var server = toolPaths(adb("-P", "40123", "nodaemon", "server"));
+    server.set(2, argv.get(2));
+    assertNull(ExternalToolPolicy.rejectionAdbServer(server, toolRoot.getPath()));
+  }
+
   private static List<String> adb(String... tail) {
     var value =
         new java.util.ArrayList<String>(

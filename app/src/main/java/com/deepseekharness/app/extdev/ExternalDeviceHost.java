@@ -1615,20 +1615,30 @@ public final class ExternalDeviceHost {
     File adb = new File(root, "usr/bin/adb");
     File fastboot = new File(root, "usr/bin/fastboot");
     File libs = new File(root, "usr/lib/aarch64-linux-gnu");
-    if (loader == null || !adb.isFile() || !fastboot.isFile() || !libs.isDirectory())
+    File androidLibs =
+        new File(root, com.deepseekharness.app.util.ExternalToolPaths.ANDROID_LIBRARIES);
+    if (loader == null
+        || !adb.isFile()
+        || !fastboot.isFile()
+        || !libs.isDirectory()
+        || !androidLibs.isDirectory())
       throw new IOException(
-          "EXTERNAL_TOOLCHAIN_UNAVAILABLE: Ubuntu adb/fastboot 或 glibc loader 缺失");
+          "EXTERNAL_TOOLCHAIN_UNAVAILABLE: Ubuntu adb/fastboot、glibc loader 或 Android 运行库"
+              + "（"
+              + com.deepseekharness.app.util.ExternalToolPaths.ANDROID_LIBRARIES
+              + "）缺失");
     String proofFailure = ExternalToolProof.verify(context, root);
     if (proofFailure != null) throw new IOException("[POLICY_BLOCKED] 外接工具完整性未通过：" + proofFailure);
     File data = importRoot();
     File home = new File(data, "adb-home");
     if (!home.isDirectory() && !home.mkdirs()) throw new IOException("EXTERNAL_ADB_HOME");
     String rootPath = root.getCanonicalPath() + File.separator;
-    for (File tool : new File[] {loader, adb, fastboot, libs})
+    for (File tool : new File[] {loader, adb, fastboot, libs, androidLibs})
       if (!tool.getCanonicalPath().startsWith(rootPath))
         throw new IOException("EXTERNAL_TOOL_PATH_ESCAPE");
-    String libraryPath =
-        libs.getAbsolutePath() + ":" + new File(root, "lib/aarch64-linux-gnu").getAbsolutePath();
+    // adb / fastboot 由宿主 glibc loader 直接执行，DT_RUNPATH 的 guest 绝对路径不生效：
+    // 必须显式给出 android 子目录（libbase.so.0 等），否则 root adb server 以 127 退出。
+    String libraryPath = com.deepseekharness.app.util.ExternalToolPaths.libraries(root);
     Map<String, String> env =
         Map.of(
             "HOME", home.getAbsolutePath(), "ANDROID_ADB_SERVER_PORT", Integer.toString(adbPort));
