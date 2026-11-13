@@ -84,20 +84,15 @@ public final class PlanViewValidator {
   /**
    * 用视图内嵌的 {@code nowMs} 校验（§3.6）。
    *
+   * <p>{@code nowMs} 的**唯一来源**是视图内嵌值：{@link RustNative#verifyPlan} 也只读
+   * 内嵌时间，JVM 与 Rust 必须对同一份已编码字节给出一致结论。需要“新的当前时刻”时，
+   * 调用方必须用 {@link PlanViewCodec#encode} 重新编码视图（含重算 {@code planDigest}），
+   * 而不是覆盖入参；本类**不提供** nowMs 覆盖重载，避免“同一字节两条口径”形成有效期绕过。
+   *
    * @param view 规范化视图字节；{@code null} 视为结构错误（fail-closed）
    */
   public static Result validate(byte[] view) {
-    return validateInternal(view, null);
-  }
-
-  /**
-   * 用调用方给定的 {@code nowMs} 覆盖视图内嵌时间校验有效期（§4.3）。
-   *
-   * @param view 规范化视图字节；{@code null} 视为结构错误（fail-closed）
-   * @param nowMs 调用方给定的“当前时间”；本方法不读系统时钟
-   */
-  public static Result validate(byte[] view, long nowMs) {
-    return validateInternal(view, Long.valueOf(nowMs));
+    return validateInternal(view);
   }
 
   /** 原因码的冻结名字（诊断用）；未知码返回 {@code null}。 */
@@ -120,7 +115,7 @@ public final class PlanViewValidator {
     }
   }
 
-  private static Result validateInternal(byte[] view, Long nowOverride) {
+  private static Result validateInternal(byte[] view) {
     boolean[] found = new boolean[REASON_COUNT];
     try {
       if (view == null || view.length < PlanViewCodec.HEADER_BYTES) {
@@ -132,7 +127,7 @@ public final class PlanViewValidator {
         mark(found, REASON_LIMIT);
         return result(found);
       }
-      checkHeader(view, nowOverride, found);
+      checkHeader(view, found);
       checkFields(view, found);
       return result(found);
     } catch (RuntimeException error) {
@@ -143,7 +138,7 @@ public final class PlanViewValidator {
     }
   }
 
-  private static void checkHeader(byte[] view, Long nowOverride, boolean[] found) {
+  private static void checkHeader(byte[] view, boolean[] found) {
     if (view[0] != 'D' || view[1] != 'S' || view[2] != 'H' || view[3] != 'P') {
       mark(found, REASON_STRUCTURE);
     }
@@ -172,7 +167,8 @@ public final class PlanViewValidator {
     }
     long generatedAtMs = readU64(view, 20);
     long expiresAtMs = readU64(view, 28);
-    long nowMs = nowOverride != null ? nowOverride.longValue() : readU64(view, 36);
+    // nowMs 只取视图内嵌值（JNI verifyPlan 同样如此），不读系统时钟、不接受覆盖。
+    long nowMs = readU64(view, 36);
     boolean hasExpiry = (flags & PlanViewCodec.HEADER_FLAG_HAS_EXPIRY) != 0;
     if (!hasExpiry && expiresAtMs != 0) {
       mark(found, REASON_STRUCTURE);

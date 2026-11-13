@@ -116,7 +116,8 @@ public class PlanViewDifferentialTest {
   public void jvmAndRustAgreeOnTheFrozenMatrix() {
     List<PlanViewValidatorTest.Case> cases = PlanViewValidatorTest.allCases();
     for (PlanViewValidatorTest.Case testCase : cases) {
-      PlanViewValidator.Result jvm = PlanViewValidator.validate(testCase.view, testCase.nowMs);
+      // nowMs 唯一来源 = 视图内嵌值（与 verify_plan 同口径）。
+      PlanViewValidator.Result jvm = PlanViewValidator.validate(testCase.view);
       NativeResult rust = verifyRust(testCase.view, 8);
       assertEquals(testCase.name + " valid", jvm.valid(), rust.valid());
       assertArrayEquals(testCase.name + " reasons", jvm.reasons(), rust.reasons);
@@ -153,6 +154,30 @@ public class PlanViewDifferentialTest {
       assertEquals("iteration=" + iteration, jvm.valid(), rust.valid());
       assertArrayEquals("iteration=" + iteration, jvm.reasons(), rust.reasons);
     }
+  }
+
+  @Test
+  public void reEncodedViewsGiveTheSameVerdictOnBothImplementations() {
+    // P1 回归：同一计划用 now=1999 / 2000 分别重新编码（planDigest 随 §3.5 重算），
+    // JVM 与 Rust 必须对两份字节分别给出 VALID / [PLAN_EXPIRED]；不允许覆盖式 nowMs。
+    int callsBefore = nativeCalls;
+    byte[] beforeExpiry = PlanViewCodec.encode(PlanViewValidatorTest.expiryView(1_999));
+    byte[] atExpiry = PlanViewCodec.encode(PlanViewValidatorTest.expiryView(2_000));
+    assertFalse("重编码必须改变视图字节", Arrays.equals(beforeExpiry, atExpiry));
+
+    PlanViewValidator.Result beforeJvm = PlanViewValidator.validate(beforeExpiry);
+    PlanViewValidator.Result atJvm = PlanViewValidator.validate(atExpiry);
+    NativeResult beforeRust = verifyRust(beforeExpiry, 8);
+    NativeResult atRust = verifyRust(atExpiry, 8);
+
+    assertTrue(beforeJvm.valid());
+    assertEquals(0, beforeRust.code);
+    assertArrayEquals(new int[0], beforeRust.reasons);
+    assertFalse(atJvm.valid());
+    assertArrayEquals(new int[] {PlanViewValidator.REASON_EXPIRED}, atJvm.reasons());
+    assertEquals(1, atRust.code);
+    assertArrayEquals(new int[] {PlanViewValidator.REASON_EXPIRED}, atRust.reasons);
+    assertEquals("两份字节各调用一次 Rust", 2, nativeCalls - callsBefore);
   }
 
   @Test

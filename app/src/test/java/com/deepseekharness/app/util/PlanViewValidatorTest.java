@@ -26,14 +26,12 @@ public class PlanViewValidatorTest {
   static final class Case {
     final String name;
     final byte[] view;
-    final long nowMs;
     final boolean expectedValid;
     final int[] expectedReasons;
 
-    Case(String name, byte[] view, long nowMs, boolean expectedValid, int... expectedReasons) {
+    Case(String name, byte[] view, boolean expectedValid, int... expectedReasons) {
       this.name = name;
       this.view = view;
-      this.nowMs = nowMs;
       this.expectedValid = expectedValid;
       this.expectedReasons = expectedReasons;
     }
@@ -145,10 +143,6 @@ public class PlanViewValidatorTest {
     return withField(id, PlanViewCodec.TYPE_UTF8, text(value));
   }
 
-  static long canonicalNow() {
-    return 1_760_000_000_500L;
-  }
-
   static byte[] append(byte[] view, byte[] suffix) {
     byte[] extended = Arrays.copyOf(view, view.length + suffix.length);
     System.arraycopy(suffix, 0, extended, view.length, suffix.length);
@@ -158,201 +152,160 @@ public class PlanViewValidatorTest {
   /** T1–T32（除 T30/T32 需要在原生缓冲/接线层验证）的全部正反例。 */
   static List<Case> allCases() {
     List<Case> cases = new ArrayList<>();
-    long now = canonicalNow();
-    cases.add(new Case("T0-valid-canonical", canonical(), now, true));
+    cases.add(new Case("T0-valid-canonical", canonical(), true));
 
     byte[] badMagic = canonical();
     badMagic[0] = 'X';
-    cases.add(new Case("T1-magic", badMagic, now, false, 20));
+    cases.add(new Case("T1-magic", badMagic, false, 20));
 
     byte[] viewVersion = canonical();
     viewVersion[4] = 2;
-    cases.add(new Case("T2-view-version", viewVersion, now, false, 20));
+    cases.add(new Case("T2-view-version", viewVersion, false, 20));
 
     byte[] policyVersion = canonical();
     policyVersion[6] = 2;
-    cases.add(new Case("T3-policy-version", policyVersion, now, false, 22));
+    cases.add(new Case("T3-policy-version", policyVersion, false, 22));
 
     byte[] totalLength = canonical();
     totalLength[8]++;
-    cases.add(new Case("T4-total-length", totalLength, now, false, 20));
+    cases.add(new Case("T4-total-length", totalLength, false, 20));
 
-    cases.add(
-        new Case("T5-view-limit", new byte[PlanViewCodec.MAX_VIEW_BYTES + 1], now, false, 24));
+    cases.add(new Case("T5-view-limit", new byte[PlanViewCodec.MAX_VIEW_BYTES + 1], false, 24));
     // 恰好 2 MiB 不触发 LIMIT：全 0 内容照常报 policyVersion/结构/未知字段。
     cases.add(
         new Case(
-            "T5-view-limit-positive",
-            new byte[PlanViewCodec.MAX_VIEW_BYTES],
-            now,
-            false,
-            20,
-            22,
-            25));
+            "T5-view-limit-positive", new byte[PlanViewCodec.MAX_VIEW_BYTES], false, 20, 22, 25));
 
     Raw fieldCount14 = new Raw();
     fieldCount14.fieldCount = 14;
-    cases.add(new Case("T6-field-count-14", fieldCount14.build(), now, false, 20));
+    cases.add(new Case("T6-field-count-14", fieldCount14.build(), false, 20));
     Raw fieldCount16 = new Raw();
     fieldCount16.fieldCount = 16;
-    cases.add(new Case("T6-field-count-16", fieldCount16.build(), now, false, 20));
+    cases.add(new Case("T6-field-count-16", fieldCount16.build(), false, 20));
     Raw fieldCount65 = new Raw();
     fieldCount65.fieldCount = 65;
-    cases.add(new Case("T6-field-count-65", fieldCount65.build(), now, false, 20, 24));
+    cases.add(new Case("T6-field-count-65", fieldCount65.build(), false, 20, 24));
 
     Raw headerFlags = new Raw();
     headerFlags.flags = 2;
-    cases.add(new Case("T7-header-flags", headerFlags.build(), now, false, 20));
+    cases.add(new Case("T7-header-flags", headerFlags.build(), false, 20));
     Raw reserved = new Raw();
     reserved.reserved = 1;
-    cases.add(new Case("T7-reserved", reserved.build(), now, false, 20));
+    cases.add(new Case("T7-reserved", reserved.build(), false, 20));
 
     Raw swapped = new Raw();
     List<byte[]> swap = swapped.fields;
     byte[] first = swap.get(0);
     swap.set(0, swap.get(1));
     swap.set(1, first);
-    cases.add(new Case("T8-order", swapped.build(), now, false, 20));
+    cases.add(new Case("T8-order", swapped.build(), false, 20));
 
     Raw duplicated = new Raw();
     duplicated.fields.add(2, duplicated.fields.get(1));
-    cases.add(new Case("T8-duplicate", duplicated.build(), now, false, 20));
+    cases.add(new Case("T8-duplicate", duplicated.build(), false, 20));
 
     Raw unknownField = new Raw();
     unknownField.fields.add(field(16, PlanViewCodec.TYPE_U32, 0, u32(7)));
-    cases.add(new Case("T9-unknown-field", unknownField.build(), now, false, 20, 25));
+    cases.add(new Case("T9-unknown-field", unknownField.build(), false, 20, 25));
 
     Raw fieldFlags = new Raw();
     fieldFlags.fields.set(1, field(2, PlanViewCodec.TYPE_U8, 1, u8(1)));
-    cases.add(new Case("T10-field-flags", fieldFlags.build(), now, false, 20));
+    cases.add(new Case("T10-field-flags", fieldFlags.build(), false, 20));
 
     cases.add(
-        new Case(
-            "T11-u8-length-2", withField(2, PlanViewCodec.TYPE_U8, new byte[2]), now, false, 20));
-    cases.add(new Case("T11-unknown-type", withField(4, 9, u32(1)), now, false, 20));
-    cases.add(
-        new Case("T11-wrong-type", withField(4, PlanViewCodec.TYPE_U8, u8(1)), now, false, 20));
+        new Case("T11-u8-length-2", withField(2, PlanViewCodec.TYPE_U8, new byte[2]), false, 20));
+    cases.add(new Case("T11-unknown-type", withField(4, 9, u32(1)), false, 20));
+    cases.add(new Case("T11-wrong-type", withField(4, PlanViewCodec.TYPE_U8, u8(1)), false, 20));
 
-    cases.add(new Case("T12-trailing-byte", append(canonical(), new byte[] {0}), now, false, 20));
+    cases.add(new Case("T12-trailing-byte", append(canonical(), new byte[] {0}), false, 20));
     byte[] truncated = canonical();
     truncated = Arrays.copyOf(truncated, truncated.length - 1);
-    cases.add(new Case("T12-truncated", truncated, now, false, 20));
+    cases.add(new Case("T12-truncated", truncated, false, 20));
 
     cases.add(
-        new Case(
-            "T13-format-version", withField(1, PlanViewCodec.TYPE_U32, u32(4)), now, false, 21));
+        new Case("T13-format-version", withField(1, PlanViewCodec.TYPE_U32, u32(4)), false, 21));
+    cases.add(new Case("T14-operation-0", withField(2, PlanViewCodec.TYPE_U8, u8(0)), false, 21));
+    cases.add(new Case("T14-operation-4", withField(2, PlanViewCodec.TYPE_U8, u8(4)), false, 21));
+    cases.add(new Case("T14-operation-2", withField(2, PlanViewCodec.TYPE_U8, u8(2)), true));
+    cases.add(new Case("T14-operation-3", withField(2, PlanViewCodec.TYPE_U8, u8(3)), true));
+    cases.add(new Case("T15-integrity-0", withField(3, PlanViewCodec.TYPE_U8, u8(0)), false, 21));
+    cases.add(new Case("T15-integrity-5", withField(3, PlanViewCodec.TYPE_U8, u8(5)), false, 21));
+    cases.add(new Case("T15-integrity-2", withField(3, PlanViewCodec.TYPE_U8, u8(2)), true));
+    cases.add(new Case("T15-integrity-4", withField(3, PlanViewCodec.TYPE_U8, u8(4)), true));
+    cases.add(new Case("T16-root-0", withField(4, PlanViewCodec.TYPE_U32, u32(0)), false, 21));
+    cases.add(new Case("T16-root-64", withField(4, PlanViewCodec.TYPE_U32, u32(64)), true));
+    cases.add(new Case("T16-root-65", withField(4, PlanViewCodec.TYPE_U32, u32(65)), false, 21));
+    cases.add(new Case("T17-entry-0", withField(5, PlanViewCodec.TYPE_U32, u32(0)), false, 21));
     cases.add(
-        new Case("T14-operation-0", withField(2, PlanViewCodec.TYPE_U8, u8(0)), now, false, 21));
-    cases.add(
-        new Case("T14-operation-4", withField(2, PlanViewCodec.TYPE_U8, u8(4)), now, false, 21));
-    cases.add(new Case("T14-operation-2", withField(2, PlanViewCodec.TYPE_U8, u8(2)), now, true));
-    cases.add(new Case("T14-operation-3", withField(2, PlanViewCodec.TYPE_U8, u8(3)), now, true));
-    cases.add(
-        new Case("T15-integrity-0", withField(3, PlanViewCodec.TYPE_U8, u8(0)), now, false, 21));
-    cases.add(
-        new Case("T15-integrity-5", withField(3, PlanViewCodec.TYPE_U8, u8(5)), now, false, 21));
-    cases.add(new Case("T15-integrity-2", withField(3, PlanViewCodec.TYPE_U8, u8(2)), now, true));
-    cases.add(new Case("T15-integrity-4", withField(3, PlanViewCodec.TYPE_U8, u8(4)), now, true));
-    cases.add(new Case("T16-root-0", withField(4, PlanViewCodec.TYPE_U32, u32(0)), now, false, 21));
-    cases.add(new Case("T16-root-64", withField(4, PlanViewCodec.TYPE_U32, u32(64)), now, true));
-    cases.add(
-        new Case("T16-root-65", withField(4, PlanViewCodec.TYPE_U32, u32(65)), now, false, 21));
-    cases.add(
-        new Case("T17-entry-0", withField(5, PlanViewCodec.TYPE_U32, u32(0)), now, false, 21));
+        new Case("T17-entry-100000", withField(5, PlanViewCodec.TYPE_U32, u32(100_000)), true));
     cases.add(
         new Case(
-            "T17-entry-100000", withField(5, PlanViewCodec.TYPE_U32, u32(100_000)), now, true));
-    cases.add(
-        new Case(
-            "T17-entry-100001",
-            withField(5, PlanViewCodec.TYPE_U32, u32(100_001)),
-            now,
-            false,
-            21));
-    cases.add(new Case("T18-byte-0", withField(6, PlanViewCodec.TYPE_U64, u64(0)), now, true));
+            "T17-entry-100001", withField(5, PlanViewCodec.TYPE_U32, u32(100_001)), false, 21));
+    cases.add(new Case("T18-byte-0", withField(6, PlanViewCodec.TYPE_U64, u64(0)), true));
     cases.add(
         new Case(
             "T18-byte-16g",
             withField(6, PlanViewCodec.TYPE_U64, u64(PlanViewCodec.MAX_BYTE_COUNT)),
-            now,
             true));
     cases.add(
         new Case(
             "T18-byte-16g-plus-1",
             withField(6, PlanViewCodec.TYPE_U64, u64(PlanViewCodec.MAX_BYTE_COUNT + 1)),
-            now,
             false,
             21));
-    cases.add(new Case("T19-created-0", withField(7, PlanViewCodec.TYPE_U64, u64(0)), now, true));
-    cases.add(
-        new Case("T19-created-max", withField(7, PlanViewCodec.TYPE_U64, u64(-1L)), now, true));
-    cases.add(
-        new Case(
-            "T20-source-31",
-            withField(8, PlanViewCodec.TYPE_BYTES32, patterned(31)),
-            now,
-            false,
-            20));
+    cases.add(new Case("T19-created-0", withField(7, PlanViewCodec.TYPE_U64, u64(0)), true));
+    cases.add(new Case("T19-created-max", withField(7, PlanViewCodec.TYPE_U64, u64(-1L)), true));
     cases.add(
         new Case(
-            "T20-source-33",
-            withField(8, PlanViewCodec.TYPE_BYTES32, patterned(33)),
-            now,
-            false,
-            20));
-    cases.add(new Case("T21-mask-0", withField(9, PlanViewCodec.TYPE_U32, u32(0)), now, false, 21));
-    cases.add(new Case("T21-mask-31", withField(9, PlanViewCodec.TYPE_U32, u32(31)), now, true));
+            "T20-source-31", withField(8, PlanViewCodec.TYPE_BYTES32, patterned(31)), false, 20));
     cases.add(
-        new Case("T21-mask-32", withField(9, PlanViewCodec.TYPE_U32, u32(32)), now, false, 21));
-    cases.add(
-        new Case("T22-mapping-0", withField(10, PlanViewCodec.TYPE_U8, u8(0)), now, false, 21));
-    cases.add(new Case("T22-mapping-4", withField(10, PlanViewCodec.TYPE_U8, u8(4)), now, true));
-    cases.add(
-        new Case("T22-mapping-5", withField(10, PlanViewCodec.TYPE_U8, u8(5)), now, false, 21));
+        new Case(
+            "T20-source-33", withField(8, PlanViewCodec.TYPE_BYTES32, patterned(33)), false, 20));
+    cases.add(new Case("T21-mask-0", withField(9, PlanViewCodec.TYPE_U32, u32(0)), false, 21));
+    cases.add(new Case("T21-mask-31", withField(9, PlanViewCodec.TYPE_U32, u32(31)), true));
+    cases.add(new Case("T21-mask-32", withField(9, PlanViewCodec.TYPE_U32, u32(32)), false, 21));
+    cases.add(new Case("T22-mapping-0", withField(10, PlanViewCodec.TYPE_U8, u8(0)), false, 21));
+    cases.add(new Case("T22-mapping-4", withField(10, PlanViewCodec.TYPE_U8, u8(4)), true));
+    cases.add(new Case("T22-mapping-5", withField(10, PlanViewCodec.TYPE_U8, u8(5)), false, 21));
 
-    cases.add(new Case("T23-app-44", withUtf8(11, "a".repeat(44)), now, true));
-    cases.add(new Case("T23-app-256", withUtf8(11, "a".repeat(256)), now, true));
-    cases.add(new Case("T23-app-257", withUtf8(11, "a".repeat(257)), now, false, 21));
-    cases.add(new Case("T23-app-empty", withUtf8(11, ""), now, false, 20, 21));
-    cases.add(new Case("T23-app-nul", withUtf8(11, "a\u0000b"), now, false, 21));
+    cases.add(new Case("T23-app-44", withUtf8(11, "a".repeat(44)), true));
+    cases.add(new Case("T23-app-256", withUtf8(11, "a".repeat(256)), true));
+    cases.add(new Case("T23-app-257", withUtf8(11, "a".repeat(257)), false, 21));
+    cases.add(new Case("T23-app-empty", withUtf8(11, ""), false, 20, 21));
+    cases.add(new Case("T23-app-nul", withUtf8(11, "a\u0000b"), false, 21));
     cases.add(
         new Case(
             "T23-app-bad-utf8",
             withField(11, PlanViewCodec.TYPE_UTF8, new byte[] {(byte) 0xff, (byte) 0xfe}),
-            now,
             false,
             20));
 
     for (String format : new String[] {"UNINSPECTED", "LEGACY_3", "LOCAL_ORIGINAL_LAYOUT"}) {
-      cases.add(new Case("T24-data-format-" + format, withUtf8(12, format), now, true));
+      cases.add(new Case("T24-data-format-" + format, withUtf8(12, format), true));
     }
-    cases.add(new Case("T24-data-empty", withUtf8(12, ""), now, false, 20, 21));
-    cases.add(new Case("T24-data-65", withUtf8(12, "a".repeat(65)), now, false, 21));
+    cases.add(new Case("T24-data-empty", withUtf8(12, ""), false, 20, 21));
+    cases.add(new Case("T24-data-65", withUtf8(12, "a".repeat(65)), false, 21));
 
     for (String policy : PlanViewCodec.SENSITIVE_POLICIES) {
-      cases.add(new Case("T25-policy-" + policy, withUtf8(13, policy), now, true));
+      cases.add(new Case("T25-policy-" + policy, withUtf8(13, policy), true));
     }
-    cases.add(new Case("T25-policy-unknown", withUtf8(13, "PLAINTEXTISH"), now, false, 21));
-    cases.add(new Case("T25-policy-empty", withUtf8(13, ""), now, false, 20, 21));
+    cases.add(new Case("T25-policy-unknown", withUtf8(13, "PLAINTEXTISH"), false, 21));
+    cases.add(new Case("T25-policy-empty", withUtf8(13, ""), false, 20, 21));
 
-    cases.add(new Case("T26-plugin-0", withField(14, PlanViewCodec.TYPE_U32, u32(0)), now, true));
+    cases.add(new Case("T26-plugin-0", withField(14, PlanViewCodec.TYPE_U32, u32(0)), true));
+    cases.add(new Case("T26-plugin-4096", withField(14, PlanViewCodec.TYPE_U32, u32(4_096)), true));
     cases.add(
-        new Case("T26-plugin-4096", withField(14, PlanViewCodec.TYPE_U32, u32(4_096)), now, true));
-    cases.add(
-        new Case(
-            "T26-plugin-4097", withField(14, PlanViewCodec.TYPE_U32, u32(4_097)), now, false, 21));
+        new Case("T26-plugin-4097", withField(14, PlanViewCodec.TYPE_U32, u32(4_097)), false, 21));
     cases.add(
         new Case(
             "T27-plan-digest-31",
             withField(15, PlanViewCodec.TYPE_BYTES32, patterned(31)),
-            now,
             false,
             20));
     cases.add(
         new Case(
             "T27-plan-digest-content",
             withField(15, PlanViewCodec.TYPE_BYTES32, new byte[32]),
-            now,
             true));
 
     Raw expiry = new Raw();
@@ -360,19 +313,19 @@ public class PlanViewValidatorTest {
     expiry.generatedAtMs = 1_000;
     expiry.expiresAtMs = 2_000;
     expiry.nowMs = 1_999;
-    cases.add(new Case("T28-expiry-before", expiry.build(), 1_999, true));
+    cases.add(new Case("T28-expiry-before", expiry.build(), true));
     expiry.nowMs = 2_000;
-    cases.add(new Case("T28-expiry-at", expiry.build(), 2_000, false, 23));
+    cases.add(new Case("T28-expiry-at", expiry.build(), false, 23));
     Raw degenerate = new Raw();
     degenerate.flags = PlanViewCodec.HEADER_FLAG_HAS_EXPIRY;
     degenerate.generatedAtMs = 5_000;
     degenerate.expiresAtMs = 5_000;
     degenerate.nowMs = 4_000;
-    cases.add(new Case("T28-expiry-degenerate", degenerate.build(), 4_000, false, 23));
+    cases.add(new Case("T28-expiry-degenerate", degenerate.build(), false, 23));
     Raw orphanExpiry = new Raw();
     orphanExpiry.expiresAtMs = 1;
     orphanExpiry.nowMs = 1_000;
-    cases.add(new Case("T28-expiry-orphan", orphanExpiry.build(), 1_000, false, 20));
+    cases.add(new Case("T28-expiry-orphan", orphanExpiry.build(), false, 20));
 
     Raw multi = new Raw();
     multi.policyVersion = 2;
@@ -381,13 +334,13 @@ public class PlanViewValidatorTest {
     multi.generatedAtMs = 10;
     multi.expiresAtMs = 20;
     multi.nowMs = 20;
-    cases.add(new Case("T29-multi-reason", multi.build(), 20, false, 21, 22, 23));
+    cases.add(new Case("T29-multi-reason", multi.build(), false, 21, 22, 23));
 
     return cases;
   }
 
   static void assertCase(Case testCase) {
-    PlanViewValidator.Result result = PlanViewValidator.validate(testCase.view, testCase.nowMs);
+    PlanViewValidator.Result result = PlanViewValidator.validate(testCase.view);
     assertEquals(testCase.name + " valid", testCase.expectedValid, result.valid());
     assertEquals(
         testCase.name + " reasons",
@@ -453,15 +406,51 @@ public class PlanViewValidatorTest {
   }
 
   @Test
-  public void nowMsOverrideControlsExpiryOnly() {
-    byte[] view = canonical();
-    // 视图内嵌 now 相同；覆盖为“更早”不影响合法视图。
-    assertTrue(PlanViewValidator.validate(view, 0).valid());
-    PlanViewValidator.Result embedded = PlanViewValidator.validate(view);
-    assertTrue(embedded.valid());
-    // 没有有效期时，覆盖 now 不会产生 EXPIRED。
-    assertFalse(
-        PlanViewValidator.validate(view, Long.MAX_VALUE)
-            .hasReason(PlanViewValidator.REASON_EXPIRED));
+  public void embeddedNowMsIsTheOnlyClockSource() {
+    // nowMs 只认视图内嵌值：同一计划用两个时刻分别重新编码，再各自校验。
+    byte[] at1999 = PlanViewCodec.encode(expiryView(1_999));
+    byte[] at2000 = PlanViewCodec.encode(expiryView(2_000));
+    assertTrue(PlanViewValidator.validate(at1999).valid());
+    PlanViewValidator.Result expired = PlanViewValidator.validate(at2000);
+    assertFalse(expired.valid());
+    assertArrayEquals(new int[] {PlanViewValidator.REASON_EXPIRED}, expired.reasons());
+    // 不存在 byte[]+long 的公开重载：validate 只读视图内嵌时间，防止双口径回归。
+    for (java.lang.reflect.Method method : PlanViewValidator.class.getMethods()) {
+      if (method.getName().equals("validate")) {
+        assertEquals("validate 只允许 (byte[])", 1, method.getParameterCount());
+      }
+    }
+  }
+
+  /**
+   * 带有效期的最小合法视图（generated=1000、expires=2000、now=参数值）。
+   *
+   * <p>`planDigest` 按 §3.5 口径随 `nowMs` 重算：先把字段 15 置零编码、再对置零后的
+   * 整份视图求 SHA-256——这正是“重新编码视图（含重算 planDigest）”的生产路径。
+   */
+  static PlanViewCodec.View expiryView(long nowMs) {
+    PlanViewCodec.View unsigned =
+        PlanViewCodec.View.builder()
+            .hasExpiry(true)
+            .generatedAtMs(1_000L)
+            .expiresAtMs(2_000L)
+            .nowMs(nowMs)
+            .planDigest(new byte[32])
+            .build();
+    byte[] digest;
+    try {
+      digest =
+          java.security.MessageDigest.getInstance("SHA-256")
+              .digest(PlanViewCodec.withZeroPlanDigest(PlanViewCodec.encode(unsigned)));
+    } catch (java.security.NoSuchAlgorithmException error) {
+      throw new AssertionError(error);
+    }
+    return PlanViewCodec.View.builder()
+        .hasExpiry(true)
+        .generatedAtMs(1_000L)
+        .expiresAtMs(2_000L)
+        .nowMs(nowMs)
+        .planDigest(digest)
+        .build();
   }
 }
