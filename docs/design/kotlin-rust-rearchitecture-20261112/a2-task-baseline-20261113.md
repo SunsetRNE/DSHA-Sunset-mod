@@ -1,7 +1,7 @@
 # A2 任务基线（G2）：存储与文件（SAF 授权簿 + 文件工作台）
 
-> 版本：v0.3　日期：2026-11-13　基线：`3a8204fe`（build361 验收回执 + Rust R0 已合入；A1 已合入）
-> 状态：**slice 1+2 已完成并 rebase 到 3a8204fe（Source checks 43332430587 / Doc 43332430557 绿）**；**非实现者评审 REQUEST_CHANGES（1×P1+5×P2）已按 §12 修复，待复审 CI**；slice 3–4 未开始。
+> 版本：v0.4　日期：2026-11-13　基线：`3a8204fe`（build361 验收回执 + Rust R0 已合入；A1 已合入）
+> 状态：**slice 1+2 已完成并 rebase 到 3a8204fe（Source checks 43332430587 / Doc 43332430557 绿）**；**非实现者复审 APPROVE（P1+5×P2）**；**复审新增 N1/N2 已修，N3/N4 记为已知窗口延后 slice3/4**；slice 3–4 未开始。
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A2、[A1 任务基线](a1-task-baseline-20261113.md) 模板与已知 P2、[A1 契约草案](a1-contract-draft-20261112.md)（形状内部冻结）、[安全模型](../../security-model.md) SAF 一节。
 > 注意：分支已 rebase 到 `3a8204fe`；main 的 Kotlin/Rust 新增与 ShellQuote 删除保持不动，合入由 Lead 处理。
 
@@ -90,7 +90,7 @@
 `app/src/main/assets/managed-runtime-inputs.json` 的 `launcherTrees` 已包含 `app/src/main/java/com/deepseekharness/app/saf`。slice 1 新增 7 个主类 → `launcherInputs` 481→488，**`runtimeId` 必变**：
 
 - 基线 `4d55973d407c171909e76d07f0b681de4069613944fb05e29cd38908e0984a26` → slice 1 `cf279a36dc72b608c95d352673b86115324b308defb57dbaaac46bee1c8d352f`（已推送，CI run 43322817926 全绿）。
-- slice 2 改 `SafGrants`/`SafTree` 并新增记录状态字段 → 评审修复后现行 `970c75eee983200bf37d75c46123ee76f05a1a2bbeda49d02a10fd79422d21b5`（本地按固定输入 `--write`；后续 slice 每次改 `saf/` 都要重算）。
+- slice 2 改 `SafGrants`/`SafTree` 并新增记录状态字段 → 复审 N1/N2 修复后现行 `a2847544e7032bdd0eb7394438455521c120a25c0d54c280eb32db7a3e3e6139`（本地按固定输入 `--write`；后续 slice 每次改 `saf/` 都要重算）。
 - 覆盖安装后按设计进**一次**整屏维护页（I1/I6）；数据格式不变、桥协议 `3` 不变；回退不需要清数据。
 - `app/src/main/assets/runtime-descriptor.json` 是生成物，随批次提交；不得手改摘要。
 
@@ -135,4 +135,11 @@
 | P2-4 | `SafGrants.list/lookup/add/forget/setWritable/cleanupPending` | ledger 就绪判定单独加锁；未就绪时出锁后再走会查询 Provider 的 `legacy*` 路径（新增 `ledgerReady`） | `fallbackListDoesNotHoldLockDuringProviderQuery`（慢 Provider 期间 listLight 不被 LOCK 卡住） |
 | P2-5 | `SafGrants.add` beginTake / `SafGrantRecord.Previous` | 重新授权 beginTake 传入 existing app/label 并纳入 `Previous`/codec；abort/cleanup 恢复旧显示名 | `abortingRetakeRestoresPreviousMetadata`、`failedRetakeKeepsCachedAppAndLabel` |
 | 顺手 | `SafGrants.lookup` | 补 `documentsTree(uri)` 过滤，与 legacyLookup 一致 | 现有 bridge 反例覆盖 |
+| N1（复审新增，已修） | `SafGrants.add` RELEASING 分支 | 分支前统一取一次 `persisted` 并判空，系统券 API 抛异常→`PERMISSION_STATE_UNAVAILABLE`，不再 NPE | `SafGrantsTest.addOnReleasingWithUnreadablePersistedStateReturnsTypedFailure` |
+| N2（复审新增，已修） | `SafGrants.forget` PENDING 分支 | 先按 `flags ∩ ~pendingBefore ∩ pendingIntent` 释放新增位；persisted 不可读/释放失败保留 PENDING 等 cleanup；成功后才 abort，恢复旧 ACTIVE 且用户仍要移除时继续正常 forget | `forgetOnPendingWithUnreadableStateKeepsPendingForCleanup`、`forgetOnPendingWithReleaseFailureKeepsPendingForCleanup`、`forgetAfterCrashPendingReleasesDeltaAndRemovesRestoredGrant` |
 | 延后 | `SafPaths.MAX_SEGMENTS`、`HttpShellService` SAF Semaphore(2) 单一来源 | 留给 slice 4 受控流收口；当前不改变行为 | 基线 §10 记录 |
+
+**已知窗口（复审 N3/N4，延后到 slice3/4，不在本轮改）**
+
+- **N3 install vs close**：`ModuleRegistry.install` 持 registry 锁执行 factory/contributions，`close` 需等待；不会状态错乱，但无法取消进行中的 install，且慢 factory 会阻塞 close。计划 slice3/4 宿主工程化时引入显式 `INSTALLING` 状态机/取消令牌。
+- **N4 ledgerReady→legacy split-brain**：`ledgerReady(context)` 返回 false 后、调用 legacy 路径前，另一线程可能完成迁移并切到账本，导致同一时刻一条写走旧命名空间、一条读走账本。当前仅首次迁移失败（存储不可写）时出现，且无并发生产调用者触发；计划 slice3/4 把迁移/回退收敛为单次 start-up 会话（或 `ledgerReady` 结果携带代次，legacy 写前复核）。

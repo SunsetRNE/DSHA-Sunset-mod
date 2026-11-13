@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "970c75eee983200bf37d75c46123ee76f05a1a2bbeda49d02a10fd79422d21b5",
+  "runtimeId": "a2847544e7032bdd0eb7394438455521c120a25c0d54c280eb32db7a3e3e6139",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -293,7 +293,7 @@
     "saf/SafCapabilityPolicy.java": "77d9811eab2fc002a95c8312563735abec23f1d2f5fc17c9db93fc2d49baa600",
     "saf/SafGrantLedger.java": "879304ec0df8eef9755cb17af6531fee4460370d5eb06098770031a7d93bd0f3",
     "saf/SafGrantRecord.java": "93e30e279a388571b40f353405f6af2410897118af4746e0665f53ad4b182cf6",
-    "saf/SafGrants.java": "be71eb561c90ae2087201ebb4969891d645035505800bd8cfc0c4ccfda8ccd1b",
+    "saf/SafGrants.java": "2f89c6b5e3400a5c068bafaf84f8778fe45820899500544002be5ef9c2c2a60f",
     "saf/SafLedgerCodec.java": "34c88f49a345ba0a089f2fdb5d8fd2712b826900c86401673d3ae9b03b2de4c0",
     "saf/SafLedgerStore.java": "94a7de1d3878e3fd7b56a5ecdf1f1fbb3282a18b96c39b4fb72f50cbb55f022a",
     "saf/SafLocalFiles.java": "043d52561f5b79f56422a74d7faabfab117d772fa9e47666d6e2a47e5296c071",

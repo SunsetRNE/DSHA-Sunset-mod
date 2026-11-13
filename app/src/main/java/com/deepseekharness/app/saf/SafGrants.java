@@ -262,11 +262,14 @@ public final class SafGrants {
       SafLedgerStore store = ledgerStore(context);
       SafGrantLedger ledger = store.load();
       String value = tree.toString();
+      ContentResolver resolver = context.getContentResolver();
+      List<UriPermission> persisted = persisted(context);
+      if (persisted == null) return AddResult.failed("PERMISSION_STATE_UNAVAILABLE");
       SafGrantRecord existing = ledger.findByUri(value);
       if (existing != null && existing.state() == SafGrantRecord.State.RELEASING) {
         // 系统里已没有可释放位（例如上次释放成功但保存失败）→ 完成撤销后允许重新添加；
         // 仍有位残留时保持失败关闭，等 cleanup 重试释放。
-        int held = flagsOf(persisted(context), tree);
+        int held = flagsOf(persisted, tree);
         if ((existing.acquired() & held) != 0) return AddResult.failed("STATE_UNAVAILABLE");
         SafGrantLedger finished = ledger.finishRelease(value).ledger;
         if (!store.save(finished)) return AddResult.failed("STATE_UNAVAILABLE");
@@ -274,9 +277,6 @@ public final class SafGrants {
         existing = null;
       }
       if (existing == null && ledger.size() >= MAX_TREES) return AddResult.failed("LIMIT");
-      ContentResolver resolver = context.getContentResolver();
-      List<UriPermission> persisted = persisted(context);
-      if (persisted == null) return AddResult.failed("PERMISSION_STATE_UNAVAILABLE");
       int before = flagsOf(persisted, tree);
       int intent = READ | (wantWrite ? WRITE : 0);
       long now = System.currentTimeMillis();
@@ -349,9 +349,19 @@ public final class SafGrants {
       SafGrantRecord record = ledger.findByUri(value);
       if (record == null) return;
       if (record.state() == SafGrantRecord.State.PENDING) {
-        // PENDING 里还有 before/intent；直接 forget 会丢清理信息，先 abort（恢复旧记录或删除）。
-        store.save(ledger.abortTake(value).ledger);
-        return;
+        // PENDING 里有 before/intent：先按它释放本次 take 新增位，再 abort（恢复旧 ACTIVE 或删除）。
+        // 直接 abort/forget 会丢清理信息、绕过用户移除意图（N2）。
+        List<UriPermission> pendingState = persisted(context);
+        if (pendingState == null) return; // 状态不可读：保留 before/intent 等下次
+        int rollback =
+            flagsOf(pendingState, tree) & ~record.pendingBefore() & record.pendingIntent();
+        if (rollback != 0 && !releaseFlags(context.getContentResolver(), tree, rollback)) return;
+        SafGrantLedger aborted = ledger.abortTake(value).ledger;
+        if (!store.save(aborted)) return;
+        ledger = aborted;
+        record = ledger.findByUri(value);
+        if (record == null || record.state() != SafGrantRecord.State.ACTIVE) return;
+        // 重新授权失败恢复出旧 ACTIVE；用户仍要移除 → 继续走下面的正常 forget。
       }
       List<UriPermission> persisted = persisted(context);
       if (persisted == null) {

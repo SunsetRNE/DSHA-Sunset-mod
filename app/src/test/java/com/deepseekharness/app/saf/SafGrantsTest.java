@@ -67,7 +67,7 @@ public final class SafGrantsTest {
   public static final class LabelProvider extends ContentProvider {
     int queries;
     String label = "shared-folder";
-    CountDownLatch hung;
+    volatile CountDownLatch hung;
     boolean blockUntilCanceled;
     boolean ignoreCancel;
 
@@ -519,6 +519,103 @@ public final class SafGrantsTest {
     assertTrue("回退路径不得在 LOCK 内查询 Provider（实测 " + elapsedMs + "ms）", elapsedMs < 600);
   }
 
+  @Test
+  public void addOnReleasingWithUnreadablePersistedStateReturnsTypedFailure() {
+    Uri tree = tree("releasing-unreadable");
+    seedActive(tree, "应用", "目录", SafGrantRecord.READ | SafGrantRecord.WRITE);
+    SafLedgerStore store = ledgerStore();
+    assertTrue(store.save(store.load().beginRelease(tree.toString()).ledger));
+    ControlledContext unreadable = new ControlledContext(context);
+    unreadable.resolver.throwOnPersisted = true;
+
+    SafGrants.AddResult result = SafGrants.add(unreadable, tree, true);
+
+    assertFalse(result.added);
+    assertEquals("系统券不可读必须返回类型化失败，不能 NPE", "PERMISSION_STATE_UNAVAILABLE", result.failure);
+    assertEquals(SafGrantRecord.State.RELEASING, store.load().findByUri(tree.toString()).state());
+  }
+
+  @Test
+  public void forgetOnPendingWithUnreadableStateKeepsPendingForCleanup() {
+    Uri tree = tree("pending-unreadable");
+    seedPendingRetake(
+        tree, SafGrantRecord.READ, SafGrantRecord.READ, SafGrantRecord.READ | SafGrantRecord.WRITE);
+    ControlledContext unreadable = new ControlledContext(context);
+    unreadable.resolver.throwOnPersisted = true;
+
+    SafGrants.forget(unreadable, tree);
+
+    SafGrantRecord pending = ledgerStore().load().findByUri(tree.toString());
+    assertNotNull(pending);
+    assertEquals("状态不可读时不得丢 before/intent", SafGrantRecord.State.PENDING, pending.state());
+
+    unreadable.resolver.throwOnPersisted = false;
+    SafGrants.cleanupPending(unreadable);
+    SafGrantRecord restored = ledgerStore().load().findByUri(tree.toString());
+    assertNotNull(restored);
+    assertEquals(SafGrantRecord.State.ACTIVE, restored.state());
+  }
+
+  @Test
+  public void forgetOnPendingWithReleaseFailureKeepsPendingForCleanup() {
+    Uri tree = tree("pending-release-fail");
+    seedPendingRetake(tree, 0, SafGrantRecord.READ, SafGrantRecord.READ);
+    take(tree, true, false);
+    ControlledContext failing = new ControlledContext(context);
+    failing.resolver.failRelease = true;
+
+    SafGrants.cleanupPending(failing);
+    SafGrants.forget(failing, tree);
+
+    SafGrantRecord pending = ledgerStore().load().findByUri(tree.toString());
+    assertNotNull(pending);
+    assertEquals(SafGrantRecord.State.PENDING, pending.state());
+
+    failing.resolver.failRelease = false;
+    SafGrants.cleanupPending(failing);
+    assertEquals(0, flags(tree));
+    SafGrants.forget(failing, tree);
+    assertNull(ledgerStore().load().findByUri(tree.toString()));
+  }
+
+  @Test
+  public void forgetAfterCrashPendingReleasesDeltaAndRemovesRestoredGrant() {
+    Uri tree = tree("pending-crash-forget");
+    seedActive(tree, "应用", "目录", SafGrantRecord.READ);
+    take(tree, true, false);
+    SafLedgerStore store = ledgerStore();
+    assertTrue(
+        store.save(
+            store
+                .load()
+                .beginTake(
+                    tree.toString(),
+                    "应用",
+                    "目录",
+                    SafGrantRecord.READ,
+                    SafGrantRecord.READ | SafGrantRecord.WRITE,
+                    System.currentTimeMillis())
+                .ledger));
+    take(tree, false, true);
+
+    SafGrants.forget(context, tree);
+
+    SafGrantRecord record = store.load().findByUri(tree.toString());
+    assertNull("恢复旧 ACTIVE 后仍按用户意图移除", record);
+    assertEquals(0, flags(tree));
+  }
+
+  private void seedPendingRetake(Uri tree, int oldFlags, int before, int intent) {
+    seedActive(tree, "应用", "目录", oldFlags);
+    SafLedgerStore store = ledgerStore();
+    assertTrue(
+        store.save(
+            store
+                .load()
+                .beginTake(tree.toString(), "应用", "目录", before, intent, System.currentTimeMillis())
+                .ledger));
+  }
+
   private SafLedgerStore ledgerStore() {
     return new SafLedgerStore(
         context.getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE));
@@ -538,6 +635,8 @@ public final class SafGrantsTest {
   private static final class ControlledResolver extends ContentResolver {
     private final ContentResolver real;
     boolean revoked;
+    boolean throwOnPersisted;
+    boolean failRelease;
 
     ControlledResolver(Context base) {
       super(base);
@@ -546,11 +645,13 @@ public final class SafGrantsTest {
 
     @Override
     public List<UriPermission> getPersistedUriPermissions() {
+      if (throwOnPersisted) throw new IllegalStateException("PERMISSION_STATE_UNAVAILABLE");
       return revoked ? List.of() : real.getPersistedUriPermissions();
     }
 
     @Override
     public void releasePersistableUriPermission(Uri uri, int modeFlags) {
+      if (failRelease) throw new SecurityException("RELEASE_FAILED");
       if (revoked) throw new SecurityException("REVOKED");
       real.releasePersistableUriPermission(uri, modeFlags);
     }
