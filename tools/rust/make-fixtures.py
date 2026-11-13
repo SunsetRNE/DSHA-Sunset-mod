@@ -311,9 +311,12 @@ def main(argv: list[str]) -> int:
     lines = ["%s|%s|%s" % (name, expected, view.hex()) for name, expected, view in rows]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    random_spec = fixtures["random"]
     summary = {
         "fixtures": len(fixtures["cases"]),
         "random": len(rows) - len(fixtures["cases"]),
+        "randomSeed": int(random_spec["seed"]),
+        "randomCount": int(random_spec["count"]),
         "total": len(rows),
         "canonicalBytes": len(canonical),
         "canonicalSha256": __import__("hashlib").sha256(canonical).hexdigest(),

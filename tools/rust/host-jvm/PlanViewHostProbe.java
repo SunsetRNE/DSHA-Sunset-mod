@@ -364,6 +364,26 @@ public final class PlanViewHostProbe {
             && Arrays.equals(before, canonical),
         "code=" + first.code);
 
+    // 负向自检（评审 P2-5）：差分比较器必须能检出 mismatch，而不是恒真。
+    int rootValueOffset = fieldValueOffset(canonical, PlanViewCodec.FIELD_ROOT_COUNT);
+    byte[] root65 = canonical.clone();
+    writeU32le(root65, rootValueOffset, 65);
+    PlanViewValidator.Result root65Jvm = PlanViewValidator.validate(root65);
+    Native root65Rust = verifyRust(root65, 8);
+    boolean realAgreement =
+        root65Jvm.reasons().length == 1
+            && root65Jvm.reasons()[0] == PlanViewValidator.REASON_FIELD_RANGE
+            && sameReasons(root65Jvm.reasons(), root65Rust.reasons)
+            && root65Rust.code == 1;
+    boolean detectsFabricatedMismatch =
+        !sameReasons(root65Rust.reasons, new int[] {PlanViewValidator.REASON_FIELD_RANGE,
+            PlanViewValidator.REASON_EXPIRED});
+    boolean detectsDifferentViews = !sameReasons(canonicalJvm.reasons(), root65Rust.reasons);
+    check(
+        "planNegativeControlDetectsMismatch",
+        realAgreement && detectsFabricatedMismatch && detectsDifferentViews,
+        "fabricated=" + detectsFabricatedMismatch + " distinctViews=" + detectsDifferentViews);
+
     finish();
   }
 

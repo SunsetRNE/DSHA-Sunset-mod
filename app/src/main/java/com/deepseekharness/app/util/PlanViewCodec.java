@@ -182,7 +182,12 @@ public final class PlanViewCodec {
     }
   }
 
-  /** {@link View} 构建器：只做宽度/摘要长度/字符串非空检查，不做语义裁决。 */
+  /**
+   * {@link View} 构建器：只做摘要长度与字符串非 null 检查，不做语义裁决。
+   *
+   * <p>空串、超字段上限、枚举/范围越界都可以编码出来（编码不截断、不伪造默认值），
+   * 由 {@link PlanViewValidator} 判 {@code [20,21]} 等结果；这里不替校验器做决定。
+   */
   public static final class Builder {
     private int policyVersion = POLICY_VERSION;
     private long generatedAtMs = 1_760_000_000_500L;

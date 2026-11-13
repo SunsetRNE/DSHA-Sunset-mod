@@ -6,7 +6,7 @@
 //!
 //! 字节布局与规则按 A3 §3.2–§3.7 冻结；R2 把 `type` 码、枚举数值、字段 `flags`
 //! 语义与原因码去重/升序写进本文件的常量（Lead Q5-A 裁决：属实现细节，不需要
-//! ABI v2）。R0 已冻结的五个常量（`MAGIC`/`VIEW_VERSION`/`MAX_VIEW_BYTES`/
+//! ABI v2）。R0 已冻结的六个常量（`MAGIC`/`VIEW_VERSION`/`MAX_VIEW_BYTES`/
 //! `MAX_FIELDS`/`MAX_FIELD_BYTES`/`MAX_REASONS`）保持不变。
 //!
 //! 多原因规则（§3.7）：除硬上限（长度不足 48 字节、超过 2 MiB）外不因首错提前
@@ -118,7 +118,7 @@ pub const MIN_SELECTED_MASK: u32 = 1;
 pub const MAX_SELECTED_MASK: u32 = 31;
 /// `pluginCount` 上限（与 `NativePluginGraph` 的 4096 对齐）。
 pub const MAX_PLUGIN_COUNT: u32 = 4_096;
-/// `appVersion` 字节上限（当前生产值 44 字符）。
+/// `appVersion` 字节上限（身份清单 `ci/release-identity*.json` 当前 38 字符，上限 256）。
 pub const MAX_APP_VERSION_BYTES: u32 = 256;
 /// `dataFormat` 字节上限。
 pub const MAX_DATA_FORMAT_BYTES: u32 = 64;
@@ -669,8 +669,8 @@ mod tests {
         assert_eq!(hex(&view), CANONICAL_VIEW_HEX);
         assert_eq!(validate(&view, CANONICAL_NOW_MS), Ok(()));
         assert_eq!(embedded_now_ms(&view), Some(CANONICAL_NOW_MS));
-        // 规范化夹具使用当前真实 versionName（`app/build.gradle` 为 38 字符；基线
-        // 文档里的“44 字符”是过时估计，真实写者才是权威）与闭集策略值。
+        // 规范化夹具使用当前真实 versionName（身份清单 `ci/release-identity*.json`
+        // 为 38 字符；基线文档里的“44 字符”是过时估计，身份清单才是权威）。
         assert_eq!(CANONICAL_APP_VERSION.len(), 38);
         assert!(SENSITIVE_POLICIES.contains(&CANONICAL_SENSITIVE_POLICY));
     }

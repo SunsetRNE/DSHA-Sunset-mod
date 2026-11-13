@@ -87,6 +87,7 @@ EXPECTED_CHECKS = {
     "planFixtureCorpus",
     "planJniBufferContract",
     "planLoadLibrary",
+    "planNegativeControlDetectsMismatch",
     "planOneKeyRollback",
     "planOutputBoundNoPartialWrite",
     "planReasonSetOrderDedup",
@@ -180,6 +181,11 @@ def main(argv: list[str]) -> int:
     failures = sum(int(row.get("failures", 1)) for row in summaries)
     if len(summaries) != 2:
         raise ProbeError("RUST_HOST_PROBE_SUMMARY: 期望两个探针汇总，实际 %d" % len(summaries))
+    # 评审 P2-7：即使 failures 计数为 0，汇总状态不是 PASS 也必须硬失败。
+    not_passing = [row for row in summaries if row.get("status") != "PASS"]
+    if not_passing:
+        raise ProbeError("RUST_HOST_PROBE_SUMMARY_STATUS: %s"
+                         % json.dumps(not_passing, ensure_ascii=False)[:1000])
     status = "PASS" if checks and not failed and failures == 0 else "FAIL"
     if status != "PASS":
         raise ProbeError("RUST_HOST_PROBE_FAILED:\n" + digest_output + plan_output)
@@ -204,6 +210,8 @@ def main(argv: list[str]) -> int:
             "source": "tools/rust/fixtures.json",
             "planCorpusCases": plan_summary.get("corpusCases"),
             "planNativeCalls": plan_summary.get("nativeCalls"),
+            "randomSeed": fixtures_summary.get("randomSeed"),
+            "randomCount": fixtures_summary.get("randomCount"),
             "planCanonicalBytes": fixtures_summary.get("canonicalBytes"),
             "planCanonicalSha256": fixtures_summary.get("canonicalSha256"),
         },
@@ -215,6 +223,8 @@ def main(argv: list[str]) -> int:
     print(json.dumps({"status": "PASS", "checks": len(checks),
                       "planCorpusCases": plan_summary.get("corpusCases"),
                       "planNativeCalls": plan_summary.get("nativeCalls"),
+                      "randomSeed": fixtures_summary.get("randomSeed"),
+                      "randomCount": fixtures_summary.get("randomCount"),
                       "librarySha256": report["library"]["sha256"]}, ensure_ascii=False))
     return 0
 
