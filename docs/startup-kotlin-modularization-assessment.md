@@ -2,6 +2,7 @@
 
 > 日期：2026-11-13。调查基线：`c2e7aec1f27f585e1276b0d938d9b10313cba616`；对应 build362 之后的主线，已发布 build362 为 `75924add`，二者不混用。调查中主线推进至 `0abfaea5`，已核对本文涉及的 `core/`、`runtime/` 及两个插件管理/注册脚本没有差异。
 > 性质：源码调查、方案建议及现有隔离测试回归；没有改变生产行为，没有运行手机启动测速、停止正式 Web 或安装 APK。下文新模块名、证明对象和目标调用次数均为设计，未实现。
+> 后续：用户于 2026-11-13 批准方向，并要求整理方案交主会话、进一步核实代码。[实施方案与二次核验](startup-kotlin-implementation-plan.md) 已补 K0（Kotlin 输入/门禁覆盖）、完整停止范围与意图交接、跨运行时锁协议；三个 guest 操作直接合批降为可选实验。本文保留首轮调查事实，具体开工前置条件以实施方案为准。
 
 ## 1. 评估结论
 
@@ -77,7 +78,7 @@ flowchart TD
 
 单次链内也有重复观察：[stopAll](../app/src/main/java/com/deepseekharness/app/runtime/WebProcessManager.java#L1329) 处理主 Web、trial 和残留扫描；[releasePrior](../app/src/main/java/com/deepseekharness/app/core/StartupEnvironmentActions.java#L49) 再处理 launcher 并调用 confirmStopped；[confirmStopped](../app/src/main/java/com/deepseekharness/app/runtime/WebProcessManager.java#L1218) 又查 PID/残留。它们覆盖 guest 与 launcher 的不同事实，不能直接删掉一个调用就认定等价。
 
-**接替方案**：同一 Kotlin 生命周期 owner 串行提交 stop，只有 guest、owned/recovered launcher、trial 与残留的最终完整 confirm 成功后才签发结构化 `StopProof`。底层 `WebProcessManager.stopResult` 的 `STOPPED/WEB_GUESTS_STOPPED` 只描述 guest，不能单独当完整证明；对应现有最终收口见 [WebStopCoordinator:84](../app/src/main/java/com/deepseekharness/app/core/WebStopCoordinator.java#L84)。证明包含运行根与 boot 身份、被停止实例的 generation/instance、guest 与 launcher 各自出生身份及退出状态、trial/残留核对结果、观察时点与 spawn 修订号。证明缺字段或未知时不走快速路径。
+**接替方案**：同一 Kotlin 生命周期 owner 串行提交 stop，只有 guest、owned/recovered launcher、trial 与残留的最终完整 confirm 成功后才签发结构化 `StopProof`。底层 `WebProcessManager.stopResult` 的 `STOPPED/WEB_GUESTS_STOPPED` 不能单独当完整证明；[WebStopCoordinator:84](../app/src/main/java/com/deepseekharness/app/core/WebStopCoordinator.java#L84) 的现有最终结果也会折叠早期错误，不能反推完整 trial 范围已经核验，详见[二次核验 F2](startup-kotlin-implementation-plan.md#L28)。证明包含运行根与 boot 身份、被停止实例的 generation/instance、guest 与 launcher 各自出生身份及退出状态、trial/残留核对结果、观察时点与 spawn 修订号。证明缺字段或未知时不走快速路径。
 
 `StopProof` 描述历史退出事实，启动许可另由一次性的恢复/启动票据承载：绑定本次 stop intent 的 generation、ticket、cancel revision，restart 消费前再核当前意图。新的显式 Stop 必须撤销排队 restart 与证明交接许可，**即使重复 Stop 没增加 generation**；旧成功不能覆盖新的停止失败。该约束保持 [enqueueStop:1749](../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java#L1749) 的现有行为，不把历史事实兼作启动授权。
 
@@ -240,7 +241,7 @@ flowchart LR
 
 现成回归入口包括 [StartupPipelineTest](../app/src/test/java/com/deepseekharness/app/core/StartupPipelineTest.java)、[StartupStopWaitTest](../app/src/test/java/com/deepseekharness/app/core/StartupStopWaitTest.java)、[WebLifecycleStartProtectionTest](../app/src/test/java/com/deepseekharness/app/core/WebLifecycleStartProtectionTest.java)、[WebSessionRecoveryTest](../app/src/test/java/com/deepseekharness/app/core/WebSessionRecoveryTest.java)、[WebProcSelTest](../app/src/test/java/com/deepseekharness/app/util/WebProcSelTest.java)、[WebProofStopTest](../app/src/test/java/com/deepseekharness/app/util/WebProofStopTest.java)、[GuestPluginScriptsTest](../app/src/test/java/com/deepseekharness/app/runtime/GuestPluginScriptsTest.java) 与 [PluginChangeDetectorTest](../app/src/test/java/com/deepseekharness/app/plugins/PluginChangeDetectorTest.java)。实施前需按受影响模块确认测试实际纳入构建，并补足新证明失效反例。
 
-### 7.3 本次实际验证
+### 7.3 首轮调查实际验证（a1b4fbda）
 
 | 命令 | 实际结果 | 能证明的范围 |
 |---|---|---|
@@ -256,4 +257,4 @@ flowchart LR
 
 本次建议是：把停止/准备/插件管理的单一 owner 和证明交接作为压缩主体；先去掉已经完成的重复工作，再把变更相关准备移出健康启动路径。开放目录保持核验，封闭快照才争取免扫描。恢复、维护和 Node 动态加载仍有明确的实际裁决者。
 
-下一项具体编码宜选 **S1：stop→restart 证明交接**，并同步加入 S0 计数；该切片边界最清楚、可以用现有身份与停止夹具直接差分，且不依赖先关闭用户的终端/插件自由写入能力。随后再做 S2，最后评审 S3/S4 的文件与事务协议。
+下一项具体编码原建议为 **S1：stop→restart 证明交接**，并同步加入 S0 计数。进一步核验后，应先完成[实施方案](startup-kotlin-implementation-plan.md)的 K0，再按 S1a 事实投影 → S1b 受保护窄路径推进；其后做 S2，同步冻结 S3 的真实锁协议。该顺序保留用户批准的方向，并补齐具体代码前置条件。
