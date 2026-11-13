@@ -5,6 +5,8 @@
 
 build364 十语更新说明：[中文](releases/build364-changes.zh.md) · [繁體中文](releases/build364-changes.zh-Hant.md) · [English](releases/build364-changes.en.md) · [日本語](releases/build364-changes.ja.md) · [한국어](releases/build364-changes.ko.md) · [Français](releases/build364-changes.fr.md) · [Português](releases/build364-changes.pt.md) · [Русский](releases/build364-changes.ru.md) · [العربية](releases/build364-changes.ar.md) · [Latina](releases/build364-changes.la.md)。
 
+build364 真机覆盖验收：[回执](releases/build364-acceptance-20261113.md)（一加 12，官方包 363→364；一次维护页 SUCCEEDED、runtimeId 迁至 bd0016c3、首次 proroot trial 直接成功且无 ENOENT 重试、READY、无崩溃）。
+
 build363 真机覆盖验收：[回执](releases/build363-acceptance-20261113.md)（一加 12，官方包 362→363；维护最终 SUCCEEDED、runtimeId 迁至 5fd17eac、无崩溃；首次 trial 失败后重试成功，缺陷记录见 [运行时 trial 首次失败分析](design/runtime-trial-profile-node-modules-20261113.md)）。
 
 build362 真机覆盖验收：[回执](releases/build362-acceptance-20261113.md)（一加 12，官方包 361→362；一次维护页完成、READY、无崩溃）。
