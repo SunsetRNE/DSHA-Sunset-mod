@@ -49,6 +49,8 @@ public final class SafLedgerCodec {
   public static final String FIELD_PENDING_BEFORE = "pendingBefore";
   public static final String FIELD_PENDING_INTENT = "pendingIntent";
   public static final String FIELD_PREVIOUS = "prev";
+  public static final String FIELD_PREV_APP = "prevApp";
+  public static final String FIELD_PREV_LABEL = "prevLabel";
   public static final String FIELD_PREV_READ = "prevRead";
   public static final String FIELD_PREV_WRITE = "prevWrite";
   public static final String FIELD_PREV_ACQUIRED = "prevAcquired";
@@ -71,6 +73,8 @@ public final class SafLedgerCodec {
           FIELD_PENDING_BEFORE,
           FIELD_PENDING_INTENT,
           FIELD_PREVIOUS,
+          FIELD_PREV_APP,
+          FIELD_PREV_LABEL,
           FIELD_PREV_READ,
           FIELD_PREV_WRITE,
           FIELD_PREV_ACQUIRED,
@@ -189,6 +193,8 @@ public final class SafLedgerCodec {
       SafGrantRecord.Previous previous = record.previous();
       if (previous != null) {
         out.put(prefix + FIELD_PREVIOUS, "1");
+        out.put(prefix + FIELD_PREV_APP, previous.app());
+        out.put(prefix + FIELD_PREV_LABEL, previous.label());
         out.put(prefix + FIELD_PREV_READ, previous.readable() ? "1" : "0");
         out.put(prefix + FIELD_PREV_WRITE, previous.writable() ? "1" : "0");
         out.put(prefix + FIELD_PREV_ACQUIRED, flags(previous.acquired()));
@@ -244,6 +250,8 @@ public final class SafLedgerCodec {
     if (bool(raw.get(prefix + FIELD_PREVIOUS), false)) {
       previous =
           new SafGrantRecord.Previous(
+              text(raw.get(prefix + FIELD_PREV_APP)),
+              text(raw.get(prefix + FIELD_PREV_LABEL)),
               bool(raw.get(prefix + FIELD_PREV_READ), false),
               bool(raw.get(prefix + FIELD_PREV_WRITE), false),
               acquired(raw.get(prefix + FIELD_PREV_ACQUIRED)),

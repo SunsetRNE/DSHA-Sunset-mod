@@ -127,7 +127,12 @@ public final class SafGrantLedger {
       } else if (existing.state() == SafGrantRecord.State.ACTIVE) {
         previous =
             new SafGrantRecord.Previous(
-                existing.readable(), existing.writable(), existing.acquired(), existing.takenAt());
+                existing.app(),
+                existing.label(),
+                existing.readable(),
+                existing.writable(),
+                existing.acquired(),
+                existing.takenAt());
       }
     }
     SafGrantRecord pending =
@@ -192,8 +197,8 @@ public final class SafGrantLedger {
         new SafGrantRecord(
             record.id(),
             record.uri(),
-            record.app(),
-            record.label(),
+            previous.app(),
+            previous.label(),
             previous.readable(),
             previous.writable(),
             record.userWritable(),

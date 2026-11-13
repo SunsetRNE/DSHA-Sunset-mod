@@ -1,9 +1,9 @@
 # A2 任务基线（G2）：存储与文件（SAF 授权簿 + 文件工作台）
 
-> 版本：v0.2　日期：2026-11-13　基线：`faab36c5`（build361 发布准备；A1 已合入）
-> 状态：**slice 1 CI 全绿（run 43322817926）**；**slice 2（账本接入+旧命名空间只读迁移+回退反例）CI 全绿（run 43328387842）**；slice 3–4 未开始。
+> 版本：v0.3　日期：2026-11-13　基线：`3a8204fe`（build361 验收回执 + Rust R0 已合入；A1 已合入）
+> 状态：**slice 1+2 已完成并 rebase 到 3a8204fe（Source checks 43332430587 / Doc 43332430557 绿）**；**非实现者评审 REQUEST_CHANGES（1×P1+5×P2）已按 §12 修复，待复审 CI**；slice 3–4 未开始。
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A2、[A1 任务基线](a1-task-baseline-20261113.md) 模板与已知 P2、[A1 契约草案](a1-contract-draft-20261112.md)（形状内部冻结）、[安全模型](../../security-model.md) SAF 一节。
-> 注意：build361 发布准备（`faab36c5`）与本轮写范围不重叠；分支已 rebase 到它，合入由 Lead 处理。
+> 注意：分支已 rebase 到 `3a8204fe`；main 的 Kotlin/Rust 新增与 ShellQuote 删除保持不动，合入由 Lead 处理。
 
 ## 1. 范围
 
@@ -90,7 +90,7 @@
 `app/src/main/assets/managed-runtime-inputs.json` 的 `launcherTrees` 已包含 `app/src/main/java/com/deepseekharness/app/saf`。slice 1 新增 7 个主类 → `launcherInputs` 481→488，**`runtimeId` 必变**：
 
 - 基线 `4d55973d407c171909e76d07f0b681de4069613944fb05e29cd38908e0984a26` → slice 1 `cf279a36dc72b608c95d352673b86115324b308defb57dbaaac46bee1c8d352f`（已推送，CI run 43322817926 全绿）。
-- slice 2 改 `SafGrants`/`SafTree` 并新增记录状态字段 → 现行 `63f946ac620638fc980dda18929b73f33a288500cd3c93f0ddbda2553f1d3b57`（本地按固定输入 `--write`；后续 slice 每次改 `saf/` 都要重算）。
+- slice 2 改 `SafGrants`/`SafTree` 并新增记录状态字段 → 评审修复后现行 `970c75eee983200bf37d75c46123ee76f05a1a2bbeda49d02a10fd79422d21b5`（本地按固定输入 `--write`；后续 slice 每次改 `saf/` 都要重算）。
 - 覆盖安装后按设计进**一次**整屏维护页（I1/I6）；数据格式不变、桥协议 `3` 不变；回退不需要清数据。
 - `app/src/main/assets/runtime-descriptor.json` 是生成物，随批次提交；不得手改摘要。
 
@@ -123,3 +123,16 @@
 - **明确 deferred**：A1 收敛口径中的 `contractVersion`/`describe()`/`ModuleHost` scope/`setEnabled` 持久化/AboutLicense 聚合（A2/A8）；本轮的模块卡片与排序接线（归 A8 宿主工程化）。
 - **不做**：`MANAGE_DOCUMENTS`、所有文件访问、系统级文件管理器替代品；Provider 内容扫描/凭据防复制；跨设备/跨用户授权迁移；把授权对象交给插件或动态模块；重写 `DownloadEngine`；数据格式升级；Android 10 及以下；短信/屏幕/root 能力变更。
 - **已知限制**：`cp/mv` 新建 inode，无法按 inode 识别「复制凭据内容」；`push` 覆盖可能留下半截目标（Provider 超时/取消）；Provider 是信任边界。
+
+## 12. 非实现者评审 REQUEST_CHANGES 修复（2026-11-13）
+
+| 编号 | 位置 | 修法 | 回归测试 |
+|---|---|---|---|
+| P1 | `SafGrants.forget` / `cleanupLedgerLocked` / `add` 的 RELEASING 分支 | 释放集合改为「记录 acquired ∩ 当前系统券」：交集为 0 时直接 `finishRelease`/`forget`，不再对已撤销系统授权反复 `release`（旧实现抛 SecurityException → 永久 RELEASING 占槽）；`persisted == null` 保留记录重试；forget 遇到 PENDING 先 `abortTake` 保留 before/intent；add 遇到交集为 0 的 RELEASING 先完成撤销再重加 | `systemRevokedForgetRemovesLedgerRecordAndAllowsReAdd`、`staleReleasingRecordWithNoHeldBitsIsFinishedByCleanup`、`releaseSucceededButSaveFailedDoesNotStick`（自定义 ContentResolver + ContextWrapper 反例） |
+| P2-1 | `SafLedgerStore.save` / `SafLedgerCodec` | 磁盘 schema != SCHEMA 时 save 直接拒绝（不覆盖未来版本）；`decode(current).preserved` 参与保留，结构损坏记录的已知字段不再被保存时删除 | `saveRefusesFutureSchemaWithoutTouchingDisk`、`saveKeepsStructurallyCorruptKnownFields` |
+| P2-2 | `contract/ModuleRegistry.close`（及 `setEnabled`/`enterSafeMode` 调用路径） | registry 锁内只取/置空 instance/lease/contributions，出锁后 `lease.invalidate()` 并清理，消除 registry→lease ABBA；安全模式先置标志再锁内收集、锁外 close | `closeDoesNotHoldRegistryLockWhileInvalidatingLease`、`setEnabledDisableDoesNotHoldRegistryLockWhileInvalidatingLease` |
+| P2-3 | `SafCapabilityPolicy.localCanonicalProblem` | rootfsCanonical 空/缺时直接 `LOCAL_OUTSIDE_ROOTFS`，不再依赖 `deniedGuestView` 对 /sdcard、/tmp 的 fail-open 结果 | `canonicalPathCheckBlocksSymlinksThatResolveToCredentialsOrOutsideRootfs`（新增 /sdcard、/tmp 反例） |
+| P2-4 | `SafGrants.list/lookup/add/forget/setWritable/cleanupPending` | ledger 就绪判定单独加锁；未就绪时出锁后再走会查询 Provider 的 `legacy*` 路径（新增 `ledgerReady`） | `fallbackListDoesNotHoldLockDuringProviderQuery`（慢 Provider 期间 listLight 不被 LOCK 卡住） |
+| P2-5 | `SafGrants.add` beginTake / `SafGrantRecord.Previous` | 重新授权 beginTake 传入 existing app/label 并纳入 `Previous`/codec；abort/cleanup 恢复旧显示名 | `abortingRetakeRestoresPreviousMetadata`、`failedRetakeKeepsCachedAppAndLabel` |
+| 顺手 | `SafGrants.lookup` | 补 `documentsTree(uri)` 过滤，与 legacyLookup 一致 | 现有 bridge 反例覆盖 |
+| 延后 | `SafPaths.MAX_SEGMENTS`、`HttpShellService` SAF Semaphore(2) 单一来源 | 留给 slice 4 受控流收口；当前不改变行为 | 基线 §10 记录 |

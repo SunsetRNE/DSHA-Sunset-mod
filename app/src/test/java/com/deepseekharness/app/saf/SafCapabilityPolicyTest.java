@@ -106,6 +106,16 @@ public class SafCapabilityPolicyTest {
     assertEquals(
         SafCapabilityPolicy.LOCAL_OUTSIDE_ROOTFS,
         SafCapabilityPolicy.localCanonicalProblem(ROOTFS + "/root/report.md", null));
+    // rootfs 未知时不得对 rootfs 外路径 fail-open（旧实现会放行 /sdcard、/tmp）。
+    assertEquals(
+        SafCapabilityPolicy.LOCAL_OUTSIDE_ROOTFS,
+        SafCapabilityPolicy.localCanonicalProblem("/sdcard/Download/report.md", null));
+    assertEquals(
+        SafCapabilityPolicy.LOCAL_OUTSIDE_ROOTFS,
+        SafCapabilityPolicy.localCanonicalProblem("/tmp/report.md", ""));
+    assertEquals(
+        SafCapabilityPolicy.LOCAL_OUTSIDE_ROOTFS,
+        SafCapabilityPolicy.localCanonicalProblem("/tmp/report.md", "   "));
   }
 
   @Test

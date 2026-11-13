@@ -142,42 +142,59 @@ public final class ModuleRegistry {
    *
    * <p>停用顺序：提升 generation → close → 强制撤销贡献 → 保留布局记录 → 诊断。
    */
-  public synchronized ContractResult setEnabled(ModuleId id, boolean enabled) {
-    Entry entry = modules.get(id);
-    if (entry == null) {
-      diagnostics.report(ContractCodes.MODULE_UNKNOWN, "setEnabled unknown module: " + id);
-      return ContractResult.rejected(ContractCodes.MODULE_UNKNOWN);
-    }
-    if (!enabled) {
-      if (entry.descriptor.alwaysOn()) {
-        diagnostics.report(
-            ContractCodes.MODULE_ALWAYS_ON, "always-on module cannot be disabled: " + id);
-        return ContractResult.rejected(ContractCodes.MODULE_ALWAYS_ON);
+  public ContractResult setEnabled(ModuleId id, boolean enabled) {
+    synchronized (this) {
+      Entry entry = modules.get(id);
+      if (entry == null) {
+        diagnostics.report(ContractCodes.MODULE_UNKNOWN, "setEnabled unknown module: " + id);
+        return ContractResult.rejected(ContractCodes.MODULE_UNKNOWN);
       }
-      return close(id, ModuleInstance.CloseReason.USER_DISABLED);
+      if (!enabled) {
+        if (entry.descriptor.alwaysOn()) {
+          diagnostics.report(
+              ContractCodes.MODULE_ALWAYS_ON, "always-on module cannot be disabled: " + id);
+          return ContractResult.rejected(ContractCodes.MODULE_ALWAYS_ON);
+        }
+      } else {
+        if (safeMode.forcedSafeMode() && !entry.descriptor.alwaysOn()) {
+          diagnostics.report(
+              ContractCodes.SAFE_MODE_RESTRICTED, "safe mode rejects optional module: " + id);
+          return ContractResult.rejected(ContractCodes.SAFE_MODE_RESTRICTED);
+        }
+        return install(id);
+      }
     }
-    if (safeMode.forcedSafeMode() && !entry.descriptor.alwaysOn()) {
-      diagnostics.report(
-          ContractCodes.SAFE_MODE_RESTRICTED, "safe mode rejects optional module: " + id);
-      return ContractResult.rejected(ContractCodes.SAFE_MODE_RESTRICTED);
-    }
-    return install(id);
+    // 停用不能在 registry 锁内走到 close：close 需要 invalidate 租约，而回调可能回头调用
+    // registry；锁内 invalidate 会重新形成 registry→lease ABBA。
+    return close(id, ModuleInstance.CloseReason.USER_DISABLED);
   }
 
-  /** 强制关闭模块实例并撤销全部贡献；幂等。 */
-  public synchronized ContractResult close(ModuleId id, ModuleInstance.CloseReason reason) {
-    Entry entry = modules.get(id);
-    if (entry == null) {
-      diagnostics.report(ContractCodes.MODULE_UNKNOWN, "close unknown module: " + id);
-      return ContractResult.rejected(ContractCodes.MODULE_UNKNOWN);
+  /**
+   * 强制关闭模块实例并撤销全部贡献；幂等。
+   *
+   * <p>registry 锁内只取/置空 instance、lease 与贡献清单，出锁后才 invalidate 租约并清理：
+   * 租约回调可能回头调用 registry，持锁 invalidate 会形成 registry→lease ABBA。
+   */
+  public ContractResult close(ModuleId id, ModuleInstance.CloseReason reason) {
+    ModuleInstance instance;
+    GenerationLease lease;
+    List<Contribution> contributions;
+    synchronized (this) {
+      Entry entry = modules.get(id);
+      if (entry == null) {
+        diagnostics.report(ContractCodes.MODULE_UNKNOWN, "close unknown module: " + id);
+        return ContractResult.rejected(ContractCodes.MODULE_UNKNOWN);
+      }
+      instance = entry.instance;
+      if (instance == null) return ContractResult.ok();
+      GENERATION.incrementAndGet();
+      lease = entry.lease;
+      entry.lease = null;
+      entry.instance = null;
+      contributions = entry.contributions;
+      entry.contributions = List.of();
     }
-    ModuleInstance instance = entry.instance;
-    if (instance == null) return ContractResult.ok();
-
-    GENERATION.incrementAndGet();
-    if (entry.lease != null) entry.lease.invalidate();
-    entry.lease = null;
-    entry.instance = null;
+    if (lease != null) lease.invalidate();
 
     ModuleInstance.CloseReason actualReason =
         reason == null ? ModuleInstance.CloseReason.HOST_CLOSE : reason;
@@ -192,7 +209,7 @@ public final class ModuleRegistry {
           ContractCodes.MODULE_CLOSE_FAILED,
           "module close failed: " + id + " (" + error.getClass().getSimpleName() + ")");
     }
-    for (Contribution contribution : entry.contributions) {
+    for (Contribution contribution : contributions) {
       try {
         revokeContribution(contribution);
       } catch (Throwable error) {
@@ -206,7 +223,6 @@ public final class ModuleRegistry {
                 + ")");
       }
     }
-    entry.contributions = List.of();
     reportQuietly(
         ContractCodes.MODULE_DISABLED, "module closed: " + id + " (" + actualReason + ")");
     if (failure instanceof Error error) throw error;
@@ -216,12 +232,15 @@ public final class ModuleRegistry {
   }
 
   /** 进入安全模式：关闭全部 OPTIONAL_USER 模块，仅保留 ALWAYS_ON 贡献与宿主兜底入口。 */
-  public synchronized ContractResult enterSafeMode() {
+  public ContractResult enterSafeMode() {
+    // 先置安全模式标志：install() 在 registry 锁内检查它，标志之后不会再装入 optional 模块。
     safeMode.enterSafeMode();
     List<ModuleId> optionalInstalled = new ArrayList<>();
-    for (Entry entry : modules.values()) {
-      if (!entry.descriptor.alwaysOn() && entry.instance != null)
-        optionalInstalled.add(entry.descriptor.id());
+    synchronized (this) {
+      for (Entry entry : modules.values()) {
+        if (!entry.descriptor.alwaysOn() && entry.instance != null)
+          optionalInstalled.add(entry.descriptor.id());
+      }
     }
     for (ModuleId id : optionalInstalled) close(id, ModuleInstance.CloseReason.SAFE_MODE);
     diagnostics.report(ContractCodes.SAFE_MODE_ENTERED, "safe mode entered");

@@ -54,10 +54,14 @@ public record SafGrantRecord(
 
   /**
    * 重新授权（take 覆盖旧记录）时的旧状态快照；只出现在 PENDING 记录上。
-   * 崩溃清理成功或 abortTake 时恢复成 ACTIVE，避免一次失败的重新授权把旧 grant 弄丢。
+   * 崩溃清理成功或 abortTake 时恢复成 ACTIVE，避免一次失败的重新授权把旧 grant 弄丢
+   * （包括应用名/目录名缓存，不能因为一次失败的重新授权把列表显示名清空）。
    */
-  public record Previous(boolean readable, boolean writable, int acquired, long takenAt) {
+  public record Previous(
+      String app, String label, boolean readable, boolean writable, int acquired, long takenAt) {
     public Previous {
+      app = app == null ? "" : app;
+      label = label == null ? "" : label;
       if ((acquired & ~FLAGS) != 0) throw new IllegalArgumentException("GRANT_FLAGS_INVALID");
       if (takenAt < 0) throw new IllegalArgumentException("GRANT_TIME_INVALID");
     }

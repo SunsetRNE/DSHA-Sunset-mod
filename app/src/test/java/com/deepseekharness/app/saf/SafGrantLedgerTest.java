@@ -187,6 +187,38 @@ public class SafGrantLedgerTest {
   }
 
   @Test
+  public void abortingRetakeRestoresPreviousMetadata() {
+    SafGrantRecord original =
+        new SafGrantRecord(
+            SafGrantRecord.idOf(URI),
+            URI,
+            "旧应用",
+            "旧目录",
+            true,
+            true,
+            true,
+            SafGrantRecord.READ | SafGrantRecord.WRITE,
+            SafGrantRecord.State.ACTIVE,
+            1,
+            1_000L,
+            0,
+            SafGrantRecord.READ,
+            null);
+    SafGrantLedger ledger = SafTestSupport.ledger(original);
+
+    SafGrantLedger retaken =
+        ledger.beginTake(URI, "新应用", "新目录", SafGrantRecord.READ, SafGrantRecord.READ, 2_000L)
+            .ledger;
+    SafGrantLedger restored = retaken.abortTake(URI).ledger;
+
+    SafGrantRecord record = restored.findByUri(URI);
+    assertNotNull(record);
+    assertEquals("旧应用", record.app());
+    assertEquals("旧目录", record.label());
+    assertTrue(record.canRead());
+  }
+
+  @Test
   public void abortingFirstTakeRemovesRecordWithoutPrevious() {
     SafGrantLedger pending =
         SafGrantLedger.empty()

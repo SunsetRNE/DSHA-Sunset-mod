@@ -107,6 +107,39 @@ public class SafLedgerStoreTest {
   }
 
   @Test
+  public void saveRefusesFutureSchemaWithoutTouchingDisk() {
+    SafTestSupport.FakePreferences preferences = new SafTestSupport.FakePreferences();
+    preferences.putRaw(SafLedgerCodec.PREF_SCHEMA, "2");
+    preferences.putRaw("future.top", "value");
+    preferences.putRaw("grant." + SafGrantRecord.idOf(URI) + ".uri", URI);
+    java.util.Map<String, Object> before = new java.util.LinkedHashMap<>(preferences.getAll());
+    SafLedgerStore store = new SafLedgerStore(preferences);
+
+    assertFalse("未来 schema 必须拒绝写入，不能覆盖成 1", store.save(SafGrantLedger.empty()));
+    assertEquals(before, preferences.getAll());
+  }
+
+  @Test
+  public void saveKeepsStructurallyCorruptKnownFields() {
+    SafTestSupport.FakePreferences preferences = new SafTestSupport.FakePreferences();
+    String id = SafGrantRecord.idOf(URI);
+    preferences.putRaw(SafLedgerCodec.PREF_SCHEMA, "1");
+    preferences.putRaw(SafLedgerCodec.PREF_IDS, java.util.Set.of(id));
+    preferences.putRaw("grant." + id + ".uri", URI);
+    preferences.putRaw("grant." + id + ".state", "BROKEN");
+    preferences.putRaw("grant." + id + ".futureField", "keep");
+    SafLedgerStore store = new SafLedgerStore(preferences);
+    assertTrue("结构损坏记录只保留不激活", store.load().findByUri(URI) == null);
+
+    assertTrue(store.save(SafGrantLedger.empty()));
+
+    java.util.Map<String, ?> raw = preferences.getAll();
+    assertEquals("保留未知字段", "keep", raw.get("grant." + id + ".futureField"));
+    assertEquals("保留结构损坏记录的已知字段", URI, raw.get("grant." + id + ".uri"));
+    assertEquals("保留结构损坏记录的状态", "BROKEN", raw.get("grant." + id + ".state"));
+  }
+
+  @Test
   public void wrongValueTypesDoNotThrowAndFallBack() {
     SafTestSupport.FakePreferences preferences = new SafTestSupport.FakePreferences();
     preferences.putRaw(SafLedgerCodec.PREF_SCHEMA, "1");

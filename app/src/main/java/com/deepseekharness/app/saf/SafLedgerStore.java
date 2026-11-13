@@ -77,10 +77,19 @@ public final class SafLedgerStore {
     } catch (RuntimeException unreadable) {
       return false;
     }
+    Object currentSchema = current.get(SafLedgerCodec.PREF_SCHEMA);
+    if (currentSchema != null
+        && !Integer.toString(SafLedgerCodec.SCHEMA).equals(String.valueOf(currentSchema))) {
+      // 磁盘上是更新/损坏的 schema：本版本读不懂，也不能把 schema 覆盖成 1 后删掉未来字段。
+      return false;
+    }
+    // decode 标记为「结构损坏但需原样保留」的已知 key 不能在保存时被清掉。
+    Set<String> preserved = SafLedgerCodec.decode(current).preserved.keySet();
     SharedPreferences.Editor editor = preferences.edit();
     try {
       for (String key : current.keySet()) {
-        if (SafLedgerCodec.knownKey(key) && !desired.containsKey(key)) editor.remove(key);
+        if (desired.containsKey(key) || preserved.contains(key)) continue;
+        if (SafLedgerCodec.knownKey(key)) editor.remove(key);
       }
       for (Map.Entry<String, Object> entry : desired.entrySet()) {
         Object value = entry.getValue();

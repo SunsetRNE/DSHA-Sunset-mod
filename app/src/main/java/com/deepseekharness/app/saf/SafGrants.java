@@ -177,8 +177,9 @@ public final class SafGrants {
    * 不丢授权、不把半份状态当成功。
    */
   private static List<Grant> listInternal(Context context, boolean resolveMissingLabels) {
+    // 锁只保护账本就绪判定；旧路径会查询 Provider，必须在锁外执行（P2-4）。
+    if (!ledgerReady(context)) return legacyListInternal(context, resolveMissingLabels);
     synchronized (LOCK) {
-      if (!ledgerReadyLocked(context)) return legacyListInternal(context, resolveMissingLabels);
       cleanupLedgerLocked(context);
     }
     List<Grant> grants = new ArrayList<>();
@@ -231,16 +232,16 @@ public final class SafGrants {
   /** 桥接层用的轻量查找：不查应用名与目录名（那要跨进程问 Provider），只验系统券还在。 */
   public static Lookup lookup(Context context, String id) {
     if (id == null || id.isEmpty()) return new Lookup(null, "NO_GRANT");
+    if (!ledgerReady(context)) return legacyLookup(context, id);
     synchronized (LOCK) {
-      if (!ledgerReadyLocked(context)) return legacyLookup(context, id);
       cleanupLedgerLocked(context);
       SafGrantRecord record = ledgerStore(context).load().findById(id);
       if (record == null || record.state() != SafGrantRecord.State.ACTIVE)
         return new Lookup(null, "NO_GRANT");
+      Uri uri = safeParseUri(record.uri());
+      if (uri == null || !documentsTree(uri)) return new Lookup(null, "NO_GRANT");
       List<UriPermission> persisted = persisted(context);
       if (persisted == null) return new Lookup(null, "PERMISSION_STATE_UNAVAILABLE");
-      Uri uri = safeParseUri(record.uri());
-      if (uri == null) return new Lookup(null, "NO_GRANT");
       return new Lookup(grantFromRecord(record, flagsOf(persisted, uri)), null);
     }
   }
@@ -254,16 +255,24 @@ public final class SafGrants {
   public static AddResult add(Context context, Uri tree, boolean wantWrite) {
     if (!documentsTree(tree)) return AddResult.failed("NOT_TREE");
     if (ownProvider(context, tree)) return AddResult.failed("OWN_PROVIDER");
+    if (!ledgerReady(context)) return legacyAdd(context, tree, wantWrite);
     AddResult result;
     synchronized (LOCK) {
-      if (!ledgerReadyLocked(context)) return legacyAdd(context, tree, wantWrite);
       cleanupLedgerLocked(context);
       SafLedgerStore store = ledgerStore(context);
       SafGrantLedger ledger = store.load();
       String value = tree.toString();
       SafGrantRecord existing = ledger.findByUri(value);
-      if (existing != null && existing.state() == SafGrantRecord.State.RELEASING)
-        return AddResult.failed("STATE_UNAVAILABLE");
+      if (existing != null && existing.state() == SafGrantRecord.State.RELEASING) {
+        // 系统里已没有可释放位（例如上次释放成功但保存失败）→ 完成撤销后允许重新添加；
+        // 仍有位残留时保持失败关闭，等 cleanup 重试释放。
+        int held = flagsOf(persisted(context), tree);
+        if ((existing.acquired() & held) != 0) return AddResult.failed("STATE_UNAVAILABLE");
+        SafGrantLedger finished = ledger.finishRelease(value).ledger;
+        if (!store.save(finished)) return AddResult.failed("STATE_UNAVAILABLE");
+        ledger = finished;
+        existing = null;
+      }
       if (existing == null && ledger.size() >= MAX_TREES) return AddResult.failed("LIMIT");
       ContentResolver resolver = context.getContentResolver();
       List<UriPermission> persisted = persisted(context);
@@ -273,7 +282,14 @@ public final class SafGrants {
       long now = System.currentTimeMillis();
       // take 之前先把「原有位 + 本次可能新增的位」落盘：进程现在被杀也能在下次访问时清理。
       // 写盘失败时不能继续 take，否则会留下一张永远没人清理的系统授权。
-      SafGrantLedger.Change begun = ledger.beginTake(value, "", "", before, intent, now);
+      SafGrantLedger.Change begun =
+          ledger.beginTake(
+              value,
+              existing == null ? "" : existing.app(),
+              existing == null ? "" : existing.label(),
+              before,
+              intent,
+              now);
       if (!begun.accepted()) return AddResult.failed(begun.failure);
       if (!store.save(begun.ledger)) return AddResult.failed("STATE_UNAVAILABLE");
       int taken = takePersistable(resolver, tree, wantWrite);
@@ -321,29 +337,43 @@ public final class SafGrants {
    */
   public static void forget(Context context, Uri tree) {
     if (tree == null) return;
+    if (!ledgerReady(context)) {
+      legacyForget(context, tree);
+      return;
+    }
     synchronized (LOCK) {
-      if (!ledgerReadyLocked(context)) {
-        legacyForget(context, tree);
-        return;
-      }
       cleanupLedgerLocked(context);
       SafLedgerStore store = ledgerStore(context);
       SafGrantLedger ledger = store.load();
       String value = tree.toString();
       SafGrantRecord record = ledger.findByUri(value);
       if (record == null) return;
-      boolean released = releaseFlags(context.getContentResolver(), tree, record.acquired());
+      if (record.state() == SafGrantRecord.State.PENDING) {
+        // PENDING 里还有 before/intent；直接 forget 会丢清理信息，先 abort（恢复旧记录或删除）。
+        store.save(ledger.abortTake(value).ledger);
+        return;
+      }
+      List<UriPermission> persisted = persisted(context);
+      if (persisted == null) {
+        // 系统券状态不可读：不能把「未知」当「已释放」，保留 RELEASING 等下次重试。
+        store.save(ledger.beginRelease(value).ledger);
+        return;
+      }
+      // 只释放「本功能记的位 ∩ 当前系统仍持有的位」；系统已撤权时交集为 0，直接完成撤销。
+      int remaining = record.acquired() & flagsOf(persisted, tree);
+      boolean released =
+          remaining == 0 || releaseFlags(context.getContentResolver(), tree, remaining);
       store.save(released ? ledger.forget(value).ledger : ledger.beginRelease(value).ledger);
     }
   }
 
   public static void setWritable(Context context, Uri tree, boolean writable) {
     if (tree == null) return;
+    if (!ledgerReady(context)) {
+      legacySetWritable(context, tree, writable);
+      return;
+    }
     synchronized (LOCK) {
-      if (!ledgerReadyLocked(context)) {
-        legacySetWritable(context, tree, writable);
-        return;
-      }
       SafLedgerStore store = ledgerStore(context);
       SafGrantLedger ledger = store.load();
       SafGrantLedger.Change change = ledger.setUserWritable(tree.toString(), writable);
@@ -353,12 +383,21 @@ public final class SafGrants {
 
   /** 清理进程在 take/remember 之间死亡、或释放失败留下的记录；对旧命名空间做只读迁移。 */
   public static void cleanupPending(Context context) {
-    synchronized (LOCK) {
-      if (!ledgerReadyLocked(context)) {
+    if (!ledgerReady(context)) {
+      synchronized (LOCK) {
         legacyCleanupPendingLocked(context);
-        return;
       }
+      return;
+    }
+    synchronized (LOCK) {
       cleanupLedgerLocked(context);
+    }
+  }
+
+  /** 账本就绪判定单独加锁：调用方出锁后才走会查询 Provider 的旧路径或账本清理。 */
+  private static boolean ledgerReady(Context context) {
+    synchronized (LOCK) {
+      return ledgerReadyLocked(context);
     }
   }
 
@@ -438,7 +477,12 @@ public final class SafGrants {
               base == null
                   ? null
                   : new SafGrantRecord.Previous(
-                      base.readable(), base.writable(), base.acquired(), base.takenAt())));
+                      base.app(),
+                      base.label(),
+                      base.readable(),
+                      base.writable(),
+                      base.acquired(),
+                      base.takenAt())));
     }
     return SafGrantLedger.of(new ArrayList<>(records.values()), 1, epoch);
   }
@@ -463,7 +507,10 @@ public final class SafGrants {
         ledger = ledger.abortTake(record.uri()).ledger;
         changed = true;
       } else if (record.state() == SafGrantRecord.State.RELEASING) {
-        if (!releaseFlags(resolver, uri, record.acquired())) continue;
+        // 只重试「记录里的位 ∩ 当前系统仍持有的位」；系统撤权或上次已释放成功时交集为 0，
+        // 直接完成撤销，避免在空授权上反复 release 抛 SecurityException 永久卡住（P1）。
+        int remaining = record.acquired() & flagsOf(persisted, uri);
+        if (remaining != 0 && !releaseFlags(resolver, uri, remaining)) continue;
         ledger = ledger.finishRelease(record.uri()).ledger;
         changed = true;
       }

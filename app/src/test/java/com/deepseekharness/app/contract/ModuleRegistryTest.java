@@ -583,6 +583,78 @@ public class ModuleRegistryTest {
     assertTrue(registry.close(CARDS_ID, CloseReason.HOST_CLOSE).accepted());
   }
 
+  @Test
+  public void closeDoesNotHoldRegistryLockWhileInvalidatingLease() throws Exception {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, new SafeModeGate(), events);
+    assertTrue(registry.register(cardsDescriptor(), cardsFactory(new AtomicBoolean())).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease lease = registry.lease(CARDS_ID);
+    assertNotNull(lease);
+
+    ExecutorService pool = Executors.newCachedThreadPool();
+    CountDownLatch callbackHoldsLease = new CountDownLatch(1);
+    CountDownLatch callbackDone = new CountDownLatch(1);
+    try {
+      Future<?> callback =
+          pool.submit(
+              () ->
+                  lease.runIfActive(
+                      () -> {
+                        callbackHoldsLease.countDown();
+                        // 回调回头调用 registry：close 若持 registry 锁 invalidate 会死锁。
+                        registry.contributions();
+                        callbackDone.countDown();
+                      }));
+      assertTrue(callbackHoldsLease.await(2, TimeUnit.SECONDS));
+
+      Future<?> closer = pool.submit(() -> registry.close(CARDS_ID, CloseReason.USER_DISABLED));
+      ContractResult closed = (ContractResult) closer.get(5, TimeUnit.SECONDS);
+      assertTrue(closed.accepted());
+      callback.get(5, TimeUnit.SECONDS);
+      assertEquals("回调必须完整跑完", 0, callbackDone.getCount());
+      assertTrue(registry.contributions().isEmpty());
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void setEnabledDisableDoesNotHoldRegistryLockWhileInvalidatingLease() throws Exception {
+    ContractTestSupport.FakeSharedPreferences preferences =
+        new ContractTestSupport.FakeSharedPreferences();
+    List<DiagnosticsSink.Event> events = new ArrayList<>();
+    ModuleRegistry registry = ContractTestSupport.registry(preferences, new SafeModeGate(), events);
+    assertTrue(registry.register(cardsDescriptor(), cardsFactory(new AtomicBoolean())).accepted());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease lease = registry.lease(CARDS_ID);
+    assertNotNull(lease);
+
+    ExecutorService pool = Executors.newCachedThreadPool();
+    CountDownLatch callbackHoldsLease = new CountDownLatch(1);
+    try {
+      Future<?> callback =
+          pool.submit(
+              () ->
+                  lease.runIfActive(
+                      () -> {
+                        callbackHoldsLease.countDown();
+                        registry.contributions();
+                      }));
+      assertTrue(callbackHoldsLease.await(2, TimeUnit.SECONDS));
+
+      Future<?> closer = pool.submit(() -> registry.setEnabled(CARDS_ID, false));
+      ContractResult disabled = (ContractResult) closer.get(5, TimeUnit.SECONDS);
+      assertTrue(disabled.accepted());
+      callback.get(5, TimeUnit.SECONDS);
+      assertTrue(registry.contributions().isEmpty());
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
   private static void await(CountDownLatch latch) {
     try {
       latch.await();

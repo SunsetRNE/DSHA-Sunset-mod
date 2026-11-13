@@ -84,9 +84,10 @@ public final class SafCapabilityPolicy {
    */
   public static String localCanonicalProblem(String canonical, String rootfsCanonical) {
     if (canonical == null || canonical.isEmpty()) return LOCAL_OUTSIDE_ROOTFS;
+    // 拿不到 rootfs 时无法证明「仍在受控根内」：必须直接失败关闭。
+    // 不能依赖 deniedGuestView——它对 /sdcard、/tmp 等 rootfs 外路径会返回 false（fail-open）。
+    if (rootfsCanonical == null || rootfsCanonical.isBlank()) return LOCAL_OUTSIDE_ROOTFS;
     if (BridgePathPolicy.deniedGuestView(canonical, rootfsCanonical)) {
-      // 拿不到 rootfs 时无法证明「仍在受控根内」，按越界 fail-closed（而不是声称是凭据区）。
-      if (rootfsCanonical == null || rootfsCanonical.isEmpty()) return LOCAL_OUTSIDE_ROOTFS;
       String root = BridgePathPolicy.normalize(rootfsCanonical);
       String path = BridgePathPolicy.normalize(canonical);
       return BridgePathPolicy.startsWithPath(path, root) ? LOCAL_CREDENTIAL : LOCAL_OUTSIDE_ROOTFS;

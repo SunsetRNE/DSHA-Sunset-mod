@@ -78,6 +78,8 @@ public class SafLedgerCodecTest {
     SafGrantRecord record = decoded.ledger.findByUri(URI);
     assertNotNull(record);
     assertTrue(record.hasPrevious());
+    assertEquals("测试应用", record.previous().app());
+    assertEquals("测试目录", record.previous().label());
     assertTrue(record.previous().readable());
     assertTrue(record.previous().writable());
     assertTrue(decoded.warnings.isEmpty());
