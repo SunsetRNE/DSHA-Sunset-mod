@@ -1,12 +1,14 @@
-//! DSHA Rust 旁路 crate（R0 工具链骨架）。
+//! DSHA Rust 旁路 crate。
 //!
 //! 首期只允许三类封闭纯函数（ADR-0004 决定四）：单成员 gzip 编解码、只读摘要、
-//! 计划只读校验。本 crate **不接收路径字符串、不打开文件、不创建进程/线程、
-//! 不安装信号处理器、不写 stdout/stderr/logcat、不联网**。
+//! 计划只读校验。本 crate **不接收路径字符串、不打开文件（唯一的 fd 访问是由
+//! Kotlin 打开并核验的只读 `pread`）、不创建进程/线程、不安装信号处理器、
+//! 不写 stdout/stderr/logcat、不联网**。
 //!
-//! R0 只含 ABI 探针与模块骨架：`abiVersion` 返回 1，其余 §4.2 入口返回
-//! `NOT_IMPLEMENTED`，不接入任何生产路径。ABI 版本、符号名、错误码与上限在
-//! R0 冻结（R1–R3 不得改；变化 = 新 ABI 版本 + 新评审）。
+//! R0 只含 ABI 探针与模块骨架；R1 把 `digest(fdRange, algorithm)` 接上真实实现：
+//! `abiVersion` 返回 1，`digest` 做有界只读 SHA-256/SHA-1，其余 §4.2 入口仍返回
+//! `NOT_IMPLEMENTED`（R2/R3 范围）。ABI 版本、符号名、错误码与上限在 R0 冻结
+//! （R1–R3 不得改；变化 = 新 ABI 版本 + 新评审）。R1 不接入任何生产调用点。
 
 #![deny(unsafe_code)]
 #![deny(unsafe_op_in_unsafe_fn)]
@@ -17,8 +19,13 @@ pub mod digest;
 pub mod gzip;
 pub mod plan;
 
-// 唯一允许 `unsafe` 的边界（JNI 胶水；R1 起另含只读 fd 读取）。
-// 当前 R0 尚未出现 `unsafe` 代码，但模块豁免按 ADR-0004 决定四预先固定。
+// 唯一允许 `unsafe` 的两个边界（ADR-0004 决定四 / 方案 §4.8）：
+// - `jni`：JNI 胶水（R1 起调用 GetDirectBufferAddress/Capacity + ExceptionCheck）；
+// - `fd`：只读 fd 读取（pread；不 open/close、不接收路径）。
+// 其余模块必须是 `#![forbid(unsafe_code)]`，由 tools/check-rust-boundaries.py 核对。
+#[allow(unsafe_code)]
+mod fd;
+
 #[allow(unsafe_code)]
 mod jni;
 
@@ -87,17 +94,57 @@ mod tests {
     }
 
     #[test]
-    fn r0_exports_probe_and_not_implemented_stubs() {
+    fn exported_symbols_probe_and_remaining_stubs() {
         let env = std::ptr::null_mut();
         let class = std::ptr::null_mut();
         let abi = crate::jni::Java_com_deepseekharness_app_util_RustNative_abiVersion(env, class);
         assert_eq!(abi, ABI_VERSION);
-        // R0 的其余入口只是冻结符号名的占位：必须返回 NOT_IMPLEMENTED，不做任何副作用。
+        // 未实现的入口只是冻结符号名的占位：必须返回 NOT_IMPLEMENTED，不做任何副作用。
         assert_eq!(
             crate::jni::Java_com_deepseekharness_app_util_RustNative_archivePackCreate(
                 env, class, 6
             ),
             i64::from(ERR_NOT_IMPLEMENTED)
+        );
+        // digest 的标量参数校验发生在 JNI 调用之前：null env + 非法 fd 必须安全地
+        // 返回冻结错误码，不触碰 JNI、不崩溃（真实 JNI 调用由主机 JVM 差分覆盖）。
+        assert_eq!(
+            crate::jni::Java_com_deepseekharness_app_util_RustNative_digest(
+                env,
+                class,
+                -1,
+                0,
+                1,
+                crate::digest::ALGORITHM_SHA256,
+                std::ptr::null_mut(),
+            ),
+            i64::from(ERR_INVALID_ARGUMENT)
+        );
+        // 空指针 env（JVM 不会传入）在合法标量下按调用方错误处理，不调用 JNI。
+        assert_eq!(
+            crate::jni::Java_com_deepseekharness_app_util_RustNative_digest(
+                env,
+                class,
+                0,
+                0,
+                1,
+                crate::digest::ALGORITHM_SHA256,
+                std::ptr::null_mut(),
+            ),
+            i64::from(ERR_INVALID_ARGUMENT)
+        );
+        // 未知算法在 JNI 之前就被拒绝。
+        assert_eq!(
+            crate::jni::Java_com_deepseekharness_app_util_RustNative_digest(
+                env,
+                class,
+                0,
+                0,
+                1,
+                99,
+                std::ptr::null_mut(),
+            ),
+            i64::from(ERR_UNSUPPORTED_ALGORITHM)
         );
         // 全部导出符号都在 R0 冻结；这里逐一取函数地址，防止改名后只改 Rust 忘记 Java。
         let _ = (

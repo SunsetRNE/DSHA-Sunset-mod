@@ -134,6 +134,31 @@ FORBIDDEN_CODE = [
 ]
 UNSAFE_ALLOWED = {"crates/dsha-core/src/jni.rs", "crates/dsha-core/src/fd.rs"}
 
+# R1：只读 fd 边界的逐条允许命中（方案 §4.8 第 2 条“允许清单 + 理由”）。
+# 只对 fd.rs 放开；同文件另有严格负向检查（见 verify_fd_boundary），确保放开后
+# 仍然不能 open/write/close/打日志。
+FORBIDDEN_ALLOW = {
+    ("crates/dsha-core/src/fd.rs", r"std::fs"): "只读 fd 边界：ManuallyDrop<File> 视图与测试临时文件，不 open 生产路径",
+    ("crates/dsha-core/src/fd.rs", r"\bFile::"): "ManuallyDrop<File>::from_raw_fd / FileExt::read_at（不接管所有权）",
+    ("crates/dsha-core/src/fd.rs", r"std::io::"): "只读 fd 边界需要 std::io::ErrorKind 做 EINTR/短读分类；测试用 Write 建临时文件，不写 stdout/stderr",
+    ("crates/dsha-core/src/fd.rs", r"\bopen\s*\("): "仅测试代码重新只读打开临时文件；非测试行由 verify_fd_boundary 的 File::open/OpenOptions/write/close 负向检查兜住",
+}
+# fd.rs 的非测试行必须满足：只用 read_at 读、绝不 open/create/write/close/打日志。
+FD_PRODUCTION_FORBIDDEN = [
+    (r"File::open", "生产 fd 边界不得 open"),
+    (r"File::create", "生产 fd 边界不得 create"),
+    (r"OpenOptions", "生产 fd 边界不得 OpenOptions"),
+    (r"remove_file", "生产 fd 边界不得删文件"),
+    (r"\bwrite\s*\(", "生产 fd 边界只读"),
+    (r"write_all", "生产 fd 边界只读"),
+    (r"set_len", "生产 fd 边界不得改长度"),
+    (r"truncate", "生产 fd 边界不得截断"),
+    (r"stdout", "G8：不得写 stdout"),
+    (r"stderr", "G8：不得写 stderr"),
+    (r"\bprint!|\bprintln!|\beprintln!", "G8：不得打印"),
+    (r"\bclose\s*\(", "Rust 不 close 调用方 fd"),
+]
+
 
 def verify_sources(lock: dict) -> dict:
     sources = sorted((RUST / "crates").rglob("*.rs"))
@@ -147,9 +172,13 @@ def verify_sources(lock: dict) -> dict:
         tests = test_line_ranges(lines)
         for number, line in enumerate(lines):
             for pattern, reason in FORBIDDEN_CODE:
-                if re.search(pattern, line):
-                    raise GateError("RUST_BOUNDARY_SOURCE: %s:%d 命中 %s（%s）"
-                                    % (relative, number + 1, pattern, reason))
+                if not re.search(pattern, line):
+                    continue
+                allowed = FORBIDDEN_ALLOW.get((relative, pattern))
+                if allowed is not None:
+                    continue
+                raise GateError("RUST_BOUNDARY_SOURCE: %s:%d 命中 %s（%s）"
+                                % (relative, number + 1, pattern, reason))
             if re.search(r"\bunsafe\b", line) and relative not in UNSAFE_ALLOWED:
                 raise GateError("RUST_BOUNDARY_UNSAFE: %s:%d（只允许 %s）"
                                 % (relative, number + 1, sorted(UNSAFE_ALLOWED)))
@@ -174,6 +203,7 @@ def verify_sources(lock: dict) -> dict:
     lib = (RUST / "crates/dsha-core/src/lib.rs").read_text(encoding="utf-8")
     if "#![deny(unsafe_code)]" not in lib:
         raise GateError("RUST_BOUNDARY_UNSAFE: lib.rs 缺少 #![deny(unsafe_code)]")
+    verify_fd_boundary()
 
     # 依赖白名单：解析锁，不允许 git/path 依赖或清单外 crate。
     lock_data = tomllib.loads((RUST / "Cargo.lock").read_text(encoding="utf-8"))
@@ -190,6 +220,27 @@ def verify_sources(lock: dict) -> dict:
             raise GateError("RUST_DEPENDENCY_SOURCE: " + name)
     return {"sources": len(sources), "symbols": len(symbols_expected),
             "dependencies": len(expected)}
+
+
+def verify_fd_boundary() -> None:
+    """fd.rs 放开 std::fs/File 后的严格负向检查（只读 fd 边界不能写成通用文件 API）。"""
+    relative = "crates/dsha-core/src/fd.rs"
+    path = RUST / relative
+    if not path.is_file():
+        raise GateError("RUST_FD_BOUNDARY_MISSING: " + relative)
+    lines = code_lines(path)
+    tests = test_line_ranges(lines)
+    production = [(number, line) for number, line in enumerate(lines) if number not in tests]
+    joined = "\n".join(line for _, line in production)
+    if "from_raw_fd" not in joined:
+        raise GateError("RUST_FD_BOUNDARY: fd.rs 必须用 File::from_raw_fd 构造 ManuallyDrop 视图")
+    if "read_at" not in joined:
+        raise GateError("RUST_FD_BOUNDARY: fd.rs 必须用 FileExt::read_at 只读")
+    for number, line in production:
+        for pattern, reason in FD_PRODUCTION_FORBIDDEN:
+            if re.search(pattern, line):
+                raise GateError("RUST_FD_BOUNDARY: %s:%d 命中 %s（%s）"
+                                % (relative, number + 1, pattern, reason))
 
 
 def verify_build_inputs(lock: dict) -> dict:

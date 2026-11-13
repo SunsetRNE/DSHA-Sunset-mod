@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""构建并核验 Rust 旁路产物（R0 工具链骨架）。
+"""构建并核验 Rust 旁路产物（R1：`digest` 已接真实实现，不接生产调用点）。
 
 用法（一次只跑一个目标，构建串行）：
 
-    python3 tools/rust/build.py --host  [--check] [--out DIR] [--receipt FILE] [--expect SHA256]
-    python3 tools/rust/build.py --android --ndk PATH [--check] [--out DIR] [--receipt FILE] [--expect SHA256]
+    python3 tools/rust/build.py --host  [--check] [--out DIR] [--receipt FILE] [--expect SHA256] [--expect-lock]
+    python3 tools/rust/build.py --android --ndk PATH [--check] [--out DIR] [--receipt FILE] [--expect SHA256] [--expect-lock]
 
 `--check`：把产物重建到临时目录（不同源码目录 + 固定 `--remap-path-prefix`），
-逐字节比对两次构建；不一致即失败，不替换产物。`--expect` 与给定 SHA-256 比对，
-用于跨 runner 复现门禁（R1 起由 `rust/artifact.lock.json` 提供；R0 不写锁）。
-`--receipt` 写出 JSON 回执：工具链、源/锁/vendor 摘要、链接参数、产物摘要与
-ELF 静态检查结果。本脚本只构建，不安装、不签名、不修改 APK。
+逐字节比对两次构建；不一致即失败，不替换产物。`--expect` 与给定 SHA-256 比对。
+`--expect-lock` 读取 `rust/artifact.lock.json`：只比较可由
+(源码 + Cargo.lock + vendor + rustc + target + linker + linkArgs + profile) 重现的
+size/SHA-256；commit/runId/路径/mtime 等跨 runner 不可复现字段不入锁。按方案 §2.3，
+R1 在 3 次不同 runner 实例一致前保持 `status=pending-cross-run`（告警不失败），
+pin 之后不一致即失败。`--receipt` 写出 JSON 回执：工具链、源/锁/vendor 摘要、链接参数、
+产物摘要与 ELF 静态检查结果。本脚本只构建，不安装、不签名、不修改 APK。
 """
 from __future__ import annotations
 
@@ -29,6 +32,7 @@ ROOT = TOOLS.parent
 RUST = ROOT / "rust"
 LOCK = ROOT / "ci/rust-toolchain.lock.json"
 BUDGET = RUST / "native-budget.json"
+ARTIFACT_LOCK = RUST / "artifact.lock.json"
 sys.path.insert(0, str(TOOLS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from git_guard import git_output  # noqa: E402
@@ -251,8 +255,48 @@ def describe_artifact(path: Path, *, target: str, lock: dict, budget: dict) -> d
                 budget="WARN" if size > budget["rustWarnBytes"] else "PASS")
 
 
+def expect_from_lock(target: str, found: dict, info: dict) -> dict:
+    """按 `rust/artifact.lock.json` 核对产物摘要（方案 §2.3、§6 R1）。
+
+    只比较可复现的 size/SHA-256；`pending-cross-run` 只告警（尚未满足 3 次不同
+    runner 一致），`pinned` 不一致即失败。target 键：android 固定
+    `aarch64-linux-android`；宿主按 `rustc -vV` 的 host 三元组分别登记。
+    """
+    if not ARTIFACT_LOCK.is_file():
+        raise BuildError("RUST_ARTIFACT_LOCK_MISSING: " + str(ARTIFACT_LOCK))
+    lock = load_json(ARTIFACT_LOCK)
+    if lock.get("schema") != 1 or lock.get("kind") != "dsha-rust-artifact-lock":
+        raise BuildError("RUST_ARTIFACT_LOCK_SCHEMA: schema/kind 不符")
+    triple = "aarch64-linux-android" if target == "android" else found["host"]
+    entries = lock.get("artifacts")
+    if not isinstance(entries, dict) or triple not in entries:
+        raise BuildError("RUST_ARTIFACT_LOCK_TARGET: 未登记 target %s（已登记 %s）"
+                         % (triple, sorted(entries or {})))
+    entry = entries[triple]
+    if entry.get("file") != info["artifactFile"]:
+        raise BuildError("RUST_ARTIFACT_LOCK_FILE: %s != %s"
+                         % (entry.get("file"), info["artifactFile"]))
+    status = entry.get("status")
+    if status == "pinned":
+        size, sha = entry.get("size"), entry.get("sha256")
+        if not isinstance(size, int) or size <= 0 or not isinstance(sha, str) or len(sha) != 64:
+            raise BuildError("RUST_ARTIFACT_LOCK_INVALID: " + triple)
+        if info["size"] != size or info["sha256"] != sha:
+            raise BuildError("RUST_ARTIFACT_EXPECT_LOCK: %s size/sha256 %d/%s != lock %d/%s"
+                             % (triple, info["size"], info["sha256"], size, sha))
+        return {"status": "PASS", "target": triple, "size": size, "sha256": sha}
+    if status != "pending-cross-run":
+        raise BuildError("RUST_ARTIFACT_LOCK_STATUS: %s -> %s" % (triple, status))
+    print("::warning::RUST_ARTIFACT_LOCK_PENDING: %s 尚未跨 runner 固定（方案 §2.3：连续 3 次"
+          "不同 runner 实例一致后 pin；本次 size=%d sha256=%s）"
+          % (triple, info["size"], info["sha256"]))
+    return {"status": "PENDING", "target": triple, "size": info["size"],
+            "sha256": info["sha256"]}
+
+
 def receipt(*, found: dict, lock: dict, target: str, ndk: Path | None,
-            artifact: dict, reproducible: dict, jobs: int) -> dict:
+            artifact: dict, reproducible: dict, jobs: int,
+            expectation: dict) -> dict:
     vendor_sha, crate_sha = "", ""
     lock_data = load_json(LOCK)
     vendor_sha, crate_sha = source_manifest()[1:]
@@ -288,6 +332,7 @@ def receipt(*, found: dict, lock: dict, target: str, ndk: Path | None,
                                   "CARGO_NET_OFFLINE": "true"}},
         "artifact": artifact,
         "reproducible": reproducible,
+        "expectation": expectation,
     }
 
 
@@ -301,7 +346,9 @@ def main(argv: list[str]) -> int:
                         help="不同源码目录重建两次并逐字节比对（默认串行）")
     parser.add_argument("--out", type=Path, help="把最终 .so 复制到该目录")
     parser.add_argument("--receipt", type=Path, help="写出构建回执 JSON")
-    parser.add_argument("--expect", help="与给定 SHA-256 比对（跨 runner 复现门禁）")
+    parser.add_argument("--expect", help="与给定 SHA-256 比对（显式跨 runner 复现门禁）")
+    parser.add_argument("--expect-lock", action="store_true",
+                        help="与 rust/artifact.lock.json 的 target 条目比对（pending 只告警）")
     parser.add_argument("--jobs", type=int, default=2, help="CARGO_BUILD_JOBS（默认 2，避免叠加构建）")
     args = parser.parse_args(argv)
     target = "android" if args.android else "host"
@@ -347,15 +394,20 @@ def main(argv: list[str]) -> int:
         shutil.copyfile(artifact, args.out / artifact.name)
     info = describe_artifact(artifact, target=target, lock=lock, budget=budget)
     info["reproducible"] = reproducible["status"]
+    expectation = {"status": "NOT_RUN"}
+    if args.expect_lock:
+        expectation = expect_from_lock(target, found, info)
     if args.receipt:
         args.receipt.parent.mkdir(parents=True, exist_ok=True)
         data = receipt(found=found, lock=lock, target=target, ndk=ndk, artifact=info,
-                       reproducible=reproducible, jobs=args.jobs)
+                       reproducible=reproducible, jobs=args.jobs,
+                       expectation=expectation)
         args.receipt.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
                                 encoding="utf-8", newline="\n")
     print(json.dumps({"status": "PASS", "target": target, "artifact": str(artifact),
                       "size": info["size"], "sha256": info["sha256"],
-                      "reproducible": reproducible["status"], "budget": info["budget"]},
+                      "reproducible": reproducible["status"], "budget": info["budget"],
+                      "expectation": expectation["status"]},
                      ensure_ascii=False))
     return 0
 

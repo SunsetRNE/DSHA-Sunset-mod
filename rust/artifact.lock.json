@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "kind": "dsha-rust-artifact-lock",
+  "scope": "只固定可由 (源码 + Cargo.lock + vendor + rustc + target + linker + linkArgs + profile) 重现的产物大小与 SHA-256；commit/runId/runAttempt/绝对路径/mtime 等跨 runner 不可复现字段不入锁。target 键是编译目标三元组：Android 产物固定 aarch64-linux-android，宿主产物按 rustc -vV 的 host 三元组分别登记（不同架构的宿主产物天然不同，不互相冒充）。",
+  "pinPolicy": "按方案 §2.3：连续 3 次 CI（不同 runner 实例）产出相同 size/sha256 后，把 status 改为 pinned 并写入数值。status=pending-cross-run 时 tools/rust/build.py --expect-lock 只告警不失败；pinned 后不一致即构建失败。字段口径固定为 strip 后的 libdsha_rs.so 整文件字节，不含 receipt/路径/时间。",
+  "artifacts": {
+    "aarch64-linux-android": {
+      "file": "libdsha_rs.so",
+      "status": "pending-cross-run",
+      "size": null,
+      "sha256": null,
+      "evidence": "R1 未触发 rust-native（ci-package / release-production 的手动流程）；首次连续 3 次不同 runner 一致后填写。R0 的单 run 证据只有 receipt，不作为跨 run 固定值。"
+    },
+    "x86_64-unknown-linux-gnu": {
+      "file": "libdsha_rs.so",
+      "status": "pending-cross-run",
+      "size": null,
+      "sha256": null,
+      "evidence": "CI Source checks 的 rust-check 每次构建宿主 .so；待 3 次不同 runner 实例的 size/sha256 一致后填写。"
+    },
+    "aarch64-unknown-linux-gnu": {
+      "file": "libdsha_rs.so",
+      "status": "pending-cross-run",
+      "size": null,
+      "sha256": null,
+      "evidence": "本机 aarch64 容器的主机构建目标；与 CI x86_64 分开登记，本机证据不冒充跨 runner。"
+    }
+  }
+}
