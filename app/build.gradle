@@ -140,9 +140,9 @@ android {
         // versionCode / versionName 的构建基准仍写在 build.gradle；三条身份文件必须记录同一值，
         // 由 android 块之后的一致性检查兜底。Rebirth 将来同线递增时须同时改本文件、身份文件与
         // tools/generate-changelog.py / release_names.py / sign-release-apks.py 的解析（G1 另立）。
-        versionCode 362
+        versionCode 363
         // DSHA 修订号 + 固定的北京时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.5-20261113.1000-dsh0.2.2-rc.1"
+        versionName "0.2.1-rc.5-20261113.1700-dsh0.2.2-rc.1"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
