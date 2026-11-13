@@ -9,21 +9,21 @@
       "status": "pending-cross-run",
       "size": null,
       "sha256": null,
-      "evidence": "R1 未触发 rust-native（ci-package / release-production 的手动流程）；首次连续 3 次不同 runner 一致后填写。R0 的单 run 证据只有 receipt，不作为跨 run 固定值。"
+      "evidence": "本会话手机容器出网只允许 GitHub 端点，CI job 日志/artifact 经 blob.core.windows.net 被拒，无法读回跨 run 的 size/sha256；机制已接线（--expect-lock 已实测 PENDING/比较分支），pin 需在有可读日志的环境按同一口径补 3 次不同 runner 实例证据。 Android 产物另需触发 rust-native（ci-package/发布 dry-run）。"
     },
     "x86_64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
       "status": "pending-cross-run",
       "size": null,
       "sha256": null,
-      "evidence": "CI Source checks 的 rust-check 每次构建宿主 .so；待 3 次不同 runner 实例的 size/sha256 一致后填写。"
+      "evidence": "本会话手机容器出网只允许 GitHub 端点，CI job 日志/artifact 经 blob.core.windows.net 被拒，无法读回跨 run 的 size/sha256；机制已接线（--expect-lock 已实测 PENDING/比较分支），pin 需在有可读日志的环境按同一口径补 3 次不同 runner 实例证据。"
     },
     "aarch64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
       "status": "pending-cross-run",
       "size": null,
       "sha256": null,
-      "evidence": "本机 aarch64 容器的主机构建目标；与 CI x86_64 分开登记，本机证据不冒充跨 runner。"
+      "evidence": "本机 aarch64 容器主机构建：build.py --host --check 已证明不同源码目录字节一致（size 266768 / sha256 675fcac09ec03fb1404499c154408ea218146796d7821c9bb09069739462721c），但单机不算不同 runner 实例；跨 runner 证据与日志读取同左。"
     }
   }
 }

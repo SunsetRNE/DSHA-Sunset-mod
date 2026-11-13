@@ -186,6 +186,8 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 
 > 宿主：Android 14 / Ubuntu 24.04 aarch64 容器（PRoot），rustc/cargo 1.100.0，JDK 17.0.21；
 > 内存紧张期间按 Lead 要求 `CARGO_BUILD_JOBS=1 nice -n 10` 串行、一次一个构建，**本机不跑 Gradle**。
+> CI 首轮（`43363307125`，commit `5f3190f8`）暴露并已修复两处真实失败：① `format-java-tree` 的显式 adoption 清单缺 6 个新文件（exit 2）；
+> ② Java 测试漏声明受检异常（`MessageDigest.getInstance` 的 `NoSuchAlgorithmException`、`FileInputStream.getFD()` 的 `IOException`）→ CI 编译失败。修复后用 `javac` 直接复现/验证通过，见下表。
 
 | 项 | 结果 |
 |---|---|
@@ -200,6 +202,7 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 | `tools/check-rust-toolchain.py` / `tools/check-rust-vendor.py` | PASS（16 crate / 7,384,177 B / 782 文件） |
 | `tools/test-ci-workflows.py` | **57 tests PASS**（新增 rust_host 接线、ci-fast rust-differential、artifact.lock 口径） |
 | `tools/format-java-tree.py --check --jobs 1` | 首轮 FAIL（新增 6 个 Java 文件不在显式 adoption 清单；已补 `tools/java-format-files.json` 并用固定格式化器写回 3 个文件），复跑 PASS（0 need formatting） |
+| `javac` 编译 + `JUnitCore`（代替 Gradle，见下） | PASS：6 个 Java 文件编译通过；纯 JVM 套件 **14 tests OK**；带宿主 `.so` 的 `RustDigestDifferentialTest` **9 tests OK（0 skipped）**（`-Ddsha.rust.hostLib` + `--add-opens java.base/java.io`；同一批测试类、同一 host `.so`，只是不经过 Gradle 运行器） |
 | `tools/generate-third-party-notices.py --check` | PASS（Rust vendor 许可字节未变；无新增 crate） |
 | `tools/check-source-hygiene.py` / `tools/check-document-links.py` | PASS（LF/钉住 action/依赖身份；56 文档 / 1295 链接 / 0 error） |
 | `docs-check` CI | run `43363307113` success（本机推送后） |
@@ -208,7 +211,8 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 
 #### 0.5.6 未跑 / 受限（不得当作通过）
 
-- **本机 Gradle**：按 Lead 2026-11-13 内存紧急要求未跑 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；该差分用例的 CI 执行路径为 `_node-unit-tests.yml` 的 `rust_host`（release/package/full 调用方）与 `ci-fast` 的 `rust-differential`（Python 探针）。Gradle 编译/单测结果以 CI 回执为准。
+- **本机 Gradle**：按 Lead 2026-11-13 内存紧急要求未跑 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；改用仓库已有的固定 JDK 17 直接 `javac` + `org.junit.runner.JUnitCore` 跑同一批测试类（14 + 9 tests OK），因此编译/运行语义已覆盖，但**没有 Gradle 任务级回执**。Gradle 侧的 CI 执行路径为 `_node-unit-tests.yml` 的 `rust_host`（release/package/full 调用方）与 `ci-fast` 的 `rust-differential`（Python 探针）。
+- **CI job 日志/artifact 不可取**：本会话手机容器出网策略只允许 GitHub 端点，`gh run view --log` / artifact 下载被重定向到 `blob.core.windows.net` 并拒绝；因此无法读回 CI 内 `build.py` 的 size/SHA-256 输出来完成 `rust/artifact.lock.json` 的跨 run pin。机制已接线且 `pending-cross-run` 行为已实测，但 **pin 数值未取得，不得声称跨 runner 复现已验证**；需在有可读日志的环境按同一口径补 3 次证据。
 - **本机 Android 链接**：无 NDK（`/opt/android-sdk/ndk` 不存在），`tools/rust/build.py --android` 未跑；arm64 `.so` 首次链接/`DT_NEEDED`/APK 成员核验仍交 `ci-package`/发布 dry-run（与 R0 相同）。
 - **跨 run 产物 pin**：`rust/artifact.lock.json` 仍为 `pending-cross-run`；需要连续 3 次不同 runner 实例的 size/SHA-256 一致后才 pin（x86_64 宿主与 Android 产物分别等待 CI 证据）。
 - **真机/16 KB 页**：R3 签名 `.dev` 包范围，R1 不声明。

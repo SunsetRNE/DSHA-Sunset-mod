@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
@@ -110,7 +111,8 @@ public class RustDigestDifferentialTest {
   }
 
   private static void assertSameDigest(
-      FileInputStream stream, FileChannel channel, long offset, long length, int algorithm) {
+      FileInputStream stream, FileChannel channel, long offset, long length, int algorithm)
+      throws IOException {
     RustDigest.Result jvm = RustDigest.digestJvm(channel, offset, length, algorithm);
     RustDigest.Result rust =
         RustDigest.digestRust(rawFd(stream.getFD()), offset, length, algorithm);
@@ -305,7 +307,8 @@ public class RustDigestDifferentialTest {
   }
 
   @Test
-  public void jvmReferenceMatchesMessageDigestForTheSameFile() throws IOException {
+  public void jvmReferenceMatchesMessageDigestForTheSameFile()
+      throws IOException, NoSuchAlgorithmException {
     byte[] payload = patterned(1000);
     Path file = temporaryFile(payload);
     try (FileInputStream stream = new FileInputStream(file.toFile());

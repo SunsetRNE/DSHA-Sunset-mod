@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
@@ -78,7 +79,8 @@ public class RustDigestTest {
   }
 
   @Test
-  public void offsetsAndChunkBoundariesMatchMessageDigest() throws IOException {
+  public void offsetsAndChunkBoundariesMatchMessageDigest()
+      throws IOException, NoSuchAlgorithmException {
     byte[] payload = new byte[RustDigest.CHUNK * 3 + 17];
     for (int index = 0; index < payload.length; index++) {
       payload[index] = (byte) (index % 251);
@@ -174,7 +176,7 @@ public class RustDigestTest {
   }
 
   @Test
-  public void switchOffRunsTheWholeJvmPath() throws IOException {
+  public void switchOffRunsTheWholeJvmPath() throws IOException, NoSuchAlgorithmException {
     Path file = temporaryFile("0123456789".getBytes(StandardCharsets.US_ASCII));
     try (FileChannel channel = openRead(file)) {
       assertFalse(RustBackends.enabled());
