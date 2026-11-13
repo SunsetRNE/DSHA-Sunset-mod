@@ -125,9 +125,11 @@ pub fn validate(
 /// `read_at` 由 `crate::fd` 提供：只做 `pread`，不 `open`、不 `stat`、不改变
 /// 文件偏移。成功返回 `bytes_read == length`；短读与任何错误都返回负错误码。
 pub fn digest_fd(fd: i32, offset: i64, length: i64, algorithm: i32) -> Result<DigestResult, i32> {
-    let (_, length, algorithm) = validate(fd, offset, length, algorithm)?;
+    let (offset, length, algorithm) = validate(fd, offset, length, algorithm)?;
     digest_range(length, algorithm, |position, out| {
-        crate::fd::read_into(fd, position, out)
+        // `position` 是区间内的相对偏移；pread 的绝对偏移必须加上调用方 offset。
+        let current = offset.checked_add(position).ok_or(ERR_INVALID_ARGUMENT)?;
+        crate::fd::read_into(fd, current, out)
     })
 }
 

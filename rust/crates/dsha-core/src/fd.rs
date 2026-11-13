@@ -10,7 +10,6 @@
 //! 视为调用方错误（`ERR_INVALID_ARGUMENT`）；其它 I/O 错误为 `ERR_INTERNAL`。
 //! 读到少于请求字节（含提前 EOF）不算错误，由 `digest` 循环判为
 //! `ERR_SHORT_READ`。
-#![allow(unsafe_code)]
 
 use std::fs::File;
 use std::io;
@@ -65,6 +64,7 @@ fn map_io_error(error: &io::Error) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sha2::Digest as _;
     use std::io::Write;
     use std::os::fd::AsRawFd;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -124,6 +124,31 @@ mod tests {
             read_into(i32::MAX, 0, &mut [0u8; 4]).err(),
             Some(ERR_INVALID_ARGUMENT)
         );
+    }
+
+    #[test]
+    fn digest_fd_honours_the_requested_offset() {
+        // 回归：digest_range 传给 provider 的是区间内相对偏移，digest_fd 必须加上
+        // 调用方 offset 才是 pread 的绝对偏移（R1 首次运行时曾漏加）。
+        let file = scratch_file(b"0123456789");
+        let fd = file.as_raw_fd();
+        let result = crate::digest::digest_fd(fd, 2, 8, crate::digest::ALGORITHM_SHA256)
+            .unwrap_or_else(|code| panic!("摘要失败: {}", code));
+        let expected = sha2::Sha256::digest(b"23456789");
+        assert_eq!(result.digest(), expected.as_slice());
+        assert_eq!(result.bytes_read(), 8);
+        // SHA-1 同一边界，避免只修一种算法。
+        let sha1 = crate::digest::digest_fd(fd, 5, 3, crate::digest::ALGORITHM_SHA1)
+            .unwrap_or_else(|code| panic!("摘要失败: {}", code));
+        let expected_sha1 = sha1_digest(b"567");
+        assert_eq!(sha1.digest(), expected_sha1.as_slice());
+    }
+
+    fn sha1_digest(data: &[u8]) -> [u8; 20] {
+        use sha1::Digest as _;
+        let mut hasher = sha1::Sha1::new();
+        hasher.update(data);
+        hasher.finalize().into()
     }
 
     #[test]

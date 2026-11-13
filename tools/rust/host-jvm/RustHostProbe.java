@@ -304,10 +304,13 @@ public final class RustHostProbe {
       RustDigest.Result rust =
           RustDigest.digestRust(
               rawFd(stream3.getFD()), 10, 500, RustDigest.ALGORITHM_SHA256);
+      // MessageDigest.digest() 会重置状态：先取一次十六进制，避免 detail 参数里
+      // 第二次调用变成空摘要（R1 首次运行时这里误报 expected=e3b0c44…）。
+      String expectedHex = hex(expected.digest());
       check(
           "messageDigestReference",
-          rust.ok() && hex(expected.digest()).equals(rust.digestHex()),
-          "expected=" + hex(expected.digest()));
+          rust.ok() && expectedHex.equals(rust.digestHex()),
+          "expected=" + expectedHex + " rust=" + rust.digestHex());
     }
 
     finish();
