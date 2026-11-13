@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "204355ea687606c1454dd8e0b72fc10ba3b09e94a2aacaf9cf364b9fc8e345a5",
+  "runtimeId": "9583f202fc0e6675997f54c2a1db7dee0d3646a8119d10d9361c85ac5fe63d70",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -668,7 +668,7 @@
     "retired-market-optional-patch.json": "1ee36d857b05b811cb60ed4ba80e1a4b472cc0642dc9a8f3ebca4d0a26774599",
     "runtime-patches.json": "625fcf127e30b993932dc2f31248cc0fa9cc8b565eb1d0dfbbedb19c4f59177e",
     "runtime-tools.json": "dc6b58c0e3d514ff56242646d5db222d0e2b826321aa6ef1343ac2a405ab808b",
-    "runtime-trial-entry.js": "1a5ed1248642844b3abc3205c5a44918f7626b4bec27d59e5e654cb1d1924d6a",
+    "runtime-trial-entry.js": "be6685a1ad16f0dd85771039b581562a6081fcc37bacfeecf9b80d073892fb35",
     "runtime-trial-page.js": "42a6230c2868982d2c8679a783ff7a5a178cf5f54d4cee8772bfbd1668bf758f",
     "runtime-trial-plugin.js": "144d4455964b4d9fbda61dbfead49cc483cf84a59f80239ce7c4585825c7db87",
     "session-interaction-patch.json": "27880ee94d3952ab697cc7d75cab69bae074d9c1d74fe6ce9e36de51432ff687",
