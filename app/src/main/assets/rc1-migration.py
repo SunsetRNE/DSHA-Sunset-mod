@@ -75,6 +75,9 @@ def emit(phase, status, **data):
     """
     payload = dict(resultVersion=RESULT_VERSION, phase=phase, status=status,
                    sourceObjectIdentity='unknown', **data)
+    warnings = payload.get('warnings')
+    if isinstance(warnings, list) and len(warnings) > 32:
+        payload['warnings'] = warnings[:32] + ['WARNINGS_TRUNCATED']
     if _STARTUP_ID: payload.setdefault('startupId', _STARTUP_ID)
     payload.setdefault('verificationScope', 'none')
     payload.setdefault('contentCopyStatus', 'unknown')

@@ -1429,6 +1429,10 @@ final class WebLifecycleController {
                 proot.finalizeRc1MigrationResult(startupId), "RC1_FINALIZE");
           }
 
+          public String startupId() {
+            return startupId;
+          }
+
           public void migrationLog(String value) {
             state.diagnostics.message(generation, value);
           }

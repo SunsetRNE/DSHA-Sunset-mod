@@ -70,6 +70,35 @@ public class Rc1MigrationResultTest {
   }
 
   @Test
+  public void resultMustBindTheCurrentStartupTicket() {
+    Map<String, Object> bound =
+        Map.of(
+            "resultVersion", 3L,
+            "startupId", "startup-a",
+            "status", "prepared",
+            "verificationScope", "current",
+            "contentCopyStatus", "verified");
+    assertTrue(Rc1MigrationResult.boundTo(bound, "startup-a"));
+    assertFalse(Rc1MigrationResult.boundTo(bound, "startup-b"));
+    assertFalse(Rc1MigrationResult.boundTo(bound, null));
+    assertFalse(
+        Rc1MigrationResult.boundTo(
+            Map.of(
+                "resultVersion", 3L,
+                "status", "prepared",
+                "verificationScope", "current",
+                "contentCopyStatus", "verified"),
+            "startup-a"));
+    assertFalse(
+        Rc1MigrationResult.boundTo(
+            Map.of(
+                "resultVersion", 2L,
+                "startupId", "startup-a",
+                "status", "prepared"),
+            "startup-a"));
+  }
+
+  @Test
   public void historicalCompletionAllowsOnlyOrdinaryStartWithoutMigrationWrites() {
     assertTrue(Rc1MigrationResult.allowsStart(historical()));
     // 历史完成不是本次核验，缺 scope/copy 或字段类型不对都不能授予启动。

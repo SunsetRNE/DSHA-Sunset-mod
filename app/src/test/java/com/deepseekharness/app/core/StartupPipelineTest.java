@@ -20,7 +20,8 @@ public class StartupPipelineTest {
     long clock = 1_000;
     String casReceipt = receipt(false, 0, "");
     String migrationReceipt =
-        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"historical-complete\","
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"fixture\","
+            + "\"status\":\"historical-complete\","
             + "\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\","
             + "\"settingsImportStatus\":\"verified-historical\"}";
     BoundedProcessRunner.Result casOutcome;
@@ -240,11 +241,11 @@ public class StartupPipelineTest {
         historical.messages.stream().noneMatch(line -> line.contains("DSHA_RC1_MIGRATION")));
     for (String receipt :
         List.of(
-            "DSHA_RC1_MIGRATION={}",
-            "DSHA_RC1_MIGRATION={\"resultVersion\":2,\"status\":\"prepared\",\"protectionComplete\":true}",
-            "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"prepared\",\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\"}",
-            "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"unknown\",\"reason\":\"STALE_STARTUP_BINDING\",\"verificationScope\":\"none\",\"contentCopyStatus\":\"unknown\"}",
-            "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"prepared\",\"verificationScope\":\"current\",\"contentCopyStatus\":\"unknown\"}")) {
+            "DSHA_RC1_MIGRATION={\"startupId\":\"fixture\"}",
+            "DSHA_RC1_MIGRATION={\"resultVersion\":2,\"startupId\":\"fixture\",\"status\":\"prepared\",\"protectionComplete\":true}",
+            "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"fixture\",\"status\":\"prepared\",\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\"}",
+            "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"fixture\",\"status\":\"unknown\",\"reason\":\"STALE_STARTUP_BINDING\",\"verificationScope\":\"none\",\"contentCopyStatus\":\"unknown\"}",
+            "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"fixture\",\"status\":\"prepared\",\"verificationScope\":\"current\",\"contentCopyStatus\":\"unknown\"}")) {
       Fixture blocked = new Fixture();
       blocked.migrationReceipt = receipt;
       assertThrows(
@@ -253,11 +254,25 @@ public class StartupPipelineTest {
       assertFalse(blocked.calls.contains("activate"));
       assertFalse(blocked.calls.contains("unlock"));
       assertTrue(blocked.calls.contains("migration"));
-      if (!receipt.startsWith("DSHA_RC1_MIGRATION={}"))
-        assertTrue(
-            "unknown/不完整迁移结果必须可见",
-            blocked.messages.stream().anyMatch(line -> line.contains("DSHA_RC1_MIGRATION")));
+      assertTrue(
+          "unknown/不完整迁移结果必须可见",
+          blocked.messages.stream().anyMatch(line -> line.contains("RC1_MIGRATION")));
     }
+  }
+
+  @Test
+  public void receiptFromAnotherStartupCannotAuthorizeThisStartup() throws Exception {
+    Fixture stale = new Fixture();
+    stale.migrationReceipt =
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"previous-startup\","
+            + "\"status\":\"prepared\",\"verificationScope\":\"current\","
+            + "\"contentCopyStatus\":\"verified\",\"protectionComplete\":true}";
+    assertThrows(
+        IOException.class, () -> new StartupPipeline(stale, stale).prepare(12, false, stale));
+    assertTrue(
+        stale.messages.stream().anyMatch(line -> line.contains("RC1_MIGRATION_STARTUP_BINDING")));
+    assertFalse(stale.calls.contains("activate"));
+    assertFalse(stale.calls.contains("unlock"));
   }
 
   @Test
@@ -265,9 +280,10 @@ public class StartupPipelineTest {
       throws Exception {
     Fixture prepared = new Fixture();
     prepared.migrationReceipt =
-        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"status\":\"prepared\","
-            + "\"verificationScope\":\"current\",\"contentCopyStatus\":\"verified\","
-            + "\"protectionComplete\":true,\"settingsImportStatus\":\"pending\"}";
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"fixture\","
+            + "\"status\":\"prepared\",\"verificationScope\":\"current\","
+            + "\"contentCopyStatus\":\"verified\",\"protectionComplete\":true,"
+            + "\"settingsImportStatus\":\"pending\"}";
     assertEquals("web", new StartupPipeline(prepared, prepared).prepare(11, false, prepared));
     assertTrue(prepared.messages.stream().noneMatch(line -> line.contains("DSHA_RC1_MIGRATION")));
   }

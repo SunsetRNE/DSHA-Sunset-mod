@@ -14,6 +14,11 @@ final class WebReadyTasks {
 
     String finalizeMigration() throws Exception;
 
+    /** 当前启动票据；非空时迁移回执必须绑定它。 */
+    default String startupId() {
+      return null;
+    }
+
     void migrationLog(String value);
 
     void migrationNeedsAttention();
@@ -59,6 +64,12 @@ final class WebReadyTasks {
       String result = ports.finalizeMigration();
       if (!ports.current()) return;
       Map<String, Object> receipt = Rc1MigrationResult.parse(result);
+      String startupId = ports.startupId();
+      if (startupId != null && !Rc1MigrationResult.boundTo(receipt, startupId)) {
+        ports.migrationLog("RC1_MIGRATION_STARTUP_BINDING");
+        if (ports.current()) ports.migrationNeedsAttention();
+        return;
+      }
       // 历史完成只是无迁移写入的普通启动；pending/unknown 不得静默，也不能被当成
       // 本次核验或自动重试许可。
       if (!Rc1MigrationResult.isRoutineReceipt(receipt)) {

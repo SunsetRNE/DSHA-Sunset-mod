@@ -12,6 +12,7 @@ public class WebReadyTasksTest {
             + "\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\","
             + "\"settingsImportStatus\":\"verified-historical\"}";
     Runnable async;
+    String startupId;
     java.util.List<String> logs = new java.util.ArrayList<>();
     java.util.List<Long> delays = new java.util.ArrayList<>();
 
@@ -30,6 +31,10 @@ public class WebReadyTasksTest {
 
     public String finalizeMigration() {
       return result;
+    }
+
+    public String startupId() {
+      return startupId;
     }
 
     public void migrationLog(String value) {
@@ -95,6 +100,28 @@ public class WebReadyTasksTest {
     gap.async.run();
     assertEquals(1, gap.notices);
     assertEquals(1, gap.logs.size());
+  }
+
+  @Test
+  public void receiptMustBindTheCurrentStartupTicket() {
+    Fake mismatched = new Fake();
+    mismatched.startupId = "current-startup";
+    WebReadyTasks.run(false, false, mismatched);
+    mismatched.async.run();
+    assertEquals(1, mismatched.logs.size());
+    assertEquals("RC1_MIGRATION_STARTUP_BINDING", mismatched.logs.get(0));
+    assertEquals(1, mismatched.notices);
+    Fake bound = new Fake();
+    bound.startupId = "current-startup";
+    bound.result =
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"current-startup\","
+            + "\"status\":\"historical-complete\",\"verificationScope\":\"historical\","
+            + "\"contentCopyStatus\":\"verified\","
+            + "\"settingsImportStatus\":\"verified-historical\"}";
+    WebReadyTasks.run(false, false, bound);
+    bound.async.run();
+    assertTrue(bound.logs.isEmpty());
+    assertEquals(0, bound.notices);
   }
 
   @Test

@@ -38,6 +38,14 @@ public final class Rc1MigrationResult {
     return Integer.valueOf(3).equals(version) || Long.valueOf(3).equals(version);
   }
 
+  /** 回执必须绑定当前请求的 startupId；历史证据不能跨启动复用为本次结果。 */
+  public static boolean boundTo(Map<String, Object> value, String startupId) {
+    return versionThree(value)
+        && startupId != null
+        && !startupId.isEmpty()
+        && startupId.equals(text(value, "startupId"));
+  }
+
   public static boolean isHistorical(Map<String, Object> value) {
     return versionThree(value)
         && "historical-complete".equals(text(value, "status"))
