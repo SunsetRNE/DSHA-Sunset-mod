@@ -280,6 +280,7 @@ public class StartupPipelineTest {
             "lan-stop",
             "stop",
             "release-prior",
+            "wait-prior-exit",
             "tools",
             "recover",
             "cleanup",

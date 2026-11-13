@@ -198,12 +198,17 @@ public class ProotBootstrap {
     } catch (IOException error) {
       throw new IllegalStateException("NATIVE_LIBRARY_PREPARATION_FAILED", error);
     }
-    execution.ensurePatches(output);
+    ensureDshRuntimePatches(output);
   }
 
   /** Prepares the shared current recipe chain for cold, managed and installed roots. */
   public void ensureDshRuntimePatches() {
-    execution.ensurePatches();
+    ensureDshRuntimePatches(null);
+  }
+
+  /** 启动观测版：运行工具准备的命中/失效随同一次准备进入启动诊断。 */
+  public void ensureDshRuntimePatches(java.util.function.Consumer<String> output) {
+    execution.ensurePatches(output);
   }
 
   public static final String BUILTIN_REGISTER_SCRIPT = GuestPluginScripts.BUILTIN_REGISTER_SCRIPT;
