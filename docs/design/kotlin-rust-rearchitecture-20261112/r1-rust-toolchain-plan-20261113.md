@@ -1,6 +1,6 @@
 # R1 Rust 工具链与首期旁路接入方案（A3 前期设计）
 
-> 状态：**R0 已合入 `main`（`75924add`，build362）；R1 已实施（`feat/rust-r1`：`digest` 只读摘要 + JVM 桥/差分/一键回退，默认关闭、不接生产调用点；不可合并，待 Lead 逐行评审、非实现者评审与用户授权）**。设计评审完成，Q1–Q6 已决。日期：2026-11-13（Lead 决定 2026-11-13，见 §0；R0 回执见 §0.4、R1 回执见 §0.5）。
+> 状态：**R0 已合入 `main`（`75924add`，build362）；R1 已实施（`feat/rust-r1`：`digest` 只读摘要 + JVM 桥/差分/一键回退，默认关闭、不接生产调用点）。实现 head `b2694fcd` 的 Source checks run [`43368460040`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43368460040) 8/8 job 全绿，且 `--expect-lock` 以 pinned 摘要通过；本文件所在提交仅补回执，不改实现。**不可合并**，待 Lead 逐行评审、非实现者评审与用户授权。设计评审完成，Q1–Q6 已决。日期：2026-11-13（Lead 决定 2026-11-13，见 §0；R0 回执见 §0.4、R1 回执见 §0.5）。
 > 基线：`origin/main` = `2c879f1b`（build360）；起草期间主线已推进到 `faab36c5`（build361），差异仅为版本号与 A1 文档，`app/build.gradle` 的 NDK/ABI/jniLibs 段无变化（本文件所有实测数字仍以 `2c879f1b` 为准）。
 > 依据：[ADR-0004 决定四/决定二/失败域矩阵](../../adr/0004-kotlin-rust-direction.md)、[可行性评审主稿 §6](README.md)、[评审 B 草稿](drafts/02-rust-core.md)、[迭代路径 §4/§5/§8/§9](iteration-roadmap-20261112.md)、[AGENTS 技术约束](../../../AGENTS.md)、[BUILD](../../../BUILD.md)、[CI 发布](../../ci-release.md)、[固定构建输入](../../fixed-build-inputs.md)。
 > 边界：本文只写设计与实测依据。**不修改构建文件、代码、CI、版本文件、文档索引**；索引与看板条目在回报里交给 Lead 统一添加（避开 build361 冲突）。本文件**不等同于 A3 开工或 A3 出口**。
@@ -234,6 +234,7 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 | [Source checks `43363307125`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43363307125) | `5f3190f8` | **failure** | `rust-check` / `rust-differential` / `contracts` / `kotlin-format` / `inputs` 成功；`java-format` 失败（新文件未进 adoption 清单）、`host-fast` / `unit-source` 失败（Java 测试漏声明受检异常 → 编译失败）；均已修复 |
 | [Source checks `43366337116`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43366337116) | `0e15a157` | **failure** | Java 编译已修复；`host-fast` / `unit-source` 改为 Gradle **脚本编译**失败（Groovy 4 嵌套闭包 `it ->` 缺陷，见 §0.5.5 引言）；其余 6 job 成功 |
 | [Source checks `43367282088`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43367282088) | `5c988bf5` | **success（8/8 jobs）** | `contracts` / `java-format` / `kotlin-format` / `rust-check` / `rust-differential` / `inputs` / `unit-source` / `host-fast` 全绿；`unit-source` 为 source-only（差分用例按 `Assume` 跳过，符合该模式）；Rust 差分在 CI 真实执行 32/32 checks |
+| [Source checks `43368460040`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43368460040) | `b2694fcd` | **success（8/8 jobs）** | pin 后的验证 run：`rust-check` 的 `--expect-lock` 输出 `expectation: PASS`（size=284816 / sha256 `d57d8130…` 与 pinned 值一致，第 4 个 runner 实例）；其余 job 全绿 |
 
 **rust-check 的主机产物跨 runner 一致性（3 次不同 runner 实例）**：三次 run 的 `rust-check` 各自从零构建
 宿主目标 `.so`，`tools/rust/build.py --host --expect-lock` 输出完全一致：
@@ -246,7 +247,9 @@ run 43367282088 → size=284816  sha256=d57d8130136f529945e91184bb7577ba42f6716b
 
 按 §2.3 满足“连续 3 次不同 runner 实例字节一致”，因此 `rust/artifact.lock.json` 的
 `x86_64-unknown-linux-gnu` 条目从 `pending-cross-run` 改为 **pinned**（仍是 strip 后整文件
-size/SHA-256 口径；runId/路径/时间不入锁）。Android（`aarch64-linux-android`）与本地 aarch64 宿主条目
+size/SHA-256 口径；runId/路径/时间不入锁）。**pin 后验证**：commit `b2694fcd` 的 run
+`43368460040`（第 4 个 runner 实例）在 `rust-check` 日志里输出
+`"expectation": "PASS"`，证明 pinned 摘要门禁真实生效（比较分支不是空跑）。Android（`aarch64-linux-android`）与本地 aarch64 宿主条目
 **仍为 pending**：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
 
 **仍未覆盖**：`rust-native` 的 arm64 交叉链接 / APK 成员门禁 / 真机与 16 KB 页（R3）；Gradle 的
