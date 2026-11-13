@@ -154,3 +154,22 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105e.zip \
 - [`tools/test-ci-assets.py`](../tools/test-ci-assets.py)：打包/恢复成员集合与 pin 校验回归。
 - [`app/src/main/assets/runtime-descriptor.json`](../app/src/main/assets/runtime-descriptor.json)、[`tools/ci-build-inputs.lock.json`](../tools/ci-build-inputs.lock.json)、
   [`app/src/main/assets/adb-wheels.lock.json`](../app/src/main/assets/adb-wheels.lock.json)、[`tools/recovery-runtime/lock.json`](../tools/recovery-runtime/lock.json)：逐项 pin 来源。
+
+## build364 状态：recipe provenance 变化但归档字节不变（候选 bundle 未上传）
+
+- 触发：K0（`eec6233c`）修改了 `tools/runtime_input_contract.py`。该文件是 `tools/build-dsh-runtime.py` 的 recipe input，因此 `dsh-runtime.inputs.json` 的 `inputs` 摘要与 `fixed-inputs-20261105e` 中的旧 provenance 不再一致；`ci-package` 的 `rebuild_runtime:false` 会在 `prepare-standard-assets.py` 的 provenance 校验处按设计 fail-closed。`dsh-runtime.bin` 归档本身不因该 recipe 摘要变化而改变。
+- build364 本机重建（`python3 tools/prepare-dsh-runtime.py --cache <cache>`，锁不变）实测：
+  - `app/src/main/assets/dsh-runtime.bin` SHA-256 仍为 `c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe`（与旧包一致）；
+  - `app/src/main/assets/dsh-runtime.inputs.json` 更新（仅 `tools/runtime_input_contract.py` 一项 recipe 摘要变化），随 build364 提交；
+  - `prepare-runtime-descriptor.py --write/--check` 仍为 `bd0016c3…`（205 资产 / 489 启动输入），版本提升不改 runtimeId。
+- 本机候选 bundle（由 `python3 tools/ci-assets.py --pack` 生成，`verify_sources` 通过；**尚未上传，故 `ci/sunset-inputs.lock.json` 不更新**）：
+  - 文件：`dsha-a-su-fixed-inputs-20261113-build364.zip`（仅本机 `/root/.cache/dsha-inputs/build364/`，不入 git）
+  - bytes：`716787167`
+  - SHA-256：`2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`
+- 取用方式：
+  - `release-production.yml`：`inputs` 节点固定 `rebuild_runtime: true`，还原任一固定输入后按 npm 锁重建 `dsh-runtime.bin` + `dsh-runtime.inputs.json` 并重写 `runtime-descriptor.json`；旧 bundle 的 provenance 会被重建覆盖，因此 **build364 正式发布不依赖新 bundle**。
+  - `ci-package.yml`（手动）：`rebuild_runtime: false`，只还原 bundle 后做描述符/第三方声明/原生可复现检查，因此必须使用新的、已上传的 bundle，并以显式 `asset_bundle_url` + `asset_bundle_sha256` 触发。
+- 上传与锁更新（发布执行者/Lead 确认后）：
+  1. 用新 tag（建议 `fixed-inputs-20261113`）创建 prerelease 并上传上述候选 bundle；
+  2. 更新 `ci/sunset-inputs.lock.json` 的 `url` / `sha256` / `release` / `asset` / `bytes`，同步 `tools/test-sunset-ci-inputs.py` 断言；
+  3. `ci-assets.py --url … --sha256 …` 实际还原一次并跑 `tools/test-ci-assets.py`；在此之前保持旧锁，不能只改锁不核对字节。
