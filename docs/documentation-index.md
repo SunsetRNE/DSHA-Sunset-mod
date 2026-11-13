@@ -20,6 +20,7 @@ build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)
 | [ADB / Root / Shizuku 权限架构](device-permissions-architecture.md) | 系统权限、特权通道、无障碍、自有审批、服务与撤销、故障排查 |
 | [安卓授权申请现状与厂商扩展准备](design/vendor-permissions-20261113/README.md) | 现有权限字段/流程清单、AOSP 与小米/OPPO/vivo/荣耀/三星差异、开发性隐藏 API 基准线、模块化字段与验证计划；2026-11 资料整理，未真机 |
 | [应用内自动缓存回收评估](design/cache-reclaim-20261113/README.md) | 存储缓存与内存两种口径、现有清理资产与缺口、AOSP/Chromium/cacache/pnpm/Gradle 机制、开发属性编译门控与三档回收方案；设计评估，未实现 |
+| [DSH 插件管理模块评估：安装/卸载/更新/读取/守护与壳侧状态缓冲](design/plugin-management-alignment-20261113/README.md) | DSH 0.2.2-rc.1 的 bundle/entry 定义与管理面、壳侧六层状态缓冲（目录快照/展示快照/心跳/激活账本/操作回执/UI）、五个 P1 对齐缺口与 P0–P4 补全切片；只读评估，未实现 |
 | [环境、数据与插件机制](runtime-data-plugin-architecture.md) | 解压启动、正常/安全/应急、受管更新、pnpm/插件事务、凭据、备份与恢复 |
 | [运行引擎与运行态](runtime-engines.md) | 当前proot/proroot、DSHA v1.1.6历史、vendor版本、loader/shim、退出监督与兼容边界 |
 | [端口与网络](ports-and-networking.md) | 自动/手动Web端口、备用本机记忆、3090桥/ADB/LAN分域、当前重试接入边界 |
