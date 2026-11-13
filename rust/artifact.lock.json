@@ -13,10 +13,10 @@
     },
     "x86_64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
-      "status": "pending-cross-run",
-      "size": null,
-      "sha256": null,
-      "evidence": "R1 评审修复修改了 crate 源码（jni.rs ExceptionClear、边界/测试等），旧 3-run pin（284816 / d57d8130…）已失效；按 §2.3 重新累计 3 次不同 runner 实例后再 pin。"
+      "status": "pinned",
+      "size": 284992,
+      "sha256": "5af9ebc1a6f7304e5138d77fc659a944cffeb366137d6b4eaf4934d8186c725a",
+      "evidence": "评审修复轮：Source checks 的 rust-check 及其两次 job 重跑（三次不同 runner 实例）均产出 size=284992 / sha256 5af9ebc1…；逐 run 回执见方案 §0.5.7。"
     },
     "aarch64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",

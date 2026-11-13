@@ -1,6 +1,6 @@
 # R1 Rust 工具链与首期旁路接入方案（A3 前期设计）
 
-> 状态：**R0 已合入 `main`（`75924add`，build362）；R1 已实施（`feat/rust-r1`：`digest` 只读摘要 + JVM 桥/差分/一键回退，默认关闭、不接生产调用点）。实现 head `b2694fcd` 的 Source checks run [`43368460040`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43368460040) 8/8 job 全绿，且 `--expect-lock` 以 pinned 摘要通过；本文件所在提交仅补回执，不改实现。**不可合并**，待 Lead 逐行评审、非实现者评审与用户授权。设计评审完成，Q1–Q6 已决。日期：2026-11-13（Lead 决定 2026-11-13，见 §0；R0 回执见 §0.4、R1 回执见 §0.5）。
+> 状态：**R0 已合入 `main`（`75924add`，build362）；R1 已实施（`feat/rust-r1`：`digest` 只读摘要 + JVM 桥/差分/一键回退，默认关闭、不接生产调用点）。非实现者评审 REQUEST_CHANGES（2×P1+6×P2）已逐条修复并重新累计 3 次不同 runner 实例一致后 pin x86_64 产物摘要（§0.5.7/§0.5.8）；pin 的 `--expect-lock` 验证由本文件所在提交的 Source checks 执行。**不可合并**，待 Lead 逐行评审、非实现者复审与用户授权。设计评审完成，Q1–Q6 已决。日期：2026-11-13（Lead 决定 2026-11-13，见 §0；R0 回执见 §0.4、R1 回执见 §0.5）。
 > 基线：`origin/main` = `2c879f1b`（build360）；起草期间主线已推进到 `faab36c5`（build361），差异仅为版本号与 A1 文档，`app/build.gradle` 的 NDK/ABI/jniLibs 段无变化（本文件所有实测数字仍以 `2c879f1b` 为准）。
 > 依据：[ADR-0004 决定四/决定二/失败域矩阵](../../adr/0004-kotlin-rust-direction.md)、[可行性评审主稿 §6](README.md)、[评审 B 草稿](drafts/02-rust-core.md)、[迭代路径 §4/§5/§8/§9](iteration-roadmap-20261112.md)、[AGENTS 技术约束](../../../AGENTS.md)、[BUILD](../../../BUILD.md)、[CI 发布](../../ci-release.md)、[固定构建输入](../../fixed-build-inputs.md)。
 > 边界：本文只写设计与实测依据。**不修改构建文件、代码、CI、版本文件、文档索引**；索引与看板条目在回报里交给 Lead 统一添加（避开 build361 冲突）。本文件**不等同于 A3 开工或 A3 出口**。
@@ -221,7 +221,7 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 - **本机 Gradle**：按 Lead 要求未跑本仓库的 `dsha-gradle :app:testStandardDebugUnitTest --tests '*Rust*'`；改用仓库锁定的 JDK 17 直接 `javac` + `org.junit.runner.JUnitCore`：先分开跑 14 / 9，评审修复后再按合并顺序 B→D→T（25）与 D→T（21）各跑一次全 OK。因此编译/运行语义已覆盖，但**没有本仓库 Gradle 任务级回执**。为定位 CI 脚本编译失败，只在 `/tmp` 建了**与仓库无关的最小 Gradle 9.3.1 工程**（无 Android 插件、独立 `GRADLE_USER_HOME`）复现 Groovy 编译器缺陷，未运行仓库构建、未触碰共享 Gradle 缓存。
 - **CI job 日志读取方式（已解决，修正旧描述）**：`gh run view --log` / `gh run download` 会被重定向到 `blob.core.windows.net` 且被本机出网策略拒绝；但可先用 `gh api repos/.../actions/jobs/<id>/logs` 拿到**当次签名 URL**，再在容器内 `curl` 直接读取（HTTP 200 已验证）。§0.5.7 的 3 次/4 次 runner 产物摘要即由此读回；未用签名 URL 以外的绕过手段。
 - **本机 Android 链接**：无 NDK（`/opt/android-sdk/ndk` 不存在），`tools/rust/build.py --android` 未跑；arm64 `.so` 首次链接/`DT_NEEDED`/APK 成员核验仍交 `ci-package`/发布 dry-run（与 R0 相同）。
-- **非实现者评审修复后的跨 run pin（当前状态）**：评审修复修改了 crate 源码（`jni.rs` 的 `ExceptionClear` 等），原 3 次 x86_64 pin（284816 / `d57d8130…`）**已失效**，`rust/artifact.lock.json` 的 x86_64 条目已回到 `pending-cross-run`；修复轮按 §2.3 重新累计 3 次不同 runner 实例一致后再 pin（本轮报告给出新 run 证据）。Android（`aarch64-linux-android`）与本地 aarch64 宿主条目仍 pending：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
+- **非实现者评审修复后的跨 run pin**：评审修复修改了 crate 源码（`jni.rs` 的 `ExceptionClear` 等），旧 3 次 x86_64 pin（284816 / `d57d8130…`）失效；修复轮已重新累计 3 次不同 runner 实例（`rust-check` 作业 + 两次 job 重跑）均为 **284992 / `5af9ebc1…`**，据此重新 pin x86_64（§0.5.7）。pin 的 `--expect-lock` 验证由本文件所在提交的 Source checks 执行。Android（`aarch64-linux-android`）与本地 aarch64 宿主条目仍 pending：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
 - **Gradle rust_host 路径**：`_node-unit-tests.yml` 的 `rust_host`（release/package/full 单测）不在 push 触发的 Source checks 路径内，仍需 `ci-package` 或发布 dry-run/正式发布验证；本机与 push CI 均未声称已覆盖。
 - **真机/16 KB 页**：R3 签名 `.dev` 包范围，R1 不声明。
 - **format-kotlin-tree**：本批无 `.kt` 变更，未在本机跑；CI `kotlin-format` 仍会执行。
@@ -236,8 +236,23 @@ arm64 `.so` 的首次真实链接、`DT_NEEDED` 实测、Android 体积与 APK �
 | [Source checks `43366337116`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43366337116) | `0e15a157` | **failure** | Java 编译已修复；`host-fast` / `unit-source` 改为 Gradle **脚本编译**失败（Groovy 4 嵌套闭包 `it ->` 缺陷，见 §0.5.5 引言）；其余 6 job 成功 |
 | [Source checks `43367282088`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43367282088) | `5c988bf5` | **success（8/8 jobs）** | `contracts` / `java-format` / `kotlin-format` / `rust-check` / `rust-differential` / `inputs` / `unit-source` / `host-fast` 全绿；`unit-source` 为 source-only（差分用例按 `Assume` 跳过，符合该模式）；Rust 差分在 CI 真实执行 32/32 checks |
 | [Source checks `43368460040`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43368460040) | `b2694fcd` | **success（8/8 jobs）** | pin 后的验证 run：`rust-check` 的 `--expect-lock` 输出 `expectation: PASS`（size=284816 / sha256 `d57d8130…` 与 pinned 值一致，第 4 个 runner 实例）；其余 job 全绿 |
+| [Source checks `43375148766`](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43375148766) | `fcdfeaa6` | **success（8/8 jobs）** | **非实现者评审修复轮**：contracts / java-format / kotlin-format / rust-check / rust-differential / inputs / unit-source / host-fast 全绿；差分 33/33 checks（新增 `errorZeroWrite`） |
 
-**rust-check 的主机产物跨 runner 一致性（3 次不同 runner 实例）**：三次 run 的 `rust-check` 各自从零构建
+**评审修复轮：x86_64 宿主产物跨 runner 一致性（3 次不同 runner 实例）**：commit `fcdfeaa6` 的
+Source checks run `43375148766` 中，`rust-check` 首次执行与两次 job 重跑（不同 runner 实例）各自从零构建
+宿主目标 `.so`，`tools/rust/build.py --host --expect-lock` 输出完全一致：
+
+```text
+rust-check job 131719779759（run 43375148766）        → size=284992 sha256=5af9ebc1a6f7304e5138d77fc659a944cffeb366137d6b4eaf4934d8186c725a
+rust-check 重跑 job 131723059462（run 43375148766）   → size=284992 sha256=5af9ebc1a6f7304e5138d77fc659a944cffeb366137d6b4eaf4934d8186c725a
+rust-check 重跑 job 131723781423（run 43375148766）   → size=284992 sha256=5af9ebc1a6f7304e5138d77fc659a944cffeb366137d6b4eaf4934d8186c725a
+```
+
+据此把 `rust/artifact.lock.json` 的 `x86_64-unknown-linux-gnu` 重新 pin 为 284992 / `5af9ebc1…`
+（仍是 strip 后整文件 size/SHA-256 口径；runId/路径/时间不入锁）；pin 的 `--expect-lock` 验证由
+本文件所在提交的 Source checks 执行（预期 `expectation: PASS`）。
+
+**历史（首次实现轮，已被评审修复轮取代）rust-check 主机产物跨 runner 一致性（3 次不同 runner 实例）**：三次 run 的 `rust-check` 各自从零构建
 宿主目标 `.so`，`tools/rust/build.py --host --expect-lock` 输出完全一致：
 
 ```text
@@ -251,9 +266,10 @@ run 43367282088 → size=284816  sha256=d57d8130136f529945e91184bb7577ba42f6716b
 `43368460040`（第 4 个 runner 实例）日志输出 `"expectation": "PASS"`，证明 pinned 比较门禁真实生效。
 
 **但非实现者评审修复修改了 crate 源码**（`jni.rs` ExceptionClear 等），上述 pin 摘要（284816 /
-`d57d8130…`）对新源码不再成立，已按 §2.3 回到 `pending-cross-run`；修复轮的 3 次不同 runner
-一致证据与重新 pin 在下方“评审修复轮”记录。Android（`aarch64-linux-android`）与本地 aarch64
-宿主条目始终 pending：前者需要 `rust-native` 手动流程产物，后者不符合“不同 runner 实例”。
+`d57d8130…`）对新源码不再成立；修复轮已按 §2.3 重新累计 3 次不同 runner 一致证据并重新 pin
+（见本节上方“评审修复轮”记录），旧摘要只作为历史证据保留。Android（`aarch64-linux-android`）
+与本地 aarch64 宿主条目始终 pending：前者需要 `rust-native` 手动流程产物，后者不符合
+“不同 runner 实例”。
 
 **仍未覆盖**：`rust-native` 的 arm64 交叉链接 / APK 成员门禁 / 真机与 16 KB 页（R3）；Gradle 的
 `rust_host` 路径（release/package/full 单测）尚未在本轮 push CI 中运行，需 `ci-package` 或发布
