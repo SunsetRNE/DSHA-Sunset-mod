@@ -1,7 +1,7 @@
 # A3 任务基线（G2）：数据保护受管事务 + 恢复计划契约冻结 v1
 
-> 版本：v0.2　日期：2026-11-13　基线：`origin/main` = `2729112e`（build362 + 齿轮单实例修复 / `0.2.1-rc.5` / DSH 0.2.2-rc.1）
-> 状态：**已评审（Lead 2026-11-13），R2 已解锁**。docs-only 设计基线，未写生产代码；Q1–Q5 全部按推荐 A 裁决（见 §7.1），契约 v1 冻结、A3 切片与写域见 §5/§6。
+> 版本：v0.3　日期：2026-11-13　基线：`origin/main` = `c2e7aec1`（build362 + 齿轮单实例修复 + 本基线 v0.2 / `0.2.1-rc.5` / DSH 0.2.2-rc.1）
+> 状态：**已评审（Lead 2026-11-13），R2 已解锁并实现**。docs-only 设计基线，未写生产代码；Q1–Q5 全部按推荐 A 裁决（见 §7.1）；v0.3 按 R2 非实现者评审修复轮修正 nowMs 单口径、硬前置/多原因口径与 appVersion 事实（见 §9）。契约 v1 冻结、A3 切片与写域见 §5/§6。
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A3、[R1 Rust 工具链与首期旁路方案](r1-rust-toolchain-plan-20261113.md) §4.6/§6、[A2 任务基线](a2-task-baseline-20261113.md)、[ADR-0004](../../adr/0004-kotlin-rust-direction.md) 决定四/决定五、[安全模型](../../security-model.md) 备份与恢复、[v5 备份格式](../../backup-format-v5.md)、[备份与恢复](../../backup-and-restore.md)、[覆盖升级与维护](../../overwrite-upgrade-and-maintenance.md)。
 > 边界：不改 `app/src/**`、`rust/**`、构建/CI 文件、`CHANGELOG.md`、已发布 tag/Release；不 push、不合并、不安装、不操作手机；不跑 Gradle/cargo。
 
@@ -186,7 +186,7 @@
 | 8 | `sourceDigest` | `NativeBackupJobs.java:1412-1416`（`inputSha256`），提交前再验 `1446-1449` | ✅ SHA-256 整份明文容器 |
 | 9 | `selectedMask` | `NativeBackupJobs.java:1280`（非空、⊆`SCOPES`）、`util/BackupScopes.java:12-13`（顺序） | ✅ 5 位位图 |
 | 10 | `targetMappingKind` | `NativeRestoreTargets.java:52-64`（两个独立决策） | ✅ 组合编码 |
-| 11 | `appVersion` | `NativeBackupJobs.java:733`（`BuildConfig.VERSION_NAME`，当前 44 字符） | ✅ ≤256 |
+| 11 | `appVersion` | `NativeBackupJobs.java:733`（`BuildConfig.VERSION_NAME`；身份清单 `ci/release-identity*.json` 当前 38 字符） | ✅ ≤256 |
 | 12 | `dataFormat` | `NativeBackupJobs.java:735`（`UNINSPECTED`）、`MaintenanceDataSnapshot.java:379`、`LegacyBackupImporter.java:215` | ✅ 自由串 ≤64 |
 | 13 | `sensitivePolicy` | `NativeBackupJobs.java:737`、`1316`、`BackupArchive.java:266`、`MaintenanceDataSnapshot.java:380`、`LegacyBackupImporter.java:216` | ✅ 已裁决（Q2-A）：闭集 5 值 |
 | 14 | `pluginCount` | `plugins.nodes`（`NativePluginGraph.java:448-459`），上限 4096（`312`） | ✅ |
@@ -200,7 +200,7 @@
 
 1. **PlanView 是运行时投影，不是持久格式**：只在一次恢复作业内部存在（内存 + 可选诊断记录）。**不得写进归档、不得写进 `runtime-descriptor`、不得改 `formatVersion`**。
 2. **唯一生产者**是 Kotlin（A3 的 `backup/` 投影器）；**两个校验者**是 JVM `PlanViewValidator` 与 Rust `verify_plan`。Rust **不解析 JSON**、不接路径/命令、不读时钟（`nowMs` 是入参）。
-3. **调用时机**（A3 接线，R2 不实现）：① 预览建立后、写 `preview.json` 前（`nowMs` = 当时），结果只入诊断；② 提交前、`INPUT_CHANGED` 复核之后（`nowMs` = 当时），结果必须为 `VALID` 才允许进入 `buildCandidates`/事务；`INVALID` 或**两实现分歧**一律 fail-closed，中止本次恢复并保留原件与私有槽位。
+3. **调用时机**（A3 接线，R2 不实现）：① 预览建立后、写 `preview.json` 前（`nowMs` = 当时，编码进视图），结果只入诊断；② 提交前、`INPUT_CHANGED` 复核之后，用 `nowMs` = 当时**重新编码 PlanView**（重算 `planDigest`）得到新视图，再让 JVM/Rust 对同一份新字节校验——不得只改视图内嵌时间或沿用旧 `planDigest`；结果必须为 `VALID` 才允许进入 `buildCandidates`/事务；`INVALID` 或**两实现分歧**一律 fail-closed，中止本次恢复并保留原件与私有槽位。`verify_plan` 的 `nowMs` 唯一来源是视图内嵌值（JNI 无 nowMs 参数）。
 4. **不替代读者**：`verify_plan` 通过**不代表**归档合法；`BackupArchive.read`/`validateSummary` 仍是唯一读侧权威。反过来，`validateSummary` 通过也不保证 PlanView 可投影（V5 只查键存在，§2.3）。
 5. **单向信息流**：PlanView 只携带决策所需的**摘要事实**（计数、枚举、位图、摘要），不回传可执行内容、不携带路径、不携带文件清单。
 
@@ -260,6 +260,8 @@ v1 **必须**恰好包含 1–15 全部字段各一次、id 升序；缺、多�
 
 **字符串通用规则（v1 冻结）**：非法 UTF-8 → `PLAN_STRUCTURE`；含 NUL → `FIELD_RANGE`；空串 → `FIELD_RANGE`；超字段上限 → `FIELD_RANGE`。`createdAtMs`/`byteCount`/`entryCount`/`pluginCount` 的超界按上表 `FIELD_RANGE`。
 
+**多原因叠加（v1 冻结）**：多个独立违规同时计入原因集合，不因先命中一条而丢弃其余。示例：空串同时违反 UTF8 类型长度（`length 1..=4096`）与非空规则 → `STRUCTURE+FIELD_RANGE`；`dataFormat` 4097 字节同时超类型上限与字段上限 → `STRUCTURE+FIELD_RANGE`；T5/T6 夹具的叠加集合以 §5.2 为准。
+
 **`PLAN_VIEW_ROOT_LIMIT` 的归属**：它是 **Kotlin 投影器的类型化诊断**（写诊断/`preview` 加法键，属 A3 slice2），**不是** `verify_plan` 的原因码——原因码保持 20–25 冻结，新增原因码 = ABI v2。
 
 ### 3.4 枚举、位域与推导规则
@@ -308,7 +310,7 @@ planDigest = SHA-256( view[0, planDigestValueOffset) || 0x00 * 32 || view[planDi
 | `generatedAtMs` | Kotlin 生成视图时的墙钟（`System.currentTimeMillis()`） | 只记录；不与其他字段比较 |
 | `createdAtMs`（字段 7） | 归档自身的创建时间（`manifest.createdAt`） | 不与 `generatedAtMs` 比较（设备时钟可回拨，加规则会产生误拒） |
 | `expiresAtMs` | 计划有效期 | `flags.bit0=0` 时必须为 0；`bit0=1` 时见下 |
-| `nowMs` | 调用方给的「当前时间」 | `verify_plan` 只用它与 `expiresAtMs` 比较，**不读系统时钟** |
+| `nowMs` | 编码进视图的调用方「当前时间」 | `verify_plan` 只读视图内嵌值与 `expiresAtMs` 比较，**不读系统时钟**；需要新时刻必须重新编码视图（JNI 无 nowMs 参数） |
 
 有效期判定（v1，按 §4.6 字面冻结，已裁决 Q3-A；`expiresAtMs <= generatedAtMs` 与 `nowMs >= expiresAtMs` 同归 `PLAN_EXPIRED`，v2 再考虑拆分）：
 
@@ -334,6 +336,8 @@ planDigest = SHA-256( view[0, planDigestValueOffset) || 0x00 * 32 || view[planDi
 1. 同一码最多出现一次（去重）；码升序排列。
 2. `count ≤ min(maxReasons, 6)`；`plan.rs:23` 的 `MAX_REASONS=8` 只是**缓冲余量**，不是 v1 期望条数。
 3. 去重是**线格式决定**的：载荷只有码、没有字段号，重复码无法区分；若将来需要「每个违规字段一条」，那要改 ABI（新版本 + 新评审）。
+
+**硬前置例外（与「不因首错提前返回」的关系）**：`viewLength < 48` 时无法解析头部，只报 `PLAN_STRUCTURE`；`viewLength > 2 MiB` 时按硬上限只报 `PLAN_LIMIT`；两者不继续遍历字段区。`fieldCount > 64` 属可解析字段区规则：继续解析，若同时 `fieldCount != 15` 则 `LIMIT+STRUCTURE` 同报（夹具 T6 已固化）。
 
 ### 3.8 返回值与缓冲契约
 
@@ -427,12 +431,13 @@ public final class PlanViewValidator {
     public final int[] reasons;        // 去重、升序
     public final String diagnostic;    // 类型化短码，不含路径/内容
   }
-  public static Result validate(byte[] view, long nowMs);  // nowMs 覆盖视图内 nowMs 时用
-  public static Result validate(byte[] view);              // 用视图内 nowMs
+  public static Result validate(byte[] view);  // nowMs 唯一来源是视图内嵌值（JNI 无 nowMs 参数）
 }
 ```
 
 要求：**fail-closed**（任何无法判定的结构 → `INVALID`+`STRUCTURE`，不抛到调用方）；**不解析 JSON、无副作用**；输入数组不被修改；无静态可变状态（可并发调用）；不读系统时钟/环境/文件。
+
+**不提供 nowMs 覆盖重载**：需要新的当前时刻时，调用方必须用 `PlanViewCodec.encode(...)` 重新编码视图（含重算 `planDigest`），JVM 与 Rust 只对同一份已编码字节对拍；否则同字节两条口径可构成有效期绕过（2026-11-13 R2 评审 P1）。
 
 ### 4.4 Rust `plan.rs` 实现要求（R2）
 
@@ -571,7 +576,7 @@ public final class PlanViewValidator {
 | 0 | **本基线**（契约冻结 + 切片设计） | 本文件、`docs/documentation-index.md` | — | 不变 | 无 |
 | 1 | **R2**：PlanView 编解码 + JVM 校验器 + Rust 第二实现 + 差分/夹具/CI | `util/PlanView*`、`rust/…/plan.rs`、`jni.rs`、`tools/rust/*`、测试 | 本基线已评审（Lead 2026-11-13） | **不变**（`5fd17eac…`） | **零** |
 | 2 | 投影接线（预览期）：清单 + 计划决策 → PlanView；`verify_plan` 结果入诊断 | `backup/RestorePlanProjection.java`（新）、`backup/NativeRestorePlan.java`（只读事实）、`backup/NativeRestoreTargets.java`（暴露两决策）、`backup/NativeBackupJobs.java`、`preview.json` 加法键 | 1 | **变** | 一次 |
-| 3 | 提交期二次校验 + 回退/诊断收口：`INPUT_CHANGED` 后同一视图 + 新 `nowMs`；`INVALID`/分歧中止；`RustBackends.planSelection()`；诊断回执 | `backup/NativeBackupJobs.java`、`util/RustBackends.java`、`backup/BackupOperationDiagnostics.java`/`BackupFailureDiagnostic.java`（加法） | 2 | 不变（同批） | 同批一次 |
+| 3 | 提交期二次校验 + 回退/诊断收口：`INPUT_CHANGED` 后用新 `nowMs` **重新编码**的新视图（`planDigest` 重算）再校验；`INVALID`/分歧中止；`RustBackends.planSelection()`；诊断回执 | `backup/NativeBackupJobs.java`、`util/RustBackends.java`、`backup/BackupOperationDiagnostics.java`/`BackupFailureDiagnostic.java`（加法） | 2 | 不变（同批） | 同批一次 |
 | 4 | **R3**：`archive_pack/unpack` 旁路接入（gzip 流）+ 差分 + 体积/ABI/APK 门禁 | `util/RustArchiveCodec.java`、`backup/PortableBackupEnvelope.java`、`backup/StrictGzipInputStream.java`、`_node-rust.yml`、`_node-test-packages.yml` | 1、3 | 变（同批） | 同批一次 |
 | 5 | A3 出口：双读单写证据、v1–v4 导入回归、自动计划/保留回归、覆盖安装真机、非实现者评审 | 证据文档、`CHANGELOG`/版本由 Lead 处理 | 2–4 | — | — |
 
@@ -713,6 +718,7 @@ public final class PlanViewValidator {
 |---|---|---|
 | v0.1 | 2026-11-13 | 初稿：A3 现状核对（逐条 `file:line`）、PlanView v1 契约冻结（补齐 type 码/枚举/`selectedMask`/`targetMappingKind`/摘要口径/原因码去重）、JVM 校验器与差分设计、R2 范围与验收、A3 切片与写域、5 项待裁决问题 |
 | v0.2 | 2026-11-13 | Lead 评审通过并裁决 Q1–Q5（全部按推荐 A，见 §7.1）；按裁决定稿 §3.3/§3.4/§3.5/§3.6/§3.10；rebase 到 `origin/main`=`2729112e`（齿轮单实例修复），`runtimeId` 基线更新为 `5fd17eac…`；R2 已解锁 |
+| v0.3 | 2026-11-13 | R2 非实现者评审修复轮（P1 nowMs 双口径 → 唯一来源=视图内嵌值，删除 Java override 重载；§3.1/§4.3/§6.1 同步为「重新编码」）；§3.7 补硬前置例外、§3.3 补多原因叠加示例；§2.10 appVersion 更正为 38 字符并指向 `ci/release-identity*.json`；基线更新为 `origin/main`=`c2e7aec1` |
 
 ---
 
