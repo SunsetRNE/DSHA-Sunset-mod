@@ -1,7 +1,7 @@
 # A3 任务基线（G2）：数据保护受管事务 + 恢复计划契约冻结 v1
 
-> 版本：v0.1　日期：2026-11-13　基线：`origin/main` = `29c7c4fc`（build362 / `0.2.1-rc.5` / DSH 0.2.2-rc.1）
-> 状态：**docs-only 设计基线，未写生产代码**。冻结「恢复计划契约 v1」（R2 的开工依赖），并给出 A3 切片与写域。**待 Lead 评审；评审通过后 R2 可开工。**
+> 版本：v0.2　日期：2026-11-13　基线：`origin/main` = `2729112e`（build362 + 齿轮单实例修复 / `0.2.1-rc.5` / DSH 0.2.2-rc.1）
+> 状态：**已评审（Lead 2026-11-13），R2 已解锁**。docs-only 设计基线，未写生产代码；Q1–Q5 全部按推荐 A 裁决（见 §7.1），契约 v1 冻结、A3 切片与写域见 §5/§6。
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A3、[R1 Rust 工具链与首期旁路方案](r1-rust-toolchain-plan-20261113.md) §4.6/§6、[A2 任务基线](a2-task-baseline-20261113.md)、[ADR-0004](../../adr/0004-kotlin-rust-direction.md) 决定四/决定五、[安全模型](../../security-model.md) 备份与恢复、[v5 备份格式](../../backup-format-v5.md)、[备份与恢复](../../backup-and-restore.md)、[覆盖升级与维护](../../overwrite-upgrade-and-maintenance.md)。
 > 边界：不改 `app/src/**`、`rust/**`、构建/CI 文件、`CHANGELOG.md`、已发布 tag/Release；不 push、不合并、不安装、不操作手机；不跑 Gradle/cargo。
 
@@ -13,8 +13,8 @@
 |---|---|
 | A3 是什么 | F05 数据保护闭环：v5 一键备份 / 恢复与迁移 / 自动计划 / 保留数据管理，全部走既有受管事务 + 维护屏障；Rust 只在**旁路纯函数**里做 `digest`/`verify_plan`/`archive` |
 | 本轮交付 | 恢复计划契约 **PlanView v1 冻结**（字段 id/类型码/范围/枚举/摘要口径/原因码/多原因顺序）+ A3 切片与写域；§4.6 未定义的编码（`type` 码、字段 `flags`、枚举数值、原因码去重与顺序）在此补齐（见 §3.2–§3.4、§3.7） |
-| 是否需要 Lead 裁决 | **是，1 项硬冲突**：§4.6 的 `rootCount ≤ 64` 与真实归档上限 512（且一次恢复的写入根可到 2048）不一致；另 4 项为口径问题（§7.1 Q1–Q5） |
-| R2 能否开工 | 本基线评审通过 + Q1/Q5 裁决后即可；R2 只改 `util/`、`rust/`、`tools/`、测试，**不改 `backup/`、不接生产调用点、不改 ABI v1 符号、零维护页**（§5.7、§6.4） |
+| Lead 裁决 | **已裁决（Q1–Q5，Lead 2026-11-13，全部按推荐 A；见 §7.1）**：`rootCount` = 本次计划实际写入根数、上限维持 64、>64 不投影并记 `PLAN_VIEW_ROOT_LIMIT`；`sensitivePolicy` 闭集 5 值；有效期畸形归 `PLAN_EXPIRED`；整份 v5 摘要由 JVM 计算；补齐 type/枚举/flags/原因码顺序属实现细节、不需 ABI v2 |
+| R2 状态 | **已解锁**（Lead 评审通过）；R2 只改 `util/`、`rust/`、`tools/`、测试，**不改 `backup/`、不接生产调用点、不改 ABI v1 符号、零维护页**（§5.7、§6.4） |
 | A3 与 R2/R3 | R2（PlanView 双实现）= A3 slice1；R3（archive 旁路）是 A3 最后一个增量；A3 主线（`backup/`）才触发那**一次**维护页 |
 | 数据格式 | **不升级**：`formatVersion=5` 与 `runtime-descriptor.dataWrite` 不动；PlanView 是运行时投影，**不写进归档**（§3.1、§6.4） |
 
@@ -27,7 +27,7 @@
 1. **用户可见**：一键备份（无密码 v5）、手动导出/恢复、跨版本恢复与迁移、自动备份计划与保留数据管理，行为与现有 v5 语义一致，不新增格式。
 2. **工程**：把恢复决策抽成**可差分的只读计划投影**（PlanView v1），JVM 与 Rust 两个实现给出同一 `VALID/INVALID` + 原因集合；分歧 fail-closed。
 3. **Rust 首次进入数据路径**：`digest`（已由 R1 落地）、`verify_plan`（R2）、`archive_pack/unpack`（R3），全部为有界纯函数，默认关闭、一键回 JVM。
-4. **可复核**：每个契约条款都能在代码里找到来源（本文逐条标 `file:line`），或明确标为「待 Lead 决定」。
+4. **可复核**：每个契约条款都能在代码里找到来源（本文逐条标 `file:line`）；§4.6 未定义的编码由本文冻结（§3.2–§3.4、§3.7），Lead 已确认属实现细节（Q5-A）。
 
 ### 1.2 非目标（负清单）
 
@@ -51,7 +51,7 @@
 
 ## 2. 现状核对（代码事实，逐条 file:line）
 
-> 本节只陈述**当前工作树**（`29c7c4fc`）读到的实现事实；行号会随改动漂移，引用以「类.方法 + 行号」为准。
+> 本节只陈述**当前工作树**（`2729112e`）读到的实现事实；行号会随改动漂移，引用以「类.方法 + 行号」为准。
 
 ### 2.1 v5 容器与完整性载荷
 
@@ -168,9 +168,9 @@
 
 **三个缺口（A3/R2 必须显式处理）**：
 
-1. **`digest` 不可组合**：ABI 是「一次调用返回一个完整摘要」，没有 init/update/finish 会话。整份 v5 容器摘要（`BackupArchive.digest`，可达 16 GiB）**不能**由多次 `≤32 MiB` 调用拼出来。→ 见 §3.5 与 §7.1 Q4。
+1. **`digest` 不可组合**：ABI 是「一次调用返回一个完整摘要」，没有 init/update/finish 会话。整份 v5 容器摘要（`BackupArchive.digest`，可达 16 GiB）**不能**由多次 `≤32 MiB` 调用拼出来。→ 见 §3.5 与 §7.1 Q4（裁决 A）。
 2. **`verify_plan` 未实现**，且 §4.6 未定义 `type` 字节编码、枚举数值、原因码去重与顺序。→ 本轮补齐（§3.2–§3.4、§3.7）。
-3. **`rootCount ≤ 64` 与真实根上限冲突**（§4.6 vs `BackupArchive.java:300` 的 512）。→ §7.1 Q1。
+3. **`rootCount ≤ 64` 与真实根上限不一致**（§4.6 vs `BackupArchive.java:300` 的 512）。→ §7.1 Q1（裁决 A：上限维持 64，>64 不投影）。
 
 ### 2.10 §4.6 字段 → 现有代码来源 → 可确定性
 
@@ -179,7 +179,7 @@
 | 1 | `formatVersion` | `BackupArchive.java:154`、`282`（恒 5） | ✅ 定 5 |
 | 2 | `operation` | `NativeBackupJobs.java:727`、`MaintenanceDataSnapshot.java:375`、`LegacyBackupImporter.java:208`；读者集合 `BackupArchive.java:288` | ✅ 定 3 值 |
 | 3 | `integrity` | `HostSnapshot.java:216-224`、`LegacyBackupImporter.java:209`；读者集合 `BackupArchive.java:289-290` | ✅ 定 4 值 |
-| 4 | `rootCount` | `NativeRestorePlan.java:38`（`groups`）与 `BackupArchive.java:300`（512） | ⚠️ **冲突，待裁决**（Q1） |
+| 4 | `rootCount` | `NativeRestorePlan.java:38`（`groups`）与 `BackupArchive.java:300`（512） | ✅ 已裁决（Q1-A）：语义 = 计划写入根数，上限 64，>64 不投影 |
 | 5 | `entryCount` | `BackupArchive.java:155`、`283`（=索引计数，≤100000） | ✅ 上限对齐 |
 | 6 | `byteCount` | `BackupArchive.java:156`、`284`（≤16 GiB） | ✅ 上限对齐 |
 | 7 | `createdAtMs` | `NativeBackupJobs.java:728` | ✅ 无跨字段规则 |
@@ -188,7 +188,7 @@
 | 10 | `targetMappingKind` | `NativeRestoreTargets.java:52-64`（两个独立决策） | ✅ 组合编码 |
 | 11 | `appVersion` | `NativeBackupJobs.java:733`（`BuildConfig.VERSION_NAME`，当前 44 字符） | ✅ ≤256 |
 | 12 | `dataFormat` | `NativeBackupJobs.java:735`（`UNINSPECTED`）、`MaintenanceDataSnapshot.java:379`、`LegacyBackupImporter.java:215` | ✅ 自由串 ≤64 |
-| 13 | `sensitivePolicy` | `NativeBackupJobs.java:737`、`1316`、`BackupArchive.java:266`、`MaintenanceDataSnapshot.java:380`、`LegacyBackupImporter.java:216` | ⚠️ 闭集与否待裁决（Q2） |
+| 13 | `sensitivePolicy` | `NativeBackupJobs.java:737`、`1316`、`BackupArchive.java:266`、`MaintenanceDataSnapshot.java:380`、`LegacyBackupImporter.java:216` | ✅ 已裁决（Q2-A）：闭集 5 值 |
 | 14 | `pluginCount` | `plugins.nodes`（`NativePluginGraph.java:448-459`），上限 4096（`312`） | ✅ |
 | 15 | `planDigest` | 无现有代码 | ✅ 本轮定义（v1 不校验内容） |
 
@@ -245,7 +245,7 @@ v1 **必须**恰好包含 1–15 全部字段各一次、id 升序；缺、多�
 | 1 | `formatVersion` | U32 | 必须 == 5（`FIELD_RANGE`） | `manifest.formatVersion`（`BackupArchive.java:154`） | 值不符即不投影 |
 | 2 | `operation` | U8 | {1,2,3}（`FIELD_RANGE`） | `manifest.operation`（§2.10） | 见 §3.4 |
 | 3 | `integrity` | U8 | {1,2,3,4}（`FIELD_RANGE`） | `manifest.integrity`（`HostSnapshot.java:216-224`） | 见 §3.4 |
-| 4 | `rootCount` | U32 | 1..=64（`FIELD_RANGE`）｜**Q1 待裁决** | 计划写入根数（建议 `plan.groups.size()`，= `preview.restoreRoots`，`NativeBackupJobs.java:1417`） | >64 时**不投影**（不得截断成 64） |
+| 4 | `rootCount` | U32 | 1..=64（`FIELD_RANGE`） | 本次计划**实际写入根数** = `plan.groups.size()`（= `preview.restoreRoots`，`NativeBackupJobs.java:1417`） | >64 时**不投影、不调 Rust**，记类型化诊断 `PLAN_VIEW_ROOT_LIMIT`，JVM 权威恢复照常（不得截断成 64） |
 | 5 | `entryCount` | U32 | 1..=100000（`FIELD_RANGE`） | `manifest.entries`（= 索引计数，`BackupArchive.java:283`） | 不截断 |
 | 6 | `byteCount` | U64 | 0..=16 GiB（`FIELD_RANGE`） | `manifest.bytes`（`BackupArchive.java:284`） | 不截断 |
 | 7 | `createdAtMs` | U64 | 任意 u64；**无跨字段规则** | `manifest.createdAt`（`NativeBackupJobs.java:728`） | 类型不符（字符串/BigDecimal 越界）→ 不投影 |
@@ -254,11 +254,13 @@ v1 **必须**恰好包含 1–15 全部字段各一次、id 升序；缺、多�
 | 10 | `targetMappingKind` | U8 | {1,2,3,4}（`FIELD_RANGE`） | `NativeRestoreTargets.homeMode` + `projectDestination`（`52-64`） | 见 §3.4 |
 | 11 | `appVersion` | UTF8 | 非空、≤256、UTF-8、无 NUL | `manifest.appVersion`（`NativeBackupJobs.java:733`） | >256 **不投影**（不截断伪造） |
 | 12 | `dataFormat` | UTF8 | 非空、≤64、UTF-8、无 NUL | `manifest.dataFormat`（§2.10） | 同上 |
-| 13 | `sensitivePolicy` | UTF8 | 非空、≤64、UTF-8、无 NUL；闭集见 §3.4（Q2） | `manifest.sensitivePolicy` | 同上 |
+| 13 | `sensitivePolicy` | UTF8 | 非空、≤64、UTF-8、无 NUL；闭集 5 值见 §3.4 | `manifest.sensitivePolicy` | 同上 |
 | 14 | `pluginCount` | U32 | 0..=4096（`FIELD_RANGE`） | `plugins.nodes.size()`（`NativePluginGraph.java:312`、`448-459`）；非 v2 图（如旧包 `legacyVersion` 形态）或无 `nodes` → 0 | 不截断；>4096 不投影 |
 | 15 | `planDigest` | BYTES32 | 长度 32；v1 `verify_plan` **不校验内容** | 生产者自行计算（§3.5） | — |
 
 **字符串通用规则（v1 冻结）**：非法 UTF-8 → `PLAN_STRUCTURE`；含 NUL → `FIELD_RANGE`；空串 → `FIELD_RANGE`；超字段上限 → `FIELD_RANGE`。`createdAtMs`/`byteCount`/`entryCount`/`pluginCount` 的超界按上表 `FIELD_RANGE`。
+
+**`PLAN_VIEW_ROOT_LIMIT` 的归属**：它是 **Kotlin 投影器的类型化诊断**（写诊断/`preview` 加法键，属 A3 slice2），**不是** `verify_plan` 的原因码——原因码保持 20–25 冻结，新增原因码 = ABI v2。
 
 ### 3.4 枚举、位域与推导规则
 
@@ -280,7 +282,7 @@ v1 **必须**恰好包含 1–15 全部字段各一次、id 升序；缺、多�
 
 `selectedMask`：bit0=`application`、bit1=`sessions`、bit2=`settings`、bit3=`plugins`、bit4=`projects`（顺序取自 `util/BackupScopes.java:12-13`，与 `NativeDataLocations.SCOPES` 同一集合）。非零是硬要求（`NativeBackupJobs.java:1280` 拒绝空集）。
 
-`sensitivePolicy` v1 闭集（**推荐值，Q2 待裁决**）：`{UNENCRYPTED, PASSWORD_ENCRYPTED, APP_PRIVATE_STAGING, LEGACY_PLAINTEXT, PRIVATE_LOCAL_NATIVE_STATE_IN_PLACE}`（来源见表 §2.10 id13）。选「闭集」的理由：这 5 个值覆盖**全部生产写者**，闭集能让「未来写者新增值」在编译/测试期暴露，并由 `policyVersion` 显式升级；选「自由串」则 §4.6 原文字面成立但失去这条保护。
+`sensitivePolicy` v1 **闭集（5 值，已裁决 Q2-A）**：`{UNENCRYPTED, PASSWORD_ENCRYPTED, APP_PRIVATE_STAGING, LEGACY_PLAINTEXT, PRIVATE_LOCAL_NATIVE_STATE_IN_PLACE}`（来源见表 §2.10 id13）。这 5 个值覆盖**全部生产写者**；未知值 → `FIELD_RANGE`。新增写者值必须同时抬 `policyVersion`（=2）并改本基线，不允许多值自由扩写。
 
 ### 3.5 摘要口径（`sourceDigest` / `planDigest`）
 
@@ -288,7 +290,7 @@ v1 **必须**恰好包含 1–15 全部字段各一次、id 升序；缺、多�
 
 - 语义：`plain` 明文 v5 容器的整份 SHA-256，即 `NativeBackupJobs.java:1412-1416` 的 `inputSha256`（提交前 `1446-1449` 再算一次，不等即 `INPUT_CHANGED`）。它是 PlanView 与源字节的唯一绑定。
 - 算法：`algorithm=1`（SHA-256），**整份文件**，`offset=0`、`length=fileSize`，流式 64 KiB 分块（`BackupArchive.java:43-57`），总量上限 `BYTES + 256 MiB`。
-- **实现归属**：此摘要由 **JVM** 计算（`BackupArchive.digest`）。理由：R1 的 `digest` ABI 是单次调用返回完整摘要，`length ≤ 32 MiB`（`digest.rs:33`），**不可组合**出整份摘要；在 ABI 增加增量会话前，Rust 不能承担整份摘要（§7.1 Q4）。
+- **实现归属**：此摘要由 **JVM** 计算（`BackupArchive.digest`）。理由：R1 的 `digest` ABI 是单次调用返回完整摘要，`length ≤ 32 MiB`（`digest.rs:33`），**不可组合**出整份摘要；在 ABI 增加增量会话前，Rust 不能承担整份摘要（§7.1 Q4，裁决 A 已确认此结论）。
 - 若 A3 将来需要 Rust 参与：只能对 `≤32 MiB` 的**区间**做独立摘要（例如归档尾部 32 MiB 复核），不得声称等价于整份摘要。
 
 **`planDigest`**（v1 冻结计算式，v1 不校验内容）：
@@ -308,7 +310,7 @@ planDigest = SHA-256( view[0, planDigestValueOffset) || 0x00 * 32 || view[planDi
 | `expiresAtMs` | 计划有效期 | `flags.bit0=0` 时必须为 0；`bit0=1` 时见下 |
 | `nowMs` | 调用方给的「当前时间」 | `verify_plan` 只用它与 `expiresAtMs` 比较，**不读系统时钟** |
 
-有效期判定（v1，按 §4.6 字面冻结，**Q3 可改**）：
+有效期判定（v1，按 §4.6 字面冻结，已裁决 Q3-A；`expiresAtMs <= generatedAtMs` 与 `nowMs >= expiresAtMs` 同归 `PLAN_EXPIRED`，v2 再考虑拆分）：
 
 - `hasExpiry=1` 时：`expiresAtMs > generatedAtMs` 且 `nowMs < expiresAtMs` → 通过；否则 → `PLAN_EXPIRED`。
 - `hasExpiry=0` 时：不检查时间；`expiresAtMs` 必须为 0（否则 `PLAN_STRUCTURE`）。
@@ -362,7 +364,7 @@ planDigest = SHA-256( view[0, planDigestValueOffset) || 0x00 * 32 || view[planDi
 | 类别 | 内容 |
 |---|---|
 | **本文字节级冻结**（R2 直接实现） | 头 48 字节布局与规则；类型码 1–5；字段 flags 必须 0；字段 id/类型/顺序/必需性；枚举数值（`operation` 1–3、`integrity` 1–4、`targetMappingKind` 1–4）；`selectedMask` 位序；字符串通用规则；原因码集合、去重与升序；返回值/缓冲契约；`planDigest` 计算式与「v1 不校验内容」 |
-| **已冻结但需 Lead 确认**（Q） | `rootCount` 语义与上限（Q1）；`sensitivePolicy` 闭集（Q2）；有效期畸形归 `PLAN_EXPIRED` 还是 `FIELD_RANGE`（Q3）；R1 `digest` 只用于区间摘要（Q4）；「补齐 type 码不是 ABI 变更」（Q5） |
+| **Lead 已确认**（2026-11-13，Q1–Q5 全部 A；Q5 明确：补齐 `type` 字节编码/枚举数值/字段 `flags` 语义/原因码去重顺序属实现细节，R2 首提交写进 `plan.rs` 常量 + 夹具 pin，**不需要 ABI v2**） | `rootCount` 语义与上限（Q1）；`sensitivePolicy` 闭集（Q2）；有效期畸形归 `PLAN_EXPIRED`（Q3）；R1 `digest` 只用于区间摘要（Q4） |
 | **明确留到 ABI v2**（不得在 R2 顺手做） | 增量摘要会话；`planDigest` 内容校验（需新原因码）；每违规字段一条原因（需带字段号）；非关键扩展字段（字段 flags 语义）；`rootCount` 上限提升 |
 
 ---
@@ -500,7 +502,7 @@ public final class PlanViewValidator {
 | T13 | `formatVersion` | 5 | 4 → `FIELD_RANGE` |
 | T14 | `operation` | 1/2/3 各一次 | 0 或 4 → `FIELD_RANGE` |
 | T15 | `integrity` | 1..4 各一次 | 0 或 5 → `FIELD_RANGE` |
-| T16 | `rootCount` | 1 与 64（Q1 定值） | 0、65 → `FIELD_RANGE`；生产者侧 >64 不投影 |
+| T16 | `rootCount` | 1 与 64（Q1-A：写入根数，上限 64） | 0、65 → `FIELD_RANGE`；生产者 >64 不投影并记 `PLAN_VIEW_ROOT_LIMIT` |
 | T17 | `entryCount` | 1、100000 | 0、100001 → `FIELD_RANGE` |
 | T18 | `byteCount` | 0、16 GiB（恰好上限） | 16 GiB+1 → `FIELD_RANGE`；超出 `u64` 的编码不存在（8 字节封顶） |
 | T19 | `createdAtMs` | 0、任意 u64 | （无范围规则；只验证接受） |
@@ -509,7 +511,7 @@ public final class PlanViewValidator {
 | T22 | `targetMappingKind` | 1..4 | 0、5 → `FIELD_RANGE` |
 | T23 | `appVersion` | 44 字符 | 空、257 字符、含 NUL、非法 UTF-8 → `FIELD_RANGE`/`STRUCTURE` |
 | T24 | `dataFormat` | `UNINSPECTED`、`LEGACY_3`、`LOCAL_ORIGINAL_LAYOUT` | 空、65 字符 → `FIELD_RANGE` |
-| T25 | `sensitivePolicy` | 5 个闭集值（Q2） | 未知值 → `FIELD_RANGE`；空 → `FIELD_RANGE`（若 Q2 选自由串，则此条只校验字符集/长度） |
+| T25 | `sensitivePolicy` | 5 个闭集值（Q2-A） | 未知值 → `FIELD_RANGE`；空 → `FIELD_RANGE` |
 | T26 | `pluginCount` | 0、4096 | 4097 → `FIELD_RANGE` |
 | T27 | `planDigest` | 32 字节 | 31 字节 → `STRUCTURE`；内容任意（v1 不校验） |
 | T28 | 有效期（§3.6） | `hasExpiry=1`、`expiresAt=gen+1`、`now<expires` | `now==expires` → `EXPIRED`；`expires<=gen` → `EXPIRED`；`hasExpiry=0` 且 `expires!=0` → `STRUCTURE` |
@@ -555,7 +557,7 @@ public final class PlanViewValidator {
 
 - 不改 `backup/`（不接投影器、不改 `NativeRestorePlan`/`NativeBackupJobs`）。
 - 不改 ABI v1 的符号名/签名/错误码；不新增 JNI 导出；不升级 `ABI_VERSION`。
-- 不改 `runtime-descriptor.json`（新 util 类**不**进 `launcherSources` → `runtimeId` 不变，仍 `a2847544e7032bdd0eb7394438455521c120a25c0d54c280eb32db7a3e3e6139`）；R2 落地后需跑 `prepare-runtime-descriptor.py --check` 证明这一点。
+- 不改 `runtime-descriptor.json`（新 util 类**不**进 `launcherSources` → `runtimeId` 不变，仍 `5fd17eacd0597e478bb52b01f42e7659f084f90b30cf98566deb62cdac36a5fe`，齿轮单实例修复合入后的现行值）；R2 零维护，落地后用 `prepare-runtime-descriptor.py --check` 出「`runtimeId` 未变」回执。
 - 不改数据格式、不改 `dataRead`/`dataWrite`、不接 `build-unsigned`、不做设备验收。
 
 ---
@@ -567,7 +569,7 @@ public final class PlanViewValidator {
 | # | 内容 | 主要文件 | 依赖 | `runtimeId` | 维护页 |
 |---|---|---|---|---|---|
 | 0 | **本基线**（契约冻结 + 切片设计） | 本文件、`docs/documentation-index.md` | — | 不变 | 无 |
-| 1 | **R2**：PlanView 编解码 + JVM 校验器 + Rust 第二实现 + 差分/夹具/CI | `util/PlanView*`、`rust/…/plan.rs`、`jni.rs`、`tools/rust/*`、测试 | 本基线评审通过 | **不变** | **零** |
+| 1 | **R2**：PlanView 编解码 + JVM 校验器 + Rust 第二实现 + 差分/夹具/CI | `util/PlanView*`、`rust/…/plan.rs`、`jni.rs`、`tools/rust/*`、测试 | 本基线已评审（Lead 2026-11-13） | **不变**（`5fd17eac…`） | **零** |
 | 2 | 投影接线（预览期）：清单 + 计划决策 → PlanView；`verify_plan` 结果入诊断 | `backup/RestorePlanProjection.java`（新）、`backup/NativeRestorePlan.java`（只读事实）、`backup/NativeRestoreTargets.java`（暴露两决策）、`backup/NativeBackupJobs.java`、`preview.json` 加法键 | 1 | **变** | 一次 |
 | 3 | 提交期二次校验 + 回退/诊断收口：`INPUT_CHANGED` 后同一视图 + 新 `nowMs`；`INVALID`/分歧中止；`RustBackends.planSelection()`；诊断回执 | `backup/NativeBackupJobs.java`、`util/RustBackends.java`、`backup/BackupOperationDiagnostics.java`/`BackupFailureDiagnostic.java`（加法） | 2 | 不变（同批） | 同批一次 |
 | 4 | **R3**：`archive_pack/unpack` 旁路接入（gzip 流）+ 差分 + 体积/ABI/APK 门禁 | `util/RustArchiveCodec.java`、`backup/PortableBackupEnvelope.java`、`backup/StrictGzipInputStream.java`、`_node-rust.yml`、`_node-test-packages.yml` | 1、3 | 变（同批） | 同批一次 |
@@ -594,7 +596,7 @@ public final class PlanViewValidator {
 
 ### 6.4 `launcherInputs` / `runtimeId` / 维护页
 
-- `backup/` 全树在 `launcherInputs`（当前 83 个 `backup/*.java` 全部在 `runtime-descriptor.json` 的 `launcherInputs` 里）→ **slice2/3/4 任一批必变 `runtimeId` → 覆盖安装进一次整屏维护页**（I6 设计，不是缺陷）。基线值 `a2847544…`，最终值由 `prepare-runtime-descriptor.py --write` 重算并随批次提交（生成物，不手改摘要）。
+- `backup/` 全树在 `launcherInputs`（当前 83 个 `backup/*.java` 全部在 `runtime-descriptor.json` 的 `launcherInputs` 里）→ **slice2/3/4 任一批必变 `runtimeId` → 覆盖安装进一次整屏维护页**（I6 设计，不是缺陷）。基线值 `5fd17eac…`（齿轮单实例修复合入后），最终值由 `prepare-runtime-descriptor.py --write` 重算并随批次提交（生成物，不手改摘要）。
 - `util/` 只有 139 个文件被**显式**列进 `launcherSources`，R1 的 3 个 Rust 桥文件与 R2 的 2 个 PlanView 类都**不在**其中 → R2 零维护。R2 落地后必须用 `prepare-runtime-descriptor.py --check` 给出「`runtimeId` 未变」回执。
 - 数据格式不升级：`formatVersion=5`、`dataWrite=dsh-0.2.2-rc.1`、`dataRead=[dsh-0.2.1-rc.5, dsh-0.2.2-rc.1]`、`bridgeProtocol=3` 全不动（`RuntimeDescriptor.java:24-38`、`runtime-descriptor.json`）。
 
@@ -627,40 +629,50 @@ public final class PlanViewValidator {
 
 ---
 
-## 7. 风险与开放问题
+## 7. 风险与裁决记录
 
-### 7.1 需 Lead 裁决（5 项，每项给选项与推荐）
+### 7.1 Lead 裁决（2026-11-13，5 项全部按推荐 A）
 
-**Q1（硬冲突，必须裁决）`rootCount` 的语义与上限：§4.6 的 `≤64` 与真实 512 / 一次恢复写入根可到 2048 不一致。**
+| # | 问题 | 裁决 |
+|---|---|---|
+| Q1 | `rootCount` 语义与上限（§4.6 的 64 vs 真实 512/2048） | **A**：语义 = 本次计划实际写入根数（`plan.groups.size()`，= `preview.restoreRoots`）；上限维持 64；>64 不投影、不调 Rust、记 `PLAN_VIEW_ROOT_LIMIT`，JVM 权威恢复照常 |
+| Q2 | `sensitivePolicy` 闭集 vs 自由串 | **A**：闭集 5 值；新增值必须抬 `policyVersion`（=2）并改本基线；未知值 → `FIELD_RANGE` |
+| Q3 | 有效期畸形（`expiresAtMs <= generatedAtMs`）原因码 | **A**：按 §4.6 字面归 `PLAN_EXPIRED`；「v2 拆分原因码」记入 ABI v2 清单 |
+| Q4 | R1 `digest` 不可组合，A3 怎么用 | **A**：整份 v5 摘要继续由 JVM `BackupArchive.digest` 计算，Rust `digest` 只用于 ≤32 MiB 区间；A3 证据不得写「Rust 已接管整份摘要」；R1 §6 R1 行旧设想以本基线为准 |
+| Q5 | 补齐 `type` 编码是否算改 ABI | **A**：`type` 字节编码、枚举数值、字段 `flags` 语义、原因码去重/顺序属实现细节，由基线冻结、R2 首提交写进 `plan.rs` 常量 + 夹具 pin，不需要 ABI v2；§3.10 分类保持不变 |
+
+以下保留当时的选项历史（B/C 未被采用，仅作决策依据）。
+
+**Q1（裁决 A）`rootCount` 的语义与上限：§4.6 的 `≤64` 与真实 512 / 一次恢复写入根可到 2048 不一致。**
 
 - 代码事实：清单根上限 512（`BackupArchive.java:300`）；一次恢复的写入根（组）数受 `HostDataTransaction.prepare` 的 `roots.size() > 2048` 限制（`HostDataTransaction.java:99`）；每个项目根自成一个组，profile 配置与插件包共享 `plugin-store` 组（`NativeRestoreTargets.java:96-148`）。
 - 选项：
-  - **A（推荐）** 保持 §4.6 的 64：`rootCount` 定义为**本次计划实际写入的根数**（`plan.groups.size()`，即 `preview.restoreRoots`）；>64 时**不投影**、不调 Rust、记录类型化诊断 `PLAN_VIEW_ROOT_LIMIT`；恢复照常由 JVM 读者/计划执行。代价：超大计划没有 Rust 第二实现覆盖（但 JVM 仍是权威，不影响安全）。
+  - **A（采用）** 保持 §4.6 的 64：`rootCount` 定义为**本次计划实际写入的根数**（`plan.groups.size()`，即 `preview.restoreRoots`）；>64 时**不投影**、不调 Rust、记录类型化诊断 `PLAN_VIEW_ROOT_LIMIT`；恢复照常由 JVM 读者/计划执行。代价：超大计划没有 Rust 第二实现覆盖（但 JVM 仍是权威，不影响安全）。
   - **B** 在 R2 前把上限改到 512 并新增 `rootIdsDigest` 字段——**这是 ABI 变更**，需新评审，推迟 R2。
   - **C** 把 `rootCount` 改成「清单根数」并保留 64——更糟：清单可达 512，会拒掉更多真实归档。
-- 推荐 A，并把 B 记为 A3 之后的可选跟进（若实测超大计划常见）。
+- **裁决：A。** B 记为 A3 之后的可选跟进（若实测超大计划常见），R2 不做。
 
-**Q2 `sensitivePolicy` 是闭集还是自由串。**
+**Q2（裁决 A）`sensitivePolicy` 是闭集还是自由串。**
 
-- 选项：**A（推荐）** 闭集 5 值（`UNENCRYPTED`/`PASSWORD_ENCRYPTED`/`APP_PRIVATE_STAGING`/`LEGACY_PLAINTEXT`/`PRIVATE_LOCAL_NATIVE_STATE_IN_PLACE`），未来新增值必须同时抬 `policyVersion`（=2）并改本文；未知值 → `FIELD_RANGE`。**B** 按 §4.6 字面只校验 UTF-8/非空/≤64，任何值通过。**C** 闭集 + 把未知值降级为「不投影」而不判 INVALID。
-- 推荐 A：5 个值覆盖全部生产写者，闭集让「新写者」暴露在评审而不是悄悄进生产；C 会让 `verify_plan` 对同一输入给出「无法判定」之外的沉默。
+- 选项：**A（采用）** 闭集 5 值（`UNENCRYPTED`/`PASSWORD_ENCRYPTED`/`APP_PRIVATE_STAGING`/`LEGACY_PLAINTEXT`/`PRIVATE_LOCAL_NATIVE_STATE_IN_PLACE`），未来新增值必须同时抬 `policyVersion`（=2）并改本文；未知值 → `FIELD_RANGE`。**B** 按 §4.6 字面只校验 UTF-8/非空/≤64，任何值通过。**C** 闭集 + 把未知值降级为「不投影」而不判 INVALID。
+- **裁决：A。** 5 个值覆盖全部生产写者，闭集让「新写者」暴露在评审而不是悄悄进生产；C 会让 `verify_plan` 对同一输入给出「无法判定」之外的沉默。
 
-**Q3 有效期畸形（`expiresAtMs <= generatedAtMs`）归哪个原因码。**
+**Q3（裁决 A）有效期畸形（`expiresAtMs <= generatedAtMs`）归哪个原因码。**
 
 - §4.6 字面：`PLAN_EXPIRED`。语义上它更像字段范围错误（`PLAN_FIELD_RANGE`）。
-- 选项：**A（推荐）** 按 §4.6 字面用 `PLAN_EXPIRED`（本轮不放宽/不改冻结文案）；**B** 改文案用 `PLAN_FIELD_RANGE`（更好诊断，但要改 §4.6 并重新冻结）。
-- 推荐 A；把「v2 拆分两个原因」记入 §3.10 的 ABI v2 清单。
+- 选项：**A（采用）** 按 §4.6 字面用 `PLAN_EXPIRED`（本轮不放宽/不改冻结文案）；**B** 改文案用 `PLAN_FIELD_RANGE`（更好诊断，但要改 §4.6 并重新冻结）。
+- **裁决：A。** 把「v2 拆分两个原因」记入 §3.10 的 ABI v2 清单。
 
-**Q4 R1 `digest` 不可组合，A3 怎么用。**
+**Q4（裁决 A）R1 `digest` 不可组合，A3 怎么用。**
 
-- 选项：**A（推荐）** 整份摘要继续由 JVM 计算（现状 `BackupArchive.digest`），Rust `digest` 只用于 ≤32 MiB 区间（如尾部复核、单记录 ≤32 MiB 的载荷摘要）；B 现在给 ABI 加增量会话（init/update/finish）——新 ABI 版本 + 新评审，R2 不做；C 用分块摘要「拼」（错误，摘要不可组合）。
-- 推荐 A：与 R1 已验证的能力一致；A3 出口证据里必须写清「Rust 未参与整份摘要」，不得把 R1 的 digest 说成已接管 `BackupArchive`（R1 §6 R1 行里「`BackupArchive` 单个调用点」的设想需据此修正）。
+- 选项：**A（采用）** 整份摘要继续由 JVM 计算（现状 `BackupArchive.digest`），Rust `digest` 只用于 ≤32 MiB 区间（如尾部复核、单记录 ≤32 MiB 的载荷摘要）；B 现在给 ABI 加增量会话（init/update/finish）——新 ABI 版本 + 新评审，R2 不做；C 用分块摘要「拼」（错误，摘要不可组合）。
+- **裁决：A。** 与 R1 已验证的能力一致；A3 出口证据里必须写清「Rust 未参与整份摘要」，不得把 R1 的 digest 说成已接管 `BackupArchive`（R1 §6 R1 行里「`BackupArchive` 单个调用点」的设想需据此修正，以本基线为准）。
 
-**Q5 补齐 `type` 字节编码是否算「改 ABI」。**
+**Q5（裁决 A）补齐 `type` 字节编码是否算「改 ABI」。**
 
 - 事实：§4.6 冻结了偏移/类型名/字段 id/上限，但没有定义 `type` 的**数值编码**、枚举**数值**、字段 `flags` 语义、原因码去重顺序——R0 的 `plan.rs` 也只落了 5 个常量。
-- 选项：**A（推荐）** 视为「实现细节」，由本文冻结、R2 首提交写进 `plan.rs` 常量与夹具，不需要 ABI v2；**B** 视为 ABI 变更 → R2 前需新一轮 ABI 评审。
-- 推荐 A，但请 Lead 在评审时**明确确认**，否则 R2 会在「不改 ABI」的字面要求上踩线。
+- 选项：**A（采用）** 视为「实现细节」，由本文冻结、R2 首提交写进 `plan.rs` 常量与夹具，不需要 ABI v2；**B** 视为 ABI 变更 → R2 前需新一轮 ABI 评审。
+- **裁决：A。** Lead 明确确认：`type` 字节编码、枚举数值、字段 `flags` 语义、原因码去重/顺序属实现细节，不需要 ABI v2；§3.10 的分类保持不变。
 
 ### 7.2 已知窗口是否被 A3 触及
 
@@ -687,10 +699,10 @@ public final class PlanViewValidator {
 
 ## 8. 给 Lead 的看板与索引建议（本会话未自行修改 §0.1）
 
-按 roadmap §10「看板：只有 Lead 改 §0」，本会话**没有**改 `iteration-roadmap-20261112.md` 的看板。建议 Lead 在 A3 行做**最小**状态补充（不改其他轮次）：
+按 roadmap §10「看板：只有 Lead 改 §0」，本会话**没有**改 `iteration-roadmap-20261112.md` 的看板；Lead 已确认 A3 看板行由 Lead 更新。建议 Lead 在 A3 行做**最小**状态补充（不改其他轮次）：
 
 ```text
-| A3 | 数据保护 | 🟡 进行中（设计基线） | 2026-11-13 | — | 备份/恢复/保留数据 | 一次维护页 | [A3 任务基线](a3-task-baseline-20261113.md)（契约 v1 冻结，待评审；R2 未开工） |
+| A3 | 数据保护 | 🟡 进行中（设计基线已评审） | 2026-11-13 | — | 备份/恢复/保留数据 | 一次维护页 | [A3 任务基线](a3-task-baseline-20261113.md)（契约 v1 冻结，Lead 已裁决 Q1–Q5；R2 已解锁） |
 ```
 
 `docs/documentation-index.md` 的本条目已由本会话添加（任务明确授权）。
@@ -700,7 +712,8 @@ public final class PlanViewValidator {
 | 版本 | 日期 | 变更 |
 |---|---|---|
 | v0.1 | 2026-11-13 | 初稿：A3 现状核对（逐条 `file:line`）、PlanView v1 契约冻结（补齐 type 码/枚举/`selectedMask`/`targetMappingKind`/摘要口径/原因码去重）、JVM 校验器与差分设计、R2 范围与验收、A3 切片与写域、5 项待裁决问题 |
+| v0.2 | 2026-11-13 | Lead 评审通过并裁决 Q1–Q5（全部按推荐 A，见 §7.1）；按裁决定稿 §3.3/§3.4/§3.5/§3.6/§3.10；rebase 到 `origin/main`=`2729112e`（齿轮单实例修复），`runtimeId` 基线更新为 `5fd17eac…`；R2 已解锁 |
 
 ---
 
-*本基线待 Lead 评审；评审通过后 R2 可开工。*
+*本基线已由 Lead 评审通过（2026-11-13，Q1–Q5 全部按推荐 A）；R2 已解锁，可开工。*
