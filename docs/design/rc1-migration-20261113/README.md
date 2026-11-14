@@ -239,3 +239,42 @@ P0/P1/P2 是落地顺序；§6 的 P1 是缺陷优先级，两者不要混淆。
 - 非实现者评审 REQUEST_CHANGES 的吸收：① CJS 在 history-only 下禁止创建/更新分节、禁止写 `startupId`/`verifiedAt`/atomic 与 rename，账本缺节或 pending/writing/unknown 只返回 unknown/pending；② Python prepare 历史快路径必须已有 committed receipt 且 settings 账本 verified/not-required，`protectionComplete` 不再代替完成回执；③ 重复 finalize 返回原失败或 unknown，不再本地报告成功；④ warnings 严格 32 条；⑤ current 缺失投影为 UNKNOWN，账本 sourceSha256 绑定 current 输入摘要。
 - Lead 裁决：Q1 接受保守 unknown（不自动补导入，需显式意图）；Q2 维持仅“明确未派发”的 schema/目标缺失节可在新票据下重试，writing/派发后异常冻结 unknown；Q3 `verify-existing` 暂只作内部只读入口，UI 入口另派单。
 - 测试边界：CI Source 阶段不执行 `tools/test-rc1-migration.py` / `tools/test-rc1-settings-migration.mjs`；合并前须在 release/runtime 或等价的宿主夹具阶段补跑这两套（含本目录评审补的 history-only 只读与历史完成门槛回归）。
+
+## 12. 收口补丁 A/B/E（2026-11-14，分支 fix/rc1-hardening）
+
+外部静态审计 §2 的三处收口按“不扩范围”实施，均带会先失败的反例测试；本批不改
+`StartupPipeline` 门禁、不改 DSH 版本 / 数据写标志 / v5 归档格式 / 包名 / 签名 / CHANGELOG，
+descriptor 与 runtimeId 由 Lead 在合并树按最终输入重算。
+
+- **A：update 之后不能按错误文字判未派发。** 删除 `/No configurable plugin entry/`、
+  `/volatile|schema|invalid/i` 这类文字分类。只有调用 `settings.update` 之前完成的校验拒绝
+  （分节不是映射、顶层字段未被 form schema 声明）才记 pending
+  （`SECTION_VALUE_FORMAT` / `SECTION_SCHEMA_REJECTED`）；一旦进入 update，异常或读回不符一律
+  unknown + `WRITE_OUTCOME_UNKNOWN`，同一票据不重试，catch 也不再绑定/记录错误消息。
+- **B：按真实 schema 引用图投影秘密字段。** 锁定 `SettingsForms.describe()` 的
+  `descriptor.schema` 是 schemastery 引用图 `{ uid, refs }`（uid 为数字，`dict`/`inner`/
+  `list` 用 uid 引用子节点，秘密只由节点 `meta.role === 'secret'` 决定），不是 `dict`/`meta`
+  树。现网实现按后者读取，真实 schema 上会漏掉 `providers.alpha.key` 这类 secret（正文写进
+  账本 source/before/verified），同时用名称正则误删声明的普通字段 `maxTokens`。改为按图逐节点
+  投影：`object`/`dict`/`array`/`tuple`/`transform`/`lazy` 递归，秘密节点不落账；`union`/
+  `intersect` 分支歧义、schema 缺失、悬空 uid、未建模类型、形状不符时该节
+  `SECTION_SCHEMA_UNKNOWN` 且不调用 update。名称正则只对 schema 未声明的键做“额外不复制”
+  兜底，不决定已声明字段。读回核验在内存用含秘密的完整投影做 `contains`，账本只存去秘密投影。
+- **E：旧账本缺期望分节集合不得自证完成。** `ledger_state` 的期望集合只接受账本自己的
+  `expectedSections`，或同代次、同 settings 摘要的 `reuse.json settingsSections`；两者都缺时
+  返回 unknown + `SETTINGS_EXPECTED_SECTIONS_MISSING`，不再用当前账本键拼出“全部完成”。Java
+  历史缓存 `Rc1MigrationCache` 同口径拒绝（`SETTINGS_EXPECTED_SECTIONS_MISSING`），本批不新增
+  用户确认放行旁路。
+
+**已知行为边界（需产品裁决）**：升级自更早版本、存在 settings 来源但账本无 `expectedSections`
+且同代次没有 `reuse.json settingsSections` 的用户，其首次启动的 Python prepare 会返回 unknown；
+[StartupPipeline](../../../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java#L316)
+对非 `allowsStart` 结果阻断启动，用户会看到“保留数据/迁移待处理”提示，而不是被自动重导。
+若产品希望改为“可见待处理但允许无写入启动”，需要另立用户显式确认不导入的受控路径，不在本批
+范围。
+
+测试（2026-11-14 UTC，本机真实锁定运行时）：`tools/test-rc1-settings-migration.mjs` 22 项通过
+（含 4 项修复前失败的真实 schema/未知 schema 反例，3 项修复前失败的 A 反例）；
+`tools/test-rc1-migration.py` 48 项通过（含 3 个类修复前失败或不可用的 E 反例）;
+`Rc1MigrationCacheTest` 新增“旧账本与 checkpoint 都缺期望集合 → UNAVAILABLE”并保留账本自带
+`expectedSections` 的历史命中正例。
