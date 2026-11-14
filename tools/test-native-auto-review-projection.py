@@ -33,6 +33,16 @@ class NativeAutoReviewProjectionTest(unittest.TestCase):
         self.write_profile([])
         self.runtime = self.root / 'usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules' / CANONICAL
         self.package(self.runtime, CANONICAL, '0.2.1-rc.2')
+        # A6 起启用路径要求可核对的运行时身份；夹具提供最小 dsh 与 app-boot 包，
+        # 让兼容性检查走真实解析而不是缺身份时 fail-closed。
+        dsh = self.root / 'usr/local/lib/node_modules/@deepseek-ai/dsh'
+        (dsh / 'package.json').write_text(
+            json.dumps({'name': '@deepseek-ai/dsh', 'version': '0.2.2-rc.1'}), encoding='utf-8')
+        boot = dsh / 'node_modules/@deepseek-ai/dsh-app-boot'
+        (boot / 'lib').mkdir(parents=True)
+        (boot / 'package.json').write_text(json.dumps(
+            {'name': '@deepseek-ai/dsh-app-boot', 'version': '0.2.2-rc.1', 'main': 'lib/index.js'}), encoding='utf-8')
+        (boot / 'lib' / 'index.js').write_text('module.exports = {}\n', encoding='utf-8')
         self.proof_path = self.root / 'root/.dsh/managed-package-proofs.json'
         self.proof_path.write_text(json.dumps({'version': 1, 'packages': {
             CANONICAL: _proof.package_content_proof(self.runtime)}}), encoding='utf-8')

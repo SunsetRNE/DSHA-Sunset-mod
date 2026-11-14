@@ -1762,6 +1762,10 @@ public final class PluginRepository extends AndroidViewModel {
           : !registry.validateMutation(
               request.mutationTicket, after.identity, observeMutationWeb(controller))) {
         phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED;
+        // 查询期间代次或数据根已换代：旧结果仍按未知丢弃，但已观察来源必须前进，
+        // 旧代次运行证据不能继续挂在当前目录上（同数据根只保留陈旧展示）。
+        if (request.work.query() && resolved.identity.equals(registry.snapshot().source))
+          registry.updateSource(after.identity);
         throw new IOException("执行期间数据根或环境变化；结果待核验，未自动重放");
       }
       if (request.work.query()) {
@@ -2026,6 +2030,10 @@ public final class PluginRepository extends AndroidViewModel {
     }
     PendingWork request = activeWork;
     if (request == null || !request.id.equals(id)) return false;
+    // 已保留现场或已进入终态/待核验的请求不能再报告“已取消”；
+    // 早先已置位的取消标志只证明曾请求取消，不能把 UNKNOWN 结果降级成 CANCELLED。
+    var operation = operations.get(id);
+    if (retainedExecution != null || operation == null || !operation.pending()) return false;
     cancelRequest(request);
     return request.cancelled.get();
   }

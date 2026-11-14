@@ -680,7 +680,7 @@ public final class PluginRepositoryQueryLifecycleTest {
   public void delayedReadyNotificationsWithSameFinalGetterStillInvalidateQueuedMutation()
       throws Exception {
     seed();
-    Controller.auth = "http://127.0.0.1/?token=private";
+    Controller.auth = "http://127.0.0.1:3080/?token=private";
     String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
     // 两个无 payload 通知晚到时，getter 已恢复 A；仍须推进事件代次。
     repository.observeMutationIdentity(Controller.value);
@@ -693,7 +693,7 @@ public final class PluginRepositoryQueryLifecycleTest {
   @Test
   public void changedInstanceAndTwoReadRaceCannotDispatchQueuedMutation() throws Exception {
     seed();
-    Controller.auth = "http://127.0.0.1/?token=private";
+    Controller.auth = "http://127.0.0.1:3080/?token=private";
     String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
     Controller.instance = "other-instance";
     runWorker();
@@ -1412,6 +1412,11 @@ public final class PluginRepositoryQueryLifecycleTest {
             new JSONObject(valid).put("enabled", JSONObject.NULL),
             new JSONObject(valid).put("status", "partial"));
     for (JSONObject receipt : wrong) {
+      // 未确认回执按设计要求同一目标先只读核对：成功读取才清除目标变更标记，
+      // 否则下一次同目标提交会被 INVALIDATED 拒绝，而不是再次派发 guest。
+      reply(list(false, false));
+      repository.refresh();
+      runWorker();
       Boot.calls.clear();
       reply(receipt.toString());
       String id = repository.setEnabled(alpha, true);

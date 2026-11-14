@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "b15b4ba5d25197b4a2bfe19bfeca20d4811e0a55b7126936b37de322bd2ad425",
+  "runtimeId": "7a55431805d0ed402a943584aa1d8b0afc26066cd27d32d750952ecce1ca0c15",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -143,7 +143,7 @@
     "core/NioInstallationIdentity.java": "593faa9927a6d6335c8e7cc38069d2b7e9b981ec6afb04378d28ef64094433b6",
     "core/PluginActivationHooks.java": "f9bc54562fe89b5c03e44b14e3f67f5a11d6edfd40897a25f9925183ec124334",
     "core/PluginJournalRecovery.java": "c50cd4a1767aaa4bf824f6147ffb21781d8db07c9ac7efdb9f0617867840bee9",
-    "core/PluginRepository.java": "0a890b802c6b57472eaac23e3c9e18b9bba00fa09e9e4b9cdf905cfaf934a334",
+    "core/PluginRepository.java": "43714e72e62aea5f656f4c8c0d90f3c7f30dfd050255e20d0fd33c73cb02a3a5",
     "core/PluginTask.java": "e6f9ca761ee3fcb0e17e6b9f4a3a65c273444adf1c916a7920faa169f57c7757",
     "core/RuntimeSnapshot.java": "201213bc43237ae58f3dfe47f1b6a5774f4a509c71418d13f50ae008d27897a8",
     "core/RuntimeTasks.java": "0d8886668e545239416e3c696124135a5a3df54a411f2cf0f28e69ca5e20ec41",

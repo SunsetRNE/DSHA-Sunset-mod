@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.deepseekharness.app.plugins.PluginOperationResult;
 import com.deepseekharness.app.util.BoundedProcessRunner;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -73,7 +74,10 @@ public class PluginRepositoryDiscardTest {
     IOException exited =
         assertThrows(
             IOException.class, () -> PluginRepository.requireDiscardResult(result(OK, 7, 1024)));
-    assertTrue(exited.getMessage().contains("PLUGIN_DISCARD_PREVIEW_EXIT_7"));
+    // A6 起复用统一命令结果分类：非零退出是“未确认”，不再冒充已清理。
+    PluginOperationResult.Failure exitFailure = (PluginOperationResult.Failure) exited;
+    assertEquals("PLUGIN_COMMAND_EXIT", exitFailure.detail.errorCode());
+    assertEquals(PluginOperationResult.Kind.UNCONFIRMED, exitFailure.kind);
     IOException rejected =
         assertThrows(
             IOException.class,
@@ -94,7 +98,9 @@ public class PluginRepositoryDiscardTest {
     IOException truncated =
         assertThrows(
             IOException.class, () -> PluginRepository.requireDiscardResult(result(OK, 0, 8)));
-    assertTrue(truncated.getMessage().contains("PLUGIN_DISCARD_PREVIEW_OUTPUT_TRUNCATED"));
+    PluginOperationResult.Failure truncatedFailure = (PluginOperationResult.Failure) truncated;
+    assertEquals("PLUGIN_OUTPUT_TRUNCATED", truncatedFailure.detail.errorCode());
+    assertEquals(PluginOperationResult.Kind.UNCONFIRMED, truncatedFailure.kind);
   }
 
   @Test
@@ -106,7 +112,10 @@ public class PluginRepositoryDiscardTest {
     assertEquals(OK, execution.output);
     IOException failure =
         assertThrows(IOException.class, () -> PluginRepository.requireDiscardResult(execution));
-    assertTrue(failure.getMessage().contains("PLUGIN_DISCARD_PREVIEW_TIMEOUT"));
+    PluginOperationResult.Failure timeoutFailure = (PluginOperationResult.Failure) failure;
+    assertEquals("PLUGIN_COMMAND_TIMEOUT", timeoutFailure.detail.errorCode());
+    assertEquals(PluginOperationResult.Kind.UNCONFIRMED, timeoutFailure.kind);
+    assertTrue(timeoutFailure.exitUnknown);
   }
 
   @Test
