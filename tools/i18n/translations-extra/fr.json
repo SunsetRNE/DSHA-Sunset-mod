@@ -2010,5 +2010,6 @@
   "xa2workbench029": "Le transfert n’est pas terminé. Vérifiez la destination avant de continuer ; un fichier externe peut être incomplet.",
   "xa2review001": "Ce dossier est en lecture seule : l’écriture de l’assistant est désactivée ou le fournisseur ne l’autorise pas.",
   "xa2review002": "Le registre des accès est indisponible. Vérifiez le stockage et réessayez.",
-  "xa2review003": "L’environnement est en maintenance. Réessayez une fois celle-ci terminée."
+  "xa2review003": "L’environnement est en maintenance. Réessayez une fois celle-ci terminée.",
+  "xa2review004": "L’état des autorisations système est temporairement indisponible. Actualisez plus tard."
 }

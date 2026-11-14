@@ -16324,5 +16324,13 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
     ]
+  },
+  {
+    "id": "xa2review004",
+    "zh": "暂时无法读取系统授权状态，请稍后刷新。",
+    "en": "System permission status is temporarily unavailable. Refresh later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
   }
 ]

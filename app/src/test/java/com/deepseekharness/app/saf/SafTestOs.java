@@ -32,6 +32,7 @@ public final class SafTestOs {
   static final int O_PATH = 0x200000;
   static final Map<FileDescriptor, File> RAW_FILES = new IdentityHashMap<>();
   static final Map<FileDescriptor, Boolean> RAW_DIRS = new IdentityHashMap<>();
+  static final Map<FileDescriptor, StructStat> RAW_STATS = new IdentityHashMap<>();
 
   /** 每个 dup 出来的 PFD 的 fake 状态；以真实对象身份为键，不依赖影子实例的具体类型。 */
   static final Map<ParcelFileDescriptor, PfdState> PFD_STATES = new IdentityHashMap<>();
@@ -43,6 +44,8 @@ public final class SafTestOs {
   static final List<String> REMOVES = new ArrayList<>();
   static final List<String> MKDIRS = new ArrayList<>();
   static final Map<String, Integer> CHMODES = new HashMap<>();
+  static final Map<String, Integer> FCHMODES = new HashMap<>();
+  static Runnable afterFchmod;
   static int nextFd = 500;
   static int closedPfd;
 
@@ -56,6 +59,7 @@ public final class SafTestOs {
     invalidateParcelFileDescriptorCallsites();
     RAW_FILES.clear();
     RAW_DIRS.clear();
+    RAW_STATS.clear();
     for (RandomAccessFile handle : RAW_HANDLES.values()) {
       try {
         handle.close();
@@ -70,6 +74,8 @@ public final class SafTestOs {
     REMOVES.clear();
     MKDIRS.clear();
     CHMODES.clear();
+    FCHMODES.clear();
+    afterFchmod = null;
     nextFd = 500;
     closedPfd = 0;
   }
@@ -107,7 +113,16 @@ public final class SafTestOs {
       mode = OsConstants.S_IFDIR | (mode & 07777);
     }
     long size = directory ? 0 : file.length();
-    int inode = Math.abs(file.getAbsolutePath().hashCode());
+    long inode = Math.abs(file.getAbsolutePath().hashCode());
+    try {
+      inode =
+          ((Number)
+                  Files.getAttribute(
+                      file.toPath(), "unix:ino", java.nio.file.LinkOption.NOFOLLOW_LINKS))
+              .longValue();
+    } catch (IOException | UnsupportedOperationException ignored) {
+      // 非 POSIX 文件系统保留稳定的路径后备值。
+    }
     long mtime = file.lastModified() / 1000L;
     return new StructStat(1, inode, mode, links, 0, 0, 0, size, mtime, mtime, mtime, 4096, 0);
   }
@@ -146,6 +161,7 @@ public final class SafTestOs {
           RandomAccessFile handle = new RandomAccessFile(file, "r");
           FileDescriptor fd = handle.getFD();
           RAW_FILES.put(fd, file);
+          RAW_STATS.put(fd, SafTestOs.stat(file, directory));
           RAW_DIRS.put(fd, false);
           RAW_HANDLES.put(fd, handle);
           return fd;
@@ -157,6 +173,7 @@ public final class SafTestOs {
         if (!file.isDirectory()) throw new ErrnoException("open", OsConstants.ENOTDIR);
         FileDescriptor fd = new FileDescriptor();
         RAW_FILES.put(fd, file);
+        RAW_STATS.put(fd, SafTestOs.stat(file, directory));
         RAW_DIRS.put(fd, true);
         return fd;
       }
@@ -173,6 +190,7 @@ public final class SafTestOs {
         RandomAccessFile handle = new RandomAccessFile(file, write ? "rw" : "r");
         FileDescriptor fd = handle.getFD();
         RAW_FILES.put(fd, file);
+        RAW_STATS.put(fd, SafTestOs.stat(file, directory));
         RAW_DIRS.put(fd, false);
         RAW_HANDLES.put(fd, handle);
         return fd;
@@ -196,9 +214,10 @@ public final class SafTestOs {
 
     @org.robolectric.annotation.Implementation
     protected static StructStat fstat(FileDescriptor fd) throws ErrnoException {
-      File file = RAW_FILES.get(fd);
-      if (file == null) throw new ErrnoException("fstat", OsConstants.EBADF);
-      return SafTestOs.stat(file, Boolean.TRUE.equals(RAW_DIRS.get(fd)));
+      StructStat opened = RAW_STATS.get(fd);
+      if (opened == null) throw new ErrnoException("fstat", OsConstants.EBADF);
+      // fd 固定 open 时的 inode，不能在路径被替换后重新按同一个名字伪造 fstat。
+      return opened;
     }
 
     @org.robolectric.annotation.Implementation
@@ -232,6 +251,7 @@ public final class SafTestOs {
     protected static void close(FileDescriptor fd) {
       RAW_FILES.remove(fd);
       RAW_DIRS.remove(fd);
+      RAW_STATS.remove(fd);
       RandomAccessFile handle = RAW_HANDLES.remove(fd);
       if (handle != null) {
         try {
@@ -269,8 +289,23 @@ public final class SafTestOs {
     }
 
     @org.robolectric.annotation.Implementation
+    protected static void fchmod(FileDescriptor fd, int mode) throws ErrnoException {
+      File opened = RAW_FILES.get(fd);
+      if (opened == null || !RAW_HANDLES.containsKey(fd))
+        throw new ErrnoException("fchmod", OsConstants.EBADF);
+      FCHMODES.put(opened.getAbsolutePath(), mode);
+      Runnable hook = afterFchmod;
+      afterFchmod = null;
+      if (hook != null) hook.run();
+    }
+
+    @org.robolectric.annotation.Implementation
     protected static void chmod(String path, int mode) throws ErrnoException {
-      CHMODES.put(resolve(path).getAbsolutePath(), mode);
+      try {
+        CHMODES.put(resolve(path).getCanonicalFile().getAbsolutePath(), mode);
+      } catch (IOException failure) {
+        throw new ErrnoException("chmod", OsConstants.EIO);
+      }
     }
   }
 

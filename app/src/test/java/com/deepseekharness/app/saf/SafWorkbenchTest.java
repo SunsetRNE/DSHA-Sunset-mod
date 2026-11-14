@@ -324,11 +324,108 @@ public final class SafWorkbenchTest {
     SafWorkbench.Ticket ticket = workbench.prepare(ID, "file.txt", true);
     assertEquals(5, workbench.transfer(ticket, "/root/out.txt", true));
     assertEquals("hello", Files.readString(target.toPath()));
-    assertEquals(1, SafTestOs.CHMODES.size());
-    var copied = SafTestOs.CHMODES.entrySet().iterator().next();
+    assertTrue("mode copies must never resolve a pathname", SafTestOs.CHMODES.isEmpty());
+    assertEquals(1, SafTestOs.FCHMODES.size());
+    var copied = SafTestOs.FCHMODES.entrySet().iterator().next();
     assertEquals(0750, copied.getValue().intValue());
     assertTrue(copied.getKey(), copied.getKey().contains(".saf-workbench-"));
     assertTrue(SafTestOs.RENAMES.get(0).startsWith(copied.getKey() + " -> "));
+  }
+
+  private void assertTemporaryReplacementIsRejected(boolean symbolic, boolean afterMode)
+      throws Exception {
+    File target = new File(rootfs, "root/out.txt");
+    Files.writeString(target.toPath(), "existing");
+    Files.setAttribute(target.toPath(), "unix:mode", 0750);
+    File credentials = new File(rootfs, "root/.ssh");
+    assertTrue(credentials.mkdir());
+    File secret = new File(credentials, "fixture");
+    Files.writeString(secret.toPath(), "fixture-secret");
+    Files.setAttribute(secret.toPath(), "unix:mode", 0600);
+    Runnable replace =
+        () -> {
+          try (var files = Files.list(target.getParentFile().toPath())) {
+            java.nio.file.Path part =
+                files
+                    .filter(p -> p.getFileName().toString().startsWith(".saf-workbench-"))
+                    .findFirst()
+                    .orElseThrow();
+            Files.delete(part);
+            if (symbolic) Files.createSymbolicLink(part, secret.toPath());
+            else Files.writeString(part, "replacement");
+          } catch (java.io.IOException error) {
+            throw new java.io.UncheckedIOException(error);
+          }
+        };
+    if (afterMode) SafTestOs.afterFchmod = replace;
+    else provider.firstReadOpen = replace;
+    SafWorkbench.Ticket ticket = workbench.prepare(ID, "file.txt", true);
+    assertEquals(
+        "PATH_CHANGED",
+        assertThrows(
+                java.io.IOException.class, () -> workbench.transfer(ticket, "/root/out.txt", true))
+            .getMessage());
+    assertEquals("existing", Files.readString(target.toPath()));
+    assertEquals("fixture-secret", Files.readString(secret.toPath()));
+    assertEquals(0600, (Integer) Files.getAttribute(secret.toPath(), "unix:mode") & 0777);
+    assertTrue("a replaced temporary object must not be published", SafTestOs.RENAMES.isEmpty());
+    assertTrue("path chmod must never touch a link target", SafTestOs.CHMODES.isEmpty());
+    try (var files = Files.list(target.getParentFile().toPath())) {
+      assertFalse(files.anyMatch(p -> p.getFileName().toString().startsWith(".saf-workbench-")));
+    }
+    assertEquals(
+        SafCapabilityLimits.MAX_CONCURRENT_TRANSFERS, SafTransferGate.TRANSFERS.availablePermits());
+  }
+
+  @Test
+  public void replacedTemporarySymlinkNeverChangesCredentialModeOrPublishes() throws Exception {
+    assertTemporaryReplacementIsRejected(true, false);
+  }
+
+  @Test
+  public void replacedTemporaryRegularFileCannotReuseOriginalStreamIdentity() throws Exception {
+    assertTemporaryReplacementIsRejected(false, false);
+  }
+
+  @Test
+  public void replacementAfterModeCopyIsCheckedAgainBeforePublishing() throws Exception {
+    assertTemporaryReplacementIsRejected(true, true);
+  }
+
+  @Test
+  public void outputCloseFailureKeepsOriginalTargetBeforePublishing() throws Exception {
+    File target = new File(rootfs, "root/out.txt");
+    Files.writeString(target.toPath(), "existing");
+    try (var directory = SafLocalFiles.openAnchoredDirectory(target.getParentFile());
+        var original = SafLocalFiles.createInDirectory(directory, "fixture.part")) {
+      java.io.FileDescriptor fd =
+          SafTestOs.RAW_FILES.entrySet().stream()
+              .filter(e -> e.getValue().getName().equals("fixture.part"))
+              .findFirst()
+              .orElseThrow()
+              .getKey();
+      var failing =
+          new SafLocalFiles.OwningOutputStream(
+              new java.io.FileOutputStream(fd) {
+                @Override
+                public void close() throws java.io.IOException {
+                  super.close();
+                  throw new java.io.IOException("OUTPUT_CLOSE_FAILED");
+                }
+              },
+              fd);
+      assertEquals(
+          "OUTPUT_CLOSE_FAILED",
+          assertThrows(
+                  java.io.IOException.class,
+                  () ->
+                      SafLocalFiles.publishInDirectory(
+                          directory, "fixture.part", target.getName(), failing, 0750))
+              .getMessage());
+      assertTrue(SafTestOs.RENAMES.isEmpty());
+      assertTrue(SafTestOs.FCHMODES.isEmpty());
+      assertEquals("existing", Files.readString(target.toPath()));
+    }
   }
 
   @Test

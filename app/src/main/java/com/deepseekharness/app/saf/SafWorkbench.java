@@ -246,23 +246,16 @@ public final class SafWorkbench {
             total += data.length;
             if (data.length < cap) break;
           }
+          if (source.size >= 0 && total != source.size) throw new IOException("SIZE_MISMATCH");
+          SafTree.Entry after = tree.stat(ticket.path);
+          if (!source.docId.equals(after.docId)
+              || source.size != after.size
+              || source.modified != after.modified) throw new IOException("SOURCE_CHANGED");
+          running(ticket, grant, deadline);
+          SafLocalFiles.publishInDirectory(
+              directory, temporary, target.getName(), output, previousMode);
+          published = true;
         }
-        if (source.size >= 0 && total != source.size) throw new IOException("SIZE_MISMATCH");
-        SafTree.Entry after = tree.stat(ticket.path);
-        if (!source.docId.equals(after.docId)
-            || source.size != after.size
-            || source.modified != after.modified) throw new IOException("SOURCE_CHANGED");
-        if (previousMode >= 0) {
-          try {
-            android.system.Os.chmod(
-                "/proc/self/fd/" + directory.fd + "/" + temporary, previousMode);
-          } catch (android.system.ErrnoException unavailable) {
-            // 与桥 pull 一致，复制失败时保留新文件的安全默认权限。
-          }
-        }
-        running(ticket, grant, deadline);
-        SafLocalFiles.publishInDirectory(directory, temporary, target.getName());
-        published = true;
         return total;
       } finally {
         if (!published) {

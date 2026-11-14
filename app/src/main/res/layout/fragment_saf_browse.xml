@@ -84,8 +84,12 @@
         style="@style/ShellStatusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="@dimen/shell_page_pad"
-        android:paddingTop="6dp"
-        android:paddingEnd="@dimen/shell_page_pad"
-        android:paddingBottom="12dp" />
+        android:layout_marginStart="@dimen/shell_page_pad"
+        android:layout_marginEnd="@dimen/shell_page_pad"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_shell_status"
+        android:minHeight="48dp"
+        android:gravity="center_vertical"
+        android:padding="12dp"
+        android:textDirection="locale" />
 </LinearLayout>

@@ -67,7 +67,11 @@ final class SafWorkbenchUi {
                       String state =
                           "INTERRUPTED".equals(record.code)
                               ? UiText.choose("传输中断", "Transfer interrupted")
-                              : TransferText.status(record.status);
+                              : record.status
+                                      == com.deepseekharness.app.transfer.DownloadTask.Status
+                                          .DOWNLOADING
+                                  ? UiText.text("正在传输")
+                                  : TransferText.status(record.status);
                       String metadata =
                           UiText.format(
                               UiText.choose("%s · %s · %s", "%s · %s · %s"),
@@ -104,11 +108,7 @@ final class SafWorkbenchUi {
     return switch (code) {
       case "HANDLE_EXPIRED" ->
           UiText.choose("操作已过期，请重新选择文件。", "This action expired. Select the file again.");
-      case "NO_GRANT",
-              "PERMISSION_DENIED",
-              "HANDLE_REVOKED",
-              "HANDLE_UNKNOWN",
-              "PERMISSION_STATE_UNAVAILABLE" ->
+      case "NO_GRANT", "PERMISSION_DENIED", "HANDLE_REVOKED", "HANDLE_UNKNOWN" ->
           UiText.choose(
               "授权已失效或被系统拒绝：回到上一页移除它再重新选。",
               "Permission lost or denied: remove the grant and pick it again.");
@@ -116,6 +116,10 @@ final class SafWorkbenchUi {
           UiText.choose(
               "此目录只读：助手写入已关闭，或对方未给写权限。",
               "This folder is read-only: assistant writes are off or the provider grants no write access.");
+      case "PERMISSION_STATE_UNAVAILABLE" ->
+          UiText.choose(
+              "暂时无法读取系统授权状态，请稍后刷新。",
+              "System permission status is temporarily unavailable. Refresh later.");
       case "STATE_UNAVAILABLE" ->
           UiText.choose(
               "授权簿暂不可用，请检查存储后重试。",

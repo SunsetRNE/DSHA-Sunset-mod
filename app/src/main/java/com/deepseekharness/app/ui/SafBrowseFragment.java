@@ -50,6 +50,7 @@ public final class SafBrowseFragment extends Fragment {
   private TextView pathView, statusView;
   private Button upButton, exportButton;
   private boolean writeAvailable;
+  private boolean reloadAfterTransfer;
   private ListView list;
   private ExecutorService executor;
   private SafWorkbenchModel model;
@@ -148,18 +149,25 @@ public final class SafBrowseFragment extends Fragment {
         result -> {
           if (result == null) return;
           controls();
-          if (result.running) statusView.setText(UiText.choose("正在传输文件…", "Transferring file…"));
-          else if ("OK".equals(result.code))
-            statusView.setText(
-                UiText.format(
-                    UiText.choose("已传输 %s。", "Transferred %s."),
-                    Formatter.formatShortFileSize(requireContext(), result.bytes)));
-          else if ("OK_HISTORY_UNAVAILABLE".equals(result.code))
-            statusView.setText(
-                UiText.choose(
-                    "文件已传输，记录未能保存。",
-                    "The file was transferred, but its record could not be saved."));
-          else statusView.setText(SafWorkbenchUi.problem(result.code));
+          if (result.running) {
+            reloadAfterTransfer = true;
+            renderStatus(UiText.text("正在传输"), UiText.choose("正在传输文件…", "Transferring file…"));
+          } else {
+            if (reloadAfterTransfer) load(current, true);
+            if ("OK".equals(result.code))
+              renderStatus(
+                  UiText.text("已完成"),
+                  UiText.format(
+                      UiText.choose("已传输 %s。", "Transferred %s."),
+                      Formatter.formatShortFileSize(requireContext(), result.bytes)));
+            else if ("OK_HISTORY_UNAVAILABLE".equals(result.code))
+              renderStatus(
+                  UiText.text("已完成"),
+                  UiText.choose(
+                      "文件已传输，记录未能保存。",
+                      "The file was transferred, but its record could not be saved."));
+            else renderProblem(result.code);
+          }
         });
   }
 
@@ -180,21 +188,38 @@ public final class SafBrowseFragment extends Fragment {
     list.setEnabled(!busy);
   }
 
+  private void renderStatus(String summary, String detail) {
+    UiMotion.crossFadeText(statusView, summary);
+    InfoHint.bindOnSurface(statusView, UiText.text("说明"), summary, detail);
+  }
+
+  private void renderProblem(String code) {
+    renderStatus(UiText.choose("失败", "Failed"), SafWorkbenchUi.problem(code));
+  }
+
   /** 捕获请求路径，不从后台线程读取会被下一次导航改变的 current。 */
   private void load(String path) {
-    if (model.working.get()) return;
+    load(path, false);
+  }
+
+  private void load(String path, boolean preserveStatus) {
     final String requested = path == null ? "" : path;
     current = requested;
-    long generation = ++loadGeneration;
-    previewGeneration++;
     pathView.setText(
         requireArguments().getString(ARG_TITLE, "")
             + (requested.isEmpty() ? "" : " / " + requested));
+    if (model.working.get()) {
+      reloadAfterTransfer = true;
+      return;
+    }
+    reloadAfterTransfer = false;
+    long generation = ++loadGeneration;
+    previewGeneration++;
     writeAvailable = false;
     entries.clear();
     adapter.notifyDataSetChanged();
     controls();
-    statusView.setText(UiText.choose("读取中…", "Loading…"));
+    if (!preserveStatus) renderStatus(UiText.text("进行中"), UiText.choose("读取中…", "Loading…"));
     Context app = requireContext().getApplicationContext();
     ExecutorService running = executor;
     if (running == null) return;
@@ -216,8 +241,9 @@ public final class SafBrowseFragment extends Fragment {
                   controls();
                   entries.addAll(page.entries);
                   adapter.notifyDataSetChanged();
-                  if (!model.working.get())
-                    statusView.setText(
+                  if (!model.working.get() && !preserveStatus)
+                    renderStatus(
+                        UiText.text("已完成"),
                         page.truncated
                             ? UiText.choose(
                                 "已显示前 500 项，请缩小目录范围。",
@@ -232,7 +258,7 @@ public final class SafBrowseFragment extends Fragment {
             main.post(
                 () -> {
                   if (generation == loadGeneration && getView() != null)
-                    statusView.setText(SafWorkbenchUi.problem(failure.code));
+                    renderProblem(failure.code);
                 });
           }
         });
@@ -268,7 +294,7 @@ public final class SafBrowseFragment extends Fragment {
   private void preview(SafTree.Entry entry) {
     String path = child(entry.name);
     long generation = ++previewGeneration;
-    statusView.setText(UiText.choose("读取中…", "Loading…"));
+    renderStatus(UiText.text("进行中"), UiText.choose("读取中…", "Loading…"));
     ExecutorService running = executor;
     if (running == null) return;
     running.execute(
@@ -281,7 +307,8 @@ public final class SafBrowseFragment extends Fragment {
                   boolean truncated = bytes.length > PREVIEW_LIMIT;
                   byte[] data = truncated ? java.util.Arrays.copyOf(bytes, PREVIEW_LIMIT) : bytes;
                   if (!SafTree.looksText(data)) {
-                    statusView.setText(
+                    renderStatus(
+                        UiText.choose("失败", "Failed"),
                         UiText.choose(
                             "这是二进制文件，页面不预览；助手可以用 /app/saf/pull 取走。",
                             "Binary file: not previewed here. The assistant can take it with /app/saf/pull."));
@@ -293,6 +320,7 @@ public final class SafBrowseFragment extends Fragment {
                         UiText.format(
                             UiText.choose("%s\n\n（已截断到 64 KB）", "%s\n\n(truncated at 64 KB)"),
                             text);
+                  renderStatus(UiText.text("已完成"), meta(requireContext(), entry));
                   new DshaDialogBuilder(requireContext())
                       .setTitle(entry.name)
                       .setMessage(text)
@@ -303,7 +331,7 @@ public final class SafBrowseFragment extends Fragment {
             main.post(
                 () -> {
                   if (generation == previewGeneration && getView() != null)
-                    statusView.setText(SafWorkbenchUi.problem(failure.code));
+                    renderProblem(failure.code);
                 });
           }
         });
@@ -334,7 +362,7 @@ public final class SafBrowseFragment extends Fragment {
             main.post(
                 () -> {
                   if (generation == operationGeneration && getView() != null)
-                    statusView.setText(SafWorkbenchUi.problem(failure.code));
+                    renderProblem(failure.code);
                 });
           }
         });
@@ -384,7 +412,7 @@ public final class SafBrowseFragment extends Fragment {
                   if (!importing) {
                     String filename = targetName.getText().toString().trim();
                     if (!TransferArtifact.safeName(filename)) {
-                      statusView.setText(SafWorkbenchUi.problem("BAD_NAME"));
+                      renderProblem("BAD_NAME");
                       return;
                     }
                     remote = ticket.path.isEmpty() ? filename : ticket.path + "/" + filename;

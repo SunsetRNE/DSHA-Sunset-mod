@@ -198,6 +198,72 @@ public final class SafLocalFiles {
     }
   }
 
+  /** 工作台发布前仍持有输出 fd：拒绝被换名的临时对象，权限只修改已校验的 inode。 */
+  static void publishInDirectory(
+      AnchoredDirectory directory,
+      String tempName,
+      String targetName,
+      java.io.OutputStream output,
+      int previousMode)
+      throws IOException {
+    if (directory == null || !validName(tempName) || !validName(targetName))
+      throw new IOException("BAD_PATH");
+    if (!(output instanceof OwningOutputStream)) throw new IOException("UNOWNED_OUTPUT");
+    OwningOutputStream owned = (OwningOutputStream) output;
+    if (owned.closed) throw new IOException("CLOSED_OUTPUT");
+    output.flush();
+    FileDescriptor verification = null;
+    try {
+      StructStat original = Os.fstat(owned.fd);
+      verification =
+          Os.open(
+              "/proc/self/fd/" + directory.fd + "/" + tempName,
+              OsConstants.O_RDONLY
+                  | OsConstants.O_NOFOLLOW
+                  | OsConstants.O_NONBLOCK
+                  | OsConstants.O_CLOEXEC,
+              0);
+      verifyPendingFile(directory, tempName, verification, original);
+      // 先收完可能失败的输出 close，再发布；另一个受控 fd 保持原 inode 可校验。
+      output.close();
+      if (previousMode >= 0) {
+        try {
+          Os.fchmod(verification, previousMode & 0777);
+        } catch (ErrnoException unavailable) {
+          // 权限复制失败保持创建时的 0600，不按可替换的临时名字重试。
+        }
+      }
+      verifyPendingFile(directory, tempName, verification, original);
+      publishInDirectory(directory, tempName, targetName);
+    } catch (ErrnoException missingOrChanged) {
+      throw new IOException("PATH_CHANGED", missingOrChanged);
+    } finally {
+      closeRaw(verification);
+    }
+  }
+
+  private static void verifyPendingFile(
+      AnchoredDirectory directory, String name, FileDescriptor fd, StructStat original)
+      throws IOException {
+    if (directory == null || !validName(name)) throw new IOException("BAD_PATH");
+    try {
+      StructStat opened = Os.fstat(fd);
+      StructStat named = Os.lstat("/proc/self/fd/" + directory.fd + "/" + name);
+      if (!OsConstants.S_ISREG(opened.st_mode)
+          || !OsConstants.S_ISREG(named.st_mode)
+          || opened.st_nlink != 1
+          || named.st_nlink != 1
+          || opened.st_dev != original.st_dev
+          || opened.st_ino != original.st_ino
+          || opened.st_dev != named.st_dev
+          || opened.st_ino != named.st_ino
+          || !directory.path.concat("/").concat(name).equals(readlinkOf(fd)))
+        throw new IOException("PATH_CHANGED");
+    } catch (ErrnoException missingOrChanged) {
+      throw new IOException("PATH_CHANGED", missingOrChanged);
+    }
+  }
+
   /** 在同一个目录 fd 内原子发布；祖先目录即使被换链也不会改变 rename 的真实目标。 */
   public static void publishInDirectory(
       AnchoredDirectory directory, String tempName, String targetName) throws IOException {
