@@ -213,36 +213,151 @@ test('联合分支声明的凭据名字段不被名称兜底删除',()=>fixture(
   // schema 声明为非秘密的字段由 schema 决定，名称正则不能删它。
   assert.deepEqual(section.source,{choice:{apiKey:'DECLARED-KEY',plain:'p'}});
 }));
-// P2-4 覆盖：真实 SettingsForms 下 tuple/transform/lazy/intersect 与 descriptor.schema 缺失。
-test('tuple/transform/lazy 节点内的秘密字段不落账',async()=>{
-  await fixture('first: {pair: [a, {name: n, token: tuple-secret}]}\n',async(api,state,ledger)=>{
-    const Config=z.object({pair:z.tuple([z.string(),z.object({name:z.string(),token:z.string().role('secret')})]).volatile()});
-    api.add('first',{pair:['x',{name:'old',token:'retained-tuple'}]},Config);
-    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
-    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+// R2：真实 update 保留嵌套额外字段；只在写后 describe 注入缺失/改值，完整读回必须识别。
+for (const fault of ['missing', 'changed']) test(`嵌套未声明凭据名字段读回${fault}时unknown且不再update`,()=>fixture(
+  'first: {nested: {plain: p, apiKey: R2-EXPECTED}}\n',async(api,state,ledger)=>{
+    const Config=z.object({nested:z.object({plain:z.string()}).volatile()});
+    api.add('first',{nested:{plain:'initial',apiKey:'R2-BEFORE'}},Config);
+    const describe=api.settings.describe.bind(api.settings),update=api.settings.update.bind(api.settings);
+    let dispatches=0;
+    api.settings.update=async(...args)=>{dispatches++;await update(...args);};
+    api.settings.describe=()=>describe().map(row=>{
+      if(!api.writes)return row;
+      const value=clone(row.value);
+      if(fault==='missing')delete value.nested.apiKey;
+      else value.nested.apiKey='R2-CHANGED';
+      return {...row,value};
+    });
+    const first=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(dispatches,1);assert.equal(api.writes,1);
+    assert.equal(api.entries.get('first').options.config.nested.apiKey,'R2-EXPECTED');
+    assert.equal(first.status,'unknown');assert.equal(first.sections.first.status,'unknown');
+    assert.equal(first.sections.first.reason,'WRITE_OUTCOME_UNKNOWN');
+    let text=await readFile(ledger,'utf8');
+    for(const value of ['R2-EXPECTED','R2-BEFORE','R2-CHANGED'])assert.equal(text.includes(value),false,value);
+    assert.deepEqual(JSON.parse(text).sections.first.source,{nested:{plain:'p'}});
+    assert.deepEqual(JSON.parse(text).sections.first.before,{nested:{plain:'initial'}});
+    // 恢复真实读回后仍不能自动重放 unknown；第二次 update 调用数必须不增。
+    api.settings.describe=describe;
+    const again=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(again.status,'unknown');assert.equal(dispatches,1);assert.equal(api.writes,1);
+    text=await readFile(ledger,'utf8');
+    for(const value of ['R2-EXPECTED','R2-BEFORE','R2-CHANGED'])assert.equal(text.includes(value),false,value);
+  }));
+
+// P2-4：三种节点独立验证 uid/refs，秘密键故意不命中名称正则。
+test('tuple 节点内非正则名秘密字段不落账',()=>fixture('first: {pair: [a, {name: n, value: tuple-secret}]}\n',async(api,state,ledger)=>{
+  const Config=z.object({pair:z.tuple([z.string(),z.object({name:z.string(),value:z.string().role('secret')})]).volatile()});
+  api.add('first',{pair:['x',{name:'old',value:'retained-tuple'}]},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const text=await readFile(ledger,'utf8');
+  assert.equal(text.includes('tuple-secret'),false);assert.equal(text.includes('retained-tuple'),false);
+  assert.deepEqual(JSON.parse(text).sections.first.source,{pair:['a',{name:'n'}]});
+}));
+test('transform 节点内非正则名秘密字段不落账',()=>fixture('first: {flag: {on: true, key: transform-secret}}\n',async(api,state,ledger)=>{
+  const Config=z.object({flag:z.transform(z.object({on:z.boolean(),key:z.string().role('secret')}), value=>value).volatile()});
+  api.add('first',{flag:{on:false,key:'retained-transform'}},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const text=await readFile(ledger,'utf8');
+  assert.equal(text.includes('transform-secret'),false);assert.equal(text.includes('retained-transform'),false);
+  assert.deepEqual(JSON.parse(text).sections.first.source,{flag:{on:true}});
+}));
+test('lazy 节点内非正则名秘密字段不落账',()=>fixture('first: {node: {label: l, value: lazy-secret}}\n',async(api,state,ledger)=>{
+  const Config=z.object({node:z.lazy(()=>z.object({label:z.string(),value:z.string().role('secret')})).volatile()});
+  api.add('first',{node:{label:'old',value:'retained-lazy'}},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const text=await readFile(ledger,'utf8');
+  assert.equal(text.includes('lazy-secret'),false);assert.equal(text.includes('retained-lazy'),false);
+  assert.deepEqual(JSON.parse(text).sections.first.source,{node:{label:'l'}});
+}));
+// R4：秘密直接作为元素时保留 null 位置；连续两次账本清理不能删除后面的普通值。
+test('tuple秘密元素保留位置且连续两次清理幂等',()=>fixture('first: {pair: [TUPLE-INCOMING, PUBLIC]}\n',async(api,state,ledger)=>{
+  const Config=z.object({pair:z.tuple([z.string().role('secret'),z.string()]).volatile()});
+  api.add('first',{pair:['TUPLE-BEFORE','BEFORE-PUBLIC']},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const section=JSON.parse(await readFile(ledger,'utf8')).sections.first;
+  assert.deepEqual(section.source,{pair:[null,'PUBLIC']});
+  assert.deepEqual(section.before,{pair:[null,'BEFORE-PUBLIC']});
+  assert.deepEqual(section.verified,{pair:[null,'PUBLIC']});
+  for(let i=0;i<2;i++){
+    const again=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(again.status,'verified');assert.equal(api.writes,1);
     const text=await readFile(ledger,'utf8');
-    assert.equal(text.includes('tuple-secret'),false);assert.equal(text.includes('retained-tuple'),false);
-    assert.deepEqual(JSON.parse(text).sections.first.source,{pair:['a',{name:'n'}]});
-  });
-  await fixture('first: {flag: {on: true, token: transform-secret}}\n',async(api,state,ledger)=>{
-    const Config=z.object({flag:z.transform(z.object({on:z.boolean(),token:z.string().role('secret')}), value=>value).volatile()});
-    api.add('first',{flag:{on:false,token:'retained-transform'}},Config);
-    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
-    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+    assert.equal(text.includes('TUPLE-INCOMING'),false);assert.equal(text.includes('TUPLE-BEFORE'),false);
+    assert.deepEqual(JSON.parse(text).sections.first,section);
+  }
+  assert.deepEqual(api.settings.describe()[0].value.pair,['TUPLE-INCOMING','PUBLIC']);
+}));
+test('array秘密元素保留长度且连续两次清理幂等',()=>fixture('first: {items: [ARRAY-A, ARRAY-B]}\n',async(api,state,ledger)=>{
+  const Config=z.object({items:z.array(z.string().role('secret')).volatile()});
+  api.add('first',{items:['ARRAY-BEFORE']},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const section=JSON.parse(await readFile(ledger,'utf8')).sections.first;
+  assert.deepEqual(section.source,{items:[null,null]});
+  assert.deepEqual(section.before,{items:[null]});
+  assert.deepEqual(section.verified,{items:[null,null]});
+  for(let i=0;i<2;i++){
+    const again=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(again.status,'verified');assert.equal(api.writes,1);
     const text=await readFile(ledger,'utf8');
-    assert.equal(text.includes('transform-secret'),false);assert.equal(text.includes('retained-transform'),false);
-    assert.deepEqual(JSON.parse(text).sections.first.source,{flag:{on:true}});
-  });
-  await fixture('first: {node: {label: l, apiKey: lazy-secret}}\n',async(api,state,ledger)=>{
-    const Config=z.object({node:z.lazy(()=>z.object({label:z.string(),apiKey:z.string().role('secret')})).volatile()});
-    api.add('first',{node:{label:'old',apiKey:'retained-lazy'}},Config);
+    for(const value of ['ARRAY-A','ARRAY-B','ARRAY-BEFORE'])assert.equal(text.includes(value),false,value);
+    assert.deepEqual(JSON.parse(text).sections.first,section);
+  }
+  assert.deepEqual(api.settings.describe()[0].value.items,['ARRAY-A','ARRAY-B']);
+}));
+for(const shape of ['tuple','array'])test(`旧压缩${shape}账本不猜索引且不驱动再次写入`,async()=>{
+  for(const status of ['verified','pending','conflict'])await fixture('first: {pair: [NEW-VALUE, PUBLIC]}\n',async(api,state,ledger)=>{
+    const Config=z.object({pair:(shape==='tuple'?z.tuple([z.string().role('secret'),z.string()]):z.array(z.string().role('secret'))).volatile()});
+    api.add('first',{pair:['LIVE-VALUE','LIVE-PUBLIC']},Config);
+    const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+    const prepared=JSON.parse(await readFile(join(state,'generations',current.generation,'prepare.json'),'utf8'));
+    const source=prepared.sources.find(row=>row.kind==='settings');
+    // 无位置格式标记；短数组可能是历史压缩值，也可能是原始短输入，不能猜回原索引。
+    const old={version:2,generation:current.generation,sourceSha256:source.sha256,
+      expectedSections:['first'],status,sections:{first:{status,
+        source:{pair:['OLD-PUBLIC']},before:{pair:['OLD-BEFORE']},verified:{pair:['OLD-VERIFIED']}}}};
+    await writeFile(ledger,JSON.stringify(old));
     const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
-    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
-    const text=await readFile(ledger,'utf8');
-    assert.equal(text.includes('lazy-secret'),false);assert.equal(text.includes('retained-lazy'),false);
-    assert.deepEqual(JSON.parse(text).sections.first.source,{node:{label:'l'}});
+    assert.equal(returned.status,status==='verified'?'verified':'unknown');assert.equal(api.writes,0);
+    const section=JSON.parse(await readFile(ledger,'utf8')).sections.first;
+    for(const field of ['source','before','verified'])assert.equal(Object.hasOwn(section,field),false,field);
+    if(status!=='verified')assert.equal(section.reason,'SECTION_LEDGER_REVIEW_REQUIRED');
+    for(let i=0;i<2;i++){
+      await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,0);
+      assert.deepEqual(JSON.parse(await readFile(ledger,'utf8')).sections.first,section);
+    }
+    assert.deepEqual(api.settings.describe()[0].value.pair,['LIVE-VALUE','LIVE-PUBLIC']);
   });
 });
+test('旧账本数组仅对象内秘密时保留普通元素和字段',()=>fixture('first: {}\n',async(api,state,ledger)=>{
+  const Config=z.object({
+    pair:z.tuple([z.string(),z.object({name:z.string(),value:z.string().role('secret')})]).volatile(),
+    list:z.array(z.object({name:z.string(),key:z.string().role('secret')})).volatile(),
+  });
+  api.add('first',{pair:['live',{name:'live',value:'LIVE-TUPLE'}],list:[{name:'live',key:'LIVE-ARRAY'}]},Config);
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const prepared=JSON.parse(await readFile(join(state,'generations',current.generation,'prepare.json'),'utf8'));
+  const source=prepared.sources.find(row=>row.kind==='settings');
+  const oldValue={pair:['PUBLIC',{name:'one',value:'OLD-TUPLE'}],list:[{name:'two',key:'OLD-ARRAY'}]};
+  await writeFile(ledger,JSON.stringify({version:2,generation:current.generation,sourceSha256:source.sha256,
+    expectedSections:['first'],status:'verified',sections:{first:{status:'verified',
+      source:oldValue,before:oldValue,verified:oldValue}}}));
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,0);
+  const section=JSON.parse(await readFile(ledger,'utf8')).sections.first;
+  for(const field of ['source','before','verified'])assert.deepEqual(section[field],{
+    pair:['PUBLIC',{name:'one'}],list:[{name:'two'}],
+  });
+  for(let i=0;i<2;i++){
+    await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,0);
+    assert.deepEqual(JSON.parse(await readFile(ledger,'utf8')).sections.first,section);
+  }
+}));
 test('intersect 对象未声明凭据键按名称兜底，含秘密分支仍保守冻结',async()=>{
   await fixture('first: {both: {plain: p, other: o, apiKey: INTERSECT-SECRET}}\n',async(api,state,ledger)=>{
     const Config=z.object({both:z.intersect([z.object({plain:z.string()}),z.object({other:z.string()})]).volatile()});
@@ -446,6 +561,67 @@ test('history-only账本pending节不重试，用户当前值保持不变',()=>f
   assert.equal(api.settings.describe().find(x=>x.ns==='second').value.model,'user-later');
   assert.equal(await readFile(ledger,'utf8'),before);
 }));
+// L1：CJS 必须绑定 prepare 的代次、输入摘要与非空本次启动身份。
+for(const fault of ['empty-startup','missing-startup','numeric-startup','prepared-generation','input-fingerprint'])
+  test(`启动交接${fault}不匹配时只读unknown`,()=>fixture('first: {model: old1}\n',async(api,state,ledger)=>{
+    api.add('first');
+    const currentPath=join(state,'current.json');
+    const current=JSON.parse(await readFile(currentPath,'utf8'));
+    const preparedPath=join(state,'generations',current.generation,'prepare.json');
+    if(fault==='empty-startup')current.startupId=current.startupContext.startupId='';
+    if(fault==='missing-startup'){delete current.startupId;delete current.startupContext.startupId;}
+    if(fault==='numeric-startup')current.startupId=current.startupContext.startupId=7;
+    if(fault==='input-fingerprint')current.startupContext.inputFingerprint='wrong-input';
+    if(fault==='prepared-generation'){
+      const prepared=JSON.parse(await readFile(preparedPath,'utf8'));
+      prepared.generation='00000000-0000-0000-0000-000000000000';
+      await writeFile(preparedPath,JSON.stringify(prepared));
+    }
+    await writeFile(currentPath,JSON.stringify(current));
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'unknown');assert.equal(returned.reason,'DSHA_MIGRATION_LEDGER_MISSING');
+    assert.equal(api.writes,0);await assert.rejects(readFile(ledger),/ENOENT/);
+  }));
+
+// 真实 Java cached prepare 与 CJS 联合测试；未提供编译好的类路径时明确报告 skip。
+for(const ledgerState of ['missing','retained'])test(`Java cached prepare交接后账本${ledgerState}保持history-only`,{
+  skip:process.env.DSHA_RC1_CACHE_CLASSPATH?false:'需要 DSHA_RC1_CACHE_CLASSPATH 与 Java fixture',
+},()=>fixture('first: {model: old1}\n',async(api,state,ledger,root)=>{
+  api.add('first');
+  const first=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(first.status,'verified');assert.equal(api.writes,1);
+  const finalize=spawnSync(process.env.DSHA_PYTHON || 'python',['app/src/main/assets/rc1-migration.py','finalize',
+    '--root',root,'--state-root',state,'--startup-id','test'],{encoding:'utf8'});
+  assert.equal(finalize.status,0,finalize.stderr+finalize.stdout);
+  const before=await readFile(ledger,'utf8');
+  api.change('first',{model:'user-later'});
+  const javaArgs=join(root,'cached-prepare.args');
+  await writeFile(javaArgs,['-cp',process.env.DSHA_RC1_CACHE_CLASSPATH,
+    'com.deepseekharness.app.runtime.Rc1CachedStartupFixture',state,join(root,'.dsh'),'cached-next']
+    .map(value=>JSON.stringify(value)).join('\n')+'\n');
+  const cached=spawnSync(process.env.DSHA_JAVA || 'java',['@'+javaArgs],{encoding:'utf8',timeout:30000});
+  assert.equal(cached.status,0,String(cached.error||'')+cached.stderr+cached.stdout);
+  const marker='DSHA_RC1_MIGRATION=';
+  const line=cached.stdout.split('\n').find(line=>line.startsWith(marker));
+  assert.ok(line,cached.stdout);const receipt=JSON.parse(line.slice(marker.length));
+  assert.equal(receipt.cached,true);assert.equal(receipt.status,'historical-complete');
+  if(ledgerState==='missing')await rm(ledger); // fixture 确认的临时根目录内的既有账本
+  const update=api.settings.update.bind(api.settings);let dispatches=0;
+  api.settings.update=async(...args)=>{dispatches++;await update(...args);};
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(dispatches,0);assert.equal(api.writes,1);
+  assert.equal(api.settings.describe()[0].value.model,'user-later');
+  if(ledgerState==='missing'){
+    assert.equal(returned.status,'unknown');assert.equal(returned.reason,'DSHA_MIGRATION_LEDGER_MISSING');
+    await assert.rejects(readFile(ledger),/ENOENT/);
+  }else{
+    assert.equal(returned.status,'verified');assert.equal(await readFile(ledger,'utf8'),before);
+  }
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  assert.equal(current.startupId,'cached-next');assert.equal(current.startupContext.startupId,'cached-next');
+  assert.equal(current.startupContext.mode,'history-only');
+}));
+
 test('write-allowed新票据仍可重试明确未派发的分节',()=>fixture('first: {model: old1}\nsecond: {model: old2}\n',async(api,state,ledger)=>{
   api.add('first');api.add('second');
   const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));

@@ -18,6 +18,8 @@ function contains(actual, wanted) {
 }
 const clone = value => JSON.parse(JSON.stringify(value));
 const CREDENTIAL_NAME = /(?:api[_-]?key|token|password|secret|credential)/i;
+// 仅表示 source/before/verified 的数组使用保留位置的脱敏格式，不授予导入/重试权限。
+const LEDGER_PROJECTION_VERSION = 1;
 // 真实 SettingsForms.describe() 的 descriptor.schema 是 schemastery 引用图：
 // { uid, refs }，refs[uid] 是节点快照，dict/inner/list/sKey 用 uid（数字或字符串）
 // 引用子节点；秘密字段只由节点 meta.role === 'secret' 决定。旧的普通节点形状
@@ -123,12 +125,22 @@ function schemaHoldsSecret(node, graph, depth) {
       return true; // 未建模类型：按可能含秘密处理
   }
 }
+// 旧投影会删除整个秘密元素（包括 transform/lazy 包裹的秘密），从而压缩数组。
+// 对象里的秘密只删键，不改变该对象所在的数组位置；不能据此误删普通对象元素。
+function omitsArrayItem(node, graph, depth) {
+  if (!node || typeof node !== 'object' || depth > 64) return true;
+  if (node.meta && node.meta.role === 'secret') return true;
+  if (node.type === 'transform' || node.type === 'lazy')
+    return omitsArrayItem(schemaNode(graph, node.inner), graph, depth + 1);
+  return false;
+}
 // 返回 { ok, value }。ok=false 表示 schema 无法解释（缺失、悬空引用、未建模类型、
 // 形状不符），此时无法证明值里没有秘密，调用方必须保守：不落账、不派发写入。
 // dropSecrets=true 用于落账；false 只在内存读回核验里保留秘密值（绝不持久化）。
 function projectValue(value, schema, options = {}) {
   const graph = schemaGraph(schema);
   if (!graph) return { ok: false };
+  graph.legacyArrays = options.legacyArrays === true;
   return projectNode(value, graph, graph.root, options.dropSecrets !== false, 0);
 }
 function projectNode(value, graph, node, dropSecrets, depth) {
@@ -144,8 +156,8 @@ function projectNode(value, graph, node, dropSecrets, depth) {
       const out = {};
       for (const [key, item] of Object.entries(value)) {
         if (!Object.hasOwn(dict, key)) {
-          // schema 未声明的结构：名称兜底只额外少复制，其余原样保留（update 会自行校验）。
-          if (CREDENTIAL_NAME.test(key)) continue;
+          // 名称兜底只用于落账；未声明的嵌套值仍可能被 update 写入，必须完整读回。
+          if (dropSecrets && CREDENTIAL_NAME.test(key)) continue;
           out[key] = dropSecrets ? scrubCredentialNames(item) : item;
           continue;
         }
@@ -171,16 +183,20 @@ function projectNode(value, graph, node, dropSecrets, depth) {
         }
         return { ok: true, value: out };
       }
+      // 无位置格式标记的旧账本可能已经压缩：不能用当前长度/索引猜回原元素。
+      if (graph.legacyArrays && omitsArrayItem(inner, graph, depth + 1)) return { ok: false };
       const out = [];
       for (const item of value) {
         const projected = projectNode(item, graph, inner, dropSecrets, depth + 1);
         if (!projected.ok) return projected;
-        if (projected.value !== undefined) out.push(projected.value);
+        out.push(dropSecrets && projected.value === undefined ? null : projected.value);
       }
       return { ok: true, value: out };
     }
     case 'tuple': {
       if (!Array.isArray(value) || !Array.isArray(node.list)) return { ok: false };
+      if (graph.legacyArrays && node.list.some(reference =>
+        omitsArrayItem(schemaNode(graph, reference), graph, depth + 1))) return { ok: false };
       const out = [];
       for (let index = 0; index < value.length; index += 1) {
         if (index >= node.list.length) return { ok: false }; // 越过 schema 的项无法判定
@@ -188,7 +204,8 @@ function projectNode(value, graph, node, dropSecrets, depth) {
         if (!child) return { ok: false };
         const projected = projectNode(value[index], graph, child, dropSecrets, depth + 1);
         if (!projected.ok) return projected;
-        if (projected.value !== undefined) out.push(projected.value);
+        // null 只作脱敏占位；普通字段的位置及长度在 JSON 持久化和再次清理后保持。
+        out.push(dropSecrets && projected.value === undefined ? null : projected.value);
       }
       return { ok: true, value: out };
     }
@@ -262,15 +279,19 @@ function preflightRejection(values, schema) {
   return null;
 }
 
-// 同次 prepare 的导入模式必须是 startupId/generation/输入指纹绑定的票据；
+// 同次 prepare 的导入模式必须是 startupId/generation/输入指纹绑定的票据。
+// Java cached prepare 与 Python prepare 都须先持久交接本次 startupId，才能启动 CJS；
 // 缺失、过期或摘要不符时只能只读核对旧账本，不能新建账本或重新写入。
 function importContext(current, prepared, sourceSha) {
   const context = current.startupContext;
   const valid = context && typeof context === 'object'
     && context.version === 3
     && context.generation === current.generation
+    && context.generation === prepared.generation
+    && typeof context.startupId === 'string' && context.startupId.length > 0
     && context.startupId === current.startupId
     && typeof context.inputFingerprint === 'string'
+    && context.inputFingerprint === prepared.inputDigest
     && (context.settingsSha256 === sourceSha || context.settingsSha256 === null)
     && typeof context.proofDigest === 'string';
   if (!valid) return { mode: 'history-only', reason: 'STARTUP_CONTEXT_MISSING' };
@@ -376,9 +397,10 @@ async function migrate(settings, parse, aliases, options = {}) {
   for (const [name, section] of Object.entries(result.sections)) {
     if (!section || typeof section !== 'object' || Array.isArray(section)) continue;
     const descriptor = ledgerDescriptors.get(Object.hasOwn(aliases, name) ? aliases[name] : name);
+    const legacyArrays = section.projectionVersion !== LEDGER_PROJECTION_VERSION;
     for (const field of ['source', 'before', 'verified']) {
       if (!Object.hasOwn(section, field)) continue;
-      const projected = descriptor ? projectValue(section[field], descriptor.schema, { dropSecrets: true }) : { ok: false };
+      const projected = descriptor ? projectValue(section[field], descriptor.schema, { dropSecrets: true, legacyArrays }) : { ok: false };
       if (projected.ok && projected.value !== undefined) {
         const next = clone(projected.value);
         if (isDeepStrictEqual(next, section[field])) continue;
@@ -393,6 +415,11 @@ async function migrate(settings, parse, aliases, options = {}) {
         section.status = 'unknown';
         section.reason = 'SECTION_LEDGER_REVIEW_REQUIRED';
       }
+    }
+    if (legacyArrays) {
+      // 所有旧字段已重新投影或丢弃后才记录新格式；未知位置不会被追认为可信索引。
+      section.projectionVersion = LEDGER_PROJECTION_VERSION;
+      sanitized = true;
     }
   }
   if (sanitized) await atomic(ledgerFile, result);
@@ -431,6 +458,7 @@ async function migrate(settings, parse, aliases, options = {}) {
       continue;
     }
     section.source = clone(ledgerValues.value);
+    section.projectionVersion = LEDGER_PROJECTION_VERSION;
     if (Object.hasOwn(section, 'before') && holdsSecrets(descriptor.schema)) {
       // 旧账本可能留下“已记录 before 的 pending/conflict 节”；秘密位置没有可落账的
       // 变化证据，无法证明用户没改过目标，保守冻结而不是覆盖。
