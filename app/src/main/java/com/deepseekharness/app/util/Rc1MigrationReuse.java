@@ -79,6 +79,71 @@ public final class Rc1MigrationReuse {
     return true;
   }
 
+  /** 只读证据投影，不持有可变账本，也不授予重新导入、恢复或删除权限。 */
+  public static final class LedgerEvidence {
+    public final String state, reason;
+
+    private LedgerEvidence(String state, String reason) {
+      this.state = state;
+      this.reason = reason;
+    }
+
+    public static LedgerEvidence unknown(String reason) {
+      return new LedgerEvidence("unknown", reason);
+    }
+  }
+
+  /**
+   * 启动门禁和保留清单共用同一证据：身份绑定、完整期望集合、逐节终态。
+   * 缺 expectedSections 时仅接受同代同 SHA 且带 provenance 的 checkpoint，
+   * 键存在但非法时不可回退；不能从现存 sections 自证集合完整。
+   */
+  public static LedgerEvidence ledgerEvidence(
+      String generation,
+      String settingsSha256,
+      Map<String, Object> ledger,
+      Map<String, Object> checkpoint) {
+    if (settingsSha256 == null) return new LedgerEvidence("not-required", null);
+    if (ledger == null) return LedgerEvidence.unknown("SETTINGS_LEDGER_MISSING");
+    if (generation == null
+        || !Ids.uuid(generation)
+        || !settingsSha256.matches("[a-f0-9]{64}")
+        || !generation.equals(ledger.get("generation"))
+        || !settingsSha256.equals(ledger.get("sourceSha256")))
+      return LedgerEvidence.unknown("SETTINGS_LEDGER_IDENTITY");
+    if ("unknown".equals(ledgerState(ledger)))
+      return LedgerEvidence.unknown("SETTINGS_LEDGER_UNKNOWN");
+    Set<String> expected;
+    if (ledger.containsKey("expectedSections")) {
+      expected = sectionNames(ledger.get("expectedSections"));
+      if (expected == null) return LedgerEvidence.unknown("SETTINGS_LEDGER_SECTION");
+    } else {
+      expected = expectedSections(generation, settingsSha256, checkpoint);
+      if (expected == null) return LedgerEvidence.unknown("SETTINGS_EXPECTED_SECTIONS_MISSING");
+    }
+    String state = ledgerState(ledger, expected);
+    return new LedgerEvidence(
+        state, "verified".equals(state) ? null : "SETTINGS_LEDGER_INCOMPLETE");
+  }
+
+  private static Set<String> expectedSections(
+      String generation, String settingsSha256, Map<String, Object> checkpoint) {
+    if (checkpoint == null
+        || !generation.equals(checkpoint.get("generation"))
+        || !settingsSha256.equals(checkpoint.get("settingsSha256"))
+        || !"ledger-expected".equals(checkpoint.get("settingsSectionsSource"))) return null;
+    return sectionNames(checkpoint.get("settingsSections"));
+  }
+
+  private static Set<String> sectionNames(Object value) {
+    if (!(value instanceof java.util.List)) return null;
+    Set<String> names = new java.util.LinkedHashSet<>();
+    for (Object name : (java.util.List<?>) value) {
+      if (!(name instanceof String) || !names.add((String) name)) return null;
+    }
+    return names;
+  }
+
   /**
    * 私有 settings 完成账本必须绑定当前代次与同一 sourceSha256；缺字段或未知分节状态
    * 一律 unknown，不能借旧 committed receipt 授予缓存命中。settingsSha256 为 null

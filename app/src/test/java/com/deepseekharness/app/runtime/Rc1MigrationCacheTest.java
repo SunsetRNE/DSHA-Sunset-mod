@@ -387,6 +387,61 @@ public class Rc1MigrationCacheTest {
         Rc1MigrationCache.reuse(fs, files, home).status);
   }
 
+  @Test
+  public void historyHandoffPersistsActualStartupAndLeavesLedgerReadOnly() throws Exception {
+    fixture();
+    var reuse = Rc1MigrationCache.reuse(fs, files, home);
+    File ledger = fs.child(state, "generations/" + generation + "/settings-result.json");
+    byte[] original = fs.small(ledger, 65536);
+    Rc1MigrationCache.bindHistory(fs, files, home, reuse, "second-startup");
+    var current = BackupJson.read(fs.small(fs.child(state, "current.json"), 65536), 65536);
+    assertEquals("second-startup", current.get("startupId"));
+    var context = (Map<?, ?>) current.get("startupContext");
+    assertEquals("history-only", context.get("mode"));
+    assertEquals("second-startup", context.get("startupId"));
+    assertEquals(generation, context.get("generation"));
+    assertEquals(settingsSha, context.get("settingsSha256"));
+    assertEquals("d".repeat(64), context.get("inputFingerprint"));
+    var proof = new java.util.LinkedHashMap<String, Object>();
+    proof.put("generation", generation);
+    proof.put("inputDigest", "d".repeat(64));
+    proof.put("settingsSha256", settingsSha);
+    assertEquals(sha(BackupJson.write(proof, 4096)), context.get("proofDigest"));
+    assertArrayEquals(original, fs.small(ledger, 65536));
+  }
+
+  @Test
+  public void historyHandoffRechecksEvidenceBeforeWriting() throws Exception {
+    fixture();
+    var reuse = Rc1MigrationCache.reuse(fs, files, home);
+    byte[] before = fs.small(fs.child(state, "current.json"), 65536);
+    fs.delete(fs.child(state, "generations/" + generation + "/settings-result.json"));
+    assertThrows(
+        java.io.IOException.class,
+        () -> Rc1MigrationCache.bindHistory(fs, files, home, reuse, "second-startup"));
+    assertArrayEquals(before, fs.small(fs.child(state, "current.json"), 65536));
+  }
+
+  @Test
+  public void historyHandoffRequiresReadbackEvenWhenAtomicWriteReturns() throws Exception {
+    fixture();
+    var reuse = Rc1MigrationCache.reuse(fs, files, home);
+    var delegate = fs;
+    var dropped =
+        new JvmBackupFileSystem() {
+          public Node stat(File file) throws java.io.IOException {
+            return delegate.stat(file);
+          }
+
+          public void atomic(File folder, String name, byte[] bytes) {
+            // 故障注入：发布返回但未替换文件，读回必须抓到旧 startup。
+          }
+        };
+    assertThrows(
+        java.io.IOException.class,
+        () -> Rc1MigrationCache.bindHistory(dropped, files, home, reuse, "second-startup"));
+  }
+
   private static String sha(byte[] data) throws Exception {
     var result = new StringBuilder();
     for (byte b : java.security.MessageDigest.getInstance("SHA-256").digest(data))

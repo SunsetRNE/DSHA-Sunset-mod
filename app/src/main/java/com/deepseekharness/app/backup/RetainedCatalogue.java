@@ -1,5 +1,6 @@
 package com.deepseekharness.app.backup;
 
+import com.deepseekharness.app.util.Rc1MigrationReuse;
 import java.io.*;
 import java.util.*;
 
@@ -599,7 +600,8 @@ public final class RetainedCatalogue {
           "prepared".equals(prepare) || "failed".equals(prepare) ? "PENDING_RETRY" : "UNKNOWN",
           " · " + ((String) generation).substring(0, 8));
     }
-    String settings = settingsLedgerState(root, folder, index);
+    var evidence = settingsLedgerState(folder, index);
+    String settings = evidence.state;
     String status;
     if ("committed".equals(receipt)) {
       status =
@@ -613,7 +615,11 @@ public final class RetainedCatalogue {
     } else {
       status = "PENDING_RETRY";
     }
-    return new MigrationReport(status, " · " + ((String) generation).substring(0, 8));
+    return new MigrationReport(
+        status,
+        " · "
+            + ((String) generation).substring(0, 8)
+            + (evidence.reason == null ? "" : " · " + evidence.reason));
   }
 
   /** 公开兼容索引只有 prepare/receipt；旧字段只作历史事实，不升级为当前健康。 */
@@ -658,46 +664,42 @@ public final class RetainedCatalogue {
     return "RETAINED";
   }
 
-  /** settings 完成账本：verified / pending / unknown；无 settings 输入时返回 null。 */
-  private String settingsLedgerState(File root, File folder, Map<String, Object> index)
-      throws IOException {
+  /** 只读设置证据与启动门禁共用；无 settings 输入为 not-required。 */
+  private Rc1MigrationReuse.LedgerEvidence settingsLedgerState(
+      File folder, Map<String, Object> index) throws IOException {
     Object inputs = index.get("inputs");
-    if (!(inputs instanceof Map)) return "unknown";
-    boolean settings =
-        ((Map<?, ?>) inputs).containsKey("settings.yaml")
-            || ((Map<?, ?>) inputs).containsKey("settings.yaml.imported");
-    if (!settings) return null;
+    if (!(inputs instanceof Map))
+      return Rc1MigrationReuse.LedgerEvidence.unknown("SETTINGS_INPUTS_UNKNOWN");
+    Map<?, ?> inputMap = (Map<?, ?>) inputs;
+    String generation = (String) index.get("generation");
+    if (!inputMap.containsKey("settings.yaml") && !inputMap.containsKey("settings.yaml.imported"))
+      return Rc1MigrationReuse.ledgerEvidence(generation, null, null, null);
+    Object sha =
+        inputMap.containsKey("settings.yaml")
+            ? inputMap.get("settings.yaml")
+            : inputMap.get("settings.yaml.imported");
+    if (!(sha instanceof String))
+      return Rc1MigrationReuse.LedgerEvidence.unknown("SETTINGS_LEDGER_IDENTITY");
     File ledger = new File(folder, "settings-result.json");
-    if (!fs.stat(ledger).type.equals("FILE")) return "unknown";
+    if (!fs.stat(ledger).type.equals("FILE"))
+      return Rc1MigrationReuse.LedgerEvidence.unknown("SETTINGS_LEDGER_MISSING");
     Map<String, Object> value;
     try {
       value = BackupJson.read(fs.small(ledger, BackupLimits.MANIFEST), BackupLimits.MANIFEST);
     } catch (IOException unreadable) {
-      return "unknown";
+      return Rc1MigrationReuse.LedgerEvidence.unknown("SETTINGS_LEDGER_UNREADABLE");
     }
-    Object generation = index.get("generation"), ledgerGeneration = value.get("generation");
-    if (!(ledgerGeneration instanceof String)
-        || !((String) ledgerGeneration).equals(String.valueOf(generation))) return "unknown";
-    // 账本必须绑定 current 记录中的 settings 输入摘要，不能只比对 generation。
-    Object expectedSha =
-        ((Map<?, ?>) inputs).containsKey("settings.yaml")
-            ? ((Map<?, ?>) inputs).get("settings.yaml")
-            : ((Map<?, ?>) inputs).get("settings.yaml.imported");
-    if (!(expectedSha instanceof String) || !expectedSha.equals(value.get("sourceSha256")))
-      return "unknown";
-    Object sections = value.get("sections");
-    if (!(sections instanceof Map)) return "unknown";
-    boolean allVerified = true;
-    for (Object section : ((Map<?, ?>) sections).values()) {
-      if (!(section instanceof Map)) return "unknown";
-      Object status = ((Map<?, ?>) section).get("status");
-      if (!(status instanceof String)) return "unknown";
-      if ("unknown".equals(status) || "writing".equals(status)) return "unknown";
-      if (!"verified".equals(status)) allVerified = false;
+    Map<String, Object> checkpoint = null;
+    if (!value.containsKey("expectedSections")) {
+      File reuse = new File(folder, "reuse.json");
+      try {
+        if (fs.stat(reuse).type.equals("FILE"))
+          checkpoint = BackupJson.read(fs.small(reuse, 64 * 1024), 64 * 1024);
+      } catch (IOException unreadable) {
+        // 不可读的可选 checkpoint 不是期望集合证据，仍显示 unknown 并保留导出。
+      }
     }
-    Object overall = value.get("status");
-    if ("unknown".equals(overall) || "writing".equals(overall)) return "unknown";
-    return allVerified && "verified".equals(overall) ? "verified" : "pending";
+    return Rc1MigrationReuse.ledgerEvidence(generation, (String) sha, value, checkpoint);
   }
 
   private void add(

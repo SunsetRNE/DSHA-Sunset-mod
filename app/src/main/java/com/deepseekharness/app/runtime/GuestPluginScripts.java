@@ -62,6 +62,12 @@ final class GuestPluginScripts {
       return Rc1MigrationCache.Reuse.absent();
     }
 
+    /** 缓存命中也必须把本次 history-only 交接落盘并读回；默认实现拒绝放行。 */
+    default void bindMigrationHistory(Rc1MigrationCache.Reuse reuse, String startupId)
+        throws IOException {
+      throw new IOException("MIGRATION_HISTORY_HANDOFF_UNAVAILABLE");
+    }
+
     /** Query-only readiness; must not write, install, repair, migrate or register anything. */
     default boolean queryReady() {
       return false;
@@ -168,6 +174,18 @@ final class GuestPluginScripts {
             Rc1MigrationCache.Reuse reuse = Rc1MigrationCache.reuse(fs, host.files, current);
             host.verify(fs);
             return reuse;
+          }
+
+          public void bindMigrationHistory(Rc1MigrationCache.Reuse reuse, String startupId)
+              throws IOException {
+            var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+            var host =
+                com.deepseekharness.app.util.ColdInstallPackages.bindPrivateFiles(
+                    fs, new File(context.getApplicationInfo().dataDir), context.getFilesDir());
+            File current =
+                new com.deepseekharness.app.backup.UserDataLayout(fs, host.files).current();
+            Rc1MigrationCache.bindHistory(fs, host.files, current, reuse, startupId);
+            host.verify(fs);
           }
 
           public boolean queryReady() {
@@ -320,6 +338,13 @@ final class GuestPluginScripts {
     }
     if ("prepare".equals(command)) {
       if (reuse.status == Rc1MigrationCache.Reuse.Status.REUSABLE_HISTORY) {
+        try {
+          preparation.bindMigrationHistory(reuse, startupId);
+        } catch (IOException | RuntimeException unavailable) {
+          return BoundedProcessRunner.localCompletion(
+              Rc1MigrationCache.unknown(
+                  "prepare", startupId, "MIGRATION_HISTORY_HANDOFF_UNVERIFIED", reuse.generation));
+        }
         String output = Rc1MigrationCache.output(reuse, false, startupId);
         synchronized (preparedReuse) {
           preparedReuse.put(startupId, new Ticket(reuse));
