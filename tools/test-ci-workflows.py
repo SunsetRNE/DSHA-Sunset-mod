@@ -486,6 +486,18 @@ class RustGraph(unittest.TestCase):
         self.assertNotIn("apksigner", source)
         self.assertIn("CARGO_BUILD_JOBS: '2'", source)
 
+    def test_host_differential_covers_all_three_rust_bypass_features(self):
+        # R1/R2/R3：主机差分脚本必须同时跑 digest、PlanView、gzip archive 三个探针，
+        # 且检查名集合固定（漏跑/多跑即失败）。
+        script = (ROOT / "tools/rust/host-jvm-differential.py").read_text(encoding="utf-8")
+        for fragment in ("RustHostProbe", "PlanViewHostProbe", "ArchiveHostProbe",
+                         "DIGEST_PROBE_CLASS", "PLAN_PROBE_CLASS", "ARCHIVE_PROBE_CLASS",
+                         "archiveCorpusJvmRustAgree", "planFixtureCorpus",
+                         "archiveTruncationCorpus"):
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, script)
+        self.assertIn("len(summaries) != 3", script)
+
     def test_package_and_fast_workflows_call_the_rust_nodes(self):
         fast = jobs(text("ci-fast.yml"))
         self.assertIn("mode: check", fast["rust-check"])

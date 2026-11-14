@@ -10,7 +10,9 @@ import java.nio.ByteBuffer;
  * 自动加载 .so，由 {@link #ensureLoaded()}（生产）或 {@link #loadFromPath(String)}（主机差分测试）
  * 显式加载。加载失败只记录类型化状态、从不抛给调用方、失败后不重试（方案 §5.4）。
  *
- * <p>R1 只接 {@code digest}；其余入口仍是冻结符号的 {@code NOT_IMPLEMENTED} 占位（R2/R3 范围）。
+ * <p>R1 接 {@code digest}；R2 接 {@code verifyPlan}；R3 接 {@code archivePack*}/{@code archiveUnpack*}
+ * （单成员 gzip 流式编解码，宿主桥见 {@link RustArchiveCodec}/{@link RustGzipOutputStream}/
+ * {@link RustGzipInputStream}）。符号名/签名/错误码保持 ABI v1 冻结不变。
  */
 public final class RustNative {
   /** ABI 版本；{@code abiVersion()} 不匹配即拒绝加载。 */

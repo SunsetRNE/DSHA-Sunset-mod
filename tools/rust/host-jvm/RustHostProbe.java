@@ -116,8 +116,11 @@ public final class RustHostProbe {
         "classPinned",
         RustNative.class.getName().equals("com.deepseekharness.app.util.RustNative"),
         RustNative.class.getName());
-    // R2/R3 入口仍是冻结符号的占位：R1 不得顺手实现。
-    check("notImplementedStub", RustNative.archivePackCreate(6) == -26, "return=archivePackCreate");
+    // R3 起 archive 入口是真实实现：非法 level 必须在 JNI 之前被拒绝，且不创建会话。
+    check(
+        "archiveEntryIsImplemented",
+        RustNative.archivePackCreate(-1) == -1,
+        "return=archivePackCreate(-1)");
 
     // 已知向量（与 Rust 单测、JUnit 差分同一组）。
     Path abc = temporaryFile("abc".getBytes(java.nio.charset.StandardCharsets.US_ASCII));

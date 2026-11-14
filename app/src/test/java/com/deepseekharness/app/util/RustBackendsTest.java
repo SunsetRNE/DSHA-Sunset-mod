@@ -57,6 +57,24 @@ public class RustBackendsTest {
   }
 
   @Test
+  public void archiveSelectionFollowsTheSameSwitch() {
+    assertFalse(RustBackends.archiveSelection().useRust());
+    assertEquals(RustBackends.SelectionReason.SWITCH_OFF, RustBackends.archiveSelection().reason());
+    RustBackends.setEnabled(true);
+    RustBackends.Selection selection = RustBackends.archiveSelection();
+    if (RustNative.isAvailable()) {
+      assertTrue(selection.useRust());
+      assertEquals(RustBackends.SelectionReason.RUST_ENABLED, selection.reason());
+    } else {
+      assertFalse(selection.useRust());
+      assertNotEquals(RustBackends.SelectionReason.RUST_ENABLED, selection.reason());
+    }
+    RustBackends.setEnabled(false);
+    assertFalse(RustBackends.archiveSelection().useRust());
+    assertEquals(RustBackends.SelectionReason.SWITCH_OFF, RustBackends.archiveSelection().reason());
+  }
+
+  @Test
   public void oneKeyRollbackKeepsTheSameJvmBehaviour() {
     RustBackends.setEnabled(true);
     RustBackends.setEnabled(false);

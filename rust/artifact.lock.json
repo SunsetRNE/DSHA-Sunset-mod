@@ -9,21 +9,21 @@
       "status": "pending-cross-run",
       "size": null,
       "sha256": null,
-      "evidence": "R2 未产出 Android 产物：本机 aarch64 容器没有 x86_64 NDK 26.3 工具链，交叉链接只能在 CI 的 rust-native job（ci-package / 发布 dry-run）进行；保持 pending-cross-run，不伪造 Android 摘要。"
+      "evidence": "R3 仍未产出 Android 产物：本机 aarch64 容器没有 x86_64 NDK 26.3 工具链，交叉链接只能在 CI 的 rust-native job（ci-package / 发布 dry-run）进行；保持 pending-cross-run，不伪造 Android 摘要。"
     },
     "x86_64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
-      "status": "pinned",
-      "size": 288448,
-      "sha256": "9c3b1a21ea7253f6e9f1b3f7abfa6cbfa1d71a5bc80cf591d9bf211970af047c",
-      "evidence": "R2 源码（plan.rs/jni.rs + 单测）后重新累计跨 runner：Source checks run 43391238720（head 37013f1f）的 rust-check job 131771384515 与两次 job 重跑 131775353356 / 131775954289（三次不同 runner 实例）各自从零构建，build.py --host --expect-lock 均输出 size=288448 / sha256=9c3b1a21…。据此重新 pin；pin 的 --expect-lock 验证由 pin 提交后的 Source checks 执行。"
+      "status": "pending-cross-run",
+      "size": null,
+      "sha256": null,
+      "evidence": "R3 修改了 crate 源码（gzip.rs/jni.rs/lib.rs），R2 的 pin（288448 / 9c3b1a21…）对新源码不再成立。按方案 §2.3 必须连续 3 次不同 CI runner 实例产出相同 size/SHA-256 后才能重 pin；本提交先如实退回 pending-cross-run（--expect-lock 只告警）。重 pin 数值由 Lead 推送后累计 3 次 Source checks 的 rust-check 作业给出，并在后续提交写回。"
     },
     "aarch64-unknown-linux-gnu": {
       "file": "libdsha_rs.so",
       "status": "pending-cross-run",
       "size": null,
       "sha256": null,
-      "evidence": "R2 本机 aarch64 容器主机构建：tools/rust/build.py --host --check 已证明不同源码目录两次构建字节一致（size 266768 / sha256 713d1c8ff7698df938f823d04f1e88b2c696e4aff0e400cac45e8d273952ac83，R2 verify_plan 实现后的产物）；单机不算不同 runner 实例，保持 pending-cross-run。"
+      "evidence": "R3 本机 aarch64 容器（最终 Rust 源码）：tools/rust/build.py --host 产物 size=348736 sha256=8e20e119dc6364ed8148c545bc15a526cba429e635be43c8ee59517604f814a5；--check 已证明不同源码目录两次构建逐字节一致。单机不满足“不同 runner 实例”，保持 pending-cross-run，不伪造跨 runner 固定。"
     }
   }
 }

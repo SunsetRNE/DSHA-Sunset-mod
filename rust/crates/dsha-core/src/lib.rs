@@ -5,10 +5,11 @@
 //! Kotlin 打开并核验的只读 `pread`）、不创建进程/线程、不安装信号处理器、
 //! 不写 stdout/stderr/logcat、不联网**。
 //!
-//! R0 只含 ABI 探针与模块骨架；R1 把 `digest(fdRange, algorithm)` 接上真实实现：
-//! `abiVersion` 返回 1，`digest` 做有界只读 SHA-256/SHA-1，其余 §4.2 入口仍返回
-//! `NOT_IMPLEMENTED`（R2/R3 范围）。ABI 版本、符号名、错误码与上限在 R0 冻结
-//! （R1–R3 不得改；变化 = 新 ABI 版本 + 新评审）。R1 不接入任何生产调用点。
+//! R0 冻结 ABI 骨架；R1 接 `digest`（有界只读 SHA-256/SHA-1）；R2 接
+//! `verify_plan`（PlanView v1 只读校验）；R3 接 `archive_pack`/`archive_unpack`
+//! （单成员 RFC 1952 gzip 流式编解码）。`abiVersion` 恒为 1；ABI 版本、符号名、
+//! 错误码与上限在 R0 冻结（R1–R3 不得改；变化 = 新 ABI 版本 + 新评审）。
+//! 本 crate 仍不接入任何生产调用点（A3 接线由 Lead 串行安排）。
 
 #![deny(unsafe_code)]
 #![deny(unsafe_op_in_unsafe_fn)]
@@ -37,6 +38,8 @@ mod tests {
         ERR_PANIC, ERR_PLAN_EXPIRED, ERR_PLAN_FIELD_RANGE, ERR_PLAN_STRUCTURE, ERR_SESSION_LIMIT,
         ERR_SHORT_READ, ERR_STALE_HANDLE, ERR_UNSUPPORTED_ALGORITHM,
     };
+    // R3 之后 `NOT_IMPLEMENTED` 只作为 ABI 预留码存在（无导出入口会返回它）。
+    const _: i32 = ERR_NOT_IMPLEMENTED;
 
     #[test]
     fn abi_version_is_frozen_at_one() {
@@ -94,17 +97,29 @@ mod tests {
     }
 
     #[test]
-    fn exported_symbols_probe_and_remaining_stubs() {
+    fn exported_symbols_probe_and_archive_stubs_are_real_now() {
         let env = std::ptr::null_mut();
         let class = std::ptr::null_mut();
         let abi = crate::jni::Java_com_deepseekharness_app_util_RustNative_abiVersion(env, class);
         assert_eq!(abi, ABI_VERSION);
-        // 未实现的入口只是冻结符号名的占位：必须返回 NOT_IMPLEMENTED，不做任何副作用。
+        // R3 起 archive 入口是真实实现：非法 level 在 JNI 之前被拒绝（不创建会话，
+        // 避免与 gzip 模块的会话表并发单测互相影响）；合法会话与数据面由 gzip 单测
+        // 和主机 JVM 差分覆盖。
         assert_eq!(
             crate::jni::Java_com_deepseekharness_app_util_RustNative_archivePackCreate(
-                env, class, 6
+                env, class, -1
             ),
-            i64::from(ERR_NOT_IMPLEMENTED)
+            i64::from(ERR_INVALID_ARGUMENT)
+        );
+        // null direct buffer（env 也为空）在 JNI 层返回 INVALID_ARGUMENT，不 UB。
+        assert_eq!(
+            crate::jni::Java_com_deepseekharness_app_util_RustNative_archiveUnpackWrite(
+                env,
+                class,
+                1,
+                std::ptr::null_mut()
+            ),
+            i64::from(ERR_INVALID_ARGUMENT)
         );
         // digest 的标量参数校验发生在 JNI 调用之前：null env + 非法 fd 必须安全地
         // 返回冻结错误码，不触碰 JNI、不崩溃（真实 JNI 调用由主机 JVM 差分覆盖）。

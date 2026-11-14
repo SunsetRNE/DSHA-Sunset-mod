@@ -83,6 +83,20 @@ public final class RustBackends {
     return new Selection(true, SelectionReason.RUST_ENABLED);
   }
 
+  /**
+   * 解析 gzip archive（{@code pack}/{@code unpack}）的后端（方案 §4.4/§4.5）：与
+   * {@link #digestSelection()} 同构，默认关闭。
+   *
+   * <p>R3 只提供选择函数，不接生产调用点；A3 slice4 接线时用
+   * {@link RustArchiveCodec}/{@link RustGzipOutputStream}/{@link RustGzipInputStream}，
+   * 开关关闭或库不可用时留在 JVM 的 {@code GZIPOutputStream}/{@code StrictGzipInputStream}。
+   */
+  public static Selection archiveSelection() {
+    if (!enabled) return new Selection(false, SelectionReason.SWITCH_OFF);
+    if (!RustNative.ensureLoaded()) return new Selection(false, nativeReason(RustNative.status()));
+    return new Selection(true, SelectionReason.RUST_ENABLED);
+  }
+
   private static SelectionReason nativeReason(RustNative.Status status) {
     switch (status) {
       case LIBRARY_MISSING:
