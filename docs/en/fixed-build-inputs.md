@@ -1,6 +1,6 @@
 # Fixed build inputs (public-repository prerelease asset)
 
-Updated 2026-11-05 (build328 adds the 12th fixed input, `gh-cli.tar.gz` = the official GitHub CLI v2.103.3 linux-arm64 archive, as the only source of the managed `opt/gh/bin/gh`; the 0.2.2-rc.1 runtime and emergency archives are unchanged; since build330 the APK ships the same bytes under the name `gh-cli.bin`, the source fixed-input name stays unchanged and the bundle is not rebuilt). The `fixed-inputs-20261105e` bundle is uploaded and published as a prerelease; the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
+Updated 2026-11-05 (build328 adds the 12th fixed input, `gh-cli.tar.gz` = the official GitHub CLI v2.103.3 linux-arm64 archive, as the only source of the managed `opt/gh/bin/gh`; the 0.2.2-rc.1 runtime and emergency archives are unchanged; since build330 the APK ships the same bytes under the name `gh-cli.bin`, the source fixed-input name stays unchanged and the bundle is not rebuilt). The `fixed-inputs-20261113` bundle is uploaded and published as a prerelease; the lock file is [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json).
 
 ## Why the fixed inputs are not stored in git
 
@@ -59,11 +59,11 @@ Fields in [`ci/sunset-inputs.lock.json`](../../ci/sunset-inputs.lock.json):
 ```json
 {
   "schema": 1,
-  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105e/dsha-a-su-fixed-inputs-20261105e.zip",
-  "sha256": "be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5",
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261113/dsha-a-su-fixed-inputs-20261113-build364.zip",
+  "sha256": "2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad",
   "format": "bundle",
-  "release": "fixed-inputs-20261105e",
-  "asset": "dsha-a-su-fixed-inputs-20261105e.zip",
+  "release": "fixed-inputs-20261113",
+  "asset": "dsha-a-su-fixed-inputs-20261113-build364.zip",
   "bytes": 716787167
 }
 ```
@@ -82,8 +82,8 @@ python3 tools/ci-assets.py --url "<lock.url>" --sha256 "<lock.sha256>"
 Or reuse a local archive:
 
 ```bash
-python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105e.zip \
-  --sha256 be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5
+python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261113-build364.zip \
+  --sha256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad
 ```
 
 `ci-assets.py` verifies, in order: whole-archive SHA-256 → member whitelist/path/type/duplicate and total size →
@@ -95,19 +95,15 @@ everything passes. Any failure leaves existing inputs untouched and never execut
 
 | Item | Value |
 |---|---|
-| release tag | `fixed-inputs-20261105e` (prerelease, target `main`) |
-| release id | `435405154` |
-| asset | `dsha-a-su-fixed-inputs-20261105e.zip` |
+| release tag | `fixed-inputs-20261113` (prerelease, target `main`) |
+| release id | `444366070` |
+| asset | `dsha-a-su-fixed-inputs-20261113-build364.zip` |
 | bytes | `716787167` |
-| SHA-256 | `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5` |
-| download URL | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105e/dsha-a-su-fixed-inputs-20261105e.zip` |
+| SHA-256 | `2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad` |
+| download URL | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261113/dsha-a-su-fixed-inputs-20261113-build364.zip` |
 
-> The bundle was uploaded and published as a public prerelease on 2026-11-05T16:07:48Z.
-> `gh api repos/SunsetRNE/DSHA-Sunset-mod/releases/435405154` reports release id `435405154`, asset id `713925229` (audit only),
-> `dsha-a-su-fixed-inputs-20261105e.zip` with `size=716787167`, `state=uploaded`, and remote digest
-> `sha256:be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5` matching the lock; the anonymous direct URL returned HTTP 200 afterwards.
-> The direct URL is determined by the tag plus the asset filename and does not depend on the asset id. A same-tag `--clobber` replacement keeps the filename
-> but changes the content and SHA-256, so the lock must be updated.
+> **Current asset verification (build365 preparation, 2026-11-14, read-only)**: release id `444366070`, asset id `744079349`, asset `dsha-a-su-fixed-inputs-20261113-build364.zip`, `size=716787167`, `state=uploaded`, digest `sha256:2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`, published 2026-11-13T15:01:59Z. This preparation restored the local archive using that digest and passed the pins; it did not upload or replace assets.
+> Build365 reuses the same inputs and provenance: every `builder.recipe_inputs()` entry matches the recorded metadata, so no runtime rebuild or `dsh-runtime.inputs.json` change is needed. Descriptor/source verification gives `8598a8dbf15d48773a41ff41e89935a9effcb5faaa0edc2b82f17dda223b5193` / 205 assets / 491 launcher inputs. The runtimeId change comes from managed source changes after build364, not the version bump. Historical build364 rebuild/upload records remain below.
 
 ## Upgrade flow (new prerelease asset)
 

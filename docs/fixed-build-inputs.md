@@ -56,11 +56,11 @@ S1 按已确定决策将独立应急锁同步到同一 `0.2.2-rc.1` 归档字节
 ```json
 {
   "schema": 1,
-  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105e/dsha-a-su-fixed-inputs-20261105e.zip",
-  "sha256": "be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5",
+  "url": "https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261113/dsha-a-su-fixed-inputs-20261113-build364.zip",
+  "sha256": "2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad",
   "format": "bundle",
-  "release": "fixed-inputs-20261105e",
-  "asset": "dsha-a-su-fixed-inputs-20261105e.zip",
+  "release": "fixed-inputs-20261113",
+  "asset": "dsha-a-su-fixed-inputs-20261113-build364.zip",
   "bytes": 716787167
 }
 ```
@@ -78,8 +78,8 @@ python3 tools/ci-assets.py --url "<lock.url>" --sha256 "<lock.sha256>"
 已有本地归档时：
 
 ```bash
-python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105e.zip \
-  --sha256 be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5
+python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261113-build364.zip \
+  --sha256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad
 ```
 
 `ci-assets.py` 的校验顺序：整包 SHA-256 → 成员白名单/路径/类型/重复与总大小 → 解压到暂存目录后逐项对照
@@ -90,18 +90,15 @@ python3 tools/ci-assets.py --archive dsha-a-su-fixed-inputs-20261105e.zip \
 
 | 项目 | 值 |
 |---|---|
-| release tag | `fixed-inputs-20261105e`（prerelease，target `main`，2026-11-05 16:07:48Z 发布） |
-| release id | `435405154` |
-| asset | `dsha-a-su-fixed-inputs-20261105e.zip` |
+| release tag | `fixed-inputs-20261113`（prerelease，target `main`，2026-11-13 15:01:59Z 发布） |
+| release id | `444366070` |
+| asset | `dsha-a-su-fixed-inputs-20261113-build364.zip` |
 | bytes | `716787167` |
-| SHA-256 | `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5` |
-| 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261105e/dsha-a-su-fixed-inputs-20261105e.zip` |
+| SHA-256 | `2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad` |
+| 下载直链 | `https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/download/fixed-inputs-20261113/dsha-a-su-fixed-inputs-20261113-build364.zip` |
 
-> **上传与发布核验：已上传并发布（prerelease）。** 本 bundle 由 build328 会话在本机以 `tools/ci-assets.py --pack` 生成（成员 12 项、STORED），
-> 远端核对：release id `435405154`，asset id `713925229`（仅审计），资产名 `dsha-a-su-fixed-inputs-20261105e.zip`，`size=716787167`，`state=uploaded`，
-> digest `sha256:be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5`；2026-11-05T16:07:48Z 由 Draft 发布为公开 prerelease，
-> 随后匿名直链实测 HTTP 200。直链由 tag + 资产文件名确定，不依赖 asset id；若后续在同 tag 内 `--clobber` 替换资产，文件名不变但内容与 SHA-256 会变，必须同步更新锁。
-> 重打包可复现性：同一输入集合重跑 `--pack` 必须得到同一 SHA-256（build328 已实测；`--pack` 前会按 pin 逐项校验）。
+> **当前资产核验（build365 发布准备，2026-11-14，只读）**：release id `444366070`，asset id `744079349`；资产 `dsha-a-su-fixed-inputs-20261113-build364.zip`，`size=716787167`、`state=uploaded`、digest `sha256:2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`，发布于 2026-11-13T15:01:59Z。本轮以同一摘要从本机归档还原，pin 核验通过；没有上传或替换资产。
+> build365 沿用同一输入与 provenance；`builder.recipe_inputs()` 与记录逐项一致，无需重建或修改 `dsh-runtime.inputs.json`。描述符检查与源核验为 `8598a8dbf15d48773a41ff41e89935a9effcb5faaa0edc2b82f17dda223b5193` / 205 资产 / 491 启动输入。该 runtimeId 变化来自 build364 之后合入的受管源码，版本提升本身不改变 runtimeId。下文 build364 的重建与上传回执按历史保留。
 
 ## 升级流程（新预发布资产）
 

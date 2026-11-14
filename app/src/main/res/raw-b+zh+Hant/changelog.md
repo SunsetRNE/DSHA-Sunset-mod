@@ -1,15 +1,15 @@
-# DSHA 0.2.1-rc.5-20261113.1340-dsh0.2.2-rc.1 / build364
+# DSHA 0.2.1-rc.5-20261114.1030-dsh0.2.2-rc.1 / build365
 
-- 資料安全與啟動觀測版（一處使用者可見的資料正確性修復）：build364 在 build363 之後合入 RC1 遷移 P1a/P1b 與非實作者評審 P0/P1/P2 修復、K0 Kotlin 受管輸入與架構邊界閘門、S0 啟動唯讀觀測基線，以及外接 adb/fastboot 路徑與首次 proroot 試執行修復。**使用者可見的是 RC1 遷移的保守失敗關閉語意**；K0 / S0 為建置與診斷基礎設施，其餘為裝置路徑修復與文件。
-- RC1 遷移（資料安全，使用者可見）：結果協定升級為 `resultVersion=3`，區分「本次內容副本讀回」「歷史完成」「寫入結果未知」。只有本次流程完整讀回副本才允許遷移寫入；歷史完成只授予無遷移寫入的普通啟動，且必須已有 committed 完成回執與完整 settings 帳本；快取命中綁定 generation + sourceSha256 + 期望分節集合，不再由舊布林合成成功。
-- RC1 遷移（續）：history-only 核對不建立或更新設定分節、不覆寫使用者後來修改的值；來源分節缺失或 pending/writing/unknown 只回傳 pending/unknown，不寫入檔案。已派發但終態未知的寫入不再自動重放；保留資料清單按真實 current 形狀投影歷史完成 / 待處理 / 未知，未知記錄仍可唯讀查看，不授予自動還原或刪除。
-- 啟動唯讀觀測基線（工程）：S0 為停止殘留、掃描、guest helper、準備命中與 Node→鑑權鏈路增加唯讀計數觀測，只進入啟動診斷與既有日誌，不改變啟動順序、等待時間與權限閘門。
-- Kotlin 受管輸入（工程）：K0 讓受管源樹中的 `.kt` 進入 `runtimeId` 與架構邊界閘門，並補充 Kotlin 編譯 / 格式與重名負控；不改變執行行為。
-- 裝置路徑與維護試執行修復：外接裝置庫搜尋補充 `usr/lib/aarch64-linux-gnu/android`，adb / fastboot 在外接環境可被找到；首次 proroot 受管執行時試執行不再因 profile 列舉 ENOENT 崩潰，維護頁不再多一次失敗試執行。
-- 文件與驗收（僅文件）：build363 真機覆蓋驗收回執、執行時 trial 首次失敗分析、RC1 遷移設計與對外回覆、啟動鏈路評估納入文件索引。
-- 覆蓋升級影響：受管啟動輸入與受管執行時變化，`runtimeId` 更新為 **`bd0016c33e807a8e60cec8b3267e78fef0d003f618c083227cb651bd274eaabf`**（489 個啟動輸入、205 個資產輸入）；**363→364 覆蓋升級後首次啟動會進入一次執行環境維護頁**並執行受管執行時試執行，屬預期，個人資料保留。內建 `dsh-web-mobile` 3.3.5 與預設啟用不變，資料格式不升級。
-- 固定建置輸入：鎖保持 `fixed-inputs-20261105e`。K0 修改了 `tools/runtime_input_contract.py`（dsh 執行時 recipe input），舊 provenance 在 `ci-package` 的 `rebuild_runtime:false` 下會按設計 fail-closed；本版已用本機鎖重建執行時，封存位元組仍為 `c1bd6833…`，僅 `dsh-runtime.inputs.json` 的 recipe 摘要更新。release-production 使用 `rebuild_runtime:true` 會重建並重算描述符；`ci-package` 需在發布新 bundle 後以顯式 URL + SHA-256 觸發（本分支候選 bundle `sha256 2c8dc3fa…`，尚未上傳，故不更新鎖）。
-- 版本與範圍：版本碼提升為 364（基於已發布的 build363，tag `dsha-a-su-build363-20261113-170000` @ `d0bc1b0b`）；DSHA 修訂號保持 `0.2.1-rc.5`，內建 DSH 為 `0.2.2-rc.1`；套件名 `io.github.sunsetrne.dsha`、Mod 自有憑證與簽章方案不變。裝置 shell 白名單與執行期護欄不放寬。目標 tag `dsha-a-su-build364-20261113-134000` 由 release 工作流在使用者確認後建立。
-- **未驗證 / 未驗收**：build364 發布準備只通過本機靜態閘門與定向測試；全量單元測試、lint、未簽章建置、測試包與正式簽章由 release 工作流執行，結果以 CI / Release 回執為準；**未做真機覆蓋安裝驗收**。驗收項是 363→364 覆蓋安裝成功、首次啟動進入一次執行環境維護頁並完成、資料完好、到達 READY，以及 RC1 遷移在普通啟動下的提示與保留資料清單符合預期。
-- 驗證範圍：發布身分與前置檢查（versionCode 364 / versionName 與 `ci/release-identity.json` 一致；`check-release-prerequisites.py` PASS）、三身分交叉核對、`generate-changelog.py --check`、`UpdateVersionPageTest` 斷言更新、`prepare-runtime-descriptor.py --check`（`bd0016c3…`，489 個啟動輸入）與 descriptor 源核驗、全樹 Java 與 Kotlin 格式、來源衛生、UI i18n、文件連結、`test-ci-workflows.py`、`test-release-signing.py`、`test-core-boundaries.py`，以及 RC1 Python 與真實 SettingsForms CJS 回歸；正式簽章 assemble 不在本機執行。
-- 十語種更新說明見 [build364 更新說明](build364-changes.zh-Hant.md)。
+- 還原計畫、遷移安全與終端生命週期修復版：build365 在 build364 之後合入 A3 slice2/3、RC1 加固、A4 終端與處理程序身分，以及 K1 工具／閘門與 R3 Rust gzip 旁路。A5/A7 任務基線與評審記錄屬於文件，後續實作切片不在本版範圍。
+- A3 slice2/3：還原預覽把既有計畫投影為唯讀 PlanView v1；提交時在來源摘要複核後，以目前時間重新編碼視圖，通過校驗後才能建立候選並提交宿主交易。JVM 校驗已生效，Rust 第二實作只在後端已啟用且可用時參與；計畫無效、雙實作結果不一致或 Rust 結果未經核驗，都會中止提交並保留原件與私有槽位。明確不支援投影的情況繼續走既有 JVM 還原路徑。PlanView 不寫入封存檔，v5 資料格式與還原語意不變。
+- RC1 遷移加固：依真實 SettingsForms schema 參照圖投影秘密欄位，涵蓋巢狀與組合形狀；未知 schema 在派發前拒絕。舊帳本診斷重新去識別，不將秘密內容複製到新記錄；完整設定讀回仍會核驗實際 update。`settings.update` 已派發後發生例外，一律保留 `unknown`，不能憑錯誤文字自動重試。
+- RC1 歷史證據：舊帳本缺少 `expectedSections` 時，不得用殘存的鍵自行證明完成；回退 checkpoint 必須具有相符的 ledger provenance。證據缺失、格式無效或互相矛盾時維持 `unknown`。部分在 build364 之前完成、之後由 build364 重用的遷移世代，若兩處都沒有可信證據，便會阻擋普通及安全啟動；原件與保留記錄仍可唯讀查看。本版維持此保守阻擋，不新增放行入口或自動補匯入。
+- Java↔CJS 啟動交接：快取歷史 prepare 在放行前，以原子方式寫入並讀回本次 startup 身分與 `history-only` 模式；CJS 核對同一世代及相同輸入綁定，帳本遺失或變更不能使交接變成新一輪 settings update。既有業務回執與使用者後來修改的值均保留；備份／資料格式不變。
+- A4 終端與處理程序身分：guest 退出需要兩次空會話觀察，自然退出路徑也執行雙重掃描；身分不可讀、遭中斷或仍有成員時，維持未確認狀態。後端啟動前預留會話 ID，永久不重用；單一分頁只有在該會話退出核驗通過後才移除。UID 未知時明確提示身分暫時不可讀，不再誤報為其他應用程式。有限次掃描不構成對任意 daemon 的原子退出證明。
+- A4 驗收工具：debug 儀器宣告僅精確替換 30 個舊 `targetPackage` 為目前應用程式身分，並退役舊終端生命週期測試夾具；現行驗收觀察重建後的 Activity，且只核驗自行建立的分頁。PTY 握手主機測試使用正式 C 原始碼，但不代表 Android JNI、旋轉、語言切換或 proot/proroot 真機驗收已完成。
+- K1/R3 工程：工具與閘門收緊掃描分類、建構式／形狀斷言、原生測試委派與自包含契約；R3 增加有界單成員 gzip `archive_pack/unpack`、JVM 橋與差分測試覆蓋。Rust 後端預設關閉、`.so` 不隨套件提供，備份 envelope 呼叫點留給 A3 slice4；使用者不可見，不新增使用者選項，也不改變封存格式。
+- 覆蓋升級影響：受管啟動原始碼變更，`runtimeId` 為 **`8598a8dbf15d48773a41ff41e89935a9effcb5faaa0edc2b82f17dda223b5193`**（491 個啟動輸入、205 個資產輸入）；**364→365 覆蓋升級後首次啟動會進入一次整屏執行環境維護頁**並執行執行時試執行，個人資料保留。版本號提升本身不改變 runtimeId；內建 `dsh-web-mobile` 3.3.5 與預設啟用狀態不變。
+- 固定建置輸入：沿用 `fixed-inputs-20261113`，資產 `dsha-a-su-fixed-inputs-20261113-build364.zip`（716,787,167 B；SHA-256 `2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`）。不升級相依套件、基礎 Ubuntu、應急封存檔或固定輸入鎖；受管來源核驗綁定上述描述符，執行時 recipe provenance 與封存位元組分別核對。
+- 版本與範圍：版本碼提升為 365，基於已發布 build364（tag `dsha-a-su-build364-20261113-134000` @ `1545e104`）。DSHA 修訂號保持 `0.2.1-rc.5`，內建 DSH 保持 `0.2.2-rc.1`；套件名 `io.github.sunsetrne.dsha`、Mod 自有憑證與簽章方案不變。裝置 shell 護欄、授權、密碼文字硬阻擋與敏感畫面策略維持既有邊界。建議 tag `dsha-a-su-build365-20261114-103000` 由 release 工作流建立。
+- 驗證範圍與限制：發布準備核對版本身分、十語生成說明、descriptor／來源一致性、Java/Kotlin 格式、來源衛生、UI i18n、文件連結、發布／CI 腳本與主機測試清單；實際結果及未執行項目以準備回執為準。全量單元測試、lint、APK／測試套件建置與簽章仍是 release 工作流閘門。**build365 尚未進行真機覆蓋驗收**；舊 build364 一加 12 回執僅為歷史證據。364→365 一次維護頁／READY、資料完好、RC1 阻擋、終端關閉／旋轉／語言切換仍待裝置核對，不宣稱更廣的 ROM／機型矩陣。
+- 十語種更新說明見 [build365 更新說明](build365-changes.zh-Hant.md)。
