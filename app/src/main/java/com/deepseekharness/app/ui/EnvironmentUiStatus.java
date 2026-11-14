@@ -32,19 +32,10 @@ final class EnvironmentUiStatus {
           () -> {
             try {
               HarnessController controller = HarnessController.get(app);
-              boolean ready = controller.isEnvironmentReady();
-              value =
-                  new Snapshot(
-                      true,
-                      ready,
-                      // 受限提示与主界面入口同一判定：进行中的后台事务由维护横幅表达；
-                      // 补丁级覆盖后旧树仍“兼容”，但同样要留出回到维护页的入口。
-                      com.deepseekharness.app.util.RuntimeUpgradeState.maintenanceRequired(
-                              ready,
-                              com.deepseekharness.app.core.EnvironmentAccess.runtimeLatest(
-                                  controller))
-                          || MainEntryMaintenance.blocksEntry(controller),
-                      com.deepseekharness.app.core.StartupRepairs.pending(app));
+              var facts =
+                  com.deepseekharness.app.util.EnvironmentUiFacts.banner(
+                      new EnvironmentUiReader(app, controller));
+              value = new Snapshot(true, facts.runnable(), facts.recovery(), facts.repairs());
             } finally {
               synchronized (EnvironmentUiStatus.class) {
                 running = false;

@@ -1,19 +1,21 @@
 # A5 任务基线：运行环境与覆盖更新
 
-> 日期：2026-11-14；状态：**第一阶段 docs-only，待 Lead 评审批准，未开始生产实现**。
-> 源码调查与本轮软件结果固定于 `d9b75bc52c7b36cad265dbe2b32a90ecb9971d74`；分支 `feat/a5-runtime`，owner `@a5-runtime`（session `545e6069`）。
+> 日期：2026-11-14；状态：**第一阶段已获 Lead 评审批准；Q1–Q3 已裁决，S1 结构片已实现并完成本机有限验证，待独立审查；S2/S3 未开工**。
+> S1 代码基线：`63b57efe5b3961429b6a03dd950a78abd5467b5e`；已 fetch 并无冲突重基，原文档提交 `d7193629` 重写为 `4cbc3cf1`（随后由 main 合入）。§8 的 S0 软件结果仍固定于 `d9b75bc5`，不迁记为 S1 通过；分支 `feat/a5-runtime`，owner `@a5-runtime`（session `545e6069`）。
 > 依据：[迭代路径 A5 / §4 / §6 / §7](iteration-roadmap-20261112.md#5-各轮详情)、[ADR-0004](../../adr/0004-kotlin-rust-direction.md)、[覆盖升级契约](../../overwrite-upgrade-and-maintenance.md)、[运行引擎](../../runtime-engines.md)、[环境/数据/插件](../../runtime-data-plugin-architecture.md)、[端口与网络](../../ports-and-networking.md)、[仓库约束](../../../AGENTS.md)。
 
 ## 0. 本批结论与时间边界
 
 A5 应收敛**既有状态所有者之间的读取与请求接缝**。目前已有应用级 Web 生命周期、环境任务票据、停止屏障、组件检查、受管事务和 APK 更新任务；再建工作台状态机，会使维护页、引导页、启动恢复页与一键更新出现更多独立判据。
 
-本批只新增本文，不改生产源码、测试源码、描述符、版本身份或进度看板。本文中的接口草案和切片是供 Lead 批准的实施方案，不能视作已实现或已验收。第一阶段可合并不表示 A5 整轮可发布。
+S0 首批只新增本文，未改生产源码、测试源码、描述符、版本身份或进度看板。S1 已按 Lead 条件获准，仍不代表整轮实现或设备验收完成。
+
+§2/§5 的既有 37 个源码引用目标已逐文件核对 `d9b75bc5..63b57efe`：这些文件无差异，旧锚点在新树仍对应相同代码；A4 新接口与 RC1 新语义另在 §5 补充，不能只靠锚点仍有效来继承旧测试结论。
 
 | 时点 | 已核对事实 | 如何使用 |
 |---|---|---|
 | 开工 fetch / 建树 | `origin/main=d9b75bc5`，A3 slice2/3 v2 已在主线；A4 当时待合并 | 本文全部源码行号与测试结果均取该工作树，不使用侧分支实现作前提 |
-| 调查期间主线前进 | 当前共享远端引用已到 `63b57efe`，日志包含 RC1 与 A4 合入及描述符重算 | 本树没有重基到该提交，不继承其 CI 或接口验收；第二阶段前必须重基并重新核对 §5 |
+| 调查期间主线前进 | `63b57efe` 含 RC1 与 A4 合入及描述符重算 | **S1 开工已无冲突重基到该提交**；后续 main 合入了重写后的文档 `4cbc3cf1`。S0 测试仍绑 d9；S1 重新验证 |
 | 已发布身份 | build364，tag `dsha-a-su-build364-20261113-134000`，提交 `1545e104` | 进主线与已发布分别记账；本批不动发行线 |
 
 路线图顶部与部分运行文档保留了历史状态、类规模和输入数量。实际接口以下表为准；只有 Lead 更新路线图进度。Rebirth 与 Mod 的发行身份也不在本批裁决，I1–I10 按**各自同包名、同签名发行线内部覆盖**执行，不以跨线安装代替覆盖验收。
@@ -98,7 +100,7 @@ A5 应收敛**既有状态所有者之间的读取与请求接缝**。目前已�
 
 ## 4. 切片、写域与出口
 
-S0 是当前 docs-only 交付。S1–S4 均需 Lead 批准；不把对本基线的接收默认为整轮业务编码授权。
+S0 docs-only 已由 main 合入；S1 按 §9 条件交付首个结构等价片（实际范围与回执见 §11）。S2–S4 及 trial/latest 行为修复仍需后续裁决；不把对本基线或 S1 的接收默认为整轮业务编码授权。
 
 | 切片 | 内容与允许写域 | 依赖与可回退出口 |
 |---|---|---|
@@ -114,34 +116,34 @@ S0 是当前 docs-only 交付。S1–S4 均需 Lead 批准；不把对本基线�
 
 ### 5.1 A3 数据事务与 R3
 
-| 依赖 | `d9b75bc5` 已有接口 | 第二阶段前需确认/等待 |
+| 依赖 | `63b57efe` 已复核接口 | 后续依赖 / 不继承的证据 |
 |---|---|---|
 | 多根事务 | [HostDataTransaction:23](../../../app/src/main/java/com/deepseekharness/app/backup/HostDataTransaction.java#L23) `CommitCheck.verify/mayRecover`；[HostDataTransaction:82](../../../app/src/main/java/com/deepseekharness/app/backup/HostDataTransaction.java#L82) prepare；commit/recover 固定摘要与目标 | 退出不明必须 `mayRecover=false`；A5 只调用、不另写事务或恢复解释器 |
 | 受管运行时 | [ManagedRuntimeTransaction:125](../../../app/src/main/java/com/deepseekharness/app/backup/ManagedRuntimeTransaction.java#L125) prepare、[ManagedRuntimeTransaction:187](../../../app/src/main/java/com/deepseekharness/app/backup/ManagedRuntimeTransaction.java#L187) commit(health, mayRecover)；旧 mapping 1/2 只读兼容 | 受管根不含用户目录，至少留直接健康前代；健康是本轮真实字节证明，不从版本字符串推导 |
 | pending 与恢复 | [EnvironmentMaintenance:634](../../../app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java#L634)、[MaintenanceCoordinator:53](../../../app/src/main/java/com/deepseekharness/app/core/MaintenanceCoordinator.java#L53) 现有保守入口 | A3 结束前复核其可读/唯一/源变动/PlanView 拒绝语义；新 RC1 unknown 决策不得被 F02 放行入口覆盖 |
 | A3 新计划与归档旁路 | [A3 契约基线](a3-task-baseline-20261113.md) 区分 PlanView 投影、归档读者权威与 JVM 整份摘要 | slice2/3 已入 `d9b75bc5`，不代表 A3 整轮完成；R3 archive 接线/slice4 及出口仍待其 owner 交付，A5 不直接调用 `RustArchive*` 或假定 Rust 默认开启 |
-| RC1 修复与发行门禁 | 本树未包含后续 `278a446a` 的合入/重算 | 调查期间已进主线，第二阶段须重基后复核接口与绑定提交的 CI；不能把“曾在评审”写成永远待合入，也不能把主线前进写成本树已验证 |
+| RC1 修复与发行门禁 | S1 已重基包含 `278a446a` 的 `63b57efe`；[Rc1MigrationCache:101](../../../app/src/main/java/com/deepseekharness/app/runtime/Rc1MigrationCache.java#L101) 将记录读失败映射 UNAVAILABLE，[四类结果:24](../../../app/src/main/java/com/deepseekharness/app/runtime/Rc1MigrationCache.java#L24) 不把未知当普通 cache miss | 已合入，无需再等该分支；S1 不修改或直接调用这些内部口。E=C 的 unknown 阻断继续保持，不因投影视图将旧历史证明提升为本次许可；CI 仍绑定各自提交 |
 
 ### 5.2 A4 进程身份与终端屏障
 
-本树已使用 [MaintenanceCoordinator:193](../../../app/src/main/java/com/deepseekharness/app/core/MaintenanceCoordinator.java#L193) 的 `TerminalSessionOwner.closeAllAndConfirm(5000)`，复用 [WebSessionProof](../../../app/src/main/java/com/deepseekharness/app/util/WebSessionProof.java)、[WebProofStop](../../../app/src/main/java/com/deepseekharness/app/util/WebProofStop.java)、[WebProcessSession](../../../app/src/main/java/com/deepseekharness/app/core/WebProcessSession.java)、[WebProcessManager](../../../app/src/main/java/com/deepseekharness/app/runtime/WebProcessManager.java)。这证明已有接缝，不证明 A4 评审后的退出实现已在本树。
+S1 已重基到包含 A4 的 `63b57efe`，复核 [MaintenanceCoordinator:193](../../../app/src/main/java/com/deepseekharness/app/core/MaintenanceCoordinator.java#L193) 仍调用 `TerminalSessionOwner.closeAllAndConfirm(5000)`；新 owner 的 [closeAllAndConfirm:491](../../../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java#L491) 串行关闭 PTY/简易会话，PTY 先覆盖尚未发布标签的 fork。[TerminalExitPolicy:76](../../../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.java#L76) 保留 guest→launcher 与逐次核验，[自然退出双扫:139](../../../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.java#L139) 跨 20ms 观察间隔，未知继续保留保护。S1 不写这些 A4 文件。既有 [WebSessionProof](../../../app/src/main/java/com/deepseekharness/app/util/WebSessionProof.java)、[WebProofStop](../../../app/src/main/java/com/deepseekharness/app/util/WebProofStop.java)、[WebProcessSession](../../../app/src/main/java/com/deepseekharness/app/core/WebProcessSession.java)、[WebProcessManager](../../../app/src/main/java/com/deepseekharness/app/runtime/WebProcessManager.java) 引用文件与 d9 相同；A4 的软件/设备边界见其[实现回执](a4-implementation-evidence-20261114.md)，不迁记成本会话实测。
 
 | 依赖面 | A5 要消费的契约 | 合入门禁 |
 |---|---|---|
 | 出生与观测 | boot、PID、starttime、完整命令、UID、generation/instance/nonce；两次观测一致；区分活态/退出/未知 | 不复刻 PTY fork/exec 握手，不在 Java 启动后补读一次当作出生证明 |
 | 退出与租约 | 关闭终端后由会话 owner 确认退出；guest 与 launcher 分别证明；未知继续保留 token | 不以 Activity 消失、launcher handle 返回、cancel 或 timeout 释放维护许可 |
 | 强停与 T91 | 候选一次消费；实际发信号前重新核对；覆盖例外才可 guest→旧 launcher；普通 proroot bridge 的既有窄升级保持 | 不按裸 PID/端口/名称/进程组；不扩到当前 launcher、终端、虚拟屏或 trial |
-| A4 在途结果 | 开工时为 `0971a2d4` 待合并；调查期间主线已到含 A4 的 `63b57efe` | **待重基后的接口复核与绑定 CI/设备未跑项**；不要求 A5 改 A4 文件补缺，不提前承诺设备通过 |
+| A4 已合入 | 原 `0971a2d4` 已经重基并随 `63b57efe` 进入主线；S1 本树已含该实现且已复核以上接口 | 无 A4 合入等待项；保留其设备未跑矩阵，S3 再复核调用契约。不得将代码在树里或 A4 CI 绿当作本会话设备通过 |
 
 ### 5.3 M20 与 Rust 的边界
 
 本机 Web 记录继续**读写 schema 1**；未知 schema、解密失败、字段不全、记录被替换均保留原件并拒绝接管/发信号。升级时 appIdentity 差异既参与[旧会话恢复兼容性判断](../../../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java#L204)（[存活但不兼容的会话可成为 UNKNOWN](../../../app/src/main/java/com/deepseekharness/app/core/WebSessionRecovery.java#L101)），也是 T91 旧版 launcher 退休的必要条件之一；它不能替代 boot/UID/出生/代次/双次核验，也不单独授予发信号权限。不得把鉴权 URL、任务 token 或 Keystore 状态写入用户备份。若需额外诊断，用可选旁路记录，不启用 schema 2。
 
-路线图 A5 写了“六类身份夹具 Java/Rust 差分”，而 [ADR-0004 决定四](../../adr/0004-kotlin-rust-direction.md#决定四rust-首期只做旁路计算与计划校验) 明确 Rust 不承接出生身份、停止证明、信号与执行入口。**目前没有可用于该比较的 Rust 进程身份 ABI，不能把现有 Java 测试称作已完成 Java/Rust 差分。** §9 请 Lead 确认该出口的分工；在明确之前，M04 结构迁移仍须保留六类相同输入/逐字段预期作为 P0，不能增加 Rust 执行能力补齐字面指标。
+路线图 A5 的“六类身份夹具 Java/Rust 差分”出口已由 Lead 修订：**六类身份逐字段黄金/差分属于 JVM 侧 P0；Rust 不参与身份取得、核验或进程归属，只继续 A3 的 plan/digest/archive 旁路。** 这与 [ADR-0004 决定四](../../adr/0004-kotlin-rust-direction.md#决定四rust-首期只做旁路计算与计划校验) 的范围一致。目前没有 Rust 身份 ABI，不能声称已完成 Java/Rust 身份差分；将来若需只读判据，必须另立任务与评审，不在 A5 扩 FFI 或旁路调用点。
 
 ## 6. runtimeId、维护页与零维护判据
 
-本树 [描述符:2](../../../app/src/main/assets/runtime-descriptor.json#L2) 为 `version=1`，`runtimeId=f02b4465e638c20b2a2f3d1be7ca022704d6742b601c83ac5da7c0f86372b9a3`，base `10`，DSH `0.2.2-rc.1`，`dataWrite=dsh-0.2.2-rc.1`，桥协议 `3`；**205 资产 / 490 启动输入，runtime 63 项，ui 0 项**。这是本树计数，不沿用路线图历史 481 项，也不拿它冒充后续主线 runtimeId。
+S0 调查身份为 `f02b4465e638c20b2a2f3d1be7ca022704d6742b601c83ac5da7c0f86372b9a3`，205 资产 / 490 启动输入。S1 重基后的[描述符:2](../../../app/src/main/assets/runtime-descriptor.json#L2) 仍 `version=1`，`runtimeId=8598a8dbf15d48773a41ff41e89935a9effcb5faaa0edc2b82f17dda223b5193`，205 资产 / **491 启动输入**（A4 纳入 TerminalExitPolicy）；runtime 63 项、ui 0 项。base `10`、DSH `0.2.2-rc.1`、`dataWrite=dsh-0.2.2-rc.1`、桥协议 `3` 保持。S1 不重写该描述符；不拿 S0 数量冒充新树核验。
 
 [单一输入清单:623](../../../app/src/main/assets/managed-runtime-inputs.json#L623) 的 launcherTrees 收 runtime/backup 等目录，core 只收显式项；[清单:635](../../../app/src/main/assets/managed-runtime-inputs.json#L635) 的 launcherSources 与 generatorSources 另列。**不是全部 core/util 都受管**：当前 EnvironmentAccess、EnvironmentMaintenance、MaintenancePreStop、RuntimeUpgradeState、EnvironmentIdentity、UpdateEngine/Repository/DownloadService 不在该启动摘要集合内；移代码时必须同时评审覆盖边界。
 
@@ -202,15 +204,15 @@ M10 补 [RuntimeLauncherTest](../../../app/src/test/java/com/deepseekharness/app
 
 | # | 风险/未决点 | 推荐与解除条件 |
 |---|---|---|
-| Q1 | 六类 Java/Rust 身份差分出口与 Rust 禁止接管身份的范围存在未落地接缝 | 保持六类逐字段黄金/差分 P0；若有 Kotlin 迁移做旧 Java/新 Kotlin 同输入；Rust 仅继续 A3 计划/摘要/归档旁路。请 Lead 明确 Rust 身份差分另立只读判据提案还是修订该出口表述；不得先扩 FFI |
-| Q2 | “停自动段”是否连用户已发起的下载重投递与安装授权返回续接也停 | 推荐只关无人触发的新检查/提示与新任务；明确用户下载/安装意图绑定原任务、摘要和领取 token 后可续接。未知结果仍先观察，不重新派发安装；本批无此产品行为改动 |
-| Q3 | S1 同事实投影可能误抹 live-owner 的页面例外 | 保留入口显示/执行准入的不同目的；采样和纯投影分别测试。先结构等价提交，再独立处理 trial/latest 接线 |
+| Q1（已裁决） | 六类身份差分的语言归属 | **六类身份逐字段黄金/差分属于 JVM 侧 P0；Rust 不参与身份取得、核验或进程归属，只继续 A3 的 plan/digest/archive 旁路。** 将来 Rust 只读身份差分须另立只读判据任务与评审；A5 不扩 FFI 或旁路调用点 |
+| Q2（已裁决） | 自动段与用户已发起任务续接 | 只停无人触发的新检查/新提示/新任务；用户明确发起的下载/安装意图绑定原任务、摘要与领取 token 后可续接；未知先观察，不重新派发安装。该产品行为不进入 S1，仅冻结边界 |
+| Q3（已裁决） | S1 的显示与执行边界 | **入口显示与执行准入保留两个目的，不合并成一个布尔。** 保留 live-owner 例外；采样与纯投影分别测试；先交结构等价提交，再独立处理 trial/latest 接线 |
 | R1 | A3/A4/RC1/A6 并行，重基后事实或 owner 变化 | 第二阶段先 fetch、重基、逐接口复核，协调实际写文件。A6 插件 writer、A3 事务、A4 终端不归 A5 重写 |
 | R2 | 抽新 core/util 类时从显式清单漏出，导致真实行为变却 runtimeId 不变 | 对照 launcherSources/trees/generatorSources 与消费入口；最终合并树统一重算并核源/包字节 |
 | R3 | UI helper 全绿却页面仍白屏/循环 | 必须补真实接线、trial-only/读失败/外部恢复/旋转用例，再由用户完成两种覆盖与 UI-only 反例；不放宽 I5 |
 | R4 | 维护成功/错误/取消被合并展示为 ready 或 safe retry | 保留任务、现场和代次身份；退出未知保留 lease；恢复由 owner 执行，取消不清 pending |
 
-请 Lead 评审**本基线与首个实现切片**：建议先批准 S1 结构与对照回归，待其提交独立审查后再推进 S2/S3；S3 前复核 §5。Q1/Q2 未确认的行为不进入实现。此处不是发布、合并、安装或设备授权。
+Lead 于 2026-11-14 审阅原 `d7193629` 后认可本基线，并按上表裁决 Q1–Q3。**仅 S1 获条件开工批准**：开工前 fetch/rebase 当时主线（本次为 `63b57efe`），冲突即停报；新树重核 §5/§9 接口与引用；只做同事实投影、结构等价与对照回归，不改行为、版本身份或 runtimeId。若出现受管输入变动，只交精确清单，由 main 在最终合并树重算描述符。继续遵守禁止写域，不创建第二把维护锁或第二条命令链。S1 独立提交与实测后交 main 安排独立审查，再决定 S2/S3；S3 前必须复核 §5。**这不授权本会话 push、合并、发布、安装或设备动作**。
 
 ## 10. 回退点与两阶段门禁
 
@@ -219,4 +221,27 @@ M10 补 [RuntimeLauncherTest](../../../app/src/test/java/com/deepseekharness/app
 - S2 单独提交自动段入口收口，保留旧偏好键与手动路径；回退不会重写已下载候选/用户数据，未知安装不能自动重派。
 - 受管更新失败走既有事务回切；退出未知不回切仍可能被使用的树。健康前代也须经当前 launcher/数据兼容与真实 trial，不能只认“旧目录存在”。
 - 正式发行回退由 main + 用户决定，使用更高 versionCode 发布旧代码，不降级安装、不清数据；APK 回退不等于恢复用户对话或数据格式。
-- 第一阶段出口：本文提交、声明交还、`peer_report ready`（仅 docs），等待 Lead 批准。第二阶段出口：定向单测/格式/边界/文档链接 + 非实现者评审；全量/Lint/APK 以绑定提交的 CI 为准；真机覆盖/维护/白屏证据由用户补齐后，才更新 A5 整轮完成状态。
+- 第一阶段已获批准；S1 独立提交后交 main 安排非实现者审查，再决定后片。全量/Lint/APK 以绑定提交的 CI 为准；真机覆盖/维护/白屏证据由用户补齐后，才更新 A5 整轮完成状态。
+
+## 11. S1 结构切片（基于 63b57efe）
+
+本片收敛三条现有只读路径：部署胶囊、主界面横幅、引导页直入判定。新增 [EnvironmentUiFacts](../../../app/src/main/java/com/deepseekharness/app/util/EnvironmentUiFacts.java)（无 Android 的无状态采样与不可变结果）和 [EnvironmentUiReader](../../../app/src/main/java/com/deepseekharness/app/ui/EnvironmentUiReader.java)（原读口的无状态适配），分别接入 [DeployMonitor](../../../app/src/main/java/com/deepseekharness/app/ui/DeployMonitor.java)、[EnvironmentUiStatus](../../../app/src/main/java/com/deepseekharness/app/ui/EnvironmentUiStatus.java)、[OnboardingEnvironment](../../../app/src/main/java/com/deepseekharness/app/ui/OnboardingEnvironment.java)。
+
+- 部署路径仍按 runnable → host pending → installed 读取；任一步 RuntimeException 使 runnable=false，**保留失败前已读到的 pending/installed**，不重试、不额外查询。
+- 横幅仍按 runnable → latest →（必要时）主入口 live-owner 显示策略 → 配置修复状态读取；纯判定继续复用 RuntimeUpgradeState，不把“能保留页面”提升为执行许可。
+- 引导仍按 maintenanceBusy → host pending → runnable → requiresMaintenance 短路；外层异常仍按原入口返回 false。全部旧缓存寿命、线程/handler、发布代次、异常出口不变。
+- 维护详情页的逐字段缓存没有迁移到一次性快照：那会改变读取中途失败时已写入字段的时序。其退出/trial/latest 接线、自动一次、Main 的实际执行准入均保持原样；已知输入差异不在本片修复。
+
+新增 [EnvironmentUiFactsTest](../../../app/src/test/java/com/deepseekharness/app/util/EnvironmentUiFactsTest.java)：8 项用例覆盖 8 组部署输入、16 组横幅输入、16 组引导输入、读取次序/短路、每个读取阶段失败时的已读前缀及部分事实、live-owner 页面例外不放宽引导显示门禁。纯投影另跑既有 RuntimeUpgradeStateTest，采样与纯投影分别验证。测试不模拟 Android 已执行、不创建用户任务/进程或租约。
+
+本片新读口只由上述 UI 调用，未进入 core 启动或事务准入；现有受管源码/资产/成员表均未变。UI 原本不在 launcherTrees，新纯采样工具也不在显式 launcherSources；它只移动原 UI 读取，不绕过执行侧复核。**不改 runtimeId/描述符**；如 Lead 要求将该展示工具额外纳管，由 main 评审精确清单并在最终树重算。[Java 格式清单](../../../tools/java-format-files.json) 只增加本片三个新 Java 文件。
+
+| S1 检查 | 实际结果 / 限制 |
+|---|---|
+| 当前源纯 JVM | 13 类、**81 项，failures=0、ignored=0、assumptionSkipped=0**；当前 JDK17 源码编译与锁定依赖，包含新采样8项和 S0 选取的旧纯策略回归；不复用旧 class |
+| 格式 | `python3 tools/format-java.py --write --files` 仅选本片6份Java：0 changed、精确token保持；全树 `format-java-tree.py --check --offline --jobs 1 --java /opt/jdk17/bin/java`：**1781/1781、0待格式化**；同参 Kotlin：**2文件、0待格式化**，均exit0 |
+| 边界 / 受管身份 | `test-core-boundaries.py` **25项exit0**；`verify-runtime-descriptor-source.py` **199资产/491启动输入exit0**（六离线归档递延）；`test-runtime-descriptor-inputs.py` **103安装项/205资产/491输入/Gradle树251文件一致exit0**；资产/成员表与core/runtime/backup/rust对63b零diff |
+| 文档 / 卫生 / diff | 显式基线 **125链接**；默认 **56文档/1315链接**，均0warning/error、exit0；`check-source-hygiene.py` PASS；暂存diff检查通过、精确8文件白名单 |
+| 未跑 / 不继承 | 完整 Gradle/Robolectric、实际页面/适配器的 Android 运行与完整资源类型编译、Lint/APK/签名、设备覆盖/白屏/ROM矩阵；离线归档缺失仍在，不拿 S0 或主线 CI 代替 S1 |
+
+S1 不写 A3/R3/A4/A6/A7 域，不增加执行/信号/FFI/维护锁/命令链；M17 自动检查保持原行为，Q2 仅作为后片边界。S1 的当前源单测、CI、独立审查与设备证据分别记账。

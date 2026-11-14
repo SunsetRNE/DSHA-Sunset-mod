@@ -1,10 +1,7 @@
 package com.deepseekharness.app.ui;
 
 import android.content.Context;
-import com.deepseekharness.app.core.BackupTask;
-import com.deepseekharness.app.core.EnvironmentAccess;
 import com.deepseekharness.app.core.HarnessController;
-import com.deepseekharness.app.core.MaintenanceCoordinator;
 
 /**
  * 首次引导的只读环境检查。只读取磁盘与任务状态，不写入任何就绪标记、不启动任务；
@@ -20,10 +17,8 @@ final class OnboardingEnvironment {
   static boolean readyForMain(Context context) {
     try {
       HarnessController controller = HarnessController.get(context);
-      return !BackupTask.get(context).maintenanceBusy()
-          && !MaintenanceCoordinator.pending(controller)
-          && controller.isEnvironmentReady()
-          && !EnvironmentAccess.requiresMaintenanceBeforeStart(controller);
+      return com.deepseekharness.app.util.EnvironmentUiFacts.onboardingReady(
+          new EnvironmentUiReader(context, controller));
     } catch (RuntimeException unavailable) {
       return false;
     }
