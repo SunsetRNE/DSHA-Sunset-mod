@@ -19,8 +19,8 @@ const { migrate } = createRequire(import.meta.url)('../app/src/main/assets/rc1-s
 const clone = value => JSON.parse(JSON.stringify(value));
 function forms(home) {
   const entries = new Map(); let writes = 0;
-  function add(ns, value = { model:'initial', temperature:1 }) {
-    const Config = z.object({ model:z.string().volatile(), temperature:z.number().min(0).volatile(), fixed:z.string().default('untouched') });
+  function add(ns, value = { model:'initial', temperature:1 }, Config) {
+    Config = Config || z.object({ model:z.string().volatile(), temperature:z.number().min(0).volatile(), fixed:z.string().default('untouched') });
     const runtime = { Config };
     const fiber = {uid:ns,state:2,runtime,rawConfig:clone(value),effectiveConfig:resolveConfig(runtime,value)}; fiber.ctx={fiber};
     const entry = { id:ns, options:{id:ns,config:clone(value)}, fiber };
@@ -35,6 +35,17 @@ function forms(home) {
   }};
   return {settings,add,entries,get writes(){return writes;},change(ns,value){const entry=entries.get(ns);entry.options.config={...entry.options.config,...value};entry.fiber.rawConfig=entry.options.config;entry.fiber.effectiveConfig=resolveConfig(entry.fiber.runtime,entry.options.config);}};
 }
+// 真实 SettingsForms.describe() 的 descriptor.schema 是 schemastery 引用图（uid+refs），
+// 下面用真实节点覆盖秘密字段、普通 maxTokens、嵌套对象、动态容器、数组与默认值。
+const richConfig = () => z.object({
+  model: z.string().volatile(),
+  maxTokens: z.number().volatile(),
+  apiKey: z.string().role('secret').volatile(),
+  nested: z.object({ region: z.string(), token: z.string().role('secret') }).volatile(),
+  providers: z.dict(z.object({ url: z.string(), key: z.string().role('secret') })).volatile(),
+  list: z.array(z.object({ name: z.string(), secretToken: z.string().role('secret') })).volatile(),
+  fixed: z.string().default('untouched'),
+});
 async function fixture(document, run, version=expectedVersion) {
   const root=await mkdtemp(join(tmpdir(),'dsha-real-settings-'));const home=join(root,'.dsh'),state=join(root,'state');await mkdir(home);await writeFile(join(home,'runtime-patches.json'),JSON.stringify({schema:1,dshVersion:version}));await writeFile(join(home,'settings.yaml'),document);
   const p=spawnSync(process.env.DSHA_PYTHON || 'python',['app/src/main/assets/rc1-migration.py','prepare','--root',root,'--state-root',state,'--startup-id','test'],{encoding:'utf8'});
@@ -65,6 +76,84 @@ test('敏感字段只通过实际设置服务读回，不写入迁移回执',()=
   // fixture schema has no options field, so this is rejected before any write; ledger must remain redacted.
   await migrate(api.settings,parse,{}, {stateRoot:state});
   const text=await readFile(ledger,'utf8');assert.equal(text.includes('incoming-secret'),false);assert.equal(text.includes('retained-secret'),false);
+}));
+
+// 真实锁定 SettingsForms 返回 descriptor.schema={uid,refs}；秘密只由节点 meta.role='secret'
+// 决定，名称正则只对 schema 未声明的键额外少复制，不能删掉声明的普通字段。
+test('真实uid/refs schema投影：秘密正文不落账，声明的maxTokens保留',()=>fixture(
+  'first: {model: old, maxTokens: 4096, apiKey: incoming-key, nested: {region: us, token: nested-token}, providers: {alpha: {url: "https://example", key: dict-key}}, list: [{name: one, secretToken: list-token}]}\n',
+  async(api,state,ledger)=>{
+    api.add('first',{model:'initial',maxTokens:1,apiKey:'retained-key',
+      nested:{region:'eu',token:'retained-nested'},
+      providers:{beta:{url:'https://old',key:'retained-dict'}},
+      list:[{name:'zero',secretToken:'retained-list'}]}, richConfig());
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+    const text=await readFile(ledger,'utf8');
+    for(const secret of ['incoming-key','nested-token','dict-key','list-token','retained-key','retained-nested','retained-dict','retained-list'])
+      assert.equal(text.includes(secret),false,'secret leaked: '+secret);
+    const section=JSON.parse(text).sections.first;
+    assert.equal(section.status,'verified');
+    assert.equal(Object.hasOwn(section.source,'apiKey'),false);
+    assert.deepEqual(section.source,{model:'old',maxTokens:4096,nested:{region:'us'},providers:{alpha:{url:'https://example'}},list:[{name:'one'}]});
+    assert.equal(section.before.maxTokens,1);assert.equal(section.verified.maxTokens,4096);
+    // 读回核验确实包含秘密（在内存比较），而不是靠丢字段蒙混通过。
+    const live=api.settings.describe().find(row=>row.ns==='first').value;
+    assert.equal(live.apiKey,'incoming-key');assert.equal(live.providers.alpha.key,'dict-key');assert.equal(live.list[0].secretToken,'list-token');
+  }));
+test('无法解释的schema保守冻结：悬空uid/未建模类型不写入配置',async()=>{
+  await fixture('first: {model: old}\n',async(api,state,ledger)=>{
+    api.add('first');
+    const original=api.settings.describe.bind(api.settings);
+    api.settings.describe=()=>original().map(row=>({...row,schema:{uid:1,refs:{1:{type:'object',dict:{model:9}}}}}));
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+    const section=JSON.parse(await readFile(ledger)).sections.first;
+    assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_SCHEMA_UNKNOWN');
+    assert.equal((await readFile(ledger,'utf8')).includes('"old"'),false);
+  });
+  await fixture('first: {model: old}\n',async(api,state,ledger)=>{
+    api.add('first');
+    const original=api.settings.describe.bind(api.settings);
+    api.settings.describe=()=>original().map(row=>({...row,schema:{uid:1,refs:{1:{type:'object',dict:{model:2}},2:{type:'mystery'}}}}));
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+    const section=JSON.parse(await readFile(ledger)).sections.first;
+    assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_SCHEMA_UNKNOWN');
+  });
+});
+test('含秘密分支的联合类型未定义转移时保守冻结',()=>fixture('first: {choice: {plain: selected}}\n',async(api,state,ledger)=>{
+  const Config=z.object({choice:z.union([z.object({secretValue:z.string().role('secret')}),z.object({plain:z.string()})]).volatile()});
+  api.add('first',{choice:{plain:'initial'}},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+  const section=JSON.parse(await readFile(ledger)).sections.first;
+  assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_SCHEMA_UNKNOWN');
+  assert.equal(api.settings.describe().find(row=>row.ns==='first').value.choice.plain,'initial');
+}));
+test('别名分节按目标descriptor的schema投影秘密',()=>fixture('legacy-first: {model: old, apiKey: alias-secret}\n',async(api,state,ledger)=>{
+  api.add('first',{model:'initial',apiKey:'retained-alias'},richConfig());
+  const returned=await migrate(api.settings,parse,{'legacy-first':'first'}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const text=await readFile(ledger,'utf8');
+  assert.equal(text.includes('alias-secret'),false);assert.equal(text.includes('retained-alias'),false);
+  const section=JSON.parse(text).sections['legacy-first'];
+  assert.equal(section.status,'verified');assert.deepEqual(section.source,{model:'old'});
+  assert.equal(api.settings.describe().find(row=>row.ns==='first').value.apiKey,'alias-secret');
+}));
+test('旧账本留下before时秘密分节不盲目重试',()=>fixture('first: {model: old, apiKey: incoming-key}\n',async(api,state,ledger)=>{
+  api.add('first',{model:'initial',apiKey:'retained-key'},richConfig());
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  await writeFile(ledger,JSON.stringify({version:2,generation:current.generation,sourceSha256:source.sha256,
+    startupId:current.startupId,status:'pending',sections:{first:{status:'pending',reason:'SECTION_SCHEMA_REJECTED',before:{model:'initial'}}}}));
+  await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(api.writes,0);
+  const section=JSON.parse(await readFile(ledger)).sections.first;
+  assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_SECRET_RETRY_REVIEW');
+  assert.equal(api.settings.describe().find(row=>row.ns==='first').value.apiKey,'retained-key');
 }));
 
 test('源正文在正式写入前变化时拒绝旧快照',()=>fixture('first: {model: old}\n',async(api,state,ledger,root)=>{

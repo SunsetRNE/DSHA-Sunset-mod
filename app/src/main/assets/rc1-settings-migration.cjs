@@ -17,22 +17,170 @@ function contains(actual, wanted) {
   return isDeepStrictEqual(actual, wanted);
 }
 const clone = value => JSON.parse(JSON.stringify(value));
-// Schema metadata is the only authority for secret fields. Unknown fields are
-// retained for comparison but never copied from a credential-shaped key by name.
-function redactBySchema(value, schema) {
-  if (schema?.meta?.role === 'secret') return undefined;
-  if (Array.isArray(value)) return value.map((item) => redactBySchema(item, schema?.inner)).filter(item => item !== undefined);
+const CREDENTIAL_NAME = /(?:api[_-]?key|token|password|secret|credential)/i;
+// 真实 SettingsForms.describe() 的 descriptor.schema 是 schemastery 引用图：
+// { uid, refs }，refs[uid] 是节点快照，dict/inner/list/sKey 用 uid（数字或字符串）
+// 引用子节点；秘密字段只由节点 meta.role === 'secret' 决定。旧的普通节点形状
+// （子节点直接是对象）也一并支持；半截引用图/悬空引用不猜，交给调用方保守处理。
+function schemaGraph(schema) {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return null;
+  const { uid, refs } = schema;
+  if (refs && typeof refs === 'object' && !Array.isArray(refs)
+      && (typeof uid === 'string' || typeof uid === 'number')) {
+    const root = Object.hasOwn(refs, uid) ? refs[uid] : null;
+    return root && typeof root === 'object' && !Array.isArray(root) ? { refs, root } : null;
+  }
+  if (uid === undefined && refs === undefined) return { refs: null, root: schema };
+  return null;
+}
+function schemaNode(graph, reference) {
+  if (reference && typeof reference === 'object' && !Array.isArray(reference)) return reference;
+  if ((typeof reference === 'string' || typeof reference === 'number') && graph.refs
+      && Object.hasOwn(graph.refs, reference)) {
+    const node = graph.refs[reference];
+    return node && typeof node === 'object' && !Array.isArray(node) ? node : null;
+  }
+  return null;
+}
+// schema 未声明的键才退回名称兜底；它只额外少复制，不能替代 schema 决定秘密字段。
+function scrubCredentialNames(value) {
+  if (Array.isArray(value)) return value.map(scrubCredentialNames);
   if (value && typeof value === 'object') {
     const out = {};
     for (const [key, item] of Object.entries(value)) {
-      const child = schema?.dict?.[key];
-      if (child === undefined && /(?:api[_-]?key|token|password|secret|credential)/i.test(key)) continue;
-      const safe = redactBySchema(item, child);
-      if (safe !== undefined) out[key] = safe;
+      if (CREDENTIAL_NAME.test(key)) continue;
+      out[key] = scrubCredentialNames(item);
     }
     return out;
   }
   return value;
+}
+// 与上游 walk 一致：逐节点确认秘密位置；无法判定的结构按“可能含秘密”处理。
+function schemaHoldsSecret(node, graph, depth) {
+  if (!node || typeof node !== 'object' || Array.isArray(node) || depth > 64) return true;
+  if (node.meta && node.meta.role === 'secret') return true;
+  const descend = references => {
+    for (const reference of references) {
+      const child = schemaNode(graph, reference);
+      if (!child || schemaHoldsSecret(child, graph, depth + 1)) return true;
+    }
+    return false;
+  };
+  switch (node.type) {
+    case 'object': {
+      if (!node.dict || typeof node.dict !== 'object' || Array.isArray(node.dict)) return true;
+      return descend(Object.values(node.dict));
+    }
+    case 'dict': case 'array': case 'transform': case 'lazy':
+      return node.inner === undefined ? true : descend([node.inner]);
+    case 'tuple':
+      if (!Array.isArray(node.list)) return true;
+      return descend(node.list);
+    case 'union': case 'intersect':
+      if (!Array.isArray(node.list) || !node.list.length) return true;
+      return descend(node.list);
+    case 'string': case 'number': case 'boolean': case 'bitset':
+    case 'any': case 'never': case 'const': case 'function': case 'is':
+      return false;
+    default:
+      return true; // 未建模类型：按可能含秘密处理
+  }
+}
+// 返回 { ok, value }。ok=false 表示 schema 无法解释（缺失、悬空引用、未建模类型、
+// 形状不符），此时无法证明值里没有秘密，调用方必须保守：不落账、不派发写入。
+// dropSecrets=true 用于落账；false 只在内存读回核验里保留秘密值（绝不持久化）。
+function projectValue(value, schema, options = {}) {
+  const graph = schemaGraph(schema);
+  if (!graph) return { ok: false };
+  return projectNode(value, graph, graph.root, options.dropSecrets !== false, 0);
+}
+function projectNode(value, graph, node, dropSecrets, depth) {
+  if (!node || typeof node !== 'object' || Array.isArray(node) || depth > 64) return { ok: false };
+  if (node.meta && node.meta.role === 'secret')
+    return { ok: true, value: dropSecrets ? undefined : value };
+  if (value === undefined || value === null) return { ok: true, value };
+  switch (node.type) {
+    case 'object': {
+      if (typeof value !== 'object' || Array.isArray(value)) return { ok: false };
+      const dict = node.dict === undefined ? {} : node.dict;
+      if (!dict || typeof dict !== 'object' || Array.isArray(dict)) return { ok: false };
+      const out = {};
+      for (const [key, item] of Object.entries(value)) {
+        if (!Object.hasOwn(dict, key)) {
+          // schema 未声明的结构：名称兜底只额外少复制，其余原样保留（update 会自行校验）。
+          if (CREDENTIAL_NAME.test(key)) continue;
+          out[key] = dropSecrets ? scrubCredentialNames(item) : item;
+          continue;
+        }
+        const child = schemaNode(graph, dict[key]);
+        if (!child) return { ok: false };
+        const projected = projectNode(item, graph, child, dropSecrets, depth + 1);
+        if (!projected.ok) return projected;
+        if (projected.value !== undefined) out[key] = projected.value;
+      }
+      return { ok: true, value: out };
+    }
+    case 'dict':
+    case 'array': {
+      if (typeof value !== 'object' || Array.isArray(value) !== (node.type === 'array')) return { ok: false };
+      const inner = schemaNode(graph, node.inner);
+      if (!inner) return { ok: false };
+      if (node.type === 'dict') {
+        const out = {};
+        for (const [key, item] of Object.entries(value)) {
+          const projected = projectNode(item, graph, inner, dropSecrets, depth + 1);
+          if (!projected.ok) return projected;
+          if (projected.value !== undefined) out[key] = projected.value;
+        }
+        return { ok: true, value: out };
+      }
+      const out = [];
+      for (const item of value) {
+        const projected = projectNode(item, graph, inner, dropSecrets, depth + 1);
+        if (!projected.ok) return projected;
+        if (projected.value !== undefined) out.push(projected.value);
+      }
+      return { ok: true, value: out };
+    }
+    case 'tuple': {
+      if (!Array.isArray(value) || !Array.isArray(node.list)) return { ok: false };
+      const out = [];
+      for (let index = 0; index < value.length; index += 1) {
+        if (index >= node.list.length) return { ok: false }; // 越过 schema 的项无法判定
+        const child = schemaNode(graph, node.list[index]);
+        if (!child) return { ok: false };
+        const projected = projectNode(value[index], graph, child, dropSecrets, depth + 1);
+        if (!projected.ok) return projected;
+        if (projected.value !== undefined) out.push(projected.value);
+      }
+      return { ok: true, value: out };
+    }
+    case 'transform':
+    case 'lazy': {
+      const inner = schemaNode(graph, node.inner);
+      if (!inner) return { ok: false };
+      return projectNode(value, graph, inner, dropSecrets, depth + 1);
+    }
+    case 'union':
+    case 'intersect': {
+      // 分支歧义下无法确定实际命中的秘密转移：只要任一分支可能含秘密就保守失败。
+      if (!Array.isArray(node.list) || !node.list.length) return { ok: false };
+      for (const reference of node.list) {
+        const child = schemaNode(graph, reference);
+        if (!child || schemaHoldsSecret(child, graph, depth + 1)) return { ok: false };
+      }
+      return { ok: true, value };
+    }
+    case 'string': case 'number': case 'boolean': case 'bitset':
+    case 'any': case 'never': case 'const': case 'function': case 'is':
+      return { ok: true, value };
+    default:
+      return { ok: false }; // 未建模类型：不猜
+  }
+}
+function holdsSecrets(schema) {
+  const graph = schemaGraph(schema);
+  return graph ? schemaHoldsSecret(graph.root, graph, 0) : true;
 }
 const reason = error => /No configurable plugin entry/.test(String(error)) ? 'SECTION_UNAVAILABLE' :
   /volatile|schema|invalid/i.test(String(error)) ? 'SECTION_SCHEMA_REJECTED' : 'SECTION_WRITE_UNVERIFIED';
@@ -161,22 +309,43 @@ async function migrate(settings, parse, aliases, options = {}) {
       Object.defineProperty(result.sections, name, { value: section, enumerable: true, configurable: true, writable: true });
     }
     if (!descriptor) { section.reason = 'SECTION_UNAVAILABLE'; await atomic(ledgerFile, result); continue; }
-    const safeValues = redactBySchema(values, descriptor.schema);
-    section.source = clone(safeValues);
-    const safeCurrent = redactBySchema(descriptor.value, descriptor.schema);
-    if (Object.hasOwn(section, 'before') && !isDeepStrictEqual(section.before, safeCurrent)) {
-      if (contains(safeCurrent, safeValues)) { section.status = 'verified'; section.verified = clone(safeCurrent); }
+    // 落账只保留去秘密投影；读回核验在内存用完整投影。schema 无法解释时不能证明
+    // 值里没有秘密：该节冻结为 unknown，不调用 update、不把值写进账本。
+    const ledgerValues = projectValue(values, descriptor.schema, { dropSecrets: true });
+    const fullValues = projectValue(values, descriptor.schema, { dropSecrets: false });
+    const ledgerCurrent = projectValue(descriptor.value, descriptor.schema, { dropSecrets: true });
+    const fullCurrent = projectValue(descriptor.value, descriptor.schema, { dropSecrets: false });
+    if (!ledgerValues.ok || !fullValues.ok || !ledgerCurrent.ok || !fullCurrent.ok) {
+      section.status = 'unknown';
+      section.reason = 'SECTION_SCHEMA_UNKNOWN';
+      await atomic(ledgerFile, result);
+      continue;
+    }
+    section.source = clone(ledgerValues.value);
+    if (Object.hasOwn(section, 'before') && holdsSecrets(descriptor.schema)) {
+      // 旧账本可能留下“已记录 before 的 pending/conflict 节”；秘密位置没有可落账的
+      // 变化证据，无法证明用户没改过目标，保守冻结而不是覆盖。
+      section.status = 'unknown';
+      section.reason = 'SECTION_SECRET_RETRY_REVIEW';
+      await atomic(ledgerFile, result);
+      continue;
+    }
+    if (Object.hasOwn(section, 'before') && !isDeepStrictEqual(section.before, ledgerCurrent.value)) {
+      // 目标已不是记录时的值：只有当前值确实已包含期望值才算已完成，否则交用户核对。
+      if (contains(fullCurrent.value, fullValues.value)) { section.status = 'verified'; section.verified = clone(ledgerCurrent.value); }
       else { section.status = 'conflict'; section.reason = 'TARGET_CHANGED_REVIEW_REQUIRED'; }
       await atomic(ledgerFile, result); continue;
     }
-    section.before = clone(redactBySchema(descriptor.value, descriptor.schema)); section.status = 'writing';
+    section.before = clone(ledgerCurrent.value); section.status = 'writing';
     await atomic(ledgerFile, result); // 先记预期值，掉电后不盲目重放。
     try {
       await settings.update(ns, values, descriptor.revision);
       const after = settings.describe().find(row => row.ns === ns);
-      const safeAfter = after && redactBySchema(after.value, after.schema);
-      if (!after || !contains(safeAfter, safeValues)) throw new Error('SETTINGS_READBACK_MISMATCH');
-      section.status = 'verified'; section.verified = clone(safeAfter); delete section.reason;
+      const ledgerAfter = after ? projectValue(after.value, after.schema, { dropSecrets: true }) : { ok: false };
+      const fullAfter = after ? projectValue(after.value, after.schema, { dropSecrets: false }) : { ok: false };
+      if (!after || !ledgerAfter.ok || !fullAfter.ok || !contains(fullAfter.value, fullValues.value))
+        throw new Error('SETTINGS_READBACK_MISMATCH');
+      section.status = 'verified'; section.verified = clone(ledgerAfter.value); delete section.reason;
     } catch (error) {
       const why = reason(error);
       // 明确未派发（schema 拒绝 / 无目标节）才保留可重试 pending；
