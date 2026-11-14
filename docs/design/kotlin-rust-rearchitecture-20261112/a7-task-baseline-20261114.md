@@ -1,8 +1,8 @@
 # A7 任务基线：设备能力与识屏
 
-状态：**第一阶段待 Lead 审批；本提交只有文档，不代表 A7 已实现或已验收**。日期：2026-11-14。
+状态：**Lead 已批准按 Q1–Q6 限定窗口实施；A7 整轮未完成**。日期：2026-11-14。
 Owner：`@a7-device`，会话 `session-8a45a1db-4095-40cd-b045-8e7fbecbf2db`；分支 `feat/a7-device`。
-源码取证基线：`d9b75bc52c7b36cad265dbe2b32a90ecb9971d74`（创建工作树时的 `origin/main`）。调查期间 main 的 RC1/A4 合入继续推进；本稿行号仍绑定 d9，实施前按 Lead 窗口更新基线、重核接缝，不把新 main 字段贴到旧证据上。
+实施基线：`63b57efe5b3961429b6a03dd950a78abd5467b5e`（2026-11-14 按 Q6 fetch 后 rebase 到当时 `origin/main`，无冲突）。第一阶段原始取证为 `d9b75bc5`；rebase 后逐项重核 47 个行锚点，源码行内容均未变化，下文锚点适用本实施基线。原 docs-only 提交 `b2f35b0f` 经 rebase 为 `e49e479b`；文档合并仍由 main 单独排期、取得用户批准，实施批准不等于合并批准。
 
 依据：[路线图 §2.1、A7、§7][roadmap]、[ADR-0004 决定四/七][adr4]、[A7 Root/ADB 设计核查][check]、[权限架构][permissions]、[虚拟屏架构][vscreen-doc]、[ADR-0003][adr3]、[安全模型][security]、[外接设备命令参考][external-doc]。用户给出的外接文档路径少一层 `design/`，此处链接指向仓库实际文件。
 
@@ -22,7 +22,7 @@ Owner：`@a7-device`，会话 `session-8a45a1db-4095-40cd-b045-8e7fbecbf2db`；�
 
 下表承接[设计核查 R-1–R-8、A-1–A-9、X1–X7][check]，行号按当前任务源码重新核对；“拟做”均未实现。
 
-| 核查项 | d9 源码事实与证据 | A7 处理及出口 |
+| 核查项 | 63b57efe 重核源码事实与证据 | A7 处理及出口 |
 |---|---|---|
 | R-1 F07 缺设计 | [RootShellMain:96][root-main] 只分发既有执行类别；[ExternalInstallPlan:103][external-plan] 是外接目标探测/安装计划，不是本机 F07 | §5 补专用只读契约；S4 实现；写操作没有 F07 路由、计划或按钮 |
 | R-2 授权 owner 分散 | Root 开关/档位在 [ConfigStore:280][config-root]；ADB 开关在 [DeviceBridgeService:112][adb-switch]；短信/确认在 [DeviceGrants:75][grants-sms]；识屏模式由 [ScreenMode:56][screen-mode] 持有 | S1 先设 M05 授权快照/唯一变更门面，保留旧存储键，M06 只消费；不把门面误写成存储已迁移或同 UID 隔离 |
@@ -133,7 +133,7 @@ S1 默认仅诚实投影 ADB+su 的 unverified 身份，不改 guest 协议。�
 
 ## 7. runtimeId、维护页与回退
 
-本任务 d9 树的[描述符:1][descriptor] 存储 `runtimeId=f02b4465e638c20b2a2f3d1be7ca022704d6742b601c83ac5da7c0f86372b9a3`、`launcherInputs=490`，其中 `screen=19`、`vscreen=36`、`device=6`、`ui=0`，`bridgeProtocol=3`、`dataWrite=dsh-0.2.2-rc.1`。这是**读取已存 JSON 的计数，不是重算/验证当前源码摘要通过**，不沿用[安全模型历史发布段:85][security-release]的旧数量或旧 runtimeId。
+本任务 63b57efe 树的[描述符:1][descriptor] 存储 `runtimeId=8598a8dbf15d48773a41ff41e89935a9effcb5faaa0edc2b82f17dda223b5193`、`launcherInputs=491`，其中 `screen=19`、`vscreen=36`、`device=6`、`ui=0`，`bridgeProtocol=3`、`dataWrite=dsh-0.2.2-rc.1`。这是**读取已存 JSON 的计数，不是 A7 修改后重算/验证源码摘要通过**；main 已因 A4 纳管 TerminalExitPolicy 更新描述符，本会话不改该清单或重算资产。
 
 [managed-runtime-inputs:623][managed] 将 screen/vscreen/device 整树纳管；Root/桥/无障碍根类通过显式 sources 纳管。第二阶段任一相关源码变化都应改变 runtimeId，不能靠漏列新类实现“零维护”。最终 main 将新增生产类补进精确 inputs，重算描述符，核对源字节/受管输入，再以同线上一版本覆盖验证**一次整屏维护页**与 I1–I10；只改文档的本提交不改变运行身份。
 
@@ -175,18 +175,28 @@ S1 默认仅诚实投影 ADB+su 的 unverified 身份，不改 guest 协议。�
 | 敏感/权限矩阵 | 用户选择安全测试页进行 ASK/HANDOFF/撤销/恢复；不实际支付、不代填密码 | 普通页/敏感类别/密码硬阻断、恢复必须新观察、缺服务降级；不记录敏感文本 |
 | 覆盖与视觉 | main/用户准备授权测试包安装、同线覆盖、语言/日夜/短屏/字体切换 | 一次维护页、数据/授权边界、无白屏、无重复侧栏、UI可滚动；不在正式包自行安装 |
 
-## 9. 待 Lead 审批/裁决
+## 9. Lead Q1–Q6 已裁决（2026-11-14）
 
-| 编号 | 待定事项 | 本稿建议 / 影响 |
+来源：main `177cb2f8` 的定向实施窗口；用户原任务明确以 Lead 批准为第二阶段门禁。批准只覆盖本节，不授予合并/推送/发布/安装/手机操作权限。
+
+| 编号 | 已定范围 | 必须保留的限制 |
 |---|---|---|
-| Q1 | 是否批准 A7 主闭环与 T42/T40 分线及 S1–S5 写域 | 批准分线；本轮不受尚未验证的 Keystore/TLS/SPAKE2 卡住，也不假装解决其风险 |
-| Q2 | M05 Root/ADB 唯一变更门面及共享文件窗口 | 保留旧键，单门面委托旧存储，先围栏后发布；Lead 明确 `ConfigStore`/`DeviceGrants`/桥/根 helper 的方法级窗口，未批前该片不写 |
-| Q3 | F07 首批管理器与呈现面 | 原生页只读、三类枚举、仅经固定来源/版本/布局证明的样本支持，其余unsupported；不含LSPosed、不新增助手端点。各管理器路径/版本表在S4开工前补齐并审定 |
-| Q4 | ADB+su 真实身份最小改动范围 | 至少未知事实诚实投影；若要补同上下文身份门，单独审阅 guest/执行侧协议与反例，不以单独一次 `id` 推断下一次su已获准；若前置不足则该身份仍unverified，不把S1标完整身份闭环 |
-| Q5 | R2/R5、短信逐次确认、可选 WRITE_SECURE_SETTINGS 的任务归属 | 继续列已知边界；独立任务承接，是否改安全策略由用户/Lead决定，不在 A7 隐式启用或收紧/放宽旧偏好 |
-| Q6 | 实施基线、A4/A5/A6/A8 接缝与出口顺序 | 等 Lead 审稿并指定当时 main；不擅自 rebase 或使用侧分支 API。全部切片的软件证据、未跑项与真机待验明确后才报整轮 ready |
+| Q1 | 批准 A7 主闭环与 T42/T40 分线，S1→S5 顺序实施 | 不声称解决 Keystore/TLS/SPAKE2、原生单连接或逐次确认；不删强制 ADB 参数，不改 wire/协议号 |
+| Q2 | 批准 util 纯授权门面/快照/判据及测试，ConfigStore/DeviceGrants 仅方法级委托，通道适配器只消费快照 | 保留键名/默认/导出恢复语义；无第二份持久授权、无存储迁移；不删执行侧守卫或 HostDeviceCommandGuard，不改 DeviceShellPolicy 白名单；无新桥端点或 Http 参数语义变更；先围栏后发布、同锁域原子快照，无锁内 I/O；补开关×档位×类别差分 |
+| Q3 | 批准 F07 原生页只读、Magisk/KernelSU/APatch 三类枚举，仅有固定来源/版本/布局证明的样本支持 | 不含 LSPosed/助手端点/写入口；**S4 编码前提交管理器路径与版本表给 Lead 审定**；未识别为 unsupported/unknown，partial 显式不完整，正文不进公开证据 |
+| Q4 | S1 先做未知事实诚实投影 | ADB+su 保持 unverified，不自称完整身份闭环；同上下文身份门须另提审 guest/执行侧协议与反例，不能以单次 id 推断下一次 su |
+| Q5 | R2/R5、短信逐次确认、可选 WRITE_SECURE_SETTINGS 不归 A7 | 继续列已知边界；短信逐次确认归 T40，改默认 grant 需用户另批；不隐式开启、收紧或放宽旧偏好 |
+| Q6 | 按当时 origin/main rebase；已无冲突更新到 63b57efe，47 个行锚点重核均原样适用 | 不碰 A2 ui/saf、A6 插件、A4 终端/TerminalExitPolicy、A5 运行时/维护写域；留在 :app，:device 拆分归 A8；descriptor/runtimeId 由 main 合并树重算；逐片提交/测试，整轮需非实现者审查+用户真机授权 |
 
-审批后由本会话将选择与版本写回本基线，才开始对应实施切片。第一阶段完成不等于 A7 出口完成；main 合并/发布仍需用户另行批准。
+### 9.1 S1 授权快照锁序
+
+设备门面只持有进程内 revision、正在变更计数和不可变临时快照，不持久化授权副本。`AUTHORITY_LOCK` 内仅推进 revision/变更计数及判断快照是否仍当前；不得读 SharedPreferences、执行 callback、申请 Binder、调用 Manager 或做任何 I/O。
+
+写入先在该锁域递增围栏并标 changing；释放锁后执行既有撤销通知与原偏好写入；最后回到同锁域完成发布/推进 revision。允许并发写入时，只要还有写者在途，读者一律取得 changing 的关闭快照；不靠另一把持锁 I/O 的 writer mutex 串行化。读者先捕获围栏，在锁外读取原存储全部相关值，再回同锁域验证无写者且 revision 未变，才发布整份不可变组合；失败不悄悄重采样后执行旧请求。
+
+门面锁与 `DeviceGrants.SCREEN_LOCK`、桥生命周期锁、Manager 锁不嵌套；先释放门面锁，再调用既有 owner。普通通道探活/命令执行不在门面锁内，发布快照不是业务 dispatch 或系统授权。SMS/屏幕的独立撤销逻辑保留，不能由 Root 档位代答；未接入同一门面的遗留写点必须列明并接线或报告，不能宣称单点已闭环。
+
+实施批准与 docs-only 合并排期分开；各切片回执在本稿后续章节追加，原第一阶段软件结果仍只绑定 d9，实施基线上的结果另记。
 
 [roadmap]: iteration-roadmap-20261112.md#21-18--21--轮次-映射外部开发者定位用
 [adr4]: ../../adr/0004-kotlin-rust-direction.md#决定四rust-首期只做旁路计算与计划校验
