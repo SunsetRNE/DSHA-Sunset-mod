@@ -2007,5 +2007,8 @@
   "xa2workbench026": "Ce chemin ne peut pas être transféré. Choisissez un fichier de travail ordinaire.",
   "xa2workbench027": "Activez d’abord l’espace fichiers sur la page des autorisations.",
   "xa2workbench028": "L’historique n’a pas pu être enregistré. Réessayez plus tard.",
-  "xa2workbench029": "Le transfert n’est pas terminé. Vérifiez la destination avant de continuer ; un fichier externe peut être incomplet."
+  "xa2workbench029": "Le transfert n’est pas terminé. Vérifiez la destination avant de continuer ; un fichier externe peut être incomplet.",
+  "xa2review001": "Ce dossier est en lecture seule : l’écriture de l’assistant est désactivée ou le fournisseur ne l’autorise pas.",
+  "xa2review002": "Le registre des accès est indisponible. Vérifiez le stockage et réessayez.",
+  "xa2review003": "L’environnement est en maintenance. Réessayez une fois celle-ci terminée."
 }

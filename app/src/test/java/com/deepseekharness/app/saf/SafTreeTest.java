@@ -80,6 +80,8 @@ public final class SafTreeTest {
     final java.util.Map<String, String> createdParents = new java.util.HashMap<>();
     volatile boolean slowOpen;
     volatile boolean oversizedListing;
+    Runnable firstReadOpen;
+    Runnable firstWriteOpen;
 
     @Override
     public boolean onCreate() {
@@ -240,6 +242,10 @@ public final class SafTreeTest {
 
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) {
+      Runnable hook = mode.contains("w") ? firstWriteOpen : firstReadOpen;
+      if (mode.contains("w")) firstWriteOpen = null;
+      else firstReadOpen = null;
+      if (hook != null) hook.run();
       String docId = DocumentsContract.getDocumentId(uri);
       File file = files.get(docId);
       if (file == null) return null;

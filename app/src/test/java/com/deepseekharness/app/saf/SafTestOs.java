@@ -42,6 +42,7 @@ public final class SafTestOs {
   static final List<String> RENAMES = new ArrayList<>();
   static final List<String> REMOVES = new ArrayList<>();
   static final List<String> MKDIRS = new ArrayList<>();
+  static final Map<String, Integer> CHMODES = new HashMap<>();
   static int nextFd = 500;
   static int closedPfd;
 
@@ -68,6 +69,7 @@ public final class SafTestOs {
     RENAMES.clear();
     REMOVES.clear();
     MKDIRS.clear();
+    CHMODES.clear();
     nextFd = 500;
     closedPfd = 0;
   }
@@ -88,7 +90,10 @@ public final class SafTestOs {
     int mode = (directory ? OsConstants.S_IFDIR : OsConstants.S_IFREG) | 0600;
     long links = 1;
     try {
-      int unixMode = (Integer) Files.getAttribute(file.toPath(), "unix:mode");
+      int unixMode =
+          (Integer)
+              Files.getAttribute(
+                  file.toPath(), "unix:mode", java.nio.file.LinkOption.NOFOLLOW_LINKS);
       mode = unixMode & 07777;
       if (OsConstants.S_ISDIR(unixMode)) mode |= OsConstants.S_IFDIR;
       else if (OsConstants.S_ISFIFO(unixMode)) mode |= OsConstants.S_IFIFO;
@@ -181,7 +186,7 @@ public final class SafTestOs {
       File file = resolve(path);
       if (!file.exists() && !Files.isSymbolicLink(file.toPath()))
         throw new ErrnoException("lstat", OsConstants.ENOENT);
-      return SafTestOs.stat(file, file.isDirectory());
+      return SafTestOs.stat(file, file.isDirectory() && !Files.isSymbolicLink(file.toPath()));
     }
 
     @org.robolectric.annotation.Implementation
@@ -264,8 +269,8 @@ public final class SafTestOs {
     }
 
     @org.robolectric.annotation.Implementation
-    protected static void chmod(String path, int mode) {
-      // no-op：只验证调用发生在真实路径上
+    protected static void chmod(String path, int mode) throws ErrnoException {
+      CHMODES.put(resolve(path).getAbsolutePath(), mode);
     }
   }
 

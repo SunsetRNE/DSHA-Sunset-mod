@@ -16,7 +16,6 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -50,6 +49,7 @@ public final class SafBrowseFragment extends Fragment {
   private BaseAdapter adapter;
   private TextView pathView, statusView;
   private Button upButton, exportButton;
+  private boolean writeAvailable;
   private ListView list;
   private ExecutorService executor;
   private SafWorkbenchModel model;
@@ -172,8 +172,11 @@ public final class SafBrowseFragment extends Fragment {
   private void controls() {
     boolean busy = model.working.get();
     upButton.setEnabled(!busy && !current.isEmpty());
-    exportButton.setVisibility(SafWorkbenchUi.enabled(requireContext()) ? View.VISIBLE : View.GONE);
-    exportButton.setEnabled(!busy);
+    boolean enabled = SafWorkbenchUi.enabled(requireContext());
+    View actions = getView() == null ? null : getView().findViewById(R.id.saf_browse_actions);
+    if (actions != null) actions.setVisibility(enabled ? View.VISIBLE : View.GONE);
+    exportButton.setVisibility(enabled && writeAvailable ? View.VISIBLE : View.GONE);
+    exportButton.setEnabled(!busy && writeAvailable);
     list.setEnabled(!busy);
   }
 
@@ -187,19 +190,30 @@ public final class SafBrowseFragment extends Fragment {
     pathView.setText(
         requireArguments().getString(ARG_TITLE, "")
             + (requested.isEmpty() ? "" : " / " + requested));
+    writeAvailable = false;
     entries.clear();
     adapter.notifyDataSetChanged();
     controls();
     statusView.setText(UiText.choose("读取中…", "Loading…"));
+    Context app = requireContext().getApplicationContext();
     ExecutorService running = executor;
     if (running == null) return;
     running.execute(
         () -> {
           try {
+            SafGrants.Lookup lookup = SafGrants.lookup(app, treeId);
+            boolean writable =
+                lookup.failure == null
+                    && lookup.grant != null
+                    && lookup.grant.valid
+                    && lookup.grant.readable
+                    && lookup.grant.writable;
             SafTree.Page page = model.workbench.list(treeId, requested);
             main.post(
                 () -> {
                   if (generation != loadGeneration || getView() == null) return;
+                  writeAvailable = writable;
+                  controls();
                   entries.addAll(page.entries);
                   adapter.notifyDataSetChanged();
                   if (!model.working.get())
@@ -299,6 +313,7 @@ public final class SafBrowseFragment extends Fragment {
   private void prepareTransfer(@Nullable SafTree.Entry entry) {
     if (model.working.get() || !SafWorkbenchUi.enabled(requireContext())) return;
     boolean importing = entry != null;
+    if (!importing && !writeAvailable) return;
     String selectedPath = importing ? child(entry.name) : current;
     long generation = ++operationGeneration;
     ExecutorService running = executor;

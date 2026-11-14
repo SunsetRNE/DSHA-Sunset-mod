@@ -132,7 +132,7 @@ public final class SafAccessFragment extends Fragment {
     if (running == null) return;
     running.execute(
         () -> {
-          List<SafGrants.Grant> list = SafGrants.listLight(ctx);
+          List<SafGrants.Grant> list = SafGrants.list(ctx);
           main.post(
               () -> {
                 if (generation != renderGeneration || getView() == null) return;

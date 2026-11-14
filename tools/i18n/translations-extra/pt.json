@@ -2007,5 +2007,8 @@
   "xa2workbench026": "Este caminho não pode ser transferido. Escolha um arquivo de trabalho comum.",
   "xa2workbench027": "Ative primeiro a área de arquivos na página de acesso.",
   "xa2workbench028": "Não foi possível salvar o histórico. Tente mais tarde.",
-  "xa2workbench029": "A transferência não terminou. Verifique o destino antes de continuar; um arquivo externo pode estar incompleto."
+  "xa2workbench029": "A transferência não terminou. Verifique o destino antes de continuar; um arquivo externo pode estar incompleto.",
+  "xa2review001": "Esta pasta é somente leitura: a escrita do assistente está desativada ou o provedor não concedeu permissão.",
+  "xa2review002": "O registro de acesso está indisponível. Verifique o armazenamento e tente novamente.",
+  "xa2review003": "O ambiente está em manutenção. Tente novamente quando terminar."
 }

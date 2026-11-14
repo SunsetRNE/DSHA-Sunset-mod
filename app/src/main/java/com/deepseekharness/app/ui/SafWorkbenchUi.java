@@ -108,12 +108,22 @@ final class SafWorkbenchUi {
               "PERMISSION_DENIED",
               "HANDLE_REVOKED",
               "HANDLE_UNKNOWN",
-              "HANDLE_NOT_PERMITTED",
-              "PERMISSION_STATE_UNAVAILABLE",
-              "STATE_UNAVAILABLE" ->
+              "PERMISSION_STATE_UNAVAILABLE" ->
           UiText.choose(
               "授权已失效或被系统拒绝：回到上一页移除它再重新选。",
               "Permission lost or denied: remove the grant and pick it again.");
+      case "HANDLE_NOT_PERMITTED" ->
+          UiText.choose(
+              "此目录只读：助手写入已关闭，或对方未给写权限。",
+              "This folder is read-only: assistant writes are off or the provider grants no write access.");
+      case "STATE_UNAVAILABLE" ->
+          UiText.choose(
+              "授权簿暂不可用，请检查存储后重试。",
+              "The access ledger is temporarily unavailable. Check storage and try again.");
+      case "MAINTENANCE_BUSY" ->
+          UiText.choose(
+              "运行环境正在维护，请完成维护后重试。",
+              "The runtime is undergoing maintenance. Try again after it finishes.");
       case "READ_ONLY" -> UiText.choose("只读（已关闭助手写入）", "Read only (assistant writes off)");
       case "BUSY" ->
           UiText.choose("传输槽位已满，请稍后重试。", "All transfer slots are busy. Try again later.");

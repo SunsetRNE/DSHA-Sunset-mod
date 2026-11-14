@@ -75,7 +75,7 @@ public final class SafWorkbench {
             operation,
             clean,
             SystemClock.elapsedRealtime());
-    if (!issued.ok()) throw new SafTree.Failure("HANDLE_" + issued.result.name(), null);
+    if (!issued.ok()) throw capabilityFailure(issued.result, operation);
     return new Ticket(treeId, clean, operation, issued.token);
   }
 
@@ -88,9 +88,18 @@ public final class SafWorkbench {
                 ledger, ticket.token, ticket.operation, ticket.path, SystemClock.elapsedRealtime())
             : handles.check(
                 ledger, ticket.token, ticket.operation, ticket.path, SystemClock.elapsedRealtime());
-    if (result != SafCapabilityHandles.Result.OK)
-      throw new SafTree.Failure("HANDLE_" + result.name(), null);
+    if (result != SafCapabilityHandles.Result.OK) throw capabilityFailure(result, ticket.operation);
     return ledger.findById(ticket.treeId);
+  }
+
+  private static SafTree.Failure capabilityFailure(
+      SafCapabilityHandles.Result result, SafCapabilityHandles.Operation operation) {
+    String code =
+        result == SafCapabilityHandles.Result.NOT_PERMITTED
+                && operation == SafCapabilityHandles.Operation.READ
+            ? "PERMISSION_DENIED"
+            : "HANDLE_" + result.name();
+    return new SafTree.Failure(code, null);
   }
 
   private SafTree tree(SafGrantRecord grant) throws SafTree.Failure {
@@ -130,7 +139,7 @@ public final class SafWorkbench {
                 : SafCapabilityHandles.Operation.WRITE))
       throw new SafTree.Failure("HANDLE_MISMATCH", null);
     if (!SafTransferGate.TRANSFERS.tryAcquire()) throw new SafTree.Failure("BUSY", null);
-    try (RuntimeWorkPort.Work ignored = RuntimeWorkPort.begin("跨应用文件传输")) {
+    try (RuntimeWorkPort.Work ignored = beginWork()) {
       SafGrantRecord grant = check(ticket, true);
       long deadline = SystemClock.elapsedRealtime() + SafCapabilityLimits.DEADLINE_MS;
       File local = guestFile(guestPath);
@@ -139,6 +148,14 @@ public final class SafWorkbench {
           : push(ticket, grant, local, deadline);
     } finally {
       SafTransferGate.TRANSFERS.release();
+    }
+  }
+
+  private static RuntimeWorkPort.Work beginWork() throws SafTree.Failure {
+    try {
+      return RuntimeWorkPort.begin("跨应用文件传输");
+    } catch (IllegalStateException maintenance) {
+      throw new SafTree.Failure("MAINTENANCE_BUSY", null);
     }
   }
 
@@ -154,7 +171,8 @@ public final class SafWorkbench {
           ? !actual.canRead()
           : !actual.usableWrite()) throw new IOException("PERMISSION_DENIED");
     } catch (SafTree.Failure failure) {
-      throw new IOException(failure.code, failure);
+      throw new IOException(
+          "NO_GRANT".equals(failure.code) ? "HANDLE_REVOKED" : failure.code, failure);
     }
   }
 
@@ -163,17 +181,27 @@ public final class SafWorkbench {
     long size = source.length();
     if (size > SafCapabilityLimits.MAX_WRITE_BYTES) throw new IOException("TOO_LARGE");
     running(ticket, grant, deadline);
+    IOException[] guardFailure = {null};
     try (InputStream checked =
         new FilterInputStream(SafLocalFiles.openRead(source, pathCheck())) {
           @Override
           public int read(byte[] bytes, int offset, int count) throws IOException {
-            running(ticket, grant, deadline);
+            try {
+              running(ticket, grant, deadline);
+            } catch (IOException stopped) {
+              guardFailure[0] = stopped;
+              throw stopped;
+            }
             return super.read(bytes, offset, count);
           }
         }) {
       long bytes = tree(grant).writeStream(ticket.path, checked, size, true);
       running(ticket, grant, deadline);
       return bytes;
+    } catch (SafTree.Failure failure) {
+      // SafTree 为桥把 InputStream IOException 包装成 IO_ERROR；这里保留本层守卫的确定短码。
+      if (guardFailure[0] != null) throw guardFailure[0];
+      throw failure;
     }
   }
 
@@ -189,6 +217,16 @@ public final class SafWorkbench {
     long total = 0;
     try (SafLocalFiles.AnchoredDirectory directory =
         SafLocalFiles.ensureAnchoredDirectory(parent, pathCheck())) {
+      pruneTemps(directory, System.currentTimeMillis());
+      int previousMode = -1;
+      try {
+        android.system.StructStat original =
+            android.system.Os.lstat("/proc/self/fd/" + directory.fd + "/" + target.getName());
+        if (android.system.OsConstants.S_ISREG(original.st_mode))
+          previousMode = original.st_mode & 0777;
+      } catch (android.system.ErrnoException missing) {
+        // 新目标保持 createInDirectory 的 0600；只复制普通既有文件的权限位。
+      }
       boolean published = false;
       try {
         try (OutputStream output =
@@ -214,6 +252,14 @@ public final class SafWorkbench {
         if (!source.docId.equals(after.docId)
             || source.size != after.size
             || source.modified != after.modified) throw new IOException("SOURCE_CHANGED");
+        if (previousMode >= 0) {
+          try {
+            android.system.Os.chmod(
+                "/proc/self/fd/" + directory.fd + "/" + temporary, previousMode);
+          } catch (android.system.ErrnoException unavailable) {
+            // 与桥 pull 一致，复制失败时保留新文件的安全默认权限。
+          }
+        }
         running(ticket, grant, deadline);
         SafLocalFiles.publishInDirectory(directory, temporary, target.getName());
         published = true;
@@ -226,6 +272,23 @@ public final class SafWorkbench {
             // 只清理这次在已锚定目录里创建的临时文件，保留原始失败。
           }
         }
+      }
+    }
+  }
+
+  /** 只清理本功能的 UUID 临时普通文件；不跟随链接、不遍历目录，不触碰一小时内记录。 */
+  static void pruneTemps(SafLocalFiles.AnchoredDirectory directory, long now) {
+    long cutoff = now - 60L * 60 * 1000;
+    for (String name : SafLocalFiles.listInDirectory(directory)) {
+      if (!name.matches("\\.saf-workbench-[0-9a-f-]{36}\\.part")) continue;
+      try {
+        android.system.StructStat stat =
+            android.system.Os.lstat("/proc/self/fd/" + directory.fd + "/" + name);
+        if (android.system.OsConstants.S_ISREG(stat.st_mode)
+            && stat.st_nlink == 1
+            && stat.st_mtime * 1000L < cutoff) SafLocalFiles.deleteInDirectory(directory, name);
+      } catch (android.system.ErrnoException | IOException ignored) {
+        // 清理失败不掩盖正在进行的操作结果，下次在同一目录再试。
       }
     }
   }

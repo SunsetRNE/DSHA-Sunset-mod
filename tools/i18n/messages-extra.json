@@ -16300,5 +16300,29 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
     ]
+  },
+  {
+    "id": "xa2review001",
+    "zh": "此目录只读：助手写入已关闭，或对方未给写权限。",
+    "en": "This folder is read-only: assistant writes are off or the provider grants no write access.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2review002",
+    "zh": "授权簿暂不可用，请检查存储后重试。",
+    "en": "The access ledger is temporarily unavailable. Check storage and try again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2review003",
+    "zh": "运行环境正在维护，请完成维护后重试。",
+    "en": "The runtime is undergoing maintenance. Try again after it finishes.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
   }
 ]

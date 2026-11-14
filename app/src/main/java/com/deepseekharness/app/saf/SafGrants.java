@@ -416,7 +416,8 @@ public final class SafGrants {
     synchronized (LOCK) {
       Lookup lookup = lookup(context, id);
       if (lookup.failure != null) throw new SafTree.Failure(lookup.failure, null);
-      // 旧路径没有可验证的 epoch；迁移失败时保留旧浏览/桥语义，但不签发工作台能力。
+      // 旧路径没有可验证的 epoch：桥仍可回退；原生工作台的浏览/预览/传输均失败关闭。
+      // 用户可检查存储后重试迁移，不用移除仍有效的系统授权。
       SafLedgerStore store = ledgerStore(context);
       if (!store.initialized()) throw new SafTree.Failure("STATE_UNAVAILABLE", null);
       SafGrantLedger ledger = store.load();

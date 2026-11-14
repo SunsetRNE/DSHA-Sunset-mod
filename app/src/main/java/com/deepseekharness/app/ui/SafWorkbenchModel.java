@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.saf.SafTransferHistory;
+import com.deepseekharness.app.saf.SafTransferJob;
 import com.deepseekharness.app.saf.SafTree;
 import com.deepseekharness.app.saf.SafWorkbench;
 import java.util.concurrent.ExecutorService;
@@ -47,37 +48,73 @@ public final class SafWorkbenchModel extends AndroidViewModel {
     outcome.setValue(new Outcome(true, 0, ""));
     executor.execute(
         () -> {
-          String record = null;
-          long bytes = 0;
-          String code = "IO_ERROR";
-          SafTransferHistory history = null;
-          SafWorkbench.Ticket ticket = selection;
-          try {
-            history = SafTransferHistory.open(getApplication());
-            if (!SafWorkbenchUi.enabled(getApplication()))
-              throw new IllegalStateException("WORKBENCH_DISABLED");
-            if (!importing) ticket = workbench.retarget(selection, remotePath);
-            int slash = ticket.path.lastIndexOf('/');
-            String name = ticket.path.substring(slash + 1);
-            record = history.begin(name, importing, System.currentTimeMillis());
-            bytes = workbench.transfer(ticket, guestPath, importing);
-            code = "OK";
-          } catch (Exception failure) {
-            code = failureCode(failure);
-          } finally {
-            workbench.cancel(selection);
-            workbench.cancel(ticket);
-            if (record != null && !history.finish(record, bytes, code) && "OK".equals(code))
-              code = "OK_HISTORY_UNAVAILABLE";
-            working.set(false);
-            outcome.postValue(new Outcome(false, bytes, code));
-          }
+          SafTransferJob.Result result =
+              SafTransferJob.run(
+                  new SafTransferJob.Ports<SafWorkbench.Ticket>() {
+                    private SafTransferHistory history;
+
+                    @Override
+                    public boolean enabled() {
+                      return SafWorkbenchUi.enabled(getApplication());
+                    }
+
+                    @Override
+                    public void openHistory() {
+                      history = SafTransferHistory.open(getApplication());
+                    }
+
+                    @Override
+                    public SafWorkbench.Ticket retarget(SafWorkbench.Ticket ticket, String path)
+                        throws Exception {
+                      return workbench.retarget(ticket, path);
+                    }
+
+                    @Override
+                    public String path(SafWorkbench.Ticket ticket) {
+                      return ticket.path;
+                    }
+
+                    @Override
+                    public String beginRecord(String name, boolean importing, long time) {
+                      return history.begin(name, importing, time);
+                    }
+
+                    @Override
+                    public long transfer(
+                        SafWorkbench.Ticket ticket, String guestPath, boolean importing)
+                        throws Exception {
+                      return workbench.transfer(ticket, guestPath, importing);
+                    }
+
+                    @Override
+                    public boolean finishRecord(String record, long bytes, String code) {
+                      return history.finish(record, bytes, code);
+                    }
+
+                    @Override
+                    public void cancel(SafWorkbench.Ticket ticket) {
+                      workbench.cancel(ticket);
+                    }
+
+                    @Override
+                    public String failureCode(Exception failure) {
+                      return SafWorkbenchModel.failureCode(failure);
+                    }
+                  },
+                  selection,
+                  remotePath,
+                  guestPath,
+                  importing,
+                  System.currentTimeMillis());
+          working.set(false);
+          outcome.postValue(new Outcome(false, result.bytes, result.code));
         });
   }
 
   static String failureCode(Exception error) {
-    String code = error instanceof SafTree.Failure failure ? failure.code : error.getMessage();
-    return code != null && code.matches("[A-Z][A-Z0-9_]{0,63}") ? code : "IO_ERROR";
+    return error instanceof SafTree.Failure failure
+        ? SafTransferJob.failureCode(new java.io.IOException(failure.code))
+        : SafTransferJob.failureCode(error);
   }
 
   @Override

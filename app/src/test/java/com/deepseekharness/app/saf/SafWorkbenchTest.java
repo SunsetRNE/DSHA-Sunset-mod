@@ -104,6 +104,8 @@ public final class SafWorkbenchTest {
 
   @After
   public void tearDown() throws Exception {
+    SafLocalFiles.setDirectoryListerForTests(null);
+    Thread.interrupted();
     workProvider.set(null, previousWorkProvider);
     assertTrue("workbench must close native file descriptors", SafTestOs.RAW_HANDLES.isEmpty());
     assertTrue("workbench must close dup descriptors", SafTestOs.OPEN_FDS.isEmpty());
@@ -152,7 +154,7 @@ public final class SafWorkbenchTest {
             Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     assertFalse(SafGrants.listLight(app).get(0).valid);
     assertEquals(
-        "HANDLE_NOT_PERMITTED",
+        "PERMISSION_DENIED",
         assertThrows(SafTree.Failure.class, () -> workbench.transfer(ticket, "/root/out.txt", true))
             .code);
   }
@@ -223,6 +225,196 @@ public final class SafWorkbenchTest {
                 () -> workbench.transfer(other, "/root/outside.txt", false))
             .getMessage());
     assertNull(provider.lastCreatedId);
+  }
+
+  private void assertStoppedDuringRead(String code, Runnable hook) throws Exception {
+    File target = new File(rootfs, "root/out.txt");
+    Files.writeString(target.toPath(), "existing");
+    provider.firstReadOpen = hook;
+    SafWorkbench.Ticket ticket = workbench.prepare(ID, "file.txt", true);
+    try {
+      assertEquals(
+          code,
+          assertThrows(
+                  java.io.IOException.class,
+                  () -> workbench.transfer(ticket, "/root/out.txt", true))
+              .getMessage());
+    } finally {
+      Thread.interrupted();
+    }
+    assertEquals("existing", Files.readString(target.toPath()));
+    assertTrue("interrupted copies must never publish", SafTestOs.RENAMES.isEmpty());
+    try (var files = Files.list(target.getParentFile().toPath())) {
+      assertFalse(
+          "partial workbench file must be cleaned",
+          files.anyMatch(p -> p.getFileName().toString().startsWith(".saf-workbench-")));
+    }
+  }
+
+  @Test
+  public void forgetDuringFirstReadPreservesExistingTargetWithoutPublishing() throws Exception {
+    assertStoppedDuringRead("HANDLE_REVOKED", () -> SafGrants.forget(app, Uri.parse(TREE)));
+  }
+
+  @Test
+  public void systemRevokeDuringFirstReadPreservesExistingTargetWithoutPublishing()
+      throws Exception {
+    assertStoppedDuringRead(
+        "PERMISSION_DENIED",
+        () ->
+            app.getContentResolver()
+                .releasePersistableUriPermission(
+                    Uri.parse(TREE),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        | Intent.FLAG_GRANT_WRITE_URI_PERMISSION));
+  }
+
+  @Test
+  public void totalDeadlineDuringFirstReadPreservesExistingTargetWithoutPublishing()
+      throws Exception {
+    assertStoppedDuringRead(
+        "TIMEOUT",
+        () -> ShadowSystemClock.advanceBy(Duration.ofMillis(SafCapabilityLimits.DEADLINE_MS + 1)));
+  }
+
+  @Test
+  public void interruptDuringFirstReadPreservesExistingTargetWithoutPublishing() throws Exception {
+    assertStoppedDuringRead("CANCELLED", () -> Thread.currentThread().interrupt());
+  }
+
+  @Test
+  public void pushKeepsGuardCodesInsteadOfWrappingThemAsGenericIoErrors() throws Exception {
+    File local = new File(rootfs, "root/source.txt");
+    Files.writeString(local.toPath(), "export");
+    for (String code :
+        java.util.List.of("HANDLE_REVOKED", "TIMEOUT", "CANCELLED", "PERMISSION_DENIED")) {
+      assertTrue(
+          ledger.save(SafTestSupport.single(TREE, SafGrantRecord.READ | SafGrantRecord.WRITE)));
+      app.getContentResolver().takePersistableUriPermission(Uri.parse(TREE), 3);
+      SafWorkbench.Ticket ticket = workbench.prepare(ID, "export.txt", false);
+      provider.firstWriteOpen =
+          () -> {
+            switch (code) {
+              case "HANDLE_REVOKED" -> SafGrants.forget(app, Uri.parse(TREE));
+              case "TIMEOUT" ->
+                  ShadowSystemClock.advanceBy(
+                      Duration.ofMillis(SafCapabilityLimits.DEADLINE_MS + 1));
+              case "CANCELLED" -> Thread.currentThread().interrupt();
+              default -> SafGrants.setWritable(app, Uri.parse(TREE), false);
+            }
+          };
+      try {
+        assertEquals(
+            code,
+            assertThrows(
+                    java.io.IOException.class,
+                    () -> workbench.transfer(ticket, "/root/source.txt", false))
+                .getMessage());
+      } finally {
+        Thread.interrupted();
+      }
+    }
+  }
+
+  @Test
+  public void importCopiesExistingModeBeforePublishing() throws Exception {
+    File target = new File(rootfs, "root/out.txt");
+    Files.writeString(target.toPath(), "existing");
+    Files.setAttribute(target.toPath(), "unix:mode", 0750);
+    SafWorkbench.Ticket ticket = workbench.prepare(ID, "file.txt", true);
+    assertEquals(5, workbench.transfer(ticket, "/root/out.txt", true));
+    assertEquals("hello", Files.readString(target.toPath()));
+    assertEquals(1, SafTestOs.CHMODES.size());
+    var copied = SafTestOs.CHMODES.entrySet().iterator().next();
+    assertEquals(0750, copied.getValue().intValue());
+    assertTrue(copied.getKey(), copied.getKey().contains(".saf-workbench-"));
+    assertTrue(SafTestOs.RENAMES.get(0).startsWith(copied.getKey() + " -> "));
+  }
+
+  @Test
+  public void staleCleanupRemovesOnlyOldOwnedRegularParts() throws Exception {
+    File directory = new File(rootfs, "root");
+    String oldName = ".saf-workbench-" + java.util.UUID.randomUUID() + ".part";
+    File old = new File(directory, oldName);
+    File fresh = new File(directory, ".saf-workbench-" + java.util.UUID.randomUUID() + ".part");
+    File unrelated = new File(directory, ".saf-workbench-user.part");
+    File symbolic = new File(directory, ".saf-workbench-" + java.util.UUID.randomUUID() + ".part");
+    File secret = temporary.newFile("outside.txt");
+    Files.writeString(old.toPath(), "stale");
+    Files.writeString(fresh.toPath(), "fresh");
+    Files.writeString(unrelated.toPath(), "keep");
+    Files.createSymbolicLink(symbolic.toPath(), secret.toPath());
+    long now = System.currentTimeMillis();
+    assertTrue(old.setLastModified(now - 2 * 60 * 60 * 1000));
+    assertTrue(unrelated.setLastModified(now - 2 * 60 * 60 * 1000));
+    assertTrue(secret.setLastModified(now - 2 * 60 * 60 * 1000));
+    SafLocalFiles.setDirectoryListerForTests(fd -> SafTestOs.FD_FILES.get(fd).list());
+    try (var anchor = SafLocalFiles.openAnchoredDirectory(directory)) {
+      SafWorkbench.pruneTemps(anchor, now);
+    }
+    assertFalse(old.exists());
+    assertTrue(fresh.exists());
+    assertTrue(unrelated.exists());
+    assertTrue(Files.isSymbolicLink(symbolic.toPath()));
+    assertTrue(secret.exists());
+    assertEquals(java.util.List.of(old.getAbsolutePath()), SafTestOs.REMOVES);
+  }
+
+  @Test
+  public void maintenanceBarrierReturnsTypedCodeAndReleasesTransferSlot() throws Exception {
+    workProvider.set(
+        null,
+        new RuntimeWorkPort.Provider() {
+          @Override
+          public RuntimeWorkPort.Work begin(boolean detached, String kind) {
+            throw new IllegalStateException("maintenance barrier");
+          }
+
+          @Override
+          public boolean hasOtherTasks() {
+            return false;
+          }
+        });
+    SafWorkbench.Ticket ticket = workbench.prepare(ID, "file.txt", true);
+    assertEquals(
+        "MAINTENANCE_BUSY",
+        assertThrows(SafTree.Failure.class, () -> workbench.transfer(ticket, "/root/out.txt", true))
+            .code);
+    assertFalse(new File(rootfs, "root/out.txt").exists());
+    assertEquals(
+        SafCapabilityLimits.MAX_CONCURRENT_TRANSFERS, SafTransferGate.TRANSFERS.availablePermits());
+  }
+
+  @Test
+  public void unavailableLedgerBlocksNativeBrowsingAndPreviewWithDistinctCode() throws Exception {
+    SafTestSupport.FakePreferences broken = new SafTestSupport.FakePreferences();
+    broken.commitResult = false;
+    android.content.ContextWrapper fallback =
+        new android.content.ContextWrapper(app) {
+          @Override
+          public Context getApplicationContext() {
+            return this;
+          }
+
+          @Override
+          public android.content.SharedPreferences getSharedPreferences(String name, int mode) {
+            return SafLedgerStore.NAMESPACE.equals(name)
+                ? broken
+                : super.getSharedPreferences(name, mode);
+          }
+        };
+    app.getSharedPreferences("saf_grants", Context.MODE_PRIVATE)
+        .edit()
+        .putStringSet("uris", java.util.Set.of(TREE))
+        .putString("label:" + TREE, "Legacy")
+        .commit();
+    SafWorkbench failed = new SafWorkbench(fallback, () -> rootfs);
+    assertNotNull("bridge keeps legacy fallback", SafGrants.lookup(fallback, ID).grant);
+    assertEquals(
+        "STATE_UNAVAILABLE", assertThrows(SafTree.Failure.class, () -> failed.list(ID, "")).code);
+    assertEquals(
+        "STATE_UNAVAILABLE",
+        assertThrows(SafTree.Failure.class, () -> failed.read(ID, "file.txt", 10)).code);
   }
 
   @Test

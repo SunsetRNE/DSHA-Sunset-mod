@@ -2007,5 +2007,8 @@
   "xa2workbench026": "Hoc iter transferri non potest. Fasciculum laboris ordinarium elige.",
   "xa2workbench027": "Mensam fasciculorum primum in pagina licentiarum activa.",
   "xa2workbench028": "Historia translationum servari non potuit. Postea retempta.",
-  "xa2workbench029": "Translatio non perfecta est. Destinationem antequam pergas inspice; fasciculus externus imperfectus esse potest."
+  "xa2workbench029": "Translatio non perfecta est. Destinationem antequam pergas inspice; fasciculus externus imperfectus esse potest.",
+  "xa2review001": "Hoc directorium tantum legi potest: scriptio adiutoris clausa est aut praebitor scribere non permisit.",
+  "xa2review002": "Tabula licentiarum ad tempus praesto non est. Receptaculum inspice et retempta.",
+  "xa2review003": "Ambitus exsecutionis reficitur. Post finem retempta."
 }

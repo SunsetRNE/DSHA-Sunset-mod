@@ -43,21 +43,31 @@
             android:paddingEnd="10dp" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/saf_browse_export"
-        style="@style/ShellTextButton"
+    <LinearLayout
+        android:id="@+id/saf_browse_actions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/shell_page_pad"
-        android:layout_marginEnd="@dimen/shell_page_pad" />
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:paddingStart="@dimen/shell_page_pad"
+        android:paddingEnd="@dimen/shell_page_pad">
 
-    <Button
-        android:id="@+id/saf_browse_history"
-        style="@style/ShellTextButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/shell_page_pad"
-        android:layout_marginEnd="@dimen/shell_page_pad" />
+        <Button
+            android:id="@+id/saf_browse_export"
+            style="@style/ShellTextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="0dp" />
+
+        <Button
+            android:id="@+id/saf_browse_history"
+            style="@style/ShellTextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="0dp" />
+    </LinearLayout>
 
     <ListView
         android:id="@+id/saf_browse_list"
