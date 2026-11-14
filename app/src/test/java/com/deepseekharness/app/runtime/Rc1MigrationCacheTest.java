@@ -63,6 +63,7 @@ public class Rc1MigrationCacheTest {
     prepared.put("inputDigest", "d".repeat(64));
     prepared.put("settingsSha256", settingsSha);
     prepared.put("settingsSections", java.util.List.of("first"));
+    prepared.put("settingsSectionsSource", "ledger-expected");
     fs.atomic(recorded, "reuse.json", BackupJson.write(prepared, 65536));
     var receipt =
         Map.of(
@@ -271,6 +272,21 @@ public class Rc1MigrationCacheTest {
     var invalid = Rc1MigrationCache.reuse(fs, files, home);
     assertEquals(Rc1MigrationCache.Reuse.Status.UNAVAILABLE, invalid.status);
     assertEquals("HOST_STATE_INVALID", invalid.reason);
+  }
+
+  @Test
+  public void checkpointWithoutProvenanceCannotCompleteHistory() throws Exception {
+    fixture();
+    File folder = fs.child(state, "generations/" + generation);
+    // 旧版本从账本当前分节键回填的 settingsSections 没有 provenance，只是账本自证。
+    Map<String, Object> checkpoint =
+        BackupJson.read(
+            java.nio.file.Files.readAllBytes(fs.child(folder, "reuse.json").toPath()), 65536);
+    checkpoint.remove("settingsSectionsSource");
+    fs.atomic(folder, "reuse.json", BackupJson.write(checkpoint, 65536));
+    var reuse = Rc1MigrationCache.reuse(fs, files, home);
+    assertEquals(Rc1MigrationCache.Reuse.Status.UNAVAILABLE, reuse.status);
+    assertEquals("SETTINGS_EXPECTED_SECTIONS_MISSING", reuse.reason);
   }
 
   @Test

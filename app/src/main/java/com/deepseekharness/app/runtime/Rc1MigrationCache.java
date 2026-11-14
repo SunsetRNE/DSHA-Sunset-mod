@@ -214,6 +214,9 @@ final class Rc1MigrationCache {
   }
 
   private static java.util.Set<String> expectedSections(Map<String, Object> prepared) {
+    // 只信任 publish_reuse 从账本 expectedSections 转存、带 provenance 的 checkpoint；
+    // 旧版本从 ledger.sections 当前键回填的 settingsSections 是账本自证，不能当证据。
+    if (!"ledger-expected".equals(prepared.get("settingsSectionsSource"))) return null;
     return sectionNames(prepared.get("settingsSections"));
   }
 

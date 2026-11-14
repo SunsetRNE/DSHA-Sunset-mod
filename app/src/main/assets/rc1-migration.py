@@ -134,8 +134,13 @@ def trusted_expected_sections(names):
 
 
 def checkpoint_expected_sections(checkpoint, doc, sha):
-    """checkpoint 只有同代次、同 settings 摘要时才是独立于账本的期望集合。"""
+    """checkpoint 只有带 provenance、同代次、同 settings 摘要时才是独立期望集合。
+
+    旧版本曾把 ledger.sections 的当前键回填进 settingsSections；那种无 provenance 的
+    集合只是账本自证，不能当完成证据。
+    """
     if not isinstance(checkpoint, dict) or not isinstance(sha, str): return None
+    if checkpoint.get('settingsSectionsSource') != 'ledger-expected': return None
     if checkpoint.get('generation') != doc.get('generation'): return None
     if checkpoint.get('settingsSha256') != sha: return None
     return trusted_expected_sections(checkpoint.get('settingsSections'))
@@ -621,11 +626,13 @@ def publish_reuse(folder, prepared, current, receipt, active_version):
     except (OSError, ValueError, UnicodeError):
         ledger = None
     if isinstance(ledger, dict):
-        expected = ledger.get('expectedSections')
-        if isinstance(expected, list) and all(isinstance(name, str) for name in expected):
+        # 只转存账本写入时记录的期望分节集合，并带 provenance 标记；旧账本没有该字段时
+        # 不得从当前 ledger.sections 键回填——那只是账本自证，部分 verified 的账本会借此
+        # 通过集合检查。
+        expected = trusted_expected_sections(ledger.get('expectedSections'))
+        if expected is not None:
             checkpoint['settingsSections'] = sorted(expected)
-        elif isinstance(ledger.get('sections'), dict):
-            checkpoint['settingsSections'] = sorted(ledger['sections'])
+            checkpoint['settingsSectionsSource'] = 'ledger-expected'
     target = folder/'reuse.json'
     if os.path.lexists(target):
         if target.is_symlink() or not target.is_file(): raise ValueError('REUSE_CHECKPOINT_TYPE')
@@ -664,8 +671,10 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
     if (isinstance(old, dict) and old.get('status')=='committed' and old.get('version')==2
             and old.get('generation')==current['generation']
             and all(old.get(key) is True for key in ('sourcePreserved','settingsImported','protectionComplete'))):
-        note = publish_reuse(folder,doc,current,old,active_version)
+        # 先按旧 checkpoint 读账本状态，再发布新 checkpoint：同一次调用里 publish_reuse
+        # 写下的期望集合不能反过来证明本次账本已完成（自证）。
         settings_state, settings_reason = ledger_state(folder, doc, startup_id, reuse_checkpoint(folder))
+        note = publish_reuse(folder,doc,current,old,active_version)
         warnings = ([note] if note else []) + ([settings_reason] if settings_reason else [])
         extra = {'warnings': warnings} if warnings else {}
         emit('finalize', 'historical-complete', generation=current['generation'], cached=True,

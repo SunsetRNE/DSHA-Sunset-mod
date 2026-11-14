@@ -327,26 +327,76 @@ class Migration(unittest.TestCase):
         self.assertEqual(mod.ledger_state(folder,doc),('unknown','SETTINGS_LEDGER_SECTION'))
         # 无 settings 来源仍是 not-required，不受期望集合影响。
         self.assertEqual(mod.ledger_state(folder,dict(generation='g',sources=[])),('not-required',None))
-    def test_legacy_ledger_only_uses_same_generation_checkpoint_expectation(self):
+    def test_legacy_ledger_only_uses_provenanced_same_generation_checkpoint(self):
         folder=self.root/'ledger-checkpoint';folder.mkdir();sha='c'*64
         doc=dict(generation='g',sources=[{'kind':'settings','sha256':sha}])
         ledger=dict(generation='g',sourceSha256=sha,startupId='boot',status='verified',
                     sections={'a':{'status':'verified'},'b':{'status':'verified'}})
         (folder/'settings-result.json').write_text(json.dumps(ledger))
         def checkpoint(value):(folder/'reuse.json').write_text(json.dumps(value) if not isinstance(value,str) else value)
-        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a','b']})
+        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a','b'],
+                    'settingsSectionsSource':'ledger-expected'})
         self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('verified',None))
+        # 旧版本从账本分节键回填、没有 provenance 标记的 settingsSections 只是自证：不采信。
+        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a','b']})
+        self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('unknown','SETTINGS_EXPECTED_SECTIONS_MISSING'))
+        # 未知 provenance 值同样不接受。
+        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a','b'],'settingsSectionsSource':'ledger-sections'})
+        self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('unknown','SETTINGS_EXPECTED_SECTIONS_MISSING'))
         # 期望集合只覆盖部分分节 → 不能判完成。
-        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a']})
+        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a'],
+                    'settingsSectionsSource':'ledger-expected'})
         self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('unknown','SETTINGS_SECTION_MISSING'))
         # 代次/摘要不符、结构非法、损坏的 checkpoint 都不能当独立期望集合。
-        for value in ({'generation':'other','settingsSha256':sha,'settingsSections':['a','b']},
-                      {'generation':'g','settingsSha256':'d'*64,'settingsSections':['a','b']},
-                      {'generation':'g','settingsSha256':sha,'settingsSections':'a,b'},
-                      {'generation':'g','settingsSha256':sha,'settingsSections':['a','a']},
+        for value in ({'generation':'other','settingsSha256':sha,'settingsSections':['a','b'],'settingsSectionsSource':'ledger-expected'},
+                      {'generation':'g','settingsSha256':'d'*64,'settingsSections':['a','b'],'settingsSectionsSource':'ledger-expected'},
+                      {'generation':'g','settingsSha256':sha,'settingsSections':'a,b','settingsSectionsSource':'ledger-expected'},
+                      {'generation':'g','settingsSha256':sha,'settingsSections':['a','a'],'settingsSectionsSource':'ledger-expected'},
                       '{broken'):
             checkpoint(value)
             self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('unknown','SETTINGS_EXPECTED_SECTIONS_MISSING'),value)
+    def legacy_committed_state(self):
+        """构造旧代次：账本无 expectedSections，回执已提交，reuse checkpoint 无 provenance。"""
+        self.prepare()
+        doc=self.doc();current=json.loads((self.state/'current.json').read_text())
+        source=next(row for row in doc['sources'] if row['kind']=='settings')
+        (self.folder()/'settings-result.json').write_text(json.dumps({'version':2,'generation':doc['generation'],
+            'sourceSha256':source['sha256'],'startupId':current.get('startupId'),'status':'verified',
+            'sections':{'first':{'status':'verified'}}}))
+        receipt=dict(version=2,dshVersion=self.runtime_version,runtimeDshVersion=self.runtime_version,
+            generation=doc['generation'],startupId=current.get('startupId'),status='committed',
+            sourcePreserved=True,protectionComplete=True,settingsImported=True)
+        (self.folder()/'receipt.json').write_text(json.dumps(receipt))
+        (self.folder()/'reuse.json').write_text(json.dumps({'version':2,'generation':doc['generation'],
+            'dshVersion':self.runtime_version,'dshHome':doc['dshHome'],'dataRoot':doc['dataRoot'],
+            'inputs':doc['inputs'],'status':'prepared','protectionComplete':True,'inputDigest':doc['inputDigest'],
+            'settingsSha256':source['sha256'],'settingsSections':['first']}))
+        return doc,receipt
+    def test_legacy_checkpoint_without_provenance_cannot_complete_history(self):
+        doc,receipt=self.legacy_committed_state()
+        code,payload=self.capture(self.finalize)
+        self.assertEqual(code,0);self.assertEqual(payload['status'],'historical-complete')
+        # 无 provenance 的旧 settingsSections 不是独立证据：设置导入必须落在 unknown。
+        self.assertEqual(payload['settingsImportStatus'],'unknown')
+        self.assertIn('SETTINGS_EXPECTED_SECTIONS_MISSING',payload.get('warnings',[]))
+        checkpoint=json.loads((self.folder()/'reuse.json').read_text())
+        self.assertNotIn('settingsSections',checkpoint)
+        self.assertNotIn('settingsSectionsSource',checkpoint)
+        # 同一次 finalize 发布的新 checkpoint 也不能在后续调用里自证完成。
+        code,again=self.capture(self.finalize)
+        self.assertEqual(again['settingsImportStatus'],'unknown')
+    def test_publish_reuse_records_provenance_only_from_ledger_expected_sections(self):
+        doc,receipt=self.legacy_committed_state()
+        self.assertEqual(mod.publish_reuse(self.folder(),doc,json.loads((self.state/'current.json').read_text()),receipt,self.runtime_version),None)
+        legacy=json.loads((self.folder()/'reuse.json').read_text())
+        self.assertNotIn('settingsSections',legacy);self.assertNotIn('settingsSectionsSource',legacy)
+        # 新写入的账本带 expectedSections：checkpoint 记录同一集合并带 provenance。
+        self.verified()
+        self.assertEqual(mod.publish_reuse(self.folder(),doc,json.loads((self.state/'current.json').read_text()),receipt,self.runtime_version),None)
+        checkpoint=json.loads((self.folder()/'reuse.json').read_text())
+        self.assertEqual(checkpoint['settingsSections'],['first'])
+        self.assertEqual(checkpoint['settingsSectionsSource'],'ledger-expected')
+        self.assertEqual(mod.ledger_state(self.folder(),doc,checkpoint=mod.reuse_checkpoint(self.folder())),('verified',None))
     def test_historical_prepare_without_trusted_expected_sections_is_unknown(self):
         self.prepare();self.verified();self.finalize()
         ledger=self.folder()/'settings-result.json'
