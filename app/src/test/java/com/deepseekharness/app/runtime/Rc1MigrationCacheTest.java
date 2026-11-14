@@ -329,6 +329,64 @@ public class Rc1MigrationCacheTest {
         Rc1MigrationCache.reuse(fs, files, home).status);
   }
 
+  @Test
+  public void malformedLedgerExpectedSectionsCannotFallBackToCheckpoint() throws Exception {
+    fixture(); // checkpoint 自带 settingsSections + provenance：仍不能掩盖损坏的账本字段
+    File folder = fs.child(state, "generations/" + generation);
+    for (Object malformed :
+        new Object[] {
+          java.util.List.of("first", 1),
+          java.util.List.of("first", "first"),
+          java.util.List.of("first", java.util.List.of("nested"))
+        }) {
+      fs.atomic(
+          folder,
+          "settings-result.json",
+          BackupJson.write(
+              Map.of(
+                  "version",
+                  2,
+                  "generation",
+                  generation,
+                  "sourceSha256",
+                  settingsSha,
+                  "startupId",
+                  "startup",
+                  "status",
+                  "verified",
+                  "expectedSections",
+                  malformed,
+                  "sections",
+                  Map.of("first", Map.of("status", "verified"))),
+              65536));
+      var reuse = Rc1MigrationCache.reuse(fs, files, home);
+      assertEquals(malformed.toString(), Rc1MigrationCache.Reuse.Status.UNAVAILABLE, reuse.status);
+      assertEquals(malformed.toString(), "SETTINGS_LEDGER_SECTION", reuse.reason);
+    }
+    // 键缺失时仍可回退 checkpoint（fixture 的 reuse.json 带 provenance 与 settingsSections）。
+    fs.atomic(
+        folder,
+        "settings-result.json",
+        BackupJson.write(
+            Map.of(
+                "version",
+                2,
+                "generation",
+                generation,
+                "sourceSha256",
+                settingsSha,
+                "startupId",
+                "startup",
+                "status",
+                "verified",
+                "sections",
+                Map.of("first", Map.of("status", "verified"))),
+            65536));
+    assertEquals(
+        Rc1MigrationCache.Reuse.Status.REUSABLE_HISTORY,
+        Rc1MigrationCache.reuse(fs, files, home).status);
+  }
+
   private static String sha(byte[] data) throws Exception {
     var result = new StringBuilder();
     for (byte b : java.security.MessageDigest.getInstance("SHA-256").digest(data))

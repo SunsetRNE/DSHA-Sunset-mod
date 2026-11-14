@@ -191,9 +191,15 @@ final class Rc1MigrationCache {
       // 期望分节集合只接受账本自己的 expectedSections 或同代次 checkpoint（reuse.json）
       // 的 settingsSections；两者都缺时不能拿当前账本键自证全部完成，与 Python
       // （SETTINGS_EXPECTED_SECTIONS_MISSING）一样保守拒绝。
-      java.util.Set<String> expected = ledgerExpectedSections(ledger);
-      if (expected == null) expected = expectedSections(prepared);
-      if (expected == null) return Reuse.unavailable("SETTINGS_EXPECTED_SECTIONS_MISSING");
+      // expectedSections 键存在但格式非法是账本损坏，直接拒绝，不能回退到 checkpoint 掩盖。
+      java.util.Set<String> expected;
+      if (ledger.containsKey("expectedSections")) {
+        expected = sectionNames(ledger.get("expectedSections"));
+        if (expected == null) return Reuse.unavailable("SETTINGS_LEDGER_SECTION");
+      } else {
+        expected = expectedSections(prepared);
+        if (expected == null) return Reuse.unavailable("SETTINGS_EXPECTED_SECTIONS_MISSING");
+      }
       String ledgerState = Rc1MigrationReuse.ledgerState(ledger, expected);
       if (!"verified".equals(ledgerState)) return Reuse.unavailable("SETTINGS_LEDGER_INCOMPLETE");
       settingsImportStatus = "verified-historical";
@@ -207,10 +213,6 @@ final class Rc1MigrationCache {
         ledgerDigest,
         (String) prepared.get("dshVersion"),
         inputs);
-  }
-
-  private static java.util.Set<String> ledgerExpectedSections(Map<String, Object> ledger) {
-    return sectionNames(ledger.get("expectedSections"));
   }
 
   private static java.util.Set<String> expectedSections(Map<String, Object> prepared) {
