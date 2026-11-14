@@ -33,9 +33,13 @@ import java.util.Set;
  *
  * <p>校验阶段先跑 JVM {@link PlanViewValidator}，再按 {@link RustBackends#planSelection()} 决定是否
  * 让 Rust {@code verify_plan} 对**同一份字节**复核；两实现必须给出相同的 VALID/INVALID 与原因集合
- * （§3.9 P-5）。提交期闸门 {@link #requireSubmitSafe(Receipt)} 对 INVALID、分歧、单侧失败一律
- * fail-closed；**无法投影**（计划根数 > 64、清单值类型/范围不符）只记类型化诊断，不调 Rust，
- * JVM 权威恢复照常继续（Q1-A、P-4）。预览期只把回执写进 {@code preview.json} 加法键，不改变恢复语义。
+ * （§3.9 P-5）。提交期闸门 {@link #requireSubmitSafe(Receipt)} 对 INVALID、分歧、单侧失败、
+ * 以及校验阶段的未预期异常一律 fail-closed（2026-11-14 评审 P2-1、A3 基线 §10）。
+ *
+ * <p>“不投影继续”只用于**可证明不可编码/无关计划**：计划根数 > 64（Q1-A）或清单字段无法无损
+ * 编码（P-4）。**可编码但取值非法**（例如未知 {@code sensitivePolicy}）必须编码进视图，让
+ * {@code verify_plan} 判 {@code FIELD_RANGE} → INVALID → 提交期中止（Q2-A、评审 P1-1）——
+ * 不得在投影器里预判闭集后降级成沉默，那是 fail-open。
  */
 public final class RestorePlanProjection {
   /** {@code preview.json} / {@code plan-view.json} 里本回执的加法键名。 */
@@ -61,12 +65,17 @@ public final class RestorePlanProjection {
   public static final String DIAGNOSTIC_INVALID = "PLAN_VIEW_INVALID";
   public static final String DIAGNOSTIC_DIVERGENT = "PLAN_VIEW_DIVERGENT";
   public static final String DIAGNOSTIC_UNVERIFIED = "PLAN_VIEW_UNVERIFIED";
+  public static final String DIAGNOSTIC_VERIFY_FAILED = "PLAN_VIEW_VERIFY_FAILED";
 
-  // 校验结论、后端来源与单侧状态（固定短码）。
+  // 回执结论、后端来源与单侧状态（固定短码）。
   public static final String VERDICT_VALID = "VALID";
   public static final String VERDICT_INVALID = "INVALID";
   public static final String VERDICT_DIVERGENT = "DIVERGENT";
   public static final String VERDICT_UNVERIFIED = "UNVERIFIED";
+
+  /** 可证明不可编码/无关计划：只记诊断，JVM 权威恢复继续（Q1-A、P-4）。 */
+  public static final String VERDICT_SKIPPED = "SKIPPED";
+
   public static final String BACKEND_JVM_ONLY = "JVM_ONLY";
   public static final String BACKEND_JVM_AND_RUST = "JVM_AND_RUST";
   public static final String CHECK_VALID = "VALID";
@@ -75,6 +84,7 @@ public final class RestorePlanProjection {
   public static final String CHECK_NOT_ATTEMPTED = "NOT_ATTEMPTED";
   public static final String CHECK_FAILED = "FAILED";
   public static final String SELECTION_NOT_EVALUATED = "NOT_EVALUATED";
+  public static final String SELECTION_INJECTED = "TEST_INJECTED";
   public static final String REASON_UNKNOWN = "PLAN_REASON_UNKNOWN";
 
   /** 提交期中止码：写进 {@code operation.json} 的 error，并登记在诊断白名单。 */
@@ -129,12 +139,15 @@ public final class RestorePlanProjection {
       this.generatedAtMs = draft.generatedAtMs;
     }
 
-    /** 是否成功编码出战 PlanView（false = 只记类型化诊断，不调 Rust，恢复继续）。 */
+    /** 是否成功编码出战 PlanView（false 时视图不存在；可能是 SKIPPED 继续或 UNVERIFIED 中止）。 */
     public boolean projected() {
       return projected;
     }
 
-    /** {@link #VERDICT_VALID} / {@link #VERDICT_INVALID} / {@link #VERDICT_DIVERGENT} / {@link #VERDICT_UNVERIFIED}。 */
+    /**
+     * {@link #VERDICT_VALID} / {@link #VERDICT_INVALID} / {@link #VERDICT_DIVERGENT} /
+     * {@link #VERDICT_UNVERIFIED} / {@link #VERDICT_SKIPPED}。
+     */
     public String verdict() {
       return verdict;
     }
@@ -149,17 +162,17 @@ public final class RestorePlanProjection {
       return backend;
     }
 
-    /** {@link RustBackends.Selection#reasonCode()}（投影失败时为 {@link #SELECTION_NOT_EVALUATED}）。 */
+    /** {@link RustBackends.Selection#reasonCode()}（投影失败/未校验时为 {@link #SELECTION_NOT_EVALUATED}）。 */
     public String selection() {
       return selection;
     }
 
-    /** JVM 校验结论：{@link #CHECK_VALID} / {@link #CHECK_INVALID} / {@link #CHECK_SKIPPED}。 */
+    /** JVM 校验结论：VALID / INVALID / SKIPPED / {@link #CHECK_FAILED}（校验阶段异常）。 */
     public String jvmState() {
       return jvm;
     }
 
-    /** Rust 校验结论：VALID/INVALID/{@link #CHECK_NOT_ATTEMPTED}/{@link #CHECK_FAILED}。 */
+    /** Rust 校验结论：VALID / INVALID / {@link #CHECK_NOT_ATTEMPTED} / {@link #CHECK_FAILED} / SKIPPED。 */
     public String rustState() {
       return rust;
     }
@@ -192,6 +205,7 @@ public final class RestorePlanProjection {
       facts.put("projected", projected);
       facts.put("verdict", label(verdict));
       facts.put("diagnostic", label(diagnostic));
+      facts.put("submission", submissionFailure(verdict) == null ? "ALLOWED" : "BLOCKED");
       facts.put("backend", label(backend));
       facts.put("selection", label(selection));
       facts.put("jvm", label(jvm));
@@ -239,21 +253,26 @@ public final class RestorePlanProjection {
     }
   }
 
-  /** Rust {@code verify_plan} 的返回码与原因集合；非 0/1 时 reasons 为 null。 */
-  private static final class RustResult {
-    private final int code;
-    private final int[] reasons;
+  /**
+   * Rust {@code verify_plan} 的返回码与原因集合；非 0/1 时 reasons 为 null。
+   *
+   * <p>包内可见以便单测注入并覆盖 DIVERGENT / UNVERIFIED 分支；生产路径只由
+   * {@link #verifyRust} 构造，外部不可见。
+   */
+  static final class RustResult {
+    final int code;
+    final int[] reasons;
 
-    private RustResult(int code, int[] reasons) {
+    RustResult(int code, int[] reasons) {
       this.code = code;
-      this.reasons = reasons;
+      this.reasons = reasons == null ? null : reasons.clone();
     }
   }
 
   /**
    * 投影并校验一次恢复计划。
    *
-   * @param manifest 归档尾清单（只读；字段类型/范围按 A3 §3.3 检查，不符则放弃投影）
+   * @param manifest 归档尾清单（只读；字段类型/范围按 A3 §3.3 检查，无法无损编码时放弃投影）
    * @param rootCount 本次计划实际写入根数（{@code plan.groups.size()}，即 {@code preview.restoreRoots}）
    * @param sourceDigest 明文 v5 容器整份 SHA-256（32 字节）
    * @param selected 用户选择的范围集合（{@code NativeDataLocations.SCOPES} 子集、非空）
@@ -267,6 +286,23 @@ public final class RestorePlanProjection {
       Set<String> selected,
       int targetMappingKind,
       long nowMs) {
+    return project(manifest, rootCount, sourceDigest, selected, targetMappingKind, nowMs, null);
+  }
+
+  /**
+   * 包内测试缝：{@code injectedRust} 非 null 时跳过开关/库加载，直接用注入结果对拍 JVM。
+   *
+   * <p>生产调用点只使用公开重载（注入 null）。注入只替换 Rust 的返回值，不跳过 JVM 校验、
+   * 不改变投影与闸门逻辑，因此 DIVERGENT / UNVERIFIED 分支可以被真实回执覆盖。
+   */
+  static Receipt project(
+      Map<String, Object> manifest,
+      int rootCount,
+      byte[] sourceDigest,
+      Set<String> selected,
+      int targetMappingKind,
+      long nowMs,
+      RustResult injectedRust) {
     Draft draft = new Draft();
     draft.rootCount = rootCount;
     draft.targetMappingKind = targetMappingKind;
@@ -283,7 +319,7 @@ public final class RestorePlanProjection {
       draft.integrity = integrity(manifest);
       draft.entryCount = entryCount(manifest);
       draft.byteCount = byteCount(manifest);
-      draft.createdAtMs = number(manifest, "createdAt", DIAGNOSTIC_TIMESTAMP);
+      draft.createdAtMs = unsignedNumber(manifest, "createdAt", DIAGNOSTIC_TIMESTAMP);
       draft.pluginCount = pluginCount(manifest);
       draft.selectedMask = selectedMask(selected);
       draft.appVersion =
@@ -297,31 +333,47 @@ public final class RestorePlanProjection {
       draft.view = encode(draft, draft.planDigest);
       draft.projected = true;
     } catch (ProjectionFailure failure) {
-      return failed(draft, failure.code);
+      return skipped(draft, failure.code);
     } catch (PlanViewCodec.PlanViewException failure) {
-      return failed(draft, DIAGNOSTIC_ENCODE);
+      return skipped(draft, DIAGNOSTIC_ENCODE);
     } catch (RuntimeException failure) {
-      // 投影是诊断旁路：任何未预期运行时异常都放弃投影并记类型化诊断，不能把恢复拖成失败。
-      return failed(draft, DIAGNOSTIC_ENCODE);
+      // 投影是诊断旁路：可证明不可编码时放弃投影并记类型化诊断，恢复继续（P-4）。
+      return skipped(draft, DIAGNOSTIC_ENCODE);
     }
-    verify(draft);
+    try {
+      verify(draft, injectedRust);
+    } catch (RuntimeException failure) {
+      // P2-1：预览期不能整体失败，但回执必须是 UNVERIFIED，提交期仍 fail-closed 中止。
+      return verificationFailed(draft, DIAGNOSTIC_VERIFY_FAILED);
+    }
     return new Receipt(draft);
   }
 
   /**
-   * 提交期闸门：已投影且两实现一致 {@code VALID} 才放行。
+   * 提交期闸门：{@link #VERDICT_VALID} 或 {@link #VERDICT_SKIPPED} 放行，其余一律中止。
    *
-   * <p>{@code INVALID}、分歧、单侧失败一律抛类型化 {@link IOException}（fail-closed，§3.9 P-5）；
-   * **未投影**回执直接放行——根数 > 64（Q1-A）或清单值类型不符（P-4）时视图不存在，Rust 未被调用，
-   * JVM 读者/计划仍是权威路径。
+   * <p>INVALID（含未知 {@code sensitivePolicy} 等可编码但非法取值）、两实现分歧、Rust 单侧失败、
+   * 校验阶段异常（{@link #DIAGNOSTIC_VERIFY_FAILED}，即使 {@code projected=false}）都 fail-closed；
+   * 未投影回执只有在 {@link #VERDICT_SKIPPED} 时表示“不可编码/无关计划，JVM 权威路径继续”
+   * （Q1-A 根数 > 64、P-4 编码不可表示）。{@code null} 回执按 UNVERIFIED 中止。
    */
   public static void requireSubmitSafe(Receipt receipt) throws IOException {
-    if (receipt == null) throw new IOException(SUBMIT_UNVERIFIED);
-    if (!receipt.projected) return;
-    if (VERDICT_VALID.equals(receipt.verdict)) return;
-    if (VERDICT_DIVERGENT.equals(receipt.verdict)) throw new IOException(SUBMIT_DIVERGENT);
-    if (VERDICT_UNVERIFIED.equals(receipt.verdict)) throw new IOException(SUBMIT_UNVERIFIED);
-    throw new IOException(SUBMIT_INVALID);
+    String failure = receipt == null ? SUBMIT_UNVERIFIED : submissionFailure(receipt.verdict);
+    if (failure != null) throw new IOException(failure);
+  }
+
+  /**
+   * 提交期结论映射（纯函数，包内可测）：返回 null = 放行，否则为类型化中止码。
+   *
+   * <p>VALID = 双实现一致通过；SKIPPED = 可证明不可编码/无关计划；INVALID/DIVERGENT/UNVERIFIED
+   * 一律 fail-closed。
+   */
+  static String submissionFailure(String verdict) {
+    if (VERDICT_VALID.equals(verdict)) return null;
+    if (VERDICT_SKIPPED.equals(verdict)) return null;
+    if (VERDICT_DIVERGENT.equals(verdict)) return SUBMIT_DIVERGENT;
+    if (VERDICT_UNVERIFIED.equals(verdict)) return SUBMIT_UNVERIFIED;
+    return SUBMIT_INVALID;
   }
 
   /** §3.4 推导式：{@code 1 + (homeMode==LEGACY?1:0) + (projectDestination==GUEST_HOME?2:0)}。 */
@@ -350,22 +402,10 @@ public final class RestorePlanProjection {
     return bytes;
   }
 
-  /** 测试专用：构造指定结论的回执，用于验证提交期闸门（不做投影/校验、不碰 Rust）。 */
-  static Receipt simulated(boolean projected, String verdict, String diagnostic) {
-    Draft draft = new Draft();
-    draft.projected = projected;
-    draft.verdict = verdict;
-    draft.diagnostic = diagnostic;
-    draft.backend = BACKEND_JVM_ONLY;
-    draft.selection = "TEST";
-    draft.jvm = CHECK_SKIPPED;
-    draft.rust = CHECK_NOT_ATTEMPTED;
-    return new Receipt(draft);
-  }
-
-  private static Receipt failed(Draft draft, String diagnostic) {
+  /** 不可编码/无关计划：只记类型化诊断，不调 Rust，JVM 权威恢复继续（Q1-A、P-4）。 */
+  private static Receipt skipped(Draft draft, String diagnostic) {
     draft.projected = false;
-    draft.verdict = VERDICT_UNVERIFIED;
+    draft.verdict = VERDICT_SKIPPED;
     draft.diagnostic = diagnostic;
     draft.backend = BACKEND_JVM_ONLY;
     draft.selection = SELECTION_NOT_EVALUATED;
@@ -376,10 +416,32 @@ public final class RestorePlanProjection {
     return new Receipt(draft);
   }
 
-  private static void verify(Draft draft) {
+  /** 校验阶段未预期异常：预览不失败，但回执 UNVERIFIED 且提交期中止（P2-1）。 */
+  private static Receipt verificationFailed(Draft draft, String diagnostic) {
+    draft.projected = false;
+    draft.view = null;
+    draft.planDigest = null;
+    draft.verdict = VERDICT_UNVERIFIED;
+    draft.diagnostic = diagnostic;
+    draft.backend = draft.backend == null ? BACKEND_JVM_ONLY : draft.backend;
+    draft.selection = draft.selection == null ? SELECTION_NOT_EVALUATED : draft.selection;
+    draft.jvm = CHECK_FAILED;
+    draft.rust = CHECK_SKIPPED;
+    draft.jvmReasons = new int[0];
+    draft.rustReasons = new int[0];
+    return new Receipt(draft);
+  }
+
+  private static void verify(Draft draft, RustResult injectedRust) {
     PlanViewValidator.Result jvm = PlanViewValidator.validate(draft.view);
     draft.jvm = jvm.valid() ? CHECK_VALID : CHECK_INVALID;
     draft.jvmReasons = jvm.reasons();
+    if (injectedRust != null) {
+      draft.backend = BACKEND_JVM_AND_RUST;
+      draft.selection = SELECTION_INJECTED;
+      applyRustResult(draft, jvm.valid(), injectedRust);
+      return;
+    }
     RustBackends.Selection selection = RustBackends.planSelection();
     draft.selection = selection.reasonCode();
     if (!selection.useRust()) {
@@ -391,8 +453,12 @@ public final class RestorePlanProjection {
       return;
     }
     draft.backend = BACKEND_JVM_AND_RUST;
-    RustResult nativeResult = verifyRust(draft.view);
+    applyRustResult(draft, jvm.valid(), verifyRust(draft.view));
+  }
+
+  private static void applyRustResult(Draft draft, boolean jvmValid, RustResult nativeResult) {
     if (nativeResult.code != 0 && nativeResult.code != 1) {
+      // §10：Rust 内部错误/契约不符 → UNVERIFIED 中止；不得按 R1 §5.4 用 JVM 重做一次。
       draft.rust = CHECK_FAILED;
       draft.rustReasons = new int[0];
       draft.verdict = VERDICT_UNVERIFIED;
@@ -403,14 +469,14 @@ public final class RestorePlanProjection {
     draft.rustReasons = reasons;
     boolean rustValid = nativeResult.code == 0;
     draft.rust = rustValid ? CHECK_VALID : CHECK_INVALID;
-    if (jvm.valid() != rustValid || !Arrays.equals(draft.jvmReasons, reasons)) {
+    if (jvmValid != rustValid || !Arrays.equals(draft.jvmReasons, reasons)) {
       // §3.9 P-5：两实现分歧 = 缺陷；禁止用 JVM 结果覆盖后继续。
       draft.verdict = VERDICT_DIVERGENT;
       draft.diagnostic = DIAGNOSTIC_DIVERGENT;
       return;
     }
-    draft.verdict = jvm.valid() ? VERDICT_VALID : VERDICT_INVALID;
-    draft.diagnostic = jvm.valid() ? DIAGNOSTIC_READY : DIAGNOSTIC_INVALID;
+    draft.verdict = jvmValid ? VERDICT_VALID : VERDICT_INVALID;
+    draft.diagnostic = jvmValid ? DIAGNOSTIC_READY : DIAGNOSTIC_INVALID;
   }
 
   /** 调用 Rust {@code verify_plan}；返回码不支持/缓冲契约不符也按失败处理，绝不回退成 JVM 结论。 */
@@ -514,9 +580,8 @@ public final class RestorePlanProjection {
   }
 
   private static long byteCount(Map<String, Object> manifest) throws ProjectionFailure {
-    long value = number(manifest, "bytes", DIAGNOSTIC_COUNTS);
-    if (value < 0 || value > PlanViewCodec.MAX_BYTE_COUNT)
-      throw new ProjectionFailure(DIAGNOSTIC_COUNTS);
+    long value = unsignedNumber(manifest, "bytes", DIAGNOSTIC_COUNTS);
+    if (value > PlanViewCodec.MAX_BYTE_COUNT) throw new ProjectionFailure(DIAGNOSTIC_COUNTS);
     return value;
   }
 
@@ -549,16 +614,19 @@ public final class RestorePlanProjection {
     return mask;
   }
 
+  /**
+   * 只保留编码约束（非空/UTF-8/≤64/无 NUL），**不预判闭集**（Q2-A、评审 P1-1）。
+   *
+   * <p>未知/越界 {@code sensitivePolicy} 必须编码进视图，由 JVM/Rust 返回 {@code PLAN_FIELD_RANGE}
+   * → INVALID → 提交期 {@link #SUBMIT_INVALID} 中止。在投影器里提前放弃投影会把未知写者降级成
+   * “不投影继续”，正是 Q2-A 明确否决的 fail-open。
+   */
   private static String sensitivePolicy(Map<String, Object> manifest) throws ProjectionFailure {
-    String value =
-        text(
-            manifest,
-            "sensitivePolicy",
-            PlanViewCodec.MAX_SENSITIVE_POLICY_BYTES,
-            DIAGNOSTIC_SENSITIVE_POLICY);
-    if (!PlanViewCodec.SENSITIVE_POLICIES.contains(value))
-      throw new ProjectionFailure(DIAGNOSTIC_SENSITIVE_POLICY);
-    return value;
+    return text(
+        manifest,
+        "sensitivePolicy",
+        PlanViewCodec.MAX_SENSITIVE_POLICY_BYTES,
+        DIAGNOSTIC_SENSITIVE_POLICY);
   }
 
   private static long number(Map<String, Object> manifest, String key, String diagnostic)
@@ -572,6 +640,14 @@ public final class RestorePlanProjection {
     } catch (ArithmeticException notAnInteger) {
       throw new ProjectionFailure(diagnostic);
     }
+  }
+
+  /** u64 字段：拒绝 Java long 负数，避免补码被当成接近 2^64 的“合法”u64 放行（评审 P2-2）。 */
+  private static long unsignedNumber(Map<String, Object> manifest, String key, String diagnostic)
+      throws ProjectionFailure {
+    long value = number(manifest, key, diagnostic);
+    if (value < 0) throw new ProjectionFailure(diagnostic);
+    return value;
   }
 
   private static String text(

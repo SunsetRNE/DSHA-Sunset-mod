@@ -71,11 +71,15 @@ public final class RustBackends {
   }
 
   /**
-   * 解析 {@code verify_plan} 的后端（A3 §5.4）：与 {@link #digestSelection()} 同构。
+   * 解析 {@code verify_plan} 的后端（A3 §5.4、§10）：与 {@link #digestSelection()} 同构。
    *
-   * <p>默认关闭；R2 只提供选择函数，不接生产调用点。注意语义差别：digest 的 Rust 内部错误
-   * 允许用 JVM 重做一次，而 {@code verify_plan} 的两实现分歧**禁止**回退（fail-closed，
-   * 见 A3 §3.9 P-5），本方法只负责“这次走哪个实现”。
+   * <p>默认关闭；<b>A3 slice2/3 已接生产</b>：预览期与提交期投影都由
+   * {@code backup.RestorePlanProjection} 调本方法选择实现（2026-11-14 修订注释）。
+   *
+   * <p>语义差别：digest 的 Rust 内部错误允许用 JVM 重做一次，而 {@code verify_plan} 的
+   * 内部错误/契约不符与两实现分歧**都禁止**回退（fail-closed，见 A3 §3.9 P-5、§10）——
+   * Rust 单侧失败按 {@code PLAN_VIEW_UNVERIFIED} 中止，不能用 JVM 结果覆盖后继续；
+   * 只有库加载失败/ABI 不符按 §5.4 回退矩阵留在 JVM-only 并记录选择原因。
    */
   public static Selection planSelection() {
     if (!enabled) return new Selection(false, SelectionReason.SWITCH_OFF);
