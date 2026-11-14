@@ -240,17 +240,21 @@ P0/P1/P2 是落地顺序；§6 的 P1 是缺陷优先级，两者不要混淆。
 - Lead 裁决：Q1 接受保守 unknown（不自动补导入，需显式意图）；Q2 维持仅“明确未派发”的 schema/目标缺失节可在新票据下重试，writing/派发后异常冻结 unknown；Q3 `verify-existing` 暂只作内部只读入口，UI 入口另派单。
 - 测试边界：CI Source 阶段不执行 `tools/test-rc1-migration.py` / `tools/test-rc1-settings-migration.mjs`；合并前须在 release/runtime 或等价的宿主夹具阶段补跑这两套（含本目录评审补的 history-only 只读与历史完成门槛回归）。
 
-## 12. 收口补丁 A/B/E（2026-11-14，分支 fix/rc1-hardening）
+## 12. 收口补丁 A/B/E 与评审 P1/P2（2026-11-14，分支 fix/rc1-hardening）
 
-外部静态审计 §2 的三处收口按“不扩范围”实施，均带会先失败的反例测试；本批不改
-`StartupPipeline` 门禁、不改 DSH 版本 / 数据写标志 / v5 归档格式 / 包名 / 签名 / CHANGELOG，
-descriptor 与 runtimeId 由 Lead 在合并树按最终输入重算。
+外部静态审计 §2 的三处收口按“不扩范围”实施，均带会先失败的反例测试；非实现者评审的
+1 P1 + 3 P2 也在同一工作树追加修复。本批不改 `StartupPipeline` 门禁、不改 DSH 版本 /
+数据写标志 / v5 归档格式 / 包名 / 签名 / CHANGELOG，descriptor 与 runtimeId 由 Lead 在合并树
+按最终输入重算。
 
 - **A：update 之后不能按错误文字判未派发。** 删除 `/No configurable plugin entry/`、
   `/volatile|schema|invalid/i` 这类文字分类。只有调用 `settings.update` 之前完成的校验拒绝
   （分节不是映射、顶层字段未被 form schema 声明）才记 pending
   （`SECTION_VALUE_FORMAT` / `SECTION_SCHEMA_REJECTED`）；一旦进入 update，异常或读回不符一律
   unknown + `WRITE_OUTCOME_UNKNOWN`，同一票据不重试，catch 也不再绑定/记录错误消息。
+  澄清 `70ae42a4` 的说明：把派发前校验上移到投影之前，实际只改变**标量分节**（如
+  `first: plain-scalar`）的归类；`null` 分节在该提交之前已由派发前校验记
+  `SECTION_VALUE_FORMAT`，不是新改出来的。
 - **B：按真实 schema 引用图投影秘密字段。** 锁定 `SettingsForms.describe()` 的
   `descriptor.schema` 是 schemastery 引用图 `{ uid, refs }`（uid 为数字，`dict`/`inner`/
   `list` 用 uid 引用子节点，秘密只由节点 `meta.role === 'secret'` 决定），不是 `dict`/`meta`
@@ -260,29 +264,42 @@ descriptor 与 runtimeId 由 Lead 在合并树按最终输入重算。
   `intersect` 分支歧义、schema 缺失、悬空 uid、未建模类型、形状不符时该节
   `SECTION_SCHEMA_UNKNOWN` 且不调用 update。名称正则只对 schema 未声明的键做“额外不复制”
   兜底，不决定已声明字段。读回核验在内存用含秘密的完整投影做 `contains`，账本只存去秘密投影。
+- **B 补充（评审 P2-1/P2-2）。** `any`/`const`/`is`/`function` 等不声明命名键的节点与
+  “无秘密分支”的 `union`/`intersect` 对象值，落账投影也要对 schema 未声明键做 credential
+  名称兜底：联合分支声明的字段按各声明分支投影（多分支结果不一致或数组值等无法确定时保守
+  fail-closed），声明字段不删、`maxTokens` 保留；只深入普通对象/数组，Date/RegExp 类实例
+  原样保留。write-allowed 路径在写入任何结果前，还会把账本里旧分节的
+  `source`/`before`/`verified` 按当前 schema 重新投影（去 secret）或删除；因此失去 before
+  比较依据的 pending/conflict 节保守冻结为 unknown + `SECTION_LEDGER_REVIEW_REQUIRED`。
 - **E：旧账本缺期望分节集合不得自证完成。** `ledger_state` 的期望集合只接受账本自己的
-  `expectedSections`，或同代次、同 settings 摘要的 `reuse.json settingsSections`；两者都缺时
-  返回 unknown + `SETTINGS_EXPECTED_SECTIONS_MISSING`，不再用当前账本键拼出“全部完成”。Java
-  历史缓存 `Rc1MigrationCache` 同口径拒绝（`SETTINGS_EXPECTED_SECTIONS_MISSING`），本批不新增
-  用户确认放行旁路。
+  `expectedSections`，或同代次、同 settings 摘要且**带 provenance**
+  （`settingsSectionsSource: 'ledger-expected'`）的 `reuse.json settingsSections`；两者都缺时
+  返回 unknown + `SETTINGS_EXPECTED_SECTIONS_MISSING`。`publish_reuse` 只在账本有结构合法的
+  `expectedSections` 时转存并写 provenance，不再从 `ledger.sections` 当前键回填；finalize 历史
+  快路径先算 `ledger_state`、后 `publish_reuse`，同一次调用写下的证据不能反过来证明本次完成。
+  Java `Rc1MigrationCache` 同口径：只信任带 provenance 的 checkpoint；账本
+  `expectedSections` 键存在但格式非法直接 `UNAVAILABLE/SETTINGS_LEDGER_SECTION`（不回退
+  checkpoint），键缺失才回退；本批不新增用户确认放行旁路。
 
-**已知行为边界（需产品裁决）**：命中面是“提交代次的账本写于 d278c742 之前（没有
-`expectedSections`），且同代次 `reuse.json` 同样早于该提交（没有 `settingsSections`）”——
-典型为从 ≤build363 直接升级的机器；它们首次启动的 Python prepare 会返回 unknown，
+**已知行为边界（需产品裁决）**：`reuse.json` 无 provenance 的旧 checkpoint 一律不再当证据，
+因此命中面是“提交代次账本写于 d278c742 之前（没有 `expectedSections`），且同代次 checkpoint
+也无 provenance”——包括从 ≤build363 直接升级的机器，以及迁移在 build364 之前完成、后来只升级
+到 build364 的机器（364 的 `publish_reuse` 会从账本键回填 `settingsSections`，但没有本批的
+provenance 标记）。它们首次启动的 Python prepare 返回 unknown，
 [StartupPipeline](../../../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java#L316)
-对非 `allowsStart` 结果阻断启动，用户看到“迁移未完成或结果未知/检查保留数据”而不是被自动重导，
-而且被拦后 finalize 不再运行，无法自愈。从 build364 升级且已启动过一次的机器，会在 finalize
-快路径把 `settingsSections` 写进 `reuse.json`，因此可经同代次 checkpoint 证据继续判 verified；
-新代次账本自带 `expectedSections` 不受影响。若产品希望改为“可见待处理但允许无写入启动”，需要
-另立用户显式确认不导入的受控路径，不在本批范围。
+对非 `allowsStart` 结果阻断启动，用户看到“迁移未完成或结果未知/检查保留数据”，被拦后 finalize
+不再运行、无法自愈。只有在本次新构建上新建的代次（账本自带 `expectedSections`）不受影响；本批
+之后 `publish_reuse` 从新账本转存的 checkpoint 才带 provenance。若产品希望改为“可见待处理但
+允许无写入启动”，需要另立用户显式确认不导入的受控路径，不在本批范围。
 
-测试（2026-11-14 UTC，本机真实锁定运行时）：`tools/test-rc1-settings-migration.mjs` 23 项通过
-（含 4 项修复前失败的真实 schema/未知 schema 反例、3 项修复前失败的 A 反例，以及非映射分节在
-update 前拒绝）；
-`tools/test-rc1-migration.py` 48 项通过（含 3 项修复前失败、1 项修复前因缺新函数不可用的 E 反例）;
-`Rc1MigrationCacheTest` 8 项通过（javac + JUnitCore；新增“旧账本与 checkpoint 都缺期望集合 →
-UNAVAILABLE”负例，保留账本自带 `expectedSections` 的历史命中正例）。另有
-`format-java-tree.py --check`（1775 文件 0 需格式化）、`check-source-hygiene.py`、
+测试（2026-11-14 UTC，本机真实锁定运行时）：`tools/test-rc1-settings-migration.mjs` 31 项通过
+（含 4 项修复前失败的真实 schema/未知 schema 反例、3 项修复前失败的 A 反例、2 项修复前失败的
+名称兜底反例、2 项修复前失败的旧账本清理反例，以及 tuple/transform/lazy/intersect/schema 缺失
+覆盖）；`tools/test-rc1-migration.py` 50 项通过（含 3 项修复前失败、1 项修复前因缺新函数不可用
+的 E 反例，与 3 项修复前失败的 checkpoint provenance 反例）；`Rc1MigrationCacheTest` 10 项通过
+（javac + JUnitCore；含无 provenance checkpoint 拒绝、账本空/部分/全部 verified 缺期望集合
+`UNAVAILABLE`、账本 `expectedSections` 格式非法不回退 checkpoint、账本自带期望集合的历史命中
+正例）。另 `format-java-tree.py --check`（1775 文件 0 需格式化）、`check-source-hygiene.py`、
 `check-document-links.py`（56 篇/1309 目标）、`run-host-tests.py --check-manifest` 通过。
 未跑：Gradle 单测任务（本机缺 `app/src/main/assets/dsh-runtime.bin` 等固定输入，任务在
 `prepareBackupAssets` 失败）、设备/覆盖安装/真机迁移、完整 Ubuntu 门禁；
