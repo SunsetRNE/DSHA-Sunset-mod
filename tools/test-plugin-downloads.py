@@ -39,6 +39,12 @@ class PluginDownloadTest(unittest.TestCase):
             spec.loader.exec_module(self.m)
         self.home = self.root / 'root/.dsh'
         self.home.mkdir(parents=True)
+        runtime=self.root/'usr/local/lib/node_modules/@deepseek-ai/dsh'
+        self.put(runtime/'package.json',{'name':'@deepseek-ai/dsh','version':'0.2.2-rc.1'})
+        boot=runtime/'node_modules/@deepseek-ai/dsh-app-boot'
+        self.put(boot/'package.json',{'name':'@deepseek-ai/dsh-app-boot','version':'0.2.2-rc.1','main':'lib/index.js'})
+        self.put(boot/'lib/index.js',"throw Error('compatibility must never import app-boot');")
+
 
     def tearDown(self):
         self.env.stop()

@@ -20,6 +20,15 @@ ASSETS = Path(__file__).resolve().parents[1] / 'app/src/main/assets'
 
 
 class DiscoveryTest(unittest.TestCase):
+    def entry_bundle(self, text, name='test-plugin'):
+        directory = self.plugin('root/.dsh/profiles/web/node_modules', name)
+        (directory / 'cordis.patch.yml').write_text(text, encoding='utf8')
+        doc = json.loads(self.manifest.read_text())
+        doc['dependencies'][name] = '1.0.0'
+        doc['dsh']['profile']['bundles'].append(name)
+        self.manifest.write_text(json.dumps(doc))
+        return directory
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -31,6 +40,10 @@ class DiscoveryTest(unittest.TestCase):
         self.builtin = self.manager.builtin
         self.manifest = self.put('root/.dsh/profiles/web/package.json',
                                  {'dependencies': {}, 'dsh': {'profile': {'bundles': list(self.builtin.OFFICIAL_BUNDLES)}}})
+        runtime = 'usr/local/lib/node_modules/@deepseek-ai/dsh/'
+        self.put(runtime + 'package.json', {'name':'@deepseek-ai/dsh','version':'0.2.2-rc.1'})
+        self.put(runtime + 'node_modules/@deepseek-ai/dsh-app-boot/package.json', {'name':'@deepseek-ai/dsh-app-boot','version':'0.2.2-rc.1','main':'lib/index.js'})
+        self.put(runtime + 'node_modules/@deepseek-ai/dsh-app-boot/lib/index.js', "throw Error('must never import app-boot');")
 
     def tearDown(self):
         self.env.stop()
@@ -94,6 +107,94 @@ class DiscoveryTest(unittest.TestCase):
         doc['dsh']['profile']['bundles'] += selected
         self.manifest.write_text(json.dumps(doc))
         return packages, selected
+
+    def test_structured_failures_do_not_classify_localized_message_text(self):
+        cases = [
+            (self.manager.PackageCommandUnknown('ordinary wording'), 'unknown', 'PLUGIN_EXECUTION_UNKNOWN', False),
+            (self.manager.PackageCommandTimeout('ordinary wording', confirmed_exit=True), 'error', 'PLUGIN_COMMAND_TIMEOUT_CONFIRMED', True),
+            (self.manager.PackageCommandTimeout('ordinary wording', confirmed_exit=False), 'unknown', 'PLUGIN_EXECUTION_UNKNOWN', False),
+            (self.manager.PluginCancelled('ordinary wording'), 'cancelled', 'PLUGIN_CANCELLED', True),
+            (self.manager.PluginIntentUnconfirmed('ordinary wording'), 'partial', 'PLUGIN_INTENT_UNCONFIRMED', False),
+            (ValueError('UNKNOWN 只是错误正文'), 'error', 'PLUGIN_MANAGER_FAILED', False),
+        ]
+        for error, status, code, cleanup in cases:
+            with self.subTest(error=type(error).__name__):
+                output = io.StringIO()
+                with patch.object(self.manager.sys, 'argv', ['plugin-manager.py', 'enable-state', 'test-plugin']), \
+                        patch.object(self.manager, 'set_plugin_state', side_effect=error), contextlib.redirect_stdout(output):
+                    self.assertEqual(1, self.manager.main())
+                value = json.loads(output.getvalue().split('PLUGIN_RESULT: ')[-1])
+                self.assertEqual(status, value['status'])
+                self.assertIs(status == 'unknown', value['exitUnknown'])
+                if status == 'unknown':
+                    self.assertIs(True, value['executionUnknown'])
+                self.assertEqual(code, value['errorCode'])
+                self.assertEqual(cleanup, value.get('cleanupVerified', False))
+                self.assertFalse(value['automaticRetry'])
+                self.assertEqual('enable-state', value['stage'])
+
+    def test_pending_install_blocks_new_mutation_without_replaying_it(self):
+        identifier = '00000000-0000-4000-8000-000000000001'
+        self.put('root/.dsh/plugin-install-operations/' + identifier + '/plan.json', {'id': identifier})
+        before = self.manifest.read_bytes()
+        output = io.StringIO()
+        with patch.object(self.manager.sys, 'argv', ['plugin-manager.py', 'enable-state', 'test-plugin']), \
+                patch.object(self.manager, 'set_plugin_state') as mutate, contextlib.redirect_stdout(output):
+            self.assertEqual(1, self.manager.main())
+        mutate.assert_not_called()
+        value = json.loads(output.getvalue().split('PLUGIN_RESULT: ')[-1])
+        self.assertEqual('pending', value['status'])
+        self.assertEqual('PLUGIN_INSTALL_PENDING', value['errorCode'])
+        self.assertFalse(value['cleanupVerified'])
+        self.assertEqual(before, self.manifest.read_bytes())
+
+    def test_pending_created_while_switch_waits_for_writer_lock_blocks_all_writes(self):
+        self.entry_bundle('[]\n')
+        activation = self.put('root/.dsh/plugin-activations.json', {'format': 1, 'entries': {
+            'test-plugin': {'status': 'loaded', 'version': '1.0.0', 'fingerprint': 'a' * 64}}})
+        before_manifest, before_activation = self.manifest.read_bytes(), activation.read_bytes()
+        original = self.builtin.operation_lock
+        identifier = '00000000-0000-4000-8000-000000000002'
+        plan = self.root / ('root/.dsh/plugin-install-operations/' + identifier + '/plan.json')
+        @contextlib.contextmanager
+        def acquired(*args, **kwargs):
+            with original(*args, **kwargs):
+                self.put(str(plan.relative_to(self.root)), {'id': identifier})
+                yield
+        output = io.StringIO()
+        with patch.object(self.manager.sys, 'argv', ['plugin-manager.py', 'enable-state', 'test-plugin']), \
+                patch.object(self.builtin, 'operation_lock', side_effect=acquired), \
+                patch.object(self.manager.lifecycle(), 'queue_activation', wraps=self.manager.lifecycle().queue_activation) as activate, \
+                patch.object(self.builtin, 'enable_plugin', wraps=self.builtin.enable_plugin) as enable, \
+                patch.object(self.builtin, 'disable_plugin', wraps=self.builtin.disable_plugin) as disable, \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(1, self.manager.main())
+        activate.assert_not_called(); enable.assert_not_called(); disable.assert_not_called()
+        value = json.loads(output.getvalue().split('PLUGIN_RESULT: ')[-1])
+        self.assertEqual('pending', value['status'])
+        self.assertEqual('PLUGIN_INSTALL_PENDING', value['errorCode'])
+        self.assertFalse(value.get('intentVerified', False))
+        self.assertEqual(before_manifest, self.manifest.read_bytes())
+        self.assertEqual(before_activation, activation.read_bytes())
+        self.assertEqual({'id': identifier}, json.loads(plan.read_text()))
+
+    def test_unknown_marker_cannot_receive_a_verified_enable_receipt(self):
+        self.entry_bundle('[]\n')
+        marker = Path(self.builtin.marker_path('test-plugin'))
+        marker.mkdir(parents=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(self.manager.PluginIntentUnconfirmed):
+                self.manager.set_plugin_state('test-plugin', True)
+        self.assertEqual('unknown-marker', self.manager._native_marker('test-plugin'))
+        self.assertFalse(self.items()['test-plugin']['enabled'])
+
+    def test_snapshot_race_type_survives_changes_to_its_human_message(self):
+        self.entry_bundle('[]\n')
+        with patch.object(self.manager, '_entry_file', side_effect=self.manager.EntrySnapshotChanged('different locale')), \
+                patch.object(self.manager, 'result') as result:
+            with self.assertRaises(self.manager.EntrySnapshotChanged):
+                self.manager.cmd_list()
+        result.assert_not_called()
 
     def test_only_real_bundles_are_hashed_once_per_command_despite_duplicate_runtime_aliases(self):
         packages, selected = self.runtime_alias_fixture()
@@ -188,8 +289,9 @@ class DiscoveryTest(unittest.TestCase):
                 patch('sys.argv', ['plugin-manager.py', 'enable-state', name]), \
                 patch.object(self.manager, 'result') as result:
             self.assertEqual(1, self.manager.main(), 'a no-op backend cannot claim an enable acknowledgement')
-            self.assertEqual('error', result.call_args.args[0])
-            self.assertNotIn('intentVerified', result.call_args.kwargs)
+            self.assertEqual('partial', result.call_args.args[0])
+            self.assertIs(False, result.call_args.kwargs['intentVerified'])
+            self.assertEqual('PLUGIN_INTENT_UNCONFIRMED', result.call_args.kwargs['errorCode'])
 
     def test_read_query_cancellation_reaches_content_scan_and_does_not_mutate_intent(self):
         name = '@fixture/cancellable-bundle'
@@ -741,6 +843,88 @@ class DiscoveryTest(unittest.TestCase):
         result = subprocess.run([node, '--input-type=module', '-e', probe], capture_output=True, text=True)
         self.assertEqual(0, result.returncode, result.stderr)
 
+
+
+
+    def test_entry_projection_static_broken_manifest_keeps_registered_removal_card(self):
+        directory = self.entry_bundle('[]\n')
+        self.entry_bundle('[]\n', 'healthy-plugin')
+        package = directory / 'package.json'
+        for damaged in ('{broken json', '[]', 'null', '"not an object"'):
+            with self.subTest(damaged=damaged):
+                package.write_text(damaged, encoding='utf8')
+                rows = self.items()
+                item = rows['test-plugin']
+                self.assertEqual('PLUGIN_METADATA_UNREADABLE', item['metadataError'])
+                self.assertTrue(item['available']); self.assertTrue(item['deletable'])
+                self.assertTrue(item['selected']); self.assertFalse(item['installed'])
+                self.assertEqual('ENTRY_INPUT_UNREADABLE', item['entryReadError'])
+                self.assertEqual([], item['entries'])
+                self.assertRegex(item['patchRevision'], '^[a-f0-9]{64}$')
+                self.assertTrue(rows['healthy-plugin']['installed'])
+                self.assertEqual(damaged, package.read_text(encoding='utf8'))
+
+    def test_entry_projection_broken_manifest_changed_after_read_is_still_a_race(self):
+        directory = self.entry_bundle('[]\n')
+        package = directory / 'package.json'
+        for damaged in ('{broken json', '[]'):
+            with self.subTest(damaged=damaged):
+                package.write_text(damaged, encoding='utf8')
+                def changed(request):
+                    package.write_text(damaged + '\nchanged after entry read', encoding='utf8')
+                    return {'error': 'ENTRY_READER_UNAVAILABLE'}
+                with patch.object(self.manager, '_entry_read_node', side_effect=changed), \
+                        patch.object(self.manager, 'result') as result:
+                    with self.assertRaisesRegex(ValueError, '列表读取期间变化'):
+                        self.manager.cmd_list()
+                    result.assert_not_called()
+
+    def test_entry_projection_unavailable_node_keeps_directory_facts_and_unknown_reason(self):
+        self.entry_bundle('- insert:\n    - id: child\n      name: ./index.js\n')
+        with patch.object(self.manager, '_entry_read_node', side_effect=FileNotFoundError('node unavailable')):
+            item = self.items()['test-plugin']
+        self.assertTrue(item['selected']); self.assertTrue(item['installed'])
+        self.assertEqual('profile', item['availability'])
+        self.assertEqual([], item['entries'])
+        self.assertEqual('ENTRY_READER_UNAVAILABLE', item['entryReadError'])
+        self.assertRegex(item['patchRevision'], '^[a-f0-9]{64}$')
+
+    def test_entry_projection_malformed_reader_reply_does_not_erase_directory(self):
+        self.entry_bundle('[]\n')
+        for reply in (None, {'items': None}, {'items': [{'name': 'test-plugin', 'entries': 'invalid', 'entryReadError': ''}]}):
+            with self.subTest(reply=reply), patch.object(self.manager, '_entry_read_node', return_value=reply):
+                item = self.items()['test-plugin']
+                self.assertTrue(item['selected']); self.assertTrue(item['installed'])
+                self.assertEqual('ENTRY_READER_UNAVAILABLE', item['entryReadError'])
+
+    def test_entry_projection_disabled_conflict_wins_without_losing_selection(self):
+        self.entry_bundle('[]\n')
+        marker = self.root / 'root/.dsh/profiles/web/node_modules/test-plugin.disabled'
+        for text, reason in [('', 'user-disabled'), ('DSHA_SAFE_MODE\n', 'safe-mode'),
+                             ('DSHA_WEB_BUILTIN_DISABLED_V1\n', 'web-disabled'),
+                             ('DSHA_REVIEW_REQUIRED\n', 'review-required'), ('foreign', 'unknown-marker'),
+                             ('x' * 129, 'unknown-marker')]:
+            with self.subTest(reason=reason):
+                marker.write_text(text, encoding='utf8')
+                item = self.items()['test-plugin']
+                self.assertTrue(item['selected']); self.assertTrue(item['installed'])
+                self.assertFalse(item['enabled']); self.assertEqual(reason, item['nativeMarker'])
+        marker.unlink(); marker.mkdir()
+        self.assertEqual('unknown-marker', self.items()['test-plugin']['nativeMarker'])
+        self.assertFalse(self.items()['test-plugin']['enabled'])
+
+    def test_entry_projection_pending_transaction_cannot_claim_installation(self):
+        directory = self.entry_bundle('[]\n')
+        operation = self.root / 'root/.dsh/plugin-install-operations/11111111-2222-3333-4444-555555555555'
+        operation.mkdir(parents=True)
+        plan = operation / 'plan.json'; plan.write_text('{}')
+        before = plan.read_bytes()
+        with patch.object(self.manager, 'result') as result, \
+                patch.object(self.manager.transactions(), 'recover_all', side_effect=AssertionError('read must not recover')):
+            with self.assertRaisesRegex(ValueError, 'PLUGIN_INSTALL_PENDING'):
+                self.manager.cmd_list()
+            result.assert_not_called()
+        self.assertEqual(before, plan.read_bytes()); self.assertTrue(directory.is_dir())
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

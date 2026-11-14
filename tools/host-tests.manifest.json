@@ -1022,6 +1022,22 @@
       "cli": "no positional arguments; see explicit environment/requirements"
     },
     {
+      "path": "tools/test-plugin-entry-reader.py",
+      "stage": "runtime",
+      "reason": "Execute the fixed archive's real js-yaml on literal, opaque and ambiguous plugin entry patches; independently verify archive SHA, reject missing inputs without skips, and never load observer or plugin code.",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": [
+        "python39",
+        "node24",
+        "current_archive"
+      ],
+      "environment": {
+        "DSHA_RUNTIME_ARCHIVE": "{runtimeArchive}"
+      },
+      "cli": "No positional arguments; reads only a SHA-verified current archive into a private parser fixture, without creating raw/managed provenance."
+    },
+    {
       "path": "tools/test-plugin-downloads.py",
       "stage": "fast",
       "reason": "隔离宿主或纯源码/协议回归，无发布密钥、设备和真实用户数据",
@@ -3405,6 +3421,43 @@
       "environment": {},
       "reason": "Rebirth unsigned candidate verifier pure contracts: identity file, badging manifest checks, authorities prefix, unsigned evidence (apksigner marker / v1 files / APK Signing Block), fixed-certificate rejection and exit codes 0/1/2; no real APK or Android SDK.",
       "cli": "no arguments; module-level pure functions and fixture strings only"
+    },
+    {
+      "path": "tools/test-plugin-runtime-sampler.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Exercises current Loader sampler with bounded in-memory entries and the actual integration writer; verifies identity, unloading/null, parent/group uniqueness, no disk reads or expression replay, and same-frame redacted sidecar limits. Does not replace pinned real Loader tests."
+    },
+    {
+      "path": "tools/test-plugin-compatibility.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "node24",
+        "current_archive"
+      ],
+      "args": [],
+      "environment": {
+        "DSHA_RUNTIME_ARCHIVE": "{runtimeArchive}"
+      },
+      "timeoutSeconds": 180,
+      "reason": "Verifies the exact pinned app-boot compatibility functions against the production SemVer reader without importing plugins, and exercises guarded preview/commit, read-only exact exemptions, source ABA, platform/prerelease and multi-package preflight on isolated real files."
+    },
+    {
+      "path": "tools/test-plugin-startup-metadata.mjs",
+      "stage": "fast",
+      "requires": [
+        "node24"
+      ],
+      "args": [],
+      "environment": {},
+      "timeoutSeconds": 60,
+      "reason": "Executes the production observer in an isolated VM with real fixed compatibility checker, temporary manifests and injected YAML/Loader ports; verifies startup-only metadata, patch declarations and unverified preflight without claiming real Cordis Loader execution."
     }
   ]
 }

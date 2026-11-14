@@ -11,6 +11,8 @@ import androidx.lifecycle.MutableLiveData;
 import com.deepseekharness.app.plugins.PluginOperationQueue.Type;
 import com.deepseekharness.app.runtime.ProotBootstrap;
 import com.deepseekharness.app.util.PluginSource;
+import com.deepseekharness.app.util.PluginMutationTickets;
+import com.deepseekharness.app.plugins.PluginSourceIdentity;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.ShellQuote;
 import java.io.File;
@@ -64,6 +66,90 @@ public final class PluginRepository extends AndroidViewModel {
   private final java.util.Set<String> changedTargets =
       java.util.concurrent.ConcurrentHashMap.newKeySet();
   private volatile ResumeWeb pendingResume;
+  private volatile RetainedExecution retainedExecution;
+  private volatile com.deepseekharness.app.plugins.PluginExitProofGate exitProofs =
+      new com.deepseekharness.app.plugins.PluginExitProofGate();
+  private boolean exitOwnerBound;
+
+  private static final class RetainedExecution {
+    final PendingWork request;
+    final PluginTask task;
+    final com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease;
+    final RuntimeTasks work, guard;
+    final long retainedAt;
+    final com.deepseekharness.app.plugins.PluginExitProofGate.Binding binding;
+    boolean exitConfirmed;
+
+    RetainedExecution(
+        PendingWork request,
+        PluginTask task,
+        com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease,
+        RuntimeTasks work) {
+      this.request = request;
+      this.task = task;
+      this.lease = lease;
+      this.work = work;
+      guard = RuntimeTasks.beginDetached("插件退出待核验");
+      retainedAt = System.currentTimeMillis();
+      binding =
+          new com.deepseekharness.app.plugins.PluginExitProofGate.Binding(
+              request.id,
+              task.id,
+              request.executionSource == null ? null : request.executionSource.webGeneration,
+              // A5 尚未提供真实执行实例；Gate 明确拒绝缺实例的证明，不从 Web/PID 推测。
+              null);
+    }
+  }
+
+  /** 仅由 A5 启动 owner 在首次任务前绑定；当前没有默认生产者。 */
+  synchronized boolean bindExitProofOwner(
+      com.deepseekharness.app.plugins.PluginExitProofGate.Owner owner) {
+    if (owner == null || exitOwnerBound || working.get() || operations.hasPending()) return false;
+    exitProofs = new com.deepseekharness.app.plugins.PluginExitProofGate(owner);
+    exitOwnerBound = true;
+    return true;
+  }
+
+  /** 只消费 A5 opaque 证明；字符串、自由文本和错配旧凭据不能释放未知执行。 */
+  public void confirmRetainedExit(Object opaqueProof) {
+    io.execute(
+        () -> {
+          RetainedExecution held = retainedExecution;
+          if (held == null || activeWork != held.request || activeTask != held.task) return;
+          if (!held.exitConfirmed) {
+            if (!exitProofs.consume(
+                opaqueProof, held.binding, held.retainedAt, System.currentTimeMillis())) return;
+            held.exitConfirmed = true;
+          }
+          // 闭合事实仅用于重试这张票的信号清理；不再次执行 guest 或重新解释原操作效果。
+          try {
+            held.task.close();
+            if (held.lease != null) held.lease.close();
+            if (held.work != null) held.work.close();
+            held.guard.close();
+          } catch (RuntimeException cleanupUnknown) {
+            operations.retainUnconfirmed(held.request.id, "退出已核验，但插件任务清理尚未确认");
+            publish("退出已核验，但插件任务清理尚未确认", false, -1, State.RESULT_FAILURE);
+            return;
+          }
+          if (held.request.target != null) changedTargets.add(held.request.target.stableKey);
+          operations.complete(
+              held.request.id,
+              com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED,
+              "插件进程已确认退出，操作效果仍待核对；未自动重放");
+          registry.invalidate();
+          retainedExecution = null;
+          activeWork = null;
+          activeTask = null;
+          queryRunning = false;
+          main.post(
+              () -> {
+                working.set(false);
+                publish("插件进程已确认退出，操作效果仍待核对；请刷新，未自动重放", false, -1, State.RESULT_FAILURE);
+                if (operations.hasPending() || pendingQuery != null) scheduleWorker();
+              });
+        });
+  }
 
   private static final class ResumeWeb {
     final long generation, cancellationRevision;
@@ -94,6 +180,18 @@ public final class PluginRepository extends AndroidViewModel {
   private volatile Listener listener;
   private volatile String lastEnvironmentNotice = "";
   private volatile String lastRuntimeNotice = "";
+  private volatile com.deepseekharness.app.util.PluginManagementView managementStatus =
+      com.deepseekharness.app.util.PluginManagementView.unknown("LEGACY_PROTOCOL");
+  private volatile PluginSourceIdentity managementSource;
+  private volatile PluginMutationTickets.Web managementWeb =
+      PluginMutationTickets.Web.unavailable(-1);
+  private volatile PluginMutationTickets.Web observedManagementWeb =
+      PluginMutationTickets.Web.unavailable(-1);
+  private long runtimeEvidenceRevision, lastRuntimeProjectionRevision = -1;
+  private java.util.concurrent.ScheduledFuture<?> runtimeEvidenceExpiry;
+  private volatile PluginSourceIdentity watchSource;
+  private volatile com.deepseekharness.app.util.PluginManagementView watchStatus =
+      com.deepseekharness.app.util.PluginManagementView.unknown("LEGACY_PROTOCOL");
   private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
   private Preview installedPreview;
   private volatile Preview preparedPreview;
@@ -150,7 +248,8 @@ public final class PluginRepository extends AndroidViewModel {
     private final JSONObject snapshot;
     public final String name, description, version, source, metadataError;
     public final String stableKey, contentKey, profile, scope, sessionId, pluginId;
-    public final long runtimeGeneration;
+    public final long runtimeGeneration, runtimeObservedAt;
+    public final String contentFingerprint, contentAlgorithm, runtimeInstance, runtimeReason;
     public final boolean restartRequired, runtimeStale;
     public final String location, origin;
     public final boolean detected;
@@ -160,7 +259,19 @@ public final class PluginRepository extends AndroidViewModel {
         updateMessage,
         rollbackVersion,
         compatibility;
-    public final String loadState, runtimeState;
+    public final String loadState, loadReason, runtimeState;
+    public final String installedDsh,
+        runtimePlatform,
+        managementReadOnlyReason,
+        eligibilityState,
+        eligibilityReason;
+    public final Boolean managementReadOnly;
+    public final long eligibilityObservedAt;
+    public final String compatibilityState, currentCompatibilityMessage, compatibilityCode;
+    public final boolean versionExempted;
+    public final Boolean selected, installed;
+    public final String availability, readOnlyReason, nativeMarker, entryReadError, patchRevision;
+    public final List<com.deepseekharness.app.util.PluginEntryView> entries;
     public final boolean updateAvailable, updatable;
     public final boolean enabled,
         builtin,
@@ -186,6 +297,50 @@ public final class PluginRepository extends AndroidViewModel {
       detected = json.optBoolean("detected");
       dynamic = json.optBoolean("dynamic");
       enabled = json.optBoolean("enabled");
+      selected = optionalBoolean(json, "selected");
+      installed = optionalBoolean(json, "installed");
+      String suppliedAvailability = json.optString("availability", "unknown");
+      availability =
+          java.util.Set.of("profile", "installation", "missing").contains(suppliedAvailability)
+              ? suppliedAvailability
+              : "unknown";
+      String suppliedReadOnly = json.optString("readOnlyReason");
+      readOnlyReason =
+          java.util.Set.of("", "protected", "runtime-location").contains(suppliedReadOnly)
+              ? suppliedReadOnly
+              : "unknown";
+      String suppliedMarker = json.optString("nativeMarker", "unknown-marker");
+      nativeMarker =
+          java.util.Set.of(
+                      "none",
+                      "user-disabled",
+                      "safe-mode",
+                      "web-disabled",
+                      "review-required",
+                      "unknown-marker")
+                  .contains(suppliedMarker)
+              ? suppliedMarker
+              : "unknown-marker";
+      String suppliedEntryError =
+          json.optString("entryReadError", json.has("entries") ? "" : "ENTRY_READER_LEGACY");
+      String parsedEntryError =
+          suppliedEntryError.isEmpty() || suppliedEntryError.matches("[A-Z0-9_]{1,64}")
+              ? suppliedEntryError
+              : "ENTRY_WIRE_INVALID";
+      List<com.deepseekharness.app.util.PluginEntryView> parsedEntries = Collections.emptyList();
+      if (parsedEntryError.isEmpty()) {
+        try {
+          if (!(json.opt("entries") instanceof JSONArray))
+            throw new IllegalArgumentException("PLUGIN_ENTRY_FIELD_TYPE");
+          parsedEntries = readEntries(json.optJSONArray("entries"));
+        } catch (IllegalArgumentException invalidEntry) {
+          parsedEntryError = "ENTRY_WIRE_INVALID";
+        }
+      }
+      entries = parsedEntries;
+      entryReadError = parsedEntryError;
+      String suppliedRevision = json.optString("patchRevision");
+      patchRevision = suppliedRevision.matches("[a-f0-9]{64}") ? suppliedRevision : "";
       // Names are identities, not an npm-scope classifier. Only the signed
       // registry and its one explicit historical alias own the builtin role.
       builtin =
@@ -206,11 +361,41 @@ public final class PluginRepository extends AndroidViewModel {
       updateMessage = json.optString("updateMessage");
       rollbackVersion = json.optString("rollbackVersion");
       compatibility = json.optString("compatibility");
+      installedDsh = json.optString("installedDsh");
+      runtimePlatform = json.optString("runtimePlatform");
+      managementReadOnly =
+          Boolean.TRUE.equals(optionalBoolean(json, "managementReadOnly"))
+                  && "MANAGEMENT_REQUIRED".equals(json.optString("managementReadOnlyReason"))
+              ? Boolean.TRUE
+              : null;
+      managementReadOnlyReason =
+          Boolean.TRUE.equals(managementReadOnly)
+                  && "MANAGEMENT_REQUIRED".equals(json.optString("managementReadOnlyReason"))
+              ? "MANAGEMENT_REQUIRED"
+              : "PROTECTION_UNVERIFIED";
+      JSONObject eligibility = json.optJSONObject("startupEligibility");
+      eligibilityState =
+          eligibility == null ? "unknown" : eligibility.optString("state", "unknown");
+      eligibilityReason =
+          eligibility == null
+              ? "PREFLIGHT_UNAVAILABLE"
+              : eligibility.optString("reasonCode", "PREFLIGHT_UNAVAILABLE");
+      eligibilityObservedAt = eligibility == null ? 0 : eligibility.optLong("observedAt", 0);
+      compatibilityState = json.optString("compatibilityState", "unknown");
+      currentCompatibilityMessage = json.optString("currentCompatibilityMessage");
+      compatibilityCode = json.optString("compatibilityCode");
+      versionExempted = Boolean.TRUE.equals(json.opt("versionExempted"));
       updateAvailable = json.optBoolean("updateAvailable");
       updatable = json.optBoolean("updatable");
       loadState = json.optString("loadState");
+      loadReason = json.optString("loadReason");
       runtimeState = json.optString("runtimeState", "unknown");
       runtimeGeneration = json.optLong("runtimeGeneration", -1);
+      runtimeObservedAt = json.optLong("runtimeObservedAt", 0);
+      contentFingerprint = json.optString("contentFingerprint");
+      contentAlgorithm = json.optString("contentAlgorithm");
+      runtimeInstance = json.optString("runtimeInstance");
+      runtimeReason = json.optString("runtimeReason", "NO_EVIDENCE");
       runtimeStale = json.optBoolean("runtimeStale", "unknown".equals(runtimeState));
       restartRequired = json.optBoolean("restartRequired");
       profile = json.optString("profile", "web");
@@ -252,11 +437,92 @@ public final class PluginRepository extends AndroidViewModel {
               updateMessage,
               rollbackVersion,
               compatibility,
+              compatibilityState,
+              currentCompatibilityMessage,
+              compatibilityCode,
+              Boolean.toString(versionExempted),
               loadState,
+              loadReason,
+              installedDsh,
+              runtimePlatform,
+              String.valueOf(managementReadOnly),
+              managementReadOnlyReason,
+              eligibilityState,
+              eligibilityReason,
+              Long.toString(eligibilityObservedAt),
               runtimeState,
               Long.toString(runtimeGeneration),
               Boolean.toString(runtimeStale),
-              Boolean.toString(restartRequired));
+              Boolean.toString(restartRequired),
+              String.valueOf(selected),
+              String.valueOf(installed),
+              availability,
+              readOnlyReason,
+              nativeMarker,
+              entryReadError,
+              patchRevision,
+              contentFingerprint,
+              contentAlgorithm,
+              runtimeReason,
+              runtimeInstance,
+              Long.toString(runtimeObservedAt),
+              entriesKey(entries));
+    }
+
+    private static Boolean optionalBoolean(JSONObject json, String field) {
+      Object value = json.opt(field);
+      if (value == null || value == JSONObject.NULL) return null;
+      if (!(value instanceof Boolean)) throw new IllegalArgumentException("PLUGIN_ITEM_FIELD_TYPE");
+      return (Boolean) value;
+    }
+
+    private static List<com.deepseekharness.app.util.PluginEntryView> readEntries(
+        JSONArray values) {
+      if (values == null) return Collections.emptyList();
+      if (values.length() > 2048) throw new IllegalArgumentException("PLUGIN_ENTRY_LIMIT");
+      List<com.deepseekharness.app.util.PluginEntryView> result = new ArrayList<>();
+      java.util.Set<String> ids = new java.util.HashSet<>();
+      for (int index = 0; index < values.length(); index++) {
+        JSONObject row = values.optJSONObject(index);
+        if (row == null
+            || !(row.opt("entryId") instanceof String)
+            || !(row.opt("moduleHash") instanceof String)
+            || !(row.opt("parentId") instanceof String)
+            || !(row.opt("group") instanceof Boolean))
+          throw new IllegalArgumentException("PLUGIN_ENTRY_FIELD_TYPE");
+        var entry =
+            new com.deepseekharness.app.util.PluginEntryView(
+                row.optString("entryId"),
+                row.optString("moduleHash"),
+                row.optString("parentId"),
+                row.optBoolean("group"),
+                optionalBoolean(row, "patchDisabled"),
+                row.optString("patchReason"));
+        if (row.has("runtimePhase"))
+          entry =
+              entry.withRuntime(
+                  row.isNull("runtimePhase") ? null : row.optString("runtimePhase"),
+                  row.optString("runtimeDiagnostic"),
+                  row.optString("runtimeReason", "NO_EVIDENCE"),
+                  row.optLong("runtimeObservedAt", 0));
+        entry =
+            entry.withManagement(
+                optionalBoolean(row, "managementReadOnly"),
+                row.optString("managementReadOnlyReason"));
+        if (!ids.add(entry.entryId)) throw new IllegalArgumentException("PLUGIN_ENTRY_DUPLICATE");
+        result.add(entry);
+      }
+      return Collections.unmodifiableList(result);
+    }
+
+    private static String entriesKey(List<com.deepseekharness.app.util.PluginEntryView> entries) {
+      StringBuilder value = new StringBuilder();
+      for (var entry : entries) value.append(key(entry.contentKey));
+      return value.toString();
+    }
+
+    public boolean hasReadableInstallation() {
+      return available && !Boolean.FALSE.equals(installed);
     }
 
     private static String key(String... parts) {
@@ -267,7 +533,11 @@ public final class PluginRepository extends AndroidViewModel {
 
     public Item withIntent(boolean enabled) throws Exception {
       return new Item(
-          new JSONObject(snapshot.toString()).put("enabled", enabled).put("restartRequired", true));
+          new JSONObject(snapshot.toString())
+              .put("enabled", enabled)
+              .put("selected", enabled)
+              .put("nativeMarker", enabled ? "none" : "user-disabled")
+              .put("restartRequired", true));
     }
 
     public Item withRuntime(String runtimeState, long generation) throws Exception {
@@ -275,11 +545,133 @@ public final class PluginRepository extends AndroidViewModel {
     }
 
     public Item withRuntime(String runtimeState, long generation, boolean stale) throws Exception {
+      String reason =
+          generation != runtimeGeneration ? "GENERATION" : stale ? "NO_EVIDENCE" : runtimeReason;
+      List<com.deepseekharness.app.util.PluginEntryView> next = new ArrayList<>();
+      for (var entry : entries)
+        next.add(
+            entry
+                .withRuntime(
+                    generation != runtimeGeneration ? "unknown" : entry.runtimePhase,
+                    entry.runtimeDiagnostic,
+                    stale || generation != runtimeGeneration ? reason : entry.runtimeReason,
+                    entry.runtimeObservedAt)
+                .withManagement(
+                    stale || generation != runtimeGeneration ? null : entry.managementReadOnly,
+                    stale || generation != runtimeGeneration
+                        ? "PROTECTION_UNVERIFIED"
+                        : entry.managementReadOnlyReason));
+      Item projected =
+          withRuntimeEvidence(
+              runtimeState,
+              generation,
+              stale,
+              reason,
+              generation != runtimeGeneration ? "" : runtimeInstance,
+              runtimeObservedAt,
+              next);
+      return stale || generation != runtimeGeneration
+          ? projected.withManagementEvidence(null, "PROTECTION_UNVERIFIED", null)
+          : projected;
+    }
+
+    public boolean sameEntryConfiguration(Item other) {
+      if (other == null
+          || !entryReadError.equals(other.entryReadError)
+          || entries.size() != other.entries.size()) return false;
+      for (int index = 0; index < entries.size(); index++) {
+        var left = entries.get(index);
+        var right = other.entries.get(index);
+        if (!left.entryId.equals(right.entryId)
+            || !left.moduleHash.equals(right.moduleHash)
+            || !left.parentId.equals(right.parentId)
+            || left.group != right.group
+            || !java.util.Objects.equals(left.patchDisabled, right.patchDisabled)
+            || !left.patchReason.equals(right.patchReason)) return false;
+      }
+      return true;
+    }
+
+    public Item withRuntimeEvidence(
+        String state,
+        long generation,
+        boolean stale,
+        String reason,
+        String instance,
+        long at,
+        List<com.deepseekharness.app.util.PluginEntryView> observedEntries)
+        throws Exception {
+      JSONObject next =
+          new JSONObject(snapshot.toString())
+              .put("runtimeState", state)
+              .put("runtimeGeneration", generation)
+              .put("runtimeStale", stale)
+              .put("runtimeReason", reason)
+              .put("runtimeInstance", instance)
+              .put("runtimeObservedAt", at);
+      JSONArray values = new JSONArray();
+      java.util.Map<String, com.deepseekharness.app.util.PluginEntryView> byId =
+          new java.util.HashMap<>();
+      for (var entry : observedEntries) byId.put(entry.entryId, entry);
+      for (var configuration : entries) {
+        var observed = byId.get(configuration.entryId);
+        var entry =
+            observed != null
+                    && com.deepseekharness.app.util.PluginRuntimeEvidence.entryRejection(
+                            configuration,
+                            observed.entryId,
+                            observed.moduleHash,
+                            observed.parentId,
+                            observed.group)
+                        .isEmpty()
+                ? configuration
+                    .withRuntime(
+                        observed.runtimePhase,
+                        observed.runtimeDiagnostic,
+                        observed.runtimeReason,
+                        observed.runtimeObservedAt)
+                    .withManagement(observed.managementReadOnly, observed.managementReadOnlyReason)
+                : configuration
+                    .withRuntime("unknown", "", "ENTRY_MISSING", 0)
+                    .withManagement(null, "PROTECTION_UNVERIFIED");
+        values.put(
+            new JSONObject()
+                .put("entryId", entry.entryId)
+                .put("moduleHash", entry.moduleHash)
+                .put("parentId", entry.parentId)
+                .put("group", entry.group)
+                .put(
+                    "patchDisabled",
+                    entry.patchDisabled == null ? JSONObject.NULL : entry.patchDisabled)
+                .put("patchReason", entry.patchReason)
+                .put(
+                    "runtimePhase",
+                    entry.runtimePhase == null ? JSONObject.NULL : entry.runtimePhase)
+                .put("runtimeDiagnostic", entry.runtimeDiagnostic)
+                .put("runtimeReason", entry.runtimeReason)
+                .put("runtimeObservedAt", entry.runtimeObservedAt)
+                .put(
+                    "managementReadOnly",
+                    entry.managementReadOnly == null ? JSONObject.NULL : entry.managementReadOnly)
+                .put("managementReadOnlyReason", entry.managementReadOnlyReason));
+      }
+      // 旧目录生产者没有 entry 数组时保持原来的未知配置，不能发明空的已解析列表。
+      if (entryReadError.isEmpty()) next.put("entries", values);
+      return new Item(next);
+    }
+
+    public Item withManagementEvidence(Boolean readOnly, String reason, JSONObject eligibility)
+        throws Exception {
       return new Item(
           new JSONObject(snapshot.toString())
-              .put("runtimeState", runtimeState)
-              .put("runtimeGeneration", generation)
-              .put("runtimeStale", stale));
+              .put("managementReadOnly", readOnly == null ? JSONObject.NULL : readOnly)
+              .put("managementReadOnlyReason", reason)
+              .put("startupEligibility", eligibility));
+    }
+
+    public JSONObject startupEligibilitySnapshot() throws Exception {
+      JSONObject value = snapshot.optJSONObject("startupEligibility");
+      return value == null ? null : new JSONObject(value.toString());
     }
 
     public Item withRestartRequired(boolean required) throws Exception {
@@ -290,14 +682,24 @@ public final class PluginRepository extends AndroidViewModel {
   public static final class Preview {
     public final String id, description, confirmation, action;
     public final com.deepseekharness.app.plugins.PluginSourceIdentity source;
+    private final PluginMutationTickets.Ticket<PluginSourceIdentity> mutationTicket;
 
     Preview(JSONObject json) throws Exception {
-      this(json, null);
+      this(json, null, null);
     }
 
     Preview(JSONObject json, com.deepseekharness.app.plugins.PluginSourceIdentity source)
         throws Exception {
+      this(json, source, null);
+    }
+
+    Preview(
+        JSONObject json,
+        PluginSourceIdentity source,
+        PluginMutationTickets.Ticket<PluginSourceIdentity> mutationTicket)
+        throws Exception {
       this.source = source;
+      this.mutationTicket = mutationTicket;
       id = json.getString("previewId");
       if (!id.matches("[a-f0-9]{32}")) throw new IOException("插件预览标识无效");
       confirmation = json.getString("confirmationSha256");
@@ -317,7 +719,9 @@ public final class PluginRepository extends AndroidViewModel {
         for (int i = 0; i < items.length(); i++) {
           JSONObject item = items.optJSONObject(i);
           if (item != null
-              && (item.optBoolean("existingConflict")
+              && (com.deepseekharness.app.util.PluginCompatibilityView.blocked(
+                      item.optString("compatibility"))
+                  || item.optBoolean("existingConflict")
                   || item.optJSONArray("missingDependencies") != null
                       && item.optJSONArray("missingDependencies").length() > 0)) return true;
         }
@@ -438,6 +842,7 @@ public final class PluginRepository extends AndroidViewModel {
     public final boolean cancellable;
     public final int percent;
     public final int result;
+    public final com.deepseekharness.app.util.PluginManagementView management;
     public final com.deepseekharness.app.plugins.PluginRegistry.Snapshot catalog;
     public final List<com.deepseekharness.app.plugins.PluginOperationQueue.Operation> operations;
 
@@ -454,6 +859,7 @@ public final class PluginRepository extends AndroidViewModel {
       this.result = RESULT_NONE;
       this.catalog = null;
       this.operations = Collections.emptyList();
+      this.management = null;
     }
 
     /** 保留原签名供既有反射测试使用；默认没有新结果。 */
@@ -475,6 +881,19 @@ public final class PluginRepository extends AndroidViewModel {
         boolean cancellable,
         int percent,
         int result) {
+      this(catalog, operations, busy, message, cancellable, percent, result, null);
+    }
+
+    private State(
+        com.deepseekharness.app.plugins.PluginRegistry.Snapshot catalog,
+        List<com.deepseekharness.app.plugins.PluginOperationQueue.Operation> operations,
+        boolean busy,
+        String message,
+        boolean cancellable,
+        int percent,
+        int result,
+        com.deepseekharness.app.util.PluginManagementView management) {
+      this.management = management;
       this.catalog = catalog;
       this.items = catalog.items;
       this.operations = operations;
@@ -880,13 +1299,14 @@ public final class PluginRepository extends AndroidViewModel {
     final boolean automatic;
     final AtomicBoolean cancelled = new AtomicBoolean();
     final com.deepseekharness.app.plugins.PluginSourceIdentity source;
+    volatile PluginMutationTickets.Ticket<PluginSourceIdentity> mutationTicket;
     final com.deepseekharness.app.runtime.GuestScriptBudget queryBudget;
     volatile String id;
     volatile Preview candidate;
     volatile com.deepseekharness.app.plugins.PluginSourceIdentity executionSource;
     volatile boolean catalogReceiptHandled, catalogReceiptRecorded;
     volatile RuntimeTasks runtimeWork;
-    volatile boolean committed, dispatched;
+    volatile boolean committed, dispatched, exitUnknown;
     volatile boolean resumeWeb;
     volatile long resumeGeneration = -1;
     volatile long resumeCancellationRevision = -1;
@@ -898,6 +1318,7 @@ public final class PluginRepository extends AndroidViewModel {
         boolean cancellable,
         Item target,
         com.deepseekharness.app.plugins.PluginSourceIdentity source,
+        PluginMutationTickets.Ticket<PluginSourceIdentity> mutationTicket,
         long queryMillis,
         boolean automatic) {
       this.work = work;
@@ -907,6 +1328,7 @@ public final class PluginRepository extends AndroidViewModel {
       this.target = target;
       this.automatic = automatic;
       this.source = source;
+      this.mutationTicket = mutationTicket;
       queryBudget =
           work.query()
               ? new com.deepseekharness.app.runtime.GuestScriptBudget(
@@ -975,6 +1397,10 @@ public final class PluginRepository extends AndroidViewModel {
       String inputIdentity,
       String expectedVersion,
       boolean automatic) {
+    var mutationTicket =
+        work.query()
+            ? null
+            : registry.issueMutation(observeMutationWeb(HarnessController.get(getApplication())));
     PendingWork request =
         new PendingWork(
             work,
@@ -982,7 +1408,8 @@ public final class PluginRepository extends AndroidViewModel {
             progress,
             cancellable,
             target,
-            registry.snapshot().source,
+            mutationTicket == null ? registry.snapshot().source : mutationTicket.source,
+            mutationTicket,
             queryMillis,
             automatic);
     if (work.query()) {
@@ -1003,7 +1430,13 @@ public final class PluginRepository extends AndroidViewModel {
       request.id = entry.operationId;
       if (entry.operation().phase
           == com.deepseekharness.app.plugins.PluginOperationQueue.Phase.REJECTED) {
-        publish("插件任务队列已满，请等待已有任务完成", false, -1, State.RESULT_FAILURE);
+        publish(
+            "PLUGIN_OPERATION_BLOCKED_UNCONFIRMED".equals(entry.operation().message)
+                ? "插件退出待核验"
+                : "插件任务队列已满，请等待已有任务完成",
+            false,
+            -1,
+            State.RESULT_FAILURE);
         return request.id;
       }
     }
@@ -1028,7 +1461,8 @@ public final class PluginRepository extends AndroidViewModel {
                     message,
                     cancellable,
                     percent,
-                    result));
+                    result,
+                    currentManagementStatus()));
     if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) publication.run();
     else main.post(publication);
   }
@@ -1046,6 +1480,41 @@ public final class PluginRepository extends AndroidViewModel {
         shown != null && shown.cancellable,
         shown == null ? -1 : shown.percent,
         shown == null ? State.RESULT_NONE : shown.result);
+  }
+
+  /** 只更新已观察的覆盖事实；不执行目录读取、guest 命令或失效重扫。 */
+  public void updateWatchCoverage(boolean limited, List<String> reasons) {
+    var next =
+        com.deepseekharness.app.util.PluginManagementView.unknown("LEGACY_PROTOCOL")
+            .withWatch(limited, reasons);
+    var source = registry.snapshot().source;
+    if (next.contentKey.equals(watchStatus.contentKey)
+        && java.util.Objects.equals(source, watchSource)) return;
+    watchStatus = next;
+    watchSource = source;
+    publishCatalogState();
+  }
+
+  private String publishedManagementKey() {
+    State shown = state.getValue();
+    return shown == null || shown.management == null ? "" : shown.management.contentKey;
+  }
+
+  private com.deepseekharness.app.util.PluginManagementView currentManagementStatus() {
+    var view = managementStatus;
+    long now = System.currentTimeMillis();
+    if (!java.util.Objects.equals(managementSource, registry.snapshot().source)
+        || !managementWeb.equals(observedManagementWeb)
+        || view.observedAt <= 0
+        || now < view.observedAt
+        || now - view.observedAt
+            > com.deepseekharness.app.plugins.PluginRuntimeProjection.MAX_AGE_MILLIS)
+      view =
+          com.deepseekharness.app.util.PluginManagementView.unknown("RUNTIME_EVIDENCE_UNAVAILABLE");
+    var watch = watchStatus;
+    return java.util.Objects.equals(watchSource, registry.snapshot().source)
+        ? view.withWatch(watch.watchLimited, watch.watchReasons)
+        : view.withWatch(true, List.of("WATCH_PENDING"));
   }
 
   private void adoptCatalog() {
@@ -1109,6 +1578,83 @@ public final class PluginRepository extends AndroidViewModel {
     return lastEnvironmentNotice;
   }
 
+  /** 只读取已存在的控制器身份；稳定缺页不表示进程已退出。 */
+  public void observeMutationIdentity(HarnessController controller) {
+    PluginMutationTickets.Web observed = observeMutationWeb(controller);
+    registry.observeMutationWebEvent(observed);
+    observedManagementWeb = observed;
+    // 就绪通知不携带原事件身份；同值迟到通知也只撤销证据，不用它续签旧观察。
+    markRuntimeUnverified();
+  }
+
+  /** 两次独立观察必须一致；缺就绪页是 ABSENT，读取不一致是 UNAVAILABLE。 */
+  private static PluginMutationTickets.Web observeMutationWeb(HarnessController controller) {
+    if (controller == null) return PluginMutationTickets.Web.unavailable(-1);
+    long generation = controller.getWebGeneration();
+    var ready = controller.getReadyWebPageIdentity();
+    var again = controller.getReadyWebPageIdentity();
+    if (generation != controller.getWebGeneration() || !java.util.Objects.equals(ready, again))
+      return PluginMutationTickets.Web.unavailable(generation);
+    if (ready == null) return PluginMutationTickets.Web.absent(generation);
+    if (ready.generation() != generation) return PluginMutationTickets.Web.unavailable(generation);
+    return PluginMutationTickets.Web.ready(generation, ready.instanceId(), ready.authUrl());
+  }
+
+  private PluginSourceIdentity requireMutationCurrent(
+      PendingWork request, HarnessController controller) throws Exception {
+    if (request == null || request.work.query()) throw new Invalidated("插件来源观察已被更新；旧请求未执行");
+    var previous = registry.snapshot().source;
+    var actual = backend.resolveSource().identity;
+    if (!java.util.Objects.equals(previous, registry.snapshot().source)
+        && !actual.equals(registry.snapshot().source)) throw new Invalidated("插件来源观察已被更新；旧请求未执行");
+    registry.updateSource(actual);
+    if (!registry.validateMutation(request.mutationTicket, actual, observeMutationWeb(controller)))
+      throw new Invalidated("插件执行环境已变化；未执行旧请求");
+    return actual;
+  }
+
+  /** 只在既有 exclusive 成功进入 owner 回调后转移当前 operation；其他排队票不随之换代。 */
+  private String runMutationMaintenance(
+      HarnessController controller,
+      PendingWork request,
+      MaintenanceCoordinator.Operation<String> operation)
+      throws Exception {
+    var before = requireMutationCurrent(request, controller);
+    HarnessSessionState session =
+        com.deepseekharness.app.DshaApp.from(getApplication()).harnessSession();
+    long revision = session.startProtection.cancellationRevision();
+    var transition =
+        registry.armMutationStop(
+            request.mutationTicket,
+            before,
+            observeMutationWeb(controller),
+            revision,
+            com.deepseekharness.app.util.EnvironmentTaskGate.ownsExclusiveCurrentThread());
+    if (transition == null) throw new Invalidated("插件提交前环境已变化；候选保留，未执行旧请求");
+    try {
+      return MaintenanceCoordinator.exclusive(
+          controller,
+          () -> {
+            var after = backend.resolveSource().identity;
+            var transferred =
+                registry.finishMutationStop(
+                    transition,
+                    after,
+                    observeMutationWeb(controller),
+                    session.startProtection.cancellationRevision(),
+                    MaintenanceCoordinator.isOwner()
+                        && com.deepseekharness.app.util.EnvironmentTaskGate
+                            .ownsExclusiveCurrentThread());
+            if (transferred == null) throw new Invalidated("插件提交前环境已变化；候选保留，未执行旧请求");
+            request.mutationTicket = transferred;
+            requireMutationCurrent(request, controller);
+            return operation.run();
+          });
+    } finally {
+      registry.abortMutationStop(transition);
+    }
+  }
+
   private void executeRequest(PendingWork request) {
     com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease = null;
     RuntimeTasks runtimeWork = null;
@@ -1117,6 +1663,7 @@ public final class PluginRepository extends AndroidViewModel {
     com.deepseekharness.app.plugins.PluginRegistry.Query query = null;
     boolean success = false;
     boolean receiptConfirmed = false;
+    boolean retainExit = false;
     String confirmedMessage = "";
     String message = request.progress;
     var phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.FAILED;
@@ -1146,10 +1693,10 @@ public final class PluginRepository extends AndroidViewModel {
         throw new IOException("插件来源观察已被更新；旧请求未执行");
       registry.updateSource(resolved.identity);
       if (!request.work.query()
-          && request.source != null
-          && !request.source.sameDataSource(resolved.identity)) {
+          && !registry.claimMutation(
+              request.mutationTicket, resolved.identity, observeMutationWeb(controller))) {
         phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.INVALIDATED;
-        throw new IOException("插件任务所属数据根或环境已变化；旧任务未执行，请重新提交");
+        throw new Invalidated("插件任务所属数据根或环境已变化；旧任务未执行，请重新提交");
       }
       adoptCatalog();
       Listener current = listener;
@@ -1190,30 +1737,48 @@ public final class PluginRepository extends AndroidViewModel {
                   throw new IOException("环境维护尚未完成，请先恢复维护，再刷新或操作插件");
                 executingTask.check();
                 if (request.queryBudget != null) request.queryBudget.remainingMillis();
-                if (!resolved.identity.equals(backend.resolveSource().identity))
-                  throw new IOException("插件执行环境已变化；未执行旧请求");
+                if (request.work.query()) {
+                  if (!resolved.identity.equals(backend.resolveSource().identity))
+                    throw new IOException("插件执行环境已变化；未执行旧请求");
+                } else requireMutationCurrent(request, controller);
                 if (request.work.maintenance()) {
                   try (RuntimeTasks synchronous = RuntimeTasks.begin()) {
                     request.runtimeWork.close();
-                    return MaintenanceCoordinator.exclusive(
-                        controller, () -> request.work.run(proot));
+                    return runMutationMaintenance(
+                        controller, request, () -> request.work.run(proot));
                   }
                 }
                 return request.work.run(proot);
               });
       receiptConfirmed = !request.work.query();
       confirmedMessage = message;
+      var beforeAfterResolution = registry.snapshot().source;
       var after = lease.run(backend::resolveSource);
-      if (!resolved.identity.sameDataSource(after.identity)) {
+      if (!request.work.query()
+          && java.util.Objects.equals(beforeAfterResolution, registry.snapshot().source))
+        registry.updateSource(after.identity);
+      if (request.work.query()
+          ? !resolved.identity.equals(after.identity)
+          : !registry.validateMutation(
+              request.mutationTicket, after.identity, observeMutationWeb(controller))) {
         phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED;
         throw new IOException("执行期间数据根或环境变化；结果待核验，未自动重放");
       }
       if (request.work.query()) {
-        if (!resolved.identity.equals(after.identity)
-            || !registry.completeQuery(query, items, pendingReviews, safeMode)) {
-          if (resolved.identity.equals(registry.snapshot().source))
-            registry.updateSource(after.identity);
-          throw new IOException("插件列表来源已变化，旧查询结果已丢弃");
+        synchronized (this) {
+          // 目录读取事实仍可采用；期间失效的运行/管理字段不得借目录完成复活。
+          if (lastRuntimeProjectionRevision != runtimeEvidenceRevision) {
+            List<Item> stale = new ArrayList<>();
+            for (Item item : items)
+              stale.add(item.withRuntime(item.runtimeState, item.runtimeGeneration, true));
+            items = Collections.unmodifiableList(stale);
+          }
+          if (!resolved.identity.equals(after.identity)
+              || !registry.completeQuery(query, items, pendingReviews, safeMode)) {
+            if (resolved.identity.equals(registry.snapshot().source))
+              registry.updateSource(after.identity);
+            throw new IOException("插件列表来源已变化，旧查询结果已丢弃");
+          }
         }
       } else if (request.catalogReceiptHandled) {
         if (!request.catalogReceiptRecorded) throw new IOException("操作回执已确认，当前目录来源已变化，需重新核对显示结果");
@@ -1227,25 +1792,40 @@ public final class PluginRepository extends AndroidViewModel {
       phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.SUCCEEDED;
     } catch (Exception error) {
       message = failureMessage(error);
+      var failure = com.deepseekharness.app.plugins.PluginOperationResult.findFailure(error);
+      retainExit = !request.work.query() && request.exitUnknown;
       if (receiptConfirmed) {
         registry.failSource(message);
         success = true;
         phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.SUCCEEDED;
         message = confirmedMessage + "；后续目录核对未完成，操作回执已保留";
-      } else if (message.contains("UNKNOWN")
-          || message.contains("UNCONFIRMED")
-          || message.contains("未确认")
-          || message.contains("待核验")
-          || (!request.work.query()
-              && request.dispatched
-              && !(error instanceof CancelConfirmed)
-              && (request.cancelled.get()
-                  || message.contains("TIMEOUT")
-                  || message.contains("INTERRUPTED")))) {
-        phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED;
-        message = "插件操作结果待核验；未自动重放：" + message;
+      } else if (failure != null) {
+        retainExit |= !request.work.query() && failure.exitUnknown;
+        operations.recordResultDetail(request.id, failure.detail);
+        phase =
+            switch (failure.kind) {
+              case FAILED -> com.deepseekharness.app.plugins.PluginOperationQueue.Phase.FAILED;
+              case TIMEOUT -> com.deepseekharness.app.plugins.PluginOperationQueue.Phase.TIMEOUT;
+              case CANCELLED ->
+                  com.deepseekharness.app.plugins.PluginOperationQueue.Phase.CANCELLED;
+              case INVALIDATED ->
+                  com.deepseekharness.app.plugins.PluginOperationQueue.Phase.INVALIDATED;
+              case UNCONFIRMED ->
+                  com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED;
+            };
       } else if (error instanceof Invalidated) {
         phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.INVALIDATED;
+      } else if (error instanceof CancelConfirmed
+          || request.cancelled.get() && !request.dispatched) {
+        phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.CANCELLED;
+      } else if (!request.work.query() && request.dispatched) {
+        // 已分发但没有类型化结果；异常文字或界面语言不能把它降成普通失败。
+        phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED;
+        operations.recordResultDetail(
+            request.id,
+            new com.deepseekharness.app.plugins.PluginOperationResult.Detail(
+                "PLUGIN_EXECUTION_UNKNOWN", "", "", ""));
+        message = "插件操作结果待核验；未自动重放：" + message;
       } else if (request.cancelled.get()) {
         phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.CANCELLED;
       }
@@ -1254,17 +1834,53 @@ public final class PluginRepository extends AndroidViewModel {
       adoptCatalog();
     } finally {
       if (poll != null) poll.cancel(false);
+      registry.closeMutation(request.mutationTicket);
+    }
+    if (phase == com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED
+        || phase == com.deepseekharness.app.plugins.PluginOperationQueue.Phase.INVALIDATED
+        || phase == com.deepseekharness.app.plugins.PluginOperationQueue.Phase.FAILED
+            && request.dispatched) {
+      if (request.target != null) changedTargets.add(request.target.stableKey);
+    }
+    // 只读查询没有 mutation 槽位，不得进入等待 A5 证明的永久保留分支。
+    if (retainExit
+        && !request.work.query()
+        && task != null
+        && operations.retainUnconfirmed(request.id, message)) {
+      retainedExecution = new RetainedExecution(request, task, lease, runtimeWork);
+      pendingResume = null;
+      publish(message, false, -1, State.RESULT_FAILURE);
+      return;
     }
     // 信号读取、取消写入和结束清理均在后台；清理先于释放凭据。
     try {
       if (task != null) task.close();
     } catch (RuntimeException cleanupFailed) {
-      publish(
-          "插件清理未确认，保留环境占用：" + SensitiveData.redact(String.valueOf(cleanupFailed)),
-          false,
-          -1,
-          State.RESULT_FAILURE);
-      return;
+      if (!request.work.query())
+        operations.recordResultDetail(
+            request.id,
+            new com.deepseekharness.app.plugins.PluginOperationResult.Detail(
+                "PLUGIN_CLEANUP_UNKNOWN", "cleanup", "", ""));
+      if (!request.work.query() && operations.retainUnconfirmed(request.id, "插件清理未确认，保留环境占用")) {
+        retainedExecution = new RetainedExecution(request, task, lease, runtimeWork);
+        pendingResume = null;
+        publish(
+            "插件清理未确认，保留环境占用：" + SensitiveData.redact(String.valueOf(cleanupFailed)),
+            false,
+            -1,
+            State.RESULT_FAILURE);
+        return;
+      }
+      // 查询清理失败只使目录陈旧；仍交还共享租约和任务票，不伪造 A5 证明或占用 mutation 槽。
+      success = false;
+      phase = com.deepseekharness.app.plugins.PluginOperationQueue.Phase.UNCONFIRMED;
+      message = com.deepseekharness.app.util.UiText.text("读取插件失败，请查看状态并刷新重试");
+      registry.failSource(message);
+      adoptCatalog();
+      DiagnosticLog.record(
+          getApplication(),
+          "PLUGIN_QUERY_CLEANUP",
+          SensitiveData.redact(String.valueOf(cleanupFailed)));
     }
     if (runtimeWork != null) runtimeWork.close();
     if (lease != null) lease.close();
@@ -1332,12 +1948,13 @@ public final class PluginRepository extends AndroidViewModel {
       if (candidate.stableKey.equals(target.stableKey)) current = candidate;
     if (current == null
         || !current.version.equals(target.version)
+        || !current.source.equals(target.source)
         || !current.origin.equals(target.origin))
       throw new Invalidated("插件目标或版本已变化，本次任务未执行，请核对后重新提交");
   }
 
   private void poll(PendingWork request, PluginTask task, RuntimeTasks runtimeWork) {
-    if (activeWork != request || activeTask != task) return;
+    if (retainedExecution != null || activeWork != request || activeTask != task) return;
     JSONObject detail = task.read();
     long total = detail.optLong("total"), current = detail.optLong("current");
     int percent = total > 0 ? (int) Math.min(100, current * 100 / total) : -1;
@@ -1354,7 +1971,7 @@ public final class PluginRepository extends AndroidViewModel {
     operations.progress(request.id, phase, message, percent, null);
     main.post(
         () -> {
-          if (activeWork != request || activeTask != task) return;
+          if (retainedExecution != null || activeWork != request || activeTask != task) return;
           publish(
               message,
               request.cancellable
@@ -1387,13 +2004,13 @@ public final class PluginRepository extends AndroidViewModel {
   }
 
   private void cancelRequest(PendingWork request) {
-    if (!request.cancellable) return;
+    if (!request.cancellable || retainedExecution != null) return;
     request.cancelled.set(true);
     PluginTask task = activeTask;
     if (task == null || activeWork != request) return;
     SIGNALS.execute(
         () -> {
-          if (activeWork != request || activeTask != task) return;
+          if (retainedExecution != null || activeWork != request || activeTask != task) return;
           try {
             task.cancel();
           } catch (IOException error) {
@@ -1417,17 +2034,51 @@ public final class PluginRepository extends AndroidViewModel {
     PluginTask task = activeTask;
     if (activeWork != null && activeWork.cancelled.get()) throw new IOException("已取消");
     if (task != null) task.check();
+    if (activeWork != null && !activeWork.work.query())
+      requireMutationCurrent(activeWork, HarnessController.get(getApplication()));
+    boolean exited = false;
     try {
       if (activeWork != null) activeWork.dispatched = true;
-      return com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
+      var execution =
           proot.runPluginManagerResult(
               args,
               task == null ? "" : task.id,
-              new ConfigStore(getApplication()).getPluginDownloadSource()),
-          "PLUGIN_MANAGER");
+              new ConfigStore(getApplication()).getPluginDownloadSource());
+      exited = execution != null && !execution.timedOut && execution.exitCode >= 0;
+      if (execution == null)
+        throw com.deepseekharness.app.plugins.PluginOperationResult.unknownExit(
+            "PLUGIN_NO_RESULT", "没有收到插件命令退出回执，结果尚未确认");
+      var receipt =
+          com.deepseekharness.app.plugins.PluginOperationResult.requireCompleted(
+              execution.exitCode, execution.timedOut, execution.truncated, execution.output);
+      if (activeWork != null) operations.recordResultDetail(activeWork.id, receipt.detail());
+      return execution.output;
+    } catch (com.deepseekharness.app.plugins.PluginOperationResult.Failure classified) {
+      if (activeWork != null && !activeWork.work.query() && classified.exitUnknown)
+        activeWork.exitUnknown = true;
+      throw classified;
     } catch (InterruptedException interrupted) {
       Thread.currentThread().interrupt();
-      throw new java.io.InterruptedIOException("PLUGIN_MANAGER_INTERRUPTED");
+      if (activeWork != null && !activeWork.work.query()) activeWork.exitUnknown = true;
+      throw com.deepseekharness.app.plugins.PluginOperationResult.unknownExit(
+          "PLUGIN_MANAGER_INTERRUPTED", "插件命令等待被中断，退出尚未确认");
+    } catch (IOException unavailable) {
+      if (activeWork != null && !activeWork.work.query()) activeWork.exitUnknown = true;
+      var unknown =
+          com.deepseekharness.app.plugins.PluginOperationResult.unknownExit(
+              "PLUGIN_NATIVE_RESULT_UNAVAILABLE",
+              unavailable.getMessage() == null ? "插件命令退出尚未确认" : unavailable.getMessage());
+      unknown.initCause(unavailable);
+      throw unknown;
+    } catch (RuntimeException unavailable) {
+      if (exited) throw unavailable;
+      if (activeWork != null && !activeWork.work.query()) activeWork.exitUnknown = true;
+      var unknown =
+          com.deepseekharness.app.plugins.PluginOperationResult.unknownExit(
+              "PLUGIN_NATIVE_RESULT_UNAVAILABLE",
+              unavailable.getMessage() == null ? "插件命令退出尚未确认" : unavailable.getMessage());
+      unknown.initCause(unavailable);
+      throw unknown;
     }
   }
 
@@ -1512,40 +2163,57 @@ public final class PluginRepository extends AndroidViewModel {
   private String receivePreview(JSONObject output) throws Exception {
     if (!"ok".equals(output.optString("status")))
       throw new IOException(output.optString("message"));
-    if ((activeWork != null && activeWork.cancelled.get())
-        || (activeTask != null && activeTask.requested())) {
-      Preview candidate = new Preview(output.getJSONObject("preview"), registry.snapshot().source);
-      try {
-        if (candidate.source == null
-            || !candidate.source.sameDataSource(backend.resolveSource().identity))
-          throw new IOException("插件候选来源已变化，未清理其他数据根的候选");
-        discardPreviewConfirmed(HarnessController.get(getApplication()).proot(), candidate.id);
-      } catch (Exception failure) {
-        preview.postValue(candidate);
-        throw new IOException(
-            "已请求取消，但临时包清理未确认；预览原件仍可重试清理："
-                + SensitiveData.redact(String.valueOf(failure.getMessage())),
-            failure);
-      }
-      throw new CancelConfirmed("已取消解析并清理临时包");
-    }
-    Preview candidate = new Preview(output.getJSONObject("preview"), registry.snapshot().source);
     PendingWork request = activeWork;
     if (request == null) throw new IOException("PLUGIN_OPERATION_ID_REQUIRED");
+    HarnessController controller = HarnessController.get(getApplication());
+    var source = request.mutationTicket == null ? request.source : request.mutationTicket.source;
+    var web = observeMutationWeb(controller);
+    var candidateTicket =
+        registry.validateMutation(request.mutationTicket, source, web)
+            ? registry.issueMutation(web)
+            : null;
+    Preview candidate = new Preview(output.getJSONObject("preview"), source, candidateTicket);
     request.candidate = candidate;
     rememberPreview(request.id, candidate);
     preparedPreview = candidate;
     preview.postValue(candidate);
-    return commitCandidate(HarnessController.get(getApplication()), candidate, request);
+    if (request.cancelled.get() || (activeTask != null && activeTask.requested())) {
+      try {
+        consumePreview(candidate, request, controller);
+        discardPreviewConfirmed(controller.proot(), candidate.id);
+      } catch (Exception failure) {
+        var retained =
+            com.deepseekharness.app.plugins.PluginOperationResult.unknown(
+                "PLUGIN_CANCEL_CLEANUP_UNCONFIRMED",
+                "已请求取消，但临时包清理未确认；预览原件仍可重试清理："
+                    + SensitiveData.redact(String.valueOf(failure.getMessage())));
+        retained.initCause(failure);
+        throw retained;
+      }
+      preparedPreview = null;
+      preview.postValue(null);
+      throw new CancelConfirmed("已取消解析并清理临时包");
+    }
+    return commitCandidate(controller, candidate, request);
+  }
+
+  private PluginSourceIdentity consumePreview(
+      Preview selected, PendingWork request, HarnessController controller) throws Exception {
+    var actual = requireMutationCurrent(request, controller);
+    if (selected == null
+        || selected.source == null
+        || !selected.source.equals(actual)
+        || !registry.claimMutation(selected.mutationTicket, actual, observeMutationWeb(controller)))
+      throw new Invalidated("插件候选所属环境已变化；原件保留，请重新解析");
+    registry.closeMutation(selected.mutationTicket);
+    return actual;
   }
 
   /** 解析和提交属于同一个 operationId；下一项不能抢换候选。 */
   private String commitCandidate(
       HarnessController controller, Preview selected, PendingWork request) throws Exception {
     ProotBootstrap proot = controller.proot();
-    var before = backend.resolveSource().identity;
-    if (selected.source != null && !selected.source.sameDataSource(before))
-      throw new IOException("插件候选所属环境已变化；原件保留，请重新解析");
+    consumePreview(selected, request, controller);
     long generation = controller.getWebGeneration();
     HarnessSessionState session =
         com.deepseekharness.app.DshaApp.from(getApplication()).harnessSession();
@@ -1564,11 +2232,10 @@ public final class PluginRepository extends AndroidViewModel {
     try (RuntimeTasks synchronous = RuntimeTasks.begin()) {
       request.runtimeWork.close();
       message =
-          MaintenanceCoordinator.exclusive(
+          runMutationMaintenance(
               controller,
+              request,
               () -> {
-                if (!before.sameDataSource(backend.resolveSource().identity))
-                  throw new IOException("插件提交前环境已变化；候选保留，未执行旧请求");
                 JSONArray packages = selected.data.getJSONArray("items");
                 for (int i = 0; i < packages.length(); i++)
                   changedTargets.add(new Item(packages.getJSONObject(i)).stableKey);
@@ -1619,6 +2286,8 @@ public final class PluginRepository extends AndroidViewModel {
         null,
         "正在清理插件安装预览…",
         proot -> {
+          consumePreview(old, activeWork, HarnessController.get(getApplication()));
+          if (activeWork != null) activeWork.dispatched = true;
           discardPreviewConfirmed(proot, old.id);
           return "插件安装预览已取消";
         },
@@ -1629,16 +2298,39 @@ public final class PluginRepository extends AndroidViewModel {
         false);
   }
 
-  private static void discardPreviewConfirmed(ProotBootstrap proot, String id) throws Exception {
-    requireDiscardResult(proot.runPluginManagerResult("discard-preview " + ShellQuote.arg(id), ""));
+  private void discardPreviewConfirmed(ProotBootstrap proot, String id) throws Exception {
+    boolean exited = false;
+    try {
+      var execution = proot.runPluginManagerResult("discard-preview " + ShellQuote.arg(id), "");
+      exited = execution != null && !execution.timedOut && execution.exitCode >= 0;
+      requireDiscardResult(execution);
+    } catch (Exception failure) {
+      var classified = com.deepseekharness.app.plugins.PluginOperationResult.findFailure(failure);
+      if (classified != null) {
+        if (activeWork != null && classified.exitUnknown) activeWork.exitUnknown = true;
+        throw classified;
+      }
+      if (!exited) {
+        if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
+        if (activeWork != null) activeWork.exitUnknown = true;
+        var unknown =
+            com.deepseekharness.app.plugins.PluginOperationResult.unknownExit(
+                "PLUGIN_DISCARD_EXIT_UNKNOWN", "插件候选清理结果尚未确认");
+        unknown.initCause(failure);
+        throw unknown;
+      }
+      throw failure;
+    }
   }
 
   static void requireDiscardResult(
       com.deepseekharness.app.util.BoundedProcessRunner.Result execution) throws Exception {
-    String text =
-        com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
-            execution, "PLUGIN_DISCARD_PREVIEW");
-    com.deepseekharness.app.util.PluginOutput.requireDiscardSuccess(text);
+    if (execution == null)
+      throw com.deepseekharness.app.plugins.PluginOperationResult.unknownExit(
+          "PLUGIN_DISCARD_NO_RESULT", "插件候选清理结果尚未确认");
+    com.deepseekharness.app.plugins.PluginOperationResult.requireCompleted(
+        execution.exitCode, execution.timedOut, execution.truncated, execution.output);
+    com.deepseekharness.app.util.PluginOutput.requireDiscardSuccess(execution.output);
   }
 
   public String checkUpdates(Item item) {
@@ -1725,8 +2417,10 @@ public final class PluginRepository extends AndroidViewModel {
             return receivePreview(
                 result(runManager(proot, "inspect " + ShellQuote.arg(request.toString()))));
           } finally {
-            temporary.delete();
-            cleanup(proot, container);
+            if (activeWork == null || !activeWork.exitUnknown) {
+              temporary.delete();
+              cleanup(proot, container);
+            }
           }
         },
         null,
@@ -1770,8 +2464,10 @@ public final class PluginRepository extends AndroidViewModel {
                 saved = true;
                 return "已将 " + selectedNames.size() + " 个插件导出到所选位置，可在另一台 DSHA 中导入";
               } finally {
-                temporary.delete();
-                cleanup(proot, container);
+                if (activeWork == null || !activeWork.exitUnknown) {
+                  temporary.delete();
+                  cleanup(proot, container);
+                }
                 if (!saved) {
                   try {
                     DocumentsContract.deleteDocument(getApplication().getContentResolver(), uri);
@@ -1818,17 +2514,18 @@ public final class PluginRepository extends AndroidViewModel {
       throw new IOException("PLUGIN_RECEIPT_WITHOUT_EXECUTION");
     request.catalogReceiptHandled = true;
     synchronized (registry) {
+      var controller = HarnessController.get(getApplication());
+      registry.updateWebGeneration(controller.getWebGeneration());
       var catalog = registry.snapshot();
-      if (!request.executionSource.sameDataSource(catalog.source)) return;
-      // 只 Web 换代仍可保存配置事实，但先退休旧进程的运行证据。
-      registry.updateWebGeneration(HarnessController.get(getApplication()).getWebGeneration());
-      catalog = registry.snapshot();
+      if (!registry.validateMutation(
+          request.mutationTicket, catalog.source, observeMutationWeb(controller))) return;
       List<Item> next = new ArrayList<>();
       boolean found = false;
       for (Item existing : catalog.items) {
         if (!existing.dynamic && existing.stableKey.equals(target.stableKey)) {
           if (found
               || !existing.version.equals(target.version)
+              || !existing.source.equals(target.source)
               || !existing.origin.equals(target.origin)) return;
           found = true;
           if (enabled != null) next.add(existing.withIntent(enabled));
@@ -1937,7 +2634,13 @@ public final class PluginRepository extends AndroidViewModel {
   private List<Item> projectRuntime(ProotBootstrap proot, List<Item> persistent) throws Exception {
     HarnessController controller = HarnessController.get(getApplication());
     long generation = controller.getWebGeneration();
+    var source = registry.snapshot().source;
+    long evidenceEpoch;
+    synchronized (this) {
+      evidenceEpoch = runtimeEvidenceRevision;
+    }
     var identity = controller.getReadyWebPageIdentity();
+    registry.observeMutationWeb(observeMutationWeb(controller));
     long now = System.currentTimeMillis();
     String rejection = "";
     JSONObject snapshot = null;
@@ -1977,6 +2680,22 @@ public final class PluginRepository extends AndroidViewModel {
     if (generation != controller.getWebGeneration()
         || !java.util.Objects.equals(identity, controller.getReadyWebPageIdentity()))
       throw new IOException("PLUGIN_RUNTIME_CHANGED");
+    synchronized (this) {
+      if (evidenceEpoch != runtimeEvidenceRevision) throw new IOException("PLUGIN_RUNTIME_CHANGED");
+      managementStatus =
+          com.deepseekharness.app.plugins.PluginRuntimeProjection.management(
+              snapshot, generation, identity == null ? "" : identity.instanceId(), now);
+      managementSource = source;
+      managementWeb =
+          identity == null
+              ? PluginMutationTickets.Web.absent(generation)
+              : PluginMutationTickets.Web.ready(
+                  generation, identity.instanceId(), identity.authUrl());
+      observedManagementWeb = managementWeb;
+      scheduleRuntimeEvidenceExpiry(
+          rejection.isEmpty() && snapshot != null ? snapshot.optLong("at", 0) : 0, now);
+      lastRuntimeProjectionRevision = runtimeEvidenceRevision;
+    }
     noticeRuntime(projected, rejection);
     return projected;
   }
@@ -1987,7 +2706,7 @@ public final class PluginRepository extends AndroidViewModel {
     for (Item item : projected)
       if (!item.dynamic) {
         total++;
-        if ("unknown".equals(item.runtimeState)) unconfirmed++;
+        if (item.runtimeStale || "unknown".equals(item.runtimeState)) unconfirmed++;
       }
     String notice =
         rejection.isEmpty()
@@ -2044,14 +2763,22 @@ public final class PluginRepository extends AndroidViewModel {
                   () -> {
                     var before = backend.resolveSource().identity;
                     if (!before.equals(registry.snapshot().source)) return null;
+                    String managementBefore = publishedManagementKey();
                     List<Item> projected =
                         projectRuntime(
                             HarnessController.get(getApplication()).proot(),
                             registry.snapshot().items);
-                    if (before.equals(backend.resolveSource().identity)
-                        && registry.updateRuntimeItems(before, projected)) {
-                      adoptCatalog();
-                      publishCatalogState();
+                    if (!before.equals(backend.resolveSource().identity))
+                      throw new IOException("PLUGIN_RUNTIME_CHANGED");
+                    synchronized (PluginRepository.this) {
+                      if (lastRuntimeProjectionRevision != runtimeEvidenceRevision)
+                        throw new IOException("PLUGIN_RUNTIME_CHANGED");
+                      boolean itemsChanged = registry.updateRuntimeItems(before, projected);
+                      if (itemsChanged
+                          || !managementBefore.equals(currentManagementStatus().contentKey)) {
+                        adoptCatalog();
+                        publishCatalogState();
+                      }
                     }
                     return null;
                   });
@@ -2064,14 +2791,50 @@ public final class PluginRepository extends AndroidViewModel {
         });
   }
 
-  private void markRuntimeUnverified() {
+  private synchronized java.util.concurrent.ScheduledFuture<?> scheduleRuntimeEvidenceExpiry(
+      long observedAt, long now) {
+    if (runtimeEvidenceExpiry != null) runtimeEvidenceExpiry.cancel(false);
+    long revision = ++runtimeEvidenceRevision;
+    long delay =
+        com.deepseekharness.app.util.PluginRuntimeEvidence.remainingLifetime(
+            observedAt,
+            now,
+            com.deepseekharness.app.plugins.PluginRuntimeProjection.MAX_AGE_MILLIS);
+    if (delay < 0) {
+      runtimeEvidenceExpiry = null;
+      return null;
+    }
+    runtimeEvidenceExpiry =
+        SIGNALS.schedule(
+            () -> {
+              synchronized (PluginRepository.this) {
+                if (runtimeEvidenceRevision == revision) {
+                  runtimeEvidenceExpiry = null;
+                  markRuntimeUnverified();
+                }
+              }
+            },
+            delay,
+            java.util.concurrent.TimeUnit.MILLISECONDS);
+    return runtimeEvidenceExpiry;
+  }
+
+  private synchronized void markRuntimeUnverified() {
+    ++runtimeEvidenceRevision;
+    if (runtimeEvidenceExpiry != null) runtimeEvidenceExpiry.cancel(false);
+    runtimeEvidenceExpiry = null;
     var catalog = registry.snapshot();
     if (catalog.source == null) return;
     try {
+      String before = publishedManagementKey();
+      managementStatus =
+          com.deepseekharness.app.util.PluginManagementView.unknown("RUNTIME_EVIDENCE_UNAVAILABLE");
+      managementSource = catalog.source;
       List<Item> pending = new ArrayList<>();
       for (Item item : catalog.items)
         pending.add(item.withRuntime(item.runtimeState, item.runtimeGeneration, true));
-      if (registry.updateRuntimeItems(catalog.source, pending)) publishCatalogState();
+      if (registry.updateRuntimeItems(catalog.source, pending)
+          || !before.equals(currentManagementStatus().contentKey)) publishCatalogState();
     } catch (Exception ignored) {
       // 不可读不会产生当前加载成功的证据，保留下一次生命周期/心跳补偿。
     }
@@ -2105,6 +2868,8 @@ public final class PluginRepository extends AndroidViewModel {
   }
 
   private static String failureMessage(Exception error) {
+    if (error instanceof com.deepseekharness.app.plugins.PluginOperationResult.Failure)
+      return String.valueOf(error.getMessage());
     String detail = String.valueOf(error.getMessage());
     Throwable cause = error.getCause();
     for (int depth = 0; cause != null && depth < 8; depth++, cause = cause.getCause()) {

@@ -39,6 +39,10 @@ def plugin(root, path, version):
 
 
 def fixture(root):
+    runtime = 'usr/local/lib/node_modules/@deepseek-ai/dsh/'
+    put(root, runtime + 'package.json', {'name':'@deepseek-ai/dsh','version':'0.2.2-rc.1'})
+    put(root, runtime + 'node_modules/@deepseek-ai/dsh-app-boot/package.json', {'name':'@deepseek-ai/dsh-app-boot','version':'0.2.2-rc.1','main':'lib/index.js'})
+    put(root, runtime + 'node_modules/@deepseek-ai/dsh-app-boot/lib/index.js', "throw Error('must never import app-boot');")
     plugin(root, 'root/.dsh/plugin-src/test-plugin', '1.0.0'); plugin(root, 'incoming', '2.0.0')
     put(root, 'root/.dsh/profiles/web/package.json', {'dependencies': {'test-plugin': 'link:/root/.dsh/plugin-src/test-plugin'}, 'dsh': {'profile': {'bundles': ['test-plugin']}}})
     put(root, 'root/.dsh/plugin-sources.json', {'test-plugin': 'npm:test-plugin@1.0.0'})

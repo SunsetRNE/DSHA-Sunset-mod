@@ -16332,5 +16332,548 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
     ]
+  },
+  {
+    "id": "xA60001",
+    "zh": "已替代",
+    "en": "Superseded",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA60002",
+    "zh": "已超时",
+    "en": "Timed out",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA60003",
+    "zh": "正在卸载",
+    "en": "Unloading",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA61001",
+    "zh": "条目配置（当前 profile）",
+    "en": "Entries (current profile)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA61002",
+    "zh": "父级已禁用",
+    "en": "Parent disabled",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA61003",
+    "zh": "未覆盖",
+    "en": "No override",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA61100",
+    "zh": "没有收到可核验的插件管理结果",
+    "en": "No verifiable plugin result was received",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61101",
+    "zh": "插件管理回执不完整或格式无法核验",
+    "en": "The plugin receipt is incomplete or cannot be verified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61102",
+    "zh": "插件命令等待超时，退出和提交结果尚未确认",
+    "en": "The plugin command timed out; exit and commit remain unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61103",
+    "zh": "插件命令退出尚未确认",
+    "en": "The plugin command's exit is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61104",
+    "zh": "插件命令输出不完整，结果尚未确认",
+    "en": "The plugin output is incomplete; the result is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61105",
+    "zh": "插件命令没有正常完成，结果尚未确认",
+    "en": "The plugin command did not complete normally; the result is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61106",
+    "zh": "没有收到插件命令退出回执，结果尚未确认",
+    "en": "No plugin command exit receipt was received; the result is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61107",
+    "zh": "插件候选清理结果尚未确认",
+    "en": "Plugin candidate cleanup is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61108",
+    "zh": "插件退出待核验",
+    "en": "Plugin exit unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61109",
+    "zh": "退出已核验，但插件任务清理尚未确认",
+    "en": "Exit is verified, but plugin task cleanup is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61110",
+    "zh": "插件进程已确认退出，操作效果仍待核对；未自动重放",
+    "en": "The plugin process has exited; the effect remains unconfirmed. No replay",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61111",
+    "zh": "插件进程已确认退出，操作效果仍待核对；请刷新，未自动重放",
+    "en": "The plugin process has exited; refresh to verify the effect. No replay",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA61112",
+    "zh": "插件命令等待被中断，退出尚未确认",
+    "en": "Waiting for the plugin command was interrupted; exit is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA62001",
+    "zh": "内容尚未核验",
+    "en": "Content is unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA62002",
+    "zh": "运行身份不匹配",
+    "en": "Runtime identity mismatch",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA62003",
+    "zh": "运行证据已过期",
+    "en": "Runtime evidence expired",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA62004",
+    "zh": "条目证据不完整",
+    "en": "Entry evidence is incomplete",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA62005",
+    "zh": "启动故障尚未归因",
+    "en": "Startup failure is unattributed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA62006",
+    "zh": "浏览器就绪，条目仍待核验",
+    "en": "Browser ready; entries remain unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA62007",
+    "zh": "运行证据：%s",
+    "en": "Runtime evidence: %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "xA63001",
+    "zh": "插件兼容性已核验",
+    "en": "Plugin compatibility verified",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63002",
+    "zh": "此插件版本的精确兼容豁免已生效",
+    "en": "The exact compatibility exemption for this plugin version is active",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63003",
+    "zh": "插件与当前 dsh 版本不兼容",
+    "en": "The plugin is incompatible with the current dsh version",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63004",
+    "zh": "插件不支持当前运行平台",
+    "en": "The plugin does not support the current runtime platform",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63005",
+    "zh": "插件兼容性检查失败，未执行操作",
+    "en": "Plugin compatibility check failed; no operation was performed",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63006",
+    "zh": "插件来源或版本在准备后变化，请重新检查",
+    "en": "The plugin source or version changed after preparation; check again",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63007",
+    "zh": "插件候选内容在准备后变化，请重新解析",
+    "en": "The plugin candidate changed after preparation; parse it again",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63008",
+    "zh": "插件兼容证据在准备后变化，请重新检查",
+    "en": "Plugin compatibility evidence changed after preparation; check again",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63009",
+    "zh": "精确版本更新仅适用于 npm 来源",
+    "en": "Exact version updates are available only for npm sources",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63010",
+    "zh": "更新目标必须是更高的精确版本",
+    "en": "The update target must be a higher exact version",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63011",
+    "zh": "下载包与指定的插件版本不一致",
+    "en": "The downloaded package does not match the specified plugin version",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA63012",
+    "zh": "兼容性：%s",
+    "en": "Compatibility: %s",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "xA63013",
+    "zh": "精确版本豁免（只读）",
+    "en": "Exact version exemption (read-only)",
+    "files": [
+      "app/src/main/assets/plugin-lifecycle.py",
+      "app/src/main/assets/plugin-manager.py",
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java",
+      "app/src/main/java/com/deepseekharness/app/core/PluginRepository.java"
+    ]
+  },
+  {
+    "id": "xA64001",
+    "zh": "Web 插件管理面不可用",
+    "en": "Web plugin management is unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64002",
+    "zh": "Web 插件管理面尚未核验",
+    "en": "Web plugin management is unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64003",
+    "zh": "插件补丁链尚未核验",
+    "en": "Plugin patch chain is unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64004",
+    "zh": "插件补丁链状态不可读",
+    "en": "Plugin patch-chain status is unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64005",
+    "zh": "插件补丁链声明不匹配",
+    "en": "Plugin patch-chain declarations do not match",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64006",
+    "zh": "插件观察覆盖受限",
+    "en": "Plugin observation coverage is limited",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64007",
+    "zh": "插件观察覆盖尚未核验",
+    "en": "Plugin observation coverage is unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64008",
+    "zh": "Web 管理保护（只读）",
+    "en": "Protected by Web management (read-only)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64009",
+    "zh": "由当前应用维护",
+    "en": "Maintained by the current app",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64010",
+    "zh": "运行目录内容受保护",
+    "en": "Runtime directory content is protected",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64011",
+    "zh": "启动兼容预检：%s",
+    "en": "Startup compatibility preflight: %s",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "xA64012",
+    "zh": "启动兼容预检尚未确认",
+    "en": "Startup compatibility preflight is unconfirmed",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64013",
+    "zh": "观察路径超过上限",
+    "en": "Watch-path limit reached",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64014",
+    "zh": "观察目录超过上限",
+    "en": "Watch-directory limit reached",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64015",
+    "zh": "观察条目超过上限",
+    "en": "Watch-entry limit reached",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64016",
+    "zh": "观察深度超过上限",
+    "en": "Watch-depth limit reached",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64017",
+    "zh": "观察时间预算已耗尽",
+    "en": "Watch time budget exhausted",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64018",
+    "zh": "观察器暂不可用",
+    "en": "File observer is unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64019",
+    "zh": "部分观察路径不可读",
+    "en": "Some watched paths cannot be read",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64020",
+    "zh": "观察事件已丢失，正在重新核对",
+    "en": "Watch events were lost; verification is pending",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64021",
+    "zh": "运行证据已截断",
+    "en": "Runtime evidence was truncated",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64022",
+    "zh": "Loader 条目无法完整归属",
+    "en": "Loader entry ownership is incomplete",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
   }
 ]

@@ -28,6 +28,19 @@ public final class PluginSourceIdentity {
     this.webGeneration = webGeneration;
   }
 
+  /** 仅复制预期的受控停止后身份；不能据此证明停止已完成。 */
+  public PluginSourceIdentity withWebGeneration(long generation) {
+    return new PluginSourceIdentity(
+        dataRoot,
+        dataRootKey,
+        dataRootDevice,
+        rootfs,
+        rootfsKey,
+        rootfsDevice,
+        runtimeMarkerSha256,
+        generation);
+  }
+
   @Override
   public boolean equals(Object other) {
     if (this == other) return true;
@@ -44,7 +57,7 @@ public final class PluginSourceIdentity {
         && dataRootDevice == value.dataRootDevice;
   }
 
-  /** 持久操作可在重新核验后跨自身 Web 重启；查询和动态投影仍必须用 equals。 */
+  /** 只比较持久根；执行票据必须另核对 Registry 代次与精确 Web 观察，不能单用此方法放行。 */
   public boolean sameDataSource(PluginSourceIdentity value) {
     return value != null
         && dataRoot.equals(value.dataRoot)

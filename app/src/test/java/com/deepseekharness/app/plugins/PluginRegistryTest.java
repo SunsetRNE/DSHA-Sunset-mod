@@ -17,6 +17,217 @@ import org.robolectric.annotation.Config;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34, manifest = Config.NONE, application = android.app.Application.class)
 public final class PluginRegistryTest {
+  @Test
+  public void entryMetadataKeepsSelectionInstallationAndLiteralOverrideSeparate() throws Exception {
+    var json =
+        new JSONObject()
+            .put("name", "test-plugin")
+            .put("version", "1.0.0")
+            .put("available", true)
+            .put("enabled", false)
+            .put("selected", true)
+            .put("installed", true)
+            .put("availability", "profile")
+            .put("nativeMarker", "user-disabled")
+            .put("entryReadError", "")
+            .put("patchRevision", "a".repeat(64))
+            .put(
+                "entries",
+                new JSONArray()
+                    .put(
+                        new JSONObject()
+                            .put("entryId", "child")
+                            .put("moduleHash", "b".repeat(64))
+                            .put("parentId", "parent")
+                            .put("group", false)
+                            .put("patchDisabled", false)
+                            .put("patchReason", "ANCESTOR_DISABLED")));
+    Item first = new Item(json);
+    assertEquals(Boolean.TRUE, first.selected);
+    assertEquals(Boolean.TRUE, first.installed);
+    assertFalse(first.enabled);
+    assertTrue(first.entries.get(0).ancestorDisabled());
+    assertEquals(Boolean.FALSE, first.entries.get(0).patchDisabled);
+    Item changed = new Item(new JSONObject(json.toString()).put("patchRevision", "c".repeat(64)));
+    assertEquals(first.stableKey, changed.stableKey);
+    assertNotEquals(first.contentKey, changed.contentKey);
+    Item legacy = item("legacy", true);
+    assertNull(legacy.selected);
+    assertNull(legacy.installed);
+    assertEquals("ENTRY_READER_LEGACY", legacy.entryReadError);
+    assertEquals("user-disabled", first.withRuntime("loaded", 1).nativeMarker);
+    assertEquals(Boolean.FALSE, first.withIntent(false).selected);
+  }
+
+  @Test
+  public void invalidEntryProjectionKeepsInstalledFactsButCannotClaimKnownEmptyEntries()
+      throws Exception {
+    Item value =
+        new Item(
+            new JSONObject()
+                .put("name", "test-plugin")
+                .put("installed", true)
+                .put("available", true)
+                .put("entries", new JSONArray().put(new JSONObject().put("entryId", "bad")))
+                .put("entryReadError", ""));
+    assertEquals(Boolean.TRUE, value.installed);
+    assertEquals("ENTRY_WIRE_INVALID", value.entryReadError);
+    assertTrue(value.entries.isEmpty());
+    Item missing =
+        new Item(
+            new JSONObject().put("name", "missing").put("available", true).put("installed", false));
+    assertFalse(missing.hasReadableInstallation());
+  }
+
+  @Test
+  public void changingGenerationRevokesEntryEvidenceTogetherWithBundle() throws Exception {
+    Item base =
+        new Item(
+            new JSONObject()
+                .put("name", "entry-bundle")
+                .put(
+                    "entries",
+                    new JSONArray()
+                        .put(
+                            new JSONObject()
+                                .put("entryId", "entry")
+                                .put("moduleHash", "a".repeat(64))
+                                .put("parentId", "")
+                                .put("group", false)
+                                .put("patchReason", "PROFILE_UNSET"))));
+    Item running =
+        base.withRuntimeEvidence(
+            "loaded",
+            1,
+            false,
+            "",
+            "instance",
+            10,
+            List.of(base.entries.get(0).withRuntime("active", "ENTRY_ACTIVE", "", 10)));
+    assertTrue(running.entries.get(0).runtimeVerified());
+    Item revoked = running.withRuntime("unknown", -1, true);
+    assertFalse(revoked.entries.get(0).runtimeVerified());
+    assertEquals("unknown", revoked.entries.get(0).runtimePhase);
+    assertEquals("GENERATION", revoked.entries.get(0).runtimeReason);
+    Item noEntries = item("legacy", true);
+    assertNotEquals(
+        noEntries.contentKey,
+        noEntries.withRuntimeEvidence(
+                "unknown", -1, true, "EXPIRED", "changed-instance", 99, List.of())
+            .contentKey);
+  }
+
+  @Test
+  public void heartbeatNeverReplacesCurrentEntryConfiguration() throws Exception {
+    Item base =
+        new Item(
+            new JSONObject()
+                .put("name", "entry-bundle")
+                .put(
+                    "entries",
+                    new JSONArray()
+                        .put(
+                            new JSONObject()
+                                .put("entryId", "entry")
+                                .put("moduleHash", "a".repeat(64))
+                                .put("parentId", "")
+                                .put("group", false)
+                                .put("patchDisabled", true)
+                                .put("patchReason", "ANCESTOR_DISABLED"))));
+    var old =
+        new com.deepseekharness.app.util.PluginEntryView(
+                "entry", "a".repeat(64), "", false, false, "PROFILE_FALSE")
+            .withRuntime("active", "ENTRY_ACTIVE", "", 10);
+    Item result = base.withRuntimeEvidence("loaded", 1, false, "", "instance", 10, List.of(old));
+    assertEquals(Boolean.TRUE, result.entries.get(0).patchDisabled);
+    assertEquals("ANCESTOR_DISABLED", result.entries.get(0).patchReason);
+    Item absent =
+        base.withRuntimeEvidence("unknown", 1, true, "ENTRY_COVERAGE", "instance", 10, List.of());
+    assertEquals(1, absent.entries.size());
+    assertFalse(absent.entries.get(0).runtimeVerified());
+    assertFalse(base.sameEntryConfiguration(item("entry-bundle", true)));
+  }
+
+  @Test
+  public void mutationTicketsRejectAbaAndReadyInstanceChanges() {
+    var a = source(7);
+    var web =
+        com.deepseekharness.app.util.PluginMutationTickets.Web.ready(
+            7, "instance-a", "private-auth");
+    registry.updateSource(a);
+    var ticket = registry.issueMutation(web);
+    registry.updateSource(source(8));
+    registry.updateSource(a);
+    assertFalse(registry.claimMutation(ticket, a, web));
+    ticket = registry.issueMutation(web);
+    registry.issueMutation(
+        com.deepseekharness.app.util.PluginMutationTickets.Web.ready(
+            7, "instance-b", "private-auth"));
+    registry.issueMutation(web);
+    assertFalse(registry.claimMutation(ticket, a, web));
+    assertFalse(new PluginRegistry().claimMutation(registry.issueMutation(web), a, web));
+    ticket = registry.issueMutation(web);
+    registry.observeMutationWebEvent(web);
+    registry.observeMutationWebEvent(web);
+    assertFalse(registry.claimMutation(ticket, a, web));
+  }
+
+  @Test
+  public void controlledStopUpdatesOnlyCurrentMutationAndKeepsQueuedPreviewInvalid() {
+    var a = source(7);
+    var web = com.deepseekharness.app.util.PluginMutationTickets.Web.absent(7);
+    registry.updateSource(a);
+    var current = registry.issueMutation(web);
+    var queued = registry.issueMutation(web);
+    assertTrue(registry.claimMutation(current, a, web));
+    var transition = registry.armMutationStop(current, a, web, 10, true);
+    assertNotNull(transition);
+    var after = a.withWebGeneration(8);
+    registry.updateWebGeneration(8);
+    var next =
+        registry.finishMutationStop(
+            transition,
+            after,
+            com.deepseekharness.app.util.PluginMutationTickets.Web.absent(8),
+            11,
+            true);
+    assertNotNull(next);
+    assertTrue(
+        registry.validateMutation(
+            next, after, com.deepseekharness.app.util.PluginMutationTickets.Web.absent(8)));
+    assertFalse(
+        registry.claimMutation(
+            queued, after, com.deepseekharness.app.util.PluginMutationTickets.Web.absent(8)));
+    assertNull(
+        registry.finishMutationStop(
+            transition,
+            after,
+            com.deepseekharness.app.util.PluginMutationTickets.Web.absent(8),
+            11,
+            true));
+  }
+
+  @Test
+  public void compatibilityProjectionDefaultsAndEachFieldInvalidatesContentKey() throws Exception {
+    var json = new JSONObject().put("name", "compatibility-item");
+    Item old = new Item(json);
+    assertEquals("unknown", old.compatibilityState);
+    assertEquals("", old.currentCompatibilityMessage);
+    assertEquals("", old.compatibilityCode);
+    assertFalse(old.versionExempted);
+    for (String field :
+        List.of(
+            "compatibilityState",
+            "currentCompatibilityMessage",
+            "compatibilityCode",
+            "versionExempted")) {
+      var changed =
+          new JSONObject(json.toString())
+              .put(field, field.equals("versionExempted") ? Boolean.TRUE : "test-value");
+      assertNotEquals(old.contentKey, new Item(changed).contentKey);
+    }
+  }
+
   private final PluginRegistry registry = new PluginRegistry();
 
   private PluginSourceIdentity source(long generation) {

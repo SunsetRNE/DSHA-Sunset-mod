@@ -50,6 +50,29 @@ public final class PluginListPresenterTest {
   }
 
   @Test
+  public void retainedUnknownCannotBeHiddenByQueuedIntentOrEqualMessage() {
+    var entry = entry("a", "v1", "alpha", true, false);
+    var unknown = operation("active", "a", null, "UNCONFIRMED", -1, false);
+    var queued = operation("waiting", "a", false, "QUEUED", -1, true);
+    var retained = rows(List.of(entry), List.of(unknown, queued)).get(0);
+    assertSame(unknown, retained.operation);
+    assertTrue(retained.checked());
+    var fresh = rows(List.of(entry), List.of(queued, unknown)).get(0);
+    assertSame(queued, fresh.operation);
+    var first =
+        new PluginListPresenter.Operation(
+            "a", "a", null, "UNCONFIRMED", "same", -1, false, "FIRST", "install", "", "");
+    var second =
+        new PluginListPresenter.Operation(
+            "a", "a", null, "UNCONFIRMED", "same", -1, false, "SECOND", "restore", "", "");
+    var before = rows(List.of(entry), List.of(first));
+    var after = PluginListPresenter.withOperations(before, List.of(second));
+    assertNotSame(before, after);
+    assertEquals(
+        PluginListPresenter.OPERATION, PluginListPresenter.changes(before.get(0), after.get(0)));
+  }
+
+  @Test
   public void hundredProgressUpdatesSelectOnceAndReplaceOnlyTargetRow() {
     int[] mapped = {0};
     var projection = projection(mapped);

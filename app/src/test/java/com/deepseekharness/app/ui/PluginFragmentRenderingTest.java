@@ -476,6 +476,156 @@ public final class PluginFragmentRenderingTest {
   }
 
   @Test
+  public void literalEntryOverrideAndAncestorBlockRemainSeparateFromBundleAndRuntime()
+      throws Exception {
+    var configured =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "entry-bundle")
+                .put("available", true)
+                .put("enabled", true)
+                .put("selected", true)
+                .put("installed", true)
+                .put("entryReadError", "")
+                .put(
+                    "entries",
+                    new org.json.JSONArray()
+                        .put(
+                            new JSONObject()
+                                .put("entryId", "child")
+                                .put("moduleHash", "a".repeat(64))
+                                .put("parentId", "parent")
+                                .put("group", false)
+                                .put("patchDisabled", false)
+                                .put("patchReason", "ANCESTOR_DISABLED"))));
+    String description = PluginFragment.entryConfigurationText(configured);
+    assertTrue(description.contains("current profile"));
+    assertTrue(description.contains("child"));
+    assertTrue(description.contains("Enabled"));
+    assertTrue(description.contains("Parent disabled"));
+    assertTrue(configured.enabled);
+    var unavailable =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "entry-bundle")
+                .put("entryReadError", "ENTRY_READER_UNAVAILABLE")
+                .put("entries", new org.json.JSONArray()));
+    assertTrue(PluginFragment.entryConfigurationText(unavailable).contains("Unverified"));
+  }
+
+  @Test
+  public void compatibilityDetailsSeparateNoConstraintExemptionAndFailureWithoutStrongInstall()
+      throws Exception {
+    for (String value :
+        List.of(
+            "compatible",
+            "unconstrained",
+            "exempted",
+            "incompatible",
+            "unsupported-platform",
+            "check-failed")) {
+      PluginRepository.Item item =
+          new PluginRepository.Item(
+              new JSONObject()
+                  .put("name", "sample")
+                  .put("compatibilityState", value)
+                  .put("versionExempted", "exempted".equals(value)));
+      String text = PluginFragment.compatibilityText(item);
+      assertFalse(text.isEmpty());
+      assertTrue(text.startsWith("Compatibility:"));
+      if ("exempted".equals(value)) assertTrue(text.contains("read-only"));
+    }
+  }
+
+  @Test
+  public void managementReasonsKeepFailureFirstAndDoNotDisableNativeEmergencySwitch()
+      throws Exception {
+    var view =
+        new com.deepseekharness.app.util.PluginManagementView(
+                "unavailable",
+                "MANAGEMENT_SERVICE_ABSENT",
+                "SERVICE_PRESENCE",
+                "present-unverified",
+                "PATCH_PROVENANCE_UNVERIFIED",
+                "STARTUP_METADATA",
+                false,
+                List.of(),
+                10)
+            .withWatch(true, List.of("WATCH_DIRECTORY_LIMIT"));
+    String notice = PluginFragment.managementNotice(view);
+    assertTrue(notice.contains("management is unavailable"));
+    assertTrue(notice.contains("unverified"));
+    assertTrue(notice.contains("Watch-directory limit"));
+    PluginRepository.Item installed =
+        item("alpha").withManagementEvidence(true, "MANAGEMENT_REQUIRED", null);
+    PluginRegistry.Snapshot catalog = catalog(List.of(installed));
+    var constructor =
+        PluginRepository.State.class.getDeclaredConstructor(
+            PluginRegistry.Snapshot.class,
+            List.class,
+            boolean.class,
+            String.class,
+            boolean.class,
+            int.class,
+            int.class,
+            com.deepseekharness.app.util.PluginManagementView.class);
+    constructor.setAccessible(true);
+    PluginRepository.State value =
+        constructor.newInstance(
+            catalog,
+            List.of(),
+            false,
+            "fixture failure",
+            false,
+            -1,
+            PluginRepository.State.RESULT_FAILURE,
+            view);
+    assertTrue(PluginFragment.stateMessage(value).startsWith("fixture failure"));
+    mount(value);
+    assertTrue(rowAt(1).findViewById(R.id.pluginSwitch).isEnabled());
+    assertTrue(installed.enabled);
+  }
+
+  @Test
+  public void operationResultsRemainVisibleWithoutChangingConfirmedIntent() throws Exception {
+    PluginRepository.Item installed =
+        item("alpha").withRuntime("loaded", 1).withRestartRequired(true);
+    PluginRegistry.Snapshot catalog = catalog(List.of(installed));
+    mount(state(catalog, List.of(), false, "", -1));
+    PluginOperationQueue.Phase[] phases = {
+      PluginOperationQueue.Phase.UNCONFIRMED, PluginOperationQueue.Phase.FAILED,
+      PluginOperationQueue.Phase.CANCELLED, PluginOperationQueue.Phase.INVALIDATED,
+      PluginOperationQueue.Phase.REJECTED, PluginOperationQueue.Phase.SUPERSEDED
+    };
+    for (PluginOperationQueue.Phase phase : phases) {
+      PluginOperationQueue.Queue<String> queue = new PluginOperationQueue.Queue<>();
+      var operation =
+          queue.enqueue(
+              PluginOperationQueue.Type.SET_ENABLED,
+              installed.stableKey,
+              false,
+              installed.version,
+              SOURCE,
+              "fixture");
+      publish(state(catalog, queue.snapshot(), true, "", -1));
+      assertEquals("Queued", text(rowAt(1).findViewById(R.id.pluginStatus)));
+      assertSame(operation, queue.poll());
+      assertTrue(queue.complete(operation.operationId, phase, "fixture detail"));
+      publish(state(catalog, queue.snapshot(), false, "", -1));
+      String label = PluginFragment.operationBadgeText(phase.name());
+      assertFalse(label.isEmpty());
+      assertEquals(label, text(rowAt(1).findViewById(R.id.pluginStatus)));
+      android.widget.LinearLayout notes = rowAt(1).findViewById(R.id.pluginNotes);
+      assertTrue(text(notes.getChildAt(0).findViewById(R.id.pluginNoteText)).contains(label));
+      assertTrue(
+          ((android.widget.CompoundButton) rowAt(1).findViewById(R.id.pluginSwitch)).isChecked());
+      assertEquals("Loaded", text(rowAt(1).findViewById(R.id.pluginRuntime)));
+    }
+    assertEquals("Unverified", PluginFragment.operationBadgeText("future-result"));
+    assertEquals("Timed out", PluginFragment.operationBadgeText("TIMEOUT"));
+  }
+
+  @Test
   public void targetProgressUsesOnlyItsPayloadAndSkipsHeaderAtEveryPosition() throws Exception {
     List<PluginRepository.Item> items = List.of(item("alpha"), item("beta"), item("gamma"));
     PluginRegistry.Snapshot catalog = catalog(items);

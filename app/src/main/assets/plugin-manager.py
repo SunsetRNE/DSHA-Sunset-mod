@@ -42,6 +42,24 @@ class PluginCancelled(Exception):
     pass
 
 
+class PluginInstallPending(ValueError):
+    pass
+
+
+class EntrySnapshotChanged(ValueError):
+    pass
+
+
+class PluginIntentUnconfirmed(ValueError):
+    pass
+
+
+class PluginPolicyError(ValueError):
+    def __init__(self, code, message, stage='preflight', **detail):
+        super().__init__(message)
+        self.code, self.stage, self.detail = code, stage, detail
+
+
 class PackageCommandTimeout(TimeoutError):
     def __init__(self, message, *, confirmed_exit=False):
         super().__init__(message)
@@ -308,6 +326,17 @@ def network():
 
 
 def result(status, message, **extra):
+    codes = {'error': 'PLUGIN_MANAGER_FAILED', 'unknown': 'PLUGIN_EXECUTION_UNKNOWN',
+             'pending': 'PLUGIN_INSTALL_PENDING', 'partial': 'PLUGIN_PARTIAL',
+             'cancelled': 'PLUGIN_CANCELLED'}
+    if status in codes:
+        extra.setdefault('errorCode', codes[status])
+        extra.setdefault('automaticRetry', False)
+    extra.setdefault('exitUnknown', status == 'unknown')
+    if status == 'unknown':
+        extra.setdefault('executionUnknown', True)
+    stage = sys.argv[1] if len(sys.argv) > 1 and re.fullmatch('[a-z][a-z-]{0,31}', sys.argv[1]) else ''
+    extra.setdefault('stage', stage)
     print("PLUGIN_RESULT: " + json.dumps(dict(status=status, message=message, **extra),
                                          ensure_ascii=False), flush=True)
 
@@ -559,10 +588,23 @@ def transactions():
     return _transactions
 
 
-def register_plugin(root, source, expected_version=None, *, restoring=False):
+def register_plugin(root, source, expected_version=None, *, restoring=False, expected_target=None, expected_item=None, fingerprint=None, related_targets=None):
     pkg = plugin_package(root)
     name = pkg["name"]
-    prepare_dependencies(root, pkg, restoring=restoring)
+    life = lifecycle()
+    admission = life.require_compatible(pkg)
+    expected_target = expected_target if expected_target is not None else life.target_snapshot(name)
+    if expected_target is not None: life.require_target(expected_target, 'preflight')
+    if expected_item is not None: life.require_candidate(root, expected_item, fingerprint, 'preflight')
+    # 预览已冻结依赖，不再运行 pnpm/脚本；直接安装才准备一次。
+    if expected_item is not None:
+        if not restoring: dependencies().inspect(root)
+    else:
+        prepare_dependencies(root, pkg, restoring=restoring)
+    if plugin_package(root) != pkg:
+        raise PluginPolicyError('PLUGIN_CANDIDATE_CHANGED', '插件候选内容在准备后变化，请重新解析')
+    expected_item = expected_item or dict(pkg, compatibilityEvidence=admission['compatibilityEvidence'])
+    fingerprint = fingerprint if fingerprint is not None else life.candidate_fingerprint(root)
     source = dependencies().source_label(source)
     dest = local(os.path.join(PLUGIN_SRC, name))
     managed_root = os.path.realpath(local(PLUGIN_SRC))
@@ -572,10 +614,15 @@ def register_plugin(root, source, expected_version=None, *, restoring=False):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     transaction = transactions()
     with builtin.operation_lock(check_cancel), transaction.workspace() as work:
+        life.pending_guard()
+        life.require_target(expected_target)
+        for other in (related_targets or {}).values(): life.require_target(other)
         prepared = os.path.join(work, "new")
         shutil.copytree(root, prepared, symlinks=True)
         if not restoring:
-            dependencies().inspect(prepared)
+            try: dependencies().inspect(prepared)
+            except (OSError, ValueError):
+                raise PluginPolicyError('PLUGIN_CANDIDATE_CHANGED', '插件候选内容在准备后变化，请重新解析', 'commit')
         for base, dirs, files in os.walk(prepared, followlinks=False):
             for item in dirs + files:
                 candidate = os.path.join(base, item)
@@ -584,12 +631,15 @@ def register_plugin(root, source, expected_version=None, *, restoring=False):
         old = os.path.join(work, "old")
         # 外层已持有数据锁。另开 fd 再 flock 会在 Linux 自锁，不能重复获取。
         with committing('正在登记插件：' + name):
-            builtin.ensure_runtime_modules()
+            # 同一个 writer 锁内对将实际提交的副本核验，不能拿预览的兼容标签当权限。
+            life.require_target(expected_target)
+            pkg = life.require_candidate(prepared, expected_item, fingerprint)
             if expected_version is not None:
                 current_dir = resolve_plugin_dir(name)
                 current_package = read_json(os.path.join(current_dir, 'package.json'), {}) if current_dir else {}
                 if current_package.get('version') != expected_version:
-                    raise ValueError('插件版本在确认后发生变化，请重新检查更新')
+                    raise PluginPolicyError('PLUGIN_TARGET_VERSION_CHANGED', '插件来源或版本在准备后变化，请重新检查', 'commit')
+            builtin.ensure_runtime_modules()
             doc = builtin.read_manifest()
             if doc is None:
                 builtin.ensure_profile_files()
@@ -647,6 +697,12 @@ def register_plugin(root, source, expected_version=None, *, restoring=False):
                 transaction.boundary('history-retained')
                 transaction.apply_file(work, 'manifest', plan)
                 transaction.boundary('manifest-replaced')
+                # 仅 writer 本次来源修改可转移给同批后项；目标身份保留原票，退出锁后不重拍。
+                for other in (related_targets or {}).values():
+                    current = life.target_snapshot(other['name'])
+                    if any(current.get(key) != other.get(key) for key in ('name', 'source', 'version', 'installedManifest')):
+                        raise PluginPolicyError('PLUGIN_SOURCE_CHANGED', '插件来源或版本在准备后变化，请重新检查', 'commit')
+                    other['sourceFile'] = current['sourceFile']
                 transaction.mark(work, 'committed')
                 transaction.boundary('committed')
             except Exception:
@@ -671,10 +727,17 @@ def cmd_import(archive, subdir="", source="", expected_versions=None):
             if name in seen:
                 raise ValueError("归档含多个同名插件，请只保留一份：" + str(name))
             seen.add(name)
+        packages = [plugin_package(root) for root in found]
+        for package, report in zip(packages, lifecycle().compatibility_reports(packages)):
+            lifecycle().require_compatible(package, report=report)
         for root in found:
             try:
                 name = read_json(os.path.join(root, 'package.json'), {}).get('name')
                 names.append(register_plugin(root, source, (expected_versions or {}).get(name)))
+            except PluginPolicyError as error:
+                result('partial' if names else 'error', str(error), installed=names, errorCode=error.code,
+                       application='failed', stage=error.stage)
+                return 1
             except PluginCancelled:
                 result('partial' if names else 'cancelled',
                        ('已安装 ' + '、'.join(names) + '；' if names else '') + '已取消其余安装，未提交的插件保持原状态', installed=names)
@@ -685,7 +748,8 @@ def cmd_import(archive, subdir="", source="", expected_versions=None):
         message = "已安装 " + "、".join(names) + "；重启 Web 后生效。" if names else ""
         if failures:
             message += "\n未安装：" + "\n".join(failures)
-        result(status, message, installed=names)
+        result(status, message, installed=names, stage='install', application='restart-required' if status == 'ok' else 'failed',
+               **({'restartReason': 'no-hmr'} if status == 'ok' else {}))
         return 0 if not failures else 1
 
 
@@ -703,10 +767,15 @@ def resolve_plugin_dir(name, discovered=None):
         # Shadowed user files remain in place, but are not the loaded candidate.
         return runtime
     path = os.path.join(local(builtin.NODE_MODULES), name)
-    if os.path.isfile(os.path.join(path, "package.json")):
+    # 移除软链后的跟随 stat 可能返回旧目标；先核验路径项仍存在，不采用幽灵 profile 路径。
+    if os.path.lexists(path):
+        # 已存在但坏 manifest/断链由调用方报告未知，不静默选旧导入副本。
         return os.path.realpath(path)
     if discovered is not None and name in discovered:
         return discovered[name]['directory']
+    imported = local(os.path.join(PLUGIN_SRC, name))
+    if os.path.lexists(imported) and os.path.isfile(os.path.join(imported, "package.json")):
+        return os.path.realpath(imported)
     directory = builtin.entity_dir(name, discovered)
     if directory:
         return local(directory)
@@ -1012,6 +1081,349 @@ def cmd_release(owner, repo, tag, *, consume=None):
     return cmd_download(archives[0]["browser_download_url"], **({"consume": consume} if consume else {}))
 
 
+# 列表专用解析器只读取传入普通数据；不加载 observer、Loader 或插件入口。
+_ENTRY_READER = r'''
+'use strict';
+const fs = require('node:fs'), path = require('node:path');
+const { createRequire } = require('node:module');
+const { pathToFileURL } = require('node:url');
+const { createHash } = require('node:crypto');
+const input = fs.readFileSync(0, 'utf8');
+if (Buffer.byteLength(input) > 12 * 1024 * 1024) process.exit(2);
+const request = JSON.parse(input);
+if (!Array.isArray(request.bundles) || request.bundles.length > 512) process.exit(2);
+let yaml, schema;
+try {
+  const anchor = createRequire(request.anchor);
+  const boot = anchor.resolve('@deepseek-ai/dsh-app-boot');
+  yaml = createRequire(boot)('js-yaml');
+  schema = yaml.JSON_SCHEMA.extend(new yaml.Type('tag:yaml.org,2002:js', {
+    kind: 'scalar', construct: () => Object.freeze({ expression: true }),
+  }));
+} catch { process.stdout.write(JSON.stringify({ error: 'ENTRY_READER_UNAVAILABLE' })); process.exit(0); }
+let remaining = 32768, entryCount = 0;
+const object = value => value && typeof value === 'object' && !Array.isArray(value);
+function parse(source) {
+  if (typeof source !== 'string' || Buffer.byteLength(source) > 1024 * 1024) throw Error('ENTRY_INPUT_LIMIT');
+  const value = yaml.load(source, { schema });
+  const seen = new WeakSet();
+  function bound(item, depth = 0) {
+    if (--remaining < 0 || depth > 48) throw Error('ENTRY_INPUT_LIMIT');
+    if (item && typeof item === 'object') {
+      if (seen.has(item)) throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+      seen.add(item);
+      for (const child of Object.values(item)) bound(child, depth + 1);
+    }
+  }
+  bound(value);
+  if (!Array.isArray(value)) throw Error('ENTRY_YAML_INVALID');
+  return value;
+}
+function code(error) {
+  return ['ENTRY_INPUT_LIMIT', 'ENTRY_STRUCTURE_AMBIGUOUS', 'ENTRY_YAML_INVALID'].includes(error.message)
+    ? error.message : 'ENTRY_YAML_INVALID';
+}
+const overrides = new Map();
+let profileError = '';
+try {
+  for (const row of parse(request.profile)) {
+    if (!object(row) || typeof row.id !== 'string' || !row.id || row.id.length > 256
+        || Object.keys(row).some(key => !['id', 'disabled'].includes(key))) throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+    if (Object.hasOwn(row, 'disabled')) overrides.set(row.id, row.disabled);
+  }
+} catch (error) { profileError = code(error); }
+const declarations = new Map(), counts = new Map(), rows = [];
+for (const bundle of request.bundles) {
+  const result = { name: bundle.name, entries: [], entryReadError: bundle.error || '' };
+  rows.push(result);
+  if (result.entryReadError) continue;
+  const localIds = new Set();
+  function visit(items, parentId = '', depth = 0) {
+    if (!Array.isArray(items) || depth > 32) throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+    for (const row of items) {
+      if (++entryCount > 2048) throw Error('ENTRY_INPUT_LIMIT');
+      if (!object(row) || typeof row.id !== 'string' || !row.id || row.id.length > 256
+          || typeof row.name !== 'string' || !row.name || row.name.length > 4096
+          || (row.group != null && typeof row.group !== 'boolean')) throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+      const name = path.isAbsolute(row.name) || row.name.startsWith('./') || row.name.startsWith('../')
+        ? pathToFileURL(path.resolve(path.dirname(currentPatch), row.name)).href : row.name;
+      const group = row.group === true || ['cordis:group', '@deepseek-ai/cordis-plugin-group'].includes(name);
+      const entry = { entryId: row.id, moduleHash: createHash('sha256').update(name).digest('hex'),
+        parentId, group, patchDisabled: null, patchReason: 'PROFILE_UNSET' };
+      result.entries.push(entry);
+      counts.set(row.id, (counts.get(row.id) || 0) + 1);
+      if (localIds.has(row.id)) throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+      localIds.add(row.id);
+      declarations.set(row.id, { entry, disabled: row.disabled });
+      if (['cordis:include', '@deepseek-ai/cordis-plugin-include'].includes(name)) throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+      if (group) visit(row.config, row.id, depth + 1);
+    }
+  }
+  let currentPatch = '';
+  try {
+    for (const patch of bundle.patches) {
+      currentPatch = patch.path;
+      for (const row of parse(patch.text)) {
+        if (!object(row)) throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+        if (Object.hasOwn(row, 'insert')) {
+          if (row.id != null && (typeof row.id !== 'string' || !row.id || row.id.length > 256))
+            throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+          visit(row.insert, row.id || '');
+        } else if (Object.keys(row).some(key => !['id', 'disabled'].includes(key))) {
+          throw Error('ENTRY_STRUCTURE_AMBIGUOUS');
+        }
+      }
+    }
+  } catch (error) { result.entryReadError = code(error); }
+}
+for (const result of rows) {
+  if (!result.entryReadError && profileError) result.entryReadError = profileError;
+  for (const entry of result.entries) {
+    if (counts.get(entry.entryId) !== 1 || result.entryReadError) {
+      if (!result.entryReadError) result.entryReadError = 'ENTRY_STRUCTURE_AMBIGUOUS';
+      entry.patchReason = result.entryReadError; continue;
+    }
+    if (overrides.has(entry.entryId)) {
+      const value = overrides.get(entry.entryId);
+      entry.patchDisabled = typeof value === 'boolean' ? value : null;
+      entry.patchReason = typeof value === 'boolean' ? 'PROFILE_LITERAL' : 'PROFILE_OPAQUE';
+    }
+    let parentId = entry.parentId;
+    const seen = new Set([entry.entryId]);
+    while (parentId) {
+      const parent = declarations.get(parentId);
+      if (!parent || counts.get(parentId) !== 1 || seen.has(parentId)) {
+        entry.patchReason = 'ANCESTOR_UNKNOWN'; break;
+      }
+      seen.add(parentId);
+      const value = overrides.has(parentId) ? overrides.get(parentId) : parent.disabled;
+      if (value === true) { entry.patchReason = 'ANCESTOR_DISABLED'; break; }
+      if (value != null && typeof value !== 'boolean') { entry.patchReason = 'ANCESTOR_UNKNOWN'; break; }
+      parentId = parent.entry.parentId;
+    }
+  }
+  // 发现一个重复/坏结构后，整包不能保留先前乐观条目。
+  if (result.entryReadError) for (const entry of result.entries) {
+    entry.patchDisabled = null; entry.patchReason = result.entryReadError;
+  }
+}
+const output = JSON.stringify({ items: rows });
+if (Buffer.byteLength(output) > 1024 * 1024) process.exit(2);
+process.stdout.write(output);
+'''
+
+
+def _entry_parser_anchor():
+    return local('/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json')
+
+
+def _entry_file(path, observations, *, root=None, optional=False, decode=True):
+    """固定读取到的文件身份和字节；只读解析结束后再次核对，不把缓存当新证据。"""
+    check_cancel()
+    real = os.path.realpath(path)
+    if root is not None and os.path.commonpath([root, real]) != root:
+        raise ValueError('ENTRY_PATCH_PATH')
+    try:
+        fd = os.open(real, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+    except FileNotFoundError:
+        if optional and not os.path.lexists(path):
+            observations.append((path, None, None)); return '[]'
+        raise
+    with os.fdopen(fd, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode) or before.st_size > 1024 * 1024:
+            raise ValueError('ENTRY_INPUT_LIMIT')
+        # Linux 上读字节前核验实际已打开目标，父链接被换成包外时不读取其内容。
+        descriptor = '/proc/self/fd/' + str(stream.fileno())
+        if root is not None and os.path.isdir('/proc/self/fd') \
+                and os.path.commonpath([root, os.path.realpath(descriptor)]) != root:
+            raise ValueError('ENTRY_PATCH_PATH')
+        data = stream.read(1024 * 1024 + 1)
+        after = os.fstat(stream.fileno())
+    identity = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size, node.st_mtime_ns, node.st_ctime_ns)
+    if len(data) > 1024 * 1024 or identity(before) != identity(after) or os.path.realpath(path) != real \
+            or identity(after) != identity(os.stat(real)):
+        raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
+    observations.append((path, real, (identity(after), hashlib.sha256(data).hexdigest())))
+    return data.decode('utf-8-sig') if decode else data
+
+
+def _verify_entry_files(observations):
+    for path, real, wanted in observations:
+        if wanted is None:
+            if os.path.lexists(path):
+                raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
+            continue
+        again = []
+        try:
+            _entry_file(path, again, root=os.path.dirname(real), decode=False)
+        except (OSError, ValueError, UnicodeError) as error:
+            raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试') from error
+        if again != [(path, real, wanted)]:
+            raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
+
+
+def _entry_read_node(request):
+    """一次固定 Node 子进程；有界输入/输出、协作取消，不继承任意插件 preload。"""
+    payload = json.dumps(request, ensure_ascii=True).encode()
+    if len(payload) > 12 * 1024 * 1024:
+        return {'error': 'ENTRY_INPUT_LIMIT'}
+    environment = dict(os.environ)
+    for key in ('NODE_OPTIONS', 'NODE_PATH'):
+        environment.pop(key, None)
+    with tempfile.TemporaryFile() as source, tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+        source.write(payload); source.seek(0)
+        process = subprocess.Popen(['node', '--max-old-space-size=96', '-e', _ENTRY_READER],
+                                   stdin=source, stdout=output, stderr=errors, env=environment,
+                                   start_new_session=os.name != 'nt')
+        identity = _package_group_identity(process)
+        deadline = time.monotonic() + 10
+        try:
+            while process.poll() is None:
+                check_cancel()
+                if time.monotonic() >= deadline or output.tell() > 1024 * 1024 or errors.tell() > 65536:
+                    raise TimeoutError('ENTRY_READER_TIMEOUT')
+                time.sleep(.02)
+        except BaseException:
+            if not _stop_package_process(process, identity, grace=1):
+                raise PackageCommandUnknown('只读插件解析进程退出未确认，保留环境占用')
+            raise
+        if process.returncode or output.tell() > 1024 * 1024:
+            return {'error': 'ENTRY_READER_UNAVAILABLE'}
+        output.seek(0)
+        return json.loads(output.read(1024 * 1024 + 1))
+
+
+def _read_entry_projection(candidates):
+    observations = []
+    profile = os.path.join(local(builtin.PROFILE), 'cordis.patch.yml')
+    try:
+        profile_text = _entry_file(profile, observations, optional=True)
+    except (OSError, ValueError, UnicodeError) as error:
+        if isinstance(error, EntrySnapshotChanged):
+            raise
+        profile_text = '!unreadable'
+    profile_observations = list(observations)
+    request = {'anchor': _entry_parser_anchor(), 'profile': profile_text, 'bundles': []}
+    revisions = {}
+    total = len(profile_text.encode())
+    for name, directory, package in candidates[:512]:
+        check_cancel()
+        row = {'name': name, 'patches': [], 'error': ''}
+        before = len(observations)
+        try:
+            if directory is None:
+                raise ValueError('ENTRY_ENTITY_MISSING')
+            root = os.path.realpath(directory)
+            manifest = _entry_file(os.path.join(directory, 'package.json'), observations, root=root)
+            if package is None:
+                # 元数据原本已不可读：保留可管理卡片，不拿回退对象冒充原件摘要。
+                # 已记录的真实字节仍参与末尾竞态复核；这不是确认“没有 entry”。
+                raise ValueError('ENTRY_INPUT_UNREADABLE')
+            current = json.loads(manifest)
+            if isinstance(current, dict):
+                for key in ('version', 'description'):
+                    if not isinstance(current.get(key), str):
+                        current[key] = ''
+            expected = hashlib.sha256(json.dumps(current, sort_keys=True, ensure_ascii=True, separators=(',', ':')).encode()).hexdigest() if isinstance(package, str) else current
+            if expected != package:
+                raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
+            declaration = (current.get('dsh') or {}).get('bundle') or {}
+            patches = declaration.get('patch')
+            patches = [patches] if isinstance(patches, str) else patches
+            if not isinstance(patches, list) or not patches or len(patches) > 32:
+                raise ValueError('ENTRY_PATCH_DECLARATION')
+            for relative in patches:
+                if not isinstance(relative, str) or not relative or len(relative) > 4096 or os.path.isabs(relative) \
+                        or '\\' in relative or '\0' in relative:
+                    raise ValueError('ENTRY_PATCH_PATH')
+                path = os.path.abspath(os.path.join(directory, relative))
+                if os.path.commonpath([os.path.abspath(directory), path]) != os.path.abspath(directory):
+                    raise ValueError('ENTRY_PATCH_PATH')
+                text = _entry_file(path, observations, root=root)
+                total += len(text.encode())
+                if total > 8 * 1024 * 1024:
+                    raise ValueError('ENTRY_INPUT_LIMIT')
+                row['patches'].append({'path': path, 'text': text})
+        except (OSError, ValueError, TypeError, AttributeError, UnicodeError) as error:
+            if isinstance(error, EntrySnapshotChanged):
+                raise
+            row['patches'] = []
+            row['error'] = str(error) if str(error) in ('ENTRY_ENTITY_MISSING', 'ENTRY_PATCH_DECLARATION', 'ENTRY_PATCH_PATH', 'ENTRY_INPUT_LIMIT') else 'ENTRY_INPUT_UNREADABLE'
+        revisions[name] = hashlib.sha256(json.dumps(profile_observations + observations[before:], ensure_ascii=True, separators=(',', ':')).encode()).hexdigest()
+        request['bundles'].append(row)
+    try:
+        parsed = _entry_read_node(request)
+        if not isinstance(parsed, dict):
+            raise ValueError('ENTRY_READER_INVALID')
+        failure = parsed.get('error', '')
+        rows = parsed.get('items', [])
+        if failure not in ('', 'ENTRY_READER_UNAVAILABLE', 'ENTRY_INPUT_LIMIT') or not isinstance(rows, list) \
+                or len(rows) != len(request['bundles']) and not failure:
+            raise ValueError('ENTRY_READER_INVALID')
+        projected = {}
+        errors = {'', 'ENTRY_READER_UNAVAILABLE', 'ENTRY_ENTITY_MISSING', 'ENTRY_PATCH_DECLARATION',
+                  'ENTRY_PATCH_PATH', 'ENTRY_INPUT_UNREADABLE', 'ENTRY_INPUT_LIMIT',
+                  'ENTRY_STRUCTURE_AMBIGUOUS', 'ENTRY_YAML_INVALID'}
+        reasons = errors - {''} | {'PROFILE_UNSET', 'PROFILE_LITERAL', 'PROFILE_OPAQUE',
+                                  'ANCESTOR_DISABLED', 'ANCESTOR_UNKNOWN'}
+        entry_count = 0
+        for row in rows:
+            if not isinstance(row, dict) or row.get('name') in projected or row.get('entryReadError') not in errors \
+                    or not isinstance(row.get('entries'), list):
+                raise ValueError('ENTRY_READER_INVALID')
+            for entry in row['entries']:
+                entry_count += 1
+                if entry_count > 2048 or not isinstance(entry, dict) \
+                        or not isinstance(entry.get('entryId'), str) or not 0 < len(entry['entryId']) <= 256 \
+                        or not isinstance(entry.get('moduleHash'), str) or not re.fullmatch('[a-f0-9]{64}', entry['moduleHash']) \
+                        or not isinstance(entry.get('parentId'), str) or len(entry['parentId']) > 256 \
+                        or type(entry.get('group')) is not bool \
+                        or entry.get('patchDisabled') is not None and type(entry['patchDisabled']) is not bool \
+                        or entry.get('patchReason') not in reasons:
+                    raise ValueError('ENTRY_READER_INVALID')
+            projected[row['name']] = row
+        if not failure and set(projected) != {row['name'] for row in request['bundles']}:
+            raise ValueError('ENTRY_READER_INVALID')
+    except (OSError, ValueError, TypeError, KeyError, TimeoutError):
+        failure, projected = 'ENTRY_READER_UNAVAILABLE', {}
+    _verify_entry_files(observations)
+    result = {}
+    sources = {row['name']: row for row in request['bundles']}
+    for name, _, _ in candidates:
+        row = projected.get(name, {})
+        result[name] = dict(entries=row.get('entries', []), entryReadError=sources.get(name, {}).get('error') or failure or row.get('entryReadError', 'ENTRY_INPUT_LIMIT'),
+                            patchRevision=revisions.get(name, ''))
+    return result
+
+
+def _native_marker(name):
+    markers = []
+    for alias in builtin.selection_aliases(name):
+        path = builtin.marker_path(alias)
+        if not os.path.lexists(path):
+            continue
+        try:
+            if os.path.islink(path) or not os.path.isfile(path) or os.path.getsize(path) > 128:
+                markers.append('unknown-marker'); continue
+            flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+            with os.fdopen(os.open(path, flags), 'rb') as stream:
+                before = os.fstat(stream.fileno())
+                if not stat.S_ISREG(before.st_mode):
+                    markers.append('unknown-marker'); continue
+                data = stream.read(129).decode('utf8')
+                after = os.fstat(stream.fileno())
+            if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns) \
+                    != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                markers.append('unknown-marker'); continue
+            markers.append({'': 'user-disabled', 'DSHA_SAFE_MODE\n': 'safe-mode',
+                            'DSHA_WEB_BUILTIN_DISABLED_V1\n': 'web-disabled',
+                            'DSHA_REVIEW_REQUIRED\n': 'review-required'}.get(data, 'unknown-marker'))
+        except (OSError, UnicodeError):
+            markers.append('unknown-marker')
+    return markers[0] if markers and len(set(markers)) == 1 else 'unknown-marker' if markers else 'none'
+
+
 def list_state_revision():
     """A display snapshot guard, never a substitute for package-content proof.
 
@@ -1032,10 +1444,12 @@ def list_state_revision():
             raise ValueError('插件配置正在修改或有待确认的锁；保留上次列表，请稍后刷新')
     if os.path.isfile(os.path.join(os.path.dirname(local(DSH_HOME)), '.dsha-restore-journal.json')):
         raise ValueError('恢复事务尚未完成；保留上次列表，请先完成恢复')
+    if transactions().pending():
+        raise PluginInstallPending('PLUGIN_INSTALL_PENDING: 插件事务尚未提交；保留上次列表，请先完成维护')
     state = []
     home = os.stat(local(DSH_HOME))
     state.append(('home', home.st_dev, home.st_ino))
-    for path in (local(builtin.MANIFEST), local(SOURCES),
+    for path in (local(builtin.MANIFEST), os.path.join(local(builtin.PROFILE), 'cordis.patch.yml'), local(SOURCES),
                  lifecycle().path('plugin-updates.json'), lifecycle().path('plugin-safe-mode.json'),
                  lifecycle().path('plugin-activations.json')):
         check_cancel()
@@ -1051,6 +1465,15 @@ def list_state_revision():
             state.append((path, before.st_dev, before.st_ino, hashlib.sha256(data).hexdigest()))
         except FileNotFoundError:
             state.append((path, None))
+    # 豁免是独立只读输入，变化也使目录票据失效；坏记录仍由兼容检查显式报告。
+    compatibility_path = os.path.join(local(builtin.PROFILE), 'compatibility.json')
+    try:
+        _, evidence = lifecycle().file_evidence(compatibility_path)
+        state.append(('compatibility', evidence))
+    except (OSError, ValueError):
+        try: node = os.lstat(compatibility_path); evidence = lifecycle()._node_evidence(node)
+        except OSError: evidence = None
+        state.append(('compatibility-unreadable', evidence))
     modules = local(builtin.NODE_MODULES)
     directories = [modules]
     if os.path.isdir(modules):
@@ -1098,6 +1521,8 @@ def cmd_list(message="插件状态已同步"):
     names = list(dict.fromkeys(builtin.AUTO_REVIEW_ALIASES[1] if name in builtin.AUTO_REVIEW_ALIASES else name
                                for name in names))
     items = []
+    entry_candidates = []
+    compatibility_candidates = []
     updates = lifecycle().read(lifecycle().path('plugin-updates.json'), {})
     activations = lifecycle().activation_state()['entries']
     for name in names:
@@ -1121,9 +1546,14 @@ def cmd_list(message="插件状态已同步"):
         source = repository_url(pkg) if runtime_provided else sources.get(name, "") or repository_url(pkg)
         updatable = bool(directory) and not official and not system_plugin and not runtime_located \
                     and lifecycle().can_check_updates(source)
-        enabled = any(alias in bundles for alias in builtin.AUTO_REVIEW_ALIASES) and not builtin.is_disabled(name) \
-                  if auto_review else name in bundles
-        items.append(dict(name=name, enabled=enabled, builtin=system_plugin,
+        selected = any(alias in bundles for alias in builtin.AUTO_REVIEW_ALIASES) if auto_review else name in bundles
+        native_marker = _native_marker(name)
+        enabled = selected and native_marker == 'none'
+        installed = directory is not None and not metadata_error
+        items.append(dict(name=name, enabled=enabled, selected=selected, installed=installed,
+                          availability='installation' if installed and (runtime_located or system_plugin) else 'profile' if installed else 'missing',
+                          readOnlyReason='protected' if official or system_plugin or runtime_provided else 'runtime-location' if runtime_located else '',
+                          nativeMarker=native_marker, builtin=system_plugin,
                           runtimeProvided=runtime_provided,
                           runtimeLocated=runtime_located,
                           origin='dsha-signed' if system_plugin else 'dsh-managed' if runtime_provided else 'user',
@@ -1138,6 +1568,9 @@ def cmd_list(message="插件状态已同步"):
                           detected=name in discovered and name not in deps and name not in bundles,
                           location='随 DSH 安装提供' if runtime_provided else 'DSH 安装目录中的用户/未验证插件' if runtime_located
                                    else '、'.join(discovered.get(name, {}).get('locations', []))))
+        # 目录扫描不长期保留完整 manifest；读取失败明确保留未知，不冻结回退对象。
+        compatibility_candidates.append(pkg if installed else None)
+        entry_candidates.append((name, directory, None if metadata_error else hashlib.sha256(json.dumps(pkg, sort_keys=True, ensure_ascii=True, separators=(',', ':')).encode()).hexdigest()))
         update = updates.get(name, {})
         previous = lifecycle().history_info(name) if not official and not system_plugin and not runtime_located else {}
         items[-1].update(latestVersion=update.get('latestVersion', ''), updateAvailable=not auto_review and not runtime_provided and bool(update.get('available'))
@@ -1145,18 +1578,28 @@ def cmd_list(message="插件状态已同步"):
                          updatePreviewId=update.get('previewId', ''), updateMessage=update.get('message', '')
                          if update.get('installedVersion') == str(pkg.get('version', '')) else '',
                          rollbackVersion=previous.get('version', ''), compatibility=update.get('compatibility', ''))
+    reports = lifecycle().compatibility_reports(compatibility_candidates) if compatibility_candidates else []
+    for item, report in zip(items, reports):
+        item.update(compatibilityState=report['compatibility'], currentCompatibilityMessage=report['compatibilityMessage'],
+                    versionExempted=report['versionExempted'], compatibilityCode=report['compatibilityCode'],
+                    exemptionWarnings=report['exemptionWarnings'], installedDsh=report['installedDsh'],
+                    requiredDsh=report['requiredDsh'], runtimePlatform=report['runtimePlatform'])
     mode = lifecycle().read(lifecycle().path('plugin-safe-mode.json'), {})
     for item in items:
         activation = activations.get(item['name'], {})
         item['loadState'] = activation.get('status', '') if activation.get('version') == item.get('version') else ''
+        item['loadReason'] = activation.get('reason', '') if activation.get('version') == item.get('version') else ''
         marker = builtin.marker_path(item['name'])
         if not item.get('enabled') and os.path.isfile(marker) and os.path.getsize(marker) <= 128:
             with open(marker, encoding='utf8') as stream:
                 if stream.read() == 'DSHA_REVIEW_REQUIRED\n':
                     item['loadState'] = 'review-required'
     pending, unreadable = lifecycle().pending_previews()
+    projection = _read_entry_projection(entry_candidates)
+    for item in items:
+        item.update(projection[item['name']])
     if list_state_revision() != revision:
-        raise ValueError('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
+        raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
     result("ok", message, items=items, safeMode=bool(mode.get('active')), pendingReviews=pending, unreadableReviews=unreadable)
     return 0
 
@@ -1177,24 +1620,35 @@ def set_plugin_state(name, enable):
         runtime = builtin.runtime_bundle_dir(name)
         runtime_located = bool(runtime and os.path.realpath(runtime) == os.path.realpath(directory))
     with builtin.operation_lock(check_cancel):
+        # 等待 writer 期间前序写者也可能留下未提交事务；锁内再次核验后才写意图。
+        if transactions().pending():
+            raise PluginInstallPending('插件事务尚未提交；未执行新操作，请先完成维护')
+        if enable:
+            directory = resolve_plugin_dir(name)
+            if not directory:
+                raise PluginPolicyError('PLUGIN_COMPATIBILITY_CHECK_FAILED', '插件兼容性检查失败，未执行操作')
+            actual_package = plugin_package(directory)
+            if actual_package['name'] != name or package is not None and actual_package != package:
+                raise PluginPolicyError('PLUGIN_TARGET_VERSION_CHANGED', '插件来源或版本在准备后变化，请重新检查', 'commit')
+            lifecycle().require_compatible(actual_package, stage='enable')
         progress('configure', '正在更新插件状态…', cancellable=False)
         if package is not None and not runtime_located:
             # The switch records intent; the actual load still verifies current
             # bytes and dependencies. No full graph or list belongs in this lock.
             lifecycle().queue_activation(name, '', package['version'])
         if (builtin.enable_plugin(name) if enable else builtin.disable_plugin(name)) != 0:
-            raise ValueError('插件状态更新失败，请检查配置和安装文件')
+            raise PluginIntentUnconfirmed('插件状态更新失败，请检查配置和安装文件')
         doc = builtin.read_manifest()
         if doc is None:
-            raise ValueError('无法读回插件配置，未确认操作结果')
+            raise PluginIntentUnconfirmed('无法读回插件配置，未确认操作结果')
         bundles = doc.get('dsh', {}).get('profile', {}).get('bundles', [])
         aliases = builtin.selection_aliases(name)
         selected = any(alias in bundles for alias in aliases)
-        disabled = any(os.path.isfile(builtin.marker_path(alias)) for alias in aliases)
+        disabled = _native_marker(name) != 'none'
         actual = selected and not disabled
         if actual != enable or (not enable and selected):
-            raise ValueError('插件启停意图读回不一致，未确认操作结果；请检查原配置')
-    return dict(name=name, enabled=actual, intentVerified=True,
+            raise PluginIntentUnconfirmed('插件启停意图读回不一致，未确认操作结果；请检查原配置')
+    return dict(name=name, enabled=actual, intentVerified=True, **lifecycle().committed('enable' if enable else 'disable'),
                 message='已' + ('启用 ' if actual else '禁用 ') + name + '；重启 Web 后生效')
 
 
@@ -1233,6 +1687,9 @@ def main():
         check_cancel()
         if not args:
             raise ValueError('不支持的插件操作')
+        if args[0] not in ('refresh', 'list', 'recover-installs', 'show-preview', 'discard-preview') \
+                and transactions().pending():
+            raise PluginInstallPending('插件事务尚未提交；未执行新操作，请先完成维护')
         # 一次容器启动内完成变更与状态读取；仍沿用原锁与事务提交边界。
         if args == ["refresh"]:
             progress('refresh', '正在检测已安装插件…')
@@ -1315,8 +1772,8 @@ def main():
             return lifecycle().discard_preview(args[1])
         if args[0] == "check-updates" and len(args) in (1, 2):
             return lifecycle().check_updates(args[1] if len(args) == 2 else '')
-        if args[0] == "prepare-update" and len(args) == 2:
-            return lifecycle().prepare_update(args[1])
+        if args[0] == "prepare-update" and len(args) in (2, 3):
+            return lifecycle().prepare_update(*args[1:])
         if args[0] == "rollback" and len(args) in (2, 3):
             return lifecycle().rollback(*args[1:])
         if args[0] == "safe-mode" and len(args) == 2:
@@ -1340,10 +1797,22 @@ def main():
             progress('refresh', '正在读取已安装插件…')
             return cmd_list()
         raise ValueError("不支持的插件操作")
+    except PluginPolicyError as error:
+        result('error', str(error), errorCode=error.code, stage=error.stage, application='failed', **error.detail)
+    except PluginInstallPending as error:
+        result('pending', str(error), cleanupVerified=False)
+    except PluginIntentUnconfirmed as error:
+        result('partial', str(error), errorCode='PLUGIN_INTENT_UNCONFIRMED', intentVerified=False)
     except PackageCommandUnknown as error:
         result('unknown', str(error), candidateRetained=True, executionState='unknown')
+    except PackageCommandTimeout as error:
+        pending = transactions().pending()
+        known = bool(error.confirmed_exit) and not pending
+        result('error' if known else 'unknown', str(error), cleanupVerified=known,
+               errorCode='PLUGIN_COMMAND_TIMEOUT_CONFIRMED' if known else 'PLUGIN_EXECUTION_UNKNOWN')
     except PluginCancelled as error:
-        result('cancelled', str(error))
+        pending = transactions().pending()
+        result('pending' if pending else 'cancelled', str(error), cleanupVerified=not pending)
     except urllib.error.HTTPError as error:
         hint = {403: "访问受限或 GitHub API 额度已用完", 404: "链接或指定版本不存在",
                 429: "请求过于频繁，请稍后重试"}.get(error.code, "服务器返回错误")
@@ -1356,7 +1825,10 @@ def main():
         else:
             result("error", "网络连接失败：" + str(error.reason))
     except Exception as error:
-        result("error", str(error))
+        pending = transactions().pending()
+        code = 'PLUGIN_TARGET_VERSION_CHANGED' if str(error) == 'PLUGIN_TARGET_VERSION_CHANGED' else 'PLUGIN_MANAGER_FAILED'
+        result('pending' if pending else 'error', str(error),
+               errorCode='PLUGIN_INSTALL_PENDING' if pending else code)
     return 1
 
 

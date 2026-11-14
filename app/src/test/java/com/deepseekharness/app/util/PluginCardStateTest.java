@@ -70,6 +70,21 @@ public final class PluginCardStateTest {
   }
 
   @Test
+  public void importantResultRemainsFirstWhenCompactCardKeepsOneNote() {
+    for (boolean pending : new boolean[] {true, false}) {
+      List<Note> notes = PluginCardState.notes(true, true, pending, true, true);
+      assertEquals(Note.MESSAGE, notes.get(0));
+      assertTrue(notes.contains(Note.RESTART));
+      assertEquals(!pending, notes.contains(Note.UPDATE));
+    }
+    assertEquals(
+        List.of(Note.RESTART, Note.UPDATE, Note.MESSAGE),
+        PluginCardState.notes(true, true, false, true, false));
+    assertEquals(Tone.ACCENT, PluginCardState.runtimeTone("unloading", false));
+    assertFalse(PluginCardState.runtimeLoaded("unloading", false));
+  }
+
+  @Test
   public void notesKeepOrderAndHideUpdateWhilePending() {
     assertEquals(
         List.of(Note.RESTART, Note.UPDATE, Note.MESSAGE),

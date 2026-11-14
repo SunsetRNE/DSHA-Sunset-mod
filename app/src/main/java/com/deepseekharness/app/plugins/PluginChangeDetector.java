@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -129,7 +130,7 @@ public final class PluginChangeDetector implements AutoCloseable {
   }
 
   private final Object lock = new Object();
-  private final Runnable onDirty, onRuntimeDirty, onReconcile;
+  private final Runnable onDirty, onRuntimeDirty, onReconcile, onCoverageChanged;
   private final Scheduler worker;
   private final Clock clock;
   private final ObserverFactory factory;
@@ -142,7 +143,19 @@ public final class PluginChangeDetector implements AutoCloseable {
   private boolean foreground, closed, drainQueued, pendingContent, pendingRuntime;
   private boolean pendingRepair, pendingForce, pendingReconcile, deferredContent;
   private Cancellation repairTask;
-  private volatile boolean coverageLimited;
+
+  /** 有界观察覆盖结果；后台、未绑定和修复中均不能宣称完整。 */
+  public static final class Coverage {
+    public final boolean limited;
+    public final List<String> reasons;
+
+    private Coverage(boolean limited, List<String> reasons) {
+      this.limited = limited;
+      this.reasons = List.copyOf(reasons);
+    }
+  }
+
+  private volatile Coverage coverage = new Coverage(true, List.of("WATCH_NOT_OBSERVING"));
 
   /** 单回调版本不会把动态 heartbeat 升级为完整扫描。 */
   public PluginChangeDetector(Runnable onDirty) {
@@ -155,10 +168,17 @@ public final class PluginChangeDetector implements AutoCloseable {
 
   /** onReconcile 只请求核对；Engine 根据来源/缓存年龄决定是否扫描，不能把无事件视为内容证明。 */
   public PluginChangeDetector(Runnable onDirty, Runnable onRuntimeDirty, Runnable onReconcile) {
+    this(onDirty, onRuntimeDirty, onReconcile, () -> {});
+  }
+
+  /** 覆盖变化是独立内存投影，不能回流到目录失效或调度核对。 */
+  public PluginChangeDetector(
+      Runnable onDirty, Runnable onRuntimeDirty, Runnable onReconcile, Runnable onCoverageChanged) {
     this(
         onDirty,
         onRuntimeDirty,
         onReconcile,
+        onCoverageChanged,
         new Background(),
         () -> TimeUnit.NANOSECONDS.toMillis(System.nanoTime() & Long.MAX_VALUE),
         PluginChangeDetector::nativeWatch,
@@ -183,6 +203,19 @@ public final class PluginChangeDetector implements AutoCloseable {
       Clock clock,
       ObserverFactory factory,
       Limits limits) {
+    this(onDirty, onRuntimeDirty, onReconcile, () -> {}, worker, clock, factory, limits);
+  }
+
+  PluginChangeDetector(
+      Runnable onDirty,
+      Runnable onRuntimeDirty,
+      Runnable onReconcile,
+      Runnable onCoverageChanged,
+      Scheduler worker,
+      Clock clock,
+      ObserverFactory factory,
+      Limits limits) {
+    this.onCoverageChanged = Objects.requireNonNull(onCoverageChanged);
     this.onDirty = Objects.requireNonNull(onDirty);
     this.onRuntimeDirty = Objects.requireNonNull(onRuntimeDirty);
     this.onReconcile = Objects.requireNonNull(onReconcile);
@@ -195,7 +228,12 @@ public final class PluginChangeDetector implements AutoCloseable {
   /** 仅复制描述符和比较来源身份；主线程不会探测磁盘。初始为非前台。 */
   public void bind(List<WatchPath> paths, Object sourceIdentity) {
     Objects.requireNonNull(paths);
-    if (paths.size() > MAX_PATHS) throw new IllegalArgumentException("观察入口超过预算");
+    if (paths.size() > MAX_PATHS) {
+      synchronized (lock) {
+        if (!closed) updateCoverageLocked(true, List.of("WATCH_PATH_LIMIT"));
+      }
+      throw new IllegalArgumentException("观察入口超过预算");
+    }
     List<WatchPath> copy = new ArrayList<>(paths);
     for (WatchPath path : copy) Objects.requireNonNull(path);
     synchronized (lock) {
@@ -203,6 +241,7 @@ public final class PluginChangeDetector implements AutoCloseable {
       identity = sourceIdentity;
       desired = Collections.unmodifiableList(copy);
       generation++;
+      updateCoverageLocked(true, List.of(foreground ? "WATCH_PENDING" : "WATCH_NOT_OBSERVING"));
       pendingForce = pendingRepair = pendingReconcile = true;
       enqueueDrainLocked();
     }
@@ -214,6 +253,7 @@ public final class PluginChangeDetector implements AutoCloseable {
       if (closed || foreground == value) return;
       foreground = value;
       generation++;
+      updateCoverageLocked(true, List.of(value ? "WATCH_PENDING" : "WATCH_NOT_OBSERVING"));
       deferredContent |= pendingContent;
       pendingContent = false;
       pendingForce = pendingRepair = pendingReconcile = value;
@@ -224,7 +264,34 @@ public final class PluginChangeDetector implements AutoCloseable {
 
   /** 超出枚举/目录/深度预算或路径暂不可读时为 true；不能把有限观察覆盖当作完整证明。 */
   public boolean coverageLimited() {
-    return coverageLimited;
+    return coverage.limited;
+  }
+
+  public List<String> coverageReasons() {
+    return coverage.reasons;
+  }
+
+  /** 一次取得不可变快照；getter 不读盘、不排队、不续期。 */
+  public Coverage coverage() {
+    return coverage;
+  }
+
+  private void updateCoverageLocked(boolean limited, List<String> reasons) {
+    Coverage before = coverage;
+    if (before.limited == limited && before.reasons.equals(reasons)) return;
+    coverage = new Coverage(limited, reasons);
+    try {
+      onCoverageChanged.run();
+    } catch (RuntimeException ignored) {
+      // UI 投影失败不能变成目录失效或重新扫描。
+    }
+  }
+
+  private void publishCoverage(Plan plan) {
+    synchronized (lock) {
+      if (closed || !foreground || plan.epoch != generation) return;
+      updateCoverageLocked(plan.limited, new ArrayList<>(plan.reasons));
+    }
   }
 
   @Override
@@ -234,6 +301,7 @@ public final class PluginChangeDetector implements AutoCloseable {
       closed = true;
       foreground = false;
       generation++;
+      updateCoverageLocked(true, List.of("WATCH_NOT_OBSERVING"));
       worker.execute(
           () -> {
             cancelRepair();
@@ -311,6 +379,7 @@ public final class PluginChangeDetector implements AutoCloseable {
       return;
     }
     Plan plan = new Plan(epoch);
+    if (paths.isEmpty()) plan.limit("WATCH_NO_PATHS");
     try {
       // 先绑定每个入口的父链/顶层，防止一个大插件吃掉 profile/journal 的观察配额。
       for (WatchPath path : paths) plan.seed(path);
@@ -321,9 +390,11 @@ public final class PluginChangeDetector implements AutoCloseable {
         if (!active(epoch)) break;
         Registration existing = registrations.get(spec.path);
         Registration created = new Registration(spec, epoch);
+        boolean observerFailed = false;
         try {
           if (!safeDirectory(spec.root, spec.path, spec.device).equals(spec.stamp)) {
-            plan.limited = plan.changed = true;
+            plan.limit("WATCH_PATH_CHANGED");
+            plan.changed = true;
             continue;
           }
           if (existing != null && existing.epoch == epoch && existing.stamp.equals(spec.stamp)) {
@@ -331,18 +402,28 @@ public final class PluginChangeDetector implements AutoCloseable {
             next.put(spec.path, existing);
             continue;
           }
-          created.watch =
-              factory.start(spec.path.toFile(), (event, child) -> event(created, event, child));
+          try {
+            created.watch =
+                factory.start(spec.path.toFile(), (event, child) -> event(created, event, child));
+            if (created.watch == null) throw new IOException("PLUGIN_WATCH_START_UNAVAILABLE");
+          } catch (IOException | RuntimeException unavailable) {
+            plan.limit("WATCH_OBSERVER_FAILED");
+            observerFailed = true;
+            throw unavailable;
+          }
           if (!safeDirectory(spec.root, spec.path, spec.device).equals(spec.stamp)) {
             created.stop();
-            plan.limited = plan.changed = true;
+            plan.limit("WATCH_PATH_CHANGED");
+            plan.changed = true;
             continue;
           }
           next.put(spec.path, created);
         } catch (IOException | RuntimeException unavailable) {
           created.stop();
-          plan.limited = true;
-          plan.changed |= pathChanged(unavailable);
+          if (!observerFailed) {
+            plan.limit(pathChanged(unavailable) ? "WATCH_PATH_CHANGED" : "WATCH_PATH_UNREADABLE");
+            plan.changed |= pathChanged(unavailable);
+          }
         }
       }
       for (Registration old : registrations.values()) {
@@ -351,7 +432,7 @@ public final class PluginChangeDetector implements AutoCloseable {
       registrations.clear();
       if (active(epoch)) registrations.putAll(next);
       else for (Registration stale : next.values()) stale.stop();
-      coverageLimited = plan.limited;
+      publishCoverage(plan);
       // 新观察器建立后请求核对，实测到身份变化则必须保留真实 dirty。
       if (plan.changed) dirtyCallback(epoch);
       else callback(onReconcile, epoch);
@@ -386,6 +467,13 @@ public final class PluginChangeDetector implements AutoCloseable {
       pendingRuntime |= runtime;
       pendingRepair |= repair;
       pendingForce |= invalid;
+      if (repair)
+        updateCoverageLocked(
+            true,
+            List.of(
+                (event & OVERFLOW) != 0
+                    ? "WATCH_EVENT_OVERFLOW"
+                    : invalid ? "WATCH_INVALIDATED" : "WATCH_PENDING"));
       enqueueDrainLocked();
     }
   }
@@ -426,14 +514,21 @@ public final class PluginChangeDetector implements AutoCloseable {
     final Set<String> visited = new HashSet<>();
     int inspected;
     boolean limited, changed;
+    final Set<String> reasons = new LinkedHashSet<>();
+
+    void limit(String reason) {
+      limited = true;
+      if (reasons.size() < 8) reasons.add(reason);
+    }
 
     Plan(long epoch) {
       this.epoch = epoch;
     }
 
     boolean budget() {
-      if (!active(epoch) || clock.now() - startedAt >= limits.buildMillis) {
-        limited = true;
+      if (!active(epoch)) return false;
+      if (clock.now() - startedAt >= limits.buildMillis) {
+        limit("WATCH_TIME_LIMIT");
         return false;
       }
       return true;
@@ -445,28 +540,33 @@ public final class PluginChangeDetector implements AutoCloseable {
       try {
         Stamp base = stamp(root);
         if (!base.directory || base.symlink) {
-          limited = true;
+          limit("WATCH_UNSAFE_PATH");
           return;
         }
         Path parent = root;
         int ancestors = 0;
         for (Path component : root.relativize(target)) {
           if (component.toString().isEmpty()) continue;
-          if (!budget() || ++ancestors > limits.depth) {
-            limited = true;
+          if (!budget()) return;
+          if (++ancestors > limits.depth) {
+            limit("WATCH_DEPTH_LIMIT");
             return;
           }
           Path child = parent.resolve(component);
           boolean ancestor = !child.equals(target);
           add(root, parent, base.device, new Rule(input.kind, component.toString(), ancestor));
-          if (!Files.exists(child, LinkOption.NOFOLLOW_LINKS)) return;
-          Stamp state = stamp(child);
+          Stamp state;
+          try {
+            state = stamp(child);
+          } catch (java.nio.file.NoSuchFileException missing) {
+            return; // 父级观察器会报告将来的创建；不可读不在此分支伪装缺席。
+          }
           if (state.symlink || state.device != base.device) {
-            limited = true;
+            limit("WATCH_UNSAFE_PATH");
             return;
           }
           if (!state.directory) {
-            if (ancestor) limited = true;
+            if (ancestor) limit("WATCH_UNSAFE_PATH");
             return;
           }
           parent = child;
@@ -476,7 +576,7 @@ public final class PluginChangeDetector implements AutoCloseable {
         add(root, target, base.device, rule);
         if (input.recursive) branches.add(new Branch(root, target, base.device, input.kind, 0));
       } catch (IOException | RuntimeException unavailable) {
-        limited = true;
+        limit("WATCH_PATH_UNREADABLE");
       }
     }
 
@@ -484,7 +584,7 @@ public final class PluginChangeDetector implements AutoCloseable {
       Spec spec = specs.get(directory);
       if (spec == null) {
         if (specs.size() >= limits.directories) {
-          limited = true;
+          limit("WATCH_DIRECTORY_LIMIT");
           return;
         }
         spec = new Spec(root, directory, device, safeDirectory(root, directory, device));
@@ -498,21 +598,22 @@ public final class PluginChangeDetector implements AutoCloseable {
         Branch branch = branches.removeFirst();
         if (!visited.add(branch.path + "\n" + branch.kind)) continue;
         if (branch.depth >= limits.depth) {
-          limited = true;
+          limit("WATCH_DEPTH_LIMIT");
           continue;
         }
         if (!specs.containsKey(branch.path)) {
-          limited = true;
+          limit("WATCH_DIRECTORY_LIMIT");
           continue;
         }
         try {
           Stamp before = safeDirectory(branch.root, branch.path, branch.device);
           try (DirectoryStream<Path> children = Files.newDirectoryStream(branch.path)) {
             for (Path child : children) {
-              if (++inspected > limits.entries || !budget()) {
-                limited = true;
+              if (++inspected > limits.entries) {
+                limit("WATCH_ENTRY_LIMIT");
                 return;
               }
+              if (!budget()) return;
               Stamp state = stamp(child);
               if (state.symlink || state.device != branch.device) continue;
               if (!state.directory) continue;
@@ -522,10 +623,12 @@ public final class PluginChangeDetector implements AutoCloseable {
                     new Branch(branch.root, child, branch.device, branch.kind, branch.depth + 1));
             }
           }
-          if (!safeDirectory(branch.root, branch.path, branch.device).equals(before))
-            limited = changed = true;
+          if (!safeDirectory(branch.root, branch.path, branch.device).equals(before)) {
+            limit("WATCH_PATH_CHANGED");
+            changed = true;
+          }
         } catch (IOException | RuntimeException unavailable) {
-          limited = true;
+          limit(pathChanged(unavailable) ? "WATCH_PATH_CHANGED" : "WATCH_PATH_UNREADABLE");
           changed |= pathChanged(unavailable);
         }
       }

@@ -84,6 +84,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     static StartupDiagnostics diagnostics;
     static volatile String auth;
     static volatile boolean starting;
+    static volatile String instance;
+    static volatile Runnable readyRead;
     static final AtomicInteger starts = new AtomicInteger();
 
     @Implementation
@@ -103,10 +105,13 @@ public final class PluginRepositoryQueryLifecycleTest {
 
     @Implementation
     protected com.deepseekharness.app.util.PreviewPageSession.Identity getReadyWebPageIdentity() {
-      return auth.isEmpty() || starting
-          ? null
-          : new com.deepseekharness.app.util.PreviewPageSession.Identity(
-              Boot.generation, "fixture-instance", auth);
+      var value =
+          auth.isEmpty() || starting
+              ? null
+              : new com.deepseekharness.app.util.PreviewPageSession.Identity(
+                  Boot.generation, instance, auth);
+      if (readyRead != null) readyRead.run();
+      return value;
     }
 
     @Implementation
@@ -142,6 +147,13 @@ public final class PluginRepositoryQueryLifecycleTest {
   @Implements(value = MaintenanceCoordinator.class, isInAndroidSdk = false)
   public static final class Maintenance {
     static int commits;
+    static Runnable afterStop;
+    static final ThreadLocal<Boolean> owner = new ThreadLocal<>();
+
+    @Implementation
+    protected static boolean isOwner() {
+      return Boolean.TRUE.equals(owner.get());
+    }
 
     @Implementation
     protected static boolean pending(HarnessController ignored) {
@@ -170,7 +182,13 @@ public final class PluginRepositoryQueryLifecycleTest {
           Controller.starting = false;
         }
         commits++;
-        return operation.run();
+        owner.set(true);
+        try {
+          if (afterStop != null) afterStop.run();
+          return operation.run();
+        } finally {
+          owner.remove();
+        }
       }
     }
   }
@@ -258,6 +276,9 @@ public final class PluginRepositoryQueryLifecycleTest {
     @RealObject private PluginTask task;
     static final AtomicBoolean mainIo = new AtomicBoolean();
     static CountDownLatch read, cancelled, closed;
+    static final List<String> closedTaskIds = new CopyOnWriteArrayList<>();
+    static final List<String> closeAttemptTaskIds = new CopyOnWriteArrayList<>();
+    static int closeFailures;
 
     private static void observe() {
       if (Looper.myLooper() == Looper.getMainLooper()) mainIo.set(true);
@@ -281,12 +302,21 @@ public final class PluginRepositoryQueryLifecycleTest {
     @Implementation
     protected void close() {
       observe();
+      closeAttemptTaskIds.add(task.id);
+      if (closeFailures > 0) {
+        closeFailures--;
+        throw new SecurityException("fixture cleanup unavailable");
+      }
       Shadow.directlyOn(task, PluginTask.class, "close");
+      closedTaskIds.add(task.id);
       closed.countDown();
     }
   }
 
   private PluginRepository repository;
+  private boolean expectRetainedMutation;
+  private final java.util.Map<Object, com.deepseekharness.app.plugins.PluginExitProofGate.Evidence>
+      issuedExitProofs = new java.util.IdentityHashMap<>();
   private final List<Runnable> queue = new ArrayList<>();
   private final List<Worker> workers = new ArrayList<>();
   private final List<CountDownLatch> releases = new ArrayList<>();
@@ -299,6 +329,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     Controller.diagnostics = new StartupDiagnostics(RuntimeEnvironment.getApplication());
     Controller.auth = "";
     Controller.starting = false;
+    Controller.instance = "fixture-instance";
+    Controller.readyRead = null;
     Controller.starts.set(0);
     assertFalse(Controller.diagnostics.snapshot().safe);
     Boot.root = root("fixture-root");
@@ -312,11 +344,17 @@ public final class PluginRepositoryQueryLifecycleTest {
     SourceResolver.resolutions.set(0);
     SourceResolver.beforeReturn = null;
     Maintenance.commits = 0;
+    Maintenance.afterStop = null;
     SignalAudit.mainIo.set(false);
+    SignalAudit.closeFailures = 0;
+    SignalAudit.closedTaskIds.clear();
+    SignalAudit.closeAttemptTaskIds.clear();
+    expectRetainedMutation = false;
     SignalAudit.read = new CountDownLatch(1);
     SignalAudit.cancelled = new CountDownLatch(1);
     SignalAudit.closed = new CountDownLatch(1);
     repository = new PluginRepository(RuntimeEnvironment.getApplication(), queue::add);
+    assertTrue(repository.bindExitProofOwner(issuedExitProofs::get));
     main = Shadow.extract(Looper.getMainLooper());
     assertFalse(EnvironmentTaskGate.isBusy());
     assertFalse(EnvironmentTaskGate.hasSharedUse());
@@ -328,10 +366,171 @@ public final class PluginRepositoryQueryLifecycleTest {
     for (CountDownLatch latch : releases) latch.countDown();
     for (Worker worker : workers) worker.await();
     main.idle();
+    // 查询退出的共享占用一律是真实失败，绝不能补造 A5 证明或清理掉掩盖。
+    assertFalse("查询完成后不得遗留共享占用", EnvironmentTaskGate.hasSharedUse());
+    if (expectRetainedMutation) {
+      Object held = field(repository, "retainedExecution");
+      assertNotNull("具名测试必须确实留下预期的未知变更现场", held);
+      Object request = field(held, "request");
+      assertNull("查询不得进入变更现场销毁分支", field(request, "queryBudget"));
+      var workType = Class.forName(PluginRepository.class.getName() + "$Work");
+      var queryMethod = workType.getDeclaredMethod("query");
+      queryMethod.setAccessible(true);
+      assertEquals(Boolean.FALSE, queryMethod.invoke(field(request, "work")));
+      String id = (String) field(request, "id");
+      assertEquals(Phase.UNCONFIRMED, repository.operation(id).phase);
+      var operations = operationQueue();
+      assertNotNull(operations.active());
+      assertEquals(id, operations.active().operationId);
+      assertSame(request, operations.active().work);
+      // 这里只销毁测试拥有的真实对象；不调用生产确认入口，不签发证明、不执行下一任务。
+      Worker cleanup =
+          new Worker(
+              () -> {
+                try {
+                  ((PluginTask) field(held, "task")).close();
+                  ((EnvironmentTaskGate.Lease) field(held, "lease")).close();
+                  ((RuntimeTasks) field(held, "work")).close();
+                  ((RuntimeTasks) field(held, "guard")).close();
+                } catch (Exception error) {
+                  throw new AssertionError("测试现场销毁失败", error);
+                }
+              });
+      cleanup.await();
+    } else assertNull("不得隐藏未声明的查询或变更保留现场", field(repository, "retainedExecution"));
     assertFalse("任务完成后不得遗留全局占用", EnvironmentTaskGate.isBusy());
     assertFalse("任务完成后不得遗留共享占用", EnvironmentTaskGate.hasSharedUse());
     assertFalse("任务完成后不得遗留工作锁", RuntimeTasks.isBusy());
     assertFalse("信号读、取消写入和清理不得在主线程", SignalAudit.mainIo.get());
+  }
+
+  private static Object field(Object object, String name) throws Exception {
+    var member = object.getClass().getDeclaredField(name);
+    member.setAccessible(true);
+    return member.get(object);
+  }
+
+  private com.deepseekharness.app.plugins.PluginOperationQueue.Queue<?> operationQueue()
+      throws Exception {
+    return (com.deepseekharness.app.plugins.PluginOperationQueue.Queue<?>)
+        field(repository, "operations");
+  }
+
+  private void assertQueryReleased(boolean taskCreated) throws Exception {
+    assertFalse(EnvironmentTaskGate.hasSharedUse());
+    assertFalse(EnvironmentTaskGate.isBusy());
+    assertFalse(RuntimeTasks.isBusy());
+    assertNull(field(repository, "retainedExecution"));
+    assertNull(field(repository, "activeTask"));
+    assertNull(field(repository, "activeWork"));
+    assertFalse(((AtomicBoolean) field(repository, "working")).get());
+    assertFalse(repository.isQueryRunning());
+    assertFalse(repository.isBusy());
+    assertTrue(repository.state().getValue().catalog.stale);
+    assertNull(operationQueue().active());
+    if (taskCreated) {
+      assertFalse(Boot.taskIds.isEmpty());
+      assertTrue(
+          "查询信号对象必须真实close",
+          SignalAudit.closedTaskIds.contains(Boot.taskIds.get(Boot.taskIds.size() - 1)));
+    }
+  }
+
+  private void seedManagement() throws Exception {
+    Controller.auth = "http://127.0.0.1:3080/?token=fixture";
+    var source = SourceResolver.identity();
+    repository.registry().updateSource(source);
+    var query = repository.registry().beginQuery(source);
+    repository.registry().completeQuery(query, List.of(), List.of(), false);
+    var web =
+        com.deepseekharness.app.util.PluginMutationTickets.Web.ready(
+            Boot.generation, Controller.instance, Controller.auth);
+    var status =
+        new com.deepseekharness.app.util.PluginManagementView(
+            "available",
+            "MANAGEMENT_AVAILABLE",
+            "SERVICE_PRESENCE",
+            "present-unverified",
+            "PATCH_PROVENANCE_UNVERIFIED",
+            "STARTUP_METADATA",
+            false,
+            List.of(),
+            System.currentTimeMillis());
+    for (var entry :
+        java.util.Map.of(
+                "managementSource",
+                source,
+                "managementWeb",
+                web,
+                "observedManagementWeb",
+                web,
+                "managementStatus",
+                status)
+            .entrySet()) {
+      var field = PluginRepository.class.getDeclaredField(entry.getKey());
+      field.setAccessible(true);
+      field.set(repository, entry.getValue());
+    }
+    repository.publishCatalogState();
+    main.idle();
+    assertEquals("available", repository.state().getValue().management.managementState);
+  }
+
+  @Test
+  public void emptyCatalogStillPublishesDeadlineInvalidationWithoutGuestOrFullScan()
+      throws Exception {
+    seedManagement();
+    var schedule =
+        PluginRepository.class.getDeclaredMethod(
+            "scheduleRuntimeEvidenceExpiry", long.class, long.class);
+    schedule.setAccessible(true);
+    long now = System.currentTimeMillis();
+    ((java.util.concurrent.ScheduledFuture<?>) schedule.invoke(repository, now - 30_000, now))
+        .get(2, TimeUnit.SECONDS);
+    main.idle();
+    assertEquals("unknown", repository.state().getValue().management.managementState);
+    assertTrue(repository.state().getValue().items.isEmpty());
+    assertTrue(Boot.calls.isEmpty());
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void sameGenerationInstanceAndPageAbsenceImmediatelyInvalidateManagement()
+      throws Exception {
+    seedManagement();
+    long generation = Boot.generation;
+    Controller.instance = "different-instance";
+    repository.observeMutationIdentity(Controller.value);
+    main.idle();
+    assertEquals(generation, Boot.generation);
+    assertEquals("unknown", repository.state().getValue().management.managementState);
+    seedManagement();
+    Controller.auth = "";
+    repository.observeMutationIdentity(Controller.value);
+    main.idle();
+    assertEquals("unknown", repository.state().getValue().management.managementState);
+    assertTrue(Boot.calls.isEmpty());
+  }
+
+  private Object issueExitProof(String operationId, String backendTaskId) {
+    var operation = repository.operation(operationId);
+    var source = operation == null ? repository.registry().snapshot().source : operation.source;
+    Long generation = source == null ? null : source.webGeneration;
+    return issueExitProof(operationId, backendTaskId, generation, null);
+  }
+
+  private Object issueExitProof(
+      String operationId, String backendTaskId, Long generation, String instance) {
+    Object token = new Object();
+    issuedExitProofs.put(
+        token,
+        new com.deepseekharness.app.plugins.PluginExitProofGate.Evidence(
+            new com.deepseekharness.app.plugins.PluginExitProofGate.Binding(
+                operationId, backendTaskId, generation, instance),
+            com.deepseekharness.app.plugins.PluginExitProofGate.Outcome.EXITED_CONFIRMED,
+            "TEST_A5_OWNER",
+            System.currentTimeMillis()));
+    return token;
   }
 
   private static File root(String name) throws IOException {
@@ -429,6 +628,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertSame(repository.registry().snapshot().items, repository.state().getValue().items);
     Boot.calls.clear();
     Boot.taskIds.clear();
+    SignalAudit.closedTaskIds.clear();
+    SignalAudit.closeAttemptTaskIds.clear();
     SourceResolver.resolutions.set(0);
   }
 
@@ -453,6 +654,117 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertFalse(repository.state().getValue().catalog.known);
     assertTrue(repository.state().getValue().catalog.stale);
     assertFalse(repository.isBusy());
+  }
+
+  @Test
+  public void mutationWithoutObservedSourceCannotAcquireCredentialsLater() throws Exception {
+    String id = repository.install(PluginSource.parse("npm:" + ALPHA));
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(id).phase);
+    assertTrue(Boot.calls.isEmpty());
+  }
+
+  @Test
+  public void queuedMutationRejectsSourceAbaEvenIfFinalIdentityMatches() throws Exception {
+    seed();
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    var original = SourceResolver.identity();
+    repository.registry().updateSource(original.withWebGeneration(original.webGeneration + 1));
+    repository.registry().updateSource(original);
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(id).phase);
+    assertTrue(Boot.calls.isEmpty());
+  }
+
+  @Test
+  public void delayedReadyNotificationsWithSameFinalGetterStillInvalidateQueuedMutation()
+      throws Exception {
+    seed();
+    Controller.auth = "http://127.0.0.1/?token=private";
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    // 两个无 payload 通知晚到时，getter 已恢复 A；仍须推进事件代次。
+    repository.observeMutationIdentity(Controller.value);
+    repository.observeMutationIdentity(Controller.value);
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(id).phase);
+    assertTrue(Boot.calls.isEmpty());
+  }
+
+  @Test
+  public void changedInstanceAndTwoReadRaceCannotDispatchQueuedMutation() throws Exception {
+    seed();
+    Controller.auth = "http://127.0.0.1/?token=private";
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    Controller.instance = "other-instance";
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(id).phase);
+    assertTrue(Boot.calls.isEmpty());
+    Controller.readyRead =
+        () ->
+            Controller.instance =
+                Controller.instance.equals("other-instance") ? "third-instance" : "other-instance";
+    id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    Controller.readyRead = null;
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(id).phase);
+    assertTrue(Boot.calls.isEmpty());
+  }
+
+  @Test
+  public void ownStopOneImmediateEventCommitsButLateEventRefusesGuestCommit() throws Exception {
+    seed();
+    String previewId = "a".repeat(32), sha = "b".repeat(64);
+    Boot.guest =
+        (command, task) ->
+            command.startsWith("inspect ")
+                ? result(preview(ALPHA, previewId, sha))
+                : result("{\"status\":\"ok\",\"message\":\"installed\"}");
+    Maintenance.afterStop = () -> repository.observeMutationIdentity(Controller.value);
+    String first = repository.install(PluginSource.parse("npm:" + ALPHA));
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(first).phase);
+    assertEquals(2, Boot.calls.size());
+    Maintenance.afterStop = null;
+    AtomicBoolean late = new AtomicBoolean();
+    SourceResolver.beforeReturn =
+        observed -> {
+          if (observed.webGeneration == Boot.generation
+              && Maintenance.commits == 2
+              && !late.getAndSet(true)) {
+            // owner 内 resolve 在transfer前；先让下一次重新核验触发迟到通知。
+            SourceResolver.beforeReturn =
+                again -> repository.observeMutationIdentity(Controller.value);
+          }
+        };
+    String second = repository.install(PluginSource.parse("npm:" + BETA));
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(second).phase);
+    assertEquals(3, Boot.calls.size());
+    assertNotNull(repository.preview().getValue());
+    SourceResolver.beforeReturn = null;
+  }
+
+  @Test
+  public void extraStopRevisionPreservesCandidateAndConsumedPreviewCannotReplay() throws Exception {
+    seed();
+    String previewId = "c".repeat(32), sha = "d".repeat(64);
+    reply(preview(ALPHA, previewId, sha));
+    Maintenance.afterStop =
+        () ->
+            DshaApp.from(RuntimeEnvironment.getApplication())
+                .harnessSession()
+                .startProtection
+                .cancelAll();
+    String first = repository.install(PluginSource.parse("npm:" + ALPHA));
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(first).phase);
+    assertNotNull(repository.preview().getValue());
+    assertEquals(1, Boot.calls.size());
+    Maintenance.afterStop = null;
+    String repeated = repository.confirmPreview();
+    runWorker();
+    assertEquals(Phase.INVALIDATED, repository.operation(repeated).phase);
+    assertEquals(1, Boot.calls.size());
   }
 
   @Test
@@ -512,6 +824,123 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertTrue(queue.isEmpty());
     assertUnknown();
     assertTrue(repository.state().getValue().message.contains("读取已超时"));
+    assertQueryReleased(false);
+  }
+
+  private static BoundedProcessRunner.Result timedOutQueryResult() throws Exception {
+    // 仅模拟 guest 收集边界回执，不声称创建或终止过真实进程。
+    var constructor =
+        BoundedProcessRunner.Result.class.getDeclaredConstructor(
+            com.deepseekharness.app.util.ProcessOutputCapture.class,
+            int.class,
+            boolean.class,
+            boolean.class);
+    constructor.setAccessible(true);
+    return constructor.newInstance(
+        new com.deepseekharness.app.util.ProcessOutputCapture(1024, 128), -1, true, false);
+  }
+
+  private void assertGuestQueryFailureReleasesOwnership(Guest failure) throws Exception {
+    seed();
+    var previous = repository.registry().snapshot().items;
+    Boot.guest =
+        (command, task) -> {
+          assertEquals("refresh", command);
+          Files.writeString(
+              new File(Boot.root, "root/.dsha-plugin-task-" + task + ".json").toPath(), "{}");
+          return failure.execute(command, task);
+        };
+    repository.refresh();
+    runWorker();
+    assertSame(previous, repository.registry().snapshot().items);
+    assertTrue(repository.hasKnownItems());
+    assertEquals(List.of("refresh"), Boot.calls);
+    assertQueryReleased(true);
+    assertTrue("查询不能产生变更active/history槽", repository.state().getValue().operations.isEmpty());
+    assertFalse(
+        new File(Boot.root, "root/.dsha-plugin-task-" + Boot.taskIds.get(0) + ".json").exists());
+    assertTrue(queue.isEmpty());
+    assertTrue("查询释放不能依靠夹具生产证明", issuedExitProofs.isEmpty());
+  }
+
+  @Test
+  public void queryTimeoutReceiptClosesTaskAndReleasesAllOwnership() throws Exception {
+    assertGuestQueryFailureReleasesOwnership((command, task) -> timedOutQueryResult());
+  }
+
+  @Test
+  public void queryNullReceiptClosesTaskAndReleasesAllOwnership() throws Exception {
+    assertGuestQueryFailureReleasesOwnership((command, task) -> null);
+  }
+
+  @Test
+  public void queryIOExceptionClosesTaskAndReleasesAllOwnership() throws Exception {
+    assertGuestQueryFailureReleasesOwnership(
+        (command, task) -> {
+          throw new IOException("fixture read unavailable");
+        });
+  }
+
+  @Test
+  public void queryBudgetExpiresInsideGuestWithoutRetainingMutationGuard() throws Exception {
+    assertGuestQueryFailureReleasesOwnership(
+        (command, task) -> {
+          var budget =
+              (com.deepseekharness.app.runtime.GuestScriptBudget)
+                  field(field(repository, "activeWork"), "queryBudget");
+          var deadline = budget.getClass().getDeclaredField("deadline");
+          deadline.setAccessible(true);
+          deadline.setLong(budget, System.nanoTime() - 1);
+          budget.remainingMillis(); // 真实预算抛异常；不以一条相似文本模拟截止。
+          throw new AssertionError("已过期的查询预算不得继续");
+        });
+  }
+
+  @Test
+  public void queryTaskCloseExceptionPublishesStaleAndReleasesLeaseWithoutRetention()
+      throws Exception {
+    seed();
+    reply(list(false, true));
+    SignalAudit.closeFailures = 1;
+    repository.refresh();
+    runWorker();
+    assertQueryReleased(false);
+    assertEquals(0, SignalAudit.closeFailures);
+    assertEquals(List.of(Boot.taskIds.get(0)), SignalAudit.closeAttemptTaskIds);
+    assertTrue("失败的close不能报告已成功清理信号", SignalAudit.closedTaskIds.isEmpty());
+    assertEquals(List.of("refresh"), Boot.calls);
+    assertTrue(repository.state().getValue().operations.isEmpty());
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void failedQueryLeavesQueuedMutationUntouchedAndNeverClaimsItsActiveSlot()
+      throws Exception {
+    seed();
+    var target = repository.state().getValue().items.get(0);
+    var entered = blockGuest((command, task) -> null);
+    repository.refresh();
+    Worker worker = startWorker();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+    assertNull(operationQueue().active());
+    String mutation = repository.setEnabled(target, true);
+    assertEquals(Phase.QUEUED, repository.operation(mutation).phase);
+    unblock();
+    finish(worker);
+    assertFalse(EnvironmentTaskGate.hasSharedUse());
+    assertFalse(EnvironmentTaskGate.isBusy());
+    assertFalse(RuntimeTasks.isBusy());
+    assertNull(field(repository, "retainedExecution"));
+    assertNull(operationQueue().active());
+    assertEquals(Phase.QUEUED, repository.operation(mutation).phase);
+    assertTrue(SignalAudit.closedTaskIds.contains(Boot.taskIds.get(0)));
+    assertEquals(1, queue.size());
+    reply(intent(ALPHA, true));
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(mutation).phase);
+    assertEquals(List.of("refresh", "enable-state '" + ALPHA + "'"), Boot.calls);
+    assertFalse(repository.isBusy());
+    assertNull(operationQueue().active());
   }
 
   @Test
@@ -529,6 +958,113 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertTrue(repository.state().getValue().catalog.stale);
     assertTrue(repository.state().getValue().catalog.error.contains("UNKNOWN"));
     assertEquals(List.of("refresh"), Boot.calls);
+    assertTrue(queue.isEmpty());
+    assertQueryReleased(true);
+  }
+
+  @Test
+  public void exitUnknownWithoutA5InstanceRemainsRetainedEvenWithOpaqueProof() throws Exception {
+    expectRetainedMutation = true;
+    seed();
+    var alpha = repository.state().getValue().items.get(0);
+    var beta = repository.state().getValue().items.get(1);
+    var entered =
+        blockGuest(
+            (command, taskId) -> {
+              Files.writeString(
+                  new File(Boot.root, "root/.dsha-plugin-task-" + taskId + ".json").toPath(), "{}");
+              return result(
+                  "{\"status\":\"unknown\",\"message\":\"exit unavailable\",\"executionUnknown\":true}");
+            });
+    String first = repository.setEnabled(alpha, true);
+    Worker worker = startWorker();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+    String second = repository.setEnabled(beta, true);
+    unblock();
+    finish(worker);
+    File progress =
+        new File(Boot.root, "root/.dsha-plugin-task-" + first.replace("-", "") + ".json");
+    assertTrue(progress.isFile());
+    assertTrue(EnvironmentTaskGate.isBusy());
+    assertTrue(RuntimeTasks.isBusy());
+    assertEquals(Phase.UNCONFIRMED, repository.operation(first).phase);
+    assertEquals(Phase.QUEUED, repository.operation(second).phase);
+    assertEquals(1, Boot.calls.size());
+    String task = first.replace("-", "");
+    Object wrongProof =
+        issueExitProof(first, task.startsWith("a") ? "b".repeat(32) : "a".repeat(32));
+    Object missingInstanceProof = issueExitProof(first, task);
+    repository.confirmRetainedExit("EXITED_CONFIRMED");
+    runWorker();
+    repository.confirmRetainedExit(wrongProof);
+    runWorker();
+    assertTrue(progress.isFile());
+    assertTrue(EnvironmentTaskGate.isBusy());
+    assertTrue(RuntimeTasks.isBusy());
+    assertEquals(1, Boot.calls.size());
+    repository.confirmRetainedExit(missingInstanceProof);
+    runWorker();
+    var binding =
+        (com.deepseekharness.app.plugins.PluginExitProofGate.Binding)
+            field(field(repository, "retainedExecution"), "binding");
+    assertNull("生产尚未提供A5 instance，null不能作为精确绑定", binding.instance());
+    repository.confirmRetainedExit(
+        issueExitProof(first, task, binding.generation(), Controller.instance));
+    runWorker();
+    assertTrue(progress.exists());
+    assertTrue(EnvironmentTaskGate.isBusy());
+    assertTrue(RuntimeTasks.isBusy());
+    assertEquals(Phase.UNCONFIRMED, repository.operation(first).phase);
+    assertEquals(Phase.QUEUED, repository.operation(second).phase);
+    assertEquals(1, Boot.calls.size());
+    assertTrue("缺实例证明不能推进后继变更", queue.isEmpty());
+  }
+
+  @Test
+  public void futureA5CompleteFixtureBindingCanRetryOnlySignalCleanup() throws Exception {
+    seed();
+    reply("{\"status\":\"unknown\",\"message\":\"exit unknown\",\"executionUnknown\":true}");
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    runWorker();
+    // 仅此具名正控模拟未来 A5 已绑定实例；生产 RetainedExecution 仍没有该接线。
+    Object held = field(repository, "retainedExecution");
+    var before =
+        (com.deepseekharness.app.plugins.PluginExitProofGate.Binding) field(held, "binding");
+    assertNull(before.instance());
+    var complete =
+        new com.deepseekharness.app.plugins.PluginExitProofGate.Binding(
+            before.operationId(), before.backendTaskId(), before.generation(), Controller.instance);
+    var bindingField = held.getClass().getDeclaredField("binding");
+    bindingField.setAccessible(true);
+    bindingField.set(held, complete);
+    Object proof =
+        issueExitProof(id, id.replace("-", ""), complete.generation(), complete.instance());
+    SignalAudit.closeFailures = 1;
+    repository.confirmRetainedExit(proof);
+    runWorker();
+    assertTrue(EnvironmentTaskGate.isBusy());
+    assertTrue(RuntimeTasks.isBusy());
+    assertEquals(Phase.UNCONFIRMED, repository.operation(id).phase);
+    issuedExitProofs.remove(proof);
+    repository.confirmRetainedExit(proof);
+    runWorker();
+    assertFalse(EnvironmentTaskGate.isBusy());
+    assertFalse(RuntimeTasks.isBusy());
+    assertEquals(1, Boot.calls.size());
+    assertEquals(Phase.UNCONFIRMED, repository.operation(id).phase);
+  }
+
+  @Test
+  public void effectUnknownWithConfirmedProcessExitReleasesOwnershipWithoutReplay()
+      throws Exception {
+    seed();
+    reply("{\"status\":\"partial\",\"message\":\"effect unconfirmed\",\"stage\":\"restore\"}");
+    String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
+    runWorker();
+    assertEquals(Phase.UNCONFIRMED, repository.operation(id).phase);
+    assertFalse(EnvironmentTaskGate.isBusy());
+    assertFalse(RuntimeTasks.isBusy());
+    assertEquals(1, Boot.calls.size());
     assertTrue(queue.isEmpty());
   }
 
@@ -670,6 +1206,7 @@ public final class PluginRepositoryQueryLifecycleTest {
   @Test
   public void cancellationAfterGuestDispatchCannotDowngradeUnknownOutcomeToCancelled()
       throws Exception {
+    expectRetainedMutation = true;
     seed();
     CountDownLatch entered =
         blockGuest(
@@ -814,7 +1351,7 @@ public final class PluginRepositoryQueryLifecycleTest {
   }
 
   @Test
-  public void confirmedIntentAcrossOnlyWebGenerationKeepsConfigurationButRetiresRuntime()
+  public void confirmedIntentAcrossExternalGenerationDoesNotOverwriteUnverifiedCatalog()
       throws Exception {
     seed();
     long previous = Boot.generation;
@@ -833,7 +1370,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
     runWorker();
     assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
-    assertTrue(repository.state().getValue().items.get(0).enabled);
+    assertFalse(repository.state().getValue().items.get(0).enabled);
+    assertTrue(repository.state().getValue().catalog.stale);
     assertEquals("unknown", repository.state().getValue().items.get(0).runtimeState);
     assertEquals(previous + 1, repository.state().getValue().catalog.source.webGeneration);
     assertEquals(1, Boot.calls.size());
@@ -888,6 +1426,7 @@ public final class PluginRepositoryQueryLifecycleTest {
 
   @Test
   public void unknownMutationOutcomeStaysUnconfirmedWithoutReplaying() throws Exception {
+    expectRetainedMutation = true;
     seed();
     Boot.guest =
         (command, id) -> {
@@ -1222,8 +1761,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertEquals(Phase.INVALIDATED, repository.operation(oldDeletion).phase);
     assertEquals("旧 DELETE 必须在派发前失效", 2, Boot.calls.size());
     runWorker();
-    assertEquals("不能污染候选未涉及的插件", Phase.SUCCEEDED, repository.operation(unrelatedDeletion).phase);
-    assertEquals("delete '" + BETA + "' '1.0.0'", Boot.calls.get(2));
+    assertEquals("停止换代不把排队票静默升级", Phase.INVALIDATED, repository.operation(unrelatedDeletion).phase);
+    assertEquals(2, Boot.calls.size());
 
     reply("{\"status\":\"error\",\"message\":\"follow-up refresh failed\"}");
     repository.refresh();
@@ -1231,8 +1770,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     String stillOld = repository.delete(oldAlpha);
     runWorker();
     assertEquals("失败查询不能清除目标变更标记", Phase.INVALIDATED, repository.operation(stillOld).phase);
-    assertEquals(4, Boot.calls.size());
-    assertEquals("refresh", Boot.calls.get(3));
+    assertEquals(3, Boot.calls.size());
+    assertEquals("refresh", Boot.calls.get(2));
 
     reply(
         new JSONObject()
@@ -1249,8 +1788,8 @@ public final class PluginRepositoryQueryLifecycleTest {
     String freshDeletion = repository.delete(current);
     runWorker();
     assertEquals(Phase.SUCCEEDED, repository.operation(freshDeletion).phase);
-    assertEquals("delete '" + ALPHA + "' '2.0.0'", Boot.calls.get(5));
-    assertEquals(6, Boot.calls.size());
+    assertEquals("delete '" + ALPHA + "' '2.0.0'", Boot.calls.get(4));
+    assertEquals(5, Boot.calls.size());
     assertFalse(Boot.calls.contains("delete '" + ALPHA + "' '1.0.0'"));
     assertTrue(repository.state().getValue().items.isEmpty());
     assertEquals(Phase.INVALIDATED, repository.operation(oldDeletion).phase);
@@ -1268,17 +1807,19 @@ public final class PluginRepositoryQueryLifecycleTest {
   }
 
   @Test
-  public void twoInstallsResumePreviouslyRunningWebOnlyOnceAfterQueueDrains() throws Exception {
+  public void queuedInstallTicketIsNotRevivedByThePreviousInstallStop() throws Exception {
     assertInstallBatchResume(false);
   }
 
   @Test
-  public void repeatedUserStopDuringSecondInstallSuppressesDeferredWebResume() throws Exception {
+  public void repeatedUserStopBeforeInvalidatedQueueDrainsSuppressesDeferredWebResume()
+      throws Exception {
     assertInstallBatchResume(true);
   }
 
   private void assertInstallBatchResume(boolean userStops) throws Exception {
     Controller.auth = "http://127.0.0.1:3080/?token=fixture";
+    seed();
     HarnessSessionState session =
         DshaApp.from(RuntimeEnvironment.getApplication()).harnessSession();
     long generation = Boot.generation;
@@ -1319,34 +1860,17 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertFalse(Controller.starting);
     assertEquals("", Controller.auth);
     assertEquals(1, queue.size());
-    Worker worker = startWorker();
-    assertTrue(secondCommit.await(2, TimeUnit.SECONDS));
-    assertTrue(
-        List.of(Phase.RUNNING, Phase.COMMITTING).contains(repository.operation(second).phase));
-    assertEquals(generation + 2, Boot.generation);
-    assertEquals(revision + 2, session.startProtection.cancellationRevision());
     if (userStops) {
-      synchronized (session.lifecycle) {
-        // 已停止时重复 Stop 不必换代，但每次都必须撤销此前的恢复意图。
-        session.startProtection.cancelAll();
-        session.startProtection.cancelAll();
-      }
-      assertEquals(generation + 2, Boot.generation);
-      assertEquals(revision + 4, session.startProtection.cancellationRevision());
+      session.startProtection.cancelAll();
+      session.startProtection.cancelAll();
     }
-    assertEquals(0, Controller.starts.get());
-    releaseSecond.countDown();
-    finish(worker);
-    assertEquals(Phase.SUCCEEDED, repository.operation(second).phase);
-    assertEquals(2, Maintenance.commits);
-    assertEquals(4, Boot.calls.size());
-    assertEquals(
-        List.of(
-            first.replace("-", ""),
-            first.replace("-", ""),
-            second.replace("-", ""),
-            second.replace("-", "")),
-        Boot.taskIds);
+    runWorker();
+    assertEquals("前序受控停止只转移自己的票", Phase.INVALIDATED, repository.operation(second).phase);
+    assertEquals(generation + 1, Boot.generation);
+    assertEquals(revision + (userStops ? 3 : 1), session.startProtection.cancellationRevision());
+    assertEquals(1, Maintenance.commits);
+    assertEquals(2, Boot.calls.size());
+    assertEquals(List.of(first.replace("-", ""), first.replace("-", "")), Boot.taskIds);
     assertTrue(queue.isEmpty());
     assertEquals(userStops ? 0 : 1, Controller.starts.get());
     assertEquals(!userStops, Controller.starting);
@@ -1357,6 +1881,7 @@ public final class PluginRepositoryQueryLifecycleTest {
   @Test
   public void inspectAndInstallPreviewKeepOneOperationAndNeverBorrowTheNextCandidate()
       throws Exception {
+    seed();
     String firstPreview = "a".repeat(32), secondPreview = "b".repeat(32);
     String firstSha = "c".repeat(64), secondSha = "d".repeat(64);
     Boot.guest =
@@ -1388,14 +1913,18 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertTrue(repository.installationSucceeded());
     assertNull(repository.preview().getValue());
     runWorker();
-    assertEquals(Phase.SUCCEEDED, repository.operation(second).phase);
-    assertEquals(secondPreview, repository.operation(second).transactionId);
+    assertEquals(Phase.INVALIDATED, repository.operation(second).phase);
+    assertEquals(2, Boot.calls.size());
+    String freshSecond = repository.install(PluginSource.parse("npm:" + BETA));
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(freshSecond).phase);
+    assertEquals(secondPreview, repository.operation(freshSecond).transactionId);
     assertEquals(
         List.of(
             first.replace("-", ""),
             first.replace("-", ""),
-            second.replace("-", ""),
-            second.replace("-", "")),
+            freshSecond.replace("-", ""),
+            freshSecond.replace("-", "")),
         Boot.taskIds);
     assertEquals("install-preview '" + firstPreview + "' '" + firstSha + "'", Boot.calls.get(1));
     assertEquals("install-preview '" + secondPreview + "' '" + secondSha + "'", Boot.calls.get(3));

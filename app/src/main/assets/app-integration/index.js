@@ -1,6 +1,6 @@
 import { writeFileSync, renameSync, unlinkSync, readFileSync } from 'node:fs';
 import { confirmedIdle } from './activity.js';
-import { runtimePlugins, installedPluginSampler } from './runtime-plugins.js';
+import { runtimePlugins, installedPluginSampler, pluginSessionIdentity, pluginActivityProjection } from './runtime-plugins.js';
 export function apply(ctx) {
   ctx.inject(['webServer','connection'], scoped => {
     scoped.effect(() => scoped.webServer.register({kind:'exact',path:'/__dsha/browser-origin-restore',handler:async (req,res) => {
@@ -23,6 +23,8 @@ export function apply(ctx) {
     const installedPlugins = installedPluginSampler(samplingContext, { generation, instance, profile });
     const file = '/root/.dsha-web-activity.json';
     const temp = file + '.' + process.pid + '.tmp';
+    const evidenceFile = '/root/.dsha-plugin-startup-evidence.json';
+    const evidenceTemp = evidenceFile + '.' + process.pid + '.tmp';
     let dynamicRunner;
     samplingContext.inject(['dynamicCordisRunner'], dynamic => {
       dynamic.effect(() => {
@@ -38,15 +40,28 @@ export function apply(ctx) {
         try {
           const idle = await confirmedIdle(samplingContext);
           if (!alive) return;
-          writeFileSync(temp, JSON.stringify({ generation, instance, at: Date.now(), idle,
-            installedPlugins: installedPlugins(), plugins: runtimePlugins(samplingContext.agents.list(), dynamicRunner) }), { mode: 0o600 });
+          const observedAt = Date.now();
+          // A5 尚未提供宿主 startupId；只有真实会话身份，不伪造启动票据。
+          const identity = pluginSessionIdentity({ generation, instance }, observedAt);
+          const { activity, evidence } = pluginActivityProjection(installedPlugins(observedAt), identity, profile, idle,
+            runtimePlugins(samplingContext.agents.list(), dynamicRunner));
+          writeFileSync(temp, JSON.stringify(activity), { mode: 0o600 });
           renameSync(temp, file);
+          // 与 activity 完全同帧，只有固定码和有界身份/状态；写失败由消费者按年龄失效。
+          try {
+            writeFileSync(evidenceTemp, JSON.stringify(evidence), { mode: 0o600 });
+            renameSync(evidenceTemp, evidenceFile);
+          } catch { /* 不因旁路投影失败阻断已有活动心跳。 */ }
         } catch { /* 原生侧将过期状态视为未知，继续保活。 */ }
         finally { sampling = false; }
       };
       write();
       const timer = setInterval(write, 2000); timer.unref();
-      return () => { alive = false; clearInterval(timer); try { unlinkSync(temp); } catch {} };
+      return () => {
+        alive = false; clearInterval(timer);
+        try { unlinkSync(temp); } catch {}
+        try { unlinkSync(evidenceTemp); } catch {}
+      };
     }, 'dsha-app-activity');
   });
 }

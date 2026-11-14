@@ -26,6 +26,38 @@ import org.junit.Test;
 /** 不启动 Android、环境任务或执行器业务的队列回归。 */
 public final class PluginOperationQueueTest {
   @Test
+  public void structuredResultSurvivesProgressAndTerminalHistory() {
+    Queue<String> queue = new Queue<>();
+    Entry<String> first = enqueue(queue, Type.UPDATE, "a");
+    assertSame(first, queue.poll());
+    var detail = new PluginOperationResult.Detail("", "install", "restart-required", "no-hmr");
+    assertTrue(queue.recordResultDetail(first.operationId, detail));
+    assertTrue(queue.progress(first.operationId, Phase.COMMITTING, "saved", 90, "transaction"));
+    assertTrue(queue.complete(first.operationId, Phase.SUCCEEDED, "saved"));
+    assertEquals(detail, queue.get(first.operationId).outcome);
+    assertEquals("transaction", queue.get(first.operationId).transactionId);
+    assertFalse(queue.recordResultDetail(first.operationId, PluginOperationResult.Detail.EMPTY));
+  }
+
+  @Test
+  public void unconfirmedCleanupRetainsSlotAndRejectsNewWrites() {
+    Queue<String> queue = new Queue<>();
+    Entry<String> first = enqueue(queue, Type.UPDATE, "a");
+    assertSame(first, queue.poll());
+    Entry<String> waiting = enqueue(queue, Type.DELETE, "b");
+    assertTrue(queue.retainUnconfirmed(first.operationId, "cleanup unknown"));
+    assertEquals(Phase.UNCONFIRMED, queue.get(first.operationId).phase);
+    assertTrue(queue.hasPending());
+    assertSame(first, queue.active());
+    assertNull(queue.poll());
+    assertFalse(queue.progress(first.operationId, Phase.RUNNING, "late", 100, null));
+    Entry<String> rejected = enqueue(queue, Type.INSTALL, "c");
+    assertEquals(Phase.REJECTED, rejected.operation().phase);
+    assertEquals("PLUGIN_OPERATION_BLOCKED_UNCONFIRMED", rejected.operation().message);
+    assertEquals(Phase.QUEUED, waiting.operation().phase);
+  }
+
+  @Test
   public void fifoUsesOneActiveSlotAndDoesNotExecuteWork() {
     Queue<Runnable> queue = new Queue<>();
     Runnable neverRun = () -> fail("队列不得执行工作");

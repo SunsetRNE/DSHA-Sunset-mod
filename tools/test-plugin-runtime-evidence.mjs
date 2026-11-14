@@ -150,7 +150,9 @@ const hash = value => createHash('sha256').update(value).digest('hex');
 test('启动观察只创建一份固定解析设置，仍逐项读取当前插件内容', () => {
   assert.equal(observerSchemaBuilds, 1);
   assert.equal(observerAnchors.size, 3, 'installation, profile and YAML dependency anchors');
-  for (const count of observerAnchors.values()) assert.equal(count, 1);
+  for (const [anchor, count] of observerAnchors) assert.equal(count,
+    anchor === path.join(runtime, 'node_modules/@deepseek-ai/dsh/package.json') ? 2 : 1,
+    '固定compatibility helper另建一次runtime anchor，采样不重复');
   for (const name of local) {
     const directory = path.join(profile, 'node_modules', name);
     assert.equal(observerReads.get(path.join(directory, 'package.json')), 1, name);
@@ -180,6 +182,11 @@ test('官方 bundle 只拥有插入入口，禁用基础入口不是自身加载
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-ambiguous').ambiguous, true);
   assert.equal(evidence.bundles.find(row => row.name === 'fixture-config-replaced-group').ambiguous, true);
   assert(Object.isFrozen(evidence) && Object.isFrozen(evidence.bundles[0].entries[0]));
+  assert.equal(evidence.truncated, false);
+  for (const row of evidence.bundles) {
+    assert.equal(row.contentFingerprint, ''); assert.equal(row.contentAlgorithm, '');
+    assert.equal(row.contentReason, 'CONTENT_UNVERIFIED');
+  }
   const metadata = JSON.stringify(evidence);
   assert(!metadata.includes(fixture) && !metadata.includes(runtime));
   assert(!metadata.includes('private-') && !metadata.includes('__jsExpr'));
@@ -230,8 +237,22 @@ test('锁定 Loader 的实际 fiber、吞掉的导入失败与状态变化驱动
     assert.equal(globalThis.evidenceExpressions, expressions);
     const json = JSON.stringify(sample());
     assert(!json.includes(fixture) && !json.includes(runtime));
-    assert(!json.includes('private-') && !json.includes('moduleHash'));
-    assert.deepEqual(Object.keys(sample()[0]), ['name', 'version', 'profile', 'state']);
+    assert(!json.includes('private-') && json.includes('moduleHash'));
+    assert.deepEqual(Object.keys(sample()[0]), ['name', 'version', 'profile', 'state', 'entries', 'identity',
+      'contentFingerprint', 'contentAlgorithm', 'contentReason', 'truncated', 'managementReadOnly', 'managementReadOnlyReason', 'eligibility']);
+    const goodRuntime = sample().find(row => row.name === 'fixture-good');
+    assert.equal(goodRuntime.entries[0].entryId, 'good');
+    assert.equal(goodRuntime.entries[0].phase, 'active');
+    assert.equal(goodRuntime.entries[0].diagnostic, 'ENTRY_ACTIVE');
+    assert.equal(goodRuntime.contentFingerprint, ''); assert.equal(goodRuntime.contentAlgorithm, '');
+    assert.equal(goodRuntime.contentReason, 'CONTENT_UNVERIFIED');
+    assert.equal(goodRuntime.identity.identitySource, 'OBSERVER_SESSION');
+    assert.equal(goodRuntime.identity.startupId, 'unknown');
+    assert.equal(sample().find(row => row.name === 'fixture-expression').entries[0].phase, null);
+    assert.equal(sample().find(row => row.name === 'fixture-import-failure').entries[0].diagnostic, 'ENTRY_INIT_FAILED');
+    const groupRuntime = sample().find(row => row.name === 'fixture-group');
+    assert.deepEqual(groupRuntime.entries.map(row => [row.entryId, row.parentId, row.group, row.phase]),
+      [['nested-group', '', true, 'active'], ['nested-child', 'nested-group', false, 'active']]);
 
     put(path.join(good, 'package.json'), { name: 'fixture-good', version: '2.0.0' });
     assert.equal(sample().find(item => item.name === 'fixture-good').version, '1.0.0', '磁盘升级不能冒领旧 fiber');
@@ -288,6 +309,11 @@ test('官方多入口、重复 id、模块冲突与未知新 fiber 状态保守�
   assert.deepEqual(states(), ['pending', 'loaded', 'loaded']);
   rows[2].fiber.state = 3;
   assert.equal(states()[0], 'failed');
+  rows[2].fiber.state = 5;
+  assert.equal(states()[0], 'unloading');
+  assert.equal(sample().find(row => row.name === official[0]).entries[1].phase, 'unloading');
+  rows[2].fiber.state = 4;
+  assert.equal(sample().find(row => row.name === official[0]).entries[1].phase, null);
   rows[2].fiber.state = 77;
   assert.equal(states()[0], 'unknown');
   rows[2].fiber.state = 2;
