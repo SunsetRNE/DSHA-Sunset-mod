@@ -1,7 +1,7 @@
 # A2 任务基线（G2）：存储与文件（SAF 授权簿 + 文件工作台）
 
-> 版本：v0.5　日期：2026-11-14　slice 3/4 实现基线：`278a446a`（RC1 已合入的 origin/main；本分支只追加提交）
-> 状态：slice 1/2 已合入并保留既有非实现者复审结论；**slice 3 工作台与 slice 4 本地收口已实现，待本轮非实现者评审、合并树 descriptor/固定输入 CI 与真机出口证据，不可合并**。N3/N4 仍为已知窗口，未宣称关闭。
+> 版本：v0.6　日期：2026-11-14　slice 3/4 集成基线：`1d675b3b`（初始实现来自 278a446a；P2 修复后按 Lead 新要求 rebase，无冲突）
+> 状态：slice 1/2 已合入；slice 3/4 初次代码层逐行审查 **APPROVE（8×P2）**，P2-1..8 修复已落实，待增量复核和合并树 descriptor/固定输入 CI。**实现按切片集成；A2 整轮出口与 N3/N4、真机证据仍未闭环，不宣称整轮可合并或已验收。**
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A2、[A1 任务基线](a1-task-baseline-20261113.md) 模板与已知 P2、[A1 契约草案](a1-contract-draft-20261112.md)（形状内部冻结）、[安全模型](../../security-model.md) SAF 一节。
 > 历史：slice 1/2 曾 rebase 到 `3a8204fe`（Source checks 43332430587 / Doc 43332430557 绿）；当前轮不继承旧 CI 作为新实现通过证明。main 的 Kotlin/Rust 改动保持，合入与 descriptor 由 Lead 处理。
 
