@@ -213,6 +213,65 @@ test('联合分支声明的凭据名字段不被名称兜底删除',()=>fixture(
   // schema 声明为非秘密的字段由 schema 决定，名称正则不能删它。
   assert.deepEqual(section.source,{choice:{apiKey:'DECLARED-KEY',plain:'p'}});
 }));
+// P2-4 覆盖：真实 SettingsForms 下 tuple/transform/lazy/intersect 与 descriptor.schema 缺失。
+test('tuple/transform/lazy 节点内的秘密字段不落账',async()=>{
+  await fixture('first: {pair: [a, {name: n, token: tuple-secret}]}\n',async(api,state,ledger)=>{
+    const Config=z.object({pair:z.tuple([z.string(),z.object({name:z.string(),token:z.string().role('secret')})]).volatile()});
+    api.add('first',{pair:['x',{name:'old',token:'retained-tuple'}]},Config);
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+    const text=await readFile(ledger,'utf8');
+    assert.equal(text.includes('tuple-secret'),false);assert.equal(text.includes('retained-tuple'),false);
+    assert.deepEqual(JSON.parse(text).sections.first.source,{pair:['a',{name:'n'}]});
+  });
+  await fixture('first: {flag: {on: true, token: transform-secret}}\n',async(api,state,ledger)=>{
+    const Config=z.object({flag:z.transform(z.object({on:z.boolean(),token:z.string().role('secret')}), value=>value).volatile()});
+    api.add('first',{flag:{on:false,token:'retained-transform'}},Config);
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+    const text=await readFile(ledger,'utf8');
+    assert.equal(text.includes('transform-secret'),false);assert.equal(text.includes('retained-transform'),false);
+    assert.deepEqual(JSON.parse(text).sections.first.source,{flag:{on:true}});
+  });
+  await fixture('first: {node: {label: l, apiKey: lazy-secret}}\n',async(api,state,ledger)=>{
+    const Config=z.object({node:z.lazy(()=>z.object({label:z.string(),apiKey:z.string().role('secret')})).volatile()});
+    api.add('first',{node:{label:'old',apiKey:'retained-lazy'}},Config);
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+    const text=await readFile(ledger,'utf8');
+    assert.equal(text.includes('lazy-secret'),false);assert.equal(text.includes('retained-lazy'),false);
+    assert.deepEqual(JSON.parse(text).sections.first.source,{node:{label:'l'}});
+  });
+});
+test('intersect 对象未声明凭据键按名称兜底，含秘密分支仍保守冻结',async()=>{
+  await fixture('first: {both: {plain: p, other: o, apiKey: INTERSECT-SECRET}}\n',async(api,state,ledger)=>{
+    const Config=z.object({both:z.intersect([z.object({plain:z.string()}),z.object({other:z.string()})]).volatile()});
+    api.add('first',{both:{plain:'x',other:'y'}},Config);
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+    const text=await readFile(ledger,'utf8');assert.equal(text.includes('INTERSECT-SECRET'),false);
+    assert.deepEqual(JSON.parse(text).sections.first.source,{both:{plain:'p',other:'o'}});
+  });
+  await fixture('first: {both: {plain: p, apiKey: INTERSECT-HIDDEN}}\n',async(api,state,ledger)=>{
+    const Config=z.object({both:z.intersect([z.object({plain:z.string()}),z.object({apiKey:z.string().role('secret')})]).volatile()});
+    api.add('first',{both:{plain:'x',apiKey:'retained'}},Config);
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+    const section=JSON.parse(await readFile(ledger)).sections.first;
+    assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_SCHEMA_UNKNOWN');
+    assert.equal((await readFile(ledger,'utf8')).includes('INTERSECT-HIDDEN'),false);
+  });
+});
+test('descriptor.schema缺失时保守冻结且不写入',()=>fixture('first: {model: old}\n',async(api,state,ledger)=>{
+  api.add('first');
+  const original=api.settings.describe.bind(api.settings);
+  api.settings.describe=()=>original().map(({schema,...row})=>row);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+  const section=JSON.parse(await readFile(ledger)).sections.first;
+  assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_SCHEMA_UNKNOWN');
+  assert.equal((await readFile(ledger,'utf8')).includes('"old"'),false);
+}));
 test('别名分节按目标descriptor的schema投影秘密',()=>fixture('legacy-first: {model: old, apiKey: alias-secret}\n',async(api,state,ledger)=>{
   api.add('first',{model:'initial',apiKey:'retained-alias'},richConfig());
   const returned=await migrate(api.settings,parse,{'legacy-first':'first'}, {stateRoot:state});
