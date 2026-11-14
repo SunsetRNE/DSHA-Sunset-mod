@@ -15,6 +15,16 @@ final class BackupFailureDiagnostic {
     return result.toString();
   }
 
+  /**
+   * 固定标签收敛：A3 PlanView 回执只允许 {@code [A-Z_0-9]{2,100}} 短码。
+   *
+   * <p>与 {@link #describe} 的 stage 使用同一白名单；非法候选（含路径、换行、正文）收敛成
+   * {@code UNKNOWN}，保证回执不会因为上游常量变化而带出自由文本。
+   */
+  static String label(String value) {
+    return code(value);
+  }
+
   private static void append(
       StringBuilder result, Throwable at, String relation, Set<Throwable> seen) {
     if (at == null || seen.size() >= 8 || !seen.add(at)) return;

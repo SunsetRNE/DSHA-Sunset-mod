@@ -494,6 +494,26 @@ public final class NativeBackupJobs {
     }
   }
 
+  /**
+   * A3 slice3：把预览期与提交期的 PlanView 回执写成加法诊断文件 {@code plan-view.json}。
+   *
+   * <p>只含固定短码、计数与摘要十六进制，不含路径/归档正文/异常消息；写入失败不掩盖主流程
+   * （提交期闸门仍按内存回执 fail-closed）。副作用只在私有任务目录，不改归档、设置或数据格式。
+   */
+  private void recordPlanView(
+      File owned, RestorePlanProjection.Receipt preview, RestorePlanProjection.Receipt submit) {
+    Map<String, Object> record = new LinkedHashMap<>();
+    record.put("version", 1L);
+    record.put("preview", preview.facts());
+    record.put("submit", submit.facts());
+    try {
+      fs.atomic(owned, "plan-view.json", BackupJson.write(record, 16384));
+    } catch (IOException | RuntimeException unavailable) {
+      android.util.Log.w(
+          "DshaBackup", BackupFailureDiagnostic.describe("PLAN_VIEW_RECEIPT", unavailable));
+    }
+  }
+
   private boolean launch(Runnable work, String name, char[] password) {
     WorkerQuiescence.Lease lease = workers.tryBegin();
     if (lease == null) {
@@ -1418,6 +1438,22 @@ public final class NativeBackupJobs {
             preview.put("conflicts", plan.previewConflicts());
             preview.put("warnings", plan.warnings);
             preview.put("projectDestination", projects);
+            // A3 slice2：计划决策投影为 PlanView v1，JVM（+ Rust，若运行层开关打开）校验同一份字节；
+            // 预览期只把回执写进加法键，不改既有字段与恢复语义。
+            NativeRestorePlan.ProjectionFacts planFacts = plan.projectionFacts();
+            byte[] inputDigest = RestorePlanProjection.digestBytes(hash);
+            int mappingKind =
+                RestorePlanProjection.targetMappingKind(
+                    mapping.homeMode(), mapping.projectDestination());
+            RestorePlanProjection.Receipt previewPlan =
+                RestorePlanProjection.project(
+                    planFacts.manifest,
+                    planFacts.rootCount,
+                    inputDigest,
+                    scopes,
+                    mappingKind,
+                    System.currentTimeMillis());
+            preview.put(RestorePlanProjection.PREVIEW_KEY, previewPlan.facts());
             fs.atomic(owned, "preview.json", BackupJson.write(preview, BackupLimits.MANIFEST));
             update(
                 "PREVIEW",
@@ -1447,6 +1483,19 @@ public final class NativeBackupJobs {
                     if (!hash.equals(BackupArchive.digest(source, cancellation)))
                       throw new IOException("INPUT_CHANGED");
                   }
+                  // A3 slice3：INPUT_CHANGED 复核之后用**新的 nowMs 重新编码**视图（planDigest 重算），
+                  // JVM 与 Rust 对同一份新字节二次校验；INVALID/分歧/单侧失败 fail-closed，
+                  // 不得沿用预览期回执，也不得只改内嵌时间。
+                  RestorePlanProjection.Receipt submitPlan =
+                      RestorePlanProjection.project(
+                          planFacts.manifest,
+                          planFacts.rootCount,
+                          inputDigest,
+                          scopes,
+                          mappingKind,
+                          System.currentTimeMillis());
+                  recordPlanView(owned, previewPlan, submitPlan);
+                  RestorePlanProjection.requireSubmitSafe(submitPlan);
                   List<String> roots = plan.buildCandidates(true, cancellation);
                   mapping.prepareCredentialProjection(new File(owned, "candidate"), cancellation);
                   mapping.prepareLayout(roots, plan.before, new File(owned, "candidate"));

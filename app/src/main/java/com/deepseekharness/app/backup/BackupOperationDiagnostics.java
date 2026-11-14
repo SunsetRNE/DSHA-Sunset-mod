@@ -74,7 +74,11 @@ public final class BackupOperationDiagnostics {
           "TEMPORARY_FILE_TYPE",
           "WORKER_UNAVAILABLE",
           "FACTORY_RESET_QUIESCING",
-          "FOREGROUND_SERVICE_UNAVAILABLE");
+          "FOREGROUND_SERVICE_UNAVAILABLE",
+          // A3 slice3：PlanView 提交期闸门的类型化中止码（加法，不改既有字段）。
+          "PLAN_VIEW_INVALID",
+          "PLAN_VIEW_DIVERGENT",
+          "PLAN_VIEW_UNVERIFIED");
   private static final String[][] MARKERS = {
     {"record", "operation.json"},
     {"previous", "operation.json.previous"},
@@ -86,7 +90,9 @@ public final class BackupOperationDiagnostics {
     {"sourceChecks", "source-checks"},
     {"capture", "capture"},
     {"envelope", "export.tar.gz"},
-    {"envelopeCheck", "export-verified.dshbak"}
+    {"envelopeCheck", "export-verified.dshbak"},
+    // A3 slice3：预览/提交期 PlanView 回执（只含固定短码、计数与摘要；加法标记）。
+    {"planView", "plan-view.json"}
   };
 
   private BackupOperationDiagnostics() {}

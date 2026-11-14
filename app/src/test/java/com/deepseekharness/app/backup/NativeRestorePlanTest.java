@@ -126,6 +126,28 @@ public class NativeRestorePlanTest {
   }
 
   @Test
+  public void projectionFactsExposeRootCountAndReadOnlyManifestCopy() throws Exception {
+    File task = temporary.newFolder(),
+        active = temporary.newFolder(),
+        archive = new File(task, "archive");
+    Files.write(archive.toPath(), BackupArchiveTest.archive());
+    NativeRestorePlan plan =
+        NativeRestorePlan.inspect(
+            fs,
+            task,
+            archive,
+            root -> new NativeRestorePlan.Target(active, active, true),
+            Set.of("application"),
+            new BackupControl(null));
+    NativeRestorePlan.ProjectionFacts facts = plan.projectionFacts();
+    assertEquals(1, facts.rootCount);
+    assertEquals(plan.groups.size(), facts.rootCount);
+    assertEquals(5L, BackupJson.number(facts.manifest, "formatVersion"));
+    assertThrows(
+        UnsupportedOperationException.class, () -> facts.manifest.put("formatVersion", 6L));
+  }
+
+  @Test
   public void changedRestoreTargetStillFailsBeforeCandidateCreation() throws Exception {
     File task = temporary.newFolder(),
         active = temporary.newFolder(),

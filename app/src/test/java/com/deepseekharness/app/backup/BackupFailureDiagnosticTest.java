@@ -45,6 +45,16 @@ public final class BackupFailureDiagnosticTest {
   }
 
   @Test
+  public void fixedLabelsCannotCarryPathsOrFreeText() {
+    assertEquals("PLAN_VIEW_READY", BackupFailureDiagnostic.label("PLAN_VIEW_READY"));
+    assertEquals("UNKNOWN", BackupFailureDiagnostic.label("/private/secret"));
+    assertEquals("UNKNOWN", BackupFailureDiagnostic.label("line\nbreak"));
+    assertEquals("UNKNOWN", BackupFailureDiagnostic.label(null));
+    assertEquals("UNKNOWN", BackupFailureDiagnostic.label("x"));
+    assertEquals("JVM_AND_RUST", BackupFailureDiagnostic.label("JVM_AND_RUST"));
+  }
+
+  @Test
   public void invalidStageAndSpoofedStackNamesCannotInjectPrivateTextOrNewlines() {
     IOException error = new IOException("secret");
     error.setStackTrace(
