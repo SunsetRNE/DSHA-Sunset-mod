@@ -769,8 +769,10 @@ def resolve_plugin_dir(name, discovered=None):
     path = os.path.join(local(builtin.NODE_MODULES), name)
     # 移除软链后的跟随 stat 可能返回旧目标；先核验路径项仍存在，不采用幽灵 profile 路径。
     if os.path.lexists(path):
-        # 已存在但坏 manifest/断链由调用方报告未知，不静默选旧导入副本。
-        return os.path.realpath(path)
+        # 坏 manifest/断链由调用方报告未知，不静默选旧导入副本；但真实目录缺
+        # package.json 不是可用插件实体，不能冒充 available（旧卡仍按 deps 保留删除入口）。
+        if os.path.islink(path) or os.path.isfile(os.path.join(path, "package.json")):
+            return os.path.realpath(path)
     if discovered is not None and name in discovered:
         return discovered[name]['directory']
     imported = local(os.path.join(PLUGIN_SRC, name))

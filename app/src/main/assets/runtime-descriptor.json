@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeId": "7a55431805d0ed402a943584aa1d8b0afc26066cd27d32d750952ecce1ca0c15",
+  "runtimeId": "8aa10b59359a5054a6e017aeae4c892eb6e193ecd437e871972b4233114098de",
   "baseVersion": "10",
   "dshVersion": "0.2.2-rc.1",
   "launcherContract": "DSHA_ARM64_V2",
@@ -659,7 +659,7 @@
     "plugin-manager-management-probe-patch.json": "2730fefa08e8f77fc11d738d2fc369f585c7da7e45f03b1a6296dc14306b183b",
     "plugin-manager-pending-patch.json": "60bc7a22265d18ea11e43aa2e266304d77cab06cb280d38039d54202bc500571",
     "plugin-manager-policy-patch.json": "c5848c5d431911e206556368738703b7bcf242442890de5f5470e0ca65b0b57a",
-    "plugin-manager.py": "5c80f697ec0c5279fa5b58b401876f9fd8e0a7f74c17837f5b8de3c55bc8042e",
+    "plugin-manager.py": "d4c3dc98a7f8bf40b63f72ca71200231723edfadfd3681bfc17fc9d88002c81f",
     "plugin-network.py": "697044d33f7328140c047f75ad4f475c1e443d9c2d2c4e634c484b5607dc5a8b",
     "plugin-pnpm-argv-patch.json": "2985cf1dac4373d47999f0406d563f1625e8a22c44a29f1bf99762958478bedb",
     "plugin-semver.cjs": "f367e0cdcc020127aa158104d2bc5014a337424dc46577791e7a923b96cbe307",
