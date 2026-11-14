@@ -2,7 +2,12 @@
 """Independent negative controls for descriptor-anchored startup CAS scans."""
 import contextlib
 import importlib.util
+import json
 import os
+import shutil
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -12,6 +17,140 @@ _spec = importlib.util.spec_from_file_location(
     'cas_scan_review_fixture', Path(__file__).with_name('test-plugin-cas-materialize.py'))
 _fixture = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_fixture)
+
+
+class CasScanOutcomeTest(unittest.TestCase):
+    """Actual scanner with ordinary files; also runs on Windows path adapters."""
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix='dsha-cas-outcome-'))
+        self.addCleanup(shutil.rmtree, self.root)
+        self.home = self.root / 'root/.dsh'
+        self.modules = self.home / 'profiles/web/node_modules'
+        self.package = self.modules / 'private-fixture-package'
+        self.package.mkdir(parents=True)
+        (self.modules.parent / 'package.json').write_text('{"private":true,"dependencies":{},"dsh":{"profile":{"bundles":[]}}}')
+        (self.package / 'ordinary.txt').write_bytes(b'PRIVATE_CAS_CONTENT')
+        self.environment = patch.dict(os.environ, {'DSHA_TEST_ROOT': str(self.root), 'DSH_HOME': '/root/.dsh'})
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+        spec = importlib.util.spec_from_file_location('cas_outcome_manager', _fixture.ASSETS / 'plugin-manager.py')
+        self.manager = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.manager)
+        self.transaction = self.manager.transactions()
+        self.rows = []
+        self.transaction.g['cas_timing'] = lambda phase, elapsed, **fields: self.rows.append(dict(phase=phase, **fields))
+
+    def assert_outcome(self, status, code):
+        self.assertEqual(len(self.rows), 1)
+        row = self.rows[0]
+        self.assertEqual(row['phase'], 'scan')
+        self.assertEqual(row['scanStatus'], status)
+        self.assertIs(row['countsComplete'], status == 'completed')
+        self.assertEqual(row['errorCode'], code)
+        self.assertNotIn('PRIVATE_CAS', json.dumps(row))
+        self.assertNotIn(str(self.root), json.dumps(row))
+        self.assertFalse((self.home / 'plugin-install-operations').exists())
+        return row
+
+    def test_completed_scan_with_no_candidates_is_explicit(self):
+        self.assertEqual(self.transaction.cas_links(), [])
+        row = self.assert_outcome('completed', 'NONE')
+        self.assertEqual((row['entries'], row['directories'], row['candidates']), (2, 2, 0))
+        self.assertEqual((self.package / 'ordinary.txt').read_bytes(), b'PRIVATE_CAS_CONTENT')
+
+    def test_missing_root_and_missing_parent_are_completed_empty_scans(self):
+        shutil.rmtree(self.modules)
+        self.assertEqual(self.transaction.cas_links(), [])
+        self.assert_outcome('completed', 'NONE')
+        self.rows.clear()
+        shutil.rmtree(self.modules.parent)
+        self.assertEqual(self.transaction.cas_links(), [])
+        self.assert_outcome('completed', 'NONE')
+
+    def test_root_validation_failure_is_not_a_completed_scan(self):
+        shutil.rmtree(self.modules)
+        self.modules.write_bytes(b'PRIVATE_CAS_CONTENT')
+        with self.assertRaises(ValueError):
+            self.transaction.cas_links()
+        self.assert_outcome('failed', 'VALIDATION_FAILED')
+
+    def test_cancellation_after_observed_entries_is_partial_and_rethrown(self):
+        error = self.manager.PluginCancelled('PRIVATE_CAS_CANCEL')
+        (self.package / 'a-trigger.txt').write_bytes(b'ordinary fixture')
+        observed = []
+        def check():
+            if observed:
+                raise error
+        reader = self.transaction.cas_links.__globals__['DeleteObjects']
+        original = reader.stat
+        def observe(instance, parent, name):
+            info = original(instance, parent, name)
+            if name == 'a-trigger.txt':
+                observed.append(True)
+            return info
+        # The path adapter performs explicit per-entry stat on both platforms.
+        original_init = reader.__init__
+        def path_init(instance, *args):
+            original_init(instance, *args)
+            instance.relative = False
+        with patch.object(reader, '__init__', path_init), patch.object(reader, 'stat', observe), \
+                patch.dict(self.transaction.g, check_cancel=check):
+            with self.assertRaises(self.manager.PluginCancelled) as caught:
+                self.transaction.cas_links()
+        self.assertIs(caught.exception, error)
+        row = self.assert_outcome('cancelled', 'CANCELLED')
+        self.assertGreater(row['entries'], 0)
+
+    def test_failure_codes_are_fixed_and_original_exception_is_preserved(self):
+        reader = self.transaction.cas_links.__globals__['DeleteObjects']
+        for error, code in [(PermissionError('PRIVATE_CAS_PERMISSION'), 'PERMISSION_DENIED'),
+                            (OSError('PRIVATE_CAS_IO'), 'IO_ERROR'),
+                            (ValueError('PRIVATE_CAS_VALIDATION'), 'VALIDATION_FAILED'),
+                            (RuntimeError('PRIVATE_CAS_UNEXPECTED'), 'UNEXPECTED_ERROR')]:
+            with self.subTest(code=code):
+                self.rows.clear()
+                with patch.object(reader, 'stat', side_effect=error):
+                    with self.assertRaises(type(error)) as caught:
+                        self.transaction.cas_links()
+                self.assertIs(caught.exception, error)
+                self.assert_outcome('failed', code)
+
+    def test_startup_cli_emits_complete_scan_and_unchanged_final_receipt(self):
+        result = subprocess.run([sys.executable, str(_fixture.ASSETS / 'materialize-cas-links.py')],
+                                env={**os.environ, 'PYTHONIOENCODING': 'utf-8'},
+                                capture_output=True, text=True, encoding='utf-8', timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        timings = [json.loads(line.removeprefix('CAS_TIMING: ')) for line in result.stdout.splitlines()
+                   if line.startswith('CAS_TIMING: ')]
+        scan = [row for row in timings if row['phase'] == 'scan']
+        self.assertEqual(len(scan), 1)
+        self.assertEqual((scan[0]['scanStatus'], scan[0]['countsComplete'], scan[0]['errorCode']),
+                         ('completed', True, 'NONE'))
+        receipts = [json.loads(line.removeprefix('PLUGIN_RESULT: ')) for line in result.stdout.splitlines()
+                    if line.startswith('PLUGIN_RESULT: ')]
+        self.assertEqual(len(receipts), 1)
+        self.assertEqual((receipts[0]['status'], receipts[0]['migratedFiles']), ('ok', 0))
+        self.assertTrue(result.stdout.splitlines()[-1].startswith('PLUGIN_RESULT: '))
+
+    def test_startup_cli_failed_scan_does_not_become_success(self):
+        shutil.rmtree(self.modules)
+        self.modules.write_bytes(b'PRIVATE_CAS_CONTENT')
+        result = subprocess.run([sys.executable, str(_fixture.ASSETS / 'materialize-cas-links.py')],
+                                env={**os.environ, 'PYTHONIOENCODING': 'utf-8'},
+                                capture_output=True, text=True, encoding='utf-8', timeout=30)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        scans = [json.loads(line.removeprefix('CAS_TIMING: ')) for line in result.stdout.splitlines()
+                 if line.startswith('CAS_TIMING: ') and json.loads(line.removeprefix('CAS_TIMING: '))['phase'] == 'scan']
+        self.assertEqual(len(scans), 1)
+        self.assertEqual((scans[0]['scanStatus'], scans[0]['countsComplete'], scans[0]['errorCode']),
+                         ('failed', False, 'VALIDATION_FAILED'))
+        self.assertNotIn('PRIVATE_CAS', json.dumps(scans[0]))
+        receipts = [json.loads(line.removeprefix('PLUGIN_RESULT: ')) for line in result.stdout.splitlines()
+                    if line.startswith('PLUGIN_RESULT: ')]
+        self.assertEqual(len(receipts), 1)
+        self.assertEqual(receipts[0]['status'], 'error')
+        self.assertIs(receipts[0]['automaticRetry'], False)
+        self.assertTrue(result.stdout.splitlines()[-1].startswith('PLUGIN_RESULT: '))
 
 
 @unittest.skipIf(os.name == 'nt', 'Actual Linux directory descriptors and NOFOLLOW')
