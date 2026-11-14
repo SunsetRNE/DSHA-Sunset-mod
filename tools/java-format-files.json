@@ -1212,6 +1212,7 @@
     "app/src/test/java/com/deepseekharness/app/runtime/InstallPipelineTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/IsolatedInstallProcessTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/ManagedOverlayEditsTest.java",
+    "app/src/test/java/com/deepseekharness/app/runtime/Rc1CachedStartupFixture.java",
     "app/src/test/java/com/deepseekharness/app/runtime/Rc1MigrationCacheTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeApkAssetsTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssetFilesTest.java",
