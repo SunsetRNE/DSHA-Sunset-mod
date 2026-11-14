@@ -1601,7 +1601,7 @@ public final class PluginRepository extends AndroidViewModel {
   }
 
   private PluginSourceIdentity requireMutationCurrent(
-      PendingWork request, HarnessController controller) throws Exception {
+      PendingWork request, HarnessController controller) throws IOException {
     if (request == null || request.work.query()) throw new Invalidated("插件来源观察已被更新；旧请求未执行");
     var previous = registry.snapshot().source;
     var actual = backend.resolveSource().identity;
