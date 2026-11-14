@@ -223,6 +223,50 @@ test('别名分节按目标descriptor的schema投影秘密',()=>fixture('legacy-
   assert.equal(section.status,'verified');assert.deepEqual(section.source,{model:'old'});
   assert.equal(api.settings.describe().find(row=>row.ns==='first').value.apiKey,'alias-secret');
 }));
+test('旧账本里未去秘密的source/before/verified在重写时被清理',()=>fixture('first: {model: old, apiKey: incoming-key}\n',async(api,state,ledger)=>{
+  api.add('first',{model:'initial',apiKey:'retained-key',maxTokens:1},richConfig());
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  await writeFile(ledger,JSON.stringify({version:2,generation:current.generation,sourceSha256:source.sha256,
+    startupId:current.startupId,status:'verified',expectedSections:['first'],sections:{first:{
+      status:'verified',
+      source:{model:'old',apiKey:'OLD-SOURCE-SECRET',maxTokens:1},
+      before:{model:'initial',apiKey:'OLD-BEFORE-SECRET'},
+      verified:{model:'old',apiKey:'OLD-VERIFIED-SECRET',maxTokens:1}}}}));
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,0);
+  const text=await readFile(ledger,'utf8');
+  for(const secret of ['OLD-SOURCE-SECRET','OLD-BEFORE-SECRET','OLD-VERIFIED-SECRET'])assert.equal(text.includes(secret),false,secret);
+  const section=JSON.parse(text).sections.first;
+  assert.equal(section.status,'verified');
+  assert.deepEqual(section.source,{model:'old',maxTokens:1});
+  assert.deepEqual(section.before,{model:'initial'});
+  assert.deepEqual(section.verified,{model:'old',maxTokens:1});
+}));
+test('schema无法解释时删除旧泄漏字段并冻结为unknown',()=>fixture('first: {model: old, apiKey: incoming-key}\n',async(api,state,ledger)=>{
+  api.add('first',{model:'initial',apiKey:'retained-key'},richConfig());
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  await writeFile(ledger,JSON.stringify({version:2,generation:current.generation,sourceSha256:source.sha256,
+    startupId:current.startupId,status:'pending',expectedSections:['first'],sections:{first:{
+      status:'pending',reason:'SECTION_SCHEMA_REJECTED',
+      source:{model:'old',apiKey:'PENDING-SOURCE-SECRET'},
+      before:{model:'initial',apiKey:'PENDING-BEFORE-SECRET'}}}}));
+  const original=api.settings.describe.bind(api.settings);
+  api.settings.describe=()=>original().map(row=>({...row,schema:{uid:1,refs:{1:{type:'object',dict:{model:9}}}}}));
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+  const text=await readFile(ledger,'utf8');
+  assert.equal(text.includes('PENDING-SOURCE-SECRET'),false);
+  assert.equal(text.includes('PENDING-BEFORE-SECRET'),false);
+  const section=JSON.parse(text).sections.first;
+  assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_LEDGER_REVIEW_REQUIRED');
+  assert.equal(Object.hasOwn(section,'source'),false);assert.equal(Object.hasOwn(section,'before'),false);
+}));
 test('旧账本留下before时秘密分节不盲目重试',()=>fixture('first: {model: old, apiKey: incoming-key}\n',async(api,state,ledger)=>{
   api.add('first',{model:'initial',apiKey:'retained-key'},richConfig());
   const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));

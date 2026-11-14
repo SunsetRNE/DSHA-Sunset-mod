@@ -368,6 +368,34 @@ async function migrate(settings, parse, aliases, options = {}) {
   result.startupId = current.startupId;
   // 记录本代次期望分节集合；后续只读方据此判断“部分 verified + overall=verified”的不完整账本。
   result.expectedSections = Object.keys(sections).sort();
+  // 旧账本可能由更早版本写入未去秘密的 source/before/verified。本代次任何重写之前都按
+  // 当前 schema 重新投影这些历史值；schema 无法解释时删除字段（宁可失去诊断，也不保留
+  // 旧泄漏）。因此失去 before 比较依据的 pending/conflict 节保守冻结为 unknown。
+  const ledgerDescriptors = new Map(settings.describe().map(row => [row.ns, row]));
+  let sanitized = false;
+  for (const [name, section] of Object.entries(result.sections)) {
+    if (!section || typeof section !== 'object' || Array.isArray(section)) continue;
+    const descriptor = ledgerDescriptors.get(Object.hasOwn(aliases, name) ? aliases[name] : name);
+    for (const field of ['source', 'before', 'verified']) {
+      if (!Object.hasOwn(section, field)) continue;
+      const projected = descriptor ? projectValue(section[field], descriptor.schema, { dropSecrets: true }) : { ok: false };
+      if (projected.ok && projected.value !== undefined) {
+        const next = clone(projected.value);
+        if (isDeepStrictEqual(next, section[field])) continue;
+        section[field] = next;
+        sanitized = true;
+        continue;
+      }
+      delete section[field];
+      sanitized = true;
+      if (section.status === 'pending' || section.status === 'conflict') {
+        // 旧 before 已不可比较：旧证据不能再驱动一次写入。
+        section.status = 'unknown';
+        section.reason = 'SECTION_LEDGER_REVIEW_REQUIRED';
+      }
+    }
+  }
+  if (sanitized) await atomic(ledgerFile, result);
   for (const [name, values] of Object.entries(sections)) {
     const ns = Object.hasOwn(aliases, name) ? aliases[name] : name;
     const descriptor = settings.describe().find(row => row.ns === ns);
