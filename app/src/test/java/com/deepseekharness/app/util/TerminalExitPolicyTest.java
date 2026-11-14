@@ -211,6 +211,35 @@ public class TerminalExitPolicyTest {
   }
 
   @Test
+  public void naturalExitWaitsAnObservationIntervalBetweenEmptyScans() throws Exception {
+    Kernel kernel = new Kernel();
+    kernel.live.clear();
+    kernel.paused = () -> assertEquals(1, kernel.scans);
+    TerminalExitPolicy.requireSessionEmpty(LEADER, kernel);
+    assertEquals(2, kernel.scans);
+    assertEquals(20, kernel.clock);
+    assertTrue(kernel.signals.isEmpty());
+  }
+
+  @Test
+  public void interruptedNaturalExitIntervalCannotProduceAnExitProof() {
+    Kernel kernel = new Kernel();
+    kernel.live.clear();
+    kernel.interrupted = true;
+    try {
+      IOException failure =
+          assertThrows(
+              IOException.class, () -> TerminalExitPolicy.requireSessionEmpty(LEADER, kernel));
+      assertEquals("TERMINAL_EXIT_INTERRUPTED", failure.getMessage());
+      assertTrue(Thread.currentThread().isInterrupted());
+      assertEquals(1, kernel.scans);
+      assertTrue(kernel.signals.isEmpty());
+    } finally {
+      Thread.interrupted();
+    }
+  }
+
+  @Test
   public void foreignLeaderUidCannotAuthorizeAnySignal() {
     Kernel kernel = new Kernel();
     kernel.uids.put(LEADER, UID + 1);

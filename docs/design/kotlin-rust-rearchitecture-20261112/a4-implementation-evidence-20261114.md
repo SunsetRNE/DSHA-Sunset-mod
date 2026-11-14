@@ -9,7 +9,7 @@
 实现：
 
 - 新 [TerminalExitPolicy](../../../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.java) 承担 M04/M14 纯判据；[TerminalProcessCloser](../../../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.java) 保留真实 `/proc`、getsid、UID、Os.kill 与错误呈现适配。纯策略无 Android import，也不持有 UI/租约状态。
-- 每次 guest 信号前核验原 leader，再复查该 guest 的出生身份、会话和 UID。guest 两次独立扫描未见活成员才请求结束 launcher；launcher KILL 后仍等待两次空会话观察。自然退出路径也双扫确认。拒读、截断、信号失败、残留、时钟回拨、超时或中断均不返回成功；失败时只尝试恢复仍能核验的暂停 leader，不自动重放失败信号。
+- 每次 guest 信号前核验原 leader，再复查该 guest 的出生身份、会话和 UID。guest 两次独立扫描未见活成员才请求结束 launcher；launcher KILL 后仍等待两次空会话观察。自然退出路径在 20ms 观察间隔前后分别双扫确认，间隔中断仍保留未确认。拒读、截断、信号失败、残留、时钟回拨、超时或中断均不返回成功；失败时只尝试恢复仍能核验的暂停 leader，不自动重放失败信号。
 - 不新增 orphan 强杀：leader 已消失时只核验会话为空，发现残留保持未确认。有限双扫缩小已构造的快照窗口，**不是对任意持续 fork/逃离会话 daemon 的原子证明**。PTY 上层原有 isRunning/最终空会话检查、简易终端的外层 detached lifetime、owner 的“核验成功后移除/释放”保持。
 - [TerminalTabs](../../../app/src/main/java/com/deepseekharness/app/util/TerminalTabs.java) 以 opaque Reservation 在创建前消费 ID；最后一个正 long 可留给已预留的待发布对象，随后明确拒绝分配，不溢出、不复用。取消预留只放弃它，不回退 ID；显示编号仍在发布时独立选择最小空缺。
 - [TerminalSessionOwner](../../../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java) 在任何 PTY fork/简易 backend 启动前预留。已 fork 的未确认对象沿同一 reservation 发布；耗尽时在工厂/后端前失败，防止“先 fork 再分 ID”产生无法关闭的隐藏对象。类型与 epoch 作用域不变，不落盘恢复 shell。
@@ -79,7 +79,7 @@ S3 采用**显式退役**旧 ThemeInstrumentation 终端 `lifecycle` 分支：�
 
 1. [debug Manifest](../../../app/src/debug/AndroidManifest.xml)：Lead 追加批准的范围是**全部**旧 targetPackage，仅将 30 个 `com.dsh.client` 属性值精确替换为 `${applicationId}`，其余 instrumentation 注册/属性及 provider/Activity 不变。
 2. [ThemeInstrumentation](../../../app/src/androidTest/java/com/deepseekharness/app/ui/ThemeInstrumentation.java)：退役早返回与当前包名启动，避免旧入口生成“成功”或结束用户终端。
-3. [MultiTerminalLanguageAudit](../../../app/src/debug/java/com/deepseekharness/app/ui/MultiTerminalLanguageAudit.java)：只针对本夹具创建的标签，准备离页重进/真实方向切换/zh↔en 的 epoch、类型、ID、当前选择、PID/birth/SID/PGID 保留检查。系统没有重建/没有执行方向变化、身份读不到或不符时失败；没有以 Activity.recreate 冒充旋转。PTY 使用保存的出生身份与当前内核再核验，简易会话捕获当前独立 SID/birth；语言重建也验证 owner 表未变。关闭前保存精确标签对象/出生证据，移除后检查 VERIFIED、空会话与 PTY pending 已退；清理异常使最终结果失败/取消，不能留下 PASS 文本。PTY 本次不可变 launcher 路径按 `runtime=proot|proroot`（缺省当前配置）核对，发现 fallback 不把 proot 当 proroot 成功。该信息只证明 PTY 保存的本次启动路径，**不声称已取证简易 shell 的实际引擎或完整 ROM 矩阵**。
+3. [MultiTerminalLanguageAudit](../../../app/src/debug/java/com/deepseekharness/app/ui/MultiTerminalLanguageAudit.java)：只针对本夹具创建的标签，核验 epoch、类型、ID、当前选择和 PID/birth/SID/PGID。**`b1e2512f` 的旋转/语言等待机制被整轮评审认定不成立**：ActivityMonitor 不能观察 recreate/方向重建，原“已准备两条验收路径”的表述撤回。追加修复改为触发前注册 Application.ActivityLifecycleCallbacks，从 `onActivityResumed` 接收同 task 的新实例，finally 注销；ActivityMonitor 只留给显式 startActivity。方向断言、未重建/身份不可读时失败的边界保留，机制接线已按仓库先例修正，**未真机验证旋转/语言行为**。PTY 使用保存的出生身份与当前内核再核验，简易会话捕获当前独立 SID/birth；语言重建后也核验 owner 表。关闭前保存精确标签对象/出生证据，移除后检查 VERIFIED、空会话与 PTY pending 已退；清理异常使最终结果失败/取消。PTY 本次不可变 launcher 路径按 `runtime=proot|proroot`（缺省当前配置）核对，发现 fallback 不把 proot 当 proroot 成功；不声称已取证简易 shell 的实际引擎或完整 ROM 矩阵。
 
 附带同步[任务基线](a4-task-baseline-20261114.md)的追加写域与[终端契约](../../terminal.md)的 ID 作用域、退出双扫边界及现行验收入口。没有修改生产 Fragment/Activity/Service/native，未新增 util/runtime 受管文件；debug/AndroidTest/文档不改变 runtimeId，整轮一次维护页仍来自 S1，descriptor 仍由 Lead 纳管新策略后统一重算。
 
@@ -126,4 +126,32 @@ S3 采用**显式退役**旧 ThemeInstrumentation 终端 `lifecycle` 分支：�
 | androidTest | [RecoveryInstrumentation:169](../../../app/src/androidTest/java/com/deepseekharness/app/core/RecoveryInstrumentation.java#L169) | 旧包 Main 启动 |
 | androidTest | [UpdateProcessInstrumentation:67](../../../app/src/androidTest/java/com/deepseekharness/app/core/UpdateProcessInstrumentation.java#L67) | 旧包 Main 启动 |
 
-S3 独立回退仅撤销这三份验收源码与对应文档，不触碰用户会话/数据。A4 保持 ACTIVE/不可合并，等待 Lead 统一处理受管输入、CI/设备出口与非实现者评审；没有 push/合并/安装或手机动作。
+S3 独立回退仅撤销这三份验收源码与对应文档，不触碰用户会话/数据。A4 的合并仍须 Lead 统一处理受管输入、CI/设备出口与非实现者评审；没有 push/合并/安装或手机动作。
+
+## 整轮评审后的追加修复（基于 b1e2512f）
+
+整轮逐行评审结论为 **REQUEST_CHANGES**：P0 无，S1/S2 生产源码可 APPROVE；阻断项是 S3 用 ActivityMonitor 等待配置重建。main 177cb2f8 要求追加修复，不 amend 已冻结提交、不 rebase。本文撤回旧版本“旋转/语言验收已准备”的有效性表述，没有提出将 P1 降级为文档缺口。
+
+| 评审项 | 增量处理 | 验证与边界 |
+|---|---|---|
+| P1：ActivityMonitor 捕不到 recreate/方向重建 | [awaitRebuilt:183](../../../app/src/debug/java/com/deepseekharness/app/ui/MultiTerminalLanguageAudit.java#L183) 在 trigger 前登记 Application.ActivityLifecycleCallbacks，`onActivityResumed` 只接收同 task、非旧实例且未销毁/未结束的测试 Activity；CountDownLatch 发布新实例，finally 注销。language 与方向分支均复用该方法，ActivityMonitor 只留显式 startActivity；方向变化断言保留 | 采用仓库 [PluginUiInstrumentation](../../../app/src/androidTest/java/com/deepseekharness/app/core/PluginUiInstrumentation.java#L21) 既有机制；当前两份仪器源码 JDK17 parse 与注册→trigger→等待→finally 静态顺序核验 PASS。**机制接线已修正，未真机验证旋转/语言重建，未完整 Android 类型/资源编译** |
+| P2-①：2000ms 下界不能支撑 3000ms 说法 | [host C fixture](../../../tools/fixtures/pty-birth/pty-birth-host.c) 两条超时断言改为 ≥2800ms；child 的测量从 fork 前开始，避免扣掉父端预观察；parent 从调用原生父握手前开始。[fixture 说明](../../../tools/fixtures/pty-birth/README.md) 明确这是有 200ms 容差的耗时下界，不是精确截止精度 | 当前 PTY 生产 C 不变；13 个 host 反例重跑成功，fake JNI/真实 host 边界不扩大 |
+| P2-②：自然退出双扫表达式重复 | [requireSessionEmpty:140](../../../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.java#L140) 改成首次扫描为空→20ms 观察间隔→第二次扫描；注释解释两次观测。间隔中断转为 IOException 并保留中断标记，不能形成退出证明 | [新增反例](../../../app/src/test/java/com/deepseekharness/app/util/TerminalExitPolicyTest.java#L214) 断言两次扫描之间恰经 20ms；中断时只扫描一次/不发信号/不返回成功。旧“晚生 child/自然退出残留”反例继续通过；双扫仍不是任意 daemon 原子退出证明 |
+| P2-③：uid=-1 被误说成他 UID | [captureSimpleLeader:25](../../../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.java#L25) 单独拒绝 `uid == -1` 并复用现有已翻译文案“终端进程身份暂不可读，保留环境保护”；只有明确 uid 不等才使用“不属于本应用” | 当前 adapter javac 编译与分支顺序静态核验 PASS；真实 Android ENOENT/ESRCH 窗口未执行，错误路径仍保留保护，不借此宣布整个会话退出 |
+
+### 追加修复真实回执
+
+| 项目 | 输出 / 状态 |
+|---|---|
+| 当前定向 JUnit（同一 20 类选择） | `Time: 4.29` / `OK (143 tests)`；`run=143 failures=0 ignored=0 assumptionSkipped=0`。相对上轮 141 新增两个自然退出间隔/中断反例，不是扩大或重算旧测试数；本次为 UID 文案复用现有词条后的最终重跑 |
+| 当前 Android closer 编译 | `A4_CURRENT_ADAPTER_COMPILED=TerminalProcessCloser`；只把 Android SDK 当编译依赖，不运行平台信号 |
+| PTY host / manifest 集成 | 入口 PASS、exitCode=0；`Ran 13 tests in 7.921s / OK`；`INPUTS_UNCHANGED verifiedCases=13`，生产 C SHA-256 仍 `0e6831f1…d7ebc`，fixture 新 SHA-256 `b315f487195266d683de927bd34f469d653ba14f9604afd3741a58b863aab158` |
+| 独立 native-session / 架构边界 | `Ran 2 tests in 0.267s / OK`；`Ran 25 tests in 5.779s / OK` |
+| host 清单 | `PASS_MANIFEST tests=255` |
+| Java/Kotlin 全树格式 | Java `owned/manifest=1769/1769 missing=0 extra=0`，`1769 files, 0 need formatting`；Kotlin `2 files, 0 need formatting`；串行检查 exit 0 |
+| Java parse / 生命周期静态 / Manifest 集成 | 两份仪器源码 parse PASS；四项修复的静态接线核验 PASS；AGP 32.1.1 当前 main+debug 对 Mod/`.debug`/Rebirth 三种身份各 `targets=30 PASS`；debug Manifest 与 b1e2512f 无增量 |
+| 卫生 / 文档 / diff | hygiene PASS；默认 56 篇/1315 链接，基线+本回执+fixture README 显式 3 篇/162 链接，均 0 warning/error；本批增量 `git_guard diff --check` PASS，暂存提交前再核对文件集合 |
+
+未跑项继续完整保留：变更仪器类的 Android 类型/资源编译、完整 owner/Robolectric/跨域停止回归、Gradle 全量/Lint/APK/真实 JNI/设备旋转与 zh↔en/proot-proroot 正常关闭矩阵。没有安装、手机动作或原生 ELF 重建；修复机制不依赖把这些未跑项写成通过。
+
+追加修复不引入新的受管文件，未改 managed-runtime-inputs、runtime_input_contract 或 descriptor。既有受管 closer/policy 改动随 A4 一起产生一次维护页；`util/TerminalExitPolicy.java` 精确纳管、rebase 与 runtimeId 重算仍由 Lead 在合并树完成，最终还需聚焦复审和用户当次合并批准。按本次主会话指示，追加提交完成后交还 `.SESSION-DONE`，声明保持不可合并直到门禁通过。

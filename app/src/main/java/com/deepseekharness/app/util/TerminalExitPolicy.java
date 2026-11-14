@@ -136,10 +136,19 @@ public final class TerminalExitPolicy {
     }
   }
 
+  /** 组长已退也须在一个观察间隔前后分别扫描；不把连续读取同一瞬间当作双扫。 */
   public static void requireSessionEmpty(int session, Ports ports) throws IOException {
     if (session <= 1) throw new Failure(Code.INVALID_IDENTITY);
-    if (hasMembers(session, ports) || hasMembers(session, ports))
-      throw new Failure(Code.SESSION_NOT_EMPTY);
+    if (hasMembers(session, ports)) throw new Failure(Code.SESSION_NOT_EMPTY);
+    try {
+      checkInterrupted();
+      ports.pause(POLL_MILLIS);
+      checkInterrupted();
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      throw new IOException("TERMINAL_EXIT_INTERRUPTED", interrupted);
+    }
+    if (hasMembers(session, ports)) throw new Failure(Code.SESSION_NOT_EMPTY);
   }
 
   private static boolean hasMembers(int session, Ports ports) throws IOException {

@@ -19,6 +19,9 @@ import com.deepseekharness.app.util.TerminalSession;
 import com.deepseekharness.app.util.Constants;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** debug 源集验证独立终端和语言重建；不能代替非调试APK的设备验收。 */
 public final class MultiTerminalLanguageAudit extends Instrumentation {
@@ -176,6 +179,49 @@ public final class MultiTerminalLanguageAudit extends Instrumentation {
     check(transcript(session).contains(marker), "真实 PTY 命令未产生预期回执：" + marker);
   }
 
+  /** recreate/方向重建不经过 startActivity；必须在触发前登记应用级生命周期观察。 */
+  private FragmentSessionTestActivity awaitRebuilt(
+      FragmentSessionTestActivity previous, Runnable trigger, String reason)
+      throws InterruptedException {
+    Application app = previous.getApplication();
+    int task = previous.getTaskId();
+    AtomicReference<FragmentSessionTestActivity> resumed = new AtomicReference<>();
+    CountDownLatch ready = new CountDownLatch(1);
+    Application.ActivityLifecycleCallbacks lifecycle =
+        new Application.ActivityLifecycleCallbacks() {
+          public void onActivityCreated(Activity activity, Bundle state) {}
+
+          public void onActivityStarted(Activity activity) {}
+
+          public void onActivityResumed(Activity activity) {
+            if (activity instanceof FragmentSessionTestActivity
+                && activity != previous
+                && activity.getTaskId() == task
+                && !activity.isFinishing()
+                && !activity.isDestroyed()
+                && resumed.compareAndSet(null, (FragmentSessionTestActivity) activity)) {
+              ready.countDown();
+            }
+          }
+
+          public void onActivityPaused(Activity activity) {}
+
+          public void onActivityStopped(Activity activity) {}
+
+          public void onActivitySaveInstanceState(Activity activity, Bundle state) {}
+
+          public void onActivityDestroyed(Activity activity) {}
+        };
+    ui(() -> app.registerActivityLifecycleCallbacks(lifecycle));
+    try {
+      ui(trigger);
+      check(ready.await(20, TimeUnit.SECONDS), reason);
+      return resumed.get();
+    } finally {
+      ui(() -> app.unregisterActivityLifecycleCallbacks(lifecycle));
+    }
+  }
+
   private void language(String id) throws Exception {
     ConfigStore config = new ConfigStore(getTargetContext());
     if (id.equals(config.getUiLanguagePreference())) return;
@@ -183,13 +229,8 @@ public final class MultiTerminalLanguageAudit extends Instrumentation {
     String epoch = owner.ownerEpoch();
     Set<Long> ptyIds = ids(owner.ptyTabs()), simpleIds = ids(owner.simpleTabs());
     long ptySelected = selected(owner.ptyTabs()), simpleSelected = selected(owner.simpleTabs());
-    ActivityMonitor monitor = addMonitor(FragmentSessionTestActivity.class.getName(), null, false);
-    ui(() -> LanguageController.select(page, id));
-    FragmentSessionTestActivity next =
-        (FragmentSessionTestActivity) waitForMonitorWithTimeout(monitor, 20000);
-    removeMonitor(monitor);
-    check(next != null, "切换语言未重建活动界面");
-    page = next;
+    FragmentSessionTestActivity previous = page;
+    page = awaitRebuilt(previous, () -> LanguageController.select(previous, id), "切换语言未恢复新活动实例");
     waitForIdleSync();
     Thread.sleep(300);
     check(
@@ -293,17 +334,19 @@ public final class MultiTerminalLanguageAudit extends Instrumentation {
     long ptySelected = selected(owner.ptyTabs()), simpleSelected = selected(owner.simpleTabs());
     Map<Long, ProcessIdentity> expected = ownBirths(pty);
     for (boolean rotate : new boolean[] {false, true}) {
-      ActivityMonitor monitor =
-          addMonitor(FragmentSessionTestActivity.class.getName(), null, false);
       int target =
           page.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT
               ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
               : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
       FragmentSessionTestActivity old = page;
       FragmentSessionTestActivity next;
-      try {
-        if (rotate) ui(() -> old.setRequestedOrientation(target));
-        else {
+      if (rotate) {
+        next = awaitRebuilt(old, () -> old.setRequestedOrientation(target), "系统未恢复方向切换后的新活动实例");
+      } else {
+        // 显式 startActivity 仍可使用 ActivityMonitor；不用于 recreate/方向重建。
+        ActivityMonitor monitor =
+            addMonitor(FragmentSessionTestActivity.class.getName(), null, false);
+        try {
           ui(old::finish);
           waitForIdleSync();
           ui(
@@ -312,10 +355,10 @@ public final class MultiTerminalLanguageAudit extends Instrumentation {
                       .startActivity(
                           new Intent(getTargetContext(), FragmentSessionTestActivity.class)
                               .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
+          next = (FragmentSessionTestActivity) waitForMonitorWithTimeout(monitor, 20000);
+        } finally {
+          removeMonitor(monitor);
         }
-        next = (FragmentSessionTestActivity) waitForMonitorWithTimeout(monitor, 20000);
-      } finally {
-        removeMonitor(monitor);
       }
       check(next != null && next != old, rotate ? "系统未完成方向重建，旋转证据未形成" : "未重新打开测试宿主");
       page = next;

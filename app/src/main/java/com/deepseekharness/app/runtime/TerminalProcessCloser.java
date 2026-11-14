@@ -22,7 +22,9 @@ public final class TerminalProcessCloser {
     if (leader == null || leader.exited() || leader.started != started || !leader.ownsSession())
       throw new IOException(UiText.text("终端本次进程身份不匹配，原环境保持保护"));
     AndroidPorts ports = new AndroidPorts();
-    if (ports.uid(session) != ports.ownUid()) throw new IOException(UiText.text("终端进程 UID 不属于本应用"));
+    int uid = ports.uid(session);
+    if (uid == -1) throw new IOException(UiText.text("终端进程身份暂不可读，保留环境保护"));
+    if (uid != ports.ownUid()) throw new IOException(UiText.text("终端进程 UID 不属于本应用"));
     if (!belongsToSession(session, session)) throw new IOException(UiText.text("终端会话号已变化，原环境保持保护"));
     return leader;
   }

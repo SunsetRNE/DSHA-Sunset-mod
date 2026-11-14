@@ -176,6 +176,7 @@ int main(int argc, char **argv) {
         close(pair[0]); close(pair[1]); close(marker[0]); close(marker[1]);
         for (;;) pause();
     }
+    long long child_started = millis();
     owned = fork();
     CHECK(owned >= 0);
     if (owned == 0) {
@@ -221,7 +222,8 @@ int main(int argc, char **argv) {
         CHECK(reap(owned) == 125);
         child_reaped = 1;
         if (is("parent-silent")) {
-            CHECK(millis() - started >= 2000);
+            /* 子端截止从 fork 后开始；不能扣掉父端 ACK 前的观察等待再量下界。 */
+            CHECK(millis() - child_started >= 2800);
             close(pair[0]);
         }
     } else {
@@ -244,7 +246,7 @@ int main(int argc, char **argv) {
             errno = 0;
             CHECK(waitpid(owned, &status, WNOHANG) == -1 && errno == ECHILD);
             child_reaped = 1;
-            if (is("child-silent")) CHECK(millis() - started >= 2000);
+            if (is("child-silent")) CHECK(millis() - started >= 2800);
         }
     }
     if (!guest_started) {
