@@ -253,7 +253,12 @@ public final class SafWorkbench {
               || source.modified != after.modified) throw new IOException("SOURCE_CHANGED");
           running(ticket, grant, deadline);
           SafLocalFiles.publishInDirectory(
-              directory, temporary, target.getName(), output, previousMode);
+              directory,
+              temporary,
+              target.getName(),
+              output,
+              previousMode,
+              () -> running(ticket, grant, deadline));
           published = true;
         }
         return total;

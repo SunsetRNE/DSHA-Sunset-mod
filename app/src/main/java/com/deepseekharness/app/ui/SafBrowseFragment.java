@@ -50,7 +50,7 @@ public final class SafBrowseFragment extends Fragment {
   private TextView pathView, statusView;
   private Button upButton, exportButton;
   private boolean writeAvailable;
-  private boolean reloadAfterTransfer;
+  private String statusSummary = "", statusDetail = "";
   private ListView list;
   private ExecutorService executor;
   private SafWorkbenchModel model;
@@ -150,10 +150,10 @@ public final class SafBrowseFragment extends Fragment {
           if (result == null) return;
           controls();
           if (result.running) {
-            reloadAfterTransfer = true;
             renderStatus(UiText.text("正在传输"), UiText.choose("正在传输文件…", "Transferring file…"));
           } else {
-            if (reloadAfterTransfer) load(current, true);
+            // 终态只重新读目录并替换旧查询代次，绝不重新提交传输。
+            load(current, true);
             if ("OK".equals(result.code))
               renderStatus(
                   UiText.text("已完成"),
@@ -189,6 +189,8 @@ public final class SafBrowseFragment extends Fragment {
   }
 
   private void renderStatus(String summary, String detail) {
+    statusSummary = summary;
+    statusDetail = detail;
     UiMotion.crossFadeText(statusView, summary);
     InfoHint.bindOnSurface(statusView, UiText.text("说明"), summary, detail);
   }
@@ -208,11 +210,7 @@ public final class SafBrowseFragment extends Fragment {
     pathView.setText(
         requireArguments().getString(ARG_TITLE, "")
             + (requested.isEmpty() ? "" : " / " + requested));
-    if (model.working.get()) {
-      reloadAfterTransfer = true;
-      return;
-    }
-    reloadAfterTransfer = false;
+    if (model.working.get()) return;
     long generation = ++loadGeneration;
     previewGeneration++;
     writeAvailable = false;
@@ -257,8 +255,16 @@ public final class SafBrowseFragment extends Fragment {
           } catch (SafTree.Failure failure) {
             main.post(
                 () -> {
-                  if (generation == loadGeneration && getView() != null)
-                    renderProblem(failure.code);
+                  if (generation != loadGeneration || getView() == null) return;
+                  if (preserveStatus)
+                    renderStatus(
+                        statusSummary,
+                        UiText.format(
+                            "%s\n\n%s: %s",
+                            statusDetail,
+                            UiText.choose("刷新", "Refresh"),
+                            SafWorkbenchUi.problem(failure.code)));
+                  else renderProblem(failure.code);
                 });
           }
         });

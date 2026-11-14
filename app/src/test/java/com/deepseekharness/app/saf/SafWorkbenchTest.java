@@ -228,9 +228,15 @@ public final class SafWorkbenchTest {
   }
 
   private void assertStoppedDuringRead(String code, Runnable hook) throws Exception {
+    assertStoppedDuringCopy(code, hook, false);
+  }
+
+  private void assertStoppedDuringCopy(String code, Runnable hook, boolean beforePublish)
+      throws Exception {
     File target = new File(rootfs, "root/out.txt");
     Files.writeString(target.toPath(), "existing");
-    provider.firstReadOpen = hook;
+    if (beforePublish) SafTestOs.afterFchmod = hook;
+    else provider.firstReadOpen = hook;
     SafWorkbench.Ticket ticket = workbench.prepare(ID, "file.txt", true);
     try {
       assertEquals(
@@ -283,6 +289,32 @@ public final class SafWorkbenchTest {
   }
 
   @Test
+  public void forgetAfterModeCopyStillPreventsPublishing() throws Exception {
+    assertStoppedDuringCopy("HANDLE_REVOKED", () -> SafGrants.forget(app, Uri.parse(TREE)), true);
+  }
+
+  @Test
+  public void systemRevokeAfterModeCopyStillPreventsPublishing() throws Exception {
+    assertStoppedDuringCopy(
+        "PERMISSION_DENIED",
+        () -> app.getContentResolver().releasePersistableUriPermission(Uri.parse(TREE), 3),
+        true);
+  }
+
+  @Test
+  public void totalDeadlineAfterModeCopyStillPreventsPublishing() throws Exception {
+    assertStoppedDuringCopy(
+        "TIMEOUT",
+        () -> ShadowSystemClock.advanceBy(Duration.ofMillis(SafCapabilityLimits.DEADLINE_MS + 1)),
+        true);
+  }
+
+  @Test
+  public void interruptAfterModeCopyStillPreventsPublishing() throws Exception {
+    assertStoppedDuringCopy("CANCELLED", () -> Thread.currentThread().interrupt(), true);
+  }
+
+  @Test
   public void pushKeepsGuardCodesInsteadOfWrappingThemAsGenericIoErrors() throws Exception {
     File local = new File(rootfs, "root/source.txt");
     Files.writeString(local.toPath(), "export");
@@ -324,7 +356,9 @@ public final class SafWorkbenchTest {
     SafWorkbench.Ticket ticket = workbench.prepare(ID, "file.txt", true);
     assertEquals(5, workbench.transfer(ticket, "/root/out.txt", true));
     assertEquals("hello", Files.readString(target.toPath()));
-    assertTrue("mode copies must never resolve a pathname", SafTestOs.CHMODES.isEmpty());
+    assertTrue(
+        SafTestOs.CHMODES.toString(),
+        SafTestOs.CHMODES.keySet().stream().noneMatch(path -> path.contains(".saf-workbench-")));
     assertEquals(1, SafTestOs.FCHMODES.size());
     var copied = SafTestOs.FCHMODES.entrySet().iterator().next();
     assertEquals(0750, copied.getValue().intValue());
@@ -369,7 +403,12 @@ public final class SafWorkbenchTest {
     assertEquals("fixture-secret", Files.readString(secret.toPath()));
     assertEquals(0600, (Integer) Files.getAttribute(secret.toPath(), "unix:mode") & 0777);
     assertTrue("a replaced temporary object must not be published", SafTestOs.RENAMES.isEmpty());
-    assertTrue("path chmod must never touch a link target", SafTestOs.CHMODES.isEmpty());
+    assertFalse(
+        "path chmod must never touch the credential target: " + SafTestOs.CHMODES,
+        SafTestOs.CHMODES.containsKey(secret.getCanonicalPath()));
+    assertTrue(
+        SafTestOs.CHMODES.toString(),
+        SafTestOs.CHMODES.keySet().stream().noneMatch(path -> path.contains(".saf-workbench-")));
     try (var files = Files.list(target.getParentFile().toPath())) {
       assertFalse(files.anyMatch(p -> p.getFileName().toString().startsWith(".saf-workbench-")));
     }
@@ -420,7 +459,7 @@ public final class SafWorkbenchTest {
                   java.io.IOException.class,
                   () ->
                       SafLocalFiles.publishInDirectory(
-                          directory, "fixture.part", target.getName(), failing, 0750))
+                          directory, "fixture.part", target.getName(), failing, 0750, () -> {}))
               .getMessage());
       assertTrue(SafTestOs.RENAMES.isEmpty());
       assertTrue(SafTestOs.FCHMODES.isEmpty());

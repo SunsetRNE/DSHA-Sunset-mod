@@ -198,13 +198,18 @@ public final class SafLocalFiles {
     }
   }
 
-  /** 工作台发布前仍持有输出 fd：拒绝被换名的临时对象，权限只修改已校验的 inode。 */
+  interface PublishGuard {
+    void check() throws IOException;
+  }
+
+  /** 工作台发布前保留校验 fd：拒绝被换名的对象，权限只修改已校验的 inode。 */
   static void publishInDirectory(
       AnchoredDirectory directory,
       String tempName,
       String targetName,
       java.io.OutputStream output,
-      int previousMode)
+      int previousMode,
+      PublishGuard beforePublish)
       throws IOException {
     if (directory == null || !validName(tempName) || !validName(targetName))
       throw new IOException("BAD_PATH");
@@ -233,6 +238,9 @@ public final class SafLocalFiles {
           // 权限复制失败保持创建时的 0600，不按可替换的临时名字重试。
         }
       }
+      // close/权限复制也可能耗时；最终发布前仍要核对授权、代次、取消与总截止。
+      if (beforePublish == null) throw new IOException("PUBLISH_GUARD_MISSING");
+      beforePublish.check();
       verifyPendingFile(directory, tempName, verification, original);
       publishInDirectory(directory, tempName, targetName);
     } catch (ErrnoException missingOrChanged) {
