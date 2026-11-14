@@ -4,6 +4,8 @@
 
 ## S1：退出纯策略、重扫与创建前身份预留
 
+独立提交：`4ae22009`（父 `b9d78170`，10 文件）。
+
 实现：
 
 - 新 [TerminalExitPolicy](../../../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.java) 承担 M04/M14 纯判据；[TerminalProcessCloser](../../../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.java) 保留真实 `/proc`、getsid、UID、Os.kill 与错误呈现适配。纯策略无 Android import，也不持有 UI/租约状态。
@@ -40,13 +42,34 @@
 
 实际文件：新纯策略/测试、Android closer、TerminalTabs/测试、TerminalSessionOwner/测试、[Java 格式清单](../../../tools/java-format-files.json)的两项增量、[任务基线](a4-task-baseline-20261114.md)审批状态与本文。未改 UI/Fragment/Activity、native C/build/ELF、A5 排除域、backup/Rust、共享索引或版本身份。
 
-既有受管源文件已变化，**预计 runtimeId 变化，覆盖安装一次维护页**。当前已提交 descriptor 仍是旧身份，本工作会话未 `--write`、未手改其字段；最终由 Lead 在合并树重算。新 `util/TerminalExitPolicy.java` 是否列入 launcherSources 需要 Lead 显式核对，不能只靠 adapter 引用就视为已覆盖。数据格式、桥协议与基础环境版本不变。
+既有受管源文件已变化，**预计 runtimeId 变化，覆盖安装一次维护页**。当前已提交 descriptor 仍是旧身份，本工作会话未 `--write`、未手改其字段；最终由 Lead 在合并树重算。Lead 已明确裁决：新 [TerminalExitPolicy](../../../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.java) 应与 closer 一起纳管，在合并时按受管输入合同加入精确 `util/TerminalExitPolicy.java` 路径并重算；本会话不修改输入枚举器/描述符。数据格式、桥协议与基础环境版本不变。
 
 S1 独立提交后可单片回退；回退要恢复 owner/reservation、Tabs 与 closer/纯策略这一整组，防止混用半套身份预留或退出接口。发布回退仍由主会话构建更高 versionCode 的同签名包，不清数据、不降级覆盖。
 
 ## S2：PTY C 握手 host 证据
 
-待 S1 提交后实施；生产 native C/build/ELF 默认只读。
+新增 [测试入口](../../../tools/test-pty-birth-handshake.py)、[host C fixture](../../../tools/fixtures/pty-birth/pty-birth-host.c)和[范围说明](../../../tools/fixtures/pty-birth/README.md)，并登记 [host manifest](../../../tools/host-tests.manifest.json) 的 Linux/JDK17 需求。直接编译当前生产 C 与其头文件，fake JNI table 只提供明确的 callback 接受/拒绝/异常边界；真实执行 fork、setsid、self-stat、socketpair、ACK、exec、kill/waitpid。每次另保留一个无关兄弟进程，要求失败清理没有影响它。
+
+13 项覆盖成功登记后 exec、callback 拒绝、返回 true 但 JNI 异常、class/method/string 失败、ACK 写失败、错误 ACK、parent disconnect、parent 通道保持开放却不 ACK 的 child 3 秒截止、child 不报告 stat 的 parent 3 秒截止，以及交付前缀缺末尾换行的截断/超长报文。ACK 前和 callback 中必须没有 guest marker；成功后读取实际 shell exec 的固定打印；失败后 owned child 必须已被 reap，兄弟仍存活。
+
+证据边界：fixture 的 JNI table 不执行 NativeProcess Java/JVM，不证明 Android loadLibrary、SELinux、非调试 `/proc` 或 Termux Java/JNI 完整连接。malformed 超长用例验证的是 4096 字节无换行报文被截断后的非换行前缀，不宣称原生层检测了任意“有效换行前缀 + 多余尾部”；不把 private self-stat 通道当成同进程恶意代码隔离。fixture 的 PDEATHSIG 只用于驱动超时 containment，不是生产 PTY 新增能力。
+
+| 检查 | 真实输出 / 结果 |
+|---|---|
+| 直接入口 | `Ran 13 tests in 7.865s` / `OK`，exit 0 |
+| manifest 清单 | `PASS_MANIFEST`，`tests: 255`（登记数，不是执行 255 个测试） |
+| manifest 实际接线 | `--stage linux --only test-pty-birth-handshake.py --jdk /opt/jdk17` 选 1 个入口 PASS，内部 `Ran 13 tests in 7.735s / OK`；runner exitCode=0 |
+| source/fixture/binary 核对 | `INPUTS_UNCHANGED verifiedCases=13`；当前 C SHA-256 `0e6831f187b0e8c7c7c5b154dfac3a1d88cabf3ac5305b10746af457f04d7ebc`；fixture `64e9c8fb…f6d16`；本次 host binary `82deff52…c6f7d`，不宣称跨编译器可复现 |
+| S1 定向回归 | 当前 20 类 `OK (141 tests)`；`run=141 failures=0 ignored=0 assumptionSkipped=0`，`Time: 4.676`；adapter 当前 source javac 通过 |
+| native-session / 边界 | `Ran 2 tests in 0.298s / OK`；`Ran 25 tests in 9.485s / OK` |
+| Java / Kotlin 格式 | Java `1769 files, 0 need formatting`（manifest 1769/1769、missing/extra=0）；Kotlin `2 files, 0 need formatting` |
+| 卫生 / 当前文档 | hygiene PASS；默认入口 `56 documents / 1309 ok / 0 warning / 0 error` |
+| 本轮显式文档 / 暂存 diff | 基线+本文+fixture README：`3 documents / 127 ok / 0 warning / 0 error`；`git_guard diff --check` PASS；生产 native 目录与 libtermux.so 对 S1 `git diff --exit-code` 为 0 |
+
+S2 未改生产 C/头文件/build 脚本/libtermux.so，也未新增 util/runtime 受管文件、未改 descriptor。测试工具/夹具不改变运行行为；整轮维护影响仍来自 S1 的受管源变化。S2 可独立回退 host 测试与 manifest 条目，不影响设备进程/数据格式。
+
+本轮未跑：真实 Java/JVM JNI 回调、Android PTY、APK/ELF 重建、Gradle 全量/Robolectric/Lint、安装与手机矩阵。S1 的 Android owner 与跨域回归未跑项继续保留，未将这 13 个 host 测试扩写为设备验收。
+
 
 ## S3：当前 lifecycle 验收入口
 

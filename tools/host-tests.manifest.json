@@ -1720,6 +1720,25 @@
       "args": []
     },
     {
+      "path": "tools/test-pty-birth-handshake.py",
+      "stage": "linux",
+      "reason": "Compile current PTY C with Linux JDK JNI headers and explicit fake callback table; real fork/self-stat/ACK/exec/reaping and unaffected sibling, no Android/JVM callback or device proof",
+      "requires": [
+        "python39",
+        "jdk17"
+      ],
+      "platform": [
+        "linux"
+      ],
+      "environment": {},
+      "timeoutSeconds": 120,
+      "args": [
+        "--jdk",
+        "{jdk}"
+      ],
+      "cli": "Real Linux /proc, host C compiler and JDK 17 headers are required; missing capability is an explicit failure, never a skipped Android claim"
+    },
+    {
       "path": "tools/test-native-session-handshake.py",
       "stage": "linux",
       "reason": "Fresh compilation of the current C launcher and real Linux kernel birth/parent/session/guest handshake through explicit WSL Node inputs; no Android device claim, no WSL repair or downloads",
