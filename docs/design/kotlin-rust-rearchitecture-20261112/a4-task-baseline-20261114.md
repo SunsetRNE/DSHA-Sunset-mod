@@ -83,6 +83,7 @@ A4 覆盖 F03、M14 终端和 M04 进程身份/退出证据：在现有两种终
 | S2 | [host-tests.manifest.json](../../../tools/host-tests.manifest.json) | 只登记新测试的明确需求/范围/限时，不改既有分组豁免 |
 | S1/S2/S3 | [java-format-files.json](../../../tools/java-format-files.json) | 只增删本轮新增/退休 Java 源文件的格式清单条目，不全仓重排；受管输入清单交 Lead 同步 |
 | S3 | [ThemeInstrumentation](../../../app/src/androidTest/java/com/deepseekharness/app/ui/ThemeInstrumentation.java)、[MultiTerminalLanguageAudit](../../../app/src/debug/java/com/deepseekharness/app/ui/MultiTerminalLanguageAudit.java) | 精确包名/owner/本夹具会话接线；正常配置变更矩阵 |
+| S3 扩展（Lead 2026-11-14 批准） | [debug Manifest](../../../app/src/debug/AndroidManifest.xml) | 仅把全部 30 条 instrumentation 的旧 `targetPackage="com.dsh.client"` 精确替换为 `${applicationId}`；其余属性/注册不动，不影响受管身份；其他硬编码只读列入交接 |
 | 证据 | [本文](a4-task-baseline-20261114.md)、[终端文档](../../terminal.md)，后续 A4 出口记录（新文件） | 同步合同、真实执行数、未跑项与回退；不改共享进度索引 |
 
 只读保留、不计划改动：[TerminalRuntimeService](../../../app/src/main/java/com/deepseekharness/app/TerminalRuntimeService.java)、[TerminalRuntimeProtection](../../../app/src/main/java/com/deepseekharness/app/core/TerminalRuntimeProtection.java)、[NativeProcess](../../../app/src/main/java/com/deepseekharness/app/runtime/NativeProcess.java)、[TerminalRuntime](../../../app/src/main/java/com/deepseekharness/app/runtime/TerminalRuntime.java)、[RootShellMain](../../../app/src/main/java/com/deepseekharness/app/RootShellMain.java)、[ShellService](../../../app/src/main/java/com/deepseekharness/app/ShellService.java)、终端 Fragment/Activity。native C、build 脚本和 libtermux.so 同样默认只读；不能仅为补测试重建受管 ELF。

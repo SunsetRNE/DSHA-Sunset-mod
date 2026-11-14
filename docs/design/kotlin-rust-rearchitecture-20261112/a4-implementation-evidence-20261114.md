@@ -73,4 +73,57 @@ S2 未改生产 C/头文件/build 脚本/libtermux.so，也未新增 util/runtim
 
 ## S3：当前 lifecycle 验收入口
 
-待 S2 提交后实施；旧 ThemeInstrumentation 的终端 lifecycle 接线修复或退役选择将在本节明确。只准备/编译夹具，不安装或操作手机。
+S3 采用**显式退役**旧 ThemeInstrumentation 终端 `lifecycle` 分支：入口在访问 ConfigStore/启动页面前返回 RESULT_CANCELED 和说明，移除失效的静态 session 反射与全量 shutdown。该夹具保留的主题检查启动目标改为实际 targetContext 包名，不改主题逻辑。当前终端验收集中到 MultiTerminalLanguageAudit。
+
+三份源码变更：
+
+1. [debug Manifest](../../../app/src/debug/AndroidManifest.xml)：Lead 追加批准的范围是**全部**旧 targetPackage，仅将 30 个 `com.dsh.client` 属性值精确替换为 `${applicationId}`，其余 instrumentation 注册/属性及 provider/Activity 不变。
+2. [ThemeInstrumentation](../../../app/src/androidTest/java/com/deepseekharness/app/ui/ThemeInstrumentation.java)：退役早返回与当前包名启动，避免旧入口生成“成功”或结束用户终端。
+3. [MultiTerminalLanguageAudit](../../../app/src/debug/java/com/deepseekharness/app/ui/MultiTerminalLanguageAudit.java)：只针对本夹具创建的标签，准备离页重进/真实方向切换/zh↔en 的 epoch、类型、ID、当前选择、PID/birth/SID/PGID 保留检查。系统没有重建/没有执行方向变化、身份读不到或不符时失败；没有以 Activity.recreate 冒充旋转。PTY 使用保存的出生身份与当前内核再核验，简易会话捕获当前独立 SID/birth；语言重建也验证 owner 表未变。关闭前保存精确标签对象/出生证据，移除后检查 VERIFIED、空会话与 PTY pending 已退；清理异常使最终结果失败/取消，不能留下 PASS 文本。PTY 本次不可变 launcher 路径按 `runtime=proot|proroot`（缺省当前配置）核对，发现 fallback 不把 proot 当 proroot 成功。该信息只证明 PTY 保存的本次启动路径，**不声称已取证简易 shell 的实际引擎或完整 ROM 矩阵**。
+
+附带同步[任务基线](a4-task-baseline-20261114.md)的追加写域与[终端契约](../../terminal.md)的 ID 作用域、退出双扫边界及现行验收入口。没有修改生产 Fragment/Activity/Service/native，未新增 util/runtime 受管文件；debug/AndroidTest/文档不改变 runtimeId，整轮一次维护页仍来自 S1，descriptor 仍由 Lead 纳管新策略后统一重算。
+
+### S3 本地验证
+
+| 项目 | 真实结果 | 证据范围 |
+|---|---|---|
+| 定向 JUnit | 20 类 `OK (141 tests)`，`Time: 4.213`；`run=141 failures=0 ignored=0 assumptionSkipped=0` | 当前 S1 纯策略/终端/停止回归；**不含 Android 仪器测试** |
+| PTY host manifest 接线 | 入口 PASS、exitCode=0，内部 13 项；source/fixture/binary 未变 | 当前 C + fake JNI 回调边界，非 Android |
+| native-session / 边界 | `Ran 2 tests in 0.255s / OK`；`Ran 25 tests in 6.655s / OK` | 前者仍是独立 session-launcher；架构 baseline 未增 |
+| host 清单 | `PASS_MANIFEST tests=255` | 登记数，不是执行 255 项 |
+| Manifest 精确写域 | `S3_MANIFEST_EXACT_ATTRIBUTE_ONLY=30 PASS` | 与 S2 父版本逐字节比对：只有批准的属性替换 |
+| AGP 真实合并 | `ManifestMerger2` 32.1.1 对当前 main + debug Manifest，Mod、`.debug`、Rebirth 各 `targets=30 PASS` | 独立 Java 调用固定 AGP 合并器，验证 placeholder；**未运行 Gradle variant/资源/打包/安装** |
+| Java 语法/静态接线 | JDK17 对两份变更 Java `S3_JAVA_PARSE_ONLY=2`；5 组静态入口/证据顺序检查 PASS | 只 parse/源码检查，**不是 Android 完整类型检查**。第一次静态 harness 用格式前的 shell 字符串锚点未找到，改为格式无关包名表达式锚点后通过，未据此改产品行为 |
+| Java/Kotlin 全树格式 | `1769 files, 0 need formatting`、`2 files, 0 need formatting`；Java manifest missing/extra=0 | 同 S3 源码代次；末尾清理结果文案改动另跑两文件定向格式 |
+| source hygiene / 最终文档 | hygiene PASS；默认入口 `56 documents / 1315 ok / 0 warning / 0 error`；基线+本文+host README 显式 `3 documents / 155 ok / 0 warning / 0 error` | 两类发现范围分别记录；最终暂存 diff 在提交前核验 |
+
+独立 ManifestProbe 再调用时曾受新 shell 的 US-ASCII 默认编码影响，Java parse 报中文不可映射；临时 harness 显式指定 UTF-8 后当前源码 parse 与三种身份合并重新通过，未修改产品源码绕过检查。暂存前另修正文档末尾一处多余空行；这些前置失败不算 Android 测试失败，也不合并成一次连续通过。
+
+未跑：变更仪器类的完整 Android 类型/资源编译、Gradle 全量、Robolectric、Lint、APK/ELF 构建、安装、真机识屏与 proot/proroot 配置变更/正常关闭矩阵。当前工作树没有 R.jar/BuildConfig 等完整资源编译产物；没有复制历史 APK/生成 Java 替身来冒充通过。本机 aarch64/aapt2 限制按基线保留。本轮的 Manifest 合并和 Java parse 不扩写成测试包已可安装。
+
+### 其他旧包名只读排查（未修改）
+
+按 Lead 要求，对 debug 与 androidTest 两棵树只读搜索 `com.dsh.client` 和 `dsh.android.client`。S3 白名单内的 ThemeInstrumentation 与 debug Manifest 修正后，剩余 **debug 14 文件/17 处，androidTest 4 文件/5 处**；其中 debug 一处是注释，其余为启动字符串或 provider authority。未命中 `dsh.android.client`。只记录字面命中，不声称执行过或判定全部夹具可用；**这些文件不在本轮写域，没有修改**。
+
+| 源集 | 文件与行 | 字面用途 |
+|---|---|---|
+| debug | [WebBrowserAudit:170](../../../app/src/debug/java/com/deepseekharness/app/ui/WebBrowserAudit.java#L170) | 旧包 Main 启动 |
+| debug | [UiMotionAudit:39](../../../app/src/debug/java/com/deepseekharness/app/ui/UiMotionAudit.java#L39) | 旧包 Main 启动 |
+| debug | [StartupRecoveryAudit:53](../../../app/src/debug/java/com/deepseekharness/app/ui/StartupRecoveryAudit.java#L53) | 旧包 Main 启动 |
+| debug | [FragmentSessionInstrumentation:36](../../../app/src/debug/java/com/deepseekharness/app/ui/FragmentSessionInstrumentation.java#L36)、[同文件:178](../../../app/src/debug/java/com/deepseekharness/app/ui/FragmentSessionInstrumentation.java#L178) | targetPackage 注释、旧包 Main 启动 |
+| debug | [LogPanelAudit:222](../../../app/src/debug/java/com/deepseekharness/app/ui/LogPanelAudit.java#L222) | 旧包 Main 启动 |
+| debug | [DiagnosticPtyAudit:82](../../../app/src/debug/java/com/deepseekharness/app/ui/DiagnosticPtyAudit.java#L82) | 旧包 Main 启动 |
+| debug | [InstallAuditInstrumentation:275](../../../app/src/debug/java/com/deepseekharness/app/ui/InstallAuditInstrumentation.java#L275) | 旧包 limited entry 启动 |
+| debug | [LaunchLogAudit:219](../../../app/src/debug/java/com/deepseekharness/app/ui/LaunchLogAudit.java#L219) | 旧包 Main 启动 |
+| debug | [DocumentsAudit:22](../../../app/src/debug/java/com/deepseekharness/app/DocumentsAudit.java#L22) | 旧 Documents authority |
+| debug | [DeviceCapabilityAudit:33](../../../app/src/debug/java/com/deepseekharness/app/DeviceCapabilityAudit.java#L33)、[同文件:47](../../../app/src/debug/java/com/deepseekharness/app/DeviceCapabilityAudit.java#L47) | 旧包启动、旧 Shizuku authority |
+| debug | [LayoutAuditInstrumentation:314](../../../app/src/debug/java/com/deepseekharness/app/ui/LayoutAuditInstrumentation.java#L314)、[同文件:445](../../../app/src/debug/java/com/deepseekharness/app/ui/LayoutAuditInstrumentation.java#L445) | 两处旧包 Main 启动 |
+| debug | [BridgeAuditInstrumentation:505](../../../app/src/debug/java/com/deepseekharness/app/BridgeAuditInstrumentation.java#L505) | 旧包 Main 启动 |
+| debug | [WebPortAudit:77](../../../app/src/debug/java/com/deepseekharness/app/core/WebPortAudit.java#L77) | 旧包 Main 启动 |
+| debug | [BrowserCompatibilityAudit:136](../../../app/src/debug/java/com/deepseekharness/app/ui/BrowserCompatibilityAudit.java#L136) | 旧包 Main 启动 |
+| androidTest | [RealWebInstrumentation:39](../../../app/src/androidTest/java/com/deepseekharness/app/ui/RealWebInstrumentation.java#L39) | 旧包 Main 启动 |
+| androidTest | [OptimizationInstrumentation:196](../../../app/src/androidTest/java/com/deepseekharness/app/core/OptimizationInstrumentation.java#L196)、[同文件:225](../../../app/src/androidTest/java/com/deepseekharness/app/core/OptimizationInstrumentation.java#L225) | 两处旧包 Main 启动 |
+| androidTest | [RecoveryInstrumentation:169](../../../app/src/androidTest/java/com/deepseekharness/app/core/RecoveryInstrumentation.java#L169) | 旧包 Main 启动 |
+| androidTest | [UpdateProcessInstrumentation:67](../../../app/src/androidTest/java/com/deepseekharness/app/core/UpdateProcessInstrumentation.java#L67) | 旧包 Main 启动 |
+
+S3 独立回退仅撤销这三份验收源码与对应文档，不触碰用户会话/数据。A4 保持 ACTIVE/不可合并，等待 Lead 统一处理受管输入、CI/设备出口与非实现者评审；没有 push/合并/安装或手机动作。
