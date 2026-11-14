@@ -111,6 +111,15 @@ test('快照正文被改动时不调用任何配置写入',()=>fixture('first: {
   await assert.rejects(migrate(api.settings,parse,{}, {stateRoot:state}),/SNAPSHOT_CHANGED/);assert.equal(api.writes,0);
 }));
 
+test('分节不是映射时在调用update前拒绝，保留可重试pending',async()=>{
+  for(const document of ['first: null\n','first: plain-scalar\n'])await fixture(document,async(api,state,ledger)=>{
+    api.add('first');
+    const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+    assert.equal(api.writes,0);assert.equal(returned.status,'pending');
+    const section=JSON.parse(await readFile(ledger)).sections.first;
+    assert.equal(section.status,'pending');assert.equal(section.reason,'SECTION_VALUE_FORMAT');
+  });
+});
 test('敏感字段只通过实际设置服务读回，不写入迁移回执',()=>fixture('first: {model: old, options: {apiKey: incoming-secret}}\n',async(api,state,ledger)=>{
   const entry=api.add('first',{model:'initial',options:{size:1,apiKey:'retained-secret'}});
   // fixture schema has no options field: 顶层未声明字段在调用 update 之前被拒，保留可重试 pending。

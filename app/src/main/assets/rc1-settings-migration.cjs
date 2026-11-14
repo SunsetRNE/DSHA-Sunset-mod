@@ -323,6 +323,10 @@ async function migrate(settings, parse, aliases, options = {}) {
       Object.defineProperty(result.sections, name, { value: section, enumerable: true, configurable: true, writable: true });
     }
     if (!descriptor) { section.reason = 'SECTION_UNAVAILABLE'; await atomic(ledgerFile, result); continue; }
+    // 派发前的校验拒绝：分节不是映射、或顶层字段未被 form schema 声明时，settings.update
+    // 自身在进入写事务之前就会拒绝，值没有被写入配置，保留可重试 pending。
+    const rejection = preflightRejection(values, descriptor.schema);
+    if (rejection) { section.status = 'pending'; section.reason = rejection; await atomic(ledgerFile, result); continue; }
     // 落账只保留去秘密投影；读回核验在内存用完整投影。schema 无法解释时不能证明
     // 值里没有秘密：该节冻结为 unknown，不调用 update、不把值写进账本。
     const ledgerValues = projectValue(values, descriptor.schema, { dropSecrets: true });
@@ -336,9 +340,6 @@ async function migrate(settings, parse, aliases, options = {}) {
       continue;
     }
     section.source = clone(ledgerValues.value);
-    // 派发前的校验拒绝：值没有被写入配置，保留可重试 pending。
-    const rejection = preflightRejection(values, descriptor.schema);
-    if (rejection) { section.status = 'pending'; section.reason = rejection; await atomic(ledgerFile, result); continue; }
     if (Object.hasOwn(section, 'before') && holdsSecrets(descriptor.schema)) {
       // 旧账本可能留下“已记录 before 的 pending/conflict 节”；秘密位置没有可落账的
       // 变化证据，无法证明用户没改过目标，保守冻结而不是覆盖。
