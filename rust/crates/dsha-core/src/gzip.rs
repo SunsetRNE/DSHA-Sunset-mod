@@ -732,6 +732,13 @@ impl UnpackStream {
                         if self.finish_exactly_at_output_bound() {
                             continue;
                         }
+                        // 结束块字节仍可能留在调用方手里：空输入探针不可能得到
+                        // `StreamEnd`（探针若已把缓冲消费空，也不能据此宣布超限）。
+                        // 先报 `NEED_INPUT`，补喂后由下一轮区分 EOF 与硬上限
+                        // （R3 评审最后一条 P2：结果不得随 write 分块方式变化）。
+                        if self.start == self.buffer.len() {
+                            return Ok((produced, FLAG_NEED_INPUT));
+                        }
                         // 上限后确实还有明文：`OUTPUT_BOUND` 在 unpack 语境是**硬上限**
                         // （JVM 参考读取器为 `ARCHIVE_LIMIT`），会话进入失败态，不可重试。
                         return self.deliver_or_fail(ERR_OUTPUT_BOUND, produced);
@@ -830,7 +837,9 @@ impl UnpackStream {
     /// deflate 的结束块可能不产生任何字节；若因为 `remaining_output == 0` 直接报
     /// `OUTPUT_BOUND`，恰好等于上限的合法流会被误判（R3 评审 P2-1）。空输出的
     /// `decompress` 只消费“结束块”标记（`StreamEnd` 时推进到 `Trailer`），不会新增
-    /// 明文；其余状态一律不改变 phase，由调用方按硬上限失败。
+    /// 明文；其余状态一律不改变 phase。返回 false 且输入缓冲已空时**不能**判定超限：
+    /// 结束块字节可能仍在调用方手里，调用处返回 `NEED_INPUT` 等补喂后再判定
+    /// （R3 评审最后一条 P2）。
     fn finish_exactly_at_output_bound(&mut self) -> bool {
         let before_in = self.decompress.total_in();
         let before_out = self.decompress.total_out();
@@ -1370,6 +1379,123 @@ mod tests {
         // 上限 0 且明文非空同样立即失败。
         let (bytes, result) = unpack_with_output_limit(&gzip, 0);
         assert_eq!((bytes.len(), result), (0, Err(ERR_OUTPUT_BOUND)));
+    }
+
+    /// 评审最后 1 条 P2 辅助：先只喂 `gzip[..split]`，读到“零进展”后补喂剩余字节。
+    /// 返回（累计明文, 首次零进展的 flags, 首次零进展时已产出字节, 最终结果）。
+    fn unpack_with_split_output_limit(
+        gzip: &[u8],
+        split: usize,
+        max_output: u64,
+    ) -> (Vec<u8>, u32, usize, Result<(), i32>) {
+        assert!(split < gzip.len(), "split 必须留出补喂的尾部");
+        let mut stream = UnpackStream::with_limits(max_output, MAX_TOTAL_BYTES);
+        let mut payload = Vec::new();
+        let mut out = vec![0u8; 97];
+        match stream.write(&gzip[..split]) {
+            Ok(consumed) => assert_eq!(consumed, split),
+            Err(code) => return (payload, 0, 0, Err(code)),
+        }
+        let (stall_flags, stall_produced) = loop {
+            match stream.read(&mut out) {
+                Ok((made, flags)) => {
+                    payload.extend_from_slice(&out[..made]);
+                    if flags & FLAG_EOF != 0 {
+                        let produced = payload.len();
+                        return (payload, 0, produced, Ok(()));
+                    }
+                    if made == 0 {
+                        break (flags, payload.len());
+                    }
+                }
+                Err(code) => {
+                    let produced = payload.len();
+                    return (payload, 0, produced, Err(code));
+                }
+            }
+        };
+        let mut offset = split;
+        loop {
+            while offset < gzip.len() {
+                let consumed = match stream.write(&gzip[offset..]) {
+                    Ok(value) => value,
+                    Err(code) => return (payload, stall_flags, stall_produced, Err(code)),
+                };
+                if consumed == 0 {
+                    break;
+                }
+                offset += consumed;
+            }
+            match stream.read(&mut out) {
+                Ok((made, flags)) => {
+                    payload.extend_from_slice(&out[..made]);
+                    if flags & FLAG_EOF != 0 {
+                        return (payload, stall_flags, stall_produced, Ok(()));
+                    }
+                    if made == 0 {
+                        // 尾部已全部喂入仍要输入：合法流不该发生。
+                        return (payload, stall_flags, stall_produced, Err(ERR_INTERNAL));
+                    }
+                }
+                Err(code) => return (payload, stall_flags, stall_produced, Err(code)),
+            }
+        }
+    }
+
+    #[test]
+    fn exact_output_limit_succeeds_when_tail_is_fed_after_need_input() {
+        // 评审最后 1 条 P2：上限恰好等于明文长度时，deflate 结束块字节可能仍在
+        // 调用方手里。旧实现用空输入探针必然拿不到 `StreamEnd`，把“还要输入”
+        // 误报成硬上限 `OUTPUT_BOUND`，结果取决于 write 分块方式（违反方案 §4.5）。
+        // 先喂到最后 1 个 deflate 字节前：读到上限后必须是 `NEED_INPUT`（且已产出
+        // 恰好明文长度），补喂尾部后必须 EOF。
+        let payload = patterned(200_000);
+        let gzip = pack_stream(&payload, 6, MAX_INPUT_CHUNK);
+        let deflate_end = gzip.len() - TRAILER_BYTES;
+        assert!(deflate_end > 16);
+
+        let (bytes, flags, stall_produced, result) =
+            unpack_with_split_output_limit(&gzip, deflate_end - 1, payload.len() as u64);
+        assert_eq!(
+            result,
+            Ok(()),
+            "恰好等于上限的合法流不得因 write 分块误报 -3"
+        );
+        assert_eq!(
+            flags, FLAG_NEED_INPUT,
+            "缓冲耗尽时必须要求输入，而不是硬上限"
+        );
+        assert_eq!(stall_produced, payload.len());
+        assert_eq!(bytes, payload);
+
+        // 结束块/尾部逐字节切分以及上游分块点：补喂后结果必须一致（分配不变）。
+        // 首次零进展可能早于上限（普通缺输入）或恰好在上限（结束块未到），
+        // 两者都必须是 NEED_INPUT；上限处的精确断言见上面的主场景。
+        for split in (deflate_end - 16..gzip.len()).chain([1, 9, HEADER_BYTES]) {
+            let (bytes, flags, _stall_produced, result) =
+                unpack_with_split_output_limit(&gzip, split, payload.len() as u64);
+            assert_eq!(result, Ok(()), "split={split}");
+            assert_eq!(bytes, payload, "split={split}");
+            assert_eq!(flags, FLAG_NEED_INPUT, "split={split}");
+        }
+
+        // 明文比上限多 1 字节仍必须报 -3（不漏判）：整段喂入与分块补喂两条路径。
+        let limit = payload.len() as u64 - 1;
+        let (bytes, result) = unpack_with_output_limit(&gzip, limit);
+        assert_eq!(
+            (bytes.len(), result),
+            (payload.len() - 1, Err(ERR_OUTPUT_BOUND))
+        );
+        for split in [deflate_end - 1, deflate_end, gzip.len() - 1] {
+            let (bytes, flags, _stall_produced, result) =
+                unpack_with_split_output_limit(&gzip, split, limit);
+            assert_eq!(
+                result,
+                Err(ERR_OUTPUT_BOUND),
+                "split={split} flags={flags} 不得漏判超限"
+            );
+            assert_eq!(bytes.len(), payload.len() - 1, "split={split}");
+        }
     }
 
     #[test]
