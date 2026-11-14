@@ -41,6 +41,36 @@ public class RustArchiveCodecTest {
   }
 
   @Test
+  public void packBoundRejectsIntOverflowInsteadOfWrapping() {
+    // 评审 P2-8：n + n/8 + 128 对超大 n 会溢出 int，回绕成看似合法的值。
+    long fit = ((long) (Integer.MAX_VALUE - 128) * 8) / 9;
+    while (fit + fit / 8 + 128 > Integer.MAX_VALUE) {
+      fit--;
+    }
+    while ((fit + 1) + (fit + 1) / 8 + 128 <= Integer.MAX_VALUE) {
+      fit++;
+    }
+    int largestFitting = (int) fit;
+    assertEquals(
+        (int) ((long) largestFitting + largestFitting / 8 + 128),
+        RustArchiveCodec.packBound(largestFitting));
+    for (int size : new int[] {largestFitting + 1, Integer.MAX_VALUE}) {
+      try {
+        RustArchiveCodec.packBound(size);
+        fail("packBound(" + size + ") 必须拒绝 int 溢出");
+      } catch (IllegalArgumentException expected) {
+        // 预期：不返回回绕后的负/错误上限。
+      }
+    }
+    try {
+      RustArchiveCodec.packBound(-1);
+      fail("packBound(-1) 必须拒绝");
+    } catch (IllegalArgumentException expected) {
+      // 预期。
+    }
+  }
+
+  @Test
   public void levelValidationIsTheFrozenRange() {
     assertTrue(RustArchiveCodec.levelValid(0));
     assertTrue(RustArchiveCodec.levelValid(6));
@@ -61,7 +91,12 @@ public class RustArchiveCodecTest {
     assertEquals(
         "GZIP_TRAILING_DATA", RustArchiveCodec.message(RustArchiveCodec.GZIP_TRAILING_DATA));
     assertEquals("OUTPUT_BOUND", RustArchiveCodec.message(RustArchiveCodec.OUTPUT_BOUND));
+    assertEquals("NOT_IMPLEMENTED", RustArchiveCodec.message(RustArchiveCodec.NOT_IMPLEMENTED));
     assertEquals("RUST_ERROR_-99", RustArchiveCodec.message(-99));
+    // unpack 语境的累计上限映射为 JVM 参考读取器的 ARCHIVE_LIMIT，其余码不变。
+    assertEquals("ARCHIVE_LIMIT", RustArchiveCodec.unpackMessage(RustArchiveCodec.OUTPUT_BOUND));
+    assertEquals("GZIP_TRAILER", RustArchiveCodec.unpackMessage(RustArchiveCodec.GZIP_TRAILER));
+    assertEquals("INTERNAL", RustArchiveCodec.unpackMessage(RustArchiveCodec.INTERNAL));
   }
 
   @Test
@@ -75,6 +110,9 @@ public class RustArchiveCodecTest {
     assertEquals(
         RustArchiveCodec.INVALID_ARGUMENT,
         RustArchiveCodec.errorCodeForJvmMessage("STREAM_CLOSED"));
+    // 评审 P2-7：JVM 参考读取器的累计上限必须映射回冻结 ABI 的 -3（unpack 语境）。
+    assertEquals(
+        RustArchiveCodec.OUTPUT_BOUND, RustArchiveCodec.errorCodeForJvmMessage("ARCHIVE_LIMIT"));
     assertEquals(Integer.MIN_VALUE, RustArchiveCodec.errorCodeForJvmMessage("SOMETHING_ELSE"));
     assertEquals(Integer.MIN_VALUE, RustArchiveCodec.errorCodeForJvmMessage(null));
     assertEquals("GZIP_HEADER", RustArchiveCodec.canonicalJvmMessage("GZIP_FLAGS"));

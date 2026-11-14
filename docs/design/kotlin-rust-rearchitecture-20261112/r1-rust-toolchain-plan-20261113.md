@@ -709,10 +709,10 @@ read(handle, out)  -> (produced << 32) | flags       // flags: 0x1 EOF, 0x2 NEED
 abort(handle)      -> 0 / 负错误码
 ```
 
-- 头：`1f 8b 08`；`FLG & 0xe0` 必须为 0；FHCRC（FLG bit1）按现有 Java 实现校验；FEXTRA 长度、FNAME/FCOMMENT 各 ≤ 8192（含终止 0）；`FLG` 的 FTEXT 位允许但忽略；不允许多成员与尾随字节（解到尾部后输入仍有字节 → `GZIP_TRAILING_DATA`）。
-- 体：raw deflate（`Decompress::new(false)`）；`needs_dictionary` → `GZIP_DICTIONARY`；无进展 → `GZIP_STALLED`；输出累计 ≤ `BackupLimits.BYTES + 256 MiB`（16 GiB + 256 MiB，与现有读取器一致），单次 `read` 输出 ≤ 256 KiB。
+- 头：`1f 8b 08`；`FLG & 0xe0` 必须为 0；FHCRC（FLG bit1）按现有 Java 实现校验；**`FEXTRA` 与 `StrictGzipInputStream` 一致，按 u16 长度（≤ 65535）逐字节流式接收，不额外套 8192 上限**（2026-11-14 Lead waiver（R3 评审 P2-4）：原稿“FEXTRA ≤ 8192”与 JVM 参考读取器实际行为不一致，本文改为实际口径，实现与 JVM 读取器均不改）；`FNAME`/`FCOMMENT` 各 ≤ 8192（含终止 0）；`FLG` 的 FTEXT 位允许但忽略；不允许多成员与尾随字节（解到尾部后输入仍有字节 → `GZIP_TRAILING_DATA`）。
+- 体：raw deflate（`Decompress::new(false)`）；`needs_dictionary` → `GZIP_DICTIONARY`（raw deflate 无 FDICT 位，属防御分支）；无进展 → `GZIP_STALLED`（防御分支）；输出累计 ≤ `BackupLimits.BYTES + 256 MiB`（16 GiB + 256 MiB，与现有读取器一致），单次 `read` 输出 ≤ 256 KiB。**累计超上限是硬失败**：冻结 ABI v1 没有独立错误码，unpack 语境复用 `OUTPUT_BOUND`（-3）表示；A3 不得按 pack 的“缓冲不足、换更大缓冲重试”处理（见 §5.4“确定性错误不重试”），宿主桥 `RustArchiveCodec.unpackMessage` 把它映射为 JVM 读取器的 `ARCHIVE_LIMIT`。上限恰好等于明文长度时必须成功（deflate 结束块本身不产生字节）。
 - 尾：CRC32 与 ISIZE 都必须匹配；截断 → `GZIP_TRUNCATED`；先校验尾、再拒绝尾随字节（与 Java 顺序一致）。
-- 状态机：`write` 返回实际消费的输入字节数（内部输入缓冲满时可只消费一部分）；`read` 用 `NEED_INPUT`/`NEED_OUTPUT` 指示推进条件，调用方循环至 `EOF`；`EOF` 只在尾部校验通过后返回；任何错误后会话进入失败态，`abort`/重开新会话，不重放已消费输入。
+- 状态机：`write` 返回实际消费的输入字节数（内部输入缓冲满时可只消费一部分）；**输入上限按实际接收的 `take` 计**，同一块里含尾随字节时必须能报 `GZIP_TRAILING_DATA` 而不是 `INPUT_BOUND`；`read` 用 `NEED_INPUT`/`NEED_OUTPUT` 指示推进条件，调用方循环至 `EOF`；`EOF` 只在尾部校验通过后返回；任何错误后会话进入失败态，`abort`/重开新会话，不重放已消费输入。
 - 对拍：同一 gzip 语料上 JVM 与 Rust 的“输出字节 + 错误码”逐一相等；`write` 分段方式（1 B/64 KiB/随机切分）不得改变结果。
 
 ### 4.6 `verify_plan(view)`

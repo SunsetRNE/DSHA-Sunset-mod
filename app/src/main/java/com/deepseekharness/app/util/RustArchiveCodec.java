@@ -13,6 +13,8 @@ package com.deepseekharness.app.util;
  * <p>错误消息与 {@code app/src/main/java/com/deepseekharness/app/backup/StrictGzipInputStream}
  * 的 {@code IOException} 文本一一对应；冻结 ABI 把该读取器的 {@code GZIP_FLAGS} 合入
  * {@link #GZIP_HEADER}（方案 §4.2），差分比较前由 {@link #canonicalJvmMessage(String)} 归一化。
+ * 冻结 ABI v1 没有独立的“累计上限”码：unpack 语境的 {@link #OUTPUT_BOUND} 由
+ * {@link #unpackMessage(int)} 映射为 JVM 的 {@link #ARCHIVE_LIMIT}（硬失败、不可重试）。
  * {@code GZIP_TRUNCATED} 由 JVM 桥在底层流返回 -1 时给出：native 侧只知道“还需要输入”，
  * 不知道调用方的字节流是否已经结束。
  */
@@ -46,6 +48,16 @@ public final class RustArchiveCodec {
 
   /** 单次解压输出上限（256 KiB）。 */
   public static final int MAX_OUTPUT_CHUNK = 262_144;
+
+  /**
+   * JVM 参考读取器（{@code StrictGzipInputStream} / {@code BackupLimits.add}）的累计上限消息。
+   *
+   * <p>冻结 ABI v1 没有独立的“累计上限”错误码：unpack 语境下
+   * {@link #OUTPUT_BOUND} 表示累计明文超 16 GiB + 256 MiB 的**硬上限**（会话进入失败态，
+   * 不可重试），与 pack 语境的“输出缓冲不足、换大缓冲重试”是两个含义。A3 接线必须按
+   * 操作区分（见 {@link #unpackMessage(int)}），不得把 unpack 的 -3 当作可重试。
+   */
+  public static final String ARCHIVE_LIMIT = "ARCHIVE_LIMIT";
 
   /** {@code FNAME}/{@code FCOMMENT} 最大长度（含终止 0）。 */
   public static final int MAX_METADATA = 8_192;
@@ -87,7 +99,13 @@ public final class RustArchiveCodec {
     if (inputLength < 0) {
       throw new IllegalArgumentException("inputLength < 0");
     }
-    return inputLength + inputLength / 8 + 128;
+    // 用 long 计算并在转 int 前检查：超大 inputLength 直接相加会回绕成负数，
+    // 让调用方拿到一个看似合法的“上限”（R3 评审 P2-8）。
+    long bound = (long) inputLength + (long) inputLength / 8 + 128L;
+    if (bound > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("inputLength too large for a packed bound");
+    }
+    return (int) bound;
   }
 
   /** 编码级别是否落在冻结 ABI 的 0..=9。 */
@@ -115,7 +133,13 @@ public final class RustArchiveCodec {
     return (int) (value & 0xffff_ffffL);
   }
 
-  /** 冻结错误码 → 与 {@code StrictGzipInputStream} 相同的异常消息（非 gzip 码给出类型化名字）。 */
+  /**
+   * 冻结错误码 → 与 {@code StrictGzipInputStream} 相同的异常消息（非 gzip 码给出类型化名字）。
+   *
+   * <p>{@link #OUTPUT_BOUND} 在这里保持 pack 语境的名字；unpack 的累计上限必须用
+   * {@link #unpackMessage(int)} 得到 JVM 的 {@link #ARCHIVE_LIMIT}（冻结 ABI v1 复用同一数值，
+   * 语义按操作区分，见 {@link #ARCHIVE_LIMIT}）。
+   */
   public static String message(int code) {
     switch (code) {
       case OK:
@@ -154,9 +178,22 @@ public final class RustArchiveCodec {
         return "GZIP_TRAILER";
       case GZIP_TRAILING_DATA:
         return "GZIP_TRAILING_DATA";
+      case NOT_IMPLEMENTED:
+        return "NOT_IMPLEMENTED";
       default:
         return RUST_ERROR_PREFIX + code;
     }
+  }
+
+  /**
+   * {@code archive_unpack_read} 的错误码 → JVM 参考读取器消息。
+   *
+   * <p>unpack 语境的 {@link #OUTPUT_BOUND} 只可能来自累计明文超上限（单次输出缓冲由本桥固定
+   * 为 256 KiB，不会不足），对应 JVM 的 {@link #ARCHIVE_LIMIT}；它是硬失败，会话进入失败态，
+   * 调用方不得当作“缓冲不足”重试。其余码沿用 {@link #message(int)}。
+   */
+  public static String unpackMessage(int code) {
+    return code == OUTPUT_BOUND ? ARCHIVE_LIMIT : message(code);
   }
 
   /**
@@ -190,6 +227,10 @@ public final class RustArchiveCodec {
         return GZIP_TRAILER;
       case "GZIP_TRAILING_DATA":
         return GZIP_TRAILING_DATA;
+      case ARCHIVE_LIMIT:
+        // JVM 参考读取器的累计上限。冻结 ABI 复用 OUTPUT_BOUND（unpack 语境），
+        // 差分按该映射比较；A3 不得把它当 pack 的“缓冲不足”重试。
+        return OUTPUT_BOUND;
       case "STREAM_CLOSED":
         return INVALID_ARGUMENT;
       default:

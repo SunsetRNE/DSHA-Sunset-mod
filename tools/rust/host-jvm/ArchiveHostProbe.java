@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -170,6 +171,14 @@ public final class ArchiveHostProbe {
     byte[] header = Arrays.copyOf(gzip, 10);
     header[3] = (byte) (header[3] | 0x08);
     byte[] out = concat(header, name);
+    return concat(out, Arrays.copyOfRange(gzip, 10, gzip.length));
+  }
+
+  /** FCOMMENT 反例：写入 comment 但**没有**终止 0（评审 P2-9：必须与 JVM 同报 METADATA_LIMIT）。 */
+  private static byte[] withUnterminatedComment(byte[] gzip, byte[] comment) {
+    byte[] header = Arrays.copyOf(gzip, 10);
+    header[3] = (byte) (header[3] | 0x10);
+    byte[] out = concat(header, comment);
     return concat(out, Arrays.copyOfRange(gzip, 10, gzip.length));
   }
 
@@ -411,7 +420,18 @@ public final class ArchiveHostProbe {
     corpus.add(new Case("bad-magic", mutate(base, 0, 0x1e), "GZIP_HEADER"));
     corpus.add(new Case("bad-cm", mutate(base, 2, 7), "GZIP_HEADER"));
     corpus.add(new Case("bad-flags", mutate(base, 3, base[3] | 0x20), "GZIP_HEADER"));
+    // 评审 P2-9：FHCRC 不符与 FCOMMENT 超长必须与 JVM 同码。
+    byte[] badFhcrc = withFhcrc(base);
+    badFhcrc = mutate(badFhcrc, 10, badFhcrc[10] ^ 0xff);
+    corpus.add(new Case("bad-fhcrc", badFhcrc, "GZIP_HEADER_CRC"));
     corpus.add(new Case("fname-too-long", withUnterminatedName(base, name8k), "GZIP_METADATA_LIMIT"));
+    byte[] comment8k = new byte[8_192];
+    Arrays.fill(comment8k, (byte) 'c');
+    corpus.add(
+        new Case(
+            "fcomment-too-long",
+            withUnterminatedComment(base, comment8k),
+            "GZIP_METADATA_LIMIT"));
     corpus.add(new Case("bad-crc", mutate(base, base.length - 8, base[base.length - 8] ^ 0xff), "GZIP_TRAILER"));
     corpus.add(new Case("bad-isize", mutate(base, base.length - 4, base[base.length - 4] ^ 0xff), "GZIP_TRAILER"));
     corpus.add(new Case("trailing-byte", append(base, 0), "GZIP_TRAILING_DATA"));
@@ -466,6 +486,29 @@ public final class ArchiveHostProbe {
         truncationMismatches == 0,
         "prefixes=" + shortGzip.length + " mismatches=" + truncationMismatches + " " + firstTruncationMismatch);
 
+    // 6b) 可选头逐前缀截断（评审 P2-9）：FEXTRA + FNAME + FCOMMENT + FHCRC 的每个前缀
+    // 都必须两边同为 GZIP_TRUNCATED，不能把“头还没读完”误报成头错误。
+    int optionalMismatches = 0;
+    String firstOptionalMismatch = "";
+    for (int length = 0; length < mixed.length; length++) {
+      byte[] prefix = Arrays.copyOf(mixed, length);
+      Outcome jvm = readJvm(prefix);
+      Outcome rust = readRust(prefix);
+      boolean ok = sameOutcome(jvm, rust) && "GZIP_TRUNCATED".equals(jvm.error);
+      if (!ok) {
+        optionalMismatches++;
+        if (firstOptionalMismatch.isEmpty()) {
+          firstOptionalMismatch =
+              "prefix=" + length + " jvm=" + jvm.error + " rust=" + rust.error;
+        }
+      }
+    }
+    check(
+        "archiveOptionalHeaderTruncation",
+        optionalMismatches == 0,
+        "prefixes=" + mixed.length + " mismatches=" + optionalMismatches + " "
+            + firstOptionalMismatch);
+
     // 7) native direct buffer / 会话契约错误码（冻结 ABI 数值）。
     check("archiveNativeContractCodes", nativeContract(), nativeContractDetail());
 
@@ -496,6 +539,20 @@ public final class ArchiveHostProbe {
 
     // 11) 关闭语义：流关闭后继续写/读必须报 STREAM_CLOSED（与 JVM 包装器一致）。
     check("archiveWrapperClosedSemantics", closedSemantics(), "finish/close 后拒绝写入/读取");
+
+    // 12) 评审 P2-6：native finish 成功后写尾部失败时，必须保留原错误、标记 finished，
+    // 再次 finish 幂等而不是 STALE_HANDLE。
+    check(
+        "archiveFinishTailFailure",
+        finishTailFailure(),
+        "尾部写失败保留原错误；finished 已置位；再次 finish 幂等");
+
+    // 13) 评审 P2-3/P2-7/P2-8：unpack 累计上限映射为 ARCHIVE_LIMIT（冻结 ABI 复用 -3），
+    // NOT_IMPLEMENTED 有类型化消息，packBound 拒绝 int 溢出。
+    check(
+        "archiveLimitErrorMapping",
+        limitErrorMapping(),
+        "unpack -3→ARCHIVE_LIMIT↔-3；NOT_IMPLEMENTED；packBound 溢出拒绝");
 
     finish();
   }
@@ -645,6 +702,75 @@ public final class ArchiveHostProbe {
       readRejected = "STREAM_CLOSED".equals(error.getMessage());
     }
     return writeRejected && readRejected;
+  }
+
+  private static boolean finishTailFailure() throws IOException {
+    final boolean[] fail = {false};
+    final int[] closes = {0};
+    OutputStream target =
+        new OutputStream() {
+          @Override
+          public void write(int value) throws IOException {
+            if (fail[0]) {
+              throw new IOException("TARGET_WRITE_FAILED");
+            }
+          }
+
+          @Override
+          public void write(byte[] bytes, int at, int length) throws IOException {
+            if (fail[0]) {
+              throw new IOException("TARGET_WRITE_FAILED");
+            }
+          }
+
+          @Override
+          public void close() {
+            closes[0]++;
+          }
+        };
+    RustGzipOutputStream out = new RustGzipOutputStream(target);
+    nativeCalls++;
+    out.write(patterned(64));
+    fail[0] = true;
+    boolean originalError = false;
+    try {
+      out.finish();
+    } catch (IOException error) {
+      originalError = "TARGET_WRITE_FAILED".equals(error.getMessage());
+    }
+    boolean finished = out.isFinished();
+    boolean idempotent = true;
+    try {
+      out.finish();
+    } catch (IOException error) {
+      idempotent = false;
+    }
+    out.close();
+    return originalError && finished && idempotent && closes[0] == 1;
+  }
+
+  private static boolean limitErrorMapping() {
+    boolean limitMapped =
+        RustArchiveCodec.ARCHIVE_LIMIT.equals(
+                RustArchiveCodec.unpackMessage(RustArchiveCodec.OUTPUT_BOUND))
+            && RustArchiveCodec.errorCodeForJvmMessage(RustArchiveCodec.ARCHIVE_LIMIT)
+                == RustArchiveCodec.OUTPUT_BOUND
+            && "OUTPUT_BOUND"
+                .equals(RustArchiveCodec.message(RustArchiveCodec.OUTPUT_BOUND));
+    boolean notImplemented =
+        "NOT_IMPLEMENTED".equals(RustArchiveCodec.message(RustArchiveCodec.NOT_IMPLEMENTED));
+    boolean overflowRejected;
+    try {
+      RustArchiveCodec.packBound(Integer.MAX_VALUE);
+      overflowRejected = false;
+    } catch (IllegalArgumentException expected) {
+      overflowRejected = true;
+    }
+    return limitMapped
+        && notImplemented
+        && overflowRejected
+        && RustArchiveCodec.packBound(RustArchiveCodec.CHUNK)
+            == RustArchiveCodec.MAX_PACK_OUTPUT;
   }
 
   private static int littleEndianInt(byte[] data, int offset) {

@@ -493,7 +493,8 @@ class RustGraph(unittest.TestCase):
         for fragment in ("RustHostProbe", "PlanViewHostProbe", "ArchiveHostProbe",
                          "DIGEST_PROBE_CLASS", "PLAN_PROBE_CLASS", "ARCHIVE_PROBE_CLASS",
                          "archiveCorpusJvmRustAgree", "planFixtureCorpus",
-                         "archiveTruncationCorpus"):
+                         "archiveTruncationCorpus", "archiveOptionalHeaderTruncation",
+                         "archiveFinishTailFailure", "archiveLimitErrorMapping"):
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, script)
         self.assertIn("len(summaries) != 3", script)

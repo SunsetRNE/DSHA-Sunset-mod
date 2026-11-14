@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.zip.CRC32;
@@ -283,15 +284,21 @@ public class RustArchiveDifferentialTest {
     byte[] base = javaGzip(patterned(256));
     byte[] name8k = new byte[8_192];
     Arrays.fill(name8k, (byte) 'n');
+    byte[] comment8k = new byte[8_192];
+    Arrays.fill(comment8k, (byte) 'c');
+    byte[] fhcrc = withOptionalHeader(base, null, null, true);
     Object[][] cases = {
       {"bad-magic", mutate(base, 0, 0x1e), "GZIP_HEADER"},
       {"bad-cm", mutate(base, 2, 7), "GZIP_HEADER"},
       {"bad-flags", mutate(base, 3, base[3] | 0x20), "GZIP_HEADER"},
+      // 评审 P2-9：FHCRC 不符与 FCOMMENT 超长都必须与 JVM 同码。
+      {"bad-fhcrc", mutate(fhcrc, 10, fhcrc[10] ^ 0xff), "GZIP_HEADER_CRC"},
+      {"fname-too-long", withUnterminatedName(base, name8k), "GZIP_METADATA_LIMIT"},
+      {"fcomment-too-long", withUnterminatedComment(base, comment8k), "GZIP_METADATA_LIMIT"},
       {"bad-crc", mutate(base, base.length - 8, base[base.length - 8] ^ 0xff), "GZIP_TRAILER"},
       {"bad-isize", mutate(base, base.length - 4, base[base.length - 4] ^ 0xff), "GZIP_TRAILER"},
       {"trailing", concat(base, new byte[] {0}), "GZIP_TRAILING_DATA"},
       {"two-members", concat(base, javaGzip(patterned(32))), "GZIP_TRAILING_DATA"},
-      {"fname-too-long", withUnterminatedName(base, name8k), "GZIP_METADATA_LIMIT"},
       {"deflate-garbage", concat(Arrays.copyOf(base, 10), new byte[64]), "GZIP_DEFLATE"},
     };
     for (Object[] testCase : cases) {
@@ -314,6 +321,112 @@ public class RustArchiveDifferentialTest {
       Outcome rust = readRust(prefix);
       assertEquals("prefix=" + length, "GZIP_TRUNCATED", jvm.error);
       assertSameOutcome("prefix=" + length, jvm, rust);
+    }
+  }
+
+  @Test
+  public void optionalHeaderTruncationAtEveryPrefixMatchesTheJvmReader() throws IOException {
+    // 评审 P2-9：带 FEXTRA + FNAME + FHCRC 的可选头逐前缀截断，两边都必须报截断而不是头错误。
+    byte[] base = javaGzip(patterned(192));
+    byte[] mixed =
+        withOptionalHeader(
+            base,
+            new byte[] {0x5a, 0x01, 0x02},
+            "name.bin".getBytes(java.nio.charset.StandardCharsets.US_ASCII),
+            true);
+    for (int length = 0; length < mixed.length; length++) {
+      byte[] prefix = Arrays.copyOf(mixed, length);
+      Outcome jvm = readJvm(prefix);
+      Outcome rust = readRust(prefix);
+      assertEquals("optional prefix=" + length, "GZIP_TRUNCATED", jvm.error);
+      assertSameOutcome("optional prefix=" + length, jvm, rust);
+    }
+  }
+
+  @Test
+  public void finishTailWriteFailureKeepsTheOriginalErrorAndReleasesTheSession()
+      throws IOException {
+    // 评审 P2-6：native finish 成功后再写尾部；若 target.write 失败，finished/session
+    // 必须已更新，再次 finish() 是幂等 no-op 而不是 STALE_HANDLE。
+    final boolean[] fail = {false};
+    OutputStream target =
+        new OutputStream() {
+          @Override
+          public void write(int value) throws IOException {
+            if (fail[0]) {
+              throw new IOException("TARGET_WRITE_FAILED");
+            }
+          }
+
+          @Override
+          public void write(byte[] bytes, int offset, int length) throws IOException {
+            if (fail[0]) {
+              throw new IOException("TARGET_WRITE_FAILED");
+            }
+          }
+        };
+    RustGzipOutputStream out = new RustGzipOutputStream(target);
+    nativeCalls++;
+    out.write(patterned(64));
+    fail[0] = true;
+    try {
+      out.finish();
+      fail("尾部写失败必须抛出原错误");
+    } catch (IOException error) {
+      assertEquals("TARGET_WRITE_FAILED", error.getMessage());
+    }
+    assertTrue("native 已结束，必须标记 finished", out.isFinished());
+    out.finish(); // 幂等 no-op：不得因 session 已释放报 STALE_HANDLE。
+    out.close();
+  }
+
+  @Test
+  public void constructorFailureClosesSourceAndMaySurfaceTrailerErrors() throws IOException {
+    // 评审 P2-4：构造失败也必须关闭 source；且“小/空载荷的首个读块已含完整成员”时，
+    // 构造期会暴露 body/尾部错误（JVM 参考读取器把同类错误推迟到 read）。
+    final int[] truncatedCloses = {0};
+    InputStream truncated =
+        new ByteArrayInputStream(new byte[0]) {
+          @Override
+          public void close() {
+            truncatedCloses[0]++;
+          }
+        };
+    try {
+      new RustGzipInputStream(truncated);
+      fail("空流必须在构造期报截断");
+    } catch (IOException error) {
+      assertEquals("GZIP_TRUNCATED", error.getMessage());
+    }
+    assertEquals("构造失败必须关闭 source", 1, truncatedCloses[0]);
+
+    byte[] badTrailer = javaGzip(new byte[0]);
+    badTrailer[badTrailer.length - 8] ^= 0xff;
+    final int[] trailerCloses = {0};
+    InputStream trailer =
+        new ByteArrayInputStream(badTrailer) {
+          @Override
+          public void close() {
+            trailerCloses[0]++;
+          }
+        };
+    try {
+      new RustGzipInputStream(trailer);
+      fail("空载荷坏 CRC 在构造期已解完尾部，必须报 GZIP_TRAILER");
+    } catch (IOException error) {
+      assertEquals("GZIP_TRAILER", error.getMessage());
+    }
+    assertEquals(1, trailerCloses[0]);
+
+    // 对照（时机差异已写进 RustGzipInputStream 类注释）：JVM 构造不抛，read 才抛。
+    StrictGzipInputStream jvm = new StrictGzipInputStream(new ByteArrayInputStream(badTrailer));
+    try {
+      jvm.read();
+      fail("JVM 参考读取器必须在 read 抛 GZIP_TRAILER");
+    } catch (IOException error) {
+      assertEquals("GZIP_TRAILER", error.getMessage());
+    } finally {
+      jvm.close();
     }
   }
 
@@ -438,6 +551,12 @@ public class RustArchiveDifferentialTest {
     byte[] header = Arrays.copyOf(gzip, 10);
     header[3] = (byte) (header[3] | 0x08);
     return concat(concat(header, name), Arrays.copyOfRange(gzip, 10, gzip.length));
+  }
+
+  private static byte[] withUnterminatedComment(byte[] gzip, byte[] comment) {
+    byte[] header = Arrays.copyOf(gzip, 10);
+    header[3] = (byte) (header[3] | 0x10);
+    return concat(concat(header, comment), Arrays.copyOfRange(gzip, 10, gzip.length));
   }
 
   private static int littleEndianInt(byte[] data, int offset) {

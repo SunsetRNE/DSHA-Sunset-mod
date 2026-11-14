@@ -7,9 +7,9 @@
 //!
 //! `unpack` 的语义镜像 `app/src/main/java/com/deepseekharness/app/backup/StrictGzipInputStream.java`：
 //! 单成员、严格头/尾校验、拒绝尾随字节与多成员；`FNAME`/`FCOMMENT` 各 ≤ 8192 字节
-//! （含终止 0），`FEXTRA` 与 JVM 实现一致按 u16 长度接收（方案 §4.5 正文里
-//! “FEXTRA ≤ 8192”与现有 JVM 读取器不一致，本实现以“镜像 StrictGzipInputStream”和
-//! “同一语料 JVM/Rust 错误码一致”为准；不改 JVM 参考实现）。
+//! （含终止 0），`FEXTRA` 与 JVM 实现一致按 u16 长度（≤ 65535）逐字节流式接收。
+//! 方案 §4.5 的“FEXTRA ≤ 8192”已由 2026-11-14 Lead waiver（R3 评审 P2-4）改为
+//! 上述实际口径；本实现不改 JVM 参考读取器。
 //!
 //! 截断（头/体/尾提前 EOF）在 native 层表现为 `NEED_INPUT`：Rust 不知道调用方
 //! 的字节流是否已经结束，由 JVM 桥在底层 `InputStream` 返回 -1 时映射为
@@ -672,14 +672,17 @@ impl UnpackStream {
             Phase::Failed(code) => return Err(code),
             _ => {}
         }
-        let requested = input.len() as u64;
-        if self.compressed_total.saturating_add(requested) > self.max_input {
-            self.phase = Phase::Failed(ERR_INPUT_BOUND);
-            return Err(ERR_INPUT_BOUND);
-        }
+        // 输入上限按**实际接收**的 `take` 计，不按 `requested` 预拒绝：同一块里
+        // 含尾随字节时，只有把 `take` 接收进来，native 才能在成员结束后用
+        // `GZIP_TRAILING_DATA` 报错，而不是把正常尾随语料误报成 `INPUT_BOUND`
+        // （R3 评审 P2-2）。缓冲满（`take == 0`）不消耗额度，返回 0 让调用方先读走输出。
         self.compact();
         let free = MAX_INPUT_CHUNK - self.buffer.len();
         let take = free.min(input.len());
+        if self.compressed_total.saturating_add(take as u64) > self.max_input {
+            self.phase = Phase::Failed(ERR_INPUT_BOUND);
+            return Err(ERR_INPUT_BOUND);
+        }
         self.buffer.extend_from_slice(&input[..take]);
         self.compressed_total += take as u64;
         Ok(take)
@@ -721,9 +724,16 @@ impl UnpackStream {
                     let remaining_output = self.max_output.saturating_sub(self.size);
                     if remaining_output == 0 {
                         if produced > 0 {
-                            // 先把上限内已产出的字节交给调用方，下一次调用再报硬上限。
+                            // 先把上限内已产出的字节交给调用方，下一次调用再判定。
                             return Ok((produced, FLAG_NEED_OUTPUT));
                         }
+                        // 恰好等于上限的合法流可能只是“结束块不产生字节”：先用空输出
+                        // 推进一次，`StreamEnd` 时交给 Trailer 校验（评审 P2-1）。
+                        if self.finish_exactly_at_output_bound() {
+                            continue;
+                        }
+                        // 上限后确实还有明文：`OUTPUT_BOUND` 在 unpack 语境是**硬上限**
+                        // （JVM 参考读取器为 `ARCHIVE_LIMIT`），会话进入失败态，不可重试。
                         return self.deliver_or_fail(ERR_OUTPUT_BOUND, produced);
                     }
                     let room = out.len() - produced;
@@ -743,6 +753,10 @@ impl UnpackStream {
                         ) {
                             Ok(status) => status,
                             Err(error) => {
+                                // raw deflate（`Decompress::new(false)`）没有 zlib 头的
+                                // FDICT 位，`needs_dictionary()` 在 ABI v1 里是防御分支：
+                                // 首期语料不可达，保留映射以固定失败域（见单测
+                                // `defensive_gzip_codes_are_not_observed`）。
                                 let code = if error.needs_dictionary().is_some() {
                                     ERR_GZIP_DICTIONARY
                                 } else {
@@ -769,6 +783,9 @@ impl UnpackStream {
                                 if produced == out.len() {
                                     return Ok((produced, FLAG_NEED_OUTPUT));
                                 }
+                                // 有空闲输入/输出却零进展是防御分支：flate2 只在契约
+                                // 被破坏时走到这里，首期语料不可达（见单测
+                                // `defensive_gzip_codes_are_not_observed`）。
                                 return self.deliver_or_fail(ERR_GZIP_STALLED, produced);
                             }
                         }
@@ -807,11 +824,41 @@ impl UnpackStream {
             }
         }
     }
+
+    /// 累计输出恰好等于上限时，用**空输出**推进一次 deflate，判断流是否在此结束。
+    ///
+    /// deflate 的结束块可能不产生任何字节；若因为 `remaining_output == 0` 直接报
+    /// `OUTPUT_BOUND`，恰好等于上限的合法流会被误判（R3 评审 P2-1）。空输出的
+    /// `decompress` 只消费“结束块”标记（`StreamEnd` 时推进到 `Trailer`），不会新增
+    /// 明文；其余状态一律不改变 phase，由调用方按硬上限失败。
+    fn finish_exactly_at_output_bound(&mut self) -> bool {
+        let before_in = self.decompress.total_in();
+        let before_out = self.decompress.total_out();
+        let status = {
+            let input = &self.buffer[self.start..];
+            self.decompress
+                .decompress(input, &mut [], FlushDecompress::None)
+        };
+        match status {
+            Ok(Status::StreamEnd) => {
+                let consumed = (self.decompress.total_in() - before_in) as usize;
+                debug_assert_eq!((self.decompress.total_out() - before_out) as usize, 0);
+                self.start += consumed;
+                self.phase = Phase::Trailer;
+                true
+            }
+            // `Ok(Status::Ok | Status::BufError)`：上限之后还有明文；`Err`：空输出下
+            // zlib 只应报“无进展”，防御性地按“未结束”处理（仍以硬上限失败，
+            // 不伪造 deflate 错误）。
+            Ok(_) | Err(_) => false,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::abi::ERR_GZIP_TRUNCATED;
 
     const LEVELS: [i32; 4] = [0, 1, 6, 9];
 
@@ -956,6 +1003,24 @@ mod tests {
         out
     }
 
+    /// FEXTRA + FNAME + FCOMMENT + FHCRC 同时存在（RFC 1952 顺序 4/8/16/2）。
+    fn with_all_optional(gzip: &[u8]) -> Vec<u8> {
+        let mut header = gzip[..HEADER_BYTES].to_vec();
+        header[3] |= FLAG_FEXTRA | FLAG_FNAME | FLAG_FCOMMENT | FLAG_FHCRC;
+        let mut out = header;
+        out.extend_from_slice(&2u16.to_le_bytes());
+        out.extend_from_slice(&[0xaa, 0xbb]);
+        out.extend_from_slice(b"name.bin");
+        out.push(0);
+        out.extend_from_slice(b"comment");
+        out.push(0);
+        let mut crc = Crc::new();
+        crc.update(&out);
+        out.extend_from_slice(&(crc.sum() as u16).to_le_bytes());
+        out.extend_from_slice(&gzip[HEADER_BYTES..]);
+        out
+    }
+
     #[test]
     fn pack_bound_covers_every_level_and_chunk() {
         for level in LEVELS {
@@ -1094,19 +1159,7 @@ mod tests {
         assert_eq!(unpack_stream(&broken, 7, 64), Err(ERR_GZIP_HEADER_CRC));
 
         // 组合：FEXTRA + FNAME + FCOMMENT + FHCRC 全部同时存在（顺序 4/8/16/2）。
-        let mut header = base[..HEADER_BYTES].to_vec();
-        header[3] |= FLAG_FEXTRA | FLAG_FNAME | FLAG_FCOMMENT | FLAG_FHCRC;
-        let mut combined = header;
-        combined.extend_from_slice(&2u16.to_le_bytes());
-        combined.extend_from_slice(&[0xaa, 0xbb]);
-        combined.extend_from_slice(b"name.bin");
-        combined.push(0);
-        combined.extend_from_slice(b"comment");
-        combined.push(0);
-        let mut crc = Crc::new();
-        crc.update(&combined);
-        combined.extend_from_slice(&(crc.sum() as u16).to_le_bytes());
-        combined.extend_from_slice(&base[HEADER_BYTES..]);
+        let combined = with_all_optional(&base);
         assert_eq!(unpack_ok(&combined, 7, 64), payload);
     }
 
@@ -1243,6 +1296,201 @@ mod tests {
         assert_eq!(input_limited.write(&gzip[..8]), Ok(8));
         assert_eq!(input_limited.write(&gzip[8..]), Err(ERR_INPUT_BOUND));
         assert_eq!(input_limited.failure(), Some(ERR_INPUT_BOUND));
+    }
+
+    /// 在给定累计输出上限下解完整个流：返回（已产出字节, 最终结果）。
+    fn unpack_with_output_limit(gzip: &[u8], max_output: u64) -> (Vec<u8>, Result<(), i32>) {
+        let mut stream = UnpackStream::with_limits(max_output, MAX_TOTAL_BYTES);
+        let mut payload = Vec::new();
+        let mut out = vec![0u8; 97];
+        let mut offset = 0usize;
+        loop {
+            while offset < gzip.len() {
+                let consumed = match stream.write(&gzip[offset..]) {
+                    Ok(value) => value,
+                    Err(code) => return (payload, Err(code)),
+                };
+                if consumed == 0 {
+                    break;
+                }
+                offset += consumed;
+            }
+            match stream.read(&mut out) {
+                Ok((made, flags)) => {
+                    payload.extend_from_slice(&out[..made]);
+                    if flags & FLAG_EOF != 0 {
+                        return (payload, Ok(()));
+                    }
+                    if made == 0 {
+                        // 调用方已经喂完全部压缩字节，native 仍要输入 → 截断。
+                        return (payload, Err(ERR_GZIP_TRUNCATED));
+                    }
+                }
+                Err(code) => return (payload, Err(code)),
+            }
+        }
+    }
+
+    #[test]
+    fn exact_output_limit_succeeds_and_one_byte_short_fails() {
+        // 正例（评审 P2-1）：上限恰好等于明文长度（以及多 1 字节）时，合法流必须 EOF。
+        // 覆盖空载荷（上限 0：结束块不产生字节）与整块边界。
+        for payload in [
+            Vec::new(),
+            patterned(1),
+            patterned(4_096),
+            patterned(MAX_INPUT_CHUNK),
+        ] {
+            let gzip = pack_stream(&payload, 6, 7_919);
+            for max_output in [payload.len() as u64, payload.len() as u64 + 1] {
+                let (bytes, result) = unpack_with_output_limit(&gzip, max_output);
+                assert_eq!(
+                    result,
+                    Ok(()),
+                    "payload={} limit={max_output}",
+                    payload.len()
+                );
+                assert_eq!(
+                    bytes,
+                    payload,
+                    "payload={} limit={max_output}",
+                    payload.len()
+                );
+            }
+        }
+
+        // 反例：上限比明文少 1 字节 → 先交付上限内字节，下一次 read 报硬上限；
+        // 该错误在 unpack 语境对应 JVM 的 ARCHIVE_LIMIT，不可当作“缓冲不足重试”。
+        let payload = patterned(4_096);
+        let gzip = pack_stream(&payload, 6, MAX_INPUT_CHUNK);
+        let (bytes, result) = unpack_with_output_limit(&gzip, payload.len() as u64 - 1);
+        assert_eq!(result, Err(ERR_OUTPUT_BOUND));
+        assert_eq!(bytes.len(), payload.len() - 1);
+        assert_eq!(bytes, payload[..payload.len() - 1]);
+        // 上限 0 且明文非空同样立即失败。
+        let (bytes, result) = unpack_with_output_limit(&gzip, 0);
+        assert_eq!((bytes.len(), result), (0, Err(ERR_OUTPUT_BOUND)));
+    }
+
+    #[test]
+    fn input_bound_counts_accepted_bytes_and_keeps_trailing_detection() {
+        // 评审 P2-2：输入上限必须按实际接收的 `take` 计。先填满 native 输入缓冲的
+        // 前 L-1 字节，再喂“成员最后 1 字节 + 超过剩余缓冲的尾随字节”：请求长度
+        // requested > 上限余量，但 take 恰好在上限内。旧实现按 requested 误报
+        // INPUT_BOUND；修复后只接收 take，native 看到尾随字节应报 GZIP_TRAILING_DATA。
+        let payload = incompressible(MAX_INPUT_CHUNK - 1_024);
+        let gzip = pack_stream(&payload, 0, MAX_INPUT_CHUNK);
+        assert!(
+            gzip.len() < MAX_INPUT_CHUNK,
+            "level 0 gzip 长度 {} 超出测试前提",
+            gzip.len()
+        );
+        let mut stream = UnpackStream::with_limits(MAX_TOTAL_BYTES, MAX_INPUT_CHUNK as u64);
+        let prefix = &gzip[..gzip.len() - 1];
+        assert_eq!(stream.write(prefix), Ok(prefix.len()));
+        let free = MAX_INPUT_CHUNK - prefix.len();
+        assert!(free >= 2);
+        // 第二块 = 成员最后 1 字节 + (free + 1) 个尾随字节：requested = free + 2，
+        // take = free；接收的 free 字节里含 1 个尾随字节。
+        let mut second = vec![0u8; free + 2];
+        second[0] = gzip[gzip.len() - 1];
+        assert_eq!(stream.write(&second), Ok(free));
+        assert_eq!(
+            stream.compressed_total, MAX_INPUT_CHUNK as u64,
+            "累计输入必须正好等于上限"
+        );
+
+        let mut out = vec![0u8; 4_096];
+        let mut produced = 0usize;
+        let error = loop {
+            match stream.read(&mut out) {
+                Ok((made, flags)) => {
+                    produced += made;
+                    assert_eq!(flags & FLAG_EOF, 0, "尾随字节必须阻止 EOF");
+                    assert!(made > 0, "read 无进展");
+                }
+                Err(code) => break code,
+            }
+        };
+        assert_eq!(error, ERR_GZIP_TRAILING_DATA);
+        assert_eq!(produced, payload.len());
+        assert_eq!(stream.failure(), Some(ERR_GZIP_TRAILING_DATA));
+    }
+
+    #[test]
+    fn optional_header_prefix_truncation_is_need_input() {
+        // 评审 P2-9：可选头（FEXTRA/FNAME/FCOMMENT/FHCRC）逐前缀截断都必须表现为
+        // “还需要输入”，不能误报头/尾/deflate 错误。
+        let payload = patterned(512);
+        let base = pack_stream(&payload, 6, MAX_INPUT_CHUNK);
+        let mixed = with_all_optional(&base);
+        for length in 0..mixed.len() {
+            let mut stream = UnpackStream::new();
+            let mut out = vec![0u8; 64];
+            let prefix = &mixed[..length];
+            if !prefix.is_empty() {
+                let consumed = match stream.write(prefix) {
+                    Ok(value) => value,
+                    Err(code) => panic!("prefix={length} write: {code}"),
+                };
+                assert_eq!(consumed, prefix.len());
+            }
+            loop {
+                match stream.read(&mut out) {
+                    Ok((produced, flags)) => {
+                        if flags & FLAG_NEED_INPUT != 0 {
+                            break;
+                        }
+                        assert_eq!(
+                            flags & FLAG_NEED_OUTPUT,
+                            FLAG_NEED_OUTPUT,
+                            "prefix={length} 非 NEED_INPUT/NEED_OUTPUT: {flags}"
+                        );
+                        assert!(produced > 0, "prefix={length} NEED_OUTPUT 无进展");
+                    }
+                    Err(code) => panic!("prefix={length} 误报错误 {code}"),
+                }
+            }
+        }
+        // 完整流仍然合法，证伪“逐前缀用例把语料本身弄坏”。
+        assert_eq!(unpack_ok(&mixed, 7, 64), payload);
+    }
+
+    #[test]
+    fn defensive_gzip_codes_are_not_observed() {
+        // 可达性说明（评审 P2-9）：`GZIP_DICTIONARY` 需要 zlib FDICT 位，而本 ABI 只解
+        // raw deflate（`Decompress::new(false)`）；`GZIP_STALLED` 是 flate2 契约被破坏时
+        // 的防御分支。首期语料两者都不可达；用合法流 + 随机破坏 + 随机字节证伪，
+        // 避免把防御分支写成“已被语料覆盖”。
+        let base = pack_stream(&patterned(2_048), 6, MAX_INPUT_CHUNK);
+        let mut state = 0x2026_1114_0000_0003u64;
+        for _ in 0..512 {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let mut view = base.clone();
+            let index = (state as usize) % view.len();
+            view[index] ^= ((state >> 32) % 255 + 1) as u8;
+            let (_, result) = unpack_with_output_limit(&view, MAX_TOTAL_BYTES);
+            if let Err(code) = result {
+                assert_ne!(code, ERR_GZIP_DICTIONARY);
+                assert_ne!(code, ERR_GZIP_STALLED);
+            }
+        }
+        for length in 0..64usize {
+            let mut view = Vec::with_capacity(length);
+            for _ in 0..length {
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                view.push((state >> 40) as u8);
+            }
+            let (_, result) = unpack_with_output_limit(&view, MAX_TOTAL_BYTES);
+            if let Err(code) = result {
+                assert_ne!(code, ERR_GZIP_DICTIONARY);
+                assert_ne!(code, ERR_GZIP_STALLED);
+            }
+        }
     }
 
     #[test]

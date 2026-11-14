@@ -113,7 +113,14 @@ public final class RustGzipOutputStream extends OutputStream {
     }
   }
 
-  /** 刷出最终块与 gzip 尾部并释放原生会话；之后不能再写。 */
+  /**
+   * 刷出最终块与 gzip 尾部并释放原生会话；之后不能再写。
+   *
+   * <p>native 成功后先记下“会话已结束/已 finished”，再写尾部：若 {@code target.write}
+   * 抛异常，{@link #close()} 或再次 {@link #finish()} 不会因为本地状态没更新而把原错误
+   * 伪装成 {@code STALE_HANDLE}（R3 评审 P2-6）。尾部可能已部分写出，调用方必须丢弃输出
+   * 目标并从头重做，本类不重试、不续写。
+   */
   public void finish() throws IOException {
     if (finished) {
       return;
@@ -133,9 +140,10 @@ public final class RustGzipOutputStream extends OutputStream {
       finished = true;
       throw new IOException(RustArchiveCodec.message(RustArchiveCodec.INTERNAL));
     }
-    writeProduced(produced, finishHeap);
+    // 成功调用已从 native 会话表移除句柄；先落本地状态再写尾部。
     session = 0;
     finished = true;
+    writeProduced(produced, finishHeap);
   }
 
   @Override
