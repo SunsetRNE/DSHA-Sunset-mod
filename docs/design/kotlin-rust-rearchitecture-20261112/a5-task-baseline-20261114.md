@@ -1,7 +1,7 @@
 # A5 任务基线：运行环境与覆盖更新
 
-> 日期：2026-11-14；状态：**第一阶段已获 Lead 评审批准；Q1–Q3 已裁决，S1 结构片已实现并完成本机有限验证，待独立审查；S2/S3 未开工**。
-> S1 代码基线：`63b57efe5b3961429b6a03dd950a78abd5467b5e`；已 fetch 并无冲突重基，原文档提交 `d7193629` 重写为 `4cbc3cf1`（随后由 main 合入）。§8 的 S0 软件结果仍固定于 `d9b75bc5`，不迁记为 S1 通过；分支 `feat/a5-runtime`，owner `@a5-runtime`（session `545e6069`）。
+> 日期：2026-11-14；状态：**S1 独立审查 APPROVE（0 P0/P1、5 条 P2）；P2-3/P2-4 文档已更正，其余三项登记 S2 待办；重基 c27af356 后指定门禁已通过，待 main 合并前核对；S2/S3 未开工**。
+> S1 开工源码基线：`63b57efe5b3961429b6a03dd950a78abd5467b5e`；首次交付 parent：`903cbbfc`；审查后重基主线：`c27af3560392340c5cb25e68e652eb1cf6649885`，均无冲突。原基线文档提交 `d7193629` 重写为 `4cbc3cf1` 后由 main 合入。§8 的 S0 软件结果仍固定于 `d9b75bc5`，不迁记为 S1 通过；分支 `feat/a5-runtime`，owner `@a5-runtime`（session `545e6069`）。
 > 依据：[迭代路径 A5 / §4 / §6 / §7](iteration-roadmap-20261112.md#5-各轮详情)、[ADR-0004](../../adr/0004-kotlin-rust-direction.md)、[覆盖升级契约](../../overwrite-upgrade-and-maintenance.md)、[运行引擎](../../runtime-engines.md)、[环境/数据/插件](../../runtime-data-plugin-architecture.md)、[端口与网络](../../ports-and-networking.md)、[仓库约束](../../../AGENTS.md)。
 
 ## 0. 本批结论与时间边界
@@ -101,6 +101,8 @@ S0 首批只新增本文，未改生产源码、测试源码、描述符、版�
 ## 4. 切片、写域与出口
 
 S0 docs-only 已由 main 合入；S1 按 §9 条件交付首个结构等价片（实际范围与回执见 §11）。S2–S4 及 trial/latest 行为修复仍需后续裁决；不把对本基线或 S1 的接收默认为整轮业务编码授权。
+
+**S1 基准与重基记录（P2-4）**：开工源码基线为 `63b57efe`；首次提交审查的 S1 为 `98a1c167`，其实际 parent 是 `903cbbfc09ae89d26f7b787ec516ac969cfd0806`。`63b57efe..903cbbfc` 仅文档变化、无源码差异，S1 有效载荷在当次重基前后字节一致。审查后按 main 要求再次无冲突重基到当前主线 `c27af3560392340c5cb25e68e652eb1cf6649885`（build365 发布准备）；`903cbbfc..c27af356` 不含 S1 文件，重基后的 S1 实现提交为 `d9b927c3`。下面保留首次审查范围，当前交付的门禁在新树重跑，不沿用旧绿。
 
 | 切片 | 内容与允许写域 | 依赖与可回退出口 |
 |---|---|---|
@@ -223,7 +225,9 @@ Lead 于 2026-11-14 审阅原 `d7193629` 后认可本基线，并按上表裁决
 - 正式发行回退由 main + 用户决定，使用更高 versionCode 发布旧代码，不降级安装、不清数据；APK 回退不等于恢复用户对话或数据格式。
 - 第一阶段已获批准；S1 独立提交后交 main 安排非实现者审查，再决定后片。全量/Lint/APK 以绑定提交的 CI 为准；真机覆盖/维护/白屏证据由用户补齐后，才更新 A5 整轮完成状态。
 
-## 11. S1 结构切片（基于 63b57efe）
+## 11. S1 结构切片（原交付 parent 903cbbfc；当前重基 c27af356）
+
+开工源码基线为 `63b57efe`；`63b57efe..903cbbfc` 仅文档、无源码差异。独立审查对象为 **提交 diff `903cbbfc..98a1c167`，精确 8 文件**，不是暂存区快照。当前按要求无冲突重基到 `c27af356`（发布准备文件不与 S1 重叠）；本节结果在新树重跑，原审查范围与新交付 HEAD 分别记录。
 
 本片收敛三条现有只读路径：部署胶囊、主界面横幅、引导页直入判定。新增 [EnvironmentUiFacts](../../../app/src/main/java/com/deepseekharness/app/util/EnvironmentUiFacts.java)（无 Android 的无状态采样与不可变结果）和 [EnvironmentUiReader](../../../app/src/main/java/com/deepseekharness/app/ui/EnvironmentUiReader.java)（原读口的无状态适配），分别接入 [DeployMonitor](../../../app/src/main/java/com/deepseekharness/app/ui/DeployMonitor.java)、[EnvironmentUiStatus](../../../app/src/main/java/com/deepseekharness/app/ui/EnvironmentUiStatus.java)、[OnboardingEnvironment](../../../app/src/main/java/com/deepseekharness/app/ui/OnboardingEnvironment.java)。
 
@@ -234,14 +238,47 @@ Lead 于 2026-11-14 审阅原 `d7193629` 后认可本基线，并按上表裁决
 
 新增 [EnvironmentUiFactsTest](../../../app/src/test/java/com/deepseekharness/app/util/EnvironmentUiFactsTest.java)：8 项用例覆盖 8 组部署输入、16 组横幅输入、16 组引导输入、读取次序/短路、每个读取阶段失败时的已读前缀及部分事实、live-owner 页面例外不放宽引导显示门禁。纯投影另跑既有 RuntimeUpgradeStateTest，采样与纯投影分别验证。测试不模拟 Android 已执行、不创建用户任务/进程或租约。
 
-本片新读口只由上述 UI 调用，未进入 core 启动或事务准入；现有受管源码/资产/成员表均未变。UI 原本不在 launcherTrees，新纯采样工具也不在显式 launcherSources；它只移动原 UI 读取，不绕过执行侧复核。**不改 runtimeId/描述符**；如 Lead 要求将该展示工具额外纳管，由 main 评审精确清单并在最终树重算。[Java 格式清单](../../../tools/java-format-files.json) 只增加本片三个新 Java 文件。
+本片新读口只由上述 UI 调用，未进入 core 启动或事务准入；现有受管源码/资产/成员表均未变。UI 原本不在 launcherTrees，新纯采样工具也不在显式 launcherSources；它只移动原 UI 读取，不绕过执行侧复核。**不改 runtimeId/描述符**；Lead 已在 S1 合并审查中确认 `ui/EnvironmentUiReader` 是 UI 侧只读适配器，放置允许、不进入 launcherSources。S2 若扩充用途，仍须复核其职责边界，不从这个结论取得执行权限。[Java 格式清单](../../../tools/java-format-files.json) 只增加本片三个新 Java 文件。
 
 | S1 检查 | 实际结果 / 限制 |
 |---|---|
 | 当前源纯 JVM | 13 类、**81 项，failures=0、ignored=0、assumptionSkipped=0**；当前 JDK17 源码编译与锁定依赖，包含新采样8项和 S0 选取的旧纯策略回归；不复用旧 class |
 | 格式 | `python3 tools/format-java.py --write --files` 仅选本片6份Java：0 changed、精确token保持；全树 `format-java-tree.py --check --offline --jobs 1 --java /opt/jdk17/bin/java`：**1781/1781、0待格式化**；同参 Kotlin：**2文件、0待格式化**，均exit0 |
 | 边界 / 受管身份 | `test-core-boundaries.py` **25项exit0**；`verify-runtime-descriptor-source.py` **199资产/491启动输入exit0**（六离线归档递延）；`test-runtime-descriptor-inputs.py` **103安装项/205资产/491输入/Gradle树251文件一致exit0**；资产/成员表与core/runtime/backup/rust对63b零diff |
-| 文档 / 卫生 / diff | 显式基线 **125链接**；默认 **56文档/1315链接**，均0warning/error、exit0；`check-source-hygiene.py` PASS；暂存diff检查通过、精确8文件白名单 |
+| 文档 / 卫生 / diff | 显式基线 **125链接**；默认 **56文档/1315链接**，均0warning/error、exit0；`check-source-hygiene.py` PASS；提交 diff `903cbbfc..98a1c167`，精确 8 文件；当前重基交付另按 c27af356 比较 |
 | 未跑 / 不继承 | 完整 Gradle/Robolectric、实际页面/适配器的 Android 运行与完整资源类型编译、Lint/APK/签名、设备覆盖/白屏/ROM矩阵；离线归档缺失仍在，不拿 S0 或主线 CI 代替 S1 |
 
 S1 不写 A3/R3/A4/A6/A7 域，不增加执行/信号/FFI/维护锁/命令链；M17 自动检查保持原行为，Q2 仅作为后片边界。S1 的当前源单测、CI、独立审查与设备证据分别记账。
+
+## 12. S1 独立审查与 P2 处置
+
+main 于 2026-11-14 转达独立审查 **APPROVE（0 P0/P1、5 条 P2）**，对象为提交 diff `903cbbfc..98a1c167`，精确 8 文件；并复跑了 manifest、卫生、链接、格式、边界、受管身份和 13 类 81 项纯 JVM 回归。独立审查未运行完整 Gradle/Robolectric/Android/Lint/APK/真机，六份固定包缺失继续保留。审查结论不是这些未跑项通过的证据。
+
+| 评审项 | 本批处置 / 后续待办 |
+|---|---|
+| P2-3：误写暂存 diff | 已更正为提交 diff `903cbbfc..98a1c167`，精确 8 文件；当前交付另外比较重基后的 c27af356 范围 |
+| P2-4：交付 parent 与当前 main 不清楚 | §4/§11 已补 parent=903cbbfc、开工源码基线=63b57efe、63b..903 仅文档无源码差异，以及重基 c27af356 的说明 |
+| P2-1：实际适配器到 owner 的映射测试 | **S2 待办，不在本批实现**：补 8 个 Reader 读口到既有 owner 的映射回归；纯端口采样向量不能冒充实际适配器接线验证 |
+| P2-2：适配器放置 | **位置结论已定，S2 保留职责复核待办**：Lead 确认它是 UI 侧只读适配器，允许放在 ui/ 且不入 launcherSources；后续扩充仍检查 UI/执行边界 |
+| P2-5：字段与接口用途过宽 | **S2 待办，不在本批实现**：重审 `Banner.recovery` 命名，并按部署/横幅/引导用途拆 Reader；维持结构/行为提交分开，不借命名调整改变 I1–I10 |
+
+本批只做两项文档更正、登记三项待办并重跑门禁；不改已审查 S1 生产/测试实现，不启动 S2/S3。S1 合入后仍须等待 main 对后片明确授权。
+
+### 12.1 c27af356 重基后复跑
+
+重基后的七个 S1 实现/测试/格式清单文件与已审查 `98a1c167` 逐文件字节一致；本轮新增差异仅本文。`git diff --check` 通过。
+
+| 命令 / 选择 | 本轮实际结果 |
+|---|---|
+| `python3 tools/run-host-tests.py --check-manifest` | `PASS_MANIFEST tests=255`；仅核登记完整，不代表执行255项 |
+| `python3 tools/check-source-hygiene.py` | PASS |
+| `python3 tools/check-document-links.py`（显式本文；默认现行集合） | 本文125链接；默认56文档/1315链接；均0warning/error |
+| `python3 tools/format-java.py --check --files`（S1六份Java，JDK17/offline） | 6文件、0 changed、精确Java token保持 |
+| `python3 tools/format-java-tree.py --check --offline --jobs 1 --java /opt/jdk17/bin/java` | owned/manifest=1781/1781，missing/extra=0，0待格式化 |
+| `python3 tools/format-kotlin-tree.py --check --offline --jobs 1 --java /opt/jdk17/bin/java` | 2文件、0待格式化 |
+| `python3 tools/test-core-boundaries.py` | 25项通过 |
+| `python3 tools/verify-runtime-descriptor-source.py` | 199资产/491启动输入通过；6份具名固定归档递延 |
+| `python3 tools/test-runtime-descriptor-inputs.py` | 103安装项/205资产/491输入，Gradle树251文件集合一致 |
+| 当前源JDK17/JUnit驱动（同§11的13类，临时目录） | `run=81 failures=0 ignored=0 assumptionSkipped=0`；重新编译真实当前源，不沿用旧class |
+
+以上复跑整组 exit0，无失败重试或跳过；本轮未修改源码绕过门禁。完整 Gradle/Robolectric、Android适配器/资源类型与运行、Lint、APK/签名及真机仍未跑，六份固定包仍缺失，不将宿主结果提升为这些范围通过。
