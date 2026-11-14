@@ -274,25 +274,31 @@ P0/P1/P2 是落地顺序；§6 的 P1 是缺陷优先级，两者不要混淆。
 - **E：旧账本缺期望分节集合不得自证完成。** `ledger_state` 的期望集合只接受账本自己的
   `expectedSections`，或同代次、同 settings 摘要且**带 provenance**
   （`settingsSectionsSource: 'ledger-expected'`）的 `reuse.json settingsSections`；两者都缺时
-  返回 unknown + `SETTINGS_EXPECTED_SECTIONS_MISSING`。`publish_reuse` 只在账本有结构合法的
-  `expectedSections` 时转存并写 provenance，不再从 `ledger.sections` 当前键回填；finalize 历史
-  快路径先算 `ledger_state`、后 `publish_reuse`，同一次调用写下的证据不能反过来证明本次完成。
+  返回 unknown + `SETTINGS_EXPECTED_SECTIONS_MISSING`。`publish_reuse` 只消费同次
+  `ledger_evidence` 的不可变绑定结果；只有已验证的账本期望集合才转存 provenance，unknown
+  不覆盖 checkpoint，合法 fallback 保留原 checkpoint。它不再重新读取未绑定账本或从
+  `ledger.sections` 当前键回填，同一次调用写下的证据不能反过来证明本次完成。
   Java `Rc1MigrationCache` 同口径：只信任带 provenance 的 checkpoint；账本
   `expectedSections` 键存在但格式非法直接 `UNAVAILABLE/SETTINGS_LEDGER_SECTION`（不回退
   checkpoint），键缺失才回退；本批不新增用户确认放行旁路。
 
-**已知行为边界（需产品裁决）**：`reuse.json` 无 provenance 的旧 checkpoint 一律不再当证据，
-因此命中面是“提交代次账本写于 d278c742 之前（没有 `expectedSections`），且同代次 checkpoint
-也无 provenance”——包括从 ≤build363 直接升级的机器，以及迁移在 build364 之前完成、后来只升级
-到 build364 的机器（364 的 `publish_reuse` 会从账本键回填 `settingsSections`，但没有本批的
-provenance 标记）。它们首次启动的 Python prepare 返回 unknown，
-[StartupPipeline](../../../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java#L316)
-对非 `allowsStart` 结果阻断启动，用户看到“迁移未完成或结果未知/检查保留数据”，被拦后 finalize
-不再运行、无法自愈。只有在本次新构建上新建的代次（账本自带 `expectedSections`）不受影响；本批
-之后 `publish_reuse` 从新账本转存的 checkpoint 才带 provenance。若产品希望改为“可见待处理但
-允许无写入启动”，需要另立用户显式确认不导入的受控路径，不在本批范围。
+**已知行为边界（2026-11-14 裁决：暂维持 unknown 阻断，build365 发布前再定）**：
+按数据证据判断影响面，不能只按装过哪个 APK 判断。已有 settings 来源、已提交旧代次的账本
+缺少 `expectedSections`，且同代同 SHA checkpoint 也无可信 provenance 时，新增 E 门禁返回
+unknown。这包括迁移完成于 d278c742 之前、后来只升级到 build364 的机器：build364 的旧
+publisher 会回填无 provenance 的集合，而 history-only 不补写账本的期望集合。
 
-测试（2026-11-14 UTC，本机真实锁定运行时）：`tools/test-rc1-settings-migration.mjs` 31 项通过
+在 **build364 上真正新建或因新输入触发迁移的代次**已由 CJS 写入 `expectedSections`；只要
+身份和逐节终态合法，即使 checkpoint 没有新 provenance，也不受这次 E 新增阻断。无 settings
+来源属于 not-required；原有 pending/writing/unknown/缺账本等状态在 build364 已有门禁下
+就可能阻断，不能全部计为 E 的新增影响。仓库只能说明这些条件，无法推算命中机群数量。
+
+[StartupPipeline](../../../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java#L316)
+在安全模式分支之前执行迁移门禁，普通和安全启动都不能靠重启自愈：用户看到“迁移未完成或
+结果未知/检查保留数据”，被拦后 finalize 不运行。本批保持 unknown 阻断，不增加“不导入设置”
+或其他放行旁路；是否增加显式确认路径留到 build365 发布前决定。
+
+首轮测试记录（2026-11-14 UTC，`68c06246`，复审后的最终结果见 §13）：`tools/test-rc1-settings-migration.mjs` 31 项通过
 （含 4 项修复前失败的真实 schema/未知 schema 反例、3 项修复前失败的 A 反例、2 项修复前失败的
 名称兜底反例、2 项修复前失败的旧账本清理反例，以及 tuple/transform/lazy/intersect/schema 缺失
 覆盖）；`tools/test-rc1-migration.py` 50 项通过（含 3 项修复前失败、1 项修复前因缺新函数不可用
@@ -305,3 +311,51 @@ provenance 标记）。它们首次启动的 Python prepare 返回 unknown，
 `prepareBackupAssets` 失败）、设备/覆盖安装/真机迁移、完整 Ubuntu 门禁；
 `verify-runtime-descriptor-source.py` 因未重算 descriptor 预期失败（`DESCRIPTOR_SOURCE_BYTES:
 rc1-migration.py`），由 Lead 在合并树重算。
+
+## 13. 聚焦复审 R1–R6 / L1 修复（2026-11-14）
+
+本轮在 `68c06246` 上追加修复，不回写旧提交。此前测试通过不能替代本轮负控；以下都使用
+临时合成输入，不接触手机或用户配置。
+
+| 项目 | 修复与修复前失败的证据 | 修复后结果 |
+|---|---|---|
+| R1 | publisher 只消费同次绑定的不可变 `LedgerEvidence`，包括 generation、sourceSha、期望集合及 startupId。错代、错源、unknown 覆盖、验证后替换账本四项旧实现失败；恢复无 expected 的部分旧账本仍不得成功 | 四项通过；publisher 不再二次读取 ledger |
+| R2 | 名称兜底仅用于 `dropSecrets=true`。真实 update 保留嵌套未声明凭据名字段，但读回缺失或改值时旧实现仍 verified，两项负控失败 | 两项 unknown，update 只派发一次；账本不含该字段正文 |
+| R3 | ledger 缺 expected、同代同 SHA checkpoint 带 provenance 的 fallback 原样保留；旧实现首轮 finalize 擦除后无法再次 prepare | 连续两轮 finalize/prepare 通过，checkpoint 字节不变 |
+| R4 | tuple/array 秘密整元素改为 null 占位，分节 `projectionVersion=1` 只描述位置格式；旧无标记且可能压缩的投影不猜索引，丢弃无法可靠解释的诊断值，pending/conflict 冻结 unknown | tuple/array 连续两次清理幂等，普通尾项保留；旧压缩形状不触发 update；只删对象内部秘密键的旧数组仍保留普通元素 |
+| R4 测试有效性 | tuple/transform/lazy 独立用非正则秘密名 value/key；内存加载 `d9b75bc5` 的旧 CJS，三项分别在正文泄漏断言失败 | 三项均通过，不再由名称正则遮蔽节点遍历缺口 |
+| R5 | Cache 与 RetainedCatalogue 共用 `Rc1MigrationReuse.ledgerEvidence`；旧实现六项负控错误展示历史完成或缺少 reason | 缺证据 UNKNOWN + reason；可信直接集合/fallback 可历史完成；只读导出保持，公开旧 receipt 不提升宿主 unknown |
+| R6 | §12 原“只有本次新构建新建代次不受影响”与 build364 已写 expected 的事实矛盾 | 按实际数据条件区分新增/原有阻断、not-required，说明普通/安全启动及数量无法推算；维持 unknown 裁决 |
+| L1 | Java cached prepare 以前只写内存 Ticket；真实 Python prepare/migrate/finalize → Java cache → 删除账本 → CJS 的旧类负控再次 update=1；保留账本时 verifiedAt 被改写 | 放行前原子写入并读回本次 startupId/history-only，再探测证据；删账本 update=0、unknown 且不新建；保留账本逐字节不变，用户后来修改保持 |
+
+L1 的 CJS 还验证 startupId 是非空字符串、context/current/prepared 的 generation 一致，以及
+inputFingerprint 等于 prepared.inputDigest。五种错误交接在修复前都错误 verified，修复后
+只读 unknown。Java 交接写入或读回失败时不放行、不补派 guest；另测探测后账本缺失、写入
+返回但未生效、交接后本次身份读回与账本只读。provenance 是本地写者约定，不是同 UID 任意
+修改场景下的密码学证明。
+
+最终实际验证：
+
+- `PYTHONDONTWRITEBYTECODE=1 python3 tools/test-rc1-migration.py -b`：55 项通过；新增 R1/R3
+  五项在修复前全部失败。原有两项 publisher 测试按“unknown 不覆盖任何 checkpoint”更新，
+  仍拒绝无 provenance 自证。
+- `DSHA_TEST_RUNTIME=<工作树>/app/build/test-runtimes/0.2.2-rc.1-linux-arm64-f327e64ffe7c/raw
+  DSHA_PYTHON=python3 DSHA_JAVA=/opt/jdk17/bin/java` 配合
+  `DSHA_RC1_CACHE_CLASSPATH=<本次新编译 classes 与依赖>` 运行
+  `node tools/test-rc1-settings-migration.mjs`：47 pass、0 fail、0 skip。实际启动用 Node
+  读取临时 classpath 文件再 import 同一测试文件，Java 使用参数文件传递完整类路径。
+- `/opt/jdk17/bin/javac -encoding UTF-8` 显式重编译 GuestPluginScripts、Rc1MigrationCache、
+  Rc1MigrationReuse、RetainedCatalogue 四个生产类、对应四个测试类及
+  [联合夹具](../../../app/src/test/java/com/deepseekharness/app/runtime/Rc1CachedStartupFixture.java)；
+  新 classes 下 JUnitCore 共 63 项通过（GuestPluginScripts 19、Cache 13、Reuse 16、
+  Catalogue RC1 相关 15）。未改依赖使用已有编译产物与锁定 JUnit/Gson 等 jar，目标生产类及
+  测试没有复用旧 classes。Catalogue 其他扫描/备份测试未包含在此定向结果中。
+- 主机清单 254 项覆盖检查、source hygiene、build364 changelog 检查通过；本批 9 个 Java 文件
+  格式检查 0 需修改；默认文档链接 56 篇/1309 目标、专项设计页 1 篇/102 目标均无警错，
+  `git diff --check` 通过。
+- 负控构建依赖探索出现过缺 Android/Kotlin/长参数类路径问题，最终以完整依赖及 JDK 参数文件
+  消除；这些编译环境失败不计为行为负控。R5 首次整类基线另发现旧 Python 夹具缺 expected，
+  修成与真实 llm 输入一致的集合后再运行负控，没有为夹具放宽生产门禁。
+
+未跑：Gradle/CI 全量单测、lint、APK/覆盖安装、真机迁移、完整 Ubuntu/受管升级门禁。本轮
+不改 descriptor；其源字节检查仍需 Lead 在合并树重算后通过。最终合并还须增量复审及用户批准。
