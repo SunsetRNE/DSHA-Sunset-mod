@@ -182,8 +182,22 @@ function holdsSecrets(schema) {
   const graph = schemaGraph(schema);
   return graph ? schemaHoldsSecret(graph.root, graph, 0) : true;
 }
-const reason = error => /No configurable plugin entry/.test(String(error)) ? 'SECTION_UNAVAILABLE' :
-  /volatile|schema|invalid/i.test(String(error)) ? 'SECTION_SCHEMA_REJECTED' : 'SECTION_WRITE_UNVERIFIED';
+// update 一旦被调用，无法再从错误文本证明它没有派发；只有调用之前完成的 schema/
+// 命名空间校验被拒绝，才可记 not-sent/pending。这里只复刻 settings.update 自身在
+// 进入写事务之前就会拒绝的判据：分节必须是映射，且每个顶层字段都被 form schema
+// 声明（未声明的键会被 update 以 not volatile 拒绝，不会写入）。类型/min 等约束
+// 仍交给 update；那些一旦派发就按 unknown 处理。
+function preflightRejection(values, schema) {
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return 'SECTION_VALUE_FORMAT';
+  const graph = schemaGraph(schema);
+  const root = graph && graph.root;
+  if (!root || root.type !== 'object') return null; // 无法在派发前判定，交给 update
+  const dict = root.dict;
+  if (!dict || typeof dict !== 'object' || Array.isArray(dict)) return null;
+  for (const key of Object.keys(values))
+    if (!Object.hasOwn(dict, key)) return 'SECTION_SCHEMA_REJECTED';
+  return null;
+}
 
 // 同次 prepare 的导入模式必须是 startupId/generation/输入指纹绑定的票据；
 // 缺失、过期或摘要不符时只能只读核对旧账本，不能新建账本或重新写入。
@@ -322,6 +336,9 @@ async function migrate(settings, parse, aliases, options = {}) {
       continue;
     }
     section.source = clone(ledgerValues.value);
+    // 派发前的校验拒绝：值没有被写入配置，保留可重试 pending。
+    const rejection = preflightRejection(values, descriptor.schema);
+    if (rejection) { section.status = 'pending'; section.reason = rejection; await atomic(ledgerFile, result); continue; }
     if (Object.hasOwn(section, 'before') && holdsSecrets(descriptor.schema)) {
       // 旧账本可能留下“已记录 before 的 pending/conflict 节”；秘密位置没有可落账的
       // 变化证据，无法证明用户没改过目标，保守冻结而不是覆盖。
@@ -346,12 +363,13 @@ async function migrate(settings, parse, aliases, options = {}) {
       if (!after || !ledgerAfter.ok || !fullAfter.ok || !contains(fullAfter.value, fullValues.value))
         throw new Error('SETTINGS_READBACK_MISMATCH');
       section.status = 'verified'; section.verified = clone(ledgerAfter.value); delete section.reason;
-    } catch (error) {
-      const why = reason(error);
-      // 明确未派发（schema 拒绝 / 无目标节）才保留可重试 pending；
-      // 其余 update 后的异常/读回不符都可能是“已写入但终态未知”，不得自动重试。
-      section.status = (why === 'SECTION_UNAVAILABLE' || why === 'SECTION_SCHEMA_REJECTED') ? 'pending' : 'unknown';
-      section.reason = section.status === 'unknown' ? 'WRITE_OUTCOME_UNKNOWN' : why;
+    } catch {
+      // update 已进入调用：错误文本（schema / invalid / No configurable plugin entry…）
+      // 不能证明未派发，读回不符也可能是“已写入但终态未知”。一律 unknown/noReplay；
+      // 明确未派发的拒绝只在 preflightRejection 里判定，不再按错误文字恢复可重试态。
+      // 不绑定 error，也避免把可能含配置正文的错误消息写进账本。
+      section.status = 'unknown';
+      section.reason = 'WRITE_OUTCOME_UNKNOWN';
     }
     await atomic(ledgerFile, result);
   }

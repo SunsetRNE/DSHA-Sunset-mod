@@ -58,12 +58,52 @@ test('pending真实次序只重试失败节，已成功节的用户新改动保�
   api.change('first',{model:'user-later'});api.add('missing');await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,2);assert.equal(api.settings.describe().find(x=>x.ns==='first').value.model,'user-later');assert.equal(api.settings.describe().find(x=>x.ns==='missing').value.model,'old2');
   await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,2);assert.equal(JSON.parse(await readFile(ledger)).status,'verified');
 }));
-test('真实schema拒绝非法值，日志缺失不等于成功',()=>fixture('first: {temperature: -1}\n',async(api,state,ledger)=>{
-  api.add('first');await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,0);assert.equal(JSON.parse(await readFile(ledger)).status,'pending');
+test('真实schema拒绝非法值时update已派发，保持unknown且不自动重试',()=>fixture('first: {temperature: -1}\n',async(api,state,ledger)=>{
+  api.add('first');const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  // update 已被调用：真实 schema 的最小值拒绝发生在写事务里，错误文字不能证明未派发。
+  assert.equal(returned.status,'unknown');assert.equal(api.writes,0);
+  const first=JSON.parse(await readFile(ledger));assert.equal(first.sections.first.status,'unknown');assert.equal(first.sections.first.reason,'WRITE_OUTCOME_UNKNOWN');
   await migrate(api.settings,parse,{}, {stateRoot:state});assert.equal(api.writes,0);
+  const second=JSON.parse(await readFile(ledger));assert.deepEqual(second.sections.first,first.sections.first);assert.equal(second.status,'unknown');
 }));
-test('pending后目标改变时冲突保留，不重放旧值',()=>fixture('first: {temperature: -1}\n',async(api,state,ledger)=>{
-  api.add('first');await migrate(api.settings,parse,{}, {stateRoot:state});api.change('first',{model:'user-new'});await migrate(api.settings,parse,{}, {stateRoot:state});
+test('update调用后抛schema文字错误且已产生效果时unknown，同一票据不重试',()=>fixture('first: {model: old1}\n',async(api,state,ledger)=>{
+  api.add('first');
+  const original=api.settings.update.bind(api.settings);let dispatches=0;
+  api.settings.update=async(...args)=>{dispatches++;await original(...args);throw new Error('Invalid schema: No configurable plugin entry (volatile)');};
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(dispatches,1);assert.equal(api.writes,1);assert.equal(returned.status,'unknown');
+  const first=JSON.parse(await readFile(ledger));
+  assert.equal(first.sections.first.status,'unknown');assert.equal(first.sections.first.reason,'WRITE_OUTCOME_UNKNOWN');
+  assert.equal(api.settings.describe().find(x=>x.ns==='first').value.model,'old1');
+  // 同一个仍有效的 write-allowed 上下文：unknown 节不自动重试，update 调用数不增。
+  const again=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(dispatches,1);assert.equal(api.writes,1);assert.equal(again.status,'unknown');
+}));
+test('普通重启的history-only路径也不会因schema文字错误补一次update',()=>fixture('first: {model: old1}\n',async(api,state,ledger,root)=>{
+  api.add('first');
+  const original=api.settings.update.bind(api.settings);let dispatches=0;
+  api.settings.update=async(...args)=>{dispatches++;await original(...args);throw new Error('schema invalid volatile');};
+  await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(dispatches,1);const first=await readFile(ledger,'utf8');
+  api.settings.update=original;
+  // 普通重启：Python 历史快路径只写 history-only 交接，不重新保护。
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const p=spawnSync(process.env.DSHA_PYTHON || 'python',['app/src/main/assets/rc1-migration.py','prepare','--root',root,'--state-root',state,'--startup-id',current.startupId],{encoding:'utf8'});
+  assert.equal(p.status,0,p.stderr+p.stdout);
+  const again=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(dispatches,1);assert.equal(again.status,'unknown');assert.equal(await readFile(ledger,'utf8'),first);
+}));
+test('pending后目标改变时冲突保留，不重放旧值',()=>fixture('first: {model: old1}\n',async(api,state,ledger)=>{
+  api.add('first');
+  // 旧账本（update 前拒绝、已记录 before 的 pending 节）在新票据下重试：目标已被用户改动。
+  const current=JSON.parse(await readFile(join(state,'current.json'),'utf8'));
+  const folder=join(state,'generations',current.generation);
+  const doc=JSON.parse(await readFile(join(folder,'prepare.json'),'utf8'));
+  const source=doc.sources.find(row=>row.kind==='settings');
+  await writeFile(ledger,JSON.stringify({version:2,generation:current.generation,sourceSha256:source.sha256,
+    startupId:current.startupId,status:'pending',sections:{first:{status:'pending',reason:'SECTION_SCHEMA_REJECTED',before:{model:'initial',temperature:1}}}}));
+  api.change('first',{model:'user-new'});
+  await migrate(api.settings,parse,{}, {stateRoot:state});
   assert.equal(JSON.parse(await readFile(ledger)).sections.first.status,'conflict');assert.equal(api.settings.describe()[0].value.model,'user-new');assert.equal(api.writes,0);
 }));
 test('快照正文被改动时不调用任何配置写入',()=>fixture('first: {model: old}\n',async(api,state,ledger,root)=>{
@@ -73,9 +113,12 @@ test('快照正文被改动时不调用任何配置写入',()=>fixture('first: {
 
 test('敏感字段只通过实际设置服务读回，不写入迁移回执',()=>fixture('first: {model: old, options: {apiKey: incoming-secret}}\n',async(api,state,ledger)=>{
   const entry=api.add('first',{model:'initial',options:{size:1,apiKey:'retained-secret'}});
-  // fixture schema has no options field, so this is rejected before any write; ledger must remain redacted.
+  // fixture schema has no options field: 顶层未声明字段在调用 update 之前被拒，保留可重试 pending。
   await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(api.writes,0);
   const text=await readFile(ledger,'utf8');assert.equal(text.includes('incoming-secret'),false);assert.equal(text.includes('retained-secret'),false);
+  const section=JSON.parse(text).sections.first;
+  assert.equal(section.status,'pending');assert.equal(section.reason,'SECTION_SCHEMA_REJECTED');
 }));
 
 // 真实锁定 SettingsForms 返回 descriptor.schema={uid,refs}；秘密只由节点 meta.role='secret'
