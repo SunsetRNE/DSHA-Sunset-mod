@@ -105,7 +105,7 @@ class Migration(unittest.TestCase):
         self.assertEqual(json.loads((self.folder()/'reuse.json').read_text()),checkpoint)
         bad=dict(self.result(),sourcePreserved=False)
         (self.folder()/'receipt.json').write_text(json.dumps(bad));(self.folder()/'reuse.json').unlink()
-        self.assertFalse(mod.publish_reuse(self.folder(),self.doc(),json.loads((self.state/'current.json').read_text()),bad,self.runtime_version))
+        self.assertFalse(mod.publish_reuse(self.folder(),self.doc(),json.loads((self.state/'current.json').read_text()),bad,self.runtime_version,mod.ledger_evidence(self.folder(),self.doc())))
         self.assertFalse((self.folder()/'reuse.json').exists())
     def test_partial_or_legacy_committed_receipt_is_rechecked_instead_of_upgraded(self):
         self.prepare();self.verified();self.finalize();(self.folder()/'reuse.json').unlink()
@@ -374,25 +374,26 @@ class Migration(unittest.TestCase):
         return doc,receipt
     def test_legacy_checkpoint_without_provenance_cannot_complete_history(self):
         doc,receipt=self.legacy_committed_state()
+        before=(self.folder()/'reuse.json').read_bytes()
         code,payload=self.capture(self.finalize)
         self.assertEqual(code,0);self.assertEqual(payload['status'],'historical-complete')
         # 无 provenance 的旧 settingsSections 不是独立证据：设置导入必须落在 unknown。
         self.assertEqual(payload['settingsImportStatus'],'unknown')
         self.assertIn('SETTINGS_EXPECTED_SECTIONS_MISSING',payload.get('warnings',[]))
         checkpoint=json.loads((self.folder()/'reuse.json').read_text())
-        self.assertNotIn('settingsSections',checkpoint)
+        self.assertEqual((self.folder()/'reuse.json').read_bytes(),before)
         self.assertNotIn('settingsSectionsSource',checkpoint)
         # 同一次 finalize 发布的新 checkpoint 也不能在后续调用里自证完成。
         code,again=self.capture(self.finalize)
         self.assertEqual(again['settingsImportStatus'],'unknown')
     def test_publish_reuse_records_provenance_only_from_ledger_expected_sections(self):
         doc,receipt=self.legacy_committed_state()
-        self.assertEqual(mod.publish_reuse(self.folder(),doc,json.loads((self.state/'current.json').read_text()),receipt,self.runtime_version),None)
+        self.assertEqual(mod.publish_reuse(self.folder(),doc,json.loads((self.state/'current.json').read_text()),receipt,self.runtime_version,mod.ledger_evidence(self.folder(),doc)),None)
         legacy=json.loads((self.folder()/'reuse.json').read_text())
-        self.assertNotIn('settingsSections',legacy);self.assertNotIn('settingsSectionsSource',legacy)
+        self.assertEqual(legacy['settingsSections'],['first']);self.assertNotIn('settingsSectionsSource',legacy)
         # 新写入的账本带 expectedSections：checkpoint 记录同一集合并带 provenance。
         self.verified()
-        self.assertEqual(mod.publish_reuse(self.folder(),doc,json.loads((self.state/'current.json').read_text()),receipt,self.runtime_version),None)
+        self.assertEqual(mod.publish_reuse(self.folder(),doc,json.loads((self.state/'current.json').read_text()),receipt,self.runtime_version,mod.ledger_evidence(self.folder(),doc)),None)
         checkpoint=json.loads((self.folder()/'reuse.json').read_text())
         self.assertEqual(checkpoint['settingsSections'],['first'])
         self.assertEqual(checkpoint['settingsSectionsSource'],'ledger-expected')
@@ -408,6 +409,65 @@ class Migration(unittest.TestCase):
         self.assertEqual(payload['reason'],'SETTINGS_EXPECTED_SECTIONS_MISSING')
         self.assertEqual(payload['settingsImportStatus'],'unknown')
         self.assertNotIn('protectionComplete',payload)
+    def assert_foreign_ledger_cannot_publish(self, field, value):
+        (self.dsh/'settings.yaml').write_text('first: {plain: a}\nsecond: {plain: b}\n')
+        self.legacy_committed_state()
+        ledger_path=self.folder()/'settings-result.json';checkpoint_path=self.folder()/'reuse.json'
+        partial=ledger_path.read_bytes();checkpoint=checkpoint_path.read_bytes()
+        foreign=json.loads(partial);foreign[field]=value;foreign['expectedSections']=['first']
+        ledger_path.write_text(json.dumps(foreign))
+        _,result=self.capture(self.finalize)
+        self.assertEqual(result['settingsImportStatus'],'unknown')
+        self.assertIn('SETTINGS_LEDGER_IDENTITY',result['warnings'])
+        self.assertEqual(checkpoint_path.read_bytes(),checkpoint)
+        ledger_path.write_bytes(partial)
+        _,result=self.capture(self.prepare)
+        self.assertEqual(result['settingsImportStatus'],'unknown')
+        self.assertEqual(result['reason'],'SETTINGS_EXPECTED_SECTIONS_MISSING')
+    def test_wrong_generation_cannot_publish_current_provenance(self):
+        self.assert_foreign_ledger_cannot_publish('generation','00000000-0000-0000-0000-000000000000')
+    def test_wrong_source_cannot_publish_current_provenance(self):
+        self.assert_foreign_ledger_cannot_publish('sourceSha256','f'*64)
+    def test_unknown_ledger_keeps_trusted_checkpoint_unchanged(self):
+        self.prepare();self.verified();self.finalize()
+        checkpoint=self.folder()/'reuse.json';before=checkpoint.read_bytes()
+        ledger=self.folder()/'settings-result.json';value=json.loads(ledger.read_text())
+        value['status']='unknown';value['expectedSections']=['foreign'];ledger.write_text(json.dumps(value))
+        _,result=self.capture(self.finalize)
+        self.assertEqual(result['settingsImportStatus'],'unknown')
+        self.assertEqual(checkpoint.read_bytes(),before)
+    def test_finalize_uses_bound_snapshot_when_ledger_replaced_before_publication(self):
+        self.prepare();self.verified()
+        ledger_path=self.folder()/'settings-result.json';ledger=json.loads(ledger_path.read_text())
+        ledger['expectedSections']=['first','second'];ledger['sections']['second']={'status':'verified'}
+        ledger_path.write_text(json.dumps(ledger))
+        publisher=mod.publish_reuse
+        def replace_then_publish(*args,**kwargs):
+            foreign=dict(ledger,generation='00000000-0000-0000-0000-000000000000',expectedSections=['first'])
+            ledger_path.write_text(json.dumps(foreign))
+            return publisher(*args,**kwargs)
+        with patch.object(mod,'publish_reuse',side_effect=replace_then_publish):
+            _,result=self.capture(self.finalize)
+        self.assertEqual(result['settingsImportStatus'],'verified-current')
+        checkpoint=json.loads((self.folder()/'reuse.json').read_text())
+        self.assertEqual(checkpoint['settingsSections'],['first','second'])
+        # 恢复无 expected 的原部分账本后仍不能借发布阶段混入的子集获得成功。
+        ledger.pop('expectedSections');ledger['sections'].pop('second');ledger_path.write_text(json.dumps(ledger))
+        _,result=self.capture(self.prepare)
+        self.assertEqual(result['settingsImportStatus'],'unknown')
+        self.assertEqual(result['reason'],'SETTINGS_SECTION_MISSING')
+    def test_valid_fallback_survives_two_finalize_prepare_cycles(self):
+        self.prepare();self.verified();self.finalize()
+        checkpoint=self.folder()/'reuse.json';before=checkpoint.read_bytes()
+        ledger=self.folder()/'settings-result.json';value=json.loads(ledger.read_text())
+        value.pop('expectedSections');ledger.write_text(json.dumps(value))
+        for _ in range(2):
+            _,result=self.capture(self.finalize)
+            self.assertEqual(result['settingsImportStatus'],'verified-historical')
+            self.assertEqual(checkpoint.read_bytes(),before)
+            _,result=self.capture(self.prepare)
+            self.assertEqual(result['settingsImportStatus'],'verified-historical')
+            self.assertEqual(result['status'],'historical-complete')
     def link(self,target,link,directory=False):
         try:os.symlink(target,link,target_is_directory=directory)
         except OSError as error:self.skipTest('host cannot create symlink: '+str(error.winerror if hasattr(error,'winerror') else error.errno))
