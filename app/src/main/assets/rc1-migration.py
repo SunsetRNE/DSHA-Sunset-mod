@@ -114,11 +114,41 @@ def startup_context(generation, startup_id, input_digest, settings_sha, mode):
                 proofDigest=context_proof(generation, input_digest, settings_sha))
 
 
-def ledger_state(folder, doc, startup_id=None):
+def reuse_checkpoint(folder):
+    """读取 publish_reuse 写下的宿主小 checkpoint；缺失或损坏一律 None，不新建。"""
+    path = folder / 'reuse.json'
+    try:
+        if not path.is_file() or path.is_symlink(): return None
+        value = read_json(path)
+    except (OSError, ValueError, UnicodeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def trusted_expected_sections(names):
+    """期望分节集合的结构校验；非法返回 None，不能当完成证据。"""
+    if not isinstance(names, list): return None
+    if not all(isinstance(name, str) for name in names): return None
+    if len(set(names)) != len(names): return None
+    return set(names)
+
+
+def checkpoint_expected_sections(checkpoint, doc, sha):
+    """checkpoint 只有同代次、同 settings 摘要时才是独立于账本的期望集合。"""
+    if not isinstance(checkpoint, dict) or not isinstance(sha, str): return None
+    if checkpoint.get('generation') != doc.get('generation'): return None
+    if checkpoint.get('settingsSha256') != sha: return None
+    return trusted_expected_sections(checkpoint.get('settingsSections'))
+
+
+def ledger_state(folder, doc, startup_id=None, checkpoint=None):
     """读取 settings 分节账本，绑定 generation+sourceSha256+逐节终态。
 
     返回 (state, reason)；state ∈ verified / pending / unknown / not-required。
     startup_id 非空且与账本 startupId 相同时，verified 才能标注为本次写入。
+    期望分节集合只接受可信证据：账本自己的 expectedSections，或同代次同摘要的
+    checkpoint.settingsSections；两者都缺时不能拿当前账本键自证全部完成，一律 unknown
+    （不自动重导，也不授予历史成功）。
     """
     sha = settings_sha256(doc)
     if sha is None and not any(row.get('kind') == 'settings' for row in doc.get('sources', [])):
@@ -145,14 +175,16 @@ def ledger_state(folder, doc, startup_id=None):
     overall = result.get('status')
     if 'unknown' in states or 'writing' in states or overall in ('unknown', 'writing'):
         return 'unknown', 'SETTINGS_WRITE_OUTCOME_UNKNOWN'
-    expected = result.get('expectedSections')
-    if isinstance(expected, list):
-        # 新账本记录期望分节集合；部分 verified 但集合不全时不能判 verified。
-        if (not all(isinstance(name, str) for name in expected)
-                or len(set(expected)) != len(expected)):
-            return 'unknown', 'SETTINGS_LEDGER_SECTION'
-        if set(sections) != set(expected):
-            return 'unknown', 'SETTINGS_SECTION_MISSING'
+    if 'expectedSections' in result:
+        # 新账本记录写入时的期望分节集合；部分 verified 但集合不全时不能判 verified。
+        expected = trusted_expected_sections(result.get('expectedSections'))
+        if expected is None: return 'unknown', 'SETTINGS_LEDGER_SECTION'
+    else:
+        # 旧账本没有期望集合：只接受同代次 checkpoint 的独立证据，否则保守待处理。
+        expected = checkpoint_expected_sections(checkpoint, doc, sha)
+        if expected is None: return 'unknown', 'SETTINGS_EXPECTED_SECTIONS_MISSING'
+    if set(sections) != expected:
+        return 'unknown', 'SETTINGS_SECTION_MISSING'
     if overall == 'verified' and all(state == 'verified' for state in states):
         return 'verified', None
     return 'pending', None
@@ -413,7 +445,7 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
             return 1
         if prepared.get('protectionComplete') is True and prepared.get('status') == 'prepared':
             # 历史完成的普通启动：只重读小输入与账本身份，不重扫或重新复制历史来源。
-            settings_state, settings_reason = ledger_state(folder, prepared)
+            settings_state, settings_reason = ledger_state(folder, prepared, checkpoint=reuse_checkpoint(folder))
             sha = settings_sha256(prepared)
             # 无论本次是否完成，都把 durable 交接降为 history-only：崩溃残留的
             # write-allowed 票据不能在下一次普通启动继续写配置。
@@ -633,7 +665,7 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
             and old.get('generation')==current['generation']
             and all(old.get(key) is True for key in ('sourcePreserved','settingsImported','protectionComplete'))):
         note = publish_reuse(folder,doc,current,old,active_version)
-        settings_state, settings_reason = ledger_state(folder, doc, startup_id)
+        settings_state, settings_reason = ledger_state(folder, doc, startup_id, reuse_checkpoint(folder))
         warnings = ([note] if note else []) + ([settings_reason] if settings_reason else [])
         extra = {'warnings': warnings} if warnings else {}
         emit('finalize', 'historical-complete', generation=current['generation'], cached=True,
@@ -661,7 +693,7 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
                 warnings.append('SOURCE_IDENTITY_CHANGED:'+row['path']); continue
             if digest(actual)!=row['sha256']: warnings.append('SOURCE_CHANGED:'+row['path'])
         except (OSError,ValueError): warnings.append('SOURCE_MISSING_OR_CHANGED:'+row['path'])
-    settings_state, settings_reason = ledger_state(folder, doc, startup_id)
+    settings_state, settings_reason = ledger_state(folder, doc, startup_id, reuse_checkpoint(folder))
     ledger = None
     try: ledger = read_json(folder/'settings-result.json') if (folder/'settings-result.json').is_file() else None
     except (OSError, ValueError, UnicodeError): ledger = None
@@ -727,7 +759,7 @@ def verify_existing(root, state_root=None, startup_id='manual', approved=()):
         stamp = quick(dsh, Resolver(dsh, approved))
         if not same_input(current, stamp): warnings.append('CURRENT_INPUTS_CHANGED')
     except (OSError, ValueError): warnings.append('CURRENT_INPUTS_UNREADABLE')
-    settings_state, settings_reason = ledger_state(folder, doc, startup_id)
+    settings_state, settings_reason = ledger_state(folder, doc, startup_id, reuse_checkpoint(folder))
     if settings_reason and settings_reason not in warnings: warnings.append(settings_reason)
     status = 'historical-complete' if failed == 0 and unknown == 0 and doc.get('protectionComplete') is True else 'unknown'
     copy = 'verified' if status == 'historical-complete' else ('failed' if failed else ('unknown' if unknown else 'unknown'))

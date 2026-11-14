@@ -273,6 +273,46 @@ public class Rc1MigrationCacheTest {
     assertEquals("HOST_STATE_INVALID", invalid.reason);
   }
 
+  @Test
+  public void ledgerWithoutTrustedExpectedSectionsCannotBeHistoricalSuccess() throws Exception {
+    fixture();
+    File folder = fs.child(state, "generations/" + generation);
+    // 旧 reuse checkpoint 没有 settingsSections，旧账本也没有 expectedSections：
+    // 不能从当前账本键自证“全部节已完成”，与 Python 的保守分类一致。
+    Map<String, Object> checkpoint =
+        BackupJson.read(
+            java.nio.file.Files.readAllBytes(fs.child(folder, "reuse.json").toPath()), 65536);
+    checkpoint.remove("settingsSections");
+    fs.atomic(folder, "reuse.json", BackupJson.write(checkpoint, 65536));
+    var missing = Rc1MigrationCache.reuse(fs, files, home);
+    assertEquals(Rc1MigrationCache.Reuse.Status.UNAVAILABLE, missing.status);
+    assertEquals("SETTINGS_EXPECTED_SECTIONS_MISSING", missing.reason);
+    // 账本记录写入时的期望分节集合时，历史命中仍成立。
+    fs.atomic(
+        folder,
+        "settings-result.json",
+        BackupJson.write(
+            Map.of(
+                "version",
+                2,
+                "generation",
+                generation,
+                "sourceSha256",
+                settingsSha,
+                "startupId",
+                "startup",
+                "status",
+                "verified",
+                "expectedSections",
+                java.util.List.of("first"),
+                "sections",
+                Map.of("first", Map.of("status", "verified"))),
+            65536));
+    assertEquals(
+        Rc1MigrationCache.Reuse.Status.REUSABLE_HISTORY,
+        Rc1MigrationCache.reuse(fs, files, home).status);
+  }
+
   private static String sha(byte[] data) throws Exception {
     var result = new StringBuilder();
     for (byte b : java.security.MessageDigest.getInstance("SHA-256").digest(data))

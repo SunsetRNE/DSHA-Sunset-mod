@@ -188,8 +188,12 @@ final class Rc1MigrationCache {
       if (!Rc1MigrationReuse.ledgerBinding(generation, settingsSha256, ledger))
         return Reuse.unavailable("SETTINGS_LEDGER_UNKNOWN");
       // 历史命中必须同时具备完成回执与完整账本：pending/部分分节都不是“历史完成”。
+      // 期望分节集合只接受账本自己的 expectedSections 或同代次 checkpoint（reuse.json）
+      // 的 settingsSections；两者都缺时不能拿当前账本键自证全部完成，与 Python
+      // （SETTINGS_EXPECTED_SECTIONS_MISSING）一样保守拒绝。
       java.util.Set<String> expected = ledgerExpectedSections(ledger);
       if (expected == null) expected = expectedSections(prepared);
+      if (expected == null) return Reuse.unavailable("SETTINGS_EXPECTED_SECTIONS_MISSING");
       String ledgerState = Rc1MigrationReuse.ledgerState(ledger, expected);
       if (!"verified".equals(ledgerState)) return Reuse.unavailable("SETTINGS_LEDGER_INCOMPLETE");
       settingsImportStatus = "verified-historical";

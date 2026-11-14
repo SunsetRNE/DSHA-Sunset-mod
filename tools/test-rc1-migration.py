@@ -20,7 +20,8 @@ class Migration(unittest.TestCase):
     def result(self):return json.loads((self.folder()/'receipt.json').read_text())
     def verified(self, startup_id=None):
         doc=self.doc();current=json.loads((self.state/'current.json').read_text());source=next((row for row in doc.get('sources',[]) if row.get('kind')=='settings'),None)
-        (self.folder()/'settings-result.json').write_text(json.dumps({'version':2,'generation':doc['generation'],'sourceSha256':source['sha256'] if source else None,'startupId':startup_id or current.get('startupId'),'status':'verified','sections':{'first':{'status':'verified'}}}))
+        # 新写入者的账本自带期望分节集合；旧账本缺该字段时由 ledger_state 保守分类。
+        (self.folder()/'settings-result.json').write_text(json.dumps({'version':2,'generation':doc['generation'],'sourceSha256':source['sha256'] if source else None,'startupId':startup_id or current.get('startupId'),'status':'verified','expectedSections':['first'],'sections':{'first':{'status':'verified'}}}))
     def capture(self,fn,*args):
         import contextlib,io
         buffer=io.StringIO()
@@ -302,10 +303,61 @@ class Migration(unittest.TestCase):
         def write(ledger):(folder/'settings-result.json').write_text(json.dumps(ledger))
         write({'generation':'g','sourceSha256':sha,'status':'verified','expectedSections':['a','b'],'sections':{'a':{'status':'verified'}}})
         self.assertEqual(mod.ledger_state(folder,doc)[0],'unknown')
+        write({'generation':'g','sourceSha256':sha,'status':'verified','expectedSections':['a'],'sections':{'a':{'status':'verified'}}})
+        self.assertEqual(mod.ledger_state(folder,doc),('verified',None))
         write({'generation':'g','sourceSha256':sha,'status':'verified','sections':{'a':{'status':'verified'}}})
-        self.assertEqual(mod.ledger_state(folder,doc)[0],'verified')
+        self.assertEqual(mod.ledger_state(folder,doc),('unknown','SETTINGS_EXPECTED_SECTIONS_MISSING'))
         write({'generation':'g','sourceSha256':sha,'status':'writing','sections':{'a':{'status':'verified'}}})
         self.assertEqual(mod.ledger_state(folder,doc)[0],'unknown')
+    def test_legacy_ledger_without_trusted_expected_sections_is_unknown(self):
+        folder=self.root/'ledger-missing-expected';folder.mkdir();sha='b'*64
+        doc=dict(generation='g',sources=[{'kind':'settings','sha256':sha}])
+        def write(ledger):(folder/'settings-result.json').write_text(json.dumps(ledger))
+        base=dict(generation='g',sourceSha256=sha,startupId='boot',status='verified')
+        # 空/部分/全部 verified，但既无 expectedSections 也无 checkpoint：一律不能自证完成。
+        for sections in ({},{'a':{'status':'verified'}},{'a':{'status':'verified'},'b':{'status':'verified'}}):
+            write(dict(base,sections=sections))
+            self.assertEqual(mod.ledger_state(folder,doc),('unknown','SETTINGS_EXPECTED_SECTIONS_MISSING'),sections)
+        # 账本自带期望集合且一致 → verified；部分 → unknown；期望集合结构损坏 → unknown。
+        write(dict(base,expectedSections=['a','b'],sections={'a':{'status':'verified'},'b':{'status':'verified'}}))
+        self.assertEqual(mod.ledger_state(folder,doc),('verified',None))
+        write(dict(base,expectedSections=['a','b'],sections={'a':{'status':'verified'}}))
+        self.assertEqual(mod.ledger_state(folder,doc),('unknown','SETTINGS_SECTION_MISSING'))
+        write(dict(base,expectedSections=['a','a'],sections={'a':{'status':'verified'}}))
+        self.assertEqual(mod.ledger_state(folder,doc),('unknown','SETTINGS_LEDGER_SECTION'))
+        # 无 settings 来源仍是 not-required，不受期望集合影响。
+        self.assertEqual(mod.ledger_state(folder,dict(generation='g',sources=[])),('not-required',None))
+    def test_legacy_ledger_only_uses_same_generation_checkpoint_expectation(self):
+        folder=self.root/'ledger-checkpoint';folder.mkdir();sha='c'*64
+        doc=dict(generation='g',sources=[{'kind':'settings','sha256':sha}])
+        ledger=dict(generation='g',sourceSha256=sha,startupId='boot',status='verified',
+                    sections={'a':{'status':'verified'},'b':{'status':'verified'}})
+        (folder/'settings-result.json').write_text(json.dumps(ledger))
+        def checkpoint(value):(folder/'reuse.json').write_text(json.dumps(value) if not isinstance(value,str) else value)
+        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a','b']})
+        self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('verified',None))
+        # 期望集合只覆盖部分分节 → 不能判完成。
+        checkpoint({'generation':'g','settingsSha256':sha,'settingsSections':['a']})
+        self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('unknown','SETTINGS_SECTION_MISSING'))
+        # 代次/摘要不符、结构非法、损坏的 checkpoint 都不能当独立期望集合。
+        for value in ({'generation':'other','settingsSha256':sha,'settingsSections':['a','b']},
+                      {'generation':'g','settingsSha256':'d'*64,'settingsSections':['a','b']},
+                      {'generation':'g','settingsSha256':sha,'settingsSections':'a,b'},
+                      {'generation':'g','settingsSha256':sha,'settingsSections':['a','a']},
+                      '{broken'):
+            checkpoint(value)
+            self.assertEqual(mod.ledger_state(folder,doc,checkpoint=mod.reuse_checkpoint(folder)),('unknown','SETTINGS_EXPECTED_SECTIONS_MISSING'),value)
+    def test_historical_prepare_without_trusted_expected_sections_is_unknown(self):
+        self.prepare();self.verified();self.finalize()
+        ledger=self.folder()/'settings-result.json'
+        value=json.loads(ledger.read_text());value.pop('expectedSections',None);ledger.write_text(json.dumps(value))
+        # 模拟更早版本的代次：既没有账本期望集合，也没有同代次 checkpoint 证据。
+        (self.folder()/'reuse.json').unlink()
+        code,payload=self.capture(self.prepare)
+        self.assertEqual(code,0);self.assertEqual(payload['status'],'unknown')
+        self.assertEqual(payload['reason'],'SETTINGS_EXPECTED_SECTIONS_MISSING')
+        self.assertEqual(payload['settingsImportStatus'],'unknown')
+        self.assertNotIn('protectionComplete',payload)
     def link(self,target,link,directory=False):
         try:os.symlink(target,link,target_is_directory=directory)
         except OSError as error:self.skipTest('host cannot create symlink: '+str(error.winerror if hasattr(error,'winerror') else error.errno))
