@@ -43,17 +43,54 @@ function schemaNode(graph, reference) {
   return null;
 }
 // schema 未声明的键才退回名称兜底；它只额外少复制，不能替代 schema 决定秘密字段。
+// 只深入普通对象/数组，类实例（Date/RegExp 等）原样保留，避免把实例压成空对象。
+function isPlainRecord(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
 function scrubCredentialNames(value) {
   if (Array.isArray(value)) return value.map(scrubCredentialNames);
-  if (value && typeof value === 'object') {
-    const out = {};
-    for (const [key, item] of Object.entries(value)) {
-      if (CREDENTIAL_NAME.test(key)) continue;
-      out[key] = scrubCredentialNames(item);
-    }
-    return out;
+  if (!isPlainRecord(value)) return value;
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (CREDENTIAL_NAME.test(key)) continue;
+    out[key] = scrubCredentialNames(item);
   }
-  return value;
+  return out;
+}
+// union/intersect 在对象层的声明键 → 各分支对应的子 schema。分支歧义时不能只靠
+// 名称正则，也不能删掉任何分支声明字段；无法确定键集时返回 null，由调用方保守失败。
+function unionDeclaredChildren(node, graph, depth) {
+  const keys = new Map();
+  const collect = (current, level) => {
+    if (!current || typeof current !== 'object' || level > 64) return false;
+    if (current.type === 'object') {
+      if (current.dict === undefined) return true;
+      if (!current.dict || typeof current.dict !== 'object' || Array.isArray(current.dict)) return false;
+      for (const [key, reference] of Object.entries(current.dict)) {
+        const child = schemaNode(graph, reference);
+        if (!child) return false;
+        if (!keys.has(key)) keys.set(key, []);
+        keys.get(key).push(child);
+      }
+      return true;
+    }
+    if (current.type === 'union' || current.type === 'intersect') {
+      if (!Array.isArray(current.list) || !current.list.length) return false;
+      for (const reference of current.list) {
+        const child = schemaNode(graph, reference);
+        if (!child || !collect(child, level + 1)) return false;
+      }
+      return true;
+    }
+    if (current.type === 'transform' || current.type === 'lazy') {
+      const inner = schemaNode(graph, current.inner);
+      return inner ? collect(inner, level + 1) : false;
+    }
+    return true; // 其他类型在对象层不声明命名键
+  };
+  return collect(node, depth) ? keys : null;
 }
 // 与上游 walk 一致：逐节点确认秘密位置；无法判定的结构按“可能含秘密”处理。
 function schemaHoldsSecret(node, graph, depth) {
@@ -169,11 +206,37 @@ function projectNode(value, graph, node, dropSecrets, depth) {
         const child = schemaNode(graph, reference);
         if (!child || schemaHoldsSecret(child, graph, depth + 1)) return { ok: false };
       }
-      return { ok: true, value };
+      if (!dropSecrets || value === undefined || value === null) return { ok: true, value };
+      if (Array.isArray(value)) return { ok: false }; // 数组项的分支声明无法逐项确定
+      if (!isPlainRecord(value)) return { ok: true, value }; // 标量/类实例没有命名键
+      // 无秘密分支的对象值：仍要对“所有分支都未声明”的键做名称兜底。声明键按各声明
+      // 分支投影；多个分支投影结果不一致时不能猜测实际命中的分支，保守失败。
+      const declared = unionDeclaredChildren(node, graph, depth + 1);
+      if (!declared) return { ok: false };
+      const out = {};
+      for (const [key, item] of Object.entries(value)) {
+        if (!declared.has(key)) {
+          if (CREDENTIAL_NAME.test(key)) continue;
+          out[key] = scrubCredentialNames(item);
+          continue;
+        }
+        let merged;
+        let mergedSet = false;
+        for (const child of declared.get(key)) {
+          const projected = projectNode(item, graph, child, true, depth + 2);
+          if (!projected.ok) return { ok: false };
+          if (!mergedSet) { merged = projected; mergedSet = true; }
+          else if (!isDeepStrictEqual(merged.value, projected.value)) return { ok: false };
+        }
+        if (merged.value !== undefined) out[key] = merged.value;
+      }
+      return { ok: true, value: out };
     }
     case 'string': case 'number': case 'boolean': case 'bitset':
     case 'any': case 'never': case 'const': case 'function': case 'is':
-      return { ok: true, value };
+      // 这些节点不声明命名键：对象/数组值仍要做名称兜底（any 数组项、const 对象等），
+      // 标量原样返回；schema 声明的字段不受影响。
+      return { ok: true, value: dropSecrets ? scrubCredentialNames(value) : value };
     default:
       return { ok: false }; // 未建模类型：不猜
   }

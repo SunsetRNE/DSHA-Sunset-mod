@@ -183,6 +183,36 @@ test('含秘密分支的联合类型未定义转移时保守冻结',()=>fixture(
   assert.equal(section.status,'unknown');assert.equal(section.reason,'SECTION_SCHEMA_UNKNOWN');
   assert.equal(api.settings.describe().find(row=>row.ns==='first').value.choice.plain,'initial');
 }));
+test('any数组项里schema未声明的凭据键按名称兜底不落账',()=>fixture('first: {items: [{apiKey: ANY-SECRET, plain: p}]}\n',async(api,state,ledger)=>{
+  const Config=z.object({items:z.array(z.any()).volatile()});
+  api.add('first',{items:[]},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const text=await readFile(ledger,'utf8');assert.equal(text.includes('ANY-SECRET'),false);
+  const section=JSON.parse(text).sections.first;
+  assert.deepEqual(section.source,{items:[{plain:'p'}]});
+  assert.deepEqual(section.verified,{items:[{plain:'p'}]});
+  // update 仍写入未声明键（strict=false 保留），只是不复制进账本。
+  assert.equal(api.settings.describe().find(row=>row.ns==='first').value.items[0].apiKey,'ANY-SECRET');
+}));
+test('无秘密分支的联合对象对未声明凭据键兜底，声明字段保留',()=>fixture('first: {choice: {plain: p, apiKey: UNION-SECRET}}\n',async(api,state,ledger)=>{
+  const Config=z.object({choice:z.union([z.object({plain:z.string()}),z.object({other:z.string()})]).volatile()});
+  api.add('first',{choice:{other:'x'}},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');assert.equal(api.writes,1);
+  const text=await readFile(ledger,'utf8');assert.equal(text.includes('UNION-SECRET'),false);
+  assert.deepEqual(JSON.parse(text).sections.first.source,{choice:{plain:'p'}});
+  assert.equal(api.settings.describe().find(row=>row.ns==='first').value.choice.apiKey,'UNION-SECRET');
+}));
+test('联合分支声明的凭据名字段不被名称兜底删除',()=>fixture('first: {choice: {apiKey: DECLARED-KEY, plain: p}}\n',async(api,state,ledger)=>{
+  const Config=z.object({choice:z.union([z.object({apiKey:z.string(),plain:z.string()}),z.object({other:z.string()})]).volatile()});
+  api.add('first',{choice:{other:'x'}},Config);
+  const returned=await migrate(api.settings,parse,{}, {stateRoot:state});
+  assert.equal(returned.status,'verified');
+  const section=JSON.parse(await readFile(ledger,'utf8')).sections.first;
+  // schema 声明为非秘密的字段由 schema 决定，名称正则不能删它。
+  assert.deepEqual(section.source,{choice:{apiKey:'DECLARED-KEY',plain:'p'}});
+}));
 test('别名分节按目标descriptor的schema投影秘密',()=>fixture('legacy-first: {model: old, apiKey: alias-secret}\n',async(api,state,ledger)=>{
   api.add('first',{model:'initial',apiKey:'retained-alias'},richConfig());
   const returned=await migrate(api.settings,parse,{'legacy-first':'first'}, {stateRoot:state});
