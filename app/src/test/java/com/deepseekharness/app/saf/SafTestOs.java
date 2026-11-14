@@ -161,7 +161,7 @@ public final class SafTestOs {
           RandomAccessFile handle = new RandomAccessFile(file, "r");
           FileDescriptor fd = handle.getFD();
           RAW_FILES.put(fd, file);
-          RAW_STATS.put(fd, SafTestOs.stat(file, directory));
+          RAW_STATS.put(fd, SafTestOs.stat(file, false));
           RAW_DIRS.put(fd, false);
           RAW_HANDLES.put(fd, handle);
           return fd;
