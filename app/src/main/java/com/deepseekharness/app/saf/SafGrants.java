@@ -411,6 +411,27 @@ public final class SafGrants {
     }
   }
 
+  /** 工作台能力快照：沿用 lookup 的授权判据，系统位只用于本次校验，不写入新的凭据字段。 */
+  static SafGrantLedger capabilitySnapshot(Context context, String id) throws SafTree.Failure {
+    synchronized (LOCK) {
+      Lookup lookup = lookup(context, id);
+      if (lookup.failure != null) throw new SafTree.Failure(lookup.failure, null);
+      // 旧路径没有可验证的 epoch；迁移失败时保留旧浏览/桥语义，但不签发工作台能力。
+      SafLedgerStore store = ledgerStore(context);
+      if (!store.initialized()) throw new SafTree.Failure("STATE_UNAVAILABLE", null);
+      SafGrantLedger ledger = store.load();
+      SafGrantRecord record = ledger.findById(id);
+      Grant grant = lookup.grant;
+      if (record == null
+          || record.state() != SafGrantRecord.State.ACTIVE
+          || grant == null
+          || !record.uri().equals(grant.uri.toString())
+          || ownProvider(context, grant.uri)) throw new SafTree.Failure("NO_GRANT", null);
+      int flags = (grant.readable ? READ : 0) | (grant.canWrite ? WRITE : 0);
+      return ledger.refreshSystemFlags(record.uri(), flags).ledger;
+    }
+  }
+
   private static SafLedgerStore ledgerStore(Context context) {
     return new SafLedgerStore(
         context.getSharedPreferences(SafLedgerStore.NAMESPACE, Context.MODE_PRIVATE));

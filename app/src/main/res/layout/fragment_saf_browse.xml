@@ -43,6 +43,22 @@
             android:paddingEnd="10dp" />
     </LinearLayout>
 
+    <Button
+        android:id="@+id/saf_browse_export"
+        style="@style/ShellTextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/shell_page_pad"
+        android:layout_marginEnd="@dimen/shell_page_pad" />
+
+    <Button
+        android:id="@+id/saf_browse_history"
+        style="@style/ShellTextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/shell_page_pad"
+        android:layout_marginEnd="@dimen/shell_page_pad" />
+
     <ListView
         android:id="@+id/saf_browse_list"
         android:layout_width="match_parent"

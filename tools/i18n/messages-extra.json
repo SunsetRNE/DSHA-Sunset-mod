@@ -16058,5 +16058,247 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
+  },
+  {
+    "id": "xa2workbench001",
+    "zh": "文件工作台（导入与导出）",
+    "en": "File workbench (import and export)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench002",
+    "zh": "文件工作台",
+    "en": "File workbench",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench003",
+    "zh": "开启后可在浏览页传输文件。关闭只隐藏工作台操作，不改变已授予的目录或助手写入权限。",
+    "en": "Enable file transfers in the browser. Turning this off hides workbench actions and keeps folder grants and assistant write permissions.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench004",
+    "zh": "设置未保存，请稍后重试。",
+    "en": "Settings were not saved. Try again later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench005",
+    "zh": "传输记录",
+    "en": "Transfer history",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench006",
+    "zh": "导出到此目录",
+    "en": "Export here",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench007",
+    "zh": "正在传输文件…",
+    "en": "Transferring file…",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench008",
+    "zh": "已传输 %s。",
+    "en": "Transferred %s.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "xa2workbench009",
+    "zh": "文件已传输，记录未能保存。",
+    "en": "The file was transferred, but its record could not be saved.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench010",
+    "zh": "已显示前 500 项，请缩小目录范围。",
+    "en": "Showing the first 500 items. Choose a smaller folder.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench011",
+    "zh": "共 %d 项；文本预览上限 64 KB。",
+    "en": "%d items; text previews are limited to 64 KB.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "xa2workbench012",
+    "zh": "导入到工作区",
+    "en": "Import to workspace",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench013",
+    "zh": "%s\n\n（已截断到 64 KB）",
+    "en": "%s\n\n(truncated at 64 KB)",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "xa2workbench014",
+    "zh": "最多 32 MiB。同名目标会被替换；导出到外部应用失败时可能留下不完整文件。",
+    "en": "Up to 32 MiB. An existing destination is replaced; an export failure may leave an incomplete external file.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench015",
+    "zh": "工作区目标文件",
+    "en": "Workspace destination file",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench016",
+    "zh": "工作区源文件",
+    "en": "Workspace source file",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench017",
+    "zh": "目标文件名",
+    "en": "Destination file name",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench018",
+    "zh": "导出到授权目录",
+    "en": "Export to granted folder",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench019",
+    "zh": "开始传输",
+    "en": "Start transfer",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java"
+    ]
+  },
+  {
+    "id": "xa2workbench020",
+    "zh": "最近 40 条传输记录，不含文件内容或完整路径。",
+    "en": "The latest 40 transfers, without file contents or full paths.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench021",
+    "zh": "还没有传输记录。",
+    "en": "No transfers yet.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench022",
+    "zh": "操作已过期，请重新选择文件。",
+    "en": "This action expired. Select the file again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench023",
+    "zh": "传输槽位已满，请稍后重试。",
+    "en": "All transfer slots are busy. Try again later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench024",
+    "zh": "单个文件不能超过 32 MiB。",
+    "en": "A file cannot exceed 32 MiB.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench025",
+    "zh": "请填写完整的工作区文件路径和有效文件名。",
+    "en": "Enter an absolute workspace file path and a valid file name.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench026",
+    "zh": "该路径不可用于文件传输，请选择普通工作文件。",
+    "en": "This path cannot be transferred. Choose a regular work file.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench027",
+    "zh": "请先在授权页开启文件工作台。",
+    "en": "Enable the file workbench on the access page first.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench028",
+    "zh": "无法保存传输记录，请稍后重试。",
+    "en": "Transfer history could not be saved. Try again later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
+  },
+  {
+    "id": "xa2workbench029",
+    "zh": "传输未完成，请检查目标文件后再操作。外部应用中的目标可能不完整。",
+    "en": "The transfer did not complete. Check the destination before continuing; an external file may be incomplete.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java"
+    ]
   }
 ]

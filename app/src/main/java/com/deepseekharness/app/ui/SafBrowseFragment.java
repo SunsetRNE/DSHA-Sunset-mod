@@ -3,20 +3,31 @@ package com.deepseekharness.app.ui;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.core.ConfigStore;
+import com.deepseekharness.app.saf.SafGrants;
 import com.deepseekharness.app.saf.SafTree;
+import com.deepseekharness.app.saf.SafWorkbench;
+import com.deepseekharness.app.transfer.TransferArtifact;
 import com.deepseekharness.app.util.UiText;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -27,47 +38,52 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * 跨应用文件访问 · 浏览页：在一条已授权 tree 里只读地看目录与文本文件。
- *
- * <p>这一页是给用户自查用的；助手的真实读写走 3090 桥的 {@code /app/saf/*}。
- * 页面不提供写、删、改名入口——避免用户在别人的应用目录里误操作。
- */
+/** 授权目录浏览与工作台；每次操作都重新解析授权短 id，不跨页面持有 SafTree。 */
 public final class SafBrowseFragment extends Fragment {
-  private static final String ARG_TREE = "saf_tree";
+  private static final String ARG_ID = "saf_id";
   private static final String ARG_TITLE = "saf_title";
+  private static final String SAVED_PATH = "saf_path";
   private static final int PREVIEW_LIMIT = 64 * 1024;
-
-  private SafTree tree;
+  private String treeId;
   private String current = "";
   private final List<SafTree.Entry> entries = new ArrayList<>();
   private BaseAdapter adapter;
-  private TextView pathView;
-  private TextView statusView;
-  private Button upButton;
+  private TextView pathView, statusView;
+  private Button upButton, exportButton;
+  private ListView list;
   private ExecutorService executor;
+  private SafWorkbenchModel model;
+  private AlertDialog operationDialog;
   private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
-  private long loadGeneration;
-  private long previewGeneration;
+  private long loadGeneration, previewGeneration, operationGeneration;
 
-  public static SafBrowseFragment forTree(Uri tree, String title) {
+  public static SafBrowseFragment forGrant(String id, String title) {
     SafBrowseFragment fragment = new SafBrowseFragment();
     Bundle args = new Bundle();
-    args.putString(ARG_TREE, tree.toString());
+    args.putString(ARG_ID, id);
     args.putString(ARG_TITLE, title);
     fragment.setArguments(args);
     return fragment;
   }
 
+  /** 兼容已有宿主调用，只把短 id 交给页面，不把 URI 作为操作凭据。 */
+  public static SafBrowseFragment forTree(Uri tree, String title) {
+    return forGrant(SafGrants.id(tree), title);
+  }
+
   @Nullable
   @Override
   public View onCreateView(
-      @NonNull LayoutInflater inflater,
-      @Nullable ViewGroup container,
-      @Nullable Bundle savedInstanceState) {
+      @NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle saved) {
     View root = inflater.inflate(R.layout.fragment_saf_browse, container, false);
     Context ctx = requireContext();
+    model = new ViewModelProvider(this).get(SafWorkbenchModel.class);
     executor = Executors.newSingleThreadExecutor();
+    Bundle args = requireArguments();
+    treeId = args.getString(ARG_ID, "");
+    // 覆盖更新可能恢复旧页面参数；仍须 lookup，原 URI 本身不能授予访问权。
+    if (treeId.isEmpty()) treeId = SafGrants.id(Uri.parse(args.getString("saf_tree", "")));
+    current = saved == null ? "" : saved.getString(SAVED_PATH, "");
     pathView = root.findViewById(R.id.saf_browse_path);
     statusView = root.findViewById(R.id.saf_browse_status);
     upButton = root.findViewById(R.id.saf_browse_up);
@@ -75,8 +91,15 @@ public final class SafBrowseFragment extends Fragment {
     upButton.setOnClickListener(button -> load(parentOf(current)));
     ((Button) root.findViewById(R.id.saf_browse_refresh)).setText(UiText.choose("刷新", "Refresh"));
     root.findViewById(R.id.saf_browse_refresh).setOnClickListener(button -> load(current));
-
-    ListView list = root.findViewById(R.id.saf_browse_list);
+    exportButton = root.findViewById(R.id.saf_browse_export);
+    exportButton.setText(UiText.choose("导出到此目录", "Export here"));
+    exportButton.setOnClickListener(button -> prepareTransfer(null));
+    ((Button) root.findViewById(R.id.saf_browse_history))
+        .setText(UiText.choose("传输记录", "Transfer history"));
+    root.findViewById(R.id.saf_browse_history)
+        .setOnClickListener(button -> SafWorkbenchUi.history(requireActivity()));
+    PressFeedback.attachButtons(root);
+    list = root.findViewById(R.id.saf_browse_list);
     adapter =
         new BaseAdapter() {
           @Override
@@ -95,10 +118,10 @@ public final class SafBrowseFragment extends Fragment {
           }
 
           @Override
-          public View getView(int position, View convertView, ViewGroup parent) {
+          public View getView(int position, View recycled, ViewGroup parent) {
             View row =
-                convertView != null
-                    ? convertView
+                recycled != null
+                    ? recycled
                     : LayoutInflater.from(ctx).inflate(R.layout.item_saf_document, parent, false);
             SafTree.Entry entry = getItem(position);
             ((TextView) row.findViewById(R.id.saf_doc_name)).setText(entry.name);
@@ -113,128 +136,265 @@ public final class SafBrowseFragment extends Fragment {
         };
     list.setAdapter(adapter);
     list.setOnItemClickListener((parent, view, position, id) -> open(entries.get(position)));
-
-    Bundle args = requireArguments();
-    String treeUri = args.getString(ARG_TREE, "");
-    String title = args.getString(ARG_TITLE, "");
-    try {
-      tree = new SafTree(requireContext().getContentResolver(), Uri.parse(treeUri));
-    } catch (SafTree.Failure failure) {
-      pathView.setText(title);
-      statusView.setText(describe(failure));
-      return root;
-    }
-    load("");
+    load(current);
     return root;
   }
 
-  /** 查询 Provider 一律后台线程；只有最新一代结果落到界面。 */
+  @Override
+  public void onViewCreated(@NonNull View view, @Nullable Bundle saved) {
+    super.onViewCreated(view, saved);
+    model.outcome.observe(
+        getViewLifecycleOwner(),
+        result -> {
+          if (result == null) return;
+          controls();
+          if (result.running) statusView.setText(UiText.choose("正在传输文件…", "Transferring file…"));
+          else if ("OK".equals(result.code))
+            statusView.setText(
+                UiText.format(
+                    UiText.choose("已传输 %s。", "Transferred %s."),
+                    Formatter.formatShortFileSize(requireContext(), result.bytes)));
+          else if ("OK_HISTORY_UNAVAILABLE".equals(result.code))
+            statusView.setText(
+                UiText.choose(
+                    "文件已传输，记录未能保存。",
+                    "The file was transferred, but its record could not be saved."));
+          else statusView.setText(SafWorkbenchUi.problem(result.code));
+        });
+  }
+
+  @Override
+  public void onSaveInstanceState(@NonNull Bundle saved) {
+    saved.putString(SAVED_PATH, current);
+    super.onSaveInstanceState(saved);
+  }
+
+  private void controls() {
+    boolean busy = model.working.get();
+    upButton.setEnabled(!busy && !current.isEmpty());
+    exportButton.setVisibility(SafWorkbenchUi.enabled(requireContext()) ? View.VISIBLE : View.GONE);
+    exportButton.setEnabled(!busy);
+    list.setEnabled(!busy);
+  }
+
+  /** 捕获请求路径，不从后台线程读取会被下一次导航改变的 current。 */
   private void load(String path) {
-    if (tree == null) return;
-    current = path == null ? "" : path;
+    if (model.working.get()) return;
+    final String requested = path == null ? "" : path;
+    current = requested;
     long generation = ++loadGeneration;
+    previewGeneration++;
     pathView.setText(
-        (getArguments() == null ? "" : getArguments().getString(ARG_TITLE, ""))
-            + (current.isEmpty() ? "" : " / " + current));
-    upButton.setEnabled(!current.isEmpty());
+        requireArguments().getString(ARG_TITLE, "")
+            + (requested.isEmpty() ? "" : " / " + requested));
+    entries.clear();
+    adapter.notifyDataSetChanged();
+    controls();
     statusView.setText(UiText.choose("读取中…", "Loading…"));
     ExecutorService running = executor;
     if (running == null) return;
     running.execute(
         () -> {
-          final Object result;
           try {
-            result = tree.list(current, SafTree.MAX_ENTRIES);
-          } catch (SafTree.Failure failure) {
-            final Object error = failure;
+            SafTree.Page page = model.workbench.list(treeId, requested);
             main.post(
                 () -> {
                   if (generation != loadGeneration || getView() == null) return;
-                  entries.clear();
-                  adapter.notifyDataSetChanged();
-                  statusView.setText(describe((SafTree.Failure) error));
-                });
-            return;
-          }
-          main.post(
-              () -> {
-                if (generation != loadGeneration || getView() == null) return;
-                if (result instanceof SafTree.Page page) {
-                  entries.clear();
                   entries.addAll(page.entries);
                   adapter.notifyDataSetChanged();
-                  int directories = 0;
-                  for (SafTree.Entry entry : entries) if (entry.directory) directories++;
-                  statusView.setText(
-                      UiText.format(
-                          UiText.choose(
-                              "共 %d 项（目录 %d）。最多显示 %d 项；文本预览上限 64 KB。",
-                              "%d items (%d folders). At most %d shown; text preview up to 64 KB."),
-                          entries.size(),
-                          directories,
-                          SafTree.MAX_ENTRIES));
-                }
-              });
+                  if (!model.working.get())
+                    statusView.setText(
+                        page.truncated
+                            ? UiText.choose(
+                                "已显示前 500 项，请缩小目录范围。",
+                                "Showing the first 500 items. Choose a smaller folder.")
+                            : UiText.format(
+                                UiText.choose(
+                                    "共 %d 项；文本预览上限 64 KB。",
+                                    "%d items; text previews are limited to 64 KB."),
+                                entries.size()));
+                });
+          } catch (SafTree.Failure failure) {
+            main.post(
+                () -> {
+                  if (generation == loadGeneration && getView() != null)
+                    statusView.setText(SafWorkbenchUi.problem(failure.code));
+                });
+          }
         });
+  }
+
+  private String child(String name) {
+    return current.isEmpty() ? name : current + "/" + name;
   }
 
   private void open(SafTree.Entry entry) {
     if (entry.directory) {
-      load(current.isEmpty() ? entry.name : current + "/" + entry.name);
+      load(child(entry.name));
       return;
     }
-    preview(entry);
+    if (!SafWorkbenchUi.enabled(requireContext())) {
+      preview(entry);
+      return;
+    }
+    new DshaDialogBuilder(requireContext())
+        .setTitle(entry.name)
+        .setItems(
+            new String[] {
+              UiText.choose("预览", "Preview"), UiText.choose("导入到工作区", "Import to workspace")
+            },
+            (dialog, which) -> {
+              if (which == 0) preview(entry);
+              else prepareTransfer(entry);
+            })
+        .setNegativeButton(UiText.choose("取消", "Cancel"), null)
+        .show();
   }
 
-  /** 预览也在后台读，读完回到主线程弹窗。 */
   private void preview(SafTree.Entry entry) {
-    String path = current.isEmpty() ? entry.name : current + "/" + entry.name;
+    String path = child(entry.name);
+    long generation = ++previewGeneration;
     statusView.setText(UiText.choose("读取中…", "Loading…"));
     ExecutorService running = executor;
     if (running == null) return;
-    long generation = ++previewGeneration;
     running.execute(
         () -> {
-          final Object result;
           try {
-            // 多读 1 字节用于区分「恰好 64 KiB」与「被截断」。
-            result = tree.read(path, 0, PREVIEW_LIMIT + 1);
-          } catch (SafTree.Failure failure) {
-            final Object error = failure;
+            byte[] bytes = model.workbench.read(treeId, path, PREVIEW_LIMIT + 1);
             main.post(
                 () -> {
                   if (generation != previewGeneration || getView() == null) return;
-                  statusView.setText(describe((SafTree.Failure) error));
+                  boolean truncated = bytes.length > PREVIEW_LIMIT;
+                  byte[] data = truncated ? java.util.Arrays.copyOf(bytes, PREVIEW_LIMIT) : bytes;
+                  if (!SafTree.looksText(data)) {
+                    statusView.setText(
+                        UiText.choose(
+                            "这是二进制文件，页面不预览；助手可以用 /app/saf/pull 取走。",
+                            "Binary file: not previewed here. The assistant can take it with /app/saf/pull."));
+                    return;
+                  }
+                  String text = new String(data, StandardCharsets.UTF_8);
+                  if (truncated)
+                    text =
+                        UiText.format(
+                            UiText.choose("%s\n\n（已截断到 64 KB）", "%s\n\n(truncated at 64 KB)"),
+                            text);
+                  new DshaDialogBuilder(requireContext())
+                      .setTitle(entry.name)
+                      .setMessage(text)
+                      .setPositiveButton(UiText.choose("关闭", "Close"), null)
+                      .show();
                 });
-            return;
+          } catch (SafTree.Failure failure) {
+            main.post(
+                () -> {
+                  if (generation == previewGeneration && getView() != null)
+                    statusView.setText(SafWorkbenchUi.problem(failure.code));
+                });
           }
-          main.post(
-              () -> {
-                if (generation != previewGeneration || getView() == null) return;
-                if (result instanceof SafTree.Failure failure) {
-                  statusView.setText(describe(failure));
-                  return;
-                }
-                byte[] data = (byte[]) result;
-                boolean truncated = data.length > PREVIEW_LIMIT;
-                if (truncated) data = java.util.Arrays.copyOf(data, PREVIEW_LIMIT);
-                if (!SafTree.looksText(data)) {
-                  statusView.setText(
-                      UiText.choose(
-                          "这是二进制文件，页面不预览；助手可以用 /app/saf/pull 取走。",
-                          "Binary file: not previewed here. The assistant can take it with /app/saf/pull."));
-                  return;
-                }
-                String text = new String(data, StandardCharsets.UTF_8);
-                String cutoff = UiText.choose("（已截断到 64 KB）", "(truncated at 64 KB)");
-                String message = truncated ? text + "\n\n" + cutoff : text;
-                new DshaDialogBuilder(requireContext())
-                    .setTitle(entry.name)
-                    .setMessage(message)
-                    .setPositiveButton(UiText.choose("关闭", "Close"), null)
-                    .show();
-              });
         });
+  }
+
+  /** 面板打开时签发选择能力，超过 TTL、重授权或撤销后不能用旧面板继续传输。 */
+  private void prepareTransfer(@Nullable SafTree.Entry entry) {
+    if (model.working.get() || !SafWorkbenchUi.enabled(requireContext())) return;
+    boolean importing = entry != null;
+    String selectedPath = importing ? child(entry.name) : current;
+    long generation = ++operationGeneration;
+    ExecutorService running = executor;
+    if (running == null) return;
+    running.execute(
+        () -> {
+          try {
+            SafWorkbench.Ticket ticket = model.workbench.prepare(treeId, selectedPath, importing);
+            main.post(
+                () -> {
+                  if (generation != operationGeneration || getView() == null) {
+                    model.workbench.cancel(ticket);
+                    return;
+                  }
+                  transferForm(ticket, importing, importing ? entry.name : "");
+                });
+          } catch (SafTree.Failure failure) {
+            main.post(
+                () -> {
+                  if (generation == operationGeneration && getView() != null)
+                    statusView.setText(SafWorkbenchUi.problem(failure.code));
+                });
+          }
+        });
+  }
+
+  private void transferForm(SafWorkbench.Ticket ticket, boolean importing, String name) {
+    Context ctx = requireContext();
+    if (operationDialog != null) operationDialog.dismiss();
+    LinearLayout form = new LinearLayout(ctx);
+    form.setOrientation(LinearLayout.VERTICAL);
+    int pad = Math.round(16 * getResources().getDisplayMetrics().density);
+    form.setPadding(pad, pad, pad, pad);
+    TextView note = new TextView(ctx);
+    note.setText(
+        UiText.choose(
+            "最多 32 MiB。同名目标会被替换；导出到外部应用失败时可能留下不完整文件。",
+            "Up to 32 MiB. An existing destination is replaced; an export failure may leave an incomplete external file."));
+    form.addView(note);
+    EditText local =
+        input(
+            form,
+            importing
+                ? UiText.choose("工作区目标文件", "Workspace destination file")
+                : UiText.choose("工作区源文件", "Workspace source file"));
+    local.setHint("/root/report.md");
+    if (importing) {
+      String directory = new ConfigStore(ctx).getWorkdir();
+      local.setText(directory + (directory.endsWith("/") ? "" : "/") + name);
+    }
+    EditText targetName =
+        importing ? null : input(form, UiText.choose("目标文件名", "Destination file name"));
+    if (targetName != null) targetName.setHint("report.md");
+    ScrollView scroll = new ScrollView(ctx);
+    scroll.addView(form);
+    boolean[] dispatched = {false};
+    operationDialog =
+        new DshaDialogBuilder(ctx)
+            .setTitle(
+                importing
+                    ? UiText.choose("导入到工作区", "Import to workspace")
+                    : UiText.choose("导出到授权目录", "Export to granted folder"))
+            .setView(scroll)
+            .setPositiveButton(
+                UiText.choose("开始传输", "Start transfer"),
+                (dialog, which) -> {
+                  String remote = ticket.path;
+                  if (!importing) {
+                    String filename = targetName.getText().toString().trim();
+                    if (!TransferArtifact.safeName(filename)) {
+                      statusView.setText(SafWorkbenchUi.problem("BAD_NAME"));
+                      return;
+                    }
+                    remote = ticket.path.isEmpty() ? filename : ticket.path + "/" + filename;
+                  }
+                  dispatched[0] = true;
+                  model.transfer(ticket, remote, local.getText().toString(), importing);
+                })
+            .setNegativeButton(UiText.choose("取消", "Cancel"), null)
+            .show();
+    operationDialog.setOnDismissListener(
+        dialog -> {
+          if (!dispatched[0]) model.workbench.cancel(ticket);
+        });
+  }
+
+  private EditText input(LinearLayout form, String title) {
+    TextView label = new TextView(requireContext());
+    label.setText(title);
+    EditText field = new EditText(requireContext());
+    field.setId(View.generateViewId());
+    field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+    label.setLabelFor(field.getId());
+    form.addView(label);
+    form.addView(field, new LinearLayout.LayoutParams(-1, -2));
+    return field;
   }
 
   private String meta(Context ctx, SafTree.Entry entry) {
@@ -249,8 +409,7 @@ public final class SafBrowseFragment extends Fragment {
   }
 
   private static String parentOf(String path) {
-    if (path == null || path.isEmpty()) return "";
-    int cut = path.lastIndexOf('/');
+    int cut = path == null ? -1 : path.lastIndexOf('/');
     return cut <= 0 ? "" : path.substring(0, cut);
   }
 
@@ -258,42 +417,19 @@ public final class SafBrowseFragment extends Fragment {
   public void onDestroyView() {
     loadGeneration++;
     previewGeneration++;
+    operationGeneration++;
+    if (operationDialog != null) operationDialog.dismiss();
+    operationDialog = null;
     ExecutorService running = executor;
     executor = null;
     if (running != null) running.shutdownNow();
     pathView = null;
     statusView = null;
     upButton = null;
+    exportButton = null;
+    list = null;
     adapter = null;
     entries.clear();
     super.onDestroyView();
-  }
-
-  private String describe(SafTree.Failure failure) {
-    switch (failure.code) {
-      case "PERMISSION_DENIED":
-        return UiText.choose(
-            "授权已失效或被系统拒绝：回到上一页移除它再重新选。",
-            "Permission lost or denied: remove the grant and pick it again.");
-      case "NOT_FOUND":
-        return UiText.choose("目标不存在：应用可能已卸载。", "Not found: the app may be uninstalled.");
-      case "PROVIDER_ERROR":
-        return UiText.choose(
-            "目标应用没有响应：先打开那个应用再刷新。", "The app did not respond: open it first, then refresh.");
-      case "UNSUPPORTED":
-        return UiText.choose("这个文档服务不支持该操作。", "This document provider does not support it.");
-      case "OFFSET_OUT_OF_RANGE":
-        return UiText.choose("读取位置超出文件大小。", "Offset is beyond the end of the file.");
-      case "SCAN_LIMIT":
-        return UiText.choose(
-            "目录项超过 500，无法定位目标；请在浏览器/助手里直接指定更短路径。",
-            "More than 500 entries; the target cannot be located. Use a shorter path.");
-      case "TIMEOUT":
-        return UiText.choose(
-            "目标应用超时：稍后重试或先在后台打开那个应用。",
-            "The target app timed out. Retry later or open that app in the background.");
-      default:
-        return failure.getMessage() == null ? failure.code : failure.getMessage();
-    }
   }
 }

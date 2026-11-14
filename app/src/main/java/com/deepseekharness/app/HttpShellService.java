@@ -77,7 +77,7 @@ public final class HttpShellService {
 
   /** 同时最多两个 SAF 大文件传输：每个请求都有 32 MiB 上限，避免 4 个 worker 一起放大内存。 */
   private static final java.util.concurrent.Semaphore SAF_TRANSFERS =
-      new java.util.concurrent.Semaphore(2);
+      com.deepseekharness.app.saf.SafTransferGate.TRANSFERS;
 
   /** 已发布的 IPv4 监听端口；未就绪时为 0。 */
   private volatile int bridgePort;
@@ -3942,7 +3942,7 @@ public final class HttpShellService {
       if (text == null) return "ERROR: NO_CONTENT (text= 写小文件；大文件用 /app/saf/push?src=)";
       byte[] data = text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
       // 查询串有界（BRIDGE firstLine 96 KiB，最坏百分号编码约 3 倍），因此文本直写按 16 KiB 兜底。
-      if (data.length > 16 * 1024)
+      if (data.length > com.deepseekharness.app.saf.SafCapabilityLimits.MAX_TEXT_BYTES)
         return "ERROR: TOO_LARGE (text 上限 16 KiB；更大的内容用 /app/saf/push?src=)";
       boolean create = !"0".equals(getParam(request.query, "create", "1"));
       long written = tree.write(path, data, create);

@@ -12,6 +12,45 @@ import org.junit.Test;
  * 下面每一条都对应一个真实存在于容器里的明文令牌文件。
  */
 public class BridgePathPolicyTest {
+  @org.junit.Rule
+  public final org.junit.rules.TemporaryFolder temporary = new org.junit.rules.TemporaryFolder();
+
+  @Test
+  public void actualSymlinksUseTheSameCanonicalCredentialBoundaryForExportAndReadfile()
+      throws Exception {
+    java.io.File root = temporary.newFolder("rootfs");
+    java.nio.file.Path ordinary =
+        java.nio.file.Files.createDirectories(root.toPath().resolve("root/work"));
+    java.nio.file.Path secret =
+        java.nio.file.Files.createDirectories(root.toPath().resolve("root/.dsh"))
+            .resolve(".bridge_token");
+    java.nio.file.Files.writeString(secret, "fixture-secret");
+    java.nio.file.Path link = ordinary.resolve("report.md");
+    java.nio.file.Files.createSymbolicLink(link, secret);
+    String canonical = link.toFile().getCanonicalPath();
+    assertFalse(BridgePathPolicy.denied("/root/work/report.md"));
+    assertTrue(BridgePathPolicy.deniedGuestView(canonical, root.getCanonicalPath()));
+    assertTrue(
+        BridgePathPolicy.deniedReadCanonical(
+            canonical, root.getCanonicalPath(), null, null, false));
+    assertTrue(BridgePathPolicy.deniedReadRaw("/root/.dsh/.bridge_token"));
+  }
+
+  @Test
+  public void rootfsPrefixAndMissingIdentityCannotAuthorizeOutsideFiles() throws Exception {
+    java.io.File root = temporary.newFolder("rootfs");
+    java.io.File sibling = temporary.newFolder("rootfs-other");
+    java.io.File outside = new java.io.File(sibling, "report.md");
+    java.nio.file.Files.writeString(outside.toPath(), "outside");
+    assertTrue(
+        BridgePathPolicy.deniedGuestView(outside.getCanonicalPath(), root.getCanonicalPath()));
+    assertTrue(
+        BridgePathPolicy.deniedReadCanonical(
+            outside.getCanonicalPath(), root.getCanonicalPath(), null, null, false));
+    assertTrue(
+        BridgePathPolicy.deniedReadCanonical(outside.getCanonicalPath(), null, null, null, false));
+    assertTrue(BridgePathPolicy.resolveReadFile("/root/report.md", null) == null);
+  }
 
   @Test
   public void deniesEveryCredentialThatCarriesAPlaintextToken() {

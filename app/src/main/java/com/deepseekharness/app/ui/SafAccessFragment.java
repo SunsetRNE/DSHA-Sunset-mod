@@ -87,6 +87,31 @@ public final class SafAccessFragment extends Fragment {
     ((Button) root.findViewById(R.id.saf_add)).setText(UiText.choose("选择文件夹", "Choose folder"));
     root.findViewById(R.id.saf_add).setOnClickListener(button -> chooseFolder());
 
+    MaterialSwitch workbench = root.findViewById(R.id.saf_workbench_enabled);
+    workbench.setText(UiText.choose("文件工作台（导入与导出）", "File workbench (import and export)"));
+    workbench.setChecked(SafWorkbenchUi.enabled(ctx));
+    InfoHint.bind(
+        (TextView) root.findViewById(R.id.saf_workbench_note),
+        UiText.choose("文件工作台", "File workbench"),
+        UiText.choose(
+            "开启后可在浏览页传输文件。关闭只隐藏工作台操作，不改变已授予的目录或助手写入权限。",
+            "Enable file transfers in the browser. Turning this off hides workbench actions and keeps folder grants and assistant write permissions."));
+    workbench.setOnCheckedChangeListener(
+        (button, checked) -> {
+          if (SafWorkbenchUi.enabled(ctx) == checked) return;
+          if (!SafWorkbenchUi.setEnabled(ctx, checked)) {
+            workbench.setChecked(SafWorkbenchUi.enabled(ctx));
+            toast(UiText.choose("设置未保存，请稍后重试。", "Settings were not saved. Try again later."));
+          }
+        });
+    ((Button) root.findViewById(R.id.saf_transfer_history))
+        .setText(UiText.choose("传输记录", "Transfer history"));
+    root.findViewById(R.id.saf_transfer_history)
+        .setOnClickListener(button -> SafWorkbenchUi.history(requireActivity()));
+    ((Button) root.findViewById(R.id.saf_workspace_files))
+        .setText(UiText.choose("导出工作区文件", "Export workspace files"));
+    root.findViewById(R.id.saf_workspace_files)
+        .setOnClickListener(button -> startActivity(WorkspaceFilesActivity.intent(ctx)));
     grants = root.findViewById(R.id.saf_grants);
     return root;
   }
@@ -107,7 +132,7 @@ public final class SafAccessFragment extends Fragment {
     if (running == null) return;
     running.execute(
         () -> {
-          List<SafGrants.Grant> list = SafGrants.list(ctx);
+          List<SafGrants.Grant> list = SafGrants.listLight(ctx);
           main.post(
               () -> {
                 if (generation != renderGeneration || getView() == null) return;
@@ -145,12 +170,18 @@ public final class SafAccessFragment extends Fragment {
     write.setVisibility(grant.valid && grant.canWrite ? View.VISIBLE : View.GONE);
     write.setOnCheckedChangeListener(
         (button, checked) -> {
-          // 开关只落偏好、改本地文案；不重新问 Provider（它可能正慢着）。
-          SafGrants.setWritable(ctx, grant.uri, checked);
-          sub.setText(
-              checked
-                  ? UiText.choose("可读写", "Read and write")
-                  : UiText.choose("只读（已关闭助手写入）", "Read only (assistant writes off)"));
+          write.setEnabled(false);
+          ExecutorService running = executor;
+          if (running == null) return;
+          Context app = ctx.getApplicationContext();
+          running.execute(
+              () -> {
+                SafGrants.setWritable(app, grant.uri, checked);
+                main.post(
+                    () -> {
+                      if (isAdded() && getView() != null) render(requireContext());
+                    });
+              });
         });
 
     Button browse = item.findViewById(R.id.saf_grant_browse);
@@ -159,7 +190,7 @@ public final class SafAccessFragment extends Fragment {
     browse.setOnClickListener(
         button ->
             SettingsPanes.open(
-                this, SafBrowseFragment.forTree(grant.uri, grant.summary()), "saf-browse"));
+                this, SafBrowseFragment.forGrant(grant.id, grant.summary()), "saf-browse"));
 
     Button remove = item.findViewById(R.id.saf_grant_remove);
     remove.setText(UiText.choose("移除", "Remove"));
@@ -314,8 +345,17 @@ public final class SafAccessFragment extends Fragment {
         .setPositiveButton(
             UiText.choose("移除", "Remove"),
             (dialog, which) -> {
-              SafGrants.forget(ctx, grant.uri);
-              render(ctx);
+              ExecutorService running = executor;
+              if (running == null) return;
+              Context app = ctx.getApplicationContext();
+              running.execute(
+                  () -> {
+                    SafGrants.forget(app, grant.uri);
+                    main.post(
+                        () -> {
+                          if (isAdded() && getView() != null) render(requireContext());
+                        });
+                  });
             })
         .setNegativeButton(UiText.choose("取消", "Cancel"), null)
         .show();

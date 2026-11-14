@@ -430,6 +430,61 @@ public final class SafBridgeTest {
     assertTrue(json, json.startsWith("ERROR:"));
   }
 
+  @Test
+  public void exportAndReadfileRejectCredentialPathsBeforeOpeningAnyFile() throws Exception {
+    for (String source :
+        new String[] {
+          "/root/.dsh/.bridge_token", "/root/.ssh/id_rsa", "/root/.android/adbkey",
+          "/root/project/.credentials.yaml", "/root/work/.env", "../.dsh/.bridge_token"
+        }) {
+      String encoded = java.net.URLEncoder.encode(source, StandardCharsets.UTF_8);
+      String exported =
+          (String)
+              invoke(
+                  HttpShellBridge.access("appExport", String.class),
+                  bridge.service,
+                  "/app/export?path=" + encoded);
+      String read =
+          (String)
+              invoke(
+                  HttpShellBridge.access("appReadFile", String.class),
+                  bridge.service,
+                  "/app/readfile?path=" + encoded);
+      assertTrue(source + ": " + exported, exported.startsWith("FORBIDDEN"));
+      assertTrue(source + ": " + read, read.startsWith("FORBIDDEN"));
+    }
+    assertEquals(0, provider.queries);
+    assertNull(provider.lastCreatedId);
+  }
+
+  @Test
+  public void pushAndPullRejectCredentialSymlinksWithoutChangingDestination() throws Exception {
+    String id =
+        register(
+            true, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+    File directory = new File(rootfs, "root/.dsh");
+    Files.createDirectories(directory.toPath());
+    File secret = new File(directory, ".bridge_token");
+    Files.writeString(secret.toPath(), "fixture-secret");
+    Files.createSymbolicLink(new File(rootfs, "root/report.md").toPath(), secret.toPath());
+    String pushed =
+        (String)
+            invoke(
+                bridge.push,
+                bridge.service,
+                req("/app/saf/push?tree=" + id + "&path=export.txt&src=/root/report.md"));
+    String pulled =
+        (String)
+            invoke(
+                bridge.pull,
+                bridge.service,
+                req("/app/saf/pull?tree=" + id + "&path=file.txt&dest=/root/report.md"));
+    assertTrue(pushed, pushed.contains("FORBIDDEN"));
+    assertTrue(pulled, pulled.contains("FORBIDDEN"));
+    assertEquals("fixture-secret", Files.readString(secret.toPath()));
+    assertNull(provider.lastCreatedId);
+  }
+
   private Object req(String path) {
     try {
       return bridge.request(path);

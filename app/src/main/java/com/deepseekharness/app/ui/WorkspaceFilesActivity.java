@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Read-only work-file browser; selected files can be saved with SAF or shared without root. */
 public final class WorkspaceFilesActivity extends AppCompatActivity {
+  private static final String EXTRA_CROSS_APP = "workspace_cross_app";
   private static final String SAVED_DIRECTORY = "workspace_document_id";
   private static final String PERSONAL_DIRECTORY = "linux/ubuntu/root/Documents";
   private static final int PAGE_SIZE = 200;
@@ -139,6 +140,11 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
     return new Intent(context, WorkspaceFilesActivity.class);
   }
 
+  /** 从作品文件页进入同一原生授权/浏览路由，系统授权仍只由 DocumentsUI 发放。 */
+  public static Intent crossAppIntent(Context context) {
+    return intent(context).putExtra(EXTRA_CROSS_APP, true);
+  }
+
   private final ActivityResultLauncher<Intent> savePicker =
       registerForActivityResult(
           new ActivityResultContracts.StartActivityForResult(),
@@ -162,6 +168,10 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
   @Override
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
+    if (getIntent().getBooleanExtra(EXTRA_CROSS_APP, false)) {
+      showCrossApp(saved);
+      return;
+    }
     model = new ViewModelProvider(this).get(Model.class);
     try {
       workspaceId = WorkspaceDocumentIds.forGuestDirectory(new ConfigStore(this).getWorkdir());
@@ -194,6 +204,15 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
             "选择工作目录里的作品文件，保存到手机或分享给其他应用。无需 Root；这是普通文件导出，完整数据备份另有入口。",
             "Choose a file from your workspace to save on the device or share with another app. No root is needed. Full data backups have a separate entry."));
     body.addView(note);
+    LinearLayout workbench = new LinearLayout(this);
+    workbench.addView(
+        button(
+            UiText.choose("跨应用文件访问", "Cross-app files"), () -> startActivity(crossAppIntent(this))),
+        new LinearLayout.LayoutParams(0, -2, 1));
+    workbench.addView(
+        button(UiText.choose("传输记录", "Transfer history"), () -> SafWorkbenchUi.history(this)),
+        new LinearLayout.LayoutParams(0, -2, 1));
+    body.addView(workbench);
     LinearLayout navigation = new LinearLayout(this);
     workspace = button(UiText.choose("工作目录", "Workspace"), () -> load(workspaceId, 0, true));
     root = button("DSHA", () -> load("root"));
@@ -254,9 +273,32 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
     else render();
   }
 
+  private void showCrossApp(Bundle saved) {
+    LinearLayout body = new LinearLayout(this);
+    body.setOrientation(LinearLayout.VERTICAL);
+    body.setBackgroundColor(getColor(R.color.surface));
+    setContentView(body);
+    UiNavigation.addHeader(
+        this,
+        body,
+        UiText.choose("文件工作台", "File workbench"),
+        () -> {
+          if (!getSupportFragmentManager().popBackStackImmediate()) finish();
+        });
+    android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+    container.setId(R.id.fragment_container);
+    body.addView(container, new LinearLayout.LayoutParams(-1, 0, 1));
+    if (saved == null)
+      getSupportFragmentManager()
+          .beginTransaction()
+          .replace(R.id.fragment_container, new SafAccessFragment())
+          .commit();
+    PressFeedback.attachButtons(body);
+  }
+
   @Override
   protected void onSaveInstanceState(Bundle state) {
-    state.putString(SAVED_DIRECTORY, model.directory);
+    if (model != null) state.putString(SAVED_DIRECTORY, model.directory);
     super.onSaveInstanceState(state);
   }
 
