@@ -5,142 +5,147 @@ import android.system.Os;
 import android.system.OsConstants;
 import com.deepseekharness.app.util.Compat;
 import com.deepseekharness.app.util.ProcessIdentity;
+import com.deepseekharness.app.util.TerminalExitPolicy;
+import com.deepseekharness.app.util.UiText;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
-/** 维护中回收真实 PTY 的 proroot 会话；组长存活时才核验、结束同 UID 会话成员。 */
+/** 终端退出的 Android 观察与信号适配；纯判据不把 launcher 退出或一次快照当作会话退出。 */
 public final class TerminalProcessCloser {
   private TerminalProcessCloser() {}
 
-  /** The simple terminal's fixed READY marker is only a claim until the host verifies this birth. */
+  /** 简易终端固定 READY 只有声明，宿主核验本次出生身份后才能接受命令。 */
   public static ProcessIdentity captureSimpleLeader(int session, long started) throws IOException {
-    if (session <= 1 || started <= 0)
-      throw new IOException(com.deepseekharness.app.util.UiText.text("终端进程身份无效"));
+    if (session <= 1 || started <= 0) throw new IOException(UiText.text("终端进程身份无效"));
     ProcessIdentity leader = read(session, session);
     if (leader == null || leader.exited() || leader.started != started || !leader.ownsSession())
-      throw new IOException(com.deepseekharness.app.util.UiText.text("终端本次进程身份不匹配，原环境保持保护"));
-    requireOwnUid(session);
-    if (!belongsToSession(session, session))
-      throw new IOException(com.deepseekharness.app.util.UiText.text("终端会话号已变化，原环境保持保护"));
+      throw new IOException(UiText.text("终端本次进程身份不匹配，原环境保持保护"));
+    AndroidPorts ports = new AndroidPorts();
+    if (ports.uid(session) != ports.ownUid()) throw new IOException(UiText.text("终端进程 UID 不属于本应用"));
+    if (!belongsToSession(session, session)) throw new IOException(UiText.text("终端会话号已变化，原环境保持保护"));
     return leader;
   }
 
-  /** Never signal a raw group number. Recheck the captured leader and each member's birth. */
   public static void closeSimple(ProcessIdentity expected, long timeoutMs)
       throws IOException, InterruptedException {
-    if (expected == null || !expected.ownsSession())
-      throw new IOException(com.deepseekharness.app.util.UiText.text("终端本次进程身份缺失"));
-    ProcessIdentity leader = read(expected.pid, expected.pid);
-    if (leader != null && !leader.exited()) {
-      if (!expected.sameProcess(leader) || !leader.ownsSession())
-        throw new IOException(com.deepseekharness.app.util.UiText.text("终端组长出生身份已变化，未发送信号"));
-      requireOwnUid(expected.pid);
-      close(expected, timeoutMs);
-    }
-    // A vanished leader cannot authorize a signal to a possibly reused PGID. Unknown members block
-    // cleanup.
-    requireSessionEmpty(expected.pid);
+    close(expected, timeoutMs);
   }
 
-  private static void requireOwnUid(int pid) throws IOException {
-    try {
-      if (Os.stat("/proc/" + pid).st_uid != android.os.Process.myUid())
-        throw new IOException(com.deepseekharness.app.util.UiText.text("终端进程 UID 不属于本应用"));
-    } catch (android.system.ErrnoException error) {
-      throw new IOException(com.deepseekharness.app.util.UiText.text("无法核验终端进程 UID"), error);
-    }
-  }
-
-  /** proot 自己负责回收 tracee；结束后调用者还须核验本次独立会话已空。 */
+  /** proot 自己回收 tracee；调用者仍须确认 launcher 退出与整个会话为空。 */
   public static void closeProot(ProcessIdentity expected) throws IOException {
-    ProcessIdentity current = read(expected.pid, expected.pid);
-    if (current == null || current.exited()) return;
-    if (!expected.sameProcess(current) || !current.ownsSession())
-      throw new IOException(com.deepseekharness.app.util.UiText.text("无法核验终端独立会话，原环境保持保护"));
-    signal(expected, OsConstants.SIGQUIT);
+    try {
+      TerminalExitPolicy.requestProotExit(expected, new AndroidPorts());
+    } catch (TerminalExitPolicy.Failure failure) {
+      throw present(failure);
+    }
   }
 
   public static void close(ProcessIdentity expected, long timeoutMs)
       throws IOException, InterruptedException {
-    ProcessIdentity leader = read(expected.pid, expected.pid);
-    if (leader == null || leader.exited()) {
-      requireSessionEmpty(expected.pid);
-      return;
-    }
-    if (!expected.sameProcess(leader) || !leader.ownsSession())
-      throw new IOException(com.deepseekharness.app.util.UiText.text("无法核验终端独立会话，原环境保持保护"));
-    boolean ended = false;
     try {
-      // 保留组长，避免清理期间会话号复用；先结束 guest，最后结束启动器。
-      signal(leader, OsConstants.SIGSTOP);
-      long deadline = SystemClock.elapsedRealtime() + timeoutMs;
-      while (true) {
-        if (!expected.sameProcess(read(expected.pid, expected.pid)))
-          throw new IOException(com.deepseekharness.app.util.UiText.text("终端组长身份已变化，停止回收"));
-        File[] processes = new File("/proc").listFiles();
-        if (processes == null)
-          throw new IOException(com.deepseekharness.app.util.UiText.text("无法核验终端后台进程"));
-        boolean active = false;
-        for (File file : processes) {
-          if (!file.getName().matches("[1-9][0-9]*")) continue;
-          int pid;
-          try {
-            pid = Integer.parseInt(file.getName());
-          } catch (NumberFormatException ignored) {
-            continue;
-          }
-          if (pid == expected.pid) continue;
-          if (!belongsToSession(pid, expected.pid)) continue;
-          try {
-            if (Os.stat(file.getPath()).st_uid != android.os.Process.myUid()) continue;
-          } catch (android.system.ErrnoException error) {
-            if (error.errno == OsConstants.ENOENT || error.errno == OsConstants.ESRCH) continue;
-            throw new IOException(com.deepseekharness.app.util.UiText.text("无法核验终端进程归属"), error);
-          }
-          ProcessIdentity member = read(pid, expected.pid);
-          if (member == null || member.exited()) continue;
-          active = true;
-          signal(member, OsConstants.SIGKILL);
-        }
-        if (!active) break;
-        if (SystemClock.elapsedRealtime() >= deadline)
-          throw new IOException(com.deepseekharness.app.util.UiText.text("终端后台命令尚未退出，原环境保持保护"));
-        Thread.sleep(20);
-      }
-      signal(leader, OsConstants.SIGKILL);
-      ended = true;
-    } finally {
-      if (!ended) signal(leader, OsConstants.SIGCONT);
+      TerminalExitPolicy.close(expected, timeoutMs, new AndroidPorts());
+    } catch (TerminalExitPolicy.Failure failure) {
+      throw present(failure);
     }
   }
 
-  /** 组长已自然退出时只核验剩余成员，不再向可能复用的 PID 发送信号。 */
+  /** 已自然退出的组长不授权按旧 SID 发信号；剩余成员或观察未知继续保留环境保护。 */
   public static void requireSessionEmpty(int session) throws IOException {
-    File[] processes = new File("/proc").listFiles();
-    if (processes == null)
-      throw new IOException(com.deepseekharness.app.util.UiText.text("无法核验终端后台进程"));
-    for (File file : processes) {
-      if (!file.getName().matches("[1-9][0-9]*")) continue;
-      int pid;
+    try {
+      TerminalExitPolicy.requireSessionEmpty(session, new AndroidPorts());
+    } catch (TerminalExitPolicy.Failure failure) {
+      throw present(failure);
+    }
+  }
+
+  private static IOException present(TerminalExitPolicy.Failure failure) {
+    String message =
+        switch (failure.code()) {
+          case INVALID_IDENTITY -> "终端本次进程身份缺失";
+          case IDENTITY_CHANGED -> "终端进程身份已变化，未发送信号";
+          case FOREIGN_UID -> "终端进程 UID 不属于本应用";
+          case SCAN_UNAVAILABLE -> "无法核验终端后台进程";
+          case SESSION_NOT_EMPTY -> "终端后台命令仍在退出，原环境保持保护；稍后可直接重试";
+          case EXIT_TIMEOUT -> "终端后台命令尚未退出，原环境保持保护";
+        };
+    return new IOException(UiText.text(message), failure);
+  }
+
+  private static final class AndroidPorts implements TerminalExitPolicy.Ports {
+    @Override
+    public ProcessIdentity read(int pid, int session) throws IOException {
+      return TerminalProcessCloser.read(pid, session);
+    }
+
+    @Override
+    public boolean belongsToSession(int pid, int session) throws IOException {
+      return TerminalProcessCloser.belongsToSession(pid, session);
+    }
+
+    @Override
+    public int uid(int pid) throws IOException {
       try {
-        pid = Integer.parseInt(file.getName());
-      } catch (NumberFormatException ignored) {
-        continue;
+        return Os.stat("/proc/" + pid).st_uid;
+      } catch (android.system.ErrnoException error) {
+        if (error.errno == OsConstants.ENOENT || error.errno == OsConstants.ESRCH) return -1;
+        throw new IOException(UiText.text("无法核验终端进程 UID"), error);
       }
-      if (!belongsToSession(pid, session)) continue;
-      ProcessIdentity member = read(pid, session);
-      if (member != null && !member.exited())
-        throw new IOException(
-            com.deepseekharness.app.util.UiText.text("终端后台命令仍在退出，原环境保持保护；稍后可直接重试"));
+    }
+
+    @Override
+    public int ownUid() {
+      return android.os.Process.myUid();
+    }
+
+    @Override
+    public int[] pids() throws IOException {
+      File[] files = new File("/proc").listFiles();
+      if (files == null) throw new IOException(UiText.text("无法核验终端后台进程"));
+      ArrayList<Integer> pids = new ArrayList<>();
+      for (File file : files) {
+        if (!file.getName().matches("[1-9][0-9]*")) continue;
+        try {
+          int pid = Integer.parseInt(file.getName());
+          if (pid > 1) pids.add(pid);
+        } catch (NumberFormatException ignored) {
+        }
+      }
+      return pids.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    @Override
+    public void signal(int pid, TerminalExitPolicy.Signal signal) throws IOException {
+      if (pid <= 1) throw new IOException(UiText.text("终端进程身份无效"));
+      int number =
+          switch (signal) {
+            case STOP -> OsConstants.SIGSTOP;
+            case CONTINUE -> OsConstants.SIGCONT;
+            case KILL -> OsConstants.SIGKILL;
+            case QUIT -> OsConstants.SIGQUIT;
+          };
+      try {
+        Os.kill(pid, number);
+      } catch (android.system.ErrnoException error) {
+        if (error.errno != OsConstants.ESRCH) throw new IOException(UiText.text("终端进程回收失败"), error);
+      }
+    }
+
+    @Override
+    public long now() {
+      return SystemClock.elapsedRealtime();
+    }
+
+    @Override
+    public void pause(long millis) throws InterruptedException {
+      Thread.sleep(millis);
     }
   }
 
   private static boolean belongsToSession(int pid, int session) throws IOException {
     int actual = NativeProcess.sessionId(pid);
     if (actual == -OsConstants.ESRCH) return false;
-    if (actual < 0)
-      throw new IOException(
-          com.deepseekharness.app.util.UiText.format("无法查询终端会话（errno=%s），请稍后重试", -actual));
+    if (actual < 0) throw new IOException(UiText.format("无法查询终端会话（errno=%s），请稍后重试", -actual));
     return actual == session;
   }
 
@@ -153,17 +158,15 @@ public final class TerminalProcessCloser {
             ProcessIdentity.inSession(
                 Compat.readAll(new File("/proc/" + pid + "/stat")), pid, session);
         if (current != null) return current;
-        failure = new IOException(com.deepseekharness.app.util.UiText.text("终端进程身份暂不可读，保留环境保护"));
+        failure = new IOException(UiText.text("终端进程身份暂不可读，保留环境保护"));
       } catch (IOException error) {
         failure = error;
       }
-      // exec/退出窗口内空读或不完整 stat 不是“进程已消失”。用独立内核会话查询核实。
+      // exec/退出窗口内短读仍是未知；由独立内核会话查询区分 ESRCH 与权限/读取错误。
       int actual = NativeProcess.sessionId(pid);
       if (actual == -OsConstants.ESRCH || actual > 0 && actual != session) return null;
       if (actual < 0)
-        throw new IOException(
-            com.deepseekharness.app.util.UiText.format("无法查询终端会话（errno=%s），请稍后重试", -actual),
-            failure);
+        throw new IOException(UiText.format("无法查询终端会话（errno=%s），请稍后重试", -actual), failure);
       if (SystemClock.elapsedRealtime() >= deadline) break;
       try {
         Thread.sleep(20);
@@ -172,19 +175,6 @@ public final class TerminalProcessCloser {
         throw new IOException("TERMINAL_IDENTITY_INTERRUPTED", interrupted);
       }
     } while (true);
-    throw new IOException(com.deepseekharness.app.util.UiText.text("无法核验终端独立会话，原环境保持保护"), failure);
-  }
-
-  private static void signal(ProcessIdentity expected, int signal) throws IOException {
-    ProcessIdentity current = read(expected.pid, expected.session);
-    if (current == null || current.exited()) return;
-    if (!expected.sameProcess(current))
-      throw new IOException(com.deepseekharness.app.util.UiText.text("终端进程身份已变化，未发送信号"));
-    try {
-      Os.kill(expected.pid, signal);
-    } catch (android.system.ErrnoException error) {
-      if (error.errno != OsConstants.ESRCH)
-        throw new IOException(com.deepseekharness.app.util.UiText.text("终端进程回收失败"), error);
-    }
+    throw new IOException(UiText.text("无法核验终端独立会话，原环境保持保护"), failure);
   }
 }

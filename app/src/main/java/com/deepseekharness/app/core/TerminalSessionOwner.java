@@ -206,7 +206,10 @@ public final class TerminalSessionOwner {
     requireProtection();
     protection.beginCreate(ticket, ownerEpoch, TerminalRuntimeProtection.Kind.PTY);
     PtySession[] allocated = new PtySession[1];
+    TerminalTabs.Reservation reservation = null;
     try {
+      // 耗尽必须在任何 fork 前拒绝；失败 pending 仍使用同一预留发布。
+      reservation = pty.reserveIdentity();
       protection.retain(ticket);
       PtySession session =
           start.start(
@@ -221,20 +224,25 @@ public final class TerminalSessionOwner {
               },
               value -> allocated[0] = value,
               guestCommand);
-      TerminalTabs.Tab<PtySession> tab = pty.add(session);
+      TerminalTabs.Tab<PtySession> tab = pty.publish(reservation, session);
+      reservation = null;
       ptyProtection.put(tab.id, ticket);
       notifyPty();
       return tab;
     } catch (RuntimeException | Error failure) {
       // 已 fork 的失败对象保持原出生身份，发布“待核验”而不是留下无法显式关闭的隐藏租约。
       if (allocated[0] != null && allocated[0].isCleanupPending()) {
-        TerminalTabs.Tab<PtySession> tab = pty.add(allocated[0]);
-        ptyProtection.put(tab.id, ticket);
-        pty.closeFailed(tab.id, safeError(failure));
-        notifyPty();
+        if (reservation != null) {
+          TerminalTabs.Tab<PtySession> tab = pty.publish(reservation, allocated[0]);
+          reservation = null;
+          ptyProtection.put(tab.id, ticket);
+          pty.closeFailed(tab.id, safeError(failure));
+          notifyPty();
+        }
       } else protection.releaseVerified(ticket);
       throw failure;
     } finally {
+      pty.cancelIdentity(reservation);
       protection.finishCreate(ticket);
     }
   }
@@ -245,17 +253,21 @@ public final class TerminalSessionOwner {
     requireProtection();
     protection.beginCreate(ticket, ownerEpoch, TerminalRuntimeProtection.Kind.SIMPLE);
     boolean published = false;
+    TerminalTabs.Reservation reservation = null;
     try {
       if (backend == null) throw new IllegalArgumentException("TERMINAL_BACKEND_REQUIRED");
+      reservation = simple.reserveIdentity();
       SimpleTab value = new SimpleTab(protectedBackend(ticket, backend));
       protection.retain(ticket);
-      TerminalTabs.Tab<SimpleTab> tab = simple.add(value);
+      TerminalTabs.Tab<SimpleTab> tab = simple.publish(reservation, value);
+      reservation = null;
       simpleProtection.put(tab.id, ticket);
       published = true;
       value.session.ensureStarted();
       notifySimpleTabs();
       return tab;
     } finally {
+      simple.cancelIdentity(reservation);
       if (!published) protection.releaseVerified(ticket);
       protection.finishCreate(ticket);
     }

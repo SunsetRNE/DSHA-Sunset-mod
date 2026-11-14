@@ -111,23 +111,56 @@ public final class TerminalTabs<T> {
     }
   }
 
+  /** 创建前先消费永久身份；取消只放弃预留，永远不回退计数。 */
+  public static final class Reservation {
+    private final long id;
+
+    private Reservation(long id) {
+      this.id = id;
+    }
+  }
+
   private final List<Tab<T>> tabs = new ArrayList<>();
   private final ReadOnly<T> readOnly = new View<>(this);
+  private final java.util.Set<Reservation> reservations = new java.util.HashSet<>();
   private long next = 1, selected;
-  private boolean initialized;
+  private boolean initialized, identityExhausted;
 
   public ReadOnly<T> readOnly() {
     return readOnly;
   }
 
+  public synchronized Reservation reserveIdentity() {
+    if (identityExhausted || next <= 0)
+      throw new IllegalStateException("TERMINAL_SESSION_ID_EXHAUSTED");
+    Reservation reservation = new Reservation(next);
+    if (next == Long.MAX_VALUE) identityExhausted = true;
+    else next++;
+    reservations.add(reservation);
+    return reservation;
+  }
+
+  public synchronized void cancelIdentity(Reservation reservation) {
+    reservations.remove(reservation);
+  }
+
   public synchronized Tab<T> add(T value) {
     if (value == null)
       throw new IllegalArgumentException(com.deepseekharness.app.util.UiText.text("终端会话不能为空"));
+    return publish(reserveIdentity(), value);
+  }
+
+  /** 只能发布本表尚未消费的精确预留；显示编号在发布时独立选择最小空缺。 */
+  public synchronized Tab<T> publish(Reservation reservation, T value) {
+    if (value == null)
+      throw new IllegalArgumentException(com.deepseekharness.app.util.UiText.text("终端会话不能为空"));
+    if (reservation == null || !reservations.remove(reservation))
+      throw new IllegalArgumentException("TERMINAL_IDENTITY_RESERVATION_MISMATCH");
     int number = 1;
     java.util.HashSet<Integer> occupied = new java.util.HashSet<>();
     for (Tab<T> item : tabs) occupied.add(item.number);
     while (occupied.contains(number)) number++;
-    Tab<T> tab = new Tab<>(next++, number, value);
+    Tab<T> tab = new Tab<>(reservation.id, number, value);
     tabs.add(tab);
     selected = tab.id;
     initialized = true;

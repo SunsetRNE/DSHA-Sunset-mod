@@ -16,6 +16,54 @@ import org.junit.Test;
 
 public class TerminalSessionOwnerTest {
   @Test
+  public void exhaustedIdentityRejectsPtyAndSimpleBeforeAnyStartOrLogicalHold() throws Exception {
+    var protection = new TerminalRuntimeProtection(() -> 1L);
+    var owner = new TerminalSessionOwner(protection);
+    AtomicInteger starts = new AtomicInteger();
+    for (String table : new String[] {"pty", "simple"}) {
+      var field = TerminalSessionOwner.class.getDeclaredField(table);
+      field.setAccessible(true);
+      var exhausted =
+          com.deepseekharness.app.util.TerminalTabs.class.getDeclaredField("identityExhausted");
+      exhausted.setAccessible(true);
+      exhausted.setBoolean(field.get(owner), true);
+    }
+    for (var kind : TerminalRuntimeProtection.Kind.values()) {
+      var ticket = protection.prepare(owner.epoch(), kind, admission());
+      assertTrue(protection.promoted(ticket.id(), new Object(), () -> true));
+      if (kind == TerminalRuntimeProtection.Kind.PTY) {
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                owner.createPty(
+                    ticket,
+                    (verified, changed, beforeFork, allocated, command) -> {
+                      starts.incrementAndGet();
+                      throw new AssertionError("must reserve identity before fork");
+                    }));
+      } else {
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                owner.createSimple(
+                    ticket,
+                    new TerminalSession.Backend() {
+                      public Process open() {
+                        starts.incrementAndGet();
+                        throw new AssertionError("must reserve identity before opening backend");
+                      }
+
+                      public void terminate(Process process, long group) {}
+                    }));
+      }
+      assertFalse(protection.hasDemand());
+    }
+    assertEquals(0, starts.get());
+    assertTrue(owner.ptyTabs().snapshot().isEmpty());
+    assertTrue(owner.simpleTabs().snapshot().isEmpty());
+  }
+
+  @Test
   public void failedCloseKeepsIdAndNumberUntilVerifiedRetry() throws Exception {
     TerminalSessionOwner owner = new TerminalSessionOwner();
     assertFalse(((Object) owner.simpleTabs()) instanceof com.deepseekharness.app.util.TerminalTabs);
@@ -323,6 +371,11 @@ public class TerminalSessionOwnerTest {
   public void failedPendingPtyIsPublishedWithSameIdentityForExplicitClose() throws Exception {
     var protection = new TerminalRuntimeProtection(() -> 1L);
     TerminalSessionOwner owner = new TerminalSessionOwner(protection);
+    var table = TerminalSessionOwner.class.getDeclaredField("pty");
+    table.setAccessible(true);
+    var next = com.deepseekharness.app.util.TerminalTabs.class.getDeclaredField("next");
+    next.setAccessible(true);
+    next.setLong(table.get(owner), Long.MAX_VALUE);
     var ticket = protection.prepare(owner.epoch(), TerminalRuntimeProtection.Kind.PTY, admission());
     protection.promoted(ticket.id(), new Object(), () -> true);
     var constructor = com.deepseekharness.app.PtySession.class.getDeclaredConstructor();
@@ -348,6 +401,7 @@ public class TerminalSessionOwnerTest {
                   }));
       var tab = owner.currentPty();
       assertNotNull(tab);
+      assertEquals(Long.MAX_VALUE, tab.id);
       org.junit.Assert.assertSame(pending, tab.value);
       assertTrue(tab.isUnconfirmed());
       assertFalse(tab.error().contains("private-value"));
