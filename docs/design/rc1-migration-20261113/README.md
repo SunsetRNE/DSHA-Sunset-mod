@@ -266,15 +266,25 @@ descriptor 与 runtimeId 由 Lead 在合并树按最终输入重算。
   历史缓存 `Rc1MigrationCache` 同口径拒绝（`SETTINGS_EXPECTED_SECTIONS_MISSING`），本批不新增
   用户确认放行旁路。
 
-**已知行为边界（需产品裁决）**：升级自更早版本、存在 settings 来源但账本无 `expectedSections`
-且同代次没有 `reuse.json settingsSections` 的用户，其首次启动的 Python prepare 会返回 unknown；
+**已知行为边界（需产品裁决）**：命中面是“提交代次的账本写于 d278c742 之前（没有
+`expectedSections`），且同代次 `reuse.json` 同样早于该提交（没有 `settingsSections`）”——
+典型为从 ≤build363 直接升级的机器；它们首次启动的 Python prepare 会返回 unknown，
 [StartupPipeline](../../../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java#L316)
-对非 `allowsStart` 结果阻断启动，用户会看到“保留数据/迁移待处理”提示，而不是被自动重导。
-若产品希望改为“可见待处理但允许无写入启动”，需要另立用户显式确认不导入的受控路径，不在本批
-范围。
+对非 `allowsStart` 结果阻断启动，用户看到“迁移未完成或结果未知/检查保留数据”而不是被自动重导，
+而且被拦后 finalize 不再运行，无法自愈。从 build364 升级且已启动过一次的机器，会在 finalize
+快路径把 `settingsSections` 写进 `reuse.json`，因此可经同代次 checkpoint 证据继续判 verified；
+新代次账本自带 `expectedSections` 不受影响。若产品希望改为“可见待处理但允许无写入启动”，需要
+另立用户显式确认不导入的受控路径，不在本批范围。
 
-测试（2026-11-14 UTC，本机真实锁定运行时）：`tools/test-rc1-settings-migration.mjs` 22 项通过
-（含 4 项修复前失败的真实 schema/未知 schema 反例，3 项修复前失败的 A 反例）；
-`tools/test-rc1-migration.py` 48 项通过（含 3 个类修复前失败或不可用的 E 反例）;
-`Rc1MigrationCacheTest` 新增“旧账本与 checkpoint 都缺期望集合 → UNAVAILABLE”并保留账本自带
-`expectedSections` 的历史命中正例。
+测试（2026-11-14 UTC，本机真实锁定运行时）：`tools/test-rc1-settings-migration.mjs` 23 项通过
+（含 4 项修复前失败的真实 schema/未知 schema 反例、3 项修复前失败的 A 反例，以及非映射分节在
+update 前拒绝）；
+`tools/test-rc1-migration.py` 48 项通过（含 3 项修复前失败、1 项修复前因缺新函数不可用的 E 反例）;
+`Rc1MigrationCacheTest` 8 项通过（javac + JUnitCore；新增“旧账本与 checkpoint 都缺期望集合 →
+UNAVAILABLE”负例，保留账本自带 `expectedSections` 的历史命中正例）。另有
+`format-java-tree.py --check`（1775 文件 0 需格式化）、`check-source-hygiene.py`、
+`check-document-links.py`（56 篇/1309 目标）、`run-host-tests.py --check-manifest` 通过。
+未跑：Gradle 单测任务（本机缺 `app/src/main/assets/dsh-runtime.bin` 等固定输入，任务在
+`prepareBackupAssets` 失败）、设备/覆盖安装/真机迁移、完整 Ubuntu 门禁；
+`verify-runtime-descriptor-source.py` 因未重算 descriptor 预期失败（`DESCRIPTOR_SOURCE_BYTES:
+rc1-migration.py`），由 Lead 在合并树重算。
