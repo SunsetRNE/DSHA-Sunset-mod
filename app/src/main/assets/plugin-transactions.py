@@ -594,20 +594,37 @@ class Transactions:
             finally:
                 if descriptor is not None:
                     os.close(descriptor)
+        scan_status, error_code = 'failed', 'UNEXPECTED_ERROR'
         try:
             with reader.parent(root) as handle:
                 if handle is None:
+                    scan_status, error_code = 'completed', 'NONE'
                     return []
                 try:
                     root_info = reader.stat(handle[0], handle[1])
                 except FileNotFoundError:
+                    scan_status, error_code = 'completed', 'NONE'
                     return []
                 if not stat.S_ISDIR(root_info.st_mode):
                     raise ValueError('旧 pnpm 模块根不是私有目录，原件已保留')
                 walk(*handle, '', 0)
+            scan_status, error_code = 'completed', 'NONE'
             return found
+        except Exception as error:
+            if isinstance(error, self.g['PluginCancelled']):
+                scan_status, error_code = 'cancelled', 'CANCELLED'
+            else:
+                scan_status = 'failed'
+                error_code = ('PERMISSION_DENIED' if isinstance(error, PermissionError) else
+                              'IO_ERROR' if isinstance(error, OSError) else
+                              'VALIDATION_FAILED' if isinstance(error, ValueError) else
+                              'UNEXPECTED_ERROR')
+            raise
         finally:
-            self.cas_timing('scan', started, **counts)
+            # Counts on an interrupted walk are partial, never a no-op receipt.
+            # Export only fixed labels, not exception messages or entry paths.
+            self.cas_timing('scan', started, **counts, scanStatus=scan_status,
+                            countsComplete=scan_status == 'completed', errorCode=error_code)
 
     def cas_timing(self, phase, started, **counts):
         report = self.g.get('cas_timing')
