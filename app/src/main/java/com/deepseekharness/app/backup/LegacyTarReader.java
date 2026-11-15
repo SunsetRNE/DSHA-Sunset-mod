@@ -37,13 +37,43 @@ public final class LegacyTarReader {
 
   static void readWithLimit(InputStream raw, Visitor visitor, BackupControl control, long byteLimit)
       throws IOException {
-    readInternal(raw, visitor, control, byteLimit, false);
+    readInternal(raw, visitor, control, byteLimit, false, -1);
+  }
+
+  /**
+   * envelope 的窄入口：compressedBytes 是当前 raw 视图的完整 gzip 长度，不是展开预算。
+   * 两字节 peek 随后 unread，不能从该长度扣除；未知/超 ABI 不截流、不伪造 EOF。
+   */
+  static void readWithLimit(
+      InputStream raw, Visitor visitor, BackupControl control, long byteLimit, long compressedBytes)
+      throws IOException {
+    control.check();
+    InputStream checked =
+        new FilterInputStream(raw) {
+          @Override
+          public int read() throws IOException {
+            control.check();
+            int value = in.read();
+            control.check();
+            return value;
+          }
+
+          @Override
+          public int read(byte[] bytes, int offset, int length) throws IOException {
+            control.check();
+            int count = in.read(bytes, offset, length);
+            control.check();
+            return count;
+          }
+        };
+    // 构造器的原生泵也经 checked 喂块，不从另一个线程关闭/abort 会话。
+    readInternal(checked, visitor, control, byteLimit, false, compressedBytes);
   }
 
   /** Signed Linux assets have case-sensitive names; user archive collision policy is unchanged. */
   public static void readTrustedAssets(InputStream raw, Visitor visitor, BackupControl control)
       throws IOException {
-    readInternal(raw, visitor, control, BackupLimits.BYTES, true);
+    readInternal(raw, visitor, control, BackupLimits.BYTES, true, -1);
   }
 
   private static void readInternal(
@@ -51,7 +81,8 @@ public final class LegacyTarReader {
       Visitor visitor,
       BackupControl control,
       long byteLimit,
-      boolean caseSensitive)
+      boolean caseSensitive,
+      long compressedBytes)
       throws IOException {
     if (byteLimit < 0 || byteLimit > BackupLimits.BYTES + 256L * 1024 * 1024)
       throw new IOException("ARCHIVE_LIMIT");
@@ -60,7 +91,12 @@ public final class LegacyTarReader {
       if (second >= 0) start.unread(second);
       if (first >= 0) start.unread(first);
       boolean gzip = first == 31 && second == 139;
-      InputStream decoded = gzip ? new StrictGzipInputStream(start) : start;
+      InputStream decoded =
+          !gzip
+              ? start
+              : compressedBytes < 0
+                  ? new StrictGzipInputStream(start)
+                  : StrictGzipInputStream.open(start, compressedBytes);
       // 签名资产的小成员共用解压输出缓存，避免 header/正文/padding 各调一次 inflater。
       // 外层仍读到 EOF，由同一个严格 gzip 读取器检查 CRC、长度和尾随内容。
       try (InputStream input = caseSensitive ? new BufferedInputStream(decoded, 262144) : decoded) {

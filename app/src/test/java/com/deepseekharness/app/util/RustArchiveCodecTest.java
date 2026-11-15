@@ -12,6 +12,16 @@ import org.junit.Test;
  */
 public class RustArchiveCodecTest {
   @Test
+  public void onlyKnownStreamSizesWithinTheCompleteAbiBudgetAreEligible() {
+    assertFalse(RustArchiveCodec.supportsStreamSize(-1));
+    assertFalse(RustArchiveCodec.supportsStreamSize(Long.MIN_VALUE));
+    assertTrue(RustArchiveCodec.supportsStreamSize(0));
+    assertTrue(RustArchiveCodec.supportsStreamSize(RustArchiveCodec.MAX_TOTAL_BYTES));
+    assertFalse(RustArchiveCodec.supportsStreamSize(RustArchiveCodec.MAX_TOTAL_BYTES + 1));
+    assertFalse(RustArchiveCodec.supportsStreamSize(Long.MAX_VALUE));
+  }
+
+  @Test
   public void pinnedConstantsMatchTheAbi() {
     assertEquals(262_144, RustArchiveCodec.CHUNK);
     assertEquals(262_144, RustArchiveCodec.MAX_OUTPUT_CHUNK);

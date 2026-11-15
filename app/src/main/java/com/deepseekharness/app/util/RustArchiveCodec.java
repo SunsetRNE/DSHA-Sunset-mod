@@ -1,14 +1,18 @@
 package com.deepseekharness.app.util;
 
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.zip.GZIPOutputStream;
+
 /**
  * Rust gzip 旁路（{@code archive_pack}/{@code archive_unpack}）的常量、错误码与结果解码（方案
  * §4.4、§4.5、§5.4）。
  *
- * <p>纯 Java、零 Android import。本类只保存冻结 ABI 的数值与映射，不做 I/O、不加载库、不写日志；
+ * <p>纯 Java、零 Android import。常量/错误映射与流工厂复用冻结 ABI；
  * 流式实现见 {@link RustGzipOutputStream}（编码）与 {@link RustGzipInputStream}（严格解码）。
- *
- * <p>R3 不接生产调用点：{@code backup/} 的接线属 A3 slice4，由 Lead 串行安排；本类只作为
- * 可差分验证的宿主桥，运行层开关仍由 {@link RustBackends#archiveSelection()} 默认关闭。
+ * A3 slice4 在消费输入/写目标前选择一次后端，运行层开关仍由
+ * {@link RustBackends#archiveSelection()} 默认关闭，范围未知或超 ABI 时保留 JVM。
  *
  * <p>错误消息与 {@code app/src/main/java/com/deepseekharness/app/backup/StrictGzipInputStream}
  * 的 {@code IOException} 文本一一对应；冻结 ABI 把该读取器的 {@code GZIP_FLAGS} 合入
@@ -93,6 +97,34 @@ public final class RustArchiveCodec {
   static final String RUST_ERROR_PREFIX = "RUST_ERROR_";
 
   private RustArchiveCodec() {}
+
+  /** 未知长度（负值）或超出 ABI 累计预算的流留在 JVM；不得截断以满足范围。 */
+  public static boolean supportsStreamSize(long bytes) {
+    return bytes >= 0 && bytes <= MAX_TOTAL_BYTES;
+  }
+
+  /**
+   * 在首次写入前选择一次编码器；完整明文长度必须包含 tar 头、padding 与结束块。
+   *
+   * <p>返回流只借用 target，调用方始终负责关闭底层流（包括构造失败）。选择后的任何异常
+   * 都直接传播，不在原目标换后端重放；失败后关闭编码器前还须由调用方禁止继续写目标。
+   */
+  public static OutputStream packStream(OutputStream target, long plaintextBytes)
+      throws IOException {
+    if (target == null) throw new NullPointerException("target");
+    boolean rust = supportsStreamSize(plaintextBytes) && RustBackends.archiveSelection().useRust();
+    OutputStream borrowed =
+        new FilterOutputStream(target) {
+          @Override
+          public void write(byte[] bytes, int offset, int length) throws IOException {
+            out.write(bytes, offset, length);
+          }
+
+          @Override
+          public void close() {}
+        };
+    return rust ? new RustGzipOutputStream(borrowed) : new GZIPOutputStream(borrowed, 65536);
+  }
 
   /** {@code pack} 单次输出缓冲下限 {@code n + n/8 + 128}（与 Rust 同一公式）。 */
   public static int packBound(int inputLength) {

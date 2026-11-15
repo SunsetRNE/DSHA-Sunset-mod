@@ -52,6 +52,7 @@ public final class WebRecordedStopTest {
     int sentinel, inspections, records, waitFailures;
     final List<Integer> terms = new ArrayList<>();
     final List<String> retired = new ArrayList<>();
+    final List<String> exits = new ArrayList<>();
     final List<String> escalations = new ArrayList<>();
     final ArrayDeque<WebProcessManager.ProcessState> states = new ArrayDeque<>();
     WebProcessManager.ProcessState current = state(WebProcessManager.Kind.WEB, 100);
@@ -127,6 +128,10 @@ public final class WebRecordedStopTest {
       retired.add(record);
     }
 
+    public void exitConfirmed(String record, String birth) {
+      exits.add(record + "/" + birth);
+    }
+
     public WebRecordedStop.Signal term(int pid) {
       terms.add(pid);
       return signal;
@@ -143,6 +148,7 @@ public final class WebRecordedStopTest {
     io.record = null;
     assertNull(WebRecordedStop.run(io));
     assertTrue(io.terms.isEmpty());
+    assertTrue(io.exits.isEmpty());
   }
 
   @Test
@@ -177,6 +183,7 @@ public final class WebRecordedStopTest {
         new WebProcessManager.ProcessState(WebProcessManager.Kind.DENIED, null, "", false, true);
     assertNull(WebRecordedStop.run(io));
     assertEquals(2, io.inspections);
+    assertTrue(io.exits.isEmpty()); // 退休不可见记录不是已观察出生身份退出。
     assertEquals(List.of("42"), io.retired);
     assertTrue(io.terms.isEmpty());
     io = new Io();
@@ -240,6 +247,7 @@ public final class WebRecordedStopTest {
     assertEquals(List.of(42), io.terms);
     assertEquals(List.of("42"), io.retired);
     assertEquals(3, io.inspections);
+    assertEquals(List.of("42/42 100"), io.exits);
   }
 
   @Test
@@ -249,6 +257,7 @@ public final class WebRecordedStopTest {
     assertNotNull(error);
     assertEquals(List.of(42), io.terms);
     assertTrue(io.retired.isEmpty());
+    assertTrue(io.exits.isEmpty()); // SENT 不是退出。
     // 预算必须覆盖 dsh 自身 5s 的强制退出上限；3s 会把正常关闭判成未确认。
     assertEquals(com.deepseekharness.app.util.WebStopBudget.EXIT_CONFIRM_MILLIS, io.clock);
     assertTrue(io.clock >= 6_000 && io.clock <= 8_000);

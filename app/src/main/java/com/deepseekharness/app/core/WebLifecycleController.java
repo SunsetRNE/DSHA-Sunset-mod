@@ -1776,6 +1776,11 @@ final class WebLifecycleController {
               ? lifecycle.beginStop()
               : state.startProtection.beginInternalStop(protection);
       if (generation < 0) return null;
+      var operation = state.identifyStop(previous, generation);
+      var receipt = state.stopReceipt;
+      var requestedCapture = processes.captureStop();
+      state.stopCompletion = null;
+      state.stopShadowDecision = null;
       state.diagnostics.completed(previous, "stopped", "");
       state.lastStopError = "";
       // 停止阶段与已用预算：页面每秒刷新时显示“在等什么、已经等了几秒”。
@@ -1806,6 +1811,7 @@ final class WebLifecycleController {
                 () -> {
                   String stopError = "";
                   WebStopCoordinator.Result retirementProof = null;
+                  com.deepseekharness.app.util.StopCompletion completion = null;
                   try {
                     try {
                       revoked.await();
@@ -1815,12 +1821,15 @@ final class WebLifecycleController {
                           "WEB_STOP_REVOCATION_INTERRUPTED", interrupted);
                     }
                     processes.loadStopEvidence();
+                    var captured = processes.loadedStopCapture(requestedCapture);
+                    var trace = webProc.beginStopObservation();
                     // Core HTTP/ADB close and exit probes must never run in an Activity/Service
                     // callback. The epoch/permit revocation above has already fenced input.
                     screenLifetime.stop();
-                    WebStopCoordinator.Result result =
-                        WebStopCoordinator.stop(
-                            new WebStopCoordinator.Ports() {
+                    var attempt =
+                        WebStopCoordinator.stopObserved(
+                            operation,
+                            new WebStopCoordinator.ObservedPorts() {
                               public String stopGuest() throws IOException {
                                 return WebStopText.renderAll(stopGuestFacts());
                               }
@@ -1829,7 +1838,7 @@ final class WebLifecycleController {
                                   stopGuestFacts() throws IOException {
                                 recordStopStage(generation, "stopping-guest");
                                 return (forcedCandidate == null
-                                        ? webProc.stopResult()
+                                        ? webProc.stopResult(trace)
                                         : webProc.forceStopResult(forcedCandidate))
                                     .diagnostics();
                               }
@@ -1846,58 +1855,104 @@ final class WebLifecycleController {
 
                               public boolean confirm() throws IOException {
                                 recordStopStage(generation, "confirming-exit");
-                                return processes.confirmStopped();
+                                return processes.confirmStopped(trace);
+                              }
+
+                              public WebStopCoordinator.Observation observe() {
+                                // 强停没有接入完整来源账本；不借其通用 STOPPED 填全新证明。
+                                return forcedCandidate == null
+                                    ? processes.observeStop(captured, trace)
+                                    : WebStopCoordinator.Observation.unknown();
+                              }
+
+                              public long now() {
+                                return android.os.SystemClock.elapsedRealtime();
+                              }
+
+                              public void finish(WebStopCoordinator.Result result) {
+                                finishStopResources(previous, result);
                               }
                             });
+                    completion = attempt.completion();
+                    WebStopCoordinator.Result result = attempt.result();
                     state.lastStopResult = result;
                     stopError = result.stopped() ? "" : result.detail();
-                    if (stopError.isEmpty()) processes.releaseBridge(previous);
-                    if (stopError.isEmpty()) {
-                      try {
-                        storedSession.clear();
-                      } catch (IOException unavailable) {
-                        DiagnosticLog.record(
-                            ctx, "WEB_SESSION_RETIRE", unavailable.getClass().getSimpleName());
-                      }
-                      state.retainedWebStopProof = null;
-                      state.unreadableWebStopProof = false;
-                    }
-                    if (stopError.isEmpty()
-                        && !com.deepseekharness.app.core.MaintenanceCoordinator
-                            .isEnvironmentTaskBusy()) {
-                      com.deepseekharness.app.backup.AutomaticBackups.stopped(ctx);
-                      com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(ctx);
-                    } // Guest and owned-launcher proof remain separate.
-                    com.deepseekharness.app.LanProxyService.stop(previous);
                     if (stopError.isEmpty()) retirementProof = result;
                   } catch (RuntimeException | Error failure) {
+                    completion = null;
                     retirementProof = null;
                     stopError = recordStopFailure(state, failure).detail();
-                    if (failure instanceof Error) throw (Error) failure;
+                    if (failure instanceof Error) {
+                      receipt.completion().completeExceptionally(failure);
+                      throw (Error) failure;
+                    }
                   } finally {
-                    synchronized (lifecycle) {
-                      state.lastStopError = stopError == null ? "" : stopError;
-                      lifecycle.finishStop(generation);
-                      if (retirementProof != null && retirementProof.stopped())
-                        new android.os.Handler(android.os.Looper.getMainLooper())
-                            .post(
-                                foregroundRetirement(
-                                    lifecycle,
-                                    generation,
-                                    retirementProof,
-                                    () ->
-                                        com.deepseekharness.app.HarnessService.retireStoppedRuntime(
-                                            ctx, generation)));
-                      reportStatus(
-                          generation,
-                          onStatus,
-                          stopError.isEmpty()
-                              ? com.deepseekharness.app.util.UiText.text("停止操作已完成")
-                              : stopError);
+                    try {
+                      synchronized (lifecycle) {
+                        state.lastStopError = stopError == null ? "" : stopError;
+                        lifecycle.finishStop(generation);
+                        if (retirementProof != null && retirementProof.stopped())
+                          new android.os.Handler(android.os.Looper.getMainLooper())
+                              .post(
+                                  foregroundRetirement(
+                                      lifecycle,
+                                      generation,
+                                      retirementProof,
+                                      () ->
+                                          com.deepseekharness.app.HarnessService
+                                              .retireStoppedRuntime(ctx, generation)));
+                        reportStatus(
+                            generation,
+                            onStatus,
+                            stopError.isEmpty()
+                                ? com.deepseekharness.app.util.UiText.text("停止操作已完成")
+                                : stopError);
+                      }
+                    } catch (RuntimeException | Error finalFailure) {
+                      receipt.completion().completeExceptionally(finalFailure);
+                      throw finalFailure;
                     }
                   }
+                  if (completion == null)
+                    completion =
+                        new com.deepseekharness.app.util.StopCompletion(
+                            operation,
+                            new com.deepseekharness.app.util.StopCompletion.Environment("", "", ""),
+                            java.util.List.of(),
+                            android.os.SystemClock.elapsedRealtime(),
+                            com.deepseekharness.app.util.StopCompletion.Finish.FAILED,
+                            false,
+                            false);
+                  // 本次历史结果只在全部原有同步收尾完成后发布；不借展示状态回填。
+                  completion =
+                      new com.deepseekharness.app.util.StopCompletion(
+                          operation,
+                          completion.environment(),
+                          new java.util.ArrayList<>(completion.facts().values()),
+                          android.os.SystemClock.elapsedRealtime(),
+                          completion.finish(),
+                          completion.objectsUnchanged(),
+                          completion.legacyStopped());
+                  synchronized (lifecycle) {
+                    if (state.stopOperation == operation) {
+                      state.stopCompletion = completion;
+                      state.stopShadowDecision =
+                          com.deepseekharness.app.util.StopHandoff.evaluate(
+                              completion,
+                              operation,
+                              state.stopOperation,
+                              state,
+                              lifecycle.generation(),
+                              state.startProtection.cancellationRevision(),
+                              completion.environment(),
+                              protection != null
+                                  && state.startProtection.observesWaitingStop(protection));
+                    }
+                  }
+                  receipt.completion().complete(completion);
                 });
       } catch (RuntimeException rejected) {
+        receipt.completion().completeExceptionally(rejected);
         recordStopFailure(state, rejected);
         lifecycle.finishStop(generation);
         java.util.concurrent.FutureTask<Void> failed =
@@ -1918,6 +1973,27 @@ final class WebLifecycleController {
       revoked.countDown();
     }
     return submitted;
+  }
+
+  /** 原有同步收尾；这里的任意未捕获失败仍属于本次 stop 失败。 */
+  private void finishStopResources(long previous, WebStopCoordinator.Result result) {
+    state.lastStopResult = result;
+    String error = result.stopped() ? "" : result.detail();
+    if (error.isEmpty()) processes.releaseBridge(previous);
+    if (error.isEmpty()) {
+      try {
+        storedSession.clear();
+      } catch (IOException unavailable) {
+        DiagnosticLog.record(ctx, "WEB_SESSION_RETIRE", unavailable.getClass().getSimpleName());
+      }
+      state.retainedWebStopProof = null;
+      state.unreadableWebStopProof = false;
+    }
+    if (error.isEmpty() && !MaintenanceCoordinator.isEnvironmentTaskBusy()) {
+      com.deepseekharness.app.backup.AutomaticBackups.stopped(ctx);
+      com.deepseekharness.app.backup.PostUpgradeCleanupService.schedule(ctx);
+    }
+    com.deepseekharness.app.LanProxyService.stop(previous);
   }
 
   private File stopSentinel() {

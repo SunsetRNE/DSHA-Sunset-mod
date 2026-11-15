@@ -190,6 +190,26 @@ public final class WebStartProtection {
     }
   }
 
+  /** 仅供 S1a 影子采样；不调用 active/reject，不消费、续期或复活原票据。 */
+  public boolean observesWaitingStop(Ticket ticket) {
+    synchronized (lifecycle) {
+      if (ticket == null
+          || pending != ticket
+          || ticket.closed
+          || ticket.admitted
+          || !ticket.waitingStop
+          || ticket.service == null
+          || ticket.generation != lifecycle.generation()) return false;
+      long now = clock.getAsLong();
+      if (now < ticket.created || now >= ticket.deadline) return false;
+      try {
+        return ticket.serviceCurrent != null && ticket.serviceCurrent.getAsBoolean();
+      } catch (RuntimeException unknown) {
+        return false;
+      }
+    }
+  }
+
   public boolean resumeAfterStop(Ticket ticket) {
     synchronized (lifecycle) {
       if (!ready(ticket) || !ticket.waitingStop || lifecycle.isStopping()) return false;

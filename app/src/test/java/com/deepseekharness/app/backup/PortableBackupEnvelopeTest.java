@@ -200,6 +200,46 @@ public class PortableBackupEnvelopeTest {
   }
 
   @Test
+  public void completeTarBudgetIncludesEveryHeaderPaddingAndEndBlockWithoutOverflow()
+      throws Exception {
+    assertEquals(1024 + 512 + 512 + 512 + 512, PortableBackupEnvelope.tarBytes(8, 31, 0));
+    assertEquals(1024 + 3 * 1024, PortableBackupEnvelope.tarBytes(8, 31, 1));
+    long limit = com.deepseekharness.app.util.RustArchiveCodec.MAX_TOTAL_BYTES;
+    assertEquals(limit, PortableBackupEnvelope.tarBytes(limit - 2560, 31, 0));
+    assertEquals(limit + 512, PortableBackupEnvelope.tarBytes(limit - 2560 + 1, 31, 0));
+    assertTrue(PortableBackupEnvelope.tarBytes(limit, 31, 0) > limit);
+    assertThrows(IOException.class, () -> PortableBackupEnvelope.tarBytes(Long.MAX_VALUE, 31, 0));
+    assertThrows(IOException.class, () -> PortableBackupEnvelope.tarBytes(-1, 31, 0));
+  }
+
+  @Test
+  public void cancelledOrOversizedDiagnosticsFailBeforeWritingAnyTransportBytes() throws Exception {
+    byte[] payload = BackupArchiveTest.archive();
+    File source = save("payload", payload);
+    ByteArrayOutputStream target = new ByteArrayOutputStream();
+    assertEquals(
+        "ENVELOPE_DIAGNOSTICS_SIZE",
+        assertThrows(
+                IOException.class,
+                () ->
+                    PortableBackupEnvelope.writeUnencrypted(
+                        fs,
+                        source,
+                        BackupArchive.hex(BackupArchive.sha().digest(payload)),
+                        target,
+                        control,
+                        new byte[65537]))
+            .getMessage());
+    assertEquals(0, target.size());
+    BackupControl cancelled = new BackupControl(null);
+    cancelled.cancel();
+    assertThrows(
+        InterruptedIOException.class,
+        () -> PortableBackupEnvelope.writeUnencrypted(fs, source, "", target, cancelled));
+    assertEquals(0, target.size());
+  }
+
+  @Test
   public void envelopeTransportAllowanceDoesNotRelaxLegacyTarBudget() throws Exception {
     byte[] raw = entry("portable.dshbak", '0', new byte[0]);
     long size = BackupLimits.BYTES + 1;

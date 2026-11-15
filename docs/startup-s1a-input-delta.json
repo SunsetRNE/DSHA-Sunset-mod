@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "base": "f9e8d867b695f8f862288fae00f2c0a89455a87f",
+  "purpose": "S1a受管来源增量；由main串行应用并重算正式descriptor",
+  "launcherSourcesAdd": [
+    "util/StopOperationId.kt",
+    "util/StopCompletion.kt",
+    "util/StopHandoff.kt"
+  ],
+  "launcherSourcesRemove": [],
+  "changedAlreadyRegistered": [
+    "core/HarnessSessionState.java",
+    "core/WebLifecycleController.java",
+    "core/WebProcessSession.java",
+    "core/WebStopCoordinator.java",
+    "runtime/WebProcessManager.java",
+    "runtime/WebRecordedStop.java",
+    "util/WebStartProtection.java"
+  ],
+  "sourceSha256": {
+    "util/StopOperationId.kt": "94e08412f1a287b01ca8911e4b6624529d5de7acdeb3846736c53d464ddf9ad4",
+    "util/StopCompletion.kt": "137fb1689d738568fd1d184c1aba1a9899f30c674531e4eac8e9a162220a3a26",
+    "util/StopHandoff.kt": "c2f46d9b2cf84ae59154aa5d880d754d75494d346286095ea093c2c885283d2f",
+    "core/HarnessSessionState.java": "db0cbf6a6522d215d0d841a6f5910247d953edadd7e3e83c8362678b3b7fcccf",
+    "core/WebLifecycleController.java": "3d42acb4d7e91b8b72c95213afa00ee709a4f5bdc44aaddf5c04f5f8de039422",
+    "core/WebProcessSession.java": "f3393fb69ec06b9dc7beb3b5bf4ec285eb2854960201f99d68b6d403544f4485",
+    "core/WebStopCoordinator.java": "94e0879aa92a9499afea3ea6c4c4ca77bb5d254a24b7a8db65e5d2678dceb4c4",
+    "runtime/WebProcessManager.java": "847d0a53cef5ec3dd1cf59a663aeb847f4b440882d52a4af5af98d194ac7b739",
+    "runtime/WebRecordedStop.java": "3e64589d662d330d546a461cc68cfb2a5aaafdc09a39c2e1ea3c98d5d593b70a",
+    "util/WebStartProtection.java": "50d6bdc4e81b0b36ebbd2d7186b49fdd83d52127c91594271122764d4ed8f887"
+  },
+  "finalDescriptorWritten": false,
+  "dataOrProtocolChange": false,
+  "baseRuntimeId": "829ed4b115586efebaaedb50b135c0510019d6b9236351fc21082a38e424230f",
+  "runtimeIdImpact": "变更7个已纳管Java源并增加3个Kotlin来源，集成后runtimeId改变；最终身份由main串行生成"
+}

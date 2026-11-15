@@ -1,5 +1,8 @@
 package com.deepseekharness.app.backup;
 
+import com.deepseekharness.app.util.RustArchiveCodec;
+import com.deepseekharness.app.util.RustBackends;
+import com.deepseekharness.app.util.RustGzipInputStream;
 import java.io.*;
 import java.util.zip.*;
 
@@ -12,6 +15,26 @@ public final class StrictGzipInputStream extends InputStream {
   private int supplied;
   private long size, compressedSize;
   private boolean finished, closed;
+
+  /**
+   * 仅已知完整压缩长度且在 ABI 预算内时尝试 Rust；未知/超限保留 JVM。
+   *
+   * <p>本工厂借用 source，构造失败或 close 都由外层 owner 关闭底层流。Rust 构造可能已经
+   * 消费正文并核验尾部，任何失败都直接上抛，不能在同一 source 上换 JVM 重读。
+   * 直接构造器保持 JVM 严格读取器，供旧入口和差分参照使用。
+   */
+  public static InputStream open(InputStream source, long compressedBytes) throws IOException {
+    if (source == null) throw new NullPointerException("source");
+    boolean rust =
+        RustArchiveCodec.supportsStreamSize(compressedBytes)
+            && RustBackends.archiveSelection().useRust();
+    InputStream borrowed =
+        new FilterInputStream(source) {
+          @Override
+          public void close() {}
+        };
+    return rust ? new RustGzipInputStream(borrowed) : new StrictGzipInputStream(borrowed);
+  }
 
   public StrictGzipInputStream(InputStream source) throws IOException {
     raw = new PushbackInputStream(source, compressed.length);

@@ -47,6 +47,9 @@ final class WebRecordedStop {
 
     void retire(String record) throws IOException;
 
+    /** 旁路退出事实；默认不采集，不改变停止信号、等待或退休策略。 */
+    default void exitConfirmed(String record, String birth) {}
+
     Signal term(int pid) throws IOException;
 
     /**
@@ -90,6 +93,7 @@ final class WebRecordedStop {
         String saved = io.savedIdentity(pid);
         if (mayRetire(state, saved)) {
           io.retire(record);
+          io.exitConfirmed(record, saved == null ? "" : saved);
           return null;
         }
         // 强杀路径要求出生身份也可核对：PID 记录被换掉时宁可保留现场也不发 SIGKILL。
@@ -121,6 +125,7 @@ final class WebRecordedStop {
         Signal signal = io.term(pid);
         if (signal == Signal.GONE || signal == Signal.FOREIGN_UID) {
           io.retire(record);
+          io.exitConfirmed(record, state.identity.record());
           return null;
         }
         if (signal == Signal.DENIED) return WebStopDiagnostic.of(Code.SIGNAL_DENIED);
@@ -182,6 +187,7 @@ final class WebRecordedStop {
         // 消失、换 UID 或编号被新进程复用都是退出证明；只有同一出生身份仍存活才继续等。
         if (mayRetire(current, identity.record())) {
           io.retire(record);
+          io.exitConfirmed(record, identity.record());
           return null;
         }
         if (current.kind == WebProcessManager.Kind.WEB
@@ -217,6 +223,7 @@ final class WebRecordedStop {
     Signal quit = io.escalate(pid, false);
     if (quit == Signal.GONE || quit == Signal.FOREIGN_UID) {
       io.retire(record);
+      io.exitConfirmed(record, identity.record());
       return null;
     }
     if (quit == Signal.DENIED) return WebStopDiagnostic.of(Code.SIGNAL_DENIED, pid, "SIGQUIT");
@@ -235,6 +242,7 @@ final class WebRecordedStop {
     Signal kill = io.escalate(pid, true);
     if (kill == Signal.GONE || kill == Signal.FOREIGN_UID) {
       io.retire(record);
+      io.exitConfirmed(record, identity.record());
       return null;
     }
     if (kill == Signal.DENIED) return WebStopDiagnostic.of(Code.SIGNAL_DENIED, pid, "SIGKILL");

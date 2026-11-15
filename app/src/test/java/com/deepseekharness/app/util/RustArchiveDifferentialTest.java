@@ -2,7 +2,22 @@ package com.deepseekharness.app.util;
 
 import static org.junit.Assert.*;
 
+import com.deepseekharness.app.backup.BackupArchive;
+import com.deepseekharness.app.backup.BackupControl;
+import com.deepseekharness.app.backup.BackupFileSystem;
+import com.deepseekharness.app.backup.JvmBackupFileSystem;
+import com.deepseekharness.app.backup.LegacyTarReader;
+import com.deepseekharness.app.backup.PortableBackupCrypto;
+import com.deepseekharness.app.backup.PortableBackupEnvelope;
 import com.deepseekharness.app.backup.StrictGzipInputStream;
+import java.io.File;
+import java.io.FilterInputStream;
+import java.io.InterruptedIOException;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Random;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -17,6 +32,8 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * JVM {@link StrictGzipInputStream}/{@link GZIPOutputStream} 与 Rust archive 后端的真实对拍
@@ -538,6 +555,626 @@ public class RustArchiveDifferentialTest {
       fail("close 后读取必须失败");
     } catch (IOException error) {
       assertEquals("STREAM_CLOSED", error.getMessage());
+    }
+  }
+
+  @Rule public TemporaryFolder envelopeTemp = new TemporaryFolder();
+
+  private static final BackupControl ENVELOPE_CONTROL = new BackupControl(null);
+
+  private File saveEnvelopeBytes(byte[] bytes) throws IOException {
+    File file = envelopeTemp.newFile();
+    Files.write(file.toPath(), bytes);
+    return file;
+  }
+
+  private static byte[] v5Payload() throws IOException {
+    byte[] body = new byte[1_048_597];
+    new Random(31).nextBytes(body);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    BackupArchive.Writer writer = new BackupArchive.Writer(out, ENVELOPE_CONTROL);
+    writer.add(BackupArchive.Record.of("sessions", "", "DIRECTORY", "sessions", 0, ""), null);
+    writer.add(
+        BackupArchive.Record.of("sessions", "a", "FILE", "sessions", body.length, sha256(body)),
+        new ByteArrayInputStream(body));
+    Map<String, Object> summary = new LinkedHashMap<>();
+    summary.put("operation", "EXPORT");
+    summary.put("integrity", "QUIESCENT");
+    summary.put("createdAt", 1L);
+    summary.put("appVersion", "slice4-test");
+    summary.put("runtime", "test");
+    summary.put("dataFormat", "UNINSPECTED");
+    summary.put("sensitivePolicy", "NATIVE_API_KEYS_EXCLUDED");
+    summary.put("plugins", Map.of());
+    summary.put("roots", List.of(Map.of("id", "sessions", "scope", "sessions")));
+    summary.put("requestedScope", "sessions");
+    writer.finish(summary);
+    return out.toByteArray();
+  }
+
+  private static String sha256(byte[] bytes) {
+    return BackupArchive.hex(BackupArchive.sha().digest(bytes));
+  }
+
+  private byte[] envelope(byte[] payload, boolean rust) throws IOException {
+    RustBackends.setEnabled(rust);
+    ByteArrayOutputStream target = new ByteArrayOutputStream();
+    PortableBackupEnvelope.writeUnencrypted(
+        new JvmBackupFileSystem(),
+        saveEnvelopeBytes(payload),
+        sha256(payload),
+        target,
+        ENVELOPE_CONTROL,
+        "bounded diagnostics".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    return target.toByteArray();
+  }
+
+  private byte[] unwrapEnvelope(byte[] bytes, boolean rust) throws IOException {
+    RustBackends.setEnabled(rust);
+    File source = saveEnvelopeBytes(bytes);
+    File target = new File(envelopeTemp.newFolder(), "payload");
+    assertTrue(
+        PortableBackupEnvelope.unwrapIfPresent(
+            new JvmBackupFileSystem(), source, target, ENVELOPE_CONTROL));
+    return Files.readAllBytes(target.toPath());
+  }
+
+  private static long[] holdNativeSessions() {
+    long[] handles = new long[4];
+    for (int index = 0; index < handles.length; index++) {
+      handles[index] = RustNative.archivePackCreate(6);
+      assertTrue("原生会话泄漏: " + handles[index], handles[index] > 0);
+    }
+    return handles;
+  }
+
+  private static void releaseNativeSessions(long[] handles) {
+    for (long handle : handles) assertEquals(0, RustNative.archivePackAbort(handle));
+  }
+
+  @Test
+  public void envelopeCrossReadsPreserveV5BytesDigestManifestAndPartialScope() throws Exception {
+    byte[] payload = v5Payload();
+    Map<String, Object> expected =
+        BackupArchive.read(new ByteArrayInputStream(payload), null, ENVELOPE_CONTROL);
+    for (boolean writerRust : new boolean[] {false, true}) {
+      byte[] packed = envelope(payload, writerRust);
+      if (writerRust) {
+        assertEquals(RustArchiveCodec.HEADER_HEX, BackupArchive.hex(Arrays.copyOf(packed, 10)));
+      }
+      assertNull(readJvm(packed).error);
+      for (boolean readerRust : new boolean[] {false, true}) {
+        byte[] unpacked = unwrapEnvelope(packed, readerRust);
+        assertArrayEquals(payload, unpacked);
+        assertEquals(sha256(payload), sha256(unpacked));
+        Map<String, Object> actual =
+            BackupArchive.read(new ByteArrayInputStream(unpacked), null, ENVELOPE_CONTROL);
+        assertEquals(expected, actual);
+        assertEquals("sessions", actual.get("requestedScope"));
+        assertEquals(5L, actual.get("formatVersion"));
+      }
+    }
+    // 旧加密原件也原样装入/取出；gzip 不替代密码认证。
+    ByteArrayOutputStream encrypted = new ByteArrayOutputStream();
+    char[] password = "slice4 old encrypted backup".toCharArray();
+    PortableBackupCrypto.encrypt(
+        new ByteArrayInputStream(payload), encrypted, password, ENVELOPE_CONTROL);
+    File source = saveEnvelopeBytes(encrypted.toByteArray());
+    RustBackends.setEnabled(true);
+    ByteArrayOutputStream packed = new ByteArrayOutputStream();
+    PortableBackupEnvelope.write(
+        new JvmBackupFileSystem(),
+        source,
+        sha256(encrypted.toByteArray()),
+        packed,
+        ENVELOPE_CONTROL);
+    byte[] restored = unwrapEnvelope(packed.toByteArray(), false);
+    ByteArrayOutputStream plain = new ByteArrayOutputStream();
+    PortableBackupCrypto.decrypt(
+        new ByteArrayInputStream(restored), plain, password, ENVELOPE_CONTROL);
+    assertArrayEquals(payload, plain.toByteArray());
+    assertThrows(
+        IOException.class,
+        () ->
+            PortableBackupCrypto.decrypt(
+                new ByteArrayInputStream(restored),
+                new ByteArrayOutputStream(),
+                "wrong password".toCharArray(),
+                ENVELOPE_CONTROL));
+  }
+
+  @Test
+  public void envelopeUsesNativeSessionsAndNeverSilentlyFallsBackOnCreateFailure()
+      throws Exception {
+    byte[] payload = v5Payload();
+    byte[] jvmEnvelope = envelope(payload, false);
+    File source = saveEnvelopeBytes(payload), compressed = saveEnvelopeBytes(jvmEnvelope);
+    long[] handles = holdNativeSessions();
+    try {
+      RustBackends.setEnabled(true);
+      CountingTarget output = new CountingTarget();
+      IOException packFailure =
+          assertThrows(
+              IOException.class,
+              () ->
+                  PortableBackupEnvelope.write(
+                      new JvmBackupFileSystem(),
+                      source,
+                      sha256(payload),
+                      output,
+                      ENVELOPE_CONTROL));
+      assertEquals("SESSION_LIMIT", packFailure.getMessage());
+      assertEquals(0, output.size());
+      assertEquals(0, output.closes);
+      CountingFs fs = new CountingFs();
+      File target = new File(envelopeTemp.newFolder(), "payload");
+      IOException unpackFailure =
+          assertThrows(
+              IOException.class,
+              () ->
+                  PortableBackupEnvelope.unwrapIfPresent(fs, compressed, target, ENVELOPE_CONTROL));
+      assertEquals("SESSION_LIMIT", unpackFailure.getMessage());
+      assertEquals(1, fs.opens);
+      assertEquals(1, fs.closes);
+      assertFalse(target.exists());
+      // 相同四个原生会话仍占满时关闭开关，真实 envelope JVM 路径照常成功。
+      assertArrayEquals(payload, unwrapEnvelope(jvmEnvelope, false));
+      assertArrayEquals(payload, unwrapEnvelope(envelope(payload, false), false));
+    } finally {
+      releaseNativeSessions(handles);
+    }
+  }
+
+  @Test
+  public void envelopeRejectsGzipCorruptionTruncationConcatenationAndBadV5() throws Exception {
+    byte[] payload = v5Payload();
+    byte[] packed = envelope(payload, false);
+    byte[] crc = packed.clone(), size = packed.clone();
+    crc[crc.length - 8] ^= 1;
+    size[size.length - 4] ^= 1;
+    List<byte[]> bad =
+        new java.util.ArrayList<>(
+            List.of(
+                crc,
+                size,
+                concat(packed, new byte[] {0}),
+                concat(packed, packed),
+                mutate(packed, 3, 0xe0)));
+    for (int length :
+        new int[] {0, 1, 2, 9, packed.length / 2, packed.length - 8, packed.length - 1}) {
+      bad.add(Arrays.copyOf(packed, length));
+    }
+    for (byte[] bytes : bad) {
+      String jvm = null;
+      for (boolean rust : new boolean[] {false, true}) {
+        IOException failure = assertThrows(IOException.class, () -> unwrapEnvelope(bytes, rust));
+        String code = RustArchiveCodec.canonicalJvmMessage(failure.getMessage());
+        if (!rust) jvm = code;
+        else assertEquals("同一损坏 envelope 两后端均拒绝", jvm, code);
+      }
+    }
+    // 外层 gzip 完好仍不能证明 v5 完好：两后端取出后都由权威读者拒绝。
+    byte[] damagedV5 = payload.clone();
+    damagedV5[damagedV5.length - 1] ^= 1;
+    File source = saveEnvelopeBytes(damagedV5);
+    for (boolean rust : new boolean[] {false, true}) {
+      RustBackends.setEnabled(rust);
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      PortableBackupEnvelope.write(
+          new JvmBackupFileSystem(), source, sha256(damagedV5), output, ENVELOPE_CONTROL);
+      byte[] unpacked = unwrapEnvelope(output.toByteArray(), !rust);
+      assertEquals(
+          "ARCHIVE_FOOTER",
+          assertThrows(
+                  IOException.class,
+                  () ->
+                      BackupArchive.read(
+                          new ByteArrayInputStream(unpacked), null, ENVELOPE_CONTROL))
+              .getMessage());
+    }
+    releaseNativeSessions(holdNativeSessions());
+  }
+
+  private static final class CountingTarget extends ByteArrayOutputStream {
+    int writes, closes, afterFailure;
+    int failAt = Integer.MAX_VALUE;
+    boolean failed;
+    boolean failClose;
+    BackupControl cancelOnClose;
+
+    @Override
+    public synchronized void write(byte[] bytes, int offset, int count) {
+      // ByteArrayOutputStream 不允许受检异常；专门的失败包装见 failingTarget。
+      writes++;
+      if (failed) afterFailure++;
+      super.write(bytes, offset, count);
+    }
+
+    @Override
+    public void close() throws IOException {
+      closes++;
+      if (cancelOnClose != null) cancelOnClose.cancel();
+      if (failClose) throw new IOException("TARGET_CLOSE");
+    }
+  }
+
+  private static OutputStream failingTarget(CountingTarget bytes) {
+    return new OutputStream() {
+      @Override
+      public void write(int value) throws IOException {
+        write(new byte[] {(byte) value});
+      }
+
+      @Override
+      public void write(byte[] data, int offset, int length) throws IOException {
+        if (bytes.failed) bytes.afterFailure++;
+        if (bytes.writes >= bytes.failAt) {
+          bytes.write(data, offset, Math.min(7, length));
+          bytes.failed = true;
+          throw new IOException("TARGET_PARTIAL_WRITE");
+        }
+        bytes.write(data, offset, length);
+      }
+
+      @Override
+      public void close() throws IOException {
+        bytes.close();
+      }
+    };
+  }
+
+  private static class CountingFs extends JvmBackupFileSystem {
+    int opens, closes;
+    BackupControl cancelDuringRead;
+    BackupControl cancelAfterSourceClose;
+    boolean failSourceClose;
+
+    @Override
+    public InputStream read(File file, BackupFileSystem.Node expected) throws IOException {
+      opens++;
+      return new FilterInputStream(super.read(file, expected)) {
+        boolean closed;
+
+        @Override
+        public int read(byte[] data, int offset, int count) throws IOException {
+          int n = in.read(data, offset, count);
+          if (cancelDuringRead != null) cancelDuringRead.cancel();
+          return n;
+        }
+
+        @Override
+        public void close() throws IOException {
+          if (closed) return;
+          closed = true;
+          closes++;
+          super.close();
+          if (cancelAfterSourceClose != null) cancelAfterSourceClose.cancel();
+          if (failSourceClose) throw new IOException("SOURCE_CLOSE");
+        }
+      };
+    }
+  }
+
+  @Test
+  public void envelopePartialWritesAndCopyFailuresDoNotAppendDuringCleanupOrReplay()
+      throws Exception {
+    byte[] payload = v5Payload();
+    File source = saveEnvelopeBytes(payload);
+    for (boolean rust : new boolean[] {false, true}) {
+      RustBackends.setEnabled(rust);
+      CountingFs fs = new CountingFs();
+      CountingTarget bytes = new CountingTarget();
+      bytes.failAt = 1;
+      bytes.failClose = true;
+      IOException partial =
+          assertThrows(
+              IOException.class,
+              () ->
+                  PortableBackupEnvelope.write(
+                      fs, source, sha256(payload), failingTarget(bytes), ENVELOPE_CONTROL));
+      assertEquals("TARGET_PARTIAL_WRITE", partial.getMessage());
+      assertTrue(bytes.size() > 0);
+      assertEquals(0, bytes.afterFailure);
+      assertEquals(1, bytes.closes);
+      assertEquals(1, fs.opens);
+      assertEquals(1, fs.closes);
+      assertTrue(
+          Arrays.stream(partial.getSuppressed())
+              .anyMatch(e -> "TARGET_CLOSE".equals(e.getMessage())));
+
+      // 小成员将目标错误推到最终 finish，仍保留最初错误且不在 close 重写尾部。
+      byte[] tiny = new byte[] {'D', 'S', 'H', 'A', 'D', 'A', 'T', 'A'};
+      File tinySource = saveEnvelopeBytes(tiny);
+      CountingTarget tail = new CountingTarget();
+      tail.failAt = 1;
+      tail.failClose = true;
+      assertEquals(
+          "TARGET_PARTIAL_WRITE",
+          assertThrows(
+                  IOException.class,
+                  () ->
+                      PortableBackupEnvelope.write(
+                          new JvmBackupFileSystem(),
+                          tinySource,
+                          sha256(tiny),
+                          failingTarget(tail),
+                          ENVELOPE_CONTROL))
+              .getMessage());
+      assertEquals(0, tail.afterFailure);
+      assertEquals(1, tail.closes);
+
+      // 源复制后的摘要/close 失败不能通过 gzip.close 追加最终块。
+      for (boolean sourceClose : new boolean[] {false, true}) {
+        CountingFs copyFs = new CountingFs();
+        copyFs.failSourceClose = sourceClose;
+        CountingTarget target = new CountingTarget();
+        int[] atLastProgress = {0};
+        BackupControl control =
+            new BackupControl((stage, entries, count) -> atLastProgress[0] = target.size());
+        IOException changed =
+            assertThrows(
+                IOException.class,
+                () ->
+                    PortableBackupEnvelope.write(
+                        copyFs,
+                        source,
+                        sourceClose ? sha256(payload) : "0".repeat(64),
+                        target,
+                        control));
+        assertEquals(sourceClose ? "SOURCE_CLOSE" : "VERIFIED_COPY_CHANGED", changed.getMessage());
+        assertEquals(atLastProgress[0], target.size());
+        assertEquals(1, copyFs.opens);
+        assertEquals(1, copyFs.closes);
+        assertEquals(1, target.closes);
+      }
+      releaseNativeSessions(holdNativeSessions());
+    }
+  }
+
+  @Test
+  public void envelopeCancellationBeforeDuringAndAfterCloseIsNotSuccessAndDoesNotReplay()
+      throws Exception {
+    byte[] payload = v5Payload();
+    File source = saveEnvelopeBytes(payload);
+    byte[] packed = envelope(payload, false);
+    for (boolean rust : new boolean[] {false, true}) {
+      RustBackends.setEnabled(rust);
+      BackupControl before = new BackupControl(null);
+      before.cancel();
+      CountingTarget untouched = new CountingTarget();
+      CountingFs fs = new CountingFs();
+      assertThrows(
+          InterruptedIOException.class,
+          () -> PortableBackupEnvelope.write(fs, source, sha256(payload), untouched, before));
+      assertEquals(0, untouched.size());
+      assertEquals(0, untouched.closes);
+      assertEquals(0, fs.opens);
+
+      CountingTarget target = new CountingTarget();
+      BackupControl[] current = {null};
+      int[] atCancel = {0};
+      current[0] =
+          new BackupControl(
+              (stage, entries, count) -> {
+                atCancel[0] = target.size();
+                current[0].cancel();
+              });
+      assertThrows(
+          InterruptedIOException.class,
+          () -> PortableBackupEnvelope.write(fs, source, sha256(payload), target, current[0]));
+      assertEquals(atCancel[0], target.size());
+      assertEquals(1, target.closes);
+
+      BackupControl end = new BackupControl(null);
+      CountingTarget closed = new CountingTarget();
+      closed.cancelOnClose = end;
+      assertThrows(
+          InterruptedIOException.class,
+          () -> PortableBackupEnvelope.write(fs, source, sha256(payload), closed, end));
+      assertEquals(1, closed.closes);
+
+      // 取消发生在 gzip 构造首次喂入：读后立即检查，未创建 payload，不重开源。
+      CountingFs inputFs = new CountingFs();
+      BackupControl reading = new BackupControl(null);
+      inputFs.cancelDuringRead = reading;
+      File input = saveEnvelopeBytes(packed),
+          output = new File(envelopeTemp.newFolder(), "cancelled");
+      assertThrows(
+          InterruptedIOException.class,
+          () -> PortableBackupEnvelope.unwrapIfPresent(inputFs, input, output, reading));
+      assertEquals(1, inputFs.opens);
+      assertEquals(1, inputFs.closes);
+      assertFalse(output.exists());
+      BackupControl readEnd = new BackupControl(null);
+      CountingFs endFs = new CountingFs();
+      endFs.cancelAfterSourceClose = readEnd;
+      File late = new File(envelopeTemp.newFolder(), "late-cancel");
+      assertThrows(
+          InterruptedIOException.class,
+          () -> PortableBackupEnvelope.unwrapIfPresent(endFs, input, late, readEnd));
+      assertEquals(1, endFs.opens);
+      assertEquals(1, endFs.closes);
+      releaseNativeSessions(holdNativeSessions());
+    }
+  }
+
+  @Test
+  public void archiveFactoriesBorrowStreamsAndKeepUnknownOrOversizedInputOnJvm() throws Exception {
+    byte[] compressed = javaGzip(patterned(31));
+    RustBackends.setEnabled(true);
+    for (long length : new long[] {-1, RustArchiveCodec.MAX_TOTAL_BYTES + 1, Long.MAX_VALUE}) {
+      long[] handles = holdNativeSessions();
+      try {
+        try (InputStream input =
+            StrictGzipInputStream.open(new ByteArrayInputStream(compressed), length)) {
+          assertTrue(input instanceof StrictGzipInputStream);
+          assertArrayEquals(patterned(31), input.readAllBytes());
+        }
+        CountingTarget output = new CountingTarget();
+        try (OutputStream packed = RustArchiveCodec.packStream(output, length)) {
+          assertTrue(packed instanceof GZIPOutputStream);
+          packed.write(patterned(31));
+        }
+        assertEquals(0, output.closes);
+      } finally {
+        releaseNativeSessions(handles);
+      }
+    }
+    for (boolean rust : new boolean[] {false, true}) {
+      RustBackends.setEnabled(rust);
+      int[] closes = {0};
+      InputStream source =
+          new ByteArrayInputStream(compressed) {
+            @Override
+            public void close() {
+              closes[0]++;
+            }
+          };
+      try (InputStream selected = StrictGzipInputStream.open(source, compressed.length)) {
+        assertEquals(rust, selected instanceof RustGzipInputStream);
+        assertArrayEquals(patterned(31), selected.readAllBytes());
+      }
+      assertEquals(0, closes[0]);
+      source.close();
+      assertEquals(1, closes[0]);
+    }
+  }
+
+  @Test
+  public void envelopeConstructorFailureClosesTheOwnerAndNeverReopensTheSource() throws Exception {
+    // 空成员不会先产出明文，坏尾必在 native 构造泵暴露；有明文的小成员可能延迟到 read。
+    byte[] packed = javaGzip(new byte[0]);
+    packed[packed.length - 8] ^= 1;
+    File source = saveEnvelopeBytes(packed),
+        target = new File(envelopeTemp.newFolder(), "untrusted");
+    CountingFs fs = new CountingFs();
+    RustBackends.setEnabled(true);
+    assertEquals(
+        "GZIP_TRAILER",
+        assertThrows(
+                IOException.class,
+                () -> StrictGzipInputStream.open(new ByteArrayInputStream(packed), packed.length))
+            .getMessage());
+    assertEquals(
+        "GZIP_TRAILER",
+        assertThrows(
+                IOException.class,
+                () -> PortableBackupEnvelope.unwrapIfPresent(fs, source, target, ENVELOPE_CONTROL))
+            .getMessage());
+    assertFalse("原生构造在产出首块之前拒绝坏尾", target.exists());
+    assertEquals(1, fs.opens);
+    assertEquals(1, fs.closes);
+    releaseNativeSessions(holdNativeSessions());
+  }
+
+  private static void tarSize(byte[] tar, int headerAt, long size) {
+    Arrays.fill(tar, headerAt + 124, headerAt + 136, (byte) 0);
+    tar[headerAt + 124] = (byte) 0x80;
+    for (int at = headerAt + 135; at > headerAt + 124; at--) {
+      tar[at] = (byte) size;
+      size >>>= 8;
+    }
+    tarChecksum(tar, headerAt);
+  }
+
+  private static void tarChecksum(byte[] tar, int headerAt) {
+    Arrays.fill(tar, headerAt + 148, headerAt + 156, (byte) ' ');
+    long sum = 0;
+    for (int at = headerAt; at < headerAt + 512; at++) sum += tar[at] & 255;
+    byte[] checksum =
+        String.format(java.util.Locale.ROOT, "%06o\0 ", sum)
+            .getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+    System.arraycopy(checksum, 0, tar, headerAt + 148, checksum.length);
+  }
+
+  @Test
+  public void envelopeMemberLimitsLegacyRoutingAndTarOverheadKeepTheirOriginalBounds()
+      throws Exception {
+    byte[] payload = v5Payload();
+    byte[] packed = envelope(payload, false), tar = readJvm(packed).bytes;
+    byte[] largePayload = tar.clone(), largeReadme = tar.clone(), legacy = tar.clone();
+    tarSize(largePayload, 0, RustArchiveCodec.MAX_TOTAL_BYTES + 1);
+    int readmeHeader = 512 + (payload.length + 511) / 512 * 512;
+    tarSize(largeReadme, readmeHeader, 16385);
+    Arrays.fill(legacy, 0, 100, (byte) 0);
+    byte[] path = ".dsh/sessions/a".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+    System.arraycopy(path, 0, legacy, 0, path.length);
+    tarChecksum(legacy, 0);
+    for (boolean rust : new boolean[] {false, true}) {
+      assertEquals(
+          "ARCHIVE_LIMIT",
+          assertThrows(IOException.class, () -> unwrapEnvelope(javaGzip(largePayload), rust))
+              .getMessage());
+      assertEquals(
+          "ENVELOPE_README",
+          assertThrows(IOException.class, () -> unwrapEnvelope(javaGzip(largeReadme), rust))
+              .getMessage());
+      RustBackends.setEnabled(rust);
+      File old = saveEnvelopeBytes(javaGzip(legacy)),
+          target = new File(envelopeTemp.newFolder(), "old");
+      assertFalse(
+          PortableBackupEnvelope.unwrapIfPresent(
+              new JvmBackupFileSystem(), old, target, ENVELOPE_CONTROL));
+      assertFalse(target.exists());
+      CountingTarget untouched = new CountingTarget();
+      File source = saveEnvelopeBytes(payload);
+      assertEquals(
+          "ENVELOPE_DIAGNOSTICS_SIZE",
+          assertThrows(
+                  IOException.class,
+                  () ->
+                      PortableBackupEnvelope.writeUnencrypted(
+                          new JvmBackupFileSystem(),
+                          source,
+                          sha256(payload),
+                          untouched,
+                          ENVELOPE_CONTROL,
+                          new byte[65537]))
+              .getMessage());
+      assertEquals(0, untouched.size());
+    }
+    RustBackends.setEnabled(true);
+    long[] handles = holdNativeSessions();
+    try {
+      // 旧入口未知长度，四个原生会话均被占用也仍由原 JVM 路径完整验证。
+      LegacyTarReader.read(
+          new ByteArrayInputStream(packed), (member, data) -> {}, ENVELOPE_CONTROL);
+      LegacyTarReader.readTrustedAssets(
+          new ByteArrayInputStream(packed), (member, data) -> {}, ENVELOPE_CONTROL);
+      File source = saveEnvelopeBytes(payload);
+      CountingFs huge =
+          new CountingFs() {
+            @Override
+            public BackupFileSystem.Node stat(File file) throws IOException {
+              BackupFileSystem.Node real = super.stat(file);
+              return new BackupFileSystem.Node(
+                  real.type,
+                  real.key,
+                  RustArchiveCodec.MAX_TOTAL_BYTES,
+                  real.modified,
+                  real.device,
+                  real.mode);
+            }
+
+            @Override
+            public InputStream read(File file, BackupFileSystem.Node expected) throws IOException {
+              opens++;
+              throw new IOException("SOURCE_READ_REACHED");
+            }
+          };
+      CountingTarget output = new CountingTarget();
+      assertEquals(
+          "SOURCE_READ_REACHED",
+          assertThrows(
+                  IOException.class,
+                  () -> PortableBackupEnvelope.write(huge, source, "", output, ENVELOPE_CONTROL))
+              .getMessage());
+      // payload 自身恰好 MAX，但加 tar overhead 已超 ABI；必须在调用 native 前留 JVM。
+      assertEquals(255, output.toByteArray()[9] & 255);
+      assertEquals(1, huge.opens);
+      assertEquals(1, output.closes);
+    } finally {
+      releaseNativeSessions(handles);
     }
   }
 

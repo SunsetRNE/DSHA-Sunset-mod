@@ -1,5 +1,7 @@
 package com.deepseekharness.app.core;
 
+import com.deepseekharness.app.util.StopCompletion;
+import com.deepseekharness.app.util.StopOperationId;
 import java.io.IOException;
 import com.deepseekharness.app.util.WebStopDiagnostic;
 import java.util.ArrayList;
@@ -103,6 +105,62 @@ public final class WebStopCoordinator {
     if (facts.isEmpty())
       facts.add(WebStopDiagnostic.of(WebStopDiagnostic.Code.EXIT_UNCONFIRMED, ""));
     return new Result(Status.UNCONFIRMED, "WEB_PROCESS_EXIT_UNCONFIRMED", facts);
+  }
+
+  /** 平台只投影本次最终事实；没有 scope 的条目仍是未检查。 */
+  record Observation(
+      StopCompletion.Environment environment,
+      List<StopCompletion.Fact> facts,
+      boolean objectsUnchanged) {
+    Observation {
+      facts = List.copyOf(facts);
+    }
+
+    static Observation unknown() {
+      return new Observation(new StopCompletion.Environment("", "", ""), List.of(), false);
+    }
+  }
+
+  interface ObservedPorts extends Ports {
+    Observation observe() throws IOException;
+
+    void finish(Result result);
+
+    long now();
+  }
+
+  record Attempt(Result result, StopCompletion completion) {}
+
+  /** 原停止算法只执行一次；影子事实失败不改变旧结论，同步收尾失败仍使本次停止失败。 */
+  static Attempt stopObserved(StopOperationId operation, ObservedPorts ports) {
+    Result result = stop(ports);
+    StopCompletion.Finish finish = StopCompletion.Finish.SUCCEEDED;
+    try {
+      ports.finish(result);
+    } catch (RuntimeException failure) {
+      finish = StopCompletion.Finish.FAILED;
+      result =
+          new Result(
+              Status.FAILED,
+              "WEB_STOP_FAILED",
+              List.of(WebStopDiagnostic.failure(WebStopDiagnostic.Code.STOP_FAILED, failure)));
+    }
+    Observation observation;
+    try {
+      observation = ports.observe();
+    } catch (IOException | RuntimeException unknown) {
+      observation = Observation.unknown();
+    }
+    return new Attempt(
+        result,
+        new StopCompletion(
+            operation,
+            observation.environment(),
+            observation.facts(),
+            ports.now(),
+            finish,
+            observation.objectsUnchanged(),
+            result.stopped()));
   }
 
   private WebStopCoordinator() {}

@@ -52,6 +52,34 @@ public final class HarnessSessionState {
   final java.util.concurrent.CopyOnWriteArrayList<Runnable> restoreListeners =
       new java.util.concurrent.CopyOnWriteArrayList<>();
   Future<?> stopTask;
+  long stopSequence;
+  volatile com.deepseekharness.app.util.StopOperationId stopOperation;
+
+  record StopReceipt(
+      com.deepseekharness.app.util.StopOperationId operation,
+      java.util.concurrent.CompletableFuture<com.deepseekharness.app.util.StopCompletion>
+          completion) {}
+
+  volatile StopReceipt stopReceipt;
+  volatile com.deepseekharness.app.util.StopCompletion stopCompletion;
+  volatile com.deepseekharness.app.util.StopHandoff.Decision stopShadowDecision;
+
+  /** 只在原 lifecycle 锁内分配；不创建独立票据或生命周期 owner。 */
+  com.deepseekharness.app.util.StopOperationId identifyStop(long previous, long generation) {
+    if (!Thread.holdsLock(lifecycle)) throw new IllegalStateException("WEB_STOP_OWNER_LOCK");
+    var run = runs.get(previous);
+    stopOperation =
+        new com.deepseekharness.app.util.StopOperationId(
+            this,
+            ++stopSequence,
+            previous,
+            run == null ? "" : run.instanceId,
+            generation,
+            startProtection.cancellationRevision());
+    stopReceipt = new StopReceipt(stopOperation, new java.util.concurrent.CompletableFuture<>());
+    return stopOperation;
+  }
+
   WebRecovery recovery;
   StartupDiagnostics diagnostics;
   volatile String lastStopError = "";
